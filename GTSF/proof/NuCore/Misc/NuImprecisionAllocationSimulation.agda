@@ -2073,11 +2073,10 @@ weak-one-step-matched-ν↑-catchup-type-coherenceᵀ
     vV′ noV′ catchup
     eq-blame coherence
 
-weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ :
+weak-one-step-matched-ν↑-indexed-value-catchupᵀ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′ N V′ s s′ μ μ′}
     {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (wfΣ′ : StoreWf Δᴿ (rightStoreⁱ ρ)) →
   (s↑ : RevealConversion μ (suc Δᴸ)
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     zero (⇑ᵗ A) s C (⇑ᵗ B)) →
@@ -2097,33 +2096,28 @@ weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ :
   (noV′ : No• V′) →
   (catchup : LeftCatchupIndexedAllResult
     {N = N} {V′ = V′} {ρ = ρ} q) →
-  WeakOneStepIndexedOutcome
+  (vW : Value
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  (noW : No•
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  WeakOneStepIndexedResult
     {M = ν A N s}
     {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
     {A = B} {B = B′} {χ = bind A′} {ρ = ρ} pB
-weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
+weak-one-step-matched-ν↑-indexed-value-catchupᵀ
     {A = A} {A′ = A′} {B = B} {B′ = B′}
-    {s = s} {s′ = s′}
-    wfΣ′ s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-    (left-indexed-all-catchup indexed
+    s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    catchup@(left-indexed-all-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
-    with final
-weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
-    {A = A} {A′ = A′} {B = B} {B′ = B′}
-    {s = s} {s′ = s′}
-    wfΣ′ s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-    (left-indexed-all-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final))
-    | inj₁ (vW , noW) =
-  indexed-outcome-related
-    (weak-one-step-index-resultᵀ result type-eq transport coherence)
+    vW noW =
+  weak-one-step-index-resultᵀ result type-eq transport coherence
   where
   old-catchup = left-all-catchup
     (weak-indexed-all-resultᵀ indexed)
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
+    (catchupIndexedAllInvariant catchup)
 
   inner-coherence = weakIndexedTypeCoherence indexed
 
@@ -2182,6 +2176,53 @@ weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
       s↑ s′↑ pA A⇑⊑A′⇑ pB replace
       vV′ noV′ old-catchup vW noW
       inner-coherence
+
+weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ :
+  ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′ N V′ s s′ μ μ′}
+    {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  (wfΣ′ : StoreWf Δᴿ (rightStoreⁱ ρ)) →
+  (s↑ : RevealConversion μ (suc Δᴸ)
+    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+    zero (⇑ᵗ A) s C (⇑ᵗ B)) →
+  (s′↑ : RevealConversion μ′ (suc Δᴿ)
+    ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStoreⁱ ρ))
+    zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′)) →
+  (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
+  (A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ) →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  (replace : q
+    [ zero ↦ ⇑ᵗ A
+    ⊑⟨ A⇑⊑A′⇑ ⟩
+    ⇑ᵗ A′ ↤ zero ]ᴾ
+    ⊑-lift∀ᵢ pB) →
+  (vV′ : Value V′) →
+  (noV′ : No• V′) →
+  (catchup : LeftCatchupIndexedAllResult
+    {N = N} {V′ = V′} {ρ = ρ} q) →
+  WeakOneStepIndexedOutcome
+    {M = ν A N s}
+    {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
+    {A = B} {B = B′} {χ = bind A′} {ρ = ρ} pB
+weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
+    {A = A} {A′ = A′} {B = B} {B′ = B′}
+    {s = s} {s′ = s′}
+    wfΣ′ s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    (left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final))
+    with final
+weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
+    wfΣ′ s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    catchup@(left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final))
+    | inj₁ (vW , noW) =
+  indexed-outcome-related
+    (weak-one-step-matched-ν↑-indexed-value-catchupᵀ
+      s↑ s′↑ pA A⇑⊑A′⇑ pB replace
+      vV′ noV′ catchup vW noW)
 weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
     {A = A} {A′ = A′} {B = B} {B′ = B′}
     {s = s} {s′ = s′}
@@ -3450,6 +3491,130 @@ weak-one-step-matched-νcast-catchup-type-coherenceᵀ
     pB s-shape-proof s′-shape-proof source-comp target-comp compat
     vV′ noV′ catchup eq-blame coherence
 
+weak-one-step-matched-νcast-indexed-value-catchupᵀ :
+  ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′
+      s-shape s′-shape result-shape}
+    {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  (mode : CastMode μ) →
+  (seal★ : SealModeStore★ (instᵈ μ)
+    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))) →
+  (s⊑ : instᵈ μ ∣ suc Δᴸ
+    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
+    ⊢ s ∶ C ⊑ ⇑ᵗ B) →
+  (mode′ : CastMode μ′) →
+  (seal★′ : SealModeStore★ (instᵈ μ′)
+    ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ))) →
+  (s′⊑ : instᵈ μ′ ∣ suc Δᴿ
+    ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
+    ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′) →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  (s-shape-proof : widening ⊢ᶜ s ⦂ s-shape) →
+  (s′-shape-proof : widening ⊢ᶜ s′ ⦂ s′-shape) →
+  (source-comp : s-shape ； ⌊ pB ⌋ ≋ result-shape) →
+  (target-comp : ⌊ q ⌋ ； s′-shape ≋ result-shape) →
+  (compat : PairedWideningCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) s s′
+    q (⊑-lift∀ᵢ pB) s-shape s′-shape) →
+  (vV′ : Value V′) →
+  (noV′ : No• V′) →
+  (catchup : LeftCatchupIndexedAllResult
+    {N = N} {V′ = V′} {ρ = ρ} q) →
+  (vW : Value
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  (noW : No•
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  WeakOneStepIndexedResult
+    {M = ν ★ N s}
+    {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
+    {A = B} {B = B′} {χ = bind ★} {ρ = ρ} pB
+weak-one-step-matched-νcast-indexed-value-catchupᵀ
+    {q = q} mode seal★ s⊑ mode′ seal★′ s′⊑
+    pB s-shape-proof s′-shape-proof source-comp target-comp compat
+    vV′ noV′
+    catchup@(left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final))
+    vW noW =
+  weak-one-step-index-resultᵀ result type-eq transport coherence
+  where
+  old-catchup = left-all-catchup
+    (weak-indexed-all-resultᵀ indexed)
+    (catchupIndexedAllInvariant catchup)
+
+  inner-coherence = weakIndexedTypeCoherence indexed
+
+  result =
+    weak-one-step-matched-νcast-value-catchupᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑
+      pB s-shape-proof s′-shape-proof source-comp target-comp compat
+      vV′ noV′ old-catchup vW noW inner-coherence
+
+  inner = weakResult (catchupAllResult old-catchup)
+  innerAll = canonicalAllResults (catchupAllResult old-catchup)
+  first = weak-one-step-matched-νcast-frameᵀ
+    mode seal★ s⊑ mode′ seal★′ s′⊑
+    pB s-shape-proof s′-shape-proof source-comp target-comp compat
+    (catchupAllResult old-catchup) inner-coherence
+  liftρ₀ = proj₂ (lift-store-result (resultStore inner))
+  source = weak-result-source-widen-inst inner mode seal★ s⊑
+  modeˢ = proj₁ (proj₂ source)
+  sealˢ = proj₁ (proj₂ (proj₂ source))
+  source⊑ = proj₂ (proj₂ (proj₂ source))
+  target = weak-result-target-widen-inst
+    keep inner mode′ seal★′ s′⊑
+  modeᵗ′ = proj₁ (proj₂ target)
+  sealᵗ′ = proj₁ (proj₂ (proj₂ target))
+  target⊑ = proj₂ (proj₂ (proj₂ target))
+  transported-compat =
+    weak-result-transport-paired-widening-compatible-under-binderᵀ
+      inner inner-coherence compat
+  transported-source-comp =
+    imprecision-composition-shape-transport
+      refl
+      (transportShapeCoherent inner-coherence pB)
+      refl source-comp
+  transported-target-comp =
+    imprecision-composition-shape-transport
+      (transport-all-body-shape-coherent inner-coherence q)
+      refl refl target-comp
+  second = weak-one-step-matched-νcastᵀ
+    vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
+    source⊑ target⊑ (transportType inner pB)
+    (cast-shape-applyCoercionUnderTyBinders
+      (sourceChanges inner) s-shape-proof)
+    (cast-shape-applyCoercionUnderTyBinders
+      (keep ∷ targetTailChanges inner) s′-shape-proof)
+    transported-source-comp transported-target-comp
+    transported-compat liftρ₀ innerAll
+
+  type-eq = HE.≅-to-≡
+    (HE.trans
+      (subst²-to-≅
+        {P = λ S T → resultCtx result ∣ resultLeftCtx result
+          ⊢ S ⊑ T ⊣ resultRightCtx result}
+        (sourceTypeResult result)
+        (targetTypeResult result)
+        (resultType result))
+      (HE.sym (weak-one-step-compose-type-to-nested≅
+        first second pB)))
+
+  transport =
+    weak-one-step-matched-νcast-value-catchup-transportᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑
+      pB s-shape-proof s′-shape-proof source-comp target-comp compat
+      vV′ noV′ old-catchup vW noW inner-coherence
+      (weakIndexedTransport indexed)
+
+  coherence =
+    weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
+      mode seal★ s⊑ mode′ seal★′ s′⊑
+      pB s-shape-proof s′-shape-proof source-comp target-comp compat
+      vV′ noV′ old-catchup vW noW inner-coherence
+
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ :
   ∀ {Φ Δᴸ Δᴿ B B′ C C′ N V′ s s′ μ μ′
       s-shape s′-shape result-shape}
@@ -3495,93 +3660,18 @@ weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
         (left-silent-invariant refl refl) final))
     with final
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
-    {B = B} {B′ = B′} {s = s} {s′ = s′} {q = q}
     wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑
     pB s-shape-proof s′-shape-proof source-comp target-comp compat
     vV′ noV′
-    (left-indexed-all-catchup indexed
+    catchup@(left-indexed-all-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) final))
     | inj₁ (vW , noW) =
   indexed-outcome-related
-    (weak-one-step-index-resultᵀ result type-eq transport coherence)
-  where
-  old-catchup = left-all-catchup
-    (weak-indexed-all-resultᵀ indexed)
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-
-  result =
-    weak-one-step-matched-νcast-value-catchupᵀ
+    (weak-one-step-matched-νcast-indexed-value-catchupᵀ
       mode seal★ s⊑ mode′ seal★′ s′⊑
       pB s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′ old-catchup vW noW
-      (weakIndexedTypeCoherence indexed)
-
-  inner = weakResult (catchupAllResult old-catchup)
-  innerAll = canonicalAllResults (catchupAllResult old-catchup)
-  first = weak-one-step-matched-νcast-frameᵀ
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    pB s-shape-proof s′-shape-proof source-comp target-comp compat
-    (catchupAllResult old-catchup)
-    (weakIndexedTypeCoherence indexed)
-  liftρ₀ = proj₂ (lift-store-result (resultStore inner))
-  source = weak-result-source-widen-inst inner mode seal★ s⊑
-  modeˢ = proj₁ (proj₂ source)
-  sealˢ = proj₁ (proj₂ (proj₂ source))
-  source⊑ = proj₂ (proj₂ (proj₂ source))
-  target = weak-result-target-widen-inst
-    keep inner mode′ seal★′ s′⊑
-  modeᵗ′ = proj₁ (proj₂ target)
-  sealᵗ′ = proj₁ (proj₂ (proj₂ target))
-  target⊑ = proj₂ (proj₂ (proj₂ target))
-  transported-compat =
-    weak-result-transport-paired-widening-compatible-under-binderᵀ
-      inner (weakIndexedTypeCoherence indexed) compat
-  transported-source-comp =
-    imprecision-composition-shape-transport
-      refl
-      (transportShapeCoherent (weakIndexedTypeCoherence indexed) pB)
-      refl source-comp
-  transported-target-comp =
-    imprecision-composition-shape-transport
-      (transport-all-body-shape-coherent
-        (weakIndexedTypeCoherence indexed) q)
-      refl refl target-comp
-  second = weak-one-step-matched-νcastᵀ
-    vW noW vV′ noV′ modeˢ sealˢ modeᵗ′ sealᵗ′
-    source⊑ target⊑ (transportType inner pB)
-    (cast-shape-applyCoercionUnderTyBinders
-      (sourceChanges inner) s-shape-proof)
-    (cast-shape-applyCoercionUnderTyBinders
-      (keep ∷ targetTailChanges inner) s′-shape-proof)
-    transported-source-comp transported-target-comp
-    transported-compat liftρ₀ innerAll
-
-  type-eq = HE.≅-to-≡
-    (HE.trans
-      (subst²-to-≅
-        {P = λ S T → resultCtx result ∣ resultLeftCtx result
-          ⊢ S ⊑ T ⊣ resultRightCtx result}
-        (sourceTypeResult result)
-        (targetTypeResult result)
-        (resultType result))
-      (HE.sym (weak-one-step-compose-type-to-nested≅
-        first second pB)))
-
-  transport =
-    weak-one-step-matched-νcast-value-catchup-transportᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑
-      pB s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′ old-catchup vW noW
-      (weakIndexedTypeCoherence indexed)
-      (weakIndexedTransport indexed)
-
-  coherence =
-    weak-one-step-matched-νcast-value-catchup-type-coherenceᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑
-      pB s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′ old-catchup vW noW (weakIndexedTypeCoherence indexed)
+      vV′ noV′ catchup vW noW)
 weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
     {B = B} {B′ = B′} {s = s} {s′ = s′}
     wfΣ′ mode seal★ s⊑ mode′ seal★′ s′⊑

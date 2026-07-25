@@ -12,6 +12,7 @@ module
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using (Coercion; ModeEnv)
 open import Conversion using (RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -41,6 +42,8 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-source-liftνᵢ)
 
 
 WorldCoherentFinalSourceNuSourceOnlyIndexCatchupᵀ : Set₁
@@ -73,5 +76,6 @@ WorldCoherentFinalSourceNuSourceOnlyIndexCatchupᵀ =
   No• V′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ L ⊑ V′ ⦂ `∀ C ⊑ B′ ∶ νⁱ safe occ r →
+  r [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = ν A L s} {V′ = V′} {ρ = ρ} p

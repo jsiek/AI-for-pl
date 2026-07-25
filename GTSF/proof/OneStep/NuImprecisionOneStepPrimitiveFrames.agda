@@ -1,13 +1,12 @@
 module proof.OneStep.NuImprecisionOneStepPrimitiveFrames where
 
 -- File Charter:
---   * Freezes the two outcome-level primitive evaluation-context frames
---     needed by the indexed one-step dispatcher.
---   * Each wrapper consumes an already-computed inner indexed outcome, so
---     recursion remains visible in the dispatcher.
---   * Covers only the left-operand and right-operand frames for addition;
---     primitive delta, scheduling boundaries, and root blame live elsewhere.
---   * Contains exactly the two intended hole-free leaf-proof wrappers.
+--   * Owns normalized natural-number index transport for primitive frames.
+--   * Frames already-computed indexed results and outcomes, including a
+--     left-silent prefix with a relation transported in lockstep.
+--   * Covers only addition evaluation contexts; primitive delta, scheduling
+--     boundaries, and root blame live elsewhere.
+--   * Contains no recursive dispatcher, postulate, hole, or permissive option.
 
 open import Data.List using ([]; _∷_; _++_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_; idι)
@@ -39,7 +38,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-index-resultᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
-  ( WeakOneStepIndexedOutcome
+  ( LeftSilentInvariant
+  ; WeakOneStepIndexedOutcome
   ; WeakOneStepIndexedResult
   ; WeakOneStepResult
   ; WeakOneStepTransport
@@ -47,6 +47,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; canonicalIndexedResults
   ; indexed-outcome-related
   ; indexed-outcome-source-blame
+  ; left-silent-invariant
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -94,53 +95,166 @@ open import proof.Core.Properties.ReductionProperties using
   )
 
 
+target-ℕ-result :
+  ∀ (χ : StoreChange) (χs : StoreChanges) →
+  applyTys χs (applyTy χ (‵ `ℕ)) ≡ ‵ `ℕ
+target-ℕ-result χ χs =
+  trans (cong (applyTys χs) (applyTy-ℕ χ)) (applyTys-ℕ χs)
+
+
+transport-idι-to-ℕ :
+  ∀ {Φ Δᴸ Δᴿ A B}
+    (A≡ℕ : A ≡ ‵ `ℕ)
+    (B≡ℕ : B ≡ ‵ `ℕ)
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
+  subst
+    (λ T → Φ ∣ Δᴸ ⊢ ‵ `ℕ ⊑ T ⊣ Δᴿ)
+    B≡ℕ
+    (subst
+      (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
+      A≡ℕ p)
+  ≡ idι
+transport-idι-to-ℕ refl refl idι = refl
+
+
+transport-idι-from-ℕ :
+  ∀ {Φ Δᴸ Δᴿ A B}
+    (A≡ℕ : A ≡ ‵ `ℕ)
+    (B≡ℕ : B ≡ ‵ `ℕ)
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
+  subst
+    (λ T → Φ ∣ Δᴸ ⊢ A ⊑ T ⊣ Δᴿ)
+    (sym B≡ℕ)
+    (subst
+      (λ S → Φ ∣ Δᴸ ⊢ S ⊑ ‵ `ℕ ⊣ Δᴿ)
+      (sym A≡ℕ) idι)
+  ≡ p
+transport-idι-from-ℕ refl refl idι = refl
+
+
+transport-term-to-ℕᵀ :
+  ∀ {Φ Δᴸ Δᴿ A B ρ γ M M′}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+  (A≡ℕ : A ≡ ‵ `ℕ) →
+  (B≡ℕ : B ≡ ‵ `ℕ) →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+    ⊢ᴺ M ⊑ M′ ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι
+transport-term-to-ℕᵀ {p = p} A≡ℕ B≡ℕ M⊑M′ =
+  nu-term-imprecision-transport-typesᵀ
+    A≡ℕ B≡ℕ (transport-idι-to-ℕ A≡ℕ B≡ℕ p) M⊑M′
+
+
+weak-one-step-left-silent-⊕₁-transported-frameᵀ :
+  ∀ {Φ Δᴸ Δᴿ L L′ M M′}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  No• M →
+  (inner : WeakOneStepIndexedResult
+    {M = L} {N′ = L′}
+    {A = ‵ `ℕ} {B = ‵ `ℕ}
+    {χ = keep} {ρ = ρ} idι) →
+  LeftSilentInvariant (weakIndexedResult inner) →
+  let base = weakIndexedResult inner in
+  resultCtx base
+    ∣ resultLeftCtx base
+    ∣ resultRightCtx base
+    ∣ resultStore base ∣ []
+    ⊢ᴺ applyTerms (sourceChanges base) M
+      ⊑ applyTerms (targetTailChanges base) (applyTerm keep M′)
+    ⦂ applyTys (sourceChanges base) (‵ `ℕ)
+      ⊑ applyTys (targetTailChanges base) (applyTy keep (‵ `ℕ))
+    ∶ transportType base idι →
+  WeakOneStepIndexedResult
+    {M = L ⊕[ addℕ ] M}
+    {N′ = L′ ⊕[ addℕ ] M′}
+    {A = ‵ `ℕ} {B = ‵ `ℕ}
+    {χ = keep} {ρ = ρ} idι
+weak-one-step-left-silent-⊕₁-transported-frameᵀ
+    {L = L} {L′ = L′} {M = M} {M′ = M′} {ρ = ρ}
+    noM inner (left-silent-invariant refl refl) M⊑M′ =
+  weak-one-step-index-resultᵀ framed
+    (transport-idι-from-ℕ
+      source-ℕ target-ℕ (transportType base idι))
+    framed-transport framed-coherence
+  where
+  base = weakIndexedResult inner
+  source-ℕ = applyTys-ℕ (sourceChanges base)
+  target-ℕ = target-ℕ-result keep []
+
+  left-related =
+    transport-term-to-ℕᵀ source-ℕ target-ℕ
+      (canonicalIndexedResults inner)
+
+  right-related =
+    transport-term-to-ℕᵀ source-ℕ target-ℕ M⊑M′
+
+  framed :
+    WeakOneStepResult ρ
+      (L ⊕[ addℕ ] M)
+      (L′ ⊕[ addℕ ] M′)
+      (‵ `ℕ) (‵ `ℕ) keep
+  framed =
+    record
+      { sourceChanges = sourceChanges base
+      ; targetTailChanges = []
+      ; sourceResult =
+          sourceResult base ⊕[ addℕ ]
+            applyTerms (sourceChanges base) M
+      ; targetResult = targetResult base ⊕[ addℕ ] M′
+      ; resultCtx = resultCtx base
+      ; resultLeftCtx = resultLeftCtx base
+      ; resultRightCtx = resultRightCtx base
+      ; sourceCtxResult = sourceCtxResult base
+      ; targetCtxResult = targetCtxResult base
+      ; resultStore = resultStore base
+      ; resultSourceType = ‵ `ℕ
+      ; resultTargetType = ‵ `ℕ
+      ; sourceTypeResult = sym source-ℕ
+      ; targetTypeResult = sym target-ℕ
+      ; transportType = transportType base
+      ; transportAllBody = transportAllBody base
+      ; transportRightBody = transportRightBody base
+      ; transportSourceNu = transportSourceNu base
+      ; resultType = idι
+      ; sourceCatchup = ⊕₁-↠ noM (sourceCatchup base)
+      ; targetTail = ↠-refl
+      ; sourceStoreResult = sourceStoreResult base
+      ; targetStoreResult = targetStoreResult base
+      ; relatedResults = ⊕⊑⊕ᵀ left-related right-related
+      }
+
+  framed-transport : WeakOneStepTransport framed
+  framed-transport =
+    weak-step-transport
+      (transportNo•Terms (weakIndexedTransport inner))
+
+  framed-coherence : WeakOneStepTypeCoherence framed
+  framed-coherence =
+    weak-step-type-coherence
+      (transportArrowCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportAllCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+      (transportRightBodyRightReplacementCoherent
+        (weakIndexedTypeCoherence inner))
+
+
 private
-  target-ℕ-result :
-    ∀ (χ : StoreChange) (χs : StoreChanges) →
-    applyTys χs (applyTy χ (‵ `ℕ)) ≡ ‵ `ℕ
-  target-ℕ-result χ χs =
-    trans (cong (applyTys χs) (applyTy-ℕ χ)) (applyTys-ℕ χs)
-
-  transport-idι-to-ℕ :
-    ∀ {Φ Δᴸ Δᴿ A B}
-      (A≡ℕ : A ≡ ‵ `ℕ)
-      (B≡ℕ : B ≡ ‵ `ℕ)
-      (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
-    subst
-      (λ T → Φ ∣ Δᴸ ⊢ ‵ `ℕ ⊑ T ⊣ Δᴿ)
-      B≡ℕ
-      (subst
-        (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B ⊣ Δᴿ)
-        A≡ℕ p)
-    ≡ idι
-  transport-idι-to-ℕ refl refl idι = refl
-
-  transport-idι-from-ℕ :
-    ∀ {Φ Δᴸ Δᴿ A B}
-      (A≡ℕ : A ≡ ‵ `ℕ)
-      (B≡ℕ : B ≡ ‵ `ℕ)
-      (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
-    subst
-      (λ T → Φ ∣ Δᴸ ⊢ A ⊑ T ⊣ Δᴿ)
-      (sym B≡ℕ)
-      (subst
-        (λ S → Φ ∣ Δᴸ ⊢ S ⊑ ‵ `ℕ ⊣ Δᴿ)
-        (sym A≡ℕ) idι)
-    ≡ p
-  transport-idι-from-ℕ refl refl idι = refl
-
-  transport-term-to-ℕᵀ :
-    ∀ {Φ Δᴸ Δᴿ A B ρ γ M M′}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-    (A≡ℕ : A ≡ ‵ `ℕ) →
-    (B≡ℕ : B ≡ ‵ `ℕ) →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ M ⊑ M′ ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι
-  transport-term-to-ℕᵀ {p = p} A≡ℕ B≡ℕ M⊑M′ =
-    nu-term-imprecision-transport-typesᵀ
-      A≡ℕ B≡ℕ (transport-idι-to-ℕ A≡ℕ B≡ℕ p) M⊑M′
 
   ⊕₁-blame-tail :
     ∀ {L M χs} →
@@ -316,8 +430,8 @@ private
             applyTerms (sourceChanges base) L ⊕[ addℕ ]
               sourceResult base
         ; targetResult =
-            applyTerms (targetTailChanges base) (applyTerm χ L′) ⊕[ addℕ ]
-              targetResult base
+            applyTerms (targetTailChanges base)
+              (applyTerm χ L′) ⊕[ addℕ ] targetResult base
         ; resultCtx = resultCtx base
         ; resultLeftCtx = resultLeftCtx base
         ; resultRightCtx = resultRightCtx base

@@ -47,7 +47,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportType
   )
 open import proof.Core.Properties.ReductionProperties using
-  (applyTyVars)
+  (applyTyVar; applyTyVars)
 open import
   proof.Core.Properties.ConversionIndexCompatibilityProperties
   using
@@ -149,25 +149,26 @@ weak-one-step-transport-quotient-boundary-square
 transport-paired-replacement :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {M M′ : Term} {C C′ A A′ B B′ X X′ : Ty}
+    {M M′ : Term} {C C′ A A′ B B′ X X′ : Ty} {χ}
     {α β : TyVar}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
-    (inner : WeakOneStepResult ρ M M′ C C′ keep) →
+    (inner : WeakOneStepResult ρ M M′ C C′ χ) →
   WeakOneStepTypeCoherence inner →
   p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
   (pX′ : resultCtx inner ∣ resultLeftCtx inner
     ⊢ applyTys (sourceChanges inner) X
-      ⊑ applyTys (targetTailChanges inner) X′
+      ⊑ applyTys (targetTailChanges inner) (applyTy χ X′)
       ⊣ resultRightCtx inner) →
   ⌊ pX′ ⌋ ≡ ⌊ pX ⌋ →
   transportType inner p
     [ applyTyVars (sourceChanges inner) α
     ↦ applyTys (sourceChanges inner) X
     ⊑⟨ pX′ ⟩
-    applyTys (targetTailChanges inner) X′
-    ↤ applyTyVars (targetTailChanges inner) β ]ᴾ
+    applyTys (targetTailChanges inner) (applyTy χ X′)
+    ↤ applyTyVars (targetTailChanges inner)
+        (applyTyVar χ β) ]ᴾ
   transportType inner q
 transport-paired-replacement inner type-coherence replacement
     pX′ pX-shape =

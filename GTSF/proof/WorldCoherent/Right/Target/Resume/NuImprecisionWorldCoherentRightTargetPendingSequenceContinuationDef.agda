@@ -11,7 +11,7 @@ module
 --     the final canonical value relation, and returns the existing complete
 --     right-value catch-up result directly.
 --   * The explicit rank equation is discharged by
---     `target-sequence-rank-decreases` at recursive call sites.
+--     `sequence-rank-decreases` at recursive call sites.
 --   * Contains no simulation result, view, outcome, implementation,
 --     postulate, hole, permissive option, or termination bypass.
 
@@ -40,8 +40,8 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
-open import proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef using
-  (targetPendingAdministrationRank)
+open import proof.Core.Administration.NuImprecisionAdministrationMeasureDef using
+  (pendingAdministrationRank)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import
@@ -68,8 +68,8 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
       narrowing ⊢ᶜ t ⦂ t-shape →
       ⌊ q ⌋ ； t-shape ≋ ⌊ r ⌋ →
-      targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
-        suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
+      pendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
+        suc (pendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →
@@ -100,8 +100,8 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
       widening ⊢ᶜ t ⦂ t-shape →
       ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
-      targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
-        suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
+      pendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
+        suc (pendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →
@@ -133,8 +133,8 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
       widening ⊢ᶜ t ⦂ t-shape →
       ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
-      targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
-        suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
+      pendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
+        suc (pendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
         ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
       WorldCoherent ρ →

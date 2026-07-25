@@ -19,7 +19,7 @@ open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using (Term; _⟨_⟩)
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
-  ; compatible-source-inert
+  ; compatible-all
   ; compatible-target-inert-bridge
   )
 open import TermTyping using (CastMode; SealModeStore★)
@@ -48,9 +48,9 @@ paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ :
 paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
     source-inert target-inert-bridge inner view inert-d′
     cast-mode seal source-widening target-cast-mode target-seal
-    target-widening (compatible-source-inert inert-d) =
+    target-widening (compatible-all {c = d} residual) =
   source-inert inner view inert-d′ cast-mode seal source-widening
-    target-cast-mode target-seal target-widening inert-d
+    target-cast-mode target-seal target-widening (C.`∀ d)
 paired-lambda-target-closing-paired-widening-frame-compatible-cases-proofᵀ
     source-inert target-inert-bridge inner view inert-d′
     cast-mode seal source-widening target-cast-mode target-seal

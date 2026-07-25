@@ -67,8 +67,8 @@ open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (lineageStore)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef
-  using (targetPendingAdministrationRank)
+  proof.Core.Administration.NuImprecisionAdministrationMeasureDef
+  using (pendingAdministrationRank)
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
   using
@@ -103,7 +103,7 @@ WorldCoherentRightTargetPendingCastsInstResidualAccᵀ =
     {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
   (vW : Value W) →
   Acc _<_
-    (targetPendingAdministrationRank vW (inst B s ∷ cs)) →
+    (pendingAdministrationRank vW (inst B s ∷ cs)) →
   ((∃[ μ′ ] ∃[ β ] ∃[ X′ ]
       RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)
         β X′ (inst B s) (`∀ C) B

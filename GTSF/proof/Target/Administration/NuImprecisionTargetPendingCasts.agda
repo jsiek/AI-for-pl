@@ -10,7 +10,7 @@ module
 --   * Classifies the four allocation/unseal/eager plans left to the residual
 --     branch of the private accessibility-indexed worker.
 --   * Applies casts from the head outward, matching the pending-list order
---     used by `targetPendingAdministrationRank`.
+--     used by `pendingAdministrationRank`.
 --   * Contains no semantic theorem, result/view/outcome type, postulate,
 --     hole, permissive option, termination bypass, or compatibility shim.
 

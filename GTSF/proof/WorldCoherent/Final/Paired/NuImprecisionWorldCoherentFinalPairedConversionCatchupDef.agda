@@ -24,6 +24,9 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; TyCtx)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
@@ -41,6 +44,7 @@ WorldCoherentFinalPairedConversionCatchupᵀ =
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   ((Value W × No• W) ⊎ (W ≡ blame)) →
   Value V′ →

@@ -19,9 +19,18 @@ open import Data.Product using (_,_)
 
 import Coercions as C
 open import Coercions using (_∣_∣_⊢_∶_=⇒_)
+open import CastImprecisionShape using
+  (shape-tag-base; shape-untag-fun)
+open import ImprecisionComposition using
+  ( comp-id★
+  ; comp-idι-tag
+  ; comp-tag-id★
+  ; comp-tag-⇛-id★
+  )
 open import ImprecisionWf using
   ( ImpCtx
   ; id★
+  ; idι
   ; nonvar-fun
   ; tag_⇛_
   ; tagˣ
@@ -45,7 +54,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import PairedWideningCompatibility using
-  (compatible-source-inert)
+  (compatible-source-leaf; leaf-tag)
 open import QuotientedTermImprecision using
   ( cast⊒⊑ᵀ
   ; conv⊑convᵀ
@@ -156,9 +165,10 @@ nat-tagged-relation :
 nat-tagged-relation =
   conv⊑convᵀ
     (paired-widening
-      cast-tag-or-id seal★-tag-or-id nat-tag-typing
-      cast-tag-or-id seal★-tag-or-id nat-tag-typing
-      (compatible-source-inert (HNat C.!)))
+      cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
+      cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
+      comp-tag-id★ comp-idι-tag
+      (compatible-source-leaf (leaf-tag HNat)))
     (κ⊑κᵀ {n = zero})
 
 function-untag-typing :
@@ -175,6 +185,8 @@ source-target-tag-relation :
 source-target-tag-relation =
   cast⊒⊑ᵀ cast-tag-or-id seal★-tag-or-id
     function-untag-typing nat-tagged-relation G⊑★
+    shape-untag-fun
+    (comp-tag-⇛-id★ comp-id★ comp-id★)
 
 safe-gen-typing :
   C.tag-or-idᵈ ∣ Δ₀ ∣ [] ⊢ C.gen G body ∶ G ⊒ A

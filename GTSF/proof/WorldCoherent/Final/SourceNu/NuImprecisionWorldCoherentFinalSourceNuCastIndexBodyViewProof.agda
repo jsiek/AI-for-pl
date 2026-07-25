@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Proves that one-step transport of a source-only polymorphic index
 --     produces the corresponding source-only body view.
---   * Preserves the body's imprecision shape through the transported outer
---     `ν` index.
+--   * Exposes direct preservation of the body's imprecision shape through
+--     the transported outer `ν` index.
 --   * Contains no reduction, catch-up assembly, or term-imprecision
 --     construction.
 
@@ -62,6 +62,31 @@ private
   ν-shape-injective refl = refl
 
 
+transport-source-nu-body-shape :
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {M N′ : Term} {A B C D : Ty} {χ : StoreChange}
+    (result : WeakOneStepResult ρ M N′ A B χ)
+    (coherence : WeakOneStepTypeCoherence result)
+    (safe : NonVar C)
+    (occ : occurs zero C ≡ true)
+    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
+  ⌊ sourceNuBody (transportSourceNu result safe occ q) ⌋ ≡ ⌊ q ⌋
+transport-source-nu-body-shape
+    {C = C} result coherence safe occ q =
+  ν-shape-injective
+    (trans
+      (sym (cong ⌊_⌋ (sourceNuIndexEquality final-index)))
+      (trans
+        (shape-subst-source
+          (applyTys-∀ (sourceChanges result) C)
+          (transportType result (ν safe occ q)))
+        (transportShapeCoherent coherence (ν safe occ q))))
+  where
+  final-index = transportSourceNu result safe occ q
+
+
 transport-source-nu-cast-index-body-view :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -91,11 +116,4 @@ transport-source-nu-cast-index-body-view
         (sourceNuBody final-index))
 
   body-shape-eq =
-    ν-shape-injective
-      (trans
-        (sym (cong ⌊_⌋ (sourceNuIndexEquality final-index)))
-        (trans
-          (shape-subst-source
-            (applyTys-∀ (sourceChanges result) C)
-            (transportType result (ν safe occ q)))
-          (transportShapeCoherent coherence (ν safe occ q))))
+    transport-source-nu-body-shape result coherence safe occ q

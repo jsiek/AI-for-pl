@@ -233,6 +233,18 @@ private
         (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
     term-ctx-insert-no•ᵀ insert
+        (down·up⊑down·upᵀ
+          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+          L⊑L′ M⊑M′ down-square widening
+          u-shape u′-shape up-square compatible)
+        (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
+        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′))) =
+      down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        down-square widening u-shape u′-shape up-square compatible
+    term-ctx-insert-no•ᵀ insert
         (up⊑upᵀ N⊑N′ widening pA u-shape u′-shape square)
         (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
       up⊑upᵀ
@@ -461,17 +473,6 @@ private
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
       gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
-    term-ctx-insert-no•ᵀᵖ insert
-        (ordinary-down-applicationᵖᵀ
-          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ square)
-        (no•-· noL (no•-⟨⟩ noM))
-        (no•-· noL′ (no•-⟨⟩ noM′)) =
-      ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        square
     term-ctx-insert-no•ᵀᵖ insert
         (quotient-id-down-applicationᵖᵀ
           d⊒ d-shape d′⊒ d′-shape

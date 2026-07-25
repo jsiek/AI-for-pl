@@ -6,6 +6,8 @@ module
 --   * Proves exact-world terminal catch-up for paired conversions.
 --   * Handles source identities, inert conversions, and source blame.
 --   * Eliminates source unseal against an inert target by type precision.
+--   * Projects paired replacement to the right replacement required after
+--     each source identity conversion.
 --   * Imports no recursive runtime or value-catch-up dispatcher.
 
 open import Agda.Builtin.Equality using (refl)
@@ -58,6 +60,9 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   )
 open import Types using (＇_; ★; _⇒_; `∀)
+open import
+  proof.Core.Properties.NuImprecisionPairedReplacementProjection
+  using (paired-replacement-same-source→right)
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   (left-catchup-indexed-prepend-keepᵀ)
 open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport using
@@ -99,7 +104,7 @@ source-unseal-target-inert-impossible
 world-coherent-final-paired-conversion-catchup-proofᵀ :
   WorldCoherentFinalPairedConversionCatchupᵀ
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₂ refl) vV′ noV′ inert-c′
+    coherent exclusive unique wfL (inj₂ refl) vV′ noV′ inert-c′
     conversion W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prepend-keepᵀ
@@ -108,92 +113,116 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
         prefix-reflⁱ (no•-⟨⟩ noV′)
         (blame⊑ᵀ target⊢)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   target⊢ = nu-term-imprecision-target-typing
     (conv⊑convᵀ (paired-conversion conversion) W⊑V′)
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-reveal corr (reveal-id-var hY ok) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-reveal corr (reveal-id-var hY ok) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↑ᵀ target W⊑V′ _))
+      (⊑conv↑ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-reveal corr reveal-id-base target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-reveal corr reveal-id-base target replacement) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↑ᵀ target W⊑V′ _))
+      (⊑conv↑ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-reveal corr reveal-id-★ target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-reveal corr reveal-id-★ target replacement) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↑ᵀ target W⊑V′ _))
+      (⊑conv↑ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    {p = p} coherent exclusive wfL (inj₁ (vW , noW))
+    {p = p} coherent exclusive unique wfL (inj₁ (vW , noW))
     vV′ noV′ inert-c′
-    (paired-reveal corr (reveal-unseal hX α∈Σ ok) target) W⊑V′ =
+    (paired-reveal corr
+      (reveal-unseal hX α∈Σ ok) target replacement)
+    W⊑V′ =
   ⊥-elim (source-unseal-target-inert-impossible inert-c′ target p)
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    conversion@(paired-reveal corr (reveal-fun s↓ t↑) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    conversion@(paired-reveal
+      corr (reveal-fun s↓ t↑) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ _ ↦ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    conversion@(paired-reveal corr (reveal-all s↑) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    conversion@(paired-reveal
+      corr (reveal-all s↑) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ `∀ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-conceal corr (conceal-id-var hY ok) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-conceal corr (conceal-id-var hY ok) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↓ᵀ target W⊑V′ _))
+      (⊑conv↓ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-conceal corr conceal-id-base target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-conceal corr conceal-id-base target replacement) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↓ᵀ target W⊑V′ _))
+      (⊑conv↓ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    (paired-conceal corr conceal-id-★ target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    (paired-conceal corr conceal-id-★ target replacement) W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-one-keep-valueᵀ
       (pure-step (β-id vW)) vW noW
-      (⊑conv↓ᵀ target W⊑V′ _))
+      (⊑conv↓ᵀ target W⊑V′ _
+        (paired-replacement-same-source→right replacement)))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    conversion@(paired-conceal corr (conceal-seal hX α∈Σ ok) target)
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    conversion@(paired-conceal
+      corr (conceal-seal hX α∈Σ ok) target replacement)
     W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
@@ -201,24 +230,30 @@ world-coherent-final-paired-conversion-catchup-proofᵀ
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    conversion@(paired-conceal corr (conceal-fun s↑ t↓) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    conversion@(paired-conceal
+      corr (conceal-fun s↑ t↓) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ _ ↦ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-final-paired-conversion-catchup-proofᵀ
-    coherent exclusive wfL (inj₁ (vW , noW)) vV′ noV′ inert-c′
-    conversion@(paired-conceal corr (conceal-all s↓) target) W⊑V′ =
+    coherent exclusive unique wfL
+    (inj₁ (vW , noW)) vV′ noV′ inert-c′
+    conversion@(paired-conceal
+      corr (conceal-all s↓) target replacement)
+    W⊑V′ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix-reflⁱ (ok-no (no•-⟨⟩ noW)) (vW ⟨ `∀ _ ⟩)
       (no•-⟨⟩ noV′)
       (conv⊑convᵀ (paired-conversion conversion) W⊑V′))
     (weak-step-store-lineage _ rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL

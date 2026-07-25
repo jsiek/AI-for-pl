@@ -50,10 +50,10 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
   ; gen⊑groundᵀ
-  ; ordinary-down-applicationᵖᵀ
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
   ; up⊑upᵀ
@@ -82,6 +82,8 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
+open import proof.Core.Properties.NuTermProperties using
+  (substˣᵐ-preserves-Value)
 open import Store using (StoreIncl-cons)
 open import TermTyping using (SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using
@@ -173,6 +175,34 @@ mutual
         environment frame prefix noL noL′ fun)
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ arg)
+
+  quotiented-parallel-term-substitution-framed-proofᵀ
+      environment frame prefix
+      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
+      (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
+      (down·up⊑down·upᵀ
+        mode seal★ source source-shape
+        mode′ seal★′ target target-shape
+        function argument down-square widening
+        up-shape up′-shape up-square compatible) =
+    down·up⊑down·upᵀ
+      mode
+      (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
+      (narrow-weaken ≤-refl
+        (leftStoreⁱ-prefix-inclusion prefix) source)
+      source-shape
+      mode′
+      (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
+      (narrow-weaken ≤-refl
+        (rightStoreⁱ-prefix-inclusion prefix) target)
+      target-shape
+      (quotiented-parallel-term-substitution-framed-proofᵀ
+        environment frame prefix noL noL′ function)
+      (quotiented-parallel-term-substitution-framed-proofᵀ
+        environment frame prefix noM noM′ argument)
+      down-square
+      (quotient-widening-pair-prefix-proofᵀ prefix widening)
+      up-shape up′-shape up-square compatible
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-⟨⟩ noN) (no•-⟨⟩ noN′)
@@ -632,30 +662,6 @@ mutual
         environment frame prefix noM noM′ body)
       q square
 
-  quotiented-parallel-term-substitution-quotient-proofᵀ
-      environment frame prefix
-      (no•-· noL (no•-⟨⟩ noM))
-      (no•-· noL′ (no•-⟨⟩ noM′))
-      (ordinary-down-applicationᵖᵀ
-        mode seal★ source source-shape
-        mode′ seal★′ target target-shape
-        function argument square) =
-    ordinary-down-applicationᵖᵀ
-      mode
-      (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-      (narrow-weaken ≤-refl
-        (leftStoreⁱ-prefix-inclusion prefix) source)
-      source-shape
-      mode′
-      (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-      (narrow-weaken ≤-refl
-        (rightStoreⁱ-prefix-inclusion prefix) target)
-      target-shape
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noL noL′ function)
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noM noM′ argument)
-      square
   quotiented-parallel-term-substitution-quotient-proofᵀ
       environment frame prefix
       (no•-· noL (no•-⟨⟩ noM))

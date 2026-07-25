@@ -14,6 +14,7 @@ open import Conversion using
   ; reveal-unseal
   ; weaken-reveal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (suc)
@@ -70,8 +71,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-reveal-conversions
-  ; subst²-to-≅
+  ( subst²-to-≅
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-index-resultᵀ
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
@@ -103,6 +103,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetResult
   ; targetTypeResult
   ; transportType
+  ; transportLeftReplacementCoherent
   ; weak-indexed-result
   ; weakIndexedResult
   ; weakIndexedTransport
@@ -129,10 +130,13 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof using
   (weak-one-step-prepend-left-silent-store-lineageᵀ)
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using (apply-reveal-conversions-exact)
 open import proof.DGG.Core.NuProgress using
   (SealView; canonical-＇; sv-seal)
 open import proof.Core.Properties.ReductionProperties using
-  (applyCoercions)
+  (applyCoercions; applyTyVars)
 open import TermTyping using (forget; _∣_∣_⊢_⦂_)
 open import Types using
   (Store; Ty; TyCtx; TyVar; ＇_; ⇑ᵗ)
@@ -146,40 +150,48 @@ result-reveal-conversionᵀ :
     {M = M} {N′ = V′} {χ = χ} {ρ = ρ} p) →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
   let inner = weakIndexedResult indexed in
-  ∃[ μ′ ] ∃[ α′ ] ∃[ X′ ]
+  ∃[ μ′ ]
     RevealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
 result-reveal-conversionᵀ {Δᴸ = Δᴸ} {A = A} {B = B}
-    {c = c} indexed c↑
-    with apply-reveal-conversions
+    {c = c} {α = α} {X = X} indexed c↑
+    with apply-reveal-conversions-exact
       {χs = sourceChanges (weakIndexedResult indexed)} c↑
 result-reveal-conversionᵀ {Δᴸ = Δᴸ} {A = A} {B = B}
-    {c = c} indexed c↑
-    | μ′ , α′ , X′ , c′↑ =
-  μ′ , α′ , X′ , final-conversion
+    {c = c} {α = α} {X = X} indexed c↑
+    | μ′ , c′↑ =
+  μ′ , final-conversion
   where
   inner = weakIndexedResult indexed
 
   final-conversion :
     RevealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
   final-conversion =
     subst
       (λ Δ → RevealConversion μ′ Δ
-        (leftStoreⁱ (resultStore inner)) α′ X′
+        (leftStoreⁱ (resultStore inner))
+        (applyTyVars (sourceChanges inner) α)
+        (applyTys (sourceChanges inner) X)
         (applyCoercions (sourceChanges inner) c)
         (applyTys (sourceChanges inner) A)
         (applyTys (sourceChanges inner) B))
       (sym (sourceCtxResult inner))
       (subst
         (λ Σ → RevealConversion μ′
-          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ α′ X′
+          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ
+          (applyTyVars (sourceChanges inner) α)
+          (applyTys (sourceChanges inner) X)
           (applyCoercions (sourceChanges inner) c)
           (applyTys (sourceChanges inner) A)
           (applyTys (sourceChanges inner) B))
@@ -291,8 +303,8 @@ world-coherent-source-unseal-catchup-proofᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
-    q
+      coherent exclusive unique wfL)
+    q replacement
     with result-reveal-conversionᵀ indexed
       (weaken-reveal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) c↑)
@@ -306,9 +318,9 @@ world-coherent-source-unseal-catchup-proofᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+      coherent exclusive unique wfL)
+    q replacement
+    | μ′ , final-conversion
     | applied-unseal coercion-eq source-eq target-eq
     with final
 world-coherent-source-unseal-catchup-proofᵀ
@@ -319,9 +331,9 @@ world-coherent-source-unseal-catchup-proofᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+      coherent exclusive unique wfL)
+    q replacement
+    | μ′ , final-conversion
     | applied-unseal coercion-eq source-eq target-eq
     | inj₁ (vS , noS)
     with canonical-applied-var source-eq vS
@@ -335,9 +347,9 @@ world-coherent-source-unseal-catchup-proofᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+      coherent exclusive unique wfL)
+    q replacement
+    | μ′ , final-conversion
     | applied-unseal coercion-eq source-eq target-eq
     | inj₁ (vS , noS)
     | sv-seal {W = W} {A = Y} vW refl =
@@ -348,13 +360,15 @@ world-coherent-source-unseal-catchup-proofᵀ
       (left-catchup-invariant
         (left-silent-invariant refl refl)
         (inj₁ (vW , seal-no•⁻¹ noS))))
-    combined-lineage coherent exclusive wfL
+    combined-lineage coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
   final-relation =
     conv↑⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -445,9 +459,9 @@ world-coherent-source-unseal-catchup-proofᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+      coherent exclusive unique wfL)
+    q replacement
+    | μ′ , final-conversion
     | applied-unseal coercion-eq source-eq target-eq
     | inj₂ refl =
   world-coherent-left-indexed-catchup
@@ -458,13 +472,15 @@ world-coherent-source-unseal-catchup-proofᵀ
       (lineageStore terminal-combined-lineage)
       (lineageEmbedding terminal-combined-lineage)
       (lineagePrefix terminal-combined-lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   inner = weakIndexedResult indexed
 
   final-relation =
     conv↑⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 

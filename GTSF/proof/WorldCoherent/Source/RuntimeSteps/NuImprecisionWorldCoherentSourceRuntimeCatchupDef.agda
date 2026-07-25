@@ -9,6 +9,7 @@ module proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceR
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -128,6 +129,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+      p [ α ↦ X ]ᴸ q →
       WorldCoherentLeftCatchupIndexedResult
         {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
 
@@ -144,6 +146,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
       WorldCoherentLeftCatchupIndexedResult
         {N = N} {V′ = V′} {ρ = ρ⁺} p →
       (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+      q [ α ↦ X ]ᴸ p →
       WorldCoherentLeftCatchupIndexedResult
         {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
 

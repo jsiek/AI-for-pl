@@ -5,16 +5,25 @@ module proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceP
 --     terminal paired-cast catch-up.
 --   * Frames both casts without changing the final world, contexts, or
 --     source/target change lists.
+--   * Carries an independent runtime sibling through a full exact-final
+--     caught-result/sibling continuation.
 --   * Contains no StoreCorresponds transport or terminal cast semantics.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Coercions using (Coercion; Inert)
 open import Data.List using ([])
-open import Data.Product using (_,_; _×_)
+open import Data.Product using (_,_; _×_; Σ-syntax)
 open import Data.Sum using (inj₁; inj₂; _⊎_)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_)
+  (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
-  (applyCoercion; applyTy; applyTys; keep)
+  ( applyCoercion
+  ; applyTerm
+  ; applyTerms
+  ; applyTy
+  ; applyTys
+  ; keep
+  )
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using
   ( No•
@@ -28,10 +37,12 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( conv⊑convᵀ
+  ( PairedCast
+  ; StoreImpPrefix
+  ; conv⊑convᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import Types using (Ty)
+open import Types using (Ty; TyCtx)
 open import proof.Left.SilentTransport.NuImprecisionLeftSilentPairedCastTransportDef using
   (LeftSilentPairedCastTransportᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -89,15 +100,29 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition using
   (world-coherent-left-catchup-indexed-resume-silentᵀ)
 open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupRuntimeSiblingComposition
+  using
+  (world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ)
+open import
   proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedCastCatchupDef using
   (WorldCoherentFinalPairedCastCatchupᵀ)
+open import
+  proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedCastRuntimeSiblingCatchupDef
+  using (WorldCoherentFinalPairedCastRuntimeSiblingCatchupᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
-  (world-coherent-left-indexed-catchup)
+  ( WorldCoherentLeftCatchupIndexedResult
+  ; worldCatchupResult
+  ; world-coherent-left-indexed-catchup
+  )
 open import
   proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourcePairedCastCatchupDef using
   (WorldCoherentSourcePairedCastCatchupᵀ)
 open import proof.Core.Properties.ReductionProperties using
-  (applyCoercions; cast-↠)
+  ( applyCoercions
+  ; applyTerms-preserves-No•
+  ; applyTerms-preserves-RuntimeOK
+  ; cast-↠
+  )
 
 
 weak-one-step-paired-cast-frameᵀ :
@@ -173,7 +198,7 @@ world-coherent-source-paired-cast-catchup-proofᵀ
       (left-indexed-catchup indexed
         (left-catchup-invariant
           silent@(left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage second
   where
@@ -222,6 +247,126 @@ world-coherent-source-paired-cast-catchup-proofᵀ
       (ok-⟨⟩ (terminal-runtime final))
 
   second =
-    final-catchup coherent exclusive wfL final
+    final-catchup coherent exclusive unique wfL final
       vV′ noV′ inert-c′ final-paired
       (canonicalIndexedResults indexed)
+
+
+world-coherent-source-paired-cast-runtime-sibling-catchup-proofᵀ :
+  LeftSilentPairedCastTransportᵀ →
+  WorldCoherentFinalPairedCastRuntimeSiblingCatchupᵀ →
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+    {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
+    {c c′ : Coercion}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+    {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
+  StoreImpPrefix ρ₀ ρ⁺ →
+  PairedCast Φ Δᴸ Δᴿ ρ₀
+    c c′ {A} {A′} {B} {B′} p q →
+  Value V′ →
+  No• V′ →
+  Inert c′ →
+  No• R →
+  RuntimeOK R′ →
+  (inner :
+    WorldCoherentLeftCatchupIndexedResult
+      {N = N} {V′ = V′} {ρ = ρ⁺} p) →
+  (let result =
+         weakIndexedResult
+           (catchupIndexedResult (worldCatchupResult inner))
+   in
+   resultCtx result
+     ∣ resultLeftCtx result
+     ∣ resultRightCtx result
+     ∣ resultStore result ∣ []
+     ⊢ᴺ applyTerms (sourceChanges result) R
+       ⊑ applyTerms (targetTailChanges result) (applyTerm keep R′)
+     ⦂ applyTys (sourceChanges result) E
+       ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+     ∶ transportType result r) →
+  Σ[ caught ∈
+    WorldCoherentLeftCatchupIndexedResult
+      {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q ]
+    let result =
+          weakIndexedResult
+            (catchupIndexedResult (worldCatchupResult caught))
+    in
+    resultCtx result
+      ∣ resultLeftCtx result
+      ∣ resultRightCtx result
+      ∣ resultStore result ∣ []
+      ⊢ᴺ applyTerms (sourceChanges result) R
+        ⊑ applyTerms (targetTailChanges result) (applyTerm keep R′)
+      ⦂ applyTys (sourceChanges result) E
+        ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+      ∶ transportType result r
+world-coherent-source-paired-cast-runtime-sibling-catchup-proofᵀ
+    transport-paired final-catchup
+    {R = R} {R′ = R′} {E = E} {E′ = E′} {r = r}
+    prefix paired vV′ noV′ inert-c′ noR okR′
+    (world-coherent-left-indexed-catchup
+      (left-indexed-catchup indexed
+        (left-catchup-invariant
+          silent@(left-silent-invariant refl refl) final))
+      lineage coherent exclusive unique wfL)
+    inner-sibling =
+  world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ
+    first-silent first-lineage second
+  where
+  inner = weakIndexedResult indexed
+
+  final-paired =
+    transport-paired prefix inner silent
+      (weakIndexedTypeCoherence indexed) lineage coherent paired
+
+  final-relation =
+    conv⊑convᵀ final-paired (canonicalIndexedResults indexed)
+
+  first = weak-one-step-paired-cast-frameᵀ inner final-relation
+
+  first-lineage =
+    weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage)
+
+  first-indexed =
+    weak-indexed-result first (relatedResults first)
+      (weak-step-transport
+        (transportNo•Terms (weakIndexedTransport indexed)))
+      (weak-step-type-coherence
+        (transportArrowCoherent (weakIndexedTypeCoherence indexed))
+        (transportAllCoherent (weakIndexedTypeCoherence indexed))
+        (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+        (transportRightBodyShapeCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportLeftReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportRightReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportPairedReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportAllBodyPairedReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportSourceNuBodyLeftReplacementCoherent
+          (weakIndexedTypeCoherence indexed))
+        (transportRightBodyRightReplacementCoherent
+          (weakIndexedTypeCoherence indexed)))
+
+  first-silent =
+    left-silent-indexed
+      first-indexed
+      (left-silent-invariant refl refl)
+      (ok-⟨⟩ (terminal-runtime final))
+
+  second =
+    final-catchup
+      coherent exclusive unique wfL final
+      vV′ noV′ inert-c′ final-paired
+      (canonicalIndexedResults indexed)
+      (applyTerms-preserves-No• (sourceChanges inner) noR)
+      (applyTerms-preserves-RuntimeOK
+        (targetTailChanges inner) okR′)
+      inner-sibling

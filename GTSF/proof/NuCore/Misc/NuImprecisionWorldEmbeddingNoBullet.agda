@@ -11,7 +11,7 @@ module proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet where
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using
-  (cong; sym; trans)
+  (cong; refl; sym; trans)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuTermImprecision using (CtxImp; StoreImp)
@@ -38,10 +38,10 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; down⊑downᵀ
   ; gen⊑groundᵀ
   ; gen-down⊑gen-downᵀ
-  ; ordinary-down-applicationᵖᵀ
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
   ; up⊑upᵀ
@@ -96,6 +96,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-embedding-cast-renamer
   ; left-narrowing-rel-embed-mode
   ; left-seal-rel-embed
+  ; paired-widening-compatible-rename²ᵢ
+  ; rel-world-quotient-widening-pair-embed
   ; rel-world-gen-down-embedᵀ
   ; rel-world-gen⊑ground-embedᵀ
   ; rel-world-up⊑up-embedᵀ
@@ -123,7 +125,11 @@ open import proof.Core.Permutation.ForallPermutationProperties using
   (⊑ᵖ-rename²ᵢ)
 open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
-  using (cast-shape-rename)
+  using
+  ( cast-shape-rename
+  ; imprecision-composition-shape-transport
+  ; shape-rename
+  )
 open import
   proof.Core.Properties.NuImprecisionQuotientBoundaryProperties
   using
@@ -189,6 +195,38 @@ mutual
     ·⊑·ᵀ
       (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
       (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
+  rel-world-embed-no•ᵀ
+      {τ = τ} {σ = σ} {assm = assm}
+      {hτ = hτ} {hσ = hσ} emb
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square widening
+        u-shape u′-shape up-square compatible)
+      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
+      (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′))) =
+    down·up⊑down·upᵀ
+      (CastModeRenamer.target-mode
+        (left-embedding-cast-renamer emb) mode)
+      (left-seal-rel-embed emb mode seal★)
+      (left-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (left-embedding-cast-renamer emb) mode) d⊒)
+      (cast-shape-rename τ d-shape)
+      (CastModeRenamer.target-mode
+        (right-embedding-cast-renamer emb) mode′)
+      (right-seal-rel-embed emb mode′ seal★′)
+      (right-narrowing-rel-embed-mode emb
+        (CastModeRenamer.target-rename
+          (right-embedding-cast-renamer emb) mode′) d′⊒)
+      (cast-shape-rename σ d′-shape)
+      (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
+      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
+      (quotient-boundary-square-rename² down-square)
+      (rel-world-quotient-widening-pair-embed emb widening)
+      (cast-shape-rename τ u-shape)
+      (cast-shape-rename σ u′-shape)
+      (quotient-boundary-square-rename² up-square)
+      (paired-widening-compatible-rename²ᵢ hτ hσ compatible)
   rel-world-embed-no•ᵀ emb
       (up⊑upᵀ N⊑N′ widening pA u-shape u′-shape square)
       (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
@@ -391,31 +429,6 @@ mutual
     rel-world-gen-down-embedᵀ
       emb d⊒ d-shape d′⊒ d′-shape
       (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′) q square
-  rel-world-embed-no•ᵀᵖ {τ = τ} {σ = σ} emb
-      (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ square)
-      (no•-· noL (no•-⟨⟩ noM))
-      (no•-· noL′ (no•-⟨⟩ noM′)) =
-    ordinary-down-applicationᵖᵀ
-      (CastModeRenamer.target-mode
-        (left-embedding-cast-renamer emb) mode)
-      (left-seal-rel-embed emb mode seal★)
-      (left-narrowing-rel-embed-mode emb
-        (CastModeRenamer.target-rename
-          (left-embedding-cast-renamer emb) mode) d⊒)
-      (cast-shape-rename τ d-shape)
-      (CastModeRenamer.target-mode
-        (right-embedding-cast-renamer emb) mode′)
-      (right-seal-rel-embed emb mode′ seal★′)
-      (right-narrowing-rel-embed-mode emb
-        (CastModeRenamer.target-rename
-          (right-embedding-cast-renamer emb) mode′) d′⊒)
-      (cast-shape-rename σ d′-shape)
-      (rel-world-embed-no•ᵀ emb L⊑L′ noL noL′)
-      (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-      (quotient-boundary-square-rename² square)
   rel-world-embed-no•ᵀᵖ {τ = τ} {σ = σ} emb
       (quotient-id-down-applicationᵖᵀ {qF = qF}
         d⊒ d-shape d′⊒ d′-shape

@@ -177,7 +177,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     {A = A} {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
     coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
-    vL noL vV′ noV′ L⊑V′ =
+    vL noL vV′ noV′ L⊑V′ replacement =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     allocation-silent allocation-lineage cast-catchup
   where
@@ -216,7 +216,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
 
   cast-catchup =
     reveal-catchup prefix-reflⁱ allocated-reveal
-      vV′ noV′ bullet-result (⊑-source-liftνᵢ p)
+      vV′ noV′ bullet-result (⊑-source-liftνᵢ p) replacement
 
   allocation-result :
     WeakOneStepResult ρ (ν A L s) V′ B B′ keep
@@ -246,14 +246,14 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
       ; sourceStoreResult = allocated-store-eq
       ; targetStoreResult = rightStoreⁱ-lift-left liftρ
       ; relatedResults = conv↑⊑ᵀ allocated-reveal allocated-bullet
-          (⊑-source-liftνᵢ p)
+          (⊑-source-liftνᵢ p) replacement
       }
 
   allocation-indexed : WeakOneStepIndexedResult p
   allocation-indexed =
     weak-indexed-result allocation-result
       (conv↑⊑ᵀ allocated-reveal allocated-bullet
-        (⊑-source-liftνᵢ p))
+        (⊑-source-liftνᵢ p) replacement)
       (weak-step-transport
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))

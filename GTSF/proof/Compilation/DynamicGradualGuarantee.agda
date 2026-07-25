@@ -26,7 +26,7 @@ open import NuStore using (StoreWf; at)
 open import NarrowWiden
 open import TermNarrowing
 open import proof.Core.Properties.CoercionProperties using (coercion-wf)
-open import proof.Catchup.Core.Catchup using (catchup-lemma; runtime-⇑ᵗᵐ)
+open import proof.Catchup.Core.Catchup using (catchup-lemma)
 open import proof.Catchup.Core.CatchupStore using
   ( combineStoreNrw
   ; combineStoreNrw-empty-⊒ˢ
@@ -43,6 +43,7 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyStores-++
   ; applyTerms-const
   ; applyTerms-preserves-No•
+  ; applyTerms-preserves-RuntimeOK
   ; applyTerms-preserves-Value
   ; applyTys-ℕ
   ; applyTys-ℕ-applyTys
@@ -66,21 +67,6 @@ runtime-·₂-any :
 runtime-·₂-any (ok-no (no•-· noL noM)) = ok-no noM
 runtime-·₂-any (ok-·₁ okL noM) = ok-no noM
 runtime-·₂-any (ok-·₂ vL noL okM) = okM
-
-applyTerm-preserves-RuntimeOK :
-  ∀ χ {M} →
-  RuntimeOK M →
-  RuntimeOK (applyTerm χ M)
-applyTerm-preserves-RuntimeOK keep okM = okM
-applyTerm-preserves-RuntimeOK (bind A) okM = runtime-⇑ᵗᵐ okM
-
-applyTerms-preserves-RuntimeOK :
-  ∀ χs {M} →
-  RuntimeOK M →
-  RuntimeOK (applyTerms χs M)
-applyTerms-preserves-RuntimeOK [] okM = okM
-applyTerms-preserves-RuntimeOK (χ ∷ χs) okM =
-  applyTerms-preserves-RuntimeOK χs (applyTerm-preserves-RuntimeOK χ okM)
 
 runtime-⊕₂-any :
   ∀ {L op M} →

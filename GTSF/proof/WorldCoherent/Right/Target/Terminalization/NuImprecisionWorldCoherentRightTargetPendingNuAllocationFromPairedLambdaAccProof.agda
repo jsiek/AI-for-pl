@@ -46,9 +46,9 @@ open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
   using (assumption-membership-unique→precision-index-unique)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef
+  proof.Core.Administration.NuImprecisionAdministrationMeasureDef
   using
-  (TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ)
+  (LambdaShiftedAllocationContinuationRankDecreaseᵀ)
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
   using (applyTargetPendingCasts)
@@ -97,7 +97,7 @@ world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proof�
   WorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixᵀ →
   WorldCoherentRightTargetPendingAllocationContinuationContextᵀ →
   WorldCoherentRightTargetPendingCastsAccᵀ →
-  TargetPairedLambdaRightAllocationContinuationRankDecreaseᵀ →
+  LambdaShiftedAllocationContinuationRankDecreaseᵀ →
   WorldCoherentRightTargetPendingNuAllocationFromPairedLambdaAccᵀ
 world-coherent-right-target-pending-nu-allocation-from-paired-lambda-acc-proofᵀ
     prefix continuation pending-worker rank-decrease

@@ -65,7 +65,7 @@ import
 import
   proof.Right.Core.NuImprecisionRightAllocationContextSeed
 import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureLemma
+  proof.Core.Administration.NuImprecisionAdministrationMeasureLemma
 import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
 import

@@ -1,38 +1,30 @@
 module proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCatchupProof where
 
 -- File Charter:
---   * Assembles exact-final ordinary source-`ν` catch-up by the two possible
---     inner universal precision indices.
---   * Keeps source-only allocation and paired-index semantics as explicit
---     whole theorem dependencies.
+--   * Assembles exact-final ordinary source-`ν` catch-up from the preserved
+--     source-`ν` index view.
+--   * Keeps source-only allocation as an explicit whole theorem dependency.
 --   * Contains no allocation implementation, recursive dispatcher, or
 --     permissive option.
 
-open import ImprecisionWf using (∀ⁱ_) renaming (ν to νⁱ)
+open import Agda.Builtin.Equality using (refl)
 open import proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCatchupDef using
   (WorldCoherentFinalSourceNuCatchupᵀ)
 open import
-  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuPairedIndexCatchupDef using
-  (WorldCoherentFinalSourceNuPairedIndexCatchupᵀ)
-open import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupDef using
   (WorldCoherentFinalSourceNuSourceOnlyIndexCatchupᵀ)
+open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
+  (SourceNuIndex; source-nu-index)
 
 
 world-coherent-final-source-ν-catchup-proofᵀ :
   WorldCoherentFinalSourceNuSourceOnlyIndexCatchupᵀ →
-  WorldCoherentFinalSourceNuPairedIndexCatchupᵀ →
   WorldCoherentFinalSourceNuCatchupᵀ
 world-coherent-final-source-ν-catchup-proofᵀ
-    source-only paired {q = νⁱ safe occ r}
+    source-only
+    (source-nu-index safe occ r refl) replacement
     coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ =
   source-only {{safe = safe}}
     coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
-    vL noL vV′ noV′ L⊑V′
-world-coherent-final-source-ν-catchup-proofᵀ
-    source-only paired {q = ∀ⁱ r}
-    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
-    vL noL vV′ noV′ L⊑V′ =
-  paired coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
-    vL noL vV′ noV′ L⊑V′
+    vL noL vV′ noV′ L⊑V′ replacement

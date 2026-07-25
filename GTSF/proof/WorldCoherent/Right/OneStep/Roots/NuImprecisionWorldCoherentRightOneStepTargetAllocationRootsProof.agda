@@ -18,9 +18,8 @@ open import ConversionIndexCompatibility using
   (_[_↦_]ᴿ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
-open import Data.Product using (_,_; proj₁; proj₂)
+open import Data.Product using (_,_; proj₂)
 open import Data.Sum using (inj₁; inj₂)
-import Relation.Binary.HeterogeneousEquality as HE
 
 open import ImprecisionComposition using
   ( ImprecisionShape
@@ -39,7 +38,6 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   ( bind
   ; blame-ν
-  ; keep
   ; _—→[_]_
   ; ν-step
   ; ↠-refl
@@ -55,14 +53,10 @@ open import NuTermImprecision using
 open import NuTerms using
   ( RuntimeOK
   ; Term
-  ; blame
   ; no•-ν
   ; ok-no
   ; ok-ν
   ; ν
-  ; ⇑ᵗᵐ
-  ; _•
-  ; _⟨_⟩
   )
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
@@ -87,36 +81,22 @@ open import proof.Core.Properties.ReductionProperties using (ν-↠; ↠-trans)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   (imprecision-composition-shape-transport; shape-target-lift-rightᵢ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( weak-indexed-all-resultᵀ
-  ; weak-one-step-index-resultᵀ
-  )
+  (weak-one-step-index-resultᵀ)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
-  ( LeftCatchupIndexedResult
-  ; WeakOneStepIndexedOutcome
-  ; WeakOneStepIndexedResult
-  ; catchupIndexedInvariant
-  ; catchupIndexedResult
-  ; indexed-outcome-related
-  ; indexed-outcome-source-blame
-  ; left-all-catchup
+  ( WeakOneStepIndexedResult
   ; left-catchup-invariant
   ; left-indexed-all-catchup
   ; left-indexed-catchup
   ; left-silent-invariant
-  ; relatedResults
   ; resultStore
   ; sourceCatchup
-  ; sourceIsValueOrBlame
   ; weakIndexedResult
-  ; weakIndexedTypeCoherence
   )
 open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
-  ( weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
-  ; weak-one-step-matched-ν↑-value-catchupᵀ
-  ; weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
-  ; weak-one-step-matched-νcast-value-catchupᵀ
+  ( weak-one-step-matched-ν↑-indexed-value-catchupᵀ
+  ; weak-one-step-matched-νcast-indexed-value-catchupᵀ
   ; weak-one-step-right-ν↑-type-coherenceᵀ
   ; weak-one-step-right-ν↑-transportᵀ
   ; weak-one-step-right-ν↑ᵀ
@@ -171,7 +151,6 @@ open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
-  ; WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
   ; world-indexed-outcome-related
   ; world-indexed-outcome-source-blame
@@ -269,23 +248,7 @@ matched-nu-allocation
         caught-lineage final-coherent final-exclusive final-unique
         final-wfL
     | inj₁ (vW , noW)
-    with weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
-      wfR s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-      (left-indexed-all-catchup indexed
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
-matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₁ (vW , noW)
-    | indexed-outcome-related final-indexed =
+    =
   world-indexed-outcome-related
     final-indexed
     combined-lineage
@@ -293,19 +256,21 @@ matched-nu-allocation
     (source-name-exclusive-matched-head final-exclusive)
     (assumption-membership-unique-matched final-unique)
   where
-  raw =
-    weak-one-step-matched-ν↑-value-catchupᵀ
+  caught-all =
+    left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) (inj₁ (vW , noW)))
+
+  final-indexed =
+    weak-one-step-matched-ν↑-indexed-value-catchupᵀ
       s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-      (left-all-catchup
-        (weak-indexed-all-resultᵀ indexed)
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
-      vW noW (weakIndexedTypeCoherence indexed)
+      caught-all vW noW
 
   liftρ⁺ = proj₂ (lift-store-result
     (resultStore (weakIndexedResult indexed)))
 
-  combined-lineage : WeakOneStepStoreLineage raw
+  combined-lineage : WeakOneStepStoreLineage
+    (weakIndexedResult final-indexed)
   combined-lineage =
     weak-one-step-prepend-left-silent-store-lineageᵀ
       _ _
@@ -316,19 +281,6 @@ matched-nu-allocation
       (weak-step-store-lineage _
         (lift-store-embeddingⁱ liftρ⁺)
         (prefix-∷ⁱ prefix-reflⁱ))
-matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₁ (vW , noW)
-    | indexed-outcome-source-blame source-blame =
-  world-indexed-outcome-source-blame source-blame
 
 
 matched-nu-cast-allocation :
@@ -424,27 +376,7 @@ matched-nu-cast-allocation
         caught-lineage final-coherent final-exclusive final-unique
         final-wfL
     | inj₁ (vW , noW)
-    with weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
-      wfR mode seal★ s⊑ mode′ seal★′ s′⊑ pB
-      s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′
-      (left-indexed-all-catchup indexed
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₁ (vW , noW)
-    | indexed-outcome-related final-indexed =
+    =
   world-indexed-outcome-related
     final-indexed
     combined-lineage
@@ -452,21 +384,22 @@ matched-nu-cast-allocation
     (source-name-exclusive-matched-head final-exclusive)
     (assumption-membership-unique-matched final-unique)
   where
-  raw =
-    weak-one-step-matched-νcast-value-catchupᵀ
+  caught-all =
+    left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) (inj₁ (vW , noW)))
+
+  final-indexed =
+    weak-one-step-matched-νcast-indexed-value-catchupᵀ
       mode seal★ s⊑ mode′ seal★′ s′⊑ pB
       s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′
-      (left-all-catchup
-        (weak-indexed-all-resultᵀ indexed)
-        (left-catchup-invariant
-          (left-silent-invariant refl refl) (inj₁ (vW , noW))))
-      vW noW (weakIndexedTypeCoherence indexed)
+      vV′ noV′ caught-all vW noW
 
   liftρ⁺ = proj₂ (lift-store-result
     (resultStore (weakIndexedResult indexed)))
 
-  combined-lineage : WeakOneStepStoreLineage raw
+  combined-lineage : WeakOneStepStoreLineage
+    (weakIndexedResult final-indexed)
   combined-lineage =
     weak-one-step-prepend-left-silent-store-lineageᵀ
       _ _
@@ -477,21 +410,6 @@ matched-nu-cast-allocation
       (weak-step-store-lineage _
         (lift-store-embeddingⁱ liftρ⁺)
         (prefix-∷ⁱ prefix-reflⁱ))
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₁ (vW , noW)
-    | indexed-outcome-source-blame source-blame =
-  world-indexed-outcome-source-blame source-blame
 
 
 target-nu-allocation :

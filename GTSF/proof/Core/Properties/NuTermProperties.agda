@@ -2,8 +2,8 @@ module proof.Core.Properties.NuTermProperties where
 
 -- File Charter:
 --   * Proof-only metatheory for Nu GTSF terms.
---   * Context lookup, type/term renaming algebra, value preservation,
---     type-context weakening, typing renaming, and term substitution.
+--   * Context lookup, type/term renaming algebra, value and runtime-shape
+--     preservation, type-context weakening, typing renaming, and substitution.
 --   * Reduction-specific preservation belongs in
 --     `proof.DGG.Core.NuPreservation`.
 
@@ -749,6 +749,34 @@ renameᵗᵐ-preserves-No• ρ (no•-⊕ hL hM) =
 renameᵗᵐ-preserves-No• ρ (no•-⟨⟩ hM) =
   no•-⟨⟩ (renameᵗᵐ-preserves-No• ρ hM)
 renameᵗᵐ-preserves-No• ρ no•-blame = no•-blame
+
+⇑ᵗᵐ-preserves-RuntimeOK :
+  ∀ {M} →
+  RuntimeOK M →
+  RuntimeOK (⇑ᵗᵐ M)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-no noM) =
+  ok-no (renameᵗᵐ-preserves-No• suc noM)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-• vV noV) =
+  ok-• (renameᵗᵐ-preserves-Value suc vV)
+       (renameᵗᵐ-preserves-No• suc noV)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-·₁ okL noM) =
+  ok-·₁ (⇑ᵗᵐ-preserves-RuntimeOK okL)
+        (renameᵗᵐ-preserves-No• suc noM)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-·₂ vV noV okM) =
+  ok-·₂ (renameᵗᵐ-preserves-Value suc vV)
+        (renameᵗᵐ-preserves-No• suc noV)
+        (⇑ᵗᵐ-preserves-RuntimeOK okM)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-ν okL) =
+  ok-ν (⇑ᵗᵐ-preserves-RuntimeOK okL)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-⊕₁ okL noM) =
+  ok-⊕₁ (⇑ᵗᵐ-preserves-RuntimeOK okL)
+        (renameᵗᵐ-preserves-No• suc noM)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-⊕₂ vL noL okM) =
+  ok-⊕₂ (renameᵗᵐ-preserves-Value suc vL)
+        (renameᵗᵐ-preserves-No• suc noL)
+        (⇑ᵗᵐ-preserves-RuntimeOK okM)
+⇑ᵗᵐ-preserves-RuntimeOK (ok-⟨⟩ okM) =
+  ok-⟨⟩ (⇑ᵗᵐ-preserves-RuntimeOK okM)
 
 renameˣᵐ-preserves-No• :
   ∀ ρ {M} →

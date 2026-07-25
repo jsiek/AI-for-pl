@@ -55,8 +55,8 @@ open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (lineageStore)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef
-  using (targetPendingAdministrationRank)
+  proof.Core.Administration.NuImprecisionAdministrationMeasureDef
+  using (pendingAdministrationRank)
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
   using (WorldCoherent)
@@ -87,8 +87,8 @@ WorldCoherentRightTargetPendingNarrowSequenceContextᵀ =
   ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
   narrowing ⊢ᶜ t ⦂ t-shape →
   ⌊ q ⌋ ； t-shape ≋ ⌊ r ⌋ →
-  targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
-    suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
+  pendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
+    suc (pendingAdministrationRank vW (s ∷ t ∷ [])) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
   WorldCoherent ρ →

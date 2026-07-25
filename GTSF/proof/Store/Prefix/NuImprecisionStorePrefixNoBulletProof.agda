@@ -19,7 +19,6 @@ open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
-  ; ordinary-down-applicationᵖᵀ
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
   ; nu-term-imprecision-source-typing
@@ -64,30 +63,6 @@ quotiented-store-prefix-no-bulletᵖ-proofᵀ
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ body)
     q square
-quotiented-store-prefix-no-bulletᵖ-proofᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (ordinary-down-applicationᵖᵀ
-      mode seal★ source source-shape
-      mode′ seal★′ target target-shape
-      function argument square) =
-  ordinary-down-applicationᵖᵀ
-    mode
-    (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-    (narrow-weaken ≤-refl
-      (leftStoreⁱ-prefix-inclusion prefix) source)
-    source-shape
-    mode′
-    (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-    (narrow-weaken ≤-refl
-      (rightStoreⁱ-prefix-inclusion prefix) target)
-    target-shape
-    (quotiented-store-prefix-no-bullet-proofᵀ
-      prefix noL noL′ function)
-    (quotiented-store-prefix-no-bullet-proofᵀ
-      prefix noM noM′ argument)
-    square
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix
     (no•-· noL (no•-⟨⟩ noM))

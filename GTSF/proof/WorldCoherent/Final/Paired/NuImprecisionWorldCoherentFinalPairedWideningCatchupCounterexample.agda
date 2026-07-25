@@ -20,7 +20,6 @@ open import Imprecision using (_ˣ⊑ˣ_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
-  ; compatible-source-inert
   ; compatible-target-inert-bridge
   )
 open import Types using (★; ＇_)
@@ -45,8 +44,6 @@ active-unseal-inert-tag-incompatible :
     (C.unseal zero ★) ((＇ zero) !)
     p q c-shape c′-shape →
   ⊥
-active-unseal-inert-tag-incompatible
-    (compatible-source-inert ())
 active-unseal-inert-tag-incompatible
     (compatible-target-inert-bridge bridge)
     with bridge target-inert

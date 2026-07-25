@@ -406,7 +406,7 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     prefix coherent exclusive unique wfL okN vV′ noV′
     (ν⊑ᵀ hA h⇑A s↑ liftρ lift-left-ctx-[] N⊑V′ replace) =
   source-ν source-runtime prefix hA h⇑A s↑ liftρ lift-left-ctx-[]
-    vV′ noV′ inner
+    vV′ noV′ inner replace
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive unique wfL
@@ -495,7 +495,7 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN vV′ noV′
     (conv↑⊑ᵀ c↑ N⊑V′ q replace) =
-  source-reveal source-runtime prefix c↑ vV′ noV′ inner q
+  source-reveal source-runtime prefix c↑ vV′ noV′ inner q replace
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive unique wfL
@@ -504,7 +504,7 @@ world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN vV′ noV′
     (conv↓⊑ᵀ c↓ N⊑V′ q replace) =
-  source-conceal source-runtime prefix c↓ vV′ noV′ inner q
+  source-conceal source-runtime prefix c↓ vV′ noV′ inner q replace
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive unique wfL

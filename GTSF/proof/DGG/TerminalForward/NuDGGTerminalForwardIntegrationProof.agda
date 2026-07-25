@@ -69,9 +69,6 @@ open import
   proof.WorldCoherent.Source.LambdaBeta.NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDef
   using (WorldCoherentSourceLambdaBetaSchedulingᵀ)
 open import
-  proof.NuCore.Misc.NuImprecisionOrdinaryFunctionPairedNarrowingApplicationLemma
-  using (ordinary-function-paired-narrowing-applicationᵀ)
-open import
   proof.Quotient.NuImprecisionQuotientFunctionPairedNarrowingApplicationLemma
   using (quotient-function-paired-narrowing-applicationᵀ)
 open import
@@ -303,7 +300,6 @@ scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg
     world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases
   source-inert-relation =
     source-function-cast-beta-paired-widening-source-inert-relationᵀ
-      ordinary-function-paired-narrowing-applicationᵀ
   quotient-relation =
     source-function-cast-beta-paired-quotient-relationᵀ
       quotient-function-paired-narrowing-applicationᵀ

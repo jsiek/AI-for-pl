@@ -58,11 +58,7 @@ open import proof.Core.Properties.CoercionProperties
     ; tgt-renameᶜ
     )
 open import proof.Core.Properties.NuTermProperties
-  using
-    ( renameᵗᵐ-left-inverse
-    ; renameᵗᵐ-preserves-No•
-    ; renameᵗᵐ-preserves-Value
-    )
+  using (renameᵗᵐ-left-inverse)
 open import proof.DGG.Core.NuPreservation
   using
     ( runtime-⟨⟩
@@ -137,30 +133,6 @@ open import proof.Catchup.Core.CatchupStore
     ; combineStoreNrw-applyStores
     ; combineStoreNrw-applyStores-store
     )
-
-runtime-⇑ᵗᵐ :
-  ∀ {M} →
-  RuntimeOK M →
-  RuntimeOK (⇑ᵗᵐ M)
-runtime-⇑ᵗᵐ (ok-no noM) =
-  ok-no (renameᵗᵐ-preserves-No• suc noM)
-runtime-⇑ᵗᵐ (ok-• vV noV) =
-  ok-• (renameᵗᵐ-preserves-Value suc vV)
-       (renameᵗᵐ-preserves-No• suc noV)
-runtime-⇑ᵗᵐ (ok-·₁ okL noM) =
-  ok-·₁ (runtime-⇑ᵗᵐ okL) (renameᵗᵐ-preserves-No• suc noM)
-runtime-⇑ᵗᵐ (ok-·₂ vV noV okM) =
-  ok-·₂ (renameᵗᵐ-preserves-Value suc vV)
-        (renameᵗᵐ-preserves-No• suc noV)
-        (runtime-⇑ᵗᵐ okM)
-runtime-⇑ᵗᵐ (ok-ν okL) = ok-ν (runtime-⇑ᵗᵐ okL)
-runtime-⇑ᵗᵐ (ok-⊕₁ okL noM) =
-  ok-⊕₁ (runtime-⇑ᵗᵐ okL) (renameᵗᵐ-preserves-No• suc noM)
-runtime-⇑ᵗᵐ (ok-⊕₂ vL noL okM) =
-  ok-⊕₂ (renameᵗᵐ-preserves-Value suc vL)
-        (renameᵗᵐ-preserves-No• suc noL)
-        (runtime-⇑ᵗᵐ okM)
-runtime-⇑ᵗᵐ (ok-⟨⟩ okM) = ok-⟨⟩ (runtime-⇑ᵗᵐ okM)
 
 postulate
   -- `split` changes which fresh type variable the source term is opened at.

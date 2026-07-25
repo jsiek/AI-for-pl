@@ -40,16 +40,16 @@ open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-＇; sv-seal)
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef
+  proof.Core.Administration.NuImprecisionAdministrationMeasureDef
   using
-  ( targetPendingAdministrationRank
+  ( pendingAdministrationRank
   ; valueAdministrationWeight
   )
 open import
-  proof.Target.Administration.NuImprecisionTargetAdministrationMeasureLemma
+  proof.Core.Administration.NuImprecisionAdministrationMeasureLemma
   using
-  ( target-inert-value-administration-increaseᵀ
-  ; target-pending-administration-tail-decreaseᵀ
+  ( inert-value-administration-increaseᵀ
+  ; pending-administration-tail-decreaseᵀ
   )
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
@@ -92,8 +92,8 @@ private
 
   target-pending-rank-value-proof-irrelevant :
     ∀ {V : Term} (vV vV′ : Value V) cs →
-    targetPendingAdministrationRank vV cs ≡
-      targetPendingAdministrationRank vV′ cs
+    pendingAdministrationRank vV cs ≡
+      pendingAdministrationRank vV′ cs
   target-pending-rank-value-proof-irrelevant vV vV′ cs
       rewrite
         value-administration-weight-proof-irrelevant vV vV′ =
@@ -154,17 +154,17 @@ world-coherent-right-target-pending-casts-unseal-residual-acc-proofᵀ
 
   smaller =
     <-trans
-      (target-inert-value-administration-increaseᵀ
+      (inert-value-administration-increaseᵀ
         vU (C.seal Y α) cs)
       (subst
         (λ n →
           n <
-          targetPendingAdministrationRank
+          pendingAdministrationRank
             vW (unseal α B ∷ cs))
         (sym
           (target-pending-rank-value-proof-irrelevant
             (vU ⟨ C.seal Y α ⟩) vW cs))
-        (target-pending-administration-tail-decreaseᵀ
+        (pending-administration-tail-decreaseᵀ
           vW (unseal α B) cs))
 
   ok-root =

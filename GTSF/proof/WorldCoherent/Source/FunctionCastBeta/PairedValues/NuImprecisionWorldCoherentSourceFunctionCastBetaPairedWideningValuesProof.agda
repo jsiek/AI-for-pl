@@ -3,10 +3,8 @@ module
   where
 
 -- File Charter:
---   * Proves paired-widening function beta when compatibility supplies the
---     component bridge.
---   * Delegates only the source-inert compatibility alternative, whose
---     component casts require quotient-aware application distribution.
+--   * Proves paired-widening function beta from either hereditary codomain
+--     compatibility or the active-source/target-inert bridge.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
 import Coercions as C
@@ -22,7 +20,7 @@ open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
   (No•; no•-⟨⟩; _⟨_⟩)
 open import PairedWideningCompatibility using
-  ( compatible-source-inert
+  ( compatible-function
   ; compatible-target-inert-bridge
   )
 open import QuotientedTermImprecision using
@@ -37,9 +35,9 @@ open import proof.Store.Prefix.NuImprecisionStorePrefix using
 open import proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof using
   (quotiented-store-prefix-no-bullet-proofᵀ)
 open import
-  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningSourceInertValuesDef
+  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningFunctionCompatibleValuesDef
   using
-  (WorldCoherentSourceFunctionCastBetaPairedWideningSourceInertValuesᵀ)
+  (WorldCoherentSourceFunctionCastBetaPairedWideningFunctionCompatibleValuesᵀ)
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningValuesDef
   using (WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ)
@@ -62,22 +60,22 @@ private
 
 
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ :
-  WorldCoherentSourceFunctionCastBetaPairedWideningSourceInertValuesᵀ →
+  WorldCoherentSourceFunctionCastBetaPairedWideningFunctionCompatibleValuesᵀ →
   WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
-    source-inert relation-prefix coherent exclusive unique wfR okM okM′
+    function-compatible relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★ source-widening source-shape
     mode′ seal★′ target-widening target-shape
     source-comp target-comp
-    (compatible-source-inert inert)
+    (compatible-function compatible)
     inner argument-related vV vW vL′ vR′ =
-  source-inert relation-prefix coherent exclusive unique wfR okM okM′
+  function-compatible relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★ source-widening source-shape
     mode′ seal★′ target-widening target-shape
-    source-comp target-comp inert
+    source-comp target-comp compatible
     inner argument-related vV vW vL′ vR′
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
-    source-inert {pA₀ = pA₀} {pB₀ = pB₀}
+    function-compatible {pA₀ = pA₀} {pB₀ = pB₀}
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★
@@ -91,7 +89,7 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     inner argument-related vV vW vL′ vR′
     with bridge (_ C.↦ _)
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
-    source-inert {pA₀ = pA₀} {pB₀ = pB₀}
+    function-compatible {pA₀ = pA₀} {pB₀ = pB₀}
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★

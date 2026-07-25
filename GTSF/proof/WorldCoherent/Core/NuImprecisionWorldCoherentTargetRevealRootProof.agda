@@ -90,6 +90,14 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
+open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
 
 
 target-reveal-retarget-resultᵀ :
@@ -278,6 +286,10 @@ world-coherent-target-reveal-root-proofᵀ
     | inj₁ (vW , noW) | refl | refl =
   world-indexed-outcome-related
     retargeted
+    (weak-step-store-lineage
+      (lineageStore caught-lineage)
+      (lineageEmbedding caught-lineage)
+      (lineagePrefix caught-lineage))
     final-coherent
     final-exclusive
     final-unique

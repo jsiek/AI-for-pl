@@ -100,8 +100,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   (apply-narrows-typing; seal★-id-only)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
-open import proof.Target.Administration.NuImprecisionTargetAdministrationMeasureProof using
-  (target-sequence-rank-decreases)
+open import proof.Core.Administration.NuImprecisionAdministrationMeasureProof using
+  (sequence-rank-decreases)
 open import proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef using
   ( TargetAdministrationPlan
   ; plan-fun-untag-gen
@@ -611,7 +611,7 @@ private
           (transportShapeCoherent
             (weakIndexedTypeCoherence indexed) r)
           t-comp)
-        (target-sequence-rank-decreases
+        (sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
           (applyCoercions (targetTailChanges result) _)
@@ -706,7 +706,7 @@ private
           (transportShapeCoherent
             (weakIndexedTypeCoherence indexed) q)
           t-comp)
-        (target-sequence-rank-decreases
+        (sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
           (applyCoercions (targetTailChanges result) _)
@@ -799,7 +799,7 @@ private
           (transportShapeCoherent
             (weakIndexedTypeCoherence indexed) q)
           t-comp)
-        (target-sequence-rank-decreases
+        (sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
           (applyCoercions (targetTailChanges result) _)

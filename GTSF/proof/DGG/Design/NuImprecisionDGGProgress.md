@@ -13781,7 +13781,11 @@ exact underlying raw result before their composed lineage can be attached.
   exhaustive strict case theorem.  Target body steps use the existing
   quotient down frames, target blame uses the direct roots, and all active
   target downcast roots delegate to one exact two-mode synchronization
-  contract.  The three quotient application constructors remain separate.
+  contract.  That synchronization contract now has a strict dispatcher:
+  target identity, sequence, and untag roots are the only remaining semantic
+  cells; instantiation and unseal roots contradict narrowing, and direct
+  target blame contradicts the target value premise.  The three quotient
+  application constructors remain separate.
   The ordinary-function quotient application constructor now has its own
   exhaustive strict scheduler: it separates function framing, argument
   framing/crossing, β or function-cast β, and direct left blame.  Its three
@@ -14140,8 +14144,9 @@ exact underlying raw result before their composed lineage can be attached.
    catch-up invariant; target-bullet recursion has already been replaced by
    the strict type-index contradiction.
 2. Prove the source-down-application `β`/`β-↦` value root and the remaining
-   exact active synchronization leaves; all current QTIP transport clauses and
-   the paired target-blame branch are complete.
+   exact active synchronization root inhabitants; all current QTIP transport
+   clauses, active synchronization dispatchers, and the paired target-blame
+   branch are complete.
 3. Assemble the exhaustive prefix-aware world-coherent backward one-step
    dispatcher and restore the green aggregate backward strict spine.
 4. Use the dispatcher in both terminal backward engines, connect the strict

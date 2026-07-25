@@ -79,17 +79,17 @@ open import
   using
   (world-coherent-source-function-cast-beta-paired-quotient-valuesᵀ)
 open import
-  proof.Source.FunctionCastBeta.NuImprecisionSourceFunctionCastBetaPairedWideningSourceInertRelationLemma
+  proof.Source.FunctionCastBeta.NuImprecisionSourceFunctionCastBetaPairedWideningFunctionCompatibleRelationLemma
   using
-  (source-function-cast-beta-paired-widening-source-inert-relationᵀ)
+  (source-function-cast-beta-paired-widening-function-compatible-relationᵀ)
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningValuesLemma
   using
   (world-coherent-source-function-cast-beta-paired-widening-valuesᵀ)
 open import
-  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningSourceInertValuesLemma
+  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningFunctionCompatibleValuesLemma
   using
-  (world-coherent-source-function-cast-beta-paired-widening-source-inert-valuesᵀ)
+  (world-coherent-source-function-cast-beta-paired-widening-function-compatible-valuesᵀ)
 open import
   proof.WorldCoherent.Source.LambdaBeta.NuImprecisionWorldCoherentSourceLambdaBetaSchedulingLemma
   using (world-coherent-source-lambda-beta-schedulingᵀ)
@@ -298,17 +298,17 @@ scheduled-lambda-forward-builders-and-backward-terminals⇒gradual-dgg
   where
   right-prefix =
     world-coherent-right-value-catchup-dispatcher-proofᵀ right-cases
-  source-inert-relation =
-    source-function-cast-beta-paired-widening-source-inert-relationᵀ
+  function-compatible-relation =
+    source-function-cast-beta-paired-widening-function-compatible-relationᵀ
   quotient-relation =
     source-function-cast-beta-paired-quotient-relationᵀ
       quotient-function-paired-narrowing-applicationᵀ
-  paired-source-inert =
-    world-coherent-source-function-cast-beta-paired-widening-source-inert-valuesᵀ
-      source-inert-relation
+  paired-function-compatible =
+    world-coherent-source-function-cast-beta-paired-widening-function-compatible-valuesᵀ
+      function-compatible-relation
   paired-widening =
     world-coherent-source-function-cast-beta-paired-widening-valuesᵀ
-      paired-source-inert
+      paired-function-compatible
   paired-quotient =
     world-coherent-source-function-cast-beta-paired-quotient-valuesᵀ
       quotient-relation

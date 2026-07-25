@@ -9,6 +9,9 @@ module proof.Catchup.Core.NuImprecisionCatchupScratch where
 --   * Exposes source-∀ catch-up as a specialization of that recursion.
 --   * Keeps the general indexed one-step dispatcher visibly incomplete while
 --     its remaining structural clauses are developed.
+--   * Types that dispatcher directly by the canonical
+--     `WeakOneStepIndexedSimulationᵀ` contract; the permanent implementation
+--     belongs in `proof.OneStep.NuImprecisionOneStepProof`.
 --   * Exposes explicit quotient-instantiation residuals in that dispatcher.
 --   * Depends only on the stable weak-simulation core; move a lemma to its
 --     permanent module once its statement and proof are stable.
@@ -118,6 +121,8 @@ open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import proof.OneStep.NuImprecisionOneStepDef using
+  (WeakOneStepIndexedSimulationᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   ( leftStoreⁱ-prefix-inclusion
   ; rightStoreⁱ-prefix-inclusion
@@ -676,17 +681,7 @@ weak-one-step-matched-νcast-source-allᵀ
 ------------------------------------------------------------------------
 
 weak-one-step-indexed-simulationᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ N′ A B χ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK M →
-  RuntimeOK M′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  M′ —→[ χ ] N′ →
-  WeakOneStepIndexedOutcome
-    {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p
+  WeakOneStepIndexedSimulationᵀ
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′ (blame⊑ᵀ M′⊢) M′→N′ =
   indexed-outcome-source-blame ↠-refl

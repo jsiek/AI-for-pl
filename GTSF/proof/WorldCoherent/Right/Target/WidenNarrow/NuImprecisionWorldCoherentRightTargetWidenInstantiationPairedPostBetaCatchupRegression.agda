@@ -1,5 +1,5 @@
 module
-  proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaCatchupCounterexample
+  proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaCatchupRegression
   where
 
 -- File Charter:

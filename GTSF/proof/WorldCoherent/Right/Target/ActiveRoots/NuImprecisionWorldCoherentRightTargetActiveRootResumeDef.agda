@@ -15,6 +15,7 @@ module
 
 open import Data.List using ([])
 
+open import CastImprecisionShape using (narrowing; widening; _⊢ᶜ_⦂_)
 open import Coercions using
   ( Coercion
   ; ModeEnv
@@ -28,8 +29,11 @@ open import Coercions using
   ; _︔_
   )
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
@@ -65,7 +69,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -77,6 +82,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       CastMode μ →
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ id B ∶ B ⊒ B →
+      narrowing ⊢ᶜ id B ⦂ s →
+      ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -88,7 +95,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A B : Ty} {μ : ModeEnv}
-        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -100,6 +108,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       CastMode μ →
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ id B ∶ B ⊑ B →
+      widening ⊢ᶜ id B ⦂ s →
+      ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -111,7 +121,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A B : Ty}
-        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
+        {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -123,6 +134,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
       id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
         ⊢ id B ∶ B ⊑ B →
+      widening ⊢ᶜ id B ⦂ s →
+      ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -145,6 +158,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       No• V →
       RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
         β X (id B) B B →
+      p [ β ↦ X ]ᴿ q →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -167,6 +181,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       No• V →
       ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
         β X (id B) B B →
+      q [ β ↦ X ]ᴿ p →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -178,6 +193,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A H : Ty} {μ : ModeEnv}
+        {s : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
@@ -191,6 +207,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       CastMode μ →
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ H ？ ∶ ★ ⊒ H →
+      narrowing ⊢ᶜ H ？ ⦂ s →
+      ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ★ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -202,7 +220,9 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A C : Ty} {s : Coercion} {μ : ModeEnv}
+        {sequence-shape untag-shape gen-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
@@ -217,6 +237,13 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
         ⊢ ((★ ⇒ ★) ？) ︔ gen (★ ⇒ ★) s ∶ ★ ⊒ `∀ C →
+      narrowing ⊢ᶜ ((★ ⇒ ★) ？) ︔ gen (★ ⇒ ★) s
+        ⦂ sequence-shape →
+      ⌊ q ⌋ ； sequence-shape ≋ ⌊ p ⌋ →
+      narrowing ⊢ᶜ (★ ⇒ ★) ？ ⦂ untag-shape →
+      ⌊ r ⌋ ； untag-shape ≋ ⌊ p ⌋ →
+      narrowing ⊢ᶜ gen (★ ⇒ ★) s ⦂ gen-shape →
+      ⌊ q ⌋ ； gen-shape ≋ ⌊ r ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ★ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -233,7 +260,9 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A C : Ty} {s : Coercion} {μ : ModeEnv}
+        {sequence-shape inst-shape tag-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ} →
       WorldCoherentRightTargetAllocationFrames →
       StoreImpPrefix ρ₀ ρ⁺ →
@@ -249,6 +278,13 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
         ⊢ inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !) ∶ `∀ C ⊑ ★ →
+      widening ⊢ᶜ inst (★ ⇒ ★) s ︔ ((★ ⇒ ★) !)
+        ⦂ sequence-shape →
+      ⌊ p ⌋ ； sequence-shape ≋ ⌊ q ⌋ →
+      widening ⊢ᶜ inst (★ ⇒ ★) s ⦂ inst-shape →
+      ⌊ p ⌋ ； inst-shape ≋ ⌊ r ⌋ →
+      widening ⊢ᶜ (★ ⇒ ★) ! ⦂ tag-shape →
+      ⌊ r ⌋ ； tag-shape ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ `∀ C ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -262,6 +298,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A B : Ty} {α : TyVar} {μ : ModeEnv}
+        {s : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ ＇ α ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
@@ -276,6 +313,8 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       SealModeStore★ μ (rightStoreⁱ ρ₀) →
       μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
         ⊢ unseal α B ∶ ＇ α ⊑ B →
+      widening ⊢ᶜ unseal α B ⦂ s →
+      ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ＇ α ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -299,6 +338,7 @@ record WorldCoherentRightTargetActiveRootResume : Set₁ where
       No• V →
       RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
         α B (unseal α B) (＇ α) B →
+      p [ α ↦ B ]ᴿ q →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ＇ α ∶ p →
       WorldCoherentRightValueCatchupIndexedResult

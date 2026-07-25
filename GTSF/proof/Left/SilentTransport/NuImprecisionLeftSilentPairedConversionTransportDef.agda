@@ -20,6 +20,7 @@ open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -47,6 +48,7 @@ LeftSilentPairedConversionTransportᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
   LeftSilentInvariant inner →
+  WeakOneStepTypeCoherence inner →
   WeakOneStepStoreLineage inner →
   WorldCoherent (resultStore inner) →
   PairedConversion Φ Δᴸ Δᴿ ρ₀

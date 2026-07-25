@@ -31,10 +31,10 @@ left-lifted-store-prefix-factor-proofᵀ
     {ρ⁺ = ρ⁺} liftρ prefix-reflⁱ =
   ρ⁺ , prefix-reflⁱ , liftρ
 left-lifted-store-prefix-factor-proofᵀ
-    (lift-left-store-∷ liftρ) (prefix-∷ⁱ prefix)
+    (lift-left-store-∷ shape-eq liftρ) (prefix-∷ⁱ prefix)
     with left-lifted-store-prefix-factor-proofᵀ liftρ prefix
 left-lifted-store-prefix-factor-proofᵀ
-    (lift-left-store-∷ liftρ) (prefix-∷ⁱ prefix)
+    (lift-left-store-∷ shape-eq liftρ) (prefix-∷ⁱ prefix)
     | ρ₀ , prefix₀ , lift₀ =
   ρ₀ , prefix-∷ⁱ prefix₀ , lift₀
 left-lifted-store-prefix-factor-proofᵀ
@@ -52,9 +52,9 @@ left-lifted-store-prefix-factor-proofᵀ
     | ρ₀ , prefix₀ , lift₀ =
   ρ₀ , prefix-∷ⁱ prefix₀ , lift₀
 left-lifted-store-prefix-factor-proofᵀ
-    (lift-left-store-link liftρ) (prefix-∷ⁱ prefix)
+    (lift-left-store-link shape-eq liftρ) (prefix-∷ⁱ prefix)
     with left-lifted-store-prefix-factor-proofᵀ liftρ prefix
 left-lifted-store-prefix-factor-proofᵀ
-    (lift-left-store-link liftρ) (prefix-∷ⁱ prefix)
+    (lift-left-store-link shape-eq liftρ) (prefix-∷ⁱ prefix)
     | ρ₀ , prefix₀ , lift₀ =
   ρ₀ , prefix-∷ⁱ prefix₀ , lift₀

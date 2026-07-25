@@ -12,8 +12,27 @@ import Coercions as C
 open import Coercions using
   ( Coercion
   ; ModeEnv
+  ; _!
   ; _︔_
   ; _∣_∣_⊢_∶_=⇒_
+  )
+open import CastImprecisionShape using
+  ( _⊢ᶜ_⦂_
+  ; widening
+  ; shape-tag-var
+  ; shape-tag-base
+  ; shape-tag-fun
+  )
+open import Data.Product using (_,_; _×_; Σ-syntax)
+open import ImprecisionComposition using
+  ( ImprecisionShape
+  ; ⌊_⌋
+  ; id★ˢ
+  ; comp-id★
+  ; comp-tag-id★
+  ; comp-tag-⇛-id★
+  ; comp-tagˣ-id★
+  ; _；_≋_
   )
 open import ImprecisionWf using
   ( ImpCtx
@@ -28,6 +47,8 @@ open import NarrowWiden using
   ; StrictNarrowing
   ; StrictWidening
   ; Widening
+  ; fun-untag-gen
+  ; inst-fun-tag
   ; cn-all
   ; cn-funˡ
   ; cn-funʳ
@@ -73,6 +94,8 @@ open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import proof.Core.Properties.ImprecisionCompositionProperties using
+  (compose-assoc-right)
 import Types as T
 
 
@@ -196,6 +219,37 @@ strict-cross-widening-ground-midpoint
     T.★⇒★ () (cw-all tʷ)
 
 
+tag-widening-midpoint-right-triangle :
+  ∀ {Φ Δᴸ Δᴿ μ Σ A G s t-shape}
+    (gG : T.Ground G)
+    (s⊢ : μ ∣ Δᴸ ∣ Σ ⊢ s ∶ A =⇒ G)
+    (sʷ : StrictCrossWidening s) →
+  widening ⊢ᶜ G ! ⦂ t-shape →
+  t-shape ； id★ˢ ≋
+    ⌊ strict-cross-widening-ground-midpoint
+        {Φ = Φ} {Δᴿ = Δᴿ} gG s⊢ sʷ ⌋
+tag-widening-midpoint-right-triangle
+    (T.＇ α) () (cw-funˡ sⁿ tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    (T.＇ α) () (cw-funʳ sⁿ tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    (T.＇ α) () (cw-all tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    (T.‵ ι) () (cw-funˡ sⁿ tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    (T.‵ ι) () (cw-funʳ sⁿ tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    (T.‵ ι) () (cw-all tʷ) tag-shape
+tag-widening-midpoint-right-triangle
+    T.★⇒★ s⊢ (cw-funˡ sⁿ tʷ) shape-tag-fun =
+  comp-tag-⇛-id★ comp-id★ comp-id★
+tag-widening-midpoint-right-triangle
+    T.★⇒★ s⊢ (cw-funʳ sⁿ tʷ) shape-tag-fun =
+  comp-tag-⇛-id★ comp-id★ comp-id★
+tag-widening-midpoint-right-triangle
+    T.★⇒★ () (cw-all tʷ) tag-shape
+
+
 source-narrowing-sequence-midpoint :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
@@ -218,6 +272,12 @@ source-narrowing-sequence-midpoint
     (gG′ ？︔ tⁿ) id★ q =
   strict-cross-narrowing-ground-midpoint gG t⊢ tⁿ
 source-narrowing-sequence-midpoint
+    prefix coherent exclusive wfΣ mode seal★
+    (C.cast-untag hG gG tag-ok)
+    (C.cast-gen hA occ s⊢)
+    (fun-untag-gen safe) id★ q =
+  tag_⇛_ id★ id★
+source-narrowing-sequence-midpoint
     prefix coherent exclusive wfΣ mode seal★ s⊢
     (C.cast-seal hX αX∈Σ seal-ok)
     (sⁿ ︔seal α) p q
@@ -230,7 +290,8 @@ source-narrowing-sequence-midpoint
 source-widening-sequence-midpoint :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {A C B B′ : Ty} {s t : Coercion} {μ : ModeEnv} →
+    {A C B B′ : Ty} {s t : Coercion} {μ : ModeEnv}
+    {s-shape t-shape sequence-shape : ImprecisionShape} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -240,18 +301,46 @@ source-widening-sequence-midpoint :
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ s ∶ A =⇒ C →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ t ∶ C =⇒ B →
   Widening (s ︔ t) →
-  Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ →
-  Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ →
-  Φ ∣ Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ
+  (p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ s ⦂ s-shape →
+  widening ⊢ᶜ t ⦂ t-shape →
+  s-shape ； t-shape ≋ sequence-shape →
+  sequence-shape ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
+  Σ[ middle ∈ (Φ ∣ Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ) ]
+    (s-shape ； ⌊ middle ⌋ ≋ ⌊ p ⌋) ×
+    (t-shape ； ⌊ q ⌋ ≋ ⌊ middle ⌋)
 source-widening-sequence-midpoint
     prefix coherent exclusive wfΣ mode seal★ s⊢
     (C.cast-tag hG gG tag-ok)
-    (sʷ ︔ gG′ !) p id★ =
-  strict-cross-widening-ground-midpoint gG s⊢ sʷ
+    (sʷ ︔ gG′ !) p id★
+    s-shape-proof tag-shape sequence-comp outer-comp =
+  middle ,
+  compose-assoc-right sequence-comp outer-comp right-triangle ,
+  right-triangle
+  where
+  middle =
+    strict-cross-widening-ground-midpoint gG s⊢ sʷ
+  right-triangle =
+    tag-widening-midpoint-right-triangle
+      gG s⊢ sʷ tag-shape
+source-widening-sequence-midpoint
+    prefix coherent exclusive wfΣ mode seal★
+    (C.cast-inst hB occ s⊢)
+    (C.cast-tag hG gG tag-ok)
+    (inst-fun-tag safe) p id★
+    s-shape-proof shape-tag-fun sequence-comp outer-comp =
+  tag_⇛_ id★ id★ ,
+  compose-assoc-right sequence-comp outer-comp right-triangle ,
+  right-triangle
+  where
+  right-triangle =
+    comp-tag-⇛-id★ comp-id★ comp-id★
 source-widening-sequence-midpoint
     prefix coherent exclusive wfΣ mode seal★
     (C.cast-unseal hX αX∈Σ seal-ok) t⊢
     (unseal︔_ α tʷ) p q
+    s-shape-proof t-shape-proof sequence-comp outer-comp
     rewrite unique wfΣ
       (leftStoreⁱ-prefix-inclusion prefix αX∈Σ)
       (leftStoreⁱ-prefix-inclusion prefix (seal★ α seal-ok)) =

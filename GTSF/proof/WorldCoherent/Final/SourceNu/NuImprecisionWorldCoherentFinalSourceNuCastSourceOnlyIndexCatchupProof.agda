@@ -106,6 +106,9 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   (weak-step-store-lineage)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma using
   (world-coherent-left-allocation)
+open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
+  using (shape-source-liftνᵢ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition using
   (world-coherent-left-catchup-indexed-resume-silentᵀ)
 open import
@@ -116,6 +119,8 @@ open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSou
 open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupDef using
   (WorldCoherentSourceWidenCatchupᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (imprecision-composition-shape-transport)
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; TyRenameWf-suc; renameᵗ-id)
 
@@ -176,7 +181,7 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL mode seal★ s⊑
+    coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
     with lift-left-store-result ρ
 world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
@@ -185,7 +190,7 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL mode seal★ s⊑
+    coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
     | ρ′ , liftρ =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -226,10 +231,14 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
       (nu-term-imprecision-source-typing allocated-bullet)
       (nu-term-imprecision-target-typing allocated-bullet)
 
+  allocated-comp =
+    imprecision-composition-shape-transport
+      refl (shape-source-liftνᵢ p) refl comp
+
   cast-catchup =
     widen-catchup prefix-reflⁱ (cast-inst mode)
       allocated-seal allocated-cast vV′ noV′ bullet-result
-      (⊑-source-liftνᵢ p)
+      (⊑-source-liftνᵢ p) s-shape allocated-comp
 
   allocation-result :
     WeakOneStepResult ρ (ν ★ L s) V′ B B′ keep
@@ -261,17 +270,20 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
       ; relatedResults =
           cast⊑⊑ᵀ (cast-inst mode) allocated-seal
             allocated-cast allocated-bullet (⊑-source-liftνᵢ p)
+            s-shape allocated-comp
       }
 
   allocation-indexed : WeakOneStepIndexedResult p
   allocation-indexed =
     weak-indexed-result allocation-result
       (cast⊑⊑ᵀ (cast-inst mode) allocated-seal
-        allocated-cast allocated-bullet (⊑-source-liftνᵢ p))
+        allocated-cast allocated-bullet (⊑-source-liftνᵢ p)
+        s-shape allocated-comp)
       (weak-step-transport
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
-      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ)
+      (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ
+        shape-source-liftνᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =

@@ -7,19 +7,23 @@ module
 --     by world-coherent right-target sequence resumption.
 --   * Keeps only the reachable narrowing, widening, and identity-only
 --     widening entries; reveal and conceal conversions contain no sequence.
---   * Takes hereditary subplans and the final canonical value relation, and
---     returns the existing complete right-value catch-up result directly.
+--   * Takes each component's exact cast shape and composition triangle, plus
+--     the final canonical value relation, and returns the existing complete
+--     right-value catch-up result directly.
 --   * The explicit rank equation is discharged by
 --     `target-sequence-rank-decreases` at recursive call sites.
 --   * Contains no simulation result, view, outcome, implementation,
 --     postulate, hole, permissive option, or termination bypass.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (narrowing; widening; _⊢ᶜ_⦂_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
-open import Data.Product using (proj₁)
 
 open import Coercions using (Coercion; ModeEnv; id-onlyᵈ; _︔_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -38,8 +42,6 @@ open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDe
   (AssumptionMembershipUnique)
 open import proof.Target.Administration.NuImprecisionTargetAdministrationMeasureDef using
   (targetPendingAdministrationRank)
-open import proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef using
-  (TargetAdministrationPlan)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import
@@ -53,6 +55,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
         {V W : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
+        {s-shape t-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
         {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
@@ -61,8 +64,10 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       SealModeStore★ μ (rightStoreⁱ ρ) →
       (s⊒ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ s ∶ B ⊒ C) →
       (t⊒ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ t ∶ C ⊒ D) →
-      TargetAdministrationPlan ρ A (proj₁ s⊒) p r →
-      TargetAdministrationPlan ρ A (proj₁ t⊒) r q →
+      narrowing ⊢ᶜ s ⦂ s-shape →
+      ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
+      narrowing ⊢ᶜ t ⦂ t-shape →
+      ⌊ q ⌋ ； t-shape ≋ ⌊ r ⌋ →
       targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
         suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -82,6 +87,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
         {V W : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
+        {s-shape t-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
         {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
@@ -90,8 +96,10 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       SealModeStore★ μ (rightStoreⁱ ρ) →
       (s⊑ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ s ∶ B ⊑ C) →
       (t⊑ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ t ∶ C ⊑ D) →
-      TargetAdministrationPlan ρ A (proj₁ s⊑) p r →
-      TargetAdministrationPlan ρ A (proj₁ t⊑) r q →
+      widening ⊢ᶜ s ⦂ s-shape →
+      ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
+      widening ⊢ᶜ t ⦂ t-shape →
+      ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
       targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
         suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
@@ -111,6 +119,7 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
         {V W : Term} {A B C D : Ty} {s t : Coercion}
+        {s-shape t-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
         {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
@@ -120,8 +129,10 @@ record WorldCoherentRightTargetPendingSequenceContinuation : Set₁ where
         ⊢ s ∶ B ⊑ C) →
       (t⊑ : id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
         ⊢ t ∶ C ⊑ D) →
-      TargetAdministrationPlan ρ A (proj₁ s⊑) p r →
-      TargetAdministrationPlan ρ A (proj₁ t⊑) r q →
+      widening ⊢ᶜ s ⦂ s-shape →
+      ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
+      widening ⊢ᶜ t ⦂ t-shape →
+      ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
       targetPendingAdministrationRank vW ((s ︔ t) ∷ []) ≡
         suc (targetPendingAdministrationRank vW (s ∷ t ∷ [])) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []

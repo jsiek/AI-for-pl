@@ -94,11 +94,13 @@ world-coherent-right-source-all-cast-body-proofᵀ
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-up vM noM inert liftρ liftγ
-    (up⊑upᵀ paired widening pA) =
+    (up⊑upᵀ paired widening pA
+      source-shape target-shape square) =
   sourceAllQuotient (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok-up
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
     liftρ liftγ paired widening
+    source-shape target-shape square
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
@@ -118,41 +120,41 @@ world-coherent-right-source-all-cast-body-proofᵀ
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
-    (cast⊒⊑ᵀ mode seal★ c⊒ inner q) =
+    (cast⊒⊑ᵀ mode seal★ c⊒ inner q c-shape comp) =
   sourceAllSourceNarrowFrame (sourceAllSourceFramesCase cases)
     prefix coherent exclusive unique wfR okN′
-    vM noM inert mode seal★ c⊒ liftρ liftγ inner
+    vM noM inert mode seal★ c⊒ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
-    (cast⊑⊑ᵀ mode seal★ c⊑ inner q) =
+    (cast⊑⊑ᵀ mode seal★ c⊑ inner q c-shape comp) =
   sourceAllSourceWidenFrame (sourceAllSourceFramesCase cases)
     prefix coherent exclusive unique wfR okN′
-    vM noM inert mode seal★ c⊑ liftρ liftγ inner
+    vM noM inert mode seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast vM noM inert liftρ liftγ
-    (⊑cast⊒ᵀ mode seal★ c⊒ inner q) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ inner q c-shape comp) =
   sourceAllTargetNarrowFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    mode seal★ c⊒ liftρ liftγ inner
+    mode seal★ c⊒ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast vM noM inert liftρ liftγ
-    (⊑cast⊑ᵀ mode seal★ c⊑ inner q) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp) =
   sourceAllTargetWidenFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    mode seal★ c⊑ liftρ liftγ inner
+    mode seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast vM noM inert liftρ liftγ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q) =
+    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) =
   sourceAllTargetIdWidenFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    seal★ c⊑ liftρ liftγ inner
+    seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-paired vM noM inert liftρ liftγ
@@ -163,30 +165,30 @@ world-coherent-right-source-all-cast-body-proofᵀ
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
-    (conv↑⊑ᵀ c↑ inner q) =
+    (conv↑⊑ᵀ c↑ inner q replacement) =
   sourceAllSourceRevealFrame (sourceAllSourceFramesCase cases)
     prefix coherent exclusive unique wfR okN′
-    vM noM inert c↑ liftρ liftγ inner
+    vM noM inert c↑ replacement liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
-    (conv↓⊑ᵀ c↓ inner q) =
+    (conv↓⊑ᵀ c↓ inner q replacement) =
   sourceAllSourceConcealFrame (sourceAllSourceFramesCase cases)
     prefix coherent exclusive unique wfR okN′
-    vM noM inert c↓ liftρ liftγ inner
+    vM noM inert c↓ replacement liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast vM noM inert liftρ liftγ
-    (⊑conv↑ᵀ c↑ inner q) =
+    (⊑conv↑ᵀ c↑ inner q replacement) =
   sourceAllTargetRevealFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    c↑ liftρ liftγ inner
+    c↑ replacement liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast vM noM inert liftρ liftγ
-    (⊑conv↓ᵀ c↓ inner q) =
+    (⊑conv↓ᵀ c↓ inner q replacement) =
   sourceAllTargetConcealFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    c↓ liftρ liftγ inner
+    c↓ replacement liftρ liftγ inner

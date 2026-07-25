@@ -13,14 +13,18 @@ module
 --     option, or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (narrowing; widening; _⊢ᶜ_⦂_)
 open import Coercions using (Coercion; Inert)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Imprecision using (NonVar)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
@@ -62,6 +66,7 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
           ∣ suc Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
         {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
           ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {shape : ImprecisionShape}
         {occ : occurs zero B ≡ true} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
@@ -75,6 +80,8 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρᴸ) →
       μ ∣ suc Δᴸ ∣ leftStoreⁱ ρᴸ ⊢ c ∶ A ⊒ B →
+      narrowing ⊢ᶜ c ⦂ shape →
+      shape ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
       LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
       LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →
@@ -96,6 +103,7 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
           ∣ suc Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
         {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
           ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {shape : ImprecisionShape}
         {occ : occurs zero B ≡ true} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
@@ -109,6 +117,8 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρᴸ) →
       μ ∣ suc Δᴸ ∣ leftStoreⁱ ρᴸ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ shape →
+      shape ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
       LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
       LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →
@@ -143,6 +153,7 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
       Inert c →
       RevealConversion μ (suc Δᴸ) (leftStoreⁱ ρᴸ)
         α X c A B →
+      p [ α ↦ X ]ᴸ q →
       LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
       LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →
@@ -177,6 +188,7 @@ record WorldCoherentRightSourceAllSourceFrames : Set₁ where
       Inert c →
       ConcealConversion μ (suc Δᴸ) (leftStoreⁱ ρᴸ)
         α X c A B →
+      q [ α ↦ X ]ᴸ p →
       LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
       LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →

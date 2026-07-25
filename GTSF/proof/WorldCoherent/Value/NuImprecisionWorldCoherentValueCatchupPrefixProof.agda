@@ -13,7 +13,10 @@ open import Data.Product using (_,_)
 
 open import Coercions using
   (Inert; genᵈ; id-onlyᵈ; tag-or-idᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
@@ -39,6 +42,11 @@ open import NuTerms using
 open import QuotientedTermImprecision
 open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport
 open import proof.Catchup.Core.NuImprecisionCatchupQuotientSupport
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (cast-shape-applyCoercions)
+open import
+  proof.OneStep.NuImprecisionWeakOneStepReplacementTransport
+  using (weak-one-step-transport-quotient-boundary-square)
 open import proof.Quotient.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
@@ -68,7 +76,8 @@ open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
 
 world-coherent-left-catchup-prefix-down-upᵀ :
   WorldCoherentQuotientFinalCatchupᵀ →
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′
+      sD sD′ sU sU′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
@@ -80,8 +89,14 @@ world-coherent-left-catchup-prefix-down-upᵀ :
   Inert d′ →
   Inert u′ →
   id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ sD →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ qD ； sD′ →
   QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = M′} {ρ = ρ⁺} pC →
   WorldCoherentLeftCatchupIndexedResult
@@ -91,38 +106,48 @@ world-coherent-left-catchup-prefix-down-upᵀ :
 world-coherent-left-catchup-prefix-down-upᵀ
     quotient-final {qD = qD} prefix okM
     vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         invariant@(left-catchup-invariant
           silent@(left-silent-invariant refl refl) final))
-      lineage coherent final-exclusive final-wfL) =
+      lineage coherent final-exclusive final-unique final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
-      prefix widening catchup final-down)
+      prefix widening-pair u-shape u′-shape up-square
+      catchup final-down)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
     (quotient-final coherent final-exclusive final-wfL final-ok
       vM′ noM′ inert-d′ inert-u′
-      final-down final-widening final)
+      final-down final-widening
+      (cast-shape-applyCoercions
+        (sourceChanges inner) u-shape)
+      u′-shape
+      (weak-one-step-transport-quotient-boundary-square
+        inner (weakIndexedTypeCoherence indexed) up-square)
+      final)
   where
   inner = weakIndexedResult indexed
 
   final-down = weak-one-step-transport-id-downᵀ {qD = qD}
-    prefix indexed silent d⊒ d′⊒
+    prefix indexed silent
+    d⊒ d-shape d′⊒ d′-shape down-square
 
   final-widening =
     weak-one-step-transport-quotient-widening-pairᵀ
-      prefix inner silent widening
+      prefix inner silent widening-pair
 
   final-ok = ok-⟨⟩ (ok-⟨⟩ (left-catchup-final-runtime invariant))
 
 
 world-coherent-left-catchup-prefix-gen-down-upᵀ :
   WorldCoherentQuotientFinalCatchupᵀ →
-  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′}
+  ∀ {Φ Δᴸ Δᴿ M M′ C C′ D D′ A A′ d d′ u u′
+      sD sD′ sU sU′}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
@@ -135,9 +160,15 @@ world-coherent-left-catchup-prefix-gen-down-upᵀ :
   Inert u′ →
   genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ₀
     ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ sD →
   genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ qD ； sD′ →
   QuotientWideningPair Δᴸ Δᴿ ρ₀ u u′ D D′ A A′ →
+  widening ⊢ᶜ u ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = M′} {ρ = ρ⁺} pC →
   WorldCoherentLeftCatchupIndexedResult
@@ -147,31 +178,40 @@ world-coherent-left-catchup-prefix-gen-down-upᵀ :
 world-coherent-left-catchup-prefix-gen-down-upᵀ
     quotient-final {qD = qD} prefix okM
     vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         invariant@(left-catchup-invariant
           silent@(left-silent-invariant refl refl) final))
-      lineage coherent final-exclusive final-wfL) =
+      lineage coherent final-exclusive final-unique final-wfL) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     (left-silent-indexed-prefix-down-up-from-finalᵀ
-      prefix widening catchup final-down)
+      prefix widening-pair u-shape u′-shape up-square
+      catchup final-down)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
     (quotient-final coherent final-exclusive final-wfL final-ok
       vM′ noM′ inert-d′ inert-u′
-      final-down final-widening final)
+      final-down final-widening
+      (cast-shape-applyCoercions
+        (sourceChanges inner) u-shape)
+      u′-shape
+      (weak-one-step-transport-quotient-boundary-square
+        inner (weakIndexedTypeCoherence indexed) up-square)
+      final)
   where
   inner = weakIndexedResult indexed
 
   final-down = weak-one-step-transport-gen-downᵀ {qD = qD}
-    prefix indexed silent d⊒ d′⊒
+    prefix indexed silent
+    d⊒ d-shape d′⊒ d′-shape down-square
 
   final-widening =
     weak-one-step-transport-quotient-widening-pairᵀ
-      prefix inner silent widening
+      prefix inner silent widening-pair
 
   final-ok = ok-⟨⟩ (ok-⟨⟩ (left-catchup-final-runtime invariant))
 
@@ -182,150 +222,156 @@ world-coherent-left-value-catchup-prefix-proofᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     rel@(blame⊑ᵀ V′⊢) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-blameᵀ prefix noV′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
     (up⊑upᵀ
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD) widening pA) =
+      (down⊑downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening-pair pA u-shape u′-shape up-square) =
   world-coherent-left-catchup-prefix-down-upᵀ
     quotient-catchup {qD = qD}
     prefix okN vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening inner
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vM′ noM′ M⊑M′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
     (up⊑upᵀ
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD)
-      widening pA) =
+      (gen-down⊑gen-downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening-pair pA u-shape u′-shape up-square) =
   world-coherent-left-catchup-prefix-gen-down-upᵀ
     quotient-catchup {qD = qD}
     prefix okN vM′ noM′ inert-d′ inert-u′
-    d⊒ d′⊒ widening inner
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening-pair u-shape u′-shape up-square inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vM′ noM′ M⊑M′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     (allocation-prefixᵀ prefix₀ inner N⊢ V′⊢) =
   world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive wfL okN vV′ noV′ inner
+    coherent exclusive unique wfL okN vV′ noV′ inner
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊒ᵀ mode seal★ c⊒ rel q) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ rel q c-shape comp) =
   world-coherent-left-catchup-prefix-target-narrow-castᵀ
-    prefix mode seal★ c⊒ inner
+    prefix mode seal★ c⊒ c-shape comp inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊑ᵀ mode seal★ c⊑ rel q) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ rel q c-shape comp) =
   world-coherent-left-catchup-prefix-target-widen-castᵀ
-    prefix mode seal★ c⊑ inner
+    prefix mode seal★ c⊑ c-shape comp inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑cast⊑idᵀ seal★ c⊑ rel q) =
+    (⊑cast⊑idᵀ seal★ c⊑ rel q c-shape comp) =
   world-coherent-left-catchup-prefix-target-widen-id-castᵀ
-    prefix seal★ c⊑ inner
+    prefix seal★ c⊑ c-shape comp inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑conv↑ᵀ c↑ rel q) =
+    (⊑conv↑ᵀ c↑ rel q replace) =
   world-coherent-left-catchup-prefix-target-reveal-castᵀ
-    prefix c↑ inner
+    prefix c↑ replace inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
-    (⊑conv↓ᵀ c↓ rel q) =
+    (⊑conv↓ᵀ c↓ rel q replace) =
   world-coherent-left-catchup-prefix-target-conceal-castᵀ
-    prefix c↓ inner
+    prefix c↓ replace inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (x⊑xᵀ x∈)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     rel@(ƛ⊑ƛᵀ hA hA′ body) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (ƛ _) noV′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (·⊑·ᵀ L⊑L′ M⊑M′)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     rel@(Λ⊑Λᵀ liftρ liftγ vV vW′ body) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (Λ vV) noV′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     rel@(Λ⊑ᵀ occ liftρ liftγ vV body) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN (Λ vV) noV′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f assm hτ hσ embedding
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ embedding
       source-eq target-eq source-type-eq target-type-eq p
       final-v final-no final-closed final-v′ final-no′ final-closed′
       source-typing target-typing) =
@@ -334,76 +380,78 @@ world-coherent-left-value-catchup-prefix-proofᵀ
       prefix okN final-v final-no′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
       L⊑L′ L•⊢ L′•⊢)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
+    prefix coherent exclusive unique wfL okN vV′ noV′
     (α⊑ᵀ vL noL h⇑A liftρ lift-left-ctx-[]
       L⊑V′ L•⊢ V′⊢) =
-  source-bullet source-runtime h⇑A prefix coherent exclusive wfL okN
+  source-bullet source-runtime h⇑A prefix coherent exclusive unique wfL okN
     vV′ noV′ vL noL liftρ lift-left-ctx-[] L⊑V′ L•⊢ V′⊢
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
-    (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′)
+    prefix coherent exclusive unique wfL okN () noV′
+    (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′ replace)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (ν⊑ᵀ hA h⇑A s↑ liftρ lift-left-ctx-[] N⊑V′) =
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (ν⊑ᵀ hA h⇑A s↑ liftρ lift-left-ctx-[] N⊑V′ replace) =
   source-ν source-runtime prefix hA h⇑A s↑ liftρ lift-left-ctx-[]
     vV′ noV′ inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-ν okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′)
+    prefix coherent exclusive unique wfL okN () noV′
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′)
+      s⊑ s′⊑ compat liftρ liftγ N⊑N′
+      s-shape s′-shape left-comp right-comp)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ lift-left-ctx-[] N⊑V′) =
-  source-νcast source-runtime prefix mode seal★ s⊑
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ lift-left-ctx-[] N⊑V′
+      s-shape comp) =
+  source-νcast source-runtime prefix mode seal★ s⊑ s-shape comp
     liftρ lift-left-ctx-[] vV′ noV′ inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-ν okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′)
+    prefix coherent exclusive unique wfL okN () noV′
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′ s-shape comp)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′ rel@κ⊑κᵀ =
+    prefix coherent exclusive unique wfL okN vV′ noV′ rel@κ⊑κᵀ =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
       prefix okN ($ _) noV′ rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN () noV′
+    prefix coherent exclusive unique wfL okN () noV′
     (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vW noW
+    prefix coherent exclusive unique wfL okN vW noW
     rel@(gen⊑groundᵀ mode seal★ (c⊢ , NW.gen safe)
       gH vV vW′ W⊢ V⊑Wtag q) =
   world-coherent-left-indexed-catchup
@@ -411,53 +459,53 @@ world-coherent-left-value-catchup-prefix-proofᵀ
       prefix okN (vV ⟨ genSafe→inert (NW.safe-gen safe) ⟩) noW rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (cast⊒⊑ᵀ mode seal★ c⊒ N⊑V′ q) =
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊒⊑ᵀ mode seal★ c⊒ N⊑V′ q c-shape comp) =
   source-narrow source-runtime prefix mode seal★ c⊒
-    vV′ noV′ inner q
+    vV′ noV′ inner q c-shape comp
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (cast⊑⊑ᵀ mode seal★ c⊑ N⊑V′ q) =
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★ c⊑ N⊑V′ q c-shape comp) =
   source-widen source-runtime prefix mode seal★ c⊑
-    vV′ noV′ inner q
+    vV′ noV′ inner q c-shape comp
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN
+    prefix coherent exclusive unique wfL okN
     (vV′ ⟨ inert ⟩) (no•-⟨⟩ noV′)
     (conv⊑convᵀ conversion N⊑V′) =
   source-paired-cast source-runtime prefix conversion
     vV′ noV′ inert inner
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (conv↑⊑ᵀ c↑ N⊑V′ q) =
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (conv↑⊑ᵀ c↑ N⊑V′ q replace) =
   source-reveal source-runtime prefix c↑ vV′ noV′ inner q
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive wfL okN vV′ noV′
-    (conv↓⊑ᵀ c↓ N⊑V′ q) =
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (conv↓⊑ᵀ c↓ N⊑V′ q replace) =
   source-conceal source-runtime prefix c↓ vV′ noV′ inner q
   where
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive wfL
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′

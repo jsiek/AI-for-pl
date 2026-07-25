@@ -2,15 +2,17 @@ module proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceN
 
 -- File Charter:
 --   * Assembles exact-final source-`ν ★` catch-up by the two possible inner
---     universal precision indices.
+--     universal precision-index body views.
 --   * Keeps source-only allocation and the paired-index obstruction as
 --     explicit whole theorem dependencies.
 --   * Contains no allocation implementation, recursive dispatcher, or
 --     permissive option.
 
-open import ImprecisionWf using (∀ⁱ_) renaming (ν to νⁱ)
 open import proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastCatchupDef using
   (WorldCoherentFinalSourceNuCastCatchupᵀ)
+open import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastIndexBodyViewDef
+  using (paired-index-body; source-only-index-body)
 open import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastPairedIndexCatchupDef
   using (WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ)
@@ -24,15 +26,17 @@ world-coherent-final-source-νcast-catchup-proofᵀ :
   WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ →
   WorldCoherentFinalSourceNuCastCatchupᵀ
 world-coherent-final-source-νcast-catchup-proofᵀ
-    source-only paired {q = νⁱ safe occ r}
+    source-only paired
     coherent exclusive wfL mode seal★ s⊑
+    (source-only-index-body {{safe = safe}} r) s-shape comp
     vL noL vV′ noV′ L⊑V′ =
   source-only {{safe = safe}}
-    coherent exclusive wfL mode seal★ s⊑
+    coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
 world-coherent-final-source-νcast-catchup-proofᵀ
-    source-only paired {q = ∀ⁱ r}
+    source-only paired
     coherent exclusive wfL mode seal★ s⊑
+    (paired-index-body r) s-shape comp
     vL noL vV′ noV′ L⊑V′ =
-  paired coherent exclusive wfL mode seal★ s⊑
+  paired coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′

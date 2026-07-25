@@ -30,10 +30,10 @@ world-coherent-right-target-widen-inst-source-only-lambda-root-proofᵀ :
   WorldCoherentRightTargetWidenInstSourceOnlyLambdaRootᵀ
 world-coherent-right-target-widen-inst-source-only-lambda-root-proofᵀ
     source-all {q = q} prefix coherent exclusive unique wfR runtime
-    vW noW mode seal★ c⊑ liftρ liftγ body =
+    vW noW mode seal★ c⊑ c-shape comp liftρ liftγ body =
   source-all prefix coherent exclusive unique wfR runtime
     vW noW liftρ liftγ
-    (⊑cast⊑ᵀ mode lifted-seal lifted-cast body q)
+    (⊑cast⊑ᵀ mode lifted-seal lifted-cast body q c-shape comp)
   where
   lifted-seal =
     subst (SealModeStore★ _)

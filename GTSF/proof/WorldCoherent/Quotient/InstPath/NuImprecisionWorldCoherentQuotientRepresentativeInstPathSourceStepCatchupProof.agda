@@ -31,6 +31,7 @@ world-coherent-quotient-representative-inst-path-source-step-catchup-proofᵀ
     {A = A} {A′ = A′} {d = d} {d′ = d′} {s = s} {u′ = u′}
     {ρ = ρ} {D≈C = D≈C} {C⊑C′ = C⊑C′} {C′≈D′ = C′≈D′}
     {pA = pA} {step = step} {rest = rest} {targetPath = targetPath}
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening =
   view
@@ -40,5 +41,6 @@ world-coherent-quotient-representative-inst-path-source-step-catchup-proofᵀ
     {ρ = ρ} {D≈C = D≈C} {C⊑C′ = C⊑C′} {C′≈D′ = C′≈D′}
     {pA = pA} {step = step} {rest = rest} {targetPath = targetPath}
     (source-inst-step-view step widening)
+    source-normal target-normal
     coherent exclusive wfL okN vVd noVd vV′ noV′
     inert-d′ inert-u′ down widening

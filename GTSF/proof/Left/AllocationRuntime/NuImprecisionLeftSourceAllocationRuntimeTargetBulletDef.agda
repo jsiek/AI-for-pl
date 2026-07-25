@@ -56,8 +56,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
   ; rename-assm²-⇑ᴿᵢ
-  ; ⊑-rename-leftᵢ
   )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (⊑-rename-leftᵢ)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf-suc)
 
 

@@ -2,8 +2,10 @@ module proof.Target.Administration.NuImprecisionTargetAdministrationPlanSynthesi
 
 -- File Charter:
 --   * Exposes canonical target-administration plan synthesis.
---   * Confirms that existing narrowing/widening evidence supplies hereditary
---     sequence midpoints without changing QTI.
+--   * Threads exact cast shapes and imprecision-composition triangles into
+--     hereditary plans, including strict sequence components.
+--   * Distinguishes ordinary narrowing, ordinary widening, and identity-only
+--     widening at the synthesis boundary.
 --   * Contains no simulation result, outcome carrier, compatibility alias,
 --     postulate, hole, or permissive option.
 

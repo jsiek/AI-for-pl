@@ -10,9 +10,12 @@ module
 --     catch-all, or permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁)
 
+open import ImprecisionComposition using
+  (quotient-boundary-square; source-perm-refl)
 open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
   (No•; no•-⟨⟩; _⟨_⟩)
@@ -53,8 +56,10 @@ world-coherent-source-function-cast-beta-paired-widening-source-inert-values-pro
     relation relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★
     (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+    source-shape
     mode′ seal★′
     (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+    target-shape source-comp target-comp
     inert inner argument-related vV vW vL′ vR′ =
   world-coherent-source-target-keep-prependᵀ
     (pure-step (β-↦ vL′ vR′))
@@ -86,5 +91,9 @@ world-coherent-source-function-cast-beta-paired-widening-source-inert-values-pro
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-V-no target-L-no inner
   final-related =
-    relation mode seal★⁺ source-widening⁺
-      mode′ seal★′⁺ target-widening⁺ inert inner⁺ argument-related
+    relation mode seal★⁺ source-widening⁺ source-shape
+      mode′ seal★′⁺ target-widening⁺ target-shape
+      (quotient-boundary-square
+        source-perm-refl source-comp
+        source-perm-refl target-comp)
+      inert inner⁺ argument-related

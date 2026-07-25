@@ -1,0 +1,91 @@
+module proof.DGG.TerminalBackward.NuDGGTerminalBackwardStrictSpine where
+
+-- File Charter:
+--   * Aggregates the strict world-coherent target-oriented one-step boundary
+--     while the unconditional backward dispatcher is assembled.
+--   * Imports only completed statement, frame, and terminal-composition
+--     modules; it deliberately excludes the permissive scratch dispatcher.
+--   * Provides a focused strict checker for backward DGG development.
+
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentOneStepDef
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepPrimitiveFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepPrimitiveFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepPrimitiveFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepApplicationFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepApplicationFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepApplicationFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceCastFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceCastFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceCastFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceConversionFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceConversionFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepSourceConversionFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetCastFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetCastFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetCastFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetConversionFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetConversionFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepTargetConversionFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepNuFramesDef
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepNuFramesProof
+import
+  proof.WorldCoherent.Right.OneStep.Frames.NuImprecisionWorldCoherentRightOneStepNuFramesLemma
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepAtomicAndBlameRootsDef
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepAtomicAndBlameRootsProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepAtomicAndBlameRootsLemma
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepApplicationBlameRootsDef
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepApplicationBlameRootsProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepApplicationBlameRootsLemma
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetCastActiveRootsDef
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetCastActiveRootsProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetCastActiveRootsLemma
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetCastSemanticRootsProof
+import
+  proof.WorldCoherent.Right.Target.Framing.NuImprecisionWorldCoherentRightTargetPureStepResidualDef
+import
+  proof.WorldCoherent.Right.Target.Framing.NuImprecisionWorldCoherentRightTargetPureStepResidualProof
+import
+  proof.WorldCoherent.Right.Target.Framing.NuImprecisionWorldCoherentRightTargetPureStepResidualLemma
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetConversionRootsDef
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetConversionRootsProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetConversionRootsLemma
+import
+  proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueWorldCoherentDef
+import
+  proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueWorldCoherentProof
+import
+  proof.DGG.TerminalBackward.NuDGGTerminalBackwardBlameWorldCoherentProof

@@ -13,6 +13,7 @@ module
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using (Coercion)
 open import Conversion using (ConcealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -65,6 +66,7 @@ WorldCoherentRightSourceAllTargetConcealFrameᵀ =
   Value V →
   No• V →
   ConcealConversion μ Δᴿ (rightStoreⁱ ρᴸ) β X c C B →
+  q [ β ↦ X ]ᴿ r →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
   LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →

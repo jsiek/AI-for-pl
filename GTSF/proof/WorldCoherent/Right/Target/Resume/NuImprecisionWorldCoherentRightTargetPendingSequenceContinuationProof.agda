@@ -49,18 +49,21 @@ rightTargetPendingNarrowSequence
       terminalization)
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW mode seal★ s⊒ t⊒ _ _ _ V⊑W
+    vW mode seal★ s⊒ t⊒
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW =
   rightTargetNarrowFrame terminalization
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ} {ρ⁺ = ρ} {p = r} {q = q}
     prefix-reflⁱ coherent exclusive unique wfR runtime
-    vV noV mode seal★ t⊒ (⊑cast⊒ᵀ mode seal★ s⊒ V⊑W r)
+    vV noV mode seal★ t⊒ t-shape t-comp
+    (⊑cast⊒ᵀ mode seal★ s⊒ V⊑W r s-shape s-comp)
     (rightTargetNarrowFrame terminalization
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ} {ρ⁺ = ρ} {p = p} {q = r}
       prefix-reflⁱ coherent exclusive unique wfR
-      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊒ V⊑W
+      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊒
+      s-shape s-comp V⊑W
       (world-coherent-right-value-terminalᵀ
         {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         {ρ₀ = ρ} {ρ⁺ = ρ} {p = p}
@@ -71,18 +74,21 @@ rightTargetPendingWidenSequence
       terminalization)
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW mode seal★ s⊑ t⊑ _ _ _ V⊑W
+    vW mode seal★ s⊑ t⊑
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW =
   rightTargetWidenFrame terminalization
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ} {ρ⁺ = ρ} {p = r} {q = q}
     prefix-reflⁱ coherent exclusive unique wfR runtime
-    vV noV mode seal★ t⊑ (⊑cast⊑ᵀ mode seal★ s⊑ V⊑W r)
+    vV noV mode seal★ t⊑ t-shape t-comp
+    (⊑cast⊑ᵀ mode seal★ s⊑ V⊑W r s-shape s-comp)
     (rightTargetWidenFrame terminalization
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ} {ρ⁺ = ρ} {p = p} {q = r}
       prefix-reflⁱ coherent exclusive unique wfR
-      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊑ V⊑W
+      (runtime-⟨⟩ runtime) vV noV mode seal★ s⊑
+      s-shape s-comp V⊑W
       (world-coherent-right-value-terminalᵀ
         {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         {ρ₀ = ρ} {ρ⁺ = ρ} {p = p}
@@ -93,18 +99,21 @@ rightTargetPendingIdWidenSequence
       terminalization)
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {ρ = ρ}
     {p = p} {r = r} {q = q}
-    vW seal★ s⊑ t⊑ _ _ _ V⊑W
+    vW seal★ s⊑ t⊑
+    s-shape s-comp t-shape t-comp _ V⊑W
     coherent exclusive unique wfR runtime vV noV noW =
   rightTargetIdWidenFrame terminalization
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ} {ρ⁺ = ρ} {p = r} {q = q}
     prefix-reflⁱ coherent exclusive unique wfR runtime
-    vV noV seal★ t⊑ (⊑cast⊑idᵀ seal★ s⊑ V⊑W r)
+    vV noV seal★ t⊑ t-shape t-comp
+    (⊑cast⊑idᵀ seal★ s⊑ V⊑W r s-shape s-comp)
     (rightTargetIdWidenFrame terminalization
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ} {ρ⁺ = ρ} {p = p} {q = r}
       prefix-reflⁱ coherent exclusive unique wfR
-      (runtime-⟨⟩ runtime) vV noV seal★ s⊑ V⊑W
+      (runtime-⟨⟩ runtime) vV noV seal★ s⊑
+      s-shape s-comp V⊑W
       (world-coherent-right-value-terminalᵀ
         {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         {ρ₀ = ρ} {ρ⁺ = ρ} {p = p}

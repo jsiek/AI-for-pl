@@ -10,9 +10,14 @@ module
 --     permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Coercions using (Inert)
 open import Data.List using ([])
 
+open import ForallPermutation using
+  (quotientᵖ; ≈∀-refl)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -39,15 +44,23 @@ SourceFunctionCastBetaPairedWideningSourceInertRelationᵀ =
     {pB₀ : Φ ∣ Δᴸ ⊢ B₀ ⊑ B₀′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+    {s s′ : ImprecisionShape}
     {μ μ′} →
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ c C.↦ d ∶ A₀ ⇒ B₀ ⊑ A ⇒ B →
+  CastShape.widening CastShape.⊢ᶜ
+    c C.↦ d ⦂ s →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ e C.↦ f ∶ A₀′ ⇒ B₀′ ⊑ A′ ⇒ B′ →
+  CastShape.widening CastShape.⊢ᶜ
+    e C.↦ f ⦂ s′ →
+  s ；⌊ pA ↦ pB ⌋≋ᵖ
+    (quotientᵖ ≈∀-refl
+      (pA₀ ↦ pB₀) ≈∀-refl) ； s′ →
   Inert (c C.↦ d) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ L′

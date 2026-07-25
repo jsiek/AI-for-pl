@@ -4,6 +4,8 @@ module proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes where
 --   * Defines proof-relevant route certificates for the simple exhaustive MLB
 --     enumerator.
 --   * Proves that route certificates are equivalent to list membership.
+--   * Builds lower-bound derivations directly from route certificates.
+--   * Exposes lower-bound witnesses following the exact route selected by MLB.
 --   * Keeps route choices available for the quotient-coherence induction.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -14,12 +16,22 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Maybe using (just)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Nullary using (yes; no)
 
 open import Types
 open import Imprecision using (NonVar; ImpCtx; idᵢ)
+open import ImprecisionWf using
+  ( _∣_⊢_⊑_⊣_
+  ; id★
+  ; idι
+  ; _↦_
+  ; ∀ⁱ_
+  ; tag_
+  ; tag_⇛_
+  ; ν
+  )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using
   ( allEndpointMlbsAt; arrowProducts; dedupe; enumMLB; fuelFor
   ; rawEndpointMlbsAt; MLB
@@ -34,8 +46,12 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleSoundness using
   ( arrowProducts-sound; dedupe-sound; ∈-++-split
   ; first-sound
   ; forallBothCandidates; leftForallCandidates; rightForallCandidates
-  ; pruneStrictlyBelow-sound; wrapAll-sound; wrapAllIfOccurs-sound
+  ; pruneStrictlyBelow-sound
+  ; varCandidatesUpTo-sound; νᵢᶜ-wf²
+  ; wrapAll-sound; wrapAllIfOccurs-sound
   )
+open import proof.Core.Properties.ImprecisionProperties using
+  (WfImpCtx²; WfImpCtx-to²; idᵢ-wf; ∀ᵢ-wf²)
 
 ------------------------------------------------------------------------
 -- Proof-relevant enumeration routes
@@ -121,6 +137,67 @@ data EnumRoute :
     ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ Y C} →
     C ∈ varCandidatesUpTo Φᴸ Φᴿ ★ (＇ Y) Δᶜ →
     EnumRoute (suc fuel) Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ ★ (＇ Y) C
+
+
+enum-route-sound :
+  ∀ {fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C} →
+  WfImpCtx² Δᶜ Δᴸ Φᴸ →
+  WfImpCtx² Δᶜ Δᴿ Φᴿ →
+  EnumRoute fuel Φᴸ Φᴿ Δᶜ Δᴸ Δᴿ A B C →
+  (Φᴸ ∣ Δᶜ ⊢ C ⊑ A ⊣ Δᴸ) ×
+  (Φᴿ ∣ Δᶜ ⊢ C ⊑ B ⊣ Δᴿ)
+enum-route-sound hΦᴸ hΦᴿ (route-both route) =
+  ∀ⁱ (proj₁ inner) , ∀ⁱ (proj₂ inner)
+  where
+  inner = enum-route-sound
+    (∀ᵢ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) route
+enum-route-sound hΦᴸ hΦᴿ
+    (route-left {{safe}} occ route) =
+  ∀ⁱ (proj₁ inner) , ν safe occ (proj₂ inner)
+  where
+  inner = enum-route-sound
+    (∀ᵢ-wf² hΦᴸ) (νᵢᶜ-wf² hΦᴿ) route
+enum-route-sound hΦᴸ hΦᴿ
+    (route-right {{safe}} occ route) =
+  ν safe occ (proj₁ inner) , ∀ⁱ (proj₂ inner)
+  where
+  inner = enum-route-sound
+    (νᵢᶜ-wf² hΦᴸ) (∀ᵢ-wf² hΦᴿ) route
+enum-route-sound hΦᴸ hΦᴿ route-star =
+  id★ , id★
+enum-route-sound hΦᴸ hΦᴿ route-base =
+  idι , idι
+enum-route-sound hΦᴸ hΦᴿ route-base-star =
+  idι , tag _
+enum-route-sound hΦᴸ hΦᴿ route-star-base =
+  tag _ , idι
+enum-route-sound hΦᴸ hΦᴿ
+    (route-arrow route₁ route₂) =
+  (proj₁ inner₁ ↦ proj₁ inner₂) ,
+  (proj₂ inner₁ ↦ proj₂ inner₂)
+  where
+  inner₁ = enum-route-sound hΦᴸ hΦᴿ route₁
+  inner₂ = enum-route-sound hΦᴸ hΦᴿ route₂
+enum-route-sound hΦᴸ hΦᴿ
+    (route-arrow-star route₁ route₂) =
+  (proj₁ inner₁ ↦ proj₁ inner₂) ,
+  tag (proj₂ inner₁) ⇛ (proj₂ inner₂)
+  where
+  inner₁ = enum-route-sound hΦᴸ hΦᴿ route₁
+  inner₂ = enum-route-sound hΦᴸ hΦᴿ route₂
+enum-route-sound hΦᴸ hΦᴿ
+    (route-star-arrow route₁ route₂) =
+  tag (proj₁ inner₁) ⇛ (proj₁ inner₂) ,
+  (proj₂ inner₁ ↦ proj₂ inner₂)
+  where
+  inner₁ = enum-route-sound hΦᴸ hΦᴿ route₁
+  inner₂ = enum-route-sound hΦᴸ hΦᴿ route₂
+enum-route-sound hΦᴸ hΦᴿ (route-vars C∈) =
+  varCandidatesUpTo-sound hΦᴸ hΦᴿ C∈
+enum-route-sound hΦᴸ hΦᴿ (route-var-star C∈) =
+  varCandidatesUpTo-sound hΦᴸ hΦᴿ C∈
+enum-route-sound hΦᴸ hΦᴿ (route-star-var C∈) =
+  varCandidatesUpTo-sound hΦᴸ hΦᴿ C∈
 
 ------------------------------------------------------------------------
 -- Routes imply enumeration membership
@@ -485,3 +562,15 @@ MLB-result→route :
 MLB-result→route {Δ = Δ} {A = A} {B = B} eq =
   all-endpoint-membership→route
     (first-sound {xs = allEndpointMlbsAt Δ A B} eq)
+
+
+MLB-result-route-sound :
+  ∀ {Δ A B C} →
+  MLB Δ A B ≡ just C →
+  (idᵢ Δ ∣ Δ ⊢ C ⊑ A ⊣ Δ) ×
+  (idᵢ Δ ∣ Δ ⊢ C ⊑ B ⊣ Δ)
+MLB-result-route-sound {Δ = Δ} {A = A} {B = B} eq =
+  enum-route-sound
+    (WfImpCtx-to² (idᵢ-wf Δ))
+    (WfImpCtx-to² (idᵢ-wf Δ))
+    (MLB-result→route {Δ = Δ} {A = A} {B = B} eq)

@@ -77,12 +77,20 @@ open import
   using
   ( plan-fun-untag-gen
   ; plan-id
+  ; plan-id-widen-seq
   ; plan-inert
   ; plan-inst
   ; plan-inst-fun-tag
-  ; plan-seq
+  ; plan-narrow-seq
   ; plan-unseal
   ; plan-untag
+  ; plan-widen-seq
+  )
+open import
+  proof.Target.Administration.NuImprecisionTargetFusedAdministrationPlanDecomposition
+  using
+  ( target-fun-untag-gen-plan-decompositionᵀ
+  ; target-inst-fun-tag-plan-decompositionᵀ
   )
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
@@ -100,9 +108,6 @@ open import
 open import
   proof.Target.SealTag.NuImprecisionTargetSealCancellationLemma
   using (target-seal-cancellationᵀ)
-open import
-  proof.Target.SealTag.NuImprecisionTargetGroundUniqueness
-  using (universal-star-to-function)
 open import
   proof.WorldCoherent.Right.Target.Resume.NuImprecisionWorldCoherentRightTargetPendingCastPrependContextLemma
   using
@@ -181,26 +186,6 @@ private
   successor-rank-decrease {inner} equality =
     subst (inner <_) (sym equality) (n<1+n inner)
 
-  eager-function-from-star :
-    ∀ {Φ Δᴸ Δᴿ A C} →
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ) →
-    Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ →
-    Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ
-  eager-function-from-star p (∀ⁱ q) =
-    universal-star-to-function p
-  eager-function-from-star p (ν safe occ q) =
-    universal-star-to-function p
-
-  eager-function-to-star :
-    ∀ {Φ Δᴸ Δᴿ A C} →
-    Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ →
-    (q : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ) →
-    Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ
-  eager-function-to-star (∀ⁱ p) q =
-    universal-star-to-function q
-  eager-function-to-star (ν safe occ p) q =
-    universal-star-to-function q
-
   tag-no-bullet :
     ∀ {V G} →
     No• (V ⟨ G C.! ⟩) →
@@ -227,8 +212,10 @@ private
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-inert inert-c)
-          (inj₁ (μ′ , β , X′ , reveal)) tail)
+        (pending-cons {r = r}
+          (plan-inert inert-c
+            (inj₁ (μ′ , β , X′ , reveal , replacement)))
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation =
       pending-worker
         (vW ⟨ inert-c ⟩)
@@ -237,12 +224,15 @@ private
             (target-inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑conv↑ᵀ reveal relation r)
+        (⊑conv↑ᵀ reveal relation r replacement)
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-inert inert-c)
-          (inj₂ (inj₁ (μ′ , β , X′ , conceal))) tail)
+        (pending-cons {r = r}
+          (plan-inert inert-c
+            (inj₂ (inj₁
+              (μ′ , β , X′ , conceal , replacement))))
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation =
       pending-worker
         (vW ⟨ inert-c ⟩)
@@ -251,13 +241,16 @@ private
             (target-inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑conv↓ᵀ conceal relation r)
+        (⊑conv↓ᵀ conceal relation r replacement)
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-inert inert-c)
-          (inj₂ (inj₂ (inj₁
-            (μ′ , mode , seal★ , narrowing)))) tail)
+        (pending-cons {r = r}
+          (plan-inert inert-c
+            (inj₂ (inj₂ (inj₁
+              (μ′ , shape , mode , seal★ , narrowing ,
+               c-shape , composition)))))
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation =
       pending-worker
         (vW ⟨ inert-c ⟩)
@@ -266,13 +259,17 @@ private
             (target-inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑cast⊒ᵀ mode seal★ narrowing relation r)
+        (⊑cast⊒ᵀ mode seal★ narrowing relation r
+          c-shape composition)
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-inert inert-c)
-          (inj₂ (inj₂ (inj₂ (inj₁
-            (μ′ , mode , seal★ , widening))))) tail)
+        (pending-cons {r = r}
+          (plan-inert inert-c
+            (inj₂ (inj₂ (inj₂ (inj₁
+              (μ′ , shape , mode , seal★ , widening ,
+               c-shape , composition))))))
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation =
       pending-worker
         (vW ⟨ inert-c ⟩)
@@ -281,13 +278,17 @@ private
             (target-inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑cast⊑ᵀ mode seal★ widening relation r)
+        (⊑cast⊑ᵀ mode seal★ widening relation r
+          c-shape composition)
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-inert inert-c)
-          (inj₂ (inj₂ (inj₂ (inj₂
-            (seal★ , widening))))) tail)
+        (pending-cons {r = r}
+          (plan-inert inert-c
+            (inj₂ (inj₂ (inj₂ (inj₂
+              (shape , seal★ , widening ,
+               c-shape , composition))))))
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation =
       pending-worker
         (vW ⟨ inert-c ⟩)
@@ -296,17 +297,18 @@ private
             (target-inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑cast⊑idᵀ seal★ widening relation r)
+        (⊑cast⊑idᵀ seal★ widening relation r
+          c-shape composition)
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {p = p} {r = r} plan-id evidence tail)
+        (pending-cons {p = p} {r = r} (plan-id evidence) tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         with assumption-membership-unique→precision-index-unique unique p r
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {p = p} {r = .p} plan-id evidence tail)
+        (pending-cons {p = p} {r = .p} (plan-id evidence) tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | refl
         with pending-worker
@@ -319,7 +321,7 @@ private
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {p = p} {r = .p} plan-id evidence tail)
+        (pending-cons {p = p} {r = .p} (plan-id evidence) tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | refl
         | caught , context-eq , right-prefix =
@@ -330,24 +332,30 @@ private
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-untag {gH = gH})
-          evidence tail)
+        (pending-cons {r = r}
+          (plan-untag {gH = gH}
+            mode seal★ narrowing c-shape composition)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         with canonical-★ vW
           (forget (nu-term-imprecision-target-typing relation))
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-untag {gH = gH})
-          evidence tail)
+        (pending-cons {r = r}
+          (plan-untag {gH = gH}
+            mode seal★ narrowing c-shape composition)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | sv-tag {W = U} {G = G} canonical-vU refl
         with tag-value-evidence⁻¹ vW
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-untag {gH = gH})
-          evidence tail)
+        (pending-cons {r = r}
+          (plan-untag {gH = gH}
+            mode seal★ narrowing c-shape composition)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | sv-tag {W = U} {G = G} canonical-vU refl
         | vU , refl
@@ -356,8 +364,10 @@ private
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-untag {gH = gH})
-          evidence tail)
+        (pending-cons {r = r}
+          (plan-untag {gH = gH}
+            mode seal★ narrowing c-shape composition)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | sv-tag {W = U} {G = G} canonical-vU refl
         | vU , refl
@@ -376,8 +386,10 @@ private
     pending-worker
         {cs = c ∷ cs}
         vW (acc smaller)
-        (pending-cons {r = r} (plan-untag {gH = gH})
-          evidence tail)
+        (pending-cons {r = r}
+          (plan-untag {gH = gH}
+            mode seal★ narrowing c-shape composition)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | sv-tag {W = U} {G = G} canonical-vU refl
         | vU , refl
@@ -391,8 +403,8 @@ private
         {B = ＇ α} {cs = unseal α B ∷ cs}
         vW (acc recurse)
         (pending-cons {r = r}
-          (plan-unseal {αB∈Σ = αB∈Σ})
-          evidence tail-spine)
+          (plan-unseal {αB∈Σ = αB∈Σ} evidence)
+          tail-spine)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
         with canonical-＇ vW
@@ -401,8 +413,8 @@ private
         {B = ＇ α} {cs = unseal α B ∷ cs}
         vW (acc recurse)
         (pending-cons {r = r}
-          (plan-unseal {αB∈Σ = αB∈Σ})
-          evidence tail-spine)
+          (plan-unseal {αB∈Σ = αB∈Σ} evidence)
+          tail-spine)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
         | sv-seal {W = U} {A = Y} vU refl =
@@ -455,8 +467,8 @@ private
         (pending-cons
           (plan-inst
             {hB = hB} {occ = occ} {s⊢ = s⊢}
-            {p = p} {q = r})
-          evidence tail)
+            {p = p} {q = r} evidence)
+          tail)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation =
       inst
@@ -468,14 +480,32 @@ private
         {cs = c ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-fun-untag-gen
+          fused-plan@(plan-fun-untag-gen
             {μ = μ} {s = s}
             {hG = hG} {gG = gG} {tag-ok = tag-ok}
             {hFun = hFun} {occ = occ} {s⊢ = s⊢}
-            {p = p} {q = r})
-          evidence tail)
+            {p = p} {q = r} evidence)
+          tail)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
+        with target-fun-untag-gen-plan-decompositionᵀ
+          fused-plan
+    pending-worker
+        {cs = c ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          fused-plan@(plan-fun-untag-gen
+            {μ = μ} {s = s}
+            {hG = hG} {gG = gG} {tag-ok = tag-ok}
+            {hFun = hFun} {occ = occ} {s⊢ = s⊢}
+            {p = p} {q = r} evidence)
+          tail)
+        coherent exclusive unique wfR ok-pending
+        vV noV noW relation
+        | middle ,
+          untag-shape , untag-evidence , untag-comp ,
+          gen-shape , gen-evidence , gen-comp ,
+          untag-plan , gen-plan
         with pending-worker
           vW
           (smaller
@@ -485,13 +515,7 @@ private
           (target-administration-sequence-spine-expansionᵀ
             {s⊢ = C.cast-untag hG gG tag-ok}
             {t⊢ = C.cast-gen hFun occ s⊢}
-            (plan-untag
-              {μ = μ} {hH = hG} {gH = gG} {ok = tag-ok}
-              {p = p} {q = eager-function-from-star p r})
-            (plan-inert
-              {p = eager-function-from-star p r} {q = r}
-              (C.gen (★ ⇒ ★) s))
-            evidence tail)
+            untag-plan gen-plan tail)
           coherent exclusive unique wfR
           (pending-casts-runtime
             ((★ ⇒ ★) C.？ ∷ C.gen (★ ⇒ ★) s ∷ cs)
@@ -501,14 +525,18 @@ private
         {cs = c ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-fun-untag-gen
+          fused-plan@(plan-fun-untag-gen
             {μ = μ} {s = s}
             {hG = hG} {gG = gG} {tag-ok = tag-ok}
             {hFun = hFun} {occ = occ} {s⊢ = s⊢}
-            {p = p} {q = r})
-          evidence tail)
+            {p = p} {q = r} evidence)
+          tail)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
+        | middle ,
+          untag-shape , untag-evidence , untag-comp ,
+          gen-shape , gen-evidence , gen-comp ,
+          untag-plan , gen-plan
         | caught , context-eq , right-prefix =
       world-coherent-right-target-pending-cast-prepend-contextᵀ
         {cs = cs}
@@ -518,14 +546,32 @@ private
         {cs = c ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-inst-fun-tag
+          fused-plan@(plan-inst-fun-tag
             {μ = μ} {s = s}
             {hFun = hFun} {occ = occ} {s⊢ = s⊢}
             {hG = hG} {gG = gG} {tag-ok = tag-ok}
-            {p = p} {q = r})
-          evidence tail)
+            {p = p} {q = r} evidence)
+          tail)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
+        with target-inst-fun-tag-plan-decompositionᵀ
+          fused-plan
+    pending-worker
+        {cs = c ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          fused-plan@(plan-inst-fun-tag
+            {μ = μ} {s = s}
+            {hFun = hFun} {occ = occ} {s⊢ = s⊢}
+            {hG = hG} {gG = gG} {tag-ok = tag-ok}
+            {p = p} {q = r} evidence)
+          tail)
+        coherent exclusive unique wfR ok-pending
+        vV noV noW relation
+        | middle ,
+          inst-shape , inst-evidence , inst-comp ,
+          tag-shape , tag-evidence , tag-comp ,
+          inst-plan , tag-plan
         with pending-worker
           vW
           (smaller
@@ -535,12 +581,7 @@ private
           (target-administration-sequence-spine-expansionᵀ
             {s⊢ = C.cast-inst hFun occ s⊢}
             {t⊢ = C.cast-tag hG gG tag-ok}
-            (plan-inst
-              {p = p} {q = eager-function-to-star p r})
-            (plan-inert
-              {p = eager-function-to-star p r} {q = r}
-              ((★ ⇒ ★) C.!))
-            evidence tail)
+            inst-plan tag-plan tail)
           coherent exclusive unique wfR
           (pending-casts-runtime
             (C.inst (★ ⇒ ★) s ∷ (★ ⇒ ★) C.! ∷ cs)
@@ -550,14 +591,18 @@ private
         {cs = c ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-inst-fun-tag
+          fused-plan@(plan-inst-fun-tag
             {μ = μ} {s = s}
             {hFun = hFun} {occ = occ} {s⊢ = s⊢}
             {hG = hG} {gG = gG} {tag-ok = tag-ok}
-            {p = p} {q = r})
-          evidence tail)
+            {p = p} {q = r} evidence)
+          tail)
         coherent exclusive unique wfR ok-pending
         vV noV noW relation
+        | middle ,
+          inst-shape , inst-evidence , inst-comp ,
+          tag-shape , tag-evidence , tag-comp ,
+          inst-plan , tag-plan
         | caught , context-eq , right-prefix =
       world-coherent-right-target-pending-cast-prepend-contextᵀ
         {cs = cs}
@@ -567,7 +612,11 @@ private
         {cs = (s ︔ t) ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-seq s-plan t-plan) evidence tail)
+          (plan-narrow-seq
+            mode seal★ whole narrowing sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         with pending-worker
           vW
@@ -575,7 +624,7 @@ private
             (successor-rank-decrease
               (target-sequence-rank-decreases vW s t cs)))
           (target-administration-sequence-spine-expansionᵀ
-            s-plan t-plan evidence tail)
+            s-plan t-plan tail)
           coherent exclusive unique wfR
           (pending-casts-runtime (s ∷ t ∷ cs) (ok-no noW))
           vV noV noW relation
@@ -583,7 +632,81 @@ private
         {cs = (s ︔ t) ∷ cs}
         vW (acc smaller)
         (pending-cons
-          (plan-seq s-plan t-plan) evidence tail)
+          (plan-narrow-seq
+            mode seal★ whole narrowing sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
+        coherent exclusive unique wfR runtime vV noV noW relation
+        | caught , context-eq , right-prefix =
+      world-coherent-right-target-pending-cast-prepend-contextᵀ
+        {cs = cs}
+        (pure-step (β-seq vW))
+        caught context-eq right-prefix
+    pending-worker
+        {cs = (s ︔ t) ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          (plan-widen-seq
+            mode seal★ whole widening sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
+        coherent exclusive unique wfR runtime vV noV noW relation
+        with pending-worker
+          vW
+          (smaller
+            (successor-rank-decrease
+              (target-sequence-rank-decreases vW s t cs)))
+          (target-administration-sequence-spine-expansionᵀ
+            s-plan t-plan tail)
+          coherent exclusive unique wfR
+          (pending-casts-runtime (s ∷ t ∷ cs) (ok-no noW))
+          vV noV noW relation
+    pending-worker
+        {cs = (s ︔ t) ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          (plan-widen-seq
+            mode seal★ whole widening sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
+        coherent exclusive unique wfR runtime vV noV noW relation
+        | caught , context-eq , right-prefix =
+      world-coherent-right-target-pending-cast-prepend-contextᵀ
+        {cs = cs}
+        (pure-step (β-seq vW))
+        caught context-eq right-prefix
+    pending-worker
+        {cs = (s ︔ t) ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          (plan-id-widen-seq
+            seal★ whole widening sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
+        coherent exclusive unique wfR runtime vV noV noW relation
+        with pending-worker
+          vW
+          (smaller
+            (successor-rank-decrease
+              (target-sequence-rank-decreases vW s t cs)))
+          (target-administration-sequence-spine-expansionᵀ
+            s-plan t-plan tail)
+          coherent exclusive unique wfR
+          (pending-casts-runtime (s ∷ t ∷ cs) (ok-no noW))
+          vV noV noW relation
+    pending-worker
+        {cs = (s ︔ t) ∷ cs}
+        vW (acc smaller)
+        (pending-cons
+          (plan-id-widen-seq
+            seal★ whole widening sequence-shape outer-comp
+            s-shape s-comp t-shape t-comp
+            s-plan t-plan)
+          tail)
         coherent exclusive unique wfR runtime vV noV noW relation
         | caught , context-eq , right-prefix =
       world-coherent-right-target-pending-cast-prepend-contextᵀ

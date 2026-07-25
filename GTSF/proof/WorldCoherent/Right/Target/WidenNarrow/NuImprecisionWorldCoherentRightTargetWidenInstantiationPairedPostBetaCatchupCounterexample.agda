@@ -19,6 +19,8 @@ import NarrowWiden as NW
 import NuTerms
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using
+  (shape-all; shape-fun; shape-id-var; shape-inst; shape-seal; shape-unseal)
 open import Compile using
   ( CastPlan
   ; cast
@@ -58,6 +60,8 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
+open import ImprecisionComposition using
+  (comp-idˣ-idˣ; comp-idˣ-tagˣ; comp-↦-↦; comp-∀-ν)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊑_; _∣_∣_⊢_∶_⊒_)
 open import NuReduction using
@@ -484,6 +488,8 @@ private
   paired-body-id-relation =
     ⊑cast⊑idᵀ (λ α ()) function-id-cast-typing-empty
       paired-body-relation pF
+      (shape-fun shape-id-var shape-id-var)
+      (comp-↦-↦ comp-idˣ-idˣ comp-idˣ-idˣ)
 
   paired-universal-relation :
     [] ∣ zero ∣ zero ∣ [] ∣ []
@@ -542,6 +548,9 @@ private
       vI noI vI noI
       (C.seal ★ zero C.↦ C.unseal zero ★)
       paired-body-relation q∀F-H
+      (shape-inst (shape-fun shape-seal shape-unseal))
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
       rel-assm²-id∈ᵢ
       (λ X< → X<) (λ X< → X<)
       rel-store-embedding-reflⁱ
@@ -578,6 +587,9 @@ private
       vI noI target-inner-value target-inner-no-bullet
       (C.seal ★ zero C.↦ C.unseal zero ★)
       paired-body-id-relation q∀F-H
+      (shape-inst (shape-fun shape-seal shape-unseal))
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
       rel-assm²-id∈ᵢ
       (λ X< → X<) (λ X< → X<)
       rel-store-embedding-reflⁱ
@@ -603,6 +615,9 @@ private
       (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ
         (down⊒ source-plan))
       public-base-final-relation final-q∀F-H
+      (shape-all (shape-fun shape-id-var shape-id-var))
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
 
   public-final-relation :
     [] ∣ zero ∣ suc zero
@@ -614,6 +629,9 @@ private
       (NW.widen-mode-relax C.id-only≤tag-or-idᵈ
         (up⊑ source-plan))
       public-one-source-cast-relation final-q∀F-H
+      (shape-all (shape-fun shape-id-var shape-id-var))
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
 
   full-target-value-trace :
     (Λ I) ⟨ C.inst H body-cast ⟩

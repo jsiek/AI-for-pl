@@ -7,11 +7,17 @@ module
 --     one-step result.
 --   * Preserves the target tail and all strong invariants while framing the
 --     exact source step with its transported coercion.
+--   * Retains cast shapes, composition triangles, and conversion replacements.
 --   * Contains no recursive worker, implementation, postulate, hole, or
 --     permissive option.
 
 open import Coercions using (Coercion)
+open import CastImprecisionShape using
+  (narrowing; widening; _⊢ᶜ_⦂_)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
@@ -32,12 +38,15 @@ record WorldCoherentSourceOneStepSourceCastFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {M M′ L : Term} {A B B′ : Ty}
         {c : Coercion} {μ} {χ : StoreChange}
+        {s : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
+      narrowing ⊢ᶜ c ⦂ s →
+      s ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
       WorldCoherentSourceOneStepIndexedResult
         {M = M} {M′ = M′} {L = L}
         {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -51,12 +60,15 @@ record WorldCoherentSourceOneStepSourceCastFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {M M′ L : Term} {A B B′ : Ty}
         {c : Coercion} {μ} {χ : StoreChange}
+        {s : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       CastMode μ →
       SealModeStore★ μ (leftStoreⁱ ρ₀) →
       μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ s →
+      s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
       WorldCoherentSourceOneStepIndexedResult
         {M = M} {M′ = M′} {L = L}
         {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -74,6 +86,7 @@ record WorldCoherentSourceOneStepSourceCastFrames : Set₁ where
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      p [ α ↦ X ]ᴸ q →
       WorldCoherentSourceOneStepIndexedResult
         {M = M} {M′ = M′} {L = L}
         {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →
@@ -91,6 +104,7 @@ record WorldCoherentSourceOneStepSourceCastFrames : Set₁ where
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
       ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      q [ α ↦ X ]ᴸ p →
       WorldCoherentSourceOneStepIndexedResult
         {M = M} {M′ = M′} {L = L}
         {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} p →

@@ -8,8 +8,14 @@ module proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof where
 --   * Contains no recursive catch-up, allocation, or dispatcher proof.
 
 open import Agda.Builtin.Equality using (refl)
+open import Data.List using (_∷_)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (sym)
+open import NuReduction using
+  ( StoreChange
+  ; _—→[_]_
+  )
+open import NuTermImprecision using (StoreImp)
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
@@ -17,7 +23,9 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ; rel-store-embedding-prefix-invⁱ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-prepend-left-silentᵀ)
+  ( weak-one-step-composeᵀ
+  ; weak-one-step-prepend-left-silentᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftSilentResult
   ; WeakOneStepResult
@@ -29,6 +37,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; silentResult
   ; sourceChanges
   ; sourceResult
+  ; targetResult
+  ; targetTailChanges
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
@@ -68,5 +78,41 @@ weak-one-step-prepend-left-silent-store-lineageᵀ
         (applyTyVars-++
           (sourceChanges first) (sourceChanges second) α))
       (λ β → refl)
+      (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
+    (store-imp-prefix-transⁱ prefix₁₂ prefix₂)
+
+
+weak-one-step-compose-store-lineageᵀ :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    (first : WeakOneStepResult ρ M M′ A B χ)
+    {χ′ : StoreChange} {N′} →
+  (target→ : targetResult first —→[ χ′ ] N′) →
+  (second : WeakOneStepResult
+    (resultStore first) (sourceResult first) N′
+    (resultSourceType first) (resultTargetType first) χ′) →
+  WeakOneStepStoreLineage first →
+  WeakOneStepStoreLineage second →
+  WeakOneStepStoreLineage
+    (weak-one-step-composeᵀ first target→ second)
+weak-one-step-compose-store-lineageᵀ
+    first target→ second
+    (weak-step-store-lineage store₁ embedding₁ prefix₁)
+    (weak-step-store-lineage store₂ embedding₂ prefix₂)
+    with rel-store-embedding-prefix-invⁱ prefix₁ embedding₂
+weak-one-step-compose-store-lineageᵀ
+    {χ = χ} first {χ′ = χ′} target→ second
+    (weak-step-store-lineage store₁ embedding₁ prefix₁)
+    (weak-step-store-lineage store₂ embedding₂ prefix₂)
+    | store₁₂ , embedding₁₂ , prefix₁₂ =
+  weak-step-store-lineage store₁₂
+    (rel-store-embedding-congⁱ
+      (λ α → sym
+        (applyTyVars-++
+          (sourceChanges first) (sourceChanges second) α))
+      (λ β → sym
+        (applyTyVars-++
+          (χ ∷ targetTailChanges first)
+          (χ′ ∷ targetTailChanges second) β))
       (rel-store-embedding-composeⁱ embedding₁ embedding₁₂))
     (store-imp-prefix-transⁱ prefix₁₂ prefix₂)

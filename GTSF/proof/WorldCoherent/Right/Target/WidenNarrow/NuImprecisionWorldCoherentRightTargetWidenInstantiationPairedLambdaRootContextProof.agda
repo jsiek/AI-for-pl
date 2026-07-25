@@ -39,12 +39,15 @@ world-coherent-right-target-widen-instantiation-paired-lambda-root-context-proof
 world-coherent-right-target-widen-instantiation-paired-lambda-root-context-proofᵀ
     allocation prepend prefix coherent exclusive unique wfR
     vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+    inst-shape creation-square
     with allocation prefix coherent exclusive unique wfR
       (ok-ν (ok-no (no•-Λ noW′)))
       vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+      inst-shape creation-square
 world-coherent-right-target-widen-instantiation-paired-lambda-root-context-proofᵀ
     allocation prepend prefix coherent exclusive unique wfR
     vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+    inst-shape creation-square
     | caught , context-eq , right-prefix =
   prepend
     (pure-step (β-inst (Λ vW′)))

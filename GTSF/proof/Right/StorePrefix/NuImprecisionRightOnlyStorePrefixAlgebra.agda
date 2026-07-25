@@ -90,7 +90,8 @@ identity-left-store-embeddingⁱ
     rel-store-embedding-[] =
   refl
 identity-left-store-embeddingⁱ
-    (rel-store-embedding-matched eqα eqA eqβ eqB embedding) =
+    (rel-store-embedding-matched
+      eqα eqA eqβ eqB _ embedding) =
   cong₂ _∷_
     (cong₂ _,_ eqα (trans eqA (renameᵗ-id _)))
     (identity-left-store-embeddingⁱ embedding)
@@ -103,7 +104,8 @@ identity-left-store-embeddingⁱ
     (rel-store-embedding-right eqβ eqB embedding) =
   identity-left-store-embeddingⁱ embedding
 identity-left-store-embeddingⁱ
-    (rel-store-embedding-link eqα eqA eqβ eqB embedding) =
+    (rel-store-embedding-link
+      eqα eqA eqβ eqB _ embedding) =
   identity-left-store-embeddingⁱ embedding
 
 

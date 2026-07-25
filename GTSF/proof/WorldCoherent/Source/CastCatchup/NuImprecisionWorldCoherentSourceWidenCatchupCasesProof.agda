@@ -13,14 +13,22 @@ module
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (Coercion; Inert; ModeEnv; _︔_)
+open import CastImprecisionShape using
+  ( _⊢ᶜ_⦂_
+  ; widening
+  ; shape-inst
+  ; shape-sequence-widening
+  )
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
-open import Data.Product using (_,_; _×_; proj₁; ∃-syntax)
+open import Data.Product using (_,_; _×_; proj₁; proj₂; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import ImprecisionWf using
   (NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_; comp-ν)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( Widening
@@ -111,6 +119,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; LeftSilentIndexedResult
   ; WeakOneStepIndexedResult
   ; WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; canonicalIndexedResults
   ; catchupIndexedResult
   ; left-catchup-invariant
@@ -135,6 +144,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTailChanges
   ; targetTypeResult
   ; transportType
+  ; transportShapeCoherent
   ; weak-indexed-result
   ; weakIndexedResult
   ; weakIndexedTransport
@@ -172,6 +182,10 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyCoercions-preserves-Inert)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using
   ( modeRename-suc-weakenCast
@@ -181,6 +195,24 @@ open import proof.Core.Properties.TypePreservation using
   )
 open import proof.Core.Properties.TypeProperties using (TyRenameWf-suc)
 open import proof.Core.Properties.NuWideningTransport using (apply-widens-typing)
+
+
+transport-source-widening-composition :
+  ∀ {Φ Δᴸ Δᴿ M M′ A B χ C D E s}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {p : Φ ∣ Δᴸ ⊢ C ⊑ E ⊣ Δᴿ}
+    {q : Φ ∣ Δᴸ ⊢ D ⊑ E ⊣ Δᴿ}
+    (result : WeakOneStepResult ρ M M′ A B χ) →
+  WeakOneStepTypeCoherence result →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
+  s ； ⌊ transportType result q ⌋ ≋
+    ⌊ transportType result p ⌋
+transport-source-widening-composition result coherence comp =
+  imprecision-composition-shape-transport
+    refl
+    (transportShapeCoherent coherence _)
+    (transportShapeCoherent coherence _)
+    comp
 
 
 applyCoercions-seq :
@@ -412,7 +444,7 @@ result-widening-typing₂ᵀ
 
 
 world-coherent-source-inert-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ N V′ A B B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ N V′ A B B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   Inert c →
@@ -423,6 +455,8 @@ world-coherent-source-inert-widen-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
 world-coherent-source-inert-widen-castᵀ
@@ -435,7 +469,7 @@ world-coherent-source-inert-widen-castᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-inert-widen-castᵀ
     {N = N} {V′ = V′} {c = c} {ρ⁺ = ρ⁺}
@@ -447,7 +481,7 @@ world-coherent-source-inert-widen-castᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
 world-coherent-source-inert-widen-castᵀ
@@ -460,7 +494,7 @@ world-coherent-source-inert-widen-castᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
     world-coherent-left-indexed-catchup
@@ -476,6 +510,9 @@ world-coherent-source-inert-widen-castᵀ
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -509,7 +546,7 @@ world-coherent-source-inert-widen-castᵀ
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
     world-coherent-left-indexed-catchup
@@ -524,6 +561,9 @@ world-coherent-source-inert-widen-castᵀ
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -577,7 +617,7 @@ world-coherent-source-inert-widen-castᵀ
 
 
 world-coherent-source-id-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ N V′ A B′ μ}
+  ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ N V′ A B′ μ s}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   Atom A →
   StoreImpPrefix ρ₀ ρ⁺ →
@@ -587,6 +627,8 @@ world-coherent-source-id-widen-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ C.id A ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ C.id A ⟩} {V′ = V′} {ρ = ρ⁺} q
 world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
@@ -597,7 +639,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
     (world-coherent-left-indexed-catchup
@@ -607,7 +649,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
 world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
@@ -618,7 +660,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
   world-coherent-left-indexed-catchup
@@ -635,6 +677,9 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -709,7 +754,7 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
   world-coherent-left-indexed-catchup
@@ -724,6 +769,9 @@ world-coherent-source-id-widen-castᵀ atom prefix mode seal★ c⊑
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -798,7 +846,7 @@ terminal-world-catchupᵀ coherent exclusive wfL vW noW relation =
 
 
 world-coherent-source-seq-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ N V′ A C B B′ s t μ}
+  ∀ {Φ Δᴸ Δᴿ N V′ A C B B′ s t μ sequence-shape}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   SourceCastSequenceMidpointᵀ →
@@ -814,6 +862,8 @@ world-coherent-source-seq-widen-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ s ︔ t ⦂ sequence-shape →
+  sequence-shape ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ s ︔ t ⟩} {V′ = V′} {ρ = ρ⁺} q
 world-coherent-source-seq-widen-castᵀ
@@ -827,6 +877,9 @@ world-coherent-source-seq-widen-castᵀ
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
+    sequence-shape-proof@(
+      shape-sequence-widening s-shape t-shape sequence-comp)
+    outer-comp
     with result-widening-typingᵀ prefix mode seal★
       (C.cast-seq (proj₁ s⊑) (proj₁ t⊑) , seqʷ) indexed
        | result-widening-typing₂ᵀ
@@ -842,6 +895,9 @@ world-coherent-source-seq-widen-castᵀ
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
+    sequence-shape-proof@(
+      shape-sequence-widening s-shape t-shape sequence-comp)
+    outer-comp
     | μc , modec , final-seal-c , final-cast-c
     | μst , modest , final-seal-st , final-cast-s , final-cast-t
     with final
@@ -856,6 +912,9 @@ world-coherent-source-seq-widen-castᵀ
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
+    sequence-shape-proof@(
+      shape-sequence-widening s-shape t-shape sequence-comp)
+    outer-comp
     | μc , modec , final-seal-c , final-cast-c
     | μst , modest , final-seal-st , final-cast-s , final-cast-t
     | inj₁ (vW , noW) =
@@ -870,6 +929,10 @@ world-coherent-source-seq-widen-castᵀ
   final-relation =
     cast⊑⊑ᵀ modec final-seal-c final-cast-c
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (sourceChanges inner) sequence-shape-proof)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) outer-comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -895,18 +958,33 @@ world-coherent-source-seq-widen-castᵀ
     subst Widening (applyCoercions-seq (sourceChanges inner) _ _)
       (applyCoercions-preserves-Widening (sourceChanges inner) seqʷ)
 
-  source-mid =
+  midpoint-result =
     widening-midpoint midpoint prefix-reflⁱ coherent exclusive wfL
       modest final-seal-st (proj₁ final-cast-s) (proj₁ final-cast-t)
       seqʷ′ source-p source-q
+      (cast-shape-applyCoercions (sourceChanges inner) s-shape)
+      (cast-shape-applyCoercions (sourceChanges inner) t-shape)
+      sequence-comp
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) outer-comp)
+
+  source-mid = proj₁ midpoint-result
+
+  s-triangle = proj₁ (proj₂ midpoint-result)
+
+  t-triangle = proj₂ (proj₂ midpoint-result)
 
   s-relation =
     cast⊑⊑ᵀ modest final-seal-st final-cast-s
       (canonicalIndexedResults indexed) source-mid
+      (cast-shape-applyCoercions (sourceChanges inner) s-shape)
+      s-triangle
 
   second-relation =
     cast⊑⊑ᵀ modest final-seal-st final-cast-t
       s-relation source-q
+      (cast-shape-applyCoercions (sourceChanges inner) t-shape)
+      t-triangle
 
   second = weak-one-step-keep-source-catchupᵀ
     (post-catchup-β-seq (sourceChanges inner) vW)
@@ -973,6 +1051,9 @@ world-coherent-source-seq-widen-castᵀ
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
     q
+    sequence-shape-proof@(
+      shape-sequence-widening s-shape t-shape sequence-comp)
+    outer-comp
     | μc , modec , final-seal-c , final-cast-c
     | μst , modest , final-seal-st , final-cast-s , final-cast-t
     | inj₂ refl =
@@ -988,6 +1069,10 @@ world-coherent-source-seq-widen-castᵀ
   final-relation =
     cast⊑⊑ᵀ modec final-seal-c final-cast-c
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (sourceChanges inner) sequence-shape-proof)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) outer-comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -1042,7 +1127,7 @@ world-coherent-source-seq-widen-castᵀ
 
 world-coherent-source-inst-widen-castᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ →
-  ∀ {Φ Δᴸ Δᴿ N V′ A B B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ N V′ A B B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {index-occ : occurs zero A ≡ true}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
@@ -1058,6 +1143,8 @@ world-coherent-source-inst-widen-castᵀ :
     {N = N} {V′ = V′} {ρ = ρ⁺}
     (ν safe index-occ r) →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ C.inst B c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ ν safe index-occ r ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ C.inst B c ⟩} {V′ = V′} {ρ = ρ⁺} q
 world-coherent-source-inst-widen-castᵀ value-prefix
@@ -1069,7 +1156,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
 world-coherent-source-inst-widen-castᵀ value-prefix
     prefix mode seal★ c⊑ vV′ noV′
@@ -1080,7 +1167,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
 world-coherent-source-inst-widen-castᵀ value-prefix
@@ -1093,7 +1180,8 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape@(shape-inst inner-shape)
+      comp@(comp-ν inner-comp)
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -1107,6 +1195,9 @@ world-coherent-source-inst-widen-castᵀ value-prefix
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -1127,7 +1218,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (s⊢ , NW.instSafe→widening sʷ)
 
   ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode ν-seal★ source-cast q indexed
+    mode ν-seal★ source-cast q inner-shape inner-comp indexed
 
   second-relation :
     resultCtx first
@@ -1210,7 +1301,7 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     | inj₂ refl =
   world-coherent-left-indexed-catchup
@@ -1225,6 +1316,9 @@ world-coherent-source-inst-widen-castᵀ value-prefix
   final-relation =
     cast⊑⊑ᵀ mode′ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions (sourceChanges inner) c-shape)
+      (transport-source-widening-composition inner
+        (weakIndexedTypeCoherence indexed) comp)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 

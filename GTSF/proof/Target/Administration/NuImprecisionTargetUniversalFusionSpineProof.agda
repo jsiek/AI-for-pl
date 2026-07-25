@@ -30,7 +30,7 @@ target-universal-fusion-spine-relation-proofᵀ
 target-universal-fusion-spine-relation-proofᵀ
     (fusion-step
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert tail f
+      vW noW vW′ noW′ inert tail f inst-shape creation-square
       assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq p
       final-v final-no final-closed
@@ -40,7 +40,7 @@ target-universal-fusion-spine-relation-proofᵀ
     prefix mode seal★ inst⊑ liftρ liftρᴿ
     vW noW vW′ noW′ inert
     (target-universal-fusion-spine-relation-proofᵀ tail)
-    f assm hτ hσ store-emb
+    f inst-shape creation-square assm hτ hσ store-emb
     source-eq target-eq source-type-eq target-type-eq p
     final-v final-no final-closed
     final-v′ final-no′ final-closed′

@@ -53,7 +53,15 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; weak-step-type-coherence
   ; transportNo•Terms
   ; transportAllCoherent
+  ; transportAllBodyPairedReplacementCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
+  ; transportPairedReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
+  ; transportSourceNuBodyLeftReplacementCoherent
   )
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   ( WeakOneStepStoreLineage
@@ -131,13 +139,28 @@ world-coherent-source-target-keep-prepend-proofᵀ
   transport : WeakOneStepTransport new-result
   transport =
     weak-step-transport
-      (transportNo•Terms (weakIndexedTransport (sourceStepIndexedResult complete)))
+      (transportNo•Terms (weakIndexedTransport old-indexed))
 
   coherence : WeakOneStepTypeCoherence new-result
   coherence =
     weak-step-type-coherence
-      (transportArrowCoherent (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
-      (transportAllCoherent (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      (transportArrowCoherent (weakIndexedTypeCoherence old-indexed))
+      (transportAllCoherent (weakIndexedTypeCoherence old-indexed))
+      (transportShapeCoherent (weakIndexedTypeCoherence old-indexed))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
+      (transportRightBodyRightReplacementCoherent
+        (weakIndexedTypeCoherence old-indexed))
 
   indexed : WeakOneStepIndexedResult p
   indexed =

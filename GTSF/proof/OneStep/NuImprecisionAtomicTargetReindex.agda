@@ -7,9 +7,19 @@ module proof.OneStep.NuImprecisionAtomicTargetReindex where
 --     it does not assume proof irrelevance.
 --   * Supplies the strict support theorem for target identity conversions.
 
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
+open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import ImprecisionComposition using
+  ( ⌊_⌋
+  ; _；⌊_⌋≋ᵖ_；_
+  ; quotient-boundary-square
+  )
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_; idι; ν)
+  ( _∣_⊢_⊑_⊣_
+  ; idι
+  ; ν
+  )
 open import NuTermImprecision using
   (CtxImp; StoreImp)
 open import NuTerms using (Value)
@@ -23,10 +33,6 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
   ; gen⊑groundᵀ
-  ; paired-conceal
-  ; paired-conversion
-  ; paired-reveal
-  ; paired-widening
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
@@ -53,9 +59,26 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Atom)
+open import Relation.Binary.PropositionalEquality using (sym; trans)
+open import
+  proof.Core.Properties.ConversionIndexCompatibilityProperties
+  using
+  ( replace-left-source-shape
+  ; replace-left-target-shape
+  ; replace-right-source-shape
+  ; replace-right-target-shape
+  )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( imprecision-composition-shape-transport
+  ; shape-source-liftνᵢ
+  ; target-atom-shape-unique
+  )
 open import
   proof.OneStep.NuImprecisionLambdaInstBetaFinalTargetAtomicImpossibleLemma
   using (lambda-inst-beta-final-target-atomic-impossibleᵀ)
+open import
+  proof.NuCore.Relations.NuImprecisionPairedCastResultShape
+  using (paired-cast-result-shape-reindexᵀ)
 
 
 paired-cast-target-reindexᵀ :
@@ -63,18 +86,34 @@ paired-cast-target-reindexᵀ :
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  Atom B′ →
   PairedCast Φ Δᴸ Δᴿ ρ c c′ p q →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
   PairedCast Φ Δᴸ Δᴿ ρ c c′ p r
 paired-cast-target-reindexᵀ
-    (paired-conversion (paired-reveal corr c↑ c′↑)) r =
-  paired-conversion (paired-reveal corr c↑ c′↑)
-paired-cast-target-reindexᵀ
-    (paired-conversion (paired-conceal corr c↓ c′↓)) r =
-  paired-conversion (paired-conceal corr c↓ c′↓)
-paired-cast-target-reindexᵀ
-    (paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat) r =
-  paired-widening mode seal★ c⊑ mode′ seal★′ c′⊑ compat
+    {q = q} atom paired r =
+  paired-cast-result-shape-reindexᵀ
+    (target-atom-shape-unique atom q r) paired
+
+
+private
+  quotient-boundary-ordinary-reindex :
+    ∀ {Φ Δᴸ Δᴿ A A′ B B′}
+      {p q : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {r : Φ ∣ Δᴸ ⊢ B ⊑ᵖ B′ ⊣ Δᴿ}
+      {s s′} →
+    ⌊ p ⌋ ≡ ⌊ q ⌋ →
+    s ；⌊ p ⌋≋ᵖ r ； s′ →
+    s ；⌊ q ⌋≋ᵖ r ； s′
+  quotient-boundary-ordinary-reindex eq
+      (quotient-boundary-square
+        source-shape left-composition target-shape right-composition) =
+    quotient-boundary-square
+      source-shape
+      (imprecision-composition-shape-transport
+        refl (sym eq) refl left-composition)
+      target-shape
+      right-composition
 
 
 atomic-target-value-reindexᵀ :
@@ -95,8 +134,11 @@ atomic-target-value-reindexᵀ atom () (x⊑xᵀ x∈) q
 atomic-target-value-reindexᵀ () vV (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
 atomic-target-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
 atomic-target-value-reindexᵀ atom vV
-    (up⊑upᵀ N⊑N′ widening p) q =
-  up⊑upᵀ N⊑N′ widening q
+    (up⊑upᵀ N⊑N′ widening p
+      source-shape target-shape square) q =
+  up⊑upᵀ N⊑N′ widening q source-shape target-shape
+    (quotient-boundary-ordinary-reindex
+      (target-atom-shape-unique atom p q) square)
 atomic-target-value-reindexᵀ () vV
     (Λ⊑Λᵀ liftρ liftγ vW vW′ W⊑W′) q
 atomic-target-value-reindexᵀ atom vV
@@ -106,7 +148,7 @@ atomic-target-value-reindexᵀ atom vV
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
 atomic-target-value-reindexᵀ atom vV
     (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert W⊑W′ f
+      vW noW vW′ noW′ inert W⊑W′ f inst-shape creation-square
       assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
       vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
     p′ =
@@ -131,20 +173,33 @@ atomic-target-value-reindexᵀ atom vV
     (atomic-target-value-reindexᵀ atom vV M⊑V q)
     M⊢ V⊢
 atomic-target-value-reindexᵀ atom ()
-    (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ p↑ liftρ liftγ N⊑N′) q
-atomic-target-value-reindexᵀ atom vV
-    (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑V) q =
+    (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ p↑ liftρ liftγ N⊑N′
+      replacement) q
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑V replacement) q =
   ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑V
+    (replace-left-target-shape
+      (trans
+        (shape-source-liftνᵢ q)
+        (trans
+          (sym (target-atom-shape-unique atom p q))
+          (sym (shape-source-liftνᵢ p))))
+      replacement)
 atomic-target-value-reindexᵀ atom ()
-    (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′) q
+    (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replacement) q
 atomic-target-value-reindexᵀ atom ()
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ _ liftρ liftγ N⊑N′) q
-atomic-target-value-reindexᵀ atom vV
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V) q =
-  νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V
+      s⊑ s′⊑ _ liftρ liftγ N⊑N′
+      s-shape s′-shape left-comp right-comp) q
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V
+      s-shape comp) q =
+  νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V s-shape
+    (imprecision-composition-shape-transport
+      refl (sym (target-atom-shape-unique atom p q)) refl comp)
 atomic-target-value-reindexᵀ atom ()
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r N⊑N′) q
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r N⊑N′
+      s-shape comp) q
 atomic-target-value-reindexᵀ atom vV κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-target-value-reindexᵀ atom ()
@@ -155,32 +210,63 @@ atomic-target-value-reindexᵀ atom vV
   gen⊑groundᵀ mode seal★ c⊒ gH vW vV′ V′⊢
     W⊑V′tag q
 atomic-target-value-reindexᵀ atom vV
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑V p) q =
-  cast⊒⊑ᵀ mode seal★ c⊒ M⊑V q
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑V p c-shape comp) q =
+  cast⊒⊑ᵀ mode seal★ c⊒ M⊑V q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (target-atom-shape-unique atom p q))
+      comp)
 atomic-target-value-reindexᵀ atom vV
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑V p) q =
-  cast⊑⊑ᵀ mode seal★ c⊑ M⊑V q
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑V p c-shape comp) q =
+  cast⊑⊑ᵀ mode seal★ c⊑ M⊑V q c-shape
+    (imprecision-composition-shape-transport
+      refl
+      (sym (target-atom-shape-unique atom p q))
+      refl comp)
 atomic-target-value-reindexᵀ atom vV
-    (⊑cast⊒ᵀ mode seal★ c⊒ M⊑V p) q =
-  ⊑cast⊒ᵀ mode seal★ c⊒ M⊑V q
+    (⊑cast⊒ᵀ mode seal★ c⊒ M⊑V p c-shape comp) q =
+  ⊑cast⊒ᵀ mode seal★ c⊒ M⊑V q c-shape
+    (imprecision-composition-shape-transport
+      (sym (target-atom-shape-unique atom p q))
+      refl refl comp)
 atomic-target-value-reindexᵀ atom vV
-    (⊑cast⊑ᵀ mode seal★ c⊑ M⊑V p) q =
-  ⊑cast⊑ᵀ mode seal★ c⊑ M⊑V q
+    (⊑cast⊑ᵀ mode seal★ c⊑ M⊑V p c-shape comp) q =
+  ⊑cast⊑ᵀ mode seal★ c⊑ M⊑V q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (target-atom-shape-unique atom p q))
+      comp)
 atomic-target-value-reindexᵀ atom vV
-    (⊑cast⊑idᵀ seal★ c⊑ M⊑V p) q =
-  ⊑cast⊑idᵀ seal★ c⊑ M⊑V q
+    (⊑cast⊑idᵀ seal★ c⊑ M⊑V p c-shape comp) q =
+  ⊑cast⊑idᵀ seal★ c⊑ M⊑V q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (target-atom-shape-unique atom p q))
+      comp)
 atomic-target-value-reindexᵀ atom vV
     (conv⊑convᵀ paired M⊑V) q =
-  conv⊑convᵀ (paired-cast-target-reindexᵀ paired q) M⊑V
+  conv⊑convᵀ (paired-cast-target-reindexᵀ atom paired q) M⊑V
 atomic-target-value-reindexᵀ atom vV
-    (conv↑⊑ᵀ c↑ M⊑V p) q =
+    (conv↑⊑ᵀ c↑ M⊑V p replacement) q =
   conv↑⊑ᵀ c↑ M⊑V q
+    (replace-left-target-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)
 atomic-target-value-reindexᵀ atom vV
-    (conv↓⊑ᵀ c↓ M⊑V p) q =
+    (conv↓⊑ᵀ c↓ M⊑V p replacement) q =
   conv↓⊑ᵀ c↓ M⊑V q
+    (replace-left-source-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)
 atomic-target-value-reindexᵀ atom vV
-    (⊑conv↑ᵀ c↑ M⊑V p) q =
+    (⊑conv↑ᵀ c↑ M⊑V p replacement) q =
   ⊑conv↑ᵀ c↑ M⊑V q
+    (replace-right-target-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)
 atomic-target-value-reindexᵀ atom vV
-    (⊑conv↓ᵀ c↓ M⊑V p) q =
+    (⊑conv↓ᵀ c↓ M⊑V p replacement) q =
   ⊑conv↓ᵀ c↓ M⊑V q
+    (replace-right-source-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)

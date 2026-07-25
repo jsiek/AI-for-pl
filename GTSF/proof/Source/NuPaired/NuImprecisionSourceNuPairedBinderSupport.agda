@@ -52,6 +52,8 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import proof.Store.Core.NuImprecisionStoreLift using
   (lift-store-result; lift-left-store-result)
 open import proof.Core.Properties.NuTermProperties using (renameᵗᵐ-preserves-Value)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (shape-lift∀ᵢ; shape-source-liftνᵢ)
 
 
 lift-ctx-result :
@@ -61,7 +63,7 @@ lift-ctx-result [] = [] , lift-ctx-[]
 lift-ctx-result (ctx-imp A B p ∷ γ) with lift-ctx-result γ
 lift-ctx-result (ctx-imp A B p ∷ γ) | γ′ , liftγ =
   ctx-imp (⇑ᵗ A) (⇑ᵗ B) (⊑-lift∀ᵢ p) ∷ γ′ ,
-  lift-ctx-∷ liftγ
+  lift-ctx-∷ (shape-lift∀ᵢ p) liftγ
 
 lift-left-ctx-result :
   ∀ {Φ Δᴸ Δᴿ} (γ : CtxImp Φ Δᴸ Δᴿ) →
@@ -71,7 +73,7 @@ lift-left-ctx-result (ctx-imp A B p ∷ γ)
     with lift-left-ctx-result γ
 lift-left-ctx-result (ctx-imp A B p ∷ γ) | γ′ , liftγ =
   ctx-imp (⇑ᵗ A) B (⊑-source-liftνᵢ p) ∷ γ′ ,
-  lift-left-ctx-∷ liftγ
+  lift-left-ctx-∷ (shape-source-liftνᵢ p) liftγ
 
 left-forall-store-square :
   ∀ {Φ Δᴸ Δᴿ} (ρ : StoreImp Φ Δᴸ Δᴿ) →

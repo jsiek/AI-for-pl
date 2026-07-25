@@ -11,6 +11,7 @@ module
 --     permissive option, compatibility re-export, or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (widening; _⊢ᶜ_⦂_)
 open import Coercions using (Coercion; ModeEnv; inst)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
@@ -23,6 +24,8 @@ open import Imprecision using
   ; ⇑ᴸᵢ
   )
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ν)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -56,6 +59,7 @@ WorldCoherentRightTargetWidenInstSourceOnlyLambdaRootᵀ =
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {ρᴸ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
     {W M′ : Term} {B C D : Ty} {s : Coercion} {μ : ModeEnv}
+    {shape : ImprecisionShape}
     {{safe : NonVar D}}
     {r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ `∀ C ⊣ Δᴿ}
@@ -74,6 +78,8 @@ WorldCoherentRightTargetWidenInstSourceOnlyLambdaRootᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ r ⌋ ； shape ≋ ⌊ q ⌋ →
   LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
   LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →

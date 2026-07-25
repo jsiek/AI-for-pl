@@ -68,9 +68,14 @@ world-coherent-source-ν-paired-all-target-closing-catchup-assembly-proofᵀ
     widening-catchup {q = q}
     coherent exclusive wfL hA h⇑A reveal liftν lift∀
     vV noV vV′ noV′
-    (paired-widening mode seal c⊑ mode′ seal′ c′⊑ compatible)
+    (paired-widening
+      mode seal c⊑ c-shape
+      mode′ seal′ c′⊑ c′-shape
+      source-comp target-comp compatible)
     V⊑V′ =
   widening-catchup {q = q}
     coherent exclusive wfL hA h⇑A reveal liftν lift∀
-    vV noV vV′ noV′ mode seal c⊑ mode′ seal′ c′⊑ compatible
-    V⊑V′
+    vV noV vV′ noV′
+    mode seal c⊑ c-shape
+    mode′ seal′ c′⊑ c′-shape
+    source-comp target-comp compatible V⊑V′

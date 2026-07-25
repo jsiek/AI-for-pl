@@ -56,6 +56,14 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; transportType
   ; transportArrowCoherent
   ; transportAllCoherent
+  ; transportShapeCoherent
+  ; transportRightBodyShapeCoherent
+  ; transportLeftReplacementCoherent
+  ; transportRightReplacementCoherent
+  ; transportPairedReplacementCoherent
+  ; transportAllBodyPairedReplacementCoherent
+  ; transportSourceNuBodyLeftReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
   ; weak-indexed-result
   ; weak-step-result
   ; weak-step-transport
@@ -79,6 +87,9 @@ open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupDef 
   (WorldCoherentLeftValueCatchupᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 
 
 target-reveal-retarget-resultᵀ :
@@ -116,6 +127,22 @@ target-reveal-retarget-resultᵀ
       (transportArrowCoherent
         (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
       (transportAllCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
+      (transportRightBodyRightReplacementCoherent
         (weakIndexedTypeCoherence (catchupIndexedResult catchup)))
 
   result : WeakOneStepResult ρ M V A X′ keep
@@ -211,28 +238,32 @@ world-coherent-target-reveal-root-proofᵀ :
   WorldCoherentTargetRevealRootᵀ
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel {X = X} {X′ = X′} {β = β} {ρ = ρ}
-    coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
-    with catchup coherent exclusive wfL okM (vV ⟨ C.seal X β ⟩)
+    coherent exclusive unique wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    with catchup coherent exclusive unique wfL okM
+      (vV ⟨ C.seal X β ⟩)
       (runtime-value-no• okVβ (vV ⟨ C.seal X β ⟩)) M⊑Vβ
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel
-    coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    coherent exclusive unique wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught caught-lineage final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
     with sourceIsValueOrBlame (catchupIndexedInvariant caught)
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel
-    coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    coherent exclusive unique wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught caught-lineage final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
     | inj₂ refl =
   world-indexed-outcome-source-blame
     (sourceCatchup (weakIndexedResult (catchupIndexedResult caught)))
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel
-    coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    coherent exclusive unique wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught caught-lineage final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
     | inj₁ (vW , noW)
     with targetTailIsEmpty
            (silentInvariant (catchupIndexedInvariant caught))
@@ -240,14 +271,16 @@ world-coherent-target-reveal-root-proofᵀ
            (silentInvariant (catchupIndexedInvariant caught))
 world-coherent-target-reveal-root-proofᵀ
     catchup cancel {X′ = X′} {β = β} {ρ = ρ}
-    coherent exclusive wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
+    coherent exclusive unique wfL wfΣ okM okVβ vV βX′∈Σ M⊑Vβ q
     | world-coherent-left-indexed-catchup
-        caught caught-lineage final-coherent final-exclusive final-wfL
+        caught caught-lineage final-coherent final-exclusive final-unique
+        final-wfL
     | inj₁ (vW , noW) | refl | refl =
   world-indexed-outcome-related
     retargeted
     final-coherent
     final-exclusive
+    final-unique
   where
   old = weakIndexedResult (catchupIndexedResult caught)
 

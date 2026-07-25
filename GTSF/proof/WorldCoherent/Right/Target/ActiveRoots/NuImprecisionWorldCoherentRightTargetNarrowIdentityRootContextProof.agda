@@ -13,9 +13,13 @@ module
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (subst; sym)
+open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
+open import CastImprecisionShape using
+  (narrowing; _⊢ᶜ_⦂_)
 import Coercions as C
 open import Coercions using (ModeEnv)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -49,8 +53,10 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTypeCoherence
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
@@ -69,6 +75,10 @@ open import
   using (WorldCoherentRightTargetNarrowIdentityRootContextᵀ)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken)
 
@@ -78,11 +88,14 @@ private
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B : Ty} {μ : ModeEnv}
+      {s : ImprecisionShape}
       {p q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ C.id B ∶ B ⊒ B →
+    narrowing ⊢ᶜ C.id B ⦂ s →
+    ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
     (inner-world :
       WorldCoherentRightValueCatchupIndexedResult
         {V = V} {M′ = M′} {ρ = ρ⁺} p) →
@@ -99,8 +112,8 @@ private
        ⦂ applyTys (sourceChanges inner) A
          ⊑ applyTys (targetTailChanges inner) B
        ∶ transportType inner q)
-  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊒
+  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊒ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
@@ -111,14 +124,23 @@ private
         (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★)
         (narrow-weaken ≤-refl
           (rightStoreⁱ-prefix-inclusion prefix) c⊒)
-  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {q = q}
-      prefix mode seal★ c⊒
+  narrow-framed-relation {Δᴿ = Δᴿ} {B = B} {p = p} {q = q}
+      prefix mode seal★ c⊒ c-shape comp
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR)
       | μ″ , mode″ , seal★″ , c″⊒ =
     ⊑cast⊒ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed) (transportType inner q)
+      (cast-shape-applyCoercions
+        (targetTailChanges inner) c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) p)
+        comp)
     where
     indexed = rightCatchupIndexedResult catchup
     inner = weakIndexedResult indexed
@@ -156,18 +178,21 @@ world-coherent-right-target-narrow-identity-root-context-proofᵀ :
 world-coherent-right-target-narrow-identity-root-context-proofᵀ
     identity prefix coherent exclusive unique wfR runtime vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.cross (NW.id-＇ α))
-    relation inner context-eq right-prefix =
+    c-shape comp relation inner context-eq right-prefix =
   identity (＇ α) inner context-eq right-prefix
-    (narrow-framed-relation prefix mode seal★ c⊒ inner)
+    (narrow-framed-relation
+      prefix mode seal★ c⊒ c-shape comp inner)
 world-coherent-right-target-narrow-identity-root-context-proofᵀ
     identity prefix coherent exclusive unique wfR runtime vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.cross (NW.id-‵ ι))
-    relation inner context-eq right-prefix =
+    c-shape comp relation inner context-eq right-prefix =
   identity (‵ ι) inner context-eq right-prefix
-    (narrow-framed-relation prefix mode seal★ c⊒ inner)
+    (narrow-framed-relation
+      prefix mode seal★ c⊒ c-shape comp inner)
 world-coherent-right-target-narrow-identity-root-context-proofᵀ
     identity prefix coherent exclusive unique wfR runtime vV noV mode seal★
     c⊒@(C.cast-id _ _ , NW.id★)
-    relation inner context-eq right-prefix =
+    c-shape comp relation inner context-eq right-prefix =
   identity ★ inner context-eq right-prefix
-    (narrow-framed-relation prefix mode seal★ c⊒ inner)
+    (narrow-framed-relation
+      prefix mode seal★ c⊒ c-shape comp inner)

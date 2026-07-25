@@ -9,6 +9,7 @@ module
 --   * Preserves the exact source change/result and all final world invariants.
 --   * Contains no active target-root normalization, hole, or permissive option.
 
+import CastImprecisionShape as CastShape
 open import Coercions using (Coercion; id-onlyᵈ)
 open import Conversion using
   ( ConcealConversion
@@ -16,12 +17,15 @@ open import Conversion using
   ; weaken-conceal-conversion
   ; weaken-reveal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   ( narrow-weaken
   ; widen-weaken
@@ -44,7 +48,7 @@ open import QuotientedTermImprecision using
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
-open import Relation.Binary.PropositionalEquality using (subst; sym)
+open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
@@ -54,10 +58,14 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; apply-narrows-typing
-  ; apply-reveal-conversions
+  ( apply-narrows-typing
   ; seal★-id-only
+  )
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using
+  ( apply-conceal-conversions-exact
+  ; apply-reveal-conversions-exact
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
@@ -67,6 +75,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportRightReplacementCoherent
+  ; transportShapeCoherent
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
@@ -103,7 +113,12 @@ open import proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherent
   )
 open import proof.Core.Properties.NuWideningTransport using
   (apply-fixed-widens-typing; apply-widens-typing)
-open import proof.Core.Properties.ReductionProperties using (applyCoercions)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
+open import proof.Core.Properties.ReductionProperties using
+  (applyCoercions; applyTyVars)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 
 
@@ -112,12 +127,15 @@ source-step-target-narrow-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {A A′ B′ : Ty}
     {c′ : Coercion} {μ′} {χ : StoreChange}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊒ B′ →
+  CastShape.narrowing CastShape.⊢ᶜ c′ ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = A′} {χ = χ} {ρ = ρ⁺} p →
@@ -125,8 +143,9 @@ source-step-target-narrow-frameᵀ :
     {M = M} {M′ = M′ ⟨ c′ ⟩} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-target-narrow-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix mode seal★ c′⊒ complete
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {p = p} {q = q}
+    prefix mode seal★ c′⊒ c-shape comp complete
     with apply-narrows-typing
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
@@ -135,8 +154,9 @@ source-step-target-narrow-frameᵀ
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c′⊒)
 source-step-target-narrow-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix mode seal★ c′⊒ complete
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {p = p} {q = q}
+    prefix mode seal★ c′⊒ c-shape comp complete
     | μ″ , mode″ , seal★″ , c″⊒ =
   world-coherent-source-one-step-indexed
     framed-indexed
@@ -181,6 +201,15 @@ source-step-target-narrow-frameᵀ
   final-relation =
     ⊑cast⊒ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) q)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) p)
+        comp)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
@@ -201,12 +230,15 @@ source-step-target-widen-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {A A′ B′ : Ty}
     {c′ : Coercion} {μ′} {χ : StoreChange}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+  CastShape.widening CastShape.⊢ᶜ c′ ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = A′} {χ = χ} {ρ = ρ⁺} p →
@@ -214,8 +246,9 @@ source-step-target-widen-frameᵀ :
     {M = M} {M′ = M′ ⟨ c′ ⟩} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-target-widen-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix mode seal★ c′⊑ complete
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {p = p} {q = q}
+    prefix mode seal★ c′⊑ c-shape comp complete
     with apply-widens-typing
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
@@ -224,8 +257,9 @@ source-step-target-widen-frameᵀ
       (widen-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c′⊑)
 source-step-target-widen-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix mode seal★ c′⊑ complete
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {p = p} {q = q}
+    prefix mode seal★ c′⊑ c-shape comp complete
     | μ″ , mode″ , seal★″ , c″⊑ =
   world-coherent-source-one-step-indexed
     framed-indexed
@@ -270,6 +304,15 @@ source-step-target-widen-frameᵀ
   final-relation =
     ⊑cast⊑ᵀ mode″ final-seal final-cast
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) p)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) q)
+        comp)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
@@ -290,11 +333,14 @@ source-step-target-id-widen-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {A A′ B′ : Ty}
     {c′ : Coercion} {χ : StoreChange}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+  CastShape.widening CastShape.⊢ᶜ c′ ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = A′} {χ = χ} {ρ = ρ⁺} p →
@@ -302,8 +348,9 @@ source-step-target-id-widen-frameᵀ :
     {M = M} {M′ = M′ ⟨ c′ ⟩} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-target-id-widen-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix seal★ c′⊑ complete =
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {p = p} {q = q}
+    prefix seal★ c′⊑ c-shape comp complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -353,6 +400,15 @@ source-step-target-id-widen-frameᵀ
   final-relation =
     ⊑cast⊑idᵀ final-seal final-cast
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (cast-shape-applyCoercions (targetTailChanges inner)
+        c-shape)
+      (imprecision-composition-shape-transport
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) p)
+        refl
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed₀) q)
+        comp)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
@@ -377,6 +433,7 @@ source-step-target-reveal-frameᵀ :
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   RevealConversion μ′ Δᴿ (rightStoreⁱ ρ₀) β X′ c′ A′ B′ →
+  p [ β ↦ X′ ]ᴿ q →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = A′} {χ = χ} {ρ = ρ⁺} p →
@@ -384,17 +441,19 @@ source-step-target-reveal-frameᵀ :
     {M = M} {M′ = M′ ⟨ c′ ⟩} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-target-reveal-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix c′↑ complete
-    with apply-reveal-conversions
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {β = β} {X′ = X′} {q = q}
+    prefix c′↑ replace complete
+    with apply-reveal-conversions-exact
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
       (weaken-reveal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c′↑)
 source-step-target-reveal-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix c′↑ complete
-    | μ″ , β″ , X″ , c″↑ =
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {β = β} {X′ = X′} {q = q}
+    prefix c′↑ replace complete
+    | μ″ , c″↑ =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -412,21 +471,27 @@ source-step-target-reveal-frameᵀ
 
   final-conversion :
     RevealConversion μ″ (resultRightCtx inner)
-      (rightStoreⁱ (resultStore inner)) β″ X″
+      (rightStoreⁱ (resultStore inner))
+      (applyTyVars (targetTailChanges inner) β)
+      (applyTys (targetTailChanges inner) X′)
       (applyCoercions (targetTailChanges inner) c′)
       (applyTys (targetTailChanges inner) A′)
       (applyTys (targetTailChanges inner) B′)
   final-conversion =
     subst
       (λ Δ → RevealConversion μ″ Δ
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X′)
         (applyCoercions (targetTailChanges inner) c′)
         (applyTys (targetTailChanges inner) A′)
         (applyTys (targetTailChanges inner) B′))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → RevealConversion μ″
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X′)
           (applyCoercions (targetTailChanges inner) c′)
           (applyTys (targetTailChanges inner) A′)
           (applyTys (targetTailChanges inner) B′))
@@ -435,6 +500,8 @@ source-step-target-reveal-frameᵀ
   final-relation =
     ⊑conv↑ᵀ final-conversion
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed₀) replace)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)
@@ -459,6 +526,7 @@ source-step-target-conceal-frameᵀ :
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ₀) β X′ c′ A′ B′ →
+  q [ β ↦ X′ ]ᴿ p →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = A} {B = A′} {χ = χ} {ρ = ρ⁺} p →
@@ -466,17 +534,19 @@ source-step-target-conceal-frameᵀ :
     {M = M} {M′ = M′ ⟨ c′ ⟩} {L = L}
     {A = A} {B = B′} {χ = χ} {ρ = ρ⁺} q
 source-step-target-conceal-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix c′↓ complete
-    with apply-conceal-conversions
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {β = β} {X′ = X′} {q = q}
+    prefix c′↓ replace complete
+    with apply-conceal-conversions-exact
       {χs = keep ∷ targetTailChanges
         (weakIndexedResult (sourceStepIndexedResult complete))}
       (weaken-conceal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c′↓)
 source-step-target-conceal-frameᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {q = q}
-    prefix c′↓ complete
-    | μ″ , β″ , X″ , c″↓ =
+    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′}
+    {β = β} {X′ = X′} {q = q}
+    prefix c′↓ replace complete
+    | μ″ , c″↓ =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -494,21 +564,27 @@ source-step-target-conceal-frameᵀ
 
   final-conversion :
     ConcealConversion μ″ (resultRightCtx inner)
-      (rightStoreⁱ (resultStore inner)) β″ X″
+      (rightStoreⁱ (resultStore inner))
+      (applyTyVars (targetTailChanges inner) β)
+      (applyTys (targetTailChanges inner) X′)
       (applyCoercions (targetTailChanges inner) c′)
       (applyTys (targetTailChanges inner) A′)
       (applyTys (targetTailChanges inner) B′)
   final-conversion =
     subst
       (λ Δ → ConcealConversion μ″ Δ
-        (rightStoreⁱ (resultStore inner)) β″ X″
+        (rightStoreⁱ (resultStore inner))
+        (applyTyVars (targetTailChanges inner) β)
+        (applyTys (targetTailChanges inner) X′)
         (applyCoercions (targetTailChanges inner) c′)
         (applyTys (targetTailChanges inner) A′)
         (applyTys (targetTailChanges inner) B′))
       (sym (targetCtxResult inner))
       (subst
         (λ Σ → ConcealConversion μ″
-          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ β″ X″
+          (applyTyCtxs (targetTailChanges inner) Δᴿ) Σ
+          (applyTyVars (targetTailChanges inner) β)
+          (applyTys (targetTailChanges inner) X′)
           (applyCoercions (targetTailChanges inner) c′)
           (applyTys (targetTailChanges inner) A′)
           (applyTys (targetTailChanges inner) B′))
@@ -517,6 +593,8 @@ source-step-target-conceal-frameᵀ
   final-relation =
     ⊑conv↓ᵀ final-conversion
       (canonicalIndexedResults indexed₀) (transportType inner q)
+      (transportRightReplacementCoherent
+        (weakIndexedTypeCoherence indexed₀) replace)
 
   framed = weak-one-step-target-cast-frameᵀ inner final-relation
   framed-indexed = weak-indexed-result framed (relatedResults framed)

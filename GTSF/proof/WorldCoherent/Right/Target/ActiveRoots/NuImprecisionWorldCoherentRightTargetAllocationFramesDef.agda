@@ -11,8 +11,15 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 
+import CastImprecisionShape as CastShape
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using
+  ( ImprecisionShape
+  ; ⌊_⌋
+  ; _；_≋_
+  )
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
@@ -35,6 +42,8 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-target-lift-rightᵢ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightCatchupResultDef using
@@ -69,6 +78,7 @@ record WorldCoherentRightTargetAllocationFrames : Set₁ where
       (r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q →
+      r [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ p →
       WorldCoherentRightValueCatchupIndexedResult
         {V = N} {M′ = N′} {ρ = ρ⁺} q →
       WorldCoherentRightValueCatchupIndexedResult
@@ -79,6 +89,7 @@ record WorldCoherentRightTargetAllocationFrames : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {ρ′ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
         {B B′ C′ : Ty} {N N′ : Term} {s : Coercion} {μ}
+        {s-shape : ImprecisionShape}
         {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
@@ -101,6 +112,8 @@ record WorldCoherentRightTargetAllocationFrames : Set₁ where
       (r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ N ⊑ N′ ⦂ B ⊑ `∀ C′ ∶ q →
+      CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+      ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
       WorldCoherentRightValueCatchupIndexedResult
         {V = N} {M′ = N′} {ρ = ρ⁺} q →
       WorldCoherentRightValueCatchupIndexedResult

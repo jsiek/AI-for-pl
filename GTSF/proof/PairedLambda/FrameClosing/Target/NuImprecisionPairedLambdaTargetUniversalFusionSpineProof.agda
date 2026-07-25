@@ -57,7 +57,7 @@ paired-lambda-target-universal-fusion-spine-relation-proofᵀ
     pure-fold frame-fold
     (framed-fusion-step
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert tail f
+      vW noW vW′ noW′ inert tail f inst-shape creation-square
       assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq p
       final-v final-no final-closed
@@ -69,7 +69,7 @@ paired-lambda-target-universal-fusion-spine-relation-proofᵀ
       vW noW vW′ noW′ inert
       (paired-lambda-target-universal-fusion-spine-relation-proofᵀ
         pure-fold frame-fold tail)
-      f assm hτ hσ store-emb
+      f inst-shape creation-square assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq p
       final-v final-no final-closed
       final-v′ final-no′ final-closed′

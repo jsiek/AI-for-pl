@@ -52,7 +52,7 @@ world-coherent-right-target-inert-framing-context-proofᵀ :
   WorldCoherentRightTargetInertFramingContextᵀ
 world-coherent-right-target-inert-framing-context-proofᵀ
     {Δᴿ = Δᴿ} prefix inert
-    (inj₁ (_ , _ , _ , c↑))
+    evidence@(inj₁ (_ , β , X′ , c↑ , replacement))
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -66,16 +66,17 @@ world-coherent-right-target-inert-framing-context-proofᵀ
       (weaken-reveal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↑)
 world-coherent-right-target-inert-framing-context-proofᵀ
-    prefix inert (inj₁ (_ , _ , _ , c↑))
+    prefix inert
+    evidence@(inj₁ (_ , β , X′ , c↑ , replacement))
     inner context-eq right-prefix
     | _ =
   world-coherent-right-target-inert-framing-proofᵀ
-      prefix inert (inj₁ (_ , _ , _ , c↑)) inner ,
+      prefix inert evidence inner ,
   context-eq ,
   right-prefix
 world-coherent-right-target-inert-framing-context-proofᵀ
     {Δᴿ = Δᴿ} prefix inert
-    (inj₂ (inj₁ (_ , _ , _ , c↓)))
+    evidence@(inj₂ (inj₁ (_ , β , X′ , c↓ , replacement)))
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -89,16 +90,18 @@ world-coherent-right-target-inert-framing-context-proofᵀ
       (weaken-conceal-conversion
         (rightStoreⁱ-prefix-inclusion prefix) c↓)
 world-coherent-right-target-inert-framing-context-proofᵀ
-    prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓)))
+    prefix inert
+    evidence@(inj₂ (inj₁ (_ , β , X′ , c↓ , replacement)))
     inner context-eq right-prefix
     | _ =
   world-coherent-right-target-inert-framing-proofᵀ
-      prefix inert (inj₂ (inj₁ (_ , _ , _ , c↓))) inner ,
+      prefix inert evidence inner ,
   context-eq ,
   right-prefix
 world-coherent-right-target-inert-framing-context-proofᵀ
     {Δᴿ = Δᴿ} prefix inert
-    (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
+    evidence@(inj₂ (inj₂ (inj₁
+      (_ , _ , mode , seal★ , c⊒ , c-shape , comp))))
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -116,17 +119,18 @@ world-coherent-right-target-inert-framing-context-proofᵀ
         (rightStoreⁱ-prefix-inclusion prefix) c⊒)
 world-coherent-right-target-inert-framing-context-proofᵀ
     prefix inert
-    (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒))))
+    evidence@(inj₂ (inj₂ (inj₁
+      (_ , _ , mode , seal★ , c⊒ , c-shape , comp))))
     inner context-eq right-prefix
     | _ =
   world-coherent-right-target-inert-framing-proofᵀ
-      prefix inert
-      (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒)))) inner ,
+      prefix inert evidence inner ,
   context-eq ,
   right-prefix
 world-coherent-right-target-inert-framing-context-proofᵀ
     {Δᴿ = Δᴿ} prefix inert
-    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
+    evidence@(inj₂ (inj₂ (inj₂ (inj₁
+      (_ , _ , mode , seal★ , c⊑ , c-shape , comp)))))
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -144,18 +148,18 @@ world-coherent-right-target-inert-framing-context-proofᵀ
         (rightStoreⁱ-prefix-inclusion prefix) c⊑)
 world-coherent-right-target-inert-framing-context-proofᵀ
     prefix inert
-    (inj₂ (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊑)))))
+    evidence@(inj₂ (inj₂ (inj₂ (inj₁
+      (_ , _ , mode , seal★ , c⊑ , c-shape , comp)))))
     inner context-eq right-prefix
     | _ =
   world-coherent-right-target-inert-framing-proofᵀ
-      prefix inert
-      (inj₂ (inj₂ (inj₂ (inj₁
-        (_ , mode , seal★ , c⊑))))) inner ,
+      prefix inert evidence inner ,
   context-eq ,
   right-prefix
 world-coherent-right-target-inert-framing-context-proofᵀ
     prefix inert
-    evidence@(inj₂ (inj₂ (inj₂ (inj₂ (_ , _)))))
+    evidence@(inj₂ (inj₂ (inj₂ (inj₂
+      (_ , _ , _ , _ , _)))))
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet

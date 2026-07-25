@@ -83,7 +83,17 @@ world-coherent-source-delta-root-proofᵀ
     weak-step-transport (λ noL noL′ L⊑L′ → L⊑L′)
 
   type-coherence =
-    weak-step-type-coherence (λ pC pD → refl) (λ q → refl)
+    weak-step-type-coherence
+      (λ pC pD → refl)
+      (λ q → refl)
+      (λ p → refl)
+      (λ p → refl)
+      (λ replacement → replacement)
+      (λ replacement → replacement)
+      (λ replacement → replacement)
+      (λ replacement → replacement)
+      (λ _ _ replacement → replacement)
+      (λ replacement → replacement)
 
   indexed =
     weak-indexed-result result related⁺ transport type-coherence

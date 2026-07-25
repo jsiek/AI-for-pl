@@ -3,12 +3,14 @@ module proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef where
 -- File Charter:
 --   * Defines structural embeddings between relational stores.
 --   * Records renaming of names and endpoint types for every old entry.
+--   * Preserves the hereditary shape of matched and linked imprecision indices.
 --   * Is the small stable statement dependency for store-lineage results.
 --   * Contains no simulation result, catch-up, or correspondence proof.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 
+open import ImprecisionComposition using (⌊_⌋)
 open import NuTermImprecision using
   ( StoreImp
   ; store-matched
@@ -30,6 +32,7 @@ data RelStoreEmbeddingⁱ
     ∀ {ρ ρ′ α α′ A A′ β β′ B B′ p p′} →
     α′ ≡ τ α → A′ ≡ renameᵗ τ A →
     β′ ≡ σ β → B′ ≡ renameᵗ σ B →
+    ⌊ p′ ⌋ ≡ ⌊ p ⌋ →
     RelStoreEmbeddingⁱ τ σ ρ ρ′ →
     RelStoreEmbeddingⁱ τ σ
       (store-matched α A β B p ∷ ρ)
@@ -55,6 +58,7 @@ data RelStoreEmbeddingⁱ
     ∀ {ρ ρ′ α α′ A A′ β β′ B B′ p p′} →
     α′ ≡ τ α → A′ ≡ renameᵗ τ A →
     β′ ≡ σ β → B′ ≡ renameᵗ σ B →
+    ⌊ p′ ⌋ ≡ ⌊ p ⌋ →
     RelStoreEmbeddingⁱ τ σ ρ ρ′ →
     RelStoreEmbeddingⁱ τ σ
       (store-link α A β B p ∷ ρ)

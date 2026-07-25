@@ -11,8 +11,11 @@ module
 --     permissive option.
 
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Data.List using ([])
 
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -50,7 +53,7 @@ WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ =
     {pB₀ : Φ ∣ Δᴸ ⊢ B₀ ⊑ B₀′ ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {μ μ′} →
+    {s s′ r : ImprecisionShape} {μ μ′} →
   StoreImpPrefix ρᵇ ρ →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -62,12 +65,19 @@ WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ =
   SealModeStore★ μ (leftStoreⁱ ρᵇ) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρᵇ
     ⊢ c C.↦ d ∶ A₀ ⇒ B₀ ⊑ A ⇒ B →
+  CastShape.widening CastShape.⊢ᶜ
+    c C.↦ d ⦂ s →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρᵇ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρᵇ
     ⊢ e C.↦ f ∶ A₀′ ⇒ B₀′ ⊑ A′ ⇒ B′ →
+  CastShape.widening CastShape.⊢ᶜ
+    e C.↦ f ⦂ s′ →
+  s ； ⌊ pA ↦ pB ⌋ ≋ r →
+  ⌊ pA₀ ↦ pB₀ ⌋ ； s′ ≋ r →
   PairedWideningCompatible Φ Δᴸ Δᴿ
-    (c C.↦ d) (e C.↦ f) (A ⇒ B) (A₀′ ⇒ B₀′) →
+    (c C.↦ d) (e C.↦ f)
+    (pA₀ ↦ pB₀) (pA ↦ pB) s s′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
     ⊢ᴺ V ⊑ L′
       ⦂ A₀ ⇒ B₀ ⊑ A₀′ ⇒ B₀′ ∶ pA₀ ↦ pB₀ →

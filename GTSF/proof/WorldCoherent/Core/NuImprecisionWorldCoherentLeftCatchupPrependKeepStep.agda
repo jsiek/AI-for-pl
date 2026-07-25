@@ -52,6 +52,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetTypeResult
   ; transportAllBody
   ; transportRightBody
+  ; transportSourceNu
   ; transportType
   ; weak-indexed-result
   ; weak-step-transport
@@ -130,19 +131,25 @@ world-coherent-left-catchup-prepend-keep-step
       (left-indexed-catchup
         (weak-indexed-result result canonical
           (weak-step-transport transport)
-          (weak-step-type-coherence arrow all))
+          (weak-step-type-coherence
+            arrow all shape right-shape
+            replace-left replace-right replace-paired
+            replace-all replace-source replace-right-body))
         (left-catchup-invariant (left-silent-invariant refl refl) final))
       (weak-step-store-lineage lineage-store lineage-embedding
         lineage-prefix)
-      coherent exclusive wfL) =
+      coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
       (weak-indexed-result prefixed canonical
         (weak-step-transport transport)
-        (weak-step-type-coherence arrow all))
+        (weak-step-type-coherence
+          arrow all shape right-shape
+          replace-left replace-right replace-paired
+          replace-all replace-source replace-right-body))
       (left-catchup-invariant (left-silent-invariant refl refl) final))
     (weak-step-store-lineage lineage-store lineage-embedding
       lineage-prefix)
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   prefixed = prepend-left-keep-step-result source→ result

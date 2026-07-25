@@ -10,14 +10,20 @@ module
 
 import Coercions as C
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
+open import ForallPermutation using (_≈∀_; quotientᵖ)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
   ( NonVar
   ; _ˣ⊑★
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
+  ; ν
   )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
@@ -39,13 +45,16 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchup�
 WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B C C′ E T A A′ : Ty} {d d′ s u′ : C.Coercion}
-    {μ μ′ : C.ModeEnv} {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {μ μ′ : C.ModeEnv} {sD sD′ sU sU′ : ImprecisionShape}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {E≈E : `∀ E ≈∀ `∀ E}
     {{safe : NonVar E}}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+    {T≈T : T ≈∀ T}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   (occ : occurs zero E ≡ true) →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-    ∣ suc Δᴸ ⊢ E ⊑ T ⊣ Δᴿ →
+  (r : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+    ∣ suc Δᴸ ⊢ E ⊑ T ⊣ Δᴿ) →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
@@ -57,7 +66,11 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchup�
   C.Inert d′ →
   C.Inert u′ →
   C.id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ `∀ E →
+  narrowing ⊢ᶜ d ⦂ sD →
   C.id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ T →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ
+    quotientᵖ E≈E (ν safe occ r) T≈T ； sD′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ V′ ⦂ C ⊑ C′ ∶ pC →
   CastMode μ →
@@ -66,6 +79,10 @@ WorldCoherentQuotientRepresentativeInstPathIdentitySourceIdDownCastWidenCatchup�
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ T ⊑ A′ →
+  widening ⊢ᶜ C.inst B s ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ
+    quotientᵖ E≈E (ν safe occ r) T≈T ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = (V ⟨ d ⟩) ⟨ C.inst B s ⟩}
     {V′ = (V′ ⟨ d′ ⟩) ⟨ u′ ⟩}

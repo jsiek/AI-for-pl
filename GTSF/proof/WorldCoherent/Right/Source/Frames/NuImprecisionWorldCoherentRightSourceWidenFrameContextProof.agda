@@ -32,7 +32,7 @@ world-coherent-right-source-widen-frame-context-proofᵀ :
   WorldCoherentRightSourceWidenFrameContextᵀ
 world-coherent-right-source-widen-frame-context-proofᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert
-    mode seal★ c⊑ M⊑M′
+    mode seal★ c⊑ c-shape comp M⊑M′
     inner@(world-coherent-right-value-indexed-catchup
       (right-value-indexed-catchup
         indexed refl refl source-value source-no-bullet
@@ -42,6 +42,6 @@ world-coherent-right-source-widen-frame-context-proofᵀ
     context-eq right-prefix =
   rightSourceWidenFrame world-coherent-right-source-frames
       prefix coherent exclusive unique wfR okM′ vM noM inert
-      mode seal★ c⊑ M⊑M′ inner ,
+      mode seal★ c⊑ c-shape comp M⊑M′ inner ,
   context-eq ,
   right-prefix

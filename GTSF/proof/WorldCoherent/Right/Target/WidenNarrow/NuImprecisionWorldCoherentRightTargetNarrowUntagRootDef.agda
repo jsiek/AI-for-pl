@@ -9,10 +9,14 @@ module
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
 --     permissive option, termination bypass, or broad DGG import.
 
+open import CastImprecisionShape using
+  (narrowing; _⊢ᶜ_⦂_)
 open import Coercions using (ModeEnv; _？)
 open import Data.List using ([])
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -45,6 +49,7 @@ WorldCoherentRightTargetNarrowUntagRootᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A H : Ty} {μ : ModeEnv}
+    {s : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
@@ -58,6 +63,8 @@ WorldCoherentRightTargetNarrowUntagRootᵀ =
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ H ？ ∶ ★ ⊒ H →
+  narrowing ⊢ᶜ H ？ ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ V ⊑ M′ ⦂ A ⊑ ★ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult

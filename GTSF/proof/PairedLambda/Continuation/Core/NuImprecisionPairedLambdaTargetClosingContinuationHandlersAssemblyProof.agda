@@ -14,6 +14,7 @@ module
 --     option, target-only frame capability, or canonical `Lemma` assembly.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using
   ( Coercion
   ; Inert
@@ -29,7 +30,10 @@ open import ImprecisionWf using
   ; _ˣ⊑ˣ_
   ; ⇑ᵢ
   ; _∣_⊢_⊑_⊣_
+  ; ∀ⁱ_
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( LiftRightStoreⁱ
@@ -151,7 +155,8 @@ paired-lambda-target-closing-continuation-handlers-assembly-proofᵀ :
         {τ σ : Renameᵗ}
         {W W′ M M′ : Term}
         {A′ B C D F : Ty}
-        {s : Coercion} {μ : ModeEnv} {r} →
+        {s : Coercion} {μ : ModeEnv} {r}
+        {body-shape : ImprecisionShape} →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
@@ -168,6 +173,8 @@ paired-lambda-target-closing-continuation-handlers-assembly-proofᵀ :
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
     (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
+    widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+    ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
     (assm :
       ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
         rename-assm²ᵢ τ σ a ∈ Φ) →

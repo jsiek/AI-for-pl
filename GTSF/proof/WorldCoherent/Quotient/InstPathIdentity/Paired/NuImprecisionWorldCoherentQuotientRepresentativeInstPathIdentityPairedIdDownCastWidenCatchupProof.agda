@@ -36,15 +36,20 @@ world-coherent-quotient-representative-inst-path-identity-paired-id-down-cast-wi
   WorldCoherentQuotientFinalCatchupᵀ →
   WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-paired-id-down-cast-widen-catchup-proofᵀ
-    value-catchup quotient-final {pC = pC}
+    value-catchup quotient-final
+    {E≈E = E≈E} {pC = pC} {F≈F = F≈F} {pA = pA}
     r coherent exclusive wfL okN vVd noVd vV′ noV′
-    inert-d′ inert-u′ d⊒ d′⊒ V⊑V′
-    mode seal★ u⊑ mode′ seal★′ u′⊑ =
+    inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square V⊑V′
+    mode seal★ u⊑ mode′ seal★′ u′⊑
+    u-shape u′-shape up-square =
   world-coherent-left-catchup-prefix-down-upᵀ
-    quotient-final {qD = qD} prefix-reflⁱ okN
-    vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ widening inner
+    quotient-final {pC = pC} {qD = qD} {pA = pA}
+    prefix-reflⁱ okN vV′ noV′ inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening u-shape u′-shape up-square inner
   where
-  qD = quotientᵖ ≈∀-refl (∀ⁱ r) ≈∀-refl
+  qD = quotientᵖ E≈E (∀ⁱ r) F≈F
 
   widening = quotient-cast-widening
     mode seal★ u⊑ mode′ seal★′ u′⊑

@@ -13,8 +13,12 @@ module
 
 open import Data.List using ([])
 
+open import CastImprecisionShape using (narrowing; widening; _⊢ᶜ_⦂_)
 open import Coercions using (Coercion; id-onlyᵈ)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -54,7 +58,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A A′ B′ : Ty} {c′ : Coercion} {μ′}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -66,6 +71,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
       CastMode μ′ →
       SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
       μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊒ B′ →
+      narrowing ⊢ᶜ c′ ⦂ s →
+      ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ A′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -78,7 +85,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A A′ B′ : Ty} {c′ : Coercion} {μ′}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -90,6 +98,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
       CastMode μ′ →
       SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
       μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+      widening ⊢ᶜ c′ ⦂ s →
+      ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ A′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -102,7 +112,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {V M′ : Term} {A A′ B′ : Ty} {c′ : Coercion}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
+        {s : ImprecisionShape} →
       StoreImpPrefix ρ₀ ρ⁺ →
       WorldCoherent ρ⁺ →
       SourceNameExclusive Φ →
@@ -114,6 +125,8 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
       SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
       id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
         ⊢ c′ ∶ A′ ⊑ B′ →
+      widening ⊢ᶜ c′ ⦂ s →
+      ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ A′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -137,6 +150,7 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
       No• V →
       RevealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
         β X′ c′ A′ B′ →
+      p [ β ↦ X′ ]ᴿ q →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ A′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult
@@ -160,6 +174,7 @@ record WorldCoherentRightTargetCastTerminalization : Set₁ where
       No• V →
       ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
         β X′ c′ A′ B′ →
+      q [ β ↦ X′ ]ᴿ p →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
         ⊢ᴺ V ⊑ M′ ⦂ A ⊑ A′ ∶ p →
       WorldCoherentRightValueCatchupIndexedResult

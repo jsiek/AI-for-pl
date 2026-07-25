@@ -17,8 +17,12 @@ open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym)
 
 open import Coercions using (`∀; extᵈ; gen; genᵈ)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_)
+import CastImprecisionShape as CastShape using (widening)
 open import Conversion using
   (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (NonVar; _ˣ⊑★; ⇑ᴸᵢ; ν; ∀ⁱ_)
 open import NarrowWiden using
@@ -90,6 +94,7 @@ left-catchup-indexed-all-α-∀-revealᵀ :
     ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
+  r [ suc α ↦ ⇑ᵗ X ]ᴸ (∀ⁱ q) →
   LeftCatchupIndexedAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
@@ -98,7 +103,7 @@ left-catchup-indexed-all-α-∀-revealᵀ :
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
 left-catchup-indexed-all-α-∀-revealᵀ
     {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↑ catchup =
+    vV noV hAν liftρ V⊑V′ c↑ replacement catchup =
   left-catchup-indexed-all-prepend-keepᵀ
     (post-allocation-β-∀•-bare vV) post-relation catchup
   where
@@ -107,7 +112,7 @@ left-catchup-indexed-all-α-∀-revealᵀ
 
   post-relation =
     conv↑⊑ᵀ (open-allocated-left-all-reveal liftρ c↑)
-      bullet-relation (∀ⁱ q)
+      bullet-relation (∀ⁱ q) replacement
 
 left-catchup-indexed-all-α-∀-concealᵀ :
   ∀ {Φ Δᴸ Δᴿ μ α X Aν A C C′ c V V′ occ r q}
@@ -123,6 +128,7 @@ left-catchup-indexed-all-α-∀-concealᵀ :
     ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X
     (`∀ c) (`∀ A) (`∀ (`∀ C)) →
+  (∀ⁱ q) [ suc α ↦ ⇑ᵗ X ]ᴸ r →
   LeftCatchupIndexedAllResult
     {N = ((⇑ᵗᵐ V) •) ⟨ c ⟩} {V′ = V′}
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q →
@@ -131,7 +137,7 @@ left-catchup-indexed-all-α-∀-concealᵀ :
     {ρ = store-left zero (⇑ᵗ Aν) hAν ∷ ρ′} q
 left-catchup-indexed-all-α-∀-concealᵀ
     {V = V} {q = q}
-    vV noV hAν liftρ V⊑V′ c↓ catchup =
+    vV noV hAν liftρ V⊑V′ c↓ replacement catchup =
   left-catchup-indexed-all-prepend-keepᵀ
     (post-allocation-β-∀•-bare vV) post-relation catchup
   where
@@ -140,10 +146,10 @@ left-catchup-indexed-all-α-∀-concealᵀ
 
   post-relation =
     conv↓⊑ᵀ (open-allocated-left-all-conceal liftρ c↓)
-      bullet-relation (∀ⁱ q)
+      bullet-relation (∀ⁱ q) replacement
 
 left-catchup-indexed-all-α-∀-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q s}
     {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
@@ -156,6 +162,8 @@ left-catchup-indexed-all-α-∀-narrowingᵀ :
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊒ `∀ (`∀ C) →
+  CastShape.narrowing ⊢ᶜ c ⦂ s →
+  s ； ⌊ r ⌋ ≋ ⌊ ∀ⁱ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   LeftCatchupIndexedAllResult
@@ -167,7 +175,8 @@ left-catchup-indexed-all-α-∀-narrowingᵀ :
 left-catchup-indexed-all-α-∀-narrowingᵀ
     {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
     {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊒ V⊑V′ catchup =
+    vV noV hAν mode seal★ liftρ c∀⊒
+    c-shape comp V⊑V′ catchup =
   left-catchup-indexed-all-prepend-keepᵀ
     (post-allocation-β-∀•-bare vV) post-relation catchup
   where
@@ -189,10 +198,10 @@ left-catchup-indexed-all-α-∀-narrowingᵀ
   post-relation =
     cast⊒⊑ᵀ (cast-ext mode)
       (allocated-left-seal★ liftρ seal★)
-      body-narrowing bullet-relation (∀ⁱ q)
+      body-narrowing bullet-relation (∀ⁱ q) c-shape comp
 
 left-catchup-indexed-all-α-∀-wideningᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q}
+  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ occ r q s}
     {{safe : NonVar A}}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
@@ -205,6 +214,8 @@ left-catchup-indexed-all-α-∀-wideningᵀ :
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ `∀ c ∶ `∀ A ⊑ `∀ (`∀ C) →
+  CastShape.widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ ∀ⁱ q ⌋ ≋ ⌊ r ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ C′ ∶ ν _ occ r →
   LeftCatchupIndexedAllResult
@@ -216,7 +227,8 @@ left-catchup-indexed-all-α-∀-wideningᵀ :
 left-catchup-indexed-all-α-∀-wideningᵀ
     {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
     {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ c∀⊑ V⊑V′ catchup =
+    vV noV hAν mode seal★ liftρ c∀⊑
+    c-shape comp V⊑V′ catchup =
   left-catchup-indexed-all-prepend-keepᵀ
     (post-allocation-β-∀•-bare vV) post-relation catchup
   where
@@ -238,10 +250,10 @@ left-catchup-indexed-all-α-∀-wideningᵀ
   post-relation =
     cast⊑⊑ᵀ (cast-ext mode)
       (allocated-left-seal★ liftρ seal★)
-      body-widening bullet-relation (∀ⁱ q)
+      body-widening bullet-relation (∀ⁱ q) c-shape comp
 
 left-catchup-indexed-all-α-gen-narrowingᵀ :
-  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ p q}
+  ∀ {Φ Δᴸ Δᴿ μ Aν A C C′ c V V′ p q s}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
   Value V →
@@ -253,6 +265,8 @@ left-catchup-indexed-all-α-gen-narrowingᵀ :
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ gen A c ∶ A ⊒ `∀ (`∀ C) →
+  CastShape.narrowing ⊢ᶜ c ⦂ s →
+  s ； ⌊ p ⌋ ≋ ⌊ ∀ⁱ q ⌋ →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣ ρ′ ∣ []
     ⊢ᴺ ⇑ᵗᵐ V ⊑ V′ ⦂ ⇑ᵗ A ⊑ `∀ C′ ∶ p →
   LeftCatchupIndexedAllResult
@@ -264,7 +278,8 @@ left-catchup-indexed-all-α-gen-narrowingᵀ :
 left-catchup-indexed-all-α-gen-narrowingᵀ
     {Δᴸ = Δᴸ} {μ = μ} {Aν = Aν} {A = A} {C = C}
     {c = c} {V = V} {q = q} {ρ′ = ρ′}
-    vV noV hAν mode seal★ liftρ cgen⊒ shifted-body catchup =
+    vV noV hAν mode seal★ liftρ cgen⊒
+    c-shape comp shifted-body catchup =
   left-catchup-indexed-all-prepend-keepᵀ
     (post-allocation-β-gen•-bare vV) post-relation catchup
   where
@@ -287,4 +302,4 @@ left-catchup-indexed-all-α-gen-narrowingᵀ
   post-relation =
     cast⊒⊑ᵀ (cast-gen mode)
       (allocated-left-gen-seal★ liftρ seal★)
-      body-narrowing body-relation (∀ⁱ q)
+      body-narrowing body-relation (∀ⁱ q) c-shape comp

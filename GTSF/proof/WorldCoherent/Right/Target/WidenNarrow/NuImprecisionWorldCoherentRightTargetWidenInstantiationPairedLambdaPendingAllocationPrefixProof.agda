@@ -16,20 +16,30 @@ module
 --     option, termination bypass, catch-all clause, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+import CastImprecisionShape as CastShape
 import Coercions
-open import Coercions using (inst)
+open import Coercions using
+  (Coercion; ModeEnv; id-onlyᵈ; inst; _∣_∣_⊢_∶_=⇒_)
+open import Conversion using
+  (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 import Data.List
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 import Data.Product
-open import Data.Product using (_,_)
-open import Data.Sum using (inj₁; inj₂)
+open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 import Relation.Binary.HeterogeneousEquality as HE
 open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym)
 
-open import Imprecision using (⇑ᴿᵢ)
+open import Imprecision using (ImpCtx; ⇑ᴿᵢ)
+open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (⌊_⌋; _；_≋_)
+open import NarrowWiden using
+  (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 import NuReduction
 open import NuReduction using
   (bind; keep; ↠-refl)
@@ -45,7 +55,8 @@ open import NuTermImprecision using
 open import NuStore using (StoreWf)
 import NuTerms
 open import NuTerms using
-  ( no•-Λ
+  ( Term
+  ; no•-Λ
   ; no•-⟨⟩
   ; ok-⟨⟩
   ; Λ_
@@ -64,13 +75,19 @@ open import QuotientedTermImprecision using
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
-open import TermTyping using (_∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
+open import TermTyping using
+  (CastMode; SealModeStore★; _∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
 import Types
-open import Types using (`∀; wf★; ⇑ᵗ; ★)
+open import Types using (Ty; TyCtx; `∀; wf★; ⇑ᵗ; ★)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulation
   using
-  ( right-lift-prefix-bodyᵀ
+  ( replace-left-target-lift-right-source-nu-bodyᵢ
+  ; replace-paired-target-lift-right-under-∀ᵢ
+  ; replace-right-target-lift-under-rightᵢ
+  ; right-lift-prefix-bodyᵀ
+  ; shape-target-lift-right-under-∀ᵢ
+  ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
@@ -78,6 +95,9 @@ open import
   proof.Catchup.Simulation.NuImprecisionSimulationCore
   using
   ( ≡-to-≅
+  ; replace-left-target-lift-rightᵢ
+  ; replace-paired-target-lift-rightᵢ
+  ; replace-right-target-lift-rightᵢ
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
   ; ⊑-target-lift-right-source-nuᵢ
@@ -134,6 +154,21 @@ open import
   proof.Target.Administration.NuImprecisionTargetAdministrationSpineRightAllocationDef
   using (TargetAdministrationSpineRightAllocationᵀ)
 open import
+  proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef
+  using
+  ( TargetAdministrationPlan
+  ; plan-fun-untag-gen
+  ; plan-id
+  ; plan-id-widen-seq
+  ; plan-inert
+  ; plan-inst
+  ; plan-inst-fun-tag
+  ; plan-narrow-seq
+  ; plan-unseal
+  ; plan-untag
+  ; plan-widen-seq
+  )
+open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
   using
   ( TargetAdministrationSpine
@@ -148,6 +183,9 @@ open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma
   using (world-coherent-right-allocation)
 open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
+  using (shape-target-lift-rightᵢ)
+open import
   proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixDef
   using
   (WorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixᵀ)
@@ -158,6 +196,143 @@ open import
 
 
 private
+  apply-target-frame-evidence :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {V W : Term} {A B C : Ty} {c : Coercion}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ} →
+    ((∃[ μ′ ] ∃[ β ] ∃[ X′ ]
+        RevealConversion μ′ Δᴿ (rightStoreⁱ ρ)
+          β X′ c B C
+        × p [ β ↦ X′ ]ᴿ q)
+     ⊎
+     (∃[ μ′ ] ∃[ β ] ∃[ X′ ]
+        ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ)
+          β X′ c B C
+        × q [ β ↦ X′ ]ᴿ p)
+     ⊎
+     (∃[ μ′ ] ∃[ shape ]
+        CastMode μ′
+        × SealModeStore★ μ′ (rightStoreⁱ ρ)
+        × (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ
+          ⊢ c ∶ B ⊒ C)
+        × (CastShape.narrowing CastShape.⊢ᶜ c ⦂ shape)
+        × (⌊ q ⌋ ； shape ≋ ⌊ p ⌋))
+     ⊎
+     (∃[ μ′ ] ∃[ shape ]
+        CastMode μ′
+        × SealModeStore★ μ′ (rightStoreⁱ ρ)
+        × (μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ
+          ⊢ c ∶ B ⊑ C)
+        × (CastShape.widening CastShape.⊢ᶜ c ⦂ shape)
+        × (⌊ p ⌋ ； shape ≋ ⌊ q ⌋))
+     ⊎
+     (∃[ shape ]
+        SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ)
+        × (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
+          ⊢ c ∶ B ⊑ C)
+        × (CastShape.widening CastShape.⊢ᶜ c ⦂ shape)
+        × (⌊ p ⌋ ； shape ≋ ⌊ q ⌋))) →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺ V ⊑ W ⟨ c ⟩ ⦂ A ⊑ C ∶ q
+  apply-target-frame-evidence
+      (inj₁ (μ′ , β , X′ , reveal , replacement))
+      relation =
+    ⊑conv↑ᵀ reveal relation _ replacement
+  apply-target-frame-evidence
+      (inj₂ (inj₁
+        (μ′ , β , X′ , conceal , replacement)))
+      relation =
+    ⊑conv↓ᵀ conceal relation _ replacement
+  apply-target-frame-evidence
+      (inj₂ (inj₂ (inj₁
+        (μ′ , shape , mode , seal★ , narrowing ,
+         c-shape , composition))))
+      relation =
+    ⊑cast⊒ᵀ mode seal★ narrowing relation _
+      c-shape composition
+  apply-target-frame-evidence
+      (inj₂ (inj₂ (inj₂ (inj₁
+        (μ′ , shape , mode , seal★ , widening ,
+         c-shape , composition)))))
+      relation =
+    ⊑cast⊑ᵀ mode seal★ widening relation _
+      c-shape composition
+  apply-target-frame-evidence
+      (inj₂ (inj₂ (inj₂ (inj₂
+        (shape , seal★ , widening ,
+         c-shape , composition)))))
+      relation =
+    ⊑cast⊑idᵀ seal★ widening relation _
+      c-shape composition
+
+  apply-target-administration-plan :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {V W : Term} {A B C : Ty} {μ : ModeEnv}
+      {c : Coercion}
+      {c⊢ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c ∶ B =⇒ C}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ} →
+    TargetAdministrationPlan ρ A c⊢ p q →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺ V ⊑ W ⦂ A ⊑ B ∶ p →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺ V ⊑ W ⟨ c ⟩ ⦂ A ⊑ C ∶ q
+  apply-target-administration-plan
+      (plan-inert inert evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan
+      (plan-id evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan {q = q}
+      (plan-untag mode seal★ narrowing c-shape composition)
+      relation =
+    ⊑cast⊒ᵀ mode seal★ narrowing relation q
+      c-shape composition
+  apply-target-administration-plan
+      (plan-unseal evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan
+      (plan-inst evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan
+      (plan-fun-untag-gen evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan
+      (plan-inst-fun-tag evidence) relation =
+    apply-target-frame-evidence evidence relation
+  apply-target-administration-plan {q = q}
+      (plan-narrow-seq
+        mode seal★ narrowing sequence-narrowing
+        sequence-shape composition
+        s-shape s-composition t-shape t-composition
+        s-plan t-plan)
+      relation =
+    ⊑cast⊒ᵀ mode seal★ narrowing relation q
+      sequence-shape composition
+  apply-target-administration-plan {q = q}
+      (plan-widen-seq
+        mode seal★ widening sequence-widening
+        sequence-shape composition
+        s-shape s-composition t-shape t-composition
+        s-plan t-plan)
+      relation =
+    ⊑cast⊑ᵀ mode seal★ widening relation q
+      sequence-shape composition
+  apply-target-administration-plan {q = q}
+      (plan-id-widen-seq
+        seal★ widening sequence-widening
+        sequence-shape composition
+        s-shape s-composition t-shape t-composition
+        s-plan t-plan)
+      relation =
+    ⊑cast⊑idᵀ seal★ widening relation q
+      sequence-shape composition
+
   apply-target-administration-spine :
     ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ}
       {V W A B D p q cs} →
@@ -170,38 +345,10 @@ private
   apply-target-administration-spine pending-empty relation =
     relation
   apply-target-administration-spine
-      (pending-cons {r = r} plan
-        (inj₁ (μ′ , β , X′ , reveal)) tail)
+      (pending-cons plan tail)
       relation =
     apply-target-administration-spine tail
-      (⊑conv↑ᵀ reveal relation r)
-  apply-target-administration-spine
-      (pending-cons {r = r} plan
-        (inj₂ (inj₁ (μ′ , β , X′ , conceal))) tail)
-      relation =
-    apply-target-administration-spine tail
-      (⊑conv↓ᵀ conceal relation r)
-  apply-target-administration-spine
-      (pending-cons {r = r} plan
-        (inj₂ (inj₂ (inj₁
-          (μ′ , mode , seal★ , narrowing)))) tail)
-      relation =
-    apply-target-administration-spine tail
-      (⊑cast⊒ᵀ mode seal★ narrowing relation r)
-  apply-target-administration-spine
-      (pending-cons {r = r} plan
-        (inj₂ (inj₂ (inj₂ (inj₁
-          (μ′ , mode , seal★ , widening))))) tail)
-      relation =
-    apply-target-administration-spine tail
-      (⊑cast⊑ᵀ mode seal★ widening relation r)
-  apply-target-administration-spine
-      (pending-cons {r = r} plan
-        (inj₂ (inj₂ (inj₂ (inj₂
-          (seal★ , widening))))) tail)
-      relation =
-    apply-target-administration-spine tail
-      (⊑cast⊑idᵀ seal★ widening relation r)
+      (apply-target-administration-plan plan relation)
 
 
 world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation-prefix-proofᵀ :
@@ -218,7 +365,8 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
     {s = s} {cs = cs}
     {f = f} {t = t}
     prefix coherent exclusive unique wfR runtime
-    vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body tail =
+    vW noW vW′ noW′ mode seal★ cast inert liftρ liftγ body
+    inst-shape creation-square tail =
   indexed ,
   refl ,
   refl ,
@@ -299,7 +447,8 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
 
   post-beta-related =
     post-beta {f = f} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body source-typing target-typing
+      vW noW vW′ noW′ inert body inst-shape creation-square
+      source-typing target-typing
 
   allocated-tail =
     allocate-spine liftρᴿ tail
@@ -353,6 +502,14 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
           (transportAllType-to-raw≅ result r)
           (≡-to-≅
             (⊑-target-lift-right-all-coherentᵢ r))))
+      shape-target-lift-rightᵢ
+      shape-target-lift-under-rightᵢ
+      replace-left-target-lift-rightᵢ
+      replace-right-target-lift-rightᵢ
+      replace-paired-target-lift-rightᵢ
+      replace-paired-target-lift-right-under-∀ᵢ
+      replace-left-target-lift-right-source-nu-bodyᵢ
+      replace-right-target-lift-under-rightᵢ
 
   indexed =
     weak-indexed-result result related transport type-coherence

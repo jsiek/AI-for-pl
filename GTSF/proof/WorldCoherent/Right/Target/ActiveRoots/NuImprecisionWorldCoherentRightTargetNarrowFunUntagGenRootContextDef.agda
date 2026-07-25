@@ -13,10 +13,13 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 import Coercions as C
+open import CastImprecisionShape using (narrowing; _⊢ᶜ_⦂_)
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NuReduction using (applyTys)
 open import NuTermImprecision using
@@ -65,7 +68,9 @@ WorldCoherentRightTargetNarrowFunUntagGenRootContextᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {V M′ : Term} {A C : Ty} {s : C.Coercion} {μ : C.ModeEnv}
+    {untag-shape gen-shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⊣ Δᴿ}
+    {r : Φ ∣ Δᴸ ⊢ A ⊑ ★ ⇒ ★ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
@@ -73,6 +78,10 @@ WorldCoherentRightTargetNarrowFunUntagGenRootContextᵀ =
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
     ⊢ ((★ ⇒ ★) C.？) C.︔ C.gen (★ ⇒ ★) s
       ∶ ★ ⊒ `∀ C →
+  narrowing ⊢ᶜ (★ ⇒ ★) C.？ ⦂ untag-shape →
+  ⌊ r ⌋ ； untag-shape ≋ ⌊ p ⌋ →
+  narrowing ⊢ᶜ C.gen (★ ⇒ ★) s ⦂ gen-shape →
+  ⌊ q ⌋ ； gen-shape ≋ ⌊ r ⌋ →
   (inner : WorldCoherentRightValueCatchupIndexedResult
     {V = V} {M′ = M′} {ρ = ρ⁺} p) →
   let indexed = rightCatchupIndexedResult

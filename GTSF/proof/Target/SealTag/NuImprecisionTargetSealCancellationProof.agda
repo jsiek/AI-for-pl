@@ -10,9 +10,12 @@ open import Data.List using ([])
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Product using (_,_; _×_; ∃-syntax)
+open import CastImprecisionShape using (shape-seal)
 import Coercions as C
 import Conversion
 open import Conversion using (conceal-seal)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; replace-left-seal; replace-left-variable)
 import NarrowWiden
 open import Imprecision using (_ˣ⊑ˣ_)
 open import ImprecisionWf using
@@ -138,6 +141,18 @@ target-atomᵀ :
 target-atomᵀ (idˣ a∈Φ α< β<) = T.＇ _
 target-atomᵀ (tagˣ a∈Φ α<) = T.★
 
+
+source-variable-left-replacementᵀ :
+  ∀ {Φ Δᴸ Δᴿ α X B}
+    (q : Φ ∣ Δᴸ ⊢ ＇ α ⊑ B ⊣ Δᴿ)
+    (p : Φ ∣ Δᴸ ⊢ X ⊑ B ⊣ Δᴿ) →
+  q [ α ↦ X ]ᴸ p
+source-variable-left-replacementᵀ (idˣ a∈Φ α< β<) p =
+  replace-left-variable p
+source-variable-left-replacementᵀ (tagˣ a∈Φ α<) p =
+  replace-left-seal p
+
+
 inert-reveal-target-var-impossibleᵀ :
   ∀ {μ Δ Σ α X c A β} →
   Conversion.RevealConversion μ Δ Σ α X c A (＇ β) →
@@ -172,75 +187,66 @@ target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (up⊑upᵀ inner
       (quotient-id-widening u⊑
-        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq)
+        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq
+      source-shape target-shape square)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (up⊑upᵀ inner
       (quotient-cast-widening mode seal★ u⊑ mode′ seal★′
-        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq)
+        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq
+      source-shape target-shape square)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (⊑cast⊑ᵀ mode seal★
       (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())
-      inner oldq)
+      inner oldq c-shape comp)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (⊑cast⊑idᵀ seal★
       (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())
-      inner oldq)
+      inner oldq c-shape comp)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (conv⊑convᵀ
-      (paired-conversion (paired-reveal corr c↑ ())) inner)
+      (paired-conversion
+        (paired-reveal corr c↑ () replacement)) inner)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (conv⊑convᵀ
-      (paired-widening mode seal★ c⊑ mode′ seal★′
-        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ()) _) inner)
+      (paired-widening mode seal★ c⊑ source-shape
+        mode′ seal★′
+        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())
+        target-shape left-comp right-comp compatible) inner)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
     (cast⊑⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.cross ())
-      M⊑Vβ oldq)
+      M⊑Vβ oldq c-shape comp)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ inert ⟩) noW vV βX′∈Σ
-    (conv↑⊑ᵀ c↑ M⊑Vβ oldq) q =
+    (conv↑⊑ᵀ c↑ M⊑Vβ oldq replacement) q =
   ⊥-elim (inert-reveal-target-var-impossibleᵀ c↑ inert)
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
     (cast⊒⊑ᵀ mode seal★
       (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ .Y .α)
-      M⊑Vβ oldq)
-    q
-    with idˣ-corresponds coh a∈Φ
-      (left-prefix-inclusionᵀ prefix αY∈Σ) βX′∈Σ
-target-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<} prefix coh wfΣ
-    (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
-    (cast⊒⊑ᵀ mode seal★
-      (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ .Y .α)
-      M⊑Vβ oldq)
-    q | pY , corr =
-  cast⊒⊑ᵀ mode seal★
-    (C.cast-seal hY αY∈Σ ok , NarrowWiden.sealⁿ Y α)
-    (target-seal-cancellation-prefixᵀ
-      prefix coh wfΣ vM noM vV βX′∈Σ M⊑Vβ pY)
+      M⊑Vβ oldq shape-seal ())
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
     (conv↓⊑ᵀ {μ = μ}
-      (conceal-seal hY αY∈Σ ok) M⊑Vβ oldq)
+      (conceal-seal hY αY∈Σ ok) M⊑Vβ oldq replacement)
     q
     with idˣ-corresponds coh a∈Φ
       (left-prefix-inclusionᵀ prefix αY∈Σ) βX′∈Σ
@@ -248,24 +254,25 @@ target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
     (conv↓⊑ᵀ {μ = μ}
-      (conceal-seal hY αY∈Σ ok) M⊑Vβ oldq)
+      (conceal-seal hY αY∈Σ ok) M⊑Vβ oldq replacement)
     q | pY , corr =
   conv↓⊑ᵀ {μ = μ} (conceal-seal hY αY∈Σ ok)
     (target-seal-cancellation-prefixᵀ
       prefix coh wfΣ vM noM vV βX′∈Σ M⊑Vβ pY)
-    q
+    q (source-variable-left-replacementᵀ q pY)
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (⊑cast⊒ᵀ mode seal★
       (C.cast-seal hX βX∈Σ ok , NarrowWiden.sealⁿ X β)
-      W⊑V oldq)
+      W⊑V oldq c-shape comp)
     q
     rewrite unique wfΣ
       (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =
   atomic-target-value-reindexᵀ (target-atomᵀ q) vV W⊑V q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (⊑conv↓ᵀ (conceal-seal hX βX∈Σ ok) W⊑V oldq)
+    (⊑conv↓ᵀ
+      (conceal-seal hX βX∈Σ ok) W⊑V oldq replacement)
     q
     rewrite unique wfΣ
       (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =
@@ -273,16 +280,19 @@ target-seal-cancellation-prefixᵀ
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
-    (conv⊑convᵀ
+    (conv⊑convᵀ {p = inner-index}
       (paired-conversion
-        (paired-conceal {μ = μ} {μ′ = μ′} corr
+        (paired-conceal
+          {pX = pX} {μ = μ} {μ′ = μ′} corr
           (conceal-seal hY αY∈Σ ok)
-          (conceal-seal hX βX∈Σ ok′)))
+          (conceal-seal hX βX∈Σ ok′)
+          replacement))
       M⊑V)
     q
     rewrite unique wfΣ
       (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =
-  conv↓⊑ᵀ {μ = μ} (conceal-seal hY αY∈Σ ok) M⊑V q
+  conv↓⊑ᵀ {μ = μ} (conceal-seal hY αY∈Σ ok)
+    M⊑V q (source-variable-left-replacementᵀ q inner-index)
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
     (allocation-prefixᵀ prefix₀ inner W⊢ Vseal⊢) q

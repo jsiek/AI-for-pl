@@ -8,8 +8,10 @@ module proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef where
 --   * Contains no simulation, lineage construction, or transport proof.
 
 open import Data.List using (_∷_)
-open import Data.Product using (∃-syntax)
+open import Agda.Builtin.Equality using (_≡_)
+open import Data.Product using (_×_; ∃-syntax)
 
+open import ImprecisionComposition using (⌊_⌋)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
@@ -73,10 +75,12 @@ LineageAwareLeftSilentStoreCorrespondsTransportᵀ =
   WeakOneStepStoreLineage inner →
   StoreCorresponds ρ₀ α X β X′ pX →
   ∃[ pX′ ]
-    StoreCorresponds
-      (resultStore inner)
-      (applyTyVars (sourceChanges inner) α)
-      (applyTys (sourceChanges inner) X)
-      (applyTyVars (targetTailChanges inner) β)
-      (applyTys (targetTailChanges inner) X′)
-      pX′
+    (StoreCorresponds
+       (resultStore inner)
+       (applyTyVars (sourceChanges inner) α)
+       (applyTys (sourceChanges inner) X)
+       (applyTyVars (targetTailChanges inner) β)
+       (applyTys (targetTailChanges inner) X′)
+       pX′)
+    ×
+    (⌊ pX′ ⌋ ≡ ⌊ pX ⌋)

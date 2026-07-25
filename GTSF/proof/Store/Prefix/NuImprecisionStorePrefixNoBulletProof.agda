@@ -52,76 +52,98 @@ quotiented-store-prefix-no-bulletᵖ-proofᵀ :
   QuotientedStorePrefixNoBulletᵖᵀ
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (down⊑downᵀ source target body q) =
+    (down⊑downᵀ
+      source source-shape target target-shape body q square) =
   down⊑downᵀ
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
+    source-shape
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
+    target-shape
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ body)
-    q
+    q square
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix
     (no•-· noL (no•-⟨⟩ noM))
     (no•-· noL′ (no•-⟨⟩ noM′))
     (ordinary-down-applicationᵖᵀ
-      mode seal★ source mode′ seal★′ target function argument) =
+      mode seal★ source source-shape
+      mode′ seal★′ target target-shape
+      function argument square) =
   ordinary-down-applicationᵖᵀ
     mode
     (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
+    source-shape
     mode′
     (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
+    target-shape
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noL noL′ function)
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ argument)
+    square
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix
     (no•-· noL (no•-⟨⟩ noM))
     (no•-· noL′ (no•-⟨⟩ noM′))
     (quotient-id-down-applicationᵖᵀ
-      source target function argument) =
+      source source-shape target target-shape
+      function components argument square) =
   quotient-id-down-applicationᵖᵀ
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
+    source-shape
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
+    target-shape
     (quotiented-store-prefix-no-bulletᵖ-proofᵀ
       prefix noL noL′ function)
+    components
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ argument)
+    square
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix
     (no•-· noL (no•-⟨⟩ noM))
     (no•-· noL′ (no•-⟨⟩ noM′))
     (quotient-down-applicationᵖᵀ
-      mode seal★ source mode′ seal★′ target function argument) =
+      mode seal★ source source-shape
+      mode′ seal★′ target target-shape
+      function components argument square) =
   quotient-down-applicationᵖᵀ
     mode
     (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
+    source-shape
     mode′
     (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
+    target-shape
     (quotiented-store-prefix-no-bulletᵖ-proofᵀ
       prefix noL noL′ function)
+    components
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ argument)
+    square
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (gen-down⊑gen-downᵀ source target body q) =
+    (gen-down⊑gen-downᵀ
+      source source-shape target target-shape body q square) =
   gen-down⊑gen-downᵀ
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
+    source-shape
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
+    target-shape
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ body)
-    q
+    q square

@@ -8,6 +8,9 @@ module proof.Left.SilentTransport.NuImprecisionLeftSilentPairedWideningTransport
 --   * Contains no transport implementation or paired-conversion case.
 
 open import Coercions using (Coercion; ModeEnv)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -27,6 +30,7 @@ open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -45,18 +49,24 @@ LeftSilentPairedWideningTransportᵀ =
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ : Term} {C C′ A A′ B B′ : Ty}
     {μ μ′ : ModeEnv} {c c′ : Coercion}
+    {s s′ r : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
   LeftSilentInvariant inner →
+  WeakOneStepTypeCoherence inner →
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+  widening ⊢ᶜ c ⦂ s →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
-  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  widening ⊢ᶜ c′ ⦂ s′ →
+  s ； ⌊ q ⌋ ≋ r →
+  ⌊ p ⌋ ； s′ ≋ r →
+  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ p q s s′ →
   PairedCast
     (resultCtx inner)
     (resultLeftCtx inner)

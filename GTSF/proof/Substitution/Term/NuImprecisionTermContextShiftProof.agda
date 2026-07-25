@@ -54,6 +54,11 @@ open import Types using
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( shape-lift∀ᵢ
+  ; shape-source-liftνᵢ
+  ; shape-target-lift-rightᵢ
+  )
 open import proof.Substitution.Term.NuImprecisionTermContextShiftDef using
   (QuotientedTermContextShiftᵀ)
 open import proof.Core.Properties.NuTermProperties using
@@ -120,14 +125,20 @@ private
       TermCtxInsertⁱ (⇑ᵗ C) (⇑ᵗ C′) (⊑-lift∀ᵢ q)
         γ↑ δ↑ η
   term-ctx-insert-lift∀ⁱ {q = q} insert-hereⁱ liftγ =
-    _ , lift-ctx-∷ {p′ = ⊑-lift∀ᵢ q} liftγ , insert-hereⁱ
+    _ ,
+    lift-ctx-∷ {p′ = ⊑-lift∀ᵢ q}
+      (shape-lift∀ᵢ q) liftγ ,
+    insert-hereⁱ
   term-ctx-insert-lift∀ⁱ
-      (insert-underⁱ insert) (lift-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-ctx-∷ {p′ = p↑} shape-eq liftγ)
       with term-ctx-insert-lift∀ⁱ insert liftγ
   term-ctx-insert-lift∀ⁱ
-      (insert-underⁱ insert) (lift-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-ctx-∷ {p′ = p↑} shape-eq liftγ)
       | δ↑ , liftδ , insert↑ =
-    _ , lift-ctx-∷ {p′ = p↑} liftδ , insert-underⁱ insert↑
+    _ , lift-ctx-∷ {p′ = p↑} shape-eq liftδ ,
+    insert-underⁱ insert↑
 
 
   term-ctx-insert-lift-leftⁱ :
@@ -140,15 +151,20 @@ private
       TermCtxInsertⁱ (⇑ᵗ C) C′ (⊑-source-liftνᵢ q)
         γ↑ δ↑ η
   term-ctx-insert-lift-leftⁱ {q = q} insert-hereⁱ liftγ =
-    _ , lift-left-ctx-∷ {p′ = ⊑-source-liftνᵢ q} liftγ ,
-      insert-hereⁱ
+    _ ,
+    lift-left-ctx-∷ {p′ = ⊑-source-liftνᵢ q}
+      (shape-source-liftνᵢ q) liftγ ,
+    insert-hereⁱ
   term-ctx-insert-lift-leftⁱ
-      (insert-underⁱ insert) (lift-left-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-left-ctx-∷ {p′ = p↑} shape-eq liftγ)
       with term-ctx-insert-lift-leftⁱ insert liftγ
   term-ctx-insert-lift-leftⁱ
-      (insert-underⁱ insert) (lift-left-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-left-ctx-∷ {p′ = p↑} shape-eq liftγ)
       | δ↑ , liftδ , insert↑ =
-    _ , lift-left-ctx-∷ {p′ = p↑} liftδ , insert-underⁱ insert↑
+    _ , lift-left-ctx-∷ {p′ = p↑} shape-eq liftδ ,
+    insert-underⁱ insert↑
 
 
   term-ctx-insert-lift-rightⁱ :
@@ -161,15 +177,20 @@ private
       TermCtxInsertⁱ C (⇑ᵗ C′) (⊑-target-lift-rightᵢ q)
         γ↑ δ↑ η
   term-ctx-insert-lift-rightⁱ {q = q} insert-hereⁱ liftγ =
-    _ , lift-right-ctx-∷ {p′ = ⊑-target-lift-rightᵢ q} liftγ ,
-      insert-hereⁱ
+    _ ,
+    lift-right-ctx-∷ {p′ = ⊑-target-lift-rightᵢ q}
+      (shape-target-lift-rightᵢ q) liftγ ,
+    insert-hereⁱ
   term-ctx-insert-lift-rightⁱ
-      (insert-underⁱ insert) (lift-right-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-right-ctx-∷ {p′ = p↑} shape-eq liftγ)
       with term-ctx-insert-lift-rightⁱ insert liftγ
   term-ctx-insert-lift-rightⁱ
-      (insert-underⁱ insert) (lift-right-ctx-∷ {p′ = p↑} liftγ)
+      (insert-underⁱ insert)
+      (lift-right-ctx-∷ {p′ = p↑} shape-eq liftγ)
       | δ↑ , liftδ , insert↑ =
-    _ , lift-right-ctx-∷ {p′ = p↑} liftδ , insert-underⁱ insert↑
+    _ , lift-right-ctx-∷ {p′ = p↑} shape-eq liftδ ,
+    insert-underⁱ insert↑
 
 
   mutual
@@ -211,11 +232,12 @@ private
       ·⊑·ᵀ
         (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-    term-ctx-insert-no•ᵀ insert (up⊑upᵀ N⊑N′ widening pA)
+    term-ctx-insert-no•ᵀ insert
+        (up⊑upᵀ N⊑N′ widening pA u-shape u′-shape square)
         (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
       up⊑upᵀ
         (term-ctx-insert-no•ᵀᵖ insert N⊑N′ noN noN′)
-        widening pA
+        widening pA u-shape u′-shape square
     term-ctx-insert-no•ᵀ insert
         (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′)
         (no•-Λ noV) (no•-Λ noV′)
@@ -244,6 +266,7 @@ private
           {τ = τ} {σ = σ}
           prefix mode seal★ inst⊑ liftρ liftρᴿ
           vW noW vW′ noW′ inert W⊑W′ f
+          inst-shape creation-square
           assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
           vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
         noM₀ noM′₀
@@ -252,6 +275,7 @@ private
       Λ⊑instβᵀ
         prefix mode seal★ inst⊑ liftρ liftρᴿ
         vW noW vW′ noW′ inert W⊑W′ f
+        inst-shape creation-square
         assm hτ hσ store-emb M≡ M′≡
         A≡ A′≡ p
         vM noM closedM vM′ noM′ closedM′
@@ -275,69 +299,81 @@ private
         (typing-renameˣ (term-ctx-insert-right-wfⁱ insert) M′⊢)
     term-ctx-insert-no•ᵀ insert
         (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
-          liftρ liftγ N⊑N′)
+          liftρ liftγ N⊑N′ replace)
         (no•-ν noN) (no•-ν noN′)
         with term-ctx-insert-lift∀ⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
         (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
-          liftρ liftγ N⊑N′)
+          liftρ liftγ N⊑N′ replace)
         (no•-ν noN) (no•-ν noN′)
         | δ↑ , liftδ , insert↑ =
       ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑ liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        replace
     term-ctx-insert-no•ᵀ insert
-        (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑N′)
+        (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑N′ replace)
         (no•-ν noN) noN′
         with term-ctx-insert-lift-leftⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
-        (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑N′)
+        (ν⊑ᵀ hA hA↑ s↑ liftρ liftγ N⊑N′ replace)
         (no•-ν noN) noN′
         | δ↑ , liftδ , insert↑ =
       ν⊑ᵀ hA hA↑ s↑ liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        replace
     term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′)
+        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
         noN (no•-ν noN′)
         with term-ctx-insert-lift-rightⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′)
+        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
         noN (no•-ν noN′)
         | δ↑ , liftδ , insert↑ =
       ⊑νᵀ hA hA↑ s↑ liftρ liftδ r
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        replace
     term-ctx-insert-no•ᵀ insert
         (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′)
+          liftρ liftγ N⊑N′
+          s-shape s′-shape left-comp right-comp)
         (no•-ν noN) (no•-ν noN′)
         with term-ctx-insert-lift∀ⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
         (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′)
+          liftρ liftγ N⊑N′
+          s-shape s′-shape left-comp right-comp)
         (no•-ν noN) (no•-ν noN′)
         | δ↑ , liftδ , insert↑ =
       νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
         liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        s-shape s′-shape left-comp right-comp
     term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′)
+        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
+          s-shape comp)
         (no•-ν noN) noN′
         with term-ctx-insert-lift-leftⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′)
+        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
+          s-shape comp)
         (no•-ν noN) noN′
         | δ↑ , liftδ , insert↑ =
       νcast⊑ᵀ mode seal s⊑ liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        s-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′)
+        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
+          s-shape comp)
         noN (no•-ν noN′)
         with term-ctx-insert-lift-rightⁱ insert liftγ
     term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′)
+        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
+          s-shape comp)
         noN (no•-ν noN′)
         | δ↑ , liftδ , insert↑ =
       ⊑νcastᵀ mode seal s⊑ liftρ liftδ r
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
+        s-shape comp
     term-ctx-insert-no•ᵀ insert κ⊑κᵀ no•-$ no•-$ =
       κ⊑κᵀ
     term-ctx-insert-no•ᵀ insert (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
@@ -355,86 +391,110 @@ private
         (term-ctx-insert-no•ᵀ
           insert V⊑Wtag noV (no•-⟨⟩ noW)) q
     term-ctx-insert-no•ᵀ insert
-        (cast⊒⊑ᵀ mode seal c⊒ M⊑M′ q)
+        (cast⊒⊑ᵀ mode seal c⊒ M⊑M′ q c-shape comp)
         (no•-⟨⟩ noM) noM′ =
       cast⊒⊑ᵀ mode seal c⊒
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (cast⊑⊑ᵀ mode seal c⊑ M⊑M′ q)
+        (cast⊑⊑ᵀ mode seal c⊑ M⊑M′ q c-shape comp)
         (no•-⟨⟩ noM) noM′ =
       cast⊑⊑ᵀ mode seal c⊑
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑cast⊒ᵀ mode seal c⊒ M⊑M′ q)
+        (⊑cast⊒ᵀ mode seal c⊒ M⊑M′ q c-shape comp)
         noM (no•-⟨⟩ noM′) =
       ⊑cast⊒ᵀ mode seal c⊒
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑cast⊑ᵀ mode seal c⊑ M⊑M′ q)
+        (⊑cast⊑ᵀ mode seal c⊑ M⊑M′ q c-shape comp)
         noM (no•-⟨⟩ noM′) =
       ⊑cast⊑ᵀ mode seal c⊑
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑cast⊑idᵀ seal c⊑ M⊑M′ q)
+        (⊑cast⊑idᵀ seal c⊑ M⊑M′ q c-shape comp)
         noM (no•-⟨⟩ noM′) =
       ⊑cast⊑idᵀ seal c⊑
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q c-shape comp
     term-ctx-insert-no•ᵀ insert (conv⊑convᵀ cast M⊑M′)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
       conv⊑convᵀ cast
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-    term-ctx-insert-no•ᵀ insert (conv↑⊑ᵀ conv M⊑M′ q)
+    term-ctx-insert-no•ᵀ insert
+        (conv↑⊑ᵀ conv M⊑M′ q replace)
         (no•-⟨⟩ noM) noM′ =
       conv↑⊑ᵀ conv
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
-    term-ctx-insert-no•ᵀ insert (conv↓⊑ᵀ conv M⊑M′ q)
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q replace
+    term-ctx-insert-no•ᵀ insert
+        (conv↓⊑ᵀ conv M⊑M′ q replace)
         (no•-⟨⟩ noM) noM′ =
       conv↓⊑ᵀ conv
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
-    term-ctx-insert-no•ᵀ insert (⊑conv↑ᵀ conv M⊑M′ q)
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q replace
+    term-ctx-insert-no•ᵀ insert
+        (⊑conv↑ᵀ conv M⊑M′ q replace)
         noM (no•-⟨⟩ noM′) =
       ⊑conv↑ᵀ conv
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
-    term-ctx-insert-no•ᵀ insert (⊑conv↓ᵀ conv M⊑M′ q)
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q replace
+    term-ctx-insert-no•ᵀ insert
+        (⊑conv↓ᵀ conv M⊑M′ q replace)
         noM (no•-⟨⟩ noM′) =
       ⊑conv↓ᵀ conv
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        q replace
 
     term-ctx-insert-no•ᵀᵖ insert
-        (down⊑downᵀ d⊒ d′⊒ M⊑M′ q)
+        (down⊑downᵀ
+          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      down⊑downᵀ d⊒ d′⊒
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+      down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
     term-ctx-insert-no•ᵀᵖ insert
-        (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q)
+        (gen-down⊑gen-downᵀ
+          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      gen-down⊑gen-downᵀ d⊒ d′⊒
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q
+      gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
     term-ctx-insert-no•ᵀᵖ insert
         (ordinary-down-applicationᵖᵀ
-          mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+          L⊑L′ M⊑M′ square)
         (no•-· noL (no•-⟨⟩ noM))
         (no•-· noL′ (no•-⟨⟩ noM′)) =
       ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
         (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        square
     term-ctx-insert-no•ᵀᵖ insert
-        (quotient-id-down-applicationᵖᵀ d⊒ d′⊒ L⊑L′ M⊑M′)
+        (quotient-id-down-applicationᵖᵀ
+          d⊒ d-shape d′⊒ d′-shape
+          L⊑L′ components M⊑M′ square)
         (no•-· noL (no•-⟨⟩ noM))
         (no•-· noL′ (no•-⟨⟩ noM′)) =
-      quotient-id-down-applicationᵖᵀ d⊒ d′⊒
+      quotient-id-down-applicationᵖᵀ d⊒ d-shape d′⊒ d′-shape
         (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
+        components
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        square
     term-ctx-insert-no•ᵀᵖ insert
         (quotient-down-applicationᵖᵀ
-          mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′)
+          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+          L⊑L′ components M⊑M′ square)
         (no•-· noL (no•-⟨⟩ noM))
         (no•-· noL′ (no•-⟨⟩ noM′)) =
       quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
         (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
+        components
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+        square
 
 
 quotiented-term-context-shift-proofᵀ : QuotientedTermContextShiftᵀ

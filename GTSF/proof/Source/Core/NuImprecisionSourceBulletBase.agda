@@ -9,7 +9,7 @@ module proof.Source.Core.NuImprecisionSourceBulletBase where
 --   * Keeps local administrative embedding and post-allocation helpers private
 --     and avoids depending on the main simulation or scratch modules.
 
-open import Agda.Builtin.Equality using (refl)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Nat.Properties using (≤-refl)
@@ -68,7 +68,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
-  (subst; sym)
+  (subst; sym; trans)
 open import Store using (StoreIncl-drop)
 open import TermTyping using (_∣_∣_⊢_⦂_; ⊢•)
 open import Types using
@@ -77,6 +77,8 @@ open import Types using
   ; extᵗ
   ; ⇑ᵗ
   )
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-renameᵗ²ᵢ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ( RelStoreEmbeddingⁱ
   ; rel-store-embedding-[]
@@ -94,10 +96,17 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; nu-term-imprecision-transport-typesᵀ
   ; rel-world-embedding
   ; rename-assm²-idᵢ
+  ; replace-left-rename-idᵢ
+  ; replace-left-rename-id-source-nu-bodyᵢ
+  ; replace-paired-rename-idᵢ
+  ; replace-paired-rename-id-all-bodyᵢ
+  ; replace-right-rename-idᵢ
+  ; replace-right-rename-id-right-bodyᵢ
   ; weak-one-step-index-resultᵀ
   ; ⊑-rename-id-all-bodyᵢ
   ; ⊑-rename-id-allᵢ
   ; ⊑-rename-id-arrowᵢ
+  ; ⊑-rename-id-shapeᵢ
   ; ⊑-rename-idᵢ
   ; ⊑-rename-id-source-nuᵢ
   )
@@ -154,7 +163,8 @@ private
   identity-store-rel-embeddingⁱ
       {ρ = store-matched α A β B p ∷ ρ} =
     rel-store-embedding-matched refl (sym (renameᵗ-id A))
-      refl (sym (renameᵗ-id B)) identity-store-rel-embeddingⁱ
+      refl (sym (renameᵗ-id B)) refl
+      identity-store-rel-embeddingⁱ
   identity-store-rel-embeddingⁱ
       {ρ = store-left α A hA ∷ ρ} =
     rel-store-embedding-left refl (sym (renameᵗ-id A))
@@ -166,7 +176,8 @@ private
   identity-store-rel-embeddingⁱ
       {ρ = store-link α A β B p ∷ ρ} =
     rel-store-embedding-link refl (sym (renameᵗ-id A))
-      refl (sym (renameᵗ-id B)) identity-store-rel-embeddingⁱ
+      refl (sym (renameᵗ-id B)) refl
+      identity-store-rel-embeddingⁱ
 
   identity-world-embeddingⁱ :
     ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ} →
@@ -190,9 +201,11 @@ private
       lift-left-store-[] lift-left-store-[] =
     rel-store-embedding-[]
   paired-left-lift-rel-embeddingⁱ
-      (lift-left-store-∷ liftρᵃ) (lift-left-store-∷ liftρᵇ) =
+      (lift-left-store-∷ shapeᵃ liftρᵃ)
+      (lift-left-store-∷ shapeᵇ liftρᵇ) =
     rel-store-embedding-matched refl (sym (renameᵗ-id _))
       refl (sym (renameᵗ-id _))
+      (trans shapeᵇ (sym shapeᵃ))
       (paired-left-lift-rel-embeddingⁱ liftρᵃ liftρᵇ)
   paired-left-lift-rel-embeddingⁱ
       (lift-left-store-left liftρᵃ)
@@ -205,10 +218,11 @@ private
     rel-store-embedding-right refl (sym (renameᵗ-id _))
       (paired-left-lift-rel-embeddingⁱ liftρᵃ liftρᵇ)
   paired-left-lift-rel-embeddingⁱ
-      (lift-left-store-link liftρᵃ)
-      (lift-left-store-link liftρᵇ) =
+      (lift-left-store-link shapeᵃ liftρᵃ)
+      (lift-left-store-link shapeᵇ liftρᵇ) =
     rel-store-embedding-link refl (sym (renameᵗ-id _))
       refl (sym (renameᵗ-id _))
+      (trans shapeᵇ (sym shapeᵃ))
       (paired-left-lift-rel-embeddingⁱ liftρᵃ liftρᵇ)
 
   paired-left-lift-prefix-world-embeddingⁱ :
@@ -314,7 +328,13 @@ left-catchup-indexed-prefix-α-Λᵀ
     (weak-one-step-index-resultᵀ result refl
       (weak-step-transport identity-bodyᵀ)
       (weak-step-type-coherence
-        ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ))
+        ⊑-rename-id-arrowᵢ ⊑-rename-id-allᵢ
+        ⊑-rename-id-shapeᵢ ⊑-rename-id-shapeᵢ
+        replace-left-rename-idᵢ replace-right-rename-idᵢ
+        replace-paired-rename-idᵢ
+        replace-paired-rename-id-all-bodyᵢ
+        replace-left-rename-id-source-nu-bodyᵢ
+        replace-right-rename-id-right-bodyᵢ))
     (left-catchup-invariant
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
   where

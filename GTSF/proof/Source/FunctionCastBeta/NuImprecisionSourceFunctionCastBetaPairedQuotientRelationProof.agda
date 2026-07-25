@@ -10,7 +10,8 @@ module
 
 import Coercions as C
 import NarrowWiden as NW
-open import Data.Product using (_,_; proj₂)
+import CastImprecisionShape as CastShape
+open import Data.Product using (_,_)
 
 open import QuotientedTermImprecision using
   ( quotient-cast-widening
@@ -22,7 +23,7 @@ open import
   proof.Quotient.NuImprecisionQuotientFunctionPairedNarrowingApplicationDef
   using (QuotientFunctionPairedNarrowingApplicationᵀ)
 open import proof.Quotient.NuImprecisionQuotientArrowComponents using
-  (⊑ᵖ-arrow-components)
+  (quotient-boundary-arrow-components)
 open import
   proof.Source.FunctionCastBeta.NuImprecisionSourceFunctionCastBetaPairedQuotientRelationDef
   using (SourceFunctionCastBetaPairedQuotientRelationᵀ)
@@ -31,38 +32,44 @@ source-function-cast-beta-paired-quotient-relation-proofᵀ :
   QuotientFunctionPairedNarrowingApplicationᵀ →
   SourceFunctionCastBetaPairedQuotientRelationᵀ
 source-function-cast-beta-paired-quotient-relation-proofᵀ
-    application {qD = qD} {pB = pB}
+    application {pB = pB}
     inner
     (quotient-id-widening
       (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
       (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ)))
+    (CastShape.shape-fun c-shape d-shape)
+    (CastShape.shape-fun e-shape f-shape)
+    square
     argument-related =
-  up⊑upᵀ application-related result-widening pB
-  where
-  application-related =
-    quotient-id-down-applicationᵖᵀ
-      {qB = proj₂ (⊑ᵖ-arrow-components qD)}
-      (c⊢ , cⁿ) (e⊢ , eⁿ) inner argument-related
-  result-widening =
-    quotient-id-widening (d⊢ , dʷ) (f⊢ , fʷ)
+  let qA , qB , components , domain-square , codomain-square =
+        quotient-boundary-arrow-components square in
+  up⊑upᵀ
+    (quotient-id-down-applicationᵖᵀ
+      (c⊢ , cⁿ) c-shape
+      (e⊢ , eⁿ) e-shape
+      inner components argument-related domain-square)
+    (quotient-id-widening (d⊢ , dʷ) (f⊢ , fʷ))
+    pB d-shape f-shape codomain-square
 source-function-cast-beta-paired-quotient-relation-proofᵀ
-    application {qD = qD} {pB = pB}
+    application {pB = pB}
     inner
     (quotient-cast-widening
       mode seal★
       (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
       mode′ seal★′
       (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ)))
+    (CastShape.shape-fun c-shape d-shape)
+    (CastShape.shape-fun e-shape f-shape)
+    square
     argument-related =
-  up⊑upᵀ application-related result-widening pB
-  where
-  application-related =
-    application
-      {qB = proj₂ (⊑ᵖ-arrow-components qD)}
-      mode seal★ (c⊢ , cⁿ)
-      mode′ seal★′ (e⊢ , eⁿ)
-      inner argument-related
-  result-widening =
-    quotient-cast-widening
+  let qA , qB , components , domain-square , codomain-square =
+        quotient-boundary-arrow-components square in
+  up⊑upᵀ
+    (application
+      mode seal★ (c⊢ , cⁿ) c-shape
+      mode′ seal★′ (e⊢ , eⁿ) e-shape
+      inner components argument-related domain-square)
+    (quotient-cast-widening
       mode seal★ (d⊢ , dʷ)
-      mode′ seal★′ (f⊢ , fʷ)
+      mode′ seal★′ (f⊢ , fʷ))
+    pB d-shape f-shape codomain-square

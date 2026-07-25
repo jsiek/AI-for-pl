@@ -17,7 +17,7 @@ world-coherent-source-bullet-catchup-proofᵀ :
   WorldCoherentLeftValueCatchupPrefixᵀ →
   WorldCoherentSourceBulletCatchupᵀ
 world-coherent-source-bullet-catchup-proofᵀ
-    catchup h⇑A prefix coherent exclusive wfL okN
+    catchup h⇑A prefix coherent exclusive unique wfL okN
     vV′ noV′ vL noL liftρ liftγ L⊑V′ L•⊢ V′⊢ =
-  catchup prefix coherent exclusive wfL okN vV′ noV′
+  catchup prefix coherent exclusive unique wfL okN vV′ noV′
     (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑V′ L•⊢ V′⊢)

@@ -19,11 +19,18 @@ open import Conversion using
   ; conceal-seal
   ; weaken-conceal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
+open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import ImprecisionComposition using
+  ( ⌊_⌋
+  ; _；⌊_⌋≋ᵖ_；_
+  ; quotient-boundary-square
+  )
 open import ImprecisionWf using
   ( ImpCtx
   ; _ˣ⊑★
@@ -72,8 +79,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
@@ -133,8 +139,22 @@ open import Types using
   )
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv; instᵈ)
-open import proof.OneStep.NuImprecisionAtomicTargetReindex using
-  (paired-cast-target-reindexᵀ)
+open import
+  proof.Core.Properties.ConversionIndexCompatibilityProperties
+  using
+  ( replace-left-source-shape
+  ; replace-left-target-shape
+  ; replace-right-source-shape
+  ; replace-right-target-shape
+  )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( imprecision-composition-shape-transport
+  ; shape-target-lift-rightᵢ
+  ; source-atom-shape-unique
+  )
+open import
+  proof.NuCore.Relations.NuImprecisionPairedCastResultShape
+  using (paired-cast-result-shape-reindexᵀ)
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ
   ; weak-one-step-keep-source-catchup-transportᵀ
@@ -147,14 +167,16 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; subst²-to-≅
+  ( subst²-to-≅
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-index-resultᵀ
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
   )
+open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+  using (apply-conceal-conversions-exact)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; LeftSilentInvariant
@@ -185,6 +207,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; sourceTypeResult
   ; targetResult
   ; targetTypeResult
+  ; transportLeftReplacementCoherent
   ; transportType
   ; weak-indexed-result
   ; weakIndexedResult
@@ -207,6 +230,7 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
+  ; applyTyVars
   ; applyCoercions-preserves-Inert
   )
 
@@ -227,6 +251,27 @@ applyTys-preserves-Atom :
 applyTys-preserves-Atom [] atom = atom
 applyTys-preserves-Atom (χ ∷ χs) atom =
   applyTys-preserves-Atom χs (applyTy-preserves-Atom χ atom)
+
+
+private
+  quotient-boundary-source-reindex :
+    ∀ {Φ Δᴸ Δᴿ A A′ B B′}
+      {p q : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {r : Φ ∣ Δᴸ ⊢ B ⊑ᵖ B′ ⊣ Δᴿ}
+      {s s′} →
+    ⌊ p ⌋ ≡ ⌊ q ⌋ →
+    s ；⌊ p ⌋≋ᵖ r ； s′ →
+    s ；⌊ q ⌋≋ᵖ r ； s′
+  quotient-boundary-source-reindex eq
+      (quotient-boundary-square
+        source-shape left-composition target-shape right-composition) =
+    quotient-boundary-square
+      source-shape
+      (imprecision-composition-shape-transport
+        refl (sym eq) refl left-composition)
+      target-shape
+      right-composition
+
 
 post-catchup-β-id :
   ∀ χs {V A} →
@@ -255,8 +300,11 @@ atomic-source-value-reindexᵀ atom () (x⊑xᵀ x∈) q
 atomic-source-value-reindexᵀ () vM (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
 atomic-source-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
 atomic-source-value-reindexᵀ atom vM
-    (up⊑upᵀ M⊑M′ widening p) q =
-  up⊑upᵀ M⊑M′ widening q
+    (up⊑upᵀ M⊑M′ widening p
+      source-shape target-shape square) q =
+  up⊑upᵀ M⊑M′ widening q source-shape target-shape
+    (quotient-boundary-source-reindex
+      (source-atom-shape-unique atom p q) square)
 atomic-source-value-reindexᵀ () vM
     (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) q
 atomic-source-value-reindexᵀ () vM
@@ -264,7 +312,8 @@ atomic-source-value-reindexᵀ () vM
 atomic-source-value-reindexᵀ atom vM
     (Λ⊑instβᵀ
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ store-emb
       eqM eqM′ eqA eqA′ p
       vN noN closedN vN′ noN′ closedN′ N⊢ N′⊢)
     q
@@ -272,7 +321,8 @@ atomic-source-value-reindexᵀ atom vM
 atomic-source-value-reindexᵀ atom vM
     (Λ⊑instβᵀ
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f assm hτ hσ store-emb
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ store-emb
       eqM eqM′ eqA eqA′ p
       vN noN closedN vN′ noN′ closedN′ N⊢ N′⊢)
     q | ()
@@ -291,53 +341,103 @@ atomic-source-value-reindexᵀ atom vM
     M⊢ M′⊢
 atomic-source-value-reindexᵀ atom ()
     (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-      liftρ liftγ N⊑N′) q
+      liftρ liftγ N⊑N′ replacement) q
 atomic-source-value-reindexᵀ atom ()
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′) q
-atomic-source-value-reindexᵀ atom vM
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′) q =
+    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replacement) q
+atomic-source-value-reindexᵀ {p = p} atom vM
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′ replacement) q =
   ⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′
+    (replace-right-target-shape
+      (trans
+        (shape-target-lift-rightᵢ q)
+        (trans
+          (sym (source-atom-shape-unique atom p q))
+          (sym (shape-target-lift-rightᵢ p))))
+      replacement)
 atomic-source-value-reindexᵀ atom ()
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-      compat liftρ liftγ N⊑N′) q
+      compat liftρ liftγ N⊑N′
+      s-shape s′-shape left-comp right-comp) q
 atomic-source-value-reindexᵀ atom ()
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) q
-atomic-source-value-reindexᵀ atom vM
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r M⊑N′) q =
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
+      s-shape comp) q
+atomic-source-value-reindexᵀ {p = p} atom vM
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r M⊑N′
+      s-shape comp) q =
   ⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r M⊑N′
+    s-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (source-atom-shape-unique atom p q))
+      comp)
 atomic-source-value-reindexᵀ atom vM κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-source-value-reindexᵀ atom () (⊕⊑⊕ᵀ L⊑L′ M⊑M′) q
 atomic-source-value-reindexᵀ atom vM
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ p) q =
-  cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q
+    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ p c-shape comp) q =
+  cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (source-atom-shape-unique atom p q))
+      comp)
 atomic-source-value-reindexᵀ atom vM
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ p) q =
-  cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ p c-shape comp) q =
+  cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape
+    (imprecision-composition-shape-transport
+      refl
+      (sym (source-atom-shape-unique atom p q))
+      refl comp)
 atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ p) q =
-  ⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ q
+    (⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ p c-shape comp) q =
+  ⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ q c-shape
+    (imprecision-composition-shape-transport
+      (sym (source-atom-shape-unique atom p q))
+      refl refl comp)
 atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ p) q =
-  ⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ q
+    (⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ p c-shape comp) q =
+  ⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (source-atom-shape-unique atom p q))
+      comp)
 atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊑idᵀ seal★ c⊑ M⊑M′ p) q =
-  ⊑cast⊑idᵀ seal★ c⊑ M⊑M′ q
+    (⊑cast⊑idᵀ seal★ c⊑ M⊑M′ p c-shape comp) q =
+  ⊑cast⊑idᵀ seal★ c⊑ M⊑M′ q c-shape
+    (imprecision-composition-shape-transport
+      refl refl
+      (sym (source-atom-shape-unique atom p q))
+      comp)
 atomic-source-value-reindexᵀ atom vM
-    (conv⊑convᵀ paired M⊑M′) q =
-  conv⊑convᵀ (paired-cast-target-reindexᵀ paired q) M⊑M′
+    (conv⊑convᵀ {q = p} paired M⊑M′) q =
+  conv⊑convᵀ
+    (paired-cast-result-shape-reindexᵀ
+      (source-atom-shape-unique atom p q)
+      paired)
+    M⊑M′
 atomic-source-value-reindexᵀ atom vM
-    (conv↑⊑ᵀ c↑ M⊑M′ p) q =
+    (conv↑⊑ᵀ c↑ M⊑M′ p replacement) q =
   conv↑⊑ᵀ c↑ M⊑M′ q
+    (replace-left-target-shape
+      (sym (source-atom-shape-unique atom p q))
+      replacement)
 atomic-source-value-reindexᵀ atom vM
-    (conv↓⊑ᵀ c↓ M⊑M′ p) q =
+    (conv↓⊑ᵀ c↓ M⊑M′ p replacement) q =
   conv↓⊑ᵀ c↓ M⊑M′ q
+    (replace-left-source-shape
+      (sym (source-atom-shape-unique atom p q))
+      replacement)
 atomic-source-value-reindexᵀ atom vM
-    (⊑conv↑ᵀ c↑ M⊑M′ p) q =
+    (⊑conv↑ᵀ c↑ M⊑M′ p replacement) q =
   ⊑conv↑ᵀ c↑ M⊑M′ q
+    (replace-right-target-shape
+      (sym (source-atom-shape-unique atom p q))
+      replacement)
 atomic-source-value-reindexᵀ atom vM
-    (⊑conv↓ᵀ c↓ M⊑M′ p) q =
+    (⊑conv↓ᵀ c↓ M⊑M′ p replacement) q =
   ⊑conv↓ᵀ c↓ M⊑M′ q
+    (replace-right-source-shape
+      (sym (source-atom-shape-unique atom p q))
+      replacement)
 
 result-conceal-conversionᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A B B′ c μ α X χ}
@@ -347,40 +447,50 @@ result-conceal-conversionᵀ :
     {M = M} {N′ = V′} {χ = χ} {ρ = ρ} p) →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
   let inner = weakIndexedResult indexed in
-  ∃[ μ′ ] ∃[ α′ ] ∃[ X′ ]
+  ∃[ μ′ ]
     ConcealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
-result-conceal-conversionᵀ {Δᴸ = Δᴸ} {A = A} {B = B}
-    {c = c} indexed c↓
-    with apply-conceal-conversions
+result-conceal-conversionᵀ
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {α = α} {X = X}
+    indexed c↓
+    with apply-conceal-conversions-exact
       {χs = sourceChanges (weakIndexedResult indexed)} c↓
-result-conceal-conversionᵀ {Δᴸ = Δᴸ} {A = A} {B = B}
-    {c = c} indexed c↓
-    | μ′ , α′ , X′ , c′↓ =
-  μ′ , α′ , X′ , final-conversion
+result-conceal-conversionᵀ
+    {Δᴸ = Δᴸ} {A = A} {B = B} {c = c} {α = α} {X = X}
+    indexed c↓
+    | μ′ , c′↓ =
+  μ′ , final-conversion
   where
   inner = weakIndexedResult indexed
 
   final-conversion :
     ConcealConversion μ′ (resultLeftCtx inner)
-      (leftStoreⁱ (resultStore inner)) α′ X′
+      (leftStoreⁱ (resultStore inner))
+      (applyTyVars (sourceChanges inner) α)
+      (applyTys (sourceChanges inner) X)
       (applyCoercions (sourceChanges inner) c)
       (applyTys (sourceChanges inner) A)
       (applyTys (sourceChanges inner) B)
   final-conversion =
     subst
       (λ Δ → ConcealConversion μ′ Δ
-        (leftStoreⁱ (resultStore inner)) α′ X′
+        (leftStoreⁱ (resultStore inner))
+        (applyTyVars (sourceChanges inner) α)
+        (applyTys (sourceChanges inner) X)
         (applyCoercions (sourceChanges inner) c)
         (applyTys (sourceChanges inner) A)
         (applyTys (sourceChanges inner) B))
       (sym (sourceCtxResult inner))
       (subst
         (λ Σ → ConcealConversion μ′
-          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ α′ X′
+          (applyTyCtxs (sourceChanges inner) Δᴸ) Σ
+          (applyTyVars (sourceChanges inner) α)
+          (applyTys (sourceChanges inner) X)
           (applyCoercions (sourceChanges inner) c)
           (applyTys (sourceChanges inner) A)
           (applyTys (sourceChanges inner) B))
@@ -394,6 +504,7 @@ world-coherent-source-inert-conceal-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  q [ α ↦ X ]ᴸ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ} q
 world-coherent-source-inert-conceal-castᵀ inert c↓
@@ -404,7 +515,7 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q replacement
     with result-conceal-conversionᵀ indexed c↓
 world-coherent-source-inert-conceal-castᵀ inert c↓
     (world-coherent-left-indexed-catchup
@@ -414,8 +525,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     with final
 world-coherent-source-inert-conceal-castᵀ inert c↓
     (world-coherent-left-indexed-catchup
@@ -425,8 +536,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     | inj₁ (vW , noW) =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup framed
@@ -441,6 +552,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
   final-relation =
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -472,8 +585,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     | inj₂ refl =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
@@ -488,6 +601,8 @@ world-coherent-source-inert-conceal-castᵀ inert c↓
   final-relation =
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -574,6 +689,7 @@ world-coherent-source-id-conceal-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ} p →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  q [ α ↦ X ]ᴸ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ C.id A ⟩} {V′ = V′} {ρ = ρ} q
 world-coherent-source-id-conceal-castᵀ atom c↓
@@ -584,7 +700,7 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
+    q replacement
     with result-conceal-conversionᵀ indexed c↓
 world-coherent-source-id-conceal-castᵀ atom c↓
     (world-coherent-left-indexed-catchup
@@ -594,8 +710,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     with final
 world-coherent-source-id-conceal-castᵀ atom c↓
     (world-coherent-left-indexed-catchup
@@ -605,8 +721,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     | inj₁ (vW , noW) =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
@@ -621,6 +737,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
   final-relation =
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -710,8 +828,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
       coherent exclusive wfL)
-    q
-    | μ′ , α′ , X′ , final-conversion
+    q replacement
+    | μ′ , final-conversion
     | inj₂ refl =
   world-coherent-left-indexed-catchup
     (left-indexed-catchup
@@ -726,6 +844,8 @@ world-coherent-source-id-conceal-castᵀ atom c↓
   final-relation =
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults indexed) (transportType inner q)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed) replacement)
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
@@ -810,32 +930,34 @@ world-coherent-source-conceal-castᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  q [ α ↦ X ]ᴸ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ} q
 world-coherent-source-conceal-castᵀ {A = ＇ Y}
-    c↓@(conceal-id-var hY ok) catchup q =
+    c↓@(conceal-id-var hY ok) catchup q replacement =
   world-coherent-source-id-conceal-castᵀ
-    (＇ Y) c↓ catchup q
+    (＇ Y) c↓ catchup q replacement
 world-coherent-source-conceal-castᵀ {A = ‵ ι}
-    c↓@conceal-id-base catchup q =
+    c↓@conceal-id-base catchup q replacement =
   world-coherent-source-id-conceal-castᵀ
-    (‵ ι) c↓ catchup q
+    (‵ ι) c↓ catchup q replacement
 world-coherent-source-conceal-castᵀ
-    c↓@conceal-id-★ catchup q =
+    c↓@conceal-id-★ catchup q replacement =
   world-coherent-source-id-conceal-castᵀ
-    ★ c↓ catchup q
+    ★ c↓ catchup q replacement
 world-coherent-source-conceal-castᵀ {α = α} {X = X}
-    c↓@(conceal-seal hX α∈Σ ok) catchup q =
+    c↓@(conceal-seal hX α∈Σ ok) catchup q replacement =
   world-coherent-source-inert-conceal-castᵀ
-    (C.seal X α) c↓ catchup q
+    (C.seal X α) c↓ catchup q replacement
 world-coherent-source-conceal-castᵀ
-    c↓@(conceal-fun {s = s} {t = t} c↑ c↓′) catchup q =
+    c↓@(conceal-fun {s = s} {t = t} c↑ c↓′)
+    catchup q replacement =
   world-coherent-source-inert-conceal-castᵀ
-    (C._↦_ s t) c↓ catchup q
+    (C._↦_ s t) c↓ catchup q replacement
 world-coherent-source-conceal-castᵀ
-    c↓@(conceal-all {s = s} c↓′) catchup q =
+    c↓@(conceal-all {s = s} c↓′) catchup q replacement =
   world-coherent-source-inert-conceal-castᵀ
-    (C.`∀ s) c↓ catchup q
+    (C.`∀ s) c↓ catchup q replacement
 
 world-coherent-source-conceal-catchupᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -848,10 +970,12 @@ world-coherent-source-conceal-catchupᵀ :
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  q [ α ↦ X ]ᴸ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q
-world-coherent-source-conceal-catchupᵀ prefix c↓ catchup q =
+world-coherent-source-conceal-catchupᵀ
+    prefix c↓ catchup q replacement =
   world-coherent-source-conceal-castᵀ
     (weaken-conceal-conversion
       (leftStoreⁱ-prefix-inclusion prefix) c↓)
-    catchup q
+    catchup q replacement

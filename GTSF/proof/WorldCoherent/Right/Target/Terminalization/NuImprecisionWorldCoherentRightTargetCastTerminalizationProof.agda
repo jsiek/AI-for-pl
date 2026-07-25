@@ -9,6 +9,8 @@ module
 --     flat constructor-specific capabilities.
 --   * Uses the direct sequence-resume proof to splice smaller-rank nested
 --     target continuations back under their original sequence casts.
+--   * Transports stored component cast shapes and exact triangles through
+--     target catch-up before re-synthesizing the component plans.
 --   * Contains no result, outcome, view, alias, postulate, hole, permissive
 --     option, compatibility wrapper, or termination bypass.
 
@@ -16,11 +18,14 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃-syntax)
-open import Data.Sum using (inj₁; inj₂)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 import Coercions as C
+open import CastImprecisionShape using
+  (narrowing; widening; _⊢ᶜ_⦂_)
 open import Coercions using
   (Coercion; ModeEnv; id-onlyᵈ; _︔_; _∣_∣_⊢_∶_=⇒_)
 open import Conversion using
@@ -39,6 +44,9 @@ open import Conversion using
   ; reveal-id-★
   ; reveal-unseal
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -101,16 +109,25 @@ open import proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef
   ; plan-inert
   ; plan-inst
   ; plan-inst-fun-tag
-  ; plan-seq
+  ; plan-narrow-seq
+  ; plan-widen-seq
+  ; plan-id-widen-seq
   ; plan-unseal
   ; plan-untag
   )
 open import proof.Target.Administration.NuImprecisionTargetAdministrationPlanSynthesisDef using
   ( targetNarrowingAdministrationPlan
   ; targetWideningAdministrationPlan
+  ; targetIdWideningAdministrationPlan
   )
 open import proof.Target.Administration.NuImprecisionTargetAdministrationPlanSynthesisLemma using
   (target-administration-plan-synthesisᵀ)
+open import
+  proof.Target.Administration.NuImprecisionTargetFusedAdministrationPlanDecomposition
+  using
+  ( target-fun-untag-gen-plan-decompositionᵀ
+  ; target-inst-fun-tag-plan-decompositionᵀ
+  )
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef using
@@ -129,8 +146,10 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; targetCtxResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTypeCoherence
   )
 open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightCatchupResultDef
@@ -164,10 +183,45 @@ open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-preserves-Inert
   )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 
 
 private
+
+  map-fifth-alternative :
+    ∀ {A B C D E F : Set} →
+    (E → F) →
+    A ⊎ B ⊎ C ⊎ D ⊎ E →
+    A ⊎ B ⊎ C ⊎ D ⊎ F
+  map-fifth-alternative convert (inj₁ first) =
+    inj₁ first
+  map-fifth-alternative convert (inj₂ (inj₁ second)) =
+    inj₂ (inj₁ second)
+  map-fifth-alternative convert (inj₂ (inj₂ (inj₁ third))) =
+    inj₂ (inj₂ (inj₁ third))
+  map-fifth-alternative convert
+      (inj₂ (inj₂ (inj₂ (inj₁ fourth)))) =
+    inj₂ (inj₂ (inj₂ (inj₁ fourth)))
+  map-fifth-alternative convert
+      (inj₂ (inj₂ (inj₂ (inj₂ fifth)))) =
+    inj₂ (inj₂ (inj₂ (inj₂ (convert fifth))))
+
+  narrowing-widening-sequence⊥ :
+    ∀ {s t} → Narrowing (s ︔ t) → Widening (s ︔ t) → ⊥
+  narrowing-widening-sequence⊥ (gG NW.？︔ gⁿ) (NW.cross ())
+  narrowing-widening-sequence⊥ (gG NW.？︔ gⁿ) (() NW.︔ gH !)
+  narrowing-widening-sequence⊥
+    (NW.fun-untag-gen safe) (NW.cross ())
+  narrowing-widening-sequence⊥
+    (sⁿ NW.︔seal α) (NW.cross ())
+  narrowing-widening-sequence⊥
+    ((NW.strict-crossⁿ ()) NW.︔seal α)
+    (NW.unseal︔_ β tʷ)
+
   split-narrowing-sequence :
     ∀ {s t} → Narrowing (s ︔ t) → Narrowing s × Narrowing t
   split-narrowing-sequence (gG NW.？︔ gⁿ) =
@@ -478,7 +532,8 @@ private
       {V M′ : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
       {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ}
+      {s-shape t-shape : ImprecisionShape} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
@@ -486,12 +541,17 @@ private
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
     Narrowing (s ︔ t) →
+    narrowing ⊢ᶜ s ⦂ s-shape →
+    ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
+    narrowing ⊢ᶜ t ⦂ t-shape →
+    ⌊ q ⌋ ； t-shape ≋ ⌊ r ⌋ →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
   narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -504,6 +564,7 @@ private
         s₀⊢ t₀⊢ sequence-narrowing₀
   narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -513,49 +574,14 @@ private
          | final-narrow-component (weakIndexedResult indexed) t⊒′
   narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
       | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
-      with targetNarrowingAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) r }
-        prefix-reflⁱ final-wfR
-        (final-seal-mode (weakIndexedResult indexed) seal★′)
-        (s⊢ , sⁿ)
-  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
-      | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ) | s-plan
-      with targetNarrowingAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) r }
-        { q = transportType (weakIndexedResult indexed) q }
-        prefix-reflⁱ final-wfR
-        (final-seal-mode (weakIndexedResult indexed) seal★′)
-        (t⊢ , tⁿ)
-  narrow-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-narrowing₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , s⊒′ , t⊒′
-      | s⊒@(s⊢ , sⁿ) | t⊒@(t⊢ , tⁿ)
-      | s-plan | t-plan =
+      =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -567,7 +593,24 @@ private
           (worldRightCatchupResult caught))
         mode′ (final-seal-mode result seal★′)
         (s⊢ , sⁿ) (t⊢ , tⁿ)
-        s-plan t-plan
+        (cast-shape-applyCoercions
+          (targetTailChanges result) s-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) p)
+          s-comp)
+        (cast-shape-applyCoercions
+          (targetTailChanges result) t-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) q)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          t-comp)
         (target-sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
@@ -584,7 +627,8 @@ private
       {V M′ : Term} {A B C D : Ty} {s t : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
       {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ}
+      {s-shape t-shape : ImprecisionShape} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     CastMode μ →
@@ -592,12 +636,17 @@ private
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
     Widening (s ︔ t) →
+    widening ⊢ᶜ s ⦂ s-shape →
+    ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
+    widening ⊢ᶜ t ⦂ t-shape →
+    ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
   widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -610,6 +659,7 @@ private
         s₀⊢ t₀⊢ sequence-widening₀
   widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -619,49 +669,14 @@ private
          | final-widen-component (weakIndexedResult indexed) t⊑′
   widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
-      with targetWideningAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) r }
-        prefix-reflⁱ final-wfR
-        (final-seal-mode (weakIndexedResult indexed) seal★′)
-        (s⊢ , sʷ)
-  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
-      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
-      with targetWideningAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) r }
-        { q = transportType (weakIndexedResult indexed) q }
-        prefix-reflⁱ final-wfR
-        (final-seal-mode (weakIndexedResult indexed) seal★′)
-        (t⊢ , tʷ)
-  widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix mode seal★ s₀⊢ t₀⊢ sequence-widening₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | μ′ , mode′ , seal★′ , s⊑′ , t⊑′
-      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
-      | s-plan | t-plan =
+      =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -673,7 +688,24 @@ private
           (worldRightCatchupResult caught))
         mode′ (final-seal-mode result seal★′)
         (s⊢ , sʷ) (t⊢ , tʷ)
-        s-plan t-plan
+        (cast-shape-applyCoercions
+          (targetTailChanges result) s-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) p)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          s-comp)
+        (cast-shape-applyCoercions
+          (targetTailChanges result) t-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) q)
+          t-comp)
         (target-sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
@@ -690,19 +722,25 @@ private
       {V M′ : Term} {A B C D : Ty} {s t : Coercion}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
       {r : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ}
+      {s-shape t-shape : ImprecisionShape} →
     WorldCoherentRightTargetPendingSequenceContinuation →
     StoreImpPrefix ρ₀ ρ⁺ →
     SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
     id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ s ∶ B =⇒ C →
     id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ t ∶ C =⇒ D →
     Widening (s ︔ t) →
+    widening ⊢ᶜ s ⦂ s-shape →
+    ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
+    widening ⊢ᶜ t ⦂ t-shape →
+    ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′} {ρ = ρ⁺} p →
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ s ︔ t ⟩} {ρ = ρ⁺} q
   id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -715,6 +753,7 @@ private
         s₀⊢ t₀⊢ sequence-widening₀
   id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
@@ -724,45 +763,14 @@ private
          | final-widen-component (weakIndexedResult indexed) t⊑′
   id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
       pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
+      s-shape s-comp t-shape t-comp
       caught@(world-coherent-right-value-indexed-catchup
         (right-value-indexed-catchup indexed refl refl
           vV noV vW noW)
         lineage bullet final-world final-exclusive final-unique final-wfR)
       | s⊑′ , t⊑′
       | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
-      with targetWideningAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) p }
-        { q = transportType (weakIndexedResult indexed) r }
-        prefix-reflⁱ final-wfR seal★-id-only (s⊢ , sʷ)
-  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | s⊑′ , t⊑′
-      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ) | s-plan
-      with targetWideningAdministrationPlan
-        target-administration-plan-synthesisᵀ
-        { ρ₀ = resultStore (weakIndexedResult indexed) }
-        { ρ⁺ = resultStore (weakIndexedResult indexed) }
-        { A = A }
-        { p = transportType (weakIndexedResult indexed) r }
-        { q = transportType (weakIndexedResult indexed) q }
-        prefix-reflⁱ final-wfR seal★-id-only (t⊢ , tʷ)
-  id-widen-sequence-resume {A = A} {p = p} {r = r} {q = q}
-      pending prefix seal★ s₀⊢ t₀⊢ sequence-widening₀
-      caught@(world-coherent-right-value-indexed-catchup
-        (right-value-indexed-catchup indexed refl refl
-          vV noV vW noW)
-        lineage bullet final-world final-exclusive final-unique final-wfR)
-      | s⊑′ , t⊑′
-      | s⊑@(s⊢ , sʷ) | t⊑@(t⊢ , tʷ)
-      | s-plan | t-plan =
+      =
     world-coherent-right-target-sequence-resume-proofᵀ
       caught continuation
     where
@@ -773,7 +781,24 @@ private
         (rightCatchupTargetValue
           (worldRightCatchupResult caught))
         seal★-id-only (s⊢ , sʷ) (t⊢ , tʷ)
-        s-plan t-plan
+        (cast-shape-applyCoercions
+          (targetTailChanges result) s-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) p)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          s-comp)
+        (cast-shape-applyCoercions
+          (targetTailChanges result) t-shape)
+        (imprecision-composition-shape-transport
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) r)
+          refl
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed) q)
+          t-comp)
         (target-sequence-rank-decreases
           (rightCatchupTargetValue
             (worldRightCatchupResult caught))
@@ -789,7 +814,8 @@ private
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B C : Ty} {c : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     WorldCoherentRightTargetInertFramingᵀ →
     WorldCoherentRightTargetPendingSequenceContinuation →
     WorldCoherentRightTargetActiveRootResume →
@@ -804,6 +830,8 @@ private
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
     (c⊒ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ B ⊒ C) →
+    narrowing ⊢ᶜ c ⦂ s →
+    ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
       ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
     WorldCoherentRightValueCatchupIndexedResult
@@ -812,47 +840,91 @@ private
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ c ⟩} {ρ = ρ⁺} q
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught (plan-inert c-inert) =
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
+      (plan-inert c-inert stored) =
     inert prefix c-inert
-      (inj₂ (inj₂ (inj₁ (_ , mode , seal★ , c⊒)))) caught
+      (map-fifth-alternative
+        (λ { (shape , seal★′ , c⊑′ , c-shape′ , comp′) →
+          seal★′ , shape , c⊑′ , c-shape′ , comp′ })
+        stored)
+      caught
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught plan-id =
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
+      (plan-id evidence) =
     rightTargetNarrowIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught plan-untag =
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
+      (plan-untag mode′ seal★′ untag⊒ untag-shape untag-comp) =
     rightTargetNarrowUntagRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught
-      plan-fun-untag-gen =
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
+      plan@(plan-fun-untag-gen stored)
+      with target-fun-untag-gen-plan-decompositionᵀ plan
+  narrow-administration inert pending roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★ c⊒ c-shape comp relation caught
+      plan@(plan-fun-untag-gen stored)
+      | r ,
+        untag-shape , untag-evidence , untag-comp ,
+        gen-shape , gen-evidence , gen-comp ,
+        untag-plan , gen-plan =
     rightTargetNarrowFunUntagGenRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊒ relation caught
+      runtime vV noV mode seal★ c⊒
+      c-shape comp
+      untag-evidence untag-comp gen-evidence gen-comp relation caught
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★
       (C.cast-seq (C.cast-inst hFun occ s⊢)
         (C.cast-tag hG gG tag-ok) , NW.cross ())
-      relation caught plan-inst-fun-tag
+      c-shape comp relation caught (plan-inst-fun-tag stored)
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★
       (C.cast-unseal hB αB∈Σ ok , NW.cross ())
-      relation caught plan-unseal
+      c-shape comp relation caught (plan-unseal stored)
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★
-      (C.cast-inst hB occ s⊢ , NW.cross ()) relation caught plan-inst
+      (C.cast-inst hB occ s⊢ , NW.cross ())
+      c-shape comp relation caught (plan-inst stored)
   narrow-administration inert pending roots prefix coherent exclusive unique wfR
       runtime vV noV mode seal★
-      (C.cast-seq s⊢ t⊢ , sequence-narrowing) relation caught
-      (plan-seq {r = r} s-plan t-plan) =
+      (C.cast-seq s⊢ t⊢ , sequence-narrowing)
+      c-shape comp relation caught
+      (plan-narrow-seq {r = r}
+        mode′ seal★′ sequence⊒
+        sequence-narrowing′ sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
     narrow-sequence-resume {r = r} pending prefix mode seal★
-      s⊢ t⊢ sequence-narrowing caught
+      s⊢ t⊢ sequence-narrowing
+      s-shape s-comp t-shape t-comp caught
+  narrow-administration inert pending roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-narrowing)
+      c-shape comp relation caught
+      (plan-widen-seq mode′ seal★′ sequence⊑ sequence-widening
+        sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    ⊥-elim
+      (narrowing-widening-sequence⊥
+        sequence-narrowing sequence-widening)
+  narrow-administration inert pending roots prefix coherent exclusive unique wfR
+      runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-narrowing)
+      c-shape comp relation caught
+      (plan-id-widen-seq seal★′ sequence⊑ sequence-widening
+        sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    ⊥-elim
+      (narrowing-widening-sequence⊥
+        sequence-narrowing sequence-widening)
 
   widen-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B C : Ty} {c : Coercion} {μ : ModeEnv}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     WorldCoherentRightTargetInertFramingᵀ →
     WorldCoherentRightTargetPendingSequenceContinuation →
     WorldCoherentRightTargetActiveRootResume →
@@ -868,6 +940,8 @@ private
     CastMode μ →
     SealModeStore★ μ (rightStoreⁱ ρ₀) →
     (c⊑ : μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ B ⊑ C) →
+    widening ⊢ᶜ c ⦂ s →
+    ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
       ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
     WorldCoherentRightValueCatchupIndexedResult
@@ -876,52 +950,101 @@ private
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ c ⟩} {ρ = ρ⁺} q
   widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      (plan-inert c-inert) =
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      (plan-inert c-inert stored) =
     inert prefix c-inert
-      (inj₂ (inj₂ (inj₂
-        (inj₁ (_ , mode , seal★ , c⊑))))) caught
+      (map-fifth-alternative
+        (λ { (shape , seal★′ , c⊑′ , c-shape′ , comp′) →
+          seal★′ , shape , c⊑′ , c-shape′ , comp′ })
+        stored)
+      caught
   widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      plan-id =
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      (plan-id evidence) =
     rightTargetWidenIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊑ relation caught
+      runtime vV noV mode seal★ c⊑ c-shape comp relation caught
   widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV mode seal★
-      (C.cast-untag hH gH ok , NW.cross ()) relation caught plan-untag
+      (C.cast-untag hH gH ok , NW.cross ())
+      c-shape comp relation caught
+      (plan-untag mode′ seal★′ untag⊒ untag-shape untag-comp)
   widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      plan-unseal =
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      (plan-unseal stored) =
     rightTargetWidenUnsealRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV mode seal★ c⊑ relation caught
+      runtime vV noV mode seal★ c⊑ c-shape comp relation caught
   widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      plan-inst =
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      (plan-inst stored) =
     rightTargetWidenInstantiationRoot roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
   widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-      plan-inst-fun-tag =
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      plan@(plan-inst-fun-tag stored)
+      with target-inst-fun-tag-plan-decompositionᵀ plan
+  widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
+      relation caught
+      plan@(plan-inst-fun-tag stored)
+      | r ,
+        inst-shape , inst-evidence , inst-comp ,
+        tag-shape , tag-evidence , tag-comp ,
+        inst-plan , tag-plan =
     rightTargetWidenInstFunTagRoot roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
+      exclusive unique wfR runtime vV noV mode seal★ c⊑
+      c-shape comp inst-evidence inst-comp tag-evidence tag-comp
+      relation caught
   widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV mode seal★
       (C.cast-seq (C.cast-untag hG gG tag-ok)
         (C.cast-gen hFun occ s⊢) , NW.cross ())
-      relation caught plan-fun-untag-gen
+      c-shape comp relation caught (plan-fun-untag-gen stored)
   widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV mode seal★
-      (C.cast-seq s⊢ t⊢ , sequence-widening) relation caught
-      (plan-seq {r = r} s-plan t-plan) =
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-widen-seq {r = r}
+        mode′ seal★′ sequence⊑
+        sequence-widening′ sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
     widen-sequence-resume {r = r} pending prefix mode seal★
-      s⊢ t⊢ sequence-widening caught
+      s⊢ t⊢ sequence-widening
+      s-shape s-comp t-shape t-comp caught
+  widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-id-widen-seq {r = r}
+        seal★′ sequence⊑
+        sequence-widening′ sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    widen-sequence-resume {r = r} pending prefix mode seal★
+      s⊢ t⊢ sequence-widening
+      s-shape s-comp t-shape t-comp caught
+  widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV mode seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-narrow-seq mode′ seal★′ sequence⊒ sequence-narrowing
+        sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    ⊥-elim
+      (narrowing-widening-sequence⊥
+        sequence-narrowing sequence-widening)
 
   id-widen-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
       {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
       {V M′ : Term} {A B C : Ty} {c : Coercion}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ} →
+      {q : Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ}
+      {s : ImprecisionShape} →
     WorldCoherentRightTargetInertFramingᵀ →
     WorldCoherentRightTargetPendingSequenceContinuation →
     WorldCoherentRightTargetActiveRootResume →
@@ -937,6 +1060,8 @@ private
     SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
     (c⊑ : id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
       ⊢ c ∶ B ⊑ C) →
+    widening ⊢ᶜ c ⦂ s →
+    ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
       ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
     WorldCoherentRightValueCatchupIndexedResult
@@ -945,45 +1070,92 @@ private
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ c ⟩} {ρ = ρ⁺} q
   id-widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV seal★ c⊑ relation caught
-      (plan-inert c-inert) =
+      exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+      relation caught
+      (plan-inert c-inert stored) =
     inert prefix c-inert
-      (inj₂ (inj₂ (inj₂ (inj₂ (seal★ , c⊑))))) caught
+      (map-fifth-alternative
+        (λ { (shape , seal★′ , c⊑′ , c-shape′ , comp′) →
+          seal★′ , shape , c⊑′ , c-shape′ , comp′ })
+        stored)
+      caught
   id-widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV seal★ c⊑ relation caught plan-id =
+      exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+      relation caught (plan-id evidence) =
     rightTargetIdWidenIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV seal★ c⊑ relation caught
+      runtime vV noV seal★ c⊑ c-shape comp relation caught
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV seal★
-      (C.cast-untag hH gH ok , NW.cross ()) relation caught plan-untag
+      (C.cast-untag hH gH ok , NW.cross ())
+      c-shape comp relation caught
+      (plan-untag mode′ seal★′ untag⊒ untag-shape untag-comp)
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV seal★
-      (C.cast-unseal hB αB∈Σ () , cʷ) relation caught plan-unseal
+      (C.cast-unseal hB αB∈Σ () , cʷ)
+      c-shape comp relation caught (plan-unseal stored)
   id-widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV seal★ c⊑ relation caught
-      plan-inst =
+      exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+      relation caught
+      (plan-inst stored) =
     rightTargetWidenInstantiationRoot roots allocation prefix coherent
       exclusive unique wfR runtime vV noV cast-tag-or-id seal★-tag-or-id
       (NW.widen-mode-relax C.id-only≤tag-or-idᵈ c⊑)
-      relation caught
+      c-shape comp relation caught
   id-widen-administration inert pending roots allocation prefix coherent
-      exclusive unique wfR runtime vV noV seal★ c⊑ relation caught
-      plan-inst-fun-tag =
+      exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+      relation caught
+      plan@(plan-inst-fun-tag stored)
+      with target-inst-fun-tag-plan-decompositionᵀ plan
+  id-widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+      relation caught
+      plan@(plan-inst-fun-tag stored)
+      | r ,
+        inst-shape , inst-evidence , inst-comp ,
+        tag-shape , tag-evidence , tag-comp ,
+        inst-plan , tag-plan =
     rightTargetWidenInstFunTagRoot roots allocation prefix coherent
       exclusive unique wfR runtime vV noV cast-tag-or-id seal★-tag-or-id
       (NW.widen-mode-relax C.id-only≤tag-or-idᵈ c⊑)
+      c-shape comp inst-evidence inst-comp tag-evidence tag-comp
       relation caught
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV seal★
       (C.cast-seq (C.cast-untag hG gG tag-ok)
         (C.cast-gen hFun occ s⊢) , NW.cross ())
-      relation caught plan-fun-untag-gen
+      c-shape comp relation caught (plan-fun-untag-gen stored)
   id-widen-administration inert pending roots allocation prefix coherent
       exclusive unique wfR runtime vV noV seal★
-      (C.cast-seq s⊢ t⊢ , sequence-widening) relation caught
-      (plan-seq {r = r} s-plan t-plan) =
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-id-widen-seq {r = r}
+        seal★′ sequence⊑
+        sequence-widening′ sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
     id-widen-sequence-resume {r = r} pending prefix seal★
-      s⊢ t⊢ sequence-widening caught
+      s⊢ t⊢ sequence-widening
+      s-shape s-comp t-shape t-comp caught
+  id-widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-widen-seq {r = r}
+        mode′ seal★′ sequence⊑
+        sequence-widening′ sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    id-widen-sequence-resume {r = r} pending prefix seal★
+      s⊢ t⊢ sequence-widening
+      s-shape s-comp t-shape t-comp caught
+  id-widen-administration inert pending roots allocation prefix coherent
+      exclusive unique wfR runtime vV noV seal★
+      (C.cast-seq s⊢ t⊢ , sequence-widening)
+      c-shape comp relation caught
+      (plan-narrow-seq mode′ seal★′ sequence⊒ sequence-narrowing
+        sequence-shape sequence-comp
+        s-shape s-comp t-shape t-comp s-plan t-plan) =
+    ⊥-elim
+      (narrowing-widening-sequence⊥
+        sequence-narrowing sequence-widening)
 
   reveal-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -1002,6 +1174,7 @@ private
     Value V →
     No• V →
     RevealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X c B C →
+    p [ β ↦ X ]ᴿ q →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
       ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
     WorldCoherentRightValueCatchupIndexedResult
@@ -1009,28 +1182,30 @@ private
     WorldCoherentRightValueCatchupIndexedResult
       {V = V} {M′ = M′ ⟨ c ⟩} {ρ = ρ⁺} q
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
-      vV noV c↑@(reveal-id-var hY ok) relation caught =
+      vV noV c↑@(reveal-id-var hY ok) replacement relation caught =
     rightTargetRevealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↑ relation caught
+      runtime vV noV c↑ replacement relation caught
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
-      vV noV c↑@reveal-id-base relation caught =
+      vV noV c↑@reveal-id-base replacement relation caught =
     rightTargetRevealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↑ relation caught
+      runtime vV noV c↑ replacement relation caught
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
-      vV noV c↑@reveal-id-★ relation caught =
+      vV noV c↑@reveal-id-★ replacement relation caught =
     rightTargetRevealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↑ relation caught
+      runtime vV noV c↑ replacement relation caught
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
-      vV noV c↑@(reveal-unseal hC α∈Σ ok) relation caught =
+      vV noV c↑@(reveal-unseal hC α∈Σ ok) replacement relation caught =
     rightTargetRevealUnsealRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↑ relation caught
+      runtime vV noV c↑ replacement relation caught
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
       vV noV c↑@(reveal-fun {s = s} {t = t} s↓ t↑)
-      relation caught =
-    inert prefix (s C.↦ t) (inj₁ (_ , _ , _ , c↑)) caught
+      replacement relation caught =
+    inert prefix (s C.↦ t)
+      (inj₁ (_ , _ , _ , c↑ , replacement)) caught
   reveal-administration inert roots prefix coherent exclusive unique wfR runtime
-      vV noV c↑@(reveal-all {s = s} s↑) relation caught =
-    inert prefix (C.`∀ s) (inj₁ (_ , _ , _ , c↑)) caught
+      vV noV c↑@(reveal-all {s = s} s↑) replacement relation caught =
+    inert prefix (C.`∀ s)
+      (inj₁ (_ , _ , _ , c↑ , replacement)) caught
 
   conceal-administration :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -1049,6 +1224,7 @@ private
     Value V →
     No• V →
     ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X c B C →
+    q [ β ↦ X ]ᴿ p →
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
       ⊢ᴺ V ⊑ M′ ⦂ A ⊑ B ∶ p →
     WorldCoherentRightValueCatchupIndexedResult
@@ -1057,35 +1233,35 @@ private
       {V = V} {M′ = M′ ⟨ c ⟩} {ρ = ρ⁺} q
   conceal-administration inert roots prefix coherent
       exclusive unique wfR runtime vV noV
-      c↓@(conceal-id-var hY ok) relation caught =
+      c↓@(conceal-id-var hY ok) replacement relation caught =
     rightTargetConcealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↓ relation caught
+      runtime vV noV c↓ replacement relation caught
   conceal-administration inert roots prefix coherent
       exclusive unique wfR runtime vV noV
-      c↓@conceal-id-base relation caught =
+      c↓@conceal-id-base replacement relation caught =
     rightTargetConcealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↓ relation caught
+      runtime vV noV c↓ replacement relation caught
   conceal-administration inert roots prefix coherent
       exclusive unique wfR runtime vV noV
-      c↓@conceal-id-★ relation caught =
+      c↓@conceal-id-★ replacement relation caught =
     rightTargetConcealIdentityRoot roots prefix coherent exclusive unique wfR
-      runtime vV noV c↓ relation caught
+      runtime vV noV c↓ replacement relation caught
   conceal-administration { β = β } {X = X}
       inert roots prefix coherent exclusive unique wfR runtime vV noV
-      c↓@(conceal-seal hX β∈Σ ok) relation caught =
+      c↓@(conceal-seal hX β∈Σ ok) replacement relation caught =
     inert prefix (C.seal X β)
-      (inj₂ (inj₁ (_ , _ , _ , c↓))) caught
+      (inj₂ (inj₁ (_ , _ , _ , c↓ , replacement))) caught
   conceal-administration inert roots prefix coherent
       exclusive unique wfR runtime vV noV
       c↓@(conceal-fun {s = s} {t = t} s↑ t↓)
-      relation caught =
+      replacement relation caught =
     inert prefix (s C.↦ t)
-      (inj₂ (inj₁ (_ , _ , _ , c↓))) caught
+      (inj₂ (inj₁ (_ , _ , _ , c↓ , replacement))) caught
   conceal-administration inert roots prefix coherent
       exclusive unique wfR runtime vV noV
-      c↓@(conceal-all {s = s} s↓) relation caught =
+      c↓@(conceal-all {s = s} s↓) replacement relation caught =
     inert prefix (C.`∀ s)
-      (inj₂ (inj₁ (_ , _ , _ , c↓))) caught
+      (inj₂ (inj₁ (_ , _ , _ , c↓ , replacement))) caught
 
 
 world-coherent-right-target-cast-terminalization-proofᵀ :
@@ -1099,37 +1275,39 @@ world-coherent-right-target-cast-terminalization-proofᵀ
   record
     { rightTargetNarrowFrame =
         λ prefix coherent exclusive unique wfR runtime vV noV mode seal★ c⊒
-          relation caught →
+          c-shape comp relation caught →
         narrow-administration inert pending roots prefix coherent
-          exclusive unique wfR runtime vV noV mode seal★ c⊒ relation caught
+          exclusive unique wfR runtime vV noV mode seal★ c⊒ c-shape comp
+          relation caught
           (targetNarrowingAdministrationPlan
             target-administration-plan-synthesisᵀ
-            prefix wfR seal★ c⊒)
+            prefix wfR mode seal★ c⊒ c-shape comp)
     ; rightTargetWidenFrame =
         λ prefix coherent exclusive unique wfR runtime vV noV mode seal★ c⊑
-          relation caught →
+          c-shape comp relation caught →
         widen-administration inert pending roots allocation prefix coherent
-          exclusive unique wfR runtime vV noV mode seal★ c⊑ relation caught
-          (targetWideningAdministrationPlan
-            target-administration-plan-synthesisᵀ
-            prefix wfR seal★ c⊑)
-    ; rightTargetIdWidenFrame =
-        λ prefix coherent exclusive unique wfR runtime vV noV seal★ c⊑
-          relation caught →
-        id-widen-administration inert pending roots allocation prefix
-          coherent exclusive unique wfR runtime vV noV seal★ c⊑
+          exclusive unique wfR runtime vV noV mode seal★ c⊑ c-shape comp
           relation caught
           (targetWideningAdministrationPlan
             target-administration-plan-synthesisᵀ
-            prefix wfR seal★ c⊑)
+            prefix wfR mode seal★ c⊑ c-shape comp)
+    ; rightTargetIdWidenFrame =
+        λ prefix coherent exclusive unique wfR runtime vV noV seal★ c⊑
+          c-shape comp relation caught →
+        id-widen-administration inert pending roots allocation prefix
+          coherent exclusive unique wfR runtime vV noV seal★ c⊑ c-shape comp
+          relation caught
+          (targetIdWideningAdministrationPlan
+            target-administration-plan-synthesisᵀ
+            prefix wfR seal★ c⊑ c-shape comp)
     ; rightTargetRevealFrame =
         λ prefix coherent exclusive unique wfR runtime vV noV
-          c↑ relation caught →
+          c↑ replacement relation caught →
         reveal-administration inert roots prefix coherent exclusive unique wfR
-          runtime vV noV c↑ relation caught
+          runtime vV noV c↑ replacement relation caught
     ; rightTargetConcealFrame =
         λ prefix coherent exclusive unique wfR runtime vV noV
-          c↓ relation caught →
+          c↓ replacement relation caught →
         conceal-administration inert roots prefix coherent exclusive unique wfR
-          runtime vV noV c↓ relation caught
+          runtime vV noV c↓ replacement relation caught
     }

@@ -10,11 +10,15 @@ module proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceN
 --   * Contains no implementation, recursive dispatcher, or permissive option.
 
 open import Coercions using (Coercion; ModeEnv; instᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；_≋_; ⌊_⌋)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
@@ -29,6 +33,9 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
+open import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastIndexBodyViewDef
+  using (SourceNuCastIndexBodyView)
 
 
 WorldCoherentFinalSourceNuCastCatchupᵀ : Set₁
@@ -36,6 +43,7 @@ WorldCoherentFinalSourceNuCastCatchupᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {L V′ : Term} {B B′ C : Ty} {s : Coercion}
+    {s-shape body-shape : ImprecisionShape}
     {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
   WorldCoherent ρ →
@@ -47,6 +55,9 @@ WorldCoherentFinalSourceNuCastCatchupᵀ =
   instᵈ μ ∣ suc Δᴸ
     ∣ ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  SourceNuCastIndexBodyView q body-shape →
+  widening ⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ p ⌋ ≋ body-shape →
   Value L →
   No• L →
   Value V′ →

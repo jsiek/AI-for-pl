@@ -38,9 +38,11 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
-  ; ⊑-rename-leftᵢ
-  ; ⊑ᵖ-rename-leftᵢ
   )
+open import proof.Core.Permutation.ForallPermutationProperties using
+  (⊑ᵖ-rename-leftᵢ)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  (⊑-rename-leftᵢ)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf-suc)
 
 

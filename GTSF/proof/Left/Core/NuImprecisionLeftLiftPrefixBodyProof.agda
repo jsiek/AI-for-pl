@@ -77,18 +77,22 @@ private
     RelStoreEmbeddingⁱ suc (λ X → X) ρ ρ′
   lift-left-store-rel-embeddingⁱ lift-left-store-[] =
     rel-store-embedding-[]
-  lift-left-store-rel-embeddingⁱ (lift-left-store-∷ liftρ) =
+  lift-left-store-rel-embeddingⁱ
+      (lift-left-store-∷ shape-eq liftρ) =
     rel-store-embedding-matched refl refl refl
-      (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
+      (sym (renameᵗ-id _)) shape-eq
+      (lift-left-store-rel-embeddingⁱ liftρ)
   lift-left-store-rel-embeddingⁱ (lift-left-store-left liftρ) =
     rel-store-embedding-left refl refl
       (lift-left-store-rel-embeddingⁱ liftρ)
   lift-left-store-rel-embeddingⁱ (lift-left-store-right liftρ) =
     rel-store-embedding-right refl (sym (renameᵗ-id _))
       (lift-left-store-rel-embeddingⁱ liftρ)
-  lift-left-store-rel-embeddingⁱ (lift-left-store-link liftρ) =
+  lift-left-store-rel-embeddingⁱ
+      (lift-left-store-link shape-eq liftρ) =
     rel-store-embedding-link refl refl refl
-      (sym (renameᵗ-id _)) (lift-left-store-rel-embeddingⁱ liftρ)
+      (sym (renameᵗ-id _)) shape-eq
+      (lift-left-store-rel-embeddingⁱ liftρ)
 
   left-lift-world-embeddingⁱ :
     ∀ {Φ Δᴸ Δᴿ}

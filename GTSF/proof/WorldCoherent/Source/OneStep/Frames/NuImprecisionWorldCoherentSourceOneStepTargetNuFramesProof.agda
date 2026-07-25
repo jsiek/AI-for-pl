@@ -12,14 +12,18 @@ module
 --   * Contains no outcome wrapper, result alias, hole, postulate, or
 --     permissive option.
 
+import CastImprecisionShape as CastShape
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion; weaken-reveal-conversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (widen-weaken; _∣_∣_⊢_∶_⊑_)
 open import NuReduction using (StoreChange)
 open import NuStore using (StoreIncl-cons)
@@ -70,6 +74,8 @@ open import proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherent
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  (⊑-target-lift-rightᵢ)
 
 
 source-step-target-ν-frameᵀ :
@@ -85,6 +91,7 @@ source-step-target-ν-frameᵀ :
     ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (rightStoreⁱ ρ₀))
     zero (⇑ᵗ A) s C′ (⇑ᵗ B′) →
   (r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
+  r [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ p →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = B} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} q →
@@ -92,7 +99,7 @@ source-step-target-ν-frameᵀ :
     {M = M} {M′ = ν A M′ s} {L = L}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} p
 source-step-target-ν-frameᵀ {p = p}
-    prefix hA s↑ r complete =
+    prefix hA s↑ r replace complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -114,18 +121,27 @@ source-step-target-ν-frameᵀ {p = p}
 
   s↑⁺ = weaken-reveal-conversion target-store-incl s↑
 
-  framed = weak-one-step-target-ν-frameᵀ hA s↑⁺ p r inner
+  framed =
+    weak-one-step-target-ν-frameᵀ
+      hA s↑⁺ p r replace inner
+      (weakIndexedTypeCoherence indexed₀)
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-target-ν-frame-preserves-transportᵀ
-      hA s↑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+      hA s↑⁺ p r replace inner
+      (weakIndexedTypeCoherence indexed₀)
+      (weakIndexedTransport indexed₀))
     (weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      hA s↑⁺ p r replace inner
+      (weakIndexedTypeCoherence indexed₀))
   framed-transport =
     weak-one-step-target-ν-frame-preserves-transportᵀ
-      hA s↑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete))
+      hA s↑⁺ p r replace inner
+      (weakIndexedTypeCoherence indexed₀)
+      (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-target-ν-frame-preserves-type-coherenceᵀ
-      hA s↑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      hA s↑⁺ p r replace inner
+      (weakIndexedTypeCoherence indexed₀)
 
 
 source-step-target-νcast-frameᵀ :
@@ -133,6 +149,7 @@ source-step-target-νcast-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ L : Term} {B B′ C′ : Ty}
     {s : Coercion} {μ} {χ : StoreChange}
+    {s-shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
@@ -143,6 +160,8 @@ source-step-target-νcast-frameᵀ :
     ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)
     ⊢ s ∶ C′ ⊑ ⇑ᵗ B′ →
   (r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
+  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
+  ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
   WorldCoherentSourceOneStepIndexedResult
     {M = M} {M′ = M′} {L = L}
     {A = B} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} q →
@@ -150,7 +169,7 @@ source-step-target-νcast-frameᵀ :
     {M = M} {M′ = ν ★ M′ s} {L = L}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} p
 source-step-target-νcast-frameᵀ {p = p}
-    prefix mode seal★ s⊑ r complete =
+    prefix mode seal★ s⊑ r s-shape-proof comp complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
@@ -176,18 +195,25 @@ source-step-target-νcast-frameᵀ {p = p}
 
   framed =
     weak-one-step-target-νcast-frameᵀ
-      mode seal★⁺ s⊑⁺ p r inner
+      mode seal★⁺ s⊑⁺ p r s-shape-proof comp
+      inner (weakIndexedTypeCoherence indexed₀)
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     (weak-one-step-target-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ p r s-shape-proof comp
+      inner (weakIndexedTypeCoherence indexed₀)
+      (weakIndexedTransport indexed₀))
     (weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete)))
+      mode seal★⁺ s⊑⁺ p r s-shape-proof comp
+      inner (weakIndexedTypeCoherence indexed₀))
   framed-transport =
     weak-one-step-target-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTransport (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ p r s-shape-proof comp
+      inner (weakIndexedTypeCoherence indexed₀)
+      (weakIndexedTransport indexed₀)
   framed-coherence =
     weak-one-step-target-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ p r inner (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
+      mode seal★⁺ s⊑⁺ p r s-shape-proof comp
+      inner (weakIndexedTypeCoherence indexed₀)
 
 
 world-coherent-source-one-step-target-nu-frames-proofᵀ :

@@ -13,6 +13,7 @@ module
 --     permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using
   (Coercion; ModeEnv; inst)
 open import Data.List using (List; []; _∷_)
@@ -20,6 +21,8 @@ open import Data.Nat using (_<_)
 open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import Induction.WellFounded using (Acc)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊑_)
@@ -80,6 +83,7 @@ WorldCoherentRightTargetPendingNuAllocationAccᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V W : Term} {A B C D : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {shape : ImprecisionShape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ C ⊣ Δᴿ}
     {r : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ D ⊣ Δᴿ} →
@@ -90,6 +94,8 @@ WorldCoherentRightTargetPendingNuAllocationAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ p ⌋ ； shape ≋ ⌊ r ⌋ →
   TargetAdministrationSpine ρ A r q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →

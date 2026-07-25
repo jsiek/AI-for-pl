@@ -7,6 +7,28 @@ module proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminatio
 
 import Coercions as C
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using
+  ( _⊢ᶜ_⦂_
+  ; narrowing
+  ; widening
+  ; shape-id-var
+  ; shape-id-base
+  ; shape-id-star
+  ; shape-fun
+  ; shape-all
+  ; shape-tag-var
+  ; shape-tag-base
+  ; shape-tag-fun
+  ; shape-untag-var
+  ; shape-untag-base
+  ; shape-untag-fun
+  ; shape-seal
+  ; shape-unseal
+  ; shape-gen
+  ; shape-inst
+  ; shape-sequence-widening
+  ; shape-sequence-narrowing
+  )
 open import Data.Bool using (false; true; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
@@ -42,6 +64,38 @@ open import Imprecision using
   ; ImpCtx
   ; ⇑ᴸᵢ
   )
+open import ImprecisionComposition using
+  ( _⊢_≈∀ˢ_
+  ; source-perm-refl
+  ; source-perm-sym
+  ; source-perm-trans
+  ; source-perm-↦
+  ; source-perm-tag-⇛
+  ; source-perm-∀
+  ; source-perm-ν
+  ; source-swap-∀∀
+  ; source-swap-∀ν
+  ; source-swap-ν∀
+  ; source-swap-νν
+  ; ⌊_⌋
+  ; id★ˢ
+  ; _↦ˢ_
+  ; ∀ˢ_
+  ; tag_⇛ˢ_
+  ; νˢ_
+  ; _；_≋_
+  ; comp-id★
+  ; comp-↦-↦
+  ; comp-↦-tag
+  ; comp-∀-∀
+  ; comp-∀-ν
+  ; comp-tag-id★
+  ; comp-tag-⇛-id★
+  ; comp-tagˣ-id★
+  ; comp-ν
+  ; _；⌊_⌋≋ᵖ_；_
+  ; quotient-boundary-square
+  )
 open import ImprecisionWf using
   ( id★
   ; idˣ
@@ -54,7 +108,8 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 import NarrowWiden as NW
-open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
+open import NarrowWiden using
+  (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( leftStoreⁱ
   ; rightStoreⁱ
@@ -71,12 +126,20 @@ open import QuotientedTermImprecision using
 open import TermTyping using (cast-gen; cast-tag-or-id)
 import Types as T
 open import proof.Core.Permutation.ForallPermutationProperties using
-  ( ≈∀-ground-right-eq
+  ( ≈∀-atom-left-eq
+  ; ≈∀-ground-left-eq
+  ; ≈∀-ground-right-eq
   ; renameᵗ-swap01-involutive
   ; swap01-involutive
   ; swap01-pres-<
   )
 import proof.Core.Properties.NarrowWidenProperties as NWP
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( imprecision-composition-shape-transport
+  ; shape-subst-source
+  )
+open import proof.Core.Properties.ImprecisionCompositionProperties using
+  (compose-result-unique)
 open import
   proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationDef using
   (TargetGroundValueQuotientEliminationᵀ)
@@ -370,6 +433,58 @@ mutual
 
 
 mutual
+  source-star-rename-shape :
+    ∀ {Φ Ψ : ImpCtx} {Δᴸ Δᴸ′ Δᴿ} {ρ : T.Renameᵗ} {A}
+      (h : ∀ {a} → a ∈ Φ → rename-left-assm ρ a ∈ Ψ)
+      (hρ : TyRenameWf Δᴸ Δᴸ′ ρ)
+      (p : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+    ⌊ source-star-rename h hρ p ⌋ ≡ ⌊ p ⌋
+  source-star-rename-shape h hρ id★ = refl
+  source-star-rename-shape h hρ (tag ι) = refl
+  source-star-rename-shape h hρ (tag p ⇛ q) =
+    cong₂ tag_⇛ˢ_
+      (source-star-rename-shape h hρ p)
+      (source-star-rename-shape h hρ q)
+  source-star-rename-shape h hρ (tagˣ x∈ X<Δᴸ) = refl
+  source-star-rename-shape {ρ = ρ} h hρ
+      (ν {A = A} safe occ p) =
+    cong νˢ_
+      (source-star-rename-shape
+        (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
+
+  source-ground-rename-shape :
+    ∀ {Φ Ψ : ImpCtx} {Δᴸ Δᴸ′ Δᴿ} {ρ : T.Renameᵗ} {A H}
+      (gH : T.Ground H)
+      (h : ∀ {a} → a ∈ Φ → rename-left-assm ρ a ∈ Ψ)
+      (hρ : TyRenameWf Δᴸ Δᴸ′ ρ)
+      (p : Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ) →
+    ⌊ source-ground-rename gH h hρ p ⌋ ≡ ⌊ p ⌋
+  source-ground-rename-shape (T.＇ Y) h hρ
+      (idˣ x∈ X<Δᴸ Y<Δᴿ) =
+    refl
+  source-ground-rename-shape {ρ = ρ} (T.＇ Y) h hρ
+      (ν {A = A} safe occ p) =
+    cong νˢ_
+      (source-ground-rename-shape (T.＇ Y)
+        (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
+  source-ground-rename-shape (T.‵ ι) h hρ idι = refl
+  source-ground-rename-shape {ρ = ρ} (T.‵ ι) h hρ
+      (ν {A = A} safe occ p) =
+    cong νˢ_
+      (source-ground-rename-shape (T.‵ ι)
+        (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
+  source-ground-rename-shape T.★⇒★ h hρ (p ↦ q) =
+    cong₂ _↦ˢ_
+      (source-star-rename-shape h hρ p)
+      (source-star-rename-shape h hρ q)
+  source-ground-rename-shape {ρ = ρ} T.★⇒★ h hρ
+      (ν {A = A} safe occ p) =
+    cong νˢ_
+      (source-ground-rename-shape T.★⇒★
+        (lift-left-assm-map h) (TyRenameWf-ext hρ) p)
+
+
+mutual
   source-star-≈∀-left :
     ∀ {Φ Δᴸ Δᴿ A B} →
     A ≈∀ B →
@@ -501,6 +616,612 @@ mutual
     one-eq = occurs-rename-injective swap01-injective (suc zero) A
 
 
+mutual
+  source-star-≈∀-left-composition :
+    ∀ {Φ Δᴸ Δᴿ A B s t u}
+      (equivalence : A ≈∀ B) →
+    equivalence ⊢ s ≈∀ˢ t →
+    (p : Φ ∣ Δᴸ ⊢ B ⊑ T.★ ⊣ Δᴿ) →
+    t ； u ≋ ⌊ p ⌋ →
+    s ； u ≋ ⌊ source-star-≈∀-left equivalence p ⌋
+  source-star-≈∀-left-composition
+      ≈∀-refl source-perm-refl p composition =
+    composition
+  source-star-≈∀-left-composition
+      (≈∀-sym B≈A) (source-perm-sym shape) p composition =
+    source-star-≈∀-right-composition B≈A shape p composition
+  source-star-≈∀-left-composition
+      (≈∀-trans A≈B B≈C)
+      (source-perm-trans first-shape second-shape)
+      p composition =
+    source-star-≈∀-left-composition A≈B first-shape
+      (source-star-≈∀-left B≈C p)
+      (source-star-≈∀-left-composition
+        B≈C second-shape p composition)
+  source-star-≈∀-left-composition
+      (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-↦ domain-shape codomain-shape)
+      (tag p ⇛ q)
+      (comp-↦-tag domain-composition codomain-composition) =
+    comp-↦-tag
+      (source-star-≈∀-left-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-left-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-star-≈∀-left-composition
+      (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-tag-⇛ domain-shape codomain-shape)
+      (tag p ⇛ q)
+      (comp-tag-⇛-id★
+        domain-composition codomain-composition) =
+    comp-tag-⇛-id★
+      (source-star-≈∀-left-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-left-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-star-≈∀-left-composition
+      (≈∀-∀ A≈B)
+      (source-perm-∀ shape)
+      (ν safe occ p)
+      (comp-∀-ν composition) =
+    comp-∀-ν
+      (source-star-≈∀-left-composition
+        A≈B shape p composition)
+  source-star-≈∀-left-composition
+      (≈∀-∀ A≈B)
+      (source-perm-ν shape)
+      (ν safe occ p)
+      (comp-ν composition) =
+    comp-ν
+      (source-star-≈∀-left-composition
+        A≈B shape p composition)
+  source-star-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-∀∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-∀-ν (comp-∀-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-star-rename swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-star-rename-shape
+          swap-double-left-assm-map swap01-pres-< p)
+  source-star-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-∀ν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-∀-ν (comp-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-star-rename swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-star-rename-shape
+          swap-double-left-assm-map swap01-pres-< p)
+  source-star-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-ν∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-ν (comp-∀-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-star-rename swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-star-rename-shape
+          swap-double-left-assm-map swap01-pres-< p)
+  source-star-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-νν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-ν (comp-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-star-rename swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-star-rename-shape
+          swap-double-left-assm-map swap01-pres-< p)
+
+  source-star-≈∀-right-composition :
+    ∀ {Φ Δᴸ Δᴿ A B s t u}
+      (equivalence : A ≈∀ B) →
+    equivalence ⊢ s ≈∀ˢ t →
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+    s ； u ≋ ⌊ p ⌋ →
+    t ； u ≋ ⌊ source-star-≈∀-right equivalence p ⌋
+  source-star-≈∀-right-composition
+      ≈∀-refl source-perm-refl p composition =
+    composition
+  source-star-≈∀-right-composition
+      (≈∀-sym B≈A) (source-perm-sym shape) p composition =
+    source-star-≈∀-left-composition B≈A shape p composition
+  source-star-≈∀-right-composition
+      (≈∀-trans A≈B B≈C)
+      (source-perm-trans first-shape second-shape)
+      p composition =
+    source-star-≈∀-right-composition B≈C second-shape
+      (source-star-≈∀-right A≈B p)
+      (source-star-≈∀-right-composition
+        A≈B first-shape p composition)
+  source-star-≈∀-right-composition
+      (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-↦ domain-shape codomain-shape)
+      (tag p ⇛ q)
+      (comp-↦-tag domain-composition codomain-composition) =
+    comp-↦-tag
+      (source-star-≈∀-right-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-right-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-star-≈∀-right-composition
+      (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-tag-⇛ domain-shape codomain-shape)
+      (tag p ⇛ q)
+      (comp-tag-⇛-id★
+        domain-composition codomain-composition) =
+    comp-tag-⇛-id★
+      (source-star-≈∀-right-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-right-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-star-≈∀-right-composition
+      (≈∀-∀ A≈B)
+      (source-perm-∀ shape)
+      (ν safe occ p)
+      (comp-∀-ν composition) =
+    comp-∀-ν
+      (source-star-≈∀-right-composition
+        A≈B shape p composition)
+  source-star-≈∀-right-composition
+      (≈∀-∀ A≈B)
+      (source-perm-ν shape)
+      (ν safe occ p)
+      (comp-ν composition) =
+    comp-ν
+      (source-star-≈∀-right-composition
+        A≈B shape p composition)
+  source-star-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-∀∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-star-rename-shape
+          {ρ = swap01ᵗ}
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-∀-ν (comp-∀-ν composition))
+  source-star-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-∀ν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-star-rename-shape
+          {ρ = swap01ᵗ}
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-ν (comp-∀-ν composition))
+  source-star-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-ν∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-star-rename-shape
+          {ρ = swap01ᵗ}
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-∀-ν (comp-ν composition))
+  source-star-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      ≈∀-swap source-swap-νν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-star-rename-shape
+          {ρ = swap01ᵗ}
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-ν (comp-ν composition))
+
+
+mutual
+  source-ground-≈∀-left-composition :
+    ∀ {Φ Δᴸ Δᴿ A B H s t u}
+      (gH : T.Ground H)
+      (equivalence : A ≈∀ B) →
+    equivalence ⊢ s ≈∀ˢ t →
+    (p : Φ ∣ Δᴸ ⊢ B ⊑ H ⊣ Δᴿ) →
+    t ； u ≋ ⌊ p ⌋ →
+    s ； u ≋ ⌊ source-ground-≈∀-left gH equivalence p ⌋
+  source-ground-≈∀-left-composition
+      gH ≈∀-refl source-perm-refl p composition =
+    composition
+  source-ground-≈∀-left-composition
+      gH (≈∀-sym B≈A) (source-perm-sym shape) p composition =
+    source-ground-≈∀-right-composition
+      gH B≈A shape p composition
+  source-ground-≈∀-left-composition
+      gH (≈∀-trans A≈B B≈C)
+      (source-perm-trans first-shape second-shape)
+      p composition =
+    source-ground-≈∀-left-composition gH A≈B first-shape
+      (source-ground-≈∀-left gH B≈C p)
+      (source-ground-≈∀-left-composition
+        gH B≈C second-shape p composition)
+  source-ground-≈∀-left-composition
+      (T.＇ X) (≈∀-⇒ A≈A′ B≈B′) shape () composition
+  source-ground-≈∀-left-composition
+      (T.‵ ι) (≈∀-⇒ A≈A′ B≈B′) shape () composition
+  source-ground-≈∀-left-composition
+      T.★⇒★ (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-↦ domain-shape codomain-shape)
+      (p ↦ q)
+      (comp-↦-↦ domain-composition codomain-composition) =
+    comp-↦-↦
+      (source-star-≈∀-left-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-left-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-ground-≈∀-left-composition
+      gH (≈∀-∀ A≈B)
+      (source-perm-∀ shape)
+      (ν safe occ p)
+      (comp-∀-ν composition) =
+    comp-∀-ν
+      (source-ground-≈∀-left-composition
+        gH A≈B shape p composition)
+  source-ground-≈∀-left-composition
+      gH (≈∀-∀ A≈B)
+      (source-perm-ν shape)
+      (ν safe occ p)
+      (comp-ν composition) =
+    comp-ν
+      (source-ground-≈∀-left-composition
+        gH A≈B shape p composition)
+  source-ground-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-∀∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-∀-ν (comp-∀-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-ground-rename gH swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-ground-rename-shape gH
+          swap-double-left-assm-map swap01-pres-< p)
+  source-ground-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-∀ν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-∀-ν (comp-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-ground-rename gH swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-ground-rename-shape gH
+          swap-double-left-assm-map swap01-pres-< p)
+  source-ground-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-ν∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-ν (comp-∀-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-ground-rename gH swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-ground-rename-shape gH
+          swap-double-left-assm-map swap01-pres-< p)
+  source-ground-≈∀-left-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-νν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl (cong (λ s → νˢ (νˢ s)) body-shape)
+      (comp-ν (comp-ν composition))
+    where
+    body-shape =
+      trans
+        (shape-subst-source
+          (renameᵗ-swap01-involutive A)
+          (source-ground-rename gH swap-double-left-assm-map
+            swap01-pres-< p))
+        (source-ground-rename-shape gH
+          swap-double-left-assm-map swap01-pres-< p)
+
+  source-ground-≈∀-right-composition :
+    ∀ {Φ Δᴸ Δᴿ A B H s t u}
+      (gH : T.Ground H)
+      (equivalence : A ≈∀ B) →
+    equivalence ⊢ s ≈∀ˢ t →
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ) →
+    s ； u ≋ ⌊ p ⌋ →
+    t ； u ≋ ⌊ source-ground-≈∀-right gH equivalence p ⌋
+  source-ground-≈∀-right-composition
+      gH ≈∀-refl source-perm-refl p composition =
+    composition
+  source-ground-≈∀-right-composition
+      gH (≈∀-sym B≈A) (source-perm-sym shape) p composition =
+    source-ground-≈∀-left-composition
+      gH B≈A shape p composition
+  source-ground-≈∀-right-composition
+      gH (≈∀-trans A≈B B≈C)
+      (source-perm-trans first-shape second-shape)
+      p composition =
+    source-ground-≈∀-right-composition gH B≈C second-shape
+      (source-ground-≈∀-right gH A≈B p)
+      (source-ground-≈∀-right-composition
+        gH A≈B first-shape p composition)
+  source-ground-≈∀-right-composition
+      (T.＇ X) (≈∀-⇒ A≈A′ B≈B′) shape () composition
+  source-ground-≈∀-right-composition
+      (T.‵ ι) (≈∀-⇒ A≈A′ B≈B′) shape () composition
+  source-ground-≈∀-right-composition
+      T.★⇒★ (≈∀-⇒ A≈A′ B≈B′)
+      (source-perm-↦ domain-shape codomain-shape)
+      (p ↦ q)
+      (comp-↦-↦ domain-composition codomain-composition) =
+    comp-↦-↦
+      (source-star-≈∀-right-composition
+        A≈A′ domain-shape p domain-composition)
+      (source-star-≈∀-right-composition
+        B≈B′ codomain-shape q codomain-composition)
+  source-ground-≈∀-right-composition
+      gH (≈∀-∀ A≈B)
+      (source-perm-∀ shape)
+      (ν safe occ p)
+      (comp-∀-ν composition) =
+    comp-∀-ν
+      (source-ground-≈∀-right-composition
+        gH A≈B shape p composition)
+  source-ground-≈∀-right-composition
+      gH (≈∀-∀ A≈B)
+      (source-perm-ν shape)
+      (ν safe occ p)
+      (comp-ν composition) =
+    comp-ν
+      (source-ground-≈∀-right-composition
+        gH A≈B shape p composition)
+  source-ground-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-∀∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-ground-rename-shape
+          {ρ = swap01ᵗ} gH
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-∀-ν (comp-∀-ν composition))
+  source-ground-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-∀ν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-∀-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-ground-rename-shape
+          {ρ = swap01ᵗ} gH
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-ν (comp-∀-ν composition))
+  source-ground-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-ν∀
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-∀-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-ground-rename-shape
+          {ρ = swap01ᵗ} gH
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-∀-ν (comp-ν composition))
+  source-ground-≈∀-right-composition
+      {A = T.`∀ (T.`∀ A)}
+      gH ≈∀-swap source-swap-νν
+      (ν outer-safe outer (ν inner-safe inner p))
+      (comp-ν (comp-ν composition)) =
+    imprecision-composition-shape-transport
+      refl refl
+      (cong (λ s → νˢ (νˢ s))
+        (source-ground-rename-shape
+          {ρ = swap01ᵗ} gH
+          swap-double-left-assm-map swap01-pres-< p))
+      (comp-ν (comp-ν composition))
+
+
+star-self-permutation-shape-equal :
+  ∀ {equivalence : T.★ ≈∀ T.★} {s t} →
+  equivalence ⊢ s ≈∀ˢ t →
+  s ≡ t
+star-self-permutation-shape-equal source-perm-refl = refl
+star-self-permutation-shape-equal
+    (source-perm-sym shape) =
+  sym (star-self-permutation-shape-equal shape)
+star-self-permutation-shape-equal
+    (source-perm-trans
+      {A≈B = first-equivalence}
+      {B≈C = second-equivalence}
+      first second)
+    with ≈∀-atom-left-eq T.★ first-equivalence
+star-self-permutation-shape-equal
+    (source-perm-trans
+      {A≈B = first-equivalence}
+      {B≈C = second-equivalence}
+      first second)
+    | refl =
+  trans
+    (star-self-permutation-shape-equal first)
+    (star-self-permutation-shape-equal second)
+
+
+function-ground-self-permutation-shape-equal :
+  ∀ {equivalence :
+      T.★ T.⇒ T.★ ≈∀ T.★ T.⇒ T.★} {s t} →
+  equivalence ⊢ s ≈∀ˢ t →
+  s ≡ t
+function-ground-self-permutation-shape-equal
+    source-perm-refl =
+  refl
+function-ground-self-permutation-shape-equal
+    (source-perm-sym shape) =
+  sym (function-ground-self-permutation-shape-equal shape)
+function-ground-self-permutation-shape-equal
+    (source-perm-trans
+      {A≈B = first-equivalence}
+      {B≈C = second-equivalence}
+      first second)
+    with ≈∀-ground-left-eq T.★⇒★ first-equivalence
+function-ground-self-permutation-shape-equal
+    (source-perm-trans
+      {A≈B = first-equivalence}
+      {B≈C = second-equivalence}
+      first second)
+    | refl =
+  trans
+    (function-ground-self-permutation-shape-equal first)
+    (function-ground-self-permutation-shape-equal second)
+function-ground-self-permutation-shape-equal
+    (source-perm-↦ domain codomain) =
+  cong₂ _↦ˢ_
+    (star-self-permutation-shape-equal domain)
+    (star-self-permutation-shape-equal codomain)
+function-ground-self-permutation-shape-equal
+    (source-perm-tag-⇛ domain codomain) =
+  cong₂ tag_⇛ˢ_
+    (star-self-permutation-shape-equal domain)
+    (star-self-permutation-shape-equal codomain)
+
+
+star-right-identity-composition :
+  ∀ {Φ Δᴸ Δᴿ A}
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+  ⌊ p ⌋ ； id★ˢ ≋ ⌊ p ⌋
+star-right-identity-composition id★ = comp-id★
+star-right-identity-composition (tag ι) = comp-tag-id★
+star-right-identity-composition (tag p ⇛ q) =
+  comp-tag-⇛-id★
+    (star-right-identity-composition p)
+    (star-right-identity-composition q)
+star-right-identity-composition (tagˣ x∈ X<Δᴸ) =
+  comp-tagˣ-id★
+star-right-identity-composition (ν safe occ p) =
+  comp-ν (star-right-identity-composition p)
+
+
+function-ground-right-identity-composition :
+  ∀ {Φ Δᴸ Δᴿ A}
+    (p : Φ ∣ Δᴸ ⊢ A ⊑ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  ⌊ p ⌋ ； (id★ˢ ↦ˢ id★ˢ) ≋ ⌊ p ⌋
+function-ground-right-identity-composition (p ↦ q) =
+  comp-↦-↦
+    (star-right-identity-composition p)
+    (star-right-identity-composition q)
+function-ground-right-identity-composition (ν safe occ p) =
+  comp-ν (function-ground-right-identity-composition p)
+
+
+cast-shape-result-unique :
+  ∀ {direction c s t} →
+  direction ⊢ᶜ c ⦂ s →
+  direction ⊢ᶜ c ⦂ t →
+  s ≡ t
+cast-shape-result-unique shape-id-var shape-id-var = refl
+cast-shape-result-unique shape-id-base shape-id-base = refl
+cast-shape-result-unique shape-id-star shape-id-star = refl
+cast-shape-result-unique
+    (shape-fun source target)
+    (shape-fun source′ target′) =
+  cong₂ _↦ˢ_
+    (cast-shape-result-unique source source′)
+    (cast-shape-result-unique target target′)
+cast-shape-result-unique
+    (shape-all shape) (shape-all shape′) =
+  cong ∀ˢ_ (cast-shape-result-unique shape shape′)
+cast-shape-result-unique shape-tag-var shape-tag-var = refl
+cast-shape-result-unique shape-tag-base shape-tag-base = refl
+cast-shape-result-unique shape-tag-fun shape-tag-fun = refl
+cast-shape-result-unique shape-untag-var shape-untag-var = refl
+cast-shape-result-unique shape-untag-base shape-untag-base = refl
+cast-shape-result-unique shape-untag-fun shape-untag-fun = refl
+cast-shape-result-unique shape-seal shape-seal = refl
+cast-shape-result-unique shape-unseal shape-unseal = refl
+cast-shape-result-unique
+    (shape-gen shape) (shape-gen shape′) =
+  cong νˢ_ (cast-shape-result-unique shape shape′)
+cast-shape-result-unique
+    (shape-inst shape) (shape-inst shape′) =
+  cong νˢ_ (cast-shape-result-unique shape shape′)
+cast-shape-result-unique
+    (shape-sequence-widening
+      first second composition)
+    (shape-sequence-widening
+      first′ second′ composition′) =
+  compose-result-unique composition
+    (imprecision-composition-shape-transport
+      (cast-shape-result-unique first first′)
+      (cast-shape-result-unique second second′)
+      refl composition′)
+cast-shape-result-unique
+    (shape-sequence-narrowing
+      first second composition)
+    (shape-sequence-narrowing
+      first′ second′ composition′) =
+  compose-result-unique composition
+    (imprecision-composition-shape-transport
+      (cast-shape-result-unique second second′)
+      (cast-shape-result-unique first first′)
+      refl composition′)
+
+
 private
   ⊑ᵖ-ground-right :
     ∀ {Φ Δᴸ Δᴿ A H} →
@@ -511,6 +1232,47 @@ private
       with ≈∀-ground-right-eq gH H′≈H
   ⊑ᵖ-ground-right gH (quotientᵖ A≈A′ A′⊑H′ H′≈H) | refl =
     source-ground-≈∀-left gH A≈A′ A′⊑H′
+
+  ⊑ᵖ-function-ground-right-composition :
+    ∀ {Φ Δᴸ Δᴿ A A′ D s s′}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+    s ；⌊ p ⌋≋ᵖ q ； s′ →
+    s′ ≡ id★ˢ ↦ˢ id★ˢ →
+    s ； ⌊ p ⌋ ≋ ⌊ ⊑ᵖ-ground-right T.★⇒★ q ⌋
+  ⊑ᵖ-function-ground-right-composition
+      (quotientᵖ source middle target)
+      (quotient-boundary-square
+        source-shape left-composition
+        target-shape right-composition)
+      final-shape
+      with ≈∀-ground-right-eq T.★⇒★ target
+  ⊑ᵖ-function-ground-right-composition
+      (quotientᵖ source middle target)
+      (quotient-boundary-square
+        source-shape left-composition
+        target-shape right-composition)
+      final-shape
+      | refl =
+    source-ground-≈∀-left-composition
+      T.★⇒★ source source-shape middle left-composition′
+    where
+    target-shape-equality =
+      trans
+        (function-ground-self-permutation-shape-equal target-shape)
+        final-shape
+
+    right-composition′ =
+      imprecision-composition-shape-transport
+        refl (sym target-shape-equality) refl right-composition
+
+    result-equality =
+      compose-result-unique right-composition′
+        (function-ground-right-identity-composition middle)
+
+    left-composition′ =
+      imprecision-composition-shape-transport
+        refl refl (sym result-equality) left-composition
 
 
 id-only-no-seal :
@@ -545,14 +1307,14 @@ inert-narrowing-target-var-no-seal :
 inert-narrowing-target-var-no-seal no-seal
     (_ , NW.cross ()) (G C.!)
 inert-narrowing-target-var-no-seal no-seal
-    (C.cast-seal hA α∈Σ ok , narrowing) (C.seal A α) =
+    (C.cast-seal hA α∈Σ ok , NW.sealⁿ A α) (C.seal A α) =
   false≢true (trans (sym (no-seal α)) ok)
 inert-narrowing-target-var-no-seal no-seal
-    (() , narrowing) (c C.↦ d)
+    (() , NW.cross (cʷ NW.↦ dⁿ)) (c C.↦ d)
 inert-narrowing-target-var-no-seal no-seal
-    (() , narrowing) (C.`∀ c)
+    (() , NW.cross (NW.`∀ cⁿ)) (C.`∀ c)
 inert-narrowing-target-var-no-seal no-seal
-    (() , narrowing) (C.gen A c)
+    (() , NW.gen cⁿ) (C.gen A c)
 
 
 inert-narrowing-target-base :
@@ -561,10 +1323,14 @@ inert-narrowing-target-base :
   C.Inert d →
   ⊥
 inert-narrowing-target-base (_ , NW.cross ()) (G C.!)
-inert-narrowing-target-base (() , narrowing) (C.seal A α)
-inert-narrowing-target-base (() , narrowing) (c C.↦ d)
-inert-narrowing-target-base (() , narrowing) (C.`∀ c)
-inert-narrowing-target-base (() , narrowing) (C.gen A c)
+inert-narrowing-target-base
+    (() , NW.sealⁿ A α) (C.seal A α)
+inert-narrowing-target-base
+    (() , NW.cross (cʷ NW.↦ dⁿ)) (c C.↦ d)
+inert-narrowing-target-base
+    (() , NW.cross (NW.`∀ cⁿ)) (C.`∀ c)
+inert-narrowing-target-base
+    (() , NW.gen cⁿ) (C.gen A c)
 
 
 inert-function-ground-narrowing-source :
@@ -594,56 +1360,180 @@ inert-function-ground-narrowing-source (() , NW.sealⁿ A α) inert
 inert-function-ground-narrowing-source (c⊢ , sⁿ NW.︔seal α) ()
 
 
+star-narrowing-shape :
+  ∀ {μ Δ Σ c} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ T.★ ⊒ T.★ →
+  narrowing ⊢ᶜ c ⦂ id★ˢ
+star-narrowing-shape (() , NW.cross (NW.id-＇ α))
+star-narrowing-shape (() , NW.cross (NW.id-‵ ι))
+star-narrowing-shape (() , NW.cross (sʷ NW.↦ tⁿ))
+star-narrowing-shape (() , NW.cross (NW.`∀ tⁿ))
+star-narrowing-shape (c⊢ , NW.id★) = shape-id-star
+star-narrowing-shape (() , NW.gen tⁿ)
+star-narrowing-shape
+    (C.cast-untag hG () tag-ok , NW.untag gG)
+star-narrowing-shape
+    (C.cast-seq (C.cast-untag hG gG⊢ tag-ok) t⊢ ,
+     gG NW.？︔ tⁿ) =
+  ⊥-elim
+    (NWP.narrowing-cross-ground-target-star⊥
+      gG⊢ (t⊢ , NW.strictCrossⁿ→cross tⁿ))
+star-narrowing-shape (() , NW.sealⁿ A α)
+star-narrowing-shape
+    (C.cast-seq s⊢ () , sⁿ NW.︔seal α)
+star-narrowing-shape
+    (C.cast-seq c⊢ () , NW.fun-untag-gen safe)
+
+
+star-widening-shape :
+  ∀ {μ Δ Σ c} →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ T.★ ⊑ T.★ →
+  widening ⊢ᶜ c ⦂ id★ˢ
+star-widening-shape (() , NW.cross (NW.id-＇ α))
+star-widening-shape (() , NW.cross (NW.id-‵ ι))
+star-widening-shape (() , NW.cross (sⁿ NW.↦ tʷ))
+star-widening-shape (() , NW.cross (NW.`∀ tʷ))
+star-widening-shape (c⊢ , NW.id★) = shape-id-star
+star-widening-shape (() , NW.inst tʷ)
+star-widening-shape
+    (C.cast-tag hG () tag-ok , NW.tag gG)
+star-widening-shape
+    (C.cast-seq s⊢ (C.cast-tag hG gG⊢ tag-ok) ,
+     sʷ NW.︔ gG !) =
+  ⊥-elim
+    (NWP.widening-cross-ground-source-star⊥
+      gG⊢ (s⊢ , NW.strictCrossʷ→cross sʷ))
+star-widening-shape (() , NW.unsealʷ α A)
+star-widening-shape
+    (C.cast-seq () t⊢ , NW.unseal︔_ α tʷ)
+star-widening-shape
+    (C.cast-seq () d⊢ , NW.inst-fun-tag safe)
+
+
+inert-function-ground-narrowing-shape :
+  ∀ {μ Δ Σ C c} →
+  (c⊒ : μ ∣ Δ ∣ Σ ⊢ c ∶ C ⊒ (T.★ T.⇒ T.★)) →
+  C.Inert c →
+  narrowing ⊢ᶜ c ⦂ (id★ˢ ↦ˢ id★ˢ)
+inert-function-ground-narrowing-shape
+    (() , NW.cross (NW.id-＇ α)) inert
+inert-function-ground-narrowing-shape
+    (() , NW.cross (NW.id-‵ ι)) inert
+inert-function-ground-narrowing-shape
+    (C.cast-fun s⊢ t⊢ , NW.cross (sʷ NW.↦ tⁿ)) (s C.↦ t)
+    with NWP.widening-source-star-target-star (s⊢ , sʷ)
+       | NWP.narrowing-target-star-source-star (t⊢ , tⁿ)
+inert-function-ground-narrowing-shape
+    (C.cast-fun s⊢ t⊢ , NW.cross (sʷ NW.↦ tⁿ)) (s C.↦ t)
+    | refl | refl =
+  shape-fun
+    (star-widening-shape (s⊢ , sʷ))
+    (star-narrowing-shape (t⊢ , tⁿ))
+inert-function-ground-narrowing-shape
+    (() , NW.cross (NW.`∀ tⁿ)) inert
+inert-function-ground-narrowing-shape (c⊢ , NW.id★) ()
+inert-function-ground-narrowing-shape (() , NW.gen tⁿ) inert
+inert-function-ground-narrowing-shape
+    (c⊢ , NW.untag gG) ()
+inert-function-ground-narrowing-shape
+    (c⊢ , gG NW.？︔ tⁿ) ()
+inert-function-ground-narrowing-shape
+    (() , NW.sealⁿ A α) inert
+inert-function-ground-narrowing-shape
+    (c⊢ , sⁿ NW.︔seal α) ()
+
+
 target-ground-value-quotient-elimination-proofᵀ :
   TargetGroundValueQuotientEliminationᵀ
 target-ground-value-quotient-elimination-proofᵀ
     (T.＇ α) vV vV′
-    (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD) =
+    (down⊑downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
   ⊥-elim
     (inert-narrowing-target-var-no-seal
       id-only-no-seal
       d′⊒ (cast-value-inert vV′))
 target-ground-value-quotient-elimination-proofᵀ
     (T.＇ α) vV vV′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD) =
+    (gen-down⊑gen-downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
   ⊥-elim
     (inert-narrowing-target-var-no-seal
       gen-tag-or-id-no-seal
       d′⊒ (cast-value-inert vV′))
 target-ground-value-quotient-elimination-proofᵀ
     (T.‵ ι) vV vV′
-    (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD) =
+    (down⊑downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
   ⊥-elim (inert-narrowing-target-base d′⊒ (cast-value-inert vV′))
 target-ground-value-quotient-elimination-proofᵀ
     (T.‵ ι) vV vV′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD) =
+    (gen-down⊑gen-downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
   ⊥-elim (inert-narrowing-target-base d′⊒ (cast-value-inert vV′))
 target-ground-value-quotient-elimination-proofᵀ
     T.★⇒★ vV vV′
-    (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD)
-    with ⊑ᵖ-ground-right T.★⇒★ qD
-       | inert-function-ground-narrowing-source
-           d′⊒ (cast-value-inert vV′)
+    (down⊑downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
+    with inert-function-ground-narrowing-source
+      d′⊒ (cast-value-inert vV′)
 target-ground-value-quotient-elimination-proofᵀ
     T.★⇒★ vV vV′
-    (down⊑downᵀ d⊒ d′⊒ M⊑M′ qD)
-    | q | refl =
+    (down⊑downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
+    | refl =
   q ,
   ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
     (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d′⊒)
     (cast⊒⊑ᵀ cast-tag-or-id seal★-tag-or-id
-      (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d⊒) M⊑M′ q) q
+      (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d⊒)
+      M⊑M′ q d-shape source-composition)
+    q d′-shape target-composition
+  where
+  q = ⊑ᵖ-ground-right T.★⇒★ qD
+
+  final-shape =
+    cast-shape-result-unique d′-shape
+      (inert-function-ground-narrowing-shape
+        d′⊒ (cast-value-inert vV′))
+
+  source-composition =
+    ⊑ᵖ-function-ground-right-composition
+      qD square final-shape
+
+  target-composition =
+    imprecision-composition-shape-transport
+      refl final-shape refl
+      (function-ground-right-identity-composition q)
 target-ground-value-quotient-elimination-proofᵀ
     T.★⇒★ vV vV′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD)
-    with ⊑ᵖ-ground-right T.★⇒★ qD
-       | inert-function-ground-narrowing-source
-           d′⊒ (cast-value-inert vV′)
+    (gen-down⊑gen-downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
+    with inert-function-ground-narrowing-source
+      d′⊒ (cast-value-inert vV′)
 target-ground-value-quotient-elimination-proofᵀ
     T.★⇒★ vV vV′
-    (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ qD)
-    | q | refl =
+    (gen-down⊑gen-downᵀ
+      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
+    | refl =
   q ,
   ⊑cast⊒ᵀ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊒
     (cast⊒⊑ᵀ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id
-      d⊒ M⊑M′ q) q
+      d⊒ M⊑M′ q d-shape source-composition)
+    q d′-shape target-composition
+  where
+  q = ⊑ᵖ-ground-right T.★⇒★ qD
+
+  final-shape =
+    cast-shape-result-unique d′-shape
+      (inert-function-ground-narrowing-shape
+        d′⊒ (cast-value-inert vV′))
+
+  source-composition =
+    ⊑ᵖ-function-ground-right-composition
+      qD square final-shape
+
+  target-composition =
+    imprecision-composition-shape-transport
+      refl final-shape refl
+      (function-ground-right-identity-composition q)

@@ -56,36 +56,46 @@ store-corresponds-prefix-proofᵀ
 paired-cast-prefix-proofᵀ : PairedCastPrefixᵀ
 paired-cast-prefix-proofᵀ prefix
     (paired-conversion
-      (paired-reveal corresponds source-reveal target-reveal)) =
+      (paired-reveal
+        corresponds source-reveal target-reveal replacement)) =
   paired-conversion
     (paired-reveal
       (store-corresponds-prefix-proofᵀ prefix corresponds)
       (weaken-reveal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) source-reveal)
       (weaken-reveal-conversion
-        (rightStoreⁱ-prefix-inclusion prefix) target-reveal))
+        (rightStoreⁱ-prefix-inclusion prefix) target-reveal)
+      replacement)
 paired-cast-prefix-proofᵀ prefix
     (paired-conversion
-      (paired-conceal corresponds source-conceal target-conceal)) =
+      (paired-conceal
+        corresponds source-conceal target-conceal replacement)) =
   paired-conversion
     (paired-conceal
       (store-corresponds-prefix-proofᵀ prefix corresponds)
       (weaken-conceal-conversion
         (leftStoreⁱ-prefix-inclusion prefix) source-conceal)
       (weaken-conceal-conversion
-        (rightStoreⁱ-prefix-inclusion prefix) target-conceal))
+        (rightStoreⁱ-prefix-inclusion prefix) target-conceal)
+      replacement)
 paired-cast-prefix-proofᵀ prefix
     (paired-widening
-      mode seal★ widening mode′ seal★′ widening′ compatible) =
+      mode seal★ widening c-shape
+      mode′ seal★′ widening′ c′-shape
+      left-square right-square compatible) =
   paired-widening
     mode
     (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
     (widen-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) widening)
+    c-shape
     mode′
     (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
     (widen-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) widening′)
+    c′-shape
+    left-square
+    right-square
     compatible
 
 

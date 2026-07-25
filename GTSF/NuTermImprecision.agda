@@ -8,6 +8,8 @@ module NuTermImprecision where
 --     have a visible place to extend the store relation.
 --   * Separates physical store entries from correspondence-only links, which
 --     permits swapped polymorphic allocations with independent store order.
+--   * Requires every store/context lift to preserve the hereditary shape of
+--     each stored type-imprecision index.
 --   * Carries enough side conditions for the relation to project to ordinary
 --     `NuTerms` typing derivations for both related terms.
 
@@ -23,8 +25,19 @@ open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 open import Types
 open import Ctx using (⤊ᵗ)
 open import Coercions
-open import Conversion using (_∣_∣_⊢_∶_↑ˢ_; _∣_∣_⊢_∶_↓ˢ_)
+open import Conversion using
+  ( ConcealConversion
+  ; RevealConversion
+  ; conceal-conversion-typing
+  ; reveal-conversion-typing
+  ; _∣_∣_⊢_∶_↑ˢ_
+  ; _∣_∣_⊢_∶_↓ˢ_
+  )
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_]ᴿ_)
 open import ImprecisionWf
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
@@ -48,6 +61,8 @@ open import NuTerms using
   ; blame
   )
 open import Primitives
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import StoreCorrespondence using
   ( leftStore-⇑ᶜorr
   ; leftStore-⇑ʳᶜorr
@@ -246,6 +261,7 @@ data LiftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftStoreⁱ Ψ [] []
 
   lift-store-∷ : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftStoreⁱ Ψ
@@ -267,6 +283,7 @@ data LiftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right (suc β) (⇑ᵗ B) hB′ ∷ ρ′)
 
   lift-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftStoreⁱ Ψ
@@ -279,13 +296,13 @@ leftStoreⁱ-lift :
   LiftStoreⁱ Ψ ρ ρ′ →
   leftStoreⁱ ρ′ ≡ ⟰ᵗ (leftStoreⁱ ρ)
 leftStoreⁱ-lift lift-store-[] = refl
-leftStoreⁱ-lift (lift-store-∷ liftρ) =
+leftStoreⁱ-lift (lift-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift liftρ)
 leftStoreⁱ-lift (lift-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift liftρ)
 leftStoreⁱ-lift (lift-store-right liftρ) =
   leftStoreⁱ-lift liftρ
-leftStoreⁱ-lift (lift-store-link liftρ) =
+leftStoreⁱ-lift (lift-store-link _ liftρ) =
   leftStoreⁱ-lift liftρ
 
 rightStoreⁱ-lift :
@@ -294,13 +311,13 @@ rightStoreⁱ-lift :
   LiftStoreⁱ Ψ ρ ρ′ →
   rightStoreⁱ ρ′ ≡ ⟰ᵗ (rightStoreⁱ ρ)
 rightStoreⁱ-lift lift-store-[] = refl
-rightStoreⁱ-lift (lift-store-∷ liftρ) =
+rightStoreⁱ-lift (lift-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift liftρ)
 rightStoreⁱ-lift (lift-store-left liftρ) =
   rightStoreⁱ-lift liftρ
 rightStoreⁱ-lift (lift-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift liftρ)
-rightStoreⁱ-lift (lift-store-link liftρ) =
+rightStoreⁱ-lift (lift-store-link _ liftρ) =
   rightStoreⁱ-lift liftρ
 
 data LiftLeftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
@@ -309,6 +326,7 @@ data LiftLeftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftLeftStoreⁱ Ψ [] []
 
   lift-left-store-∷ : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftLeftStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftLeftStoreⁱ Ψ
@@ -330,6 +348,7 @@ data LiftLeftStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right β B hB′ ∷ ρ′)
 
   lift-left-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftLeftStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftLeftStoreⁱ Ψ
@@ -342,13 +361,13 @@ leftStoreⁱ-lift-left :
   LiftLeftStoreⁱ Ψ ρ ρ′ →
   leftStoreⁱ ρ′ ≡ ⟰ᵗ (leftStoreⁱ ρ)
 leftStoreⁱ-lift-left lift-left-store-[] = refl
-leftStoreⁱ-lift-left (lift-left-store-∷ liftρ) =
+leftStoreⁱ-lift-left (lift-left-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-left liftρ)
 leftStoreⁱ-lift-left (lift-left-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-left liftρ)
 leftStoreⁱ-lift-left (lift-left-store-right liftρ) =
   leftStoreⁱ-lift-left liftρ
-leftStoreⁱ-lift-left (lift-left-store-link liftρ) =
+leftStoreⁱ-lift-left (lift-left-store-link _ liftρ) =
   leftStoreⁱ-lift-left liftρ
 
 rightStoreⁱ-lift-left :
@@ -357,13 +376,13 @@ rightStoreⁱ-lift-left :
   LiftLeftStoreⁱ Ψ ρ ρ′ →
   rightStoreⁱ ρ′ ≡ rightStoreⁱ ρ
 rightStoreⁱ-lift-left lift-left-store-[] = refl
-rightStoreⁱ-lift-left (lift-left-store-∷ liftρ) =
+rightStoreⁱ-lift-left (lift-left-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-left liftρ)
 rightStoreⁱ-lift-left (lift-left-store-left liftρ) =
   rightStoreⁱ-lift-left liftρ
 rightStoreⁱ-lift-left (lift-left-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-left liftρ)
-rightStoreⁱ-lift-left (lift-left-store-link liftρ) =
+rightStoreⁱ-lift-left (lift-left-store-link _ liftρ) =
   rightStoreⁱ-lift-left liftρ
 
 data LiftRightStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
@@ -372,6 +391,7 @@ data LiftRightStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftRightStoreⁱ Ψ [] []
 
   lift-right-store-∷ : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftRightStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftRightStoreⁱ Ψ
@@ -393,6 +413,7 @@ data LiftRightStoreⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
         (store-right (suc β) (⇑ᵗ B) hB′ ∷ ρ′)
 
   lift-right-store-link : ∀ {ρ ρ′ α β A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftRightStoreⁱ Ψ ρ ρ′
       --------------------------------------------------------------
     → LiftRightStoreⁱ Ψ
@@ -405,13 +426,13 @@ leftStoreⁱ-lift-right :
   LiftRightStoreⁱ Ψ ρ ρ′ →
   leftStoreⁱ ρ′ ≡ leftStoreⁱ ρ
 leftStoreⁱ-lift-right lift-right-store-[] = refl
-leftStoreⁱ-lift-right (lift-right-store-∷ liftρ) =
+leftStoreⁱ-lift-right (lift-right-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-right liftρ)
 leftStoreⁱ-lift-right (lift-right-store-left liftρ) =
   cong ((_,_ _ _) ∷_) (leftStoreⁱ-lift-right liftρ)
 leftStoreⁱ-lift-right (lift-right-store-right liftρ) =
   leftStoreⁱ-lift-right liftρ
-leftStoreⁱ-lift-right (lift-right-store-link liftρ) =
+leftStoreⁱ-lift-right (lift-right-store-link _ liftρ) =
   leftStoreⁱ-lift-right liftρ
 
 rightStoreⁱ-lift-right :
@@ -420,13 +441,13 @@ rightStoreⁱ-lift-right :
   LiftRightStoreⁱ Ψ ρ ρ′ →
   rightStoreⁱ ρ′ ≡ ⟰ᵗ (rightStoreⁱ ρ)
 rightStoreⁱ-lift-right lift-right-store-[] = refl
-rightStoreⁱ-lift-right (lift-right-store-∷ liftρ) =
+rightStoreⁱ-lift-right (lift-right-store-∷ _ liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-right liftρ)
 rightStoreⁱ-lift-right (lift-right-store-left liftρ) =
   rightStoreⁱ-lift-right liftρ
 rightStoreⁱ-lift-right (lift-right-store-right liftρ) =
   cong ((_,_ _ _) ∷_) (rightStoreⁱ-lift-right liftρ)
-rightStoreⁱ-lift-right (lift-right-store-link liftρ) =
+rightStoreⁱ-lift-right (lift-right-store-link _ liftρ) =
   rightStoreⁱ-lift-right liftρ
 
 ------------------------------------------------------------------------
@@ -457,6 +478,7 @@ data LiftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftCtxⁱ Ψ [] []
 
   lift-ctx-∷ : ∀ {γ γ′ A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftCtxⁱ Ψ γ γ′
       --------------------------------------------------------------
     → LiftCtxⁱ Ψ (ctx-imp A B p ∷ γ) (ctx-imp (⇑ᵗ A) (⇑ᵗ B) p′ ∷ γ′)
@@ -467,7 +489,7 @@ leftCtxⁱ-lift :
   LiftCtxⁱ Ψ γ γ′ →
   leftCtxⁱ γ′ ≡ ⤊ᵗ (leftCtxⁱ γ)
 leftCtxⁱ-lift lift-ctx-[] = refl
-leftCtxⁱ-lift (lift-ctx-∷ liftγ) =
+leftCtxⁱ-lift (lift-ctx-∷ _ liftγ) =
   cong (_ ∷_) (leftCtxⁱ-lift liftγ)
 
 rightCtxⁱ-lift :
@@ -476,7 +498,7 @@ rightCtxⁱ-lift :
   LiftCtxⁱ Ψ γ γ′ →
   rightCtxⁱ γ′ ≡ ⤊ᵗ (rightCtxⁱ γ)
 rightCtxⁱ-lift lift-ctx-[] = refl
-rightCtxⁱ-lift (lift-ctx-∷ liftγ) =
+rightCtxⁱ-lift (lift-ctx-∷ _ liftγ) =
   cong (_ ∷_) (rightCtxⁱ-lift liftγ)
 
 data LiftLeftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
@@ -485,6 +507,7 @@ data LiftLeftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftLeftCtxⁱ Ψ [] []
 
   lift-left-ctx-∷ : ∀ {γ γ′ A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftLeftCtxⁱ Ψ γ γ′
       --------------------------------------------------------------
     → LiftLeftCtxⁱ Ψ (ctx-imp A B p ∷ γ) (ctx-imp (⇑ᵗ A) B p′ ∷ γ′)
@@ -495,7 +518,7 @@ leftCtxⁱ-lift-left :
   LiftLeftCtxⁱ Ψ γ γ′ →
   leftCtxⁱ γ′ ≡ ⤊ᵗ (leftCtxⁱ γ)
 leftCtxⁱ-lift-left lift-left-ctx-[] = refl
-leftCtxⁱ-lift-left (lift-left-ctx-∷ liftγ) =
+leftCtxⁱ-lift-left (lift-left-ctx-∷ _ liftγ) =
   cong (_ ∷_) (leftCtxⁱ-lift-left liftγ)
 
 rightCtxⁱ-lift-left :
@@ -504,7 +527,7 @@ rightCtxⁱ-lift-left :
   LiftLeftCtxⁱ Ψ γ γ′ →
   rightCtxⁱ γ′ ≡ rightCtxⁱ γ
 rightCtxⁱ-lift-left lift-left-ctx-[] = refl
-rightCtxⁱ-lift-left (lift-left-ctx-∷ liftγ) =
+rightCtxⁱ-lift-left (lift-left-ctx-∷ _ liftγ) =
   cong (_ ∷_) (rightCtxⁱ-lift-left liftγ)
 
 data LiftRightCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
@@ -513,6 +536,7 @@ data LiftRightCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftRightCtxⁱ Ψ [] []
 
   lift-right-ctx-∷ : ∀ {γ γ′ A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftRightCtxⁱ Ψ γ γ′
       --------------------------------------------------------------
     → LiftRightCtxⁱ Ψ (ctx-imp A B p ∷ γ) (ctx-imp A (⇑ᵗ B) p′ ∷ γ′)
@@ -523,7 +547,7 @@ leftCtxⁱ-lift-right :
   LiftRightCtxⁱ Ψ γ γ′ →
   leftCtxⁱ γ′ ≡ leftCtxⁱ γ
 leftCtxⁱ-lift-right lift-right-ctx-[] = refl
-leftCtxⁱ-lift-right (lift-right-ctx-∷ liftγ) =
+leftCtxⁱ-lift-right (lift-right-ctx-∷ _ liftγ) =
   cong (_ ∷_) (leftCtxⁱ-lift-right liftγ)
 
 rightCtxⁱ-lift-right :
@@ -532,7 +556,7 @@ rightCtxⁱ-lift-right :
   LiftRightCtxⁱ Ψ γ γ′ →
   rightCtxⁱ γ′ ≡ ⤊ᵗ (rightCtxⁱ γ)
 rightCtxⁱ-lift-right lift-right-ctx-[] = refl
-rightCtxⁱ-lift-right (lift-right-ctx-∷ liftγ) =
+rightCtxⁱ-lift-right (lift-right-ctx-∷ _ liftγ) =
   cong (_ ∷_) (rightCtxⁱ-lift-right liftγ)
 
 leftCtxⁱ-∋ :
@@ -753,21 +777,25 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
         ∶ ⊑-transˡ-castᵢ left-id-only-compatible
             (narrowing⇒⊑ᵢ wfΣ seal★ c⊒) p
 
-  cast⊑⊑ᵀ : ∀ {M M′ A B B′ p c μ}
+  cast⊑⊑ᵀ : ∀ {M M′ A B B′ p c μ s}
     → CastMode μ
-    → SealModeStore★ μ (leftStoreⁱ ρ)
-    → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B
+    → (seal★ : SealModeStore★ μ (leftStoreⁱ ρ))
+    → (c⊑ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B)
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+    → widening ⊢ᶜ c ⦂ s
+    → s ； ⌊ q ⌋ ≋ ⌊ p ⌋
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-  ⊑cast⊒ᵀ : ∀ {M M′ A A′ B′ p c′ μ′}
+  ⊑cast⊒ᵀ : ∀ {M M′ A A′ B′ p c′ μ′ s}
     → CastMode μ′
     → SealModeStore★ μ′ (rightStoreⁱ ρ)
     → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊒ B′
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+    → narrowing ⊢ᶜ c′ ⦂ s
+    → ⌊ q ⌋ ； s ≋ ⌊ p ⌋
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
@@ -792,31 +820,35 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
         ∶ ⊑-transʳ-castᵢ right-id-only-compatible p
             (widening⇒⊑ᵢ wfΣ′ seal★′ c′⊑)
 
-  conv↑⊑ᵀ : ∀ {M M′ A B B′ p c μ}
-    → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↑ˢ B
+  conv↑⊑ᵀ : ∀ {M M′ A B B′ p c μ α X}
+    → RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+    → p [ α ↦ X ]ᴸ q
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-  conv↓⊑ᵀ : ∀ {M M′ A B B′ p c μ}
-    → μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↓ˢ B
+  conv↓⊑ᵀ : ∀ {M M′ A B B′ p c μ α X}
+    → ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ)
+    → q [ α ↦ X ]ᴸ p
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-  ⊑conv↑ᵀ : ∀ {M M′ A A′ B′ p c′ μ′}
-    → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↑ˢ B′
+  ⊑conv↑ᵀ : ∀ {M M′ A A′ B′ p c′ μ′ β X′}
+    → RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+    → p [ β ↦ X′ ]ᴿ q
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
-  ⊑conv↓ᵀ : ∀ {M M′ A A′ B′ p c′ μ′}
-    → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↓ˢ B′
+  ⊑conv↓ᵀ : ∀ {M M′ A A′ B′ p c′ μ′ β X′}
+    → ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
     → (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ)
+    → q [ β ↦ X′ ]ᴿ p
       ------------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
@@ -825,22 +857,27 @@ data _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_ :
 ------------------------------------------------------------------------
 
 cast⊒⊑cast⊒ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
-  CastMode μ →
-  StoreDetWf Δᴸ (leftStoreⁱ ρ) →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  LeftCastCtxCompatible μ Δᴸ Φ →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′ s′} →
+  (mode : CastMode μ) →
+  (wfΣ : StoreDetWf Δᴸ (leftStoreⁱ ρ)) →
+  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
+  (okΦ : LeftCastCtxCompatible μ Δᴸ Φ) →
+  (c⊒ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B) →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊒ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  narrowing ⊢ᶜ c′ ⦂ s′ →
+  ⌊ q ⌋ ； s′ ≋
+    ⌊ ⊑-transˡ-castᵢ okΦ
+        (narrowing⇒⊑ᵢ wfΣ seal★ c⊒) p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
 cast⊒⊑cast⊒ᵀ mode wfΣ seal★ okΦ c⊒ mode′ seal★′ c′⊒
-    M⊑M′ q =
+    M⊑M′ q c′-shape comp′ =
   ⊑cast⊒ᵀ mode′ seal★′ c′⊒
-    (cast⊒⊑ᵀ mode wfΣ seal★ okΦ c⊒ M⊑M′) q
+    (cast⊒⊑ᵀ mode wfΣ seal★ okΦ c⊒ M⊑M′)
+    q c′-shape comp′
 
 cast⊒⊑cast⊑ᵀ :
   ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
@@ -865,26 +902,32 @@ cast⊒⊑cast⊑ᵀ mode wfΣ seal★ okΦ c⊒ mode′ wfΣ′ seal★′ okΦ
     (cast⊒⊑ᵀ mode wfΣ seal★ okΦ c⊒ M⊑M′)
 
 cast⊑⊑cast⊒ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′ s s′} →
   CastMode μ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
+  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
+  (c⊑ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B) →
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊒ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ r ⌋ ≋ ⌊ p ⌋ →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  narrowing ⊢ᶜ c′ ⦂ s′ →
+  ⌊ q ⌋ ； s′ ≋ ⌊ r ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
-cast⊑⊑cast⊒ᵀ mode seal★ c⊑ mode′ seal★′ c′⊒ M⊑M′ r q =
+cast⊑⊑cast⊒ᵀ mode seal★ c⊑ mode′ seal★′ c′⊒
+    M⊑M′ r c-shape comp q c′-shape comp′ =
   ⊑cast⊒ᵀ mode′ seal★′ c′⊒
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ r) q
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ r c-shape comp)
+    q c′-shape comp′
 
 cast⊑⊑cast⊑ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′ s} →
   CastMode μ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
+  (seal★ : SealModeStore★ μ (leftStoreⁱ ρ)) →
+  (c⊑ : μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B) →
   CastMode μ′ →
   (wfΣ′ : StoreDetWf Δᴿ (rightStoreⁱ ρ)) →
   (seal★′ : SealModeStore★ μ′ (rightStoreⁱ ρ)) →
@@ -892,56 +935,70 @@ cast⊑⊑cast⊑ᵀ :
   (c′⊑ : μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ r ⌋ ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′
     ∶ ⊑-transʳ-castᵢ okΦ′ r (widening⇒⊑ᵢ wfΣ′ seal★′ c′⊑)
 cast⊑⊑cast⊑ᵀ mode seal★ c⊑ mode′ wfΣ′ seal★′ okΦ′ c′⊑
-    M⊑M′ r =
+    M⊑M′ r c-shape comp =
   ⊑cast⊑ᵀ mode′ wfΣ′ seal★′ okΦ′ c′⊑
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ r)
+    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ r c-shape comp)
 
 conv↑⊑conv↑ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↑ˢ B →
-  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↑ˢ B′ →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′
+      α β X X′} →
+  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  p [ α ↦ X ]ᴸ r →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  r [ β ↦ X′ ]ᴿ q →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
-conv↑⊑conv↑ᵀ c↑ c′↑ M⊑M′ r q =
-  ⊑conv↑ᵀ c′↑ (conv↑⊑ᵀ c↑ M⊑M′ r) q
+conv↑⊑conv↑ᵀ c↑ c′↑ M⊑M′ r left q right =
+  ⊑conv↑ᵀ c′↑ (conv↑⊑ᵀ c↑ M⊑M′ r left) q right
 
 conv↑⊑conv↓ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↑ˢ B →
-  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↓ˢ B′ →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′
+      α β X X′} →
+  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  p [ α ↦ X ]ᴸ r →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  q [ β ↦ X′ ]ᴿ r →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
-conv↑⊑conv↓ᵀ c↑ c′↓ M⊑M′ r q =
-  ⊑conv↓ᵀ c′↓ (conv↑⊑ᵀ c↑ M⊑M′ r) q
+conv↑⊑conv↓ᵀ c↑ c′↓ M⊑M′ r left q right =
+  ⊑conv↓ᵀ c′↓ (conv↑⊑ᵀ c↑ M⊑M′ r left) q right
 
 conv↓⊑conv↑ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↓ˢ B →
-  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↑ˢ B′ →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′
+      α β X X′} →
+  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  r [ α ↦ X ]ᴸ p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  r [ β ↦ X′ ]ᴿ q →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
-conv↓⊑conv↑ᵀ c↓ c′↑ M⊑M′ r q =
-  ⊑conv↑ᵀ c′↑ (conv↓⊑ᵀ c↓ M⊑M′ r) q
+conv↓⊑conv↑ᵀ c↓ c′↑ M⊑M′ r left q right =
+  ⊑conv↑ᵀ c′↑ (conv↓⊑ᵀ c↓ M⊑M′ r left) q right
 
 conv↓⊑conv↓ᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′} →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ↓ˢ B →
-  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ↓ˢ B′ →
+  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A A′ B B′ p c c′ μ μ′
+      α β X X′} →
+  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) →
+  r [ α ↦ X ]ᴸ p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  q [ β ↦ X′ ]ᴿ r →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ ⊢ᴺ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
-conv↓⊑conv↓ᵀ c↓ c′↓ M⊑M′ r q =
-  ⊑conv↓ᵀ c′↓ (conv↓⊑ᵀ c↓ M⊑M′ r) q
+conv↓⊑conv↓ᵀ c↓ c′↓ M⊑M′ r left q right =
+  ⊑conv↓ᵀ c′↓ (conv↓⊑ᵀ c↓ M⊑M′ r left) q right
 
 ------------------------------------------------------------------------
 -- Typing projections
@@ -1029,9 +1086,10 @@ mutual
       (narrow-mode-relax id-only≤tag-or-idᵈ c⊒)
       (nu-term-imprecision-source-typing M⊑M′)
   nu-term-imprecision-source-typing
-      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊑ mode seal★ c⊑ (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
+  nu-term-imprecision-source-typing
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp) =
     nu-term-imprecision-source-typing M⊑M′
   nu-term-imprecision-source-typing
       (⊑cast⊑ᵀ mode′ wfΣ′ seal★′ okΦ′ c′⊑ M⊑M′) =
@@ -1039,13 +1097,17 @@ mutual
   nu-term-imprecision-source-typing
       (⊑cast⊑idᵀ wfΣ′ seal★′ c′⊑ M⊑M′) =
     nu-term-imprecision-source-typing M⊑M′
-  nu-term-imprecision-source-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
-    ⊢⟨⟩↑ c↑ (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (conv↓⊑ᵀ c↓ M⊑M′ q) =
-    ⊢⟨⟩↓ c↓ (nu-term-imprecision-source-typing M⊑M′)
-  nu-term-imprecision-source-typing (⊑conv↑ᵀ c′↑ M⊑M′ q) =
+  nu-term-imprecision-source-typing (conv↑⊑ᵀ c↑ M⊑M′ q replace) =
+    ⊢⟨⟩↑ (reveal-conversion-typing c↑)
+      (nu-term-imprecision-source-typing M⊑M′)
+  nu-term-imprecision-source-typing (conv↓⊑ᵀ c↓ M⊑M′ q replace) =
+    ⊢⟨⟩↓ (conceal-conversion-typing c↓)
+      (nu-term-imprecision-source-typing M⊑M′)
+  nu-term-imprecision-source-typing
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replace) =
     nu-term-imprecision-source-typing M⊑M′
-  nu-term-imprecision-source-typing (⊑conv↓ᵀ c′↓ M⊑M′ q) =
+  nu-term-imprecision-source-typing
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replace) =
     nu-term-imprecision-source-typing M⊑M′
 
   nu-term-imprecision-target-typing (blame⊑ᵀ M′⊢) =
@@ -1113,10 +1175,11 @@ mutual
   nu-term-imprecision-target-typing
       (cast⊒⊑idᵀ wfΣ seal★ c⊒ M⊑M′) =
     nu-term-imprecision-target-typing M⊑M′
-  nu-term-imprecision-target-typing (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+  nu-term-imprecision-target-typing
+      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
     nu-term-imprecision-target-typing M⊑M′
   nu-term-imprecision-target-typing
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c-shape comp) =
     ⊢⟨⟩⊒ mode′ seal★′ c′⊒ (nu-term-imprecision-target-typing M⊑M′)
   nu-term-imprecision-target-typing
       (⊑cast⊑ᵀ mode′ wfΣ′ seal★′ okΦ′ c′⊑ M⊑M′) =
@@ -1126,14 +1189,18 @@ mutual
     ⊢⟨⟩⊑ cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax id-only≤tag-or-idᵈ c′⊑)
       (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing (conv↑⊑ᵀ c↑ M⊑M′ q) =
+  nu-term-imprecision-target-typing (conv↑⊑ᵀ c↑ M⊑M′ q replace) =
     nu-term-imprecision-target-typing M⊑M′
-  nu-term-imprecision-target-typing (conv↓⊑ᵀ c↓ M⊑M′ q) =
+  nu-term-imprecision-target-typing (conv↓⊑ᵀ c↓ M⊑M′ q replace) =
     nu-term-imprecision-target-typing M⊑M′
-  nu-term-imprecision-target-typing (⊑conv↑ᵀ c′↑ M⊑M′ q) =
-    ⊢⟨⟩↑ c′↑ (nu-term-imprecision-target-typing M⊑M′)
-  nu-term-imprecision-target-typing (⊑conv↓ᵀ c′↓ M⊑M′ q) =
-    ⊢⟨⟩↓ c′↓ (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replace) =
+    ⊢⟨⟩↑ (reveal-conversion-typing c′↑)
+      (nu-term-imprecision-target-typing M⊑M′)
+  nu-term-imprecision-target-typing
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replace) =
+    ⊢⟨⟩↓ (conceal-conversion-typing c′↓)
+      (nu-term-imprecision-target-typing M⊑M′)
 
 nu-term-imprecision-typing :
   ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A B}

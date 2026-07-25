@@ -8,10 +8,14 @@ module proof.WorldCoherent.Core.NuImprecisionWorldCoherentTargetInertFrameCatchu
 --   * Contains no implementation, recursive dispatcher, or permissive option.
 
 open import Coercions using (Coercion; Inert; ModeEnv; id-onlyᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import Data.Product using (_×_; ∃-syntax)
 open import Data.Sum using (_⊎_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_; _∣_∣_⊢_∶_⊒_)
 open import NuTermImprecision using (StoreImp; rightStoreⁱ)
 open import NuTerms using (Term; _⟨_⟩)
@@ -32,23 +36,32 @@ WorldCoherentTargetInertFrameCatchupᵀ =
   StoreImpPrefix ρ₀ ρ⁺ →
   Inert c →
   ((∃[ μ ] ∃[ β ] ∃[ X′ ]
-      RevealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X′ c A′ B′)
+      RevealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X′ c A′ B′ ×
+      (p [ β ↦ X′ ]ᴿ q))
    ⊎
    (∃[ μ ] ∃[ β ] ∃[ X′ ]
-      ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X′ c A′ B′)
+      ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀) β X′ c A′ B′ ×
+      (q [ β ↦ X′ ]ᴿ p))
    ⊎
-   (∃[ μ ]
+   (∃[ μ ] ∃[ s ]
       CastMode μ ×
       SealModeStore★ μ (rightStoreⁱ ρ₀) ×
-      (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊒ B′))
+      (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊒ B′) ×
+      (narrowing ⊢ᶜ c ⦂ s) ×
+      (⌊ q ⌋ ； s ≋ ⌊ p ⌋))
    ⊎
-   (∃[ μ ]
+   (∃[ μ ] ∃[ s ]
       CastMode μ ×
       SealModeStore★ μ (rightStoreⁱ ρ₀) ×
-      (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′))
+      (μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′) ×
+      (widening ⊢ᶜ c ⦂ s) ×
+      (⌊ p ⌋ ； s ≋ ⌊ q ⌋))
    ⊎
-   (SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) ×
-    (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′))) →
+   (∃[ s ]
+      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) ×
+      (id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′) ×
+      (widening ⊢ᶜ c ⦂ s) ×
+      (⌊ p ⌋ ； s ≋ ⌊ q ⌋))) →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult

@@ -127,12 +127,27 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-typing-renameⁱ
   ; left-widening-renameⁱ
   ; left-widening-rename-modeⁱ
+  ; modeRename-gen-tag-or-id
   ; right-seal★-left-renameⁱ
   ; right-narrowing-left-renameⁱ
   ; right-typing-left-renameⁱ
   ; right-widening-left-renameⁱ
+  )
+open import proof.Core.Permutation.ForallPermutationProperties using
+  (⊑ᵖ-rename-leftᵢ)
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using
+  ( cast-shape-rename
+  ; shape-rename-left
+  ; shape-subst-source
   ; ⊑-rename-leftᵢ
-  ; ⊑ᵖ-rename-leftᵢ
+  )
+open import
+  proof.Core.Properties.NuImprecisionQuotientBoundaryProperties
+  using
+  ( quotient-arrow-components-rename-left-at
+  ; quotient-boundary-square-rename-left
   )
 open import proof.Core.Properties.NuTermProperties using
   ( renameᵗᵐ-compose
@@ -193,10 +208,15 @@ private
     RelStoreEmbeddingⁱ τ (λ X → X) ρ ρ′
   left-store-rename-embeddingⁱ left-store-rename-[] =
     rel-store-embedding-[]
-  left-store-rename-embeddingⁱ
-      (left-store-rename-matched {B = B} eqα eqA renameρ) =
+  left-store-rename-embeddingⁱ {assm = assm} {hτ = hτ}
+      (left-store-rename-matched {B = B} {p = p}
+        eqα eqA renameρ) =
     rel-store-embedding-matched
       eqα eqA refl (sym (renameᵗ-id B))
+      (trans
+        (shape-subst-source
+          (sym eqA) (⊑-rename-leftᵢ _ assm hτ p))
+        (shape-rename-left assm hτ p))
       (left-store-rename-embeddingⁱ renameρ)
   left-store-rename-embeddingⁱ
       (left-store-rename-left eqα eqA renameρ) =
@@ -207,10 +227,15 @@ private
     rel-store-embedding-right
       refl (sym (renameᵗ-id B))
       (left-store-rename-embeddingⁱ renameρ)
-  left-store-rename-embeddingⁱ
-      (left-store-rename-link {B = B} eqα eqA renameρ) =
+  left-store-rename-embeddingⁱ {assm = assm} {hτ = hτ}
+      (left-store-rename-link {B = B} {p = p}
+        eqα eqA renameρ) =
     rel-store-embedding-link
       eqα eqA refl (sym (renameᵗ-id B))
+      (trans
+        (shape-subst-source
+          (sym eqA) (⊑-rename-leftᵢ _ assm hτ p))
+        (shape-rename-left assm hτ p))
       (left-store-rename-embeddingⁱ renameρ)
 
 
@@ -280,7 +305,8 @@ mutual
       (left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof {τ = τ} {assm = assm} {hτ = hτ}
       ins renameρ renameγ (no•-⟨⟩ noN) (no•-⟨⟩ noN′)
-      (up⊑upᵀ N⊑N′ (quotient-id-widening u⊑ u′⊑) pA) =
+      (up⊑upᵀ N⊑N′ (quotient-id-widening u⊑ u′⊑) pA
+        u-shape u′-shape square) =
     up⊑upᵀ
       (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
@@ -289,11 +315,14 @@ mutual
           (modeRename-id-only τ) renameρ u⊑)
         (right-widening-left-renameⁱ renameρ u′⊑))
       (⊑-rename-leftᵢ τ assm hτ pA)
+      (cast-shape-rename τ u-shape)
+      u′-shape
+      (quotient-boundary-square-rename-left square)
   left-rename-no•ᵀ-proof {τ = τ} {assm = assm} {hτ = hτ}
       ins renameρ renameγ (no•-⟨⟩ noN) (no•-⟨⟩ noN′)
       (up⊑upᵀ N⊑N′
         (quotient-cast-widening mode seal★ u⊑ mode′ seal★′ u′⊑)
-        pA) =
+        pA u-shape u′-shape square) =
     up⊑upᵀ
       (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
@@ -305,6 +334,9 @@ mutual
         (right-seal★-left-renameⁱ renameρ seal★′)
         (right-widening-left-renameⁱ renameρ u′⊑))
       (⊑-rename-leftᵢ τ assm hτ pA)
+      (cast-shape-rename τ u-shape)
+      u′-shape
+      (quotient-boundary-square-rename-left square)
     where
     modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀ-proof ins renameρ renameγ
@@ -328,13 +360,14 @@ mutual
         {τ = τ} {σ = σ} {W = W} {W′ = W′}
         {B = B} {D = D} {s = s}
         prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f assm₀ hτ₀ hσ₀
+        vW noW vW′ noW′ inert body f inst-shape creation-square
+        assm₀ hτ₀ hσ₀
         store-emb₀ eqM eqM′ eqA eqA′ p
         vM final-noM closedM vM′ final-noM′ closedM′ M⊢ M′⊢) =
     Λ⊑instβᵀ
       {τ = λ X → υ (τ X)} {σ = σ}
       prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f
+      vW noW vW′ noW′ inert body f inst-shape creation-square
       (compose-rel-assm²ᵢ assm₀ assm₁)
       (λ X< → hυ (hτ₀ X<))
       hσ₀
@@ -387,45 +420,51 @@ mutual
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-ν noN) (no•-ν noN′)
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-        liftρ liftγ N⊑N′) =
+        liftρ liftγ N⊑N′ replace) =
     left-rename-νᵀ ins renameρ renameγ hA hA′ s↑ s′↑
       A⊑A′ A⇑⊑A′⇑ liftρ liftγ
+      replace
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-ν noN) noN′
-      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′) =
+      (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace) =
     left-rename-ν⊑ᵀ ins renameρ renameγ hA h⇑A s↑
-      liftρ liftγ
+      liftρ liftγ replace
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       noN (no•-ν noN′)
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′
+        replace) =
     left-rename-⊑νᵀ renameρ renameγ hA h⇑A s↑
-      liftρ liftγ B⊑C′
+      liftρ liftγ B⊑C′ replace
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-ν noN) (no•-ν noN′)
       (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′) =
+        compat liftρ liftγ N⊑N′
+        s-shape s′-shape left-comp right-comp) =
     left-rename-νcastᵀ ins renameρ renameγ mode seal★
-      mode′ seal★′ s⊑ s′⊑ compat liftρ liftγ
+      mode′ seal★′ s⊑ s-shape s′⊑ s′-shape compat
+      left-comp right-comp liftρ liftγ
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′) =
+      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
+        s-shape comp) =
     left-rename-νcast⊑ᵀ ins renameρ renameγ mode seal★
-      s⊑ liftρ liftγ
+      s⊑ s-shape comp liftρ liftγ
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       noN (no•-ν noN′)
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′) =
+      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
+        s-shape comp) =
     left-rename-⊑νcastᵀ renameρ renameγ mode seal★
-      s⊑ liftρ liftγ B⊑C′
+      s⊑ s-shape liftρ liftγ B⊑C′ comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′ κ⊑κᵀ =
@@ -454,34 +493,39 @@ mutual
     modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-⟨⟩ noM) noM′
-      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q) =
+      (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp) =
     left-rename-cast⊒⊑ᵀ
       (left-insertion-cast-renamer ins) renameρ mode seal★ c⊒
+      c-shape comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-⟨⟩ noM) noM′
-      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q) =
+      (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp) =
     left-rename-cast⊑⊑ᵀ
       (left-insertion-cast-renamer ins) renameρ mode seal★ c⊑
+      c-shape comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       noM (no•-⟨⟩ noM′)
-      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q) =
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c′-shape comp) =
     left-rename-⊑cast⊒ᵀ renameρ mode′ seal★′ c′⊒
+      c′-shape comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       noM (no•-⟨⟩ noM′)
-      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c′-shape comp) =
     left-rename-⊑cast⊑ᵀ renameρ mode′ seal★′ c′⊑
+      c′-shape comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       noM (no•-⟨⟩ noM′)
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q) =
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp) =
     left-rename-⊑cast⊑idᵀ renameρ seal★′ c′⊑
+      c′-shape comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
@@ -491,85 +535,133 @@ mutual
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
   left-rename-no•ᵀ-proof ins renameρ renameγ
-      (no•-⟨⟩ noM) noM′ (conv↑⊑ᵀ c↑ M⊑M′ q) =
+      (no•-⟨⟩ noM) noM′
+      (conv↑⊑ᵀ c↑ M⊑M′ q replacement) =
     left-rename-conv↑⊑ᵀ ins renameρ c↑
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      replacement
   left-rename-no•ᵀ-proof ins renameρ renameγ
-      (no•-⟨⟩ noM) noM′ (conv↓⊑ᵀ c↓ M⊑M′ q) =
+      (no•-⟨⟩ noM) noM′
+      (conv↓⊑ᵀ c↓ M⊑M′ q replacement) =
     left-rename-conv↓⊑ᵀ ins renameρ c↓
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      replacement
   left-rename-no•ᵀ-proof ins renameρ renameγ
-      noM (no•-⟨⟩ noM′) (⊑conv↑ᵀ c′↑ M⊑M′ q) =
+      noM (no•-⟨⟩ noM′)
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replacement) =
     left-rename-⊑conv↑ᵀ renameρ c′↑
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      replacement
   left-rename-no•ᵀ-proof ins renameρ renameγ
-      noM (no•-⟨⟩ noM′) (⊑conv↓ᵀ c′↓ M⊑M′ q) =
+      noM (no•-⟨⟩ noM′)
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replacement) =
     left-rename-⊑conv↓ᵀ renameρ c′↓
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      replacement
 
-  left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
+  left-rename-no•ᵀᵖ-proof
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-      (down⊑downᵀ d⊒ d′⊒ M⊑M′ q) =
-    left-rename-down⊑downᵀ renameρ d⊒ d′⊒
+      (down⊑downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square) =
+    down⊑downᵀ
+      (left-narrowing-rename-modeⁱ
+        (modeRename-id-only τ) renameρ d⊒)
+      (cast-shape-rename τ d-shape)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
-  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+      (⊑ᵖ-rename-leftᵢ τ assm hτ q)
+      (quotient-boundary-square-rename-left square)
+  left-rename-no•ᵀᵖ-proof
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-      (gen-down⊑gen-downᵀ d⊒ d′⊒ M⊑M′ q) =
-    left-rename-gen-down⊑gen-downᵀ renameρ d⊒ d′⊒
+      (gen-down⊑gen-downᵀ
+        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square) =
+    gen-down⊑gen-downᵀ
+      (left-narrowing-rename-modeⁱ
+        (modeRename-gen-tag-or-id τ) renameρ d⊒)
+      (cast-shape-rename τ d-shape)
+      (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
-  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+      (⊑ᵖ-rename-leftᵢ τ assm hτ q)
+      (quotient-boundary-square-rename-left square)
+  left-rename-no•ᵀᵖ-proof
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
       (ordinary-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ square) =
     ordinary-down-applicationᵖᵀ
       (CastModeRenamer.target-mode modeτ mode)
       (left-seal★-renameⁱ modeτ renameρ mode seal★)
       (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      (cast-shape-rename τ d-shape)
       mode′
       (right-seal★-left-renameⁱ renameρ seal★′)
       (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noL noL′ L⊑L′)
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      (quotient-boundary-square-rename-left square)
     where
     modeτ = left-insertion-cast-renamer ins
   left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
-      (quotient-id-down-applicationᵖᵀ
-        d⊒ d′⊒ L⊑L′ M⊑M′) =
+      (quotient-id-down-applicationᵖᵀ {qF = qF}
+        d⊒ d-shape d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     quotient-id-down-applicationᵖᵀ
       (left-narrowing-rename-modeⁱ
         (modeRename-id-only τ) renameρ d⊒)
+      (cast-shape-rename τ d-shape)
       (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
       (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
         noL noL′ L⊑L′)
+      (quotient-arrow-components-rename-left-at
+        {qF = qF} components)
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
-  left-rename-no•ᵀᵖ-proof ins renameρ renameγ
+      (quotient-boundary-square-rename-left square)
+  left-rename-no•ᵀᵖ-proof {τ = τ} ins renameρ renameγ
       (no•-· noL (no•-⟨⟩ noM))
       (no•-· noL′ (no•-⟨⟩ noM′))
-      (quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ mode′ seal★′ d′⊒ L⊑L′ M⊑M′) =
+      (quotient-down-applicationᵖᵀ {qF = qF}
+        mode seal★ d⊒ d-shape
+        mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ components M⊑M′ square) =
     quotient-down-applicationᵖᵀ
       (CastModeRenamer.target-mode modeτ mode)
       (left-seal★-renameⁱ modeτ renameρ mode seal★)
       (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
+      (cast-shape-rename τ d-shape)
       mode′
       (right-seal★-left-renameⁱ renameρ seal★′)
       (right-narrowing-left-renameⁱ renameρ d′⊒)
+      d′-shape
       (left-rename-no•ᵀᵖ-proof ins renameρ renameγ
         noL noL′ L⊑L′)
+      (quotient-arrow-components-rename-left-at
+        {qF = qF} components)
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
+      (quotient-boundary-square-rename-left square)
     where
     modeτ = left-insertion-cast-renamer ins
 

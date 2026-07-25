@@ -33,21 +33,25 @@ quotiented-target-value-excludes-source-application-proofᵀ
     (allocation-prefixᵀ prefix inner source⊢ target⊢) vV =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner) ()
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) ()
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner) ()
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
+      s-shape comp) ()
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑cast⊒ᵀ mode seal★ c⊒ inner q) (vV ⟨ inert ⟩) =
+    (⊑cast⊒ᵀ mode seal★ c⊒ inner q c-shape comp)
+    (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑cast⊑ᵀ mode seal★ c⊑ inner q) (vV ⟨ inert ⟩) =
+    (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp)
+    (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q) (vV ⟨ inert ⟩) =
+    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp)
+    (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑conv↑ᵀ c↑ inner q) (vV ⟨ inert ⟩) =
+    (⊑conv↑ᵀ c↑ inner q replace) (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑conv↓ᵀ c↓ inner q) (vV ⟨ inert ⟩) =
+    (⊑conv↓ᵀ c↓ inner q replace) (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV

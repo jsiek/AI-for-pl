@@ -7,6 +7,7 @@ module proof.Left.SilentTransport.NuImprecisionLeftSilentPairedWideningTransport
 --   * Exports only the frozen paired-widening transport proof.
 
 open import Agda.Builtin.Equality using (refl)
+open import Data.Product using (_,_)
 
 open import Coercions using (Coercion; id-only≤tag-or-idᵈ)
 open import ImprecisionWf using (ImpCtx)
@@ -33,13 +34,19 @@ open import
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; left-silent-invariant
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
   ; sourceChanges
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
+  )
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
   )
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyCoercions-preserves-Inert)
@@ -49,58 +56,96 @@ open import Types using (Ty; TyCtx)
 left-silent-paired-widening-compatible-transportᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {M M′ : Term} {C C′ B A′ : Ty}
-    {c c′ : Coercion} →
+    {M M′ : Term} {C C′ A A′ B B′ : Ty}
+    {c c′ : Coercion} {p q s s′} →
   (inner : WeakOneStepResult ρ M M′ C C′ keep) →
   LeftSilentInvariant inner →
-  PairedWideningCompatible Φ Δᴸ Δᴿ c c′ B A′ →
+  (coherent : WeakOneStepTypeCoherence inner) →
+  PairedWideningCompatible
+    Φ Δᴸ Δᴿ c c′ {A} {A′} {B} {B′} p q s s′ →
   PairedWideningCompatible
     (resultCtx inner)
     (resultLeftCtx inner)
     (resultRightCtx inner)
     (applyCoercions (sourceChanges inner) c)
     (applyCoercions (targetTailChanges inner) (applyCoercion keep c′))
-    (applyTys (sourceChanges inner) B)
-    (applyTys (targetTailChanges inner) (applyTy keep A′))
+    (transportType inner p)
+    (transportType inner q)
+    s s′
 left-silent-paired-widening-compatible-transportᵀ
-    inner silent (compatible-source-inert inert) =
+    inner silent coherent (compatible-source-inert inert) =
   compatible-source-inert
     (applyCoercions-preserves-Inert (sourceChanges inner) inert)
 left-silent-paired-widening-compatible-transportᵀ
-    inner (left-silent-invariant refl refl)
-    (compatible-target-inert-bridge bridge) =
-  compatible-target-inert-bridge
-    (λ target-inert → transportType inner (bridge target-inert))
+    inner (left-silent-invariant refl refl) coherent
+    (compatible-target-inert-bridge bridge-evidence) =
+  compatible-target-inert-bridge λ target-inert →
+    let
+      bridge , source-triangle , target-triangle =
+        bridge-evidence target-inert
+    in
+      transportType inner bridge ,
+      imprecision-composition-shape-transport
+        refl (transportShapeCoherent coherent bridge)
+        (transportShapeCoherent coherent _) source-triangle ,
+      imprecision-composition-shape-transport
+        (transportShapeCoherent coherent bridge) refl
+        (transportShapeCoherent coherent _) target-triangle
 
 
 left-silent-paired-widening-transport-proofᵀ :
   LeftSilentPairedWideningTransportᵀ
 left-silent-paired-widening-transport-proofᵀ
     prefix inner (left-silent-invariant refl refl)
-    mode seal★ c⊑ mode′ seal★′ c′⊑ compat
+    coherent
+    mode seal★ c⊑ c-shape
+    mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compat
     with weak-one-step-transport-quotient-widening-pairᵀ
       prefix inner (left-silent-invariant refl refl)
       (quotient-cast-widening
         mode seal★ c⊑ mode′ seal★′ c′⊑)
 left-silent-paired-widening-transport-proofᵀ
     prefix inner (left-silent-invariant refl refl)
-    mode seal★ c⊑ mode′ seal★′ c′⊑ compat
+    coherent
+    mode seal★ c⊑ c-shape
+    mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compat
     | quotient-id-widening transported-c⊑ transported-c′⊑ =
   paired-widening
     cast-tag-or-id seal★-tag-or-id
     (widen-mode-relax id-only≤tag-or-idᵈ transported-c⊑)
+    (cast-shape-applyCoercions
+      (sourceChanges inner) c-shape)
     cast-tag-or-id seal★-tag-or-id
     (widen-mode-relax id-only≤tag-or-idᵈ transported-c′⊑)
+    (cast-shape-applyCoercions
+      (targetTailChanges inner) c′-shape)
+    (imprecision-composition-shape-transport
+      refl (transportShapeCoherent coherent _) refl left-square)
+    (imprecision-composition-shape-transport
+      (transportShapeCoherent coherent _) refl refl right-square)
     (left-silent-paired-widening-compatible-transportᵀ
-      inner (left-silent-invariant refl refl) compat)
+      inner (left-silent-invariant refl refl) coherent compat)
 left-silent-paired-widening-transport-proofᵀ
     prefix inner (left-silent-invariant refl refl)
-    mode seal★ c⊑ mode′ seal★′ c′⊑ compat
+    coherent
+    mode seal★ c⊑ c-shape
+    mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compat
     | quotient-cast-widening
         transported-mode transported-seal★ transported-c⊑
         transported-mode′ transported-seal★′ transported-c′⊑ =
   paired-widening
     transported-mode transported-seal★ transported-c⊑
+    (cast-shape-applyCoercions
+      (sourceChanges inner) c-shape)
     transported-mode′ transported-seal★′ transported-c′⊑
+    (cast-shape-applyCoercions
+      (targetTailChanges inner) c′-shape)
+    (imprecision-composition-shape-transport
+      refl (transportShapeCoherent coherent _) refl left-square)
+    (imprecision-composition-shape-transport
+      (transportShapeCoherent coherent _) refl refl right-square)
     (left-silent-paired-widening-compatible-transportᵀ
-      inner (left-silent-invariant refl refl) compat)
+      inner (left-silent-invariant refl refl) coherent compat)

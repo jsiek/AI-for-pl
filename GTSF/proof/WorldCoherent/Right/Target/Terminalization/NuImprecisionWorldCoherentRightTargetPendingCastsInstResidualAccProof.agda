@@ -94,23 +94,25 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ :
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     vW access
-    (inj₁ (μ′ , β , X′ , ()))
+    (inj₁ (μ′ , β , X′ , () , replacement))
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     vW access
-    (inj₂ (inj₁ (μ′ , β , X′ , ())))
+    (inj₂ (inj₁ (μ′ , β , X′ , () , replacement)))
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     vW access
     (inj₂ (inj₂ (inj₁
-      (μ′ , mode , seal★ ,
-       C.cast-inst hB occ s⊢ , NW.cross ()))))
+      (μ′ , shape , mode , seal★ ,
+       (C.cast-inst hB occ s⊢ , NW.cross ()) ,
+       c-shape , composition))))
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     allocation prepend
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₁
-      (μ′ , mode , seal★ , widening)))))
+      (μ′ , shape , mode , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     with smaller
@@ -121,7 +123,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₁
-      (μ′ , mode , seal★ , widening)))))
+      (μ′ , shape , mode , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     | acc smaller-nu
@@ -129,7 +132,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
       (smaller-nu
         (successor-rank-decrease
           (target-nu-rank-decreases vW s cs)))
-      mode seal★ widening tail coherent exclusive unique wfR
+      mode seal★ widening c-shape composition
+      tail coherent exclusive unique wfR
       (apply-pending-runtime cs (ok-ν (ok-no noW)))
       vV noV noW relation
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
@@ -137,7 +141,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₁
-      (μ′ , mode , seal★ , widening)))))
+      (μ′ , shape , mode , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     | acc smaller-nu
@@ -151,7 +156,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₂
-      (seal★ , widening)))))
+      (shape , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     with smaller
@@ -162,7 +168,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₂
-      (seal★ , widening)))))
+      (shape , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     | acc smaller-nu
@@ -172,7 +179,7 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
           (target-nu-rank-decreases vW s cs)))
       cast-tag-or-id seal★-tag-or-id
       (widen-mode-relax C.id-only≤tag-or-idᵈ widening)
-      tail coherent exclusive unique wfR
+      c-shape composition tail coherent exclusive unique wfR
       (apply-pending-runtime cs (ok-ν (ok-no noW)))
       vV noV noW relation
 world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
@@ -180,7 +187,8 @@ world-coherent-right-target-pending-casts-inst-residual-acc-proofᵀ
     {B = B} {s = s} {cs = cs}
     vW (acc smaller)
     (inj₂ (inj₂ (inj₂ (inj₂
-      (seal★ , widening)))))
+      (shape , seal★ , widening ,
+       c-shape , composition)))))
     tail coherent exclusive unique wfR runtime
     vV noV noW relation
     | acc smaller-nu

@@ -57,6 +57,7 @@ rel-store-embedding-reflⁱ
     {ρ = store-matched α A β B p ∷ ρ} =
   rel-store-embedding-matched
     refl (sym (renameᵗ-id A)) refl (sym (renameᵗ-id B))
+    refl
     rel-store-embedding-reflⁱ
 rel-store-embedding-reflⁱ
     {ρ = store-left α A hA ∷ ρ} =
@@ -70,6 +71,7 @@ rel-store-embedding-reflⁱ
     {ρ = store-link α A β B p ∷ ρ} =
   rel-store-embedding-link
     refl (sym (renameᵗ-id A)) refl (sym (renameᵗ-id B))
+    refl
     rel-store-embedding-reflⁱ
 
 
@@ -81,8 +83,9 @@ lift-store-embeddingⁱ :
   RelStoreEmbeddingⁱ suc suc ρ ρ′
 lift-store-embeddingⁱ lift-store-[] =
   rel-store-embedding-[]
-lift-store-embeddingⁱ (lift-store-∷ liftρ) =
+lift-store-embeddingⁱ (lift-store-∷ shape-eq liftρ) =
   rel-store-embedding-matched refl refl refl refl
+    shape-eq
     (lift-store-embeddingⁱ liftρ)
 lift-store-embeddingⁱ (lift-store-left liftρ) =
   rel-store-embedding-left refl refl
@@ -90,8 +93,9 @@ lift-store-embeddingⁱ (lift-store-left liftρ) =
 lift-store-embeddingⁱ (lift-store-right liftρ) =
   rel-store-embedding-right refl refl
     (lift-store-embeddingⁱ liftρ)
-lift-store-embeddingⁱ (lift-store-link liftρ) =
+lift-store-embeddingⁱ (lift-store-link shape-eq liftρ) =
   rel-store-embedding-link refl refl refl refl
+    shape-eq
     (lift-store-embeddingⁱ liftρ)
 
 
@@ -104,9 +108,10 @@ lift-left-store-embeddingⁱ :
 lift-left-store-embeddingⁱ lift-left-store-[] =
   rel-store-embedding-[]
 lift-left-store-embeddingⁱ
-    (lift-left-store-∷ {B = B} liftρ) =
+    (lift-left-store-∷ {B = B} shape-eq liftρ) =
   rel-store-embedding-matched
     refl refl refl (sym (renameᵗ-id B))
+    shape-eq
     (lift-left-store-embeddingⁱ liftρ)
 lift-left-store-embeddingⁱ (lift-left-store-left liftρ) =
   rel-store-embedding-left refl refl
@@ -116,9 +121,10 @@ lift-left-store-embeddingⁱ
   rel-store-embedding-right refl (sym (renameᵗ-id B))
     (lift-left-store-embeddingⁱ liftρ)
 lift-left-store-embeddingⁱ
-    (lift-left-store-link {B = B} liftρ) =
+    (lift-left-store-link {B = B} shape-eq liftρ) =
   rel-store-embedding-link
     refl refl refl (sym (renameᵗ-id B))
+    shape-eq
     (lift-left-store-embeddingⁱ liftρ)
 
 
@@ -131,9 +137,10 @@ lift-right-store-embeddingⁱ :
 lift-right-store-embeddingⁱ lift-right-store-[] =
   rel-store-embedding-[]
 lift-right-store-embeddingⁱ
-    (lift-right-store-∷ {A = A} liftρ) =
+    (lift-right-store-∷ {A = A} shape-eq liftρ) =
   rel-store-embedding-matched
     refl (sym (renameᵗ-id A)) refl refl
+    shape-eq
     (lift-right-store-embeddingⁱ liftρ)
 lift-right-store-embeddingⁱ
     (lift-right-store-left {A = A} liftρ) =
@@ -143,9 +150,10 @@ lift-right-store-embeddingⁱ (lift-right-store-right liftρ) =
   rel-store-embedding-right refl refl
     (lift-right-store-embeddingⁱ liftρ)
 lift-right-store-embeddingⁱ
-    (lift-right-store-link {A = A} liftρ) =
+    (lift-right-store-link {A = A} shape-eq liftρ) =
   rel-store-embedding-link
     refl (sym (renameᵗ-id A)) refl refl
+    shape-eq
     (lift-right-store-embeddingⁱ liftρ)
 
 
@@ -160,12 +168,14 @@ rel-store-embedding-congⁱ :
 rel-store-embedding-congⁱ eqτ eqσ rel-store-embedding-[] =
   rel-store-embedding-[]
 rel-store-embedding-congⁱ eqτ eqσ
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb) =
+    (rel-store-embedding-matched
+      eqα eqA eqβ eqB shape-eq emb) =
   rel-store-embedding-matched
     (trans eqα (eqτ _))
     (trans eqA (rename-cong eqτ _))
     (trans eqβ (eqσ _))
     (trans eqB (rename-cong eqσ _))
+    shape-eq
     (rel-store-embedding-congⁱ eqτ eqσ emb)
 rel-store-embedding-congⁱ eqτ eqσ
     (rel-store-embedding-left eqα eqA emb) =
@@ -180,12 +190,14 @@ rel-store-embedding-congⁱ eqτ eqσ
     (trans eqB (rename-cong eqσ _))
     (rel-store-embedding-congⁱ eqτ eqσ emb)
 rel-store-embedding-congⁱ eqτ eqσ
-    (rel-store-embedding-link eqα eqA eqβ eqB emb) =
+    (rel-store-embedding-link
+      eqα eqA eqβ eqB shape-eq emb) =
   rel-store-embedding-link
     (trans eqα (eqτ _))
     (trans eqA (rename-cong eqτ _))
     (trans eqβ (eqσ _))
     (trans eqB (rename-cong eqσ _))
+    shape-eq
     (rel-store-embedding-congⁱ eqτ eqσ emb)
 
 
@@ -201,10 +213,12 @@ rel-store-embedding-prefix-invⁱ :
 rel-store-embedding-prefix-invⁱ prefix-reflⁱ emb =
   _ , emb , prefix-reflⁱ
 rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb)
+    (rel-store-embedding-matched
+      eqα eqA eqβ eqB shape-eq emb)
     with rel-store-embedding-prefix-invⁱ prefix emb
 rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched eqα eqA eqβ eqB emb)
+    (rel-store-embedding-matched
+      eqα eqA eqβ eqB shape-eq emb)
     | ρ₀′ , emb₀ , prefix′ =
   ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
 rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
@@ -222,10 +236,12 @@ rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
     | ρ₀′ , emb₀ , prefix′ =
   ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
 rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link eqα eqA eqβ eqB emb)
+    (rel-store-embedding-link
+      eqα eqA eqβ eqB shape-eq emb)
     with rel-store-embedding-prefix-invⁱ prefix emb
 rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link eqα eqA eqβ eqB emb)
+    (rel-store-embedding-link
+      eqα eqA eqβ eqB shape-eq emb)
     | ρ₀′ , emb₀ , prefix′ =
   ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
 
@@ -264,13 +280,16 @@ rel-store-embedding-composeⁱ
 rel-store-embedding-composeⁱ
     {τ = τ} {σ = σ} {υ = υ} {ω = ω}
     (rel-store-embedding-matched
-      {A = A} {B = B} eqα₁ eqA₁ eqβ₁ eqB₁ emb₁)
-    (rel-store-embedding-matched eqα₂ eqA₂ eqβ₂ eqB₂ emb₂) =
+      {A = A} {B = B}
+      eqα₁ eqA₁ eqβ₁ eqB₁ shape-eq₁ emb₁)
+    (rel-store-embedding-matched
+      eqα₂ eqA₂ eqβ₂ eqB₂ shape-eq₂ emb₂) =
   rel-store-embedding-matched
     (renamed-name-compose {τ = τ} {υ = υ} eqα₁ eqα₂)
     (renamed-type-compose τ υ {A = A} eqA₁ eqA₂)
     (renamed-name-compose {τ = σ} {υ = ω} eqβ₁ eqβ₂)
     (renamed-type-compose σ ω {A = B} eqB₁ eqB₂)
+    (trans shape-eq₂ shape-eq₁)
     (rel-store-embedding-composeⁱ emb₁ emb₂)
 rel-store-embedding-composeⁱ
     {τ = τ} {υ = υ}
@@ -291,11 +310,14 @@ rel-store-embedding-composeⁱ
 rel-store-embedding-composeⁱ
     {τ = τ} {σ = σ} {υ = υ} {ω = ω}
     (rel-store-embedding-link
-      {A = A} {B = B} eqα₁ eqA₁ eqβ₁ eqB₁ emb₁)
-    (rel-store-embedding-link eqα₂ eqA₂ eqβ₂ eqB₂ emb₂) =
+      {A = A} {B = B}
+      eqα₁ eqA₁ eqβ₁ eqB₁ shape-eq₁ emb₁)
+    (rel-store-embedding-link
+      eqα₂ eqA₂ eqβ₂ eqB₂ shape-eq₂ emb₂) =
   rel-store-embedding-link
     (renamed-name-compose {τ = τ} {υ = υ} eqα₁ eqα₂)
     (renamed-type-compose τ υ {A = A} eqA₁ eqA₂)
     (renamed-name-compose {τ = σ} {υ = ω} eqβ₁ eqβ₂)
     (renamed-type-compose σ ω {A = B} eqB₁ eqB₂)
+    (trans shape-eq₂ shape-eq₁)
     (rel-store-embedding-composeⁱ emb₁ emb₂)

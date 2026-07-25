@@ -9,17 +9,22 @@ module proof.Compilation.CompileTermImprecision where
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
-open import Data.List.Membership.Propositional using (_∈_)
-open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Product using (_,_; proj₁)
+open import Data.Product using (_,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using
   (cong₂; subst; sym; trans)
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷)
 open import Coercions using (id-onlyᵈ; id-only≤tag-or-idᵈ)
+open import CastImprecisionShape using
+  ( narrowing
+  ; widening
+  ; shape-id-star
+  ; shape-fun
+  ; shape-untag-fun
+  ; _⊢ᶜ_⦂_
+  )
 open import Conversion using (reveal↑)
 open import Compile using
   ( CastPlan
@@ -28,11 +33,16 @@ open import Compile using
   ; compileᵀ-value
   ; consistency-cast-plan
   ; dynamic-application-function-consistent
+  ; down
   ; down⊒
+  ; down-shape
   ; lower
   ; lower-selected
+  ; lower⊑source
   ; lower⊑target
+  ; up
   ; up⊑
+  ; up-shape
   ; ν-reveal-conversion
   ; seal★-tag-or-id
   )
@@ -62,44 +72,48 @@ import Imprecision as Imp
 open import Imprecision using () renaming (idι to idιᴵ; ν to νᴵ)
 open import ImprecisionWf
   using
-    ( ImpAssm
-    ; ImpCtx
+    ( ImpCtx
     ; _ˣ⊑★
     ; _ˣ⊑ˣ_
     ; ⇑ᵢ
     ; ⇑ᴸᵢ
     ; _∣_⊢_⊑_⊣_
     )
+open import ImprecisionComposition using
+  ( ⌊_⌋
+  ; id★ˢ
+  ; _↦ˢ_
+  ; tag_⇛ˢ_
+  ; comp-↦-↦
+  ; comp-↦-tag
+  ; _；⌊_⌋≋ᵖ_；_
+  )
 open import NuTerms using (Term)
 open import NarrowWiden using (narrow-mode-relax; widen-mode-relax)
 open import Primitives using (Prim; addℕ; κℕ)
 open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( shape-lift∀ᵢ
+  ; shape-source-liftνᵢ
+  )
+open import proof.Core.Properties.ImprecisionCompositionProperties using
+  (compose-target-star-right-id★)
 open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 open import proof.Core.Properties.ImprecisionProperties using
-  ( ⇑ᵢ-ˣ∈
-  ; ⇑ᵢ-★∈
-  ; ⇑ᴸᵢ-∈
-  ; un⇑ᵢ-ˣ∈
-  ; un⇑ᵢ-★∈
-  ; no-⇑ᵢ-zero-left
-  ; no-⇑ᵢ-zero-right
-  ; no-⇑ᵢ-zero-star
-  ; un⇑ᴸᵢ-ˣ∈
-  ; no-⇑ᴸᵢ-zero-left
-  ; ~-sym
+  ( ~-sym
   ; ⊑-base-inv-idᵢ
   ; ⊑-forall-base-⊥
   ; ⊑-refl-idᵢ
   )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleQuotient using
   (MLB-monotoneᵖ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-forgetᵢ)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  ( ⊑-forgetᵢ
+  ; ⊑-lift∀ᵢ
+  ; ⊑-source-liftνᵢ
+  )
 open import proof.Core.Properties.TypeProperties using
-  ( TyRenameWf
-  ; TyRenameWf-ext
-  ; TyRenameWf-suc
-  ; occurs-zero-rename-ext
-  ; renameᵗ-id
+  ( TyRenameWf-suc
   ; renameᵗ-preserves-WfTy
   )
 open import TermTyping using (SealModeStore★; cast-tag-or-id)
@@ -184,8 +198,8 @@ ctxImpToNu-lift :
   GTI.LiftCtxⁱ Ψ γ γ′ →
   NTI.LiftCtxⁱ Ψ (ctxImpToNu γ) (ctxImpToNu γ′)
 ctxImpToNu-lift GTI.lift-[] = NTI.lift-ctx-[]
-ctxImpToNu-lift (GTI.lift-∷ liftγ) =
-  NTI.lift-ctx-∷ (ctxImpToNu-lift liftγ)
+ctxImpToNu-lift (GTI.lift-∷ shape liftγ) =
+  NTI.lift-ctx-∷ shape (ctxImpToNu-lift liftγ)
 
 ctxImpToNu-lift-left :
   ∀ {Φ Δᴸ Δᴿ Ψ}
@@ -194,161 +208,12 @@ ctxImpToNu-lift-left :
   GTI.LiftLeftCtxⁱ Ψ γ γ′ →
   NTI.LiftLeftCtxⁱ Ψ (ctxImpToNu γ) (ctxImpToNu γ′)
 ctxImpToNu-lift-left GTI.lift-left-[] = NTI.lift-left-ctx-[]
-ctxImpToNu-lift-left (GTI.lift-left-∷ liftγ) =
-  NTI.lift-left-ctx-∷ (ctxImpToNu-lift-left liftγ)
+ctxImpToNu-lift-left (GTI.lift-left-∷ shape liftγ) =
+  NTI.lift-left-ctx-∷ shape (ctxImpToNu-lift-left liftγ)
 
 ------------------------------------------------------------------------
 -- Type-imprecision lifting for ν compilation
 ------------------------------------------------------------------------
-
-renameImpAssm : Renameᵗ → Renameᵗ → ImpAssm → ImpAssm
-renameImpAssm ρ σ (X ˣ⊑★) = ρ X ˣ⊑★
-renameImpAssm ρ σ (X ˣ⊑ˣ Y) = ρ X ˣ⊑ˣ σ Y
-
-un⇑ᴸᵢ-★∈ :
-  ∀ {Φ X} →
-  (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ →
-  (X ˣ⊑★) ∈ Φ
-un⇑ᴸᵢ-★∈ {Φ = []} ()
-un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
-  there (un⇑ᴸᵢ-★∈ x∈)
-un⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
-  there (un⇑ᴸᵢ-★∈ x∈)
-
-⇑ᴸᵢ-ˣ∈ :
-  ∀ {Φ X Y} →
-  (X ˣ⊑ˣ Y) ∈ Φ →
-  (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
-⇑ᴸᵢ-ˣ∈ {Φ = []} ()
-⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
-  there (⇑ᴸᵢ-ˣ∈ x∈)
-⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-⇑ᴸᵢ-ˣ∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
-  there (⇑ᴸᵢ-ˣ∈ x∈)
-
-⇑ᴸᵢ-★∈ :
-  ∀ {Φ X} →
-  (X ˣ⊑★) ∈ Φ →
-  (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ
-⇑ᴸᵢ-★∈ {Φ = []} ()
-⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
-  there (⇑ᴸᵢ-★∈ x∈)
-⇑ᴸᵢ-★∈ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
-  there (⇑ᴸᵢ-★∈ x∈)
-
-no-⇑ᴸᵢ-zero-star :
-  ∀ {Φ} →
-  (zero ˣ⊑★) ∈ ⇑ᴸᵢ Φ →
-  ⊥
-no-⇑ᴸᵢ-zero-star {Φ = []} ()
-no-⇑ᴸᵢ-zero-star {Φ = (_ ˣ⊑★) ∷ Φ} (there x∈) =
-  no-⇑ᴸᵢ-zero-star x∈
-no-⇑ᴸᵢ-zero-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there x∈) =
-  no-⇑ᴸᵢ-zero-star x∈
-
-renameImpAssm-⇑ᵢ :
-  ∀ {ρ σ Φ Ψ} →
-  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
-  ∀ {a} →
-  a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ →
-  renameImpAssm (extᵗ ρ) (extᵗ σ) a ∈
-    (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑★} (here ())
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑★} (there a∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star a∈)
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑★} (here ())
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑★} (there a∈) =
-  there (⇑ᵢ-★∈ (h (un⇑ᵢ-★∈ a∈)))
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (here refl) = here refl
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ zero} (there a∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left a∈)
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (here ())
-renameImpAssm-⇑ᵢ h {a = zero ˣ⊑ˣ suc Y} (there a∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left a∈)
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (here ())
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ zero} (there a∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right a∈)
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (here ())
-renameImpAssm-⇑ᵢ h {a = suc X ˣ⊑ˣ suc Y} (there a∈) =
-  there (⇑ᵢ-ˣ∈ (h (un⇑ᵢ-ˣ∈ a∈)))
-
-renameImpAssm-⇑ᴸᵢ :
-  ∀ {ρ σ Φ Ψ} →
-  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
-  ∀ {a} →
-  a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ →
-  renameImpAssm (extᵗ ρ) σ a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ
-renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑★} (here refl) = here refl
-renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑★} (there a∈) =
-  ⊥-elim (no-⇑ᴸᵢ-zero-star a∈)
-renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑★} (here ())
-renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑★} (there a∈) =
-  there (⇑ᴸᵢ-★∈ (h (un⇑ᴸᵢ-★∈ a∈)))
-renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (here ())
-renameImpAssm-⇑ᴸᵢ h {a = zero ˣ⊑ˣ Y} (there a∈) =
-  ⊥-elim (no-⇑ᴸᵢ-zero-left a∈)
-renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (here ())
-renameImpAssm-⇑ᴸᵢ h {a = suc X ˣ⊑ˣ Y} (there a∈) =
-  there (⇑ᴸᵢ-ˣ∈ (h (un⇑ᴸᵢ-ˣ∈ a∈)))
-
-TyRenameWf-id :
-  ∀ {Δ} →
-  TyRenameWf Δ Δ (λ X → X)
-TyRenameWf-id X<Δ = X<Δ
-
-imp-renameᵗ :
-  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ Δᴿ′ ρ σ A B} →
-  (∀ {a} → a ∈ Φ → renameImpAssm ρ σ a ∈ Ψ) →
-  TyRenameWf Δᴸ Δᴸ′ ρ →
-  TyRenameWf Δᴿ Δᴿ′ σ →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  Ψ ∣ Δᴸ′ ⊢ renameᵗ ρ A ⊑ renameᵗ σ B ⊣ Δᴿ′
-imp-renameᵗ h hρ hσ IWF.id★ = IWF.id★
-imp-renameᵗ h hρ hσ (IWF.idˣ x∈ X<Δᴸ Y<Δᴿ) =
-  IWF.idˣ (h x∈) (hρ X<Δᴸ) (hσ Y<Δᴿ)
-imp-renameᵗ h hρ hσ IWF.idι = IWF.idι
-imp-renameᵗ h hρ hσ (p IWF.↦ q) =
-  imp-renameᵗ h hρ hσ p IWF.↦ imp-renameᵗ h hρ hσ q
-imp-renameᵗ h hρ hσ (IWF.∀ⁱ p) =
-  IWF.∀ⁱ (imp-renameᵗ (renameImpAssm-⇑ᵢ h)
-    (TyRenameWf-ext hρ) (TyRenameWf-ext hσ) p)
-imp-renameᵗ h hρ hσ (IWF.tag ι) = IWF.tag ι
-imp-renameᵗ h hρ hσ (IWF.tag p ⇛ q) =
-  IWF.tag (imp-renameᵗ h hρ hσ p) ⇛ imp-renameᵗ h hρ hσ q
-imp-renameᵗ h hρ hσ (IWF.tagˣ x∈ X<Δᴸ) =
-  IWF.tagˣ (h x∈) (hρ X<Δᴸ)
-imp-renameᵗ {ρ = ρ} h hρ hσ (IWF.ν {A = A} safe occ p) =
-  IWF.ν (IWF.renameNonVar (extᵗ ρ) safe)
-    (trans (occurs-zero-rename-ext ρ A) occ)
-    (imp-renameᵗ (renameImpAssm-⇑ᴸᵢ h)
-      (TyRenameWf-ext hρ) hσ p)
-
-imp-lift :
-  ∀ {Φ Δᴸ Δᴿ A B} →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ∣ suc Δᴸ
-    ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ
-imp-lift =
-  imp-renameᵗ {ρ = suc} {σ = suc}
-    (λ { {a = X ˣ⊑★} a∈ → there (⇑ᵢ-★∈ a∈)
-       ; {a = X ˣ⊑ˣ Y} a∈ → there (⇑ᵢ-ˣ∈ a∈) })
-    TyRenameWf-suc TyRenameWf-suc
-
-imp-lift-left :
-  ∀ {Φ Δᴸ Δᴿ A B} →
-  Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ →
-  ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ B ⊣ Δᴿ
-imp-lift-left {B = B} p =
-  subst
-    (λ T →
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ _) ∣ _ ⊢ _ ⊑ T ⊣ _)
-    (renameᵗ-id B)
-    (imp-renameᵗ {ρ = suc} {σ = λ X → X}
-      (λ { {a = X ˣ⊑★} a∈ → there (⇑ᴸᵢ-★∈ a∈)
-         ; {a = X ˣ⊑ˣ Y} a∈ → there (⇑ᴸᵢ-ˣ∈ a∈) })
-      TyRenameWf-suc TyRenameWf-id p)
 
 nuCtx⇑ :
   ∀ {Φ Δᴸ Δᴿ} →
@@ -356,7 +221,7 @@ nuCtx⇑ :
   NTI.CtxImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) (suc Δᴸ) (suc Δᴿ)
 nuCtx⇑ [] = []
 nuCtx⇑ (NTI.ctx-imp A B p ∷ γ) =
-  NTI.ctx-imp (⇑ᵗ A) (⇑ᵗ B) (imp-lift p) ∷ nuCtx⇑ γ
+  NTI.ctx-imp (⇑ᵗ A) (⇑ᵗ B) (⊑-lift∀ᵢ p) ∷ nuCtx⇑ γ
 
 nuCtx⇑-lift :
   ∀ {Φ Δᴸ Δᴿ} →
@@ -364,7 +229,7 @@ nuCtx⇑-lift :
   NTI.LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ (nuCtx⇑ γ)
 nuCtx⇑-lift [] = NTI.lift-ctx-[]
 nuCtx⇑-lift (NTI.ctx-imp A B p ∷ γ) =
-  NTI.lift-ctx-∷ (nuCtx⇑-lift γ)
+  NTI.lift-ctx-∷ (shape-lift∀ᵢ p) (nuCtx⇑-lift γ)
 
 nuCtx⇑ᴸ :
   ∀ {Φ Δᴸ Δᴿ} →
@@ -372,7 +237,7 @@ nuCtx⇑ᴸ :
   NTI.CtxImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ
 nuCtx⇑ᴸ [] = []
 nuCtx⇑ᴸ (NTI.ctx-imp A B p ∷ γ) =
-  NTI.ctx-imp (⇑ᵗ A) B (imp-lift-left p) ∷ nuCtx⇑ᴸ γ
+  NTI.ctx-imp (⇑ᵗ A) B (⊑-source-liftνᵢ p) ∷ nuCtx⇑ᴸ γ
 
 nuCtx⇑ᴸ-lift :
   ∀ {Φ Δᴸ Δᴿ} →
@@ -380,7 +245,7 @@ nuCtx⇑ᴸ-lift :
   NTI.LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ (nuCtx⇑ᴸ γ)
 nuCtx⇑ᴸ-lift [] = NTI.lift-left-ctx-[]
 nuCtx⇑ᴸ-lift (NTI.ctx-imp A B p ∷ γ) =
-  NTI.lift-left-ctx-∷ (nuCtx⇑ᴸ-lift γ)
+  NTI.lift-left-ctx-∷ (shape-source-liftνᵢ p) (nuCtx⇑ᴸ-lift γ)
 
 ------------------------------------------------------------------------
 -- Congruence helpers for compiler proof plumbing
@@ -421,17 +286,24 @@ compiled-argument-cast-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ C C′ pA pC} →
   (plan : CastPlan Δᴸ [] C A) →
   (plan′ : CastPlan Δᴿ [] C′ A′) →
-  Φ ∣ Δᴸ ⊢ lower plan ⊑ᵖ lower plan′ ⊣ Δᴿ →
+  (q : Φ ∣ Δᴸ ⊢ lower plan ⊑ᵖ lower plan′ ⊣ Δᴿ) →
+  ⌊ lower⊑source plan ⌋ ；⌊ pC ⌋≋ᵖ q ；
+    ⌊ lower⊑source plan′ ⌋ →
+  ⌊ lower⊑target plan ⌋ ；⌊ pA ⌋≋ᵖ q ；
+    ⌊ lower⊑target plan′ ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
     ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ [] ∣ δ
     ⊢ᴺ cast plan M ⊑ cast plan′ M′ ⦂ A ⊑ A′ ∶ pA
 compiled-argument-cast-imprecision {pA = pA}
-    plan plan′ lower⊑lower′ M⊑M′ =
+    plan plan′ lower⊑lower′ down-square up-square M⊑M′ =
   QTI.up⊑upᵀ
-    (QTI.down⊑downᵀ (down⊒ plan) (down⊒ plan′) M⊑M′
-      lower⊑lower′)
-    (QTI.quotient-id-widening (up⊑ plan) (up⊑ plan′)) pA
+    (QTI.down⊑downᵀ
+      (down⊒ plan) (down-shape plan)
+      (down⊒ plan′) (down-shape plan′)
+      M⊑M′ lower⊑lower′ down-square)
+    (QTI.quotient-id-widening (up⊑ plan) (up⊑ plan′))
+    pA (up-shape plan) (up-shape plan′) up-square
 
 compiled-cast-nat-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ M M′ A A′ p ℓ} →
@@ -448,11 +320,15 @@ compiled-cast-nat-imprecision
   let
     plan = consistency-cast-plan ℓ A~ℕ
     plan′ = consistency-cast-plan ℓ A′~ℕ
-    lower⊑ᵖlower′ =
+    lower-monotonicity =
       MLB-monotoneᵖ p IWF.idι
         (lower-selected plan) (lower-selected plan′)
   in
-  compiled-argument-cast-imprecision plan plan′ lower⊑ᵖlower′ M⊑M′
+  compiled-argument-cast-imprecision plan plan′
+    (proj₁ lower-monotonicity)
+    (proj₁ (proj₂ lower-monotonicity))
+    (proj₂ (proj₂ lower-monotonicity))
+    M⊑M′
 
 dynamic-application-plan-lower :
   ∀ (Δ : TyCtx) (ℓ : Label) →
@@ -461,6 +337,26 @@ dynamic-application-plan-lower :
       dynamic-application-function-consistent)
     ≡ ★ ⇒ ★
 dynamic-application-plan-lower Δ ℓ = refl
+
+dynamic-application-plan-down-shape :
+  ∀ (Δ : TyCtx) (ℓ : Label) →
+  narrowing
+    ⊢ᶜ down
+      (consistency-cast-plan {Δ = Δ} ℓ
+        dynamic-application-function-consistent)
+    ⦂ tag id★ˢ ⇛ˢ id★ˢ
+dynamic-application-plan-down-shape Δ ℓ =
+  shape-untag-fun
+
+dynamic-application-plan-up-shape :
+  ∀ (Δ : TyCtx) (ℓ : Label) →
+  widening
+    ⊢ᶜ up
+      (consistency-cast-plan {Δ = Δ} ℓ
+        dynamic-application-function-consistent)
+    ⦂ id★ˢ ↦ˢ id★ˢ
+dynamic-application-plan-up-shape Δ ℓ =
+  shape-fun shape-id-star shape-id-star
 
 compiled-right-dynamic-function-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ L L′ A B pA pB ℓ} →
@@ -484,9 +380,17 @@ compiled-right-dynamic-function-imprecision
       QTI.⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
         (narrow-mode-relax id-only≤tag-or-idᵈ (down⊒ plan))
         L⊑L′ arrow⊑lower
+        (dynamic-application-plan-down-shape Δᴿ ℓ)
+        (comp-↦-tag
+          (compose-target-star-right-id★ pA)
+          (compose-target-star-right-id★ pB))
   in
   QTI.⊑cast⊑idᵀ seal★-id-only
     (up⊑ plan) L⊑L′↓ (pA IWF.↦ pB)
+    (dynamic-application-plan-up-shape Δᴿ ℓ)
+    (comp-↦-↦
+      (compose-target-star-right-id★ pA)
+      (compose-target-star-right-id★ pB))
 
 compiled-dynamic-function-imprecision :
   ∀ {Φ Δᴸ Δᴿ δ L L′ ℓ} →
@@ -507,12 +411,16 @@ compiled-dynamic-function-imprecision
       dynamic-application-function-consistent
     plan′ = consistency-cast-plan {Δ = Δᴿ} ℓ
       dynamic-application-function-consistent
-    lower⊑ᵖlower′ =
+    lower-monotonicity =
       MLB-monotoneᵖ IWF.id★
         (IWF.id★ IWF.↦ IWF.id★)
         (lower-selected plan) (lower-selected plan′)
   in
-  compiled-argument-cast-imprecision plan plan′ lower⊑ᵖlower′ L⊑L′
+  compiled-argument-cast-imprecision plan plan′
+    (proj₁ lower-monotonicity)
+    (proj₁ (proj₂ lower-monotonicity))
+    (proj₂ (proj₂ lower-monotonicity))
+    L⊑L′
 
 ------------------------------------------------------------------------
 -- Compile monotonicity
@@ -558,14 +466,17 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         N⊑N′
     plan = consistency-cast-plan ℓ (~-sym A~C)
     plan′ = consistency-cast-plan ℓ (~-sym A′~C′)
-    lower⊑ᵖlower′ =
+    lower-monotonicity =
       MLB-monotoneᵖ pC pA
         (lower-selected plan) (lower-selected plan′)
   in
   QTI.·⊑·ᵀ
     L⊑L′ᵀ
     (compiled-argument-cast-imprecision plan plan′
-      lower⊑ᵖlower′ N⊑N′ᵀ)
+      (proj₁ lower-monotonicity)
+      (proj₁ (proj₂ lower-monotonicity))
+      (proj₂ (proj₂ lower-monotonicity))
+      N⊑N′ᵀ)
 -- application, right function type is ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.·⊑·★ᴳ {ℓ = ℓ} {pA = pA} {pB = pB} {pC = pC}
@@ -583,14 +494,17 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         N⊑N′
     argument-plan = consistency-cast-plan ℓ (~-sym A~C)
     argument-plan′ = consistency-cast-plan ℓ C′~★
-    argument-lower⊑ᵖlower′ =
+    argument-lower-monotonicity =
       MLB-monotoneᵖ pC pA
         (lower-selected argument-plan) (lower-selected argument-plan′)
   in
   QTI.·⊑·ᵀ
     (compiled-right-dynamic-function-imprecision {ℓ = ℓ} L⊑L′ᵀ)
     (compiled-argument-cast-imprecision argument-plan argument-plan′
-      argument-lower⊑ᵖlower′ N⊑N′ᵀ)
+      (proj₁ argument-lower-monotonicity)
+      (proj₁ (proj₂ argument-lower-monotonicity))
+      (proj₂ (proj₂ argument-lower-monotonicity))
+      N⊑N′ᵀ)
 -- application, both function types are ★
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.·★⊑·★ᴳ {ℓ = ℓ} {pC = pC}
@@ -608,14 +522,17 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         N⊑N′
     argument-plan = consistency-cast-plan ℓ C~★
     argument-plan′ = consistency-cast-plan ℓ C′~★
-    argument-lower⊑ᵖlower′ =
+    argument-lower-monotonicity =
       MLB-monotoneᵖ pC IWF.id★
         (lower-selected argument-plan) (lower-selected argument-plan′)
   in
   QTI.·⊑·ᵀ
     (compiled-dynamic-function-imprecision {ℓ = ℓ} L⊑L′ᵀ)
     (compiled-argument-cast-imprecision argument-plan argument-plan′
-      argument-lower⊑ᵖlower′ N⊑N′ᵀ)
+      (proj₁ argument-lower-monotonicity)
+      (proj₁ (proj₂ argument-lower-monotonicity))
+      (proj₂ (proj₂ argument-lower-monotonicity))
+      N⊑N′ᵀ)
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.Λ⊑Λᴳ liftγ vV vV′ occA occB V⊑V′) =
   QTI.Λ⊑Λᵀ
@@ -679,7 +596,7 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
 -- synchronized type application
 compile-preserves-term-imprecision-typed
     {γ = γ} srcΓ-wf tgtΓ-wf
-    rel@(GTI.[]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r) =
+    rel@(GTI.[]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r replacement) =
   let
     M⊑M′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -691,14 +608,15 @@ compile-preserves-term-imprecision-typed
     (reveal↑ (ν-reveal-conversion hT hA))
     (reveal↑ (ν-reveal-conversion hT′ hB))
     q
-    (imp-lift q)
+    (⊑-lift∀ᵢ q)
     NTI.lift-store-[]
     (nuCtx⇑-lift (ctxImpToNu γ))
     M⊑M′ᵀ
+    replacement
 -- left-only type application
 compile-preserves-term-imprecision-typed
     {γ = γ} srcΓ-wf tgtΓ-wf
-    rel@(GTI.[]⊑ᴳ hA hT M⊑M′ q r) =
+    rel@(GTI.[]⊑ᴳ hA hT M⊑M′ q r replacement) =
   let
     M⊑M′ᵀ =
       compile-preserves-term-imprecision-typed
@@ -712,6 +630,7 @@ compile-preserves-term-imprecision-typed
     NTI.lift-left-store-[]
     (nuCtx⇑ᴸ-lift (ctxImpToNu γ))
     M⊑M′ᵀ
+    replacement
 compile-preserves-term-imprecision-typed
     srcΓ-wf tgtΓ-wf GTI.κ⊑κᴳ =
   QTI.κ⊑κᵀ

@@ -10,9 +10,15 @@ module
 --   * Contains no implementation, identity-mode branch, or dispatcher.
 
 import Coercions as C
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
-open import ImprecisionWf using (_ˣ⊑ˣ_; ⇑ᵢ; _∣_⊢_⊑_⊣_)
+open import ForallPermutation using (_≈∀_; quotientᵖ)
+open import ImprecisionComposition using
+  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
+open import ImprecisionWf using
+  (_ˣ⊑ˣ_; ⇑ᵢ; _∣_⊢_⊑_⊣_; ∀ⁱ_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
@@ -33,11 +39,14 @@ WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchup�
 WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchupᵀ =
   ∀ {Φ Δᴸ Δᴿ} {V V′ : Term}
     {B C C′ E F A A′ : Ty} {d d′ s u′ : C.Coercion}
-    {μ μ′ : C.ModeEnv} {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {μ μ′ : C.ModeEnv} {sD sD′ sU sU′ : ImprecisionShape}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {E≈E : `∀ E ≈∀ `∀ E}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+    {F≈F : `∀ F ≈∀ `∀ F}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
-  ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    ∣ suc Δᴸ ⊢ E ⊑ F ⊣ suc Δᴿ →
+  (r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    ∣ suc Δᴸ ⊢ E ⊑ F ⊣ suc Δᴿ) →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
@@ -49,7 +58,11 @@ WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchup�
   C.Inert d′ →
   C.Inert u′ →
   C.id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ `∀ E →
+  narrowing ⊢ᶜ d ⦂ sD →
   C.id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ `∀ F →
+  narrowing ⊢ᶜ d′ ⦂ sD′ →
+  sD ；⌊ pC ⌋≋ᵖ
+    quotientᵖ E≈E (∀ⁱ r) F≈F ； sD′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ V ⊑ V′ ⦂ C ⊑ C′ ∶ pC →
   CastMode μ →
@@ -58,6 +71,10 @@ WorldCoherentQuotientRepresentativeInstPathIdentityPairedIdDownCastWidenCatchup�
   CastMode μ′ →
   SealModeStore★ μ′ (rightStoreⁱ ρ) →
   μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ `∀ F ⊑ A′ →
+  widening ⊢ᶜ C.inst B s ⦂ sU →
+  widening ⊢ᶜ u′ ⦂ sU′ →
+  sU ；⌊ pA ⌋≋ᵖ
+    quotientᵖ E≈E (∀ⁱ r) F≈F ； sU′ →
   WorldCoherentLeftCatchupIndexedResult
     {N = (V ⟨ d ⟩) ⟨ C.inst B s ⟩}
     {V′ = (V′ ⟨ d′ ⟩) ⟨ u′ ⟩}

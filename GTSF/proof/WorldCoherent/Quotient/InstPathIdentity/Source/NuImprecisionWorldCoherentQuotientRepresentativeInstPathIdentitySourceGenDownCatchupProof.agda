@@ -34,14 +34,22 @@ world-coherent-quotient-representative-inst-path-identity-source-gen-down-catchu
   WorldCoherentQuotientFinalCatchupᵀ →
   WorldCoherentQuotientRepresentativeInstPathIdentitySourceGenDownCatchupᵀ
 world-coherent-quotient-representative-inst-path-identity-source-gen-down-catchup-proofᵀ
-    value-catchup quotient-final {{safe = safe}}
-    {pC = pC} occ r coherent exclusive wfL okN vVd noVd
-    vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ V⊑V′ widening =
+    value-catchup quotient-final
+    {E≈E = E≈E} {{safe = safe}}
+    {pC = pC} {T≈T = T≈T}
+    {pA = pA}
+    occ r source-normal target-normal
+    coherent exclusive wfL okN vVd noVd
+    vV′ noV′ inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square V⊑V′
+    widening u-shape u′-shape up-square =
   world-coherent-left-catchup-prefix-gen-down-upᵀ
-    quotient-final {qD = qD} prefix-reflⁱ okN
-    vV′ noV′ inert-d′ inert-u′ d⊒ d′⊒ widening inner
+    quotient-final {pC = pC} {qD = qD} {pA = pA}
+    prefix-reflⁱ okN vV′ noV′ inert-d′ inert-u′
+    d⊒ d-shape d′⊒ d′-shape down-square
+    widening u-shape u′-shape up-square inner
   where
-  qD = quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl
+  qD = quotientᵖ E≈E (ν safe occ r) T≈T
 
   inner = value-catchup prefix-reflⁱ coherent exclusive wfL
     (runtime-⟨⟩ (runtime-⟨⟩ okN)) vV′ noV′ V⊑V′

@@ -7,7 +7,7 @@ module proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTranspo
 --     accumulated store changes, then restores the final result indices.
 --   * Contains no recursive dispatcher or assumed projected-store recovery.
 
-open import Agda.Builtin.Equality using (refl)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
@@ -19,7 +19,7 @@ open import Conversion using
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import ImprecisionWf using
-  (_∣_⊢_⊑_⊣_)
+  (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
   ( StoreChanges
   ; applyStores
@@ -41,7 +41,7 @@ open import Relation.Binary.PropositionalEquality using
 open import Store using (StoreIncl-drop)
 open import TermTyping using (weakenCastᵈ)
 open import Types using
-  (Ty; TyCtx; TyVar)
+  (Ty; TyCtx)
 open import proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportDef using
   (LeftSilentPairedConversionTransportᵀ)
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
@@ -49,7 +49,9 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftSilentInvariant
   ; WeakOneStepResult
+  ; WeakOneStepTypeCoherence
   ; left-silent-invariant
+  ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
   ; resultStore
@@ -58,11 +60,16 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; sourceStoreResult
   ; targetCtxResult
   ; targetStoreResult
+  ; targetTailChanges
+  ; transportType
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyTyVars)
+open import
+  proof.OneStep.NuImprecisionWeakOneStepReplacementTransport
+  using (transport-paired-replacement)
 open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast)
 open import proof.Core.Properties.TypeProperties using
@@ -292,19 +299,37 @@ left-silent-paired-conversion-transport-proofᵀ :
   LeftSilentPairedConversionTransportᵀ
 left-silent-paired-conversion-transport-proofᵀ
     correspondence-transport prefix inner
-    silent@(left-silent-invariant refl refl) lineage coherent
-    (paired-reveal corr c↑ c′↑) =
+    silent@(left-silent-invariant refl refl)
+    type-coherence lineage coherent
+    (paired-reveal corr c↑ c′↑ replacement) =
   paired-reveal
-    (proj₂
-      (correspondence-transport prefix inner silent lineage corr))
+    (proj₁
+      (proj₂
+        (correspondence-transport prefix inner silent lineage corr)))
     (proj₂ (result-source-reveal prefix inner c↑))
     (result-target-reveal-silent prefix inner silent c′↑)
+    (transport-paired-replacement inner type-coherence replacement
+      (proj₁
+        (correspondence-transport prefix inner silent lineage corr))
+      (proj₂
+        (proj₂
+          (correspondence-transport
+            prefix inner silent lineage corr))))
 left-silent-paired-conversion-transport-proofᵀ
     correspondence-transport prefix inner
-    silent@(left-silent-invariant refl refl) lineage coherent
-    (paired-conceal corr c↓ c′↓) =
+    silent@(left-silent-invariant refl refl)
+    type-coherence lineage coherent
+    (paired-conceal corr c↓ c′↓ replacement) =
   paired-conceal
-    (proj₂
-      (correspondence-transport prefix inner silent lineage corr))
+    (proj₁
+      (proj₂
+        (correspondence-transport prefix inner silent lineage corr)))
     (proj₂ (result-source-conceal prefix inner c↓))
     (result-target-conceal-silent prefix inner silent c′↓)
+    (transport-paired-replacement inner type-coherence replacement
+      (proj₁
+        (correspondence-transport prefix inner silent lineage corr))
+      (proj₂
+        (proj₂
+          (correspondence-transport
+            prefix inner silent lineage corr))))

@@ -67,10 +67,10 @@ lift-store-corresponds :
 lift-store-corresponds lift-store-[] (correspondence-stored ())
 lift-store-corresponds lift-store-[] (correspondence-linked ())
 lift-store-corresponds
-    (lift-store-∷ {p′ = p′} liftρ)
+    (lift-store-∷ {p′ = p′} _ liftρ)
     (correspondence-stored (here refl)) =
   p′ , correspondence-stored (here refl)
-lift-store-corresponds (lift-store-∷ liftρ)
+lift-store-corresponds (lift-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr =
         lift-store-corresponds liftρ (correspondence-stored member) in
@@ -85,12 +85,12 @@ lift-store-corresponds (lift-store-right liftρ)
   let p′ , corr =
         lift-store-corresponds liftρ (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-store-corresponds (lift-store-link liftρ)
+lift-store-corresponds (lift-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr =
         lift-store-corresponds liftρ (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-store-corresponds (lift-store-∷ liftρ)
+lift-store-corresponds (lift-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr =
         lift-store-corresponds liftρ (correspondence-linked member) in
@@ -106,10 +106,10 @@ lift-store-corresponds (lift-store-right liftρ)
         lift-store-corresponds liftρ (correspondence-linked member) in
   p′ , store-corresponds-weaken corr
 lift-store-corresponds
-    (lift-store-link {p′ = p′} liftρ)
+    (lift-store-link {p′ = p′} _ liftρ)
     (correspondence-linked (here refl)) =
   p′ , correspondence-linked (here refl)
-lift-store-corresponds (lift-store-link liftρ)
+lift-store-corresponds (lift-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr =
         lift-store-corresponds liftρ (correspondence-linked member) in
@@ -130,10 +130,10 @@ lift-left-store-corresponds lift-left-store-[]
 lift-left-store-corresponds lift-left-store-[]
     (correspondence-linked ())
 lift-left-store-corresponds
-    (lift-left-store-∷ {p′ = p′} liftρ)
+    (lift-left-store-∷ {p′ = p′} _ liftρ)
     (correspondence-stored (here refl)) =
   p′ , correspondence-stored (here refl)
-lift-left-store-corresponds (lift-left-store-∷ liftρ)
+lift-left-store-corresponds (lift-left-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr = lift-left-store-corresponds liftρ
         (correspondence-stored member) in
@@ -148,12 +148,12 @@ lift-left-store-corresponds (lift-left-store-right liftρ)
   let p′ , corr = lift-left-store-corresponds liftρ
         (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-left-store-corresponds (lift-left-store-link liftρ)
+lift-left-store-corresponds (lift-left-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr = lift-left-store-corresponds liftρ
         (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-left-store-corresponds (lift-left-store-∷ liftρ)
+lift-left-store-corresponds (lift-left-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr = lift-left-store-corresponds liftρ
         (correspondence-linked member) in
@@ -169,10 +169,10 @@ lift-left-store-corresponds (lift-left-store-right liftρ)
         (correspondence-linked member) in
   p′ , store-corresponds-weaken corr
 lift-left-store-corresponds
-    (lift-left-store-link {p′ = p′} liftρ)
+    (lift-left-store-link {p′ = p′} _ liftρ)
     (correspondence-linked (here refl)) =
   p′ , correspondence-linked (here refl)
-lift-left-store-corresponds (lift-left-store-link liftρ)
+lift-left-store-corresponds (lift-left-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr = lift-left-store-corresponds liftρ
         (correspondence-linked member) in
@@ -193,10 +193,10 @@ lift-right-store-corresponds lift-right-store-[]
 lift-right-store-corresponds lift-right-store-[]
     (correspondence-linked ())
 lift-right-store-corresponds
-    (lift-right-store-∷ {p′ = p′} liftρ)
+    (lift-right-store-∷ {p′ = p′} _ liftρ)
     (correspondence-stored (here refl)) =
   p′ , correspondence-stored (here refl)
-lift-right-store-corresponds (lift-right-store-∷ liftρ)
+lift-right-store-corresponds (lift-right-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr = lift-right-store-corresponds liftρ
         (correspondence-stored member) in
@@ -211,12 +211,12 @@ lift-right-store-corresponds (lift-right-store-right liftρ)
   let p′ , corr = lift-right-store-corresponds liftρ
         (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-right-store-corresponds (lift-right-store-link liftρ)
+lift-right-store-corresponds (lift-right-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let p′ , corr = lift-right-store-corresponds liftρ
         (correspondence-stored member) in
   p′ , store-corresponds-weaken corr
-lift-right-store-corresponds (lift-right-store-∷ liftρ)
+lift-right-store-corresponds (lift-right-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr = lift-right-store-corresponds liftρ
         (correspondence-linked member) in
@@ -232,10 +232,10 @@ lift-right-store-corresponds (lift-right-store-right liftρ)
         (correspondence-linked member) in
   p′ , store-corresponds-weaken corr
 lift-right-store-corresponds
-    (lift-right-store-link {p′ = p′} liftρ)
+    (lift-right-store-link {p′ = p′} _ liftρ)
     (correspondence-linked (here refl)) =
   p′ , correspondence-linked (here refl)
-lift-right-store-corresponds (lift-right-store-link liftρ)
+lift-right-store-corresponds (lift-right-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let p′ , corr = lift-right-store-corresponds liftρ
         (correspondence-linked member) in
@@ -259,10 +259,10 @@ lift-store-corresponds-origin lift-store-[]
     (correspondence-linked ())
 lift-store-corresponds-origin
     {ρ = store-matched α A β B p ∷ ρ}
-    (lift-store-∷ liftρ)
+    (lift-store-∷ _ liftρ)
     (correspondence-stored (here refl)) =
   α , A , β , B , p , refl , refl , correspondence-stored (here refl)
-lift-store-corresponds-origin (lift-store-∷ liftρ)
+lift-store-corresponds-origin (lift-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let α , A , β , B , p , eqα , eqβ , corr =
         lift-store-corresponds-origin liftρ
@@ -280,13 +280,13 @@ lift-store-corresponds-origin (lift-store-right liftρ)
         lift-store-corresponds-origin liftρ
           (correspondence-stored member) in
   α , A , β , B , p , eqα , eqβ , store-corresponds-weaken corr
-lift-store-corresponds-origin (lift-store-link liftρ)
+lift-store-corresponds-origin (lift-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let α , A , β , B , p , eqα , eqβ , corr =
         lift-store-corresponds-origin liftρ
           (correspondence-stored member) in
   α , A , β , B , p , eqα , eqβ , store-corresponds-weaken corr
-lift-store-corresponds-origin (lift-store-∷ liftρ)
+lift-store-corresponds-origin (lift-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let α , A , β , B , p , eqα , eqβ , corr =
         lift-store-corresponds-origin liftρ
@@ -306,10 +306,10 @@ lift-store-corresponds-origin (lift-store-right liftρ)
   α , A , β , B , p , eqα , eqβ , store-corresponds-weaken corr
 lift-store-corresponds-origin
     {ρ = store-link α A β B p ∷ ρ}
-    (lift-store-link liftρ)
+    (lift-store-link _ liftρ)
     (correspondence-linked (here refl)) =
   α , A , β , B , p , refl , refl , correspondence-linked (here refl)
-lift-store-corresponds-origin (lift-store-link liftρ)
+lift-store-corresponds-origin (lift-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let α , A , β , B , p , eqα , eqβ , corr =
         lift-store-corresponds-origin liftρ
@@ -332,10 +332,10 @@ lift-left-store-corresponds-origin lift-left-store-[]
     (correspondence-linked ())
 lift-left-store-corresponds-origin
     {ρ = store-matched α A _ _ p ∷ ρ}
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-stored (here refl)) =
   α , A , p , refl , correspondence-stored (here refl)
-lift-left-store-corresponds-origin (lift-left-store-∷ liftρ)
+lift-left-store-corresponds-origin (lift-left-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let α , A , p , eqα , corr = lift-left-store-corresponds-origin liftρ
         (correspondence-stored member) in
@@ -350,12 +350,12 @@ lift-left-store-corresponds-origin (lift-left-store-right liftρ)
   let α , A , p , eqα , corr = lift-left-store-corresponds-origin liftρ
         (correspondence-stored member) in
   α , A , p , eqα , store-corresponds-weaken corr
-lift-left-store-corresponds-origin (lift-left-store-link liftρ)
+lift-left-store-corresponds-origin (lift-left-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let α , A , p , eqα , corr = lift-left-store-corresponds-origin liftρ
         (correspondence-stored member) in
   α , A , p , eqα , store-corresponds-weaken corr
-lift-left-store-corresponds-origin (lift-left-store-∷ liftρ)
+lift-left-store-corresponds-origin (lift-left-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let α , A , p , eqα , corr = lift-left-store-corresponds-origin liftρ
         (correspondence-linked member) in
@@ -372,10 +372,10 @@ lift-left-store-corresponds-origin (lift-left-store-right liftρ)
   α , A , p , eqα , store-corresponds-weaken corr
 lift-left-store-corresponds-origin
     {ρ = store-link α A _ _ p ∷ ρ}
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-linked (here refl)) =
   α , A , p , refl , correspondence-linked (here refl)
-lift-left-store-corresponds-origin (lift-left-store-link liftρ)
+lift-left-store-corresponds-origin (lift-left-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let α , A , p , eqα , corr = lift-left-store-corresponds-origin liftρ
         (correspondence-linked member) in
@@ -397,10 +397,10 @@ lift-right-store-corresponds-origin lift-right-store-[]
     (correspondence-linked ())
 lift-right-store-corresponds-origin
     {ρ = store-matched _ _ β B p ∷ ρ}
-    (lift-right-store-∷ liftρ)
+    (lift-right-store-∷ _ liftρ)
     (correspondence-stored (here refl)) =
   β , B , p , refl , correspondence-stored (here refl)
-lift-right-store-corresponds-origin (lift-right-store-∷ liftρ)
+lift-right-store-corresponds-origin (lift-right-store-∷ _ liftρ)
     (correspondence-stored (there member)) =
   let β , B , p , eqβ , corr = lift-right-store-corresponds-origin liftρ
         (correspondence-stored member) in
@@ -415,12 +415,12 @@ lift-right-store-corresponds-origin (lift-right-store-right liftρ)
   let β , B , p , eqβ , corr = lift-right-store-corresponds-origin liftρ
         (correspondence-stored member) in
   β , B , p , eqβ , store-corresponds-weaken corr
-lift-right-store-corresponds-origin (lift-right-store-link liftρ)
+lift-right-store-corresponds-origin (lift-right-store-link _ liftρ)
     (correspondence-stored (there member)) =
   let β , B , p , eqβ , corr = lift-right-store-corresponds-origin liftρ
         (correspondence-stored member) in
   β , B , p , eqβ , store-corresponds-weaken corr
-lift-right-store-corresponds-origin (lift-right-store-∷ liftρ)
+lift-right-store-corresponds-origin (lift-right-store-∷ _ liftρ)
     (correspondence-linked (there member)) =
   let β , B , p , eqβ , corr = lift-right-store-corresponds-origin liftρ
         (correspondence-linked member) in
@@ -437,10 +437,10 @@ lift-right-store-corresponds-origin (lift-right-store-right liftρ)
   β , B , p , eqβ , store-corresponds-weaken corr
 lift-right-store-corresponds-origin
     {ρ = store-link _ _ β B p ∷ ρ}
-    (lift-right-store-link liftρ)
+    (lift-right-store-link _ liftρ)
     (correspondence-linked (here refl)) =
   β , B , p , refl , correspondence-linked (here refl)
-lift-right-store-corresponds-origin (lift-right-store-link liftρ)
+lift-right-store-corresponds-origin (lift-right-store-link _ liftρ)
     (correspondence-linked (there member)) =
   let β , B , p , eqβ , corr = lift-right-store-corresponds-origin liftρ
         (correspondence-linked member) in

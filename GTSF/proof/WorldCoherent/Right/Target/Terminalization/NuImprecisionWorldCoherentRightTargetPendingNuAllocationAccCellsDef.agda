@@ -13,6 +13,7 @@ module
 --     hole, permissive option, termination bypass, or broad DGG import.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Coercions using
   (Coercion; Inert; ModeEnv; inst)
 open import Data.Bool using (true)
@@ -28,6 +29,8 @@ open import Imprecision using
   )
 open import ImprecisionWf using
   (ImpCtx; ∀ⁱ_; ν; _∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import Induction.WellFounded using (Acc)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊑_)
@@ -90,6 +93,7 @@ WorldCoherentRightTargetPendingNuAllocationPairedFromPairedAccᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V W : Term} {C D E F : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {shape : ImprecisionShape}
     {p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -102,6 +106,8 @@ WorldCoherentRightTargetPendingNuAllocationPairedFromPairedAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst (`∀ E) s ∶ `∀ C ⊑ `∀ E →
+  widening ⊢ᶜ inst (`∀ E) s ⦂ shape →
+  ⌊ ∀ⁱ p ⌋ ； shape ≋ ⌊ ∀ⁱ r ⌋ →
   TargetAdministrationSpine ρ (`∀ D) (∀ⁱ r) q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -147,6 +153,7 @@ WorldCoherentRightTargetPendingNuAllocationPairedFromSourceOnlyAccᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V W : Term} {C D E F : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {shape : ImprecisionShape}
     {safe : NonVar D}
     {occ : occurs zero D ≡ true}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
@@ -161,6 +168,8 @@ WorldCoherentRightTargetPendingNuAllocationPairedFromSourceOnlyAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst (`∀ E) s ∶ `∀ C ⊑ `∀ E →
+  widening ⊢ᶜ inst (`∀ E) s ⦂ shape →
+  ⌊ ν safe occ p ⌋ ； shape ≋ ⌊ ∀ⁱ r ⌋ →
   TargetAdministrationSpine ρ (`∀ D) (∀ⁱ r) q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -206,6 +215,7 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromPairedAccᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V W : Term} {B C D F : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {shape : ImprecisionShape}
     {safe : NonVar D}
     {occ : occurs zero D ≡ true}
     {p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
@@ -220,6 +230,8 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromPairedAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ ∀ⁱ p ⌋ ； shape ≋ ⌊ ν safe occ r ⌋ →
   TargetAdministrationSpine ρ (`∀ D) (ν safe occ r) q cs →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -267,6 +279,7 @@ WorldCoherentRightTargetPendingNuAllocationFromPairedLambdaAccᵀ =
       (suc Δᴸ) (suc Δᴿ)}
     {W W′ : Term} {B C D F : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {body-shape : ImprecisionShape}
     {p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
@@ -278,6 +291,8 @@ WorldCoherentRightTargetPendingNuAllocationFromPairedLambdaAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+  ⌊ ∀ⁱ p ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
   Inert s →
   TargetAdministrationSpine ρ (`∀ D) f q cs →
   WorldCoherent ρ →
@@ -333,6 +348,7 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromPairedLambdaEmptyAccᵀ
       (suc Δᴸ) (suc Δᴿ)}
     {W W′ : Term} {B C D : Ty}
     {s : Coercion} {μ : ModeEnv}
+    {body-shape : ImprecisionShape}
     {{safe : NonVar D}}
     {p : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
@@ -346,6 +362,8 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromPairedLambdaEmptyAccᵀ
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
+  ⌊ ∀ⁱ p ⌋ ； νˢ body-shape ≋ ⌊ ν safe occ r ⌋ →
   Inert s →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
@@ -394,6 +412,7 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromSourceOnlyAccᵀ =
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {V W : Term} {B C D F : Ty}
     {s : Coercion} {μ : ModeEnv} {cs : List Coercion}
+    {shape : ImprecisionShape}
     {safeₚ safeᵣ : NonVar D}
     {occₚ occᵣ : occurs zero D ≡ true}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
@@ -408,6 +427,8 @@ WorldCoherentRightTargetPendingNuAllocationSourceOnlyFromSourceOnlyAccᵀ =
   SealModeStore★ μ (rightStoreⁱ ρ) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ
     ⊢ inst B s ∶ `∀ C ⊑ B →
+  widening ⊢ᶜ inst B s ⦂ shape →
+  ⌊ ν safeₚ occₚ p ⌋ ； shape ≋ ⌊ ν safeᵣ occᵣ r ⌋ →
   TargetAdministrationSpine ρ (`∀ D)
     (ν safeᵣ occᵣ r) q cs →
   WorldCoherent ρ →

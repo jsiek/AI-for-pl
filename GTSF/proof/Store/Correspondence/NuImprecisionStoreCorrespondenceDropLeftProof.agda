@@ -65,16 +65,16 @@ left-correspondence-origin-exact
     lift-left-store-[] (correspondence-linked ())
 left-correspondence-origin-exact
     {ρ = store-matched α A _ _ p ∷ ρ}
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-stored (here refl)) =
   α , A , p , refl , refl , correspondence-stored (here refl)
 left-correspondence-origin-exact
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-stored (there member))
     with left-correspondence-origin-exact
       liftρ (correspondence-stored member)
 left-correspondence-origin-exact
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-stored (there member))
     | α , A , p , eqα , eqA , corr =
   α , A , p , eqα , eqA , store-corresponds-weaken corr
@@ -99,22 +99,22 @@ left-correspondence-origin-exact
     | α , A , p , eqα , eqA , corr =
   α , A , p , eqα , eqA , store-corresponds-weaken corr
 left-correspondence-origin-exact
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-stored (there member))
     with left-correspondence-origin-exact
       liftρ (correspondence-stored member)
 left-correspondence-origin-exact
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-stored (there member))
     | α , A , p , eqα , eqA , corr =
   α , A , p , eqα , eqA , store-corresponds-weaken corr
 left-correspondence-origin-exact
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-linked (there member))
     with left-correspondence-origin-exact
       liftρ (correspondence-linked member)
 left-correspondence-origin-exact
-    (lift-left-store-∷ liftρ)
+    (lift-left-store-∷ _ liftρ)
     (correspondence-linked (there member))
     | α , A , p , eqα , eqA , corr =
   α , A , p , eqα , eqA , store-corresponds-weaken corr
@@ -140,16 +140,16 @@ left-correspondence-origin-exact
   α , A , p , eqα , eqA , store-corresponds-weaken corr
 left-correspondence-origin-exact
     {ρ = store-link α A _ _ p ∷ ρ}
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-linked (here refl)) =
   α , A , p , refl , refl , correspondence-linked (here refl)
 left-correspondence-origin-exact
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-linked (there member))
     with left-correspondence-origin-exact
       liftρ (correspondence-linked member)
 left-correspondence-origin-exact
-    (lift-left-store-link liftρ)
+    (lift-left-store-link _ liftρ)
     (correspondence-linked (there member))
     | α , A , p , eqα , eqA , corr =
   α , A , p , eqα , eqA , store-corresponds-weaken corr

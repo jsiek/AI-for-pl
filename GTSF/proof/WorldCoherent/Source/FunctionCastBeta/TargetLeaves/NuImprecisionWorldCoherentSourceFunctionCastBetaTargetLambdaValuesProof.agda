@@ -14,10 +14,13 @@ module
 import Coercions as C
 import Conversion as CV
 import NarrowWiden as NW
+open import CastImprecisionShape using (shape-fun)
+open import ConversionIndexCompatibility using (replace-left-function)
 open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 
+open import ImprecisionComposition using (comp-↦-↦)
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (β-↦; keep; pure-step)
@@ -115,7 +118,9 @@ target-lambda-values-at-prefixᵀ
     relation-prefix coherent exclusive unique okM okM′
     (cast⊒⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun c⊢ d⊢ , NW.cross (cʷ NW.↦ dⁿ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vR′ =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -135,15 +140,19 @@ target-lambda-values-at-prefixᵀ
       relation-prefix source-V-no target-function-no inner
   argument-cast =
     cast⊑⊑ᵀ mode seal★⁺ c⊑⁺ argument-related pA₀
+      c-shape c-comp
   application-related = ·⊑·ᵀ inner⁺ argument-cast
   final-related =
     cast⊒⊑ᵀ mode seal★⁺ d⊒⁺ application-related pB
+      d-shape d-comp
 target-lambda-values-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique okM okM′
     (cast⊑⊑ᵀ {p = pA₀ ↦ pB₀} mode seal★
       (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
-      inner .(pA ↦ pB))
+      inner .(pA ↦ pB)
+      (shape-fun c-shape d-shape)
+      (comp-↦-↦ c-comp d-comp))
     argument-related vV vW vR′ =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -163,14 +172,17 @@ target-lambda-values-at-prefixᵀ
       relation-prefix source-V-no target-function-no inner
   argument-cast =
     cast⊒⊑ᵀ mode seal★⁺ c⊒⁺ argument-related pA₀
+      c-shape c-comp
   application-related = ·⊑·ᵀ inner⁺ argument-cast
   final-related =
     cast⊑⊑ᵀ mode seal★⁺ d⊑⁺ application-related pB
+      d-shape d-comp
 target-lambda-values-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique okM okM′
     (conv↑⊑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB))
+      (CV.reveal-fun c↓ d↑) inner .(pA ↦ pB)
+      (replace-left-function c-replace d-replace))
     argument-related vV vW vR′ =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -187,14 +199,17 @@ target-lambda-values-at-prefixᵀ
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-V-no target-function-no inner
-  argument-cast = conv↓⊑ᵀ c↓⁺ argument-related pA₀
+  argument-cast =
+    conv↓⊑ᵀ c↓⁺ argument-related pA₀ c-replace
   application-related = ·⊑·ᵀ inner⁺ argument-cast
-  final-related = conv↑⊑ᵀ d↑⁺ application-related pB
+  final-related =
+    conv↑⊑ᵀ d↑⁺ application-related pB d-replace
 target-lambda-values-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique okM okM′
     (conv↓⊑ᵀ {p = pA₀ ↦ pB₀}
-      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB))
+      (CV.conceal-fun c↑ d↓) inner .(pA ↦ pB)
+      (replace-left-function c-replace d-replace))
     argument-related vV vW vR′ =
   world-coherent-source-keep-relationᵀ
     coherent exclusive unique final-related
@@ -211,9 +226,11 @@ target-lambda-values-at-prefixᵀ
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-V-no target-function-no inner
-  argument-cast = conv↑⊑ᵀ c↑⁺ argument-related pA₀
+  argument-cast =
+    conv↑⊑ᵀ c↑⁺ argument-related pA₀ c-replace
   application-related = ·⊑·ᵀ inner⁺ argument-cast
-  final-related = conv↓⊑ᵀ d↓⁺ application-related pB
+  final-related =
+    conv↓⊑ᵀ d↓⁺ application-related pB d-replace
 
 
 world-coherent-source-function-cast-beta-target-lambda-values-proofᵀ :

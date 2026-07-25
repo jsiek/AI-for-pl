@@ -13,6 +13,8 @@ module
 import Coercions as C
 import Conversion as CV
 
+open import ConversionIndexCompatibility using
+  (replace-paired-function)
 open import ImprecisionWf using (_↦_)
 open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
@@ -69,7 +71,8 @@ private
       (paired-conversion
         (paired-reveal corresponds
           (CV.reveal-fun c↓ d↑)
-          (CV.reveal-fun e↓ f↑)))
+          (CV.reveal-fun e↓ f↑)
+          (replace-paired-function c-replace d-replace)))
       inner argument-related vV vW vL′ vR′ =
     world-coherent-source-target-keep-prependᵀ
       (pure-step (β-↦ vL′ vR′))
@@ -96,13 +99,13 @@ private
         relation-prefix source-V-no target-L-no inner
     argument-paired =
       paired-conversion
-        (paired-conceal corresponds⁺ c↓⁺ e↓⁺)
+        (paired-conceal corresponds⁺ c↓⁺ e↓⁺ c-replace)
     argument-cast =
       conv⊑convᵀ argument-paired argument-related
     application-related = ·⊑·ᵀ inner⁺ argument-cast
     result-paired =
       paired-conversion
-        (paired-reveal corresponds⁺ d↑⁺ f↑⁺)
+        (paired-reveal corresponds⁺ d↑⁺ f↑⁺ d-replace)
     final-related =
       conv⊑convᵀ result-paired application-related
   paired-cast-values widening
@@ -111,7 +114,8 @@ private
       (paired-conversion
         (paired-conceal corresponds
           (CV.conceal-fun c↑ d↓)
-          (CV.conceal-fun e↑ f↓)))
+          (CV.conceal-fun e↑ f↓)
+          (replace-paired-function c-replace d-replace)))
       inner argument-related vV vW vL′ vR′ =
     world-coherent-source-target-keep-prependᵀ
       (pure-step (β-↦ vL′ vR′))
@@ -138,13 +142,13 @@ private
         relation-prefix source-V-no target-L-no inner
     argument-paired =
       paired-conversion
-        (paired-reveal corresponds⁺ c↑⁺ e↑⁺)
+        (paired-reveal corresponds⁺ c↑⁺ e↑⁺ c-replace)
     argument-cast =
       conv⊑convᵀ argument-paired argument-related
     application-related = ·⊑·ᵀ inner⁺ argument-cast
     result-paired =
       paired-conversion
-        (paired-conceal corresponds⁺ d↓⁺ f↓⁺)
+        (paired-conceal corresponds⁺ d↓⁺ f↓⁺ d-replace)
     final-related =
       conv⊑convᵀ result-paired application-related
   paired-cast-values widening
@@ -152,11 +156,14 @@ private
       {pC = pA₀ ↦ pB₀}
       relation-prefix coherent exclusive unique wfR okM okM′
       (paired-widening
-        mode seal★ source-widening
-        mode′ seal★′ target-widening compatible)
+        mode seal★ source-widening source-shape
+        mode′ seal★′ target-widening target-shape
+        source-comp target-comp compatible)
       inner argument-related vV vW vL′ vR′ =
     widening relation-prefix coherent exclusive unique wfR okM okM′
-      mode seal★ source-widening mode′ seal★′ target-widening
+      mode seal★ source-widening source-shape
+      mode′ seal★′ target-widening target-shape
+      source-comp target-comp
       compatible inner argument-related vV vW vL′ vR′
 
 

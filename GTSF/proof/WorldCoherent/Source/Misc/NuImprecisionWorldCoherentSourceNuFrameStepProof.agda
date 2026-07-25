@@ -171,11 +171,12 @@ world-coherent-source-ν-frame-step-proofᵀ
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-      liftρ liftγ inner)
+      liftρ liftγ inner paired-replace)
     N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepMatchedNuFrame source-ν-frames
-      {pA = A⊑A′} prefixρ s↑ s′↑)
+      {pA = A⊑A′} {A⇑⊑A′⇑ = A⇑⊑A′⇑}
+      prefixρ s↑ s′↑ paired-replace)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) (ν-runtime ok-target)
@@ -192,9 +193,9 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ inner) N→N′ =
+    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ inner replace) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
-    (sourceStepSourceNuFrame source-ν-frames prefixρ hA s↑)
+    (sourceStepSourceNuFrame source-ν-frames prefixρ hA s↑ replace)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) ok-target
@@ -208,11 +209,13 @@ world-coherent-source-ν-frame-step-proofᵀ
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
     (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ inner)
+      s⊑ s′⊑ compat liftρ liftγ inner
+      s-shape s′-shape source-comp target-comp)
     N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepMatchedNuCastFrame source-ν-frames prefixρ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ compat)
+      mode seal★ s⊑ mode′ seal★′ s′⊑
+      s-shape s′-shape source-comp target-comp compat)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) (ν-runtime ok-target)
@@ -225,10 +228,11 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ inner) N→N′ =
+    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ inner
+      s-shape comp) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepSourceNuCastFrame source-ν-frames prefixρ
-      mode seal★ s⊑)
+      mode seal★ s⊑ s-shape comp)
     (λ source↠blame → _ , ν-blame-tailᵀ source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR
       (ν-runtime ok-source) ok-target
@@ -239,10 +243,10 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q) N→N′ =
+    (⊑cast⊒ᵀ mode′ seal★′ c′⊒ inner q c-shape comp) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetNarrowFrame target-cast-frames prefixρ
-      mode′ seal★′ c′⊒)
+      mode′ seal★′ c′⊒ c-shape comp)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
@@ -253,10 +257,10 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q) N→N′ =
+    (⊑cast⊑ᵀ mode′ seal★′ c′⊑ inner q c-shape comp) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetWidenFrame target-cast-frames prefixρ
-      mode′ seal★′ c′⊑)
+      mode′ seal★′ c′⊑ c-shape comp)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
@@ -267,10 +271,10 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑cast⊑idᵀ seal★′ c′⊑ inner q) N→N′ =
+    (⊑cast⊑idᵀ seal★′ c′⊑ inner q c-shape comp) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetIdWidenFrame target-cast-frames prefixρ
-      seal★′ c′⊑)
+      seal★′ c′⊑ c-shape comp)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
@@ -281,9 +285,9 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑conv↑ᵀ c′↑ inner q) N→N′ =
+    (⊑conv↑ᵀ c′↑ inner q replace) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
-    (sourceStepTargetRevealFrame target-cast-frames prefixρ c′↑)
+    (sourceStepTargetRevealFrame target-cast-frames prefixρ c′↑ replace)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
@@ -296,9 +300,9 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑conv↓ᵀ c′↓ inner q) N→N′ =
+    (⊑conv↓ᵀ c′↓ inner q replace) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
-    (sourceStepTargetConcealFrame target-cast-frames prefixρ c′↓)
+    (sourceStepTargetConcealFrame target-cast-frames prefixρ c′↓ replace)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢
@@ -311,9 +315,10 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner) N→N′ =
+    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
-    (sourceStepTargetNuFrame target-ν-frames prefixρ hA s↑ r)
+    (sourceStepTargetNuFrame target-ν-frames prefixρ
+      hA s↑ r replace)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (ν-runtime ok-target) source⊢
@@ -326,10 +331,11 @@ world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames target-ν-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR
     ok-source ok-target source⊢ target⊢
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner) N→N′ =
+    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
+      s-shape comp) N→N′ =
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetNuCastFrame target-ν-frames prefixρ
-      mode seal★ s⊑ r)
+      mode seal★ s⊑ r s-shape comp)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (ν-runtime ok-target) source⊢

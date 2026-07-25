@@ -28,9 +28,9 @@ world-coherent-final-source-νcast-paired-index-catchup-proofᵀ :
   WorldCoherentFinalSourceNuCastPairedIndexViewCatchupᵀ →
   WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ
 world-coherent-final-source-νcast-paired-index-catchup-proofᵀ
-    view-catchup coherent exclusive wfL mode seal★ s⊑
+    view-catchup coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′ =
-  view-catchup coherent exclusive wfL mode seal★ s⊑
+  view-catchup coherent exclusive wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ source-view target-view L⊑V′
   where
   source-view = left-polymorphic-value-shapeᵀ vL L⊑V′

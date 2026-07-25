@@ -10,6 +10,10 @@ module proof.OneStep.NuImprecisionOneStepTargetCastSequenceRoots where
 --     dependencies.
 
 open import Data.List using ([])
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -31,7 +35,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
 
 
 weak-one-step-target-narrow-cast-sequence-root-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V A A′ C′ B′ s t μ′}
+  ∀ {Φ Δᴸ Δᴿ M V A A′ C′ B′ s t μ′ s-shape t-shape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   CastMode μ′ →
@@ -42,18 +46,25 @@ weak-one-step-target-narrow-cast-sequence-root-outcomeᵀ :
     ⊢ᴺ M ⊑ V ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ A ⊑ C′ ⊣ Δᴿ) →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  narrowing ⊢ᶜ s ⦂ s-shape →
+  ⌊ r ⌋ ； s-shape ≋ ⌊ p ⌋ →
+  narrowing ⊢ᶜ t ⦂ t-shape →
+  ⌊ q ⌋ ； t-shape ≋ ⌊ r ⌋ →
   Value V →
   WeakOneStepIndexedOutcome
     {M = M} {N′ = V ⟨ s ⟩ ⟨ t ⟩} {χ = keep} {ρ = ρ} q
 weak-one-step-target-narrow-cast-sequence-root-outcomeᵀ
-    mode seal★ s⊒ t⊒ M⊑V r q vV =
+    mode seal★ s⊒ t⊒ M⊑V r q s-shape s-comp
+      t-shape t-comp vV =
   weak-one-step-indexed-outcome-relatedᵀ
     (⊑cast⊒ᵀ mode seal★ t⊒
-      (⊑cast⊒ᵀ mode seal★ s⊒ M⊑V r) q)
+      (⊑cast⊒ᵀ mode seal★ s⊒ M⊑V r
+        s-shape s-comp)
+      q t-shape t-comp)
 
 
 weak-one-step-target-widen-cast-sequence-root-outcomeᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V A A′ C′ B′ s t μ′}
+  ∀ {Φ Δᴸ Δᴿ M V A A′ C′ B′ s t μ′ s-shape t-shape}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} →
   CastMode μ′ →
@@ -64,11 +75,18 @@ weak-one-step-target-widen-cast-sequence-root-outcomeᵀ :
     ⊢ᴺ M ⊑ V ⦂ A ⊑ A′ ∶ p →
   (r : Φ ∣ Δᴸ ⊢ A ⊑ C′ ⊣ Δᴿ) →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ s ⦂ s-shape →
+  ⌊ p ⌋ ； s-shape ≋ ⌊ r ⌋ →
+  widening ⊢ᶜ t ⦂ t-shape →
+  ⌊ r ⌋ ； t-shape ≋ ⌊ q ⌋ →
   Value V →
   WeakOneStepIndexedOutcome
     {M = M} {N′ = V ⟨ s ⟩ ⟨ t ⟩} {χ = keep} {ρ = ρ} q
 weak-one-step-target-widen-cast-sequence-root-outcomeᵀ
-    mode seal★ s⊑ t⊑ M⊑V r q vV =
+    mode seal★ s⊑ t⊑ M⊑V r q s-shape s-comp
+      t-shape t-comp vV =
   weak-one-step-indexed-outcome-relatedᵀ
     (⊑cast⊑ᵀ mode seal★ t⊑
-      (⊑cast⊑ᵀ mode seal★ s⊑ M⊑V r) q)
+      (⊑cast⊑ᵀ mode seal★ s⊑ M⊑V r
+        s-shape s-comp)
+      q t-shape t-comp)

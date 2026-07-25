@@ -10,6 +10,8 @@ module
 --   * Contains no implementation, recursive dispatcher, or permissive option.
 
 open import Coercions using (Coercion; ModeEnv; instᵈ)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
@@ -20,6 +22,8 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
+open import ImprecisionComposition using
+  (ImprecisionShape; _；_≋_; ⌊_⌋)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
@@ -41,6 +45,7 @@ WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {L V′ : Term} {B C C′ : Ty} {s : Coercion}
+    {s-shape : ImprecisionShape}
     {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ}
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ} →
@@ -53,6 +58,8 @@ WorldCoherentFinalSourceNuCastPairedIndexCatchupᵀ =
   instᵈ μ ∣ suc Δᴸ
     ∣ ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))
     ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  widening ⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ p ⌋ ≋ ⌊ r ⌋ →
   Value L →
   No• L →
   Value V′ →

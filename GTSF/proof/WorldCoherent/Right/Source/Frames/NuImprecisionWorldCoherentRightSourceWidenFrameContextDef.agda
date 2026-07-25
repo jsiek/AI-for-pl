@@ -15,6 +15,8 @@ open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 
 open import Coercions using (Coercion; Inert)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
@@ -57,7 +59,7 @@ WorldCoherentRightSourceWidenFrameContextᵀ =
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} {s} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -70,6 +72,8 @@ WorldCoherentRightSourceWidenFrameContextᵀ =
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   (inner : WorldCoherentRightValueCatchupIndexedResult

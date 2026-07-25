@@ -16,12 +16,15 @@ open import Data.Nat.Properties using (≤-refl)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import Coercions using (Coercion; Inert)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
   ; weaken-conceal-conversion
   ; weaken-reveal-conversion
   )
+open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
@@ -77,6 +80,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; sourceStoreResult
   ; transportAllCoherent
   ; transportArrowCoherent
+  ; transportLeftReplacementCoherent
   ; transportNo•Terms
   ; transportType
   ; weak-indexed-result
@@ -111,7 +115,7 @@ right-source-narrow-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} {s} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -124,6 +128,8 @@ right-source-narrow-frameᵀ :
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊒ B →
+  narrowing ⊢ᶜ c ⦂ s →
+  s ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -132,7 +138,7 @@ right-source-narrow-frameᵀ :
     {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
 right-source-narrow-frameᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert mode seal★ c⊒
-    M⊑M′
+    c-shape comp M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -140,7 +146,7 @@ right-source-narrow-frameᵀ
        | rightCatchupSourceUnchanged catchup
 right-source-narrow-frameᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert mode seal★ c⊒
-    M⊑M′
+    c-shape comp M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -165,7 +171,8 @@ right-source-narrow-frameᵀ
 
   framed =
     weak-one-step-source-narrow-cast-indexed-frameᵀ
-      mode seal★⁺ c⊒⁺ (rightCatchupIndexedResult catchup)
+      mode seal★⁺ c⊒⁺ c-shape comp
+      (rightCatchupIndexedResult catchup)
 
 
 right-source-widen-frameᵀ :
@@ -173,7 +180,7 @@ right-source-widen-frameᵀ :
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {M M′ : Term} {A B B′ : Ty} {c : Coercion} {μ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} {s} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
@@ -186,6 +193,8 @@ right-source-widen-frameᵀ :
   CastMode μ →
   SealModeStore★ μ (leftStoreⁱ ρ₀) →
   μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -194,7 +203,7 @@ right-source-widen-frameᵀ :
     {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
 right-source-widen-frameᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert mode seal★ c⊑
-    M⊑M′
+    c-shape comp M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -202,7 +211,7 @@ right-source-widen-frameᵀ
        | rightCatchupSourceUnchanged catchup
 right-source-widen-frameᵀ
     prefix coherent exclusive unique wfR okM′ vM noM inert mode seal★ c⊑
-    M⊑M′
+    c-shape comp M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -227,7 +236,8 @@ right-source-widen-frameᵀ
 
   framed =
     weak-one-step-source-widen-cast-indexed-frameᵀ
-      mode seal★⁺ c⊑⁺ (rightCatchupIndexedResult catchup)
+      mode seal★⁺ c⊑⁺ c-shape comp
+      (rightCatchupIndexedResult catchup)
 
 
 right-source-reveal-frameᵀ :
@@ -246,6 +256,7 @@ right-source-reveal-frameᵀ :
   No• M →
   Inert c →
   RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+  p [ α ↦ X ]ᴸ q →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -254,7 +265,8 @@ right-source-reveal-frameᵀ :
     {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
 right-source-reveal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
-    prefix coherent exclusive unique wfR okM′ vM noM inert c↑ M⊑M′
+    prefix coherent exclusive unique wfR okM′ vM noM inert c↑ replacement
+    M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -262,7 +274,8 @@ right-source-reveal-frameᵀ
        | rightCatchupSourceUnchanged catchup
 right-source-reveal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
-    prefix coherent exclusive unique wfR okM′ vM noM inert c↑ M⊑M′
+    prefix coherent exclusive unique wfR okM′ vM noM inert c↑ replacement
+    M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -297,6 +310,9 @@ right-source-reveal-frameᵀ
     conv↑⊑ᵀ final-conversion
       (canonicalIndexedResults (rightCatchupIndexedResult catchup))
       (transportType inner _)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+        replacement)
 
   first =
     weak-one-step-source-cast-frameᵀ inner final-relation
@@ -333,6 +349,7 @@ right-source-conceal-frameᵀ :
   No• M →
   Inert c →
   ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+  q [ α ↦ X ]ᴸ p →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
@@ -341,7 +358,8 @@ right-source-conceal-frameᵀ :
     {V = M ⟨ c ⟩} {M′ = M′} {ρ = ρ⁺} q
 right-source-conceal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
-    prefix coherent exclusive unique wfR okM′ vM noM inert c↓ M⊑M′
+    prefix coherent exclusive unique wfR okM′ vM noM inert c↓ replacement
+    M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -349,7 +367,8 @@ right-source-conceal-frameᵀ
        | rightCatchupSourceUnchanged catchup
 right-source-conceal-frameᵀ
     {Δᴸ = Δᴸ} {A = A} {B = B} {c = c}
-    prefix coherent exclusive unique wfR okM′ vM noM inert c↓ M⊑M′
+    prefix coherent exclusive unique wfR okM′ vM noM inert c↓ replacement
+    M⊑M′
     (world-coherent-right-value-indexed-catchup
       catchup lineage source-bullet-transport coherent′ exclusive′ unique′
       wfR′)
@@ -384,6 +403,9 @@ right-source-conceal-frameᵀ
     conv↓⊑ᵀ final-conversion
       (canonicalIndexedResults (rightCatchupIndexedResult catchup))
       (transportType inner _)
+      (transportLeftReplacementCoherent
+        (weakIndexedTypeCoherence (rightCatchupIndexedResult catchup))
+        replacement)
 
   first =
     weak-one-step-source-cast-frameᵀ inner final-relation

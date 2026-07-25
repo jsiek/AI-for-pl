@@ -8,7 +8,11 @@ module proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupPrefixFrames wh
 
 open import Coercions using (id-onlyᵈ)
 open import Agda.Builtin.Equality using (refl)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
+open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_; _∣_∣_⊢_∶_⊒_)
 open import NuTermImprecision using
@@ -24,7 +28,7 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
 
 
 world-coherent-left-catchup-prefix-target-narrow-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
@@ -32,25 +36,27 @@ world-coherent-left-catchup-prefix-target-narrow-castᵀ :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊒ B′ →
+  narrowing ⊢ᶜ c ⦂ s →
+  ⌊ q ⌋ ； s ≋ ⌊ p ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 world-coherent-left-catchup-prefix-target-narrow-castᵀ
-    prefix mode seal★ c⊒
+    prefix mode seal★ c⊒ c-shape comp
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-narrow-castᵀ
-      prefix mode seal★ c⊒ catchup)
+      prefix mode seal★ c⊒ c-shape comp catchup)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 
 world-coherent-left-catchup-prefix-target-reveal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
@@ -60,25 +66,26 @@ world-coherent-left-catchup-prefix-target-reveal-castᵀ :
   StoreImpPrefix ρ₀ ρ⁺ →
   RevealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X′ c A′ B′ →
+  p [ β ↦ X′ ]ᴿ q →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 world-coherent-left-catchup-prefix-target-reveal-castᵀ
-    prefix c↑
+    prefix c↑ replace
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-reveal-castᵀ
-      prefix c↑ catchup)
+      prefix c↑ replace catchup)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 
 world-coherent-left-catchup-prefix-target-conceal-castᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ β X′}
@@ -88,28 +95,29 @@ world-coherent-left-catchup-prefix-target-conceal-castᵀ :
   StoreImpPrefix ρ₀ ρ⁺ →
   ConcealConversion μ Δᴿ (rightStoreⁱ ρ₀)
     β X′ c A′ B′ →
+  q [ β ↦ X′ ]ᴿ p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 world-coherent-left-catchup-prefix-target-conceal-castᵀ
-    prefix c↓
+    prefix c↓ replace
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-conceal-castᵀ
-      prefix c↓ catchup)
+      prefix c↓ replace catchup)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 
 world-coherent-left-catchup-prefix-target-widen-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c μ s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
@@ -117,50 +125,54 @@ world-coherent-left-catchup-prefix-target-widen-castᵀ :
   CastMode μ →
   SealModeStore★ μ (rightStoreⁱ ρ₀) →
   μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′ →
+  widening ⊢ᶜ c ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 world-coherent-left-catchup-prefix-target-widen-castᵀ
-    prefix mode seal★ c⊑
+    prefix mode seal★ c⊑ c-shape comp
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-castᵀ
-      prefix mode seal★ c⊑ catchup)
+      prefix mode seal★ c⊑ c-shape comp catchup)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
 
 world-coherent-left-catchup-prefix-target-widen-id-castᵀ :
-  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c}
+  ∀ {Φ Δᴸ Δᴿ M V′ A A′ B′ c s}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
   StoreImpPrefix ρ₀ ρ⁺ →
   SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ₀) →
   id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c ∶ A′ ⊑ B′ →
+  widening ⊢ᶜ c ⦂ s →
+  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′} {ρ = ρ⁺} p →
   WorldCoherentLeftCatchupIndexedResult
     {N = M} {V′ = V′ ⟨ c ⟩} {ρ = ρ⁺} q
 world-coherent-left-catchup-prefix-target-widen-id-castᵀ
-    prefix seal★ c⊑
+    prefix seal★ c⊑ c-shape comp
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
         (left-catchup-invariant
           (left-silent-invariant refl refl) final))
-      lineage coherent exclusive wfL) =
+      lineage coherent exclusive unique wfL) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-target-widen-id-castᵀ
-      prefix seal★ c⊑ catchup)
+      prefix seal★ c⊑ c-shape comp catchup)
     (weak-step-store-lineage
       (lineageStore lineage)
       (lineageEmbedding lineage)
       (lineagePrefix lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL

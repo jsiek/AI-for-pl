@@ -8,8 +8,10 @@ module proof.OneStep.NuImprecisionOneStepTargetConversionRoots where
 --   * Excludes ξ-⟨⟩, which is handled by the target-conversion frame
 --     module.
 --   * Each helper owns exhaustive inversion of the corresponding ordinary
---     conversion redex while preserving the explicit result index q.
---   * Contains one intended hard-proof hole for reveal-unseal cancellation.
+--     conversion redex while preserving the explicit result index and its
+--     right-endpoint replacement evidence.
+--   * The reveal-unseal branch remains blocked on source value catch-up and
+--     world coherence, which this root-only contract does not provide.
 
 open import Conversion using
   ( ConcealConversion
@@ -23,6 +25,7 @@ open import Conversion using
   ; reveal-unseal
   )
 open import Data.List using ([])
+open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using
   ( blame-⟨⟩
@@ -79,27 +82,33 @@ weak-one-step-target-reveal-conversion-root-outcomeᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  p [ β ↦ X′ ]ᴿ q →
   M′ ⟨ c′ ⟩ —→ N′ →
   WeakOneStepIndexedOutcome
     {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wf okM okM′ (reveal-id-var hY ok) M⊑M′ q (β-id vV) =
+    wf okM okM′ (reveal-id-var hY ok) M⊑M′ q replace
+    (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     (＇ _) okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wf okM okM′ reveal-id-base M⊑M′ q (β-id vV) =
+    wf okM okM′ reveal-id-base M⊑M′ q replace (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     (‵ _) okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wf okM okM′ reveal-id-★ M⊑M′ q (β-id vV) =
+    wf okM okM′ reveal-id-★ M⊑M′ q replace (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     ★ okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wf okM okM′ (reveal-unseal hX′ β∈Σ ok) M⊑M′ q
+    wf okM okM′ (reveal-unseal hX′ β∈Σ ok) M⊑M′ q replace
     (seal-unseal vV) =
+  -- `replace` transports the type index, but target seal cancellation first
+  -- needs a source value related to the target seal.  Producing that value,
+  -- and canceling source-only seals encountered on the way, requires the
+  -- world-coherent value-catchup invariants absent from this contract.
   {!!}
 weak-one-step-target-reveal-conversion-root-outcomeᵀ
-    wf okM okM′ c↑ M⊑blame q blame-⟨⟩ =
+    wf okM okM′ c↑ M⊑blame q replace blame-⟨⟩ =
   weak-one-step-target-blame-indexed-outcomeᵀ okM M⊑blame q
 
 
@@ -115,21 +124,23 @@ weak-one-step-target-conceal-conversion-root-outcomeᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+  q [ β ↦ X′ ]ᴿ p →
   M′ ⟨ c′ ⟩ —→ N′ →
   WeakOneStepIndexedOutcome
     {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 weak-one-step-target-conceal-conversion-root-outcomeᵀ
-    wf okM okM′ (conceal-id-var hY ok) M⊑M′ q (β-id vV) =
+    wf okM okM′ (conceal-id-var hY ok) M⊑M′ q replace
+    (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     (＇ _) okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-conceal-conversion-root-outcomeᵀ
-    wf okM okM′ conceal-id-base M⊑M′ q (β-id vV) =
+    wf okM okM′ conceal-id-base M⊑M′ q replace (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     (‵ _) okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-conceal-conversion-root-outcomeᵀ
-    wf okM okM′ conceal-id-★ M⊑M′ q (β-id vV) =
+    wf okM okM′ conceal-id-★ M⊑M′ q replace (β-id vV) =
   weak-one-step-target-atomic-identity-root-outcomeᵀ
     ★ okM (runtime-⟨⟩ okM′) M⊑M′ q vV
 weak-one-step-target-conceal-conversion-root-outcomeᵀ
-    wf okM okM′ c↓ M⊑blame q blame-⟨⟩ =
+    wf okM okM′ c↓ M⊑blame q replace blame-⟨⟩ =
   weak-one-step-target-blame-indexed-outcomeᵀ okM M⊑blame q

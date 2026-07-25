@@ -9,6 +9,9 @@ module
 --   * Contains no catch-up implementation or recursive semantic dependency.
 
 import Coercions as C
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using (StoreImp; leftStoreⁱ)
@@ -25,7 +28,8 @@ WorldCoherentSourceInertWidenFrameᵀ =
   ∀ {Φ Δᴸ Δᴿ} {N V′ : Term} {A B B′ : Ty} {c : C.Coercion}
     {μ : C.ModeEnv}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
+    {s : ImprecisionShape} →
   C.Inert c →
   StoreImpPrefix ρ₀ ρ⁺ →
   CastMode μ →
@@ -34,5 +38,7 @@ WorldCoherentSourceInertWidenFrameᵀ =
   WorldCoherentLeftCatchupIndexedResult
     {N = N} {V′ = V′} {ρ = ρ⁺} p →
   (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ c ⦂ s →
+  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ c ⟩} {V′ = V′} {ρ = ρ⁺} q

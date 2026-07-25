@@ -13,12 +13,13 @@ module
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
+import CastImprecisionShape as CastShape
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; _×_; Σ-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
-  (cong; subst; sym)
+  (cong; subst; sym; trans)
 open import ImprecisionWf using
   ( ImpCtx
   ; ∀ⁱ_
@@ -74,12 +75,15 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultRightCtx
   ; resultStore
   ; sourceResult
+  ; sourceChanges
   ; targetCtxResult
   ; targetResult
   ; targetStoreResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
   ; weakIndexedResult
+  ; weakIndexedTypeCoherence
   )
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
@@ -116,6 +120,11 @@ open import proof.Core.Properties.ReductionProperties using
   )
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken)
+open import proof.Core.Properties.NuCastImprecisionShapeProperties using
+  ( cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  ; shape-subst-target
+  )
 
 
 private
@@ -281,11 +290,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ :
   WorldCoherentRightTargetNarrowFunUntagGenRootContextᵀ
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -311,11 +322,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -329,11 +342,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -363,11 +378,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
   result = weakIndexedResult indexed
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -396,11 +413,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
   seed-result = weakIndexedResult seed-indexed
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -419,11 +438,13 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
   seed-result = weakIndexedResult seed-indexed
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -454,22 +475,65 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
               (targetTailChanges result) (★ ⇒ ★)))
           untag-seed-final)
         (canonicalIndexedResults seed-indexed)
-        (transportType seed-result intermediate-final))
+        (transportType seed-result intermediate-final)
+        final-untag-shape final-untag-comp)
   where
   indexed = rightCatchupIndexedResult catchup
   result = weakIndexedResult indexed
-  intermediate = eager-intermediate p q
+  intermediate = r
   intermediate-final = transportType result intermediate
   seed-indexed =
     rightCatchupIndexedResult (worldRightCatchupResult seed)
   seed-result = weakIndexedResult seed-indexed
+
+  result-untag-comp =
+    imprecision-composition-shape-transport
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence indexed) intermediate)
+      refl
+      (trans
+        (shape-subst-target
+          (applyTys-star (targetTailChanges result))
+          (transportType result p))
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) p))
+      untag-comp
+
+  final-untag-shape =
+    subst
+      (λ c → CastShape.narrowing CastShape.⊢ᶜ c ⦂ untag-index)
+      (cong
+        (applyCoercions (targetTailChanges seed-result))
+        (applyCoercions-untag
+          (targetTailChanges result) (★ ⇒ ★)))
+      (cast-shape-applyCoercions
+        (targetTailChanges seed-result)
+        (cast-shape-applyCoercions
+          (targetTailChanges result) untag-shape))
+
+  final-untag-comp =
+    imprecision-composition-shape-transport
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence seed-indexed) intermediate-final)
+      refl
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence seed-indexed)
+        (subst
+          (λ T → resultCtx result ∣ resultLeftCtx result
+            ⊢ applyTys (sourceChanges result) _ ⊑ T
+              ⊣ resultRightCtx result)
+          (applyTys-star (targetTailChanges result))
+          (transportType result p)))
+      result-untag-comp
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)
@@ -498,24 +562,40 @@ world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
           (targetTailChanges result)
           (NW.genSafe→inert (NW.safe-gen safe)))
         (inj₂ (inj₂ (inj₁
-          (modeG , castG , final-seal-mode result sealG ,
-            gen-final))))
+          (modeG , gen-index , castG ,
+            final-seal-mode result sealG , gen-final ,
+            result-gen-shape , result-gen-comp))))
         untagged untagged-context untagged-prefix)
   where
   indexed = rightCatchupIndexedResult catchup
   result = weakIndexedResult indexed
-  intermediate = eager-intermediate p q
+  intermediate = r
   intermediate-final = transportType result intermediate
   seed-indexed =
     rightCatchupIndexedResult (worldRightCatchupResult seed)
   seed-result = weakIndexedResult seed-indexed
+
+  result-gen-shape =
+    cast-shape-applyCoercions
+      (targetTailChanges result) gen-shape
+
+  result-gen-comp =
+    imprecision-composition-shape-transport
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence indexed) q)
+      refl
+      (transportShapeCoherent
+        (weakIndexedTypeCoherence indexed) intermediate)
+      gen-comp
 world-coherent-right-target-narrow-fun-untag-gen-root-context-proofᵀ
     terminal untag inert resume
-    {p = p} {q = q} prefix mode seal★
+    {untag-shape = untag-index} {gen-shape = gen-index}
+    {p = p} {r = r} {q = q} prefix mode seal★
     (C.cast-seq
       untag⊢@(C.cast-untag hG gG tag-ok)
       gen⊢@(C.cast-gen hFun occ gen-body⊢) ,
       NW.fun-untag-gen safe)
+    untag-shape untag-comp gen-shape gen-comp
     inner@(world-coherent-right-value-indexed-catchup
       catchup lineage bullet final-world final-exclusive final-unique
       final-wfR)

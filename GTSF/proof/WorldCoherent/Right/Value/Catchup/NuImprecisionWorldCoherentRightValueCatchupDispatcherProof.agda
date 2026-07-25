@@ -30,6 +30,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; down⊑downᵀ
   ; gen⊑groundᵀ
   ; gen-down⊑gen-downᵀ
@@ -119,6 +120,13 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (·⊑·ᵀ L⊑L′ M⊑M′)
+world-coherent-right-value-catchup-dispatcher-proofᵀ
+    cases prefix coherent exclusive unique wfR okM′
+    (() ⟨ inert-u ⟩) noV
+    (down·up⊑down·upᵀ
+      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+      L⊑L′ M⊑M′ down-square widening
+      u-shape u′-shape up-square compatible)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     ((vM ⟨ inert-d ⟩) ⟨ inert-u ⟩)

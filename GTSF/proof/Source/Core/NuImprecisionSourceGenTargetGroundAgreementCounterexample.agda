@@ -54,7 +54,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import PairedWideningCompatibility using
-  (compatible-source-leaf; leaf-tag)
+  (compatible-tag)
 open import QuotientedTermImprecision using
   ( cast⊒⊑ᵀ
   ; conv⊑convᵀ
@@ -168,7 +168,7 @@ nat-tagged-relation =
       cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
       cast-tag-or-id seal★-tag-or-id nat-tag-typing shape-tag-base
       comp-tag-id★ comp-idι-tag
-      (compatible-source-leaf (leaf-tag HNat)))
+      (compatible-tag HNat))
     (κ⊑κᵀ {n = zero})
 
 function-untag-typing :

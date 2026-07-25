@@ -227,7 +227,10 @@ open import QuotientedTermImprecision
 open import ConversionIndexCompatibility
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
+  ; compatible-all
+  ; compatible-function
   ; compatible-source-inert
+  ; compatible-tag
   ; compatible-target-inert-bridge
   )
 open import ImprecisionComposition using
@@ -502,6 +505,19 @@ paired-widening-compatible-rename²ᵢ :
     (⊑-renameᵗ²ᵢ assm hτ hσ p)
     (⊑-renameᵗ²ᵢ assm hτ hσ q)
     c-shape c′-shape
+paired-widening-compatible-rename²ᵢ {τ = τ} hτ hσ
+    (compatible-tag G) =
+  compatible-tag (renameᵗ τ G)
+paired-widening-compatible-rename²ᵢ hτ hσ
+    (compatible-function compatible) =
+  compatible-function
+    (paired-widening-compatible-rename²ᵢ hτ hσ compatible)
+paired-widening-compatible-rename²ᵢ {assm = assm} hτ hσ
+    (compatible-all compatible) =
+  compatible-all
+    (paired-widening-compatible-rename²ᵢ
+      {assm = rename-assm²-⇑ᵢ assm}
+      (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) compatible)
 paired-widening-compatible-rename²ᵢ hτ hσ
     (compatible-source-inert inert) =
   compatible-source-inert (renameᶜ-preserves-Inert _ inert)
@@ -538,6 +554,23 @@ paired-widening-compatible-rename-under-binders²ᵢ :
       (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) q)
     (⊑-lift∀ᵢ (⊑-renameᵗ²ᵢ assm hτ hσ p))
     c-shape c′-shape
+paired-widening-compatible-rename-under-binders²ᵢ {τ = τ} hτ hσ
+    (compatible-tag G) =
+  compatible-tag (renameᵗ (extᵗ τ) G)
+paired-widening-compatible-rename-under-binders²ᵢ
+    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
+    {p = p₁ ↦ p₂} {q = q₁ ↦ q₂} hτ hσ
+    (compatible-function compatible) =
+  compatible-function
+    (paired-widening-compatible-rename-under-binders²ᵢ
+      hτ hσ compatible)
+paired-widening-compatible-rename-under-binders²ᵢ
+    {τ = τ} {c = C.`∀ c}
+    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p} {q = ∀ⁱ q}
+    {assm = assm} hτ hσ
+    (compatible-all compatible) =
+  compatible-source-inert
+    (renameᶜ-preserves-Inert (extᵗ τ) (C.`∀ c))
 paired-widening-compatible-rename-under-binders²ᵢ
     {Ψ = Ψ} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ} {τ = τ} {σ = σ}
     {c = c} {c′ = c′} {B = B} {p = p} {q = q}
@@ -5239,6 +5272,19 @@ paired-widening-compatible-rename-leftᵢ :
     (⊑-rename-leftᵢ τ assm hτ p)
     (⊑-rename-leftᵢ τ assm hτ q)
     c-shape c′-shape
+paired-widening-compatible-rename-leftᵢ {τ = τ} hτ
+    (compatible-tag G) =
+  compatible-tag (renameᵗ τ G)
+paired-widening-compatible-rename-leftᵢ hτ
+    (compatible-function compatible) =
+  compatible-function
+    (paired-widening-compatible-rename-leftᵢ hτ compatible)
+paired-widening-compatible-rename-leftᵢ {assm = assm} hτ
+    (compatible-all compatible) =
+  compatible-all
+    (paired-widening-compatible-rename-leftᵢ
+      {assm = rename-assm²-∀-leftᵢ assm}
+      (TyRenameWf-ext hτ) compatible)
 paired-widening-compatible-rename-leftᵢ hτ
     (compatible-source-inert inert) =
   compatible-source-inert (renameᶜ-preserves-Inert _ inert)
@@ -5273,6 +5319,23 @@ paired-widening-compatible-rename-left-under-bindersᵢ :
       (rename-assm²-∀-leftᵢ assm) (TyRenameWf-ext hτ) q)
     (⊑-lift∀ᵢ (⊑-rename-leftᵢ τ assm hτ p))
     c-shape c′-shape
+paired-widening-compatible-rename-left-under-bindersᵢ {τ = τ} hτ
+    (compatible-tag G) =
+  compatible-tag (renameᵗ (extᵗ τ) G)
+paired-widening-compatible-rename-left-under-bindersᵢ
+    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
+    {p = p₁ ↦ p₂} {q = q₁ ↦ q₂} hτ
+    (compatible-function compatible) =
+  compatible-function
+    (paired-widening-compatible-rename-left-under-bindersᵢ
+      hτ compatible)
+paired-widening-compatible-rename-left-under-bindersᵢ
+    {τ = τ} {c = C.`∀ c}
+    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p} {q = ∀ⁱ q}
+    {assm = assm} hτ
+    (compatible-all compatible) =
+  compatible-source-inert
+    (renameᶜ-preserves-Inert (extᵗ τ) (C.`∀ c))
 paired-widening-compatible-rename-left-under-bindersᵢ
     {τ = τ} {c′ = c′} {B = B} {p = p} {q = q}
     {assm = assm} hτ (compatible-source-inert inert) =
@@ -16569,10 +16632,11 @@ weak-one-step-matched-νcast-frameᵀ
             (transportShapeCoherent coherence (∀ⁱ body))))
 
     transport-compat :
+      (pB₀ : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
       PairedWideningCompatible
         ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         (suc Δᴸ) (suc Δᴿ) s s′
-        q (⊑-lift∀ᵢ pB) s-shape s′-shape →
+        q (⊑-lift∀ᵢ pB₀) s-shape s′-shape →
       PairedWideningCompatible
         ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (resultCtx inner))
         (suc (resultLeftCtx inner)) (suc (resultRightCtx inner))
@@ -16580,13 +16644,28 @@ weak-one-step-matched-νcast-frameᵀ
         (applyCoercionUnderTyBinders (targetTailChanges inner)
           (applyCoercionUnderTyBinder χ s′))
         (transportAllBody inner q)
-        (⊑-lift∀ᵢ (transportType inner pB))
+        (⊑-lift∀ᵢ (transportType inner pB₀))
         s-shape s′-shape
-    transport-compat (compatible-source-inert inert) =
+    transport-compat pB₀ (compatible-tag G) =
+      compatible-source-inert
+        (applyCoercionUnderTyBinders-preserves-Inert
+          (sourceChanges inner) (G C.!))
+    transport-compat (p₁ ↦ p₂)
+        (compatible-function {c₁ = c₁} {c₂ = c₂} compatible) =
+      compatible-source-inert
+        (applyCoercionUnderTyBinders-preserves-Inert
+          (sourceChanges inner) (c₁ C.↦ c₂))
+    transport-compat (∀ⁱ p)
+        (compatible-all {c = c} compatible) =
+      compatible-source-inert
+        (applyCoercionUnderTyBinders-preserves-Inert
+          (sourceChanges inner) (C.`∀ c))
+    transport-compat pB₀ (compatible-source-inert inert) =
       compatible-source-inert
         (applyCoercionUnderTyBinders-preserves-Inert
           (sourceChanges inner) inert)
-    transport-compat (compatible-target-inert-bridge bridge-evidence) =
+    transport-compat pB₀
+        (compatible-target-inert-bridge bridge-evidence) =
       compatible-target-inert-bridge λ inert′ →
         let
           bridge , source-triangle , target-triangle =
@@ -16614,13 +16693,13 @@ weak-one-step-matched-νcast-frameᵀ
             source-triangle ,
           imprecision-composition-shape-transport
             bridge-shape refl
-            (trans (shape-lift∀ᵢ (transportType inner pB))
-              (trans (transportShapeCoherent coherence pB)
-                (sym (shape-lift∀ᵢ pB))))
+            (trans (shape-lift∀ᵢ (transportType inner pB₀))
+              (trans (transportShapeCoherent coherence pB₀)
+                (sym (shape-lift∀ᵢ pB₀))))
             target-triangle
 
     result-compat =
-      transport-compat compat
+      transport-compat pB compat
 
     transported-source-comp =
       imprecision-composition-shape-transport

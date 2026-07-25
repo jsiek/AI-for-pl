@@ -22,7 +22,7 @@ open import ImprecisionWf using
   )
 open import NuTermImprecision using
   (CtxImp; StoreImp)
-open import NuTerms using (Value)
+open import NuTerms using (Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( PairedCast
   ; allocation-prefixᵀ
@@ -32,6 +32,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; gen⊑groundᵀ
   ; up⊑upᵀ
   ; x⊑xᵀ
@@ -133,6 +134,11 @@ atomic-target-value-reindexᵀ atom vV (blame⊑ᵀ V⊢) q =
 atomic-target-value-reindexᵀ atom () (x⊑xᵀ x∈) q
 atomic-target-value-reindexᵀ () vV (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
 atomic-target-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
+atomic-target-value-reindexᵀ atom (() ⟨ inert-u′ ⟩)
+    (down·up⊑down·upᵀ
+      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+      L⊑L′ M⊑M′ down-square widening
+      u-shape u′-shape up-square compatible) q
 atomic-target-value-reindexᵀ atom vV
     (up⊑upᵀ N⊑N′ widening p
       source-shape target-shape square) q =

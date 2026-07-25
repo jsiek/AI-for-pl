@@ -83,7 +83,10 @@ open import ConversionIndexCompatibility using
 open import ImprecisionWf
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
+  ; compatible-all
+  ; compatible-function
   ; compatible-source-inert
+  ; compatible-tag
   ; compatible-target-inert-bridge
   )
 open import NarrowWiden using
@@ -2346,6 +2349,26 @@ weak-result-transport-paired-widening-compatible-under-binderᵀ :
     (transportAllBody inner q)
     (⊑-lift∀ᵢ (transportType inner p))
     s s′
+weak-result-transport-paired-widening-compatible-under-binderᵀ
+    inner coherent (compatible-tag G) =
+  compatible-source-inert
+    (applyCoercionUnderTyBinders-preserves-Inert
+      (sourceChanges inner) (G C.!))
+weak-result-transport-paired-widening-compatible-under-binderᵀ
+    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
+    {p = p₁ ↦ p₂}
+    inner coherent
+    (compatible-function {c₁ = c₁} {c₂ = c₂} compatible) =
+  compatible-source-inert
+    (applyCoercionUnderTyBinders-preserves-Inert
+      (sourceChanges inner) (c₁ C.↦ c₂))
+weak-result-transport-paired-widening-compatible-under-binderᵀ
+    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p}
+    inner coherent
+    (compatible-all {c = c} compatible) =
+  compatible-source-inert
+    (applyCoercionUnderTyBinders-preserves-Inert
+      (sourceChanges inner) (C.`∀ c))
 weak-result-transport-paired-widening-compatible-under-binderᵀ
     inner coherent
     (compatible-source-inert inert-c) =

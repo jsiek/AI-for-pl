@@ -185,6 +185,15 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   inner-sibling = proj₂ inner-with-sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okL
+    (() ⟨ inert-u′ ⟩) noL′
+    (down·up⊑down·upᵀ
+      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+      L⊑L′ M⊑M′ down-square
+      widening-pair u-shape u′-shape up-square compatible)
+    noR okR′ sibling
+world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
+    source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′
     (allocation-prefixᵀ prefix₀ inner L⊢ L′⊢)
     noR okR′ sibling =

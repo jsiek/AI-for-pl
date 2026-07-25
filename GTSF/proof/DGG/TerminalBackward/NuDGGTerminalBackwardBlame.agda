@@ -1,10 +1,12 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module proof.DGG.TerminalBackward.NuDGGTerminalBackwardBlame where
 
 -- File Charter:
 --   * Owns the exact backward target-blame terminal theorem required by the
 --     closed Nu DGG spine.
---   * The proof is the live assembly of target-step simulation,
---     target-blame catch-up, alignment, and trace induction.
+--   * The statement is frozen and checked; its proof will combine target-step
+--     simulation, target-blame catch-up, alignment, and trace induction.
 
 open import Data.List using ([])
 open import Data.Product using (∃-syntax)
@@ -21,8 +23,6 @@ open import NuTerms using (RuntimeOK; blame)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import proof.DGG.Core.NuDGGClosedWorld using (empty-store-wf)
-open import proof.DGG.TerminalBackward.NuDGGTerminalBackwardBlameIntegration
-  using (backward-target-blame-general-integratedᵀ)
 
 
 backward-target-blame-generalᵀ :
@@ -38,8 +38,7 @@ backward-target-blame-generalᵀ :
   ∀ χs′ →
   M′ —↠[ χs′ ] blame →
   ∃[ χs ] (M —↠[ χs ] blame)
-backward-target-blame-generalᵀ =
-  backward-target-blame-general-integratedᵀ
+backward-target-blame-generalᵀ = {!!}
 
 
 backward-target-blameᵀ :

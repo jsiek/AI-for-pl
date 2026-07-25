@@ -87,6 +87,7 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; up⊑upᵀ
@@ -299,6 +300,12 @@ atomic-source-value-reindexᵀ atom () (blame⊑ᵀ M′⊢) q
 atomic-source-value-reindexᵀ atom () (x⊑xᵀ x∈) q
 atomic-source-value-reindexᵀ () vM (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
 atomic-source-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
+atomic-source-value-reindexᵀ atom (() ⟨ inert-u ⟩)
+    (down·up⊑down·upᵀ
+      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+      L⊑L′ M⊑M′ down-square
+      widening-pair u-shape u′-shape up-square compatible)
+    q
 atomic-source-value-reindexᵀ atom vM
     (up⊑upᵀ M⊑M′ widening p
       source-shape target-shape square) q =

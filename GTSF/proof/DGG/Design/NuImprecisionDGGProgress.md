@@ -14116,8 +14116,12 @@ exact underlying raw result before their composed lineage can be attached.
 - **The combined down/application/up QTI invariant is closed under the basic
   structural transports.**  The strengthened `down·up⊑down·upᵀ` case is now
   handled by term-context shift, prefix-aware parallel substitution, left
-  renaming, and relational-world embedding.  Store-prefix weakening already
-  transports ordinary QTI generically through `allocation-prefixᵀ`; its
+  renaming, relational-world embedding, source-conceal atomic source-value
+  reindexing, and value-catchup runtime-sibling prefix.  The two value-based
+  branches are impossible by value inversion: the relevant side would have to
+  be an application value under the outer inert cast.
+  Store-prefix weakening already transports ordinary QTI generically through
+  `allocation-prefixᵀ`; its
   quotiented worker now contains only the four surviving quotient cases.  The
   deleted `ordinary-down-applicationᵖᵀ` and
   `source-down-applicationᵖᵀ` cases and imports have been removed from all five

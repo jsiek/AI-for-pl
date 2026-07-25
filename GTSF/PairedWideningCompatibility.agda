@@ -12,7 +12,6 @@ module PairedWideningCompatibility where
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (Coercion; Inert)
-open import Data.Empty using (⊥)
 open import Data.List using (_∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (Σ; _×_; _,_)
@@ -83,12 +82,12 @@ data PairedWideningCompatible
       {`∀ A} {`∀ A′} {`∀ B} {`∀ B′}
       (∀ⁱ p) (∀ⁱ q) (∀ˢ c-shape) (∀ˢ c′-shape)
 
-  compatible-target-active :
+  compatible-source-inert :
     ∀ {c c′ : Coercion} {A A′ B B′ : Ty}
       {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
       {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
       {c-shape c′-shape : ImprecisionShape} →
-    (Inert c′ → ⊥) →
+    Inert c →
     PairedWideningCompatible
       Φ Δᴸ Δᴿ c c′ p q c-shape c′-shape
 
@@ -97,10 +96,10 @@ data PairedWideningCompatible
       {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
       {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
       {c-shape c′-shape : ImprecisionShape} →
-    Inert c′ →
-    Σ (Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) (λ bridge →
+    (Inert c′ →
+      Σ (Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ) (λ bridge →
       (c-shape ； ⌊ bridge ⌋ ≋ ⌊ p ⌋) ×
-      (⌊ bridge ⌋ ； c′-shape ≋ ⌊ q ⌋)) →
+      (⌊ bridge ⌋ ； c′-shape ≋ ⌊ q ⌋))) →
     PairedWideningCompatible
       Φ Δᴸ Δᴿ c c′ p q c-shape c′-shape
 
@@ -138,17 +137,19 @@ paired-widening-compatible-shape-transport
       (∀ˢ-injective q-shape)
       compatible)
 paired-widening-compatible-shape-transport
-    p-shape q-shape (compatible-target-active active) =
-  compatible-target-active active
+    p-shape q-shape (compatible-source-inert inert) =
+  compatible-source-inert inert
 paired-widening-compatible-shape-transport
     p-shape q-shape
-    (compatible-target-inert-bridge inert′
-      (bridge , source-triangle , target-triangle)) =
-  compatible-target-inert-bridge inert′
-    ( bridge
-    , transport-result p-shape source-triangle
-    , transport-result q-shape target-triangle
-    )
+    (compatible-target-inert-bridge bridge-evidence) =
+  compatible-target-inert-bridge λ inert′ →
+    let
+      bridge , source-triangle , target-triangle =
+        bridge-evidence inert′
+    in
+      bridge
+      , transport-result p-shape source-triangle
+      , transport-result q-shape target-triangle
   where
   transport-result :
     ∀ {s t r r′} →

@@ -207,6 +207,8 @@ When writing design notes for a calculus or translation:
   "identity-like case".
 - Put formal terms, judgments, and propositions in backticks in the prose and
   headings so they stand out from the surrounding explanation.
+- In Markdown documents, delimit displayed LaTeX with `$$ ... $$`. Do not use
+  `\[ ... \]`; Obsidian does not render those delimiters reliably.
 - When giving reduction relations in notes, prefer a clean mathematical
   presentation with the notation used consistently throughout the document.
 

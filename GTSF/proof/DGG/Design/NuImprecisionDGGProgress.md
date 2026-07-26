@@ -15,9 +15,18 @@ holes or incomplete coverage remain.
 ## Current objective
 
 Construct a strict inhabitant of `GradualDGG` by completing the world-coherent
-forward and backward simulations over the repaired QTI grammar. The public
-statement and compiler boundary are checked, but no complete theorem inhabitant
-exists yet.
+forward and backward simulations over a quotient grammar that is stable under
+repeated function casts. The live DGG assembly is paused at a quotient-design
+checkpoint. Both the compositional prototype and the smaller
+up-to-reduction prototype are strict. The smaller prototype now passes the
+relation-level two-function-cast and arbitrary-substitution tests. It now
+permits exactly one paired narrowing cast, not a finite spine. A
+same-polarity stress test separates an unconditionally expressible
+two-narrowing residual from residuals reachable from the live ordinary
+relation; the remaining operational test is the allocation-aware catch-up
+forced by the active `inst` cast on one permutation route. Neither prototype
+has replaced `QuotientedTermImprecision`. The public statement and compiler
+boundary are checked, but no complete theorem inhabitant exists yet.
 
 The current proof uses these invariants:
 
@@ -32,6 +41,156 @@ The current proof uses these invariants:
   membership uniqueness, store well-formedness, and relational-store lineage.
 - no strict spine may transitively import a module enabling
   `--allow-unsolved-metas` or `--allow-incomplete-matches`.
+- in the compositional candidate, quotient application closure is graded so a
+  derivation introduced by the new application rule cannot appear as a source
+  or target value.
+- in the compositional candidate, repeated paired narrowings are represented
+  by a finite cast spine with one total quotient boundary square.
+- in the smaller candidate, a quotient boundary contains exactly one paired
+  narrowing cast. Additional casts must already be related at an ordinary
+  intermediate index or be consumed by bilateral reduction.
+
+## Active up-to-reduction design hypothesis
+
+The compositional quotient prototype is no longer the only candidate for the
+live relation.  The smaller-relation hypothesis is:
+
+> Keep quotient imprecision only at one paired narrowing cast and at the
+> paired widening boundary that closes its quotient. Do not add
+> quotient-indexed application congruence or a fused
+> `down·up⊑down·upᵀ` term rule.  Instead, use the existing bilateral weak
+> simulation result to reduce through function-cast administration until the
+> residuals return to the smaller relation.
+
+The current result algebra already has the required operational shape:
+`sourceCatchup` permits multiple source steps and `targetTail` permits multiple
+target steps after the leading target step.  The paired function-cast proof
+currently chooses a reflexive target tail and relates the immediate
+post-`β-↦` applications, which is what creates pressure for the fused rule.
+The intended replacement follows the `sim-beta-cast` organization from the
+GTLC DGG proof: peel a function cast, catch up the casted argument, recurse on
+the underlying function, and restore the result cast.
+
+This hypothesis is successful only if a quotient-aware beta lemma can cross
+the lambda endpoint.  In particular, after reducing
+
+$$
+((V\langle c_1\mapsto d_1\rangle)
+  \langle c_2\mapsto d_2\rangle)\,W
+$$
+
+through both function casts and the underlying beta-redex, the substituted
+residual must be related using only ordinary imprecision, paired narrowing
+casts, and quotient-closing widenings. If an irreducible quotient can remain
+embedded in an arbitrary lambda body without reaching such a closing
+boundary, reduction alone is insufficient; that is the falsification
+criterion for the smaller relation and evidence that a compatible quotient
+closure is genuinely necessary.
+
+The first test is isolated from `QuotientedTermImprecision`.  It must cover:
+
+1. a nontrivial paired quotient between differently ordered `∀` types;
+2. two successive function casts, not just one;
+3. reduction through the underlying identity lambda, so the quotient argument
+   is actually substituted;
+4. a final derivation in the smaller relation with no quotient-application or
+   fused down/application/up constructor; and
+5. a negative or blocked arbitrary-body test if the identity case succeeds.
+
+Current result: the relation-level portion succeeds more strongly than
+expected. The initial applications, both paired function boundaries, the
+twice-closed identity result, and substitution into an arbitrary related
+lambda body are all derivable without `down·up⊑down·upᵀ` and without either
+quotient-application constructor. After each down/up round trip, the existing
+`up⊑upᵀ` rule returns the argument to ordinary QTI, so the existing strict
+single-substitution theorem applies directly.
+
+The symmetric pure-reduction picture does not hold, however. For the concrete
+`glb-lower-XY`/`glb-lower-YX` routes, the `XY` closing cast is an inert
+universal cast while the `YX` closing cast is an active `inst`. Therefore:
+
+$$
+\begin{aligned}
+((\lambda x.x)\langle\mathit{inner}_{XY}\rangle
+  \langle\mathit{outer}_{XY}\rangle)\,W
+&\longrightarrow^{3}
+W\langle\mathit{down}_{XY}\rangle
+ \langle\mathit{up}_{XY}\rangle
+ \langle\mathit{down}_{XY}\rangle
+ \langle\mathit{up}_{XY}\rangle,\\
+((\lambda x.x)\langle\mathit{inner}_{YX}\rangle
+  \langle\mathit{outer}_{YX}\rangle)\,W'
+&\longrightarrow
+((\lambda x.x)\langle\mathit{inner}_{YX}\rangle)
+  (W'\langle\mathit{down}_{YX}\rangle)
+  \langle\mathit{up}_{YX}\rangle,
+\end{aligned}
+$$
+
+and the second line must allocate before its next function beta. This does not
+falsify the smaller-relation hypothesis: `WeakOneStepResult` already permits
+the required target tail and store changes. It identifies the next proof
+obligation precisely as the existing quotient-`inst` allocation catch-up
+boundary, rather than a missing term-imprecision constructor.
+
+### Single-boundary stress test
+
+The smaller prototype was tightened from a finite narrowing spine to exactly
+one paired narrowing cast. All earlier two-function-cast and substitution
+examples still pass.
+
+A stronger same-polarity example uses two genuine narrowing stages. Reduction
+of the two widening function casts exposes:
+
+$$
+\begin{aligned}
+W\langle d_1\rangle\langle d_2\rangle
+  \langle u_2\rangle\langle u_1\rangle
+\quad\text{and}\quad
+W'\langle d'_1\rangle\langle d'_2\rangle
+  \langle u'_2\rangle\langle u'_1\rangle .
+\end{aligned}
+$$
+
+The checked results are:
+
+1. both applications reduce to these residuals in three pure steps;
+2. the paired prefixes after `d₁,d₂` are related by the compositional
+   length-two `NarrowingSpine`;
+3. those same prefixes cannot be related by the one-paired-narrowing
+   prototype; inversion would require ordinary imprecision between
+   `∀X.∀Y.X→Y` and `∀Y.∀X.X→Y`, which is impossible; and
+4. the adversarial top pair is not generated by the live ordinary relation.
+   Its intermediate function types have exactly the same missing ordinary
+   imprecision. Relating the top would already require a
+   quotient-to-quotient cast rule.
+
+Therefore this test does **not** yet justify finite narrowing spines in the
+simulation invariant. It shows that finite spines add expressiveness, but the
+extra example lies outside the current relation's reachable top squares. For
+a reachable sequence of ordinary paired function casts, every earlier
+narrowing prefix has an ordinary intermediate index and can remain inside the
+ordinary premise of the final single paired narrowing.
+
+The normal-coercion `β-seq` audit also supports one narrowing boundary.
+Arbitrary sequences of function coercions are normalized by coercion
+composition. The surviving quotient-producing narrowing sequences begin with
+an active function untag. The existing strict
+`inner-sequence-residualᵀ` proof factors that untag into an ordinary cast
+relation and reconstructs exactly one quotient-producing tail cast; the
+seal-tail alternative is proved impossible. Thus source sequence expansion
+does not leave a reachable irreducible two-narrowing quotient.
+
+Target ordinary sequence roots likewise rebuild the two casts through
+ordinary imprecision. The still-uninhabited quotient active-value sequence
+root concerns a sequence in the *closing widening*, not repeated narrowing.
+It should use the target tail and the existing sequence-resume midpoint
+machinery; it is not evidence for `NarrowingSpine`.
+
+Conclusion of this checkpoint: retain exactly one paired narrowing cast in the
+smaller prototype. Finite narrowing spines remain only in the alternative
+compositional prototype and are not currently justified for a reachable DGG
+square.
 
 ## Trusted proof boundaries
 
@@ -44,6 +203,12 @@ The current proof uses these invariants:
 | [`NuDGGTerminalBackwardStrictSpine.agda`](../TerminalBackward/NuDGGTerminalBackwardStrictSpine.agda) | **completed strict architecture** | Backward target-trace contracts and completed semantic leaves |
 | [`NuImprecisionOneStepDef.agda`](../../OneStep/NuImprecisionOneStepDef.agda) | **completed `Def`** | Target-oriented indexed one-step simulation contract |
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](../../WorldCoherent/Core/NuImprecisionWorldCoherentOneStepDef.agda) | **completed `Def`** | World-coherent one-step contract used by the terminal proof |
+| [`NuImprecisionCompositionalQuotientDef.agda`](../../Quotient/NuImprecisionCompositionalQuotientDef.agda) | **completed prototype** | Graded quotient relation, finite narrowing spines, symmetric application, and compatible quotient closing |
+| [`NuImprecisionCompositionalQuotientExamples.agda`](../../Quotient/NuImprecisionCompositionalQuotientExamples.agda) | **completed examples** | Exact, nested-application, nontrivial permutation, repeated-cast, quotient-function/argument, and two-function-cast residual checks |
+| [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Smaller relation with one paired narrowing boundary, no quotient application, and no fused down/application/up rule |
+| [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Nontrivial two-function-cast relation, identity reduction, arbitrary substitution, and checked active-`inst` allocation boundary |
+| [`NuImprecisionSingleNarrowingBoundaryExamples.agda`](../../Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda) | **completed diagnostic** | Same-polarity three-step reductions, a positive length-two spine, and a checked impossibility result for the single-boundary relation |
+| [`NuImprecisionReductionClosedQuotientDesign.md`](NuImprecisionReductionClosedQuotientDesign.md) | **current design hypothesis** | Complete small-relation sketch: one quotient boundary, ordinary-only congruence and substitution, bilateral reduction closure, reachability criterion, and remaining `sim-beta-cast` obligations |
 | [`NuDGGTerminalForwardIntegrationProof.agda`](../TerminalForward/NuDGGTerminalForwardIntegrationProof.agda) | **partial** | Intended route from forward/backward contracts to `GradualDGG`; currently reaches an uncovered paired-widening compatibility case |
 | [`NuDGGTerminalBackwardValueProof.agda`](../TerminalBackward/NuDGGTerminalBackwardValueProof.agda) | **conditional** | Fuel induction for target-value traces |
 | [`NuDGGTerminalBackwardBlameWorldCoherentProof.agda`](../TerminalBackward/NuDGGTerminalBackwardBlameWorldCoherentProof.agda) | **conditional** | Fuel induction for target-blame traces |
@@ -126,6 +291,60 @@ conversion, and conceal conversion value-catch-up cases.
   distinguished eleven genuinely completed higher-order roots from seven
   stale files that only looked complete to a source scan, and it incorporates
   the independently checked right/source-`∀` strict aggregate.
+- The quotient redesign now has a strict prototype and a focused checked
+  example suite. `NarrowingSpine` handles any positive number of paired
+  downcasts, both application premises use the quotient relation, and the
+  ordinary closing layer retains a quotient boundary square plus hereditary
+  compatibility through the selected representatives.
+- The examples check exact embedding, left- and right-nested applications,
+  quotient closing after application, one and two casts through the
+  incomparable `D`/`E` routes, a quotient-related function consuming the
+  two-cast quotient argument, representative-aware closing of a nontrivial
+  `E ≈∀ D` quotient, and the complete residual shape produced by two
+  successive function-cast reductions.
+- The endpoint-MLB fixture now supplies the explicit `NonVar` witness required
+  by the strengthened `ν` imprecision constructor; this removes a stale-source
+  failure that had been hidden by an older Agda interface.
+- The rationale, formal rules, tested reduction shape, and remaining
+  quotient-to-quotient cast-square question are recorded in
+  [`NuImprecisionCompositionalQuotientDesign.md`](NuImprecisionCompositionalQuotientDesign.md).
+- The smaller quotient prototype has no quotient-indexed application
+  constructor, no fused down/application/up constructor, and now no finite
+  narrowing spine. Its quotient constructor contains exactly one paired
+  narrowing cast. The earlier strict example still constructs the initial
+  two-function-cast application with ordinary application, constructs both
+  function boundaries from paired down/up rules, reduces the identity route
+  through three beta steps, and relates the final twice-closed argument.
+- The same example feeds that twice-closed argument to the canonical strict
+  single-substitution theorem for an arbitrary related lambda body. This
+  discharges the original substitution falsification test: once a quotient is
+  closed, it is ordinary QTI and does not require a compositional quotient
+  premise inside the body.
+- The example also proves that the permuted `YX` closing cast is not inert.
+  Its evaluation must enter the allocation-aware quotient-`inst` catch-up
+  machinery before the second function beta. The operational hypothesis
+  remains open exactly at that already-known semantic boundary.
+- The same-polarity stress test proves that two genuine narrowing prefixes
+  require a finite spine if considered without a reachability premise.
+  It also exposes why this is not yet a counterexample to the smaller
+  simulation relation: the top pair already needs an absent
+  quotient-to-quotient cast rule. The checked negative result therefore
+  rejects that pair as a simulation counterexample.
+- The reachable source `β-seq` case is already handled by the strict
+  `inner-sequence-residualᵀ` factorization: an active untag becomes ordinary
+  imprecision and the remaining tail uses one paired narrowing boundary.
+  The target quotient sequence obligation lies on the closing-widening side
+  and belongs to target-tail resumption, not to finite narrowing spines.
+- The revised whole-design sketch is recorded in
+  [`NuImprecisionReductionClosedQuotientDesign.md`](NuImprecisionReductionClosedQuotientDesign.md).
+  It treats quotient imprecision as a scoped intermediate judgment with one
+  paired narrowing introduction and one compatible paired widening
+  elimination. Application, polymorphism, ordinary casts, and substitution
+  remain in the ordinary relation; the simulation conclusion permits
+  bilateral reduction before requiring its final ordinary horizontal edge.
+  The note also records that the same-polarity two-narrowing stress test lacks
+  an ordinarily related top row and therefore does not refute this smaller
+  design.
 
 ## Counterexample policy and audit
 
@@ -169,32 +388,66 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Restore hereditary `PairedWideningCompatible`: replace the broad
+1. State the allocation-aware quotient `sim-beta-cast` contract directly in
+   terms of the existing world-coherent weak result: the inert route supplies
+   the source catch-up, while the active `inst` route uses the target tail and
+   transports the quotient through the resulting store extension.
+2. Connect that contract to the existing paired-widening target
+   pending-allocation machinery. The immediate leaf is the quotient-`inst`
+   residual already counted among the four ordinary/generated down/up holes in
+   `NuImprecisionCatchupScratch`; do not add a term rule to bypass it.
+3. Complete the two-function-cast operational square and confirm that its
+   related endpoint is the ordinary QTI derivation consumed by
+   `two-round-trips-substitutionᵀ`.
+4. Discharge the target quotient closing-widening `β-seq` root through the
+   existing target-tail sequence-resume midpoint machinery. Do not add a
+   narrowing spine for this widening-side obligation.
+5. If these succeed, derive the live function-cast simulation without
+   `down·up⊑down·upᵀ` or quotient application and begin removing those
+   constructors in a separate migration. If allocation catch-up instead
+   produces an irreducible quotient embedded outside a closing boundary,
+   record that strict counterexample and return to the compositional design.
+6. Prove source and target typing projections for the smaller ordinary and
+   one-boundary quotient judgments. Re-run value, `No•`, and terminal
+   inversion using the fact that the quotient judgment has exactly one
+   constructor.
+7. Test the smaller design on valid ordinary top rows with arbitrary lambda
+   bodies, nested reachable function casts, source and target cast sequences,
+   and active target `inst`. Every test must exhibit its initial ordinary term
+   imprecision derivation before its reduction endpoints are considered.
+8. Keep the compositional quotient prototype as the fallback. Reintroduce
+   quotient application, finite narrowing spines, or a quotient-to-quotient
+   cast square only after a strict counterexample shows a derivable ordinary
+   top row whose reductions cannot reach an ordinary-related join.
+9. Restore hereditary `PairedWideningCompatible`: replace the broad
    `compatible-source-inert` fallback with the target-active case, preserve
    function and universal compatibility recursively, and retain the
    target-inert bridge. Then restore both function-beta consumers and the
    terminal-forward integration check.
-2. Add the missing paired-lambda frame-view
+10. Add the missing paired-lambda frame-view
    `down·up⊑down·upᵀ` case and restore its focused strict-spine check.
-3. Migrate the other six known-incomplete strict proofs to the current
+11. Migrate the other six known-incomplete strict proofs to the current
    uniqueness, binder-transport, compatibility, and `down·up⊑down·upᵀ`
    interfaces.
-4. Finish quotient transport normalization and the crossed binary
+12. Finish quotient transport normalization and the crossed binary
    runtime-sibling catch-up invariant.
-5. Prove the source-down-application `β` and `β-↦` value roots.
-6. Inhabit the remaining exact active-synchronization root records.
-7. Assemble the exhaustive prefix-aware world-coherent backward one-step
+13. Prove the source function-cast `β` and `β-↦` value roots using the
+   up-to-reduction `sim-beta-cast` argument rather than a quotient application
+   or spine-length-specific term rule.
+14. Inhabit the remaining exact active-synchronization root records.
+15. Assemble the exhaustive prefix-aware world-coherent backward one-step
    dispatcher and restore a practical green backward strict-spine check.
-8. Supply that strict dispatcher to both backward terminal engines.
-9. Complete the remaining forward engine contracts, invoke the strict terminal
+16. Supply that strict dispatcher to both backward terminal engines.
+17. Complete the remaining forward engine contracts, invoke the strict terminal
    integration proof, and construct `GradualDGG`.
-10. Promote any still-needed generic scratch clauses through strict
+18. Promote any still-needed generic scratch clauses through strict
    `Def`/`Proof`/`Lemma` boundaries and delete the scratch module.
 
 ## Validation
 
 Routine source audits:
 
+    make quotient-design-check
     make dgg-check
     agda -v0 proof/OneStep/NuImprecisionOneStepDef.agda
     agda -v0 proof/DGG/TerminalBackward/NuDGGTerminalBackwardStrictSpine.agda

@@ -2,9 +2,16 @@
 # larger allocation area with a generous heap cap cuts checking time
 # substantially.
 AGDA = agda +RTS -A128M -M18G -RTS -v0
+STRICT_AGDA = agda --no-allow-unsolved-metas -v0
 PYTHON ?= python3
 DGG_STRICT_AGGREGATE = \
 	proof/DGG/Core/NuDGGUnassembledProofsStrictSpine.agda
+COMPOSITIONAL_QUOTIENT_EXAMPLES = \
+	proof/Quotient/NuImprecisionCompositionalQuotientExamples.agda
+REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
+	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
+SINGLE_NARROWING_BOUNDARY_EXAMPLES = \
+	proof/Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda
 
 # Check a single file with: make agda FILE=NuMetaTheory.agda
 FILE ?= All.agda
@@ -24,6 +31,13 @@ audit:
 dgg-check: audit
 	$(AGDA) $(DGG_STRICT_AGGREGATE)
 
+# Check both quotient-design alternatives and their reduction-shape examples
+# before changing the live DGG relation.
+quotient-design-check: audit
+	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
+	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
+	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
+
 # Per-definition time report; pick the target with FILE=...
 profile:
 	$(AGDA) --profile=definitions $(FILE)
@@ -34,4 +48,5 @@ profile-modules:
 clean:
 	find . -name '*~' -delete
 
-.PHONY: check agda audit dgg-check profile profile-modules clean
+.PHONY: check agda audit dgg-check quotient-design-check profile \
+	profile-modules clean

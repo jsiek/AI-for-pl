@@ -41,7 +41,7 @@ glb-lower-XY⊑A :
   idᵢ zero ∣ zero ⊢ glb-lower-XY ⊑ glb-bad-A ⊣ zero
 glb-lower-XY⊑A =
   ∀ⁱ
-    (ν refl
+    (ν nonvar-fun refl
       ( idˣ (there (here refl)) (s<s z<s) z<s
       ↦ tagˣ (here refl) z<s
       ))
@@ -49,7 +49,7 @@ glb-lower-XY⊑A =
 glb-lower-XY⊑B :
   idᵢ zero ∣ zero ⊢ glb-lower-XY ⊑ glb-bad-B ⊣ zero
 glb-lower-XY⊑B =
-  ν refl
+  ν nonvar-all refl
     (∀ⁱ
       ( tagˣ (there (here refl)) (s<s z<s)
       ↦ idˣ (here refl) z<s z<s
@@ -58,7 +58,7 @@ glb-lower-XY⊑B =
 glb-lower-YX⊑A :
   idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-bad-A ⊣ zero
 glb-lower-YX⊑A =
-  ν refl
+  ν nonvar-all refl
     (∀ⁱ
       ( idˣ (here refl) z<s z<s
       ↦ tagˣ (there (here refl)) (s<s z<s)
@@ -68,7 +68,7 @@ glb-lower-YX⊑B :
   idᵢ zero ∣ zero ⊢ glb-lower-YX ⊑ glb-bad-B ⊣ zero
 glb-lower-YX⊑B =
   ∀ⁱ
-    (ν refl
+    (ν nonvar-fun refl
       ( tagˣ (here refl) z<s
       ↦ idˣ (there (here refl)) (s<s z<s) z<s
       ))

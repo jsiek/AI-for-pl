@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 4 source tails checked; quotient boundary active**
+**MIGRATION IN PROGRESS — phase 4 world and left transport checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -88,14 +88,17 @@ instantiation cast. The runtime-sibling path uses the same chosen store lift
 for its primary and sibling relations. Both focused leaves pass, and the
 former casted-`ν` frame helper has no source references.
 
-The remaining live Phase 4 boundary consists of the paired-narrowing quotient
-introduction, compatible closing widening, and the fused
-`down·up⊑down·upᵀ` and quotient-application rules that the up-to-reduction
-design removes. A separate matched target-allocation root contract is broader
-than its implementation and must be tightened or split. The old first-draft
-judgment still cohabiting `NuTermImprecision.agda` is explicitly not treated
-as a QTI consumer; its widely used store/context infrastructure must be split
-out before the obsolete judgment is deleted in Phase 5.
+The live Phase 4 grammar now contains the paired-narrowing quotient
+introduction and compatible closing widening, but no fused
+`down·up⊑down·upᵀ` or quotient-application rules. World embedding,
+bullet-free left renaming, and source-allocation runtime transport have
+migrated to that grammar. Remaining downstream clients still mention the
+retired names and must migrate or be deleted. A separate matched
+target-allocation root contract is broader than its implementation and must
+be tightened or split. The old first-draft judgment still cohabiting
+`NuTermImprecision.agda` is explicitly not treated as a QTI consumer; its
+widely used store/context infrastructure must be split out before the
+obsolete judgment is deleted in Phase 5.
 
 The phase order is:
 
@@ -780,7 +783,8 @@ behavior is covered by
 3. **In progress:** promote the selected paired-narrowing quotient boundary
    and its metatheory to canonical live modules. The live grammar, typing
    projections, store-prefix evidence, parallel substitution, and term-context
-   shift pass focused checks; value and world transport remain.
+   shift, world embedding, bullet-free left renaming, and source-allocation
+   runtime transport pass focused checks; value and catch-up transport remain.
 4. **In progress:** remove `down·up⊑down·upᵀ`, quotient-indexed application,
    and finite narrowing support. They are gone from the live grammar, but the
    frozen downstream inventory is not yet empty. Each remaining client must
@@ -904,6 +908,18 @@ target-id widening shortcut, and `PairedCast` wrapper are absent from the live
 definition. Focused checks passed for the defining module, store-prefix
 evidence, parallel substitution, and term-context shift. This is not a phase
 gate: the frozen downstream inventory still contains retired source names.
+
+The third Phase 4 checkpoint migrated canonical world and left transport on
+2026-07-27. The selected compatibility-renaming experiment became
+`NuImprecisionQuotientCompatibilityRename.agda`; the simulation core now
+transports `closeᵀ`, direct paired reveal/conceal/widening, and
+`paired-downᵀ` without compatibility wrappers. Focused checks passed for the
+simulation core, world embedding, bullet-free left renaming, and
+source-allocation runtime transport. The latter two proofs became smaller:
+the fused application branches vanished, four quotient application branches
+vanished, and the split identity/gradual downcast cases collapsed to one.
+The frozen direct source-file counts fell from `14/9/9/46/27/26` to
+`8/3/3/39/20/19`; this remains a checkpoint rather than a phase gate.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

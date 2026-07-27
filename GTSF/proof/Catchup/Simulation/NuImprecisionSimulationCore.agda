@@ -225,13 +225,18 @@ open import CastImprecisionShape using (_⊢ᶜ_⦂_)
 import CastImprecisionShape as CastShape using (narrowing; widening)
 open import QuotientedTermImprecision
 open import ConversionIndexCompatibility
-open import PairedWideningCompatibility using
-  ( PairedWideningCompatible
-  ; compatible-all
-  ; compatible-function
-  ; compatible-source-inert
-  ; compatible-tag
-  ; compatible-target-inert-bridge
+open import QuotientImprecisionCompatibility using
+  ( ReductionClosedPairedWideningCompatible
+  ; ReductionClosedQuotientWideningCompatible
+  ; SpineCastMode
+  ; gradual↓
+  ; id-only↓
+  )
+open import proof.Quotient.NuImprecisionQuotientCompatibilityRename using
+  ( reduction-closed-paired-compatible-rename-leftᵢ
+  ; reduction-closed-paired-compatible-rename²ᵢ
+  ; reduction-closed-quotient-compatible-rename-leftᵢ
+  ; reduction-closed-quotient-compatible-rename²ᵢ
   )
 open import ImprecisionComposition using
   ( ⌊_⌋
@@ -490,128 +495,6 @@ open import proof.Core.Properties.TypeProperties using
   ; renameStoreᵗ-compose
   ; renameStoreᵗ-ext-suc-comm
   )
-
-
-paired-widening-compatible-rename²ᵢ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ A A′ B B′
-      p q c-shape c′-shape}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
-  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
-  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
-  PairedWideningCompatible
-    Φ Δᴸ Δᴿ c c′ {A} {A′} {B} {B′}
-    p q c-shape c′-shape →
-  PairedWideningCompatible Ψ Θᴸ Θᴿ
-    (renameᶜ τ c) (renameᶜ σ c′)
-    (⊑-renameᵗ²ᵢ assm hτ hσ p)
-    (⊑-renameᵗ²ᵢ assm hτ hσ q)
-    c-shape c′-shape
-paired-widening-compatible-rename²ᵢ {τ = τ} hτ hσ
-    (compatible-tag G) =
-  compatible-tag (renameᵗ τ G)
-paired-widening-compatible-rename²ᵢ hτ hσ
-    (compatible-function compatible) =
-  compatible-function
-    (paired-widening-compatible-rename²ᵢ hτ hσ compatible)
-paired-widening-compatible-rename²ᵢ {assm = assm} hτ hσ
-    (compatible-all compatible) =
-  compatible-all
-    (paired-widening-compatible-rename²ᵢ
-      {assm = rename-assm²-⇑ᵢ assm}
-      (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) compatible)
-paired-widening-compatible-rename²ᵢ hτ hσ
-    (compatible-source-inert inert) =
-  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
-paired-widening-compatible-rename²ᵢ {c′ = c′} {assm = assm} hτ hσ
-    (compatible-target-inert-bridge bridge-evidence) =
-  compatible-target-inert-bridge λ inert′ →
-    let
-      bridge , source-triangle , target-triangle =
-        bridge-evidence
-          (renameᶜ-reflects-Inert _ c′ inert′)
-    in
-      ⊑-renameᵗ²ᵢ assm hτ hσ bridge ,
-      imprecision-composition-shape-transport
-        refl (shape-rename assm hτ hσ bridge)
-        (shape-rename assm hτ hσ _) source-triangle ,
-      imprecision-composition-shape-transport
-        (shape-rename assm hτ hσ bridge) refl
-        (shape-rename assm hτ hσ _) target-triangle
-
-paired-widening-compatible-rename-under-binders²ᵢ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ c c′ B B′ C C′
-      p q c-shape c′-shape}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ} →
-  (hτ : TyRenameWf Δᴸ Θᴸ τ) →
-  (hσ : TyRenameWf Δᴿ Θᴿ σ) →
-  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-    c c′
-    {C} {C′} {⇑ᵗ B} {⇑ᵗ B′}
-    q (⊑-lift∀ᵢ p) c-shape c′-shape →
-  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Θᴸ) (suc Θᴿ)
-    (renameᶜ (extᵗ τ) c) (renameᶜ (extᵗ σ) c′)
-    (⊑-renameᵗ²ᵢ
-      (rename-assm²-⇑ᵢ assm)
-      (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) q)
-    (⊑-lift∀ᵢ (⊑-renameᵗ²ᵢ assm hτ hσ p))
-    c-shape c′-shape
-paired-widening-compatible-rename-under-binders²ᵢ {τ = τ} hτ hσ
-    (compatible-tag G) =
-  compatible-tag (renameᵗ (extᵗ τ) G)
-paired-widening-compatible-rename-under-binders²ᵢ
-    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
-    {p = p₁ ↦ p₂} {q = q₁ ↦ q₂} hτ hσ
-    (compatible-function compatible) =
-  compatible-function
-    (paired-widening-compatible-rename-under-binders²ᵢ
-      hτ hσ compatible)
-paired-widening-compatible-rename-under-binders²ᵢ
-    {τ = τ} {c = C.`∀ c}
-    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p} {q = ∀ⁱ q}
-    {assm = assm} hτ hσ
-    (compatible-all compatible) =
-  compatible-source-inert
-    (renameᶜ-preserves-Inert (extᵗ τ) (C.`∀ c))
-paired-widening-compatible-rename-under-binders²ᵢ
-    {Ψ = Ψ} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ} {τ = τ} {σ = σ}
-    {c = c} {c′ = c′} {B = B} {p = p} {q = q}
-    {assm = assm} hτ hσ (compatible-source-inert inert) =
-  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
-paired-widening-compatible-rename-under-binders²ᵢ
-    {τ = τ} {σ = σ} {c′ = c′} {B = B} {p = p} {q = q}
-    {assm = assm} hτ hσ
-    (compatible-target-inert-bridge bridge-evidence) =
-  compatible-target-inert-bridge λ inert′ →
-    let
-      bridge , source-triangle , target-triangle =
-        bridge-evidence
-          (renameᶜ-reflects-Inert _ c′ inert′)
-      renamed-bridge =
-        ⊑-renameᵗ²ᵢ (rename-assm²-⇑ᵢ assm)
-          (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) bridge
-      transported-bridge =
-        transport-imprecision-endpoints
-          (renameᵗ-ext-suc-comm τ B) refl renamed-bridge
-      bridge-shape =
-        trans
-          (shape-transport-imprecision-endpoints
-            (renameᵗ-ext-suc-comm τ B) refl renamed-bridge)
-          (shape-rename (rename-assm²-⇑ᵢ assm)
-            (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) bridge)
-      p′ = ⊑-renameᵗ²ᵢ assm hτ hσ p
-    in
-      transported-bridge ,
-      imprecision-composition-shape-transport
-        refl bridge-shape
-        (shape-rename (rename-assm²-⇑ᵢ assm)
-          (TyRenameWf-ext hτ) (TyRenameWf-ext hσ) q)
-        source-triangle ,
-      imprecision-composition-shape-transport
-        bridge-shape refl
-        (trans (shape-lift∀ᵢ p′)
-          (trans (shape-rename assm hτ hσ p)
-            (sym (shape-lift∀ᵢ p))))
-        target-triangle
 
 store-incl-insert-second :
   ∀ {Σ α β A B} →
@@ -5259,218 +5142,6 @@ renameᵗᵐ-pointed-bullet :
 renameᵗᵐ-pointed-bullet τ L =
   cong _• (renameᵗᵐ-ext-suc-comm τ L)
 
-paired-widening-compatible-rename-leftᵢ :
-  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ A A′ B B′
-      p q c-shape c′-shape}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
-  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
-  PairedWideningCompatible
-    Φ Δᴸ Δᴿ c c′ {A} {A′} {B} {B′}
-    p q c-shape c′-shape →
-  PairedWideningCompatible Ψ Δᴸ′ Δᴿ
-    (renameᶜ τ c) c′
-    (⊑-rename-leftᵢ τ assm hτ p)
-    (⊑-rename-leftᵢ τ assm hτ q)
-    c-shape c′-shape
-paired-widening-compatible-rename-leftᵢ {τ = τ} hτ
-    (compatible-tag G) =
-  compatible-tag (renameᵗ τ G)
-paired-widening-compatible-rename-leftᵢ hτ
-    (compatible-function compatible) =
-  compatible-function
-    (paired-widening-compatible-rename-leftᵢ hτ compatible)
-paired-widening-compatible-rename-leftᵢ {assm = assm} hτ
-    (compatible-all compatible) =
-  compatible-all
-    (paired-widening-compatible-rename-leftᵢ
-      {assm = rename-assm²-∀-leftᵢ assm}
-      (TyRenameWf-ext hτ) compatible)
-paired-widening-compatible-rename-leftᵢ hτ
-    (compatible-source-inert inert) =
-  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
-paired-widening-compatible-rename-leftᵢ {assm = assm} hτ
-    (compatible-target-inert-bridge bridge-evidence) =
-  compatible-target-inert-bridge λ inert′ →
-    let
-      bridge , source-triangle , target-triangle =
-        bridge-evidence inert′
-    in
-      ⊑-rename-leftᵢ _ assm hτ bridge ,
-      imprecision-composition-shape-transport
-        refl (shape-rename-left assm hτ bridge)
-        (shape-rename-left assm hτ _) source-triangle ,
-      imprecision-composition-shape-transport
-        (shape-rename-left assm hτ bridge) refl
-        (shape-rename-left assm hτ _) target-triangle
-
-paired-widening-compatible-rename-left-under-bindersᵢ :
-  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ c c′ B B′ C C′
-      p q c-shape c′-shape}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ} →
-  (hτ : TyRenameWf Δᴸ Δᴸ′ τ) →
-  PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-    c c′
-    {C} {C′} {⇑ᵗ B} {⇑ᵗ B′}
-    q (⊑-lift∀ᵢ p) c-shape c′-shape →
-  PairedWideningCompatible (∀ᵢᶜ Ψ) (suc Δᴸ′) (suc Δᴿ)
-    (renameᶜ (extᵗ τ) c) c′
-    (⊑-rename-leftᵢ (extᵗ τ)
-      (rename-assm²-∀-leftᵢ assm) (TyRenameWf-ext hτ) q)
-    (⊑-lift∀ᵢ (⊑-rename-leftᵢ τ assm hτ p))
-    c-shape c′-shape
-paired-widening-compatible-rename-left-under-bindersᵢ {τ = τ} hτ
-    (compatible-tag G) =
-  compatible-tag (renameᵗ (extᵗ τ) G)
-paired-widening-compatible-rename-left-under-bindersᵢ
-    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
-    {p = p₁ ↦ p₂} {q = q₁ ↦ q₂} hτ
-    (compatible-function compatible) =
-  compatible-function
-    (paired-widening-compatible-rename-left-under-bindersᵢ
-      hτ compatible)
-paired-widening-compatible-rename-left-under-bindersᵢ
-    {τ = τ} {c = C.`∀ c}
-    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p} {q = ∀ⁱ q}
-    {assm = assm} hτ
-    (compatible-all compatible) =
-  compatible-source-inert
-    (renameᶜ-preserves-Inert (extᵗ τ) (C.`∀ c))
-paired-widening-compatible-rename-left-under-bindersᵢ
-    {τ = τ} {c′ = c′} {B = B} {p = p} {q = q}
-    {assm = assm} hτ (compatible-source-inert inert) =
-  compatible-source-inert (renameᶜ-preserves-Inert _ inert)
-paired-widening-compatible-rename-left-under-bindersᵢ
-    {τ = τ} {c′ = c′} {B = B} {p = p} {q = q}
-    {assm = assm} hτ
-    (compatible-target-inert-bridge bridge-evidence) =
-  compatible-target-inert-bridge λ inert′ →
-    let
-      bridge , source-triangle , target-triangle =
-        bridge-evidence inert′
-      renamed-bridge =
-        ⊑-rename-leftᵢ (extᵗ τ)
-          (rename-assm²-∀-leftᵢ assm)
-          (TyRenameWf-ext hτ) bridge
-      transported-bridge =
-        transport-imprecision-endpoints
-          (renameᵗ-ext-suc-comm τ B) refl renamed-bridge
-      bridge-shape =
-        trans
-          (shape-transport-imprecision-endpoints
-            (renameᵗ-ext-suc-comm τ B) refl renamed-bridge)
-          (shape-rename-left
-            (rename-assm²-∀-leftᵢ assm)
-            (TyRenameWf-ext hτ) bridge)
-      p′ = ⊑-rename-leftᵢ τ assm hτ p
-    in
-      transported-bridge ,
-      imprecision-composition-shape-transport
-        refl bridge-shape
-        (shape-rename-left
-          (rename-assm²-∀-leftᵢ assm)
-          (TyRenameWf-ext hτ) q)
-        source-triangle ,
-      imprecision-composition-shape-transport
-        bridge-shape refl
-        (trans (shape-lift∀ᵢ p′)
-          (trans (shape-rename-left assm hτ p)
-            (sym (shape-lift∀ᵢ p))))
-        target-triangle
-
-left-id-narrowing-rel-permute :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c A B} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B →
-  id-onlyᵈ ∣ Θᴸ ∣ leftStoreⁱ ρ′
-    ⊢ renameᶜ (forward πᴸ) c
-    ∶ renameᵗ (forward πᴸ) A ⊒ renameᵗ (forward πᴸ) B
-left-id-narrowing-rel-permute
-    {Θᴸ = Θᴸ} {πᴸ = πᴸ} {ρ′ = ρ′} {c = c} {A = A} {B = B}
-    perm c⊒ =
-  subst
-    (λ Σ → id-onlyᵈ ∣ Θᴸ ∣ Σ
-      ⊢ renameᶜ (forward πᴸ) c
-      ∶ renameᵗ (forward πᴸ) A ⊒ renameᵗ (forward πᴸ) B)
-    (sym (leftStoreⁱ-rel-rename (store-permutation perm)))
-    (narrow-renameᵗ (forward-wf πᴸ) (λ X → refl) c⊒)
-
-right-id-narrowing-rel-permute :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c A B} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c ∶ A ⊒ B →
-  id-onlyᵈ ∣ Θᴿ ∣ rightStoreⁱ ρ′
-    ⊢ renameᶜ (forward πᴿ) c
-    ∶ renameᵗ (forward πᴿ) A ⊒ renameᵗ (forward πᴿ) B
-right-id-narrowing-rel-permute
-    {Θᴿ = Θᴿ} {πᴿ = πᴿ} {ρ′ = ρ′} {c = c} {A = A} {B = B}
-    perm c⊒ =
-  subst
-    (λ Σ → id-onlyᵈ ∣ Θᴿ ∣ Σ
-      ⊢ renameᶜ (forward πᴿ) c
-      ∶ renameᵗ (forward πᴿ) A ⊒ renameᵗ (forward πᴿ) B)
-    (sym (rightStoreⁱ-rel-rename (store-permutation perm)))
-    (narrow-renameᵗ (forward-wf πᴿ) (λ X → refl) c⊒)
-
-rel-world-down-permuteᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ C C′ D D′ pC d d′ s s′} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
-  CastShape.narrowing ⊢ᶜ d ⦂ s →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
-  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) M ⊑ renameᵗᵐ (forward πᴿ) M′
-    ⦂ renameᵗ (forward πᴸ) C ⊑ renameᵗ (forward πᴿ) C′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) pC →
-  (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
-  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺᵖ renameᵗᵐ (forward πᴸ) (M ⟨ d ⟩)
-      ⊑ renameᵗᵐ (forward πᴿ) (M′ ⟨ d′ ⟩)
-    ⦂ renameᵗ (forward πᴸ) D ⊑ᵖ renameᵗ (forward πᴿ) D′
-    ∶ ⊑ᵖ-rename²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) qD
-rel-world-down-permuteᵀ
-    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
-    perm d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square =
-  down⊑downᵀ
-    (left-id-narrowing-rel-permute perm d⊒)
-    (cast-shape-rename (forward πᴸ) d-shape)
-    (right-id-narrowing-rel-permute perm d′⊒)
-    (cast-shape-rename (forward πᴿ) d′-shape)
-    M⊑M′
-    (⊑ᵖ-rename²ᵢ _ _ _ qD)
-    (quotient-boundary-square-rename²
-      {τ = forward πᴸ} {σ = forward πᴿ}
-      {assm = assm}
-      {hτ = forward-wf πᴸ} {hσ = forward-wf πᴿ}
-      square)
-
 ⇑ᴿᵢ-membership :
   ∀ {Φ a} →
   a ∈ Φ →
@@ -6573,112 +6244,6 @@ right-seal-rel-embed emb mode seal★ =
     (castModeRenamer-seal★
       (right-embedding-cast-renamer emb) mode seal★)
 
-rel-world-paired-conversion-embed :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c c′ A A′ B B′ p q} →
-  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    c c′ {A} {A′} {B} {B′} p q →
-  PairedConversion Ψ Θᴸ Θᴿ ρ′
-    (renameᶜ τ c) (renameᶜ σ c′)
-    (⊑-renameᵗ²ᵢ assm hτ hσ p) (⊑-renameᵗ²ᵢ assm hτ hσ q)
-rel-world-paired-conversion-embed emb
-    (paired-reveal {pX = pX} corr conv conv′ replace)
-    with rel-store-embedding-correspondenceⁱ
-      (store-embedding emb) corr
-rel-world-paired-conversion-embed emb
-    (paired-reveal {pX = pX} corr conv conv′ replace)
-    | α′ , X , β′ , X′ , p′ ,
-      refl , refl , refl , refl , shape-eq , corr′ =
-  paired-reveal corr′
-    (left-reveal-rel-embed emb conv)
-    (right-reveal-rel-embed emb conv′)
-    (replace-paired-evidence-shape
-      (trans shape-eq
-        (sym (shape-rename _ _ _ pX)))
-      (replace-paired-rename²ᵢ _ _ _ replace))
-rel-world-paired-conversion-embed emb
-    (paired-conceal {pX = pX} corr conv conv′ replace)
-    with rel-store-embedding-correspondenceⁱ
-      (store-embedding emb) corr
-rel-world-paired-conversion-embed emb
-    (paired-conceal {pX = pX} corr conv conv′ replace)
-    | α′ , X , β′ , X′ , p′ ,
-      refl , refl , refl , refl , shape-eq , corr′ =
-  paired-conceal corr′
-    (left-conceal-rel-embed emb conv)
-    (right-conceal-rel-embed emb conv′)
-    (replace-paired-evidence-shape
-      (trans shape-eq
-        (sym (shape-rename _ _ _ pX)))
-      (replace-paired-rename²ᵢ _ _ _ replace))
-
-rel-world-paired-cast-embed :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c c′ A A′ B B′ p q} →
-  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q →
-  PairedCast Ψ Θᴸ Θᴿ ρ′ (renameᶜ τ c) (renameᶜ σ c′)
-    (⊑-renameᵗ²ᵢ assm hτ hσ p) (⊑-renameᵗ²ᵢ assm hτ hσ q)
-rel-world-paired-cast-embed emb (paired-conversion conv) =
-  paired-conversion (rel-world-paired-conversion-embed emb conv)
-rel-world-paired-cast-embed
-    {assm = assm} {hτ = hτ} {hσ = hσ} emb
-    (paired-widening mode seal★ c⊑ c-shape
-      mode′ seal★′ c′⊑ c′-shape left-square right-square compat) =
-  paired-widening
-    (CastModeRenamer.target-mode
-      (left-embedding-cast-renamer emb) mode)
-    (left-seal-rel-embed emb mode seal★)
-    (left-widening-rel-embed-mode emb
-      (CastModeRenamer.target-rename
-        (left-embedding-cast-renamer emb) mode) c⊑)
-    (cast-shape-rename _ c-shape)
-    (CastModeRenamer.target-mode
-      (right-embedding-cast-renamer emb) mode′)
-    (right-seal-rel-embed emb mode′ seal★′)
-    (right-widening-rel-embed-mode emb
-      (CastModeRenamer.target-rename
-        (right-embedding-cast-renamer emb) mode′) c′⊑)
-    (cast-shape-rename _ c′-shape)
-    (imprecision-composition-shape-transport
-      refl (shape-rename assm hτ hσ _) refl left-square)
-    (imprecision-composition-shape-transport
-      (shape-rename assm hτ hσ _) refl refl right-square)
-    (paired-widening-compatible-rename²ᵢ
-      {assm = assm} hτ hσ compat)
-
-rel-world-conv⊑conv-embedᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ A A′ B B′ p q c c′} →
-  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-    ⦂ renameᵗ τ A ⊑ renameᵗ σ A′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ (M ⟨ c ⟩) ⊑ renameᵗᵐ σ (M′ ⟨ c′ ⟩)
-    ⦂ renameᵗ τ B ⊑ renameᵗ σ B′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q
-rel-world-conv⊑conv-embedᵀ emb cast M⊑M′ =
-  conv⊑convᵀ (rel-world-paired-cast-embed emb cast) M⊑M′
-
 rel-world-conv↑⊑-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
     {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
@@ -6807,7 +6372,7 @@ rel-world-quotient-widening-pair-embed emb
       (CastModeRenamer.target-rename
         (right-embedding-cast-renamer emb) mode′) u′⊑)
 
-rel-world-up⊑up-embedᵀ :
+rel-world-close-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
     {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
@@ -6820,6 +6385,8 @@ rel-world-up⊑up-embedᵀ :
   CastShape.widening ⊢ᶜ u ⦂ s →
   CastShape.widening ⊢ᶜ u′ ⦂ s′ →
   s ；⌊ pA ⌋≋ᵖ qD ； s′ →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ u u′ qD pA s s′ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺᵖ renameᵗᵐ τ N ⊑ renameᵗᵐ σ N′
     ⦂ renameᵗ τ D ⊑ᵖ renameᵗ σ D′
@@ -6828,16 +6395,18 @@ rel-world-up⊑up-embedᵀ :
     ⊢ᴺ renameᵗᵐ τ (N ⟨ u ⟩) ⊑ renameᵗᵐ σ (N′ ⟨ u′ ⟩)
     ⦂ renameᵗ τ A ⊑ renameᵗ σ A′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ pA
-rel-world-up⊑up-embedᵀ
+rel-world-close-embedᵀ
     {τ = τ} {σ = σ} {assm = assm} {hτ = hτ} {hσ = hσ}
-    emb widening u-shape u′-shape square N⊑N′ =
-  up⊑upᵀ N⊑N′
+    emb widening u-shape u′-shape square compatible N⊑N′ =
+  closeᵀ N⊑N′
     (rel-world-quotient-widening-pair-embed emb widening) _
     (cast-shape-rename τ u-shape)
     (cast-shape-rename σ u′-shape)
     (quotient-boundary-square-rename²
       {τ = τ} {σ = σ} {assm = assm}
       {hτ = hτ} {hσ = hσ} square)
+    (reduction-closed-quotient-compatible-rename²ᵢ
+      {assm = assm} hτ hσ compatible)
 
 rel-world-cast⊒⊑-embedᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
@@ -7043,165 +6612,6 @@ rel-world-⊑cast⊑-embedᵀ
       (shape-rename assm hτ hσ q)
       comp)
 
-rel-world-⊑cast⊑id-embedᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ A A′ B′ p q c′ s} →
-  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-  CastShape.widening ⊢ᶜ c′ ⦂ s →
-  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-    ⦂ renameᵗ τ A ⊑ renameᵗ σ A′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ (M′ ⟨ c′ ⟩)
-    ⦂ renameᵗ τ A ⊑ renameᵗ σ B′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ q
-rel-world-⊑cast⊑id-embedᵀ
-    {σ = σ} {assm = assm} {hτ = hτ} {hσ = hσ}
-    {p = p} {q = q}
-    emb c′⊑ c-shape comp M⊑M′ =
-  ⊑cast⊑idᵀ seal★-id-only
-    (right-widening-rel-embed-mode emb
-      (modeRename-id-only σ) c′⊑)
-    M⊑M′ _
-    (cast-shape-rename σ c-shape)
-    (imprecision-composition-shape-transport
-      (shape-rename assm hτ hσ p)
-      refl
-      (shape-rename assm hτ hσ q)
-      comp)
-
-rel-world-paired-conversion-permute :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c c′ A A′ B B′ p q} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    c c′ {A} {A′} {B} {B′} p q →
-  PairedConversion Ψ Θᴸ Θᴿ ρ′
-    (renameᶜ (forward πᴸ) c) (renameᶜ (forward πᴿ) c′)
-    (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p)
-    (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q)
-rel-world-paired-conversion-permute perm
-    (paired-reveal {pX = pX} corr conv conv′ replace)
-    with rel-store-rename-correspondenceⁱ
-      (store-permutation perm) corr
-rel-world-paired-conversion-permute perm
-    (paired-reveal {pX = pX} corr conv conv′ replace)
-    | α′ , refl , X , refl , β′ , refl , X′ , refl , corr′ =
-  paired-reveal corr′
-    (left-reveal-rel-permute perm conv)
-    (right-reveal-rel-permute perm conv′)
-    (replace-paired-evidence-shape
-      (trans
-        (⊑-rename-at-shapeᵢ
-          _ _ _ refl refl pX)
-        (sym (shape-rename _ _ _ pX)))
-      (replace-paired-rename²ᵢ _ _ _ replace))
-rel-world-paired-conversion-permute perm
-    (paired-conceal {pX = pX} corr conv conv′ replace)
-    with rel-store-rename-correspondenceⁱ
-      (store-permutation perm) corr
-rel-world-paired-conversion-permute perm
-    (paired-conceal {pX = pX} corr conv conv′ replace)
-    | α′ , refl , X , refl , β′ , refl , X′ , refl , corr′ =
-  paired-conceal corr′
-    (left-conceal-rel-permute perm conv)
-    (right-conceal-rel-permute perm conv′)
-    (replace-paired-evidence-shape
-      (trans
-        (⊑-rename-at-shapeᵢ
-          _ _ _ refl refl pX)
-        (sym (shape-rename _ _ _ pX)))
-      (replace-paired-rename²ᵢ _ _ _ replace))
-
-rel-world-paired-cast-permute :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {c c′ A A′ B B′ p q} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q →
-  PairedCast Ψ Θᴸ Θᴿ ρ′
-    (renameᶜ (forward πᴸ) c) (renameᶜ (forward πᴿ) c′)
-    (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p)
-    (⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q)
-rel-world-paired-cast-permute perm (paired-conversion conv) =
-  paired-conversion (rel-world-paired-conversion-permute perm conv)
-rel-world-paired-cast-permute
-    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm} perm
-    (paired-widening mode seal★ c⊑ c-shape
-      mode′ seal★′ c′⊑ c′-shape left-square right-square compat) =
-  paired-widening
-    (CastModeRenamer.target-mode (left-cast-renamer perm) mode)
-    (left-seal-rel-permute perm mode seal★)
-    (left-widening-rel-permute-mode perm
-      (CastModeRenamer.target-rename (left-cast-renamer perm) mode) c⊑)
-    (cast-shape-rename (forward πᴸ) c-shape)
-    (CastModeRenamer.target-mode (right-cast-renamer perm) mode′)
-    (right-seal-rel-permute perm mode′ seal★′)
-    (right-widening-rel-permute-mode perm
-      (CastModeRenamer.target-rename (right-cast-renamer perm) mode′)
-      c′⊑)
-    (cast-shape-rename (forward πᴿ) c′-shape)
-    (imprecision-composition-shape-transport
-      refl
-      (shape-rename
-        assm (forward-wf πᴸ) (forward-wf πᴿ) _)
-      refl
-      left-square)
-    (imprecision-composition-shape-transport
-      (shape-rename
-        assm (forward-wf πᴸ) (forward-wf πᴿ) _)
-      refl
-      refl
-      right-square)
-    (paired-widening-compatible-rename²ᵢ
-      {assm = assm} (forward-wf πᴸ) (forward-wf πᴿ) compat)
-
-rel-world-conv⊑conv-permuteᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ A A′ B B′ p q c c′} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ {A} {A′} {B} {B′} p q →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) M
-      ⊑ renameᵗᵐ (forward πᴿ) M′
-    ⦂ renameᵗ (forward πᴸ) A ⊑ renameᵗ (forward πᴿ) A′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) (M ⟨ c ⟩)
-      ⊑ renameᵗᵐ (forward πᴿ) (M′ ⟨ c′ ⟩)
-    ⦂ renameᵗ (forward πᴸ) B ⊑ renameᵗ (forward πᴿ) B′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q
-rel-world-conv⊑conv-permuteᵀ perm cast M⊑M′ =
-  conv⊑convᵀ (rel-world-paired-cast-permute perm cast) M⊑M′
-
 rel-world-conv↑⊑-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
     {πᴸ : TyPermutation Δᴸ Θᴸ}
@@ -7309,82 +6719,6 @@ rel-world-⊑conv↓-permuteᵀ :
 rel-world-⊑conv↓-permuteᵀ perm conv M⊑M′ replace =
   ⊑conv↓ᵀ (right-conceal-rel-permute perm conv) M⊑M′ _
     (replace-right-rename²ᵢ _ _ _ replace)
-
-rel-world-quotient-widening-pair-permute :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {u u′ D D′ A A′} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′ →
-  QuotientWideningPair Θᴸ Θᴿ ρ′
-    (renameᶜ (forward πᴸ) u) (renameᶜ (forward πᴿ) u′)
-    (renameᵗ (forward πᴸ) D) (renameᵗ (forward πᴿ) D′)
-    (renameᵗ (forward πᴸ) A) (renameᵗ (forward πᴿ) A′)
-rel-world-quotient-widening-pair-permute
-    {πᴸ = πᴸ} {πᴿ = πᴿ} perm
-    (quotient-id-widening u⊑ u′⊑) =
-  quotient-id-widening
-    (left-widening-rel-permute-mode perm
-      (modeRename-id-only (forward πᴸ)) u⊑)
-    (right-widening-rel-permute-mode perm
-      (modeRename-id-only (forward πᴿ)) u′⊑)
-rel-world-quotient-widening-pair-permute perm
-    (quotient-cast-widening
-      mode seal★ u⊑ mode′ seal★′ u′⊑) =
-  quotient-cast-widening
-    (CastModeRenamer.target-mode (left-cast-renamer perm) mode)
-    (left-seal-rel-permute perm mode seal★)
-    (left-widening-rel-permute-mode perm
-      (CastModeRenamer.target-rename (left-cast-renamer perm) mode) u⊑)
-    (CastModeRenamer.target-mode (right-cast-renamer perm) mode′)
-    (right-seal-rel-permute perm mode′ seal★′)
-    (right-widening-rel-permute-mode perm
-      (CastModeRenamer.target-rename (right-cast-renamer perm) mode′)
-      u′⊑)
-
-rel-world-up⊑up-permuteᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {N N′ A A′ D D′ qD u u′ pA s s′} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′ →
-  CastShape.widening ⊢ᶜ u ⦂ s →
-  CastShape.widening ⊢ᶜ u′ ⦂ s′ →
-  s ；⌊ pA ⌋≋ᵖ qD ； s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺᵖ renameᵗᵐ (forward πᴸ) N
-      ⊑ renameᵗᵐ (forward πᴿ) N′
-    ⦂ renameᵗ (forward πᴸ) D ⊑ᵖ renameᵗ (forward πᴿ) D′
-    ∶ ⊑ᵖ-rename²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) qD →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) (N ⟨ u ⟩)
-      ⊑ renameᵗᵐ (forward πᴿ) (N′ ⟨ u′ ⟩)
-    ⦂ renameᵗ (forward πᴸ) A ⊑ renameᵗ (forward πᴿ) A′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) pA
-rel-world-up⊑up-permuteᵀ
-    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
-    perm widening u-shape u′-shape square N⊑N′ =
-  up⊑upᵀ N⊑N′
-    (rel-world-quotient-widening-pair-permute perm widening) _
-    (cast-shape-rename (forward πᴸ) u-shape)
-    (cast-shape-rename (forward πᴿ) u′-shape)
-    (quotient-boundary-square-rename²
-      {τ = forward πᴸ} {σ = forward πᴿ}
-      {assm = assm}
-      {hτ = forward-wf πᴸ} {hσ = forward-wf πᴿ}
-      square)
 
 rel-world-cast⊒⊑-permuteᵀ :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
@@ -7568,167 +6902,93 @@ rel-world-⊑cast⊑-permuteᵀ
         assm (forward-wf πᴸ) (forward-wf πᴿ) q)
       comp)
 
-rel-world-⊑cast⊑id-permuteᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ A A′ B′ p q c′ s} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-  CastShape.widening ⊢ᶜ c′ ⦂ s →
-  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) M
-      ⊑ renameᵗᵐ (forward πᴿ) M′
-    ⦂ renameᵗ (forward πᴸ) A ⊑ renameᵗ (forward πᴿ) A′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) p →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) M
-      ⊑ renameᵗᵐ (forward πᴿ) (M′ ⟨ c′ ⟩)
-    ⦂ renameᵗ (forward πᴸ) A ⊑ renameᵗ (forward πᴿ) B′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) q
-rel-world-⊑cast⊑id-permuteᵀ
-    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
-    {p = p} {q = q}
-    perm c′⊑ c-shape comp M⊑M′ =
-  ⊑cast⊑idᵀ seal★-id-only
-    (right-widening-rel-permute-mode perm
-      (modeRename-id-only (forward πᴿ)) c′⊑)
-    M⊑M′ _
-    (cast-shape-rename (forward πᴿ) c-shape)
-    (imprecision-composition-shape-transport
-      (shape-rename
-        assm (forward-wf πᴸ) (forward-wf πᴿ) p)
-      refl
-      (shape-rename
-        assm (forward-wf πᴸ) (forward-wf πᴿ) q)
-      comp)
-
-rel-world-gen-down-permuteᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ}
-    {πᴸ : TyPermutation Δᴸ Θᴸ}
-    {πᴿ : TyPermutation Δᴿ Θᴿ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ (forward πᴸ) (forward πᴿ) a ∈ Ψ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ C C′ D D′ pC d d′ s s′} →
-  (perm : RelWorldPermutationⁱ πᴸ πᴿ assm
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
-  CastShape.narrowing ⊢ᶜ d ⦂ s →
-  genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-    ⊢ d′ ∶ C′ ⊒ D′ →
-  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ (forward πᴸ) M ⊑ renameᵗᵐ (forward πᴿ) M′
-    ⦂ renameᵗ (forward πᴸ) C ⊑ renameᵗ (forward πᴿ) C′
-    ∶ ⊑-renameᵗ²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) pC →
-  (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
-  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺᵖ renameᵗᵐ (forward πᴸ) (M ⟨ d ⟩)
-      ⊑ renameᵗᵐ (forward πᴿ) (M′ ⟨ d′ ⟩)
-    ⦂ renameᵗ (forward πᴸ) D ⊑ᵖ renameᵗ (forward πᴿ) D′
-    ∶ ⊑ᵖ-rename²ᵢ assm (forward-wf πᴸ) (forward-wf πᴿ) qD
-rel-world-gen-down-permuteᵀ
-    {πᴸ = πᴸ} {πᴿ = πᴿ} {assm = assm}
-    perm d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square =
-  gen-down⊑gen-downᵀ
-    (left-narrowing-rel-permute-mode perm
-      (modeRename-gen-tag-or-id (forward πᴸ)) d⊒)
-    (cast-shape-rename (forward πᴸ) d-shape)
-    (right-narrowing-rel-permute-mode perm
-      (modeRename-gen-tag-or-id (forward πᴿ)) d′⊒)
-    (cast-shape-rename (forward πᴿ) d′-shape)
-    M⊑M′
-    (⊑ᵖ-rename²ᵢ _ _ _ qD)
-    (quotient-boundary-square-rename²
-      {τ = forward πᴸ} {σ = forward πᴿ}
-      {assm = assm}
-      {hτ = forward-wf πᴸ} {hσ = forward-wf πᴿ}
-      square)
-
-rel-world-down-embedᵀ :
+left-spine-cast-mode-rel-embed :
   ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
     {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
     {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ C C′ D D′ pC d d′ s s′} →
+    {μ} →
   (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
     {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
-  CastShape.narrowing ⊢ᶜ d ⦂ s →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
-  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
+  SpineCastMode (leftStoreⁱ ρ) μ →
+  ∃[ μ′ ]
+    (ModeRename τ μ μ′ × SpineCastMode (leftStoreⁱ ρ′) μ′)
+left-spine-cast-mode-rel-embed {τ = τ} emb id-only↓ =
+  id-onlyᵈ , modeRename-id-only τ , id-only↓
+left-spine-cast-mode-rel-embed emb (gradual↓ mode seal★) =
+  CastModeRenamer.targetᵈ (left-embedding-cast-renamer emb) mode ,
+  CastModeRenamer.target-rename
+    (left-embedding-cast-renamer emb) mode ,
+  gradual↓
+    (CastModeRenamer.target-mode
+      (left-embedding-cast-renamer emb) mode)
+    (left-seal-rel-embed emb mode seal★)
+
+right-spine-cast-mode-rel-embed :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
+    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
+    {μ} →
+  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
+    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
+  SpineCastMode (rightStoreⁱ ρ) μ →
+  ∃[ μ′ ]
+    (ModeRename σ μ μ′ × SpineCastMode (rightStoreⁱ ρ′) μ′)
+right-spine-cast-mode-rel-embed {σ = σ} emb id-only↓ =
+  id-onlyᵈ , modeRename-id-only σ , id-only↓
+right-spine-cast-mode-rel-embed emb (gradual↓ mode seal★) =
+  CastModeRenamer.targetᵈ (right-embedding-cast-renamer emb) mode ,
+  CastModeRenamer.target-rename
+    (right-embedding-cast-renamer emb) mode ,
+  gradual↓
+    (CastModeRenamer.target-mode
+      (right-embedding-cast-renamer emb) mode)
+    (right-seal-rel-embed emb mode seal★)
+
+rel-world-paired-down-embedᵀ :
+  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
+    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
+    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
+    {M M′ C C′ D D′ pC d d′ s s′ qD μ μ′} →
+  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
+    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
     ⦂ renameᵗ τ C ⊑ renameᵗ σ C′
     ∶ ⊑-renameᵗ²ᵢ assm hτ hσ pC →
-  (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
+  SpineCastMode (leftStoreⁱ ρ) μ →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
+  CastShape.narrowing ⊢ᶜ d ⦂ s →
+  SpineCastMode (rightStoreⁱ ρ) μ′ →
+  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
+  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
   s ；⌊ pC ⌋≋ᵖ qD ； s′ →
   Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺᵖ renameᵗᵐ τ (M ⟨ d ⟩)
       ⊑ renameᵗᵐ σ (M′ ⟨ d′ ⟩)
     ⦂ renameᵗ τ D ⊑ᵖ renameᵗ σ D′
     ∶ ⊑ᵖ-rename²ᵢ assm hτ hσ qD
-rel-world-down-embedᵀ
+rel-world-paired-down-embedᵀ
     {τ = τ} {σ = σ} {assm = assm} {hτ = hτ} {hσ = hσ}
-    emb d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square =
-  down⊑downᵀ
-    (left-narrowing-rel-embed-mode emb (modeRename-id-only τ) d⊒)
+    emb M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square
+    with left-spine-cast-mode-rel-embed emb mode
+       | right-spine-cast-mode-rel-embed emb mode′
+rel-world-paired-down-embedᵀ
+    {τ = τ} {σ = σ} {assm = assm} {hτ = hτ} {hσ = hσ}
+    emb M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square
+    | μᴿ , mode-rename , modeᴿ
+    | μ′ᴿ , mode′-rename , mode′ᴿ =
+  paired-downᵀ M⊑M′ modeᴿ
+    (left-narrowing-rel-embed-mode emb mode-rename d⊒)
     (cast-shape-rename τ d-shape)
-    (right-narrowing-rel-embed-mode emb (modeRename-id-only σ) d′⊒)
+    mode′ᴿ
+    (right-narrowing-rel-embed-mode emb mode′-rename d′⊒)
     (cast-shape-rename σ d′-shape)
-    M⊑M′
-    (⊑ᵖ-rename²ᵢ _ _ _ qD)
-    (quotient-boundary-square-rename²
-      {τ = τ} {σ = σ} {assm = assm}
-      {hτ = hτ} {hσ = hσ} square)
-
-rel-world-gen-down-embedᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ ψ φ}
-    {assm : ∀ {a} → a ∈ Φ → rename-assm²ᵢ τ σ a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Θᴸ τ} {hσ : TyRenameWf Δᴿ Θᴿ σ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Θᴸ Θᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ} {γ′ : CtxImp Ψ Θᴸ Θᴿ}
-    {M M′ C C′ D D′ pC d d′ s s′} →
-  (emb : RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
-    {ρ = ρ} {ρ′ = ρ′} {γ = γ} {γ′ = γ′}) →
-  genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
-  CastShape.narrowing ⊢ᶜ d ⦂ s →
-  genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-    ⊢ d′ ∶ C′ ⊒ D′ →
-  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-    ⦂ renameᵗ τ C ⊑ renameᵗ σ C′
-    ∶ ⊑-renameᵗ²ᵢ assm hτ hσ pC →
-  (qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
-  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
-  Ψ ∣ Θᴸ ∣ Θᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺᵖ renameᵗᵐ τ (M ⟨ d ⟩)
-      ⊑ renameᵗᵐ σ (M′ ⟨ d′ ⟩)
-    ⦂ renameᵗ τ D ⊑ᵖ renameᵗ σ D′
-    ∶ ⊑ᵖ-rename²ᵢ assm hτ hσ qD
-rel-world-gen-down-embedᵀ {τ = τ} {σ = σ}
-    {assm = assm} {hτ = hτ} {hσ = hσ}
-    emb d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square =
-  gen-down⊑gen-downᵀ
-    (left-narrowing-rel-embed-mode emb
-      (modeRename-gen-tag-or-id τ) d⊒)
-    (cast-shape-rename τ d-shape)
-    (right-narrowing-rel-embed-mode emb
-      (modeRename-gen-tag-or-id σ) d′⊒)
-    (cast-shape-rename σ d′-shape)
-    M⊑M′
-    (⊑ᵖ-rename²ᵢ _ _ _ qD)
     (quotient-boundary-square-rename²
       {τ = τ} {σ = σ} {assm = assm}
       {hτ = hτ} {hσ = hσ} square)
@@ -10148,41 +9408,38 @@ left-rename-⊑cast⊑ᵀ
       (shape-rename-left assm hτ q)
       comp)
 
-left-rename-⊑cast⊑idᵀ :
+left-rename-quotient-widening-pairᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
-    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
-    {M M′ A A′ B′ c′ s}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
+    {u u′ D D′ A A′} →
+  CastModeRenamer τ →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
-  SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-  CastShape.widening ⊢ᶜ c′ ⦂ s →
-  ⌊ p ⌋ ； s ≋ ⌊ q ⌋ →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
-    ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ p →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ M′ ⟨ c′ ⟩
-    ⦂ renameᵗ τ A ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
-left-rename-⊑cast⊑idᵀ
-    {assm = assm} {hτ = hτ} {p = p} {q = q}
-    renameρ seal★′ c′⊑ c-shape comp M⊑M′ =
-  ⊑cast⊑idᵀ
-    (right-seal★-left-renameⁱ {μ = id-onlyᵈ} renameρ seal★′)
-    (right-widening-left-renameⁱ renameρ c′⊑) M⊑M′ _
-    c-shape
-    (imprecision-composition-shape-transport
-      (shape-rename-left assm hτ p)
-      refl
-      (shape-rename-left assm hτ q)
-      comp)
+  QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′ →
+  QuotientWideningPair Δᴸ′ Δᴿ ρ′
+    (renameᶜ τ u) u′
+    (renameᵗ τ D) D′ (renameᵗ τ A) A′
+left-rename-quotient-widening-pairᵀ {τ = τ} modeτ renameρ
+    (quotient-id-widening source target) =
+  quotient-id-widening
+    (left-widening-rename-modeⁱ
+      (modeRename-id-only τ) renameρ source)
+    (right-widening-left-renameⁱ renameρ target)
+left-rename-quotient-widening-pairᵀ modeτ renameρ
+    (quotient-cast-widening
+      mode seal★ source mode′ seal★′ target) =
+  quotient-cast-widening
+    (CastModeRenamer.target-mode modeτ mode)
+    (left-seal★-renameⁱ modeτ renameρ mode seal★)
+    (left-widening-rename-modeⁱ
+      (CastModeRenamer.target-rename modeτ mode) renameρ source)
+    mode′
+    (right-seal★-left-renameⁱ renameρ seal★′)
+    (right-widening-left-renameⁱ renameρ target)
 
-left-rename-up⊑upᵀ :
+left-rename-closeᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
@@ -10192,98 +9449,108 @@ left-rename-up⊑upᵀ :
     {N N′ A A′ D D′ u u′ s s′}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
+  CastModeRenamer τ →
   (renameρ : LeftStoreRenameⁱ τ assm hτ ρ ρ′) →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ u ∶ D ⊑ A →
+  QuotientWideningPair Δᴸ Δᴿ ρ u u′ D D′ A A′ →
   CastShape.widening ⊢ᶜ u ⦂ s →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ u′ ∶ D′ ⊑ A′ →
   CastShape.widening ⊢ᶜ u′ ⦂ s′ →
   s ；⌊ pA ⌋≋ᵖ qD ； s′ →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ u u′ qD pA s s′ →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺᵖ renameᵗᵐ τ N ⊑ N′
     ⦂ renameᵗ τ D ⊑ᵖ D′ ∶ ⊑ᵖ-rename-leftᵢ τ assm hτ qD →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ (N ⟨ u ⟩) ⊑ N′ ⟨ u′ ⟩
     ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ pA
-left-rename-up⊑upᵀ
+left-rename-closeᵀ
     {τ = τ} {assm = assm} {hτ = hτ}
-    renameρ u⊑ u-shape u′⊑ u′-shape square N⊑N′ =
-  up⊑upᵀ N⊑N′
-    (quotient-id-widening
-      (left-widening-rename-modeⁱ
-        (modeRename-id-only τ) renameρ u⊑)
-      (right-widening-left-renameⁱ renameρ u′⊑)) _
-    (cast-shape-rename τ u-shape)
-    u′-shape
+    modeτ renameρ widening u-shape u′-shape square compatible N⊑N′ =
+  closeᵀ N⊑N′
+    (left-rename-quotient-widening-pairᵀ modeτ renameρ widening) _
+    (cast-shape-rename τ u-shape) u′-shape
     (quotient-boundary-square-rename-left
       {τ = τ} {assm = assm} {hτ = hτ} square)
+    (reduction-closed-quotient-compatible-rename-leftᵢ
+      {assm = assm} hτ compatible)
 
-left-rename-down⊑downᵀ :
+left-spine-cast-mode-renameⁱ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
+    {μ} →
+  CastModeRenamer τ →
+  (renameρ : LeftStoreRenameⁱ τ assm hτ ρ ρ′) →
+  SpineCastMode (leftStoreⁱ ρ) μ →
+  ∃[ μ′ ]
+    (ModeRename τ μ μ′ × SpineCastMode (leftStoreⁱ ρ′) μ′)
+left-spine-cast-mode-renameⁱ {τ = τ} modeτ renameρ id-only↓ =
+  id-onlyᵈ , modeRename-id-only τ , id-only↓
+left-spine-cast-mode-renameⁱ modeτ renameρ
+    (gradual↓ mode seal★) =
+  CastModeRenamer.targetᵈ modeτ mode ,
+  CastModeRenamer.target-rename modeτ mode ,
+  gradual↓
+    (CastModeRenamer.target-mode modeτ mode)
+    (left-seal★-renameⁱ modeτ renameρ mode seal★)
+
+right-spine-cast-mode-left-renameⁱ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
+    {μ} →
+  LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
+  SpineCastMode (rightStoreⁱ ρ) μ →
+  SpineCastMode (rightStoreⁱ ρ′) μ
+right-spine-cast-mode-left-renameⁱ renameρ id-only↓ = id-only↓
+right-spine-cast-mode-left-renameⁱ renameρ
+    (gradual↓ mode seal★) =
+  gradual↓ mode (right-seal★-left-renameⁱ renameρ seal★)
+
+left-rename-paired-downᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
     {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
-    {M M′ C C′ D D′ d d′ s s′}
-    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
+    {M M′ C C′ D D′ d d′ s s′ qD μ μ′}
+    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ} →
+  CastModeRenamer τ →
   (renameρ : LeftStoreRenameⁱ τ assm hτ ρ ρ′) →
-  id-onlyᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
-  CastShape.narrowing ⊢ᶜ d ⦂ s →
-  id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
-  CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
-  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ M ⊑ M′
     ⦂ renameᵗ τ C ⊑ C′ ∶ ⊑-rename-leftᵢ τ assm hτ pC →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺᵖ renameᵗᵐ τ (M ⟨ d ⟩) ⊑ M′ ⟨ d′ ⟩
-    ⦂ renameᵗ τ D ⊑ᵖ D′ ∶ ⊑ᵖ-rename-leftᵢ τ assm hτ qD
-left-rename-down⊑downᵀ
-    {τ = τ} {assm = assm} {hτ = hτ}
-    renameρ d⊒ d-shape d′⊒ d′-shape square M⊑M′ =
-  down⊑downᵀ
-    (left-narrowing-rename-modeⁱ (modeRename-id-only τ) renameρ d⊒)
-    (cast-shape-rename τ d-shape)
-    (right-narrowing-left-renameⁱ renameρ d′⊒)
-    d′-shape
-    M⊑M′ _
-    (quotient-boundary-square-rename-left
-      {τ = τ} {assm = assm} {hτ = hτ} square)
-
-left-rename-gen-down⊑gen-downᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
-    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
-    {M M′ C C′ D D′ d d′ s s′}
-    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
-  (renameρ : LeftStoreRenameⁱ τ assm hτ ρ ρ′) →
-  genᵈ tag-or-idᵈ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
+  SpineCastMode (leftStoreⁱ ρ) μ →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ d ∶ C ⊒ D →
   CastShape.narrowing ⊢ᶜ d ⦂ s →
-  genᵈ tag-or-idᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-    ⊢ d′ ∶ C′ ⊒ D′ →
+  SpineCastMode (rightStoreⁱ ρ) μ′ →
+  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ C′ ⊒ D′ →
   CastShape.narrowing ⊢ᶜ d′ ⦂ s′ →
   s ；⌊ pC ⌋≋ᵖ qD ； s′ →
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
-    ⦂ renameᵗ τ C ⊑ C′ ∶ ⊑-rename-leftᵢ τ assm hτ pC →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
     ⊢ᴺᵖ renameᵗᵐ τ (M ⟨ d ⟩) ⊑ M′ ⟨ d′ ⟩
     ⦂ renameᵗ τ D ⊑ᵖ D′ ∶ ⊑ᵖ-rename-leftᵢ τ assm hτ qD
-left-rename-gen-down⊑gen-downᵀ
+left-rename-paired-downᵀ
     {τ = τ} {assm = assm} {hτ = hτ}
-    renameρ d⊒ d-shape d′⊒ d′-shape square M⊑M′ =
-  gen-down⊑gen-downᵀ
-    (left-narrowing-rename-modeⁱ
-      (modeRename-gen-tag-or-id τ) renameρ d⊒)
+    modeτ renameρ M⊑M′ mode d⊒ d-shape
+    mode′ d′⊒ d′-shape square
+    with left-spine-cast-mode-renameⁱ modeτ renameρ mode
+left-rename-paired-downᵀ
+    {τ = τ} {assm = assm} {hτ = hτ}
+    modeτ renameρ M⊑M′ mode d⊒ d-shape
+    mode′ d′⊒ d′-shape square
+    | μᴿ , mode-rename , modeᴿ =
+  paired-downᵀ M⊑M′ modeᴿ
+    (left-narrowing-rename-modeⁱ mode-rename renameρ d⊒)
     (cast-shape-rename τ d-shape)
+    (right-spine-cast-mode-left-renameⁱ renameρ mode′)
     (right-narrowing-left-renameⁱ renameρ d′⊒)
     d′-shape
-    M⊑M′ _
     (quotient-boundary-square-rename-left
       {τ = τ} {assm = assm} {hτ = hτ} square)
 
@@ -10794,66 +10061,107 @@ left-store-rename-correspondenceⁱ renameρ
         left-store-rename-link∈ⁱ renameρ p∈ in
   α′ , eqα , A′ , eqA , correspondence-linked p∈′
 
-left-paired-conversion-renameⁱ :
+left-rename-paired-revealᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
-    {c c′ A A′ B B′}
+    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
+    {M M′ c c′ A A′ B B′ α β X X′ pX μ μ′}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   (ins : LeftInsertion τ) →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
-  PairedConversion Φ Δᴸ Δᴿ ρ c c′ p q →
-  PairedConversion Ψ Δᴸ′ Δᴿ ρ′
-    (renameᶜ τ c) c′
-    (⊑-rename-leftᵢ τ assm hτ p)
-    (⊑-rename-leftᵢ τ assm hτ q)
-left-paired-conversion-renameⁱ ins renameρ
-    (paired-reveal corr conv conv′ replace)
+  StoreCorresponds ρ α X β X′ pX →
+  RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+  p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
+    ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ p →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ (M ⟨ c ⟩) ⊑ M′ ⟨ c′ ⟩
+    ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
+left-rename-paired-revealᵀ ins renameρ corr conv conv′ replace M⊑M′
     with left-store-rename-correspondenceⁱ renameρ corr
-left-paired-conversion-renameⁱ ins renameρ
-    (paired-reveal corr conv conv′ replace)
+left-rename-paired-revealᵀ ins renameρ corr conv conv′ replace M⊑M′
     | α′ , refl , A′ , refl , corr′ =
-  paired-reveal corr′
+  paired-revealᵀ corr′
     (left-reveal-renameⁱ ins renameρ conv)
     (right-reveal-left-renameⁱ renameρ conv′)
     (replace-paired-rename-leftᵢ _ _ replace)
-left-paired-conversion-renameⁱ ins renameρ
-    (paired-conceal corr conv conv′ replace)
-    with left-store-rename-correspondenceⁱ renameρ corr
-left-paired-conversion-renameⁱ ins renameρ
-    (paired-conceal corr conv conv′ replace)
-    | α′ , refl , A′ , refl , corr′ =
-  paired-conceal corr′
-    (left-conceal-renameⁱ ins renameρ conv)
-    (right-conceal-left-renameⁱ renameρ conv′)
-    (replace-paired-rename-leftᵢ _ _ replace)
+    M⊑M′
 
-left-paired-cast-renameⁱ :
+left-rename-paired-concealᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
     {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
     {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
-    {c c′ A A′ B B′}
+    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
+    {M M′ c c′ A A′ B B′ α β X X′ pX μ μ′}
     {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
   (ins : LeftInsertion τ) →
   LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ p q →
-  PairedCast Ψ Δᴸ′ Δᴿ ρ′
-    (renameᶜ τ c) c′
-    (⊑-rename-leftᵢ τ assm hτ p)
-    (⊑-rename-leftᵢ τ assm hτ q)
-left-paired-cast-renameⁱ ins renameρ
-    (paired-conversion conv) =
-  paired-conversion (left-paired-conversion-renameⁱ ins renameρ conv)
-left-paired-cast-renameⁱ {assm = assm} {hτ = hτ} ins renameρ
-    (paired-widening mode seal★ c⊑ c-shape
-      mode′ seal★′ c′⊑ c′-shape left-square right-square compat) =
-  paired-widening
+  StoreCorresponds ρ α X β X′ pX →
+  ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+  ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+  q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
+    ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ p →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ (M ⟨ c ⟩) ⊑ M′ ⟨ c′ ⟩
+    ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
+left-rename-paired-concealᵀ
+    ins renameρ corr conv conv′ replace M⊑M′
+    with left-store-rename-correspondenceⁱ renameρ corr
+left-rename-paired-concealᵀ
+    ins renameρ corr conv conv′ replace M⊑M′
+    | α′ , refl , A′ , refl , corr′ =
+  paired-concealᵀ corr′
+    (left-conceal-renameⁱ ins renameρ conv)
+    (right-conceal-left-renameⁱ renameρ conv′)
+    (replace-paired-rename-leftᵢ _ _ replace)
+    M⊑M′
+
+left-rename-paired-wideningᵀ :
+  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
+    {assm : ∀ {a} → a ∈ Φ →
+      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
+    {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
+    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
+    {M M′ c c′ A A′ B B′ μ μ′ s s′ r}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  (ins : LeftInsertion τ) →
+  LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
+  CastMode μ →
+  SealModeStore★ μ (leftStoreⁱ ρ) →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
+  CastShape.widening ⊢ᶜ c ⦂ s →
+  CastMode μ′ →
+  SealModeStore★ μ′ (rightStoreⁱ ρ) →
+  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
+  CastShape.widening ⊢ᶜ c′ ⦂ s′ →
+  s ； ⌊ q ⌋ ≋ r →
+  ⌊ p ⌋ ； s′ ≋ r →
+  ReductionClosedPairedWideningCompatible
+    Φ Δᴸ Δᴿ c c′ p q s s′ →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
+    ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ p →
+  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
+    ⊢ᴺ renameᵗᵐ τ (M ⟨ c ⟩) ⊑ M′ ⟨ c′ ⟩
+    ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
+left-rename-paired-wideningᵀ
+    {assm = assm} {hτ = hτ} ins renameρ
+    mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compat M⊑M′ =
+  paired-wideningᵀ
     (CastModeRenamer.target-mode modeτ mode)
     (left-seal★-renameⁱ modeτ renameρ mode seal★)
     (left-widening-renameⁱ modeτ mode renameρ c⊑)
@@ -10866,32 +10174,11 @@ left-paired-cast-renameⁱ {assm = assm} {hτ = hτ} ins renameρ
       refl (shape-rename-left assm hτ _) refl left-square)
     (imprecision-composition-shape-transport
       (shape-rename-left assm hτ _) refl refl right-square)
-    (paired-widening-compatible-rename-leftᵢ
+    (reduction-closed-paired-compatible-rename-leftᵢ
       {assm = assm} hτ compat)
+    M⊑M′
   where
   modeτ = left-insertion-cast-renamer ins
-
-left-rename-conv⊑convᵀ :
-  ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
-    {assm : ∀ {a} → a ∈ Φ →
-      rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
-    {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ}
-    {γ′ : CtxImp Ψ Δᴸ′ Δᴿ}
-    {M M′ c c′ A A′ B B′}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  (ins : LeftInsertion τ) →
-  LeftStoreRenameⁱ τ assm hτ ρ ρ′ →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ p q →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ M ⊑ M′
-    ⦂ renameᵗ τ A ⊑ A′ ∶ ⊑-rename-leftᵢ τ assm hτ p →
-  Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′ ∣ γ′
-    ⊢ᴺ renameᵗᵐ τ (M ⟨ c ⟩) ⊑ M′ ⟨ c′ ⟩
-    ⦂ renameᵗ τ B ⊑ B′ ∶ ⊑-rename-leftᵢ τ assm hτ q
-left-rename-conv⊑convᵀ ins renameρ cast M⊑M′ =
-  conv⊑convᵀ (left-paired-cast-renameⁱ ins renameρ cast) M⊑M′
 
 left-rename-conv↑⊑ᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}

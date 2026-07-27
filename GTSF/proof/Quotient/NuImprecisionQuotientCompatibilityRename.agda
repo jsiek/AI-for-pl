@@ -1,14 +1,12 @@
-module
-  proof.Quotient.NuImprecisionReductionClosedCompatibilityRenameExperiment
-  where
+module proof.Quotient.NuImprecisionQuotientCompatibilityRename where
 
 -- File Charter:
 --   * Proves two-sided and source-only type-renaming preservation for the
 --     reduction-closed paired- and quotient-widening compatibility evidence.
 --   * Handles the existential target-inert bridge by renaming its ordinary
 --     imprecision witness and transporting its erased composition triangles.
---   * Supplies the compatibility transport needed by independent paired and
---     source-only type-world weakening experiments for the smaller relation.
+--   * Supplies the canonical compatibility transport needed by live world
+--     embedding and source-only type-world weakening.
 --   * Depends only on type, coercion, permutation, and compatibility
 --     infrastructure; it imports no term-imprecision judgment or theorem.
 
@@ -47,7 +45,7 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; rename-assm²-⇑ᵢ
   ; ⊑-renameᵗ²ᵢ
   )
-open import proof.Quotient.NuImprecisionQuotientBoundarySupport using
+open import QuotientImprecisionCompatibility using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible
   ; compatible-tagᴿ

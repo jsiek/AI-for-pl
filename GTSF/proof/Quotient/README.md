@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 4 live grammar checked; consumers migrating**
+**MIGRATION IN PROGRESS — phase 4 world and left transport checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -50,6 +50,7 @@ The selected grammar and its general support are:
 
 - `NuImprecisionReductionClosedQuotientDef.agda`;
 - `NuImprecisionQuotientBoundarySupport.agda`;
+- `NuImprecisionQuotientCompatibilityRename.agda`;
 - `NuImprecisionTargetInstantiationCreationDef.agda`; and
 - `NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda`.
 
@@ -60,7 +61,6 @@ The selected metatheory sources are:
 - `NuImprecisionReductionClosedQuotientTermContextShiftExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda`;
-- `NuImprecisionReductionClosedCompatibilityRenameExperiment.agda`;
 - `NuImprecisionReductionClosedWorldEmbeddingExperiment.agda`;
 - `NuImprecisionReductionClosedWorldRenameExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientIdOnlyCastAudit.agda`; and
@@ -86,18 +86,18 @@ delete the superseded source.
 
 ## Retiring live surface
 
-`../../QuotientedTermImprecision.agda` is still the live relation. Phase 3
+`../../QuotientedTermImprecision.agda` is the live smaller relation. Phase 3
 removed target-only type application, target-only `ν`, target-only casted
-`ν`, and the two casted-`ν` shortcuts. These remaining constructor families
-are now marked for removal:
+`ν`, and the two casted-`ν` shortcuts. Phase 4 has also removed these
+constructor families from the live grammar:
 
 - quotient-indexed application;
 - fused `down·up⊑down·upᵀ`; and
 - the old quotient-boundary presentation superseded by one paired narrowing
   introduction and one compatible closing widening.
 
-The following modules are live clients or helpers for that retiring grammar.
-They may be edited only to migrate or delete their old dependencies:
+The following modules remain live clients or helpers for retired source
+names. They may be edited only to migrate or delete those dependencies:
 
 - `NuImprecisionQuotientArrowComponents.agda`;
 - `NuImprecisionQuotientFunctionPairedNarrowingApplicationDef.agda`;
@@ -257,7 +257,8 @@ support module.
 - tighten or split the matched target-allocation root contract so it states
   the reduction that its proof actually handles;
 - migrate value, typing, substitution, world-embedding, and catch-up clients
-  (**parallel substitution and term-context shift checked**);
+  (**parallel substitution, term-context shift, world embedding, bullet-free
+  left renaming, and source-allocation runtime transport checked**);
 - delete quotient application, finite-spine support, and
   `down·up⊑down·upᵀ` (**deleted from the live grammar; downstream references
   remain frozen migration obligations**);
@@ -288,6 +289,17 @@ application constructors, the split narrowing introductions, and the
 the live relation, store-prefix evidence, parallel substitution, and
 term-context shift. Other files in the frozen inventory still contain
 retired names and must be migrated or deleted before a phase gate.
+
+The world/left-transport checkpoint on 2026-07-27 promoted the selected
+compatibility-renaming proof to
+`NuImprecisionQuotientCompatibilityRename.agda`. The canonical simulation
+core now transports `closeᵀ`, the three direct paired conversion cases, and
+the single `paired-downᵀ` boundary. Focused checks pass for the world
+embedding, bullet-free left renaming, and source-allocation runtime
+transport. Relative to the frozen inventory, direct source-file counts have
+fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19` for fused
+down/up, identity quotient application, gradual quotient application,
+closing widening, identity down, and gradual down respectively.
 
 ### Phase 5. Collapse the migration surface
 

@@ -83,8 +83,7 @@ open import QuotientedTermImprecision using
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; ·⊑·ᵀ
-  ; down·up⊑down·upᵀ
-  ; up⊑upᵀ
+  ; closeᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
@@ -99,19 +98,15 @@ open import QuotientedTermImprecision using
   ; cast⊑⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
-  ; conv⊑convᵀ
+  ; paired-revealᵀ
+  ; paired-concealᵀ
+  ; paired-wideningᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; down⊑downᵀ
-  ; gen-down⊑gen-downᵀ
-  ; quotient-down-applicationᵖᵀ
-  ; quotient-id-down-applicationᵖᵀ
+  ; paired-downᵀ
   ; target-instantiationᵀ
-  ; quotient-id-widening
-  ; quotient-cast-widening
   ; nu-term-imprecision-source-typing
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -125,7 +120,6 @@ open import Types using
   ; `∀
   ; ⇑ᵗ
   )
-open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( νᵢᶜ
   ; rename-assm²-⇑ᴸᵢ
@@ -149,26 +143,24 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-insertion-ext
   ; left-insertion-suc
   ; left-insertion-cast-renamer
-  ; left-narrowing-renameⁱ
-  ; left-narrowing-rename-modeⁱ
-  ; paired-widening-compatible-rename-leftᵢ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
   ; left-rename-allocation-prefixᵀ
   ; left-rename-blameᵀ
   ; left-rename-cast⊒⊑ᵀ
   ; left-rename-cast⊑⊑ᵀ
-  ; left-rename-conv⊑convᵀ
+  ; left-rename-closeᵀ
   ; left-rename-conv↑⊑ᵀ
   ; left-rename-conv↓⊑ᵀ
-  ; left-rename-down⊑downᵀ
-  ; left-rename-gen-down⊑gen-downᵀ
+  ; left-rename-paired-concealᵀ
+  ; left-rename-paired-downᵀ
+  ; left-rename-paired-revealᵀ
+  ; left-rename-paired-wideningᵀ
   ; left-rename-Λ⊑ᵀ
   ; left-rename-νᵀ
   ; left-rename-ν⊑ᵀ
   ; left-rename-⊑cast⊒ᵀ
   ; left-rename-⊑cast⊑ᵀ
-  ; left-rename-⊑cast⊑idᵀ
   ; left-rename-⊑conv↑ᵀ
   ; left-rename-⊑conv↓ᵀ
   ; left-rename-·ᵀ
@@ -180,13 +172,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-matched
   ; left-store-rename-right
   ; left-typing-renameⁱ
-  ; left-widening-renameⁱ
-  ; left-widening-rename-modeⁱ
-  ; right-seal★-left-renameⁱ
-  ; right-narrowing-left-renameⁱ
   ; right-typing-left-renameⁱ
   ; right-under-left-ctx-eq
-  ; right-widening-left-renameⁱ
   ; rightCtxⁱ-left-rename
   ; rightStoreⁱ-left-rename
   ; ⇑ᴿᵢ-membership
@@ -202,14 +189,7 @@ open import
   ; ⊑-rename-left-atᵢ
   ; ⊑-rename-leftᵢ
   )
-open import
-  proof.Core.Properties.NuImprecisionQuotientBoundaryProperties
-  using
-  ( quotient-arrow-components-rename-left-at
-  ; quotient-boundary-square-rename-left
-  )
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.Core.Properties.TypePreservation using (CastModeRenamer)
 open import proof.Core.Properties.TypeProperties using
   ( RenameLeftInverse
   ; RenameLeftInverse-ext
@@ -541,238 +521,22 @@ mutual
         renameρ renameγ M⊑M′ noM runtimeM)
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
-      rel@(down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square widening
-        u-shape u′-shape up-square compatible)
-      noApp (ok-no noApp′) =
-    left-rename-no•ᵀ rename-no-bullet ins
-      renameρ renameγ noApp noApp′ rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square widening
-        u-shape u′-shape up-square compatible)
-      noApp (ok-⟨⟩ (ok-no noInner′)) =
-    left-rename-no•ᵀ rename-no-bullet ins
-      renameρ renameγ noApp (no•-⟨⟩ noInner′) rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square widening
-        u-shape u′-shape up-square compatible)
-      noApp
-      (ok-⟨⟩
-        (ok-·₂ vL′ noL′ (ok-no (no•-⟨⟩ noM′)))) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noApp
-      (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
-      rel
-  left-source-runtimeᵀ-generic
-      {τ = τ} {hτ = hτ}
-      rename-no-bullet ins renameρ renameγ
-      (down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square
-        (quotient-id-widening u⊑ u′⊑)
-        u-shape u′-shape up-square compatible)
-      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-      (ok-⟨⟩ (ok-·₁ runtimeL′ (no•-⟨⟩ noM′))) =
-    down·up⊑down·upᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ L⊑L′ noL runtimeL′)
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noM noM′ M⊑M′)
-      (quotient-boundary-square-rename-left down-square)
-      (quotient-id-widening
-        (left-widening-rename-modeⁱ
-          (modeRename-id-only τ) renameρ u⊑)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left up-square)
-      (paired-widening-compatible-rename-leftᵢ hτ compatible)
-    where
-    modeτ = left-insertion-cast-renamer ins
-  left-source-runtimeᵀ-generic
-      {τ = τ} {hτ = hτ}
-      rename-no-bullet ins renameρ renameγ
-      (down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square
-        (quotient-id-widening u⊑ u′⊑)
-        u-shape u′-shape up-square compatible)
-      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-      (ok-⟨⟩ (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′))) =
-    down·up⊑down·upᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noL noL′ L⊑L′)
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-      (quotient-boundary-square-rename-left down-square)
-      (quotient-id-widening
-        (left-widening-rename-modeⁱ
-          (modeRename-id-only τ) renameρ u⊑)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left up-square)
-      (paired-widening-compatible-rename-leftᵢ hτ compatible)
-    where
-    modeτ = left-insertion-cast-renamer ins
-  left-source-runtimeᵀ-generic
-      {τ = τ} {hτ = hτ}
-      rename-no-bullet ins renameρ renameγ
-      (down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square
-        (quotient-cast-widening
-          mode-u seal★-u u⊑ mode-u′ seal★-u′ u′⊑)
-        u-shape u′-shape up-square compatible)
-      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-      (ok-⟨⟩ (ok-·₁ runtimeL′ (no•-⟨⟩ noM′))) =
-    down·up⊑down·upᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ L⊑L′ noL runtimeL′)
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noM noM′ M⊑M′)
-      (quotient-boundary-square-rename-left down-square)
-      (quotient-cast-widening
-        (CastModeRenamer.target-mode modeτ mode-u)
-        (left-seal★-renameⁱ modeτ renameρ mode-u seal★-u)
-        (left-widening-renameⁱ modeτ mode-u renameρ u⊑)
-        mode-u′
-        (right-seal★-left-renameⁱ renameρ seal★-u′)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left up-square)
-      (paired-widening-compatible-rename-leftᵢ hτ compatible)
-    where
-    modeτ = left-insertion-cast-renamer ins
-  left-source-runtimeᵀ-generic
-      {τ = τ} {hτ = hτ}
-      rename-no-bullet ins renameρ renameγ
-      (down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square
-        (quotient-cast-widening
-          mode-u seal★-u u⊑ mode-u′ seal★-u′ u′⊑)
-        u-shape u′-shape up-square compatible)
-      (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-      (ok-⟨⟩ (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′))) =
-    down·up⊑down·upᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noL noL′ L⊑L′)
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-      (quotient-boundary-square-rename-left down-square)
-      (quotient-cast-widening
-        (CastModeRenamer.target-mode modeτ mode-u)
-        (left-seal★-renameⁱ modeτ renameρ mode-u seal★-u)
-        (left-widening-renameⁱ modeτ mode-u renameρ u⊑)
-        mode-u′
-        (right-seal★-left-renameⁱ renameρ seal★-u′)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left up-square)
-      (paired-widening-compatible-rename-leftᵢ hτ compatible)
-    where
-    modeτ = left-insertion-cast-renamer ins
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(up⊑upᵀ N⊑N′ (quotient-id-widening u⊑ u′⊑) pA
-        u-shape u′-shape square)
+      rel@(closeᵀ N⊑N′ widening pA
+        u-shape u′-shape square compatible)
       noUp (ok-no noUp′) =
     left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
       noUp noUp′ rel
   left-source-runtimeᵀ-generic
-      {τ = τ} {assm = assm} {hτ = hτ}
       rename-no-bullet ins renameρ renameγ
-      (up⊑upᵀ N⊑N′ (quotient-id-widening u⊑ u′⊑) pA
-        u-shape u′-shape square)
+      (closeᵀ N⊑N′ widening pA
+        u-shape u′-shape square compatible)
       (no•-⟨⟩ noN)
       (ok-⟨⟩ runtimeN′) =
-    up⊑upᵀ
+    left-rename-closeᵀ
+      (left-insertion-cast-renamer ins) renameρ widening
+      u-shape u′-shape square compatible
       (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
         renameρ renameγ N⊑N′ noN runtimeN′)
-      (quotient-id-widening
-        (left-widening-rename-modeⁱ
-          (modeRename-id-only τ) renameρ u⊑)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (⊑-rename-leftᵢ τ assm hτ pA)
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left square)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(up⊑upᵀ N⊑N′
-        (quotient-cast-widening mode seal★ u⊑
-          mode′ seal★′ u′⊑) pA
-        u-shape u′-shape square)
-      noUp (ok-no noUp′) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noUp noUp′ rel
-  left-source-runtimeᵀ-generic
-      {τ = τ} {assm = assm} {hτ = hτ}
-      rename-no-bullet ins renameρ renameγ
-      (up⊑upᵀ N⊑N′
-        (quotient-cast-widening mode seal★ u⊑
-          mode′ seal★′ u′⊑) pA
-        u-shape u′-shape square)
-      (no•-⟨⟩ noN)
-      (ok-⟨⟩ runtimeN′) =
-    up⊑upᵀ
-      (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-        renameρ renameγ N⊑N′ noN runtimeN′)
-      (quotient-cast-widening
-        (CastModeRenamer.target-mode modeτ mode)
-        (left-seal★-renameⁱ modeτ renameρ mode seal★)
-        (left-widening-renameⁱ modeτ mode renameρ u⊑)
-        mode′
-        (right-seal★-left-renameⁱ renameρ seal★′)
-        (right-widening-left-renameⁱ renameρ u′⊑))
-      (⊑-rename-leftᵢ τ assm hτ pA)
-      (cast-shape-rename τ u-shape)
-      u′-shape
-      (quotient-boundary-square-rename-left square)
-    where
-    modeτ = left-insertion-cast-renamer ins
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ (Λ⊑ᵀ occ liftρ liftγ vV V⊑N′)
       (no•-Λ noV) runtime =
@@ -912,27 +676,47 @@ mutual
         renameρ renameγ M⊑M′ noM runtimeM′)
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
-      rel@(⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
-      noM (ok-no noCast′) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noM noCast′ rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
-      noM (ok-⟨⟩ runtimeM′) =
-    left-rename-⊑cast⊑idᵀ renameρ seal★′ c′⊑
-      c′-shape comp
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ rel@(conv⊑convᵀ cast M⊑M′)
+      rel@(paired-revealᵀ corr conv conv′ replace M⊑M′)
       noConv (ok-no noConv′) =
     left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
       noConv noConv′ rel
   left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ (conv⊑convᵀ cast M⊑M′)
+      renameρ renameγ
+      (paired-revealᵀ corr conv conv′ replace M⊑M′)
       (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
-    left-rename-conv⊑convᵀ ins renameρ cast
+    left-rename-paired-revealᵀ ins renameρ corr conv conv′ replace
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ M⊑M′ noM runtimeM′)
+  left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(paired-concealᵀ corr conv conv′ replace M⊑M′)
+      noConv (ok-no noConv′) =
+    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
+      noConv noConv′ rel
+  left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
+      (paired-concealᵀ corr conv conv′ replace M⊑M′)
+      (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
+    left-rename-paired-concealᵀ ins renameρ corr conv conv′ replace
+      (left-source-runtimeᵀ-generic rename-no-bullet ins
+        renameρ renameγ M⊑M′ noM runtimeM′)
+  left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
+      rel@(paired-wideningᵀ
+        mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+        left-square right-square compatible M⊑M′)
+      noConv (ok-no noConv′) =
+    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
+      noConv noConv′ rel
+  left-source-runtimeᵀ-generic rename-no-bullet ins
+      renameρ renameγ
+      (paired-wideningᵀ
+        mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+        left-square right-square compatible M⊑M′)
+      (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
+    left-rename-paired-wideningᵀ ins renameρ
+      mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compatible
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ M⊑M′ noM runtimeM′)
   left-source-runtimeᵀ-generic rename-no-bullet ins
@@ -982,166 +766,21 @@ mutual
 
   left-source-runtimeᵀᵖ-generic rename-no-bullet ins
       renameρ renameγ
-      rel@(down⊑downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+      rel@(paired-downᵀ M⊑M′
+        mode d⊒ d-shape mode′ d′⊒ d′-shape square)
       noM (ok-no noM′) =
     left-rename-no•ᵀᵖ rename-no-bullet ins
       renameρ renameγ noM noM′ rel
   left-source-runtimeᵀᵖ-generic rename-no-bullet ins
       renameρ renameγ
-      rel@(gen-down⊑gen-downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-      noM (ok-no noM′) =
-    left-rename-no•ᵀᵖ rename-no-bullet ins
-      renameρ renameγ noM noM′ rel
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      (down⊑downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+      (paired-downᵀ M⊑M′
+        mode d⊒ d-shape mode′ d′⊒ d′-shape square)
       (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
-    left-rename-down⊑downᵀ
-      renameρ d⊒ d-shape d′⊒ d′-shape square
+    left-rename-paired-downᵀ
+      (left-insertion-cast-renamer ins) renameρ
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ M⊑M′ noM runtimeM′)
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      (gen-down⊑gen-downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-      (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
-    left-rename-gen-down⊑gen-downᵀ
-      renameρ d⊒ d-shape d′⊒ d′-shape square
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(quotient-id-down-applicationᵖᵀ
-        d⊒ d-shape d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      noApp (ok-no noApp′) =
-    left-rename-no•ᵀᵖ rename-no-bullet ins
-      renameρ renameγ noApp noApp′ rel
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(quotient-id-down-applicationᵖᵀ
-        d⊒ d-shape d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      noApp
-      (ok-·₂ vL′ noL′ (ok-no noM′)) =
-    left-rename-no•ᵀᵖ rename-no-bullet ins
-      renameρ renameγ noApp (no•-· noL′ noM′) rel
-  left-source-runtimeᵀᵖ-generic {τ = τ}
-      rename-no-bullet ins renameρ renameγ
-      (quotient-id-down-applicationᵖᵀ {qF = qF}
-        d⊒ d-shape d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      (no•-· noL (no•-⟨⟩ noM))
-      (ok-·₁ runtimeL (no•-⟨⟩ noM′)) =
-    quotient-id-down-applicationᵖᵀ
-      (left-narrowing-rename-modeⁱ
-        (modeRename-id-only τ) renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-        renameρ renameγ L⊑L′ noL runtimeL)
-      (quotient-arrow-components-rename-left-at
-        {qF = qF} components)
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noM noM′ M⊑M′)
-      (quotient-boundary-square-rename-left square)
-  left-source-runtimeᵀᵖ-generic {τ = τ}
-      rename-no-bullet ins renameρ renameγ
-      (quotient-id-down-applicationᵖᵀ {qF = qF}
-        d⊒ d-shape d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      (no•-· noL (no•-⟨⟩ noM))
-      (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′)) =
-    quotient-id-down-applicationᵖᵀ
-      (left-narrowing-rename-modeⁱ
-        (modeRename-id-only τ) renameρ d⊒)
-      (cast-shape-rename τ d-shape)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-rename-no•ᵀᵖ rename-no-bullet ins
-        renameρ renameγ noL noL′ L⊑L′)
-      (quotient-arrow-components-rename-left-at
-        {qF = qF} components)
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-      (quotient-boundary-square-rename-left square)
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      noApp (ok-no noApp′) =
-    left-rename-no•ᵀᵖ rename-no-bullet ins
-      renameρ renameγ noApp noApp′ rel
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      noApp
-      (ok-·₂ vL′ noL′ (ok-no noM′)) =
-    left-rename-no•ᵀᵖ rename-no-bullet ins
-      renameρ renameγ noApp (no•-· noL′ noM′) rel
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      (quotient-down-applicationᵖᵀ {qF = qF}
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      (no•-· noL (no•-⟨⟩ noM))
-      (ok-·₁ runtimeL (no•-⟨⟩ noM′)) =
-    quotient-down-applicationᵖᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename _ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-        renameρ renameγ L⊑L′ noL runtimeL)
-      (quotient-arrow-components-rename-left-at
-        {qF = qF} components)
-      (left-rename-no•ᵀ rename-no-bullet ins
-        renameρ renameγ noM noM′ M⊑M′)
-      (quotient-boundary-square-rename-left square)
-    where
-    modeτ = left-insertion-cast-renamer ins
-  left-source-runtimeᵀᵖ-generic rename-no-bullet ins
-      renameρ renameγ
-      (quotient-down-applicationᵖᵀ {qF = qF}
-        mode seal★ d⊒ d-shape
-        mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ components M⊑M′ square)
-      (no•-· noL (no•-⟨⟩ noM))
-      (ok-·₂ vL′ noL′ (ok-⟨⟩ runtimeM′)) =
-    quotient-down-applicationᵖᵀ
-      (CastModeRenamer.target-mode modeτ mode)
-      (left-seal★-renameⁱ modeτ renameρ mode seal★)
-      (left-narrowing-renameⁱ modeτ mode renameρ d⊒)
-      (cast-shape-rename _ d-shape)
-      mode′
-      (right-seal★-left-renameⁱ renameρ seal★′)
-      (right-narrowing-left-renameⁱ renameρ d′⊒)
-      d′-shape
-      (left-rename-no•ᵀᵖ rename-no-bullet ins
-        renameρ renameγ noL noL′ L⊑L′)
-      (quotient-arrow-components-rename-left-at
-        {qF = qF} components)
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ M⊑M′ noM runtimeM′)
-      (quotient-boundary-square-rename-left square)
-    where
-    modeτ = left-insertion-cast-renamer ins
-
-
+      mode d⊒ d-shape mode′ d′⊒ d′-shape square
 private
   left-source-allocation-runtime-rootᵀ :
     LeftRenameNoBullet →
@@ -1184,16 +823,8 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
-      rel@(down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        L⊑L′ M⊑M′ down-square widening
-        u-shape u′-shape up-square compatible)
-      noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(up⊑upᵀ N⊑N′ widen pA u-shape u′-shape square)
+      rel@(closeᵀ N⊑N′ widening pA
+        u-shape u′-shape square compatible)
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
@@ -1282,12 +913,22 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
-      rel@(⊑cast⊑idᵀ seal★ c⊑ M⊑M′ q c-shape comp)
+      rel@(paired-revealᵀ corr conv conv′ replace M⊑M′)
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ rel@(conv⊑convᵀ cast M⊑M′) noM runtime =
+      renameρ renameγ
+      rel@(paired-concealᵀ corr conv conv′ replace M⊑M′)
+      noM runtime =
+    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
+      renameρ renameγ rel noM runtime
+  left-source-allocation-runtime-rootᵀ rename-no-bullet
+      renameρ renameγ
+      rel@(paired-wideningᵀ
+        mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+        left-square right-square compatible M⊑M′)
+      noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet

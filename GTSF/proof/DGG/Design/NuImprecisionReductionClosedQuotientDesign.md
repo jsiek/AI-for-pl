@@ -555,34 +555,25 @@ seal from `0` to another name.  The exact constructor deliberately creates
 the distinguished right entry at `0`, so it cannot directly reconstruct that
 renamed conclusion.
 
-The smaller relation therefore now has one closed-endpoint transport rule.
-From an ordinary smaller-relation edge,
+The first experiment used a generic closed-endpoint renaming rule.  That rule
+is too broad.  Its premises require only well-scoped renamings and a
+relational-store embedding.  They do not require either renaming to be
+injective or to have a left inverse.  An arbitrary renaming may identify two
+distinct seal names and thereby change a `tag-untag-bad` reduction into
+`tag-untag-ok`.  Consequently a leading reduction cannot in general be
+reflected through that rule.
 
-$$
-M\mathrel{\sqsubseteq_p}M',
-$$
-
-an assumption-preserving pair of renamings and a relational store embedding
-produce
-
-$$
-\mathsf{rename}_{\tau}(M)
-\mathrel{\sqsubseteq_{\mathsf{rename}_{\tau,\sigma}(p)}}
-\mathsf{rename}_{\sigma}(M').
-$$
-
-The endpoint typings are explicit premises of this rule.  This is necessary
-because the general store embedding does not require the renamings to have
-left inverses.
-
-The focused transport proof composes this rule with exact creation.  Its
-result index is not arbitrary; it is exactly
+The generic `rename-storeᴿ` constructor has therefore been removed.  The
+current prototype permits only an exact target-instantiation creation
+residual to cross the required closed-endpoint renaming and store embedding.
+Its conclusion has the fixed index
 
 $$
 \mathsf{rename}_{\tau,\sigma}
 \bigl(\mathord{\uparrow_R}p\bigr).
 $$
 
+The endpoint typings are explicit premises of this creation-specific rule.
 Endpoint equalities may replace the four renamed terms and types, but the
 client-supplied index must satisfy
 
@@ -601,30 +592,34 @@ This equality is the tighter invariant missing from the current generalized
 final index without relating them.  The exact creation plus transport
 decomposition works when this equality is added.
 
-The finite-spine consumer test also succeeds.  Every step retains the exact
+The finite-spine consumer test also succeeds. Every step retains the exact
 creation premises, the exact post-allocation endpoint typings, the relational
 store embedding, the four endpoint equalities, and the canonical final-index
 equality.  The spine folds recursively into the independent smaller relation:
 the recursive body supplies the relation parameter of
 `TargetInstantiationCreation`, and the endpoint transport theorem supplies
-the outer step.  Thus arbitrarily nested target-instantiation creation does
+the outer step. Thus arbitrarily nested target-instantiation creation does
 not require restoring the large fused constructor.
 
-This result uses one new generic `rename-storeᴿ` constructor in the smaller
-relation.  It replaces the creation-specific renaming and store-embedding
-fields with a relation-wide closed-endpoint transport boundary.  The
-experiment therefore relocates one proof obligation rather than eliminating
-it: simulation must show that reduction is equivariant under this transport
-boundary, or a later proof must make `rename-storeᴿ` admissible and remove it
-as a primitive constructor.  The benefit is that this obligation is stated
-once for every ordinary constructor instead of being hidden inside target
-instantiation creation.
+The creation-specific transported rule introduces no active source or target
+simulation branch.  `TargetInstantiationCreation` retains `Value W`,
+`Value W'`, and an inert target cast.  Type renaming preserves values, so both
+renamed endpoints are values.  The focused terminal experiment proves that a
+leading step from either endpoint is impossible by `value-no-step`.
 
-The remaining migration question is empirical: each live
-`Λ⊑instβᵀ` consumer must be audited to see whether it can prove the canonical
-final-index equality.  A consumer that cannot do so is evidence that the old
-constructor accepted an unrelated proof-relevant index, not evidence that
-exact creation or its transport failed.
+The eventual formulation should derive this transport by a syntax-directed
+no-bullet world-embedding theorem requiring left inverses and cast-mode
+renamers.  The current creation-specific constructor is a safe interim
+boundary: it does not wrap an arbitrary relation, fixes its final index
+canonically, retains exact endpoint typings, and is terminal.
+
+The live-consumer audit found three distinct situations. The direct
+post-beta identity context already fixes its index to the canonical
+right-lifted index. The pure and framed universal-fusion spines previously
+accepted an arbitrary final index; their step contracts now retain the
+canonical equality. The paired-lambda leaf view and the unfinished target
+widening `β-inst` roots still lose required evidence and must be strengthened
+before the old constructor can be removed.
 
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a

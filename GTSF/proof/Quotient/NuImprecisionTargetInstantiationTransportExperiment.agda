@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Tests whether exact target-instantiation creation recovers the
 --     generalized renamed/store-embedded behavior needed by fusion clients.
---   * Proves the canonical transported result from the exact creation
---     constructor and the relation-wide closed-endpoint transport rule.
+--   * Proves the canonical result using the creation-specific transported
+--     constructor; the smaller relation has no generic renaming closure.
 --   * Keeps arbitrary endpoint reindexing out of the experiment: the final
 --     index is the canonical renaming of the exact creation index.
 --   * Imports no legacy term-imprecision judgment and contains no postulate,
@@ -43,8 +43,7 @@ open import
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
   using
-  ( rename-storeᴿ
-  ; target-instantiationᴿ
+  ( target-instantiation-transportᴿ
   ; _∣_∣_∣_∣_⊢ᴿ_⊑_⦂_⊑_∶_
   )
 open import
@@ -94,8 +93,8 @@ target-instantiation-canonical-transportᴿ :
 target-instantiation-canonical-transportᴿ
     creation assm hτ hσ store-embedding
     source-typing target-typing =
-  rename-storeᴿ assm hτ hσ store-embedding
-    (target-instantiationᴿ creation)
+  target-instantiation-transportᴿ
+    creation assm hτ hσ store-embedding
     source-typing target-typing
 
 

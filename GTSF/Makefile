@@ -16,6 +16,8 @@ TARGET_INSTANTIATION_CREATION_EXAMPLES = \
 	proof/Quotient/NuImprecisionTargetInstantiationCreationExamples.agda
 TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT = \
 	proof/Quotient/NuImprecisionTargetInstantiationTransportExperiment.agda
+TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT = \
+	proof/Quotient/NuImprecisionTargetInstantiationTransportTerminalExperiment.agda
 TARGET_INSTANTIATION_TRANSPORT_SPINE_EXPERIMENT = \
 	proof/Quotient/NuImprecisionTargetInstantiationTransportSpineExperiment.agda
 
@@ -45,6 +47,7 @@ quotient-design-check: audit
 	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_CREATION_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_SPINE_EXPERIMENT)
 
 # Per-definition time report; pick the target with FILE=...

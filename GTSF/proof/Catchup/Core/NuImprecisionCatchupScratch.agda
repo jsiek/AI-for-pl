@@ -19,6 +19,7 @@ module proof.Catchup.Core.NuImprecisionCatchupScratch where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using
   (_⊢ᶜ_⦂_; narrowing; widening)
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
@@ -172,7 +173,8 @@ open import proof.Quotient.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyTy-★; applyTys-++; cast-↠)
-open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
+open import proof.DGG.Core.NuPreservation using
+  (runtime-ν; runtime-⟨⟩; value-no-step)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken; term-weaken)
@@ -458,6 +460,18 @@ left-catchup-indexed-prefixᵀ
   left-catchup-indexed-prefix-valueᵀ
     prefix okN (Λ vV) noV′ rel
 left-catchup-indexed-prefixᵀ
+    prefix okN vV′ noV′
+    rel@(Λ⊑instβᵀ
+      inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ store-embedding
+      source-eq target-eq source-type-eq target-type-eq p
+      final-v final-no final-closed
+      final-v′ final-no′ final-closed′
+      source-typing target-typing) =
+  left-catchup-indexed-prefix-valueᵀ
+    prefix okN final-v noV′ rel
+left-catchup-indexed-prefixᵀ
     prefix okN () noV′
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
       L⊑L′ L•⊢ L′•⊢)
@@ -692,6 +706,18 @@ weak-one-step-indexed-simulationᵀ
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
     (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) (pure-step ())
+weak-one-step-indexed-simulationᵀ
+    wfΣ′ okM okM′
+    (Λ⊑instβᵀ
+      inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
+      vW noW vW′ noW′ inert body f inst-shape creation-square
+      assm hτ hσ store-embedding
+      source-eq target-eq source-type-eq target-type-eq p
+      final-v final-no final-closed
+      final-v′ final-no′ final-closed′
+      source-typing target-typing)
+    M′→N′ =
+  ⊥-elim (value-no-step final-v′ M′→N′)
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′ κ⊑κᵀ (pure-step ())
 weak-one-step-indexed-simulationᵀ

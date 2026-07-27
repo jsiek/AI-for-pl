@@ -10,6 +10,8 @@ module
 --   * Keeps quotient indices only across one paired narrowing cast and closes
 --     them with compatible paired widenings.
 --   * Includes the exact residual created by target-only instantiation.
+--   * Permits only that creation residual, not an arbitrary relation, to cross
+--     a canonical closed-endpoint renaming and store embedding.
 --   * Defines pure-reduction closure for focused simulation experiments.
 --   * Does not change or re-export the live term-imprecision relation.
 
@@ -311,29 +313,46 @@ mutual
         ⦂ `∀ D ⊑ ⇑ᵗ B
         ∶ ⊑-target-lift-rightᵢ f
 
-    rename-storeᴿ :
-      ∀ {Φ₀ Ψ Θᴸ Θᴿ Δᴸ′ Δᴿ′}
-        {ρ₀ : StoreImp Φ₀ Θᴸ Θᴿ}
+    target-instantiation-transportᴿ :
+      ∀ {Φ₀ Θᴸ Θᴿ}
+        {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+        {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          (suc Θᴸ) (suc Θᴿ)}
+        {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+        {W W′ : Term} {B C D : Ty} {s : Coercion}
+        {μ : ModeEnv}
+        {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ⊢ D ⊑ C ⊣ suc Θᴿ}
+        {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
+        {body-shape : ImprecisionShape}
+        {Ψ : ImpCtx} {Δᴸ′ Δᴿ′ : TyCtx}
         {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ′}
-        {τ σ : Renameᵗ}
-        {M M′ : Term} {A B : Ty}
-        {p : Φ₀ ∣ Θᴸ ⊢ A ⊑ B ⊣ Θᴿ} →
+        {τ σ : Renameᵗ} →
+      TargetInstantiationCreation
+        {Φ = Φ₀} {Δᴸ = Θᴸ} {Δᴿ = Θᴿ}
+        {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+        {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+        {s = s} {μ = μ} {r = r} {f = f}
+        {body-shape = body-shape}
+        (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+          ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
       (assm :
-        ∀ {a : ImpAssm} → a ∈ Φ₀ →
+        ∀ {a : ImpAssm} → a ∈ ⇑ᴿᵢ Φ₀ →
           rename-assm²ᵢ τ σ a ∈ Ψ) →
       (hτ : TyRenameWf Θᴸ Δᴸ′ τ) →
-      (hσ : TyRenameWf Θᴿ Δᴿ′ σ) →
-      RelStoreEmbeddingⁱ τ σ ρ₀ ρ′ →
-      Φ₀ ∣ Θᴸ ∣ Θᴿ ∣ ρ₀ ∣ []
-        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B ∶ p →
+      (hσ : TyRenameWf (suc Θᴿ) Δᴿ′ σ) →
+      RelStoreEmbeddingⁱ τ σ
+        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ′ →
       Δᴸ′ ∣ leftStoreⁱ ρ′ ∣ []
-        ⊢ renameᵗᵐ τ M ⦂ renameᵗ τ A →
+        ⊢ renameᵗᵐ τ (Λ W) ⦂ renameᵗ τ (`∀ D) →
       Δᴿ′ ∣ rightStoreⁱ ρ′ ∣ []
-        ⊢ renameᵗᵐ σ M′ ⦂ renameᵗ σ B →
+        ⊢ renameᵗᵐ σ (W′ ⟨ s ⟩) ⦂ renameᵗ σ (⇑ᵗ B) →
       Ψ ∣ Δᴸ′ ∣ Δᴿ′ ∣ ρ′ ∣ []
-        ⊢ᴿ renameᵗᵐ τ M ⊑ renameᵗᵐ σ M′
-        ⦂ renameᵗ τ A ⊑ renameᵗ σ B
-        ∶ ⊑-renameᵗ²ᵢ assm hτ hσ p
+        ⊢ᴿ renameᵗᵐ τ (Λ W) ⊑ renameᵗᵐ σ (W′ ⟨ s ⟩)
+        ⦂ renameᵗ τ (`∀ D) ⊑ renameᵗ σ (⇑ᵗ B)
+        ∶ ⊑-renameᵗ²ᵢ assm hτ hσ
+            (⊑-target-lift-rightᵢ f)
 
     closeᴿ :
       ∀ {N N′ D D′ A A′ q p u u′ s s′} →

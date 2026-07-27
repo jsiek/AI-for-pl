@@ -20,6 +20,9 @@ Top-level groups:
 - `OneStep/`: non-world-coherent one-step outcome helpers.
 - `PairedLambda/`: paired lambda target-closing proof clusters.
 - `Quotient/`: quotient-specific helpers outside the world-coherent assembly.
+  During the controlled live-QTI migration, its
+  [`README.md`](Quotient/README.md) is the authoritative lifecycle manifest
+  for canonical, migration-only, retiring, and obsolete modules.
 - `Store/`: store prefix, correspondence, lineage, and embedding helpers.
 - `Substitution/`: term and parallel substitution helpers.
 - `WorldCoherent/`: world-coherent source, right, quotient, final, and value

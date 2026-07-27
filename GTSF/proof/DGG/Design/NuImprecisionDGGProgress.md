@@ -58,6 +58,38 @@ to the existing world-coherent operational machinery. The public statement
 and compiler boundary are checked, but no complete `GradualDGG` inhabitant
 exists yet.
 
+## Controlled live migration
+
+**MIGRATION IN PROGRESS — phase 0: control and inventory**
+
+The migration runs on `codex/live-qti-migration`. The authoritative module
+lifecycle manifest is
+[`proof/Quotient/README.md`](../../Quotient/README.md). That manifest marks
+the rejected compositional quotient and finite-narrowing-spine family
+obsolete now, distinguishes selected migration evidence from retiring live
+clients, specifies exactly when check roots leave the regression surface, and
+requires deletion rather than compatibility wrappers.
+
+The phase order is:
+
+1. isolate the selected smaller design and delete the already rejected
+   alternative;
+2. replace `Λ⊑instβᵀ` atomically with exact and embedded creation;
+3. remove target-only and casted-`ν` administrative shortcuts;
+4. replace the live quotient boundary and connect function-cast simulation up
+   to reduction;
+5. promote retained proofs and regressions and delete every migration-only
+   source; and
+6. run the final canonical checks and record **MIGRATION FINISHED** before
+   opening a pull request.
+
+To limit Agda invalidation, obsolete Agda files are marked in the directory
+manifest rather than by comment-only edits to their source. Grammar edits are
+batched once per phase, leaf consumers are checked before one integration
+gate, Agda processes run serially, and `All.agda` is not a migration gate.
+Parallel agents may receive only disjoint consumer batches after the active
+grammar is frozen; the grammar itself always has one writer.
+
 The current proof uses these invariants:
 
 - `GenSafe` and `InstSafe` keep eager projections and tags outside

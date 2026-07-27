@@ -7,24 +7,37 @@ module
 --     simulation up to reduction.
 --   * Gives the ordinary fragment its own syntax-directed constructors; no
 --     constructor embeds or converts from another term-imprecision judgment.
+--   * Includes matched and source-only type application and `ν`, with their
+--     allocation-aware store lifts and exact index-substitution equations.
+--   * Includes ordinary one-sided and paired reveal/conceal conversions, and
+--     proof-only closure under store-prefix extension.
+--   * Retains the terminal `gen`/ground join, whose value endpoints cannot be
+--     recovered merely by closing the simulation under reduction.
 --   * Keeps quotient indices only across one paired narrowing cast and closes
 --     them with compatible paired widenings.
 --   * Includes the exact residual created by target-only instantiation.
---   * Permits only that creation residual, not an arbitrary relation, to cross
---     a canonical closed-endpoint renaming and store embedding.
---   * Defines pure-reduction closure for focused simulation experiments.
+--   * Represents exact and subsequently embedded target-instantiation
+--     residuals with one syntax-directed creation constructor.
+--   * Defines an allocation-aware bilateral reduction closure for closed
+--     terms, with exact context, store, type, and index transport.
 --   * Does not change or re-export the live term-imprecision relation.
 
 open import Agda.Builtin.Bool using (Bool; true)
-open import Agda.Builtin.Equality using (_≡_; refl)
+open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import CastImprecisionShape using
   (narrowing; widening; _⊢ᶜ_⦂_)
 open import Coercions using
-  (Coercion; Inert; ModeEnv; id-onlyᵈ; inst)
+  (Coercion; Inert; ModeEnv; id-onlyᵈ; inst; gen; _!)
+open import Conversion using
+  (ConcealConversion; RevealConversion)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_]ᴿ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using
   (ImpCtx; _ˣ⊑ˣ_; _ˣ⊑★; ⇑ᵢ; ⇑ᴸᵢ; ⇑ᴿᵢ)
@@ -35,7 +48,12 @@ open import ImprecisionWf using
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 open import NuReduction using
-  (StoreChanges; keep; _—↠[_]_)
+  ( StoreChanges
+  ; applyStores
+  ; applyTyCtxs
+  ; applyTys
+  ; _—↠[_]_
+  )
 open import NuTermImprecision using
   ( CtxImp
   ; LiftCtxⁱ
@@ -43,10 +61,14 @@ open import NuTermImprecision using
   ; LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
+  ; StoreCorresponds
   ; ctx-imp
+  ; leftCtxⁱ
   ; leftStoreⁱ
   ; rightCtxⁱ
   ; rightStoreⁱ
+  ; store-left
+  ; store-matched
   ; store-right
   )
 open import NuTerms using
@@ -54,22 +76,24 @@ open import NuTerms using
   ; Term
   ; Value
   ; renameᵗᵐ
+  ; ⇑ᵗᵐ
   ; `_
   ; ƛ_
   ; _·_
   ; Λ_
+  ; _•
+  ; ν
   ; _⟨_⟩
   ; $
   ; _⊕[_]_
   ; blame
   )
-open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
 open import Primitives using (Prim; κℕ)
 open import TermTyping using
   (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using
-  ( Renameᵗ
+  ( Ground
+  ; Renameᵗ
   ; Ty
   ; TyCtx
   ; WfTy
@@ -79,23 +103,29 @@ open import Types using
   ; `∀
   ; renameᵗ
   ; ⇑ᵗ
+  ; ⟰ᵗ
   ; occurs
   )
 open import
   proof.Quotient.NuImprecisionQuotientBoundarySupport
   using
-  ( SpineCastMode
-  ; QuotientWideningCompatible
+  ( ReductionClosedPairedWideningCompatible
+  ; ReductionClosedQuotientWideningCompatible
+  ; SpineCastMode
   )
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
-  (TargetInstantiationCreation)
+  ( StoreImpPrefixᴿ
+  ; EmbeddedTargetInstantiationCreation
+  )
 open import
   proof.EndpointMLB.Core.MaximalLowerBoundsWf
   using
   ( rename-assm²ᵢ
   ; ⊑-renameᵗ²ᵢ
+  ; ⊑-lift∀ᵢ
+  ; ⊑-source-liftνᵢ
   ; ⊑-target-lift-rightᵢ
   )
 open import
@@ -111,14 +141,6 @@ variable
   Δᴸ Δᴿ : TyCtx
   ρ : StoreImp Φ Δᴸ Δᴿ
   γ : CtxImp Φ Δᴸ Δᴿ
-
-------------------------------------------------------------------------
--- Store-neutral reduction sequences
-------------------------------------------------------------------------
-
-data AllKeep : StoreChanges → Set where
-  []ᵏ : AllKeep []
-  keep∷ᵏ_ : ∀ {χs} → AllKeep χs → AllKeep (keep ∷ χs)
 
 data QuotientWideningPairᴿ
     {Φ : ImpCtx} (Δᴸ Δᴿ : TyCtx) (ρ : StoreImp Φ Δᴸ Δᴿ) :
@@ -210,6 +232,112 @@ mutual
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ Λ V ⊑ N′ ⦂ `∀ A ⊑ B ∶ ν safe occ p
 
+    α⊑αᴿ :
+      ∀ {ρ′ γ′ L L′ A B C D p} →
+      Value L →
+      No• L →
+      Value L′ →
+      No• L′ →
+      (A⇑⊑B⇑ :
+        ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ) →
+      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′ →
+      LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ L ⊑ L′ ⦂ `∀ C ⊑ `∀ D ∶ ∀ⁱ p →
+      suc Δᴸ
+        ∣ leftStoreⁱ
+            (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
+              A⇑⊑B⇑ ∷ ρ′)
+        ∣ leftCtxⁱ γ′
+        ⊢ (⇑ᵗᵐ L) • ⦂ C →
+      suc Δᴿ
+        ∣ rightStoreⁱ
+            (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
+              A⇑⊑B⇑ ∷ ρ′)
+        ∣ rightCtxⁱ γ′
+        ⊢ (⇑ᵗᵐ L′) • ⦂ D →
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+        ∣ suc Δᴸ ∣ suc Δᴿ
+        ∣ store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
+            A⇑⊑B⇑ ∷ ρ′
+        ∣ γ′
+        ⊢ᴿ (⇑ᵗᵐ L) • ⊑ (⇑ᵗᵐ L′) • ⦂ C ⊑ D ∶ p
+
+    α⊑ᴿ :
+      ∀ {ρ′ γ′ L N′ A B′ C p occ} →
+      {{safe : NonVar C}} →
+      Value L →
+      No• L →
+      (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
+      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
+      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ L ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ p →
+      suc Δᴸ
+        ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+        ∣ leftCtxⁱ γ′
+        ⊢ (⇑ᵗᵐ L) • ⦂ C →
+      Δᴿ
+        ∣ rightStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+        ∣ rightCtxⁱ γ′
+        ⊢ N′ ⦂ B′ →
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+        ∣ suc Δᴸ ∣ Δᴿ
+        ∣ store-left zero (⇑ᵗ A) h⇑A ∷ ρ′ ∣ γ′
+        ⊢ᴿ (⇑ᵗᵐ L) • ⊑ N′ ⦂ C ⊑ B′ ∶ p
+
+    allocation-prefixᴿ :
+      ∀ {ρ₀ M M′ A B p} →
+      StoreImpPrefixᴿ ρ₀ ρ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B ∶ p →
+      Δᴸ ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A →
+      Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ B →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B ∶ p
+
+    ν⊑νᴿ :
+      ∀ {ρ′ γ′ A A′ B B′ C C′ N N′ p q s s′ μ μ′} →
+      WfTy Δᴸ A →
+      WfTy Δᴿ A′ →
+      RevealConversion μ (suc Δᴸ)
+        ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+        zero (⇑ᵗ A) s C (⇑ᵗ B) →
+      RevealConversion μ′ (suc Δᴿ)
+        ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStoreⁱ ρ))
+        zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′) →
+      Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ →
+      (A⇑⊑A′⇑ :
+        ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ) →
+      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ ρ′ →
+      LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ N ⊑ N′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
+      q [ zero ↦ ⇑ᵗ A
+          ⊑⟨ A⇑⊑A′⇑ ⟩
+          ⇑ᵗ A′ ↤ zero ]ᴾ
+        ⊑-lift∀ᵢ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ ν A N s ⊑ ν A′ N′ s′ ⦂ B ⊑ B′ ∶ p
+
+    ν⊑ᴿ :
+      ∀ {ρ′ γ′ A B B′ C N N′ p q s μ occ} →
+      {{safe : NonVar C}} →
+      WfTy Δᴸ A →
+      (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
+      RevealConversion μ (suc Δᴸ)
+        ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+        zero (⇑ᵗ A) s C (⇑ᵗ B) →
+      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
+      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ q →
+      q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ ν A N s ⊑ N′ ⦂ B ⊑ B′ ∶ p
+
     κ⊑κᴿ :
       ∀ {n} →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
@@ -232,6 +360,21 @@ mutual
         ⊢ᴿ L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′
         ⦂ Types.‵ Types.`ℕ ⊑ Types.‵ Types.`ℕ
         ∶ ImprecisionWf.idι
+
+    gen⊑groundᴿ :
+      ∀ {V W A B H p c μ} →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ) →
+      μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ gen A c ∶ A ⊒ `∀ B →
+      Ground H →
+      Value V →
+      Value W →
+      Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ W ⦂ H →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ V ⊑ W ⟨ H ! ⟩ ⦂ A ⊑ ★ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ `∀ B ⊑ H ⊣ Δᴿ) →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ V ⟨ gen A c ⟩ ⊑ W ⦂ `∀ B ⊑ H ∶ q
 
     cast⊒⊑ᴿ :
       ∀ {M M′ A B B′ p c μ s} →
@@ -285,35 +428,72 @@ mutual
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
 
-    target-instantiationᴿ :
-      ∀ {Φ₀ Θᴸ Θᴿ}
-        {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
-        {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-          (suc Θᴸ) (suc Θᴿ)}
-        {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
-        {W W′ : Term} {B C D : Ty} {s : Coercion}
-        {μ : ModeEnv}
-        {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-          ∣ suc Θᴸ ⊢ D ⊑ C ⊣ suc Θᴿ}
-        {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
-        {body-shape : ImprecisionShape} →
-      TargetInstantiationCreation
-        {Φ = Φ₀} {Δᴸ = Θᴸ} {Δᴿ = Θᴿ}
-        {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
-        {W = W} {W′ = W′} {B = B} {C = C} {D = D}
-        {s = s} {μ = μ} {r = r} {f = f}
-        {body-shape = body-shape}
-        (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-          ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-          ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
-      ⇑ᴿᵢ Φ₀
-        ∣ Θᴸ ∣ suc Θᴿ
-        ∣ store-right zero ★ wf★ ∷ ρᴿ⁺ ∣ []
-        ⊢ᴿ Λ W ⊑ W′ ⟨ s ⟩
-        ⦂ `∀ D ⊑ ⇑ᵗ B
-        ∶ ⊑-target-lift-rightᵢ f
+    conv↑⊑ᴿ :
+      ∀ {M M′ A B B′ p c μ α X} →
+      RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+      p [ α ↦ X ]ᴸ q →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
 
-    target-instantiation-transportᴿ :
+    conv↓⊑ᴿ :
+      ∀ {M M′ A B B′ p c μ α X} →
+      ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B′ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+      q [ α ↦ X ]ᴸ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⟨ c ⟩ ⊑ M′ ⦂ B ⊑ B′ ∶ q
+
+    ⊑conv↑ᴿ :
+      ∀ {M M′ A A′ B′ p c′ μ′ β X′} →
+      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+      p [ β ↦ X′ ]ᴿ q →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
+
+    ⊑conv↓ᴿ :
+      ∀ {M M′ A A′ B′ p c′ μ′ β X′} →
+      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ)
+        β X′ c′ A′ B′ →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+      (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ) →
+      q [ β ↦ X′ ]ᴿ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⟨ c′ ⟩ ⦂ A ⊑ B′ ∶ q
+
+    paired-revealᴿ :
+      ∀ {M M′ A A′ B B′ p q c c′
+          α β X X′ pX μ μ′} →
+      StoreCorresponds ρ α X β X′ pX →
+      RevealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+      p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
+
+    paired-concealᴿ :
+      ∀ {M M′ A A′ B B′ p q c c′
+          α β X X′ pX μ μ′} →
+      StoreCorresponds ρ α X β X′ pX →
+      ConcealConversion μ Δᴸ (leftStoreⁱ ρ) α X c A B →
+      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ) β X′ c′ A′ B′ →
+      q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
+      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
+        ⊢ᴿ M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ⦂ B ⊑ B′ ∶ q
+
+    target-instantiationᴿ :
       ∀ {Φ₀ Θᴸ Θᴿ}
         {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
         {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
@@ -327,32 +507,22 @@ mutual
         {body-shape : ImprecisionShape}
         {Ψ : ImpCtx} {Δᴸ′ Δᴿ′ : TyCtx}
         {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ′}
-        {τ σ : Renameᵗ} →
-      TargetInstantiationCreation
-        {Φ = Φ₀} {Δᴸ = Θᴸ} {Δᴿ = Θᴿ}
+        {γ′ : CtxImp Ψ Δᴸ′ Δᴿ′}
+        {M M′ : Term} {A A′ : Ty}
+        {p : Ψ ∣ Δᴸ′ ⊢ A ⊑ A′ ⊣ Δᴿ′} →
+      EmbeddedTargetInstantiationCreation
+        {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
         {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-          ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
-      (assm :
-        ∀ {a : ImpAssm} → a ∈ ⇑ᴿᵢ Φ₀ →
-          rename-assm²ᵢ τ σ a ∈ Ψ) →
-      (hτ : TyRenameWf Θᴸ Δᴸ′ τ) →
-      (hσ : TyRenameWf (suc Θᴿ) Δᴿ′ σ) →
-      RelStoreEmbeddingⁱ τ σ
-        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ′ →
-      Δᴸ′ ∣ leftStoreⁱ ρ′ ∣ []
-        ⊢ renameᵗᵐ τ (Λ W) ⦂ renameᵗ τ (`∀ D) →
-      Δᴿ′ ∣ rightStoreⁱ ρ′ ∣ []
-        ⊢ renameᵗᵐ σ (W′ ⟨ s ⟩) ⦂ renameᵗ σ (⇑ᵗ B) →
-      Ψ ∣ Δᴸ′ ∣ Δᴿ′ ∣ ρ′ ∣ []
-        ⊢ᴿ renameᵗᵐ τ (Λ W) ⊑ renameᵗᵐ σ (W′ ⟨ s ⟩)
-        ⦂ renameᵗ τ (`∀ D) ⊑ renameᵗ σ (⇑ᵗ B)
-        ∶ ⊑-renameᵗ²ᵢ assm hτ hσ
-            (⊑-target-lift-rightᵢ f)
+          ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)
+        {Ψ = Ψ} {Δᴸ = Δᴸ′} {Δᴿ = Δᴿ′}
+        ρ′ M M′ A A′ p →
+      Ψ ∣ Δᴸ′ ∣ Δᴿ′ ∣ ρ′ ∣ γ′
+        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
 
     closeᴿ :
       ∀ {N N′ D D′ A A′ q p u u′ s s′} →
@@ -362,7 +532,8 @@ mutual
       widening ⊢ᶜ u ⦂ s →
       widening ⊢ᶜ u′ ⦂ s′ →
       s ；⌊ p ⌋≋ᵖ q ； s′ →
-      QuotientWideningCompatible Φ Δᴸ Δᴿ u u′ q p s s′ →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ u u′ q p s s′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ N ⟨ u ⟩ ⊑ N′ ⟨ u′ ⟩ ⦂ A ⊑ A′ ∶ p
 
@@ -378,7 +549,7 @@ mutual
       widening ⊢ᶜ c′ ⦂ s′ →
       s ； ⌊ q ⌋ ≋ r →
       ⌊ p ⌋ ； s′ ≋ r →
-      PairedWideningCompatible
+      ReductionClosedPairedWideningCompatible
         Φ Δᴸ Δᴿ c c′ p q s s′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
@@ -407,28 +578,76 @@ mutual
         ⦂ D ⊑ᵖ D′ ∶ q
 
 ------------------------------------------------------------------------
--- Reduction-saturated use of the smaller ordinary relation
+-- Allocation-aware bilateral reduction closure
 ------------------------------------------------------------------------
 
-infix 4 _∣_∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_
+infix 4 _∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_
 
-record _∣_∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_
+record _∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_
     (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx)
-    (ρ : StoreImp Φ Δᴸ Δᴿ) (γ : CtxImp Φ Δᴸ Δᴿ)
+    (ρ : StoreImp Φ Δᴸ Δᴿ)
     (M M′ : Term) (A A′ : Ty)
     (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) : Set₁ where
-  constructor related-after-pure-reduction
+  constructor related-after-bilateral-reduction
   field
     sourceChanges : StoreChanges
     targetChanges : StoreChanges
-    sourceChangesKeep : AllKeep sourceChanges
-    targetChangesKeep : AllKeep targetChanges
     sourceResult : Term
     targetResult : Term
-    sourceReduction : M —↠[ sourceChanges ] sourceResult
-    targetReduction : M′ —↠[ targetChanges ] targetResult
-    resultImprecision :
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-        ⊢ᴿ sourceResult ⊑ targetResult ⦂ A ⊑ A′ ∶ p
 
-open _∣_∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_ public
+    resultCtx : ImpCtx
+    resultLeftCtx : TyCtx
+    resultRightCtx : TyCtx
+    sourceCtxResult :
+      resultLeftCtx ≡ applyTyCtxs sourceChanges Δᴸ
+    targetCtxResult :
+      resultRightCtx ≡ applyTyCtxs targetChanges Δᴿ
+
+    resultStore :
+      StoreImp resultCtx resultLeftCtx resultRightCtx
+    sourceStoreResult :
+      leftStoreⁱ resultStore
+        ≡ applyStores sourceChanges (leftStoreⁱ ρ)
+    targetStoreResult :
+      rightStoreⁱ resultStore
+        ≡ applyStores targetChanges (rightStoreⁱ ρ)
+
+    resultSourceType : Ty
+    resultTargetType : Ty
+    sourceTypeResult :
+      resultSourceType ≡ applyTys sourceChanges A
+    targetTypeResult :
+      resultTargetType ≡ applyTys targetChanges A′
+
+    transportType :
+      ∀ {C D} →
+      Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ →
+      resultCtx ∣ resultLeftCtx
+        ⊢ applyTys sourceChanges C
+          ⊑ applyTys targetChanges D
+        ⊣ resultRightCtx
+
+    sourceReduction :
+      M —↠[ sourceChanges ] sourceResult
+    targetReduction :
+      M′ —↠[ targetChanges ] targetResult
+
+    resultImprecision :
+      resultCtx
+        ∣ resultLeftCtx
+        ∣ resultRightCtx
+        ∣ resultStore ∣ []
+        ⊢ᴿ sourceResult ⊑ targetResult
+        ⦂ resultSourceType ⊑ resultTargetType
+        ∶ subst
+            (λ T → resultCtx ∣ resultLeftCtx
+              ⊢ resultSourceType ⊑ T ⊣ resultRightCtx)
+            (sym targetTypeResult)
+            (subst
+              (λ S → resultCtx ∣ resultLeftCtx
+                ⊢ S ⊑ applyTys targetChanges A′
+                ⊣ resultRightCtx)
+              (sym sourceTypeResult)
+              (transportType p))
+
+open _∣_∣_∣_⊢ᴿ↠_⊑_⦂_⊑_∶_ public

@@ -164,6 +164,47 @@ $$
 In particular, application and primitive operations consume only ordinary
 premises.
 
+The terminal `gen`/ground join also remains ordinary:
+
+$$
+\frac{
+  \mathsf{gen}\ A\ c
+  : A \mathrel{\sqsupseteq} \forall B
+  \qquad
+  \mathsf{Ground}(H)
+  \qquad
+  \mathsf{Value}(V)
+  \qquad
+  \mathsf{Value}(W)
+  \qquad
+  W : H
+  \qquad
+  V
+  \mathrel{\sqsubseteq_p}
+  W\langle H!\rangle
+  : A \mathrel{\sqsubseteq} \star
+  \qquad
+  \forall B \mathrel{\sqsubseteq_q} H
+}{
+  V\langle\mathsf{gen}\ A\ c\rangle
+  \mathrel{\sqsubseteq_q}
+  W
+  : \forall B \mathrel{\sqsubseteq} H
+}.
+$$
+
+The displayed cast premise abbreviates the live coercion-typing premise;
+mode and store evidence are suppressed.  This rule cannot be replaced by
+source narrowing alone, because that route would require
+
+$$
+A \mathrel{\sqsubseteq} H,
+$$
+
+whereas the available inner edge ends at `★`.  Nor can up-to-reduction
+manufacture the missing edge: both `V⟨gen A c⟩` and `W` are values and
+therefore take no reduction steps.
+
 The polymorphic rules also remain ordinary.  Their essential index changes
 are:
 
@@ -312,6 +353,35 @@ $$
 and ordinary imprecision is required only between the source catch-up result
 and `W'`.  No horizontal edge is asserted at the transient target `ν` or
 runtime-bullet states.
+
+The same administrative argument is intended to remove the matched and
+source-only cast-specialized `ν` rules, but only for reachable states.  The
+required reachability invariant on every instantiation residual is
+
+$$
+\mathsf{Value}(V)
+\mathbin{\land}
+\mathsf{No\mathord{\bullet}}(V).
+$$
+
+Under that invariant, the residual has the complete reduction tail
+
+$$
+V\langle\mathsf{inst}\ B\ s\rangle
+\longrightarrow
+\nu\,\star\,V\,s
+\longrightarrow
+\bigl((\mathord{\uparrow}V)\,\bullet\bigr)\langle s\rangle.
+$$
+
+For a matched residual, take this tail on both sides; for a source-only
+residual, take it on the source side.  The resulting edge is rebuilt using
+the ordinary matched or source-only type-application rule, followed by the
+appropriate widening rule.  If the simulation cannot establish
+`Value V × No• V` at every such residual, then the omission is not
+sound for the unrestricted term grammar and a cast-specialized `ν` rule
+must be restored.  This reachability obligation is separate from the
+impossibility of the target-only rule above.
 
 The evidence retained across this target trace should be a creation square,
 not an independently opened index.  In the directly matched case its
@@ -486,7 +556,7 @@ $$
 ((0\mathrel{\sqsubseteq}0)::\mathord{\uparrow}\Phi)\mathbin{;}\operatorname{suc}(\Delta_L)\mathbin{;}\operatorname{suc}(\Delta_R)\mathbin{;}\rho_{\forall}\ \vdash\ W\mathrel{\sqsubseteq_q}W' : D\mathrel{\sqsubseteq}C .
 $$
 
-The target has an inert widening instantiation:
+The target has an active widening instantiation whose body coercion is inert:
 
 $$
 \mathsf{inst}\ B\ s : \forall C\longrightarrow B .
@@ -555,6 +625,28 @@ seal from `0` to another name.  The exact constructor deliberately creates
 the distinguished right entry at `0`, so it cannot directly reconstruct that
 renamed conclusion.
 
+The exact creation edge is nevertheless valid under any term-imprecision
+context in its final world:
+
+$$
+\mathord{\uparrow_R}\Phi
+\mathbin{;}\Delta_L
+\mathbin{;}\operatorname{suc}(\Delta_R)
+\mathbin{;}(\mathsf{right}\ 0\ \star)::\rho_R^+
+\mathbin{;}\gamma
+\ \vdash\
+\Lambda W
+\mathrel{\sqsubseteq_{\mathord{\uparrow_R}p}}
+W'\langle s\rangle.
+$$
+
+This is not a general recontextualization rule.  The creation record proves
+both endpoints typed under the empty term context, hence closed; the typing
+projections recontextualize those particular closed endpoints under `γ`.
+Quantifying `γ` here is required for ordinary substitution beneath lambdas.
+Restricting creation to the empty term context makes the otherwise standard
+parallel substitution theorem fail at exactly this constructor.
+
 The first experiment used a generic closed-endpoint renaming rule.  That rule
 is too broad.  Its premises require only well-scoped renamings and a
 relational-store embedding.  They do not require either renaming to be
@@ -563,19 +655,20 @@ distinct seal names and thereby change a `tag-untag-bad` reduction into
 `tag-untag-ok`.  Consequently a leading reduction cannot in general be
 reflected through that rule.
 
-The generic `rename-storeᴿ` constructor has therefore been removed.  The
-current prototype permits only an exact target-instantiation creation
-residual to cross the required closed-endpoint renaming and store embedding.
-Its conclusion has the fixed index
+The generic `rename-storeᴿ` constructor has therefore been removed. The term
+grammar now has exactly one creation constructor, whose premise is an
+`EmbeddedTargetInstantiationCreation`. The residual begins with exact
+creation and may then compose only the syntax-directed world embeddings
+needed by the proof. Its conclusion has the fixed index
 
 $$
 \mathsf{rename}_{\tau,\sigma}
 \bigl(\mathord{\uparrow_R}p\bigr).
 $$
 
-The endpoint typings are explicit premises of this creation-specific rule.
-Endpoint equalities may replace the four renamed terms and types, but the
-client-supplied index must satisfy
+Each embedding layer retains endpoint typings and the relational store
+embedding. Endpoint equalities may replace the four renamed terms and types,
+but the client-supplied index must satisfy
 
 $$
 p_{\mathrm{client}}
@@ -587,39 +680,93 @@ p_{\mathrm{client}}
 \right).
 $$
 
-This equality is the tighter invariant missing from the current generalized
-`fusion-step`: that constructor carries its origin index and an arbitrary
-final index without relating them.  The exact creation plus transport
-decomposition works when this equality is added.
+This equality is the tighter invariant missing from the old generalized
+`fusion-step`: that constructor carried its origin index and an arbitrary
+final index without relating them. The exact creation plus embedded-residual
+decomposition works when this equality is added. There is no separate
+term-level transport constructor.
 
 The finite-spine consumer test also succeeds. Every step retains the exact
 creation premises, the exact post-allocation endpoint typings, the relational
 store embedding, the four endpoint equalities, and the canonical final-index
-equality.  The spine folds recursively into the independent smaller relation:
+equality. The spine folds recursively into the independent smaller relation:
 the recursive body supplies the relation parameter of
-`TargetInstantiationCreation`, and the endpoint transport theorem supplies
-the outer step. Thus arbitrarily nested target-instantiation creation does
-not require restoring the large fused constructor.
+`TargetInstantiationCreation`, and an embedded residual supplies the outer
+step. Thus arbitrarily nested target-instantiation creation does not require
+restoring the large fused constructor.
 
-The creation-specific transported rule introduces no active source or target
-simulation branch.  `TargetInstantiationCreation` retains `Value W`,
-`Value W'`, and an inert target cast.  Type renaming preserves values, so both
-renamed endpoints are values.  The focused terminal experiment proves that a
+An embedded creation residual introduces no active source or target
+simulation branch. `TargetInstantiationCreation` retains `Value W`,
+`Value W'`, and an inert target cast. Type renaming preserves values, so both
+embedded endpoints are values. The focused terminal experiment proves that a
 leading step from either endpoint is impossible by `value-no-step`.
 
-The eventual formulation should derive this transport by a syntax-directed
-no-bullet world-embedding theorem requiring left inverses and cast-mode
-renamers.  The current creation-specific constructor is a safe interim
-boundary: it does not wrap an arbitrary relation, fixes its final index
-canonically, retains exact endpoint typings, and is terminal.
+The attempted syntax-directed no-bullet world-embedding theorem exposed one
+more invariant. Exact creation by itself is not closed under an enclosing
+paired type binder. The two possible orders of extending the imprecision
+world are different:
 
-The live-consumer audit found three distinct situations. The direct
-post-beta identity context already fixes its index to the canonical
-right-lifted index. The pure and framed universal-fusion spines previously
-accepted an arbitrary final index; their step contracts now retain the
-canonical equality. The paired-lambda leaf view and the unfinished target
-widening `β-inst` roots still lose required evidence and must be strengthened
-before the old constructor can be removed.
+$$
+\forall^{\,i}\bigl(\mathord{\uparrow_R}\Phi\bigr)
+\not=
+\mathord{\uparrow_R}\bigl(\forall^{\,i}\Phi\bigr).
+$$
+
+The left world begins with the matched assumption
+`0 \mathrel{\sqsubseteq} 0`, whereas the right world begins with
+`0 \mathrel{\sqsubseteq} 1`. The final stores exhibit the same obstruction:
+exact creation allocates the distinguished target seal at `0`, while paired
+weakening renames that stored seal to `1`. A store prefix can prepend entries,
+but cannot rename an existing entry.
+
+This is a strict negative result, mechanized by
+`paired-lift-creation-worlds-differᴿ`. Therefore a separate transported term
+constructor cannot simply be deleted while leaving exact creation unchanged.
+The repaired design has exactly one creation case in the term grammar, whose
+premise is an `EmbeddedTargetInstantiationCreation` residual. Exact creation
+is its canonical base. The residual composes syntax-directed world embeddings
+and retains the canonical renamed final index, so paired and source-only
+weakening become admissibility theorems rather than extra term constructors.
+
+The resulting world-embedding traversal is syntax directed over every
+ordinary and quotient constructor. Its paired and source-only one-binder
+corollaries have the canonical conclusions
+
+$$
+\mathsf{weaken}_{\forall}(p)=\mathord{\uparrow_{\forall}}p
+\qquad\text{and}\qquad
+\mathsf{weaken}_{\nu}(p)=\mathord{\uparrow_{\nu}}p.
+$$
+
+These corollaries complete the Kripke environment required by parallel
+substitution beneath both forms of type binder. The fully indexed
+single-variable theorem is therefore admissible for the smaller relation:
+if the body and argument are related without runtime bullets, substituting
+the argument for the newest term variable preserves the same type-imprecision
+index.
+
+The concrete regression `two-round-trips-substitutionᴿ` applies this theorem
+to the twice-closed quotient argument produced by the two-function-cast
+example. It uses only the independent smaller relation. The former QTI-based
+regression remains as a comparison, but is no longer evidence needed by the
+smaller design.
+
+The live-consumer audit found three distinct situations. The direct post-beta
+identity context already fixes its index to the canonical right-lifted index.
+The pure and framed universal-fusion spines previously accepted an arbitrary
+final index; their step contracts now retain the canonical equality. Strict
+shadow migrations also reconstruct the paired-lambda leaf and both target
+widening `β-inst` roots. The corresponding live boundaries still have to be
+strengthened before the old constructor can be removed from live QTI.
+
+An additional audit covered permissive modules because incomplete induction
+could hide an old-constructor branch. Exactly three such modules import the
+live relation. Only `NuImprecisionCatchupScratch` analyzes it by cases, and
+its two analyses both contain an explicit `Λ⊑instβᵀ` branch.
+`NuImprecisionOneStepTargetCastRoots` and
+`NuImprecisionOneStepTargetConversionRoots` merely pass their relation
+premises to focused helpers, so their remaining holes do not conceal another
+constructor consumer.
 
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a
@@ -1147,7 +1294,8 @@ quotient argument inside application.  The smaller design does not try to
 draw that horizontal edge.  It continues reducing both sides and asks only
 for an ordinary horizontal edge at a later join.
 
-The checked two-function example uses paired casts of opposite polarity:
+The decisive two-function example uses paired casts of opposite polarity.
+Its ordinarily related top row has the form:
 
 $$
 \bigl(
@@ -1155,51 +1303,91 @@ $$
     \langle u\mapsto d\rangle
     \langle d\mapsto u\rangle
 \bigr)\,W
-\longrightarrow^*
-W\langle d\rangle\langle u\rangle
- \langle d\rangle\langle u\rangle.
-$$
-
-The target follows the corresponding primed path:
-
-$$
+\mathrel{\sqsubseteq}
 \bigl(
   (\lambda x.\,x)
     \langle u'\mapsto d'\rangle
     \langle d'\mapsto u'\rangle
-\bigr)\,W'
-\longrightarrow^*
-W'\langle d'\rangle\langle u'\rangle
-  \langle d'\rangle\langle u'\rangle.
+\bigr)\,W'.
 $$
 
-If `W ⊑ W'` is ordinary, the bottom relation is built by opening and closing
-one boundary twice:
+Both sides take exactly the two function-cast beta steps.  The source reaches:
 
 $$
-\begin{aligned}
-W
-&\mathrel{\sqsubseteq} W'\\
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W\langle d\rangle\langle u\rangle\bigr)
+\Bigr)
+\langle d\rangle\langle u\rangle.
+$$
+
+The target reaches the corresponding primed term:
+
+$$
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W'\langle d'\rangle\langle u'\rangle\bigr)
+\Bigr)
+\langle d'\rangle\langle u'\rangle.
+$$
+
+If `W ⊑ W'` is ordinary, the bottom edge is constructed in five
+syntax-directed stages.  First open and close the argument boundary:
+
+$$
 W\langle d\rangle
-&\mathrel{\sqsubseteq^\forall}
-W'\langle d'\rangle\\
-W\langle d\rangle\langle u\rangle
-&\mathrel{\sqsubseteq}
-W'\langle d'\rangle\langle u'\rangle\\
-W\langle d\rangle\langle u\rangle\langle d\rangle
-&\mathrel{\sqsubseteq^\forall}
-W'\langle d'\rangle\langle u'\rangle\langle d'\rangle\\
-W\langle d\rangle\langle u\rangle
- \langle d\rangle\langle u\rangle
-&\mathrel{\sqsubseteq}
-W'\langle d'\rangle\langle u'\rangle
- \langle d'\rangle\langle u'\rangle.
-\end{aligned}
+\mathrel{\sqsubseteq^\forall}
+W'\langle d'\rangle.
 $$
 
-Thus additional reachable function casts do not automatically demand longer
-narrowing spines.  In this example each new quotient boundary is opened only
-after the preceding one has closed.
+$$
+W\langle d\rangle\langle u\rangle
+\mathrel{\sqsubseteq}
+W'\langle d'\rangle\langle u'\rangle.
+$$
+
+Then ordinary application relates the two lambda applications:
+
+$$
+(\lambda x.\,x)
+  \bigl(W\langle d\rangle\langle u\rangle\bigr)
+\mathrel{\sqsubseteq}
+(\lambda x.\,x)
+  \bigl(W'\langle d'\rangle\langle u'\rangle\bigr).
+$$
+
+Finally open and close the result boundary:
+
+$$
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W\langle d\rangle\langle u\rangle\bigr)
+\Bigr)\langle d\rangle
+\mathrel{\sqsubseteq^\forall}
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W'\langle d'\rangle\langle u'\rangle\bigr)
+\Bigr)\langle d'\rangle.
+$$
+
+$$
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W\langle d\rangle\langle u\rangle\bigr)
+\Bigr)\langle d\rangle\langle u\rangle
+\mathrel{\sqsubseteq}
+\Bigl(
+  (\lambda x.\,x)
+    \bigl(W'\langle d'\rangle\langle u'\rangle\bigr)
+\Bigr)\langle d'\rangle\langle u'\rangle.
+$$
+
+The square deliberately stops before the ordinary lambda beta step.  The
+primed widening may be active and may allocate, but an up-to-reduction
+simulation needs a related join, not a normal form.  Subsequent simulation
+handles that active argument before substitution.  Thus this reachable
+example uses two separate one-boundary quotient intervals; it needs neither
+quotient application nor a longer narrowing spine.
 
 ## Why the same-polarity stress test is not a simulation square
 
@@ -1279,7 +1467,7 @@ target-tail resumption; it is not evidence for a finite narrowing spine.
 
 ## Substitution boundary
 
-Only the ordinary relation has a substitution theorem:
+The ordinary relation has a strict substitution theorem:
 
 $$
 \frac{
@@ -1300,10 +1488,17 @@ quotient imprecision.  The operational hypothesis must therefore ensure that
 the paired widening closes the quotient before an ordinary substitution
 lemma is needed.
 
+The independent proof derives prefix-aware parallel substitution first and
+then a fully indexed single-variable theorem.  The latter traverses ordinary
+lambdas, paired type binders, and source-only type binders using the
+syntax-directed world-embedding theorem.  It assumes uniqueness of
+imprecision assumptions and `No•` for the body and substituted endpoints; it
+uses no live-QTI premise.
+
 The checked two-function example verifies substitution through an arbitrary
-related body after both down/up round trips have closed.  It does not yet
-prove that every function-cast beta case reaches such a closed argument before
-substitution.  That is the decisive `sim-beta-cast` obligation.
+related body after both down/up round trips have closed.  The general
+function-cast beta simulation must still establish that every reachable
+argument has returned to the ordinary relation before invoking this theorem.
 
 The GTLC proof suggests the right proof shape: peel the function cast, catch up
 the casted argument, recurse on the underlying function application, and
@@ -1361,22 +1556,35 @@ The critical supporting results are:
 
 ## Decision criterion
 
-The current evidence supports the one-boundary hypothesis:
+All three decisive experiments succeed:
 
-- the alternating two-function-cast example is derivable and reaches an
-  ordinary-related endpoint;
-- the endpoint can be substituted into arbitrary ordinarily related bodies;
-- the reachable source cast-sequence case factors to one boundary;
-- the apparent two-narrowing counterexample has no derivable ordinary top
-  row.
+1. Every audited `Λ⊑instβᵀ` consumer can be reconstructed in the independent
+   relation from exact creation, its canonical embedded form, and the retained
+   final-index equality.
+2. The reachable two-function-cast square reduces on both sides to an
+   ordinary-related join.  Its bottom edge uses one paired narrowing boundary
+   at a time, ordinary closing widenings, and ordinary application; it needs
+   neither quotient application nor a fused down/application/up rule.
+3. The target-instantiation square crosses target instantiation, allocation,
+   and type beta with zero source steps and ends at the embedded exact-creation
+   edge.  It needs no target-only type-application or `ν` constructor.
 
-The hypothesis is not proved.  The active target `inst` path and the general
-function-cast beta case remain open.
+The supporting metatheory also succeeds: source and target typing, value and
+terminal inversion, allocation-aware bilateral closure, syntax-directed
+world embedding, parallel substitution, and fully indexed single-variable
+substitution all pass strict checks for the complete independent grammar.
 
-If those proofs succeed, the live quotient application rules and
-`down·up⊑down·upᵀ` should be derived or removed, not retained as primitive
-shortcuts.  If a derivable ordinary top row is found whose reductions can join
-only with quotient imprecision trapped under application or substitution,
-that will be a genuine counterexample.  Only then should the larger
-compositional quotient relation, finite spines, or quotient congruence be
-reconsidered.
+Therefore the smaller relation is ready for a controlled live migration.  It
+should replace live QTI constructor families incrementally, with strict
+consumer checks after each deletion.  This is not yet a proof of the full
+up-to-reduction simulation: the general source and target function-cast beta
+cases still have to connect the existing world-coherent operational machinery
+to this relation.
+
+During that migration, quotient application and
+`down·up⊑down·upᵀ` should be derived or removed rather than retained as
+primitive shortcuts.  If a derivable ordinary top row is later found whose
+reductions can join only with quotient imprecision trapped under application
+or substitution, that will be a genuine counterexample.  Only then should the
+larger compositional quotient relation, finite spines, or quotient congruence
+be reconsidered.

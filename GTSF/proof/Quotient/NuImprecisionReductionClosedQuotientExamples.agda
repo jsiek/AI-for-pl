@@ -11,6 +11,7 @@ module
 --   * Uses no quotient-indexed application or fused down/application/up rule.
 --   * Does not change the live term-imprecision relation.
 
+open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero)
 open import Data.Product using (_,_; proj₁; proj₂)
@@ -64,8 +65,6 @@ open import NuTerms using
   ; _⟨_⟩
   ; _[_]
   )
-open import PairedWideningCompatibility using
-  (compatible-source-inert)
 open import QuotientedTermImprecision using
   ( ƛ⊑ƛᵀ
   ; x⊑xᵀ
@@ -101,8 +100,10 @@ open import
   using
   ( id-only↓
   ; single↓
-  ; QuotientWideningCompatible
-  ; compatible-through-representatives
+  ; compatible-functionᴿ
+  ; compatible-target-activeᴿ
+  ; ReductionClosedQuotientWideningCompatible
+  ; compatible-through-representativesᴿ
   )
 open import
   proof.Quotient.NuImprecisionCompositionalQuotientExamples
@@ -115,6 +116,9 @@ open import
   )
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
+open import
+  proof.Quotient.NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment
+  using (smaller-single-term-substitutionᴿ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-idᵢ)
@@ -157,13 +161,13 @@ up-E-not-inert : C.Inert up-E → ⊥
 up-E-not-inert ()
 
 route-widening-compatible :
-  QuotientWideningCompatible (idᵢ zero) zero zero
+  ReductionClosedQuotientWideningCompatible (idᵢ zero) zero zero
     up-D up-E glb-lower-XY⊑ᵖYX glb-bad-A⊑A
     ⌊ glb-lower-XY⊑A ⌋ ⌊ glb-lower-YX⊑A ⌋
 route-widening-compatible =
-  compatible-through-representatives
+  compatible-through-representativesᴿ
     source-perm-refl source-swap-∀ν
-    (compatible-source-inert up-D-inert)
+    (compatible-target-activeᴿ up-D-inert up-E-not-inert)
 
 down-routeᴿ :
   ∀ {M M′} →
@@ -407,16 +411,17 @@ identity-function-quotient-square =
           (comp-↦-↦ comp-idˣ-idˣ comp-idˣ-tagˣ))))
 
 outer-function-compatible :
-  QuotientWideningCompatible (idᵢ zero) zero zero
+  ReductionClosedQuotientWideningCompatible (idᵢ zero) zero zero
     outer-D outer-E identity-function-quotient
     identity-A-function⊑identity-A-function
     (⌊ glb-lower-XY⊑A ⌋ ↦ˢ ⌊ glb-lower-XY⊑A ⌋)
     (⌊ glb-lower-YX⊑A ⌋ ↦ˢ ⌊ glb-lower-YX⊑A ⌋)
 outer-function-compatible =
-  compatible-through-representatives
+  compatible-through-representativesᴿ
     source-perm-refl
     (source-perm-↦ source-swap-∀ν source-swap-∀ν)
-    (compatible-source-inert outer-D-inert)
+    (compatible-functionᴿ
+      (compatible-target-activeᴿ up-D-inert up-E-not-inert))
 
 identity-A⊑identity-A :
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
@@ -505,6 +510,20 @@ closed-identity-functionsᵀ =
       (proj₂ (proj₂ up-E-result)))
     identity-function-quotient-square
 
+related-two-function-cast-applicationsᴿ :
+  ∀ {W W′} →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ W ⊑ W′
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ
+      (((ƛ (` zero)) ⟨ inner-D ⟩) ⟨ outer-D ⟩) · W
+      ⊑
+      (((ƛ (` zero)) ⟨ inner-E ⟩) ⟨ outer-E ⟩) · W′
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
+related-two-function-cast-applicationsᴿ W⊑W′ =
+  closed-identity-functionsᴿ ·ᴿ W⊑W′
+
 related-two-function-cast-applicationsᵀ :
   ∀ {W W′} →
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
@@ -522,6 +541,31 @@ related-two-function-cast-applicationsᵀ W⊑W′ =
 ------------------------------------------------------------------------
 -- Reducing both successive function casts and the identity beta-redex
 ------------------------------------------------------------------------
+
+two-function-casts-two-beta-reduction :
+  ∀ {W c₁ d₁ c₂ d₂} →
+  Value W →
+  C.Inert c₂ →
+  ((((ƛ (` zero)) ⟨ c₁ C.↦ d₁ ⟩)
+      ⟨ c₂ C.↦ d₂ ⟩) · W)
+    —↠[ keep ∷ keep ∷ [] ]
+  (((ƛ (` zero)) · ((W ⟨ c₂ ⟩) ⟨ c₁ ⟩)) ⟨ d₁ ⟩)
+    ⟨ d₂ ⟩
+two-function-casts-two-beta-reduction
+    {W} {c₁} {d₁} {c₂} {d₂} vW inert-c₂ =
+  ↠-step
+    (pure-step
+      (β-↦
+        ((ƛ (` zero)) ⟨ c₁ C.↦ d₁ ⟩)
+        vW))
+    (↠-step
+      (ξ-⟨⟩
+        (pure-step
+          (β-↦
+            (ƛ (` zero))
+            (vW ⟨ inert-c₂ ⟩))))
+      ↠-refl)
+
 
 two-function-casts-identity-reduction :
   ∀ {W c₁ d₁ c₂ d₂} →
@@ -627,6 +671,40 @@ two-round-trips-substitutionᵀ
     body
     (two-round-tripsᵀ W⊑W′)
 
+two-round-trips-substitutionᴿ :
+  ∀ {N N′ W W′ B B′ pB} →
+  No• N →
+  No• N′ →
+  No• W →
+  No• W′ →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣
+      ctx-imp glb-bad-A glb-bad-A glb-bad-A⊑A ∷ []
+    ⊢ᴿ N ⊑ N′ ⦂ B ⊑ B′ ∶ pB →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ W ⊑ W′
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ
+      N [
+        ((((W ⟨ down-D ⟩) ⟨ up-D ⟩) ⟨ down-D ⟩)
+          ⟨ up-D ⟩)
+      ]
+      ⊑
+      N′ [
+        ((((W′ ⟨ down-E ⟩) ⟨ up-E ⟩) ⟨ down-E ⟩)
+          ⟨ up-E ⟩)
+      ]
+    ⦂ B ⊑ B′ ∶ pB
+two-round-trips-substitutionᴿ
+    noN noN′ noW noW′ body W⊑W′ =
+  smaller-single-term-substitutionᴿ
+    (assumption-membership-unique-idᵢ zero)
+    noN noN′
+    (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ noW))))
+    (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ (no•-⟨⟩ noW′))))
+    body
+    (two-round-tripsᴿ W⊑W′)
+
 ------------------------------------------------------------------------
 -- The inert route takes the expected three beta steps
 ------------------------------------------------------------------------
@@ -668,3 +746,69 @@ target-round-trip-argument-not-value :
 target-round-trip-argument-not-value
     ((vW′ ⟨ down-inert ⟩) ⟨ up-inert ⟩) =
   up-E-not-inert up-inert
+
+------------------------------------------------------------------------
+-- The bilateral square stops after the quotient argument has closed
+------------------------------------------------------------------------
+
+two-function-casts-two-beta-joinᴿ :
+  ∀ {W W′} →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ W ⊑ W′
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ
+      (((ƛ (` zero)) · ((W ⟨ down-D ⟩) ⟨ up-D ⟩))
+        ⟨ down-D ⟩) ⟨ up-D ⟩
+      ⊑
+      (((ƛ (` zero)) · ((W′ ⟨ down-E ⟩) ⟨ up-E ⟩))
+        ⟨ down-E ⟩) ⟨ up-E ⟩
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
+two-function-casts-two-beta-joinᴿ W⊑W′ =
+  round-tripᴿ
+    (identity-A⊑identity-Aᴿ ·ᴿ round-tripᴿ W⊑W′)
+
+
+two-function-casts-squareᴿ :
+  ∀ {W W′} →
+  Value W →
+  Value W′ →
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ W ⊑ W′
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A →
+  idᵢ zero ∣ zero ∣ zero ∣ []
+    ⊢ᴿ↠
+      ((((ƛ (` zero)) ⟨ inner-D ⟩) ⟨ outer-D ⟩) · W)
+      ⊑
+      ((((ƛ (` zero)) ⟨ inner-E ⟩) ⟨ outer-E ⟩) · W′)
+    ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
+two-function-casts-squareᴿ {W} {W′} vW vW′ W⊑W′ =
+  record
+    { sourceChanges = keep ∷ keep ∷ []
+    ; targetChanges = keep ∷ keep ∷ []
+    ; sourceResult =
+        (((ƛ (` zero)) · ((W ⟨ down-D ⟩) ⟨ up-D ⟩))
+          ⟨ down-D ⟩) ⟨ up-D ⟩
+    ; targetResult =
+        (((ƛ (` zero)) · ((W′ ⟨ down-E ⟩) ⟨ up-E ⟩))
+          ⟨ down-E ⟩) ⟨ up-E ⟩
+    ; resultCtx = idᵢ zero
+    ; resultLeftCtx = zero
+    ; resultRightCtx = zero
+    ; sourceCtxResult = refl
+    ; targetCtxResult = refl
+    ; resultStore = []
+    ; sourceStoreResult = refl
+    ; targetStoreResult = refl
+    ; resultSourceType = glb-bad-A
+    ; resultTargetType = glb-bad-A
+    ; sourceTypeResult = refl
+    ; targetTypeResult = refl
+    ; transportType = λ relation → relation
+    ; sourceReduction =
+        two-function-casts-two-beta-reduction vW down-D-inert
+    ; targetReduction =
+        two-function-casts-two-beta-reduction vW′ down-E-inert
+    ; resultImprecision =
+        two-function-casts-two-beta-joinᴿ W⊑W′
+    }

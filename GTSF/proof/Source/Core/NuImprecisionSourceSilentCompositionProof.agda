@@ -74,8 +74,10 @@ open import proof.Core.Properties.ConversionIndexCompatibilityProperties using
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
-  ; rel-store-embedding-prefix-invⁱ
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
+  using (rel-store-embedding-prefix-invⁱ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using

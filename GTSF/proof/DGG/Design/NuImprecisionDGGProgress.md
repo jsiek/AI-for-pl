@@ -27,27 +27,32 @@ holes or incomplete coverage remain.
 Construct a strict inhabitant of `GradualDGG` by completing the world-coherent
 forward and backward simulations over a quotient grammar that is stable under
 repeated function casts. The live DGG assembly is paused at a quotient-design
-checkpoint. Both the compositional prototype and the smaller
-up-to-reduction prototype are strict. The smaller prototype now passes the
-relation-level two-function-cast and arbitrary-substitution tests. It now
-permits exactly one paired narrowing cast, not a finite spine. A
-same-polarity stress test separates an unconditionally expressible
-two-narrowing residual from residuals reachable from the live ordinary
-relation. The allocation-aware target-`inst` test is now complete: the valid
-top row and target trace need no fused final edge, but the final stable values
-cannot be related by ordinary source-only-lambda and target-cast rules. The
-matched body relation, creation equation, and allocation lineage form the
-smallest checked residual. The smaller relation is now definitionally
-independent of live QTI: its former `ordinaryᴿ` embedding has been removed,
-and its ordinary fragment has explicit constructors. Exact creation is now
-one of those constructors. A focused transport experiment recovers its
-canonical renamed/store-embedded behavior and exposes one missing invariant
-in the old generalized fusion spine: the final index must equal the
-transported creation index rather than be arbitrary. The unsafe generic
-renaming closure has been removed and replaced by a creation-specific
-canonical transport edge whose endpoints are proved terminal. Neither
-prototype has replaced `QuotientedTermImprecision`. The public statement and
-compiler boundary are checked, but no complete theorem inhabitant exists yet.
+checkpoint. Both the compositional prototype and the smaller up-to-reduction
+prototype are strict, but the smaller prototype is now the selected migration
+candidate. Its grammar is complete and definitionally independent of live
+QTI: variables, blame, abstractions, applications, polymorphism, constants,
+primitive operations, casts, conversions, paired widening, generalization
+against a target ground type, allocation prefixes, and target-instantiation
+creation are all represented directly. Its quotient judgment has exactly one
+paired-narrowing constructor.
+
+The smaller relation now passes all three decisive experiments: migration of
+the audited `Λ⊑instβᵀ` consumers, the reachable two-function-cast
+reduction/imprecision square, and the target instantiation/allocation/type-beta
+square. Its supporting typing, value, terminal, world-embedding, parallel
+substitution, and fully indexed single-variable substitution proofs are
+strict. Exact target-instantiation creation is closed under a composable
+embedded-creation residual, because a binder renames the allocated target seal
+from `0` to `suc 0`; the term grammar nevertheless has only one creation
+constructor and no generic renaming constructor or separate transported
+creation constructor.
+
+The result is ready for a controlled replacement of
+`QuotientedTermImprecision`. It has not yet replaced the live relation, and
+the general source and target function-cast simulations remain to be connected
+to the existing world-coherent operational machinery. The public statement
+and compiler boundary are checked, but no complete `GradualDGG` inhabitant
+exists yet.
 
 The current proof uses these invariants:
 
@@ -79,15 +84,22 @@ The current proof uses these invariants:
   composition equation, and store lineage into the right-extended world.
   Up-to-reduction removes transient allocation edges but not this final
   semantic creation case.
-- endpoint transport of an exact creation edge produces the canonical renamed
-  imprecision index. Any client that asks for another proof-relevant index
-  must provide an equality to that canonical index.
+- exact creation is the base of `EmbeddedTargetInstantiationCreation`.
+  Each typed relational-world embedding computes the canonical renamed
+  imprecision index; no embedding step may choose an unrelated final index.
+- exact creation alone is not stable under an enclosing type binder:
+  `store-right 0` becomes `store-right (suc 0)`. The embedded residual records
+  precisely this necessary closure and composes it without adding another term
+  constructor.
 - the smaller relation has no generic renaming constructor. Arbitrary
   well-scoped renamings may identify distinct seal names and change which
   reduction rule applies.
-- only target-instantiation creation may cross the current canonical transport
-  boundary. Both transported endpoints are values, so its source- and
-  target-leading simulation cases are impossible.
+- only target-instantiation creation may cross the embedded-creation boundary.
+  Every embedded endpoint remains a value, so its source- and target-leading
+  simulation cases are impossible.
+- single-variable substitution requires unique imprecision assumptions and
+  `No•` evidence for both body endpoints and both substituted endpoints. It
+  uses only the smaller relation and its syntax-directed world embeddings.
 
 ## Active up-to-reduction design hypothesis
 
@@ -370,15 +382,63 @@ The scratch remains permissive because of its twelve previously recorded
 holes and other incomplete constructor coverage, not because these two cases
 are absent.
 
+A second audit explicitly included incomplete relation consumers. Exactly
+three permissive modules import the live term-imprecision judgment.
+`NuImprecisionCatchupScratch` is the only one that performs exhaustive
+case analysis on that judgment; both of its analyses contain the old
+`Λ⊑instβᵀ` case and must be migrated to the smaller creation residual.
+`NuImprecisionOneStepTargetCastRoots` and
+`NuImprecisionOneStepTargetConversionRoots` accept a relation premise but
+only pass it to focused helpers; their remaining holes do not hide additional
+term-imprecision constructor cases. No other permissive or postulated module
+both consumes the live relation and contains an incomplete case analysis.
+
 The generic `rename-storeᴿ` experiment failed its operational audit.
 `TyRenameWf` preserves scope but not injectivity, and `RelStoreEmbeddingⁱ`
 does not provide a renaming inverse. A renaming may identify distinct seals
 and change `tag-untag-bad` into `tag-untag-ok`, so arbitrary reduction
-reflection is false. The constructor has been removed. The replacement
-`target-instantiation-transportᴿ` applies only to exact creation, fixes the
-canonical index, and carries exact endpoint typings. The strict terminal
-experiment proves that both transported endpoints are values and cannot take
-a leading step.
+reflection is false. The constructor has been removed. The replacement is
+`EmbeddedTargetInstantiationCreation`: exact creation is its base and each
+embedding step fixes the canonical renamed index and carries exact endpoint
+typings. The term grammar has only `target-instantiationᴿ`; the interim
+transport constructor has been deleted. The strict terminal experiment proves
+that every embedded pair of endpoints consists of values and cannot take a
+leading step.
+
+### Decisive smaller-relation experiments
+
+The three experiments requested before selecting the relation all succeeded.
+
+1. **SUCCESS — `Λ⊑instβᵀ` consumer migration.** The direct identity
+   post-beta context, canonical paired-lambda leaf, unframed and framed fusion
+   spines, ordinary target widening root, and identity-mode target widening
+   root all reconstruct actual smaller-relation derivations. They retain the
+   exact creation evidence and canonical final-index equality; none imports
+   live term imprecision.
+2. **SUCCESS — reachable two-function-cast square.** Both applications take
+   two function-cast beta steps and reach a bottom edge built from ordinary
+   application, two individually closed down/up round trips, and the complete
+   smaller relation. No quotient application, finite narrowing spine, or
+   fused down/application/up constructor is used.
+3. **SUCCESS — target instantiation/allocation/type beta.** The target takes
+   the leading instantiation step, allocates the fresh seal, and completes type
+   beta while the source takes zero steps. The final edge is the canonical
+   embedded-creation case, with transported store, types, and imprecision
+   index. No target-only type-application, target-only `ν`, or live fused
+   constructor is used.
+
+Completing the relation exposed and repaired two additional invariants.
+Creation must be valid under an arbitrary final term-imprecision context
+because its endpoints are closed; otherwise substitution under a lambda
+fails. Exact creation must also be saturated under typed relational-world
+embeddings, because paired or source-only type-binder weakening renames its
+allocated target seal. The resulting grammar still has one creation
+constructor and one quotient constructor.
+
+The selection verdict is **ready for controlled live migration**. This means
+that the complete independent relation and the decisive local simulation
+slices are coherent. It does not claim that the general source and target
+simulations, the terminal engines, or `GradualDGG` are complete.
 
 ## Trusted proof boundaries
 
@@ -394,13 +454,23 @@ a leading step.
 | [`NuImprecisionCompositionalQuotientDef.agda`](../../Quotient/NuImprecisionCompositionalQuotientDef.agda) | **completed prototype** | Graded quotient relation, finite narrowing spines, symmetric application, and compatible quotient closing |
 | [`NuImprecisionCompositionalQuotientExamples.agda`](../../Quotient/NuImprecisionCompositionalQuotientExamples.agda) | **completed examples** | Exact, nested-application, nontrivial permutation, repeated-cast, quotient-function/argument, and two-function-cast residual checks |
 | [`NuImprecisionQuotientBoundarySupport.agda`](../../Quotient/NuImprecisionQuotientBoundarySupport.agda) | **completed support** | Cast-mode and hereditary widening evidence with no dependency on a term-imprecision relation |
-| [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Independent smaller ordinary grammar, exact creation, creation-specific canonical endpoint transport, one paired narrowing boundary, and no generic renaming, quotient application, or fused down/application/up rule |
-| [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Nontrivial two-function-cast relation, identity reduction, arbitrary substitution, and checked active-`inst` allocation boundary |
+| [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Complete independent ordinary grammar, one embedded-creation case, one paired-narrowing quotient boundary, allocation-aware bilateral closure, and no generic renaming, quotient application, finite spine, or fused down/application/up rule |
+| [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Reachable two-function-cast top row, two beta steps on each side, and an ordinary-related join without quotient application or a fused rule |
+| [`NuImprecisionReductionClosedQuotientTypingExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientTypingExperiment.agda) | **completed metatheory** | Exhaustive source and target typing projections for the ordinary and quotient judgments |
+| [`NuImprecisionReductionClosedQuotientValueExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientValueExperiment.agda) | **completed metatheory** | Exhaustive source and target value classification, including terminal embedded creation |
+| [`NuImprecisionReductionClosedWorldEmbeddingExperiment.agda`](../../Quotient/NuImprecisionReductionClosedWorldEmbeddingExperiment.agda) | **completed metatheory** | QTI-free relational-world embeddings, paired/source-only binder lifting, prefix inversion, and the strict exact-creation lifting obstruction |
+| [`NuImprecisionReductionClosedWorldRenameExperiment.agda`](../../Quotient/NuImprecisionReductionClosedWorldRenameExperiment.agda) | **completed metatheory** | Exhaustive syntax-directed world embedding for both judgments and canonical paired/source-only binder weakening |
+| [`NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda) | **completed metatheory** | Prefix-aware parallel substitution for every ordinary and quotient constructor |
+| [`NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda) | **completed metatheory** | Fully indexed single-variable substitution using only the smaller relation |
 | [`NuImprecisionSingleNarrowingBoundaryExamples.agda`](../../Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda) | **completed diagnostic** | Same-polarity three-step reductions, a positive length-two spine, and a checked impossibility result for the single-boundary relation |
-| [`NuImprecisionTargetInstantiationCreationDef.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda) | **completed prototype** | Relation-parametric matched-body, cast-composition, and right-allocation residual |
+| [`NuImprecisionTargetInstantiationCreationDef.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda) | **completed prototype** | Relation-parametric exact creation plus its canonical composable embedded residual |
+| [`NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda`](../../Quotient/NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda) | **completed metatheory** | Canonical typing, value, and no-bullet projections for embedded creation |
 | [`NuImprecisionTargetInstantiationCreationExamples.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationExamples.agda) | **completed diagnostic** | Independent smaller initial/final rows, target allocation trace, creation residual, and strict refutation of ordinary final-edge factorization |
 | [`NuImprecisionTargetInstantiationTransportExperiment.agda`](../../Quotient/NuImprecisionTargetInstantiationTransportExperiment.agda) | **completed diagnostic** | Canonical renaming/store-embedding transport and endpoint replacement with an explicit final-index coherence equality |
 | [`NuImprecisionTargetInstantiationTransportSpineExperiment.agda`](../../Quotient/NuImprecisionTargetInstantiationTransportSpineExperiment.agda) | **completed diagnostic** | Strict recursive fold for arbitrarily nested exact creation and canonical endpoint transport |
+| [`NuImprecisionTargetInstantiationConsumerMigrationExperiment.agda`](../../Quotient/NuImprecisionTargetInstantiationConsumerMigrationExperiment.agda) | **completed diagnostic** | Direct, leaf, and target-widening consumers reconstructed without live QTI |
+| [`NuImprecisionTargetInstantiationFramedConsumerMigrationExperiment.agda`](../../Quotient/NuImprecisionTargetInstantiationFramedConsumerMigrationExperiment.agda) | **completed diagnostic** | Framed leaf and fusion-spine consumers reconstructed without live QTI |
+| [`NuImprecisionTargetInstantiationSimulationExperiment.agda`](../../Quotient/NuImprecisionTargetInstantiationSimulationExperiment.agda) | **completed diagnostic** | Complete target instantiation, allocation, and type-beta square with a zero-step source side |
 | [`NuImprecisionReductionClosedQuotientDesign.md`](NuImprecisionReductionClosedQuotientDesign.md) | **current design hypothesis** | Complete small-relation sketch: one quotient boundary, ordinary-only congruence and substitution, bilateral reduction closure, reachability criterion, and remaining `sim-beta-cast` obligations |
 | [`NuDGGTerminalForwardIntegrationProof.agda`](../TerminalForward/NuDGGTerminalForwardIntegrationProof.agda) | **partial** | Intended route from forward/backward contracts to `GradualDGG`; currently reaches an uncovered paired-widening compatibility case |
 | [`NuDGGTerminalBackwardValueProof.agda`](../TerminalBackward/NuDGGTerminalBackwardValueProof.agda) | **conditional** | Fuel induction for target-value traces |
@@ -466,6 +536,31 @@ conversion, and conceal conversion value-catch-up cases.
 
 ## Completed recent work
 
+- Finished the independent smaller relation rather than testing a partial
+  surrogate. The ordinary grammar now covers every rule in the design,
+  including `gen` against a target ground type, all cast and conversion
+  polarities, matched/source polymorphism, allocation prefixes, and the sole
+  target-instantiation creation case. The quotient grammar still has exactly
+  one paired narrowing constructor.
+- Replaced the separate transported-creation term constructor with
+  `EmbeddedTargetInstantiationCreation`. Exact creation is its canonical base;
+  typed relational-world embeddings compose inside the residual and compute
+  the final index. This is necessary because a type binder renames the
+  allocated target seal from `0` to `suc 0`.
+- Proved exhaustive source/target typing and value projections, embedded
+  creation terminality, term-context shift, paired-widening compatibility
+  transport, QTI-free world embedding, paired/source-only binder weakening,
+  prefix-aware parallel substitution, and fully indexed single-variable
+  substitution for the complete relation.
+- Completed the three decisive experiments. Audited `Λ⊑instβᵀ` consumers,
+  the reachable two-function-cast square, and the target
+  instantiation/allocation/type-beta square all succeed without live QTI,
+  quotient application, finite spines, or the fused
+  `down·up⊑down·upᵀ` rule.
+- Split live-prefix inversion out of
+  `NuImprecisionRelStoreEmbeddingAlgebra`, leaving the generic relational-store
+  embedding algebra independent of live term imprecision. Existing live
+  consumers import the focused prefix proof.
 - Removed `ordinaryᴿ` and changed the smaller relation's worlds, stores, and
   contexts from fixed parameters to indices. Its variable, abstraction,
   application, polymorphic, constant, primitive, one-sided cast, paired
@@ -616,80 +711,48 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Strengthen the paired-lambda `leaf-instβ` view, all of its handlers, and
-   its reconstruction boundary so they retain exact creation plus the
-   canonical final-index equality. Do not manufacture that equality from the
-   old fused constructor.
-2. Strengthen the unfinished target widening `β-inst` root contracts with the
-   cast-shape composition equation and matched body/allocation witnesses
-   needed by exact creation. Cover both the ordinary cast-mode and
-   identity-mode roots.
-3. Migrate the direct identity post-beta context first, then the strengthened
-   paired-lambda leaf and fusion spines. After every positive consumer passes,
-   replace `Λ⊑instβᵀ` with exact creation plus canonical transport and remove
-   the fused constructor.
-4. Replace the interim creation-specific transport constructor with an
-   admissible syntax-directed no-bullet world-embedding theorem requiring
-   renaming left inverses and cast-mode renamers. Do not reintroduce a generic
-   outer renaming constructor.
-5. State the allocation-aware quotient `sim-beta-cast` contract directly in
-   terms of the existing world-coherent weak result: the inert route supplies
-   the source catch-up, while the active `inst` route uses the target tail,
-   the creation constructor, and the resulting store extension.
-6. Connect that contract to the existing paired-widening target
-   pending-allocation machinery. The immediate leaf is the quotient-`inst`
-   residual already counted among the four ordinary/generated down/up holes in
-   `NuImprecisionCatchupScratch`.
-7. Complete the two-function-cast operational square and confirm that its
-   related endpoint is the ordinary QTI derivation consumed by
-   `two-round-trips-substitutionᵀ`.
-8. Discharge the target quotient closing-widening `β-seq` root through the
-   existing target-tail sequence-resume midpoint machinery. Do not add a
-   narrowing spine for this widening-side obligation.
-9. If these succeed, derive the live function-cast simulation without
-   `down·up⊑down·upᵀ` or quotient application and begin removing those
-   constructors in a separate migration. In the same migration, remove the
-   uninhabited target-only type-application, `ν`, and casted-`ν` constructors
-   and their vacuous semantic roots. If allocation catch-up instead produces
-   an irreducible quotient embedded outside a closing boundary, record that
-   strict counterexample and return to the compositional design.
-10. Prove source and target typing projections for the smaller ordinary and
-   one-boundary quotient judgments. Re-run value, `No•`, and terminal
-   inversion using the fact that the quotient judgment has exactly one
-   constructor.
-11. Continue testing valid ordinary top rows with arbitrary lambda bodies,
-   nested reachable function casts, source and target cast sequences, and
-   active target `inst`. The basic active-target test is complete; its nested
-   quotient-closing instance remains. Every test must exhibit its initial
-   ordinary term-imprecision derivation before its reduction endpoints are
-   considered.
-12. Keep the compositional quotient prototype as the fallback. Reintroduce
-   quotient application, finite narrowing spines, or a quotient-to-quotient
-   cast square only after a strict counterexample shows a derivable ordinary
-   top row whose reductions cannot reach an ordinary-related join.
-13. Restore hereditary `PairedWideningCompatible`: replace the broad
-   `compatible-source-inert` fallback with the target-active case, preserve
-   function and universal compatibility recursively, and retain the
-   target-inert bridge. Then restore both function-beta consumers and the
-   terminal-forward integration check.
-14. Add the missing paired-lambda frame-view
-   `down·up⊑down·upᵀ` case and restore its focused strict-spine check.
-15. Migrate the other six known-incomplete strict proofs to the current
-   uniqueness, binder-transport, compatibility, and `down·up⊑down·upᵀ`
-   interfaces.
-16. Finish quotient transport normalization and the crossed binary
-   runtime-sibling catch-up invariant.
-17. Prove the source function-cast `β` and `β-↦` value roots using the
-   up-to-reduction `sim-beta-cast` argument rather than a quotient application
-   or spine-length-specific term rule.
-18. Inhabit the remaining exact active-synchronization root records.
-19. Assemble the exhaustive prefix-aware world-coherent backward one-step
-   dispatcher and restore a practical green backward strict-spine check.
-20. Supply that strict dispatcher to both backward terminal engines.
-21. Complete the remaining forward engine contracts, invoke the strict terminal
-   integration proof, and construct `GradualDGG`.
-22. Promote any still-needed generic scratch clauses through strict
-   `Def`/`Proof`/`Lemma` boundaries and delete the scratch module.
+1. Begin the controlled live migration with the target-instantiation creation
+   family. Strengthen the live paired-lambda leaf and target widening
+   `β-inst` root contracts exactly as demonstrated by the direct and framed
+   consumer experiments.
+2. Replace live `Λ⊑instβᵀ` uses with exact creation plus
+   `EmbeddedTargetInstantiationCreation`, preserving the canonical final-index
+   equality at every leaf and fusion frame. Delete the old constructor only
+   after every strict consumer has moved.
+3. Migrate the two explicit `Λ⊑instβᵀ` branches in
+   `NuImprecisionCatchupScratch`. The other two permissive live-relation
+   consumers do not case-analyze the relation and need only interface
+   migration.
+4. Promote the experimental complete grammar and its typing, value,
+   world-embedding, and substitution theorems to the canonical live modules.
+   Delete obsolete live constructors and compatibility shims rather than
+   re-exporting them.
+5. State and prove the allocation-aware quotient `sim-beta-cast` contract
+   using the existing world-coherent weak result. The inert route supplies
+   source catch-up; the active target-`inst` route uses the target tail,
+   embedded creation, and the transported store.
+6. Connect that contract to paired-widening pending allocation and then to the
+   second function beta. Invoke `smaller-single-term-substitutionᴿ` only after
+   the down/up boundary has closed back to ordinary imprecision.
+7. Discharge the target quotient closing-widening `β-seq` root through the
+   target-tail sequence-resume midpoint machinery. Do not add a narrowing
+   spine for this widening-side obligation.
+8. Remove live quotient application, finite narrowing spines, and
+   `down·up⊑down·upᵀ` as primitive rules once the general function-cast
+   simulations pass. Remove the uninhabited target-only type-application,
+   `ν`, and casted-`ν` cases in the same audited migration.
+9. Keep the compositional quotient prototype only as a fallback. Return to it
+   only if a strict counterexample starts from a derivable ordinary top row
+   and cannot reduce to an ordinary-related join.
+10. Re-run the terminal-forward integration with the stricter hereditary
+    paired-widening compatibility, then migrate the remaining known-incomplete
+    strict proofs to the current uniqueness and binder-transport interfaces.
+11. Finish quotient transport normalization, crossed runtime-sibling catch-up,
+    the remaining exact active-synchronization roots, and the exhaustive
+    prefix-aware world-coherent one-step dispatcher.
+12. Supply the completed dispatcher to both terminal engines, finish the
+    forward contracts, invoke the strict terminal integration proof, construct
+    `GradualDGG`, and delete the remaining scratch module.
 
 ## Validation
 
@@ -710,7 +773,7 @@ explicitly rather than deleted mechanically.
 The aggregate and import audit pass. The terminal-forward strict spine is
 source-safe but its focused Agda check currently fails at the
 `compatible-source-inert` paired-widening function-beta case recorded above.
-The source inventory sees 369 strict-looking `Proof` modules: 156 have no
+The source inventory sees 370 strict-looking `Proof` modules: 156 have no
 transitive canonical `Lemma` consumer, 149 are reachable from an explicit
 strict inventory spine, seven are explicitly known incomplete, and none are
 uninventoried. Focused Agda checks, not these source counts, establish
@@ -728,6 +791,18 @@ The optimized focused check of
 `NuImprecisionCatchupScratch.agda` also passed after the two formerly omitted
 `Λ⊑instβᵀ` clauses were made explicit. Both strengthened fusion-spine folds
 pass strict focused checks.
+
+After completing the independent smaller relation on 2026-07-27,
+`make quotient-design-check` passed with all fourteen new strict roots:
+typing, values, term-context shift, parallel and single substitution, world
+embedding and renaming, compatibility renaming, embedded creation properties,
+the two constructor audits, the two consumer migrations, and the
+target-instantiation simulation. `make dgg-check` also passed after a full
+dependency rebuild; this checks the strict unassembled-proof inventory but
+does not change the explicitly incomplete terminal-forward status above.
+Focused strict rechecks of the world-renaming and term-context-shift
+experiments passed after their final formatting edits, and `git diff --check`
+passed.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

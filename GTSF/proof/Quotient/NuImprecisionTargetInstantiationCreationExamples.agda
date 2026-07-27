@@ -109,6 +109,7 @@ open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
   ( TargetInstantiationCreation
+  ; exact-creationᴱ
   ; prefix-reflᴿ
   ; target-instantiation-creation
   )
@@ -371,7 +372,8 @@ created-target-instantiation-relationᴿ :
     ⦂ `∀ (＇ zero ⇒ ＇ zero) ⊑ ⇑ᵗ (★ ⇒ ★)
     ∶ ⊑-target-lift-rightᵢ final-index
 created-target-instantiation-relationᴿ =
-  target-instantiationᴿ target-instantiation-creation-testᴿ
+  target-instantiationᴿ
+    (exact-creationᴱ target-instantiation-creation-testᴿ)
 
 
 target-instantiation-administrative-trace :

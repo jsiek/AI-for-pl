@@ -10,6 +10,37 @@ COMPOSITIONAL_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionCompositionalQuotientExamples.agda
 REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
+QUOTIENT_PROOF_DIR = proof/Quotient/
+REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES = \
+	NuImprecisionReductionClosedQuotientTypingExperiment.agda \
+	NuImprecisionReductionClosedQuotientValueExperiment.agda \
+	NuImprecisionReductionClosedQuotientTermContextShiftExperiment.agda \
+	NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda \
+	NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda
+REDUCTION_CLOSED_QUOTIENT_METATHEORY = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES))
+REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES = \
+	NuImprecisionReductionClosedCompatibilityRenameExperiment.agda \
+	NuImprecisionReductionClosedWorldEmbeddingExperiment.agda \
+	NuImprecisionReductionClosedWorldRenameExperiment.agda \
+	NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda
+REDUCTION_CLOSED_QUOTIENT_WORLD = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES))
+REDUCTION_CLOSED_QUOTIENT_AUDIT_MODULES = \
+	NuImprecisionReductionClosedQuotientIdOnlyCastAudit.agda \
+	NuImprecisionReductionClosedQuotientTransientAudit.agda
+REDUCTION_CLOSED_QUOTIENT_AUDITS = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_AUDIT_MODULES))
+TARGET_INSTANTIATION_MIGRATION_MODULES = \
+	NuImprecisionTargetInstantiationConsumerMigrationExperiment.agda \
+	NuImprecisionTargetInstantiationFramedConsumerMigrationExperiment.agda \
+	NuImprecisionTargetInstantiationSimulationExperiment.agda
+TARGET_INSTANTIATION_MIGRATIONS = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(TARGET_INSTANTIATION_MIGRATION_MODULES))
 SINGLE_NARROWING_BOUNDARY_EXAMPLES = \
 	proof/Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda
 TARGET_INSTANTIATION_CREATION_EXAMPLES = \
@@ -20,6 +51,12 @@ TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT = \
 	proof/Quotient/NuImprecisionTargetInstantiationTransportTerminalExperiment.agda
 TARGET_INSTANTIATION_TRANSPORT_SPINE_EXPERIMENT = \
 	proof/Quotient/NuImprecisionTargetInstantiationTransportSpineExperiment.agda
+
+define strict-check-each
+	@for module in $(1); do \
+		$(STRICT_AGDA) $$module || exit $$?; \
+	done
+endef
 
 # Check a single file with: make agda FILE=NuMetaTheory.agda
 FILE ?= All.agda
@@ -44,6 +81,10 @@ dgg-check: audit
 quotient-design-check: audit
 	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_METATHEORY))
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_WORLD))
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_AUDITS))
+	$(call strict-check-each,$(TARGET_INSTANTIATION_MIGRATIONS))
 	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_CREATION_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT)

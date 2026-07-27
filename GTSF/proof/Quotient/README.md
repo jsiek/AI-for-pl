@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 4 source tails checked; quotient boundary active**
+**MIGRATION IN PROGRESS — phase 4 live grammar checked; consumers migrating**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -247,7 +247,7 @@ support module.
 ### Phase 4. Replace the quotient boundary
 
 - promote the single paired-narrowing quotient introduction and compatible
-  closing widening;
+  closing widening (**live grammar and typing projections checked**);
 - connect the allocation-aware function-cast simulation up to reduction;
 - migrate the two live source-widening instantiation paths in
   `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda`
@@ -256,9 +256,11 @@ support module.
   (**completed checkpoint**);
 - tighten or split the matched target-allocation root contract so it states
   the reduction that its proof actually handles;
-- migrate value, typing, substitution, world-embedding, and catch-up clients;
+- migrate value, typing, substitution, world-embedding, and catch-up clients
+  (**parallel substitution and term-context shift checked**);
 - delete quotient application, finite-spine support, and
-  `down·up⊑down·upᵀ`;
+  `down·up⊑down·upᵀ` (**deleted from the live grammar; downstream references
+  remain frozen migration obligations**);
 - check the focused source and target function-cast roots before the public
   DGG phase gate.
 
@@ -277,6 +279,15 @@ chosen store lift as the primary allocation. Both focused source-widening
 leaves pass, and no source reference to
 `weak-one-step-source-νcast-frameᵀ` remains. This checkpoint does not yet
 change the live quotient grammar or remove any of its regression roots.
+
+The live grammar checkpoint on 2026-07-27 promoted `paired-downᵀ`, `closeᵀ`,
+and the direct paired reveal, conceal, and compatible-widening constructors.
+It deleted the fused cast/application constructor, quotient-indexed
+application constructors, the split narrowing introductions, and the
+`PairedCast` wrapper from the canonical definitions. Focused checks pass for
+the live relation, store-prefix evidence, parallel substitution, and
+term-context shift. Other files in the frozen inventory still contain
+retired names and must be migrated or deleted before a phase gate.
 
 ### Phase 5. Collapse the migration surface
 

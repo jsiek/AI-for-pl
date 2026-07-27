@@ -777,14 +777,15 @@ behavior is covered by
    contract used by both live source-widening instantiation paths. Their active
    paths take type beta to transient `ν ★`, allocate with `bind ★`, and only
    then construct the next ordinary term-imprecision edge.
-3. Promote the selected paired-narrowing quotient boundary, its typing, value,
-   world-embedding, and substitution theorems to the canonical live modules.
-   Delete superseded quotient constructors and compatibility shims rather than
-   re-exporting them.
-4. Remove `down·up⊑down·upᵀ`, quotient-indexed application, and any finite
-   narrowing-spine support in the same Phase 4 grammar edit. Migrate the
-   remaining exhaustive folds; the two source-widening consumers already use
-   the checked up-to-reduction result.
+3. **In progress:** promote the selected paired-narrowing quotient boundary
+   and its metatheory to canonical live modules. The live grammar, typing
+   projections, store-prefix evidence, parallel substitution, and term-context
+   shift pass focused checks; value and world transport remain.
+4. **In progress:** remove `down·up⊑down·upᵀ`, quotient-indexed application,
+   and finite narrowing support. They are gone from the live grammar, but the
+   frozen downstream inventory is not yet empty. Each remaining client must
+   migrate to `paired-downᵀ`/`closeᵀ`, use simulation up to reduction, or be
+   deleted rather than wrapped.
 5. Tighten or split the matched target-allocation root contract so its premise
    states the allocation root its implementation handles; do not add a
    catch-all for arbitrary frame steps.
@@ -893,6 +894,16 @@ ordinary term-imprecision edge. The allocation proof exposes a reusable
 chosen-lift form, so the runtime sibling cannot drift into a separately
 generated world. Focused checks passed for the allocation helper, the
 ordinary source-widening leaf, and the runtime-sibling source-widening leaf.
+
+The second Phase 4 checkpoint completed the live grammar edit on 2026-07-27.
+`QuotientedTermImprecision` now has exactly one quotient introduction,
+`paired-downᵀ`, and closes it only through compatible `closeᵀ`. Paired reveal,
+conceal, and widening are direct ordinary constructors. The fused
+cast/application rule, quotient applications, split narrowing constructors,
+target-id widening shortcut, and `PairedCast` wrapper are absent from the live
+definition. Focused checks passed for the defining module, store-prefix
+evidence, parallel substitution, and term-context shift. This is not a phase
+gate: the frozen downstream inventory still contains retired source names.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

@@ -241,23 +241,12 @@ private
         (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
     term-ctx-insert-no•ᵀ insert
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′))) =
-      down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        down-square widening u-shape u′-shape up-square compatible
-    term-ctx-insert-no•ᵀ insert
-        (up⊑upᵀ N⊑N′ widening pA u-shape u′-shape square)
+        (closeᵀ N⊑N′ widening pA
+          u-shape u′-shape square compatible)
         (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
-      up⊑upᵀ
+      closeᵀ
         (term-ctx-insert-no•ᵀᵖ insert N⊑N′ noN noN′)
-        widening pA u-shape u′-shape square
+        widening pA u-shape u′-shape square compatible
     term-ctx-insert-no•ᵀ insert
         (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′)
         (no•-Λ noV) (no•-Λ noV′)
@@ -373,14 +362,25 @@ private
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
         q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑cast⊑idᵀ seal c⊑ M⊑M′ q c-shape comp)
-        noM (no•-⟨⟩ noM′) =
-      ⊑cast⊑idᵀ seal c⊑
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        q c-shape comp
-    term-ctx-insert-no•ᵀ insert (conv⊑convᵀ cast M⊑M′)
+        (paired-revealᵀ corresponds source target replace M⊑M′)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      conv⊑convᵀ cast
+      paired-revealᵀ corresponds source target replace
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+    term-ctx-insert-no•ᵀ insert
+        (paired-concealᵀ corresponds source target replace M⊑M′)
+        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
+      paired-concealᵀ corresponds source target replace
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+    term-ctx-insert-no•ᵀ insert
+        (paired-wideningᵀ
+          mode seal★ source source-shape
+          mode′ seal★′ target target-shape
+          left-square right-square compatible M⊑M′)
+        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
+      paired-wideningᵀ
+        mode seal★ source source-shape
+        mode′ seal★′ target target-shape
+        left-square right-square compatible
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
     term-ctx-insert-no•ᵀ insert
         (conv↑⊑ᵀ conv M⊑M′ q replace)
@@ -408,40 +408,12 @@ private
         q replace
 
     term-ctx-insert-no•ᵀᵖ insert
-        (down⊑downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+        (paired-downᵀ
+          M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
-    term-ctx-insert-no•ᵀᵖ insert
-        (gen-down⊑gen-downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
-    term-ctx-insert-no•ᵀᵖ insert
-        (quotient-id-down-applicationᵖᵀ
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (no•-· noL (no•-⟨⟩ noM))
-        (no•-· noL′ (no•-⟨⟩ noM′)) =
-      quotient-id-down-applicationᵖᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
-        components
+      paired-downᵀ
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        square
-    term-ctx-insert-no•ᵀᵖ insert
-        (quotient-down-applicationᵖᵀ
-          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (no•-· noL (no•-⟨⟩ noM))
-        (no•-· noL′ (no•-⟨⟩ noM′)) =
-      quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
-        components
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        square
+        mode d⊒ d-shape mode′ d′⊒ d′-shape square
 
 
 quotiented-term-context-shift-proofᵀ : QuotientedTermContextShiftᵀ

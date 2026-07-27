@@ -41,7 +41,11 @@ the audited `Λ⊑instβᵀ` consumers, the reachable two-function-cast
 reduction/imprecision square, and the target instantiation/allocation/type-beta
 square. Its supporting typing, value, terminal, world-embedding, parallel
 substitution, and fully indexed single-variable substitution proofs are
-strict. Exact target-instantiation creation is closed under a composable
+strict. The concrete Cambridge26 Example 14 regression also passes: two
+successive instantiation/generalization round trips reduce through their two
+fresh `★` allocations and the enclosing concrete allocation to the same
+constant as the more precise term. Exact target-instantiation creation is
+closed under a composable
 embedded-creation residual, because a binder renames the allocated target seal
 from `0` to `suc 0`; the term grammar nevertheless has only one creation
 constructor and no generic renaming constructor or separate transported
@@ -440,6 +444,37 @@ that the complete independent relation and the decisive local simulation
 slices are coherent. It does not claim that the general source and target
 simulations, the terminal engines, or `GradualDGG` are complete.
 
+### Cambridge26 Example 14 regression
+
+The concrete repeated-instantiation example succeeds without extending the
+smaller relation. In the paper's less-precise-left notation, its top edge is
+
+$$
+\bigl(\nu\alpha:=\iota.\,(\mathit{id}\langle\bar\nu\alpha.\alpha^\sharp\to\alpha^\flat\rangle\langle\nu\alpha.\alpha^!\to\alpha^?\rangle\langle\bar\nu\alpha.\alpha^\sharp\to\alpha^\flat\rangle\langle\nu\alpha.\alpha^!\to\alpha^?\rangle)\,\alpha\langle\alpha^\sharp\to\alpha^\flat\rangle\bigr)\,c\mathrel{\sqsupseteq}\bigl(\nu\alpha:=\iota.\,\mathit{id}\,\alpha\langle\alpha^\sharp\to\alpha^\flat\rangle\bigr)\,c.
+$$
+
+The Agda relation reverses the displayed orientation: the more precise term is
+the left endpoint of `⊢ᴿ … ⊑ …`. The exact initial derivation alternates the
+ordinary right-widening and right-narrowing cast rules twice, then uses matched
+`ν`, ordinary application, and the constant rule. It uses neither quotient
+imprecision nor creation.
+
+The full bilateral square reduces both programs to the same constant. The
+four-cast endpoint allocates two fresh `★` seals before allocating the outer
+`\iota` seal; the other endpoint allocates only the outer `\iota` seal. The
+final relational store has the concrete entry matched at name `0` and the two
+additional `★` entries on the four-cast side at names `1` and `2`. Its type
+transport is exactly two target-only lifts followed by one matched lift. The
+bottom edge is ordinary constant imprecision.
+
+The strict regression is
+[`NuImprecisionCambridge26Example14Experiment.agda`](../../Quotient/NuImprecisionCambridge26Example14Experiment.agda).
+It contains the exact top edge, both allocation traces, all five exposed
+function-cast beta steps, all five cast-cancellation steps, and the final
+allocation-aware `⊢ᴿ↠` square. No quotient constructor, finite narrowing
+spine, fused application rule, live-QTI embedding, or example-specific
+relation constructor is used.
+
 ## Trusted proof boundaries
 
 | Boundary | Status | Role |
@@ -557,6 +592,10 @@ conversion, and conceal conversion value-catch-up cases.
   instantiation/allocation/type-beta square all succeed without live QTI,
   quotient application, finite spines, or the fused
   `down·up⊑down·upᵀ` rule.
+- Added the strict Cambridge26 Example 14 regression. Its exact top edge and
+  complete bilateral reduction square pass with two target-only `★`
+  allocations, one matched concrete allocation, and an ordinary constant
+  bottom edge.
 - Split live-prefix inversion out of
   `NuImprecisionRelStoreEmbeddingAlgebra`, leaving the generic relational-store
   embedding algebra independent of live term imprecision. Existing live
@@ -803,6 +842,12 @@ does not change the explicitly incomplete terminal-forward status above.
 Focused strict rechecks of the world-renaming and term-context-shift
 experiments passed after their final formatting edits, and `git diff --check`
 passed.
+
+The strict Cambridge26 Example 14 experiment passed on 2026-07-27. The
+subsequent `make quotient-design-check` aggregate also passed with the new
+experiment as a permanent check root. The source file has no lines over 80
+columns, `git diff --check` passes, and the new ledger display uses only the
+required `$$` delimiters.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

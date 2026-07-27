@@ -10,6 +10,8 @@ COMPOSITIONAL_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionCompositionalQuotientExamples.agda
 REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
+CAMBRIDGE26_EXAMPLE14_EXPERIMENT = \
+	proof/Quotient/NuImprecisionCambridge26Example14Experiment.agda
 QUOTIENT_PROOF_DIR = proof/Quotient/
 REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES = \
 	NuImprecisionReductionClosedQuotientTypingExperiment.agda \
@@ -81,6 +83,7 @@ dgg-check: audit
 quotient-design-check: audit
 	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
+	$(STRICT_AGDA) $(CAMBRIDGE26_EXAMPLE14_EXPERIMENT)
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_METATHEORY))
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_WORLD))
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_AUDITS))

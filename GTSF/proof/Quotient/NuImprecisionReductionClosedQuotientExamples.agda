@@ -80,7 +80,7 @@ open import Types using
   ; _⇒_
   )
 open import proof.Compilation.CompileCoercions using
-  (coerce-upʷ-shape-idᵢ)
+  (coerce-downⁿ-shape-idᵢ; coerce-upʷ-shape-idᵢ)
 open import proof.Core.Permutation.ForallPermutationTest using
   ( glb-lower-XY≈YX
   ; glb-lower-XY⊑XY
@@ -96,23 +96,13 @@ open import proof.EndpointMLB.Core.MLBGlbExample using
   ; glb-lower-YX⊑A
   )
 open import
-  proof.Quotient.NuImprecisionCompositionalQuotientDef
+  proof.Quotient.NuImprecisionQuotientBoundarySupport
   using
   ( id-only↓
-  ; single↓
   ; compatible-functionᴿ
   ; compatible-target-activeᴿ
   ; ReductionClosedQuotientWideningCompatible
   ; compatible-through-representativesᴿ
-  )
-open import
-  proof.Quotient.NuImprecisionCompositionalQuotientExamples
-  using
-  ( down-D
-  ; down-E
-  ; down-D-result
-  ; down-E-result
-  ; route-quotient-square
   )
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
@@ -135,6 +125,18 @@ open import
 ------------------------------------------------------------------------
 -- One nontrivial down/up round trip
 ------------------------------------------------------------------------
+
+down-D-result =
+  coerce-downⁿ-shape-idᵢ 81 glb-lower-XY⊑A
+
+down-E-result =
+  coerce-downⁿ-shape-idᵢ 81 glb-lower-YX⊑A
+
+down-D : C.Coercion
+down-D = proj₁ down-D-result
+
+down-E : C.Coercion
+down-E = proj₁ down-E-result
 
 up-D-result =
   coerce-upʷ-shape-idᵢ 82 glb-lower-XY⊑A
@@ -159,6 +161,20 @@ up-D-inert = C.`∀ _
 
 up-E-not-inert : C.Inert up-E → ⊥
 up-E-not-inert ()
+
+route-quotient-square :
+  ⌊ glb-lower-XY⊑A ⌋ ；⌊ glb-bad-A⊑A ⌋≋ᵖ
+    glb-lower-XY⊑ᵖYX ； ⌊ glb-lower-YX⊑A ⌋
+route-quotient-square =
+  quotient-boundary-square
+    source-perm-refl
+    (comp-∀-∀
+      (comp-ν
+        (comp-↦-↦ comp-idˣ-idˣ comp-tagˣ-id★)))
+    source-swap-∀ν
+    (comp-∀-∀
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-idˣ comp-idˣ-tagˣ)))
 
 route-widening-compatible :
   ReductionClosedQuotientWideningCompatible (idᵢ zero) zero zero

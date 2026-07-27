@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 0: control and inventory**
+**MIGRATION IN PROGRESS — phase 1 complete; phase 2 not started**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -27,22 +27,22 @@ holds.
   extend, or add it to a check root. Remove its last migration-only imports,
   remove it from the regression surface, and delete it in phase 1.
 
-## Obsolete, quarantined now
+## Obsolete alternative deleted in phase 1
 
 The compositional quotient alternative and its finite-narrowing-spine
-diagnostic are rejected for the live migration:
+diagnostic were rejected for the live migration. Phase 1 removed their last
+selected-example dependency and deleted:
 
 - `NuImprecisionCompositionalQuotientDef.agda`;
 - `NuImprecisionCompositionalQuotientExamples.agda`;
 - `NuImprecisionSingleNarrowingBoundaryExamples.agda`; and
 - `../DGG/Design/NuImprecisionCompositionalQuotientDesign.md`.
 
-`NuImprecisionReductionClosedQuotientExamples.agda` still imports fixtures
-from the first two files. That is the only permitted dependency on this
-quarantined family. Phase 1 moves those fixtures to the selected side, checks
-that one selected example root, removes the obsolete roots from the Makefile,
-and deletes all four obsolete files. Git history is the fallback if the
-discarded design ever needs to be reconsidered.
+`NuImprecisionReductionClosedQuotientExamples.agda` now owns its selected
+cast fixtures and imports neutral quotient-boundary support directly. The
+focused strict check passed before deletion. The Makefile no longer contains
+the obsolete roots. Git history is the only fallback for the discarded
+design.
 
 ## Selected migration source
 
@@ -128,12 +128,14 @@ ordinary type imprecision.
 
 ### Phase 1. Isolate the selected design
 
-- remove the selected example's imports of the quarantined compositional
+Completed:
+
+- removed the selected example's imports of the quarantined compositional
   modules;
-- remove obsolete design roots from the Makefile;
-- strictly check only the affected selected example root;
-- confirm with `rg` that no Agda module imports the obsolete family;
-- delete the quarantined Agda files and design note.
+- removed obsolete design roots from the Makefile;
+- strictly checked only the affected selected example root;
+- confirmed that no other Agda module imported the obsolete family;
+- deleted the quarantined Agda files and design note.
 
 ### Phase 2. Replace target-instantiation creation
 

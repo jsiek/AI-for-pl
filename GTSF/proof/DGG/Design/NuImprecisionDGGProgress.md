@@ -27,9 +27,8 @@ holes or incomplete coverage remain.
 Construct a strict inhabitant of `GradualDGG` by completing the world-coherent
 forward and backward simulations over a quotient grammar that is stable under
 repeated function casts. The live DGG assembly is paused at a quotient-design
-checkpoint. Both the compositional prototype and the smaller up-to-reduction
-prototype are strict, but the smaller prototype is now the selected migration
-candidate. Its grammar is complete and definitionally independent of live
+checkpoint. The complete smaller up-to-reduction prototype is the selected
+migration candidate. Its grammar is definitionally independent of live
 QTI: variables, blame, abstractions, applications, polymorphism, constants,
 primitive operations, casts, conversions, paired widening, generalization
 against a target ground type, allocation prefixes, and target-instantiation
@@ -60,15 +59,17 @@ exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 0: control and inventory**
+**MIGRATION IN PROGRESS — phase 1 complete; phase 2 not started**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
-[`proof/Quotient/README.md`](../../Quotient/README.md). That manifest marks
-the rejected compositional quotient and finite-narrowing-spine family
-obsolete now, distinguishes selected migration evidence from retiring live
-clients, specifies exactly when check roots leave the regression surface, and
-requires deletion rather than compatibility wrappers.
+[`proof/Quotient/README.md`](../../Quotient/README.md). Phase 1 isolated the
+selected examples, removed the rejected compositional and finite-spine family
+from the Makefile, strictly checked the affected selected root, and deleted
+the obsolete sources. The manifest distinguishes the remaining selected
+migration evidence from retiring live clients, specifies exactly when check
+roots leave the regression surface, and requires deletion rather than
+compatibility wrappers.
 
 The phase order is:
 
@@ -518,8 +519,6 @@ relation constructor is used.
 | [`NuDGGTerminalBackwardStrictSpine.agda`](../TerminalBackward/NuDGGTerminalBackwardStrictSpine.agda) | **completed strict architecture** | Backward target-trace contracts and completed semantic leaves |
 | [`NuImprecisionOneStepDef.agda`](../../OneStep/NuImprecisionOneStepDef.agda) | **completed `Def`** | Target-oriented indexed one-step simulation contract |
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](../../WorldCoherent/Core/NuImprecisionWorldCoherentOneStepDef.agda) | **completed `Def`** | World-coherent one-step contract used by the terminal proof |
-| [`NuImprecisionCompositionalQuotientDef.agda`](../../Quotient/NuImprecisionCompositionalQuotientDef.agda) | **completed prototype** | Graded quotient relation, finite narrowing spines, symmetric application, and compatible quotient closing |
-| [`NuImprecisionCompositionalQuotientExamples.agda`](../../Quotient/NuImprecisionCompositionalQuotientExamples.agda) | **completed examples** | Exact, nested-application, nontrivial permutation, repeated-cast, quotient-function/argument, and two-function-cast residual checks |
 | [`NuImprecisionQuotientBoundarySupport.agda`](../../Quotient/NuImprecisionQuotientBoundarySupport.agda) | **completed support** | Cast-mode and hereditary widening evidence with no dependency on a term-imprecision relation |
 | [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Complete independent ordinary grammar, one embedded-creation case, one paired-narrowing quotient boundary, allocation-aware bilateral closure, and no generic renaming, quotient application, finite spine, or fused down/application/up rule |
 | [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Reachable two-function-cast top row, two beta steps on each side, and an ordinary-related join without quotient application or a fused rule |
@@ -529,7 +528,6 @@ relation constructor is used.
 | [`NuImprecisionReductionClosedWorldRenameExperiment.agda`](../../Quotient/NuImprecisionReductionClosedWorldRenameExperiment.agda) | **completed metatheory** | Exhaustive syntax-directed world embedding for both judgments and canonical paired/source-only binder weakening |
 | [`NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda) | **completed metatheory** | Prefix-aware parallel substitution for every ordinary and quotient constructor |
 | [`NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda) | **completed metatheory** | Fully indexed single-variable substitution using only the smaller relation |
-| [`NuImprecisionSingleNarrowingBoundaryExamples.agda`](../../Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda) | **completed diagnostic** | Same-polarity three-step reductions, a positive length-two spine, and a checked impossibility result for the single-boundary relation |
 | [`NuImprecisionTargetInstantiationCreationDef.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda) | **completed prototype** | Relation-parametric exact creation plus its canonical composable embedded residual |
 | [`NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda`](../../Quotient/NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda) | **completed metatheory** | Canonical typing, value, and no-bullet projections for embedded creation |
 | [`NuImprecisionTargetInstantiationCreationExamples.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationExamples.agda) | **completed diagnostic** | Independent smaller initial/final rows, target allocation trace, creation residual, and strict refutation of ordinary final-edge factorization |
@@ -675,23 +673,9 @@ conversion, and conceal conversion value-catch-up cases.
   distinguished eleven genuinely completed higher-order roots from seven
   stale files that only looked complete to a source scan, and it incorporates
   the independently checked right/source-`∀` strict aggregate.
-- The quotient redesign now has a strict prototype and a focused checked
-  example suite. `NarrowingSpine` handles any positive number of paired
-  downcasts, both application premises use the quotient relation, and the
-  ordinary closing layer retains a quotient boundary square plus hereditary
-  compatibility through the selected representatives.
-- The examples check exact embedding, left- and right-nested applications,
-  quotient closing after application, one and two casts through the
-  incomparable `D`/`E` routes, a quotient-related function consuming the
-  two-cast quotient argument, representative-aware closing of a nontrivial
-  `E ≈∀ D` quotient, and the complete residual shape produced by two
-  successive function-cast reductions.
 - The endpoint-MLB fixture now supplies the explicit `NonVar` witness required
   by the strengthened `ν` imprecision constructor; this removes a stale-source
   failure that had been hidden by an older Agda interface.
-- The rationale, formal rules, tested reduction shape, and remaining
-  quotient-to-quotient cast-square question are recorded in
-  [`NuImprecisionCompositionalQuotientDesign.md`](NuImprecisionCompositionalQuotientDesign.md).
 - The smaller quotient prototype has no quotient-indexed application
   constructor, no fused down/application/up constructor, and now no finite
   narrowing spine. Its quotient constructor contains exactly one paired
@@ -812,9 +796,9 @@ behavior is covered by
    `down·up⊑down·upᵀ` as primitive rules once the general function-cast
    simulations pass. Remove the uninhabited target-only type-application,
    `ν`, and casted-`ν` cases in the same audited migration.
-9. Keep the compositional quotient prototype only as a fallback. Return to it
-   only if a strict counterexample starts from a derivable ordinary top row
-   and cannot reduce to an ordinary-related join.
+9. Return to the deleted compositional alternative in Git history only if a
+   strict counterexample starts from a derivable ordinary top row and cannot
+   reduce to an ordinary-related join.
 10. Re-run the terminal-forward integration with the stricter hereditary
     paired-widening compatibility, then migrate the remaining known-incomplete
     strict proofs to the current uniqueness and binder-transport interfaces.
@@ -829,7 +813,7 @@ behavior is covered by
 
 Routine source audits:
 
-    make quotient-design-check
+    make qti-migration-check
     make dgg-check
     agda -v0 proof/OneStep/NuImprecisionOneStepDef.agda
     agda -v0 proof/DGG/TerminalBackward/NuDGGTerminalBackwardStrictSpine.agda
@@ -850,12 +834,8 @@ strict inventory spine, seven are explicitly known incomplete, and none are
 uninventoried. Focused Agda checks, not these source counts, establish
 completion.
 
-On 2026-07-27, `make quotient-design-check` passed after the authorized
-standard-library interface refresh. It checks the compositional examples, the
-independent reduction-closed examples, the single-boundary diagnostic, the
-target-instantiation creation example, and the canonical transport,
-terminality, and transport-spine experiments. A subsequent unprivileged
-strict check of
+On 2026-07-27, the pre-migration design aggregate passed after the authorized
+standard-library interface refresh. A subsequent unprivileged strict check of
 `NuImprecisionTargetInstantiationTransportExperiment.agda` passed in 2.6
 seconds, confirming that the local stdlib cache was coherent.
 The optimized focused check of
@@ -863,8 +843,8 @@ The optimized focused check of
 `Λ⊑instβᵀ` clauses were made explicit. Both strengthened fusion-spine folds
 pass strict focused checks.
 
-After completing the independent smaller relation on 2026-07-27,
-`make quotient-design-check` passed with all fourteen new strict roots:
+After completing the independent smaller relation on 2026-07-27, the
+pre-migration aggregate passed with all fourteen new strict roots:
 typing, values, term-context shift, parallel and single substitution, world
 embedding and renaming, compatibility renaming, embedded creation properties,
 the two constructor audits, the two consumer migrations, and the
@@ -875,11 +855,10 @@ Focused strict rechecks of the world-renaming and term-context-shift
 experiments passed after their final formatting edits, and `git diff --check`
 passed.
 
-The strict Cambridge26 Example 14 experiment passed on 2026-07-27. The
-subsequent `make quotient-design-check` aggregate also passed with the new
-experiment as a permanent check root. The source file has no lines over 80
-columns, `git diff --check` passes, and the new ledger display uses only the
-required `$$` delimiters.
+The strict Cambridge26 Example 14 experiment passed on 2026-07-27 and remains
+a migration check root. The source file has no lines over 80 columns,
+`git diff --check` passes, and the new ledger display uses only the required
+`$$` delimiters.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

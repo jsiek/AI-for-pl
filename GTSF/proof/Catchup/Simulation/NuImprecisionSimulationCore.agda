@@ -289,9 +289,10 @@ open import proof.Core.Properties.ConversionIndexCompatibilityProperties using
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
-  ( rel-store-embedding-composeⁱ
-  ; rel-store-embedding-prefix-invⁱ
-  )
+  (rel-store-embedding-composeⁱ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
+  using (rel-store-embedding-prefix-invⁱ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingProof using
   (rel-store-embedding-correspondenceⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef

@@ -20,8 +20,10 @@ open import NuTermImprecision using (StoreImp)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
-  ; rel-store-embedding-prefix-invⁱ
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
+  using (rel-store-embedding-prefix-invⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( weak-one-step-composeᵀ
   ; weak-one-step-prepend-left-silentᵀ

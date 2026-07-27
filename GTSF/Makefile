@@ -2,9 +2,63 @@
 # larger allocation area with a generous heap cap cuts checking time
 # substantially.
 AGDA = agda +RTS -A128M -M18G -RTS -v0
+STRICT_AGDA = agda --no-allow-unsolved-metas -v0
 PYTHON ?= python3
 DGG_STRICT_AGGREGATE = \
 	proof/DGG/Core/NuDGGUnassembledProofsStrictSpine.agda
+COMPOSITIONAL_QUOTIENT_EXAMPLES = \
+	proof/Quotient/NuImprecisionCompositionalQuotientExamples.agda
+REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
+	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
+CAMBRIDGE26_EXAMPLE14_EXPERIMENT = \
+	proof/Quotient/NuImprecisionCambridge26Example14Experiment.agda
+QUOTIENT_PROOF_DIR = proof/Quotient/
+REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES = \
+	NuImprecisionReductionClosedQuotientTypingExperiment.agda \
+	NuImprecisionReductionClosedQuotientValueExperiment.agda \
+	NuImprecisionReductionClosedQuotientTermContextShiftExperiment.agda \
+	NuImprecisionReductionClosedQuotientSubstitutionExperiment.agda \
+	NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment.agda
+REDUCTION_CLOSED_QUOTIENT_METATHEORY = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES))
+REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES = \
+	NuImprecisionReductionClosedCompatibilityRenameExperiment.agda \
+	NuImprecisionReductionClosedWorldEmbeddingExperiment.agda \
+	NuImprecisionReductionClosedWorldRenameExperiment.agda \
+	NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda
+REDUCTION_CLOSED_QUOTIENT_WORLD = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES))
+REDUCTION_CLOSED_QUOTIENT_AUDIT_MODULES = \
+	NuImprecisionReductionClosedQuotientIdOnlyCastAudit.agda \
+	NuImprecisionReductionClosedQuotientTransientAudit.agda
+REDUCTION_CLOSED_QUOTIENT_AUDITS = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(REDUCTION_CLOSED_QUOTIENT_AUDIT_MODULES))
+TARGET_INSTANTIATION_MIGRATION_MODULES = \
+	NuImprecisionTargetInstantiationConsumerMigrationExperiment.agda \
+	NuImprecisionTargetInstantiationFramedConsumerMigrationExperiment.agda \
+	NuImprecisionTargetInstantiationSimulationExperiment.agda
+TARGET_INSTANTIATION_MIGRATIONS = \
+	$(addprefix $(QUOTIENT_PROOF_DIR), \
+	  $(TARGET_INSTANTIATION_MIGRATION_MODULES))
+SINGLE_NARROWING_BOUNDARY_EXAMPLES = \
+	proof/Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda
+TARGET_INSTANTIATION_CREATION_EXAMPLES = \
+	proof/Quotient/NuImprecisionTargetInstantiationCreationExamples.agda
+TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT = \
+	proof/Quotient/NuImprecisionTargetInstantiationTransportExperiment.agda
+TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT = \
+	proof/Quotient/NuImprecisionTargetInstantiationTransportTerminalExperiment.agda
+TARGET_INSTANTIATION_TRANSPORT_SPINE_EXPERIMENT = \
+	proof/Quotient/NuImprecisionTargetInstantiationTransportSpineExperiment.agda
+
+define strict-check-each
+	@for module in $(1); do \
+		$(STRICT_AGDA) $$module || exit $$?; \
+	done
+endef
 
 # Check a single file with: make agda FILE=NuMetaTheory.agda
 FILE ?= All.agda
@@ -24,6 +78,22 @@ audit:
 dgg-check: audit
 	$(AGDA) $(DGG_STRICT_AGGREGATE)
 
+# Check both quotient-design alternatives and their reduction-shape examples
+# before changing the live DGG relation.
+quotient-design-check: audit
+	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
+	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
+	$(STRICT_AGDA) $(CAMBRIDGE26_EXAMPLE14_EXPERIMENT)
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_METATHEORY))
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_WORLD))
+	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_AUDITS))
+	$(call strict-check-each,$(TARGET_INSTANTIATION_MIGRATIONS))
+	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_CREATION_EXAMPLES)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_SPINE_EXPERIMENT)
+
 # Per-definition time report; pick the target with FILE=...
 profile:
 	$(AGDA) --profile=definitions $(FILE)
@@ -34,4 +104,5 @@ profile-modules:
 clean:
 	find . -name '*~' -delete
 
-.PHONY: check agda audit dgg-check profile profile-modules clean
+.PHONY: check agda audit dgg-check quotient-design-check profile \
+	profile-modules clean

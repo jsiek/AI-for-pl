@@ -1,9 +1,10 @@
 module proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra where
 
 -- File Charter:
---   * Proves prefix restriction and composition for relational-store
---     embeddings.
---   * Provides the focused algebra needed to compose weak-result lineage.
+--   * Proves reflexivity, congruence, type-binder lifting, and composition for
+--     relational-store embeddings.
+--   * Remains independent of every term-imprecision and store-prefix
+--     judgment; prefix inversion lives in its focused companion module.
 --   * Contains no simulation result, catch-up, or semantic dispatcher proof.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -36,11 +37,6 @@ open import NuTermImprecision using
   ; store-link
   ; store-matched
   ; store-right
-  )
-open import QuotientedTermImprecision using
-  ( StoreImpPrefix
-  ; prefix-reflⁱ
-  ; prefix-∷ⁱ
   )
 open import Types using (Renameᵗ; renameᵗ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
@@ -199,51 +195,6 @@ rel-store-embedding-congⁱ eqτ eqσ
     (trans eqB (rename-cong eqσ _))
     shape-eq
     (rel-store-embedding-congⁱ eqτ eqσ emb)
-
-
-rel-store-embedding-prefix-invⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ Θᴸ Θᴿ τ σ}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′⁺ : StoreImp Ψ Θᴸ Θᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  RelStoreEmbeddingⁱ τ σ ρ⁺ ρ′⁺ →
-  ∃[ ρ₀′ ]
-    RelStoreEmbeddingⁱ τ σ ρ₀ ρ₀′ ×
-    StoreImpPrefix ρ₀′ ρ′⁺
-rel-store-embedding-prefix-invⁱ prefix-reflⁱ emb =
-  _ , emb , prefix-reflⁱ
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched
-      eqα eqA eqβ eqB shape-eq emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-matched
-      eqα eqA eqβ eqB shape-eq emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-left eqα eqA emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-left eqα eqA emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-right eqβ eqB emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-right eqβ eqB emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link
-      eqα eqA eqβ eqB shape-eq emb)
-    with rel-store-embedding-prefix-invⁱ prefix emb
-rel-store-embedding-prefix-invⁱ (prefix-∷ⁱ prefix)
-    (rel-store-embedding-link
-      eqα eqA eqβ eqB shape-eq emb)
-    | ρ₀′ , emb₀ , prefix′ =
-  ρ₀′ , emb₀ , prefix-∷ⁱ prefix′
 
 
 private

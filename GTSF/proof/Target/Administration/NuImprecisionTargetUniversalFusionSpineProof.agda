@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Folds the constructor-form universal target-instantiation fusion spine
 --     back into quotiented term imprecision.
---   * Rebuilds matched-lambda bases and fused steps without changing either
---     the generic origin index or the arbitrary final precision index.
+--   * Rebuilds matched-lambda bases and fused steps while retaining equality
+--     between each generic origin and canonical transported final index.
 --   * Contains no extraction, normalization, world-coherent result,
 --     postulate, hole, permissive option, termination bypass, catch-all, or
 --     broad DGG import.
@@ -33,6 +33,7 @@ target-universal-fusion-spine-relation-proofᵀ
       vW noW vW′ noW′ inert tail f inst-shape creation-square
       assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq p
+      canonical-index
       final-v final-no final-closed
       final-v′ final-no′ final-closed′
       source-typing target-typing) =

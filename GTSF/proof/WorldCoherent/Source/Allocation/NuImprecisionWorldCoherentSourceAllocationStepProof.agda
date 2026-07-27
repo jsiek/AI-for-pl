@@ -154,8 +154,10 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ; lift-store-embeddingⁱ
   ; rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
-  ; rel-store-embedding-prefix-invⁱ
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
+  using (rel-store-embedding-prefix-invⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( equality-proof-unique
   ; nu-term-imprecision-transport-typesᵀ

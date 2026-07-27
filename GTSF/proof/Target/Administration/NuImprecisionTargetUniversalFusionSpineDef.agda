@@ -6,7 +6,7 @@ module
 --   * Defines the constructor-form spine of recursively nested universal
 --     target-instantiation fusion frames.
 --   * Retains one matched-lambda base, every fused frame's generic origin
---     index, and its arbitrary final precision index.
+--     index, and equality with its canonical transported final index.
 --   * States the fold from the spine back to quotiented term imprecision.
 --   * Contains no extraction, normalization, world-coherent result, proof,
 --     postulate, hole, permissive option, or broad DGG import.
@@ -17,6 +17,7 @@ import Coercions as C
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (suc; zero)
+open import Relation.Binary.PropositionalEquality using (sym)
 open import Imprecision using
   ( ImpCtx
   ; _ˣ⊑ˣ_
@@ -58,7 +59,11 @@ open import
   using (TyRenameWf)
 open import
   proof.EndpointMLB.Core.MaximalLowerBoundsWf
-  using (rename-assm²ᵢ)
+  using
+  ( rename-assm²ᵢ
+  ; ⊑-rename-at²ᵢ
+  ; ⊑-target-lift-rightᵢ
+  )
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
   using (RelStoreEmbeddingⁱ)
@@ -137,9 +142,12 @@ data TargetUniversalFusionSpine
       (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
     renameᵗᵐ τ (Λ W) ≡ M →
     renameᵗᵐ σ (W′ ⟨ C.`∀ c ⟩) ≡ M′ →
-    renameᵗ τ (`∀ D) ≡ A →
-    renameᵗ σ (⇑ᵗ (`∀ E)) ≡ `∀ H →
+    (source-type-eq : renameᵗ τ (`∀ D) ≡ A) →
+    (target-type-eq : renameᵗ σ (⇑ᵗ (`∀ E)) ≡ `∀ H) →
     (p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ H ⊣ Δᴿ) →
+    ⊑-rename-at²ᵢ assm hτ hσ
+      (sym source-type-eq) (sym target-type-eq)
+      (⊑-target-lift-rightᵢ f) ≡ p →
     Value M →
     No• M →
     Closedᵐ M →

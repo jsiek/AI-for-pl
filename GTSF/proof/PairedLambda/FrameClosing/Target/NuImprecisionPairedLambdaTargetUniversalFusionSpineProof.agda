@@ -60,6 +60,7 @@ paired-lambda-target-universal-fusion-spine-relation-proofᵀ
       vW noW vW′ noW′ inert tail f inst-shape creation-square
       assm hτ hσ store-emb
       source-eq target-eq source-type-eq target-type-eq p
+      canonical-index
       final-v final-no final-closed
       final-v′ final-no′ final-closed′
       source-typing target-typing frames) =

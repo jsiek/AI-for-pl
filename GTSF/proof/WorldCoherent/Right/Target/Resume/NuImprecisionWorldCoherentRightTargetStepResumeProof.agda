@@ -45,8 +45,10 @@ open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ
   ; rel-store-embedding-congⁱ
-  ; rel-store-embedding-prefix-invⁱ
   )
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
+  using (rel-store-embedding-prefix-invⁱ)
 open import proof.Right.Core.NuImprecisionRightContextAction using
   (applyRightImpCtxChanges; applyRightImpCtxChanges-++)
 open import

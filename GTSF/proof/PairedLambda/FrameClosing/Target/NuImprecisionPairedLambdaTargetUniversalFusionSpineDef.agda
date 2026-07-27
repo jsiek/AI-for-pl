@@ -8,6 +8,8 @@ module
 --     to paired-lambda frame closing.
 --   * Permits ordinary paired-lambda frames around the pure base and around
 --     every recursively nested target-instantiation fusion step.
+--   * Retains equality between every fused step's ambient final index and
+--     the canonical transported creation index.
 --   * States only the fold back to quotiented term imprecision; extraction
 --     and non-fusion residual routing remain separate boundaries.
 --   * Contains no simulation result, implementation, postulate, hole,
@@ -19,6 +21,7 @@ import Coercions as C
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (suc; zero)
+open import Relation.Binary.PropositionalEquality using (sym)
 open import Imprecision using
   ( ImpCtx
   ; _ˣ⊑ˣ_
@@ -59,7 +62,11 @@ open import
   using (TyRenameWf)
 open import
   proof.EndpointMLB.Core.MaximalLowerBoundsWf
-  using (rename-assm²ᵢ)
+  using
+  ( rename-assm²ᵢ
+  ; ⊑-rename-at²ᵢ
+  ; ⊑-target-lift-rightᵢ
+  )
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   using (PairedLambdaTargetClosingFrames)
@@ -141,9 +148,12 @@ data PairedLambdaTargetUniversalFusionSpine
       (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ₁ →
     renameᵗᵐ τ (Λ W) ≡ M →
     renameᵗᵐ σ (W′ ⟨ C.`∀ c ⟩) ≡ M′ →
-    renameᵗ τ (`∀ D) ≡ A →
-    renameᵗ σ (⇑ᵗ (`∀ E)) ≡ `∀ H →
+    (source-type-eq : renameᵗ τ (`∀ D) ≡ A) →
+    (target-type-eq : renameᵗ σ (⇑ᵗ (`∀ E)) ≡ `∀ H) →
     (p : Φ ∣ Δᴸ ⊢ A ⊑ `∀ H ⊣ Δᴿ) →
+    ⊑-rename-at²ᵢ assm hτ hσ
+      (sym source-type-eq) (sym target-type-eq)
+      (⊑-target-lift-rightᵢ f) ≡ p →
     Value M →
     No• M →
     Closedᵐ M →

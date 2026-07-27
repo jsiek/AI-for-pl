@@ -195,7 +195,7 @@ close-routeᴿ :
     ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
 close-routeᴿ relation =
   closeᴿ relation
-    (quotient-id-widening
+    (quotient-id-wideningᴿ
       (proj₁ (proj₂ up-D-result))
       (proj₁ (proj₂ up-E-result)))
     (proj₂ (proj₂ up-D-result))
@@ -430,6 +430,18 @@ identity-A⊑identity-A =
     (IWF.⊑-tgt-wf glb-bad-A⊑A)
     (x⊑xᵀ Types.Z)
 
+identity-A⊑identity-Aᴿ :
+  idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ ƛ (` zero) ⊑ ƛ (` zero)
+    ⦂ glb-bad-A ⇒ glb-bad-A
+    ⊑ glb-bad-A ⇒ glb-bad-A
+    ∶ identity-A-function⊑identity-A-function
+identity-A⊑identity-Aᴿ =
+  ƛ⊑ƛᴿ
+    (IWF.⊑-src-wf glb-bad-A⊑A)
+    (IWF.⊑-tgt-wf glb-bad-A⊑A)
+    (x⊑xᴿ Types.Z)
+
 closed-identity-functionsᴿ :
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
     ⊢ᴿ ((ƛ (` zero)) ⟨ inner-D ⟩) ⟨ outer-D ⟩
@@ -440,7 +452,7 @@ closed-identity-functionsᴿ :
 closed-identity-functionsᴿ =
   closeᴿ
     (paired-downᴿ
-      (ordinaryᴿ identity-A⊑identity-A)
+      identity-A⊑identity-Aᴿ
       id-only↓
       inner-D-typing
       (CastShape.shape-fun
@@ -452,7 +464,7 @@ closed-identity-functionsᴿ =
         (proj₂ (proj₂ up-E-result))
         (proj₂ (proj₂ down-E-result)))
       identity-function-quotient-square)
-    (quotient-id-widening outer-D-typing outer-E-typing)
+    (quotient-id-wideningᴿ outer-D-typing outer-E-typing)
     (CastShape.shape-fun
       (proj₂ (proj₂ down-D-result))
       (proj₂ (proj₂ up-D-result)))
@@ -546,7 +558,7 @@ two-function-casts-identity-reduction
 two-round-tripsᴿ :
   ∀ {W W′ : Term} →
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
-    ⊢ᴺ W ⊑ W′
+    ⊢ᴿ W ⊑ W′
     ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A →
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
     ⊢ᴿ
@@ -557,7 +569,7 @@ two-round-tripsᴿ :
         ⟨ up-E ⟩)
     ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
 two-round-tripsᴿ W⊑W′ =
-  round-tripᴿ (round-tripᴿ (ordinaryᴿ W⊑W′))
+  round-tripᴿ (round-tripᴿ W⊑W′)
 
 two-round-tripsᵀ :
   ∀ {W W′ : Term} →

@@ -9,6 +9,8 @@ module
 --   * Retains the matched pre-allocation body relation, the cast/index
 --     creation equation, and the store lineage joining that body world to
 --     the final right-extended world.
+--   * Accepts the matched body relation as a parameter, so the residual is
+--     independent of every particular term-imprecision judgment.
 --   * Omits arbitrary endpoint renaming, store embedding, and endpoint
 --     equality transport; those belong in separate admissibility lemmas.
 --   * Does not construct or re-export a term-imprecision edge.
@@ -32,20 +34,27 @@ open import NuTermImprecision using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
+  ; StoreImpEntry
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-right
   )
 open import NuTerms using
   (No•; Term; Value; Λ_; _⟨_⟩)
-open import QuotientedTermImprecision using
-  ( StoreImpPrefix
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  )
 open import TermTyping using
   (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using
   (Ty; TyCtx; ★; wf★; `∀; ⇑ᵗ)
+
+
+data StoreImpPrefixᴿ {Φ Δᴸ Δᴿ} :
+    StoreImp Φ Δᴸ Δᴿ → StoreImp Φ Δᴸ Δᴿ → Set where
+  prefix-reflᴿ : ∀ {ρ} → StoreImpPrefixᴿ ρ ρ
+
+  prefix-∷ᴿ :
+    ∀ {ρ₀ ρ⁺} {entry : StoreImpEntry Φ Δᴸ Δᴿ} →
+    StoreImpPrefixᴿ ρ₀ ρ⁺ →
+    StoreImpPrefixᴿ ρ₀ (entry ∷ ρ⁺)
 
 
 record TargetInstantiationCreation
@@ -58,10 +67,11 @@ record TargetInstantiationCreation
     {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
-    {body-shape : ImprecisionShape} : Set₁ where
+    {body-shape : ImprecisionShape}
+    (body-relation : Set₁) : Set₁ where
   constructor target-instantiation-creation
   field
-    store-prefix : StoreImpPrefix ρ₀ ρ⁺
+    store-prefix : StoreImpPrefixᴿ ρ₀ ρ⁺
     cast-mode : CastMode μ
     seal-mode : SealModeStore★ μ (rightStoreⁱ ρ₀)
     instantiation-typing :
@@ -76,10 +86,7 @@ record TargetInstantiationCreation
     target-body-value : Value W′
     target-body-no-bullet : No• W′
     body-cast-inert : Inert s
-    matched-body-relation :
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-        ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
-        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r
+    matched-body-relation : body-relation
     instantiation-shape :
       widening ⊢ᶜ inst B s ⦂ νˢ body-shape
     index-composition :

@@ -524,6 +524,108 @@ Unlike `Λ⊑instβᵀ`, it should not receive arbitrary renamings, an arbitrary
 store embedding, endpoint equalities, closure witnesses, or an arbitrary final
 index. Those operations should be admissibility lemmas over this exact rule.
 
+### Independent prototype and transport test
+
+The checked smaller judgment now has no constructor that embeds the live
+term-imprecision judgment.  In particular, the former `ordinaryᴿ` escape
+hatch has been deleted.  Variables, abstractions, applications, constants,
+primitive operations, ordinary casts, paired boundaries, matched
+abstractions, and source-only abstractions are represented by constructors of
+the smaller judgment itself.
+
+`TargetInstantiationCreation` is now parametric in its matched body relation.
+It therefore records the creation square without depending on either the live
+relation or the smaller relation.  The smaller exact-creation constructor has
+one premise:
+
+$$
+\mathsf{TargetInstantiationCreation}\bigl(W\mathrel{\sqsubseteq_q}W'\bigr).
+$$
+
+Its conclusion is the exact post-allocation edge:
+
+$$
+\Lambda W\mathrel{\sqsubseteq_{\mathord{\uparrow_R}p}}W'\langle s\rangle.
+$$
+
+The first transport experiment shows that this exact rule is not itself
+closed under the generalized store embeddings used by nested universal
+fusion.  A relational store embedding may rename the freshly created target
+seal from `0` to another name.  The exact constructor deliberately creates
+the distinguished right entry at `0`, so it cannot directly reconstruct that
+renamed conclusion.
+
+The smaller relation therefore now has one closed-endpoint transport rule.
+From an ordinary smaller-relation edge,
+
+$$
+M\mathrel{\sqsubseteq_p}M',
+$$
+
+an assumption-preserving pair of renamings and a relational store embedding
+produce
+
+$$
+\mathsf{rename}_{\tau}(M)
+\mathrel{\sqsubseteq_{\mathsf{rename}_{\tau,\sigma}(p)}}
+\mathsf{rename}_{\sigma}(M').
+$$
+
+The endpoint typings are explicit premises of this rule.  This is necessary
+because the general store embedding does not require the renamings to have
+left inverses.
+
+The focused transport proof composes this rule with exact creation.  Its
+result index is not arbitrary; it is exactly
+
+$$
+\mathsf{rename}_{\tau,\sigma}
+\bigl(\mathord{\uparrow_R}p\bigr).
+$$
+
+Endpoint equalities may replace the four renamed terms and types, but the
+client-supplied index must satisfy
+
+$$
+p_{\mathrm{client}}
+\mathrel{=}
+\mathsf{transportEndpoints}
+\left(
+  \mathsf{rename}_{\tau,\sigma}
+  \bigl(\mathord{\uparrow_R}p\bigr)
+\right).
+$$
+
+This equality is the tighter invariant missing from the current generalized
+`fusion-step`: that constructor carries its origin index and an arbitrary
+final index without relating them.  The exact creation plus transport
+decomposition works when this equality is added.
+
+The finite-spine consumer test also succeeds.  Every step retains the exact
+creation premises, the exact post-allocation endpoint typings, the relational
+store embedding, the four endpoint equalities, and the canonical final-index
+equality.  The spine folds recursively into the independent smaller relation:
+the recursive body supplies the relation parameter of
+`TargetInstantiationCreation`, and the endpoint transport theorem supplies
+the outer step.  Thus arbitrarily nested target-instantiation creation does
+not require restoring the large fused constructor.
+
+This result uses one new generic `rename-storeᴿ` constructor in the smaller
+relation.  It replaces the creation-specific renaming and store-embedding
+fields with a relation-wide closed-endpoint transport boundary.  The
+experiment therefore relocates one proof obligation rather than eliminating
+it: simulation must show that reduction is equivariant under this transport
+boundary, or a later proof must make `rename-storeᴿ` admissible and remove it
+as a primitive constructor.  The benefit is that this obligation is stated
+once for every ordinary constructor instead of being hidden inside target
+instantiation creation.
+
+The remaining migration question is empirical: each live
+`Λ⊑instβᵀ` consumer must be audited to see whether it can prove the canonical
+final-index equality.  A consumer that cannot do so is evidence that the old
+constructor accepted an unrelated proof-relevant index, not evidence that
+exact creation or its transport failed.
+
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a
 universal quantifier that was matched with a universal quantifier on the

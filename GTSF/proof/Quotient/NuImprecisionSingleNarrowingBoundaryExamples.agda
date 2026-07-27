@@ -84,8 +84,8 @@ open import
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
   using
-  ( _∣_∣_∣_∣_⊢ᴿᵖ_⊑_⦂_⊑ᵖ_∶_
-  ; ordinaryᴿ
+  ( _∣_∣_∣_∣_⊢ᴿ_⊑_⦂_⊑_∶_
+  ; _∣_∣_∣_∣_⊢ᴿᵖ_⊑_⦂_⊑ᵖ_∶_
   ; paired-downᴿ
   )
 open import
@@ -250,7 +250,7 @@ target-two-down-shapes =
 first-genuine-downᴿ :
   ∀ {W W′} →
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
-    ⊢ᴺ W ⊑ W′
+    ⊢ᴿ W ⊑ W′
     ⦂ glb-bad-A ⇒ glb-bad-A
     ⊑ glb-bad-A ⇒ glb-bad-A
     ∶ identity-A-function⊑identity-A-function →
@@ -260,7 +260,7 @@ first-genuine-downᴿ :
     ⦂ first-source-domain ⊑ᵖ first-target-domain
     ∶ first-domain-quotient
 first-genuine-downᴿ relation =
-  paired-downᴿ (ordinaryᴿ relation)
+  paired-downᴿ relation
     id-only↓
     (proj₁ (proj₂ first-source-down-result))
     (proj₂ (proj₂ first-source-down-result))

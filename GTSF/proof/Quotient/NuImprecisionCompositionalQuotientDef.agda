@@ -19,7 +19,7 @@ open import CastImprecisionShape using
   ; widening
   ; _⊢ᶜ_⦂_
   )
-open import Coercions using (Coercion; ModeEnv; id-onlyᵈ)
+open import Coercions using (ModeEnv)
 open import ForallPermutation using
   ( _∣_⊢_⊑ᵖ_⊣_
   ; quotientᵖ
@@ -28,12 +28,7 @@ open import ForallPermutation using
   )
 open import Imprecision using (ImpCtx)
 open import ImprecisionComposition using
-  ( ImprecisionShape
-  ; _⊢_≈∀ˢ_
-  ; source-perm-refl
-  ; _；_≋_
-  ; _；⌊_⌋≋ᵖ_；_
-  )
+  (ImprecisionShape; _；_≋_; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -51,28 +46,15 @@ open import QuotientedTermImprecision using
   ; QuotientWideningPair
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
-open import TermTyping using
-  ( CastMode
-  ; SealModeStore★
-  )
+open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx; Store; _⇒_)
+open import
+  proof.Quotient.NuImprecisionQuotientBoundarySupport
+  public
 
 ------------------------------------------------------------------------
 -- Finite narrowing cast spines
 ------------------------------------------------------------------------
-
-data SpineCastMode (Σ : Store) : ModeEnv → Set where
-  id-only↓ :
-    SpineCastMode Σ id-onlyᵈ
-
-  gradual↓ :
-    ∀ {μ} →
-    CastMode μ →
-    SealModeStore★ μ Σ →
-    SpineCastMode Σ μ
-
 
 data NarrowingSpine (Δ : TyCtx) (Σ : Store) :
     Term → Ty → Term → Ty → ImprecisionShape → Set₁ where
@@ -113,37 +95,6 @@ data QuotientForm : Set where
 ------------------------------------------------------------------------
 -- Hereditary widening compatibility through quotient representatives
 ------------------------------------------------------------------------
-
-data QuotientWideningCompatible
-    (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx) :
-    (u u′ : Coercion) → {D D′ A A′ : Ty} →
-    (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
-    ImprecisionShape → ImprecisionShape → Set where
-
-  compatible-through-representatives :
-    ∀ {u u′ D D′ A A′ C C′ r p s s′ t t′}
-      {src : D ForallPermutation.≈∀ C}
-      {tgt : C′ ForallPermutation.≈∀ D′} →
-    src ⊢ s ≈∀ˢ t →
-    tgt ⊢ t′ ≈∀ˢ s′ →
-    PairedWideningCompatible Φ Δᴸ Δᴿ u u′
-      {C} {C′} {A} {A′} r p t t′ →
-    QuotientWideningCompatible Φ Δᴸ Δᴿ u u′
-      (quotientᵖ src r tgt) p s s′
-
-
-exact-widening-compatible :
-  ∀ {Φ Δᴸ Δᴿ u u′ D D′ A A′ r p s s′} →
-  PairedWideningCompatible Φ Δᴸ Δᴿ u u′
-    {D} {D′} {A} {A′} r p s s′ →
-  QuotientWideningCompatible Φ Δᴸ Δᴿ u u′
-    (quotientᵖ ≈∀-refl r ≈∀-refl) p s s′
-exact-widening-compatible compatible =
-  compatible-through-representatives
-    {src = ≈∀-refl} {tgt = ≈∀-refl}
-    source-perm-refl source-perm-refl compatible
-
 
 infix 4 _∣_∣_∣_∣_⊢ᴺᶜ[_]_⊑_⦂_⊑ᵖ_∶_
 

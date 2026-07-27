@@ -50,6 +50,7 @@ open import NuTermImprecision using
   ; lift-right-store-[]
   ; lift-store-[]
   ; seal★-tag-or-id
+  ; store-right
   )
 open import NuTerms using
   ( No•
@@ -64,8 +65,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( prefix-reflⁱ
-  ; ⊑cast⊑ᵀ
+  ( ⊑cast⊑ᵀ
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; Λ⊑Λᵀ
@@ -89,12 +89,29 @@ open import Types using
   ; ＇_
   ; _⇒_
   ; `∀
+  ; ⇑ᵗ
+  )
+open import
+  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  using (⊑-target-lift-rightᵢ)
+open import
+  proof.Quotient.NuImprecisionReductionClosedQuotientDef
+  using
+  ( target-instantiationᴿ
+  ; x⊑xᴿ
+  ; ƛ⊑ƛᴿ
+  ; Λ⊑Λᴿ
+  ; ⊑cast⊑ᴿ
+  ; _∣_∣_∣_∣_⊢ᴿ_⊑_⦂_⊑_∶_
   )
 open import proof.Core.Properties.TypePreservation using (seal★-inst)
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
-  (TargetInstantiationCreation; target-instantiation-creation)
+  ( TargetInstantiationCreation
+  ; prefix-reflᴿ
+  ; target-instantiation-creation
+  )
 
 
 private
@@ -156,6 +173,16 @@ private
     ƛ⊑ƛᵀ (Types.wfVar z<s) (Types.wfVar z<s)
       (x⊑xᵀ Types.Z)
 
+  matched-body-relationᴿ :
+    ((zero ˣ⊑ˣ zero) ∷ [])
+      ∣ suc zero ∣ suc zero ∣ [] ∣ []
+      ⊢ᴿ I ⊑ I
+      ⦂ (＇ zero ⇒ ＇ zero) ⊑ (＇ zero ⇒ ＇ zero)
+      ∶ matched-body-index
+  matched-body-relationᴿ =
+    ƛ⊑ƛᴿ (Types.wfVar z<s) (Types.wfVar z<s)
+      (x⊑xᴿ Types.Z)
+
   matched-universal-relation :
     [] ∣ zero ∣ zero ∣ [] ∣ []
       ⊢ᴺ Λ I ⊑ Λ I
@@ -165,6 +192,16 @@ private
   matched-universal-relation =
     Λ⊑Λᵀ lift-store-[] lift-ctx-[]
       vI vI matched-body-relation
+
+  matched-universal-relationᴿ :
+    [] ∣ zero ∣ zero ∣ [] ∣ []
+      ⊢ᴿ Λ I ⊑ Λ I
+      ⦂ `∀ (＇ zero ⇒ ＇ zero)
+        ⊑ `∀ (＇ zero ⇒ ＇ zero)
+      ∶ ∀ⁱ matched-body-index
+  matched-universal-relationᴿ =
+    Λ⊑Λᴿ lift-store-[] lift-ctx-[]
+      vI vI matched-body-relationᴿ
 
   body-cast-typing :
     C.instᵈ C.tag-or-idᵈ
@@ -236,9 +273,14 @@ target-instantiation-creation-test :
     {s = body-cast} {μ = C.tag-or-idᵈ}
     {r = matched-body-index} {f = final-index}
     {body-shape = tagˣˢ ↦ˢ tagˣˢ}
+    (((zero ˣ⊑ˣ zero) ∷ [])
+      ∣ suc zero ∣ suc zero ∣ [] ∣ []
+      ⊢ᴺ I ⊑ I
+      ⦂ (＇ zero ⇒ ＇ zero) ⊑ (＇ zero ⇒ ＇ zero)
+      ∶ matched-body-index)
 target-instantiation-creation-test =
   target-instantiation-creation
-    prefix-reflⁱ
+    prefix-reflᴿ
     cast-tag-or-id
     seal★-tag-or-id
     outer-cast-typing
@@ -269,6 +311,67 @@ initial-target-instantiation-relation =
     (shape-inst (shape-fun shape-seal shape-unseal))
     (comp-∀-ν
       (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
+
+
+initial-target-instantiation-relationᴿ :
+  [] ∣ zero ∣ zero ∣ [] ∣ []
+    ⊢ᴿ Λ I
+      ⊑ (Λ I) ⟨ C.inst (★ ⇒ ★) body-cast ⟩
+    ⦂ `∀ (＇ zero ⇒ ＇ zero) ⊑ (★ ⇒ ★)
+    ∶ final-index
+initial-target-instantiation-relationᴿ =
+  ⊑cast⊑ᴿ cast-tag-or-id seal★-tag-or-id
+    outer-cast-typing matched-universal-relationᴿ final-index
+    (shape-inst (shape-fun shape-seal shape-unseal))
+    (comp-∀-ν
+      (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
+
+
+target-instantiation-creation-testᴿ :
+  TargetInstantiationCreation
+    {Φ = []} {Δᴸ = zero} {Δᴿ = zero}
+    {ρ₀ = []} {ρ⁺ = []} {ρ∀ = []} {ρᴿ⁺ = []}
+    {W = I} {W′ = I}
+    {B = ★ ⇒ ★}
+    {C = ＇ zero ⇒ ＇ zero}
+    {D = ＇ zero ⇒ ＇ zero}
+    {s = body-cast} {μ = C.tag-or-idᵈ}
+    {r = matched-body-index} {f = final-index}
+    {body-shape = tagˣˢ ↦ˢ tagˣˢ}
+    (((zero ˣ⊑ˣ zero) ∷ [])
+      ∣ suc zero ∣ suc zero ∣ [] ∣ []
+      ⊢ᴿ I ⊑ I
+      ⦂ (＇ zero ⇒ ＇ zero) ⊑ (＇ zero ⇒ ＇ zero)
+      ∶ matched-body-index)
+target-instantiation-creation-testᴿ =
+  target-instantiation-creation
+    prefix-reflᴿ
+    cast-tag-or-id
+    seal★-tag-or-id
+    outer-cast-typing
+    lift-store-[]
+    lift-right-store-[]
+    vI
+    noI
+    vI
+    noI
+    (C.seal ★ zero C.↦ C.unseal zero ★)
+    matched-body-relationᴿ
+    (shape-inst (shape-fun shape-seal shape-unseal))
+    (comp-∀-ν
+      (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
+    source-result-typing
+    target-result-typing
+
+
+created-target-instantiation-relationᴿ :
+  [] ∣ zero ∣ suc zero
+    ∣ store-right zero ★ wf★ ∷ [] ∣ []
+    ⊢ᴿ Λ I ⊑ I ⟨ body-cast ⟩
+    ⦂ `∀ (＇ zero ⇒ ＇ zero) ⊑ ⇑ᵗ (★ ⇒ ★)
+    ∶ ⊑-target-lift-rightᵢ final-index
+created-target-instantiation-relationᴿ =
+  target-instantiationᴿ target-instantiation-creation-testᴿ
 
 
 target-instantiation-administrative-trace :

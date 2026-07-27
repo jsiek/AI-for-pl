@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 2 complete; phase 3 not started**
+**MIGRATION IN PROGRESS — phase 3 consumer set frozen; grammar unchanged**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -175,12 +175,68 @@ definition all pass focused checks.
 
 ### Phase 3. Remove asymmetric administrative shortcuts
 
+- the frozen grammar deletion set is exactly `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`,
+  `νcast⊑ᵀ`, and `νcast⊑νcastᵀ`;
+- the first three constructors are deleted by the strict index-cycle
+  obstruction; the last two are deleted only after their reachable
+  simulation residuals take the complete instantiation tail and return
+  through ordinary type application plus widening;
 - delete uninhabited target-only type application, `ν`, and casted-`ν` cases;
 - replace source casted-`ν` shortcuts with ordinary source `ν` and cast
   structure;
 - migrate exhaustive transports and inversions using the selected prototype
   as the coverage checklist;
 - check focused metatheory roots, followed by one public-DGG phase gate.
+
+The following is the complete frozen live-consumer set before the grammar
+edit, excluding `QuotientedTermImprecision.agda` itself:
+
+- `../Catchup/Core/NuImprecisionCatchupScratch.agda`;
+- `../Catchup/Simulation/NuImprecisionSimulationCore.agda`;
+- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeCommutationProof.agda`;
+- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTargetBulletDef.agda`;
+- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTargetBulletProof.agda`;
+- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTransportProof.agda`;
+- `../Left/Core/NuImprecisionLeftRenameNoBulletProof.agda`;
+- `../NuCore/Misc/NuImprecisionAllocationSimulation.agda`;
+- `../NuCore/Misc/NuImprecisionWorldEmbeddingNoBullet.agda`;
+- `../OneStep/NuImprecisionAtomicTargetReindex.agda`;
+- `../PairedLambda/FrameClosing/Target/NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`;
+- `../Right/AllocationRuntime/NuImprecisionRightTargetAllocationSourceBulletTransportProof.agda`;
+- `../Right/AllocationRuntime/NuImprecisionRightTargetAllocationSourceOnlyBulletTransportProof.agda`;
+- `../Substitution/Parallel/NuImprecisionParallelTermSubstitutionProof.agda`;
+- `../Substitution/Term/NuImprecisionTermContextShiftProof.agda`;
+- `../Target/Core/NuImprecisionTargetBlameCatchup.agda`;
+- `../Target/Core/NuImprecisionTargetBulletSourceApplicationExclusionProof.agda`;
+- `../Target/Core/NuImprecisionTargetBulletSourceValueExclusionProof.agda`;
+- `../Target/Core/NuImprecisionTargetValueSourceApplicationExclusionProof.agda`;
+- `../WorldCoherent/Right/Target/Other/NuImprecisionWorldCoherentRightTargetBulletClosingProof.agda`;
+- `../WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaRelationCounterexample.agda`;
+- `../WorldCoherent/Right/Value/Catchup/NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`;
+- `../WorldCoherent/Right/Value/Transport/NuImprecisionWorldCoherentRightValueCatchupRuntimeNoBulletTransportProof.agda`;
+- `../WorldCoherent/Source/Allocation/NuImprecisionWorldCoherentSourceAllocationStepProof.agda`;
+- `../WorldCoherent/Source/FunctionCastBeta/Scheduling/NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingDispatcherProof.agda`;
+- `../WorldCoherent/Source/LambdaBeta/NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda`;
+- `../WorldCoherent/Source/Misc/NuImprecisionWorldCoherentSourceNuFrameStepProof.agda`;
+- `../WorldCoherent/Source/Primitive/NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda`;
+- `../WorldCoherent/Source/RevealConceal/NuImprecisionWorldCoherentSourceConcealCatchup.agda`;
+- `../WorldCoherent/Source/RuntimeSteps/NuImprecisionWorldCoherentSourceCastFrameStepProof.agda`;
+- `../WorldCoherent/Value/NuImprecisionWorldCoherentValueCatchupPrefixProof.agda`; and
+- `../WorldCoherent/Value/NuImprecisionWorldCoherentValueCatchupRuntimeSiblingPrefixProof.agda`.
+
+This list was computed with exact constructor searches; in particular, the
+target-only searches exclude the suffixes of `α⊑αᵀ` and `ν⊑νᵀ`. No file may
+be added to this set after the grammar edit. A file leaves the set when its
+focused replacement passes or when its last importer has moved and it is
+deleted under the policy below.
+
+`../../NuTermImprecision.agda` is not a live-QTI consumer. It still contains
+the older first-draft judgment beside the store/context infrastructure used
+throughout the live proof. Phase 3 does not confuse its identically named
+constructors with the QTI deletion set. Phase 5 must split out the retained
+infrastructure and delete that obsolete first-draft judgment, so the final
+source search can contain no retired constructor merely because it shared a
+support module.
 
 ### Phase 4. Replace the quotient boundary
 

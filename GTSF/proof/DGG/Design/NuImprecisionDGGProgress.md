@@ -60,7 +60,7 @@ The public statement and compiler boundary are checked, but no complete
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 2 complete; phase 3 not started**
+**MIGRATION IN PROGRESS — phase 3 consumer set frozen; grammar unchanged**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -71,6 +71,17 @@ migrated its consumers, and deleted the obsolete helper islands. The manifest
 distinguishes the remaining selected migration evidence from retiring live
 clients, specifies exactly when check roots leave the regression surface, and
 requires deletion rather than compatibility wrappers.
+
+The Phase 3 audit is now frozen before the grammar edit. The exact deletion
+set is `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`, `νcast⊑ᵀ`, and
+`νcast⊑νcastᵀ`; the manifest records every live source file that mentions one
+of those constructors. The three target-only cases are removed by the strict
+index-cycle obstruction. The cast-specialized matched and source-only cases
+instead require the reachable instantiation residual to take its reduction
+tail and return through ordinary type application plus widening. The old
+first-draft judgment still cohabiting `NuTermImprecision.agda` is explicitly
+not treated as a QTI consumer; its widely used store/context infrastructure
+must be split out before the obsolete judgment is deleted in Phase 5.
 
 The phase order is:
 
@@ -764,10 +775,10 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Audit every direct and coverage-only consumer of target-only type
-   application, target-only `ν`, target-only casted `ν`, and source casted
-   `ν`; freeze that Phase 3 consumer list before the next grammar edit.
-2. Remove the Phase 3 constructor family in one live grammar edit. Rebuild
+1. Remove the frozen Phase 3 constructor family in one live grammar edit.
+   The complete consumer list and exact constructor queries are recorded in
+   the quotient lifecycle manifest.
+2. Rebuild
    source casted-`ν` cases from ordinary source `ν` plus cast or conversion
    structure, and delete helpers after their last focused replacement passes.
 3. Run focused Phase 3 leaves, the source import/strict-cone audit, and one

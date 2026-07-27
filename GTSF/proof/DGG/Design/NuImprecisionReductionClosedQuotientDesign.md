@@ -105,8 +105,64 @@ $$
 }.
 $$
 
-Variables, blame, constants, and primitive operations retain their ordinary
-rules as well.  In particular, application consumes only ordinary premises.
+Variables are related according to the ordinary imprecision index stored in
+the term context:
+
+$$
+\frac{
+  x : A \mathrel{\sqsubseteq_p} A' \in \Gamma
+}{
+  x \mathrel{\sqsubseteq_p} x
+  : A \mathrel{\sqsubseteq} A'
+}.
+$$
+
+Blame on the less precise side is related to every target term at the indexed
+target type:
+
+$$
+\frac{}{
+  \mathsf{blame}
+  \mathrel{\sqsubseteq_p}
+  M'
+  : A \mathrel{\sqsubseteq} A'
+}.
+$$
+
+The suppressed premise checks that `M'` has type `A'`.
+
+Natural-number constants are related only to the same constant:
+
+$$
+\frac{}{
+  \kappa_{\mathbb N}(n)
+  \mathrel{\sqsubseteq_{\mathsf{id}_{\mathbb N}}}
+  \kappa_{\mathbb N}(n)
+  : \mathbb N \mathrel{\sqsubseteq} \mathbb N
+}.
+$$
+
+The primitive addition rule is structural at the identity index:
+
+$$
+\frac{
+  L
+  \mathrel{\sqsubseteq_{\mathsf{id}_{\mathbb N}}}
+  L'
+  \qquad
+  M
+  \mathrel{\sqsubseteq_{\mathsf{id}_{\mathbb N}}}
+  M'
+}{
+  L \mathbin{\oplus} M
+  \mathrel{\sqsubseteq_{\mathsf{id}_{\mathbb N}}}
+  L' \mathbin{\oplus} M'
+  : \mathbb N \mathrel{\sqsubseteq} \mathbb N
+}.
+$$
+
+In particular, application and primitive operations consume only ordinary
+premises.
 
 The polymorphic rules also remain ordinary.  Their essential index changes
 are:
@@ -146,93 +202,390 @@ $$
 }.
 $$
 
-The `ν` term follows the same discipline:
+The `ν` term follows the same discipline.  To display its index equations,
+write `↑A` for the weakening of `A` under the freshly allocated type
+variable, and write `lift` for the corresponding extension of an outer
+imprecision index.  The symbol `≐` below denotes the proof-relevant index
+compatibility judgment implemented in Agda, not propositional equality.
+
+In the matched case, the selected source and target types are themselves
+ordinarily related:
 
 $$
 \frac{
+  A \mathrel{\sqsubseteq_{p_A}} A'
+  \qquad
   N \mathrel{\sqsubseteq_{\forall^{\,i}q}} N'
+  \qquad
+  q[
+    0 \mapsto {\uparrow A}
+    \mathrel{\sqsubseteq_{\operatorname{lift}(p_A)}}
+    {\uparrow A'} \mapsfrom 0
+  ]^P
+  \doteq
+  \operatorname{lift}_{\forall}(p)
 }{
   \nu A\,N\,s
   \mathrel{\sqsubseteq_p}
   \nu A'\,N'\,s'
 }
-\qquad
+.
+$$
+
+In the source-only case, instantiating the source-only index must produce the
+lift of the result index:
+
+$$
 \frac{
   N \mathrel{\sqsubseteq_{\nu q}} N'
+  \qquad
+  q[0 \mapsto {\uparrow A}]^L
+  \doteq
+  \operatorname{lift}_{\nu}^{L}(p)
 }{
   \nu A\,N\,s
   \mathrel{\sqsubseteq_p}
   N'
+}
+.
+$$
+
+The target-only case uses an ordinary bridge from the unchanged source type
+to the body of the target universal:
+
+$$
+\frac{
+  N \mathrel{\sqsubseteq_q} N'
+  : B \mathrel{\sqsubseteq} \forall C'
+  \qquad
+  B \mathrel{\sqsubseteq_r} C'
+  \qquad
+  r[0 \mapsto {\uparrow A}]^R
+  \doteq
+  \operatorname{lift}^{R}(p)
+}{
+  N
+  \mathrel{\sqsubseteq_p}
+  \nu A\,N'\,s
 }.
 $$
 
-The omitted equations apply the selected type instantiations to the inner
-index.  What matters here is that a matched `ν` rule can consume only
-`∀ⁱ`, while a source-only `ν` rule can consume only `ν`.  A derivation cannot
-silently remove on the left a universal quantifier that was matched with a
-universal quantifier on the right.
-
-The existing target-only type-application and `ν` cases remain ordinary too.
-None of the polymorphic rules accepts or produces quotient term imprecision.
+Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
+can consume only `ν`.  A derivation cannot silently remove on the left a
+universal quantifier that was matched with a universal quantifier on the
+right.  All three rules remain in the ordinary judgment; none accepts or
+produces quotient term imprecision.
 
 ## Ordinary cast and conversion rules
 
-One-sided casts remain ordinary whenever their type-imprecision triangle
-commutes.  Schematically, a source cast uses
+Write `⌊p⌋` for the structural shape of an ordinary type-imprecision index
+and `⌊c⌋` for the imprecision shape of a cast.  The judgment
 
 $$
-\begin{array}{ccc}
-A & \mathrel{\sqsubseteq_p} & A'\\
-\downarrow c & & \Vert\\
-B & \mathrel{\sqsubseteq_r} & A'
-\end{array}
-\qquad\Longrightarrow\qquad
-M\langle c\rangle
-\mathrel{\sqsubseteq_r}
-M'.
+s_1 \mathbin{;} s_2 \mathrel{\cong} s_3
 $$
 
-A target cast uses the mirror-image triangle:
+means that the two imprecision shapes on the left compose to the shape on the
+right.  It is a proof-relevant structural composition judgment.
+
+The four one-sided cast rules use different composition equations according
+to the side of the cast and its polarity.
+
+A source narrowing cast has the equation
 
 $$
-\begin{array}{ccc}
-A & \mathrel{\sqsubseteq_p} & A'\\
-\Vert & & \downarrow c'\\
-A & \mathrel{\sqsubseteq_r} & B'
-\end{array}
-\qquad\Longrightarrow\qquad
-M
-\mathrel{\sqsubseteq_r}
-M'\langle c'\rangle.
+\lfloor c\rfloor
+\mathbin{;}\lfloor p\rfloor
+\mathrel{\cong}
+\lfloor q\rfloor:
 $$
-
-These schemas cover both narrowing and widening; the direction of shape
-composition records which side of the triangle is traversed first.
-Reveal and conceal conversions likewise stay ordinary and update the ordinary
-index by the corresponding source or target type substitution.
-
-Paired casts also preserve the ordinary judgment when both the upper and
-lower horizontal edges are ordinary:
 
 $$
 \frac{
   M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
   \qquad
-  \begin{array}{ccc}
-  A & \mathrel{\sqsubseteq_p} & A'\\
-  \downarrow c & & \downarrow c'\\
-  B & \mathrel{\sqsubseteq_r} & B'
-  \end{array}
+  \operatorname{narrow}(c:A\Rightarrow B)
+  \qquad
+  B \mathrel{\sqsubseteq_q} A'
+  \qquad
+  \lfloor c\rfloor
+    \mathbin{;}\lfloor p\rfloor
+    \mathrel{\cong}\lfloor q\rfloor
 }{
   M\langle c\rangle
-  \mathrel{\sqsubseteq_r}
-  M'\langle c'\rangle
+  \mathrel{\sqsubseteq_q}
+  M'
+  : B \mathrel{\sqsubseteq} A'
 }.
 $$
 
-This paired rule includes the reveal, conceal, conversion, and ordinary
-widening cases already required by the live proof.  It does not cover a
-bottom edge that exists only modulo `∀`-permutation.
+A source widening cast has the equation
+
+$$
+\lfloor c\rfloor
+\mathbin{;}\lfloor q\rfloor
+\mathrel{\cong}
+\lfloor p\rfloor:
+$$
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{widen}(c:A\Rightarrow B)
+  \qquad
+  B \mathrel{\sqsubseteq_q} A'
+  \qquad
+  \lfloor c\rfloor
+    \mathbin{;}\lfloor q\rfloor
+    \mathrel{\cong}\lfloor p\rfloor
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'
+  : B \mathrel{\sqsubseteq} A'
+}.
+$$
+
+A target narrowing cast has the equation
+
+$$
+\lfloor q\rfloor
+\mathbin{;}\lfloor c'\rfloor
+\mathrel{\cong}
+\lfloor p\rfloor:
+$$
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{narrow}(c':A'\Rightarrow B')
+  \qquad
+  A \mathrel{\sqsubseteq_q} B'
+  \qquad
+  \lfloor q\rfloor
+    \mathbin{;}\lfloor c'\rfloor
+    \mathrel{\cong}\lfloor p\rfloor
+}{
+  M
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : A \mathrel{\sqsubseteq} B'
+}.
+$$
+
+A target widening cast has the equation
+
+$$
+\lfloor p\rfloor
+\mathbin{;}\lfloor c'\rfloor
+\mathrel{\cong}
+\lfloor q\rfloor:
+$$
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{widen}(c':A'\Rightarrow B')
+  \qquad
+  A \mathrel{\sqsubseteq_q} B'
+  \qquad
+  \lfloor p\rfloor
+    \mathbin{;}\lfloor c'\rfloor
+    \mathrel{\cong}\lfloor q\rfloor
+}{
+  M
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : A \mathrel{\sqsubseteq} B'
+}.
+$$
+
+Reveal and conceal conversions replace the shape-composition equation by an
+index-substitution equation.  The source reveal and conceal rules are
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{reveal}_L
+    (c:A\Rightarrow B;\alpha\mapsto X)
+  \qquad
+  B \mathrel{\sqsubseteq_q} A'
+  \qquad
+  p[\alpha\mapsto X]^L \doteq q
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'
+  : B \mathrel{\sqsubseteq} A'
+},
+$$
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{conceal}_L
+    (c:A\Rightarrow B;\alpha\mapsto X)
+  \qquad
+  B \mathrel{\sqsubseteq_q} A'
+  \qquad
+  q[\alpha\mapsto X]^L \doteq p
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'
+  : B \mathrel{\sqsubseteq} A'
+}.
+$$
+
+The target reveal and conceal rules are
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{reveal}_R
+    (c':A'\Rightarrow B';\beta\mapsto X')
+  \qquad
+  A \mathrel{\sqsubseteq_q} B'
+  \qquad
+  p[\beta\mapsto X']^R \doteq q
+}{
+  M
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : A \mathrel{\sqsubseteq} B'
+},
+$$
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{conceal}_R
+    (c':A'\Rightarrow B';\beta\mapsto X')
+  \qquad
+  A \mathrel{\sqsubseteq_q} B'
+  \qquad
+  q[\beta\mapsto X']^R \doteq p
+}{
+  M
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : A \mathrel{\sqsubseteq} B'
+}.
+$$
+
+Paired reveal uses the ordinary relation between the two selected store
+types as part of one simultaneous index substitution:
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{reveal}_L
+    (c:A\Rightarrow B;\alpha\mapsto X)
+  \qquad
+  \operatorname{reveal}_R
+    (c':A'\Rightarrow B';\beta\mapsto X')
+  \qquad
+  X \mathrel{\sqsubseteq_{p_X}} X'
+  \qquad
+  B \mathrel{\sqsubseteq_q} B'
+  \qquad
+  p[
+    \alpha\mapsto X
+    \mathrel{\sqsubseteq_{p_X}}
+    X'\mapsfrom\beta
+  ]^P
+  \doteq q
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : B \mathrel{\sqsubseteq} B'
+}.
+$$
+
+Paired conceal reverses that index-substitution equation:
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{conceal}_L
+    (c:A\Rightarrow B;\alpha\mapsto X)
+  \qquad
+  \operatorname{conceal}_R
+    (c':A'\Rightarrow B';\beta\mapsto X')
+  \qquad
+  X \mathrel{\sqsubseteq_{p_X}} X'
+  \qquad
+  B \mathrel{\sqsubseteq_q} B'
+  \qquad
+  q[
+    \alpha\mapsto X
+    \mathrel{\sqsubseteq_{p_X}}
+    X'\mapsfrom\beta
+  ]^P
+  \doteq p
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : B \mathrel{\sqsubseteq} B'
+}.
+$$
+
+Finally, an ordinary paired widening requires both paths to have one common
+composite shape, as well as operational compatibility:
+
+$$
+\frac{
+  M \mathrel{\sqsubseteq_p} M'
+  : A \mathrel{\sqsubseteq} A'
+  \qquad
+  \operatorname{widen}(c:A\Rightarrow B)
+  \qquad
+  \operatorname{widen}(c':A'\Rightarrow B')
+  \qquad
+  B \mathrel{\sqsubseteq_q} B'
+  \qquad
+  \lfloor c\rfloor
+    \mathbin{;}\lfloor q\rfloor
+    \mathrel{\cong} t
+  \qquad
+  \lfloor p\rfloor
+    \mathbin{;}\lfloor c'\rfloor
+    \mathrel{\cong} t
+  \qquad
+  \operatorname{compatible}(c,c';p,q)
+}{
+  M\langle c\rangle
+  \mathrel{\sqsubseteq_q}
+  M'\langle c'\rangle
+  : B \mathrel{\sqsubseteq} B'
+}.
+$$
+
+All these rules remain ordinary because their conclusions carry ordinary type
+imprecision.  The paired widening rule does not cover a lower horizontal edge
+that exists only modulo `∀`-permutation; that case belongs to quotient
+closing below.
 
 ## The only quotient introduction
 
@@ -250,6 +603,11 @@ $$
   \end{array}
   \qquad
   d,d' \text{ are narrowing}
+  \qquad
+  \lfloor d\rfloor
+    \mathbin{;}\lfloor p\rfloor
+    \mathrel{\cong^\forall_q}
+    \mathbin{;}\lfloor d'\rfloor
 }{
   M\langle d\rangle
   \mathrel{\sqsubseteq^\forall_q}
@@ -257,16 +615,7 @@ $$
 }.
 $$
 
-The square includes the existing composition condition
-
-$$
-\operatorname{shape}(d)
-\mathbin{;}\lfloor p\rfloor
-\mathrel{\cong^\forall_q}
-\mathbin{;}\operatorname{shape}(d').
-$$
-
-That condition says that both paths through the square have the same
+The final premise says that both paths through the square have the same
 imprecision shape after moving to the representatives stored in `q`.
 
 The premise is deliberately ordinary.  Therefore this rule cannot put a
@@ -289,20 +638,16 @@ $$
   u,u' \text{ are widening}
   \qquad
   u,u' \text{ are operationally compatible}
+  \qquad
+  \lfloor u\rfloor
+    \mathbin{;}\lfloor p\rfloor
+    \mathrel{\cong^\forall_q}
+    \mathbin{;}\lfloor u'\rfloor
 }{
   N\langle u\rangle
   \mathrel{\sqsubseteq_p}
   N'\langle u'\rangle
 }.
-$$
-
-The corresponding composition condition is
-
-$$
-\operatorname{shape}(u)
-\mathbin{;}\lfloor p\rfloor
-\mathrel{\cong^\forall_q}
-\mathbin{;}\operatorname{shape}(u').
 $$
 
 Operational compatibility is not merely another typing premise.  It is the

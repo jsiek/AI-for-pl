@@ -344,7 +344,10 @@ conversion, and conceal conversion value-catch-up cases.
   bilateral reduction before requiring its final ordinary horizontal edge.
   The note also records that the same-polarity two-narrowing stress test lacks
   an ordinarily related top row and therefore does not refute this smaller
-  design.
+  design. Its ordinary layer now states the variable, blame, natural-number,
+  addition, one-sided cast, paired conversion, and paired widening rules
+  explicitly, including every relevant index-composition or
+  index-substitution premise.
 
 ## Counterexample policy and audit
 

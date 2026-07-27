@@ -23,10 +23,13 @@ relation-level two-function-cast and arbitrary-substitution tests. It now
 permits exactly one paired narrowing cast, not a finite spine. A
 same-polarity stress test separates an unconditionally expressible
 two-narrowing residual from residuals reachable from the live ordinary
-relation; the remaining operational test is the allocation-aware catch-up
-forced by the active `inst` cast on one permutation route. Neither prototype
-has replaced `QuotientedTermImprecision`. The public statement and compiler
-boundary are checked, but no complete theorem inhabitant exists yet.
+relation. The allocation-aware target-`inst` test is now complete: the valid
+top row and target trace need no fused final edge, but the final stable values
+cannot be related by ordinary source-only-lambda and target-cast rules. The
+matched body relation, creation equation, and allocation lineage form the
+smallest checked residual. Neither prototype has replaced
+`QuotientedTermImprecision`. The public statement and compiler boundary are
+checked, but no complete theorem inhabitant exists yet.
 
 The current proof uses these invariants:
 
@@ -53,6 +56,11 @@ The current proof uses these invariants:
   Their pre-allocation index and independently opened body index are
   inconsistent; real target-only `inst` allocation is crossed by target
   reduction before the final ordinary relation is required.
+- target-only `inst` catch-up retains a `TargetInstantiationCreation`
+  residual: matched body imprecision, target cast typing, the index
+  composition equation, and store lineage into the right-extended world.
+  Up-to-reduction removes transient allocation edges but not this final
+  semantic creation case.
 
 ## Active up-to-reduction design hypothesis
 
@@ -79,9 +87,10 @@ The implemented smaller prototype currently narrows only the quotient layer:
 its `ordinaryᴿ` constructor embeds the complete live QTI relation.  It
 therefore still admits `Λ⊑instβᵀ` and the uninhabited target-only rules.  The
 design sketch is stricter than this prototype at the ordinary layer.  The
-active target-`inst` test must replace that embedding locally or define the
-candidate ordinary grammar before it can validate removal of those live
-constructors.
+separate target-instantiation test avoids the fused constructor: it constructs
+the valid initial ordinary row, the complete target allocation trace, and the
+creation residual, then proves that the structural final-body factorization is
+impossible.
 
 This hypothesis is successful only if a quotient-aware beta lemma can cross
 the lambda endpoint.  In particular, after reducing
@@ -268,16 +277,45 @@ $$
 
 It retains the matched body relation before allocation, the target
 conversion, the necessarily source-only final index, and the right-allocation
-store lineage.  It contains no independently opened `r`.  The smaller
-up-to-reduction design should omit the three uninhabited term rules and test
-whether this creation evidence can support a separate simulation lemma
-without making the fused post-administration edge primitive.  If not, a
-narrowly scoped creation residual is the candidate new invariant.
+store lineage.  It contains no independently opened `r`.
+
+The strict
+[`NuImprecisionTargetInstantiationCreationExamples.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationExamples.agda)
+now completes this test. It checks the initial ordinary top relation and the
+complete target trace without using the fused final constructor. It also
+proves that factoring the final edge through the ordinary source-only-lambda
+and target-cast rules would require
+
+$$
+((0 \mathrel{\sqsubseteq} \star)::[])
+\mathbin{;} 1
+\vdash
+(\alpha\to\alpha)
+\mathrel{\sqsubseteq}
+(\alpha\to\alpha)
+\dashv 1,
+$$
+
+whose variable premises are impossible. The companion
+[`NuImprecisionTargetInstantiationCreationDef.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda)
+packages exactly the surviving matched-body, cast, composition, and
+allocation-lineage evidence. The focused modules type-check without
+postulates, holes, or permissive options.
+
+Conclusion: up-to-reduction eliminates the transient target-only `ν` and
+runtime-bullet edges, but not the final semantic creation case. Under the
+current `WeakOneStepResult` and public DGG conclusions, the large fused
+constructor should be replaced by a small exact creation constructor fed by
+this residual, with renaming, store embedding, and endpoint transport proved
+separately. Eliminating even the exact constructor would require a
+creation-saturated final relation, which relocates rather than removes the
+same case.
 
 The live relation is not changed at this checkpoint.  Deleting the
 uninhabited constructors and their conditional transport cases belongs in the
-later relation migration, after the creation-square test determines whether
-`Λ⊑instβᵀ` can also be removed.
+later relation migration. That migration should first introduce the exact
+creation constructor and prove that it supports the generalized live
+consumers before deleting `Λ⊑instβᵀ`.
 
 ## Trusted proof boundaries
 
@@ -295,6 +333,8 @@ later relation migration, after the creation-square test determines whether
 | [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Smaller relation with one paired narrowing boundary, no quotient application, and no fused down/application/up rule |
 | [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Nontrivial two-function-cast relation, identity reduction, arbitrary substitution, and checked active-`inst` allocation boundary |
 | [`NuImprecisionSingleNarrowingBoundaryExamples.agda`](../../Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda) | **completed diagnostic** | Same-polarity three-step reductions, a positive length-two spine, and a checked impossibility result for the single-boundary relation |
+| [`NuImprecisionTargetInstantiationCreationDef.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda) | **completed prototype** | Exact matched-body, cast-composition, and right-allocation residual with generalized endpoint transport omitted |
+| [`NuImprecisionTargetInstantiationCreationExamples.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationExamples.agda) | **completed diagnostic** | Valid top row, target allocation trace, creation residual, and strict refutation of ordinary final-edge factorization |
 | [`NuImprecisionReductionClosedQuotientDesign.md`](NuImprecisionReductionClosedQuotientDesign.md) | **current design hypothesis** | Complete small-relation sketch: one quotient boundary, ordinary-only congruence and substitution, bilateral reduction closure, reachability criterion, and remaining `sim-beta-cast` obligations |
 | [`NuDGGTerminalForwardIntegrationProof.agda`](../TerminalForward/NuDGGTerminalForwardIntegrationProof.agda) | **partial** | Intended route from forward/backward contracts to `GradualDGG`; currently reaches an uncovered paired-widening compatibility case |
 | [`NuDGGTerminalBackwardValueProof.agda`](../TerminalBackward/NuDGGTerminalBackwardValueProof.agda) | **conditional** | Fuel induction for target-value traces |
@@ -409,8 +449,9 @@ conversion, and conceal conversion value-catch-up cases.
   premise inside the body.
 - The example also proves that the permuted `YX` closing cast is not inert.
   Its evaluation must enter the allocation-aware quotient-`inst` catch-up
-  machinery before the second function beta. The operational hypothesis
-  remains open exactly at that already-known semantic boundary.
+  machinery before the second function beta. The exact creation invariant at
+  that boundary is now checked; its integration with quotient closing and the
+  second function beta remains open.
 - The same-polarity stress test proves that two genuine narrowing prefixes
   require a finite spine if considered without a reachability premise.
   It also exposes why this is not yet a counterexample to the smaller
@@ -435,6 +476,12 @@ conversion, and conceal conversion value-catch-up cases.
   addition, one-sided cast, paired conversion, and paired widening rules
   explicitly, including every relevant index-composition or
   index-substitution premise.
+- The target-instantiation creation test constructs a valid ordinary top row,
+  takes the target through allocation and type beta, packages the surviving
+  creation evidence, and proves that ordinary source-only-lambda plus
+  target-cast rules cannot relate the final values. This establishes that
+  up-to-reduction can replace transient allocation edges but cannot eliminate
+  the final semantic creation case under the current DGG conclusion.
 
 ## Counterexample policy and audit
 
@@ -478,65 +525,72 @@ behavior is covered by
 
 ## Current proof plan
 
-1. State the allocation-aware quotient `sim-beta-cast` contract directly in
+1. Prototype an exact target-instantiation creation constructor in the
+   candidate ordinary relation. Its premise should be
+   `TargetInstantiationCreation`; it should not contain arbitrary renaming,
+   store embedding, endpoint equality, closure, or repeated endpoint-typing
+   fields.
+2. Prove renaming, store-embedding, and endpoint-transport admissibility for
+   that exact constructor. Use those lemmas to reconstruct the generalized
+   behavior currently built into `Λ⊑instβᵀ`. Only after this succeeds should
+   the live constructor be replaced.
+3. State the allocation-aware quotient `sim-beta-cast` contract directly in
    terms of the existing world-coherent weak result: the inert route supplies
-   the source catch-up, while the active `inst` route uses the target tail and
-   transports the quotient through the resulting store extension.
-2. Connect that contract to the existing paired-widening target
+   the source catch-up, while the active `inst` route uses the target tail,
+   the creation constructor, and the resulting store extension.
+4. Connect that contract to the existing paired-widening target
    pending-allocation machinery. The immediate leaf is the quotient-`inst`
    residual already counted among the four ordinary/generated down/up holes in
-   `NuImprecisionCatchupScratch`; do not add a term rule to bypass it.
-3. Complete the two-function-cast operational square and confirm that its
+   `NuImprecisionCatchupScratch`.
+5. Complete the two-function-cast operational square and confirm that its
    related endpoint is the ordinary QTI derivation consumed by
    `two-round-trips-substitutionᵀ`.
-4. Discharge the target quotient closing-widening `β-seq` root through the
+6. Discharge the target quotient closing-widening `β-seq` root through the
    existing target-tail sequence-resume midpoint machinery. Do not add a
    narrowing spine for this widening-side obligation.
-5. If these succeed, derive the live function-cast simulation without
+7. If these succeed, derive the live function-cast simulation without
    `down·up⊑down·upᵀ` or quotient application and begin removing those
    constructors in a separate migration. In the same migration, remove the
    uninhabited target-only type-application, `ν`, and casted-`ν` constructors
    and their vacuous semantic roots. If allocation catch-up instead produces
    an irreducible quotient embedded outside a closing boundary, record that
    strict counterexample and return to the compositional design.
-6. Prove source and target typing projections for the smaller ordinary and
+8. Prove source and target typing projections for the smaller ordinary and
    one-boundary quotient judgments. Re-run value, `No•`, and terminal
    inversion using the fact that the quotient judgment has exactly one
    constructor.
-7. Test the smaller design on valid ordinary top rows with arbitrary lambda
-   bodies, nested reachable function casts, source and target cast sequences,
-   and active target `inst`. For the active target-`inst` case, use the matched
-   body relation, creation square, and allocation lineage to derive the final
-   edge without `Λ⊑instβᵀ`; if that is impossible, isolate the smallest
-   creation residual that suffices. Every test must exhibit its initial
-   ordinary term imprecision derivation before its reduction endpoints are
+9. Continue testing valid ordinary top rows with arbitrary lambda bodies,
+   nested reachable function casts, source and target cast sequences, and
+   active target `inst`. The basic active-target test is complete; its nested
+   quotient-closing instance remains. Every test must exhibit its initial
+   ordinary term-imprecision derivation before its reduction endpoints are
    considered.
-8. Keep the compositional quotient prototype as the fallback. Reintroduce
+10. Keep the compositional quotient prototype as the fallback. Reintroduce
    quotient application, finite narrowing spines, or a quotient-to-quotient
    cast square only after a strict counterexample shows a derivable ordinary
    top row whose reductions cannot reach an ordinary-related join.
-9. Restore hereditary `PairedWideningCompatible`: replace the broad
+11. Restore hereditary `PairedWideningCompatible`: replace the broad
    `compatible-source-inert` fallback with the target-active case, preserve
    function and universal compatibility recursively, and retain the
    target-inert bridge. Then restore both function-beta consumers and the
    terminal-forward integration check.
-10. Add the missing paired-lambda frame-view
+12. Add the missing paired-lambda frame-view
    `down·up⊑down·upᵀ` case and restore its focused strict-spine check.
-11. Migrate the other six known-incomplete strict proofs to the current
+13. Migrate the other six known-incomplete strict proofs to the current
    uniqueness, binder-transport, compatibility, and `down·up⊑down·upᵀ`
    interfaces.
-12. Finish quotient transport normalization and the crossed binary
+14. Finish quotient transport normalization and the crossed binary
    runtime-sibling catch-up invariant.
-13. Prove the source function-cast `β` and `β-↦` value roots using the
+15. Prove the source function-cast `β` and `β-↦` value roots using the
    up-to-reduction `sim-beta-cast` argument rather than a quotient application
    or spine-length-specific term rule.
-14. Inhabit the remaining exact active-synchronization root records.
-15. Assemble the exhaustive prefix-aware world-coherent backward one-step
+16. Inhabit the remaining exact active-synchronization root records.
+17. Assemble the exhaustive prefix-aware world-coherent backward one-step
    dispatcher and restore a practical green backward strict-spine check.
-16. Supply that strict dispatcher to both backward terminal engines.
-17. Complete the remaining forward engine contracts, invoke the strict terminal
+18. Supply that strict dispatcher to both backward terminal engines.
+19. Complete the remaining forward engine contracts, invoke the strict terminal
    integration proof, and construct `GradualDGG`.
-18. Promote any still-needed generic scratch clauses through strict
+20. Promote any still-needed generic scratch clauses through strict
    `Def`/`Proof`/`Lemma` boundaries and delete the scratch module.
 
 ## Validation

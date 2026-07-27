@@ -342,13 +342,140 @@ B \mathrel{\sqsubseteq_r} C'
 $$
 
 after allocation.  The existing live `Λ⊑instβᵀ` constructor carries most of
-this provenance, but it installs the final post-administration horizontal
-edge directly in term imprecision.  The checked positive regression therefore
-does not yet show that the smaller relation can derive the final edge without
-that fused constructor.  This is the next target-instantiation test for the
-up-to-reduction design: either derive the final ordinary relation from a
-separate creation-square simulation lemma, or retain a narrowly scoped
-creation residual as a genuine invariant.
+this provenance, but it also carries arbitrary endpoint renaming, store
+embedding, endpoint equalities, closure evidence, and the final
+post-administration horizontal edge.
+
+### Checked target-instantiation creation test
+
+The focused test starts from the valid ordinary top row
+
+$$
+\Lambda(\lambda x.x)
+\mathrel{\sqsubseteq}
+\Lambda(\lambda x.x)
+\left\langle
+  \mathsf{inst}\ (\star\to\star)\
+  \bigl(
+    \mathsf{seal}\ \star\ 0
+    \to
+    \mathsf{unseal}\ 0\ \star
+  \bigr)
+\right\rangle
+:
+\forall\alpha.(\alpha\to\alpha)
+\mathrel{\sqsubseteq}
+\star\to\star .
+$$
+
+The source takes zero steps.  The target takes the complete administrative
+trace
+
+$$
+\begin{aligned}
+&\Lambda(\lambda x.x)
+\left\langle
+  \mathsf{inst}\ (\star\to\star)\
+  \bigl(
+    \mathsf{seal}\ \star\ 0
+    \to
+    \mathsf{unseal}\ 0\ \star
+  \bigr)
+\right\rangle
+\\
+&\quad\longrightarrow
+\nu\,\star\,\Lambda(\lambda x.x)\
+  \bigl(
+    \mathsf{seal}\ \star\ 0
+    \to
+    \mathsf{unseal}\ 0\ \star
+  \bigr)
+\\
+&\quad\longrightarrow
+\bigl((\mathord{\uparrow}\Lambda(\lambda x.x))\,\bullet\bigr)
+\left\langle
+  \mathsf{seal}\ \star\ 0
+  \to
+  \mathsf{unseal}\ 0\ \star
+\right\rangle
+\\
+&\quad\longrightarrow
+(\lambda x.x)
+\left\langle
+  \mathsf{seal}\ \star\ 0
+  \to
+  \mathsf{unseal}\ 0\ \star
+\right\rangle .
+\end{aligned}
+$$
+
+Thus up-to-reduction removes every transient target-only `ν` or
+runtime-bullet edge.  It still leaves the final value row
+
+$$
+\Lambda(\lambda x.x)
+\mathrel{\sqsubseteq}
+(\lambda x.x)
+\left\langle
+  \mathsf{seal}\ \star\ 0
+  \to
+  \mathsf{unseal}\ 0\ \star
+\right\rangle .
+$$
+
+The ordinary source-only-lambda rule followed by an ordinary target-cast rule
+cannot derive this row.  That factorization would first require
+
+$$
+(0 \mathrel{\sqsubseteq} \star)\mathbin{;}
+1
+\vdash
+(\alpha\to\alpha)
+\mathrel{\sqsubseteq}
+(\alpha\to\alpha)
+\dashv
+1 .
+$$
+
+The source-only assumption relates the source variable to `★`, not to the
+fresh target seal.  Exhaustive inversion reaches the impossible variable
+judgment
+
+$$
+(0 \mathrel{\sqsubseteq} \star)\mathbin{;}
+1
+\vdash
+\alpha
+\mathrel{\sqsubseteq}
+\alpha
+\dashv
+1 .
+$$
+
+The strict
+[`NuImprecisionTargetInstantiationCreationExamples.agda`](../../Quotient/NuImprecisionTargetInstantiationCreationExamples.agda)
+checks all three parts of this result:
+
+1. the initial ordinary term-imprecision derivation;
+2. the complete target allocation trace; and
+3. the impossibility of the opened structural body index.
+
+The same module constructs
+[`TargetInstantiationCreation`](../../Quotient/NuImprecisionTargetInstantiationCreationDef.agda),
+which contains the matched body relation, target instantiation typing,
+creation equation, and store lifts into the final right-extended world.  It
+does so without constructing the fused final term-imprecision edge.
+
+This determines the limit of up-to-reduction.  The large live constructor can
+be decomposed, but the semantic creation case cannot simply disappear while
+`WeakOneStepResult` and the public DGG theorem still demand ordinary term
+imprecision between the final values.  The smallest conservative replacement
+is an exact creation constructor whose sole premise is the checked creation
+residual.  General renaming, store embedding, and endpoint transport should
+then be proved as separate admissibility lemmas instead of being fields of the
+constructor.  Removing even that exact creation case would require changing
+the simulation conclusion to a creation-saturated relation; that merely moves
+the same semantic case out of ordinary term imprecision.
 
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a

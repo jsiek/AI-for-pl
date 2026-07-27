@@ -12,6 +12,8 @@ REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
 SINGLE_NARROWING_BOUNDARY_EXAMPLES = \
 	proof/Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda
+TARGET_INSTANTIATION_CREATION_EXAMPLES = \
+	proof/Quotient/NuImprecisionTargetInstantiationCreationExamples.agda
 
 # Check a single file with: make agda FILE=NuMetaTheory.agda
 FILE ?= All.agda
@@ -37,6 +39,7 @@ quotient-design-check: audit
 	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
+	$(STRICT_AGDA) $(TARGET_INSTANTIATION_CREATION_EXAMPLES)
 
 # Per-definition time report; pick the target with FILE=...
 profile:

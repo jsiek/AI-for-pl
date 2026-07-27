@@ -49,7 +49,6 @@ design.
 The selected grammar and its general support are:
 
 - `NuImprecisionReductionClosedQuotientDef.agda`;
-- `NuImprecisionQuotientBoundarySupport.agda`;
 - `NuImprecisionQuotientCompatibilityRename.agda`;
 - `NuImprecisionTargetInstantiationCreationDef.agda`; and
 - `NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda`.
@@ -300,6 +299,13 @@ transport. Relative to the frozen inventory, direct source-file counts have
 fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19` for fused
 down/up, identity quotient application, gradual quotient application,
 closing widening, identity down, and gradual down respectively.
+
+The same checkpoint exposed and removed a duplicate copy of
+`QuotientImprecisionCompatibility` that remained in
+`proof/Quotient/`. All selected clients now import the canonical top-level
+definition directly; no alias or compatibility re-export was retained. The
+canonical quotient round-trip regression passes with `paired-downᵀ` and
+compatible `closeᵀ`.
 
 ### Phase 5. Collapse the migration surface
 

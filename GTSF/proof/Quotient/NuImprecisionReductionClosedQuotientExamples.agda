@@ -69,8 +69,8 @@ open import QuotientedTermImprecision using
   ( ƛ⊑ƛᵀ
   ; x⊑xᵀ
   ; ·⊑·ᵀ
-  ; down⊑downᵀ
-  ; up⊑upᵀ
+  ; paired-downᵀ
+  ; closeᵀ
   ; quotient-id-widening
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
@@ -95,8 +95,7 @@ open import proof.EndpointMLB.Core.MLBGlbExample using
   ; glb-lower-YX
   ; glb-lower-YX⊑A
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using
   ( id-only↓
   ; compatible-functionᴿ
@@ -248,12 +247,14 @@ down-routeᵀ :
     ⦂ glb-lower-XY ⊑ᵖ glb-lower-YX
     ∶ glb-lower-XY⊑ᵖYX
 down-routeᵀ relation =
-  down⊑downᵀ
+  paired-downᵀ relation
+    id-only↓
     (proj₁ (proj₂ down-D-result))
     (proj₂ (proj₂ down-D-result))
+    id-only↓
     (proj₁ (proj₂ down-E-result))
     (proj₂ (proj₂ down-E-result))
-    relation glb-lower-XY⊑ᵖYX route-quotient-square
+    route-quotient-square
 
 close-routeᵀ :
   ∀ {M M′} →
@@ -265,7 +266,7 @@ close-routeᵀ :
     ⊢ᴺ M ⟨ up-D ⟩ ⊑ M′ ⟨ up-E ⟩
     ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
 close-routeᵀ relation =
-  up⊑upᵀ relation
+  closeᵀ relation
     (quotient-id-widening
       (proj₁ (proj₂ up-D-result))
       (proj₁ (proj₂ up-E-result)))
@@ -273,6 +274,7 @@ close-routeᵀ relation =
     (proj₂ (proj₂ up-D-result))
     (proj₂ (proj₂ up-E-result))
     route-quotient-square
+    route-widening-compatible
 
 round-tripᵀ :
   ∀ {M M′} →
@@ -503,18 +505,19 @@ closed-identity-functionsᵀ :
     ⊑ glb-bad-A ⇒ glb-bad-A
     ∶ identity-A-function⊑identity-A-function
 closed-identity-functionsᵀ =
-  up⊑upᵀ
-    (down⊑downᵀ
+  closeᵀ
+    (paired-downᵀ
+      identity-A⊑identity-A
+      id-only↓
       inner-D-typing
       (CastShape.shape-fun
         (proj₂ (proj₂ up-D-result))
         (proj₂ (proj₂ down-D-result)))
+      id-only↓
       inner-E-typing
       (CastShape.shape-fun
         (proj₂ (proj₂ up-E-result))
         (proj₂ (proj₂ down-E-result)))
-      identity-A⊑identity-A
-      identity-function-quotient
       identity-function-quotient-square)
     (quotient-id-widening outer-D-typing outer-E-typing)
     identity-A-function⊑identity-A-function
@@ -525,6 +528,7 @@ closed-identity-functionsᵀ =
       (proj₂ (proj₂ down-E-result))
       (proj₂ (proj₂ up-E-result)))
     identity-function-quotient-square
+    outer-function-compatible
 
 related-two-function-cast-applicationsᴿ :
   ∀ {W W′} →

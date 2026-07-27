@@ -41,8 +41,7 @@ open import TermTyping using
   (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using
   (Ty; TyCtx)
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible

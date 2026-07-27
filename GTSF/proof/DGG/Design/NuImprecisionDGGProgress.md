@@ -223,8 +223,8 @@ Current result: the relation-level portion succeeds more strongly than
 expected. The initial applications, both paired function boundaries, the
 twice-closed identity result, and substitution into an arbitrary related
 lambda body are all derivable without `down·up⊑down·upᵀ` and without either
-quotient-application constructor. After each down/up round trip, the existing
-`up⊑upᵀ` rule returns the argument to ordinary QTI, so the existing strict
+quotient-application constructor. After each down/up round trip, compatible
+closing returns the argument to ordinary QTI, so the strict
 single-substitution theorem applies directly.
 
 The symmetric pure-reduction picture does not hold, however. For the concrete
@@ -533,7 +533,7 @@ relation constructor is used.
 | [`NuDGGTerminalBackwardStrictSpine.agda`](../TerminalBackward/NuDGGTerminalBackwardStrictSpine.agda) | **completed strict architecture** | Backward target-trace contracts and completed semantic leaves |
 | [`NuImprecisionOneStepDef.agda`](../../OneStep/NuImprecisionOneStepDef.agda) | **completed `Def`** | Target-oriented indexed one-step simulation contract |
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](../../WorldCoherent/Core/NuImprecisionWorldCoherentOneStepDef.agda) | **completed `Def`** | World-coherent one-step contract used by the terminal proof |
-| [`NuImprecisionQuotientBoundarySupport.agda`](../../Quotient/NuImprecisionQuotientBoundarySupport.agda) | **completed support** | Cast-mode and hereditary widening evidence with no dependency on a term-imprecision relation |
+| [`QuotientImprecisionCompatibility.agda`](../../../QuotientImprecisionCompatibility.agda) | **canonical support** | Cast-mode and reduction-closed hereditary widening evidence with no dependency on a term-imprecision relation |
 | [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Complete independent ordinary grammar, one embedded-creation case, one paired-narrowing quotient boundary, allocation-aware bilateral closure, and no generic renaming, quotient application, finite spine, or fused down/application/up rule |
 | [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Reachable two-function-cast top row, two beta steps on each side, and an ordinary-related join without quotient application or a fused rule |
 | [`NuImprecisionReductionClosedQuotientTypingExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientTypingExperiment.agda) | **completed metatheory** | Exhaustive source and target typing projections for the ordinary and quotient judgments |
@@ -643,8 +643,9 @@ the importer-free list because later paired-lambda proofs import it.
   application, polymorphic, constant, primitive, one-sided cast, paired
   widening, exact creation, and quotient-boundary cases are now independent
   constructors.
-- Split `SpineCastMode` and `QuotientWideningCompatible` into
-  `NuImprecisionQuotientBoundarySupport`, which imports no term relation.
+- Split `SpineCastMode` and reduction-closed widening compatibility into
+  relation-independent support, now canonical in
+  `QuotientImprecisionCompatibility`.
 - Made `TargetInstantiationCreation` parametric in the matched body relation
   and used it as the sole premise of the smaller exact-creation constructor.
 - Proved canonical closed-endpoint renaming/store transport of exact creation.
@@ -920,6 +921,15 @@ the fused application branches vanished, four quotient application branches
 vanished, and the split identity/gradual downcast cases collapsed to one.
 The frozen direct source-file counts fell from `14/9/9/46/27/26` to
 `8/3/3/39/20/19`; this remains a checkpoint rather than a phase gate.
+
+The next structural check found that the selected prototype support still
+defined a nominally distinct copy of the now-canonical compatibility
+relations. That duplicate module was deleted, its six clients now import
+`QuotientImprecisionCompatibility` directly, and no bridge alias remains.
+The live quotient round-trip regression was rewritten with `paired-downᵀ`
+and compatible `closeᵀ`; its focused check passes. Store-prefix no-bullet
+transport also now has one `paired-downᵀ` branch instead of four split and
+application-specific branches.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

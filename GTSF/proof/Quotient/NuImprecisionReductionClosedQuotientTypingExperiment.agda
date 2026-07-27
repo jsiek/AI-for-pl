@@ -67,8 +67,7 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using (SpineCastMode; id-only↓; gradual↓)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

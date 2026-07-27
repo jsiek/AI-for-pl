@@ -107,8 +107,7 @@ open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using (SpineCastMode; gradual↓; id-only↓)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

@@ -106,8 +106,7 @@ open import Types using
   ; ⟰ᵗ
   ; occurs
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible

@@ -205,8 +205,7 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using (SpineCastMode; gradual↓; id-only↓)
 open import
   proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef

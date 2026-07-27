@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — matched target allocation checked**
+**MIGRATION IN PROGRESS — target allocation dependency cut checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -336,16 +336,27 @@ replaced the matched post-allocation generated downcast with `paired-downᵀ`.
 The focused target-allocation `Def` and `Proof` checks pass. The remaining
 direct source-file counts are `8/2/2/37/16/16`.
 
-The final focused proof check still took roughly five minutes although its
-root module is only 246 lines. It imports two results from the 2,860-line
-`NuImprecisionAllocationSimulation.agda`, which itself imports the
-15,096-line simulation core and the 4,762-line simulation module. Before the
-next repeated target-allocation gate, isolate those two live results behind a
-small strict dependency contract and canonical lemma. A file move that still
-imports the whole legacy allocation module does not count as completing this
-dependency cut. Retained implementations should then move to chartered
-semantic modules as their remaining consumers migrate; the obsolete legacy
-remainder must be deleted by Phase 5.
+The final focused proof check initially took roughly five minutes although
+its root module was only 246 lines. It imported two results from the
+2,860-line `NuImprecisionAllocationSimulation.agda`, which itself imports the
+15,096-line simulation core and the 4,762-line simulation module.
+
+The first dependency cut now places the complete post-value world-coherent
+allocation contract in
+`../WorldCoherent/Right/OneStep/Allocation/NuImprecisionWorldCoherentMatchedNuAllocationAfterValueCatchupDef.agda`.
+The target-allocation `Proof` imports only that 118-line contract and no
+longer imports the legacy allocation module; after invalidation it checks in
+about six seconds. The canonical 91-line `Lemma` alone supplies the legacy
+implementation and exposes the catch-up invariant constructor needed for
+definitional reduction. Both `Proof` and `Lemma` check strictly.
+
+This is an invalidation boundary, not the final implementation split.
+`NuImprecisionAllocationSimulation.agda` still has three external consumers:
+the target-allocation `Lemma`, source allocation-step proof, and source-`ν`
+runtime-sibling catch-up proof. Move their retained implementation slices to
+chartered allocation modules as those consumers migrate, then delete the
+obsolete legacy remainder by Phase 5. A new wrapper that merely re-exports the
+monolith would not complete that task.
 
 ### Phase 5. Collapse the migration surface
 

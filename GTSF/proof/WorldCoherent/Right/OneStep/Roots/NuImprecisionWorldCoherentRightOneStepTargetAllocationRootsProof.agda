@@ -16,7 +16,7 @@ open import ConversionIndexCompatibility using
   (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
-open import Data.Product using (_,_; proj₂)
+open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
 open import ImprecisionWf using
@@ -71,43 +71,26 @@ open import
   ; left-indexed-all-catchup
   ; left-indexed-catchup
   ; left-silent-invariant
-  ; resultStore
   ; sourceCatchup
   ; weakIndexedResult
   )
-open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
-  ( weak-one-step-matched-ν↑-indexed-value-catchupᵀ
-  ; weak-one-step-matched-ν↑-indexed-value-catchup-lineageᵀ
-  )
+open import
+  proof.WorldCoherent.Right.OneStep.Allocation.NuImprecisionWorldCoherentMatchedNuAllocationAfterValueCatchupDef
+  using (WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
 open import
-  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
-  using (assumption-membership-unique-matched)
-open import
   proof.NuCore.Relations.NuImprecisionContextExclusivityDef
   using (SourceNameExclusive)
 open import
-  proof.NuCore.Relations.NuImprecisionContextExclusivityProof
-  using (source-name-exclusive-matched-head)
-open import
-  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
-  using (WeakOneStepStoreLineage)
-open import proof.Store.Core.NuImprecisionStoreLift using
-  (lift-store-result)
-open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
   using (WorldCoherent)
-open import
-  proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma
-  using (world-coherent-matched-allocation)
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
   ; world-coherent-left-indexed-catchup
-  ; world-indexed-outcome-related
   ; world-indexed-outcome-source-blame
   )
 open import
@@ -124,6 +107,7 @@ open import
 
 
 matched-nu-allocation :
+  WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -161,13 +145,13 @@ matched-nu-allocation :
     {M = ν A N s} {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
     {χ = bind A′} {ρ = ρ} pB
 matched-nu-allocation
-    catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
     coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
     s↑ s′↑ N⊑V′ replace
     with catchup coherent exclusive unique wfL
       (ν-runtime ok-source) vV′ noV′ N⊑V′
 matched-nu-allocation
-    catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
     coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
     s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
@@ -178,7 +162,7 @@ matched-nu-allocation
         final-wfL
     with final
 matched-nu-allocation
-    catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
     coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
     s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
@@ -193,7 +177,7 @@ matched-nu-allocation
       (ν-↠ (sourceCatchup (weakIndexedResult indexed)))
       (↠-step blame-ν ↠-refl))
 matched-nu-allocation
-    catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
     coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
     s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
@@ -204,43 +188,27 @@ matched-nu-allocation
         final-wfL
     | inj₁ (vW , noW)
     =
-  world-indexed-outcome-related
-    final-indexed
-    combined-lineage
-    (world-coherent-matched-allocation liftρ⁺ final-coherent)
-    (source-name-exclusive-matched-head final-exclusive)
-    (assumption-membership-unique-matched final-unique)
+  allocation s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    caught-all vW noW caught-lineage
+    final-coherent final-exclusive final-unique
   where
   caught-all =
     left-indexed-all-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW)))
 
-  final-indexed =
-    weak-one-step-matched-ν↑-indexed-value-catchupᵀ
-      s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-      caught-all vW noW
-
-  liftρ⁺ = proj₂ (lift-store-result
-    (resultStore (weakIndexedResult indexed)))
-
-  combined-lineage : WeakOneStepStoreLineage
-    (weakIndexedResult final-indexed)
-  combined-lineage =
-    weak-one-step-matched-ν↑-indexed-value-catchup-lineageᵀ
-      s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-      caught-all vW noW caught-lineage
-
 
 world-coherent-right-one-step-target-allocation-roots-proofᵀ :
+  WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentRightOneStepTargetAllocationRoots
-world-coherent-right-one-step-target-allocation-roots-proofᵀ catchup =
+world-coherent-right-one-step-target-allocation-roots-proofᵀ
+    allocation catchup =
   record
     { rightStepMatchedNuAllocationRoot =
         λ pA coherent exclusive unique wfL wfR ok-source
           vV′ noV′ hA hA′ s↑ s′↑ N⊑V′ replace →
-          matched-nu-allocation catchup pA
+          matched-nu-allocation allocation catchup pA
             coherent exclusive unique wfL wfR ok-source
             vV′ noV′ hA hA′ s↑ s′↑ N⊑V′ replace
     }

@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — matched target allocation checked**
+**MIGRATION IN PROGRESS — target allocation dependency cut checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -977,17 +977,29 @@ the complete target-allocation `Proof`. The direct retired-name counts are
 now `8/2/2/37/16/16`.
 
 This checkpoint also exposed a concrete invalidation problem. The final
-246-line root check took roughly five minutes because its two live allocation
-dependencies remain in the 2,860-line
+246-line root check initially took roughly five minutes because its two live
+allocation dependencies were in the 2,860-line
 `NuImprecisionAllocationSimulation.agda`, whose import cone includes the
 15,096-line `NuImprecisionSimulationCore.agda` and the 4,762-line
-`NuImprecisionSimulation.agda`. The next controlled structural task is to
-state those coupled indexed-result and lineage operations in a small strict
-`Def`, make the root `Proof` depend only on that contract, and supply the
-current implementation in a canonical `Lemma`. This first cut is complete
-only when rechecking the root proof does not import the legacy allocation
-module. Subsequent consumer moves must extract retained implementations into
-chartered semantic files and delete the obsolete legacy remainder by Phase 5.
+`NuImprecisionSimulation.agda`.
+
+The first dependency cut succeeded. The complete post-value world-coherent
+allocation claim now lives in the 118-line
+`NuImprecisionWorldCoherentMatchedNuAllocationAfterValueCatchupDef.agda`
+under `WorldCoherent/Right/OneStep/Allocation/`. The 214-line target-allocation
+`Proof` depends only on this contract and checks in about six seconds after
+invalidation; it does not import `NuImprecisionAllocationSimulation.agda`.
+The 91-line canonical `Lemma` supplies the existing indexed-result and
+lineage implementations, with the legacy catch-up invariant inversion
+confined to that assembly. The `Lemma` also checks strictly.
+
+The implementation split is not finished. The monolithic allocation module
+still has three external consumers: this target-allocation `Lemma`,
+`NuImprecisionWorldCoherentSourceAllocationStepProof.agda`, and
+`NuImprecisionWorldCoherentSourceNuRuntimeSiblingCatchupProof.agda`. Migrate
+those consumers to retained chartered allocation modules, remove the
+monolithic imports, and delete the obsolete remainder by Phase 5; do not add a
+re-exporting wrapper.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

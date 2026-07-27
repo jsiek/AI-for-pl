@@ -16,9 +16,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νᵀ
-  ; ⊑νcastᵀ
   ; ⊕⊑⊕ᵀ
   )
 open import
@@ -54,15 +51,6 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
   world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases (store-imp-prefix-transⁱ prefix₀ prefix)
     coherent exclusive unique wfR okM′ inner
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑αᵀ {q = ()} vL′ noL′ hA liftρ liftγ inner r N⊢ L′•⊢)
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑νᵀ {q = ()} hA h⇑A s↑ liftρ liftγ r inner replacement)
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑νcastᵀ {q = ()} mode seal★ s⊑ liftρ liftγ r inner shape comp)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (⊕⊑⊕ᵀ L⊑L′ R⊑R′) =

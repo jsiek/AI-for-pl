@@ -41,8 +41,6 @@ open import QuotientedTermImprecision using
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; κ⊑κᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
@@ -52,9 +50,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -170,8 +165,6 @@ atomic-target-value-reindexᵀ atom vV
     (atomic-target-value-reindexᵀ atom vV L⊑V
       (ν safe occ q))
     L•⊢ V⊢
-atomic-target-value-reindexᵀ atom ()
-    (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′•⊢) q
 atomic-target-value-reindexᵀ atom vV
     (allocation-prefixᵀ prefix M⊑V M⊢ V⊢) q =
   allocation-prefixᵀ prefix
@@ -190,21 +183,6 @@ atomic-target-value-reindexᵀ {p = p} atom vV
           (sym (target-atom-shape-unique atom p q))
           (sym (shape-source-liftνᵢ p))))
       replacement)
-atomic-target-value-reindexᵀ atom ()
-    (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replacement) q
-atomic-target-value-reindexᵀ atom ()
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ _ liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp) q
-atomic-target-value-reindexᵀ {p = p} atom vV
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V
-      s-shape comp) q =
-  νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V s-shape
-    (imprecision-composition-shape-transport
-      refl (sym (target-atom-shape-unique atom p q)) refl comp)
-atomic-target-value-reindexᵀ atom ()
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r N⊑N′
-      s-shape comp) q
 atomic-target-value-reindexᵀ atom vV κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-target-value-reindexᵀ atom ()

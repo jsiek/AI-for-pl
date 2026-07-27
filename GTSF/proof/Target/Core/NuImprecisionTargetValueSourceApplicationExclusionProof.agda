@@ -15,9 +15,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νᵀ
-  ; ⊑νcastᵀ
   )
 open import proof.Target.Core.NuImprecisionTargetValueSourceApplicationExclusionDef using
   (QuotientedTargetValueExcludesSourceApplicationᵀ)
@@ -28,15 +25,8 @@ quotiented-target-value-excludes-source-application-proofᵀ :
 quotiented-target-value-excludes-source-application-proofᵀ
     (·⊑·ᵀ L⊑L′ M⊑M′) ()
 quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑αᵀ vV noV hA liftρ liftγ inner r M⊢ V•⊢) ()
-quotiented-target-value-excludes-source-application-proofᵀ
     (allocation-prefixᵀ prefix inner source⊢ target⊢) vV =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
-quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) ()
-quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
-      s-shape comp) ()
 quotiented-target-value-excludes-source-application-proofᵀ
     (⊑cast⊒ᵀ mode seal★ c⊒ inner q c-shape comp)
     (vV ⟨ inert ⟩) =

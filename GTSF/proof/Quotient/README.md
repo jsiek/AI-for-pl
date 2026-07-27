@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 3 consumer set frozen; grammar unchanged**
+**MIGRATION IN PROGRESS — phase 3 shortcuts removed; phase 4 boundary active**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -86,11 +86,11 @@ delete the superseded source.
 
 ## Retiring live surface
 
-`../../QuotientedTermImprecision.agda` is still the live relation, but these
-constructor families are marked for removal:
+`../../QuotientedTermImprecision.agda` is still the live relation. Phase 3
+removed target-only type application, target-only `ν`, target-only casted
+`ν`, and the two casted-`ν` shortcuts. These remaining constructor families
+are now marked for removal:
 
-- target-only type application, `ν`, and casted `ν`;
-- casted-`ν` shortcuts that ordinary `ν` plus cast rules supersede;
 - quotient-indexed application;
 - fused `down·up⊑down·upᵀ`; and
 - the old quotient-boundary presentation superseded by one paired narrowing
@@ -175,60 +175,42 @@ definition all pass focused checks.
 
 ### Phase 3. Remove asymmetric administrative shortcuts
 
-- the frozen grammar deletion set is exactly `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`,
-  `νcast⊑ᵀ`, and `νcast⊑νcastᵀ`;
-- the first three constructors are deleted by the strict index-cycle
-  obstruction; the last two are deleted only after their reachable
-  simulation residuals take the complete instantiation tail and return
-  through ordinary type application plus widening;
-- delete uninhabited target-only type application, `ν`, and casted-`ν` cases;
-- replace source casted-`ν` shortcuts with ordinary source `ν` and cast
-  structure;
-- migrate exhaustive transports and inversions using the selected prototype
-  as the coverage checklist;
-- check focused metatheory roots, followed by one public-DGG phase gate.
+Completed:
 
-The following is the complete frozen live-consumer set before the grammar
-edit, excluding `QuotientedTermImprecision.agda` itself:
+- deleted exactly `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`, `νcast⊑ᵀ`, and
+  `νcast⊑νcastᵀ` from the live grammar;
+- removed the first three as uninhabited under the strict index-cycle
+  invariant;
+- removed the cast-specialized source cases and their transitive allocation,
+  frame, catch-up, runtime-sibling, target-bullet, transport, and dispatcher
+  capabilities rather than preserving compatibility wrappers;
+- migrated the remaining structural folds, typings, substitutions,
+  exclusions, embeddings, transports, frame views, and schedulers;
+- deleted the permissive catch-up scratch, the left-source target-bullet
+  allocation trilogy and commutation proof, the source target-`ν` frame
+  trilogy, the source casted-`ν` catch-up families, the obsolete right
+  allocation context seed, and the superseded paired-post-beta
+  counterexample; and
+- passed the focused migrated leaves and the source import/strict-cone audit.
 
-- `../Catchup/Core/NuImprecisionCatchupScratch.agda`;
-- `../Catchup/Simulation/NuImprecisionSimulationCore.agda`;
-- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeCommutationProof.agda`;
-- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTargetBulletDef.agda`;
-- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTargetBulletProof.agda`;
-- `../Left/AllocationRuntime/NuImprecisionLeftSourceAllocationRuntimeTransportProof.agda`;
-- `../Left/Core/NuImprecisionLeftRenameNoBulletProof.agda`;
-- `../NuCore/Misc/NuImprecisionAllocationSimulation.agda`;
-- `../NuCore/Misc/NuImprecisionWorldEmbeddingNoBullet.agda`;
-- `../OneStep/NuImprecisionAtomicTargetReindex.agda`;
-- `../PairedLambda/FrameClosing/Target/NuImprecisionPairedLambdaTargetClosingFrameViewProof.agda`;
-- `../Right/AllocationRuntime/NuImprecisionRightTargetAllocationSourceBulletTransportProof.agda`;
-- `../Right/AllocationRuntime/NuImprecisionRightTargetAllocationSourceOnlyBulletTransportProof.agda`;
-- `../Substitution/Parallel/NuImprecisionParallelTermSubstitutionProof.agda`;
-- `../Substitution/Term/NuImprecisionTermContextShiftProof.agda`;
-- `../Target/Core/NuImprecisionTargetBlameCatchup.agda`;
-- `../Target/Core/NuImprecisionTargetBulletSourceApplicationExclusionProof.agda`;
-- `../Target/Core/NuImprecisionTargetBulletSourceValueExclusionProof.agda`;
-- `../Target/Core/NuImprecisionTargetValueSourceApplicationExclusionProof.agda`;
-- `../WorldCoherent/Right/Target/Other/NuImprecisionWorldCoherentRightTargetBulletClosingProof.agda`;
-- `../WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaRelationCounterexample.agda`;
-- `../WorldCoherent/Right/Value/Catchup/NuImprecisionWorldCoherentRightValueCatchupDispatcherProof.agda`;
-- `../WorldCoherent/Right/Value/Transport/NuImprecisionWorldCoherentRightValueCatchupRuntimeNoBulletTransportProof.agda`;
-- `../WorldCoherent/Source/Allocation/NuImprecisionWorldCoherentSourceAllocationStepProof.agda`;
-- `../WorldCoherent/Source/FunctionCastBeta/Scheduling/NuImprecisionWorldCoherentSourceFunctionCastBetaSchedulingDispatcherProof.agda`;
-- `../WorldCoherent/Source/LambdaBeta/NuImprecisionWorldCoherentSourceLambdaBetaSchedulingDispatcherProof.agda`;
-- `../WorldCoherent/Source/Misc/NuImprecisionWorldCoherentSourceNuFrameStepProof.agda`;
-- `../WorldCoherent/Source/Primitive/NuImprecisionWorldCoherentSourcePrimitiveDeltaCatchupDispatcherProof.agda`;
-- `../WorldCoherent/Source/RevealConceal/NuImprecisionWorldCoherentSourceConcealCatchup.agda`;
-- `../WorldCoherent/Source/RuntimeSteps/NuImprecisionWorldCoherentSourceCastFrameStepProof.agda`;
-- `../WorldCoherent/Value/NuImprecisionWorldCoherentValueCatchupPrefixProof.agda`; and
-- `../WorldCoherent/Value/NuImprecisionWorldCoherentValueCatchupRuntimeSiblingPrefixProof.agda`.
+The frozen pre-edit list was the complete set of files that mentioned a
+retired constructor directly. It was not the complete transitive consumer
+set. During migration, source search followed every helper field and record
+capability into allocation, frame, catch-up, and scheduling consumers before
+the helper was deleted. No retired live-QTI constructor remains in source.
+The identically named constructors still in `../../NuTermImprecision.agda`
+belong to the obsolete first-draft judgment described below.
 
-This list was computed with exact constructor searches; in particular, the
-target-only searches exclude the suffixes of `α⊑αᵀ` and `ν⊑νᵀ`. No file may
-be added to this set after the grammar edit. A file leaves the set when its
-focused replacement passes or when its last importer has moved and it is
-deleted under the policy below.
+The Phase 3 public-DGG gate reaches two already-existing Phase 4 boundaries
+rather than a removed constructor:
+
+- `../WorldCoherent/Source/RuntimeSteps/NuImprecisionWorldCoherentSourceCastFrameStepProof.agda`
+  has no principled case for the fused `down·up⊑down·upᵀ` rule; Phase 4
+  removes that rule instead of adding another ad hoc handler.
+- `../WorldCoherent/Right/OneStep/Roots/NuImprecisionWorldCoherentRightOneStepTargetAllocationRootsProof.agda`
+  accepts an arbitrary matched-`ν` step where its implementation handles only
+  the allocation root. Phase 4 must tighten or split this contract before its
+  focused root can pass.
 
 `../../NuTermImprecision.agda` is not a live-QTI consumer. It still contains
 the older first-draft judgment beside the store/context infrastructure used
@@ -243,6 +225,12 @@ support module.
 - promote the single paired-narrowing quotient introduction and compatible
   closing widening;
 - connect the allocation-aware function-cast simulation up to reduction;
+- migrate the two live source-widening instantiation paths in
+  `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda`
+  and
+  `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenRuntimeSiblingCatchupProof.agda`;
+- tighten or split the matched target-allocation root contract so it states
+  the reduction that its proof actually handles;
 - migrate value, typing, substitution, world-embedding, and catch-up clients;
 - delete quotient application, finite-spine support, and
   `down·up⊑down·upᵀ`;
@@ -270,18 +258,26 @@ support module.
 ## Regression and deletion policy
 
 An obsolete module leaves the regression surface as soon as a strict
-replacement covers the same live obligation. It is deleted after:
+replacement covers the same live obligation. During an active phase, a
+retiring live module stays on the regression surface until its replacement
+passes; an already rejected alternative may be marked **obsolete,
+quarantined** and removed from check roots immediately. An obsolete file is
+deleted in that same phase after:
 
 1. its importers have moved;
 2. `rg` finds no remaining source references;
 3. the focused replacement root passes; and
-4. the current phase gate passes.
+4. either its focused family gate passes or the current phase gate confirms
+   the complete replacement.
 
 For already rejected alternatives, phase 1 is the replacement gate; Git
 history is sufficient archival evidence. For migration experiments, the
 corresponding live theorem is the replacement gate. For retiring live
 helpers, the last migrated consumer is the replacement gate. No obsolete
-source survives merely as a compatibility aid.
+source survives merely as a compatibility aid. A phase checkpoint may retain
+only migration-active source needed by the next phase, never a replaced
+obsolete island. Phase 5 removes the experimental migration surface, and
+Phase 6 verifies that no obsolete file remains before **MIGRATION FINISHED**.
 
 ## Agda checking policy
 

@@ -42,14 +42,9 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; ⊑αᵀ
   ; allocation-prefixᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
-  ; ⊑νᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
-  ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
   ; gen⊑groundᵀ
@@ -112,15 +107,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-rename-Λ⊑ᵀ
   ; left-rename-νᵀ
   ; left-rename-ν⊑ᵀ
-  ; left-rename-νcastᵀ
-  ; left-rename-νcast⊑ᵀ
   ; left-rename-⊑cast⊒ᵀ
   ; left-rename-⊑cast⊑ᵀ
   ; left-rename-⊑cast⊑idᵀ
   ; left-rename-⊑conv↑ᵀ
   ; left-rename-⊑conv↓ᵀ
-  ; left-rename-⊑νᵀ
-  ; left-rename-⊑νcastᵀ
   ; left-rename-·ᵀ
   ; left-rename-ƛᵀ
   ; left-rename-xᵀ
@@ -461,9 +452,6 @@ mutual
         L⊑L′ L•⊢ L′•⊢)
   left-rename-no•ᵀ-proof ins renameρ renameγ ()
       noM′ (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢)
-  left-rename-no•ᵀ-proof ins renameρ renameγ
-      noM () (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r
-        N⊢ L′•⊢)
   left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′
       (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
     left-rename-allocation-prefixᵀ prefix renameρ
@@ -493,40 +481,6 @@ mutual
       (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace) =
     left-rename-ν⊑ᵀ ins renameρ renameγ hA h⇑A s↑
       liftρ liftγ replace
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noN noN′ N⊑N′)
-  left-rename-no•ᵀ-proof ins renameρ renameγ
-      noN (no•-ν noN′)
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′
-        replace) =
-    left-rename-⊑νᵀ renameρ renameγ hA h⇑A s↑
-      liftρ liftγ B⊑C′ replace
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noN noN′ N⊑N′)
-  left-rename-no•ᵀ-proof ins renameρ renameγ
-      (no•-ν noN) (no•-ν noN′)
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′
-        s-shape s′-shape left-comp right-comp) =
-    left-rename-νcastᵀ ins renameρ renameγ mode seal★
-      mode′ seal★′ s⊑ s-shape s′⊑ s′-shape compat
-      left-comp right-comp liftρ liftγ
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noN noN′ N⊑N′)
-  left-rename-no•ᵀ-proof ins renameρ renameγ
-      (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
-        s-shape comp) =
-    left-rename-νcast⊑ᵀ ins renameρ renameγ mode seal★
-      s⊑ s-shape comp liftρ liftγ
-      (left-rename-no•ᵀ-proof ins renameρ renameγ
-        noN noN′ N⊑N′)
-  left-rename-no•ᵀ-proof ins renameρ renameγ
-      noN (no•-ν noN′)
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
-        s-shape comp) =
-    left-rename-⊑νcastᵀ renameρ renameγ mode seal★
-      s⊑ s-shape liftρ liftγ B⊑C′ comp
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noN noN′ N⊑N′)
   left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′ κ⊑κᵀ =

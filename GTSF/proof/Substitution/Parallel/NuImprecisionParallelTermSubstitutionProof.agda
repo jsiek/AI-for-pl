@@ -65,8 +65,6 @@ open import QuotientedTermImprecision using
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; κ⊑κᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ⊑cast⊑idᵀ
@@ -74,9 +72,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊒ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -297,10 +292,6 @@ mutual
       environment frame prefix () noN′
       (α⊑ᵀ vL noL hA liftρ liftγ body L⊢ N′⊢)
   quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN ()
-      (⊑αᵀ vL′ noL′ hA liftρ liftγ body p N⊢ L′⊢)
-
-  quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix noN noN′
       (allocation-prefixᵀ inner-prefix body N⊢ N′⊢) =
     quotiented-parallel-term-substitution-framed-proofᵀ
@@ -353,113 +344,6 @@ mutual
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noN noN′ body)
       replace
-
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN (no•-ν noN′)
-      (⊑νᵀ hA hA↑ s↑ liftρ liftγ B⊑C′ body replace)
-      with right-store-prefix-lift-proofᵀ prefix liftρ
-         | lift-right-ctx-result _
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN (no•-ν noN′)
-      (⊑νᵀ hA hA↑ s↑ liftρ liftγ B⊑C′ body replace)
-      | ρ⁺↑ , liftρ⁺ , prefix↑
-      | δ↑ , liftδ =
-    ⊑νᵀ hA hA↑
-      (weaken-reveal-conversion
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
-        s↑)
-      liftρ⁺ liftδ B⊑C′
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noN noN′ body)
-      replace
-
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix (no•-ν noN) (no•-ν noN′)
-      (νcast⊑νcastᵀ
-        mode seal★ mode′ seal★′ s⊑ s′⊑ compatible
-        liftρ liftγ body s-shape s′-shape source-comp target-comp)
-      with paired-store-prefix-lift-proofᵀ prefix liftρ
-         | lift-ctx-result _
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix (no•-ν noN) (no•-ν noN′)
-      (νcast⊑νcastᵀ
-        mode seal★ mode′ seal★′ s⊑ s′⊑ compatible
-        liftρ liftγ body s-shape s′-shape source-comp target-comp)
-      | ρ⁺↑ , liftρ⁺ , prefix↑
-      | δ↑ , liftδ =
-    νcast⊑νcastᵀ mode
-      (seal★-weaken
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix)))
-        seal★)
-      mode′
-      (seal★-weaken
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
-        seal★′)
-      (widen-weaken ≤-refl
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix)))
-        s⊑)
-      (widen-weaken ≤-refl
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
-        s′⊑)
-      compatible liftρ⁺ liftδ
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noN noN′ body)
-      s-shape s′-shape source-comp target-comp
-
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body s-shape comp)
-      with left-store-prefix-lift-proofᵀ prefix liftρ
-         | lift-left-ctx-result _
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix (no•-ν noN) noN′
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ body s-shape comp)
-      | ρ⁺↑ , liftρ⁺ , prefix↑
-      | δ↑ , liftδ =
-    νcast⊑ᵀ mode
-      (seal★-weaken
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix)))
-        seal★)
-      (widen-weaken ≤-refl
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix)))
-        s⊑)
-      liftρ⁺ liftδ
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noN noN′ body)
-      s-shape comp
-
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN (no•-ν noN′)
-      (⊑νcastᵀ
-        mode seal★ s⊑ liftρ liftγ B⊑C′ body s-shape comp)
-      with right-store-prefix-lift-proofᵀ prefix liftρ
-         | lift-right-ctx-result _
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN (no•-ν noN′)
-      (⊑νcastᵀ
-        mode seal★ s⊑ liftρ liftγ B⊑C′ body s-shape comp)
-      | ρ⁺↑ , liftρ⁺ , prefix↑
-      | δ↑ , liftδ =
-    ⊑νcastᵀ mode
-      (seal★-weaken
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
-        seal★)
-      (widen-weaken ≤-refl
-        (StoreIncl-cons
-          (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix)))
-        s⊑)
-      liftρ⁺ liftδ B⊑C′
-      (quotiented-parallel-term-substitution-framed-proofᵀ
-        environment frame prefix noN noN′ body)
-      s-shape comp
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix no•-$ no•-$ κ⊑κᵀ =

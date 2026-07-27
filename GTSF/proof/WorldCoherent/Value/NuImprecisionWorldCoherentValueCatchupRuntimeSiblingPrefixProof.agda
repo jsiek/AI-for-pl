@@ -433,11 +433,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL () noL′
-    (⊑αᵀ vL′ noInnerL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
-    noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′ replace)
     noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
@@ -459,44 +454,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   inner = proj₁ inner-with-sibling
 
   inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
-    noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp)
-    noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL vL′ noL′
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ lift-left-ctx-[] N⊑L′
-      s-shape comp)
-    noR okR′ sibling =
-  source-νcast-sibling source-runtime
-    prefix mode seal★ s⊑ s-shape comp
-    liftρ lift-left-ctx-[] vL′ noL′ noR okR′
-    inner inner-sibling
-  where
-  inner-with-sibling =
-    world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-      source-runtime quotient-catchup
-      prefix coherent exclusive unique wfL
-      (runtime-ν okL) vL′ noL′ N⊑L′
-      noR okR′ sibling
-
-  inner = proj₁ inner-with-sibling
-
-  inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′ s-shape comp)
-    noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′

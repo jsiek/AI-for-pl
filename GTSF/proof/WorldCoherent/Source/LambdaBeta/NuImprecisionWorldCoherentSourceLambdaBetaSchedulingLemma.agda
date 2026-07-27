@@ -26,11 +26,6 @@ open import
 open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma
   using (world-coherent-source-one-step-target-cast-frames)
-open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesLemma
-  using (world-coherent-source-one-step-target-nu-framesᵀ)
-
-
 world-coherent-source-lambda-beta-schedulingᵀ :
   WorldCoherentRightValueCatchupPrefixᵀ →
   WorldCoherentSourceLambdaBetaSchedulingᵀ
@@ -40,4 +35,3 @@ world-coherent-source-lambda-beta-schedulingᵀ
     (world-coherent-source-lambda-beta-directᵀ right-catchup)
     world-coherent-source-lambda-beta-target-bulletᵀ
     world-coherent-source-one-step-target-cast-frames
-    world-coherent-source-one-step-target-nu-framesᵀ

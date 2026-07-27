@@ -1,7 +1,7 @@
 module proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeCatchupDef where
 
 -- File Charter:
---   * Defines the eight source-runtime branches required by the
+--   * Defines the live source-runtime branches required by the
 --     world-coherent target-value catch-up recursion.
 --   * Keeps the exceptional runtime-bullet branch explicit and factors the
 --     other source forms as coherent catch-up frames.
@@ -83,8 +83,6 @@ open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSou
   (WorldCoherentSourceBulletCatchupᵀ)
 open import proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupDef using
   (WorldCoherentSourceNuCatchupᵀ)
-open import proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCastCatchupDef using
-  (WorldCoherentSourceNuCastCatchupᵀ)
 
 
 record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
@@ -92,8 +90,6 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
     source-bullet : WorldCoherentSourceBulletCatchupᵀ
 
     source-ν : WorldCoherentSourceNuCatchupᵀ
-
-    source-νcast : WorldCoherentSourceNuCastCatchupᵀ
 
     source-narrow : WorldCoherentSourceNarrowCatchupᵀ
 

@@ -52,8 +52,6 @@ open import QuotientedTermImprecision using
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; κ⊑κᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
@@ -63,9 +61,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑ᵀ
   ; ⊑conv↓ᵀ
   ; ⊑conv↑ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -109,8 +104,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-Λ-embedᵀ
   ; rel-world-Λ⊑-embedᵀ
   ; rel-world-ƛ-embedᵀ
-  ; rel-world-νcast⊑νcast-embedᵀ
-  ; rel-world-νcast⊑-embedᵀ
   ; rel-world-ν⊑ν-embedᵀ
   ; rel-world-ν⊑-embedᵀ
   ; rel-world-⊑cast⊒-embedᵀ
@@ -118,8 +111,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-⊑cast⊑id-embedᵀ
   ; rel-world-⊑conv↓-embedᵀ
   ; rel-world-⊑conv↑-embedᵀ
-  ; rel-world-⊑νcast-embedᵀ
-  ; rel-world-⊑ν-embedᵀ
   ; right-embedding-cast-renamer
   ; right-embedding-inverse
   ; right-narrowing-rel-embed-mode
@@ -297,8 +288,6 @@ mutual
   rel-world-embed-no•ᵀ emb
       (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢) () noN′
   rel-world-embed-no•ᵀ emb
-      (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′⊢) noN ()
-  rel-world-embed-no•ᵀ emb
       (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
     rel-world-allocation-prefix-embedᵀ emb prefix
       (λ emb₀ → rel-world-embed-no•ᵀ emb₀ M⊑M′ noM noM′)
@@ -314,32 +303,6 @@ mutual
       (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace)
       (no•-ν noN) noN′ =
     rel-world-ν⊑-embedᵀ emb hA h⇑A s↑ liftρ liftγ replace
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ r N⊑N′ replace)
-      noN (no•-ν noN′) =
-    rel-world-⊑ν-embedᵀ emb hA h⇑A s↑ liftρ liftγ r replace
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′ s-shape s′-shape
-        left-comp right-comp)
-      (no•-ν noN) (no•-ν noN′) =
-    rel-world-νcast⊑νcast-embedᵀ emb mode seal mode′ seal′
-      s⊑ s-shape s′⊑ s′-shape compat left-comp right-comp
-      liftρ liftγ
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′ s-shape comp)
-      (no•-ν noN) noN′ =
-    rel-world-νcast⊑-embedᵀ emb mode seal s⊑ s-shape comp
-      liftρ liftγ
-      (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
-  rel-world-embed-no•ᵀ emb
-      (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′ s-shape comp)
-      noN (no•-ν noN′) =
-    rel-world-⊑νcast-embedᵀ emb mode seal s⊑ s-shape
-      liftρ liftγ r comp
       (rel-world-embed-no•ᵀ emb N⊑N′ noN noN′)
   rel-world-embed-no•ᵀ emb κ⊑κᵀ no•-$ no•-$ = κ⊑κᵀ
   rel-world-embed-no•ᵀ emb (⊕⊑⊕ᵀ L⊑L′ M⊑M′)

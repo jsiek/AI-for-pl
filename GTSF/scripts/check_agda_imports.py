@@ -53,10 +53,6 @@ KNOWN_INCOMPLETE_PROOF_MODULES = (
     "SourceOnlyIndexCatchupProof",
     "proof.WorldCoherent.Source.CastCatchup."
     "NuImprecisionWorldCoherentSourceNarrowCatchupProof",
-    "proof.WorldCoherent.Source.NuCatchup."
-    "NuImprecisionWorldCoherentSourceNuCastCatchupProof",
-    "proof.WorldCoherent.Source.NuCatchup."
-    "NuImprecisionWorldCoherentSourceNuCastRuntimeSiblingCatchupProof",
 )
 
 # These modules are intentionally checked or read as independent roots.  Keep

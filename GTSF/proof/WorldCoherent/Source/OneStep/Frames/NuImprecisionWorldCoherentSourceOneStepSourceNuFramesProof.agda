@@ -60,15 +60,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-matched-ν-frameᵀ
   ; weak-one-step-matched-ν-frame-preserves-transportᵀ
   ; weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
-  ; weak-one-step-matched-νcast-frameᵀ
-  ; weak-one-step-matched-νcast-frame-preserves-transportᵀ
-  ; weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ
   ; weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
-  ; weak-one-step-source-νcast-frameᵀ
-  ; weak-one-step-source-νcast-frame-preserves-transportᵀ
-  ; weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepAllResult
@@ -104,9 +98,7 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepSourceNuFramesDef
   using
   ( WorldCoherentSourceOneStepSourceNuFrames
-  ; sourceStepMatchedNuCastFrame
   ; sourceStepMatchedNuFrame
-  ; sourceStepSourceNuCastFrame
   ; sourceStepSourceNuFrame
   )
 open import proof.Core.Properties.ReductionProperties using
@@ -235,128 +227,6 @@ source-step-matched-ν-frameᵀ
         (sourceStepResultExact complete))
 
 
-source-step-matched-νcast-frameᵀ :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {N N′ L : Term} {B B′ C C′ : Ty}
-    {s s′ : Coercion} {μ μ′} {χ : StoreChange}
-    {s-shape s′-shape result-shape : ImprecisionShape}
-    {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-  instᵈ μ ∣ suc Δᴸ
-    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-    ⊢ s ∶ C ⊑ ⇑ᵗ B →
-  CastMode μ′ →
-  SealModeStore★ (instᵈ μ′)
-    ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)) →
-  instᵈ μ′ ∣ suc Δᴿ
-    ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)
-    ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
-  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-  CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
-  s-shape ； ⌊ pB ⌋ ≋ result-shape →
-  ⌊ q ⌋ ； s′-shape ≋ result-shape →
-  PairedWideningCompatible
-    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    (suc Δᴸ) (suc Δᴿ) s s′
-    q (⊑-lift∀ᵢ pB) s-shape s′-shape →
-  WorldCoherentSourceOneStepIndexedResult
-    {M = N} {M′ = N′} {L = L}
-    {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
-  WorldCoherentSourceOneStepIndexedResult
-    {M = ν ★ N s} {M′ = ν ★ N′ s′}
-    {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
-    {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
-source-step-matched-νcast-frameᵀ {s = s} {χ = χ} {q = q} {pB = pB}
-    prefix mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp
-    compat complete =
-  world-coherent-source-one-step-indexed
-    framed-indexed
-    (weak-step-store-lineage
-      (lineageStore (sourceStepStoreLineage complete))
-      (lineageEmbedding (sourceStepStoreLineage complete))
-      (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
-    (sourceStepWorldCoherent complete)
-    (sourceStepSourceNameExclusive complete)
-    (sourceStepAssumptionMembershipUnique complete)
-  where
-  indexed₀ = sourceStepIndexedResult complete
-  inner = weakIndexedResult indexed₀
-  all =
-    weak-indexed-all-resultᵀ {q = q} indexed₀
-
-  source-store-incl =
-    StoreIncl-cons
-      (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix))
-
-  target-store-incl =
-    StoreIncl-cons
-      (renameStoreᵗ-incl suc (rightStoreⁱ-prefix-inclusion prefix))
-
-  seal★⁺ = seal★-weaken source-store-incl seal★
-  seal★′⁺ = seal★-weaken target-store-incl seal★′
-  s⊑⁺ = widen-weaken ≤-refl source-store-incl s⊑
-  s′⊑⁺ = widen-weaken ≤-refl target-store-incl s′⊑
-  coherence₀ = weakIndexedTypeCoherence indexed₀
-
-  framed =
-    weak-one-step-matched-νcast-frameᵀ
-      {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
-      pB s-shape-proof s′-shape-proof source-comp target-comp
-      compat all coherence₀
-  framed-indexed = weak-indexed-result framed (relatedResults framed)
-    (weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
-      pB s-shape-proof s′-shape-proof source-comp target-comp
-      compat all coherence₀ (weakIndexedTransport indexed₀))
-    (weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
-      pB s-shape-proof s′-shape-proof source-comp target-comp
-      compat all coherence₀)
-  framed-transport =
-    weak-one-step-matched-νcast-frame-preserves-transportᵀ
-      {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
-      pB s-shape-proof s′-shape-proof source-comp target-comp
-      compat all coherence₀ (weakIndexedTransport indexed₀)
-  framed-coherence =
-    weak-one-step-matched-νcast-frame-preserves-type-coherenceᵀ
-      {χ = keep} {q = q}
-      mode seal★⁺ s⊑⁺ mode′ seal★′⁺ s′⊑⁺
-      pB s-shape-proof s′-shape-proof source-comp target-comp
-      compat all coherence₀
-
-  star-exact : ★ ≡ applyTy χ ★
-  star-exact = sym (applyTy-★ χ)
-
-  coercion-exact :
-    applyCoercionUnderTyBinders (sourceChanges inner) s ≡
-      applyCoercionUnderTyBinder χ s
-  coercion-exact =
-    cong (λ χs → applyCoercionUnderTyBinders χs s)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    trans
-      (cong₂ (λ A₀ s₀ → ν A₀ (sourceResult inner) s₀)
-        star-exact coercion-exact)
-      (cong
-        (λ L₀ → ν (applyTy χ ★) L₀
-          (applyCoercionUnderTyBinder χ s))
-        (sourceStepResultExact complete))
-
-
 source-step-source-ν-frameᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
@@ -444,97 +314,6 @@ source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
         (sourceStepResultExact complete))
 
 
-source-step-source-νcast-frameᵀ :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {N N′ L : Term} {B B′ C : Ty}
-    {s : Coercion} {μ} {χ : StoreChange}
-    {s-shape : ImprecisionShape}
-    {occ : occurs zero C ≡ true}
-    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  {{safe : NonVar C}} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-  instᵈ μ ∣ suc Δᴸ
-    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-    ⊢ s ∶ C ⊑ ⇑ᵗ B →
-  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-  s-shape ； ⌊ pB ⌋ ≋ ⌊ q ⌋ →
-  WorldCoherentSourceOneStepIndexedResult
-    {M = N} {M′ = N′} {L = L}
-    {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
-    (ν safe occ q) →
-  WorldCoherentSourceOneStepIndexedResult
-    {M = ν ★ N s} {M′ = N′}
-    {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
-    {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
-source-step-source-νcast-frameᵀ {s = s} {χ = χ} {pB = pB}
-    prefix mode seal★ s⊑ s-shape-proof comp complete =
-  world-coherent-source-one-step-indexed
-    framed-indexed
-    (weak-step-store-lineage
-      (lineageStore (sourceStepStoreLineage complete))
-      (lineageEmbedding (sourceStepStoreLineage complete))
-      (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
-    (sourceStepWorldCoherent complete)
-    (sourceStepSourceNameExclusive complete)
-    (sourceStepAssumptionMembershipUnique complete)
-  where
-  indexed₀ = sourceStepIndexedResult complete
-  inner = weakIndexedResult indexed₀
-
-  source-store-incl =
-    StoreIncl-cons
-      (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix))
-
-  seal★⁺ = seal★-weaken source-store-incl seal★
-  s⊑⁺ = widen-weaken ≤-refl source-store-incl s⊑
-
-  framed =
-    weak-one-step-source-νcast-frameᵀ
-      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
-  framed-indexed = weak-indexed-result framed (relatedResults framed)
-    (weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
-      (weakIndexedTransport indexed₀))
-    (weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
-      (weakIndexedTypeCoherence indexed₀))
-  framed-transport =
-    weak-one-step-source-νcast-frame-preserves-transportᵀ
-      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
-      (weakIndexedTransport indexed₀)
-  framed-coherence =
-    weak-one-step-source-νcast-frame-preserves-type-coherenceᵀ
-      mode seal★⁺ s⊑⁺ pB s-shape-proof comp indexed₀
-      (weakIndexedTypeCoherence indexed₀)
-
-  star-exact : ★ ≡ applyTy χ ★
-  star-exact = sym (applyTy-★ χ)
-
-  coercion-exact :
-    applyCoercionUnderTyBinders (sourceChanges inner) s ≡
-      applyCoercionUnderTyBinder χ s
-  coercion-exact =
-    cong (λ χs → applyCoercionUnderTyBinders χs s)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    trans
-      (cong₂ (λ A₀ s₀ → ν A₀ (sourceResult inner) s₀)
-        star-exact coercion-exact)
-      (cong
-        (λ L₀ → ν (applyTy χ ★) L₀
-          (applyCoercionUnderTyBinder χ s))
-        (sourceStepResultExact complete))
-
-
 world-coherent-source-one-step-source-nu-frames-proofᵀ :
   WorldCoherentSourceOneStepSourceNuFrames
 world-coherent-source-one-step-source-nu-frames-proofᵀ = record
@@ -553,7 +332,5 @@ world-coherent-source-one-step-source-nu-frames-proofᵀ = record
           {χ = χ} {q = q} {pA = pA}
           {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
           prefix s↑ s′↑ replacement complete
-  ; sourceStepMatchedNuCastFrame = source-step-matched-νcast-frameᵀ
   ; sourceStepSourceNuFrame = source-step-source-ν-frameᵀ
-  ; sourceStepSourceNuCastFrame = source-step-source-νcast-frameᵀ
   }

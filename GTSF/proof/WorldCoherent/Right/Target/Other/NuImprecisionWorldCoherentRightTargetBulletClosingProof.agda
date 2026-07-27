@@ -4,7 +4,7 @@ module
 
 -- File Charter:
 --   * Proves target runtime-bullet closing from the type-only index cycle.
---   * Uses both precision indices retained by `⊑αᵀ`; right-lifting the
+--   * Uses both precision indices retained by matched type application;
 --     first and pairing it with the second gives the forbidden common-target
 --     extension.
 --   * Contains no target administration, recursive worker, result/view/

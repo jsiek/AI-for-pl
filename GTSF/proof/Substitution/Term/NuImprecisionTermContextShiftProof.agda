@@ -303,9 +303,6 @@ private
         (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
         () noN′
     term-ctx-insert-no•ᵀ insert
-        (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′⊢)
-        noN ()
-    term-ctx-insert-no•ᵀ insert
         (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
       allocation-prefixᵀ prefix
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
@@ -335,59 +332,6 @@ private
       ν⊑ᵀ hA hA↑ s↑ liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
         replace
-    term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
-        noN (no•-ν noN′)
-        with term-ctx-insert-lift-rightⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
-        noN (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      ⊑νᵀ hA hA↑ s↑ liftρ liftδ r
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        replace
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′
-          s-shape s′-shape left-comp right-comp)
-        (no•-ν noN) (no•-ν noN′)
-        with term-ctx-insert-lift∀ⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′
-          s-shape s′-shape left-comp right-comp)
-        (no•-ν noN) (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-        liftρ liftδ
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape s′-shape left-comp right-comp
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
-          s-shape comp)
-        (no•-ν noN) noN′
-        with term-ctx-insert-lift-leftⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
-          s-shape comp)
-        (no•-ν noN) noN′
-        | δ↑ , liftδ , insert↑ =
-      νcast⊑ᵀ mode seal s⊑ liftρ liftδ
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape comp
-    term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
-          s-shape comp)
-        noN (no•-ν noN′)
-        with term-ctx-insert-lift-rightⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
-          s-shape comp)
-        noN (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      ⊑νcastᵀ mode seal s⊑ liftρ liftδ r
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape comp
     term-ctx-insert-no•ᵀ insert κ⊑κᵀ no•-$ no•-$ =
       κ⊑κᵀ
     term-ctx-insert-no•ᵀ insert (⊕⊑⊕ᵀ L⊑L′ M⊑M′)

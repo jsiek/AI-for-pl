@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Exposes the canonical four target-allocation roots parameterized by
+--   * Exposes the matched reveal-ν target-allocation root parameterized by
 --     world-coherent left-value catch-up.
 --   * Contains no implementation, recursion, postulate, hole, permissive
 --     option, dispatcher, or `blame-ν` root.

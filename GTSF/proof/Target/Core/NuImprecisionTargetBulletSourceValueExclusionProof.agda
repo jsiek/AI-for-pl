@@ -22,7 +22,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; ⊑αᵀ
   ; target-instantiationᵀ
   )
 open import
@@ -56,10 +55,6 @@ quotiented-target-bullet-excludes-source-value-proofᵀ cycle
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     () (α⊑ᵀ vL noL hA liftρ liftγ
       inner source-typing target-typing)
-quotiented-target-bullet-excludes-source-value-proofᵀ cycle
-    vV (⊑αᵀ {q = q} vL′ noL′ hA liftρ liftγ
-      inner r source-typing target-typing) =
-  ⊥-elim (cycle q r)
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     vV (allocation-prefixᵀ prefix inner source-typing target-typing) =
   quotiented-target-bullet-excludes-source-value-proofᵀ

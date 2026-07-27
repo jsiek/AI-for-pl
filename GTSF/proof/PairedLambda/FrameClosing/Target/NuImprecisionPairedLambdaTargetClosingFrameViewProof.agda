@@ -61,7 +61,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; ⊑αᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑cast⊑idᵀ
@@ -69,10 +68,6 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
-  ; ⊑νᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
-  ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
   ; ·⊑·ᵀ
@@ -209,9 +204,6 @@ mutual
       () noW vW′ noW′ allW
       (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
   paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ p N⊢ L′⊢)
-  paired-lambda-target-closing-frame-viewᵀ
       vW noW vW′ noW′ allW
       (allocation-prefixᵀ prefix rel W⊢ W′⊢)
       with paired-lambda-target-closing-frame-viewᵀ
@@ -228,22 +220,6 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (ν⊑ᵀ hA h↑A s↑ liftρ liftγ N⊑N′ replacement)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑νᵀ hA h↑A s↑ liftρ liftγ p N⊑N′ replacement)
-  paired-lambda-target-closing-frame-viewᵀ
-      () noW vW′ noW′ allW
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′ s-shape s′-shape
-        source-comp target-comp)
-  paired-lambda-target-closing-frame-viewᵀ
-      () noW vW′ noW′ allW
-      (νcast⊑ᵀ
-        mode seal★ s⊑ liftρ liftγ N⊑N′ s-shape comp)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑νcastᵀ
-        mode seal★ s⊑ liftρ liftγ p N⊑N′ s-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       ($ k) noW vW′ noW′ (av-Λ ()) κ⊑κᵀ
   paired-lambda-target-closing-frame-viewᵀ

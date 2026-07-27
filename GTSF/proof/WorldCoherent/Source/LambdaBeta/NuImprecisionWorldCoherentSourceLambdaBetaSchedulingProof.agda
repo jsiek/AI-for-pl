@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Assembles ordinary lambda-beta target scheduling from its flat leaves.
 --   * Instantiates direct scheduling with synchronized beta, then supplies
---     target-bullet, target-cast, and target-ν structural cases.
+--     target-bullet and target-cast structural cases.
 --   * Contains no leaf implementation, postulate, hole, or permissive option.
 
 open import
@@ -28,9 +28,6 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using (WorldCoherentSourceOneStepTargetCastFrames)
 open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef
-  using (WorldCoherentSourceOneStepTargetNuFrames)
-open import
   proof.WorldCoherent.Source.Misc.NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaDef
   using (WorldCoherentSourceSynchronizedLambdaBetaᵀ)
 
@@ -40,10 +37,9 @@ world-coherent-source-lambda-beta-scheduling-proofᵀ :
     WorldCoherentSourceLambdaBetaDirectᵀ) →
   WorldCoherentSourceLambdaBetaTargetBulletᵀ →
   WorldCoherentSourceOneStepTargetCastFrames →
-  WorldCoherentSourceOneStepTargetNuFrames →
   WorldCoherentSourceLambdaBetaSchedulingᵀ
 world-coherent-source-lambda-beta-scheduling-proofᵀ
-    direct target-bullet target-casts target-νs synchronized =
+    direct target-bullet target-casts synchronized =
   world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ cases
   where
   cases : WorldCoherentSourceLambdaBetaSchedulingCases
@@ -51,5 +47,4 @@ world-coherent-source-lambda-beta-scheduling-proofᵀ
     { sourceLambdaBetaDirectCase = direct synchronized
     ; sourceLambdaBetaTargetBulletCase = target-bullet
     ; sourceLambdaBetaTargetCastFrames = target-casts
-    ; sourceLambdaBetaTargetNuFrames = target-νs
     }

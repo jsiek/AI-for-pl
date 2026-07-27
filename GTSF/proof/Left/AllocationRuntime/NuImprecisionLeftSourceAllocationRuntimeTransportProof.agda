@@ -89,14 +89,9 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; ⊑αᵀ
   ; allocation-prefixᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
-  ; ⊑νᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
-  ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
   ; gen⊑groundᵀ
@@ -145,9 +140,6 @@ open import proof.Left.Core.NuImprecisionLeftRenameNoBulletDef using
 open import
   proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
   using (embedded-creation-target-no-bulletᴱ)
-open import
-  proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeCommutationProof
-  using (left-source-allocation-runtime-target-bullet-commuteᵀ)
 open import proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeTransportDef using
   (LeftSourceAllocationRuntimeTransport)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
@@ -174,15 +166,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-rename-Λ⊑ᵀ
   ; left-rename-νᵀ
   ; left-rename-ν⊑ᵀ
-  ; left-rename-νcastᵀ
-  ; left-rename-νcast⊑ᵀ
   ; left-rename-⊑cast⊒ᵀ
   ; left-rename-⊑cast⊑ᵀ
   ; left-rename-⊑cast⊑idᵀ
   ; left-rename-⊑conv↑ᵀ
   ; left-rename-⊑conv↓ᵀ
-  ; left-rename-⊑νᵀ
-  ; left-rename-⊑νcastᵀ
   ; left-rename-·ᵀ
   ; left-rename-xᵀ
   ; left-seal★-renameⁱ
@@ -462,148 +450,6 @@ private
       (subst (λ Θ → CtxImp Θ Δᴸ Δᴿ) (sym eq) γΩ)
       ≡ rightCtxⁱ γΩ
   right-ctx-transport-back refl γΩ = refl
-
-  transport-target-bullet-forward :
-    ∀ {Ψ Ω : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-      (eq : Ψ ≡ Ω)
-      {ρΩ : StoreImp Ω Δᴸ Δᴿ}
-      {γΩ : CtxImp Ω Δᴸ Δᴿ}
-      {N L′ : Term} {A B C′ : Ty}
-      {hA : WfTy Δᴿ A}
-      {pΩ : Ω ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ} →
-    Ψ ∣ Δᴸ ∣ Δᴿ
-      ∣ store-right zero A hA ∷
-        subst (λ Θ → StoreImp Θ Δᴸ Δᴿ) (sym eq) ρΩ
-      ∣ subst (λ Θ → CtxImp Θ Δᴸ Δᴿ) (sym eq) γΩ
-      ⊢ᴺ N ⊑ L′ ⦂ B ⊑ C′
-      ∶ subst (λ Θ → Θ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ Δᴿ)
-          (sym eq) pΩ →
-    Ω ∣ Δᴸ ∣ Δᴿ ∣ store-right zero A hA ∷ ρΩ ∣ γΩ
-      ⊢ᴺ N ⊑ L′ ⦂ B ⊑ C′ ∶ pΩ
-  transport-target-bullet-forward refl N⊑L′ = N⊑L′
-
-  left-insertion-target-bullet-commute :
-    ∀ {Φ : ImpCtx} {Δᴸ Δᴸ′ Δᴿ : TyCtx} {τ : Renameᵗ}
-      {assm : ∀ {a} → a ∈ ⇑ᴿᵢ Φ →
-        rename-assm²ᵢ τ (λ X → X) a ∈ νᵢᶜ (⇑ᴿᵢ Φ)}
-      {hτ : TyRenameWf Δᴸ Δᴸ′ τ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {ρᴿ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-      {ρᴸᴿ : StoreImp (νᵢᶜ (⇑ᴿᵢ Φ)) Δᴸ′ (suc Δᴿ)}
-      {γ : CtxImp Φ Δᴸ Δᴿ}
-      {γᴿ : CtxImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-      {γᴸᴿ : CtxImp (νᵢᶜ (⇑ᴿᵢ Φ)) Δᴸ′ (suc Δᴿ)}
-      {N L′ : Term} {A B C′ : Ty}
-      {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ}
-      {r : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ}
-      {h⇑A h⇑A′ : WfTy (suc Δᴿ) (⇑ᵗ A)} →
-    LeftRenameNoBullet →
-    LeftInsertion τ →
-    LeftStoreRenameⁱ τ assm hτ
-      (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ)
-      (store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴸᴿ) →
-    LeftCtxRenameⁱ τ assm hτ γᴿ γᴸᴿ →
-    No• N →
-    Value L′ →
-    No• L′ →
-    LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρᴿ →
-    LiftRightCtxⁱ (⇑ᴿᵢ Φ) γ γᴿ →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ N ⊑ L′ ⦂ B ⊑ `∀ C′ ∶ q →
-    suc Δᴿ
-      ∣ rightStoreⁱ (store-right zero (⇑ᵗ A) h⇑A ∷ ρᴿ)
-      ∣ rightCtxⁱ γᴿ ⊢ (⇑ᵗᵐ L′) • ⦂ C′ →
-    νᵢᶜ (⇑ᴿᵢ Φ) ∣ Δᴸ′ ∣ suc Δᴿ
-      ∣ store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴸᴿ ∣ γᴸᴿ
-      ⊢ᴺ renameᵗᵐ τ N ⊑ (⇑ᵗᵐ L′) •
-      ⦂ renameᵗ τ B ⊑ C′
-      ∶ ⊑-rename-leftᵢ τ assm hτ r
-  left-insertion-target-bullet-commute
-      rename-no-bullet ins
-      (left-store-rename-right renameρᴿ) renameγᴿ
-      noN vL′ noL′ liftρ liftγ N⊑L′ L′•⊢
-      with left-after-right-store-factor liftρ renameρᴿ
-         | left-after-right-ctx-factor liftγ renameγᴿ
-  left-insertion-target-bullet-commute
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴸ′ = Δᴸ′} {Δᴿ = Δᴿ}
-      {τ = τ} {assm = assm} {hτ = hτ}
-      {ρᴿ = ρᴿ} {ρᴸᴿ = ρᴸᴿ}
-      {γᴿ = γᴿ} {γᴸᴿ = γᴸᴿ}
-      {N = N} {L′ = L′} {A = A} {B = B} {C′ = C′}
-      {r = r} {h⇑A = h⇑A} {h⇑A′ = h⇑A′}
-      rename-no-bullet ins
-      (left-store-rename-right renameρᴿ) renameγᴿ
-      noN vL′ noL′ liftρ liftγ N⊑L′ L′•⊢
-      | ρᴸ , renameρᴸ , liftρᴸ
-      | γᴸ , renameγᴸ , liftγᴸ =
-    transport-target-bullet-forward eq natural-bullet
-    where
-    eq = right-under-left-ctx-eq Φ
-
-    ρᴿᴸ =
-      subst (λ Θ → StoreImp Θ Δᴸ′ (suc Δᴿ))
-        (sym eq) ρᴸᴿ
-
-    γᴿᴸ =
-      subst (λ Θ → CtxImp Θ Δᴸ′ (suc Δᴿ))
-        (sym eq) γᴸᴿ
-
-    liftρᴿᴸ = transport-lift-right-store-back eq liftρᴸ
-    liftγᴿᴸ = transport-lift-right-ctx-back eq liftγᴸ
-
-    pᴸᴿ = ⊑-rename-leftᵢ τ assm hτ r
-
-    pᴿᴸ =
-      subst
-        (λ Θ → Θ ∣ Δᴸ′ ⊢ renameᵗ τ B ⊑ C′ ⊣ suc Δᴿ)
-        (sym eq) pᴸᴿ
-
-    body =
-      left-rename-no•ᵀ rename-no-bullet ins
-        renameρᴸ renameγᴸ noN noL′ N⊑L′
-
-    source-typing =
-      subst
-        (λ Γ → Δᴸ′ ∣ leftStoreⁱ ρᴿᴸ ∣ Γ
-          ⊢ renameᵗᵐ τ N ⦂ renameᵗ τ B)
-        (sym (leftCtxⁱ-lift-right liftγᴿᴸ))
-        (subst
-          (λ Σ → Δᴸ′ ∣ Σ ∣ leftCtxⁱ γᴸ
-            ⊢ renameᵗᵐ τ N ⦂ renameᵗ τ B)
-          (sym (leftStoreⁱ-lift-right liftρᴿᴸ))
-          (nu-term-imprecision-source-typing body))
-
-    target-typing-desired =
-      subst
-        (λ Γ → suc Δᴿ
-          ∣ rightStoreⁱ
-            (store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴸᴿ)
-          ∣ Γ ⊢ (⇑ᵗᵐ L′) • ⦂ C′)
-        (sym (rightCtxⁱ-left-rename renameγᴿ))
-        (subst
-          (λ Σ → suc Δᴿ ∣ Σ ∣ rightCtxⁱ γᴿ
-            ⊢ (⇑ᵗᵐ L′) • ⦂ C′)
-          (sym (rightStoreⁱ-left-rename
-            (left-store-rename-right
-              {hB = h⇑A} {hB′ = h⇑A′} renameρᴿ))) L′•⊢)
-
-    target-typing =
-      subst
-        (λ Γ → suc Δᴿ
-          ∣ rightStoreⁱ
-            (store-right zero (⇑ᵗ A) h⇑A′ ∷ ρᴿᴸ)
-          ∣ Γ ⊢ (⇑ᵗᵐ L′) • ⦂ C′)
-        (sym (right-ctx-transport-back eq γᴸᴿ))
-        (subst
-          (λ Σ → suc Δᴿ ∣ (zero , ⇑ᵗ A) ∷ Σ
-            ∣ rightCtxⁱ γᴸᴿ ⊢ (⇑ᵗᵐ L′) • ⦂ C′)
-          (sym (right-store-transport-back eq ρᴸᴿ))
-          target-typing-desired)
-
-    natural-bullet =
-      ⊑αᵀ vL′ noL′ h⇑A′ liftρᴿᴸ liftγᴿᴸ body pᴿᴸ
-        source-typing target-typing
-
 
 mutual
   left-source-runtimeᵀ-generic :
@@ -949,21 +795,6 @@ mutual
       renameρ renameγ
       (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) () runtime
   left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
-      noN runtime
-      with renameρ
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
-      noN runtime
-      | left-store-rename-right {hB′ = h⇑A′} renameρᴿ =
-    left-insertion-target-bullet-commute
-      {h⇑A = h⇑A} {h⇑A′ = h⇑A′}
-      rename-no-bullet ins
-      (left-store-rename-right renameρᴿ) renameγ noN vL′ noL′
-      liftρ liftγ N⊑L′ L′•⊢
-  left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
       noM runtime =
     left-rename-allocation-prefixᵀ prefix renameρ
@@ -1003,63 +834,6 @@ mutual
       liftρ liftγ replace
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ N⊑N′ noN runtime)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′ replace)
-      noN (ok-no noNu′) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noN noNu′ rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′ replace)
-      noN (ok-ν runtimeN′) =
-    left-rename-⊑νᵀ renameρ renameγ hA h⇑A s↑
-      liftρ liftγ B⊑C′ replace
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ N⊑N′ noN runtimeN′)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′
-        s-shape s′-shape left-comp right-comp)
-      noNu (ok-no noNu′) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noNu noNu′ rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′
-        s-shape s′-shape left-comp right-comp)
-      (no•-ν noN) (ok-ν runtimeN′) =
-    left-rename-νcastᵀ ins renameρ renameγ mode seal★
-      mode′ seal★′ s⊑ s-shape s′⊑ s′-shape compat
-      left-comp right-comp liftρ liftγ
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ N⊑N′ noN runtimeN′)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′ s-shape comp)
-      (no•-ν noN) runtime =
-    left-rename-νcast⊑ᵀ ins renameρ renameγ mode seal★
-      s⊑ s-shape comp liftρ liftγ
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ N⊑N′ noN runtime)
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      rel@(⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
-        s-shape comp)
-      noN (ok-no noNu′) =
-    left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noN noNu′ rel
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ
-      (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
-        s-shape comp)
-      noN (ok-ν runtimeN′) =
-    left-rename-⊑νcastᵀ renameρ renameγ mode seal★
-      s⊑ s-shape liftρ liftγ B⊑C′ comp
-      (left-source-runtimeᵀ-generic rename-no-bullet ins
-        renameρ renameγ N⊑N′ noN runtimeN′)
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ κ⊑κᵀ noK runtime =
     κ⊑κᵀ
@@ -1453,20 +1227,6 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
-      (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′⊢)
-      noN runtime
-      with renameρ
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′⊢)
-      noN runtime
-      | left-store-rename-right {hB′ = h⇑A′} renameρᴿ =
-    left-source-allocation-runtime-target-bullet-commuteᵀ
-      rename-no-bullet {h⇑A = h⇑A} {h⇑A′ = h⇑A′}
-      (left-store-rename-right renameρᴿ) renameγ noN vL′ noL′
-      liftρ liftγ N⊑L′ L′⊢
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
       rel@(allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
@@ -1479,33 +1239,6 @@ private
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
       rel@(ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replace)
-      noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(⊑νᵀ hA h⇑A s↑ liftρ liftγ B⊑C′ N⊑N′ replace)
-      noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′
-        s-shape s′-shape left-comp right-comp)
-      noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′ s-shape comp)
-      noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(⊑νcastᵀ mode seal★ s⊑ liftρ liftγ B⊑C′ N⊑N′
-        s-shape comp)
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime

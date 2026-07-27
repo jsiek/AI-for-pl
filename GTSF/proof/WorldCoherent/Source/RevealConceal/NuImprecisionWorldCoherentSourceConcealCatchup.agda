@@ -97,8 +97,6 @@ open import QuotientedTermImprecision using
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; κ⊑κᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
@@ -108,9 +106,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑ᵀ
   ; ⊑conv↓ᵀ
   ; ⊑conv↑ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -321,9 +316,6 @@ atomic-source-value-reindexᵀ atom ()
 atomic-source-value-reindexᵀ atom ()
     (α⊑ᵀ vL noL hA liftρ liftγ L⊑M′ L•⊢ M′⊢) q
 atomic-source-value-reindexᵀ atom vM
-    (⊑αᵀ vL′ noL′ hA liftρ liftγ M⊑L′ r M⊢ L′•⊢) q =
-  ⊑αᵀ vL′ noL′ hA liftρ liftγ M⊑L′ q M⊢ L′•⊢
-atomic-source-value-reindexᵀ atom vM
     (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) q =
   allocation-prefixᵀ prefix
     (atomic-source-value-reindexᵀ atom vM M⊑M′ q)
@@ -333,32 +325,6 @@ atomic-source-value-reindexᵀ atom ()
       liftρ liftγ N⊑N′ replacement) q
 atomic-source-value-reindexᵀ atom ()
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replacement) q
-atomic-source-value-reindexᵀ {p = p} atom vM
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′ replacement) q =
-  ⊑νᵀ hA h⇑A s↑ liftρ liftγ r M⊑N′
-    (replace-right-target-shape
-      (trans
-        (shape-target-lift-rightᵢ q)
-        (trans
-          (sym (source-atom-shape-unique atom p q))
-          (sym (shape-target-lift-rightᵢ p))))
-      replacement)
-atomic-source-value-reindexᵀ atom ()
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-      compat liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp) q
-atomic-source-value-reindexᵀ atom ()
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑N′
-      s-shape comp) q
-atomic-source-value-reindexᵀ {p = p} atom vM
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r M⊑N′
-      s-shape comp) q =
-  ⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r M⊑N′
-    s-shape
-    (imprecision-composition-shape-transport
-      refl refl
-      (sym (source-atom-shape-unique atom p q))
-      comp)
 atomic-source-value-reindexᵀ atom vM κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-source-value-reindexᵀ atom () (⊕⊑⊕ᵀ L⊑L′ M⊑M′) q

@@ -5,8 +5,7 @@ module proof.Target.Core.NuImprecisionTargetBulletSourceApplicationExclusionProo
 --     canonical application/target-value exclusion at the bullet root.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
-open import QuotientedTermImprecision using
-  (allocation-prefixᵀ; ⊑αᵀ)
+open import QuotientedTermImprecision using (allocation-prefixᵀ)
 open import
   proof.Target.Core.NuImprecisionTargetBulletSourceApplicationExclusionDef
   using (QuotientedTargetBulletExcludesSourceApplicationᵀ)
@@ -20,6 +19,3 @@ quotiented-target-bullet-excludes-source-application-proofᵀ :
 quotiented-target-bullet-excludes-source-application-proofᵀ
     (allocation-prefixᵀ prefix inner source⊢ target⊢) =
   quotiented-target-bullet-excludes-source-application-proofᵀ inner
-quotiented-target-bullet-excludes-source-application-proofᵀ
-    (⊑αᵀ vV noV hA liftρ liftγ inner r M⊢ V•⊢) =
-  quotiented-target-value-excludes-source-applicationᵀ inner vV

@@ -3,8 +3,8 @@ module
   where
 
 -- File Charter:
---   * Defines matched and source-only ordinary/casted source-ν frames for a
---     completed source step.
+--   * Defines matched and source-only reveal-ν frames for a completed source
+--     step.
 --   * Every field consumes and returns the existing complete continuing
 --     result directly; the recursive join lifts source blame separately.
 --   * Contains no implementation, outcome wrapper, result alias, recursion,
@@ -86,44 +86,6 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
         {L = ν (applyTy χ A) L (applyCoercionUnderTyBinder χ s)}
         {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 
-    sourceStepMatchedNuCastFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {N N′ L : Term} {B B′ C C′ : Ty}
-        {s s′ : Coercion} {μ μ′} {χ : StoreChange}
-        {s-shape s′-shape result-shape : ImprecisionShape}
-        {q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
-        {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ (instᵈ μ)
-        ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-      instᵈ μ ∣ suc Δᴸ
-        ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-        ⊢ s ∶ C ⊑ ⇑ᵗ B →
-      CastMode μ′ →
-      SealModeStore★ (instᵈ μ′)
-        ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)) →
-      instᵈ μ′ ∣ suc Δᴿ
-        ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ₀)
-        ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
-      CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-      CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
-      s-shape ； ⌊ pB ⌋ ≋ result-shape →
-      ⌊ q ⌋ ； s′-shape ≋ result-shape →
-      PairedWideningCompatible
-        ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-        (suc Δᴸ) (suc Δᴿ) s s′
-        q (⊑-lift∀ᵢ pB) s-shape s′-shape →
-      WorldCoherentSourceOneStepIndexedResult
-        {M = N} {M′ = N′} {L = L}
-        {A = `∀ C} {B = `∀ C′} {χ = χ} {ρ = ρ⁺} (∀ⁱ q) →
-      WorldCoherentSourceOneStepIndexedResult
-        {M = ν ★ N s} {M′ = ν ★ N′ s′}
-        {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
-        {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
-
     sourceStepSourceNuFrame :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
@@ -147,35 +109,6 @@ record WorldCoherentSourceOneStepSourceNuFrames : Set₁ where
       WorldCoherentSourceOneStepIndexedResult
         {M = ν A N s} {M′ = N′}
         {L = ν (applyTy χ A) L (applyCoercionUnderTyBinder χ s)}
-        {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
-
-    sourceStepSourceNuCastFrame :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {N N′ L : Term} {B B′ C : Ty}
-        {s : Coercion} {μ} {χ : StoreChange}
-        {s-shape : ImprecisionShape}
-        {occ : occurs zero C ≡ true}
-        {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ}
-        {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-      {{safe : NonVar C}} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ (instᵈ μ)
-        ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-      instᵈ μ ∣ suc Δᴸ
-        ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-        ⊢ s ∶ C ⊑ ⇑ᵗ B →
-      CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-      s-shape ； ⌊ pB ⌋ ≋ ⌊ q ⌋ →
-      WorldCoherentSourceOneStepIndexedResult
-        {M = N} {M′ = N′} {L = L}
-        {A = `∀ C} {B = B′} {χ = χ} {ρ = ρ⁺}
-        (ν safe occ q) →
-      WorldCoherentSourceOneStepIndexedResult
-        {M = ν ★ N s} {M′ = N′}
-        {L = ν (applyTy χ ★) L (applyCoercionUnderTyBinder χ s)}
         {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 
 open WorldCoherentSourceOneStepSourceNuFrames public

@@ -6,7 +6,7 @@ module
 --   * Proves arbitrary-target source function-cast beta scheduling by
 --     structural recursion on QTI.
 --   * Delegates direct target applications and transports completed results
---     through target bullets, casts, conversions, and `ν` frames.
+--     through target bullets, casts, and conversions.
 --   * Contains no direct coercion algebra, catch-all, postulate, hole, or
 --     permissive option.
 
@@ -40,9 +40,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νᵀ
-  ; ⊑νcastᵀ
   )
 open import
   proof.WorldCoherent.Source.Application.NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef
@@ -54,7 +51,6 @@ open import
   ; sourceFunctionCastBetaDirectCase
   ; sourceFunctionCastBetaTargetBulletCase
   ; sourceFunctionCastBetaTargetCastFrames
-  ; sourceFunctionCastBetaTargetNuFrames
   )
 open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
@@ -64,12 +60,6 @@ open import
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
-  )
-open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef
-  using
-  ( sourceStepTargetNuCastFrame
-  ; sourceStepTargetNuFrame
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
@@ -147,47 +137,6 @@ world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
   world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases (store-imp-prefix-transⁱ prefix₀ prefix)
     coherent exclusive unique wfL wfR okM okM′ M⊢ M′⊢ inner vV vW
-world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    relation@(⊑αᵀ vL′ noL′ hA liftρ liftγ inner
-      r N⊢ L′•⊢) vV vW =
-  sourceFunctionCastBetaTargetBulletCase cases
-    prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ relation vV vW
-world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) vV vW =
-  sourceStepTargetNuFrame target-ν-frames
-    prefix hA s↑ r replace recursive
-  where
-  target-ν-frames = sourceFunctionCastBetaTargetNuFrames cases
-  recursive =
-    world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (ν-runtime okM′) M⊢
-      (ν-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ
-          (conversion↑⇒coercion (reveal-conversion-typing s↑))))
-        M′⊢)
-      inner vV vW
-world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
-      s-shape comp) vV vW =
-  sourceStepTargetNuCastFrame target-ν-frames
-    prefix mode seal★ s⊑ r s-shape comp recursive
-  where
-  target-ν-frames = sourceFunctionCastBetaTargetNuFrames cases
-  recursive =
-    world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (ν-runtime okM′) M⊢
-      (ν-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) M′⊢)
-      inner vV vW
 world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ (·⊑·ᵀ L⊑L′ W⊑R′) vV vW =

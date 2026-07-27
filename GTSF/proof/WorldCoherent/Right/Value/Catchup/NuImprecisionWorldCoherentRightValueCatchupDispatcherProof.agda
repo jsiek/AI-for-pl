@@ -41,8 +41,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; target-instantiationᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; κ⊑κᵀ
@@ -52,9 +50,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; ƛ⊑ƛᵀ
   )
@@ -192,13 +187,6 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (α⊑ᵀ vL noL hA liftρ liftγ L⊑M′ L•⊢ M′⊢)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okL′• vN noN
-    (⊑αᵀ vL′ noL′ hA liftρ lift-right-ctx-[]
-      N⊑L′ r N⊢ L′•⊢) =
-  rightValueTargetBulletClosingCase cases hA prefix coherent exclusive unique
-    wfR okL′• vN noN vL′ noL′ liftρ lift-right-ctx-[]
-    N⊑L′ N⊢ L′•⊢
-world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ vV noV
     (allocation-prefixᵀ prefix₀ inner M⊢ M′⊢) =
   world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -211,39 +199,6 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑M′ replacement)
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okν vN noN
-    (⊑νᵀ
-      hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′ replacement) =
-  rightTargetNuFrame allocation-cases prefix coherent exclusive unique wfR
-    okν vN noN hA h⇑A s↑ liftρ lift-right-ctx-[] r N⊑N′
-    replacement inner
-  where
-  allocation-cases = rightValueTargetAllocationFramesCase cases
-  inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR (runtime-ν okν)
-    vN noN N⊑N′
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′ () noV
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp)
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′ () noV
-    (νcast⊑ᵀ
-      mode seal★ s⊑ liftρ liftγ N⊑M′ s-shape comp)
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okν vN noN
-    (⊑νcastᵀ
-      mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′ s-shape comp) =
-  rightTargetNuCastFrame allocation-cases prefix coherent exclusive unique wfR
-    okν vN noN mode seal★ s⊑ liftρ lift-right-ctx-[] r N⊑N′
-    s-shape comp inner
-  where
-  allocation-cases = rightValueTargetAllocationFramesCase cases
-  inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR (runtime-ν okν)
-    vN noN N⊑N′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR (NuTerms.ok-no noV′)
     vV noV rel@κ⊑κᵀ =

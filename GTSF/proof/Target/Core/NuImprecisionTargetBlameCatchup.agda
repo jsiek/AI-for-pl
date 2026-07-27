@@ -33,7 +33,6 @@ open import QuotientedTermImprecision using
   ; α⊑ᵀ
   ; allocation-prefixᵀ
   ; ν⊑ᵀ
-  ; νcast⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
@@ -111,15 +110,6 @@ left-catchup-target-blame-generalᵀ okM
   left-catchup-target-blame-generalᵀ okM M⊑blame
 left-catchup-target-blame-generalᵀ okM
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑blame replace) =
-  χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
-  where
-  χs,N↠blame =
-    left-catchup-target-blame-generalᵀ (runtime-ν okM) N⊑blame
-  χs = proj₁ χs,N↠blame
-  N↠blame = proj₂ χs,N↠blame
-left-catchup-target-blame-generalᵀ okM
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑blame
-      s-shape comp) =
   χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
   where
   χs,N↠blame =

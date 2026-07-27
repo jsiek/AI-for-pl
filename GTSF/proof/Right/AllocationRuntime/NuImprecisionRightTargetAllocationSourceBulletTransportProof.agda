@@ -77,8 +77,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
@@ -89,9 +87,6 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -302,29 +297,12 @@ private
         (sym eq) M⊢
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
-      (⊑αᵀ vV′ noV′ hA liftρ∀ liftγ
-        M⊑V′ r M⊢₀ V′•⊢)
-      eq =
-    ⊥-elim (no•-bullet-absurd noM′)
-  source-bullet-transport
-      prefix liftρ unique runtime noM′ M⊢
       (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA↑
         liftρ∀ liftγ N⊑N′ replacement)
       ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
       (ν⊑ᵀ hA hA↑ s↑ liftρ∀ liftγ N⊑N′ replacement)
-      ()
-  source-bullet-transport
-      prefix liftρ unique runtime noM′ M⊢
-      (νcast⊑νcastᵀ mode seal mode′ seal′
-        s⊑ s′⊑ compat liftρ∀ liftγ N⊑N′
-        s-shape s′-shape source-comp target-comp)
-      ()
-  source-bullet-transport
-      prefix liftρ unique runtime noM′ M⊢
-      (νcast⊑ᵀ mode seal s⊑ liftρ∀ liftγ N⊑N′
-        s-shape comp)
       ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢ κ⊑κᵀ ()
@@ -563,180 +541,6 @@ private
             modeRename-suc-weakenCast
             (weaken-conceal-conversion
               (rightStoreⁱ-prefix-inclusion prefix) c↓)))
-
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νᵀ {A = A′} {B = B} {B′ = B′}
-        {C′ = C′} {N′ = N′} {q = q₀} {s = s}
-        hA h⇑A s↑ liftρ∀ liftγ r N⊑N′ replacement)
-      eq
-      with lift-right-store-result
-        (store-right zero ★ wf★ ∷ _)
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νᵀ {A = A′} {B = B} {B′ = B′}
-        {C′ = C′} {N′ = N′} {q = q₀} {s = s}
-        hA h⇑A s↑ liftρ∀ liftγ r N⊑N′ replacement)
-      eq
-      | ρ′ , liftρ′
-      with apply-reveal-under-ty-binders
-        {χs = allocation-changes}
-        (weaken-reveal-conversion binder-incl s↑)
-    where
-    binder-incl =
-      StoreIncl-cons
-        (renameStoreᵗ-incl suc
-          (rightStoreⁱ-prefix-inclusion prefix))
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νᵀ {A = A′} {B = B} {B′ = B′}
-        {C′ = C′} {N′ = N′} {q = q₀} {s = s}
-        hA h⇑A s↑ liftρ∀ liftγ r N⊑N′ replacement)
-      eq
-      | ρ′ , liftρ′
-      | mode′ , target↑ =
-    nu-term-imprecision-transport-termsᵀ refl
-      (sym (applyTerms-ν allocation-changes A′ N′ s))
-      (⊑νᵀ final-wf final-shift-wf target-reveal
-        liftρ′ lift-right-ctx-[]
-        (⊑-target-lift-under-rightᵢ r)
-        (proj₂ inner-all)
-        final-replacement)
-    where
-    inner =
-      source-bullet-transport
-        prefix liftρ unique runtime noN′ M⊢ N⊑N′ eq
-
-    inner-all =
-      subst
-        (λ T →
-          Σ (⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ T ⊣ suc Δᴿ) (λ p →
-            ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ
-              ∣ store-right zero ★ wf★ ∷ ρᴿ⁺ ∣ []
-              ⊢ᴺ (⇑ᵗᵐ L) • ⊑ ⇑ᵗᵐ N′
-              ⦂ B ⊑ T ∶ p))
-        (applyTys-∀ allocation-changes C′)
-        (⊑-target-lift-rightᵢ q₀ , inner)
-
-    final-wf = wfTy-applyTys allocation-changes hA
-
-    final-shift-wf =
-      renameᵗ-preserves-WfTy final-wf TyRenameWf-suc
-
-    final-replacement =
-      replace-right-transport-endpoints
-        refl refl refl
-        (applyTysUnderTyBinders-⇑ᵗ allocation-changes A′)
-        (replace-right-target-lift-under-rightᵢ replacement)
-
-    target-reveal =
-      subst
-        (λ Σ → RevealConversion mode′ (suc (suc Δᴿ))
-          ((zero , ⇑ᵗ (applyTys allocation-changes A′)) ∷
-            ⟰ᵗ Σ)
-          zero (⇑ᵗ (applyTys allocation-changes A′))
-          (applyCoercionUnderTyBinders allocation-changes s)
-          (applyTysUnderTyBinders allocation-changes C′)
-          (⇑ᵗ (applyTys allocation-changes B′)))
-        (sym (target-store-eq liftρ)) target↑
-
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νcastᵀ {B = B} {B′ = B′} {C′ = C′}
-        {N′ = N′} {q = q₀} {s = s}
-        mode seal★ s⊑ liftρ∀ liftγ r N⊑N′
-        s-shape comp)
-      eq
-      with lift-right-store-result
-        (store-right zero ★ wf★ ∷ _)
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νcastᵀ {B = B} {B′ = B′} {C′ = C′}
-        {N′ = N′} {q = q₀} {s = s}
-        mode seal★ s⊑ liftρ∀ liftγ r N⊑N′
-        s-shape comp)
-      eq
-      | ρ′ , liftρ′
-      with apply-widen-inst-under-ty-binders
-        {χs = allocation-changes}
-        mode
-        (seal★-weaken binder-incl seal★)
-        (widen-weaken ≤-refl binder-incl s⊑)
-    where
-    binder-incl =
-      StoreIncl-cons
-        (renameStoreᵗ-incl suc
-          (rightStoreⁱ-prefix-inclusion prefix))
-  source-bullet-transport
-      {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-      {ρ⁺ = ρ⁺} {ρᴿ⁺ = ρᴿ⁺} {L = L}
-      prefix liftρ unique runtime (no•-ν noN′) M⊢
-      (⊑νcastᵀ {B = B} {B′ = B′} {C′ = C′}
-        {N′ = N′} {q = q₀} {s = s}
-        mode seal★ s⊑ liftρ∀ liftγ r N⊑N′
-        s-shape comp)
-      eq
-      | ρ′ , liftρ′
-      | mode′ , mode-ok′ , seal★′ , target⊑ =
-    nu-term-imprecision-transport-termsᵀ refl
-      (sym (applyTerms-ν★ allocation-changes _ _))
-      (⊑νcastᵀ mode-ok′ target-seal target-widen
-        liftρ′ lift-right-ctx-[]
-        (⊑-target-lift-under-rightᵢ r)
-        (proj₂ inner-all)
-        final-s-shape final-comp)
-    where
-    inner =
-      source-bullet-transport
-        prefix liftρ unique runtime noN′ M⊢ N⊑N′ eq
-
-    inner-all =
-      subst
-        (λ T →
-          Σ (⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ T ⊣ suc Δᴿ) (λ p →
-            ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ
-              ∣ store-right zero ★ wf★ ∷ ρᴿ⁺ ∣ []
-              ⊢ᴺ (⇑ᵗᵐ L) • ⊑ ⇑ᵗᵐ N′
-              ⦂ B ⊑ T ∶ p))
-        (applyTys-∀ allocation-changes C′)
-        (⊑-target-lift-rightᵢ q₀ , inner)
-
-    target-seal =
-      subst
-        (λ Σ → SealModeStore★ (instᵈ mode′)
-          ((zero , ★) ∷ ⟰ᵗ Σ))
-        (sym (target-store-eq liftρ)) seal★′
-
-    target-widen =
-      subst
-        (λ Σ → instᵈ mode′ ∣ suc (suc Δᴿ)
-          ∣ (zero , ★) ∷ ⟰ᵗ Σ
-          ⊢ applyCoercionUnderTyBinders allocation-changes s
-          ∶ applyTysUnderTyBinders allocation-changes C′
-          ⊑ ⇑ᵗ (applyTys allocation-changes B′))
-        (sym (target-store-eq liftρ)) target⊑
-
-    final-s-shape =
-      cast-shape-applyCoercionUnderTyBinders
-        allocation-changes s-shape
-
-    final-comp =
-      imprecision-composition-shape-transport
-        (shape-target-lift-under-rightᵢ r)
-        refl
-        (shape-target-lift-rightᵢ _)
-        comp
-
 
 right-target-allocation-source-bullet-transport-proofᵀ :
   RightTargetAllocationSourceBulletTransportᵀ

@@ -51,16 +51,16 @@ constructor and no generic renaming constructor or separate transported
 creation constructor.
 
 The controlled replacement of `QuotientedTermImprecision` is now underway.
-The target-instantiation family has moved to the selected design, while the
-asymmetric administrative and quotient-boundary families remain live for the
-next phases. The general source and target function-cast simulations still
-need to be connected to the existing world-coherent operational machinery.
-The public statement and compiler boundary are checked, but no complete
-`GradualDGG` inhabitant exists yet.
+The target-instantiation family has moved to the selected design and the
+asymmetric administrative shortcuts have been removed. The quotient boundary
+and general source and target function-cast simulations still need to be
+connected to the existing world-coherent operational machinery. The public
+statement and compiler boundary are checked, but no complete `GradualDGG`
+inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 3 consumer set frozen; grammar unchanged**
+**MIGRATION IN PROGRESS — phase 3 shortcuts removed; phase 4 boundary active**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -72,16 +72,23 @@ distinguishes the remaining selected migration evidence from retiring live
 clients, specifies exactly when check roots leave the regression surface, and
 requires deletion rather than compatibility wrappers.
 
-The Phase 3 audit is now frozen before the grammar edit. The exact deletion
-set is `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`, `νcast⊑ᵀ`, and
-`νcast⊑νcastᵀ`; the manifest records every live source file that mentions one
-of those constructors. The three target-only cases are removed by the strict
-index-cycle obstruction. The cast-specialized matched and source-only cases
-instead require the reachable instantiation residual to take its reduction
-tail and return through ordinary type application plus widening. The old
-first-draft judgment still cohabiting `NuTermImprecision.agda` is explicitly
-not treated as a QTI consumer; its widely used store/context infrastructure
-must be split out before the obsolete judgment is deleted in Phase 5.
+Phase 3 deleted `⊑αᵀ`, `⊑νᵀ`, `⊑νcastᵀ`, `νcast⊑ᵀ`, and
+`νcast⊑νcastᵀ`. The three target-only cases are uninhabited by the strict
+index-cycle obstruction. The cast-specialized matched and source-only cases,
+their helper records, and their allocation, frame, catch-up, scheduling, and
+transport consumers were removed instead of being preserved behind wrappers.
+The direct-constructor audit was followed by a transitive helper-capability
+audit before deletion.
+
+Phase 4 is now active. Its live boundary consists of the paired-narrowing
+quotient introduction, compatible closing widening, source-widening
+instantiation paths that must consume their reduction tails, and the fused
+`down·up⊑down·upᵀ` and quotient-application rules that the up-to-reduction
+design removes. A separate matched target-allocation root contract is broader
+than its implementation and must be tightened or split. The old first-draft
+judgment still cohabiting `NuTermImprecision.agda` is explicitly not treated
+as a QTI consumer; its widely used store/context infrastructure must be split
+out before the obsolete judgment is deleted in Phase 5.
 
 The phase order is:
 
@@ -420,24 +427,12 @@ The direct positive consumers of `Λ⊑instβᵀ` now fall into four groups.
   the cast-shape composition equation and the matched body/allocation
   witnesses needed to construct exact creation.
 
-The permissive catch-up scratch concealed two more old-constructor cases.
-`left-catchup-indexed-prefixᵀ` now routes the stored final source value through
-ordinary value catch-up. `weak-one-step-indexed-simulationᵀ` now rejects its
-leading target step using the stored final target value and `value-no-step`.
-The scratch remains permissive because of its twelve previously recorded
-holes and other incomplete constructor coverage, not because these two cases
-are absent.
-
-A second audit explicitly included incomplete relation consumers. Exactly
-three permissive modules import the live term-imprecision judgment.
-`NuImprecisionCatchupScratch` is the only one that performs exhaustive
-case analysis on that judgment; both of its analyses contain the old
-`Λ⊑instβᵀ` case and must be migrated to the smaller creation residual.
+The Phase 2 audit also included permissive and incomplete consumers.
 `NuImprecisionOneStepTargetCastRoots` and
 `NuImprecisionOneStepTargetConversionRoots` accept a relation premise but
 only pass it to focused helpers; their remaining holes do not hide additional
-term-imprecision constructor cases. No other permissive or postulated module
-both consumes the live relation and contains an incomplete case analysis.
+term-imprecision constructor cases. The old permissive catch-up scratch was
+deleted in Phase 3 together with its retired helper cone.
 
 The generic `rename-storeᴿ` experiment failed its operational audit.
 `TyRenameWf` preserves scope but not injectivity, and `RelStoreEmbeddingⁱ`
@@ -560,7 +555,6 @@ Only these DGG-path proof modules are intentionally permissive:
 
 | Module | Remaining work |
 |---|---|
-| [`NuImprecisionCatchupScratch.agda`](../../Catchup/Core/NuImprecisionCatchupScratch.agda) | Twelve explicit value-catch-up holes plus an incomplete generic one-step coverage audit |
 | [`NuImprecisionOneStepTargetCastRoots.agda`](../../OneStep/NuImprecisionOneStepTargetCastRoots.agda) | Eight generic target-cast root holes |
 | [`NuImprecisionOneStepTargetConversionRoots.agda`](../../OneStep/NuImprecisionOneStepTargetConversionRoots.agda) | One generic target-conversion root hole |
 
@@ -568,7 +562,7 @@ These modules are outside all canonical strict cones. New strict work must use
 their `Def` contracts or extracted strict leaves, never import them merely to
 make a theorem facade appear complete.
 
-Seven non-permissive, importer-free `Proof` modules had been classified as
+Five non-permissive, importer-free `Proof` modules had been classified as
 completed by filenames and source scans but fail focused strict Agda checks.
 They are excluded from `NuDGGUnassembledProofsStrictSpine` and recorded by
 `KNOWN_INCOMPLETE_PROOF_MODULES` in the import audit:
@@ -580,8 +574,6 @@ They are excluded from `NuDGGUnassembledProofsStrictSpine` and recorded by
 | [`NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda`](../../WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda) | Supplies store well-formedness where assumption-membership uniqueness is now required |
 | [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](../../WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | Supplies store well-formedness where assumption-membership uniqueness is now required |
 | [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](../../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | Omits the new assumption-membership uniqueness component of world-coherent catch-up |
-| [`NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda`](../../WorldCoherent/Source/NuCatchup/NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda) | Uses ordinary coercion transport where transport under type binders is required |
-| [`NuImprecisionWorldCoherentSourceNuCastRuntimeSiblingCatchupProof.agda`](../../WorldCoherent/Source/NuCatchup/NuImprecisionWorldCoherentSourceNuCastRuntimeSiblingCatchupProof.agda) | Reaches an uncovered `down·up⊑down·upᵀ` allocation-transport case |
 
 The separate
 [`NuImprecisionPairedTargetClosingStrictSpine.agda`](../../PairedLambda/Terminal/NuImprecisionPairedTargetClosingStrictSpine.agda)
@@ -590,25 +582,22 @@ reaches an uncovered `down·up⊑down·upᵀ` case in
 `NuImprecisionPairedLambdaTargetClosingFrameViewProof`. This proof is not in
 the importer-free list because later paired-lambda proofs import it.
 
-The scratch declaration `weak-one-step-indexed-simulationᵀ` is typed directly
-by `WeakOneStepIndexedSimulationᵀ`. Its permanent implementation belongs in
-`proof/OneStep/NuImprecisionOneStepProof.agda` and must:
-
-1. take already-terminal value catch-up and unfinished semantic root families
-   through complete higher-order contracts;
-2. contain no permissive option;
-3. pass exhaustive QTI/reduction coverage checking;
-4. move each scratch clause exactly once; and
-5. support a canonical `Lemma` only after every supplied implementation is
-   strict.
-
-The twelve scratch holes are not hidden one-step statement holes. Four are the
-plain and eager quotient-`inst` residuals for ordinary and generated down/up
-catch-up. The other eight are source `α`, source-only `ν`, source-only
-`νcast`, source narrowing, source widening, paired conversion, reveal
-conversion, and conceal conversion value-catch-up cases.
-
 ## Completed recent work
+
+- Completed Phase 3 of the live migration. Removed the five asymmetric
+  administrative constructors from the live grammar, migrated their remaining
+  structural consumers, and deleted the obsolete allocation, frame,
+  casted-`ν` catch-up, runtime-sibling, target-bullet, and scratch helper
+  islands. No compatibility wrapper or replacement constructor was added.
+- Pruned the source and right `ν`-frame interfaces to their reachable ordinary
+  reveal-`ν` cases, and pruned the right target-allocation root interface to
+  its matched reveal-`ν` case. This exposed one pre-existing overbroad
+  target-allocation root contract for Phase 4 rather than hiding it behind a
+  retired case.
+- Focused checks passed for the live relation, substitution, embedding,
+  allocation transport, frame, exclusion, dispatcher, and value-transport
+  leaves affected by Phase 3. The import/strict-cone audit passes with five
+  explicitly known incomplete proof roots and no uninventoried proof module.
 
 - Finished the independent smaller relation rather than testing a partial
   surrogate. The ordinary grammar now covers every rule in the design,
@@ -766,7 +755,7 @@ behavior is covered by
   candidates.
 - Added `NuDGGUnassembledProofsStrictSpine` for the eleven strictly checked
   higher-order `Proof` roots that previously lacked a canonical consumer, plus
-  the completed right/source-`∀` aggregate. Seven other importer-free
+  the completed right/source-`∀` aggregate. Five other importer-free
   candidates failed focused checks and are tracked explicitly as incomplete.
   The audit now fails if a new completed strict `Proof` is left unaggregated or
   if a known-incomplete proof acquires an importer before repair.
@@ -775,43 +764,38 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Remove the frozen Phase 3 constructor family in one live grammar edit.
-   The complete consumer list and exact constructor queries are recorded in
-   the quotient lifecycle manifest.
-2. Rebuild
-   source casted-`ν` cases from ordinary source `ν` plus cast or conversion
-   structure, and delete helpers after their last focused replacement passes.
-3. Run focused Phase 3 leaves, the source import/strict-cone audit, and one
-   public DGG integration gate. Do not run `All.agda`.
-4. Promote the selected paired-narrowing quotient boundary, its typing,
-   value, world-embedding, and substitution theorems to the canonical live
-   modules. Delete superseded quotient constructors and compatibility shims
-   rather than re-exporting them.
-5. State and prove the allocation-aware quotient `sim-beta-cast` contract
-   using the existing world-coherent weak result. The inert route supplies
-   source catch-up; the active target-`inst` route uses the target tail,
-   embedded creation, and the transported store.
-6. Connect that contract to paired-widening pending allocation and then to the
-   second function beta. Invoke `smaller-single-term-substitutionᴿ` only after
-   the down/up boundary has closed back to ordinary imprecision.
-7. Discharge the target quotient closing-widening `β-seq` root through the
-   target-tail sequence-resume midpoint machinery. Do not add a narrowing
-   spine for this widening-side obligation.
-8. Remove live quotient application, finite narrowing spines, and
-   `down·up⊑down·upᵀ` as primitive rules once the general function-cast
-   simulations pass.
-9. Return to the deleted compositional alternative in Git history only if a
-   strict counterexample starts from a derivable ordinary top row and cannot
-   reduce to an ordinary-related join.
-10. Re-run the terminal-forward integration with the stricter hereditary
-    paired-widening compatibility, then migrate the remaining known-incomplete
-    strict proofs to the current uniqueness and binder-transport interfaces.
-11. Finish quotient transport normalization, crossed runtime-sibling catch-up,
-    the remaining exact active-synchronization roots, and the exhaustive
-    prefix-aware world-coherent one-step dispatcher.
-12. Supply the completed dispatcher to both terminal engines, finish the
-    forward contracts, invoke the strict terminal integration proof, construct
-    `GradualDGG`, and delete the remaining scratch module.
+1. Checkpoint the completed Phase 3 grammar and consumer deletion as one
+   coherent commit. Do not mix the quotient-boundary edit into that commit.
+2. In Phase 4, state the allocation-aware up-to-reduction contract used by the
+   two live source-widening instantiation paths. Its active path must take the
+   cast step to the transient `ν ★` term and the complete allocation/type-beta
+   tail before asking for the next term-imprecision edge.
+3. Promote the selected paired-narrowing quotient boundary, its typing, value,
+   world-embedding, and substitution theorems to the canonical live modules.
+   Delete superseded quotient constructors and compatibility shims rather than
+   re-exporting them.
+4. Remove `down·up⊑down·upᵀ`, quotient-indexed application, and any finite
+   narrowing-spine support in the same Phase 4 grammar edit. Migrate exhaustive
+   folds and the two source-widening consumers to the up-to-reduction result.
+5. Tighten or split the matched target-allocation root contract so its premise
+   states the allocation root its implementation handles; do not add a
+   catch-all for arbitrary frame steps.
+6. Check only focused Phase 4 leaves, then run the source import/strict-cone
+   audit and one public-DGG integration gate. Do not run `All.agda`.
+7. In Phase 5, split the shared store/context infrastructure out of
+   `NuTermImprecision.agda`, delete its obsolete first-draft relation, promote
+   retained migration theorems to canonical names, remove all experimental
+   check roots, and delete every superseded migration source.
+8. In Phase 6, verify that source search and the Makefile contain no obsolete
+   constructor, import, wrapper, alias, prototype, or regression root. Run the
+   final canonical quotient regressions and strict DGG gates serially.
+9. Record the exact marker **MIGRATION FINISHED** in both lifecycle documents
+   only after all Phase 6 conditions pass. Create the migration pull request
+   only after that marker exists.
+10. Resume the DGG proof on the smaller canonical relation: finish quotient
+    transport normalization, crossed runtime-sibling catch-up, active
+    synchronization, the exhaustive world-coherent dispatcher, both terminal
+    engines, and finally construct `GradualDGG`.
 
 ## Validation
 
@@ -832,9 +816,9 @@ explicitly rather than deleted mechanically.
 The aggregate and import audit pass. The terminal-forward strict spine is
 source-safe but its focused Agda check currently fails at the
 `compatible-source-inert` paired-widening function-beta case recorded above.
-The source inventory sees 367 strict-looking `Proof` modules: 156 have no
-transitive canonical `Lemma` consumer, 149 are reachable from an explicit
-strict inventory spine, seven are explicitly known incomplete, and none are
+The source inventory sees 361 strict-looking `Proof` modules: 153 have no
+transitive canonical `Lemma` consumer, 148 are reachable from an explicit
+strict inventory spine, five are explicitly known incomplete, and none are
 uninventoried. Focused Agda checks, not these source counts, establish
 completion.
 
@@ -842,10 +826,10 @@ On 2026-07-27, the pre-migration design aggregate passed after the authorized
 standard-library interface refresh. A subsequent unprivileged strict check of
 `NuImprecisionTargetInstantiationTransportExperiment.agda` passed in 2.6
 seconds, confirming that the local stdlib cache was coherent.
-The optimized focused check of
-`NuImprecisionCatchupScratch.agda` also passed after the two formerly omitted
-`Λ⊑instβᵀ` clauses were made explicit. Both strengthened fusion-spine folds
-pass strict focused checks.
+The optimized focused check of the former catch-up scratch passed after the
+two omitted `Λ⊑instβᵀ` clauses were made explicit. Phase 3 subsequently
+deleted that permissive scratch and its retired helper cone. Both strengthened
+fusion-spine folds pass strict focused checks.
 
 After completing the independent smaller relation on 2026-07-27, the
 pre-migration aggregate passed with all fourteen new strict roots:
@@ -883,6 +867,16 @@ silent minutes and is not a phase gate. The frame-closing handler assembly is
 still blocked by a pre-existing proof-relevant index mismatch in
 `NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof`, after its
 target-instantiation interface was migrated.
+
+Phase 3 completed on 2026-07-27. Focused checks passed for every changed
+structural family that is part of the live strict cone, and the import audit
+passed after removing the deleted proof roots from its known-incomplete
+inventory. The attempted Phase 3 integration gate stopped at two
+pre-existing Phase 4 boundaries: the source cast-frame proof lacks a
+principled fused `down·up⊑down·upᵀ` case, and the matched target-allocation
+root contract admits frame steps that its allocation-root implementation does
+not handle. These are recorded as Phase 4 design obligations, not papered over
+with new constructors or catch-all clauses.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

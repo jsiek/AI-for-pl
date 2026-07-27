@@ -408,10 +408,6 @@ world-coherent-left-value-catchup-prefix-proofᵀ
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN () noV′
-    (⊑αᵀ vL′ noL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
-world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okN () noV′
     (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA⇑ liftρ liftγ N⊑N′ replace)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
@@ -423,31 +419,6 @@ world-coherent-left-value-catchup-prefix-proofᵀ
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-ν okN) vV′ noV′ N⊑V′
-world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okN () noV′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
-world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okN () noV′
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp)
-world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okN vV′ noV′
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ lift-left-ctx-[] N⊑V′
-      s-shape comp) =
-  source-νcast source-runtime prefix mode seal★ s⊑ s-shape comp
-    liftρ lift-left-ctx-[] vV′ noV′ inner
-  where
-  inner = world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup prefix coherent exclusive unique wfL
-    (runtime-ν okN) vV′ noV′ N⊑V′
-world-coherent-left-value-catchup-prefix-proofᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okN () noV′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′ s-shape comp)
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN vV′ noV′ rel@κ⊑κᵀ =

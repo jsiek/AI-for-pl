@@ -220,7 +220,7 @@ $$
   q[
     0 \mapsto {\uparrow A}
     \mathrel{\sqsubseteq_{\operatorname{lift}(p_A)}}
-    {\uparrow A'} \mapsfrom 0
+    {\uparrow A'} \leftarrow 0
   ]^P
   \doteq
   \operatorname{lift}_{\forall}(p)
@@ -509,7 +509,7 @@ $$
   p[
     \alpha\mapsto X
     \mathrel{\sqsubseteq_{p_X}}
-    X'\mapsfrom\beta
+    X'\leftarrow\beta
   ]^P
   \doteq q
 }{
@@ -540,7 +540,7 @@ $$
   q[
     \alpha\mapsto X
     \mathrel{\sqsubseteq_{p_X}}
-    X'\mapsfrom\beta
+    X'\leftarrow\beta
   ]^P
   \doteq p
 }{

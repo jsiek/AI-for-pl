@@ -10,7 +10,7 @@ module
 --     two quotient frames from the frame-closing handler boundary.
 --   * Gives every non-leaf handler both the recursive continuation motive
 --     and the exact inner proof-relevant frame view.
---   * Exposes the fused instantiation-beta leaf as an exact semantic
+--   * Exposes the embedded target-instantiation leaf as an exact semantic
 --     capability; it does not assume an implementation.
 --   * Contains no continuation interpreter, implementation, postulate, hole,
 --     permissive option, or broad simulation import.
@@ -109,6 +109,9 @@ open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
   using (PairedLambdaTargetClosingFrameView)
 open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (EmbeddedTargetInstantiationCreation)
+open import
   proof.PairedLambda.Terminal.NuImprecisionPairedLambdaTargetClosingPendingTargetFramesDef
   using (PairedLambdaTargetClosingFrameClosingMotiveᴷ)
 open import
@@ -162,58 +165,32 @@ record PairedLambdaTargetClosingContinuationHandlers : Set₁ where
       PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
         (Λ V) N′ A B (ν safe occ p)
 
-    handle-leaf-instβ :
+    handle-leaf-target-instantiation :
         ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
           {ρ : StoreImp Φ Δᴸ Δᴿ}
           {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
           {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
             (suc Θᴸ) (suc Θᴿ)}
           {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
-          {τ σ : Renameᵗ}
-          {W W′ M M′ : Term}
-          {A′ B C D F : Ty}
-          {s : Coercion} {μ : ModeEnv} {r}
+          {W W′ V V′ : Term} {A′ B C D F : Ty}
+          {s c′ : Coercion} {μ : ModeEnv} {r}
+          {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
+          {p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ}
           {body-shape : ImprecisionShape} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ μ (rightStoreⁱ ρ₀) →
-      μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ inst B s ∶ `∀ C ⊑ B →
-      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
-      LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
-      Value W →
-      No• W →
-      Value W′ →
-      No• W′ →
-      Inert s →
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-        ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
-      (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
-      widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
-      ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
-      (assm :
-        ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
-          rename-assm²ᵢ τ σ a ∈ Φ) →
-      (hτ : TyRenameWf Θᴸ Δᴸ τ) →
-      (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
-      RelStoreEmbeddingⁱ τ σ
-        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
-      renameᵗᵐ τ (Λ W) ≡ M →
-      renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
-      renameᵗ τ (`∀ D) ≡ `∀ F →
-      renameᵗ σ (⇑ᵗ B) ≡ A′ →
-      (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
-      Value M →
-      No• M →
-      Closedᵐ M →
-      Value M′ →
-      No• M′ →
-      Closedᵐ M′ →
-      Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
-      Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+      EmbeddedTargetInstantiationCreation
+        {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+        {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+        {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+        {s = s} {μ = μ} {r = r} {f = f}
+        {body-shape = body-shape}
+        (StoreImpPrefix ρ₀ ρ⁺)
+        (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+          ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r)
+        {Ψ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+        ρ (Λ V) (V′ ⟨ c′ ⟩) (`∀ F) A′ p →
       PairedLambdaTargetClosingFrameClosingMotiveᴷ ρ
-        M M′ F A′ p
+        (Λ V) (V′ ⟨ c′ ⟩) F A′ p
 
     handle-leaf-gen-ν :
         ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

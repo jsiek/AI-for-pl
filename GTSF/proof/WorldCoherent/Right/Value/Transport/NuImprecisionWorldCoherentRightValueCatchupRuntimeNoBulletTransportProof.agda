@@ -22,6 +22,7 @@ open import Conversion using
   ; weaken-reveal-conversion
   )
 open import Coercions using (genᵈ; id-onlyᵈ; instᵈ; tag-or-idᵈ)
+import Coercions as C
 open import ForallPermutation using
   ( _≈∀_
   ; _∣_⊢_⊑ᵖ_⊣_
@@ -113,7 +114,10 @@ open import NuTerms using
   )
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
+  ; compatible-all
+  ; compatible-function
   ; compatible-source-inert
+  ; compatible-tag
   ; compatible-target-inert-bridge
   )
 open import QuotientedTermImprecision using
@@ -132,7 +136,7 @@ open import QuotientedTermImprecision using
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
   ; ƛ⊑ƛᵀ
-  ; Λ⊑instβᵀ
+  ; target-instantiationᵀ
   ; Λ⊑ᵀ
   ; Λ⊑Λᵀ
   ; α⊑ᵀ
@@ -181,6 +185,9 @@ open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportProof
 open import
   proof.Right.Core.NuImprecisionRightSilentQuotientWideningPairTransportDef
   using (RightSilentQuotientWideningPairTransportᵀ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-source-no-bulletᴱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( apply-fixed-narrows-typing
   ; apply-narrows-typing
@@ -1554,15 +1561,9 @@ module _
       ⊥-elim (activeM noM)
     active-runtime-no-bullet-transportᵀ
         prefix
-        (Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-          vW noW vW′ noW′ inert W⊑W′ f
-          inst-shape creation-square
-          assm hτ hσ embedding
-          source-eq target-eq source-type-eq target-type-eq p
-          final-v final-no final-closed
-          final-v′ final-no′ final-closed′ W⊢ W′⊢)
+        (target-instantiationᵀ embedded)
         (ok-no noM) activeM noM′ store-eq caught =
-      ⊥-elim (activeM final-no)
+      ⊥-elim (activeM (embedded-creation-source-no-bulletᴱ embedded))
     active-runtime-no-bullet-transportᵀ
         prefix κ⊑κᵀ (ok-no noM) activeM noM′ store-eq caught =
       ⊥-elim (activeM noM)
@@ -3157,7 +3158,8 @@ module _
 
     active-runtime-no-bullet-transportᵀ
         prefix
-        (νcast⊑νcastᵀ {B = B} {C′ = C′} {p = pB} {q = q}
+        (νcast⊑νcastᵀ {B = B} {B′ = B′} {C′ = C′}
+          {p = pB} {q = q}
           {s = s} {s′ = s′}
           {s-shape = source-shape} {s′-shape = target-shape}
           mode seal★ mode′ seal★′ s⊑ s′⊑ compat
@@ -3220,7 +3222,8 @@ module _
     active-runtime-no-bullet-transportᵀ
         { Φ = Φ } {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
         prefix
-        (νcast⊑νcastᵀ {B = B} {C′ = C′} {p = pB} {q = q}
+        (νcast⊑νcastᵀ {B = B} {B′ = B′} {C′ = C′}
+          {p = pB} {q = q}
           {s = s} {s′ = s′}
           {s-shape = source-shape} {s′-shape = target-shape}
           mode seal★ mode′ seal★′ s⊑ s′⊑ compat
@@ -3234,7 +3237,7 @@ module _
         (sym (applyTerms-ν★ (sourceChanges result) _ _))
         (sym (applyTerms-ν★ (targetTailChanges result) _ _))
         (νcast⊑νcastᵀ modeˢ source-seal modeᵗ target-seal
-          source-widen target-widen (transport-compat compat)
+          source-widen target-widen (transport-compat pB compat)
           liftρ′ lift-ctx-[] N⊑N′-final
           (cast-shape-applyCoercionUnderTyBinders
             (sourceChanges result) source-shape-proof)
@@ -3322,8 +3325,9 @@ module _
             (sym (targetStoreResult result)) target⊑)
 
       transport-compat :
+        (pB₀ : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
         PairedWideningCompatible (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-          s s′ q (⊑-lift∀ᵢ pB) source-shape target-shape →
+          s s′ q (⊑-lift∀ᵢ pB₀) source-shape target-shape →
         PairedWideningCompatible
           (∀ᵢᶜ (resultCtx result))
           (suc (resultLeftCtx result)) (suc (resultRightCtx result))
@@ -3331,13 +3335,27 @@ module _
           (applyCoercionUnderTyBinders (targetTailChanges result)
             (applyCoercionUnderTyBinder keep s′))
           (transportAllBody result q)
-          (⊑-lift∀ᵢ (transportType result pB))
+          (⊑-lift∀ᵢ (transportType result pB₀))
           source-shape target-shape
-      transport-compat (compatible-source-inert inert) =
+      transport-compat pB₀ (compatible-tag G) =
+        compatible-source-inert
+          (applyCoercionUnderTyBinders-preserves-Inert
+            (sourceChanges result) (G C.!))
+      transport-compat (p₁ ↦ p₂)
+          (compatible-function {c₁ = c₁} {c₂ = c₂} compatible) =
+        compatible-source-inert
+          (applyCoercionUnderTyBinders-preserves-Inert
+            (sourceChanges result) (c₁ C.↦ c₂))
+      transport-compat (∀ⁱ p)
+          (compatible-all {c = c} compatible) =
+        compatible-source-inert
+          (applyCoercionUnderTyBinders-preserves-Inert
+            (sourceChanges result) (C.`∀ c))
+      transport-compat pB₀ (compatible-source-inert inert) =
         compatible-source-inert
           (applyCoercionUnderTyBinders-preserves-Inert
             (sourceChanges result) inert)
-      transport-compat
+      transport-compat pB₀
           (compatible-target-inert-bridge bridge-evidence) =
         compatible-target-inert-bridge λ inert′ →
           let
@@ -3368,9 +3386,9 @@ module _
               source-triangle ,
             imprecision-composition-shape-transport
               bridge-shape refl
-              (trans (shape-lift∀ᵢ (transportType result pB))
-                (trans (transportShapeCoherent type-coherence pB)
-                  (sym (shape-lift∀ᵢ pB))))
+              (trans (shape-lift∀ᵢ (transportType result pB₀))
+                (trans (transportShapeCoherent type-coherence pB₀)
+                  (sym (shape-lift∀ᵢ pB₀))))
               target-triangle
 
     active-runtime-no-bullet-transportᵀ

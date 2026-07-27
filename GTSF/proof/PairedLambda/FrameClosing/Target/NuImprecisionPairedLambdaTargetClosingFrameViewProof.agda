@@ -44,6 +44,7 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
   ; gen⊑groundᵀ
@@ -56,7 +57,6 @@ open import QuotientedTermImprecision using
   ; paired-widening
   ; up⊑upᵀ
   ; x⊑xᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
@@ -77,6 +77,7 @@ open import QuotientedTermImprecision using
   ; ⊕⊑⊕ᵀ
   ; ·⊑·ᵀ
   ; ƛ⊑ƛᵀ
+  ; target-instantiationᵀ
   )
 open import TermTyping using (forget)
 open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
@@ -117,6 +118,12 @@ mutual
       (ƛ⊑ƛᵀ hA hA′ N⊑N′)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW (·⊑·ᵀ L⊑L′ M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (() ⟨ inert-u ⟩) noW vW′ noW′ allW
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square widening
+        u-shape u′-shape up-square compatible)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -185,17 +192,9 @@ mutual
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       vM₀ noM₀ vM₀′ noM₀′ allM
-      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
+      (target-instantiationᵀ embedded) =
     closing-frame-view
-      (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+      (leaf-target-instantiation embedded)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       (Λ vV) (no•-Λ noV) vN′ noN′

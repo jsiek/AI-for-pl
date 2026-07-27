@@ -40,7 +40,7 @@ open import QuotientedTermImprecision using
   ; α⊑ᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
-  ; Λ⊑instβᵀ
+  ; target-instantiationᵀ
   ; νcast⊑νcastᵀ
   ; νcast⊑ᵀ
   ; ν⊑νᵀ
@@ -101,6 +101,12 @@ open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightValueCatchupPrefixDef
   using (WorldCoherentRightValueCatchupPrefixᵀ)
 open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩; runtime-ν)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-target-no-bulletᴱ
+  ; embedded-creation-target-valueᴱ
+  )
 
 
 world-coherent-right-value-catchup-dispatcher-proofᵀ :
@@ -172,14 +178,12 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okW′
     vV noV
-    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed final-v′ final-no′ final-closed′
-      source-typing target-typing) =
+    rel@(target-instantiationᵀ embedded) =
   rightValueTerminalCase cases prefix coherent exclusive unique wfR
-    vV noV final-v′ final-no′ rel
+    vV noV
+    (embedded-creation-target-valueᴱ embedded)
+    (embedded-creation-target-no-bulletᴱ embedded)
+    rel
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ

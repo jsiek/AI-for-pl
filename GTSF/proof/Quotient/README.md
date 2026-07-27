@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 1 complete; phase 2 not started**
+**MIGRATION IN PROGRESS — phase 2 complete; phase 3 not started**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -89,7 +89,6 @@ delete the superseded source.
 `../../QuotientedTermImprecision.agda` is still the live relation, but these
 constructor families are marked for removal:
 
-- fused target-instantiation creation via `Λ⊑instβᵀ`;
 - target-only type application, `ν`, and casted `ν`;
 - casted-`ν` shortcuts that ordinary `ν` plus cast rules supersede;
 - quotient-indexed application;
@@ -139,18 +138,40 @@ Completed:
 
 ### Phase 2. Replace target-instantiation creation
 
-- introduce exact and embedded creation into the live relation;
-- migrate every direct and incomplete `Λ⊑instβᵀ` consumer, including
-  transport, substitution, value, paired-lambda, widening-root, and scratch
-  cases;
-- retain the canonical final-index equality rather than a compatibility shim;
-- delete `Λ⊑instβᵀ` before declaring the phase complete;
-- check affected leaves as they move, then check the public DGG statement once
-  at the phase gate.
+Completed:
 
-Temporary overlap between old and new creation constructors is permitted only
-inside this active phase. It is not a checkpoint state and must not be
-committed as a completed phase.
+- replaced fused `Λ⊑instβᵀ` with one live `target-instantiationᵀ`
+  constructor carrying `EmbeddedTargetInstantiationCreation`;
+- exposed the invariant that the source endpoint is headed by `∀`, in
+  addition to the already visible source `Λ` and target cast syntax;
+- migrated direct, exhaustive, and incomplete consumers in typing, value,
+  substitution, world embedding, allocation transport, seal/tag
+  cancellation, catch-up, paired-lambda views, continuation handlers, and
+  the target-widening post-beta context;
+- replaced long positional handler and capability interfaces with the single
+  embedded residual and renamed their local “inst-beta” surface to
+  “target-instantiation”;
+- added only reusable residual projections for source/target typing, value,
+  no-bullet, and target `GenSafeShape`;
+- deleted the obsolete final-target-atomic helper trilogy after its generic
+  replacement passed;
+- deleted the two unused universal-fusion-spine Def/Proof/Lemma families
+  after source search confirmed that their only importers were within their
+  own islands; arbitrary residual embedding now carries the composition they
+  attempted to expose;
+- removed all Agda references to `Λ⊑instβᵀ` and all imports of the deleted
+  helpers;
+- passed the focused migrated leaves, the source import/strict-cone audit, and
+  `make dgg-check`.
+
+The permissive catch-up scratch clauses were migrated, but a full refresh of
+that scratch root was stopped after several silent minutes; it is not a
+strict phase gate. The independent paired-lambda frame-closing handler
+assembly remains blocked in its pre-existing
+`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof` dependency by a
+proof-relevant index transport mismatch. Its target-instantiation view,
+handler definitions, interpreters, continuation assembly, and capability
+definition all pass focused checks.
 
 ### Phase 3. Remove asymmetric administrative shortcuts
 

@@ -19,12 +19,15 @@ open import QuotientedTermImprecision using
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; ⊑αᵀ
+  ; target-instantiationᵀ
   )
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-valueᴱ)
 open import
   proof.NuCore.Misc.NuImprecisionTargetBulletIndexCycleDef
   using (TargetBulletIndexCycleᵀ)
@@ -43,14 +46,10 @@ quotiented-target-bullet-excludes-source-value-proofᵀ cycle
   quotiented-target-bullet-excludes-source-value-proofᵀ
     cycle vW inner
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
-    vV
-    (Λ⊑instβᵀ
-      prefix mode seal★ inst⊑ liftρ∀ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-emb
-      source-eq target-eq source-type-eq target-type-eq
-      outer-index final-v final-no final-closed
-      () final-no′ final-closed′ source-typing target-typing)
+    vV (target-instantiationᵀ embedded)
+    with embedded-creation-target-valueᴱ embedded
+quotiented-target-bullet-excludes-source-value-proofᵀ cycle
+    vV (target-instantiationᵀ embedded) | ()
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     () (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ
       inner source-typing target-typing)

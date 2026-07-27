@@ -14,6 +14,7 @@ open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Coercions using (Coercion; Inert)
+import Coercions as C
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
@@ -43,7 +44,10 @@ open import NuTermImprecision using
 open import NuTerms using (Term)
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible
+  ; compatible-all
+  ; compatible-function
   ; compatible-source-inert
+  ; compatible-tag
   ; compatible-target-inert-bridge
   )
 open import QuotientedTermImprecision using
@@ -286,6 +290,21 @@ paired-widening-compatible-transportᵀ :
     (transportType inner p)
     (transportType inner q)
     s s′
+paired-widening-compatible-transportᵀ
+    inner coherent (compatible-tag G) =
+  compatible-source-inert
+    (applyCoercions-preserves-Inert (sourceChanges inner) (G C.!))
+paired-widening-compatible-transportᵀ
+    inner coherent
+    (compatible-function {c₁ = c₁} {c₂ = c₂} compatible) =
+  compatible-source-inert
+    (applyCoercions-preserves-Inert
+      (sourceChanges inner) (c₁ C.↦ c₂))
+paired-widening-compatible-transportᵀ
+    inner coherent (compatible-all {c = c} compatible) =
+  compatible-source-inert
+    (applyCoercions-preserves-Inert
+      (sourceChanges inner) (C.`∀ c))
 paired-widening-compatible-transportᵀ
     inner coherent (compatible-source-inert inert) =
   compatible-source-inert

@@ -83,6 +83,12 @@ open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
   using (rel-store-embedding-reflⁱ)
 open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-valueᴱ
+  ; embedded-creation-target-no-bulletᴱ
+  )
+open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (weak-step-store-lineage)
 open import
@@ -394,19 +400,17 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′
-    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed final-v′ final-no′ final-closed′
-      source-typing target-typing)
+    rel@(target-instantiationᵀ embedded)
     noR okR′ sibling =
   caught , sibling
   where
   caught =
     world-coherent-left-indexed-catchup
       (left-catchup-indexed-prefix-valueᵀ
-        prefix okL final-v final-no′ rel)
+        prefix okL
+        (embedded-creation-source-valueᴱ embedded)
+        (embedded-creation-target-no-bulletᴱ embedded)
+        rel)
       (weak-step-store-lineage _
         rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent exclusive unique wfL

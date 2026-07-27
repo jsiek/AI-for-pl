@@ -114,6 +114,12 @@ open import NuStore using (StoreWf)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import proof.Core.Properties.CoercionProperties using (ModeRename)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-valueᴱ
+  ; embedded-creation-target-valueᴱ
+  )
 open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
   ( weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
   ; weak-one-step-matched-νcast-indexed-catchup-outcomeᵀ
@@ -461,16 +467,9 @@ left-catchup-indexed-prefixᵀ
     prefix okN (Λ vV) noV′ rel
 left-catchup-indexed-prefixᵀ
     prefix okN vV′ noV′
-    rel@(Λ⊑instβᵀ
-      inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing) =
+    rel@(target-instantiationᵀ embedded) =
   left-catchup-indexed-prefix-valueᵀ
-    prefix okN final-v noV′ rel
+    prefix okN (embedded-creation-source-valueᴱ embedded) noV′ rel
 left-catchup-indexed-prefixᵀ
     prefix okN () noV′
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
@@ -708,16 +707,10 @@ weak-one-step-indexed-simulationᵀ
     (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) (pure-step ())
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′
-    (Λ⊑instβᵀ
-      inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing)
+    (target-instantiationᵀ embedded)
     M′→N′ =
-  ⊥-elim (value-no-step final-v′ M′→N′)
+  ⊥-elim
+    (value-no-step (embedded-creation-target-valueᴱ embedded) M′→N′)
 weak-one-step-indexed-simulationᵀ
     wfΣ′ okM okM′ κ⊑κᵀ (pure-step ())
 weak-one-step-indexed-simulationᵀ

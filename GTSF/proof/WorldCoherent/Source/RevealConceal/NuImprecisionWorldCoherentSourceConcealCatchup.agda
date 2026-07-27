@@ -93,7 +93,6 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -316,23 +315,6 @@ atomic-source-value-reindexᵀ () vM
     (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) q
 atomic-source-value-reindexᵀ () vM
     (Λ⊑ᵀ occ liftρ liftγ vV V⊑M′) q
-atomic-source-value-reindexᵀ atom vM
-    (Λ⊑instβᵀ
-      prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-emb
-      eqM eqM′ eqA eqA′ p
-      vN noN closedN vN′ noN′ closedN′ N⊢ N′⊢)
-    q
-    with subst Atom (sym eqA) atom
-atomic-source-value-reindexᵀ atom vM
-    (Λ⊑instβᵀ
-      prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-emb
-      eqM eqM′ eqA eqA′ p
-      vN noN closedN vN′ noN′ closedN′ N⊢ N′⊢)
-    q | ()
 atomic-source-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
       L⊑L′ L•⊢ L′•⊢) q

@@ -7,8 +7,8 @@ module
 --     target-closing frame-closing assembly.
 --   * Gives upper assemblies one explicit dependency boundary while retaining
 --     the independently checkable statements of all twenty-two capabilities.
---   * Keeps the fused instantiation-beta capability fully inline instead of
---     naming an unproved semantic theorem boundary.
+--   * Keeps the embedded target-instantiation capability fully inline instead
+--     of naming an unproved semantic theorem boundary.
 --   * Contains no proofs, postulates, holes, permissive options, or imports of
 --     proof implementations.
 
@@ -29,6 +29,7 @@ open import ImprecisionWf using
   ; ⇑ᵢ
   ; _∣_⊢_⊑_⊣_
   )
+open import ImprecisionComposition using (ImprecisionShape)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTermImprecision using
   ( LiftRightStoreⁱ
@@ -72,6 +73,9 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
   using (PairedLambdaTargetClosingFrameClosingMotive)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (EmbeddedTargetInstantiationCreation)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingTargetFrameCasesDef
   using
@@ -143,55 +147,32 @@ open import
 
 record PairedLambdaTargetClosingFrameClosingCapabilities : Set₁ where
   field
-    cap-inst-beta :
+    cap-target-instantiation :
         ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
           {ρ : StoreImp Φ Δᴸ Δᴿ}
           {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
           {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
             (suc Θᴸ) (suc Θᴿ)}
           {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
-          {τ σ : Renameᵗ}
-          {W W′ M M′ : Term}
-          {A′ B C D F : Ty}
-          {s : Coercion} {μ : ModeEnv} {r} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ μ (rightStoreⁱ ρ₀) →
-      μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
-        ⊢ inst B s ∶ `∀ C ⊑ B →
-      LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
-      LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
-      Value W →
-      No• W →
-      Value W′ →
-      No• W′ →
-      Inert s →
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-        ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
-      (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
-      (assm :
-        ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
-          rename-assm²ᵢ τ σ a ∈ Φ) →
-      (hτ : TyRenameWf Θᴸ Δᴸ τ) →
-      (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
-      RelStoreEmbeddingⁱ τ σ
-        (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
-      renameᵗᵐ τ (Λ W) ≡ M →
-      renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
-      renameᵗ τ (`∀ D) ≡ `∀ F →
-      renameᵗ σ (⇑ᵗ B) ≡ A′ →
-      (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
-      Value M →
-      No• M →
-      Closedᵐ M →
-      Value M′ →
-      No• M′ →
-      Closedᵐ M′ →
-      Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
-      Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+          {W W′ V V′ : Term} {A′ B C D F : Ty}
+          {s c′ : Coercion} {μ : ModeEnv} {r}
+          {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
+          {p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ}
+          {body-shape : ImprecisionShape} →
+      EmbeddedTargetInstantiationCreation
+        {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+        {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+        {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+        {s = s} {μ = μ} {r = r} {f = f}
+        {body-shape = body-shape}
+        (StoreImpPrefix ρ₀ ρ⁺)
+        (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+          ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r)
+        {Ψ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+        ρ (Λ V) (V′ ⟨ c′ ⟩) (`∀ F) A′ p →
       PairedLambdaTargetClosingFrameClosingMotive ρ
-        M M′ F A′ p
+        (Λ V) (V′ ⟨ c′ ⟩) F A′ p
 
     cap-fresh-path-target-structural-reveal-half-square :
       PairedUniversalConversionFreshPathTargetStructuralRevealHalfSquareᵀ

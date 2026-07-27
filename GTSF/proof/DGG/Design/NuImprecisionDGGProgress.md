@@ -50,26 +50,27 @@ from `0` to `suc 0`; the term grammar nevertheless has only one creation
 constructor and no generic renaming constructor or separate transported
 creation constructor.
 
-The result is ready for a controlled replacement of
-`QuotientedTermImprecision`. It has not yet replaced the live relation, and
-the general source and target function-cast simulations remain to be connected
-to the existing world-coherent operational machinery. The public statement
-and compiler boundary are checked, but no complete `GradualDGG` inhabitant
-exists yet.
+The controlled replacement of `QuotientedTermImprecision` is now underway.
+The target-instantiation family has moved to the selected design, while the
+asymmetric administrative and quotient-boundary families remain live for the
+next phases. The general source and target function-cast simulations still
+need to be connected to the existing world-coherent operational machinery.
+The public statement and compiler boundary are checked, but no complete
+`GradualDGG` inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 1 complete; phase 2 not started**
+**MIGRATION IN PROGRESS — phase 2 complete; phase 3 not started**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
-[`proof/Quotient/README.md`](../../Quotient/README.md). Phase 1 isolated the
-selected examples, removed the rejected compositional and finite-spine family
-from the Makefile, strictly checked the affected selected root, and deleted
-the obsolete sources. The manifest distinguishes the remaining selected
-migration evidence from retiring live clients, specifies exactly when check
-roots leave the regression surface, and requires deletion rather than
-compatibility wrappers.
+[`proof/Quotient/README.md`](../../Quotient/README.md). Phase 1 deleted the
+rejected compositional alternative. Phase 2 replaced fused target
+instantiation with exact creation plus a composable embedded residual,
+migrated its consumers, and deleted the obsolete helper islands. The manifest
+distinguishes the remaining selected migration evidence from retiring live
+clients, specifies exactly when check roots leave the regression surface, and
+requires deletion rather than compatibility wrappers.
 
 The phase order is:
 
@@ -104,23 +105,21 @@ The current proof uses these invariants:
   membership uniqueness, store well-formedness, and relational-store lineage.
 - no strict spine may transitively import a module enabling
   `--allow-unsolved-metas` or `--allow-incomplete-matches`.
-- in the compositional candidate, quotient application closure is graded so a
-  derivation introduced by the new application rule cannot appear as a source
-  or target value.
-- in the compositional candidate, repeated paired narrowings are represented
-  by a finite cast spine with one total quotient boundary square.
 - in the smaller candidate, a quotient boundary contains exactly one paired
   narrowing cast. Additional casts must already be related at an ordinary
   intermediate index or be consumed by bilateral reduction.
 - the smaller candidate has no target-only type-application or `ν` rule.
-  Their pre-allocation index and independently opened body index are
-  inconsistent; real target-only `inst` allocation is crossed by target
-  reduction before the final ordinary relation is required.
+- live `target-instantiationᵀ` carries exactly one
+  `EmbeddedTargetInstantiationCreation`, exposes a source `Λ`, a target cast,
+  and a source type headed by `∀`, and retains the canonical final index
+  rather than a compatibility wrapper.
 - target-only `inst` catch-up retains a `TargetInstantiationCreation`
   residual: matched body imprecision, target cast typing, the index
   composition equation, and store lineage into the right-extended world.
-  Up-to-reduction removes transient allocation edges but not this final
-  semantic creation case.
+  Its pre-allocation index and independently opened body index need not match
+  directly; target reduction crosses the allocation before the final ordinary
+  relation is required. Up-to-reduction removes transient allocation edges
+  but not this final semantic creation case.
 - exact creation is the base of `EmbeddedTargetInstantiationCreation`.
   Each typed relational-world embedding computes the canonical renamed
   imprecision index; no embedding step may choose an unrelated final index.
@@ -138,10 +137,9 @@ The current proof uses these invariants:
   `No•` evidence for both body endpoints and both substituted endpoints. It
   uses only the smaller relation and its syntax-directed world embeddings.
 
-## Active up-to-reduction design hypothesis
+## Selected up-to-reduction design
 
-The compositional quotient prototype is no longer the only candidate for the
-live relation.  The smaller-relation hypothesis is:
+The selected live quotient design is:
 
 > Keep quotient imprecision only at one paired narrowing cast and at the
 > paired widening boundary that closes its quotient. Do not add
@@ -766,22 +764,18 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Begin the controlled live migration with the target-instantiation creation
-   family. Strengthen the live paired-lambda leaf and target widening
-   `β-inst` root contracts exactly as demonstrated by the direct and framed
-   consumer experiments.
-2. Replace live `Λ⊑instβᵀ` uses with exact creation plus
-   `EmbeddedTargetInstantiationCreation`, preserving the canonical final-index
-   equality at every leaf and fusion frame. Delete the old constructor only
-   after every strict consumer has moved.
-3. Migrate the two explicit `Λ⊑instβᵀ` branches in
-   `NuImprecisionCatchupScratch`. The other two permissive live-relation
-   consumers do not case-analyze the relation and need only interface
-   migration.
-4. Promote the experimental complete grammar and its typing, value,
-   world-embedding, and substitution theorems to the canonical live modules.
-   Delete obsolete live constructors and compatibility shims rather than
-   re-exporting them.
+1. Audit every direct and coverage-only consumer of target-only type
+   application, target-only `ν`, target-only casted `ν`, and source casted
+   `ν`; freeze that Phase 3 consumer list before the next grammar edit.
+2. Remove the Phase 3 constructor family in one live grammar edit. Rebuild
+   source casted-`ν` cases from ordinary source `ν` plus cast or conversion
+   structure, and delete helpers after their last focused replacement passes.
+3. Run focused Phase 3 leaves, the source import/strict-cone audit, and one
+   public DGG integration gate. Do not run `All.agda`.
+4. Promote the selected paired-narrowing quotient boundary, its typing,
+   value, world-embedding, and substitution theorems to the canonical live
+   modules. Delete superseded quotient constructors and compatibility shims
+   rather than re-exporting them.
 5. State and prove the allocation-aware quotient `sim-beta-cast` contract
    using the existing world-coherent weak result. The inert route supplies
    source catch-up; the active target-`inst` route uses the target tail,
@@ -794,8 +788,7 @@ behavior is covered by
    spine for this widening-side obligation.
 8. Remove live quotient application, finite narrowing spines, and
    `down·up⊑down·upᵀ` as primitive rules once the general function-cast
-   simulations pass. Remove the uninhabited target-only type-application,
-   `ν`, and casted-`ν` cases in the same audited migration.
+   simulations pass.
 9. Return to the deleted compositional alternative in Git history only if a
    strict counterexample starts from a derivable ordinary top row and cannot
    reduce to an ordinary-related join.
@@ -828,7 +821,7 @@ explicitly rather than deleted mechanically.
 The aggregate and import audit pass. The terminal-forward strict spine is
 source-safe but its focused Agda check currently fails at the
 `compatible-source-inert` paired-widening function-beta case recorded above.
-The source inventory sees 370 strict-looking `Proof` modules: 156 have no
+The source inventory sees 367 strict-looking `Proof` modules: 156 have no
 transitive canonical `Lemma` consumer, 149 are reachable from an explicit
 strict inventory spine, seven are explicitly known incomplete, and none are
 uninventoried. Focused Agda checks, not these source counts, establish
@@ -859,6 +852,26 @@ The strict Cambridge26 Example 14 experiment passed on 2026-07-27 and remains
 a migration check root. The source file has no lines over 80 columns,
 `git diff --check` passes, and the new ledger display uses only the required
 `$$` delimiters.
+
+Phase 2 of the live migration completed on 2026-07-27. The old
+`Λ⊑instβᵀ` constructor has no Agda references. Live
+`target-instantiationᵀ` contains one embedded creation residual and now exposes
+the invariant that its source type is headed by `∀`. This made source-atomic
+creation cases definitionally impossible and let the paired-lambda leaf,
+handler, capability, and continuation interfaces discard their duplicated
+renaming equalities, closedness evidence, and endpoint typings.
+
+Focused checks passed for the live relation, residual properties, migrated
+typing/value/substitution/world/allocation/catch-up consumers, the target seal
+and tag cancellations, the direct target-widening post-beta context and
+regression, the paired-lambda view and properties, both handler definitions,
+both interpreters, the continuation assembly, and the frame-closing capability
+definition. The source audit passed, and the final Phase 2 `make dgg-check`
+passed. The permissive catch-up scratch refresh was stopped after several
+silent minutes and is not a phase gate. The frame-closing handler assembly is
+still blocked by a pre-existing proof-relevant index mismatch in
+`NuImprecisionPairedLambdaTargetClosingGenLeafNuClosingProof`, after its
+target-instantiation interface was migrated.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

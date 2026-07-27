@@ -108,6 +108,9 @@ open import
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceBulletTransportDef
   using (RightTargetAllocationSourceBulletTransportᵀ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (target-instantiation-creation)
 open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using
   (right-only-prefix-refl; right-only-prefix-right)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
@@ -224,9 +227,12 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
         ⦂ `∀ D ⊑ ⇑ᵗ B
         ∶ ⊑-target-lift-rightᵢ (ν safe occ q)
   related =
-    post-beta {f = ν safe occ q} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body inst-shape creation-square
-      source-typing target-typing
+    post-beta
+      (target-instantiation-creation
+        {f = ν safe occ q}
+        prefix mode seal★ cast liftρ liftρᴿ
+        vW noW vW′ noW′ inert body inst-shape creation-square
+        source-typing target-typing)
 
   target-tail :
     NuTerms.ν ★ (Λ W′) s

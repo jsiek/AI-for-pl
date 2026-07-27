@@ -109,11 +109,11 @@ open import QuotientedTermImprecision using
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; nu-term-imprecision-source-typing
-  ; Λ⊑instβᵀ
   ; ⊑cast⊑idᵀ
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; Λ⊑Λᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
@@ -153,6 +153,9 @@ open import
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
   using (rel-store-embedding-reflⁱ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (exact-creationᴱ; target-instantiation-creation)
 
 
 private
@@ -540,30 +543,19 @@ private
       ⊢ᴺ Λ I ⊑ I ⟨ body-cast ⟩
       ⦂ `∀ F ⊑ H ∶ final-q∀F-H
   bare-final-relation =
-    Λ⊑instβᵀ
-      {τ = λ X → X} {σ = λ X → X}
-      prefix-reflⁱ cast-tag-or-id
-      seal★-tag-or-id outer-cast-typing
-      lift-store-[] lift-right-store-[]
-      vI noI vI noI
-      (C.seal ★ zero C.↦ C.unseal zero ★)
-      paired-body-relation q∀F-H
-      (shape-inst (shape-fun shape-seal shape-unseal))
-      (comp-∀-ν
-        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
-      rel-assm²-id∈ᵢ
-      (λ X< → X<) (λ X< → X<)
-      rel-store-embedding-reflⁱ
-      (renameᵗᵐ-id (Λ I))
-      (renameᵗᵐ-id (I ⟨ body-cast ⟩))
-      (renameᵗ-id (`∀ F)) (renameᵗ-id H)
-      final-q∀F-H
-      (Λ vI) (no•-Λ noI)
-      (typing-closedᵐ (forget source-final-typing))
-      (vI ⟨ C.seal ★ zero C.↦ C.unseal zero ★ ⟩)
-      (no•-⟨⟩ noI)
-      (typing-closedᵐ (forget bare-target-final-typing))
-      source-final-typing bare-target-final-typing
+    target-instantiationᵀ
+      (exact-creationᴱ
+        (target-instantiation-creation
+          {r = pF} {f = q∀F-H}
+          prefix-reflⁱ cast-tag-or-id seal★-tag-or-id
+          outer-cast-typing lift-store-[] lift-right-store-[]
+          vI noI vI noI
+          (C.seal ★ zero C.↦ C.unseal zero ★)
+          paired-body-relation
+          (shape-inst (shape-fun shape-seal shape-unseal))
+          (comp-∀-ν
+            (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
+          source-final-typing bare-target-final-typing))
 
   target-inner-value : Value (I ⟨ function-id-cast ⟩)
   target-inner-value =
@@ -579,30 +571,19 @@ private
       ⊢ᴺ Λ I ⊑ target-public-final
       ⦂ `∀ F ⊑ H ∶ final-q∀F-H
   public-base-final-relation =
-    Λ⊑instβᵀ
-      {τ = λ X → X} {σ = λ X → X}
-      prefix-reflⁱ cast-tag-or-id
-      seal★-tag-or-id outer-cast-typing
-      lift-store-[] lift-right-store-[]
-      vI noI target-inner-value target-inner-no-bullet
-      (C.seal ★ zero C.↦ C.unseal zero ★)
-      paired-body-id-relation q∀F-H
-      (shape-inst (shape-fun shape-seal shape-unseal))
-      (comp-∀-ν
-        (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
-      rel-assm²-id∈ᵢ
-      (λ X< → X<) (λ X< → X<)
-      rel-store-embedding-reflⁱ
-      (renameᵗᵐ-id (Λ I))
-      (renameᵗᵐ-id target-public-final)
-      (renameᵗ-id (`∀ F)) (renameᵗ-id H)
-      final-q∀F-H
-      (Λ vI) (no•-Λ noI)
-      (typing-closedᵐ (forget source-final-typing))
-      target-public-final-value
-      (no•-⟨⟩ target-inner-no-bullet)
-      (typing-closedᵐ (forget public-target-final-typing))
-      source-final-typing public-target-final-typing
+    target-instantiationᵀ
+      (exact-creationᴱ
+        (target-instantiation-creation
+          {r = pF} {f = q∀F-H}
+          prefix-reflⁱ cast-tag-or-id seal★-tag-or-id
+          outer-cast-typing lift-store-[] lift-right-store-[]
+          vI noI target-inner-value target-inner-no-bullet
+          (C.seal ★ zero C.↦ C.unseal zero ★)
+          paired-body-id-relation
+          (shape-inst (shape-fun shape-seal shape-unseal))
+          (comp-∀-ν
+            (comp-↦-↦ comp-idˣ-tagˣ comp-idˣ-tagˣ))
+          source-final-typing public-target-final-typing))
 
   public-one-source-cast-relation :
     [] ∣ zero ∣ suc zero

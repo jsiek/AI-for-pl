@@ -8,6 +8,7 @@ module proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet where
 --   * Depends on `NuImprecisionSimulationCore` for world-embedding action
 --     lemmas and on `QuotientedTermImprecision` for the term relations.
 
+open import Data.List using ([])
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using
@@ -47,7 +48,6 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -67,6 +67,7 @@ open import QuotientedTermImprecision using
   ; ⊑νcastᵀ
   ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
@@ -82,6 +83,8 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
+  ; embedding-context
+  ; left-embedding-inverse
   ; rel-world-allocation-prefix-embedᵀ
   ; rel-world-blame-embedᵀ
   ; rel-world-cast⊒⊑-embedᵀ
@@ -90,6 +93,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-conv↑⊑-embedᵀ
   ; rel-world-conv⊑conv-embedᵀ
   ; rel-world-down-embedᵀ
+  ; rel-world-embedding
   ; rel-world-embedding-ctx-∷ⁱ
   ; rel-world-source-typing-embed
   ; rel-world-target-typing-embed
@@ -117,6 +121,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-⊑νcast-embedᵀ
   ; rel-world-⊑ν-embedᵀ
   ; right-embedding-cast-renamer
+  ; right-embedding-inverse
   ; right-narrowing-rel-embed-mode
   ; right-seal-rel-embed
   ; store-embedding
@@ -145,6 +150,18 @@ open import
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
   using (rel-store-embedding-composeⁱ)
+open import
+  proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef
+  using (rel-ctx-rename-[])
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (embed-creationᴱ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-typingᴱ
+  ; embedded-creation-target-typingᴱ
+  )
 
 mutual
   rel-world-embed-no•ᵀ :
@@ -250,56 +267,30 @@ mutual
       | ρ′ν , γ′ν , liftρ′ , liftγ′ , body-emb , finish =
     finish (rel-world-embed-no•ᵀ body-emb V⊑N′ noV noN′)
   rel-world-embed-no•ᵀ
-      {τ = υ} {σ = ω} {assm = assm₁}
-      {hτ = hυ} {hσ = hω} emb
-      (Λ⊑instβᵀ
-        {τ = τ} {σ = σ} {W = W} {W′ = W′}
-        {B = B} {D = D} {s = s}
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm₀ hτ₀ hσ₀
-        store-emb₀ eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
-      noM₀ noM′₀ =
-    Λ⊑instβᵀ
-      {τ = λ X → υ (τ X)} {σ = λ X → ω (σ X)}
-      prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      (compose-rel-assm²ᵢ assm₀ assm₁)
-      (λ X< → hυ (hτ₀ X<))
-      (λ X< → hω (hσ₀ X<))
-      (rel-store-embedding-composeⁱ store-emb₀
-        (store-embedding emb))
-      eqM″ eqM′″ eqA″ eqA′″
-      (⊑-renameᵗ²ᵢ assm₁ hυ hω p)
-      (renameᵗᵐ-preserves-Value υ vM)
-      (renameᵗᵐ-preserves-No• υ noM)
-      (renameᵗᵐ-preserves-Closedᵐ υ closedM)
-      (renameᵗᵐ-preserves-Value ω vM′)
-      (renameᵗᵐ-preserves-No• ω noM′)
-      (renameᵗᵐ-preserves-Closedᵐ ω closedM′)
-      (rel-world-source-typing-embed emb noM M⊢)
-      (rel-world-target-typing-embed emb noM′ M′⊢)
+      {τ = τ} {σ = σ} {ψ = ψ} {φ = φ}
+      {assm = assm} {hτ = hτ} {hσ = hσ}
+      {ρ = ρ} {ρ′ = ρ′} emb
+      (target-instantiationᵀ embedded) noM noM′ =
+    target-instantiationᵀ
+      (embed-creationᴱ embedded assm hτ hσ
+        (store-embedding emb)
+        (rel-world-source-typing-embed empty-emb noM
+          (embedded-creation-source-typingᴱ embedded))
+        (rel-world-target-typing-embed empty-emb noM′
+          (embedded-creation-target-typingᴱ embedded)))
     where
-    eqM″ =
-      trans
-        (sym (renameᵗᵐ-compose τ υ (Λ W)))
-        (cong (renameᵗᵐ υ) eqM)
-
-    eqM′″ =
-      trans
-        (sym (renameᵗᵐ-compose σ ω (W′ ⟨ s ⟩)))
-        (cong (renameᵗᵐ ω) eqM′)
-
-    eqA″ =
-      trans
-        (sym (renameᵗ-compose τ υ (`∀ D)))
-        (cong (renameᵗ υ) eqA)
-
-    eqA′″ =
-      trans
-        (sym (renameᵗ-compose σ ω (⇑ᵗ B)))
-        (cong (renameᵗ ω) eqA′)
+    empty-emb :
+      RelWorldEmbeddingⁱ τ σ ψ φ assm hτ hσ
+        {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
+    empty-emb =
+      rel-world-embedding
+        {τ = τ} {σ = σ} {ψ = ψ} {φ = φ}
+        (left-embedding-inverse emb)
+        (right-embedding-inverse emb)
+        (left-embedding-cast-renamer emb)
+        (right-embedding-cast-renamer emb)
+        (store-embedding emb)
+        rel-ctx-rename-[]
   rel-world-embed-no•ᵀ emb
       (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ L⊑L′ L⊢ L′⊢)
       () noM′

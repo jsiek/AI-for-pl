@@ -74,7 +74,6 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -83,6 +82,7 @@ open import QuotientedTermImprecision using
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
+  ; target-instantiationᵀ
   ; ƛ⊑ƛᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑idᵀ
@@ -154,6 +154,9 @@ open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast; seal★-weaken)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (⊑-target-lift-rightᵢ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-source-valueᴱ)
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentTypeShapeProof
   using (shape-target-lift-rightᵢ)
@@ -270,14 +273,11 @@ private
       (Λ⊑ᵀ occ liftρ∀ liftγ vV V⊑N′) ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
-      (Λ⊑instβᵀ prefix₀ mode seal★ inst⊑
-        liftρ∀ liftρᴿ vW noW vW′ noW′ inert W⊑W′ f
-        inst-shape creation-square
-        assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
-        vM noM closedM vM′ noM′₀ closedM′ M⊢₀ M′⊢)
+      (target-instantiationᵀ embedded)
       eq =
     ⊥-elim
-      (value-bullet-absurd (subst Value eq vM))
+      (value-bullet-absurd
+        (subst Value eq (embedded-creation-source-valueᴱ embedded)))
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
       (α⊑αᵀ vV noV vV′ noV′ p liftρ∀ liftγ

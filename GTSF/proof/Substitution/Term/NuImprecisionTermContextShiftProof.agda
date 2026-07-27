@@ -44,6 +44,7 @@ open import NuTerms using
   ; renameˣᵐ
   )
 open import QuotientedTermImprecision
+open import TermTyping using (forget)
 open import Types using
   ( S
   ; Ty
@@ -67,8 +68,15 @@ open import proof.Core.Properties.NuTermProperties using
   ; rename-closedᵐ
   ; renameˣᵐ-preserves-No•
   ; renameˣᵐ-preserves-Value
+  ; typing-closedᵐ
   )
 open import proof.Core.Properties.TypePreservation using (typing-renameˣ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-typingᴱ
+  ; embedded-creation-target-typingᴱ
+  )
 
 
 private
@@ -274,25 +282,19 @@ private
         (renameˣᵐ-preserves-Value _ vV)
         (term-ctx-insert-no•ᵀ insert↑ V⊑N′ noV noN′)
     term-ctx-insert-no•ᵀ {η = ζ} insert
-        (Λ⊑instβᵀ
-          {τ = τ} {σ = σ}
-          prefix mode seal★ inst⊑ liftρ liftρᴿ
-          vW noW vW′ noW′ inert W⊑W′ f
-          inst-shape creation-square
-          assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
-          vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+        (target-instantiationᵀ embedded)
         noM₀ noM′₀
-        rewrite rename-closedᵐ closedM ζ
-              | rename-closedᵐ closedM′ ζ =
-      Λ⊑instβᵀ
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert W⊑W′ f
-        inst-shape creation-square
-        assm hτ hσ store-emb M≡ M′≡
-        A≡ A′≡ p
-        vM noM closedM vM′ noM′ closedM′
-        (closed-refined-typing-recontextualize closedM M⊢)
-        (closed-refined-typing-recontextualize closedM′ M′⊢)
+        rewrite rename-closedᵐ
+                  (typing-closedᵐ
+                    (forget
+                      (embedded-creation-source-typingᴱ embedded)))
+                  ζ
+              | rename-closedᵐ
+                  (typing-closedᵐ
+                    (forget
+                      (embedded-creation-target-typingᴱ embedded)))
+                  ζ =
+      target-instantiationᵀ embedded
     term-ctx-insert-no•ᵀ insert
         (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
           L⊑L′ L⊢ L′⊢)

@@ -53,6 +53,9 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
   using (RelStoreEmbeddingⁱ)
+open import
+  proof.Core.Properties.NuCastImprecisionShapeProperties
+  using (⊑-rename-leftᵢ)
 
 
 data StoreImpPrefixᴿ {Φ Δᴸ Δᴿ} :
@@ -180,3 +183,32 @@ data EmbeddedTargetInstantiationCreation
       (renameᵗᵐ τ M) (renameᵗᵐ σ M′)
       (renameᵗ τ A) (renameᵗ σ A′)
       (⊑-renameᵗ²ᵢ assm hτ hσ p)
+
+  embed-creation-leftᴱ :
+    ∀ {Ψ Ω Δᴸ Δᴿ Υᴸ ρ ρ′ M M′ A A′ p τ} →
+    EmbeddedTargetInstantiationCreation
+      {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+      {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+      {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+      {s = s} {μ = μ} {r = r} {f = f}
+      {body-shape = body-shape}
+      prefix-evidence body-relation
+      {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+      ρ M M′ A A′ p →
+    (assm : ∀ {a : ImpAssm} →
+      a ∈ Ψ → rename-assm²ᵢ τ (λ X → X) a ∈ Ω) →
+    (hτ : TyRenameWf Δᴸ Υᴸ τ) →
+    RelStoreEmbeddingⁱ τ (λ X → X) ρ ρ′ →
+    Υᴸ ∣ leftStoreⁱ ρ′ ∣ []
+      ⊢ renameᵗᵐ τ M ⦂ renameᵗ τ A →
+    Δᴿ ∣ rightStoreⁱ ρ′ ∣ [] ⊢ M′ ⦂ A′ →
+    EmbeddedTargetInstantiationCreation
+      {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+      {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+      {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+      {s = s} {μ = μ} {r = r} {f = f}
+      {body-shape = body-shape}
+      prefix-evidence body-relation
+      {Ψ = Ω} {Δᴸ = Υᴸ} {Δᴿ = Δᴿ}
+      ρ′ (renameᵗᵐ τ M) M′ (renameᵗ τ A) A′
+      (⊑-rename-leftᵢ τ assm hτ p)

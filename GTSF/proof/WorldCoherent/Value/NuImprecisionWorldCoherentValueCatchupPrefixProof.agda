@@ -49,6 +49,12 @@ open import
   using (weak-one-step-transport-quotient-boundary-square)
 open import proof.Quotient.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-valueᴱ
+  ; embedded-creation-target-no-bulletᴱ
+  )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -232,6 +238,14 @@ world-coherent-left-value-catchup-prefix-proofᵀ
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN
+    (() ⟨ inert-u′ ⟩) noV′
+    (down·up⊑down·upᵀ
+      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+      L⊑L′ M⊑M′ down-square
+      widening-pair u-shape u′-shape up-square compatible)
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN
     (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
     (up⊑upᵀ
@@ -369,15 +383,13 @@ world-coherent-left-value-catchup-prefix-proofᵀ
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN vV′ noV′
-    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed final-v′ final-no′ final-closed′
-      source-typing target-typing) =
+    rel@(target-instantiationᵀ embedded) =
   world-coherent-left-indexed-catchup
     (left-catchup-indexed-prefix-valueᵀ
-      prefix okN final-v final-no′ rel)
+      prefix okN
+      (embedded-creation-source-valueᴱ embedded)
+      (embedded-creation-target-no-bulletᴱ embedded)
+      rel)
     (weak-step-store-lineage _
       rel-store-embedding-reflⁱ prefix-reflⁱ)
     coherent exclusive unique wfL

@@ -60,7 +60,6 @@ open import QuotientedTermImprecision using
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; ·⊑·ᵀ
   ; α⊑αᵀ
@@ -79,13 +78,14 @@ open import QuotientedTermImprecision using
   ; ⊑νcastᵀ
   ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
 open import proof.Core.Properties.NuTermProperties using
   (substˣᵐ-preserves-Value)
 open import Store using (StoreIncl-cons)
-open import TermTyping using (SealModeStore★; _∣_∣_⊢_⦂_)
+open import TermTyping using (SealModeStore★; forget; _∣_∣_⊢_⦂_)
 open import Types using
   ( Ty
   ; TyCtx
@@ -130,10 +130,19 @@ open import proof.Core.Properties.NuTermProperties using
   ( closed-refined-typing-recontextualize
   ; subst-closedᵐ
   ; substˣᵐ-preserves-Value
+  ; typing-closedᵐ
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken; term-weaken; typing-substˣ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-no-bulletᴱ
+  ; embedded-creation-source-typingᴱ
+  ; embedded-creation-target-no-bulletᴱ
+  ; embedded-creation-target-typingᴱ
+  )
 
 
 mutual
@@ -249,60 +258,37 @@ mutual
         prefix↑ noV noN′ body)
 
   quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noM noM′
-      (Λ⊑instβᵀ
-        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ store-emb
-        eqM eqM′ eqA eqA′ p
-        vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
-      with subst-closedᵐ closedM _
-         | subst-closedᵐ closedM′ _
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noM noM′
-      (Λ⊑instβᵀ
-        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ store-emb
-        eqM eqM′ eqA eqA′ p
-        vM noM₀ closedM vM′ noM′₀ closedM′ M⊢ M′⊢)
-      | eqζM | eqζ′M′ =
+      environment {τ = τ} {τ′ = τ′}
+      frame prefix noM noM′
+      (target-instantiationᵀ embedded)
+      rewrite subst-closedᵐ
+                (typing-closedᵐ
+                  (forget
+                    (embedded-creation-source-typingᴱ embedded)))
+                τ
+            | subst-closedᵐ
+                (typing-closedᵐ
+                  (forget
+                    (embedded-creation-target-typingᴱ embedded)))
+                τ′ =
     allocation-prefixᵀ prefix
-      (Λ⊑instβᵀ
-        inner-prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ store-emb
-        (trans eqM (sym eqζM))
-        (trans eqM′ (sym eqζ′M′))
-        eqA eqA′ p
-        (subst Value (sym eqζM) vM)
-        (subst No• (sym eqζM) noM₀)
-        (subst Closedᵐ (sym eqζM) closedM)
-        (subst Value (sym eqζ′M′) vM′)
-        (subst No• (sym eqζ′M′) noM′₀)
-        (subst Closedᵐ (sym eqζ′M′) closedM′)
-        (subst
-          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
-          (sym eqζM)
-          (closed-refined-typing-recontextualize closedM M⊢))
-        (subst
-          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
-          (sym eqζ′M′)
-          (closed-refined-typing-recontextualize closedM′ M′⊢)))
+      (target-instantiationᵀ embedded)
       (term-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix)
-        (subst No• (sym eqζM) noM₀)
-        (subst
-          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
-          (sym eqζM)
-          (closed-refined-typing-recontextualize closedM M⊢)))
+        (embedded-creation-source-no-bulletᴱ embedded)
+        (closed-refined-typing-recontextualize
+          (typing-closedᵐ
+            (forget
+              (embedded-creation-source-typingᴱ embedded)))
+          (embedded-creation-source-typingᴱ embedded)))
       (term-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix)
-        (subst No• (sym eqζ′M′) noM′₀)
-        (subst
-          (λ N → _ ∣ _ ∣ _ ⊢ N ⦂ _)
-          (sym eqζ′M′)
-          (closed-refined-typing-recontextualize closedM′ M′⊢)))
+        (embedded-creation-target-no-bulletᴱ embedded)
+        (closed-refined-typing-recontextualize
+          (typing-closedᵐ
+            (forget
+              (embedded-creation-target-typingᴱ embedded)))
+          (embedded-creation-target-typingᴱ embedded)))
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix () noN′

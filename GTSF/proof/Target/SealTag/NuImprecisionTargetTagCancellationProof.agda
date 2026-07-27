@@ -78,11 +78,11 @@ open import QuotientedTermImprecision using
   ; quotient-cast-widening
   ; quotient-id-widening
   ; up⊑upᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
@@ -95,12 +95,16 @@ open import TermTyping using
   )
 import Types as T
 open import proof.Compilation.GenSafeProperties using
-  ( genSafe-source-shape
+  ( genSafeShape-atomic-impossible
+  ; genSafe-source-shape
   ; genSafe-target-shape
   ; narrowing-inert-view
   ; shape-all
   ; shape-fun
   )
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-shapeᴱ)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ( imprecision-composition-shape-transport
   ; shape-source-liftνᵢ
@@ -549,23 +553,6 @@ cast-coercion-injective :
 cast-coercion-injective refl = refl
 
 
-inst-inert-target-tag-impossible :
-  ∀ {σ B s G} →
-  NW.Widening (C.inst B s) →
-  C.Inert s →
-  C.renameᶜ σ s ≡ G C.! →
-  ⊥
-inst-inert-target-tag-impossible (NW.inst ()) (G C.!) eq
-inst-inert-target-tag-impossible (NW.inst ())
-    (C.seal A α) eq
-inst-inert-target-tag-impossible (NW.inst safe)
-    (c C.↦ d) ()
-inst-inert-target-tag-impossible (NW.inst safe)
-    (C.`∀ c) ()
-inst-inert-target-tag-impossible (NW.inst ())
-    (C.gen A c) eq
-
-
 target-tag-cancellation-proofᵀ : TargetTagCancellationᵀ
 target-tag-cancellation-proofᵀ
     {p = ν safe-old occ-old inner-index}
@@ -587,19 +574,11 @@ target-tag-cancellation-proofᵀ
     liftρ lift-left-ctx-[] vBody canceled
 target-tag-cancellation-proofᵀ exclusive unique gH
     (Value.Λ vBody) (no•-Λ noBody) vW
-    (Λ⊑instβᵀ
-      prefix mode seal★ (inst-typing , inst-widening)
-      liftρ liftρᴿ vBody₀ noBody₀ vBody′ noBody′ inert body f
-      body-shape composition
-      assm hτ hσ store-emb
-      source-eq target-eq source-type-eq target-type-eq
-      outer-index final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing)
+    (target-instantiationᵀ embedded)
     requested =
   ⊥-elim
-    (inst-inert-target-tag-impossible inst-widening inert
-      (cast-coercion-injective target-eq))
+    (genSafeShape-atomic-impossible
+      (embedded-creation-target-shapeᴱ embedded) T.★)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊒⊑ᵀ {p = inner-index} mode seal★ c⊒

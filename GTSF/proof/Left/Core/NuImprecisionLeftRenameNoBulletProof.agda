@@ -39,7 +39,6 @@ open import QuotientedTermImprecision using
   ; down·up⊑down·upᵀ
   ; up⊑upᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -70,6 +69,7 @@ open import QuotientedTermImprecision using
   ; quotient-id-down-applicationᵖᵀ
   ; quotient-id-widening
   ; quotient-cast-widening
+  ; target-instantiationᵀ
   )
 open import Types using
   ( Renameᵗ
@@ -99,6 +99,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-matched
   ; left-store-rename-right
   ; left-ctx-rename-∷
+  ; left-ctx-rename-[]
   ; left-rename-blameᵀ
   ; left-rename-cast⊒⊑ᵀ
   ; left-rename-cast⊑⊑ᵀ
@@ -183,6 +184,15 @@ open import
   ; rel-store-embedding-link
   ; rel-store-embedding-matched
   ; rel-store-embedding-right
+  )
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (embed-creation-leftᴱ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-typingᴱ
+  ; embedded-creation-target-typingᴱ
   )
 
 left-insertion-pred : ∀ {τ} → LeftInsertion τ → Renameᵗ
@@ -428,46 +438,24 @@ mutual
         left-rename-no•ᵀ-proof (left-insertion-ext ins)
           renameρν renameγν noV noN′ V⊑N′)
   left-rename-no•ᵀ-proof
-      {τ = υ} {assm = assm₁} {hτ = hυ}
-      ins renameρ renameγ noM₀ noM′₀
-      (Λ⊑instβᵀ
-        {τ = τ} {σ = σ} {W = W} {W′ = W′}
-        {B = B} {D = D} {s = s}
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm₀ hτ₀ hσ₀
-        store-emb₀ eqM eqM′ eqA eqA′ p
-        vM final-noM closedM vM′ final-noM′ closedM′ M⊢ M′⊢) =
-    Λ⊑instβᵀ
-      {τ = λ X → υ (τ X)} {σ = σ}
-      prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      (compose-rel-assm²ᵢ assm₀ assm₁)
-      (λ X< → hυ (hτ₀ X<))
-      hσ₀
-      (rel-store-embedding-composeⁱ store-emb₀
-        (left-store-rename-embeddingⁱ renameρ))
-      eqM″ eqM′ eqA″ eqA′
-      (⊑-rename-leftᵢ υ assm₁ hυ p)
-      (renameᵗᵐ-preserves-Value υ vM)
-      (renameᵗᵐ-preserves-No• υ final-noM)
-      (renameᵗᵐ-preserves-Closedᵐ υ closedM)
-      vM′ final-noM′ closedM′
+      {τ = τ} {assm = assm} {hτ = hτ}
+      ins renameρ renameγ noM noM′
+      (target-instantiationᵀ embedded) =
+    target-instantiationᵀ
+      (embed-creation-leftᴱ embedded assm hτ
+        (left-store-rename-embeddingⁱ renameρ)
+        source-typing target-typing)
+    where
+    source-typing =
       (left-typing-renameⁱ {ψ = left-insertion-pred ins}
         (left-insertion-inverse ins)
         (left-insertion-cast-renamer ins)
-        renameρ renameγ final-noM M⊢)
-      (right-typing-left-renameⁱ renameρ renameγ M′⊢)
-    where
-    eqM″ =
-      trans
-        (sym (renameᵗᵐ-compose τ υ (Λ W)))
-        (cong (renameᵗᵐ υ) eqM)
+        renameρ left-ctx-rename-[] noM
+        (embedded-creation-source-typingᴱ embedded))
 
-    eqA″ =
-      trans
-        (sym (renameᵗ-compose τ υ (`∀ D)))
-        (cong (renameᵗ υ) eqA)
+    target-typing =
+      right-typing-left-renameⁱ renameρ left-ctx-rename-[]
+        (embedded-creation-target-typingᴱ embedded)
   left-rename-no•ᵀ-proof ins renameρ renameγ ()
       noM′ (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
         L⊑L′ L•⊢ L′•⊢)

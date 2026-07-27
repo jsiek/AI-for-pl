@@ -11,6 +11,9 @@ module
 --     permissive option, termination bypass, or catch-all clause.
 
 open import Data.List using ([])
+open import Data.Product using (_,_)
+open import Coercions using (cast-inst)
+import NarrowWiden
 
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
@@ -25,6 +28,11 @@ open import NuTerms using
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using (Ty)
+open import proof.Compilation.GenSafeProperties using
+  ( GenSafeShape
+  ; instSafe-target-shape
+  ; rename-genSafeShape
+  )
 open import proof.Core.Properties.NuTermProperties using
   ( renameᵗᵐ-preserves-No•
   ; renameᵗᵐ-preserves-Value
@@ -35,6 +43,7 @@ open import
   ( EmbeddedTargetInstantiationCreation
   ; TargetInstantiationCreation
   ; embed-creationᴱ
+  ; embed-creation-leftᴱ
   ; exact-creationᴱ
   )
 
@@ -59,6 +68,10 @@ embedded-creation-source-typingᴱ
     (embed-creationᴱ embedded assm hτ hσ store-embedding
       source-typing target-typing) =
   source-typing
+embedded-creation-source-typingᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
+      source-typing target-typing) =
+  source-typing
 
 
 embedded-creation-target-typingᴱ :
@@ -81,6 +94,10 @@ embedded-creation-target-typingᴱ
     (embed-creationᴱ embedded assm hτ hσ store-embedding
       source-typing target-typing) =
   target-typing
+embedded-creation-target-typingᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
+      source-typing target-typing) =
+  target-typing
 
 
 embedded-creation-source-valueᴱ :
@@ -101,6 +118,11 @@ embedded-creation-source-valueᴱ (exact-creationᴱ creation) =
   Λ (TargetInstantiationCreation.source-body-value creation)
 embedded-creation-source-valueᴱ
     (embed-creationᴱ embedded assm hτ hσ store-embedding
+      source-typing target-typing) =
+  renameᵗᵐ-preserves-Value _
+    (embedded-creation-source-valueᴱ embedded)
+embedded-creation-source-valueᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
   renameᵗᵐ-preserves-Value _
     (embedded-creation-source-valueᴱ embedded)
@@ -128,6 +150,10 @@ embedded-creation-target-valueᴱ
       source-typing target-typing) =
   renameᵗᵐ-preserves-Value _
     (embedded-creation-target-valueᴱ embedded)
+embedded-creation-target-valueᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
+      source-typing target-typing) =
+  embedded-creation-target-valueᴱ embedded
 
 
 embedded-creation-source-no-bulletᴱ :
@@ -148,6 +174,11 @@ embedded-creation-source-no-bulletᴱ (exact-creationᴱ creation) =
   no•-Λ (TargetInstantiationCreation.source-body-no-bullet creation)
 embedded-creation-source-no-bulletᴱ
     (embed-creationᴱ embedded assm hτ hσ store-embedding
+      source-typing target-typing) =
+  renameᵗᵐ-preserves-No• _
+    (embedded-creation-source-no-bulletᴱ embedded)
+embedded-creation-source-no-bulletᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
   renameᵗᵐ-preserves-No• _
     (embedded-creation-source-no-bulletᴱ embedded)
@@ -174,3 +205,36 @@ embedded-creation-target-no-bulletᴱ
       source-typing target-typing) =
   renameᵗᵐ-preserves-No• _
     (embedded-creation-target-no-bulletᴱ embedded)
+embedded-creation-target-no-bulletᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
+      source-typing target-typing) =
+  embedded-creation-target-no-bulletᴱ embedded
+
+
+embedded-creation-target-shapeᴱ :
+  ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+  EmbeddedTargetInstantiationCreation
+    {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+    {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
+    {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+    {s = s} {μ = μ} {r = r} {f = f}
+    {body-shape = body-shape}
+    prefix-evidence body-relation
+    {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+    ρ M M′ A A′ p →
+  GenSafeShape A′
+embedded-creation-target-shapeᴱ (exact-creationᴱ creation)
+    with TargetInstantiationCreation.instantiation-typing creation
+embedded-creation-target-shapeᴱ (exact-creationᴱ creation)
+    | cast-inst hB occ s⊢ , NarrowWiden.inst safe =
+  instSafe-target-shape s⊢ safe
+embedded-creation-target-shapeᴱ
+    (embed-creationᴱ {σ = σ} embedded assm hτ hσ store-embedding
+      source-typing target-typing) =
+  rename-genSafeShape σ (embedded-creation-target-shapeᴱ embedded)
+embedded-creation-target-shapeᴱ
+    (embed-creation-leftᴱ embedded assm hτ store-embedding
+      source-typing target-typing) =
+  embedded-creation-target-shapeᴱ embedded

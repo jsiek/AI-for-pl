@@ -35,13 +35,13 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
+  ; target-instantiationᵀ
   )
 open import
   proof.Right.SourceAll.ClosingValues.NuImprecisionRightSourceAllClosingCasesDef
@@ -66,11 +66,26 @@ open import
 open import
   proof.Right.SourceAll.Core.NuImprecisionRightSourceAllUniversalBodyDef
   using (WorldCoherentRightSourceAllUniversalBodyᵀ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-target-no-bulletᴱ
+  ; embedded-creation-target-valueᴱ
+  )
 
 
 world-coherent-right-source-all-universal-body-proofᵀ :
   WorldCoherentRightSourceAllClosingCases →
   WorldCoherentRightSourceAllUniversalBodyᵀ
+world-coherent-right-source-all-universal-body-proofᵀ
+    cases prefix coherent exclusive unique wfR runtime
+    vU noU liftρ liftγ
+    rel@(target-instantiationᵀ embedded) =
+  sourceAllTerminalCase cases prefix coherent exclusive unique wfR
+    (Λ vU) (no•-Λ noU)
+    (embedded-creation-target-valueᴱ embedded)
+    (embedded-creation-target-no-bulletᴱ embedded)
+    liftρ liftγ rel
 world-coherent-right-source-all-universal-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     (ok-no (no•-ƛ noN′)) vU noU liftρ liftγ rel =
@@ -110,20 +125,6 @@ world-coherent-right-source-all-universal-body-proofᵀ
   sourceAllNestedSourceAll (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok-cast vW noU
     liftρ liftγ liftρ′ liftγ′ body
-world-coherent-right-source-all-universal-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    (ok-no (no•-⟨⟩ noN′)) vU noU liftρ liftγ
-    rel@(Λ⊑instβᵀ
-      prefix₀ mode seal★ inst⊑ liftρ∀ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-emb
-      source-eq target-eq source-type-eq target-type-eq
-      outer-index final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing) =
-  sourceAllTerminalCase cases prefix coherent exclusive unique wfR
-    (Λ vU) (no•-Λ noU) final-v′ final-no′
-    liftρ liftγ rel
 world-coherent-right-source-all-universal-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-no (no•-⟨⟩ noN′)) vU noU liftρ liftγ
@@ -311,20 +312,6 @@ world-coherent-right-source-all-universal-body-proofᵀ
   sourceAllNestedSourceAll (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok-cast vW noU
     liftρ liftγ liftρ′ liftγ′ body
-world-coherent-right-source-all-universal-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    (ok-⟨⟩ okN′) vU noU liftρ liftγ
-    rel@(Λ⊑instβᵀ
-      prefix₀ mode seal★ inst⊑ liftρ∀ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ store-emb
-      source-eq target-eq source-type-eq target-type-eq
-      outer-index final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing) =
-  sourceAllTerminalCase cases prefix coherent exclusive unique wfR
-    (Λ vU) (no•-Λ noU) final-v′ final-no′
-    liftρ liftγ rel
 world-coherent-right-source-all-universal-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-⟨⟩ okN′) vU noU liftρ liftγ

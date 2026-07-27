@@ -86,7 +86,6 @@ open import QuotientedTermImprecision using
   ; down·up⊑down·upᵀ
   ; up⊑upᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -115,6 +114,7 @@ open import QuotientedTermImprecision using
   ; gen-down⊑gen-downᵀ
   ; quotient-down-applicationᵖᵀ
   ; quotient-id-down-applicationᵖᵀ
+  ; target-instantiationᵀ
   ; quotient-id-widening
   ; quotient-cast-widening
   ; nu-term-imprecision-source-typing
@@ -142,6 +142,9 @@ open import proof.Left.Core.NuImprecisionLeftRenameNoBulletDef using
   ; left-rename-no•ᵀ
   ; left-rename-no•ᵀᵖ
   )
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-no-bulletᴱ)
 open import
   proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeCommutationProof
   using (left-source-allocation-runtime-target-bullet-commuteᵀ)
@@ -934,15 +937,10 @@ mutual
           V⊑N′ noV runtime)
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
-      rel@(Λ⊑instβᵀ
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ store-emb
-        eqM eqM′ eqA eqA′ p vM final-noM closedM
-        vM′ final-noM′ closedM′ M⊢ M′⊢)
+      rel@(target-instantiationᵀ embedded)
       noM runtime =
     left-rename-no•ᵀ rename-no-bullet ins renameρ renameγ
-      noM final-noM′ rel
+      noM (embedded-creation-target-no-bulletᴱ embedded) rel
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
@@ -1412,6 +1410,15 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
+      rel@(down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square widening
+        u-shape u′-shape up-square compatible)
+      noM runtime =
+    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
+      renameρ renameγ rel noM runtime
+  left-source-allocation-runtime-rootᵀ rename-no-bullet
+      renameρ renameγ
       rel@(up⊑upᵀ N⊑N′ widen pA u-shape u′-shape square)
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
@@ -1428,12 +1435,7 @@ private
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
-      rel@(Λ⊑instβᵀ
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ store-emb
-        eqM eqM′ eqA eqA′ p vM final-noM closedM
-        vM′ final-noM′ closedM′ M⊢ M′⊢)
+      rel@(target-instantiationᵀ embedded)
       noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet
       left-insertion-suc renameρ renameγ rel noM runtime

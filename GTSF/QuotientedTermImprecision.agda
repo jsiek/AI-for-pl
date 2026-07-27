@@ -22,9 +22,9 @@ module QuotientedTermImprecision where
 --     crossed allocation states.
 --   * Records the intermediate index for right-only allocation and permits
 --     body relations to cross the exact fresh-store extension it creates.
---   * Fuses target-only `inst` allocation and its terminal body cast while
---     retaining the pre-allocation store, matched body relation, and exact
---     creation shape/composition square.
+--   * Relates the terminal result of target-only `inst` allocation through
+--     composable embedded creation evidence with a canonical transported
+--     imprecision index.
 --   * Leaves adjacent-`∀` crossed-body transport admissible, avoiding
 --     syntax-specific swap constructors in the term relation.
 --   * Relates widening bodies exposed by crossed `inst∀` and `∀inst`
@@ -107,6 +107,7 @@ open import TermTyping using
   ; cast-gen
   ; cast-inst
   ; cast-tag-or-id
+  ; forget
   ; _∣_∣_⊢_⦂_
   ; ⊢`
   ; ⊢ƛ
@@ -162,6 +163,17 @@ open import NuTermImprecision using
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
   using (RelStoreEmbeddingⁱ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (EmbeddedTargetInstantiationCreation)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-typingᴱ
+  ; embedded-creation-target-typingᴱ
+  )
+open import proof.Core.Properties.NuTermProperties using
+  (closed-refined-typing-recontextualize; typing-closedᵐ)
 
 variable
   Φ : ImpCtx
@@ -369,59 +381,37 @@ mutual
           ⊢ᴺ Λ V ⊑ N′ ⦂ `∀ A ⊑ B
           ∶ ν safe occ p
 
-    Λ⊑instβᵀ :
-        ∀ {Φ₀ Θᴸ Θᴿ}
-          {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
-          {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-            (suc Θᴸ) (suc Θᴿ)}
-          {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
-          {τ σ : Renameᵗ}
-          {W W′ M M′ A A′ B C D s μ r}
-          {body-shape : ImprecisionShape}
-      → StoreImpPrefix ρ₀ ρ⁺
-      → CastMode μ
-      → SealModeStore★ μ (rightStoreⁱ ρ₀)
-      → μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
-          ⊢ inst B s ∶ `∀ C ⊑ B
-      → LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀
-      → LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺
-      → Value W
-      → No• W
-      → Value W′
-      → No• W′
-      → Inert s
-      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+    target-instantiationᵀ :
+      ∀ {Φ₀ Θᴸ Θᴿ}
+        {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
+        {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          (suc Θᴸ) (suc Θᴿ)}
+        {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
+        {W W′ : Term} {B C D : Ty} {s : Coercion}
+        {μ : ModeEnv}
+        {r : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+          ∣ suc Θᴸ ⊢ D ⊑ C ⊣ suc Θᴿ}
+        {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
+        {body-shape : ImprecisionShape}
+        {Ψ : ImpCtx} {Δᴸ′ Δᴿ′ : TyCtx}
+        {ρ′ : StoreImp Ψ Δᴸ′ Δᴿ′}
+        {γ′ : CtxImp Ψ Δᴸ′ Δᴿ′}
+        {V V′ : Term} {c′ : Coercion} {A A′ : Ty}
+        {p : Ψ ∣ Δᴸ′ ⊢ `∀ A ⊑ A′ ⊣ Δᴿ′} →
+      EmbeddedTargetInstantiationCreation
+        {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+        {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+        {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+        {s = s} {μ = μ} {r = r} {f = f}
+        {body-shape = body-shape}
+        (StoreImpPrefix ρ₀ ρ⁺)
+        (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-          ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r
-      → (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ)
-      → widening ⊢ᶜ inst B s ⦂ νˢ body-shape
-      → ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋
-      → (assm :
-          ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
-            rename-assm²ᵢ τ σ a ∈ Φ)
-      → (hτ : TyRenameWf Θᴸ Δᴸ τ)
-      → (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ)
-      → RelStoreEmbeddingⁱ τ σ
-          (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ
-      → renameᵗᵐ τ (Λ W) ≡ M
-      → renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′
-      → renameᵗ τ (`∀ D) ≡ A
-      → renameᵗ σ (⇑ᵗ B) ≡ A′
-      → (p :
-          Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ)
-      → Value M
-      → No• M
-      → Closedᵐ M
-      → Value M′
-      → No• M′
-      → Closedᵐ M′
-      → Δᴸ
-          ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A
-      → Δᴿ
-          ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ A′
-        ------------------------------------------------------------
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p
+          ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r)
+        {Ψ = Ψ} {Δᴸ = Δᴸ′} {Δᴿ = Δᴿ′}
+        ρ′ (Λ V) (V′ ⟨ c′ ⟩) (`∀ A) A′ p →
+      Ψ ∣ Δᴸ′ ∣ Δᴿ′ ∣ ρ′ ∣ γ′
+        ⊢ᴺ Λ V ⊑ V′ ⟨ c′ ⟩ ⦂ `∀ A ⊑ A′ ∶ p
 
     α⊑αᵀ : ∀ {ρ′ γ′ L L′ A B C D p}
       → Value L
@@ -958,12 +948,11 @@ mutual
           (leftStoreⁱ-lift-left liftρ)
           (nu-term-imprecision-source-typing V⊑N′)))
   nu-term-imprecision-source-typing
-      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′
-        source-typing target-typing) =
-    source-typing
+      (target-instantiationᵀ embedded) =
+    closed-refined-typing-recontextualize
+      (typing-closedᵐ
+        (forget (embedded-creation-source-typingᴱ embedded)))
+      (embedded-creation-source-typingᴱ embedded)
   nu-term-imprecision-source-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
         L•⊢ L′•⊢) =
@@ -1122,12 +1111,11 @@ mutual
         (rightStoreⁱ-lift-left liftρ)
         (nu-term-imprecision-target-typing V⊑N′))
   nu-term-imprecision-target-typing
-      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′
-        source-typing target-typing) =
-    target-typing
+      (target-instantiationᵀ embedded) =
+    closed-refined-typing-recontextualize
+      (typing-closedᵐ
+        (forget (embedded-creation-target-typingᴱ embedded)))
+      (embedded-creation-target-typingᴱ embedded)
   nu-term-imprecision-target-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
         L•⊢ L′•⊢) =

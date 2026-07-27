@@ -37,7 +37,6 @@ open import QuotientedTermImprecision using
   ; up⊑upᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
@@ -57,10 +56,13 @@ open import QuotientedTermImprecision using
   ; ⊑νcastᵀ
   ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Atom)
 open import Relation.Binary.PropositionalEquality using (sym; trans)
+open import proof.Compilation.GenSafeProperties using
+  (genSafeShape-atomic-impossible)
 open import
   proof.Core.Properties.ConversionIndexCompatibilityProperties
   using
@@ -75,11 +77,11 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ; target-atom-shape-unique
   )
 open import
-  proof.OneStep.NuImprecisionLambdaInstBetaFinalTargetAtomicImpossibleLemma
-  using (lambda-inst-beta-final-target-atomic-impossibleᵀ)
-open import
   proof.NuCore.Relations.NuImprecisionPairedCastResultShape
   using (paired-cast-result-shape-reindexᵀ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-shapeᴱ)
 
 
 paired-cast-target-reindexᵀ :
@@ -153,14 +155,11 @@ atomic-target-value-reindexᵀ atom vV
   Λ⊑ᵀ {{safe = safe′}} occ′ liftρ liftγ vW
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
 atomic-target-value-reindexᵀ atom vV
-    (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert W⊑W′ f inst-shape creation-square
-      assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+    (target-instantiationᵀ embedded)
     p′ =
   ⊥-elim
-    (lambda-inst-beta-final-target-atomic-impossibleᵀ
-      inst⊑ A′≡ atom)
+    (genSafeShape-atomic-impossible
+      (embedded-creation-target-shapeᴱ embedded) atom)
 atomic-target-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
       L⊑L′ L•⊢ L′•⊢) q

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — general quotient-down transport checked**
+**MIGRATION IN PROGRESS — matched target allocation checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -253,7 +253,7 @@ support module.
   `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenRuntimeSiblingCatchupProof.agda`
   (**completed checkpoint**);
 - tighten or split the matched target-allocation root contract so it states
-  the reduction that its proof actually handles;
+  the reduction that its proof actually handles (**completed checkpoint**);
 - migrate value, typing, substitution, world-embedding, and catch-up clients
   (**parallel substitution, term-context shift, world embedding, bullet-free
   left renaming, and source-allocation runtime transport checked**);
@@ -320,6 +320,32 @@ direct source-file counts are `8/2/2/37/16/17`. Its sole enclosing frame
 consumer must next transport the `closeᵀ` compatibility witness into the
 final world; this is a proof obligation, not grounds for restoring the
 deleted closing constructor.
+
+The matched target-allocation checkpoint on 2026-07-27 removed the contract's
+arbitrary target reduct and broad target runtime premise. The root now takes
+the exact target value and no-bullet evidence required by allocation, exposes
+the resulting bullet-and-cast term directly, and makes the allocated
+source/target type-imprecision evidence an explicit premise instead of a
+hidden proof index. Its lineage proof now lives beside the indexed allocation
+result that determines the two component steps.
+
+Migration through this dependency also removed an unreferenced paired-all
+allocation helper island from `NuImprecisionSimulation.agda`, replaced two
+live generic paired-conversion wrappers with direct `paired-revealᵀ`, and
+replaced the matched post-allocation generated downcast with `paired-downᵀ`.
+The focused target-allocation `Def` and `Proof` checks pass. The remaining
+direct source-file counts are `8/2/2/37/16/16`.
+
+The final focused proof check still took roughly five minutes although its
+root module is only 246 lines. It imports two results from the 2,860-line
+`NuImprecisionAllocationSimulation.agda`, which itself imports the
+15,096-line simulation core and the 4,762-line simulation module. Before the
+next repeated target-allocation gate, isolate those two live results behind a
+small strict dependency contract and canonical lemma. A file move that still
+imports the whole legacy allocation module does not count as completing this
+dependency cut. Retained implementations should then move to chartered
+semantic modules as their remaining consumers migrate; the obsolete legacy
+remainder must be deleted by Phase 5.
 
 ### Phase 5. Collapse the migration surface
 

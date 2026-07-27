@@ -222,8 +222,7 @@ open import QuotientedTermImprecision
 open import ImprecisionComposition using
   (⌊_⌋; νˢ-injective; _；_≋_)
 open import ConversionIndexCompatibility using
-  ( replace-paired-∀
-  ; _[_↦_⊑⟨_⟩_↤_]ᴾ_
+  ( _[_↦_⊑⟨_⟩_↤_]ᴾ_
   ; _[_↦_]ᴸ_
   ; _[_↦_]ᴿ_
   )
@@ -2361,101 +2360,6 @@ crossed-left-bodyᵀ liftρ₁ liftρ₂ noW noW′ W⊑W′ =
     (crossed-left-world-embeddingⁱ liftρ₁ liftρ₂)
     W⊑W′ noW noW′
 
-lift-store-matched-∈ :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  store-matched α A β B p ∈ ρ →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′ ∈ ρ′
-lift-store-matched-∈ lift-store-[] ()
-lift-store-matched-∈
-    (lift-store-∷ {p′ = p′} shape liftρ) (here refl) =
-  p′ , shape , here refl
-lift-store-matched-∈ (lift-store-∷ shape liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-∷ shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-left liftρ) (here ())
-lift-store-matched-∈ (lift-store-left liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-left liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-right liftρ) (here ())
-lift-store-matched-∈ (lift-store-right liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-right liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-link shape liftρ) (here ())
-lift-store-matched-∈ (lift-store-link shape liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-link shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-
-lift-store-link-∈ :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  store-link α A β B p ∈ ρ →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′ ∈ ρ′
-lift-store-link-∈ lift-store-[] ()
-lift-store-link-∈ (lift-store-∷ shape liftρ) (here ())
-lift-store-link-∈ (lift-store-∷ shape liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-∷ shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈ (lift-store-left liftρ) (here ())
-lift-store-link-∈ (lift-store-left liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-left liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈ (lift-store-right liftρ) (here ())
-lift-store-link-∈ (lift-store-right liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-right liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈
-    (lift-store-link {p′ = p′} shape liftρ) (here refl) =
-  p′ , shape , here refl
-lift-store-link-∈ (lift-store-link shape liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-link shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-
-lift-store-corresponds :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  StoreCorresponds ρ α A β B p →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    StoreCorresponds ρ′ (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′
-lift-store-corresponds liftρ (correspondence-stored x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-corresponds liftρ (correspondence-stored x∈)
-    | p′ , shape , shifted∈ =
-  p′ , shape , correspondence-stored shifted∈
-lift-store-corresponds liftρ (correspondence-linked x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-corresponds liftρ (correspondence-linked x∈)
-    | p′ , shape , shifted∈ =
-  p′ , shape , correspondence-linked shifted∈
-
-weaken-store-corresponds :
-  ∀ {Φ Δᴸ Δᴿ ρ α β A B p}
-    {entry : StoreImpEntry Φ Δᴸ Δᴿ} →
-  StoreCorresponds ρ α A β B p →
-  StoreCorresponds (entry ∷ ρ) α A β B p
-weaken-store-corresponds (correspondence-stored x∈) =
-  correspondence-stored (there x∈)
-weaken-store-corresponds (correspondence-linked x∈) =
-  correspondence-linked (there x∈)
-
 seal★-weakenCast-shift :
   ∀ {μ Σ} →
   SealModeStore★ μ Σ →
@@ -2553,74 +2457,6 @@ left-source-lift-cast-wideningᵀ
   cast⊑⊑ᵀ (cast-weaken mode)
     (lifted-left-weakenCast-seal★ liftρ seal★)
     (lifted-left-widening liftρ c⊑) M⊑M′ q′ c-shape comp
-
-open-allocated-paired-all-conversion :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX c c′ A A′ B B′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    (`∀ c) (`∀ c′) {`∀ A} {`∀ A′} {`∀ B} {`∀ B′}
-    (∀ⁱ p) (∀ⁱ q) →
-  PairedConversion (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-    (store-matched zero X zero X′ pX ∷ ρ′)
-    c c′ {A} {A′} {B} {B′} p q
-open-allocated-paired-all-conversion liftρ
-    (paired-reveal {pX = pX} x~
-      (reveal-all c↑) (reveal-all c′↑)
-      (replace-paired-∀ replace))
-    with lift-store-corresponds liftρ x~
-open-allocated-paired-all-conversion liftρ
-    (paired-reveal {pX = pX} x~
-      (reveal-all c↑) (reveal-all c′↑)
-      (replace-paired-∀ replace))
-    | p′ , shape , shifted~ =
-  paired-reveal (weaken-store-corresponds shifted~)
-    (weaken-reveal-conversion StoreIncl-drop left-reveal)
-    (weaken-reveal-conversion StoreIncl-drop right-reveal)
-    (replace-paired-evidence-shape
-      (trans shape (sym (shape-lift∀ᵢ pX)))
-      replace)
-  where
-    left-reveal =
-      subst
-        (λ Σ → RevealConversion _ _ Σ _ _ _ _ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        c↑
-
-    right-reveal =
-      subst
-        (λ Σ → RevealConversion _ _ Σ _ _ _ _ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        c′↑
-open-allocated-paired-all-conversion liftρ
-    (paired-conceal {pX = pX} x~
-      (conceal-all c↓) (conceal-all c′↓)
-      (replace-paired-∀ replace))
-    with lift-store-corresponds liftρ x~
-open-allocated-paired-all-conversion liftρ
-    (paired-conceal {pX = pX} x~
-      (conceal-all c↓) (conceal-all c′↓)
-      (replace-paired-∀ replace))
-    | p′ , shape , shifted~ =
-  paired-conceal (weaken-store-corresponds shifted~)
-    (weaken-conceal-conversion StoreIncl-drop left-conceal)
-    (weaken-conceal-conversion StoreIncl-drop right-conceal)
-    (replace-paired-evidence-shape
-      (trans shape (sym (shape-lift∀ᵢ pX)))
-      replace)
-  where
-    left-conceal =
-      subst
-        (λ Σ → ConcealConversion _ _ Σ _ _ _ _ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        c↓
-
-    right-conceal =
-      subst
-        (λ Σ → ConcealConversion _ _ Σ _ _ _ _ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        c′↓
 
 ------------------------------------------------------------------------
 -- First administrative step after allocation
@@ -2964,56 +2800,6 @@ right-polymorphic-value-stepᵀ :
 right-polymorphic-value-stepᵀ vL′ N⊑L′ =
   post-allocation-polymorphic-value-step vL′
     (nu-term-imprecision-target-typing N⊑L′)
-
-matched-post-allocation-β-∀-conversionᵀ :
-  ∀ {Φ Δᴸ Δᴿ Aν Aν′ A A′ B B′ V V′ c c′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  Value V →
-  No• V →
-  Value V′ →
-  No• V′ →
-  (pν : ∀ᵢᶜ Φ
-    ∣ suc Δᴸ ⊢ ⇑ᵗ Aν ⊑ ⇑ᵗ Aν′ ⊣ suc Δᴿ) →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ A′ ∶ ∀ⁱ p →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    (`∀ c) (`∀ c′) {`∀ A} {`∀ A′} {`∀ B} {`∀ B′}
-    (∀ⁱ p) (∀ⁱ q) →
-  ((⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩) ×
-  ((⇑ᵗᵐ (V′ ⟨ `∀ c′ ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V′) •) ⟨ c′ ⟩) ×
-  (∀ᵢᶜ Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣
-    store-matched zero (⇑ᵗ Aν) zero (⇑ᵗ Aν′) pν ∷ ρ′ ∣ []
-    ⊢ᴺ ((⇑ᵗᵐ V) •) ⟨ c ⟩ ⊑ ((⇑ᵗᵐ V′) •) ⟨ c′ ⟩
-    ⦂ B ⊑ B′ ∶ q)
-matched-post-allocation-β-∀-conversionᵀ {p = p} vV noV vV′ noV′
-    pν liftρ V⊑V′ conversion =
-  post-allocation-β-∀•-bare vV ,
-  post-allocation-β-∀•-bare vV′ ,
-  conv⊑convᵀ
-    (paired-conversion
-      (open-allocated-paired-all-conversion liftρ conversion))
-    (α⊑αᵀ vV noV vV′ noV′ pν liftρ lift-ctx-[] V⊑V′
-      left-bullet-typing right-bullet-typing)
-  where
-    left-bullet-typing =
-      subst
-        (λ Σ → suc _ ∣ (zero , ⇑ᵗ _) ∷ Σ ∣ []
-          ⊢ (⇑ᵗᵐ _) • ⦂ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        (⊢• refl refl (⊑-src-wf p) vV noV
-          (nu-term-imprecision-source-typing V⊑V′))
-
-    right-bullet-typing =
-      subst
-        (λ Σ → suc _ ∣ (zero , ⇑ᵗ _) ∷ Σ ∣ []
-          ⊢ (⇑ᵗᵐ _) • ⦂ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        (⊢• refl refl (⊑-tgt-wf p) vV′ noV′
-          (nu-term-imprecision-target-typing V⊑V′))
 
 post-β-∀-reveal :
   ∀ {μ Δ Σ C c A B V} →

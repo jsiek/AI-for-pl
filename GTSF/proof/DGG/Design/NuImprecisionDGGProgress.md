@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — general quotient-down transport checked**
+**MIGRATION IN PROGRESS — matched target allocation checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -93,9 +93,10 @@ introduction and compatible closing widening, but no fused
 `down·up⊑down·upᵀ` or quotient-application rules. World embedding,
 bullet-free left renaming, and source-allocation runtime transport have
 migrated to that grammar. Remaining downstream clients still mention the
-retired names and must migrate or be deleted. A separate matched
-target-allocation root contract is broader than its implementation and must
-be tightened or split. The old first-draft judgment still cohabiting
+retired names and must migrate or be deleted. The matched target-allocation
+root now states its exact value/no-bullet allocation step, fixed target
+reduct, and explicit allocated-type imprecision premise; its focused proof
+passes. The old first-draft judgment still cohabiting
 `NuTermImprecision.agda` is explicitly not treated as a QTI consumer; its
 widely used store/context infrastructure must be split out before the
 obsolete judgment is deleted in Phase 5.
@@ -957,6 +958,36 @@ their shapes, but does not yet expose preservation of the recursively
 structured widening-compatibility evidence. Do not restore `up⊑upᵀ`; either
 derive this preservation from existing world lineage or add the smallest
 general coherence field that makes it reusable.
+
+The matched target-allocation checkpoint then completed on 2026-07-27. The
+root contract no longer accepts an arbitrary `bind` reduction or a broad
+target runtime premise: it requires the target value and no-bullet evidence,
+states `((⇑ᵗᵐ V′) •) ⟨ s′ ⟩` as the target reduct, and exposes `pA` as an
+ordinary premise. The indexed allocation module now owns a reusable lineage
+preservation lemma, so the world-coherent root no longer reconstructs its two
+hidden component results with underscores.
+
+Reaching that root also retired an unreferenced paired-all allocation helper
+and its four local store-correspondence helpers from
+`NuImprecisionSimulation.agda`. Two synchronized allocation cases now use
+`paired-revealᵀ` directly, and matched post-allocation `β-gen•` now uses
+`paired-downᵀ` with explicit gradual spine modes. Focused checks pass for the
+paired-all beta commutation leaf, the tightened target-allocation `Def`, and
+the complete target-allocation `Proof`. The direct retired-name counts are
+now `8/2/2/37/16/16`.
+
+This checkpoint also exposed a concrete invalidation problem. The final
+246-line root check took roughly five minutes because its two live allocation
+dependencies remain in the 2,860-line
+`NuImprecisionAllocationSimulation.agda`, whose import cone includes the
+15,096-line `NuImprecisionSimulationCore.agda` and the 4,762-line
+`NuImprecisionSimulation.agda`. The next controlled structural task is to
+state those coupled indexed-result and lineage operations in a small strict
+`Def`, make the root `Proof` depend only on that contract, and supply the
+current implementation in a canonical `Lemma`. This first cut is complete
+only when rechecking the root proof does not import the legacy allocation
+module. Subsequent consumer moves must extract retained implementations into
+chartered semantic files and delete the obsolete legacy remainder by Phase 5.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

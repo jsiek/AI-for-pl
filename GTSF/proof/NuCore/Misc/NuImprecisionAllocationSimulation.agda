@@ -232,6 +232,7 @@ open import NuTermImprecision using
   ; crossedStoreⁱ-old-new
   )
 open import QuotientedTermImprecision
+open import QuotientImprecisionCompatibility using (gradual↓)
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -436,6 +437,20 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation
 open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   (post-allocation-β-gen•-bare)
 open import proof.Store.Core.NuImprecisionStoreLift using (lift-store-result)
+open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
+  using
+  ( WeakOneStepStoreLineage
+  ; lineageEmbedding
+  ; lineagePrefix
+  ; lineageStore
+  ; weak-step-store-lineage
+  )
+open import
+  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof
+  using (weak-one-step-prepend-left-silent-store-lineageᵀ)
+open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
+  using (lift-store-embeddingⁱ)
 
 module _ where
   ⊑-lift∀-shapeᵢ :
@@ -1205,10 +1220,11 @@ matched-ν↑-allocation {q = q} vN noN vN′ noN′ s↑ s′↑ pB
     A⇑⊑A′⇑ replace liftρ N⊑N′ =
   ν-step vN noN ,
   ν-step vN′ noN′ ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-reveal (correspondence-stored (here refl))
-        left-reveal right-reveal replace))
+  paired-revealᵀ
+    (correspondence-stored (here refl))
+    left-reveal
+    right-reveal
+    replace
     (α⊑αᵀ vN noN vN′ noN′ A⇑⊑A′⇑ liftρ lift-ctx-[]
       N⊑N′ left-bullet-typing right-bullet-typing)
   where
@@ -2182,6 +2198,91 @@ weak-one-step-matched-ν↑-indexed-value-catchupᵀ
       vV′ noV′ old-catchup vW noW
       inner-coherence
 
+weak-one-step-matched-ν↑-indexed-value-catchup-lineageᵀ :
+  ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′ N V′ s s′ μ μ′}
+    {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
+    {ρ : StoreImp Φ Δᴸ Δᴿ} →
+  (s↑ : RevealConversion μ (suc Δᴸ)
+    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+    zero (⇑ᵗ A) s C (⇑ᵗ B)) →
+  (s′↑ : RevealConversion μ′ (suc Δᴿ)
+    ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ (rightStoreⁱ ρ))
+    zero (⇑ᵗ A′) s′ C′ (⇑ᵗ B′)) →
+  (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
+  (A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ) →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  (replace : q
+    [ zero ↦ ⇑ᵗ A
+    ⊑⟨ A⇑⊑A′⇑ ⟩
+    ⇑ᵗ A′ ↤ zero ]ᴾ
+    ⊑-lift∀ᵢ pB) →
+  (vV′ : Value V′) →
+  (noV′ : No• V′) →
+  (catchup : LeftCatchupIndexedAllResult
+    {N = N} {V′ = V′} {ρ = ρ} q) →
+  (vW : Value
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  (noW : No•
+    (sourceResult
+      (weakIndexedResult (catchupIndexedAllResult catchup)))) →
+  WeakOneStepStoreLineage
+    (weakIndexedResult (catchupIndexedAllResult catchup)) →
+  WeakOneStepStoreLineage
+    (weakIndexedResult
+      (weak-one-step-matched-ν↑-indexed-value-catchupᵀ
+        s↑ s′↑ pA A⇑⊑A′⇑ pB replace
+        vV′ noV′ catchup vW noW))
+weak-one-step-matched-ν↑-indexed-value-catchup-lineageᵀ
+    {A = A} {A′ = A′}
+    s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    catchup@(left-indexed-all-catchup indexed
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final))
+    vW noW lineage =
+  weak-one-step-prepend-left-silent-store-lineageᵀ
+    (left-silent first (left-silent-invariant refl refl))
+    second
+    (weak-step-store-lineage
+      (lineageStore lineage)
+      (lineageEmbedding lineage)
+      (lineagePrefix lineage))
+    (weak-step-store-lineage _
+      (lift-store-embeddingⁱ liftρ₀)
+      (prefix-∷ⁱ prefix-reflⁱ))
+  where
+  old-catchup = left-all-catchup
+    (weak-indexed-all-resultᵀ indexed)
+    (catchupIndexedAllInvariant catchup)
+
+  inner-coherence = weakIndexedTypeCoherence indexed
+  inner = weakResult (catchupAllResult old-catchup)
+  innerAll = canonicalAllResults (catchupAllResult old-catchup)
+  first = weak-one-step-matched-ν-frameᵀ
+    s↑ s′↑ pA A⇑⊑A′⇑ pB replace
+    (catchupAllResult old-catchup) inner-coherence
+  liftρ₀ = proj₂ (lift-store-result (resultStore inner))
+  source↑ = proj₂ (weak-result-source-reveal inner s↑)
+  target↑ = proj₂ (weak-result-target-reveal keep inner s′↑)
+  source-A-eq =
+    applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) A
+  target-A-eq =
+    applyTysUnderTyBinders-⇑ᵗ
+      (keep ∷ targetTailChanges inner) A′
+  transported-A =
+    transport-imprecision-endpoints source-A-eq target-A-eq
+      (transportAllBody inner A⇑⊑A′⇑)
+  transported-replace =
+    replace-paired-transport-endpoints
+      refl refl refl refl source-A-eq target-A-eq
+      (transportAllBodyPairedReplacementCoherent
+        inner-coherence replace)
+  second = weak-one-step-matched-ν↑ᵀ
+    vW noW vV′ noV′ source↑ target↑
+    (transportType inner pB)
+    transported-A transported-replace liftρ₀ innerAll
+
 weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ :
   ∀ {Φ Δᴸ Δᴿ A A′ B B′ C C′ N V′ s s′ μ μ′}
     {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
@@ -2602,10 +2703,11 @@ matched-ν↑-β-Λ• {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {A = A} {A′ = A′}
     (↠-step (post-allocation-β-Λ• vV) ↠-refl) ,
   ↠-step (ν-step (Λ vV′) (no•-Λ noV′))
     (↠-step (post-allocation-β-Λ• vV′) ↠-refl) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-reveal (correspondence-stored (here refl))
-        left-reveal right-reveal replace))
+  paired-revealᵀ
+    (correspondence-stored (here refl))
+    left-reveal
+    right-reveal
+    replace
     (allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) V⊑V′
       left-body-typing right-body-typing)
   where
@@ -2733,11 +2835,15 @@ matched-post-allocation-β-genᵀ {Aν = Aν} {Aν′ = Aν′} vV vV′
     c⊒ c′⊒ c-shape c′-shape pν liftρ V⊑V′ q square =
   post-allocation-β-gen•-bare vV ,
   post-allocation-β-gen•-bare vV′ ,
-  gen-down⊑gen-downᵀ
+  paired-downᵀ
+    V⊑V′
+    (gradual↓ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id)
     (narrow-mode-relax (ModeIncl-gen id-only≤tag-or-idᵈ) left-body)
     c-shape
+    (gradual↓ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id)
     (narrow-mode-relax (ModeIncl-gen id-only≤tag-or-idᵈ) right-body)
-    c′-shape V⊑V′ q square
+    c′-shape
+    square
   where
     left-body =
       subst

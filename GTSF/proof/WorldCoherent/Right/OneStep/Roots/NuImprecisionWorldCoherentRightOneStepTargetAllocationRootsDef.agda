@@ -29,7 +29,7 @@ open import ImprecisionWf using
   ; ⇑ᴿᵢ
   )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
-open import NuReduction using (bind; _—→[_]_)
+open import NuReduction using (bind)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( LiftRightStoreⁱ
@@ -38,8 +38,10 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   )
 open import NuTerms using
-  ( RuntimeOK
+  ( No•
+  ; RuntimeOK
   ; Term
+  ; Value
   ; ν
   ; ⇑ᵗᵐ
   ; _•
@@ -83,20 +85,21 @@ record WorldCoherentRightOneStepTargetAllocationRoots : Set₁ where
     rightStepMatchedNuAllocationRoot :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
-        {A A′ B B′ C C′ : Ty} {N V′ N′ : Term}
+        {A A′ B B′ C C′ : Ty} {N V′ : Term}
         {s s′ : Coercion} {μ μ′}
         {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
-        {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
         {A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
         {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
       WorldCoherent ρ →
       SourceNameExclusive Φ →
       AssumptionMembershipUnique Φ →
       StoreWf Δᴸ (leftStoreⁱ ρ) →
       StoreWf Δᴿ (rightStoreⁱ ρ) →
       RuntimeOK (ν A N s) →
-      RuntimeOK (ν A′ V′ s′) →
+      Value V′ →
+      No• V′ →
       WfTy Δᴸ A →
       WfTy Δᴿ A′ →
       RevealConversion μ (suc Δᴸ)
@@ -112,9 +115,8 @@ record WorldCoherentRightOneStepTargetAllocationRoots : Set₁ where
         ⊑⟨ A⇑⊑A′⇑ ⟩
         ⇑ᵗ A′ ↤ zero ]ᴾ
         ⊑-lift∀ᵢ pB →
-      ν A′ V′ s′ —→[ bind A′ ] N′ →
       WorldCoherentWeakOneStepIndexedOutcome
-        {M = ν A N s} {N′ = N′}
+        {M = ν A N s} {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
         {χ = bind A′} {ρ = ρ} pB
 
 open WorldCoherentRightOneStepTargetAllocationRoots public

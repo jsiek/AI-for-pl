@@ -114,6 +114,30 @@ They may be edited only to migrate or delete their old dependencies:
 the still-relevant fact that a general quotient edge cannot be converted to
 ordinary type imprecision.
 
+The frozen Phase 4 pre-edit source inventory is:
+
+- `down·up⊑down·upᵀ`: 14 Agda files;
+- `quotient-id-down-applicationᵖᵀ`: 9 Agda files;
+- `quotient-down-applicationᵖᵀ`: 9 Agda files;
+- `up⊑upᵀ`: 46 Agda files;
+- `down⊑downᵀ`: 27 Agda files; and
+- `gen-down⊑gen-downᵀ`: 26 Agda files.
+
+These are direct source-reference counts, not transitive capability counts.
+The exact file lists are reproducible from the migration checkpoint with:
+
+    rg -l 'down·up⊑down·upᵀ' -g '*.agda'
+    rg -l 'quotient-id-down-applicationᵖᵀ' -g '*.agda'
+    rg -l 'quotient-down-applicationᵖᵀ' -g '*.agda'
+    rg -l 'up⊑upᵀ' -g '*.agda'
+    rg -l 'down⊑downᵀ' -g '*.agda'
+    rg -l 'gen-down⊑gen-downᵀ' -g '*.agda'
+
+During the grammar edit, a file leaves this inventory only by migrating to
+`paired-downᵀ` or compatible `closeᵀ`, by switching to an up-to-reduction
+simulation, or by being deleted with its obsolete helper family. No
+compatibility constructor or wrapper may preserve one of these six names.
+
 ## Controlled phases
 
 ### Phase 0. Control and inventory

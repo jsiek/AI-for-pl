@@ -49,7 +49,8 @@ open import
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
-  ( TargetInstantiationCreation
+  ( StoreImpPrefixᴿ
+  ; TargetInstantiationCreation
   ; embed-creationᴱ
   ; exact-creationᴱ
   )
@@ -75,6 +76,7 @@ target-instantiation-canonical-transportᴿ :
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
+    (StoreImpPrefixᴿ ρ₀ ρ⁺)
     (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
@@ -123,6 +125,7 @@ target-instantiation-endpoint-transportᴿ :
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
+    (StoreImpPrefixᴿ ρ₀ ρ⁺)
     (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →

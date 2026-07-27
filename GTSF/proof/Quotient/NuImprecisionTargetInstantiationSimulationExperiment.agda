@@ -75,7 +75,11 @@ open import
   )
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
-  using (TargetInstantiationCreation; exact-creationᴱ)
+  using
+  ( StoreImpPrefixᴿ
+  ; TargetInstantiationCreation
+  ; exact-creationᴱ
+  )
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientTypingExperiment
   using
@@ -114,6 +118,7 @@ record TargetInstantiationSimulationSliceᴿ
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ₀)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)) : Set₁ where
@@ -203,6 +208,7 @@ target-instantiation-initial-imprecisionᴿ :
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
+      (StoreImpPrefixᴿ ρ₀ ρ₀)
       (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
         ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)) →
@@ -234,6 +240,7 @@ target-instantiation-simulation-sliceᴿ :
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ₀)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)} →

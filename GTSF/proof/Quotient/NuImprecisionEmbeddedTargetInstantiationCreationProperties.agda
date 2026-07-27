@@ -41,14 +41,15 @@ open import
 
 embedded-creation-source-typingᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ A
@@ -62,14 +63,15 @@ embedded-creation-source-typingᴱ
 
 embedded-creation-target-typingᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′
@@ -83,14 +85,15 @@ embedded-creation-target-typingᴱ
 
 embedded-creation-source-valueᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   Value M
@@ -105,14 +108,15 @@ embedded-creation-source-valueᴱ
 
 embedded-creation-target-valueᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   Value M′
@@ -128,14 +132,15 @@ embedded-creation-target-valueᴱ
 
 embedded-creation-source-no-bulletᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   No• M
@@ -150,14 +155,15 @@ embedded-creation-source-no-bulletᴱ
 
 embedded-creation-target-no-bulletᴱ :
   ∀ {Φ₀ Θᴸ Θᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f
-      body-shape body-relation Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
+      body-shape prefix-evidence body-relation
+      Ψ Δᴸ Δᴿ ρ M M′ A A′ p} →
   EmbeddedTargetInstantiationCreation
     {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
-    body-relation
+    prefix-evidence body-relation
     {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ρ M M′ A A′ p →
   No• M′

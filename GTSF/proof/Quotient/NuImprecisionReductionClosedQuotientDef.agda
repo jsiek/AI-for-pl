@@ -516,6 +516,7 @@ mutual
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ⁺)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)

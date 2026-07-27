@@ -76,10 +76,11 @@ record TargetInstantiationCreation
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
     {body-shape : ImprecisionShape}
+    (prefix-evidence : Set)
     (body-relation : Set₁) : Set₁ where
   constructor target-instantiation-creation
   field
-    store-prefix : StoreImpPrefixᴿ ρ₀ ρ⁺
+    store-prefix : prefix-evidence
     cast-mode : CastMode μ
     seal-mode : SealModeStore★ μ (rightStoreⁱ ρ₀)
     instantiation-typing :
@@ -120,6 +121,7 @@ data EmbeddedTargetInstantiationCreation
       ∣ suc Θᴸ ⊢ D ⊑ C ⊣ suc Θᴿ}
     {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
     {body-shape : ImprecisionShape}
+    (prefix-evidence : Set)
     (body-relation : Set₁) :
     ∀ {Ψ : ImpCtx} {Δᴸ Δᴿ : TyCtx} →
     StoreImp Ψ Δᴸ Δᴿ →
@@ -134,14 +136,14 @@ data EmbeddedTargetInstantiationCreation
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
-      body-relation →
+      prefix-evidence body-relation →
     EmbeddedTargetInstantiationCreation
       {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
       {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
-      body-relation
+      prefix-evidence body-relation
       (store-right zero ★ wf★ ∷ ρᴿ⁺)
       (Λ W) (W′ ⟨ s ⟩) (`∀ D) (⇑ᵗ B)
       (⊑-target-lift-rightᵢ f)
@@ -154,7 +156,7 @@ data EmbeddedTargetInstantiationCreation
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
-      body-relation
+      prefix-evidence body-relation
       {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       ρ M M′ A A′ p →
     (assm : ∀ {a : ImpAssm} →
@@ -172,7 +174,7 @@ data EmbeddedTargetInstantiationCreation
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
-      body-relation
+      prefix-evidence body-relation
       {Ψ = Ω} {Δᴸ = Υᴸ} {Δᴿ = Υᴿ}
       ρ′
       (renameᵗᵐ τ M) (renameᵗᵐ σ M′)

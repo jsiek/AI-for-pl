@@ -5,6 +5,8 @@ module
 -- File Charter:
 --   * Composes a world-coherent left-silent prefix with a recursively caught
 --     result while carrying one independent runtime sibling.
+--   * Prepends source keep-steps while preserving that sibling at the exact
+--     final world.
 --   * Returns the composed caught result and sibling at its exact final world.
 --   * Normalizes nested term, type, and imprecision-index transport directly.
 --   * Contains no recursive dispatcher, postulate, hole, or permissive option.
@@ -24,6 +26,7 @@ open import NuReduction using
   ; applyTy
   ; applyTys
   ; keep
+  ; _—→[_]_
   )
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using (Term)
@@ -69,6 +72,8 @@ open import
   ; targetTypeResult
   ; transportType
   ; weak-indexed-result
+  ; weak-step-transport
+  ; weak-step-type-coherence
   ; weakIndexedResult
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
@@ -94,6 +99,86 @@ open import
   ; worldCatchupResult
   ; world-coherent-left-indexed-catchup
   )
+open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentLeftCatchupPrependKeepStep
+  using (prepend-left-keep-step-result)
+
+
+world-coherent-left-catchup-prepend-keep-step-runtime-sibling :
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {M N V′ R R′ : Term} {A B C C′ : Ty}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
+    {q : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ} →
+  M —→[ keep ] N →
+  (Σ[ caught ∈
+    WorldCoherentLeftCatchupIndexedResult
+      {N = N} {V′ = V′} {ρ = ρ} p ]
+    let result =
+          weakIndexedResult
+            (catchupIndexedResult (worldCatchupResult caught))
+    in
+    resultCtx result
+      ∣ resultLeftCtx result
+      ∣ resultRightCtx result
+      ∣ resultStore result ∣ []
+      ⊢ᴺ applyTerms (sourceChanges result) R
+        ⊑ applyTerms (targetTailChanges result)
+            (applyTerm keep R′)
+      ⦂ applyTys (sourceChanges result) C
+        ⊑ applyTys (targetTailChanges result)
+            (applyTy keep C′)
+      ∶ transportType result q) →
+  Σ[ caught ∈
+    WorldCoherentLeftCatchupIndexedResult
+      {N = M} {V′ = V′} {ρ = ρ} p ]
+    let result =
+          weakIndexedResult
+            (catchupIndexedResult (worldCatchupResult caught))
+    in
+    resultCtx result
+      ∣ resultLeftCtx result
+      ∣ resultRightCtx result
+      ∣ resultStore result ∣ []
+      ⊢ᴺ applyTerms (sourceChanges result) R
+        ⊑ applyTerms (targetTailChanges result)
+            (applyTerm keep R′)
+      ⦂ applyTys (sourceChanges result) C
+        ⊑ applyTys (targetTailChanges result)
+            (applyTy keep C′)
+      ∶ transportType result q
+world-coherent-left-catchup-prepend-keep-step-runtime-sibling
+    source→
+    (world-coherent-left-indexed-catchup
+      (left-indexed-catchup
+        (weak-indexed-result result canonical
+          (weak-step-transport transport)
+          (weak-step-type-coherence
+            arrow all shape right-shape
+            replace-left replace-right replace-paired
+            replace-all replace-source replace-right-body))
+        (left-catchup-invariant
+          (left-silent-invariant refl refl) final))
+      (weak-step-store-lineage lineage-store lineage-embedding
+        lineage-prefix)
+      coherent exclusive unique wfL ,
+      sibling) =
+  world-coherent-left-indexed-catchup
+    (left-indexed-catchup
+      (weak-indexed-result prefixed canonical
+        (weak-step-transport transport)
+        (weak-step-type-coherence
+          arrow all shape right-shape
+          replace-left replace-right replace-paired
+          replace-all replace-source replace-right-body))
+      (left-catchup-invariant
+        (left-silent-invariant refl refl) final))
+    (weak-step-store-lineage lineage-store lineage-embedding
+      lineage-prefix)
+    coherent exclusive unique wfL ,
+  sibling
+  where
+  prefixed = prepend-left-keep-step-result source→ result
 
 
 world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ :

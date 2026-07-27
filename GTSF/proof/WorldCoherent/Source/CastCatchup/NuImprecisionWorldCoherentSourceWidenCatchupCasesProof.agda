@@ -6,6 +6,8 @@ module
 --   * Proves the coherent identity, inert, sequence, and source-only
 --     instantiation cases for one source widening cast.
 --   * Requires the source-only `ν` index explicitly in the instantiation case.
+--   * Takes source type beta and fresh-`★` allocation before re-establishing
+--     ordinary imprecision in that instantiation case.
 --   * Does not assemble the former arbitrary-index widening contract: that
 --     contract admitted the invalid paired-`∀ⁱ` source-instantiation path.
 --   * Uses only strict framing/composition helpers for local proof plumbing.
@@ -28,7 +30,7 @@ open import Data.Sum using (inj₁; inj₂)
 open import ImprecisionWf using
   (NonVar; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_; ν)
 open import ImprecisionComposition using
-  (ImprecisionShape; ⌊_⌋; _；_≋_; comp-ν)
+  (ImprecisionShape; ⌊_⌋; _；_≋_; comp-ν; νˢ-injective)
 import NarrowWiden as NW
 open import NarrowWiden using
   ( Widening
@@ -55,6 +57,7 @@ open import NuTerms using
   ; Term
   ; Value
   ; ok-⟨⟩
+  ; ok-•
   ; ok-no
   ; ok-ν
   ; no•-⟨⟩
@@ -69,7 +72,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
-  (cong; subst; sym)
+  (cong; subst; subst₂; sym; trans)
 open import Store using (StoreIncl-cons; StoreIncl-drop)
 import Relation.Binary.HeterogeneousEquality as HE
 open import TermTyping using
@@ -84,6 +87,7 @@ open import Types using
   ; occurs
   ; ★
   ; `∀
+  ; wf★
   )
 import Types as T
 
@@ -105,18 +109,20 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-catchup-indexed-relatedᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   ; subst²-to-≅
+  ; weak-result-source-widen-inst
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-index-resultᵀ
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
   ; weak-one-step-reindexᵀ
-  ; weak-one-step-source-νcast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult
   ; LeftSilentIndexedResult
+  ; SourceNuIndex
   ; WeakOneStepIndexedResult
   ; WeakOneStepResult
   ; WeakOneStepTypeCoherence
@@ -139,11 +145,17 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; sourceCtxResult
   ; sourceResult
   ; sourceStoreResult
+  ; source-nu-index
+  ; sourceNuBody
+  ; sourceNuIndexEquality
+  ; sourceNuOccurs
+  ; sourceNuSafe
   ; sourceTypeResult
   ; targetResult
   ; targetTailChanges
   ; targetTypeResult
   ; transportType
+  ; transportSourceNu
   ; transportShapeCoherent
   ; weak-indexed-result
   ; weakIndexedResult
@@ -166,9 +178,24 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof using
   (weak-one-step-prepend-left-silent-store-lineageᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition using
   (world-coherent-left-catchup-indexed-resume-silentᵀ)
+open import
+  proof.WorldCoherent.Core.NuImprecisionWorldCoherentLeftCatchupPrependKeepStep
+  using (world-coherent-left-catchup-prepend-keep-step)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
+  )
+open import
+  proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAllocationStepProof
+  using (world-coherent-source-inst-allocation-stepᵀ)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef
+  using
+  ( sourceStepAssumptionMembershipUnique
+  ; sourceStepIndexedResult
+  ; sourceStepSourceNameExclusive
+  ; sourceStepStoreLineage
+  ; sourceStepWorldCoherent
   )
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup using
   ( applyTys-preserves-Atom
@@ -184,11 +211,15 @@ open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
 open import proof.Core.Properties.ReductionProperties using
-  (applyCoercions; applyCoercions-preserves-Inert)
+  (applyCoercions; applyCoercions-preserves-Inert; applyTys-∀)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
-  ( cast-shape-applyCoercions
+  ( cast-shape-applyCoercionUnderTyBinders
+  ; cast-shape-applyCoercions
   ; imprecision-composition-shape-transport
+  ; shape-source-liftνᵢ
+  ; shape-subst-source
   )
+open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using
   ( modeRename-suc-weakenCast
@@ -1151,7 +1182,9 @@ world-coherent-source-inst-widen-castᵀ :
   s ； ⌊ q ⌋ ≋ ⌊ ν safe index-occ r ⌋ →
   WorldCoherentLeftCatchupIndexedResult
     {N = N ⟨ C.inst B c ⟩} {V′ = V′} {ρ = ρ⁺} q
-world-coherent-source-inst-widen-castᵀ value-prefix
+world-coherent-source-inst-widen-castᵀ
+    value-prefix
+    {index-occ = index-occ} {r = r} {{safe = safe}}
     prefix mode seal★ c⊑ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
@@ -1162,7 +1195,9 @@ world-coherent-source-inst-widen-castᵀ value-prefix
       coherent exclusive unique wfL)
     q c-shape comp
     with result-widening-typingᵀ prefix mode seal★ c⊑ indexed
-world-coherent-source-inst-widen-castᵀ value-prefix
+world-coherent-source-inst-widen-castᵀ
+    value-prefix
+    {index-occ = index-occ} {r = r} {{safe = safe}}
     prefix mode seal★ c⊑ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed
@@ -1174,7 +1209,9 @@ world-coherent-source-inst-widen-castᵀ value-prefix
     q c-shape comp
     | μ′ , mode′ , final-seal , final-cast
     with final
-world-coherent-source-inst-widen-castᵀ value-prefix
+world-coherent-source-inst-widen-castᵀ
+    value-prefix
+    {index-occ = index-occ} {r = r} {{safe = safe}}
     prefix mode seal★ c⊑@(C.cast-inst hB occ s⊢ , NW.inst sʷ)
     vV′ noV′
     (world-coherent-left-indexed-catchup
@@ -1189,10 +1226,10 @@ world-coherent-source-inst-widen-castᵀ value-prefix
     | μ′ , mode′ , final-seal , final-cast
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
-    first-silent-result
-    combined-lineage
-    (value-prefix prefix-reflⁱ coherent exclusive unique wfL runtime
-      vV′ noV′ (canonicalIndexedResults first-indexed))
+    framed-silent framed-lineage
+    (world-coherent-left-catchup-prepend-keep-step
+      (post-catchup-β-inst (sourceChanges inner) vW)
+      allocated-catchup)
   where
   inner = weakIndexedResult indexed
 
@@ -1205,98 +1242,113 @@ world-coherent-source-inst-widen-castᵀ value-prefix
 
   first = weak-one-step-source-cast-frameᵀ inner final-relation
 
-  first-silent =
-    weak-one-step-source-cast-frame-silentᵀ
-      inner final-relation silent
+  framed-indexed =
+    weak-indexed-result first (relatedResults first)
+      (weak-one-step-source-cast-frame-transportᵀ
+        inner final-relation (weakIndexedTransport indexed))
+      (weak-one-step-source-cast-frame-coherenceᵀ
+        inner final-relation (weakIndexedTypeCoherence indexed))
 
-  source-store-incl =
-    StoreIncl-cons
-      (renameStoreᵗ-incl suc (leftStoreⁱ-prefix-inclusion prefix))
+  runtime = ok-⟨⟩ (ok-no noW)
 
-  ν-seal★ =
-    seal★-inst
-      (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-
-  source-cast =
-    widen-weaken ≤-refl source-store-incl
-      (s⊢ , NW.instSafe→widening sʷ)
-
-  ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode ν-seal★ source-cast q inner-shape inner-comp indexed
-
-  second-relation :
-    resultCtx first
-      ∣ resultLeftCtx first
-      ∣ resultRightCtx first
-      ∣ resultStore first ∣ []
-      ⊢ᴺ sourceResult ν-framed ⊑ targetResult first
-      ⦂ resultSourceType first ⊑ resultTargetType first
-      ∶ resultType first
-  second-relation = relatedResults ν-framed
-
-  second = weak-one-step-keep-source-catchupᵀ
-    (post-catchup-β-inst (sourceChanges inner) vW)
-    second-relation
-
-  combined = weak-one-step-prepend-left-silentᵀ
-    (left-silent first first-silent) second
-
-  second-lineage =
-    weak-step-store-lineage
-      (resultStore first) rel-store-embedding-reflⁱ prefix-reflⁱ
-
-  combined-lineage =
-    weak-one-step-prepend-left-silent-store-lineageᵀ
-      (left-silent first first-silent) second
-      (weak-step-store-lineage
-        lineage-store lineage-embedding lineage-prefix)
-      second-lineage
-
-  type-eq = HE.≅-to-≡
-    (HE.trans
-      (subst²-to-≅
-        {P = λ S T → resultCtx combined ∣ resultLeftCtx combined
-          ⊢ S ⊑ T ⊣ resultRightCtx combined}
-        (sourceTypeResult combined)
-        (targetTypeResult combined)
-        (resultType combined))
-      (HE.sym (weak-one-step-compose-type-to-nested≅
-        first second q)))
-
-  first-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport indexed)
-
-  first-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence indexed)
-
-  combined-transport =
-    weak-one-step-prepend-left-silent-preserves-transportᵀ
-      (left-silent first first-silent) second
-      first-transport
-      (weak-one-step-keep-source-catchup-transportᵀ
-        (post-catchup-β-inst (sourceChanges inner) vW)
-        second-relation)
-
-  combined-coherence =
-    weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
-      (left-silent first first-silent) second
-      first-coherence
-      (weak-one-step-keep-source-catchup-type-coherenceᵀ
-        (post-catchup-β-inst (sourceChanges inner) vW)
-        second-relation)
-
-  first-indexed = weak-one-step-index-resultᵀ combined type-eq
-    combined-transport combined-coherence
-
-  runtime =
-    ok-ν (ok-no noW)
-
-  first-silent-result =
-    left-silent-indexed first-indexed
+  framed-silent =
+    left-silent-indexed framed-indexed
       (left-silent-invariant refl refl) runtime
-world-coherent-source-inst-widen-castᵀ value-prefix
+
+  framed-lineage =
+    weak-step-store-lineage
+      lineage-store lineage-embedding lineage-prefix
+
+  transported-index =
+    transportSourceNu inner safe index-occ r
+
+  normalized =
+    nu-term-imprecision-transport-typesᵀ
+      (applyTys-∀ (sourceChanges inner) _) refl refl
+      (canonicalIndexedResults indexed)
+
+  shaped =
+    nu-term-imprecision-transport-typesᵀ
+      refl refl (sourceNuIndexEquality transported-index) normalized
+
+  transported-r-shape =
+    νˢ-injective
+      (trans
+        (sym (cong ⌊_⌋ (sourceNuIndexEquality transported-index)))
+        (trans
+          (shape-subst-source
+            (applyTys-∀ (sourceChanges inner) _)
+            (transportType inner (ν safe index-occ r)))
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed)
+            (ν safe index-occ r))))
+
+  transported-comp =
+    imprecision-composition-shape-transport
+      refl
+      (trans
+        (shape-source-liftνᵢ (transportType inner q))
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q))
+      transported-r-shape
+      inner-comp
+
+  allocation-typing =
+    weak-result-source-widen-inst inner mode
+      (seal★-inst
+        (seal★-weaken
+          (leftStoreⁱ-prefix-inclusion prefix) seal★))
+      (widen-weaken ≤-refl
+        (StoreIncl-cons
+          (renameStoreᵗ-incl suc
+            (leftStoreⁱ-prefix-inclusion prefix)))
+        (s⊢ , NW.instSafe→widening sʷ))
+
+  allocation-step =
+    world-coherent-source-inst-allocation-stepᵀ
+      {{sourceNuSafe transported-index}}
+      coherent exclusive unique vW noW
+      (proj₁ (proj₂ allocation-typing))
+      (proj₁ (proj₂ (proj₂ allocation-typing)))
+      (proj₂ (proj₂ (proj₂ allocation-typing)))
+      (transportType inner q)
+      (cast-shape-applyCoercionUnderTyBinders
+        (sourceChanges inner) inner-shape)
+      transported-comp shaped
+
+  allocation-indexed = sourceStepIndexedResult allocation-step
+
+  allocation-result = weakIndexedResult allocation-indexed
+
+  allocation-silent =
+    left-silent-indexed allocation-indexed
+      (left-silent-invariant refl refl)
+      (ok-⟨⟩ (ok-• vW noW))
+
+  allocation-wf =
+    subst₂ StoreWf
+      (sym (sourceCtxResult allocation-result))
+      (sym (sourceStoreResult allocation-result))
+      (StoreWf-bind wfL wf★)
+
+  post-allocation =
+    value-prefix prefix-reflⁱ
+      (sourceStepWorldCoherent allocation-step)
+      (sourceStepSourceNameExclusive allocation-step)
+      (sourceStepAssumptionMembershipUnique allocation-step)
+      allocation-wf
+      (ok-⟨⟩ (ok-• vW noW))
+      vV′ noV′
+      (canonicalIndexedResults allocation-indexed)
+
+  allocated-catchup =
+    world-coherent-left-catchup-indexed-resume-silentᵀ
+      allocation-silent
+      (sourceStepStoreLineage allocation-step)
+      post-allocation
+world-coherent-source-inst-widen-castᵀ
+    value-prefix
+    {index-occ = index-occ} {r = r} {{safe = safe}}
     prefix mode seal★ c⊑ vV′ noV′
     (world-coherent-left-indexed-catchup
       catchup@(left-indexed-catchup indexed

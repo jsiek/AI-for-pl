@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 3 shortcuts removed; phase 4 boundary active**
+**MIGRATION IN PROGRESS — phase 4 source tails checked; quotient boundary active**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -80,9 +80,16 @@ transport consumers were removed instead of being preserved behind wrappers.
 The direct-constructor audit was followed by a transitive helper-capability
 audit before deletion.
 
-Phase 4 is now active. Its live boundary consists of the paired-narrowing
-quotient introduction, compatible closing widening, source-widening
-instantiation paths that must consume their reduction tails, and the fused
+Phase 4 is now active. The two source-widening instantiation paths have
+completed their controlled checkpoint: after the framed operand catch-up,
+source type beta exposes `ν ★`, fresh-seal allocation takes `bind ★`, and
+ordinary imprecision is established only for the allocated bullet plus
+instantiation cast. The runtime-sibling path uses the same chosen store lift
+for its primary and sibling relations. Both focused leaves pass, and the
+former casted-`ν` frame helper has no source references.
+
+The remaining live Phase 4 boundary consists of the paired-narrowing quotient
+introduction, compatible closing widening, and the fused
 `down·up⊑down·upᵀ` and quotient-application rules that the up-to-reduction
 design removes. A separate matched target-allocation root contract is broader
 than its implementation and must be tightened or split. The old first-draft
@@ -764,19 +771,20 @@ behavior is covered by
 
 ## Current proof plan
 
-1. Checkpoint the completed Phase 3 grammar and consumer deletion as one
-   coherent commit. Do not mix the quotient-boundary edit into that commit.
-2. In Phase 4, state the allocation-aware up-to-reduction contract used by the
-   two live source-widening instantiation paths. Its active path must take the
-   cast step to the transient `ν ★` term and the complete allocation/type-beta
-   tail before asking for the next term-imprecision edge.
+1. **Completed:** checkpoint the Phase 3 grammar and consumer deletion without
+   mixing in the quotient-boundary edit.
+2. **Completed:** state and check the allocation-aware up-to-reduction
+   contract used by both live source-widening instantiation paths. Their active
+   paths take type beta to transient `ν ★`, allocate with `bind ★`, and only
+   then construct the next ordinary term-imprecision edge.
 3. Promote the selected paired-narrowing quotient boundary, its typing, value,
    world-embedding, and substitution theorems to the canonical live modules.
    Delete superseded quotient constructors and compatibility shims rather than
    re-exporting them.
 4. Remove `down·up⊑down·upᵀ`, quotient-indexed application, and any finite
-   narrowing-spine support in the same Phase 4 grammar edit. Migrate exhaustive
-   folds and the two source-widening consumers to the up-to-reduction result.
+   narrowing-spine support in the same Phase 4 grammar edit. Migrate the
+   remaining exhaustive folds; the two source-widening consumers already use
+   the checked up-to-reduction result.
 5. Tighten or split the matched target-allocation root contract so its premise
    states the allocation root its implementation handles; do not add a
    catch-all for arbitrary frame steps.
@@ -816,8 +824,8 @@ explicitly rather than deleted mechanically.
 The aggregate and import audit pass. The terminal-forward strict spine is
 source-safe but its focused Agda check currently fails at the
 `compatible-source-inert` paired-widening function-beta case recorded above.
-The source inventory sees 361 strict-looking `Proof` modules: 153 have no
-transitive canonical `Lemma` consumer, 148 are reachable from an explicit
+The source inventory sees 361 strict-looking `Proof` modules: 151 have no
+transitive canonical `Lemma` consumer, 146 are reachable from an explicit
 strict inventory spine, five are explicitly known incomplete, and none are
 uninventoried. Focused Agda checks, not these source counts, establish
 completion.
@@ -877,6 +885,14 @@ principled fused `down·up⊑down·upᵀ` case, and the matched target-allocatio
 root contract admits frame steps that its allocation-root implementation does
 not handle. These are recorded as Phase 4 design obligations, not papered over
 with new constructors or catch-all clauses.
+
+The first Phase 4 checkpoint completed on 2026-07-27. The ordinary and
+runtime-sibling source-widening instantiation leaves now take the complete
+type-beta and fresh-`★` allocation tail before constructing their next
+ordinary term-imprecision edge. The allocation proof exposes a reusable
+chosen-lift form, so the runtime sibling cannot drift into a separately
+generated world. Focused checks passed for the allocation helper, the
+ordinary source-widening leaf, and the runtime-sibling source-widening leaf.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

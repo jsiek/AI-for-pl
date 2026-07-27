@@ -5,15 +5,18 @@ module proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAll
 --     quotiented term-precision derivation.
 --   * Delegates the exact target-bullet crossing and right-value catch-up to
 --     higher-order capabilities while preserving the existing flat result.
+--   * Exposes source-instantiation allocation both for a chosen canonical
+--     left-store lift and through a default existential lift wrapper.
 --   * Contains no postulate, hole, permissive option, dispatcher, or new
 --     result carrier.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([]; _++_; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_; proj₁; proj₂)
-open import ImprecisionComposition using (⌊_⌋; ∀ˢ_)
+open import ImprecisionComposition using (⌊_⌋; ∀ˢ_; _；_≋_)
 open import Relation.Binary.PropositionalEquality using
   (cong; cong₂; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
@@ -28,6 +31,7 @@ open import Conversion using
   )
 open import ImprecisionWf using
   ( ImpCtx
+  ; NonVar
   ; _∣_⊢_⊑_⊣_
   ; _↦_
   ; _ˣ⊑★
@@ -36,7 +40,7 @@ open import ImprecisionWf using
   ; ⇑ᴸᵢ
   ; ∀ⁱ_
   ) renaming (ν to νⁱ)
-open import NarrowWiden using (widen-weaken)
+open import NarrowWiden using (widen-weaken; _∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   ( bind
   ; applyTy
@@ -51,7 +55,8 @@ open import NuReduction using
   )
 open import NuStore using (StoreIncl-cons; StoreWf)
 open import NuTermImprecision using
-  ( LiftStoreⁱ
+  ( LiftLeftStoreⁱ
+  ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
@@ -74,6 +79,8 @@ open import NuTerms using
   ; ok-⟨⟩
   ; ok-ν
   ; ν
+  ; ⇑ᵗᵐ
+  ; _•
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
@@ -93,7 +100,9 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   )
 open import TermTyping using
-  ( _∣_∣_⊢_⦂_
+  ( CastMode
+  ; SealModeStore★
+  ; _∣_∣_⊢_⦂_
   ; ⊢⟨⟩↑
   ; ⊢⟨⟩↓
   ; ⊢⟨⟩⊒
@@ -102,7 +111,7 @@ open import TermTyping using
   ; ⊢ν⊑
   )
 open import Types using
-  (Ty; TyCtx; WfTy; ★; _⇒_; `∀; extᵗ; renameᵗ; ⇑ᵗ)
+  (Ty; TyCtx; WfTy; ★; wf★; _⇒_; `∀; extᵗ; renameᵗ; ⇑ᵗ; ⟰ᵗ)
 open import proof.Core.Properties.CoercionProperties using (coercion-src-tgtᵐ)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( ∀ᵢᶜ
@@ -113,7 +122,8 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; ⊑-source-liftνᵢ
   )
 open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
-  ( left-ν↑-allocation
+  ( left-inst-allocation
+  ; left-ν↑-allocation
   ; replace-left-source-liftν-source-nu-bodyᵢ
   ; replace-left-source-liftνᵢ
   ; replace-paired-source-liftν-under-∀ᵢ
@@ -568,6 +578,142 @@ private
     combined-lineage =
       weak-one-step-compose-store-lineageᵀ
         first target→ second first-lineage′ second-lineage′
+
+
+world-coherent-source-inst-allocation-step-with-liftᵀ :
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ↑ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
+    {B B′ C : Ty} {N N′ : Term} {s} {μ q occ s-shape}
+    {{safe : NonVar C}} →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
+  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ↑ →
+  Value N →
+  No• N →
+  CastMode μ →
+  SealModeStore★ (instᵈ μ)
+    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
+  instᵈ μ ∣ suc Δᴸ ∣ ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+    ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ ⊑-source-liftνᵢ pB ⌋ ≋ ⌊ q ⌋ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ νⁱ safe occ q →
+  WorldCoherentSourceOneStepIndexedResult
+    {M = ν ★ N s}
+    {M′ = N′}
+    {L = ((⇑ᵗᵐ N) •) ⟨ s ⟩}
+    {χ = bind ★}
+    {ρ = ρ}
+    pB
+world-coherent-source-inst-allocation-step-with-liftᵀ
+    {ρ = ρ} {ρ↑ = ρ↑}
+    coherent exclusive unique liftρ vN noN mode seal★ s⊑ pB
+    s-shape comp N⊑N′
+    with left-inst-allocation vN noN mode seal★ s⊑ pB
+      s-shape comp liftρ N⊑N′
+world-coherent-source-inst-allocation-step-with-liftᵀ
+    {ρ = ρ} {ρ↑ = ρ↑}
+    coherent exclusive unique liftρ vN noN mode seal★ s⊑ pB
+    s-shape comp N⊑N′
+    | source-step , target-refl , related =
+  world-coherent-source-one-step-indexed
+    (weak-indexed-result result related
+      (weak-step-transport
+        (left-lift-prefix-body-proofᵀ
+          liftρ (prefix-∷ⁱ prefix-reflⁱ)))
+      (weak-step-type-coherence
+        source-lift-arrowᵢ
+        source-lift-allᵢ
+        shape-source-liftνᵢ
+        source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ
+        replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ))
+    (weak-step-store-lineage ρ↑
+      (lift-left-store-embeddingⁱ liftρ)
+      (prefix-∷ⁱ prefix-reflⁱ))
+    refl refl
+    (world-coherent-left-allocation liftρ coherent)
+    (source-name-exclusive-source-only-head exclusive)
+    (assumption-membership-unique-source unique)
+  where
+  result : WeakOneStepResult _ _ _ _ _ keep
+  result =
+    record
+      { sourceChanges = bind ★ ∷ []
+      ; targetTailChanges = []
+      ; sourceResult = _
+      ; targetResult = _
+      ; resultCtx = (zero ˣ⊑★) ∷ ⇑ᴸᵢ _
+      ; resultLeftCtx = suc _
+      ; resultRightCtx = _
+      ; sourceCtxResult = refl
+      ; targetCtxResult = refl
+      ; resultStore = store-left zero ★ wf★ ∷ ρ↑
+      ; resultSourceType = ⇑ᵗ _
+      ; resultTargetType = _
+      ; sourceTypeResult = refl
+      ; targetTypeResult = refl
+      ; transportType = ⊑-source-liftνᵢ
+      ; transportAllBody = source-lift-under-∀ᵢ
+      ; transportRightBody = ⊑-source-under-rightᵢ
+      ; transportSourceNu = ⊑-source-lift-source-nuᵢ
+      ; resultType = ⊑-source-liftνᵢ _
+      ; sourceCatchup = ↠-step source-step ↠-refl
+      ; targetTail = target-refl
+      ; sourceStoreResult =
+          cong ((zero , ⇑ᵗ ★) ∷_) (leftStoreⁱ-lift-left liftρ)
+      ; targetStoreResult = rightStoreⁱ-lift-left liftρ
+      ; relatedResults = related
+      }
+
+
+world-coherent-source-inst-allocation-stepᵀ :
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {B B′ C : Ty} {N N′ : Term} {s} {μ q occ s-shape}
+    {{safe : NonVar C}} →
+  WorldCoherent ρ →
+  SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
+  Value N →
+  No• N →
+  CastMode μ →
+  SealModeStore★ (instᵈ μ)
+    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
+  instᵈ μ ∣ suc Δᴸ ∣ ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ))
+    ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  widening ⊢ᶜ s ⦂ s-shape →
+  s-shape ； ⌊ ⊑-source-liftνᵢ pB ⌋ ≋ ⌊ q ⌋ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ νⁱ safe occ q →
+  WorldCoherentSourceOneStepIndexedResult
+    {M = ν ★ N s}
+    {M′ = N′}
+    {L = ((⇑ᵗᵐ N) •) ⟨ s ⟩}
+    {χ = bind ★}
+    {ρ = ρ}
+    pB
+world-coherent-source-inst-allocation-stepᵀ
+    {ρ = ρ}
+    coherent exclusive unique vN noN mode seal★ s⊑ pB
+    s-shape comp N⊑N′
+    with lift-left-store-result ρ
+world-coherent-source-inst-allocation-stepᵀ
+    coherent exclusive unique vN noN mode seal★ s⊑ pB
+    s-shape comp N⊑N′
+    | ρ↑ , liftρ =
+  world-coherent-source-inst-allocation-step-with-liftᵀ
+    coherent exclusive unique liftρ vN noN mode seal★ s⊑ pB
+    s-shape comp N⊑N′
 
 
 world-coherent-source-allocation-step-proofᵀ :

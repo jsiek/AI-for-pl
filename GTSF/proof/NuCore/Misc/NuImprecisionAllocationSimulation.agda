@@ -5,6 +5,8 @@ module proof.NuCore.Misc.NuImprecisionAllocationSimulation where
 --     simulations after the universal catch-up layer.
 --   * Covers ordinary `ν`, `ν ★`, `inst`, post-allocation `β-Λ•`, and
 --     post-allocation `β-gen•` boundaries.
+--   * Exposes the ordinary relation reached after a source `inst` cast takes
+--     its fresh-`★` allocation step; no casted-`ν` relation is retained.
 --   * Depends on `NuImprecisionSimulationCore` and
 --     `NuImprecisionSimulation`; it is kept separate so these stable cases
 --     can be cached while active catch-up work changes.
@@ -2408,6 +2410,67 @@ weak-result-transport-paired-widening-compatible-under-binderᵀ
           (trans (transportShapeCoherent coherent p)
             (sym (⊑-lift∀-shapeᵢ p))))
         target-triangle
+
+left-inst-allocation :
+  ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ s-shape}
+    {{safe : NonVar C}}
+    {ρ : StoreImp Φ Δᴸ Δᴿ}
+    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
+  Value N →
+  No• N →
+  CastMode μ →
+  SealModeStore★ (instᵈ μ)
+    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
+  instᵈ μ ∣ suc Δᴸ ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
+    ⊢ s ∶ C ⊑ ⇑ᵗ B →
+  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
+  (s-shape-proof : widening ⊢ᶜ s ⦂ s-shape) →
+  (comp : s-shape ； ⌊ ⊑-source-liftνᵢ pB ⌋ ≋ ⌊ q ⌋) →
+  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
+  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
+  (ν ★ N s —→[ bind ★ ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
+  (N′ —↠[ [] ] N′) ×
+  (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
+    store-left zero ★ wf★ ∷ ρ′ ∣ []
+    ⊢ᴺ ((⇑ᵗᵐ N) •) ⟨ s ⟩ ⊑ N′
+    ⦂ ⇑ᵗ B ⊑ B′ ∶ ⊑-source-liftνᵢ pB)
+left-inst-allocation {q = q} vN noN mode seal★ s⊑ pB
+    s-shape-proof comp liftρ N⊑N′ =
+  ν-step vN noN ,
+  ↠-refl ,
+  cast⊑⊑ᵀ (cast-inst mode) left-seal left-widening
+    (α⊑ᵀ vN noN wf★ liftρ lift-left-ctx-[] N⊑N′
+      left-bullet-typing right-term-typing)
+    (⊑-source-liftνᵢ pB) s-shape-proof comp
+  where
+  left-seal =
+    subst
+      (λ Σ → SealModeStore★ (instᵈ _) ((zero , ★) ∷ Σ))
+      (sym (leftStoreⁱ-lift-left liftρ))
+      seal★
+
+  left-widening =
+    subst
+      (λ Σ → instᵈ _ ∣ suc _ ∣ (zero , ★) ∷ Σ
+        ⊢ _ ∶ _ ⊑ ⇑ᵗ _)
+      (sym (leftStoreⁱ-lift-left liftρ))
+      s⊑
+
+  left-bullet-typing =
+    subst
+      (λ Σ → suc _ ∣ (zero , ★) ∷ Σ ∣ []
+        ⊢ (⇑ᵗᵐ _) • ⦂ _)
+      (sym (leftStoreⁱ-lift-left liftρ))
+      (⊢• refl refl (⊑-src-wf q) vN noN
+        (nu-term-imprecision-source-typing N⊑N′))
+
+  right-term-typing =
+    subst
+      (λ Σ → _ ∣ Σ ∣ [] ⊢ _ ⦂ _)
+      (sym (rightStoreⁱ-lift-left liftρ))
+      (nu-term-imprecision-target-typing N⊑N′)
+
 
 left-ν↑-allocation :
   ∀ {Φ Δᴸ Δᴿ A B B′ C N N′ s μ q occ}

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 3 shortcuts removed; phase 4 boundary active**
+**MIGRATION IN PROGRESS — phase 4 source tails checked; quotient boundary active**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -228,7 +228,8 @@ support module.
 - migrate the two live source-widening instantiation paths in
   `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenCatchupCasesProof.agda`
   and
-  `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenRuntimeSiblingCatchupProof.agda`;
+  `../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceWidenRuntimeSiblingCatchupProof.agda`
+  (**completed checkpoint**);
 - tighten or split the matched target-allocation root contract so it states
   the reduction that its proof actually handles;
 - migrate value, typing, substitution, world-embedding, and catch-up clients;
@@ -236,6 +237,22 @@ support module.
   `down·up⊑down·upᵀ`;
 - check the focused source and target function-cast roots before the public
   DGG phase gate.
+
+The completed source-tail checkpoint replaces the former relation at the
+transient casted-`ν` term with this operational sequence:
+
+1. frame the completed operand catch-up;
+2. take source type beta to `ν ★`;
+3. allocate the fresh source seal with `bind ★`;
+4. establish ordinary term imprecision for the allocated bullet and
+   instantiation cast; and
+5. resume value catch-up.
+
+The runtime-sibling path transports its independent relation through the same
+chosen store lift as the primary allocation. Both focused source-widening
+leaves pass, and no source reference to
+`weak-one-step-source-νcast-frameᵀ` remains. This checkpoint does not yet
+change the live quotient grammar or remove any of its regression roots.
 
 ### Phase 5. Collapse the migration surface
 

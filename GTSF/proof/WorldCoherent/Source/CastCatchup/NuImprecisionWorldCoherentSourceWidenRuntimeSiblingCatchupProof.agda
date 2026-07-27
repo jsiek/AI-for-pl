@@ -7,7 +7,9 @@ module
 --   * Treats inert, atomic identity, sequence, source-only instantiation, and
 --     standalone unseal according to the widening grammar.
 --   * Uses the exact silent-resumption sibling join at every active reduction.
---   * Contains no allocation recovery, postulate, hole, or permissive option.
+--   * Shares one chosen store lift between source-instantiation allocation
+--     and independent runtime-sibling transport.
+--   * Contains no postulate, hole, or permissive option.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using
@@ -35,6 +37,7 @@ open import ImprecisionComposition using
   ; comp-ν
   ; comp-tagˣ-id★
   ; ⌊_⌋
+  ; νˢ-injective
   )
 open import ImprecisionWf using
   ( ImpCtx
@@ -58,11 +61,13 @@ open import NuReduction using
   ; applyTy
   ; applyTys
   ; blame-⟨⟩
+  ; bind
   ; keep
   ; pure-step
   )
+open import NuStore using (StoreWf)
 open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+  (StoreImp; leftStoreⁱ; store-left)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -71,25 +76,30 @@ open import NuTerms using
   ; no•-blame
   ; no•-⟨⟩
   ; ok-no
+  ; ok-•
   ; ok-ν
   ; ok-⟨⟩
+  ; renameᵗᵐ
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
+  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
   ; nu-term-imprecision-source-typing
   ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
+  ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import Relation.Binary.PropositionalEquality using (subst)
+open import Relation.Binary.PropositionalEquality using
+  (cong; subst; subst₂; sym; trans)
 open import Store using (StoreIncl-cons)
 open import TermTyping using
   (CastMode; SealModeStore★)
 open import Types using
-  (Atom; Ty; TyCtx; TyVar; occurs; ★; `∀)
+  (Atom; Ty; TyCtx; TyVar; occurs; ★; `∀; wf★; ⇑ᵗ)
 import Types as T
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ
@@ -104,8 +114,13 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( weak-one-step-reindexᵀ
-  ; weak-one-step-source-νcast-frameᵀ
+  ( left-ctx-rename-[]
+  ; nu-term-imprecision-transport-typesᵀ
+  ; rename-left-store-coherentⁱ
+  ; rename-left-store-source-liftⁱ
+  ; rename-left-storeⁱ
+  ; weak-one-step-reindexᵀ
+  ; weak-result-source-widen-inst
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -125,27 +140,57 @@ open import
   ; resultTargetType
   ; resultType
   ; sourceChanges
+  ; sourceCtxResult
+  ; sourceNuIndexEquality
+  ; sourceNuSafe
   ; sourceResult
+  ; sourceStoreResult
   ; targetResult
   ; targetTailChanges
+  ; transportShapeCoherent
   ; transportType
+  ; transportSourceNu
   ; weak-indexed-result
   ; weakIndexedResult
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
   )
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
-  (cast-shape-applyCoercions)
+  ( cast-shape-applyCoercionUnderTyBinders
+  ; cast-shape-applyCoercions
+  ; imprecision-composition-shape-transport
+  ; shape-source-liftνᵢ
+  ; shape-subst-source
+  ; ⊑-rename-leftᵢ
+  )
+open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
+open import proof.Core.Properties.NuTermProperties using
+  (renameᵗᵐ-preserves-No•)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-preserves-Inert
   ; applyTerms-preserves-No•
   ; applyTerms-preserves-RuntimeOK
+  ; applyTys-∀
   )
 open import proof.Core.Properties.StoreProperties using
   (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using
-  (seal★-inst; seal★-weaken)
+  (seal★-inst; seal★-weaken; term-weaken)
+open import proof.Core.Properties.TypeProperties using (TyRenameWf-suc)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  ( rename-assm²-source-νᵢ
+  ; ⊑-source-liftνᵢ
+  )
+open import
+  proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeTransportDef
+  using (left-source-allocation-runtimeᵀ)
+open import
+  proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeTransportLemma
+  using (left-source-allocation-runtime-transport)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
+  using (assumption-membership-unique→precision-index-unique)
 open import
   proof.Source.CastSequence.NuImprecisionSourceCastSequenceMidpointDef
   using (widening-midpoint)
@@ -164,13 +209,27 @@ open import
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupRuntimeSiblingComposition
   using
-  (world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ)
+  ( world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ
+  ; world-coherent-left-catchup-prepend-keep-step-runtime-sibling
+  )
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentLeftCatchupIndexedResult
   ; worldCatchupResult
   ; world-coherent-left-indexed-catchup
+  )
+open import
+  proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAllocationStepProof
+  using (world-coherent-source-inst-allocation-step-with-liftᵀ)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef
+  using
+  ( sourceStepAssumptionMembershipUnique
+  ; sourceStepIndexedResult
+  ; sourceStepSourceNameExclusive
+  ; sourceStepStoreLineage
+  ; sourceStepWorldCoherent
   )
 open import
   proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupCasesProof
@@ -1034,7 +1093,9 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ :
 world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
     value-sibling
     {R = R} {R′ = R′} {E = E} {E′ = E′}
+    {index-occ = index-occ} {source-index = source-index}
     {sibling-index = sibling-index}
+    {{safe = safe}}
     prefix mode seal★ c⊑
     vV′ noV′ noR okR′
     (world-coherent-left-indexed-catchup
@@ -1049,7 +1110,9 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
 world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
     value-sibling
     {R = R} {R′ = R′} {E = E} {E′ = E′}
+    {index-occ = index-occ} {source-index = source-index}
     {sibling-index = sibling-index}
+    {{safe = safe}}
     prefix mode seal★ c⊑
     vV′ noV′ noR okR′
     (world-coherent-left-indexed-catchup
@@ -1065,7 +1128,9 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
 world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
     value-sibling
     {R = R} {R′ = R′} {E = E} {E′ = E′}
+    {index-occ = index-occ} {source-index = source-index}
     {sibling-index = sibling-index}
+    {{safe = safe}}
     prefix mode seal★
     c⊑@(C.cast-inst hB occ s⊢ , NW.inst sʷ)
     vV′ noV′ noR okR′
@@ -1113,86 +1178,168 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
     weak-step-store-lineage
       lineage-store lineage-embedding lineage-prefix
 
-  source-store-incl =
-    StoreIncl-cons
-      (renameStoreᵗ-incl suc
-        (leftStoreⁱ-prefix-inclusion prefix))
+  transported-index =
+    transportSourceNu inner safe index-occ source-index
 
-  ν-seal★ =
-    seal★-inst
-      (seal★-weaken
-        (leftStoreⁱ-prefix-inclusion prefix) seal★)
+  normalized =
+    nu-term-imprecision-transport-typesᵀ
+      (applyTys-∀ (sourceChanges inner) _) refl refl
+      (canonicalIndexedResults indexed)
 
-  source-cast =
-    widen-weaken ≤-refl source-store-incl
-      (s⊢ , NW.instSafe→widening sʷ)
+  shaped =
+    nu-term-imprecision-transport-typesᵀ
+      refl refl (sourceNuIndexEquality transported-index) normalized
 
-  ν-framed = weak-one-step-source-νcast-frameᵀ
-    mode ν-seal★ source-cast q
-    inner-shape inner-comp indexed
+  transported-source-shape =
+    νˢ-injective
+      (trans
+        (sym
+          (cong ⌊_⌋ (sourceNuIndexEquality transported-index)))
+        (trans
+          (shape-subst-source
+            (applyTys-∀ (sourceChanges inner) _)
+            (transportType inner
+              (ν safe index-occ source-index)))
+          (transportShapeCoherent
+            (weakIndexedTypeCoherence indexed)
+            (ν safe index-occ source-index))))
 
-  second-relation :
-    resultCtx first
-      ∣ resultLeftCtx first
-      ∣ resultRightCtx first
-      ∣ resultStore first ∣ []
-      ⊢ᴺ sourceResult ν-framed ⊑ targetResult first
-      ⦂ resultSourceType first ⊑ resultTargetType first
-      ∶ resultType first
-  second-relation = relatedResults ν-framed
+  transported-comp =
+    imprecision-composition-shape-transport
+      refl
+      (trans
+        (shape-source-liftνᵢ (transportType inner q))
+        (transportShapeCoherent
+          (weakIndexedTypeCoherence indexed) q))
+      transported-source-shape
+      inner-comp
 
-  second = weak-one-step-keep-source-catchupᵀ
-    (post-catchup-β-inst (sourceChanges inner) vW)
-    second-relation
+  allocation-typing =
+    weak-result-source-widen-inst inner mode
+      (seal★-inst
+        (seal★-weaken
+          (leftStoreⁱ-prefix-inclusion prefix) seal★))
+      (widen-weaken ≤-refl
+        (StoreIncl-cons
+          (renameStoreᵗ-incl suc
+            (leftStoreⁱ-prefix-inclusion prefix)))
+        (s⊢ , NW.instSafe→widening sʷ))
 
-  second-indexed =
-    weak-indexed-result
-      second second-relation
-      (weak-one-step-keep-source-catchup-transportᵀ
-        (post-catchup-β-inst (sourceChanges inner) vW)
-        second-relation)
-      (weak-one-step-keep-source-catchup-type-coherenceᵀ
-        (post-catchup-β-inst (sourceChanges inner) vW)
-        second-relation)
+  final-store =
+    rename-left-storeⁱ suc rename-assm²-source-νᵢ
+      TyRenameWf-suc (resultStore inner)
 
-  runtime = ok-ν (ok-no noW)
+  final-lift =
+    rename-left-store-source-liftⁱ (resultStore inner)
 
-  second-silent =
-    left-silent-indexed second-indexed
-      (left-silent-invariant refl refl) runtime
+  final-store-rename =
+    rename-left-store-coherentⁱ suc rename-assm²-source-νᵢ
+      TyRenameWf-suc (resultStore inner)
 
-  second-lineage =
-    weak-step-store-lineage
-      (resultStore first)
-      rel-store-embedding-reflⁱ prefix-reflⁱ
+  allocation-step =
+    world-coherent-source-inst-allocation-step-with-liftᵀ
+      {{sourceNuSafe transported-index}}
+      coherent exclusive unique final-lift vW noW
+      (proj₁ (proj₂ allocation-typing))
+      (proj₁ (proj₂ (proj₂ allocation-typing)))
+      (proj₂ (proj₂ (proj₂ allocation-typing)))
+      (transportType inner q)
+      (cast-shape-applyCoercionUnderTyBinders
+        (sourceChanges inner) inner-shape)
+      transported-comp shaped
+
+  allocation-indexed = sourceStepIndexedResult allocation-step
+
+  allocation-result = weakIndexedResult allocation-indexed
+
+  allocation-silent =
+    left-silent-indexed allocation-indexed
+      (left-silent-invariant refl refl)
+      (ok-⟨⟩ (ok-• vW noW))
+
+  allocation-wf =
+    subst₂ StoreWf
+      (sym (sourceCtxResult allocation-result))
+      (sym (sourceStoreResult allocation-result))
+      (StoreWf-bind wfL wf★)
+
+  inner-noR =
+    applyTerms-preserves-No• (sourceChanges inner) noR
+
+  inner-okR′ =
+    applyTerms-preserves-RuntimeOK
+      (targetTailChanges inner) okR′
+
+  allocation-sibling-index-eq =
+    assumption-membership-unique→precision-index-unique
+      (sourceStepAssumptionMembershipUnique allocation-step)
+      (⊑-rename-leftᵢ suc rename-assm²-source-νᵢ
+        TyRenameWf-suc (transportType inner sibling-index))
+      (transportType allocation-result
+        (transportType inner sibling-index))
+
+  allocation-sibling-raw =
+    left-source-allocation-runtimeᵀ
+      left-source-allocation-runtime-transport
+      final-store-rename left-ctx-rename-[]
+      inner-noR inner-okR′ inner-sibling
+
+  allocation-sibling-tail =
+    nu-term-imprecision-transport-typesᵀ
+      refl refl allocation-sibling-index-eq
+      allocation-sibling-raw
+
+  allocation-store-prefix = prefix-∷ⁱ prefix-reflⁱ
+
+  allocation-sibling =
+    allocation-prefixᵀ
+      allocation-store-prefix allocation-sibling-tail
+      (term-weaken ≤-refl
+        (leftStoreⁱ-prefix-inclusion allocation-store-prefix)
+        (renameᵗᵐ-preserves-No• suc inner-noR)
+        (nu-term-imprecision-source-typing
+          allocation-sibling-tail))
+      (nu-term-imprecision-target-typing allocation-sibling-tail)
 
   recursive =
     value-sibling
-      {Φ = resultCtx first}
-      {Δᴸ = resultLeftCtx first}
-      {Δᴿ = resultRightCtx first}
-      {ρᵇ = resultStore first}
-      {ρ = resultStore first}
-      {R = applyTerms (sourceChanges first) R}
-      {R′ = applyTerms (targetTailChanges first)
+      {Φ = resultCtx allocation-result}
+      {Δᴸ = resultLeftCtx allocation-result}
+      {Δᴿ = resultRightCtx allocation-result}
+      {ρᵇ = resultStore allocation-result}
+      {ρ = resultStore allocation-result}
+      {R = renameᵗᵐ suc
+        (applyTerms (sourceChanges inner) R)}
+      {R′ = applyTerms (targetTailChanges inner)
         (applyTerm keep R′)}
-      {C = applyTys (sourceChanges first) E}
-      {C′ = applyTys (targetTailChanges first)
+      {C = ⇑ᵗ (applyTys (sourceChanges inner) E)}
+      {C′ = applyTys (targetTailChanges inner)
         (applyTy keep E′)}
-      {q = transportType first sibling-index}
-      prefix-reflⁱ coherent exclusive unique wfL
-      runtime vV′ noV′
-      (canonicalIndexedResults second-indexed)
-      (applyTerms-preserves-No• (sourceChanges first) noR)
-      (applyTerms-preserves-RuntimeOK
-        (targetTailChanges first) okR′)
-      inner-sibling
-      (nu-term-imprecision-source-typing inner-sibling)
-      (nu-term-imprecision-target-typing inner-sibling)
+      {q = transportType allocation-result
+        (transportType inner sibling-index)}
+      prefix-reflⁱ
+      (sourceStepWorldCoherent allocation-step)
+      (sourceStepSourceNameExclusive allocation-step)
+      (sourceStepAssumptionMembershipUnique allocation-step)
+      allocation-wf
+      (ok-⟨⟩ (ok-• vW noW)) vV′ noV′
+      (canonicalIndexedResults allocation-indexed)
+      (renameᵗᵐ-preserves-No• suc inner-noR)
+      inner-okR′
+      allocation-sibling
+      (nu-term-imprecision-source-typing allocation-sibling)
+      (nu-term-imprecision-target-typing allocation-sibling)
+
+  allocation-composed =
+    world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ
+      allocation-silent
+      (sourceStepStoreLineage allocation-step)
+      recursive
 
   beta-composed =
-    world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ
-      second-silent second-lineage recursive
+    world-coherent-left-catchup-prepend-keep-step-runtime-sibling
+      (post-catchup-β-inst (sourceChanges inner) vW)
+      allocation-composed
 world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
     value-sibling
     prefix mode seal★ c⊑

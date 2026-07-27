@@ -85,7 +85,6 @@ decision:
 - `proof/PairedLambda/Core/NuImprecisionPairedLambdaTargetClosingRelationCounterexample.agda`;
 - `proof/PairedLambda/Terminal/NuImprecisionPairedTargetClosingStrictSpine.agda`;
 - `proof/Quotient/NuImprecisionQuotientToOrdinaryCounterexample.agda`;
-- `proof/Quotient/QuotientedTermImprecisionTest.agda`;
 - `proof/Right/Core/NuImprecisionRightOpenedInstantiationIndexCounterexample.agda`;
 - `proof/Right/SourceAll/ClosingValues/NuImprecisionRightSourceAllStrictSpine.agda`;
 - `proof/Source/CastSequence/NuImprecisionSourceCastSequenceMidpointCounterexample.agda`;

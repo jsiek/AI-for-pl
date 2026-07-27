@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 4 world and left transport checked**
+**MIGRATION IN PROGRESS — phase 4 compatibility support consolidated**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -930,6 +930,15 @@ The live quotient round-trip regression was rewritten with `paired-downᵀ`
 and compatible `closeᵀ`; its focused check passes. Store-prefix no-bullet
 transport also now has one `paired-downᵀ` branch instead of four split and
 application-specific branches.
+
+The redundant `QuotientedTermImprecisionTest` regression was then deleted:
+its sole incomparable-intermediate round trip is strictly covered by the
+canonical quotient examples with an explicit compatibility witness. The
+reviewed standalone-root list was updated in the same checkpoint, and the
+source import/strict-cone audit passes. The remaining direct source-file
+counts are `8/2/2/37/17/18`; the next foundational task is to replace the two
+fixed-mode quotient-down transports with one transport over arbitrary
+`SpineCastMode`.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

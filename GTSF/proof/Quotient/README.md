@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 4 world and left transport checked**
+**MIGRATION IN PROGRESS — phase 4 compatibility support consolidated**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -106,8 +106,7 @@ names. They may be edited only to migrate or delete those dependencies:
 - `NuImprecisionQuotientInstView.agda`;
 - `NuImprecisionQuotientValue.agda`;
 - `NuImprecisionQuotientWideningTransport.agda`;
-- `NuImprecisionSourceDownApplicationCompatibleOuter.agda`; and
-- `QuotientedTermImprecisionTest.agda`.
+- `NuImprecisionSourceDownApplicationCompatibleOuter.agda`.
 
 `NuImprecisionQuotientToOrdinaryCounterexample.agda` is canonical: it guards
 the still-relevant fact that a general quotient edge cannot be converted to
@@ -306,6 +305,10 @@ The same checkpoint exposed and removed a duplicate copy of
 definition directly; no alias or compatibility re-export was retained. The
 canonical quotient round-trip regression passes with `paired-downᵀ` and
 compatible `closeᵀ`.
+
+`QuotientedTermImprecisionTest.agda` was also deleted: its sole incomparable
+intermediate-type round trip is now covered, with explicit compatibility, by
+the strictly checked canonical quotient examples.
 
 ### Phase 5. Collapse the migration surface
 

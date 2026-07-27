@@ -78,7 +78,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "proof.PairedLambda.Terminal."
     "NuImprecisionPairedTargetClosingStrictSpine",
     "proof.Quotient.NuImprecisionQuotientToOrdinaryCounterexample",
-    "proof.Quotient.QuotientedTermImprecisionTest",
     "proof.Right.Core."
     "NuImprecisionRightOpenedInstantiationIndexCounterexample",
     "proof.Right.SourceAll.ClosingValues."

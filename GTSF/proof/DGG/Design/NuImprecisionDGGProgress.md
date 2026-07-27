@@ -8,11 +8,13 @@ are removed from this file and remain available through Git history.
 
 ## Obsidian math rendering convention
 
-Use `$$` delimiters for every LaTeX display. For reduction/imprecision
-diagrams, use a plain `aligned` environment with ordinary `&` alignment.
-Avoid `array` environments with custom column specifications such as
-`@{...}`, and write `\leftarrow` instead of `\mapsfrom`. Keep a blank line
-before and after each display.
+Use `$$` delimiters for every LaTeX display. Keep each display to one ordinary
+formula: do not use multiline environments such as `aligned`, `array`, or
+`gathered`, because they fail in at least one of Obsidian and the Codex app.
+Present a reduction/imprecision diagram as consecutive single-formula
+displays, with the top relation, each reduction step, and the final relation
+shown separately. Write `\leftarrow` instead of `\mapsfrom`, and keep a blank
+line before and after each display.
 
 Here, **completed** means that the owned declaration has passed a focused Agda
 check without holes or permissive options. **Conditional** means that a strict

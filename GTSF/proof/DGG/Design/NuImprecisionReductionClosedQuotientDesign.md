@@ -250,30 +250,110 @@ $$
 .
 $$
 
-The target-only case uses an ordinary bridge from the unchanged source type
-to the body of the target universal:
+There is no target-only `ν` rule.  The tempting rule would require both a
+pre-allocation index and an independently opened body index:
 
 $$
-\frac{
-  N \mathrel{\sqsubseteq_q} N'
-  : B \mathrel{\sqsubseteq} \forall C'
-  \qquad
-  B \mathrel{\sqsubseteq_r} C'
-  \qquad
-  r[0 \mapsto {\uparrow A}]^R
-  \doteq
-  \operatorname{lift}^{R}(p)
-}{
-  N
-  \mathrel{\sqsubseteq_p}
-  \nu A\,N'\,s
-}.
+\begin{aligned}
+q &: \Phi \mathbin{;} \Delta_L
+  \vdash B \mathrel{\sqsubseteq} \forall C'
+  \dashv \Delta_R,\\
+r &: \mathord{\uparrow_R}\Phi \mathbin{;} \Delta_L
+  \vdash B \mathrel{\sqsubseteq} C'
+  \dashv \operatorname{suc}(\Delta_R).
+\end{aligned}
 $$
+
+These two premises are inconsistent:
+
+$$
+\neg\!\left(
+  \bigl(\Phi \mathbin{;} \Delta_L
+    \vdash B \mathrel{\sqsubseteq} \forall C'
+    \dashv \Delta_R\bigr)
+  \mathbin{\land}
+  \bigl(\mathord{\uparrow_R}\Phi \mathbin{;} \Delta_L
+    \vdash B \mathrel{\sqsubseteq} C'
+    \dashv \operatorname{suc}(\Delta_R)\bigr)
+\right).
+$$
+
+Right-lifting the first index puts the unchanged source type below
+`∀` applied to the uniformly lifted target body.  Pairing that index with the
+second would put one common source below both the target body and an extra
+universal over its uniformly lifted copy.  Exhaustive inversion of type
+imprecision rules this out.  Consequently neither a result-index equation
+
+$$
+r[0 \mapsto {\uparrow A}]^R
+\doteq
+\operatorname{lift}^{R}(p)
+$$
+
+nor a target reveal conversion from `C'` to `↑B'` can make the case
+inhabited: the contradiction already uses only `q` and `r`.
+
+The same obstruction excludes the target-only type-application rule and the
+cast-specialized target-only `ν` rule, because both require the same pair of
+indices.  Actual target-only allocation is instead handled by the
+up-to-reduction conclusion.  The top relation remains at the target
+instantiation, the target takes its whole administrative tail,
+
+$$
+V'\langle\mathsf{inst}\ B\ s\rangle
+\longrightarrow
+\nu\,\star\,V'\,s
+\longrightarrow
+\bigl((\mathord{\uparrow}V')\,\bullet\bigr)\langle s\rangle
+\longrightarrow^{*}
+W',
+$$
+
+and ordinary imprecision is required only between the source catch-up result
+and `W'`.  No horizontal edge is asserted at the transient target `ν` or
+runtime-bullet states.
+
+The evidence retained across this target trace should be a creation square,
+not an independently opened index.  In the directly matched case its
+essential form is
+
+$$
+\begin{aligned}
+W &\mathrel{\sqsubseteq_q} W'
+  : D \mathrel{\sqsubseteq} C',\\
+\Lambda W &\mathrel{\sqsubseteq_{\forall^{\,i}q}} \Lambda W',\\
+\mathsf{inst}\ B'\ s
+  &: \forall C' \longrightarrow B',\\
+\left\lfloor \forall^{\,i}q \right\rfloor
+  \mathbin{;}
+\left\lfloor \mathsf{inst}\ B'\ s \right\rfloor
+  &\mathrel{\cong}
+\left\lfloor p \right\rfloor,
+\end{aligned}
+$$
+
+where `p` is necessarily source-only at its outer universal.  A
+proof-relevant version of this square should retain the matched body
+imprecision, the target conversion, the final source-only index, and the
+right-allocation store lineage.  It should not manufacture
+
+$$
+B \mathrel{\sqsubseteq_r} C'
+$$
+
+after allocation.  The existing live `Λ⊑instβᵀ` constructor carries most of
+this provenance, but it installs the final post-administration horizontal
+edge directly in term imprecision.  The checked positive regression therefore
+does not yet show that the smaller relation can derive the final edge without
+that fused constructor.  This is the next target-instantiation test for the
+up-to-reduction design: either derive the final ordinary relation from a
+separate creation-square simulation lemma, or retain a narrowly scoped
+creation residual as a genuine invariant.
 
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a
 universal quantifier that was matched with a universal quantifier on the
-right.  All three rules remain in the ordinary judgment; none accepts or
+right.  Both rules remain in the ordinary judgment; neither accepts or
 produces quotient term imprecision.
 
 ## Ordinary cast and conversion rules

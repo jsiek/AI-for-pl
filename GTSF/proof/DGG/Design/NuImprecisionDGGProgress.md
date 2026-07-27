@@ -49,6 +49,10 @@ The current proof uses these invariants:
 - in the smaller candidate, a quotient boundary contains exactly one paired
   narrowing cast. Additional casts must already be related at an ordinary
   intermediate index or be consumed by bilateral reduction.
+- the smaller candidate has no target-only type-application or `ν` rule.
+  Their pre-allocation index and independently opened body index are
+  inconsistent; real target-only `inst` allocation is crossed by target
+  reduction before the final ordinary relation is required.
 
 ## Active up-to-reduction design hypothesis
 
@@ -70,6 +74,14 @@ post-`β-↦` applications, which is what creates pressure for the fused rule.
 The intended replacement follows the `sim-beta-cast` organization from the
 GTLC DGG proof: peel a function cast, catch up the casted argument, recurse on
 the underlying function, and restore the result cast.
+
+The implemented smaller prototype currently narrows only the quotient layer:
+its `ordinaryᴿ` constructor embeds the complete live QTI relation.  It
+therefore still admits `Λ⊑instβᵀ` and the uninhabited target-only rules.  The
+design sketch is stricter than this prototype at the ordinary layer.  The
+active target-`inst` test must replace that embedding locally or define the
+candidate ordinary grammar before it can validate removal of those live
+constructors.
 
 This hypothesis is successful only if a quotient-aware beta lemma can cross
 the lambda endpoint.  In particular, after reducing
@@ -191,6 +203,81 @@ Conclusion of this checkpoint: retain exactly one paired narrowing cast in the
 smaller prototype. Finite narrowing spines remain only in the alternative
 compositional prototype and are not currently justified for a reachable DGG
 square.
+
+### Target-only `ν` index audit
+
+The live target-only `ν` constructor records four pieces of evidence:
+
+$$
+\begin{aligned}
+q &: \Phi \mathbin{;} \Delta_L
+  \vdash B \mathrel{\sqsubseteq} \forall C'
+  \dashv \Delta_R,\\
+r &: \mathord{\uparrow_R}\Phi \mathbin{;} \Delta_L
+  \vdash B \mathrel{\sqsubseteq} C'
+  \dashv \operatorname{suc}(\Delta_R),\\
+r[0 \mapsto {\uparrow A}]^R
+  &\doteq \operatorname{lift}^{R}(p),\\
+s &: C' \longrightarrow \mathord{\uparrow}B'.
+\end{aligned}
+$$
+
+Here the last line records only the endpoints of the target reveal
+conversion.  The first two lines already imply contradiction.  The strict
+[`NuImprecisionTargetBulletIndexCycleLemma.agda`](../../NuCore/Misc/NuImprecisionTargetBulletIndexCycleLemma.agda)
+proves the general statement by right-lifting `q`, pairing it with `r`, and
+applying the exhaustive common-target-extension obstruction.  Its focused
+Agda check passes without postulates, holes, or permissive options.
+
+The example audit found no closed positive construction of the target-only
+`ν`, casted-`ν`, or target-only type-application rules.  All apparent uses
+either pattern-match an assumed derivation, transport it conditionally, or
+implement a semantic root whose `q` and `r` hypotheses are themselves
+uninhabited.  The concrete
+[`NuImprecisionRightOpenedInstantiationIndexCounterexample.agda`](../../Right/Core/NuImprecisionRightOpenedInstantiationIndexCounterexample.agda)
+exhibits the smallest failed opening: a matched target universal cannot be
+reopened as an independent target-only binder.
+
+Target-only allocation is nevertheless operationally reachable inside target
+`inst` administration.  The positive
+[`NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaCatchupRegression.agda`](../../WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaCatchupRegression.agda)
+uses the target trace
+
+$$
+\langle\mathsf{inst}\rangle
+\mathbin{;}
+\mathsf{bind}\ \star
+\mathbin{;}
+\beta_{\forall}
+$$
+
+and establishes a live-QTI edge only after that trace.  That final edge uses
+the fused `Λ⊑instβᵀ` constructor, so the regression does not yet validate the
+smaller ordinary relation by itself.
+
+The tighter positive invariant suggested by this example is a
+target-instantiation creation square:
+
+$$
+\left\lfloor \forall^{\,i}q_{\mathrm{body}} \right\rfloor
+\mathbin{;}
+\left\lfloor \mathsf{inst}\ B'\ s \right\rfloor
+\mathrel{\cong}
+\left\lfloor p_{\mathrm{final}} \right\rfloor.
+$$
+
+It retains the matched body relation before allocation, the target
+conversion, the necessarily source-only final index, and the right-allocation
+store lineage.  It contains no independently opened `r`.  The smaller
+up-to-reduction design should omit the three uninhabited term rules and test
+whether this creation evidence can support a separate simulation lemma
+without making the fused post-administration edge primitive.  If not, a
+narrowly scoped creation residual is the candidate new invariant.
+
+The live relation is not changed at this checkpoint.  Deleting the
+uninhabited constructors and their conditional transport cases belongs in the
+later relation migration, after the creation-square test determines whether
+`Λ⊑instβᵀ` can also be removed.
 
 ## Trusted proof boundaries
 
@@ -407,17 +494,23 @@ behavior is covered by
    narrowing spine for this widening-side obligation.
 5. If these succeed, derive the live function-cast simulation without
    `down·up⊑down·upᵀ` or quotient application and begin removing those
-   constructors in a separate migration. If allocation catch-up instead
-   produces an irreducible quotient embedded outside a closing boundary,
-   record that strict counterexample and return to the compositional design.
+   constructors in a separate migration. In the same migration, remove the
+   uninhabited target-only type-application, `ν`, and casted-`ν` constructors
+   and their vacuous semantic roots. If allocation catch-up instead produces
+   an irreducible quotient embedded outside a closing boundary, record that
+   strict counterexample and return to the compositional design.
 6. Prove source and target typing projections for the smaller ordinary and
    one-boundary quotient judgments. Re-run value, `No•`, and terminal
    inversion using the fact that the quotient judgment has exactly one
    constructor.
 7. Test the smaller design on valid ordinary top rows with arbitrary lambda
    bodies, nested reachable function casts, source and target cast sequences,
-   and active target `inst`. Every test must exhibit its initial ordinary term
-   imprecision derivation before its reduction endpoints are considered.
+   and active target `inst`. For the active target-`inst` case, use the matched
+   body relation, creation square, and allocation lineage to derive the final
+   edge without `Λ⊑instβᵀ`; if that is impossible, isolate the smallest
+   creation residual that suffices. Every test must exhibit its initial
+   ordinary term imprecision derivation before its reduction endpoints are
+   considered.
 8. Keep the compositional quotient prototype as the fallback. Reintroduce
    quotient application, finite narrowing spines, or a quotient-to-quotient
    cast square only after a strict counterexample shows a derivable ordinary

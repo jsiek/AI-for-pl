@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — phase 4 compatibility support consolidated**
+**MIGRATION IN PROGRESS — general quotient-down transport checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -939,6 +939,24 @@ source import/strict-cone audit passes. The remaining direct source-file
 counts are `8/2/2/37/17/18`; the next foundational task is to replace the two
 fixed-mode quotient-down transports with one transport over arbitrary
 `SpineCastMode`.
+
+That transport experiment succeeded. The two fixed identity/generated
+theorems are now one `quotient-down-transportᵀ`: `id-only↓` remains fixed,
+while an arbitrary `gradual↓` mode and its seal evidence are transported
+existentially through the source changes and the leading target change plus
+target tail. The theorem reconstructs a single `paired-downᵀ`, and its
+focused strict check passes. The reusable split now lives once in
+`apply-spine-narrows-typing`; the right transport itself is uniform. The
+remaining counts are `8/2/2/37/16/17`.
+
+Its enclosing right-frame consumer identifies the next contract question.
+The downcast boundary and `QuotientWideningPair` both transport, but `closeᵀ`
+also requires its compatibility proof in the final world. The existing weak
+one-step coherence interface transports ordinary and quotient indices and
+their shapes, but does not yet expose preservation of the recursively
+structured widening-compatibility evidence. Do not restore `up⊑upᵀ`; either
+derive this preservation from existing world lineage or add the smallest
+general coherence field that makes it reusable.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

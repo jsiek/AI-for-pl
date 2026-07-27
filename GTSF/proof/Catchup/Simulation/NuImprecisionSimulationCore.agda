@@ -648,6 +648,27 @@ apply-fixed-narrows-typing {χs = bind X ∷ χs} mode-suc c⊒ =
     (narrow-weaken ≤-refl StoreIncl-drop
       (narrow-renameᵗ TyRenameWf-suc mode-suc c⊒))
 
+apply-spine-narrows-typing :
+  ∀ {χs μ Δ Σ c A B} →
+  SpineCastMode Σ μ →
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
+  ∃[ μ′ ]
+    (SpineCastMode (applyStores χs Σ) μ′ ×
+    (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
+      ⊢ applyCoercions χs c
+        ∶ applyTys χs A ⊒ applyTys χs B))
+apply-spine-narrows-typing {χs = χs} id-only↓ c⊒ =
+  id-onlyᵈ , id-only↓ ,
+  apply-fixed-narrows-typing
+    {χs = χs} (modeRename-id-only suc) c⊒
+apply-spine-narrows-typing {χs = χs}
+    (gradual↓ mode seal★) c⊒
+    with apply-narrows-typing {χs = χs} mode seal★ c⊒
+apply-spine-narrows-typing {χs = χs}
+    (gradual↓ mode seal★) c⊒
+    | μ′ , mode′ , seal★′ , c′⊒ =
+  μ′ , gradual↓ mode′ seal★′ , c′⊒
+
 apply-reveal-conversion :
   ∀ {χ μ Δ Σ α X c A B} →
   RevealConversion μ Δ Σ α X c A B →

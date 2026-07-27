@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — phase 4 compatibility support consolidated**
+**MIGRATION IN PROGRESS — general quotient-down transport checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -309,6 +309,17 @@ compatible `closeᵀ`.
 `QuotientedTermImprecisionTest.agda` was also deleted: its sole incomparable
 intermediate-type round trip is now covered, with explicit compatibility, by
 the strictly checked canonical quotient examples.
+
+`NuImprecisionQuotientDownTransportProof.agda` now has one general
+`quotient-down-transportᵀ` instead of separate identity/generated theorems.
+It transports arbitrary `SpineCastMode` evidence through both sides of a
+completed target-leading weak step and reconstructs `paired-downᵀ`; its
+focused check passes. `apply-spine-narrows-typing` owns the reusable
+identity/gradual split, so the endpoint transport is uniform. The remaining
+direct source-file counts are `8/2/2/37/16/17`. Its sole enclosing frame
+consumer must next transport the `closeᵀ` compatibility witness into the
+final world; this is a proof obligation, not grounds for restoring the
+deleted closing constructor.
 
 ### Phase 5. Collapse the migration surface
 

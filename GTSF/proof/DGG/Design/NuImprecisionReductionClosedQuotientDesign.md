@@ -477,6 +477,53 @@ constructor.  Removing even that exact creation case would require changing
 the simulation conclusion to a creation-saturated relation; that merely moves
 the same semantic case out of ordinary term imprecision.
 
+### Candidate exact creation rule
+
+The proposed constructor has the following mathematically relevant premises.
+First, before allocation the bodies are related under a matched binder:
+
+$$
+((0\mathrel{\sqsubseteq}0)::\mathord{\uparrow}\Phi)\mathbin{;}\operatorname{suc}(\Delta_L)\mathbin{;}\operatorname{suc}(\Delta_R)\mathbin{;}\rho_{\forall}\ \vdash\ W\mathrel{\sqsubseteq_q}W' : D\mathrel{\sqsubseteq}C .
+$$
+
+The target has an inert widening instantiation:
+
+$$
+\mathsf{inst}\ B\ s : \forall C\longrightarrow B .
+$$
+
+The matched universal index and the target instantiation shape compose to the
+outer source-only index:
+
+$$
+\left\lfloor\forall^{\,i}q\right\rfloor\mathbin{;}\left\lfloor\mathsf{inst}\ B\ s\right\rfloor\mathrel{\cong}\left\lfloor p\right\rfloor .
+$$
+
+Here the outer index has the required source-only universal:
+
+$$
+p : \Phi\mathbin{;}\Delta_L\ \vdash\ \forall D\mathrel{\sqsubseteq}B\ \dashv\Delta_R .
+$$
+
+The matched body store and final right-only store must arise from the same
+pre-allocation store:
+
+$$
+\rho_0\mathrel{\preccurlyeq}\rho^+,\qquad \rho_0\xrightarrow{\,0\mathrel{\sqsubseteq}0\,}\rho_{\forall},\qquad \rho^+\xrightarrow{\,\mathord{\uparrow_R}\,}\rho_R^+ .
+$$
+
+Then the exact post-allocation conclusion is:
+
+$$
+\mathord{\uparrow_R}\Phi\mathbin{;}\Delta_L\mathbin{;}\operatorname{suc}(\Delta_R)\mathbin{;}(\mathsf{right}\ 0\ \star)::\rho_R^+\ \vdash\ \Lambda W\mathrel{\sqsubseteq_{\mathord{\uparrow_R}p}}W'\langle s\rangle : \forall D\mathrel{\sqsubseteq}\mathord{\uparrow}B .
+$$
+
+The Agda constructor must also receive the routine value, no-bullet, cast-mode,
+and endpoint-typing evidence needed by the intrinsically indexed judgment.
+Unlike `Λ⊑instβᵀ`, it should not receive arbitrary renamings, an arbitrary
+store embedding, endpoint equalities, closure witnesses, or an arbitrary final
+index. Those operations should be admissibility lemmas over this exact rule.
+
 Thus a matched `ν` rule can consume only `∀ⁱ`, while a source-only `ν` rule
 can consume only `ν`.  A derivation cannot silently remove on the left a
 universal quantifier that was matched with a universal quantifier on the

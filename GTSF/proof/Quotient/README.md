@@ -897,13 +897,22 @@ The compiler-origin pending-close experiment also passes all three decisive
 checks. The actual polymorphic-identity/dynamic-function plans inhabit the
 boundary, compatible cases close through live `closeᵀ`, and operational final
 values feed `WorldCoherentQuotientFinalCatchupᵀ` without widening
-compatibility. The boundary retains
-`QuotientNarrowingEliminationCompatible`; `MLB-monotoneᵖ` supplies the
-quotient index and composition squares but not this downcast-elimination
-fact. `ReductionClosedQuotientWideningCompatible` does not belong in the
-pending boundary. The next compilation step is to promote this side
-experiment to a canonical compiler contract and migrate
-`CompileTermImprecision` without changing live QTI.
+compatibility. It proves only a top-level pending node with an ordinary-QTI
+inner premise. A root sum of ordinary QTI and that node is not compositional:
+pending sites may occur under lambdas, type lambdas, `ν`, or either
+application child. The compiler needs a recursive syntax-directed relation,
+not a root alternative.
+
+The strict canonical-down experiment also refutes universal
+`QuotientNarrowingEliminationCompatible` for pending compiler casts. For
+every quotient index, actual canonical function downcasts expose the known
+active-source/inert-target widening mismatch in their contravariant domains
+and force `★ ⊑ A₁ ⇒ A₂`. The minimized regression checks in 3.12 seconds
+without importing endpoint completeness; the unnecessary import had caused
+two ten-minute checks. A recursive compiler relation therefore needs a
+weaker direct operational pending-down boundary, or distinct compatible and
+incompatible pending cases. It must remain separate from live QTI and feed a
+compiler-specific operational DGG theorem.
 
 The first canonical checking-time cut is complete. A focused 477-line
 `NuImprecisionIndexedRenamingProperties.agda` now owns syntax-directed

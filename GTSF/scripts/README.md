@@ -65,6 +65,7 @@ zero-importer report.  This list is explicit rather than inferred from
 filenames, so retaining a regression or counterexample remains a reviewed
 decision:
 
+- `proof/Compilation/CompileCanonicalDownCompatibilityExperiment.agda`;
 - `proof/Compilation/CompileCanonicalPendingCloseExperiment.agda`;
 - `proof/Compilation/CompileDynamicApplicationTest.agda`;
 - `proof/Compilation/GenSafeMismatchBlameRegression.agda`;

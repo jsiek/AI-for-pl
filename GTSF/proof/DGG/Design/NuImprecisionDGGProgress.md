@@ -1608,14 +1608,31 @@ tests. The actual polymorphic-identity/dynamic-function cast-plan pair
 inhabits the boundary; a reduction-closed compatible widening closes it with
 live `closeᵀ`; and the operational value case feeds
 `WorldCoherentQuotientFinalCatchupᵀ` without widening compatibility. The
-boundary must retain `QuotientNarrowingEliminationCompatible`, because
-`MLB-monotoneᵖ` supplies the quotient index and both composition squares but
-not downcast elimination. It must not require
-`ReductionClosedQuotientWideningCompatible`. This is now the selected
-compiler-migration hypothesis: promote the experiment to a canonical
-compiler contract, migrate `CompileTermImprecision` to return or carry that
-boundary, and consume it operationally at values. Do not add the boundary to
-live QTI, restore `up⊑upᵀ`, or strengthen `CastPlan` with a false invariant.
+experiment establishes only one top-level pending node whose inner relation
+is ordinary QTI. It cannot be promoted unchanged: pending sites can occur
+under lambdas, type lambdas, `ν`, and either application child, where a
+root-level `ordinary QTI ⊎ pending close` result is not closed structurally
+and reduction cannot expose the site.
+
+The required compiler relation must therefore be syntax-directed and
+recursive, with an ordinary-QTI embedding and a pending constructor whose
+inner premise is the compiler relation itself. That constructor cannot
+universally require `QuotientNarrowingEliminationCompatible`. The strict
+`CompileCanonicalDownCompatibilityExperiment.agda` refutes that invariant
+for every quotient index: canonical function downcasts from
+`★ ⇒ ℕ` expose the already-bad polymorphic-identity versus dynamic-function
+widenings contravariantly, forcing the impossible indexed relation
+`★ ⊑ A₁ ⇒ A₂`. The minimized counterexample checks in 3.12 seconds; importing
+the endpoint-completeness theorem had caused two unproductive ten-minute
+checks and was unnecessary.
+
+The next compiler experiment must use a weaker direct operational
+pending-down boundary, or separate compatible and incompatible pending
+constructors, and must test recursive sites under binders and applications.
+Do not add this compiler relation to live QTI, restore `up⊑upᵀ`, strengthen
+`CastPlan` with either false compatibility invariant, or pass the new
+relation directly to `ClosedNuDGG`. Its eventual consumer is a
+compiler-specific operational DGG theorem.
 
 Function-cast beta exposes the same operational boundary. The old pure
 quotient-application island is still a genuine live consumer, so it cannot be

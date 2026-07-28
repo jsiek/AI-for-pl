@@ -1406,6 +1406,27 @@ target-widen allocation clients, and the reduced simulation module pass
 strict checks. `NuImprecisionSimulation.agda` is now 4,216 lines, down 553
 lines across the three cuts.
 
+The first live value-catch-up prerequisite is complete. The
+`WorldCoherentSourceRuntimeCatchupᵀ` contract no longer hides the retired
+`PairedCast` aggregate. It exposes separate reveal, conceal, and paired
+widening fields, including the live store correspondence, index replacement,
+composition, and reduction-closed compatibility evidence. The left
+value-catch-up prefix now analyzes `paired-downᵀ`, `closeᵀ`,
+`paired-revealᵀ`, `paired-concealᵀ`, and `paired-wideningᵀ` directly.
+Its obsolete fused down/up, identity-only target-widening, and undifferentiated
+conversion branches are gone. The source-runtime contract, prefix proof, and
+canonical left value-catch-up proof all pass focused strict checking.
+
+This checkpoint also identifies a useful checking-time boundary. The old
+quotient catch-up support module does not check against the live grammar, so
+the prefix proof currently contains about 220 lines of stable close-frame
+transport. Keep that implementation local until the runtime-sibling proof
+confirms the same interface, then extract the shared statement and proof into
+a focused `proof/Catchup/Core` Def/Proof/Lemma family and delete the obsolete
+support module. There is not yet a canonical Proof/Lemma inhabitant for the
+revised `WorldCoherentSourceRuntimeCatchupᵀ` record; do not adapt the old
+`SourcePairedCastCatchup` aggregate as a compatibility layer.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region

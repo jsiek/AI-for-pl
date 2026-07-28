@@ -8,12 +8,17 @@ module proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceR
 --   * Contains no implementation and imports only statement-level support.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import CastImprecisionShape using
+  (_⊢ᶜ_⦂_; widening)
 open import Conversion using (ConcealConversion; RevealConversion)
-open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_)
+open import ImprecisionComposition using
+  (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using
   ( ImpCtx
   ; _ˣ⊑★
@@ -28,6 +33,7 @@ open import NarrowWiden using
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
+  ; StoreCorresponds
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-left
@@ -50,10 +56,11 @@ open import NuTerms using
   ; ν
   )
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedPairedWideningCompatible)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -97,15 +104,72 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
 
     source-widen : WorldCoherentSourceWidenCatchupᵀ
 
-    source-paired-cast :
+    source-paired-reveal :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N V′ : Term} {A A′ B B′ : Ty} {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
-      PairedCast Φ Δᴸ Δᴿ ρ₀
-        c c′ {A} {A′} {B} {B′} p q →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      WorldCoherentLeftCatchupIndexedResult
+        {N = N} {V′ = V′} {ρ = ρ⁺} p →
+      WorldCoherentLeftCatchupIndexedResult
+        {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q
+
+    source-paired-conceal :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ : Term} {A A′ B B′ : Ty} {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      WorldCoherentLeftCatchupIndexedResult
+        {N = N} {V′ = V′} {ρ = ρ⁺} p →
+      WorldCoherentLeftCatchupIndexedResult
+        {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q
+
+    source-paired-widening :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ : Term} {A A′ B B′ : Ty} {c c′ : Coercion}
+        {μ μ′ : ModeEnv} {s s′ r : ImprecisionShape}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ₀) →
+      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ s →
+      CastMode μ′ →
+      SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
+      μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+      widening ⊢ᶜ c′ ⦂ s′ →
+      s ； ⌊ q ⌋ ≋ r →
+      ⌊ p ⌋ ； s′ ≋ r →
+      ReductionClosedPairedWideningCompatible
+        Φ Δᴸ Δᴿ c c′ p q s s′ →
       Value V′ →
       No• V′ →
       Inert c′ →

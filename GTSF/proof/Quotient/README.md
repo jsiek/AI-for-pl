@@ -720,6 +720,23 @@ reduced simulation module pass strict checks.
 `NuImprecisionSimulation.agda` is now 4,216 lines, 553 lines smaller than
 before the three checking-time cuts.
 
+The left value-catch-up prerequisite is now live. Its source-runtime contract
+has separate reveal, conceal, and paired-widening fields instead of the
+retired `PairedCast` aggregate. The prefix proof analyzes `paired-downᵀ`,
+`closeᵀ`, `paired-revealᵀ`, `paired-concealᵀ`, and
+`paired-wideningᵀ` directly, and its old fused down/up, identity-only
+target-widening, and generic conversion branches have been deleted. Focused
+strict checks pass through the canonical left value-catch-up proof.
+
+About 220 lines of reusable close-frame transport are temporarily local to
+that prefix proof because the old quotient catch-up support module no longer
+checks against the live grammar. After the runtime-sibling proof validates
+the same interface, move this stable boundary to a focused
+`../Catchup/Core` Def/Proof/Lemma family and delete the obsolete support
+module. The revised source-runtime record still has no canonical
+Proof/Lemma provider; the obsolete `SourcePairedCastCatchup` aggregate must
+not be retained as a compatibility wrapper.
+
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.

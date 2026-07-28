@@ -7,6 +7,8 @@ module proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport where
 --     widening casts.
 --   * Contains no polymorphic reduction case or allocation scheduling.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
 open import Data.Product using (_×_; _,_)
@@ -124,7 +126,7 @@ left-catchup-indexed-all-prefix-prepend-keepᵀ :
 left-catchup-indexed-all-prefix-prepend-keepᵀ
     prefix source→ N⊑V′ N⊢ V′⊢ catchup =
   left-catchup-indexed-all-prepend-keepᵀ source→
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
+    (term-imprecision-store-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
 
 weak-one-step-target-cast-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c χ}

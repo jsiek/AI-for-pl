@@ -14,6 +14,8 @@ module proof.Catchup.Simulation.NuImprecisionSimulationCore where
 --   * Ends at the direct-swap residual lemmas; allocation and active
 --     universal catch-up cases live in the downstream simulation modules.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
@@ -3377,7 +3379,7 @@ rel-world-allocation-prefix-permuteᵀ
 rel-world-allocation-prefix-permuteᵀ
     perm prefix body-map noM noM′ M⊢ M′⊢
     | ρ₀′ , renameρ₀ , prefix′ =
-  allocation-prefixᵀ prefix′ (body-map base-perm)
+  term-imprecision-store-prefixᵀ prefix′ (body-map base-perm)
     (rel-world-source-typing-permute perm noM M⊢)
     (rel-world-target-typing-permute perm noM′ M′⊢)
   where
@@ -3417,7 +3419,7 @@ rel-world-allocation-prefix-embedᵀ
 rel-world-allocation-prefix-embedᵀ
     emb prefix body-map noM noM′ M⊢ M′⊢
     | ρ₀′ , emb₀ , prefix′ =
-  allocation-prefixᵀ prefix′ (body-map base-emb)
+  term-imprecision-store-prefixᵀ prefix′ (body-map base-emb)
     (rel-world-source-typing-embed emb noM M⊢)
     (rel-world-target-typing-embed emb noM′ M′⊢)
   where
@@ -8814,7 +8816,7 @@ right-target-square-α⊑ᵀ :
 right-target-square-α⊑ᵀ
     vL noL h⇑A rightᴸρ leftᴿρ L⊑N′ L•⊢ =
   α⊑ᵀ vL noL h⇑A leftᴿρ lift-left-ctx-[] L⊑N′
-    source-typing target-typing
+    prefix-reflⁱ source-typing target-typing
   where
   source-typing =
     subst
@@ -8883,7 +8885,7 @@ right-target-lift-α⊑ᵀ
     | γ× , rightᴸγ , leftᴿγ =
   ρ× , γ× , rightᴸρ , leftᴿρ , rightᴸγ , leftᴿγ ,
   α⊑ᵀ vL noL h⇑A leftᴿρ leftᴿγ L⊑N′
-    source-typing target-typing
+    prefix-reflⁱ source-typing target-typing
   where
   source-typing =
     subst
@@ -8951,7 +8953,7 @@ left-source-lift-allocation-leftᵀ
     {hA = hA} {hA′ = hA′} noM
     (left-store-rename-left eqα eqA renameρν)
     renameγν M⊑M′ M⊢ M′⊢ | refl | refl =
-  allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ)
+  term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ)
     M⊑M′ source-typing target-typing
   where
   full-rename :
@@ -8968,7 +8970,7 @@ left-source-lift-allocation-leftᵀ
   target-typing =
     right-typing-left-renameⁱ full-rename renameγν M′⊢
 
-left-rename-allocation-prefixᵀ :
+left-rename-term-imprecision-store-prefixᵀ :
   ∀ {Φ Ψ Δᴸ Δᴸ′ Δᴿ τ}
     {assm : ∀ {a} → a ∈ Φ →
       rename-assm²ᵢ τ (λ X → X) a ∈ Ψ}
@@ -8989,11 +8991,11 @@ left-rename-allocation-prefixᵀ :
   Ψ ∣ Δᴸ′ ∣ Δᴿ ∣ ρ′⁺ ∣ γ′
     ⊢ᴺ renameᵗᵐ τ M ⊑ M′
     ⦂ renameᵗ τ A ⊑ B ∶ ⊑-rename-leftᵢ τ assm hτ p
-left-rename-allocation-prefixᵀ prefix renameρ body-map M⊢ M′⊢
+left-rename-term-imprecision-store-prefixᵀ prefix renameρ body-map M⊢ M′⊢
     with left-store-rename-prefix-invⁱ prefix renameρ
-left-rename-allocation-prefixᵀ prefix renameρ body-map M⊢ M′⊢
+left-rename-term-imprecision-store-prefixᵀ prefix renameρ body-map M⊢ M′⊢
     | ρ₀′ , renameρ₀ , prefix′ =
-  allocation-prefixᵀ prefix′ (body-map renameρ₀) M⊢ M′⊢
+  term-imprecision-store-prefixᵀ prefix′ (body-map renameρ₀) M⊢ M′⊢
 
 ⊑-lift-under-∀ᵢ :
   ∀ {Φ Δᴸ Δᴿ A B} →
@@ -12772,7 +12774,7 @@ left-catchup-indexed-prefix-relatedᵀ :
 left-catchup-indexed-prefix-relatedᵀ
     prefix final N⊑V′ N⊢ V′⊢ =
   left-catchup-indexed-relatedᵀ final
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢)
+    (term-imprecision-store-prefixᵀ prefix N⊑V′ N⊢ V′⊢)
 
 left-catchup-indexed-source-all-prefix-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ V V′ C B}
@@ -12827,7 +12829,7 @@ left-catchup-indexed-all-prefix-relatedᵀ :
 left-catchup-indexed-all-prefix-relatedᵀ
     prefix final N⊑V′ N⊢ V′⊢ =
   left-catchup-indexed-all-relatedᵀ final
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢)
+    (term-imprecision-store-prefixᵀ prefix N⊑V′ N⊢ V′⊢)
 
 left-catchup-indexed-all-valueᵀ :
   ∀ {Φ Δᴸ Δᴿ V V′ C C′ q}

@@ -10,8 +10,7 @@ module
 --   * Contains no direct scheduling, catch-all, postulate, hole, or option.
 
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ⊑cast⊒ᵀ
+  ( ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -43,12 +42,6 @@ open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ :
   WorldCoherentSourcePrimitiveDeltaCatchupCases →
   WorldCoherentSourcePrimitiveDeltaCatchupᵀ
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (allocation-prefixᵀ prefix₀ inner M⊢ M′⊢) =
-  world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive unique wfR okM′ inner
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (⊕⊑⊕ᵀ L⊑L′ R⊑R′) =

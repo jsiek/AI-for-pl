@@ -39,7 +39,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
@@ -108,14 +107,6 @@ target-lambda-values-at-prefixᵀ :
     {M′ = (ƛ N′) · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
     {A = B} {B = B′} {χ = keep} {ρ = ρ} pB
-target-lambda-values-at-prefixᵀ
-    relation-prefix coherent exclusive unique okM okM′
-    (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-    argument-related vV vW vR′ =
-  target-lambda-values-at-prefixᵀ
-    (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-    coherent exclusive unique okM okM′ inner
-    argument-related vV vW vR′
 target-lambda-values-at-prefixᵀ
     {pA = pA} {pB = pB}
     relation-prefix coherent exclusive unique okM okM′

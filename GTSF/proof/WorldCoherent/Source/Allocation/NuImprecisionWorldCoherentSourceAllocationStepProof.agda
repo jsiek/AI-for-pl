@@ -10,6 +10,8 @@ module proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAll
 --   * Contains no postulate, hole, permissive option, dispatcher, or new
 --     result carrier.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
@@ -88,7 +90,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; allocation-prefixᵀ
   ; conv↑⊑ᵀ
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
@@ -777,18 +778,6 @@ world-coherent-source-allocation-step-proofᵀ
     prefix coherent exclusive unique
       wfL wfR
     ok-source ok-target source⊢ target⊢
-    (allocation-prefixᵀ prefix₀ inner inner-source⊢ inner-target⊢)
-    vV noV =
-  world-coherent-source-allocation-step-proofᵀ
-    matched-step source-inst source-reveal right-catchup target-bullet
-    (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive unique wfL wfR ok-source ok-target source⊢ target⊢
-    inner vV noV
-world-coherent-source-allocation-step-proofᵀ
-    matched-step source-inst source-reveal right-catchup target-bullet
-    prefix coherent exclusive unique
-      wfL wfR
-    ok-source ok-target source⊢ target⊢
     (ν⊑ᵀ {occ = occ} {{safe = safe}}
       hA h⇑A s↑ liftρ lift-left-ctx-[] inner replace)
     vV noV
@@ -810,7 +799,7 @@ world-coherent-source-allocation-step-proofᵀ
             (leftStoreⁱ-prefix-inclusion prefix)))
         s↑)
       _ replace liftρ⁺
-      (allocation-prefixᵀ prefix inner
+      (term-imprecision-store-prefixᵀ prefix inner
         (ν-body-typing-at
           (proj₁ (coercion-src-tgtᵐ
             (conversion↑⇒coercion

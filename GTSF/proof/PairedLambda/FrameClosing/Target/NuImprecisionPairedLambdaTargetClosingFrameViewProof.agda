@@ -38,7 +38,6 @@ open import QuotientedTermImprecision using
   ; QuotientWideningPair
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
@@ -201,20 +200,11 @@ mutual
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
-      (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ L⊑L′ L⊢ L′⊢)
+      (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ L⊑L′
+        prefix L⊢ L′⊢)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
-      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW vW′ noW′ allW
-      (allocation-prefixᵀ prefix rel W⊢ W′⊢)
-      with paired-lambda-target-closing-frame-viewᵀ
-        vW noW vW′ noW′ allW rel
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW vW′ noW′ allW
-      (allocation-prefixᵀ prefix rel W⊢ W′⊢)
-      | closing-frame-view leaf frames =
-    closing-frame-view leaf (frame-prefix frames prefix W⊢ W′⊢)
+      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ prefix L⊢ N′⊢)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑

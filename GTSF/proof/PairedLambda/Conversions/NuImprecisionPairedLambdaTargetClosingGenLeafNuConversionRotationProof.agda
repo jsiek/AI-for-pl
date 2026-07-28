@@ -10,6 +10,8 @@ module
 --   * Contains no paired-conversion semantic implementation, postulate, hole,
 --     permissive option, or broad simulation import.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
@@ -35,8 +37,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; cast⊒⊑ᵀ
+  ( cast⊒⊑ᵀ
   ; conv⊑convᵀ
   ; paired-conversion
   ; α⊑ᵀ
@@ -79,7 +80,7 @@ paired-lambda-target-closing-gen-leaf-ν-conversion-rotation-proofᵀ
       V⊑N′ (ν _ occ-r r)
 
   generic-relation =
-    allocation-prefixᵀ prefix generic-relation₀
+    term-imprecision-store-prefixᵀ prefix generic-relation₀
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         generic-no-bullet
         (nu-term-imprecision-source-typing generic-relation₀))

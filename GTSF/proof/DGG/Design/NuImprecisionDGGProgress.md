@@ -546,6 +546,7 @@ relation constructor is used.
 | [`NuImprecisionWorldCoherentOneStepDef.agda`](../../WorldCoherent/Core/NuImprecisionWorldCoherentOneStepDef.agda) | **completed `Def`** | World-coherent one-step contract used by the terminal proof |
 | [`QuotientImprecisionCompatibility.agda`](../../../QuotientImprecisionCompatibility.agda) | **canonical support** | Cast-mode and reduction-closed hereditary widening evidence with no dependency on a term-imprecision relation |
 | [`NuImprecisionReductionClosedQuotientDef.agda`](../../Quotient/NuImprecisionReductionClosedQuotientDef.agda) | **completed prototype** | Complete independent ordinary grammar, one embedded-creation case, one paired-narrowing quotient boundary, allocation-aware bilateral closure, and no generic renaming, quotient application, finite spine, or fused down/application/up rule |
+| [`NuImprecisionReductionClosedQuotientStorePrefixExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientStorePrefixExperiment.agda) | **completed metatheory** | Mutual admissible store-prefix weakening for the syntax-directed prototype ordinary and quotient judgments |
 | [`NuImprecisionReductionClosedQuotientExamples.agda`](../../Quotient/NuImprecisionReductionClosedQuotientExamples.agda) | **completed diagnostic** | Reachable two-function-cast top row, two beta steps on each side, and an ordinary-related join without quotient application or a fused rule |
 | [`NuImprecisionReductionClosedQuotientTypingExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientTypingExperiment.agda) | **completed metatheory** | Exhaustive source and target typing projections for the ordinary and quotient judgments |
 | [`NuImprecisionReductionClosedQuotientValueExperiment.agda`](../../Quotient/NuImprecisionReductionClosedQuotientValueExperiment.agda) | **completed metatheory** | Exhaustive source and target value classification, including terminal embedded creation |
@@ -938,6 +939,35 @@ the fused application branches vanished, four quotient application branches
 vanished, and the split identity/gradual downcast cases collapsed to one.
 The frozen direct source-file counts fell from `14/9/9/46/27/26` to
 `8/3/3/39/20/19`; this remains a checkpoint rather than a phase gate.
+
+The fourth Phase 4 checkpoint completed issue #102 on 2026-07-28 while the
+broader #100 migration remained paused. The live and independent prototype
+ordinary judgments no longer contain a generic store-prefix constructor.
+Store monotonicity is proved mutually with the quotient judgment through the
+canonical
+`NuImprecisionTermStorePrefixDef/Proof/Lemma` boundary and the prototype
+`NuImprecisionReductionClosedQuotientStorePrefixExperiment`.
+
+Runtime-bullet rules now retain a prefix from their canonical fresh-allocation
+world to the ambient relation world. Embedded target-instantiation creation
+likewise composes exact post-allocation lineage. Therefore later allocation
+extends the relation by composing residual lineage:
+
+$$
+\begin{array}{ccc}
+M & \mathrel{\sqsubseteq_{\rho_0}} & M' \\
+\downarrow^{0} & & \downarrow^{0} \\
+M & \mathrel{\sqsubseteq_{\rho^+}} & M'
+\end{array}
+\qquad
+\rho_0 \mathrel{\leq_{\mathrm{prefix}}} \rho^+ .
+$$
+
+Focused checks pass for the live and prototype admissibility proofs, source
+and target typing, value and terminal inversion, world embedding, term-context
+shift, parallel substitution, allocation/frame consumers, and the public DGG
+root. Administrative prefix-peeling branches were deleted; inversion now
+reaches the constructor selected by the endpoint syntax.
 
 The next structural check found that the selected prototype support still
 defined a nominally distinct copy of the now-canonical compatibility

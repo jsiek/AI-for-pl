@@ -46,7 +46,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -167,16 +166,6 @@ target-function-cast-values-suc-at-prefixᵀ :
     {M′ = (L′ ⟨ e C.↦ f ⟩) · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
     {χ = keep} {ρ = ρ} pB
-target-function-cast-values-suc-at-prefixᵀ
-    lower paired target-frames prepend
-    relation-prefix coherent exclusive unique wfL wfR okM okM′
-    (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-    argument-related vV vW vL′ vR′ outer-rank =
-  target-function-cast-values-suc-at-prefixᵀ
-    lower paired target-frames prepend
-    (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-    coherent exclusive unique wfL wfR okM okM′ inner
-    argument-related vV vW vL′ vR′ outer-rank
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     {pA = pA} {pB = pB}

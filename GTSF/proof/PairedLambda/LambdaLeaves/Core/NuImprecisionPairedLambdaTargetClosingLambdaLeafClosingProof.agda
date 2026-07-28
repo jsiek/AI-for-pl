@@ -13,6 +13,8 @@ module
 --   * Contains no postulate, hole, permissive option, or broad simulation
 --     import.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
@@ -44,8 +46,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import NuTerms using (No•; Term; Value; Λ_; no•-Λ)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; conv↑⊑ᵀ
+  ( conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; paired-conversion
   ; Λ⊑ᵀ
@@ -95,7 +96,7 @@ paired-lambda-target-closing-lambda-leaf-closing-proofᵀ
   lambda-relation₀ = Λ⊑ᵀ occ liftΛ liftγ vV V⊑N′
 
   lambda-relation =
-    allocation-prefixᵀ prefix lambda-relation₀
+    term-imprecision-store-prefixᵀ prefix lambda-relation₀
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         lambda-no-bullet
         (nu-term-imprecision-source-typing lambda-relation₀))

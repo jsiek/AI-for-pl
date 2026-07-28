@@ -11,6 +11,8 @@ module
 --     and independent runtime-sibling transport.
 --   * Contains no postulate, hole, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using
@@ -88,7 +90,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
   ; prefix-reflⁱ
@@ -1300,7 +1301,7 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
   allocation-store-prefix = prefix-∷ⁱ prefix-reflⁱ
 
   allocation-sibling =
-    allocation-prefixᵀ
+    term-imprecision-store-prefixᵀ
       allocation-store-prefix allocation-sibling-tail
       (term-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion allocation-store-prefix)

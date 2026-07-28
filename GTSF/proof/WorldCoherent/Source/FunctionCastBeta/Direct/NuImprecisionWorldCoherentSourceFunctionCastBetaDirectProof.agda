@@ -12,6 +12,8 @@ module
 --   * Contains no coercion algebra, target-value implementation, postulate,
 --     hole, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
@@ -41,7 +43,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -306,7 +307,7 @@ catch-source-function-cast-function-then-finishᵀ
       noR
       (nu-term-imprecision-target-typing argument-related)
   argument-related⁺ =
-    allocation-prefixᵀ prefix argument-related
+    term-imprecision-store-prefixᵀ prefix argument-related
       source-argument⊢⁺ target-argument⊢⁺
   target-argument-no = noR
 

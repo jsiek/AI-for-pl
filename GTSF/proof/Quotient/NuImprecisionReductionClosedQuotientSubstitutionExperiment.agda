@@ -115,7 +115,6 @@ open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
   using
   ( QuotientWideningPairᴿ
-  ; allocation-prefixᴿ
   ; blame⊑ᴿ
   ; cast⊑⊑ᴿ
   ; cast⊒⊑ᴿ
@@ -160,6 +159,9 @@ open import
   ( smaller-imprecision-source-typingᴿ
   ; smaller-imprecision-target-typingᴿ
   )
+open import
+  proof.Quotient.NuImprecisionReductionClosedQuotientStorePrefixExperiment
+  using (term-imprecision-store-prefixᴿ)
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
@@ -643,18 +645,11 @@ mutual
   smaller-parallel-term-substitution-framedᴿ
       environment frame prefix () noN′
       (α⊑αᴿ vL noL vL′ noL′ p liftρ liftγ
-        body L⊢ L′⊢)
+        body allocation-prefix L⊢ L′⊢)
   smaller-parallel-term-substitution-framedᴿ
       environment frame prefix () noN′
-      (α⊑ᴿ vL noL hA liftρ liftγ body L⊢ N′⊢)
-
-  smaller-parallel-term-substitution-framedᴿ
-      environment frame prefix noN noN′
-      (allocation-prefixᴿ inner-prefix body N⊢ N′⊢) =
-    smaller-parallel-term-substitution-framedᴿ
-      environment frame
-      (store-prefix-transᴿ inner-prefix prefix)
-      noN noN′ body
+      (α⊑ᴿ vL noL hA liftρ liftγ body
+        allocation-prefix L⊢ N′⊢)
 
   smaller-parallel-term-substitution-framedᴿ
       environment frame prefix
@@ -880,7 +875,7 @@ mutual
       (target-instantiationᴿ embedded)
       | eqN | eqN′
       rewrite eqN | eqN′ =
-    allocation-prefixᴿ prefix
+    term-imprecision-store-prefixᴿ prefix
       (target-instantiationᴿ embedded)
       (term-weaken ≤-refl
         (left-store-prefix-inclusionᴿ prefix)

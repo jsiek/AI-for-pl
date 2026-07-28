@@ -31,8 +31,7 @@ open import NuTerms using
   ; ok-ν
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ν⊑νᵀ
+  ( ν⊑νᵀ
   ; ν⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
@@ -142,15 +141,6 @@ world-coherent-source-ν-frame-step-proofᵀ :
   WorldCoherentSourceOneStepTargetCastFrames →
   WorldCoherentSourceOneStepTargetBulletFrameStepᵀ →
   WorldCoherentSourceNuFrameStepᵀ
-world-coherent-source-ν-frame-step-proofᵀ
-    prefix source-ν-frames target-cast-frames
-    target-bullet-step prefixρ coherent exclusive unique wfL wfR
-    ok-source ok-target source⊢ target⊢
-    (allocation-prefixᵀ prefix₀ inner inner-source⊢ inner-target⊢)
-    N→N′ =
-  prefix (store-imp-prefix-transⁱ prefix₀ prefixρ)
-    coherent exclusive unique wfL wfR ok-source ok-target source⊢ target⊢
-    inner (ξ-ν N→N′)
 world-coherent-source-ν-frame-step-proofᵀ
     prefix source-ν-frames target-cast-frames
     target-bullet-step prefixρ coherent exclusive unique wfL wfR

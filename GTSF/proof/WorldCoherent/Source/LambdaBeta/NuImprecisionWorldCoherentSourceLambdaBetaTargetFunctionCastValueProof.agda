@@ -9,6 +9,8 @@ module
 --     their well-founded assembly is deliberately separate.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import Conversion as CV
@@ -45,7 +47,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
@@ -196,16 +197,6 @@ target-function-cast-value-suc-at-prefixᵀ :
     {L = N [ V ]} {χ = keep} {ρ = ρ⁺} pB
 target-function-cast-value-suc-at-prefixᵀ
     target-lambda target-function-cast target-frames prepend
-    relation-prefix prefix coherent exclusive unique wfR okM okM′
-    (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-    argument-related vV vW vV′ outer-rank =
-  target-function-cast-value-suc-at-prefixᵀ
-    target-lambda target-function-cast target-frames prepend
-    (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-    prefix coherent exclusive unique wfR okM okM′ inner
-    argument-related vV vW vV′ outer-rank
-target-function-cast-value-suc-at-prefixᵀ
-    target-lambda target-function-cast target-frames prepend
     {pA = pA} {pB = pB}
     relation-prefix prefix coherent exclusive unique wfR okM okM′
     (⊑cast⊒ᵀ {p = pA₀ ↦ pB₀} mode seal★
@@ -240,7 +231,7 @@ target-function-cast-value-suc-at-prefixᵀ
     term-weaken ≤-refl right-incl target-W-no
       (nu-term-imprecision-target-typing inner)
   inner⁺ =
-    allocation-prefixᵀ relation-prefix inner
+    term-imprecision-store-prefixᵀ relation-prefix inner
       source-inner⊢⁺ target-inner⊢⁺
   inner-result =
     finish-inner-target-function-value-atᵀ
@@ -284,7 +275,7 @@ target-function-cast-value-suc-at-prefixᵀ
     term-weaken ≤-refl right-incl target-W-no
       (nu-term-imprecision-target-typing inner)
   inner⁺ =
-    allocation-prefixᵀ relation-prefix inner
+    term-imprecision-store-prefixᵀ relation-prefix inner
       source-inner⊢⁺ target-inner⊢⁺
   inner-result =
     finish-inner-target-function-value-atᵀ
@@ -324,7 +315,7 @@ target-function-cast-value-suc-at-prefixᵀ
     term-weaken ≤-refl right-incl target-W-no
       (nu-term-imprecision-target-typing inner)
   inner⁺ =
-    allocation-prefixᵀ relation-prefix inner
+    term-imprecision-store-prefixᵀ relation-prefix inner
       source-inner⊢⁺ target-inner⊢⁺
   inner-result =
     finish-inner-target-function-value-atᵀ
@@ -364,7 +355,7 @@ target-function-cast-value-suc-at-prefixᵀ
     term-weaken ≤-refl right-incl target-W-no
       (nu-term-imprecision-target-typing inner)
   inner⁺ =
-    allocation-prefixᵀ relation-prefix inner
+    term-imprecision-store-prefixᵀ relation-prefix inner
       source-inner⊢⁺ target-inner⊢⁺
   inner-result =
     finish-inner-target-function-value-atᵀ

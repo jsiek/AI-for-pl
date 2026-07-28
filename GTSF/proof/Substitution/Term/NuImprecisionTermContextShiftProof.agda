@@ -288,17 +288,11 @@ private
       target-instantiationᵀ embedded
     term-ctx-insert-no•ᵀ insert
         (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
-          L⊑L′ L⊢ L′⊢)
+          L⊑L′ prefix L⊢ L′⊢)
         () noM′
     term-ctx-insert-no•ᵀ insert
-        (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
+        (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ prefix L⊢ N′⊢)
         () noN′
-    term-ctx-insert-no•ᵀ insert
-        (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
-      allocation-prefixᵀ prefix
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        (typing-renameˣ (term-ctx-insert-left-wfⁱ insert) M⊢)
-        (typing-renameˣ (term-ctx-insert-right-wfⁱ insert) M′⊢)
     term-ctx-insert-no•ᵀ insert
         (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
           liftρ liftγ N⊑N′ replace)

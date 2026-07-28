@@ -34,7 +34,6 @@ open import NuTerms using
   (No•; Term; Value; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -278,23 +277,6 @@ target-seal-cancellation-prefixᵀ
       (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =
   conv↓⊑ᵀ {μ = μ} (conceal-seal hY αY∈Σ ok)
     M⊑V q (source-variable-left-replacementᵀ q inner-index)
-target-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (allocation-prefixᵀ prefix₀ inner W⊢ Vseal⊢) q
-    with target-seal-typing⁻¹ Vseal⊢
-target-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (allocation-prefixᵀ prefix₀ inner W⊢ Vseal⊢) q
-    | βX∈Σ , V⊢
-    rewrite unique wfΣ
-      (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =
-  allocation-prefixᵀ prefix₀
-    (target-seal-cancellation-prefixᵀ
-      (prefix-transᵀ prefix₀ prefix) coh wfΣ
-      vW noW vV βX′∈Σ inner q)
-    W⊢ V⊢
-
-
 target-seal-cancellation-proofᵀ : TargetSealCancellationᵀ
 target-seal-cancellation-proofᵀ coh wfΣ vW noW vV β∈Σ W⊑V q =
   target-seal-cancellation-prefixᵀ

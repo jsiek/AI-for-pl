@@ -84,7 +84,6 @@ open import
   ; Λ⊑ᴿ
   ; α⊑αᴿ
   ; α⊑ᴿ
-  ; allocation-prefixᴿ
   ; ν⊑νᴿ
   ; ν⊑ᴿ
   ; κ⊑κᴿ
@@ -219,14 +218,12 @@ mutual
           (smaller-imprecision-source-typingᴿ V⊑N′)))
   smaller-imprecision-source-typingᴿ
       (α⊑αᴿ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-        L⊑L′ L•⊢ L′•⊢) =
+        L⊑L′ allocation-prefix L•⊢ L′•⊢) =
     L•⊢
   smaller-imprecision-source-typingᴿ
-      (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) =
+      (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′
+        allocation-prefix L•⊢ N′⊢) =
     L•⊢
-  smaller-imprecision-source-typingᴿ
-      (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢) =
-    M⊢
   smaller-imprecision-source-typingᴿ
       (ν⊑νᴿ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑ liftρ liftγ
         N⊑N′ replace) =
@@ -330,14 +327,12 @@ mutual
         (smaller-imprecision-target-typingᴿ V⊑N′))
   smaller-imprecision-target-typingᴿ
       (α⊑αᴿ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-        L⊑L′ L•⊢ L′•⊢) =
+        L⊑L′ allocation-prefix L•⊢ L′•⊢) =
     L′•⊢
   smaller-imprecision-target-typingᴿ
-      (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) =
+      (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′
+        allocation-prefix L•⊢ N′⊢) =
     N′⊢
-  smaller-imprecision-target-typingᴿ
-      (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢) =
-    M′⊢
   smaller-imprecision-target-typingᴿ
       (ν⊑νᴿ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑ liftρ liftγ
         N⊑N′ replace) =

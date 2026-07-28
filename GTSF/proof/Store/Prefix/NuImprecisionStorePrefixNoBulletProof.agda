@@ -4,7 +4,7 @@ module proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof where
 --   * Proves no-bullet quotiented term imprecision weakening through a
 --     relational-store prefix.
 --   * Uses the typing projections and ordinary store weakening to discharge
---     the ambient typing premises of `allocation-prefixᵀ`.
+--     the ambient typing premises of the canonical admissible prefix rule.
 --   * Contains no postulate, hole, catch-all, or permissive option.
 
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
@@ -16,10 +16,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; rightStoreⁱ
   )
 open import NuTerms using (no•-⟨⟩)
-open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; paired-downᵀ
-  )
+open import QuotientedTermImprecision using (paired-downᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.Store.Prefix.NuImprecisionStorePrefixNoBulletDef using
@@ -30,12 +27,15 @@ open import
   proof.Store.Prefix.NuImprecisionStorePrefixEvidenceProof
   using (spine-cast-mode-prefix-proofᵀ)
 open import proof.Core.Properties.TypePreservation using (term-weaken)
+open import
+  proof.Store.Prefix.NuImprecisionTermStorePrefixLemma
+  using (term-imprecision-store-prefixᵀ)
 
 
 quotiented-store-prefix-no-bullet-proofᵀ :
   QuotientedStorePrefixNoBulletᵀ
 quotiented-store-prefix-no-bullet-proofᵀ prefix noM noM′ M⊑M′ =
-  allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢
+  term-imprecision-store-prefixᵀ prefix M⊑M′ M⊢ M′⊢
   where
   M⊢ =
     term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix) noM

@@ -9,6 +9,8 @@ module proof.Source.Core.NuImprecisionSourceBulletBase where
 --   * Keeps local administrative embedding and post-allocation helpers private
 --     and avoids depending on the main simulation or scratch modules.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -62,7 +64,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; α⊑ᵀ
@@ -349,7 +350,7 @@ left-catchup-indexed-prefix-α-Λᵀ
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
   where
   allocated-body =
-    allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
+    term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
         {Σ = leftStoreⁱ ρᵇ}
         {Σ′ = (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρᵇ}
@@ -362,7 +363,7 @@ left-catchup-indexed-prefix-α-Λᵀ
       liftρᵃ liftρᵇ noW noV′ allocated-body
 
   prefixed-body =
-    allocation-prefixᵀ prefix canonical-body
+    term-imprecision-store-prefixᵀ prefix canonical-body
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         noW (nu-term-imprecision-source-typing canonical-body))
       (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
@@ -416,7 +417,7 @@ left-allocated-bulletᵀ
     {Aν = Aν} {V = V} {V′ = V′} {r = r}
     vV noV hAν liftρ V⊑V′ =
   α⊑ᵀ vV noV hAν liftρ lift-left-ctx-[] V⊑V′
-    left-bullet-typing right-typing
+    prefix-reflⁱ left-bullet-typing right-typing
   where
     left-bullet-typing =
       subst

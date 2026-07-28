@@ -236,16 +236,11 @@ private
         (term-ctx-insertᴿ insert↑ body noV noN′)
     term-ctx-insertᴿ insert
         (α⊑αᴿ vL noL vL′ noL′ p liftρ liftγ
-          body L⊢ L′⊢) () noM′
+          body allocation-prefix L⊢ L′⊢) () noM′
     term-ctx-insertᴿ insert
-        (α⊑ᴿ vL noL hA liftρ liftγ body L⊢ N′⊢)
+        (α⊑ᴿ vL noL hA liftρ liftγ body
+          allocation-prefix L⊢ N′⊢)
         () noN′
-    term-ctx-insertᴿ insert
-        (allocation-prefixᴿ prefix body M⊢ M′⊢) noM noM′ =
-      allocation-prefixᴿ prefix
-        (term-ctx-insertᴿ insert body noM noM′)
-        (typing-renameˣ (term-ctx-insert-left-wfᴿ insert) M⊢)
-        (typing-renameˣ (term-ctx-insert-right-wfᴿ insert) M′⊢)
     term-ctx-insertᴿ insert
         (ν⊑νᴿ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
           liftρ liftγ body replace)

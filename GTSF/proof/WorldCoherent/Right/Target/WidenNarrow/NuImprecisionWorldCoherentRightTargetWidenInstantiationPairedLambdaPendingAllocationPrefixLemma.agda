@@ -12,6 +12,8 @@ module
 --   * Contains no additional theorem shape, result/view/outcome type,
 --     postulate, hole, permissive option, or broad DGG import.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceBulletTransportProof
   using (right-target-allocation-source-bullet-transport-proofᵀ)
@@ -35,9 +37,9 @@ open import
   (world-coherent-right-target-widen-instantiation-paired-lambda-post-beta-context-proofᵀ)
 
 
-world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation-prefixᵀ :
+world-coherent-right-target-widen-instantiation-paired-lambda-pending-term-imprecision-store-prefixᵀ :
   WorldCoherentRightTargetWidenInstantiationPairedLambdaPendingAllocationPrefixᵀ
-world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation-prefixᵀ =
+world-coherent-right-target-widen-instantiation-paired-lambda-pending-term-imprecision-store-prefixᵀ =
   world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation-prefix-proofᵀ
     world-coherent-right-target-widen-instantiation-paired-lambda-post-beta-context-proofᵀ
     right-target-allocation-source-bullet-transport-proofᵀ

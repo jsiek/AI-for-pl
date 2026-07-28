@@ -1,11 +1,10 @@
 module proof.Target.Core.NuImprecisionTargetBulletSourceApplicationExclusionProof where
 
 -- File Charter:
---   * Exhaustively peels target-bullet allocation prefixes and invokes the
---     canonical application/target-value exclusion at the bullet root.
+--   * Proves directly that a source application cannot be related to a
+--     target runtime bullet by the syntax-directed term relation.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
-open import QuotientedTermImprecision using (allocation-prefixᵀ)
 open import
   proof.Target.Core.NuImprecisionTargetBulletSourceApplicationExclusionDef
   using (QuotientedTargetBulletExcludesSourceApplicationᵀ)
@@ -17,5 +16,4 @@ open import
 quotiented-target-bullet-excludes-source-application-proofᵀ :
   QuotientedTargetBulletExcludesSourceApplicationᵀ
 quotiented-target-bullet-excludes-source-application-proofᵀ
-    (allocation-prefixᵀ prefix inner source⊢ target⊢) =
-  quotiented-target-bullet-excludes-source-application-proofᵀ inner
+    ()

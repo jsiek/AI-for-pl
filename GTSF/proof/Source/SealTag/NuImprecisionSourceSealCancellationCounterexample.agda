@@ -43,8 +43,7 @@ open import NuTerms using
   )
 open import Primitives using (κℕ)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; conv⊑convᵀ
+  ( conv⊑convᵀ
   ; κ⊑κᵀ
   ; paired-conceal
   ; paired-conversion
@@ -188,11 +187,6 @@ private
   no-cancellation-conclusion
       (⊑cast⊑idᵀ seal★
         (C.cast-tag hG ground () , widening) inner q)
-  no-cancellation-conclusion
-      (allocation-prefixᵀ prefix inner K⊢ TargetTagged⊢) =
-    no-cancellation-conclusion inner
-
-
 source-seal-cancellation-needs-exclusivity :
   (Φ₀ ∣ suc zero ∣ suc zero ∣ ρ₀ ∣ []
     ⊢ᴺ SourceSealed ⊑ TargetTagged

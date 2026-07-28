@@ -9,8 +9,8 @@ module
 --     constructor embeds or converts from another term-imprecision judgment.
 --   * Includes matched and source-only type application and `ν`, with their
 --     allocation-aware store lifts and exact index-substitution equations.
---   * Includes ordinary one-sided and paired reveal/conceal conversions, and
---     proof-only closure under store-prefix extension.
+--   * Includes ordinary one-sided and paired reveal/conceal conversions.
+--     General store-prefix weakening is admissible rather than a constructor.
 --   * Retains the terminal `gen`/ground join, whose value endpoints cannot be
 --     recovered merely by closing the simulation under reduction.
 --   * Keeps quotient indices only across one paired narrowing cast and closes
@@ -234,7 +234,7 @@ mutual
         ⊢ᴿ Λ V ⊑ N′ ⦂ `∀ A ⊑ B ∶ ν safe occ p
 
     α⊑αᴿ :
-      ∀ {ρ′ γ′ L L′ A B C D p} →
+      ∀ {ρ′ ρ⁺ γ′ L L′ A B C D p} →
       Value L →
       No• L →
       Value L′ →
@@ -246,27 +246,24 @@ mutual
       LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ L ⊑ L′ ⦂ `∀ C ⊑ `∀ D ∶ ∀ⁱ p →
+      StoreImpPrefixᴿ
+        (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
+          A⇑⊑B⇑ ∷ ρ′)
+        ρ⁺ →
       suc Δᴸ
-        ∣ leftStoreⁱ
-            (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
-              A⇑⊑B⇑ ∷ ρ′)
+        ∣ leftStoreⁱ ρ⁺
         ∣ leftCtxⁱ γ′
         ⊢ (⇑ᵗᵐ L) • ⦂ C →
       suc Δᴿ
-        ∣ rightStoreⁱ
-            (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
-              A⇑⊑B⇑ ∷ ρ′)
+        ∣ rightStoreⁱ ρ⁺
         ∣ rightCtxⁱ γ′
         ⊢ (⇑ᵗᵐ L′) • ⦂ D →
       ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-        ∣ suc Δᴸ ∣ suc Δᴿ
-        ∣ store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
-            A⇑⊑B⇑ ∷ ρ′
-        ∣ γ′
+        ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ γ′
         ⊢ᴿ (⇑ᵗᵐ L) • ⊑ (⇑ᵗᵐ L′) • ⦂ C ⊑ D ∶ p
 
     α⊑ᴿ :
-      ∀ {ρ′ γ′ L N′ A B′ C p occ} →
+      ∀ {ρ′ ρ⁺ γ′ L N′ A B′ C p occ} →
       {{safe : NonVar C}} →
       Value L →
       No• L →
@@ -275,28 +272,20 @@ mutual
       LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
         ⊢ᴿ L ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ p →
+      StoreImpPrefixᴿ
+        (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+        ρ⁺ →
       suc Δᴸ
-        ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+        ∣ leftStoreⁱ ρ⁺
         ∣ leftCtxⁱ γ′
         ⊢ (⇑ᵗᵐ L) • ⦂ C →
       Δᴿ
-        ∣ rightStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+        ∣ rightStoreⁱ ρ⁺
         ∣ rightCtxⁱ γ′
         ⊢ N′ ⦂ B′ →
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-        ∣ suc Δᴸ ∣ Δᴿ
-        ∣ store-left zero (⇑ᵗ A) h⇑A ∷ ρ′ ∣ γ′
+        ∣ suc Δᴸ ∣ Δᴿ ∣ ρ⁺ ∣ γ′
         ⊢ᴿ (⇑ᵗᵐ L) • ⊑ N′ ⦂ C ⊑ B′ ∶ p
-
-    allocation-prefixᴿ :
-      ∀ {ρ₀ M M′ A B p} →
-      StoreImpPrefixᴿ ρ₀ ρ →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ γ
-        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-      Δᴸ ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A →
-      Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ B →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-        ⊢ᴿ M ⊑ M′ ⦂ A ⊑ B ∶ p
 
     ν⊑νᴿ :
       ∀ {ρ′ γ′ A A′ B B′ C C′ N N′ p q s s′ μ μ′} →

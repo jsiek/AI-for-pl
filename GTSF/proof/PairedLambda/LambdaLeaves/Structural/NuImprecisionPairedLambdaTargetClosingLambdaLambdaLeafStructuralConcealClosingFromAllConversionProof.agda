@@ -13,13 +13,14 @@ module
 --   * Contains no canonical assembly, postulate, hole, permissive option,
 --     broad simulation import, or pre-final-reveal intermediate index.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.Nat.Properties using (≤-refl)
 open import Conversion using (conceal-all)
 open import NuTerms using (Λ_; no•-Λ)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; paired-conceal
+  ( paired-conceal
   ; Λ⊑Λᵀ
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
@@ -65,7 +66,7 @@ paired-lambda-target-closing-lambda-lambda-leaf-structural-conceal-closing-from-
   lambda-relation₀ = Λ⊑Λᵀ liftΛ liftγ vV vV′ V⊑V′
 
   lambda-relation =
-    allocation-prefixᵀ prefix lambda-relation₀
+    term-imprecision-store-prefixᵀ prefix lambda-relation₀
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         lambda-no-bullet
         (nu-term-imprecision-source-typing lambda-relation₀))

@@ -10,6 +10,8 @@ module
 --   * Contains no term-imprecision case analysis, postulate, hole, or
 --     termination bypass.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Data.List using (_∷_; [])
 open import Data.Nat using (suc)
 open import Data.Nat.Properties using (≤-refl)
@@ -37,7 +39,6 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
 open import NuTerms using (No•; Term)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import
@@ -171,7 +172,7 @@ no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught =
       noM′ (nu-term-imprecision-target-typing M⊑M′)
 
   relation⁺ =
-    allocation-prefixᵀ prefix M⊑M′ source-typing⁺ target-typing⁺
+    term-imprecision-store-prefixᵀ prefix M⊑M′ source-typing⁺ target-typing⁺
 
 
 right-catchup-source-fixed-narrowingᵀ :

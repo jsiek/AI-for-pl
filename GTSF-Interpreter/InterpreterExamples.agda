@@ -2,12 +2,12 @@ module InterpreterExamples where
 
 -- File Charter:
 --   * Executable regression examples for the direct interpreter.
---   * Covers timeout, closures, primitives, tags, blame, and direct `ν`
---     allocation/instantiation without runtime bullet syntax.
+--   * Covers timeout, the official type-value restriction, term closures,
+--     primitives, tags, blame, and direct `ν` allocation/instantiation.
 --   * Every equality is checked by normalization.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero)
 
 open import Coercions
@@ -45,6 +45,18 @@ closure-example :
   run ((ƛᴵ (`ᴵ zero)) ·ᴵ $ᴵ (κℕ 7)) 3
     ≡ returned emptyWorld (constant (κℕ 7))
 closure-example = refl
+
+type-abstraction-example :
+  run (Λᴵ (ƛᴵ (`ᴵ zero))) 1
+    ≡ returned emptyWorld
+        (type-abstraction
+          (λ α → closure (`ᴵ zero) [] (α ∷ [])))
+type-abstraction-example = refl
+
+malformed-type-abstraction-example :
+  run (Λᴵ ((ƛᴵ (`ᴵ zero)) ·ᴵ $ᴵ (κℕ 7))) 1
+    ≡ failed emptyWorld expected-value-under-type-abstraction
+malformed-type-abstraction-example = refl
 
 primitive-example :
   run ($ᴵ (κℕ 2) ⊕ᴵ[ addℕ ] $ᴵ (κℕ 3)) 2
@@ -90,7 +102,7 @@ compiled-poly-id-dynamic :
   run Existing.polyIdDyn-app 30
     ≡ returned
         (allocate emptyWorld ★ [])
-        (tagged (base-tag `ℕ) (constant (κℕ 7)))
+        (tagged Nat [] (constant (κℕ 7)))
 compiled-poly-id-dynamic = refl
 
 compiled-tag-mismatch :
@@ -109,7 +121,7 @@ compiled-polymorphic-k-dynamic :
   run Existing.sec6-K-dyn 40
     ≡ returned
         (allocate emptyWorld ★ [])
-        (tagged (base-tag `ℕ) (constant (κℕ 42)))
+        (tagged Nat [] (constant (κℕ 42)))
 compiled-polymorphic-k-dynamic = refl
 
 compiled-polymorphic-k-base :

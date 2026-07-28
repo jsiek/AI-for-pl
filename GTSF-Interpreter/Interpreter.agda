@@ -2,8 +2,10 @@ module Interpreter where
 
 -- File Charter:
 --   * Direct, fuel-indexed interpreter for compiled Nu GTSF terms.
---   * Uses semantic closures, an explicit runtime allocation world, and direct
---     coercion application; it does not invoke either reduction relation.
+--   * Implements the official eight-form value grammar directly: only term
+--     abstractions are closures; type abstractions contain semantic values.
+--   * Uses an explicit runtime allocation world and direct coercion
+--     application; it does not invoke either reduction relation.
 --   * Distinguishes timeout, blame, runtime error, and returned semantic value.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -14,7 +16,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (Dec; yes; no)
 
 open import Coercions
-  using (Coercion)
+  using (Coercion; Inert)
   renaming
     ( id to idᶜ
     ; _︔_ to _︔ᶜ_
@@ -40,12 +42,13 @@ open import NuTerms
     ; _⊕[_]_ to _⊕ᴵ[_]_
     ; _⟨_⟩ to _⟨ᴵ_⟩
     ; blame to blameᴵ
+    ; Value to SyntacticValue
     )
 open import Primitives using (Const; Prim; addℕ; κℕ)
 open import Types
 
 ------------------------------------------------------------------------
--- Runtime names, tags, closures, and environments
+-- Runtime names, semantic values, and environments
 ------------------------------------------------------------------------
 
 StepIndex : Set
@@ -69,23 +72,19 @@ data Value : Set where
     TypeEnvironment →
     Value
 
-  type-closure :
-    Term →
-    List Value →
-    TypeEnvironment →
-    Value
-
   constant :
     Const →
     Value
 
   tagged :
-    Tag →
+    Ty →
+    TypeEnvironment →
     Value →
     Value
 
   sealed :
-    Name →
+    TyVar →
+    TypeEnvironment →
     Value →
     Value
 
@@ -94,6 +93,10 @@ data Value : Set where
     Coercion →
     TypeEnvironment →
     Value →
+    Value
+
+  type-abstraction :
+    (Name → Value) →
     Value
 
   forall-proxy :
@@ -111,6 +114,64 @@ data Value : Set where
 
 Environment : Set
 Environment = List Value
+
+------------------------------------------------------------------------
+-- Syntax-directed construction of the official value forms
+------------------------------------------------------------------------
+
+inert? : (c : Coercion) → Maybe (Inert c)
+inert? (idᶜ A) = nothing
+inert? (c ︔ᶜ d) = nothing
+inert? (c ↦ᶜ d) = just (c ↦ᶜ d)
+inert? (∀ᶜ c) = just (∀ᶜ c)
+inert? (G !ᶜ) = just (G !ᶜ)
+inert? (G ？ᶜ) = nothing
+inert? (sealᶜ A X) = just (sealᶜ A X)
+inert? (unsealᶜ X A) = nothing
+inert? (genᶜ A c) = just (genᶜ A c)
+inert? (instᶜ B c) = nothing
+
+syntacticValue? : (M : Term) → Maybe (SyntacticValue M)
+syntacticValue? (`ᴵ x) = nothing
+syntacticValue? (ƛᴵ N) = just (ƛᴵ N)
+syntacticValue? (L ·ᴵ M) = nothing
+syntacticValue? (Λᴵ V) with syntacticValue? V
+syntacticValue? (Λᴵ V) | just vV = just (Λᴵ vV)
+syntacticValue? (Λᴵ V) | nothing = nothing
+syntacticValue? (M •ᴵ) = nothing
+syntacticValue? (νᴵ A L c) = nothing
+syntacticValue? ($ᴵ κ) = just ($ᴵ κ)
+syntacticValue? (L ⊕ᴵ[ op ] M) = nothing
+syntacticValue? (V ⟨ᴵ c ⟩) with syntacticValue? V | inert? c
+syntacticValue? (V ⟨ᴵ c ⟩) | just vV | just ic =
+  just (vV ⟨ᴵ ic ⟩)
+syntacticValue? (V ⟨ᴵ c ⟩) | just vV | nothing = nothing
+syntacticValue? (V ⟨ᴵ c ⟩) | nothing | just ic = nothing
+syntacticValue? (V ⟨ᴵ c ⟩) | nothing | nothing = nothing
+syntacticValue? blameᴵ = nothing
+
+closeValue :
+  ∀ {V} →
+  SyntacticValue V →
+  Environment →
+  TypeEnvironment →
+  Value
+closeValue (ƛᴵ N) γ θ =
+  closure N γ θ
+closeValue (Λᴵ vV) γ θ =
+  type-abstraction (λ α → closeValue vV γ (α ∷ θ))
+closeValue ($ᴵ κ) γ θ =
+  constant κ
+closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ =
+  tagged G θ (closeValue vV γ θ)
+closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ =
+  sealed X θ (closeValue vV γ θ)
+closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ =
+  function-proxy p q θ (closeValue vV γ θ)
+closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ =
+  forall-proxy c θ (closeValue vV γ θ)
+closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ =
+  generalized A c θ (closeValue vV γ θ)
 
 ------------------------------------------------------------------------
 -- Allocation world
@@ -158,6 +219,7 @@ data ErrorKind : Set where
   unbound-type-name : TyVar → ErrorKind
   expected-function : ErrorKind
   expected-polymorphic-value : ErrorKind
+  expected-value-under-type-abstraction : ErrorKind
   expected-natural : ErrorKind
   invalid-ground-tag : Ty → ErrorKind
   expected-tagged-value : ErrorKind
@@ -280,8 +342,11 @@ mutual
       | returned W₂ U =
     applyValue W₂ V U n
 
-  interpret W γ θ (Λᴵ N) (suc n) =
-    returned W (type-closure N γ θ)
+  interpret W γ θ (Λᴵ V) (suc n) with syntacticValue? V
+  interpret W γ θ (Λᴵ V) (suc n) | just vV =
+    returned W (type-abstraction (λ α → closeValue vV γ (α ∷ θ)))
+  interpret W γ θ (Λᴵ V) (suc n) | nothing =
+    failed W expected-value-under-type-abstraction
 
   -- `_•` is introduced only by the small-step `ν` rule. The direct
   -- interpreter performs that instantiation inside the `ν` case instead.
@@ -395,13 +460,13 @@ mutual
       | returned W₁ U′ | returned W₂ V′ =
     coerceValue W₂ θ q V′ n
 
-  applyValue W (type-closure N γ θ) U (suc n) =
+  applyValue W (type-abstraction V) U (suc n) =
     failed W expected-function
   applyValue W (constant κ) U (suc n) =
     failed W expected-function
-  applyValue W (tagged G V) U (suc n) =
+  applyValue W (tagged G θ V) U (suc n) =
     failed W expected-function
-  applyValue W (sealed α V) U (suc n) =
+  applyValue W (sealed X θ V) U (suc n) =
     failed W expected-function
   applyValue W (forall-proxy c θ V) U (suc n) =
     failed W expected-function
@@ -418,8 +483,8 @@ mutual
   instantiateValue W α V zero =
     timed W
 
-  instantiateValue W α (type-closure N γ θ) (suc n) =
-    interpret W γ (α ∷ θ) N n
+  instantiateValue W α (type-abstraction V) (suc n) =
+    returned W (V α)
 
   instantiateValue W α (forall-proxy c θ V) (suc n)
       with instantiateValue W α V n
@@ -441,9 +506,9 @@ mutual
     failed W expected-polymorphic-value
   instantiateValue W α (constant κ) (suc n) =
     failed W expected-polymorphic-value
-  instantiateValue W α (tagged G V) (suc n) =
+  instantiateValue W α (tagged G θ V) (suc n) =
     failed W expected-polymorphic-value
-  instantiateValue W α (sealed β V) (suc n) =
+  instantiateValue W α (sealed X θ V) (suc n) =
     failed W expected-polymorphic-value
   instantiateValue W α (function-proxy p q θ V) (suc n) =
     failed W expected-polymorphic-value
@@ -481,32 +546,38 @@ mutual
 
   coerceValue W θ (G !ᶜ) V (suc n) with tagOf θ G
   coerceValue W θ (G !ᶜ) V (suc n) | just tag =
-    returned W (tagged tag V)
+    returned W (tagged G θ V)
   coerceValue W θ (G !ᶜ) V (suc n) | nothing =
     failed W (invalid-ground-tag G)
 
   coerceValue W θ (G ？ᶜ) V (suc n) with tagOf θ G
   coerceValue W θ (G ？ᶜ) V (suc n) | nothing =
     failed W (invalid-ground-tag G)
-  coerceValue W θ (G ？ᶜ) (tagged tag V) (suc n)
+  coerceValue W θ (G ？ᶜ) (tagged H θ′ V) (suc n)
       | just expected
-      with expected ≟Tag tag
-  coerceValue W θ (G ？ᶜ) (tagged tag V) (suc n)
-      | just expected | yes refl =
+      with tagOf θ′ H
+  coerceValue W θ (G ？ᶜ) (tagged H θ′ V) (suc n)
+      | just expected | nothing =
+    failed W (invalid-ground-tag H)
+  coerceValue W θ (G ？ᶜ) (tagged H θ′ V) (suc n)
+      | just expected | just actual
+      with expected ≟Tag actual
+  coerceValue W θ (G ？ᶜ) (tagged H θ′ V) (suc n)
+      | just expected | just actual | yes refl =
     returned W V
-  coerceValue W θ (G ？ᶜ) (tagged tag V) (suc n)
-      | just expected | no expected≢tag =
+  coerceValue W θ (G ？ᶜ) (tagged H θ′ V) (suc n)
+      | just expected | just actual | no expected≢actual =
     blamed W
   coerceValue W θ (G ？ᶜ) (closure N γ θ′) (suc n)
       | just expected =
     failed W expected-tagged-value
-  coerceValue W θ (G ？ᶜ) (type-closure N γ θ′) (suc n)
+  coerceValue W θ (G ？ᶜ) (type-abstraction V) (suc n)
       | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (constant κ) (suc n)
       | just expected =
     failed W expected-tagged-value
-  coerceValue W θ (G ？ᶜ) (sealed α V) (suc n)
+  coerceValue W θ (G ？ᶜ) (sealed X θ′ V) (suc n)
       | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (function-proxy p q θ′ V) (suc n)
@@ -521,31 +592,38 @@ mutual
 
   coerceValue W θ (sealᶜ A X) V (suc n) with lookup θ X
   coerceValue W θ (sealᶜ A X) V (suc n) | just α =
-    returned W (sealed α V)
+    returned W (sealed X θ V)
   coerceValue W θ (sealᶜ A X) V (suc n) | nothing =
     failed W (unbound-type-name X)
 
   coerceValue W θ (unsealᶜ X A) V (suc n) with lookup θ X
   coerceValue W θ (unsealᶜ X A) V (suc n) | nothing =
     failed W (unbound-type-name X)
-  coerceValue W θ (unsealᶜ X A) (sealed β V) (suc n) | just α
+  coerceValue W θ (unsealᶜ X A) (sealed Y θ′ V) (suc n)
+      | just α
+      with lookup θ′ Y
+  coerceValue W θ (unsealᶜ X A) (sealed Y θ′ V) (suc n)
+      | just α | nothing =
+    failed W (unbound-type-name Y)
+  coerceValue W θ (unsealᶜ X A) (sealed Y θ′ V) (suc n)
+      | just α | just β
       with α ≟ β
-  coerceValue W θ (unsealᶜ X A) (sealed .α V) (suc n) | just α
-      | yes refl =
+  coerceValue W θ (unsealᶜ X A) (sealed Y θ′ V) (suc n)
+      | just α | just .α | yes refl =
     returned W V
-  coerceValue W θ (unsealᶜ X A) (sealed β V) (suc n) | just α
-      | no α≢β =
+  coerceValue W θ (unsealᶜ X A) (sealed Y θ′ V) (suc n)
+      | just α | just β | no α≢β =
     failed W seal-name-mismatch
   coerceValue W θ (unsealᶜ X A) (closure N γ θ′) (suc n)
       | just α =
     failed W expected-sealed-value
-  coerceValue W θ (unsealᶜ X A) (type-closure N γ θ′) (suc n)
+  coerceValue W θ (unsealᶜ X A) (type-abstraction V) (suc n)
       | just α =
     failed W expected-sealed-value
   coerceValue W θ (unsealᶜ X A) (constant κ) (suc n)
       | just α =
     failed W expected-sealed-value
-  coerceValue W θ (unsealᶜ X A) (tagged G V) (suc n)
+  coerceValue W θ (unsealᶜ X A) (tagged G θ′ V) (suc n)
       | just α =
     failed W expected-sealed-value
   coerceValue W θ (unsealᶜ X A) (function-proxy p q θ′ V) (suc n)

@@ -3,36 +3,53 @@ module
   where
 
 -- File Charter:
---   * Proves the world-coherent paired-quotient beta leaf from its pure
---     beta-distributed term-imprecision relation.
---   * Handles quotient/store-prefix transport and synchronizes both beta
---     steps.
+--   * Reduces the target function cast once and delegates the shared
+--     post-target paired-quotient beta square.
+--   * Derives the post-target runtime invariant from the original related
+--     application before crossing the shared boundary.
 --   * Contains no semantic relation implementation, postulate, hole,
 --     catch-all, or permissive option.
 
 import Coercions as C
 
-open import NuReduction using (β-↦; pure-step)
+open import ImprecisionWf using
+  (ImpCtx; _∣_⊢_⊑_⊣_)
+open import NuReduction using
+  (StoreChange; keep; β-↦; pure-step; _—→[_]_)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  (StoreImp)
 open import NuTerms using
-  (No•; no•-⟨⟩; _⟨_⟩)
+  (No•; Term; no•-⟨⟩; _⟨_⟩)
 open import
-  proof.Source.FunctionCastBeta.NuImprecisionSourceFunctionCastBetaPairedQuotientRelationDef
-  using (SourceFunctionCastBetaPairedQuotientRelationᵀ)
+  proof.NuCore.Relations.NuImprecisionQuotientedTyping
+  using (nu-term-imprecision-target-typing)
 open import proof.Store.Prefix.NuImprecisionStorePrefixEvidenceProof using
   (quotient-widening-pair-prefix-proofᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof using
   (quotiented-store-prefix-no-bulletᵖ-proofᵀ)
+open import QuotientedTermImprecision using (closeᵀ; ·⊑·ᵀ)
+open import TermTyping using (forget)
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedValuesDef
   using
   (WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ)
-open import proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceKeepRelationLemma using
-  (world-coherent-source-keep-relationᵀ)
+open import
+  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetDef
+  using
+  (WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ)
 open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceTargetKeepPrependLemma
   using (world-coherent-source-target-keep-prependᵀ)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  ( WorldCoherentSourceOneStepOutcome
+  ; source-step-outcome-related
+  ; source-step-outcome-source-blame
+  )
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; value-runtime-No•)
+  (pure-runtime-preservation; runtime-·₁; value-runtime-No•)
+open import Types using (Ty; TyCtx)
 
 
 private
@@ -42,19 +59,40 @@ private
     No• V
   cast-value-body-No• (no•-⟨⟩ noV) = noV
 
+  prepend-target-keep-outcome :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {M M′ N′ L : Term} {A B : Ty}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} {χ : StoreChange} →
+    M′ —→[ keep ] N′ →
+    WorldCoherentSourceOneStepOutcome
+      {M = M} {M′ = N′} {L = L}
+      {χ = χ} {ρ = ρ} p →
+    WorldCoherentSourceOneStepOutcome
+      {M = M} {M′ = M′} {L = L}
+      {χ = χ} {ρ = ρ} p
+  prepend-target-keep-outcome target-step
+      (source-step-outcome-related result) =
+    source-step-outcome-related
+      (world-coherent-source-target-keep-prependᵀ target-step result)
+  prepend-target-keep-outcome target-step
+      (source-step-outcome-source-blame source↠blame) =
+    source-step-outcome-source-blame source↠blame
+
 
 world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ :
-  SourceFunctionCastBetaPairedQuotientRelationᵀ →
+  WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ →
   WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ
 world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ
-    relation relation-prefix coherent exclusive unique wfR okM okM′
+    post-target relation-prefix coherent exclusive unique wfL wfR okM okM′
     inner widening source-shape target-shape square compatible
     argument-related vV vW vL′ vR′ =
-  world-coherent-source-target-keep-prependᵀ
+  prepend-target-keep-outcome
     (pure-step (β-↦ vL′ vR′))
-    (world-coherent-source-keep-relationᵀ
-      coherent exclusive unique final-related
-      (pure-step (β-↦ vV vW)))
+    (post-target relation-prefix coherent exclusive unique wfL wfR
+      okM target-post-runtime inner widening
+      source-shape target-shape square compatible
+      argument-related vV vW vL′ vR′)
   where
   source-function-no =
     value-runtime-No• (vV ⟨ _ C.↦ _ ⟩) (runtime-·₁ okM)
@@ -67,6 +105,11 @@ world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ
       relation-prefix source-V-no target-L-no inner
   widening⁺ =
     quotient-widening-pair-prefix-proofᵀ relation-prefix widening
-  final-related =
-    relation inner⁺ widening⁺ source-shape target-shape square
-      compatible argument-related
+  function-related =
+    closeᵀ inner⁺ widening⁺ _ source-shape target-shape square
+      compatible
+  application-related = ·⊑·ᵀ function-related argument-related
+  target-post-runtime =
+    pure-runtime-preservation wfR
+      (forget (nu-term-imprecision-target-typing application-related))
+      okM′ (β-↦ vL′ vR′)

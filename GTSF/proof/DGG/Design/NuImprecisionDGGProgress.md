@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — matched allocation isolated; quotient beta next**
+**MIGRATION IN PROGRESS — quotient-beta fit checked; right dispatcher next**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1320,20 +1320,33 @@ modules pass focused strict checks. With that kernel preserved,
 `NuImprecisionAllocationSimulation.agda` was deleted; no Agda references to
 the module or its four former declarations remain.
 
-The operational quotient-beta design audit has also fixed the next proof
-boundary. The source paired-quotient leaf may keep its current
-world-coherent outcome contract: after the distinguished source function-beta
-step, a shared post-target-beta worker must terminalize the exposed
-quotient-related arguments and return either bilateral tails ending in
-ordinary QTI or a source trace ending in blame. The closing function
-compatibility supplies domain narrowing elimination and codomain widening;
-the inner quotient-producing function compatibility supplies domain widening
-and codomain narrowing elimination. The remaining missing mechanism is a
-private catch-up for a bare quotient-related argument when neither endpoint is
-already a value. The right-oriented leaf must additionally receive the outer
-reduction-closed widening compatibility. This shared worker is the next
-strict gate; the two pure quotient-application theorem families stay
-migration-active until it passes.
+The operational quotient-beta experiment has now succeeded at the contract
+and wrapper level but has not yet produced the semantic inhabitant. The strict
+shared post-target-beta contract retains the source's distinguished function
+beta, fixes the target after its outer function beta, and returns either
+bilateral tails ending in ordinary QTI or a source trace ending in blame. The
+source paired-quotient wrapper now takes that contract instead of the
+obsolete pure quotient-application theorem, prepends the target beta step,
+and passes strict checking.
+
+The first attempted inhabitant exposed an important correction to the design
+audit. Inverting the quotient-related function values does make their outer
+function casts inert, but it does not make the contravariant component casts
+on `W` and `R′` inert. Those casts may be active, so the finite two-beta proof
+was rejected. Adding the inner domain widenings around the paired domain
+narrowings gives an ordinary `closeᵀ (paired-downᵀ ...)` edge. Existing
+quotient-down synchronization proves its first active target step, and
+existing left-value catch-up finishes the source once the target is a value.
+Iteration between those boundaries requires the canonical
+`WorldCoherentWeakOneStepIndexedSimulationPrefixᵀ` dispatcher. Its strict
+leaves and frames exist, but its recursive assembly is not yet exported.
+
+The next implementation task is therefore that canonical right one-step
+dispatcher, with the post-target paired-quotient worker fitted into its
+existing function-cast scheduling SCC. The right-oriented beta leaf must then
+receive the outer reduction-closed widening compatibility. Until the shared
+worker, both orientations, and terminal-forward integration pass, the two
+pure quotient-application theorem families remain migration-active.
 
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — matched allocation isolated; quotient beta next**
+**MIGRATION IN PROGRESS — quotient-beta fit checked; right dispatcher next**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -653,18 +653,28 @@ is supplied only by the canonical lemma. All three focused checks pass.
 `../NuCore/Misc/NuImprecisionAllocationSimulation.agda` is now deleted, with
 no remaining Agda references to it or its former declarations.
 
-The next operational boundary is also now explicit. A shared
-post-target-function-beta proof will terminalize a bare quotient-related
-argument when neither endpoint is initially a value, then use the mutual
-function compatibility evidence to build the nested closing widenings and
-paired narrowings. It must return the existing source-step outcome: either
-bilateral reduction tails ending in ordinary QTI or a source trace to blame.
-The source leaf's public contract already carries the necessary outer
-widening compatibility. The right leaf must gain that premise. The bare
-quotient catch-up carrier remains private to the shared proof rather than
-becoming a second public simulation relation. Only after this strict worker,
-both leaf orientations, and terminal-forward integration pass will the two
-pure quotient-application theorem families be deleted.
+The post-target function-beta boundary now has a strict contract. The source
+paired-quotient wrapper depends on that contract instead of the obsolete pure
+relation, prepends the target beta step, and passes focused strict checking.
+This is a successful architectural fit, not yet a completed semantic leaf.
+
+The attempted direct inhabitant correctly inverted the outer function values
+but incorrectly treated their contravariant component casts as inert. The
+component casts on the related arguments may be active, so the finite
+two-beta construction was rejected. Closing those paired domain narrowings
+with the inner domain widenings produces an ordinary QTI edge. The existing
+quotient-down synchronization handles its first active target step, and
+left-value catch-up can finish the source once the target becomes a value.
+The missing reusable dependency is the recursive canonical
+`WorldCoherentWeakOneStepIndexedSimulationPrefixᵀ` dispatcher: its strict
+case, frame, and root proofs exist, but no assembled lemma is exported.
+
+The next gate is to assemble that right one-step dispatcher without
+duplicating it privately in the beta proof, then use it in the post-target
+worker and amend the right-oriented beta contract with the outer
+reduction-closed widening compatibility. Only after that worker, both beta
+orientations, and terminal-forward integration pass will the two pure
+quotient-application theorem families be deleted.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

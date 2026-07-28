@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — obsolete first-draft relation removed**
+**MIGRATION IN PROGRESS — paired-down elimination invariant tested**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -511,6 +511,16 @@ cast-imprecision module into the focused 15-line
 `../Core/Properties/SealModeProperties.agda`. Its 35 direct clients now
 import the small module explicitly; no re-export preserves the old dependency
 edge. The live QTI join and source one-step root pass after the rewrite.
+
+The next semantic invariant has been tested before changing the live grammar.
+`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` records
+recursive elimination safety for a quotient-producing paired narrowing:
+function coercions carry reduction-closed compatibility for their
+contravariant domain widenings and recurse through their codomain narrowings;
+a pair with a non-function coercion has no function-elimination obligation.
+The focused definition and the existing two-function-cast/permuted-`∀`
+regression pass. This checkpoint does not yet add the premise to
+`paired-downᵀ`.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

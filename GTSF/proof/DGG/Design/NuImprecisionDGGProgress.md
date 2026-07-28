@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — obsolete first-draft relation removed**
+**MIGRATION IN PROGRESS — paired-down elimination invariant tested**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1165,6 +1165,23 @@ cast-imprecision module solely for `seal★-tag-or-id`. That witness now lives
 in the 15-line `SealModeProperties.agda`; every client imports it directly,
 and the cast-imprecision module no longer re-exports or defines it. The new
 leaf, live QTI join, and source one-step root pass focused checks.
+
+The operational quotient-beta audit has isolated the missing live invariant.
+The outer function compatibility decomposes to the final codomain widening,
+but it says nothing about the contravariant domain widening exposed by the
+next function beta inside the quotient-producing narrowing. The current
+`paired-downᵀ` premise therefore cannot terminalize an active paired argument
+round trip.
+
+`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` now tests the
+minimal recursive repair independently of the live grammar. At a function
+narrowing it requires reduction-closed quotient compatibility for the paired
+domain widenings and recurses through the codomain narrowings; when either
+coercion is not function-shaped, no elimination evidence is required. The
+definition checks strictly, and the existing two-function-cast regression
+constructs the evidence for its genuinely permuted-`∀` inner narrowing using
+the already proved route compatibility. The live `paired-downᵀ` constructor
+has not yet changed at this checkpoint.
 
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 15,096-line

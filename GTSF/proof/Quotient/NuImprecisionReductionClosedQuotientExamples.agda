@@ -106,6 +106,15 @@ open import QuotientImprecisionCompatibility
   ; compatible-through-representativesᴿ
   )
 open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using
+  ( QuotientNarrowingEliminationCompatible
+  ; function-elimination
+  ; non-function-elimination
+  ; non-function-universal
+  ; source-non-function
+  )
+open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientSingleSubstitutionExperiment
@@ -442,6 +451,20 @@ outer-function-compatible =
     (source-perm-↦ source-swap-∀ν source-swap-∀ν)
     (compatible-functionᴿ
       (compatible-target-activeᴿ up-D-inert up-E-not-inert))
+
+inner-function-elimination-compatible :
+  QuotientNarrowingEliminationCompatible (idᵢ zero) zero zero
+    inner-D inner-E
+    identity-A-function⊑identity-A-function
+    identity-function-quotient
+    (⌊ glb-lower-XY⊑A ⌋ ↦ˢ ⌊ glb-lower-XY⊑A ⌋)
+    (⌊ glb-lower-YX⊑A ⌋ ↦ˢ ⌊ glb-lower-YX⊑A ⌋)
+inner-function-elimination-compatible =
+  function-elimination
+    refl
+    route-widening-compatible
+    (non-function-elimination
+      (source-non-function non-function-universal))
 
 identity-A⊑identity-A :
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []

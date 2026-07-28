@@ -134,6 +134,7 @@ open import proof.Core.Properties.NuTermProperties
     )
 import proof.Core.Properties.NuTermProperties as NuTermProperties
 import proof.DGG.Core.NuPreservation as NuPreservation
+import proof.Core.Properties.NuRuntimeProperties as NuRuntime
 
 ------------------------------------------------------------------------
 -- Basic context facts
@@ -1588,27 +1589,27 @@ preservation wfΣ okM (⊢ν⊑ mode seal★ V⊢ c⊢)
 preservation wfΣ okM (⊢· L⊢ M⊢)
     (ξ-·₁ {χ = χ} red shiftM) =
   ⊢·-applyTy χ
-    (preservation wfΣ (NuPreservation.runtime-·₁ okM) L⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-·₁ okM) L⊢ red)
     (applyTerm-typing-shiftable (at wfΣ) shiftM M⊢)
 preservation wfΣ okM (⊢· V⊢ M⊢)
     (ξ-·₂ {χ = χ} vV shiftV red) =
   ⊢·-applyTy χ
     (applyTerm-typing-shiftable (at wfΣ) shiftV V⊢)
-    (preservation wfΣ (NuPreservation.runtime-·₂ vV okM) M⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-·₂ vV okM) M⊢ red)
 preservation wfΣ okM (⊢⟨⟩↑ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     with applyConversion↑-typing {χ = χ} c⊢
 preservation wfΣ okM (⊢⟨⟩↑ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     | μ′ , c′⊢ =
-  ⊢⟨⟩↑ c′⊢ (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+  ⊢⟨⟩↑ c′⊢ (preservation wfΣ (NuRuntime.runtime-⟨⟩ okM) M⊢ red)
 preservation wfΣ okM (⊢⟨⟩↓ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     with applyConversion↓-typing {χ = χ} c⊢
 preservation wfΣ okM (⊢⟨⟩↓ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     | μ′ , c′⊢ =
-  ⊢⟨⟩↓ c′⊢ (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+  ⊢⟨⟩↓ c′⊢ (preservation wfΣ (NuRuntime.runtime-⟨⟩ okM) M⊢ red)
 preservation wfΣ okM (⊢⟨⟩⊒ mode seal★ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     with applyNarrow-typing {χ = χ} mode seal★ c⊢
@@ -1616,7 +1617,7 @@ preservation wfΣ okM (⊢⟨⟩⊒ mode seal★ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     | μ′ , mode′ , seal★′ , c′⊢ =
   ⊢⟨⟩⊒ mode′ seal★′ c′⊢
-    (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-⟨⟩ okM) M⊢ red)
 preservation wfΣ okM (⊢⟨⟩⊑ mode seal★ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     with applyWiden-typing {χ = χ} mode seal★ c⊢
@@ -1624,7 +1625,7 @@ preservation wfΣ okM (⊢⟨⟩⊑ mode seal★ c⊢ M⊢)
     (ξ-⟨⟩ {χ = χ} red)
     | μ′ , mode′ , seal★′ , c′⊢ =
   ⊢⟨⟩⊑ mode′ seal★′ c′⊢
-    (preservation wfΣ (NuPreservation.runtime-⟨⟩ okM) M⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-⟨⟩ okM) M⊢ red)
 preservation wfΣ okM (⊢ν↑ hA L⊢ c⊢)
     (ξ-ν {χ = χ} red)
     with applyConversion↑UnderTyBinder-typing {χ = χ} c⊢
@@ -1632,7 +1633,7 @@ preservation wfΣ okM (⊢ν↑ hA L⊢ c⊢)
     (ξ-ν {χ = χ} red)
     | μ′ , c′⊢ =
   ⊢ν↑-applyTy χ (renameA χ hA)
-    (preservation wfΣ (NuPreservation.runtime-ν okM) L⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-ν okM) L⊢ red)
     c′⊢
   where
     renameA : ∀ χ → WfTy _ _ → WfTy (applyTyCtx χ _) (applyTy χ _)
@@ -1645,7 +1646,7 @@ preservation wfΣ okM (⊢ν⊑ mode seal★ L⊢ c⊢)
     (ξ-ν {χ = χ} red)
     | μ′ , mode′ , seal★′ , c′⊢ =
   ⊢ν⊑-applyTy χ mode′ seal★′
-    (preservation wfΣ (NuPreservation.runtime-ν okM) L⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-ν okM) L⊢ red)
     c′⊢
 preservation wfΣ okM (⊢ν↑ hA (⊢blame (wf∀ hC)) c⊢)
     blame-ν =
@@ -1659,13 +1660,13 @@ preservation wfΣ okM (⊢ν⊑ mode seal★ (⊢blame (wf∀ hC)) c⊢)
 preservation wfΣ okM (⊢⊕ L⊢ op M⊢)
     (ξ-⊕₁ {χ = χ} red shiftM) =
   ⊢⊕-applyTy χ
-    (preservation wfΣ (NuPreservation.runtime-⊕₁ okM) L⊢ red) op
+    (preservation wfΣ (NuRuntime.runtime-⊕₁ okM) L⊢ red) op
     (applyTerm-typing-shiftable (at wfΣ) shiftM M⊢)
 preservation wfΣ okM (⊢⊕ L⊢ op M⊢)
     (ξ-⊕₂ {χ = χ} vL shiftL red) =
   ⊢⊕-applyTy χ
     (applyTerm-typing-shiftable (at wfΣ) shiftL L⊢) op
-    (preservation wfΣ (NuPreservation.runtime-⊕₂ vL okM) M⊢ red)
+    (preservation wfΣ (NuRuntime.runtime-⊕₂ vL okM) M⊢ red)
 
 multi-preservation :
   ∀ {Δ Σ M N A χs} →

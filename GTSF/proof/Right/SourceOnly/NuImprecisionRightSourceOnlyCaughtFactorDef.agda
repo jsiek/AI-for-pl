@@ -20,12 +20,15 @@ import Relation.Binary.HeterogeneousEquality as HE
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (LiftLeftStoreⁱ; StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (Ty; TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

@@ -6,6 +6,7 @@ module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClo
 --   * Recurses mutually over ordinary and quotiented term imprecision.
 --   * Contains no semantic catch-up proof, postulate, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import CastImprecisionShape as CIS
 import Conversion as CV
@@ -44,10 +45,10 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
   ; gen⊑groundᵀ
-  ; nu-term-imprecision-source-typing
   ; quotient-cast-widening
   ; quotient-id-widening
   ; paired-conceal
@@ -56,12 +57,10 @@ open import QuotientedTermImprecision using
   ; paired-widening
   ; up⊑upᵀ
   ; x⊑xᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; ⊑αᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑cast⊑idᵀ
@@ -69,14 +68,11 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
-  ; ⊑νᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
-  ; ⊑νcastᵀ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
   ; ·⊑·ᵀ
   ; ƛ⊑ƛᵀ
+  ; target-instantiationᵀ
   )
 open import TermTyping using (forget)
 open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
@@ -89,7 +85,9 @@ open import proof.DGG.Core.NuProgress using
   )
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import Types using (Ty; TyCtx; `∀)
 
 
@@ -117,6 +115,12 @@ mutual
       (ƛ⊑ƛᵀ hA hA′ N⊑N′)
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW (·⊑·ᵀ L⊑L′ M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (() ⟨ inert-u ⟩) noW vW′ noW′ allW
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square widening
+        u-shape u′-shape up-square compatible)
   paired-lambda-target-closing-frame-viewᵀ
       (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
       (no•-⟨⟩ (no•-⟨⟩ noM))
@@ -185,17 +189,9 @@ mutual
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       vM₀ noM₀ vM₀′ noM₀′ allM
-      (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
+      (target-instantiationᵀ embedded) =
     closing-frame-view
-      (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert body f inst-shape creation-square
-        assm hτ hσ
-        store-emb eqM eqM′ eqA eqA′ p
-        vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+      (leaf-target-instantiation embedded)
       frame-refl
   paired-lambda-target-closing-frame-viewᵀ
       (Λ vV) (no•-Λ noV) vN′ noN′
@@ -209,9 +205,6 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ p N⊢ L′⊢)
   paired-lambda-target-closing-frame-viewᵀ
       vW noW vW′ noW′ allW
       (allocation-prefixᵀ prefix rel W⊢ W′⊢)
@@ -229,22 +222,6 @@ mutual
   paired-lambda-target-closing-frame-viewᵀ
       () noW vW′ noW′ allW
       (ν⊑ᵀ hA h↑A s↑ liftρ liftγ N⊑N′ replacement)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑νᵀ hA h↑A s↑ liftρ liftγ p N⊑N′ replacement)
-  paired-lambda-target-closing-frame-viewᵀ
-      () noW vW′ noW′ allW
-      (νcast⊑νcastᵀ mode seal★ mode′ seal★′ s⊑ s′⊑
-        compat liftρ liftγ N⊑N′ s-shape s′-shape
-        source-comp target-comp)
-  paired-lambda-target-closing-frame-viewᵀ
-      () noW vW′ noW′ allW
-      (νcast⊑ᵀ
-        mode seal★ s⊑ liftρ liftγ N⊑N′ s-shape comp)
-  paired-lambda-target-closing-frame-viewᵀ
-      vW noW () noW′ allW
-      (⊑νcastᵀ
-        mode seal★ s⊑ liftρ liftγ p N⊑N′ s-shape comp)
   paired-lambda-target-closing-frame-viewᵀ
       ($ k) noW vW′ noW′ (av-Λ ()) κ⊑κᵀ
   paired-lambda-target-closing-frame-viewᵀ

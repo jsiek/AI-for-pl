@@ -101,7 +101,7 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleCompleteness usin
   ; fuel-★⇒-left; fuel-★⇒-right
   ; sizeTy-subst-starᵢ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
   (nonVar-forward-if-occursᵢ)
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleFactor using
   ( occurs-zero-factor-∀
@@ -116,8 +116,12 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-ˣ∈; un⇑ᵢ-★∈; un⇑ᴸᵢ-ˣ∈
   ; ⇑ᵢ-ˣ∈; ⇑ᵢ-★∈; ⇑ᴸᵢ-∈
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (no-⇑ᴸᵢ-zero-star; un⇑ᴸᵢ-★∈; ⊑-trans-left-idᵢ)
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
+  (⊑-trans-left-idᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( no-⇑ᴸᵢ-zero-star
+  ; un⇑ᴸᵢ-★∈
+  )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; occurs-zero-rename-ext)
 

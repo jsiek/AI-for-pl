@@ -12,8 +12,11 @@ open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (RuntimeOK; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

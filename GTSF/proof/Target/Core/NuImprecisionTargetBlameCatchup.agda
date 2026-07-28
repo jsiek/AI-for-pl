@@ -21,9 +21,11 @@ open import NuReduction using
   ; blame-ν
   ; blame-⟨⟩
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
-  ; StoreImp
   )
 open import NuTerms using (RuntimeOK; Value; Λ_; ν; _⟨_⟩; blame)
 open import QuotientedTermImprecision using
@@ -33,13 +35,13 @@ open import QuotientedTermImprecision using
   ; α⊑ᵀ
   ; allocation-prefixᵀ
   ; ν⊑ᵀ
-  ; νcast⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   )
-open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties
+  using (runtime-ν; runtime-⟨⟩)
 open import proof.Core.Properties.ReductionProperties using (↠-trans; cast-↠; ν-↠)
 
 
@@ -111,15 +113,6 @@ left-catchup-target-blame-generalᵀ okM
   left-catchup-target-blame-generalᵀ okM M⊑blame
 left-catchup-target-blame-generalᵀ okM
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑blame replace) =
-  χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
-  where
-  χs,N↠blame =
-    left-catchup-target-blame-generalᵀ (runtime-ν okM) N⊑blame
-  χs = proj₁ χs,N↠blame
-  N↠blame = proj₂ χs,N↠blame
-left-catchup-target-blame-generalᵀ okM
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑blame
-      s-shape comp) =
   χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame
   where
   χs,N↠blame =

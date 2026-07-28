@@ -13,10 +13,10 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (ℕ; _≤_; zero; suc)
-open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n; suc-injective)
-open import Data.Product using (Σ; _×_; _,_; ∃-syntax; proj₁)
+open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n)
+open import Data.Product using (Σ; _×_; _,_; proj₁)
 open import Relation.Binary.PropositionalEquality
-  using (_≢_; cong; cong₂; subst; sym; trans)
+  using (_≢_; cong; subst; sym; trans)
 
 open import Types
 open import Coercions
@@ -26,7 +26,9 @@ open import NuReduction
 open import proof.Core.Properties.CoercionProperties
   using
     ( renameᶜ-dual-normal
+    ; renameᶜ-compose
     ; renameᶜ-ext-suc-suc
+    ; renameᶜ-id
     ; renameᶜ-open-commute
     ; renameᶜ-preserves-Inert
     ; renameᶜ-reflects-Inert
@@ -41,7 +43,9 @@ open import proof.Core.Properties.NuTermProperties
     )
 open import proof.Core.Properties.TypeProperties using
   ( TyRenameWf-suc
+  ; renameᵗ-compose
   ; renameᵗ-ext-suc-comm
+  ; renameᵗ-id
   ; renameᵗ-preserves-WfTy
   )
 
@@ -430,6 +434,16 @@ applyTyVars-++ [] χs′ α = refl
 applyTyVars-++ (χ ∷ χs) χs′ α =
   applyTyVars-++ χs χs′ (applyTyVar χ α)
 
+applyTys-rename-applyTyVars :
+  ∀ (χs : StoreChanges) (A : Ty) →
+  applyTys χs A ≡ renameᵗ (applyTyVars χs) A
+applyTys-rename-applyTyVars [] A = sym (renameᵗ-id A)
+applyTys-rename-applyTyVars (keep ∷ χs) A =
+  applyTys-rename-applyTyVars χs A
+applyTys-rename-applyTyVars (bind B ∷ χs) A =
+  trans (applyTys-rename-applyTyVars χs (⇑ᵗ A))
+        (renameᵗ-compose suc (applyTyVars χs) A)
+
 applyTerms-++ :
   ∀ χs χs′ M →
   applyTerms (χs ++ χs′) M ≡ applyTerms χs′ (applyTerms χs M)
@@ -679,6 +693,33 @@ applyCoercions-preserves-Inert [] i = i
 applyCoercions-preserves-Inert (χ ∷ χs) i =
   applyCoercions-preserves-Inert χs (applyCoercion-preserves-Inert χ i)
 
+applyCoercions-rename-applyTyVars :
+  ∀ (χs : StoreChanges) (c : Coercion) →
+  applyCoercions χs c ≡ renameᶜ (applyTyVars χs) c
+applyCoercions-rename-applyTyVars [] c = sym (renameᶜ-id c)
+applyCoercions-rename-applyTyVars (keep ∷ χs) c =
+  applyCoercions-rename-applyTyVars χs c
+applyCoercions-rename-applyTyVars (bind B ∷ χs) c =
+  trans (applyCoercions-rename-applyTyVars χs (⇑ᶜ c))
+        (renameᶜ-compose suc (applyTyVars χs) c)
+
+applyCoercion-reflects-Inert :
+  (χ : StoreChange) (c : Coercion) →
+  Inert (applyCoercion χ c) →
+  Inert c
+applyCoercion-reflects-Inert keep c inert = inert
+applyCoercion-reflects-Inert (bind A) c inert =
+  renameᶜ-reflects-Inert suc c inert
+
+applyCoercions-reflects-Inert :
+  (χs : StoreChanges) (c : Coercion) →
+  Inert (applyCoercions χs c) →
+  Inert c
+applyCoercions-reflects-Inert [] c inert = inert
+applyCoercions-reflects-Inert (χ ∷ χs) c inert =
+  applyCoercion-reflects-Inert χ c
+    (applyCoercions-reflects-Inert χs (applyCoercion χ c) inert)
+
 applyCoercion-dual :
   ∀ χ c →
   applyCoercion χ (- c) ≡ - applyCoercion χ c
@@ -838,197 +879,6 @@ applyTerms-cast-dual χs M c =
 ------------------------------------------------------------------------
 -- Multi-step reduction
 ------------------------------------------------------------------------
-
-shiftStoreChange : StoreChange → StoreChange
-shiftStoreChange keep = keep
-shiftStoreChange (bind A) = bind (⇑ᵗ A)
-
-shiftable-⇑ᵗᵐ :
-  ∀ {χ M} →
-  Shiftable χ M →
-  Shiftable (shiftStoreChange χ) (⇑ᵗᵐ M)
-shiftable-⇑ᵗᵐ shift-keep = shift-keep
-shiftable-⇑ᵗᵐ (shift-bind noM) =
-  shift-bind (renameᵗᵐ-preserves-No• suc noM)
-
-＇-injective :
-  ∀ {X Y : TyVar} →
-  _≡_ {A = Ty} (＇ X) (＇ Y) →
-  X ≡ Y
-＇-injective refl = refl
-
-‵-injective :
-  ∀ {ι ι′ : Base} →
-  _≡_ {A = Ty} (‵ ι) (‵ ι′) →
-  ι ≡ ι′
-‵-injective refl = refl
-
-⇒-injective-left :
-  ∀ {A B C D} →
-  A ⇒ B ≡ C ⇒ D →
-  A ≡ C
-⇒-injective-left refl = refl
-
-⇒-injective-right :
-  ∀ {A B C D} →
-  A ⇒ B ≡ C ⇒ D →
-  B ≡ D
-⇒-injective-right refl = refl
-
-∀-injective :
-  ∀ {A B : Ty} →
-  `∀ A ≡ `∀ B →
-  A ≡ B
-∀-injective refl = refl
-
-RenameInjective : Renameᵗ → Set
-RenameInjective ρ = ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y
-
-extᵗ-injective :
-  ∀ {ρ} →
-  RenameInjective ρ →
-  RenameInjective (extᵗ ρ)
-extᵗ-injective inj {zero} {zero} eq = refl
-extᵗ-injective inj {zero} {suc Y} ()
-extᵗ-injective inj {suc X} {zero} ()
-extᵗ-injective inj {suc X} {suc Y} eq =
-  cong suc (inj (suc-injective eq))
-
-renameᵗ-injective :
-  ∀ {ρ A B} →
-  RenameInjective ρ →
-  renameᵗ ρ A ≡ renameᵗ ρ B →
-  A ≡ B
-renameᵗ-injective {A = ＇ X} {B = ＇ Y} inj eq =
-  cong ＇_ (inj (＇-injective eq))
-renameᵗ-injective {A = ＇ X} {B = ‵ ι} inj ()
-renameᵗ-injective {A = ＇ X} {B = ★} inj ()
-renameᵗ-injective {A = ＇ X} {B = B ⇒ C} inj ()
-renameᵗ-injective {A = ＇ X} {B = `∀ B} inj ()
-renameᵗ-injective {A = ‵ ι} {B = ＇ X} inj ()
-renameᵗ-injective {A = ‵ ι} {B = ‵ ι′} inj eq =
-  cong ‵_ (‵-injective eq)
-renameᵗ-injective {A = ‵ ι} {B = ★} inj ()
-renameᵗ-injective {A = ‵ ι} {B = B ⇒ C} inj ()
-renameᵗ-injective {A = ‵ ι} {B = `∀ B} inj ()
-renameᵗ-injective {A = ★} {B = ＇ X} inj ()
-renameᵗ-injective {A = ★} {B = ‵ ι} inj ()
-renameᵗ-injective {A = ★} {B = ★} inj eq = refl
-renameᵗ-injective {A = ★} {B = B ⇒ C} inj ()
-renameᵗ-injective {A = ★} {B = `∀ B} inj ()
-renameᵗ-injective {A = A ⇒ B} {B = ＇ X} inj ()
-renameᵗ-injective {A = A ⇒ B} {B = ‵ ι} inj ()
-renameᵗ-injective {A = A ⇒ B} {B = ★} inj ()
-renameᵗ-injective {A = A ⇒ B} {B = C ⇒ D} inj eq =
-  cong₂ _⇒_
-    (renameᵗ-injective inj (⇒-injective-left eq))
-    (renameᵗ-injective inj (⇒-injective-right eq))
-renameᵗ-injective {A = A ⇒ B} {B = `∀ C} inj ()
-renameᵗ-injective {A = `∀ A} {B = ＇ X} inj ()
-renameᵗ-injective {A = `∀ A} {B = ‵ ι} inj ()
-renameᵗ-injective {A = `∀ A} {B = ★} inj ()
-renameᵗ-injective {A = `∀ A} {B = B ⇒ C} inj ()
-renameᵗ-injective {A = `∀ A} {B = `∀ B} inj eq =
-  cong `∀ (renameᵗ-injective (extᵗ-injective inj) (∀-injective eq))
-
-pure-rename-step-⇑ᵗᵐ :
-  ∀ {M N} →
-  M —→ N →
-  ∃[ N′ ] (⇑ᵗᵐ M —→ N′)
-pure-rename-step-⇑ᵗᵐ δ-⊕ =
-  _ , δ-⊕
-pure-rename-step-⇑ᵗᵐ (β vV) =
-  _ , β (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (β-Λ• vV) =
-  _ , β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)
-pure-rename-step-⇑ᵗᵐ (β-∀• vV) =
-  _ , β-∀• (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (β-gen• vV) =
-  _ , β-gen• (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (β-id vV) =
-  _ , β-id (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (β-seq vV) =
-  _ , β-seq (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (β-↦ vV vW) =
-  _ , β-↦ (renameᵗᵐ-preserves-Value suc vV)
-           (renameᵗᵐ-preserves-Value suc vW)
-pure-rename-step-⇑ᵗᵐ (β-inst vV) =
-  _ , β-inst (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (tag-untag-ok vV) =
-  _ , tag-untag-ok (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ (tag-untag-bad vV G≢H) =
-  _ , tag-untag-bad (renameᵗᵐ-preserves-Value suc vV)
-                    (λ eq → G≢H (renameᵗ-injective suc-injective eq))
-pure-rename-step-⇑ᵗᵐ (seal-unseal vV) =
-  _ , seal-unseal (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ blame-·₁ =
-  _ , blame-·₁
-pure-rename-step-⇑ᵗᵐ (blame-·₂ vV) =
-  _ , blame-·₂ (renameᵗᵐ-preserves-Value suc vV)
-pure-rename-step-⇑ᵗᵐ blame-• =
-  _ , blame-•
-pure-rename-step-⇑ᵗᵐ blame-⟨⟩ =
-  _ , blame-⟨⟩
-pure-rename-step-⇑ᵗᵐ blame-⊕₁ =
-  _ , blame-⊕₁
-pure-rename-step-⇑ᵗᵐ (blame-⊕₂ vV) =
-  _ , blame-⊕₂ (renameᵗᵐ-preserves-Value suc vV)
-
-type-rename-step-⇑ᵗᵐ-exact :
-  ∀ {M N χ} →
-  M —→[ χ ] N →
-  ∃[ N′ ] (⇑ᵗᵐ M —→[ shiftStoreChange χ ] N′)
-type-rename-step-⇑ᵗᵐ-exact (pure-step red)
-    with pure-rename-step-⇑ᵗᵐ red
-type-rename-step-⇑ᵗᵐ-exact (pure-step red)
-    | N′ , red′ =
-  N′ , pure-step red′
-type-rename-step-⇑ᵗᵐ-exact (ν-step vV noV) =
-  _ , ν-step (renameᵗᵐ-preserves-Value suc vV)
-             (renameᵗᵐ-preserves-No• suc noV)
-type-rename-step-⇑ᵗᵐ-exact (ξ-·₁ red shiftM)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-·₁ red shiftM)
-    | L′ , red′ =
-  _ , ξ-·₁ red′ (shiftable-⇑ᵗᵐ shiftM)
-type-rename-step-⇑ᵗᵐ-exact (ξ-·₂ vV shiftV red)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-·₂ vV shiftV red)
-    | M′ , red′ =
-  _ , ξ-·₂ (renameᵗᵐ-preserves-Value suc vV)
-             (shiftable-⇑ᵗᵐ shiftV)
-             red′
-type-rename-step-⇑ᵗᵐ-exact (ξ-⟨⟩ red)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-⟨⟩ red)
-    | M′ , red′ =
-  _ , ξ-⟨⟩ red′
-type-rename-step-⇑ᵗᵐ-exact (ξ-ν red)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-ν red)
-    | L′ , red′ =
-  _ , ξ-ν red′
-type-rename-step-⇑ᵗᵐ-exact blame-ν =
-  _ , blame-ν
-type-rename-step-⇑ᵗᵐ-exact (ξ-⊕₁ red shiftM)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-⊕₁ red shiftM)
-    | L′ , red′ =
-  _ , ξ-⊕₁ red′ (shiftable-⇑ᵗᵐ shiftM)
-type-rename-step-⇑ᵗᵐ-exact (ξ-⊕₂ vV shiftV red)
-    with type-rename-step-⇑ᵗᵐ-exact red
-type-rename-step-⇑ᵗᵐ-exact (ξ-⊕₂ vV shiftV red)
-    | M′ , red′ =
-  _ , ξ-⊕₂ (renameᵗᵐ-preserves-Value suc vV)
-             (shiftable-⇑ᵗᵐ shiftV)
-             red′
-
-type-rename-step-⇑ᵗᵐ :
-  ∀ {M N χ} →
-  M —→[ χ ] N →
-  ∃[ χ′ ] ∃[ N′ ] (⇑ᵗᵐ M —→[ χ′ ] N′)
-type-rename-step-⇑ᵗᵐ red =
-  shiftStoreChange _ , type-rename-step-⇑ᵗᵐ-exact red
 
 ↠-trans :
   ∀ {M N P χs χs′} →

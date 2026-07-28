@@ -30,7 +30,7 @@ open import
   using (compose-right-ν-cannot-result-∀)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (rename-assm²ᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

@@ -14,7 +14,9 @@ open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import NuStore using (StoreWf; at; unique)
-open import NuTermImprecision using (leftStoreⁱ-lift)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ-lift
+  )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-matched-head)
 open import proof.NuCore.Relations.NuImprecisionMatchedLiftInvariantsDef using

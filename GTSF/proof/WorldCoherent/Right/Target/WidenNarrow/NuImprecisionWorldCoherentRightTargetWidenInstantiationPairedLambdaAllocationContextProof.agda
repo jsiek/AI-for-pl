@@ -10,6 +10,7 @@ module
 --   * Contains no recursive dispatcher, postulate, hole, permissive option,
 --     termination bypass, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (inst)
 open import Data.List using ([]; _∷_)
@@ -32,7 +33,7 @@ open import NuReduction using
   ; ↠-step
   ; _—↠[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
@@ -52,34 +53,42 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( Λ⊑Λᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   )
 open import TermTyping using (_∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
 open import Types using (`∀; wf★; ⇑ᵗ; ★)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  ( post-allocation-β-Λ•
-  ; replace-left-target-lift-right-source-nu-bodyᵢ
+  ( replace-left-target-lift-right-source-nu-bodyᵢ
   ; replace-paired-target-lift-right-under-∀ᵢ
   ; replace-right-target-lift-under-rightᵢ
-  ; right-lift-prefix-bodyᵀ
   ; shape-target-lift-right-under-∀ᵢ
   ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( ≡-to-≅
-  ; replace-left-target-lift-rightᵢ
+open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
+  (post-allocation-β-Λ•)
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( replace-left-target-lift-rightᵢ
   ; replace-paired-target-lift-rightᵢ
   ; replace-right-target-lift-rightᵢ
-  ; transportAllType-to-raw≅
-  ; transportArrowType-to-raw≅
-  ; ⊑-target-lift-right-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-target-lift-right-source-nuᵢ
   ; ⊑-target-lift-right-under-∀ᵢ
   ; ⊑-target-lift-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -97,7 +106,7 @@ open import proof.Core.Properties.NuStoreProperties using
 open import proof.Core.Properties.TypePreservation using
   (multi-preservation; term-weaken)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
@@ -108,6 +117,9 @@ open import
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceBulletTransportDef
   using (RightTargetAllocationSourceBulletTransportᵀ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (target-instantiation-creation)
 open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using
   (right-only-prefix-refl; right-only-prefix-right)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
@@ -224,9 +236,12 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
         ⦂ `∀ D ⊑ ⇑ᵗ B
         ∶ ⊑-target-lift-rightᵢ (ν safe occ q)
   related =
-    post-beta {f = ν safe occ q} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body inst-shape creation-square
-      source-typing target-typing
+    post-beta
+      (target-instantiation-creation
+        {f = ν safe occ q}
+        prefix mode seal★ cast liftρ liftρᴿ
+        vW noW vW′ noW′ inert body inst-shape creation-square
+        source-typing target-typing)
 
   target-tail :
     NuTerms.ν ★ (Λ W′) s
@@ -257,7 +272,7 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
 
   transport =
     weak-step-transport
-      (right-lift-prefix-bodyᵀ
+      (right-lift-prefix-body-proofᵀ
         liftρᴿ (prefix-∷ⁱ prefix-reflⁱ))
 
   type-coherence =
@@ -265,12 +280,12 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
       (λ pD pE → HE.≅-to-≡
         (HE.trans
           (transportArrowType-to-raw≅ result pD pE)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-arrow-coherentᵢ pD pE))))
       (λ r → HE.≅-to-≡
         (HE.trans
           (transportAllType-to-raw≅ result r)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-all-coherentᵢ r))))
       shape-target-lift-rightᵢ
       shape-target-lift-under-rightᵢ

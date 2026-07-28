@@ -43,20 +43,6 @@ STRICT_PROOF_INVENTORY_ROOT_MODULES = (
 KNOWN_INCOMPLETE_PROOF_MODULES = (
     "proof.DGG.TerminalForward."
     "NuDGGTerminalForwardIntegrationProof",
-    "proof.WorldCoherent.Final.Paired."
-    "NuImprecisionWorldCoherentFinalPairedWideningCatchupProof",
-    "proof.WorldCoherent.Final.SourceNu."
-    "NuImprecisionWorldCoherentFinalSourceNuCast"
-    "SourceOnlyIndexCatchupProof",
-    "proof.WorldCoherent.Final.SourceNu."
-    "NuImprecisionWorldCoherentFinalSourceNu"
-    "SourceOnlyIndexCatchupProof",
-    "proof.WorldCoherent.Source.CastCatchup."
-    "NuImprecisionWorldCoherentSourceNarrowCatchupProof",
-    "proof.WorldCoherent.Source.NuCatchup."
-    "NuImprecisionWorldCoherentSourceNuCastCatchupProof",
-    "proof.WorldCoherent.Source.NuCatchup."
-    "NuImprecisionWorldCoherentSourceNuCastRuntimeSiblingCatchupProof",
 )
 
 # These modules are intentionally checked or read as independent roots.  Keep
@@ -64,6 +50,7 @@ KNOWN_INCOMPLETE_PROOF_MODULES = (
 # is still a useful regression, counterexample, example, or integration root.
 INTENDED_STANDALONE_ROOT_MODULES = (
     *STRICT_DGG_ROOT_MODULES,
+    "proof.Compilation.CompileCanonicalDownCompatibilityExperiment",
     "proof.Compilation.CompileDynamicApplicationTest",
     "proof.Compilation.GenSafeMismatchBlameRegression",
     "proof.Core.Permutation.ForallPermutationTest",
@@ -71,7 +58,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "proof.EndpointMLB.Core.EndpointCanonicalMLBTest",
     "proof.EndpointMLB.Core.MLBGlbCounterexample",
     "proof.EndpointMLB.Core.MLBGlbExample",
-    "proof.EndpointMLB.Core.MlbTypeTest",
     "proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleFactorCounterexample",
     "proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleTest",
     "proof.PairedLambda.Conversions."
@@ -82,7 +68,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "proof.PairedLambda.Terminal."
     "NuImprecisionPairedTargetClosingStrictSpine",
     "proof.Quotient.NuImprecisionQuotientToOrdinaryCounterexample",
-    "proof.Quotient.QuotientedTermImprecisionTest",
     "proof.Right.Core."
     "NuImprecisionRightOpenedInstantiationIndexCounterexample",
     "proof.Right.SourceAll.ClosingValues."
@@ -95,8 +80,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "NuImprecisionSourceOnlyContextFactorCounterexample",
     "proof.Source.SealTag."
     "NuImprecisionSourceSealCancellationCounterexample",
-    "proof.WorldCoherent.Final.Paired."
-    "NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample",
     "proof.WorldCoherent.Right.Target.WidenNarrow."
     "NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample",
     "proof.WorldCoherent.Right.Target.WidenNarrow."

@@ -45,7 +45,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf; TyRenameWf-ext; occurs-zero-rename-ext)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; rename-assm²-⇑ᴸᵢ

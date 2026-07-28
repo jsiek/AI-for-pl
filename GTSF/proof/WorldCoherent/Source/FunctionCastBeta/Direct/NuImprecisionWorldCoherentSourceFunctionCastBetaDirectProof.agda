@@ -7,19 +7,26 @@ module
 --     an arbitrary target function to a value.
 --   * Frames that function trace around the untouched argument, then delegates
 --     all remaining work to the target-value boundary.
+--   * Composes continuing outcomes with that function trace and propagates
+--     source blame unchanged.
 --   * Contains no coercion algebra, target-value implementation, postulate,
 --     hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import ImprecisionWf using (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -35,8 +42,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -59,6 +64,15 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalArrowResults
+  ; resultLeftCtx
+  ; resultSourceType
+  ; resultStore
+  ; resultTargetType
+  ; resultType
+  ; sourceCtxResult
+  ; sourceResult
+  ; sourceStoreResult
+  ; targetResult
   ; targetTailChanges
   ; transportAllCoherent
   ; transportArrowCoherent
@@ -98,13 +112,20 @@ open import
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.TargetValue.NuImprecisionWorldCoherentSourceFunctionCastBetaTargetValueDef
   using (WorldCoherentSourceFunctionCastBetaTargetValueᵀ)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  ( WorldCoherentSourceOneStepOutcome
+  ; source-step-outcome-related
+  ; source-step-outcome-source-blame
+  )
 open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceSilentCompositionDef
   using (WorldCoherentSourceSilentCompositionᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.Core.Properties.ReductionProperties using
   (applyTerms-preserves-No•)
 open import proof.Core.Properties.TypePreservation using (term-weaken)
@@ -123,26 +144,34 @@ finish-source-function-cast-function-catchupᵀ :
   Value W →
   No• W →
   No• R′ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ W ⊑ R′ ⦂ A ⊑ A′ ∶ pA →
   WorldCoherentRightValueCatchupIndexedResult
     {V = V ⟨ c C.↦ d ⟩} {M′ = L′} {ρ = ρ} (pA ↦ pB) →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
     {A = B} {B = B′} {χ = keep} {ρ = ρ} pB
 finish-source-function-cast-function-catchupᵀ
-    target-value compose okM vV vW noW noR argument-related caught
+    target-value compose
+    {Δᴸ = Δᴸ} {ρ = ρ}
+    {V = V} {W = W} {L′ = L′} {R′ = R′}
+    {c = c} {d = d} {B = B} {B′ = B′} {pB = pB}
+    okM vV vW noW noR wfL argument-related caught
     with rightCatchupSourceChangesEmpty catchup
        | rightCatchupSourceUnchanged catchup
   where
   catchup = worldRightCatchupResult caught
 finish-source-function-cast-function-catchupᵀ
-    target-value compose okM vV vW noW noR argument-related caught
+    target-value compose
+    {Δᴸ = Δᴸ} {ρ = ρ}
+    {V = V} {W = W} {L′ = L′} {R′ = R′}
+    {c = c} {d = d} {B = B} {B′ = B′} {pB = pB}
+    okM vV vW noW noR wfL argument-related caught
     | refl | refl =
-  compose framed refl refl framed-transport framed-coherence
-    framed-lineage phase-two
+  finish phase-two
   where
   catchup = worldRightCatchupResult caught
   function-indexed = rightCatchupIndexedResult catchup
@@ -176,17 +205,51 @@ finish-source-function-cast-function-catchupᵀ
       (lineagePrefix caught-lineage)
     where
     caught-lineage = worldRightCatchupStoreLineage caught
+
+  final-source-wf :
+    StoreWf (resultLeftCtx framed) (leftStoreⁱ (resultStore framed))
+  final-source-wf =
+    subst
+      (λ Δ → StoreWf Δ (leftStoreⁱ (resultStore framed)))
+      (sym (sourceCtxResult framed))
+      (subst
+        (StoreWf _)
+        (sym (sourceStoreResult framed))
+        wfL)
+
   phase-two =
     target-value
       prefix-reflⁱ
       (worldRightCatchupCoherence caught)
       (worldRightCatchupSourceNameExclusive caught)
       (worldRightCatchupAssumptionMembershipUnique caught)
+      final-source-wf
       (worldRightCatchupTargetStoreWf caught)
       okM
       (ok-·₂ target-function-value target-function-no
         (ok-no target-argument-no))
       function-final argument-final vV vW target-function-value
+
+  finish :
+    WorldCoherentSourceOneStepOutcome
+      {M = sourceResult framed}
+      {M′ = targetResult framed}
+      {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
+      {A = resultSourceType framed}
+      {B = resultTargetType framed}
+      {χ = keep} {ρ = resultStore framed}
+      (resultType framed) →
+    WorldCoherentSourceOneStepOutcome
+      {M = (V ⟨ c C.↦ d ⟩) · W}
+      {M′ = L′ · R′}
+      {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
+      {A = B} {B = B′} {χ = keep} {ρ = ρ} pB
+  finish (source-step-outcome-source-blame source↠blame) =
+    source-step-outcome-source-blame source↠blame
+  finish (source-step-outcome-related second) =
+    source-step-outcome-related
+      (compose framed refl refl framed-transport framed-coherence
+        framed-lineage second)
 
 
 catch-source-function-cast-function-then-finishᵀ :
@@ -202,6 +265,7 @@ catch-source-function-cast-function-then-finishᵀ :
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK L′ →
@@ -213,17 +277,17 @@ catch-source-function-cast-function-then-finishᵀ :
       ⦂ A ⇒ B ⊑ A′ ⇒ B′ ∶ pA ↦ pB →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ W ⊑ R′ ⦂ A ⊑ A′ ∶ pA →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
     {A = B} {B = B′} {χ = keep} {ρ = ρ⁺} pB
 catch-source-function-cast-function-then-finishᵀ
     right-catchup target-value compose {c = c} {d = d}
-    prefix coherent exclusive unique wfR
+    prefix coherent exclusive unique wfL wfR
     okM okL′ vV vW noR function-related argument-related =
   finish-source-function-cast-function-catchupᵀ
-    target-value compose okM vV vW source-argument-no target-argument-no
+    target-value compose okM vV vW source-argument-no target-argument-no wfL
     argument-related⁺
     (right-catchup prefix coherent exclusive unique wfR okL′
       source-function-value source-function-no function-related)
@@ -258,7 +322,8 @@ world-coherent-source-function-cast-beta-direct-proofᵀ
     (ok-no (no•-· noL′ noR′)) source⊢ target⊢
     function-related argument-related vV vW =
   catch-source-function-cast-function-then-finishᵀ
-    right-catchup target-value compose prefix coherent exclusive unique wfR
+    right-catchup target-value compose
+    prefix coherent exclusive unique wfL wfR
     okM (ok-no noL′) vV vW noR′ function-related argument-related
 world-coherent-source-function-cast-beta-direct-proofᵀ
     right-catchup compose target-value
@@ -266,12 +331,13 @@ world-coherent-source-function-cast-beta-direct-proofᵀ
     (ok-·₁ okL′ noR′) source⊢ target⊢
     function-related argument-related vV vW =
   catch-source-function-cast-function-then-finishᵀ
-    right-catchup target-value compose prefix coherent exclusive unique wfR
+    right-catchup target-value compose
+    prefix coherent exclusive unique wfL wfR
     okM okL′ vV vW noR′ function-related argument-related
 world-coherent-source-function-cast-beta-direct-proofᵀ
     right-catchup compose target-value
     prefix coherent exclusive unique wfL wfR okM
     okM′@(ok-·₂ vL′ noL′ okR′) source⊢ target⊢
     function-related argument-related vV vW =
-  target-value prefix coherent exclusive unique wfR okM okM′
+  target-value prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′

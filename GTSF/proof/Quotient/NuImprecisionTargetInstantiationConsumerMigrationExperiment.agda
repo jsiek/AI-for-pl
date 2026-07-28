@@ -34,14 +34,16 @@ open import NuReduction using
   ; keep
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftRightStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import NuTerms using
   (No•; Term; Value; Λ_; _⟨_⟩; ν; renameᵗᵐ)
@@ -54,7 +56,7 @@ open import
   proof.Core.Properties.TypeProperties
   using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-rename-at²ᵢ
@@ -165,6 +167,7 @@ data CanonicalTargetInstantiationLeafᴿ
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ⁺)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)) →

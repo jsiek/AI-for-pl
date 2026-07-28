@@ -11,7 +11,12 @@ open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using (Substˣ; no•-`)
 open import QuotientedTermImprecision using (x⊑xᵀ)
 open import Types using (S; TyCtx; Z)

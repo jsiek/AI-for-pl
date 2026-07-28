@@ -53,7 +53,9 @@ open import NuReduction using
   ; ↠-refl
   ; _—↠[_]_
   )
-open import NuTermImprecision using (ctx-imp)
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
+  )
 open import NuTerms using
   ( Term
   ; Value
@@ -69,8 +71,8 @@ open import QuotientedTermImprecision using
   ( ƛ⊑ƛᵀ
   ; x⊑xᵀ
   ; ·⊑·ᵀ
-  ; down⊑downᵀ
-  ; up⊑upᵀ
+  ; paired-downᵀ
+  ; closeᵀ
   ; quotient-id-widening
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
@@ -80,7 +82,7 @@ open import Types using
   ; _⇒_
   )
 open import proof.Compilation.CompileCoercions using
-  (coerce-upʷ-shape-idᵢ)
+  (coerce-downⁿ-shape-idᵢ; coerce-upʷ-shape-idᵢ)
 open import proof.Core.Permutation.ForallPermutationTest using
   ( glb-lower-XY≈YX
   ; glb-lower-XY⊑XY
@@ -95,24 +97,18 @@ open import proof.EndpointMLB.Core.MLBGlbExample using
   ; glb-lower-YX
   ; glb-lower-YX⊑A
   )
-open import
-  proof.Quotient.NuImprecisionCompositionalQuotientDef
+open import QuotientImprecisionCompatibility
   using
   ( id-only↓
-  ; single↓
-  ; compatible-functionᴿ
   ; compatible-target-activeᴿ
   ; ReductionClosedQuotientWideningCompatible
-  ; compatible-through-representativesᴿ
-  )
-open import
-  proof.Quotient.NuImprecisionCompositionalQuotientExamples
-  using
-  ( down-D
-  ; down-E
-  ; down-D-result
-  ; down-E-result
-  ; route-quotient-square
+  ; QuotientNarrowingEliminationCompatible
+  ; compatible-quotient-functionᴿ
+  ; compatible-through-non-function-representativesᴿ
+  ; function-elimination
+  ; non-function-elimination
+  ; non-function-universal
+  ; source-non-function
   )
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
@@ -135,6 +131,18 @@ open import
 ------------------------------------------------------------------------
 -- One nontrivial down/up round trip
 ------------------------------------------------------------------------
+
+down-D-result =
+  coerce-downⁿ-shape-idᵢ 81 glb-lower-XY⊑A
+
+down-E-result =
+  coerce-downⁿ-shape-idᵢ 81 glb-lower-YX⊑A
+
+down-D : C.Coercion
+down-D = proj₁ down-D-result
+
+down-E : C.Coercion
+down-E = proj₁ down-E-result
 
 up-D-result =
   coerce-upʷ-shape-idᵢ 82 glb-lower-XY⊑A
@@ -160,13 +168,29 @@ up-D-inert = C.`∀ _
 up-E-not-inert : C.Inert up-E → ⊥
 up-E-not-inert ()
 
+route-quotient-square :
+  ⌊ glb-lower-XY⊑A ⌋ ；⌊ glb-bad-A⊑A ⌋≋ᵖ
+    glb-lower-XY⊑ᵖYX ； ⌊ glb-lower-YX⊑A ⌋
+route-quotient-square =
+  quotient-boundary-square
+    source-perm-refl
+    (comp-∀-∀
+      (comp-ν
+        (comp-↦-↦ comp-idˣ-idˣ comp-tagˣ-id★)))
+    source-swap-∀ν
+    (comp-∀-∀
+      (comp-∀-ν
+        (comp-↦-↦ comp-idˣ-idˣ comp-idˣ-tagˣ)))
+
 route-widening-compatible :
   ReductionClosedQuotientWideningCompatible (idᵢ zero) zero zero
     up-D up-E glb-lower-XY⊑ᵖYX glb-bad-A⊑A
     ⌊ glb-lower-XY⊑A ⌋ ⌊ glb-lower-YX⊑A ⌋
 route-widening-compatible =
-  compatible-through-representativesᴿ
-    source-perm-refl source-swap-∀ν
+  compatible-through-non-function-representativesᴿ
+    (source-non-function non-function-universal)
+    source-perm-refl
+    source-swap-∀ν
     (compatible-target-activeᴿ up-D-inert up-E-not-inert)
 
 down-routeᴿ :
@@ -232,12 +256,16 @@ down-routeᵀ :
     ⦂ glb-lower-XY ⊑ᵖ glb-lower-YX
     ∶ glb-lower-XY⊑ᵖYX
 down-routeᵀ relation =
-  down⊑downᵀ
+  paired-downᵀ relation
+    id-only↓
     (proj₁ (proj₂ down-D-result))
     (proj₂ (proj₂ down-D-result))
+    id-only↓
     (proj₁ (proj₂ down-E-result))
     (proj₂ (proj₂ down-E-result))
-    relation glb-lower-XY⊑ᵖYX route-quotient-square
+    route-quotient-square
+    (non-function-elimination
+      (source-non-function non-function-universal))
 
 close-routeᵀ :
   ∀ {M M′} →
@@ -249,7 +277,7 @@ close-routeᵀ :
     ⊢ᴺ M ⟨ up-D ⟩ ⊑ M′ ⟨ up-E ⟩
     ⦂ glb-bad-A ⊑ glb-bad-A ∶ glb-bad-A⊑A
 close-routeᵀ relation =
-  up⊑upᵀ relation
+  closeᵀ relation
     (quotient-id-widening
       (proj₁ (proj₂ up-D-result))
       (proj₁ (proj₂ up-E-result)))
@@ -257,6 +285,7 @@ close-routeᵀ relation =
     (proj₂ (proj₂ up-D-result))
     (proj₂ (proj₂ up-E-result))
     route-quotient-square
+    route-widening-compatible
 
 round-tripᵀ :
   ∀ {M M′} →
@@ -417,11 +446,25 @@ outer-function-compatible :
     (⌊ glb-lower-XY⊑A ⌋ ↦ˢ ⌊ glb-lower-XY⊑A ⌋)
     (⌊ glb-lower-YX⊑A ⌋ ↦ˢ ⌊ glb-lower-YX⊑A ⌋)
 outer-function-compatible =
-  compatible-through-representativesᴿ
-    source-perm-refl
-    (source-perm-↦ source-swap-∀ν source-swap-∀ν)
-    (compatible-functionᴿ
-      (compatible-target-activeᴿ up-D-inert up-E-not-inert))
+  compatible-quotient-functionᴿ
+    refl
+    (non-function-elimination
+      (source-non-function non-function-universal))
+    route-widening-compatible
+
+inner-function-elimination-compatible :
+  QuotientNarrowingEliminationCompatible (idᵢ zero) zero zero
+    inner-D inner-E
+    identity-A-function⊑identity-A-function
+    identity-function-quotient
+    (⌊ glb-lower-XY⊑A ⌋ ↦ˢ ⌊ glb-lower-XY⊑A ⌋)
+    (⌊ glb-lower-YX⊑A ⌋ ↦ˢ ⌊ glb-lower-YX⊑A ⌋)
+inner-function-elimination-compatible =
+  function-elimination
+    refl
+    route-widening-compatible
+    (non-function-elimination
+      (source-non-function non-function-universal))
 
 identity-A⊑identity-A :
   idᵢ zero ∣ zero ∣ zero ∣ [] ∣ []
@@ -487,19 +530,21 @@ closed-identity-functionsᵀ :
     ⊑ glb-bad-A ⇒ glb-bad-A
     ∶ identity-A-function⊑identity-A-function
 closed-identity-functionsᵀ =
-  up⊑upᵀ
-    (down⊑downᵀ
+  closeᵀ
+    (paired-downᵀ
+      identity-A⊑identity-A
+      id-only↓
       inner-D-typing
       (CastShape.shape-fun
         (proj₂ (proj₂ up-D-result))
         (proj₂ (proj₂ down-D-result)))
+      id-only↓
       inner-E-typing
       (CastShape.shape-fun
         (proj₂ (proj₂ up-E-result))
         (proj₂ (proj₂ down-E-result)))
-      identity-A⊑identity-A
-      identity-function-quotient
-      identity-function-quotient-square)
+      identity-function-quotient-square
+      inner-function-elimination-compatible)
     (quotient-id-widening outer-D-typing outer-E-typing)
     identity-A-function⊑identity-A-function
     (CastShape.shape-fun
@@ -509,6 +554,7 @@ closed-identity-functionsᵀ =
       (proj₂ (proj₂ down-E-result))
       (proj₂ (proj₂ up-E-result)))
     identity-function-quotient-square
+    outer-function-compatible
 
 related-two-function-cast-applicationsᴿ :
   ∀ {W W′} →

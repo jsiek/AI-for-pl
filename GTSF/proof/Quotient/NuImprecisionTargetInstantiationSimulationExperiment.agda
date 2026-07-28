@@ -42,16 +42,18 @@ open import NuReduction using
   ; _—→[_]_
   ; _—↠[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-right
-  ; lift-ctx-[]
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
   )
 open import NuTerms using
   (No•; Term; Value; Λ_; _⟨_⟩; ν)
@@ -63,7 +65,7 @@ open import
   proof.Target.Administration.NuImprecisionTargetPendingLambdaAllocationTraceProof
   using (target-pending-lambda-allocation-trace-proofᵀ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
@@ -75,7 +77,11 @@ open import
   )
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
-  using (TargetInstantiationCreation; exact-creationᴱ)
+  using
+  ( StoreImpPrefixᴿ
+  ; TargetInstantiationCreation
+  ; exact-creationᴱ
+  )
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientTypingExperiment
   using
@@ -114,6 +120,7 @@ record TargetInstantiationSimulationSliceᴿ
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ₀)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)) : Set₁ where
@@ -203,6 +210,7 @@ target-instantiation-initial-imprecisionᴿ :
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
       {body-shape = body-shape}
+      (StoreImpPrefixᴿ ρ₀ ρ₀)
       (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
         ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
         ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)) →
@@ -234,6 +242,7 @@ target-instantiation-simulation-sliceᴿ :
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ₀)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)} →

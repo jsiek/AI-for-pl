@@ -53,10 +53,11 @@ open import ImprecisionWf using
 import NarrowWiden as NW
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( lift-left-ctx-[]
-  ; seal★-tag-or-id
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( Term
   ; Value
@@ -64,25 +65,31 @@ open import NuTerms using
   ; no•-⟨⟩
   ; _⟨_⟩
   )
+open import QuotientImprecisionCompatibility using
+  ( ReductionClosedQuotientWideningCompatible
+  ; compatible-allᴿ
+  ; compatible-functionᴿ
+  ; compatible-tagᴿ
+  ; compatible-target-activeᴿ
+  ; compatible-target-inert-bridgeᴿ
+  ; compatible-through-non-function-representativesᴿ
+  )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; paired-conceal
-  ; paired-conversion
-  ; paired-reveal
-  ; paired-widening
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; quotient-cast-widening
   ; quotient-id-widening
-  ; up⊑upᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
@@ -95,19 +102,23 @@ open import TermTyping using
   )
 import Types as T
 open import proof.Compilation.GenSafeProperties using
-  ( genSafe-source-shape
+  ( genSafeShape-atomic-impossible
+  ; genSafe-source-shape
   ; genSafe-target-shape
   ; narrowing-inert-view
   ; shape-all
   ; shape-fun
   )
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-shapeᴱ)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ( imprecision-composition-shape-transport
   ; shape-source-liftνᵢ
   )
 open import proof.Core.Permutation.ForallPermutationProperties using
   (≈∀-ground-right-eq)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-source-liftνᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
@@ -122,10 +133,13 @@ open import
   proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-source-only-head)
 open import
- proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationLemma
-  using (target-ground-value-quotient-eliminationᵀ)
+  proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
+  (SourceNameExclusive)
 open import
-  proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationProof
+  proof.Target.GroundValue.NuImprecisionTargetFunctionGroundValueQuotientEliminationLemma
+  using (target-function-ground-value-quotient-eliminationᵀ)
+open import
+  proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationProperties
   using
     ( function-ground-self-permutation-shape-equal
     ; source-ground-≈∀-left
@@ -281,6 +295,99 @@ source-inert-widening-ground-route
 source-inert-widening-ground-route
     (C.gen A c) (c⊢ , NW.cross ())
     inner groundG requested groundH
+
+
+source-inert-widening-result-ground-route :
+  ∀ {Φ Δᴸ Δᴿ μ Σ c A B H} →
+  C.Inert c →
+  μ ∣ Δᴸ ∣ Σ ⊢ c ∶ A ⊑ B →
+  Φ ∣ Δᴸ ⊢ B ⊑ H ⊣ Δᴿ →
+  T.Ground H →
+  H ≡ T.★ T.⇒ T.★
+source-inert-widening-result-ground-route
+    (G C.!) (C.cast-tag hG gG ok , NW.tag gG′)
+    requested ground =
+  ⊥-elim (star-ground-impossible requested ground)
+source-inert-widening-result-ground-route
+    (s C.↦ t)
+    (C.cast-fun s⊢ t⊢ , NW.cross (sⁿ NW.↦ tʷ))
+    requested ground =
+  gen-safe-shape-ground-function shape-fun requested ground
+source-inert-widening-result-ground-route
+    (C.`∀ c) (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+    requested ground =
+  gen-safe-shape-ground-function shape-all requested ground
+source-inert-widening-result-ground-route
+    (C.seal A α) (c⊢ , NW.cross ()) requested ground
+source-inert-widening-result-ground-route
+    (C.gen A c) (c⊢ , NW.cross ()) requested ground
+
+
+quotient-close-target-tag-ground-route :
+  ∀ {Φ Δᴸ Δᴿ μ Σ u C A G H}
+    {qD : Φ ∣ Δᴸ ⊢ C ⊑ᵖ G ⊣ Δᴿ}
+    {u-shape target-shape} →
+  SourceNameExclusive Φ →
+  C.Inert u →
+  μ ∣ Δᴸ ∣ Σ ⊢ u ∶ C ⊑ A →
+  (outer : Φ ∣ Δᴸ ⊢ A ⊑ T.★ ⊣ Δᴿ) →
+  (requested : Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ) →
+  (gG : T.Ground G) →
+  (gH : T.Ground H) →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ u (G C.!) qD outer u-shape target-shape →
+  G ≡ T.★ T.⇒ T.★ × H ≡ T.★ T.⇒ T.★
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape (compatible-tagᴿ G₀))
+    with u⊑
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape (compatible-tagᴿ G₀))
+    | (C.cast-tag hG₀ gG₀ ok , NW.tag gG₀′) =
+  ⊥-elim
+    (star-ground-impossible requested gH)
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape
+      (compatible-target-activeᴿ inert-u not-inert-target)) =
+  ⊥-elim (not-inert-target (G C.!))
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      {tgt = target-equivalence}
+      non-function source-shape target-shape
+      (compatible-target-inert-bridgeᴿ bridge-evidence))
+    with ≈∀-ground-right-eq gG target-equivalence
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      {tgt = target-equivalence}
+      non-function source-shape target-shape
+      (compatible-target-inert-bridgeᴿ bridge-evidence))
+    | refl
+    with bridge-evidence (G C.!)
+       | source-inert-widening-result-ground-route
+           inert u⊑ requested gH
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      {tgt = target-equivalence}
+      non-function source-shape target-shape
+      (compatible-target-inert-bridgeᴿ bridge-evidence))
+    | refl | bridge , source-triangle , target-triangle | refl
+    with target-ground-unique exclusive outer bridge requested gG T.★⇒★
+quotient-close-target-tag-ground-route
+    {G = G} exclusive inert u⊑ outer requested gG gH
+    (compatible-through-non-function-representativesᴿ
+      {tgt = target-equivalence}
+      non-function source-shape target-shape
+      (compatible-target-inert-bridgeᴿ bridge-evidence))
+    | refl | bridge , source-triangle , target-triangle | refl | refl =
+  refl , refl
 
 
 source-inert-reveal-route :
@@ -549,23 +656,6 @@ cast-coercion-injective :
 cast-coercion-injective refl = refl
 
 
-inst-inert-target-tag-impossible :
-  ∀ {σ B s G} →
-  NW.Widening (C.inst B s) →
-  C.Inert s →
-  C.renameᶜ σ s ≡ G C.! →
-  ⊥
-inst-inert-target-tag-impossible (NW.inst ()) (G C.!) eq
-inst-inert-target-tag-impossible (NW.inst ())
-    (C.seal A α) eq
-inst-inert-target-tag-impossible (NW.inst safe)
-    (c C.↦ d) ()
-inst-inert-target-tag-impossible (NW.inst safe)
-    (C.`∀ c) ()
-inst-inert-target-tag-impossible (NW.inst ())
-    (C.gen A c) eq
-
-
 target-tag-cancellation-proofᵀ : TargetTagCancellationᵀ
 target-tag-cancellation-proofᵀ
     {p = ν safe-old occ-old inner-index}
@@ -587,19 +677,11 @@ target-tag-cancellation-proofᵀ
     liftρ lift-left-ctx-[] vBody canceled
 target-tag-cancellation-proofᵀ exclusive unique gH
     (Value.Λ vBody) (no•-Λ noBody) vW
-    (Λ⊑instβᵀ
-      prefix mode seal★ (inst-typing , inst-widening)
-      liftρ liftρᴿ vBody₀ noBody₀ vBody′ noBody′ inert body f
-      body-shape composition
-      assm hτ hσ store-emb
-      source-eq target-eq source-type-eq target-type-eq
-      outer-index final-v final-no final-closed
-      final-v′ final-no′ final-closed′
-      source-typing target-typing)
+    (target-instantiationᵀ embedded)
     requested =
   ⊥-elim
-    (inst-inert-target-tag-impossible inst-widening inert
-      (cast-coercion-injective target-eq))
+    (genSafeShape-atomic-impossible
+      (embedded-creation-target-shapeᴱ embedded) T.★)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
     (cast⊒⊑ᵀ {p = inner-index} mode seal★ c⊒
@@ -697,71 +779,62 @@ target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
       c-shape comp)
     requested
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
-    (⊑cast⊑idᵀ {p = inner-index} seal★
+    (⊑cast⊑ᵀ {p = inner-index} mode seal★
       (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
       c-shape comp)
     requested
     with target-ground-unique exclusive old-index
       inner-index requested gG gH
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
-    (⊑cast⊑idᵀ {p = inner-index} seal★
+    (⊑cast⊑ᵀ {p = inner-index} mode seal★
       (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
       c-shape comp)
     requested | refl
     with assumption-membership-unique→precision-index-unique unique
       inner-index requested
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
-    (⊑cast⊑idᵀ {p = inner-index} seal★
+    (⊑cast⊑ᵀ {p = inner-index} mode seal★
       (C.cast-tag hG gG ok , NW.tag gG′) inner old-index
       c-shape comp)
     requested | refl | refl =
   refl , inner
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv⊑convᵀ
-      (paired-conversion
-        (paired-reveal corr reveal () transport))
-      inner)
+    (paired-revealᵀ corr reveal () transport inner)
     requested
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv⊑convᵀ
-      (paired-conversion
-        (paired-conceal corr conceal () transport))
-      inner)
+    (paired-concealᵀ corr conceal () transport inner)
     requested
 target-tag-cancellation-proofᵀ {p = outer-index}
     exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv⊑convᵀ {p = inner-index}
-      (paired-widening mode seal★ c⊑ c-shape
-        mode′ seal★′
-        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
-        left-square right-square compat)
-      inner)
+    (paired-wideningᵀ {p = inner-index}
+      mode seal★ c⊑ c-shape
+      mode′ seal★′
+      (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+      left-square right-square compat inner)
     requested
     with source-inert-widening-ground-route inert c⊑
       inner-index gG requested gH
 target-tag-cancellation-proofᵀ {p = outer-index}
     exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv⊑convᵀ {p = inner-index}
-      (paired-widening mode seal★ c⊑ c-shape
-        mode′ seal★′
-        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
-        left-square right-square compat)
-      inner)
+    (paired-wideningᵀ {p = inner-index}
+      mode seal★ c⊑ c-shape
+      mode′ seal★′
+      (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+      left-square right-square compat inner)
     requested | refl , refl
     with c′-shape
 target-tag-cancellation-proofᵀ {p = outer-index}
     exclusive unique gH
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM) vW
-    (conv⊑convᵀ {p = inner-index}
-      (paired-widening mode seal★ c⊑ c-shape
-        mode′ seal★′
-        (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
-        left-square right-square compat)
-      inner)
+    (paired-wideningᵀ {p = inner-index}
+      mode seal★ c⊑ c-shape
+      mode′ seal★′
+      (C.cast-tag hG gG ok , NW.tag gG′) c′-shape
+      left-square right-square compat inner)
     requested | refl , refl | shape-tag-fun =
   refl ,
   cast⊑⊑ᵀ mode seal★ c⊑ inner requested c-shape
@@ -770,37 +843,37 @@ target-tag-cancellation-proofᵀ {p = outer-index}
       left-square right-square)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
+      outer-index u-shape target-shape square compatible)
     requested
-    with target-ground-value-quotient-eliminationᵀ
-      gG vN vW quotient
+    with quotient-close-target-tag-ground-route
+      exclusive inert u⊑ outer-index requested gG gH compatible
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary
-    with source-inert-widening-ground-route inert u⊑
-      ordinary-index gG requested gH
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl
+    with target-function-ground-value-quotient-eliminationᵀ
+      vN vW quotient
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary | refl , refl
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl | ordinary-index , ordinary
     with target-shape
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-id-widening u⊑
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary | refl , refl
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl | ordinary-index , ordinary
     | shape-tag-fun =
   refl ,
   cast⊑⊑ᵀ cast-tag-or-id seal★-tag-or-id
@@ -810,41 +883,41 @@ target-tag-cancellation-proofᵀ exclusive unique gH
       unique outer-index requested _ ordinary-index square)
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
+      outer-index u-shape target-shape square compatible)
     requested
-    with target-ground-value-quotient-eliminationᵀ
-      gG vN vW quotient
+    with quotient-close-target-tag-ground-route
+      exclusive inert u⊑ outer-index requested gG gH compatible
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary
-    with source-inert-widening-ground-route inert u⊑
-      ordinary-index gG requested gH
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl
+    with target-function-ground-value-quotient-eliminationᵀ
+      vN vW quotient
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary | refl , refl
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl | ordinary-index , ordinary
     with target-shape
 target-tag-cancellation-proofᵀ exclusive unique gH
     (vN ⟨ inert ⟩) (no•-⟨⟩ noN) vW
-    (up⊑upᵀ quotient
+    (closeᵀ quotient
       (quotient-cast-widening
         mode seal★ u⊑ mode′ seal★′
         (C.cast-tag hG gG ok , NW.tag gG′))
-      outer-index u-shape target-shape square)
-    requested | ordinary-index , ordinary | refl , refl
+      outer-index u-shape target-shape square compatible)
+    requested | refl , refl | ordinary-index , ordinary
     | shape-tag-fun =
   refl ,
   cast⊑⊑ᵀ mode seal★ u⊑ ordinary requested u-shape

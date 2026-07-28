@@ -21,13 +21,15 @@ open import Imprecision using
   (_ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᵢ)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; LiftStoreⁱ
+  ; StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
-  ; LiftStoreⁱ
-  ; StoreImp
   ; ctx-imp
   ; lift-ctx-[]
   ; lift-ctx-∷
@@ -52,7 +54,7 @@ open import proof.Core.Properties.NuTermProperties using
   ( renameᵗᵐ-preserves-No•
   ; renameˣᵐ-preserves-No•
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

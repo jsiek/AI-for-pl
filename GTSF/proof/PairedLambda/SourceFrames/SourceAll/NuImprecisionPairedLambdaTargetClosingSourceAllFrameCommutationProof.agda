@@ -12,6 +12,7 @@ module
 --   * Contains no canonical assembly, postulate, hole, permissive option, or
 --     broad simulation/core import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Conversion using (reveal-all)
 open import Data.Nat.Properties using (≤-refl)
@@ -22,11 +23,9 @@ open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; paired-conversion
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import
   proof.PairedLambda.Conversions.NuImprecisionPairedLambdaTargetClosingNuPairedConversionRotationDef
   using

@@ -12,7 +12,7 @@ open import Data.List using (_∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (_,_)
 
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( lift-left-store-left
   ; lift-left-store-link
   ; lift-left-store-right
@@ -32,7 +32,7 @@ open import NuTermImprecision using
   )
 open import QuotientedTermImprecision using
   (prefix-reflⁱ; prefix-∷ⁱ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Store.Prefix.NuImprecisionStorePrefixLiftDef using
   (LeftStorePrefixLiftᵀ; PairedStorePrefixLiftᵀ; RightStorePrefixLiftᵀ)

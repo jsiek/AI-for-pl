@@ -12,9 +12,12 @@ module
 
 open import Data.Nat using (suc)
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using (LiftLeftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  )
 open import Types using (TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 

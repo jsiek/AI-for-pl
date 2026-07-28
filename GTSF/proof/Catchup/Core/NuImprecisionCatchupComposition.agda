@@ -13,10 +13,15 @@ import Relation.Binary.HeterogeneousEquality as HE
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ∀ⁱ_)
 open import NuReduction using
   (keep; _—→[_]_; ↠-refl; ↠-step)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision
 open import Types using (`∀)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using (transportAllType-to-raw≅; transportArrowType-to-raw≅)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 
 weak-one-step-keep-source-catchupᵀ :
@@ -153,13 +158,13 @@ weak-one-step-prepend-source-keep-type-coherenceᵀ
         (transportArrowType-to-raw≅ combined pC pD)
         (HE.trans
           (HE.sym (transportArrowType-to-raw≅ second pC pD))
-          (≡-to-≅ (transportArrowCoherent coherence pC pD)))))
+          (HE.≡-to-≅ (transportArrowCoherent coherence pC pD)))))
     (λ q → HE.≅-to-≡
       (HE.trans
         (transportAllType-to-raw≅ combined q)
         (HE.trans
           (HE.sym (transportAllType-to-raw≅ second q))
-          (≡-to-≅ (transportAllCoherent coherence q)))))
+          (HE.≡-to-≅ (transportAllCoherent coherence q)))))
     (transportShapeCoherent coherence)
     (transportRightBodyShapeCoherent coherence)
     (transportLeftReplacementCoherent coherence)

@@ -65,8 +65,11 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; un⇑ᴸᵢ-ˣ∈
   ; no-⇑ᴸᵢ-zero-left
   )
-open import proof.Core.Properties.NarrowWidenProperties as NWP
-  using (StoreDetWf; StoreDetWf-⟰ᵗ; StoreDetWf-inst)
+import proof.Core.Properties.NarrowWidenStoreInvariantDef as NWStore
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantProof
+  using (StoreDetWf-⟰ᵗ; StoreDetWf-inst)
 open import proof.Core.Properties.StoreProperties using (∈-renameStoreᵗ)
 open import proof.Core.Properties.TypeProperties using (rename-raise-ext)
 
@@ -323,7 +326,7 @@ seal⊑★ {α = α} wfΣ ok α★∈Σ =
   tagˣ (castᵢ-star-lookup α<Δ (sealMode⇒starAllowed ok)) α<Δ
   where
     α<Δ : α < _
-    α<Δ = bound (NWP.StoreDetWf.at wfΣ) α★∈Σ
+    α<Δ = bound (NWStore.StoreDetWf.at wfΣ) α★∈Σ
 
 LeftCastCtxCompatible : ModeEnv → TyCtx → ImpCtx → Set
 LeftCastCtxCompatible μ Δ Φ =
@@ -339,6 +342,16 @@ RightCastCtxCompatible μ Δ Φ =
   Y < Δ →
   modeStarAllowed (μ Y) ≡ true →
   (X ˣ⊑★) ∈ Φ
+
+left-id-only-compatible :
+  ∀ {Φ Δ} →
+  LeftCastCtxCompatible id-onlyᵈ Δ Φ
+left-id-only-compatible X<Δ ()
+
+right-id-only-compatible :
+  ∀ {Φ Δ} →
+  RightCastCtxCompatible id-onlyᵈ Δ Φ
+right-id-only-compatible x∈ Y<Δ ()
 
 matched-gen-left-incompatible :
   ∀ {μ Δ Φ} →
@@ -1203,7 +1216,7 @@ mutual
       (narrowing⇒⊑ᵢ wfΣ seal★ (s⊢ , NW.untag ★⇒★))
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-seal hA α∈Σ ok ,
       NW.sealⁿ A α)
-      rewrite NWP.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =
+      rewrite NWStore.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =
     seal⊑★ wfΣ ok (seal★ α ok)
   narrowing⇒⊑ᵢ wfΣ seal★ (C.cast-seq s⊢ t⊢ , n NW.︔seal α) =
     ⊑-trans-castᵢ
@@ -1251,7 +1264,7 @@ mutual
       (widening⇒⊑ᵢ wfΣ seal★ (t⊢ , NW.tag ★⇒★))
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-unseal hA α∈Σ ok ,
       NW.unsealʷ α A)
-      rewrite NWP.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =
+      rewrite NWStore.StoreDetWf.unique wfΣ α∈Σ (seal★ α ok) =
     seal⊑★ wfΣ ok (seal★ α ok)
   widening⇒⊑ᵢ wfΣ seal★ (C.cast-seq s⊢ t⊢ , NW.unseal︔_ α w) =
     ⊑-trans-castᵢ

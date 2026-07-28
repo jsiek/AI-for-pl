@@ -13,26 +13,40 @@ module proof.DGG.Core.NuDGGUnassembledProofsStrictSpine where
 --     canonical `Lemma`.
 
 import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedCastTransportProof
-import
   proof.Right.SourceAll.ClosingValues.NuImprecisionRightSourceAllStrictSpine
 import
   proof.Source.Administration.NuImprecisionSourceAdministrationMeasureProof
 import
-  proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedCastCatchupProof
-import
-  proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedConversionCatchupProof
+  proof.Source.Core.NuImprecisionSourceValueGenTargetGroundAgreementProof
 import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastCatchupProof
 import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCatchupProof
 import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof
+import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof
+import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastIndexBodyViewProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientDownValueAccProof
+import
+  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientDownBadUntagRootProof
+import
+  proof.WorldCoherent.Right.Target.QuotientDown.NuImprecisionWorldCoherentRightTargetQuotientDownPendingCastsAccProof
+import
+  proof.WorldCoherent.Right.Target.QuotientDown.NuImprecisionWorldCoherentRightTargetQuotientDownPendingInstAccProof
 import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetPendingNuAllocationFromPairedLambdaAccProof
 import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetPendingNuAllocationPairedFinalBodyInversionProof
 import
   proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBulletCatchupProof
+import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceSequenceWidenCatchupProof
+import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNuIndexedInstantiationWidenCatchupProof
+import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNarrowCatchupProof
 import
   proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupProof

@@ -11,6 +11,7 @@ module
 --   * Contains no recursive dispatcher, new result carrier, postulate, hole,
 --     permissive option, termination bypass, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _++_)
 open import Data.Product using (_,_; Σ-syntax)
@@ -21,13 +22,15 @@ open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
   (applyTerm; applyTerms; applyTy; applyTys; keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
-  (prefix-reflⁱ; nu-term-imprecision-source-typing)
+  (prefix-reflⁱ; )
 open import Types using (Ty; TyCtx)
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ

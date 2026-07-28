@@ -15,7 +15,11 @@ import Coercions as C
 open import Coercions using (Coercion; Inert; ModeEnv)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import PairedWideningCompatibility using
   ( PairedWideningCompatible

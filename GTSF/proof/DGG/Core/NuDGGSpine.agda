@@ -8,6 +8,7 @@ module proof.DGG.Core.NuDGGSpine where
 --   * Leaves one explicit proof boundary: `ClosedNuDGG`, whose four clauses
 --     are the forward and backward convergence/divergence obligations.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
@@ -41,12 +42,14 @@ open import NuReduction using
   ; _—→[_]_
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
-  ; leftCtxⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; leftCtxⁱ
   )
 open import NuMetaTheory using
   ( multi-preservation
@@ -65,7 +68,6 @@ open import proof.DGG.Core.NuProgress using (Progress; crash; done; step)
 open import proof.DGG.Core.NuDGGClosedWorld using (empty-store-wf)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
   )
 open import Run using (compileᵀ-runtime)
 open import TermTyping using (forget)

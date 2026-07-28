@@ -10,6 +10,7 @@ module proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal where
 --   * Depends on the stable weak-simulation core, source-keep composition
 --     helpers, and base judgments.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
@@ -19,14 +20,26 @@ open import Coercions using (Inert)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (blame-⟨⟩; keep; pure-step)
 open import NuTerms using (blame; no•-⟨⟩; _⟨_⟩)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
-  ; nu-term-imprecision-target-typing
   )
 import proof.Catchup.Core.NuImprecisionCatchupComposition as CC
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-index-resultᵀ
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindex-preserves-type-coherenceᵀ
+  ; weak-one-step-reindexᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst²-to-≅)
 
 left-catchup-indexed-source-cast-blame-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M L V′ A A′ B B′ ρ d}

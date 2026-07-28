@@ -38,6 +38,21 @@ data GenSafeShape : Ty → Set where
   shape-fun : ∀ {A B} → GenSafeShape (A ⇒ B)
   shape-all : ∀ {A} → GenSafeShape (`∀ A)
 
+rename-genSafeShape :
+  ∀ (σ : Renameᵗ) {A : Ty} →
+  GenSafeShape A →
+  GenSafeShape (renameᵗ σ A)
+rename-genSafeShape σ shape-fun = shape-fun
+rename-genSafeShape σ shape-all = shape-all
+
+genSafeShape-atomic-impossible :
+  ∀ {A : Ty} →
+  GenSafeShape A →
+  Atom A →
+  ⊥
+genSafeShape-atomic-impossible shape-fun ()
+genSafeShape-atomic-impossible shape-all ()
+
 genSafe-source-shape :
   ∀ {μ : ModeEnv} {Δ Σ A B c} →
   μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B →

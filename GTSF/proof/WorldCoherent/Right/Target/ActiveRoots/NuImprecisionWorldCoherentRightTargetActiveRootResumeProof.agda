@@ -13,6 +13,7 @@ module
 --   * Does not assemble the full active-root record or attempt non-identity
 --     roots.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (zero; suc)
@@ -25,7 +26,8 @@ import Relation.Binary.HeterogeneousEquality as HE
 import Coercions as C
 import Conversion as Conv
 import CastImprecisionShape as CastShape
-open import Coercions using (ModeEnv; id; id-onlyᵈ)
+open import Coercions using
+  (ModeEnv; id; id-onlyᵈ; id-only≤tag-or-idᵈ)
 open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
 open import ImprecisionComposition using
   ( ImprecisionShape
@@ -42,7 +44,12 @@ open import Imprecision using (_ˣ⊑ˣ_; ⇑ᵢ)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; _↦_; ∀ⁱ_)
 open import NarrowWiden using
-  (narrow-weaken; widen-weaken; _∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
+  ( narrow-weaken
+  ; widen-mode-relax
+  ; widen-weaken
+  ; _∣_∣_⊢_∶_⊒_
+  ; _∣_∣_⊢_∶_⊑_
+  )
 import NarrowWiden as NW
 open import NuReduction using
   ( StoreChange
@@ -61,23 +68,27 @@ open import NuReduction using
   ; _—→[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Store using (StoreIncl-drop)
-open import TermTyping using (CastMode; SealModeStore★)
+open import TermTyping using
+  (CastMode; SealModeStore★; cast-tag-or-id)
 open import Types using
   (Atom; Ty; TyCtx; TyVar; WfTy; ＇_; ‵_; ★; _⇒_; `∀; ⇑ᵗ)
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
@@ -112,22 +123,21 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
-  ; seal★-id-only
-  ; subst²-to-≅
-  ; transport-all-⊑ᵢ
-  ; transportAllType-to-raw≅
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; transportArrowType-to-raw≅
-  ; weak-one-step-compose-all-body
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-compose-all-body
   ; weak-one-step-compose-all-componentsᵀ
   ; weak-one-step-compose-arrow-componentsᵀ
   ; weak-one-step-compose-preserves-type-coherenceᵀ
@@ -135,10 +145,23 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-compose-type
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-composeᵀ
-  ; weak-one-step-index-resultᵀ
   ; weak-one-step-nested-all-coherent≅
   ; weak-one-step-nested-arrow-coherent≅
   )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
+  ; weak-one-step-index-resultᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
+  )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; WeakOneStepTransport
@@ -218,8 +241,7 @@ open import proof.OneStep.NuImprecisionOneStepRelated using
   ; weak-one-step-related-type-coherenceᵀ
   ; weak-one-step-relatedᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact
@@ -617,7 +639,8 @@ private
       inner-world@(world-coherent-right-value-indexed-catchup
         catchup lineage source-bullet final-world final-exclusive final-unique
         final-wfR) =
-    ⊑cast⊑idᵀ final-seal final-cast
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ final-cast)
       (canonicalIndexedResults indexed) (transportType inner q)
       (cast-shape-applyCoercions (targetTailChanges inner)
         c-shape)
@@ -637,10 +660,6 @@ private
         (modeRename-id-only suc)
         (widen-weaken ≤-refl
           (rightStoreⁱ-prefix-inclusion prefix) c⊑)
-
-    final-seal :
-      SealModeStore★ id-onlyᵈ (rightStoreⁱ (resultStore inner))
-    final-seal = seal★-id-only
 
     final-cast :
       id-onlyᵈ ∣ resultRightCtx inner

@@ -24,7 +24,7 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (StoreChange)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )
@@ -40,7 +40,9 @@ open import Types using
   ( Ty
   ; TyCtx
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-source-narrow-cast-indexed-frameᵀ
   ; weak-one-step-source-widen-cast-indexed-frameᵀ
   )

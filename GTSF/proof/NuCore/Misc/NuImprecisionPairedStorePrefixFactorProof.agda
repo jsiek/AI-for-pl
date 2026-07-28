@@ -8,7 +8,7 @@ module proof.NuCore.Misc.NuImprecisionPairedStorePrefixFactorProof where
 --     constructor owners; contains no simulation import.
 
 open import Data.Product using (_,_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftStoreⁱ
   ; lift-store-[]
   ; lift-store-left

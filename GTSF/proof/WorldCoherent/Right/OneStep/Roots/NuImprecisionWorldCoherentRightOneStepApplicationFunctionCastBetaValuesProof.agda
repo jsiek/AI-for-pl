@@ -9,6 +9,7 @@ module
 --   * Contains no semantic recursion, postulate, hole, permissive option,
 --     catch-all, or compatibility wrapper.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.Nat using
@@ -21,8 +22,6 @@ open import NuTerms using
   ( ƛ_
   ; _⟨_⟩
   )
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-source-typing)
 open import TermTyping using (forget)
 open import proof.DGG.Core.NuProgress using
   ( canonical-⇒

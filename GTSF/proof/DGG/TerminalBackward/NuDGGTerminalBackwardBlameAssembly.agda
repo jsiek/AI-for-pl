@@ -7,6 +7,7 @@ module proof.DGG.TerminalBackward.NuDGGTerminalBackwardBlameAssembly where
 --   * Does not import either live implementation; that fit check is isolated
 --     in `NuDGGTerminalBackwardBlameIntegration`.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_; length)
 open import Data.Nat using (ℕ; zero; suc; s≤s⁻¹; _≤_)
@@ -23,18 +24,18 @@ open import NuReduction using
   ; _—↠[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using (RuntimeOK; _∣_∣_⊢_⦂_; blame)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   )
 open import proof.Core.Properties.ReductionProperties using (↠-trans)
 open import TermTyping using (forget)

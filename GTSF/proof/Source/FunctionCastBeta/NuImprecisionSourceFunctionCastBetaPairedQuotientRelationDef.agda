@@ -18,9 +18,13 @@ open import ImprecisionComposition using
   (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; _↦_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   (Term; _·_; _⟨_⟩)
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedQuotientWideningCompatible)
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -47,6 +51,9 @@ SourceFunctionCastBetaPairedQuotientRelationᵀ =
   CastShape.widening CastShape.⊢ᶜ (c C.↦ d) ⦂ s →
   CastShape.widening CastShape.⊢ᶜ (e C.↦ f) ⦂ s′ →
   s ；⌊ pA ↦ pB ⌋≋ᵖ qD ； s′ →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ (c C.↦ d) (e C.↦ f)
+    qD (pA ↦ pB) s s′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ W ⊑ R′ ⦂ A ⊑ A′ ∶ pA →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []

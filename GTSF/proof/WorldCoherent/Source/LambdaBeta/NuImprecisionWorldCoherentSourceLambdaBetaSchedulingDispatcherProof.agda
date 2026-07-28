@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Proves arbitrary-target lambda-beta scheduling by structural recursion.
 --   * Delegates the unframed application to direct scheduling and transports
---     completed results through all five target cast/conversion forms.
+--     completed results through all live target cast/conversion forms.
 --   * Contains no direct scheduling, catch-all, postulate, hole, or option.
 
 open import Agda.Builtin.Equality using (_≡_)
@@ -35,12 +35,8 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νᵀ
-  ; ⊑νcastᵀ
   )
 open import
   proof.WorldCoherent.Source.Application.NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef
@@ -52,22 +48,14 @@ open import
   ; sourceLambdaBetaDirectCase
   ; sourceLambdaBetaTargetBulletCase
   ; sourceLambdaBetaTargetCastFrames
-  ; sourceLambdaBetaTargetNuFrames
   )
 open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
-  )
-open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef
-  using
-  ( sourceStepTargetNuCastFrame
-  ; sourceStepTargetNuFrame
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
@@ -147,47 +135,6 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     coherent exclusive unique wfL wfR okM okM′ M⊢ M′⊢ inner vV
 world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    relation@(⊑αᵀ vL′ noL′ hA liftρ liftγ inner
-      r N⊢ L′•⊢) vV =
-  sourceLambdaBetaTargetBulletCase cases
-    prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ relation vV
-world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ r inner replace) vV =
-  sourceStepTargetNuFrame target-ν-frames
-    prefix hA s↑ r replace recursive
-  where
-  target-ν-frames = sourceLambdaBetaTargetNuFrames cases
-  recursive =
-    world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (ν-runtime okM′) M⊢
-      (ν-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ
-          (conversion↑⇒coercion (reveal-conversion-typing s↑))))
-        M′⊢)
-      inner vV
-world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r inner
-      s-shape comp) vV =
-  sourceStepTargetNuCastFrame target-ν-frames
-    prefix mode seal★ s⊑ r s-shape comp recursive
-  where
-  target-ν-frames = sourceLambdaBetaTargetNuFrames cases
-  recursive =
-    world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (ν-runtime okM′) M⊢
-      (ν-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ (proj₁ s⊑))) M′⊢)
-      inner vV
-world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ (·⊑·ᵀ L⊑L′ V⊑R′) vV =
   sourceLambdaBetaDirectCase cases
     prefix coherent exclusive unique wfL wfR okM okM′
@@ -213,21 +160,6 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp) vV =
   sourceStepTargetWidenFrame target-frames
     prefix mode seal★ c⊑ c-shape comp recursive
-  where
-  target-frames = sourceLambdaBetaTargetCastFrames cases
-  recursive =
-    world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (cast-runtime okM′) M⊢
-      (cast-body-typing-at (proj₁ (coercion-src-tgtᵐ (proj₁ c⊑)))
-        M′⊢)
-      inner vV
-world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) vV =
-  sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ c-shape comp recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =

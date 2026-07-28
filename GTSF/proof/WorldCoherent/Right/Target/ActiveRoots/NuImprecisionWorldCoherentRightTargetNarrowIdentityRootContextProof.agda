@@ -27,8 +27,10 @@ open import NarrowWiden using
 import NarrowWiden as NW
 open import NuReduction using
   (applyTyCtxs; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -37,7 +39,7 @@ open import QuotientedTermImprecision using
   )
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; ＇_; ‵_; ★)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import proof.Core.Properties.NuNarrowingTransport using
   (apply-narrows-typing)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef using
   (rightCatchupIndexedResult)

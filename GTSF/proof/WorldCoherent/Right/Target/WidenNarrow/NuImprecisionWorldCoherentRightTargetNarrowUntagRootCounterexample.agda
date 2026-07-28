@@ -32,10 +32,13 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( ctx-imp
-  ; seal★-tag-or-id
   )
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  (StoreImpEntry)
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -133,7 +136,7 @@ private
 
   coherent₂ :
     WorldCoherent
-      ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
   coherent₂ = world-coherent-empty
 
   tag-typing :
@@ -149,14 +152,14 @@ private
 
   lambda-relation :
     Φ₂ ∣ suc zero ∣ zero ∣
-      ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
       ∣ [] ⊢ᴺ I ⊑ I ⦂ A ⊑ H ∶ a₁ ↦ a₁
   lambda-relation =
     ƛ⊑ƛᵀ (wfVar z<s) wf★ (x⊑xᵀ Types.Z)
 
   tagged-relation :
     Φ₂ ∣ suc zero ∣ zero ∣
-      ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
       ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p
   tagged-relation =
     ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
@@ -167,7 +170,7 @@ private
 
   variable-at-a₂-impossible :
     Φ₂ ∣ suc zero ∣ zero ∣
-      ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
       ∣ ctx-imp X ★ a₁ ∷ []
       ⊢ᴺ ` zero ⊑ ` zero ⦂ X ⊑ ★ ∶ a₂ →
     ⊥
@@ -180,7 +183,7 @@ private
 
 requested-untagged-relation-impossible :
   Φ₂ ∣ suc zero ∣ zero ∣
-    ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+    ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
     ∣ [] ⊢ᴺ I ⊑ I ⦂ A ⊑ H ∶ q →
   ⊥
 requested-untagged-relation-impossible
@@ -203,11 +206,11 @@ duplicate-assumptions-not-unique unique | ()
 old-untag-local-premises-are-inhabited :
   StoreImpPrefix
     ([] {A =
-      NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      StoreImpEntry Φ₂ (suc zero) zero})
     [] ×
   WorldCoherent
     ([] {A =
-      NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero}) ×
+      StoreImpEntry Φ₂ (suc zero) zero}) ×
   SourceNameExclusive Φ₂ ×
   StoreWf zero [] ×
   RuntimeOK (tagged ⟨ (H C.？) ⟩) ×
@@ -218,7 +221,7 @@ old-untag-local-premises-are-inhabited :
   (C.tag-or-idᵈ ∣ zero ∣ [] ⊢ (H C.？) ∶ ★ ⊒ H) ×
   (Φ₂ ∣ suc zero ∣ zero ∣
     ([] {A =
-      NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+      StoreImpEntry Φ₂ (suc zero) zero})
     ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p)
 old-untag-local-premises-are-inhabited =
   prefix-reflⁱ ,
@@ -236,7 +239,7 @@ old-untag-local-premises-are-inhabited =
 
 direct-tag-premise-is-inhabited :
   Φ₂ ∣ suc zero ∣ zero ∣
-    ([] {A = NuTermImprecision.StoreImpEntry Φ₂ (suc zero) zero})
+    ([] {A = StoreImpEntry Φ₂ (suc zero) zero})
     ∣ [] ⊢ᴺ I ⊑ tagged ⦂ A ⊑ ★ ∶ p
 direct-tag-premise-is-inhabited = tagged-relation
 

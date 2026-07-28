@@ -7,7 +7,9 @@ module
 --     a target application directly.
 --   * Permits the target trace required by paired function casts; it does not
 --     require the target redex to remain unchanged.
---   * Contains no implementation, result wrapper, postulate, hole, or
+--   * Propagates source blame reached while terminalizing exposed domain
+--     casts after function catch-up.
+--   * Contains no implementation, postulate, hole, or
 --     permissive option.
 
 import Coercions as C
@@ -17,8 +19,11 @@ open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (RuntimeOK; Term; Value; _·_; _⟨_⟩)
 open import QuotientedTermImprecision using
@@ -31,8 +36,9 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (WorldCoherentSourceOneStepOutcome)
 
 
 WorldCoherentSourceFunctionCastBetaDirectᵀ : Set₁
@@ -61,7 +67,7 @@ WorldCoherentSourceFunctionCastBetaDirectᵀ =
     ⊢ᴺ W ⊑ R′ ⦂ A ⊑ A′ ∶ pA →
   Value V →
   Value W →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}

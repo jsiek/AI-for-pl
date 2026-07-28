@@ -19,11 +19,13 @@ open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 import ImprecisionWf as IW
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( LiftLeftCtxⁱ
   )
 open import NuTerms using (RuntimeOK; Term; Λ_; $)
 open import Primitives using (Const)

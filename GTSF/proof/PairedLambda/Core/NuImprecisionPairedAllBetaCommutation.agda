@@ -36,22 +36,22 @@ open import NuTerms using
   ; _•
   ; _⟨_⟩
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; correspondence-stored
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-matched
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import QuotientedTermImprecision using
-  ( conv⊑convᵀ
-  ; paired-conceal
-  ; paired-conversion
-  ; paired-reveal
+  ( paired-concealᵀ
+  ; paired-revealᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; ⊑-open∀ᵢ
   )
@@ -93,13 +93,12 @@ paired-β-∀-revealᵀ zero⊑zero zero-entry vV vV′
     (reveal-all c↑) (reveal-all c′↑) p q replacement V•⊑V′• =
   pure-step (β-∀• vV) ,
   pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-reveal (correspondence-stored zero-entry)
-        (open-reveal-conversion z<s c↑)
-        (open-reveal-conversion z<s c′↑)
-        (replace-paired-open∀ᵢ
-          zero⊑zero z<s z<s replacement)))
+  paired-revealᵀ
+    (correspondence-stored zero-entry)
+    (open-reveal-conversion z<s c↑)
+    (open-reveal-conversion z<s c′↑)
+    (replace-paired-open∀ᵢ
+      zero⊑zero z<s z<s replacement)
     V•⊑V′•
 
 paired-β-∀-concealᵀ :
@@ -136,11 +135,10 @@ paired-β-∀-concealᵀ zero⊑zero zero-entry vV vV′
     replacement V•⊑V′• =
   pure-step (β-∀• vV) ,
   pure-step (β-∀• vV′) ,
-  conv⊑convᵀ
-    (paired-conversion
-      (paired-conceal (correspondence-stored zero-entry)
-        (open-conceal-conversion z<s c↓)
-        (open-conceal-conversion z<s c′↓)
-        (replace-paired-open∀ᵢ
-          zero⊑zero z<s z<s replacement)))
+  paired-concealᵀ
+    (correspondence-stored zero-entry)
+    (open-conceal-conversion z<s c↓)
+    (open-conceal-conversion z<s c′↓)
+    (replace-paired-open∀ᵢ
+      zero⊑zero z<s z<s replacement)
     V•⊑V′•

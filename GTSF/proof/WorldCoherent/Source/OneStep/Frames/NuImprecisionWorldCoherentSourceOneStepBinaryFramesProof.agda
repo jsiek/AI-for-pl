@@ -3,11 +3,13 @@ module
   where
 
 -- File Charter:
---   * Implements exact world-coherent source one-step binary frames.
+--   * Implements world-coherent source one-step binary frames.
 --   * Reuses exported weak application frames and locally reproduces the
 --     private primitive indexed-frame record construction.
---   * Preserves source-step exact changes, exact source result, transport,
---     type coherence, store lineage, world coherence, and exclusivity.
+--   * Preserves the distinguished source step and lifts its arbitrary tail
+--     through application and primitive frames.
+--   * Preserves transport, type coherence, store lineage, world coherence,
+--     and exclusivity.
 --   * Contains no dispatcher, outcome carrier, postulate, hole, or permissive
 --     option.
 
@@ -25,8 +27,11 @@ open import NuReduction using
   ; applyTerms
   ; applyTy
   ; applyTys
+  ; _—↠[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; Term
@@ -38,7 +43,7 @@ open import Primitives using (addℕ)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_; ⊕⊑⊕ᵀ)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; cong; cong₂; subst; sym; trans)
+  (_≡_; refl; cong; subst; sym; trans)
 open import Types using
   ( Ty
   ; TyCtx
@@ -47,13 +52,17 @@ open import Types using
   ; `ℕ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-typesᵀ
-  ; weak-indexed-arrow-resultᵀ
-  ; weak-one-step-index-resultᵀ
+  ( weak-indexed-arrow-resultᵀ
   ; weak-one-step-·₁-frame-preserves-transportᵀ
   ; weak-one-step-·₁-frame-preserves-type-coherenceᵀ
   ; weak-one-step-·₁-frameᵀ
   ; weak-one-step-·₂-indexed-frameᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
@@ -117,12 +126,13 @@ open import
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -131,6 +141,8 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyTerm-preserves-Value
   ; applyTys-ℕ
   ; applyTy-ℕ
+  ; ·₁-↠
+  ; ·₂-↠
   ; ⊕₁-↠
   ; ⊕₂-↠
   )
@@ -386,15 +398,16 @@ source-step-application-left-frameᵀ :
     {L = L₁ · applyTerm χ M}
     {A = B} {B = B′} {χ = χ} {ρ = ρ} pB
 source-step-application-left-frameᵀ
-    {M = M} {χ = χ} noM noM′ M⊑M′ complete =
+    {L₁ = L₁} {M = M} {χ = χ} noM noM′ M⊑M′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    framed-tail
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -421,13 +434,26 @@ source-step-application-left-frameᵀ
   framed-indexed = weak-indexed-result framed (relatedResults framed)
     framed-transport framed-coherence
 
-  term-exact :
-    applyTerms (sourceChanges inner) M ≡ applyTerm χ M
-  term-exact =
-    cong (λ χs → applyTerms χs M) (sourceStepChangesExact complete)
+  framed-source-result :
+    sourceResult (weakIndexedResult framed-indexed) ≡
+      sourceResult inner ·
+        applyTerms (sourceStepTailChanges complete) (applyTerm χ M)
+  framed-source-result =
+    cong
+      (λ χs → sourceResult inner · applyTerms χs M)
+      (sourceStepChanges complete)
 
-  framed-result-exact =
-    cong₂ _·_ (sourceStepResultExact complete) term-exact
+  framed-tail :
+    L₁ · applyTerm χ M —↠[ sourceStepTailChanges complete ]
+      sourceResult (weakIndexedResult framed-indexed)
+  framed-tail =
+    subst
+      (λ N → L₁ · applyTerm χ M
+        —↠[ sourceStepTailChanges complete ] N)
+      (sym framed-source-result)
+      (·₁-↠
+        (applyTerm-preserves-No• χ noM)
+        (sourceStepTail complete))
 
 
 source-step-application-right-frameᵀ :
@@ -452,15 +478,17 @@ source-step-application-right-frameᵀ :
     {L = applyTerm χ V · M₁}
     {A = B} {B = B′} {χ = χ} {ρ = ρ} pB
 source-step-application-right-frameᵀ
-    {V = V} {χ = χ} vV noV vV′ noV′ V⊑V′ complete =
+    {V = V} {M₁ = M₁} {χ = χ}
+    vV noV vV′ noV′ V⊑V′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    framed-tail
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -473,13 +501,27 @@ source-step-application-right-frameᵀ
       (weakIndexedTransport (sourceStepIndexedResult complete))
       (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
-  term-exact :
-    applyTerms (sourceChanges inner) V ≡ applyTerm χ V
-  term-exact =
-    cong (λ χs → applyTerms χs V) (sourceStepChangesExact complete)
+  framed-source-result :
+    sourceResult (weakIndexedResult framed-indexed) ≡
+      applyTerms (sourceStepTailChanges complete) (applyTerm χ V) ·
+        sourceResult inner
+  framed-source-result =
+    cong
+      (λ χs → applyTerms χs V · sourceResult inner)
+      (sourceStepChanges complete)
 
-  framed-result-exact =
-    cong₂ _·_ term-exact (sourceStepResultExact complete)
+  framed-tail :
+    applyTerm χ V · M₁ —↠[ sourceStepTailChanges complete ]
+      sourceResult (weakIndexedResult framed-indexed)
+  framed-tail =
+    subst
+      (λ N → applyTerm χ V · M₁
+        —↠[ sourceStepTailChanges complete ] N)
+      (sym framed-source-result)
+      (·₂-↠
+        (applyTerm-preserves-Value χ vV)
+        (applyTerm-preserves-No• χ noV)
+        (sourceStepTail complete))
 
 
 source-step-primitive-left-frameᵀ :
@@ -501,15 +543,16 @@ source-step-primitive-left-frameᵀ :
     {A = ‵ `ℕ} {B = ‵ `ℕ}
     {χ = χ} {ρ = ρ} idι
 source-step-primitive-left-frameᵀ
-    {M = M} {χ = χ} noM noM′ M⊑M′ complete =
+    {L₁ = L₁} {M = M} {χ = χ} noM noM′ M⊑M′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    framed-tail
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -522,16 +565,27 @@ source-step-primitive-left-frameᵀ
       (weakIndexedTransport (sourceStepIndexedResult complete))
       (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
-  term-exact :
-    applyTerms (sourceChanges inner) M ≡ applyTerm χ M
-  term-exact =
-    cong (λ χs → applyTerms χs M) (sourceStepChangesExact complete)
+  framed-source-result :
+    sourceResult (weakIndexedResult framed-indexed) ≡
+      sourceResult inner ⊕[ addℕ ]
+        applyTerms (sourceStepTailChanges complete) (applyTerm χ M)
+  framed-source-result =
+    cong
+      (λ χs → sourceResult inner ⊕[ addℕ ] applyTerms χs M)
+      (sourceStepChanges complete)
 
-  framed-result-exact =
-    cong₂
-      (λ L₀ M₀ → L₀ ⊕[ addℕ ] M₀)
-      (sourceStepResultExact complete)
-      term-exact
+  framed-tail :
+    L₁ ⊕[ addℕ ] applyTerm χ M
+      —↠[ sourceStepTailChanges complete ]
+      sourceResult (weakIndexedResult framed-indexed)
+  framed-tail =
+    subst
+      (λ N → L₁ ⊕[ addℕ ] applyTerm χ M
+        —↠[ sourceStepTailChanges complete ] N)
+      (sym framed-source-result)
+      (⊕₁-↠
+        (applyTerm-preserves-No• χ noM)
+        (sourceStepTail complete))
 
 
 source-step-primitive-right-frameᵀ :
@@ -555,15 +609,17 @@ source-step-primitive-right-frameᵀ :
     {A = ‵ `ℕ} {B = ‵ `ℕ}
     {χ = χ} {ρ = ρ} idι
 source-step-primitive-right-frameᵀ
-    {V = V} {χ = χ} vV noV vV′ noV′ V⊑V′ complete =
+    {V = V} {M₁ = M₁} {χ = χ}
+    vV noV vV′ noV′ V⊑V′ complete =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    framed-tail
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -576,16 +632,28 @@ source-step-primitive-right-frameᵀ
       (weakIndexedTransport (sourceStepIndexedResult complete))
       (weakIndexedTypeCoherence (sourceStepIndexedResult complete))
 
-  term-exact :
-    applyTerms (sourceChanges inner) V ≡ applyTerm χ V
-  term-exact =
-    cong (λ χs → applyTerms χs V) (sourceStepChangesExact complete)
+  framed-source-result :
+    sourceResult (weakIndexedResult framed-indexed) ≡
+      applyTerms (sourceStepTailChanges complete) (applyTerm χ V)
+        ⊕[ addℕ ] sourceResult inner
+  framed-source-result =
+    cong
+      (λ χs → applyTerms χs V ⊕[ addℕ ] sourceResult inner)
+      (sourceStepChanges complete)
 
-  framed-result-exact =
-    cong₂
-      (λ L₀ M₀ → L₀ ⊕[ addℕ ] M₀)
-      term-exact
-      (sourceStepResultExact complete)
+  framed-tail :
+    applyTerm χ V ⊕[ addℕ ] M₁
+      —↠[ sourceStepTailChanges complete ]
+      sourceResult (weakIndexedResult framed-indexed)
+  framed-tail =
+    subst
+      (λ N → applyTerm χ V ⊕[ addℕ ] M₁
+        —↠[ sourceStepTailChanges complete ] N)
+      (sym framed-source-result)
+      (⊕₂-↠
+        (applyTerm-preserves-Value χ vV)
+        (applyTerm-preserves-No• χ noV)
+        (sourceStepTail complete))
 
 
 world-coherent-source-one-step-binary-frames-proofᵀ :

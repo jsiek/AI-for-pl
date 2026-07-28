@@ -7,6 +7,7 @@ module proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSource
 --     source-unseal catch-up contract.
 --   * Handles identity and inert reveal forms with strict source-cast frames.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv)
@@ -26,13 +27,15 @@ open import Data.Product using (_,_; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTyCtxs; applyTys; blame-⟨⟩; pure-step)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; Term; Value; blame; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; blame⊑ᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -45,19 +48,25 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( subst²-to-≅
-  ; weak-one-step-compose-type-to-nested≅
-  ; weak-one-step-index-resultᵀ
+  ( weak-one-step-compose-type-to-nested≅
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-index-resultᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult
@@ -96,18 +105,16 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   (weak-step-store-lineage)
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof using
   (weak-one-step-prepend-left-silent-store-lineageᵀ)
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using (apply-reveal-conversions-exact)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
   )
-open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup using
-  ( applyTys-preserves-Atom
-  ; atomic-source-value-reindexᵀ
-  ; post-catchup-β-id
-  )
+open import proof.Core.Properties.NuStoreChangeIdentityProperties using
+  (applyTys-preserves-Atom; post-catchup-β-id)
+open import proof.OneStep.NuImprecisionAtomicSourceReindex using
+  (atomic-source-value-reindexᵀ)
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceRevealCatchupDef using
   (WorldCoherentSourceRevealCatchupᵀ)
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceUnsealCatchupDef using

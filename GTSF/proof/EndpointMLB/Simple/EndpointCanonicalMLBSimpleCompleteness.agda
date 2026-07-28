@@ -44,18 +44,41 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-★∈; un⇑ᵢ-ˣ∈; un⇑ᴸᵢ-ˣ∈
   ; ∀ᵢ-wf²; nonVar?
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( CommonLowerBoundᵢ; DropAtᵢ; drop-zeroᵢ; drop-∀ᵢ; drop-νᵢ
-  ; no-occurs-base-lowerᵢ
-  ; no-occurs-var-lower-νctxᵢ; no-⇑ᴸᵢ-zero-star
-  ; nonVar-forward-if-occursᵢ
-  ; occurs-var-true→≡ᵢ
-  ; old⊑→wf-idᵢ; open-unused-atᵢ; removeAt-Wfᵢ; removeAtᵗ
-  ; ⊑-forgetᵢ; un⇑ᴸᵢ-★∈; ⇑ᴸᵢ-ˣ∈; ⇑ᴸᵢ-★∈
-  ; ∨-true-leftᵢ; ∨-true-rightᵢ
-  ; ⊑-trans-idᵢ; ⊑-trans-left-idᵢ
+open import proof.EndpointMLB.Core.EndpointLowerBoundDef using
+  (CommonLowerBoundᵢ)
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
+  ( DropAtᵢ
+  ; drop-zeroᵢ
+  ; drop-∀ᵢ
+  ; drop-νᵢ
+  ; open-unused-atᵢ
+  ; removeAt-Wfᵢ
   )
-open import proof.Core.Properties.TypeProperties using (occurs-extsNᵗ-below; occurs-suc-var)
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
+  ( old⊑→wf-idᵢ
+  ; ⊑-forgetᵢ
+  )
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
+  ( nonVar-forward-if-occursᵢ
+  ; ⊑-trans-idᵢ
+  ; ⊑-trans-left-idᵢ
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( no-occurs-base-lowerᵢ
+  ; no-occurs-var-lower-νctxᵢ
+  ; no-⇑ᴸᵢ-zero-star
+  ; removeAtᵗ
+  ; un⇑ᴸᵢ-★∈
+  ; ⇑ᴸᵢ-ˣ∈
+  ; ⇑ᴸᵢ-★∈
+  ; ∨-true-leftᵢ
+  ; ∨-true-rightᵢ
+  )
+open import proof.Core.Properties.TypeProperties using
+  ( occurs-extsNᵗ-below
+  ; occurs-suc-var
+  ; occurs-var-true→≡
+  )
 
 ------------------------------------------------------------------------
 -- Completeness support
@@ -961,7 +984,7 @@ star-inst-lower-atᵢ {k = k} inst (wfVar {X = X} X<Δ)
     (λ T → _ ∣ _ ⊢ ＇ X ⊑ T ⊣ _)
     (sym (subst-star-hit-varᵢ k X occX))
     (tagˣ
-      (subst (λ Z → (Z ˣ⊑★) ∈ _) (sym (occurs-var-true→≡ᵢ occX))
+      (subst (λ Z → (Z ˣ⊑★) ∈ _) (occurs-var-true→≡ occX)
         (star-hitᵢ inst))
       X<Δ)
 star-inst-lower-atᵢ {k = k} inst (wfVar {X = X} X<Δ)

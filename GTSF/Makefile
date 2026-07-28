@@ -6,12 +6,12 @@ STRICT_AGDA = agda --no-allow-unsolved-metas -v0
 PYTHON ?= python3
 DGG_STRICT_AGGREGATE = \
 	proof/DGG/Core/NuDGGUnassembledProofsStrictSpine.agda
-COMPOSITIONAL_QUOTIENT_EXAMPLES = \
-	proof/Quotient/NuImprecisionCompositionalQuotientExamples.agda
 REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
 CAMBRIDGE26_EXAMPLE14_EXPERIMENT = \
 	proof/Quotient/NuImprecisionCambridge26Example14Experiment.agda
+COMPILE_CANONICAL_DOWN_COMPATIBILITY_EXPERIMENT = \
+	proof/Compilation/CompileCanonicalDownCompatibilityExperiment.agda
 QUOTIENT_PROOF_DIR = proof/Quotient/
 REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES = \
 	NuImprecisionReductionClosedQuotientTypingExperiment.agda \
@@ -23,7 +23,7 @@ REDUCTION_CLOSED_QUOTIENT_METATHEORY = \
 	$(addprefix $(QUOTIENT_PROOF_DIR), \
 	  $(REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES))
 REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES = \
-	NuImprecisionReductionClosedCompatibilityRenameExperiment.agda \
+	NuImprecisionQuotientEliminationCompatibilityRename.agda \
 	NuImprecisionReductionClosedWorldEmbeddingExperiment.agda \
 	NuImprecisionReductionClosedWorldRenameExperiment.agda \
 	NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda
@@ -43,8 +43,6 @@ TARGET_INSTANTIATION_MIGRATION_MODULES = \
 TARGET_INSTANTIATION_MIGRATIONS = \
 	$(addprefix $(QUOTIENT_PROOF_DIR), \
 	  $(TARGET_INSTANTIATION_MIGRATION_MODULES))
-SINGLE_NARROWING_BOUNDARY_EXAMPLES = \
-	proof/Quotient/NuImprecisionSingleNarrowingBoundaryExamples.agda
 TARGET_INSTANTIATION_CREATION_EXAMPLES = \
 	proof/Quotient/NuImprecisionTargetInstantiationCreationExamples.agda
 TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT = \
@@ -78,17 +76,16 @@ audit:
 dgg-check: audit
 	$(AGDA) $(DGG_STRICT_AGGREGATE)
 
-# Check both quotient-design alternatives and their reduction-shape examples
-# before changing the live DGG relation.
-quotient-design-check: audit
-	$(STRICT_AGDA) $(COMPOSITIONAL_QUOTIENT_EXAMPLES)
+# Check the selected smaller relation and its migration evidence at a phase
+# gate. Use focused module checks while a phase is active.
+qti-migration-check: audit
 	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(CAMBRIDGE26_EXAMPLE14_EXPERIMENT)
+	$(STRICT_AGDA) $(COMPILE_CANONICAL_DOWN_COMPATIBILITY_EXPERIMENT)
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_METATHEORY))
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_WORLD))
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_AUDITS))
 	$(call strict-check-each,$(TARGET_INSTANTIATION_MIGRATIONS))
-	$(STRICT_AGDA) $(SINGLE_NARROWING_BOUNDARY_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_CREATION_EXAMPLES)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_EXPERIMENT)
 	$(STRICT_AGDA) $(TARGET_INSTANTIATION_TRANSPORT_TERMINAL_EXPERIMENT)
@@ -104,5 +101,5 @@ profile-modules:
 clean:
 	find . -name '*~' -delete
 
-.PHONY: check agda audit dgg-check quotient-design-check profile \
+.PHONY: check agda audit dgg-check qti-migration-check profile \
 	profile-modules clean

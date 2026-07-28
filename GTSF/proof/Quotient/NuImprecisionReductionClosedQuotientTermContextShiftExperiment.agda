@@ -21,11 +21,13 @@ open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using
   (ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᵢ)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
-  ; StoreImp
   ; ctx-imp
   ; leftCtxⁱ
   ; lift-ctx-∷
@@ -61,7 +63,7 @@ open import proof.Core.Properties.NuTermProperties using
   )
 open import proof.Core.Properties.TypePreservation using
   (typing-renameˣ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

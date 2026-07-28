@@ -24,11 +24,13 @@ open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftRightCtxⁱ
-  ; LiftRightStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( LiftRightCtxⁱ
   )
 open import NuTerms using (No•; RuntimeOK; Term; Value; ν)
 open import QuotientedTermImprecision using
@@ -42,7 +44,7 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)

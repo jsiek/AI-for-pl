@@ -12,7 +12,9 @@ open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([])
 
 open import NuReduction using (StoreChanges; keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)

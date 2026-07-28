@@ -26,7 +26,7 @@ open import Types using
   (Renameᵗ; Ty; TyCtx; renameᵗ; `∀; ⇑ᵗ)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (rename-assm²ᵢ; ⊑-rename-at²ᵢ; ⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

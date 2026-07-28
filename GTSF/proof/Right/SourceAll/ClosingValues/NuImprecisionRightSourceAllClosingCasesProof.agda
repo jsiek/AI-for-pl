@@ -29,10 +29,6 @@ open import
   using
   (world-coherent-right-source-all-target-conceal-frame-proofᵀ)
 open import
-  proof.Right.SourceAll.TargetFrames.NuImprecisionRightSourceAllTargetIdWidenFrameProof
-  using
-  (world-coherent-right-source-all-target-id-widen-frame-proofᵀ)
-open import
   proof.Right.SourceAll.TargetFrames.NuImprecisionRightSourceAllTargetNarrowFrameProof
   using
   (world-coherent-right-source-all-target-narrow-frame-proofᵀ)
@@ -70,9 +66,6 @@ world-coherent-right-source-all-closing-cases-proof
         close target-frames
   ; sourceAllTargetWidenFrameCase =
       world-coherent-right-source-all-target-widen-frame-proofᵀ
-        close target-frames
-  ; sourceAllTargetIdWidenFrameCase =
-      world-coherent-right-source-all-target-id-widen-frame-proofᵀ
         close target-frames
   ; sourceAllTargetRevealFrameCase =
       world-coherent-right-source-all-target-reveal-frame-proofᵀ

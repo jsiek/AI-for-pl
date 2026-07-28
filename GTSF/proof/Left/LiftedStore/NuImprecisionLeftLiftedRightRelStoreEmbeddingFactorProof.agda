@@ -18,7 +18,7 @@ open import Relation.Binary.PropositionalEquality using
   (refl; subst; sym; trans)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( lift-left-store-[]
   ; lift-left-store-left
   ; lift-left-store-link
@@ -30,7 +30,7 @@ open import NuTermImprecision using
   ; store-right
   )
 open import Types using (⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
   (open-unusedᵢ)
 open import
   proof.Left.LiftedStore.NuImprecisionLeftLiftedRightRelStoreEmbeddingFactorDef

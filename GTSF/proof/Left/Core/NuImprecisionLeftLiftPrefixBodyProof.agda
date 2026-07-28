@@ -8,12 +8,13 @@ module proof.Left.Core.NuImprecisionLeftLiftPrefixBodyProof where
 --   * Contains only total proof terms, with no permissive options or dispatcher
 --     logic.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import ImprecisionWf using (_ˣ⊑★; ⇑ᴸᵢ)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; lift-left-store-[]
@@ -25,12 +26,10 @@ open import NuTermImprecision using
 open import NuTerms using (renameᵗᵐ)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   )
 open import Relation.Binary.PropositionalEquality using (sym)
 open import Types using (renameᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²-source-νᵢ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
   (LeftLiftPrefixBodyᵀ)
@@ -44,12 +43,17 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
   (rel-ctx-rename-[])
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
-  ; castModeRenamer-id
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
   ; rel-world-embedding
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)

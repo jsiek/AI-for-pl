@@ -10,7 +10,10 @@ module proof.NuCore.Relations.NuImprecisionCorrespondingSourceNameNotStarDef whe
 open import Data.Empty using (⊥)
 open import Data.List.Membership.Propositional using (_∈_)
 open import ImprecisionWf using (_ˣ⊑★)
-open import NuTermImprecision using (StoreCorresponds; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreCorresponds
+  ; StoreImp
+  )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using

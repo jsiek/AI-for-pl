@@ -36,7 +36,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -61,7 +61,7 @@ open import QuotientedTermImprecision using
   )
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
@@ -87,7 +87,7 @@ open import
 open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupDef using
   (WorldCoherentLeftValueCatchupᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
-open import proof.Core.Properties.ReductionProperties using
+open import proof.Core.Properties.TypeInjectivityProperties using
   ( ∀-injective
   ; renameᵗ-injective
   )

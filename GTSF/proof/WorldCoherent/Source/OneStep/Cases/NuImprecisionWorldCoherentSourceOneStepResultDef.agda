@@ -1,19 +1,23 @@
 module proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef where
 
 -- File Charter:
---   * Defines the exact continuing result for source-oriented one-step
+--   * Defines the continuing result for source-oriented one-step
 --     simulation.
 --   * Retains generic transport, type coherence, store lineage, and final
 --     world invariants needed to rebuild evaluation contexts.
---   * Records that the source trace is exactly the distinguished source step.
+--   * Records that the source trace starts with the distinguished source step
+--     and may continue before reaching the next related pair.
 --   * Contains no implementation, postulate, hole, or permissive option.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuReduction using (StoreChange; keep)
-open import NuTermImprecision using (StoreImp)
+open import NuReduction using
+  (StoreChange; StoreChanges; keep; _—↠[_]_)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
@@ -47,13 +51,17 @@ record WorldCoherentSourceOneStepIndexedResult
       WeakOneStepStoreLineage
         (weakIndexedResult sourceStepIndexedResult)
 
-    sourceStepChangesExact :
-      sourceChanges
-        (weakIndexedResult sourceStepIndexedResult) ≡ χ ∷ []
+    sourceStepTailChanges : StoreChanges
 
-    sourceStepResultExact :
-      sourceResult
-        (weakIndexedResult sourceStepIndexedResult) ≡ L
+    sourceStepChanges :
+      sourceChanges
+        (weakIndexedResult sourceStepIndexedResult)
+        ≡ χ ∷ sourceStepTailChanges
+
+    sourceStepTail :
+      L —↠[ sourceStepTailChanges ]
+        sourceResult
+          (weakIndexedResult sourceStepIndexedResult)
 
     sourceStepWorldCoherent :
       WorldCoherent

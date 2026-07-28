@@ -47,7 +47,13 @@ open import proof.Compilation.CompileCoercions using
   ; coerce-downⁿ-shape-idᵢ
   )
 open import proof.Core.Properties.CastImprecision
-  using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
+  using
+    ( castᵢ-id-only
+    ; narrowing⇒⊑ᵢ
+    ; widening⇒⊑ᵢ
+    )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import proof.Core.Properties.CoercionProperties
   using
     ( RevealEnv
@@ -64,9 +70,10 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleMaximality using
   (MLB-complete)
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes using
   (MLB-result-route-sound)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties
   using (old⊑→wf-idᵢ)
-open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
 open import proof.Core.Properties.TypeProperties
   using
@@ -356,11 +363,6 @@ cast⊢ :
 cast⊢ plan M⊢ with down⊢ plan | up⊢ plan
 cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
   ⊢ᵀ⟨⟩ up⊢ᵐ (⊢ᵀ⟨⟩ down⊢ᵐ M⊢)
-
-seal★-tag-or-id :
-  ∀ {Σ} →
-  TT.SealModeStore★ tag-or-idᵈ Σ
-seal★-tag-or-id α ()
 
 cast⊢ᵀ :
   ∀ {Δ Γ A B M} →

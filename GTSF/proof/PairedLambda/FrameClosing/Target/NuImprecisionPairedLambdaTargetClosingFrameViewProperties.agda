@@ -16,7 +16,9 @@ open import Data.List using ([])
 open import Data.Product using (_,_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 import NarrowWiden as NW
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; Term
@@ -28,7 +30,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; Λ⊑instβᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; allocation-prefixᵀ
@@ -46,6 +47,7 @@ open import QuotientedTermImprecision using
   ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
+  ; target-instantiationᵀ
   )
 open import Types using (Ty; TyCtx)
 open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
@@ -72,9 +74,17 @@ open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTarg
   ; leaf-gen-ν
   ; leaf-gen-ground
   ; leaf-up-gen
-  ; leaf-instβ
+  ; leaf-target-instantiation
   ; leaf-Λ
   ; leaf-ΛΛ
+  )
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-no-bulletᴱ
+  ; embedded-creation-source-valueᴱ
+  ; embedded-creation-target-no-bulletᴱ
+  ; embedded-creation-target-valueᴱ
   )
 
 
@@ -92,16 +102,8 @@ paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   Λ⊑ᵀ occ liftρ liftγ vV V⊑N′
 paired-lambda-target-closing-frame-view-leaf-relation
-    (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ
-      store-emb eqM eqM′ eqA eqA′ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
-  Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-    vW noW vW′ noW′ inert body f inst-shape creation-square
-    assm hτ hσ
-    store-emb eqM eqM′ eqA eqA′ p
-    vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢
+    (leaf-target-instantiation embedded) =
+  target-instantiationᵀ embedded
 paired-lambda-target-closing-frame-view-leaf-relation
     (leaf-gen-ν {{safe = safe}}
       vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
@@ -244,12 +246,8 @@ paired-lambda-target-closing-frame-view-leaf-source-value
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   Λ vV
 paired-lambda-target-closing-frame-view-leaf-source-value
-    (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ
-      store-emb eqM eqM′ eqA eqA′ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
-  vM
+    (leaf-target-instantiation embedded) =
+  embedded-creation-source-valueᴱ embedded
 paired-lambda-target-closing-frame-view-leaf-source-value
     (leaf-gen-ν {A = A} {c = c}
       vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
@@ -365,12 +363,8 @@ paired-lambda-target-closing-frame-view-leaf-source-no-bullet
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   no•-Λ noV
 paired-lambda-target-closing-frame-view-leaf-source-no-bullet
-    (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ
-      store-emb eqM eqM′ eqA eqA′ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
-  noM
+    (leaf-target-instantiation embedded) =
+  embedded-creation-source-no-bulletᴱ embedded
 paired-lambda-target-closing-frame-view-leaf-source-no-bullet
     (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
       _ V⊑N′ occ-r r _) =
@@ -489,12 +483,8 @@ paired-lambda-target-closing-frame-view-leaf-target-value
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   vN′
 paired-lambda-target-closing-frame-view-leaf-target-value
-    (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ
-      store-emb eqM eqM′ eqA eqA′ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
-  vM′
+    (leaf-target-instantiation embedded) =
+  embedded-creation-target-valueᴱ embedded
 paired-lambda-target-closing-frame-view-leaf-target-value
     (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
       _ V⊑N′ occ-r r _) =
@@ -605,12 +595,8 @@ paired-lambda-target-closing-frame-view-leaf-target-no-bullet
     (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′) =
   noN′
 paired-lambda-target-closing-frame-view-leaf-target-no-bullet
-    (leaf-instβ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ
-      store-emb eqM eqM′ eqA eqA′ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢) =
-  noM′
+    (leaf-target-instantiation embedded) =
+  embedded-creation-target-no-bulletᴱ embedded
 paired-lambda-target-closing-frame-view-leaf-target-no-bullet
     (leaf-gen-ν vV noV vN′ noN′ mode seal★ hA occ-g c⊢ cⁿ
       _ V⊑N′ occ-r r _) =

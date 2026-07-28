@@ -10,11 +10,10 @@ module
 --   * Contains no postulate, hole, permissive option, broad simulation
 --     import, recursive frame closer, or source-only rotation.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Data.Product using (_,_)
 import NarrowWiden as NW
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-source-typing)
 open import TermTyping using
   ( ⊢⟨⟩↑
   ; ⊢⟨⟩↓

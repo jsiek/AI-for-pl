@@ -24,7 +24,7 @@ open import Coercions using
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ

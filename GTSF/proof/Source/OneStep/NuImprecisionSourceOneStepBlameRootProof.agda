@@ -2,7 +2,7 @@ module proof.Source.OneStep.NuImprecisionSourceOneStepBlameRootProof where
 
 -- File Charter:
 --   * Implements the ambient-prefix source keep-step blame root.
---   * Builds the exact source one-step result from the supplied keep step and
+--   * Builds the source one-step result from the supplied keep step and
 --     the refined target typing at the ambient relational store.
 --   * Uses identity transport, identity type coherence, and reflexive
 --     relational-store lineage at the final world.
@@ -42,7 +42,7 @@ world-coherent-source-keep-blame-root-proofᵀ
     prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ M→blame =
   world-coherent-source-one-step-indexed
-    indexed lineage refl refl coherent exclusive unique
+    indexed lineage [] refl ↠-refl coherent exclusive unique
   where
   blame-relation = blame⊑ᵀ M′⊢
 

@@ -51,7 +51,7 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
@@ -96,7 +96,7 @@ open import
 open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast; seal★-weakenCast-bind)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²-target-rightᵢ
   ; ⊑-renameᵗ²ᵢ

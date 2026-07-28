@@ -33,7 +33,7 @@ open import ImprecisionWf using
   ; ν
   )
 open import Types using (Base; Ty; TyCtx; TyVar; occurs; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 

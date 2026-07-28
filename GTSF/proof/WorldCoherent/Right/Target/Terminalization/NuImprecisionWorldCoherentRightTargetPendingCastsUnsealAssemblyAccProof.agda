@@ -11,6 +11,7 @@ module
 --   * Contains no result/view/outcome carrier, postulate, hole, permissive
 --     option, termination bypass, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (_︔_; unseal)
@@ -25,6 +26,9 @@ open import Induction.WellFounded using (acc)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import NuReduction using
   (β-id; β-seq; pure-step; seal-unseal; tag-untag-ok)
+open import NarrowWiden using (widen-mode-relax)
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -39,18 +43,16 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-target-typing
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
-open import TermTyping using (forget)
+open import TermTyping using (cast-tag-or-id; forget)
 open import Types using
   (★; ★⇒★; _⇒_; `∀; ＇_)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-★; canonical-＇; sv-seal; sv-tag)
 open import
@@ -297,7 +299,9 @@ private
             (inert-rank-decreases vW inert-c cs)))
         tail coherent exclusive unique wfR runtime
         vV noV (no•-⟨⟩ noW)
-        (⊑cast⊑idᵀ seal★ widening relation r
+        (⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+          (widen-mode-relax C.id-only≤tag-or-idᵈ widening)
+          relation r
           c-shape composition)
     pending-worker
         {cs = c ∷ cs}

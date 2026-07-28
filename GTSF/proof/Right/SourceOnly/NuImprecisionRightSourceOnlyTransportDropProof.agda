@@ -13,8 +13,9 @@ module
 open import Relation.Binary.PropositionalEquality using (subst)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (open-unusedᵢ; ⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionBinderDropProperties
+  using (open-unusedᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import
   proof.Right.SourceOnly.NuImprecisionRightSourceOnlyTransportDropDef
   using (RightSourceOnlyTransportDropᵀ)

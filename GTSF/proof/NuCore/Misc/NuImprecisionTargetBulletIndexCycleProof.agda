@@ -8,7 +8,7 @@ module proof.NuCore.Misc.NuImprecisionTargetBulletIndexCycleProof where
 --   * Contains no canonical dependency assembly, store, term relation,
 --     simulation, postulate, hole, or permissive option.
 
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.EndpointMLB.Simple.EndpointCanonicalMLBSimplePairedSpan

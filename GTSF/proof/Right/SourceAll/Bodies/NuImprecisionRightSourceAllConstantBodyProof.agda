@@ -8,9 +8,8 @@ module
 --   * Contains no semantic catch-up, recursion, result/view/outcome type,
 --     postulate, hole, permissive option, or broad simulation import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Primitives using (κℕ)
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-source-typing)
 open import TermTyping using (⊢$)
 open import
   proof.Right.SourceAll.Bodies.NuImprecisionRightSourceAllConstantBodyDef

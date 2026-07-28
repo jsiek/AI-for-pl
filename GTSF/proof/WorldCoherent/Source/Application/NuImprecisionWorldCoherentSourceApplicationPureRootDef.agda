@@ -3,9 +3,10 @@ module
   where
 
 -- File Charter:
---   * Defines the exact world-coherent source application-root capability.
+--   * Defines the world-coherent source application-root outcome capability.
 --   * Covers every pure root whose source is an application of a value.
---   * Keeps the full ambient-prefix and strong-result boundary explicit.
+--   * Allows function-cast beta to report either a related continuation or
+--     source blame while keeping the full ambient-prefix boundary explicit.
 --   * Contains no dispatcher, implementation, postulate, hole, or option.
 
 open import Data.List using ([])
@@ -13,8 +14,11 @@ open import Data.List using ([])
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep; _—→_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (RuntimeOK; Term; _·_)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -27,8 +31,10 @@ open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDe
   (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -51,6 +57,6 @@ WorldCoherentSourceApplicationPureRootᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ F · V ⊑ M′ ⦂ A ⊑ B ∶ p →
   F · V —→ L →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = F · V} {M′ = M′} {L = L}
     {χ = keep} {ρ = ρ⁺} p

@@ -20,15 +20,16 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Imprecision using
   (ImpAssm; _ˣ⊑★; _ˣ⊑ˣ_)
-open import NuTermImprecision using
-  (CtxImp; ctx-imp)
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  )
 open import Types using
   (Renameᵗ; renameᵗ)
-open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
-  using
-  ( rename-assm²-composeᵢ
-  ; rename-assm²ᵢ
+open import proof.Core.Properties.NuImprecisionBinderPermutationProperties
+  using (rename-assm²-composeᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( rename-assm²ᵢ
   ; ⊑-rename-at²ᵢ
   )
 open import

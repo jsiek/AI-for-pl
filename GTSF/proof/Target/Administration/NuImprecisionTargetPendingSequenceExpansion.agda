@@ -15,8 +15,10 @@ open import Coercions using
 open import Data.List using (List; _∷_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import Types using (Ty; TyCtx)
 open import
   proof.Target.Administration.NuImprecisionTargetAdministrationPlanDef

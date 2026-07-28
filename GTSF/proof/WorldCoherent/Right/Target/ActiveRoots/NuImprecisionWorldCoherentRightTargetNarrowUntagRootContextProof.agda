@@ -11,6 +11,7 @@ module
 --   * Contains no postulate, hole, permissive option, termination bypass, or
 --     broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Data.List using ([]; _∷_)
@@ -30,8 +31,7 @@ open import NuReduction using
 open import NuTerms using
   (No•; Value; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-target-typing
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   )
 open import TermTyping using (forget; _∣_∣_⊢_⦂_)
 open import Types using
@@ -47,8 +47,11 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (nu-term-imprecision-transport-typesᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
   ; resultStore

@@ -12,7 +12,8 @@ module proof.OneStep.NuImprecisionOneStepTargetCastFrames where
 
 open import CastImprecisionShape using (_⊢ᶜ_⦂_)
 import CastImprecisionShape as CastShape using (narrowing; widening)
-open import Coercions using (id-onlyᵈ)
+open import Coercions using
+  (id-onlyᵈ; id-only≤tag-or-idᵈ)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (_,_)
@@ -20,7 +21,8 @@ open import ImprecisionComposition using
   (ImprecisionShape; ⌊_⌋; _；_≋_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using
-  ( _∣_∣_⊢_∶_⊒_
+  ( widen-mode-relax
+  ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using
@@ -30,25 +32,29 @@ open import NuReduction using
   ; applyTyCtxs
   ; applyTys
   )
-open import NuTermImprecision using (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using
   ( ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   )
 open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
-open import TermTyping using (CastMode; SealModeStore★)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import TermTyping using
+  (CastMode; SealModeStore★; cast-tag-or-id)
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  ; seal★-id-only
-  )
-open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedOutcome
   ; WeakOneStepIndexedResult
@@ -74,7 +80,7 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 open import proof.Core.Properties.ReductionProperties using (applyCoercions)
 open import proof.Core.Properties.NuWideningTransport using
-  (apply-fixed-widens-typing; apply-widens-typing)
+  (apply-widens-typing)
 
 
 weak-one-step-target-narrow-cast-indexed-frame-relatedᵀ :
@@ -315,62 +321,11 @@ weak-one-step-target-widen-id-cast-indexed-frame-relatedᵀ :
     {M = M} {N′ = N′ ⟨ applyCoercion χ c′ ⟩}
     {χ = χ} {ρ = ρ} q
 weak-one-step-target-widen-id-cast-indexed-frame-relatedᵀ
-    {Δᴿ = Δᴿ} {A′ = A′} {B′ = B′} {c′ = c′} {χ = χ}
-    {p = p}
-    seal★ c′⊑
-    indexed q c-shape comp =
-  weak-indexed-result framed (relatedResults framed)
-    framed-transport framed-coherence
-  where
-  inner = weakIndexedResult indexed
-
-  c″⊑ =
-    apply-fixed-widens-typing
-      {χs = χ ∷ targetTailChanges inner}
-      (modeRename-id-only suc) c′⊑
-
-  final-cast :
-    id-onlyᵈ ∣ resultRightCtx inner ∣ rightStoreⁱ (resultStore inner)
-      ⊢ applyCoercions (targetTailChanges inner) (applyCoercion χ c′)
-      ∶ applyTys (targetTailChanges inner) (applyTy χ A′)
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-  final-cast =
-    subst
-      (λ Δ → id-onlyᵈ ∣ Δ ∣ rightStoreⁱ (resultStore inner)
-        ⊢ applyCoercions (targetTailChanges inner) (applyCoercion χ c′)
-        ∶ applyTys (targetTailChanges inner) (applyTy χ A′)
-          ⊑ applyTys (targetTailChanges inner) (applyTy χ B′))
-      (sym (targetCtxResult inner))
-      (subst
-        (λ Σ → id-onlyᵈ
-          ∣ applyTyCtxs (targetTailChanges inner) (applyTyCtx χ Δᴿ)
-          ∣ Σ
-          ⊢ applyCoercions (targetTailChanges inner)
-              (applyCoercion χ c′)
-          ∶ applyTys (targetTailChanges inner) (applyTy χ A′)
-            ⊑ applyTys (targetTailChanges inner) (applyTy χ B′))
-        (sym (targetStoreResult inner)) c″⊑)
-
-  final-relation =
-    ⊑cast⊑idᵀ seal★-id-only final-cast
-      (canonicalIndexedResults indexed) (transportType inner q)
-      (cast-shape-applyCoercions
-        (χ ∷ targetTailChanges inner) c-shape)
-      (imprecision-composition-shape-transport
-        (transportShapeCoherent
-          (weakIndexedTypeCoherence indexed) p)
-        refl
-        (transportShapeCoherent
-          (weakIndexedTypeCoherence indexed) q)
-        comp)
-
-  framed = weak-one-step-target-cast-frameᵀ inner final-relation
-  framed-transport =
-    weak-one-step-target-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport indexed)
-  framed-coherence =
-    weak-one-step-target-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence indexed)
+    seal★ c′⊑ indexed q c-shape comp =
+  weak-one-step-target-widen-cast-indexed-frame-relatedᵀ
+    cast-tag-or-id seal★-tag-or-id
+    (widen-mode-relax id-only≤tag-or-idᵈ c′⊑)
+    indexed q c-shape comp
 weak-one-step-target-widen-id-cast-indexed-frame-outcomeᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c′ χ}
     {s : ImprecisionShape}

@@ -3,10 +3,10 @@ module
   where
 
 -- File Charter:
---   * Defines target-oriented active target-cast roots and the seven semantic
+--   * Defines target-oriented active target-cast roots and the five semantic
 --     cells needed to complete them.
 --   * Keeps exact QTI cast shapes and composition triangles at every entry.
---   * Separates identity, target-blame, and impossible grammar cases from the
+--   * Separates target-blame and impossible grammar cases from the
 --     sequence, instantiation, untag, and unseal cells that must combine
 --     source catch-up with completed target-cast terminalization.
 --   * Contains no implementation, recursion, postulate, hole, permissive
@@ -16,7 +16,6 @@ import CastImprecisionShape as CastShape
 open import Coercions using
   ( Coercion
   ; ModeEnv
-  ; id-onlyᵈ
   ; inst
   ; seal
   ; unseal
@@ -43,7 +42,7 @@ open import NuReduction using
   ; _—→_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
@@ -211,58 +210,6 @@ record WorldCoherentRightOneStepTargetCastSemanticRoots : Set₁ where
       WorldCoherentWeakOneStepIndexedOutcome
         {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
 
-    rightStepTargetIdWidenSequenceRoot :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ : StoreImp Φ Δᴸ Δᴿ}
-        {M V N′ : Term} {A A′ B′ : Ty}
-        {s t : Coercion}
-        {shape : ImprecisionShape}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-      WorldCoherent ρ →
-      SourceNameExclusive Φ →
-      AssumptionMembershipUnique Φ →
-      StoreWf Δᴸ (leftStoreⁱ ρ) →
-      StoreWf Δᴿ (rightStoreⁱ ρ) →
-      RuntimeOK M →
-      RuntimeOK (V ⟨ s ︔ t ⟩) →
-      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-      id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-        ⊢ s ︔ t ∶ A′ ⊑ B′ →
-      CastShape.widening CastShape.⊢ᶜ s ︔ t ⦂ shape →
-      ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-        ⊢ᴺ M ⊑ V ⦂ A ⊑ A′ ∶ p →
-      V ⟨ s ︔ t ⟩ —→ N′ →
-      WorldCoherentWeakOneStepIndexedOutcome
-        {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
-
-    rightStepTargetIdWidenInstantiationRoot :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ : StoreImp Φ Δᴸ Δᴿ}
-        {M V N′ : Term} {A A′ B′ B : Ty}
-        {s : Coercion}
-        {shape : ImprecisionShape}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-      WorldCoherent ρ →
-      SourceNameExclusive Φ →
-      AssumptionMembershipUnique Φ →
-      StoreWf Δᴸ (leftStoreⁱ ρ) →
-      StoreWf Δᴿ (rightStoreⁱ ρ) →
-      RuntimeOK M →
-      RuntimeOK (V ⟨ inst B s ⟩) →
-      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-      id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-        ⊢ inst B s ∶ A′ ⊑ B′ →
-      CastShape.widening CastShape.⊢ᶜ inst B s ⦂ shape →
-      ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-        ⊢ᴺ M ⊑ V ⦂ A ⊑ A′ ∶ p →
-      V ⟨ inst B s ⟩ —→ N′ →
-      WorldCoherentWeakOneStepIndexedOutcome
-        {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
-
 open WorldCoherentRightOneStepTargetCastSemanticRoots public
 
 
@@ -312,32 +259,6 @@ record WorldCoherentRightOneStepTargetCastActiveRoots : Set₁ where
       CastMode μ′ →
       SealModeStore★ μ′ (rightStoreⁱ ρ) →
       μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c′ ∶ A′ ⊑ B′ →
-      CastShape.widening CastShape.⊢ᶜ c′ ⦂ shape →
-      ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
-      Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-        ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
-      M′ ⟨ c′ ⟩ —→ N′ →
-      WorldCoherentWeakOneStepIndexedOutcome
-        {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
-
-    rightStepTargetIdWidenCastRoot :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ : StoreImp Φ Δᴸ Δᴿ}
-        {M M′ N′ : Term} {A A′ B′ : Ty}
-        {c′ : Coercion}
-        {shape : ImprecisionShape}
-        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-        {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-      WorldCoherent ρ →
-      SourceNameExclusive Φ →
-      AssumptionMembershipUnique Φ →
-      StoreWf Δᴸ (leftStoreⁱ ρ) →
-      StoreWf Δᴿ (rightStoreⁱ ρ) →
-      RuntimeOK M →
-      RuntimeOK (M′ ⟨ c′ ⟩) →
-      SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-      id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-        ⊢ c′ ∶ A′ ⊑ B′ →
       CastShape.widening CastShape.⊢ᶜ c′ ⦂ shape →
       ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []

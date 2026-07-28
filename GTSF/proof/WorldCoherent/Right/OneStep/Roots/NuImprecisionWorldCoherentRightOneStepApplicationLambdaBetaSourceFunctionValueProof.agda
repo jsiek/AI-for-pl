@@ -27,7 +27,11 @@ open import NuTerms using
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( ·₂-blame-tail
   ; weak-one-step-·₂-indexed-frameᵀ
-  ; weak-result-transport-arrow-termsᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-result-transport-arrow-termsᵀ
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -60,10 +64,9 @@ open import
 open import
   proof.DGG.Core.NuPreservation
   using
-  ( runtime-·₁
-  ; runtime-·₂
-  ; value-runtime-No•
-  )
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using

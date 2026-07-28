@@ -21,7 +21,7 @@ open import Imprecision using (_ˣ⊑ˣ_)
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; idˣ; tagˣ; ν)
 open import NuStore using (StoreWf; unique)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
@@ -37,20 +37,17 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; paired-conceal
-  ; paired-conversion
-  ; paired-reveal
-  ; paired-widening
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; prefix-∷ⁱ
   ; prefix-reflⁱ
   ; quotient-cast-widening
   ; quotient-id-widening
-  ; up⊑upᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↓ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -59,7 +56,7 @@ open import TermTyping using
   (_∣_∣_⊢_⦂_; ⊢⟨⟩↓; ⊢⟨⟩⊒; ⊢⟨⟩⊑)
 import Types as T
 open import Types using (Atom; Ty; TyVar; ＇_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (no-occurs-var-lower-νctxᵢ)
 open import proof.Target.SealTag.NuImprecisionTargetSealCancellationDef using
   (TargetSealCancellationᵀ)
@@ -185,17 +182,17 @@ target-seal-cancellation-prefixᵀ
   ⊥-elim (no-occurs-var-lower-νctxᵢ occ p)
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (up⊑upᵀ inner
+    (closeᵀ inner
       (quotient-id-widening u⊑
         (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq
-      source-shape target-shape square)
+      source-shape target-shape square compatible)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (up⊑upᵀ inner
+    (closeᵀ inner
       (quotient-cast-widening mode seal★ u⊑ mode′ seal★′
         (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())) oldq
-      source-shape target-shape square)
+      source-shape target-shape square compatible)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
@@ -205,23 +202,14 @@ target-seal-cancellation-prefixᵀ
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (⊑cast⊑idᵀ seal★
+    (paired-revealᵀ corr c↑ () replacement inner)
+    q
+target-seal-cancellation-prefixᵀ
+    {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
+    (paired-wideningᵀ mode seal★ c⊑ source-shape
+      mode′ seal★′
       (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())
-      inner oldq c-shape comp)
-    q
-target-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (conv⊑convᵀ
-      (paired-conversion
-        (paired-reveal corr c↑ () replacement)) inner)
-    q
-target-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<} prefix coh wfΣ vW noW vV βX′∈Σ
-    (conv⊑convᵀ
-      (paired-widening mode seal★ c⊑ source-shape
-        mode′ seal★′
-        (C.cast-seal hX βX∈Σ ok , NarrowWiden.cross ())
-        target-shape left-comp right-comp compatible) inner)
+      target-shape left-comp right-comp compatible inner)
     q
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
@@ -280,14 +268,11 @@ target-seal-cancellation-prefixᵀ
 target-seal-cancellation-prefixᵀ
     {p = idˣ a∈Φ α< β<} prefix coh wfΣ
     (vM ⟨ C.seal Y α ⟩) (no•-⟨⟩ noM) vV βX′∈Σ
-    (conv⊑convᵀ {p = inner-index}
-      (paired-conversion
-        (paired-conceal
-          {pX = pX} {μ = μ} {μ′ = μ′} corr
-          (conceal-seal hY αY∈Σ ok)
-          (conceal-seal hX βX∈Σ ok′)
-          replacement))
-      M⊑V)
+    (paired-concealᵀ {p = inner-index}
+      {pX = pX} {μ = μ} {μ′ = μ′} corr
+      (conceal-seal hY αY∈Σ ok)
+      (conceal-seal hX βX∈Σ ok′)
+      replacement M⊑V)
     q
     rewrite unique wfΣ
       (right-prefix-inclusionᵀ prefix βX∈Σ) βX′∈Σ =

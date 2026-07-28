@@ -20,24 +20,26 @@ open import Types using (extᵗ; renameᵗ; ⇑ᵗ; ⟰ᵗ; `∀)
 open import Ctx using (⤊ᵗ)
 open import ImprecisionWf using (ImpCtx; _ˣ⊑★; ⇑ᴸᵢ; ∀ⁱ_)
 open import NuTerms using (Value; Λ_; renameᵗᵐ; ⇑ᵗᵐ)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; CtxImp
-  ; ctx-imp
   ; LiftStoreⁱ
   ; LiftLeftStoreⁱ
-  ; LiftCtxⁱ
-  ; lift-ctx-[]
-  ; lift-ctx-∷
-  ; LiftLeftCtxⁱ
-  ; lift-left-ctx-[]
-  ; lift-left-ctx-∷
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; leftStoreⁱ-lift
   ; rightStoreⁱ-lift
   ; leftStoreⁱ-lift-left
   ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  ; LiftCtxⁱ
+  ; lift-ctx-[]
+  ; lift-ctx-∷
+  ; LiftLeftCtxⁱ
+  ; lift-left-ctx-[]
+  ; lift-left-ctx-∷
   ; leftCtxⁱ
   ; rightCtxⁱ
   ; leftCtxⁱ-lift
@@ -47,7 +49,7 @@ open import NuTermImprecision using
   )
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_; Λ⊑Λᵀ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 open import proof.Store.Core.NuImprecisionStoreLift using
   (lift-store-result; lift-left-store-result)

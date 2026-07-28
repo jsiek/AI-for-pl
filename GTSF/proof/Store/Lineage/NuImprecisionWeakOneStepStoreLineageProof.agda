@@ -15,7 +15,9 @@ open import NuReduction using
   ( StoreChange
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   ( rel-store-embedding-composeⁱ

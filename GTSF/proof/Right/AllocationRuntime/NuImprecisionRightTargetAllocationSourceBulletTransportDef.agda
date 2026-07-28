@@ -15,7 +15,7 @@ open import ImprecisionWf using
   ( ⇑ᴿᵢ
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
@@ -40,7 +40,7 @@ open import Types using
   ; ★
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

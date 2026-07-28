@@ -17,7 +17,9 @@ open import ImprecisionComposition using
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTy; applyTys)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ( shape-rename
   ; shape-subst-source
@@ -25,7 +27,7 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 open import proof.Core.Properties.ReductionProperties using
   (applyTys-++)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-target-rightᵢ
   ; ⊑-renameᵗ²ᵢ

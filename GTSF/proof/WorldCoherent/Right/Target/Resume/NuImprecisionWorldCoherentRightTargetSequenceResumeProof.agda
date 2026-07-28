@@ -13,6 +13,7 @@ module
 --     contextual target-only lineage refinement.
 --   * Contains no postulate, hole, permissive option, or termination bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
@@ -41,17 +42,19 @@ open import NuReduction using
   ; keep
   ; pure-step
   )
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; occurs; ⇑ᵗ; _⇒_; `∀)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Right.Core.NuImprecisionRightContextAction using
   (applyRightImpCtxChanges; applyRightImpCtxChanges-++)
@@ -82,19 +85,26 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( ≡-to-≅
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
-  ; subst-to-≅
-  ; subst²-to-≅
-  ; transport-all-⊑ᵢ
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   ; transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
   ; transportSourceNuType-to-raw≅
   ; transportType-source-subst-to-raw≅
   ; transportType-target-subst-to-raw≅
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst-to-≅
+  ; subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
@@ -269,7 +279,7 @@ private
           (applyTys-∀ (sourceChanges first) _)
           (transportType first (ν safe occ q))))
       (HE.trans
-        (≡-to-≅
+        (HE.≡-to-≅
           (cong (transportType second)
             (sourceNuIndexEquality first-shape)))
         (HE.sym
@@ -682,13 +692,13 @@ private
       (HE.sym (sequence-transport-arrow-to-raw≅
         first second pC pD))
       (HE.trans
-        (≡-to-≅
+        (HE.≡-to-≅
           (cong (transportType second)
             (transportArrowCoherent first-coherence pC pD)))
         (HE.trans
           (HE.sym (transportArrowType-to-raw≅ second
             (transportType first pC) (transportType first pD)))
-          (≡-to-≅
+          (HE.≡-to-≅
             (transportArrowCoherent second-coherence
               (transportType first pC) (transportType first pD)))))
 
@@ -711,13 +721,13 @@ private
     HE.trans
       (HE.sym (sequence-transport-all-to-raw≅ first second q))
       (HE.trans
-        (≡-to-≅
+        (HE.≡-to-≅
           (cong (transportType second)
             (transportAllCoherent first-coherence q)))
         (HE.trans
           (HE.sym (transportAllType-to-raw≅ second
             (transportAllBody first q)))
-          (≡-to-≅
+          (HE.≡-to-≅
             (transportAllCoherent second-coherence
               (transportAllBody first q)))))
 
@@ -791,7 +801,7 @@ private
                         (keep ∷ targetTailChanges second) D′)))
                     (transportType second (transportType first pC) ↦
                       transportType second (transportType first pD))))
-                (≡-to-≅
+                (HE.≡-to-≅
                   (transport-arrow-⊑ᵢ
                     (sym (applyTys-++
                       (sourceChanges first)
@@ -837,7 +847,7 @@ private
                         (keep ∷ targetTailChanges second) C′)))
                     (∀ⁱ (transportAllBody second
                       (transportAllBody first q)))))
-                (≡-to-≅
+                (HE.≡-to-≅
                   (transport-all-⊑ᵢ
                     (sym (applyTysUnderTyBinders-++
                       (sourceChanges first)

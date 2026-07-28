@@ -27,7 +27,7 @@ open import ImprecisionWf using
   )
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )
@@ -88,10 +88,9 @@ open import
 open import
   proof.DGG.Core.NuPreservation
   using
-  ( runtime-·₁
-  ; runtime-·₂
-  ; value-runtime-No•
-  )
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

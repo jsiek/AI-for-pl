@@ -9,8 +9,9 @@ module
 --   * Contains no semantic leaf, postulate, hole, permissive option, or broad
 --     DGG import.
 
-open import proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedCastFrameDef using
-  (WorldCoherentRightPairedCastFrameᵀ)
+open import
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedFramesDef
+  using (WorldCoherentRightPairedFramesᵀ)
 open import
   proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
   using (WorldCoherentRightQuotientDownUpFrame)
@@ -36,20 +37,20 @@ open import proof.WorldCoherent.Right.Value.Terminal.NuImprecisionWorldCoherentR
 
 world-coherent-right-value-catchup-cases-proofᵀ :
   WorldCoherentRightTargetCastTerminalization →
-  WorldCoherentRightPairedCastFrameᵀ →
+  WorldCoherentRightPairedFramesᵀ →
   WorldCoherentRightQuotientDownUpFrame →
   WorldCoherentRightSourceAllClosingᵀ →
   WorldCoherentRightTargetBulletClosingᵀ →
   WorldCoherentRightTargetAllocationFrames →
   WorldCoherentRightValueCatchupCases
 world-coherent-right-value-catchup-cases-proofᵀ
-    target-casts paired-cast quotient source-all target-bullet
+    target-casts paired-frames quotient source-all target-bullet
     target-allocation =
   record
     { rightValueTerminalCase = world-coherent-right-value-terminalᵀ
     ; rightValueSourceFramesCase = world-coherent-right-source-frames
     ; rightValueTargetCastTerminalizationCase = target-casts
-    ; rightValuePairedCastFrameCase = paired-cast
+    ; rightValuePairedFrames = paired-frames
     ; rightValueQuotientDownUpFrameCase = quotient
     ; rightValueSourceAllClosingCase = source-all
     ; rightValueTargetBulletClosingCase = target-bullet

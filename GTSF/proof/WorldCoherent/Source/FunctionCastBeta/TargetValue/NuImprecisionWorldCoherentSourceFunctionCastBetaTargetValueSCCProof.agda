@@ -7,17 +7,18 @@ module
 --     the exact target function-cast spine rank.
 --   * Uses the target-lambda terminal at rank zero and the completed
 --     positive-rank dispatcher at each successor.
+--   * Threads both final-store well-formedness witnesses through the ranked
+--     cycle and injects the exact rank-zero leaf into the outcome.
 --   * Leaves only the two paired value leaves as parameters and contains no
 --     postulate, hole, termination pragma, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.Nat using (ℕ; suc; zero)
 open import Relation.Binary.PropositionalEquality using (trans)
 
 open import NuTerms using (ƛ_; _⟨_⟩)
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-target-typing)
 open import TermTyping using (forget)
 open import proof.Source.Core.NuImprecisionSourceSilentCompositionLemma using
   (source-silent-compositionᵀ)
@@ -58,6 +59,9 @@ open import
 open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceTargetKeepPrependLemma
   using (world-coherent-source-target-keep-prependᵀ)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (source-step-outcome-related)
 open import proof.DGG.Core.NuProgress using
   (canonical-⇒; fv-ƛ; fv-↦)
 
@@ -66,19 +70,20 @@ private
   target-values-at-zero :
     WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ zero
   target-values-at-zero
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       with canonical-⇒ vL′
         (forget (nu-term-imprecision-target-typing function-related))
   target-values-at-zero
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-ƛ refl =
-    world-coherent-source-function-cast-beta-target-lambda-valuesᵀ
-      coherent exclusive unique wfR okM okM′
-      function-related argument-related vV vW vR′
+    source-step-outcome-related
+      (world-coherent-source-function-cast-beta-target-lambda-valuesᵀ
+        coherent exclusive unique wfR okM okM′
+        function-related argument-related vV vW vR′)
   target-values-at-zero
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-↦ vU refl
       with trans
@@ -86,7 +91,7 @@ private
           (vU ⟨ _ C.↦ _ ⟩) vL′)
         target-rank
   target-values-at-zero
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-↦ vU refl | ()
 
@@ -97,13 +102,13 @@ private
     WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ (suc n)
   target-values-at-suc {n}
       lower paired
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       with canonical-⇒ vL′
         (forget (nu-term-imprecision-target-typing function-related))
   target-values-at-suc {n}
       lower paired
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-ƛ refl
       with trans
@@ -111,19 +116,19 @@ private
         target-rank
   target-values-at-suc {n}
       lower paired
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-ƛ refl | ()
   target-values-at-suc {n}
       lower paired
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank
       | fv-↦ vU refl =
     world-coherent-source-function-cast-beta-target-function-cast-values-suc-at-proofᵀ
       lower paired
       world-coherent-source-one-step-target-cast-frames
       world-coherent-source-target-keep-prependᵀ
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vU vR′
       (trans
         (target-function-cast-spine-rank-unique
@@ -154,9 +159,9 @@ world-coherent-source-function-cast-beta-target-values-scc-proofᵀ :
   WorldCoherentSourceFunctionCastBetaTargetValuesᵀ
 world-coherent-source-function-cast-beta-target-values-scc-proofᵀ
     right-catchup paired
-    coherent exclusive unique wfR okM okM′
+    coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ vR′ =
   target-value-schedulers-at right-catchup paired
     (targetFunctionCastSpineRank vL′)
-    coherent exclusive unique wfR okM okM′
+    coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ vR′ refl

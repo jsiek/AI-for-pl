@@ -39,7 +39,7 @@ open import NuReduction using
   ; _—→_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
@@ -58,7 +58,7 @@ open import Types using
   ; ‵_
   ; ★
   )
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

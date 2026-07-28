@@ -17,19 +17,23 @@ open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using
   (applyCoercion; applyTy; applyTyCtx; applyTyCtxs; applyTys)
-open import NuTermImprecision using (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using (⊑conv↑ᵀ; ⊑conv↓ᵀ)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyTyVar; applyTyVars)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact

@@ -38,13 +38,16 @@ open import NuReduction using
   ; applyTys
   ; keep
   )
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ
@@ -82,19 +85,28 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( ≡-to-≅
-  ; subst-to-≅
-  ; subst²-to-≅
-  ; transport-all-⊑ᵢ
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; transportAllType-to-raw≅
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-nested-all-coherent≅
+  ; weak-one-step-nested-arrow-coherent≅
+  ; weak-one-step-nested-source-nu≅
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( transportAllType-to-raw≅
   ; transportArrowType-to-raw≅
   ; transportSourceNuType-to-raw≅
   ; transportType-source-subst-to-raw≅
-  ; weak-one-step-nested-all-coherent≅
-  ; weak-one-step-nested-arrow-coherent≅
-  ; weak-one-step-nested-source-nu≅
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst-to-≅
+  ; subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 open import proof.Source.Core.NuImprecisionSourceSilentCompositionDef
@@ -490,7 +502,7 @@ source-silent-compose-arrow-componentsᵀ :
       source-silent-compose-type first source-empty second pD)
 source-silent-compose-arrow-componentsᵀ
     first refl second {C′ = C′} {D′ = D′} pC pD =
-  ≡-to-≅
+  HE.≡-to-≅
     (transport-arrow-⊑ᵢ
       refl
       (sym (applyTys-++
@@ -527,7 +539,7 @@ source-silent-compose-all-componentsᵀ :
     (∀ⁱ (source-silent-compose-all-body first source-empty second q))
 source-silent-compose-all-componentsᵀ
     first refl second {C′ = C′} q =
-  ≡-to-≅
+  HE.≡-to-≅
     (transport-all-⊑ᵢ refl
       (sym (applyTysUnderTyBinders-++
         (targetTailChanges first) (targetTailChanges second) C′)))

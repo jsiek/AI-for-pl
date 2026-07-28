@@ -44,13 +44,14 @@ open import proof.Compilation.GenSafeProperties
     )
 open import proof.Core.Properties.NarrowWidenProperties
   using
-    ( StoreDetWf
-    ; StoreDetWf-⟰ᵗ
-    ; StoreDetWf-inst
-    ; occurs-var-true→≡
+    ( occurs-var-true→≡
     ; narrowing-cross-ground-target-star⊥
     ; widening-cross-ground-source-star⊥
     )
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantProof
+  using (StoreDetWf-⟰ᵗ; StoreDetWf-inst)
 open import proof.Core.Properties.CoercionProperties using (zero∉-⟰ᵗ)
 
 head-star-unique :

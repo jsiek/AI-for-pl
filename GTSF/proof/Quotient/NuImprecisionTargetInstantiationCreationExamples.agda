@@ -45,13 +45,16 @@ open import NuReduction using
   ; ↠-step
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( lift-ctx-[]
-  ; lift-right-store-[]
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( lift-right-store-[]
   ; lift-store-[]
-  ; seal★-tag-or-id
   ; store-right
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
+  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; Term
@@ -92,7 +95,7 @@ open import Types using
   ; ⇑ᵗ
   )
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef
@@ -108,7 +111,8 @@ open import proof.Core.Properties.TypePreservation using (seal★-inst)
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
-  ( TargetInstantiationCreation
+  ( StoreImpPrefixᴿ
+  ; TargetInstantiationCreation
   ; exact-creationᴱ
   ; prefix-reflᴿ
   ; target-instantiation-creation
@@ -274,6 +278,8 @@ target-instantiation-creation-test :
     {s = body-cast} {μ = C.tag-or-idᵈ}
     {r = matched-body-index} {f = final-index}
     {body-shape = tagˣˢ ↦ˢ tagˣˢ}
+    (StoreImpPrefixᴿ
+      {Φ = []} {Δᴸ = zero} {Δᴿ = zero} [] [])
     (((zero ˣ⊑ˣ zero) ∷ [])
       ∣ suc zero ∣ suc zero ∣ [] ∣ []
       ⊢ᴺ I ⊑ I
@@ -339,6 +345,8 @@ target-instantiation-creation-testᴿ :
     {s = body-cast} {μ = C.tag-or-idᵈ}
     {r = matched-body-index} {f = final-index}
     {body-shape = tagˣˢ ↦ˢ tagˣˢ}
+    (StoreImpPrefixᴿ
+      {Φ = []} {Δᴸ = zero} {Δᴿ = zero} [] [])
     (((zero ˣ⊑ˣ zero) ∷ [])
       ∣ suc zero ∣ suc zero ∣ [] ∣ []
       ⊢ᴿ I ⊑ I

@@ -23,25 +23,28 @@ open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; ⊑-src-wf)
 open import NarrowWiden using
   (narrow-mode-relax; widen-mode-relax)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; leftStoreⁱ-lift
+  ; leftStoreⁱ-lift-left
+  ; rightStoreⁱ
+  ; rightStoreⁱ-lift
+  ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
-  ; StoreImp
   ; leftCtxⁱ
   ; leftCtxⁱ-lift
   ; leftCtxⁱ-lift-left
   ; leftCtxⁱ-∋
-  ; leftStoreⁱ
-  ; leftStoreⁱ-lift
-  ; leftStoreⁱ-lift-left
   ; rightCtxⁱ
   ; rightCtxⁱ-lift
   ; rightCtxⁱ-lift-left
   ; rightCtxⁱ-∋
-  ; rightStoreⁱ
-  ; rightStoreⁱ-lift
-  ; rightStoreⁱ-lift-left
-  ; seal★-tag-or-id
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (Term)
 open import TermTyping using
   ( cast-tag-or-id
@@ -67,8 +70,7 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using (SpineCastMode; id-only↓; gradual↓)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

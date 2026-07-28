@@ -6,6 +6,7 @@ module proof.Catchup.Core.NuImprecisionCatchupPrefixSupport where
 --   * Excludes recursive catch-up dispatch and paired double-cast reasoning.
 --   * Depends on the stable simulation core and target-cast frame boundary.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _++_)
 open import Data.Nat.Properties using (≤-refl)
@@ -15,7 +16,8 @@ open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym; trans)
 import Relation.Binary.HeterogeneousEquality as HE
 
-open import Coercions using (id-onlyᵈ)
+open import Coercions using
+  (id-onlyᵈ; id-only≤tag-or-idᵈ)
 open import CastImprecisionShape using
   (_⊢ᶜ_⦂_; narrowing; widening)
 open import Conversion using
@@ -29,13 +31,19 @@ open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import ImprecisionComposition using (⌊_⌋; _；_≋_)
 open import NarrowWiden using
   ( narrow-weaken
+  ; widen-mode-relax
   ; widen-weaken
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (applyTy; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -46,12 +54,29 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision
 open import TermTyping using
-  (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
+  ( CastMode
+  ; SealModeStore★
+  ; cast-tag-or-id
+  ; _∣_∣_⊢_⦂_
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindex-preserves-type-coherenceᵀ
+  ; weak-one-step-reindexᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst²-to-≅)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
@@ -476,15 +501,8 @@ left-catchup-indexed-prefix-target-widen-id-castᵀ
   where
   inner = weakIndexedResult indexed
 
-  seal★⁺ = seal★-weaken {μ = id-onlyᵈ}
-    (rightStoreⁱ-prefix-inclusion prefix) seal★
-
   c⊑⁺ = widen-weaken ≤-refl
     (rightStoreⁱ-prefix-inclusion prefix) c⊑
-
-  final-seal =
-    subst (SealModeStore★ id-onlyᵈ)
-      (sym (targetStoreResult inner)) seal★⁺
 
   final-cast =
     subst
@@ -496,7 +514,8 @@ left-catchup-indexed-prefix-target-widen-id-castᵀ
         (sym (targetStoreResult inner)) c⊑⁺)
 
   final-relation =
-    ⊑cast⊑idᵀ final-seal final-cast
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ final-cast)
       (canonicalIndexedResults indexed) (transportType inner _)
       c-shape
       (imprecision-composition-shape-transport

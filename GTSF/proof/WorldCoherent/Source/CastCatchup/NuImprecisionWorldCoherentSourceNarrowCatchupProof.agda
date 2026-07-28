@@ -6,6 +6,7 @@ module proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNa
 --   * Reuses the strict source-cast frame and coherent silent-resume helpers.
 --   * Keeps the recursive value catch-up capability as a whole dependency.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
@@ -17,14 +18,15 @@ open import NuReduction using (blame-⟨⟩; pure-step)
 open import NuTerms using (ok-no; ok-⟨⟩)
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   )
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   (weak-one-step-keep-source-catchupᵀ)
 open import proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal using
   (left-catchup-indexed-source-cast-blame-frameᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   (weak-one-step-source-narrow-cast-indexed-frameᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
@@ -37,11 +39,15 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultStore
   ; resultType
   ; transportAllCoherent
+  ; transportAllBodyPairedReplacementCoherent
   ; transportArrowCoherent
   ; transportLeftReplacementCoherent
   ; transportPairedReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
   ; transportRightReplacementCoherent
   ; transportShapeCoherent
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportNo•Terms
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -49,8 +55,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-reindexᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-reindexᵀ
+  )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
@@ -85,7 +94,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     with final
 world-coherent-source-narrow-catchup-framedᵀ
@@ -96,7 +105,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -106,7 +115,7 @@ world-coherent-source-narrow-catchup-framedᵀ
     (weak-step-store-lineage
       lineage-store lineage-embedding lineage-prefix)
     (value-catchup
-      prefix-reflⁱ coherent exclusive wfL
+      prefix-reflⁱ coherent exclusive unique wfL
       (ok-⟨⟩ (ok-no noW)) vV′ noV′
       (canonicalIndexedResults framed))
   where
@@ -127,7 +136,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | inj₂ refl =
   world-coherent-left-indexed-catchup
@@ -138,7 +147,7 @@ world-coherent-source-narrow-catchup-framedᵀ
       (lineageStore terminal-combined-lineage)
       (lineageEmbedding terminal-combined-lineage)
       (lineagePrefix terminal-combined-lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   source-store-incl = leftStoreⁱ-prefix-inclusion prefix
 
@@ -190,11 +199,19 @@ world-coherent-source-narrow-catchup-framedᵀ
       (transportArrowCoherent (weakIndexedTypeCoherence indexed))
       (transportAllCoherent (weakIndexedTypeCoherence indexed))
       (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence indexed))
       (transportLeftReplacementCoherent
         (weakIndexedTypeCoherence indexed))
       (transportRightReplacementCoherent
         (weakIndexedTypeCoherence indexed))
       (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportRightBodyRightReplacementCoherent
         (weakIndexedTypeCoherence indexed))
 
 

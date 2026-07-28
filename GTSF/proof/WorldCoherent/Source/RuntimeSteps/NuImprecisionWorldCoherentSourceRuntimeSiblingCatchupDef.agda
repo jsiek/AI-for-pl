@@ -13,7 +13,8 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Conversion using (ConcealConversion; RevealConversion)
-open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -45,16 +46,19 @@ open import NuReduction using
   ; keep
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImpEntry
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
-  ; leftCtxⁱ
+  ; StoreCorresponds
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImpEntry
+  ; LiftLeftCtxⁱ
+  ; leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using
   ( No•
@@ -67,10 +71,11 @@ open import NuTerms using
   ; ν
   )
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedPairedWideningCompatible)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -103,7 +108,7 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-source-liftνᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionContextExclusivityDef
@@ -249,72 +254,6 @@ record WorldCoherentSourceRuntimeSiblingCatchupᵀ : Set₁ where
             ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
           ∶ transportType result r
 
-    source-νcast-sibling :
-      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-        {ρ′ : StoreImp
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-        {N V′ R R′ : Term} {B B′ C E E′ : Ty}
-        {s : Coercion} {s-shape : ImprecisionShape}
-        {μ : ModeEnv} {p : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-        {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ}
-        {occ : occurs zero C ≡ true}
-        {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-          ∣ suc Δᴸ ⊢ C ⊑ B′ ⊣ Δᴿ} →
-      {{safe : NonVar C}} →
-      StoreImpPrefix ρ₀ ρ⁺ →
-      CastMode μ →
-      SealModeStore★ (instᵈ μ)
-        ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)) →
-      instᵈ μ ∣ suc Δᴸ
-        ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ₀)
-        ⊢ s ∶ C ⊑ ⇑ᵗ B →
-      widening ⊢ᶜ s ⦂ s-shape →
-      s-shape ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
-      LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρ′ →
-      LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-        ([] {A = CtxImpEntry Φ Δᴸ Δᴿ})
-        ([] {A = CtxImpEntry
-          ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}) →
-      Value V′ →
-      No• V′ →
-      No• R →
-      RuntimeOK R′ →
-      (inner :
-        WorldCoherentLeftCatchupIndexedResult
-          {N = N} {V′ = V′} {ρ = ρ⁺} (ν safe occ q)) →
-      (let result =
-             weakIndexedResult
-               (catchupIndexedResult (worldCatchupResult inner))
-       in
-       resultCtx result
-         ∣ resultLeftCtx result
-         ∣ resultRightCtx result
-         ∣ resultStore result ∣ []
-         ⊢ᴺ applyTerms (sourceChanges result) R
-           ⊑ applyTerms (targetTailChanges result)
-               (applyTerm keep R′)
-         ⦂ applyTys (sourceChanges result) E
-           ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
-         ∶ transportType result r) →
-      Σ[ caught ∈
-        WorldCoherentLeftCatchupIndexedResult
-          {N = ν ★ N s} {V′ = V′} {ρ = ρ⁺} p ]
-        let result =
-              weakIndexedResult
-                (catchupIndexedResult (worldCatchupResult caught))
-        in
-        resultCtx result
-          ∣ resultLeftCtx result
-          ∣ resultRightCtx result
-          ∣ resultStore result ∣ []
-          ⊢ᴺ applyTerms (sourceChanges result) R
-            ⊑ applyTerms (targetTailChanges result)
-                (applyTerm keep R′)
-          ⦂ applyTys (sourceChanges result) E
-            ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
-          ∶ transportType result r
-
     source-narrow-sibling :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
@@ -423,17 +362,142 @@ record WorldCoherentSourceRuntimeSiblingCatchupᵀ : Set₁ where
             ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
           ∶ transportType result r
 
-    source-paired-cast-sibling :
+    source-paired-reveal-sibling :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
         {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
         {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
-      PairedCast Φ Δᴸ Δᴿ ρ₀
-        c c′ {A} {A′} {B} {B′} p q →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      No• R →
+      RuntimeOK R′ →
+      (inner :
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N} {V′ = V′} {ρ = ρ⁺} p) →
+      (let result =
+             weakIndexedResult
+               (catchupIndexedResult (worldCatchupResult inner))
+       in
+       resultCtx result
+         ∣ resultLeftCtx result
+         ∣ resultRightCtx result
+         ∣ resultStore result ∣ []
+         ⊢ᴺ applyTerms (sourceChanges result) R
+           ⊑ applyTerms (targetTailChanges result)
+               (applyTerm keep R′)
+         ⦂ applyTys (sourceChanges result) E
+           ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+         ∶ transportType result r) →
+      Σ[ caught ∈
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q ]
+        let result =
+              weakIndexedResult
+                (catchupIndexedResult (worldCatchupResult caught))
+        in
+        resultCtx result
+          ∣ resultLeftCtx result
+          ∣ resultRightCtx result
+          ∣ resultStore result ∣ []
+          ⊢ᴺ applyTerms (sourceChanges result) R
+            ⊑ applyTerms (targetTailChanges result)
+                (applyTerm keep R′)
+          ⦂ applyTys (sourceChanges result) E
+            ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+          ∶ transportType result r
+
+    source-paired-conceal-sibling :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
+        {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      No• R →
+      RuntimeOK R′ →
+      (inner :
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N} {V′ = V′} {ρ = ρ⁺} p) →
+      (let result =
+             weakIndexedResult
+               (catchupIndexedResult (worldCatchupResult inner))
+       in
+       resultCtx result
+         ∣ resultLeftCtx result
+         ∣ resultRightCtx result
+         ∣ resultStore result ∣ []
+         ⊢ᴺ applyTerms (sourceChanges result) R
+           ⊑ applyTerms (targetTailChanges result)
+               (applyTerm keep R′)
+         ⦂ applyTys (sourceChanges result) E
+           ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+         ∶ transportType result r) →
+      Σ[ caught ∈
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q ]
+        let result =
+              weakIndexedResult
+                (catchupIndexedResult (worldCatchupResult caught))
+        in
+        resultCtx result
+          ∣ resultLeftCtx result
+          ∣ resultRightCtx result
+          ∣ resultStore result ∣ []
+          ⊢ᴺ applyTerms (sourceChanges result) R
+            ⊑ applyTerms (targetTailChanges result)
+                (applyTerm keep R′)
+          ⦂ applyTys (sourceChanges result) E
+            ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+          ∶ transportType result r
+
+    source-paired-widening-sibling :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
+        {c c′ : Coercion} {μ μ′ : ModeEnv}
+        {s s′ t : ImprecisionShape}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ₀) →
+      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ s →
+      CastMode μ′ →
+      SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
+      μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+      widening ⊢ᶜ c′ ⦂ s′ →
+      s ； ⌊ q ⌋ ≋ t →
+      ⌊ p ⌋ ； s′ ≋ t →
+      ReductionClosedPairedWideningCompatible
+        Φ Δᴸ Δᴿ c c′ p q s s′ →
       Value V′ →
       No• V′ →
       Inert c′ →

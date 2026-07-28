@@ -28,12 +28,14 @@ open import ImprecisionComposition using
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreCorresponds
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreCorresponds
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import NuTerms using
   (Term; _⟨_⟩)
@@ -41,8 +43,7 @@ open import TermTyping using
   (CastMode; SealModeStore★; _∣_∣_⊢_⦂_)
 open import Types using
   (Ty; TyCtx)
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible

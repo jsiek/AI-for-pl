@@ -1,6 +1,19 @@
 
 This is a mechanization of a polymorphic gradually typed lambda calculus.
 
+## Live QTI migration status
+
+The live term-imprecision migration is still in progress. The current
+checkpoint replaces obsolete quotient boundaries with ranked source
+administration and removes part of the old regression surface, but the ranked
+source worker, target allocation/normalization, function-cast application,
+compiler consumers, and final obsolete-file deletion are not complete.
+
+The authoritative plan and current proof/checking status are recorded in
+[`proof/DGG/Design/NuImprecisionDGGProgress.md`](proof/DGG/Design/NuImprecisionDGGProgress.md);
+the quotient lifecycle and completion gates are recorded in
+[`proof/Quotient/README.md`](proof/Quotient/README.md).
+
 Major metatheory boundaries use the `Def`/`Proof`/`Lemma` organization and
 strictness policy documented in [`proof/README.md`](proof/README.md).
 

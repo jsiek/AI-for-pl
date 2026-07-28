@@ -14,12 +14,14 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᴿᵢ; ⇑ᵢ)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
   ; LiftRightCtxⁱ
-  ; StoreImp
   ; ctx-imp
   ; leftCtxⁱ
   ; lift-ctx-∷
@@ -44,6 +46,7 @@ open import NuTerms using
   ; renameˣᵐ
   )
 open import QuotientedTermImprecision
+open import TermTyping using (forget)
 open import Types using
   ( S
   ; Ty
@@ -52,7 +55,7 @@ open import Types using
   ; _∋_⦂_
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ( shape-lift∀ᵢ
@@ -67,8 +70,15 @@ open import proof.Core.Properties.NuTermProperties using
   ; rename-closedᵐ
   ; renameˣᵐ-preserves-No•
   ; renameˣᵐ-preserves-Value
+  ; typing-closedᵐ
   )
 open import proof.Core.Properties.TypePreservation using (typing-renameˣ)
+open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-typingᴱ
+  ; embedded-creation-target-typingᴱ
+  )
 
 
 private
@@ -233,23 +243,12 @@ private
         (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
     term-ctx-insert-no•ᵀ insert
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (no•-⟨⟩ (no•-· noL (no•-⟨⟩ noM)))
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′))) =
-      down·up⊑down·upᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert L⊑L′ noL noL′)
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        down-square widening u-shape u′-shape up-square compatible
-    term-ctx-insert-no•ᵀ insert
-        (up⊑upᵀ N⊑N′ widening pA u-shape u′-shape square)
+        (closeᵀ N⊑N′ widening pA
+          u-shape u′-shape square compatible)
         (no•-⟨⟩ noN) (no•-⟨⟩ noN′) =
-      up⊑upᵀ
+      closeᵀ
         (term-ctx-insert-no•ᵀᵖ insert N⊑N′ noN noN′)
-        widening pA u-shape u′-shape square
+        widening pA u-shape u′-shape square compatible
     term-ctx-insert-no•ᵀ insert
         (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′)
         (no•-Λ noV) (no•-Λ noV′)
@@ -274,25 +273,19 @@ private
         (renameˣᵐ-preserves-Value _ vV)
         (term-ctx-insert-no•ᵀ insert↑ V⊑N′ noV noN′)
     term-ctx-insert-no•ᵀ {η = ζ} insert
-        (Λ⊑instβᵀ
-          {τ = τ} {σ = σ}
-          prefix mode seal★ inst⊑ liftρ liftρᴿ
-          vW noW vW′ noW′ inert W⊑W′ f
-          inst-shape creation-square
-          assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
-          vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+        (target-instantiationᵀ embedded)
         noM₀ noM′₀
-        rewrite rename-closedᵐ closedM ζ
-              | rename-closedᵐ closedM′ ζ =
-      Λ⊑instβᵀ
-        prefix mode seal★ inst⊑ liftρ liftρᴿ
-        vW noW vW′ noW′ inert W⊑W′ f
-        inst-shape creation-square
-        assm hτ hσ store-emb M≡ M′≡
-        A≡ A′≡ p
-        vM noM closedM vM′ noM′ closedM′
-        (closed-refined-typing-recontextualize closedM M⊢)
-        (closed-refined-typing-recontextualize closedM′ M′⊢)
+        rewrite rename-closedᵐ
+                  (typing-closedᵐ
+                    (forget
+                      (embedded-creation-source-typingᴱ embedded)))
+                  ζ
+              | rename-closedᵐ
+                  (typing-closedᵐ
+                    (forget
+                      (embedded-creation-target-typingᴱ embedded)))
+                  ζ =
+      target-instantiationᵀ embedded
     term-ctx-insert-no•ᵀ insert
         (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
           L⊑L′ L⊢ L′⊢)
@@ -300,9 +293,6 @@ private
     term-ctx-insert-no•ᵀ insert
         (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
         () noN′
-    term-ctx-insert-no•ᵀ insert
-        (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′⊢)
-        noN ()
     term-ctx-insert-no•ᵀ insert
         (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
       allocation-prefixᵀ prefix
@@ -333,59 +323,6 @@ private
       ν⊑ᵀ hA hA↑ s↑ liftρ liftδ
         (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
         replace
-    term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
-        noN (no•-ν noN′)
-        with term-ctx-insert-lift-rightⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replace)
-        noN (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      ⊑νᵀ hA hA↑ s↑ liftρ liftδ r
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        replace
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′
-          s-shape s′-shape left-comp right-comp)
-        (no•-ν noN) (no•-ν noN′)
-        with term-ctx-insert-lift∀ⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-          liftρ liftγ N⊑N′
-          s-shape s′-shape left-comp right-comp)
-        (no•-ν noN) (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      νcast⊑νcastᵀ mode seal mode′ seal′ s⊑ s′⊑ compat
-        liftρ liftδ
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape s′-shape left-comp right-comp
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
-          s-shape comp)
-        (no•-ν noN) noN′
-        with term-ctx-insert-lift-leftⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (νcast⊑ᵀ mode seal s⊑ liftρ liftγ N⊑N′
-          s-shape comp)
-        (no•-ν noN) noN′
-        | δ↑ , liftδ , insert↑ =
-      νcast⊑ᵀ mode seal s⊑ liftρ liftδ
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape comp
-    term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
-          s-shape comp)
-        noN (no•-ν noN′)
-        with term-ctx-insert-lift-rightⁱ insert liftγ
-    term-ctx-insert-no•ᵀ insert
-        (⊑νcastᵀ mode seal s⊑ liftρ liftγ r N⊑N′
-          s-shape comp)
-        noN (no•-ν noN′)
-        | δ↑ , liftδ , insert↑ =
-      ⊑νcastᵀ mode seal s⊑ liftρ liftδ r
-        (term-ctx-insert-no•ᵀ insert N⊑N′ noN noN′)
-        s-shape comp
     term-ctx-insert-no•ᵀ insert κ⊑κᵀ no•-$ no•-$ =
       κ⊑κᵀ
     term-ctx-insert-no•ᵀ insert (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
@@ -427,14 +364,25 @@ private
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
         q c-shape comp
     term-ctx-insert-no•ᵀ insert
-        (⊑cast⊑idᵀ seal c⊑ M⊑M′ q c-shape comp)
-        noM (no•-⟨⟩ noM′) =
-      ⊑cast⊑idᵀ seal c⊑
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        q c-shape comp
-    term-ctx-insert-no•ᵀ insert (conv⊑convᵀ cast M⊑M′)
+        (paired-revealᵀ corresponds source target replace M⊑M′)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      conv⊑convᵀ cast
+      paired-revealᵀ corresponds source target replace
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+    term-ctx-insert-no•ᵀ insert
+        (paired-concealᵀ corresponds source target replace M⊑M′)
+        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
+      paired-concealᵀ corresponds source target replace
+        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
+    term-ctx-insert-no•ᵀ insert
+        (paired-wideningᵀ
+          mode seal★ source source-shape
+          mode′ seal★′ target target-shape
+          left-square right-square compatible M⊑M′)
+        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
+      paired-wideningᵀ
+        mode seal★ source source-shape
+        mode′ seal★′ target target-shape
+        left-square right-square compatible
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
     term-ctx-insert-no•ᵀ insert
         (conv↑⊑ᵀ conv M⊑M′ q replace)
@@ -462,40 +410,12 @@ private
         q replace
 
     term-ctx-insert-no•ᵀᵖ insert
-        (down⊑downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+        (paired-downᵀ
+          M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      down⊑downᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
-    term-ctx-insert-no•ᵀᵖ insert
-        (gen-down⊑gen-downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-        (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
-      gen-down⊑gen-downᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′) q square
-    term-ctx-insert-no•ᵀᵖ insert
-        (quotient-id-down-applicationᵖᵀ
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (no•-· noL (no•-⟨⟩ noM))
-        (no•-· noL′ (no•-⟨⟩ noM′)) =
-      quotient-id-down-applicationᵖᵀ d⊒ d-shape d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
-        components
+      paired-downᵀ
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        square
-    term-ctx-insert-no•ᵀᵖ insert
-        (quotient-down-applicationᵖᵀ
-          mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (no•-· noL (no•-⟨⟩ noM))
-        (no•-· noL′ (no•-⟨⟩ noM′)) =
-      quotient-down-applicationᵖᵀ
-        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-        (term-ctx-insert-no•ᵀᵖ insert L⊑L′ noL noL′)
-        components
-        (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        square
+        mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination
 
 
 quotiented-term-context-shift-proofᵀ : QuotientedTermContextShiftᵀ

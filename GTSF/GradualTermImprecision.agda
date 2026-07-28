@@ -23,7 +23,7 @@ open import ImprecisionWf
 open import ConversionIndexCompatibility using
   (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Primitives using (Const; Prim; constTy; κℕ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 variable

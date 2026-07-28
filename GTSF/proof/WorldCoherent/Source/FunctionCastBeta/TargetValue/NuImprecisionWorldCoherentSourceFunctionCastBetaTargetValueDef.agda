@@ -19,8 +19,11 @@ open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; _·_; _⟨_⟩)
 open import QuotientedTermImprecision using
@@ -32,8 +35,9 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (WorldCoherentSourceOneStepOutcome)
 
 
 WorldCoherentSourceFunctionCastBetaTargetValuesᵀ : Set₁
@@ -47,6 +51,7 @@ WorldCoherentSourceFunctionCastBetaTargetValuesᵀ =
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK (L′ · R′) →
@@ -59,7 +64,7 @@ WorldCoherentSourceFunctionCastBetaTargetValuesᵀ =
   Value W →
   Value L′ →
   Value R′ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
@@ -78,6 +83,7 @@ WorldCoherentSourceFunctionCastBetaTargetValueᵀ =
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK (L′ · R′) →
@@ -89,7 +95,7 @@ WorldCoherentSourceFunctionCastBetaTargetValueᵀ =
   Value V →
   Value W →
   Value L′ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}

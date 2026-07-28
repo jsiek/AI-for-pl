@@ -11,13 +11,15 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; _ˣ⊑★; ⇑ᴸᵢ)
-open import NuTermImprecision using
-  (LiftLeftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  )
 open import NuTerms using (No•; Term; ⇑ᵗᵐ)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Ty; TyCtx; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 
 
 LeftLiftPrefixBodyᵀ : Set₁

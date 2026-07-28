@@ -9,7 +9,7 @@ module proof.Right.StorePrefix.NuImprecisionRightStorePrefixFactorProof where
 --     constructor owners; contains no simulation import.
 
 open import Data.Product using (_,_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; lift-right-store-[]
   ; lift-right-store-left

@@ -18,12 +18,14 @@ open import Data.Product using (_,_)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; ⇑ᴸᵢ; _∣_⊢_⊑_⊣_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImpEntry
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImpEntry
+  ; LiftLeftCtxⁱ
   )
 open import NuTerms using (No•; Term; Value; ν)
 open import QuotientedTermImprecision using
@@ -31,13 +33,16 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   (SourceNuIndex; sourceNuBody)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-source-liftνᵢ)
 
 
@@ -53,6 +58,7 @@ WorldCoherentFinalSourceNuCatchupᵀ =
   sourceNuBody view [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   WfTy Δᴸ A →
   WfTy (suc Δᴸ) (⇑ᵗ A) →

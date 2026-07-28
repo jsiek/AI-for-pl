@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Assembles all fifteen semantic frame-closing handlers from the exact
 --     leaf and fused-frame theorem boundaries.
---   * Requires the fused instantiation-beta leaf as an explicit higher-order
---     capability, leaving its semantic proof to the next layer.
+--   * Requires the embedded target-instantiation leaf as an explicit
+--     higher-order capability, leaving its semantic proof to the next layer.
 --   * Composes the already checked index and paired-conversion dispatchers so
 --     the remaining semantic dependencies are visible in one signature.
 --   * Contains no semantic leaf implementation, postulate, hole, permissive
@@ -34,7 +34,7 @@ open import ImprecisionWf using
 open import ImprecisionComposition using
   (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -71,7 +71,7 @@ open import Types using
   ; ⇑ᵗ
   )
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²ᵢ)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingHandlersDef
@@ -79,6 +79,9 @@ open import
   ( PairedLambdaTargetClosingFrameClosingHandlers
   ; PairedLambdaTargetClosingFrameClosingMotive
   )
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (EmbeddedTargetInstantiationCreation)
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
   using (RelStoreEmbeddingⁱ)
@@ -227,58 +230,32 @@ open import
 
 
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
-  (inst-beta :
+  (target-instantiation :
       ∀ {Φ Φ₀ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}
         {ρ : StoreImp Φ Δᴸ Δᴿ}
         {ρ₀ ρ⁺ : StoreImp Φ₀ Θᴸ Θᴿ}
         {ρ∀ : StoreImp ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           (suc Θᴸ) (suc Θᴿ)}
         {ρᴿ⁺ : StoreImp (⇑ᴿᵢ Φ₀) Θᴸ (suc Θᴿ)}
-        {τ σ : Renameᵗ}
-        {W W′ M M′ : Term}
-        {A′ B C D F : Ty}
-        {s : Coercion} {μ : ModeEnv} {r}
+        {W W′ V V′ : Term} {A′ B C D F : Ty}
+        {s c′ : Coercion} {μ : ModeEnv} {r}
+        {f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ}
+        {p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ}
         {body-shape : ImprecisionShape} →
-    StoreImpPrefix ρ₀ ρ⁺ →
-    CastMode μ →
-    SealModeStore★ μ (rightStoreⁱ ρ₀) →
-    μ ∣ Θᴿ ∣ rightStoreⁱ ρ₀
-      ⊢ inst B s ∶ `∀ C ⊑ B →
-    LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀) ρ₀ ρ∀ →
-    LiftRightStoreⁱ (⇑ᴿᵢ Φ₀) ρ⁺ ρᴿ⁺ →
-    Value W →
-    No• W →
-    Value W′ →
-    No• W′ →
-    Inert s →
-    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
-      ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
-      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
-    (f : Φ₀ ∣ Θᴸ ⊢ `∀ D ⊑ B ⊣ Θᴿ) →
-    widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
-    ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
-    (assm :
-      ∀ {a} → a ∈ ⇑ᴿᵢ Φ₀ →
-        rename-assm²ᵢ τ σ a ∈ Φ) →
-    (hτ : TyRenameWf Θᴸ Δᴸ τ) →
-    (hσ : TyRenameWf (suc Θᴿ) Δᴿ σ) →
-    RelStoreEmbeddingⁱ τ σ
-      (store-right zero ★ wf★ ∷ ρᴿ⁺) ρ →
-    renameᵗᵐ τ (Λ W) ≡ M →
-    renameᵗᵐ σ (W′ ⟨ s ⟩) ≡ M′ →
-    renameᵗ τ (`∀ D) ≡ `∀ F →
-    renameᵗ σ (⇑ᵗ B) ≡ A′ →
-    (p : Φ ∣ Δᴸ ⊢ `∀ F ⊑ A′ ⊣ Δᴿ) →
-    Value M →
-    No• M →
-    Closedᵐ M →
-    Value M′ →
-    No• M′ →
-    Closedᵐ M′ →
-    Δᴸ ∣ leftStoreⁱ ρ ∣ [] ⊢ M ⦂ `∀ F →
-    Δᴿ ∣ rightStoreⁱ ρ ∣ [] ⊢ M′ ⦂ A′ →
+    EmbeddedTargetInstantiationCreation
+      {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+      {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+      {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+      {s = s} {μ = μ} {r = r} {f = f}
+      {body-shape = body-shape}
+      (StoreImpPrefix ρ₀ ρ⁺)
+      (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
+        ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
+        ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r)
+      {Ψ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+      ρ (Λ V) (V′ ⟨ c′ ⟩) (`∀ F) A′ p →
     PairedLambdaTargetClosingFrameClosingMotive ρ
-      M M′ F A′ p) →
+      (Λ V) (V′ ⟨ c′ ⟩) F A′ p) →
   PairedLambdaTargetClosingNuPairedConversionRotationᵀ →
   PairedLambdaTargetClosingGenGroundLeafClosingᵀ →
   PairedLambdaTargetClosingLambdaLambdaLeafStructuralRevealClosingᵀ →
@@ -297,7 +274,7 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ :
   PairedLambdaTargetClosingUpGenAllFrameQuotientCastWideningClosingᵀ →
   PairedLambdaTargetClosingFrameClosingHandlers
 paired-lambda-target-closing-frame-closing-handlers-proofᵀ
-    inst-beta rotate gen-ground
+    target-instantiation rotate gen-ground
     lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index
     source-gen-reveal source-gen-conceal source-all-all-index
     paired-conversion-reveal paired-conversion-conceal
@@ -314,7 +291,7 @@ paired-lambda-target-closing-frame-closing-handlers-proofᵀ
               lambda-lambda-conceal))
     ; handle-leaf-Λ =
         paired-lambda-target-closing-lambda-leaf-handler-proofᵀ rotate
-    ; handle-leaf-instβ = inst-beta
+    ; handle-leaf-target-instantiation = target-instantiation
     ; handle-leaf-gen-ν =
         paired-lambda-target-closing-gen-leaf-ν-closing-proofᵀ
           (paired-lambda-target-closing-gen-leaf-ν-conversion-rotation-proofᵀ

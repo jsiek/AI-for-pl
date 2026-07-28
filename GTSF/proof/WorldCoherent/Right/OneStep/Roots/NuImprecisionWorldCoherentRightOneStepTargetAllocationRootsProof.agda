@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Proves the four semantic target-allocation roots for world-coherent
+--   * Proves the matched reveal-ν target-allocation root for world-coherent
 --     target-oriented one-step simulation.
 --   * Catches up the source before matched allocation, stops immediately on
 --     source blame, and preserves relational-store lineage through allocation.
@@ -11,148 +11,86 @@ module
 --     or `blame-ν` root.
 
 open import Agda.Builtin.Equality using (refl)
-import CastImprecisionShape as CastShape
-open import Coercions using (instᵈ)
 open import Conversion using (RevealConversion)
 open import ConversionIndexCompatibility using
-  (_[_↦_]ᴿ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
+  (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
-open import Data.Product using (_,_; proj₂)
+open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
-open import ImprecisionComposition using
-  ( ImprecisionShape
-  ; ⌊_⌋
-  ; _；_≋_
-  )
 open import ImprecisionWf using
   ( ImpCtx
   ; _ˣ⊑ˣ_
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   ; ⇑ᵢ
-  ; ⇑ᴿᵢ
   )
-open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   ( bind
   ; blame-ν
-  ; _—→[_]_
-  ; ν-step
   ; ↠-refl
   ; ↠-step
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftRightStoreⁱ
-  ; StoreImp
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
   )
 open import NuTerms using
-  ( RuntimeOK
+  ( No•
+  ; RuntimeOK
   ; Term
+  ; Value
   ; no•-ν
   ; ok-no
   ; ok-ν
   ; ν
+  ; ⇑ᵗᵐ
+  ; _•
+  ; _⟨_⟩
   )
-open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
 open import QuotientedTermImprecision using
-  ( prefix-reflⁱ
-  ; prefix-∷ⁱ
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  )
-open import TermTyping using (CastMode; SealModeStore★)
+  (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using
   ( Ty
   ; TyCtx
   ; WfTy
-  ; ★
   ; `∀
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-target-lift-rightᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import proof.Core.Properties.ReductionProperties using (ν-↠; ↠-trans)
-open import proof.Core.Properties.NuCastImprecisionShapeProperties using
-  (imprecision-composition-shape-transport; shape-target-lift-rightᵢ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-index-resultᵀ)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
-  ( WeakOneStepIndexedResult
-  ; left-catchup-invariant
+  ( left-catchup-invariant
   ; left-indexed-all-catchup
   ; left-indexed-catchup
   ; left-silent-invariant
-  ; resultStore
   ; sourceCatchup
   ; weakIndexedResult
   )
-open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
-  ( weak-one-step-matched-ν↑-indexed-value-catchupᵀ
-  ; weak-one-step-matched-νcast-indexed-value-catchupᵀ
-  ; weak-one-step-right-ν↑-type-coherenceᵀ
-  ; weak-one-step-right-ν↑-transportᵀ
-  ; weak-one-step-right-ν↑ᵀ
-  ; weak-one-step-right-νcast-type-coherenceᵀ
-  ; weak-one-step-right-νcast-transportᵀ
-  ; weak-one-step-right-νcastᵀ
-  )
+open import
+  proof.WorldCoherent.Right.OneStep.Allocation.NuImprecisionWorldCoherentMatchedNuAllocationAfterValueCatchupDef
+  using (WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
 open import
-  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
-  using
-  ( assumption-membership-unique-matched
-  ; assumption-membership-unique-⇑ᴿᵢ
-  )
-open import
   proof.NuCore.Relations.NuImprecisionContextExclusivityDef
   using (SourceNameExclusive)
 open import
-  proof.NuCore.Relations.NuImprecisionContextExclusivityProof
-  using
-  ( source-name-exclusive-matched-head
-  ; source-name-exclusive-⇑ᴿᵢ
-  )
-open import
-  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
-  using
-  ( WeakOneStepStoreLineage
-  ; lineageEmbedding
-  ; lineagePrefix
-  ; lineageStore
-  ; weak-step-store-lineage
-  )
-open import
-  proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof
-  using (weak-one-step-prepend-left-silent-store-lineageᵀ)
-open import proof.Store.Core.NuImprecisionStoreLift using
-  (lift-store-result)
-open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
-  using (lift-right-store-embeddingⁱ; lift-store-embeddingⁱ)
-open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
   using (WorldCoherent)
-open import
-  proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma
-  using
-  ( world-coherent-matched-allocation
-  ; world-coherent-right-allocation
-  )
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
   using
   ( WorldCoherentWeakOneStepIndexedOutcome
   ; world-coherent-left-indexed-catchup
-  ; world-indexed-outcome-related
   ; world-indexed-outcome-source-blame
   )
 open import
@@ -169,23 +107,25 @@ open import
 
 
 matched-nu-allocation :
+  WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {A A′ B B′ C C′ : Ty} {N V′ N′ : Term}
+    {A A′ B B′ C C′ : Ty} {N V′ : Term}
     {s s′} {μ μ′}
     {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
-    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
     {A⇑⊑A′⇑ : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
       ∣ suc Δᴸ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ A′ ⊣ suc Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
+  (pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK (ν A N s) →
-  RuntimeOK (ν A′ V′ s′) →
+  Value V′ →
+  No• V′ →
   WfTy Δᴸ A →
   WfTy Δᴿ A′ →
   RevealConversion μ (suc Δᴸ)
@@ -201,20 +141,19 @@ matched-nu-allocation :
     ⊑⟨ A⇑⊑A′⇑ ⟩
     ⇑ᵗ A′ ↤ zero ]ᴾ
     ⊑-lift∀ᵢ pB →
-  ν A′ V′ s′ —→[ bind A′ ] N′ →
   WorldCoherentWeakOneStepIndexedOutcome
-    {M = ν A N s} {N′ = N′}
+    {M = ν A N s} {N′ = ((⇑ᵗᵐ V′) •) ⟨ s′ ⟩}
     {χ = bind A′} {ρ = ρ} pB
 matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
+    s↑ s′↑ N⊑V′ replace
     with catchup coherent exclusive unique wfL
       (ν-runtime ok-source) vV′ noV′ N⊑V′
 matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
+    s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
         (left-indexed-catchup indexed
           (left-catchup-invariant
@@ -223,9 +162,9 @@ matched-nu-allocation
         final-wfL
     with final
 matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
+    s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
         (left-indexed-catchup indexed
           (left-catchup-invariant
@@ -238,9 +177,9 @@ matched-nu-allocation
       (ν-↠ (sourceCatchup (weakIndexedResult indexed)))
       (↠-step blame-ν ↠-refl))
 matched-nu-allocation
-    catchup {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target hA hA′
-    s↑ s′↑ N⊑V′ replace (ν-step vV′ noV′)
+    allocation catchup {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB} pA
+    coherent exclusive unique wfL wfR ok-source vV′ noV′ hA hA′
+    s↑ s′↑ N⊑V′ replace
     | world-coherent-left-indexed-catchup
         (left-indexed-catchup indexed
           (left-catchup-invariant
@@ -249,295 +188,27 @@ matched-nu-allocation
         final-wfL
     | inj₁ (vW , noW)
     =
-  world-indexed-outcome-related
-    final-indexed
-    combined-lineage
-    (world-coherent-matched-allocation liftρ⁺ final-coherent)
-    (source-name-exclusive-matched-head final-exclusive)
-    (assumption-membership-unique-matched final-unique)
+  allocation s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
+    caught-all vW noW caught-lineage
+    final-coherent final-exclusive final-unique
   where
   caught-all =
     left-indexed-all-catchup indexed
       (left-catchup-invariant
         (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-
-  final-indexed =
-    weak-one-step-matched-ν↑-indexed-value-catchupᵀ
-      s↑ s′↑ pA A⇑⊑A′⇑ pB replace vV′ noV′
-      caught-all vW noW
-
-  liftρ⁺ = proj₂ (lift-store-result
-    (resultStore (weakIndexedResult indexed)))
-
-  combined-lineage : WeakOneStepStoreLineage
-    (weakIndexedResult final-indexed)
-  combined-lineage =
-    weak-one-step-prepend-left-silent-store-lineageᵀ
-      _ _
-      (weak-step-store-lineage
-        (lineageStore caught-lineage)
-        (lineageEmbedding caught-lineage)
-        (lineagePrefix caught-lineage))
-      (weak-step-store-lineage _
-        (lift-store-embeddingⁱ liftρ⁺)
-        (prefix-∷ⁱ prefix-reflⁱ))
-
-
-matched-nu-cast-allocation :
-  WorldCoherentLeftValueCatchupᵀ →
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {B B′ C C′ : Ty} {N V′ N′ : Term}
-    {s s′} {μ μ′}
-    {s-shape s′-shape result-shape : ImprecisionShape}
-    {q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  WorldCoherent ρ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴸ (leftStoreⁱ ρ) →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK (ν ★ N s) →
-  RuntimeOK (ν ★ V′ s′) →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
-  instᵈ μ ∣ suc Δᴸ
-    ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
-    ⊢ s ∶ C ⊑ ⇑ᵗ B →
-  CastMode μ′ →
-  SealModeStore★ (instᵈ μ′)
-    ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
-  instᵈ μ′ ∣ suc Δᴿ
-    ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
-    ⊢ s′ ∶ C′ ⊑ ⇑ᵗ B′ →
-  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-  CastShape.widening CastShape.⊢ᶜ s′ ⦂ s′-shape →
-  s-shape ； ⌊ pB ⌋ ≋ result-shape →
-  ⌊ q ⌋ ； s′-shape ≋ result-shape →
-  PairedWideningCompatible
-    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    (suc Δᴸ) (suc Δᴿ) s s′
-    q (⊑-lift∀ᵢ pB) s-shape s′-shape →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
-  ν ★ V′ s′ —→[ bind ★ ] N′ →
-  WorldCoherentWeakOneStepIndexedOutcome
-    {M = ν ★ N s} {N′ = N′}
-    {χ = bind ★} {ρ = ρ} pB
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    with catchup coherent exclusive unique wfL
-      (ν-runtime ok-source) vV′ noV′ N⊑V′
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    with final
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₂ refl =
-  world-indexed-outcome-source-blame
-    (↠-trans
-      (ν-↠ (sourceCatchup (weakIndexedResult indexed)))
-      (↠-step blame-ν ↠-refl))
-matched-nu-cast-allocation
-    catchup {pB = pB}
-    coherent exclusive unique wfL wfR ok-source ok-target
-    mode seal★ s⊑ mode′ seal★′ s′⊑
-    s-shape-proof s′-shape-proof source-comp target-comp compat
-    N⊑V′ (ν-step vV′ noV′)
-    | world-coherent-left-indexed-catchup
-        (left-indexed-catchup indexed
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) final))
-        caught-lineage final-coherent final-exclusive final-unique
-        final-wfL
-    | inj₁ (vW , noW)
-    =
-  world-indexed-outcome-related
-    final-indexed
-    combined-lineage
-    (world-coherent-matched-allocation liftρ⁺ final-coherent)
-    (source-name-exclusive-matched-head final-exclusive)
-    (assumption-membership-unique-matched final-unique)
-  where
-  caught-all =
-    left-indexed-all-catchup indexed
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) (inj₁ (vW , noW)))
-
-  final-indexed =
-    weak-one-step-matched-νcast-indexed-value-catchupᵀ
-      mode seal★ s⊑ mode′ seal★′ s′⊑ pB
-      s-shape-proof s′-shape-proof source-comp target-comp compat
-      vV′ noV′ caught-all vW noW
-
-  liftρ⁺ = proj₂ (lift-store-result
-    (resultStore (weakIndexedResult indexed)))
-
-  combined-lineage : WeakOneStepStoreLineage
-    (weakIndexedResult final-indexed)
-  combined-lineage =
-    weak-one-step-prepend-left-silent-store-lineageᵀ
-      _ _
-      (weak-step-store-lineage
-        (lineageStore caught-lineage)
-        (lineageEmbedding caught-lineage)
-        (lineagePrefix caught-lineage))
-      (weak-step-store-lineage _
-        (lift-store-embeddingⁱ liftρ⁺)
-        (prefix-∷ⁱ prefix-reflⁱ))
-
-
-target-nu-allocation :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-    {A B B′ C′ : Ty} {N V′ N′ : Term}
-    {s} {μ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ} →
-  WorldCoherent ρ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴸ (leftStoreⁱ ρ) →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK N →
-  RuntimeOK (ν A V′ s) →
-  WfTy Δᴿ A →
-  (h⇑A : WfTy (suc Δᴿ) (⇑ᵗ A)) →
-  RevealConversion μ (suc Δᴿ)
-    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (rightStoreⁱ ρ))
-    zero (⇑ᵗ A) s C′ (⇑ᵗ B′) →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′ →
-  (pC : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ B ⊑ `∀ C′ ∶ q →
-  pC [ zero ↦ ⇑ᵗ A ]ᴿ ⊑-target-lift-rightᵢ pB →
-  ν A V′ s —→[ bind A ] N′ →
-  WorldCoherentWeakOneStepIndexedOutcome
-    {M = N} {N′ = N′} {χ = bind A} {ρ = ρ} pB
-target-nu-allocation
-    {pB = pB} coherent exclusive unique wfL wfR
-    ok-source ok-target hA h⇑A s↑ liftρ pC N⊑V′ replace
-    (ν-step vV′ noV′) =
-  world-indexed-outcome-related
-    indexed
-    (weak-step-store-lineage _
-      (lift-right-store-embeddingⁱ liftρ)
-      (prefix-∷ⁱ prefix-reflⁱ))
-    (world-coherent-right-allocation liftρ coherent)
-    (source-name-exclusive-⇑ᴿᵢ exclusive)
-    (assumption-membership-unique-⇑ᴿᵢ unique)
-  where
-  result = weak-one-step-right-ν↑ᵀ
-    vV′ noV′ h⇑A s↑ pB pC replace liftρ N⊑V′
-
-  indexed : WeakOneStepIndexedResult pB
-  indexed =
-    weak-one-step-index-resultᵀ result refl
-      (weak-one-step-right-ν↑-transportᵀ
-        vV′ noV′ h⇑A s↑ pB pC replace liftρ N⊑V′)
-      (weak-one-step-right-ν↑-type-coherenceᵀ
-        vV′ noV′ h⇑A s↑ pB pC replace liftρ N⊑V′)
-
-
-target-nu-cast-allocation :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)}
-    {B B′ C′ : Ty} {N V′ N′ : Term}
-    {s} {μ} {s-shape : ImprecisionShape}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ `∀ C′ ⊣ Δᴿ} →
-  WorldCoherent ρ →
-  SourceNameExclusive Φ →
-  AssumptionMembershipUnique Φ →
-  StoreWf Δᴸ (leftStoreⁱ ρ) →
-  StoreWf Δᴿ (rightStoreⁱ ρ) →
-  RuntimeOK N →
-  RuntimeOK (ν ★ V′ s) →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)) →
-  instᵈ μ ∣ suc Δᴿ
-    ∣ (zero , ★) ∷ ⟰ᵗ (rightStoreⁱ ρ)
-    ⊢ s ∶ C′ ⊑ ⇑ᵗ B′ →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′ →
-  (pC : ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ B ⊑ C′ ⊣ suc Δᴿ) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ B ⊑ `∀ C′ ∶ q →
-  CastShape.widening CastShape.⊢ᶜ s ⦂ s-shape →
-  ⌊ pC ⌋ ； s-shape ≋ ⌊ pB ⌋ →
-  ν ★ V′ s —→[ bind ★ ] N′ →
-  WorldCoherentWeakOneStepIndexedOutcome
-    {M = N} {N′ = N′} {χ = bind ★} {ρ = ρ} pB
-target-nu-cast-allocation
-    {pB = pB} coherent exclusive unique wfL wfR
-    ok-source ok-target mode seal★ s⊑ liftρ pC N⊑V′
-    s-shape-proof comp (ν-step vV′ noV′) =
-  world-indexed-outcome-related
-    indexed
-    (weak-step-store-lineage _
-      (lift-right-store-embeddingⁱ liftρ)
-      (prefix-∷ⁱ prefix-reflⁱ))
-    (world-coherent-right-allocation liftρ coherent)
-    (source-name-exclusive-⇑ᴿᵢ exclusive)
-    (assumption-membership-unique-⇑ᴿᵢ unique)
-  where
-  comp′ =
-    imprecision-composition-shape-transport
-      refl refl (shape-target-lift-rightᵢ pB) comp
-
-  result = weak-one-step-right-νcastᵀ
-    vV′ noV′ mode seal★ s⊑ pB pC
-    s-shape-proof comp′ liftρ N⊑V′
-
-  indexed : WeakOneStepIndexedResult pB
-  indexed =
-    weak-one-step-index-resultᵀ result refl
-      (weak-one-step-right-νcast-transportᵀ
-        vV′ noV′ mode seal★ s⊑ pB pC
-        s-shape-proof comp′ liftρ N⊑V′)
-      (weak-one-step-right-νcast-type-coherenceᵀ
-        vV′ noV′ mode seal★ s⊑ pB pC
-        s-shape-proof comp′ liftρ N⊑V′)
 
 
 world-coherent-right-one-step-target-allocation-roots-proofᵀ :
+  WorldCoherentMatchedNuAllocationAfterValueCatchupᵀ →
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentRightOneStepTargetAllocationRoots
-world-coherent-right-one-step-target-allocation-roots-proofᵀ catchup =
+world-coherent-right-one-step-target-allocation-roots-proofᵀ
+    allocation catchup =
   record
     { rightStepMatchedNuAllocationRoot =
-        matched-nu-allocation catchup
-    ; rightStepMatchedNuCastAllocationRoot =
-        matched-nu-cast-allocation catchup
-    ; rightStepTargetNuAllocationRoot =
-        target-nu-allocation
-    ; rightStepTargetNuCastAllocationRoot =
-        target-nu-cast-allocation
+        λ pA coherent exclusive unique wfL wfR ok-source
+          vV′ noV′ hA hA′ s↑ s′↑ N⊑V′ replace →
+          matched-nu-allocation allocation catchup pA
+            coherent exclusive unique wfL wfR ok-source
+            vV′ noV′ hA hA′ s↑ s′↑ N⊑V′ replace
     }

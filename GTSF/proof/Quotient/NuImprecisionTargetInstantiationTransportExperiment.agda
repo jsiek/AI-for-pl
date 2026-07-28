@@ -21,8 +21,12 @@ open import Imprecision using
 open import ImprecisionComposition using (ImprecisionShape)
 open import ImprecisionWf using
   (ImpAssm; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ; store-right)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  ; store-right
+  )
 open import NuTerms using
   (Term; Λ_; _⟨_⟩; renameᵗᵐ)
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -33,7 +37,7 @@ open import
   proof.Core.Properties.TypeProperties
   using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-rename-at²ᵢ
@@ -49,7 +53,8 @@ open import
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef
   using
-  ( TargetInstantiationCreation
+  ( StoreImpPrefixᴿ
+  ; TargetInstantiationCreation
   ; embed-creationᴱ
   ; exact-creationᴱ
   )
@@ -75,6 +80,7 @@ target-instantiation-canonical-transportᴿ :
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
+    (StoreImpPrefixᴿ ρ₀ ρ⁺)
     (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
@@ -123,6 +129,7 @@ target-instantiation-endpoint-transportᴿ :
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
     {body-shape = body-shape}
+    (StoreImpPrefixᴿ ρ₀ ρ⁺)
     (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
       ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
       ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r) →

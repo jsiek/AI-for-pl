@@ -8,7 +8,7 @@ module proof.Core.Properties.TypeProperties where
 --   * No coercion-specific or term-typing lemmas live here.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
-open import Data.Bool using (false; _∨_)
+open import Data.Bool using (false; true; _∨_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z<s; s<s; z≤n; s≤s)
@@ -24,6 +24,14 @@ open import Types
 ------------------------------------------------------------------------
 -- Occurrence bookkeeping for binders
 ------------------------------------------------------------------------
+
+occurs-var-true→≡ :
+  ∀ {X Y} →
+  occurs X (＇ Y) ≡ true →
+  X ≡ Y
+occurs-var-true→≡ {X = X} {Y = Y} occ with X ≟ Y
+occurs-var-true→≡ {X = X} {Y = .X} occ | yes refl = refl
+occurs-var-true→≡ {X = X} {Y = Y} () | no X≢Y
 
 WfTy-occurs-boundary-false :
   ∀ {Δ A} →

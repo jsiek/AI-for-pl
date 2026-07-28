@@ -6,7 +6,7 @@ module
 --   * Connects the complete semantic-handler assembly and shared target-frame
 --     capability to the final proof-relevant frame-closing theorem.
 --   * Unpacks the reusable twenty-two-capability record once, including the
---     explicit fused instantiation-beta semantic capability, providing the
+--     embedded target-instantiation semantic capability, providing the
 --     top-level fit skeleton below DGG catch-up without repeatedly forwarding
 --     dependent higher-order arguments through every upper consumer.
 --   * Contains no semantic implementation, postulate, hole, permissive
@@ -16,7 +16,7 @@ open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameClosingCapabilitiesDef
   using
   ( PairedLambdaTargetClosingFrameClosingCapabilities
-  ; cap-inst-beta
+  ; cap-target-instantiation
   ; cap-fresh-path-target-structural-conceal-half-square
   ; cap-fresh-path-target-structural-reveal-half-square
   ; cap-lambda-lambda-structural-conceal
@@ -103,7 +103,7 @@ paired-lambda-target-closing-frame-closing-assembly-proofᵀ :
   SourceNuPairedAllConversionPostBetaAllRevealClosingRelationFrameClosingᵀ
 paired-lambda-target-closing-frame-closing-assembly-proofᵀ
     record
-      { cap-inst-beta = inst-beta
+      { cap-target-instantiation = target-instantiation
       ; cap-fresh-path-target-structural-reveal-half-square =
           structural-reveal-half
       ; cap-fresh-path-target-structural-conceal-half-square =
@@ -131,7 +131,7 @@ paired-lambda-target-closing-frame-closing-assembly-proofᵀ
       } =
   paired-lambda-target-closing-frame-closing-proofᵀ
     (paired-lambda-target-closing-frame-closing-handlers-proofᵀ
-      inst-beta rotate
+      target-instantiation rotate
       (paired-lambda-target-closing-gen-ground-leaf-closing-proofᵀ
         (paired-lambda-target-closing-ν-terminal-proofᵀ cycle))
       lambda-lambda-reveal lambda-lambda-conceal up-gen-all-index

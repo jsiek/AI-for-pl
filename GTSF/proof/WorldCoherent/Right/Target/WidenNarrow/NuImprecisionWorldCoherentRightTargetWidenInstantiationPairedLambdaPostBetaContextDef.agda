@@ -8,7 +8,7 @@ module
 --     target-instantiation case.
 --   * Retains the matched body world, the ambient-prefix world, the exact
 --     right lift, arbitrary universal root, closed final endpoints, inert
---     cast, and endpoint typings required by `Λ⊑instβᵀ`.
+--     cast, and endpoint typings required by exact creation.
 --   * Repairs the former full-catch-up contract, which discarded these
 --     witnesses and was refuted by the focused post-beta regression.
 --   * Contains no implementation, result/view/outcome type, postulate, hole,
@@ -30,7 +30,7 @@ open import ImprecisionWf using
 open import ImprecisionComposition using
   (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -49,8 +49,11 @@ open import TermTyping using
 open import Types using
   (Ty; TyCtx; ★; wf★; `∀; ⇑ᵗ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (TargetInstantiationCreation)
 
 
 WorldCoherentRightTargetWidenInstantiationPairedLambdaPostBetaContextᵀ :
@@ -66,29 +69,16 @@ WorldCoherentRightTargetWidenInstantiationPairedLambdaPostBetaContextᵀ =
       ∣ suc Δᴸ ⊢ D ⊑ C ⊣ suc Δᴿ}
     {f : Φ ∣ Δᴸ ⊢ `∀ D ⊑ B ⊣ Δᴿ}
     {body-shape : ImprecisionShape} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  CastMode μ →
-  SealModeStore★ μ (rightStoreⁱ ρ₀) →
-  μ ∣ Δᴿ ∣ rightStoreⁱ ρ₀
-    ⊢ inst B s ∶ `∀ C ⊑ B →
-  LiftStoreⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ρ₀ ρ∀ →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ⁺ ρᴿ⁺ →
-  Value W →
-  No• W →
-  Value W′ →
-  No• W′ →
-  Inert s →
-  ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
-    ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r →
-  widening ⊢ᶜ inst B s ⦂ νˢ body-shape →
-  ⌊ ∀ⁱ r ⌋ ； νˢ body-shape ≋ ⌊ f ⌋ →
-  Δᴸ
-    ∣ leftStoreⁱ (store-right zero ★ wf★ ∷ ρᴿ⁺)
-    ∣ [] ⊢ Λ W ⦂ `∀ D →
-  suc Δᴿ
-    ∣ rightStoreⁱ (store-right zero ★ wf★ ∷ ρᴿ⁺)
-    ∣ [] ⊢ W′ ⟨ s ⟩ ⦂ ⇑ᵗ B →
+  TargetInstantiationCreation
+    {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+    {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+    {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+    {s = s} {μ = μ} {r = r} {f = f}
+    {body-shape = body-shape}
+    (StoreImpPrefix ρ₀ ρ⁺)
+    (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ∀ ∣ []
+      ⊢ᴺ W ⊑ W′ ⦂ D ⊑ C ∶ r) →
   ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ
     ∣ store-right zero ★ wf★ ∷ ρᴿ⁺ ∣ []
     ⊢ᴺ Λ W ⊑ W′ ⟨ s ⟩

@@ -10,7 +10,13 @@ module proof.Substitution.Parallel.NuImprecisionParallelTermSubstitutionDef wher
 --   * Contains no implementation, postulate, hole, or permissive option.
 
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (CtxImp; StoreImp; ctx-imp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  )
 open import NuTerms using (No•; Substˣ; Term; substˣᵐ)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

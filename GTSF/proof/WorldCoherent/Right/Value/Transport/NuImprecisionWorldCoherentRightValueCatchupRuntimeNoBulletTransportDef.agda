@@ -15,8 +15,10 @@ open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
   (applyTerm; applyTerms; applyTy; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term)
 open import QuotientedTermImprecision using

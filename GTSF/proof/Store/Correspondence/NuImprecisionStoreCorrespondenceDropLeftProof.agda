@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality using
   (cong; sym; trans)
 
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreCorresponds
   ; StoreImp

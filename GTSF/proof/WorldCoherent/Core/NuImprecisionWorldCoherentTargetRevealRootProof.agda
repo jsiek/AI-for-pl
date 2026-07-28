@@ -15,8 +15,10 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTy; applyTys; keep; ↠-refl)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; blame; _⟨_⟩)
 open import QuotientedTermImprecision using

@@ -15,11 +15,18 @@ module
 --   * Contains no recursive catch-up dispatcher, postulate, hole, permissive
 --     option, termination bypass, catch-all clause, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import CastImprecisionShape as CastShape
 import Coercions
 open import Coercions using
-  (Coercion; ModeEnv; id-onlyᵈ; inst; _∣_∣_⊢_∶_=⇒_)
+  ( Coercion
+  ; ModeEnv
+  ; id-onlyᵈ
+  ; id-only≤tag-or-idᵈ
+  ; inst
+  ; _∣_∣_⊢_∶_=⇒_
+  )
 open import Conversion using
   (ConcealConversion; RevealConversion)
 open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
@@ -39,11 +46,11 @@ open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import ImprecisionComposition using
   (⌊_⌋; _；_≋_)
 open import NarrowWiden using
-  (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
+  (widen-mode-relax; _∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 import NuReduction
 open import NuReduction using
   (bind; keep; ↠-refl)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
@@ -52,6 +59,8 @@ open import NuTermImprecision using
   ; rightStoreⁱ-lift-right
   ; store-right
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuStore using (StoreWf)
 import NuTerms
 open import NuTerms using
@@ -65,18 +74,20 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( Λ⊑Λᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
 open import TermTyping using
-  (CastMode; SealModeStore★; _∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
+  ( CastMode
+  ; SealModeStore★
+  ; cast-tag-or-id
+  ; _∣_∣_⊢_⦂_
+  ; ⊢⟨⟩⊑
+  )
 import Types
 open import Types using (Ty; TyCtx; `∀; wf★; ⇑ᵗ; ★)
 open import
@@ -85,24 +96,31 @@ open import
   ( replace-left-target-lift-right-source-nu-bodyᵢ
   ; replace-paired-target-lift-right-under-∀ᵢ
   ; replace-right-target-lift-under-rightᵢ
-  ; right-lift-prefix-bodyᵀ
   ; shape-target-lift-right-under-∀ᵢ
   ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
   using
-  ( ≡-to-≅
-  ; replace-left-target-lift-rightᵢ
+  ( replace-left-target-lift-rightᵢ
   ; replace-paired-target-lift-rightᵢ
   ; replace-right-target-lift-rightᵢ
-  ; transportAllType-to-raw≅
-  ; transportArrowType-to-raw≅
-  ; ⊑-target-lift-right-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-target-lift-right-source-nuᵢ
   ; ⊑-target-lift-right-under-∀ᵢ
   ; ⊑-target-lift-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -120,7 +138,7 @@ open import proof.Core.Properties.NuStoreProperties using
 open import proof.Core.Properties.TypePreservation using
   (multi-preservation; term-weaken)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
@@ -138,6 +156,9 @@ open import
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (target-instantiation-creation)
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (weak-step-store-lineage)
@@ -266,7 +287,8 @@ private
         (shape , seal★ , widening ,
          c-shape , composition)))))
       relation =
-    ⊑cast⊑idᵀ seal★ widening relation _
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ widening) relation _
       c-shape composition
 
   apply-target-administration-plan :
@@ -330,7 +352,8 @@ private
         s-shape s-composition t-shape t-composition
         s-plan t-plan)
       relation =
-    ⊑cast⊑idᵀ seal★ widening relation q
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ widening) relation q
       sequence-shape composition
 
   apply-target-administration-spine :
@@ -446,9 +469,11 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
         initial-target-typing full-target-trace)
 
   post-beta-related =
-    post-beta {f = f} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body inst-shape creation-square
-      source-typing target-typing
+    post-beta {f = f}
+      (target-instantiation-creation
+        prefix mode seal★ cast liftρ liftρᴿ
+        vW noW vW′ noW′ inert body
+        inst-shape creation-square source-typing target-typing)
 
   allocated-tail =
     allocate-spine liftρᴿ tail
@@ -487,7 +512,7 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
 
   transport =
     weak-step-transport
-      (right-lift-prefix-bodyᵀ
+      (right-lift-prefix-body-proofᵀ
         liftρᴿ (prefix-∷ⁱ prefix-reflⁱ))
 
   type-coherence =
@@ -495,12 +520,12 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
       (λ pD pE → HE.≅-to-≡
         (HE.trans
           (transportArrowType-to-raw≅ result pD pE)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-arrow-coherentᵢ pD pE))))
       (λ r → HE.≅-to-≡
         (HE.trans
           (transportAllType-to-raw≅ result r)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-all-coherentᵢ r))))
       shape-target-lift-rightᵢ
       shape-target-lift-under-rightᵢ

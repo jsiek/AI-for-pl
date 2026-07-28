@@ -12,7 +12,9 @@ open import Data.List using (_∷_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
   (StoreChange; keep; ↠-step; _—→[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -72,11 +74,12 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -126,8 +129,9 @@ world-coherent-source-target-keep-prepend-proofᵀ
     {p = p} target→ complete =
   world-coherent-source-one-step-indexed
     indexed lineage
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)

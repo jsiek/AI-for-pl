@@ -4,29 +4,20 @@ module proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef where
 --   * Defines relational-store lineage for a weak one-step result.
 --   * Factors lineage into renaming of every old relational entry followed
 --     by a prefix of newly allocated entries.
---   * States the lineage-aware correspondence-transport boundary.
---   * Contains no simulation, lineage construction, or transport proof.
+--   * Contains no simulation, lineage construction, transport contract,
+--     theorem-fragment alias, or transport proof.
 
 open import Data.List using (_∷_)
-open import Agda.Builtin.Equality using (_≡_)
-open import Data.Product using (_×_; ∃-syntax)
 
-open import ImprecisionComposition using (⌊_⌋)
-open import ImprecisionWf using
-  (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuReduction using
-  (applyTys; keep)
-open import NuTermImprecision using
-  (StoreCorresponds; StoreImp)
-open import NuTerms using (Term)
+open import NuReduction using (applyTys)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  (StoreImp)
 open import QuotientedTermImprecision using
   (StoreImpPrefix)
-open import Types using (Ty; TyCtx; TyVar)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   (RelStoreEmbeddingⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
-  ( LeftSilentInvariant
-  ; WeakOneStepResult
+  ( WeakOneStepResult
   ; resultCtx
   ; resultLeftCtx
   ; resultRightCtx
@@ -60,27 +51,3 @@ record WeakOneStepStoreLineage
       StoreImpPrefix lineageStore (resultStore result)
 
 open WeakOneStepStoreLineage public
-
-
-LineageAwareLeftSilentStoreCorrespondsTransportᵀ : Set₁
-LineageAwareLeftSilentStoreCorrespondsTransportᵀ =
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
-    {M M′ : Term} {C C′ : Ty}
-    {α β : TyVar} {X X′ : Ty}
-    {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ} →
-  StoreImpPrefix ρ₀ ρ⁺ →
-  (inner : WeakOneStepResult ρ⁺ M M′ C C′ keep) →
-  LeftSilentInvariant inner →
-  WeakOneStepStoreLineage inner →
-  StoreCorresponds ρ₀ α X β X′ pX →
-  ∃[ pX′ ]
-    (StoreCorresponds
-       (resultStore inner)
-       (applyTyVars (sourceChanges inner) α)
-       (applyTys (sourceChanges inner) X)
-       (applyTyVars (targetTailChanges inner) β)
-       (applyTys (targetTailChanges inner) X′)
-       pX′)
-    ×
-    (⌊ pX′ ⌋ ≡ ⌊ pX ⌋)

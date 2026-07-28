@@ -8,6 +8,7 @@ module
 --   * Uses precision-index uniqueness only to reindex the composed result.
 --   * Contains no function-cast case, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
@@ -17,9 +18,13 @@ open import Relation.Binary.PropositionalEquality using
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using
-  (applyTerms; applyTys; bind; keep)
-open import NuTermImprecision using
-  (StoreImp; ctx-imp)
+  (applyTerms; applyTys; bind; keep; _—↠[_]_)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -33,8 +38,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; ƛ⊑ƛᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -50,8 +53,12 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   ; rightCatchupTargetValue
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-·₂-indexed-frameᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( weak-one-step-index-resultᵀ
-  ; weak-one-step-·₂-indexed-frameᵀ
   ; weak-result-transport-arrow-termsᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -118,11 +125,12 @@ open import
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
   ; sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -130,7 +138,9 @@ open import
   proof.WorldCoherent.Source.Misc.NuImprecisionWorldCoherentSourceSynchronizedLambdaBetaDef
   using (WorldCoherentSourceSynchronizedLambdaBetaᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.Core.Properties.ReductionProperties using
   (applyTerms-preserves-No•)
 open import proof.Core.Properties.TypePreservation using (term-weaken)
@@ -207,7 +217,8 @@ world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ
     | caught | refl | refl =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-lineage combined-changes combined-result combined-world
+    combined-lineage (sourceStepTailChanges phase-two′)
+    combined-changes combined-tail combined-world
     combined-exclusive combined-unique
   where
   catchup = worldRightCatchupResult caught
@@ -395,11 +406,17 @@ world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ
 
   combined-changes =
     sourceSilentChangesExact composition framed refl refl phase-two-result
-      (sourceStepChangesExact phase-two′)
+      (sourceStepChanges phase-two′)
 
   combined-result =
     sourceSilentResultExact composition framed refl refl phase-two-result
-      (sourceStepResultExact phase-two′)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges phase-two′ ] K)
+      (sym combined-result)
+      (sourceStepTail phase-two′)
 
   combined-world =
     sourceSilentWorldCoherent composition framed refl refl phase-two-result

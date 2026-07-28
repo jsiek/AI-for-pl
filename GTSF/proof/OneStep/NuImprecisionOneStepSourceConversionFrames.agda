@@ -14,19 +14,21 @@ open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTyCtxs; applyTys)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using (conv↑⊑ᵀ; conv↓⊑ᵀ)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyTyVars)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frameᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frame-coherenceᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact

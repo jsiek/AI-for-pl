@@ -17,7 +17,9 @@ open import Data.Product using (_×_; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTys)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

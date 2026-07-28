@@ -20,11 +20,13 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftStoreⁱ
+  ; StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
-  ; LiftStoreⁱ
-  ; StoreImp
   )
 open import NuTerms using (No•; Term; Value; Λ_)
 open import QuotientedTermImprecision using

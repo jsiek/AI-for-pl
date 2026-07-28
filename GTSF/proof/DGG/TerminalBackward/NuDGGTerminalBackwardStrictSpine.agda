@@ -21,7 +21,11 @@ import
 import
   proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeSiblingCatchupDef
 import
-  proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientFinalRuntimeSiblingCatchupDef
+  proof.Source.Administration.NuImprecisionSourceAdministrationSpine
+import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientCloseAccDef
+import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientClosePrefixProof
 import
   proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupRuntimeSiblingPrefixProof
 import
@@ -113,21 +117,9 @@ import
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedActiveValueSynchronizationDef
 import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedActiveValueRootsDef
-import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedActiveValueSynchronizationProof
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedActiveValueSynchronizationLemma
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientActiveValueSynchronizationDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientActiveValueRootsDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientActiveValueSynchronizationProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientActiveValueSynchronizationLemma
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientFrameRecursionDef
 import
   proof.Right.Core.NuImprecisionQuotientWideningTransportProof
 import
@@ -145,30 +137,6 @@ import
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientDownCasesProof
 import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationSchedulingDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationActiveArgumentSynchronizationDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationActiveArgumentRootsDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationActiveArgumentSynchronizationProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationCasesProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationFunctionFrameProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationArgumentFrameProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepOrdinaryDownApplicationIdentityArgumentRootProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepSourceDownApplicationSchedulingDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepSourceDownApplicationCasesProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedOuterCastRootsDef
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedCastFrameProof
-import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedSourceInertValueRootDef
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedSourceInertValueRootProof
@@ -180,12 +148,6 @@ import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedSourceActiveValueRootProof
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedSourceActiveValueRootLemma
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedValueRootProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedOuterCastRootsProof
-import
-  proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepPairedOuterCastRootsLemma
 import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepNuBlameRootDef
 import

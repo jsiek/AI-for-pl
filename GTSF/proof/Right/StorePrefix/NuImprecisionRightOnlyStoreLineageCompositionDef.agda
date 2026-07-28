@@ -13,7 +13,9 @@ module
 open import Data.Product using (Σ-syntax)
 
 open import NuReduction using (_—→[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import Types using (Ty)
 open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using

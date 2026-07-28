@@ -20,52 +20,54 @@ open import ImprecisionWf using
   ; idι
   ; ν
   )
-open import NuTermImprecision using
-  (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using (Value; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; allocation-prefixᵀ
+  ( allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; down·up⊑down·upᵀ
   ; gen⊑groundᵀ
-  ; up⊑upᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
-  ; Λ⊑instβᵀ
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; κ⊑κᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; ·⊑·ᵀ
   ; ƛ⊑ƛᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
   ; ⊕⊑⊕ᵀ
+  ; target-instantiationᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Atom)
 open import Relation.Binary.PropositionalEquality using (sym; trans)
+open import proof.Compilation.GenSafeProperties using
+  (genSafeShape-atomic-impossible)
 open import
   proof.Core.Properties.ConversionIndexCompatibilityProperties
   using
   ( replace-left-source-shape
   ; replace-left-target-shape
+  ; replace-paired-source-shape
+  ; replace-paired-target-shape
   ; replace-right-source-shape
   ; replace-right-target-shape
   )
@@ -75,26 +77,14 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ; target-atom-shape-unique
   )
 open import
-  proof.OneStep.NuImprecisionLambdaInstBetaFinalTargetAtomicImpossibleLemma
-  using (lambda-inst-beta-final-target-atomic-impossibleᵀ)
+  QuotientImprecisionCompatibility
+  using
+  ( reduction-closed-paired-compatible-shape-transport
+  ; reduction-closed-quotient-compatible-result-shape-transport
+  )
 open import
-  proof.NuCore.Relations.NuImprecisionPairedCastResultShape
-  using (paired-cast-result-shape-reindexᵀ)
-
-
-paired-cast-target-reindexᵀ :
-  ∀ {Φ Δᴸ Δᴿ c c′ A A′ B B′}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ} →
-  Atom B′ →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ p q →
-  (r : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  PairedCast Φ Δᴸ Δᴿ ρ c c′ p r
-paired-cast-target-reindexᵀ
-    {q = q} atom paired r =
-  paired-cast-result-shape-reindexᵀ
-    (target-atom-shape-unique atom q r) paired
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using (embedded-creation-target-shapeᴱ)
 
 
 private
@@ -134,17 +124,14 @@ atomic-target-value-reindexᵀ atom vV (blame⊑ᵀ V⊢) q =
 atomic-target-value-reindexᵀ atom () (x⊑xᵀ x∈) q
 atomic-target-value-reindexᵀ () vV (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
 atomic-target-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
-atomic-target-value-reindexᵀ atom (() ⟨ inert-u′ ⟩)
-    (down·up⊑down·upᵀ
-      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ M⊑M′ down-square widening
-      u-shape u′-shape up-square compatible) q
-atomic-target-value-reindexᵀ atom vV
-    (up⊑upᵀ N⊑N′ widening p
-      source-shape target-shape square) q =
-  up⊑upᵀ N⊑N′ widening q source-shape target-shape
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (closeᵀ N⊑N′ widening p
+      source-shape target-shape square compatible) q =
+  closeᵀ N⊑N′ widening q source-shape target-shape
     (quotient-boundary-ordinary-reindex
       (target-atom-shape-unique atom p q) square)
+    (reduction-closed-quotient-compatible-result-shape-transport
+      (sym (target-atom-shape-unique atom p q)) compatible)
 atomic-target-value-reindexᵀ () vV
     (Λ⊑Λᵀ liftρ liftγ vW vW′ W⊑W′) q
 atomic-target-value-reindexᵀ atom vV
@@ -153,14 +140,11 @@ atomic-target-value-reindexᵀ atom vV
   Λ⊑ᵀ {{safe = safe′}} occ′ liftρ liftγ vW
     (atomic-target-value-reindexᵀ atom vV W⊑V q)
 atomic-target-value-reindexᵀ atom vV
-    (Λ⊑instβᵀ prefix mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert W⊑W′ f inst-shape creation-square
-      assm hτ hσ store-emb M≡ M′≡ A≡ A′≡ p
-      vM noM closedM vM′ noM′ closedM′ M⊢ M′⊢)
+    (target-instantiationᵀ embedded)
     p′ =
   ⊥-elim
-    (lambda-inst-beta-final-target-atomic-impossibleᵀ
-      inst⊑ A′≡ atom)
+    (genSafeShape-atomic-impossible
+      (embedded-creation-target-shapeᴱ embedded) atom)
 atomic-target-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
       L⊑L′ L•⊢ L′•⊢) q
@@ -171,8 +155,6 @@ atomic-target-value-reindexᵀ atom vV
     (atomic-target-value-reindexᵀ atom vV L⊑V
       (ν safe occ q))
     L•⊢ V⊢
-atomic-target-value-reindexᵀ atom ()
-    (⊑αᵀ vL′ noL′ hA liftρ liftγ N⊑L′ r N⊢ L′•⊢) q
 atomic-target-value-reindexᵀ atom vV
     (allocation-prefixᵀ prefix M⊑V M⊢ V⊢) q =
   allocation-prefixᵀ prefix
@@ -191,21 +173,6 @@ atomic-target-value-reindexᵀ {p = p} atom vV
           (sym (target-atom-shape-unique atom p q))
           (sym (shape-source-liftνᵢ p))))
       replacement)
-atomic-target-value-reindexᵀ atom ()
-    (⊑νᵀ hA hA↑ s↑ liftρ liftγ r N⊑N′ replacement) q
-atomic-target-value-reindexᵀ atom ()
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ _ liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp) q
-atomic-target-value-reindexᵀ {p = p} atom vV
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V
-      s-shape comp) q =
-  νcast⊑ᵀ mode seal★ s⊑ liftρ liftγ N⊑V s-shape
-    (imprecision-composition-shape-transport
-      refl (sym (target-atom-shape-unique atom p q)) refl comp)
-atomic-target-value-reindexᵀ atom ()
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ r N⊑N′
-      s-shape comp) q
 atomic-target-value-reindexᵀ atom vV κ⊑κᵀ idι =
   κ⊑κᵀ
 atomic-target-value-reindexᵀ atom ()
@@ -243,16 +210,6 @@ atomic-target-value-reindexᵀ atom vV
       (sym (target-atom-shape-unique atom p q))
       comp)
 atomic-target-value-reindexᵀ atom vV
-    (⊑cast⊑idᵀ seal★ c⊑ M⊑V p c-shape comp) q =
-  ⊑cast⊑idᵀ seal★ c⊑ M⊑V q c-shape
-    (imprecision-composition-shape-transport
-      refl refl
-      (sym (target-atom-shape-unique atom p q))
-      comp)
-atomic-target-value-reindexᵀ atom vV
-    (conv⊑convᵀ paired M⊑V) q =
-  conv⊑convᵀ (paired-cast-target-reindexᵀ atom paired q) M⊑V
-atomic-target-value-reindexᵀ atom vV
     (conv↑⊑ᵀ c↑ M⊑V p replacement) q =
   conv↑⊑ᵀ c↑ M⊑V q
     (replace-left-target-shape
@@ -276,3 +233,35 @@ atomic-target-value-reindexᵀ atom vV
     (replace-right-source-shape
       (sym (target-atom-shape-unique atom p q))
       replacement)
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (paired-revealᵀ corr c↑ c′↑ replacement M⊑V) q =
+  paired-revealᵀ corr c↑ c′↑
+    (replace-paired-target-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)
+    M⊑V
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (paired-concealᵀ corr c↓ c′↓ replacement M⊑V) q =
+  paired-concealᵀ corr c↓ c′↓
+    (replace-paired-source-shape
+      (sym (target-atom-shape-unique atom p q))
+      replacement)
+    M⊑V
+atomic-target-value-reindexᵀ {p = p} atom vV
+    (paired-wideningᵀ
+      mode seal★ c⊑ c-shape
+      mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compatible M⊑V) q =
+  paired-wideningᵀ
+    mode seal★ c⊑ c-shape
+    mode′ seal★′ c′⊑ c′-shape
+    (imprecision-composition-shape-transport
+      refl
+      (sym (target-atom-shape-unique atom p q))
+      refl left-square)
+    right-square
+    (reduction-closed-paired-compatible-shape-transport
+      refl
+      (sym (target-atom-shape-unique atom p q))
+      compatible)
+    M⊑V

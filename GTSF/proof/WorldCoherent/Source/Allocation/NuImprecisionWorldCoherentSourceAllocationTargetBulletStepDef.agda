@@ -17,7 +17,7 @@ open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
 open import NuReduction using (bind)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ

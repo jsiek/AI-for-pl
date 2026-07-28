@@ -15,11 +15,14 @@ open import Data.List using (List; map; _∷_)
 open import Data.Nat using (suc; zero)
 open import Imprecision using (ImpCtx; ⇑ᴿᵢ)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (LiftRightStoreⁱ; StoreImp; store-right)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
+  ; StoreImp
+  ; store-right
+  )
 open import Types using (Ty; TyCtx; wf★; ★)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts

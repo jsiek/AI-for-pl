@@ -1,10 +1,10 @@
 module proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourcePureStepCasesDef where
 
 -- File Charter:
---   * Defines the exact world-coherent source pure-step boundary.
+--   * Defines the world-coherent source pure-step outcome boundary.
 --   * Partitions pure roots by their four exhaustive outer source shapes.
 --   * Keeps ambient-prefix, refined typing, runtime, store, and world
---     premises explicit in every major capability.
+--     premises explicit while retaining narrower leaf capabilities.
 --   * Contains no dispatcher, semantic implementation, postulate, or hole.
 
 open import Data.List using ([])
@@ -12,8 +12,11 @@ open import Data.List using ([])
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep; _—→_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (RuntimeOK; Term)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
@@ -26,8 +29,10 @@ open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDe
   (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  (WorldCoherentSourceOneStepOutcome)
 open import
   proof.WorldCoherent.Source.Application.NuImprecisionWorldCoherentSourceApplicationPureRootDef
   using (WorldCoherentSourceApplicationPureRootᵀ)
@@ -62,7 +67,7 @@ WorldCoherentSourcePureStepᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
   M —→ L →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = M} {M′ = M′} {L = L} {χ = keep} {ρ = ρ⁺} p
 
 

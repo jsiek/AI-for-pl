@@ -29,15 +29,17 @@ open import ImprecisionWf using
   ; ν
   )
 open import Imprecision using (NonVar)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
   )
 open import NuTerms using
   ( No•
@@ -64,7 +66,7 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 
 
 PairedLambdaTargetClosingLambdaLeafClosingᵀ : Set₁

@@ -16,7 +16,9 @@ import Relation.Binary.HeterogeneousEquality as HE
 open import Relation.Binary.PropositionalEquality using (refl; subst)
 
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (rightStoreⁱ-lift-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( rightStoreⁱ-lift-left
+  )
 open import
   proof.Left.LiftedStore.NuImprecisionLeftLiftedRightRelStoreEmbeddingFactorLemma
   using (left-lifted-right-rel-store-embedding-factorᵀ)

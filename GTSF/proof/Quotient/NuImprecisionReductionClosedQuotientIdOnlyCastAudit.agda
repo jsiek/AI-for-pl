@@ -25,13 +25,16 @@ open import NarrowWiden using
   ; narrow-mode-relax
   ; widen-mode-relax
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
-  ; seal★-tag-or-id
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   (Term; _⟨_⟩)
 open import TermTyping using

@@ -9,6 +9,7 @@ module proof.Source.Core.NuImprecisionSourceBulletBase where
 --   * Keeps local administrative embedding and post-allocation helpers private
 --     and avoids depending on the main simulation or scratch modules.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -31,12 +32,11 @@ open import NuReduction using
   ; ↠-step
   ; _—→[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; lift-left-store-[]
   ; lift-left-store-∷
   ; lift-left-store-left
@@ -49,6 +49,9 @@ open import NuTermImprecision using
   ; store-matched
   ; store-right
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
+  )
 open import NuTerms using
   ( No•
   ; Value
@@ -60,8 +63,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; α⊑ᵀ
@@ -77,7 +78,7 @@ open import Types using
   ; extᵗ
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-renameᵗ²ᵢ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ( RelStoreEmbeddingⁱ
@@ -89,26 +90,35 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
   (rel-ctx-rename-[])
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
-  ; castModeRenamer-id
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
   ; rel-world-embedding
-  ; rename-assm²-idᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( rename-assm²-idᵢ
   ; replace-left-rename-idᵢ
   ; replace-left-rename-id-source-nu-bodyᵢ
   ; replace-paired-rename-idᵢ
   ; replace-paired-rename-id-all-bodyᵢ
   ; replace-right-rename-idᵢ
   ; replace-right-rename-id-right-bodyᵢ
-  ; weak-one-step-index-resultᵀ
   ; ⊑-rename-id-all-bodyᵢ
   ; ⊑-rename-id-allᵢ
   ; ⊑-rename-id-arrowᵢ
   ; ⊑-rename-id-shapeᵢ
   ; ⊑-rename-idᵢ
   ; ⊑-rename-id-source-nuᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
   )
 open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
   (rel-world-embed-no•ᵀ)

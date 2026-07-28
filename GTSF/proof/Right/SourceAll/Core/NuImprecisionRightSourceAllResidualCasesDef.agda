@@ -16,8 +16,14 @@ open import
   proof.Right.SourceAll.Bodies.NuImprecisionRightSourceAllNestedSourceAllDef
   using (WorldCoherentRightSourceAllNestedSourceAllᵀ)
 open import
-  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedCastDef
-  using (WorldCoherentRightSourceAllPairedCastᵀ)
+  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedConcealDef
+  using (WorldCoherentRightSourceAllPairedConcealᵀ)
+open import
+  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedRevealDef
+  using (WorldCoherentRightSourceAllPairedRevealᵀ)
+open import
+  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedWideningDef
+  using (WorldCoherentRightSourceAllPairedWideningᵀ)
 open import
   proof.Right.SourceAll.Core.NuImprecisionRightSourceAllQuotientDef
   using (WorldCoherentRightSourceAllQuotientᵀ)
@@ -31,8 +37,12 @@ open import
 
 record WorldCoherentRightSourceAllResidualCases : Set₁ where
   field
-    sourceAllPairedCast :
-      WorldCoherentRightSourceAllPairedCastᵀ
+    sourceAllPairedReveal :
+      WorldCoherentRightSourceAllPairedRevealᵀ
+    sourceAllPairedConceal :
+      WorldCoherentRightSourceAllPairedConcealᵀ
+    sourceAllPairedWidening :
+      WorldCoherentRightSourceAllPairedWideningᵀ
     sourceAllQuotient :
       WorldCoherentRightSourceAllQuotientᵀ
     sourceAllNestedSourceAll :

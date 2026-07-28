@@ -10,8 +10,10 @@ module proof.Right.StorePrefix.NuImprecisionRightStorePrefixFactorDef where
 open import Data.Nat using (suc)
 open import Data.Product using (_×_; ∃-syntax)
 
-open import NuTermImprecision using
-  (LiftRightStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
+  ; StoreImp
+  )
 open import QuotientedTermImprecision using
   (StoreImpPrefix)
 open import ImprecisionWf using (ImpCtx)

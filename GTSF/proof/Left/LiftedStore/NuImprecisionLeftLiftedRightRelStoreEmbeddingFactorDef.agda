@@ -13,9 +13,12 @@ module
 open import Data.Product using (_×_; Σ-syntax)
 open import Data.Nat using (suc)
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using (LiftLeftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  )
 open import Types using (Renameᵗ; TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   (RelStoreEmbeddingⁱ)
 

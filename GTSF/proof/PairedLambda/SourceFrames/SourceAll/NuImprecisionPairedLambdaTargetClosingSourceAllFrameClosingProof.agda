@@ -15,7 +15,10 @@ open import Coercions using (Coercion; ModeEnv)
 open import Conversion using (ConcealConversion; RevealConversion)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_; _∣_∣_⊢_∶_⊒_)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( cast⊒⊑ᵀ

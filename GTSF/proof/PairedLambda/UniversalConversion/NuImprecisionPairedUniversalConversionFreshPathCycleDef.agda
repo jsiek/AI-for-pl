@@ -28,7 +28,9 @@ open import ImprecisionWf using
   ; ν
   )
 open import Imprecision using (NonVar)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using (PairedConversion)
 open import Types using (Ty; TyCtx; `∀; occurs)
 

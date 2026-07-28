@@ -30,7 +30,10 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   )
 import NarrowWiden as NW
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using (cast⊒⊑ᵀ)
 open import TermTyping using (CastMode; SealModeStore★)

@@ -6,26 +6,21 @@ module
 --   * Assembles general source-delta catch-up by structural relation
 --     recursion.
 --   * Delegates the unframed primitive to direct scheduling and transports
---     completed results through all five target cast/conversion forms.
+--     completed results through all live target cast/conversion forms.
 --   * Contains no direct scheduling, catch-all, postulate, hole, or option.
 
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νᵀ
-  ; ⊑νcastᵀ
   ; ⊕⊑⊕ᵀ
   )
 open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -42,7 +37,7 @@ open import
   using (WorldCoherentSourcePrimitiveDeltaCatchupᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 
 
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ :
@@ -54,15 +49,6 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
   world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases (store-imp-prefix-transⁱ prefix₀ prefix)
     coherent exclusive unique wfR okM′ inner
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑αᵀ {q = ()} vL′ noL′ hA liftρ liftγ inner r N⊢ L′•⊢)
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑νᵀ {q = ()} hA h⇑A s↑ liftρ liftγ r inner replacement)
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑νcastᵀ {q = ()} mode seal★ s⊑ liftρ liftγ r inner shape comp)
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (⊕⊑⊕ᵀ L⊑L′ R⊑R′) =
@@ -83,16 +69,6 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q shape comp) =
   sourceStepTargetWidenFrame target-frames
     prefix mode seal★ c⊑ shape comp recursive
-  where
-  target-frames = sourcePrimitiveDeltaTargetCastFrames cases
-  recursive =
-    world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑cast⊑idᵀ seal★ c⊑ inner q shape comp) =
-  sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ shape comp recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =

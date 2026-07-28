@@ -11,7 +11,9 @@ module
 
 open import Conversion using (RevealConversion)
 open import ConversionIndexCompatibility using (replace-right-ν)
-open import NuTermImprecision using (rightStoreⁱ-lift-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( rightStoreⁱ-lift-left
+  )
 open import NuTerms using
   ( no•-Λ
   ; no•-⟨⟩

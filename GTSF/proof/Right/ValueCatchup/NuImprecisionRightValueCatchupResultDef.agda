@@ -11,7 +11,9 @@ open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•; Term; Value)
 open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using

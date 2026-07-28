@@ -8,12 +8,14 @@ module proof.Substitution.Parallel.NuImprecisionParallelTermSubstitutionBlamePro
 
 open import Data.Nat.Properties using (≤-refl)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
-  ; StoreImp
   ; ctx-imp
   ; rightCtxⁱ
-  ; rightStoreⁱ
   )
 open import NuTerms using (No•; Substˣ; Term; blame; substˣᵐ)
 open import QuotientedTermImprecision using

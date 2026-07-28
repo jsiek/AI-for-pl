@@ -22,7 +22,7 @@ open import
   using (AssumptionMembershipUnique)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 
 
 there-injective :

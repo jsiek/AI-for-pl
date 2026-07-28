@@ -28,7 +28,7 @@ open import NuReduction using
   ( StoreChange
   ; applyCoercion
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; rightStoreⁱ
   )

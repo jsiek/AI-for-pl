@@ -10,6 +10,7 @@ module
 --   * Reuses the existing weak-step and right-value catch-up carriers; it
 --     introduces no result, view, outcome, postulate, hole, or bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
@@ -35,11 +36,12 @@ open import NuReduction using
   ; keep
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   )
 open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
@@ -67,18 +69,15 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
-  ; subst²-to-≅
-  ; transportAllType-to-raw≅
-  ; transportArrowType-to-raw≅
-  ; weak-one-step-compose-all-body
+  ( weak-one-step-compose-all-body
   ; weak-one-step-compose-all-componentsᵀ
   ; weak-one-step-compose-arrow-componentsᵀ
   ; weak-one-step-compose-right-body
@@ -88,9 +87,20 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-compose-type
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-composeᵀ
-  ; weak-one-step-index-resultᵀ
   ; weak-one-step-nested-all-coherent≅
   ; weak-one-step-nested-arrow-coherent≅
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
+  ; weak-one-step-index-resultᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
@@ -147,7 +157,7 @@ open import
   ; shape-transport-imprecision-endpoints
   ; transport-imprecision-endpoints
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Core.Properties.TypeProperties using
   (renameᵗ-ext-suc-comm)

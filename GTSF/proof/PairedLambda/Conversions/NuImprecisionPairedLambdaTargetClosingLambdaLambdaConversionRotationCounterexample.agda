@@ -27,21 +27,23 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
   ; correspondence-stored
-  ; lift-ctx-[]
   ; lift-left-store-∷
   ; lift-left-store-[]
   ; lift-store-∷
   ; lift-store-[]
   ; store-left
   ; store-matched
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; lift-ctx-[]
   )
 open import NuTerms using
   ( No•

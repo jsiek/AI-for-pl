@@ -27,15 +27,15 @@ world-coherent-final-source-νcast-catchup-proofᵀ :
   WorldCoherentFinalSourceNuCastCatchupᵀ
 world-coherent-final-source-νcast-catchup-proofᵀ
     source-only paired
-    coherent exclusive wfL mode seal★ s⊑
+    coherent exclusive unique wfL mode seal★ s⊑
     (source-only-index-body {{safe = safe}} r) s-shape comp
     vL noL vV′ noV′ L⊑V′ =
   source-only {{safe = safe}}
-    coherent exclusive wfL mode seal★ s⊑ s-shape comp
+    coherent exclusive unique wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
 world-coherent-final-source-νcast-catchup-proofᵀ
     source-only paired
-    coherent exclusive wfL mode seal★ s⊑
+    coherent exclusive unique wfL mode seal★ s⊑
     (paired-index-body r) s-shape comp
     vL noL vV′ noV′ L⊑V′ =
   paired coherent exclusive wfL mode seal★ s⊑ s-shape comp

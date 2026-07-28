@@ -7,53 +7,26 @@ module
 --     independent source-no-bullet, target-runtime sibling relation.
 --   * Lifts the sibling to the ambient world once, then keeps the caught
 --     result and exact final sibling together throughout structural recursion.
---   * Delegates only source-runtime and terminal quotient semantic joins to
---     their construction-time sibling-aware contracts.
+--   * Delegates only source-runtime and ranked source quotient
+--     terminalization to their sibling-aware contracts.
 --   * Contains no opaque-final-result sibling transport or permissive option.
 
 open import Agda.Builtin.Equality using (refl)
-open import Data.List using ([])
 open import Data.Product using (_,_; proj₁; proj₂; Σ-syntax)
 
-open import Coercions using
-  (Inert; genᵈ; id-onlyᵈ; tag-or-idᵈ)
-open import CastImprecisionShape using
-  (_⊢ᶜ_⦂_; narrowing; widening)
-open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
-open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
-open import ImprecisionWf using
-  (ImpCtx; _∣_⊢_⊑_⊣_)
 import NarrowWiden as NW
-open import NarrowWiden using
-  (_∣_∣_⊢_∶_⊒_; genSafe→inert)
-open import NuReduction using
-  ( applyTerm
-  ; applyTerms
-  ; applyTy
-  ; applyTys
-  ; keep
-  )
-open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( StoreImp
-  ; leftStoreⁱ
-  ; lift-left-ctx-[]
-  ; rightStoreⁱ
+open import NarrowWiden using (genSafe→inert)
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
   )
 open import NuTerms using
-  ( No•
-  ; RuntimeOK
-  ; Term
-  ; Value
-  ; no•-⟨⟩
+  ( no•-⟨⟩
   ; ƛ_
   ; Λ_
   ; $
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision
-open import TermTyping using (_∣_∣_⊢_⦂_)
-open import Types using (Ty; TyCtx)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
@@ -71,23 +44,20 @@ open import
   ; weakIndexedResult
   )
 open import
-  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
-  using (AssumptionMembershipUnique)
-open import
-  proof.NuCore.Relations.NuImprecisionContextExclusivityDef
-  using (SourceNameExclusive)
-open import
   proof.Store.Prefix.NuImprecisionStorePrefix
   using (store-imp-prefix-transⁱ)
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
   using (rel-store-embedding-reflⁱ)
 open import
+  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
+  using
+  ( embedded-creation-source-valueᴱ
+  ; embedded-creation-target-no-bulletᴱ
+  )
+open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (weak-step-store-lineage)
-open import
-  proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
-  using (WorldCoherent)
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupPrefixFrames
 open import
@@ -98,7 +68,11 @@ open import
   ; world-coherent-left-indexed-catchup
   )
 open import
-  proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientFinalRuntimeSiblingCatchupDef
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientCloseAccDef
+  using (WorldCoherentSourceQuotientCloseAccᵀ)
+open import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientClosePrefixProof
+  using (world-coherent-source-quotient-close-prefix-proofᵀ)
 open import
   proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeSiblingCatchupDef
 open import
@@ -111,13 +85,13 @@ open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport using
   ( left-catchup-indexed-prefix-blameᵀ
   ; left-catchup-indexed-prefix-valueᵀ
   )
-open import proof.DGG.Core.NuPreservation using
+open import proof.Core.Properties.NuRuntimeProperties using
   (runtime-ν; runtime-⟨⟩)
 
 
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ :
   WorldCoherentSourceRuntimeSiblingCatchupᵀ →
-  WorldCoherentQuotientFinalRuntimeSiblingCatchupᵀ →
+  WorldCoherentSourceQuotientCloseAccᵀ →
   WorldCoherentLeftValueCatchupRuntimeSiblingAmbientᵀ
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
@@ -136,15 +110,17 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     prefix coherent exclusive unique wfL okL
     (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM′))
-    (up⊑upᵀ
-      (down⊑downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
-      widening-pair pA u-shape u′-shape up-square)
+    (closeᵀ
+      (paired-downᵀ
+        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape
+        down-square elimination)
+      widening-pair pA u-shape u′-shape up-square compatible)
     noR okR′ sibling =
-  quotient-down-up-sibling quotient-catchup
+  world-coherent-source-quotient-close-prefix-proofᵀ quotient-catchup
     prefix okL vM′ noM′ inert-d′ inert-u′
-    d⊒ d-shape d′⊒ d′-shape down-square
-    widening-pair u-shape u′-shape up-square
+    mode d⊒ d-shape mode′ d′⊒ d′-shape
+    down-square elimination
+    widening-pair u-shape u′-shape up-square compatible
     noR okR′ inner inner-sibling
   where
   inner-with-sibling =
@@ -157,41 +133,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   inner = proj₁ inner-with-sibling
 
   inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL
-    (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
-    (no•-⟨⟩ (no•-⟨⟩ noM′))
-    (up⊑upᵀ
-      (gen-down⊑gen-downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
-      widening-pair pA u-shape u′-shape up-square)
-    noR okR′ sibling =
-  quotient-gen-down-up-sibling quotient-catchup
-    prefix okL vM′ noM′ inert-d′ inert-u′
-    d⊒ d-shape d′⊒ d′-shape down-square
-    widening-pair u-shape u′-shape up-square
-    noR okR′ inner inner-sibling
-  where
-  inner-with-sibling =
-    world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-      source-runtime quotient-catchup
-      prefix coherent exclusive unique wfL
-      (runtime-⟨⟩ (runtime-⟨⟩ okL))
-      vM′ noM′ M⊑M′ noR okR′ sibling
-
-  inner = proj₁ inner-with-sibling
-
-  inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL
-    (() ⟨ inert-u′ ⟩) noL′
-    (down·up⊑down·upᵀ
-      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ M⊑M′ down-square
-      widening-pair u-shape u′-shape up-square compatible)
-    noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′
@@ -258,34 +199,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   caught =
     world-coherent-left-catchup-prefix-target-widen-castᵀ
       prefix mode seal★ c⊑ c-shape comp inner
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL
-    (vL′ ⟨ inert ⟩) (no•-⟨⟩ noL′)
-    (⊑cast⊑idᵀ seal★ c⊑ rel q c-shape comp)
-    noR okR′ sibling
-    with
-      world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-        source-runtime quotient-catchup
-        prefix coherent exclusive unique wfL okL
-        vL′ noL′ rel noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL
-    (vL′ ⟨ inert ⟩) (no•-⟨⟩ noL′)
-    (⊑cast⊑idᵀ seal★ c⊑ rel q c-shape comp)
-    noR okR′ sibling
-    | inner@(world-coherent-left-indexed-catchup
-        (left-indexed-catchup _
-          (left-catchup-invariant
-            (left-silent-invariant refl refl) _))
-        _ _ _ _ _) ,
-      inner-sibling =
-  caught , inner-sibling
-  where
-  caught =
-    world-coherent-left-catchup-prefix-target-widen-id-castᵀ
-      prefix seal★ c⊑ c-shape comp inner
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL
@@ -394,19 +307,17 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′
-    rel@(Λ⊑instβᵀ prefix₀ mode seal★ inst⊑ liftρ liftρᴿ
-      vW noW vW′ noW′ inert body f inst-shape creation-square
-      assm hτ hσ embedding
-      source-eq target-eq source-type-eq target-type-eq p
-      final-v final-no final-closed final-v′ final-no′ final-closed′
-      source-typing target-typing)
+    rel@(target-instantiationᵀ embedded)
     noR okR′ sibling =
   caught , sibling
   where
   caught =
     world-coherent-left-indexed-catchup
       (left-catchup-indexed-prefix-valueᵀ
-        prefix okL final-v final-no′ rel)
+        prefix okL
+        (embedded-creation-source-valueᴱ embedded)
+        (embedded-creation-target-no-bulletᴱ embedded)
+        rel)
       (weak-step-store-lineage _
         rel-store-embedding-reflⁱ prefix-reflⁱ)
       coherent exclusive unique wfL
@@ -426,11 +337,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     h⇑A prefix coherent exclusive unique wfL okL
     vL′ noL′ vL noL liftρ lift-left-ctx-[]
     L⊑L′ L•⊢ L′•⊢ noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (⊑αᵀ vL′ noInnerL′ h⇑A liftρ liftγ N⊑L′ r N⊢ L′•⊢)
-    noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL () noL′
@@ -455,44 +361,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   inner = proj₁ inner-with-sibling
 
   inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (⊑νᵀ hA h⇑A s↑ liftρ liftγ pC N⊑N′ replace)
-    noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (νcast⊑νcastᵀ mode seal★ mode′ seal★′
-      s⊑ s′⊑ compat liftρ liftγ N⊑N′
-      s-shape s′-shape left-comp right-comp)
-    noR okR′ sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL vL′ noL′
-    (νcast⊑ᵀ mode seal★ s⊑ liftρ lift-left-ctx-[] N⊑L′
-      s-shape comp)
-    noR okR′ sibling =
-  source-νcast-sibling source-runtime
-    prefix mode seal★ s⊑ s-shape comp
-    liftρ lift-left-ctx-[] vL′ noL′ noR okR′
-    inner inner-sibling
-  where
-  inner-with-sibling =
-    world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-      source-runtime quotient-catchup
-      prefix coherent exclusive unique wfL
-      (runtime-ν okL) vL′ noL′ N⊑L′
-      noR okR′ sibling
-
-  inner = proj₁ inner-with-sibling
-
-  inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL () noL′
-    (⊑νcastᵀ mode seal★ s⊑ liftρ liftγ pC N⊑N′ s-shape comp)
-    noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL vL′ noL′
@@ -569,10 +437,57 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL
     (vL′ ⟨ inert ⟩) (no•-⟨⟩ noL′)
-    (conv⊑convᵀ conversion N⊑L′)
+    (paired-revealᵀ corresponds c↑ c′↑ replacement N⊑L′)
     noR okR′ sibling =
-  source-paired-cast-sibling source-runtime
-    prefix conversion vL′ noL′ inert noR okR′
+  source-paired-reveal-sibling source-runtime
+    prefix corresponds c↑ c′↑ replacement
+    vL′ noL′ inert noR okR′
+    inner inner-sibling
+  where
+  inner-with-sibling =
+    world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
+      source-runtime quotient-catchup
+      prefix coherent exclusive unique wfL
+      (runtime-⟨⟩ okL) vL′ noL′ N⊑L′
+      noR okR′ sibling
+
+  inner = proj₁ inner-with-sibling
+
+  inner-sibling = proj₂ inner-with-sibling
+world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okL
+    (vL′ ⟨ inert ⟩) (no•-⟨⟩ noL′)
+    (paired-concealᵀ corresponds c↓ c′↓ replacement N⊑L′)
+    noR okR′ sibling =
+  source-paired-conceal-sibling source-runtime
+    prefix corresponds c↓ c′↓ replacement
+    vL′ noL′ inert noR okR′
+    inner inner-sibling
+  where
+  inner-with-sibling =
+    world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
+      source-runtime quotient-catchup
+      prefix coherent exclusive unique wfL
+      (runtime-⟨⟩ okL) vL′ noL′ N⊑L′
+      noR okR′ sibling
+
+  inner = proj₁ inner-with-sibling
+
+  inner-sibling = proj₂ inner-with-sibling
+world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okL
+    (vL′ ⟨ inert ⟩) (no•-⟨⟩ noL′)
+    (paired-wideningᵀ
+      mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+      source-comp target-comp compatible N⊑L′)
+    noR okR′ sibling =
+  source-paired-widening-sibling source-runtime
+    prefix
+    mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    source-comp target-comp compatible
+    vL′ noL′ inert noR okR′
     inner inner-sibling
   where
   inner-with-sibling =
@@ -627,7 +542,7 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
 
 world-coherent-left-value-catchup-runtime-sibling-prefix-proofᵀ :
   WorldCoherentSourceRuntimeSiblingCatchupᵀ →
-  WorldCoherentQuotientFinalRuntimeSiblingCatchupᵀ →
+  WorldCoherentSourceQuotientCloseAccᵀ →
   WorldCoherentLeftValueCatchupRuntimeSiblingPrefixᵀ
 world-coherent-left-value-catchup-runtime-sibling-prefix-proofᵀ
     source-runtime quotient-catchup

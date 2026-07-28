@@ -16,11 +16,6 @@ open import
 open import
   proof.WorldCoherent.Source.LambdaBeta.NuImprecisionWorldCoherentSourceLambdaBetaTargetBulletDef
   using (WorldCoherentSourceLambdaBetaTargetBulletᵀ)
-open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesDef
-  using (WorldCoherentSourceOneStepTargetNuFrames)
-
-
 record WorldCoherentSourceLambdaBetaSchedulingCases : Set₁ where
   field
     sourceLambdaBetaDirectCase :
@@ -31,8 +26,5 @@ record WorldCoherentSourceLambdaBetaSchedulingCases : Set₁ where
 
     sourceLambdaBetaTargetCastFrames :
       WorldCoherentSourceOneStepTargetCastFrames
-
-    sourceLambdaBetaTargetNuFrames :
-      WorldCoherentSourceOneStepTargetNuFrames
 
 open WorldCoherentSourceLambdaBetaSchedulingCases public

@@ -3,13 +3,15 @@ module
   where
 
 -- File Charter:
---   * Defines prepending one target-only pure step to an exact source step.
+--   * Defines prepending one target-only pure step to a source-step result.
 --   * Leaves the completed source trace, final relation, and world unchanged.
 --   * Contains no implementation, postulate, hole, or permissive option.
 
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep; _—→[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import Types using (Ty; TyCtx)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using

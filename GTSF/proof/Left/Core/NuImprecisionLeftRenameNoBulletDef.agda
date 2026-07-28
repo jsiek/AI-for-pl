@@ -16,9 +16,11 @@ open import ImprecisionWf using
   ( ImpCtx
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
-  ; StoreImp
   )
 open import NuTerms using
   ( No•
@@ -30,10 +32,11 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
 open import Types using (Renameᵗ; Ty; TyCtx; renameᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (rename-assm²ᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (rename-assm²ᵢ)
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (LeftInsertion)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( LeftInsertion
-  ; LeftCtxRenameⁱ
+  ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
   )
 open import proof.Core.Permutation.ForallPermutationProperties using

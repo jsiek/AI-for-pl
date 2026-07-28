@@ -11,8 +11,12 @@ open import Data.Empty using (⊥)
 
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using
   (Term; Value; _·_)
 open import QuotientedTermImprecision using

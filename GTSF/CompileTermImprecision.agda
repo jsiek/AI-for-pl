@@ -17,7 +17,7 @@ open import GradualTermImprecision using
   (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-import NuTermImprecision as NTI
+import proof.NuCore.Relations.NuImprecisionTermContextDef as NTI
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 import proof.Compilation.CompileTermImprecision as Proof

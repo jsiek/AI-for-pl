@@ -10,6 +10,7 @@ module proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceOnl
 --   * Contains no postulate, hole, permissive option, catch-all clause, or
 --     termination bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -25,7 +26,7 @@ open import ImprecisionWf using
   ; ⇑ᴿᵢ
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
@@ -46,38 +47,8 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; blame⊑ᵀ
-  ; cast⊒⊑ᵀ
-  ; cast⊑⊑ᵀ
-  ; conv↑⊑ᵀ
-  ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; gen⊑groundᵀ
-  ; κ⊑κᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
-  ; up⊑upᵀ
-  ; x⊑xᵀ
-  ; Λ⊑Λᵀ
-  ; Λ⊑ᵀ
-  ; α⊑αᵀ
-  ; α⊑ᵀ
-  ; νcast⊑νcastᵀ
-  ; νcast⊑ᵀ
-  ; ν⊑νᵀ
-  ; ν⊑ᵀ
-  ; ·⊑·ᵀ
-  ; ƛ⊑ƛᵀ
-  ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
-  ; ⊑cast⊑ᵀ
-  ; ⊑conv↑ᵀ
-  ; ⊑conv↓ᵀ
-  ; ⊑αᵀ
-  ; ⊑νcastᵀ
-  ; ⊑νᵀ
-  ; ⊕⊑⊕ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -93,20 +64,22 @@ open import Types using
   ; ★
   ; ⇑ᵗ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  (right-lift-prefix-bodyᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-right-store-factorⁱ
-  ; nu-term-imprecision-transport-termsᵀ
   ; right-target-square-α⊑ᵀ
   ; right-under-left-ctx-eq
   ; ⊑-target-lift-right-ν-shapeᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
   )
 open import proof.Core.Properties.NuTermProperties using
   (renameᵗᵐ-preserves-No•)
 open import proof.Core.Properties.TypePreservation using
   (term-weaken)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -120,6 +93,9 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-⇑ᴿᵢ)
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceOnlyBulletTransportDef
   using (RightTargetAllocationSourceOnlyBulletTransportᵀ)
@@ -262,7 +238,7 @@ right-target-allocation-source-only-bullet-transport-proofᵀ
       transport-lift-right-store-forward eq liftᴿρᴸ
 
     lifted-body =
-      right-lift-prefix-bodyᵀ rightᴸρ prefix-reflⁱ
+      right-lift-prefix-body-proofᵀ rightᴸρ prefix-reflⁱ
         noL noM′ L⊑M′
 
     body =

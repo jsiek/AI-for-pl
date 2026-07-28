@@ -27,7 +27,7 @@ open import ImprecisionWf using
   (NonVar; _ˣ⊑★; ⇑ᴸᵢ; ν; ∀ⁱ_)
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
@@ -55,7 +55,7 @@ open import TermTyping using
   ; cast-gen
   )
 open import Types using (WfTy; `∀; ⇑ᵗ)
-open import proof.Core.Properties.NarrowWidenProperties using
+open import proof.Core.Properties.NarrowWidenBinderProperties using
   ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing

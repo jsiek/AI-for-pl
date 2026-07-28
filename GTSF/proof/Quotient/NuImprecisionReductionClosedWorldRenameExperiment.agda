@@ -63,23 +63,25 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; StoreCorresponds
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
   ; ctx-imp
   ; lift-ctx-[]
   ; lift-ctx-∷
   ; lift-left-ctx-[]
   ; lift-left-ctx-∷
   ; leftCtxⁱ
-  ; leftStoreⁱ
   ; rightCtxⁱ
-  ; rightStoreⁱ
   )
 open import NuTerms using
   ( No•
@@ -167,7 +169,7 @@ open import proof.Core.Properties.TypeProperties using
   ; renameᵗ-preserves-WfTy
   ; predᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; rename-assm²-source-νᵢ
   ; rename-assm²-∀ᵢ
@@ -187,7 +189,7 @@ open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
   using (assumption-membership-unique→precision-index-unique)
 open import
-  proof.Quotient.NuImprecisionReductionClosedCompatibilityRenameExperiment
+  proof.Quotient.NuImprecisionQuotientEliminationCompatibilityRename
   using
   ( reduction-closed-paired-compatible-rename²ᵢ
   ; reduction-closed-quotient-compatible-rename²ᵢ
@@ -205,8 +207,7 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using (SpineCastMode; gradual↓; id-only↓)
 open import
   proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef

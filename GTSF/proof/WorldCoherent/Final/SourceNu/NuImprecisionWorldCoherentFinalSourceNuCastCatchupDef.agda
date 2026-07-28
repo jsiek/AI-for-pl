@@ -21,7 +21,10 @@ open import ImprecisionComposition using
   (ImprecisionShape; _；_≋_; ⌊_⌋)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; Term; Value; ν)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
@@ -29,6 +32,9 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
@@ -48,6 +54,7 @@ WorldCoherentFinalSourceNuCastCatchupᵀ =
     {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   CastMode μ →
   SealModeStore★ (instᵈ μ)

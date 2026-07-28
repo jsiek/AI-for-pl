@@ -15,8 +15,12 @@ open import Data.List using (_∷_)
 open import Data.Nat using (zero)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᴿᵢ; ⇑ᵢ)
-open import NuTermImprecision using
-  (LiftLeftStoreⁱ; LiftRightStoreⁱ; LiftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; LiftRightStoreⁱ
+  ; LiftStoreⁱ
+  ; StoreImp
+  )
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (TyCtx)
 

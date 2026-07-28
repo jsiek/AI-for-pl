@@ -20,7 +20,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ν
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftRightStoreⁱ
   ; StoreImp
@@ -36,7 +36,7 @@ open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using
   (Ty; TyCtx; WfTy; wf★; ★; `∀; ⇑ᵗ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

@@ -10,6 +10,7 @@ module
 --   * Contains no result/view/outcome type, postulate, hole, permissive
 --     option, termination bypass, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (unseal)
@@ -33,10 +34,8 @@ open import NuTerms using
   ; ok-⟨⟩
   ; _⟨_⟩
   )
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-target-typing)
 open import TermTyping using (forget)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-＇; sv-seal)
 open import

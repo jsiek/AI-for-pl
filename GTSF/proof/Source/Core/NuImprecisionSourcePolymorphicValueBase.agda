@@ -3,14 +3,16 @@ module proof.Source.Core.NuImprecisionSourcePolymorphicValueBase where
 -- File Charter:
 --   * Provides source polymorphic-value base facts for post-allocation
 --     runtime-bullet steps and source-side shape inversion.
---   * Exports `post-allocation-β-∀•-bare`,
+--   * Exports `post-allocation-β-Λ•-bare`, `post-allocation-β-Λ•`,
+--     `post-catchup-β-inst`, `post-allocation-β-∀•-bare`,
 --     `post-allocation-β-gen•-bare`,
 --     `post-allocation-polymorphic-value-step`, and
 --     `left-polymorphic-value-shapeᵀ`.
 --   * Keeps the remaining beta-step and value-shape helper proofs private.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
-open import Coercions using (gen; `∀)
+open import Coercions using (gen; inst; `∀)
 open import Data.List using ([])
 open import Data.Nat using (suc)
 open import Data.Product using (_,_; ∃-syntax)
@@ -18,26 +20,35 @@ open import NuReduction using
   ( keep
   ; pure-step
   ; β-gen•
+  ; β-inst
   ; β-Λ•
   ; β-∀•
+  ; ξ-⟨⟩
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( Value
   ; Λ_
+  ; ν
   ; ⇑ᵗᵐ
   ; _•
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-source-typing
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using (subst)
 open import TermTyping using (_∣_∣_⊢_⦂_; forget)
-open import Types using (Store; TyCtx; `∀; extᵗ)
+open import Types using (Store; TyCtx; ★; `∀; extᵗ)
 open import proof.Core.Properties.CoercionProperties using (open0-ext-suc-cancelᶜ)
+open import proof.Core.Properties.ReductionProperties using
+  ( applyCoercionUnderTyBinders
+  ; applyCoercions
+  ; applyCoercions-inst
+  )
 open import proof.DGG.Core.NuProgress using
   (AllView; av-gen; av-Λ; av-∀; canonical-∀)
 open import proof.Core.Properties.NuTermProperties using
@@ -45,17 +56,33 @@ open import proof.Core.Properties.NuTermProperties using
   ; renameᵗᵐ-preserves-Value
   )
 
-private
-  post-allocation-β-Λ•-bare :
-    ∀ {V} →
-    Value V →
-    (⇑ᵗᵐ (Λ V)) • —→[ keep ] V
-  post-allocation-β-Λ•-bare {V = V} vV =
-    subst
-      (λ W → (⇑ᵗᵐ (Λ V)) • —→[ keep ] W)
-      (open0-ext-suc-cancelᵐ V)
-      (pure-step
-        (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
+post-allocation-β-Λ•-bare :
+  ∀ {V} →
+  Value V →
+  (⇑ᵗᵐ (Λ V)) • —→[ keep ] V
+post-allocation-β-Λ•-bare {V = V} vV =
+  subst
+    (λ W → (⇑ᵗᵐ (Λ V)) • —→[ keep ] W)
+    (open0-ext-suc-cancelᵐ V)
+    (pure-step
+      (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
+
+post-allocation-β-Λ• :
+  ∀ {V s} →
+  Value V →
+  ((⇑ᵗᵐ (Λ V)) •) ⟨ s ⟩ —→[ keep ] V ⟨ s ⟩
+post-allocation-β-Λ• vV =
+  ξ-⟨⟩ (post-allocation-β-Λ•-bare vV)
+
+post-catchup-β-inst :
+  ∀ χs {V B s} →
+  Value V →
+  V ⟨ applyCoercions χs (inst B s) ⟩
+    —→[ keep ]
+      ν ★ V (applyCoercionUnderTyBinders χs s)
+post-catchup-β-inst χs {B = B} {s = s} vV
+    rewrite applyCoercions-inst χs B s =
+  pure-step (β-inst vV)
 
 post-allocation-β-∀•-bare :
   ∀ {V c} →

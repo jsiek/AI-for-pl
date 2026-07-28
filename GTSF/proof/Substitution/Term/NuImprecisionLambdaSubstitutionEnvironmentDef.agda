@@ -10,7 +10,13 @@ open import Data.List using (_∷_)
 open import Data.Product using (_×_)
 
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (CtxImp; StoreImp; ctx-imp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  )
 open import NuTerms using (No•; Substˣ; extˢˣ)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

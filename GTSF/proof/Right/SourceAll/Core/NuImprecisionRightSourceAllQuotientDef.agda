@@ -23,14 +23,18 @@ open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 import ImprecisionWf as IW
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( LiftLeftCtxⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; Λ_; _⟨_⟩)
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedQuotientWideningCompatible)
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; StoreImpPrefix
@@ -84,6 +88,9 @@ WorldCoherentRightSourceAllQuotientᵀ =
   widening ⊢ᶜ u ⦂ sU →
   widening ⊢ᶜ u′ ⦂ sU′ →
   sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
+  ReductionClosedQuotientWideningCompatible
+    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ
+    u u′ qD pA sU sU′ →
   WorldCoherentRightValueCatchupIndexedResult
     {V = Λ (N ⟨ u ⟩)} {M′ = N′ ⟨ u′ ⟩}
     {ρ = ρ⁺} (IW.ν safe occ pA)

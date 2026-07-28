@@ -10,6 +10,7 @@ module
 --   * Contains no paired-conversion semantic implementation, postulate, hole,
 --     permissive option, or broad simulation import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
 open import Data.List using ([]; _∷_)
@@ -20,12 +21,14 @@ open import ImprecisionWf using
   ; ⊑-src-wf
   )
 import NarrowWiden as NW
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
   )
 open import NuTerms using
   ( no•-⟨⟩
@@ -35,8 +38,6 @@ open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; conv⊑convᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; paired-conversion
   ; α⊑ᵀ
   )

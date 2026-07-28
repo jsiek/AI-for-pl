@@ -8,6 +8,7 @@ module
 --     source-silent traces with the synchronized natural-addition delta.
 --   * Contains no dispatcher recursion, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; _+_)
@@ -23,10 +24,16 @@ open import NuReduction using
   ; applyTy
   ; applyTys
   ; keep
+  ; _—↠[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightCtxⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( rightCtxⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -45,8 +52,6 @@ open import Primitives using (addℕ; κℕ)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
@@ -62,7 +67,9 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
   )
@@ -153,11 +160,12 @@ open import
   using
   ( WorldCoherentSourceOneStepIndexedResult
   ; sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -523,8 +531,9 @@ finish-right-catchup-deltaᵀ
   world-coherent-source-one-step-indexed
     combined-indexed
     combined-lineage
+    (sourceStepTailChanges delta-world′)
     combined-changes
-    combined-result
+    combined-tail
     combined-world
     combined-exclusive
     combined-unique
@@ -630,11 +639,17 @@ finish-right-catchup-deltaᵀ
 
   combined-changes =
     sourceSilentChangesExact composition framed refl refl delta-result
-      (sourceStepChangesExact delta-world′)
+      (sourceStepChanges delta-world′)
 
   combined-result =
     sourceSilentResultExact composition framed refl refl delta-result
-      (sourceStepResultExact delta-world′)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges delta-world′ ] K)
+      (sym combined-result)
+      (sourceStepTail delta-world′)
 
   combined-world =
     sourceSilentWorldCoherent composition framed refl refl delta-result
@@ -709,8 +724,9 @@ finish-left-then-right-deltaᵀ
   world-coherent-source-one-step-indexed
     combined-indexed
     combined-lineage
+    (sourceStepTailChanges phase-two)
     combined-changes
-    combined-result
+    combined-tail
     combined-world
     combined-exclusive
     combined-unique
@@ -827,12 +843,18 @@ finish-left-then-right-deltaᵀ
   combined-changes =
     sourceSilentChangesExact
       composition framed-left refl refl phase-two-result
-      (sourceStepChangesExact phase-two)
+      (sourceStepChanges phase-two)
 
   combined-result =
     sourceSilentResultExact
       composition framed-left refl refl phase-two-result
-      (sourceStepResultExact phase-two)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges phase-two ] K)
+      (sym combined-result)
+      (sourceStepTail phase-two)
 
   combined-world =
     sourceSilentWorldCoherent

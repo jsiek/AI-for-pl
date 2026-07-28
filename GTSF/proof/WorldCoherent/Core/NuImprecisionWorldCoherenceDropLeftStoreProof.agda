@@ -18,7 +18,7 @@ open import Data.Product using (_,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 
 open import ImprecisionWf using (_ˣ⊑ˣ_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreCorresponds
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left

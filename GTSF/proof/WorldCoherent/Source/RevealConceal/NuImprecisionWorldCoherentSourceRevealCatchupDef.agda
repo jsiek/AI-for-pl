@@ -10,7 +10,10 @@ open import Coercions using (Coercion; ModeEnv)
 open import Conversion using (RevealConversion)
 open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (Ty; TyCtx; TyVar)

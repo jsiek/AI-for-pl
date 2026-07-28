@@ -12,8 +12,9 @@ module
 
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 
-open import NuTermImprecision using
-  (rightStoreⁱ-lift-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( rightStoreⁱ-lift-left
+  )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import QuotientedTermImprecision using (⊑cast⊑ᵀ)
 open import TermTyping using (SealModeStore★)

@@ -26,7 +26,9 @@ open import ImprecisionWf using
   ; ν
   )
 open import NuReduction using (StoreChange)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import Relation.Binary.PropositionalEquality using
   (cong; sym; trans)

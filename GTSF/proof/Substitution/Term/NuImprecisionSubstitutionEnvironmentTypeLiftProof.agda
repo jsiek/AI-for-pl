@@ -15,18 +15,10 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import ImprecisionWf using
   (_ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᵢ; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
-  ; ctx-imp
-  ; lift-ctx-[]
-  ; lift-ctx-∷
-  ; lift-left-ctx-[]
-  ; lift-left-ctx-∷
   ; lift-left-store-[]
   ; lift-left-store-left
   ; lift-left-store-link
@@ -38,10 +30,20 @@ open import NuTermImprecision using
   ; lift-store-right
   ; lift-store-∷
   )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
+  ; ctx-imp
+  ; lift-ctx-[]
+  ; lift-ctx-∷
+  ; lift-left-ctx-[]
+  ; lift-left-ctx-∷
+  )
 open import NuTerms using (No•; Term; renameᵗᵐ; ↑ᵗᵐ)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-∀ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -78,7 +80,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; LeftStoreRenameⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
-  ; left-insertion-suc
   ; left-store-rename-[]
   ; left-store-rename-left
   ; left-store-rename-link
@@ -86,11 +87,13 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-right
   ; rel-world-embedding
   )
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (left-insertion-suc)
 open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
   using (⊑-rename-left-atᵢ; ⊑-rename-leftᵢ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-rename-at²ᵢ)
 open import proof.Substitution.Term.NuImprecisionSubstitutionEnvironmentTypeLiftDef using
   ( QuotientedSubstitutionEnvironmentLeftTypeLiftᵀ

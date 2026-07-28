@@ -63,8 +63,6 @@ import
 import
   proof.WorldCoherent.Right.Target.Framing.NuImprecisionWorldCoherentRightTargetInertFramingContextLemma
 import
-  proof.Right.Core.NuImprecisionRightAllocationContextSeed
-import
   proof.Core.Administration.NuImprecisionAdministrationMeasureLemma
 import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
@@ -84,8 +82,6 @@ import
   proof.WorldCoherent.Right.Target.ActiveRoots.NuImprecisionWorldCoherentRightTargetNarrowFunUntagGenRootLemma
 import
   proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationFunctionContinuationContextDef
-import
-  proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaRelationCounterexample
 import
   proof.WorldCoherent.Right.Target.WidenNarrow.NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedLambdaAllocationContextDef
 import

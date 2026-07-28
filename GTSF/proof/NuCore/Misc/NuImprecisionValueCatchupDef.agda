@@ -8,7 +8,9 @@ module proof.NuCore.Misc.NuImprecisionValueCatchupDef where
 open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•; RuntimeOK; Value)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

@@ -2,8 +2,8 @@ module proof.EndpointMLB.Core.EndpointCanonicalMLBTest where
 
 -- File Charter:
 --   * Regression tests for the executable endpoint-canonical MLB algorithm.
---   * Tests the Agda implementation in `proof.EndpointMLB.Core.EndpointCanonicalMLB`, not the
---     older assumption-merging `proof.EndpointMLB.Core.MaximalLowerBounds.mlb?` experiment.
+--   * Tests the Agda implementation in
+--     `proof.EndpointMLB.Core.EndpointCanonicalMLB`.
 --   * Each theorem is a computation-by-`refl` check for a named edge case from
 --     `EndpointCanonicalMLBDesign.md` and the Python reference tests.
 

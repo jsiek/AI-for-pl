@@ -21,7 +21,9 @@ open import NuReduction using
   ; ↠-step
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term; Value; Λ_; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import Relation.Binary.PropositionalEquality using (subst)
 open import Types using (extᵗ)

@@ -21,13 +21,15 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
-  ; lift-ctx-[]
   ; lift-left-store-[]
   ; lift-store-[]
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
   )
 open import NuTerms using
   ( No•

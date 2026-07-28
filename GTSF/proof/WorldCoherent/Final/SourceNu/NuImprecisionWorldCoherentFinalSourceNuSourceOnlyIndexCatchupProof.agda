@@ -10,6 +10,7 @@ module
 --   * Records the source lift and fresh allocation as explicit store lineage.
 --   * Contains no recursive dispatcher, postulates, or permissive holes.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -30,7 +31,7 @@ open import ImprecisionWf using
 open import NuReduction using
   (bind; keep; ν-step; ↠-refl; ↠-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
@@ -52,8 +53,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   )
@@ -67,7 +66,7 @@ open import Types using
   ; renameᵗ
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-⇑ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -75,16 +74,23 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-source-only-head)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
+  using (assumption-membership-unique-source)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-left-store-embeddingⁱ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
   (LeftLiftPrefixBodyᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; ⊑-source-lift-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -116,6 +122,17 @@ open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSou
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceRevealCatchupDef using
   (WorldCoherentSourceRevealCatchupᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
+  ( replace-left-source-liftν-source-nu-bodyᵢ
+  ; replace-left-source-liftνᵢ
+  ; replace-paired-source-liftν-under-∀ᵢ
+  ; replace-paired-source-liftνᵢ
+  ; replace-right-source-liftν-under-rightᵢ
+  ; replace-right-source-liftνᵢ
+  ; source-liftν-right-body-shapeᵢ
+  )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; TyRenameWf-suc; renameᵗ-id)
 
@@ -176,7 +193,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     {ρ = ρ} {ρ′ = ρ′} {L = L} {V′ = V′}
     {A = A} {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
+    coherent exclusive unique wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ replacement =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     allocation-silent allocation-lineage cast-catchup
@@ -209,6 +226,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     bullet-catchup h⇑A prefix-reflⁱ
       (world-coherent-left-allocation liftρ coherent)
       (source-name-exclusive-source-only-head exclusive)
+      (assumption-membership-unique-source unique)
       allocated-wf (ok-• vL noL) vV′ noV′ vL noL
       liftρ liftγ L⊑V′
       (nu-term-imprecision-source-typing allocated-bullet)
@@ -258,7 +276,12 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
       (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ
-        shape-source-liftνᵢ)
+        shape-source-liftνᵢ source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =

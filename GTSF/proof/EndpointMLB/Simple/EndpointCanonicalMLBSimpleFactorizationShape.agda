@@ -626,20 +626,18 @@ open import Types using
   )
 open import proof.Core.Properties.ImprecisionCompositionProperties using
   (compose-assoc-left; shape-trans-left-idᵢ)
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
+  (⊑-trans-left-idᵢ)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   (shape-open-unused-atᵢ; shape-subst-source; shape-subst-target)
 open import proof.Core.Properties.TypeProperties using (occurs-suc-var)
-open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
-  using
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
   ( DropAtᵢ
   ; drop-zeroᵢ
   ; drop-∀ᵢ
   ; drop-νᵢ
-  ; occurs-var-true→≡ᵢ
   ; open-unused-atᵢ
   ; removeAt-Wfᵢ
-  ; ⊑-trans-left-idᵢ
   )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using
   (∀ᵢᶜ; νᵢᶜ)

@@ -20,11 +20,6 @@ open import
 open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesLemma
   using (world-coherent-source-one-step-target-cast-frames)
-open import
-  proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetNuFramesLemma
-  using (world-coherent-source-one-step-target-nu-framesᵀ)
-
-
 world-coherent-source-function-cast-beta-scheduling-casesᵀ :
   WorldCoherentSourceFunctionCastBetaDirectᵀ →
   WorldCoherentSourceFunctionCastBetaSchedulingCases
@@ -35,6 +30,4 @@ world-coherent-source-function-cast-beta-scheduling-casesᵀ direct =
         world-coherent-source-function-cast-beta-target-bulletᵀ
     ; sourceFunctionCastBetaTargetCastFrames =
         world-coherent-source-one-step-target-cast-frames
-    ; sourceFunctionCastBetaTargetNuFrames =
-        world-coherent-source-one-step-target-nu-framesᵀ
     }

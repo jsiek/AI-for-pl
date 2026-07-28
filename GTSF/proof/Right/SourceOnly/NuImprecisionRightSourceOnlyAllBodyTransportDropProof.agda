@@ -13,14 +13,18 @@ module
 open import Relation.Binary.PropositionalEquality using (subst)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( ∀ᵢᶜ
-  ; νᵢᶜ
-  ; open-unusedᵢ
-  ; renameᵗ-swap01-involutiveᵢ
-  ; ⊑-source-liftνᵢ
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
+  (open-unusedᵢ)
+open import proof.Core.Properties.NuImprecisionBinderPermutationProperties
+  using
+  ( renameᵗ-swap01-involutiveᵢ
   ; ⊑-∀ν-to-ν∀ᵢ
   ; ⊑-ν∀-to-∀νᵢ
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( ∀ᵢᶜ
+  ; νᵢᶜ
+  ; ⊑-source-liftνᵢ
   )
 open import
   proof.Right.SourceOnly.NuImprecisionRightSourceOnlyAllBodyTransportDropDef

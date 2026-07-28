@@ -54,22 +54,24 @@ open import NuReduction using
   ; applyTys
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; StoreCorresponds
-  ; ctx-imp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-left
   ; store-matched
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
+  ; ctx-imp
+  ; leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using
   ( No•
@@ -106,8 +108,7 @@ open import Types using
   ; ⟰ᵗ
   ; occurs
   )
-open import
-  proof.Quotient.NuImprecisionQuotientBoundarySupport
+open import QuotientImprecisionCompatibility
   using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible
@@ -120,7 +121,7 @@ open import
   ; EmbeddedTargetInstantiationCreation
   )
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -516,6 +517,7 @@ mutual
         {W = W} {W′ = W′} {B = B} {C = C} {D = D}
         {s = s} {μ = μ} {r = r} {f = f}
         {body-shape = body-shape}
+        (StoreImpPrefixᴿ ρ₀ ρ⁺)
         (((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ₀)
           ∣ suc Θᴸ ∣ suc Θᴿ ∣ ρ∀ ∣ []
           ⊢ᴿ W ⊑ W′ ⦂ D ⊑ C ∶ r)

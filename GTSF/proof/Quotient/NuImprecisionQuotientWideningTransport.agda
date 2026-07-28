@@ -19,8 +19,11 @@ open import NarrowWiden using
   )
 open import NuReduction using
   (applyTyCtxs; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; StoreImpPrefix

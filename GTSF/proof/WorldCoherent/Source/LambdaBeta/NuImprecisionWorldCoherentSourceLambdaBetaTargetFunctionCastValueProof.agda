@@ -9,6 +9,7 @@ module
 --     their well-founded assembly is deliberately separate.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import Conversion as CV
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -27,8 +28,10 @@ open import ImprecisionComposition using (comp-↦-↦)
 import NarrowWiden as NW
 open import NuReduction using (keep; pure-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( RuntimeOK
   ; Term
@@ -43,18 +46,14 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-target-typing
-  ; nu-term-imprecision-source-typing
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import TermTyping using
-  (SealModeStore★; cast-tag-or-id; forget)
+open import TermTyping using (SealModeStore★; forget)
 open import Types using (Ty; TyCtx; _⇒_)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
@@ -89,7 +88,6 @@ open import
   using
   ( WorldCoherentSourceOneStepTargetCastFrames
   ; sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -102,7 +100,9 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; runtime-⟨⟩; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂; runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-⇒; fv-ƛ; fv-↦)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken; term-weaken)
@@ -274,53 +274,6 @@ target-function-cast-value-suc-at-prefixᵀ
     runtime-·₂ target-function-value okM′
   argument-cast =
     ⊑cast⊒ᵀ mode seal★⁺ c⊒⁺
-      argument-related pA₀ c-shape c-comp
-  source-inner⊢⁺ =
-    term-weaken ≤-refl
-      (leftStoreⁱ-prefix-inclusion relation-prefix)
-      (value-runtime-No• (ƛ _) (runtime-·₁ okM))
-      (nu-term-imprecision-source-typing inner)
-  target-inner⊢⁺ =
-    term-weaken ≤-refl right-incl target-W-no
-      (nu-term-imprecision-target-typing inner)
-  inner⁺ =
-    allocation-prefixᵀ relation-prefix inner
-      source-inner⊢⁺ target-inner⊢⁺
-  inner-result =
-    finish-inner-target-function-value-atᵀ
-      target-lambda target-function-cast
-      prefix coherent exclusive unique wfR okM
-      (ok-·₂ vW target-W-no (ok-⟨⟩ target-argument-runtime))
-      inner⁺ argument-cast vV vW (suc-injective outer-rank)
-target-function-cast-value-suc-at-prefixᵀ
-    target-lambda target-function-cast target-frames prepend
-    {ρ₀ = ρ₀} {pA = pA} {pB = pB}
-    relation-prefix prefix coherent exclusive unique wfR okM okM′
-    (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
-      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
-      inner .(pA ↦ pB)
-      (shape-fun c-shape d-shape)
-      (comp-↦-↦ c-comp d-comp))
-    argument-related vV vW vV′ outer-rank =
-  prepend (pure-step (NuReduction.β-↦ vW vV′))
-    (sourceStepTargetIdWidenFrame target-frames
-      prefix seal★⁺ d⊑⁺ d-shape d-comp inner-result)
-  where
-  right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
-  seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ₀)
-  seal★⁺ =
-    seal★-weaken {μ = C.id-onlyᵈ} right-incl seal★
-  c⊒⁺ = NW.narrow-weaken ≤-refl right-incl (c⊢ , cⁿ)
-  d⊑⁺ = NW.widen-weaken ≤-refl right-incl (d⊢ , dʷ)
-  target-function-value = vW ⟨ _ C.↦ _ ⟩
-  target-W-no =
-    value-runtime-No• vW
-      (runtime-⟨⟩ (runtime-·₁ okM′))
-  target-argument-runtime =
-    runtime-·₂ target-function-value okM′
-  argument-cast =
-    ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-      (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ c⊒⁺)
       argument-related pA₀ c-shape c-comp
   source-inner⊢⁺ =
     term-weaken ≤-refl

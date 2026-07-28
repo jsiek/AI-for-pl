@@ -14,7 +14,9 @@ open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality using
   (cong₂; trans)
 
-open import NuTermImprecision using (leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ( RelStoreEmbeddingⁱ
   ; rel-store-embedding-[]

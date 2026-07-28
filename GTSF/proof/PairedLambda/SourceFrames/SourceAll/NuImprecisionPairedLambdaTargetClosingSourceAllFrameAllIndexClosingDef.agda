@@ -23,7 +23,9 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

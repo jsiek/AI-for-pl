@@ -26,9 +26,10 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   (right-value-indexed-catchup)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( apply-conceal-conversions
-  ; apply-narrows-typing
   ; apply-reveal-conversions
   )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   (targetTailChanges; weakIndexedResult)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using

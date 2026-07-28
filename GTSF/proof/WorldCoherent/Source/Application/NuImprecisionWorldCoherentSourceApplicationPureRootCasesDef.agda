@@ -7,8 +7,9 @@ module
 --     application pure roots.
 --   * Keeps lambda substitution and function-coercion beta separate so each
 --     can be proved and checked independently.
---   * Reuses the canonical source-blame root outside this record and contains
---     no result wrapper, implementation, postulate, hole, or option.
+--   * Keeps lambda beta's related-result boundary narrow while allowing
+--     function-cast beta to return the existing one-step outcome.
+--   * Contains no implementation, postulate, hole, or permissive option.
 
 import Coercions as C
 open import Data.List using ([])
@@ -16,8 +17,11 @@ open import Data.List using ([])
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( RuntimeOK
   ; Term
@@ -40,6 +44,10 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  (WorldCoherentSourceOneStepOutcome)
 open import TermTyping using (_∣_∣_⊢_⦂_)
 
 
@@ -87,7 +95,7 @@ WorldCoherentSourceFunctionCastBetaRootᵀ =
     ⊢ᴺ (V ⟨ c C.↦ d ⟩) · W ⊑ M′ ⦂ A ⊑ B ∶ p →
   Value V →
   Value W →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = M′} {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
     {χ = keep} {ρ = ρ⁺} p

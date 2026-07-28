@@ -13,8 +13,10 @@ module
 open import Data.List using (_∷_)
 open import Data.Product using (_,_)
 
-open import NuTermImprecision using
-  (lift-left-store-right; store-right)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( lift-left-store-right
+  ; store-right
+  )
 open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using
   ( right-only-prefix-refl
   ; right-only-prefix-right

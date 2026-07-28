@@ -11,8 +11,8 @@ module
 --     outcome, view, alias, compatibility shim, postulate, hole, or option.
 
 open import
-  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedCastFrameDef
-  using (WorldCoherentRightPairedCastFrameᵀ)
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedFramesDef
+  using (WorldCoherentRightPairedFramesᵀ)
 open import
   proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
   using (WorldCoherentRightQuotientDownUpFrame)
@@ -48,16 +48,16 @@ open import
 world-coherent-right-value-catchup-cases-from-target-builders-proofᵀ :
   WorldCoherentRightTargetPendingSequenceContinuation →
   WorldCoherentRightTargetActiveRootResume →
-  WorldCoherentRightPairedCastFrameᵀ →
+  WorldCoherentRightPairedFramesᵀ →
   WorldCoherentRightQuotientDownUpFrame →
   WorldCoherentRightSourceAllClosingᵀ →
   WorldCoherentRightTargetBulletClosingᵀ →
   WorldCoherentRightTargetAllocationFrames →
   WorldCoherentRightValueCatchupCases
 world-coherent-right-value-catchup-cases-from-target-builders-proofᵀ
-    pending roots paired quotient source-all target-bullet allocation =
+    pending roots paired-frames quotient source-all target-bullet allocation =
   world-coherent-right-value-catchup-cases-proofᵀ
     (world-coherent-right-target-cast-terminalization-proofᵀ
       world-coherent-right-target-inert-framing-proofᵀ
       pending roots allocation)
-    paired quotient source-all target-bullet allocation
+    paired-frames quotient source-all target-bullet allocation

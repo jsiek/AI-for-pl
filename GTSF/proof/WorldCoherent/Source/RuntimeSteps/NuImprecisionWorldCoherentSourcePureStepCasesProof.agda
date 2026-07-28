@@ -5,6 +5,8 @@ module
 -- File Charter:
 --   * Assembles the four source pure-root families into their DGG-facing
 --     aggregate record.
+--   * Retains the application outcome capability and the narrower result
+--     capabilities of the other three families.
 --   * Supplies the completed primitive family from the right-value engine
 --     while retaining the three unfinished major families as parameters.
 --   * Contains no semantic leaf, postulate, hole, or permissive option.

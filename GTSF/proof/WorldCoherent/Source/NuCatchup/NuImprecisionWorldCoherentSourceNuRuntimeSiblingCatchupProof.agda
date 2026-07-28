@@ -12,6 +12,7 @@ module
 --   * Contains no opaque allocation recovery, postulate, hole, permissive
 --     option, or record-interface change.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (Coercion; ModeEnv)
 open import Conversion using
@@ -51,16 +52,18 @@ open import NuReduction using
   ; ↠-step
   )
 open import NuStore using (StoreIncl-cons; StoreWf)
-open import NuTermImprecision using
-  ( CtxImpEntry
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ-lift-left
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImpEntry
+  ; LiftLeftCtxⁱ
+  ; lift-left-ctx-[]
   )
 open import NuTerms using
   ( No•
@@ -82,8 +85,6 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -108,22 +109,30 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
 open import
   proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal
   using (left-silent-indexed-prefix-source-ν-terminal-valueᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
-  ; left-ctx-rename-[]
-  ; nu-term-imprecision-transport-typesᵀ
-  ; rename-left-store-coherentⁱ
-  ; rename-left-store-source-liftⁱ
-  ; rename-left-storeⁱ
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( left-ctx-rename-[]
+  ; rename-left-store-coherentⁱ
+  ; rename-left-store-source-liftⁱ
+  ; rename-left-storeⁱ
   ; weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ
   ; weak-result-source-reveal
   ; ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -192,7 +201,7 @@ open import proof.Core.Properties.TypeProperties using
   ; renameᵗ-id
   ; renameᵗ-preserves-WfTy
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-⇑ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -212,7 +221,9 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-source)
-open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
   ( replace-left-source-liftν-source-nu-bodyᵢ
   ; replace-left-source-liftνᵢ
   ; replace-paired-source-liftν-under-∀ᵢ

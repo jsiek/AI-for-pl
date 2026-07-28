@@ -8,6 +8,7 @@ module proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCa
 --   * Contains no canonical assembly, recursive dispatcher, or permissive
 --     option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Conversion using
   (weaken-reveal-conversion)
@@ -19,12 +20,16 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import NuReduction using
   (applyTys; blame-ν)
 open import NuStore using (StoreIncl-cons)
-open import NuTermImprecision using
-  (leftStoreⁱ; lift-left-ctx-[])
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
+  )
 open import NuTerms using
   (no•-blame; ok-no; ok-ν)
 open import QuotientedTermImprecision using
-  (blame⊑ᵀ; nu-term-imprecision-target-typing; prefix-reflⁱ)
+  (blame⊑ᵀ; prefix-reflⁱ)
 open import Types using (WfTy; ⇑ᵗ)
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ
@@ -36,11 +41,15 @@ open import proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal usin
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-typesᵀ
-  ; weak-one-step-source-ν-frame-preserves-transportᵀ
+  ( weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ
   ; weak-result-source-reveal
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
@@ -148,7 +157,7 @@ world-coherent-source-ν-catchup-proofᵀ
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage
     (final-catchup final-view final-replacement
-      coherent exclusive wfL final-wf final-shift-wf
+      coherent exclusive unique wfL final-wf final-shift-wf
       final-reveal final-lift lift-left-ctx-[]
       vW noW vV′ noV′ final-relation)
   where

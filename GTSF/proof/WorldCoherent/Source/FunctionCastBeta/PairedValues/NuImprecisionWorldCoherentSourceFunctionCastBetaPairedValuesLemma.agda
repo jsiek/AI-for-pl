@@ -5,7 +5,8 @@ module
 -- File Charter:
 --   * Assembles the paired source function-cast beta value leaves from the
 --     remaining paired-widening and quotient-widening capabilities.
---   * Supplies both paired-conversion function cases canonically.
+--   * Supplies the direct paired reveal and conceal function cases
+--     canonically.
 --   * Contains no semantic leaf implementation, postulate, hole, or
 --     permissive option.
 

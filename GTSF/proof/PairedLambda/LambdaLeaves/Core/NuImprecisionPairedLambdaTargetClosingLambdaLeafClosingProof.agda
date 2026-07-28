@@ -13,6 +13,7 @@ module
 --   * Contains no postulate, hole, permissive option, or broad simulation
 --     import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Conversion using (reveal-all)
@@ -30,22 +31,22 @@ open import ImprecisionWf using
   ; ⊑-src-wf
   )
 open import Imprecision using (NonVar)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftLeftCtxⁱ
+  ; lift-left-ctx-[]
   )
 open import NuTerms using (No•; Term; Value; Λ_; no•-Λ)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; paired-conversion
   ; Λ⊑ᵀ
   ; α⊑ᵀ
@@ -54,7 +55,7 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import TermTyping using (_∣_∣_⊢_⦂_; ⊢•)
 open import Types using (Ty; TyCtx; occurs)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   ( leftStoreⁱ-prefix-inclusion
   ; rightStoreⁱ-prefix-inclusion

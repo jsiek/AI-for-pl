@@ -24,7 +24,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ∀ⁱ_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -53,7 +53,7 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import

@@ -27,16 +27,18 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
   )
 open import NuTerms using
   ( No•
@@ -63,7 +65,7 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using

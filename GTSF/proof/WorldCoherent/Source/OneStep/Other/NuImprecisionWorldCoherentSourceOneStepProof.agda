@@ -7,23 +7,24 @@ module proof.WorldCoherent.Source.OneStep.Other.NuImprecisionWorldCoherentSource
 --     after checking the exact distinguished source change and result term.
 --   * Contains no recursive simulation implementation, postulate, or hole.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   )
 
@@ -31,7 +32,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
   ; resultCtx
   ; resultStore
+  ; sourceChanges
   ; sourceCtxResult
+  ; sourceResult
   ; sourceStoreResult
   ; targetCtxResult
   ; targetResult
@@ -51,10 +54,11 @@ open import proof.WorldCoherent.Source.OneStep.Other.NuImprecisionWorldCoherentS
   (WorldCoherentSourceOneStepPrefixᵀ)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -118,32 +122,34 @@ world-coherent-source-one-step-proofᵀ
 world-coherent-source-one-step-proofᵀ
     prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
-    | source-step-outcome-related exact-result
-    with sourceCtxResult result
+    | source-step-outcome-related complete
+    with sourceStepChanges complete
+       | sourceCtxResult result
        | targetCtxResult result
-       | sourceStepChangesExact exact-result
-       | sourceStepResultExact exact-result
   where
-  indexed = sourceStepIndexedResult exact-result
+  indexed = sourceStepIndexedResult complete
   result = weakIndexedResult indexed
 world-coherent-source-one-step-proofᵀ
     prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
-    | source-step-outcome-related exact-result
-    | refl | refl | refl | refl =
+    | source-step-outcome-related complete
+    | refl | refl | refl =
     inj₁
-      (targetResult result ,
+      (sourceResult result ,
+      targetResult result ,
+      sourceStepTailChanges complete ,
       targetTailChanges result ,
       resultCtx result ,
       resultStore result ,
       transportType result p ,
+      sourceStepTail complete ,
       targetTail result ,
-      sourceStepWorldCoherent exact-result ,
-      sourceStepSourceNameExclusive exact-result ,
-      sourceStepAssumptionMembershipUnique exact-result ,
+      sourceStepWorldCoherent complete ,
+      sourceStepSourceNameExclusive complete ,
+      sourceStepAssumptionMembershipUnique complete ,
       sourceStoreResult result ,
       targetStoreResult result ,
       canonicalIndexedResults indexed)
   where
-  indexed = sourceStepIndexedResult exact-result
+  indexed = sourceStepIndexedResult complete
   result = weakIndexedResult indexed

@@ -11,7 +11,7 @@ File Charter:
 - Main dependencies: `EndpointCanonicalMLBSimple.agda`,
   `EndpointCanonicalMLBSimpleSoundness.agda`, `ImprecisionWf.agda`,
   `TypeProperties.agda`, `ImprecisionProperties.agda`, and
-  `MaximalLowerBoundsWf.agda`.
+  `EndpointLowerBoundDef.agda`.
 
 ## Goal
 

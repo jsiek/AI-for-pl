@@ -18,7 +18,7 @@ open import Data.Product using (_×_; ∃-syntax; Σ-syntax)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; rightStoreⁱ

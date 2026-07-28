@@ -25,7 +25,9 @@ open import NuReduction using
   ; ↠-refl
   ; ↠-step
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•; Value; blame; _⊕[_]_)
 open import Primitives using (addℕ)
 open import QuotientedTermImprecision using
@@ -33,7 +35,9 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; subst; sym; trans)
 open import Types using (`ℕ; ‵_)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
   )

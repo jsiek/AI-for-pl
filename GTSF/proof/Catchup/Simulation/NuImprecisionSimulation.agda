@@ -9,9 +9,12 @@ module proof.Catchup.Simulation.NuImprecisionSimulation where
 --   * Connects crossed stores to two `bind` traces in opposite logical order.
 --   * Packages both generic-cast constructor orders at `β-∀•`, for all
 --     source/target narrowing and widening combinations.
---   * Depends on `NuImprecisionSimulationCore`; completed synchronized and
---     one-sided allocation cases live in `NuImprecisionAllocationSimulation`.
+--   * Depends on `NuImprecisionSimulationCore`; focused matched allocation
+--     and relation-only runtime-bullet boundaries live under `proof.OneStep`,
+--     while target-right prefix lifting lives under
+--     `proof.Right.AllocationRuntime`.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_; map)
@@ -157,14 +160,12 @@ open import NuTerms using
   )
 open import Primitives using (κℕ; addℕ)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; StoreImpEntry
   ; StoreCorresponds
   ; correspondence-stored
   ; correspondence-linked
-  ; CtxImp
-  ; ctx-imp
   ; LiftStoreⁱ
   ; lift-store-[]
   ; lift-store-∷
@@ -191,6 +192,19 @@ open import NuTermImprecision using
   ; rightStoreⁱ-lift-left
   ; leftStoreⁱ-lift-right
   ; rightStoreⁱ-lift-right
+  ; store-matched
+  ; store-left
+  ; store-right
+  ; store-link
+  )
+open import proof.Store.Correspondence.NuImprecisionCrossedStore using
+  ( crossedStoreⁱ
+  ; crossedStoreⁱ-new-old
+  ; crossedStoreⁱ-old-new
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
   ; LiftCtxⁱ
   ; lift-ctx-[]
   ; lift-ctx-∷
@@ -208,13 +222,6 @@ open import NuTermImprecision using
   ; rightCtxⁱ-lift-left
   ; leftCtxⁱ-lift-right
   ; rightCtxⁱ-lift-right
-  ; store-matched
-  ; store-left
-  ; store-right
-  ; store-link
-  ; crossedStoreⁱ
-  ; crossedStoreⁱ-new-old
-  ; crossedStoreⁱ-old-new
   )
 open import CastImprecisionShape using (_⊢ᶜ_⦂_)
 import CastImprecisionShape as CastShape using (narrowing; widening)
@@ -222,8 +229,7 @@ open import QuotientedTermImprecision
 open import ImprecisionComposition using
   (⌊_⌋; νˢ-injective; _；_≋_)
 open import ConversionIndexCompatibility using
-  ( replace-paired-∀
-  ; _[_↦_⊑⟨_⟩_↤_]ᴾ_
+  ( _[_↦_⊑⟨_⟩_↤_]ᴾ_
   ; _[_↦_]ᴸ_
   ; _[_↦_]ᴿ_
   )
@@ -249,34 +255,38 @@ open import proof.Core.Properties.CastImprecision using
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( ∀ᵢᶜ
-  ; rename-assm²ᵢ
-  ; rename-assm²-composeᵢ
+open import
+  proof.Core.Properties.NuImprecisionBinderPermutationProperties
+  using
+  ( rename-assm²-composeᵢ
   ; rename-assm²-congᵢ
-  ; rename-assm²-∀ᵢ
   ; rename-assm²-crossed-left∀∀ᵢ
   ; rename-assm²-crossed-right∀∀ᵢ
   ; rename-assm²-crossed-double∀∀ᵢ
-  ; rename-assm²-⇑ᵢ
-  ; rename-assm²-⇑ᴸᵢ
-  ; rename-assm²-source-νᵢ
   ; rename-assm²-swapLeft∀∀ᵢ
   ; rename-assm²-swapRight∀∀ᵢ
-  ; rename-assm²-target-rightᵢ
-  ; ⊑-renameᵗ²ᵢ
   ; ⊑-crossed-body-lift∀∀ᵢ
   ; ⊑-crossed-left-body-lift∀∀ᵢ
   ; ⊑-crossed-double-lift∀∀ᵢ
-  ; ⊑-lift∀ᵢ
-  ; ⊑-open∀ᵢ
-  ; ⊑-source-liftνᵢ
   ; ⊑-ν∀-to-∀νᵢ
   ; ⊑-swapLeft01∀∀ᵢ
   ; ⊑-swapRight01∀∀ᵢ
-  ; ⊑-target-lift-rightᵢ
   ; swap01ᵢ
   ; swap01ᵢ-after-suc
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( ∀ᵢᶜ
+  ; rename-assm²ᵢ
+  ; rename-assm²-∀ᵢ
+  ; rename-assm²-⇑ᵢ
+  ; rename-assm²-⇑ᴸᵢ
+  ; rename-assm²-source-νᵢ
+  ; rename-assm²-target-rightᵢ
+  ; ⊑-renameᵗ²ᵢ
+  ; ⊑-lift∀ᵢ
+  ; ⊑-open∀ᵢ
+  ; ⊑-source-liftνᵢ
+  ; ⊑-target-lift-rightᵢ
   )
 open import proof.Core.Permutation.ForallPermutationProperties using
   ( ≈∀-double-swap
@@ -284,14 +294,15 @@ open import proof.Core.Permutation.ForallPermutationProperties using
   ; ⊑ᵖ-rename²ᵢ
   ; ⊑→⊑ᵖ
   )
-open import proof.Core.Properties.NarrowWidenProperties using
-  ( StoreDetWf
-  ; allocate-all-narrowing
+open import proof.Core.Properties.NarrowWidenBinderProperties using
+  ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing
   ; open-all-narrowing
   ; open-all-widening
   )
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 open import proof.Core.Properties.NuTermProperties using
   ( modeRename-left-inverse
   ; open0-ext-suc-cancelᵐ
@@ -338,10 +349,9 @@ open import proof.DGG.Core.NuProgress using
   ; runtime-value-no•
   )
 open import proof.DGG.Core.NuPreservation using
-  ( runtime-ν
-  ; runtime-⟨⟩
-  ; value-no-step
-  )
+  (value-no-step)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-ν; runtime-⟨⟩)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-inst
@@ -422,7 +432,45 @@ open import proof.Core.Properties.TypeProperties using
   )
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-compose; castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( equality-proof-unique
+  ; ext-id-pointwise
+  ; rename-assm²-idᵢ
+  ; renameᵗ-ext-id
+  ; replace-left-rename-id-source-nu-bodyᵢ
+  ; replace-left-rename-idᵢ
+  ; replace-left-target-lift-rightᵢ
+  ; replace-paired-rename-id-all-bodyᵢ
+  ; replace-paired-rename-idᵢ
+  ; replace-paired-target-lift-rightᵢ
+  ; replace-right-rename-id-right-bodyᵢ
+  ; replace-right-rename-idᵢ
+  ; replace-right-target-lift-rightᵢ
+  ; transport-all-⊑ᵢ
+  ; transport-arrow-⊑ᵢ
+  ; ⊑-rename-id-all-bodyᵢ
+  ; ⊑-rename-id-allᵢ
+  ; ⊑-rename-id-arrowᵢ
+  ; ⊑-rename-id-shapeᵢ
+  ; ⊑-rename-id-source-nuᵢ
+  ; ⊑-rename-idᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
+  ; weak-one-step-index-resultᵀ
+  )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
   (rel-ctx-rename-[])
 open import proof.PairedLambda.Core.NuImprecisionPairedAllBetaCommutation using
@@ -431,15 +479,19 @@ open import proof.PairedLambda.Core.NuImprecisionPairedAllBetaCommutation using
   )
 open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   ( left-polymorphic-value-shapeᵀ
+  ; post-allocation-β-Λ•
+  ; post-allocation-β-Λ•-bare
   ; post-allocation-β-∀•-bare
   ; post-allocation-β-gen•-bare
   ; post-allocation-polymorphic-value-step
+  ; post-catchup-β-inst
   )
 open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
   (rel-world-embed-no•ᵀ; rel-world-embed-no•ᵀᵖ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-composeⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame
 open import proof.Store.Core.NuImprecisionStoreLift using (lift-right-store-result)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
@@ -451,6 +503,19 @@ open import proof.Source.Core.NuImprecisionSourceLeftAllocationCastTransport usi
   ; open-allocated-left-all-conceal
   )
 open import proof.Catchup.Core.NuImprecisionCatchupComposition
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
+  ( left-catchup-all-keep-stepᵀ
+  ; left-catchup-all-prepend-keepᵀ
+  ; left-catchup-indexed-all-keep-stepᵀ
+  ; left-catchup-indexed-all-prefix-prepend-keepᵀ
+  ; weak-one-step-source-narrow-cast-indexed-frameᵀ
+  ; weak-one-step-source-widen-cast-indexed-frameᵀ
+  ; weak-one-step-target-cast-frame-coherenceᵀ
+  ; weak-one-step-target-cast-frame-transportᵀ
+  ; weak-one-step-target-cast-frameᵀ
+  )
 open import proof.Source.Core.NuImprecisionSourceInertBulletCommutation using
   ( left-catchup-indexed-all-α-∀-revealᵀ
   ; left-catchup-indexed-all-α-∀-concealᵀ
@@ -458,6 +523,9 @@ open import proof.Source.Core.NuImprecisionSourceInertBulletCommutation using
   ; left-catchup-indexed-all-α-∀-wideningᵀ
   ; left-catchup-indexed-all-α-gen-narrowingᵀ
   )
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 
 
 private
@@ -620,53 +688,6 @@ paired-left-lift-prefix-world-embeddingⁱ liftρᵃ liftρᵇ =
     (rel-store-embedding-left refl (sym (renameᵗ-id _))
       (paired-left-lift-rel-embeddingⁱ liftρᵃ liftρᵇ))
     rel-ctx-rename-[]
-
-lift-right-store-rel-embeddingⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp Ψ Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ Ψ ρ ρ′ →
-  RelStoreEmbeddingⁱ (λ X → X) suc ρ ρ′
-lift-right-store-rel-embeddingⁱ lift-right-store-[] =
-  rel-store-embedding-[]
-lift-right-store-rel-embeddingⁱ (lift-right-store-∷ shape liftρ) =
-  rel-store-embedding-matched refl (sym (renameᵗ-id _))
-    refl refl shape (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-left liftρ) =
-  rel-store-embedding-left refl (sym (renameᵗ-id _))
-    (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-right liftρ) =
-  rel-store-embedding-right refl refl
-    (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-link shape liftρ) =
-  rel-store-embedding-link refl (sym (renameᵗ-id _))
-    refl refl shape (lift-right-store-rel-embeddingⁱ liftρ)
-
-matched-lift-world-embeddingⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
-  RelWorldEmbeddingⁱ suc suc predᵗ predᵗ
-    rename-assm²-∀ᵢ TyRenameWf-suc TyRenameWf-suc
-    {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
-matched-lift-world-embeddingⁱ liftρ =
-  rel-world-embedding RenameLeftInverse-suc RenameLeftInverse-suc
-    castModeRenamer-suc castModeRenamer-suc
-    (lift-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
-
-right-lift-world-embeddingⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′ →
-  RelWorldEmbeddingⁱ (λ X → X) suc (λ X → X) predᵗ
-    rename-assm²-target-rightᵢ (λ X<Δ → X<Δ) TyRenameWf-suc
-    {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
-right-lift-world-embeddingⁱ liftρ =
-  rel-world-embedding (λ X → refl) RenameLeftInverse-suc
-    castModeRenamer-id castModeRenamer-suc
-    (lift-right-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
 
 right-lift-under-left-store-rel-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -1442,58 +1463,6 @@ left-swap-reveal-store {Aobs = Aobs} {ρ₀ = ρ₀} liftρ₁ liftρ₂ =
         (cong ⟰ᵗ (sym (leftStoreⁱ-lift liftρ₁)))
         (sym (leftStoreⁱ-lift liftρ₂))))
 
-matched-lift-prefix-bodyᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B L L′ p}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ ρ⁺ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ⁺ →
-  No• L → No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
-  ∀ᵢᶜ Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ []
-    ⊢ᴺ ⇑ᵗᵐ L ⊑ ⇑ᵗᵐ L′ ⦂ ⇑ᵗ A ⊑ ⇑ᵗ B
-      ∶ ⊑-lift∀ᵢ p
-matched-lift-prefix-bodyᵀ liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
-    (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
-      noL↑ (nu-term-imprecision-source-typing body))
-    (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
-      noL′↑ (nu-term-imprecision-target-typing body))
-  where
-  body = rel-world-embed-no•ᵀ
-    (matched-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′
-  noL↑ = renameᵗᵐ-preserves-No• suc noL
-  noL′↑ = renameᵗᵐ-preserves-No• suc noL′
-
-right-lift-prefix-bodyᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B L L′ p}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ ρ⁺ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ⁺ →
-  No• L → No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
-  ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ []
-    ⊢ᴺ L ⊑ ⇑ᵗᵐ L′ ⦂ A ⊑ ⇑ᵗ B
-      ∶ ⊑-target-lift-rightᵢ p
-right-lift-prefix-bodyᵀ {A = A} {L = L}
-    liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
-    (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
-      noL (nu-term-imprecision-source-typing body))
-    (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
-      noL′↑ (nu-term-imprecision-target-typing body))
-  where
-  body =
-    nu-term-imprecision-transport-termsᵀ (renameᵗᵐ-id L) refl
-      (nu-term-imprecision-transport-typesᵀ
-        (renameᵗ-id A) refl refl
-        (rel-world-embed-no•ᵀ
-          (right-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′))
-  noL′↑ = renameᵗᵐ-preserves-No• suc noL′
-
 right-swap-reveal-store :
   ∀ {Φ Δᴸ Δᴿ Bobs}
     {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
@@ -1948,7 +1917,7 @@ weak-one-step-source-blame-right-allocation-transportᵀ :
 weak-one-step-source-blame-right-allocation-transportᵀ
     {ρ = ρ} wfΣ′ vV′ noV′ h⇑A′ target⊢ pB =
   weak-step-transport
-    (right-lift-prefix-bodyᵀ
+    (right-lift-prefix-body-proofᵀ
       (proj₂ (lift-right-store-result ρ))
       (prefix-∷ⁱ prefix-reflⁱ))
 
@@ -2297,12 +2266,12 @@ weak-one-step-source-blame-right-allocation-type-coherenceᵀ
     (λ pC pD → HE.≅-to-≡
       (HE.trans
         (transportArrowType-to-raw≅ result pC pD)
-        (≡-to-≅
+        (HE.≡-to-≅
           (⊑-target-lift-right-arrow-coherentᵢ pC pD))))
     (λ q → HE.≅-to-≡
       (HE.trans
         (transportAllType-to-raw≅ result q)
-        (≡-to-≅ (⊑-target-lift-right-all-coherentᵢ q))))
+        (HE.≡-to-≅ (⊑-target-lift-right-all-coherentᵢ q))))
     shape-target-lift-rightᵢ
     shape-target-lift-under-rightᵢ
     replace-left-target-lift-rightᵢ
@@ -2360,101 +2329,6 @@ crossed-left-bodyᵀ liftρ₁ liftρ₂ noW noW′ W⊑W′ =
   rel-world-embed-no•ᵀ
     (crossed-left-world-embeddingⁱ liftρ₁ liftρ₂)
     W⊑W′ noW noW′
-
-lift-store-matched-∈ :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  store-matched α A β B p ∈ ρ →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    store-matched (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′ ∈ ρ′
-lift-store-matched-∈ lift-store-[] ()
-lift-store-matched-∈
-    (lift-store-∷ {p′ = p′} shape liftρ) (here refl) =
-  p′ , shape , here refl
-lift-store-matched-∈ (lift-store-∷ shape liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-∷ shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-left liftρ) (here ())
-lift-store-matched-∈ (lift-store-left liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-left liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-right liftρ) (here ())
-lift-store-matched-∈ (lift-store-right liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-right liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-matched-∈ (lift-store-link shape liftρ) (here ())
-lift-store-matched-∈ (lift-store-link shape liftρ) (there x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-matched-∈ (lift-store-link shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-
-lift-store-link-∈ :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  store-link α A β B p ∈ ρ →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    store-link (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′ ∈ ρ′
-lift-store-link-∈ lift-store-[] ()
-lift-store-link-∈ (lift-store-∷ shape liftρ) (here ())
-lift-store-link-∈ (lift-store-∷ shape liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-∷ shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈ (lift-store-left liftρ) (here ())
-lift-store-link-∈ (lift-store-left liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-left liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈ (lift-store-right liftρ) (here ())
-lift-store-link-∈ (lift-store-right liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-right liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-lift-store-link-∈
-    (lift-store-link {p′ = p′} shape liftρ) (here refl) =
-  p′ , shape , here refl
-lift-store-link-∈ (lift-store-link shape liftρ) (there x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-link-∈ (lift-store-link shape liftρ) (there x∈)
-    | p′ , shape′ , shifted∈ =
-  p′ , shape′ , there shifted∈
-
-lift-store-corresponds :
-  ∀ {Φ Ψ Δᴸ Δᴿ ρ ρ′ α β A B p} →
-  LiftStoreⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} Ψ ρ ρ′ →
-  StoreCorresponds ρ α A β B p →
-  ∃[ p′ ] (⌊ p′ ⌋ ≡ ⌊ p ⌋) ×
-    StoreCorresponds ρ′ (suc α) (⇑ᵗ A) (suc β) (⇑ᵗ B) p′
-lift-store-corresponds liftρ (correspondence-stored x∈)
-    with lift-store-matched-∈ liftρ x∈
-lift-store-corresponds liftρ (correspondence-stored x∈)
-    | p′ , shape , shifted∈ =
-  p′ , shape , correspondence-stored shifted∈
-lift-store-corresponds liftρ (correspondence-linked x∈)
-    with lift-store-link-∈ liftρ x∈
-lift-store-corresponds liftρ (correspondence-linked x∈)
-    | p′ , shape , shifted∈ =
-  p′ , shape , correspondence-linked shifted∈
-
-weaken-store-corresponds :
-  ∀ {Φ Δᴸ Δᴿ ρ α β A B p}
-    {entry : StoreImpEntry Φ Δᴸ Δᴿ} →
-  StoreCorresponds ρ α A β B p →
-  StoreCorresponds (entry ∷ ρ) α A β B p
-weaken-store-corresponds (correspondence-stored x∈) =
-  correspondence-stored (there x∈)
-weaken-store-corresponds (correspondence-linked x∈) =
-  correspondence-linked (there x∈)
 
 seal★-weakenCast-shift :
   ∀ {μ Σ} →
@@ -2553,586 +2427,6 @@ left-source-lift-cast-wideningᵀ
   cast⊑⊑ᵀ (cast-weaken mode)
     (lifted-left-weakenCast-seal★ liftρ seal★)
     (lifted-left-widening liftρ c⊑) M⊑M′ q′ c-shape comp
-
-open-allocated-paired-all-conversion :
-  ∀ {Φ Δᴸ Δᴿ X X′ pX c c′ A A′ B B′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    (`∀ c) (`∀ c′) {`∀ A} {`∀ A′} {`∀ B} {`∀ B′}
-    (∀ⁱ p) (∀ⁱ q) →
-  PairedConversion (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)
-    (store-matched zero X zero X′ pX ∷ ρ′)
-    c c′ {A} {A′} {B} {B′} p q
-open-allocated-paired-all-conversion liftρ
-    (paired-reveal {pX = pX} x~
-      (reveal-all c↑) (reveal-all c′↑)
-      (replace-paired-∀ replace))
-    with lift-store-corresponds liftρ x~
-open-allocated-paired-all-conversion liftρ
-    (paired-reveal {pX = pX} x~
-      (reveal-all c↑) (reveal-all c′↑)
-      (replace-paired-∀ replace))
-    | p′ , shape , shifted~ =
-  paired-reveal (weaken-store-corresponds shifted~)
-    (weaken-reveal-conversion StoreIncl-drop left-reveal)
-    (weaken-reveal-conversion StoreIncl-drop right-reveal)
-    (replace-paired-evidence-shape
-      (trans shape (sym (shape-lift∀ᵢ pX)))
-      replace)
-  where
-    left-reveal =
-      subst
-        (λ Σ → RevealConversion _ _ Σ _ _ _ _ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        c↑
-
-    right-reveal =
-      subst
-        (λ Σ → RevealConversion _ _ Σ _ _ _ _ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        c′↑
-open-allocated-paired-all-conversion liftρ
-    (paired-conceal {pX = pX} x~
-      (conceal-all c↓) (conceal-all c′↓)
-      (replace-paired-∀ replace))
-    with lift-store-corresponds liftρ x~
-open-allocated-paired-all-conversion liftρ
-    (paired-conceal {pX = pX} x~
-      (conceal-all c↓) (conceal-all c′↓)
-      (replace-paired-∀ replace))
-    | p′ , shape , shifted~ =
-  paired-conceal (weaken-store-corresponds shifted~)
-    (weaken-conceal-conversion StoreIncl-drop left-conceal)
-    (weaken-conceal-conversion StoreIncl-drop right-conceal)
-    (replace-paired-evidence-shape
-      (trans shape (sym (shape-lift∀ᵢ pX)))
-      replace)
-  where
-    left-conceal =
-      subst
-        (λ Σ → ConcealConversion _ _ Σ _ _ _ _ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        c↓
-
-    right-conceal =
-      subst
-        (λ Σ → ConcealConversion _ _ Σ _ _ _ _ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        c′↓
-
-------------------------------------------------------------------------
--- First administrative step after allocation
-------------------------------------------------------------------------
-
-post-allocation-β-Λ•-bare :
-  ∀ {V} →
-  Value V →
-  (⇑ᵗᵐ (Λ V)) • —→[ keep ] V
-post-allocation-β-Λ•-bare {V = V} vV =
-  subst
-    (λ W → (⇑ᵗᵐ (Λ V)) • —→[ keep ] W)
-    (open0-ext-suc-cancelᵐ V)
-    (pure-step
-      (β-Λ• (renameᵗᵐ-preserves-Value (extᵗ suc) vV)))
-
-post-allocation-β-Λ• :
-  ∀ {V s} →
-  Value V →
-  ((⇑ᵗᵐ (Λ V)) •) ⟨ s ⟩ —→[ keep ] V ⟨ s ⟩
-post-allocation-β-Λ• vV =
-  ξ-⟨⟩ (post-allocation-β-Λ•-bare vV)
-
-post-β-inst :
-  ∀ {V B s} →
-  Value V →
-  V ⟨ inst B s ⟩ —→[ keep ] ν ★ V s
-post-β-inst vV = pure-step (β-inst vV)
-
-post-catchup-β-inst :
-  ∀ χs {V B s} →
-  Value V →
-  V ⟨ applyCoercions χs (inst B s) ⟩
-    —→[ keep ]
-      ν ★ V (applyCoercionUnderTyBinders χs s)
-post-catchup-β-inst χs {B = B} {s = s} vV
-    rewrite applyCoercions-inst χs B s =
-  pure-step (β-inst vV)
-
-post-β-gen• :
-  ∀ {V A c} →
-  Value V →
-  ((V ⟨ gen A c ⟩) •) —→[ keep ] (V ⟨ (c [ zero ]ᶜ) ⟩)
-post-β-gen• vV = pure-step (β-gen• vV)
-
-post-allocation-β-gen• :
-  ∀ {V A c s} →
-  Value V →
-  ((⇑ᵗᵐ (V ⟨ gen A c ⟩)) •) ⟨ s ⟩
-    —→[ keep ] ((⇑ᵗᵐ V) ⟨ c ⟩) ⟨ s ⟩
-post-allocation-β-gen• {V = V} {c = c} {s = s} vV =
-  ξ-⟨⟩ (post-allocation-β-gen•-bare vV)
-
-nested-Λ-no• :
-  ∀ {W c d} →
-  No• (((Λ W) ⟨ c ⟩) ⟨ d ⟩) →
-  No• W
-nested-Λ-no• (no•-⟨⟩ (no•-⟨⟩ (no•-Λ noW))) = noW
-
-nested-Λ-runtime-no• :
-  ∀ {A W c d s} →
-  RuntimeOK (ν A (((Λ W) ⟨ c ⟩) ⟨ d ⟩) s) →
-  No• W
-nested-Λ-runtime-no• okM
-    with runtime-⟨⟩ (runtime-⟨⟩ (runtime-ν okM))
-nested-Λ-runtime-no• okM | ok-no (no•-Λ noW) = noW
-
-------------------------------------------------------------------------
--- Direct-swap administrative traces
-------------------------------------------------------------------------
-
-left-swap-allocation-trace :
-  ∀ {Aobs G U W d u s} →
-  Value W →
-  No• W →
-  ν Aobs
-      ((Λ W) ⟨ `∀ (gen G d) ⟩ ⟨ inst U (`∀ u) ⟩)
-      s
-    —↠[
-      keep ∷ bind ★ ∷ keep ∷ keep ∷
-      bind (⇑ᵗ Aobs) ∷ keep ∷ keep ∷ []
-    ]
-      (((⇑ᵗᵐ W) ⟨ d ⟩) ⟨ u ⟩)
-        ⟨ renameᶜ (extᵗ suc) s ⟩
-left-swap-allocation-trace {Aobs = Aobs} {G = G} {U = U}
-    {W = W} {d = d} {u = u} {s = s} vW noW =
-  ↠-step
-    (ξ-ν (post-β-inst ((Λ vW) ⟨ `∀ (gen G d) ⟩)))
-    (↠-step
-      (ξ-ν
-        (ν-step ((Λ vW) ⟨ `∀ (gen G d) ⟩)
-          (no•-⟨⟩ (no•-Λ noW))))
-      (↠-step
-        (ξ-ν
-          (ξ-⟨⟩
-            (post-allocation-β-∀•-bare (Λ vW))))
-        (↠-step
-          (ξ-ν
-            (ξ-⟨⟩
-              (ξ-⟨⟩ (post-allocation-β-Λ•-bare vW))))
-          (↠-step
-            (ν-step
-              (((vW ⟨ gen G d ⟩) ⟨ `∀ u ⟩))
-              (no•-⟨⟩ (no•-⟨⟩ noW)))
-            (↠-step
-              (ξ-⟨⟩
-                (post-allocation-β-∀•-bare
-                  (vW ⟨ gen G d ⟩)))
-              (↠-step
-                (ξ-⟨⟩
-                  (ξ-⟨⟩
-                    (post-allocation-β-gen•-bare vW)))
-                ↠-refl))))))
-
-left-swap-allocation-step-tail :
-  ∀ {Aobs G U W d u s} →
-  Value W →
-  No• W →
-  (ν Aobs
-      ((Λ W) ⟨ `∀ (gen G d) ⟩ ⟨ inst U (`∀ u) ⟩)
-      s
-    —→[ keep ]
-      ν Aobs
-        (ν ★ ((Λ W) ⟨ `∀ (gen G d) ⟩) (`∀ u))
-        s) ×
-  (ν Aobs
-      (ν ★ ((Λ W) ⟨ `∀ (gen G d) ⟩) (`∀ u))
-      s
-    —↠[
-      bind ★ ∷ keep ∷ keep ∷ bind (⇑ᵗ Aobs) ∷
-      keep ∷ keep ∷ []
-    ]
-      (((⇑ᵗᵐ W) ⟨ d ⟩) ⟨ u ⟩)
-        ⟨ renameᶜ (extᵗ suc) s ⟩)
-left-swap-allocation-step-tail {Aobs = Aobs} {G = G} {U = U}
-    {W = W} {d = d} {u = u} {s = s} vW noW =
-  ξ-ν (post-β-inst ((Λ vW) ⟨ `∀ (gen G d) ⟩)) ,
-  ↠-step
-    (ξ-ν
-      (ν-step ((Λ vW) ⟨ `∀ (gen G d) ⟩)
-        (no•-⟨⟩ (no•-Λ noW))))
-    (↠-step
-      (ξ-ν
-        (ξ-⟨⟩
-          (post-allocation-β-∀•-bare (Λ vW))))
-      (↠-step
-        (ξ-ν
-          (ξ-⟨⟩
-            (ξ-⟨⟩ (post-allocation-β-Λ•-bare vW))))
-        (↠-step
-          (ν-step
-            (((vW ⟨ gen G d ⟩) ⟨ `∀ u ⟩))
-            (no•-⟨⟩ (no•-⟨⟩ noW)))
-          (↠-step
-            (ξ-⟨⟩
-              (post-allocation-β-∀•-bare
-                (vW ⟨ gen G d ⟩)))
-            (↠-step
-              (ξ-⟨⟩
-                (ξ-⟨⟩
-                  (post-allocation-β-gen•-bare vW)))
-              ↠-refl)))))
-
-right-swap-allocation-trace :
-  ∀ {Bobs G′ U′ W′ d′ u′ s′} →
-  Value W′ →
-  No• W′ →
-  ν Bobs
-      ((Λ W′) ⟨ gen G′ (`∀ d′) ⟩
-        ⟨ `∀ (inst U′ u′) ⟩)
-      s′
-    —↠[
-      bind Bobs ∷ keep ∷ keep ∷ keep ∷
-      bind ★ ∷ keep ∷ keep ∷ []
-    ]
-      ((renameᵗᵐ (extᵗ suc) W′ ⟨ d′ ⟩) ⟨ u′ ⟩)
-        ⟨ ⇑ᶜ s′ ⟩
-right-swap-allocation-trace {Bobs = Bobs} {G′ = G′} {U′ = U′}
-    {W′ = W′} {d′ = d′} {u′ = u′} {s′ = s′} vW′ noW′ =
-  ↠-step
-    (ν-step
-      (((Λ vW′) ⟨ gen G′ (`∀ d′) ⟩)
-        ⟨ `∀ (inst U′ u′) ⟩)
-      (no•-⟨⟩ (no•-⟨⟩ (no•-Λ noW′))))
-    (↠-step
-      (ξ-⟨⟩
-        (post-allocation-β-∀•-bare
-          ((Λ vW′) ⟨ gen G′ (`∀ d′) ⟩)))
-      (↠-step
-        (ξ-⟨⟩
-          (ξ-⟨⟩
-            (post-allocation-β-gen•-bare (Λ vW′))))
-        (↠-step
-          (ξ-⟨⟩
-            (post-β-inst
-              ((renameᵗᵐ-preserves-Value suc (Λ vW′))
-                ⟨ `∀ d′ ⟩)))
-          (↠-step
-            (ξ-⟨⟩
-              (ν-step
-                ((renameᵗᵐ-preserves-Value suc (Λ vW′))
-                  ⟨ `∀ d′ ⟩)
-                (no•-⟨⟩
-                  (renameᵗᵐ-preserves-No• suc (no•-Λ noW′)))))
-            (↠-step
-              (ξ-⟨⟩
-                (ξ-⟨⟩
-                  (post-allocation-β-∀•-bare
-                    (renameᵗᵐ-preserves-Value suc (Λ vW′)))))
-              (↠-step
-                (ξ-⟨⟩
-                  (ξ-⟨⟩
-                    (ξ-⟨⟩
-                      (post-allocation-β-Λ•-bare
-                        (renameᵗᵐ-preserves-Value
-                          (extᵗ suc) vW′)))))
-                ↠-refl))))))
-
-right-swap-allocation-step-tail :
-  ∀ {Bobs G′ U′ W′ d′ u′ s′} →
-  Value W′ →
-  No• W′ →
-  (ν Bobs
-      ((Λ W′) ⟨ gen G′ (`∀ d′) ⟩
-        ⟨ `∀ (inst U′ u′) ⟩)
-      s′
-    —→[ bind Bobs ]
-      ((⇑ᵗᵐ
-        ((Λ W′) ⟨ gen G′ (`∀ d′) ⟩
-          ⟨ `∀ (inst U′ u′) ⟩)) •) ⟨ s′ ⟩) ×
-  (((⇑ᵗᵐ
-      ((Λ W′) ⟨ gen G′ (`∀ d′) ⟩
-        ⟨ `∀ (inst U′ u′) ⟩)) •) ⟨ s′ ⟩
-    —↠[
-      keep ∷ keep ∷ keep ∷ bind ★ ∷ keep ∷ keep ∷ []
-    ]
-      ((renameᵗᵐ (extᵗ suc) W′ ⟨ d′ ⟩) ⟨ u′ ⟩)
-        ⟨ ⇑ᶜ s′ ⟩)
-right-swap-allocation-step-tail {G′ = G′} {U′ = U′}
-    {d′ = d′} {u′ = u′} vW′ noW′ =
-  ν-step
-    (((Λ vW′) ⟨ gen G′ (`∀ d′) ⟩)
-      ⟨ `∀ (inst U′ u′) ⟩)
-    (no•-⟨⟩ (no•-⟨⟩ (no•-Λ noW′))) ,
-  ↠-step
-    (ξ-⟨⟩
-      (post-allocation-β-∀•-bare
-        ((Λ vW′) ⟨ gen G′ (`∀ d′) ⟩)))
-    (↠-step
-      (ξ-⟨⟩
-        (ξ-⟨⟩
-          (post-allocation-β-gen•-bare (Λ vW′))))
-      (↠-step
-        (ξ-⟨⟩
-          (post-β-inst
-            ((renameᵗᵐ-preserves-Value suc (Λ vW′))
-              ⟨ `∀ d′ ⟩)))
-        (↠-step
-          (ξ-⟨⟩
-            (ν-step
-              ((renameᵗᵐ-preserves-Value suc (Λ vW′))
-                ⟨ `∀ d′ ⟩)
-              (no•-⟨⟩
-                (renameᵗᵐ-preserves-No• suc (no•-Λ noW′)))))
-          (↠-step
-            (ξ-⟨⟩
-              (ξ-⟨⟩
-                (post-allocation-β-∀•-bare
-                  (renameᵗᵐ-preserves-Value suc (Λ vW′)))))
-            (↠-step
-              (ξ-⟨⟩
-                (ξ-⟨⟩
-                  (ξ-⟨⟩
-                    (post-allocation-β-Λ•-bare
-                      (renameᵗᵐ-preserves-Value
-                        (extᵗ suc) vW′)))))
-              ↠-refl)))))
-
-matched-polymorphic-value-shapeᵀ :
-  ∀ {Φ Δᴸ Δᴿ L L′ A A′ p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Value L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ `∀ A ⊑ `∀ A′ ∶ p →
-  AllView L × AllView L′
-matched-polymorphic-value-shapeᵀ vL vL′ L⊑L′ =
-  canonical-∀ vL
-    (forget (nu-term-imprecision-source-typing L⊑L′)) ,
-  canonical-∀ vL′
-    (forget (nu-term-imprecision-target-typing L⊑L′))
-
-right-polymorphic-value-shapeᵀ :
-  ∀ {Φ Δᴸ Δᴿ N L′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ L′ ⦂ A ⊑ `∀ B ∶ p →
-  AllView L′
-right-polymorphic-value-shapeᵀ vL′ N⊑L′ =
-  canonical-∀ vL′
-    (forget (nu-term-imprecision-target-typing N⊑L′))
-
-matched-polymorphic-value-stepsᵀ :
-  ∀ {Φ Δᴸ Δᴿ L L′ A A′ p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Value L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ `∀ A ⊑ `∀ A′ ∶ p →
-  ∃[ N ] ∃[ N′ ]
-    (((⇑ᵗᵐ L) • —→[ keep ] N) ×
-     ((⇑ᵗᵐ L′) • —→[ keep ] N′))
-matched-polymorphic-value-stepsᵀ vL vL′ L⊑L′
-    with post-allocation-polymorphic-value-step vL
-      (nu-term-imprecision-source-typing L⊑L′)
-       | post-allocation-polymorphic-value-step vL′
-      (nu-term-imprecision-target-typing L⊑L′)
-matched-polymorphic-value-stepsᵀ vL vL′ L⊑L′
-    | N , L→N | N′ , L′→N′ =
-  N , N′ , L→N , L′→N′
-
-left-polymorphic-value-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ L N′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ N′ ⦂ `∀ A ⊑ B ∶ p →
-  ∃[ N ] ((⇑ᵗᵐ L) • —→[ keep ] N)
-left-polymorphic-value-stepᵀ vL L⊑N′ =
-  post-allocation-polymorphic-value-step vL
-    (nu-term-imprecision-source-typing L⊑N′)
-
-right-polymorphic-value-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ N L′ A B p}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  Value L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ L′ ⦂ A ⊑ `∀ B ∶ p →
-  ∃[ N′ ] ((⇑ᵗᵐ L′) • —→[ keep ] N′)
-right-polymorphic-value-stepᵀ vL′ N⊑L′ =
-  post-allocation-polymorphic-value-step vL′
-    (nu-term-imprecision-target-typing N⊑L′)
-
-matched-post-allocation-β-∀-conversionᵀ :
-  ∀ {Φ Δᴸ Δᴿ Aν Aν′ A A′ B B′ V V′ c c′ p q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
-  Value V →
-  No• V →
-  Value V′ →
-  No• V′ →
-  (pν : ∀ᵢᶜ Φ
-    ∣ suc Δᴸ ⊢ ⇑ᵗ Aν ⊑ ⇑ᵗ Aν′ ⊣ suc Δᴿ) →
-  LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ V ⊑ V′ ⦂ `∀ A ⊑ `∀ A′ ∶ ∀ⁱ p →
-  PairedConversion Φ Δᴸ Δᴿ ρ
-    (`∀ c) (`∀ c′) {`∀ A} {`∀ A′} {`∀ B} {`∀ B′}
-    (∀ⁱ p) (∀ⁱ q) →
-  ((⇑ᵗᵐ (V ⟨ `∀ c ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V) •) ⟨ c ⟩) ×
-  ((⇑ᵗᵐ (V′ ⟨ `∀ c′ ⟩)) •
-    —→[ keep ] ((⇑ᵗᵐ V′) •) ⟨ c′ ⟩) ×
-  (∀ᵢᶜ Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣
-    store-matched zero (⇑ᵗ Aν) zero (⇑ᵗ Aν′) pν ∷ ρ′ ∣ []
-    ⊢ᴺ ((⇑ᵗᵐ V) •) ⟨ c ⟩ ⊑ ((⇑ᵗᵐ V′) •) ⟨ c′ ⟩
-    ⦂ B ⊑ B′ ∶ q)
-matched-post-allocation-β-∀-conversionᵀ {p = p} vV noV vV′ noV′
-    pν liftρ V⊑V′ conversion =
-  post-allocation-β-∀•-bare vV ,
-  post-allocation-β-∀•-bare vV′ ,
-  conv⊑convᵀ
-    (paired-conversion
-      (open-allocated-paired-all-conversion liftρ conversion))
-    (α⊑αᵀ vV noV vV′ noV′ pν liftρ lift-ctx-[] V⊑V′
-      left-bullet-typing right-bullet-typing)
-  where
-    left-bullet-typing =
-      subst
-        (λ Σ → suc _ ∣ (zero , ⇑ᵗ _) ∷ Σ ∣ []
-          ⊢ (⇑ᵗᵐ _) • ⦂ _)
-        (sym (leftStoreⁱ-lift liftρ))
-        (⊢• refl refl (⊑-src-wf p) vV noV
-          (nu-term-imprecision-source-typing V⊑V′))
-
-    right-bullet-typing =
-      subst
-        (λ Σ → suc _ ∣ (zero , ⇑ᵗ _) ∷ Σ ∣ []
-          ⊢ (⇑ᵗᵐ _) • ⦂ _)
-        (sym (rightStoreⁱ-lift liftρ))
-        (⊢• refl refl (⊑-tgt-wf p) vV′ noV′
-          (nu-term-imprecision-target-typing V⊑V′))
-
-post-β-∀-reveal :
-  ∀ {μ Δ Σ C c A B V} →
-  Value V →
-  RevealConversion μ (suc Δ) Σ zero C
-    (`∀ c) (`∀ A) (`∀ B) →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ] (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   RevealConversion μ (suc Δ) Σ zero C
-     (c [ zero ]ᶜ) (A [ zero ]ᴿ) (B [ zero ]ᴿ))
-post-β-∀-reveal vV (reveal-all c↑) =
-  pure-step (β-∀• vV) ,
-  open-reveal-conversion z<s c↑
-
-post-β-∀-conceal :
-  ∀ {μ Δ Σ C c A B V} →
-  Value V →
-  ConcealConversion μ (suc Δ) Σ zero C
-    (`∀ c) (`∀ A) (`∀ B) →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ] (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   ConcealConversion μ (suc Δ) Σ zero C
-     (c [ zero ]ᶜ) (A [ zero ]ᴿ) (B [ zero ]ᴿ))
-post-β-∀-conceal vV (conceal-all c↓) =
-  pure-step (β-∀• vV) ,
-  open-conceal-conversion z<s c↓
-
-left-β-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X μ c A B B′ V N′ p}
-    {ρ : StoreImp Φ (suc Δᴸ) Δᴿ}
-    {γ : CtxImp Φ (suc Δᴸ) Δᴿ} →
-  Value V →
-  RevealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  Φ ∣ suc Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ N′ ⦂ A [ zero ]ᴿ ⊑ B′ ∶ p →
-  (q : Φ ∣ suc Δᴸ ⊢ B [ zero ]ᴿ ⊑ B′ ⊣ Δᴿ) →
-  p [ zero ↦ X ]ᴸ q →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   (N′ —↠[ [] ] N′) ×
-   (Φ ∣ suc Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩ ⊑ N′
-      ⦂ B [ zero ]ᴿ ⊑ B′ ∶ q))
-left-β-∀-revealᵀ vV (reveal-all c↑) V•⊑N′ q replacement =
-  pure-step (β-∀• vV) ,
-  ↠-refl ,
-  conv↑⊑ᵀ (open-reveal-conversion z<s c↑)
-    V•⊑N′ q replacement
-
-left-β-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X μ c A B B′ V N′ p}
-    {ρ : StoreImp Φ (suc Δᴸ) Δᴿ}
-    {γ : CtxImp Φ (suc Δᴸ) Δᴿ} →
-  Value V →
-  ConcealConversion μ (suc Δᴸ) (leftStoreⁱ ρ) zero X
-    (`∀ c) (`∀ A) (`∀ B) →
-  Φ ∣ suc Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ V • ⊑ N′ ⦂ A [ zero ]ᴿ ⊑ B′ ∶ p →
-  (q : Φ ∣ suc Δᴸ ⊢ B [ zero ]ᴿ ⊑ B′ ⊣ Δᴿ) →
-  q [ zero ↦ X ]ᴸ p →
-  (((V ⟨ `∀ c ⟩) • —→[ keep ]
-      (V •) ⟨ (c [ zero ]ᶜ) ⟩) ×
-   (N′ —↠[ [] ] N′) ×
-   (Φ ∣ suc Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ (V •) ⟨ (c [ zero ]ᶜ) ⟩ ⊑ N′
-      ⦂ B [ zero ]ᴿ ⊑ B′ ∶ q))
-left-β-∀-concealᵀ vV (conceal-all c↓)
-    V•⊑N′ q replacement =
-  pure-step (β-∀• vV) ,
-  ↠-refl ,
-  conv↓⊑ᵀ (open-conceal-conversion z<s c↓)
-    V•⊑N′ q replacement
-
-right-β-∀-revealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X′ μ′ c′ A A′ B′ N V′ p}
-    {ρ : StoreImp Φ Δᴸ (suc Δᴿ)}
-    {γ : CtxImp Φ Δᴸ (suc Δᴿ)} →
-  Value V′ →
-  RevealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ N ⊑ V′ • ⦂ A ⊑ A′ [ zero ]ᴿ ∶ p →
-  (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ [ zero ]ᴿ ⊣ suc Δᴿ) →
-  p [ zero ↦ X′ ]ᴿ q →
-  ((N —↠[ [] ] N) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ N ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ A ⊑ B′ [ zero ]ᴿ ∶ q))
-right-β-∀-revealᵀ vV′ (reveal-all c′↑)
-    N⊑V′• q replacement =
-  ↠-refl ,
-  pure-step (β-∀• vV′) ,
-  ⊑conv↑ᵀ (open-reveal-conversion z<s c′↑)
-    N⊑V′• q replacement
-
-right-β-∀-concealᵀ :
-  ∀ {Φ Δᴸ Δᴿ X′ μ′ c′ A A′ B′ N V′ p}
-    {ρ : StoreImp Φ Δᴸ (suc Δᴿ)}
-    {γ : CtxImp Φ Δᴸ (suc Δᴿ)} →
-  Value V′ →
-  ConcealConversion μ′ (suc Δᴿ) (rightStoreⁱ ρ) zero X′
-    (`∀ c′) (`∀ A′) (`∀ B′) →
-  Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ N ⊑ V′ • ⦂ A ⊑ A′ [ zero ]ᴿ ∶ p →
-  (q : Φ ∣ Δᴸ ⊢ A ⊑ B′ [ zero ]ᴿ ⊣ suc Δᴿ) →
-  q [ zero ↦ X′ ]ᴿ p →
-  ((N —↠[ [] ] N) ×
-   ((V′ ⟨ `∀ c′ ⟩) • —→[ keep ]
-      (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩) ×
-   (Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ ∣ γ
-      ⊢ᴺ N ⊑ (V′ •) ⟨ (c′ [ zero ]ᶜ) ⟩
-      ⦂ A ⊑ B′ [ zero ]ᴿ ∶ q))
-right-β-∀-concealᵀ vV′ (conceal-all c′↓)
-    N⊑V′• q replacement =
-  ↠-refl ,
-  pure-step (β-∀• vV′) ,
-  ⊑conv↓ᵀ (open-conceal-conversion z<s c′↓)
-    N⊑V′• q replacement
 
 ------------------------------------------------------------------------
 -- Generic narrowing and widening `β-∀•`
@@ -3655,473 +2949,6 @@ weak-one-step-generic-β-∀-left-outer-widening-wideningᵀ
     | _ , _ , V•⊑V′•c′ =
   weak-one-step-left-β-∀-wideningᵀ
     vV mode seal★ c∀⊑ V•⊑V′•c′ q c-shape comp
-
-left-catchup-all-keep-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  M —→[ keep ] N →
-  (Value N × No• N) ⊎ N ≡ blame →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
-  LeftCatchupAllResult {N = M} {V′ = V′} {ρ = ρ} q
-left-catchup-all-keep-stepᵀ source→ final N⊑V′ =
-  let result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′ in
-  left-all-catchup (weak-all-result result N⊑V′)
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-
-left-catchup-all-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  M —→[ keep ] N →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q →
-  LeftCatchupAllResult {N = N} {V′ = V′} {ρ = ρ} q →
-  LeftCatchupAllResult {N = M} {V′ = V′} {ρ = ρ} q
-left-catchup-all-prepend-keepᵀ source→ N⊑V′
-    (left-all-catchup second
-      (left-catchup-invariant
-        (left-silent-invariant refl refl) final)) =
-  let
-    first = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
-    combined = weak-one-step-prepend-left-silentᵀ
-      (left-silent first (left-silent-invariant refl refl))
-      (weakResult second)
-  in
-  left-all-catchup
-    (weak-all-result combined (canonicalAllResults second))
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-
-left-catchup-indexed-all-keep-stepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (source→ : M —→[ keep ] N) →
-  (final : (Value N × No• N) ⊎ N ≡ blame) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q) →
-  LeftCatchupIndexedAllResult
-    {N = M} {V′ = V′} {ρ = ρ} q
-left-catchup-indexed-all-keep-stepᵀ source→ final N⊑V′ =
-  left-indexed-all-catchup
-    (weak-one-step-index-resultᵀ result refl transport coherence)
-    (left-catchup-invariant
-      (left-silent-invariant refl refl) final)
-  where
-  result = weak-one-step-keep-source-catchupᵀ source→ N⊑V′
-  transport = weak-one-step-keep-source-catchup-transportᵀ source→ N⊑V′
-  coherence =
-    weak-one-step-keep-source-catchup-type-coherenceᵀ source→ N⊑V′
-
-left-catchup-indexed-all-prefix-prepend-keepᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N V′ C C′ q}
-    {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ} →
-  (prefix : StoreImpPrefix ρ₀ ρ⁺) →
-  (source→ : M —→[ keep ] N) →
-  (N⊑V′ : Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ N ⊑ V′ ⦂ `∀ C ⊑ `∀ C′ ∶ ∀ⁱ q) →
-  Δᴸ ∣ leftStoreⁱ ρ⁺ ∣ [] ⊢ N ⦂ `∀ C →
-  Δᴿ ∣ rightStoreⁱ ρ⁺ ∣ [] ⊢ V′ ⦂ `∀ C′ →
-  LeftCatchupIndexedAllResult
-    {N = N} {V′ = V′} {ρ = ρ⁺} q →
-  LeftCatchupIndexedAllResult
-    {N = M} {V′ = V′} {ρ = ρ⁺} q
-left-catchup-indexed-all-prefix-prepend-keepᵀ
-    prefix source→ N⊑V′ N⊢ V′⊢ catchup =
-  left-catchup-indexed-all-prepend-keepᵀ source→
-    (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
-
-------------------------------------------------------------------------
--- Universal cast shapes used by source catch-up
-------------------------------------------------------------------------
-
-weak-one-step-source-cast-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (inner : WeakOneStepResult ρ M N′ A A′ χ) →
-  (resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-      ⊑ targetResult inner
-    ⦂ applyTys (sourceChanges inner) B
-      ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-    ∶ transportType inner q) →
-  WeakOneStepResult ρ (M ⟨ c ⟩) N′ B B′ χ
-weak-one-step-source-cast-frameᵀ
-    {B = B} {B′ = B′} {c = c} {χ = χ} inner result =
-  record
-    { sourceChanges = sourceChanges inner
-    ; targetTailChanges = targetTailChanges inner
-    ; sourceResult =
-        sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩
-    ; targetResult = targetResult inner
-    ; resultCtx = resultCtx inner
-    ; resultLeftCtx = resultLeftCtx inner
-    ; resultRightCtx = resultRightCtx inner
-    ; sourceCtxResult = sourceCtxResult inner
-    ; targetCtxResult = targetCtxResult inner
-    ; resultStore = resultStore inner
-    ; resultSourceType = applyTys (sourceChanges inner) B
-    ; resultTargetType =
-        applyTys (targetTailChanges inner) (applyTy χ B′)
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = transportType inner
-    ; transportAllBody = transportAllBody inner
-    ; transportRightBody = transportRightBody inner
-    ; transportSourceNu = transportSourceNu inner
-    ; resultType = transportType inner _
-    ; sourceCatchup = cast-↠ (sourceCatchup inner)
-    ; targetTail = targetTail inner
-    ; sourceStoreResult = sourceStoreResult inner
-    ; targetStoreResult = targetStoreResult inner
-    ; relatedResults = result
-    }
-
-weak-one-step-source-cast-frame-silentᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ keep)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨
-          applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy keep B′)
-      ∶ transportType inner q) →
-  LeftSilentInvariant inner →
-  LeftSilentInvariant
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-silentᵀ
-    inner result (left-silent-invariant refl refl) =
-  left-silent-invariant refl refl
-
-weak-one-step-source-cast-frame-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTransport inner →
-  WeakOneStepTransport
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-transportᵀ
-    inner result transport =
-  weak-step-transport (transportNo•Terms transport)
-
-weak-one-step-source-cast-frame-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTypeCoherence inner →
-  WeakOneStepTypeCoherence
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-coherenceᵀ
-    inner result coherence =
-  weak-step-type-coherence
-    (transportArrowCoherent coherence)
-    (transportAllCoherent coherence)
-    (transportShapeCoherent coherence)
-    (transportRightBodyShapeCoherent coherence)
-    (transportLeftReplacementCoherent coherence)
-    (transportRightReplacementCoherent coherence)
-    (transportPairedReplacementCoherent coherence)
-    (transportAllBodyPairedReplacementCoherent coherence)
-    (transportSourceNuBodyLeftReplacementCoherent coherence)
-    (transportRightBodyRightReplacementCoherent coherence)
-
-weak-one-step-target-cast-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (inner : WeakOneStepResult ρ M N′ A A′ χ) →
-  (resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺ sourceResult inner ⊑
-      (targetResult inner ⟨
-        applyCoercions (targetTailChanges inner)
-          (applyCoercion χ c) ⟩)
-    ⦂ applyTys (sourceChanges inner) A
-      ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-    ∶ transportType inner q) →
-  WeakOneStepResult ρ M (N′ ⟨ applyCoercion χ c ⟩) A B′ χ
-weak-one-step-target-cast-frameᵀ
-    {A = A} {B′ = B′} {c = c} {χ = χ} inner result =
-  record
-    { sourceChanges = sourceChanges inner
-    ; targetTailChanges = targetTailChanges inner
-    ; sourceResult = sourceResult inner
-    ; targetResult =
-        targetResult inner ⟨
-          applyCoercions (targetTailChanges inner)
-            (applyCoercion χ c) ⟩
-    ; resultCtx = resultCtx inner
-    ; resultLeftCtx = resultLeftCtx inner
-    ; resultRightCtx = resultRightCtx inner
-    ; sourceCtxResult = sourceCtxResult inner
-    ; targetCtxResult = targetCtxResult inner
-    ; resultStore = resultStore inner
-    ; resultSourceType = applyTys (sourceChanges inner) A
-    ; resultTargetType =
-        applyTys (targetTailChanges inner) (applyTy χ B′)
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = transportType inner
-    ; transportAllBody = transportAllBody inner
-    ; transportRightBody = transportRightBody inner
-    ; transportSourceNu = transportSourceNu inner
-    ; resultType = transportType inner _
-    ; sourceCatchup = sourceCatchup inner
-    ; targetTail = cast-↠ (targetTail inner)
-    ; sourceStoreResult = sourceStoreResult inner
-    ; targetStoreResult = targetStoreResult inner
-    ; relatedResults = result
-    }
-
-weak-one-step-target-cast-frame-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ sourceResult inner ⊑
-        (targetResult inner ⟨
-          applyCoercions (targetTailChanges inner)
-            (applyCoercion χ c) ⟩)
-      ⦂ applyTys (sourceChanges inner) A
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTransport inner →
-  WeakOneStepTransport
-    (weak-one-step-target-cast-frameᵀ inner result)
-weak-one-step-target-cast-frame-transportᵀ
-    inner result transport =
-  weak-step-transport (transportNo•Terms transport)
-
-weak-one-step-target-cast-frame-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ sourceResult inner ⊑
-        (targetResult inner ⟨
-          applyCoercions (targetTailChanges inner)
-            (applyCoercion χ c) ⟩)
-      ⦂ applyTys (sourceChanges inner) A
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTypeCoherence inner →
-  WeakOneStepTypeCoherence
-    (weak-one-step-target-cast-frameᵀ inner result)
-weak-one-step-target-cast-frame-coherenceᵀ
-    inner result coherence =
-  weak-step-type-coherence
-    (transportArrowCoherent coherence)
-    (transportAllCoherent coherence)
-    (transportShapeCoherent coherence)
-    (transportRightBodyShapeCoherent coherence)
-    (transportLeftReplacementCoherent coherence)
-    (transportRightReplacementCoherent coherence)
-    (transportPairedReplacementCoherent coherence)
-    (transportAllBodyPairedReplacementCoherent coherence)
-    (transportSourceNuBodyLeftReplacementCoherent coherence)
-    (transportRightBodyRightReplacementCoherent coherence)
-
-weak-one-step-source-narrow-cast-indexed-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B c μ χ s}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  CastMode μ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊒ B →
-  CastShape.narrowing ⊢ᶜ c ⦂ s →
-  s ； ⌊ p ⌋ ≋ ⌊ q ⌋ →
-  (indexed : WeakOneStepIndexedResult
-    {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-  WeakOneStepIndexedResult
-    {M = M ⟨ c ⟩} {N′ = N′} {χ = χ} {ρ = ρ} q
-weak-one-step-source-narrow-cast-indexed-frameᵀ
-    {Δᴸ = Δᴸ} {B = B} {c = c} {p = p} {q = q}
-    mode seal★ c⊒ c-shape comp indexed
-    with apply-narrows-typing
-      { χs = sourceChanges (weakIndexedResult indexed) }
-      mode seal★ c⊒
-weak-one-step-source-narrow-cast-indexed-frameᵀ
-    {Δᴸ = Δᴸ} {B = B} {c = c} {p = p} {q = q}
-    mode seal★ c⊒ c-shape comp indexed
-    | μ′ , mode′ , seal★′ , c′⊒ =
-  weak-indexed-result framed (relatedResults framed)
-    framed-transport framed-coherence
-  where
-  inner = weakIndexedResult indexed
-
-  final-seal :
-    SealModeStore★ μ′ (leftStoreⁱ (resultStore inner))
-  final-seal =
-    subst (SealModeStore★ μ′)
-      (sym (sourceStoreResult inner)) seal★′
-
-  final-cast :
-    μ′ ∣ resultLeftCtx inner
-      ∣ leftStoreⁱ (resultStore inner)
-      ⊢ applyCoercions (sourceChanges inner) c
-        ∶ applyTys (sourceChanges inner) _
-          ⊒ applyTys (sourceChanges inner) B
-  final-cast =
-    subst
-      (λ Δ → μ′ ∣ Δ ∣ leftStoreⁱ (resultStore inner)
-        ⊢ applyCoercions (sourceChanges inner) c
-          ∶ applyTys (sourceChanges inner) _
-            ⊒ applyTys (sourceChanges inner) B)
-      (sym (sourceCtxResult inner))
-      (subst
-        (λ Σ → μ′ ∣ applyTyCtxs (sourceChanges inner) Δᴸ ∣ Σ
-          ⊢ applyCoercions (sourceChanges inner) c
-            ∶ applyTys (sourceChanges inner) _
-              ⊒ applyTys (sourceChanges inner) B)
-        (sym (sourceStoreResult inner)) c′⊒)
-
-  final-c-shape =
-    cast-shape-applyCoercions
-      (sourceChanges inner) c-shape
-
-  final-comp =
-    imprecision-composition-shape-transport
-      refl
-      (transportShapeCoherent
-        (weakIndexedTypeCoherence indexed) p)
-      (transportShapeCoherent
-        (weakIndexedTypeCoherence indexed) q)
-      comp
-
-  final-relation =
-    cast⊒⊑ᵀ mode′ final-seal final-cast
-      (canonicalIndexedResults indexed) (transportType inner _)
-      final-c-shape final-comp
-
-  framed = weak-one-step-source-cast-frameᵀ inner final-relation
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport indexed)
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence indexed)
-
-weak-one-step-source-widen-cast-indexed-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B c μ χ s}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ A′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  CastMode μ →
-  SealModeStore★ μ (leftStoreⁱ ρ) →
-  μ ∣ Δᴸ ∣ leftStoreⁱ ρ ⊢ c ∶ A ⊑ B →
-  CastShape.widening ⊢ᶜ c ⦂ s →
-  s ； ⌊ q ⌋ ≋ ⌊ p ⌋ →
-  (indexed : WeakOneStepIndexedResult
-    {M = M} {N′ = N′} {χ = χ} {ρ = ρ} p) →
-  WeakOneStepIndexedResult
-    {M = M ⟨ c ⟩} {N′ = N′} {χ = χ} {ρ = ρ} q
-weak-one-step-source-widen-cast-indexed-frameᵀ
-    {Δᴸ = Δᴸ} {B = B} {c = c} {p = p} {q = q}
-    mode seal★ c⊑ c-shape comp indexed
-    with apply-widens-typing
-      { χs = sourceChanges (weakIndexedResult indexed) }
-      mode seal★ c⊑
-weak-one-step-source-widen-cast-indexed-frameᵀ
-    {Δᴸ = Δᴸ} {B = B} {c = c} {p = p} {q = q}
-    mode seal★ c⊑ c-shape comp indexed
-    | μ′ , mode′ , seal★′ , c′⊑ =
-  weak-indexed-result framed (relatedResults framed)
-    framed-transport framed-coherence
-  where
-  inner = weakIndexedResult indexed
-
-  final-seal :
-    SealModeStore★ μ′ (leftStoreⁱ (resultStore inner))
-  final-seal =
-    subst (SealModeStore★ μ′)
-      (sym (sourceStoreResult inner)) seal★′
-
-  final-cast :
-    μ′ ∣ resultLeftCtx inner
-      ∣ leftStoreⁱ (resultStore inner)
-      ⊢ applyCoercions (sourceChanges inner) c
-        ∶ applyTys (sourceChanges inner) _
-          ⊑ applyTys (sourceChanges inner) B
-  final-cast =
-    subst
-      (λ Δ → μ′ ∣ Δ ∣ leftStoreⁱ (resultStore inner)
-        ⊢ applyCoercions (sourceChanges inner) c
-          ∶ applyTys (sourceChanges inner) _
-            ⊑ applyTys (sourceChanges inner) B)
-      (sym (sourceCtxResult inner))
-      (subst
-        (λ Σ → μ′ ∣ applyTyCtxs (sourceChanges inner) Δᴸ ∣ Σ
-          ⊢ applyCoercions (sourceChanges inner) c
-            ∶ applyTys (sourceChanges inner) _
-              ⊑ applyTys (sourceChanges inner) B)
-        (sym (sourceStoreResult inner)) c′⊑)
-
-  final-c-shape =
-    cast-shape-applyCoercions
-      (sourceChanges inner) c-shape
-
-  final-comp =
-    imprecision-composition-shape-transport
-      refl
-      (transportShapeCoherent
-        (weakIndexedTypeCoherence indexed) q)
-      (transportShapeCoherent
-        (weakIndexedTypeCoherence indexed) p)
-      comp
-
-  final-relation =
-    cast⊑⊑ᵀ mode′ final-seal final-cast
-      (canonicalIndexedResults indexed) (transportType inner _)
-      final-c-shape final-comp
-
-  framed = weak-one-step-source-cast-frameᵀ inner final-relation
-  framed-transport =
-    weak-one-step-source-cast-frame-transportᵀ
-      inner final-relation (weakIndexedTransport indexed)
-  framed-coherence =
-    weak-one-step-source-cast-frame-coherenceᵀ
-      inner final-relation (weakIndexedTypeCoherence indexed)
 
 left-catchup-all-post-allocation-β-Λ•ᵀ :
   ∀ {Φ Δᴸ Δᴿ V V′ C C′ q}

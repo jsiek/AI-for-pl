@@ -7,22 +7,18 @@ module proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof where
 --     the ambient typing premises of `allocation-prefixᵀ`.
 --   * Contains no postulate, hole, catch-all, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.Nat.Properties using (≤-refl)
 
 open import NarrowWiden using (narrow-weaken)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; rightStoreⁱ
   )
-open import NuTerms using (no•-·; no•-⟨⟩)
+open import NuTerms using (no•-⟨⟩)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; down⊑downᵀ
-  ; gen-down⊑gen-downᵀ
-  ; quotient-down-applicationᵖᵀ
-  ; quotient-id-down-applicationᵖᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
+  ; paired-downᵀ
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
@@ -30,7 +26,10 @@ open import proof.Store.Prefix.NuImprecisionStorePrefixNoBulletDef using
   ( QuotientedStorePrefixNoBulletᵀ
   ; QuotientedStorePrefixNoBulletᵖᵀ
   )
-open import proof.Core.Properties.TypePreservation using (seal★-weaken; term-weaken)
+open import
+  proof.Store.Prefix.NuImprecisionStorePrefixEvidenceProof
+  using (spine-cast-mode-prefix-proofᵀ)
+open import proof.Core.Properties.TypePreservation using (term-weaken)
 
 
 quotiented-store-prefix-no-bullet-proofᵀ :
@@ -51,74 +50,21 @@ quotiented-store-prefix-no-bulletᵖ-proofᵀ :
   QuotientedStorePrefixNoBulletᵖᵀ
 quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (down⊑downᵀ
-      source source-shape target target-shape body q square) =
-  down⊑downᵀ
-    (narrow-weaken ≤-refl
-      (leftStoreⁱ-prefix-inclusion prefix) source)
-    source-shape
-    (narrow-weaken ≤-refl
-      (rightStoreⁱ-prefix-inclusion prefix) target)
-    target-shape
+    (paired-downᵀ body
+      source-mode source source-shape
+      target-mode target target-shape square elimination) =
+  paired-downᵀ
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ body)
-    q square
-quotiented-store-prefix-no-bulletᵖ-proofᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (quotient-id-down-applicationᵖᵀ
-      source source-shape target target-shape
-      function components argument square) =
-  quotient-id-down-applicationᵖᵀ
+    (spine-cast-mode-prefix-proofᵀ
+      (leftStoreⁱ-prefix-inclusion prefix) source-mode)
     (narrow-weaken ≤-refl
       (leftStoreⁱ-prefix-inclusion prefix) source)
     source-shape
+    (spine-cast-mode-prefix-proofᵀ
+      (rightStoreⁱ-prefix-inclusion prefix) target-mode)
     (narrow-weaken ≤-refl
       (rightStoreⁱ-prefix-inclusion prefix) target)
     target-shape
-    (quotiented-store-prefix-no-bulletᵖ-proofᵀ
-      prefix noL noL′ function)
-    components
-    (quotiented-store-prefix-no-bullet-proofᵀ
-      prefix noM noM′ argument)
     square
-quotiented-store-prefix-no-bulletᵖ-proofᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (quotient-down-applicationᵖᵀ
-      mode seal★ source source-shape
-      mode′ seal★′ target target-shape
-      function components argument square) =
-  quotient-down-applicationᵖᵀ
-    mode
-    (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-    (narrow-weaken ≤-refl
-      (leftStoreⁱ-prefix-inclusion prefix) source)
-    source-shape
-    mode′
-    (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-    (narrow-weaken ≤-refl
-      (rightStoreⁱ-prefix-inclusion prefix) target)
-    target-shape
-    (quotiented-store-prefix-no-bulletᵖ-proofᵀ
-      prefix noL noL′ function)
-    components
-    (quotiented-store-prefix-no-bullet-proofᵀ
-      prefix noM noM′ argument)
-    square
-quotiented-store-prefix-no-bulletᵖ-proofᵀ
-    prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (gen-down⊑gen-downᵀ
-      source source-shape target target-shape body q square) =
-  gen-down⊑gen-downᵀ
-    (narrow-weaken ≤-refl
-      (leftStoreⁱ-prefix-inclusion prefix) source)
-    source-shape
-    (narrow-weaken ≤-refl
-      (rightStoreⁱ-prefix-inclusion prefix) target)
-    target-shape
-    (quotiented-store-prefix-no-bullet-proofᵀ
-      prefix noM noM′ body)
-    q square
+    elimination

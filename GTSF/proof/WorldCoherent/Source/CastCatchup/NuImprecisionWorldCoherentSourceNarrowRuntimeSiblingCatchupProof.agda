@@ -10,6 +10,7 @@ module
 --     preserves the sibling there.
 --   * Contains no allocation recovery, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import CastImprecisionShape using
   (_⊢ᶜ_⦂_; narrowing)
@@ -35,8 +36,10 @@ open import NuReduction using
   ; keep
   ; pure-step
   )
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -50,8 +53,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; blame⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -63,10 +64,15 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   (weak-one-step-source-narrow-cast-indexed-frameᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-reindexᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-reindexᵀ
+  )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using

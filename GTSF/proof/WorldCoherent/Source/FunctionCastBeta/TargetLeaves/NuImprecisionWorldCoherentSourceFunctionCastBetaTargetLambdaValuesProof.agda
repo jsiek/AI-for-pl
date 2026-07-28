@@ -24,8 +24,9 @@ open import ImprecisionComposition using (comp-↦-↦)
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (β-↦; keep; pure-step)
-open import NuTermImprecision using
-  (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -66,7 +67,9 @@ open import proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSour
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.Core.Properties.TypePreservation using
   (seal★-weaken)
 

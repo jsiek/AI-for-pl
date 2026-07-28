@@ -24,7 +24,7 @@ open import ImprecisionComposition using
 open import ImprecisionWf using
   (ImpAssm; _∣_⊢_⊑_⊣_; ∀ⁱ_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -43,7 +43,7 @@ open import
   proof.Core.Properties.TypeProperties
   using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-rename-at²ᵢ

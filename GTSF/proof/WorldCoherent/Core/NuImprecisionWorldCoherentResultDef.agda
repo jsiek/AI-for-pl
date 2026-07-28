@@ -10,7 +10,10 @@ module proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef where
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (_—↠[_]_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (blame)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult

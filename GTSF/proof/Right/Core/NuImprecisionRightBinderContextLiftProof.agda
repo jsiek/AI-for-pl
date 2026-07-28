@@ -10,14 +10,14 @@ open import Data.List using ([]; _∷_)
 open import Data.Product using (_,_; ∃-syntax)
 
 open import ImprecisionWf using (⇑ᴿᵢ)
-open import NuTermImprecision using
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftRightCtxⁱ
   ; ctx-imp
   ; lift-right-ctx-[]
   ; lift-right-ctx-∷
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.Core.Properties.NuCastImprecisionShapeProperties

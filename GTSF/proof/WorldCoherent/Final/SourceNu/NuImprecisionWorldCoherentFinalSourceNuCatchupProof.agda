@@ -23,8 +23,8 @@ world-coherent-final-source-ν-catchup-proofᵀ :
 world-coherent-final-source-ν-catchup-proofᵀ
     source-only
     (source-nu-index safe occ r refl) replacement
-    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
+    coherent exclusive unique wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ =
   source-only {{safe = safe}}
-    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
+    coherent exclusive unique wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ replacement

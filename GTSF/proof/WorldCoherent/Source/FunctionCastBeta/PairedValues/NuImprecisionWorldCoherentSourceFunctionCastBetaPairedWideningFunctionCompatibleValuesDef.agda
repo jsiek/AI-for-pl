@@ -20,12 +20,15 @@ open import NarrowWiden using
   (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (RuntimeOK; Term; Value; _·_; _⟨_⟩)
-open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedPairedWideningCompatible)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import TermTyping using
@@ -74,7 +77,7 @@ WorldCoherentSourceFunctionCastBetaPairedWideningFunctionCompatibleValuesᵀ =
     e C.↦ f ⦂ e-shape ↦ˢ f-shape →
   (c-shape ↦ˢ d-shape) ； ⌊ pA ↦ pB ⌋ ≋ r →
   ⌊ pA₀ ↦ pB₀ ⌋ ； (e-shape ↦ˢ f-shape) ≋ r →
-  PairedWideningCompatible
+  ReductionClosedPairedWideningCompatible
     Φ Δᴸ Δᴿ d f pB₀ pB d-shape f-shape →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
     ⊢ᴺ V ⊑ L′

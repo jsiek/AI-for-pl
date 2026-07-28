@@ -5,9 +5,10 @@ module
 -- File Charter:
 --   * Proves exact-final source-`ν ★` catch-up for the source-only universal
 --     precision index.
---   * Allocates the coherent source world, delegates the post-allocation
---     bullet and widening cast to whole theorem capabilities, and records
---     explicit source-store lineage.
+--   * Allocates the coherent source world and exposes the recursive
+--     post-allocation value-catch-up call on the complete cast relation.
+--   * Records explicit source-store lineage and every source-lift coherence
+--     field required by the indexed result.
 --   * Contains no recursive dispatcher, postulates, or permissive holes.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -31,17 +32,15 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   (bind; keep; ν-step; ↠-refl; ↠-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ-lift-left
   ; store-left
   )
 open import NuTerms using
-  ( ok-no
-  ; ok-•
+  ( ok-•
   ; ok-⟨⟩
   ; ν
   ; ⇑ᵗᵐ
@@ -50,8 +49,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( cast⊑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   )
@@ -68,7 +65,7 @@ open import Types using
   ; ⇑ᵗ
   ; wf★
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-⇑ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -76,16 +73,23 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-source-only-head)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
+  using (assumption-membership-unique-source)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-left-store-embeddingⁱ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
   (LeftLiftPrefixBodyᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; ⊑-source-lift-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
@@ -114,13 +118,23 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupCompositio
 open import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupDef
   using (WorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupᵀ)
-open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBulletCatchupDef using
-  (WorldCoherentSourceBulletCatchupᵀ)
-open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupDef using
-  (WorldCoherentSourceWidenCatchupᵀ)
+open import
+  proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixDef
+  using (WorldCoherentLeftValueCatchupPrefixᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   (imprecision-composition-shape-transport)
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
+  ( replace-left-source-liftν-source-nu-bodyᵢ
+  ; replace-left-source-liftνᵢ
+  ; replace-paired-source-liftν-under-∀ᵢ
+  ; replace-paired-source-liftνᵢ
+  ; replace-right-source-liftν-under-rightᵢ
+  ; replace-right-source-liftνᵢ
+  ; source-liftν-right-body-shapeᵢ
+  )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; TyRenameWf-suc; renameᵗ-id)
 
@@ -169,30 +183,29 @@ private
           (cong `∀ (renameᵗ-ext-id B)) =
     transport-all-⊑ᵢ refl (renameᵗ-ext-id B)
 
-
 world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ :
   LeftLiftPrefixBodyᵀ →
-  WorldCoherentSourceBulletCatchupᵀ →
-  WorldCoherentSourceWidenCatchupᵀ →
+  WorldCoherentLeftValueCatchupPrefixᵀ →
   WorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupᵀ
 world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
-    left-lift-prefix-body bullet-catchup widen-catchup
+    left-lift-prefix-body value-catchup
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL mode seal★ s⊑ s-shape comp
+    coherent exclusive unique wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
     with lift-left-store-result ρ
 world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
-    left-lift-prefix-body bullet-catchup widen-catchup
+    left-lift-prefix-body value-catchup
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ = ρ} {L = L} {V′ = V′}
     {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL mode seal★ s⊑ s-shape comp
+    coherent exclusive unique wfL mode seal★ s⊑ s-shape comp
     vL noL vV′ noV′ L⊑V′
-    | ρ′ , liftρ =
+    | ρ′ , liftρ
+    =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     allocation-silent allocation-lineage cast-catchup
   where
@@ -222,23 +235,19 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
   allocated-bullet =
     left-allocated-bulletᵀ {{safe = safe}} vL noL wf★ liftρ L⊑V′
 
-  bullet-result =
-    bullet-catchup wf★ prefix-reflⁱ
-      (world-coherent-left-allocation liftρ coherent)
-      (source-name-exclusive-source-only-head exclusive)
-      allocated-wf (ok-• vL noL) vV′ noV′ vL noL
-      liftρ lift-left-ctx-[] L⊑V′
-      (nu-term-imprecision-source-typing allocated-bullet)
-      (nu-term-imprecision-target-typing allocated-bullet)
-
   allocated-comp =
     imprecision-composition-shape-transport
       refl (shape-source-liftνᵢ p) refl comp
 
   cast-catchup =
-    widen-catchup prefix-reflⁱ (cast-inst mode)
-      allocated-seal allocated-cast vV′ noV′ bullet-result
-      (⊑-source-liftνᵢ p) s-shape allocated-comp
+    value-catchup prefix-reflⁱ
+      (world-coherent-left-allocation liftρ coherent)
+      (source-name-exclusive-source-only-head exclusive)
+      (assumption-membership-unique-source unique)
+      allocated-wf (ok-⟨⟩ (ok-• vL noL)) vV′ noV′
+      (cast⊑⊑ᵀ (cast-inst mode) allocated-seal
+        allocated-cast allocated-bullet (⊑-source-liftνᵢ p)
+        s-shape allocated-comp)
 
   allocation-result :
     WeakOneStepResult ρ (ν ★ L s) V′ B B′ keep
@@ -283,7 +292,12 @@ world-coherent-final-source-νcast-source-only-index-catchup-proofᵀ
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
       (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ
-        shape-source-liftνᵢ)
+        shape-source-liftνᵢ source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =

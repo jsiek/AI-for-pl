@@ -20,7 +20,7 @@ open import NuReduction using
   ; applyTys
   ; _—↠[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ

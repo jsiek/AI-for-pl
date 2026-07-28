@@ -36,8 +36,10 @@ open import NuReduction using
   ; pure-step
   ; _—→[_]_
   )
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (No•; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
@@ -63,10 +65,13 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  ; nu-term-imprecision-transport-typesᵀ
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
   )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; canonicalIndexedResults

@@ -12,7 +12,9 @@ module
 
 open import Data.Product using (_×_; _,_; ∃-syntax)
 
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using
   (StoreImpPrefix; prefix-reflⁱ; prefix-∷ⁱ)
 open import

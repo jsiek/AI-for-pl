@@ -13,6 +13,7 @@ module
 --     carrier and introduces no result, outcome, view, path, or alias.
 --   * Contains only total proof definitions and explicit clauses.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (zero; suc)
@@ -49,12 +50,14 @@ open import NuReduction using
   ; _—→[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; no•-⟨⟩; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -90,22 +93,31 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
-  ; subst²-to-≅
-  ; weak-one-step-compose-preserves-type-coherenceᵀ
+  ( weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-composeᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
   )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
+  )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; WeakOneStepTransport

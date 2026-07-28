@@ -20,8 +20,12 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (_—→[_]_)
-open import NuTermImprecision using
-  (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using
   (Term; Value; Λ_; _⟨_⟩; renameᵗᵐ)
 open import Types using (Renameᵗ; Ty; TyCtx)
@@ -318,13 +322,13 @@ smaller-target-value-no-stepᴿ M⊑M′ vM′ M′→N′ =
 
 target-instantiation-creation-valuesᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   TargetInstantiationCreation
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
-    {body-shape = body-shape} body-relation →
+    {body-shape = body-shape} prefix-evidence body-relation →
   Value (Λ W) × Value (W′ ⟨ s ⟩)
 target-instantiation-creation-valuesᴿ creation =
   Λ (TargetInstantiationCreation.source-body-value creation) ,
@@ -334,14 +338,14 @@ target-instantiation-creation-valuesᴿ creation =
 
 target-instantiation-transport-valuesᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   (τ σ : Renameᵗ) →
   TargetInstantiationCreation
     {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
     {W = W} {W′ = W′} {B = B} {C = C} {D = D}
     {s = s} {μ = μ} {r = r} {f = f}
-    {body-shape = body-shape} body-relation →
+    {body-shape = body-shape} prefix-evidence body-relation →
   Value (renameᵗᵐ τ (Λ W)) ×
   Value (renameᵗᵐ σ (W′ ⟨ s ⟩))
 target-instantiation-transport-valuesᴿ τ σ creation =
@@ -354,14 +358,14 @@ target-instantiation-transport-valuesᴿ τ σ creation =
 target-instantiation-creation-source-no-stepᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape
       χ N}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   (creation :
     TargetInstantiationCreation
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
-      {body-shape = body-shape} body-relation) →
+      {body-shape = body-shape} prefix-evidence body-relation) →
   Λ W —→[ χ ] N →
   ⊥
 target-instantiation-creation-source-no-stepᴿ creation source-step =
@@ -373,14 +377,14 @@ target-instantiation-creation-source-no-stepᴿ creation source-step =
 target-instantiation-creation-target-no-stepᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape
       χ N′}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   (creation :
     TargetInstantiationCreation
       {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
-      {body-shape = body-shape} body-relation) →
+      {body-shape = body-shape} prefix-evidence body-relation) →
   W′ ⟨ s ⟩ —→[ χ ] N′ →
   ⊥
 target-instantiation-creation-target-no-stepᴿ creation target-step =
@@ -392,7 +396,7 @@ target-instantiation-creation-target-no-stepᴿ creation target-step =
 target-instantiation-transport-source-no-stepᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape
       χ N}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   (τ σ : Renameᵗ) →
   (creation :
     TargetInstantiationCreation
@@ -400,7 +404,7 @@ target-instantiation-transport-source-no-stepᴿ :
       {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
-      {body-shape = body-shape} body-relation) →
+      {body-shape = body-shape} prefix-evidence body-relation) →
   renameᵗᵐ τ (Λ W) —→[ χ ] N →
   ⊥
 target-instantiation-transport-source-no-stepᴿ
@@ -413,7 +417,7 @@ target-instantiation-transport-source-no-stepᴿ
 target-instantiation-transport-target-no-stepᴿ :
   ∀ {Φ Δᴸ Δᴿ ρ₀ ρ⁺ ρ∀ ρᴿ W W′ B C D s μ r f body-shape
       χ N′}
-    {body-relation : Set₁} →
+    {prefix-evidence : Set} {body-relation : Set₁} →
   (τ σ : Renameᵗ) →
   (creation :
     TargetInstantiationCreation
@@ -421,7 +425,7 @@ target-instantiation-transport-target-no-stepᴿ :
       {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ}
       {W = W} {W′ = W′} {B = B} {C = C} {D = D}
       {s = s} {μ = μ} {r = r} {f = f}
-      {body-shape = body-shape} body-relation) →
+      {body-shape = body-shape} prefix-evidence body-relation) →
   renameᵗᵐ σ (W′ ⟨ s ⟩) —→[ χ ] N′ →
   ⊥
 target-instantiation-transport-target-no-stepᴿ

@@ -4,8 +4,8 @@ module
 
 -- File Charter:
 --   * Defines composition of a source-silent weak result with a following
---     exact world-coherent source step.
---   * Returns the existing exact source-step result at the original index.
+--     world-coherent source step and its arbitrary source tail.
+--   * Returns the existing source-step result at the original index.
 --   * Contains no implementation, result wrapper, postulate, hole, or
 --     permissive option.
 
@@ -14,7 +14,9 @@ open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (StoreChange; keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult

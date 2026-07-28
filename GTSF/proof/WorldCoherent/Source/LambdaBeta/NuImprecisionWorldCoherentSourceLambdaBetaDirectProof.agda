@@ -8,6 +8,7 @@ module
 --     argument, then dispatches to lambda or function-cast terminals.
 --   * Contains no terminal implementation, postulate, hole, or option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
@@ -15,8 +16,10 @@ open import Data.Nat.Properties using (≤-refl)
 open import ImprecisionWf using (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTerms; keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -34,8 +37,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -113,7 +114,9 @@ open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceSilentCompositionDef
   using (WorldCoherentSourceSilentCompositionᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.DGG.Core.NuProgress using
   (canonical-⇒; fv-ƛ; fv-↦)
 open import proof.Core.Properties.ReductionProperties using

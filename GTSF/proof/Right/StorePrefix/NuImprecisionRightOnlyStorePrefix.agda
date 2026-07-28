@@ -11,8 +11,10 @@ module proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix where
 
 open import Data.List using (_∷_)
 
-open import NuTermImprecision using
-  (StoreImp; store-right)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; store-right
+  )
 open import QuotientedTermImprecision using
   (StoreImpPrefix; prefix-reflⁱ; prefix-∷ⁱ)
 

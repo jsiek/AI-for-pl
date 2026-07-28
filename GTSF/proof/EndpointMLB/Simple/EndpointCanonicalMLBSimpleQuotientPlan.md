@@ -12,7 +12,7 @@ File Charter:
   `EndpointCanonicalMLBSimpleSoundness.agda`,
   `EndpointCanonicalMLBSimpleCompleteness.agda`,
   `EndpointCanonicalMLBSimpleMaximality.agda`, `ImprecisionWf.agda`, and the
-  transitivity infrastructure in `MaximalLowerBoundsWf.agda`.
+  transitivity and binder-permutation modules in `proof/Core/Properties/`.
 
 ## Status
 
@@ -143,8 +143,8 @@ Also add the ordinary specialization needed before entering the quotient:
   Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ
 ```
 
-Extract or restate the generic adjacent-binder renaming lemmas currently
-embedded in `MaximalLowerBoundsWf`:
+Use the generic adjacent-binder renaming lemmas in
+`NuImprecisionBinderPermutationProperties`:
 
 - involutivity of `swap01ᵗ`;
 - well-formedness preservation;

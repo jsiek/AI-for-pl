@@ -9,6 +9,7 @@ module
 --     final weak result.
 --   * Contains no allocation transport, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Conversion as Conv
 import Coercions as C
@@ -29,8 +30,10 @@ open import NuReduction using
   ; keep
   ; pure-step
   )
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -46,7 +49,6 @@ open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; blame⊑ᵀ
   ; conv↓⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -59,7 +61,7 @@ open import
   ; weak-one-step-keep-source-catchupᵀ
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulation
+  proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame
   using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
@@ -67,8 +69,10 @@ open import
   ; weak-one-step-source-cast-frameᵀ
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
-  using (weak-one-step-reindexᵀ)
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-reindexᵀ
+  )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
@@ -113,14 +117,13 @@ open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupRuntimeSiblingComposition
   using
   (world-coherent-left-catchup-indexed-resume-silent-runtime-siblingᵀ)
+open import proof.Core.Properties.NuStoreChangeIdentityProperties using
+  (applyTys-preserves-Atom; post-catchup-β-id)
+open import proof.OneStep.NuImprecisionAtomicSourceReindex using
+  (atomic-source-value-reindexᵀ)
 open import
   proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup
-  using
-  ( applyTys-preserves-Atom
-  ; atomic-source-value-reindexᵀ
-  ; post-catchup-β-id
-  ; result-conceal-conversionᵀ
-  )
+  using (result-conceal-conversionᵀ)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions-preserves-Inert)
 

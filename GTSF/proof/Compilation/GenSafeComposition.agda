@@ -23,10 +23,11 @@ open import NarrowWidenComposition
 open import proof.Compilation.GenSafeProperties
 open import proof.Core.Properties.NarrowWidenProperties
   using
-    ( StoreDetWf
-    ; narrowing-cross-ground-target-all⊥
+    ( narrowing-cross-ground-target-all⊥
     ; widening-cross-ground-source-all⊥
     )
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 
 genSafe-composition :
   ∀ {μ Δ Σ A B C s t} →

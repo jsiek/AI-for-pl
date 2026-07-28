@@ -12,6 +12,7 @@ module
 --   * Contains no result/view/outcome type, postulate, hole, permissive
 --     option, or termination bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import GradualTerms as G
 import Imprecision as Imp
@@ -108,7 +109,6 @@ open import QuotientedTermImprecision using
   ( prefix-reflⁱ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
-  ; nu-term-imprecision-source-typing
   ; ⊑cast⊑idᵀ
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ

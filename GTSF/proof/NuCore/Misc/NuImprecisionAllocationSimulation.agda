@@ -11,6 +11,7 @@ module proof.NuCore.Misc.NuImprecisionAllocationSimulation where
 --     `NuImprecisionSimulation`; it is kept separate so these stable cases
 --     can be cached while active catch-up work changes.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using (_⊢ᶜ_⦂_; narrowing; widening)
 open import Data.Bool using (true)

@@ -9,6 +9,7 @@ module
 --     final weak result.
 --   * Contains no allocation transport, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Conversion as Conv
 import Coercions as C
@@ -46,7 +47,6 @@ open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; blame⊑ᵀ
   ; conv↓⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

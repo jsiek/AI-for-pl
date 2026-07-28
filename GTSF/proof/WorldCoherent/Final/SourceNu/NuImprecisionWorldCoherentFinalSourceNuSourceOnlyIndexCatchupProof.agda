@@ -10,6 +10,7 @@ module
 --   * Records the source lift and fresh allocation as explicit store lineage.
 --   * Contains no recursive dispatcher, postulates, or permissive holes.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -52,8 +53,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   )

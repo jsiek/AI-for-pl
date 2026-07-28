@@ -7,6 +7,7 @@ module proof.WorldCoherent.Source.OneStep.Other.NuImprecisionWorldCoherentSource
 --     after checking the exact distinguished source change and result term.
 --   * Contains no recursive simulation implementation, postulate, or hole.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([])
 open import Data.Product using (_,_)
@@ -22,8 +23,6 @@ open import NuTermImprecision using
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   )
 

@@ -10,6 +10,7 @@ module
 --   * Contains no recursive dispatcher implementation, aggregate embedding
 --     reconstruction, postulate, hole, permissive option, or wrapper alias.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import Data.Product using (_×_; _,_)
@@ -52,8 +53,6 @@ open import NuTerms using
 open import Primitives using (addℕ)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

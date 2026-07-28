@@ -9,6 +9,7 @@ module
 --   * Contains no coercion algebra, recursive measure, postulate, hole, or
 --     permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
@@ -31,8 +32,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma using

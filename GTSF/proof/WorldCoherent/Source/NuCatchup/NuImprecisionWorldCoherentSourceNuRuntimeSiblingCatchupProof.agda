@@ -12,6 +12,7 @@ module
 --   * Contains no opaque allocation recovery, postulate, hole, permissive
 --     option, or record-interface change.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (Coercion; ModeEnv)
 open import Conversion using
@@ -82,8 +83,6 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_

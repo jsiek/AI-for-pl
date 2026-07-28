@@ -6,6 +6,7 @@ module proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNa
 --   * Reuses the strict source-cast frame and coherent silent-resume helpers.
 --   * Keeps the recursive value catch-up capability as a whole dependency.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
@@ -17,7 +18,6 @@ open import NuReduction using (blame-⟨⟩; pure-step)
 open import NuTerms using (ok-no; ok-⟨⟩)
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   )
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using

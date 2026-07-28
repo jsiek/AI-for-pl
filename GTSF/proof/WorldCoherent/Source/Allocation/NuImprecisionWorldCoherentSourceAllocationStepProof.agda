@@ -10,6 +10,7 @@ module proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAll
 --   * Contains no postulate, hole, permissive option, dispatcher, or new
 --     result carrier.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using (_⊢ᶜ_⦂_; widening)
 open import Data.List using ([]; _++_; _∷_)
@@ -87,8 +88,6 @@ open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; allocation-prefixᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; ν⊑νᵀ

@@ -12,6 +12,7 @@ module
 --   * Contains no argument-step case, application value root, other QTIP
 --     application constructor, QTIP-to-QTI conversion, postulate, or hole.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import CastImprecisionShape as CastShape
 import QuotientedTermImprecision as QTI
@@ -744,13 +745,13 @@ private
     source-M-typing =
       term-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix) noM
-        (QTI.nu-term-imprecision-source-typing
+        (nu-term-imprecision-source-typing
           M⊑M′)
 
     target-M-typing =
       term-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) noM′
-        (QTI.nu-term-imprecision-target-typing
+        (nu-term-imprecision-target-typing
           M⊑M′)
 
     M⊑M′⁺ =

@@ -10,6 +10,7 @@ module
 --     explicit source-store lineage.
 --   * Contains no recursive dispatcher, postulates, or permissive holes.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (instᵈ)
 open import Data.List using ([]; _∷_)
@@ -50,8 +51,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( cast⊑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   )

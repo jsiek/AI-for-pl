@@ -7,6 +7,7 @@ module proof.Source.Core.NuImprecisionSourceLeftAllocationCastTransport where
 --   * Depends on focused cast, typing-preservation, and term-imprecision
 --     owners; intentionally avoids the broad simulation modules.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.List using (_∷_)
 open import Data.List.Relation.Unary.Any using (there)
 open import Data.Nat using (zero; suc)
@@ -36,8 +37,6 @@ open import NuTermImprecision using
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — strict unassembled DGG spine checked**
+**MIGRATION IN PROGRESS — QTI typing dependency cut checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -393,6 +393,30 @@ to about 8 seconds. The next candidates are QTI typing projections and the
 store/context infrastructure still bundled with the obsolete first-draft
 relation in `NuTermImprecision.agda`. Make those cuts only at a checkpoint,
 not concurrently with a grammar edit.
+
+The QTI typing-projection cut is now complete.
+`QuotientedTermImprecision.agda` contains the 627-line live grammar and
+support definitions, while the 395-line
+`../NuCore/Relations/NuImprecisionQuotientedTyping.agda` owns the five
+recursive ordinary/quotiented source and target typing projections. Every
+direct projection consumer imports that proof-support module explicitly;
+the grammar does not import or re-export it. The focused typing module checks
+in about three seconds warm, a representative allocation consumer in about
+eight seconds warm, and the unassembled strict DGG spine in about seven
+seconds warm. The one-time import-boundary rebuilds took roughly one minute
+for the representative consumer and up to three minutes for the strict
+aggregate after removing seven empty grammar imports. The source/import audit
+passes.
+
+A fresh check of the separate public `NuDGGSpine.agda` exposed a stale cached
+dependency in compiler monotonicity:
+`proof/Compilation/CompileTermImprecision.agda` still constructs the deleted
+`up⊑upᵀ`. That public spine is not the unassembled strict aggregate checked
+above. Its compile-side helper must migrate to compatible `closeᵀ`; the new
+reduction-closed quotient compatibility premise must be proved from the
+canonical compiled cast plans rather than omitted or hidden behind a restored
+fused constructor. This is now an explicit Phase 4 boundary alongside the
+terminal-forward paired-values interface.
 
 ### Phase 5. Collapse the migration surface
 

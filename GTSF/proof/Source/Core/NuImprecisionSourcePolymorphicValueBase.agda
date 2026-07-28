@@ -9,6 +9,7 @@ module proof.Source.Core.NuImprecisionSourcePolymorphicValueBase where
 --     `left-polymorphic-value-shapeᵀ`.
 --   * Keeps the remaining beta-step and value-shape helper proofs private.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Coercions using (gen; `∀)
 open import Data.List using ([])
@@ -31,8 +32,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-source-typing
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using (subst)
 open import TermTyping using (_∣_∣_⊢_⦂_; forget)

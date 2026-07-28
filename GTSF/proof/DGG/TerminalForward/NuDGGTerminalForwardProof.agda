@@ -8,6 +8,7 @@ module proof.DGG.TerminalForward.NuDGGTerminalForwardProof where
 --   * Transports runtime, store, context, and type invariants mechanically.
 --   * Imports neither live simulation implementation.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_; _++_)
@@ -41,8 +42,6 @@ open import NuTerms using
   (RuntimeOK; Term; Value; _∣_∣_⊢_⦂_)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   )
 open import proof.DGG.Core.NuDGGPreservation using
   (multi-store-preservation)

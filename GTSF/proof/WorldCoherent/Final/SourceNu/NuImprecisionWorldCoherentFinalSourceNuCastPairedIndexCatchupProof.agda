@@ -10,8 +10,7 @@ module
 --   * Contains no recursive dispatcher, canonical assembly, or permissive
 --     option.
 
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-target-typing)
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import TermTyping using (forget)
 open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   (left-polymorphic-value-shapeᵀ)

@@ -10,6 +10,7 @@ module
 --   * Returns a QTI derivation directly and introduces no result carrier.
 --   * Contains no postulate, hole, permissive option, or termination bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.List using (_∷_; [])
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
@@ -144,8 +145,6 @@ open import QuotientedTermImprecision using
   ; κ⊑κᵀ
   ; ν⊑ᵀ
   ; ν⊑νᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; up⊑upᵀ
   ; ·⊑·ᵀ
   ; ⊕⊑⊕ᵀ

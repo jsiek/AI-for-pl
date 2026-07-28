@@ -7,6 +7,7 @@ module proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSource
 --   * Preserves the final `WorldCoherent` evidence carried by the input
 --     coherent catch-up and depends only on strict catch-up/frame support.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Conversion using
   ( ConcealConversion
@@ -88,7 +89,6 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; down·up⊑down·upᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; up⊑upᵀ
   ; x⊑xᵀ

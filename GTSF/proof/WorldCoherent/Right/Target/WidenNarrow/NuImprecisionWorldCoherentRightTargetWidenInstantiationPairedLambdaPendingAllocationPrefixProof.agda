@@ -15,6 +15,7 @@ module
 --   * Contains no recursive catch-up dispatcher, postulate, hole, permissive
 --     option, termination bypass, catch-all clause, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import CastImprecisionShape as CastShape
 import Coercions
@@ -72,8 +73,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( Λ⊑Λᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; ⊑cast⊒ᵀ

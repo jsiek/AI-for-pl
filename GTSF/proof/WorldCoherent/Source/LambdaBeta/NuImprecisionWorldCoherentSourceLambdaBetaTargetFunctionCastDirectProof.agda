@@ -9,6 +9,7 @@ module
 --   * Contains no function-cast spine recursion, postulate, hole, or
 --     permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Data.List using ([]; _∷_)
@@ -38,8 +39,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

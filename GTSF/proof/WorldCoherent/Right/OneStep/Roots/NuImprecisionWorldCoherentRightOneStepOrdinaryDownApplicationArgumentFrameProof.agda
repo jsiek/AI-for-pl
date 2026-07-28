@@ -13,6 +13,7 @@ module
 --   * Contains no QTIP-to-QTI conversion, full quotient recursion, postulate,
 --     hole, permissive option, compatibility alias, or unrelated root.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import CastImprecisionShape as CastShape
 import QuotientedTermImprecision as QTI
@@ -1447,8 +1448,8 @@ private
         final-coherent final-exclusive final-unique prefix-reflⁱ
         final-wfL final-wfR
         final-source-runtime ok-target
-        (QTI.nu-term-imprecision-source-typing final-relation)
-        (QTI.nu-term-imprecision-target-typing final-relation)
+        (nu-term-imprecision-source-typing final-relation)
+        (nu-term-imprecision-target-typing final-relation)
         vV noV vL′ noL′
         source-mode-ok final-source-seal final-source-down
         (cast-shape-applyCoercions

@@ -6,6 +6,7 @@ module proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSource
 --   * Composes the resulting seal-unseal step with the inner catch-up.
 --   * Uses the strict source-cast terminal frame when the source is blame.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (unseal)
@@ -46,8 +47,6 @@ open import NuStore using (StoreWf)
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

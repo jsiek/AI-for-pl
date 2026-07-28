@@ -11,6 +11,7 @@ module
 --     and independent runtime-sibling transport.
 --   * Contains no postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import CastImprecisionShape using
   ( _⊢ᶜ_⦂_
@@ -87,8 +88,6 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_

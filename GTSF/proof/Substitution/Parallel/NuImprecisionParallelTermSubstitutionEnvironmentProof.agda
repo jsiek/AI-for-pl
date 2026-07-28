@@ -9,6 +9,7 @@ module
 --     the typing infrastructure.
 --   * Contains no semantic recursion, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.List using ([]; _∷_)
 open import ImprecisionWf using (ImpCtx)
 open import NuTermImprecision using
@@ -22,9 +23,7 @@ open import NuTermImprecision using
   )
 open import NuTerms using (No•; Substˣ)
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (S; TyCtx; Z; _∋_⦂_)
 open import proof.Core.Properties.TypePreservation using (SubstNo•; SubstWf)

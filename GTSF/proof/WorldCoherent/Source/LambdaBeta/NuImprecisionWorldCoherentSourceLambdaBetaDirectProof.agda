@@ -8,6 +8,7 @@ module
 --     argument, then dispatches to lambda or function-cast terminals.
 --   * Contains no terminal implementation, postulate, hole, or option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
@@ -34,8 +35,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

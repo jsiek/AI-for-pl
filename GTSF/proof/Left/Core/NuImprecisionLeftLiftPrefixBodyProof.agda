@@ -8,6 +8,7 @@ module proof.Left.Core.NuImprecisionLeftLiftPrefixBodyProof where
 --   * Contains only total proof terms, with no permissive options or dispatcher
 --     logic.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -25,8 +26,6 @@ open import NuTermImprecision using
 open import NuTerms using (renameᵗᵐ)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   )
 open import Relation.Binary.PropositionalEquality using (sym)
 open import Types using (renameᵗ)

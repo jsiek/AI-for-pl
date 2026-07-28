@@ -11,6 +11,7 @@ module
 --   * Contains no result/view/outcome type, postulate, hole, permissive
 --     option, termination bypass, or broad DGG import.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (_︔_)
@@ -36,8 +37,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( nu-term-imprecision-target-typing
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ

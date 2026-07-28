@@ -10,6 +10,7 @@ module proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal where
 --   * Depends on the stable weak-simulation core, source-keep composition
 --     helpers, and base judgments.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
@@ -22,7 +23,6 @@ open import NuTerms using (blame; no•-⟨⟩; _⟨_⟩)
 open import NuTermImprecision using (StoreImp)
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
-  ; nu-term-imprecision-target-typing
   )
 import proof.Catchup.Core.NuImprecisionCatchupComposition as CC
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore

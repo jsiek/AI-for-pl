@@ -13,6 +13,7 @@ module
 --     carrier and introduces no result, outcome, view, path, or alias.
 --   * Contains only total proof definitions and explicit clauses.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (zero; suc)
@@ -54,7 +55,6 @@ open import NuTerms using
   (No•; RuntimeOK; Term; Value; no•-⟨⟩; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_

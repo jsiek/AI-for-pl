@@ -9,6 +9,7 @@ module
 --     their well-founded assembly is deliberately separate.
 --   * Contains no catch-all, postulate, hole, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import Conversion as CV
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -43,8 +44,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-target-typing
-  ; nu-term-imprecision-source-typing
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ

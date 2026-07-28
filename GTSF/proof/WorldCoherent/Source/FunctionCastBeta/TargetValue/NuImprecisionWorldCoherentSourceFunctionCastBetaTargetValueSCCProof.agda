@@ -10,14 +10,13 @@ module
 --   * Leaves only the two paired value leaves as parameters and contains no
 --     postulate, hole, termination pragma, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.Nat using (ℕ; suc; zero)
 open import Relation.Binary.PropositionalEquality using (trans)
 
 open import NuTerms using (ƛ_; _⟨_⟩)
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-target-typing)
 open import TermTyping using (forget)
 open import proof.Source.Core.NuImprecisionSourceSilentCompositionLemma using
   (source-silent-compositionᵀ)

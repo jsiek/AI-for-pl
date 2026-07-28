@@ -12,6 +12,7 @@ module
 --   * Contains no postulate, hole, permissive option, broad simulation
 --     import, or recursive frame-closing dependency.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
 open import Coercions using
@@ -57,8 +58,6 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; gen-down⊑gen-downᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; paired-conversion
   ; up⊑upᵀ
   ; α⊑ᵀ

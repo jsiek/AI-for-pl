@@ -17,6 +17,7 @@ module proof.Catchup.Simulation.NuImprecisionSimulationCore where
 --   * Ends at the direct-swap residual lemmas; allocation and active
 --     universal catch-up cases live in the downstream simulation modules.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_; map)

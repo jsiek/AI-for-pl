@@ -12,6 +12,7 @@ module
 --     contract admitted the invalid paired-`∀ⁱ` source-instantiation path.
 --   * Uses only strict framing/composition helpers for local proof plumbing.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
 open import Coercions using (Coercion; Inert; ModeEnv; _︔_)
@@ -68,7 +69,6 @@ open import QuotientedTermImprecision using
   ; prefix-reflⁱ
   ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using

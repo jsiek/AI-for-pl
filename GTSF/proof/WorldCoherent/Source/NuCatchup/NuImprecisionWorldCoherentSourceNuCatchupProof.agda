@@ -8,6 +8,7 @@ module proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCa
 --   * Contains no canonical assembly, recursive dispatcher, or permissive
 --     option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Conversion using
   (weaken-reveal-conversion)
@@ -24,7 +25,7 @@ open import NuTermImprecision using
 open import NuTerms using
   (no•-blame; ok-no; ok-ν)
 open import QuotientedTermImprecision using
-  (blame⊑ᵀ; nu-term-imprecision-target-typing; prefix-reflⁱ)
+  (blame⊑ᵀ; prefix-reflⁱ)
 open import Types using (WfTy; ⇑ᵗ)
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ

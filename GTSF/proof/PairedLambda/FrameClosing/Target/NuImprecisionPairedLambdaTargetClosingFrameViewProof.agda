@@ -6,6 +6,7 @@ module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClo
 --   * Recurses mutually over ordinary and quotiented term imprecision.
 --   * Contains no semantic catch-up proof, postulate, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 import CastImprecisionShape as CIS
 import Conversion as CV
@@ -48,7 +49,6 @@ open import QuotientedTermImprecision using
   ; down⊑downᵀ
   ; gen-down⊑gen-downᵀ
   ; gen⊑groundᵀ
-  ; nu-term-imprecision-source-typing
   ; quotient-cast-widening
   ; quotient-id-widening
   ; paired-conceal

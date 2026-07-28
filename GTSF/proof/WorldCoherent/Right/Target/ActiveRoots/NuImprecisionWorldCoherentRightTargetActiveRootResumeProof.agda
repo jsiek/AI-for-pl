@@ -13,6 +13,7 @@ module
 --   * Does not assemble the full active-root record or attempt non-identity
 --     roots.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_; _++_)
 open import Data.Nat using (zero; suc)
@@ -74,7 +75,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ

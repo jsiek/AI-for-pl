@@ -10,6 +10,7 @@ module proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeTran
 --   * Returns direct QTI and QTIP derivations without carriers, postulates,
 --     holes, permissive options, catch-all clauses, or termination bypasses.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -107,7 +108,6 @@ open import QuotientedTermImprecision using
   ; ⊑conv↓ᵀ
   ; paired-downᵀ
   ; target-instantiationᵀ
-  ; nu-term-imprecision-source-typing
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
 open import Types using

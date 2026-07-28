@@ -10,6 +10,7 @@ module
 --   * Contains no intermediate pre-unseal relation, broad simulation import,
 --     postulate, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Coercions using (cast-seal)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
@@ -21,8 +22,6 @@ open import NuTermImprecision using
   ; leftStoreⁱ-lift
   )
 open import NuTerms using (⊢⟨⟩)
-open import QuotientedTermImprecision using
-  (nu-term-imprecision-source-typing)
 open import Relation.Binary.PropositionalEquality using (refl; subst)
 open import TermTyping using (forget)
 open import Types using (⟰ᵗ)

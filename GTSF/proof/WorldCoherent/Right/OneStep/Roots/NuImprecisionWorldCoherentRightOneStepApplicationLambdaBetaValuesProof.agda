@@ -11,6 +11,7 @@ module
 --   * Contains no recursive dispatcher, postulate, hole, permissive option,
 --     catch-all, or compatibility wrapper.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
@@ -40,7 +41,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
   ; ƛ⊑ƛᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

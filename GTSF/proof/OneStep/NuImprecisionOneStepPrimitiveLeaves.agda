@@ -8,6 +8,7 @@ module proof.OneStep.NuImprecisionOneStepPrimitiveLeaves where
 --   * Excludes delta and crossed ξ schedules.
 --   * Contains five hole-free leaf proofs.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
@@ -45,7 +46,6 @@ open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; allocation-prefixᵀ
   ; κ⊑κᵀ
-  ; nu-term-imprecision-source-typing
   )
 open import TermTyping using (forget)
 open import Types using (`ℕ; ‵_)

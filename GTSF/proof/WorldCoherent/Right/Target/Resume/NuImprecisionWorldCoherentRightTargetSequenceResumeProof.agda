@@ -13,6 +13,7 @@ module
 --     contextual target-only lineage refinement.
 --   * Contains no postulate, hole, permissive option, or termination bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
@@ -47,7 +48,6 @@ open import NuTerms using
   (No•; RuntimeOK; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; occurs; ⇑ᵗ; _⇒_; `∀)

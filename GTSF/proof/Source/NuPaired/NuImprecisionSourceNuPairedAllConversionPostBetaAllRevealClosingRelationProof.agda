@@ -10,8 +10,9 @@ module
 --   * Contains no semantic case analysis, intermediate index, postulate, or
 --     permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import QuotientedTermImprecision using
-  (nu-term-imprecision-target-typing; prefix-reflⁱ)
+  (prefix-reflⁱ)
 open import TermTyping using (forget)
 open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   (left-polymorphic-value-shapeᵀ)

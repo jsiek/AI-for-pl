@@ -9,6 +9,7 @@ module proof.Source.Core.NuImprecisionSourceBulletBase where
 --   * Keeps local administrative embedding and post-allocation helpers private
 --     and avoids depending on the main simulation or scratch modules.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -60,8 +61,6 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; α⊑ᵀ

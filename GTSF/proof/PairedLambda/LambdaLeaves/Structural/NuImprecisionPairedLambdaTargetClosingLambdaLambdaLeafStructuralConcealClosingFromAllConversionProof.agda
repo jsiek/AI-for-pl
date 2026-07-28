@@ -13,13 +13,12 @@ module
 --   * Contains no canonical assembly, postulate, hole, permissive option,
 --     broad simulation import, or pre-final-reveal intermediate index.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.Nat.Properties using (≤-refl)
 open import Conversion using (conceal-all)
 open import NuTerms using (Λ_; no•-Λ)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; paired-conceal
   ; Λ⊑Λᵀ
   )

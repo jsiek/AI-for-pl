@@ -7,6 +7,7 @@ module proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSource
 --     source-unseal catch-up contract.
 --   * Handles identity and inert reveal forms with strict source-cast frames.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv)
@@ -32,7 +33,6 @@ open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; blame⊑ᵀ
   ; conv↑⊑ᵀ
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )

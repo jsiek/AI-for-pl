@@ -8,6 +8,7 @@ module proof.Quotient.NuImprecisionQuotientValue where
 --     function-tag quotient-boundary factorization.
 --   * Depends only on the stable weak-simulation core and quotient relation.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (false; true)
 open import Data.Empty using (⊥; ⊥-elim)

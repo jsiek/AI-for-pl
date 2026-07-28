@@ -7,6 +7,7 @@ module proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof where
 --     the ambient typing premises of `allocation-prefixᵀ`.
 --   * Contains no postulate, hole, catch-all, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.Nat.Properties using (≤-refl)
 
 open import NarrowWiden using (narrow-weaken)
@@ -18,8 +19,6 @@ open import NuTerms using (no•-⟨⟩)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; paired-downᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   )
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)

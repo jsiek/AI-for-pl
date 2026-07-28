@@ -12,6 +12,7 @@ module proof.Catchup.Simulation.NuImprecisionSimulation where
 --   * Depends on `NuImprecisionSimulationCore`; completed synchronized and
 --     one-sided allocation cases live in `NuImprecisionAllocationSimulation`.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_; map)

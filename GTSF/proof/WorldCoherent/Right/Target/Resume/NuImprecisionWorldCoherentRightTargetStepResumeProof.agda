@@ -10,6 +10,7 @@ module
 --   * Reuses the existing weak-step and right-value catch-up carriers; it
 --     introduces no result, view, outcome, postulate, hole, or bypass.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_; _++_)
@@ -39,7 +40,6 @@ open import NuTermImprecision using (StoreImp)
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ
-  ; nu-term-imprecision-source-typing
   )
 open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using

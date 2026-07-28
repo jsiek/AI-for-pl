@@ -7,6 +7,7 @@ module proof.WorldCoherent.Right.Value.Terminal.NuImprecisionWorldCoherentRightV
 --   * Uses only focused prefix, typing, result, and lineage infrastructure.
 --   * Contains no postulate, hole, incomplete match, or permissive option.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import Data.Nat.Properties using (≤-refl)
@@ -15,8 +16,6 @@ open import NuReduction using (keep; ↠-refl)
 open import NuTerms using (⇑ᵗᵐ; _•)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
-  ; nu-term-imprecision-source-typing
-  ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using

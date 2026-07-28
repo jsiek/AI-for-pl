@@ -1034,6 +1034,28 @@ QTI typing projections and the store/context infrastructure still bundled
 with the obsolete first-draft relation in `NuTermImprecision.agda`; neither
 split should be mixed with a live grammar edit.
 
+The QTI typing-projection split is checked. The 627-line live grammar remains
+in `QuotientedTermImprecision.agda`; its five mutually recursive typing
+projections now live in the focused 395-line
+`proof/NuCore/Relations/NuImprecisionQuotientedTyping.agda`. Direct consumers
+import the proof-support module themselves, so no compatibility re-export
+widens the grammar's dependency cone. Warm focused checks take about three
+seconds for the typing module, eight seconds for a representative allocation
+consumer, and seven seconds for
+`NuDGGUnassembledProofsStrictSpine.agda`. The one-time consumer and aggregate
+rebuilds took about one minute and up to three minutes respectively after
+removing seven empty grammar imports. The source/import audit passes.
+
+Refreshing the distinct public `NuDGGSpine.agda` then exposed a cached
+unmigrated compiler dependency:
+`proof/Compilation/CompileTermImprecision.agda` still applies the deleted
+`up⊑upᵀ` constructor. This does not invalidate the typing split or the
+checked unassembled aggregate. It adds a concrete Phase 4 compiler boundary:
+`compiled-argument-cast-imprecision` must construct compatible `closeᵀ`, and
+the required reduction-closed quotient compatibility must follow from the
+canonical paired cast plans and their index-composition equations. Do not
+restore the fused constructor or add a compatibility wrapper.
+
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict
 public DGG dependency cone plus the focused forward and backward terminal

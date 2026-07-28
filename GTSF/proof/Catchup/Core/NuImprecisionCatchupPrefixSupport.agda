@@ -6,6 +6,7 @@ module proof.Catchup.Core.NuImprecisionCatchupPrefixSupport where
 --   * Excludes recursive catch-up dispatch and paired double-cast reasoning.
 --   * Depends on the stable simulation core and target-cast frame boundary.
 
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _++_)
 open import Data.Nat.Properties using (≤-refl)

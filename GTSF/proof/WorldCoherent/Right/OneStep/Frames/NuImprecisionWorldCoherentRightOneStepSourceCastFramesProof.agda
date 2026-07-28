@@ -24,7 +24,7 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (StoreChange)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )

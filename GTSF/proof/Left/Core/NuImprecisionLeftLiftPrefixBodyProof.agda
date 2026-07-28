@@ -14,7 +14,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
 open import ImprecisionWf using (_ˣ⊑★; ⇑ᴸᵢ)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; lift-left-store-[]

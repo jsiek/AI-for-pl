@@ -47,7 +47,12 @@ open import proof.Compilation.CompileCoercions using
   ; coerce-downⁿ-shape-idᵢ
   )
 open import proof.Core.Properties.CastImprecision
-  using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
+  using
+    ( castᵢ-id-only
+    ; narrowing⇒⊑ᵢ
+    ; seal★-tag-or-id
+    ; widening⇒⊑ᵢ
+    )
 open import proof.Core.Properties.CoercionProperties
   using
     ( RevealEnv
@@ -356,11 +361,6 @@ cast⊢ :
 cast⊢ plan M⊢ with down⊢ plan | up⊢ plan
 cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
   ⊢ᵀ⟨⟩ up⊢ᵐ (⊢ᵀ⟨⟩ down⊢ᵐ M⊢)
-
-seal★-tag-or-id :
-  ∀ {Σ} →
-  TT.SealModeStore★ tag-or-idᵈ Σ
-seal★-tag-or-id α ()
 
 cast⊢ᵀ :
   ∀ {Δ Γ A B M} →

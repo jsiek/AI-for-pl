@@ -11,7 +11,7 @@ open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.Nat.Properties using (≤-refl)
 
 open import NarrowWiden using (narrow-weaken)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; rightStoreⁱ
   )

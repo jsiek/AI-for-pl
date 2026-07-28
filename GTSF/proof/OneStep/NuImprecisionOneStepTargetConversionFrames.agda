@@ -17,7 +17,10 @@ open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using
   (applyCoercion; applyTy; applyTyCtx; applyTyCtxs; applyTys)
-open import NuTermImprecision using (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using (⊑conv↑ᵀ; ⊑conv↓ᵀ)
 open import Relation.Binary.PropositionalEquality using (subst; sym)

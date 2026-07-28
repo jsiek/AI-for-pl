@@ -20,7 +20,9 @@ open import Coercions using (Inert)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (blame-⟨⟩; keep; pure-step)
 open import NuTerms using (blame; no•-⟨⟩; _⟨_⟩)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using
   ( blame⊑ᵀ
   )

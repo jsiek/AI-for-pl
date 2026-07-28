@@ -13,7 +13,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_; ∃-syntax)
 
 open import Imprecision using (_ˣ⊑ˣ_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; StoreCorresponds
   ; leftStoreⁱ

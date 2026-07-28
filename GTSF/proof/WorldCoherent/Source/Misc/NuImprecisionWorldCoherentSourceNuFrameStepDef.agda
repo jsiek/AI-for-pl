@@ -18,8 +18,11 @@ open import NuReduction using
   ; _—→[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using (RuntimeOK; Term; ν)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

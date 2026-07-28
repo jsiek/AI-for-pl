@@ -69,8 +69,13 @@ open import NuReduction using
   ; keep
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

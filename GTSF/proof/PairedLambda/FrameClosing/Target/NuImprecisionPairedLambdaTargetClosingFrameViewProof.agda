@@ -85,7 +85,9 @@ open import proof.DGG.Core.NuProgress using
   )
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import Types using (Ty; TyCtx; `∀)
 
 

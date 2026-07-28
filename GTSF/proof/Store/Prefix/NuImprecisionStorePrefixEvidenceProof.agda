@@ -12,7 +12,7 @@ open import Data.List.Relation.Unary.Any using (there)
 open import Data.Nat.Properties using (≤-refl)
 
 open import NarrowWiden using (widen-weaken)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( correspondence-linked
   ; correspondence-stored
   )

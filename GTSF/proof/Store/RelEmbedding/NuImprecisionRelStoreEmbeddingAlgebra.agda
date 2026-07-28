@@ -13,7 +13,7 @@ open import Data.Nat using (suc)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftRightStoreⁱ
   ; LiftStoreⁱ

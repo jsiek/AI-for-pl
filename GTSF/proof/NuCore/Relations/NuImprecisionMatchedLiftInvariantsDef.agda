@@ -13,7 +13,7 @@ open import Data.Product using (_×_)
 
 open import Imprecision using (_ˣ⊑ˣ_; ⇑ᵢ)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ

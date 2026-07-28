@@ -21,8 +21,12 @@ open import Imprecision using
 open import ImprecisionComposition using (ImprecisionShape)
 open import ImprecisionWf using
   (ImpAssm; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ; store-right)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  ; store-right
+  )
 open import NuTerms using
   (Term; Λ_; _⟨_⟩; renameᵗᵐ)
 open import TermTyping using (_∣_∣_⊢_⦂_)

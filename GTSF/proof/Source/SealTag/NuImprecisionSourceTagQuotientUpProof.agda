@@ -13,7 +13,7 @@ open import ImprecisionWf using
   ( ImpCtx
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; rightStoreⁱ
   )

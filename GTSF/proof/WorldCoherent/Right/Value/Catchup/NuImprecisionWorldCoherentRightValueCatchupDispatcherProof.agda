@@ -20,8 +20,10 @@ open import NuTerms using
   ; $
   ; _⟨_⟩
   )
-open import NuTermImprecision using
-  (lift-left-ctx-[]; lift-right-ctx-[])
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
+  ; lift-right-ctx-[]
+  )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; blame⊑ᵀ

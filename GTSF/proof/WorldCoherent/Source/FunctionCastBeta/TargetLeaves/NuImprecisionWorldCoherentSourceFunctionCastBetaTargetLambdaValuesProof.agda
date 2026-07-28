@@ -24,8 +24,9 @@ open import ImprecisionComposition using (comp-↦-↦)
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (β-↦; keep; pure-step)
-open import NuTermImprecision using
-  (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

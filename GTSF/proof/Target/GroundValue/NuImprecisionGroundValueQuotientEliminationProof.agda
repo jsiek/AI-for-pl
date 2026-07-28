@@ -37,10 +37,12 @@ open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; rightStoreⁱ
-  ; seal★-tag-or-id
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using (Value)
 open import QuotientedTermImprecision using

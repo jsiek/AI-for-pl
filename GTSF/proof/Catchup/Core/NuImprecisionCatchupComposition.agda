@@ -13,7 +13,9 @@ import Relation.Binary.HeterogeneousEquality as HE
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_; ∀ⁱ_)
 open import NuReduction using
   (keep; _—→[_]_; ↠-refl; ↠-step)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision
 open import Types using (`∀)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore

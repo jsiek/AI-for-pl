@@ -36,13 +36,15 @@ open import NuTerms using
   ; _•
   ; _⟨_⟩
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; correspondence-stored
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-matched
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import QuotientedTermImprecision using
   ( paired-concealᵀ

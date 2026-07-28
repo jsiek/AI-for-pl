@@ -30,29 +30,31 @@ open import ImprecisionWf using
   ; ⇑ᴿᵢₐ
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftRightCtxⁱ
-  ; LiftRightStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
   ; StoreImp
-  ; ctx-imp
-  ; leftCtxⁱ
-  ; leftCtxⁱ-lift-right
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-right
-  ; lift-right-ctx-[]
-  ; lift-right-ctx-∷
   ; lift-right-store-[]
   ; lift-right-store-left
   ; lift-right-store-link
   ; lift-right-store-right
   ; lift-right-store-∷
-  ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-left
   ; store-link
   ; store-matched
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftRightCtxⁱ
+  ; ctx-imp
+  ; leftCtxⁱ
+  ; leftCtxⁱ-lift-right
+  ; lift-right-ctx-[]
+  ; lift-right-ctx-∷
+  ; rightCtxⁱ
   )
 open import NuTerms using
   ( No•

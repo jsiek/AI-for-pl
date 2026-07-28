@@ -14,7 +14,7 @@ open import Data.List using (_∷_)
 open import Data.Nat using (zero)
 open import Data.Product using (_,_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; leftStoreⁱ-lift-left
   )

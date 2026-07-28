@@ -12,7 +12,7 @@ open import Data.List using (_∷_)
 open import Data.Nat using (suc)
 open import Data.Product using (_,_)
 
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( lift-left-store-left
   ; lift-left-store-link
   ; lift-left-store-right

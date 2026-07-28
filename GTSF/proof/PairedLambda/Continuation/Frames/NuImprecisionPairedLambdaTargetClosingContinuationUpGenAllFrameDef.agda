@@ -23,7 +23,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ

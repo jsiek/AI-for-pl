@@ -34,14 +34,16 @@ open import NuReduction using
   ; keep
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftRightStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import NuTerms using
   (No•; Term; Value; Λ_; _⟨_⟩; ν; renameᵗᵐ)

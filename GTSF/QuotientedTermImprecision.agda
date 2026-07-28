@@ -88,6 +88,8 @@ open import CastImprecisionShape using
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import proof.Core.Properties.CastImprecision using
   ( ∀ᵢᶜ
+  ; right-id-only-compatible
+  ; seal★-tag-or-id
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
@@ -120,38 +122,38 @@ open import TermTyping using
   ; ⊢⟨⟩⊑
   ; ⊢blame
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; StoreImpEntry
   ; StoreCorresponds
-  ; CtxImp
-  ; ctx-imp
   ; leftStoreⁱ
   ; rightStoreⁱ
-  ; leftCtxⁱ
-  ; rightCtxⁱ
   ; LiftStoreⁱ
-  ; LiftCtxⁱ
   ; LiftLeftStoreⁱ
-  ; LiftLeftCtxⁱ
   ; LiftRightStoreⁱ
-  ; LiftRightCtxⁱ
   ; store-matched
   ; store-left
   ; store-right
   ; store-link
-  ; right-id-only-compatible
-  ; seal★-tag-or-id
   ; leftStoreⁱ-lift
   ; rightStoreⁱ-lift
   ; leftStoreⁱ-lift-left
   ; rightStoreⁱ-lift-left
+  ; leftStoreⁱ-lift-right
+  ; rightStoreⁱ-lift-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  ; leftCtxⁱ
+  ; rightCtxⁱ
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
+  ; LiftRightCtxⁱ
   ; leftCtxⁱ-lift
   ; rightCtxⁱ-lift
   ; leftCtxⁱ-lift-left
   ; rightCtxⁱ-lift-left
-  ; leftStoreⁱ-lift-right
-  ; rightStoreⁱ-lift-right
   ; leftCtxⁱ-lift-right
   ; rightCtxⁱ-lift-right
   ; leftCtxⁱ-∋

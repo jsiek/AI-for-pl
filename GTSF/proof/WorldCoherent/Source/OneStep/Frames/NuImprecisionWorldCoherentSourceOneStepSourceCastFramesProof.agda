@@ -44,7 +44,10 @@ open import NuReduction using
   ; applyTyCtxs
   ; applyTys
   )
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

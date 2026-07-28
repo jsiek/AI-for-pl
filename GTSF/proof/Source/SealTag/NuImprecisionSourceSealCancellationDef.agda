@@ -11,8 +11,10 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using
   (No•; Term; Value; _⟨_⟩)
 open import QuotientedTermImprecision using

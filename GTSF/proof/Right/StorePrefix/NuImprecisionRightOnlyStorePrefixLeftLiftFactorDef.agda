@@ -14,7 +14,10 @@ open import Data.Nat using (suc)
 open import Data.Product using (_×_; Σ-syntax)
 
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using (LiftLeftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  )
 open import Types using (TyCtx)
 open import proof.Right.StorePrefix.NuImprecisionRightOnlyStorePrefix using
   (RightOnlyStoreImpPrefix)

@@ -33,12 +33,14 @@ open import NuReduction using
   ; _—↠[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using
   (RuntimeOK; Term; Value; No•; _∣_∣_⊢_⦂_; blame)

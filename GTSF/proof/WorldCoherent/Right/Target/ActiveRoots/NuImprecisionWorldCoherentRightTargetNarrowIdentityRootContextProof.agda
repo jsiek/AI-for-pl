@@ -27,8 +27,10 @@ open import NarrowWiden using
 import NarrowWiden as NW
 open import NuReduction using
   (applyTyCtxs; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

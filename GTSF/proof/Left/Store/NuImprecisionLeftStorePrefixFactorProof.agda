@@ -9,7 +9,7 @@ module proof.Left.Store.NuImprecisionLeftStorePrefixFactorProof where
 
 open import Data.Product using (_,_)
 
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; lift-left-store-[]
   ; lift-left-store-left

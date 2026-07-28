@@ -9,7 +9,9 @@ open import Agda.Builtin.Equality using (refl)
 import Relation.Binary.HeterogeneousEquality as HE
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport using
   (left-catchup-indexed-resume-silentᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using

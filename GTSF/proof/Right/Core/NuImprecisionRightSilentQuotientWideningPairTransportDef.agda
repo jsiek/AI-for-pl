@@ -14,7 +14,9 @@ open import Data.List using ([])
 open import ImprecisionWf using (ImpCtx)
 open import NuReduction using
   (applyCoercion; applyTy; applyTys; keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
   (QuotientWideningPair; StoreImpPrefix)

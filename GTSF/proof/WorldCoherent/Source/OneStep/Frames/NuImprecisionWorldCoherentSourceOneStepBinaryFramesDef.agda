@@ -21,7 +21,9 @@ open import NuReduction using
   ( StoreChange
   ; applyTerm
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; Term

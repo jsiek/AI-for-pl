@@ -20,8 +20,12 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (_—→[_]_)
-open import NuTermImprecision using
-  (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using
   (Term; Value; Λ_; _⟨_⟩; renameᵗᵐ)
 open import Types using (Renameᵗ; Ty; TyCtx)

@@ -30,8 +30,13 @@ open import ImprecisionWf using
   (ImpCtx; _↦_; _∣_⊢_⊑_⊣_)
 open import NarrowWiden using
   (widen-mode-relax; _∣_∣_⊢_∶_⊒_)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   (Term; _·_; _⟨_⟩)
 open import PairedWideningCompatibility using

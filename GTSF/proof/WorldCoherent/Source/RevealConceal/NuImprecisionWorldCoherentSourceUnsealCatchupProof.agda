@@ -33,8 +33,10 @@ open import NuReduction using
   ; pure-step
   ; seal-unseal
   )
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; Term

@@ -37,8 +37,14 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (applyTy; applyTys; keep)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

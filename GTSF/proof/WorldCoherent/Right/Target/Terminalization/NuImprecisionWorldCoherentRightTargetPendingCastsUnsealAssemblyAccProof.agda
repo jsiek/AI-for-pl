@@ -27,7 +27,9 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import NuReduction using
   (β-id; β-seq; pure-step; seal-unseal; tag-untag-ok)
 open import NarrowWiden using (widen-mode-relax)
-open import NuTermImprecision using (seal★-tag-or-id)
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

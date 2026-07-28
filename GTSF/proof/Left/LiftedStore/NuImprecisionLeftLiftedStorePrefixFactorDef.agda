@@ -13,7 +13,10 @@ module
 open import Data.Nat using (suc)
 open import Data.Product using (_×_; ∃-syntax)
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using (LiftLeftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  )
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (TyCtx)
 

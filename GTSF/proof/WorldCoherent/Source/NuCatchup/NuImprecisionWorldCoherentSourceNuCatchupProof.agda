@@ -20,8 +20,12 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import NuReduction using
   (applyTys; blame-ν)
 open import NuStore using (StoreIncl-cons)
-open import NuTermImprecision using
-  (leftStoreⁱ; lift-left-ctx-[])
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
+  )
 open import NuTerms using
   (no•-blame; ok-no; ok-ν)
 open import QuotientedTermImprecision using

@@ -31,7 +31,6 @@ import NuExamplesFresh
 import NuMetaTheory
 import NuReduction
 import NuStore
-import NuTermImprecision
 import NuTerms
 import PairedWideningCompatibility
 import Primitives

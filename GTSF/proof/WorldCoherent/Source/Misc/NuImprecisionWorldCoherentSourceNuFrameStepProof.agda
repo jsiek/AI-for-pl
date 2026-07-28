@@ -17,7 +17,9 @@ open import Conversion using
   )
 open import Data.Product using (_,_; proj₁)
 open import NuReduction using (ξ-ν)
-open import NuTermImprecision using (lift-right-ctx-[])
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-right-ctx-[]
+  )
 open import NuTerms using
   ( RuntimeOK
   ; _⟨_⟩

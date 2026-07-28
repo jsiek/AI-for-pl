@@ -26,7 +26,13 @@ open import NuReduction using
   ; ↠-step
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp; leftCtxⁱ; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

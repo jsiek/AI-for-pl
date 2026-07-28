@@ -24,7 +24,7 @@ open import Imprecision using
   ; ⇑ᴸᵢ
   ; ⇑ᴿᵢ
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftRightStoreⁱ
   ; LiftStoreⁱ

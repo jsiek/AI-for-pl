@@ -12,7 +12,10 @@ open import Data.List using ([])
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; RuntimeOK; Value)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

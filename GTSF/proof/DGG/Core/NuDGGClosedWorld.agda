@@ -10,7 +10,7 @@ module proof.DGG.Core.NuDGGClosedWorld where
 open import Data.List using ([])
 
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImpEntry
   ; correspondence-linked
   ; correspondence-stored

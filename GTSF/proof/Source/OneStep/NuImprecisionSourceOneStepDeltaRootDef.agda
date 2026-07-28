@@ -11,7 +11,9 @@ open import Data.Nat using (ℕ; _+_)
 
 open import ImprecisionWf using (ImpCtx; idι)
 open import NuReduction using (keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using ($; _⊕[_]_)
 open import Primitives using (addℕ; κℕ)
 open import QuotientedTermImprecision using (StoreImpPrefix)

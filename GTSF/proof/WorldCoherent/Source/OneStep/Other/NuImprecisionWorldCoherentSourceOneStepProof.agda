@@ -14,12 +14,14 @@ open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_

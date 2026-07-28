@@ -25,7 +25,11 @@ open import ImprecisionWf using
   ; ⇑ᵢ
   )
 open import NuReduction using (bind)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; Term

@@ -36,11 +36,13 @@ open import NuReduction using
   ; keep
   ; pure-step
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
-  ; seal★-tag-or-id
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using
   ( No•

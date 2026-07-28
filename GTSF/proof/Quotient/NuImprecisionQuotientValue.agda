@@ -106,15 +106,19 @@ open import NuTerms using
   ; _⟨_⟩
   )
 import NuTerms as NT
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  ; StoreImp
+  ; rightStoreⁱ
+  )
 open import QuotientedTermImprecision
 open import TermTyping using (forget; _∣_∣_⊢_⦂_)
 open import Types using (Ground; ★)
 import Types as T
 open import proof.Core.Properties.CoercionProperties using (inert-dec)
 open import proof.Core.Properties.CastImprecision using
-  ( strictCrossNarrowing⇒crossNarrowing
+  ( seal★-tag-or-id
+  ; strictCrossNarrowing⇒crossNarrowing
   ; strictCrossWidening⇒crossWidening
   )
 open import proof.Core.Permutation.ForallPermutationProperties using
@@ -859,7 +863,7 @@ source-inert-quotient-down-before-id-widening-impossible :
   (Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺᵖ (V ⟨ d ⟩) ⊑ (V′ ⟨ d′ ⟩)
     ⦂ D ⊑ᵖ D′ ∶ qD) →
-  μ ∣ Δᴸ ∣ NuTermImprecision.leftStoreⁱ ρ
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρ
     ⊢ C.id X ∶ D ⊑ A →
   ⊥
 source-inert-quotient-down-before-id-widening-impossible

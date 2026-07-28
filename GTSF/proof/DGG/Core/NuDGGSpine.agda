@@ -42,12 +42,14 @@ open import NuReduction using
   ; _—→[_]_
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
-  ; leftCtxⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; leftCtxⁱ
   )
 open import NuMetaTheory using
   ( multi-preservation

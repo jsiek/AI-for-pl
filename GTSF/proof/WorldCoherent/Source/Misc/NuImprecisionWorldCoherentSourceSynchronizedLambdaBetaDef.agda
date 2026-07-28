@@ -13,7 +13,12 @@ open import Data.List using ([]; _∷_)
 
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (keep)
-open import NuTermImprecision using (StoreImp; ctx-imp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
+  )
 open import NuTerms using (No•; Term; Value; ƛ_; _·_; _[_])
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

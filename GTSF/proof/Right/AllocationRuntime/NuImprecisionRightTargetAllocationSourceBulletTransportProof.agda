@@ -39,14 +39,16 @@ open import NuReduction using
   ; keep
   )
 open import NuStore using (StoreIncl-cons)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
-  ; lift-right-ctx-[]
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-right-ctx-[]
   )
 open import NuTerms using
   ( No•
@@ -263,7 +265,7 @@ private
       {Δᴸ = Δᴸ} {ρ⁺ = ρ⁺} {L = L} {A = A}
       prefix liftρ unique runtime noM′ M⊢
       (α⊑ᵀ {L = V} vV noV hA liftρ∀
-        NuTermImprecision.lift-left-ctx-[]
+        lift-left-ctx-[]
         V⊑M′ V•⊢ M′⊢)
       eq =
     nu-term-imprecision-transport-termsᵀ eq refl

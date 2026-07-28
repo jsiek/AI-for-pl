@@ -25,12 +25,14 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ) renaming (ν to νⁱ)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImpEntry
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImpEntry
+  ; LiftLeftCtxⁱ
   )
 open import NuTerms using (No•; Term; Value; ν)
 open import QuotientedTermImprecision using

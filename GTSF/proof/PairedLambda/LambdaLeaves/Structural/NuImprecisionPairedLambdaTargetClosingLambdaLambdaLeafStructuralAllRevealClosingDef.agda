@@ -24,16 +24,18 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
   )
 open import NuTerms using
   ( No•

@@ -33,7 +33,7 @@ open import NuReduction using
   ; ↠-step
   ; _—↠[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ

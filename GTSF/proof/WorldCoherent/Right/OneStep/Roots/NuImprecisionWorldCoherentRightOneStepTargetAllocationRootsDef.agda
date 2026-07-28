@@ -31,7 +31,7 @@ open import ImprecisionWf using
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using (bind)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ

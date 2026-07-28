@@ -23,7 +23,7 @@ open import ImprecisionWf using
   )
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )

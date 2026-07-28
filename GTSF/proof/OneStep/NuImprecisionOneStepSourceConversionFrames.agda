@@ -14,7 +14,10 @@ open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Product using (_,_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTyCtxs; applyTys)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using (conv↑⊑ᵀ; conv↓⊑ᵀ)
 open import Relation.Binary.PropositionalEquality using (subst; sym)

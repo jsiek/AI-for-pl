@@ -16,7 +16,7 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Types
 open import Ctx using (CtxWf; ctxWf-∷)
-open import Coercions using (id-onlyᵈ; id-only≤tag-or-idᵈ)
+open import Coercions using (id-only≤tag-or-idᵈ)
 open import CastImprecisionShape using
   ( narrowing
   ; widening
@@ -44,7 +44,6 @@ open import Compile using
   ; up⊑
   ; up-shape
   ; ν-reveal-conversion
-  ; seal★-tag-or-id
   )
 open import GradualTerms
   using (GTerm)
@@ -98,6 +97,7 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 open import proof.Core.Properties.ImprecisionCompositionProperties using
   (compose-target-star-right-id★)
+open import proof.Core.Properties.CastImprecision using (seal★-tag-or-id)
 open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 open import proof.Core.Properties.ImprecisionProperties using
   ( ~-sym
@@ -116,11 +116,12 @@ open import proof.Core.Properties.TypeProperties using
   ( TyRenameWf-suc
   ; renameᵗ-preserves-WfTy
   )
-open import TermTyping using (SealModeStore★; cast-tag-or-id)
+open import TermTyping using (cast-tag-or-id)
 
 import GradualTermImprecision as GTI
 open import GradualTermImprecision using (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
-import NuTermImprecision as NTI
+import proof.NuCore.Relations.NuImprecisionTermContextDef as NTI
+import proof.Store.Core.NuImprecisionRelationalStoreDef as NTS
 import QuotientedTermImprecision as QTI
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
@@ -145,11 +146,6 @@ storeDetWf-[] =
     ; wfOlder = λ ()
     ; unique = λ ()
     }
-
-seal★-id-only :
-  ∀ {Σ} →
-  SealModeStore★ id-onlyᵈ Σ
-seal★-id-only α ()
 
 ------------------------------------------------------------------------
 -- Context conversion
@@ -385,8 +381,9 @@ compiled-right-dynamic-function-imprecision
           (compose-target-star-right-id★ pA)
           (compose-target-star-right-id★ pB))
   in
-  QTI.⊑cast⊑idᵀ seal★-id-only
-    (up⊑ plan) L⊑L′↓ (pA IWF.↦ pB)
+  QTI.⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+    (widen-mode-relax id-only≤tag-or-idᵈ (up⊑ plan))
+    L⊑L′↓ (pA IWF.↦ pB)
     (dynamic-application-plan-up-shape Δᴿ ℓ)
     (comp-↦-↦
       (compose-target-star-right-id★ pA)
@@ -536,7 +533,7 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
 compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
     (GTI.Λ⊑Λᴳ liftγ vV vV′ occA occB V⊑V′) =
   QTI.Λ⊑Λᵀ
-    NTI.lift-store-[]
+    NTS.lift-store-[]
     (ctxImpToNu-lift liftγ)
     (compileᵀ-value (CtxWf-⤊ srcΓ-wf) vV
       (subst
@@ -576,7 +573,7 @@ compile-preserves-term-imprecision-typed srcΓ-wf tgtΓ-wf
         V⊑N′
   in
   QTI.Λ⊑ᵀ occ
-    NTI.lift-left-store-[]
+    NTS.lift-left-store-[]
     (ctxImpToNu-lift-left liftγ)
     (compileᵀ-value (CtxWf-⤊ srcΓ-wf) vV
       (subst
@@ -609,7 +606,7 @@ compile-preserves-term-imprecision-typed
     (reveal↑ (ν-reveal-conversion hT′ hB))
     q
     (⊑-lift∀ᵢ q)
-    NTI.lift-store-[]
+    NTS.lift-store-[]
     (nuCtx⇑-lift (ctxImpToNu γ))
     M⊑M′ᵀ
     replacement
@@ -627,7 +624,7 @@ compile-preserves-term-imprecision-typed
   QTI.ν⊑ᵀ hT
     (renameᵗ-preserves-WfTy hT TyRenameWf-suc)
     (reveal↑ (ν-reveal-conversion hT hA))
-    NTI.lift-left-store-[]
+    NTS.lift-left-store-[]
     (nuCtx⇑ᴸ-lift (ctxImpToNu γ))
     M⊑M′ᵀ
     replacement

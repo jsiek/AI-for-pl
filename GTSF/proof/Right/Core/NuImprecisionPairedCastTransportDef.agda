@@ -13,7 +13,9 @@ open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using
   (StoreChange; applyCoercion; applyTy; applyTys)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
   (PairedCast; StoreImpPrefix)

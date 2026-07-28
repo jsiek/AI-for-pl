@@ -20,16 +20,18 @@ open import ImprecisionWf using
   ; ν
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( CtxImpEntry
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImpEntry
+  ; LiftLeftCtxⁱ
+  ; leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; ⇑ᵗᵐ; _•)

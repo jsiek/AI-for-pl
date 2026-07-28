@@ -14,12 +14,14 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᴿᵢ; ⇑ᵢ)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
   ; LiftRightCtxⁱ
-  ; StoreImp
   ; ctx-imp
   ; leftCtxⁱ
   ; lift-ctx-∷

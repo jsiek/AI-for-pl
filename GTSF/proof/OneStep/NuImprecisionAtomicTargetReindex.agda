@@ -20,8 +20,12 @@ open import ImprecisionWf using
   ; idι
   ; ν
   )
-open import NuTermImprecision using
-  (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using (Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ

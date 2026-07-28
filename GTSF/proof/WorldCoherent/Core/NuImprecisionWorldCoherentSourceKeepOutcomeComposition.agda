@@ -15,7 +15,9 @@ open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (StoreChange; keep; _—→[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (RuntimeOK)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ

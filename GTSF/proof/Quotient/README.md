@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — quotient-beta outcome path checked**
+**MIGRATION IN PROGRESS — obsolete first-draft relation removed**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -220,8 +220,8 @@ retired constructor directly. It was not the complete transitive consumer
 set. During migration, source search followed every helper field and record
 capability into allocation, frame, catch-up, and scheduling consumers before
 the helper was deleted. No retired live-QTI constructor remains in source.
-The identically named constructors still in `../../NuTermImprecision.agda`
-belong to the obsolete first-draft judgment described below.
+The obsolete first-draft `../../NuTermImprecision.agda` judgment has now been
+deleted at a stable source-outcome checkpoint.
 
 The Phase 3 public-DGG gate reaches two already-existing Phase 4 boundaries
 rather than a removed constructor:
@@ -234,13 +234,15 @@ rather than a removed constructor:
   the allocation root. Phase 4 must tighten or split this contract before its
   focused root can pass.
 
-`../../NuTermImprecision.agda` is not a live-QTI consumer. It still contains
-the older first-draft judgment beside the store/context infrastructure used
-throughout the live proof. Phase 3 does not confuse its identically named
-constructors with the QTI deletion set. Phase 5 must split out the retained
-infrastructure and delete that obsolete first-draft judgment, so the final
-source search can contain no retired constructor merely because it shared a
-support module.
+The retained infrastructure formerly sharing
+`../../NuTermImprecision.agda` now lives in
+`../Store/Core/NuImprecisionRelationalStoreDef.agda`,
+`../NuCore/Relations/NuImprecisionTermContextDef.agda`, and
+`../Store/Correspondence/NuImprecisionCrossedStore.agda`; its three general
+cast-mode witnesses moved to the existing cast-properties module. A complete
+direct-client audit found no consumer of the first-draft relation, so all 647
+imports were partitioned atomically and the obsolete file was deleted without
+a compatibility re-export.
 
 ### Phase 4. Replace the quotient boundary
 
@@ -494,6 +496,15 @@ The terminal-forward strict spine still stops at, and only at, the obsolete
 pure `NuImprecisionQuotientFunctionPairedNarrowingApplicationProof.agda`.
 The next checkpoint must replace the paired-quotient beta leaf operationally
 before deleting that pure family.
+
+The stable dependency cut preceding that operational replacement is checked.
+The old 1,213-line mixed `NuTermImprecision.agda` module no longer exists.
+The relational-store, term-context, crossed-store, and cast-mode support
+modules pass focused checks; the live QTI join and source one-step proof pass;
+and `make audit` reports no unresolved or unsafe strict imports. The
+terminal-forward spine still reaches the same obsolete pure
+quotient-application proof, confirming that the split did not move the
+semantic boundary.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

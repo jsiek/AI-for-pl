@@ -22,7 +22,10 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (applyTyCtxs; applyTys)
-open import NuTermImprecision using (leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; quotient-cast-widening

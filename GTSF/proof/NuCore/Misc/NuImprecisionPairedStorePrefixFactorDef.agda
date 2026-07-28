@@ -10,7 +10,10 @@ module proof.NuCore.Misc.NuImprecisionPairedStorePrefixFactorDef where
 
 open import Data.Product using (_×_; ∃-syntax)
 open import Data.Nat using (suc)
-open import NuTermImprecision using (LiftStoreⁱ; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftStoreⁱ
+  ; StoreImp
+  )
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import ImprecisionWf using (ImpCtx)
 open import Types using (TyCtx)

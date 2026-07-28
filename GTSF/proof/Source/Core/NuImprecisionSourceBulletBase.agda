@@ -32,12 +32,11 @@ open import NuReduction using
   ; ↠-step
   ; _—→[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; lift-left-store-[]
   ; lift-left-store-∷
   ; lift-left-store-left
@@ -49,6 +48,9 @@ open import NuTermImprecision using
   ; store-link
   ; store-matched
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
   )
 open import NuTerms using
   ( No•

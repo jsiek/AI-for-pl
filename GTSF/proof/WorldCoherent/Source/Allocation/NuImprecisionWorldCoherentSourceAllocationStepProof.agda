@@ -55,19 +55,21 @@ open import NuReduction using
   ; ↠-step
   )
 open import NuStore using (StoreIncl-cons; StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
-  ; lift-right-ctx-[]
   ; rightStoreⁱ
   ; rightStoreⁱ-lift
   ; rightStoreⁱ-lift-left
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
+  ; lift-right-ctx-[]
   )
 open import NuTerms using
   ( No•

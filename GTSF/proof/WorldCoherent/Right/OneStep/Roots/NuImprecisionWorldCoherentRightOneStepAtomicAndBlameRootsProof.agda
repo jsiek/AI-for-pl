@@ -18,7 +18,9 @@ open import NuReduction using
   ( keep
   ; ↠-refl
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( RuntimeOK
   ; Term

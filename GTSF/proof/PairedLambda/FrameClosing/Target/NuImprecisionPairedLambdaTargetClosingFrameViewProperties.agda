@@ -16,7 +16,9 @@ open import Data.List using ([])
 open import Data.Product using (_,_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
 import NarrowWiden as NW
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( No•
   ; Term

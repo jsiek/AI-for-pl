@@ -10,7 +10,7 @@ open import Data.Product using (_,_)
 import Coercions as C
 open import ImprecisionWf using (id★)
 import NarrowWiden as NW
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )

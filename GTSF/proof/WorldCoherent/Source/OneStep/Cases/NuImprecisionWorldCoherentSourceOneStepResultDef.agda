@@ -15,7 +15,9 @@ open import Data.List using ([]; _∷_)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using
   (StoreChange; StoreChanges; keep; _—↠[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using

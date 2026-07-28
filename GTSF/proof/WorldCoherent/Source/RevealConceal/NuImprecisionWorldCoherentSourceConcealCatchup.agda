@@ -56,17 +56,19 @@ open import NuReduction using
   ; β-id
   ; _—→[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
+  ; StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; CtxImpEntry
   ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
-  ; StoreImp
   ; leftCtxⁱ
-  ; leftStoreⁱ
   ; rightCtxⁱ
-  ; rightStoreⁱ
-  ; store-left
   )
 open import NuTerms using
   ( No•

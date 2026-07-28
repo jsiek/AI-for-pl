@@ -17,8 +17,10 @@ open import Conversion using
 open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax)
 open import NuReduction using
   (StoreChange; applyTyCtxs; applyTys)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
   (StoreImpPrefix)

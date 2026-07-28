@@ -37,6 +37,7 @@ open import Coercions using
   ; extᵈ
   ; genᵈ
   ; instᵈ
+  ; tag-or-idᵈ
   ; tagModeAllowed
   ; sealModeAllowed
   )
@@ -109,6 +110,11 @@ castᵢ-id-only :
   ∀ Δ →
   castᵢ id-onlyᵈ Δ ≡ idᵢ Δ
 castᵢ-id-only Δ = castᵢ-id-only-env id-onlyᵈ Δ (λ X → refl)
+
+seal★-tag-or-id :
+  ∀ {Σ} →
+  SealModeStore★ tag-or-idᵈ Σ
+seal★-tag-or-id α ()
 
 tagMode⇒starAllowed :
   ∀ {m} →
@@ -339,6 +345,16 @@ RightCastCtxCompatible μ Δ Φ =
   Y < Δ →
   modeStarAllowed (μ Y) ≡ true →
   (X ˣ⊑★) ∈ Φ
+
+left-id-only-compatible :
+  ∀ {Φ Δ} →
+  LeftCastCtxCompatible id-onlyᵈ Δ Φ
+left-id-only-compatible X<Δ ()
+
+right-id-only-compatible :
+  ∀ {Φ Δ} →
+  RightCastCtxCompatible id-onlyᵈ Δ Φ
+right-id-only-compatible x∈ Y<Δ ()
 
 matched-gen-left-incompatible :
   ∀ {μ Δ Φ} →

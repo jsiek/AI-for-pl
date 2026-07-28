@@ -9,7 +9,12 @@ module proof.Store.Prefix.NuImprecisionStorePrefixNoBulletDef where
 
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (CtxImp; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  )
 open import NuTerms using (No•; Term)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

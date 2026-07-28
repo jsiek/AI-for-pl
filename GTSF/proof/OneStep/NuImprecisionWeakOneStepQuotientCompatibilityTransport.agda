@@ -29,7 +29,9 @@ open import ImprecisionWf using
   )
 open import NuReduction using
   (StoreChange; applyCoercion; applyTys)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import QuotientImprecisionCompatibility using
   ( ReductionClosedPairedWideningCompatible

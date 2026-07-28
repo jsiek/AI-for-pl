@@ -15,7 +15,9 @@ open import Agda.Builtin.Equality using (refl)
 import Relation.Binary.HeterogeneousEquality as HE
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (StoreChange; keep)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import proof.Core.Properties.ReductionProperties using (↠-trans)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( subst²-to-≅

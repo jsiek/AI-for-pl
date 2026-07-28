@@ -11,7 +11,7 @@ module
 --     option, termination bypass, or broad simulation import.
 
 open import Data.Product using (_,_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( lift-left-store-[]
   ; lift-left-store-left
   ; lift-left-store-link

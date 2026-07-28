@@ -21,11 +21,13 @@ open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NarrowWiden using (genSafe→inert)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
-  ; lift-left-ctx-[]
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
   )
 open import NuStore using (StoreWf)
 open import NuTerms using

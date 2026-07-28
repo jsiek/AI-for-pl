@@ -83,13 +83,19 @@ open import NuReduction using
   ; ↠-step
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( StoreImp
-  ; lift-ctx-[]
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( leftStoreⁱ
+  ; rightStoreⁱ
+  ; StoreImp
   ; lift-right-store-[]
   ; lift-store-[]
-  ; seal★-tag-or-id
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using
   ( No•
@@ -645,8 +651,8 @@ paired-target-instantiation-closed-nu-dgg-regression :
         ⊣ applyTyCtxs (keep ∷ bind ★ ∷ keep ∷ []) zero) ]
     (((Λ I) —↠[ χs ] V) ×
      Value V ×
-     (NuTermImprecision.leftStoreⁱ ρ ≡ applyStores χs []) ×
-     (NuTermImprecision.rightStoreⁱ ρ
+     (leftStoreⁱ ρ ≡ applyStores χs []) ×
+     (rightStoreⁱ ρ
        ≡ applyStores (keep ∷ bind ★ ∷ keep ∷ []) []) ×
      Φ ∣ applyTyCtxs χs zero
        ∣ applyTyCtxs (keep ∷ bind ★ ∷ keep ∷ []) zero
@@ -678,8 +684,8 @@ paired-target-instantiation-gradual-dgg-regression :
     ((compiled-left public-target-instantiation-relation
         —↠[ χs ] V) ×
      Value V ×
-     (NuTermImprecision.leftStoreⁱ ρ ≡ applyStores χs []) ×
-     (NuTermImprecision.rightStoreⁱ ρ
+     (leftStoreⁱ ρ ≡ applyStores χs []) ×
+     (rightStoreⁱ ρ
        ≡ applyStores
          (keep ∷ bind ★ ∷ keep ∷ keep ∷ keep ∷ []) []) ×
      Φ ∣ applyTyCtxs χs zero

@@ -29,7 +29,7 @@ open import NuReduction using
   ; applyTys
   ; ↠-refl
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   )

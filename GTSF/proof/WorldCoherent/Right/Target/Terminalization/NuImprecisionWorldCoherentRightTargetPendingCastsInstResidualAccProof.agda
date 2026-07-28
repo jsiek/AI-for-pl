@@ -25,8 +25,9 @@ import NarrowWiden as NW
 open import NarrowWiden using (widen-mode-relax)
 open import NuReduction using
   (β-inst; pure-step)
-open import NuTermImprecision using
-  (seal★-tag-or-id)
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   ( RuntimeOK
   ; Term

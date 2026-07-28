@@ -16,7 +16,10 @@ open import Data.List using ([])
 open import Coercions using (Coercion; ModeEnv; gen; _!)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

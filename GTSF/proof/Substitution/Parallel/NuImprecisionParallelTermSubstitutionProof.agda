@@ -18,11 +18,13 @@ open import Coercions using (id-onlyᵈ)
 open import Conversion using
   (weaken-conceal-conversion; weaken-reveal-conversion)
 open import NarrowWiden using (narrow-weaken; widen-weaken)
-open import NuTermImprecision using
-  ( CtxImp
-  ; StoreImp
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import NuTerms using
   ( Closedᵐ

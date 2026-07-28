@@ -11,7 +11,7 @@ open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 
 open import ImprecisionComposition using (⌊_⌋)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; store-matched
   ; store-left

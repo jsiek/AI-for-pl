@@ -173,14 +173,12 @@ open import NuTerms using
   )
 open import Primitives using (κℕ; addℕ)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; StoreImpEntry
   ; StoreCorresponds
   ; correspondence-stored
   ; correspondence-linked
-  ; CtxImp
-  ; ctx-imp
   ; LiftStoreⁱ
   ; lift-store-[]
   ; lift-store-∷
@@ -207,6 +205,19 @@ open import NuTermImprecision using
   ; rightStoreⁱ-lift-left
   ; leftStoreⁱ-lift-right
   ; rightStoreⁱ-lift-right
+  ; store-matched
+  ; store-left
+  ; store-right
+  ; store-link
+  )
+open import proof.Store.Correspondence.NuImprecisionCrossedStore using
+  ( crossedStoreⁱ
+  ; crossedStoreⁱ-new-old
+  ; crossedStoreⁱ-old-new
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
   ; LiftCtxⁱ
   ; lift-ctx-[]
   ; lift-ctx-∷
@@ -224,13 +235,6 @@ open import NuTermImprecision using
   ; rightCtxⁱ-lift-left
   ; leftCtxⁱ-lift-right
   ; rightCtxⁱ-lift-right
-  ; store-matched
-  ; store-left
-  ; store-right
-  ; store-link
-  ; crossedStoreⁱ
-  ; crossedStoreⁱ-new-old
-  ; crossedStoreⁱ-old-new
   )
 open import QuotientedTermImprecision
 open import QuotientImprecisionCompatibility using (gradual↓)

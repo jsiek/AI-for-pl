@@ -14,8 +14,10 @@ open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 
-open import NuTermImprecision using
-  (CtxImp; ctx-imp)
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  )
 open import Types using
   (Renameᵗ; renameᵗ)
 open import proof.Core.Properties.TypeProperties using

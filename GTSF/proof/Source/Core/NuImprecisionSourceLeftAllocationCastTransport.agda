@@ -26,13 +26,15 @@ open import Conversion using
   ; weaken-reveal-conversion
   )
 open import ImprecisionWf using (_ˣ⊑★; ⇑ᴸᵢ)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
   )
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using

@@ -36,7 +36,7 @@ open import ImprecisionWf using
   )
 open import Imprecision using (NonVar)
 import NarrowWiden as NW
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp

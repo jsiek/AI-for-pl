@@ -36,7 +36,7 @@ open import ImprecisionWf using
   ; ν
   )
 open import Imprecision using (NonVar)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp

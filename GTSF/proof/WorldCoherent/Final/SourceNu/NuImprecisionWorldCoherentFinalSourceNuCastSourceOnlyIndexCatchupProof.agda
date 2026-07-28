@@ -32,13 +32,15 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuReduction using
   (bind; keep; ν-step; ↠-refl; ↠-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ-lift-left
   ; store-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-left-ctx-[]
   )
 open import NuTerms using
   ( ok-no

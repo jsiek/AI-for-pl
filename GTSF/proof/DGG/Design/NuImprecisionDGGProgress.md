@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — source-tail result contract checked**
+**MIGRATION IN PROGRESS — obsolete first-draft relation removed**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -96,10 +96,11 @@ migrated to that grammar. Remaining downstream clients still mention the
 retired names and must migrate or be deleted. The matched target-allocation
 root now states its exact value/no-bullet allocation step, fixed target
 reduct, and explicit allocated-type imprecision premise; its focused proof
-passes. The old first-draft judgment still cohabiting
-`NuTermImprecision.agda` is explicitly not treated as a QTI consumer; its
-widely used store/context infrastructure must be split out before the
-obsolete judgment is deleted in Phase 5.
+passes. The old first-draft `NuTermImprecision.agda` judgment has now been
+removed. Its retained relational-store, term-context, crossed-store, and
+general cast-mode support lives in chartered modules under `proof/Store/`,
+`proof/NuCore/Relations/`, and `proof/Core/Properties/`. No compatibility
+re-export remains.
 
 The phase order is:
 
@@ -799,10 +800,11 @@ behavior is covered by
    for arbitrary frame steps was added.
 6. Check only focused Phase 4 leaves, then run the source import/strict-cone
    audit and one public-DGG integration gate. Do not run `All.agda`.
-7. In Phase 5, split the shared store/context infrastructure out of
-   `NuTermImprecision.agda`, delete its obsolete first-draft relation, promote
-   retained migration theorems to canonical names, remove all experimental
-   check roots, and delete every superseded migration source.
+7. **Completed early at the stable source-outcome checkpoint:** split the
+   shared store/context infrastructure out of `NuTermImprecision.agda` and
+   delete its obsolete first-draft relation. In Phase 5, promote retained
+   migration theorems to canonical names, remove all experimental check
+   roots, and delete every superseded migration source.
 8. In Phase 6, verify that source search and the Makefile contain no obsolete
    constructor, import, wrapper, alias, prototype, or regression root. Run the
    final canonical quotient regressions and strict DGG gates serially.
@@ -1139,18 +1141,30 @@ both missing creation branches; it migrated and was later deleted. No hidden
 incomplete creation consumer remains. Stale references to other deleted
 quotient constructors remain separate Phase 4 obligations.
 
-Large-file decomposition is now part of the controlled migration. The next
-high-value stable cut is the store/context infrastructure still co-located
-with the obsolete first-draft term relation in `NuTermImprecision.agda`; 638
-proof modules currently import that mixed module. Extract that retained
-infrastructure into its canonical Def layer only at a source-result or
-quotient-outcome checkpoint, then delete the first-draft relation in Phase 5.
+Large-file decomposition is now part of the controlled migration. At this
+stable source-outcome checkpoint, the 1,213-line mixed
+`NuTermImprecision.agda` was replaced atomically by:
+
+- the 294-line relational-store definition;
+- the 163-line term-context definition;
+- the 95-line crossed-store construction; and
+- three general cast-mode witnesses in the existing cast-properties module.
+
+An import audit found 647 direct clients: 503 store-only, 8 context-only, 127
+using both, 8 helper-only, and the aggregate import. None consumed the
+first-draft relation or its projections. All clients now import the exact
+retained module, `All.agda` no longer imports the obsolete module, and the old
+file was deleted rather than retained as a shim. The focused new modules
+check in 2–4 seconds; the live QTI join checks; the source one-step proof
+checks in about 8 seconds; and `make audit` passes. The terminal-forward
+strict spine still reaches the expected obsolete quotient-application proof,
+so the infrastructure cut introduced no earlier semantic boundary.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 15,096-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region
-of the 4,762-line `NuImprecisionSimulation.agda`. These are dependency cuts,
-not re-exporting wrappers; each cut must reduce the importing surface before
-the obsolete monolith is deleted.
+of the 4,762-line `NuImprecisionSimulation.agda`. These must be genuine
+dependency cuts, not re-exporting wrappers.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

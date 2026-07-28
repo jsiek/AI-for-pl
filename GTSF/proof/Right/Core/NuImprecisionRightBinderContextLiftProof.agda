@@ -10,7 +10,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Product using (_,_; ∃-syntax)
 
 open import ImprecisionWf using (⇑ᴿᵢ)
-open import NuTermImprecision using
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftRightCtxⁱ
   ; ctx-imp

@@ -54,22 +54,24 @@ open import NuReduction using
   ; applyTys
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; StoreCorresponds
-  ; ctx-imp
-  ; leftCtxⁱ
   ; leftStoreⁱ
-  ; rightCtxⁱ
   ; rightStoreⁱ
   ; store-left
   ; store-matched
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
+  ; ctx-imp
+  ; leftCtxⁱ
+  ; rightCtxⁱ
   )
 open import NuTerms using
   ( No•

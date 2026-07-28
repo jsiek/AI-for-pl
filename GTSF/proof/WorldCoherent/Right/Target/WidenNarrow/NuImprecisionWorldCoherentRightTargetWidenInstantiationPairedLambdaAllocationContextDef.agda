@@ -32,11 +32,13 @@ open import ImprecisionComposition using
   (ImprecisionShape; νˢ_; ⌊_⌋; _；_≋_)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftCtxⁱ
-  ; LiftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( LiftCtxⁱ
   )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; Λ_; ν)

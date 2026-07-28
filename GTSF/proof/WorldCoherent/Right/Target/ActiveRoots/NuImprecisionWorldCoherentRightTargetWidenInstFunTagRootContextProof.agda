@@ -31,8 +31,10 @@ open import NuReduction using
   ; applyTys
   ; keep
   )
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ

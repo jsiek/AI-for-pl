@@ -26,23 +26,27 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; leftCtxⁱ
-  ; leftCtxⁱ-∋
-  ; leftCtxⁱ-lift
-  ; leftCtxⁱ-lift-left
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
   ; leftStoreⁱ-lift-left
+  ; rightStoreⁱ
+  ; rightStoreⁱ-lift
+  ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( leftCtxⁱ
+  ; leftCtxⁱ-∋
+  ; leftCtxⁱ-lift
+  ; leftCtxⁱ-lift-left
   ; rightCtxⁱ
   ; rightCtxⁱ-∋
   ; rightCtxⁱ-lift
   ; rightCtxⁱ-lift-left
-  ; rightStoreⁱ
-  ; rightStoreⁱ-lift
-  ; rightStoreⁱ-lift-left
-  ; seal★-tag-or-id
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using (_⟨_⟩)
 open import Primitives

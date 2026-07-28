@@ -13,8 +13,10 @@ open import Data.Product using (_×_)
 open import Data.Sum using (_⊎_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuStore using (StoreWf)
 open import NuTerms using
   (No•; Term; Value; blame; _⟨_⟩)

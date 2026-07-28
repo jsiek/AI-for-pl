@@ -21,11 +21,13 @@ open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using
   (ImpCtx; _ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᵢ)
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
   ; LiftCtxⁱ
   ; LiftLeftCtxⁱ
-  ; StoreImp
   ; ctx-imp
   ; leftCtxⁱ
   ; lift-ctx-∷

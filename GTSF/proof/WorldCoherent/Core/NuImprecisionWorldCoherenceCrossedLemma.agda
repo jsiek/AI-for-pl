@@ -23,19 +23,21 @@ open import Imprecision using
   ; swapRight∀∀ᵢ
   )
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftStoreⁱ
   ; StoreCorresponds
   ; StoreImp
   ; correspondence-linked
   ; correspondence-stored
-  ; crossedStoreⁱ
-  ; crossedStoreⁱ-new-old
-  ; crossedStoreⁱ-old-new
   ; leftStoreⁱ
   ; leftStoreⁱ-lift
   ; rightStoreⁱ
   ; rightStoreⁱ-lift
+  )
+open import proof.Store.Correspondence.NuImprecisionCrossedStore using
+  ( crossedStoreⁱ
+  ; crossedStoreⁱ-new-old
+  ; crossedStoreⁱ-old-new
   )
 open import Types using (Store; Ty; TyCtx; WfTy; ⇑ᵗ; ⟰ᵗ)
 open import proof.Core.Properties.ImprecisionProperties using

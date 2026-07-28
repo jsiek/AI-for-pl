@@ -32,8 +32,13 @@ open import NuReduction using
   ; applyTyCtxs
   ; applyTys
   )
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using (_⟨_⟩)
 open import QuotientedTermImprecision using
   ( ⊑cast⊒ᵀ

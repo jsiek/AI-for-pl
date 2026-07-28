@@ -25,7 +25,7 @@ open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; idˣ; tagˣ; ν; ∀ⁱ_)
 import NarrowWiden
 open import NuStore using (StoreWf; unique)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ

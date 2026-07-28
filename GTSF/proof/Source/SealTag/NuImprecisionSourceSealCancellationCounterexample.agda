@@ -21,15 +21,17 @@ open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; idι; idˣ; tag_; tagˣ)
 import NarrowWiden as NW
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreCorresponds
   ; StoreImp
   ; correspondence-linked
   ; correspondence-stored
   ; leftStoreⁱ
   ; rightStoreⁱ
-  ; seal★-tag-or-id
   ; store-matched
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using
   ( No•

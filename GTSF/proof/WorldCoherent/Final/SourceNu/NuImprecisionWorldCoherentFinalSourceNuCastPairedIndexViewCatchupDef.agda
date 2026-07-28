@@ -25,7 +25,10 @@ open import ImprecisionComposition using
   (ImprecisionShape; _；_≋_; ⌊_⌋)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; Term; Value; ν)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

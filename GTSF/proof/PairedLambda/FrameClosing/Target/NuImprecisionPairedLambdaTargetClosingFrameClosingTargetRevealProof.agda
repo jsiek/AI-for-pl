@@ -32,7 +32,9 @@ open import ImprecisionWf using
   ; ∀ⁱ_
   ; ν
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using (PairedConversion)
 open import Types using (Ty; TyCtx; `∀)
 open import

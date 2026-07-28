@@ -53,7 +53,9 @@ open import NuReduction using
   ; ↠-refl
   ; _—↠[_]_
   )
-open import NuTermImprecision using (ctx-imp)
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
+  )
 open import NuTerms using
   ( Term
   ; Value

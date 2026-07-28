@@ -51,8 +51,10 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 import NarrowWiden as NW
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import TermTyping using
   (CastMode; SealModeStore★)
 open import Types using

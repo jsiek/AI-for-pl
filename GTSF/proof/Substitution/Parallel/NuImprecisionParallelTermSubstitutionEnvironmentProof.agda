@@ -12,14 +12,16 @@ module
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.List using ([]; _∷_)
 open import ImprecisionWf using (ImpCtx)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( CtxImp
-  ; StoreImp
   ; ctx-imp
   ; leftCtxⁱ
-  ; leftStoreⁱ
   ; rightCtxⁱ
-  ; rightStoreⁱ
   )
 open import NuTerms using (No•; Substˣ)
 open import QuotientedTermImprecision using

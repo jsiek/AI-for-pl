@@ -27,7 +27,10 @@ open import Data.Product using (_,_; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTyCtxs; applyTys; blame-⟨⟩; pure-step)
-open import NuTermImprecision using (StoreImp; leftStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  )
 open import NuTerms using (No•; Term; Value; blame; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix

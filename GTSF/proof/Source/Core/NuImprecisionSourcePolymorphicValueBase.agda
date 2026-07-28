@@ -23,7 +23,9 @@ open import NuReduction using
   ; β-∀•
   ; _—→[_]_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using
   ( Value
   ; Λ_

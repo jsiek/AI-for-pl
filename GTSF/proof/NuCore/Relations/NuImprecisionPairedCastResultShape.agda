@@ -13,7 +13,9 @@ open import Coercions using (Coercion)
 open import ImprecisionComposition using (⌊_⌋)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import PairedWideningCompatibility using
   (paired-widening-compatible-shape-transport)
 open import QuotientedTermImprecision using

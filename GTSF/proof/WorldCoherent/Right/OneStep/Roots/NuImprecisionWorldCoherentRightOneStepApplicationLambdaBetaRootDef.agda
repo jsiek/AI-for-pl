@@ -17,9 +17,11 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   )
 open import NuReduction using (keep)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
-  ; ctx-imp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
   )
 open import NuTerms using
   ( No•

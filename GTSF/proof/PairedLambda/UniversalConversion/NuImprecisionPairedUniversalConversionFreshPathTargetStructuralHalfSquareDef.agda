@@ -29,7 +29,7 @@ open import ImprecisionWf using
   ; ⇑ᴸᵢ
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreCorresponds
   ; StoreImp
   ; rightStoreⁱ

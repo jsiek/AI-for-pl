@@ -10,7 +10,13 @@ module proof.Substitution.Parallel.NuImprecisionParallelTermSubstitutionLambdaDe
 open import Data.List using (_∷_)
 
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; _↦_)
-open import NuTermImprecision using (CtxImp; StoreImp; ctx-imp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; ctx-imp
+  )
 open import NuTerms using (No•; Substˣ; Term; ƛ_; extˢˣ; substˣᵐ)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)

@@ -24,8 +24,12 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; subst; sym; trans)
 import NarrowWiden as NW
 open import NuReduction using (ξ-⟨⟩)
-open import NuTermImprecision using
-  (StoreImp; lift-right-ctx-[])
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-right-ctx-[]
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

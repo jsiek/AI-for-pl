@@ -68,8 +68,14 @@ open import NuReduction using
   ; _—→[_]_
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; ⇑ᵗᵐ; _•; _⟨_⟩)
 open import QuotientedTermImprecision using

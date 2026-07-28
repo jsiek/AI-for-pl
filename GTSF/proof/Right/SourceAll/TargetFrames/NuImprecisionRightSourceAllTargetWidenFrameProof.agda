@@ -11,7 +11,9 @@ module
 
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import ImprecisionComposition using (comp-ν)
-open import NuTermImprecision using (rightStoreⁱ-lift-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( rightStoreⁱ-lift-left
+  )
 open import NuTerms using
   ( no•-Λ
   ; no•-⟨⟩

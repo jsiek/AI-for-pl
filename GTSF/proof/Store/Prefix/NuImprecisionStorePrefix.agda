@@ -8,7 +8,7 @@ module proof.Store.Prefix.NuImprecisionStorePrefix where
 
 open import Data.List.Relation.Unary.Any using (there)
 
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; rightStoreⁱ

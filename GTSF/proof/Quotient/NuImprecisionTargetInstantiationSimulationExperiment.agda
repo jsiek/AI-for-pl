@@ -42,16 +42,18 @@ open import NuReduction using
   ; _—→[_]_
   ; _—↠[_]_
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-right
-  ; lift-ctx-[]
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
   )
 open import NuTerms using
   (No•; Term; Value; Λ_; _⟨_⟩; ν)

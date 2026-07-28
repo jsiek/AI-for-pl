@@ -15,18 +15,10 @@ open import Data.Product using (_×_; _,_; ∃-syntax)
 
 open import ImprecisionWf using
   (_ˣ⊑★; _ˣ⊑ˣ_; ⇑ᴸᵢ; ⇑ᵢ; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
-  ; ctx-imp
-  ; lift-ctx-[]
-  ; lift-ctx-∷
-  ; lift-left-ctx-[]
-  ; lift-left-ctx-∷
   ; lift-left-store-[]
   ; lift-left-store-left
   ; lift-left-store-link
@@ -37,6 +29,16 @@ open import NuTermImprecision using
   ; lift-store-link
   ; lift-store-right
   ; lift-store-∷
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
+  ; ctx-imp
+  ; lift-ctx-[]
+  ; lift-ctx-∷
+  ; lift-left-ctx-[]
+  ; lift-left-ctx-∷
   )
 open import NuTerms using (No•; Term; renameᵗᵐ; ↑ᵗᵐ)
 open import QuotientedTermImprecision using

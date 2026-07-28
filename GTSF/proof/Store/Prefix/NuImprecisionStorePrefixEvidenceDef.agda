@@ -9,8 +9,10 @@ module proof.Store.Prefix.NuImprecisionStorePrefixEvidenceDef where
 
 open import Coercions using (Coercion)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
-open import NuTermImprecision using
-  (StoreCorresponds; StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreCorresponds
+  ; StoreImp
+  )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; StoreImpPrefix

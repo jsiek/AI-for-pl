@@ -50,15 +50,17 @@ open import NarrowWiden using
 import NuReduction
 open import NuReduction using
   (bind; keep; ↠-refl)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-right
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
-  ; seal★-tag-or-id
   ; store-right
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuStore using (StoreWf)
 import NuTerms

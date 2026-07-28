@@ -34,7 +34,7 @@ open import NuReduction
     ; _—→[_]_
     ; _—↠[_]_
     )
-open import NuTermImprecision
+open import proof.Store.Core.NuImprecisionRelationalStoreDef
   using
     ( StoreImp
     ; leftStoreⁱ

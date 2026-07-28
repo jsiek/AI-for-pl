@@ -31,7 +31,7 @@ open import ImprecisionWf using
 open import NuReduction using
   (bind; keep; ν-step; ↠-refl; ↠-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
   ; leftStoreⁱ-lift-left

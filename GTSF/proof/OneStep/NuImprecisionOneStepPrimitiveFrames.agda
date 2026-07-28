@@ -25,7 +25,9 @@ open import NuReduction using
   ; ↠-refl
   ; ↠-step
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (No•; Value; blame; _⊕[_]_)
 open import Primitives using (addℕ)
 open import QuotientedTermImprecision using

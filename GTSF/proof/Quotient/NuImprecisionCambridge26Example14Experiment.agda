@@ -53,14 +53,18 @@ open import ImprecisionWf using
 import NarrowWiden as NW
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
-  ( ctx-imp
-  ; lift-ctx-[]
-  ; lift-store-[]
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( lift-store-[]
   ; StoreImp
-  ; seal★-tag-or-id
   ; store-matched
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( ctx-imp
+  ; lift-ctx-[]
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using
   ( No•

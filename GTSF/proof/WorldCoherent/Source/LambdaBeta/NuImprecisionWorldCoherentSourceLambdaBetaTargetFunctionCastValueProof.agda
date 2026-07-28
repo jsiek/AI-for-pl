@@ -28,8 +28,13 @@ open import ImprecisionComposition using (comp-↦-↦)
 import NarrowWiden as NW
 open import NuReduction using (keep; pure-step)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using
   ( RuntimeOK
   ; Term

@@ -10,7 +10,9 @@ module proof.Right.SourceAll.Bodies.NuImprecisionRightSourceAllBodyCatchupProof 
 
 open import Data.Product using (_,_)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using (rightStoreⁱ-lift-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( rightStoreⁱ-lift-left
+  )
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof

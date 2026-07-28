@@ -16,8 +16,10 @@ open import Data.Nat.Properties using (≤-refl)
 open import ImprecisionWf using (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTerms; keep)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

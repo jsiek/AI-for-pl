@@ -26,7 +26,9 @@ open import ImprecisionComposition using
   )
 import NarrowWiden as NW
 open import NuReduction using (pure-step; β-seq)
-open import NuTermImprecision using (seal★-tag-or-id)
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import NuTerms using (ok-no; ok-⟨⟩)
 open import QuotientedTermImprecision using
   ( QuotientWideningPair

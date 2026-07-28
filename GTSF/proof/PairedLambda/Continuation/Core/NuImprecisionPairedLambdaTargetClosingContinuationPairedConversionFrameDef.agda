@@ -16,7 +16,9 @@ open import ImprecisionWf using
   ( ImpCtx
   ; _∣_⊢_⊑_⊣_
   )
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using (PairedConversion)
 open import Types using (Ty; TyCtx; `∀)

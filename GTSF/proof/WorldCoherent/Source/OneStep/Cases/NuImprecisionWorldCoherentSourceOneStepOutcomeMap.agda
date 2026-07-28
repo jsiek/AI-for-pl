@@ -11,7 +11,9 @@ module
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_)
 open import Data.Product using (_,_; ∃-syntax)
 open import NuReduction using (StoreChange; _—↠[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term; blame)
 open import Types using (Ty; TyCtx)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef using

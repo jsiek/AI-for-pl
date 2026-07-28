@@ -10,7 +10,9 @@ module
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (StoreChange; _—↠[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (blame)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)

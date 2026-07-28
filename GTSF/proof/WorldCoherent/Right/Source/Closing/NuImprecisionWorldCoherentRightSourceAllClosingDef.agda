@@ -17,11 +17,13 @@ open import ImprecisionWf using
 import ImprecisionWf as IW
 open import Imprecision using (NonVar)
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  ( LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( LiftLeftCtxⁱ
   )
 open import NuTerms using (No•; RuntimeOK; Term; Value; Λ_)
 open import QuotientedTermImprecision using

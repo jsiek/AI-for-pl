@@ -67,8 +67,11 @@ open import NuReduction using
   ; pure-step
   )
 open import NuStore using (StoreWf)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; store-left)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; store-left
+  )
 open import NuTerms using
   ( No•
   ; RuntimeOK

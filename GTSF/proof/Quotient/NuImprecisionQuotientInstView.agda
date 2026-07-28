@@ -19,8 +19,14 @@ open import NarrowWiden using (_∣_∣_⊢_∶_⊑_; widen-mode-relax)
 import NarrowWiden as NW
 open import proof.Core.Permutation.ForallPermutationProperties using
   (AllImprecisionView; ⊑ᵖ-source-all-view)
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ; seal★-tag-or-id)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
+  )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; quotient-id-widening

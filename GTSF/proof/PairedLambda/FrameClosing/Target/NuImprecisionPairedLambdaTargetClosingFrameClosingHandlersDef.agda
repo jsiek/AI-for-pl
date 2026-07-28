@@ -56,11 +56,8 @@ open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftCtxⁱ
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; LiftRightStoreⁱ
   ; LiftStoreⁱ
   ; StoreImp
@@ -68,6 +65,11 @@ open import NuTermImprecision using
   ; rightStoreⁱ
   ; store-left
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftCtxⁱ
+  ; LiftLeftCtxⁱ
   )
 open import NuStore using (StoreWf)
 open import NuTerms using

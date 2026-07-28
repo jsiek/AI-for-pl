@@ -17,19 +17,19 @@ open import ImprecisionComposition using
   (quotient-boundary-square)
 import NarrowWiden as NW
 open import NuReduction using (β-inst; pure-step)
-open import NuTermImprecision using
-  (left-id-only-compatible; seal★-tag-or-id)
+open import proof.Core.Properties.CastImprecision using
+  ( compose-cast-left
+  ; instSafe-source-admissible
+  ; left-id-only-compatible
+  ; seal★-tag-or-id
+  ; seal★-inst-shift
+  ; ⊑-transˡ-castᵢ
+  )
 open import NuTerms using (no•-⟨⟩; _⟨_⟩)
 import QuotientedTermImprecision as QTI
 open import Relation.Binary.PropositionalEquality using (sym)
 open QTI using (quotient-cast-widening; quotient-id-widening)
 open import TermTyping using (cast-tag-or-id)
-open import proof.Core.Properties.CastImprecision using
-  ( compose-cast-left
-  ; instSafe-source-admissible
-  ; seal★-inst-shift
-  ; ⊑-transˡ-castᵢ
-  )
 open import proof.Core.Properties.CoercionProperties using (ModeIncl-inst)
 open import proof.Core.Properties.NuCastImprecision using
   (nu-narrowing⇒⊑ᵢ; nu-widening⇒⊑ᵢ)

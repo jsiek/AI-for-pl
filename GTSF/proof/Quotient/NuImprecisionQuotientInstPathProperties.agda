@@ -43,7 +43,9 @@ open import ImprecisionComposition using
   ; νˢ_
   )
 import NarrowWiden as NW
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; quotient-cast-widening

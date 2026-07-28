@@ -12,7 +12,9 @@ module
 
 open import Data.List using (_∷_)
 open import NuReduction using (keep; ↠-step; _—→[_]_)
-open import NuTermImprecision using (StoreImp)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
 open import NuTerms using (Term)
 open import Types using (Ty)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef using

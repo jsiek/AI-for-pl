@@ -15,8 +15,11 @@ open import Data.Product using (_,_)
 open import Coercions using (cast-inst)
 import NarrowWiden
 
-open import NuTermImprecision using
-  (StoreImp; leftStoreⁱ; rightStoreⁱ)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  ; leftStoreⁱ
+  ; rightStoreⁱ
+  )
 open import NuTerms using
   ( No•
   ; Term

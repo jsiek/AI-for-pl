@@ -31,14 +31,16 @@ open import ImprecisionWf using
   ; ⊑-src-wf
   )
 open import Imprecision using (NonVar)
-open import NuTermImprecision using
-  ( CtxImp
-  ; LiftLeftCtxⁱ
-  ; LiftLeftStoreⁱ
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( LiftLeftStoreⁱ
   ; StoreImp
   ; leftStoreⁱ-lift-left
-  ; lift-left-ctx-[]
   ; rightStoreⁱ-lift-left
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( CtxImp
+  ; LiftLeftCtxⁱ
+  ; lift-left-ctx-[]
   )
 open import NuTerms using (No•; Term; Value; Λ_; no•-Λ)
 open import QuotientedTermImprecision using

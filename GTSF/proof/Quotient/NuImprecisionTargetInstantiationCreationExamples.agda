@@ -45,12 +45,16 @@ open import NuReduction using
   ; ↠-step
   ; _—↠[_]_
   )
-open import NuTermImprecision using
-  ( lift-ctx-[]
-  ; lift-right-store-[]
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( lift-right-store-[]
   ; lift-store-[]
-  ; seal★-tag-or-id
   ; store-right
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
+  )
+open import proof.Core.Properties.CastImprecision using
+  ( seal★-tag-or-id
   )
 open import NuTerms using
   ( No•

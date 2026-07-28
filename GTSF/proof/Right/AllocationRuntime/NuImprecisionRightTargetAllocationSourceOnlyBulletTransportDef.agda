@@ -20,7 +20,7 @@ open import ImprecisionWf using
   ; _∣_⊢_⊑_⊣_
   ; ν
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; LiftRightStoreⁱ
   ; StoreImp

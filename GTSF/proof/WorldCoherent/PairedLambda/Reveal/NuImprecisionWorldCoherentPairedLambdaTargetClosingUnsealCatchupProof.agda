@@ -17,7 +17,7 @@ open import Data.List using ([])
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (zero)
 open import Data.Product using (_,_)
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( leftStoreⁱ
   ; leftStoreⁱ-lift
   )

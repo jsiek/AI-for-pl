@@ -70,13 +70,15 @@ open import NuReduction using
   ; bind
   ; keep
   )
-open import NuTermImprecision using
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   ; leftStoreⁱ
-  ; lift-ctx-[]
+  ; rightStoreⁱ
+  )
+open import proof.NuCore.Relations.NuImprecisionTermContextDef using
+  ( lift-ctx-[]
   ; lift-left-ctx-[]
   ; lift-right-ctx-[]
-  ; rightStoreⁱ
   )
 open import NuStore using (StoreIncl-cons)
 open import NuTerms using

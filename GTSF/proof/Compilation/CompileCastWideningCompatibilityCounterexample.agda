@@ -40,7 +40,7 @@ open import QuotientImprecisionCompatibility using
   )
 open import proof.Core.Properties.ImprecisionProperties using
   (⊑-star-arrow-⊥)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
   (⊑-forgetᵢ)
 
 

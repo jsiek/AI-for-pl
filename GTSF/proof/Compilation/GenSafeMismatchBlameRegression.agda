@@ -84,7 +84,8 @@ open import Types using
   ; Z
   )
 open import proof.Core.Properties.ImprecisionProperties using (⊑-refl-idᵢ; ~-sym)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-forgetᵢ)
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
+  (⊑-forgetᵢ)
 open import proof.Compilation.CompileCoercions using
   ( coerce-downⁿᵐ
   ; realizes-idᵢᴺᵂ

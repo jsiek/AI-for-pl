@@ -51,9 +51,11 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; drop-∀ᵢ
   ; drop-νᵢ
   ; occurs-var-true→≡ᵢ
-  ; old⊑→wf-idᵢ
   ; open-unused-atᵢ
   ; removeAt-Wfᵢ
+  )
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
+  ( old⊑→wf-idᵢ
   ; ⊑-forgetᵢ
   )
 open import proof.Core.Properties.NuImprecisionTransitivityProperties using

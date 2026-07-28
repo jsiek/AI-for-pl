@@ -70,7 +70,7 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleMaximality using
   (MLB-complete)
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes using
   (MLB-result-route-sound)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties
   using (old⊑→wf-idᵢ)
 open import proof.Core.Properties.NarrowWidenStoreInvariantDef
   using (StoreDetWf)

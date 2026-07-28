@@ -32,8 +32,9 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; MlbTypeSelectorᵢ
   ; MlbTypeSelectorCoherenceᵢ
   ; rightChoice-id-proofᵢ
-  ; ⊑-forgetᵢ
   )
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
+  (⊑-forgetᵢ)
 
 ------------------------------------------------------------------------
 -- `mlb-typeᵢ` follows the lower-bound derivation order.

@@ -711,6 +711,15 @@ matched-allocation, target-allocation consumer, and reduced-simulation checks
 pass. Two redirected source-widen consumers remain blocked earlier by the
 retired `PairedCast` surface now being migrated.
 
+Right-lift prefixing now has the focused
+`../Right/AllocationRuntime/NuImprecisionRightLiftPrefixBodyDef/Proof`
+boundary. Its four consumers use the canonical theorem directly, and the
+three old right-lift helpers were deleted from the simulation module without
+re-export. The new boundary, all redirected allocation consumers, and the
+reduced simulation module pass strict checks.
+`NuImprecisionSimulation.agda` is now 4,216 lines, 553 lines smaller than
+before the three checking-time cuts.
+
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.

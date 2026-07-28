@@ -62,7 +62,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ( replace-left-target-lift-right-source-nu-bodyᵢ
   ; replace-paired-target-lift-right-under-∀ᵢ
   ; replace-right-target-lift-under-rightᵢ
-  ; right-lift-prefix-bodyᵀ
   ; shape-target-lift-right-under-∀ᵢ
   ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
@@ -70,6 +69,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   )
 open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   (post-allocation-β-Λ•)
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( ≡-to-≅
   ; replace-left-target-lift-rightᵢ
@@ -263,7 +265,7 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
 
   transport =
     weak-step-transport
-      (right-lift-prefix-bodyᵀ
+      (right-lift-prefix-body-proofᵀ
         liftρᴿ (prefix-∷ⁱ prefix-reflⁱ))
 
   type-coherence =

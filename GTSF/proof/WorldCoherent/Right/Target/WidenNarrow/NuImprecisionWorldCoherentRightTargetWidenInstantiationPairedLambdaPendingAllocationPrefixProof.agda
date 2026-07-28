@@ -96,12 +96,14 @@ open import
   ( replace-left-target-lift-right-source-nu-bodyᵢ
   ; replace-paired-target-lift-right-under-∀ᵢ
   ; replace-right-target-lift-under-rightᵢ
-  ; right-lift-prefix-bodyᵀ
   ; shape-target-lift-right-under-∀ᵢ
   ; shape-target-lift-under-rightᵢ
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationCore
   using
@@ -505,7 +507,7 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
 
   transport =
     weak-step-transport
-      (right-lift-prefix-bodyᵀ
+      (right-lift-prefix-body-proofᵀ
         liftρᴿ (prefix-∷ⁱ prefix-reflⁱ))
 
   type-coherence =

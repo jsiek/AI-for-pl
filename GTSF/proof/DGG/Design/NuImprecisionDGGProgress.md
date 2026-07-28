@@ -1396,6 +1396,16 @@ simulation module pass focused strict checks. The two redirected source-widen
 consumers currently stop earlier at their independently retired `PairedCast`
 imports, which are part of the active value-catch-up migration.
 
+The symmetric right-lift prefix theorem now lives in the focused
+`proof/Right/AllocationRuntime/NuImprecisionRightLiftPrefixBodyDef/Proof`
+pair and uses the canonical right-store embedding. Its four consumers import
+that boundary directly; the former right-lift store embedding, world
+embedding, and prefix theorem were deleted from the simulation module without
+a shim. The new Def and Proof, both target-allocation clients, both
+target-widen allocation clients, and the reduced simulation module pass
+strict checks. `NuImprecisionSimulation.agda` is now 4,216 lines, down 553
+lines across the three cuts.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region

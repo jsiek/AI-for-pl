@@ -64,8 +64,6 @@ open import Types using
   ; ★
   ; ⇑ᵗ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  (right-lift-prefix-bodyᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-right-store-factorⁱ
   ; nu-term-imprecision-transport-termsᵀ
@@ -91,6 +89,9 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-⇑ᴿᵢ)
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceOnlyBulletTransportDef
   using (RightTargetAllocationSourceOnlyBulletTransportᵀ)
@@ -233,7 +234,7 @@ right-target-allocation-source-only-bullet-transport-proofᵀ
       transport-lift-right-store-forward eq liftᴿρᴸ
 
     lifted-body =
-      right-lift-prefix-bodyᵀ rightᴸρ prefix-reflⁱ
+      right-lift-prefix-body-proofᵀ rightᴸρ prefix-reflⁱ
         noL noM′ L⊑M′
 
     body =

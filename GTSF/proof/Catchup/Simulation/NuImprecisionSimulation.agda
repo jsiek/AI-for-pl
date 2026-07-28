@@ -10,7 +10,9 @@ module proof.Catchup.Simulation.NuImprecisionSimulation where
 --   * Packages both generic-cast constructor orders at `β-∀•`, for all
 --     source/target narrowing and widening combinations.
 --   * Depends on `NuImprecisionSimulationCore`; focused matched allocation
---     and relation-only runtime-bullet boundaries live under `proof.OneStep`.
+--     and relation-only runtime-bullet boundaries live under `proof.OneStep`,
+--     while target-right prefix lifting lives under
+--     `proof.Right.AllocationRuntime`.
 
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -467,6 +469,9 @@ open import proof.Source.Core.NuImprecisionSourceInertBulletCommutation using
   ; left-catchup-indexed-all-α-∀-wideningᵀ
   ; left-catchup-indexed-all-α-gen-narrowingᵀ
   )
+open import
+  proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
+  using (right-lift-prefix-body-proofᵀ)
 
 
 private
@@ -629,40 +634,6 @@ paired-left-lift-prefix-world-embeddingⁱ liftρᵃ liftρᵇ =
     (rel-store-embedding-left refl (sym (renameᵗ-id _))
       (paired-left-lift-rel-embeddingⁱ liftρᵃ liftρᵇ))
     rel-ctx-rename-[]
-
-lift-right-store-rel-embeddingⁱ :
-  ∀ {Φ Ψ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp Ψ Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ Ψ ρ ρ′ →
-  RelStoreEmbeddingⁱ (λ X → X) suc ρ ρ′
-lift-right-store-rel-embeddingⁱ lift-right-store-[] =
-  rel-store-embedding-[]
-lift-right-store-rel-embeddingⁱ (lift-right-store-∷ shape liftρ) =
-  rel-store-embedding-matched refl (sym (renameᵗ-id _))
-    refl refl shape (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-left liftρ) =
-  rel-store-embedding-left refl (sym (renameᵗ-id _))
-    (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-right liftρ) =
-  rel-store-embedding-right refl refl
-    (lift-right-store-rel-embeddingⁱ liftρ)
-lift-right-store-rel-embeddingⁱ (lift-right-store-link shape liftρ) =
-  rel-store-embedding-link refl (sym (renameᵗ-id _))
-    refl refl shape (lift-right-store-rel-embeddingⁱ liftρ)
-
-right-lift-world-embeddingⁱ :
-  ∀ {Φ Δᴸ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ ρ′ →
-  RelWorldEmbeddingⁱ (λ X → X) suc (λ X → X) predᵗ
-    rename-assm²-target-rightᵢ (λ X<Δ → X<Δ) TyRenameWf-suc
-    {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
-right-lift-world-embeddingⁱ liftρ =
-  rel-world-embedding (λ X → refl) RenameLeftInverse-suc
-    castModeRenamer-id castModeRenamer-suc
-    (lift-right-store-rel-embeddingⁱ liftρ) rel-ctx-rename-[]
 
 right-lift-under-left-store-rel-embeddingⁱ :
   ∀ {Φ Δᴸ Δᴿ}
@@ -1438,34 +1409,6 @@ left-swap-reveal-store {Aobs = Aobs} {ρ₀ = ρ₀} liftρ₁ liftρ₂ =
         (cong ⟰ᵗ (sym (leftStoreⁱ-lift liftρ₁)))
         (sym (leftStoreⁱ-lift liftρ₂))))
 
-right-lift-prefix-bodyᵀ :
-  ∀ {Φ Δᴸ Δᴿ A B L L′ p}
-    {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ₁ ρ⁺ : StoreImp (⇑ᴿᵢ Φ) Δᴸ (suc Δᴿ)} →
-  LiftRightStoreⁱ (⇑ᴿᵢ Φ) ρ₀ ρ₁ →
-  StoreImpPrefix ρ₁ ρ⁺ →
-  No• L → No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
-    ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
-  ⇑ᴿᵢ Φ ∣ Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ []
-    ⊢ᴺ L ⊑ ⇑ᵗᵐ L′ ⦂ A ⊑ ⇑ᵗ B
-      ∶ ⊑-target-lift-rightᵢ p
-right-lift-prefix-bodyᵀ {A = A} {L = L}
-    liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
-    (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
-      noL (nu-term-imprecision-source-typing body))
-    (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
-      noL′↑ (nu-term-imprecision-target-typing body))
-  where
-  body =
-    nu-term-imprecision-transport-termsᵀ (renameᵗᵐ-id L) refl
-      (nu-term-imprecision-transport-typesᵀ
-        (renameᵗ-id A) refl refl
-        (rel-world-embed-no•ᵀ
-          (right-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′))
-  noL′↑ = renameᵗᵐ-preserves-No• suc noL′
-
 right-swap-reveal-store :
   ∀ {Φ Δᴸ Δᴿ Bobs}
     {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
@@ -1920,7 +1863,7 @@ weak-one-step-source-blame-right-allocation-transportᵀ :
 weak-one-step-source-blame-right-allocation-transportᵀ
     {ρ = ρ} wfΣ′ vV′ noV′ h⇑A′ target⊢ pB =
   weak-step-transport
-    (right-lift-prefix-bodyᵀ
+    (right-lift-prefix-body-proofᵀ
       (proj₂ (lift-right-store-result ρ))
       (prefix-∷ⁱ prefix-reflⁱ))
 

@@ -30,7 +30,7 @@ open import QuotientedTermImprecision using
   (prefix-reflⁱ; )
 open import Types using (Ty; TyCtx)
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ

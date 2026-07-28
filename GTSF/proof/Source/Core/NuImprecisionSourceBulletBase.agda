@@ -93,8 +93,6 @@ open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
   ; castModeRenamer-id
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
   ; rel-world-embedding
   ; rename-assm²-idᵢ
   ; replace-left-rename-idᵢ
@@ -103,13 +101,19 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; replace-paired-rename-id-all-bodyᵢ
   ; replace-right-rename-idᵢ
   ; replace-right-rename-id-right-bodyᵢ
-  ; weak-one-step-index-resultᵀ
   ; ⊑-rename-id-all-bodyᵢ
   ; ⊑-rename-id-allᵢ
   ; ⊑-rename-id-arrowᵢ
   ; ⊑-rename-id-shapeᵢ
   ; ⊑-rename-idᵢ
   ; ⊑-rename-id-source-nuᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
   )
 open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
   (rel-world-embed-no•ᵀ)

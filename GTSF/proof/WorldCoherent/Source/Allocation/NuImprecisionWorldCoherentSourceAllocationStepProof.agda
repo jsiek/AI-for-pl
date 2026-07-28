@@ -164,13 +164,10 @@ open import
   using (rel-store-embedding-prefix-invⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( equality-proof-unique
-  ; nu-term-imprecision-transport-typesᵀ
   ; renameᵗ-ext-id
-  ; subst²-to-≅
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
   ; weak-indexed-all-resultᵀ
-  ; weak-one-step-index-resultᵀ
   ; weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type-to-nested≅
@@ -178,15 +175,24 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-matched-ν-frame-preserves-transportᵀ
   ; weak-one-step-matched-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-matched-ν-frameᵀ
-  ; weak-one-step-reindex-preserves-transportᵀ
-  ; weak-one-step-reindex-preserves-type-coherenceᵀ
-  ; weak-one-step-reindexᵀ
   ; weak-result-source-reveal
   ; weak-result-source-widen-inst
   ; weak-result-target-reveal
   ; weak-result-target-widen-inst
   ; ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindex-preserves-type-coherenceᵀ
+  ; weak-one-step-reindexᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepAllResult

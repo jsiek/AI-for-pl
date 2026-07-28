@@ -73,15 +73,18 @@ open import
   proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
   using (right-lift-prefix-body-proofᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( ≡-to-≅
-  ; replace-left-target-lift-rightᵢ
+  ( replace-left-target-lift-rightᵢ
   ; replace-paired-target-lift-rightᵢ
   ; replace-right-target-lift-rightᵢ
-  ; transportAllType-to-raw≅
-  ; transportArrowType-to-raw≅
   ; ⊑-target-lift-right-source-nuᵢ
   ; ⊑-target-lift-right-under-∀ᵢ
   ; ⊑-target-lift-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -273,12 +276,12 @@ world-coherent-right-target-widen-instantiation-paired-lambda-allocation-context
       (λ pD pE → HE.≅-to-≡
         (HE.trans
           (transportArrowType-to-raw≅ result pD pE)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-arrow-coherentᵢ pD pE))))
       (λ r → HE.≅-to-≡
         (HE.trans
           (transportAllType-to-raw≅ result r)
-          (≡-to-≅
+          (HE.≡-to-≅
             (⊑-target-lift-right-all-coherentᵢ r))))
       shape-target-lift-rightᵢ
       shape-target-lift-under-rightᵢ

@@ -72,7 +72,7 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchupᵀ
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ

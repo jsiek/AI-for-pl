@@ -67,7 +67,9 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
   )

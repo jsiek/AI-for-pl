@@ -72,13 +72,19 @@ open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ; weak-one-step-source-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( subst²-to-≅
-  ; weak-one-step-compose-type-to-nested≅
-  ; weak-one-step-index-resultᵀ
+  ( weak-one-step-compose-type-to-nested≅
   ; weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-index-resultᵀ
   ; weak-one-step-reindexᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult

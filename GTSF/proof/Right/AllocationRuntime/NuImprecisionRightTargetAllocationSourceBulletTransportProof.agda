@@ -107,8 +107,12 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( replace-right-target-lift-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-termsᵀ
-  ; replace-right-target-lift-rightᵢ
   )
 open import proof.Core.Properties.NuNarrowingTransport using
   (apply-narrows-typing)

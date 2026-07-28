@@ -109,11 +109,13 @@ open import
 open import
   proof.Source.Core.NuImprecisionSourcePolymorphicValueBase
   using (post-catchup-β-inst)
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-result-source-widen-inst
+  )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-typesᵀ
-  ; weak-result-source-widen-inst
   ; weak-one-step-reindexᵀ
   )
 open import

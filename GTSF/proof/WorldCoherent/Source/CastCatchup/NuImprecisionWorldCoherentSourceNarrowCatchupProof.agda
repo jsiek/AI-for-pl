@@ -53,8 +53,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-reindexᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-reindexᵀ
+  )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using

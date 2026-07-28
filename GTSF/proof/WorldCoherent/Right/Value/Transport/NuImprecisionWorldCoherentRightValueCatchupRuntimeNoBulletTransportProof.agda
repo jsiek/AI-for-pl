@@ -195,12 +195,16 @@ open import
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( apply-reveal-under-ty-binders
   ; apply-widen-inst-under-ty-binders
-  ; nu-term-imprecision-transport-termsᵀ
+  ; seal★-id-only
+  ; modeRename-gen-tag-or-id
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
   ; nu-term-imprecisionᵖ-transport-termsᵀ
   ; nu-term-imprecisionᵖ-transport-typesᵀ
-  ; seal★-id-only
-  ; modeRename-gen-tag-or-id
   )
 open import proof.Core.Properties.NuNarrowingTransport using
   (apply-fixed-narrows-typing; apply-narrows-typing)

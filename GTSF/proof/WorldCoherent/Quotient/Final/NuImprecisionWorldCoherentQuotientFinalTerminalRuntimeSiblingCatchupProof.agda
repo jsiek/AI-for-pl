@@ -36,7 +36,9 @@ open import proof.Core.Properties.ReductionProperties using
   ; allKeep-applyTys-id
   ; applyTyCtxs-≤
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
   )

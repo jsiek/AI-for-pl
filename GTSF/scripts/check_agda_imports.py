@@ -50,6 +50,7 @@ KNOWN_INCOMPLETE_PROOF_MODULES = (
 # is still a useful regression, counterexample, example, or integration root.
 INTENDED_STANDALONE_ROOT_MODULES = (
     *STRICT_DGG_ROOT_MODULES,
+    "proof.Compilation.CompileCanonicalPendingCloseExperiment",
     "proof.Compilation.CompileDynamicApplicationTest",
     "proof.Compilation.GenSafeMismatchBlameRegression",
     "proof.Core.Permutation.ForallPermutationTest",

@@ -66,10 +66,14 @@ open import Types using
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-right-store-factorⁱ
-  ; nu-term-imprecision-transport-termsᵀ
   ; right-target-square-α⊑ᵀ
   ; right-under-left-ctx-eq
   ; ⊑-target-lift-right-ν-shapeᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
   )
 open import proof.Core.Properties.NuTermProperties using
   (renameᵗᵐ-preserves-No•)

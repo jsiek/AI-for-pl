@@ -25,7 +25,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   )
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using
-  (prefix-reflⁱ; )
+  (prefix-reflⁱ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
   using (assumption-membership-unique→precision-index-unique)
@@ -63,7 +63,7 @@ open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ

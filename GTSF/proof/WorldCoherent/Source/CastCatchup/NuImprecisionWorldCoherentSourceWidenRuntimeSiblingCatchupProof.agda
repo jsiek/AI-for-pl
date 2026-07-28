@@ -118,12 +118,16 @@ open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
   (post-catchup-β-inst)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-ctx-rename-[]
-  ; nu-term-imprecision-transport-typesᵀ
   ; rename-left-store-coherentⁱ
   ; rename-left-store-source-liftⁱ
   ; rename-left-storeⁱ
-  ; weak-one-step-reindexᵀ
   ; weak-result-source-widen-inst
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-reindexᵀ
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef

@@ -52,13 +52,17 @@ open import Types using
   ; `ℕ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-typesᵀ
-  ; weak-indexed-arrow-resultᵀ
-  ; weak-one-step-index-resultᵀ
+  ( weak-indexed-arrow-resultᵀ
   ; weak-one-step-·₁-frame-preserves-transportᵀ
   ; weak-one-step-·₁-frame-preserves-type-coherenceᵀ
   ; weak-one-step-·₁-frameᵀ
   ; weak-one-step-·₂-indexed-frameᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-index-resultᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepIndexedResult

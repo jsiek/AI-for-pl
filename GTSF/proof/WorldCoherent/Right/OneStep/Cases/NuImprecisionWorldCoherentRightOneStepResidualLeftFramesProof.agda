@@ -56,11 +56,13 @@ open import Types using
   ; ‵_
   ; _⇒_
   )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-indexed-arrow-resultᵀ
+  )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-typesᵀ
-  ; weak-indexed-arrow-resultᵀ
   ; weak-one-step-index-resultᵀ
   )
 open import

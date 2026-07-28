@@ -35,7 +35,9 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; subst; sym; trans)
 open import Types using (`ℕ; ‵_)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
   )

@@ -28,7 +28,18 @@ open import QuotientedTermImprecision using
   )
 import proof.Catchup.Core.NuImprecisionCatchupComposition as CC
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-index-resultᵀ
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindex-preserves-type-coherenceᵀ
+  ; weak-one-step-reindexᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst²-to-≅)
 
 left-catchup-indexed-source-cast-blame-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M L V′ A A′ B B′ ρ d}

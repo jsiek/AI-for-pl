@@ -99,14 +99,20 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
-  ; subst²-to-≅
-  ; weak-one-step-compose-preserves-type-coherenceᵀ
+  ( weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type-to-nested≅
   ; weak-one-step-composeᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   ; weak-one-step-index-resultᵀ
+  )
+open import proof.Core.Equality.HeterogeneousEqualityTransport using
+  ( subst²-to-≅
   )
 open import proof.Core.Properties.NuNarrowingTransport using
   (apply-narrows-typing)

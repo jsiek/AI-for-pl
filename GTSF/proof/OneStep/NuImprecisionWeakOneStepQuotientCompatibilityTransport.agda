@@ -84,6 +84,9 @@ open import
   ; transportType
   )
 open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst²-to-≅)
+open import
   proof.Core.Properties.CoercionProperties
   using
   (renameᶜ-preserves-Inert; renameᶜ-reflects-Inert)
@@ -472,21 +475,6 @@ private
   applyCoercions-arrow (bind A ∷ χs) c d =
     applyCoercions-arrow χs
       (applyCoercion (bind A) c) (applyCoercion (bind A) d)
-
-
-  subst²-to-≅ :
-    ∀ {A B : Set} {P : A → B → Set}
-      {x₀ x₁ : A} {y₀ y₁ : B} →
-    (x₀≡x₁ : x₀ ≡ x₁) →
-    (y₀≡y₁ : y₀ ≡ y₁) →
-    (p : P x₀ y₀) →
-    HE._≅_
-      (subst (P x₁) y₀≡y₁
-        (subst (λ x → P x y₀) x₀≡x₁ p))
-      p
-  subst²-to-≅ refl refl p =
-    HE.refl
-
 
   quotient-widening-compatible-cong :
     ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

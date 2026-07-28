@@ -41,11 +41,15 @@ open import proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal usin
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( nu-term-imprecision-transport-typesᵀ
-  ; weak-one-step-source-ν-frame-preserves-transportᵀ
+  ( weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ
   ; weak-result-source-reveal
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults

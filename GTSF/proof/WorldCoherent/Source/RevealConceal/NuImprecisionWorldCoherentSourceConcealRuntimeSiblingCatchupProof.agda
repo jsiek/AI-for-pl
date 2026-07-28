@@ -69,8 +69,10 @@ open import
   ; weak-one-step-source-cast-frameᵀ
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
-  using (weak-one-step-reindexᵀ)
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-reindexᵀ
+  )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using

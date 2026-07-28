@@ -861,6 +861,25 @@ function-cast beta. Its replacement is the operational
 `WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ` path, which
 still needs the recursive right-dispatch/quotient-frame SCC.
 
+The detailed post-target audit rules out a finite two-beta shortcut. After
+the outer beta steps, the inner redexes remain blocked until
+`W ⟨ c ⟩` and `R′ ⟨ e ⟩` become values. The ranked worker must administer
+those exposed arguments, invoke left value catch-up when the target becomes
+a value, and then take the inner beta steps. The final bottom edge is two
+nested live `closeᵀ (paired-downᵀ ...)` relations. Existing mutual
+compatibility already provides the two domain-elimination and two
+codomain-widening facts; the missing work is operational synchronization, not
+a new relation constructor.
+
+Assemble the dispatcher and post-target worker as one ranked SCC, decreasing
+ordinary QTI structure, target function-spine rank, or
+`pendingAdministrationRank` as appropriate. The old quotient-frame recursion
+and quotient active-value contracts still mention retired `up⊑upᵀ`, omit live
+closing compatibility, and have no semantic consumers. Replace only the
+exact live-close contracts needed by the SCC and delete the rest. When the
+source, right, and terminal-forward orientations pass, delete the pure
+quotient-application and pure paired-quotient relation families.
+
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
 It passes strictly and is imported by the unassembled strict spine. The
@@ -895,13 +914,23 @@ reduced MLB file check in about four and five seconds with warm dependencies,
 and the strict unassembled DGG aggregate passes after its one-time cold
 rebuild.
 
-The next cut is approximately 437 lines of weak-result transport/reindex
-algebra out of the 14,878-line simulation core into
-`proof/Catchup/Simulation/NuImprecisionWeakOneStepResultTransport.agda`;
-fourteen direct consumers can then eliminate their simulation-core import.
-Basic structural/store invariants in the 4,385-line
-`NarrowWidenProperties.agda` follow. Retiring quotient/experiment files
-should be deleted rather than split. The zero-consumer
+The second cut is complete. A 489-line
+`NuImprecisionWeakOneStepResultTransport.agda` now owns weak-result transport
+and reindexing, while a 29-line heterogeneous-equality module removes
+duplicate local transport helpers. The simulation core shrinks from 14,880
+to 14,418 lines and from 85 direct importers to 71; fourteen consumers drop
+it entirely. Focused strict checks and the source/import audit pass. A
+historical quotient-final check still reaches obsolete
+`NuImprecisionQuotientValue.agda`; its stale `down⊑downᵀ` branch is a
+deletion gate, not a reason to repair the retiring monolith.
+
+Next split the store invariant at lines 486–634 of
+`NarrowWidenProperties.agda` into a Def/Proof boundary, reusing existing
+`NuStoreProperties` facts rather than retaining duplicates. This frees
+compilation, term narrowing, and store correspondence from the 4,385-line
+monolith. Binder allocation/opening, store-relation structure, and endpoint
+shape are later stable cuts. Retiring quotient/experiment files should be
+deleted rather than split. The zero-consumer
 `MaximalLowerBoundsJunk.agda` has been removed; Git history is the archive.
 
 The remaining direct retired-name counts are `2/1/1/12/7/0` for fused

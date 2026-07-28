@@ -47,8 +47,11 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (nu-term-imprecision-transport-typesᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
   ; resultStore

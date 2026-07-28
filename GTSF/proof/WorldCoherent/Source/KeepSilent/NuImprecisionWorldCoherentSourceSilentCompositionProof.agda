@@ -16,8 +16,11 @@ open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTys; _—↠[_]_)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma using
   (assumption-membership-unique→precision-index-unique)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (weak-one-step-index-resultᵀ)
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( weak-one-step-index-resultᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( resultCtx
   ; resultLeftCtx

@@ -431,6 +431,15 @@ open import proof.Core.Properties.TypeProperties using
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
+  ; transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
+  ; weak-one-step-index-resultᵀ
+  )
 open import proof.Core.Properties.NuNarrowingTransport using
   (apply-narrows-typing)
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
@@ -2215,12 +2224,12 @@ weak-one-step-source-blame-right-allocation-type-coherenceᵀ
     (λ pC pD → HE.≅-to-≡
       (HE.trans
         (transportArrowType-to-raw≅ result pC pD)
-        (≡-to-≅
+        (HE.≡-to-≅
           (⊑-target-lift-right-arrow-coherentᵢ pC pD))))
     (λ q → HE.≅-to-≡
       (HE.trans
         (transportAllType-to-raw≅ result q)
-        (≡-to-≅ (⊑-target-lift-right-all-coherentᵢ q))))
+        (HE.≡-to-≅ (⊑-target-lift-right-all-coherentᵢ q))))
     shape-target-lift-rightᵢ
     shape-target-lift-under-rightᵢ
     replace-left-target-lift-rightᵢ

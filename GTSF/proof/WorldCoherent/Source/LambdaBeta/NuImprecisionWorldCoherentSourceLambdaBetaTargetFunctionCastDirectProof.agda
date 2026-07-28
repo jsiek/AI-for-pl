@@ -57,8 +57,12 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   ; rightCatchupTargetValue
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-·₂-indexed-frameᵀ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
   ( weak-one-step-index-resultᵀ
-  ; weak-one-step-·₂-indexed-frameᵀ
   ; weak-result-transport-arrow-termsᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using

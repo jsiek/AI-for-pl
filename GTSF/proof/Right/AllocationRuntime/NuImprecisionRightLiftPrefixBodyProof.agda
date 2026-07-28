@@ -26,9 +26,13 @@ open import Types using (renameᵗ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
   ; castModeRenamer-id
-  ; nu-term-imprecision-transport-termsᵀ
-  ; nu-term-imprecision-transport-typesᵀ
   ; rel-world-embedding
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-termsᵀ
+  ; nu-term-imprecision-transport-typesᵀ
   )
 open import proof.Core.Properties.NuTermProperties using
   ( renameᵗᵐ-id

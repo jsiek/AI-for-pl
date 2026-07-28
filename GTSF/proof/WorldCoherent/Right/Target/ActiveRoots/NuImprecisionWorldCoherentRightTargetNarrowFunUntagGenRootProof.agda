@@ -80,7 +80,7 @@ open import
   ; rightCatchupTargetValue
   )
 open import
-  proof.Catchup.Simulation.NuImprecisionSimulationCore
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-typesᵀ
   )

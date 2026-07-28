@@ -60,7 +60,18 @@ open import TermTyping using
   ; _∣_∣_⊢_⦂_
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindex-preserves-type-coherenceᵀ
+  ; weak-one-step-reindexᵀ
+  )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst²-to-≅)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using

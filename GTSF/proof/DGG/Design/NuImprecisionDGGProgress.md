@@ -1624,6 +1624,29 @@ deleted yet. Its selected replacement is
 requires recursive right-step/quotient-frame dispatch after target `β-↦`,
 including source-value catch-up and source-blame propagation.
 
+The post-target audit sharpens this obligation. After the two outer
+function-cast beta steps, the inner beta redexes are blocked until the exposed
+arguments `W ⟨ c ⟩` and `R′ ⟨ e ⟩` become values. The worker must therefore
+administer those arguments through the live right dispatcher and use left
+value catch-up when the target becomes a value. After both inner beta steps,
+the bottom relation is derivable with two nested live
+`closeᵀ (paired-downᵀ ...)` edges. The existing mutual compatibility
+invariant already supplies exactly the two domain-elimination and two
+codomain-widening facts needed by those edges; no new term-imprecision
+constructor is required.
+
+The smallest remaining assembly is a ranked dispatcher/post-target SCC:
+ordinary QTI recursion decreases structurally, quotient function beta
+decreases the function-spine rank, and exposed-argument administration
+decreases `pendingAdministrationRank`. Use accessibility or a lexicographic
+worker, never `TERMINATING`. The old
+`WorldCoherentRightOneStepQuotientFrameRecursionᵀ` and quotient active-value
+contracts mention retired `up⊑upᵀ`, omit live closing compatibility, and have
+no semantic consumers. Replace them with exact live-close contracts only
+where the dispatcher needs them; otherwise delete them. Once source, right,
+and terminal-forward orientations pass, delete both the pure quotient
+application and pure paired-quotient relation Def/Proof/Lemma families.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be
@@ -1639,13 +1662,28 @@ focused module instead. The new module and reduced MLB file check in about
 four and five seconds with warm dependencies. After the one-time 255-second
 cold rebuild, `NuDGGUnassembledProofsStrictSpine.agda` passes.
 
-The next stable cut is the approximately 437-line weak-result
-transport/reindex block in the 14,878-line
-`NuImprecisionSimulationCore.agda`. Move it to
-`proof/Catchup/Simulation/NuImprecisionWeakOneStepResultTransport.agda`;
-fourteen consumers can then drop their simulation-core import entirely.
-After that, extract basic structural/store invariants from the 4,385-line
-`NarrowWidenProperties.agda`. Do not split the retiring quotient-value
+The second stable cut is complete. The 489-line
+`proof/Catchup/Simulation/NuImprecisionWeakOneStepResultTransport.agda`
+owns weak-result endpoint transport, reindexing, and coherence preservation;
+the 29-line
+`proof/Core/Equality/HeterogeneousEqualityTransport.agda` removes duplicate
+local heterogeneous-transport helpers. `NuImprecisionSimulationCore.agda`
+shrinks from 14,880 to 14,418 lines, and its direct fan-out falls from 85 to
+71; the focused transport module has 55 direct importers. Fourteen consumers
+drop the simulation-core import entirely. The focused modules, reduced core,
+representative live consumers, source/import audit, and diff audit pass.
+One attempted historical quotient-final consumer still reaches the obsolete
+`NuImprecisionQuotientValue.agda` stale `down⊑downᵀ` branch; delete that
+retiring monolith through migration rather than repairing it.
+
+The next checking-time cut is the store invariant at lines 486–634 of the
+4,385-line `NarrowWidenProperties.agda`. Split its contract and proof into
+`NarrowWidenStoreInvariantDef.agda` and
+`NarrowWidenStoreInvariantProof.agda`, reuse canonical `NuStoreProperties`
+lemmas instead of moving their duplicates, and let compilation, term
+narrowing, and store correspondence import the smaller boundary directly.
+Further safe cuts are binder opening/allocation, store-relation structure,
+and endpoint-shape inversions. Do not split the retiring quotient-value
 monolith or migration experiments. The zero-import
 `MaximalLowerBoundsJunk.agda` and its active-surface references have already
 been deleted; Git history is the archive.

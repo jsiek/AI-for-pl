@@ -1,11 +1,8 @@
 module proof.Catchup.Simulation.NuImprecisionSimulationCore where
 
 -- File Charter:
---   * Imports the stable weak one-step result interfaces from
---     `NuImprecisionSimulationResultDef` and proves operations over them.
---   * Proves composition, framing, allocation-prefix, and terminal helpers.
---   * Defines the general weak one-step result over transformed stores,
---     contexts, and endpoint types.
+--   * Builds composition, framing, allocation-prefix, and terminal helpers
+--     over the stable weak one-step result and transport interfaces.
 --   * Defines structural world embeddings and proves their exhaustive mutual
 --     action on ordinary and quotiented no-runtime-bullet imprecision.
 --   * Lifts weak-result type transport through the `∀`-permutation
@@ -305,6 +302,23 @@ open import
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingProof using
   (rel-store-embedding-correspondenceⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
+  ; transportAllType-to-raw≅
+  ; transportArrowType-to-raw≅
+  ; transportSourceNuType-to-raw≅
+  ; transportType-transportAllType-to-raw≅
+  ; transportType-transportArrowType-to-raw≅
+  ; transportType-transportSourceNuType-to-raw≅
+  ; weak-one-step-reindex-preserves-transportᵀ
+  ; weak-one-step-reindexᵀ
+  ; weak-result-transport-arrow-termsᵀ
+  )
+open import
+  proof.Core.Equality.HeterogeneousEqualityTransport
+  using (subst-to-≅; subst²-to-≅)
 open import proof.OneStep.NuImprecisionOneStepRelated using
   ( weak-one-step-indexed-outcome-relatedᵀ
   ; weak-one-step-indexed-relatedᵀ
@@ -688,312 +702,6 @@ apply-conceal-conversions {χs = χ ∷ χs} c↓
 -- General weak one-step simulation result
 ------------------------------------------------------------------------
 
-≡-to-≅ :
-  ∀ {A : Set} {x y : A} →
-  x ≡ y →
-  HE._≅_ x y
-≡-to-≅ refl = HE.refl
-
-subst-to-≅ :
-  ∀ {A : Set} {P : A → Set} {x y : A} →
-  (eq : x ≡ y) →
-  (p : P x) →
-  HE._≅_ (subst P eq p) p
-subst-to-≅ refl p = HE.refl
-
-subst²-to-≅ :
-  ∀ {A B : Set} {P : A → B → Set}
-    {x₀ x₁ : A} {y₀ y₁ : B} →
-  (x₀≡x₁ : x₀ ≡ x₁) →
-  (y₀≡y₁ : y₀ ≡ y₁) →
-  (p : P x₀ y₀) →
-  HE._≅_
-    (subst (P x₁) y₀≡y₁
-      (subst (λ x → P x y₀) x₀≡x₁ p))
-    p
-subst²-to-≅ refl refl p = HE.refl
-
-subst-sym-cancel :
-  ∀ {A : Set} (P : A → Set) {x y : A} →
-  (eq : x ≡ y) →
-  (p : P x) →
-  subst P (sym eq) (subst P eq p) ≡ p
-subst-sym-cancel P refl p = refl
-
-subst-cancel-sym :
-  ∀ {A : Set} (P : A → Set) {x y : A} →
-  (eq : x ≡ y) →
-  (p : P y) →
-  subst P eq (subst P (sym eq) p) ≡ p
-subst-cancel-sym P refl p = refl
-
-transportType-source-subst-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C₀ C₁ D} →
-  (eq : C₀ ≡ C₁) →
-  (p : Φ ∣ Δᴸ ⊢ C₀ ⊑ D ⊣ Δᴿ) →
-  HE._≅_
-    (transportType result
-      (subst (λ C → Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) eq p))
-    (transportType result p)
-transportType-source-subst-to-raw≅ result refl p = HE.refl
-
-transportType-target-subst-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C D₀ D₁} →
-  (eq : D₀ ≡ D₁) →
-  (p : Φ ∣ Δᴸ ⊢ C ⊑ D₀ ⊣ Δᴿ) →
-  HE._≅_
-    (transportType result
-      (subst (λ D → Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) eq p))
-    (transportType result p)
-transportType-target-subst-to-raw≅ result refl p = HE.refl
-
-transportArrowType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C C′ D D′}
-    (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-    (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-  HE._≅_ (transportArrowType result pC pD)
-    (transportType result (pC ↦ pD))
-transportArrowType-to-raw≅ {χ = χ} result
-    {C = C} {C′ = C′} {D = D} {D′ = D′} pC pD =
-  HE.trans
-    (subst-to-≅
-      {P = λ T → resultCtx result ∣ resultLeftCtx result
-        ⊢ applyTys (sourceChanges result) C ⇒
-            applyTys (sourceChanges result) D
-          ⊑ T ⊣ resultRightCtx result}
-      target-eq source-transport)
-    (subst-to-≅
-      {P = λ S → resultCtx result ∣ resultLeftCtx result
-        ⊢ S ⊑ applyTys (targetTailChanges result)
-            (applyTy χ (C′ ⇒ D′))
-          ⊣ resultRightCtx result}
-      source-eq raw)
-  where
-  raw = transportType result (pC ↦ pD)
-  source-eq = applyTys-⇒ (sourceChanges result) C D
-  source-transport = subst
-    (λ S → resultCtx result ∣ resultLeftCtx result
-      ⊢ S ⊑ applyTys (targetTailChanges result)
-          (applyTy χ (C′ ⇒ D′))
-        ⊣ resultRightCtx result)
-    source-eq raw
-  target-eq = trans
-    (cong (applyTys (targetTailChanges result))
-      (applyTys-⇒ (χ ∷ []) C′ D′))
-    (applyTys-⇒ (targetTailChanges result)
-      (applyTy χ C′) (applyTy χ D′))
-
-transportAllType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C C′}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-  HE._≅_ (transportAllType result q)
-    (transportType result (∀ⁱ q))
-transportAllType-to-raw≅ {χ = χ} result
-    {C = C} {C′ = C′} q =
-  HE.trans
-    (subst-to-≅
-      {P = λ T → resultCtx result ∣ resultLeftCtx result
-        ⊢ `∀ (applyTysUnderTyBinders (sourceChanges result) C)
-          ⊑ T ⊣ resultRightCtx result}
-      target-eq source-transport)
-    (subst-to-≅
-      {P = λ S → resultCtx result ∣ resultLeftCtx result
-        ⊢ S ⊑ applyTys (targetTailChanges result)
-            (applyTy χ (`∀ C′))
-          ⊣ resultRightCtx result}
-      source-eq raw)
-  where
-  raw = transportType result (∀ⁱ q)
-  source-eq = applyTys-∀ (sourceChanges result) C
-  source-transport = subst
-    (λ S → resultCtx result ∣ resultLeftCtx result
-      ⊢ S ⊑ applyTys (targetTailChanges result)
-          (applyTy χ (`∀ C′))
-        ⊣ resultRightCtx result)
-    source-eq raw
-  target-eq = trans
-    (cong (applyTys (targetTailChanges result))
-      (applyTy-∀ χ C′))
-    (applyTys-∀ (targetTailChanges result)
-      (applyTyUnderTyBinder χ C′))
-
-transportSourceNuType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C D}
-    (safe : NonVar C)
-    (occ : occurs zero C ≡ true)
-    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
-  HE._≅_ (transportSourceNuType result safe occ q)
-    (transportType result (ν safe occ q))
-transportSourceNuType-to-raw≅ result {C = C} safe occ q =
-  subst-to-≅
-    {P = λ S → resultCtx result ∣ resultLeftCtx result
-      ⊢ S ⊑ _ ⊣ resultRightCtx result}
-    (applyTys-∀ (sourceChanges result) C)
-    (transportType result (ν safe occ q))
-
-transportType-transportArrowType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M M′ A B χ)
-    {χ′ N′}
-    (outer : WeakOneStepResult (resultStore inner)
-      (sourceResult inner) N′
-      (resultSourceType inner) (resultTargetType inner) χ′)
-    {C C′ D D′}
-    (pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ)
-    (pD : Φ ∣ Δᴸ ⊢ D ⊑ D′ ⊣ Δᴿ) →
-  HE._≅_
-    (transportType outer (transportArrowType inner pC pD))
-    (transportType outer (transportType inner (pC ↦ pD)))
-transportType-transportArrowType-to-raw≅ {χ = χ} inner outer
-    {C = C} {C′ = C′} {D = D} {D′ = D′} pC pD =
-  HE.trans
-    (transportType-target-subst-to-raw≅
-      outer target-eq source-transport)
-    (transportType-source-subst-to-raw≅ outer source-eq raw)
-  where
-  raw = transportType inner (pC ↦ pD)
-  source-eq = applyTys-⇒ (sourceChanges inner) C D
-  source-transport = subst
-    (λ S → resultCtx inner ∣ resultLeftCtx inner
-      ⊢ S ⊑ applyTys (targetTailChanges inner)
-          (applyTy χ (C′ ⇒ D′))
-        ⊣ resultRightCtx inner)
-    source-eq raw
-  target-eq = trans
-    (cong (applyTys (targetTailChanges inner))
-      (applyTys-⇒ (χ ∷ []) C′ D′))
-    (applyTys-⇒ (targetTailChanges inner)
-      (applyTy χ C′) (applyTy χ D′))
-
-transportType-transportAllType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M M′ A B χ)
-    {χ′ N′}
-    (outer : WeakOneStepResult (resultStore inner)
-      (sourceResult inner) N′
-      (resultSourceType inner) (resultTargetType inner) χ′)
-    {C C′}
-    (q : ∀ᵢᶜ Φ ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-  HE._≅_
-    (transportType outer (transportAllType inner q))
-    (transportType outer (transportType inner (∀ⁱ q)))
-transportType-transportAllType-to-raw≅ {χ = χ} inner outer
-    {C = C} {C′ = C′} q =
-  HE.trans
-    (transportType-target-subst-to-raw≅
-      outer target-eq source-transport)
-    (transportType-source-subst-to-raw≅ outer source-eq raw)
-  where
-  raw = transportType inner (∀ⁱ q)
-  source-eq = applyTys-∀ (sourceChanges inner) C
-  source-transport = subst
-    (λ S → resultCtx inner ∣ resultLeftCtx inner
-      ⊢ S ⊑ applyTys (targetTailChanges inner)
-          (applyTy χ (`∀ C′))
-        ⊣ resultRightCtx inner)
-    source-eq raw
-  target-eq = trans
-    (cong (applyTys (targetTailChanges inner))
-      (applyTy-∀ χ C′))
-    (applyTys-∀ (targetTailChanges inner)
-      (applyTyUnderTyBinder χ C′))
-
-transportType-transportSourceNuType-to-raw≅ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M M′ A B χ)
-    {χ′ N′}
-    (outer : WeakOneStepResult (resultStore inner)
-      (sourceResult inner) N′
-      (resultSourceType inner) (resultTargetType inner) χ′)
-    {C D}
-    (safe : NonVar C)
-    (occ : occurs zero C ≡ true)
-    (q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ C ⊑ D ⊣ Δᴿ) →
-  HE._≅_
-    (transportType outer
-      (transportSourceNuType inner safe occ q))
-    (transportType outer
-      (transportType inner (ν safe occ q)))
-transportType-transportSourceNuType-to-raw≅
-    inner outer {C = C} safe occ q =
-  transportType-source-subst-to-raw≅ outer
-    (applyTys-∀ (sourceChanges inner) C)
-    (transportType inner (ν safe occ q))
-
-
-nu-term-imprecision-transport-typesᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A B C D}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ C ⊑ D ⊣ Δᴿ} →
-  (source-eq : A ≡ C) →
-  (target-eq : B ≡ D) →
-  subst (λ T → Φ ∣ Δᴸ ⊢ C ⊑ T ⊣ Δᴿ) target-eq
-    (subst (λ S → Φ ∣ Δᴸ ⊢ S ⊑ B ⊣ Δᴿ) source-eq p)
-    ≡ q →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ M ⊑ M′ ⦂ C ⊑ D ∶ q
-nu-term-imprecision-transport-typesᵀ
-    refl refl refl M⊑M′ =
-  M⊑M′
-
-nu-term-imprecision-transport-termsᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ N N′ A B p} →
-  M ≡ N →
-  M′ ≡ N′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p
-nu-term-imprecision-transport-termsᵀ refl refl M⊑M′ = M⊑M′
-
-nu-term-imprecisionᵖ-transport-typesᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ A B C D}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ᵖ B ⊣ Δᴿ}
-    {q : Φ ∣ Δᴸ ⊢ C ⊑ᵖ D ⊣ Δᴿ} →
-  (source-eq : A ≡ C) →
-  (target-eq : B ≡ D) →
-  subst (λ T → Φ ∣ Δᴸ ⊢ C ⊑ᵖ T ⊣ Δᴿ) target-eq
-    (subst (λ S → Φ ∣ Δᴸ ⊢ S ⊑ᵖ B ⊣ Δᴿ) source-eq p)
-    ≡ q →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺᵖ M ⊑ M′ ⦂ A ⊑ᵖ B ∶ p →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺᵖ M ⊑ M′ ⦂ C ⊑ᵖ D ∶ q
-nu-term-imprecisionᵖ-transport-typesᵀ
-    refl refl refl M⊑M′ =
-  M⊑M′
-
-nu-term-imprecisionᵖ-transport-termsᵀ :
-  ∀ {Φ Δᴸ Δᴿ ρ γ M M′ N N′ A B p} →
-  M ≡ N →
-  M′ ≡ N′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺᵖ M ⊑ M′ ⦂ A ⊑ᵖ B ∶ p →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺᵖ N ⊑ N′ ⦂ A ⊑ᵖ B ∶ p
-nu-term-imprecisionᵖ-transport-termsᵀ refl refl M⊑M′ = M⊑M′
 
 rename-assm²-idᵢ :
   ∀ {Φ a} →
@@ -1515,176 +1223,6 @@ replace-right-rename-id-right-bodyᵢ
         (⊑-rename-id-shapeᵢ pB)
         (sym (shape-target-lift-rightᵢ pB)))
 
-weak-result-transport-arrow-termsᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ χ L L′}
-    {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A A′ χ) →
-  WeakOneStepTransport result →
-  WeakOneStepTypeCoherence result →
-  No• L →
-  No• L′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ L ⊑ L′
-    ⦂ A ⇒ B ⊑ A′ ⇒ B′ ∶ pA ↦ pB →
-  resultCtx result
-    ∣ resultLeftCtx result
-    ∣ resultRightCtx result
-    ∣ resultStore result ∣ []
-    ⊢ᴺ applyTerms (sourceChanges result) L
-      ⊑ applyTerms (targetTailChanges result) (applyTerm χ L′)
-    ⦂ applyTys (sourceChanges result) A ⇒
-        applyTys (sourceChanges result) B
-      ⊑ applyTys (targetTailChanges result) (applyTy χ A′) ⇒
-        applyTys (targetTailChanges result) (applyTy χ B′)
-    ∶ transportType result pA ↦ transportType result pB
-weak-result-transport-arrow-termsᵀ
-    {A′ = A′} {B′ = B′} {χ = χ}
-    result transport coherence noL noL′ L⊑L′ =
-  nu-term-imprecision-transport-typesᵀ
-    (applyTys-⇒ (sourceChanges result) _ _)
-    target-eq
-    (transportArrowCoherent coherence _ _)
-    (transportNo•Terms transport noL noL′ L⊑L′)
-  where
-  target-eq =
-    trans
-      (cong (applyTys (targetTailChanges result))
-        (applyTys-⇒ (χ ∷ []) A′ B′))
-      (applyTys-⇒ (targetTailChanges result)
-        (applyTy χ A′) (applyTy χ B′))
-
-weak-one-step-reindexᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C D}
-    {r : resultCtx result ∣ resultLeftCtx result
-      ⊢ C ⊑ D ⊣ resultRightCtx result} →
-  C ≡ applyTys (sourceChanges result) A →
-  D ≡ applyTys (targetTailChanges result) (applyTy χ B) →
-  resultCtx result
-    ∣ resultLeftCtx result
-    ∣ resultRightCtx result
-    ∣ resultStore result ∣ []
-    ⊢ᴺ sourceResult result ⊑ targetResult result
-    ⦂ C ⊑ D ∶ r →
-  WeakOneStepResult ρ M N′ A B χ
-weak-one-step-reindexᵀ result source-eq target-eq related =
-  record
-    { sourceChanges = sourceChanges result
-    ; targetTailChanges = targetTailChanges result
-    ; sourceResult = sourceResult result
-    ; targetResult = targetResult result
-    ; resultCtx = resultCtx result
-    ; resultLeftCtx = resultLeftCtx result
-    ; resultRightCtx = resultRightCtx result
-    ; sourceCtxResult = sourceCtxResult result
-    ; targetCtxResult = targetCtxResult result
-    ; resultStore = resultStore result
-    ; resultSourceType = _
-    ; resultTargetType = _
-    ; sourceTypeResult = source-eq
-    ; targetTypeResult = target-eq
-    ; transportType = transportType result
-    ; transportAllBody = transportAllBody result
-    ; transportRightBody = transportRightBody result
-    ; transportSourceNu = transportSourceNu result
-    ; resultType = _
-    ; sourceCatchup = sourceCatchup result
-    ; targetTail = targetTail result
-    ; sourceStoreResult = sourceStoreResult result
-    ; targetStoreResult = targetStoreResult result
-    ; relatedResults = related
-    }
-
-weak-one-step-reindex-preserves-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C D}
-    {r : resultCtx result ∣ resultLeftCtx result
-      ⊢ C ⊑ D ⊣ resultRightCtx result}
-    (source-eq : C ≡ applyTys (sourceChanges result) A)
-    (target-eq :
-      D ≡ applyTys (targetTailChanges result) (applyTy χ B))
-    (related : resultCtx result
-      ∣ resultLeftCtx result
-      ∣ resultRightCtx result
-      ∣ resultStore result ∣ []
-      ⊢ᴺ sourceResult result ⊑ targetResult result
-      ⦂ C ⊑ D ∶ r) →
-  WeakOneStepTransport result →
-  WeakOneStepTransport
-    (weak-one-step-reindexᵀ
-      result source-eq target-eq related)
-weak-one-step-reindex-preserves-transportᵀ
-    result source-eq target-eq related transport =
-  weak-step-transport (transportNo•Terms transport)
-
-weak-one-step-reindex-preserves-type-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ)
-    {C D}
-    {r : resultCtx result ∣ resultLeftCtx result
-      ⊢ C ⊑ D ⊣ resultRightCtx result}
-    (source-eq : C ≡ applyTys (sourceChanges result) A)
-    (target-eq :
-      D ≡ applyTys (targetTailChanges result) (applyTy χ B))
-    (related : resultCtx result
-      ∣ resultLeftCtx result
-      ∣ resultRightCtx result
-      ∣ resultStore result ∣ []
-      ⊢ᴺ sourceResult result ⊑ targetResult result
-      ⦂ C ⊑ D ∶ r) →
-  WeakOneStepTypeCoherence result →
-  WeakOneStepTypeCoherence
-    (weak-one-step-reindexᵀ
-      result source-eq target-eq related)
-weak-one-step-reindex-preserves-type-coherenceᵀ
-    result source-eq target-eq related coherence =
-  weak-step-type-coherence
-    (transportArrowCoherent coherence)
-    (transportAllCoherent coherence)
-    (transportShapeCoherent coherence)
-    (transportRightBodyShapeCoherent coherence)
-    (transportLeftReplacementCoherent coherence)
-    (transportRightReplacementCoherent coherence)
-    (transportPairedReplacementCoherent coherence)
-    (transportAllBodyPairedReplacementCoherent coherence)
-    (transportSourceNuBodyLeftReplacementCoherent coherence)
-    (transportRightBodyRightReplacementCoherent coherence)
-
-weak-one-step-index-resultᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A B χ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (result : WeakOneStepResult ρ M N′ A B χ) →
-  subst
-    (λ T → resultCtx result ∣ resultLeftCtx result
-      ⊢ applyTys (sourceChanges result) A
-        ⊑ T ⊣ resultRightCtx result)
-    (targetTypeResult result)
-    (subst
-      (λ S → resultCtx result ∣ resultLeftCtx result
-        ⊢ S ⊑ resultTargetType result
-        ⊣ resultRightCtx result)
-      (sourceTypeResult result)
-      (resultType result))
-    ≡ transportType result p →
-  WeakOneStepTransport result →
-  WeakOneStepTypeCoherence result →
-  WeakOneStepIndexedResult p
-weak-one-step-index-resultᵀ result type-eq transport coherence =
-  weak-indexed-result result
-    (nu-term-imprecision-transport-typesᵀ
-      (sourceTypeResult result)
-      (targetTypeResult result)
-      type-eq
-      (relatedResults result))
-    transport coherence
 
 
 value-source-multistep-refl :
@@ -10783,14 +10321,14 @@ weak-one-step-nested-arrow-coherent≅
       (transportType-transportArrowType-to-raw≅
         first second pC pD))
     (HE.trans
-      (≡-to-≅
+      (HE.≡-to-≅
         (cong (transportType second)
           (transportArrowCoherent first-coherence pC pD)))
       (HE.trans
         (HE.sym
           (transportArrowType-to-raw≅ second
             (transportType first pC) (transportType first pD)))
-        (≡-to-≅
+        (HE.≡-to-≅
           (transportArrowCoherent second-coherence
             (transportType first pC) (transportType first pD)))))
 
@@ -10816,14 +10354,14 @@ weak-one-step-nested-all-coherent≅
       (transportType-transportAllType-to-raw≅
         first second q))
     (HE.trans
-      (≡-to-≅
+      (HE.≡-to-≅
         (cong (transportType second)
           (transportAllCoherent first-coherence q)))
       (HE.trans
         (HE.sym
           (transportAllType-to-raw≅ second
             (transportAllBody first q)))
-        (≡-to-≅
+        (HE.≡-to-≅
           (transportAllCoherent second-coherence
             (transportAllBody first q)))))
 
@@ -10857,7 +10395,7 @@ weak-one-step-nested-source-nu≅ first second safe occ q =
       (transportType-transportSourceNuType-to-raw≅
         first second safe occ q))
     (HE.trans
-      (≡-to-≅
+      (HE.≡-to-≅
         (cong (transportType second)
           (sourceNuIndexEquality first-shape)))
       (HE.sym
@@ -12514,7 +12052,7 @@ weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
                       (applyTy keep D′))))
                   (transportType second (transportType first pC) ↦
                     transportType second (transportType first pD))))
-              (≡-to-≅
+              (HE.≡-to-≅
                 (weak-one-step-compose-arrow-componentsᵀ
                   first second pC pD))))))
     where
@@ -12558,7 +12096,7 @@ weak-one-step-prepend-left-silent-preserves-type-coherenceᵀ
                       (applyTyUnderTyBinder keep C′))))
                   (∀ⁱ (transportAllBody second
                     (transportAllBody first q)))))
-              (≡-to-≅
+              (HE.≡-to-≅
                 (weak-one-step-compose-all-componentsᵀ
                   first second q))))))
     where

@@ -112,7 +112,6 @@ open import
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( equality-proof-unique
   ; left-ctx-rename-[]
-  ; nu-term-imprecision-transport-typesᵀ
   ; rename-left-store-coherentⁱ
   ; rename-left-store-source-liftⁱ
   ; rename-left-storeⁱ
@@ -125,6 +124,11 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-result-source-reveal
   ; ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
+  using
+  ( nu-term-imprecision-transport-typesᵀ
   )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef

@@ -10,6 +10,7 @@ module
 import Coercions as C
 import CastImprecisionShape as CastShape
 import NarrowWiden as NW
+open import Data.Empty using (⊥-elim)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 
@@ -19,9 +20,10 @@ open import ImprecisionWf using (_↦_)
 open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
   (No•; no•-⟨⟩; _⟨_⟩)
-open import PairedWideningCompatibility using
-  ( compatible-function
-  ; compatible-target-inert-bridge
+open import QuotientImprecisionCompatibility using
+  ( compatible-functionᴿ
+  ; compatible-target-activeᴿ
+  ; compatible-target-inert-bridgeᴿ
   )
 open import QuotientedTermImprecision using
   ( cast⊒⊑ᵀ
@@ -67,13 +69,22 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     mode seal★ source-widening source-shape
     mode′ seal★′ target-widening target-shape
     source-comp target-comp
-    (compatible-function compatible)
+    (compatible-functionᴿ compatible)
     inner argument-related vV vW vL′ vR′ =
   function-compatible relation-prefix coherent exclusive unique wfR okM okM′
     mode seal★ source-widening source-shape
     mode′ seal★′ target-widening target-shape
-    source-comp target-comp compatible
-    inner argument-related vV vW vL′ vR′
+      source-comp target-comp compatible
+      inner argument-related vV vW vL′ vR′
+world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
+    function-compatible
+    relation-prefix coherent exclusive unique wfR okM okM′
+    mode seal★ source-widening source-shape
+    mode′ seal★′ target-widening target-shape
+    source-comp target-comp
+    (compatible-target-activeᴿ inert target-active)
+    inner argument-related vV vW vL′ vR′ =
+  ⊥-elim (target-active (_ C.↦ _))
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     function-compatible {pA₀ = pA₀} {pB₀ = pB₀}
     {pA = pA} {pB = pB}
@@ -85,7 +96,7 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
     (CastShape.shape-fun e-shape f-shape)
     source-comp target-comp
-    (compatible-target-inert-bridge bridge)
+    (compatible-target-inert-bridgeᴿ bridge)
     inner argument-related vV vW vL′ vR′
     with bridge (_ C.↦ _)
 world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
@@ -99,7 +110,7 @@ world-coherent-source-function-cast-beta-paired-widening-values-proofᵀ
     (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
     (CastShape.shape-fun e-shape f-shape)
     source-comp target-comp
-    (compatible-target-inert-bridge bridge)
+    (compatible-target-inert-bridgeᴿ bridge)
     inner argument-related vV vW vL′ vR′
     | (pA-bridge ↦ pB-bridge)
         , (comp-↦-↦ c-comp d-comp)

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — QTI typing dependency cut checked**
+**MIGRATION IN PROGRESS — direct paired-values slice checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -412,11 +412,49 @@ A fresh check of the separate public `NuDGGSpine.agda` exposed a stale cached
 dependency in compiler monotonicity:
 `proof/Compilation/CompileTermImprecision.agda` still constructs the deleted
 `up⊑upᵀ`. That public spine is not the unassembled strict aggregate checked
-above. Its compile-side helper must migrate to compatible `closeᵀ`; the new
-reduction-closed quotient compatibility premise must be proved from the
-canonical compiled cast plans rather than omitted or hidden behind a restored
-fused constructor. This is now an explicit Phase 4 boundary alongside the
-terminal-forward paired-values interface.
+above.
+
+The first proposed repair was to replace the closing constructor by `closeᵀ`
+and derive its reduction-closed compatibility premise from canonical compiled
+cast plans. That compatibility claim is false. Compiling the source cast from
+`∀ X. X ⇒ X` to `★` produces an active instantiation followed by a tag, while
+the related target cast from `★ ⇒ ★` to `★` is an inert tag. Compatibility
+would require the impossible type-imprecision bridge `★ ⊑ ★ ⇒ ★`. Therefore
+the compiler case must use an up-to-reduction simulation boundary, or the
+closing design must change semantically; a plan field, wrapper, or restored
+fused constructor would only hide the obstruction.
+
+The direct source function-beta paired-values slice is now checked. Its
+interface no longer mentions the deleted `PairedCast` carrier. It exposes
+paired reveal, conceal, widening, and quotient cases directly; paired
+widening and quotient closing retain their reduction-closed compatibility
+premises. The paired reveal and conceal cases distribute function beta
+through direct paired residuals, while the widening proof handles the
+reduction-closed active/inert distinction exhaustively. Focused checks pass
+for the two new case contracts, the combined `Def`/`Proof`/`Lemma`, both
+paired-widening proof layers, both paired-quotient proof layers, the target
+function-cast dispatcher, and `NuDGGUnassembledProofsStrictSpine.agda`. The
+source/import audit also passes.
+
+The terminal-forward strict spine now advances to
+`NuImprecisionQuotientFunctionPairedNarrowingApplicationProof.agda`, whose
+entire implementation is the deleted quotient-application constructor. The
+live quotient syntax has only `paired-downᵀ`; it cannot produce an
+application-headed quotient bottom edge. This is the concrete operational
+boundary for an up-to-reduction source simulation result, not a reason to add
+another congruence or fused QTI rule.
+
+The existing `WorldCoherentSourceOneStepIndexedResult` fixes the whole source
+trace to exactly one distinguished step. Its underlying weak-step result
+already permits arbitrary source catch-up and a target tail. The next design
+checkpoint will test the smallest result contract in which the distinguished
+source step is a prefix of the returned source trace. Only after that
+replacement covers the old pure quotient-application family may that family
+leave the regression surface and be deleted.
+
+The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
+down/up, identity quotient application, gradual quotient application, closing
+widening, identity down, and gradual down respectively.
 
 ### Phase 5. Collapse the migration surface
 

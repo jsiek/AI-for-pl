@@ -48,7 +48,7 @@ world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ :
   WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ
 world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ
     relation relation-prefix coherent exclusive unique wfR okM okM′
-    inner widening source-shape target-shape square
+    inner widening source-shape target-shape square compatible
     argument-related vV vW vL′ vR′ =
   world-coherent-source-target-keep-prependᵀ
     (pure-step (β-↦ vL′ vR′))
@@ -69,4 +69,4 @@ world-coherent-source-function-cast-beta-paired-quotient-values-proofᵀ
     quotient-widening-pair-prefix-proofᵀ relation-prefix widening
   final-related =
     relation inner⁺ widening⁺ source-shape target-shape square
-      argument-related
+      compatible argument-related

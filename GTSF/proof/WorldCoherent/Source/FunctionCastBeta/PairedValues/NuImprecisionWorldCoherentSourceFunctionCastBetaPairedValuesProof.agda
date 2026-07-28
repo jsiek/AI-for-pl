@@ -3,9 +3,9 @@ module
   where
 
 -- File Charter:
---   * Assembles the paired value leaves by proving both paired-conversion
---     function cases and delegating only paired widening and quotient
---     widening.
+--   * Assembles the paired value leaves by proving direct paired-reveal and
+--     paired-conceal function cases and delegating paired widening and
+--     quotient widening.
 --   * Builds the distributed argument/result relations at the ambient store
 --     and synchronizes the two function-cast beta steps.
 --   * Contains no catch-all, postulate, hole, or permissive option.
@@ -20,11 +20,8 @@ open import NuReduction using (β-↦; pure-step)
 open import NuTerms using
   (No•; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( conv⊑convᵀ
-  ; paired-conceal
-  ; paired-conversion
-  ; paired-reveal
-  ; paired-widening
+  ( paired-concealᵀ
+  ; paired-revealᵀ
   ; ·⊑·ᵀ
   )
 open import Types using (_⇒_)
@@ -37,12 +34,19 @@ open import proof.Store.Prefix.NuImprecisionStorePrefixNoBulletProof using
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedValuesDef
   using
-  ( WorldCoherentSourceFunctionCastBetaPairedCastValuesᵀ
-  ; WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ
+  ( WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ
   ; WorldCoherentSourceFunctionCastBetaPairedValues
-  ; sourceFunctionCastBetaPairedCastValuesCase
+  ; sourceFunctionCastBetaPairedConcealValuesCase
   ; sourceFunctionCastBetaPairedQuotientValuesCase
+  ; sourceFunctionCastBetaPairedRevealValuesCase
+  ; sourceFunctionCastBetaPairedWideningValuesCase
   )
+open import
+  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedConcealValuesDef
+  using (WorldCoherentSourceFunctionCastBetaPairedConcealValuesᵀ)
+open import
+  proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedRevealValuesDef
+  using (WorldCoherentSourceFunctionCastBetaPairedRevealValuesᵀ)
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedWideningValuesDef
   using (WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ)
@@ -52,7 +56,7 @@ open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceTargetKeepPrependLemma
   using (world-coherent-source-target-keep-prependᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-⟨⟩; value-runtime-No•)
+  (runtime-·₁; value-runtime-No•)
 
 
 private
@@ -62,17 +66,15 @@ private
     No• V
   cast-value-body-No• (no•-⟨⟩ noV) = noV
 
-  paired-cast-values :
-    WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ →
-    WorldCoherentSourceFunctionCastBetaPairedCastValuesᵀ
-  paired-cast-values widening
+  paired-reveal-values :
+    WorldCoherentSourceFunctionCastBetaPairedRevealValuesᵀ
+  paired-reveal-values
       {pC = pA₀ ↦ pB₀}
       relation-prefix coherent exclusive unique wfR okM okM′
-      (paired-conversion
-        (paired-reveal corresponds
-          (CV.reveal-fun c↓ d↑)
-          (CV.reveal-fun e↓ f↑)
-          (replace-paired-function c-replace d-replace)))
+      corresponds
+      (CV.reveal-fun c↓ d↑)
+      (CV.reveal-fun e↓ f↑)
+      (replace-paired-function c-replace d-replace)
       inner argument-related vV vW vL′ vR′ =
     world-coherent-source-target-keep-prependᵀ
       (pure-step (β-↦ vL′ vR′))
@@ -97,25 +99,23 @@ private
     inner⁺ =
       quotiented-store-prefix-no-bullet-proofᵀ
         relation-prefix source-V-no target-L-no inner
-    argument-paired =
-      paired-conversion
-        (paired-conceal corresponds⁺ c↓⁺ e↓⁺ c-replace)
     argument-cast =
-      conv⊑convᵀ argument-paired argument-related
+      paired-concealᵀ corresponds⁺ c↓⁺ e↓⁺ c-replace
+        argument-related
     application-related = ·⊑·ᵀ inner⁺ argument-cast
-    result-paired =
-      paired-conversion
-        (paired-reveal corresponds⁺ d↑⁺ f↑⁺ d-replace)
     final-related =
-      conv⊑convᵀ result-paired application-related
-  paired-cast-values widening
+      paired-revealᵀ corresponds⁺ d↑⁺ f↑⁺ d-replace
+        application-related
+
+  paired-conceal-values :
+    WorldCoherentSourceFunctionCastBetaPairedConcealValuesᵀ
+  paired-conceal-values
       {pC = pA₀ ↦ pB₀}
       relation-prefix coherent exclusive unique wfR okM okM′
-      (paired-conversion
-        (paired-conceal corresponds
-          (CV.conceal-fun c↑ d↓)
-          (CV.conceal-fun e↑ f↓)
-          (replace-paired-function c-replace d-replace)))
+      corresponds
+      (CV.conceal-fun c↑ d↓)
+      (CV.conceal-fun e↑ f↓)
+      (replace-paired-function c-replace d-replace)
       inner argument-related vV vW vL′ vR′ =
     world-coherent-source-target-keep-prependᵀ
       (pure-step (β-↦ vL′ vR′))
@@ -140,31 +140,13 @@ private
     inner⁺ =
       quotiented-store-prefix-no-bullet-proofᵀ
         relation-prefix source-V-no target-L-no inner
-    argument-paired =
-      paired-conversion
-        (paired-reveal corresponds⁺ c↑⁺ e↑⁺ c-replace)
     argument-cast =
-      conv⊑convᵀ argument-paired argument-related
+      paired-revealᵀ corresponds⁺ c↑⁺ e↑⁺ c-replace
+        argument-related
     application-related = ·⊑·ᵀ inner⁺ argument-cast
-    result-paired =
-      paired-conversion
-        (paired-conceal corresponds⁺ d↓⁺ f↓⁺ d-replace)
     final-related =
-      conv⊑convᵀ result-paired application-related
-  paired-cast-values widening
-      {C = A₀ ⇒ B₀} {C′ = A₀′ ⇒ B₀′}
-      {pC = pA₀ ↦ pB₀}
-      relation-prefix coherent exclusive unique wfR okM okM′
-      (paired-widening
-        mode seal★ source-widening source-shape
-        mode′ seal★′ target-widening target-shape
-        source-comp target-comp compatible)
-      inner argument-related vV vW vL′ vR′ =
-    widening relation-prefix coherent exclusive unique wfR okM okM′
-      mode seal★ source-widening source-shape
-      mode′ seal★′ target-widening target-shape
-      source-comp target-comp
-      compatible inner argument-related vV vW vL′ vR′
+      paired-concealᵀ corresponds⁺ d↓⁺ f↓⁺ d-replace
+        application-related
 
 
 world-coherent-source-function-cast-beta-paired-values-proofᵀ :
@@ -174,7 +156,11 @@ world-coherent-source-function-cast-beta-paired-values-proofᵀ :
 world-coherent-source-function-cast-beta-paired-values-proofᵀ
     widening quotient =
   record
-    { sourceFunctionCastBetaPairedCastValuesCase =
-        paired-cast-values widening
+    { sourceFunctionCastBetaPairedRevealValuesCase =
+        paired-reveal-values
+    ; sourceFunctionCastBetaPairedConcealValuesCase =
+        paired-conceal-values
+    ; sourceFunctionCastBetaPairedWideningValuesCase =
+        widening
     ; sourceFunctionCastBetaPairedQuotientValuesCase = quotient
     }

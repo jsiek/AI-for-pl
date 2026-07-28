@@ -28,7 +28,7 @@ open import ImprecisionWf using
 open import NuReduction using (β-↦; keep; pure-step)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ; seal★-tag-or-id)
+  (StoreImp; rightStoreⁱ)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -46,21 +46,20 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; prefix-reflⁱ
-  ; up⊑upᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; ·⊑·ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import TermTyping using
-  (SealModeStore★; cast-tag-or-id)
 open import Types using (Ty; _⇒_)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
@@ -81,8 +80,10 @@ open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedValuesDef
   using
   ( WorldCoherentSourceFunctionCastBetaPairedValues
-  ; sourceFunctionCastBetaPairedCastValuesCase
+  ; sourceFunctionCastBetaPairedConcealValuesCase
   ; sourceFunctionCastBetaPairedQuotientValuesCase
+  ; sourceFunctionCastBetaPairedRevealValuesCase
+  ; sourceFunctionCastBetaPairedWideningValuesCase
   )
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.TargetValue.NuImprecisionWorldCoherentSourceFunctionCastBetaTargetValueRankedDef
@@ -99,7 +100,6 @@ open import
   using
   ( WorldCoherentSourceOneStepTargetCastFrames
   ; sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -293,20 +293,53 @@ target-function-cast-values-suc-at-prefixᵀ
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     relation-prefix coherent exclusive unique wfR okM okM′
-    (up⊑upᵀ inner widening p source-shape target-shape square)
+    (closeᵀ inner widening p source-shape target-shape square compatible)
     argument-related vV vW vL′ vR′ outer-rank =
   sourceFunctionCastBetaPairedQuotientValuesCase paired
     relation-prefix coherent exclusive unique wfR okM okM′
     inner widening source-shape target-shape square
+    compatible
     argument-related vV vW vL′ vR′
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     relation-prefix coherent exclusive unique wfR okM okM′
-    (conv⊑convᵀ paired-cast inner)
+    (paired-revealᵀ corresponds source target replacement inner)
     argument-related vV vW vL′ vR′ outer-rank =
-  sourceFunctionCastBetaPairedCastValuesCase paired
+  sourceFunctionCastBetaPairedRevealValuesCase paired
     relation-prefix coherent exclusive unique wfR okM okM′
-    paired-cast inner argument-related vV vW vL′ vR′
+    corresponds source target replacement inner
+    argument-related vV vW vL′ vR′
+target-function-cast-values-suc-at-prefixᵀ
+    lower paired target-frames prepend
+    relation-prefix coherent exclusive unique wfR okM okM′
+    (paired-concealᵀ corresponds source target replacement inner)
+    argument-related vV vW vL′ vR′ outer-rank =
+  sourceFunctionCastBetaPairedConcealValuesCase paired
+    relation-prefix coherent exclusive unique wfR okM okM′
+    corresponds source target replacement inner
+    argument-related vV vW vL′ vR′
+target-function-cast-values-suc-at-prefixᵀ
+    lower paired target-frames prepend
+    relation-prefix coherent exclusive unique wfR okM okM′
+    (paired-wideningᵀ {p = pA₀ ↦ pB₀}
+      mode seal★
+      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+      (shape-fun c-shape d-shape)
+      mode′ seal★′
+      (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+      (shape-fun e-shape f-shape)
+      source-comp target-comp compatible inner)
+    argument-related vV vW vL′ vR′ outer-rank =
+  sourceFunctionCastBetaPairedWideningValuesCase paired
+    relation-prefix coherent exclusive unique wfR okM okM′
+    mode seal★
+    (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+    (shape-fun c-shape d-shape)
+    mode′ seal★′
+    (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+    (shape-fun e-shape f-shape)
+    source-comp target-comp compatible inner
+    argument-related vV vW vL′ vR′
 target-function-cast-values-suc-at-prefixᵀ
     lower paired target-frames prepend
     {pA = pA} {pB = pB}
@@ -375,47 +408,6 @@ target-function-cast-values-suc-at-prefixᵀ
   argument-cast =
     ⊑cast⊒ᵀ mode seal★⁺ e⊒⁺ argument-related pA₀
       e-shape e-comp
-  inner⁺ =
-    quotiented-store-prefix-no-bullet-proofᵀ
-      relation-prefix source-function-no target-L-no inner
-  inner-result =
-    lower prefix-reflⁱ coherent exclusive unique wfR okM
-      (ok-·₂ vL′ target-L-no (ok-⟨⟩ target-argument-runtime))
-      inner⁺ argument-cast vV vW vL′
-      (suc-injective outer-rank)
-target-function-cast-values-suc-at-prefixᵀ
-    lower paired target-frames prepend
-    {ρ = ρ} {pA = pA} {pB = pB}
-    relation-prefix coherent exclusive unique wfR okM okM′
-    (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
-      (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
-      inner .(pA ↦ pB)
-      (shape-fun e-shape f-shape)
-      (comp-↦-↦ e-comp f-comp))
-    argument-related vV vW vL′ vR′ outer-rank =
-  prepend (pure-step (β-↦ vL′ vR′))
-    (sourceStepTargetIdWidenFrame target-frames
-      prefix-reflⁱ seal★⁺ f⊑⁺
-      f-shape f-comp inner-result)
-  where
-  right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
-  seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ)
-  seal★⁺ =
-    seal★-weaken {μ = C.id-onlyᵈ} right-incl seal★
-  e⊒⁺ = NW.narrow-weaken ≤-refl right-incl (e⊢ , eⁿ)
-  f⊑⁺ = NW.widen-weaken ≤-refl right-incl (f⊢ , fʷ)
-  source-function-value = vV ⟨ _ C.↦ _ ⟩
-  source-function-no =
-    value-runtime-No• source-function-value (runtime-·₁ okM)
-  target-L-no =
-    value-runtime-No• vL′ (runtime-⟨⟩ (runtime-·₁ okM′))
-  target-function-value = vL′ ⟨ _ C.↦ _ ⟩
-  target-argument-runtime =
-    runtime-·₂ target-function-value okM′
-  argument-cast =
-    ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-      (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ e⊒⁺)
-      argument-related pA₀ e-shape e-comp
   inner⁺ =
     quotiented-store-prefix-no-bullet-proofᵀ
       relation-prefix source-function-no target-L-no inner

@@ -26,8 +26,8 @@ open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using
   (RuntimeOK; Term; Value; _·_; _⟨_⟩)
-open import PairedWideningCompatibility using
-  (PairedWideningCompatible)
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedPairedWideningCompatible)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import TermTyping using
@@ -75,7 +75,7 @@ WorldCoherentSourceFunctionCastBetaPairedWideningValuesᵀ =
     e C.↦ f ⦂ s′ →
   s ； ⌊ pA ↦ pB ⌋ ≋ r →
   ⌊ pA₀ ↦ pB₀ ⌋ ； s′ ≋ r →
-  PairedWideningCompatible Φ Δᴸ Δᴿ
+  ReductionClosedPairedWideningCompatible Φ Δᴸ Δᴿ
     (c C.↦ d) (e C.↦ f)
     (pA₀ ↦ pB₀) (pA ↦ pB) s s′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []

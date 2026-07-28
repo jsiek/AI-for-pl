@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — target allocation dependency cut checked**
+**MIGRATION IN PROGRESS — direct paired-values slice checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1050,11 +1050,47 @@ Refreshing the distinct public `NuDGGSpine.agda` then exposed a cached
 unmigrated compiler dependency:
 `proof/Compilation/CompileTermImprecision.agda` still applies the deleted
 `up⊑upᵀ` constructor. This does not invalidate the typing split or the
-checked unassembled aggregate. It adds a concrete Phase 4 compiler boundary:
-`compiled-argument-cast-imprecision` must construct compatible `closeᵀ`, and
-the required reduction-closed quotient compatibility must follow from the
-canonical paired cast plans and their index-composition equations. Do not
-restore the fused constructor or add a compatibility wrapper.
+checked unassembled aggregate.
+
+The natural replacement claim is false, including for canonical `CastPlan`
+evidence. Compiling the source cast from `∀ X. X ⇒ X` to `★` produces an
+active instantiation followed by a function tag, while the related target
+cast from `★ ⇒ ★` to `★` is the inert function tag. Reduction-closed
+target-inert compatibility would require `★ ⊑ ★ ⇒ ★`, contradicted by the
+existing star/arrow impossibility theorem. Thus compiler monotonicity needs an
+up-to-reduction boundary, or closing must change semantically. Adding a plan
+field or compatibility wrapper would not prove the missing fact, and
+`up⊑upᵀ` must not be restored.
+
+The direct source function-beta paired-values migration now passes its focused
+checks. The combined interface has no `PairedCast`: paired reveal and conceal
+have direct operational case contracts, paired widening requires
+reduction-closed paired-widening compatibility, and quotient closing requires
+reduction-closed quotient compatibility. The implementation distributes beta
+through direct paired residuals and covers the widening compatibility
+constructors exhaustively. The two case contracts, combined
+`Def`/`Proof`/`Lemma`, both widening layers, both quotient layers, target
+function-cast dispatcher, and `NuDGGUnassembledProofsStrictSpine.agda` all
+check. `make audit` passes.
+
+The terminal-forward strict spine now reaches
+`NuImprecisionQuotientFunctionPairedNarrowingApplicationProof.agda` and fails
+where that proof constructs the deleted quotient-application constructor.
+With only `paired-downᵀ`, live quotient syntax cannot directly relate the
+application-headed bottom edge. The reduction-closed quotient examples
+already show why: repeated function casts may require more beta steps on both
+sides before an ordinary live-QTI join exists. This is the decisive boundary
+for an up-to-reduction simulation result.
+
+`WorldCoherentSourceOneStepIndexedResult` currently says that the
+distinguished source step is the entire source trace. The underlying
+`WeakOneStepIndexedResult` already supports arbitrary source catch-up and a
+target tail. The next experiment will generalize only the world-coherent
+source result so that the distinguished step is a prefix of the source trace,
+then test whether it replaces the pure quotient-application family. Until
+that operational replacement checks, the old `Def`/`Proof`/`Lemma` chains
+remain migration-active and on the regression surface. The remaining direct
+retired-name counts are `7/2/2/28/12/12`.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

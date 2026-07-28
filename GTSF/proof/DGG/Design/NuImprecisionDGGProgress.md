@@ -1427,6 +1427,35 @@ support module. There is not yet a canonical Proof/Lemma inhabitant for the
 revised `WorldCoherentSourceRuntimeCatchupᵀ` record; do not adapt the old
 `SourcePairedCastCatchup` aggregate as a compatibility layer.
 
+The right-value no-bullet transport monolith has also received a stable
+invalidation cut. Its term/runtime facts, allocation-prefix transport, fixed
+narrowing transport, and quotient-index transport now live in three focused
+same-subtree modules. Each new module passes a focused strict check in about
+five to six seconds. Two unused private helpers were deleted, and the main
+proof fell from 3,185 to 2,815 lines. Its focused check still stops upstream at
+the known removed-`PairedCast` dependency; the extracted modules introduce no
+new blocker and do not hide the constructor-sensitive recursion.
+
+The missing canonical source-runtime provider is not merely an absent record
+literal. The current source-widening field is broader than the checked
+case proof: its source-inst branch is valid only when the index has the
+admissible `ν` shape. The provider must first expose that admissible case view,
+then integrate bullet, narrowing, widening, `ν`, and the three explicit paired
+cases through the existing well-founded source-administration measure. Do not
+tie the prefix proof and source-runtime record into an opaque higher-order
+recursive knot. The old `SourcePairedCastCatchup` graph is obsolete; after its
+two right-root consumers are classified against the explicit live
+constructors, delete it without a shim.
+
+Two further performance cuts are migration-aligned. Split the 1,435-line
+source-widening case proof into stable transport support and focused
+inert/identity, sequence, and `ν`-indexed inst cases before adding the
+admissible dispatcher. Split the 937-line source-conceal monolith into a true
+Def/Proof/Lemma family, moving only the neutral atomic reindex and
+post-`β-id` support shared by reveal and widening clients. These results are
+intended to survive migration; do not similarly split the retiring
+2,090-line quotient-value case analysis merely to preserve it.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region

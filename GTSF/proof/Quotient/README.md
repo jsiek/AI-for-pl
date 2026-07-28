@@ -737,7 +737,26 @@ module. The revised source-runtime record still has no canonical
 Proof/Lemma provider; the obsolete `SourcePairedCastCatchup` aggregate must
 not be retained as a compatibility wrapper.
 
-The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
+The right-value no-bullet transport proof now has a stable invalidation
+boundary. Three focused modules own its term/runtime facts, prefix transport,
+fixed narrowing transport, and quotient-index transport. They pass strict
+checks in about five to six seconds, two unused private helpers are deleted,
+and the constructor-sensitive monolith is 370 lines smaller. The monolith
+still reaches the already-known removed-`PairedCast` blocker; this cut does
+not preserve that obsolete aggregate.
+
+The eventual source-runtime provider must be a visible well-founded
+source-administration dispatcher, not a cyclic record assembly. Before it can
+be built, tighten the broad source-widening field to the admissible case view
+already established by the checked widening cases, whose source-inst branch
+requires a `ν` index. Then add the explicit paired reveal, conceal, and
+widening leaves. The old `SourcePairedCastCatchup` graph is obsolete and will
+be deleted after its two right-root clients are classified against the live
+constructors. Migration-aligned checking-time cuts should split the
+source-widening cases and source-conceal monolith; the retiring quotient-value
+case analysis should shrink by deletion instead.
+
+The remaining direct retired-name counts are `6/2/2/27/11/11` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.
 

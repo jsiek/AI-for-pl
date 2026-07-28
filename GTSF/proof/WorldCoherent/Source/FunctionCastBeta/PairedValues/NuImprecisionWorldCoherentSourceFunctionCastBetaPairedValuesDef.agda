@@ -22,7 +22,7 @@ open import ImprecisionWf using
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+  (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using
   (RuntimeOK; Term; Value; _·_; _⟨_⟩)
 open import QuotientImprecisionCompatibility using
@@ -40,8 +40,9 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (WorldCoherentSourceOneStepOutcome)
 open import
   proof.WorldCoherent.Source.FunctionCastBeta.PairedValues.NuImprecisionWorldCoherentSourceFunctionCastBetaPairedConcealValuesDef
   using (WorldCoherentSourceFunctionCastBetaPairedConcealValuesᵀ)
@@ -67,6 +68,7 @@ WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ =
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK ((L′ ⟨ e C.↦ f ⟩) · R′) →
@@ -87,7 +89,7 @@ WorldCoherentSourceFunctionCastBetaPairedQuotientValuesᵀ =
   Value W →
   Value L′ →
   Value R′ →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = (L′ ⟨ e C.↦ f ⟩) · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}

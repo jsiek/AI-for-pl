@@ -3,8 +3,10 @@ module
   where
 
 -- File Charter:
---   * Proves the complete source application pure-root boundary from the two
---     exact beta capabilities.
+--   * Proves the complete source application pure-root outcome boundary from
+--     the two beta capabilities.
+--   * Wraps related lambda and blame-root results while passing the
+--     function-cast beta outcome through unchanged.
 --   * Discharges both application-blame reductions with the canonical shared
 --     source keep-step blame proof.
 --   * Contains no semantic beta implementation, result/view carrier,
@@ -15,6 +17,9 @@ open import NuReduction using
 open import
   proof.Source.OneStep.NuImprecisionSourceOneStepBlameRootProof using
   (world-coherent-source-keep-blame-root-proofᵀ)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (source-step-outcome-related)
 open import
   proof.WorldCoherent.Source.Application.NuImprecisionWorldCoherentSourceApplicationPureRootCasesDef
   using
@@ -33,9 +38,10 @@ world-coherent-source-application-pure-root-proofᵀ :
 world-coherent-source-application-pure-root-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β vV) =
-  sourceLambdaBetaRootCase cases
-    prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ M⊑M′ vV
+  source-step-outcome-related
+    (sourceLambdaBetaRootCase cases
+      prefix coherent exclusive unique wfL wfR okM okM′
+      M⊢ M′⊢ M⊑M′ vV)
 world-coherent-source-application-pure-root-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (β-↦ vV vW) =
@@ -45,12 +51,14 @@ world-coherent-source-application-pure-root-proofᵀ
 world-coherent-source-application-pure-root-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ blame-·₁ =
-  world-coherent-source-keep-blame-root-proofᵀ
-    prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ M⊑M′ (pure-step blame-·₁)
+  source-step-outcome-related
+    (world-coherent-source-keep-blame-root-proofᵀ
+      prefix coherent exclusive unique wfL wfR okM okM′
+      M⊢ M′⊢ M⊑M′ (pure-step blame-·₁))
 world-coherent-source-application-pure-root-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ M⊑M′ (blame-·₂ vV) =
-  world-coherent-source-keep-blame-root-proofᵀ
-    prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ M⊑M′ (pure-step (blame-·₂ vV))
+  source-step-outcome-related
+    (world-coherent-source-keep-blame-root-proofᵀ
+      prefix coherent exclusive unique wfL wfR okM okM′
+      M⊢ M′⊢ M⊑M′ (pure-step (blame-·₂ vV)))

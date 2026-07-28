@@ -1122,6 +1122,16 @@ blame. Once that replacement passes, the pure
 quotient-application `Def`/`Proof`/`Lemma` family can leave the regression
 surface and be deleted.
 
+That outcome is now propagated through the complete source one-step path.
+The direct function-beta case, target-value rank recursion, target
+cast/conversion scheduling, application root, and pure-step dispatcher all
+preserve source blame instead of forcing an ordinary related result. Exact
+branches inject the related alternative. The full
+`NuImprecisionWorldCoherentSourceOneStepProof.agda` focused check passes, and
+the terminal-forward strict spine again stops exactly at the obsolete pure
+quotient-application proof. No outcome-plumbing obligation remains between
+the paired-quotient beta leaf and the public source one-step result.
+
 The old target-instantiation consumer audit is also closed: a historical grep
 found exactly 26 consumers of `Λ⊑instβᵀ`, and the atomic creation migration
 touched all 26. The only permissive QTI-analyzing scratch module contained

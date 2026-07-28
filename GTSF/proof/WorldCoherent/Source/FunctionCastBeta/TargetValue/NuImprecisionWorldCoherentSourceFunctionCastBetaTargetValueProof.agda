@@ -13,13 +13,15 @@ open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
-open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
+open import Relation.Binary.PropositionalEquality using
+  (subst; subst₂; sym; trans)
 
 import Coercions as C
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using (applyTerms; applyTys; keep; _—↠[_]_)
-open import NuTermImprecision using (StoreImp)
+open import NuStore using (StoreWf)
+open import NuTermImprecision using (StoreImp; leftStoreⁱ)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -60,7 +62,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultTargetType
   ; resultType
   ; sourceChanges
+  ; sourceCtxResult
   ; sourceResult
+  ; sourceStoreResult
   ; sourceTypeResult
   ; targetResult
   ; targetTailChanges
@@ -135,6 +139,13 @@ open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentS
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using
+  ( WorldCoherentSourceOneStepOutcome
+  ; source-step-outcome-related
+  ; source-step-outcome-source-blame
+  )
 open import proof.DGG.Core.NuPreservation using
   (runtime-·₁; runtime-·₂; value-runtime-No•)
 open import proof.Core.Properties.ReductionProperties using
@@ -150,7 +161,7 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ :
 world-coherent-source-function-cast-beta-target-value-at-proofᵀ
     right-catchup composition target-values
     {V = V} {W = W} {L′ = L′} {R′ = R′} {c = c} {d = d}
-    prefix coherent exclusive unique wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ target-rank
     with right-catchup prefix coherent exclusive unique wfR
       (runtime-·₂ vL′ okM′)
@@ -166,7 +177,7 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
 world-coherent-source-function-cast-beta-target-value-at-proofᵀ
     right-catchup composition target-values
     {V = V} {W = W} {L′ = L′} {R′ = R′} {c = c} {d = d}
-    prefix coherent exclusive unique wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ target-rank
     | caught
     with rightCatchupSourceChangesEmpty catchup
@@ -177,15 +188,10 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
     right-catchup composition target-values
     {ρ⁺ = ρ⁺} {V = V} {W = W} {L′ = L′} {R′ = R′}
     {c = c} {d = d} {B = B} {B′ = B′} {pB = pB}
-    prefix coherent exclusive unique wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ target-rank
     | caught | refl | refl =
-  world-coherent-source-one-step-indexed
-    combined-indexed
-    combined-lineage
-    (sourceStepTailChanges phase-two)
-    combined-changes combined-tail combined-world combined-exclusive
-    combined-unique
+  finish next-outcome
   where
   catchup = worldRightCatchupResult caught
   argument-indexed = rightCatchupIndexedResult catchup
@@ -254,8 +260,14 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
       (target-function-cast-spine-rank-applyTerms tail vL′)
       target-rank
 
-  phase-two :
-    WorldCoherentSourceOneStepIndexedResult
+  final-wfL =
+    subst₂ StoreWf
+      (sym (sourceCtxResult argument-result))
+      (sym (sourceStoreResult argument-result))
+      wfL
+
+  next-outcome :
+    WorldCoherentSourceOneStepOutcome
       {M = (V ⟨ c C.↦ d ⟩) · W}
       {M′ = applyTerms tail L′ · targetResult argument-result}
       {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
@@ -263,11 +275,12 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
       {B = applyTys tail B′}
       {χ = keep} {ρ = resultStore argument-result}
       (transportType argument-result pB)
-  phase-two =
+  next-outcome =
     target-values
       (worldRightCatchupCoherence caught)
       (worldRightCatchupSourceNameExclusive caught)
       (worldRightCatchupAssumptionMembershipUnique caught)
+      final-wfL
       (worldRightCatchupTargetStoreWf caught)
       okM
       (ok-·₂ target-function-value-final target-function-no-final
@@ -278,74 +291,102 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
       (rightCatchupTargetValue catchup)
       target-function-rank-final
 
-  phase-two-indexed = sourceStepIndexedResult phase-two
-  phase-two-result = weakIndexedResult phase-two-indexed
+  finish :
+    WorldCoherentSourceOneStepOutcome
+      {M = (V ⟨ c C.↦ d ⟩) · W}
+      {M′ = applyTerms tail L′ · targetResult argument-result}
+      {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
+      {A = B}
+      {B = applyTys tail B′}
+      {χ = keep} {ρ = resultStore argument-result}
+      (transportType argument-result pB) →
+    WorldCoherentSourceOneStepOutcome
+      {M = (V ⟨ c C.↦ d ⟩) · W}
+      {M′ = L′ · R′}
+      {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
+      {A = B} {B = B′}
+      {χ = keep} {ρ = ρ⁺} pB
+  finish (source-step-outcome-source-blame source↠blame) =
+    source-step-outcome-source-blame source↠blame
+  finish (source-step-outcome-related phase-two) =
+    source-step-outcome-related
+      (world-coherent-source-one-step-indexed
+        combined-indexed
+        combined-lineage
+        (sourceStepTailChanges phase-two)
+        combined-changes combined-tail combined-world combined-exclusive
+        combined-unique)
+    where
+    phase-two-indexed = sourceStepIndexedResult phase-two
+    phase-two-result = weakIndexedResult phase-two-indexed
 
-  combined :
-    WeakOneStepResult ρ⁺
-      ((V ⟨ c C.↦ d ⟩) · W) (L′ · R′) B B′ keep
-  combined =
-    sourceSilentResult composition framed refl refl phase-two-result
+    combined :
+      WeakOneStepResult ρ⁺
+        ((V ⟨ c C.↦ d ⟩) · W) (L′ · R′) B B′ keep
+    combined =
+      sourceSilentResult composition framed refl refl phase-two-result
 
-  combined-unique =
-    sourceSilentAssumptionMembershipUnique
-      composition framed refl refl phase-two-result
-      (sourceStepAssumptionMembershipUnique phase-two)
+    combined-unique =
+      sourceSilentAssumptionMembershipUnique
+        composition framed refl refl phase-two-result
+        (sourceStepAssumptionMembershipUnique phase-two)
 
-  combined-type-eq :
-    subst
-      (λ T → resultCtx combined ∣ resultLeftCtx combined
-        ⊢ _ ⊑ T ⊣ resultRightCtx combined)
-      (targetTypeResult combined)
-      (subst
-        (λ S → resultCtx combined ∣ resultLeftCtx combined
-          ⊢ S ⊑ resultTargetType combined ⊣ resultRightCtx combined)
-        (sourceTypeResult combined)
-        (resultType combined))
-    ≡ transportType combined pB
-  combined-type-eq =
-    assumption-membership-unique→precision-index-unique
-      combined-unique _ (transportType combined pB)
+    combined-type-eq :
+      subst
+        (λ T → resultCtx combined ∣ resultLeftCtx combined
+          ⊢ _ ⊑ T ⊣ resultRightCtx combined)
+        (targetTypeResult combined)
+        (subst
+          (λ S → resultCtx combined ∣ resultLeftCtx combined
+            ⊢ S ⊑ resultTargetType combined ⊣ resultRightCtx combined)
+          (sourceTypeResult combined)
+          (resultType combined))
+      ≡ transportType combined pB
+    combined-type-eq =
+      assumption-membership-unique→precision-index-unique
+        combined-unique _ (transportType combined pB)
 
-  combined-transport =
-    sourceSilentTransport composition framed refl refl phase-two-result
-      framed-transport (weakIndexedTransport (sourceStepIndexedResult phase-two))
+    combined-transport =
+      sourceSilentTransport composition framed refl refl phase-two-result
+        framed-transport
+        (weakIndexedTransport (sourceStepIndexedResult phase-two))
 
-  combined-coherence =
-    sourceSilentTypeCoherence composition framed refl refl phase-two-result
-      framed-coherence (weakIndexedTypeCoherence (sourceStepIndexedResult phase-two))
+    combined-coherence =
+      sourceSilentTypeCoherence composition framed refl refl phase-two-result
+        framed-coherence
+        (weakIndexedTypeCoherence (sourceStepIndexedResult phase-two))
 
-  combined-indexed : WeakOneStepIndexedResult pB
-  combined-indexed =
-    weak-one-step-index-resultᵀ combined combined-type-eq
-      combined-transport combined-coherence
+    combined-indexed : WeakOneStepIndexedResult pB
+    combined-indexed =
+      weak-one-step-index-resultᵀ combined combined-type-eq
+        combined-transport combined-coherence
 
-  combined-lineage =
-    sourceSilentStoreLineage composition framed refl refl phase-two-result
-      framed-lineage (sourceStepStoreLineage phase-two)
+    combined-lineage =
+      sourceSilentStoreLineage composition framed refl refl phase-two-result
+        framed-lineage (sourceStepStoreLineage phase-two)
 
-  combined-changes =
-    sourceSilentChangesExact composition framed refl refl phase-two-result
-      (sourceStepChanges phase-two)
+    combined-changes =
+      sourceSilentChangesExact composition framed refl refl phase-two-result
+        (sourceStepChanges phase-two)
 
-  combined-result =
-    sourceSilentResultExact composition framed refl refl phase-two-result
-      refl
+    combined-result =
+      sourceSilentResultExact composition framed refl refl phase-two-result
+        refl
 
-  combined-tail =
-    subst
-      (λ K → _ —↠[ sourceStepTailChanges phase-two ] K)
-      (sym combined-result)
-      (sourceStepTail phase-two)
+    combined-tail =
+      subst
+        (λ K → _ —↠[ sourceStepTailChanges phase-two ] K)
+        (sym combined-result)
+        (sourceStepTail phase-two)
 
-  combined-world =
-    sourceSilentWorldCoherent composition framed refl refl phase-two-result
-      (sourceStepWorldCoherent phase-two)
+    combined-world =
+      sourceSilentWorldCoherent composition framed refl refl phase-two-result
+        (sourceStepWorldCoherent phase-two)
 
-  combined-exclusive =
-    sourceSilentSourceNameExclusive
-      composition framed refl refl phase-two-result
-      (sourceStepSourceNameExclusive phase-two)
+    combined-exclusive =
+      sourceSilentSourceNameExclusive
+        composition framed refl refl phase-two-result
+        (sourceStepSourceNameExclusive phase-two)
 
 
 private
@@ -354,9 +395,9 @@ private
     ∀ {n} →
     WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ n
   target-values-atᵀ target-values
-      coherent exclusive unique wfR okM okM′
+      coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′ target-rank =
-    target-values coherent exclusive unique wfR okM okM′
+    target-values coherent exclusive unique wfL wfR okM okM′
       function-related argument-related vV vW vL′ vR′
 
 
@@ -368,9 +409,9 @@ world-coherent-source-function-cast-beta-target-value-proofᵀ :
 world-coherent-source-function-cast-beta-target-value-proofᵀ
     right-catchup composition target-values
     {V = V} {W = W} {L′ = L′} {R′ = R′} {c = c} {d = d}
-    prefix coherent exclusive unique wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ =
   world-coherent-source-function-cast-beta-target-value-at-proofᵀ
     right-catchup composition (target-values-atᵀ target-values)
-    prefix coherent exclusive unique wfR okM okM′
+    prefix coherent exclusive unique wfL wfR okM okM′
     function-related argument-related vV vW vL′ refl

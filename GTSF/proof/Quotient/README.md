@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — source-tail result contract checked**
+**MIGRATION IN PROGRESS — quotient-beta outcome path checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -478,6 +478,22 @@ propagate the existing source-step outcome rather than promise a related
 result unconditionally. After that outcome path passes its focused and
 terminal-forward gates, delete the obsolete quotient-application and paired
 quotient-relation families in the same checkpoint.
+
+The outcome path to that leaf is now checked. The direct function-beta
+contract, target-value rank recursion, target cast/conversion frames,
+application root, pure-step dispatcher, and full source one-step dispatcher
+all preserve the same two alternatives: a final ordinary-QTI edge after
+bilateral tails, or a source trace to blame. Exact leaves inject the first
+alternative; recursive target frames map only the related result and carry
+source blame through unchanged. The stale target-id widening branches were
+deleted because the live grammar has only the generic target-widening
+constructor. Focused checks pass through
+`NuImprecisionWorldCoherentSourceOneStepProof.agda`.
+
+The terminal-forward strict spine still stops at, and only at, the obsolete
+pure `NuImprecisionQuotientFunctionPairedNarrowingApplicationProof.agda`.
+The next checkpoint must replace the paired-quotient beta leaf operationally
+before deleting that pure family.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

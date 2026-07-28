@@ -5,13 +5,14 @@ module
 -- File Charter:
 --   * Proves arbitrary-target source function-cast beta scheduling by
 --     structural recursion on QTI.
---   * Delegates direct target applications and transports completed results
---     through target bullets, casts, and conversions.
+--   * Passes direct target-application outcomes through unchanged and
+--     transports recursive outcomes through target casts and conversions
+--     without discarding source blame.
 --   * Contains no direct coercion algebra, catch-all, postulate, hole, or
 --     permissive option.
 
 open import Agda.Builtin.Equality using (_≡_)
-open import Data.Product using (proj₁)
+open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using
   (subst; sym; trans)
 
@@ -37,7 +38,6 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
@@ -56,11 +56,13 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
   )
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeMap
+  using (world-coherent-source-one-step-outcome-mapᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
 open import proof.Core.Properties.CoercionProperties using (coercion-src-tgtᵐ)
@@ -147,8 +149,11 @@ world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢
     (⊑cast⊒ᵀ mode seal★ c⊒ inner q c-shape comp) vV vW =
-  sourceStepTargetNarrowFrame target-frames
-    prefix mode seal★ c⊒ c-shape comp recursive
+  world-coherent-source-one-step-outcome-mapᵀ
+    (sourceStepTargetNarrowFrame target-frames
+      prefix mode seal★ c⊒ c-shape comp)
+    (λ source↠blame → _ , source↠blame)
+    recursive
   where
   target-frames = sourceFunctionCastBetaTargetCastFrames cases
   recursive =
@@ -162,23 +167,11 @@ world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp) vV vW =
-  sourceStepTargetWidenFrame target-frames
-    prefix mode seal★ c⊑ c-shape comp recursive
-  where
-  target-frames = sourceFunctionCastBetaTargetCastFrames cases
-  recursive =
-    world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (cast-runtime okM′) M⊢
-      (cast-body-typing-at (proj₁ (coercion-src-tgtᵐ (proj₁ c⊑)))
-        M′⊢)
-      inner vV vW
-world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) vV vW =
-  sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ c-shape comp recursive
+  world-coherent-source-one-step-outcome-mapᵀ
+    (sourceStepTargetWidenFrame target-frames
+      prefix mode seal★ c⊑ c-shape comp)
+    (λ source↠blame → _ , source↠blame)
+    recursive
   where
   target-frames = sourceFunctionCastBetaTargetCastFrames cases
   recursive =
@@ -191,8 +184,10 @@ world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
 world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ (⊑conv↑ᵀ c↑ inner q replace) vV vW =
-  sourceStepTargetRevealFrame target-frames
-    prefix c↑ replace recursive
+  world-coherent-source-one-step-outcome-mapᵀ
+    (sourceStepTargetRevealFrame target-frames prefix c↑ replace)
+    (λ source↠blame → _ , source↠blame)
+    recursive
   where
   target-frames = sourceFunctionCastBetaTargetCastFrames cases
   recursive =
@@ -207,8 +202,10 @@ world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
 world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ (⊑conv↓ᵀ c↓ inner q replace) vV vW =
-  sourceStepTargetConcealFrame target-frames
-    prefix c↓ replace recursive
+  world-coherent-source-one-step-outcome-mapᵀ
+    (sourceStepTargetConcealFrame target-frames prefix c↓ replace)
+    (λ source↠blame → _ , source↠blame)
+    recursive
   where
   target-frames = sourceFunctionCastBetaTargetCastFrames cases
   recursive =

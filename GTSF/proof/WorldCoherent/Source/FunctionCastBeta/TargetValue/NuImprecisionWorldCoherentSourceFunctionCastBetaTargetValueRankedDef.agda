@@ -20,7 +20,7 @@ open import ImprecisionWf using
 open import NuReduction using (keep)
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
-  (StoreImp; rightStoreⁱ)
+  (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import NuTerms using
   (RuntimeOK; Term; Value; _·_; _⟨_⟩)
 open import QuotientedTermImprecision using
@@ -34,8 +34,9 @@ open import proof.Target.FunctionCast.NuImprecisionTargetFunctionCastSpineMeasur
   (targetFunctionCastSpineRank)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
-open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
-  (WorldCoherentSourceOneStepIndexedResult)
+open import
+  proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepOutcomeDef
+  using (WorldCoherentSourceOneStepOutcome)
 
 
 WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ : ℕ → Set₁
@@ -49,6 +50,7 @@ WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ n =
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK (L′ · R′) →
@@ -62,7 +64,7 @@ WorldCoherentSourceFunctionCastBetaTargetValuesAtᵀ n =
   (vL′ : Value L′) →
   Value R′ →
   targetFunctionCastSpineRank vL′ ≡ n →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
@@ -81,6 +83,7 @@ WorldCoherentSourceFunctionCastBetaTargetValueAtᵀ n =
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ⁺) →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK (L′ · R′) →
@@ -93,7 +96,7 @@ WorldCoherentSourceFunctionCastBetaTargetValueAtᵀ n =
   Value W →
   (vL′ : Value L′) →
   targetFunctionCastSpineRank vL′ ≡ n →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = L′ · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}
@@ -112,6 +115,7 @@ WorldCoherentSourceFunctionCastBetaTargetFunctionCastValuesAtᵀ n =
   WorldCoherent ρ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
+  StoreWf Δᴸ (leftStoreⁱ ρ) →
   StoreWf Δᴿ (rightStoreⁱ ρ) →
   RuntimeOK ((V ⟨ c C.↦ d ⟩) · W) →
   RuntimeOK ((L′ ⟨ e C.↦ f ⟩) · R′) →
@@ -125,7 +129,7 @@ WorldCoherentSourceFunctionCastBetaTargetFunctionCastValuesAtᵀ n =
   (vL′ : Value L′) →
   Value R′ →
   suc (targetFunctionCastSpineRank vL′) ≡ n →
-  WorldCoherentSourceOneStepIndexedResult
+  WorldCoherentSourceOneStepOutcome
     {M = (V ⟨ c C.↦ d ⟩) · W}
     {M′ = (L′ ⟨ e C.↦ f ⟩) · R′}
     {L = (V · (W ⟨ c ⟩)) ⟨ d ⟩}

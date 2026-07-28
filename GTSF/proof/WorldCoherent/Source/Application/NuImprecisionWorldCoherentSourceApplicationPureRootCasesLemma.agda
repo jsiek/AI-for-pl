@@ -4,7 +4,7 @@ module
 
 -- File Charter:
 --   * Assembles source application pure-root cases from lambda scheduling and
---     the source function-cast beta value/value terminal.
+--     the source function-cast beta outcome scheduler.
 --   * Supplies synchronized ordinary beta from the canonical substitution
 --     lemma and shares right-value catch-up across both beta schedulers.
 --   * Contains no semantic recursion, postulate, hole, or permissive option.

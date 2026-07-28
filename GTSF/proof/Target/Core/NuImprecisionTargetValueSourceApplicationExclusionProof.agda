@@ -12,7 +12,6 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
@@ -33,10 +32,6 @@ quotiented-target-value-excludes-source-application-proofᵀ
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp)
-    (vV ⟨ inert ⟩) =
-  quotiented-target-value-excludes-source-application-proofᵀ inner vV
-quotiented-target-value-excludes-source-application-proofᵀ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp)
     (vV ⟨ inert ⟩) =
   quotiented-target-value-excludes-source-application-proofᵀ inner vV
 quotiented-target-value-excludes-source-application-proofᵀ

@@ -728,14 +728,26 @@ retired `PairedCast` aggregate. The prefix proof analyzes `paired-downᵀ`,
 target-widening, and generic conversion branches have been deleted. Focused
 strict checks pass through the canonical left value-catch-up proof.
 
-About 220 lines of reusable close-frame transport are temporarily local to
-that prefix proof because the old quotient catch-up support module no longer
-checks against the live grammar. After the runtime-sibling proof validates
-the same interface, move this stable boundary to a focused
-`../Catchup/Core` Def/Proof/Lemma family and delete the obsolete support
-module. The revised source-runtime record still has no canonical
-Proof/Lemma provider; the obsolete `SourcePairedCastCatchup` aggregate must
-not be retained as a compatibility wrapper.
+The runtime-sibling proof validated the same close-frame interface. It now
+lives in the strict
+`../Catchup/Core/NuImprecisionCatchupPrefixCloseDef/Proof/Lemma` family and
+serves both ordinary and runtime-sibling value catch-up. The old quotient
+catch-up support module had no semantic consumers left; its inventory-spine
+import and the obsolete file were deleted without a wrapper.
+
+The runtime-sibling quotient contract now has one generic close field instead
+of identity and generated narrowing variants. Its source-runtime contract
+uses explicit paired reveal, conceal, and widening fields. The value consumer
+analyzes the live close, paired narrowing, and paired cast constructors; its
+fused down/up, identity-only target-widening, and generic conversion cases
+are gone. All new boundaries and the higher-order consumer pass focused
+strict checks. The direct quotient-final Lemma still reaches the retiring
+`NuImprecisionQuotientValue.agda` terminal-classifier SCC, which parses
+removed narrowing constructors and remains a later migration gate.
+
+The revised source-runtime record still has no canonical Proof/Lemma
+provider; the obsolete `SourcePairedCastCatchup` aggregate must not be
+retained as a compatibility wrapper.
 
 The right-value no-bullet transport proof now has a stable invalidation
 boundary. Three focused modules own its term/runtime facts, prefix transport,
@@ -756,7 +768,7 @@ constructors. Migration-aligned checking-time cuts should split the
 source-widening cases and source-conceal monolith; the retiring quotient-value
 case analysis should shrink by deletion instead.
 
-The remaining direct retired-name counts are `6/2/2/27/11/11` for fused
+The remaining direct retired-name counts are `5/2/2/26/10/10` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.
 

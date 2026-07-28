@@ -1417,14 +1417,28 @@ Its obsolete fused down/up, identity-only target-widening, and undifferentiated
 conversion branches are gone. The source-runtime contract, prefix proof, and
 canonical left value-catch-up proof all pass focused strict checking.
 
-This checkpoint also identifies a useful checking-time boundary. The old
-quotient catch-up support module does not check against the live grammar, so
-the prefix proof currently contains about 220 lines of stable close-frame
-transport. Keep that implementation local until the runtime-sibling proof
-confirms the same interface, then extract the shared statement and proof into
-a focused `proof/Catchup/Core` Def/Proof/Lemma family and delete the obsolete
-support module. There is not yet a canonical Proof/Lemma inhabitant for the
-revised `WorldCoherentSourceRuntimeCatchupᵀ` record; do not adapt the old
+The symmetric runtime-sibling experiment confirmed the same close-frame
+interface. The shared transport now lives in the strict
+`proof/Catchup/Core/NuImprecisionCatchupPrefixCloseDef/Proof/Lemma` family,
+and both ordinary and runtime-sibling value catch-up use it. The old quotient
+catch-up support module had no remaining semantic consumers, so its strict
+spine import and the file itself were deleted rather than retained as a
+wrapper.
+
+Runtime-sibling catch-up now has one generic quotient-close field instead of
+separate identity and generated narrowing fields. Its source-runtime
+contract exposes paired reveal, conceal, and widening explicitly, and its
+value dispatcher analyzes `closeᵀ`, `paired-downᵀ`, and the three paired cast
+constructors directly. The fused down/up, identity-only target-widening, and
+generic paired-conversion cases are gone. The close Def/Proof/Lemma, ordinary
+value prefix and wrapper, quotient runtime-sibling contract and proof, and
+runtime-sibling value consumer all pass focused strict checks. The direct
+quotient-final Lemma remains blocked downstream by the retiring
+`NuImprecisionQuotientValue.agda` case analysis over removed narrowing
+constructors; that terminal-classifier SCC is now the explicit later gate.
+
+There is still no canonical Proof/Lemma inhabitant for the revised
+`WorldCoherentSourceRuntimeCatchupᵀ` record. Do not adapt the old
 `SourcePairedCastCatchup` aggregate as a compatibility layer.
 
 The right-value no-bullet transport monolith has also received a stable

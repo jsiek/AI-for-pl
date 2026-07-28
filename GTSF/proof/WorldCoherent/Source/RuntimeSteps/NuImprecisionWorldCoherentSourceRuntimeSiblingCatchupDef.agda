@@ -13,7 +13,8 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Conversion using (ConcealConversion; RevealConversion)
-open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
@@ -48,6 +49,7 @@ open import NuStore using (StoreWf)
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftLeftStoreⁱ
   ; StoreImp
+  ; StoreCorresponds
   ; leftStoreⁱ
   ; rightStoreⁱ
   ; store-left
@@ -69,10 +71,11 @@ open import NuTerms using
   ; ν
   )
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedPairedWideningCompatible)
 open import TermTyping using
   ( CastMode
   ; SealModeStore★
@@ -359,17 +362,142 @@ record WorldCoherentSourceRuntimeSiblingCatchupᵀ : Set₁ where
             ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
           ∶ transportType result r
 
-    source-paired-cast-sibling :
+    source-paired-reveal-sibling :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
         {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
         {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
         {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
         {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
         {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
         {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
       StoreImpPrefix ρ₀ ρ⁺ →
-      PairedCast Φ Δᴸ Δᴿ ρ₀
-        c c′ {A} {A′} {B} {B′} p q →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      RevealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      RevealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      No• R →
+      RuntimeOK R′ →
+      (inner :
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N} {V′ = V′} {ρ = ρ⁺} p) →
+      (let result =
+             weakIndexedResult
+               (catchupIndexedResult (worldCatchupResult inner))
+       in
+       resultCtx result
+         ∣ resultLeftCtx result
+         ∣ resultRightCtx result
+         ∣ resultStore result ∣ []
+         ⊢ᴺ applyTerms (sourceChanges result) R
+           ⊑ applyTerms (targetTailChanges result)
+               (applyTerm keep R′)
+         ⦂ applyTys (sourceChanges result) E
+           ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+         ∶ transportType result r) →
+      Σ[ caught ∈
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q ]
+        let result =
+              weakIndexedResult
+                (catchupIndexedResult (worldCatchupResult caught))
+        in
+        resultCtx result
+          ∣ resultLeftCtx result
+          ∣ resultRightCtx result
+          ∣ resultStore result ∣ []
+          ⊢ᴺ applyTerms (sourceChanges result) R
+            ⊑ applyTerms (targetTailChanges result)
+                (applyTerm keep R′)
+          ⦂ applyTys (sourceChanges result) E
+            ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+          ∶ transportType result r
+
+    source-paired-conceal-sibling :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
+        {c c′ : Coercion}
+        {α β : TyVar} {X X′ : Ty}
+        {μ μ′ : ModeEnv}
+        {pX : Φ ∣ Δᴸ ⊢ X ⊑ X′ ⊣ Δᴿ}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      StoreCorresponds ρ₀ α X β X′ pX →
+      ConcealConversion μ Δᴸ (leftStoreⁱ ρ₀) α X c A B →
+      ConcealConversion μ′ Δᴿ (rightStoreⁱ ρ₀)
+        β X′ c′ A′ B′ →
+      q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
+      Value V′ →
+      No• V′ →
+      Inert c′ →
+      No• R →
+      RuntimeOK R′ →
+      (inner :
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N} {V′ = V′} {ρ = ρ⁺} p) →
+      (let result =
+             weakIndexedResult
+               (catchupIndexedResult (worldCatchupResult inner))
+       in
+       resultCtx result
+         ∣ resultLeftCtx result
+         ∣ resultRightCtx result
+         ∣ resultStore result ∣ []
+         ⊢ᴺ applyTerms (sourceChanges result) R
+           ⊑ applyTerms (targetTailChanges result)
+               (applyTerm keep R′)
+         ⦂ applyTys (sourceChanges result) E
+           ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+         ∶ transportType result r) →
+      Σ[ caught ∈
+        WorldCoherentLeftCatchupIndexedResult
+          {N = N ⟨ c ⟩} {V′ = V′ ⟨ c′ ⟩} {ρ = ρ⁺} q ]
+        let result =
+              weakIndexedResult
+                (catchupIndexedResult (worldCatchupResult caught))
+        in
+        resultCtx result
+          ∣ resultLeftCtx result
+          ∣ resultRightCtx result
+          ∣ resultStore result ∣ []
+          ⊢ᴺ applyTerms (sourceChanges result) R
+            ⊑ applyTerms (targetTailChanges result)
+                (applyTerm keep R′)
+          ⦂ applyTys (sourceChanges result) E
+            ⊑ applyTys (targetTailChanges result) (applyTy keep E′)
+          ∶ transportType result r
+
+    source-paired-widening-sibling :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
+        {N V′ R R′ : Term} {A A′ B B′ E E′ : Ty}
+        {c c′ : Coercion} {μ μ′ : ModeEnv}
+        {s s′ t : ImprecisionShape}
+        {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+        {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+        {r : Φ ∣ Δᴸ ⊢ E ⊑ E′ ⊣ Δᴿ} →
+      StoreImpPrefix ρ₀ ρ⁺ →
+      CastMode μ →
+      SealModeStore★ μ (leftStoreⁱ ρ₀) →
+      μ ∣ Δᴸ ∣ leftStoreⁱ ρ₀ ⊢ c ∶ A ⊑ B →
+      widening ⊢ᶜ c ⦂ s →
+      CastMode μ′ →
+      SealModeStore★ μ′ (rightStoreⁱ ρ₀) →
+      μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ₀ ⊢ c′ ∶ A′ ⊑ B′ →
+      widening ⊢ᶜ c′ ⦂ s′ →
+      s ； ⌊ q ⌋ ≋ t →
+      ⌊ p ⌋ ； s′ ≋ t →
+      ReductionClosedPairedWideningCompatible
+        Φ Δᴸ Δᴿ c c′ p q s s′ →
       Value V′ →
       No• V′ →
       Inert c′ →

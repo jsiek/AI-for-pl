@@ -116,7 +116,9 @@ import proof.DGG.Core.NuDGGTraceAlignment
 import proof.DGG.Core.NuDGGTraceMeasure
 import proof.DGG.Core.NuDGGWeakResultPreservation
 import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport
-import proof.Catchup.Core.NuImprecisionCatchupQuotientSupport
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseDef
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseProof
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseLemma
 import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition
 import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupPrefixFrames
 import proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal

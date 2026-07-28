@@ -37,6 +37,7 @@ renameᶜ-cong : ∀ {ρ ψ}
   → ∀ c
   → renameᶜ ρ c ≡ renameᶜ ψ c
 renameᶜ-cong eq id = refl
+renameᶜ-cong eq error = refl
 renameᶜ-cong eq (p ︔ q) =
   cong₂ _︔_ (renameᶜ-cong eq p) (renameᶜ-cong eq q)
 renameᶜ-cong eq (p ↦ q) =
@@ -67,6 +68,7 @@ renameᶜ-cong eq (inst p) =
 renameᶜ-id : ∀ c
   → renameᶜ (λ X → X) c ≡ c
 renameᶜ-id id = refl
+renameᶜ-id error = refl
 renameᶜ-id (p ︔ q) = cong₂ _︔_ (renameᶜ-id p) (renameᶜ-id q)
 renameᶜ-id (p ↦ q) = cong₂ _↦_ (renameᶜ-id p) (renameᶜ-id q)
 renameᶜ-id (`∀ p) =
@@ -95,6 +97,7 @@ renameᶜ-id (inst p) =
 renameᶜ-compose : ∀ ρ ψ c
   → renameᶜ ψ (renameᶜ ρ c) ≡ renameᶜ (λ X → ψ (ρ X)) c
 renameᶜ-compose ρ ψ id = refl
+renameᶜ-compose ρ ψ error = refl
 renameᶜ-compose ρ ψ (p ︔ q) =
   cong₂ _︔_ (renameᶜ-compose ρ ψ p) (renameᶜ-compose ρ ψ q)
 renameᶜ-compose ρ ψ (p ↦ q) =
@@ -209,6 +212,8 @@ coercion-store-weaken : ∀ {μ Δ Σ Σ′ c A B}
   → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
   → μ ∣ Δ ∣ Σ′ ⊢ c ∶ A =⇒ B
 coercion-store-weaken incl (cast-id hA) = cast-id hA
+coercion-store-weaken incl (cast-error hA hB) =
+  cast-error hA hB
 coercion-store-weaken incl (cast-seal hA α∈Σ ok) =
   cast-seal hA (incl α∈Σ) ok
 coercion-store-weaken incl (cast-unseal hA α∈Σ ok) =
@@ -241,6 +246,10 @@ coercion-renameᵗ : ∀ {Δ Δ′ Σ c A B ρ μ ν}
       ∶ renameᵗ ρ A =⇒ renameᵗ ρ B
 coercion-renameᵗ hρ rel (cast-id hA) =
   cast-id (renameᵗ-preserves-WfTy hA hρ)
+coercion-renameᵗ hρ rel (cast-error hA hB) =
+  cast-error
+    (renameᵗ-preserves-WfTy hA hρ)
+    (renameᵗ-preserves-WfTy hB hρ)
 coercion-renameᵗ {ρ = ρ} {μ = μ} {ν = ν} hρ rel
     (cast-seal {α = α} hA α∈Σ ok) =
   cast-seal
@@ -334,6 +343,7 @@ coercion-wf : ∀ {μ Δ Σ c A B}
   → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
   → WfTy Δ A × WfTy Δ B
 coercion-wf wfΣ (cast-id hA) = hA , hA
+coercion-wf wfΣ (cast-error hA hB) = hA , hB
 coercion-wf wfΣ (cast-seal hA α∈Σ ok) =
   hA , wfVar (bound wfΣ α∈Σ)
 coercion-wf wfΣ (cast-unseal hA α∈Σ ok) =

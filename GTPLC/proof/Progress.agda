@@ -278,6 +278,8 @@ mutual
   progress-cast c⊢ M⊢ | done vM with c⊢
   progress-cast c⊢ M⊢ | done vM | cast-id hA =
     step (pure-step (β-id vM))
+  progress-cast c⊢ M⊢ | done vM | cast-error hA hB =
+    step (pure-step (β-error vM))
   progress-cast c⊢ M⊢ | done vM | cast-seal hA hα sealed =
     done (vM ⟨ seal _ ⟩)
   progress-cast c⊢ M⊢ | done vM | cast-unseal hA hα sealed =

@@ -98,6 +98,11 @@ data _—→_ : Term → Term → Set where
     -------------------
     → V ⟨ id ⟩ —→  V
 
+  β-error : ∀ {V}
+    → Value V
+    -----------------------
+    → V ⟨ error ⟩ —→  blame
+
   β-seq : ∀ {V p q}
     → Value V
     ------------------------------
@@ -170,40 +175,49 @@ data _—→[_]_ : Term → StoreChange → Term → Set where
 
   ξ-·₁ : ∀ {χ : StoreChange} {L M L′ : Term}
    → L —→[ χ ] L′
-    --------------------------------------
+    ----------------------------------
    → (L · M) —→[ χ ] (L′ · change χ M)
 
-  ξ-·₂ : ∀ {χ : StoreChange} {V M M′ : Term} →
-    Value V →
-    M —→[ χ ] M′ →
-    (V · M) —→[ χ ] (change χ V · M′)
+  ξ-·₂ : ∀ {χ : StoreChange} {V M M′ : Term}
+    → Value V
+    → M —→[ χ ] M′
+    ----------------------------------
+    → (V · M) —→[ χ ] (change χ V · M′)
 
   ξ-⟨⟩ : ∀ {χ : StoreChange} {c : Coercion} {M M′ : Term} →
     M —→[ χ ] M′ →
+    ----------------------------------
     (M ⟨ c ⟩) —→[ χ ] (M′ ⟨ changeᶜ χ c ⟩)
 
-  ξ-ν : ∀ {χ : StoreChange} {A : Ty} {L L′ : Term} {c : Coercion} →
-    L —→[ χ ] L′ →
-    ν A · L •⟨ c ⟩ —→[ χ ] ν (changeᵗ χ A) · L′ •⟨ changeᶜExt χ c ⟩
+  ξ-ν : ∀ {χ : StoreChange} {A : Ty} {L L′ : Term} {c : Coercion}
+    → L —→[ χ ] L′
+    -----------------------------------------------------------------
+    → ν A · L •⟨ c ⟩ —→[ χ ] ν (changeᵗ χ A) · L′ •⟨ changeᶜExt χ c ⟩
 
-  blame-ν : ∀ {A : Ty} {c : Coercion} →
-    ν A · blame •⟨ c ⟩  —→[ keep ] blame
+  blame-ν : ∀ {A : Ty} {c : Coercion}
+     --------------------------------------
+    → ν A · blame •⟨ c ⟩  —→[ keep ] blame
 
-  ξ-⊕₁ : ∀ {χ : StoreChange} {L M L′ : Term} {op : Prim} →
-    L —→[ χ ] L′ →
-    (L ⊕[ op ] M) —→[ χ ] (L′ ⊕[ op ] change χ M)
+  ξ-⊕₁ : ∀ {χ : StoreChange} {L M L′ : Term} {op : Prim}
+    → L —→[ χ ] L′
+     ----------------------------------------------
+    → (L ⊕[ op ] M) —→[ χ ] (L′ ⊕[ op ] change χ M)
 
-  ξ-⊕₂ : ∀ {χ : StoreChange} {L M M′ : Term} {op : Prim} →
-    Value L →
-    M —→[ χ ] M′ →
-    (L ⊕[ op ] M) —→[ χ ] (change χ L ⊕[ op ] M′)
+  ξ-⊕₂ : ∀ {χ : StoreChange} {L M M′ : Term} {op : Prim}
+    → Value L
+    → M —→[ χ ] M′
+     ----------------------------------------------
+    → (L ⊕[ op ] M) —→[ χ ] (change χ L ⊕[ op ] M′)
 
 infix 2 _—↠[_]_
 data _—↠[_]_ : Term → StoreChanges → Term → Set where
-  ↠-refl : ∀ {M : Term} →
-    M —↠[ [] ] M
 
-  ↠-step : ∀ {M N P : Term}{χ : StoreChange}{χs : StoreChanges} →
-    M —→[ χ ] N →
-    N —↠[ χs ] P →
-    M —↠[ χ ∷ χs ] P
+  ↠-refl : ∀ {M : Term}
+     -------------
+    → M —↠[ [] ] M
+
+  ↠-step : ∀ {M N P : Term}{χ : StoreChange}{χs : StoreChanges} 
+    → M —→[ χ ] N 
+    → N —↠[ χs ] P
+     ------------------
+    → M —↠[ χ ∷ χs ] P

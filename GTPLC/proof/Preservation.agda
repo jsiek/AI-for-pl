@@ -124,6 +124,9 @@ pure-preservation wfΣ (⊢· (⊢ƛ hA N⊢) V⊢) (β vV) =
 pure-preservation wfΣ (⊢⟨⟩ (cast-id hA) V⊢) (β-id vV) =
   V⊢
 pure-preservation wfΣ
+    (⊢⟨⟩ (cast-error hA hB) V⊢) (β-error vV) =
+  ⊢blame hB
+pure-preservation wfΣ
     (⊢⟨⟩ (cast-seq p⊢ q⊢) V⊢) (β-seq vV) =
   ⊢⟨⟩ q⊢ (⊢⟨⟩ p⊢ V⊢)
 pure-preservation wfΣ

@@ -32,7 +32,8 @@ data Coercion : Set where
  unseal : TyVar → Coercion
  gen : Coercion → Coercion  -- generalize
  inst : Coercion → Coercion -- instantiate
-
+ error : Coercion
+ 
 ------------------------------------------------------------------------
 -- Inert coercions, i.e., part of a value
 ------------------------------------------------------------------------
@@ -82,6 +83,7 @@ renameᶜ ρ (p ↦ q) = renameᶜ ρ p ↦ renameᶜ ρ q
 renameᶜ ρ (`∀ p) = `∀ (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (gen p) = gen (renameᶜ (extᵗ ρ) p)
 renameᶜ ρ (inst p) = inst (renameᶜ (extᵗ ρ) p)
+renameᶜ ρ error = error
 
 ⇑ᶜ : Coercion → Coercion
 ⇑ᶜ = renameᶜ suc
@@ -160,6 +162,12 @@ data _∣_∣_⊢_∶_=⇒_ : ModeEnv → TyCtx → TyStore → Coercion → Ty 
     → WfTy Δ A
      ------------------------
     → μ ∣ Δ ∣ Σ ⊢ id ∶ A =⇒ A
+
+  cast-error : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : TyStore}{A B : Ty}
+    → WfTy Δ A
+    → WfTy Δ B
+     ---------------------------
+    → μ ∣ Δ ∣ Σ ⊢ error ∶ A =⇒ B
 
   cast-seal : ∀{μ : ModeEnv}{Δ : TyCtx}{Σ : TyStore}{α : TyVar}{A : Ty}
     → WfTy Δ A

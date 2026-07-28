@@ -292,7 +292,7 @@ open import proof.Core.Permutation.ForallPermutationProperties using
   ; ⊑ᵖ-rename²ᵢ
   ; ⊑→⊑ᵖ
   )
-open import proof.Core.Properties.NarrowWidenProperties using
+open import proof.Core.Properties.NarrowWidenBinderProperties using
   ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing

@@ -10,7 +10,7 @@ module
 --   * Contains no dispatcher, postulate, hole, permissive option, wrapper
 --     re-export, or legacy allocation-simulation import.
 
-open import proof.Core.Properties.NarrowWidenProperties using
+open import proof.Core.Properties.NarrowWidenBinderProperties using
   (allocate-gen-narrowing)
 open import
   proof.OneStep.RuntimeBullet.NuImprecisionMatchedBetaGenNarrowingDef

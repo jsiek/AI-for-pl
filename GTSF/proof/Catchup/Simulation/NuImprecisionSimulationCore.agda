@@ -398,7 +398,7 @@ open import proof.Core.Permutation.ForallPermutationProperties using
 open import
   proof.OneStep.NuImprecisionWeakOneStepReplacementTransport
   using (weak-one-step-transport-quotientᵀ)
-open import proof.Core.Properties.NarrowWidenProperties using
+open import proof.Core.Properties.NarrowWidenBinderProperties using
   ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing

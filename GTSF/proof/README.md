@@ -169,6 +169,13 @@ rebuilding it.  This is the intended invalidation boundary.  The batched
 scratch-dispatcher consumer passed in 288.55 seconds; neither
 `NuDGGStrictSpine` nor `All.agda` was run for that migration.
 
+Binder-specific narrowing and widening support follows the same rule.
+`NarrowWidenBinderProperties` is the canonical home for opening and
+allocation beneath type binders.  Consumers that need only these operations
+import it directly; `NarrowWidenProperties` neither defines nor re-exports
+them.  This keeps changes to binder allocation out of the unrelated
+narrowing/widening dependency cone.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

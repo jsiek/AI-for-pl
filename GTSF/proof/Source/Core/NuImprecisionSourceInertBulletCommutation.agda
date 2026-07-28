@@ -55,7 +55,7 @@ open import TermTyping using
   ; cast-gen
   )
 open import Types using (WfTy; `∀; ⇑ᵗ)
-open import proof.Core.Properties.NarrowWidenProperties using
+open import proof.Core.Properties.NarrowWidenBinderProperties using
   ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing

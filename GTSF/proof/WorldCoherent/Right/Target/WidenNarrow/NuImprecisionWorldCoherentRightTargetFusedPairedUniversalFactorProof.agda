@@ -20,7 +20,7 @@ open import ImprecisionWf using
 open import Types using
   (＇_; ‵_; ★; _⇒_; `∀)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-rename-at²ᵢ; ⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

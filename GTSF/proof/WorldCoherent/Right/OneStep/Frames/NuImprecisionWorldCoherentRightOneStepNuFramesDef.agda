@@ -61,7 +61,7 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ
   ; ⊑-target-lift-rightᵢ

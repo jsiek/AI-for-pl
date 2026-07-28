@@ -133,7 +133,7 @@ open import proof.Core.Properties.NuStoreProperties using
 open import proof.Core.Properties.TypePreservation using
   (multi-preservation; term-weaken)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof

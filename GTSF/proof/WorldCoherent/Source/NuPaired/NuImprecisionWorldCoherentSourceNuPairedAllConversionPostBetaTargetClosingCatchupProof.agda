@@ -61,7 +61,7 @@ open import QuotientedTermImprecision using
   )
 open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using

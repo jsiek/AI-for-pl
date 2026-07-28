@@ -33,7 +33,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
 open import Types using (Ty; TyCtx; renameᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( νᵢᶜ
   ; rename-assm²-source-νᵢ
   )

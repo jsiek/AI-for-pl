@@ -43,7 +43,7 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   (⊑-rename-leftᵢ)
 open import proof.Core.Properties.TypePreservation using (CastModeRenamer)
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import
   proof.Quotient.NuImprecisionPairedDownRenameProof

@@ -47,7 +47,7 @@ open import NuTerms using (No•)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (occurs; ⇑ᵗ; _⇒_; `∀)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ

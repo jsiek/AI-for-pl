@@ -43,8 +43,6 @@ STRICT_PROOF_INVENTORY_ROOT_MODULES = (
 KNOWN_INCOMPLETE_PROOF_MODULES = (
     "proof.DGG.TerminalForward."
     "NuDGGTerminalForwardIntegrationProof",
-    "proof.WorldCoherent.Source.CastCatchup."
-    "NuImprecisionWorldCoherentSourceNarrowCatchupProof",
 )
 
 # These modules are intentionally checked or read as independent roots.  Keep

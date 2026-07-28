@@ -45,7 +45,7 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef

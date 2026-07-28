@@ -93,7 +93,7 @@ open import
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ
   ; ⊑-target-lift-rightᵢ

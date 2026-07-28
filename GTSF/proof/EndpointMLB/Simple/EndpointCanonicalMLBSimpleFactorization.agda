@@ -116,8 +116,11 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-ˣ∈; un⇑ᵢ-★∈; un⇑ᴸᵢ-ˣ∈
   ; ⇑ᵢ-ˣ∈; ⇑ᵢ-★∈; ⇑ᴸᵢ-∈
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (no-⇑ᴸᵢ-zero-star; un⇑ᴸᵢ-★∈; ⊑-trans-left-idᵢ)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-trans-left-idᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( no-⇑ᴸᵢ-zero-star
+  ; un⇑ᴸᵢ-★∈
+  )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; occurs-zero-rename-ext)
 

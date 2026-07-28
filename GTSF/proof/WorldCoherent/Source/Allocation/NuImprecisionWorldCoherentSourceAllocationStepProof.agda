@@ -113,7 +113,7 @@ open import TermTyping using
 open import Types using
   (Ty; TyCtx; WfTy; ★; wf★; _⇒_; `∀; extᵗ; renameᵗ; ⇑ᵗ; ⟰ᵗ)
 open import proof.Core.Properties.CoercionProperties using (coercion-src-tgtᵐ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; rename-assm²-source-νᵢ
   ; rename-assm²-⇑ᵢ

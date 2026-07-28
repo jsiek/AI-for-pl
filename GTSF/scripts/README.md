@@ -55,13 +55,10 @@ claim completion: each spine still needs a focused Agda check. In particular,
 the paired-lambda spine currently exposes a missing
 `down·up⊑down·upᵀ` frame-view case.
 
-The known-incomplete list currently records four importer-free `Proof`
-modules that a filename/source scan had misclassified as completed:
+The known-incomplete list currently records one importer-free `Proof`
+module that a filename/source scan had misclassified as completed:
 
 - `proof/DGG/TerminalForward/NuDGGTerminalForwardIntegrationProof.agda`;
-- `proof/WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda`;
-- `proof/WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`;
-- `proof/WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`.
 
 The audit excludes the following intended independent roots from its
 zero-importer report.  This list is explicit rather than inferred from

@@ -119,6 +119,14 @@ open import proof.Core.Properties.ImprecisionCompositionProperties using
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyCoercionUnderTyBinders)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+  ( DropAtᵢ
+  ; drop-zeroᵢ
+  ; drop-∀ᵢ
+  ; drop-νᵢ
+  ; open-unused-atᵢ
+  ; open-unusedᵢ
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²ᵢ
   ; ∨-false-leftᵢ
   ; ∨-false-rightᵢ
@@ -129,12 +137,6 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; rename-assm²-⇑ᴸᵢ
   ; ∀ᵢᶜ
   ; νᵢᶜ
-  ; DropAtᵢ
-  ; drop-zeroᵢ
-  ; drop-∀ᵢ
-  ; drop-νᵢ
-  ; open-unused-atᵢ
-  ; open-unusedᵢ
   ; ⊑-lift∀ᵢ
   ; ⊑-renameᵗ²ᵢ
   ; ⊑-source-liftνᵢ

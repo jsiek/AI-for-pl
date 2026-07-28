@@ -113,7 +113,7 @@ open import Types using
   ; `∀
   )
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-lift∀ᵢ; ⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

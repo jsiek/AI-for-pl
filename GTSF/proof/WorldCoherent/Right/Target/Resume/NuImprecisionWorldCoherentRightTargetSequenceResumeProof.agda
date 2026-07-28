@@ -54,7 +54,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; occurs; ⇑ᵗ; _⇒_; `∀)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Right.Core.NuImprecisionRightContextAction using
   (applyRightImpCtxChanges; applyRightImpCtxChanges-++)

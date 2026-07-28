@@ -105,7 +105,7 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²ᵢ)
 open import
   proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef

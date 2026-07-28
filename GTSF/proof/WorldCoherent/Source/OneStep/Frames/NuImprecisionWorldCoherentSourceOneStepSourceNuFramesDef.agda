@@ -52,7 +52,7 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; WfTy; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 

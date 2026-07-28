@@ -37,11 +37,15 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultStore
   ; resultType
   ; transportAllCoherent
+  ; transportAllBodyPairedReplacementCoherent
   ; transportArrowCoherent
   ; transportLeftReplacementCoherent
   ; transportPairedReplacementCoherent
+  ; transportRightBodyRightReplacementCoherent
+  ; transportRightBodyShapeCoherent
   ; transportRightReplacementCoherent
   ; transportShapeCoherent
+  ; transportSourceNuBodyLeftReplacementCoherent
   ; transportNo•Terms
   ; weak-step-transport
   ; weak-step-type-coherence
@@ -85,7 +89,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     with final
 world-coherent-source-narrow-catchup-framedᵀ
@@ -96,7 +100,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | inj₁ (vW , noW) =
   world-coherent-left-catchup-indexed-resume-silentᵀ
@@ -106,7 +110,7 @@ world-coherent-source-narrow-catchup-framedᵀ
     (weak-step-store-lineage
       lineage-store lineage-embedding lineage-prefix)
     (value-catchup
-      prefix-reflⁱ coherent exclusive wfL
+      prefix-reflⁱ coherent exclusive unique wfL
       (ok-⟨⟩ (ok-no noW)) vV′ noV′
       (canonicalIndexedResults framed))
   where
@@ -127,7 +131,7 @@ world-coherent-source-narrow-catchup-framedᵀ
           (left-silent-invariant refl refl) final))
       (weak-step-store-lineage
         lineage-store lineage-embedding lineage-prefix)
-      coherent exclusive wfL)
+      coherent exclusive unique wfL)
     q c-shape comp
     | inj₂ refl =
   world-coherent-left-indexed-catchup
@@ -138,7 +142,7 @@ world-coherent-source-narrow-catchup-framedᵀ
       (lineageStore terminal-combined-lineage)
       (lineageEmbedding terminal-combined-lineage)
       (lineagePrefix terminal-combined-lineage))
-    coherent exclusive wfL
+    coherent exclusive unique wfL
   where
   source-store-incl = leftStoreⁱ-prefix-inclusion prefix
 
@@ -190,11 +194,19 @@ world-coherent-source-narrow-catchup-framedᵀ
       (transportArrowCoherent (weakIndexedTypeCoherence indexed))
       (transportAllCoherent (weakIndexedTypeCoherence indexed))
       (transportShapeCoherent (weakIndexedTypeCoherence indexed))
+      (transportRightBodyShapeCoherent
+        (weakIndexedTypeCoherence indexed))
       (transportLeftReplacementCoherent
         (weakIndexedTypeCoherence indexed))
       (transportRightReplacementCoherent
         (weakIndexedTypeCoherence indexed))
       (transportPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportAllBodyPairedReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportSourceNuBodyLeftReplacementCoherent
+        (weakIndexedTypeCoherence indexed))
+      (transportRightBodyRightReplacementCoherent
         (weakIndexedTypeCoherence indexed))
 
 

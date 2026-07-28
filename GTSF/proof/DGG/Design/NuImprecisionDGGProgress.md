@@ -574,17 +574,14 @@ These modules are outside all canonical strict cones. New strict work must use
 their `Def` contracts or extracted strict leaves, never import them merely to
 make a theorem facade appear complete.
 
-Four non-permissive, importer-free `Proof` modules had been classified as
-completed by filenames and source scans but fail focused strict Agda checks.
-They are excluded from `NuDGGUnassembledProofsStrictSpine` and recorded by
+One non-permissive, importer-free `Proof` module had been classified as
+completed by filenames and source scans but fails a focused strict Agda check.
+It is excluded from `NuDGGUnassembledProofsStrictSpine` and recorded by
 `KNOWN_INCOMPLETE_PROOF_MODULES` in the import audit:
 
 | Module | Exposed obligation |
 |---|---|
 | [`NuDGGTerminalForwardIntegrationProof.agda`](../TerminalForward/NuDGGTerminalForwardIntegrationProof.agda) | `compatible-source-inert` is uncovered in paired-widening function beta |
-| [`NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda`](../../WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda) | Supplies store well-formedness where assumption-membership uniqueness is now required |
-| [`NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`](../../WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda) | Supplies store well-formedness where assumption-membership uniqueness is now required |
-| [`NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`](../../WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda) | Omits the new assumption-membership uniqueness component of world-coherent catch-up |
 
 The separate
 [`NuImprecisionPairedTargetClosingStrictSpine.agda`](../../PairedLambda/Terminal/NuImprecisionPairedTargetClosingStrictSpine.agda)
@@ -787,12 +784,16 @@ behavior is covered by
    projections, store-prefix evidence, parallel substitution, and term-context
    shift, world embedding, bullet-free left renaming, source-allocation
    runtime transport, quotient-down transport, target seal/tag cancellation,
-   and the strict unassembled DGG spine pass focused checks; the remaining
-   terminal-forward consumers are migrating now.
+   and the migrated source-`ν` and right-value leaves pass focused checks.
+   The right-allocation source-bullet context mismatch was a shadowing pattern
+   variable, not a missing invariant; matching the actual
+   `lift-left-ctx-[]` constructor repairs the proof. The strict unassembled
+   spine passes, and the remaining terminal-forward consumers are migrating
+   now.
 4. **In progress:** remove `down·up⊑down·upᵀ`, quotient-indexed application,
    and finite narrowing support. They are gone from the live grammar, but the
    frozen downstream inventory is not yet empty. The current direct counts are
-   `7/2/2/29/12/12`. Each remaining client must
+   `2/1/1/12/7/0`. Each remaining client must
    migrate to `paired-downᵀ`/`closeᵀ`, use simulation up to reduction, or be
    deleted rather than wrapped.
 5. **Completed:** tighten the matched target-allocation root contract so its
@@ -1586,8 +1587,11 @@ on the complete post-allocation cast relation. The eventual source-runtime
 provider must discharge that honest recursive edge with the existing
 well-founded source-administration measure. Both completed Proof roots have
 left the known-incomplete list and are imported by the unassembled strict
-spine; only terminal-forward integration and source narrowing remain on that
-list.
+spine. Source narrowing now carries membership uniqueness through all three
+framed branches and reconstructs all ten source-lift coherence fields, so it
+has also left the list. A cached ordinary source-`ν` consumer was missing the
+same explicit uniqueness argument; repairing that call makes it strict.
+Only terminal-forward integration remains on the known-incomplete list.
 
 The compiler migration found a real negative result. Canonical cast plans do
 not in general satisfy `ReductionClosedQuotientWideningCompatible`: the
@@ -1597,10 +1601,21 @@ uses the actual plans for `∀ X. X ⇒ X` versus `★ ⇒ ★` and derives the
 impossible bridge `★ ⊑ A₁ ⇒ A₂`. At a value boundary the existing
 `WorldCoherentQuotientFinalCatchupᵀ` is the sound up-to-reduction replacement,
 but finite reduction cannot repair a pending boundary under a lambda or
-around an open variable. Before migrating `CompileTermImprecision`, decide
-between a canonical compiler-origin pending-close boundary and a semantic or
-ground-final DGG relation. Do not restore `up⊑upᵀ` or strengthen `CastPlan`
-with a false invariant.
+around an open variable.
+
+The compiler-origin pending-close experiment succeeds on all three decisive
+tests. The actual polymorphic-identity/dynamic-function cast-plan pair
+inhabits the boundary; a reduction-closed compatible widening closes it with
+live `closeᵀ`; and the operational value case feeds
+`WorldCoherentQuotientFinalCatchupᵀ` without widening compatibility. The
+boundary must retain `QuotientNarrowingEliminationCompatible`, because
+`MLB-monotoneᵖ` supplies the quotient index and both composition squares but
+not downcast elimination. It must not require
+`ReductionClosedQuotientWideningCompatible`. This is now the selected
+compiler-migration hypothesis: promote the experiment to a canonical
+compiler contract, migrate `CompileTermImprecision` to return or carry that
+boundary, and consume it operationally at values. Do not add the boundary to
+live QTI, restore `up⊑upᵀ`, or strengthen `CastPlan` with a false invariant.
 
 Function-cast beta exposes the same operational boundary. The old pure
 quotient-application island is still a genuine live consumer, so it cannot be
@@ -1615,19 +1630,29 @@ deletion. Therefore the 2,090-line quotient-value analysis will not be
 reorganized, while stable portions of simulation, value transport, source
 widening, and reveal/conceal are receiving focused cuts.
 
-A fresh hotspot audit identified the next three stable cuts:
-`MaximalLowerBoundsWf.agda` is 20,373 lines with 174 direct importers,
-`NuImprecisionSimulationCore.agda` is 14,878 lines with 85, and
-`NarrowWidenProperties.agda` is 4,385 lines with 17. Extract indexed
-imprecision renaming/lifting first, weak-result transport/reindex algebra
-second, and basic narrowing/widening store invariants third. Do not split the
-retiring quotient-value monolith or migration experiments. The zero-import
+A fresh hotspot audit identified three stable cuts. The first is complete:
+477 lines of indexed-imprecision renaming/lifting now live in
+`proof/Core/Properties/NuImprecisionIndexedRenamingProperties.agda`.
+`MaximalLowerBoundsWf.agda` shrank from 20,373 to 19,945 lines, and its direct
+fan-out fell from 174 files to 22; 164 direct consumers now depend on the
+focused module instead. The new module and reduced MLB file check in about
+four and five seconds with warm dependencies. After the one-time 255-second
+cold rebuild, `NuDGGUnassembledProofsStrictSpine.agda` passes.
+
+The next stable cut is the approximately 437-line weak-result
+transport/reindex block in the 14,878-line
+`NuImprecisionSimulationCore.agda`. Move it to
+`proof/Catchup/Simulation/NuImprecisionWeakOneStepResultTransport.agda`;
+fourteen consumers can then drop their simulation-core import entirely.
+After that, extract basic structural/store invariants from the 4,385-line
+`NarrowWidenProperties.agda`. Do not split the retiring quotient-value
+monolith or migration experiments. The zero-import
 `MaximalLowerBoundsJunk.agda` and its active-surface references have already
 been deleted; Git history is the archive.
 
 The source/import audit passes after this checkpoint: all local imports
-resolve, all five strict safety roots remain safe, the four known-incomplete
-Proof modules are explicitly excluded, and no strict-looking Proof module is
+resolve, all five strict safety roots remain safe, the one known-incomplete
+Proof module is explicitly excluded, and no strict-looking Proof module is
 left without either a Lemma consumer or the unassembled-proof inventory
 spine.
 

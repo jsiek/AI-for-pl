@@ -38,7 +38,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; store-right
   ; store-link
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)

@@ -106,7 +106,7 @@ open import proof.Core.Properties.ReductionProperties using
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 

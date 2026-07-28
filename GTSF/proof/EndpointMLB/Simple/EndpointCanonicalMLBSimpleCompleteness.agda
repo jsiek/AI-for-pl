@@ -45,15 +45,30 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; ∀ᵢ-wf²; nonVar?
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( CommonLowerBoundᵢ; DropAtᵢ; drop-zeroᵢ; drop-∀ᵢ; drop-νᵢ
-  ; no-occurs-base-lowerᵢ
-  ; no-occurs-var-lower-νctxᵢ; no-⇑ᴸᵢ-zero-star
+  ( CommonLowerBoundᵢ
+  ; DropAtᵢ
+  ; drop-zeroᵢ
+  ; drop-∀ᵢ
+  ; drop-νᵢ
   ; nonVar-forward-if-occursᵢ
   ; occurs-var-true→≡ᵢ
-  ; old⊑→wf-idᵢ; open-unused-atᵢ; removeAt-Wfᵢ; removeAtᵗ
-  ; ⊑-forgetᵢ; un⇑ᴸᵢ-★∈; ⇑ᴸᵢ-ˣ∈; ⇑ᴸᵢ-★∈
-  ; ∨-true-leftᵢ; ∨-true-rightᵢ
-  ; ⊑-trans-idᵢ; ⊑-trans-left-idᵢ
+  ; old⊑→wf-idᵢ
+  ; open-unused-atᵢ
+  ; removeAt-Wfᵢ
+  ; ⊑-forgetᵢ
+  ; ⊑-trans-idᵢ
+  ; ⊑-trans-left-idᵢ
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( no-occurs-base-lowerᵢ
+  ; no-occurs-var-lower-νctxᵢ
+  ; no-⇑ᴸᵢ-zero-star
+  ; removeAtᵗ
+  ; un⇑ᴸᵢ-★∈
+  ; ⇑ᴸᵢ-ˣ∈
+  ; ⇑ᴸᵢ-★∈
+  ; ∨-true-leftᵢ
+  ; ∨-true-rightᵢ
   )
 open import proof.Core.Properties.TypeProperties using (occurs-extsNᵗ-below; occurs-suc-var)
 

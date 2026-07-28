@@ -65,7 +65,7 @@ open import
   proof.Target.Administration.NuImprecisionTargetPendingLambdaAllocationTraceProof
   using (target-pending-lambda-allocation-trace-proofᵀ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionReductionClosedQuotientDef

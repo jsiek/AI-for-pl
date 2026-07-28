@@ -17,7 +17,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; StoreImp
   )
 open import Types using (TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 

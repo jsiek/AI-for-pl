@@ -96,7 +96,7 @@ open import
 open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast; seal★-weakenCast-bind)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²-target-rightᵢ
   ; ⊑-renameᵗ²ᵢ

@@ -66,7 +66,7 @@ open import Types using
   ; renameᵗ
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-⇑ᵢ
   ; ⊑-renameᵗ²ᵢ

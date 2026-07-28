@@ -18,7 +18,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; StoreImp
   )
 open import Types using (Renameᵗ; TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   (RelStoreEmbeddingⁱ)
 

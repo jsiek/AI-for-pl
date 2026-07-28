@@ -861,21 +861,50 @@ function-cast beta. Its replacement is the operational
 `WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ` path, which
 still needs the recursive right-dispatch/quotient-frame SCC.
 
+The source narrowing proof now carries membership uniqueness through all
+three framed branches and reconstructs all ten source-lift coherence fields.
+It passes strictly and is imported by the unassembled strict spine. The
+right target-allocation source-bullet proof also now matches the actual
+`lift-left-ctx-[]` constructor rather than a shadowing pattern variable, so
+context inversion recovers the required empty source body context. Its two
+immediate Lemma consumers and the full unassembled spine pass strictly.
+
 The audit passes at this checkpoint: local proof imports resolve, the five
-strict safety roots are safe, the two known-incomplete Proof modules remain
+strict safety roots are safe, the one known-incomplete Proof module remains
 explicitly inventoried, and every other strict-looking Proof has a transitive
 Lemma consumer or an unassembled-proof spine import.
 
-The checking-time audit ranks three canonical cuts: indexed-imprecision
-renaming/lifting out of the 20,373-line, 174-importer
-`MaximalLowerBoundsWf.agda`; weak-result transport/reindex algebra out of the
-14,878-line, 85-importer simulation core; and basic structural/store
-invariants out of the 4,385-line `NarrowWidenProperties.agda`. Retiring
-quotient/experiment files should be deleted rather than split. The
-zero-consumer `MaximalLowerBoundsJunk.agda` has been removed and its useful
-historical rationale retained only in Git history.
+The compiler-origin pending-close experiment also passes all three decisive
+checks. The actual polymorphic-identity/dynamic-function plans inhabit the
+boundary, compatible cases close through live `closeᵀ`, and operational final
+values feed `WorldCoherentQuotientFinalCatchupᵀ` without widening
+compatibility. The boundary retains
+`QuotientNarrowingEliminationCompatible`; `MLB-monotoneᵖ` supplies the
+quotient index and composition squares but not this downcast-elimination
+fact. `ReductionClosedQuotientWideningCompatible` does not belong in the
+pending boundary. The next compilation step is to promote this side
+experiment to a canonical compiler contract and migrate
+`CompileTermImprecision` without changing live QTI.
 
-The remaining direct retired-name counts are `5/2/2/26/10/10` for fused
+The first canonical checking-time cut is complete. A focused 477-line
+`NuImprecisionIndexedRenamingProperties.agda` now owns syntax-directed
+indexed-imprecision renaming and binder lifts. `MaximalLowerBoundsWf.agda`
+shrinks from 20,373 to 19,945 lines and from 174 direct importers to 22; 164
+consumers now depend directly on the focused module. The new module and
+reduced MLB file check in about four and five seconds with warm dependencies,
+and the strict unassembled DGG aggregate passes after its one-time cold
+rebuild.
+
+The next cut is approximately 437 lines of weak-result transport/reindex
+algebra out of the 14,878-line simulation core into
+`proof/Catchup/Simulation/NuImprecisionWeakOneStepResultTransport.agda`;
+fourteen direct consumers can then eliminate their simulation-core import.
+Basic structural/store invariants in the 4,385-line
+`NarrowWidenProperties.agda` follow. Retiring quotient/experiment files
+should be deleted rather than split. The zero-consumer
+`MaximalLowerBoundsJunk.agda` has been removed; Git history is the archive.
+
+The remaining direct retired-name counts are `2/1/1/12/7/0` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.
 

@@ -55,7 +55,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   ; sourceResult
   ; weakIndexedResult
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftStoreⁱ

@@ -20,7 +20,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.List.Relation.Unary.Any using (there)
 open import ImprecisionWf using (idˣ; tagˣ; ∀ⁱ_; ν)
 open import proof.Core.Properties.ImprecisionProperties using (un⇑ᵢ-★∈)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (no-occurs-var-lower-νctxᵢ)
 open import
   proof.PairedLambda.LambdaLeaves.MatchedUnseal.NuImprecisionPairedLambdaTargetClosingLambdaLambdaLeafMatchedUnsealClosingDef

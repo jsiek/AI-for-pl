@@ -56,7 +56,7 @@ open import TermTyping using
   (_∣_∣_⊢_⦂_; ⊢⟨⟩↓; ⊢⟨⟩⊒; ⊢⟨⟩⊑)
 import Types as T
 open import Types using (Atom; Ty; TyVar; ＇_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (no-occurs-var-lower-νctxᵢ)
 open import proof.Target.SealTag.NuImprecisionTargetSealCancellationDef using
   (TargetSealCancellationᵀ)

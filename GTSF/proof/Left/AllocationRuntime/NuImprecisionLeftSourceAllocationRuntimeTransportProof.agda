@@ -122,7 +122,7 @@ open import Types using
   ; `∀
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( νᵢᶜ
   ; rename-assm²-⇑ᴸᵢ
   ; rename-assm²-source-νᵢ

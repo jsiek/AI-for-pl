@@ -44,24 +44,30 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (⊑-forgetᵢ)
 
 
+source-consistency :
+  zero Imp.⊢ (`∀ (＇ zero ⇒ ＇ zero)) ~ ★
+source-consistency =
+  `∀ (＇ zero ⇒ ＇ zero)
+  , Imp.∀ⁱ
+      ((Imp.idˣ (here refl)) Imp.↦ (Imp.idˣ (here refl)))
+  , Imp.ν Imp.nonvar-fun refl
+      (Imp.tag (Imp.tagˣ (here refl)) ⇛ (Imp.tagˣ (here refl)))
+
+
+target-consistency :
+  zero Imp.⊢ (★ ⇒ ★) ~ ★
+target-consistency =
+  ★ ⇒ ★
+  , Imp.id★ Imp.↦ Imp.id★
+  , Imp.tag Imp.id★ ⇛ Imp.id★
+
+
 source-plan : CastPlan zero [] (`∀ (＇ zero ⇒ ＇ zero)) ★
-source-plan =
-  consistency-cast-plan zero
-    ( `∀ (＇ zero ⇒ ＇ zero)
-    , Imp.∀ⁱ
-        ((Imp.idˣ (here refl)) Imp.↦ (Imp.idˣ (here refl)))
-    , Imp.ν Imp.nonvar-fun refl
-        (Imp.tag (Imp.tagˣ (here refl)) ⇛ (Imp.tagˣ (here refl)))
-    )
+source-plan = consistency-cast-plan zero source-consistency
 
 
 target-plan : CastPlan zero [] (★ ⇒ ★) ★
-target-plan =
-  consistency-cast-plan zero
-    ( ★ ⇒ ★
-    , Imp.id★ Imp.↦ Imp.id★
-    , Imp.tag Imp.id★ ⇛ Imp.id★
-    )
+target-plan = consistency-cast-plan zero target-consistency
 
 
 source-up-shape :

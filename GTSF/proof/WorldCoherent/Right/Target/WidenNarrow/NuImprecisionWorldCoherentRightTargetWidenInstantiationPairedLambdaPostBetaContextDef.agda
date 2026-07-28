@@ -49,7 +49,7 @@ open import TermTyping using
 open import Types using
   (Ty; TyCtx; ★; wf★; `∀; ⇑ᵗ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionTargetInstantiationCreationDef

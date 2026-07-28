@@ -76,7 +76,7 @@ open import proof.Core.Properties.TypeProperties using
   ; predᵗ
   ; renameᵗ-ext-suc-comm
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; rename-assm²-∀ᵢ
   ; rename-assm²-⇑ᵢ

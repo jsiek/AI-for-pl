@@ -44,7 +44,7 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; TyCtx; WfTy; ＇_; `∀; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using

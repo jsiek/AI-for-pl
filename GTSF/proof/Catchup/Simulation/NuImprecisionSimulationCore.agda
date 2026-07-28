@@ -342,34 +342,36 @@ open import proof.Core.Properties.CastImprecision using
   ; ⊑-transʳ-castᵢ
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( ∀ᵢᶜ
-  ; rename-assm²ᵢ
-  ; rename-assm²-composeᵢ
+  ( rename-assm²-composeᵢ
   ; rename-assm²-congᵢ
-  ; rename-assm²-∀ᵢ
   ; rename-assm²-crossed-left∀∀ᵢ
   ; rename-assm²-crossed-right∀∀ᵢ
   ; rename-assm²-crossed-double∀∀ᵢ
-  ; rename-assm²-⇑ᵢ
-  ; rename-assm²-⇑ᴸᵢ
-  ; rename-assm²-source-νᵢ
   ; rename-assm²-swapLeft∀∀ᵢ
   ; rename-assm²-swapRight∀∀ᵢ
-  ; rename-assm²-target-rightᵢ
-  ; ⊑-rename-at²ᵢ
-  ; ⊑-renameᵗ²ᵢ
   ; ⊑-crossed-body-lift∀∀ᵢ
   ; ⊑-crossed-left-body-lift∀∀ᵢ
   ; ⊑-crossed-double-lift∀∀ᵢ
-  ; ⊑-lift∀ᵢ
-  ; ⊑-open∀ᵢ
-  ; ⊑-source-liftνᵢ
   ; ⊑-ν∀-to-∀νᵢ
   ; ⊑-swapLeft01∀∀ᵢ
   ; ⊑-swapRight01∀∀ᵢ
-  ; ⊑-target-lift-rightᵢ
   ; swap01ᵢ
   ; swap01ᵢ-after-suc
+  )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( ∀ᵢᶜ
+  ; rename-assm²ᵢ
+  ; rename-assm²-∀ᵢ
+  ; rename-assm²-⇑ᵢ
+  ; rename-assm²-⇑ᴸᵢ
+  ; rename-assm²-source-νᵢ
+  ; rename-assm²-target-rightᵢ
+  ; ⊑-rename-at²ᵢ
+  ; ⊑-renameᵗ²ᵢ
+  ; ⊑-lift∀ᵢ
+  ; ⊑-open∀ᵢ
+  ; ⊑-source-liftνᵢ
+  ; ⊑-target-lift-rightᵢ
   )
 open import proof.Core.Permutation.ForallPermutationProperties using
   ( ≈∀-double-swap

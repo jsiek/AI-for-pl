@@ -108,9 +108,9 @@ open import proof.Core.Properties.ImprecisionProperties using
   )
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleQuotient using
   (MLB-monotoneᵖ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( ⊑-forgetᵢ
-  ; ⊑-lift∀ᵢ
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-forgetᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ
   )
 open import proof.Core.Properties.TypeProperties using

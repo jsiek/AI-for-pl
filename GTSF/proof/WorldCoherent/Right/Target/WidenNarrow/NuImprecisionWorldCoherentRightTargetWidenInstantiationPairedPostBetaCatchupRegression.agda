@@ -150,7 +150,7 @@ open import proof.Core.Properties.NuTermProperties using
 open import proof.Core.Properties.TypeProperties using
   (renameᵗ-id)
 open import proof.Core.Properties.TypePreservation using (seal★-inst)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.Store.RelEmbedding.NuImprecisionRelCtxRenameAlgebra

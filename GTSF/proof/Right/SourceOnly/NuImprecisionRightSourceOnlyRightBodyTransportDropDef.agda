@@ -15,7 +15,7 @@ open import Data.Nat using (suc)
 open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ⇑ᴿᵢ)
 open import NuReduction using (StoreChanges)
 open import Types using (Ty; TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import proof.Core.Properties.ReductionProperties using (applyTysUnderTyBinders)
 
 

@@ -67,7 +67,7 @@ open import proof.Core.Properties.ConversionIndexCompatibilityProperties using
   )
 open import proof.Core.Properties.ReductionProperties using
   (applyTysUnderTyBinders-⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ)
 open import
   proof.OneStep.Allocation.NuImprecisionMatchedNuAllocationAfterValueCatchupDef

@@ -107,7 +107,7 @@ open import proof.Core.Properties.TypePreservation using
   )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc; renameᵗ-preserves-WfTy)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 open import QuotientImprecisionCompatibility
   using (SpineCastMode; gradual↓; id-only↓)

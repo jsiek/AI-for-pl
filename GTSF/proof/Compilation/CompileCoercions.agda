@@ -141,10 +141,10 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   (cast-shape-rename; shape-rename; shape-subst-source)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( ⊑-forgetᵢ
-  ; ⊑-renameᵗ²ᵢ
   ; ⊑-target-liftνᵢ
   ; rename-assm²-⇑ᴸ-to-⇑ᵢ
   )
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-renameᵗ²ᵢ)
 
 ------------------------------------------------------------------------
 -- Realizing imprecision assumptions as target coercions

@@ -30,7 +30,7 @@ open import Types using (Ty; TyCtx; WfTy; occurs; `∀; ⇑ᵗ; ⟰ᵗ)
 open import Coercions using (Coercion; ModeEnv)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-source-liftνᵢ)
 
 

@@ -169,7 +169,7 @@ open import proof.Core.Properties.TypeProperties using
   ; renameᵗ-preserves-WfTy
   ; predᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; rename-assm²-source-νᵢ
   ; rename-assm²-∀ᵢ

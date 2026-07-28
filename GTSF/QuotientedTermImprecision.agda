@@ -95,7 +95,7 @@ open import proof.Core.Properties.CastImprecision using
   )
 open import proof.Core.Properties.SealModeProperties using
   (seal★-tag-or-id)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²ᵢ
   ; ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ

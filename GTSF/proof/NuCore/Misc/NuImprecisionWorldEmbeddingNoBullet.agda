@@ -76,7 +76,7 @@ open import proof.Core.Properties.NuTermProperties using
   ; renameᵗᵐ-preserves-No•
   ; renameᵗᵐ-preserves-Value
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ

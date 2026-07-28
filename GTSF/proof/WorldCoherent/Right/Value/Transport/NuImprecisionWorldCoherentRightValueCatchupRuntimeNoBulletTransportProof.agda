@@ -326,7 +326,7 @@ open import
   ; applyTys-preserves-≈∀
   ; weak-one-step-transport-quotientᵀ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-lift∀ᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-lift∀ᵢ)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercionUnderTyBinders-preserves-Inert

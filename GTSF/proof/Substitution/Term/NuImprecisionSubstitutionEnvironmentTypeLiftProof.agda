@@ -43,7 +43,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
 open import NuTerms using (No•; Term; renameᵗᵐ; ↑ᵗᵐ)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( rename-assm²-source-νᵢ
   ; rename-assm²-∀ᵢ
   ; ⊑-renameᵗ²ᵢ
@@ -92,7 +92,7 @@ open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
   using (⊑-rename-left-atᵢ; ⊑-rename-leftᵢ)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using (⊑-rename-at²ᵢ)
 open import proof.Substitution.Term.NuImprecisionSubstitutionEnvironmentTypeLiftDef using
   ( QuotientedSubstitutionEnvironmentLeftTypeLiftᵀ

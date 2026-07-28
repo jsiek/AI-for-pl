@@ -32,7 +32,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   )
 open import QuotientedTermImprecision using
   (prefix-reflⁱ; prefix-∷ⁱ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-lift∀ᵢ; ⊑-source-liftνᵢ; ⊑-target-lift-rightᵢ)
 open import proof.Store.Prefix.NuImprecisionStorePrefixLiftDef using
   (LeftStorePrefixLiftᵀ; PairedStorePrefixLiftᵀ; RightStorePrefixLiftᵀ)

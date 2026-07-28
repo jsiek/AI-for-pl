@@ -56,7 +56,7 @@ open import
   proof.Core.Properties.TypeProperties
   using (TyRenameWf)
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-rename-at²ᵢ

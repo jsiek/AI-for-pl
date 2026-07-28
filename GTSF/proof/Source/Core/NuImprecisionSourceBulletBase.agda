@@ -78,7 +78,7 @@ open import Types using
   ; extᵗ
   ; ⇑ᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-renameᵗ²ᵢ)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   ( RelStoreEmbeddingⁱ

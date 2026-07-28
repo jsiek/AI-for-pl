@@ -48,7 +48,8 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; store-right
   )
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
-  ( lift-right-ctx-[]
+  ( lift-left-ctx-[]
+  ; lift-right-ctx-[]
   )
 open import NuTerms using
   ( No•
@@ -128,7 +129,7 @@ open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-suc)
 open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast; seal★-weaken)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-target-lift-rightᵢ)
 open import
   proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties

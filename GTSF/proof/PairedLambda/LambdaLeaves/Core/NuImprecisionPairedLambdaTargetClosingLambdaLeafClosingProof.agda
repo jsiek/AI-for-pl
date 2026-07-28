@@ -55,7 +55,7 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import TermTyping using (_∣_∣_⊢_⦂_; ⊢•)
 open import Types using (Ty; TyCtx; occurs)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   ( leftStoreⁱ-prefix-inclusion
   ; rightStoreⁱ-prefix-inclusion

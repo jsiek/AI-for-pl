@@ -37,4 +37,6 @@ import
 import
   proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNuIndexedInstantiationWidenCatchupProof
 import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNarrowCatchupProof
+import
   proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupProof

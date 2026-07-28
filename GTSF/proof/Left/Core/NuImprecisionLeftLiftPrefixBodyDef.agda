@@ -19,7 +19,7 @@ open import NuTerms using (No•; Term; ⇑ᵗᵐ)
 open import QuotientedTermImprecision using
   (StoreImpPrefix; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Ty; TyCtx; ⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (⊑-source-liftνᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (⊑-source-liftνᵢ)
 
 
 LeftLiftPrefixBodyᵀ : Set₁

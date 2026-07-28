@@ -153,7 +153,7 @@ world-coherent-source-ν-catchup-proofᵀ
   world-coherent-left-catchup-indexed-resume-silentᵀ
     first-silent first-lineage
     (final-catchup final-view final-replacement
-      coherent exclusive wfL final-wf final-shift-wf
+      coherent exclusive unique wfL final-wf final-shift-wf
       final-reveal final-lift lift-left-ctx-[]
       vW noW vV′ noV′ final-relation)
   where

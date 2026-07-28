@@ -121,7 +121,7 @@ open import
   ; EmbeddedTargetInstantiationCreation
   )
 open import
-  proof.EndpointMLB.Core.MaximalLowerBoundsWf
+  proof.Core.Properties.NuImprecisionIndexedRenamingProperties
   using
   ( rename-assm²ᵢ
   ; ⊑-renameᵗ²ᵢ

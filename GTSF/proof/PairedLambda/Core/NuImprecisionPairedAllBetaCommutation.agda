@@ -51,7 +51,7 @@ open import QuotientedTermImprecision using
   ; paired-revealᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; ⊑-open∀ᵢ
   )

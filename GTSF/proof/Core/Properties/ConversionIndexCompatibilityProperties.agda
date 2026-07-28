@@ -63,7 +63,7 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ; shape-rename-left
   ; ⊑-rename-leftᵢ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ( ∀ᵢᶜ
   ; rename-assm²ᵢ
   ; rename-assm²-∀ᵢ

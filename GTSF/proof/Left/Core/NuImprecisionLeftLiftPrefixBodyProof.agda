@@ -29,7 +29,7 @@ open import QuotientedTermImprecision using
   )
 open import Relation.Binary.PropositionalEquality using (sym)
 open import Types using (renameᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (rename-assm²-source-νᵢ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
   (LeftLiftPrefixBodyᵀ)

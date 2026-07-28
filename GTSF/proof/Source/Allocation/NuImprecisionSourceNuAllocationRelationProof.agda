@@ -21,7 +21,7 @@ open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import ImprecisionWf using (⊑-src-wf)
 open import NarrowWiden using (_∣_∣_⊢_∶_⊑_)
 open import NuTerms using (⇑ᵗᵐ; _•; _⟨_⟩)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (⊑-source-liftνᵢ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping using
   ( nu-term-imprecision-source-typing

@@ -28,7 +28,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
 open import NuTerms using (Term)
 open import QuotientedTermImprecision using (StoreImpPrefix)
 open import Types using (Ty; TyCtx)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (νᵢᶜ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (νᵢᶜ)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

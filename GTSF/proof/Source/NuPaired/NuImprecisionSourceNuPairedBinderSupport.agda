@@ -49,7 +49,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_; Λ⊑Λᵀ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   (∀ᵢᶜ; ⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 open import proof.Store.Core.NuImprecisionStoreLift using
   (lift-store-result; lift-left-store-result)

@@ -17,8 +17,11 @@ open import Relation.Binary.PropositionalEquality using (cong; subst; sym)
 open import ImprecisionWf using
   (_∣_⊢_⊑_⊣_; _ˣ⊑★; ⇑ᴸᵢ; ⇑ᴿᵢ)
 open import Types using (⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (νᵢᶜ; open-unusedᵢ; ⊑-source-liftνᵢ)
+open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (open-unusedᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  ( νᵢᶜ
+  ; ⊑-source-liftνᵢ
+  )
 open import proof.Right.Core.NuImprecisionRightContextAction using
   (⇑ᴸᵢ-⇑ᴿᵢ-commute)
 open import

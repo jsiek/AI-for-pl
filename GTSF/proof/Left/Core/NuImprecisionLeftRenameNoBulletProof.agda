@@ -74,7 +74,7 @@ open import Types using
   ; extᵗ
   ; renameᵗ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (rename-assm²ᵢ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (rename-assm²ᵢ)
 open import proof.Left.Core.NuImprecisionLeftRenameNoBulletDef using
   (LeftRenameNoBullet)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using

@@ -225,6 +225,9 @@ open import
   proof.WorldCoherent.Source.Allocation.NuImprecisionWorldCoherentSourceAllocationStepProof
   using (world-coherent-source-inst-allocation-step-with-liftᵀ)
 open import
+  proof.Source.Allocation.NuImprecisionSourceNuAllocationRelationLemma
+  using (source-inst-allocation-relationᵀ)
+open import
   proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef
   using
   ( sourceStepAssumptionMembershipUnique
@@ -1240,6 +1243,7 @@ world-coherent-source-inst-widen-runtime-sibling-catchupᵀ
 
   allocation-step =
     world-coherent-source-inst-allocation-step-with-liftᵀ
+      source-inst-allocation-relationᵀ
       {{sourceNuSafe transported-index}}
       coherent exclusive unique final-lift vW noW
       (proj₁ (proj₂ allocation-typing))

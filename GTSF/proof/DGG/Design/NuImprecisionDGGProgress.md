@@ -1275,6 +1275,17 @@ allocation-after-value-catch-up capabilities will then move behind focused
 `Def`/`Proof`/`Lemma` boundaries,
 after which unused allocation branches and the monolith will be deleted.
 
+The source-only relation boundary has now moved to the strict
+`proof/Source/Allocation/NuImprecisionSourceNuAllocationRelationDef/Proof/Lemma`
+family. Its two contracts state only the post-allocation QTI edge; the
+world-coherent proof reconstructs the immediate source `ν` reduction and
+zero-step target tail and takes both relations as higher-order dependencies.
+The unused paired-widening-under-binder transport and its private shape
+helpers were deleted. All three new modules and the 2,168-line reduced
+monolith pass strictly. The world-coherent source allocation proof validates
+the new cases and recursive dependency propagation before stopping at the
+same retired `⊑cast⊑idᵀ` case.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region

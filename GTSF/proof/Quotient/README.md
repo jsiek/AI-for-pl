@@ -610,6 +610,18 @@ source-only and matched-allocation capabilities will then move to chartered
 `Source/Allocation` and `OneStep/Allocation` contracts. The unused allocation
 branches and the monolith itself will be deleted after those consumers move.
 
+The source-only allocation cut is now complete. The two real bottom-edge
+relations live in the strict
+`../Source/Allocation/NuImprecisionSourceNuAllocationRelationDef/Proof/Lemma`
+family and no longer bundle the immediate source `ν` step or target
+reflexivity. The world-coherent caller constructs those reductions directly
+and takes both relation contracts as higher-order dependencies. The unused
+paired-widening-under-binder transport and its private shape support were
+deleted rather than extracted. The three new modules and the reduced
+allocation monolith pass strict checks; the source allocation proof reaches
+only its already-known retired `⊑cast⊑idᵀ` case. This cut reduces the monolith
+to 2,168 lines.
+
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.

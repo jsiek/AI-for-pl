@@ -5,8 +5,8 @@ module proof.NuCore.Misc.NuImprecisionAllocationSimulation where
 --     simulations after the universal catch-up layer.
 --   * Covers ordinary `ν`, `ν ★`, `inst`, post-allocation `β-Λ•`, and
 --     post-allocation `β-gen•` boundaries.
---   * Exposes the ordinary relation reached after a source `inst` cast takes
---     its fresh-`★` allocation step; no casted-`ν` relation is retained.
+--   * Leaves source-only allocation relations to the focused canonical
+--     `proof.Source.Allocation` boundary.
 --   * Depends on `NuImprecisionSimulationCore` and
 --     `NuImprecisionSimulation`; it is kept separate so these stable cases
 --     can be cached while active catch-up work changes.
@@ -84,14 +84,6 @@ open import ConversionIndexCompatibility using
   ; _[_↦_]ᴿ_
   )
 open import ImprecisionWf
-open import PairedWideningCompatibility using
-  ( PairedWideningCompatible
-  ; compatible-all
-  ; compatible-function
-  ; compatible-source-inert
-  ; compatible-tag
-  ; compatible-target-inert-bridge
-  )
 open import NarrowWiden using
   ( narrow-mode-relax
   ; narrow-renameᵗ
@@ -102,8 +94,6 @@ open import NarrowWiden using
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
-import Coercions as C
-import NarrowWiden as NW
 open import NuReduction using
   ( StoreChange
   ; StoreChanges
@@ -316,7 +306,6 @@ open import proof.Core.Properties.NuTermProperties using
   )
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ( cast-shape-applyCoercionUnderTyBinders
-  ; imprecision-composition-shape-transport
   ; shape-rename
   ; shape-rename-left
   ; shape-source-liftνᵢ
@@ -362,8 +351,6 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyCoercions-inst
   ; applyCoercions-preserves-Inert
   ; applyCoercionUnderTyBinders
-  ; applyCoercionUnderTyBinders-preserves-Inert
-  ; applyCoercionUnderTyBinders-reflects-Inert
   ; applyTerm-preserves-No•
   ; applyTerm-preserves-Value
   ; applyTerms-++
@@ -690,71 +677,6 @@ module _ where
                   (TyRenameWf-ext TyRenameWf-suc)
                   (⊑-target-lift-rightᵢ pB))
                 (shape-target-lift-rightᵢ pB)))))
-
-private
-  ∀ˢ-injective :
-    ∀ {s t} →
-    ∀ˢ s ≡ ∀ˢ t →
-    s ≡ t
-  ∀ˢ-injective refl = refl
-
-  transport-all-body-shape-coherent :
-    ∀ {Φ Δᴸ Δᴿ M N′ A B C C′ χ}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {result : WeakOneStepResult ρ M N′ A B χ} →
-    WeakOneStepTypeCoherence result →
-    (q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ C ⊑ C′ ⊣ suc Δᴿ) →
-    ⌊ transportAllBody result q ⌋ ≡ ⌊ q ⌋
-  transport-all-body-shape-coherent
-      {C = C} {C′ = C′} {χ = χ} {result = result} coherent q =
-    ∀ˢ-injective
-      (trans
-        (sym (cong ⌊_⌋ (transportAllCoherent coherent q)))
-        (trans endpoint-shape
-          (transportShapeCoherent coherent (∀ⁱ q))))
-    where
-    raw = transportType result (∀ⁱ q)
-
-    source-eq = applyTys-∀ (sourceChanges result) C
-
-    source-transport =
-      subst
-        (λ S → resultCtx result ∣ resultLeftCtx result
-          ⊢ S ⊑ applyTys (targetTailChanges result)
-              (applyTy χ (`∀ C′))
-          ⊣ resultRightCtx result)
-        source-eq raw
-
-    target-eq =
-      trans
-        (cong (applyTys (targetTailChanges result))
-          (applyTy-∀ χ C′))
-        (applyTys-∀ (targetTailChanges result)
-          (applyTyUnderTyBinder χ C′))
-
-    endpoint-shape =
-      trans
-        (shape-subst-target target-eq source-transport)
-        (shape-subst-source source-eq raw)
-
-  ⊑-target-lift-right-shapeᵢ :
-    ∀ {Φ Δᴸ Δᴿ A B}
-      (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
-    ⌊ ⊑-target-lift-rightᵢ p ⌋ ≡ ⌊ p ⌋
-  ⊑-target-lift-right-shapeᵢ {A = A} p =
-    trans
-      (shape-subst-source
-        (renameᵗ-id A) renamed)
-      (shape-rename
-        rename-assm²-target-rightᵢ
-        (λ X<Δ → X<Δ)
-        (λ Y<Δ → s<s Y<Δ)
-        p)
-    where
-    renamed =
-      ⊑-renameᵗ²ᵢ rename-assm²-target-rightᵢ
-        (λ X<Δ → X<Δ) (λ Y<Δ → s<s Y<Δ) p
 
 ------------------------------------------------------------------------
 -- Synchronized polymorphic allocation
@@ -2006,202 +1928,6 @@ weak-one-step-matched-ν↑-indexed-catchup-outcomeᵀ
         vV′ noV′
         (⊑-tgt-wf (⊑-lift∀ᵢ (transportType inner pA)))
         target⊢ (transportType inner pB))
-
-------------------------------------------------------------------------
--- Synchronized `inst` allocation
-------------------------------------------------------------------------
-
-weak-result-transport-paired-widening-compatible-under-binderᵀ :
-  ∀ {Φ Δᴸ Δᴿ N N′ X Y B B′ C C′ c c′ p q s s′}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ N N′ X Y keep) →
-  WeakOneStepTypeCoherence inner →
-  PairedWideningCompatible
-    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-    (suc Δᴸ) (suc Δᴿ) c c′
-    {C} {C′} {⇑ᵗ B} {⇑ᵗ B′}
-    q (⊑-lift∀ᵢ p) s s′ →
-  PairedWideningCompatible
-    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (resultCtx inner))
-    (suc (resultLeftCtx inner)) (suc (resultRightCtx inner))
-    (applyCoercionUnderTyBinders (sourceChanges inner) c)
-    (applyCoercionUnderTyBinders (targetTailChanges inner) c′)
-    (transportAllBody inner q)
-    (⊑-lift∀ᵢ (transportType inner p))
-    s s′
-weak-result-transport-paired-widening-compatible-under-binderᵀ
-    inner coherent (compatible-tag G) =
-  compatible-source-inert
-    (applyCoercionUnderTyBinders-preserves-Inert
-      (sourceChanges inner) (G C.!))
-weak-result-transport-paired-widening-compatible-under-binderᵀ
-    {B = B₁ ⇒ B₂} {B′ = B₁′ ⇒ B₂′}
-    {p = p₁ ↦ p₂}
-    inner coherent
-    (compatible-function {c₁ = c₁} {c₂ = c₂} compatible) =
-  compatible-source-inert
-    (applyCoercionUnderTyBinders-preserves-Inert
-      (sourceChanges inner) (c₁ C.↦ c₂))
-weak-result-transport-paired-widening-compatible-under-binderᵀ
-    {B = `∀ B} {B′ = `∀ B′} {p = ∀ⁱ p}
-    inner coherent
-    (compatible-all {c = c} compatible) =
-  compatible-source-inert
-    (applyCoercionUnderTyBinders-preserves-Inert
-      (sourceChanges inner) (C.`∀ c))
-weak-result-transport-paired-widening-compatible-under-binderᵀ
-    inner coherent
-    (compatible-source-inert inert-c) =
-  compatible-source-inert
-    (applyCoercionUnderTyBinders-preserves-Inert
-      (sourceChanges inner) inert-c)
-weak-result-transport-paired-widening-compatible-under-binderᵀ
-    {B = B} {p = p} {q = q} inner coherent
-    (compatible-target-inert-bridge bridge-evidence) =
-  compatible-target-inert-bridge λ inert-c′ →
-    let
-      bridge , source-triangle , target-triangle =
-        bridge-evidence
-          (applyCoercionUnderTyBinders-reflects-Inert
-            (targetTailChanges inner) _ inert-c′)
-      transported-bridge-body = transportAllBody inner bridge
-      transported-bridge =
-        transport-imprecision-endpoints
-          (applyTysUnderTyBinders-⇑ᵗ (sourceChanges inner) B)
-          refl transported-bridge-body
-      bridge-shape =
-        trans
-          (shape-transport-imprecision-endpoints
-            (applyTysUnderTyBinders-⇑ᵗ
-              (sourceChanges inner) B)
-            refl transported-bridge-body)
-          (transport-all-body-shape-coherent coherent bridge)
-    in
-      transported-bridge ,
-      imprecision-composition-shape-transport
-        refl bridge-shape
-        (transport-all-body-shape-coherent coherent q)
-        source-triangle ,
-      imprecision-composition-shape-transport
-        bridge-shape refl
-        (trans (⊑-lift∀-shapeᵢ (transportType inner p))
-          (trans (transportShapeCoherent coherent p)
-            (sym (⊑-lift∀-shapeᵢ p))))
-        target-triangle
-
-left-inst-allocation :
-  ∀ {Φ Δᴸ Δᴿ B B′ C N N′ s μ q occ s-shape}
-    {{safe : NonVar C}}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value N →
-  No• N →
-  CastMode μ →
-  SealModeStore★ (instᵈ μ)
-    ((zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)) →
-  instᵈ μ ∣ suc Δᴸ ∣ (zero , ★) ∷ ⟰ᵗ (leftStoreⁱ ρ)
-    ⊢ s ∶ C ⊑ ⇑ᵗ B →
-  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (s-shape-proof : widening ⊢ᶜ s ⦂ s-shape) →
-  (comp : s-shape ； ⌊ ⊑-source-liftνᵢ pB ⌋ ≋ ⌊ q ⌋) →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
-  (ν ★ N s —→[ bind ★ ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
-  (N′ —↠[ [] ] N′) ×
-  (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
-    store-left zero ★ wf★ ∷ ρ′ ∣ []
-    ⊢ᴺ ((⇑ᵗᵐ N) •) ⟨ s ⟩ ⊑ N′
-    ⦂ ⇑ᵗ B ⊑ B′ ∶ ⊑-source-liftνᵢ pB)
-left-inst-allocation {q = q} vN noN mode seal★ s⊑ pB
-    s-shape-proof comp liftρ N⊑N′ =
-  ν-step vN noN ,
-  ↠-refl ,
-  cast⊑⊑ᵀ (cast-inst mode) left-seal left-widening
-    (α⊑ᵀ vN noN wf★ liftρ lift-left-ctx-[] N⊑N′
-      left-bullet-typing right-term-typing)
-    (⊑-source-liftνᵢ pB) s-shape-proof comp
-  where
-  left-seal =
-    subst
-      (λ Σ → SealModeStore★ (instᵈ _) ((zero , ★) ∷ Σ))
-      (sym (leftStoreⁱ-lift-left liftρ))
-      seal★
-
-  left-widening =
-    subst
-      (λ Σ → instᵈ _ ∣ suc _ ∣ (zero , ★) ∷ Σ
-        ⊢ _ ∶ _ ⊑ ⇑ᵗ _)
-      (sym (leftStoreⁱ-lift-left liftρ))
-      s⊑
-
-  left-bullet-typing =
-    subst
-      (λ Σ → suc _ ∣ (zero , ★) ∷ Σ ∣ []
-        ⊢ (⇑ᵗᵐ _) • ⦂ _)
-      (sym (leftStoreⁱ-lift-left liftρ))
-      (⊢• refl refl (⊑-src-wf q) vN noN
-        (nu-term-imprecision-source-typing N⊑N′))
-
-  right-term-typing =
-    subst
-      (λ Σ → _ ∣ Σ ∣ [] ⊢ _ ⦂ _)
-      (sym (rightStoreⁱ-lift-left liftρ))
-      (nu-term-imprecision-target-typing N⊑N′)
-
-
-left-ν↑-allocation :
-  ∀ {Φ Δᴸ Δᴿ A B B′ C N N′ s μ q occ}
-    {{safe : NonVar C}}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {ρ′ : StoreImp ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ} →
-  Value N →
-  No• N →
-  (h⇑A : WfTy (suc Δᴸ) (⇑ᵗ A)) →
-  RevealConversion μ (suc Δᴸ)
-    ((zero , ⇑ᵗ A) ∷ ⟰ᵗ (leftStoreⁱ ρ))
-    zero (⇑ᵗ A) s C (⇑ᵗ B) →
-  (pB : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ) →
-  (replace :
-    q [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ pB) →
-  LiftLeftStoreⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ ρ′ →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺ N ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν _ occ q →
-  (ν A N s —→[ bind A ] ((⇑ᵗᵐ N) •) ⟨ s ⟩) ×
-  (N′ —↠[ [] ] N′) ×
-  (((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
-    store-left zero (⇑ᵗ A) h⇑A ∷ ρ′ ∣ []
-    ⊢ᴺ ((⇑ᵗᵐ N) •) ⟨ s ⟩ ⊑ N′
-    ⦂ ⇑ᵗ B ⊑ B′ ∶ ⊑-source-liftνᵢ pB)
-left-ν↑-allocation {q = q} vN noN h⇑A s↑ pB replace
-    liftρ N⊑N′ =
-  ν-step vN noN ,
-  ↠-refl ,
-  conv↑⊑ᵀ left-reveal
-    (α⊑ᵀ vN noN h⇑A liftρ lift-left-ctx-[] N⊑N′
-      left-bullet-typing right-term-typing)
-    (⊑-source-liftνᵢ pB) replace
-  where
-    left-reveal =
-      subst
-        (λ Σ → RevealConversion _ (suc _) ((zero , ⇑ᵗ _) ∷ Σ)
-          zero (⇑ᵗ _) _ _ (⇑ᵗ _))
-        (sym (leftStoreⁱ-lift-left liftρ))
-        s↑
-
-    left-bullet-typing =
-      subst
-        (λ Σ → suc _ ∣ (zero , ⇑ᵗ _) ∷ Σ ∣ []
-          ⊢ (⇑ᵗᵐ _) • ⦂ _)
-        (sym (leftStoreⁱ-lift-left liftρ))
-        (⊢• refl refl (⊑-src-wf q) vN noN
-          (nu-term-imprecision-source-typing N⊑N′))
-
-    right-term-typing =
-      subst
-        (λ Σ → _ ∣ Σ ∣ [] ⊢ _ ⦂ _)
-        (sym (rightStoreⁱ-lift-left liftρ))
-        (nu-term-imprecision-target-typing N⊑N′)
 
 ------------------------------------------------------------------------
 -- Right-only polymorphic allocation

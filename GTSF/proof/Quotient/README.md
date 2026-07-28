@@ -1164,6 +1164,34 @@ was the standalone `MlbTypeTest`; the live compiler uses
 are deleted, and the standalone-root inventory is updated. `make audit`
 passes.
 
+The eleventh stable cut extracts the 142-line
+`proof/Core/Permutation/ForallPermutationPath.agda`. It owns normalized
+`∀`-permutation paths, their elementary steps and algebra, structural lifting,
+and normalization from raw permutations. The world-coherence instantiation
+path Def shrinks from 202 to 81 lines and no longer acts as a re-export
+surface. Exact consumers import the focused Core module directly. Strict
+checks pass for the path module in 3.34 seconds, the reduced Def in 6.05
+seconds, the path properties in 6.18 seconds, and a representative cases proof
+in 3.64 seconds.
+
+Target-only allocation under a proof-relevant quotient now has a direct
+active-`inst` contract in the 164-line
+`NuImprecisionWorldCoherentRightTargetQuotientDownPendingNuAllocationPathAccDef`.
+It retains both normalized paths and their raw-path equalities, the current
+quotiented term derivation and representative, widening pair, composition
+square, active reduction-closed compatibility, typed outer administration
+spine, and the world/store invariants needed by allocation. Its result is the
+existing world-coherent indexed right-value catch-up package plus the exact
+right-context action and right-only store prefix. The Def checks strictly in
+3.51 seconds.
+
+The keep-only operational residual does not by itself reconstruct the current
+quotient derivation, widening pair, composition square, or active
+compatibility. The next proof must produce those four witnesses as it processes
+the residual, or narrow its caller to the direct active-`inst` state. This gap
+must remain explicit; it is not an ordinary pre-instantiation QTI edge and is
+not a reason to add another relation constructor.
+
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete
 constructors. The isolated non-well-formed selector remains a deletion

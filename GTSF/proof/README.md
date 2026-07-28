@@ -208,6 +208,13 @@ identity, and composition for `CastModeRenamer`. Allocation and renaming
 clients import it directly; `NuImprecisionSimulationCore` keeps only a
 non-public import and does not re-export it.
 
+Normalized `∀`-permutation paths live in
+`proof/Core/Permutation/ForallPermutationPath.agda`. It owns the elementary
+path steps, path algebra, structural lifting, and normalization from raw
+`ForallPermutation`. Consumers import this Core module directly; world
+coherence modules must not become compatibility re-export surfaces for the
+path API.
+
 Keep-only quotient-down administration has a similarly narrow canonical
 boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
 records ordinary closure, one rank-decreasing target keep step, and terminal
@@ -220,6 +227,15 @@ and its conclusion crosses the framed `β-inst` step to the pre-bind runtime
 hidden universal permutation. Do not enlarge the core plan into a dispatcher
 for those whole-term joins or replace the allocation residual with an
 ordinary QTI edge.
+
+The direct target-allocation leaf lives under
+`proof/WorldCoherent/Right/Target/QuotientDown/`. Its Def retains the current
+proof-relevant quotient representative, normalized permutation paths, active
+widening pair, quotient composition square, reduction-closed compatibility,
+typed outer administration spine, and the world/store assumptions needed to
+cross target `bind`. The preceding operational residual must produce those
+logical witnesses explicitly or narrow to this active-`inst` state; the leaf
+must not recover them by inversion of an arbitrary trace.
 
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the

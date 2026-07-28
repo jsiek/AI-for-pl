@@ -1840,6 +1840,26 @@ part of that spine because the ordinary pre-instantiation edge is false in
 the permutation example. The remaining prefix must also expose the
 proof-relevant target representative and normalized `∀`-permutation path.
 
+That direct active-instantiation boundary is now stated by the 164-line
+`NuImprecisionWorldCoherentRightTargetQuotientDownPendingNuAllocationPathAccDef`.
+It retains the current proof-relevant quotient representative, both normalized
+`∀`-permutation paths and their agreement with the raw permutations, the
+current quotient widening pair and composition square, reduction-closed
+compatibility for the active source widening and target `inst`, and the typed
+outer administration spine. Its result is the existing world-coherent indexed
+right-value catch-up package, together with the exact right-context action and
+right-only store prefix. The strict definition check passes in 3.51 seconds.
+This is the semantic target allocation leaf; it is not a new term-imprecision
+constructor and does not assert the false ordinary pre-instantiation edge.
+
+The keep-only residual trace cannot derive the four current logical witnesses
+retained by that leaf: the exposed quotiented term derivation, current
+`QuotientWideningPair`, current quotient composition square, and current
+reduction-closed compatibility. The next proof boundary must therefore either
+produce those witnesses while processing the residual or deliberately narrow
+the caller to the direct active-`inst` state. Do not hide this gap behind a
+larger dispatcher or an unproved conversion from the operational trace.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be
@@ -1981,6 +2001,17 @@ was the standalone `MlbTypeTest` suite; the live compiler has long used
 `CompilePlan.md` are deleted, and the standalone-root inventory no longer
 lists the removed test. `make audit` passes with no unresolved import and no
 uninventoried strict Proof module.
+
+The eleventh stable cut extracts the 142-line
+`proof/Core/Permutation/ForallPermutationPath.agda`. It is the canonical home
+of normalized `∀`-permutation paths, their elementary steps, reflexivity,
+symmetry, transitivity, arrow and universal lifting, and normalization from
+raw `ForallPermutation`. The former world-coherence Def shrinks from 202 to
+81 lines, imports only the path operations needed by its theorem, and does not
+re-export them. Every exact consumer now imports the focused Core module
+directly. Strict checks pass for the path module in 3.34 seconds, the reduced
+world Def in 6.05 seconds, the path properties in 6.18 seconds, and a
+representative cases proof in 3.64 seconds.
 
 Two independent migration debts remain from earlier invalidation:
 `GenSafeMismatchBlameRegression` still pattern-matches the pre-`NonVar` `ν`

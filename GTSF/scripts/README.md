@@ -66,7 +66,6 @@ filenames, so retaining a regression or counterexample remains a reviewed
 decision:
 
 - `proof/Compilation/CompileCanonicalDownCompatibilityExperiment.agda`;
-- `proof/Compilation/CompileCanonicalPendingCloseExperiment.agda`;
 - `proof/Compilation/CompileDynamicApplicationTest.agda`;
 - `proof/Compilation/GenSafeMismatchBlameRegression.agda`;
 - `proof/Core/Permutation/ForallPermutationTest.agda`;

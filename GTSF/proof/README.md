@@ -215,17 +215,12 @@ path steps, path algebra, structural lifting, and normalization from raw
 coherence modules must not become compatibility re-export surfaces for the
 path API.
 
-Keep-only quotient-down administration has a similarly narrow canonical
-boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
-records ordinary closure, one rank-decreasing target keep step, and terminal
-source blame. Function frames remain at the whole-application root, while
-target instantiation uses
-`NuImprecisionWorldCoherentRightOneStepQuotientDownNuAllocationResidualAccDef`.
-Its keep-only target-origin trace stops at an explicit pending `inst` head,
-and its conclusion crosses the framed `β-inst` step to the pre-bind runtime
-`ν`. The boundary preserves the paired-down and closing evidence and the
-hidden universal permutation. Do not enlarge the core plan into a dispatcher
-for those whole-term joins or replace the allocation residual with an
+Keep-only quotient-down traces are not a semantic administration boundary:
+they cannot reconstruct the quotient derivation, closing pair, composition
+square, and reduction-closed compatibility. The unused residual-plan and
+opaque allocation definitions have therefore been deleted. The still-used
+value-residual adapter may remain only until its one-step caller is connected
+to the typed target pending worker; do not replace the allocation path with an
 ordinary QTI edge.
 
 The direct target-allocation leaf lives under
@@ -305,8 +300,8 @@ widening pair.  Its lower-level store-change cast transport lives in
 `CoercionProperties`.  This keeps the small paired-widening leaf out of the
 simulation-core dependency cone.  Keep the two
 ordinary/generated down-up drivers out of that support module: their
-quotient-`inst` residual is the semantic hole represented by
-`WorldCoherentQuotientInstCatchupᵀ`, not mechanical transport support.
+quotient-`inst` residual is a semantic normalization problem, not mechanical
+transport support.
 
 Relational-store lineage has its own similarly small dependency cut.
 `NuImprecisionRelStoreEmbeddingDef` is the sole definition site for
@@ -405,96 +400,34 @@ ordinary and runtime-sibling value-prefix consumers to the selected
 up-to-reduction quotient worker, then delete the two remaining
 `NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability files.
 
-`WorldCoherentQuotientInstCatchupᵀ` is an independent semantic capability,
-not a consequence of `WorldCoherentSourceRuntimeCatchupᵀ`.  Source-runtime
-handlers start from an ordinary relation, whereas the quotient-`inst` leaf
-must handle the permutation directly.  Generic quotient-to-ordinary
-alignment is false: `NuImprecisionQuotientToOrdinaryCounterexample` gives an
-empty-context adjacent-`∀` swap that is quotient-related but not ordinarily
-related.  The missing hard boundary is therefore compositional catch-up over
-the `≈∀` derivation, using the specialized swap/allocation machinery in its
-swap case.
+The former quotient-instantiation path provider cone had no semantic consumer:
+only `NuDGGStrictSpine` and a Makefile experiment kept its 37 modules on the
+regression surface.  It has been deleted.  Do not rebuild a second normalized
+path framework around the two remaining temporary final-catch-up capability
+types.
 
-`NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef` now exposes
-the two arbitrary `≈∀` derivations and their ordinary representative relation
-without claiming an ordinary relation between physical quotient endpoints.
-The canonical `NuImprecisionWorldCoherentQuotientInstCatchupProof` strictly
-reduces the existing contract to that direct capability.  Its canonical
-`Lemma` must remain absent until the representative path semantics are
-implemented.  The checked
-`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof`
-already normalizes `sym`, `trans`, congruence, and primitive swaps to oriented
-finite paths.  The strict
-`NuImprecisionWorldCoherentQuotientRepresentativeInstPathCasesProof` then
-splits that path capability into three whole contracts: identity paths, one
-leading source-path step, and one leading target-path step after the source
-path is exhausted.  Their `*IdentityCatchupDef`, `*SourceStepCatchupDef`, and
-`*TargetStepCatchupDef` files are the current parallel work packages.  Keep
-their semantic implementations separate; the checked case assembly will join
-them without a permissive dispatcher.
+Their replacement is one source-oriented, accessibility-ranked quotient-close
+terminalization worker over a reconstructed live
+`closeᵀ (paired-downᵀ ...)` relation.  Its conclusion must be parameterized by
+the caller's continuation: the ordinary value-prefix caller supplies the
+trivial continuation, while the runtime-sibling caller preserves its sibling
+relation at the exact final world.  This worker is distinct from the
+target-oriented pending-cast worker.
 
-The identity package has a further strict boundary.  Its checked
-`*IdentityCatchupProof` pattern-matches the source `inst` widening, which
-forces the representative source endpoint to be universal, and delegates to
-`*IdentityViewCatchupDef` with `AllImprecisionView`.  The remaining identity
-semantics therefore has exactly the paired `∀/∀` and source-only non-vacuous
-`ν` cases, frozen separately by `*IdentityPairedCatchupDef` and
-`*IdentitySourceCatchupDef`.  The checked `*IdentityViewCatchupProof` joins
-those two leaves.  This refinement retains the original self-permutation
-witnesses and the quotiented downcast relation; it does not introduce the
-false ordinary relation between physical quotient endpoints.
+Target allocation under a closing `inst` needs a right-oriented typed path
+view.  It must preserve the quotient derivation, the closing pair, the
+composition square, compatibility, and the normalized target permutation
+path across `bind`.  A path-aware accessibility decrease is part of the
+contract; an opaque keep-only reduction trace cannot reconstruct these
+logical witnesses.
 
-Each identity view is now split once more by the actual quotient-down
-constructor.  The checked `*IdentityPairedCatchupProof` and
-`*IdentitySourceCatchupProof` distinguish ordinary `down⊑downᵀ` from
-generated `gen-down⊑gen-downᵀ`, exposing the inner ordinary relation and
-both narrowing derivations.  The four identity work packages are therefore
-paired/source-only × ordinary/generated downcast.  In both
-source-only packages, `NonVar E`, `occurs zero E ≡ true`, and the
-lifted one-sided body relation are explicit inputs.  Although `NonVar`
-includes base and `★`, their occurrence premise is impossible; do not add a
-vacuous source-`ν` branch or weaken away that premise when proving these
-leaves.
-
-The ordinary-down packages now have checked partial proofs.  Their
-identity-only quotient-widening clauses use `NuCastImprecision` to embed
-narrowing and widening under sparse `NuStore.StoreWf`, reconstruct the exact
-ordinary relation needed by source `ν ★` allocation, and prepend `β-inst`.
-The source-only proof constructs `ν safe occ r` explicitly, so the
-non-vacuity condition participates in the proof.  Each general-cast
-quotient-widening clause is frozen as a separate hard contract because its
-mode may require ambient variable-to-star compatibility not exposed by the
-outer precision index.
-
-The generated-down packages now also have checked higher-order proofs.  They
-first invoke the ordinary value-prefix catch-up capability on the inner
-`V ⊑ V′` relation and then reapply the whole quotient down/up frame through
-terminal quotient catch-up.  This exposes their genuine back-edge into the
-value-prefix/final-quotient mutual SCC instead of treating each generated leaf
-as an unrelated semantic axiom.  In the source-only proof, the reconstructed
-quotient index is exactly `quotientᵖ ≈∀-refl (ν safe occ r) ≈∀-refl`;
-both `NonVar E` and `occurs zero E ≡ true` are therefore used, and the
-non-vacuity restriction remains enforced.
-
-`NuImprecisionWorldCoherentQuotientInstCatchupLemma` now supplies the checked
-top assembly.  Given exact source-`ν ★` allocation, the two general-cast
-ordinary-down residuals, the oriented source/target permutation-step
-residuals, and the value-prefix/final-quotient SCC capabilities, it reaches
-the original `WorldCoherentQuotientInstCatchupᵀ` contract through the complete
-path and quotient stack.  The two generated-down inhabitants are built inside
-this assembly, so their eventual fit and their recursive dependencies are
-both checked rather than left implicit.
-
-Give each source handler its own genuine whole contract, but keep the
-canonical inhabitants for the genuinely recursive handlers in one mutual
-assembly.  In particular, source `inst` catch-up and `ν ★` allocation must not
-be assembled as independent closed lemmas merely because their `Def` and
-higher-order `Proof` modules check separately.  Put the complete quotient join in
-`NuImprecisionWorldCoherentQuotientFinalCatchup*`, and the shared ordinary/gen
-quotient-`inst` final-state leaf in
-`NuImprecisionWorldCoherentQuotientInstCatchup*`.  The checked prefix `Proof`
-handles all target frames and ordinary terminal cases structurally and takes
-only the two complete contracts as higher-order arguments.
+For non-instantiating active target casts, keep the original quotient evidence
+frozen while the target administrative spine normalizes.  The desired semantic
+elimination theorem yields the final ordinary term-imprecision edge only after
+normalization.  Identity and unseal require quotient-specific elimination and
+seal cancellation.  Sequence must not demand an intermediate ordinary edge or
+factor the composition quartet at every component, because such an
+intermediate index need not exist.
 
 The source-runtime record is an assembly boundary, not permission to assume
 its fields recursively.  Its current proof decomposition is:

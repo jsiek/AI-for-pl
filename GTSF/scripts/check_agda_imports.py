@@ -51,7 +51,6 @@ KNOWN_INCOMPLETE_PROOF_MODULES = (
 INTENDED_STANDALONE_ROOT_MODULES = (
     *STRICT_DGG_ROOT_MODULES,
     "proof.Compilation.CompileCanonicalDownCompatibilityExperiment",
-    "proof.Compilation.CompileCanonicalPendingCloseExperiment",
     "proof.Compilation.CompileDynamicApplicationTest",
     "proof.Compilation.GenSafeMismatchBlameRegression",
     "proof.Core.Permutation.ForallPermutationTest",

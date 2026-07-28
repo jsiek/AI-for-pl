@@ -106,7 +106,6 @@ names. They may be edited only to migrate or delete those dependencies:
 - `NuImprecisionQuotientFunctionPairedNarrowingApplicationDef.agda`;
 - `NuImprecisionQuotientFunctionPairedNarrowingApplicationProof.agda`;
 - `NuImprecisionQuotientFunctionPairedNarrowingApplicationLemma.agda`;
-- `NuImprecisionQuotientInstPathProperties.agda`;
 - `NuImprecisionQuotientInstView.agda`;
 - `NuImprecisionQuotientWideningTransport.agda`.
 
@@ -986,12 +985,12 @@ impossible. Source-only variables contradict context exclusivity, and the
 base, function, universal, and `gen` cases reduce to shape inversion plus
 canonical target-tag cancellation.
 
-The constructor-form recursive boundary is permanently the
-`QuotientDownResidualCorePlan`: ordinary bottom, ordinary opening with a
-complete target spine, one rank-decreasing keep step, or terminal source
-blame. Function frames stay at the whole-application root. Allocation is a
-separate world-changing residual, not another case forced into this
-keep-only core.
+The earlier constructor-form `QuotientDownResidualCorePlan` separated
+ordinary bottom, ordinary opening, keep steps, and source blame, but it could
+not reconstruct the current logical quartet. Its zero-consumer definition and
+the corresponding opaque allocation residual are deleted. Function frames
+still stay at the whole-application root, while allocation crosses the
+world-changing typed target path rather than an operational trace.
 
 The attempted two-way allocation classifier is refuted by the checked
 round-trip example with source quotient type `∀X. ∀Y. X ⇒ Y`, target quotient
@@ -999,26 +998,13 @@ type `∀Y. ∀X. X ⇒ Y`, and common outside type `∀X. X ⇒ ★`. The targe
 widening instantiates while the source is still framed by two inert casts.
 Ordinary opening would require the impossible edge
 `∀X. X ⇒ ★ ⊑ ∀Y. ∀X. X ⇒ Y`; bare-`Λ` target-instantiation creation also
-does not apply to the quotient-framed source. The next exact boundary is
-therefore a third operational quotient-instantiation residual retaining the
-paired-down/closing evidence and universal permutation. It is not a QTI
+does not apply to the quotient-framed source. An earlier opaque-trace
+allocation residual recorded the reduction but could not reconstruct the
+paired-down/closing evidence, composition square, compatibility, and
+universal permutation after `bind`, so its zero-consumer definition is
+deleted. The replacement must be a right-oriented typed target-instantiation
+path view with a path-aware accessibility decrease. It is not a QTI
 constructor or a compatibility broadening.
-
-That boundary is now formalized by
-`WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ`. It keeps the
-source double cast as a value, retains both quotient composition squares and
-compatibility witnesses, and records a keep-only trace from the original
-target double cast to an explicit pending `inst` head. Its conclusion crosses
-the framed `β-inst` step and stops at the pre-bind runtime `ν`. The round-trip
-regression inhabits this contract without an ordinary pre-instantiation edge.
-The proof still needs a quotient-specific post-allocation prefix that
-transports the physical permutation and quotient indices through target
-`bind`, then rebuilds lineage, world coherence, and assumption-membership
-uniqueness. The residual exposes the ordinary post-instantiation index and
-its typed outer `TargetAdministrationSpine`; the active `inst` is deliberately
-not part of that spine because the ordinary pre-instantiation edge is false
-in the permutation example. The remaining prefix must also carry the
-proof-relevant target representative and normalized `∀`-permutation path.
 
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
@@ -1033,15 +1019,14 @@ strict safety roots are safe, the one known-incomplete Proof module remains
 explicitly inventoried, and every other strict-looking Proof has a transitive
 Lemma consumer or an unassembled-proof spine import.
 
-The compiler-origin pending-close experiment also passes all three decisive
-checks. The actual polymorphic-identity/dynamic-function plans inhabit the
-boundary, compatible cases close through live `closeᵀ`, and operational final
-values feed `WorldCoherentQuotientFinalCatchupᵀ` without widening
-compatibility. It proves only a top-level pending node with an ordinary-QTI
-inner premise. A root sum of ordinary QTI and that node is not compositional:
-pending sites may occur under lambdas, type lambdas, `ν`, or either
-application child. The compiler needs a recursive syntax-directed relation,
-not a root alternative.
+The deleted compiler-origin pending-close experiment passed three decisive
+checks before retirement: actual polymorphic-identity/dynamic-function plans
+inhabited its boundary, compatible cases closed through live `closeᵀ`, and
+operational final values needed no widening compatibility. Its negative
+conclusion remains: a top-level pending node with an ordinary-QTI inner premise
+is not compositional under lambdas, type lambdas, `ν`, or either application
+child. The compiler needs a recursive syntax-directed relation, not that
+retired root alternative.
 
 The strict canonical-down experiment also refutes universal
 `QuotientNarrowingEliminationCompatible` for pending compiler casts. For
@@ -1212,10 +1197,11 @@ folded into the ordinary tail: an `inst` branch takes its reduction and calls
 the allocation-path leaf, while other active cases preserve or update the
 quartet structurally. The Def checks strictly in 6.27 seconds.
 
-`QuotientDownResidualCorePlan` and its opaque-trace allocation residual are
-not allowed to manufacture the current logical quartet. After the typed
-worker is proved, keep at most a thin one-step adapter if a live caller still
-needs it; otherwise delete that residual surface.
+`QuotientDownResidualCorePlan` and its opaque-trace allocation residual could
+not manufacture the current logical quartet and had zero importers once the
+typed worker boundary existed, so both definitions are deleted. Keep at most
+the still-used thin value-residual adapter until its one-step caller is
+connected to the typed worker.
 
 The typed worker's inert layer is now proved strictly. It decides inertness of
 the active target cast, constructs `closeᵀ` from the current quartet in the
@@ -1235,12 +1221,21 @@ contract still needs its strict inhabitant.
 
 The 2,090-line `NuImprecisionQuotientValue.agda` retirement is complete.
 After removing the historical InstFunTag/classification/final-provider block
-from `NuDGGStrictSpine`, a focused strict check passed and the 21-file
-provider cone was deleted. No public DGG, terminal strict spine, or
-unassembled-proof spine reached that cone. The two
+from `NuDGGStrictSpine`, the source/import audit confirmed that no public DGG,
+terminal strict spine, or unassembled-proof spine reached that 21-file cone,
+so it was deleted. A fresh strict-spine check now correctly reaches the
+independent live `CompileTermImprecision` failure at retired `up⊑upᵀ`; an
+earlier cached 26-second pass did not expose that invalidated consumer. The two
 `NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability types remain
 temporarily because live prefix consumers still take them as parameters;
 their unused canonical providers are gone.
+
+The separate 37-file quotient-instantiation path/provider experiment is also
+deleted. It had no public DGG or terminal consumer: the strict inventory spine
+and one Makefile check were its only roots. The two temporary final-catch-up
+capability types have exactly two live semantic consumers, the ordinary and
+runtime-sibling value-prefix proofs. Migrate both to one source-oriented ranked
+quotient-close terminalization worker, then delete those capability types.
 
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete

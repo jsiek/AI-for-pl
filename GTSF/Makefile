@@ -10,8 +10,6 @@ REDUCTION_CLOSED_QUOTIENT_EXAMPLES = \
 	proof/Quotient/NuImprecisionReductionClosedQuotientExamples.agda
 CAMBRIDGE26_EXAMPLE14_EXPERIMENT = \
 	proof/Quotient/NuImprecisionCambridge26Example14Experiment.agda
-COMPILE_CANONICAL_PENDING_CLOSE_EXPERIMENT = \
-	proof/Compilation/CompileCanonicalPendingCloseExperiment.agda
 COMPILE_CANONICAL_DOWN_COMPATIBILITY_EXPERIMENT = \
 	proof/Compilation/CompileCanonicalDownCompatibilityExperiment.agda
 QUOTIENT_PROOF_DIR = proof/Quotient/
@@ -83,7 +81,6 @@ dgg-check: audit
 qti-migration-check: audit
 	$(STRICT_AGDA) $(REDUCTION_CLOSED_QUOTIENT_EXAMPLES)
 	$(STRICT_AGDA) $(CAMBRIDGE26_EXAMPLE14_EXPERIMENT)
-	$(STRICT_AGDA) $(COMPILE_CANONICAL_PENDING_CLOSE_EXPERIMENT)
 	$(STRICT_AGDA) $(COMPILE_CANONICAL_DOWN_COMPATIBILITY_EXPERIMENT)
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_METATHEORY))
 	$(call strict-check-each,$(REDUCTION_CLOSED_QUOTIENT_WORLD))

@@ -72,7 +72,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ

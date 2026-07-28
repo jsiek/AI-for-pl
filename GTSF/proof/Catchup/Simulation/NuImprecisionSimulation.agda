@@ -14,6 +14,8 @@ module proof.Catchup.Simulation.NuImprecisionSimulation where
 --     while target-right prefix lifting lives under
 --     `proof.Right.AllocationRuntime`.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (true)
@@ -1711,7 +1713,7 @@ crossed-double-prefix-bodyᵀ :
     ⦂ ⇑ᵗ (⇑ᵗ A) ⊑ ⇑ᵗ (⇑ᵗ B)
     ∶ ⊑-crossed-double-lift∀∀ᵢ p
 crossed-double-prefix-bodyᵀ liftρ₁ liftρ₂ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
+  term-imprecision-store-prefixᵀ prefix body
     (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
       noLL (nu-term-imprecision-source-typing body))
     (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
@@ -3028,7 +3030,7 @@ left-catchup-all-α-Λᵀ
       (left-silent-invariant refl refl) (inj₁ (vW , noW)))
   where
     allocated-body =
-      allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
+      term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
         (term-weaken {Δ = suc _} {Δ′ = suc _}
           {Σ = leftStoreⁱ ρᵇ}
           {Σ′ = (zero , ⇑ᵗ A) ∷ leftStoreⁱ ρᵇ}
@@ -3112,7 +3114,7 @@ left-catchup-indexed-all-α-Λᵀ
       replace-right-rename-id-right-bodyᵢ
 
   allocated-body =
-    allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
+    term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
         {Σ = leftStoreⁱ ρᵇ}
         {Σ′ = (zero , ⇑ᵗ A) ∷ leftStoreⁱ ρᵇ}
@@ -3195,7 +3197,7 @@ left-catchup-indexed-prefix-α-Λᵀ
       replace-right-rename-id-right-bodyᵢ
 
   allocated-body =
-    allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
+    term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
         {Σ = leftStoreⁱ ρᵇ}
         {Σ′ = (zero , ⇑ᵗ Aν) ∷ leftStoreⁱ ρᵇ}
@@ -3208,7 +3210,7 @@ left-catchup-indexed-prefix-α-Λᵀ
       liftρᵃ liftρᵇ noW noV′ allocated-body
 
   prefixed-body =
-    allocation-prefixᵀ prefix canonical-body
+    term-imprecision-store-prefixᵀ prefix canonical-body
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         noW (nu-term-imprecision-source-typing canonical-body))
       (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
@@ -3285,7 +3287,7 @@ left-catchup-indexed-all-prefix-α-Λᵀ
       replace-right-rename-id-right-bodyᵢ
 
   allocated-body =
-    allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
+    term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) W⊑V′
       (term-weaken {Δ = suc Δᴸ} {Δ′ = suc Δᴸ}
         {Σ = leftStoreⁱ ρᵇ}
         {Σ′ = (zero , ⇑ᵗ A) ∷ leftStoreⁱ ρᵇ}
@@ -3298,7 +3300,7 @@ left-catchup-indexed-all-prefix-α-Λᵀ
       liftρᵃ liftρᵇ noW noV′ allocated-body
 
   prefixed-body =
-    allocation-prefixᵀ prefix canonical-body
+    term-imprecision-store-prefixᵀ prefix canonical-body
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         noW (nu-term-imprecision-source-typing canonical-body))
       (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
@@ -3352,7 +3354,7 @@ left-allocated-bulletᵀ
     {Aν = Aν} {V = V} {V′ = V′} {r = r}
     vV noV hAν liftρ V⊑V′ =
   α⊑ᵀ vV noV hAν liftρ lift-left-ctx-[] V⊑V′
-    left-bullet-typing right-typing
+    prefix-reflⁱ left-bullet-typing right-typing
   where
     left-bullet-typing =
       subst

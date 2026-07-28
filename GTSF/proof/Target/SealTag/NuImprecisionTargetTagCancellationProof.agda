@@ -75,8 +75,7 @@ open import QuotientImprecisionCompatibility using
   ; compatible-through-non-function-representativesᴿ
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; cast⊒⊑ᵀ
+  ( cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
   ; conv↑⊑ᵀ
@@ -923,16 +922,6 @@ target-tag-cancellation-proofᵀ exclusive unique gH
   cast⊑⊑ᵀ mode seal★ u⊑ ordinary requested u-shape
     (quotient-function-tag-right-composition
       unique outer-index requested _ ordinary-index square)
-target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
-    (allocation-prefixᵀ prefix inner V⊢ Wtag⊢) requested
-    with target-tag-cancellation-proofᵀ exclusive unique
-      gH vV noV vW inner requested
-target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
-    (allocation-prefixᵀ prefix inner V⊢ Wtag⊢) requested
-    | refl , canceled =
-  refl ,
-  allocation-prefixᵀ prefix canceled V⊢
-    (target-tag-typing⁻¹ Wtag⊢)
 target-tag-cancellation-proofᵀ exclusive unique gH vV noV vW
     (⊑cast⊑ᵀ {p = inner-index} mode seal★
       (C.cast-tag hG gG ok , NW.tag gG′) inner old-index

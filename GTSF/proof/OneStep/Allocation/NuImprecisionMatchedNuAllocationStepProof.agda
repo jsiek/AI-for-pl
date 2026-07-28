@@ -10,6 +10,8 @@ module
 --   * Contains no dispatcher, postulate, hole, permissive option, or legacy
 --     allocation or broad simulation import.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Conversion using (RevealConversion)
 open import ConversionIndexCompatibility using
@@ -143,7 +145,7 @@ private
       ⊢ᴺ ⇑ᵗᵐ L ⊑ ⇑ᵗᵐ L′ ⦂ ⇑ᵗ A ⊑ ⇑ᵗ B
         ∶ ⊑-lift∀ᵢ p
   matched-lift-prefix-bodyᵀ liftρ prefix noL noL′ L⊑L′ =
-    allocation-prefixᵀ prefix body
+    term-imprecision-store-prefixᵀ prefix body
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         noL↑ (nu-term-imprecision-source-typing body))
       (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
@@ -417,7 +419,7 @@ private
       right-reveal
       replace
       (α⊑αᵀ vN noN vN′ noN′ A⇑⊑A′⇑ liftρ lift-ctx-[]
-        N⊑N′ left-bullet-typing right-bullet-typing)
+        N⊑N′ prefix-reflⁱ left-bullet-typing right-bullet-typing)
     where
     left-reveal =
       subst

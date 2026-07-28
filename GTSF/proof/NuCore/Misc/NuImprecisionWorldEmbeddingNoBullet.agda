@@ -37,8 +37,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; blame⊑ᵀ
+  ( blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -82,7 +81,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
   ; embedding-context
   ; left-embedding-inverse
-  ; rel-world-allocation-prefix-embedᵀ
   ; rel-world-blame-embedᵀ
   ; rel-world-cast⊒⊑-embedᵀ
   ; rel-world-cast⊑⊑-embedᵀ
@@ -270,15 +268,12 @@ mutual
         (store-embedding emb)
         rel-ctx-rename-[]
   rel-world-embed-no•ᵀ emb
-      (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ L⊑L′ L⊢ L′⊢)
+      (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ L⊑L′
+        prefix L⊢ L′⊢)
       () noM′
   rel-world-embed-no•ᵀ emb
-      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢) () noN′
-  rel-world-embed-no•ᵀ emb
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM noM′ =
-    rel-world-allocation-prefix-embedᵀ emb prefix
-      (λ emb₀ → rel-world-embed-no•ᵀ emb₀ M⊑M′ noM noM′)
-      noM noM′ M⊢ M′⊢
+      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ prefix L⊢ N′⊢)
+      () noN′
   rel-world-embed-no•ᵀ emb
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
         liftρ liftγ N⊑N′ replace)

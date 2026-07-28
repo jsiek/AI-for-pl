@@ -9,6 +9,8 @@ module
 --   * Contains no coercion algebra, recursive measure, postulate, hole, or
 --     permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -36,8 +38,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma using
   (assumption-membership-unique→precision-index-unique)
@@ -226,7 +227,7 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
       (nu-term-imprecision-target-typing function-related)
 
   function-related⁺ =
-    allocation-prefixᵀ prefix function-related
+    term-imprecision-store-prefixᵀ prefix function-related
       source-function⊢⁺ target-function⊢⁺
 
   framed-indexed =

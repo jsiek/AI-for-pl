@@ -8,6 +8,8 @@ module proof.Substitution.Parallel.NuImprecisionParallelTermSubstitutionProof wh
 --   * Contains no postulate, hole, catch-all, termination pragma, or
 --     permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Nat.Properties using (≤-refl)
@@ -45,7 +47,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊑⊑ᵀ
   ; cast⊒⊑ᵀ
@@ -238,7 +239,7 @@ mutual
                   (forget
                     (embedded-creation-target-typingᴱ embedded)))
                 τ′ =
-    allocation-prefixᵀ prefix
+    term-imprecision-store-prefixᵀ prefix
       (target-instantiationᵀ embedded)
       (term-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion prefix)
@@ -259,17 +260,12 @@ mutual
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix () noN′
-      (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ body L⊢ L′⊢)
+      (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ body
+        allocation-prefix L⊢ L′⊢)
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix () noN′
-      (α⊑ᵀ vL noL hA liftρ liftγ body L⊢ N′⊢)
-  quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame prefix noN noN′
-      (allocation-prefixᵀ inner-prefix body N⊢ N′⊢) =
-    quotiented-parallel-term-substitution-framed-proofᵀ
-      environment frame
-      (store-imp-prefix-transⁱ inner-prefix prefix)
-      noN noN′ body
+      (α⊑ᵀ vL noL hA liftρ liftγ body
+        allocation-prefix L⊢ N′⊢)
 
   quotiented-parallel-term-substitution-framed-proofᵀ
       environment frame prefix (no•-ν noN) (no•-ν noN′)

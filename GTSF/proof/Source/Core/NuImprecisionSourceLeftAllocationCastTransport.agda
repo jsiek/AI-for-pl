@@ -7,6 +7,8 @@ module proof.Source.Core.NuImprecisionSourceLeftAllocationCastTransport where
 --   * Depends on focused cast, typing-preservation, and term-imprecision
 --     owners; intentionally avoids the broad simulation modules.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Data.List using (_∷_)
 open import Data.List.Relation.Unary.Any using (there)
@@ -38,8 +40,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import NuTerms using (No•)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
@@ -100,7 +101,7 @@ allocated-left-relationᵀ :
     store-left zero Aν hAν ∷ ρ′ ∣ γ′
     ⊢ᴺ M ⊑ M′ ⦂ B ⊑ B′ ∶ p
 allocated-left-relationᵀ hAν liftρ noM M⊑M′ =
-  allocation-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) M⊑M′
+  term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefix-reflⁱ) M⊑M′
     (term-weaken {Δ′ = _} {Σ′ = _} ≤-refl StoreIncl-drop noM
       (nu-term-imprecision-source-typing M⊑M′))
     (nu-term-imprecision-target-typing M⊑M′)

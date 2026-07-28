@@ -13,8 +13,9 @@ module QuotientedTermImprecision where
 --     physical store order need not coincide across permuted allocations.
 --   * Factors runtime-bullet instantiation from single-name reveal/conceal
 --     conversions and paired conversion imprecision.
---   * Uses one proof-only prefix-extension rule for matched, one-sided, and
---     crossed allocation states.
+--   * Retains canonical allocation-store lineage only in runtime-bullet and
+--     target-instantiation residuals; general store-prefix weakening is
+--     admissible rather than a term-imprecision constructor.
 --   * Relates the terminal result of target-only `inst` allocation through
 --     composable embedded creation evidence with a canonical transported
 --     imprecision index.
@@ -332,7 +333,7 @@ mutual
       Ψ ∣ Δᴸ′ ∣ Δᴿ′ ∣ ρ′ ∣ γ′
         ⊢ᴺ Λ V ⊑ V′ ⟨ c′ ⟩ ⦂ `∀ A ⊑ A′ ∶ p
 
-    α⊑αᵀ : ∀ {ρ′ γ′ L L′ A B C D p}
+    α⊑αᵀ : ∀ {ρ′ ρ⁺ γ′ L L′ A B C D p}
       → Value L
       → No• L
       → Value L′
@@ -344,24 +345,23 @@ mutual
       → LiftCtxⁱ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ L ⊑ L′ ⦂ `∀ C ⊑ `∀ D ∶ ∀ⁱ p
+      → StoreImpPrefix
+          (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
+            A⇑⊑B⇑ ∷ ρ′)
+          ρ⁺
       → suc Δᴸ
-          ∣ leftStoreⁱ
-              (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
-                A⇑⊑B⇑ ∷ ρ′)
+          ∣ leftStoreⁱ ρ⁺
           ∣ leftCtxⁱ γ′ ⊢ (⇑ᵗᵐ L) • ⦂ C
       → suc Δᴿ
-          ∣ rightStoreⁱ
-              (store-matched zero (⇑ᵗ A) zero (⇑ᵗ B)
-                A⇑⊑B⇑ ∷ ρ′)
+          ∣ rightStoreⁱ ρ⁺
           ∣ rightCtxⁱ γ′ ⊢ (⇑ᵗᵐ L′) • ⦂ D
         ------------------------------------------------------------
-      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) ∣ suc Δᴸ ∣ suc Δᴿ ∣
-          store-matched zero (⇑ᵗ A) zero (⇑ᵗ B) A⇑⊑B⇑ ∷ ρ′
-          ∣ γ′
+      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+          ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ γ′
           ⊢ᴺ (⇑ᵗᵐ L) • ⊑ (⇑ᵗᵐ L′) • ⦂ C ⊑ D ∶ p
 
     α⊑ᵀ :
-        ∀ {ρ′ γ′ L N′ A B′ C p occ}
+        ∀ {ρ′ ρ⁺ γ′ L N′ A B′ C p occ}
       → {{safe : NonVar C}}
       → Value L
       → No• L
@@ -370,26 +370,19 @@ mutual
       → LiftLeftCtxⁱ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) γ γ′
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺ L ⊑ N′ ⦂ `∀ C ⊑ B′ ∶ ν safe occ p
+      → StoreImpPrefix
+          (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+          ρ⁺
       → suc Δᴸ
-          ∣ leftStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+          ∣ leftStoreⁱ ρ⁺
           ∣ leftCtxⁱ γ′ ⊢ (⇑ᵗᵐ L) • ⦂ C
       → Δᴿ
-          ∣ rightStoreⁱ (store-left zero (⇑ᵗ A) h⇑A ∷ ρ′)
+          ∣ rightStoreⁱ ρ⁺
           ∣ rightCtxⁱ γ′ ⊢ N′ ⦂ B′
         ------------------------------------------------------------
-      → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ∣ suc Δᴸ ∣ Δᴿ ∣
-          store-left zero (⇑ᵗ A) h⇑A ∷ ρ′ ∣ γ′
+      → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+          ∣ suc Δᴸ ∣ Δᴿ ∣ ρ⁺ ∣ γ′
           ⊢ᴺ (⇑ᵗᵐ L) • ⊑ N′ ⦂ C ⊑ B′ ∶ p
-
-    allocation-prefixᵀ : ∀ {ρ₀ M M′ A B p}
-      → StoreImpPrefix ρ₀ ρ
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ γ
-          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p
-      → Δᴸ ∣ leftStoreⁱ ρ ∣ leftCtxⁱ γ ⊢ M ⦂ A
-      → Δᴿ ∣ rightStoreⁱ ρ ∣ rightCtxⁱ γ ⊢ M′ ⦂ B
-        ------------------------------------------------------------
-      → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-          ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p
 
     ν⊑νᵀ :
         ∀ {ρ′ γ′ A A′ B B′ C C′ N N′ p q s s′ μ μ′}

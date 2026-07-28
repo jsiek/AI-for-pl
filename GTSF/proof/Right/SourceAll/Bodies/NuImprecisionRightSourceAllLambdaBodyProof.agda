@@ -32,8 +32,7 @@ open import NuTerms using
   ; $
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ⊑cast⊒ᵀ
+  ( ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -42,7 +41,6 @@ open import
   proof.Right.SourceAll.ClosingValues.NuImprecisionRightSourceAllClosingCasesDef
   using
   ( WorldCoherentRightSourceAllClosingCases
-  ; sourceAllAllocationPrefixCase
   ; sourceAllResidualCases
   ; sourceAllTargetConcealFrameCase
   ; sourceAllTargetNarrowFrameCase
@@ -72,13 +70,6 @@ world-coherent-right-source-all-lambda-body-proofᵀ
     (ok-no no•-$) noN liftρ liftγ rel =
   sourceAllTerminalCase cases prefix coherent exclusive unique wfR
     (ƛ _) (no•-ƛ noN) ($ _) no•-$ liftρ liftγ rel
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    ok-cast@(ok-no (no•-⟨⟩ noN′)) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR ok-cast
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
 world-coherent-right-source-all-lambda-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-no (no•-⟨⟩ noN′)) noN liftρ liftγ
@@ -115,86 +106,16 @@ world-coherent-right-source-all-lambda-body-proofᵀ
     (ƛ _) (no•-ƛ noN) liftρ liftγ rel
 world-coherent-right-source-all-lambda-body-proofᵀ
     cases prefix coherent exclusive unique wfR
-    okVar@(ok-no no•-`) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okVar
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okApp@(ok-no (no•-· noL′ noM′)) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okApp
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okΛ@(ok-no (no•-Λ noN′)) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okΛ
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okPlus@(ok-no (no•-⊕ noL′ noM′)) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okPlus
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okBlame@(ok-no no•-blame) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okBlame
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
     ok•@(ok-• vV′ noV′) noN liftρ liftγ rel =
   sourceAllTargetBullet (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok•
     (ƛ _) (no•-ƛ noN) liftρ liftγ rel
 world-coherent-right-source-all-lambda-body-proofᵀ
     cases prefix coherent exclusive unique wfR
-    okApp@(ok-·₁ okL′ noM′) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okApp
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okApp@(ok-·₂ vL′ noL′ okM′) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okApp
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
     okν@(ok-ν okN′) noN liftρ liftγ rel =
   sourceAllTargetAllocation (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR okν
     (ƛ _) (no•-ƛ noN) liftρ liftγ rel
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okPlus@(ok-⊕₁ okL′ noM′) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okPlus
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okPlus@(ok-⊕₂ vL′ noL′ okM′) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okPlus
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
-world-coherent-right-source-all-lambda-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    ok-cast@(ok-⟨⟩ okN′) noN liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner N⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR ok-cast
-    (ƛ _) (no•-ƛ noN) liftρ liftγ prefix′ inner
 world-coherent-right-source-all-lambda-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-⟨⟩ okN′) noN liftρ liftγ

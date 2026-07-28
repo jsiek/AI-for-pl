@@ -58,7 +58,6 @@ open import PairedWideningCompatibility using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -223,13 +222,6 @@ world-coherent-right-one-step-application-function-cast-beta-function-cast-value
       {M = (V ⟨ c C.↦ d ⟩) · M}
       {N′ = (V′ · (W′ ⟨ e ⟩)) ⟨ f ⟩}
       {χ = keep} {ρ = ρ} pB
-  at-prefix relation-prefix coherent exclusive unique wfL okM okM′
-      (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-      argument-related vV vM vV′ vW′ rank =
-    at-prefix
-      (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-      coherent exclusive unique wfL okM okM′ inner
-      argument-related vV vM vV′ vW′ rank
   at-prefix
       {pA = pA} {pB = pB}
       relation-prefix coherent exclusive unique wfL okM okM′

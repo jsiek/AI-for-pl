@@ -5,8 +5,8 @@ module
 -- File Charter:
 --   * Projects endpoint typing, value, and no-bullet evidence from the
 --     composable embedded target-instantiation creation residual.
---   * Proves each property by structural recursion over exact creation and
---     composed world embeddings.
+--   * Proves each property by structural recursion over exact creation,
+--     composed world embeddings, and allocation-prefix lineage.
 --   * Imports no term-imprecision judgment and contains no postulate, hole,
 --     permissive option, termination bypass, or catch-all clause.
 
@@ -48,6 +48,7 @@ open import
   ; embed-creationᴱ
   ; embed-creation-leftᴱ
   ; exact-creationᴱ
+  ; prefix-creationᴱ
   )
 
 
@@ -75,6 +76,9 @@ embedded-creation-source-typingᴱ
     (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
   source-typing
+embedded-creation-source-typingᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
+  source-typing
 
 
 embedded-creation-target-typingᴱ :
@@ -100,6 +104,9 @@ embedded-creation-target-typingᴱ
 embedded-creation-target-typingᴱ
     (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
+  target-typing
+embedded-creation-target-typingᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
   target-typing
 
 
@@ -129,6 +136,9 @@ embedded-creation-source-valueᴱ
       source-typing target-typing) =
   renameᵗᵐ-preserves-Value _
     (embedded-creation-source-valueᴱ embedded)
+embedded-creation-source-valueᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
+  embedded-creation-source-valueᴱ embedded
 
 
 embedded-creation-target-valueᴱ :
@@ -156,6 +166,9 @@ embedded-creation-target-valueᴱ
 embedded-creation-target-valueᴱ
     (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
+  embedded-creation-target-valueᴱ embedded
+embedded-creation-target-valueᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
   embedded-creation-target-valueᴱ embedded
 
 
@@ -185,6 +198,9 @@ embedded-creation-source-no-bulletᴱ
       source-typing target-typing) =
   renameᵗᵐ-preserves-No• _
     (embedded-creation-source-no-bulletᴱ embedded)
+embedded-creation-source-no-bulletᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
+  embedded-creation-source-no-bulletᴱ embedded
 
 
 embedded-creation-target-no-bulletᴱ :
@@ -211,6 +227,9 @@ embedded-creation-target-no-bulletᴱ
 embedded-creation-target-no-bulletᴱ
     (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
+  embedded-creation-target-no-bulletᴱ embedded
+embedded-creation-target-no-bulletᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
   embedded-creation-target-no-bulletᴱ embedded
 
 
@@ -240,4 +259,7 @@ embedded-creation-target-shapeᴱ
 embedded-creation-target-shapeᴱ
     (embed-creation-leftᴱ embedded assm hτ store-embedding
       source-typing target-typing) =
+  embedded-creation-target-shapeᴱ embedded
+embedded-creation-target-shapeᴱ
+    (prefix-creationᴱ embedded prefix source-typing target-typing) =
   embedded-creation-target-shapeᴱ embedded

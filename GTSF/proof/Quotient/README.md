@@ -58,6 +58,7 @@ The selected grammar and its general support are:
 
 The selected metatheory sources are:
 
+- `NuImprecisionReductionClosedQuotientStorePrefixExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientTypingExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientValueExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientTermContextShiftExperiment.agda`;
@@ -86,6 +87,27 @@ must not create a compatibility layer that lets old and selected term
 relations coexist indefinitely. As each result is moved into the live
 relation or a canonical proof module, remove its experimental check root and
 delete the superseded source.
+
+## Store-prefix admissibility
+
+The ordinary live and prototype judgments are now syntax directed: neither
+grammar contains a generic relational-store prefix constructor. The canonical
+live interface is the `NuImprecisionTermStorePrefixDef/Proof/Lemma` family in
+`../Store/Prefix/`; the independent prototype theorem remains in
+`NuImprecisionReductionClosedQuotientStorePrefixExperiment.agda`.
+
+Both proofs are mutual over the ordinary and quotient judgments. They keep
+the terms, endpoint types, term context, and imprecision index fixed while
+moving from `ρ₀` to `ρ⁺`, given endpoint typing in `ρ⁺`. Runtime-bullet
+constructors retain the prefix from their canonical allocation store to their
+ambient store, and embedded target-instantiation creation retains the exact
+post-allocation lineage. Applying general weakening composes that stored
+lineage; it does not add a term-relation wrapper.
+
+Consequently typing, value classification, terminal inversion, world
+embedding, context shift, and substitution reach the constructor selected by
+the endpoint syntax directly. Allocation/frame consumers call the admissible
+theorem only when an unchanged sibling must be rebuilt in an enlarged world.
 
 ## Retiring live surface
 

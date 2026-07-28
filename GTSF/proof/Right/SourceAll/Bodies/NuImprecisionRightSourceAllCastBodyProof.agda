@@ -20,8 +20,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; cast⊒⊑ᵀ
+  ( cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
   ; conv↑⊑ᵀ
@@ -43,7 +42,6 @@ open import
   proof.Right.SourceAll.ClosingValues.NuImprecisionRightSourceAllClosingCasesDef
   using
   ( WorldCoherentRightSourceAllClosingCases
-  ; sourceAllAllocationPrefixCase
   ; sourceAllResidualCases
   ; sourceAllSourceFramesCase
   ; sourceAllTargetConcealFrameCase
@@ -103,14 +101,6 @@ world-coherent-right-source-all-cast-body-proofᵀ
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
     liftρ liftγ paired widening
     source-shape target-shape square compatible
-world-coherent-right-source-all-cast-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    okN′ vM noM inert liftρ liftγ
-    (allocation-prefixᵀ prefix′ inner V⊢ N′⊢) =
-  sourceAllAllocationPrefixCase cases
-    prefix coherent exclusive unique wfR okN′
-    (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    liftρ liftγ prefix′ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okW vM noM inert liftρ liftγ

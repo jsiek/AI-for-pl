@@ -46,7 +46,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; allocation-prefixᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; κ⊑κᵀ
@@ -114,7 +113,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-rename-·ᵀ
   ; left-rename-ƛᵀ
   ; left-rename-xᵀ
-  ; left-rename-allocation-prefixᵀ
   ; left-seal★-renameⁱ
   ; left-typing-renameⁱ
   ; right-typing-left-renameⁱ
@@ -340,24 +338,10 @@ mutual
         (embedded-creation-target-typingᴱ embedded)
   left-rename-no•ᵀ-proof ins renameρ renameγ ()
       noM′ (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-        L⊑L′ L•⊢ L′•⊢)
+        L⊑L′ prefix L•⊢ L′•⊢)
   left-rename-no•ᵀ-proof ins renameρ renameγ ()
-      noM′ (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢)
-  left-rename-no•ᵀ-proof ins renameρ renameγ noM noM′
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
-    left-rename-allocation-prefixᵀ prefix renameρ
-      (λ renameρ₀ →
-        left-rename-no•ᵀ-proof ins renameρ₀ renameγ
-          noM noM′ M⊑M′)
-      source-typing target-typing
-    where
-    source-typing =
-      left-typing-renameⁱ {ψ = left-insertion-pred ins}
-        (left-insertion-inverse ins)
-        (left-insertion-cast-renamer ins) renameρ renameγ noM M⊢
-
-    target-typing =
-      right-typing-left-renameⁱ renameρ renameγ M′⊢
+      noM′
+      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ prefix L•⊢ N′⊢)
   left-rename-no•ᵀ-proof ins renameρ renameγ
       (no•-ν noN) (no•-ν noN′)
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑

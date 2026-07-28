@@ -194,14 +194,11 @@ mutual
       (embedded-creation-source-typingᴱ embedded)
   nu-term-imprecision-source-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
-        L•⊢ L′•⊢) =
+        prefix L•⊢ L′•⊢) =
     L•⊢
   nu-term-imprecision-source-typing
-      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) =
+      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ prefix L•⊢ N′⊢) =
     L•⊢
-  nu-term-imprecision-source-typing
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
-    M⊢
   nu-term-imprecision-source-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
         liftρ liftγ N⊑N′ replace) =
@@ -305,14 +302,11 @@ mutual
       (embedded-creation-target-typingᴱ embedded)
   nu-term-imprecision-target-typing
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ L⊑L′
-        L•⊢ L′•⊢) =
+        prefix L•⊢ L′•⊢) =
     L′•⊢
   nu-term-imprecision-target-typing
-      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) =
+      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ prefix L•⊢ N′⊢) =
     N′⊢
-  nu-term-imprecision-target-typing
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
-    M′⊢
   nu-term-imprecision-target-typing
       (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
         liftρ liftγ N⊑N′ replace) =

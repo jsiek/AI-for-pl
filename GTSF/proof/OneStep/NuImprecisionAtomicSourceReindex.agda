@@ -24,8 +24,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   (CtxImp)
 open import NuTerms using (Value; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; blame⊑ᵀ
+  ( blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -129,15 +128,10 @@ atomic-source-value-reindexᵀ () vV
     (target-instantiationᵀ embedded) q
 atomic-source-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢) q
+      L⊑L′ prefix L•⊢ L′•⊢) q
 atomic-source-value-reindexᵀ atom ()
     (α⊑ᵀ vL noL hA liftρ liftγ
-      L⊑M′ L•⊢ M′⊢) q
-atomic-source-value-reindexᵀ atom vV
-    (allocation-prefixᵀ prefix V⊑M′ V⊢ M′⊢) q =
-  allocation-prefixᵀ prefix
-    (atomic-source-value-reindexᵀ atom vV V⊑M′ q)
-    V⊢ M′⊢
+      L⊑M′ prefix L•⊢ M′⊢) q
 atomic-source-value-reindexᵀ atom ()
     (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ p↑ liftρ liftγ
       N⊑N′ replacement) q

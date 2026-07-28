@@ -41,7 +41,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
@@ -150,13 +149,6 @@ world-coherent-right-one-step-application-function-cast-beta-lambda-values-proof
       {M = (ƛ N) · M}
       {N′ = (V′ · (W′ ⟨ e ⟩)) ⟨ f ⟩}
       {χ = keep} {ρ = ρ} pB
-  at-prefix relation-prefix coherent exclusive unique wfL okM okM′
-      (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-      argument-related vM vV′ vW′ =
-    at-prefix
-      (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-      coherent exclusive unique wfL okM okM′
-      inner argument-related vM vV′ vW′
   at-prefix
       {pA = pA} {pB = pB}
       relation-prefix coherent exclusive unique wfL okM okM′

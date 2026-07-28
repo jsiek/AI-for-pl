@@ -10,11 +10,12 @@ module
 --     target value/no-bullet constructors, and quotiented term-imprecision
 --     frame constructors.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Data.Product using (_,_)
 open import NuTerms using (Value; _⟨_⟩; no•-⟨⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ⊑cast⊒ᵀ
+  ( ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
@@ -45,7 +46,7 @@ paired-lambda-target-closing-pending-target-materialization-proofᵀ
 paired-lambda-target-closing-pending-target-materialization-proofᵀ
     vW′ noW′ W⊑W′ (pending-prefix prefix W⊢ W′⊢ pending) =
   paired-lambda-target-closing-pending-target-materialization-proofᵀ
-    vW′ noW′ (allocation-prefixᵀ prefix W⊑W′ W⊢ W′⊢) pending
+    vW′ noW′ (term-imprecision-store-prefixᵀ prefix W⊑W′ W⊢ W′⊢) pending
 paired-lambda-target-closing-pending-target-materialization-proofᵀ
     vW′ noW′ W⊑W′
     (pending-⊑cast⊒ {r = r} inert-c′ mode′ seal★′ c′⊒ pending) =

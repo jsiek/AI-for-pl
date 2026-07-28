@@ -38,7 +38,6 @@ open import NuTerms using
   (No•; Term; Value; no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -354,23 +353,6 @@ source-seal-cancellation-prefixᵀ
     (source-seal-cancellation-target-replacement
       inner-index q)
 source-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<}
-    prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
-    with source-seal-typing⁻¹ Vseal⊢
-source-seal-cancellation-prefixᵀ
-    {p = idˣ a∈Φ α< β<}
-    prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
-    | αY∈Σ , V⊢
-    rewrite unique wfΣ
-      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
-  allocation-prefixᵀ prefix₀
-    (source-seal-cancellation-prefixᵀ
-      (prefix-transᵀ prefix₀ prefix) coh exclusive wfΣ
-      vV vW noW αX∈Σ inner q)
-    V⊢ W⊢
-source-seal-cancellation-prefixᵀ
     {p = tagˣ star∈ α<}
     prefix coh exclusive wfΣ vV vW noW αX∈Σ
     (closeᵀ
@@ -476,25 +458,6 @@ source-seal-cancellation-prefixᵀ
     (vM ⟨ inert ⟩) noW αX∈Σ
     (⊑conv↓ᵀ c′↓ Vα⊑M oldq replacement) q =
   ⊥-elim (inert-conceal-target-star-impossibleᵀ c′↓ inert)
-source-seal-cancellation-prefixᵀ
-    {p = tagˣ star∈ α<}
-    prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
-    with source-seal-typing⁻¹ Vseal⊢
-source-seal-cancellation-prefixᵀ
-    {p = tagˣ star∈ α<}
-    prefix coh exclusive wfΣ vV vW noW αX∈Σ
-    (allocation-prefixᵀ prefix₀ inner Vseal⊢ W⊢) q
-    | αY∈Σ , V⊢
-    rewrite unique wfΣ
-      (left-prefix-inclusionᵀ prefix αY∈Σ) αX∈Σ =
-  allocation-prefixᵀ prefix₀
-    (source-seal-cancellation-prefixᵀ
-      (prefix-transᵀ prefix₀ prefix) coh exclusive wfΣ
-      vV vW noW αX∈Σ inner q)
-    V⊢ W⊢
-
-
 source-seal-cancellation-proofᵀ : SourceSealCancellationᵀ
 source-seal-cancellation-proofᵀ coh exclusive wfΣ vV vW noW αX∈Σ
     Vseal⊑W q =

@@ -50,7 +50,6 @@ open import NuTerms using
 open import Primitives using (addℕ; κℕ)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  ; allocation-prefixᵀ
   ; κ⊑κᵀ
   )
 open import TermTyping using (forget)
@@ -107,9 +106,6 @@ private
     _≡_ {A = Term} ($ (κℕ m)) ($ (κℕ n))
   related-nat-constant-target-constantᵀ
       {m = n} {n = .n} κ⊑κᵀ = refl
-  related-nat-constant-target-constantᵀ
-      (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) =
-    related-nat-constant-target-constantᵀ M⊑M′
 
 
 runtime-⊕₁-viewᵀ :

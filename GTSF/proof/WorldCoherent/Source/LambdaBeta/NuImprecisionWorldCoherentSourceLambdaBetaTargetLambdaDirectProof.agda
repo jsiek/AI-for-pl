@@ -8,6 +8,8 @@ module
 --   * Uses precision-index uniqueness only to reindex the composed result.
 --   * Contains no function-cast case, postulate, hole, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -37,8 +39,7 @@ open import NuTerms using
   ; _[_]
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ƛ⊑ƛᵀ
+  ( ƛ⊑ƛᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (⊢ƛ; ⊢·)
@@ -170,11 +171,6 @@ related-lambda-bodiesᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ ctx-imp A A′ pA ∷ []
     ⊢ᴺ N ⊑ N′ ⦂ B ⊑ B′ ∶ pB
 related-lambda-bodiesᵀ (ƛ⊑ƛᵀ hA hA′ body) = body
-related-lambda-bodiesᵀ
-    (allocation-prefixᵀ prefix inner
-      (⊢ƛ hA body⊢) (⊢ƛ hA′ body′⊢)) =
-  allocation-prefixᵀ prefix (related-lambda-bodiesᵀ inner)
-    body⊢ body′⊢
 
 
 world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ :
@@ -245,7 +241,7 @@ world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ
       (nu-term-imprecision-target-typing function-related)
 
   function-related⁺ =
-    allocation-prefixᵀ prefix function-related
+    term-imprecision-store-prefixᵀ prefix function-related
       source-function⊢⁺ target-function⊢⁺
 
   framed-indexed =

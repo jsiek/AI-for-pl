@@ -8,6 +8,8 @@ module proof.Left.Core.NuImprecisionLeftLiftPrefixBodyProof where
 --   * Contains only total proof terms, with no permissive options or dispatcher
 --     logic.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
@@ -25,8 +27,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   )
 open import NuTerms using (renameᵗᵐ)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  )
+  (  )
 open import Relation.Binary.PropositionalEquality using (sym)
 open import Types using (renameᵗ)
 open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
@@ -116,7 +117,7 @@ private
 left-lift-prefix-body-proofᵀ : LeftLiftPrefixBodyᵀ
 left-lift-prefix-body-proofᵀ {B = B} {L′ = L′}
     liftρ prefix noL noL′ L⊑L′ =
-  allocation-prefixᵀ prefix body
+  term-imprecision-store-prefixᵀ prefix body
     (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
       noL↑ (nu-term-imprecision-source-typing body))
     (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)

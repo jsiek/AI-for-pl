@@ -91,7 +91,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; allocation-prefixᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; κ⊑κᵀ
@@ -149,7 +148,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; LeftStoreRenameⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
-  ; left-rename-allocation-prefixᵀ
   ; left-rename-blameᵀ
   ; left-rename-cast⊒⊑ᵀ
   ; left-rename-cast⊑⊑ᵀ
@@ -560,25 +558,11 @@ mutual
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
       (α⊑αᵀ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-        L⊑L′ L•⊢ L′•⊢) () runtime
+        L⊑L′ prefix L•⊢ L′•⊢) () runtime
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
-      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) () runtime
-  left-source-runtimeᵀ-generic rename-no-bullet ins
-      renameρ renameγ (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
-      noM runtime =
-    left-rename-allocation-prefixᵀ prefix renameρ
-      (λ renameρ₀ →
-        left-source-runtimeᵀ-generic rename-no-bullet ins
-          renameρ₀ renameγ M⊑M′ noM runtime)
-      source-typing target-typing
-    where
-    source-typing =
-      left-typing-renameⁱ {ψ = left-insertion-pred ins}
-        (left-insertion-inverse ins)
-        (left-insertion-cast-renamer ins) renameρ renameγ noM M⊢
-
-    target-typing = right-typing-left-renameⁱ renameρ renameγ M′⊢
+      (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑N′ prefix L•⊢ N′⊢)
+      () runtime
   left-source-runtimeᵀ-generic rename-no-bullet ins
       renameρ renameγ
       rel@(ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
@@ -856,18 +840,13 @@ private
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
       rel@(α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
-        L⊑L′ L⊢ L′⊢) noM runtime =
+        L⊑L′ prefix L⊢ L′⊢) noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet
       renameρ renameγ
-      rel@(α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ L⊢ N′⊢)
+      rel@(α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ prefix L⊢ N′⊢)
       noM runtime =
-    left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
-      renameρ renameγ rel noM runtime
-  left-source-allocation-runtime-rootᵀ rename-no-bullet
-      renameρ renameγ
-      rel@(allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) noM runtime =
     left-source-runtimeᵀ-generic rename-no-bullet left-insertion-suc
       renameρ renameγ rel noM runtime
   left-source-allocation-runtime-rootᵀ rename-no-bullet

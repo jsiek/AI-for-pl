@@ -8,6 +8,8 @@ module
 --     source-silent traces with the synchronized natural-addition delta.
 --   * Contains no dispatcher recursion, postulate, hole, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -51,7 +53,6 @@ open import NuTerms using
 open import Primitives using (addℕ; κℕ)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; κ⊑κᵀ
   ; ⊕⊑⊕ᵀ
@@ -199,9 +200,6 @@ private
         ⦂ ‵ `ℕ ⊑ ‵ `ℕ ∶ idι →
     m ≡ n
   related-nat-constant-target-constantᵀ κ⊑κᵀ = refl
-  related-nat-constant-target-constantᵀ
-      (allocation-prefixᵀ prefix relation source⊒ target⊒) =
-    related-nat-constant-target-constantᵀ relation
 
 
 related-nat-source-constant-target-valueᵀ :
@@ -745,7 +743,7 @@ finish-left-then-right-deltaᵀ
       no-right (nu-term-imprecision-target-typing right-relation)
 
   right-relation⁺ =
-    allocation-prefixᵀ prefix right-relation
+    term-imprecision-store-prefixᵀ prefix right-relation
       source-right-typing⁺ target-right-typing⁺
 
   framed-left =

@@ -43,7 +43,6 @@ open import
   ; Λ⊑ᴿ
   ; α⊑αᴿ
   ; α⊑ᴿ
-  ; allocation-prefixᴿ
   ; ν⊑νᴿ
   ; ν⊑ᴿ
   ; κ⊑κᴿ
@@ -109,12 +108,10 @@ smaller-source-value-classᴿ
   source-universalᴿ
 smaller-source-value-classᴿ
     (α⊑αᴿ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢) ()
+      L⊑L′ allocation-prefix L•⊢ L′•⊢) ()
 smaller-source-value-classᴿ
-    (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) ()
-smaller-source-value-classᴿ
-    (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢) vM =
-  smaller-source-value-classᴿ M⊑M′ vM
+    (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′
+      allocation-prefix L•⊢ N′⊢) ()
 smaller-source-value-classᴿ
     (ν⊑νᴿ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑ liftρ liftγ
       N⊑N′ replace) ()
@@ -198,13 +195,11 @@ smaller-target-value-classᴿ
   smaller-target-value-classᴿ V⊑N′ vN′
 smaller-target-value-classᴿ
     (α⊑αᴿ vL noL vL′ noL′ A⇑⊑B⇑ liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢) ()
+      L⊑L′ allocation-prefix L•⊢ L′•⊢) ()
 smaller-target-value-classᴿ
-    (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′ L•⊢ N′⊢) vN′ =
+    (α⊑ᴿ vL noL h⇑A liftρ liftγ L⊑N′
+      allocation-prefix L•⊢ N′⊢) vN′ =
   smaller-target-value-classᴿ L⊑N′ vN′
-smaller-target-value-classᴿ
-    (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢) vM′ =
-  smaller-target-value-classᴿ M⊑M′ vM′
 smaller-target-value-classᴿ
     (ν⊑νᴿ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑ liftρ liftγ
       N⊑N′ replace) ()

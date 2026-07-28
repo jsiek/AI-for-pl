@@ -903,27 +903,6 @@ mutual
       (renameᵗᵐ-preserves-Value (extᵗ τ) vV)
       (smaller-world-embed-no•ᴿ body-emb noV noN′ V⊑N′)
   smaller-world-embed-no•ᴿ
-      {τ = τ} {σ = σ} {ψ = ψ} {φ = φ}
-      emb noM noM′
-      (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢)
-      with rel-store-embedding-prefix-invᴿ
-        prefix (store-embeddingᴿ emb)
-  smaller-world-embed-no•ᴿ
-      {τ = τ} {σ = σ} {ψ = ψ} {φ = φ}
-      emb noM noM′
-      (allocation-prefixᴿ prefix M⊑M′ M⊢ M′⊢)
-      | ρ₀′ , store-emb₀ , prefix′ =
-    allocation-prefixᴿ prefix′
-      (smaller-world-embed-no•ᴿ
-        (reduction-closed-world-embeddingᴿ
-          {τ = τ} {σ = σ} {ψ = ψ} {φ = φ}
-          (left-inverseᴿ emb) (right-inverseᴿ emb)
-          (left-cast-renamerᴿ emb) (right-cast-renamerᴿ emb)
-          store-emb₀ (context-embeddingᴿ emb))
-        noM noM′ M⊑M′)
-      (world-embedding-source-typingᴿ emb noM M⊢)
-      (world-embedding-target-typingᴿ emb noM′ M′⊢)
-  smaller-world-embed-no•ᴿ
       {τ = τ} {σ = σ} {assm = assm} {hτ = hτ} {hσ = hσ}
       emb (no•-ν noN) (no•-ν noN′)
       (ν⊑νᴿ {A = A} {A′ = A′}

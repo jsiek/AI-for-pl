@@ -63,11 +63,13 @@ open import
   ; ⊑conv↓ᴿ
   ; paired-revealᴿ
   ; paired-concealᴿ
-  ; allocation-prefixᴿ
   ; closeᴿ
   ; paired-downᴿ
   ; _∣_∣_∣_∣_⊢ᴿ_⊑_⦂_⊑_∶_
   )
+open import
+  proof.Quotient.NuImprecisionReductionClosedQuotientStorePrefixExperiment
+  using (term-imprecision-store-prefixᴿ)
 open import
   proof.Quotient.NuImprecisionTargetInstantiationConsumerMigrationExperiment
   using
@@ -273,7 +275,7 @@ smaller-closing-frames-foldᴿ relation frame-reflᴿ =
   relation
 smaller-closing-frames-foldᴿ relation
     (frame-prefixᴿ frames prefix M⊢ M′⊢) =
-  allocation-prefixᴿ prefix
+  term-imprecision-store-prefixᴿ prefix
     (smaller-closing-frames-foldᴿ relation frames)
     M⊢ M′⊢
 smaller-closing-frames-foldᴿ relation

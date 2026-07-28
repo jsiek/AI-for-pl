@@ -52,7 +52,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
@@ -163,13 +162,6 @@ world-coherent-right-one-step-application-lambda-beta-function-cast-values-at-pr
     WorldCoherentWeakOneStepIndexedOutcome
       {M = (V ⟨ c C.↦ d ⟩) · W} {N′ = N′ [ V′ ]}
       {χ = keep} {ρ = ρ} pB
-  at-prefix relation-prefix coherent exclusive unique wfL okM okM′
-      (allocation-prefixᵀ prefix₀ inner source⊢ target⊢)
-      argument-related vV vW vV′ rank =
-    at-prefix
-      (store-imp-prefix-transⁱ prefix₀ relation-prefix)
-      coherent exclusive unique wfL okM okM′
-      inner argument-related vV vW vV′ rank
   at-prefix
       {pA = pA} {pB = pB}
       relation-prefix coherent exclusive unique wfL okM okM′

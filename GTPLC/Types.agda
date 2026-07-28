@@ -34,22 +34,25 @@ data Ty : Set where
   `∀ : Ty → Ty
 
 ------------------------------------------------------------------------
--- occurs, Ground, Non∀, Atom
+-- _∈_, Tag, Ground, Non∀, Atom
 ------------------------------------------------------------------------
 
-occurs : TyVar → Ty → Bool
-occurs X (＇ Y) with X ≟ Y
-occurs X (＇ Y) | yes eq = true
-occurs X (＇ Y) | no neq = false
-occurs X (‵ ι) = false
-occurs X ★ = false
-occurs X (A ⇒ B) = occurs X A ∨ occurs X B
-occurs X (`∀ A) = occurs (suc X) A
+infix 5 _∈ᵗ_
+data _∈ᵗ_ : TyVar → Ty → Set where
+  var-∈ : ∀{X} → X ∈ᵗ ＇ X
+  ∈-fun-left : ∀{X A B} → X ∈ᵗ A → X ∈ᵗ A ⇒ B
+  ∈-fun-right : ∀{X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
+  ∈-all : ∀{X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
 
-data Ground : Ty → Set where
-  ＇_ : (X : TyVar) → Ground (＇ X)
-  ‵_ : (ι : Base) → Ground (‵ ι)
-  ★⇒★ : Ground (★ ⇒ ★)
+data Tag : Set where
+  ＇_ : (X : TyVar) → Tag
+  ‵_ : (ι : Base) → Tag
+  ★⇒★ : Tag
+
+data _꞉_ : Tag → Ty → Set where
+  tag-var : (X : TyVar) → (＇ X) ꞉ (＇ X)
+  tag-base : (ι : Base) → (‵ ι) ꞉ (‵ ι)
+  tag-fun : ★⇒★ ꞉ (★ ⇒ ★)
 
 data Non∀ : Ty → Set where
   non∀-＇ : ∀ {X} → Non∀ (＇ X)
@@ -73,25 +76,21 @@ _≟Base_ : (ι ι′ : Base) → Dec (ι ≡ ι′)
 `𝔹 ≟Base `ℕ = no (λ ())
 `𝔹 ≟Base `𝔹 = yes refl
 
-infix 4 _≟Ground_
-_≟Ground_ :
-  ∀ {G H : Ty} →
-  Ground G →
-  Ground H →
-  Dec (G ≡ H)
-(＇ X) ≟Ground (＇ Y) with X ≟ Y
+infix 4 _≟Tag_
+_≟Tag_ : (G H : Tag) → Dec (G ≡ H)
+(＇ X) ≟Tag (＇ Y) with X ≟ Y
 ... | yes eq = yes (cong ＇_ eq)
 ... | no neq = no (λ { refl → neq refl })
-(＇ X) ≟Ground (‵ ι) = no (λ ())
-(＇ X) ≟Ground ★⇒★ = no (λ ())
-(‵ ι) ≟Ground (＇ X) = no (λ ())
-(‵ ι) ≟Ground (‵ ι′) with ι ≟Base ι′
+(＇ X) ≟Tag (‵ ι) = no (λ ())
+(＇ X) ≟Tag ★⇒★ = no (λ ())
+(‵ ι) ≟Tag (＇ X) = no (λ ())
+(‵ ι) ≟Tag (‵ ι′) with ι ≟Base ι′
 ... | yes eq = yes (cong ‵_ eq)
 ... | no neq = no (λ { refl → neq refl })
-(‵ ι) ≟Ground ★⇒★ = no (λ ())
-★⇒★ ≟Ground (＇ X) = no (λ ())
-★⇒★ ≟Ground (‵ ι) = no (λ ())
-★⇒★ ≟Ground ★⇒★ = yes refl
+(‵ ι) ≟Tag ★⇒★ = no (λ ())
+★⇒★ ≟Tag (＇ X) = no (λ ())
+★⇒★ ≟Tag (‵ ι) = no (λ ())
+★⇒★ ≟Tag ★⇒★ = yes refl
 
 infix 4 _≟Ty_
 _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
@@ -147,6 +146,11 @@ extᵗ : Renameᵗ → Renameᵗ
 extᵗ ρ zero = zero
 extᵗ ρ (suc X) = suc (ρ X)
 
+renameᵍ : Renameᵗ → Tag → Tag
+renameᵍ ρ (＇ X) = ＇ (ρ X)
+renameᵍ ρ (‵ ι) = ‵ ι
+renameᵍ ρ ★⇒★ = ★⇒★
+
 renameᵗ : Renameᵗ → Ty → Ty
 renameᵗ ρ (＇ X) = ＇ (ρ X)
 renameᵗ ρ (‵ ι) = ‵ ι
@@ -191,6 +195,11 @@ A [ B ]ᵗ = substᵗ (singleSubᵗ B) A
 ------------------------------------------------------------------------
 -- Type Well-formedness
 ------------------------------------------------------------------------
+
+data WfTag : TyCtx → Tag → Set where
+  wfTagVar : ∀ {Δ X} → X < Δ → WfTag Δ (＇ X)
+  wfTagBase : ∀ {Δ ι} → WfTag Δ (‵ ι)
+  wf★⇒★ : ∀ {Δ} → WfTag Δ ★⇒★
 
 data WfTy : TyCtx → Ty → Set where
   wfVar : ∀ {Δ X} → X < Δ → WfTy Δ (＇ X)

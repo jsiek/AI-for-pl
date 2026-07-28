@@ -59,8 +59,7 @@ open import QuotientedTermImprecision using
 open import TermTyping using (_∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
 open import Types using (`∀; wf★; ⇑ᵗ; ★)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  ( post-allocation-β-Λ•
-  ; replace-left-target-lift-right-source-nu-bodyᵢ
+  ( replace-left-target-lift-right-source-nu-bodyᵢ
   ; replace-paired-target-lift-right-under-∀ᵢ
   ; replace-right-target-lift-under-rightᵢ
   ; right-lift-prefix-bodyᵀ
@@ -69,6 +68,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; ⊑-target-lift-right-all-coherentᵢ
   ; ⊑-target-lift-right-arrow-coherentᵢ
   )
+open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
+  (post-allocation-β-Λ•)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( ≡-to-≅
   ; replace-left-target-lift-rightᵢ

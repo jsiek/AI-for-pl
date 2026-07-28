@@ -104,12 +104,13 @@ open import proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal using
   ; left-catchup-indexed-source-inert-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  ( post-catchup-β-inst
-  ; weak-one-step-source-cast-frame-coherenceᵀ
+  ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frameᵀ
   )
+open import proof.Source.Core.NuImprecisionSourcePolymorphicValueBase using
+  (post-catchup-β-inst)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( left-catchup-indexed-relatedᵀ
   ; nu-term-imprecision-transport-typesᵀ

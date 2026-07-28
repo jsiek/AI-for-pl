@@ -5,7 +5,7 @@ module
 -- File Charter:
 --   * Proves arbitrary-target lambda-beta scheduling by structural recursion.
 --   * Delegates the unframed application to direct scheduling and transports
---     completed results through all five target cast/conversion forms.
+--     completed results through all live target cast/conversion forms.
 --   * Contains no direct scheduling, catch-all, postulate, hole, or option.
 
 open import Agda.Builtin.Equality using (_≡_)
@@ -35,7 +35,6 @@ open import QuotientedTermImprecision using
   ; ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
@@ -54,7 +53,6 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -162,21 +160,6 @@ world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q c-shape comp) vV =
   sourceStepTargetWidenFrame target-frames
     prefix mode seal★ c⊑ c-shape comp recursive
-  where
-  target-frames = sourceLambdaBetaTargetCastFrames cases
-  recursive =
-    world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfL wfR okM
-      (cast-runtime okM′) M⊢
-      (cast-body-typing-at (proj₁ (coercion-src-tgtᵐ (proj₁ c⊑)))
-        M′⊢)
-      inner vV
-world-coherent-source-lambda-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) vV =
-  sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ c-shape comp recursive
   where
   target-frames = sourceLambdaBetaTargetCastFrames cases
   recursive =

@@ -5,9 +5,10 @@ module
 -- File Charter:
 --   * Proves synchronized matched-`ν` allocation as one indexed weak result
 --     coupled with its fresh-store lineage.
---   * Keeps allocation-specific type-shape and replacement calculations local.
+--   * Keeps allocation-specific world lifting, prefix transport, type-shape,
+--     and replacement calculations local.
 --   * Contains no dispatcher, postulate, hole, permissive option, or legacy
---     allocation-simulation import.
+--     allocation or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Conversion using (RevealConversion)
@@ -20,6 +21,7 @@ open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.List.Relation.Unary.Any using (here)
 open import Data.Nat using (suc; zero; s<s)
+open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_×_; _,_)
 open import ImprecisionComposition using (⌊_⌋)
 open import ImprecisionWf
@@ -44,8 +46,6 @@ open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym; trans)
 open import TermTyping using (⊢•; _∣_∣_⊢_⦂_)
 open import Types
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  (matched-lift-prefix-bodyᵀ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
 open import proof.Core.Properties.ConversionIndexCompatibilityProperties using
@@ -65,9 +65,15 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ; shape-source-liftνᵢ
   ; shape-target-lift-rightᵢ
   )
+open import proof.Core.Properties.NuTermProperties using
+  (renameᵗᵐ-preserves-No•)
+open import proof.Core.Properties.TypePreservation using
+  (castModeRenamer-suc; term-weaken)
 open import proof.Core.Properties.TypeProperties using
-  ( TyRenameWf-ext
+  ( RenameLeftInverse-suc
+  ; TyRenameWf-ext
   ; TyRenameWf-suc
+  ; predᵗ
   ; renameᵗ-ext-suc-comm
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
@@ -82,6 +88,8 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   )
 open import
   proof.NuCore.Relations.NuImprecisionQuotientedTyping
+open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
+  (rel-world-embed-no•ᵀ)
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   (lift-ctx-[])
 open import
@@ -100,11 +108,52 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (weak-step-store-lineage)
+open import proof.Store.Prefix.NuImprecisionStorePrefix using
+  (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
+open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
+  (rel-ctx-rename-[])
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra
   using (lift-store-embeddingⁱ)
 
 
 private
+  matched-lift-world-embeddingⁱ :
+    ∀ {Φ Δᴸ Δᴿ}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {ρ′ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
+    LiftStoreⁱ (∀ᵢᶜ Φ) ρ ρ′ →
+    RelWorldEmbeddingⁱ suc suc predᵗ predᵗ
+      rename-assm²-∀ᵢ TyRenameWf-suc TyRenameWf-suc
+      {ρ = ρ} {ρ′ = ρ′} {γ = []} {γ′ = []}
+  matched-lift-world-embeddingⁱ liftρ =
+    rel-world-embedding RenameLeftInverse-suc RenameLeftInverse-suc
+      castModeRenamer-suc castModeRenamer-suc
+      (lift-store-embeddingⁱ liftρ) rel-ctx-rename-[]
+
+  matched-lift-prefix-bodyᵀ :
+    ∀ {Φ Δᴸ Δᴿ A B L L′ p}
+      {ρ₀ : StoreImp Φ Δᴸ Δᴿ}
+      {ρ₁ ρ⁺ : StoreImp (∀ᵢᶜ Φ) (suc Δᴸ) (suc Δᴿ)} →
+    LiftStoreⁱ (∀ᵢᶜ Φ) ρ₀ ρ₁ →
+    StoreImpPrefix ρ₁ ρ⁺ →
+    No• L → No• L′ →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ₀ ∣ []
+      ⊢ᴺ L ⊑ L′ ⦂ A ⊑ B ∶ p →
+    ∀ᵢᶜ Φ ∣ suc Δᴸ ∣ suc Δᴿ ∣ ρ⁺ ∣ []
+      ⊢ᴺ ⇑ᵗᵐ L ⊑ ⇑ᵗᵐ L′ ⦂ ⇑ᵗ A ⊑ ⇑ᵗ B
+        ∶ ⊑-lift∀ᵢ p
+  matched-lift-prefix-bodyᵀ liftρ prefix noL noL′ L⊑L′ =
+    allocation-prefixᵀ prefix body
+      (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
+        noL↑ (nu-term-imprecision-source-typing body))
+      (term-weaken ≤-refl (rightStoreⁱ-prefix-inclusion prefix)
+        noL′↑ (nu-term-imprecision-target-typing body))
+    where
+    body = rel-world-embed-no•ᵀ
+      (matched-lift-world-embeddingⁱ liftρ) L⊑L′ noL noL′
+    noL↑ = renameᵗᵐ-preserves-No• suc noL
+    noL′↑ = renameᵗᵐ-preserves-No• suc noL′
+
   ⊑-lift∀-shapeᵢ :
     ∀ {Φ Δᴸ Δᴿ A B}
       (p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →

@@ -6,14 +6,13 @@ module
 --   * Assembles general source-delta catch-up by structural relation
 --     recursion.
 --   * Delegates the unframed primitive to direct scheduling and transports
---     completed results through all five target cast/conversion forms.
+--     completed results through all live target cast/conversion forms.
 --   * Contains no direct scheduling, catch-all, postulate, hole, or option.
 
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; ⊕⊑⊕ᵀ
@@ -22,7 +21,6 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -71,16 +69,6 @@ world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
     (⊑cast⊑ᵀ mode seal★ c⊑ inner q shape comp) =
   sourceStepTargetWidenFrame target-frames
     prefix mode seal★ c⊑ shape comp recursive
-  where
-  target-frames = sourcePrimitiveDeltaTargetCastFrames cases
-  recursive =
-    world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-      cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′) inner
-world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    (⊑cast⊑idᵀ seal★ c⊑ inner q shape comp) =
-  sourceStepTargetIdWidenFrame target-frames
-    prefix seal★ c⊑ shape comp recursive
   where
   target-frames = sourcePrimitiveDeltaTargetCastFrames cases
   recursive =

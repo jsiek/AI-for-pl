@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — quotient-beta fit checked; right dispatcher next**
+**MIGRATION IN PROGRESS — migrating right-dispatch prerequisites**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -675,6 +675,41 @@ worker and amend the right-oriented beta contract with the outer
 reduction-closed widening compatibility. Only after that worker, both beta
 orientations, and terminal-forward integration pass will the two pure
 quotient-application theorem families be deleted.
+
+The dispatcher assembly audit found prerequisite migration work rather than
+a missing wiring file. Value catch-up, the old paired-cast aggregate,
+target-cast semantics, and parts of function beta still pattern-match retired
+QTI constructors. The ordinary and source-down application families will be
+deleted, not adapted, because live QTIP contains only `paired-downᵀ`.
+Migration proceeds through live value catch-up, explicit paired
+reveal/conceal/widening cases, removal of identity-only target widening,
+runtime-bullet leaves, and quotient-frame recursion. Only then will one small
+well-founded SCC assemble prefix dispatch, quotient-frame recursion, and the
+post-target quotient-beta worker. Its measure is lexicographic:
+pending-administration/function-cast-spine potential first, then structural
+QTI/QTIP derivation height.
+
+The source-allocation proof has completed this consumer migration. Deleting
+its retired `⊑cast⊑idᵀ` case exposed three constructions using the former
+exact source-result interface; each now gives an explicit empty
+administrative tail and reflexive tail reduction. The focused strict check
+passes in 22.22 seconds.
+
+The source-`ν` frame, lambda-beta scheduler, primitive-delta dispatcher, and
+target-function-cast value scheduler also deleted their identity-only target
+widening cases and pass focused strict checks. The live generic target
+widening constructor now supplies the only such branch.
+
+The checking-time cleanup reduced
+`../Catchup/Simulation/NuImprecisionSimulation.agda` from 4,769 to 4,273
+lines. Three live polymorphic reduction helpers moved to the canonical
+`../Source/Core/NuImprecisionSourcePolymorphicValueBase.agda`; the unused
+administrative trace and mini-square remainder was deleted without
+re-exports. Matched allocation localized its private lift/prefix support and
+no longer imports the broad simulation module. The focused canonical helper,
+matched-allocation, target-allocation consumer, and reduced-simulation checks
+pass. Two redirected source-widen consumers remain blocked earlier by the
+retired `PairedCast` surface now being migrated.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

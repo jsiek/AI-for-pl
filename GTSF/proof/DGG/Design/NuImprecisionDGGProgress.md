@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — quotient-beta fit checked; right dispatcher next**
+**MIGRATION IN PROGRESS — migrating right-dispatch prerequisites**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1347,6 +1347,54 @@ existing function-cast scheduling SCC. The right-oriented beta leaf must then
 receive the outer reduction-closed widening compatibility. Until the shared
 worker, both orientations, and terminal-forward integration pass, the two
 pure quotient-application theorem families remain migration-active.
+
+An exhaustive assembly audit shows that the dispatcher cannot yet be formed
+by merely wiring the existing modules: several value-catch-up, paired-cast,
+target-cast, and function-beta proofs still analyze retired QTI constructors.
+The ordinary and source-down application families should be deleted rather
+than migrated, because live QTIP has only `paired-downᵀ`. The sound order is:
+
+1. migrate left and right value catch-up to the live cast constructors;
+2. replace the old `PairedCast` aggregate with explicit paired reveal,
+   conceal, and widening cases;
+3. remove identity-only target-widening branches;
+4. implement matched and source-only runtime-bullet leaves;
+5. implement quotient-frame recursion from the existing quotient-down roots;
+6. add one compact well-founded SCC containing only the prefix dispatcher,
+   quotient-frame recursion, and the post-target quotient-beta worker.
+
+Structural cases recurse on QTI or QTIP derivation height. The genuine
+post-target cycle additionally needs a lexicographic administrative measure
+using the existing pending-administration and function-cast-spine ranks.
+This keeps leaf proofs independently cacheable and confines mutual checking
+to the unavoidable control kernel.
+
+The source-allocation proof is now fully migrated to the current QTI and
+passes strictly in 22.22 seconds. Its obsolete `⊑cast⊑idᵀ` branch and
+identity-only frame dependency were deleted. The stricter check also exposed
+three exact-step constructions that predated the generalized source-result
+contract; they now state an empty administrative tail and its reflexive
+reduction explicitly.
+
+Four more source-side consumers have shed the same retired identity-only
+target-widening branch: source-`ν` framing, lambda-beta scheduling, primitive
+delta catch-up, and the target-function-cast value scheduler. Their focused
+strict checks pass in 9.00, 8.33, 7.87, and 7.60 seconds respectively. The
+generic target-widening case now owns this behavior; no compatibility case or
+frame remains in those proofs.
+
+The next safe checking-time cut is also complete.
+`NuImprecisionSimulation.agda` fell from 4,769 to 4,273 lines. Three live
+post-allocation or post-catch-up polymorphic reduction helpers moved to
+`NuImprecisionSourcePolymorphicValueBase.agda`; the remaining 400-plus-line
+administrative trace and mini-square island had no consumers and was deleted
+without re-export. Matched allocation now owns its two private lift/prefix
+helpers and imports the canonical store embedding, removing its dependency on
+the broad simulation module. The canonical helper module, matched-allocation
+Proof and Lemma, one redirected target-allocation consumer, and the reduced
+simulation module pass focused strict checks. The two redirected source-widen
+consumers currently stop earlier at their independently retired `PairedCast`
+imports, which are part of the active value-catch-up migration.
 
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line

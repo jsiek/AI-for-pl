@@ -36,7 +36,6 @@ open import QuotientedTermImprecision using
   ; ν⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
@@ -80,7 +79,6 @@ open import
   using
   ( WorldCoherentSourceOneStepTargetCastFrames
   ; sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -213,20 +211,6 @@ world-coherent-source-ν-frame-step-proofᵀ
   world-coherent-source-one-step-outcome-mapᵀ
     (sourceStepTargetWidenFrame target-cast-frames prefixρ
       mode′ seal★′ c′⊑ c-shape comp)
-    (λ source↠blame → _ , source↠blame)
-    (prefix prefixρ coherent exclusive unique wfL wfR ok-source
-      (cast-runtime ok-target) source⊢
-      (cast-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
-      inner (ξ-ν N→N′))
-world-coherent-source-ν-frame-step-proofᵀ
-    prefix source-ν-frames target-cast-frames
-    target-bullet-step prefixρ coherent exclusive unique wfL wfR
-    ok-source ok-target source⊢ target⊢
-    (⊑cast⊑idᵀ seal★′ c′⊑ inner q c-shape comp) N→N′ =
-  world-coherent-source-one-step-outcome-mapᵀ
-    (sourceStepTargetIdWidenFrame target-cast-frames prefixρ
-      seal★′ c′⊑ c-shape comp)
     (λ source↠blame → _ , source↠blame)
     (prefix prefixρ coherent exclusive unique wfL wfR ok-source
       (cast-runtime ok-target) source⊢

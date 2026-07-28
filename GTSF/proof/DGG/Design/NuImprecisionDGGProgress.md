@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — mutual higher-order invariant tested**
+**MIGRATION IN PROGRESS — mutual higher-order invariant live and transported**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -915,10 +915,7 @@ evidence, parallel substitution, and term-context shift. This is not a phase
 gate: the frozen downstream inventory still contains retired source names.
 
 The third Phase 4 checkpoint migrated canonical world and left transport on
-2026-07-27. The selected compatibility-renaming experiment became
-`NuImprecisionQuotientWideningCompatibilityRename.agda` and
-`NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`; the
-simulation core transports `closeᵀ` and direct paired
+2026-07-27. The simulation core transports `closeᵀ` and direct paired
 reveal/conceal/widening without compatibility wrappers. The two
 `paired-downᵀ` renaming adapters moved behind the strict
 `NuImprecisionPairedDownRenameDef/Proof/Lemma` boundary; the core fell from
@@ -1179,8 +1176,8 @@ next function beta inside the quotient-producing narrowing. The current
 `paired-downᵀ` premise therefore cannot terminalize an active paired argument
 round trip.
 
-`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` implements the
-minimal recursive repair. At a function narrowing it requires
+The standalone narrowing-elimination prototype implemented the minimal
+recursive repair. At a function narrowing it requires
 reduction-closed quotient compatibility for the paired domain widenings and
 recurses through the codomain narrowings; when either coercion is not
 function-shaped, no elimination evidence is required. The existing
@@ -1239,28 +1236,34 @@ contravariant domain narrowing and recurse through its codomain widening. A
 strict higher-order regression is the acceptance gate. Only after it passes
 will the operational paired-quotient beta leaf resume.
 
-The acceptance experiment succeeds. The strict
-`NuImprecisionMutualQuotientEliminationExperiment.agda` defines narrowing
-elimination and quotient-widening compatibility mutually, while leaving live
-QTI unchanged. The quotient-widening representative constructor is restricted
-to a pair with at least one syntactically non-function coercion, so function
-widenings must use the recursive function case and cannot bypass their domain
-evidence. The existing first-order fixtures inhabit both relations. A
-one-arrow lift then uses the existing function narrowing evidence as the
-domain premise of the higher-order function widening, exactly exercising the
-evidence that the current live relation loses. The focused strict check passes
-in about nine seconds with warm dependencies.
+The acceptance experiment succeeded, and its mutual invariant is now live in
+`QuotientImprecisionCompatibility.agda`. Function widening retains
+contravariant narrowing-elimination evidence and recursive codomain widening
+evidence; function narrowing retains contravariant widening evidence and
+recursive codomain narrowing evidence. The representative constructor
+requires at least one syntactically non-function coercion, so a paired
+function cannot bypass the recursive case.
 
-The next single-writer change will promote this mutual relation into
-`QuotientImprecisionCompatibility.agda`, delete the superseded standalone
-narrowing-elimination module without a compatibility re-export, and make its
-rename and weak-step transports mutual. The live QTI constructor signatures
-retain the same single compatibility premise; the premise itself becomes
-hereditarily strong enough for higher-order function beta.
+Renaming now lives in the unified
+`NuImprecisionQuotientEliminationCompatibilityRename.agda`, with mutual
+bilateral and source-only proofs. Weak-step transport carries both relations
+mutually, and quotient-down uses that exported transport instead of a private
+copy. The superseded standalone definition and both old rename modules were
+deleted without compatibility re-exports. Strict checks pass for the live
+core and QTI, unified rename, paired-down rename assembly, both weak-step
+transport roots, target tag cancellation, the canonical quotient examples,
+the higher-order live regression, and the right quotient-down cases.
+`make audit` passes.
+
+The next semantic gate is the operational quotient-down value catch-up leaf.
+It must use the hereditary evidence to produce bilateral tails ending in
+ordinary QTI or propagate a source trace to blame. Only after that gate passes
+may the obsolete pure quotient-application and paired-quotient-relation
+families be deleted.
 
 The checking-time audit also identified a concrete cleanup that can proceed
 without touching the term grammar. The former 2,873-line
-`NuImprecisionAllocationSimulation.agda` has only three direct consumers.
+`NuImprecisionAllocationSimulation.agda` has only two direct consumers.
 Its seven shared source-`ν` lift/replacement properties now live in the
 497-line `NuImprecisionSourceNuLiftProperties.agda`; the monolith is 2,444
 lines and does not re-export them. The focused property module and the

@@ -169,7 +169,7 @@ open import
   ; embedded-creation-target-typingᴱ
   )
 open import
-  proof.Quotient.NuImprecisionQuotientWideningCompatibilityRename
+  proof.Quotient.NuImprecisionQuotientEliminationCompatibilityRename
   using (reduction-closed-paired-compatible-rename²ᵢ)
 
 mutual

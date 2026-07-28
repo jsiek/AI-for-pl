@@ -237,10 +237,8 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ; rightCtxⁱ-lift-right
   )
 open import QuotientedTermImprecision
-open import QuotientImprecisionCompatibility using (gradual↓)
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
+open import QuotientImprecisionCompatibility using
+  (QuotientNarrowingEliminationCompatible; gradual↓)
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode

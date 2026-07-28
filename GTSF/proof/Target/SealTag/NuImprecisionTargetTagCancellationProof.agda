@@ -72,7 +72,7 @@ open import QuotientImprecisionCompatibility using
   ; compatible-tagᴿ
   ; compatible-target-activeᴿ
   ; compatible-target-inert-bridgeᴿ
-  ; compatible-through-representativesᴿ
+  ; compatible-through-non-function-representativesᴿ
   )
 open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
@@ -339,34 +339,34 @@ quotient-close-target-tag-ground-route :
   G ≡ T.★ T.⇒ T.★ × H ≡ T.★ T.⇒ T.★
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
-      source-shape target-shape (compatible-tagᴿ G₀))
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape (compatible-tagᴿ G₀))
     with u⊑
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
-      source-shape target-shape (compatible-tagᴿ G₀))
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape (compatible-tagᴿ G₀))
     | (C.cast-tag hG₀ gG₀ ok , NW.tag gG₀′) =
   ⊥-elim
     (star-ground-impossible requested gH)
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
-      source-shape target-shape
+    (compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape
       (compatible-target-activeᴿ inert-u not-inert-target)) =
   ⊥-elim (not-inert-target (G C.!))
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
+    (compatible-through-non-function-representativesᴿ
       {tgt = target-equivalence}
-      source-shape target-shape
+      non-function source-shape target-shape
       (compatible-target-inert-bridgeᴿ bridge-evidence))
     with ≈∀-ground-right-eq gG target-equivalence
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
+    (compatible-through-non-function-representativesᴿ
       {tgt = target-equivalence}
-      source-shape target-shape
+      non-function source-shape target-shape
       (compatible-target-inert-bridgeᴿ bridge-evidence))
     | refl
     with bridge-evidence (G C.!)
@@ -374,17 +374,17 @@ quotient-close-target-tag-ground-route
            inert u⊑ requested gH
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
+    (compatible-through-non-function-representativesᴿ
       {tgt = target-equivalence}
-      source-shape target-shape
+      non-function source-shape target-shape
       (compatible-target-inert-bridgeᴿ bridge-evidence))
     | refl | bridge , source-triangle , target-triangle | refl
     with target-ground-unique exclusive outer bridge requested gG T.★⇒★
 quotient-close-target-tag-ground-route
     {G = G} exclusive inert u⊑ outer requested gG gH
-    (compatible-through-representativesᴿ
+    (compatible-through-non-function-representativesᴿ
       {tgt = target-equivalence}
-      source-shape target-shape
+      non-function source-shape target-shape
       (compatible-target-inert-bridgeᴿ bridge-evidence))
     | refl | bridge , source-triangle , target-triangle | refl | refl =
   refl , refl

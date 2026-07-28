@@ -1,10 +1,12 @@
 module QuotientImprecisionCompatibility where
 
 -- File Charter:
---   * Defines the canonical cast-mode and widening compatibility evidence at
---     the reduction-closed quotient boundary.
+--   * Defines the canonical cast-mode and mutually recursive narrowing and
+--     widening elimination evidence at the reduction-closed quotient boundary.
 --   * Requires an inert source widening to be paired with an active target;
 --     inert targets instead supply an exact intermediate imprecision bridge.
+--   * Requires function widenings to retain contravariant narrowing
+--     elimination evidence and recurse through their codomain widening.
 --   * Keeps these concepts independent of term imprecision and operational
 --     simulation.
 
@@ -17,7 +19,7 @@ open import Data.List using (_∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (Σ; _×_; _,_)
 open import ForallPermutation using
-  (_∣_⊢_⊑ᵖ_⊣_; quotientᵖ; ≈∀-refl)
+  (_∣_⊢_⊑ᵖ_⊣_; quotientᵖ; ≈∀-refl; ⊑ᵖ-arrow-components)
 open import Imprecision using
   (ImpCtx; _ˣ⊑ˣ_; ⇑ᵢ)
 open import ImprecisionComposition using
@@ -105,6 +107,12 @@ data ReductionClosedPairedWideningCompatible
 
 
 private
+  ↦ˢ-left-injective :
+    ∀ {p q p′ q′} →
+    p ↦ˢ q ≡ p′ ↦ˢ q′ →
+    p ≡ p′
+  ↦ˢ-left-injective refl = refl
+
   ↦ˢ-right-injective :
     ∀ {p q p′ q′} →
     p ↦ˢ q ≡ p′ ↦ˢ q′ →
@@ -173,57 +181,191 @@ reduction-closed-paired-compatible-shape-transport
   transport-result refl comp = comp
 
 
-data ReductionClosedQuotientWideningCompatible
-    (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx) :
-    (u u′ : Coercion) → {D D′ A A′ : Ty} →
-    (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
-    (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
-    ImprecisionShape → ImprecisionShape → Set where
+data NonFunctionCoercion : Coercion → Set where
+  non-function-id :
+    ∀ {A} →
+    NonFunctionCoercion (C.id A)
 
-  compatible-through-representativesᴿ :
-    ∀ {u u′ D D′ A A′ C C′ r p s s′ t t′}
-      {src : D ForallPermutation.≈∀ C}
-      {tgt : C′ ForallPermutation.≈∀ D′} →
-    src ⊢ s ≈∀ˢ t →
-    tgt ⊢ t′ ≈∀ˢ s′ →
-    ReductionClosedPairedWideningCompatible
-      Φ Δᴸ Δᴿ u u′
-      {C} {C′} {A} {A′} r p t t′ →
+  non-function-sequence :
+    ∀ {c d} →
+    NonFunctionCoercion (c C.︔ d)
+
+  non-function-universal :
+    ∀ {c} →
+    NonFunctionCoercion (C.`∀ c)
+
+  non-function-tag :
+    ∀ {G} →
+    NonFunctionCoercion (G C.!)
+
+  non-function-untag :
+    ∀ {G} →
+    NonFunctionCoercion (G C.？)
+
+  non-function-seal :
+    ∀ {A α} →
+    NonFunctionCoercion (C.seal A α)
+
+  non-function-unseal :
+    ∀ {α A} →
+    NonFunctionCoercion (C.unseal α A)
+
+  non-function-generalize :
+    ∀ {A c} →
+    NonFunctionCoercion (C.gen A c)
+
+  non-function-instantiate :
+    ∀ {A c} →
+    NonFunctionCoercion (C.inst A c)
+
+
+data NonPairedFunctionCoercions : Coercion → Coercion → Set where
+  source-non-function :
+    ∀ {d d′} →
+    NonFunctionCoercion d →
+    NonPairedFunctionCoercions d d′
+
+  target-non-function :
+    ∀ {d d′} →
+    NonFunctionCoercion d′ →
+    NonPairedFunctionCoercions d d′
+
+
+mutual
+  data ReductionClosedQuotientWideningCompatible
+      (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx) :
+      (u u′ : Coercion) → {D D′ A A′ : Ty} →
+      (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
+      (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
+      ImprecisionShape → ImprecisionShape → Set where
+
+    compatible-through-non-function-representativesᴿ :
+      ∀ {u u′ D D′ A A′ C C′ r p s s′ t t′}
+        {src : D ForallPermutation.≈∀ C}
+        {tgt : C′ ForallPermutation.≈∀ D′} →
+      NonPairedFunctionCoercions u u′ →
+      src ⊢ s ≈∀ˢ t →
+      tgt ⊢ t′ ≈∀ˢ s′ →
+      ReductionClosedPairedWideningCompatible
+        Φ Δᴸ Δᴿ u u′
+        {C} {C′} {A} {A′} r p t t′ →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ u u′
+        (quotientᵖ src r tgt) p s s′
+
+    compatible-quotient-functionᴿ :
+      ∀ {c d c′ d′ D₁ D₁′ D₂ D₂′ A₁ A₁′ A₂ A₂′
+        q₁ q₂ p₁ p₂ qF
+        c-shape d-shape c′-shape d′-shape} →
+      ⊑ᵖ-arrow-components qF ≡ (q₁ , q₂) →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ c c′ p₁ q₁ c-shape c′-shape →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ d d′ q₂ p₂ d-shape d′-shape →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ
+        (c C.↦ d) (c′ C.↦ d′)
+        {D₁ ⇒ D₂} {D₁′ ⇒ D₂′}
+        {A₁ ⇒ A₂} {A₁′ ⇒ A₂′}
+        qF (p₁ ↦ p₂)
+        (c-shape ↦ˢ d-shape) (c′-shape ↦ˢ d′-shape)
+
+  data QuotientNarrowingEliminationCompatible
+      (Φ : ImpCtx) (Δᴸ Δᴿ : TyCtx) :
+      (d d′ : Coercion) → {A A′ D D′ : Ty} →
+      (p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ) →
+      (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ) →
+      (d-shape d′-shape : ImprecisionShape) → Set where
+
+    non-function-elimination :
+      ∀ {d d′ A A′ D D′ p q d-shape d′-shape} →
+      NonPairedFunctionCoercions d d′ →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ d d′
+        {A} {A′} {D} {D′} p q d-shape d′-shape
+
+    function-elimination :
+      ∀ {a b a′ b′ A₁ A₁′ A₂ A₂′ D₁ D₁′ D₂ D₂′
+        p₁ p₂ q₁ q₂ qF
+        a-shape b-shape a′-shape b′-shape} →
+      ⊑ᵖ-arrow-components qF ≡ (q₁ , q₂) →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ a a′ q₁ p₁ a-shape a′-shape →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ b b′ p₂ q₂ b-shape b′-shape →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ
+        (a C.↦ b) (a′ C.↦ b′)
+        {A₁ ⇒ A₂} {A₁′ ⇒ A₂′}
+        {D₁ ⇒ D₂} {D₁′ ⇒ D₂′}
+        (p₁ ↦ p₂) qF
+        (a-shape ↦ˢ b-shape) (a′-shape ↦ˢ b′-shape)
+
+
+mutual
+  reduction-closed-quotient-compatible-result-shape-transport :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx} {u u′ : Coercion}
+      {D D′ A A′ : Ty}
+      {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+      {p p′ : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {u-shape u′-shape : ImprecisionShape} →
+    ⌊ p′ ⌋ ≡ ⌊ p ⌋ →
     ReductionClosedQuotientWideningCompatible
-      Φ Δᴸ Δᴿ u u′
-      (quotientᵖ src r tgt) p s s′
+      Φ Δᴸ Δᴿ u u′ q p u-shape u′-shape →
+    ReductionClosedQuotientWideningCompatible
+      Φ Δᴸ Δᴿ u u′ q p′ u-shape u′-shape
+  reduction-closed-quotient-compatible-result-shape-transport
+      p-shape
+      (compatible-through-non-function-representativesᴿ
+        non-function source-shape target-shape compatible) =
+    compatible-through-non-function-representativesᴿ
+      non-function source-shape target-shape
+      (reduction-closed-paired-compatible-shape-transport
+        refl p-shape compatible)
+  reduction-closed-quotient-compatible-result-shape-transport
+      {p′ = p₁′ ↦ p₂′} p-shape
+      (compatible-quotient-functionᴿ components domain codomain) =
+    compatible-quotient-functionᴿ components
+      (quotient-narrowing-elimination-source-shape-transport
+        (↦ˢ-left-injective p-shape) domain)
+      (reduction-closed-quotient-compatible-result-shape-transport
+        (↦ˢ-right-injective p-shape) codomain)
+
+  quotient-narrowing-elimination-source-shape-transport :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx} {d d′ : Coercion}
+      {A A′ D D′ : Ty}
+      {p p′ : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+      {d-shape d′-shape : ImprecisionShape} →
+    ⌊ p′ ⌋ ≡ ⌊ p ⌋ →
+    QuotientNarrowingEliminationCompatible
+      Φ Δᴸ Δᴿ d d′ p q d-shape d′-shape →
+    QuotientNarrowingEliminationCompatible
+      Φ Δᴸ Δᴿ d d′ p′ q d-shape d′-shape
+  quotient-narrowing-elimination-source-shape-transport
+      p-shape (non-function-elimination non-function) =
+    non-function-elimination non-function
+  quotient-narrowing-elimination-source-shape-transport
+      {p′ = p₁′ ↦ p₂′} p-shape
+      (function-elimination components domain codomain) =
+    function-elimination components
+      (reduction-closed-quotient-compatible-result-shape-transport
+        (↦ˢ-left-injective p-shape) domain)
+      (quotient-narrowing-elimination-source-shape-transport
+        (↦ˢ-right-injective p-shape) codomain)
 
 
-reduction-closed-quotient-compatible-result-shape-transport :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx} {u u′ : Coercion}
-    {D D′ A A′ : Ty}
-    {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
-    {p p′ : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {u-shape u′-shape : ImprecisionShape} →
-  ⌊ p′ ⌋ ≡ ⌊ p ⌋ →
-  ReductionClosedQuotientWideningCompatible
-    Φ Δᴸ Δᴿ u u′ q p u-shape u′-shape →
-  ReductionClosedQuotientWideningCompatible
-    Φ Δᴸ Δᴿ u u′ q p′ u-shape u′-shape
-reduction-closed-quotient-compatible-result-shape-transport
-    p-shape
-    (compatible-through-representativesᴿ
-      source-shape target-shape compatible) =
-  compatible-through-representativesᴿ
-    source-shape target-shape
-    (reduction-closed-paired-compatible-shape-transport
-      refl p-shape compatible)
-
-
-reduction-closed-exact-widening-compatible :
+reduction-closed-exact-non-function-widening-compatible :
   ∀ {Φ Δᴸ Δᴿ u u′ D D′ A A′ r p s s′} →
+  NonPairedFunctionCoercions u u′ →
   ReductionClosedPairedWideningCompatible
     Φ Δᴸ Δᴿ u u′
     {D} {D′} {A} {A′} r p s s′ →
   ReductionClosedQuotientWideningCompatible
     Φ Δᴸ Δᴿ u u′
     (quotientᵖ ≈∀-refl r ≈∀-refl) p s s′
-reduction-closed-exact-widening-compatible compatible =
-  compatible-through-representativesᴿ
+reduction-closed-exact-non-function-widening-compatible
+    non-function compatible =
+  compatible-through-non-function-representativesᴿ
     {src = ≈∀-refl} {tgt = ≈∀-refl}
-    source-perm-refl source-perm-refl compatible
+    non-function source-perm-refl source-perm-refl compatible

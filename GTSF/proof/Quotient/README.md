@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — mutual higher-order invariant tested**
+**MIGRATION IN PROGRESS — mutual higher-order invariant live and transported**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -49,8 +49,7 @@ design.
 The selected grammar and its general support are:
 
 - `NuImprecisionReductionClosedQuotientDef.agda`;
-- `NuImprecisionQuotientWideningCompatibilityRename.agda`;
-- `NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`;
+- `NuImprecisionQuotientEliminationCompatibilityRename.agda`;
 - `NuImprecisionPairedDownRenameDef.agda`;
 - `NuImprecisionPairedDownRenameProof.agda`;
 - `NuImprecisionPairedDownRenameLemma.agda`;
@@ -295,20 +294,17 @@ the live relation, store-prefix evidence, parallel substitution, and
 term-context shift. Other files in the frozen inventory still contain
 retired names and must be migrated or deleted before a phase gate.
 
-The world/left-transport checkpoint on 2026-07-27 promoted the selected
-compatibility-renaming proof to
-`NuImprecisionQuotientWideningCompatibilityRename.agda` and
-`NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`. The
-canonical simulation core transports `closeᵀ` and the three direct paired
-conversion cases. The two `paired-downᵀ` renaming adapters now live behind
-the strict `NuImprecisionPairedDownRenameDef/Proof/Lemma` boundary, so future
-changes to recursive elimination compatibility do not invalidate the
-14,878-line core. Focused checks pass for the generic boundary, its canonical
-assembly, world embedding, bullet-free left renaming, and source-allocation
-runtime transport. Relative to the frozen inventory, direct source-file
-counts have fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19` for fused
-down/up, identity quotient application, gradual quotient application,
-closing widening, identity down, and gradual down respectively.
+The world/left-transport checkpoint on 2026-07-27 promoted compatibility
+renaming behind the strict
+`NuImprecisionPairedDownRenameDef/Proof/Lemma` boundary. The canonical
+simulation core transports `closeᵀ` and the three direct paired conversion
+cases, so future changes to recursive elimination compatibility do not
+invalidate the 14,878-line core. Focused checks pass for the generic boundary,
+its canonical assembly, world embedding, bullet-free left renaming, and
+source-allocation runtime transport. Relative to the frozen inventory, direct
+source-file counts have fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19`
+for fused down/up, identity quotient application, gradual quotient
+application, closing widening, identity down, and gradual down respectively.
 
 The same checkpoint exposed and removed a duplicate copy of
 `QuotientImprecisionCompatibility` that remained in
@@ -521,9 +517,9 @@ cast-imprecision module into the focused 15-line
 import the small module explicitly; no re-export preserves the old dependency
 edge. The live QTI join and source one-step root pass after the rewrite.
 
-The next semantic invariant was tested before changing the live grammar.
-`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` records
-recursive elimination safety for a quotient-producing paired narrowing:
+The next semantic invariant was tested before changing the live grammar. The
+standalone prototype recorded recursive elimination safety for a
+quotient-producing paired narrowing:
 function coercions carry reduction-closed compatibility for their
 contravariant domain widenings and recurse through their codomain narrowings;
 a pair with a non-function coercion has no function-elimination obligation.
@@ -580,28 +576,33 @@ widening retains elimination evidence for its contravariant domain narrowing
 as well as widening compatibility for its codomain. A strict higher-order
 regression must pass before the operational beta leaf resumes.
 
-That side experiment now succeeds. The strict
-`NuImprecisionMutualQuotientEliminationExperiment.agda` defines the two
-relations mutually without changing live QTI. Its quotient-widening
-representative constructor explicitly excludes paired function coercions, so
-the old generic constructor cannot bypass the recursive invariant. Its
-function case retains domain narrowing-elimination evidence and recursive
-codomain widening evidence; the dual narrowing case retains domain widening
-evidence and recursive codomain narrowing evidence. The existing
-first-order-domain fixtures construct the mutual evidence, and a one-arrow
-higher-order lift constructs its outer evidence exactly from the formerly
-missing function-domain narrowing evidence. The focused strict check passes
-in about nine seconds with warm dependencies.
+That side experiment succeeded, and the mutual relation is now live in
+`QuotientImprecisionCompatibility.agda`. Its quotient-widening representative
+constructor explicitly excludes paired function coercions, so the generic
+case cannot bypass recursive domain evidence. Function widening retains
+domain narrowing-elimination evidence and recursive codomain widening
+evidence; function narrowing retains domain widening evidence and recursive
+codomain narrowing evidence.
 
-The next single-writer checkpoint promotes this mutual definition into
-`QuotientImprecisionCompatibility.agda`, removes the superseded standalone
-narrowing-elimination definition without a shim, and migrates rename and
-weak-step transport as mutual proofs. Only after those focused checks pass
-will the operational quotient-down value catch-up leaf be added.
+The two former rename modules are now one
+`NuImprecisionQuotientEliminationCompatibilityRename.agda` with mutually
+recursive bilateral and source-only proofs. Weak-step transport is likewise
+mutual, and quotient-down imports that canonical transport instead of owning
+a private copy. The superseded standalone definition and both old rename
+files were deleted without shims. Strict checks pass for the unified rename
+module, paired-down rename assembly, both weak-step transport roots, target
+tag cancellation, the canonical quotient examples, the higher-order
+regression, and the right quotient-down cases. `make audit` passes.
+
+The next semantic task is the operational quotient-down value catch-up leaf.
+It must use the live hereditary evidence to return either bilateral traces
+ending in ordinary QTI or a source trace to blame. This remains the gate for
+deleting the obsolete pure quotient-application and paired-quotient-relation
+families.
 
 The migration also treats checking-time boundaries as part of cleanup. The
-former 2,873-line `../NuCore/Misc/NuImprecisionAllocationSimulation.agda` has
-only three direct consumers. Its seven shared source-`ν` lift/replacement
+former 2,873-line `../NuCore/Misc/NuImprecisionAllocationSimulation.agda`
+now has only two direct consumers. Its seven shared source-`ν` lift/replacement
 properties now live in the 497-line
 `../Core/Properties/NuImprecisionSourceNuLiftProperties.agda`; the allocation
 monolith is 2,444 lines and does not re-export them. Retained

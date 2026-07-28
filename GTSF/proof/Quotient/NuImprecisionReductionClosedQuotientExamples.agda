@@ -100,15 +100,11 @@ open import proof.EndpointMLB.Core.MLBGlbExample using
 open import QuotientImprecisionCompatibility
   using
   ( id-only↓
-  ; compatible-functionᴿ
   ; compatible-target-activeᴿ
   ; ReductionClosedQuotientWideningCompatible
-  ; compatible-through-representativesᴿ
-  )
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using
-  ( QuotientNarrowingEliminationCompatible
+  ; QuotientNarrowingEliminationCompatible
+  ; compatible-quotient-functionᴿ
+  ; compatible-through-non-function-representativesᴿ
   ; function-elimination
   ; non-function-elimination
   ; non-function-universal
@@ -191,8 +187,10 @@ route-widening-compatible :
     up-D up-E glb-lower-XY⊑ᵖYX glb-bad-A⊑A
     ⌊ glb-lower-XY⊑A ⌋ ⌊ glb-lower-YX⊑A ⌋
 route-widening-compatible =
-  compatible-through-representativesᴿ
-    source-perm-refl source-swap-∀ν
+  compatible-through-non-function-representativesᴿ
+    (source-non-function non-function-universal)
+    source-perm-refl
+    source-swap-∀ν
     (compatible-target-activeᴿ up-D-inert up-E-not-inert)
 
 down-routeᴿ :
@@ -448,11 +446,11 @@ outer-function-compatible :
     (⌊ glb-lower-XY⊑A ⌋ ↦ˢ ⌊ glb-lower-XY⊑A ⌋)
     (⌊ glb-lower-YX⊑A ⌋ ↦ˢ ⌊ glb-lower-YX⊑A ⌋)
 outer-function-compatible =
-  compatible-through-representativesᴿ
-    source-perm-refl
-    (source-perm-↦ source-swap-∀ν source-swap-∀ν)
-    (compatible-functionᴿ
-      (compatible-target-activeᴿ up-D-inert up-E-not-inert))
+  compatible-quotient-functionᴿ
+    refl
+    (non-function-elimination
+      (source-non-function non-function-universal))
+    route-widening-compatible
 
 inner-function-elimination-compatible :
   QuotientNarrowingEliminationCompatible (idᵢ zero) zero zero

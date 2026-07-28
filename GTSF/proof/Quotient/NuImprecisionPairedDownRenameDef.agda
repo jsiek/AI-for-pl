@@ -22,7 +22,8 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   (CtxImp)
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
-open import QuotientImprecisionCompatibility using (SpineCastMode)
+open import QuotientImprecisionCompatibility using
+  (QuotientNarrowingEliminationCompatible; SpineCastMode)
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
@@ -37,11 +38,6 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
 open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   (rename-assm²ᵢ; ⊑-renameᵗ²ᵢ)
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
-
-
 PairedDownRename²ᵀ : Set₁
 PairedDownRename²ᵀ =
   ∀ {Φ Ψ : ImpCtx} {Δᴸ Δᴿ Θᴸ Θᴿ : TyCtx}

@@ -3,8 +3,9 @@ module
   where
 
 -- File Charter:
---   * Transports reduction-closed paired- and quotient-widening
---     compatibility through a completed weak one-step result.
+--   * Transports reduction-closed paired widening and the mutually recursive
+--     quotient-widening/narrowing-elimination compatibility through a
+--     completed weak one-step result.
 --   * Uses final-world precision-index uniqueness to align recursive
 --     compatibility evidence with the result's canonical type transport.
 --   * Derives arbitrary matched-binder transport by lifting the final-world
@@ -12,12 +13,15 @@ module
 --   * Contains no world-coherence proof, simulation dispatcher, store
 --     lineage, postulate, hole, permissive option, or compatibility shim.
 
+import Coercions as C
 open import Coercions using (Coercion; renameᶜ)
-open import Data.List using (_∷_)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
+open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import ImprecisionComposition using
   (⌊_⌋; ∀ˢ_; νˢ_)
+import ImprecisionWf as I
 open import Imprecision using
   (_ˣ⊑ˣ_; ⇑ᵢ)
 open import ImprecisionWf using
@@ -28,23 +32,41 @@ open import ImprecisionWf using
   ; ν
   )
 open import NuReduction using
-  (StoreChange; applyCoercion; applyTys)
+  (StoreChange; applyCoercion; applyTy; applyTys; bind; keep)
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   )
 open import NuTerms using (Term)
 open import QuotientImprecisionCompatibility using
-  ( ReductionClosedPairedWideningCompatible
+  ( NonFunctionCoercion
+  ; NonPairedFunctionCoercions
+  ; QuotientNarrowingEliminationCompatible
+  ; ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible
   ; compatible-allᴿ
   ; compatible-functionᴿ
+  ; compatible-quotient-functionᴿ
   ; compatible-tagᴿ
   ; compatible-target-activeᴿ
   ; compatible-target-inert-bridgeᴿ
-  ; compatible-through-representativesᴿ
+  ; compatible-through-non-function-representativesᴿ
+  ; function-elimination
+  ; non-function-elimination
+  ; non-function-generalize
+  ; non-function-id
+  ; non-function-instantiate
+  ; non-function-seal
+  ; non-function-sequence
+  ; non-function-tag
+  ; non-function-universal
+  ; non-function-unseal
+  ; non-function-untag
+  ; source-non-function
+  ; target-non-function
   )
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; subst; sym; trans)
+  (_≡_; cong; refl; subst; sym; trans)
+import Relation.Binary.HeterogeneousEquality as HE
 open import Types using
   (Renameᵗ; Ty; TyCtx; extᵗ; renameᵗ)
 open import
@@ -57,6 +79,7 @@ open import
   ; resultRightCtx
   ; sourceChanges
   ; targetTailChanges
+  ; transportArrowCoherent
   ; transportShapeCoherent
   ; transportType
   )
@@ -74,6 +97,7 @@ open import
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-rename-applyTyVars
+  ; applyTys-⇒
   ; applyTys-rename-applyTyVars
   ; applyTyVars
   )
@@ -96,6 +120,11 @@ open import
   ( source-perm-shape-applyTy
   ; source-perm-shape-applyTys
   ; weak-one-step-transport-quotientᵀ
+  )
+open import
+  proof.Core.Properties.NuImprecisionQuotientWeakTransportProperties
+  using
+  ( weak-one-step-transport-quotient-arrow-components-at
   )
 
 
@@ -380,6 +409,137 @@ private
           (transportShapeCoherent coherent p))
 
 
+  applyCoercion-non-function :
+    ∀ χ {d} →
+    NonFunctionCoercion d →
+    NonFunctionCoercion (applyCoercion χ d)
+  applyCoercion-non-function keep evidence =
+    evidence
+  applyCoercion-non-function (bind A) non-function-id =
+    non-function-id
+  applyCoercion-non-function (bind A) non-function-sequence =
+    non-function-sequence
+  applyCoercion-non-function (bind A) non-function-universal =
+    non-function-universal
+  applyCoercion-non-function (bind A) non-function-tag =
+    non-function-tag
+  applyCoercion-non-function (bind A) non-function-untag =
+    non-function-untag
+  applyCoercion-non-function (bind A) non-function-seal =
+    non-function-seal
+  applyCoercion-non-function (bind A) non-function-unseal =
+    non-function-unseal
+  applyCoercion-non-function (bind A) non-function-generalize =
+    non-function-generalize
+  applyCoercion-non-function (bind A) non-function-instantiate =
+    non-function-instantiate
+
+
+  applyCoercions-non-function :
+    ∀ χs {d} →
+    NonFunctionCoercion d →
+    NonFunctionCoercion (applyCoercions χs d)
+  applyCoercions-non-function [] evidence =
+    evidence
+  applyCoercions-non-function (χ ∷ χs) evidence =
+    applyCoercions-non-function χs
+      (applyCoercion-non-function χ evidence)
+
+
+  applyCoercions-non-paired-function :
+    ∀ χs χs′ {d d′} →
+    NonPairedFunctionCoercions d d′ →
+    NonPairedFunctionCoercions
+      (applyCoercions χs d) (applyCoercions χs′ d′)
+  applyCoercions-non-paired-function χs χs′
+      (source-non-function evidence) =
+    source-non-function
+      (applyCoercions-non-function χs evidence)
+  applyCoercions-non-paired-function χs χs′
+      (target-non-function evidence) =
+    target-non-function
+      (applyCoercions-non-function χs′ evidence)
+
+
+  applyCoercions-arrow :
+    ∀ χs c d →
+    applyCoercions χs (c C.↦ d) ≡
+      applyCoercions χs c C.↦ applyCoercions χs d
+  applyCoercions-arrow [] c d =
+    refl
+  applyCoercions-arrow (keep ∷ χs) c d =
+    applyCoercions-arrow χs c d
+  applyCoercions-arrow (bind A ∷ χs) c d =
+    applyCoercions-arrow χs
+      (applyCoercion (bind A) c) (applyCoercion (bind A) d)
+
+
+  subst²-to-≅ :
+    ∀ {A B : Set} {P : A → B → Set}
+      {x₀ x₁ : A} {y₀ y₁ : B} →
+    (x₀≡x₁ : x₀ ≡ x₁) →
+    (y₀≡y₁ : y₀ ≡ y₁) →
+    (p : P x₀ y₀) →
+    HE._≅_
+      (subst (P x₁) y₀≡y₁
+        (subst (λ x → P x y₀) x₀≡x₁ p))
+      p
+  subst²-to-≅ refl refl p =
+    HE.refl
+
+
+  quotient-widening-compatible-cong :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {u u′ e e′ : Coercion}
+      {D D′ A A′ D̂ D̂′ Â Â′ : Ty}
+      {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {q̂ : Φ ∣ Δᴸ ⊢ D̂ ⊑ᵖ D̂′ ⊣ Δᴿ}
+      {p̂ : Φ ∣ Δᴸ ⊢ Â ⊑ Â′ ⊣ Δᴿ}
+      {s s′} →
+    D ≡ D̂ →
+    D′ ≡ D̂′ →
+    A ≡ Â →
+    A′ ≡ Â′ →
+    u ≡ e →
+    u′ ≡ e′ →
+    HE._≅_ q q̂ →
+    HE._≅_ p p̂ →
+    ReductionClosedQuotientWideningCompatible
+      Φ Δᴸ Δᴿ u u′ q p s s′ →
+    ReductionClosedQuotientWideningCompatible
+      Φ Δᴸ Δᴿ e e′ q̂ p̂ s s′
+  quotient-widening-compatible-cong
+      refl refl refl refl refl refl HE.refl HE.refl compatible =
+    compatible
+
+
+  elimination-compatible-cong :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {d d′ e e′ : Coercion}
+      {A A′ D D′ Â Â′ D̂ D̂′ : Ty}
+      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+      {q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+      {p̂ : Φ ∣ Δᴸ ⊢ Â ⊑ Â′ ⊣ Δᴿ}
+      {q̂ : Φ ∣ Δᴸ ⊢ D̂ ⊑ᵖ D̂′ ⊣ Δᴿ}
+      {s s′} →
+    A ≡ Â →
+    A′ ≡ Â′ →
+    D ≡ D̂ →
+    D′ ≡ D̂′ →
+    d ≡ e →
+    d′ ≡ e′ →
+    HE._≅_ p p̂ →
+    HE._≅_ q q̂ →
+    QuotientNarrowingEliminationCompatible
+      Φ Δᴸ Δᴿ d d′ p q s s′ →
+    QuotientNarrowingEliminationCompatible
+      Φ Δᴸ Δᴿ e e′ p̂ q̂ s s′
+  elimination-compatible-cong
+      refl refl refl refl refl refl HE.refl HE.refl compatible =
+    compatible
+
+
 weak-one-step-transport-paired-widening-compatibleᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -423,34 +583,176 @@ weak-one-step-transport-paired-widening-compatibleᵀ
       compatible)
 
 
-weak-one-step-transport-quotient-widening-compatibleᵀ :
-  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {M M′ : Term} {C C′ D D′ A A′ : Ty}
-    {u u′ : Coercion} {q p s s′} {χ : StoreChange} →
-  (inner : WeakOneStepResult ρ M M′ C C′ χ) →
-  (coherent : WeakOneStepTypeCoherence inner) →
-  AssumptionMembershipUnique (resultCtx inner) →
-  ReductionClosedQuotientWideningCompatible
-    Φ Δᴸ Δᴿ u u′ {D} {D′} {A} {A′} q p s s′ →
-  ReductionClosedQuotientWideningCompatible
-    (resultCtx inner)
-    (resultLeftCtx inner)
-    (resultRightCtx inner)
-    (applyCoercions (sourceChanges inner) u)
-    (applyCoercions (targetTailChanges inner) (applyCoercion χ u′))
-    (weak-one-step-transport-quotientᵀ inner q)
-    (transportType inner p)
-    s s′
-weak-one-step-transport-quotient-widening-compatibleᵀ
-    {χ = χ} inner coherent unique
-    (compatible-through-representativesᴿ
-      source-shape target-shape compatible) =
-  compatible-through-representativesᴿ
-    (source-perm-shape-applyTys
-      {χs = sourceChanges inner} source-shape)
-    (source-perm-shape-applyTys
-      {χs = targetTailChanges inner}
-      (source-perm-shape-applyTy {χ = χ} target-shape))
-    (weak-one-step-transport-paired-widening-compatibleᵀ
-      inner coherent unique compatible)
+mutual
+  weak-one-step-transport-quotient-widening-compatibleᵀ :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {M M′ : Term} {C C′ D D′ A A′ : Ty}
+      {u u′ : Coercion} {q p s s′} {χ : StoreChange} →
+    (inner : WeakOneStepResult ρ M M′ C C′ χ) →
+    (coherent : WeakOneStepTypeCoherence inner) →
+    AssumptionMembershipUnique (resultCtx inner) →
+    ReductionClosedQuotientWideningCompatible
+      Φ Δᴸ Δᴿ u u′ {D} {D′} {A} {A′} q p s s′ →
+    ReductionClosedQuotientWideningCompatible
+      (resultCtx inner)
+      (resultLeftCtx inner)
+      (resultRightCtx inner)
+      (applyCoercions (sourceChanges inner) u)
+      (applyCoercions (targetTailChanges inner) (applyCoercion χ u′))
+      (weak-one-step-transport-quotientᵀ inner q)
+      (transportType inner p)
+      s s′
+  weak-one-step-transport-quotient-widening-compatibleᵀ
+      {χ = χ} inner coherent unique
+      (compatible-through-non-function-representativesᴿ
+        non-function source-shape target-shape compatible) =
+    compatible-through-non-function-representativesᴿ
+      (applyCoercions-non-paired-function
+        (sourceChanges inner)
+        (χ ∷ targetTailChanges inner)
+        non-function)
+      (source-perm-shape-applyTys
+        {χs = sourceChanges inner} source-shape)
+      (source-perm-shape-applyTys
+        {χs = targetTailChanges inner}
+        (source-perm-shape-applyTy {χ = χ} target-shape))
+      (weak-one-step-transport-paired-widening-compatibleᵀ
+        inner coherent unique compatible)
+  weak-one-step-transport-quotient-widening-compatibleᵀ
+      {χ = χ} inner coherent unique
+      (compatible-quotient-functionᴿ
+        {c = c} {d = d} {c′ = c′} {d′ = d′}
+        {D₁ = D₁} {D₁′ = D₁′} {D₂ = D₂} {D₂′ = D₂′}
+        {A₁ = A₁} {A₁′ = A₁′} {A₂ = A₂} {A₂′ = A₂′}
+        {q₁ = q₁} {q₂ = q₂} {p₁ = p₁} {p₂ = p₂}
+        {qF = qF}
+        components domain codomain) =
+    quotient-widening-compatible-cong
+      (sym (applyTys-⇒ (sourceChanges inner) D₁ D₂))
+      (sym (applyTys-⇒
+        (χ ∷ targetTailChanges inner) D₁′ D₂′))
+      (sym (applyTys-⇒ (sourceChanges inner) A₁ A₂))
+      (sym (applyTys-⇒
+        (χ ∷ targetTailChanges inner) A₁′ A₂′))
+      (sym (applyCoercions-arrow (sourceChanges inner) c d))
+      (sym (applyCoercions-arrow
+        (χ ∷ targetTailChanges inner) c′ d′))
+      q-heq p-heq normalized
+    where
+    normalized =
+      compatible-quotient-functionᴿ
+        (weak-one-step-transport-quotient-arrow-components-at
+          inner coherent components)
+        (weak-one-step-transport-quotient-narrowing-eliminationᵀ
+          inner coherent unique domain)
+        (weak-one-step-transport-quotient-widening-compatibleᵀ
+          inner coherent unique codomain)
+
+    q-heq =
+      subst²-to-≅
+        {P = λ S T →
+          resultCtx inner ∣ resultLeftCtx inner
+            ⊢ S ⊑ᵖ T ⊣ resultRightCtx inner}
+        (applyTys-⇒ (sourceChanges inner) D₁ D₂)
+        (applyTys-⇒
+          (χ ∷ targetTailChanges inner) D₁′ D₂′)
+        (weak-one-step-transport-quotientᵀ inner qF)
+
+    p-heq =
+      HE.trans
+        (HE.sym
+          (HE.≡-to-≅ (transportArrowCoherent coherent p₁ p₂)))
+        (subst²-to-≅
+          {P = λ S T →
+            resultCtx inner ∣ resultLeftCtx inner
+              ⊢ S ⊑ T ⊣ resultRightCtx inner}
+          (applyTys-⇒ (sourceChanges inner) A₁ A₂)
+          (trans
+            (cong (applyTys (targetTailChanges inner))
+              (applyTys-⇒ (χ ∷ []) A₁′ A₂′))
+            (applyTys-⇒ (targetTailChanges inner)
+              (applyTy χ A₁′) (applyTy χ A₂′)))
+          (transportType inner (p₁ I.↦ p₂)))
+
+
+  weak-one-step-transport-quotient-narrowing-eliminationᵀ :
+    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+      {ρ : StoreImp Φ Δᴸ Δᴿ}
+      {M M′ : Term} {C C′ A A′ D D′ : Ty}
+      {d d′ : Coercion} {p q s s′} {χ : StoreChange} →
+    (inner : WeakOneStepResult ρ M M′ C C′ χ) →
+    (coherent : WeakOneStepTypeCoherence inner) →
+    AssumptionMembershipUnique (resultCtx inner) →
+    QuotientNarrowingEliminationCompatible
+      Φ Δᴸ Δᴿ d d′ {A} {A′} {D} {D′} p q s s′ →
+    QuotientNarrowingEliminationCompatible
+      (resultCtx inner) (resultLeftCtx inner) (resultRightCtx inner)
+      (applyCoercions (sourceChanges inner) d)
+      (applyCoercions (targetTailChanges inner)
+        (applyCoercion χ d′))
+      (transportType inner p)
+      (weak-one-step-transport-quotientᵀ inner q)
+      s s′
+  weak-one-step-transport-quotient-narrowing-eliminationᵀ
+      {χ = χ} inner coherent unique
+      (non-function-elimination evidence) =
+    non-function-elimination
+      (applyCoercions-non-paired-function
+        (sourceChanges inner)
+        (χ ∷ targetTailChanges inner)
+        evidence)
+  weak-one-step-transport-quotient-narrowing-eliminationᵀ
+      {χ = χ} inner coherent unique
+      (function-elimination
+        {a = a} {b = b} {a′ = a′} {b′ = b′}
+        {A₁ = A₁} {A₁′ = A₁′} {A₂ = A₂} {A₂′ = A₂′}
+        {D₁ = D₁} {D₁′ = D₁′} {D₂ = D₂} {D₂′ = D₂′}
+        {p₁ = p₁} {p₂ = p₂} {qF = qF}
+        components domain codomain) =
+    elimination-compatible-cong
+      (sym (applyTys-⇒ (sourceChanges inner) A₁ A₂))
+      (sym (applyTys-⇒
+        (χ ∷ targetTailChanges inner) A₁′ A₂′))
+      (sym (applyTys-⇒ (sourceChanges inner) D₁ D₂))
+      (sym (applyTys-⇒
+        (χ ∷ targetTailChanges inner) D₁′ D₂′))
+      (sym (applyCoercions-arrow (sourceChanges inner) a b))
+      (sym (applyCoercions-arrow
+        (χ ∷ targetTailChanges inner) a′ b′))
+      p-heq q-heq normalized
+    where
+    normalized =
+      function-elimination
+        (weak-one-step-transport-quotient-arrow-components-at
+          inner coherent components)
+        (weak-one-step-transport-quotient-widening-compatibleᵀ
+          inner coherent unique domain)
+        (weak-one-step-transport-quotient-narrowing-eliminationᵀ
+          inner coherent unique codomain)
+
+    p-heq =
+      HE.trans
+        (HE.sym
+          (HE.≡-to-≅ (transportArrowCoherent coherent p₁ p₂)))
+        (subst²-to-≅
+          {P = λ S T →
+            resultCtx inner ∣ resultLeftCtx inner
+              ⊢ S ⊑ T ⊣ resultRightCtx inner}
+          (applyTys-⇒ (sourceChanges inner) A₁ A₂)
+          (trans
+            (cong (applyTys (targetTailChanges inner))
+              (applyTys-⇒ (χ ∷ []) A₁′ A₂′))
+            (applyTys-⇒ (targetTailChanges inner)
+              (applyTy χ A₁′) (applyTy χ A₂′)))
+          (transportType inner (p₁ I.↦ p₂)))
+
+    q-heq =
+      subst²-to-≅
+        {P = λ S T →
+          resultCtx inner ∣ resultLeftCtx inner
+            ⊢ S ⊑ᵖ T ⊣ resultRightCtx inner}
+        (applyTys-⇒ (sourceChanges inner) D₁ D₂)
+        (applyTys-⇒
+          (χ ∷ targetTailChanges inner) D₁′ D₂′)
+        (weak-one-step-transport-quotientᵀ inner qF)

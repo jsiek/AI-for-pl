@@ -61,11 +61,9 @@ open import QuotientedTermImprecision using
   )
 open import QuotientImprecisionCompatibility using
   ( ReductionClosedQuotientWideningCompatible
+  ; QuotientNarrowingEliminationCompatible
   ; SpineCastMode
   )
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
 open import TermTyping using
   ( _∣_∣_⊢_⦂_
   ; ⊢⟨⟩↑

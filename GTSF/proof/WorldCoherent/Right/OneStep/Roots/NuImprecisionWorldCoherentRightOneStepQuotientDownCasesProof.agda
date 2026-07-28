@@ -54,13 +54,11 @@ open import QuotientedTermImprecision using
   )
 open import QuotientImprecisionCompatibility using
   ( ReductionClosedQuotientWideningCompatible
+  ; QuotientNarrowingEliminationCompatible
   ; SpineCastMode
   ; gradual↓
   ; id-only↓
   )
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
 open import TermTyping using
   (cast-gen; cast-tag-or-id; _∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx)

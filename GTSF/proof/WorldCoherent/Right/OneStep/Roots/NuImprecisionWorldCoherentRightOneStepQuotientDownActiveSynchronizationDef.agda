@@ -40,10 +40,9 @@ open import QuotientedTermImprecision using
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import QuotientImprecisionCompatibility using
-  (ReductionClosedQuotientWideningCompatible)
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
+  ( ReductionClosedQuotientWideningCompatible
+  ; QuotientNarrowingEliminationCompatible
+  )
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef

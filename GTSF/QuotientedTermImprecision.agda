@@ -78,6 +78,7 @@ open import NuTerms using
 open import QuotientImprecisionCompatibility using
   ( ReductionClosedPairedWideningCompatible
   ; ReductionClosedQuotientWideningCompatible
+  ; QuotientNarrowingEliminationCompatible
   ; SpineCastMode
   ; id-only↓
   ; gradual↓
@@ -172,9 +173,6 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
 open import proof.Core.Properties.NuTermProperties using
   (closed-refined-typing-recontextualize; typing-closedᵐ)
 

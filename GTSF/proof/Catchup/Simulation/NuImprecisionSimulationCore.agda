@@ -235,7 +235,7 @@ open import QuotientImprecisionCompatibility using
   ; ReductionClosedQuotientWideningCompatible
   )
 open import
-  proof.Quotient.NuImprecisionQuotientWideningCompatibilityRename
+  proof.Quotient.NuImprecisionQuotientEliminationCompatibilityRename
   using
   ( reduction-closed-paired-compatible-rename-leftᵢ
   ; reduction-closed-paired-compatible-rename²ᵢ

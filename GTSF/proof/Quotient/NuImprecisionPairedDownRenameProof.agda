@@ -21,7 +21,7 @@ open import
   proof.Quotient.NuImprecisionPairedDownRenameDef
   using (PairedDownRenameLeftᵀ; PairedDownRename²ᵀ)
 open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibilityRename
+  proof.Quotient.NuImprecisionQuotientEliminationCompatibilityRename
   using
   ( quotient-narrowing-elimination-compatible-rename-leftᵢ
   ; quotient-narrowing-elimination-compatible-rename²ᵢ

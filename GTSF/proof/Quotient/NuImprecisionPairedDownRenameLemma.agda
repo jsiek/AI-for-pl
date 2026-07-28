@@ -24,7 +24,11 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
 open import QuotientImprecisionCompatibility using
-  (SpineCastMode; gradual↓; id-only↓)
+  ( QuotientNarrowingEliminationCompatible
+  ; SpineCastMode
+  ; gradual↓
+  ; id-only↓
+  )
 open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
@@ -44,9 +48,6 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
 open import
   proof.Quotient.NuImprecisionPairedDownRenameProof
   using (paired-down-rename-leftᵀ; paired-down-rename²ᵀ)
-open import
-  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
-  using (QuotientNarrowingEliminationCompatible)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( LeftStoreRenameⁱ
   ; RelWorldEmbeddingⁱ

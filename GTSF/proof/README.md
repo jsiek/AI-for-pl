@@ -190,13 +190,23 @@ theorems.  Consumers import that focused module directly;
 `MaximalLowerBoundsWf` imports it non-publicly only while the remaining
 historical selector clients are retired.
 
+Conversion between legacy and well-formed indexed type imprecision lives in
+`NuImprecisionWfBridgeProperties`.  It owns forgetting, reconstruction,
+target lifting, and target-context dropping.  External clients import this
+module directly; `MaximalLowerBoundsWf` imports it non-publicly only while the
+historical selector is retired.  Do not restore these operations as selector
+exports.
+
 Keep-only quotient-down administration has a similarly narrow canonical
 boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
 records ordinary closure, one rank-decreasing target keep step, and terminal
 source blame. Function frames remain at the whole-application root, while
-target instantiation requires a separate allocation residual that preserves
-the hidden universal permutation. Do not enlarge the core plan into a
-dispatcher for those whole-term joins.
+target instantiation uses
+`NuImprecisionWorldCoherentRightOneStepQuotientDownNuAllocationResidualAccDef`.
+That post-`β-inst`, pre-bind boundary preserves the paired-down and closing
+evidence, the hidden universal permutation, and the keep-only target-origin
+trace. Do not enlarge the core plan into a dispatcher for those whole-term
+joins or replace the allocation residual with an ordinary QTI edge.
 
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the

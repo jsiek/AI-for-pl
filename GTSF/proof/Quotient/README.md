@@ -1006,6 +1006,16 @@ therefore a third operational quotient-instantiation residual retaining the
 paired-down/closing evidence and universal permutation. It is not a QTI
 constructor or a compatibility broadening.
 
+That boundary is now formalized by
+`WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ`. It starts
+after target `β-inst` and before `bind`, keeps the source double cast as a
+value, retains both quotient composition squares and compatibility witnesses,
+and records a keep-only trace from the original target double cast to the
+pending runtime `ν`. The round-trip regression inhabits this contract without
+an ordinary pre-instantiation edge. The proof must transport the physical
+permutation and quotient indices through target allocation, then rebuild
+lineage, world coherence, and assumption-membership uniqueness.
+
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
 It passes strictly and is imported by the unassembled strict spine. The
@@ -1097,11 +1107,24 @@ eighteen. Focused strict checks pass for the new module, the invalidated
 selector, imprecision composition, endpoint maximality, and endpoint
 quotienting.
 
-The remaining selector audit identifies the well-formedness bridge, binder
-permutation, and source binder drop as the other reusable islands. After
-those move, delete the historical selector body and its obsolete experiments
-rather than reorganizing them. The isolated non-well-formed selector is a
-follow-up deletion candidate once its single test client is classified.
+The seventh stable cut extracts the 262-line
+`NuImprecisionWfBridgeProperties.agda`. It owns legacy/indexed forgetting and
+reconstruction, target lifting, and target-context dropping. Nine clients
+import it directly; the selector keeps only a non-public transition import.
+The selector shrinks from 19,606 to 19,402 lines and from eighteen direct
+importers to thirteen. The focused module, invalidated selector,
+cast-compatibility counterexample, endpoint maximality, and factorization
+shape pass focused strict checks.
+
+Two legacy `ν` pattern failures and the removed `up⊑upᵀ` consumer were exposed
+by invalidating clients. They are independent migration/deletion debt, not
+bridge failures, and must not be repaired by restoring obsolete constructors.
+
+The remaining selector audit identifies binder permutation and source binder
+drop as the other reusable islands. After those move, delete the historical
+selector body and its obsolete experiments rather than reorganizing them.
+The isolated non-well-formed selector is a follow-up deletion candidate once
+its single test client is classified.
 
 Store-relation structure and endpoint shape remain later stable cuts, but the
 operational quotient SCC and the three selector evacuations are higher

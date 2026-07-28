@@ -1816,10 +1816,22 @@ round-trip regression in
 `∀Y. ∀X. X ⇒ Y` on the target edge. The target closing widening reduces by
 instantiation while the source remains behind two inert casts. There is no
 ordinary edge from `∀X. X ⇒ ★` to `∀Y. ∀X. X ⇒ Y`, and the source is not a
-bare `Λ`, so neither proposed branch applies. The next experiment must define
+bare `Λ`, so neither proposed branch applies. The proof therefore requires
 a third operational quotient-instantiation residual that preserves the
-original paired-down/closing boundary and its genuine `∀` permutation. It
-must not broaden QTI or manufacture an ordinary intermediate index.
+original paired-down/closing boundary and its genuine `∀` permutation.
+
+That exact boundary is now formalized in
+`NuImprecisionWorldCoherentRightOneStepQuotientDownNuAllocationResidualAccDef`.
+It starts after the target `β-inst` step and before `bind`, requires the source
+double cast to remain a value, retains both quotient composition squares and
+compatibility witnesses, and carries a keep-only trace from the original
+target double cast to the pending runtime `ν`. The checked round-trip
+inhabits the boundary with no pending outer casts and no prior target keep
+steps. The boundary returns the existing world-coherent weak one-step outcome
+directly; it is neither a QTI constructor nor an ordinary intermediate edge.
+Its proof must next transport the physical permutation through target `bind`,
+update the quotient indices, and reconstruct store lineage, coherence, and
+membership uniqueness.
 
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
@@ -1896,12 +1908,29 @@ invalidated monolith in 47.98 seconds, imprecision composition in 2.95
 seconds, endpoint maximality in 6.52 seconds, and endpoint quotienting in
 35.96 seconds.
 
-The remaining selector audit found three further reusable islands: the
-old-to-indexed well-formedness bridge, binder permutation, and source binder
-drop. Once those consumers move, only historical selector experiments and
-retiring paired-lambda code should remain. Delete that residual selector
-development and the isolated non-well-formed selector rather than preserving
-them as compatibility surfaces.
+The seventh stable cut extracts the 262-line
+`proof/Core/Properties/NuImprecisionWfBridgeProperties.agda`. It owns the
+legacy/indexed forgetting and reconstruction bridge, target lifting, and
+target-context dropping. Nine clients import it directly; the endpoint
+selector imports it non-publicly and does not re-export it. The selector
+shrinks from 19,606 to 19,402 lines and its direct importer count falls from
+eighteen to thirteen. Strict checks pass for the focused module in 4.29
+seconds, the invalidated selector in 50.89 seconds, the cast-compatibility
+counterexample in 90.41 seconds, endpoint maximality in 2.33 seconds, and
+factorization shape in 24.60 seconds.
+
+Three invalidated consumers expose independent migration debt rather than
+bridge failures: `MLBGlbCounterexample` and
+`GenSafeMismatchBlameRegression` still pattern-match the pre-`NonVar` `ν`
+shape, while `CompileTermImprecision` still reaches the removed
+`up⊑upᵀ`. Classify those clients for migration or deletion; do not restore
+obsolete constructors to keep them checking.
+
+The remaining selector audit found two further reusable islands: binder
+permutation and source binder drop. Once those consumers move, only historical
+selector experiments and retiring paired-lambda code should remain. Delete
+that residual selector development and the isolated non-well-formed selector
+rather than preserving them as compatibility surfaces.
 
 Invalidating the other two consumers exposed existing migration debt rather
 than import failures. The paired-lambda widening consumer has nine missing

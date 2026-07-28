@@ -968,9 +968,43 @@ and the source/import audit has no uninventoried Proof modules. The updated
 366-module strict spine passes after an approximately 209-second interface
 refresh; it remains a phase gate, not an inner development check.
 
-Next implement the value-residual worker and bad-untag leaf, then assemble the
-two-cast entry. These are operational proof obligations, not reasons to add
-syntax to term imprecision.
+Next implement the value-residual worker and lower bad-untag theorem, then
+assemble the two-cast entry. These are operational proof obligations, not
+reasons to add syntax to term imprecision.
+
+The bad-untag obligation now has that smaller strict boundary.
+`NuImprecisionWorldCoherentQuotientDownBadUntagSourceBlameDef` stops before
+the closing widening and concludes that the source downcast reaches blame.
+`NuImprecisionWorldCoherentRightOneStepQuotientDownBadUntagRootProof` lifts
+that trace through the closing cast and appends the enclosing blame step. The
+repaired source-`gen` ground-agreement theorem adds exactly the value and
+no-runtime-bullet premises needed to exclude its earlier counterexample.
+Both completed Proof modules are registered in the unassembled strict spine;
+their focused checks take about six seconds.
+
+The lower theorem's remaining proof dependency is a coherent ordinary-tag
+synchronization result. In the live quotient-down modes, source seal cases are
+impossible. Source-only variables contradict context exclusivity, and the
+base, function, universal, and `gen` cases reduce to shape inversion plus
+canonical target-tag cancellation.
+
+The constructor-form recursive boundary is permanently the
+`QuotientDownResidualCorePlan`: ordinary bottom, ordinary opening with a
+complete target spine, one rank-decreasing keep step, or terminal source
+blame. Function frames stay at the whole-application root. Allocation is a
+separate world-changing residual, not another case forced into this
+keep-only core.
+
+The attempted two-way allocation classifier is refuted by the checked
+round-trip example with source quotient type `∀X. ∀Y. X ⇒ Y`, target quotient
+type `∀Y. ∀X. X ⇒ Y`, and common outside type `∀X. X ⇒ ★`. The target closing
+widening instantiates while the source is still framed by two inert casts.
+Ordinary opening would require the impossible edge
+`∀X. X ⇒ ★ ⊑ ∀Y. ∀X. X ⇒ Y`; bare-`Λ` target-instantiation creation also
+does not apply to the quotient-framed source. The next exact boundary is
+therefore a third operational quotient-instantiation residual retaining the
+paired-down/closing evidence and universal permutation. It is not a QTI
+constructor or a compatibility broadening.
 
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.

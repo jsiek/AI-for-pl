@@ -190,6 +190,14 @@ theorems.  Consumers import that focused module directly;
 `MaximalLowerBoundsWf` imports it non-publicly only while the remaining
 historical selector clients are retired.
 
+Keep-only quotient-down administration has a similarly narrow canonical
+boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
+records ordinary closure, one rank-decreasing target keep step, and terminal
+source blame. Function frames remain at the whole-application root, while
+target instantiation requires a separate allocation residual that preserves
+the hidden universal permutation. Do not enlarge the core plan into a
+dispatcher for those whole-term joins.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

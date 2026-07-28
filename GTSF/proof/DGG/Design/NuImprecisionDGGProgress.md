@@ -1776,9 +1776,50 @@ Treat that as a phase-gate cost; continue using the 5–7 second leaf checks
 during development.
 
 The remaining semantic work at this boundary is now explicit: implement the
-keep-only residual worker and the bad-untag source-blame leaf, then assemble
-the entry contract. Neither missing inhabitant is evidence for broadening
-QTI.
+keep-only residual worker and the lower bad-untag source-blame theorem, then
+assemble the entry contract. Neither missing inhabitant is evidence for
+broadening QTI.
+
+The bad-untag boundary has now been lowered one cast further. The strict
+`NuImprecisionWorldCoherentQuotientDownBadUntagSourceBlameDef` asks for the
+source downcast itself to reach blame and omits all closing-widening evidence.
+The strict
+`NuImprecisionWorldCoherentRightOneStepQuotientDownBadUntagRootProof` is a
+thin adapter: it lifts that trace through the closing widening and appends
+the enclosing blame step. The source `gen` branch is supported by the repaired
+`SourceValueGenTargetGroundAgreementᵀ`, whose `Value`, `No•`, and target-value
+premises exclude the earlier active-source-untag counterexample. These Proof
+modules are inventoried in `NuDGGUnassembledProofsStrictSpine`. Focused strict
+checks take about six seconds each.
+
+An exhaustive audit of the lower bad-untag theorem leaves one reusable proof
+ingredient: after exposing an ordinary source tagged value, synchronize its
+ground tag with the coherent target tag. Source-only variable and seal cases
+are impossible in the two live quotient-down modes; base, function,
+universal, and `gen` cases close by ground-shape inversion and tag
+cancellation. This is a focused coherent-tag theorem, not a reason to add a
+QTI constructor.
+
+The residual datatype is now permanently named
+`QuotientDownResidualCorePlan`. It contains only four stable states:
+an ordinary bottom edge, an ordinary opening followed by a complete target
+administration spine, one rank-decreasing target keep step, and terminal
+source blame. Function-frame beta remains at the whole-application root.
+Allocation remains separate because it changes the world and must retain
+universal-permutation evidence hidden behind inert quotient wrappers.
+
+A proposed two-way target-instantiation classification—ordinary opening or
+the existing bare-`Λ` target-instantiation creation rule—is false. The checked
+round-trip regression in
+`NuImprecisionReductionClosedQuotientExamples.agda` uses
+`∀X. ∀Y. X ⇒ Y` on the source quotient edge and
+`∀Y. ∀X. X ⇒ Y` on the target edge. The target closing widening reduces by
+instantiation while the source remains behind two inert casts. There is no
+ordinary edge from `∀X. X ⇒ ★` to `∀Y. ∀X. X ⇒ Y`, and the source is not a
+bare `Λ`, so neither proposed branch applies. The next experiment must define
+a third operational quotient-instantiation residual that preserves the
+original paired-down/closing boundary and its genuine `∀` permutation. It
+must not broaden QTI or manufacture an ordinary intermediate index.
 
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by

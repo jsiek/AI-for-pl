@@ -3,6 +3,7 @@ module Types where
 -- File Charter: Core syntax and operations for polymorphic types.
 
 open import Data.Bool using (Bool; false; true; _∨_)
+open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Binary.PropositionalEquality
@@ -208,3 +209,15 @@ data WfTy : TyCtx → Ty → Set where
   wf⇒ : ∀ {Δ A B} → WfTy Δ A → WfTy Δ B → WfTy Δ (A ⇒ B)
   wf∀ : ∀ {Δ A} → WfTy (suc Δ) A → WfTy Δ (`∀ A)
 
+------------------------------------------------------------------------
+-- List Membership
+------------------------------------------------------------------------
+
+infix 4 _∋_⦂_
+data _∋_⦂_ : ∀{X : Set} → List X → ℕ → X → Set₁ where
+  Z : ∀ {X}{Γ : List X}{A : X} →
+      (A ∷ Γ) ∋ zero ⦂ A
+
+  S : ∀{X}{Γ}{A B : X}{x} →
+      Γ ∋ x ⦂ A →
+      (B ∷ Γ) ∋ suc x ⦂ A

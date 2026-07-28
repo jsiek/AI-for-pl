@@ -16,11 +16,3 @@ renameTyStoreᵗ ρ ((α , A) ∷ Σ) = (ρ α , renameᵗ ρ A) ∷ renameTySto
 ⟰ᵗ : TyStore → TyStore
 ⟰ᵗ = renameTyStoreᵗ suc
 
-infix 4 _∋_⦂_
-data _∋_⦂_ : ∀{X : Set} → List X → ℕ → X → Set₁ where
-  Z : ∀ {X}{Γ : List X}{A : X} →
-      (A ∷ Γ) ∋ zero ⦂ A
-
-  S : ∀{X}{Γ}{A B : X}{x} →
-      Γ ∋ x ⦂ A →
-      (B ∷ Γ) ∋ suc x ⦂ A

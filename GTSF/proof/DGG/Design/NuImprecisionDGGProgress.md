@@ -1697,6 +1697,89 @@ run first. The exact next contract is therefore a ranked paired-down value
 catch-up boundary, carried with the closing widening evidence supplied by
 function elimination, rather than three fabricated root adapters.
 
+That entry boundary is now strict in
+`NuImprecisionWorldCoherentRightOneStepQuotientDownValueAccDef`. It starts
+with source and target values at one exact coherent world, retains the live
+paired narrowing and closing widening composition and compatibility evidence,
+and exposes accessibility at the two-cast target pending spine. Contract
+checking also found that this boundary is not itself a recursively closed
+worker. In the target identity case, a valid
+`non-function-elimination (target-non-function non-function-id)` erases the
+target downcast, leaving only the target widening pending. The original
+quotient index and source down/up state remain semantically necessary, but
+neither an ordinary QTI edge nor an ordinary `TargetAdministrationSpine` can
+be reconstructed from that residual.
+
+The same issue occurs in the sequence and successful-untag cases with target
+residual spines of three and one casts respectively. Their
+`pendingAdministrationRank` is smaller, so termination is not the obstacle.
+The recursive state must instead range over an arbitrary target pending-cast
+list while retaining the original source paired-down/close boundary and its
+compatibility evidence. Each branch must either expose an ordinary
+representative and delegate to the existing target pending-cast worker, or
+descend through `compatible-quotient-functionᴿ`. The checked two-cast contract
+should remain the entry wrapper for that generic residual SCC, not be mistaken
+for its implementation.
+
+That generic state is now strict in
+`NuImprecisionWorldCoherentRightOneStepQuotientDownResidualAccDef`. In
+addition to the original paired-down/close evidence, it retains a reduction
+trace from the original two-cast target to
+`applyTargetPendingCasts W cs`. The first trace step is the simulated target
+step and every remaining step is `keep`; accessibility is measured at the
+current value and pending list. This operational-origin invariant makes the
+identity, sequence, and successful-untag residuals direct instances without
+inventing an ordinary intermediate imprecision index that
+`non-function-elimination` does not provide. The statement checks strictly in
+5.17 seconds.
+
+The keep-only residual worker is not meant to absorb allocation or blame.
+Those are leaf handoffs because allocation changes the world and blame ends
+the branch. The next proof experiment must test whether compatibility
+inversion can either close each keep-only residual or reach one of those
+leaves. If it needs the ordinary target pending-cast worker before exposing an
+ordinary representative, then the missing object is a quotient residual plan
+indexed by the original boundary—not another QTI constructor or a fabricated
+ordinary index.
+
+The entry-adapter experiment validates the value half of this design.
+Identity, sequence, and successful untag each construct the required
+one-step keep trace and a strict `pendingAdministrationRank` decrease.
+Instantiation and seal/unseal roots are impossible for the target narrowing,
+and a blame body contradicts the target value premise. Failed untag is the one
+real terminal exception:
+`((V′ ⟨ G ! ⟩) ⟨ H ？ ⟩) ⟨ u′ ⟩` steps to
+`blame ⟨ u′ ⟩`, which cannot be represented by
+`applyTargetPendingCasts W cs` with `Value W`. Closing that branch also
+requires a source trace from the retained close boundary to `blame`; no live
+lemma currently supplies it. The analogous retiring proof uses the obsolete
+relation.
+
+Therefore the generic residual state should remain value-only. Add one
+dedicated live quotient-down bad-untag/source-blame leaf, then prove the
+two-cast entry adapter from that leaf plus the whole residual worker. Do not
+pollute recursive administration with a terminal blame alternative merely to
+make one root fit.
+
+That repair is now checked. The strict
+`NuImprecisionWorldCoherentRightOneStepQuotientDownBadUntagRootDef` retains
+the original quotient boundary and asks only for the reusable source-to-blame
+trace. The strict `*QuotientDownValueAccProof` proves the two-cast entry
+contract from the whole value-residual worker and this one leaf. It constructs
+the identity, sequence, and successful-untag traces and rank decreases,
+delegates failed untag to the leaf, and exhaustively eliminates the impossible
+roots. The Def and Proof checks take 5.60 and 7.00 seconds. The Proof is
+registered in `NuDGGUnassembledProofsStrictSpine`, and `make audit` reports no
+uninventoried strict Proof modules. The updated 366-module unassembled spine
+also passes strictly after an approximately 209-second interface refresh.
+Treat that as a phase-gate cost; continue using the 5–7 second leaf checks
+during development.
+
+The remaining semantic work at this boundary is now explicit: implement the
+keep-only residual worker and the bad-untag source-blame leaf, then assemble
+the entry contract. Neither missing inhabitant is evidence for broadening
+QTI.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be
@@ -1738,11 +1821,40 @@ term narrowing, store correspondence, cast imprecision, and the other live
 representatives. `CompileTermImprecision.agda` still stops independently at
 its retired `up⊑upᵀ` use.
 
-Further safe cuts are binder opening/allocation, store-relation structure,
-and endpoint-shape inversions. These are lower priority than the operational
-quotient SCC now that the three largest migration-aligned invalidation cuts
-are established. Do not split the retiring quotient-value monolith or
-migration experiments. The zero-import
+The fourth stable cut is complete. The 91-line
+`proof/Core/Properties/NarrowWidenBinderProperties.agda` is now the canonical
+home of narrowing/widening opening and allocation under type binders.
+`NarrowWidenProperties.agda` shrinks from 4,230 to 4,156 lines and its direct
+importer count falls from eight to four; the four binder consumers import the
+focused module directly with no compatibility re-export. Strict checks pass
+for the focused module in 2.91 seconds, the invalidated monolith in 49.77
+seconds, the matched-`β-gen` consumer in 2.49 seconds, and the source inert
+bullet consumer in 67.07 seconds. The two simulation monoliths were not
+rechecked merely to exercise an already checked export.
+
+The fifth stable cut removes both misplaced support and dead code from
+`ReductionProperties.agda`. The 93-line
+`proof/Core/Properties/TypeInjectivityProperties.agda` now owns constructor
+and injective-rename facts used by three target-closing consumers. The
+zero-consumer store-change/type-renamed reduction API was deleted rather than
+wrapped. `ReductionProperties.agda` shrinks from 1,242 to 1,051 lines.
+Strict checks pass for the focused module in 4.42 seconds, the reduced
+monolith in 5.56 seconds, and the paired-reveal consumer in 7.84 seconds;
+`make audit` also passes.
+
+Invalidating the other two consumers exposed existing migration debt rather
+than import failures. The paired-lambda widening consumer has nine missing
+`NarrowWiden` cases in its own dispatcher and belongs to the retiring
+paired-lambda surface, so it should be deleted with that surface instead of
+repaired. The source paired post-beta consumer reaches the selected-migration
+`NuImprecisionSourceNuPairedAllConversionPostBetaAllRevealClosingRelationDef`,
+which still imports retired `PairedConversion`; that live source path remains
+a migration gate.
+
+Further safe cuts are store-relation structure and endpoint-shape inversions.
+These are lower priority than the operational quotient SCC now that five
+migration-aligned invalidation cuts are established. Do not split the
+retiring quotient-value monolith or migration experiments. The zero-import
 `MaximalLowerBoundsJunk.agda` and its active-surface references have already
 been deleted; Git history is the archive.
 

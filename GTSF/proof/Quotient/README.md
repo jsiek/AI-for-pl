@@ -905,6 +905,73 @@ administration. Its next exact boundary is paired-down value catch-up with
 the closing widening evidence provided by the mutual function-elimination
 invariant, not a nonrecursive adapter record.
 
+The strict
+`NuImprecisionWorldCoherentRightOneStepQuotientDownValueAccDef` now records
+that exact two-cast entry boundary at one coherent value world. It retains
+both composition squares, both compatibility witnesses, and accessibility at
+the target down/up pending spine. It is an entry contract, not yet a recursive
+implementation. Target `β-id` supplies the first decisive residual: the
+admissible
+`non-function-elimination (target-non-function non-function-id)` case removes
+the target downcast, so the remaining target widening is no longer related by
+ordinary QTI and cannot be fed to the ordinary target pending-cast worker.
+
+The corresponding sequence and successful-untag residuals likewise retain
+the original source down/up boundary while the target pending list changes.
+All three residual ranks decrease. The missing SCC state must therefore range
+over an arbitrary target pending-cast list, preserve the original quotient
+boundary and compatibility evidence, and either expose an ordinary
+representative for the existing administration worker or descend through
+`compatible-quotient-functionᴿ`. Keep the two-cast `Def` as the public entry
+to that generic residual worker; do not revive the deleted outer
+quotient-frame contracts or fabricate one adapter per residual length.
+
+That state is now frozen by the strict
+`NuImprecisionWorldCoherentRightOneStepQuotientDownResidualAccDef`. It records
+an arbitrary current value and pending list together with a trace from the
+original two-cast target. The trace begins with the target step being
+simulated, and all remaining steps are `keep`. This supplies an exact
+operational origin for identity, sequence, and successful-untag residuals
+without postulating an ordinary intermediate imprecision index. Its statement
+checks in 5.17 seconds.
+
+Allocation and blame stay outside this exact-world keep-only worker as leaf
+handoffs. The implementation experiment must now determine whether
+compatibility inversion closes or hands off every residual. If an ordinary
+target-administration spine is needed before an ordinary representative is
+available, introduce a genuine quotient residual plan indexed by this
+boundary; do not add a QTI constructor or manufacture the missing index.
+
+The entry-adapter experiment confirms that identity, sequence, and successful
+untag are exact value residuals with strict rank decreases. Instantiation and
+seal/unseal roots are impossible under target narrowing, and a blame body is
+not a value. Failed untag is the sole terminal exception:
+`((V′ ⟨ G ! ⟩) ⟨ H ？ ⟩) ⟨ u′ ⟩` reduces to
+`blame ⟨ u′ ⟩`. It cannot inhabit the value-residual contract, and the retained
+close evidence alone does not construct the necessary source reduction to
+`blame`; the only analogous implementation still depends on the obsolete
+relation.
+
+Keep the recursive residual worker value-only. Supply a focused live
+quotient-down bad-untag/source-blame leaf, and make the two-cast entry adapter
+depend on that leaf and the generic residual worker. A terminal blame
+alternative does not belong in every recursive residual state.
+
+The repair is now strict. The dedicated
+`NuImprecisionWorldCoherentRightOneStepQuotientDownBadUntagRootDef` concludes
+with exactly the source-to-blame trace. The exhaustive
+`*QuotientDownValueAccProof` consumes that leaf plus the whole keep-only
+residual contract, constructs all three value residuals with strict rank
+decreases, and eliminates every impossible root. Focused checks pass in 5.60
+and 7.00 seconds. The Proof is inventoried in the unassembled strict spine,
+and the source/import audit has no uninventoried Proof modules. The updated
+366-module strict spine passes after an approximately 209-second interface
+refresh; it remains a phase gate, not an inner development check.
+
+Next implement the value-residual worker and bad-untag leaf, then assemble the
+two-cast entry. These are operational proof obligations, not reasons to add
+syntax to term imprecision.
+
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
 It passes strictly and is imported by the unassembled strict spine. The
@@ -966,9 +1033,28 @@ consumers import the focused boundary directly, and representative
 compilation, narrowing, store, and cast checks pass. The independent
 `CompileTermImprecision` failure remains its retired `up⊑upᵀ` use.
 
-Binder allocation/opening, store-relation structure, and endpoint shape are
-later stable cuts, but the operational quotient SCC is now higher priority.
-Retiring quotient/experiment files should be deleted rather than split. The
+Binder allocation/opening is now a fourth stable cut. The 91-line
+`NarrowWidenBinderProperties.agda` owns the seven opening/allocation lemmas
+with no re-export from `NarrowWidenProperties.agda`. The monolith shrinks from
+4,230 to 4,156 lines and from eight direct importers to four; the other four
+consumers now depend only on the focused binder module. Strict checks pass for
+the new module, invalidated monolith, matched-`β-gen` consumer, and source
+inert-bullet consumer.
+
+The fifth stable cut moves generic type-constructor and injective-rename facts
+to the 93-line `TypeInjectivityProperties.agda` and deletes the zero-consumer
+type-renamed-reduction API. `ReductionProperties.agda` shrinks from 1,242 to
+1,051 lines. The focused module, reduced monolith, paired-reveal consumer, and
+source/import audit pass. Rechecking the other two consumers exposed unrelated
+migration debt: the paired-lambda widening dispatcher is incomplete and
+belongs to the retiring paired-lambda surface, while the live source paired
+post-beta path still reaches a retired `PairedConversion` dependency. Delete
+the former with its surface and migrate the latter; do not restore a
+`ReductionProperties` re-export.
+
+Store-relation structure and endpoint shape remain later stable cuts, but the
+operational quotient SCC is now higher priority. Retiring
+quotient/experiment files should be deleted rather than split. The
 zero-consumer
 `MaximalLowerBoundsJunk.agda` has been removed; Git history is the archive.
 

@@ -890,6 +890,11 @@ backward spine next reaches the separately live source-seal cancellation
 proof, whose retired-constructor cases must be migrated because reveal and
 unseal catch-up still consume the theorem.
 
+Source-seal cancellation is now live-QTI exact. Its public contract is
+unchanged; the proof uses `closeᵀ (paired-downᵀ ...)`, direct paired reveal,
+conceal, and widening cases, and no retired identity-cast shortcut. The
+Proof, Lemma, and both immediate source catch-up consumers pass strict checks.
+
 The three remaining live quotient-down root fields cannot be filled by the
 existing target identity, sequence, and untag context lemmas alone. Those
 lemmas assume ordinary QTI and a completed right-value catch-up result,

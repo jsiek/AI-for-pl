@@ -1676,6 +1676,15 @@ cancellation proof, whose old exhaustive analysis still mentions
 `up⊑upᵀ` and other retired constructors; that proof must migrate rather than
 being discarded because source reveal/unseal catch-up consumes it.
 
+That live proof has now migrated without changing
+`SourceSealCancellationᵀ`. Its exhaustive analysis uses
+`closeᵀ (paired-downᵀ ...)` for the quotient case, the direct live paired
+reveal, conceal, and widening constructors, and no
+`⊑cast⊑idᵀ` compatibility branch. Strict checks pass for the Proof, its
+canonical Lemma, and both immediate source unseal/reveal consumers. This
+removes the next retired-constructor boundary from the backward dependency
+cone while preserving the theorem used by source catch-up.
+
 The attempted nonrecursive implementation of the three live quotient-down
 active roots was also rejected. The existing target identity, sequence, and
 untag context lemmas begin with ordinary QTI and an already completed

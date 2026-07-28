@@ -33,9 +33,10 @@ open import QuotientedTermImprecision using
   )
 open import Types using (Renameᵗ; Ty; TyCtx; renameᵗ)
 open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (rename-assm²ᵢ)
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (LeftInsertion)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( LeftInsertion
-  ; LeftCtxRenameⁱ
+  ( LeftCtxRenameⁱ
   ; LeftStoreRenameⁱ
   )
 open import proof.Core.Permutation.ForallPermutationProperties using

@@ -200,6 +200,12 @@ dropping live in `NuImprecisionBinderDropProperties`. Consumers import these
 focused modules directly. The retired endpoint selector must not be restored
 as a compatibility surface for either API.
 
+Coercion-mode renaming algebra lives in
+`NuCastModeRenamerProperties`. It owns left insertion, adjacent-name swaps,
+identity, and composition for `CastModeRenamer`. Allocation and renaming
+clients import it directly; `NuImprecisionSimulationCore` keeps only a
+non-public import and does not re-export it.
+
 Keep-only quotient-down administration has a similarly narrow canonical
 boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
 records ordinary closure, one rank-decreasing target keep step, and terminal

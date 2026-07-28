@@ -1963,6 +1963,17 @@ retained counterexample in 5.26 seconds, completeness in 12.74 seconds,
 maximality in 5.58 seconds, and factorization shape in 46.39 seconds.
 `make audit` passes.
 
+The tenth stable cut extracts the 375-line
+`proof/Core/Properties/NuCastModeRenamerProperties.agda`. It owns the
+coercion-mode renamers for left insertion, adjacent name swapping, identity,
+and composition, with no term-imprecision or world dependency. Seven
+external consumers import it directly; `NuImprecisionSimulationCore.agda`
+keeps one non-public import and shrinks from 14,421 to 14,095 lines. Strict
+checks pass for the focused module in 27.4 seconds, the invalidated simulation
+core in 28.3 seconds, and two small representative allocation/renaming clients
+in 27.5 and 24.0 seconds. The broad simulation assembly remains deferred to
+the migration phase gate.
+
 Two independent migration debts remain from earlier invalidation:
 `GenSafeMismatchBlameRegression` still pattern-matches the pre-`NonVar` `ν`
 shape, while `CompileTermImprecision` still reaches the removed

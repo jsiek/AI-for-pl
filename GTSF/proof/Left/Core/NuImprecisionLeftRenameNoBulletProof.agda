@@ -77,13 +77,15 @@ open import Types using
 open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using (rename-assm²ᵢ)
 open import proof.Left.Core.NuImprecisionLeftRenameNoBulletDef using
   (LeftRenameNoBullet)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import proof.Core.Properties.NuCastModeRenamerProperties using
   ( LeftInsertion
-  ; LeftCtxRenameⁱ
-  ; LeftStoreRenameⁱ
-  ; left-insertion-suc
-  ; left-insertion-ext
   ; left-insertion-cast-renamer
+  ; left-insertion-ext
+  ; left-insertion-suc
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( LeftCtxRenameⁱ
+  ; LeftStoreRenameⁱ
   ; left-narrowing-renameⁱ
   ; left-store-rename-[]
   ; left-store-rename-left

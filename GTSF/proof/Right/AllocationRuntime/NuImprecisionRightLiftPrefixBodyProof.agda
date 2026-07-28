@@ -23,9 +23,10 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
 open import NuTerms using (renameᵗᵐ; ⇑ᵗᵐ)
 open import QuotientedTermImprecision using (allocation-prefixᵀ)
 open import Types using (renameᵗ)
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
-  ; castModeRenamer-id
   ; rel-world-embedding
   )
 open import

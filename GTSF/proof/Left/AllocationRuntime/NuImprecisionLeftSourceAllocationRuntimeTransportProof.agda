@@ -138,13 +138,15 @@ open import
   using (embedded-creation-target-no-bulletᴱ)
 open import proof.Left.AllocationRuntime.NuImprecisionLeftSourceAllocationRuntimeTransportDef using
   (LeftSourceAllocationRuntimeTransport)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import proof.Core.Properties.NuCastModeRenamerProperties using
   ( LeftInsertion
-  ; LeftCtxRenameⁱ
-  ; LeftStoreRenameⁱ
+  ; left-insertion-cast-renamer
   ; left-insertion-ext
   ; left-insertion-suc
-  ; left-insertion-cast-renamer
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( LeftCtxRenameⁱ
+  ; LeftStoreRenameⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
   ; left-rename-allocation-prefixᵀ

@@ -1149,6 +1149,14 @@ experiment, and its 3,728-line work log are deleted. The new Def,
 `TypeProperties`, retained counterexample, completeness, maximality,
 factorization shape, and `make audit` all pass.
 
+The tenth stable cut extracts the 375-line
+`NuCastModeRenamerProperties.agda`. It owns left-insertion, adjacent-swap,
+identity, and composition algebra for coercion-mode renamers, independent of
+term imprecision and relational worlds. Seven external consumers import it
+directly; `NuImprecisionSimulationCore.agda` keeps one non-public import and
+shrinks from 14,421 to 14,095 lines. The focused module, reduced core, and two
+small representative clients pass strict checks in 24–28 seconds.
+
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete
 constructors. The isolated non-well-formed selector remains a deletion

@@ -433,6 +433,8 @@ open import proof.Core.Properties.TypeProperties using
   )
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-compose; castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
 open import
   proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport

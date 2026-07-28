@@ -43,9 +43,10 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef using
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
   (rel-ctx-rename-[])
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
-  ; castModeRenamer-id
   ; rel-world-embedding
   )
 open import

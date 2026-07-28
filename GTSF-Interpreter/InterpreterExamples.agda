@@ -9,6 +9,7 @@ module InterpreterExamples where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero)
+open import Relation.Nullary using (yes)
 
 open import Coercions
 open import Interpreter
@@ -36,6 +37,15 @@ Nat = ‵ `ℕ
 Bool : Ty
 Bool = ‵ `𝔹
 
+inert-decision-example :
+  inert? (Nat !) ≡ yes (Nat !)
+inert-decision-example = refl
+
+syntactic-value-decision-example :
+  syntacticValue? (Λᴵ (ƛᴵ (`ᴵ zero)))
+    ≡ yes (Λᴵ (ƛᴵ (`ᴵ zero)))
+syntactic-value-decision-example = refl
+
 timeout-example :
   run ((ƛᴵ (`ᴵ zero)) ·ᴵ $ᴵ (κℕ 7)) 0
     ≡ timed emptyWorld
@@ -49,8 +59,9 @@ closure-example = refl
 type-abstraction-example :
   run (Λᴵ (ƛᴵ (`ᴵ zero))) 1
     ≡ returned emptyWorld
-        (type-abstraction
-          (λ α → closure (`ᴵ zero) [] (α ∷ [])))
+        (type-abstraction (type-name zero)
+          (closure (`ᴵ zero) []
+            (abstract-name (type-name zero) ∷ [])))
 type-abstraction-example = refl
 
 malformed-type-abstraction-example :
@@ -72,6 +83,11 @@ tag-blame-example :
   run ($ᴵ (κℕ 7) ⟨ᴵ Nat ! ⟩ ⟨ᴵ Bool ？ ⟩) 3
     ≡ blamed emptyWorld
 tag-blame-example = refl
+
+non-ground-tag-example :
+  run ($ᴵ (κℕ 7) ⟨ᴵ ★ ! ⟩) 2
+    ≡ failed emptyWorld (invalid-ground-tag ★)
+non-ground-tag-example = refl
 
 nu-example :
   run
@@ -102,7 +118,7 @@ compiled-poly-id-dynamic :
   run Existing.polyIdDyn-app 30
     ≡ returned
         (allocate emptyWorld ★ [])
-        (tagged Nat [] (constant (κℕ 7)))
+        (tagged (‵ `ℕ) [] (constant (κℕ 7)))
 compiled-poly-id-dynamic = refl
 
 compiled-tag-mismatch :
@@ -121,7 +137,7 @@ compiled-polymorphic-k-dynamic :
   run Existing.sec6-K-dyn 40
     ≡ returned
         (allocate emptyWorld ★ [])
-        (tagged Nat [] (constant (κℕ 42)))
+        (tagged (‵ `ℕ) [] (constant (κℕ 42)))
 compiled-polymorphic-k-dynamic = refl
 
 compiled-polymorphic-k-base :

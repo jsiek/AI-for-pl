@@ -8,8 +8,8 @@ executable interpreter, and no interpreter clause invokes `_—→_` or
 
 The central function is:
 
-`interpret : World → Environment → TypeEnvironment → Term → StepIndex →
-Outcome`
+`interpret : World → Environment → TypeEnvironment → Term →
+StepIndex → Outcome`
 
 where:
 
@@ -63,31 +63,49 @@ The Agda constructors correspond to these forms as follows:
 | Official form | Interpreter form |
 |---|---|
 | `κ` | `constant κ` |
-| `V ⟨ G ! ⟩` | `tagged G θ V` |
-| `V ⟨ α ♯ ⟩` | `sealed X θ V`, where `lookup θ X = α` |
+| `V ⟨ G ! ⟩` | `tagged gG θ V`, where `gG : Ground G` |
+| `V ⟨ α ♯ ⟩` | `sealed α V` |
 | `λx.N[x]` | `closure N γ θ` |
 | `V ⟨ c → d ⟩` | `function-proxy c d θ V` |
-| `ΛX.V[X]` | `type-abstraction (λ α → Vα)` |
+| `ΛX.V[X]` | `type-abstraction X V` |
 | `V ⟨ ∀X.c[X] ⟩` | `forall-proxy c θ V` |
 | `V ⟨ να.c[α] ⟩` | `generalized A c θ V` |
 
 There is deliberately no type-closure constructor. A term closure is needed
 because `λx.N[x]` suspends the computation `N`. By contrast, the body of
 `ΛX.V[X]` is already a value. The `type-abstraction` constructor therefore
-holds a semantic family `Name → Value`, matching the metavariable notation
-`V[X]` in the grammar.
+holds the abstract name `X` and the already-constructed body `V`.
+
+`Name` is the namespace of abstract variables bound by `Λ`; `SealName` is the
+namespace of nominal names allocated by `ν`. A `TypeEnvironment` maps de
+Bruijn type variables to either `abstract-name X` or `seal-name α`.
+Instantiation replaces the former with the latter throughout the semantic
+value. Keeping the two namespaces explicit makes substitution capture-safe.
+
+The tag constructor contains a `Ground G` proof, rather than an unrestricted
+`Ty`. Thus a non-ground type cannot occur in a semantic tagged value. The
+local decision `ground? : (G : Ty) → Dec (Ground G)` checks raw coercion
+syntax before constructing a tag.
 
 On encountering raw syntax `Λ V`, `syntacticValue?` first checks the official
-`NuTerms.Value V` judgment. `closeValue` then translates that derivation
+`NuTerms.Value V` judgment. Its type is:
+
+`syntacticValue? : (M : Term) → Dec (NuTerms.Value M)`.
+
+Likewise, coercion inertness is decided by:
+
+`inert? : (c : Coercion) → Dec (Inert c)`.
+
+Both decisions carry negative proofs in their `no` cases; they are not partial
+`Maybe` recognizers. `closeValue` translates a positive value derivation
 structurally into a semantic value. This translation is not evaluation, makes
 no recursive call to `interpret`, and consumes no step index. A malformed raw
 term such as `Λ (L · M)` produces
 `expected-value-under-type-abstraction`.
 
 Term closures capture an `Environment` of semantic values and a
-`TypeEnvironment`. The latter maps de Bruijn type variables to globally fresh
-runtime names. Tags, seals, and coercion proxies retain the type environment
-in which their type or coercion syntax was formed. This is an explicit
+`TypeEnvironment`. Tags and coercion proxies retain the type environment in
+which their type or coercion syntax was formed. This is an explicit
 representation of the bracketed dependencies `G[X]`, `c[X]`, and `N[X]` in
 the official grammar, not a suspended type-level computation.
 
@@ -126,13 +144,13 @@ For `ν A L c`, the interpreter:
 
 1. interprets `L` to a semantic polymorphic value;
 2. allocates a fresh name `α` associated with `A`;
-3. selects the already-constructed body value at `α`; and
-4. applies `c` in the type environment `α ∷ θ`.
+3. substitutes `α` for the explicit abstract name in the body value; and
+4. applies `c` in the type environment `seal-name α ∷ θ`.
 
 For a direct type abstraction, the central equation is:
 
-`instantiateValue W α (type-abstraction V) (suc n) =
- returned W (V α)`.
+`instantiateValue W α (type-abstraction X V) (suc n) =
+ returned W (substituteName X α V)`.
 
 In particular, instantiation does not call `interpret`.
 
@@ -218,11 +236,11 @@ The value theorems take:
 `SemanticValuePrecision =
   World → Value → World → Value → Set`.
 
-This parameter is intentional and visible. Term closures, type-abstraction
-families, and proxies cannot be compared correctly by a shallow syntactic
-equality. The eventual relation should be a world-indexed logical relation
-and should connect to `QuotientedTermImprecision` through quotation or
-environment realization. The interpreter does not hide that remaining
+This parameter is intentional and visible. Term closures, explicitly bound
+type abstractions, and proxies cannot be compared correctly by a shallow
+syntactic equality. The eventual relation should be a world-indexed logical
+relation and should connect to `QuotientedTermImprecision` through quotation
+or environment realization. The interpreter does not hide that remaining
 metatheory behind a postulate.
 
 The `Error` alternative occurs in none of the four permitted conclusions.
@@ -257,13 +275,15 @@ Timeout is deliberately absent from that finite agreement theorem.
 
 `InterpreterExamples.agda` checks by normalization:
 
+- positive `Dec` results for inertness and syntactic values;
 - timeout at index zero;
 - term closure application;
-- construction of `ΛX.V[X]` as a semantic value family;
+- construction of `ΛX.V[X]` as an explicit name and semantic body;
 - rejection of a non-value body under raw `Λ`;
 - primitive addition;
 - successful tag elimination;
 - tag mismatch blame;
+- rejection of a non-ground injection;
 - direct `ν` allocation and instantiation;
 - rejection of raw runtime bullet; and
 - the existing compiled polymorphic identity, polymorphic K, beta-under-`Λ`,

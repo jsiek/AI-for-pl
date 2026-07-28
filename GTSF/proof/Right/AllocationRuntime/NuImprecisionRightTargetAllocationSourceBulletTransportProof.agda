@@ -106,7 +106,9 @@ open import Types using
   ; ⇑ᵗ
   ; ⟰ᵗ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( replace-right-target-lift-rightᵢ
   )
 open import

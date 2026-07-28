@@ -1879,6 +1879,26 @@ not the semantic worker. Their keep-only trace cannot reconstruct the current
 quartet. Retain them only if one-step plumbing needs a thin adapter after the
 typed worker exists; otherwise remove them with the obsolete residual surface.
 
+The first two worker layers are now strict. The 83-line
+`NuImprecisionWorldCoherentRightTargetQuotientDownPendingCastsAccProof`
+decides whether the active target cast is inert. In the inert branch it builds
+the live `closeᵀ` relation from the current quartet and invokes the canonical
+ordinary pending-cast worker on only the outer tail; the proof preserves the
+accessibility decrease, context action, and right-only lineage. It delegates
+only the non-inert active-cast residual. The focused strict check passes in
+6.71 seconds.
+
+The 140-line active-`inst` Def and 111-line Proof form the next exact cell.
+The Proof exposes the `quotientᵖ` representative, uses the normalized source
+and target paths with reflexive agreement proofs, derives the strictly smaller
+post-`β-inst` administration rank, invokes the allocation-path leaf, and
+prepends `β-inst` beneath the ordinary outer cast tail. Its focused strict
+check passes in 7.95 seconds. This cell is conditional only on the direct
+allocation-path contract; it does not use the opaque-trace residual or assert
+an ordinary pre-instantiation edge. The remaining non-inert dispatcher is now
+limited to identity, sequence, unseal, and untag/cancellation active casts,
+plus the construction of the allocation-path leaf itself.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be
@@ -2031,6 +2051,33 @@ re-export them. Every exact consumer now imports the focused Core module
 directly. Strict checks pass for the path module in 3.34 seconds, the reduced
 world Def in 6.05 seconds, the path properties in 6.18 seconds, and a
 representative cases proof in 3.64 seconds.
+
+The twelfth stable cut extracts the 614-line
+`proof/Catchup/Simulation/NuImprecisionIndexedIdentityTransport.agda`.
+It owns identity renaming for indexed imprecision, source/target/paired
+replacement transport, target-lift replacement transport, endpoint transport
+for arrows, universals, and source-only `ν`, and their shape refinements. All
+thirteen exact external consumers import it directly; two drop
+`NuImprecisionSimulationCore` entirely. The simulation core keeps a
+non-public import for only its five remaining uses and shrinks from 14,095 to
+13,584 lines; its direct importer count falls from 71 to 69. Strict checks
+pass for the focused module in 4.42 seconds, the invalidated core in 61.71
+seconds, and three representative consumers in 7.91, 9.93, and 9.17 seconds.
+`git diff --check` and `make audit` pass.
+
+The complete over-2,000-line audit now ranks only two large mixed simulation
+files as profitable phase-local cuts. After the identity extraction,
+`NuImprecisionSimulation.agda` has a stable 342-line keep/prepend and cast
+frame block with fifteen exact consumers. The remaining large
+`NarrowWidenProperties`, endpoint permutation/factorization, and compiler
+files are cohesive or low-fan-out and should remain intact during this phase.
+The 2,090-line `NuImprecisionQuotientValue.agda` is retiring, has no reason to
+be split, and must be deleted after its five old clients migrate or leave the
+regression surface.
+
+The migration Makefile's quotient-world list now names the existing
+`NuImprecisionQuotientEliminationCompatibilityRename.agda`; the stale,
+absent pre-rename filename is gone.
 
 Two independent migration debts remain from earlier invalidation:
 `GenSafeMismatchBlameRegression` still pattern-matches the pre-`NonVar` `ν`

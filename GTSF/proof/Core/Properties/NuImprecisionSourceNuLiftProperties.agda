@@ -29,9 +29,11 @@ open import ImprecisionWf using
 open import Relation.Binary.PropositionalEquality using
   (cong; subst; sym; trans)
 open import Types using (extᵗ; occurs; renameᵗ; ⇑ᵗ)
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using (renameᵗ-ext-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( rename-assm²-source-under-rightᵢ
-  ; renameᵗ-ext-id
   ; ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
   )

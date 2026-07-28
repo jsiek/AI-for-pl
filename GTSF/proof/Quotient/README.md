@@ -1174,6 +1174,18 @@ checks pass for the path module in 3.34 seconds, the reduced Def in 6.05
 seconds, the path properties in 6.18 seconds, and a representative cases proof
 in 3.64 seconds.
 
+The twelfth stable cut extracts the 614-line
+`proof/Catchup/Simulation/NuImprecisionIndexedIdentityTransport.agda`.
+It owns indexed identity renaming, replacement transport, endpoint transport,
+and the associated shape refinements. Thirteen external consumers import it
+directly; two drop `NuImprecisionSimulationCore` entirely. The core keeps only
+five non-public uses, shrinks from 14,095 to 13,584 lines, and falls from 71
+to 69 direct importers. Strict checks pass for the focused module in 4.42
+seconds, the invalidated core in 61.71 seconds, and three representative
+consumers in 7.91, 9.93, and 9.17 seconds. The remaining large live files are
+either cohesive and low-fan-out or have a later explicit stable cut; the
+retiring 2,090-line quotient-value monolith must be deleted rather than split.
+
 Target-only allocation under a proof-relevant quotient now has a direct
 active-`inst` contract in the 164-line
 `NuImprecisionWorldCoherentRightTargetQuotientDownPendingNuAllocationPathAccDef`.
@@ -1206,6 +1218,19 @@ quartet structurally. The Def checks strictly in 6.27 seconds.
 not allowed to manufacture the current logical quartet. After the typed
 worker is proved, keep at most a thin one-step adapter if a live caller still
 needs it; otherwise delete that residual surface.
+
+The typed worker's inert layer is now proved strictly. It decides inertness of
+the active target cast, constructs `closeᵀ` from the current quartet in the
+terminal branch, and invokes ordinary pending administration only for the
+outer tail. The 83-line Proof checks in 6.71 seconds and delegates exactly the
+non-inert active-cast residual.
+
+The active target-`inst` cell is also strict: its 140-line Def and 111-line
+Proof normalize the source and target quotient paths, derive the smaller
+post-beta rank, invoke the direct allocation-path leaf, and prepend `β-inst`
+under the outer tail. The Proof checks in 7.95 seconds. Remaining active-cast
+families are identity, sequence, unseal, and untag/cancellation; the
+allocation-path contract still needs its strict inhabitant.
 
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete

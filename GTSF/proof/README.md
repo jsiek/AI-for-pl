@@ -245,6 +245,21 @@ tail so the `inst` branch can reduce to the allocation leaf. Its Proof should
 transport and update those witnesses structurally; an operational trace alone
 is not a substitute for them.
 
+Split target quotient-down pending proofs by semantic active cell. The general
+worker owns the inert/non-inert split, closes an inert active cast with
+`closeᵀ`, and delegates its ordinary outer tail. The active-`inst` Def/Proof
+pair owns path normalization, the post-beta rank decrease, allocation-leaf
+invocation, and contextual `β-inst` prepending. Keep identity, sequence,
+unseal, and untag/cancellation cells separate rather than rebuilding a large
+monolithic dispatcher.
+
+Indexed identity and endpoint transport live in
+`proof/Catchup/Simulation/NuImprecisionIndexedIdentityTransport.agda`.
+It owns identity renaming, source/target/paired replacement transport,
+target-lift replacement transport, endpoint transport, and their shape
+refinements. Exact consumers import it directly; the simulation core keeps
+only a non-public import for its own remaining uses.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

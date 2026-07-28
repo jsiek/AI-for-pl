@@ -85,10 +85,14 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; weak-one-step-nested-all-coherent≅
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-nested-all-coherent≅
   ; weak-one-step-nested-arrow-coherent≅
   ; weak-one-step-nested-source-nu≅
   )

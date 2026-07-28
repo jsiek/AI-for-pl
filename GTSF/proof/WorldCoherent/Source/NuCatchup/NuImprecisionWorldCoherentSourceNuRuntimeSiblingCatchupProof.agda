@@ -109,15 +109,19 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
 open import
   proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal
   using (left-silent-indexed-prefix-source-ν-terminal-valueᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
-  ; left-ctx-rename-[]
-  ; rename-left-store-coherentⁱ
-  ; rename-left-store-source-liftⁱ
-  ; rename-left-storeⁱ
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( left-ctx-rename-[]
+  ; rename-left-store-coherentⁱ
+  ; rename-left-store-source-liftⁱ
+  ; rename-left-storeⁱ
   ; weak-one-step-source-ν-frame-preserves-transportᵀ
   ; weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
   ; weak-one-step-source-ν-frameᵀ

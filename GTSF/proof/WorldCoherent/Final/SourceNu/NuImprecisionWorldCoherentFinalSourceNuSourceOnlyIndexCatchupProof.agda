@@ -81,12 +81,16 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-left-store-embeddingⁱ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
   (LeftLiftPrefixBodyᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; ⊑-source-lift-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-source-lift-source-nuᵢ
   ; ⊑-source-under-rightᵢ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using

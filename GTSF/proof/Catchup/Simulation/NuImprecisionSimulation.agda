@@ -437,6 +437,31 @@ open import proof.Core.Properties.NuCastModeRenamerProperties using
   (castModeRenamer-compose; castModeRenamer-id)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
 open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( equality-proof-unique
+  ; ext-id-pointwise
+  ; rename-assm²-idᵢ
+  ; renameᵗ-ext-id
+  ; replace-left-rename-id-source-nu-bodyᵢ
+  ; replace-left-rename-idᵢ
+  ; replace-left-target-lift-rightᵢ
+  ; replace-paired-rename-id-all-bodyᵢ
+  ; replace-paired-rename-idᵢ
+  ; replace-paired-target-lift-rightᵢ
+  ; replace-right-rename-id-right-bodyᵢ
+  ; replace-right-rename-idᵢ
+  ; replace-right-target-lift-rightᵢ
+  ; transport-all-⊑ᵢ
+  ; transport-arrow-⊑ᵢ
+  ; ⊑-rename-id-all-bodyᵢ
+  ; ⊑-rename-id-allᵢ
+  ; ⊑-rename-id-arrowᵢ
+  ; ⊑-rename-id-shapeᵢ
+  ; ⊑-rename-id-source-nuᵢ
+  ; ⊑-rename-idᵢ
+  )
+open import
   proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
   ( nu-term-imprecision-transport-termsᵀ

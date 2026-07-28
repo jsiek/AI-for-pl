@@ -128,10 +128,14 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; weak-one-step-compose-all-body
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-one-step-compose-all-body
   ; weak-one-step-compose-all-componentsᵀ
   ; weak-one-step-compose-arrow-componentsᵀ
   ; weak-one-step-compose-preserves-type-coherenceᵀ

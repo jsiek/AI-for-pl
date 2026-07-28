@@ -95,7 +95,11 @@ open import proof.Core.Properties.NuCastModeRenamerProperties using
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ( RelWorldEmbeddingⁱ
   ; rel-world-embedding
-  ; rename-assm²-idᵢ
+  )
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
+  ( rename-assm²-idᵢ
   ; replace-left-rename-idᵢ
   ; replace-left-rename-id-source-nu-bodyᵢ
   ; replace-paired-rename-idᵢ

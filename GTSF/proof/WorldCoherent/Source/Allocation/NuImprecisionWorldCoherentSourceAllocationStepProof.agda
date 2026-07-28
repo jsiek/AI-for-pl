@@ -162,12 +162,16 @@ open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
 open import
   proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingPrefixProof
   using (rel-store-embedding-prefix-invⁱ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( equality-proof-unique
   ; renameᵗ-ext-id
   ; transport-all-⊑ᵢ
   ; transport-arrow-⊑ᵢ
-  ; weak-indexed-all-resultᵀ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( weak-indexed-all-resultᵀ
   ; weak-one-step-compose-preserves-type-coherenceᵀ
   ; weak-one-step-compose-preserves-transportᵀ
   ; weak-one-step-compose-type-to-nested≅

@@ -104,11 +104,15 @@ open import
 open import
   proof.Right.AllocationRuntime.NuImprecisionRightLiftPrefixBodyProof
   using (right-lift-prefix-body-proofᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import
+  proof.Catchup.Simulation.NuImprecisionIndexedIdentityTransport
+  using
   ( replace-left-target-lift-rightᵢ
   ; replace-paired-target-lift-rightᵢ
   ; replace-right-target-lift-rightᵢ
-  ; ⊑-target-lift-right-source-nuᵢ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+  ( ⊑-target-lift-right-source-nuᵢ
   ; ⊑-target-lift-right-under-∀ᵢ
   ; ⊑-target-lift-under-rightᵢ
   )

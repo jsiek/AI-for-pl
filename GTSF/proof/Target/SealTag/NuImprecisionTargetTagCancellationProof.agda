@@ -56,9 +56,8 @@ open import NarrowWiden using
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( lift-left-ctx-[]
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( Term
   ; Value

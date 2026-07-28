@@ -50,9 +50,10 @@ open import proof.Core.Properties.CastImprecision
   using
     ( castᵢ-id-only
     ; narrowing⇒⊑ᵢ
-    ; seal★-tag-or-id
     ; widening⇒⊑ᵢ
     )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import proof.Core.Properties.CoercionProperties
   using
     ( RevealEnv

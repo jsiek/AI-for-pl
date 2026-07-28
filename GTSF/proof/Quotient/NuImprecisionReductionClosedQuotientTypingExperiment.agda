@@ -43,9 +43,8 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ; rightCtxⁱ-lift-left
   ; rightCtxⁱ-∋
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (Term)
 open import TermTyping using
   ( cast-tag-or-id

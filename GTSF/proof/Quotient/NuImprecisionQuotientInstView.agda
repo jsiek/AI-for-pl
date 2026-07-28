@@ -24,9 +24,8 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; leftStoreⁱ
   ; rightStoreⁱ
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; quotient-id-widening

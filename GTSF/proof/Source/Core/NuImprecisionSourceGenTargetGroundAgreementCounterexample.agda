@@ -47,9 +47,8 @@ open import NarrowWiden using
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( StoreImp
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( Term
   ; $

@@ -506,6 +506,12 @@ terminal-forward spine still reaches the same obsolete pure
 quotient-application proof, confirming that the split did not move the
 semantic boundary.
 
+The accompanying hotspot cut moved `seal★-tag-or-id` from the 1,276-line
+cast-imprecision module into the focused 15-line
+`../Core/Properties/SealModeProperties.agda`. Its 35 direct clients now
+import the small module explicitly; no re-export preserves the old dependency
+edge. The live QTI join and source one-step root pass after the rewrite.
+
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing
 widening, identity down, and gradual down respectively.

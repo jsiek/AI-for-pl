@@ -94,9 +94,8 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( lift-ctx-[]
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; Term

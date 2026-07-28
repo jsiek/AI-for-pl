@@ -22,10 +22,11 @@ open import proof.Core.Properties.CastImprecision using
   ( compose-cast-left
   ; instSafe-source-admissible
   ; left-id-only-compatible
-  ; seal★-tag-or-id
   ; seal★-inst-shift
   ; ⊑-transˡ-castᵢ
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (no•-⟨⟩; _⟨_⟩)
 import QuotientedTermImprecision as QTI
 open import Relation.Binary.PropositionalEquality using (sym)

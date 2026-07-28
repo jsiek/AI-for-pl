@@ -37,7 +37,6 @@ open import Coercions using
   ; extᵈ
   ; genᵈ
   ; instᵈ
-  ; tag-or-idᵈ
   ; tagModeAllowed
   ; sealModeAllowed
   )
@@ -110,11 +109,6 @@ castᵢ-id-only :
   ∀ Δ →
   castᵢ id-onlyᵈ Δ ≡ idᵢ Δ
 castᵢ-id-only Δ = castᵢ-id-only-env id-onlyᵈ Δ (λ X → refl)
-
-seal★-tag-or-id :
-  ∀ {Σ} →
-  SealModeStore★ tag-or-idᵈ Σ
-seal★-tag-or-id α ()
 
 tagMode⇒starAllowed :
   ∀ {m} →

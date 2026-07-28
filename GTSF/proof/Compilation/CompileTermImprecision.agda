@@ -97,7 +97,8 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 open import proof.Core.Properties.ImprecisionCompositionProperties using
   (compose-target-star-right-id★)
-open import proof.Core.Properties.CastImprecision using (seal★-tag-or-id)
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
 open import proof.Core.Properties.ImprecisionProperties using
   ( ~-sym

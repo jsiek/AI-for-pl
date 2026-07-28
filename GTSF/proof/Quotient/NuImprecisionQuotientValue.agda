@@ -117,10 +117,11 @@ open import Types using (Ground; ★)
 import Types as T
 open import proof.Core.Properties.CoercionProperties using (inert-dec)
 open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  ; strictCrossNarrowing⇒crossNarrowing
+  ( strictCrossNarrowing⇒crossNarrowing
   ; strictCrossWidening⇒crossWidening
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import proof.Core.Permutation.ForallPermutationProperties using
   (⊑ᵖ-arrow-left-shape; ⊑ᵖ-ground-left
   ; ⊑ᵖ-star-left-eq)

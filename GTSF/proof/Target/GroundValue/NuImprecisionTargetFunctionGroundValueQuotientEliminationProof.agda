@@ -10,9 +10,8 @@ import Coercions as C
 open import Agda.Builtin.Equality using (refl)
 open import Data.Product using (_,_)
 import NarrowWiden as NW
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import QuotientImprecisionCompatibility using
   (gradual↓; id-only↓)
 open import QuotientedTermImprecision using

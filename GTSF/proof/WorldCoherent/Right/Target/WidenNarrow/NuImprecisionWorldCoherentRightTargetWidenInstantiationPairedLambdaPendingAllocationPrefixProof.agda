@@ -59,9 +59,8 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; rightStoreⁱ-lift-right
   ; store-right
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuStore using (StoreWf)
 import NuTerms
 open import NuTerms using

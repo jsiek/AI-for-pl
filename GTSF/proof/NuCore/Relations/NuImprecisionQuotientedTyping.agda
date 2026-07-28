@@ -45,9 +45,8 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ; rightCtxⁱ-lift
   ; rightCtxⁱ-lift-left
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (_⟨_⟩)
 open import Primitives
 open import QuotientImprecisionCompatibility using

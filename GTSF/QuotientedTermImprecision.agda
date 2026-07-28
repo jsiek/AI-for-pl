@@ -89,10 +89,11 @@ open import proof.Core.Properties.TypeProperties using (TyRenameWf)
 open import proof.Core.Properties.CastImprecision using
   ( ∀ᵢᶜ
   ; right-id-only-compatible
-  ; seal★-tag-or-id
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( rename-assm²ᵢ
   ; ⊑-lift∀ᵢ

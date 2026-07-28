@@ -37,9 +37,8 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   (StoreImpEntry)
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK

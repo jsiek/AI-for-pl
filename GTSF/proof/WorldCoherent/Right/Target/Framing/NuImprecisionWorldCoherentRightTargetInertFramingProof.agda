@@ -40,9 +40,8 @@ open import NuReduction using (applyTyCtxs; applyTys; keep)
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( rightStoreⁱ
   )
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using (no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( ⊑cast⊒ᵀ

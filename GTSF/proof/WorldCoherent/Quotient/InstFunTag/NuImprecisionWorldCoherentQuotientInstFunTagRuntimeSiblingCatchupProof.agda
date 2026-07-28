@@ -27,9 +27,8 @@ open import ImprecisionWf using
   (id★; tag_⇛_)
 open import NuReduction using
   (pure-step; β-seq)
-open import proof.Core.Properties.CastImprecision using
-  ( seal★-tag-or-id
-  )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
 open import NuTerms using
   (no•-⟨⟩; ok-no; ok-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using

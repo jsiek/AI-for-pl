@@ -1160,6 +1160,12 @@ checks in about 8 seconds; and `make audit` passes. The terminal-forward
 strict spine still reaches the expected obsolete quotient-application proof,
 so the infrastructure cut introduced no earlier semantic boundary.
 
+The same hotspot audit found that 35 direct clients imported the 1,276-line
+cast-imprecision module solely for `seal★-tag-or-id`. That witness now lives
+in the 15-line `SealModeProperties.agda`; every client imports it directly,
+and the cast-imprecision module no longer re-exports or defines it. The new
+leaf, live QTI join, and source one-step root pass focused checks.
+
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 15,096-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region

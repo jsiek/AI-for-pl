@@ -15,7 +15,8 @@ open import Relation.Binary.PropositionalEquality using (subst)
 open import Types using (occurs; singleRenameᵗ; renameᵗ; `∀; ⇑ᵗ)
 open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimplePairedSpan using
   (pair-lower; span)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using (open-unused-bothᵢ)
+open import proof.Core.Properties.NuImprecisionBinderDropProperties
+  using (open-unused-bothᵢ)
 open import proof.NuCore.Misc.NuImprecisionCommonTargetExtensionCycleDef using
   (CommonTargetExtensionCycleᵀ)
 open import proof.PairedLambda.LambdaLeaves.NuLeaf.NuImprecisionPairedLambdaClosingIndexCycleDef using

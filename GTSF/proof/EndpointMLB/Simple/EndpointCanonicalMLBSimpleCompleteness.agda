@@ -46,11 +46,13 @@ open import proof.Core.Properties.ImprecisionProperties using
   )
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ( CommonLowerBoundᵢ
-  ; DropAtᵢ
+  ; occurs-var-true→≡ᵢ
+  )
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
+  ( DropAtᵢ
   ; drop-zeroᵢ
   ; drop-∀ᵢ
   ; drop-νᵢ
-  ; occurs-var-true→≡ᵢ
   ; open-unused-atᵢ
   ; removeAt-Wfᵢ
   )

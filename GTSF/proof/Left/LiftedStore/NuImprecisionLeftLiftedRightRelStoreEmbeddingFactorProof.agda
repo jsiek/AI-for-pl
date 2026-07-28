@@ -30,7 +30,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; store-right
   )
 open import Types using (⇑ᵗ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionBinderDropProperties using
   (open-unusedᵢ)
 open import
   proof.Left.LiftedStore.NuImprecisionLeftLiftedRightRelStoreEmbeddingFactorDef

@@ -53,7 +53,7 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
-open import proof.Core.Properties.ReductionProperties using
+open import proof.Core.Properties.TypeInjectivityProperties using
   ( ∀-injective
   ; renameᵗ-injective
   )

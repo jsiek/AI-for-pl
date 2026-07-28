@@ -48,7 +48,8 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   (WorldCoherentLeftCatchupIndexedResult)
-open import proof.Core.Properties.ReductionProperties using (∀-injective)
+open import proof.Core.Properties.TypeInjectivityProperties using
+  (∀-injective)
 open import
   proof.WorldCoherent.PairedLambda.AllWiden.NuImprecisionWorldCoherentPairedLambdaTargetClosingAllWidenCatchupDef
   using (WorldCoherentPairedLambdaTargetClosingAllWidenCatchupᵀ)

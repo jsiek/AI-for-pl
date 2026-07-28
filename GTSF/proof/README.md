@@ -176,6 +176,12 @@ import it directly; `NarrowWidenProperties` neither defines nor re-exports
 them.  This keeps changes to binder allocation out of the unrelated
 narrowing/widening dependency cone.
 
+Generic type-constructor and injective-renaming facts similarly live in
+`TypeInjectivityProperties`, not in `ReductionProperties`.  The latter owns
+operational reduction support and does not re-export type injectivity.  Dead
+type-renamed-reduction helpers with no closed-world consumers should be
+deleted rather than retained as speculative API.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

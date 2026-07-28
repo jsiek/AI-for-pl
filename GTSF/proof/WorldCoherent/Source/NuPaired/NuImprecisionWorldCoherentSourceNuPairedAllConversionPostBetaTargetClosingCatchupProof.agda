@@ -87,7 +87,7 @@ open import
 open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupDef using
   (WorldCoherentLeftValueCatchupᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
-open import proof.Core.Properties.ReductionProperties using
+open import proof.Core.Properties.TypeInjectivityProperties using
   ( ∀-injective
   ; renameᵗ-injective
   )

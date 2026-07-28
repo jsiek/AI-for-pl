@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — mutual higher-order invariant live and transported**
+**MIGRATION IN PROGRESS — matched allocation isolated; quotient beta next**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1285,6 +1285,55 @@ helpers were deleted. All three new modules and the 2,168-line reduced
 monolith pass strictly. The world-coherent source allocation proof validates
 the new cases and recursive dependency propagation before stopping at the
 same retired `⊑cast⊑idᵀ` case.
+
+Matched allocation now has the same focused boundary. The strict
+`proof/OneStep/Allocation/NuImprecisionMatchedNuAllocationStepDef/Proof/Lemma`
+family returns one indexed result together with its store lineage, exact
+source change and result, and one homogeneous equality for the fully packed
+final context and store. The after-value-catch-up family exposes the chosen
+lifted store and matched head through the same packed equality. Consequently,
+the world-coherent proof performs all dependent transport in one place and
+reconstructs coherence, source-name exclusivity, and assumption uniqueness
+from the exact final store shape.
+
+The target allocation root now assembles the focused world-coherent lemma,
+and the source allocation proof takes the base matched step as an explicit
+higher-order dependency. The six lower modules, the world proof and lemma,
+the target root, and the reduced allocation module all pass focused strict
+checks. The source allocation proof elaborates every migrated branch before
+stopping at its already-known retired `⊑cast⊑idᵀ` branch. Removing the moved
+matched allocation, catch-up, blame, and dispatcher islands reduced
+`NuImprecisionAllocationSimulation.agda` from 2,168 to 665 lines and cut its
+focused check to 4.70 seconds.
+
+The four zero-consumer residual declarations were then audited against the
+unfinished simulation cases. The source-blame allocation wrapper and the
+matched and source-only allocation-plus-`β-Λ•` squares are obsolete under the
+up-to-reduction architecture and were deleted. The bilateral
+post-allocation-`β-gen•` case contained one genuinely reusable piece: the
+paired-narrowing quotient edge. That edge now lives, without either reduction
+step, in the strict
+`proof/OneStep/RuntimeBullet/NuImprecisionMatchedBetaGenNarrowingDef/Proof/Lemma`
+family. Its proof takes generic allocation transport as a higher-order
+dependency and the lemma supplies the canonical implementation. All three
+modules pass focused strict checks. With that kernel preserved,
+`NuImprecisionAllocationSimulation.agda` was deleted; no Agda references to
+the module or its four former declarations remain.
+
+The operational quotient-beta design audit has also fixed the next proof
+boundary. The source paired-quotient leaf may keep its current
+world-coherent outcome contract: after the distinguished source function-beta
+step, a shared post-target-beta worker must terminalize the exposed
+quotient-related arguments and return either bilateral tails ending in
+ordinary QTI or a source trace ending in blame. The closing function
+compatibility supplies domain narrowing elimination and codomain widening;
+the inner quotient-producing function compatibility supplies domain widening
+and codomain narrowing elimination. The remaining missing mechanism is a
+private catch-up for a bare quotient-related argument when neither endpoint is
+already a value. The right-oriented leaf must additionally receive the outer
+reduction-closed widening compatibility. This shared worker is the next
+strict gate; the two pure quotient-application theorem families stay
+migration-active until it passes.
 
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 14,878-line

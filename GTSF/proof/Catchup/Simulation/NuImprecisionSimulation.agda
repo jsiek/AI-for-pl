@@ -9,8 +9,8 @@ module proof.Catchup.Simulation.NuImprecisionSimulation where
 --   * Connects crossed stores to two `bind` traces in opposite logical order.
 --   * Packages both generic-cast constructor orders at `β-∀•`, for all
 --     source/target narrowing and widening combinations.
---   * Depends on `NuImprecisionSimulationCore`; completed synchronized and
---     one-sided allocation cases live in `NuImprecisionAllocationSimulation`.
+--   * Depends on `NuImprecisionSimulationCore`; focused matched allocation
+--     and relation-only runtime-bullet boundaries live under `proof.OneStep`.
 
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)

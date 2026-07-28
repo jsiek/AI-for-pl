@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — mutual higher-order invariant live and transported**
+**MIGRATION IN PROGRESS — matched allocation isolated; quotient beta next**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -621,6 +621,50 @@ deleted rather than extracted. The three new modules and the reduced
 allocation monolith pass strict checks; the source allocation proof reaches
 only its already-known retired `⊑cast⊑idᵀ` case. This cut reduces the monolith
 to 2,168 lines.
+
+Matched allocation is now isolated in the strict
+`../OneStep/Allocation/NuImprecisionMatchedNuAllocationStepDef/Proof/Lemma`
+and
+`NuImprecisionMatchedNuAllocationAfterValueCatchupDef/Proof/Lemma`
+families. Their contracts couple each indexed result to its store lineage and
+one homogeneous equality for the fully packed final context and exact
+matched-head store. The world-coherent layer transports coherence,
+source-name exclusivity, and assumption uniqueness across that single
+equality. The target allocation root is assembly only, while the source
+allocation proof receives the base matched step as a higher-order dependency.
+
+All six lower modules, the world proof and lemma, the target allocation root,
+and the reduced legacy module pass focused strict checks. The source
+allocation proof checks through every migrated case before the existing
+retired `⊑cast⊑idᵀ` branch. Deleting the moved matched-allocation, value
+catch-up, blame, and dispatcher islands reduced
+`../NuCore/Misc/NuImprecisionAllocationSimulation.agda` from 2,168 to 665
+lines and reduced its focused check to 4.70 seconds.
+
+The four zero-consumer residuals were then audited against the incomplete
+runtime-bullet and simulation cases. Three fused allocation-plus-reduction
+wrappers are obsolete under simulation up to reduction and were deleted. The
+one future runtime-bullet obligation is the bilateral paired-narrowing edge
+after post-allocation `β-gen•`; it now lives without either operational step
+in the strict
+`../OneStep/RuntimeBullet/NuImprecisionMatchedBetaGenNarrowingDef/Proof/Lemma`
+family. Generic allocation transport is a higher-order proof dependency and
+is supplied only by the canonical lemma. All three focused checks pass.
+`../NuCore/Misc/NuImprecisionAllocationSimulation.agda` is now deleted, with
+no remaining Agda references to it or its former declarations.
+
+The next operational boundary is also now explicit. A shared
+post-target-function-beta proof will terminalize a bare quotient-related
+argument when neither endpoint is initially a value, then use the mutual
+function compatibility evidence to build the nested closing widenings and
+paired narrowings. It must return the existing source-step outcome: either
+bilateral reduction tails ending in ordinary QTI or a source trace to blame.
+The source leaf's public contract already carries the necessary outer
+widening compatibility. The right leaf must gain that premise. The bare
+quotient catch-up carrier remains private to the shared proof rather than
+becoming a second public simulation relation. Only after this strict worker,
+both leaf orientations, and terminal-forward integration pass will the two
+pure quotient-application theorem families be deleted.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

@@ -50,6 +50,7 @@ open import NuReduction using
   ; keep
   ; StoreChange
   ; _—→[_]_
+  ; _—↠[_]_
   ; ν-step
   ; ↠-refl
   ; ↠-step
@@ -95,7 +96,6 @@ open import QuotientedTermImprecision using
   ; ν⊑ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
@@ -273,7 +273,6 @@ open import
   proof.WorldCoherent.Source.OneStep.Frames.NuImprecisionWorldCoherentSourceOneStepTargetCastFramesDef
   using
   ( sourceStepTargetConcealFrame
-  ; sourceStepTargetIdWidenFrame
   ; sourceStepTargetNarrowFrame
   ; sourceStepTargetRevealFrame
   ; sourceStepTargetWidenFrame
@@ -540,7 +539,7 @@ private
       {M = M} {M′ = M′} {L = L}
       {χ = χ} {ρ = ρ} p
   compose-exact-source-stepᵀ
-      {p = p} first-indexed target→ second-indexed
+      {L = L} {p = p} first-indexed target→ second-indexed
       first-transport first-coherence first-lineage
       second-transport second-coherence second-lineage
       changes-exact result-exact final-world final-exclusive final-unique =
@@ -548,7 +547,10 @@ private
       (weak-one-step-index-resultᵀ combined type-eq
         combined-transport combined-coherence)
       combined-lineage
-      changes-exact result-exact final-world final-exclusive final-unique
+      []
+      changes-exact
+      (subst (λ N → L —↠[ [] ] N) (sym result-exact) ↠-refl)
+      final-world final-exclusive final-unique
     where
     first-raw = weakIndexedResult first-indexed
     first = weak-one-step-reindexᵀ first-raw refl refl
@@ -668,7 +670,7 @@ world-coherent-source-inst-allocation-step-with-liftᵀ
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ)
       (prefix-∷ⁱ prefix-reflⁱ))
-    refl refl
+    [] refl ↠-refl
     (world-coherent-left-allocation liftρ coherent)
     (source-name-exclusive-source-only-head exclusive)
     (assumption-membership-unique-source unique)
@@ -833,7 +835,7 @@ world-coherent-source-allocation-step-proofᵀ
     (weak-step-store-lineage ρ↑
       (lift-left-store-embeddingⁱ liftρ⁺)
       (prefix-∷ⁱ prefix-reflⁱ))
-    refl refl
+    [] refl ↠-refl
     (world-coherent-left-allocation liftρ⁺ coherent)
     (source-name-exclusive-source-only-head exclusive)
     (assumption-membership-unique-source unique)
@@ -1025,24 +1027,6 @@ world-coherent-source-allocation-step-proofᵀ
   sourceStepTargetWidenFrame
     world-coherent-source-one-step-target-cast-frames
     prefix mode′ seal★′ c′⊑ c′-shape comp
-    (world-coherent-source-allocation-step-proofᵀ
-      matched-step source-inst source-reveal right-catchup target-bullet
-      prefix coherent exclusive unique
-      wfL wfR
-      ok-source (cast-runtime ok-target) source⊢
-      (cast-body-typing-at
-        (proj₁ (coercion-src-tgtᵐ (proj₁ c′⊑))) target⊢)
-      inner vV noV)
-world-coherent-source-allocation-step-proofᵀ
-    matched-step source-inst source-reveal right-catchup target-bullet
-    prefix coherent exclusive unique
-      wfL wfR
-    ok-source ok-target source⊢ target⊢
-    (⊑cast⊑idᵀ seal★′ c′⊑ inner q c′-shape comp)
-    vV noV =
-  sourceStepTargetIdWidenFrame
-    world-coherent-source-one-step-target-cast-frames
-    prefix seal★′ c′⊑ c′-shape comp
     (world-coherent-source-allocation-step-proofᵀ
       matched-step source-inst source-reveal right-catchup target-bullet
       prefix coherent exclusive unique

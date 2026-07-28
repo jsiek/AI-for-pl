@@ -87,15 +87,14 @@ cancellation contract was rejected this way: a source-only name may also occur
 in a matched row unless source-name role exclusivity is carried explicitly.
 The same policy refuted unrestricted exact-final paired-widening catch-up:
 independent source/target widening premises admitted active source unseal
-against an inert target variable tag.  The repaired `PairedCast` constructor
-now carries `PairedWideningCompatible`: either the source cast is inert, or
-target inertness yields the cross bridge from the source cast's target type to
-the target cast's source type.  The old counterexample remains as a strict
-regression proving that the bad pair cannot supply this compatibility.  The
-terminal `Proof` is independently strict and takes the mutually dependent
-source-runtime contract as a whole theorem parameter; its canonical `Lemma`
-stays absent until that mutual assembly is available.  This is the intended
-alternative to placing a hole in the terminal proof.
+against an inert target variable tag.  The live `paired-wideningᵀ` branch
+carries reduction-closed paired-widening compatibility explicitly.  The old
+counterexample remains as a strict regression proving that the bad pair
+cannot supply this compatibility.  The terminal `Proof` is independently
+strict and takes the mutually dependent source-runtime contract as a whole
+theorem parameter; its canonical `Lemma` stays absent until that mutual
+assembly is available.  This is the intended alternative to placing a hole
+in the terminal proof.
 
 Strict-check the canonical `Lemma` as a separate assembly step.  Agda may leave
 hidden indices underconstrained when a polymorphic theorem is passed as a bare
@@ -434,10 +433,11 @@ its fields recursively.  Its current proof decomposition is:
   `NuImprecisionWorldCoherentSourceConcealCatchup`: conceal coercions are inert
   except for identity, which takes one administrative step;
 - the canonical inhabitants of value-prefix catch-up, `source-bullet`,
-  `source-νcast`, widening `inst`, source paired-cast, and final paired
-  widening form one genuine recursive allocation SCC.  Ordinary `source-ν`
-  is downstream: once source-bullet and source-reveal are available, it can be
-  assembled without a back-edge;
+  `source-νcast`, source widening, and final paired widening form one genuine
+  recursive allocation SCC.  Paired reveal, conceal, and widening are
+  separate live branches.  Ordinary `source-ν` is downstream: once
+  source-bullet and source-reveal are available, it can be assembled without
+  a back-edge;
 - `source-reveal` needs exact source-side seal cancellation for active
   `unseal`; the first cancellation contract was strictly refuted because it
   omitted source-only-versus-matched name exclusivity.  Its replacement uses
@@ -462,35 +462,12 @@ its fields recursively.  Its current proof decomposition is:
   strict `NuImprecisionSourceCastSequenceMidpoint` triple derives the positive,
   restricted midpoint from the full prefix, seal-mode, and store-uniqueness
   hypotheses; and
-- `source-paired-cast` needs prefix and accumulated-change transport for
-  `PairedCast` evidence.  Its contract retains the target cast's `Inert`
-  witness because every structural caller already has it.  The strict
-  `NuImprecisionWorldCoherentSourcePairedCastCatchupProof` now composes two
-  explicit dependencies: accumulated left-silent paired-cast transport and
-  exact-final-world paired-cast catch-up.  Rebuilding final `StoreCorresponds`
-  after arbitrary source changes remains the hard transport step.  Full
-  transport is itself assembled from separate paired-widening and
-  paired-conversion capabilities, so the store-neutral widening proof can run
-  independently on Ginger.  Exact-final-world catch-up is likewise assembled
-  from separate paired-conversion and paired-widening semantic contracts,
-  keeping the active `inst` allocation case visible instead of assuming the
-  source-runtime record recursively.  Exact-final paired conversion is now
-  complete.  Accumulated paired-conversion transport reduces to an explicit
-  `LeftSilentStoreCorrespondsTransportᵀ` boundary because linked relational
-  store entries appear in neither projected store and cannot be recovered from
-  final `WorldCoherent` alone.  The smallest implementation invariant is a
-  `WeakOneStepStoreLineage` package: a relational-store embedding from the
-  initial store into an intermediate renamed store, followed by a
-  `StoreImpPrefix` into the result store.  Add this only to coherent catch-up
-  results, where it is universally needed; identity/frame cases preserve it,
-  composition composes it, and allocation constructors already expose the
-  required lift embeddings.  The focused relational-store prefix restriction,
-  renaming congruence, and composition algebra now lives in
-  `NuImprecisionRelStoreEmbeddingAlgebra`, and
-  `NuImprecisionWeakOneStepStoreLineageProof` strictly proves the silent
-  resumption composition step.  Propagating the field through every coherent
-  result constructor and constructing it at allocation roots remain the
-  integration work.
+- paired source casts are now represented by three explicit reveal, conceal,
+  and widening branches.  The old `PairedCast` catch-up aggregate and its
+  Def/Proof files were deleted after the active and inert right source-root
+  families migrated to those live branches.  Store correspondence, index
+  replacement, composition, and reduction-closed compatibility evidence stay
+  visible in the corresponding contracts.
 
 The independent conceal, active-unseal, and source-reveal leaves are now
 complete.  Source bullet, ordinary `ν`, runtime `ν ★`, source narrowing, and
@@ -506,13 +483,14 @@ narrowing adapter's callback creates an implementation edge back to
 value-prefix catch-up; canonical assembly must justify that edge by structural
 descent or an explicit administrative measure.
 
-Next use completed source tag cancellation and the source cast-sequence
-midpoint in the exact-final non-`inst` narrowing/widening handlers, and prove
-the remaining paired-cast dependencies.  Then implement the allocation SCC as
-a visibly structural mutual proof (or with an explicit administrative
-measure), before assembling the eight-field runtime record.  Do not make the
-record itself a higher-order input to its own `Proof`; that would encode the
-missing recursion circularly while still appearing strict to Agda.
+The non-`inst` widening handlers now use the source cast-sequence midpoint
+through focused inert/identity and sequence proofs, while source-only
+instantiation has its own `ν`-indexed proof.  Next assemble their exhaustive
+dispatcher and the allocation SCC as a visibly structural mutual proof (or
+with an explicit administrative measure), before assembling the runtime
+record.  Do not make the record itself a higher-order input to its own
+`Proof`; that would encode the missing recursion circularly while still
+appearing strict to Agda.
 
 The target reveal-unseal root is the next higher-order boundary:
 

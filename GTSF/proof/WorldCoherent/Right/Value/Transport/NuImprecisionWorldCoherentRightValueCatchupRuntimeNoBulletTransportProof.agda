@@ -129,15 +129,10 @@ open import QuotientedTermImprecision using
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; down⊑downᵀ
-  ; gen-down⊑gen-downᵀ
   ; gen⊑groundᵀ
-  ; down·up⊑down·upᵀ
-  ; quotient-down-applicationᵖᵀ
-  ; quotient-id-down-applicationᵖᵀ
   ; ƛ⊑ƛᵀ
   ; target-instantiationᵀ
   ; Λ⊑ᵀ
@@ -147,12 +142,14 @@ open import QuotientedTermImprecision using
   ; κ⊑κᵀ
   ; ν⊑ᵀ
   ; ν⊑νᵀ
-  ; up⊑upᵀ
+  ; paired-concealᵀ
+  ; paired-downᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; ·⊑·ᵀ
   ; ⊕⊑⊕ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -175,10 +172,20 @@ open import proof.Store.Core.NuImprecisionStoreLift using
   ; lift-right-store-result
   ; lift-store-result
   )
-open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportDef using
-  (RightSilentPairedCastTransportᵀ)
-open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportProof
-  using (paired-widening-compatible-transportᵀ)
+open import
+  proof.Right.Core.NuImprecisionPairedConversionTransportProof
+  using
+  ( paired-conceal-evidence-transportᵀ
+  ; paired-reveal-evidence-transportᵀ
+  )
+open import
+  proof.Right.Core.NuImprecisionPairedWideningTransportProof
+  using (paired-widening-evidence-transportᵀ)
+open import proof.Right.Core.NuImprecisionQuotientDownTransportProof
+  using (quotient-down-evidence-transportᵀ)
+open import
+  proof.OneStep.NuImprecisionWeakOneStepQuotientCompatibilityTransport
+  using (weak-one-step-transport-quotient-widening-compatibleᵀ)
 open import
   proof.Right.Core.NuImprecisionRightSilentQuotientWideningPairTransportDef
   using (RightSilentQuotientWideningPairTransportᵀ)
@@ -249,6 +256,7 @@ open import
   using
   ( WorldCoherentRightValueCatchupIndexedResult
   ; worldRightCatchupCoherence
+  ; worldRightCatchupAssumptionMembershipUnique
   ; worldRightCatchupResult
   ; worldRightCatchupSourceBulletTransport
   ; worldRightCatchupStoreLineage
@@ -431,243 +439,28 @@ no-bullet-prefix-transportᵖᵀ :
         q
 no-bullet-prefix-transportᵖᵀ
     prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (down⊑downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ q square) caught =
-  nu-term-imprecisionᵖ-transport-termsᵀ
-    (sym (applyTerms-cast (sourceChanges result) _ _))
-    (sym (applyTerms-cast (targetTailChanges result) _ _))
-    (down⊑downᵀ
-      source-down
-      (cast-shape-applyCoercions (sourceChanges result) d-shape)
-      target-down
-      (cast-shape-applyCoercions
-        (keep ∷ targetTailChanges result) d′-shape)
-      M⊑M′-final
-      (weak-one-step-transport-quotientᵀ result q)
-      (weak-one-step-transport-quotient-boundary-square
-        result type-coherence square))
-  where
-  catchup = worldRightCatchupResult caught
-  result = weakIndexedResult (rightCatchupIndexedResult catchup)
-  type-coherence =
-    weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-  M⊑M′-final =
-    no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught
-
-  source-down =
-    right-catchup-source-fixed-narrowingᵀ
-      (modeRename-id-only suc) prefix result d⊒
-
-  target-down =
-    weak-one-step-transport-target-fixed-narrowingᵀ
-      (modeRename-id-only suc) prefix result d′⊒
-no-bullet-prefix-transportᵖᵀ
-    prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
-    (gen-down⊑gen-downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ q square) caught =
-  nu-term-imprecisionᵖ-transport-termsᵀ
-    (sym (applyTerms-cast (sourceChanges result) _ _))
-    (sym (applyTerms-cast (targetTailChanges result) _ _))
-    (gen-down⊑gen-downᵀ
-      source-down
-      (cast-shape-applyCoercions (sourceChanges result) d-shape)
-      target-down
-      (cast-shape-applyCoercions
-        (keep ∷ targetTailChanges result) d′-shape)
-      M⊑M′-final
-      (weak-one-step-transport-quotientᵀ result q)
-      (weak-one-step-transport-quotient-boundary-square
-        result type-coherence square))
-  where
-  catchup = worldRightCatchupResult caught
-  result = weakIndexedResult (rightCatchupIndexedResult catchup)
-  type-coherence =
-    weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-  M⊑M′-final =
-    no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught
-
-  source-down =
-    right-catchup-source-fixed-narrowingᵀ
-      (modeRename-gen-tag-or-id suc) prefix result d⊒
-
-  target-down =
-    weak-one-step-transport-target-fixed-narrowingᵀ
-      (modeRename-gen-tag-or-id suc) prefix result d′⊒
-no-bullet-prefix-transportᵖᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (quotient-id-down-applicationᵖᵀ {qF = qF}
-      d⊒ d-shape d′⊒ d′-shape
-      L⊑L′ components M⊑M′ square)
+    (paired-downᵀ M⊑M′
+      mode d⊒ d-shape mode′ d′⊒ d′-shape square compatible)
     caught =
   nu-term-imprecisionᵖ-transport-termsᵀ
-    (sym (applyTerms-down-application
-      (sourceChanges result) _ _ _))
-    (sym (applyTerms-down-application
-      (targetTailChanges result) _ _ _))
-    (quotient-id-down-applicationᵖᵀ
-      source-down
-      (cast-shape-applyCoercions (sourceChanges result) d-shape)
-      target-down
-      (cast-shape-applyCoercions
-        (keep ∷ targetTailChanges result) d′-shape)
-      L⊑L′-final
-      (weak-one-step-transport-quotient-arrow-components-at
-        result type-coherence {qF = qF} components)
-      M⊑M′-final
-      (weak-one-step-transport-quotient-boundary-square
-        result type-coherence square))
+    (sym (applyTerms-cast (sourceChanges result) _ _))
+    (sym (applyTerms-cast (targetTailChanges result) _ _))
+    (quotient-down-evidence-transportᵀ
+      prefix result type-coherence
+      mode d⊒ d-shape mode′ d′⊒ d′-shape square
+      (worldRightCatchupAssumptionMembershipUnique caught)
+      compatible M⊑M′-final)
   where
   catchup = worldRightCatchupResult caught
   result = weakIndexedResult (rightCatchupIndexedResult catchup)
   type-coherence =
     weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
 
-  L⊑L′-final-raw =
-    no-bullet-prefix-transportᵖᵀ prefix noL noL′ L⊑L′ caught
-
-  L⊑L′-final =
-    nu-term-imprecisionᵖ-transport-typesᵀ
-      (applyTys-⇒ (sourceChanges result) _ _)
-      (trans
-        (cong (applyTys (targetTailChanges result))
-          (applyTys-⇒ (keep ∷ []) _ _))
-        (applyTys-⇒ (targetTailChanges result) _ _))
-      refl L⊑L′-final-raw
-
   M⊑M′-final =
     no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught
-
-  source-down =
-    right-catchup-source-fixed-narrowingᵀ
-      (modeRename-id-only suc) prefix result d⊒
-
-  target-down =
-    weak-one-step-transport-target-fixed-narrowingᵀ
-      (modeRename-id-only suc) prefix result d′⊒
-no-bullet-prefix-transportᵖᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (quotient-down-applicationᵖᵀ {qF = qF}
-      mode seal★ d⊒ d-shape
-      mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ components M⊑M′ square)
-    caught
-    with apply-narrows-typing
-      { χs = sourceChanges
-          (weakIndexedResult
-            (rightCatchupIndexedResult
-              (worldRightCatchupResult caught))) }
-      mode
-      (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-      (narrow-weaken ≤-refl
-        (leftStoreⁱ-prefix-inclusion prefix) d⊒)
-       | apply-narrows-typing
-      { χs = keep ∷ targetTailChanges
-          (weakIndexedResult
-            (rightCatchupIndexedResult
-              (worldRightCatchupResult caught))) }
-      mode′
-      (seal★-weaken (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-      (narrow-weaken ≤-refl
-        (rightStoreⁱ-prefix-inclusion prefix) d′⊒)
-no-bullet-prefix-transportᵖᵀ
-    prefix
-    (no•-· noL (no•-⟨⟩ noM))
-    (no•-· noL′ (no•-⟨⟩ noM′))
-    (quotient-down-applicationᵖᵀ {qF = qF}
-      mode seal★ d⊒ d-shape
-      mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ components M⊑M′ square)
-    caught
-    | source-mode , source-mode-ok , source-seal , source-down
-    | target-mode , target-mode-ok , target-seal , target-down =
-  nu-term-imprecisionᵖ-transport-termsᵀ
-    (sym (applyTerms-down-application
-      (sourceChanges result) _ _ _))
-    (sym (applyTerms-down-application
-      (targetTailChanges result) _ _ _))
-    (quotient-down-applicationᵖᵀ
-      source-mode-ok final-source-seal final-source-down
-      (cast-shape-applyCoercions (sourceChanges result) d-shape)
-      target-mode-ok final-target-seal final-target-down
-      (cast-shape-applyCoercions
-        (keep ∷ targetTailChanges result) d′-shape)
-      L⊑L′-final
-      (weak-one-step-transport-quotient-arrow-components-at
-        result type-coherence {qF = qF} components)
-      M⊑M′-final
-      (weak-one-step-transport-quotient-boundary-square
-        result type-coherence square))
-  where
-  catchup = worldRightCatchupResult caught
-  result = weakIndexedResult (rightCatchupIndexedResult catchup)
-  type-coherence =
-    weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-  L⊑L′-final-raw =
-    no-bullet-prefix-transportᵖᵀ prefix noL noL′ L⊑L′ caught
-
-  L⊑L′-final =
-    nu-term-imprecisionᵖ-transport-typesᵀ
-      (applyTys-⇒ (sourceChanges result) _ _)
-      (trans
-        (cong (applyTys (targetTailChanges result))
-          (applyTys-⇒ (keep ∷ []) _ _))
-        (applyTys-⇒ (targetTailChanges result) _ _))
-      refl L⊑L′-final-raw
-
-  M⊑M′-final =
-    no-bullet-prefix-transportᵀ prefix noM noM′ M⊑M′ caught
-
-  final-source-seal =
-    subst (SealModeStore★ source-mode)
-      (sym (sourceStoreResult result)) source-seal
-
-  final-source-down =
-    subst
-      (λ Δ → source-mode ∣ Δ ∣ leftStoreⁱ (resultStore result)
-        ⊢ applyCoercions (sourceChanges result) _
-          ∶ applyTys (sourceChanges result) _
-            ⊒ applyTys (sourceChanges result) _)
-      (sym (sourceCtxResult result))
-      (subst
-        (λ Σ → source-mode
-          ∣ applyTyCtxs (sourceChanges result) _ ∣ Σ
-          ⊢ applyCoercions (sourceChanges result) _
-            ∶ applyTys (sourceChanges result) _
-              ⊒ applyTys (sourceChanges result) _)
-        (sym (sourceStoreResult result)) source-down)
-
-  final-target-seal =
-    subst (SealModeStore★ target-mode)
-      (sym (targetStoreResult result)) target-seal
-
-  final-target-down =
-    subst
-      (λ Δ → target-mode ∣ Δ ∣ rightStoreⁱ (resultStore result)
-        ⊢ applyCoercions (targetTailChanges result)
-            (applyCoercion keep _)
-          ∶ applyTys (targetTailChanges result) (applyTy keep _)
-            ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-      (sym (targetCtxResult result))
-      (subst
-        (λ Σ → target-mode
-          ∣ applyTyCtxs (targetTailChanges result) (applyTyCtx keep _)
-          ∣ Σ
-          ⊢ applyCoercions (targetTailChanges result)
-              (applyCoercion keep _)
-            ∶ applyTys (targetTailChanges result) (applyTy keep _)
-              ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-        (sym (targetStoreResult result)) target-down)
 
 
 module _
-    (transport-paired : RightSilentPairedCastTransportᵀ)
     (transport-quotient : RightSilentQuotientWideningPairTransportᵀ)
     where
 
@@ -865,427 +658,47 @@ module _
           noM′ store-eq caught
     active-runtime-no-bullet-transportᵀ
         prefix
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (ok-no noOuter) activeOuter noOuter′ store-eq caught =
-      ⊥-elim (activeOuter noOuter)
+        (closeᵀ inner widening pA
+          u-shape u′-shape square compatible)
+        (ok-no noCast) activeCast noCast′ store-eq caught =
+      ⊥-elim (activeCast noCast)
     active-runtime-no-bullet-transportᵀ
         prefix
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (ok-⟨⟩ (ok-no noApp)) activeOuter noOuter′ store-eq caught =
-      ⊥-elim (activeOuter (no•-⟨⟩ noApp))
-    active-runtime-no-bullet-transportᵀ
-        prefix
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (ok-⟨⟩ (ok-·₂ vL noL (ok-no noCast))) activeOuter
-        noOuter′ store-eq caught =
-      ⊥-elim
-        (activeOuter (no•-⟨⟩ (no•-· noL noCast)))
-    active-runtime-no-bullet-transportᵀ
-        prefix
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (ok-⟨⟩ (ok-·₁ okL (no•-⟨⟩ noM))) activeOuter
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
-        store-eq caught
-        with apply-narrows-typing
-          {χs = sourceChanges
-            (weakIndexedResult
-              (rightCatchupIndexedResult
-                (worldRightCatchupResult caught)))}
-          mode
-          (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-          (narrow-weaken ≤-refl
-            (leftStoreⁱ-prefix-inclusion prefix) d⊒)
-           | apply-narrows-typing
-          {χs = keep ∷ targetTailChanges
-            (weakIndexedResult
-              (rightCatchupIndexedResult
-                (worldRightCatchupResult caught)))}
-          mode′
-          (seal★-weaken
-            (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-          (narrow-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) d′⊒)
-    active-runtime-no-bullet-transportᵀ
-        {C = E} {C′ = E′} prefix
-        (down·up⊑down·upᵀ
-          {A = A} {A′ = A′} {C = C} {C′ = C′}
-          {B = B} {B′ = B′} {E = E} {E′ = E′}
-          {pA = pA} {pC = pC}
-          {pB = pB} {pE = pE} {d = d} {d′ = d′}
-          {u = u} {u′ = u′}
-          {d-shape = d-shape} {d′-shape = d′-shape}
-          {u-shape = u-shape} {u′-shape = u′-shape}
-          mode seal★ d⊒ d-shape-proof
-          mode′ seal★′ d′⊒ d′-shape-proof
-          L⊑L′ M⊑M′ down-square widening
-          u-shape-proof u′-shape-proof up-square compatible)
-        (ok-⟨⟩ (ok-·₁ okL (no•-⟨⟩ noM))) activeOuter
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
-        store-eq caught
-        | source-mode , source-mode-ok , source-seal , source-down
-        | target-mode , target-mode-ok , target-seal , target-down
-        rewrite applyTys-preserves-≈∀-refl
-                  {χs = sourceChanges
-                  (weakIndexedResult
-                      (rightCatchupIndexedResult
-                        (worldRightCatchupResult caught)))}
-                  {A = E}
-              | applyTy-preserves-≈∀-refl {χ = keep} {A = E′}
-              | applyTys-preserves-≈∀-refl
-                  {χs = targetTailChanges
-                    (weakIndexedResult
-                      (rightCatchupIndexedResult
-                        (worldRightCatchupResult caught)))}
-                  {A = applyTy keep E′} =
+        (closeᵀ inner widening pA
+          u-shape u′-shape square compatible)
+        (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
+        store-eq caught =
       nu-term-imprecision-transport-termsᵀ
-        (sym
-          (trans
-            (applyTerms-cast (sourceChanges result) _ _)
-            (cong
-              (λ N → N ⟨ applyCoercions (sourceChanges result) u ⟩)
-              (applyTerms-down-application
-                (sourceChanges result) _ _ _))))
-        (sym
-          (trans
-            (applyTerms-cast (targetTailChanges result) _ _)
-            (cong
-              (λ N → N ⟨
-                applyCoercions (targetTailChanges result)
-                  (applyCoercion keep u′) ⟩)
-              (applyTerms-down-application
-                (targetTailChanges result) _ _ _))))
-        (down·up⊑down·upᵀ
-          source-mode-ok final-source-seal final-source-down
+        (sym (applyTerms-cast (sourceChanges result) _ _))
+        (sym (applyTerms-cast (targetTailChanges result) _ _))
+        (closeᵀ inner-final final-widening
+          (transportType result pA)
           (cast-shape-applyCoercions
-            (sourceChanges result) d-shape-proof)
-          target-mode-ok final-target-seal final-target-down
+            (sourceChanges result) u-shape)
           (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape-proof)
-          L⊑L′-final M⊑M′-final final-down-square
-          final-widening
-          (cast-shape-applyCoercions
-            (sourceChanges result) u-shape-proof)
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) u′-shape-proof)
-          final-up-square final-compatible)
+            (keep ∷ targetTailChanges result) u′-shape)
+          (weak-one-step-transport-quotient-boundary-square
+            result type-coherence square)
+          (weak-one-step-transport-quotient-widening-compatibleᵀ
+            result type-coherence
+            (worldRightCatchupAssumptionMembershipUnique caught)
+            compatible))
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
       type-coherence =
         weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
 
-      L⊑L′-final-raw =
-        active-runtime-no-bullet-transportᵀ
-          prefix L⊑L′ okL
-          (λ noL →
-            activeOuter
-              (no•-⟨⟩
-                (no•-· noL (no•-⟨⟩ noM))))
-          noL′ store-eq caught
-
-      L⊑L′-final =
-        nu-term-imprecision-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          (transportArrowCoherent type-coherence _ _)
-          L⊑L′-final-raw
-
-      M⊑M′-final =
-        no-bullet-prefix-transportᵀ
-          prefix noM noM′ M⊑M′ caught
-
-      final-source-seal =
-        subst (SealModeStore★ source-mode)
-          (sym (sourceStoreResult result)) source-seal
-
-      final-source-down =
-        subst
-          (λ Δ → source-mode ∣ Δ
-            ∣ leftStoreⁱ (resultStore result)
-            ⊢ applyCoercions (sourceChanges result) d
-              ∶ applyTys (sourceChanges result) A
-                ⊒ applyTys (sourceChanges result) C)
-          (sym (sourceCtxResult result))
-          (subst
-            (λ Σ → source-mode
-              ∣ applyTyCtxs (sourceChanges result) _ ∣ Σ
-              ⊢ applyCoercions (sourceChanges result) d
-                ∶ applyTys (sourceChanges result) A
-                  ⊒ applyTys (sourceChanges result) C)
-            (sym (sourceStoreResult result)) source-down)
-
-      final-target-seal =
-        subst (SealModeStore★ target-mode)
-          (sym (targetStoreResult result)) target-seal
-
-      final-target-down =
-        subst
-          (λ Δ → target-mode ∣ Δ
-            ∣ rightStoreⁱ (resultStore result)
-            ⊢ applyCoercions (targetTailChanges result)
-                (applyCoercion keep d′)
-              ∶ applyTys (targetTailChanges result) (applyTy keep A′)
-                ⊒ applyTys (targetTailChanges result) (applyTy keep C′))
-          (sym (targetCtxResult result))
-          (subst
-            (λ Σ → target-mode
-              ∣ applyTyCtxs
-                  (targetTailChanges result) (applyTyCtx keep _)
-              ∣ Σ
-              ⊢ applyCoercions (targetTailChanges result)
-                  (applyCoercion keep d′)
-                ∶ applyTys (targetTailChanges result) (applyTy keep A′)
-                  ⊒ applyTys (targetTailChanges result) (applyTy keep C′))
-            (sym (targetStoreResult result)) target-down)
-
-      final-down-square =
-        subst
-          (λ q →
-            d-shape ；⌊ transportType result pA ⌋≋ᵖ q ； d′-shape)
-          (weak-one-step-transport-reflexive-quotient
-            {C = C} {C′ = C′} result pC)
-          (weak-one-step-transport-quotient-boundary-square
-            {C = A} {C′ = A′} {D = C} {D′ = C′}
-            {s = d-shape} {s′ = d′-shape} {p = pA}
-            {q = quotientᵖ ≈∀-refl pC ≈∀-refl}
-            result type-coherence down-square)
-
-      final-widening =
-        transport-quotient prefix result
-          (rightCatchupSourceChangesEmpty catchup)
-          (rightCatchupSourceUnchanged catchup) widening
-
-      final-up-square =
-        subst
-          (λ q →
-            u-shape ；⌊ transportType result pE ⌋≋ᵖ q ； u′-shape)
-          (weak-one-step-transport-reflexive-quotient
-            {C = B} {C′ = B′} result pB)
-          (weak-one-step-transport-quotient-boundary-square
-            {C = E} {C′ = E′} {D = B} {D′ = B′}
-            {s = u-shape} {s′ = u′-shape} {p = pE}
-            {q = quotientᵖ ≈∀-refl pB ≈∀-refl}
-            result type-coherence up-square)
-
-      final-compatible =
-        paired-widening-compatible-transportᵀ
-          result type-coherence compatible
-    active-runtime-no-bullet-transportᵀ
-        prefix
-        (down·up⊑down·upᵀ
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ M⊑M′ down-square widening
-          u-shape u′-shape up-square compatible)
-        (ok-⟨⟩ (ok-·₂ vL noL (ok-⟨⟩ okM))) activeOuter
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
-        store-eq caught
-        with apply-narrows-typing
-          {χs = sourceChanges
-            (weakIndexedResult
-              (rightCatchupIndexedResult
-                (worldRightCatchupResult caught)))}
-          mode
-          (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-          (narrow-weaken ≤-refl
-            (leftStoreⁱ-prefix-inclusion prefix) d⊒)
-           | apply-narrows-typing
-          {χs = keep ∷ targetTailChanges
-            (weakIndexedResult
-              (rightCatchupIndexedResult
-                (worldRightCatchupResult caught)))}
-          mode′
-          (seal★-weaken
-            (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-          (narrow-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) d′⊒)
-    active-runtime-no-bullet-transportᵀ
-        {C = E} {C′ = E′} prefix
-        (down·up⊑down·upᵀ
-          {A = A} {A′ = A′} {C = C} {C′ = C′}
-          {B = B} {B′ = B′} {E = E} {E′ = E′}
-          {pA = pA} {pC = pC}
-          {pB = pB} {pE = pE} {d = d} {d′ = d′}
-          {u = u} {u′ = u′}
-          {d-shape = d-shape} {d′-shape = d′-shape}
-          {u-shape = u-shape} {u′-shape = u′-shape}
-          mode seal★ d⊒ d-shape-proof
-          mode′ seal★′ d′⊒ d′-shape-proof
-          L⊑L′ M⊑M′ down-square widening
-          u-shape-proof u′-shape-proof up-square compatible)
-        (ok-⟨⟩ (ok-·₂ vL noL (ok-⟨⟩ okM))) activeOuter
-        (no•-⟨⟩ (no•-· noL′ (no•-⟨⟩ noM′)))
-        store-eq caught
-        | source-mode , source-mode-ok , source-seal , source-down
-        | target-mode , target-mode-ok , target-seal , target-down
-        rewrite applyTys-preserves-≈∀-refl
-                  {χs = sourceChanges
-                    (weakIndexedResult
-                      (rightCatchupIndexedResult
-                        (worldRightCatchupResult caught)))}
-                  {A = E}
-              | applyTy-preserves-≈∀-refl {χ = keep} {A = E′}
-              | applyTys-preserves-≈∀-refl
-                  {χs = targetTailChanges
-                    (weakIndexedResult
-                      (rightCatchupIndexedResult
-                        (worldRightCatchupResult caught)))}
-                  {A = applyTy keep E′} =
-      nu-term-imprecision-transport-termsᵀ
-        (sym
-          (trans
-            (applyTerms-cast (sourceChanges result) _ _)
-            (cong
-              (λ N → N ⟨ applyCoercions (sourceChanges result) u ⟩)
-              (applyTerms-down-application
-                (sourceChanges result) _ _ _))))
-        (sym
-          (trans
-            (applyTerms-cast (targetTailChanges result) _ _)
-            (cong
-              (λ N → N ⟨
-                applyCoercions (targetTailChanges result)
-                  (applyCoercion keep u′) ⟩)
-              (applyTerms-down-application
-                (targetTailChanges result) _ _ _))))
-        (down·up⊑down·upᵀ
-          source-mode-ok final-source-seal final-source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape-proof)
-          target-mode-ok final-target-seal final-target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape-proof)
-          L⊑L′-final M⊑M′-final final-down-square
-          final-widening
-          (cast-shape-applyCoercions
-            (sourceChanges result) u-shape-proof)
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) u′-shape-proof)
-          final-up-square final-compatible)
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      L⊑L′-final-raw =
-        no-bullet-prefix-transportᵀ
-          prefix noL noL′ L⊑L′ caught
-
-      L⊑L′-final =
-        nu-term-imprecision-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          (transportArrowCoherent type-coherence _ _)
-          L⊑L′-final-raw
-
-      M⊑M′-final =
-        active-runtime-no-bullet-transportᵀ
-          prefix M⊑M′ okM
-          (λ noM →
-            activeOuter
-              (no•-⟨⟩
-                (no•-· noL (no•-⟨⟩ noM))))
+      inner-final =
+        active-quotient-runtime-no-bullet-transportᵀ
+          prefix inner okM
+          (λ noM → activeCast (no•-⟨⟩ noM))
           noM′ store-eq caught
 
-      final-source-seal =
-        subst (SealModeStore★ source-mode)
-          (sym (sourceStoreResult result)) source-seal
-
-      final-source-down =
-        subst
-          (λ Δ → source-mode ∣ Δ
-            ∣ leftStoreⁱ (resultStore result)
-            ⊢ applyCoercions (sourceChanges result) d
-              ∶ applyTys (sourceChanges result) A
-                ⊒ applyTys (sourceChanges result) C)
-          (sym (sourceCtxResult result))
-          (subst
-            (λ Σ → source-mode
-              ∣ applyTyCtxs (sourceChanges result) _ ∣ Σ
-              ⊢ applyCoercions (sourceChanges result) d
-                ∶ applyTys (sourceChanges result) A
-                  ⊒ applyTys (sourceChanges result) C)
-            (sym (sourceStoreResult result)) source-down)
-
-      final-target-seal =
-        subst (SealModeStore★ target-mode)
-          (sym (targetStoreResult result)) target-seal
-
-      final-target-down =
-        subst
-          (λ Δ → target-mode ∣ Δ
-            ∣ rightStoreⁱ (resultStore result)
-            ⊢ applyCoercions (targetTailChanges result)
-                (applyCoercion keep d′)
-              ∶ applyTys (targetTailChanges result) (applyTy keep A′)
-                ⊒ applyTys (targetTailChanges result) (applyTy keep C′))
-          (sym (targetCtxResult result))
-          (subst
-            (λ Σ → target-mode
-              ∣ applyTyCtxs
-                  (targetTailChanges result) (applyTyCtx keep _)
-              ∣ Σ
-              ⊢ applyCoercions (targetTailChanges result)
-                  (applyCoercion keep d′)
-                ∶ applyTys (targetTailChanges result) (applyTy keep A′)
-                  ⊒ applyTys (targetTailChanges result) (applyTy keep C′))
-            (sym (targetStoreResult result)) target-down)
-
-      final-down-square =
-        subst
-          (λ q →
-            d-shape ；⌊ transportType result pA ⌋≋ᵖ q ； d′-shape)
-          (weak-one-step-transport-reflexive-quotient
-            {C = C} {C′ = C′} result pC)
-          (weak-one-step-transport-quotient-boundary-square
-            {C = A} {C′ = A′} {D = C} {D′ = C′}
-            {s = d-shape} {s′ = d′-shape} {p = pA}
-            {q = quotientᵖ ≈∀-refl pC ≈∀-refl}
-            result type-coherence down-square)
-
       final-widening =
         transport-quotient prefix result
           (rightCatchupSourceChangesEmpty catchup)
           (rightCatchupSourceUnchanged catchup) widening
-
-      final-up-square =
-        subst
-          (λ q →
-            u-shape ；⌊ transportType result pE ⌋≋ᵖ q ； u′-shape)
-          (weak-one-step-transport-reflexive-quotient
-            {C = B} {C′ = B′} result pB)
-          (weak-one-step-transport-quotient-boundary-square
-            {C = E} {C′ = E′} {D = B} {D′ = B′}
-            {s = u-shape} {s′ = u′-shape} {p = pE}
-            {q = quotientᵖ ≈∀-refl pB ≈∀-refl}
-            result type-coherence up-square)
-
-      final-compatible =
-        paired-widening-compatible-transportᵀ
-          result type-coherence compatible
     active-runtime-no-bullet-transportᵀ
         prefix (⊕⊑⊕ᵀ L⊑L′ M⊑M′) (ok-no noLM) activeLM
         noLM′ store-eq caught =
@@ -1869,125 +1282,119 @@ module _
               (applyTys (targetTailChanges result) (applyTy keep _)))
             (sym (targetStoreResult result)) c′↓)
     active-runtime-no-bullet-transportᵀ
-        prefix
-        (⊑cast⊑idᵀ {p = p}
-          seal★ c⊑ M⊑M′ q c-shape comp)
-        okM activeM (no•-⟨⟩ noM′) store-eq caught =
-      nu-term-imprecision-transport-termsᵀ refl
-        (sym (applyTerms-cast (targetTailChanges result) _ _))
-        (⊑cast⊑idᵀ seal★-id-only final-cast
-          M⊑M′-final (transportType result q)
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) c-shape)
-          (imprecision-composition-shape-transport
-            (transportShapeCoherent type-coherence p)
-            refl
-            (transportShapeCoherent type-coherence q)
-            comp))
+        prefix (paired-revealᵀ corr c↑ c′↑ replace M⊑M′)
+        (ok-no noCast) activeCast noCast′ store-eq caught =
+      ⊥-elim (activeCast noCast)
+    active-runtime-no-bullet-transportᵀ
+        prefix (paired-revealᵀ corr c↑ c′↑ replace M⊑M′)
+        (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
+        store-eq caught =
+      let pX-final , source-mode-final , target-mode-final ,
+            corr-final , cˢ↑ , cᵗ↑ , replace-final =
+              paired-reveal-evidence-transportᵀ
+                prefix result type-coherence
+                (worldRightCatchupStoreLineage caught)
+                corr c↑ c′↑ replace
+      in
+      nu-term-imprecision-transport-termsᵀ
+          (sym (applyTerms-cast (sourceChanges result) _ _))
+          (sym (applyTerms-cast (targetTailChanges result) _ _))
+          (paired-revealᵀ corr-final cˢ↑ cᵗ↑ replace-final
+            M⊑M′-final)
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
       type-coherence =
         weakIndexedTypeCoherence
           (rightCatchupIndexedResult catchup)
-    
-      M⊑M′-final =
-        active-runtime-no-bullet-transportᵀ
-          prefix M⊑M′ okM activeM noM′ store-eq caught
-    
-      c′⊑ =
-        apply-fixed-widens-typing
-          { χs = keep ∷ targetTailChanges result }
-          (modeRename-id-only suc)
-          (widen-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) c⊑)
-    
-      final-cast =
-        subst
-          (λ Δ → id-onlyᵈ ∣ Δ ∣ rightStoreⁱ (resultStore result)
-            ⊢ applyCoercions (targetTailChanges result) (applyCoercion keep _)
-              ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                ⊑ applyTys (targetTailChanges result) (applyTy keep _))
-          (sym (targetCtxResult result))
-          (subst
-            (λ Σ → id-onlyᵈ
-              ∣ applyTyCtxs (targetTailChanges result) (applyTyCtx keep _)
-              ∣ Σ
-              ⊢ applyCoercions (targetTailChanges result)
-                  (applyCoercion keep _)
-                ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                  ⊑ applyTys (targetTailChanges result) (applyTy keep _))
-            (sym (targetStoreResult result)) c′⊑)
-    active-runtime-no-bullet-transportᵀ
-        prefix (conv⊑convᵀ paired M⊑M′)
-        (ok-no noCast) activeCast noCast′ store-eq caught =
-      ⊥-elim (activeCast noCast)
-    active-runtime-no-bullet-transportᵀ
-        prefix (conv⊑convᵀ paired M⊑M′)
-        (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
-        store-eq caught =
-      nu-term-imprecision-transport-termsᵀ
-        (sym (applyTerms-cast (sourceChanges result) _ _))
-        (sym (applyTerms-cast (targetTailChanges result) _ _))
-        (conv⊑convᵀ final-paired M⊑M′-final)
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-  
+
       M⊑M′-final =
         active-runtime-no-bullet-transportᵀ
           prefix M⊑M′ okM
           (λ noM → activeCast (no•-⟨⟩ noM))
           noM′ store-eq caught
-  
-      final-paired =
-        transport-paired prefix result
-          (rightCatchupSourceChangesEmpty catchup)
-          (rightCatchupSourceUnchanged catchup)
-          (weakIndexedTypeCoherence
-            (rightCatchupIndexedResult catchup))
-          (worldRightCatchupStoreLineage caught)
-          (worldRightCatchupCoherence caught) paired
 
     active-runtime-no-bullet-transportᵀ
-        prefix
-        (up⊑upᵀ M⊑M′ widening p
-          u-shape u′-shape square)
+        prefix (paired-concealᵀ corr c↓ c′↓ replace M⊑M′)
         (ok-no noCast) activeCast noCast′ store-eq caught =
       ⊥-elim (activeCast noCast)
     active-runtime-no-bullet-transportᵀ
-        prefix
-        (up⊑upᵀ M⊑M′ widening p
-          u-shape u′-shape square)
+        prefix (paired-concealᵀ corr c↓ c′↓ replace M⊑M′)
         (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
         store-eq caught =
+      let pX-final , source-mode-final , target-mode-final ,
+            corr-final , cˢ↓ , cᵗ↓ , replace-final =
+              paired-conceal-evidence-transportᵀ
+                prefix result type-coherence
+                (worldRightCatchupStoreLineage caught)
+                corr c↓ c′↓ replace
+      in
       nu-term-imprecision-transport-termsᵀ
-        (sym (applyTerms-cast (sourceChanges result) _ _))
-        (sym (applyTerms-cast (targetTailChanges result) _ _))
-        (up⊑upᵀ M⊑M′-final final-widening
-          (transportType result p)
-          (cast-shape-applyCoercions
-            (sourceChanges result) u-shape)
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) u′-shape)
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
+          (sym (applyTerms-cast (sourceChanges result) _ _))
+          (sym (applyTerms-cast (targetTailChanges result) _ _))
+          (paired-concealᵀ corr-final cˢ↓ cᵗ↓ replace-final
+            M⊑M′-final)
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
       type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
+        weakIndexedTypeCoherence
+          (rightCatchupIndexedResult catchup)
 
       M⊑M′-final =
-        active-quotient-runtime-no-bullet-transportᵀ
+        active-runtime-no-bullet-transportᵀ
           prefix M⊑M′ okM
           (λ noM → activeCast (no•-⟨⟩ noM))
           noM′ store-eq caught
 
-      final-widening =
-        transport-quotient prefix result
-          (rightCatchupSourceChangesEmpty catchup)
-          (rightCatchupSourceUnchanged catchup) widening
+    active-runtime-no-bullet-transportᵀ
+        prefix
+        (paired-wideningᵀ
+          mode seal★ c⊑ c-shape
+          mode′ seal★′ c′⊑ c′-shape
+          left-square right-square compatible M⊑M′)
+        (ok-no noCast) activeCast noCast′ store-eq caught =
+      ⊥-elim (activeCast noCast)
+    active-runtime-no-bullet-transportᵀ
+        prefix
+        (paired-wideningᵀ
+          mode seal★ c⊑ c-shape
+          mode′ seal★′ c′⊑ c′-shape
+          left-square right-square compatible M⊑M′)
+        (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
+        store-eq caught =
+      let source-mode-final , target-mode-final ,
+            source-shape-final , target-shape-final , common-shape-final ,
+            modeˢ , seal★ˢ , cˢ⊑ , cˢ-shape ,
+            modeᵗ , seal★ᵗ , cᵗ⊑ , cᵗ-shape ,
+            left-square-final , right-square-final , compatible-final =
+              paired-widening-evidence-transportᵀ
+                prefix result type-coherence
+                (worldRightCatchupAssumptionMembershipUnique caught)
+                mode seal★ c⊑ c-shape
+                mode′ seal★′ c′⊑ c′-shape
+                left-square right-square compatible
+      in
+      nu-term-imprecision-transport-termsᵀ
+          (sym (applyTerms-cast (sourceChanges result) _ _))
+          (sym (applyTerms-cast (targetTailChanges result) _ _))
+          (paired-wideningᵀ
+            modeˢ seal★ˢ cˢ⊑ cˢ-shape
+            modeᵗ seal★ᵗ cᵗ⊑ cᵗ-shape
+            left-square-final right-square-final compatible-final
+            M⊑M′-final)
+      where
+      catchup = worldRightCatchupResult caught
+      result = weakIndexedResult (rightCatchupIndexedResult catchup)
+      type-coherence =
+        weakIndexedTypeCoherence
+          (rightCatchupIndexedResult catchup)
+
+      M⊑M′-final =
+        active-runtime-no-bullet-transportᵀ
+          prefix M⊑M′ okM
+          (λ noM → activeCast (no•-⟨⟩ noM))
+          noM′ store-eq caught
 
     active-runtime-no-bullet-transportᵀ
         prefix
@@ -2311,30 +1718,24 @@ module _
             q
     active-quotient-runtime-no-bullet-transportᵀ
         prefix
-        (down⊑downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+        (paired-downᵀ M⊑M′
+          mode d⊒ d-shape mode′ d′⊒ d′-shape square compatible)
         (ok-no noCast) activeCast noCast′ store-eq caught =
       ⊥-elim (activeCast noCast)
     active-quotient-runtime-no-bullet-transportᵀ
         prefix
-        (down⊑downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
+        (paired-downᵀ M⊑M′
+          mode d⊒ d-shape mode′ d′⊒ d′-shape square compatible)
         (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
         store-eq caught =
       nu-term-imprecisionᵖ-transport-termsᵀ
         (sym (applyTerms-cast (sourceChanges result) _ _))
         (sym (applyTerms-cast (targetTailChanges result) _ _))
-        (down⊑downᵀ
-          source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          M⊑M′-final
-          (weak-one-step-transport-quotientᵀ result q)
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
+        (quotient-down-evidence-transportᵀ
+          prefix result type-coherence
+          mode d⊒ d-shape mode′ d′⊒ d′-shape square
+          (worldRightCatchupAssumptionMembershipUnique caught)
+          compatible M⊑M′-final)
       where
       catchup = worldRightCatchupResult caught
       result = weakIndexedResult (rightCatchupIndexedResult catchup)
@@ -2346,456 +1747,6 @@ module _
           prefix M⊑M′ okM
           (λ noM → activeCast (no•-⟨⟩ noM))
           noM′ store-eq caught
-
-      source-down =
-        right-catchup-source-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d⊒
-
-      target-down =
-        weak-one-step-transport-target-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d′⊒
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (gen-down⊑gen-downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-        (ok-no noCast) activeCast noCast′ store-eq caught =
-      ⊥-elim (activeCast noCast)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (gen-down⊑gen-downᵀ
-          d⊒ d-shape d′⊒ d′-shape M⊑M′ q square)
-        (ok-⟨⟩ okM) activeCast (no•-⟨⟩ noM′)
-        store-eq caught =
-      nu-term-imprecisionᵖ-transport-termsᵀ
-        (sym (applyTerms-cast (sourceChanges result) _ _))
-        (sym (applyTerms-cast (targetTailChanges result) _ _))
-        (gen-down⊑gen-downᵀ
-          source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          M⊑M′-final
-          (weak-one-step-transport-quotientᵀ result q)
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      M⊑M′-final =
-        active-runtime-no-bullet-transportᵀ
-          prefix M⊑M′ okM
-          (λ noM → activeCast (no•-⟨⟩ noM))
-          noM′ store-eq caught
-
-      source-down =
-        right-catchup-source-fixed-narrowingᵀ
-          (modeRename-gen-tag-or-id suc) prefix result d⊒
-
-      target-down =
-        weak-one-step-transport-target-fixed-narrowingᵀ
-          (modeRename-gen-tag-or-id suc) prefix result d′⊒
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-id-down-applicationᵖᵀ {qF = qF}
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-no noApp) activeApp noApp′ store-eq caught =
-      ⊥-elim (activeApp noApp)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-id-down-applicationᵖᵀ {qF = qF}
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₂ vL noL (ok-no noCast)) activeApp noApp′
-        store-eq caught =
-      ⊥-elim (activeApp (no•-· noL noCast))
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-id-down-applicationᵖᵀ {qF = qF}
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₁ okL (no•-⟨⟩ noM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught =
-      nu-term-imprecisionᵖ-transport-termsᵀ
-        (sym (applyTerms-down-application
-          (sourceChanges result) _ _ _))
-        (sym (applyTerms-down-application
-          (targetTailChanges result) _ _ _))
-        (quotient-id-down-applicationᵖᵀ
-          source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          L⊑L′-final
-          (weak-one-step-transport-quotient-arrow-components-at
-            result type-coherence {qF = qF} components)
-          M⊑M′-final
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      L⊑L′-final-raw =
-        active-quotient-runtime-no-bullet-transportᵀ
-          prefix L⊑L′ okL
-          (λ noL → activeApp
-            (no•-· noL (no•-⟨⟩ noM)))
-          noL′ store-eq caught
-
-      L⊑L′-final =
-        nu-term-imprecisionᵖ-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          refl L⊑L′-final-raw
-
-      M⊑M′-final =
-        no-bullet-prefix-transportᵀ
-          prefix noM noM′ M⊑M′ caught
-
-      source-down =
-        right-catchup-source-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d⊒
-
-      target-down =
-        weak-one-step-transport-target-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d′⊒
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-id-down-applicationᵖᵀ {qF = qF}
-          d⊒ d-shape d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₂ vL noL (ok-⟨⟩ okM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught =
-      nu-term-imprecisionᵖ-transport-termsᵀ
-        (sym (applyTerms-down-application
-          (sourceChanges result) _ _ _))
-        (sym (applyTerms-down-application
-          (targetTailChanges result) _ _ _))
-        (quotient-id-down-applicationᵖᵀ
-          source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          L⊑L′-final
-          (weak-one-step-transport-quotient-arrow-components-at
-            result type-coherence {qF = qF} components)
-          M⊑M′-final
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      L⊑L′-final-raw =
-        no-bullet-prefix-transportᵖᵀ
-          prefix noL noL′ L⊑L′ caught
-
-      L⊑L′-final =
-        nu-term-imprecisionᵖ-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          refl L⊑L′-final-raw
-
-      M⊑M′-final =
-        active-runtime-no-bullet-transportᵀ
-          prefix M⊑M′ okM
-          (λ noM → activeApp
-            (no•-· noL (no•-⟨⟩ noM)))
-          noM′ store-eq caught
-
-      source-down =
-        right-catchup-source-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d⊒
-
-      target-down =
-        weak-one-step-transport-target-fixed-narrowingᵀ
-          (modeRename-id-only suc) prefix result d′⊒
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-no noApp) activeApp noApp′ store-eq caught =
-      ⊥-elim (activeApp noApp)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₂ vL noL (ok-no noCast)) activeApp noApp′
-        store-eq caught =
-      ⊥-elim (activeApp (no•-· noL noCast))
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₁ okL (no•-⟨⟩ noM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught
-        with apply-narrows-typing
-          { χs = sourceChanges
-              (weakIndexedResult
-                (rightCatchupIndexedResult
-                  (worldRightCatchupResult caught))) }
-          mode
-          (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-          (narrow-weaken ≤-refl
-            (leftStoreⁱ-prefix-inclusion prefix) d⊒)
-           | apply-narrows-typing
-          { χs = keep ∷ targetTailChanges
-              (weakIndexedResult
-                (rightCatchupIndexedResult
-                  (worldRightCatchupResult caught))) }
-          mode′
-          (seal★-weaken
-            (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-          (narrow-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) d′⊒)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₁ okL (no•-⟨⟩ noM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught
-        | source-mode , source-mode-ok , source-seal , source-down
-        | target-mode , target-mode-ok , target-seal , target-down =
-      nu-term-imprecisionᵖ-transport-termsᵀ
-        (sym (applyTerms-down-application
-          (sourceChanges result) _ _ _))
-        (sym (applyTerms-down-application
-          (targetTailChanges result) _ _ _))
-        (quotient-down-applicationᵖᵀ
-          source-mode-ok final-source-seal final-source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-mode-ok final-target-seal final-target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          L⊑L′-final
-          (weak-one-step-transport-quotient-arrow-components-at
-            result type-coherence {qF = qF} components)
-          M⊑M′-final
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      L⊑L′-final-raw =
-        active-quotient-runtime-no-bullet-transportᵀ
-          prefix L⊑L′ okL
-          (λ noL → activeApp
-            (no•-· noL (no•-⟨⟩ noM)))
-          noL′ store-eq caught
-
-      L⊑L′-final =
-        nu-term-imprecisionᵖ-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          refl L⊑L′-final-raw
-
-      M⊑M′-final =
-        no-bullet-prefix-transportᵀ
-          prefix noM noM′ M⊑M′ caught
-
-      final-source-seal =
-        subst (SealModeStore★ source-mode)
-          (sym (sourceStoreResult result)) source-seal
-
-      final-source-down =
-        subst
-          (λ Δ → source-mode ∣ Δ
-            ∣ leftStoreⁱ (resultStore result)
-            ⊢ applyCoercions (sourceChanges result) _
-              ∶ applyTys (sourceChanges result) _
-                ⊒ applyTys (sourceChanges result) _)
-          (sym (sourceCtxResult result))
-          (subst
-            (λ Σ → source-mode
-              ∣ applyTyCtxs (sourceChanges result) _ ∣ Σ
-              ⊢ applyCoercions (sourceChanges result) _
-                ∶ applyTys (sourceChanges result) _
-                  ⊒ applyTys (sourceChanges result) _)
-            (sym (sourceStoreResult result)) source-down)
-
-      final-target-seal =
-        subst (SealModeStore★ target-mode)
-          (sym (targetStoreResult result)) target-seal
-
-      final-target-down =
-        subst
-          (λ Δ → target-mode ∣ Δ
-            ∣ rightStoreⁱ (resultStore result)
-            ⊢ applyCoercions (targetTailChanges result)
-                (applyCoercion keep _)
-              ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-          (sym (targetCtxResult result))
-          (subst
-            (λ Σ → target-mode
-              ∣ applyTyCtxs
-                  (targetTailChanges result) (applyTyCtx keep _)
-              ∣ Σ
-              ⊢ applyCoercions (targetTailChanges result)
-                  (applyCoercion keep _)
-                ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                  ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-            (sym (targetStoreResult result)) target-down)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₂ vL noL (ok-⟨⟩ okM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught
-        with apply-narrows-typing
-          { χs = sourceChanges
-              (weakIndexedResult
-                (rightCatchupIndexedResult
-                  (worldRightCatchupResult caught))) }
-          mode
-          (seal★-weaken (leftStoreⁱ-prefix-inclusion prefix) seal★)
-          (narrow-weaken ≤-refl
-            (leftStoreⁱ-prefix-inclusion prefix) d⊒)
-           | apply-narrows-typing
-          { χs = keep ∷ targetTailChanges
-              (weakIndexedResult
-                (rightCatchupIndexedResult
-                  (worldRightCatchupResult caught))) }
-          mode′
-          (seal★-weaken
-            (rightStoreⁱ-prefix-inclusion prefix) seal★′)
-          (narrow-weaken ≤-refl
-            (rightStoreⁱ-prefix-inclusion prefix) d′⊒)
-    active-quotient-runtime-no-bullet-transportᵀ
-        prefix
-        (quotient-down-applicationᵖᵀ {qF = qF}
-          mode seal★ d⊒ d-shape
-          mode′ seal★′ d′⊒ d′-shape
-          L⊑L′ components M⊑M′ square)
-        (ok-·₂ vL noL (ok-⟨⟩ okM)) activeApp
-        (no•-· noL′ (no•-⟨⟩ noM′)) store-eq caught
-        | source-mode , source-mode-ok , source-seal , source-down
-        | target-mode , target-mode-ok , target-seal , target-down =
-      nu-term-imprecisionᵖ-transport-termsᵀ
-        (sym (applyTerms-down-application
-          (sourceChanges result) _ _ _))
-        (sym (applyTerms-down-application
-          (targetTailChanges result) _ _ _))
-        (quotient-down-applicationᵖᵀ
-          source-mode-ok final-source-seal final-source-down
-          (cast-shape-applyCoercions
-            (sourceChanges result) d-shape)
-          target-mode-ok final-target-seal final-target-down
-          (cast-shape-applyCoercions
-            (keep ∷ targetTailChanges result) d′-shape)
-          L⊑L′-final
-          (weak-one-step-transport-quotient-arrow-components-at
-            result type-coherence {qF = qF} components)
-          M⊑M′-final
-          (weak-one-step-transport-quotient-boundary-square
-            result type-coherence square))
-      where
-      catchup = worldRightCatchupResult caught
-      result = weakIndexedResult (rightCatchupIndexedResult catchup)
-      type-coherence =
-        weakIndexedTypeCoherence (rightCatchupIndexedResult catchup)
-
-      L⊑L′-final-raw =
-        no-bullet-prefix-transportᵖᵀ
-          prefix noL noL′ L⊑L′ caught
-
-      L⊑L′-final =
-        nu-term-imprecisionᵖ-transport-typesᵀ
-          (applyTys-⇒ (sourceChanges result) _ _)
-          (trans
-            (cong (applyTys (targetTailChanges result))
-              (applyTys-⇒ (keep ∷ []) _ _))
-            (applyTys-⇒ (targetTailChanges result) _ _))
-          refl L⊑L′-final-raw
-
-      M⊑M′-final =
-        active-runtime-no-bullet-transportᵀ
-          prefix M⊑M′ okM
-          (λ noM → activeApp
-            (no•-· noL (no•-⟨⟩ noM)))
-          noM′ store-eq caught
-
-      final-source-seal =
-        subst (SealModeStore★ source-mode)
-          (sym (sourceStoreResult result)) source-seal
-
-      final-source-down =
-        subst
-          (λ Δ → source-mode ∣ Δ
-            ∣ leftStoreⁱ (resultStore result)
-            ⊢ applyCoercions (sourceChanges result) _
-              ∶ applyTys (sourceChanges result) _
-                ⊒ applyTys (sourceChanges result) _)
-          (sym (sourceCtxResult result))
-          (subst
-            (λ Σ → source-mode
-              ∣ applyTyCtxs (sourceChanges result) _ ∣ Σ
-              ⊢ applyCoercions (sourceChanges result) _
-                ∶ applyTys (sourceChanges result) _
-                  ⊒ applyTys (sourceChanges result) _)
-            (sym (sourceStoreResult result)) source-down)
-
-      final-target-seal =
-        subst (SealModeStore★ target-mode)
-          (sym (targetStoreResult result)) target-seal
-
-      final-target-down =
-        subst
-          (λ Δ → target-mode ∣ Δ
-            ∣ rightStoreⁱ (resultStore result)
-            ⊢ applyCoercions (targetTailChanges result)
-                (applyCoercion keep _)
-              ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-          (sym (targetCtxResult result))
-          (subst
-            (λ Σ → target-mode
-              ∣ applyTyCtxs
-                  (targetTailChanges result) (applyTyCtx keep _)
-              ∣ Σ
-              ⊢ applyCoercions (targetTailChanges result)
-                  (applyCoercion keep _)
-                ∶ applyTys (targetTailChanges result) (applyTy keep _)
-                  ⊒ applyTys (targetTailChanges result) (applyTy keep _))
-            (sym (targetStoreResult result)) target-down)
-
   world-coherent-right-value-catchup-runtime-no-bullet-transport-proofᵀ :
     WorldCoherentRightValueCatchupRuntimeNoBulletTransportᵀ
   world-coherent-right-value-catchup-runtime-no-bullet-transport-proofᵀ

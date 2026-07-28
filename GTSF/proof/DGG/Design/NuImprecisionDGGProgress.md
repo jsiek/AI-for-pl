@@ -1476,6 +1476,161 @@ transport, weak-composition, and world-transport regions from the 14,878-line
 of the 4,762-line `NuImprecisionSimulation.agda`. These must be genuine
 dependency cuts, not re-exporting wrappers.
 
+The source-widening split is now implemented. The former 1,435-line case
+proof has been replaced by a 336-line common transport core and separate
+inert/identity, sequence, and source-only-`ν` instantiation proofs. The
+definition exposes only those four exact contracts; the unjustified broad
+source-widening leaf assumption is gone. The full source-widening case remains
+valid only after the caller analyzes the widening derivation and rules out
+inadmissible index/shape combinations. The Def, common core, sequence, and
+`ν`-indexed proofs pass focused strict checks. The inert/identity proof also
+passes after switching its atomic result reindex to the live relation.
+
+That reindex is now the exhaustive
+`proof/OneStep/NuImprecisionAtomicSourceReindex.agda`; it covers `closeᵀ`,
+target instantiation, generalization against ground, and the three explicit
+paired branches. The obsolete `NuImprecisionPairedCastResultShape.agda` and
+the old private reindex were deleted. Source conceal is 202 lines smaller and
+passes strictly against the focused theorem.
+
+The four generic source-cast result framers also moved out of
+`NuImprecisionSimulation.agda` into the strict 182-line
+`NuImprecisionWeakOneStepSourceCastFrame.agda`. Direct clients now import that
+module instead of the broad simulation file, and the simulation file is down
+to 4,093 lines. This is a real dependency cut: the new module depends only on
+the result definition and is not re-exported by a wrapper.
+
+The active and inert right source-root families now take explicit paired
+reveal, conceal, and widening evidence. Each family is split into three
+focused case proofs and a small aggregate proof; all six leaves and both
+aggregate Lemmas pass strict checks in roughly 10–12 seconds. Active-value
+synchronization is the direct final-value restriction of the same exact
+record and passes strictly. Endpoint cast syntax is not used as a substitute
+for constructor evidence.
+
+These migrations removed the last consumers of the old source
+`PairedCast` catch-up aggregate, so its Def/Proof pair has been deleted
+without a shim. The next right-side blocker is the paired-value root, followed
+by the paired outer-cast dispatcher; both still state their contracts using
+the removed aggregate.
+
+The live `cast⊑⊑ᵀ` value-catch-up dispatcher also succeeds. It is exhaustive
+over all eleven `Widening` constructors: atomic identities use the identity
+proof, structural casts use the inert proof, sequences use the sequence proof,
+source-only instantiation uses the `ν`-indexed proof, and bare unseal uses
+source reveal. The instantiation clause simultaneously matches the inner
+index as `ν`, the cast shape as `shape-inst`, and composition as `comp-ν`;
+the unseal clause matches `tagˣ`, `id★`, `shape-unseal`, and
+`comp-tagˣ-id★`. Agda accepts the structural recursion directly, including
+the callbacks passed only to sequence and instantiation, without a postulate,
+termination pragma, or auxiliary admissibility alias. The focused prefix
+proof passes strictly.
+
+The next paired-root audit found a deletion opportunity rather than another
+aggregate to migrate. The standalone paired-value root, mixed paired
+outer-cast Def/Proof/Lemma, old paired-cast frame, its transport Lemma, and
+the superseded active-value-roots Def had no semantic consumers outside the
+inventory spine and were deleted. The separate live ordinary root records,
+quotient recursion contract, and active synchronization contract remain for
+the future operational SCC. A second strict-only
+source-`ν` paired-all target-closing triple was likewise removed from its
+inventory spine and deleted.
+
+The obsolete ordinary-down-application and source-down-application families
+were also self-contained behind the terminal-backward inventory spine. Live
+QTIP has only `paired-downᵀ`, so their ten scheduling, synchronization, frame,
+root, and cases modules were deleted rather than adapted. The separate
+zero-consumer source-down compatibility helper in `proof/Quotient/` was
+deleted with them.
+
+The three live aggregate boundaries now use exact constructors. Right
+value-catch-up has reveal, conceal, and widening frame fields; source one-step
+framing has the same three fields; and function-cast beta has reveal,
+conceal, live widening, and a separate quotient-close field. The
+function-beta implementation is split into focused conversion, widening, and
+quotient proofs with a 56-line assembly. The focused contracts and case
+proofs pass strictly. Their larger dispatchers stop only when they reach
+other already-retired constructor clauses.
+
+Terminal-forward integration now accepts the exact right paired-frame record
+directly. No canonical provider has been fabricated. Constructor-specific
+transport plus neutral paired framing still leaves a real semantic question
+when the transported target cast is active: the target cast must be
+terminalized inside the operational right-dispatch SCC before the result is a
+value.
+
+The correspondence layer also received a stable checking-time cut. The
+lineage theorem moved from the misleading left-silent subtree to
+`proof/Store/Lineage/NuImprecisionStoreCorrespondsLineageTransportProof.agda`.
+Its statement has no silent-result premise, and both it and the exact paired
+conversion transport pass focused strict checks in under six seconds.
+`NuImprecisionQuotientDownTransportProof.agda` now has a strict
+`quotient-down-evidence-transportᵀ` theorem for recursive clients; the
+canonical indexed-result theorem is a small corollary.
+
+The right no-bullet migration is complete. Its only quotient-prefix case is
+`paired-downᵀ`, and its two active closing cases use `closeᵀ`; reveal, conceal,
+and widening remain explicit. The main proof shrank from 2,677 to 1,766 lines
+and passes strictly together with its direct Lemma. The now-unreferenced
+generic and right-silent paired-cast transport Def/Proof family was deleted.
+The right value dispatcher likewise has one exact quotient-down/up frame and
+passes strictly.
+
+The two final source-`ν` source-only proofs now pass strictly. Their contracts
+carry `AssumptionMembershipUnique Φ` explicitly, and their allocation results
+supply all ten source-lift coherence fields. The `ν ★` cast proof does not
+assume that every post-allocation widening is a single instantiation:
+identity, inert, sequence, and instantiation casts are all possible. It
+therefore exposes one recursive `WorldCoherentLeftValueCatchupPrefixᵀ` call
+on the complete post-allocation cast relation. The eventual source-runtime
+provider must discharge that honest recursive edge with the existing
+well-founded source-administration measure. Both completed Proof roots have
+left the known-incomplete list and are imported by the unassembled strict
+spine; only terminal-forward integration and source narrowing remain on that
+list.
+
+The compiler migration found a real negative result. Canonical cast plans do
+not in general satisfy `ReductionClosedQuotientWideningCompatible`: the
+strict counterexample
+`proof/Compilation/CompileCastWideningCompatibilityCounterexample.agda`
+uses the actual plans for `∀ X. X ⇒ X` versus `★ ⇒ ★` and derives the
+impossible bridge `★ ⊑ A₁ ⇒ A₂`. At a value boundary the existing
+`WorldCoherentQuotientFinalCatchupᵀ` is the sound up-to-reduction replacement,
+but finite reduction cannot repair a pending boundary under a lambda or
+around an open variable. Before migrating `CompileTermImprecision`, decide
+between a canonical compiler-origin pending-close boundary and a semantic or
+ground-final DGG relation. Do not restore `up⊑upᵀ` or strengthen `CastPlan`
+with a false invariant.
+
+Function-cast beta exposes the same operational boundary. The old pure
+quotient-application island is still a genuine live consumer, so it cannot be
+deleted yet. Its selected replacement is
+`WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ`; completing it
+requires recursive right-step/quotient-frame dispatch after target `β-↦`,
+including source-value catch-up and source-blame propagation.
+
+Checking-time cleanup follows one rule during migration: split canonical
+support that survives the selected relation, and shrink retiring files by
+deletion. Therefore the 2,090-line quotient-value analysis will not be
+reorganized, while stable portions of simulation, value transport, source
+widening, and reveal/conceal are receiving focused cuts.
+
+A fresh hotspot audit identified the next three stable cuts:
+`MaximalLowerBoundsWf.agda` is 20,373 lines with 174 direct importers,
+`NuImprecisionSimulationCore.agda` is 14,878 lines with 85, and
+`NarrowWidenProperties.agda` is 4,385 lines with 17. Extract indexed
+imprecision renaming/lifting first, weak-result transport/reindex algebra
+second, and basic narrowing/widening store invariants third. Do not split the
+retiring quotient-value monolith or migration experiments. The zero-import
+`MaximalLowerBoundsJunk.agda` and its active-surface references have already
+been deleted; Git history is the archive.
+
+The source/import audit passes after this checkpoint: all local imports
+resolve, all five strict safety roots remain safe, the four known-incomplete
+Proof modules are explicitly excluded, and no strict-looking Proof module is
+left without either a Lemma consumer or the unassembled-proof inventory
+spine.
+
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict
 public DGG dependency cone plus the focused forward and backward terminal

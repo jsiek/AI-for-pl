@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Assembles all active target-cast root dispatch from seven explicit
+--   * Assembles all active target-cast root dispatch from five explicit
 --     semantic cells plus the completed atomic-identity and target-blame
 --     leaves.
 --   * Closes every impossible cast-grammar/direction combination by
@@ -16,7 +16,7 @@ module
 import Coercions as C
 import NarrowWiden as NW
 import CastImprecisionShape as CastShape
-open import Coercions using (Coercion; ModeEnv; id-onlyᵈ)
+open import Coercions using (Coercion; ModeEnv)
 open import Data.List using ([])
 open import Data.Product using (_,_)
 open import ImprecisionComposition using
@@ -91,8 +91,6 @@ open import
   using
   ( WorldCoherentRightOneStepTargetCastActiveRoots
   ; WorldCoherentRightOneStepTargetCastSemanticRoots
-  ; rightStepTargetIdWidenInstantiationRoot
-  ; rightStepTargetIdWidenSequenceRoot
   ; rightStepTargetNarrowSequenceRoot
   ; rightStepTargetNarrowUntagRoot
   ; rightStepTargetWidenInstantiationRoot
@@ -110,7 +108,6 @@ world-coherent-right-one-step-target-cast-active-roots-proofᵀ
   record
     { rightStepTargetNarrowCastRoot = narrow-root
     ; rightStepTargetWidenCastRoot = widen-root
-    ; rightStepTargetIdWidenCastRoot = id-widen-root
     }
   where
   narrow-root :
@@ -253,73 +250,4 @@ world-coherent-right-one-step-target-cast-active-roots-proofᵀ
       unseal⊑ shape comp inner root
   widen-root coherent exclusive unique wfL wfR okM okCast
       mode seal★ widening shape comp inner blame-⟨⟩ =
-    rightStepTargetBlameRoot atomic okM inner
-
-  id-widen-root :
-    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {M M′ N′ : Term} {A A′ B′ : Ty}
-      {c′ : Coercion}
-      {shape : ImprecisionShape}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-    WorldCoherent ρ →
-    SourceNameExclusive Φ →
-    AssumptionMembershipUnique Φ →
-    StoreWf Δᴸ (leftStoreⁱ ρ) →
-    StoreWf Δᴿ (rightStoreⁱ ρ) →
-    RuntimeOK M →
-    RuntimeOK (M′ ⟨ c′ ⟩) →
-    SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ
-      ⊢ c′ ∶ A′ ⊑ B′ →
-    CastShape.widening CastShape.⊢ᶜ c′ ⦂ shape →
-    ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
-    M′ ⟨ c′ ⟩ —→ N′ →
-    WorldCoherentWeakOneStepIndexedOutcome
-      {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★
-      (C.cast-id _ _ , NW.cross (NW.id-＇ α))
-      shape comp inner (β-id vV) =
-    rightStepTargetAtomicIdentityRoot atomic
-      coherent exclusive unique (＇ α) vV inner
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★
-      (C.cast-id _ _ , NW.cross (NW.id-‵ ι))
-      shape comp inner (β-id vV) =
-    rightStepTargetAtomicIdentityRoot atomic
-      coherent exclusive unique (‵ ι) vV inner
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★
-      (C.cast-id _ _ , NW.id★)
-      shape comp inner (β-id vV) =
-    rightStepTargetAtomicIdentityRoot atomic
-      coherent exclusive unique ★ vV inner
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★ sequence⊑ shape comp inner
-      root@(β-seq vV) =
-    rightStepTargetIdWidenSequenceRoot semantic
-      coherent exclusive unique wfL wfR okM okCast seal★
-      sequence⊑ shape comp inner root
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★ inst⊑ shape comp inner
-      root@(β-inst vV) =
-    rightStepTargetIdWidenInstantiationRoot semantic
-      coherent exclusive unique wfL wfR okM okCast seal★
-      inst⊑ shape comp inner root
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★ (c′⊢ , NW.cross ()) shape comp inner
-      (tag-untag-ok vV)
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★ (c′⊢ , NW.cross ()) shape comp inner
-      (tag-untag-bad vV G≢H)
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★
-      (C.cast-unseal hA α∈Σ () , NW.unsealʷ α A)
-      shape comp inner (seal-unseal vV)
-  id-widen-root coherent exclusive unique wfL wfR okM okCast
-      seal★ widening shape comp inner blame-⟨⟩ =
     rightStepTargetBlameRoot atomic okM inner

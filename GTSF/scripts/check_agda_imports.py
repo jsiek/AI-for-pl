@@ -43,12 +43,6 @@ STRICT_PROOF_INVENTORY_ROOT_MODULES = (
 KNOWN_INCOMPLETE_PROOF_MODULES = (
     "proof.DGG.TerminalForward."
     "NuDGGTerminalForwardIntegrationProof",
-    "proof.WorldCoherent.Final.SourceNu."
-    "NuImprecisionWorldCoherentFinalSourceNuCast"
-    "SourceOnlyIndexCatchupProof",
-    "proof.WorldCoherent.Final.SourceNu."
-    "NuImprecisionWorldCoherentFinalSourceNu"
-    "SourceOnlyIndexCatchupProof",
     "proof.WorldCoherent.Source.CastCatchup."
     "NuImprecisionWorldCoherentSourceNarrowCatchupProof",
 )

@@ -109,8 +109,7 @@ names. They may be edited only to migrate or delete those dependencies:
 - `NuImprecisionQuotientInstPathProperties.agda`;
 - `NuImprecisionQuotientInstView.agda`;
 - `NuImprecisionQuotientValue.agda`;
-- `NuImprecisionQuotientWideningTransport.agda`;
-- `NuImprecisionSourceDownApplicationCompatibleOuter.agda`.
+- `NuImprecisionQuotientWideningTransport.agda`.
 
 `NuImprecisionQuotientToOrdinaryCounterexample.agda` is canonical: it guards
 the still-relevant fact that a general quotient edge cannot be converted to
@@ -767,6 +766,114 @@ be deleted after its two right-root clients are classified against the live
 constructors. Migration-aligned checking-time cuts should split the
 source-widening cases and source-conceal monolith; the retiring quotient-value
 case analysis should shrink by deletion instead.
+
+The broad source-widening field has now been removed. Four exact contracts
+cover inert widening, atomic identity, coercion sequences, and source-only
+`ν` instantiation. Their common transport core and focused proofs replace the
+old 1,435-line proof; the sequence and `ν`-indexed leaves and the
+inert/identity leaf pass strict checks. The live-value consumer now performs
+the exhaustive dispatch directly. Its source-instantiation clause requires
+the `ν` index, instantiation shape, and `comp-ν` equation simultaneously;
+bare unseal requires its reveal replacement equation. Agda accepts the
+sequence and instantiation recursion without a termination pragma.
+
+Atomic source reindexing has migrated completely to the live constructors.
+The strict focused theorem handles `closeᵀ`, target creation, generalization,
+and explicit paired reveal, conceal, and widening. Its private old-QTI copy
+and `../NuCore/Relations/NuImprecisionPairedCastResultShape.agda` were deleted.
+The four source-cast result framers similarly moved from the broad simulation
+module to the focused strict
+`../OneStep/NuImprecisionWeakOneStepSourceCastFrame.agda`.
+
+The right active and inert source-value roots and active-value
+synchronization now consume explicit paired reveal, conceal, and widening
+evidence. Their focused case modules and aggregate Lemmas pass strictly.
+Consequently the old source `PairedCast` catch-up Def/Proof pair has zero
+consumers and was deleted. The subsequent audit examined the paired-value
+root and paired outer-cast dispatcher as the next aggregate-based clients.
+
+That next audit classified both aggregates as dead, not migration targets.
+The standalone paired-value proof, mixed outer-cast Def/Proof/Lemma,
+superseded active-value-roots Def, paired-cast frame proof, and its transport
+Lemma were removed together with their inventory-spine imports. The separate
+ordinary reveal/conceal/widening roots, quotient recursion contract, and
+active synchronization contract remain. The zero-consumer
+source-`ν` paired-all target-closing Def/Proof/assembly triple was also
+deleted from its strict-only spine. The zero-consumer
+`NuImprecisionSourceDownApplicationCompatibleOuter.agda` helper belonged to
+the removed source-down application grammar and was deleted as well.
+
+The matching right-dispatch islands were inventory-only: ten
+ordinary-down-application and source-down-application scheduling,
+synchronization, frame, root, and cases modules had no semantic consumers.
+Because live QTIP has only `paired-downᵀ`, the whole bundle and its
+terminal-backward spine imports were deleted rather than migrated.
+
+The three live `PairedCast` joins have now been replaced by exact constructor
+interfaces. Right value-catch-up exposes separate reveal, conceal, and
+widening frame fields. Source one-step framing does the same. Function-cast
+beta exposes reveal, conceal, live widening, and the separate quotient-close
+case, with the implementation split into focused conversion, widening, and
+quotient proofs. The focused definitions and case proofs pass strictly.
+Their larger dispatchers now stop only at other retired constructor clauses;
+no compatibility carrier or provider was introduced.
+
+The right paired-frame contract has reached terminal-forward integration as
+an explicit higher-order dependency. Its canonical provider remains
+intentionally absent: transporting the evidence and building a neutral
+paired frame does not terminalize an active transported target cast. That
+semantic step belongs in the operational right-dispatch SCC.
+
+Store-correspondence transport was also corrected and moved out of the
+left-silent namespace. The strict generic lineage theorem has no silent-result
+premise and now supports paired reveal and conceal transport for a
+keep-leading result. Quotient-down transport similarly exposes a strict
+evidence theorem whose caller supplies the recursively transported body,
+while the indexed-result wrapper remains a small corollary. These are stable
+dependency cuts for the right no-bullet proof rather than wrappers around the
+retired relation.
+
+The right no-bullet migration is complete. The 1,766-line proof has one live
+`paired-downᵀ` quotient-prefix case, two `closeᵀ` active cases, and explicit
+reveal, conceal, and widening cases. It and its direct Lemma pass strictly.
+The generic/right-silent paired-cast transport family was then deleted as a
+zero-consumer obsolete graph. The right value dispatcher also passes against
+its single exact quotient-down/up frame.
+
+Both final source-`ν` source-only proof roots now pass strictly. Membership
+uniqueness is explicit, all ten source-lift coherence fields are present, and
+the `ν ★` cast branch exposes the real recursive post-allocation value-catchup
+edge rather than narrowing the cast to instantiation alone. The strict audit
+now lists only two incomplete Proof roots.
+
+Canonical compilation supplied a decisive counterexample rather than the
+missing compatibility theorem. Actual cast plans for `∀ X. X ⇒ X` and
+`★ ⇒ ★` violate `ReductionClosedQuotientWideningCompatible`, so
+`CompileTermImprecision` cannot close every compiled pair with `closeᵀ`.
+`WorldCoherentQuotientFinalCatchupᵀ` handles the operational value case up to
+reduction, but boundaries under lambdas and around open variables cannot
+reduce. The remaining design choice is a restricted compiler-origin
+pending-close boundary versus a semantic or ground-final DGG statement;
+neither `up⊑upᵀ` nor a false `CastPlan` field is acceptable.
+
+The stale pure quotient-application family remains a live migration gate for
+function-cast beta. Its replacement is the operational
+`WorldCoherentSourceFunctionCastBetaPairedQuotientPostTargetᵀ` path, which
+still needs the recursive right-dispatch/quotient-frame SCC.
+
+The audit passes at this checkpoint: local proof imports resolve, the five
+strict safety roots are safe, the two known-incomplete Proof modules remain
+explicitly inventoried, and every other strict-looking Proof has a transitive
+Lemma consumer or an unassembled-proof spine import.
+
+The checking-time audit ranks three canonical cuts: indexed-imprecision
+renaming/lifting out of the 20,373-line, 174-importer
+`MaximalLowerBoundsWf.agda`; weak-result transport/reindex algebra out of the
+14,878-line, 85-importer simulation core; and basic structural/store
+invariants out of the 4,385-line `NarrowWidenProperties.agda`. Retiring
+quotient/experiment files should be deleted rather than split. The
+zero-consumer `MaximalLowerBoundsJunk.agda` has been removed and its useful
+historical rationale retained only in Git history.
 
 The remaining direct retired-name counts are `5/2/2/26/10/10` for fused
 down/up, identity quotient application, gradual quotient application, closing

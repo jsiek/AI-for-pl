@@ -32,6 +32,9 @@ open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
@@ -51,6 +54,7 @@ WorldCoherentFinalSourceNuCastCatchupᵀ =
     {q : Φ ∣ Δᴸ ⊢ `∀ C ⊑ B′ ⊣ Δᴿ} →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   CastMode μ →
   SealModeStore★ (instᵈ μ)

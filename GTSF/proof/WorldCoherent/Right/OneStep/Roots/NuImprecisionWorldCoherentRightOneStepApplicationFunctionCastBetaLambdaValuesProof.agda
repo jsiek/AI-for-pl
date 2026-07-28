@@ -31,8 +31,6 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; leftStoreⁱ
   ; rightStoreⁱ
   )
-open import proof.Core.Properties.SealModeProperties using
-  (seal★-tag-or-id)
 open import NuTerms using
   ( RuntimeOK
   ; Term
@@ -47,15 +45,10 @@ open import QuotientedTermImprecision using
   ; prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; ·⊑·ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
-  )
-open import TermTyping using
-  ( SealModeStore★
-  ; cast-tag-or-id
   )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 open import proof.DGG.Core.NuPreservation using
@@ -220,37 +213,6 @@ world-coherent-right-one-step-application-function-cast-beta-lambda-values-proof
         e-shape e-comp
     final-related =
       ⊑cast⊑ᵀ mode seal★⁺ f⊑⁺
-        (·⊑·ᵀ inner⁺ argument-cast) pB f-shape f-comp
-  at-prefix
-      {ρ = ρ} {pA = pA} {pB = pB}
-      relation-prefix coherent exclusive unique wfL okM okM′
-      (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
-        (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
-        inner .(pA ↦ pB)
-        (shape-fun e-shape f-shape)
-        (comp-↦-↦ e-comp f-comp))
-      argument-related vM vV′ vW′ =
-    related-outcome coherent exclusive unique final-related
-    where
-    right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
-    seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ)
-    seal★⁺ =
-      seal★-weaken {μ = C.id-onlyᵈ} right-incl seal★
-    e⊒⁺ = NW.narrow-weaken ≤-refl right-incl (e⊢ , eⁿ)
-    f⊑⁺ = NW.widen-weaken ≤-refl right-incl (f⊢ , fʷ)
-    source-function-no =
-      value-runtime-No• (ƛ _) (runtime-·₁ okM)
-    target-V-no =
-      value-runtime-No• vV′ (runtime-⟨⟩ (runtime-·₁ okM′))
-    inner⁺ =
-      quotiented-store-prefix-no-bullet-proofᵀ
-        relation-prefix source-function-no target-V-no inner
-    argument-cast =
-      ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-        (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ e⊒⁺)
-        argument-related pA₀ e-shape e-comp
-    final-related =
-      ⊑cast⊑idᵀ seal★⁺ f⊑⁺
         (·⊑·ᵀ inner⁺ argument-cast) pB f-shape f-comp
   at-prefix
       {pA = pA} {pB = pB}

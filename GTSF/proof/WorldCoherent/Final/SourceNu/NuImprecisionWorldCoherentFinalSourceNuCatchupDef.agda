@@ -33,6 +33,9 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; TyCtx; WfTy; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
+  using (AssumptionMembershipUnique)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
   (WorldCoherent)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
@@ -55,6 +58,7 @@ WorldCoherentFinalSourceNuCatchupᵀ =
   sourceNuBody view [ zero ↦ ⇑ᵗ A ]ᴸ ⊑-source-liftνᵢ p →
   WorldCoherent ρ →
   SourceNameExclusive Φ →
+  AssumptionMembershipUnique Φ →
   StoreWf Δᴸ (leftStoreⁱ ρ) →
   WfTy Δᴸ A →
   WfTy (suc Δᴸ) (⇑ᵗ A) →

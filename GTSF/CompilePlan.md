@@ -148,9 +148,9 @@ version because it carries exactly the coercion evidence needed by
   `choose-mlbᶜ`.
 
 The old shape-directed selector, its component-consistency postulates, and its
-forall split postulates have been moved to
-`proof/EndpointMLB/Core/MaximalLowerBoundsJunk.agda`. Keep that file as reference material only;
-do not import it into the active compiler/metatheory path.
+forall split postulates were retired after the lower-bound-driven theorem
+replaced them. They remain available in Git history, not on the active proof
+surface.
 
 ### Assembly
 
@@ -241,17 +241,11 @@ Port the useful pieces from
 - map/weakening lemmas for imprecision derivations under context maps;
 - occurrence transport lemmas needed by `∀ⁱ` and `ν`.
 
-### 4. Recover Useful Old Lemmas Selectively
+### 4. Keep the lower-bound-driven route canonical
 
-Only pull definitions back from `proof/EndpointMLB/Core/MaximalLowerBoundsJunk.agda` when they
-fit the new lower-bound-driven proof. Good candidates:
-
-- base/star/variable comparability;
-- arrow maximality composition;
-- star/arrow maximality composition.
-
-Do not revive the old endpoint-shape dispatcher or the shape-specific
-postulates.
+Use the current base/star/variable comparability and arrow maximality
+composition lemmas directly. Do not revive the retired endpoint-shape
+dispatcher or its shape-specific postulates from Git history.
 
 ### 5. Remove Remaining Active Postulate And Recheck
 

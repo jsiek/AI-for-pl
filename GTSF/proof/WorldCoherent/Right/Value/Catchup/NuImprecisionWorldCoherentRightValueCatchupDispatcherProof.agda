@@ -29,26 +29,25 @@ open import QuotientedTermImprecision using
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; down·up⊑down·upᵀ
-  ; down⊑downᵀ
   ; gen⊑groundᵀ
-  ; gen-down⊑gen-downᵀ
-  ; up⊑upᵀ
+  ; paired-downᵀ
   ; x⊑xᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; target-instantiationᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; ν⊑νᵀ
   ; ν⊑ᵀ
   ; κ⊑κᵀ
   ; ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -62,7 +61,7 @@ open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightValueCatchupCasesDef
   using
   ( WorldCoherentRightValueCatchupCases
-  ; rightValuePairedCastFrameCase
+  ; rightValuePairedFrames
   ; rightValueQuotientDownUpFrameCase
   ; rightValueSourceAllClosingCase
   ; rightValueSourceFramesCase
@@ -72,11 +71,15 @@ open import
   ; rightValueTerminalCase
   )
 open import
-  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedFramesDef
   using
-  ( rightQuotientGenDownUpFrame
-  ; rightQuotientIdDownUpFrame
+  ( rightPairedConcealFrame
+  ; rightPairedRevealFrame
+  ; rightPairedWideningFrame
   )
+open import
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
+  using (rightQuotientDownUpFrame)
 open import proof.WorldCoherent.Right.Source.Frames.NuImprecisionWorldCoherentRightSourceFramesDef using
   ( rightSourceConcealFrame
   ; rightSourceNarrowFrame
@@ -89,7 +92,6 @@ open import
 open import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef using
   ( rightTargetConcealFrame
-  ; rightTargetIdWidenFrame
   ; rightTargetNarrowFrame
   ; rightTargetRevealFrame
   ; rightTargetWidenFrame
@@ -125,37 +127,20 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     (·⊑·ᵀ L⊑L′ M⊑M′)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
-    (() ⟨ inert-u ⟩) noV
-    (down·up⊑down·upᵀ
-      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ M⊑M′ down-square widening
-      u-shape u′-shape up-square compatible)
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
     ((vM ⟨ inert-d ⟩) ⟨ inert-u ⟩)
     (no•-⟨⟩ (no•-⟨⟩ noM))
-    (up⊑upᵀ
-      (down⊑downᵀ d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
-      widening pA u-shape u′-shape up-square) =
-  rightQuotientIdDownUpFrame quotient-cases
-    prefix coherent exclusive unique wfR okM′ vM noM inert-d inert-u
-    d⊒ d′⊒ qD M⊑M′ widening inner
-  where
-  quotient-cases = rightValueQuotientDownUpFrameCase cases
-  inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    (runtime-⟨⟩ (runtime-⟨⟩ okM′)) vM noM M⊑M′
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′
-    ((vM ⟨ inert-d ⟩) ⟨ inert-u ⟩)
-    (no•-⟨⟩ (no•-⟨⟩ noM))
-    (up⊑upᵀ
-      (gen-down⊑gen-downᵀ
-        d⊒ d-shape d′⊒ d′-shape M⊑M′ qD down-square)
-      widening pA u-shape u′-shape up-square) =
-  rightQuotientGenDownUpFrame quotient-cases
-    prefix coherent exclusive unique wfR okM′ vM noM inert-d inert-u
-    d⊒ d′⊒ qD M⊑M′ widening inner
+    (closeᵀ
+      (paired-downᵀ M⊑M′
+        mode d⊒ d-shape mode′ d′⊒ d′-shape
+        down-square down-compatible)
+      widening pA u-shape u′-shape up-square up-compatible) =
+  rightQuotientDownUpFrame quotient-cases
+    prefix coherent exclusive unique wfR okM′
+    vM noM inert-d inert-u M⊑M′
+    mode d⊒ d-shape mode′ d′⊒ d′-shape
+    down-square down-compatible
+    widening u-shape u′-shape up-square up-compatible
+    inner
   where
   quotient-cases = rightValueQuotientDownUpFrameCase cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
@@ -256,22 +241,41 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′)
     vV noV V⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′ vV noV
-    (⊑cast⊑idᵀ seal★ c⊑ V⊑M′ q c-shape comp) =
-  rightTargetIdWidenFrame target-cases prefix coherent exclusive unique wfR
-    okM′ vV noV seal★ c⊑ c-shape comp V⊑M′ inner
+    cases prefix coherent exclusive unique wfR okM′
+    (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
+    (paired-revealᵀ corr c↑ c′↑ replacement M⊑M′) =
+  rightPairedRevealFrame paired-cases
+    prefix coherent exclusive unique wfR okM′ vM noM inert
+    corr c↑ c′↑ replacement M⊑M′ inner
   where
-  target-cases = rightValueTargetCastTerminalizationCase cases
+  paired-cases = rightValuePairedFrames cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′)
-    vV noV V⊑M′
+    vM noM M⊑M′
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    (conv⊑convᵀ paired M⊑M′) =
-  rightValuePairedCastFrameCase cases prefix coherent exclusive unique wfR
-    okM′ vM noM inert paired M⊑M′ inner
+    (paired-concealᵀ corr c↓ c′↓ replacement M⊑M′) =
+  rightPairedConcealFrame paired-cases
+    prefix coherent exclusive unique wfR okM′ vM noM inert
+    corr c↓ c′↓ replacement M⊑M′ inner
   where
+  paired-cases = rightValuePairedFrames cases
+  inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
+    cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′)
+    vM noM M⊑M′
+world-coherent-right-value-catchup-dispatcher-proofᵀ
+    cases prefix coherent exclusive unique wfR okM′
+    (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
+    (paired-wideningᵀ
+      mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compatible M⊑M′) =
+  rightPairedWideningFrame paired-cases
+    prefix coherent exclusive unique wfR okM′ vM noM inert
+    mode seal★ c⊑ c-shape mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compatible M⊑M′ inner
+  where
+  paired-cases = rightValuePairedFrames cases
   inner = world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR (runtime-⟨⟩ okM′)
     vM noM M⊑M′

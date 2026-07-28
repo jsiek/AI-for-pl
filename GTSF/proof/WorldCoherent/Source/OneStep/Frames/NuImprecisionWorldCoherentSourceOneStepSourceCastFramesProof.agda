@@ -60,7 +60,7 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; refl; subst; sym)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frameᵀ

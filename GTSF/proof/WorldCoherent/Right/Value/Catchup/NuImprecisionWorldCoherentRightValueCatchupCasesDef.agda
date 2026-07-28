@@ -1,14 +1,15 @@
 module proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightValueCatchupCasesDef where
 
 -- File Charter:
---   * Assembles the eight major semantic capabilities used by recursive
+--   * Assembles the eight major semantic capability families used by recursive
 --     world-coherent right-value catch-up.
---   * Keeps each independently provable capability in its canonical Def file.
+--   * Keeps the three live paired constructor cases explicit in their family.
 --   * Contains no dispatcher, implementation, compatibility re-export,
 --     postulate, hole, or permissive option.
 
-open import proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedCastFrameDef using
-  (WorldCoherentRightPairedCastFrameᵀ)
+open import
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedFramesDef
+  using (WorldCoherentRightPairedFramesᵀ)
 open import
   proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
   using (WorldCoherentRightQuotientDownUpFrame)
@@ -35,7 +36,7 @@ record WorldCoherentRightValueCatchupCases : Set₁ where
     rightValueSourceFramesCase : WorldCoherentRightSourceFrames
     rightValueTargetCastTerminalizationCase :
       WorldCoherentRightTargetCastTerminalization
-    rightValuePairedCastFrameCase : WorldCoherentRightPairedCastFrameᵀ
+    rightValuePairedFrames : WorldCoherentRightPairedFramesᵀ
     rightValueQuotientDownUpFrameCase :
       WorldCoherentRightQuotientDownUpFrame
     rightValueSourceAllClosingCase : WorldCoherentRightSourceAllClosingᵀ

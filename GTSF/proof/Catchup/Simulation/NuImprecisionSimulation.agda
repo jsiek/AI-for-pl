@@ -451,6 +451,7 @@ open import proof.NuCore.Misc.NuImprecisionWorldEmbeddingNoBullet using
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-composeⁱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame
 open import proof.Store.Core.NuImprecisionStoreLift using (lift-right-store-result)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
@@ -2970,130 +2971,6 @@ left-catchup-indexed-all-prefix-prepend-keepᵀ
     prefix source→ N⊑V′ N⊢ V′⊢ catchup =
   left-catchup-indexed-all-prepend-keepᵀ source→
     (allocation-prefixᵀ prefix N⊑V′ N⊢ V′⊢) catchup
-
-------------------------------------------------------------------------
--- Universal cast shapes used by source catch-up
-------------------------------------------------------------------------
-
-weak-one-step-source-cast-frameᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ} →
-  (inner : WeakOneStepResult ρ M N′ A A′ χ) →
-  (resultCtx inner
-    ∣ resultLeftCtx inner
-    ∣ resultRightCtx inner
-    ∣ resultStore inner ∣ []
-    ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-      ⊑ targetResult inner
-    ⦂ applyTys (sourceChanges inner) B
-      ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-    ∶ transportType inner q) →
-  WeakOneStepResult ρ (M ⟨ c ⟩) N′ B B′ χ
-weak-one-step-source-cast-frameᵀ
-    {B = B} {B′ = B′} {c = c} {χ = χ} inner result =
-  record
-    { sourceChanges = sourceChanges inner
-    ; targetTailChanges = targetTailChanges inner
-    ; sourceResult =
-        sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩
-    ; targetResult = targetResult inner
-    ; resultCtx = resultCtx inner
-    ; resultLeftCtx = resultLeftCtx inner
-    ; resultRightCtx = resultRightCtx inner
-    ; sourceCtxResult = sourceCtxResult inner
-    ; targetCtxResult = targetCtxResult inner
-    ; resultStore = resultStore inner
-    ; resultSourceType = applyTys (sourceChanges inner) B
-    ; resultTargetType =
-        applyTys (targetTailChanges inner) (applyTy χ B′)
-    ; sourceTypeResult = refl
-    ; targetTypeResult = refl
-    ; transportType = transportType inner
-    ; transportAllBody = transportAllBody inner
-    ; transportRightBody = transportRightBody inner
-    ; transportSourceNu = transportSourceNu inner
-    ; resultType = transportType inner _
-    ; sourceCatchup = cast-↠ (sourceCatchup inner)
-    ; targetTail = targetTail inner
-    ; sourceStoreResult = sourceStoreResult inner
-    ; targetStoreResult = targetStoreResult inner
-    ; relatedResults = result
-    }
-
-weak-one-step-source-cast-frame-silentᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ keep)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨
-          applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy keep B′)
-      ∶ transportType inner q) →
-  LeftSilentInvariant inner →
-  LeftSilentInvariant
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-silentᵀ
-    inner result (left-silent-invariant refl refl) =
-  left-silent-invariant refl refl
-
-weak-one-step-source-cast-frame-transportᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTransport inner →
-  WeakOneStepTransport
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-transportᵀ
-    inner result transport =
-  weak-step-transport (transportNo•Terms transport)
-
-weak-one-step-source-cast-frame-coherenceᵀ :
-  ∀ {Φ Δᴸ Δᴿ M N′ A A′ B B′ c χ}
-    {q : Φ ∣ Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    (inner : WeakOneStepResult ρ M N′ A A′ χ)
-    (result : resultCtx inner
-      ∣ resultLeftCtx inner
-      ∣ resultRightCtx inner
-      ∣ resultStore inner ∣ []
-      ⊢ᴺ (sourceResult inner ⟨ applyCoercions (sourceChanges inner) c ⟩)
-        ⊑ targetResult inner
-      ⦂ applyTys (sourceChanges inner) B
-        ⊑ applyTys (targetTailChanges inner) (applyTy χ B′)
-      ∶ transportType inner q) →
-  WeakOneStepTypeCoherence inner →
-  WeakOneStepTypeCoherence
-    (weak-one-step-source-cast-frameᵀ inner result)
-weak-one-step-source-cast-frame-coherenceᵀ
-    inner result coherence =
-  weak-step-type-coherence
-    (transportArrowCoherent coherence)
-    (transportAllCoherent coherence)
-    (transportShapeCoherent coherence)
-    (transportRightBodyShapeCoherent coherence)
-    (transportLeftReplacementCoherent coherence)
-    (transportRightReplacementCoherent coherence)
-    (transportPairedReplacementCoherent coherence)
-    (transportAllBodyPairedReplacementCoherent coherence)
-    (transportSourceNuBodyLeftReplacementCoherent coherence)
-    (transportRightBodyRightReplacementCoherent coherence)
 
 weak-one-step-target-cast-frameᵀ :
   ∀ {Φ Δᴸ Δᴿ M N′ A A′ B′ c χ}

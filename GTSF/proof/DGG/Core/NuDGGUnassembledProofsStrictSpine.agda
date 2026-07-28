@@ -21,6 +21,10 @@ import
 import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCatchupProof
 import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof
+import
+  proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof
+import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastIndexBodyViewProof
 import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetPendingNuAllocationFromPairedLambdaAccProof
@@ -28,5 +32,9 @@ import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetPendingNuAllocationPairedFinalBodyInversionProof
 import
   proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBulletCatchupProof
+import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceSequenceWidenCatchupProof
+import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNuIndexedInstantiationWidenCatchupProof
 import
   proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupProof

@@ -26,8 +26,8 @@ open import proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRi
 open import proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightValueCatchupCasesDef using
   (WorldCoherentRightValueCatchupCases)
 open import
-  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedCastFrameDef using
-  (WorldCoherentRightPairedCastFrameᵀ)
+  proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightPairedFramesDef
+  using (WorldCoherentRightPairedFramesᵀ)
 open import
   proof.WorldCoherent.Right.Core.NuImprecisionWorldCoherentRightQuotientDownUpFrameDef
   using (WorldCoherentRightQuotientDownUpFrame)
@@ -234,7 +234,7 @@ forward-case-builders-and-backward-terminals⇒gradual-dgg
 
 remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg :
   WorldCoherentRightTargetCastTerminalization →
-  WorldCoherentRightPairedCastFrameᵀ →
+  WorldCoherentRightPairedFramesᵀ →
   WorldCoherentRightQuotientDownUpFrame →
   WorldCoherentRightSourceAllClosingᵀ →
   WorldCoherentRightTargetBulletClosingᵀ →
@@ -253,14 +253,14 @@ remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg :
   BackwardTargetBlameᵀ →
   GradualDGG
 remaining-forward-capabilities-and-backward-terminals⇒gradual-dgg
-    target-casts paired-cast quotient source-all target-bullet
+    target-casts paired-frames quotient source-all target-bullet
     target-allocation application-root-cases bullet-root cast-root
     allocation-step application-left-step application-right-step
     cast-frame-step ν-frame-step primitive-left-step primitive-right-step
     backward-value backward-blame =
   forward-case-builders-and-backward-terminals⇒gradual-dgg
     (world-coherent-right-value-catchup-cases-proofᵀ
-      target-casts paired-cast quotient source-all target-bullet
+      target-casts paired-frames quotient source-all target-bullet
       target-allocation)
     application-root-cases bullet-root cast-root allocation-step
     application-left-step application-right-step cast-frame-step ν-frame-step

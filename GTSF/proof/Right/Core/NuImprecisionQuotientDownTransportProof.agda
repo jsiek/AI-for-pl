@@ -7,6 +7,8 @@ module
 --     target-leading weak step.
 --   * Applies the leading target store change before the target tail and
 --     reconstructs the exact transported quotient boundary square.
+--   * Separates transport of the downcast evidence from the canonical
+--     indexed-result wrapper so recursive clients can supply the final body.
 --   * Transports general gradual cast modes existentially; identity-only mode
 --     remains fixed.
 --   * Contains no outer widening, frame assembly, dispatcher, postulate, hole,
@@ -46,6 +48,7 @@ open import NuTerms using (Term; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; paired-downᵀ
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
 open import QuotientImprecisionCompatibility using
@@ -72,6 +75,7 @@ open import
   ; targetStoreResult
   ; targetResult
   ; targetTailChanges
+  ; transportType
   ; weakIndexedResult
   ; weakIndexedTypeCoherence
   )
@@ -102,11 +106,11 @@ open import
 
 private
   source-spine-narrowingᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ C C′ D μ d}
+    ∀ {Φ Δᴸ Δᴿ M M′ A A′ C D μ d}
       {χ : StoreChange}
       {ρᵇ ρ : StoreImp Φ Δᴸ Δᴿ} →
     (prefix : StoreImpPrefix ρᵇ ρ) →
-    (inner : WeakOneStepResult ρ M M′ C C′ χ) →
+    (inner : WeakOneStepResult ρ M M′ A A′ χ) →
     SpineCastMode (leftStoreⁱ ρᵇ) μ →
     μ ∣ Δᴸ ∣ leftStoreⁱ ρᵇ ⊢ d ∶ C ⊒ D →
     ∃[ μ′ ]
@@ -144,11 +148,11 @@ private
         (sym (sourceStoreResult inner)) d′⊒)
 
   target-spine-narrowingᵀ :
-    ∀ {Φ Δᴸ Δᴿ M M′ C C′ D′ μ d′}
+    ∀ {Φ Δᴸ Δᴿ M M′ A A′ C′ D′ μ d′}
       {χ : StoreChange}
       {ρᵇ ρ : StoreImp Φ Δᴸ Δᴿ} →
     (prefix : StoreImpPrefix ρᵇ ρ) →
-    (inner : WeakOneStepResult ρ M M′ C C′ χ) →
+    (inner : WeakOneStepResult ρ M M′ A A′ χ) →
     SpineCastMode (rightStoreⁱ ρᵇ) μ →
     μ ∣ Δᴿ ∣ rightStoreⁱ ρᵇ ⊢ d′ ∶ C′ ⊒ D′ →
     ∃[ μ′ ]
@@ -192,6 +196,76 @@ private
         (sym (targetStoreResult inner)) d″⊒)
 
 
+quotient-down-evidence-transportᵀ :
+  ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+    {ρᵇ ρ : StoreImp Φ Δᴸ Δᴿ}
+    {M M′ L L′ : Term} {A A′ C C′ D D′ : Ty}
+    {d d′ s s′ μ μ′} {χ : StoreChange}
+    {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ} →
+  (prefix : StoreImpPrefix ρᵇ ρ) →
+  (inner : WeakOneStepResult ρ M M′ A A′ χ) →
+  WeakOneStepTypeCoherence inner →
+  SpineCastMode (leftStoreⁱ ρᵇ) μ →
+  μ ∣ Δᴸ ∣ leftStoreⁱ ρᵇ ⊢ d ∶ C ⊒ D →
+  narrowing ⊢ᶜ d ⦂ s →
+  SpineCastMode (rightStoreⁱ ρᵇ) μ′ →
+  μ′ ∣ Δᴿ ∣ rightStoreⁱ ρᵇ ⊢ d′ ∶ C′ ⊒ D′ →
+  narrowing ⊢ᶜ d′ ⦂ s′ →
+  s ；⌊ pC ⌋≋ᵖ qD ； s′ →
+  AssumptionMembershipUnique (resultCtx inner) →
+  QuotientNarrowingEliminationCompatible
+    Φ Δᴸ Δᴿ d d′ pC qD s s′ →
+  (resultCtx inner
+    ∣ resultLeftCtx inner
+    ∣ resultRightCtx inner
+    ∣ resultStore inner ∣ []
+    ⊢ᴺ L ⊑ L′
+      ⦂ applyTys (sourceChanges inner) C
+        ⊑ applyTys (targetTailChanges inner) (applyTy χ C′)
+      ∶ transportType inner pC) →
+  resultCtx inner
+    ∣ resultLeftCtx inner
+    ∣ resultRightCtx inner
+    ∣ resultStore inner ∣ []
+    ⊢ᴺᵖ
+      L ⟨
+        applyCoercions (sourceChanges inner) d ⟩
+      ⊑ L′ ⟨
+        applyCoercions (targetTailChanges inner)
+          (applyCoercion χ d′) ⟩
+      ⦂ applyTys (sourceChanges inner) D
+        ⊑ᵖ applyTys (targetTailChanges inner) (applyTy χ D′)
+      ∶ weak-one-step-transport-quotientᵀ inner qD
+quotient-down-evidence-transportᵀ
+    {χ = χ} prefix inner type-coherence
+    mode d⊒ d-shape mode′ d′⊒ d′-shape square
+    final-unique elimination final-body
+    with source-spine-narrowingᵀ
+           prefix inner mode d⊒
+       | target-spine-narrowingᵀ
+           prefix inner mode′ d′⊒
+quotient-down-evidence-transportᵀ
+    {χ = χ} prefix inner type-coherence
+    mode d⊒ d-shape mode′ d′⊒ d′-shape square
+    final-unique elimination final-body
+    | μᴿ , modeᴿ , dᴿ⊒
+    | μ′ᴿ , mode′ᴿ , d′ᴿ⊒ =
+  paired-downᵀ
+    final-body
+    modeᴿ dᴿ⊒
+    (cast-shape-applyCoercions
+      (sourceChanges inner) d-shape)
+    mode′ᴿ d′ᴿ⊒
+    (cast-shape-applyCoercions
+      (χ ∷ targetTailChanges inner) d′-shape)
+    (weak-one-step-transport-quotient-boundary-square
+      inner type-coherence square)
+    (weak-one-step-transport-quotient-narrowing-eliminationᵀ
+      inner type-coherence
+      final-unique elimination)
+
+
 quotient-down-transportᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρᵇ ρ : StoreImp Φ Δᴸ Δᴿ}
@@ -228,31 +302,12 @@ quotient-down-transportᵀ :
         ⊑ᵖ applyTys (targetTailChanges inner) (applyTy χ D′)
       ∶ weak-one-step-transport-quotientᵀ inner qD
 quotient-down-transportᵀ
-    {χ = χ} prefix indexed
-    mode d⊒ d-shape mode′ d′⊒ d′-shape square
-    final-unique elimination
-    with source-spine-narrowingᵀ
-           prefix (weakIndexedResult indexed) mode d⊒
-       | target-spine-narrowingᵀ
-           prefix (weakIndexedResult indexed) mode′ d′⊒
-quotient-down-transportᵀ
-    {χ = χ} prefix indexed
-    mode d⊒ d-shape mode′ d′⊒ d′-shape square
-    final-unique elimination
-    | μᴿ , modeᴿ , dᴿ⊒
-    | μ′ᴿ , mode′ᴿ , d′ᴿ⊒ =
-  paired-downᵀ
+    prefix indexed mode d⊒ d-shape mode′ d′⊒ d′-shape
+    square final-unique elimination =
+  quotient-down-evidence-transportᵀ
+    prefix inner (weakIndexedTypeCoherence indexed)
+    mode d⊒ d-shape mode′ d′⊒ d′-shape
+    square final-unique elimination
     (canonicalIndexedResults indexed)
-    modeᴿ dᴿ⊒
-    (cast-shape-applyCoercions
-      (sourceChanges inner) d-shape)
-    mode′ᴿ d′ᴿ⊒
-    (cast-shape-applyCoercions
-      (χ ∷ targetTailChanges inner) d′-shape)
-    (weak-one-step-transport-quotient-boundary-square
-      inner (weakIndexedTypeCoherence indexed) square)
-    (weak-one-step-transport-quotient-narrowing-eliminationᵀ
-      inner (weakIndexedTypeCoherence indexed)
-      final-unique elimination)
   where
   inner = weakIndexedResult indexed

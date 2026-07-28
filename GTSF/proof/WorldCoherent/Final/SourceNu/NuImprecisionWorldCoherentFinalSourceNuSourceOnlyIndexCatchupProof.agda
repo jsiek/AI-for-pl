@@ -74,6 +74,9 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   )
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityProof using
   (source-name-exclusive-source-only-head)
+open import
+  proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
+  using (assumption-membership-unique-source)
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (lift-left-store-embeddingⁱ)
 open import proof.Left.Core.NuImprecisionLeftLiftPrefixBodyDef using
@@ -115,6 +118,17 @@ open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSou
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceRevealCatchupDef using
   (WorldCoherentSourceRevealCatchupᵀ)
 open import proof.Core.Properties.NuStoreProperties using (StoreWf-bind)
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
+  ( replace-left-source-liftν-source-nu-bodyᵢ
+  ; replace-left-source-liftνᵢ
+  ; replace-paired-source-liftν-under-∀ᵢ
+  ; replace-paired-source-liftνᵢ
+  ; replace-right-source-liftν-under-rightᵢ
+  ; replace-right-source-liftνᵢ
+  ; source-liftν-right-body-shapeᵢ
+  )
 open import proof.Core.Properties.TypeProperties using
   (TyRenameWf-ext; TyRenameWf-suc; renameᵗ-id)
 
@@ -175,7 +189,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     {ρ = ρ} {ρ′ = ρ′} {L = L} {V′ = V′}
     {A = A} {B = B} {B′ = B′} {C = C} {s = s}
     {μ = μ} {p = p} {r = r} {{safe = safe}} {occ = occ}
-    coherent exclusive wfL hA h⇑A s↑ liftρ liftγ
+    coherent exclusive unique wfL hA h⇑A s↑ liftρ liftγ
     vL noL vV′ noV′ L⊑V′ replacement =
   world-coherent-left-catchup-indexed-resume-silentᵀ
     allocation-silent allocation-lineage cast-catchup
@@ -208,6 +222,7 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
     bullet-catchup h⇑A prefix-reflⁱ
       (world-coherent-left-allocation liftρ coherent)
       (source-name-exclusive-source-only-head exclusive)
+      (assumption-membership-unique-source unique)
       allocated-wf (ok-• vL noL) vV′ noV′ vL noL
       liftρ liftγ L⊑V′
       (nu-term-imprecision-source-typing allocated-bullet)
@@ -257,7 +272,12 @@ world-coherent-final-source-ν-source-only-index-catchup-proofᵀ
         (left-lift-prefix-body liftρ
           (prefix-∷ⁱ prefix-reflⁱ)))
       (weak-step-type-coherence source-lift-arrowᵢ source-lift-allᵢ
-        shape-source-liftνᵢ)
+        shape-source-liftνᵢ source-liftν-right-body-shapeᵢ
+        replace-left-source-liftνᵢ replace-right-source-liftνᵢ
+        replace-paired-source-liftνᵢ
+        replace-paired-source-liftν-under-∀ᵢ
+        replace-left-source-liftν-source-nu-bodyᵢ
+        replace-right-source-liftν-under-rightᵢ)
 
   allocation-silent : LeftSilentIndexedResult p
   allocation-silent =

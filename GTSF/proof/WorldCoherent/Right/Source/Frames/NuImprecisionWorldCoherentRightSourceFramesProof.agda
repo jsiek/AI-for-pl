@@ -67,11 +67,13 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
   ; rightCatchupTargetNoBullet
   ; rightCatchupTargetValue
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frameᵀ
-  ; weak-one-step-source-narrow-cast-indexed-frameᵀ
+  )
+open import proof.Catchup.Simulation.NuImprecisionSimulation using
+  ( weak-one-step-source-narrow-cast-indexed-frameᵀ
   ; weak-one-step-source-widen-cast-indexed-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using

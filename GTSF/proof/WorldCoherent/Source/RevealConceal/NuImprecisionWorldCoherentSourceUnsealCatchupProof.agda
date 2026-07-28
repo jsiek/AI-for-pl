@@ -65,7 +65,7 @@ open import proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal using
   (left-catchup-indexed-source-cast-blame-frameᵀ)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ

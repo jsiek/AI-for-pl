@@ -22,16 +22,10 @@ open import Conversion using
   )
 open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
 open import Data.Bool using (true)
-open import Data.List using ([]; _∷_)
-open import Data.Nat using (zero; suc)
+open import Data.List using ([])
+open import Data.Nat using (zero)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Sum using (inj₁; inj₂)
-open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
-open import ImprecisionComposition using
-  ( ⌊_⌋
-  ; _；⌊_⌋≋ᵖ_；_
-  ; quotient-boundary-square
-  )
 open import ImprecisionWf using
   ( ImpCtx
   ; _ˣ⊑★
@@ -46,14 +40,11 @@ open import NarrowWiden using
   )
 open import NuReduction using
   ( applyStores
-  ; applyTy
   ; applyTyCtxs
   ; applyTys
-  ; bind
   ; blame-⟨⟩
   ; keep
   ; pure-step
-  ; β-id
   ; _—→[_]_
   )
 open import proof.Store.Core.NuImprecisionRelationalStoreDef using
@@ -64,9 +55,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; store-left
   )
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
-  ( CtxImp
-  ; CtxImpEntry
-  ; LiftLeftCtxⁱ
+  ( LiftLeftCtxⁱ
   ; leftCtxⁱ
   ; rightCtxⁱ
   )
@@ -89,26 +78,11 @@ open import QuotientedTermImprecision using
   ; cast⊑⊑ᵀ
   ; conv↓⊑ᵀ
   ; conv↑⊑ᵀ
-  ; conv⊑convᵀ
-  ; down·up⊑down·upᵀ
   ; prefix-reflⁱ
-  ; up⊑upᵀ
-  ; x⊑xᵀ
-  ; Λ⊑Λᵀ
-  ; Λ⊑ᵀ
-  ; α⊑αᵀ
-  ; α⊑ᵀ
-  ; κ⊑κᵀ
-  ; ν⊑νᵀ
-  ; ν⊑ᵀ
-  ; ·⊑·ᵀ
-  ; ƛ⊑ƛᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↓ᵀ
   ; ⊑conv↑ᵀ
-  ; ⊕⊑⊕ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Relation.Binary.PropositionalEquality using
@@ -130,34 +104,19 @@ open import Types using
   ; ‵_
   ; ★
   ; `∀
-  ; ⇑ᵗ
   ; ⟰ᵗ
   ; occurs
   )
 import Coercions as C
 open import Coercions using (Coercion; ModeEnv; instᵈ)
-open import
-  proof.Core.Properties.ConversionIndexCompatibilityProperties
-  using
-  ( replace-left-source-shape
-  ; replace-left-target-shape
-  ; replace-right-source-shape
-  ; replace-right-target-shape
-  )
-open import proof.Core.Properties.NuCastImprecisionShapeProperties using
-  ( imprecision-composition-shape-transport
-  ; shape-target-lift-rightᵢ
-  ; source-atom-shape-unique
-  )
-open import
-  proof.NuCore.Relations.NuImprecisionPairedCastResultShape
-  using (paired-cast-result-shape-reindexᵀ)
+open import proof.OneStep.NuImprecisionAtomicSourceReindex using
+  (atomic-source-value-reindexᵀ)
 open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ( weak-one-step-keep-source-catchup-type-coherenceᵀ
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
@@ -229,171 +188,9 @@ open import proof.Core.Properties.ReductionProperties using
   ; applyTyVars
   ; applyCoercions-preserves-Inert
   )
+open import proof.Core.Properties.NuStoreChangeIdentityProperties using
+  (applyTys-preserves-Atom; post-catchup-β-id)
 
-
-applyTy-preserves-Atom :
-  ∀ χ {A} →
-  Atom A →
-  Atom (applyTy χ A)
-applyTy-preserves-Atom keep atom = atom
-applyTy-preserves-Atom (bind A) (＇ X) = ＇ (suc X)
-applyTy-preserves-Atom (bind A) (‵ ι) = ‵ ι
-applyTy-preserves-Atom (bind A) ★ = ★
-
-applyTys-preserves-Atom :
-  ∀ χs {A} →
-  Atom A →
-  Atom (applyTys χs A)
-applyTys-preserves-Atom [] atom = atom
-applyTys-preserves-Atom (χ ∷ χs) atom =
-  applyTys-preserves-Atom χs (applyTy-preserves-Atom χ atom)
-
-
-private
-  quotient-boundary-source-reindex :
-    ∀ {Φ Δᴸ Δᴿ A A′ B B′}
-      {p q : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-      {r : Φ ∣ Δᴸ ⊢ B ⊑ᵖ B′ ⊣ Δᴿ}
-      {s s′} →
-    ⌊ p ⌋ ≡ ⌊ q ⌋ →
-    s ；⌊ p ⌋≋ᵖ r ； s′ →
-    s ；⌊ q ⌋≋ᵖ r ； s′
-  quotient-boundary-source-reindex eq
-      (quotient-boundary-square
-        source-shape left-composition target-shape right-composition) =
-    quotient-boundary-square
-      source-shape
-      (imprecision-composition-shape-transport
-        refl (sym eq) refl left-composition)
-      target-shape
-      right-composition
-
-
-post-catchup-β-id :
-  ∀ χs {V A} →
-  Value V →
-  V ⟨ applyCoercions χs (C.id A) ⟩ —→[ keep ] V
-post-catchup-β-id [] vV = pure-step (β-id vV)
-post-catchup-β-id (keep ∷ χs) vV =
-  post-catchup-β-id χs vV
-post-catchup-β-id (bind A ∷ χs) {A = B} vV =
-  post-catchup-β-id χs {A = ⇑ᵗ B} vV
-
-atomic-source-value-reindexᵀ :
-  ∀ {Φ Δᴸ Δᴿ M M′ A B}
-    {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {γ : CtxImp Φ Δᴸ Δᴿ}
-    {p : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ} →
-  Atom A →
-  Value M →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
-  (q : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ) →
-  Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
-    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ q
-atomic-source-value-reindexᵀ atom () (blame⊑ᵀ M′⊢) q
-atomic-source-value-reindexᵀ atom () (x⊑xᵀ x∈) q
-atomic-source-value-reindexᵀ () vM (ƛ⊑ƛᵀ hA hA′ N⊑N′) q
-atomic-source-value-reindexᵀ atom () (·⊑·ᵀ L⊑L′ M⊑M′) q
-atomic-source-value-reindexᵀ atom (() ⟨ inert-u ⟩)
-    (down·up⊑down·upᵀ
-      mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
-      L⊑L′ M⊑M′ down-square
-      widening-pair u-shape u′-shape up-square compatible)
-    q
-atomic-source-value-reindexᵀ atom vM
-    (up⊑upᵀ M⊑M′ widening p
-      source-shape target-shape square) q =
-  up⊑upᵀ M⊑M′ widening q source-shape target-shape
-    (quotient-boundary-source-reindex
-      (source-atom-shape-unique atom p q) square)
-atomic-source-value-reindexᵀ () vM
-    (Λ⊑Λᵀ liftρ liftγ vV vV′ V⊑V′) q
-atomic-source-value-reindexᵀ () vM
-    (Λ⊑ᵀ occ liftρ liftγ vV V⊑M′) q
-atomic-source-value-reindexᵀ atom ()
-    (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢) q
-atomic-source-value-reindexᵀ atom ()
-    (α⊑ᵀ vL noL hA liftρ liftγ L⊑M′ L•⊢ M′⊢) q
-atomic-source-value-reindexᵀ atom vM
-    (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢) q =
-  allocation-prefixᵀ prefix
-    (atomic-source-value-reindexᵀ atom vM M⊑M′ q)
-    M⊢ M′⊢
-atomic-source-value-reindexᵀ atom ()
-    (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A⇑⊑A′⇑
-      liftρ liftγ N⊑N′ replacement) q
-atomic-source-value-reindexᵀ atom ()
-    (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑N′ replacement) q
-atomic-source-value-reindexᵀ atom vM κ⊑κᵀ idι =
-  κ⊑κᵀ
-atomic-source-value-reindexᵀ atom () (⊕⊑⊕ᵀ L⊑L′ M⊑M′) q
-atomic-source-value-reindexᵀ atom vM
-    (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ p c-shape comp) q =
-  cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape
-    (imprecision-composition-shape-transport
-      refl refl
-      (sym (source-atom-shape-unique atom p q))
-      comp)
-atomic-source-value-reindexᵀ atom vM
-    (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ p c-shape comp) q =
-  cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape
-    (imprecision-composition-shape-transport
-      refl
-      (sym (source-atom-shape-unique atom p q))
-      refl comp)
-atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ p c-shape comp) q =
-  ⊑cast⊒ᵀ mode seal★ c⊒ M⊑M′ q c-shape
-    (imprecision-composition-shape-transport
-      (sym (source-atom-shape-unique atom p q))
-      refl refl comp)
-atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ p c-shape comp) q =
-  ⊑cast⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape
-    (imprecision-composition-shape-transport
-      refl refl
-      (sym (source-atom-shape-unique atom p q))
-      comp)
-atomic-source-value-reindexᵀ atom vM
-    (⊑cast⊑idᵀ seal★ c⊑ M⊑M′ p c-shape comp) q =
-  ⊑cast⊑idᵀ seal★ c⊑ M⊑M′ q c-shape
-    (imprecision-composition-shape-transport
-      refl refl
-      (sym (source-atom-shape-unique atom p q))
-      comp)
-atomic-source-value-reindexᵀ atom vM
-    (conv⊑convᵀ {q = p} paired M⊑M′) q =
-  conv⊑convᵀ
-    (paired-cast-result-shape-reindexᵀ
-      (source-atom-shape-unique atom p q)
-      paired)
-    M⊑M′
-atomic-source-value-reindexᵀ atom vM
-    (conv↑⊑ᵀ c↑ M⊑M′ p replacement) q =
-  conv↑⊑ᵀ c↑ M⊑M′ q
-    (replace-left-target-shape
-      (sym (source-atom-shape-unique atom p q))
-      replacement)
-atomic-source-value-reindexᵀ atom vM
-    (conv↓⊑ᵀ c↓ M⊑M′ p replacement) q =
-  conv↓⊑ᵀ c↓ M⊑M′ q
-    (replace-left-source-shape
-      (sym (source-atom-shape-unique atom p q))
-      replacement)
-atomic-source-value-reindexᵀ atom vM
-    (⊑conv↑ᵀ c↑ M⊑M′ p replacement) q =
-  ⊑conv↑ᵀ c↑ M⊑M′ q
-    (replace-right-target-shape
-      (sym (source-atom-shape-unique atom p q))
-      replacement)
-atomic-source-value-reindexᵀ atom vM
-    (⊑conv↓ᵀ c↓ M⊑M′ p replacement) q =
-  ⊑conv↓ᵀ c↓ M⊑M′ q
-    (replace-right-source-shape
-      (sym (source-atom-shape-unique atom p q))
-      replacement)
 
 result-conceal-conversionᵀ :
   ∀ {Φ Δᴸ Δᴿ M V′ A B B′ c μ α X χ}

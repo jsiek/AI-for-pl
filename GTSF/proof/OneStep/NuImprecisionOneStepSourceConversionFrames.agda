@@ -23,7 +23,7 @@ open import QuotientedTermImprecision using (conv↑⊑ᵀ; conv↓⊑ᵀ)
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import proof.Core.Properties.ReductionProperties using
   (applyCoercions; applyTyVars)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frameᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frame-coherenceᵀ

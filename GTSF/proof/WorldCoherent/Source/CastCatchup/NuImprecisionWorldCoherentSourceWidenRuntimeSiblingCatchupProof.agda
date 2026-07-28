@@ -108,7 +108,7 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
@@ -238,7 +238,7 @@ open import
   ; sourceStepWorldCoherent
   )
 open import
-  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupCasesProof
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupTransportCore
   using
   ( applyCoercions-preserves-Widening
   ; applyCoercions-seq
@@ -248,13 +248,10 @@ open import
   ; result-widening-typing₂ᵀ
   ; transport-source-widening-composition
   )
-open import
-  proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup
-  using
-  ( applyTys-preserves-Atom
-  ; atomic-source-value-reindexᵀ
-  ; post-catchup-β-id
-  )
+open import proof.Core.Properties.NuStoreChangeIdentityProperties using
+  (applyTys-preserves-Atom; post-catchup-β-id)
+open import proof.OneStep.NuImprecisionAtomicSourceReindex using
+  (atomic-source-value-reindexᵀ)
 open import
   proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceRevealRuntimeSiblingCatchupProof
   using (world-coherent-source-reveal-runtime-sibling-catchup-proofᵀ)

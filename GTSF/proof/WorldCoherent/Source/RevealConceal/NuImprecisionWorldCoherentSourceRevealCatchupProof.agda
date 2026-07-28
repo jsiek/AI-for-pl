@@ -48,7 +48,7 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import proof.OneStep.NuImprecisionWeakOneStepSourceCastFrame using
   ( weak-one-step-source-cast-frame-coherenceᵀ
   ; weak-one-step-source-cast-frame-silentᵀ
   ; weak-one-step-source-cast-frame-transportᵀ
@@ -105,11 +105,10 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult
   ; world-coherent-left-indexed-catchup
   )
-open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup using
-  ( applyTys-preserves-Atom
-  ; atomic-source-value-reindexᵀ
-  ; post-catchup-β-id
-  )
+open import proof.Core.Properties.NuStoreChangeIdentityProperties using
+  (applyTys-preserves-Atom; post-catchup-β-id)
+open import proof.OneStep.NuImprecisionAtomicSourceReindex using
+  (atomic-source-value-reindexᵀ)
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceRevealCatchupDef using
   (WorldCoherentSourceRevealCatchupᵀ)
 open import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceUnsealCatchupDef using

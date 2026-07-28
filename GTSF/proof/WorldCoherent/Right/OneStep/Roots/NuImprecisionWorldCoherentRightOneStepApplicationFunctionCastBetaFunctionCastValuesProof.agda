@@ -41,8 +41,6 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ; leftStoreⁱ
   ; rightStoreⁱ
   )
-open import proof.Core.Properties.SealModeProperties using
-  (seal★-tag-or-id)
 open import NuTerms using
   ( No•
   ; RuntimeOK
@@ -63,14 +61,15 @@ open import QuotientedTermImprecision using
   ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; prefix-reflⁱ
-  ; up⊑upᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   ; ·⊑·ᵀ
@@ -82,10 +81,6 @@ open import Types using
   ; _⇒_
   )
 open import NuStore using (StoreWf)
-open import TermTyping using
-  ( SealModeStore★
-  ; cast-tag-or-id
-  )
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 open import proof.DGG.Core.NuPreservation using
   ( runtime-·₁
@@ -150,8 +145,10 @@ open import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepApplicationFunctionCastBetaPairedDef
   using
   ( WorldCoherentRightOneStepApplicationFunctionCastBetaPairedValues
-  ; rightStepApplicationFunctionCastBetaPairedCastValues
+  ; rightStepApplicationFunctionCastBetaPairedConcealValues
   ; rightStepApplicationFunctionCastBetaPairedQuotientValues
+  ; rightStepApplicationFunctionCastBetaPairedRevealValues
+  ; rightStepApplicationFunctionCastBetaPairedWideningValues
   )
 open import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepApplicationFunctionCastBetaRankedDef
@@ -410,18 +407,48 @@ world-coherent-right-one-step-application-function-cast-beta-function-cast-value
       recursive coherent exclusive unique wfL inner-runtime okM′
         inner⁺ argument-cast vV vV′ vW′ rank
   at-prefix relation-prefix coherent exclusive unique wfL okM okM′
-      (up⊑upᵀ inner widening p source-shape target-shape square)
+      (closeᵀ inner widening p source-shape target-shape square compatible)
       argument-related vV vM vV′ vW′ rank =
     rightStepApplicationFunctionCastBetaPairedQuotientValues paired
       relation-prefix coherent exclusive unique wfL okM okM′
-      inner widening source-shape target-shape square
+      inner widening source-shape target-shape square compatible
       argument-related vV vM vV′ vW′
   at-prefix relation-prefix coherent exclusive unique wfL okM okM′
-      (conv⊑convᵀ paired-cast inner)
+      (paired-revealᵀ corresponds source-reveal target-reveal replacement
+        inner)
       argument-related vV vM vV′ vW′ rank =
-    rightStepApplicationFunctionCastBetaPairedCastValues paired
+    rightStepApplicationFunctionCastBetaPairedRevealValues paired
       relation-prefix coherent exclusive unique wfL okM okM′
-      paired-cast inner argument-related vV vM vV′ vW′
+      corresponds source-reveal target-reveal replacement
+      inner argument-related vV vM vV′ vW′
+  at-prefix relation-prefix coherent exclusive unique wfL okM okM′
+      (paired-concealᵀ corresponds source-conceal target-conceal replacement
+        inner)
+      argument-related vV vM vV′ vW′ rank =
+    rightStepApplicationFunctionCastBetaPairedConcealValues paired
+      relation-prefix coherent exclusive unique wfL okM okM′
+      corresponds source-conceal target-conceal replacement
+      inner argument-related vV vM vV′ vW′
+  at-prefix relation-prefix coherent exclusive unique wfL okM okM′
+      (paired-wideningᵀ {p = pA₀ ↦ pB₀}
+        source-mode source-seal
+        (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+        (shape-fun c-shape d-shape)
+        target-mode target-seal
+        (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+        (shape-fun e-shape f-shape)
+        source-comp target-comp compatible inner)
+      argument-related vV vM vV′ vW′ rank =
+    rightStepApplicationFunctionCastBetaPairedWideningValues paired
+      relation-prefix coherent exclusive unique wfL okM okM′
+      source-mode source-seal
+      (C.cast-fun c⊢ d⊢ , NW.cross (cⁿ NW.↦ dʷ))
+      (shape-fun c-shape d-shape)
+      target-mode target-seal
+      (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
+      (shape-fun e-shape f-shape)
+      source-comp target-comp compatible
+      inner argument-related vV vM vV′ vW′
   at-prefix
       {pA = pA} {pB = pB}
       relation-prefix coherent exclusive unique wfL okM okM′
@@ -479,38 +506,6 @@ world-coherent-right-one-step-application-function-cast-beta-function-cast-value
     application-related = ·⊑·ᵀ inner⁺ argument-cast
     final-related =
       ⊑cast⊑ᵀ mode seal★⁺ f⊑⁺ application-related pB
-        f-shape f-comp
-  at-prefix
-      {ρ = ρ} {pA = pA} {pB = pB}
-      relation-prefix coherent exclusive unique wfL okM okM′
-      (⊑cast⊑idᵀ {p = pA₀ ↦ pB₀} seal★
-        (C.cast-fun e⊢ f⊢ , NW.cross (eⁿ NW.↦ fʷ))
-        inner .(pA ↦ pB)
-        (shape-fun e-shape f-shape)
-        (comp-↦-↦ e-comp f-comp))
-      argument-related vV vM vV′ vW′ rank =
-    related-outcome coherent exclusive unique final-related
-    where
-    right-incl = rightStoreⁱ-prefix-inclusion relation-prefix
-    seal★⁺ : SealModeStore★ C.id-onlyᵈ (rightStoreⁱ ρ)
-    seal★⁺ =
-      seal★-weaken {μ = C.id-onlyᵈ} right-incl seal★
-    e⊒⁺ = NW.narrow-weaken ≤-refl right-incl (e⊢ , eⁿ)
-    f⊑⁺ = NW.widen-weaken ≤-refl right-incl (f⊢ , fʷ)
-    source-function-no =
-      value-runtime-No• (vV ⟨ _ C.↦ _ ⟩) (runtime-·₁ okM)
-    target-V-no =
-      value-runtime-No• vV′ (runtime-⟨⟩ (runtime-·₁ okM′))
-    inner⁺ =
-      quotiented-store-prefix-no-bullet-proofᵀ
-        relation-prefix source-function-no target-V-no inner
-    argument-cast =
-      ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-        (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ e⊒⁺)
-        argument-related pA₀ e-shape e-comp
-    application-related = ·⊑·ᵀ inner⁺ argument-cast
-    final-related =
-      ⊑cast⊑idᵀ seal★⁺ f⊑⁺ application-related pB
         f-shape f-comp
   at-prefix
       {pA = pA} {pB = pB}

@@ -87,7 +87,7 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
 open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceNarrowCatchupDef using
   (WorldCoherentSourceNarrowCatchupᵀ)
 open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupDef using
-  (WorldCoherentSourceWidenCatchupᵀ)
+  (WorldCoherentSourceWidenCatchupCasesᵀ)
 open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBulletCatchupDef using
   (WorldCoherentSourceBulletCatchupᵀ)
 open import proof.WorldCoherent.Source.NuCatchup.NuImprecisionWorldCoherentSourceNuCatchupDef using
@@ -102,7 +102,7 @@ record WorldCoherentSourceRuntimeCatchupᵀ : Set₁ where
 
     source-narrow : WorldCoherentSourceNarrowCatchupᵀ
 
-    source-widen : WorldCoherentSourceWidenCatchupᵀ
+    source-widen-cases : WorldCoherentSourceWidenCatchupCasesᵀ
 
     source-paired-reveal :
       ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}

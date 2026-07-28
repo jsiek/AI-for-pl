@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Proves the seven semantic target-cast roots for world-coherent
+--   * Proves the five semantic target-cast roots for world-coherent
 --     target-oriented one-step simulation.
 --   * Catches the arbitrary source up at the final source-only world,
 --     terminalizes the transported target cast there, removes the observed
@@ -16,7 +16,6 @@ import CastImprecisionShape as CastShape
 open import Coercions using
   ( Coercion
   ; ModeEnv
-  ; id-onlyᵈ
   ; inst
   ; seal
   ; unseal
@@ -73,7 +72,6 @@ open import QuotientedTermImprecision using
   ( prefix-reflⁱ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
@@ -193,8 +191,6 @@ open import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepTargetCastActiveRootsDef
   using
   ( WorldCoherentRightOneStepTargetCastSemanticRoots
-  ; rightStepTargetIdWidenInstantiationRoot
-  ; rightStepTargetIdWidenSequenceRoot
   ; rightStepTargetNarrowSequenceRoot
   ; rightStepTargetNarrowUntagRoot
   ; rightStepTargetWidenInstantiationRoot
@@ -205,7 +201,6 @@ open import
   proof.WorldCoherent.Right.Target.Terminalization.NuImprecisionWorldCoherentRightTargetCastTerminalizationDef
   using
   ( WorldCoherentRightTargetCastTerminalization
-  ; rightTargetIdWidenFrame
   ; rightTargetNarrowFrame
   ; rightTargetWidenFrame
   )
@@ -604,132 +599,6 @@ private
         (lineagePrefix caught-lineage)
 
 
-  id-widen-square :
-    WorldCoherentLeftValueCatchupᵀ →
-    WorldCoherentRightValueTerminalᵀ →
-    WorldCoherentRightTargetCastTerminalization →
-    ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
-      {ρ : StoreImp Φ Δᴸ Δᴿ}
-      {M V′ N′ : Term} {A A′ B′ : Ty}
-      {c : Coercion}
-      {shape : ImprecisionShape}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-      {q : Φ ∣ Δᴸ ⊢ A ⊑ B′ ⊣ Δᴿ} →
-    WorldCoherent ρ →
-    SourceNameExclusive Φ →
-    AssumptionMembershipUnique Φ →
-    StoreWf Δᴸ (leftStoreⁱ ρ) →
-    StoreWf Δᴿ (rightStoreⁱ ρ) →
-    RuntimeOK M →
-    RuntimeOK V′ →
-    RuntimeOK (V′ ⟨ c ⟩) →
-    Value V′ →
-    SealModeStore★ id-onlyᵈ (rightStoreⁱ ρ) →
-    id-onlyᵈ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ c ∶ A′ ⊑ B′ →
-    CastShape.widening CastShape.⊢ᶜ c ⦂ shape →
-    ⌊ p ⌋ ； shape ≋ ⌊ q ⌋ →
-    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ M ⊑ V′ ⦂ A ⊑ A′ ∶ p →
-    V′ ⟨ c ⟩ —→ N′ →
-    WorldCoherentWeakOneStepIndexedOutcome
-      {M = M} {N′ = N′} {χ = keep} {ρ = ρ} q
-  id-widen-square catchup terminal terminalization {shape = shape}
-      coherent exclusive unique wfL wfR okM okV′ okCast vV′
-      seal★ c⊑ c-shape comp M⊑V′ root
-      with catchup coherent exclusive unique wfL okM vV′
-        (runtime-value-no• okV′ vV′) M⊑V′
-  id-widen-square catchup terminal terminalization {shape = shape}
-      coherent exclusive unique wfL wfR okM okV′ okCast vV′
-      seal★ c⊑ c-shape comp M⊑V′ root
-      | world-coherent-left-indexed-catchup
-          caught caught-lineage final-coherent final-exclusive final-unique
-          final-wfL
-      with sourceIsValueOrBlame (catchupIndexedInvariant caught)
-  id-widen-square catchup terminal terminalization {shape = shape}
-      coherent exclusive unique wfL wfR okM okV′ okCast vV′
-      seal★ c⊑ c-shape comp M⊑V′ root
-      | world-coherent-left-indexed-catchup
-          caught caught-lineage final-coherent final-exclusive final-unique
-          final-wfL
-      | inj₂ refl =
-    world-indexed-outcome-source-blame
-      (sourceCatchup (weakIndexedResult (catchupIndexedResult caught)))
-  id-widen-square catchup terminal terminalization {shape = shape}
-      coherent exclusive unique wfL wfR okM okV′ okCast vV′
-      seal★ c⊑ c-shape comp M⊑V′ root
-      | world-coherent-left-indexed-catchup
-          caught caught-lineage final-coherent final-exclusive final-unique
-          final-wfL
-      | inj₁ (vW , noW)
-      with targetTailIsEmpty (silentInvariant
-             (catchupIndexedInvariant caught))
-         | targetIsUnchanged (silentInvariant
-             (catchupIndexedInvariant caught))
-  id-widen-square catchup terminal terminalization {shape = shape}
-      coherent exclusive unique wfL wfR okM okV′ okCast vV′
-      seal★ c⊑ c-shape comp M⊑V′ root
-      | world-coherent-left-indexed-catchup
-          caught caught-lineage final-coherent final-exclusive final-unique
-          final-wfL
-      | inj₁ (vW , noW) | refl | refl =
-    world-coherent-left-silent-then-right-valueᵀ
-      framed-silent framed-lineage residual
-    where
-    first-indexed = catchupIndexedResult caught
-    first = weakIndexedResult first-indexed
-    first-coherence = weakIndexedTypeCoherence first-indexed
-
-    noV′ = runtime-value-no• okV′ vV′
-    final-wfR = final-right-store-wf first refl wfR
-    final-seal★ =
-      final-seal-mode first {μ = id-onlyᵈ} refl seal★
-    final-c⊑ =
-      final-widen-typing first {μ = id-onlyᵈ} refl c⊑
-    final-comp =
-      transported-widen-triangle first first-coherence shape comp
-
-    inner-terminal =
-      terminal prefix-reflⁱ final-coherent final-exclusive final-unique
-        final-wfR vW noW vV′ noV′
-        (canonicalIndexedResults first-indexed)
-
-    outer-terminal =
-      rightTargetIdWidenFrame terminalization
-        prefix-reflⁱ final-coherent final-exclusive final-unique final-wfR
-        okCast vW noW final-seal★ final-c⊑ c-shape final-comp
-        (canonicalIndexedResults first-indexed) inner-terminal
-
-    residual =
-      world-coherent-right-target-pure-step-residualᵀ
-        root outer-terminal
-
-    framed-relation =
-      ⊑cast⊑idᵀ final-seal★ final-c⊑
-        (canonicalIndexedResults first-indexed)
-        (transportType first _)
-        c-shape final-comp
-
-    framed-raw =
-      weak-one-step-target-cast-frameᵀ first framed-relation
-
-    framed-indexed =
-      weak-indexed-result framed-raw (relatedResults framed-raw)
-        (weak-one-step-target-cast-frame-transportᵀ
-          first framed-relation (weakIndexedTransport first-indexed))
-        (weak-one-step-target-cast-frame-coherenceᵀ
-          first framed-relation (weakIndexedTypeCoherence first-indexed))
-
-    framed-silent =
-      left-silent-indexed framed-indexed
-        (left-silent-invariant refl refl) (ok-no noW)
-
-    framed-lineage =
-      weak-step-store-lineage
-        (lineageStore caught-lineage)
-        (lineageEmbedding caught-lineage)
-        (lineagePrefix caught-lineage)
-
-
 world-coherent-right-one-step-target-cast-semantic-roots-proofᵀ :
   WorldCoherentLeftValueCatchupᵀ →
   WorldCoherentRightValueTerminalᵀ →
@@ -810,35 +679,5 @@ world-coherent-right-one-step-target-cast-semantic-roots-proofᵀ
               (runtime-⟨⟩ okCast) okCast
               (vV ⟨ seal _ _ ⟩)
               mode seal★ c⊑ c-shape comp inner root
-          }
-    ; rightStepTargetIdWidenSequenceRoot =
-        λ
-          { coherent exclusive unique wfL wfR okM okCast
-              seal★ c⊑ c-shape comp inner
-              root@(β-seq vV) →
-            id-widen-square catchup terminal terminalization
-              coherent exclusive unique wfL wfR okM
-              (runtime-⟨⟩ okCast) okCast vV
-              seal★ c⊑ c-shape comp inner root
-          ; coherent exclusive unique wfL wfR okM okCast
-              seal★ c⊑ c-shape comp inner
-              blame-⟨⟩ →
-            world-indexed-outcome-source-blame
-              (proj₂ (left-catchup-target-blameᵀ okM inner))
-          }
-    ; rightStepTargetIdWidenInstantiationRoot =
-        λ
-          { coherent exclusive unique wfL wfR okM okCast
-              seal★ c⊑ c-shape comp inner
-              root@(β-inst vV) →
-            id-widen-square catchup terminal terminalization
-              coherent exclusive unique wfL wfR okM
-              (runtime-⟨⟩ okCast) okCast vV
-              seal★ c⊑ c-shape comp inner root
-          ; coherent exclusive unique wfL wfR okM okCast
-              seal★ c⊑ c-shape comp inner
-              blame-⟨⟩ →
-            world-indexed-outcome-source-blame
-              (proj₂ (left-catchup-target-blameᵀ okM inner))
           }
     }

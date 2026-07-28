@@ -12,13 +12,31 @@ open import Data.List using ([])
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 
+import Coercions as C
 open import Coercions using
   (Inert)
 open import CastImprecisionShape using
-  (_⊢ᶜ_⦂_; narrowing; widening)
+  ( _⊢ᶜ_⦂_
+  ; narrowing
+  ; shape-inst
+  ; shape-unseal
+  ; widening
+  )
+import Conversion as Conv
+open import ConversionIndexCompatibility using
+  (replace-left-seal)
 open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
-open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
-open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
+open import ImprecisionComposition using
+  ( _；⌊_⌋≋ᵖ_；_
+  ; comp-ν
+  ; comp-tagˣ-id★
+  )
+open import ImprecisionWf using
+  ( _∣_⊢_⊑_⊣_
+  ; id★
+  ; tagˣ
+  ; ν
+  )
 import NarrowWiden as NW
 open import NarrowWiden using (_∣_∣_⊢_∶_⊒_)
 open import NarrowWiden using (genSafe→inert)
@@ -48,6 +66,9 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision
 open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport
+open import
+  proof.Source.CastSequence.NuImprecisionSourceCastSequenceMidpointLemma
+  using (source-cast-sequence-midpointᵀ)
 open import
   proof.Catchup.Core.NuImprecisionCatchupPrefixCloseLemma
   using (left-silent-indexed-prefix-closeᵀ)
@@ -91,10 +112,19 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupPrefixFram
 open import proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientFinalCatchupDef using
   (WorldCoherentQuotientFinalCatchupᵀ)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
+open import
+  proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceWidenCatchupDef
+  using
+  ( identity-widen
+  ; inert-widen
+  ; sequence-widen
+  ; ν-inst-widen
+  )
 open import proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeCatchupDef
 open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixDef using
   (WorldCoherentLeftValueCatchupPrefixᵀ)
 open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
+import Types as T
 
 
 left-catchup-final-runtime :
@@ -386,10 +416,173 @@ world-coherent-left-value-catchup-prefix-proofᵀ
 world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okN vV′ noV′
-    (cast⊑⊑ᵀ mode seal★ c⊑ N⊑V′ q c-shape comp) =
-  source-widen source-runtime prefix mode seal★ c⊑
-    vV′ noV′ inner q c-shape comp
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-id hA ok , NW.cross (NW.id-＇ α))
+      N⊑V′ q c-shape comp) =
+  identity-widen (source-widen-cases source-runtime)
+    (T.＇ α) prefix mode seal★
+    (C.cast-id hA ok , NW.cross (NW.id-＇ α))
+    inner q c-shape comp
   where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-id hA ok , NW.cross (NW.id-‵ ι))
+      N⊑V′ q c-shape comp) =
+  identity-widen (source-widen-cases source-runtime)
+    (T.‵ ι) prefix mode seal★
+    (C.cast-id hA ok , NW.cross (NW.id-‵ ι))
+    inner q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-fun {s = s} {t = t} s⊢ t⊢ ,
+        NW.cross (sⁿ NW.↦ tʷ))
+      N⊑V′ q c-shape comp) =
+  inert-widen (source-widen-cases source-runtime)
+    (s C.↦ t) prefix mode seal★
+    (C.cast-fun s⊢ t⊢ , NW.cross (sⁿ NW.↦ tʷ))
+    inner q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-all {s = s} s⊢ , NW.cross (NW.`∀ sʷ))
+      N⊑V′ q c-shape comp) =
+  inert-widen (source-widen-cases source-runtime)
+    (C.`∀ s) prefix mode seal★
+    (C.cast-all s⊢ , NW.cross (NW.`∀ sʷ))
+    inner q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-id hA ok , NW.id★)
+      N⊑V′ q c-shape comp) =
+  identity-widen (source-widen-cases source-runtime)
+    T.★ prefix mode seal★
+    (C.cast-id hA ok , NW.id★)
+    inner q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ {p = ν safe index-occ source-index} mode seal★
+      c⊑@(C.cast-inst hB occ s⊢ , NW.inst sʷ)
+      N⊑V′ q c-shape@(shape-inst inner-shape)
+      comp@(comp-ν inner-comp)) =
+  ν-inst-widen (source-widen-cases source-runtime)
+    (world-coherent-left-value-catchup-prefix-proofᵀ
+      source-runtime quotient-catchup)
+    {{safe}} prefix mode seal★ c⊑ vV′ noV′ inner
+    q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-tag {G = G} hG gG ok , NW.tag gG′)
+      N⊑V′ q c-shape comp) =
+  inert-widen (source-widen-cases source-runtime)
+    (G C.!) prefix mode seal★
+    (C.cast-tag hG gG ok , NW.tag gG′)
+    inner q c-shape comp
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-seq s⊢ t⊢ , sˢ NW.︔ gG !)
+      N⊑V′ q c-shape comp) =
+  sequence-widen (source-widen-cases source-runtime)
+    source-cast-sequence-midpointᵀ
+    (world-coherent-left-value-catchup-prefix-proofᵀ
+      source-runtime quotient-catchup)
+    prefix mode seal★
+    s⊑ t⊑ (sˢ NW.︔ gG !) vV′ noV′ inner
+    q c-shape comp
+  where
+  s⊑ = s⊢ , NW.cross (NW.strictCrossʷ→cross sˢ)
+  t⊑ = t⊢ , NW.tag gG
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-seq s⊢ t⊢ , NW.inst-fun-tag safe)
+      N⊑V′ q c-shape comp) =
+  sequence-widen (source-widen-cases source-runtime)
+    source-cast-sequence-midpointᵀ
+    (world-coherent-left-value-catchup-prefix-proofᵀ
+      source-runtime quotient-catchup)
+    prefix mode seal★
+    s⊑ t⊑ (NW.inst-fun-tag safe) vV′ noV′ inner
+    q c-shape comp
+  where
+  s⊑ = s⊢ , NW.inst safe
+  t⊑ = t⊢ , NW.tag T.★⇒★
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ {p = tagˣ x∈ α<Δ} mode seal★
+      (C.cast-unseal {μ = μ} hA α∈Σ ok , NW.unsealʷ α A)
+      N⊑V′ id★ shape-unseal comp-tagˣ-id★) =
+  source-reveal source-runtime prefix
+    (Conv.reveal-unseal {μ = μ} hA α∈Σ ok)
+    vV′ noV′ inner id★ (replace-left-seal id★)
+  where
+  inner = world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup prefix coherent exclusive unique wfL
+    (runtime-⟨⟩ okN) vV′ noV′ N⊑V′
+world-coherent-left-value-catchup-prefix-proofᵀ
+    source-runtime quotient-catchup
+    prefix coherent exclusive unique wfL okN vV′ noV′
+    (cast⊑⊑ᵀ mode seal★
+      (C.cast-seq
+        s⊢@(C.cast-unseal {A = A} hA α∈Σ ok) t⊢ ,
+        NW.unseal︔_ α sˢ)
+      N⊑V′ q c-shape comp) =
+  sequence-widen (source-widen-cases source-runtime)
+    source-cast-sequence-midpointᵀ
+    (world-coherent-left-value-catchup-prefix-proofᵀ
+      source-runtime quotient-catchup)
+    prefix mode seal★
+    s⊑ t⊑ (NW.unseal︔_ α sˢ) vV′ noV′ inner
+    q c-shape comp
+  where
+  s⊑ = s⊢ , NW.unsealʷ α A
+  t⊑ = t⊢ , NW.strictʷ→widen sˢ
   inner = world-coherent-left-value-catchup-prefix-proofᵀ
     source-runtime quotient-catchup prefix coherent exclusive unique wfL
     (runtime-⟨⟩ okN) vV′ noV′ N⊑V′

@@ -362,6 +362,27 @@ Over:
         (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
         (closeν-inline-open Aν)
 
+## Agda type-signature line-break style (from 2026-07-28)
+
+When a definition's type spans multiple lines, put the definition name and its
+implicit parameters on the first line. Put each implication arrow at the
+beginning of its continuation line, not at the end of the preceding line.
+
+Prefer:
+
+    canonical-⇒ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A B : Ty}
+      → Value V
+      → Δ ∣ Σ ∣ [] ⊢ V ⦂ (A ⇒ B)
+      → FunView V
+
+Over:
+
+    canonical-⇒ :
+      ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A B : Ty} →
+      Value V →
+      Δ ∣ Σ ∣ [] ⊢ V ⦂ (A ⇒ B) →
+      FunView V
+
 
 
 ## Agda mixfix notation style (from 2026-04-15)

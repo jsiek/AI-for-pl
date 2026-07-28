@@ -35,20 +35,20 @@ data Progress {Δ : TyCtx}{Σ : TyStore} (M : Term) : Set where
 -- Canonical forms for closed values
 ------------------------------------------------------------------------
 
-data FunView (V : Term) : Set where
+data FunValue (V : Term) : Set where
   fv-ƛ : ∀ {N : Term}
     → V ≡ ƛ N
-    → FunView V
+    → FunValue V
 
   fv-↦ : ∀ {W : Term}{c d : Coercion}
     → Value W
     → V ≡ W ⟨ c ↦ d ⟩
-    → FunView V
+    → FunValue V
 
 canonical-⇒ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A B : Ty}
   → Value V
   → Δ ∣ Σ ∣ [] ⊢ V ⦂ (A ⇒ B)
-  → FunView V
+  → FunValue V
 canonical-⇒ (ƛ N) (⊢ƛ hA hN) = fv-ƛ refl
 canonical-⇒ (Λ vV) ()
 canonical-⇒ ($ (κℕ n)) ()
@@ -60,25 +60,25 @@ canonical-⇒ (_⟨_⟩ {V = W} vW (c ↦ d))
 canonical-⇒ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
 canonical-⇒ (_⟨_⟩ {V = W} vW (gen c)) (⊢⟨⟩ () hW)
 
-data AllView (V : Term) : Set where
+data AllValue (V : Term) : Set where
   av-Λ : ∀ {W : Term}
     → V ≡ Λ W
-    → AllView V
+    → AllValue V
 
   av-∀ : ∀ {W : Term}{c : Coercion}
     → Value W
     → V ≡ W ⟨ `∀ c ⟩
-    → AllView V
+    → AllValue V
 
   av-gen : ∀ {W : Term}{c : Coercion}
     → Value W
     → V ≡ W ⟨ gen c ⟩
-    → AllView V
+    → AllValue V
 
 canonical-∀ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A : Ty}
   → Value V
   → Δ ∣ Σ ∣ [] ⊢ V ⦂ (`∀ A)
-  → AllView V
+  → AllValue V
 canonical-∀ (ƛ N) ()
 canonical-∀ (Λ vV) (⊢Λ _ hV) = av-Λ refl
 canonical-∀ ($ (κℕ n)) ()
@@ -92,15 +92,15 @@ canonical-∀ (_⟨_⟩ {V = W} vW (gen c))
     (⊢⟨⟩ (cast-gen hA X∈B c⊢) hW) =
   av-gen vW refl
 
-data NatView (V : Term) : Set where
+data NatValue (V : Term) : Set where
   nv-const : ∀ {n : ℕ}
     → V ≡ $ (κℕ n)
-    → NatView V
+    → NatValue V
 
 canonical-ℕ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}
   → Value V
   → Δ ∣ Σ ∣ [] ⊢ V ⦂ (‵ `ℕ)
-  → NatView V
+  → NatValue V
 canonical-ℕ (ƛ N) ()
 canonical-ℕ (Λ vV) ()
 canonical-ℕ ($ (κℕ n)) (⊢$ (κℕ .n)) = nv-const refl
@@ -110,16 +110,16 @@ canonical-ℕ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
 canonical-ℕ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
 canonical-ℕ (_⟨_⟩ {V = W} vW (gen c)) (⊢⟨⟩ () hW)
 
-data StarView (V : Term) : Set where
+data DynValue (V : Term) : Set where
   sv-tag : ∀ {W : Term}{G : Tag}
     → Value W
     → V ≡ W ⟨ G ! ⟩
-    → StarView V
+    → DynValue V
 
 canonical-★ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}
   → Value V
   → Δ ∣ Σ ∣ [] ⊢ V ⦂ ★
-  → StarView V
+  → DynValue V
 canonical-★ (ƛ N) ()
 canonical-★ (Λ vV) ()
 canonical-★ ($ (κℕ n)) ()
@@ -131,26 +131,26 @@ canonical-★ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
 canonical-★ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
 canonical-★ (_⟨_⟩ {V = W} vW (gen c)) (⊢⟨⟩ () hW)
 
-data SealView {α : TyVar} (V : Term) : Set where
+data SealValue {α : TyVar} (V : Term) : Set where
   sv-seal : ∀ {W : Term}
     → Value W
     → V ≡ W ⟨ seal α ⟩
-    → SealView {α = α} V
+    → SealValue {α = α} V
 
-canonical-＇ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{α : TyVar}
+canonical-tyvar : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{α : TyVar}
   → Value V
   → Δ ∣ Σ ∣ [] ⊢ V ⦂ (＇ α)
-  → SealView {α = α} V
-canonical-＇ (ƛ N) ()
-canonical-＇ (Λ vV) ()
-canonical-＇ ($ (κℕ n)) ()
-canonical-＇ (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (seal α))
+  → SealValue {α = α} V
+canonical-tyvar (ƛ N) ()
+canonical-tyvar (Λ vV) ()
+canonical-tyvar ($ (κℕ n)) ()
+canonical-tyvar (_⟨_⟩ {V = W} vW (G !)) (⊢⟨⟩ () hW)
+canonical-tyvar (_⟨_⟩ {V = W} vW (seal α))
     (⊢⟨⟩ (cast-seal hA α∈Σ sealed) hW) =
   sv-seal vW refl
-canonical-＇ (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
-canonical-＇ (_⟨_⟩ {V = W} vW (gen c)) (⊢⟨⟩ () hW)
+canonical-tyvar (_⟨_⟩ {V = W} vW (c ↦ d)) (⊢⟨⟩ () hW)
+canonical-tyvar (_⟨_⟩ {V = W} vW (`∀ c)) (⊢⟨⟩ () hW)
+canonical-tyvar (_⟨_⟩ {V = W} vW (gen c)) (⊢⟨⟩ () hW)
 
 ------------------------------------------------------------------------
 -- Progress helpers
@@ -174,7 +174,7 @@ unseal-progress : ∀ {Δ : TyCtx}{Σ : TyStore}{M : Term}{α : TyVar}
   → Value M
   → Δ ∣ Σ ∣ [] ⊢ M ⦂ (＇ α)
   → Progress {Δ = Δ} {Σ = Σ} (M ⟨ unseal α ⟩)
-unseal-progress vM M⊢ with canonical-＇ vM M⊢
+unseal-progress vM M⊢ with canonical-tyvar vM M⊢
 unseal-progress vM M⊢ | sv-seal vW refl =
   step (pure-step (seal-unseal vW))
 

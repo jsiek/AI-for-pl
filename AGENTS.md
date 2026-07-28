@@ -10,6 +10,20 @@
   structure in the statement itself so the full claim is readable at the use
   site. Add a named definition only when it is a genuine reusable concept, not
   just a shorthand for a proof obligation.
+- Changes to the live term-imprecision relation in
+  `GTSF/QuotientedTermImprecision.agda` require the user's explicit permission
+  before editing that file. The permission request must explain why the
+  relation itself needs to change and include the relevant imprecision and
+  reduction square in LaTeX-style notation, with imprecision horizontal and
+  reduction vertical, for example:
+
+  $$
+  \begin{array}{ccc}
+  M & \sqsubseteq & M' \\
+  \downarrow^{*} & & \downarrow^{*} \\
+  N & \sqsubseteq & N'
+  \end{array}
+  $$
 
 ## Subagent launch notes
 

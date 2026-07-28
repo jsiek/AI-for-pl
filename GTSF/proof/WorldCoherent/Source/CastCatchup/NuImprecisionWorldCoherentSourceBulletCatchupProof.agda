@@ -6,7 +6,7 @@ module proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBu
 --     value catch-up through its whole statement-level contract.
 --   * Contains no recursive dispatcher implementation or permissive holes.
 
-open import QuotientedTermImprecision using (α⊑ᵀ)
+open import QuotientedTermImprecision using (α⊑ᵀ; prefix-reflⁱ)
 open import proof.WorldCoherent.Source.CastCatchup.NuImprecisionWorldCoherentSourceBulletCatchupDef using
   (WorldCoherentSourceBulletCatchupᵀ)
 open import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixDef using
@@ -20,4 +20,5 @@ world-coherent-source-bullet-catchup-proofᵀ
     catchup h⇑A prefix coherent exclusive unique wfL okN
     vV′ noV′ vL noL liftρ liftγ L⊑V′ L•⊢ V′⊢ =
   catchup prefix coherent exclusive unique wfL okN vV′ noV′
-    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑V′ L•⊢ V′⊢)
+    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑V′
+      prefix-reflⁱ L•⊢ V′⊢)

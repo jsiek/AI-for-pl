@@ -12,6 +12,8 @@ module
 --   * Contains no postulate, hole, permissive option, broad simulation
 --     import, or recursive frame-closing dependency.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 import Coercions as C
@@ -56,7 +58,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
-  ; allocation-prefixᵀ
   ; conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; gen-down⊑gen-downᵀ
@@ -132,7 +133,7 @@ paired-lambda-target-closing-up-gen-leaf-closing-proofᵀ
     up⊑upᵀ quotient-relation widening (ν safe occ-r r)
 
   endpoint-relation =
-    allocation-prefixᵀ prefix endpoint-relation₀
+    term-imprecision-store-prefixᵀ prefix endpoint-relation₀
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         source-no-bullet
         (nu-term-imprecision-source-typing endpoint-relation₀))

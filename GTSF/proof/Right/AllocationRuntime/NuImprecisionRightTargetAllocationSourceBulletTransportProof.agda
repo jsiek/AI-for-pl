@@ -29,6 +29,7 @@ open import ImprecisionWf using
   ( ImpCtx
   ; ⇑ᴿᵢ
   ; _∣_⊢_⊑_⊣_
+  ; ⊑-src-wf
   )
 open import NuReduction using
   ( StoreChanges
@@ -43,6 +44,7 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   ( LiftRightStoreⁱ
   ; StoreImp
   ; leftStoreⁱ
+  ; leftStoreⁱ-lift-left
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
   ; store-right
@@ -64,7 +66,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
@@ -95,7 +96,7 @@ open import QuotientedTermImprecision using
   )
 open import Store using (StoreIncl-drop)
 open import TermTyping using
-  (SealModeStore★; weakenCastᵈ; _∣_∣_⊢_⦂_)
+  (SealModeStore★; weakenCastᵈ; _∣_∣_⊢_⦂_; ⊢•)
 open import Types using
   ( Ty
   ; TyCtx
@@ -111,6 +112,8 @@ open import
   using
   ( replace-right-target-lift-rightᵢ
   )
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping using
+  (nu-term-imprecision-source-typing)
 open import
   proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport
   using
@@ -229,12 +232,6 @@ private
 
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
-      (allocation-prefixᵀ prefix₀ M⊑M′ M⊢₀ M′⊢) eq =
-    source-bullet-transport
-      (store-imp-prefix-transⁱ prefix₀ prefix)
-      liftρ unique runtime noM′ M⊢ M⊑M′ eq
-  source-bullet-transport
-      prefix liftρ unique runtime noM′ M⊢
       (blame⊑ᵀ M′⊢) ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
@@ -265,25 +262,33 @@ private
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
       (α⊑αᵀ vV noV vV′ noV′ p liftρ∀ liftγ
-        V⊑V′ V•⊢ V′•⊢)
+        V⊑V′ allocation-prefix V•⊢ V′•⊢)
       eq =
     ⊥-elim (no•-bullet-absurd noM′)
   source-bullet-transport
-      {Δᴸ = Δᴸ} {ρ⁺ = ρ⁺} {L = L} {A = A}
+      {Δᴸ = Δᴸ} {ρ⁺ = ρ⁺} {L = L} {A = A} {q = q}
       prefix liftρ unique runtime noM′ M⊢
       (α⊑ᵀ {L = V} vV noV hA liftρ∀
         lift-left-ctx-[]
-        V⊑M′ V•⊢ M′⊢)
+        V⊑M′ allocation-prefix V•⊢ M′⊢)
       eq =
     nu-term-imprecision-transport-termsᵀ eq refl
       (right-target-allocation-source-only-bullet-transport-proofᵀ
-        prefix liftρ unique noM′ source-typing
-        V⊑M′ vV noV liftρ∀ V•⊢)
+        (store-imp-prefix-transⁱ allocation-prefix prefix)
+        liftρ unique noM′ source-typing
+        V⊑M′ vV noV liftρ∀ canonical-source-typing)
     where
     source-typing =
       subst
         (λ N → Δᴸ ∣ leftStoreⁱ ρ⁺ ∣ [] ⊢ N ⦂ A)
         (sym eq) M⊢
+
+    canonical-source-typing =
+      subst
+        (λ Σ → _ ∣ (zero , _) ∷ Σ ∣ [] ⊢ _ ⦂ _)
+        (sym (leftStoreⁱ-lift-left liftρ∀))
+        (⊢• refl refl (⊑-src-wf q) vV noV
+          (nu-term-imprecision-source-typing V⊑M′))
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
       (ν⊑νᵀ hA hA′ s↑ s′↑ pA pA↑

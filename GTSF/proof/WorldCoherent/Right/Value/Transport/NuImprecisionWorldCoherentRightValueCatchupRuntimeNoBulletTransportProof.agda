@@ -125,7 +125,6 @@ open import PairedWideningCompatibility using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
@@ -531,16 +530,6 @@ module _
                 (worldRightCatchupResult caught)))
             q
     active-runtime-no-bullet-transportᵀ
-        prefix (allocation-prefixᵀ prefix₀ inner inner-M⊢ inner-M′⊢)
-        okM activeM noM′ store-eq caught =
-      active-runtime-no-bullet-transportᵀ
-        (store-imp-prefix-transⁱ prefix₀ prefix)
-        inner okM activeM noM′ (trans inner-store-eq store-eq) caught
-      where
-      inner-store-eq =
-        active-prefix-left-store-stable prefix₀ okM activeM
-          (nu-term-imprecision-source-typing inner) inner-M⊢
-    active-runtime-no-bullet-transportᵀ
         prefix (blame⊑ᵀ M′⊢) (ok-no noM) activeM
         noM′ store-eq caught =
       ⊥-elim (activeM noM)
@@ -576,7 +565,7 @@ module _
       ⊥-elim
         (activeGen (no•-⟨⟩ (runtime-value-no• okV vV)))
     active-runtime-no-bullet-transportᵀ
-        prefix M⊑M′@(α⊑αᵀ _ _ _ _ _ _ _ _ _ _)
+        prefix M⊑M′@(α⊑αᵀ _ _ _ _ _ _ _ _ _ _ _)
         okM activeM noM′ store-eq caught =
       worldRightCatchupSourceBulletTransport caught
         prefix okM noM′ source-typing⁺ M⊑M′
@@ -587,7 +576,7 @@ module _
           store-eq
           (nu-term-imprecision-source-typing M⊑M′)
     active-runtime-no-bullet-transportᵀ
-        prefix M⊑M′@(α⊑ᵀ _ _ _ _ _ _ _ _)
+        prefix M⊑M′@(α⊑ᵀ _ _ _ _ _ _ _ _ _)
         okM activeM noM′ store-eq caught =
       worldRightCatchupSourceBulletTransport caught
         prefix okM noM′ source-typing⁺ M⊑M′

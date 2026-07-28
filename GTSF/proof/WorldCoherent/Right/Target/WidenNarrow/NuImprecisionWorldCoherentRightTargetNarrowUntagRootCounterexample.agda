@@ -53,8 +53,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; prefix-reflⁱ
   ; x⊑xᵀ
   ; ƛ⊑ƛᵀ
@@ -175,10 +174,6 @@ private
       ⊢ᴺ ` zero ⊑ ` zero ⦂ X ⊑ ★ ∶ a₂ →
     ⊥
   variable-at-a₂-impossible (x⊑xᵀ ())
-  variable-at-a₂-impossible
-      (allocation-prefixᵀ prefix-reflⁱ inner
-        source-typing target-typing) =
-    variable-at-a₂-impossible inner
 
 
 requested-untagged-relation-impossible :
@@ -189,10 +184,6 @@ requested-untagged-relation-impossible :
 requested-untagged-relation-impossible
     (ƛ⊑ƛᵀ source-wf target-wf body) =
   variable-at-a₂-impossible body
-requested-untagged-relation-impossible
-    (allocation-prefixᵀ prefix-reflⁱ inner
-      source-typing target-typing) =
-  requested-untagged-relation-impossible inner
 
 
 duplicate-assumptions-not-unique :

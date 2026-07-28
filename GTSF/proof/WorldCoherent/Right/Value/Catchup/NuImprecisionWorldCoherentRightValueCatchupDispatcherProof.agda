@@ -25,8 +25,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ; lift-right-ctx-[]
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; blame⊑ᵀ
+  ( blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -170,16 +169,11 @@ world-coherent-right-value-catchup-dispatcher-proofᵀ
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (α⊑αᵀ vL noL vL′ noL′ pA liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢)
+      L⊑L′ allocation-prefix L•⊢ L′•⊢)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
-    (α⊑ᵀ vL noL hA liftρ liftγ L⊑M′ L•⊢ M′⊢)
-world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfR okM′ vV noV
-    (allocation-prefixᵀ prefix₀ inner M⊢ M′⊢) =
-  world-coherent-right-value-catchup-dispatcher-proofᵀ
-    cases (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive unique wfR okM′ vV noV inner
+    (α⊑ᵀ vL noL hA liftρ liftγ L⊑M′
+      allocation-prefix L•⊢ M′⊢)
 world-coherent-right-value-catchup-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfR okM′ () noV
     (ν⊑νᵀ

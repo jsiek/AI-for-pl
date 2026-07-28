@@ -9,6 +9,8 @@ module
 --   * Contains no function-cast spine recursion, postulate, hole, or
 --     permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 import Coercions as C
@@ -42,8 +44,7 @@ open import NuTerms using
   ; _[_]
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (_⇒_)
@@ -258,7 +259,7 @@ world-coherent-source-lambda-beta-target-function-cast-direct-at-proofᵀ
       (nu-term-imprecision-target-typing function-related)
 
   function-related⁺ =
-    allocation-prefixᵀ prefix function-related
+    term-imprecision-store-prefixᵀ prefix function-related
       source-function⊢⁺ target-function⊢⁺
 
   framed-indexed =

@@ -33,7 +33,6 @@ open import QuotientedTermImprecision using
   ; blame⊑ᵀ
   ; Λ⊑ᵀ
   ; α⊑ᵀ
-  ; allocation-prefixᵀ
   ; ν⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
@@ -57,9 +56,6 @@ value-not-target-blameᵀ :
 value-not-target-blameᵀ () (blame⊑ᵀ _)
 value-not-target-blameᵀ (Λ vV) (Λ⊑ᵀ occ liftρ liftγ _ V⊑N′) =
   value-not-target-blameᵀ vV V⊑N′
-value-not-target-blameᵀ vV
-    (allocation-prefixᵀ prefix V⊑blame V⊢ blame⊢) =
-  value-not-target-blameᵀ vV V⊑blame
 value-not-target-blameᵀ (vV ⟨ c ⟩)
     (cast⊒⊑ᵀ mode seal★ c⊒ V⊑blame q c-shape comp) =
   value-not-target-blameᵀ vV V⊑blame
@@ -106,11 +102,9 @@ left-catchup-target-blame-generalᵀ okM
     (Λ⊑ᵀ occ liftρ liftγ vV V⊑blame) =
   ⊥-elim (value-not-target-blameᵀ vV V⊑blame)
 left-catchup-target-blame-generalᵀ okM
-    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑blame L•⊢ blame⊢) =
+    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑blame
+      prefix L•⊢ blame⊢) =
   ⊥-elim (value-not-target-blameᵀ vL L⊑blame)
-left-catchup-target-blame-generalᵀ okM
-    (allocation-prefixᵀ prefix M⊑blame M⊢ blame⊢) =
-  left-catchup-target-blame-generalᵀ okM M⊑blame
 left-catchup-target-blame-generalᵀ okM
     (ν⊑ᵀ hA h⇑A s↑ liftρ liftγ N⊑blame replace) =
   χs ++ keep ∷ [] , ν-blame-tailᵀ N↠blame

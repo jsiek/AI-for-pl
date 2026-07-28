@@ -12,6 +12,8 @@ module
 --   * Contains no opaque allocation recovery, postulate, hole, permissive
 --     option, or record-interface change.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (Coercion; ModeEnv)
@@ -82,7 +84,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; blame⊑ᵀ
   ; conv↑⊑ᵀ
   ; prefix-reflⁱ
@@ -604,7 +605,7 @@ world-coherent-source-ν-runtime-sibling-catchup-proofᵀ
   allocation-store-prefix = prefix-∷ⁱ prefix-reflⁱ
 
   allocation-sibling =
-    allocation-prefixᵀ allocation-store-prefix allocation-sibling-tail
+    term-imprecision-store-prefixᵀ allocation-store-prefix allocation-sibling-tail
       (term-weaken ≤-refl
         (leftStoreⁱ-prefix-inclusion allocation-store-prefix)
         (renameᵗᵐ-preserves-No• suc inner-noR)

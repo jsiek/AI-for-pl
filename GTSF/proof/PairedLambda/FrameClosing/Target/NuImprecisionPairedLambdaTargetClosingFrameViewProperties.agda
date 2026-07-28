@@ -11,6 +11,8 @@ module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClo
 --     option.
 
 import Coercions as C
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Coercions using (_!)
 open import Data.List using ([])
 open import Data.Product using (_,_)
@@ -32,7 +34,6 @@ open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
-  ; allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv⊑convᵀ
@@ -138,7 +139,7 @@ paired-lambda-target-closing-frame-view-frames-relation L⊑L′
   L⊑L′
 paired-lambda-target-closing-frame-view-frames-relation L⊑L′
     (frame-prefix frames prefix W⊢ W′⊢) =
-  allocation-prefixᵀ prefix
+  term-imprecision-store-prefixᵀ prefix
     (paired-lambda-target-closing-frame-view-frames-relation L⊑L′ frames)
     W⊢ W′⊢
 paired-lambda-target-closing-frame-view-frames-relation L⊑L′

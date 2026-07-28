@@ -42,6 +42,7 @@ open import QuotientedTermImprecision using
   ( α⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
+  ; prefix-reflⁱ
   )
 open import TermTyping using
   ( SealModeStore★
@@ -59,7 +60,7 @@ source-inst-allocation-relation-proofᵀ
     s-shape-proof comp liftρ N⊑N′ =
   cast⊑⊑ᵀ (cast-inst mode) left-seal left-widening
     (α⊑ᵀ vN noN wf★ liftρ lift-left-ctx-[]
-      N⊑N′ left-bullet-typing right-term-typing)
+      N⊑N′ prefix-reflⁱ left-bullet-typing right-term-typing)
     (⊑-source-liftνᵢ pB) s-shape-proof comp
   where
   left-seal =
@@ -96,7 +97,7 @@ source-reveal-allocation-relation-proofᵀ
     {q = q} vN noN h⇑A s↑ pB replace liftρ N⊑N′ =
   conv↑⊑ᵀ left-reveal
     (α⊑ᵀ vN noN h⇑A liftρ lift-left-ctx-[]
-      N⊑N′ left-bullet-typing right-term-typing)
+      N⊑N′ prefix-reflⁱ left-bullet-typing right-term-typing)
     (⊑-source-liftνᵢ pB) replace
   where
   left-reveal =

@@ -184,6 +184,32 @@ data EmbeddedTargetInstantiationCreation
       (renameᵗ τ A) (renameᵗ σ A′)
       (⊑-renameᵗ²ᵢ assm hτ hσ p)
 
+  prefix-creationᴱ :
+    ∀ {Ψ Δᴸ Δᴿ}
+      {ρ ρ′ : StoreImp Ψ Δᴸ Δᴿ}
+      {M M′ A A′ p} →
+    EmbeddedTargetInstantiationCreation
+      {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+      {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+      {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+      {s = s} {μ = μ} {r = r} {f = f}
+      {body-shape = body-shape}
+      prefix-evidence body-relation
+      {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+      ρ M M′ A A′ p →
+    StoreImpPrefixᴿ ρ ρ′ →
+    Δᴸ ∣ leftStoreⁱ ρ′ ∣ [] ⊢ M ⦂ A →
+    Δᴿ ∣ rightStoreⁱ ρ′ ∣ [] ⊢ M′ ⦂ A′ →
+    EmbeddedTargetInstantiationCreation
+      {Φ₀ = Φ₀} {Θᴸ = Θᴸ} {Θᴿ = Θᴿ}
+      {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {ρ∀ = ρ∀} {ρᴿ⁺ = ρᴿ⁺}
+      {W = W} {W′ = W′} {B = B} {C = C} {D = D}
+      {s = s} {μ = μ} {r = r} {f = f}
+      {body-shape = body-shape}
+      prefix-evidence body-relation
+      {Ψ = Ψ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+      ρ′ M M′ A A′ p
+
   embed-creation-leftᴱ :
     ∀ {Ψ Ω Δᴸ Δᴿ Υᴸ ρ ρ′ M M′ A A′ p τ} →
     EmbeddedTargetInstantiationCreation

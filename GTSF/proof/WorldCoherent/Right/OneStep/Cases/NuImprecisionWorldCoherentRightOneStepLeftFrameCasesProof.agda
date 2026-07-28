@@ -10,6 +10,8 @@ module
 --   * Contains no recursive dispatcher implementation, result wrapper,
 --     postulate, hole, permissive option, or compatibility alias.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Data.List using ([])
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
@@ -40,7 +42,6 @@ open import NuTerms using
 open import Primitives using (addℕ)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
@@ -146,7 +147,7 @@ world-coherent-right-one-step-application-left-caseᵀ
     L⊑L′ M⊑M′ L⊢ M⊢ L′⊢ M′⊢ L′→
     | inj₁ (noM , noM′) =
   rightStepApplicationLeftFrame frames noM noM′
-    (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
+    (term-imprecision-store-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
     (recursive prefix coherent exclusive unique wfL wfR
       (runtime-·₁ okLM) (runtime-·₁ okL′M′)
       L⊑L′ L⊢ L′⊢ L′→)
@@ -203,7 +204,7 @@ world-coherent-right-one-step-primitive-left-caseᵀ
     L⊑L′ M⊑M′ L⊢ M⊢ L′⊢ M′⊢ L′→
     | inj₁ (noM , noM′) =
   rightStepPrimitiveLeftFrame frames noM noM′
-    (allocation-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
+    (term-imprecision-store-prefixᵀ prefix M⊑M′ M⊢ M′⊢)
     (recursive prefix coherent exclusive unique wfL wfR
       (runtime-⊕₁ okLM) (runtime-⊕₁ okL′M′)
       L⊑L′ L⊢ L′⊢ L′→)

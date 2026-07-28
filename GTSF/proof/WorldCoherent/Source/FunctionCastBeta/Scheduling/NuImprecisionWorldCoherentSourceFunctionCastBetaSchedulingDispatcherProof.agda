@@ -34,8 +34,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ·⊑·ᵀ
+  ( ·⊑·ᵀ
   ; ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
@@ -133,12 +132,6 @@ private
 world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ :
   WorldCoherentSourceFunctionCastBetaSchedulingCases →
   WorldCoherentSourceFunctionCastBetaRootᵀ
-world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases prefix coherent exclusive unique wfL wfR okM okM′
-    M⊢ M′⊢ (allocation-prefixᵀ prefix₀ inner M⊢₀ M′⊢₀) vV vW =
-  world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
-    cases (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive unique wfL wfR okM okM′ M⊢ M′⊢ inner vV vW
 world-coherent-source-function-cast-beta-scheduling-dispatcher-proofᵀ
     cases prefix coherent exclusive unique wfL wfR okM okM′
     M⊢ M′⊢ (·⊑·ᵀ L⊑L′ W⊑R′) vV vW =

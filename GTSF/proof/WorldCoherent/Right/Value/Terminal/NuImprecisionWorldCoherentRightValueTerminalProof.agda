@@ -7,6 +7,8 @@ module proof.WorldCoherent.Right.Value.Terminal.NuImprecisionWorldCoherentRightV
 --   * Uses only focused prefix, typing, result, and lineage infrastructure.
 --   * Contains no postulate, hole, incomplete match, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([])
@@ -15,8 +17,7 @@ open import Data.Nat.Properties using (≤-refl)
 open import NuReduction using (keep; ↠-refl)
 open import NuTerms using (⇑ᵗᵐ; _•)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; prefix-reflⁱ
+  ( prefix-reflⁱ
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingAlgebra using
   (rel-store-embedding-reflⁱ)
@@ -68,7 +69,7 @@ world-coherent-right-value-terminal-proofᵀ
       noV′ (nu-term-imprecision-target-typing V⊑V′)
 
   related⁺ =
-    allocation-prefixᵀ prefix V⊑V′ source-typing⁺ target-typing⁺
+    term-imprecision-store-prefixᵀ prefix V⊑V′ source-typing⁺ target-typing⁺
 
   result =
     weak-step-result
@@ -108,7 +109,8 @@ world-coherent-right-value-terminal-proofᵀ
     RightValueCatchupSourceBulletTransportᵀ result
   source-bullet-transport {L = L} {M′ = M′} {C = C} {C′ = C′}
       {q = q} prefix′ okL noL′ L⊢ L⊑L′ =
-    allocation-prefixᵀ {ρ = ρ⁺} {M = (⇑ᵗᵐ L) •} {M′ = M′}
+    term-imprecision-store-prefixᵀ
+      {M = (⇑ᵗᵐ L) •} {M′ = M′}
       {A = C} {B = C′} {p = q}
       prefix′ L⊑L′ L⊢ target-typing′
     where

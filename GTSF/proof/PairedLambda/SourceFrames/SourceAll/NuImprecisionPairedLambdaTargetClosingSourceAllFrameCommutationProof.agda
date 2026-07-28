@@ -12,6 +12,8 @@ module
 --   * Contains no canonical assembly, postulate, hole, permissive option, or
 --     broad simulation/core import.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 import Coercions as C
 open import Conversion using (reveal-all)
@@ -20,8 +22,7 @@ open import Data.Product using (_,_)
 open import ImprecisionWf using (ν; ∀ⁱ_)
 open import NuTerms using (no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; conv↑⊑ᵀ
+  ( conv↑⊑ᵀ
   ; conv⊑convᵀ
   ; paired-conversion
   )
@@ -74,7 +75,7 @@ paired-lambda-target-closing-source-all-frame-commutation-proofᵀ
   framed-no-bullet = no•-⟨⟩ noW
 
   ambient-relation =
-    allocation-prefixᵀ prefix framed
+    term-imprecision-store-prefixᵀ prefix framed
       (term-weaken ≤-refl (leftStoreⁱ-prefix-inclusion prefix)
         framed-no-bullet
         (nu-term-imprecision-source-typing framed))

@@ -11,11 +11,19 @@ module
 --     terminalization to their sibling-aware contracts.
 --   * Contains no opaque-final-result sibling transport or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Agda.Builtin.Equality using (refl)
+open import Data.List using ([]; _∷_)
+open import Data.Nat using (zero)
 open import Data.Product using (_,_; proj₁; proj₂; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
 
+open import ImprecisionWf using (⊑-src-wf)
 import NarrowWiden as NW
 open import NarrowWiden using (genSafe→inert)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  (leftStoreⁱ-lift-left; rightStoreⁱ-lift-left)
 open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   ( lift-left-ctx-[]
   )
@@ -27,6 +35,11 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision
+open import TermTyping using (_∣_∣_⊢_⦂_; ⊢•)
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping using
+  ( nu-term-imprecision-source-typing
+  ; nu-term-imprecision-target-typing
+  )
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
@@ -133,16 +146,6 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
   inner = proj₁ inner-with-sibling
 
   inner-sibling = proj₂ inner-with-sibling
-world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL vL′ noL′
-    (allocation-prefixᵀ prefix₀ inner L⊢ L′⊢)
-    noR okR′ sibling =
-  world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
-    source-runtime quotient-catchup
-    (store-imp-prefix-transⁱ prefix₀ prefix)
-    coherent exclusive unique wfL okL vL′ noL′ inner
-    noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL
@@ -325,18 +328,33 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL () noL′
     (α⊑αᵀ vL noL vL′ noInnerL′ pA liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢)
+      L⊑L′ allocation-prefix L•⊢ L′•⊢)
     noR okR′ sibling
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
-    prefix coherent exclusive unique wfL okL vL′ noL′
+    {p = p} prefix coherent exclusive unique wfL okL vL′ noL′
     (α⊑ᵀ vL noL h⇑A liftρ lift-left-ctx-[]
-      L⊑L′ L•⊢ L′•⊢)
+      L⊑L′ allocation-prefix L•⊢ L′•⊢)
     noR okR′ sibling =
   source-bullet-sibling source-runtime
-    h⇑A prefix coherent exclusive unique wfL okL
+    h⇑A (store-imp-prefix-transⁱ allocation-prefix prefix)
+    coherent exclusive unique wfL okL
     vL′ noL′ vL noL liftρ lift-left-ctx-[]
-    L⊑L′ L•⊢ L′•⊢ noR okR′ sibling
+    L⊑L′ canonical-source-typing canonical-target-typing
+    noR okR′ sibling
+  where
+  canonical-source-typing =
+    subst
+      (λ Σ → _ ∣ ((zero , _) ∷ Σ) ∣ [] ⊢ _ ⦂ _)
+      (sym (leftStoreⁱ-lift-left liftρ))
+      (⊢• refl refl (⊑-src-wf p) vL noL
+        (nu-term-imprecision-source-typing L⊑L′))
+
+  canonical-target-typing =
+    subst
+      (λ Σ → _ ∣ Σ ∣ [] ⊢ _ ⦂ _)
+      (sym (rightStoreⁱ-lift-left liftρ))
+      (nu-term-imprecision-target-typing L⊑L′)
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL okL () noL′
@@ -552,4 +570,4 @@ world-coherent-left-value-catchup-runtime-sibling-prefix-proofᵀ
     source-runtime quotient-catchup
     prefix coherent exclusive unique wfL
     okL vL′ noL′ primary noR okR′
-    (allocation-prefixᵀ prefix sibling R⊢ R′⊢)
+    (term-imprecision-store-prefixᵀ prefix sibling R⊢ R′⊢)

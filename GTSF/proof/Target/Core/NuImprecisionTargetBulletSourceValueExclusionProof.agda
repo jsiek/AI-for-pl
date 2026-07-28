@@ -3,8 +3,7 @@ module
   where
 
 -- File Charter:
---   * Exhaustively peels source-value and allocation frames above a target
---     runtime bullet.
+--   * Exhaustively peels source-value frames above a target runtime bullet.
 --   * Closes the exposed right-allocation root with its incompatible
 --     pre-allocation and post-allocation type indices.
 --   * Contains no catch-all, postulate, hole, or permissive option.
@@ -13,8 +12,7 @@ open import Data.Empty using (⊥-elim)
 open import NuTerms using
   (Value; Λ_; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; blame⊑ᵀ
+  ( blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
@@ -22,11 +20,7 @@ open import QuotientedTermImprecision using
   ; Λ⊑ᵀ
   ; α⊑αᵀ
   ; α⊑ᵀ
-  ; target-instantiationᵀ
   )
-open import
-  proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
-  using (embedded-creation-target-valueᴱ)
 open import
   proof.NuCore.Misc.NuImprecisionTargetBulletIndexCycleDef
   using (TargetBulletIndexCycleᵀ)
@@ -45,20 +39,11 @@ quotiented-target-bullet-excludes-source-value-proofᵀ cycle
   quotiented-target-bullet-excludes-source-value-proofᵀ
     cycle vW inner
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
-    vV (target-instantiationᵀ embedded)
-    with embedded-creation-target-valueᴱ embedded
-quotiented-target-bullet-excludes-source-value-proofᵀ cycle
-    vV (target-instantiationᵀ embedded) | ()
-quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     () (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ
-      inner source-typing target-typing)
+      inner prefix source-typing target-typing)
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     () (α⊑ᵀ vL noL hA liftρ liftγ
-      inner source-typing target-typing)
-quotiented-target-bullet-excludes-source-value-proofᵀ cycle
-    vV (allocation-prefixᵀ prefix inner source-typing target-typing) =
-  quotiented-target-bullet-excludes-source-value-proofᵀ
-    cycle vV inner
+      inner prefix source-typing target-typing)
 quotiented-target-bullet-excludes-source-value-proofᵀ cycle
     (vV ⟨ inert ⟩)
     (cast⊒⊑ᵀ mode seal★ cast inner q shape composition) =

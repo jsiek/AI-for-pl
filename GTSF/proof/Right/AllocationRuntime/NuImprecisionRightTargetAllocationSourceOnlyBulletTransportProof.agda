@@ -10,6 +10,8 @@ module proof.Right.AllocationRuntime.NuImprecisionRightTargetAllocationSourceOnl
 --   * Contains no postulate, hole, permissive option, catch-all clause, or
 --     termination bypass.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
@@ -46,7 +48,6 @@ open import NuTerms using
   )
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
@@ -229,7 +230,7 @@ right-target-allocation-source-only-bullet-transport-proofᵀ
         prefixᴿ
       | ρᴿ , rightᴸρ , leftᴿρ
       | occ′ , index-eq =
-    allocation-prefixᵀ (prefix-∷ⁱ prefixᴿ) aligned
+    term-imprecision-store-prefixᵀ (prefix-∷ⁱ prefixᴿ) aligned
       source-typing target-typing
     where
     eq = right-under-left-ctx-eq Φ₀

@@ -7,6 +7,8 @@ module proof.Source.OneStep.NuImprecisionSourceOneStepDeltaRootProof where
 --   * Uses identity transport, coherence, and reflexive store lineage.
 --   * Contains no postulate, hole, incomplete match, or permissive option.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Agda.Builtin.Equality using (refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (_+_)
@@ -17,8 +19,7 @@ open import NuReduction using
 open import NuTerms using ($; _⊕[_]_)
 open import Primitives using (addℕ; κℕ)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; κ⊑κᵀ
+  ( κ⊑κᵀ
   ; prefix-reflⁱ
   )
 open import TermTyping using (⊢$)
@@ -58,7 +59,7 @@ world-coherent-source-delta-root-proofᵀ
     ⊢$ (κℕ (m + n))
 
   related⁺ =
-    allocation-prefixᵀ prefix κ⊑κᵀ result-typingᴸ result-typingᴿ
+    term-imprecision-store-prefixᵀ prefix κ⊑κᵀ result-typingᴸ result-typingᴿ
 
   δ-step =
     ↠-step (pure-step δ-⊕) ↠-refl

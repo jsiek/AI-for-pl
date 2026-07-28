@@ -23,7 +23,9 @@ Top-level groups:
   During the controlled live-QTI migration, its
   [`README.md`](Quotient/README.md) is the authoritative lifecycle manifest
   for canonical, migration-only, retiring, and obsolete modules.
-- `Store/`: store prefix, correspondence, lineage, and embedding helpers.
+- `Store/`: store prefix, correspondence, lineage, and embedding helpers. The
+  canonical ordinary/quotient term-prefix admissibility boundary is
+  `Store/Prefix/NuImprecisionTermStorePrefixDef/Proof/Lemma`.
 - `Substitution/`: term and parallel substitution helpers.
 - `WorldCoherent/`: world-coherent source, right, quotient, final, and value
   catch-up assemblies.

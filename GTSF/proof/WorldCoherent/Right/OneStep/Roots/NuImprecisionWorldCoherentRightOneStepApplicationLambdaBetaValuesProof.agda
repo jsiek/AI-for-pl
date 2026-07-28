@@ -42,8 +42,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; ƛ⊑ƛᵀ
+  ( ƛ⊑ƛᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using
@@ -94,11 +93,6 @@ private
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ ctx-imp A A′ pA ∷ []
       ⊢ᴺ N ⊑ N′ ⦂ B ⊑ B′ ∶ pB
   related-lambda-bodiesᵀ (ƛ⊑ƛᵀ hA hA′ body) = body
-  related-lambda-bodiesᵀ
-      (allocation-prefixᵀ prefix inner
-        (⊢ƛ hA body⊢) (⊢ƛ hA′ body′⊢)) =
-    allocation-prefixᵀ prefix (related-lambda-bodiesᵀ inner)
-      body⊢ body′⊢
 
 
 world-coherent-right-one-step-application-lambda-beta-values-at-zero-proofᵀ :

@@ -10,6 +10,8 @@ module
 --   * Contains no catch-up, crossed runtime case, result wrapper, postulate,
 --     hole, permissive option, or compatibility alias.
 
+open import proof.Store.Prefix.NuImprecisionTermStorePrefixLemma using
+  (term-imprecision-store-prefixᵀ)
 open import Data.List using ([])
 
 open import ImprecisionWf using
@@ -40,7 +42,6 @@ open import NuTerms using
 open import Primitives using (addℕ)
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
-  ; allocation-prefixᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -119,7 +120,7 @@ world-coherent-right-one-step-application-right-value-caseᵀ
     vL noL vL′ noL′ okM okM′ L⊑L′ M⊑M′
     L⊢ M⊢ L′⊢ M′⊢ M′→ =
   rightStepApplicationRightFrame frames vL noL vL′ noL′
-    (allocation-prefixᵀ prefix L⊑L′ L⊢ L′⊢)
+    (term-imprecision-store-prefixᵀ prefix L⊑L′ L⊢ L′⊢)
     (recursive prefix coherent exclusive unique wfL wfR
       okM okM′ M⊑M′ M⊢ M′⊢ M′→)
 
@@ -160,6 +161,6 @@ world-coherent-right-one-step-primitive-right-value-caseᵀ
     vL noL vL′ noL′ okM okM′ L⊑L′ M⊑M′
     L⊢ M⊢ L′⊢ M′⊢ M′→ =
   rightStepPrimitiveRightFrame frames vL noL vL′ noL′
-    (allocation-prefixᵀ prefix L⊑L′ L⊢ L′⊢)
+    (term-imprecision-store-prefixᵀ prefix L⊑L′ L⊢ L′⊢)
     (recursive prefix coherent exclusive unique wfL wfR
       okM okM′ M⊑M′ M⊢ M′⊢ M′→)

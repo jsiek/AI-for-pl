@@ -751,6 +751,46 @@ example. It uses only the independent smaller relation. The former QTI-based
 regression remains as a comparison, but is no longer evidence needed by the
 smaller design.
 
+## Store-prefix weakening is admissible
+
+Relational-store extension is not a term-form rule. For both the ordinary and
+quotient judgments, it is an admissible mutual theorem:
+
+$$
+\rho_0 \mathrel{\leq_{\mathrm{prefix}}} \rho^+
+\quad\land\quad
+\rho_0 \vdash M \mathrel{\sqsubseteq_p} M'
+\quad\land\quad
+\rho^+ \vdash M : A
+\quad\land\quad
+\rho^+ \vdash M' : A'
+\quad\Longrightarrow\quad
+\rho^+ \vdash M \mathrel{\sqsubseteq_p} M'.
+$$
+
+The corresponding imprecision and zero-step reduction square is
+
+$$
+\begin{array}{ccc}
+M & \mathrel{\sqsubseteq_{\rho_0,p}} & M' \\
+\downarrow^{0} & & \downarrow^{0} \\
+M & \mathrel{\sqsubseteq_{\rho^+,p}} & M'.
+\end{array}
+$$
+
+The proof is syntax directed. Ordinary constructors rebuild their premises
+recursively; quotient closing weakens its widening pair; casts weaken their
+typing and seal-mode evidence. A runtime-bullet rule records the prefix from
+its canonical allocation store to its current ambient world. An embedded
+target-instantiation creation residual records the same exact lineage. A
+later prefix step composes those residual prefixes rather than wrapping the
+whole relation in an administrative constructor.
+
+This invariant is strong enough for argument and primitive-operand framing,
+multi-allocation `ν` catch-up, quotient closing, and target-instantiation
+creation. It also makes typing, value classification, world embedding,
+context shift, and substitution inversion strictly syntax directed.
+
 The live-consumer audit found three distinct situations. The direct post-beta
 identity context already fixes its index to the canonical right-lifted index.
 The pure and framed universal-fusion spines previously accepted an arbitrary

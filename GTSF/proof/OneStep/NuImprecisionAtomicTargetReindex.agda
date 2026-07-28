@@ -28,8 +28,7 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import NuTerms using (Value; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( allocation-prefixᵀ
-  ; blame⊑ᵀ
+  ( blame⊑ᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
   ; closeᵀ
@@ -147,19 +146,14 @@ atomic-target-value-reindexᵀ atom vV
       (embedded-creation-target-shapeᴱ embedded) atom)
 atomic-target-value-reindexᵀ atom ()
     (α⊑αᵀ vL noL vL′ noL′ p↑ liftρ liftγ
-      L⊑L′ L•⊢ L′•⊢) q
+      L⊑L′ allocation-prefix L•⊢ L′•⊢) q
 atomic-target-value-reindexᵀ atom vV
     (α⊑ᵀ {occ = occ} {{safe = safe}} vL noL hA liftρ liftγ
-      L⊑V L•⊢ V⊢) q =
+      L⊑V allocation-prefix L•⊢ V⊢) q =
   α⊑ᵀ {{safe = safe}} vL noL hA liftρ liftγ
     (atomic-target-value-reindexᵀ atom vV L⊑V
       (ν safe occ q))
-    L•⊢ V⊢
-atomic-target-value-reindexᵀ atom vV
-    (allocation-prefixᵀ prefix M⊑V M⊢ V⊢) q =
-  allocation-prefixᵀ prefix
-    (atomic-target-value-reindexᵀ atom vV M⊑V q)
-    M⊢ V⊢
+    allocation-prefix L•⊢ V⊢
 atomic-target-value-reindexᵀ atom ()
     (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ p↑ liftρ liftγ N⊑N′
       replacement) q

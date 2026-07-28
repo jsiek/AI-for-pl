@@ -57,6 +57,7 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; α⊑ᵀ
+  ; prefix-reflⁱ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -170,5 +171,6 @@ world-coherent-source-bullet-runtime-sibling-catchup-proofᵀ
     noR okR′ sibling =
   value-sibling prefix coherent exclusive unique wfL okL•
     vV′ noV′
-    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑V′ L•⊢ V′⊢)
+    (α⊑ᵀ vL noL h⇑A liftρ liftγ L⊑V′
+      prefix-reflⁱ L•⊢ V′⊢)
     noR okR′ sibling

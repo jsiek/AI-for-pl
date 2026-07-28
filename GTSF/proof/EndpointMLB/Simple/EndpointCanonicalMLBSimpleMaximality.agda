@@ -37,7 +37,9 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleCompleteness usin
   )
 open import proof.Core.Properties.ImprecisionProperties using (imp?; ⊑-refl-idᵢ)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  (CommonLowerBoundᵢ; old⊑→wf-idᵢ; ⊑-forgetᵢ; ⊑-trans-idᵢ)
+  (CommonLowerBoundᵢ; old⊑→wf-idᵢ; ⊑-forgetᵢ)
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
+  (⊑-trans-idᵢ)
 
 ------------------------------------------------------------------------
 -- Layer 2: whole-list pruning facts

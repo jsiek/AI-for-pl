@@ -65,7 +65,7 @@ open import proof.Core.Properties.ImprecisionCompositionProperties using
   (shape-trans-left-idᵢ)
 open import proof.Core.Properties.ImprecisionProperties using
   (WfImpCtx-to²; idᵢ-wf)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
   (⊑-trans-left-idᵢ)
 
 MLB-monotoneᵖ :

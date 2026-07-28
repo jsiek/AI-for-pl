@@ -1842,6 +1842,26 @@ Strict checks pass for the focused module in 4.42 seconds, the reduced
 monolith in 5.56 seconds, and the paired-reveal consumer in 7.84 seconds;
 `make audit` also passes.
 
+The sixth stable cut begins retiring the 19,945-line
+`MaximalLowerBoundsWf.agda` selector development instead of splitting its
+obsolete algorithm. The 389-line
+`proof/Core/Properties/NuImprecisionTransitivityProperties.agda` now owns
+indexed context composition, binder-aware transitivity, and its
+occurrence/non-variable support. Five exact external consumers import it
+directly, with no compatibility re-export. The endpoint monolith shrinks to
+19,606 lines and its direct importer count falls from twenty to eighteen.
+Strict checks pass for the focused module in 4.81 seconds, the one-time
+invalidated monolith in 47.98 seconds, imprecision composition in 2.95
+seconds, endpoint maximality in 6.52 seconds, and endpoint quotienting in
+35.96 seconds.
+
+The remaining selector audit found three further reusable islands: the
+old-to-indexed well-formedness bridge, binder permutation, and source binder
+drop. Once those consumers move, only historical selector experiments and
+retiring paired-lambda code should remain. Delete that residual selector
+development and the isolated non-well-formed selector rather than preserving
+them as compatibility surfaces.
+
 Invalidating the other two consumers exposed existing migration debt rather
 than import failures. The paired-lambda widening consumer has nine missing
 `NarrowWiden` cases in its own dispatcher and belongs to the retiring
@@ -1852,8 +1872,8 @@ which still imports retired `PairedConversion`; that live source path remains
 a migration gate.
 
 Further safe cuts are store-relation structure and endpoint-shape inversions.
-These are lower priority than the operational quotient SCC now that five
-migration-aligned invalidation cuts are established. Do not split the
+These are lower priority than the operational quotient SCC and the three
+identified endpoint-selector evacuations. Do not split the
 retiring quotient-value monolith or migration experiments. The zero-import
 `MaximalLowerBoundsJunk.agda` and its active-surface references have already
 been deleted; Git history is the archive.

@@ -50,12 +50,14 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; drop-zeroᵢ
   ; drop-∀ᵢ
   ; drop-νᵢ
-  ; nonVar-forward-if-occursᵢ
   ; occurs-var-true→≡ᵢ
   ; old⊑→wf-idᵢ
   ; open-unused-atᵢ
   ; removeAt-Wfᵢ
   ; ⊑-forgetᵢ
+  )
+open import proof.Core.Properties.NuImprecisionTransitivityProperties using
+  ( nonVar-forward-if-occursᵢ
   ; ⊑-trans-idᵢ
   ; ⊑-trans-left-idᵢ
   )

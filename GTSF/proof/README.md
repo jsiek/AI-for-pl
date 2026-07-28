@@ -182,6 +182,14 @@ operational reduction support and does not re-export type injectivity.  Dead
 type-renamed-reduction helpers with no closed-world consumers should be
 deleted rather than retained as speculative API.
 
+Indexed type-imprecision transitivity similarly lives in
+`NuImprecisionTransitivityProperties`, not in the endpoint maximal-lower-bound
+selector.  It owns `ComposeCtxᵢ`, binder-aware context composition,
+occurrence/non-variable transport, and the three indexed transitivity
+theorems.  Consumers import that focused module directly;
+`MaximalLowerBoundsWf` imports it non-publicly only while the remaining
+historical selector clients are retired.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

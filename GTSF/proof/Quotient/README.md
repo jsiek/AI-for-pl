@@ -1052,8 +1052,26 @@ post-beta path still reaches a retired `PairedConversion` dependency. Delete
 the former with its surface and migrate the latter; do not restore a
 `ReductionProperties` re-export.
 
+The sixth stable cut extracts the 389-line
+`NuImprecisionTransitivityProperties.agda` from
+`MaximalLowerBoundsWf.agda`. It owns indexed context composition,
+binder-aware transitivity, and the needed occurrence/non-variable support.
+Five external consumers now import the focused module directly; the endpoint
+selector imports it non-publicly and does not re-export it. The selector
+shrinks from 19,945 to 19,606 lines and from twenty direct importers to
+eighteen. Focused strict checks pass for the new module, the invalidated
+selector, imprecision composition, endpoint maximality, and endpoint
+quotienting.
+
+The remaining selector audit identifies the well-formedness bridge, binder
+permutation, and source binder drop as the other reusable islands. After
+those move, delete the historical selector body and its obsolete experiments
+rather than reorganizing them. The isolated non-well-formed selector is a
+follow-up deletion candidate once its single test client is classified.
+
 Store-relation structure and endpoint shape remain later stable cuts, but the
-operational quotient SCC is now higher priority. Retiring
+operational quotient SCC and the three selector evacuations are higher
+priority. Retiring
 quotient/experiment files should be deleted rather than split. The
 zero-consumer
 `MaximalLowerBoundsJunk.agda` has been removed; Git history is the archive.

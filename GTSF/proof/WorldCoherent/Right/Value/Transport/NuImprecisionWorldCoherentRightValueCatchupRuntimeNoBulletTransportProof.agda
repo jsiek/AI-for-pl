@@ -185,9 +185,7 @@ open import
   proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
   using (embedded-creation-source-no-bulletᴱ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-fixed-narrows-typing
-  ; apply-narrows-typing
-  ; apply-reveal-under-ty-binders
+  ( apply-reveal-under-ty-binders
   ; apply-widen-inst-under-ty-binders
   ; nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
@@ -196,8 +194,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; seal★-id-only
   ; modeRename-gen-tag-or-id
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-fixed-narrows-typing; apply-narrows-typing)
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact

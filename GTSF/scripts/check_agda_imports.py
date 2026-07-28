@@ -43,8 +43,6 @@ STRICT_PROOF_INVENTORY_ROOT_MODULES = (
 KNOWN_INCOMPLETE_PROOF_MODULES = (
     "proof.DGG.TerminalForward."
     "NuDGGTerminalForwardIntegrationProof",
-    "proof.WorldCoherent.Final.Paired."
-    "NuImprecisionWorldCoherentFinalPairedWideningCatchupProof",
     "proof.WorldCoherent.Final.SourceNu."
     "NuImprecisionWorldCoherentFinalSourceNuCast"
     "SourceOnlyIndexCatchupProof",
@@ -90,8 +88,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "NuImprecisionSourceOnlyContextFactorCounterexample",
     "proof.Source.SealTag."
     "NuImprecisionSourceSealCancellationCounterexample",
-    "proof.WorldCoherent.Final.Paired."
-    "NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample",
     "proof.WorldCoherent.Right.Target.WidenNarrow."
     "NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample",
     "proof.WorldCoherent.Right.Target.WidenNarrow."

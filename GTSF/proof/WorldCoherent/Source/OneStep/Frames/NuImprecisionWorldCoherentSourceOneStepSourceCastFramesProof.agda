@@ -59,11 +59,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-source-cast-frame-transportᵀ
   ; weak-one-step-source-cast-frameᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact

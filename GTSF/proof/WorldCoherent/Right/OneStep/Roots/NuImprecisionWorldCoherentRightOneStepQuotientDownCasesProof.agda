@@ -3,10 +3,11 @@ module
   where
 
 -- File Charter:
---   * Implements the `down⊑downᵀ` and `gen-down⊑gen-downᵀ` QTIP
---     branches beneath an enclosing `up⊑upᵀ` relation.
+--   * Implements the `paired-downᵀ` branch beneath an enclosing `closeᵀ`
+--     relation for every admitted spine mode.
 --   * Exhausts target downcast steps into body framing, direct inner blame,
---     and active value roots while retaining both composition squares.
+--     and active value roots while retaining both composition squares and
+--     reduction-closed widening compatibility.
 --   * Contains no QTIP application case, full quotient-recursion claim,
 --     active synchronization implementation, postulate, hole, permissive
 --     option, or wrapper alias.
@@ -45,9 +46,17 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; StoreImpPrefix
+  ; seal★-gen-tag-or-id
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
-open import TermTyping using (_∣_∣_⊢_⦂_)
+open import QuotientImprecisionCompatibility using
+  ( ReductionClosedQuotientWideningCompatible
+  ; SpineCastMode
+  ; gradual↓
+  ; id-only↓
+  )
+open import TermTyping using
+  (cast-gen; cast-tag-or-id; _∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -76,11 +85,18 @@ open import
 open import
   proof.WorldCoherent.Right.OneStep.Roots.NuImprecisionWorldCoherentRightOneStepQuotientDownFrameProof
   using
-  ( world-coherent-right-one-step-quotient-gen-down-frameᵀ
-  ; world-coherent-right-one-step-quotient-gen-down-target-blame-rootᵀ
-  ; world-coherent-right-one-step-quotient-id-down-frameᵀ
-  ; world-coherent-right-one-step-quotient-id-down-target-blame-rootᵀ
+  ( world-coherent-right-one-step-quotient-down-frameᵀ
+  ; world-coherent-right-one-step-quotient-down-target-blame-rootᵀ
   )
+
+
+private
+  quotient-down-spine-mode :
+    ∀ {Σ} (down-mode : QuotientDownMode) →
+    SpineCastMode Σ (quotient-down-mode down-mode)
+  quotient-down-spine-mode id-down = id-only↓
+  quotient-down-spine-mode gen-down =
+    gradual↓ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id
 
 
 world-coherent-right-one-step-quotient-down-cases-proofᵀ :
@@ -119,118 +135,102 @@ world-coherent-right-one-step-quotient-down-cases-proofᵀ :
   CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
   CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
   u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
   M′ ⟨ d′ ⟩ —→[ χ ] L′ →
   WorldCoherentWeakOneStepIndexedOutcome
     {M = (M ⟨ d ⟩) ⟨ u ⟩}
     {N′ = L′ ⟨ applyCoercion χ u′ ⟩}
     {χ = χ} {ρ = ρ} pA
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
-    recurse active id-down
+    recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (ξ-⟨⟩ target-step) =
-  world-coherent-right-one-step-quotient-id-down-frameᵀ
+  world-coherent-right-one-step-quotient-down-frameᵀ
     recurse coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square
-    widening u-shape u′-shape up-square target-step
+    (quotient-down-spine-mode down-mode) d⊒ d-shape
+    (quotient-down-spine-mode down-mode) d′⊒ d′-shape
+    M⊑M′ down-square widening u-shape u′-shape up-square compatible
+    target-step
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
-    recurse active gen-down
-    coherent exclusive unique prefix wfL wfR
-    ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square
-    widening u-shape u′-shape up-square
-    (ξ-⟨⟩ target-step) =
-  world-coherent-right-one-step-quotient-gen-down-frameᵀ
-    recurse coherent exclusive unique prefix wfL wfR
-    ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square
-    widening u-shape u′-shape up-square target-step
-world-coherent-right-one-step-quotient-down-cases-proofᵀ
-    recurse active id-down
+    recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑blame down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step blame-⟨⟩) =
-  world-coherent-right-one-step-quotient-id-down-target-blame-rootᵀ
-    ok-source d⊒ d-shape d′⊒ d′-shape M⊑blame down-square
-    widening u-shape u′-shape up-square
-world-coherent-right-one-step-quotient-down-cases-proofᵀ
-    recurse active gen-down
-    coherent exclusive unique prefix wfL wfR
-    ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑blame down-square
-    widening u-shape u′-shape up-square
-    (pure-step blame-⟨⟩) =
-  world-coherent-right-one-step-quotient-gen-down-target-blame-rootᵀ
-    ok-source d⊒ d-shape d′⊒ d′-shape M⊑blame down-square
+  world-coherent-right-one-step-quotient-down-target-blame-rootᵀ
+    ok-source (quotient-down-spine-mode down-mode) d⊒ d-shape
+    (quotient-down-spine-mode down-mode) d′⊒ d′-shape
+    M⊑blame down-square
     widening u-shape u′-shape up-square
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(β-id vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(β-seq vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(β-inst vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(tag-untag-ok {G = G} vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ G ! ⟩)
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(tag-untag-bad {G = G} vV′ G≢H)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ G ! ⟩)
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square
+    widening u-shape u′-shape up-square compatible
     (pure-step root@(seal-unseal vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ seal _ _ ⟩)
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root

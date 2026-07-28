@@ -23,13 +23,14 @@ open import QuotientedTermImprecision using
   ( allocation-prefixᵀ
   ; cast⊒⊑ᵀ
   ; cast⊑⊑ᵀ
+  ; closeᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
   ; gen⊑groundᵀ
-  ; up⊑upᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -46,7 +47,6 @@ open import
   ; sourceAllResidualCases
   ; sourceAllSourceFramesCase
   ; sourceAllTargetConcealFrameCase
-  ; sourceAllTargetIdWidenFrameCase
   ; sourceAllTargetNarrowFrameCase
   ; sourceAllTargetRevealFrameCase
   ; sourceAllTargetWidenFrameCase
@@ -55,7 +55,9 @@ open import
 open import
   proof.Right.SourceAll.Core.NuImprecisionRightSourceAllResidualCasesDef
   using
-  ( sourceAllPairedCast
+  ( sourceAllPairedConceal
+  ; sourceAllPairedReveal
+  ; sourceAllPairedWidening
   ; sourceAllQuotient
   ; sourceAllTargetAllocation
   ; sourceAllTargetBullet
@@ -94,13 +96,13 @@ world-coherent-right-source-all-cast-body-proofᵀ
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-up vM noM inert liftρ liftγ
-    (up⊑upᵀ paired widening pA
-      source-shape target-shape square) =
+    (closeᵀ paired widening pA
+      source-shape target-shape square compatible) =
   sourceAllQuotient (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok-up
     (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
     liftρ liftγ paired widening
-    source-shape target-shape square
+    source-shape target-shape square compatible
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ
@@ -149,19 +151,33 @@ world-coherent-right-source-all-cast-body-proofᵀ
     mode seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
-    ok-cast vM noM inert liftρ liftγ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) =
-  sourceAllTargetIdWidenFrameCase cases
-    prefix coherent exclusive unique wfR ok-cast
-    (vM ⟨ inert ⟩) (no•-⟨⟩ noM)
-    seal★ c⊑ c-shape comp liftρ liftγ inner
+    ok-paired vM noM inert liftρ liftγ
+    (paired-revealᵀ corr c↑ c′↑ replacement inner) =
+  sourceAllPairedReveal (sourceAllResidualCases cases)
+    prefix coherent exclusive unique wfR ok-paired
+    vM noM inert liftρ liftγ
+    corr c↑ c′↑ replacement inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-paired vM noM inert liftρ liftγ
-    (conv⊑convᵀ paired inner) =
-  sourceAllPairedCast (sourceAllResidualCases cases)
+    (paired-concealᵀ corr c↓ c′↓ replacement inner) =
+  sourceAllPairedConceal (sourceAllResidualCases cases)
     prefix coherent exclusive unique wfR ok-paired
-    vM noM inert liftρ liftγ paired inner
+    vM noM inert liftρ liftγ
+    corr c↓ c′↓ replacement inner
+world-coherent-right-source-all-cast-body-proofᵀ
+    cases prefix coherent exclusive unique wfR
+    ok-paired vM noM inert liftρ liftγ
+    (paired-wideningᵀ
+      mode seal★ c⊑ c-shape
+      mode′ seal★′ c′⊑ c′-shape
+      left-square right-square compatible inner) =
+  sourceAllPairedWidening (sourceAllResidualCases cases)
+    prefix coherent exclusive unique wfR ok-paired
+    vM noM inert liftρ liftγ
+    mode seal★ c⊑ c-shape
+    mode′ seal★′ c′⊑ c′-shape
+    left-square right-square compatible inner
 world-coherent-right-source-all-cast-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     okN′ vM noM inert liftρ liftγ

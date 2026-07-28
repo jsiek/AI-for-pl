@@ -26,7 +26,9 @@ open import NuReduction
 open import proof.Core.Properties.CoercionProperties
   using
     ( renameᶜ-dual-normal
+    ; renameᶜ-compose
     ; renameᶜ-ext-suc-suc
+    ; renameᶜ-id
     ; renameᶜ-open-commute
     ; renameᶜ-preserves-Inert
     ; renameᶜ-reflects-Inert
@@ -41,7 +43,9 @@ open import proof.Core.Properties.NuTermProperties
     )
 open import proof.Core.Properties.TypeProperties using
   ( TyRenameWf-suc
+  ; renameᵗ-compose
   ; renameᵗ-ext-suc-comm
+  ; renameᵗ-id
   ; renameᵗ-preserves-WfTy
   )
 
@@ -430,6 +434,16 @@ applyTyVars-++ [] χs′ α = refl
 applyTyVars-++ (χ ∷ χs) χs′ α =
   applyTyVars-++ χs χs′ (applyTyVar χ α)
 
+applyTys-rename-applyTyVars :
+  ∀ (χs : StoreChanges) (A : Ty) →
+  applyTys χs A ≡ renameᵗ (applyTyVars χs) A
+applyTys-rename-applyTyVars [] A = sym (renameᵗ-id A)
+applyTys-rename-applyTyVars (keep ∷ χs) A =
+  applyTys-rename-applyTyVars χs A
+applyTys-rename-applyTyVars (bind B ∷ χs) A =
+  trans (applyTys-rename-applyTyVars χs (⇑ᵗ A))
+        (renameᵗ-compose suc (applyTyVars χs) A)
+
 applyTerms-++ :
   ∀ χs χs′ M →
   applyTerms (χs ++ χs′) M ≡ applyTerms χs′ (applyTerms χs M)
@@ -678,6 +692,33 @@ applyCoercions-preserves-Inert :
 applyCoercions-preserves-Inert [] i = i
 applyCoercions-preserves-Inert (χ ∷ χs) i =
   applyCoercions-preserves-Inert χs (applyCoercion-preserves-Inert χ i)
+
+applyCoercions-rename-applyTyVars :
+  ∀ (χs : StoreChanges) (c : Coercion) →
+  applyCoercions χs c ≡ renameᶜ (applyTyVars χs) c
+applyCoercions-rename-applyTyVars [] c = sym (renameᶜ-id c)
+applyCoercions-rename-applyTyVars (keep ∷ χs) c =
+  applyCoercions-rename-applyTyVars χs c
+applyCoercions-rename-applyTyVars (bind B ∷ χs) c =
+  trans (applyCoercions-rename-applyTyVars χs (⇑ᶜ c))
+        (renameᶜ-compose suc (applyTyVars χs) c)
+
+applyCoercion-reflects-Inert :
+  (χ : StoreChange) (c : Coercion) →
+  Inert (applyCoercion χ c) →
+  Inert c
+applyCoercion-reflects-Inert keep c inert = inert
+applyCoercion-reflects-Inert (bind A) c inert =
+  renameᶜ-reflects-Inert suc c inert
+
+applyCoercions-reflects-Inert :
+  (χs : StoreChanges) (c : Coercion) →
+  Inert (applyCoercions χs c) →
+  Inert c
+applyCoercions-reflects-Inert [] c inert = inert
+applyCoercions-reflects-Inert (χ ∷ χs) c inert =
+  applyCoercion-reflects-Inert χ c
+    (applyCoercions-reflects-Inert χs (applyCoercion χ c) inert)
 
 applyCoercion-dual :
   ∀ χ c →

@@ -96,8 +96,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frameᵀ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-narrows-typing
-  ; nu-term-imprecision-transport-termsᵀ
+  ( nu-term-imprecision-transport-termsᵀ
   ; nu-term-imprecision-transport-typesᵀ
   ; subst²-to-≅
   ; weak-one-step-compose-preserves-type-coherenceᵀ
@@ -106,6 +105,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-composeᵀ
   ; weak-one-step-index-resultᵀ
   )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepResult
   ; WeakOneStepTransport

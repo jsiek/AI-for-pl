@@ -50,20 +50,7 @@ open import
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   (sourceChanges; targetTailChanges)
 open import proof.Core.Properties.ReductionProperties using
-  (applyTyVars)
-open import proof.Core.Properties.TypeProperties using
-  (renameᵗ-compose; renameᵗ-id)
-
-
-applyTys-rename-applyTyVars :
-  ∀ (changes : StoreChanges) (A : Ty) →
-  applyTys changes A ≡ renameᵗ (applyTyVars changes) A
-applyTys-rename-applyTyVars [] A = sym (renameᵗ-id A)
-applyTys-rename-applyTyVars (keep ∷ changes) A =
-  applyTys-rename-applyTyVars changes A
-applyTys-rename-applyTyVars (bind B ∷ changes) A =
-  trans (applyTys-rename-applyTyVars changes (⇑ᵗ A))
-        (renameᵗ-compose suc (applyTyVars changes) A)
+  (applyTyVars; applyTys-rename-applyTyVars)
 
 
 store-corresponds-weakenⁱ :

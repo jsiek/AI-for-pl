@@ -28,9 +28,6 @@ open import
   proof.Right.SourceAll.TargetFrames.NuImprecisionRightSourceAllTargetConcealFrameDef
   using (WorldCoherentRightSourceAllTargetConcealFrameᵀ)
 open import
-  proof.Right.SourceAll.TargetFrames.NuImprecisionRightSourceAllTargetIdWidenFrameDef
-  using (WorldCoherentRightSourceAllTargetIdWidenFrameᵀ)
-open import
   proof.Right.SourceAll.TargetFrames.NuImprecisionRightSourceAllTargetNarrowFrameDef
   using (WorldCoherentRightSourceAllTargetNarrowFrameᵀ)
 open import
@@ -53,8 +50,6 @@ record WorldCoherentRightSourceAllClosingCases : Set₁ where
       WorldCoherentRightSourceAllTargetNarrowFrameᵀ
     sourceAllTargetWidenFrameCase :
       WorldCoherentRightSourceAllTargetWidenFrameᵀ
-    sourceAllTargetIdWidenFrameCase :
-      WorldCoherentRightSourceAllTargetIdWidenFrameᵀ
     sourceAllTargetRevealFrameCase :
       WorldCoherentRightSourceAllTargetRevealFrameᵀ
     sourceAllTargetConcealFrameCase :

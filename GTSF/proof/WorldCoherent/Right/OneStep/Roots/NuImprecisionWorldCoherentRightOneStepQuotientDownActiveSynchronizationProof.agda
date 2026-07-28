@@ -43,53 +43,55 @@ world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root@(β-id vBody) =
+    widening u-shape u′-shape up-square compatible root@(β-id vBody) =
   rightStepQuotientDownIdentityRoot roots
     down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root@(β-seq vBody) =
+    widening u-shape u′-shape up-square compatible root@(β-seq vBody) =
   rightStepQuotientDownSequenceRoot roots
     down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape (d′⊢ , NW.cross ()) d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square (β-inst vBody)
+    widening u-shape u′-shape up-square compatible (β-inst vBody)
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root@(tag-untag-ok vBody) =
+    widening u-shape u′-shape up-square compatible
+    root@(tag-untag-ok vBody) =
   rightStepQuotientDownUntagRoot roots
     down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root@(tag-untag-bad vBody G≢H) =
+    widening u-shape u′-shape up-square compatible
+    root@(tag-untag-bad vBody G≢H) =
   rightStepQuotientDownUntagRoot roots
     down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square root
+    widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
     d⊒ d-shape (d′⊢ , NW.cross ()) d′-shape M⊑V′ down-square
-    widening u-shape u′-shape up-square (seal-unseal vBody)
+    widening u-shape u′-shape up-square compatible (seal-unseal vBody)
 world-coherent-right-one-step-quotient-down-active-synchronization-proofᵀ
     roots down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target () d⊒ d-shape d′⊒ d′-shape M⊑V′
-    down-square widening u-shape u′-shape up-square blame-⟨⟩
+    down-square widening u-shape u′-shape up-square compatible blame-⟨⟩

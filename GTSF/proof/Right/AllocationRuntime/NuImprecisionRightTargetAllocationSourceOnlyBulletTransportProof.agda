@@ -46,33 +46,9 @@ open import NuTerms using
 open import QuotientedTermImprecision using
   ( StoreImpPrefix
   ; allocation-prefixᵀ
-  ; blame⊑ᵀ
-  ; cast⊒⊑ᵀ
-  ; cast⊑⊑ᵀ
-  ; conv↑⊑ᵀ
-  ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
-  ; gen⊑groundᵀ
-  ; κ⊑κᵀ
   ; nu-term-imprecision-target-typing
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
-  ; up⊑upᵀ
-  ; x⊑xᵀ
-  ; Λ⊑Λᵀ
-  ; Λ⊑ᵀ
-  ; α⊑αᵀ
-  ; α⊑ᵀ
-  ; ν⊑νᵀ
-  ; ν⊑ᵀ
-  ; ·⊑·ᵀ
-  ; ƛ⊑ƛᵀ
-  ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
-  ; ⊑cast⊑ᵀ
-  ; ⊑conv↑ᵀ
-  ; ⊑conv↓ᵀ
-  ; ⊕⊑⊕ᵀ
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)

@@ -21,7 +21,8 @@ open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
 
-open import Coercions using (id-onlyᵈ)
+open import Coercions using
+  (id-onlyᵈ; id-only≤tag-or-idᵈ)
 open import Conversion using
   ( ConcealConversion
   ; RevealConversion
@@ -30,21 +31,23 @@ open import Conversion using
   )
 open import NarrowWiden using
   ( narrow-weaken
+  ; widen-mode-relax
   ; widen-weaken
   ; _∣_∣_⊢_∶_⊒_
   ; _∣_∣_⊢_∶_⊑_
   )
 open import NuReduction using (applyTyCtxs; applyTys; keep)
-open import NuTermImprecision using (rightStoreⁱ)
+open import NuTermImprecision using
+  (rightStoreⁱ; seal★-tag-or-id)
 open import NuTerms using (no•-⟨⟩; _⟨_⟩)
 open import QuotientedTermImprecision using
   ( ⊑cast⊒ᵀ
   ; ⊑cast⊑ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
-open import TermTyping using (SealModeStore★)
+open import TermTyping using
+  (SealModeStore★; cast-tag-or-id)
 open import proof.Core.Properties.CoercionProperties using (modeRename-id-only)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef using
   ( right-value-indexed-catchup
@@ -61,10 +64,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (apply-narrows-typing; seal★-id-only)
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact
@@ -515,10 +517,6 @@ world-coherent-right-target-inert-framing-proofᵀ
       (widen-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) c⊑)
 
-  final-seal :
-    SealModeStore★ id-onlyᵈ (rightStoreⁱ (resultStore inner))
-  final-seal = seal★-id-only
-
   final-cast :
     id-onlyᵈ ∣ resultRightCtx inner ∣ rightStoreⁱ (resultStore inner)
       ⊢ applyCoercions (targetTailChanges inner) c
@@ -540,7 +538,8 @@ world-coherent-right-target-inert-framing-proofᵀ
         (sym (targetStoreResult inner)) c″⊑)
 
   final-relation =
-    ⊑cast⊑idᵀ final-seal final-cast
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ final-cast)
       (canonicalIndexedResults indexed) (transportType inner q)
       (cast-shape-applyCoercions
         (targetTailChanges inner) shape-proof)

@@ -1,7 +1,7 @@
-module proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationDef where
+module proof.Target.GroundValue.NuImprecisionTargetFunctionGroundValueQuotientEliminationDef where
 
 -- File Charter:
---   * Defines quotient elimination when the target type is ground.
+--   * Defines quotient elimination when the target type is `★ ⇒ ★`.
 --   * Returns an explicit ordinary imprecision index and term relation.
 --   * Contains no implementation, result carrier, or simulation dependency.
 
@@ -15,19 +15,18 @@ open import QuotientedTermImprecision using
   ( _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
-open import Types using (Ground; Ty)
+open import Types using (Ty; ★; _⇒_)
 
 
-TargetGroundValueQuotientEliminationᵀ : Set₁
-TargetGroundValueQuotientEliminationᵀ =
+TargetFunctionGroundValueQuotientEliminationᵀ : Set₁
+TargetFunctionGroundValueQuotientEliminationᵀ =
   ∀ {Φ Δᴸ Δᴿ} {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {V V′ : Term} {D H : Ty}
-    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ H ⊣ Δᴿ} →
-  Ground H →
+    {V V′ : Term} {D : Ty}
+    {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ (★ ⇒ ★) ⊣ Δᴿ} →
   Value V →
   Value V′ →
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-    ⊢ᴺᵖ V ⊑ V′ ⦂ D ⊑ᵖ H ∶ qD →
+    ⊢ᴺᵖ V ⊑ V′ ⦂ D ⊑ᵖ (★ ⇒ ★) ∶ qD →
   ∃[ q ]
     Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
-      ⊢ᴺ V ⊑ V′ ⦂ D ⊑ H ∶ q
+      ⊢ᴺ V ⊑ V′ ⦂ D ⊑ (★ ⇒ ★) ∶ q

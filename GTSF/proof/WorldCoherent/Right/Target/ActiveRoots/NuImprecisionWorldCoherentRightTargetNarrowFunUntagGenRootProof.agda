@@ -80,9 +80,10 @@ open import
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationCore
   using
-  ( apply-narrows-typing
-  ; nu-term-imprecision-transport-typesᵀ
+  ( nu-term-imprecision-transport-typesᵀ
   )
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using

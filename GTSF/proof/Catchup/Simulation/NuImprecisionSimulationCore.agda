@@ -454,8 +454,7 @@ open import proof.Core.Properties.CoercionProperties using
   ; renameᶜ-reflects-Inert
   )
 open import proof.Core.Properties.TypePreservation using
-  ( applyNarrow-typing
-  ; applyWidenInstUnderTyBinder-typing
+  ( applyWidenInstUnderTyBinder-typing
   ; CastModeRenamer
   ; castModeRenamer-ext
   ; castModeRenamer-seal★
@@ -466,6 +465,11 @@ open import proof.Core.Properties.TypePreservation using
   ; preservation
   ; term-weaken
   ; typing-renameᵀ
+  )
+open import proof.Core.Properties.NuNarrowingTransport using
+  ( apply-fixed-narrows-typing
+  ; apply-narrows-typing
+  ; apply-spine-narrows-typing
   )
 open import proof.Core.Properties.StoreProperties using
   (∈-renameStoreᵗ; renameStoreᵗ-incl)
@@ -613,61 +617,6 @@ apply-widen-inst-under-ty-binders {χs = bind A ∷ χs}
     | μ′ , mode′ , seal★′ , c′⊑ =
   apply-widen-inst-under-ty-binders
     {χs = χs} mode′ seal★′ c′⊑
-
-apply-narrows-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  CastMode μ →
-  SealModeStore★ μ Σ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  ∃[ μ′ ]
-    CastMode μ′ ×
-    SealModeStore★ μ′ (applyStores χs Σ) ×
-    (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-      ⊢ applyCoercions χs c
-        ∶ applyTys χs A ⊒ applyTys χs B)
-apply-narrows-typing {χs = []} {μ = μ} mode seal★ c⊒ =
-  μ , mode , seal★ , c⊒
-apply-narrows-typing {χs = χ ∷ χs} mode seal★ c⊒
-    with applyNarrow-typing {χ = χ} mode seal★ c⊒
-apply-narrows-typing {χs = χ ∷ χs} mode seal★ c⊒
-    | μ′ , mode′ , seal★′ , c′⊒ =
-  apply-narrows-typing {χs = χs} mode′ seal★′ c′⊒
-
-apply-fixed-narrows-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  ModeRename suc μ μ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  μ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-    ⊢ applyCoercions χs c
-      ∶ applyTys χs A ⊒ applyTys χs B
-apply-fixed-narrows-typing {χs = []} mode-suc c⊒ = c⊒
-apply-fixed-narrows-typing {χs = keep ∷ χs} mode-suc c⊒ =
-  apply-fixed-narrows-typing {χs = χs} mode-suc c⊒
-apply-fixed-narrows-typing {χs = bind X ∷ χs} mode-suc c⊒ =
-  apply-fixed-narrows-typing {χs = χs} mode-suc
-    (narrow-weaken ≤-refl StoreIncl-drop
-      (narrow-renameᵗ TyRenameWf-suc mode-suc c⊒))
-
-apply-spine-narrows-typing :
-  ∀ {χs μ Δ Σ c A B} →
-  SpineCastMode Σ μ →
-  μ ∣ Δ ∣ Σ ⊢ c ∶ A ⊒ B →
-  ∃[ μ′ ]
-    (SpineCastMode (applyStores χs Σ) μ′ ×
-    (μ′ ∣ applyTyCtxs χs Δ ∣ applyStores χs Σ
-      ⊢ applyCoercions χs c
-        ∶ applyTys χs A ⊒ applyTys χs B))
-apply-spine-narrows-typing {χs = χs} id-only↓ c⊒ =
-  id-onlyᵈ , id-only↓ ,
-  apply-fixed-narrows-typing
-    {χs = χs} (modeRename-id-only suc) c⊒
-apply-spine-narrows-typing {χs = χs}
-    (gradual↓ mode seal★) c⊒
-    with apply-narrows-typing {χs = χs} mode seal★ c⊒
-apply-spine-narrows-typing {χs = χs}
-    (gradual↓ mode seal★) c⊒
-    | μ′ , mode′ , seal★′ , c′⊒ =
-  μ′ , gradual↓ mode′ seal★′ , c′⊒
 
 apply-reveal-conversion :
   ∀ {χ μ Δ Σ α X c A B} →

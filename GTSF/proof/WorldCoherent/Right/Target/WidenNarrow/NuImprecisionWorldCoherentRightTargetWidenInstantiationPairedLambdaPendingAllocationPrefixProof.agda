@@ -19,7 +19,13 @@ open import Agda.Builtin.Equality using (_≡_; refl)
 import CastImprecisionShape as CastShape
 import Coercions
 open import Coercions using
-  (Coercion; ModeEnv; id-onlyᵈ; inst; _∣_∣_⊢_∶_=⇒_)
+  ( Coercion
+  ; ModeEnv
+  ; id-onlyᵈ
+  ; id-only≤tag-or-idᵈ
+  ; inst
+  ; _∣_∣_⊢_∶_=⇒_
+  )
 open import Conversion using
   (ConcealConversion; RevealConversion)
 open import ConversionIndexCompatibility using (_[_↦_]ᴿ_)
@@ -39,7 +45,7 @@ open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import ImprecisionComposition using
   (⌊_⌋; _；_≋_)
 open import NarrowWiden using
-  (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
+  (widen-mode-relax; _∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
 import NuReduction
 open import NuReduction using
   (bind; keep; ↠-refl)
@@ -50,6 +56,7 @@ open import NuTermImprecision using
   ; leftStoreⁱ-lift-right
   ; rightStoreⁱ
   ; rightStoreⁱ-lift-right
+  ; seal★-tag-or-id
   ; store-right
   )
 open import NuStore using (StoreWf)
@@ -70,13 +77,17 @@ open import QuotientedTermImprecision using
   ; prefix-reflⁱ
   ; prefix-∷ⁱ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
   )
 open import TermTyping using
-  (CastMode; SealModeStore★; _∣_∣_⊢_⦂_; ⊢⟨⟩⊑)
+  ( CastMode
+  ; SealModeStore★
+  ; cast-tag-or-id
+  ; _∣_∣_⊢_⦂_
+  ; ⊢⟨⟩⊑
+  )
 import Types
 open import Types using (Ty; TyCtx; `∀; wf★; ⇑ᵗ; ★)
 open import
@@ -138,6 +149,9 @@ open import
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
+open import
+  proof.Quotient.NuImprecisionTargetInstantiationCreationDef
+  using (target-instantiation-creation)
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using (weak-step-store-lineage)
@@ -266,7 +280,8 @@ private
         (shape , seal★ , widening ,
          c-shape , composition)))))
       relation =
-    ⊑cast⊑idᵀ seal★ widening relation _
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ widening) relation _
       c-shape composition
 
   apply-target-administration-plan :
@@ -330,7 +345,8 @@ private
         s-shape s-composition t-shape t-composition
         s-plan t-plan)
       relation =
-    ⊑cast⊑idᵀ seal★ widening relation q
+    ⊑cast⊑ᵀ cast-tag-or-id seal★-tag-or-id
+      (widen-mode-relax id-only≤tag-or-idᵈ widening) relation q
       sequence-shape composition
 
   apply-target-administration-spine :
@@ -446,9 +462,11 @@ world-coherent-right-target-widen-instantiation-paired-lambda-pending-allocation
         initial-target-typing full-target-trace)
 
   post-beta-related =
-    post-beta {f = f} prefix mode seal★ cast liftρ liftρᴿ
-      vW noW vW′ noW′ inert body inst-shape creation-square
-      source-typing target-typing
+    post-beta {f = f}
+      (target-instantiation-creation
+        prefix mode seal★ cast liftρ liftρᴿ
+        vW noW vW′ noW′ inert body
+        inst-shape creation-square source-typing target-typing)
 
   allocated-tail =
     allocate-spine liftρᴿ tail

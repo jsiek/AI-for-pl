@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — target allocation dependency cut checked**
+**MIGRATION IN PROGRESS — strict unassembled DGG spine checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -357,6 +357,42 @@ runtime-sibling catch-up proof. Move their retained implementation slices to
 chartered allocation modules as those consumers migrate, then delete the
 obsolete legacy remainder by Phase 5. A new wrapper that merely re-exports the
 monolith would not complete that task.
+
+The next Phase 4 checkpoint completed the quotient-close and target
+terminalization path. Reduction-closed compatibility is transported through
+the final world by the canonical weak-step compatibility theorem. The
+quotient-down frame and root families, exact narrowing and conversion
+transport, atomic target reindexing, target seal cancellation, and target tag
+cancellation all pass focused checks. The overly broad target-ground quotient
+elimination claim was found to be false for gradual seal-mode narrowing and
+was replaced by the exact function-ground theorem required by target tag
+cancellation.
+
+The target-allocation bullet pair now uses `closeᵀ`, the three direct paired
+constructors, and the generic target-widening constructor. Its two real
+pending-allocation callers also pass. The SourceAll closing slice no longer
+uses the retired `PairedCast` carrier: paired reveal, conceal, and widening
+are three direct residual capabilities, and quotient closing exposes its
+reduction-closed compatibility premise. The separate target-id-widening
+capability became unreferenced after all SourceAll consumers moved to the
+generic widening constructor, so its `Def` and `Proof` were deleted.
+
+`NuDGGUnassembledProofsStrictSpine.agda` now checks completely. The broader
+terminal-forward spine next stops at the still-retiring source
+function-cast-beta paired-values interface, whose statement directly mentions
+the deleted `PairedCast` carrier. This is the current migration boundary.
+The remaining direct retired-name counts are `7/2/2/29/12/12` for fused
+down/up, identity quotient application, gradual quotient application,
+closing widening, identity down, and gradual down respectively.
+
+A dependency audit also identified the next useful invalidation cuts.
+`NuImprecisionSimulationCore.agda` remains the largest high-fanout module;
+its generic narrowing and conversion transport have already moved to focused
+property modules, reducing one invalidated frame check from about 58 seconds
+to about 8 seconds. The next candidates are QTI typing projections and the
+store/context infrastructure still bundled with the obsolete first-draft
+relation in `NuTermImprecision.agda`. Make those cuts only at a checkpoint,
+not concurrently with a grammar edit.
 
 ### Phase 5. Collapse the migration surface
 

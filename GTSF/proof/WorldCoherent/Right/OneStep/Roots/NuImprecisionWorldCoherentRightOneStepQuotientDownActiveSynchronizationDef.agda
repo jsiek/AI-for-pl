@@ -4,10 +4,10 @@ module
 
 -- File Charter:
 --   * Defines the exact active target-down synchronization shared by the
---     `down⊑downᵀ` and `gen-down⊑gen-downᵀ` QTIP constructors.
+--     spine modes admitted by `paired-downᵀ`.
 --   * Restricts the downcast mode to the two modes admitted by those
 --     constructors and retains both composition squares and the enclosing
---     quotient-widening pair.
+--     quotient-widening pair with its reduction-closed compatibility.
 --   * Contains no frame recursion, application case, implementation,
 --     dispatcher, postulate, hole, permissive option, or wrapper alias.
 
@@ -36,6 +36,8 @@ open import QuotientedTermImprecision using
   ; StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedQuotientWideningCompatible)
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -93,6 +95,8 @@ WorldCoherentRightOneStepQuotientDownActiveSynchronizationᵀ =
   CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
   CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
   u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
+  ReductionClosedQuotientWideningCompatible
+    Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
   V′ ⟨ d′ ⟩ —→ L′ →
   WorldCoherentWeakOneStepIndexedOutcome
     {M = (M ⟨ d ⟩) ⟨ u ⟩}

@@ -29,15 +29,12 @@ open import NarrowWiden using
   )
 open import NuReduction using
   ( StoreChange
-  ; StoreChanges
   ; applyCoercion
   ; applyStores
   ; applyTy
   ; applyTyCtx
   ; applyTyCtxs
   ; applyTys
-  ; bind
-  ; keep
   )
 open import NuTermImprecision using
   (StoreImp; leftStoreⁱ; rightStoreⁱ)
@@ -59,19 +56,20 @@ open import QuotientedTermImprecision using
   )
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
-open import proof.Core.Properties.CoercionProperties using
-  (renameᶜ-reflects-Inert)
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof using
+open import proof.Core.Properties.ReductionProperties using
+  ( applyCoercions-reflects-Inert
+  ; applyTys-rename-applyTyVars
+  )
+open import proof.Core.Properties.NuConversionTransport using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact
-  ; result-source-conceal
-  ; result-source-reveal
   )
 open import
+  proof.Left.SilentTransport.NuImprecisionLeftSilentConversionEndpointTransport
+  using (result-source-conceal; result-source-reveal)
+open import
   proof.Left.SilentTransport.NuImprecisionLeftSilentStoreCorrespondsTransportProof using
-  ( applyTys-rename-applyTyVars
-  ; store-corresponds-reindexⁱ
+  ( store-corresponds-reindexⁱ
   ; store-corresponds-weakenⁱ
   )
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingProof using
@@ -251,25 +249,6 @@ result-target-conceal
           (applyTys (targetTailChanges inner) (applyTy χ B)))
         (sym (targetStoreResult inner))
         (proj₂ applied))
-
-
-applyCoercion-reflects-Inert :
-  (χ : StoreChange) (c : Coercion) →
-  Inert (applyCoercion χ c) →
-  Inert c
-applyCoercion-reflects-Inert keep c inert = inert
-applyCoercion-reflects-Inert (bind A) c inert =
-  renameᶜ-reflects-Inert suc c inert
-
-
-applyCoercions-reflects-Inert :
-  (χs : StoreChanges) (c : Coercion) →
-  Inert (applyCoercions χs c) →
-  Inert c
-applyCoercions-reflects-Inert [] c inert = inert
-applyCoercions-reflects-Inert (χ ∷ χs) c inert =
-  applyCoercion-reflects-Inert χ c
-    (applyCoercions-reflects-Inert χs (applyCoercion χ c) inert)
 
 
 paired-widening-compatible-transportᵀ :

@@ -13,15 +13,9 @@ module proof.DGG.Core.NuDGGUnassembledProofsStrictSpine where
 --     canonical `Lemma`.
 
 import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedCastTransportProof
-import
   proof.Right.SourceAll.ClosingValues.NuImprecisionRightSourceAllStrictSpine
 import
   proof.Source.Administration.NuImprecisionSourceAdministrationMeasureProof
-import
-  proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedCastCatchupProof
-import
-  proof.WorldCoherent.Final.Paired.NuImprecisionWorldCoherentFinalPairedConversionCatchupProof
 import
   proof.WorldCoherent.Final.SourceNu.NuImprecisionWorldCoherentFinalSourceNuCastCatchupProof
 import

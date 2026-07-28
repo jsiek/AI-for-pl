@@ -21,7 +21,7 @@ REDUCTION_CLOSED_QUOTIENT_METATHEORY = \
 	$(addprefix $(QUOTIENT_PROOF_DIR), \
 	  $(REDUCTION_CLOSED_QUOTIENT_METATHEORY_MODULES))
 REDUCTION_CLOSED_QUOTIENT_WORLD_MODULES = \
-	NuImprecisionReductionClosedCompatibilityRenameExperiment.agda \
+	NuImprecisionQuotientCompatibilityRename.agda \
 	NuImprecisionReductionClosedWorldEmbeddingExperiment.agda \
 	NuImprecisionReductionClosedWorldRenameExperiment.agda \
 	NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda

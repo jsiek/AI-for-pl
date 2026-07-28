@@ -28,8 +28,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulation using
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using
   ( apply-conceal-conversions-exact
   ; apply-reveal-conversions-exact

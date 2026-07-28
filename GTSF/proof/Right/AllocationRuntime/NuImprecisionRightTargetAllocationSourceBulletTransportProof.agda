@@ -25,7 +25,6 @@ open import Conversion using
   ; weaken-conceal-conversion
   ; weaken-reveal-conversion
   )
-open import Coercions using (id-onlyᵈ; instᵈ)
 open import ImprecisionWf using
   ( ImpCtx
   ; ⇑ᴿᵢ
@@ -68,10 +67,12 @@ open import QuotientedTermImprecision using
   ; cast⊑⊑ᵀ
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
-  ; conv⊑convᵀ
+  ; closeᵀ
   ; gen⊑groundᵀ
   ; κ⊑κᵀ
-  ; up⊑upᵀ
+  ; paired-concealᵀ
+  ; paired-revealᵀ
+  ; paired-wideningᵀ
   ; x⊑xᵀ
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
@@ -83,7 +84,6 @@ open import QuotientedTermImprecision using
   ; target-instantiationᵀ
   ; ƛ⊑ƛᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -104,47 +104,26 @@ open import Types using
   ; ⟰ᵗ
   )
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  ( apply-conceal-conversions
-  ; apply-narrows-typing
-  ; apply-reveal-conversions
-  ; apply-reveal-under-ty-binders
-  ; apply-widen-inst-under-ty-binders
-  ; nu-term-imprecision-transport-termsᵀ
+  ( nu-term-imprecision-transport-termsᵀ
   ; replace-right-target-lift-rightᵢ
-  ; seal★-id-only
-  ; ⊑-target-lift-under-rightᵢ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
-  ( replace-right-target-lift-under-rightᵢ
-  ; shape-target-lift-under-rightᵢ
-  )
-open import proof.Core.Properties.CoercionProperties using
-  (modeRename-id-only)
-open import
-  proof.Core.Properties.ConversionIndexCompatibilityProperties
-  using (replace-right-transport-endpoints)
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Core.Properties.NuCastImprecisionShapeProperties using
-  ( cast-shape-applyCoercionUnderTyBinders
-  ; cast-shape-applyCoercions
+  ( cast-shape-applyCoercions
   ; imprecision-composition-shape-transport
   )
 open import proof.Core.Properties.NuWideningTransport using
-  (apply-fixed-widens-typing; apply-widens-typing)
+  (apply-widens-typing)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercionUnderTyBinders
   ; applyCoercions
   ; applyTerms-cast
   ; applyTerms-ν
   ; applyTys-★
-  ; applyTys-∀
-  ; applyTysUnderTyBinders-⇑ᵗ
-  ; applyTysUnderTyBinders
-  ; wfTy-applyTys
   )
-open import proof.Core.Properties.StoreProperties using
-  (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypeProperties using
-  (TyRenameWf-suc; renameᵗ-preserves-WfTy)
+  (TyRenameWf-suc)
 open import proof.Core.Properties.TypePreservation using
   (modeRename-suc-weakenCast; seal★-weaken)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
@@ -259,7 +238,8 @@ private
       (·⊑·ᵀ L⊑L′ N⊑N′) ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
-      (up⊑upᵀ N⊑N′ widening p u-shape u′-shape square) ()
+      (closeᵀ N⊑N′ widening p u-shape u′-shape square compatible)
+      ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
       (Λ⊑Λᵀ liftρ∀ liftγ vV vV′ V⊑V′) ()
@@ -324,7 +304,17 @@ private
       ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
-      (conv⊑convᵀ paired N⊑N′)
+      (paired-revealᵀ x∈ c↑ c′↑ replacement N⊑N′)
+      ()
+  source-bullet-transport
+      prefix liftρ unique runtime noM′ M⊢
+      (paired-concealᵀ x∈ c↓ c′↓ replacement N⊑N′)
+      ()
+  source-bullet-transport
+      prefix liftρ unique runtime noM′ M⊢
+      (paired-wideningᵀ mode seal c⊑ c-shape
+        mode′ seal′ c′⊑ c′-shape square square′
+        compatible N⊑N′)
       ()
   source-bullet-transport
       prefix liftρ unique runtime noM′ M⊢
@@ -428,47 +418,6 @@ private
           ∶ applyTys allocation-changes A′
           ⊑ applyTys allocation-changes B′)
         (sym (target-store-eq liftρ)) c′⊑
-
-    final-c-shape =
-      cast-shape-applyCoercions allocation-changes c-shape
-
-    final-comp =
-      imprecision-composition-shape-transport
-        (shape-target-lift-rightᵢ _)
-        refl
-        (shape-target-lift-rightᵢ q)
-        comp
-
-  source-bullet-transport
-      {Δᴿ = Δᴿ} {ρ⁺ = ρ⁺}
-      prefix liftρ unique runtime (no•-⟨⟩ noM′) M⊢
-      (⊑cast⊑idᵀ {M′ = N′} {A′ = A′} {B′ = B′} {c′ = c}
-        seal★ c⊑ M⊑M′ q c-shape comp)
-      eq =
-    nu-term-imprecision-transport-termsᵀ refl
-      (sym (applyTerms-cast allocation-changes N′ c))
-      (⊑cast⊑idᵀ seal★-id-only final-cast
-        inner (⊑-target-lift-rightᵢ q)
-        final-c-shape final-comp)
-    where
-    inner =
-      source-bullet-transport
-        prefix liftρ unique runtime noM′ M⊢ M⊑M′ eq
-
-    transported-cast =
-      apply-fixed-widens-typing
-        {χs = allocation-changes}
-        (modeRename-id-only suc)
-        (widen-weaken ≤-refl
-          (rightStoreⁱ-prefix-inclusion prefix) c⊑)
-
-    final-cast =
-      subst
-        (λ Σ → id-onlyᵈ ∣ suc Δᴿ ∣ Σ
-          ⊢ applyCoercions allocation-changes c
-          ∶ applyTys allocation-changes A′
-          ⊑ applyTys allocation-changes B′)
-        (sym (target-store-eq liftρ)) transported-cast
 
     final-c-shape =
       cast-shape-applyCoercions allocation-changes c-shape

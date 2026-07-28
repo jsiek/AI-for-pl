@@ -46,7 +46,7 @@ open import QuotientedTermImprecision using
 open import QuotientImprecisionCompatibility using
   (SpineCastMode)
 open import Types using (Ty; TyCtx)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import proof.Core.Properties.NuNarrowingTransport using
   (apply-spine-narrows-typing)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef

@@ -4,9 +4,10 @@ module
 
 -- File Charter:
 --   * Defines the feasible target-root cells for exact active target-down
---     synchronization inside the QTIP down modes.
+--     synchronization inside the `paired-downᵀ` spine modes.
 --   * Separates identity, sequence, and untag roots while retaining the
---     enclosing quotient-widening pair and both composition squares.
+--     enclosing quotient-widening pair, compatibility, and both composition
+--     squares.
 --   * Leaves instantiation, unseal, and target blame elimination to the
 --     dispatcher proof.
 --   * Contains no implementation, frame recursion, postulate, hole,
@@ -29,6 +30,8 @@ open import QuotientedTermImprecision using
   ; StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
+open import QuotientImprecisionCompatibility using
+  (ReductionClosedQuotientWideningCompatible)
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -80,6 +83,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
       u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
       V′ ⟨ id I ⟩ —→ L′ →
       WorldCoherentWeakOneStepIndexedOutcome
         {M = (M ⟨ d ⟩) ⟨ u ⟩}
@@ -117,6 +122,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
       u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
       V′ ⟨ s ︔ t ⟩ —→ L′ →
       WorldCoherentWeakOneStepIndexedOutcome
         {M = (M ⟨ d ⟩) ⟨ u ⟩}
@@ -153,6 +160,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
       u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
+      ReductionClosedQuotientWideningCompatible
+        Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
       V′ ⟨ H ？ ⟩ —→ L′ →
       WorldCoherentWeakOneStepIndexedOutcome
         {M = (M ⟨ d ⟩) ⟨ u ⟩}

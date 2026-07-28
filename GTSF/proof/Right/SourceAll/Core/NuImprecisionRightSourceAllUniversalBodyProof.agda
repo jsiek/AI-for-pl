@@ -37,7 +37,6 @@ open import QuotientedTermImprecision using
   ; Λ⊑Λᵀ
   ; Λ⊑ᵀ
   ; ⊑cast⊒ᵀ
-  ; ⊑cast⊑idᵀ
   ; ⊑cast⊑ᵀ
   ; ⊑conv↑ᵀ
   ; ⊑conv↓ᵀ
@@ -50,7 +49,6 @@ open import
   ; sourceAllAllocationPrefixCase
   ; sourceAllResidualCases
   ; sourceAllTargetConcealFrameCase
-  ; sourceAllTargetIdWidenFrameCase
   ; sourceAllTargetNarrowFrameCase
   ; sourceAllTargetRevealFrameCase
   ; sourceAllTargetWidenFrameCase
@@ -146,13 +144,6 @@ world-coherent-right-source-all-universal-body-proofᵀ
   sourceAllTargetWidenFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (Λ vU) (no•-Λ noU) mode seal★ c⊑ c-shape comp liftρ liftγ inner
-world-coherent-right-source-all-universal-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    ok-cast@(ok-no (no•-⟨⟩ noN′)) vU noU liftρ liftγ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) =
-  sourceAllTargetIdWidenFrameCase cases
-    prefix coherent exclusive unique wfR ok-cast
-    (Λ vU) (no•-Λ noU) seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-universal-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-no (no•-⟨⟩ noN′)) vU noU liftρ liftγ
@@ -333,13 +324,6 @@ world-coherent-right-source-all-universal-body-proofᵀ
   sourceAllTargetWidenFrameCase cases
     prefix coherent exclusive unique wfR ok-cast
     (Λ vU) (no•-Λ noU) mode seal★ c⊑ c-shape comp liftρ liftγ inner
-world-coherent-right-source-all-universal-body-proofᵀ
-    cases prefix coherent exclusive unique wfR
-    ok-cast@(ok-⟨⟩ okN′) vU noU liftρ liftγ
-    (⊑cast⊑idᵀ seal★ c⊑ inner q c-shape comp) =
-  sourceAllTargetIdWidenFrameCase cases
-    prefix coherent exclusive unique wfR ok-cast
-    (Λ vU) (no•-Λ noU) seal★ c⊑ c-shape comp liftρ liftγ inner
 world-coherent-right-source-all-universal-body-proofᵀ
     cases prefix coherent exclusive unique wfR
     ok-cast@(ok-⟨⟩ okN′) vU noU liftρ liftγ

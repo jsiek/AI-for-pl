@@ -169,8 +169,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; weak-one-step-prepend-left-silent-preserves-transportᵀ
   ; weak-one-step-prepend-left-silentᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using (apply-conceal-conversions-exact)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( LeftCatchupIndexedResult

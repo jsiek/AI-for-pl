@@ -422,6 +422,8 @@ open import proof.Core.Properties.TypeProperties using
 
 open import proof.Store.RelEmbedding.NuImprecisionRelStoreEmbeddingDef
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Store.RelEmbedding.NuImprecisionRelCtxRenameDef using
   (rel-ctx-rename-[])
 open import proof.PairedLambda.Core.NuImprecisionPairedAllBetaCommutation using

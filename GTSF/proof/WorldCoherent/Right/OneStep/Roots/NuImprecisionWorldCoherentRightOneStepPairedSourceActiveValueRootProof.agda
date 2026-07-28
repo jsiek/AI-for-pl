@@ -74,11 +74,10 @@ open import
   ; weakIndexedTransport
   ; weakIndexedTypeCoherence
   )
-open import proof.Core.Properties.ReductionProperties using (applyCoercions)
+open import proof.Core.Properties.ReductionProperties using
+  (applyCoercions; applyCoercions-reflects-Inert)
 open import proof.Right.Core.NuImprecisionPairedCastTransportLemma using
   (paired-cast-transportᵀ)
-open import proof.Right.Core.NuImprecisionRightSilentPairedCastTransportProof
-  using (applyCoercions-reflects-Inert)
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using

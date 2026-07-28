@@ -1,15 +1,20 @@
 module
-  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedCastDef
+  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedConcealDef
   where
 
 -- File Charter:
---   * Defines the paired-cast semantic case beneath source-universal
---     right-value closing.
+--   * Defines the direct paired-conceal semantic case beneath
+--     source-universal right-value closing.
+--   * States the live QTI constructor premises directly, without a
+--     compatibility wrapper or retired paired-cast carrier.
 --   * Contains no implementation, dispatcher, result/view/outcome type,
 --     postulate, hole, permissive option, or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Coercions using (Coercion; Inert)
+open import Conversion using (ConcealConversion)
+open import ConversionIndexCompatibility using
+  (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
@@ -21,14 +26,15 @@ open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( LiftLeftCtxⁱ
   ; LiftLeftStoreⁱ
+  ; StoreCorresponds
   ; StoreImp
+  ; leftStoreⁱ
   ; rightStoreⁱ
   )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; Λ_; _⟨_⟩)
 open import QuotientedTermImprecision using
-  ( PairedCast
-  ; StoreImpPrefix
+  ( StoreImpPrefix
   ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; TyCtx; occurs)
@@ -44,14 +50,14 @@ open import
   using (WorldCoherentRightValueCatchupIndexedResult)
 
 
-WorldCoherentRightSourceAllPairedCastᵀ : Set₁
-WorldCoherentRightSourceAllPairedCastᵀ =
+WorldCoherentRightSourceAllPairedConcealᵀ : Set₁
+WorldCoherentRightSourceAllPairedConcealᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {ρᴸ : StoreImp
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {M M′ : Term} {A A′ B B′ : Ty}
-    {c c′ : Coercion}
+    {M M′ : Term} {A A′ B B′ X X′ : Ty}
+    {c c′ : Coercion} {α β pX μ μ′}
     {{safe : NonVar B}}
     {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
@@ -71,9 +77,12 @@ WorldCoherentRightSourceAllPairedCastᵀ =
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
   LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →
-  PairedCast
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ
-    ρᴸ c c′ p q →
+  StoreCorresponds ρᴸ α X β X′ pX →
+  ConcealConversion μ (suc Δᴸ) (leftStoreⁱ ρᴸ)
+    α X c A B →
+  ConcealConversion μ′ Δᴿ (rightStoreⁱ ρᴸ)
+    β X′ c′ A′ B′ →
+  q [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ p →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρᴸ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →

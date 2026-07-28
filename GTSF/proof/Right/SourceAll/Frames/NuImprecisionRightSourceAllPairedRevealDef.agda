@@ -1,24 +1,24 @@
 module
-  proof.Right.SourceAll.Core.NuImprecisionRightSourceAllQuotientDef
+  proof.Right.SourceAll.Frames.NuImprecisionRightSourceAllPairedRevealDef
   where
 
 -- File Charter:
---   * Defines the quotient down/up semantic case beneath source-universal
---     right-value closing.
+--   * Defines the direct paired-reveal semantic case beneath
+--     source-universal right-value closing.
+--   * States the live QTI constructor premises directly, without a
+--     compatibility wrapper or retired paired-cast carrier.
 --   * Contains no implementation, dispatcher, result/view/outcome type,
 --     postulate, hole, permissive option, or broad simulation import.
 
 open import Agda.Builtin.Equality using (_≡_)
-open import CastImprecisionShape using
-  (_⊢ᶜ_⦂_; widening)
-open import Coercions using (Coercion)
+open import Coercions using (Coercion; Inert)
+open import Conversion using (RevealConversion)
+open import ConversionIndexCompatibility using
+  (_[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Data.Bool using (true)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
-open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
 open import Imprecision using (NonVar)
-open import ImprecisionComposition using
-  (ImprecisionShape; _；⌊_⌋≋ᵖ_；_)
 open import ImprecisionWf using
   (ImpCtx; _ˣ⊑★; _∣_⊢_⊑_⊣_; ⇑ᴸᵢ)
 import ImprecisionWf as IW
@@ -26,17 +26,16 @@ open import NuStore using (StoreWf)
 open import NuTermImprecision using
   ( LiftLeftCtxⁱ
   ; LiftLeftStoreⁱ
+  ; StoreCorresponds
   ; StoreImp
+  ; leftStoreⁱ
   ; rightStoreⁱ
   )
 open import NuTerms using
   (No•; RuntimeOK; Term; Value; Λ_; _⟨_⟩)
-open import QuotientImprecisionCompatibility using
-  (ReductionClosedQuotientWideningCompatible)
 open import QuotientedTermImprecision using
-  ( QuotientWideningPair
-  ; StoreImpPrefix
-  ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
+  ( StoreImpPrefix
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
   )
 open import Types using (Ty; TyCtx; occurs)
 open import
@@ -51,44 +50,42 @@ open import
   using (WorldCoherentRightValueCatchupIndexedResult)
 
 
-WorldCoherentRightSourceAllQuotientᵀ : Set₁
-WorldCoherentRightSourceAllQuotientᵀ =
+WorldCoherentRightSourceAllPairedRevealᵀ : Set₁
+WorldCoherentRightSourceAllPairedRevealᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
     {ρᴸ : StoreImp
       ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ}
-    {N N′ : Term} {D D′ A A′ : Ty}
-    {u u′ : Coercion}
-    {sU sU′ : ImprecisionShape}
-    {{safe : NonVar A}}
-    {qD : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
-    {pA : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+    {M M′ : Term} {A A′ B B′ X X′ : Ty}
+    {c c′ : Coercion} {α β pX μ μ′}
+    {{safe : NonVar B}}
+    {p : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
       ∣ suc Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-    {occ : occurs zero A ≡ true} →
+    {q : ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
+      ∣ suc Δᴸ ⊢ B ⊑ B′ ⊣ Δᴿ}
+    {occ : occurs zero B ≡ true} →
   StoreImpPrefix ρ₀ ρ⁺ →
   WorldCoherent ρ⁺ →
   SourceNameExclusive Φ →
   AssumptionMembershipUnique Φ →
   StoreWf Δᴿ (rightStoreⁱ ρ⁺) →
-  RuntimeOK (N′ ⟨ u′ ⟩) →
-  Value (N ⟨ u ⟩) →
-  No• (N ⟨ u ⟩) →
+  RuntimeOK (M′ ⟨ c′ ⟩) →
+  Value M →
+  No• M →
+  Inert c →
   LiftLeftStoreⁱ
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) ρ₀ ρᴸ →
   LiftLeftCtxⁱ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) [] [] →
+  StoreCorresponds ρᴸ α X β X′ pX →
+  RevealConversion μ (suc Δᴸ) (leftStoreⁱ ρᴸ)
+    α X c A B →
+  RevealConversion μ′ Δᴿ (rightStoreⁱ ρᴸ)
+    β X′ c′ A′ B′ →
+  p [ α ↦ X ⊑⟨ pX ⟩ X′ ↤ β ]ᴾ q →
   ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
     ∣ suc Δᴸ ∣ Δᴿ ∣ ρᴸ ∣ []
-    ⊢ᴺᵖ N ⊑ N′ ⦂ D ⊑ᵖ D′ ∶ qD →
-  QuotientWideningPair
-    (suc Δᴸ) Δᴿ ρᴸ u u′ D D′ A A′ →
-  widening ⊢ᶜ u ⦂ sU →
-  widening ⊢ᶜ u′ ⦂ sU′ →
-  sU ；⌊ pA ⌋≋ᵖ qD ； sU′ →
-  ReductionClosedQuotientWideningCompatible
-    ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc Δᴸ) Δᴿ
-    u u′ qD pA sU sU′ →
+    ⊢ᴺ M ⊑ M′ ⦂ A ⊑ A′ ∶ p →
   WorldCoherentRightValueCatchupIndexedResult
-    {V = Λ (N ⟨ u ⟩)} {M′ = N′ ⟨ u′ ⟩}
-    {ρ = ρ⁺} (IW.ν safe occ pA)
+    {V = Λ (M ⟨ c ⟩)} {M′ = M′ ⟨ c′ ⟩}
+    {ρ = ρ⁺} (IW.ν safe occ q)

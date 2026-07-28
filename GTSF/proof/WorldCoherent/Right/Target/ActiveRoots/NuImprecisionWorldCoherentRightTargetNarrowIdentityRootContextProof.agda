@@ -37,7 +37,7 @@ open import QuotientedTermImprecision using
   )
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; ＇_; ‵_; ★)
-open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
+open import proof.Core.Properties.NuNarrowingTransport using
   (apply-narrows-typing)
 open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef using
   (rightCatchupIndexedResult)

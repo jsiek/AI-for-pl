@@ -130,8 +130,7 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof using
   (weak-one-step-prepend-left-silent-store-lineageᵀ)
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using (apply-reveal-conversions-exact)
 open import proof.DGG.Core.NuProgress using
   (SealView; canonical-＇; sv-seal)

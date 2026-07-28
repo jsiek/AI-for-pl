@@ -96,8 +96,7 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   (weak-step-store-lineage)
 open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageProof using
   (weak-one-step-prepend-left-silent-store-lineageᵀ)
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using (apply-reveal-conversions-exact)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef using
   ( WorldCoherentLeftCatchupIndexedResult

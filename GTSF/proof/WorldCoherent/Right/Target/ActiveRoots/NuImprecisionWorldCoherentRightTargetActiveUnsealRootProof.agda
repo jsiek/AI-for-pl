@@ -201,8 +201,7 @@ open import proof.OneStep.NuImprecisionOneStepRelated using
   ; weak-one-step-related-type-coherenceᵀ
   ; weak-one-step-relatedᵀ
   )
-open import
-  proof.Left.SilentTransport.NuImprecisionLeftSilentPairedConversionTransportProof
+open import proof.Core.Properties.NuConversionTransport
   using (apply-reveal-conversions-exact)
 
 

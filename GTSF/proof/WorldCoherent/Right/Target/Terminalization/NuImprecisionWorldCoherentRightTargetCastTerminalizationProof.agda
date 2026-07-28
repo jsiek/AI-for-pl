@@ -97,7 +97,9 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef using
   (AssumptionMembershipUnique)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
-  (apply-narrows-typing; seal★-id-only)
+  (seal★-id-only)
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-narrows-typing)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (rightStoreⁱ-prefix-inclusion)
 open import proof.Core.Administration.NuImprecisionAdministrationMeasureProof using

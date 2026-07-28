@@ -36,6 +36,8 @@ open import proof.Core.Properties.CoercionProperties using
   (ModeRename; modeRename-id-only)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+open import proof.Core.Properties.NuNarrowingTransport using
+  (apply-fixed-narrows-typing)
 open import proof.Quotient.NuImprecisionQuotientWideningTransport using
   (weak-one-step-transport-quotient-widening-pairᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using

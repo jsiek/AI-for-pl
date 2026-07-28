@@ -1,9 +1,11 @@
-module proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationProof where
+module proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationProperties where
 
 -- File Charter:
---   * Proves quotient elimination for values with a ground target endpoint.
+--   * Provides permutation and composition algebra for eliminating a
+--     quotient index whose target endpoint is ground.
 --   * Handles source-side adjacent-forall permutations with local transport.
---   * Exposes no intermediate carrier, view, or unrestricted dequotienting API.
+--   * Contains no term-imprecision constructor cases or simulation result
+--     dependency, so the migrating theorem can be checked independently.
 
 import Coercions as C
 open import Agda.Builtin.Equality using (_≡_; refl)
@@ -110,20 +112,7 @@ open import ImprecisionWf using
 import NarrowWiden as NW
 open import NarrowWiden using
   (_∣_∣_⊢_∶_⊒_; _∣_∣_⊢_∶_⊑_)
-open import NuTermImprecision using
-  ( leftStoreⁱ
-  ; rightStoreⁱ
-  ; seal★-tag-or-id
-  )
 open import NuTerms using (Value; _⟨_⟩)
-open import QuotientedTermImprecision using
-  ( cast⊒⊑ᵀ
-  ; down⊑downᵀ
-  ; gen-down⊑gen-downᵀ
-  ; seal★-gen-tag-or-id
-  ; ⊑cast⊒ᵀ
-  )
-open import TermTyping using (cast-gen; cast-tag-or-id)
 import Types as T
 open import proof.Core.Permutation.ForallPermutationProperties using
   ( ≈∀-atom-left-eq
@@ -140,9 +129,6 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   )
 open import proof.Core.Properties.ImprecisionCompositionProperties using
   (compose-result-unique)
-open import
-  proof.Target.GroundValue.NuImprecisionTargetGroundValueQuotientEliminationDef using
-  (TargetGroundValueQuotientEliminationᵀ)
 open import proof.Core.Properties.TypeProperties using
   ( TyRenameWf
   ; TyRenameWf-ext
@@ -1222,57 +1208,57 @@ cast-shape-result-unique
       refl composition′)
 
 
-private
-  ⊑ᵖ-ground-right :
-    ∀ {Φ Δᴸ Δᴿ A H} →
-    T.Ground H →
-    Φ ∣ Δᴸ ⊢ A ⊑ᵖ H ⊣ Δᴿ →
-    Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ
-  ⊑ᵖ-ground-right gH (quotientᵖ A≈A′ A′⊑H′ H′≈H)
-      with ≈∀-ground-right-eq gH H′≈H
-  ⊑ᵖ-ground-right gH (quotientᵖ A≈A′ A′⊑H′ H′≈H) | refl =
-    source-ground-≈∀-left gH A≈A′ A′⊑H′
+⊑ᵖ-ground-right :
+  ∀ {Φ Δᴸ Δᴿ A H} →
+  T.Ground H →
+  Φ ∣ Δᴸ ⊢ A ⊑ᵖ H ⊣ Δᴿ →
+  Φ ∣ Δᴸ ⊢ A ⊑ H ⊣ Δᴿ
+⊑ᵖ-ground-right gH (quotientᵖ A≈A′ A′⊑H′ H′≈H)
+    with ≈∀-ground-right-eq gH H′≈H
+⊑ᵖ-ground-right gH (quotientᵖ A≈A′ A′⊑H′ H′≈H) | refl =
+  source-ground-≈∀-left gH A≈A′ A′⊑H′
 
-  ⊑ᵖ-function-ground-right-composition :
-    ∀ {Φ Δᴸ Δᴿ A A′ D s s′}
-      {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
-      (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ T.★ T.⇒ T.★ ⊣ Δᴿ) →
-    s ；⌊ p ⌋≋ᵖ q ； s′ →
-    s′ ≡ id★ˢ ↦ˢ id★ˢ →
-    s ； ⌊ p ⌋ ≋ ⌊ ⊑ᵖ-ground-right T.★⇒★ q ⌋
-  ⊑ᵖ-function-ground-right-composition
-      (quotientᵖ source middle target)
-      (quotient-boundary-square
-        source-shape left-composition
-        target-shape right-composition)
+
+⊑ᵖ-function-ground-right-composition :
+  ∀ {Φ Δᴸ Δᴿ A A′ D s s′}
+    {p : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ}
+    (q : Φ ∣ Δᴸ ⊢ D ⊑ᵖ T.★ T.⇒ T.★ ⊣ Δᴿ) →
+  s ；⌊ p ⌋≋ᵖ q ； s′ →
+  s′ ≡ id★ˢ ↦ˢ id★ˢ →
+  s ； ⌊ p ⌋ ≋ ⌊ ⊑ᵖ-ground-right T.★⇒★ q ⌋
+⊑ᵖ-function-ground-right-composition
+    (quotientᵖ source middle target)
+    (quotient-boundary-square
+      source-shape left-composition
+      target-shape right-composition)
+    final-shape
+    with ≈∀-ground-right-eq T.★⇒★ target
+⊑ᵖ-function-ground-right-composition
+    (quotientᵖ source middle target)
+    (quotient-boundary-square
+      source-shape left-composition
+      target-shape right-composition)
+    final-shape
+    | refl =
+  source-ground-≈∀-left-composition
+    T.★⇒★ source source-shape middle left-composition′
+  where
+  target-shape-equality =
+    trans
+      (function-ground-self-permutation-shape-equal target-shape)
       final-shape
-      with ≈∀-ground-right-eq T.★⇒★ target
-  ⊑ᵖ-function-ground-right-composition
-      (quotientᵖ source middle target)
-      (quotient-boundary-square
-        source-shape left-composition
-        target-shape right-composition)
-      final-shape
-      | refl =
-    source-ground-≈∀-left-composition
-      T.★⇒★ source source-shape middle left-composition′
-    where
-    target-shape-equality =
-      trans
-        (function-ground-self-permutation-shape-equal target-shape)
-        final-shape
 
-    right-composition′ =
-      imprecision-composition-shape-transport
-        refl (sym target-shape-equality) refl right-composition
+  right-composition′ =
+    imprecision-composition-shape-transport
+      refl (sym target-shape-equality) refl right-composition
 
-    result-equality =
-      compose-result-unique right-composition′
-        (function-ground-right-identity-composition middle)
+  result-equality =
+    compose-result-unique right-composition′
+      (function-ground-right-identity-composition middle)
 
-    left-composition′ =
-      imprecision-composition-shape-transport
-        refl refl (sym result-equality) left-composition
+  left-composition′ =
+    imprecision-composition-shape-transport
+      refl refl (sym result-equality) left-composition
 
 
 id-only-no-seal :
@@ -1441,99 +1427,3 @@ inert-function-ground-narrowing-shape
     (() , NW.sealⁿ A α) inert
 inert-function-ground-narrowing-shape
     (c⊢ , sⁿ NW.︔seal α) ()
-
-
-target-ground-value-quotient-elimination-proofᵀ :
-  TargetGroundValueQuotientEliminationᵀ
-target-ground-value-quotient-elimination-proofᵀ
-    (T.＇ α) vV vV′
-    (down⊑downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
-  ⊥-elim
-    (inert-narrowing-target-var-no-seal
-      id-only-no-seal
-      d′⊒ (cast-value-inert vV′))
-target-ground-value-quotient-elimination-proofᵀ
-    (T.＇ α) vV vV′
-    (gen-down⊑gen-downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
-  ⊥-elim
-    (inert-narrowing-target-var-no-seal
-      gen-tag-or-id-no-seal
-      d′⊒ (cast-value-inert vV′))
-target-ground-value-quotient-elimination-proofᵀ
-    (T.‵ ι) vV vV′
-    (down⊑downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
-  ⊥-elim (inert-narrowing-target-base d′⊒ (cast-value-inert vV′))
-target-ground-value-quotient-elimination-proofᵀ
-    (T.‵ ι) vV vV′
-    (gen-down⊑gen-downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square) =
-  ⊥-elim (inert-narrowing-target-base d′⊒ (cast-value-inert vV′))
-target-ground-value-quotient-elimination-proofᵀ
-    T.★⇒★ vV vV′
-    (down⊑downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
-    with inert-function-ground-narrowing-source
-      d′⊒ (cast-value-inert vV′)
-target-ground-value-quotient-elimination-proofᵀ
-    T.★⇒★ vV vV′
-    (down⊑downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
-    | refl =
-  q ,
-  ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
-    (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d′⊒)
-    (cast⊒⊑ᵀ cast-tag-or-id seal★-tag-or-id
-      (NW.narrow-mode-relax C.id-only≤tag-or-idᵈ d⊒)
-      M⊑M′ q d-shape source-composition)
-    q d′-shape target-composition
-  where
-  q = ⊑ᵖ-ground-right T.★⇒★ qD
-
-  final-shape =
-    cast-shape-result-unique d′-shape
-      (inert-function-ground-narrowing-shape
-        d′⊒ (cast-value-inert vV′))
-
-  source-composition =
-    ⊑ᵖ-function-ground-right-composition
-      qD square final-shape
-
-  target-composition =
-    imprecision-composition-shape-transport
-      refl final-shape refl
-      (function-ground-right-identity-composition q)
-target-ground-value-quotient-elimination-proofᵀ
-    T.★⇒★ vV vV′
-    (gen-down⊑gen-downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
-    with inert-function-ground-narrowing-source
-      d′⊒ (cast-value-inert vV′)
-target-ground-value-quotient-elimination-proofᵀ
-    T.★⇒★ vV vV′
-    (gen-down⊑gen-downᵀ
-      d⊒ d-shape d′⊒ d′-shape M⊑M′ qD square)
-    | refl =
-  q ,
-  ⊑cast⊒ᵀ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id d′⊒
-    (cast⊒⊑ᵀ (cast-gen cast-tag-or-id) seal★-gen-tag-or-id
-      d⊒ M⊑M′ q d-shape source-composition)
-    q d′-shape target-composition
-  where
-  q = ⊑ᵖ-ground-right T.★⇒★ qD
-
-  final-shape =
-    cast-shape-result-unique d′-shape
-      (inert-function-ground-narrowing-shape
-        d′⊒ (cast-value-inert vV′))
-
-  source-composition =
-    ⊑ᵖ-function-ground-right-composition
-      qD square final-shape
-
-  target-composition =
-    imprecision-composition-shape-transport
-      refl final-shape refl
-      (function-ground-right-identity-composition q)

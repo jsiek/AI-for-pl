@@ -55,16 +55,13 @@ claim completion: each spine still needs a focused Agda check. In particular,
 the paired-lambda spine currently exposes a missing
 `down·up⊑down·upᵀ` frame-view case.
 
-The known-incomplete list currently records seven importer-free `Proof`
+The known-incomplete list currently records four importer-free `Proof`
 modules that a filename/source scan had misclassified as completed:
 
 - `proof/DGG/TerminalForward/NuDGGTerminalForwardIntegrationProof.agda`;
-- `proof/WorldCoherent/Final/Paired/NuImprecisionWorldCoherentFinalPairedWideningCatchupProof.agda`;
 - `proof/WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuCastSourceOnlyIndexCatchupProof.agda`;
 - `proof/WorldCoherent/Final/SourceNu/NuImprecisionWorldCoherentFinalSourceNuSourceOnlyIndexCatchupProof.agda`;
-- `proof/WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`;
-- `proof/WorldCoherent/Source/NuCatchup/NuImprecisionWorldCoherentSourceNuCastCatchupProof.agda`; and
-- `proof/WorldCoherent/Source/NuCatchup/NuImprecisionWorldCoherentSourceNuCastRuntimeSiblingCatchupProof.agda`.
+- `proof/WorldCoherent/Source/CastCatchup/NuImprecisionWorldCoherentSourceNarrowCatchupProof.agda`.
 
 The audit excludes the following intended independent roots from its
 zero-importer report.  This list is explicit rather than inferred from
@@ -91,7 +88,6 @@ decision:
 - `proof/Source/Core/NuImprecisionSourceGenTargetGroundAgreementCounterexample.agda`;
 - `proof/Source/Core/NuImprecisionSourceOnlyContextFactorCounterexample.agda`;
 - `proof/Source/SealTag/NuImprecisionSourceSealCancellationCounterexample.agda`;
-- `proof/WorldCoherent/Final/Paired/NuImprecisionWorldCoherentFinalPairedWideningCatchupCounterexample.agda`;
 - `proof/WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetNarrowUntagRootCounterexample.agda`;
 - `proof/WorldCoherent/Right/Target/WidenNarrow/NuImprecisionWorldCoherentRightTargetWidenInstantiationPairedPostBetaCatchupRegression.agda`; and
 - the five canonical strict DGG roots listed above.

@@ -30,7 +30,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( canonicalIndexedResults
   ; resultCtx
   ; resultStore
+  ; sourceChanges
   ; sourceCtxResult
+  ; sourceResult
   ; sourceStoreResult
   ; targetCtxResult
   ; targetResult
@@ -50,10 +52,11 @@ open import proof.WorldCoherent.Source.OneStep.Other.NuImprecisionWorldCoherentS
   (WorldCoherentSourceOneStepPrefixᵀ)
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   )
 open import TermTyping using (_∣_∣_⊢_⦂_)
@@ -117,32 +120,34 @@ world-coherent-source-one-step-proofᵀ
 world-coherent-source-one-step-proofᵀ
     prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
-    | source-step-outcome-related exact-result
-    with sourceCtxResult result
+    | source-step-outcome-related complete
+    with sourceStepChanges complete
+       | sourceCtxResult result
        | targetCtxResult result
-       | sourceStepChangesExact exact-result
-       | sourceStepResultExact exact-result
   where
-  indexed = sourceStepIndexedResult exact-result
+  indexed = sourceStepIndexedResult complete
   result = weakIndexedResult indexed
 world-coherent-source-one-step-proofᵀ
     prefix-step {p = p} coherent exclusive unique wfL wfR
     okM okM′ M⊑M′ source-step
-    | source-step-outcome-related exact-result
-    | refl | refl | refl | refl =
+    | source-step-outcome-related complete
+    | refl | refl | refl =
     inj₁
-      (targetResult result ,
+      (sourceResult result ,
+      targetResult result ,
+      sourceStepTailChanges complete ,
       targetTailChanges result ,
       resultCtx result ,
       resultStore result ,
       transportType result p ,
+      sourceStepTail complete ,
       targetTail result ,
-      sourceStepWorldCoherent exact-result ,
-      sourceStepSourceNameExclusive exact-result ,
-      sourceStepAssumptionMembershipUnique exact-result ,
+      sourceStepWorldCoherent complete ,
+      sourceStepSourceNameExclusive complete ,
+      sourceStepAssumptionMembershipUnique complete ,
       sourceStoreResult result ,
       targetStoreResult result ,
       canonicalIndexedResults indexed)
   where
-  indexed = sourceStepIndexedResult exact-result
+  indexed = sourceStepIndexedResult complete
   result = weakIndexedResult indexed

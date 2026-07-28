@@ -72,11 +72,12 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -126,8 +127,9 @@ world-coherent-source-target-keep-prepend-proofᵀ
     {p = p} target→ complete =
   world-coherent-source-one-step-indexed
     indexed lineage
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)

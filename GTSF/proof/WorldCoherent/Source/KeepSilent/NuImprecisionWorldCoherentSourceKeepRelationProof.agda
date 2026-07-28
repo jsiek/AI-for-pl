@@ -35,7 +35,7 @@ world-coherent-source-keep-relation-proofᵀ
     {M = M} {M′ = M′} {L = L} {A = A} {B = B} {p = p}
     coherent exclusive unique final-relation M→L =
   world-coherent-source-one-step-indexed
-    indexed lineage refl refl coherent exclusive unique
+    indexed lineage [] refl ↠-refl coherent exclusive unique
   where
   result =
     weak-step-result

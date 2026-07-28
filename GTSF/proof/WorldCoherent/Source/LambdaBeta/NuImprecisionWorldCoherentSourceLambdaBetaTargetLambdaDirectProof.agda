@@ -18,7 +18,7 @@ open import Relation.Binary.PropositionalEquality using
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
 open import NuReduction using
-  (applyTerms; applyTys; bind; keep)
+  (applyTerms; applyTys; bind; keep; _—↠[_]_)
 open import NuTermImprecision using
   (StoreImp; ctx-imp)
 open import NuTerms using
@@ -117,11 +117,12 @@ open import
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
   ; sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -206,7 +207,8 @@ world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ
     | caught | refl | refl =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-lineage combined-changes combined-result combined-world
+    combined-lineage (sourceStepTailChanges phase-two′)
+    combined-changes combined-tail combined-world
     combined-exclusive combined-unique
   where
   catchup = worldRightCatchupResult caught
@@ -394,11 +396,17 @@ world-coherent-source-lambda-beta-target-lambda-direct-proofᵀ
 
   combined-changes =
     sourceSilentChangesExact composition framed refl refl phase-two-result
-      (sourceStepChangesExact phase-two′)
+      (sourceStepChanges phase-two′)
 
   combined-result =
     sourceSilentResultExact composition framed refl refl phase-two-result
-      (sourceStepResultExact phase-two′)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges phase-two′ ] K)
+      (sym combined-result)
+      (sourceStepTail phase-two′)
 
   combined-world =
     sourceSilentWorldCoherent composition framed refl refl phase-two-result

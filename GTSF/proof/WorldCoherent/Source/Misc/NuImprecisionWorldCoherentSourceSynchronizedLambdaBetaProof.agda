@@ -42,7 +42,7 @@ world-coherent-source-synchronized-lambda-beta-proofᵀ
     substitute coherent exclusive unique vV noV vV′ noV′ noN noN′
     body argument =
   world-coherent-source-one-step-indexed
-    indexed lineage refl refl coherent exclusive
+    indexed lineage [] refl ↠-refl coherent exclusive
     unique
   where
   post-beta =

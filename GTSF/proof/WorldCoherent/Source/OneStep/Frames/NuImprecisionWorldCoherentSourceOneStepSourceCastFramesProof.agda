@@ -8,8 +8,8 @@ module
 --     frames the source trace and final quotient relation.
 --   * Transports exact cast shapes, composition triangles, and conversion
 --     replacements through the completed inner step.
---   * Preserves transport, type coherence, store lineage, exact source
---     change/result, world coherence, and source-name exclusivity.
+--   * Preserves transport, type coherence, store lineage, the distinguished
+--     source change and arbitrary tail, and final world invariants.
 --   * Contains no recursive source worker, hole, postulate, or permissive
 --     option.
 
@@ -23,6 +23,7 @@ open import Conversion using
   ; weaken-reveal-conversion
   )
 open import ConversionIndexCompatibility using (_[_↦_]ᴸ_)
+open import Data.List using (_∷_)
 open import Data.Nat.Properties using (≤-refl)
 open import Data.Product using (_,_)
 open import ImprecisionWf using
@@ -37,6 +38,8 @@ open import NarrowWiden using
   )
 open import NuReduction using
   ( StoreChange
+  ; StoreChanges
+  ; _—↠[_]_
   ; applyCoercion
   ; applyTyCtxs
   ; applyTys
@@ -51,7 +54,7 @@ open import QuotientedTermImprecision using
   ; conv↓⊑ᵀ
   )
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; cong; cong₂; refl; subst; sym)
+  (_≡_; cong; refl; subst; sym)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import proof.Catchup.Simulation.NuImprecisionSimulation using
@@ -92,12 +95,13 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -115,8 +119,24 @@ open import proof.Core.Properties.NuCastImprecisionShapeProperties using
   ; imprecision-composition-shape-transport
   )
 open import proof.Core.Properties.ReductionProperties using
-  (applyCoercions; applyTyVars)
+  (applyCoercions; applyTyVars; cast-↠)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
+
+
+private
+  cast-source-step-tail :
+    ∀ {L N : Term} {c : Coercion} {χ : StoreChange}
+      {χs χs⁺ : StoreChanges} →
+    χs⁺ ≡ χ ∷ χs →
+    L —↠[ χs ] N →
+    L ⟨ applyCoercion χ c ⟩
+      —↠[ χs ] N ⟨ applyCoercions χs⁺ c ⟩
+  cast-source-step-tail
+      {L = L} {N = N} {c = c} {χ = χ} {χs = χs} changes L↠N =
+    subst
+      (λ d → L ⟨ applyCoercion χ c ⟩ —↠[ χs ] N ⟨ d ⟩)
+      (sym (cong (λ χs → applyCoercions χs c) changes))
+      (cast-↠ {c = applyCoercion χ c} L↠N)
 
 
 source-step-source-narrow-frameᵀ :
@@ -160,8 +180,10 @@ source-step-source-narrow-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (cast-source-step-tail
+      (sourceStepChanges complete) (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -213,16 +235,6 @@ source-step-source-narrow-frameᵀ
     (weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation (weakIndexedTypeCoherence indexed₀))
 
-  cast-exact :
-    applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
-  cast-exact =
-    cong (λ χs → applyCoercions χs c)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    cong₂ _⟨_⟩
-      (sourceStepResultExact complete) cast-exact
-
 
 source-step-source-widen-frameᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -265,8 +277,10 @@ source-step-source-widen-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (cast-source-step-tail
+      (sourceStepChanges complete) (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -318,16 +332,6 @@ source-step-source-widen-frameᵀ
     (weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation (weakIndexedTypeCoherence indexed₀))
 
-  cast-exact :
-    applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
-  cast-exact =
-    cong (λ χs → applyCoercions χs c)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    cong₂ _⟨_⟩
-      (sourceStepResultExact complete) cast-exact
-
 
 source-step-source-reveal-frameᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -366,8 +370,10 @@ source-step-source-reveal-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (cast-source-step-tail
+      (sourceStepChanges complete) (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -416,16 +422,6 @@ source-step-source-reveal-frameᵀ
     (weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation (weakIndexedTypeCoherence indexed₀))
 
-  cast-exact :
-    applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
-  cast-exact =
-    cong (λ χs → applyCoercions χs c)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    cong₂ _⟨_⟩
-      (sourceStepResultExact complete) cast-exact
-
 
 source-step-source-conceal-frameᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
@@ -464,8 +460,10 @@ source-step-source-conceal-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (cast-source-step-tail
+      (sourceStepChanges complete) (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -513,16 +511,6 @@ source-step-source-conceal-frameᵀ
       inner final-relation (weakIndexedTransport indexed₀))
     (weak-one-step-source-cast-frame-coherenceᵀ
       inner final-relation (weakIndexedTypeCoherence indexed₀))
-
-  cast-exact :
-    applyCoercions (sourceChanges inner) c ≡ applyCoercion χ c
-  cast-exact =
-    cong (λ χs → applyCoercions χs c)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    cong₂ _⟨_⟩
-      (sourceStepResultExact complete) cast-exact
 
 
 world-coherent-source-one-step-source-cast-frames-proofᵀ :

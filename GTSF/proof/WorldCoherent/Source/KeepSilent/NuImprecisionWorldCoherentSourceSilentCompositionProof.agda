@@ -9,10 +9,11 @@ module
 --     canonical index after composition.
 --   * Contains no semantic recursion, postulate, hole, or permissive option.
 
-open import Relation.Binary.PropositionalEquality using (subst)
+open import Agda.Builtin.Equality using (refl)
+open import Relation.Binary.PropositionalEquality using (subst; sym)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
-open import NuReduction using (applyTys)
+open import NuReduction using (applyTys; _—↠[_]_)
 open import proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma using
   (assumption-membership-unique→precision-index-unique)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
@@ -24,6 +25,7 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ; resultTargetType
   ; resultType
   ; sourceChanges
+  ; sourceResult
   ; sourceTypeResult
   ; targetTypeResult
   ; transportType
@@ -47,11 +49,12 @@ open import
   proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef
   using
   ( sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -68,8 +71,10 @@ world-coherent-source-silent-composition-proofᵀ
     first-coherence first-lineage second =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-lineage combined-changes combined-result combined-world
-    combined-exclusive combined-unique
+    combined-lineage
+    (sourceStepTailChanges second)
+    combined-changes combined-tail combined-world combined-exclusive
+    combined-unique
   where
   second-indexed = sourceStepIndexedResult second
   second-result = weakIndexedResult second-indexed
@@ -117,11 +122,17 @@ world-coherent-source-silent-composition-proofᵀ
 
   combined-changes =
     sourceSilentChangesExact composition first source-empty source-same
-      second-result (sourceStepChangesExact second)
+      second-result (sourceStepChanges second)
 
   combined-result =
     sourceSilentResultExact composition first source-empty source-same
-      second-result (sourceStepResultExact second)
+      second-result refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges second ] K)
+      (sym combined-result)
+      (sourceStepTail second)
 
   combined-world =
     sourceSilentWorldCoherent composition first source-empty source-same

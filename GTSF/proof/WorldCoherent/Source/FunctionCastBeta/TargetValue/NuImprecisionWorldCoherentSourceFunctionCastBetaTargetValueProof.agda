@@ -13,12 +13,12 @@ open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.List using ([]; _∷_)
 open import Data.Nat.Properties using (≤-refl)
-open import Relation.Binary.PropositionalEquality using (subst; trans)
+open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 import Coercions as C
 open import ImprecisionWf using
   (_↦_; _∣_⊢_⊑_⊣_)
-open import NuReduction using (applyTerms; applyTys; keep)
+open import NuReduction using (applyTerms; applyTys; keep; _—↠[_]_)
 open import NuTermImprecision using (StoreImp)
 open import NuTerms using
   ( No•
@@ -126,11 +126,12 @@ open import
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
   ; sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -181,8 +182,10 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
     | caught | refl | refl =
   world-coherent-source-one-step-indexed
     combined-indexed
-    combined-lineage combined-changes combined-result combined-world
-    combined-exclusive combined-unique
+    combined-lineage
+    (sourceStepTailChanges phase-two)
+    combined-changes combined-tail combined-world combined-exclusive
+    combined-unique
   where
   catchup = worldRightCatchupResult caught
   argument-indexed = rightCatchupIndexedResult catchup
@@ -323,11 +326,17 @@ world-coherent-source-function-cast-beta-target-value-at-proofᵀ
 
   combined-changes =
     sourceSilentChangesExact composition framed refl refl phase-two-result
-      (sourceStepChangesExact phase-two)
+      (sourceStepChanges phase-two)
 
   combined-result =
     sourceSilentResultExact composition framed refl refl phase-two-result
-      (sourceStepResultExact phase-two)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges phase-two ] K)
+      (sym combined-result)
+      (sourceStepTail phase-two)
 
   combined-world =
     sourceSilentWorldCoherent composition framed refl refl phase-two-result

@@ -49,7 +49,7 @@ world-coherent-source-delta-root-proofᵀ
     {ρ₀ = ρ₀} {ρ⁺ = ρ⁺} {m = m} {n = n}
     prefix coherent exclusive unique =
   world-coherent-source-one-step-indexed
-    indexed lineage refl refl coherent exclusive unique
+    indexed lineage [] refl ↠-refl coherent exclusive unique
   where
   result-typingᴸ =
     ⊢$ (κℕ (m + n))

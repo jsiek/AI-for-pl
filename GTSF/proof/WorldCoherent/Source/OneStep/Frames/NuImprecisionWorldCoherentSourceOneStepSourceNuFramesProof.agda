@@ -7,12 +7,12 @@ module
 --     completed source steps.
 --   * Prefix-weakens reveal, seal, and widening evidence to the completed
 --     relational store, then delegates to the weak source-ν frame helpers.
---   * Preserves store lineage, exact source changes/results, final world
---     coherence, and source-name exclusivity.
+--   * Preserves store lineage, the arbitrary administrative source tail,
+--     final world coherence, and source-name exclusivity.
 --   * Contains no outcome wrapper, result alias, compatibility shim, hole,
 --     postulate, permissive option, or incomplete match.
 
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Coercions using (Coercion; instᵈ)
 open import Conversion using (RevealConversion; weaken-reveal-conversion)
 import CastImprecisionShape as CastShape
@@ -41,7 +41,6 @@ open import NuReduction using
   ( StoreChange
   ; applyCoercionUnderTyBinder
   ; applyTy
-  ; applyTys
   ; keep
   )
 open import NuStore using (StoreIncl-cons)
@@ -51,8 +50,6 @@ open import NuTerms using (Term; ν)
 open import PairedWideningCompatibility using
   (PairedWideningCompatible)
 open import QuotientedTermImprecision using (StoreImpPrefix)
-open import Relation.Binary.PropositionalEquality using
-  (cong; cong₂; sym; trans)
 open import TermTyping using (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; WfTy; occurs; ★; `∀; ⇑ᵗ; ⟰ᵗ)
 open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
@@ -68,8 +65,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   ( WeakOneStepAllResult
   ; WeakOneStepResult
   ; relatedResults
-  ; sourceChanges
-  ; sourceResult
   ; weak-indexed-result
   ; weakIndexedResult
   ; weakIndexedTransport
@@ -85,9 +80,10 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
@@ -102,8 +98,8 @@ open import
   ; sourceStepSourceNuFrame
   )
 open import proof.Core.Properties.ReductionProperties using
-  ( applyCoercionUnderTyBinders
-  ; applyTy-★
+  ( applyTy-★
+  ; ν-↠
   )
 open import proof.Core.Properties.StoreProperties using (renameStoreᵗ-incl)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
@@ -146,15 +142,24 @@ source-step-matched-ν-frameᵀ
     {B = B} {B′ = B′} {C = C} {C′ = C′} {s = s}
     {s′ = s′} {χ = χ} {q = q}
     {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
-    prefix s↑ s′↑ replacement complete =
+    prefix s↑ s′↑ replacement complete
+    with sourceStepChanges complete
+source-step-matched-ν-frameᵀ
+    {ρ⁺ = ρ⁺} {N = N} {N′ = N′} {A = A} {A′ = A′}
+    {B = B} {B′ = B′} {C = C} {C′ = C′} {s = s}
+    {s′ = s′} {χ = χ} {q = q}
+    {pA = pA} {A⇑⊑A′⇑ = A⇑⊑A′⇑} {pB = pB}
+    prefix s↑ s′↑ replacement complete
+    | refl =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    refl
+    (ν-↠ (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -205,28 +210,6 @@ source-step-matched-ν-frameᵀ
       {χ = keep} {q = q}
       s↑⁺ s′↑⁺ pA A⇑⊑A′⇑ pB replacement all coherence₀
 
-  type-exact :
-    applyTys (sourceChanges inner) A ≡ applyTy χ A
-  type-exact =
-    cong (λ χs → applyTys χs A) (sourceStepChangesExact complete)
-
-  coercion-exact :
-    applyCoercionUnderTyBinders (sourceChanges inner) s ≡
-      applyCoercionUnderTyBinder χ s
-  coercion-exact =
-    cong (λ χs → applyCoercionUnderTyBinders χs s)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    trans
-      (cong₂ (λ A₀ s₀ → ν A₀ (sourceResult inner) s₀)
-        type-exact coercion-exact)
-      (cong
-        (λ L₀ → ν (applyTy χ A) L₀
-          (applyCoercionUnderTyBinder χ s))
-        (sourceStepResultExact complete))
-
-
 source-step-source-ν-frameᵀ :
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ₀ ρ⁺ : StoreImp Φ Δᴸ Δᴿ}
@@ -252,15 +235,20 @@ source-step-source-ν-frameᵀ :
     {L = ν (applyTy χ A) L (applyCoercionUnderTyBinder χ s)}
     {A = B} {B = B′} {χ = χ} {ρ = ρ⁺} pB
 source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
-    prefix hA s↑ replacement complete =
+    prefix hA s↑ replacement complete
+    with sourceStepChanges complete
+source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
+    prefix hA s↑ replacement complete
+    | refl =
   world-coherent-source-one-step-indexed
     framed-indexed
     (weak-step-store-lineage
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    framed-result-exact
+    (sourceStepTailChanges complete)
+    refl
+    (ν-↠ (sourceStepTail complete))
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -291,28 +279,6 @@ source-step-source-ν-frameᵀ {A = A} {s = s} {χ = χ} {pB = pB}
     weak-one-step-source-ν-frame-preserves-type-coherenceᵀ
       hA s↑⁺ pB replacement indexed₀
       (weakIndexedTypeCoherence indexed₀)
-
-  type-exact :
-    applyTys (sourceChanges inner) A ≡ applyTy χ A
-  type-exact =
-    cong (λ χs → applyTys χs A) (sourceStepChangesExact complete)
-
-  coercion-exact :
-    applyCoercionUnderTyBinders (sourceChanges inner) s ≡
-      applyCoercionUnderTyBinder χ s
-  coercion-exact =
-    cong (λ χs → applyCoercionUnderTyBinders χs s)
-      (sourceStepChangesExact complete)
-
-  framed-result-exact =
-    trans
-      (cong₂ (λ A₀ s₀ → ν A₀ (sourceResult inner) s₀)
-        type-exact coercion-exact)
-      (cong
-        (λ L₀ → ν (applyTy χ A) L₀
-          (applyCoercionUnderTyBinder χ s))
-        (sourceStepResultExact complete))
-
 
 world-coherent-source-one-step-source-nu-frames-proofᵀ :
   WorldCoherentSourceOneStepSourceNuFrames

@@ -6,7 +6,8 @@ module
 --   * Implements target cast/conversion framing for completed source steps.
 --   * Prefix-weakens the supplied target evidence to the completed relational
 --     store, then frames only the target ξ-⟨⟩ tail.
---   * Preserves the exact source change/result and all final world invariants.
+--   * Preserves the distinguished source step, its arbitrary reduction tail,
+--     and all final world invariants.
 --   * Contains no active target-root normalization, hole, or permissive option.
 
 import CastImprecisionShape as CastShape
@@ -91,12 +92,13 @@ open import proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef using
   )
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   ( WorldCoherentSourceOneStepIndexedResult
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepAssumptionMembershipUnique
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -162,8 +164,9 @@ source-step-target-narrow-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -265,8 +268,9 @@ source-step-target-widen-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -389,8 +393,9 @@ source-step-target-reveal-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)
@@ -482,8 +487,9 @@ source-step-target-conceal-frameᵀ
       (lineageStore (sourceStepStoreLineage complete))
       (lineageEmbedding (sourceStepStoreLineage complete))
       (lineagePrefix (sourceStepStoreLineage complete)))
-    (sourceStepChangesExact complete)
-    (sourceStepResultExact complete)
+    (sourceStepTailChanges complete)
+    (sourceStepChanges complete)
+    (sourceStepTail complete)
     (sourceStepWorldCoherent complete)
     (sourceStepSourceNameExclusive complete)
     (sourceStepAssumptionMembershipUnique complete)

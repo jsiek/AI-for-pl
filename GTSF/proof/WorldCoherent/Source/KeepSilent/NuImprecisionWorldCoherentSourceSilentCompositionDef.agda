@@ -4,8 +4,8 @@ module
 
 -- File Charter:
 --   * Defines composition of a source-silent weak result with a following
---     exact world-coherent source step.
---   * Returns the existing exact source-step result at the original index.
+--     world-coherent source step and its arbitrary source tail.
+--   * Returns the existing source-step result at the original index.
 --   * Contains no implementation, result wrapper, postulate, hole, or
 --     permissive option.
 

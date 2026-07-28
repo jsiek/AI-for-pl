@@ -24,6 +24,7 @@ open import NuReduction using
   ; applyTy
   ; applyTys
   ; keep
+  ; _—↠[_]_
   )
 open import NuStore using (StoreWf)
 open import NuTermImprecision using
@@ -152,11 +153,12 @@ open import
   using
   ( WorldCoherentSourceOneStepIndexedResult
   ; sourceStepAssumptionMembershipUnique
-  ; sourceStepChangesExact
+  ; sourceStepChanges
   ; sourceStepIndexedResult
-  ; sourceStepResultExact
   ; sourceStepSourceNameExclusive
   ; sourceStepStoreLineage
+  ; sourceStepTail
+  ; sourceStepTailChanges
   ; sourceStepWorldCoherent
   ; world-coherent-source-one-step-indexed
   )
@@ -522,8 +524,9 @@ finish-right-catchup-deltaᵀ
   world-coherent-source-one-step-indexed
     combined-indexed
     combined-lineage
+    (sourceStepTailChanges delta-world′)
     combined-changes
-    combined-result
+    combined-tail
     combined-world
     combined-exclusive
     combined-unique
@@ -629,11 +632,17 @@ finish-right-catchup-deltaᵀ
 
   combined-changes =
     sourceSilentChangesExact composition framed refl refl delta-result
-      (sourceStepChangesExact delta-world′)
+      (sourceStepChanges delta-world′)
 
   combined-result =
     sourceSilentResultExact composition framed refl refl delta-result
-      (sourceStepResultExact delta-world′)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges delta-world′ ] K)
+      (sym combined-result)
+      (sourceStepTail delta-world′)
 
   combined-world =
     sourceSilentWorldCoherent composition framed refl refl delta-result
@@ -708,8 +717,9 @@ finish-left-then-right-deltaᵀ
   world-coherent-source-one-step-indexed
     combined-indexed
     combined-lineage
+    (sourceStepTailChanges phase-two)
     combined-changes
-    combined-result
+    combined-tail
     combined-world
     combined-exclusive
     combined-unique
@@ -826,12 +836,18 @@ finish-left-then-right-deltaᵀ
   combined-changes =
     sourceSilentChangesExact
       composition framed-left refl refl phase-two-result
-      (sourceStepChangesExact phase-two)
+      (sourceStepChanges phase-two)
 
   combined-result =
     sourceSilentResultExact
       composition framed-left refl refl phase-two-result
-      (sourceStepResultExact phase-two)
+      refl
+
+  combined-tail =
+    subst
+      (λ K → _ —↠[ sourceStepTailChanges phase-two ] K)
+      (sym combined-result)
+      (sourceStepTail phase-two)
 
   combined-world =
     sourceSilentWorldCoherent

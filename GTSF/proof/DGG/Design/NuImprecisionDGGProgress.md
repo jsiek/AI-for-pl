@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — direct paired-values slice checked**
+**MIGRATION IN PROGRESS — source-tail result contract checked**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1091,6 +1091,56 @@ then test whether it replaces the pure quotient-application family. Until
 that operational replacement checks, the old `Def`/`Proof`/`Lemma` chains
 remain migration-active and on the regression surface. The remaining direct
 retired-name counts are `7/2/2/28/12/12`.
+
+That result-contract experiment succeeded. A completed source step now
+exposes the distinguished leading change, an arbitrary administrative source
+tail, and a reduction from the immediate reduct to the returned source term.
+The public source simulation likewise returns explicit source and target
+tails before the final ordinary QTI edge. Exact one-step leaves use an empty
+tail; application, primitive, cast, and `ν` frames lift a nonempty tail through
+their whole-term contexts. All direct result consumers have migrated, and
+source search finds no use of the former exact-change or exact-result fields.
+
+The terminal-forward proof also consumes the generalized result strictly.
+It recurses with fuel bounded by the observed source trace length; aligning
+the returned source tail against that trace gives the existing strict
+residual-length decrease. This is the decisive evidence that the new result
+contract composes with the DGG trace induction rather than merely moving the
+quotient obstruction into a caller. Focused checks pass for the result and
+public simulation definitions, their projection proof, the terminal-forward
+proof, all migrated composition and frame clients, and the direct lambda and
+primitive schedulers. The terminal-forward strict spine now advances through
+this entire checkpoint and stops at the expected obsolete pure
+quotient-application proof.
+
+The next step is operational, not grammatical. The paired-quotient
+function-beta leaf must terminalize the exposed domain casts after the
+distinguished function-beta step. Because either source domain cast may
+reduce to blame, that leaf and its scheduler path must return the existing
+source-step outcome: either a related result with bilateral tails or source
+blame. Once that replacement passes, the pure
+quotient-application `Def`/`Proof`/`Lemma` family can leave the regression
+surface and be deleted.
+
+The old target-instantiation consumer audit is also closed: a historical grep
+found exactly 26 consumers of `Λ⊑instβᵀ`, and the atomic creation migration
+touched all 26. The only permissive QTI-analyzing scratch module contained
+both missing creation branches; it migrated and was later deleted. No hidden
+incomplete creation consumer remains. Stale references to other deleted
+quotient constructors remain separate Phase 4 obligations.
+
+Large-file decomposition is now part of the controlled migration. The next
+high-value stable cut is the store/context infrastructure still co-located
+with the obsolete first-draft term relation in `NuTermImprecision.agda`; 638
+proof modules currently import that mixed module. Extract that retained
+infrastructure into its canonical Def layer only at a source-result or
+quotient-outcome checkpoint, then delete the first-draft relation in Phase 5.
+After the operational quotient interfaces settle, extract the stable generic
+transport, weak-composition, and world-transport regions from the 15,096-line
+`NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region
+of the 4,762-line `NuImprecisionSimulation.agda`. These are dependency cuts,
+not re-exporting wrappers; each cut must reduce the importing surface before
+the obsolete monolith is deleted.
 
 Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict

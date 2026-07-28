@@ -5,8 +5,10 @@ module proof.WorldCoherent.Source.OneStep.Other.NuImprecisionWorldCoherentSource
 --     forward terminal DGG trace induction.
 --   * Requires and returns world coherence, source-name exclusivity, and
 --     assumption-membership uniqueness on the continuing related branch.
---   * Returns either a continuing related result after the distinguished
---     source step or a source trace to blame.
+--   * Lets both sides reduce after the distinguished source step before the
+--     next ordinary term-imprecision edge.
+--   * Returns either that continuing related result or a source trace to
+--     blame.
 --   * Contains no implementation and imports only statement-level support.
 
 open import Agda.Builtin.Equality using (_≡_)
@@ -60,22 +62,27 @@ WorldCoherentSourceOneStepSimulationᵀ =
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ A ⊑ B ∶ p →
   M —→[ χ ] L →
-  (∃[ L′ ] (Σ[ θs ∈ StoreChanges ]
+  (∃[ K ] (∃[ L′ ] (Σ[ ψs ∈ StoreChanges ]
+    (Σ[ θs ∈ StoreChanges ]
     (∃[ Ψ ] (Σ[ ρ′ ∈
         StoreImp Ψ
-          (applyTyCtx χ Δᴸ) (applyTyCtxs θs Δᴿ) ]
+          (applyTyCtxs ψs (applyTyCtx χ Δᴸ))
+          (applyTyCtxs θs Δᴿ) ]
     (Σ[ q ∈
-        (Ψ ∣ applyTyCtx χ Δᴸ
-          ⊢ applyTy χ A ⊑ applyTys θs B
+        (Ψ ∣ applyTyCtxs ψs (applyTyCtx χ Δᴸ)
+          ⊢ applyTys ψs (applyTy χ A) ⊑ applyTys θs B
           ⊣ applyTyCtxs θs Δᴿ) ]
-      ((M′ —↠[ θs ] L′) ×
+      ((L —↠[ ψs ] K) ×
+       (M′ —↠[ θs ] L′) ×
        WorldCoherent ρ′ ×
        SourceNameExclusive Ψ ×
        AssumptionMembershipUnique Ψ ×
-       (leftStoreⁱ ρ′ ≡ applyStore χ (leftStoreⁱ ρ)) ×
+       (leftStoreⁱ ρ′
+         ≡ applyStores ψs (applyStore χ (leftStoreⁱ ρ))) ×
        (rightStoreⁱ ρ′ ≡ applyStores θs (rightStoreⁱ ρ)) ×
-       Ψ ∣ applyTyCtx χ Δᴸ
+       Ψ ∣ applyTyCtxs ψs (applyTyCtx χ Δᴸ)
          ∣ applyTyCtxs θs Δᴿ ∣ ρ′ ∣ []
-         ⊢ᴺ L ⊑ L′
-         ⦂ applyTy χ A ⊑ applyTys θs B ∶ q))))))
+         ⊢ᴺ K ⊑ L′
+         ⦂ applyTys ψs (applyTy χ A)
+           ⊑ applyTys θs B ∶ q))))))))
   ⊎ (∃[ χs ] (M —↠[ χs ] blame))

@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — direct paired-values slice checked**
+**MIGRATION IN PROGRESS — source-tail result contract checked**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -451,6 +451,33 @@ checkpoint will test the smallest result contract in which the distinguished
 source step is a prefix of the returned source trace. Only after that
 replacement covers the old pure quotient-application family may that family
 leave the regression surface and be deleted.
+
+That smallest result-contract experiment is checked. The completed-step
+record now keeps the distinguished change at the head of the total source
+changes and carries an arbitrary source reduction tail from the immediate
+reduct to the final source term. The public source simulation exposes both
+that source tail and the target tail before its final ordinary-QTI edge.
+Exact leaves use the empty tail, while binary, source-cast, and source-`ν`
+frames lift arbitrary tails through their whole-term contexts. All former
+exact-result clients have migrated.
+
+Terminal-forward consumes the stronger operational result using fuel bounded
+by the observed source trace length. The existing aligned-residual theorem
+proves the recursive source trace strictly shorter after the distinguished
+step and its returned tail are reconciled. Focused checks pass for the result
+contract, public projection, terminal-forward proof, source-silent
+composition, direct lambda and primitive schedulers, and all migrated frame
+families. The terminal-forward strict spine reaches the obsolete pure
+quotient-application proof exactly as expected.
+
+The pure quotient-application family remains on the regression surface for
+one more operational replacement. The paired-quotient beta leaf must
+terminalize its exposed source and target domain casts after the distinguished
+function-beta step. Because the source tail may reach blame, this path must
+propagate the existing source-step outcome rather than promise a related
+result unconditionally. After that outcome path passes its focused and
+terminal-forward gates, delete the obsolete quotient-application and paired
+quotient-relation families in the same checkpoint.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

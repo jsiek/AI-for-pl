@@ -3,7 +3,7 @@ module
   where
 
 -- File Charter:
---   * Defines prepending one target-only pure step to an exact source step.
+--   * Defines prepending one target-only pure step to a source-step result.
 --   * Leaves the completed source trace, final relation, and world unchanged.
 --   * Contains no implementation, postulate, hole, or permissive option.
 

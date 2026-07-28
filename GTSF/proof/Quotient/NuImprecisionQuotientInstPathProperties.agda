@@ -52,8 +52,7 @@ open import QuotientedTermImprecision using
   ; quotient-id-widening
   )
 open import Types using (TyCtx; _⇒_)
-open import
-  proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
+open import proof.Core.Permutation.ForallPermutationPath
   using
   ( _↝∀_
   ; _≈∀ⁿ_

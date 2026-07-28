@@ -34,8 +34,7 @@ open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)
 open import proof.Quotient.NuImprecisionQuotientInstPathProperties using
   (SourceInstStepView)
-open import
-  proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
+open import proof.Core.Permutation.ForallPermutationPath
   using
   (_↝∀_; _≈∀ⁿ_; normalize-forall-permutation; path-step)
 open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using

@@ -11,14 +11,8 @@ module
 open import Agda.Builtin.Equality using (refl)
 open import ForallPermutation using (_≈∀_)
 open import Types using (Ty)
-open import
-  proof.WorldCoherent.Quotient.Core.NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef
-  using (WorldCoherentQuotientRepresentativeInstCatchupᵀ)
-open import
-  proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
-  using
-  ( WorldCoherentQuotientRepresentativeInstPathCatchupᵀ
-  ; _↝∀_
+open import proof.Core.Permutation.ForallPermutationPath using
+  ( _↝∀_
   ; _≈∀ⁿ_
   ; element-all
   ; element-arrow-left
@@ -29,6 +23,12 @@ open import
   ; path-refl
   ; path-step
   )
+open import
+  proof.WorldCoherent.Quotient.Core.NuImprecisionWorldCoherentQuotientRepresentativeInstCatchupDef
+  using (WorldCoherentQuotientRepresentativeInstCatchupᵀ)
+open import
+  proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
+  using (WorldCoherentQuotientRepresentativeInstPathCatchupᵀ)
 
 interpret-forall-permutation-path :
   (P : Ty → Ty → Set₁) →

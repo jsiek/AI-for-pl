@@ -32,8 +32,7 @@ open import QuotientedTermImprecision using
 open import Types using (Ty; `∀)
 open import proof.Core.Permutation.ForallPermutationProperties using
   (AllImprecisionView)
-open import
-  proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
+open import proof.Core.Permutation.ForallPermutationPath
   using (normalize-forall-permutation; path-refl)
 open import proof.NuCore.Relations.NuImprecisionContextExclusivityDef using
   (SourceNameExclusive)

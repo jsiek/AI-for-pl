@@ -8,13 +8,11 @@ module
 --   * Makes the complete top-level path split strict before any semantic case
 --     implementation exists.
 
+open import proof.Core.Permutation.ForallPermutationPath using
+  (path-refl; path-step)
 open import
   proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
-  using
-  ( WorldCoherentQuotientRepresentativeInstPathCatchupᵀ
-  ; path-refl
-  ; path-step
-  )
+  using (WorldCoherentQuotientRepresentativeInstPathCatchupᵀ)
 open import
   proof.WorldCoherent.Quotient.InstPathIdentity.Core.NuImprecisionWorldCoherentQuotientRepresentativeInstPathIdentityCatchupDef
   using (WorldCoherentQuotientRepresentativeInstPathIdentityCatchupᵀ)

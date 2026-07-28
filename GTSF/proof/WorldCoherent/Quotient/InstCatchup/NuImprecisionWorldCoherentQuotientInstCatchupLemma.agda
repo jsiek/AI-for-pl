@@ -18,13 +18,11 @@ open import
 open import
   proof.WorldCoherent.Quotient.InstCatchup.NuImprecisionWorldCoherentQuotientInstCatchupProof
   using (world-coherent-quotient-inst-catchup-proofᵀ)
+open import proof.Core.Permutation.ForallPermutationPath using
+  (path-refl; path-step)
 open import
   proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupDef
-  using
-  ( WorldCoherentQuotientRepresentativeInstPathCatchupᵀ
-  ; path-refl
-  ; path-step
-  )
+  using (WorldCoherentQuotientRepresentativeInstPathCatchupᵀ)
 open import
   proof.WorldCoherent.Quotient.InstPath.NuImprecisionWorldCoherentQuotientRepresentativeInstPathCatchupProof
   using

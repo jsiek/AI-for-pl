@@ -249,9 +249,10 @@ Split target quotient-down pending proofs by semantic active cell. The general
 worker owns the inert/non-inert split, closes an inert active cast with
 `closeᵀ`, and delegates its ordinary outer tail. The active-`inst` Def/Proof
 pair owns path normalization, the post-beta rank decrease, allocation-leaf
-invocation, and contextual `β-inst` prepending. Keep identity, sequence,
-unseal, and untag/cancellation cells separate rather than rebuilding a large
-monolithic dispatcher.
+invocation, and contextual `β-inst` prepending. The active-widening
+classification wires that cell into the worker and leaves exactly identity,
+sequence, and unseal in the non-instantiation residual. Untag belongs to the
+lower narrowing/cancellation path, not this closing-widening dispatcher.
 
 Indexed identity and endpoint transport live in
 `proof/Catchup/Simulation/NuImprecisionIndexedIdentityTransport.agda`.
@@ -259,6 +260,13 @@ It owns identity renaming, source/target/paired replacement transport,
 target-lift replacement transport, endpoint transport, and their shape
 refinements. Exact consumers import it directly; the simulation core keeps
 only a non-public import for its own remaining uses.
+
+Keep/prepend composition and cast-frame transport live in
+`proof/Catchup/Simulation/NuImprecisionKeepCastFrameSupport.agda`. It owns
+the target-cast weak-step frame, indexed source narrow/widen frames, and their
+transport/coherence facts. Exact clients import it directly;
+`NuImprecisionSimulation.agda` keeps only a non-public import for its later
+polymorphic uses.
 
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
@@ -388,43 +396,14 @@ prefix implementation should take its unfinished allocation and quotient
 leaves as higher-order contracts.  It must not import
 `NuImprecisionCatchupScratch` merely to reuse its partial dispatcher.
 
-The strict structural prefix proof has exactly two direct semantic
-dependencies: `WorldCoherentSourceRuntimeCatchupᵀ` and
-`WorldCoherentQuotientFinalCatchupᵀ`.  The latter means "finish this complete
-terminal down/up quotient node" and deliberately owns classification of the
-source endpoint.  The narrower
-`WorldCoherentQuotientInstCatchupᵀ` remains a leaf contract used while proving
-that final quotient capability; it is not strong enough to let the dispatcher
-attach coherence to an arbitrary classifier result.  This distinction was
-found by strict-checking the complete prefix skeleton, before any unfinished
-leaf was assembled.
-
-The structural bridge is
-`WorldCoherentQuotientClassificationᵀ`.  It classifies a terminal quotient
-node as a complete coherent catch-up, a plain outer-`inst` residual, or the
-eager `inst ; (★⇒★)!` residual required by `InstSafe`.  Both residuals
-package `Value (V ⟨ d ⟩)` and `No• (V ⟨ d ⟩)` evidence for the inner
-down-cast value.  The strict
-`NuImprecisionWorldCoherentQuotientFinalCatchupProof` therefore consumes the
-classifier, `WorldCoherentQuotientInstCatchupᵀ`, and
-`WorldCoherentQuotientInstFunTagCatchupᵀ`; source-runtime handlers are not a
-dependency of quotient-final assembly.  Keep the classifier implementation
-separate so ordinary store-neutral quotient leaves retain coherence and left
-`StoreWf` instead of erasing them behind a generic
-`LeftCatchupIndexedResult`.
-
-The eager capability is not a second permutation-semantic leaf.
-`NuImprecisionWorldCoherentQuotientInstFunTagCatchupProof` reduces it to
-`WorldCoherentQuotientInstCatchupᵀ` and the reusable
-`WorldCoherentSourceInertWidenFrameᵀ`: first catch up through plain `inst`,
-then frame the result with the inert `(★ ⇒ ★)!` cast, and finally prepend
-the leading `β-seq` step.  The canonical
-`NuImprecisionWorldCoherentQuotientInstFunTagCatchupLemma` supplies the inert
-frame and remains higher-order only in the plain quotient-`inst` capability.
-Likewise, `NuImprecisionWorldCoherentQuotientFinalCatchupLemma` supplies the
-checked classifier and eager adapter, so final quotient catch-up has just the
-plain quotient-`inst` capability left as a parameter.  Neither assembly
-duplicates the representative permutation proof.
+The strict structural prefix proof still takes
+`WorldCoherentQuotientFinalCatchupᵀ` as a temporary migration capability.
+Its old terminal classifier, eager InstFunTag adapter, quotient-value
+analysis, and canonical provider had no public or strict-spine semantic
+consumer and have been deleted. Do not rebuild those providers. Migrate the
+ordinary and runtime-sibling value-prefix consumers to the selected
+up-to-reduction quotient worker, then delete the two remaining
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability files.
 
 `WorldCoherentQuotientInstCatchupᵀ` is an independent semantic capability,
 not a consequence of `WorldCoherentSourceRuntimeCatchupᵀ`.  Source-runtime

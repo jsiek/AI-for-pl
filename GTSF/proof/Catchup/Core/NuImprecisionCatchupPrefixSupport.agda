@@ -74,7 +74,9 @@ open import
   using (subst²-to-≅)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (leftStoreⁱ-prefix-inclusion; rightStoreⁱ-prefix-inclusion)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ

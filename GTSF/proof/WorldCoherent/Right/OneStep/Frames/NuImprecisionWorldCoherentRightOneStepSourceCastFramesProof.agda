@@ -40,7 +40,9 @@ open import Types using
   ( Ty
   ; TyCtx
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-source-narrow-cast-indexed-frameᵀ
   ; weak-one-step-source-widen-cast-indexed-frameᵀ
   )

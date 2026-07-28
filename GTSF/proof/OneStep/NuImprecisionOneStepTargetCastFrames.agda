@@ -46,7 +46,9 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using (refl; subst; sym)
 open import TermTyping using
   (CastMode; SealModeStore★; cast-tag-or-id)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frameᵀ
   ; weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ

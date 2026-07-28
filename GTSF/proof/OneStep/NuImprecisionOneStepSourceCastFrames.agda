@@ -23,7 +23,9 @@ open import proof.Store.Core.NuImprecisionRelationalStoreDef using
   )
 open import NuTerms using (_⟨_⟩)
 open import TermTyping using (CastMode; SealModeStore★)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-source-narrow-cast-indexed-frameᵀ
   ; weak-one-step-source-widen-cast-indexed-frameᵀ
   )

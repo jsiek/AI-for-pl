@@ -123,7 +123,9 @@ open import proof.Right.ValueCatchup.NuImprecisionRightValueCatchupResultDef usi
 open import
   proof.Right.ValueCatchup.NuImprecisionRightValueCatchupSourceBulletTransportDef
   using (RightValueCatchupSourceBulletTransportᵀ)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ

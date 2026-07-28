@@ -84,7 +84,9 @@ open import Types using
   )
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
 open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   ( weak-one-step-target-cast-frame-coherenceᵀ
   ; weak-one-step-target-cast-frame-transportᵀ
   ; weak-one-step-target-cast-frameᵀ

@@ -1,20 +1,20 @@
 module
-  proof.WorldCoherent.Right.Target.QuotientDown.NuImprecisionWorldCoherentRightTargetQuotientDownPendingCastsResidualAccDef
+  proof.WorldCoherent.Right.Target.QuotientDown.NuImprecisionWorldCoherentRightTargetQuotientDownPendingNonInstantiationAccDef
   where
 
 -- File Charter:
---   * Defines the non-inert active-cast residual of the accessibility-indexed
---     target quotient-down pending worker.
+--   * Defines the non-instantiation active-widening residual of the
+--     accessibility-indexed target quotient-down pending worker.
 --   * Retains the current quotient derivation, widening pair, composition
 --     square, compatibility, and ordinary outer administration tail.
---   * Excludes the terminal inert branch, which the worker closes directly
---     with `closeᵀ` before invoking ordinary pending administration.
+--   * Contains exactly identity, sequence, and unseal active shapes.
+--     Instantiation is owned by its separate checked cell.
 --   * Contains no implementation, conclusion alias, new relation constructor,
 --     postulate, hole, permissive option, or termination bypass.
 
 open import Agda.Builtin.Equality using (_≡_)
 import CastImprecisionShape as CastShape
-open import Coercions using (Coercion; Inert)
+open import Coercions using (Coercion)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (_<_)
 open import Data.Product using (_×_; Σ-syntax)
@@ -34,7 +34,6 @@ open import QuotientedTermImprecision using
   ( QuotientWideningPair
   ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
   )
-open import Relation.Nullary using (¬_)
 open import Types using (Ty; TyCtx)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
@@ -43,6 +42,9 @@ open import
 open import
   proof.Core.Administration.NuImprecisionAdministrationMeasureDef
   using (pendingAdministrationRank)
+open import
+  proof.Core.Properties.ActiveWideningShapeProperties
+  using (NonInstantiationActiveWideningShape)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)
@@ -79,8 +81,8 @@ open import
   )
 
 
-WorldCoherentRightTargetQuotientDownPendingCastsResidualAccᵀ : Set₁
-WorldCoherentRightTargetQuotientDownPendingCastsResidualAccᵀ =
+WorldCoherentRightTargetQuotientDownPendingNonInstantiationAccᵀ : Set₁
+WorldCoherentRightTargetQuotientDownPendingNonInstantiationAccᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
     {L W : Term} {D D′ A B A′ : Ty}
@@ -89,7 +91,7 @@ WorldCoherentRightTargetQuotientDownPendingCastsResidualAccᵀ =
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
     {pB : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
-  ¬ Inert s →
+  NonInstantiationActiveWideningShape s s-shape →
   Value (L ⟨ u ⟩) →
   No• (L ⟨ u ⟩) →
   (vW : Value W) →

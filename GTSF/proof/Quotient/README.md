@@ -108,7 +108,6 @@ names. They may be edited only to migrate or delete those dependencies:
 - `NuImprecisionQuotientFunctionPairedNarrowingApplicationLemma.agda`;
 - `NuImprecisionQuotientInstPathProperties.agda`;
 - `NuImprecisionQuotientInstView.agda`;
-- `NuImprecisionQuotientValue.agda`;
 - `NuImprecisionQuotientWideningTransport.agda`.
 
 `NuImprecisionQuotientToOrdinaryCounterexample.agda` is canonical: it guards
@@ -740,9 +739,8 @@ uses explicit paired reveal, conceal, and widening fields. The value consumer
 analyzes the live close, paired narrowing, and paired cast constructors; its
 fused down/up, identity-only target-widening, and generic conversion cases
 are gone. All new boundaries and the higher-order consumer pass focused
-strict checks. The direct quotient-final Lemma still reaches the retiring
-`NuImprecisionQuotientValue.agda` terminal-classifier SCC, which parses
-removed narrowing constructors and remains a later migration gate.
+strict checks. The unused old quotient-final provider and its terminal
+classifier have now been deleted with the retiring quotient-value cone.
 
 The revised source-runtime record still has no canonical Proof/Lemma
 provider; the obsolete `SourcePairedCastCatchup` aggregate must not be
@@ -1070,10 +1068,10 @@ The second cut is complete. A 489-line
 and reindexing, while a 29-line heterogeneous-equality module removes
 duplicate local transport helpers. The simulation core shrinks from 14,880
 to 14,418 lines and from 85 direct importers to 71; fourteen consumers drop
-it entirely. Focused strict checks and the source/import audit pass. A
-historical quotient-final check still reaches obsolete
-`NuImprecisionQuotientValue.agda`; its stale `down⊑downᵀ` branch is a
-deletion gate, not a reason to repair the retiring monolith.
+it entirely. Focused strict checks and the source/import audit pass. The
+historical quotient-final provider that still reached the obsolete
+quotient-value analysis has since left the regression surface and been
+deleted.
 
 The store-invariant cut is also complete. A 30-line Def owns `StoreUnique`
 and `StoreDetWf`, and a 133-line Proof constructs and preserves them using
@@ -1228,9 +1226,21 @@ non-inert active-cast residual.
 The active target-`inst` cell is also strict: its 140-line Def and 111-line
 Proof normalize the source and target quotient paths, derive the smaller
 post-beta rank, invoke the direct allocation-path leaf, and prepend `β-inst`
-under the outer tail. The Proof checks in 7.95 seconds. Remaining active-cast
-families are identity, sequence, unseal, and untag/cancellation; the
-allocation-path contract still needs its strict inhabitant.
+under the outer tail. The Proof checks in 7.95 seconds. The pending dispatcher
+now classifies a non-inert widening exactly as identity, sequence, unseal, or
+instantiation, invokes the checked instantiation cell, and leaves only the
+first three in its residual contract. Untag is a narrowing/cancellation case
+below this boundary, not a target closing-widening case. The allocation-path
+contract still needs its strict inhabitant.
+
+The 2,090-line `NuImprecisionQuotientValue.agda` retirement is complete.
+After removing the historical InstFunTag/classification/final-provider block
+from `NuDGGStrictSpine`, a focused strict check passed and the 21-file
+provider cone was deleted. No public DGG, terminal strict spine, or
+unassembled-proof spine reached that cone. The two
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability types remain
+temporarily because live prefix consumers still take them as parameters;
+their unused canonical providers are gone.
 
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete

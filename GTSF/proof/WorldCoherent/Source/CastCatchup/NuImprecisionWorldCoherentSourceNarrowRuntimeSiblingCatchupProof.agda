@@ -64,7 +64,9 @@ open import proof.Catchup.Core.NuImprecisionCatchupComposition using
   ; weak-one-step-keep-source-catchup-transportᵀ
   ; weak-one-step-keep-source-catchupᵀ
   )
-open import proof.Catchup.Simulation.NuImprecisionSimulation using
+open import
+  proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
+  using
   (weak-one-step-source-narrow-cast-indexed-frameᵀ)
 open import
   proof.Catchup.Simulation.NuImprecisionWeakOneStepResultTransport

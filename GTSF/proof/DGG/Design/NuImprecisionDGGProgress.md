@@ -1434,9 +1434,10 @@ constructors directly. The fused down/up, identity-only target-widening, and
 generic paired-conversion cases are gone. The close Def/Proof/Lemma, ordinary
 value prefix and wrapper, quotient runtime-sibling contract and proof, and
 runtime-sibling value consumer all pass focused strict checks. The direct
-quotient-final Lemma remains blocked downstream by the retiring
+quotient-final Lemma was then blocked downstream by the retiring
 `NuImprecisionQuotientValue.agda` case analysis over removed narrowing
-constructors; that terminal-classifier SCC is now the explicit later gate.
+constructors. That unused provider cone has since been deleted rather than
+repaired.
 
 There is still no canonical Proof/Lemma inhabitant for the revised
 `WorldCoherentSourceRuntimeCatchupᵀ` record. Do not adapt the old
@@ -1895,9 +1896,17 @@ post-`β-inst` administration rank, invokes the allocation-path leaf, and
 prepends `β-inst` beneath the ordinary outer cast tail. Its focused strict
 check passes in 7.95 seconds. This cell is conditional only on the direct
 allocation-path contract; it does not use the opaque-trace residual or assert
-an ordinary pre-instantiation edge. The remaining non-inert dispatcher is now
-limited to identity, sequence, unseal, and untag/cancellation active casts,
-plus the construction of the allocation-path leaf itself.
+an ordinary pre-instantiation edge.
+
+The non-inert dispatcher is now tighter and the instantiation cell is wired
+into it. `ActiveWideningShape` proves that a non-inert widening has exactly an
+identity, sequence, unseal, or instantiation shape. The pending worker invokes
+the checked instantiation cell directly; its remaining residual carries
+`NonInstantiationActiveWideningShape` and therefore contains only identity,
+sequence, and unseal. Untag is impossible at this closing-widening boundary
+and remains only in lower narrowing/cancellation paths. Focused strict checks
+pass for the classifier and revised pending worker in 3.8 and 7.3 seconds.
+The allocation-path leaf remains conditional.
 
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
@@ -1924,9 +1933,9 @@ shrinks from 14,880 to 14,418 lines, and its direct fan-out falls from 85 to
 71; the focused transport module has 55 direct importers. Fourteen consumers
 drop the simulation-core import entirely. The focused modules, reduced core,
 representative live consumers, source/import audit, and diff audit pass.
-One attempted historical quotient-final consumer still reaches the obsolete
-`NuImprecisionQuotientValue.agda` stale `down⊑downᵀ` branch; delete that
-retiring monolith through migration rather than repairing it.
+One attempted historical quotient-final consumer reached the obsolete
+quotient-value analysis through its stale `down⊑downᵀ` branch. The later
+retirement checkpoint deleted that provider cone rather than repairing it.
 
 The third stable cut is complete. The 30-line
 `NarrowWidenStoreInvariantDef.agda` defines `StoreUnique` and `StoreDetWf`;
@@ -2065,15 +2074,32 @@ pass for the focused module in 4.42 seconds, the invalidated core in 61.71
 seconds, and three representative consumers in 7.91, 9.93, and 9.17 seconds.
 `git diff --check` and `make audit` pass.
 
-The complete over-2,000-line audit now ranks only two large mixed simulation
-files as profitable phase-local cuts. After the identity extraction,
-`NuImprecisionSimulation.agda` has a stable 342-line keep/prepend and cast
-frame block with fifteen exact consumers. The remaining large
+The thirteenth stable cut extracts the 395-line
+`proof/Catchup/Simulation/NuImprecisionKeepCastFrameSupport.agda`. It owns
+source-`keep` and universal-catch-up composition, the target-cast weak-step
+frame with its transport/coherence facts, and indexed source narrow/widen cast
+frames. All fifteen exact external consumers import it directly;
+`NuImprecisionSimulation.agda` retains one non-public import for later
+polymorphic uses, shrinks from 4,134 to 3,804 lines, and falls from eighteen
+direct importers to three. Strict checks pass for the focused module in 7.88
+seconds, the invalidated monolith in 15.87 seconds, and three representative
+consumers in 5.48, 3.86, and 9.13 seconds.
+
+The complete over-2,000-line audit now leaves no further profitable
+phase-local split in `NuImprecisionSimulation.agda`. The remaining large
 `NarrowWidenProperties`, endpoint permutation/factorization, and compiler
 files are cohesive or low-fan-out and should remain intact during this phase.
-The 2,090-line `NuImprecisionQuotientValue.agda` is retiring, has no reason to
-be split, and must be deleted after its five old clients migrate or leave the
-regression surface.
+
+The 2,090-line quotient-value retirement is complete. A transitive import
+audit showed that no public DGG theorem, terminal strict spine, or unassembled
+proof spine reached it; only a historical seven-import provider block in
+`NuDGGStrictSpine` kept the cone on the regression surface. After removing
+that block, the strict spine passed in about 26 seconds. The 21-file
+quotient-value, old ground-value elimination, source-tag, InstFunTag,
+classification, and unused final-provider cone was then deleted. The two
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability definitions
+remain temporarily because live value-prefix consumers still take them as
+parameters; migrate those consumers before deleting the final two contracts.
 
 The migration Makefile's quotient-world list now names the existing
 `NuImprecisionQuotientEliminationCompatibilityRename.agda`; the stale,

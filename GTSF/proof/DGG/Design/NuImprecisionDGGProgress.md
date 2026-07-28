@@ -2249,8 +2249,18 @@ reaching an independent stale import in
 `left-insertion-suc` from the simulation core after that constructor moved to
 `NuCastModeRenamerProperties`. The checkpoint rewires that import to its
 focused owner. The substitution module checks strictly in 13.86 seconds. This
-last repair has not yet been followed by another broad terminal-backward run;
-the next worker should resume that strict-spine gate.
+last repair had not yet been followed by another broad terminal-backward run.
+
+The resumed gate on 2026-07-28 ran for 584.93 seconds before exposing one
+stale canonical assembly:
+`NuImprecisionWorldCoherentRightOneStepApplicationFunctionCastBetaLemma`
+still supplied the retired pure quotient-application theorem. Source search
+found that the backward inventory spine was its only external importer. The
+underlying `Def`, higher-order `Proof`, and ranked SCC remain live and strict,
+so the premature `Lemma` and its inventory import were deleted rather than
+recreating the removed quotient constructor. The focused SCC proof passes in
+4.17 seconds, and the refreshed terminal-backward strict spine passes in
+27.80 seconds.
 
 This checkpoint is intentionally being published before the migration is
 complete. The handoff issue must preserve the controlled order above, continue

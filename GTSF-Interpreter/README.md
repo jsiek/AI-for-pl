@@ -247,6 +247,44 @@ The `Error` alternative occurs in none of the four permitted conclusions.
 Consequently, error freedom for closed compiled well-typed programs is an
 explicit prerequisite rather than an implicit assumption.
 
+## Direct DGG statement surface
+
+`InterpreterDynamicGradualGuaranteeDirect.agda` restates the interface using
+equations about `run`; it does not import `InterpreterObservations`.
+
+`SameIndexReturnedCompatibility` is the direct form suggested in the design
+discussion. If both compiled programs return at the same index, it requires
+their worlds and values to be related. This is a useful local lemma, but it is
+not itself a DGG: both return equations are premises, so it does not ensure
+that a matching execution exists.
+
+The four full direct obligations are:
+
+- `ForwardValueDGGDirect`: a left return at `n` produces a related right
+  return at some `m`;
+- `ForwardDivergenceDGGDirect`: if every left index times out, every right
+  index times out;
+- `BackwardValueDGGDirect`: a right return at `n` produces a related left
+  return at some `m`, or left blame at some `m`; and
+- `BackwardDivergenceDGGDirect`: if every right index times out, then at each
+  index the left run is either timed out or blame.
+
+The two terminating runs are not required to use the same index. Explicit
+casts and proxies can change recursive interpreter depth, so an equality at
+some independently chosen `m` is the robust conclusion. Fuel stabilization
+can later lift either return to any sufficiently large common index.
+
+The same-index compatibility lemma is the easiest result because it assumes
+both executions. Among the four actual DGG properties,
+`BackwardValueDGGDirect` looks easiest: it has a finite return premise, needs
+only finite witnesses, and permits blame on the more precise left side. The
+two divergence properties additionally need global fuel reasoning.
+
+`InterpreterObservations` remains useful as a compact derived vocabulary for
+clients, but it is not needed as the primary proof interface. A reasonable
+proof organization is to establish the direct properties first and derive
+the observation-based statements by unfolding their definitions.
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

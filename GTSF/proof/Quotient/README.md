@@ -1007,14 +1007,20 @@ paired-down/closing evidence and universal permutation. It is not a QTI
 constructor or a compatibility broadening.
 
 That boundary is now formalized by
-`WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ`. It starts
-after target `β-inst` and before `bind`, keeps the source double cast as a
-value, retains both quotient composition squares and compatibility witnesses,
-and records a keep-only trace from the original target double cast to the
-pending runtime `ν`. The round-trip regression inhabits this contract without
-an ordinary pre-instantiation edge. The proof must transport the physical
-permutation and quotient indices through target allocation, then rebuild
-lineage, world coherence, and assumption-membership uniqueness.
+`WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ`. It keeps the
+source double cast as a value, retains both quotient composition squares and
+compatibility witnesses, and records a keep-only trace from the original
+target double cast to an explicit pending `inst` head. Its conclusion crosses
+the framed `β-inst` step and stops at the pre-bind runtime `ν`. The round-trip
+regression inhabits this contract without an ordinary pre-instantiation edge.
+The proof still needs a quotient-specific post-allocation prefix that
+transports the physical permutation and quotient indices through target
+`bind`, then rebuilds lineage, world coherence, and assumption-membership
+uniqueness. The residual exposes the ordinary post-instantiation index and
+its typed outer `TargetAdministrationSpine`; the active `inst` is deliberately
+not part of that spine because the ordinary pre-instantiation edge is false
+in the permutation example. The remaining prefix must also carry the
+proof-relevant target representative and normalized `∀`-permutation path.
 
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
@@ -1116,14 +1122,32 @@ importers to thirteen. The focused module, invalidated selector,
 cast-compatibility counterexample, endpoint maximality, and factorization
 shape pass focused strict checks.
 
+The eighth stable cut extracts the 784-line
+`NuImprecisionBinderPermutationProperties.agda`. It owns indexed context
+permutation, its type renamings, and permutation transport for well-formed
+indexed imprecision. Four external consumers import it directly; the selector
+keeps only a non-public transition import and shrinks from 19,402 to 18,665
+lines. The focused module, selector, and two small representative consumers
+pass strict checks. Broad simulation modules remain deferred to the migration
+phase gate.
+
+The ninth stable cut extracts the 333-line
+`NuImprecisionBinderDropProperties.agda`. It owns the 298-line source-only
+and paired binder-drop island, including membership transport and unused
+opening. Eight external consumers import it directly; the selector again
+keeps only a non-public transition import and shrinks from 18,665 to 18,367
+lines, with five direct external importers left. Strict checks pass for the
+focused module in 2.33 seconds, the invalidated selector in 48.43 seconds,
+and two small consumers in 2.23 and 1.93 seconds. `make audit` passes.
+
 Two legacy `ν` pattern failures and the removed `up⊑upᵀ` consumer were exposed
 by invalidating clients. They are independent migration/deletion debt, not
 bridge failures, and must not be repaired by restoring obsolete constructors.
 
-The remaining selector audit identifies binder permutation and source binder
-drop as the other reusable islands. After those move, delete the historical
-selector body and its obsolete experiments rather than reorganizing them.
-The isolated non-well-formed selector is a follow-up deletion candidate once
+The reusable binder-permutation and source-binder-drop islands have moved.
+Classify the selector's five remaining external clients, then delete the
+historical selector body and obsolete experiments rather than reorganizing
+them. The isolated non-well-formed selector remains a deletion candidate once
 its single test client is classified.
 
 Store-relation structure and endpoint shape remain later stable cuts, but the

@@ -197,16 +197,25 @@ module directly; `MaximalLowerBoundsWf` imports it non-publicly only while the
 historical selector is retired.  Do not restore these operations as selector
 exports.
 
+Indexed binder permutation lives in
+`NuImprecisionBinderPermutationProperties`; source-only and paired binder
+dropping live in `NuImprecisionBinderDropProperties`. Consumers import these
+focused modules directly. `MaximalLowerBoundsWf` keeps non-public transition
+imports only while its five remaining clients and historical selector body
+are classified and retired; it must not re-export either API.
+
 Keep-only quotient-down administration has a similarly narrow canonical
 boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`
 records ordinary closure, one rank-decreasing target keep step, and terminal
 source blame. Function frames remain at the whole-application root, while
 target instantiation uses
 `NuImprecisionWorldCoherentRightOneStepQuotientDownNuAllocationResidualAccDef`.
-That post-`β-inst`, pre-bind boundary preserves the paired-down and closing
-evidence, the hidden universal permutation, and the keep-only target-origin
-trace. Do not enlarge the core plan into a dispatcher for those whole-term
-joins or replace the allocation residual with an ordinary QTI edge.
+Its keep-only target-origin trace stops at an explicit pending `inst` head,
+and its conclusion crosses the framed `β-inst` step to the pre-bind runtime
+`ν`. The boundary preserves the paired-down and closing evidence and the
+hidden universal permutation. Do not enlarge the core plan into a dispatcher
+for those whole-term joins or replace the allocation residual with an
+ordinary QTI edge.
 
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the

@@ -1822,16 +1822,23 @@ original paired-down/closing boundary and its genuine `∀` permutation.
 
 That exact boundary is now formalized in
 `NuImprecisionWorldCoherentRightOneStepQuotientDownNuAllocationResidualAccDef`.
-It starts after the target `β-inst` step and before `bind`, requires the source
-double cast to remain a value, retains both quotient composition squares and
-compatibility witnesses, and carries a keep-only trace from the original
-target double cast to the pending runtime `ν`. The checked round-trip
-inhabits the boundary with no pending outer casts and no prior target keep
-steps. The boundary returns the existing world-coherent weak one-step outcome
+It requires the source double cast to remain a value, retains both quotient
+composition squares and compatibility witnesses, and carries a keep-only
+trace from the original target double cast to an explicit pending `inst`
+head. Its conclusion crosses that framed `β-inst` step and stops at the
+pre-bind runtime `ν`. This avoids last-step inversion of an arbitrary trace
+while exposing exactly the operational fact known by the recursive worker.
+The checked round-trip inhabits the boundary with no pending outer casts.
+The boundary returns the existing world-coherent weak one-step outcome
 directly; it is neither a QTI constructor nor an ordinary intermediate edge.
-Its proof must next transport the physical permutation through target `bind`,
-update the quotient indices, and reconstruct store lineage, coherence, and
-membership uniqueness.
+Its proof still needs a quotient-specific post-allocation prefix that
+transports the physical permutation through target `bind`, updates the
+quotient indices, and reconstructs store lineage, coherence, and membership
+uniqueness. The residual now exposes the ordinary post-instantiation index
+and its typed outer `TargetAdministrationSpine`; the active `inst` is not
+part of that spine because the ordinary pre-instantiation edge is false in
+the permutation example. The remaining prefix must also expose the
+proof-relevant target representative and normalized `∀`-permutation path.
 
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
@@ -1919,6 +1926,29 @@ seconds, the invalidated selector in 50.89 seconds, the cast-compatibility
 counterexample in 90.41 seconds, endpoint maximality in 2.33 seconds, and
 factorization shape in 24.60 seconds.
 
+The eighth stable cut extracts the 784-line
+`proof/Core/Properties/NuImprecisionBinderPermutationProperties.agda`. It
+owns indexed context permutation, the corresponding type renamings, and
+permutation transport for well-formed indexed imprecision. Four exact
+external consumers import it directly; the endpoint selector keeps only a
+non-public transition import. The selector shrinks from 19,402 to 18,665
+lines. The focused module checks in about five seconds from the invalidated
+state and two seconds warm, the selector in about fifty seconds, and the two
+small representative consumers in about twenty-two and three seconds. The
+14,000-line simulation modules remain deferred to the migration phase gate.
+
+The ninth stable cut extracts the 333-line
+`proof/Core/Properties/NuImprecisionBinderDropProperties.agda`. It owns the
+298-line source-only and paired binder-drop island, including context
+membership transport and unused-opening algebra. Eight exact external
+consumers import it directly; the endpoint selector again imports it
+non-publicly and does not re-export it. The selector shrinks from 18,665 to
+18,367 lines and now has only five direct external importers. Strict checks
+pass for the focused module in 2.33 seconds, the invalidated selector in
+48.43 seconds, and two small consumers in 2.23 and 1.93 seconds. A warm
+recheck takes about two seconds. `make audit` still reports zero unresolved
+imports, zero unsafe roots, and zero uninventoried strict Proof modules.
+
 Three invalidated consumers expose independent migration debt rather than
 bridge failures: `MLBGlbCounterexample` and
 `GenSafeMismatchBlameRegression` still pattern-match the pre-`NonVar` `ν`
@@ -1926,11 +1956,11 @@ shape, while `CompileTermImprecision` still reaches the removed
 `up⊑upᵀ`. Classify those clients for migration or deletion; do not restore
 obsolete constructors to keep them checking.
 
-The remaining selector audit found two further reusable islands: binder
-permutation and source binder drop. Once those consumers move, only historical
-selector experiments and retiring paired-lambda code should remain. Delete
-that residual selector development and the isolated non-well-formed selector
-rather than preserving them as compatibility surfaces.
+The reusable binder-permutation and source-binder-drop islands have now moved.
+The remaining selector clients must be classified as live endpoint clients or
+retiring historical experiments. Delete the historical selector residual and
+the isolated non-well-formed selector rather than preserving them as
+compatibility surfaces.
 
 Invalidating the other two consumers exposed existing migration debt rather
 than import failures. The paired-lambda widening consumer has nine missing

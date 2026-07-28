@@ -3,11 +3,14 @@ module
   where
 
 -- File Charter:
---   * Defines the quotient-specific post-`β-inst`, pre-bind allocation leaf
---     below one live `closeᵀ (paired-downᵀ ...)` boundary.
+--   * Defines the quotient-specific allocation leaf straddling the active
+--     target `β-inst` step below one live
+--     `closeᵀ (paired-downᵀ ...)` boundary.
 --   * Retains the physical quotient endpoints, both composition squares,
 --     both compatibility witnesses, and the keep-only trace from the
---     original target boundary to the pending runtime `ν`.
+--     original target boundary to an explicit pending `inst` head.
+--   * Exposes the ordinary post-instantiation index and its typed outer
+--     administration spine; the active `inst` is not part of that spine.
 --   * Requires the source double cast to be a value, separating target-only
 --     allocation from source synchronization and catch-up.
 --   * Returns the existing world-coherent weak outcome directly, without an
@@ -16,7 +19,7 @@ module
 
 open import Agda.Builtin.Equality using (_≡_)
 import CastImprecisionShape as CastShape
-open import Coercions using (Coercion)
+open import Coercions using (Coercion; inst)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Relation.Unary.All using (All)
 open import Data.Nat using (_<_)
@@ -58,7 +61,10 @@ open import
   using (SourceNameExclusive)
 open import
   proof.Target.Administration.NuImprecisionTargetPendingCasts
-  using (applyTargetPendingCasts)
+  using
+  ( TargetAdministrationSpine
+  ; applyTargetPendingCasts
+  )
 open import
   proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
   using (WorldCoherent)
@@ -75,12 +81,13 @@ WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ :
 WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ =
   ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
     {ρ : StoreImp Φ Δᴸ Δᴿ}
-    {V V′ W : Term} {C C′ D D′ A A′ : Ty}
+    {V V′ W : Term} {C C′ D D′ A A′ B : Ty}
     {d d′ u u′ s : Coercion} {cs : List Coercion}
     {χs : StoreChanges}
     {d-shape d′-shape u-shape u′-shape}
     {pC : Φ ∣ Δᴸ ⊢ C ⊑ C′ ⊣ Δᴿ}
     {qD : Φ ∣ Δᴸ ⊢ D ⊑ᵖ D′ ⊣ Δᴿ}
+    {pB : Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ}
     {pA : Φ ∣ Δᴸ ⊢ A ⊑ A′ ⊣ Δᴿ} →
   (down-mode : QuotientDownMode) →
   (vV : Value V) →
@@ -117,9 +124,10 @@ WorldCoherentRightOneStepQuotientDownNuAllocationResidualAccᵀ =
   u-shape ；⌊ pA ⌋≋ᵖ qD ； u′-shape →
   ReductionClosedQuotientWideningCompatible
     Φ Δᴸ Δᴿ u u′ qD pA u-shape u′-shape →
+  TargetAdministrationSpine ρ A pB pA cs →
   ((V′ ⟨ d′ ⟩) ⟨ u′ ⟩)
     —↠[ keep ∷ χs ]
-      applyTargetPendingCasts (NuTerms.ν Types.★ W s) cs →
+      applyTargetPendingCasts W (inst B s ∷ cs) →
   All (λ χ → χ ≡ keep) χs →
   WorldCoherentWeakOneStepIndexedOutcome
     {M = (V ⟨ d ⟩) ⟨ u ⟩}

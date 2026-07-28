@@ -293,13 +293,14 @@ open import proof.Core.Permutation.ForallPermutationProperties using
   ; ⊑→⊑ᵖ
   )
 open import proof.Core.Properties.NarrowWidenProperties using
-  ( StoreDetWf
-  ; allocate-all-narrowing
+  ( allocate-all-narrowing
   ; allocate-all-widening
   ; allocate-gen-narrowing
   ; open-all-narrowing
   ; open-all-widening
   )
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 open import proof.Core.Properties.NuTermProperties using
   ( modeRename-left-inverse
   ; open0-ext-suc-cancelᵐ

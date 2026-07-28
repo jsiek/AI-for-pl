@@ -924,13 +924,18 @@ historical quotient-final check still reaches obsolete
 `NuImprecisionQuotientValue.agda`; its stale `down⊑downᵀ` branch is a
 deletion gate, not a reason to repair the retiring monolith.
 
-Next split the store invariant at lines 486–634 of
-`NarrowWidenProperties.agda` into a Def/Proof boundary, reusing existing
-`NuStoreProperties` facts rather than retaining duplicates. This frees
-compilation, term narrowing, and store correspondence from the 4,385-line
-monolith. Binder allocation/opening, store-relation structure, and endpoint
-shape are later stable cuts. Retiring quotient/experiment files should be
-deleted rather than split. The zero-consumer
+The store-invariant cut is also complete. A 30-line Def owns `StoreUnique`
+and `StoreDetWf`, and a 133-line Proof constructs and preserves them using
+canonical `NuStoreProperties` facts. The duplicate `StoreUnique-inst` is
+gone. `NarrowWidenProperties.agda` shrinks from 4,385 to 4,230 lines, twelve
+consumers import the focused boundary directly, and representative
+compilation, narrowing, store, and cast checks pass. The independent
+`CompileTermImprecision` failure remains its retired `up⊑upᵀ` use.
+
+Binder allocation/opening, store-relation structure, and endpoint shape are
+later stable cuts, but the operational quotient SCC is now higher priority.
+Retiring quotient/experiment files should be deleted rather than split. The
+zero-consumer
 `MaximalLowerBoundsJunk.agda` has been removed; Git history is the archive.
 
 The remaining direct retired-name counts are `2/1/1/12/7/0` for fused

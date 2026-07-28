@@ -99,7 +99,8 @@ open import proof.Core.Properties.ImprecisionCompositionProperties using
   (compose-target-star-right-id★)
 open import proof.Core.Properties.SealModeProperties using
   (seal★-tag-or-id)
-open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 open import proof.Core.Properties.ImprecisionProperties using
   ( ~-sym
   ; ⊑-base-inv-idᵢ

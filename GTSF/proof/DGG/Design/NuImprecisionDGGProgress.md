@@ -1676,15 +1676,23 @@ One attempted historical quotient-final consumer still reaches the obsolete
 `NuImprecisionQuotientValue.agda` stale `down⊑downᵀ` branch; delete that
 retiring monolith through migration rather than repairing it.
 
-The next checking-time cut is the store invariant at lines 486–634 of the
-4,385-line `NarrowWidenProperties.agda`. Split its contract and proof into
-`NarrowWidenStoreInvariantDef.agda` and
-`NarrowWidenStoreInvariantProof.agda`, reuse canonical `NuStoreProperties`
-lemmas instead of moving their duplicates, and let compilation, term
-narrowing, and store correspondence import the smaller boundary directly.
+The third stable cut is complete. The 30-line
+`NarrowWidenStoreInvariantDef.agda` defines `StoreUnique` and `StoreDetWf`;
+the 133-line `NarrowWidenStoreInvariantProof.agda` constructs and preserves
+them. The proof reuses the canonical `NuStoreProperties` membership,
+uniqueness, and binding facts, and the obsolete duplicate
+`StoreUnique-inst` is gone. `NarrowWidenProperties.agda` shrinks from 4,385 to
+4,230 lines. Twelve consumers now import the focused boundary directly.
+Strict checks pass for the new modules, reduced monolith, `Compile.agda`,
+term narrowing, store correspondence, cast imprecision, and the other live
+representatives. `CompileTermImprecision.agda` still stops independently at
+its retired `up⊑upᵀ` use.
+
 Further safe cuts are binder opening/allocation, store-relation structure,
-and endpoint-shape inversions. Do not split the retiring quotient-value
-monolith or migration experiments. The zero-import
+and endpoint-shape inversions. These are lower priority than the operational
+quotient SCC now that the three largest migration-aligned invalidation cuts
+are established. Do not split the retiring quotient-value monolith or
+migration experiments. The zero-import
 `MaximalLowerBoundsJunk.agda` and its active-surface references have already
 been deleted; Git history is the archive.
 

@@ -15,9 +15,14 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
-open import proof.Core.Properties.CoercionProperties using (coercion-src-tgtᵐ; minus-src-tgtᵐ)
+open import proof.Core.Properties.CoercionProperties
+  using (coercion-src-tgtᵐ; minus-src-tgtᵐ)
 import proof.Core.Properties.NarrowWidenProperties as NWP
-open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf; srcStoreⁿ-⊒ˢ)
+open import proof.Core.Properties.NarrowWidenProperties
+  using (srcStoreⁿ-⊒ˢ)
+import proof.Core.Properties.NarrowWidenStoreInvariantDef as NWStore
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 
 ≈ⁿ-right-typing :
   ∀ {Δ σ l r A B} →
@@ -140,7 +145,7 @@ inner-cast+-typing {Δ = Δ} {σ = σ} {γ = γ} {M = M}
     s-tgt : Bt ≡ B
     s-tgt =
       trans (sym (proj₁ (coercion-src-tgtᵐ negs⊢)))
-        (minus-src-tgtᵐ (NWP.StoreDetWf.at wfΣ) (proj₁ s⊒))
+        (minus-src-tgtᵐ (NWStore.StoreDetWf.at wfΣ) (proj₁ s⊒))
 
     M′⊢B :
       Δ ∣ tgtStoreⁿ σ ∣ tgtCtxⁿ γ ⊢ M′ ⦂ B

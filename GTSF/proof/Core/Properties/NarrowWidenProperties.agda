@@ -21,7 +21,6 @@ open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
 open import Store
-import NuStore as NuStore
 open import Coercions
 open import NarrowWiden
 open import proof.Compilation.GenSafeProperties
@@ -68,8 +67,6 @@ open import proof.Core.Properties.TypeProperties
     ; TyRenameWf-suc
     ; TyRenameWf-suc-≤
     ; WfTy-weakenᵗ
-    ; WfTy-un⇑ᵗ
-    ; predᵗ
     ; raiseVarFrom-≢
     ; occurs-raise
     ; occurs-raise-fresh
@@ -77,13 +74,14 @@ open import proof.Core.Properties.TypeProperties
     ; renameᵗ-ground
     ; renameᵗ-compose
     ; renameᵗ-id
-    ; renameᵗ-pred-suc
     ; renameᵗ-preserves-WfTy
     ; renameᵗ-ext-suc-comm
     ; renameStoreᵗ-ext-suc-comm
     ; renameStoreᵗ-single-suc-cancel
     ; singleRenameᵗ-Wf-<
     )
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+open import proof.Core.Properties.NarrowWidenStoreInvariantProof
 
 ------------------------------------------------------------------------
 -- Opening typed narrowing and widening at a fresh seal name
@@ -478,159 +476,6 @@ widening⇒coercion :
   Δ ∣ Σ ⊢ c ∶ A =⇒ B
 widening⇒coercion (μ , c⊢) =
   μ , widening⇒coercionᵐ c⊢
-
-------------------------------------------------------------------------
--- Store invariant needed by determinacy
-------------------------------------------------------------------------
-
-StoreUnique : Store → Set
-StoreUnique Σ =
-  ∀ {α A B} →
-  (α , A) ∈ Σ →
-  (α , B) ∈ Σ →
-  A ≡ B
-
-record StoreDetWf (Δ : TyCtx) (Σ : Store) : Set₁ where
-  field
-    at : StoreWfAt Δ Σ
-    wfOlder : ∀ {α A} → (α , A) ∈ Σ → WfTy α A
-    unique : StoreUnique Σ
-
-open StoreDetWf
-
-StoreWf⇒det :
-  ∀ {Δ Σ} →
-  StoreWf Δ Σ →
-  StoreDetWf Δ Σ
-StoreWf⇒det wfΣ =
-  record
-    { at = Store.at wfΣ
-    ; wfOlder = Store.wfOlder wfΣ
-    ; unique = Store.unique wfΣ
-    }
-
-∈-⟰ᵗ-inv :
-  ∀ {Σ α B} →
-  (suc α , B) ∈ ⟰ᵗ Σ →
-  ∃[ A ] (B ≡ ⇑ᵗ A × (α , A) ∈ Σ)
-∈-⟰ᵗ-inv {Σ = (α , A) ∷ Σ} (here refl) =
-  A , refl , here refl
-∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there h)
-    with ∈-⟰ᵗ-inv h
-∈-⟰ᵗ-inv {Σ = (β , C) ∷ Σ} (there h)
-    | A , eq , h′ =
-  A , eq , there h′
-
-∈-⟰ᵗ-zero :
-  ∀ {Σ A} →
-  (zero , A) ∈ ⟰ᵗ Σ →
-  ⊥
-∈-⟰ᵗ-zero {Σ = (α , B) ∷ Σ} (there h) =
-  ∈-⟰ᵗ-zero h
-
-StoreUnique-⟰ᵗ :
-  ∀ {Σ} →
-  StoreUnique Σ →
-  StoreUnique (⟰ᵗ Σ)
-StoreUnique-⟰ᵗ uniqueΣ {α = zero} h₁ h₂ =
-  ⊥-elim (∈-⟰ᵗ-zero h₁)
-StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
-    with ∈-⟰ᵗ-inv h₁ | ∈-⟰ᵗ-inv h₂
-StoreUnique-⟰ᵗ uniqueΣ {α = suc α} h₁ h₂
-    | A , eq₁ , h₁′ | B , eq₂ , h₂′ =
-  trans eq₁ (trans (cong ⇑ᵗ (uniqueΣ h₁′ h₂′)) (sym eq₂))
-
-<-suc-inv :
-  ∀ {α Δ} →
-  suc α < suc Δ →
-  α < Δ
-<-suc-inv (s<s α<Δ) = α<Δ
-
-StoreUnique-⟰ᵗ-inv :
-  ∀ {Σ} →
-  StoreUnique (⟰ᵗ Σ) →
-  StoreUnique Σ
-StoreUnique-⟰ᵗ-inv uniqueΣ {A = A} {B = B} h₁ h₂ =
-  trans (sym (renameᵗ-pred-suc A))
-    (trans
-      (cong (renameᵗ predᵗ)
-        (uniqueΣ (∈-renameStoreᵗ suc h₁) (∈-renameStoreᵗ suc h₂)))
-      (renameᵗ-pred-suc B))
-
-StoreUnique-inst :
-  ∀ {Σ} →
-  StoreUnique Σ →
-  StoreUnique ((zero , ★) ∷ ⟰ᵗ Σ)
-StoreUnique-inst uniqueΣ (here refl) (here refl) = refl
-StoreUnique-inst uniqueΣ (here refl) (there h) =
-  ⊥-elim (∈-⟰ᵗ-zero h)
-StoreUnique-inst uniqueΣ (there h) (here refl) =
-  ⊥-elim (∈-⟰ᵗ-zero h)
-StoreUnique-inst uniqueΣ (there h₁) (there h₂) =
-  StoreUnique-⟰ᵗ uniqueΣ h₁ h₂
-
-StoreDetWf-⟰ᵗ :
-  ∀ {Δ Σ} →
-  StoreDetWf Δ Σ →
-  StoreDetWf (suc Δ) (⟰ᵗ Σ)
-StoreDetWf-⟰ᵗ wfΣ =
-  record
-    { at = StoreWfAt-⟰ᵗ (at wfΣ)
-    ; wfOlder = wfOlder′
-    ; unique = StoreUnique-⟰ᵗ (unique wfΣ)
-    }
-  where
-    wfOlder′ :
-      ∀ {α A} →
-      (α , A) ∈ ⟰ᵗ _ →
-      WfTy α A
-    wfOlder′ {zero} h =
-      ⊥-elim (∈-⟰ᵗ-zero h)
-    wfOlder′ {suc α} h
-        with ∈-⟰ᵗ-inv h
-    wfOlder′ {suc α} h | A , eq , h′ =
-      subst (WfTy (suc α)) (sym eq)
-        (renameᵗ-preserves-WfTy (wfOlder wfΣ h′) TyRenameWf-suc)
-
-StoreDetWf-⟰ᵗ-inv :
-  ∀ {Δ Σ} →
-  StoreDetWf (suc Δ) (⟰ᵗ Σ) →
-  StoreDetWf Δ Σ
-StoreDetWf-⟰ᵗ-inv wfΣ =
-  record
-    { at =
-        record
-          { bound = λ h →
-              <-suc-inv
-                (StoreWfAt.bound (at wfΣ) (∈-renameStoreᵗ suc h))
-          ; wfTy = λ h →
-              WfTy-un⇑ᵗ
-                (StoreWfAt.wfTy (at wfΣ) (∈-renameStoreᵗ suc h))
-          }
-    ; wfOlder = λ h → WfTy-un⇑ᵗ (wfOlder wfΣ (∈-renameStoreᵗ suc h))
-    ; unique = StoreUnique-⟰ᵗ-inv (unique wfΣ)
-    }
-
-StoreDetWf-inst :
-  ∀ {Δ Σ} →
-  StoreDetWf Δ Σ →
-  StoreDetWf (suc Δ) ((zero , ★) ∷ ⟰ᵗ Σ)
-StoreDetWf-inst wfΣ =
-  record
-    { at = StoreWfAt-cons z<s wf★ (StoreWfAt-⟰ᵗ (at wfΣ))
-    ; wfOlder = wfOlder′
-    ; unique = StoreUnique-inst (unique wfΣ)
-    }
-  where
-    shifted : StoreDetWf _ _
-    shifted = StoreDetWf-⟰ᵗ wfΣ
-
-    wfOlder′ :
-      ∀ {α A} →
-      (α , A) ∈ ((zero , ★) ∷ ⟰ᵗ _) →
-      WfTy α A
-    wfOlder′ (here refl) = wf★
-    wfOlder′ (there h) = wfOlder shifted h
 
 ≤-from-< :
   ∀ {α β} →

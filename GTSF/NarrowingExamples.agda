@@ -28,7 +28,8 @@ open import NuTerms
 open import NarrowWiden
 open import NarrowWidenComposition
 open import TermNarrowing
-open import proof.Core.Properties.NarrowWidenProperties using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
 open import proof.Core.Properties.TermNarrowingProperties using (cast+⊒cast+-derivedᵗ)
 
 ------------------------------------------------------------------------

@@ -1664,6 +1664,30 @@ where the dispatcher needs them; otherwise delete them. Once source, right,
 and terminal-forward orientations pass, delete both the pure quotient
 application and pure paired-quotient relation Def/Proof/Lemma families.
 
+The zero-consumer half of that cleanup is complete. The obsolete outer
+quotient-frame recursion definition and the four quotient active-value
+root/synchronization modules formed a self-contained five-module island.
+Their only external importer was the terminal-backward inventory spine, so
+all five modules and those inventory imports were deleted: 481 lines left the
+migration surface without touching the live `QuotientDownActive*` family.
+The focused live quotient-down synchronization check and `make audit` pass.
+The broad backward spine now reaches the independent live source-seal
+cancellation proof, whose old exhaustive analysis still mentions
+`up⊑upᵀ` and other retired constructors; that proof must migrate rather than
+being discarded because source reveal/unseal catch-up consumes it.
+
+The attempted nonrecursive implementation of the three live quotient-down
+active roots was also rejected. The existing target identity, sequence, and
+untag context lemmas begin with ordinary QTI and an already completed
+right-value catch-up result. The quotient-down roots instead begin with a
+target value inside `paired-downᵀ`; after the target root step the paired
+downcast is erased or split. Thus those context lemmas cannot reconstruct the
+required bottom quotient edge directly. Compatibility-directed
+representative elimination and the ranked target-administration worker must
+run first. The exact next contract is therefore a ranked paired-down value
+catch-up boundary, carried with the closing widening evidence supplied by
+function elimination, rather than three fabricated root adapters.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be

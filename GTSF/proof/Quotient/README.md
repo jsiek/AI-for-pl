@@ -880,6 +880,26 @@ exact live-close contracts needed by the SCC and delete the rest. When the
 source, right, and terminal-forward orientations pass, delete the pure
 quotient-application and pure paired-quotient relation families.
 
+The five-module obsolete outer-quotient island has now been deleted. It
+contained the old quotient-frame recursion definition plus quotient
+active-value roots and synchronization Def/Proof/Lemma; its only external
+importer was the terminal-backward inventory spine. This removes 481 lines
+without changing the live `QuotientDownActive*` path. The focused live
+quotient-down synchronization check and the source/import audit pass. The
+backward spine next reaches the separately live source-seal cancellation
+proof, whose retired-constructor cases must be migrated because reveal and
+unseal catch-up still consume the theorem.
+
+The three remaining live quotient-down root fields cannot be filled by the
+existing target identity, sequence, and untag context lemmas alone. Those
+lemmas assume ordinary QTI and a completed right-value catch-up result,
+whereas a quotient-down root starts inside `paired-downᵀ`; its target root
+step erases or splits the downcast. The ranked SCC must first perform
+compatibility-directed representative elimination and target
+administration. Its next exact boundary is paired-down value catch-up with
+the closing widening evidence provided by the mutual function-elimination
+invariant, not a nonrecursive adapter record.
+
 The source narrowing proof now carries membership uniqueness through all
 three framed branches and reconstructs all ten source-lift coherence fields.
 It passes strictly and is imported by the unassembled strict spine. The

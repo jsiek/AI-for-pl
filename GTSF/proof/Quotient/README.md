@@ -1192,6 +1192,21 @@ the residual, or narrow its caller to the direct active-`inst` state. This gap
 must remain explicit; it is not an ordinary pre-instantiation QTI edge and is
 not a reason to add another relation constructor.
 
+The producer side is now explicit in the 136-line
+`NuImprecisionWorldCoherentRightTargetQuotientDownPendingCastsAccDef`. The
+worker accepts the current quotient derivation, widening pair, composition
+square, active compatibility, and ordinary outer administration tail
+directly. The `closeᵀ (paired-downᵀ ...)` frame transports that quartet through
+inner catch-up and passes it to the worker. The active target cast is not
+folded into the ordinary tail: an `inst` branch takes its reduction and calls
+the allocation-path leaf, while other active cases preserve or update the
+quartet structurally. The Def checks strictly in 6.27 seconds.
+
+`QuotientDownResidualCorePlan` and its opaque-trace allocation residual are
+not allowed to manufacture the current logical quartet. After the typed
+worker is proved, keep at most a thin one-step adapter if a live caller still
+needs it; otherwise delete that residual surface.
+
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete
 constructors. The isolated non-well-formed selector remains a deletion

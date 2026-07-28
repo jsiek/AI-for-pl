@@ -237,6 +237,14 @@ cross target `bind`. The preceding operational residual must produce those
 logical witnesses explicitly or narrow to this active-`inst` state; the leaf
 must not recover them by inversion of an arbitrary trace.
 
+The quotient-down target pending worker lives in the same directory. Its Def
+takes the current proof-relevant quotient derivation, widening pair,
+composition square, active reduction-closed compatibility, and ordinary outer
+administration tail directly. The active cast remains outside that ordinary
+tail so the `inst` branch can reduce to the allocation leaf. Its Proof should
+transport and update those witnesses structurally; an operational trace alone
+is not a substitute for them.
+
 Apply the same rule to trivial result constructors.  The canonical
 relation-to-keep-step builders live in `NuImprecisionOneStepRelated`, above the
 result definitions and below the simulation core.  Root proofs should import

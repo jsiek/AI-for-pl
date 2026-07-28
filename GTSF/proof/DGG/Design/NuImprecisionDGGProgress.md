@@ -1860,6 +1860,25 @@ produce those witnesses while processing the residual or deliberately narrow
 the caller to the direct active-`inst` state. Do not hide this gap behind a
 larger dispatcher or an unproved conversion from the operational trace.
 
+The correct producer boundary is now stated by the 136-line
+`NuImprecisionWorldCoherentRightTargetQuotientDownPendingCastsAccDef`.
+It starts from the current quotient term derivation, widening pair,
+composition square, and active reduction-closed compatibility, keeps the
+active target cast separate from the ordinary outer
+`TargetAdministrationSpine`, and returns the same contextual catch-up package
+as the allocation leaf. Its strict definition check passes in 6.27 seconds.
+The `closeᵀ (paired-downᵀ ...)` frame must transport the quartet through inner
+catch-up and pass it to this worker. An inert active cast can close the
+ordinary term relation before delegating the outer tail; an active `inst`
+reduces once and calls the allocation-path leaf. Identity, sequence, unseal,
+and tag-cancellation cases must update the quartet structurally rather than
+erase it into an opaque target trace.
+
+The older `QuotientDownResidualCorePlan` and allocation residual are therefore
+not the semantic worker. Their keep-only trace cannot reconstruct the current
+quartet. Retain them only if one-step plumbing needs a thin adapter after the
+typed worker exists; otherwise remove them with the obsolete residual surface.
+
 Checking-time cleanup follows one rule during migration: split canonical
 support that survives the selected relation, and shrink retiring files by
 deletion. Therefore the 2,090-line quotient-value analysis will not be

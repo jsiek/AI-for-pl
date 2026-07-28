@@ -172,6 +172,9 @@ open import
   ( embedded-creation-source-typingᴱ
   ; embedded-creation-target-typingᴱ
   )
+open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using (QuotientNarrowingEliminationCompatible)
 open import proof.Core.Properties.NuTermProperties using
   (closed-refined-typing-recontextualize; typing-closedᵐ)
 
@@ -618,6 +621,8 @@ mutual
       → μ′ ∣ Δᴿ ∣ rightStoreⁱ ρ ⊢ d′ ∶ A′ ⊒ D′
       → narrowing ⊢ᶜ d′ ⦂ s′
       → s ；⌊ p ⌋≋ᵖ q ； s′
+      → QuotientNarrowingEliminationCompatible
+          Φ Δᴸ Δᴿ d d′ p q s s′
         ------------------------------------------------------------
       → Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ γ
           ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩ ⦂ D ⊑ᵖ D′ ∶ q

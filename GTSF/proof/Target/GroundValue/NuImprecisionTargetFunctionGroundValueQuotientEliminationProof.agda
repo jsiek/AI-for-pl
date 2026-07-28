@@ -45,13 +45,13 @@ target-function-ground-value-quotient-elimination-proofᵀ :
 target-function-ground-value-quotient-elimination-proofᵀ
     {qD = qD} vV vV′
     (paired-downᵀ M⊑M′ mode d⊒ d-shape
-      mode′ d′⊒ d′-shape square)
+      mode′ d′⊒ d′-shape square elimination)
     with inert-function-ground-narrowing-source
       d′⊒ (cast-value-inert vV′)
 target-function-ground-value-quotient-elimination-proofᵀ
     {qD = qD} vV vV′
     (paired-downᵀ M⊑M′ id-only↓ d⊒ d-shape
-      id-only↓ d′⊒ d′-shape square)
+      id-only↓ d′⊒ d′-shape square elimination)
     | refl =
   q ,
   ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
@@ -78,7 +78,7 @@ target-function-ground-value-quotient-elimination-proofᵀ
 target-function-ground-value-quotient-elimination-proofᵀ
     {qD = qD} vV vV′
     (paired-downᵀ M⊑M′ id-only↓ d⊒ d-shape
-      (gradual↓ mode′ seal★′) d′⊒ d′-shape square)
+      (gradual↓ mode′ seal★′) d′⊒ d′-shape square elimination)
     | refl =
   q ,
   ⊑cast⊒ᵀ mode′ seal★′ d′⊒
@@ -104,7 +104,7 @@ target-function-ground-value-quotient-elimination-proofᵀ
 target-function-ground-value-quotient-elimination-proofᵀ
     {qD = qD} vV vV′
     (paired-downᵀ M⊑M′ (gradual↓ mode seal★) d⊒ d-shape
-      id-only↓ d′⊒ d′-shape square)
+      id-only↓ d′⊒ d′-shape square elimination)
     | refl =
   q ,
   ⊑cast⊒ᵀ cast-tag-or-id seal★-tag-or-id
@@ -130,7 +130,7 @@ target-function-ground-value-quotient-elimination-proofᵀ
 target-function-ground-value-quotient-elimination-proofᵀ
     {qD = qD} vV vV′
     (paired-downᵀ M⊑M′ (gradual↓ mode seal★) d⊒ d-shape
-      (gradual↓ mode′ seal★′) d′⊒ d′-shape square)
+      (gradual↓ mode′ seal★′) d′⊒ d′-shape square elimination)
     | refl =
   q ,
   ⊑cast⊒ᵀ mode′ seal★′ d′⊒

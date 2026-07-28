@@ -238,6 +238,9 @@ open import proof.NuCore.Relations.NuImprecisionTermContextDef using
   )
 open import QuotientedTermImprecision
 open import QuotientImprecisionCompatibility using (gradual↓)
+open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using (QuotientNarrowingEliminationCompatible)
 open import Store using (StoreIncl; StoreIncl-drop; StoreIncl-refl)
 open import TermTyping using
   ( CastMode
@@ -2827,6 +2830,9 @@ matched-post-allocation-β-genᵀ :
   (q : ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
     ∣ suc Δᴸ ⊢ B ⊑ᵖ B′ ⊣ suc Δᴿ) →
   s ；⌊ p ⌋≋ᵖ q ； s′ →
+  QuotientNarrowingEliminationCompatible
+    ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+    (suc Δᴸ) (suc Δᴿ) c c′ p q s s′ →
   (((⇑ᵗᵐ (V ⟨ gen A c ⟩)) •
       —→[ keep ] (⇑ᵗᵐ V) ⟨ c ⟩) ×
    ((⇑ᵗᵐ (V′ ⟨ gen A′ c′ ⟩)) •
@@ -2837,7 +2843,8 @@ matched-post-allocation-β-genᵀ :
       ⊢ᴺᵖ (⇑ᵗᵐ V) ⟨ c ⟩ ⊑ (⇑ᵗᵐ V′) ⟨ c′ ⟩
       ⦂ B ⊑ᵖ B′ ∶ q))
 matched-post-allocation-β-genᵀ {Aν = Aν} {Aν′ = Aν′} vV vV′
-    c⊒ c′⊒ c-shape c′-shape pν liftρ V⊑V′ q square =
+    c⊒ c′⊒ c-shape c′-shape pν liftρ V⊑V′ q
+    square elimination =
   post-allocation-β-gen•-bare vV ,
   post-allocation-β-gen•-bare vV′ ,
   paired-downᵀ
@@ -2849,6 +2856,7 @@ matched-post-allocation-β-genᵀ {Aν = Aν} {Aν′ = Aν′} vV vV′
     (narrow-mode-relax (ModeIncl-gen id-only≤tag-or-idᵈ) right-body)
     c′-shape
     square
+    elimination
   where
     left-body =
       subst

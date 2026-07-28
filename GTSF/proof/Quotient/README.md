@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — paired-down elimination invariant tested**
+**MIGRATION IN PROGRESS — paired-down invariant live and transported**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -49,7 +49,11 @@ design.
 The selected grammar and its general support are:
 
 - `NuImprecisionReductionClosedQuotientDef.agda`;
-- `NuImprecisionQuotientCompatibilityRename.agda`;
+- `NuImprecisionQuotientWideningCompatibilityRename.agda`;
+- `NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`;
+- `NuImprecisionPairedDownRenameDef.agda`;
+- `NuImprecisionPairedDownRenameProof.agda`;
+- `NuImprecisionPairedDownRenameLemma.agda`;
 - `NuImprecisionTargetInstantiationCreationDef.agda`; and
 - `NuImprecisionEmbeddedTargetInstantiationCreationProperties.agda`.
 
@@ -292,12 +296,16 @@ retired names and must be migrated or deleted before a phase gate.
 
 The world/left-transport checkpoint on 2026-07-27 promoted the selected
 compatibility-renaming proof to
-`NuImprecisionQuotientCompatibilityRename.agda`. The canonical simulation
-core now transports `closeᵀ`, the three direct paired conversion cases, and
-the single `paired-downᵀ` boundary. Focused checks pass for the world
-embedding, bullet-free left renaming, and source-allocation runtime
-transport. Relative to the frozen inventory, direct source-file counts have
-fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19` for fused
+`NuImprecisionQuotientWideningCompatibilityRename.agda` and
+`NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`. The
+canonical simulation core transports `closeᵀ` and the three direct paired
+conversion cases. The two `paired-downᵀ` renaming adapters now live behind
+the strict `NuImprecisionPairedDownRenameDef/Proof/Lemma` boundary, so future
+changes to recursive elimination compatibility do not invalidate the
+14,878-line core. Focused checks pass for the generic boundary, its canonical
+assembly, world embedding, bullet-free left renaming, and source-allocation
+runtime transport. Relative to the frozen inventory, direct source-file
+counts have fallen from `14/9/9/46/27/26` to `8/3/3/39/20/19` for fused
 down/up, identity quotient application, gradual quotient application,
 closing widening, identity down, and gradual down respectively.
 
@@ -512,15 +520,37 @@ cast-imprecision module into the focused 15-line
 import the small module explicitly; no re-export preserves the old dependency
 edge. The live QTI join and source one-step root pass after the rewrite.
 
-The next semantic invariant has been tested before changing the live grammar.
+The next semantic invariant was tested before changing the live grammar.
 `NuImprecisionQuotientNarrowingEliminationCompatibility.agda` records
 recursive elimination safety for a quotient-producing paired narrowing:
 function coercions carry reduction-closed compatibility for their
 contravariant domain widenings and recurse through their codomain narrowings;
 a pair with a non-function coercion has no function-elimination obligation.
 The focused definition and the existing two-function-cast/permuted-`∀`
-regression pass. This checkpoint does not yet add the premise to
-`paired-downᵀ`.
+regression pass.
+
+That invariant is now a premise of the live `paired-downᵀ`. Focused checks
+pass for structural consumers, substitution, store-prefixing, bilateral and
+source-only renaming, allocation transport, quotient-down weak-step
+transport, right active roots and frames, active synchronization, and target
+function-ground elimination. The weak-step transport includes target
+allocation and preserves the exact recursive quotient-arrow components.
+
+The 573-line
+`../Core/Properties/NuImprecisionQuotientWeakTransportProperties.agda`
+centralizes that quotient-arrow naturality result. Its former keep-only copy
+was deleted from the right-value transport monolith, removing 429 duplicated
+lines. Paired-down renaming now lives in the strict
+`NuImprecisionPairedDownRenameDef/Proof/Lemma` family, and the 14,878-line
+simulation core no longer owns or imports the recursive invariant. The
+combined compatibility-renaming module was split by responsibility and
+deleted without a shim. `make audit` passes.
+
+The next Phase 4 gate is operational: replace the pure paired-quotient
+function-beta leaf with bilateral terminalization driven by the recursive
+elimination evidence. Only after that replacement passes may the obsolete
+quotient-application and paired-quotient-relation families leave the
+regression surface and be deleted.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

@@ -35,6 +35,9 @@ open import QuotientedTermImprecision using
   )
 open import QuotientImprecisionCompatibility using
   (ReductionClosedQuotientWideningCompatible)
+open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using (QuotientNarrowingEliminationCompatible)
 open import Types using (Ty; TyCtx)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
@@ -82,6 +85,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
         ⊢ᴺ M ⊑ V′ ⦂ C ⊑ C′ ∶ pC →
       d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ d (id I) pC qD d-shape d′-shape →
       QuotientWideningPair Δᴸ Δᴿ ρᵇ u u′ D D′ A A′ →
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
@@ -121,6 +126,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
         ⊢ᴺ M ⊑ V′ ⦂ C ⊑ C′ ∶ pC →
       d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ d (s ︔ t) pC qD d-shape d′-shape →
       QuotientWideningPair Δᴸ Δᴿ ρᵇ u u′ D D′ A A′ →
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
@@ -159,6 +166,8 @@ record WorldCoherentRightOneStepQuotientDownActiveRoots : Set₁ where
       Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
         ⊢ᴺ M ⊑ V′ ⦂ C ⊑ C′ ∶ pC →
       d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
+      QuotientNarrowingEliminationCompatible
+        Φ Δᴸ Δᴿ d (H ？) pC qD d-shape d′-shape →
       QuotientWideningPair Δᴸ Δᴿ ρᵇ u u′ D D′ A A′ →
       CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
       CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →

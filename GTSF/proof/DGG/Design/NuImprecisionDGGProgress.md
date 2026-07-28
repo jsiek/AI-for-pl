@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — paired-down elimination invariant tested**
+**MIGRATION IN PROGRESS — paired-down invariant live and transported**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -916,11 +916,17 @@ gate: the frozen downstream inventory still contains retired source names.
 
 The third Phase 4 checkpoint migrated canonical world and left transport on
 2026-07-27. The selected compatibility-renaming experiment became
-`NuImprecisionQuotientCompatibilityRename.agda`; the simulation core now
-transports `closeᵀ`, direct paired reveal/conceal/widening, and
-`paired-downᵀ` without compatibility wrappers. Focused checks passed for the
-simulation core, world embedding, bullet-free left renaming, and
-source-allocation runtime transport. The latter two proofs became smaller:
+`NuImprecisionQuotientWideningCompatibilityRename.agda` and
+`NuImprecisionQuotientNarrowingEliminationCompatibilityRename.agda`; the
+simulation core transports `closeᵀ` and direct paired
+reveal/conceal/widening without compatibility wrappers. The two
+`paired-downᵀ` renaming adapters moved behind the strict
+`NuImprecisionPairedDownRenameDef/Proof/Lemma` boundary; the core fell from
+15,065 to 14,878 lines and no longer imports recursive narrowing-elimination
+compatibility. Focused checks passed for both compatibility transports, the
+generic Def and Proof, the canonical Lemma, world embedding, bullet-free left
+renaming, and source-allocation runtime transport. The latter two proofs
+became smaller:
 the fused application branches vanished, four quotient application branches
 vanished, and the split identity/gradual downcast cases collapsed to one.
 The frozen direct source-file counts fell from `14/9/9/46/27/26` to
@@ -1173,15 +1179,37 @@ next function beta inside the quotient-producing narrowing. The current
 `paired-downᵀ` premise therefore cannot terminalize an active paired argument
 round trip.
 
-`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` now tests the
-minimal recursive repair independently of the live grammar. At a function
-narrowing it requires reduction-closed quotient compatibility for the paired
-domain widenings and recurses through the codomain narrowings; when either
-coercion is not function-shaped, no elimination evidence is required. The
-definition checks strictly, and the existing two-function-cast regression
-constructs the evidence for its genuinely permuted-`∀` inner narrowing using
-the already proved route compatibility. The live `paired-downᵀ` constructor
-has not yet changed at this checkpoint.
+`NuImprecisionQuotientNarrowingEliminationCompatibility.agda` implements the
+minimal recursive repair. At a function narrowing it requires
+reduction-closed quotient compatibility for the paired domain widenings and
+recurses through the codomain narrowings; when either coercion is not
+function-shaped, no elimination evidence is required. The existing
+two-function-cast regression constructs the evidence for its genuinely
+permuted-`∀` inner narrowing using the already proved route compatibility.
+
+The invariant is now a live premise of `paired-downᵀ`. Its typing,
+substitution, store-prefix, world-embedding, source-renaming, allocation, and
+target-ground consumers all pass focused checks. The right-leading
+quotient-down path transports the recursive evidence across arbitrary weak
+steps, including a leading target allocation. The required naturality theorem
+for quotient arrow components now lives in the 573-line
+`NuImprecisionQuotientWeakTransportProperties.agda`; the former right-value
+transport monolith imports that theorem and has shed 429 duplicated lines.
+
+The paired-down renaming adapters also moved out of
+`NuImprecisionSimulationCore.agda` into a 109-line `Def`, a 56-line generic
+`Proof`, and a 238-line canonical `Lemma`. Widening-compatibility renaming and
+narrowing-elimination renaming are separate modules, and the former combined
+module was deleted without a shim. The simulation core is now 14,878 lines,
+down from 15,065, and future changes to the recursive elimination invariant do
+not edit it. `make audit` passes.
+
+This transport checkpoint succeeds. The next decisive test is the operational
+paired-quotient function-beta leaf itself: use the recursive domain
+compatibility to terminalize the exposed paired argument casts, recurse through
+the codomain evidence, return either bilateral tails ending in ordinary QTI or
+source blame, and then delete the obsolete pure quotient-application and
+paired-quotient-relation families.
 
 After the operational quotient interfaces settle, extract the stable generic
 transport, weak-composition, and world-transport regions from the 15,096-line

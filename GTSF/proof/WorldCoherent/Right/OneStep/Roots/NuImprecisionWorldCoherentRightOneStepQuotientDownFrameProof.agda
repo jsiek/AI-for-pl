@@ -63,6 +63,9 @@ open import QuotientImprecisionCompatibility using
   ( ReductionClosedQuotientWideningCompatible
   ; SpineCastMode
   )
+open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using (QuotientNarrowingEliminationCompatible)
 open import TermTyping using
   ( _∣_∣_⊢_⦂_
   ; ⊢⟨⟩↑
@@ -375,6 +378,8 @@ world-coherent-right-one-step-quotient-down-frameᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
   d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
+  QuotientNarrowingEliminationCompatible
+    Φ Δᴸ Δᴿ d d′ pC qD d-shape d′-shape →
   QuotientWideningPair Δᴸ Δᴿ ρᵇ u u′ D D′ A A′ →
   CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
   CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
@@ -395,7 +400,8 @@ world-coherent-right-one-step-quotient-down-frameᵀ
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
     source-mode d⊒ d-shape target-mode d′⊒ d′-shape M⊑M′
-    down-square widening u-shape u′-shape up-square compatible
+    down-square elimination
+    widening u-shape u′-shape up-square compatible
     target-step =
   frame
     (recurse prefix coherent exclusive unique wfL wfR
@@ -448,6 +454,7 @@ world-coherent-right-one-step-quotient-down-frameᵀ
       quotient-down-transportᵀ
         prefix indexed source-mode d⊒ d-shape
         target-mode d′⊒ d′-shape down-square
+        final-unique elimination
 
     final-widening =
       quotient-widening-pair-transportᵀ prefix inner widening

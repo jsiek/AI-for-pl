@@ -411,11 +411,11 @@ private
 
     term-ctx-insert-no•ᵀᵖ insert
         (paired-downᵀ
-          M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square)
+          M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination)
         (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
       paired-downᵀ
         (term-ctx-insert-no•ᵀ insert M⊑M′ noM noM′)
-        mode d⊒ d-shape mode′ d′⊒ d′-shape square
+        mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination
 
 
 quotiented-term-context-shift-proofᵀ : QuotientedTermContextShiftᵀ

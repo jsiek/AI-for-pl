@@ -266,6 +266,8 @@ down-routeᵀ relation =
     (proj₁ (proj₂ down-E-result))
     (proj₂ (proj₂ down-E-result))
     route-quotient-square
+    (non-function-elimination
+      (source-non-function non-function-universal))
 
 close-routeᵀ :
   ∀ {M M′} →
@@ -543,7 +545,8 @@ closed-identity-functionsᵀ =
       (CastShape.shape-fun
         (proj₂ (proj₂ up-E-result))
         (proj₂ (proj₂ down-E-result)))
-      identity-function-quotient-square)
+      identity-function-quotient-square
+      inner-function-elimination-compatible)
     (quotient-id-widening outer-D-typing outer-E-typing)
     identity-A-function⊑identity-A-function
     (CastShape.shape-fun

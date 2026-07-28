@@ -155,7 +155,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-rename-conv↑⊑ᵀ
   ; left-rename-conv↓⊑ᵀ
   ; left-rename-paired-concealᵀ
-  ; left-rename-paired-downᵀ
   ; left-rename-paired-revealᵀ
   ; left-rename-paired-wideningᵀ
   ; left-rename-Λ⊑ᵀ
@@ -180,6 +179,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rightStoreⁱ-left-rename
   ; ⇑ᴿᵢ-membership
   )
+open import
+  proof.Quotient.NuImprecisionPairedDownRenameLemma
+  using (left-rename-paired-downᵀ)
 open import proof.Core.Permutation.ForallPermutationProperties using
   (⊑ᵖ-rename-leftᵢ)
 open import
@@ -769,20 +771,23 @@ mutual
   left-source-runtimeᵀᵖ-generic rename-no-bullet ins
       renameρ renameγ
       rel@(paired-downᵀ M⊑M′
-        mode d⊒ d-shape mode′ d′⊒ d′-shape square)
+        mode d⊒ d-shape mode′ d′⊒ d′-shape
+        square compatible)
       noM (ok-no noM′) =
     left-rename-no•ᵀᵖ rename-no-bullet ins
       renameρ renameγ noM noM′ rel
   left-source-runtimeᵀᵖ-generic rename-no-bullet ins
       renameρ renameγ
       (paired-downᵀ M⊑M′
-        mode d⊒ d-shape mode′ d′⊒ d′-shape square)
+        mode d⊒ d-shape mode′ d′⊒ d′-shape
+        square compatible)
       (no•-⟨⟩ noM) (ok-⟨⟩ runtimeM′) =
     left-rename-paired-downᵀ
       (left-insertion-cast-renamer ins) renameρ
       (left-source-runtimeᵀ-generic rename-no-bullet ins
         renameρ renameγ M⊑M′ noM runtimeM′)
-      mode d⊒ d-shape mode′ d′⊒ d′-shape square
+      mode d⊒ d-shape mode′ d′⊒ d′-shape
+      square compatible
 private
   left-source-allocation-runtime-rootᵀ :
     LeftRenameNoBullet →

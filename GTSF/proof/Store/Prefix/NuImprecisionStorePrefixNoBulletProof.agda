@@ -52,7 +52,7 @@ quotiented-store-prefix-no-bulletᵖ-proofᵀ
     prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
     (paired-downᵀ body
       source-mode source source-shape
-      target-mode target target-shape square) =
+      target-mode target target-shape square elimination) =
   paired-downᵀ
     (quotiented-store-prefix-no-bullet-proofᵀ
       prefix noM noM′ body)
@@ -67,3 +67,4 @@ quotiented-store-prefix-no-bulletᵖ-proofᵀ
       (rightStoreⁱ-prefix-inclusion prefix) target)
     target-shape
     square
+    elimination

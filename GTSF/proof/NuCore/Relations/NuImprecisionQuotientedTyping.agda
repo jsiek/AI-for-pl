@@ -376,13 +376,13 @@ mutual
 
   quotiented-nu-term-imprecision-source-typing
       (paired-downᵀ
-        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square) =
+        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination) =
     spine-source-cast-typing mode d⊒
       (nu-term-imprecision-source-typing M⊑M′)
 
   quotiented-nu-term-imprecision-target-typing
       (paired-downᵀ
-        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square) =
+        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square elimination) =
     spine-source-cast-typing mode′ d′⊒
       (nu-term-imprecision-target-typing M⊑M′)
 

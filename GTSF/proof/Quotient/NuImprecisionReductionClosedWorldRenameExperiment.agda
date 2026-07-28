@@ -189,7 +189,7 @@ open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessLemma
   using (assumption-membership-unique→precision-index-unique)
 open import
-  proof.Quotient.NuImprecisionQuotientCompatibilityRename
+  proof.Quotient.NuImprecisionQuotientWideningCompatibilityRename
   using
   ( reduction-closed-paired-compatible-rename²ᵢ
   ; reduction-closed-quotient-compatible-rename²ᵢ

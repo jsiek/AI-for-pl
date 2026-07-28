@@ -504,7 +504,7 @@ mutual
       environment frame prefix (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
       (paired-downᵀ
         body source-mode source source-shape
-        target-mode target target-shape square) =
+        target-mode target target-shape square elimination) =
     paired-downᵀ
       (quotiented-parallel-term-substitution-framed-proofᵀ
         environment frame prefix noM noM′ body)
@@ -517,4 +517,4 @@ mutual
         (rightStoreⁱ-prefix-inclusion prefix) target-mode)
       (narrow-weaken ≤-refl
         (rightStoreⁱ-prefix-inclusion prefix) target)
-      target-shape square
+      target-shape square elimination

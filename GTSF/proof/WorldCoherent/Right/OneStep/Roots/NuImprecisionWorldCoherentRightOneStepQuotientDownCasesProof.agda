@@ -58,6 +58,9 @@ open import QuotientImprecisionCompatibility using
   ; gradual↓
   ; id-only↓
   )
+open import
+  proof.Quotient.NuImprecisionQuotientNarrowingEliminationCompatibility
+  using (QuotientNarrowingEliminationCompatible)
 open import TermTyping using
   (cast-gen; cast-tag-or-id; _∣_∣_⊢_⦂_)
 open import Types using (Ty; TyCtx)
@@ -134,6 +137,8 @@ world-coherent-right-one-step-quotient-down-cases-proofᵀ :
   Φ ∣ Δᴸ ∣ Δᴿ ∣ ρᵇ ∣ []
     ⊢ᴺ M ⊑ M′ ⦂ C ⊑ C′ ∶ pC →
   d-shape ；⌊ pC ⌋≋ᵖ qD ； d′-shape →
+  QuotientNarrowingEliminationCompatible
+    Φ Δᴸ Δᴿ d d′ pC qD d-shape d′-shape →
   QuotientWideningPair Δᴸ Δᴿ ρᵇ u u′ D D′ A A′ →
   CastShape.widening CastShape.⊢ᶜ u ⦂ u-shape →
   CastShape.widening CastShape.⊢ᶜ u′ ⦂ u′-shape →
@@ -149,7 +154,7 @@ world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑M′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (ξ-⟨⟩ target-step) =
   world-coherent-right-one-step-quotient-down-frameᵀ
@@ -157,13 +162,14 @@ world-coherent-right-one-step-quotient-down-cases-proofᵀ
     ok-source ok-target source-typing target-typing
     (quotient-down-spine-mode down-mode) d⊒ d-shape
     (quotient-down-spine-mode down-mode) d′⊒ d′-shape
-    M⊑M′ down-square widening u-shape u′-shape up-square compatible
+    M⊑M′ down-square elimination
+    widening u-shape u′-shape up-square compatible
     target-step
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑blame down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑blame down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step blame-⟨⟩) =
   world-coherent-right-one-step-quotient-down-target-blame-rootᵀ
@@ -175,65 +181,65 @@ world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(β-id vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(β-seq vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(β-inst vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target vV′
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(tag-untag-ok {G = G} vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ G ! ⟩)
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(tag-untag-bad {G = G} vV′ G≢H)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ G ! ⟩)
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root
 world-coherent-right-one-step-quotient-down-cases-proofᵀ
     recurse active down-mode
     coherent exclusive unique prefix wfL wfR
     ok-source ok-target source-typing target-typing
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible
     (pure-step root@(seal-unseal vV′)) =
   active down-mode coherent exclusive unique prefix wfL wfR
     ok-source ok-target (vV′ ⟨ seal _ _ ⟩)
-    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square
+    d⊒ d-shape d′⊒ d′-shape M⊑V′ down-square elimination
     widening u-shape u′-shape up-square compatible root

@@ -91,7 +91,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; rel-world-conv↑⊑-embedᵀ
   ; rel-world-embedding
   ; rel-world-embedding-ctx-∷ⁱ
-  ; rel-world-paired-down-embedᵀ
   ; rel-world-source-typing-embed
   ; rel-world-target-typing-embed
   ; left-conceal-rel-embed
@@ -121,6 +120,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; right-widening-rel-embed-mode
   ; store-embedding
   )
+open import
+  proof.Quotient.NuImprecisionPairedDownRenameLemma
+  using (rel-world-paired-down-embedᵀ)
 open import proof.Core.Permutation.ForallPermutationProperties using
   (⊑ᵖ-rename²ᵢ)
 open import
@@ -167,7 +169,7 @@ open import
   ; embedded-creation-target-typingᴱ
   )
 open import
-  proof.Quotient.NuImprecisionQuotientCompatibilityRename
+  proof.Quotient.NuImprecisionQuotientWideningCompatibilityRename
   using (reduction-closed-paired-compatible-rename²ᵢ)
 
 mutual
@@ -419,8 +421,10 @@ mutual
 
   rel-world-embed-no•ᵀᵖ emb
       (paired-downᵀ
-        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape square)
+        M⊑M′ mode d⊒ d-shape mode′ d′⊒ d′-shape
+        square compatible)
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′) =
     rel-world-paired-down-embedᵀ emb
       (rel-world-embed-no•ᵀ emb M⊑M′ noM noM′)
-      mode d⊒ d-shape mode′ d′⊒ d′-shape square
+      mode d⊒ d-shape mode′ d′⊒ d′-shape
+      square compatible

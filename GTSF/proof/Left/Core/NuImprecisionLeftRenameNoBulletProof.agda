@@ -99,7 +99,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-rename-conv↑⊑ᵀ
   ; left-rename-conv↓⊑ᵀ
   ; left-rename-paired-concealᵀ
-  ; left-rename-paired-downᵀ
   ; left-rename-paired-revealᵀ
   ; left-rename-paired-wideningᵀ
   ; left-rename-Λᵀ
@@ -118,6 +117,9 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-typing-renameⁱ
   ; right-typing-left-renameⁱ
   )
+open import
+  proof.Quotient.NuImprecisionPairedDownRenameLemma
+  using (left-rename-paired-downᵀ)
 open import proof.Core.Permutation.ForallPermutationProperties using
   (⊑ᵖ-rename-leftᵢ)
 open import
@@ -479,12 +481,14 @@ mutual
       ins renameρ renameγ
       (no•-⟨⟩ noM) (no•-⟨⟩ noM′)
       (paired-downᵀ M⊑M′
-        mode d⊒ d-shape mode′ d′⊒ d′-shape square) =
+        mode d⊒ d-shape mode′ d′⊒ d′-shape
+        square compatible) =
     left-rename-paired-downᵀ
       (left-insertion-cast-renamer ins) renameρ
       (left-rename-no•ᵀ-proof ins renameρ renameγ
         noM noM′ M⊑M′)
-      mode d⊒ d-shape mode′ d′⊒ d′-shape square
+      mode d⊒ d-shape mode′ d′⊒ d′-shape
+      square compatible
 
 left-rename-no-bullet : LeftRenameNoBullet
 left-rename-no-bullet =

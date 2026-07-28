@@ -14,8 +14,10 @@ open import Relation.Binary.PropositionalEquality using (subst)
 
 open import ImprecisionWf using (_∣_⊢_⊑_⊣_)
 open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( open-unusedᵢ
-  ; renameᵗ-swap01-involutiveᵢ
+  (open-unusedᵢ)
+open import proof.Core.Properties.NuImprecisionBinderPermutationProperties
+  using
+  ( renameᵗ-swap01-involutiveᵢ
   ; ⊑-∀ν-to-ν∀ᵢ
   ; ⊑-ν∀-to-∀νᵢ
   )

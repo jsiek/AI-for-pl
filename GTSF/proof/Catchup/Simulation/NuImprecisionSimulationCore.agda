@@ -355,7 +355,9 @@ open import proof.Core.Properties.CastImprecision using
   ; widening⇒⊑ᵢ
   ; ⊑-transʳ-castᵢ
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import
+  proof.Core.Properties.NuImprecisionBinderPermutationProperties
+  using
   ( rename-assm²-composeᵢ
   ; rename-assm²-congᵢ
   ; rename-assm²-crossed-left∀∀ᵢ

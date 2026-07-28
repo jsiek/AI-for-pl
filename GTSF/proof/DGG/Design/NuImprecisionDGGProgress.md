@@ -60,7 +60,7 @@ inhabitant exists yet.
 
 ## Controlled live migration
 
-**MIGRATION IN PROGRESS — paired-down invariant live and transported**
+**MIGRATION IN PROGRESS — mutual higher-order invariant tested**
 
 The migration runs on `codex/live-qti-migration`. The authoritative module
 lifecycle manifest is
@@ -1211,8 +1211,69 @@ the codomain evidence, return either bilateral tails ending in ordinary QTI or
 source blame, and then delete the obsolete pure quotient-application and
 paired-quotient-relation families.
 
+That operational test has now found a genuine higher-order counterexample to
+the sufficiency of the current invariant. Let the outer closing function
+widenings expose domain narrowings `c` and `c′`, and let the inner
+quotient-producing function narrowings expose domain widenings `a` and `a′`.
+After the outer and inner function-beta steps, the argument relation must have
+the live shape
+
+`closeᵀ (paired-downᵀ ... c ... c′ ...) ... a ... a′ ...`.
+
+The inner `function-elimination` premise gives the compatibility needed by the
+closing `a`/`a′` pair and recurses through the result narrowings. It does not
+give the elimination evidence required by the newly constructed
+`paired-downᵀ` for `c`/`c′`. The outer reduction-closed widening compatibility
+cannot supply it either: its function case retains only codomain compatibility.
+The quotient arrow-component equation recovers the relevant indices and
+composition squares, but operational compatibility is additional evidence and
+cannot be derived from those equations.
+
+The existing two-function-cast regression did not expose this because its
+argument type is not a function, so `non-function-elimination` discharges the
+new boundary. At a higher-order argument type both `c` and `c′` are function
+coercions and the construction stops. The next invariant revision must
+therefore make function elimination mutually recursive across narrowing and
+widening: a quotient closing widening must retain elimination evidence for its
+contravariant domain narrowing and recurse through its codomain widening. A
+strict higher-order regression is the acceptance gate. Only after it passes
+will the operational paired-quotient beta leaf resume.
+
+The acceptance experiment succeeds. The strict
+`NuImprecisionMutualQuotientEliminationExperiment.agda` defines narrowing
+elimination and quotient-widening compatibility mutually, while leaving live
+QTI unchanged. The quotient-widening representative constructor is restricted
+to a pair with at least one syntactically non-function coercion, so function
+widenings must use the recursive function case and cannot bypass their domain
+evidence. The existing first-order fixtures inhabit both relations. A
+one-arrow lift then uses the existing function narrowing evidence as the
+domain premise of the higher-order function widening, exactly exercising the
+evidence that the current live relation loses. The focused strict check passes
+in about nine seconds with warm dependencies.
+
+The next single-writer change will promote this mutual relation into
+`QuotientImprecisionCompatibility.agda`, delete the superseded standalone
+narrowing-elimination module without a compatibility re-export, and make its
+rename and weak-step transports mutual. The live QTI constructor signatures
+retain the same single compatibility premise; the premise itself becomes
+hereditarily strong enough for higher-order function beta.
+
+The checking-time audit also identified a concrete cleanup that can proceed
+without touching the term grammar. The former 2,873-line
+`NuImprecisionAllocationSimulation.agda` has only three direct consumers.
+Its seven shared source-`ν` lift/replacement properties now live in the
+497-line `NuImprecisionSourceNuLiftProperties.agda`; the monolith is 2,444
+lines and does not re-export them. The focused property module and the
+source-`ν` runtime-sibling consumer pass. The source allocation consumer
+reaches its already-known stale `⊑cast⊑idᵀ` migration case after rebuilding,
+rather than failing in the extracted properties. The retained source-only
+allocation, base matched allocation, and matched
+allocation-after-value-catch-up capabilities will then move behind focused
+`Def`/`Proof`/`Lemma` boundaries,
+after which unused allocation branches and the monolith will be deleted.
+
 After the operational quotient interfaces settle, extract the stable generic
-transport, weak-composition, and world-transport regions from the 15,096-line
+transport, weak-composition, and world-transport regions from the 14,878-line
 `NuImprecisionSimulationCore.agda`, followed by the reusable cast-frame region
 of the 4,762-line `NuImprecisionSimulation.agda`. These must be genuine
 dependency cuts, not re-exporting wrappers.

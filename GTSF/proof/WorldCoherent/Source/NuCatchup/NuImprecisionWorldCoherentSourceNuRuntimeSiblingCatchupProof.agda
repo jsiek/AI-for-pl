@@ -213,7 +213,9 @@ open import
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessProof
   using (assumption-membership-unique-source)
-open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
   ( replace-left-source-liftν-source-nu-bodyᵢ
   ; replace-left-source-liftνᵢ
   ; replace-paired-source-liftν-under-∀ᵢ

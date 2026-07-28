@@ -122,16 +122,20 @@ open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
   ; ⊑-lift∀ᵢ
   ; ⊑-source-liftνᵢ
   )
-open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
-  ( left-inst-allocation
-  ; left-ν↑-allocation
-  ; replace-left-source-liftν-source-nu-bodyᵢ
+open import
+  proof.Core.Properties.NuImprecisionSourceNuLiftProperties
+  using
+  ( replace-left-source-liftν-source-nu-bodyᵢ
   ; replace-left-source-liftνᵢ
   ; replace-paired-source-liftν-under-∀ᵢ
   ; replace-paired-source-liftνᵢ
   ; replace-right-source-liftν-under-rightᵢ
   ; replace-right-source-liftνᵢ
   ; source-liftν-right-body-shapeᵢ
+  )
+open import proof.NuCore.Misc.NuImprecisionAllocationSimulation using
+  ( left-inst-allocation
+  ; left-ν↑-allocation
   ; weak-one-step-matched-ν↑-type-coherenceᵀ
   ; weak-one-step-matched-ν↑-transportᵀ
   ; weak-one-step-matched-ν↑ᵀ

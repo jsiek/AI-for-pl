@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — paired-down invariant live and transported**
+**MIGRATION IN PROGRESS — mutual higher-order invariant tested**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -67,7 +67,8 @@ The selected metatheory sources are:
 - `NuImprecisionReductionClosedWorldEmbeddingExperiment.agda`;
 - `NuImprecisionReductionClosedWorldRenameExperiment.agda`;
 - `NuImprecisionReductionClosedQuotientIdOnlyCastAudit.agda`; and
-- `NuImprecisionReductionClosedQuotientTransientAudit.agda`.
+- `NuImprecisionReductionClosedQuotientTransientAudit.agda`;
+- `NuImprecisionMutualQuotientEliminationExperiment.agda`.
 
 The selected consumer and reduction regressions are:
 
@@ -551,6 +552,62 @@ function-beta leaf with bilateral terminalization driven by the recursive
 elimination evidence. Only after that replacement passes may the obsolete
 quotient-application and paired-quotient-relation families leave the
 regression surface and be deleted.
+
+The first operational construction exposed a genuine higher-order gap in the
+new evidence. Suppose the closing function widenings have domain narrowings
+`c` and `c′`, while the quotient-producing function narrowings have domain
+widenings `a` and `a′`. After the two function-beta steps, the argument must be
+related by
+
+`closeᵀ (paired-downᵀ ... c ... c′ ...) ... a ... a′ ...`.
+
+The current `function-elimination` evidence supplies reduction-closed
+compatibility for `a` and `a′`, plus recursive codomain elimination evidence,
+but it does not supply
+`QuotientNarrowingEliminationCompatible ... c c′ ...`. The outer
+`ReductionClosedQuotientWideningCompatible` function case also keeps only its
+codomain compatibility. The quotient component equation and the two shape
+squares determine the domain indices, but they cannot reconstruct the missing
+operational evidence.
+
+This omission is hidden when the argument type is first order because
+`non-function-elimination` closes the new domain boundary. At a higher-order
+argument type, the newly exposed `c` and `c′` are function coercions and the
+proof stops. Therefore the current transported invariant is not yet the final
+live design. The next grammar checkpoint must make narrowing and widening
+function-elimination evidence mutually recursive, so a closing function
+widening retains elimination evidence for its contravariant domain narrowing
+as well as widening compatibility for its codomain. A strict higher-order
+regression must pass before the operational beta leaf resumes.
+
+That side experiment now succeeds. The strict
+`NuImprecisionMutualQuotientEliminationExperiment.agda` defines the two
+relations mutually without changing live QTI. Its quotient-widening
+representative constructor explicitly excludes paired function coercions, so
+the old generic constructor cannot bypass the recursive invariant. Its
+function case retains domain narrowing-elimination evidence and recursive
+codomain widening evidence; the dual narrowing case retains domain widening
+evidence and recursive codomain narrowing evidence. The existing
+first-order-domain fixtures construct the mutual evidence, and a one-arrow
+higher-order lift constructs its outer evidence exactly from the formerly
+missing function-domain narrowing evidence. The focused strict check passes
+in about nine seconds with warm dependencies.
+
+The next single-writer checkpoint promotes this mutual definition into
+`QuotientImprecisionCompatibility.agda`, removes the superseded standalone
+narrowing-elimination definition without a shim, and migrates rename and
+weak-step transport as mutual proofs. Only after those focused checks pass
+will the operational quotient-down value catch-up leaf be added.
+
+The migration also treats checking-time boundaries as part of cleanup. The
+former 2,873-line `../NuCore/Misc/NuImprecisionAllocationSimulation.agda` has
+only three direct consumers. Its seven shared source-`ν` lift/replacement
+properties now live in the 497-line
+`../Core/Properties/NuImprecisionSourceNuLiftProperties.agda`; the allocation
+monolith is 2,444 lines and does not re-export them. Retained
+source-only and matched-allocation capabilities will then move to chartered
+`Source/Allocation` and `OneStep/Allocation` contracts. The unused allocation
+branches and the monolith itself will be deleted after those consumers move.
 
 The remaining direct retired-name counts are `7/2/2/28/12/12` for fused
 down/up, identity quotient application, gradual quotient application, closing

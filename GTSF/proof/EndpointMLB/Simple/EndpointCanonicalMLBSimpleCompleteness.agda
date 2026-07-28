@@ -44,10 +44,8 @@ open import proof.Core.Properties.ImprecisionProperties using
   ; no-⇑ᴸᵢ-zero-left; un⇑ᵢ-★∈; un⇑ᵢ-ˣ∈; un⇑ᴸᵢ-ˣ∈
   ; ∀ᵢ-wf²; nonVar?
   )
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
-  ( CommonLowerBoundᵢ
-  ; occurs-var-true→≡ᵢ
-  )
+open import proof.EndpointMLB.Core.EndpointLowerBoundDef using
+  (CommonLowerBoundᵢ)
 open import proof.Core.Properties.NuImprecisionBinderDropProperties using
   ( DropAtᵢ
   ; drop-zeroᵢ
@@ -76,7 +74,11 @@ open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
   ; ∨-true-leftᵢ
   ; ∨-true-rightᵢ
   )
-open import proof.Core.Properties.TypeProperties using (occurs-extsNᵗ-below; occurs-suc-var)
+open import proof.Core.Properties.TypeProperties using
+  ( occurs-extsNᵗ-below
+  ; occurs-suc-var
+  ; occurs-var-true→≡
+  )
 
 ------------------------------------------------------------------------
 -- Completeness support
@@ -982,7 +984,7 @@ star-inst-lower-atᵢ {k = k} inst (wfVar {X = X} X<Δ)
     (λ T → _ ∣ _ ⊢ ＇ X ⊑ T ⊣ _)
     (sym (subst-star-hit-varᵢ k X occX))
     (tagˣ
-      (subst (λ Z → (Z ˣ⊑★) ∈ _) (sym (occurs-var-true→≡ᵢ occX))
+      (subst (λ Z → (Z ˣ⊑★) ∈ _) (occurs-var-true→≡ occX)
         (star-hitᵢ inst))
       X<Δ)
 star-inst-lower-atᵢ {k = k} inst (wfVar {X = X} X<Δ)

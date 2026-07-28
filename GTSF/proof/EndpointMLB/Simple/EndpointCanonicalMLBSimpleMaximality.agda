@@ -36,7 +36,7 @@ open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleCompleteness usin
   ; strictlyBelow?-completeᵢ
   )
 open import proof.Core.Properties.ImprecisionProperties using (imp?; ⊑-refl-idᵢ)
-open import proof.EndpointMLB.Core.MaximalLowerBoundsWf using
+open import proof.EndpointMLB.Core.EndpointLowerBoundDef using
   (CommonLowerBoundᵢ)
 open import proof.Core.Properties.NuImprecisionWfBridgeProperties using
   (old⊑→wf-idᵢ; ⊑-forgetᵢ)

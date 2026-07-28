@@ -7,8 +7,8 @@ File Charter:
 - Scope: an intentionally slow exhaustive search over `forall` matching choices,
   plus the proof shape that should make the algorithm easier to verify.
 - Main dependencies: `ImprecisionWf`, the current endpoint design in
-  `EndpointCanonicalMLBDesign.md`, and the proof infrastructure in
-  `MaximalLowerBoundsWf.agda`.
+  `EndpointCanonicalMLBDesign.md`, `EndpointLowerBoundDef.agda`, and the
+  focused indexed-imprecision modules in `proof/Core/Properties/`.
 
 ## Status
 

@@ -1140,15 +1140,19 @@ lines, with five direct external importers left. Strict checks pass for the
 focused module in 2.33 seconds, the invalidated selector in 48.43 seconds,
 and two small consumers in 2.23 and 1.93 seconds. `make audit` passes.
 
-Two legacy `ν` pattern failures and the removed `up⊑upᵀ` consumer were exposed
-by invalidating clients. They are independent migration/deletion debt, not
-bridge failures, and must not be repaired by restoring obsolete constructors.
+The endpoint-selector retirement is complete. `CommonLowerBoundᵢ` now lives
+in the 19-line `EndpointLowerBoundDef.agda`, and the generic variable-occurrence
+fact lives in `TypeProperties.agda`. The no-GLB counterexample remains as a
+112-line strict, selector-independent regression. The evidence-directed
+counterexample tail, the 18,367-line selector, its 136-line obsolete postulate
+experiment, and its 3,728-line work log are deleted. The new Def,
+`TypeProperties`, retained counterexample, completeness, maximality,
+factorization shape, and `make audit` all pass.
 
-The reusable binder-permutation and source-binder-drop islands have moved.
-Classify the selector's five remaining external clients, then delete the
-historical selector body and obsolete experiments rather than reorganizing
-them. The isolated non-well-formed selector remains a deletion candidate once
-its single test client is classified.
+The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
+independent migration/deletion debt, not reasons to restore obsolete
+constructors. The isolated non-well-formed selector remains a deletion
+candidate once its single test client is classified.
 
 Store-relation structure and endpoint shape remain later stable cuts, but the
 operational quotient SCC and the three selector evacuations are higher

@@ -186,23 +186,19 @@ Indexed type-imprecision transitivity similarly lives in
 `NuImprecisionTransitivityProperties`, not in the endpoint maximal-lower-bound
 selector.  It owns `ComposeCtxᵢ`, binder-aware context composition,
 occurrence/non-variable transport, and the three indexed transitivity
-theorems.  Consumers import that focused module directly;
-`MaximalLowerBoundsWf` imports it non-publicly only while the remaining
-historical selector clients are retired.
+theorems. Consumers import that focused module directly. The historical
+`MaximalLowerBoundsWf` selector has been deleted.
 
 Conversion between legacy and well-formed indexed type imprecision lives in
 `NuImprecisionWfBridgeProperties`.  It owns forgetting, reconstruction,
 target lifting, and target-context dropping.  External clients import this
-module directly; `MaximalLowerBoundsWf` imports it non-publicly only while the
-historical selector is retired.  Do not restore these operations as selector
-exports.
+module directly. Do not restore these operations through a selector wrapper.
 
 Indexed binder permutation lives in
 `NuImprecisionBinderPermutationProperties`; source-only and paired binder
 dropping live in `NuImprecisionBinderDropProperties`. Consumers import these
-focused modules directly. `MaximalLowerBoundsWf` keeps non-public transition
-imports only while its five remaining clients and historical selector body
-are classified and retired; it must not re-export either API.
+focused modules directly. The retired endpoint selector must not be restored
+as a compatibility surface for either API.
 
 Keep-only quotient-down administration has a similarly narrow canonical
 boundary. `NuImprecisionWorldCoherentRightOneStepQuotientDownResidualCorePlanDef`

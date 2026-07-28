@@ -1949,18 +1949,25 @@ pass for the focused module in 2.33 seconds, the invalidated selector in
 recheck takes about two seconds. `make audit` still reports zero unresolved
 imports, zero unsafe roots, and zero uninventoried strict Proof modules.
 
-Three invalidated consumers expose independent migration debt rather than
-bridge failures: `MLBGlbCounterexample` and
-`GenSafeMismatchBlameRegression` still pattern-match the pre-`NonVar` `ν`
+The endpoint-selector retirement is now complete. The only three live clients
+needed the genuine `CommonLowerBoundᵢ` concept or a generic occurrence fact.
+The former now lives in the 19-line
+`proof/EndpointMLB/Core/EndpointLowerBoundDef.agda`; the latter lives in
+`TypeProperties.agda`. The selector-independent no-GLB counterexample remains
+as a 112-line strict regression and now matches the `NonVar` premise of raw
+`ν` directly. The evidence-directed counterexample tail, the 18,367-line
+`MaximalLowerBoundsWf.agda`, its 136-line explicitly obsolete postulate
+experiment, and its 3,728-line historical work log are deleted. Strict checks
+pass for the new Def in 3.61 seconds, `TypeProperties` in 3.46 seconds, the
+retained counterexample in 5.26 seconds, completeness in 12.74 seconds,
+maximality in 5.58 seconds, and factorization shape in 46.39 seconds.
+`make audit` passes.
+
+Two independent migration debts remain from earlier invalidation:
+`GenSafeMismatchBlameRegression` still pattern-matches the pre-`NonVar` `ν`
 shape, while `CompileTermImprecision` still reaches the removed
 `up⊑upᵀ`. Classify those clients for migration or deletion; do not restore
 obsolete constructors to keep them checking.
-
-The reusable binder-permutation and source-binder-drop islands have now moved.
-The remaining selector clients must be classified as live endpoint clients or
-retiring historical experiments. Delete the historical selector residual and
-the isolated non-well-formed selector rather than preserving them as
-compatibility surfaces.
 
 Invalidating the other two consumers exposed existing migration debt rather
 than import failures. The paired-lambda widening consumer has nine missing
@@ -1971,12 +1978,12 @@ repaired. The source paired post-beta consumer reaches the selected-migration
 which still imports retired `PairedConversion`; that live source path remains
 a migration gate.
 
-Further safe cuts are store-relation structure and endpoint-shape inversions.
-These are lower priority than the operational quotient SCC and the three
-identified endpoint-selector evacuations. Do not split the
-retiring quotient-value monolith or migration experiments. The zero-import
-`MaximalLowerBoundsJunk.agda` and its active-surface references have already
-been deleted; Git history is the archive.
+Further safe cuts are store-relation structure, endpoint-shape inversions, and
+coercion-mode renaming algebra. These are lower priority than the operational
+quotient SCC unless they directly reduce a file being invalidated by the
+migration. Do not split the retiring quotient-value monolith or migration
+experiments. The endpoint selector, `MaximalLowerBoundsJunk.agda`, and their
+historical plans are deleted; Git history is the archive.
 
 The source/import audit passes after this checkpoint: all local imports
 resolve, all five strict safety roots remain safe, the one known-incomplete

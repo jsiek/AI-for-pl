@@ -56,10 +56,9 @@ open import Types using
   )
 open import Relation.Binary.PropositionalEquality using (trans)
 open import proof.DGG.Core.NuPreservation using
-  ( runtime-·₁
-  ; runtime-·₂
-  ; value-runtime-No•
-  )
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.DGG.Core.NuProgress using
   ( canonical-⇒
   ; fv-ƛ

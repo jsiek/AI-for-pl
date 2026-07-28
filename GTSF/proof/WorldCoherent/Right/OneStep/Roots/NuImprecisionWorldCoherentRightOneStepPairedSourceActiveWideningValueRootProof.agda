@@ -49,7 +49,7 @@ open import TermTyping using
   (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.Catchup.Core.NuImprecisionCatchupPairedFrameProof
   using (weak-one-step-paired-frameᵀ)

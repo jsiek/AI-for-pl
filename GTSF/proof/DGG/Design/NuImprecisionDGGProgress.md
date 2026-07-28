@@ -2182,3 +2182,78 @@ Do not use `All.agda` as the DGG completion criterion. It includes independent
 and historical development surfaces. The final completion check is the strict
 public DGG dependency cone plus the focused forward and backward terminal
 spines.
+
+The source quotient-close consumer migration is now structurally complete.
+A fresh check of the former 644-line ordinary value-prefix implementation
+took 182.45 seconds and then failed termination at its allocation-prefix
+re-entry and source cast-sequence callback. This corrects the earlier
+cache-stale claim that the implementation passed strictly. The stronger
+runtime-sibling implementation passed fresh in 15.97 seconds, so ordinary
+value catch-up is now derived from it with a dummy `blame ⊑ blame` sibling.
+The resulting nonrecursive ordinary Proof is 45 lines and checks in 6.03
+seconds. This deletes duplicate recursive code instead of adding a
+termination pragma.
+
+The two temporary
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capabilities are deleted.
+Their replacement is the direct
+`WorldCoherentSourceQuotientCloseAccᵀ` contract under
+`proof/WorldCoherent/Source/Terminalization/`. It is always
+sibling-preserving and uses `sourceAdministrationRank` only when the caught
+source endpoint is a value. Its strict accumulated-prefix adapter transports
+the quotient derivation, widening pair, composition square, and
+reduction-closed compatibility through the inner catch-up. The source-blame
+branch remains outside the rank and prepends the two `blame-⟨⟩` reductions
+directly. The ranked Def checks in 6.32 seconds, the adapter in 16.52 seconds,
+and the migrated runtime-sibling consumer in 17.52 seconds.
+
+The new typed hereditary source spine is
+`proof/Source/Administration/NuImprecisionSourceAdministrationSpine.agda`.
+Its `casts`, `bullet`, and `ν` states carry the live QTI derivation for the
+whole pending term. It deliberately does not thread a target-style chain of
+ordinary imprecision indices: no such index need exist between the quotient
+narrowing and widening. The spine checks strictly in 5.01 seconds and is
+listed by the terminal-backward inventory spine.
+
+The first migration-aligned checking-time cut requested during this phase is
+also complete. The six structural `RuntimeOK` projections moved from
+`NuPreservation.agda` into the focused 58-line
+`proof/Core/Properties/NuRuntimeProperties.agda`; forty-eight clients import
+it directly, while `NuPreservation.agda` shrank from 910 to 863 lines. The
+focused module checks in 4.00 seconds. The initial consumer transition still
+paid for a stale broad simulation cone, which confirms the next profitable
+stable cut: extract weak-result composition and left-silent prepend support
+from `NuImprecisionSimulationCore.agda` before repeatedly invalidating the
+value-prefix cone.
+
+The ranked quotient-close Def does not yet have a canonical Proof/Lemma.
+Its missing semantic leaves are quotient-specific source identity
+elimination, sequence expansion, tag/untag and seal/unseal cancellation,
+terminal inert elimination, source instantiation allocation transport, and
+direct bullet/narrowing administration. Implement these as focused leaves
+under the ranked worker; do not recreate either deleted final capability.
+After that source gate, resume the target path-aware allocation leaf and the
+identity/sequence/unseal target normalization cases, then assemble quotient
+function-cast beta and migrate the compiler consumers. The migration remains
+in progress; neither lifecycle document may say **MIGRATION FINISHED** yet.
+
+The checkpoint phase gate also refreshed four stale paired source
+reveal/conceal roots. Their calls still supplied a removed silent-invariant
+argument to the paired-conversion transport theorem. Removing that obsolete
+argument makes all four focused roots check strictly in 5--12 seconds.
+
+The resumed terminal-backward strict-spine check ran for 201.37 seconds before
+the four stale calls were found, then for another phase-gate run before
+reaching an independent stale import in
+`NuImprecisionSubstitutionEnvironmentTypeLiftProof.agda`: it still imported
+`left-insertion-suc` from the simulation core after that constructor moved to
+`NuCastModeRenamerProperties`. The checkpoint rewires that import to its
+focused owner. The substitution module checks strictly in 13.86 seconds. This
+last repair has not yet been followed by another broad terminal-backward run;
+the next worker should resume that strict-spine gate.
+
+This checkpoint is intentionally being published before the migration is
+complete. The handoff issue must preserve the controlled order above, continue
+to use focused serial checks instead of `All.agda`, and add the lifecycle
+completion marker only after every obsolete consumer and file has been removed
+and the final public DGG gates pass.

@@ -56,7 +56,8 @@ open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceTargetKeepPrependLemma
   using (world-coherent-source-target-keep-prependᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-·₁)
 
 
 private

@@ -14,7 +14,7 @@ module
 --   * Contains no result, outcome, ranked carrier, alias, postulate, hole,
 --     permissive option, compatibility shim, or termination bypass.
 
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import QuotientedTermImprecision using
   ( prefix-reflⁱ
   ; ⊑cast⊒ᵀ

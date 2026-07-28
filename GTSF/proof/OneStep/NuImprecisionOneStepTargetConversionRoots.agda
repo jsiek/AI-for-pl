@@ -43,7 +43,7 @@ open import NuTerms using (RuntimeOK; Value; _⟨_⟩)
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
 open import Types using (Atom; ＇_; ‵_; ★)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import proof.Catchup.Simulation.NuImprecisionSimulationResultDef using
   (WeakOneStepIndexedOutcome)
 open import proof.OneStep.NuImprecisionOneStepRelated using

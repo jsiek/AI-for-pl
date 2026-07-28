@@ -437,10 +437,9 @@ open import proof.DGG.Core.NuProgress using
   ; runtime-value-no•
   )
 open import proof.DGG.Core.NuPreservation using
-  ( runtime-ν
-  ; runtime-⟨⟩
-  ; value-no-step
-  )
+  (value-no-step)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-ν; runtime-⟨⟩)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyCoercions-inst

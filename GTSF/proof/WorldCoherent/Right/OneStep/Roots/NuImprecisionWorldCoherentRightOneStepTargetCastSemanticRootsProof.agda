@@ -83,7 +83,7 @@ open import Types using
   ; TyCtx
   )
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.Catchup.Simulation.NuImprecisionKeepCastFrameSupport
   using

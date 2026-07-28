@@ -83,11 +83,9 @@ open import Types using
 open import NuStore using (StoreWf)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken)
 open import proof.DGG.Core.NuPreservation using
-  ( runtime-·₁
-  ; runtime-·₂
-  ; runtime-⟨⟩
-  ; value-runtime-No•
-  )
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂; runtime-⟨⟩)
 open import proof.OneStep.NuImprecisionOneStepRelated using
   (weak-one-step-indexed-relatedᵀ)
 open import

@@ -40,7 +40,8 @@ open import QuotientedTermImprecision using
   ; conv↑⊑ᵀ
   ; conv↓⊑ᵀ
   )
-open import proof.DGG.Core.NuPreservation using (runtime-ν; runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties
+  using (runtime-ν; runtime-⟨⟩)
 open import proof.Core.Properties.ReductionProperties using (↠-trans; cast-↠; ν-↠)
 
 

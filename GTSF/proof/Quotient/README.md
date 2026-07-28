@@ -2,7 +2,7 @@
 
 ## Authoritative state
 
-**MIGRATION IN PROGRESS — migrating right-dispatch prerequisites**
+**MIGRATION IN PROGRESS — replacing operational quotient boundaries**
 
 This directory is a temporary mixed staging area during the controlled
 replacement of `QuotientedTermImprecision`. This file is the authoritative
@@ -1223,19 +1223,47 @@ The 2,090-line `NuImprecisionQuotientValue.agda` retirement is complete.
 After removing the historical InstFunTag/classification/final-provider block
 from `NuDGGStrictSpine`, the source/import audit confirmed that no public DGG,
 terminal strict spine, or unassembled-proof spine reached that 21-file cone,
-so it was deleted. A fresh strict-spine check now correctly reaches the
+so it was deleted. A fresh strict-spine check correctly reaches the
 independent live `CompileTermImprecision` failure at retired `up⊑upᵀ`; an
-earlier cached 26-second pass did not expose that invalidated consumer. The two
-`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability types remain
-temporarily because live prefix consumers still take them as parameters;
-their unused canonical providers are gone.
+earlier cached 26-second pass did not expose that invalidated consumer.
 
 The separate 37-file quotient-instantiation path/provider experiment is also
 deleted. It had no public DGG or terminal consumer: the strict inventory spine
-and one Makefile check were its only roots. The two temporary final-catch-up
-capability types have exactly two live semantic consumers, the ordinary and
-runtime-sibling value-prefix proofs. Migrate both to one source-oriented ranked
-quotient-close terminalization worker, then delete those capability types.
+and one Makefile check were its only roots.
+
+Both temporary
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capabilities are now
+deleted. The replacement boundary is
+`../WorldCoherent/Source/Terminalization/NuImprecisionWorldCoherentSourceQuotientCloseAccDef.agda`:
+one accessibility-ranked, sibling-preserving source terminalizer over the
+live proof-relevant quotient edge. Its accumulated-prefix adapter transports
+the complete quotient quartet through the inner catch-up, calls the ranked
+worker only in the source-value branch, and handles source blame with the two
+cast-blame reductions. The Def and adapter pass focused strict checks.
+
+The runtime-sibling value-prefix proof now consumes this ranked boundary
+directly and passes strictly. The ordinary 644-line recursive value-prefix
+implementation failed a fresh termination check at allocation-prefix re-entry
+and the source sequence callback; its earlier passing interface was
+cache-stale. Ordinary value catch-up is now a 45-line nonrecursive corollary
+of the stronger sibling-preserving contract, using a dummy
+`blame ⊑ blame` sibling. This removes the duplicate dispatcher instead of
+adding a termination bypass.
+
+The typed source-administration spine lives in
+`../Source/Administration/NuImprecisionSourceAdministrationSpine.agda`. It
+carries the live QTI derivation at `casts`, `bullet`, and `ν` states, rather
+than inventing a false ordinary index between quotient narrowing and
+widening. The spine checks strictly. The ranked quotient-close contract still
+needs its semantic Proof: source identity, sequence, cancellation,
+instantiation allocation, bullet, and terminal-inert leaves remain the next
+source-side gate.
+
+The structural `RuntimeOK` projections have also moved from
+`../DGG/Core/NuPreservation.agda` to the focused 58-line
+`../Core/Properties/NuRuntimeProperties.agda`. Forty-eight consumers now
+import the small module directly. This is a canonical invalidation cut, not a
+re-exporting wrapper.
 
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete

@@ -81,7 +81,7 @@ open import proof.Core.Properties.ReductionProperties using
 open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
   using (cast-shape-applyCoercions)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

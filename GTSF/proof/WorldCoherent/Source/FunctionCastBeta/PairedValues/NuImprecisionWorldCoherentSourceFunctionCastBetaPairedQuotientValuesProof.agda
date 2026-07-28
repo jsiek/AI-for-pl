@@ -48,7 +48,8 @@ open import
   ; source-step-outcome-source-blame
   )
 open import proof.DGG.Core.NuPreservation using
-  (pure-runtime-preservation; runtime-·₁; value-runtime-No•)
+  (pure-runtime-preservation; value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-·₁)
 open import Types using (Ty; TyCtx)
 
 

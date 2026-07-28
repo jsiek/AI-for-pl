@@ -64,10 +64,9 @@ open import
 open import
   proof.DGG.Core.NuPreservation
   using
-  ( runtime-·₁
-  ; runtime-·₂
-  ; value-runtime-No•
-  )
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import
   proof.Store.Lineage.NuImprecisionWeakOneStepStoreLineageDef
   using

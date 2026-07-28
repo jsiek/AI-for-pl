@@ -80,7 +80,6 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; LeftStoreRenameⁱ
   ; left-ctx-rename-[]
   ; left-ctx-rename-∷
-  ; left-insertion-suc
   ; left-store-rename-[]
   ; left-store-rename-left
   ; left-store-rename-link
@@ -88,6 +87,8 @@ open import proof.Catchup.Simulation.NuImprecisionSimulationCore using
   ; left-store-rename-right
   ; rel-world-embedding
   )
+open import proof.Core.Properties.NuCastModeRenamerProperties using
+  (left-insertion-suc)
 open import
   proof.Core.Properties.NuCastImprecisionShapeProperties
   using (⊑-rename-left-atᵢ; ⊑-rename-leftᵢ)

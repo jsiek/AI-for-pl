@@ -99,7 +99,8 @@ open import
 open import
   proof.WorldCoherent.Right.Value.Catchup.NuImprecisionWorldCoherentRightValueCatchupPrefixDef
   using (WorldCoherentRightValueCatchupPrefixᵀ)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩; runtime-ν)
+open import proof.Core.Properties.NuRuntimeProperties
+  using (runtime-⟨⟩; runtime-ν)
 open import
   proof.Quotient.NuImprecisionEmbeddedTargetInstantiationCreationProperties
   using

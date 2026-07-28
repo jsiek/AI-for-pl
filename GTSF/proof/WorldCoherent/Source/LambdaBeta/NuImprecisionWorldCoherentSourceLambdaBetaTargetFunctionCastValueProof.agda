@@ -100,7 +100,9 @@ open import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef using
 open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentSourceOneStepResultDef using
   (WorldCoherentSourceOneStepIndexedResult)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; runtime-⟨⟩; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂; runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-⇒; fv-ƛ; fv-↦)
 open import proof.Core.Properties.TypePreservation using (seal★-weaken; term-weaken)

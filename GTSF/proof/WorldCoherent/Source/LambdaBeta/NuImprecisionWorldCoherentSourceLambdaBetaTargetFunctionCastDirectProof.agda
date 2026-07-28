@@ -153,7 +153,9 @@ open import proof.WorldCoherent.Source.OneStep.Cases.NuImprecisionWorldCoherentS
   ; world-coherent-source-one-step-indexed
   )
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.Core.Properties.ReductionProperties using
   ( applyCoercions
   ; applyTerms-preserves-No•

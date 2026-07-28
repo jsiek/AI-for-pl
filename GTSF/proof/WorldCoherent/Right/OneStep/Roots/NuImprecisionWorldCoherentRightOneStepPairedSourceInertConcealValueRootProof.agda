@@ -47,7 +47,7 @@ open import QuotientedTermImprecision using
   )
 open import Types using (Ty; TyCtx; TyVar)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.Catchup.Simulation.NuImprecisionSimulationResultDef
   using
@@ -224,7 +224,6 @@ inert-paired-conceal-root-proofᵀ
     with paired-conceal-evidence-transportᵀ
       prefix-reflⁱ
       (weakIndexedResult (catchupIndexedResult caught))
-      (silentInvariant (catchupIndexedInvariant caught))
       (weakIndexedTypeCoherence (catchupIndexedResult caught))
       lineage corr c↓ c′↓ replacement
 inert-paired-conceal-root-proofᵀ

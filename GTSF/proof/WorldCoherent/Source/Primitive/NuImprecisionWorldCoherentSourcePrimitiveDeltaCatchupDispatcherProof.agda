@@ -37,7 +37,7 @@ open import
   using (WorldCoherentSourcePrimitiveDeltaCatchupᵀ)
 open import proof.Store.Prefix.NuImprecisionStorePrefix using
   (store-imp-prefix-transⁱ)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 
 
 world-coherent-source-primitive-delta-catchup-dispatcher-proofᵀ :

@@ -21,7 +21,11 @@ import
 import
   proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeSiblingCatchupDef
 import
-  proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientFinalRuntimeSiblingCatchupDef
+  proof.Source.Administration.NuImprecisionSourceAdministrationSpine
+import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientCloseAccDef
+import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientClosePrefixProof
 import
   proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupRuntimeSiblingPrefixProof
 import

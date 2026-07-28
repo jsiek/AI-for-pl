@@ -123,7 +123,9 @@ open import
   proof.WorldCoherent.Source.KeepSilent.NuImprecisionWorldCoherentSourceSilentCompositionDef
   using (WorldCoherentSourceSilentCompositionᵀ)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; runtime-·₂; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using
+  (runtime-·₁; runtime-·₂)
 open import proof.Core.Properties.ReductionProperties using
   (applyTerms-preserves-No•)
 open import proof.Core.Properties.TypePreservation using (term-weaken)

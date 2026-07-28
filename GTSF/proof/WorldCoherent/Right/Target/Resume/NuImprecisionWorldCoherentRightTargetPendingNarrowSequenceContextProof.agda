@@ -12,7 +12,7 @@ module
 --     option, termination bypass, compatibility shim, or broad DGG import.
 
 open import Data.Product using (_,_)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import QuotientedTermImprecision using
   (prefix-reflⁱ; ⊑cast⊒ᵀ)
 open import

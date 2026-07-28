@@ -42,7 +42,7 @@ open import QuotientedTermImprecision using
 open import Relation.Binary.PropositionalEquality using (subst; sym)
 open import Types using (Ty; TyCtx; TyVar)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.Catchup.Core.NuImprecisionCatchupPairedFrameProof
   using (weak-one-step-paired-frameᵀ)
@@ -218,7 +218,6 @@ active-paired-conceal-root-proofᵀ
     with paired-conceal-evidence-transportᵀ
       prefix-reflⁱ
       (weakIndexedResult (catchupIndexedResult caught))
-      (silentInvariant (catchupIndexedInvariant caught))
       (weakIndexedTypeCoherence (catchupIndexedResult caught))
       lineage corr c↓ c′↓ replacement
 active-paired-conceal-root-proofᵀ

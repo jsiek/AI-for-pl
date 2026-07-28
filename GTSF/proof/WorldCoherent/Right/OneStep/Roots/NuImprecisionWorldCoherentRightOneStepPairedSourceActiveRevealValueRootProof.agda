@@ -61,7 +61,7 @@ open import TermTyping using
   (CastMode; SealModeStore★)
 open import Types using (Ty; TyCtx; TyVar)
 open import proof.DGG.Core.NuProgress using (runtime-value-no•)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import
   proof.Catchup.Core.NuImprecisionCatchupPairedFrameProof
   using (weak-one-step-paired-frameᵀ)
@@ -246,7 +246,6 @@ active-paired-reveal-root-proofᵀ
     with paired-reveal-evidence-transportᵀ
       prefix-reflⁱ
       (weakIndexedResult (catchupIndexedResult caught))
-      (silentInvariant (catchupIndexedInvariant caught))
       (weakIndexedTypeCoherence (catchupIndexedResult caught))
       lineage
       corr c↑ c′↑ replacement

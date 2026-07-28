@@ -391,28 +391,35 @@ prefix implementation should take its unfinished allocation and quotient
 leaves as higher-order contracts.  It must not import
 `NuImprecisionCatchupScratch` merely to reuse its partial dispatcher.
 
-The strict structural prefix proof still takes
-`WorldCoherentQuotientFinalCatchupᵀ` as a temporary migration capability.
-Its old terminal classifier, eager InstFunTag adapter, quotient-value
-analysis, and canonical provider had no public or strict-spine semantic
-consumer and have been deleted. Do not rebuild those providers. Migrate the
-ordinary and runtime-sibling value-prefix consumers to the selected
-up-to-reduction quotient worker, then delete the two remaining
-`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capability files.
+The old terminal classifier, eager InstFunTag adapter, quotient-value
+analysis, and canonical final-quotient provider had no public or strict-spine
+semantic consumer and have been deleted. Do not rebuild those providers. The
+two temporary
+`NuImprecisionWorldCoherentQuotientFinal*CatchupDef` capabilities are also
+deleted.
 
 The former quotient-instantiation path provider cone had no semantic consumer:
 only `NuDGGStrictSpine` and a Makefile experiment kept its 37 modules on the
 regression surface.  It has been deleted.  Do not rebuild a second normalized
-path framework around the two remaining temporary final-catch-up capability
-types.
+path framework around final catch-up.
 
-Their replacement is one source-oriented, accessibility-ranked quotient-close
+The replacement is one source-oriented, accessibility-ranked quotient-close
 terminalization worker over a reconstructed live
-`closeᵀ (paired-downᵀ ...)` relation.  Its conclusion must be parameterized by
-the caller's continuation: the ordinary value-prefix caller supplies the
-trivial continuation, while the runtime-sibling caller preserves its sibling
-relation at the exact final world.  This worker is distinct from the
-target-oriented pending-cast worker.
+`closeᵀ (paired-downᵀ ...)` relation. It always preserves a sibling relation
+at the exact final world; ordinary value catch-up supplies a dummy
+`blame ⊑ blame` sibling and projects the caught result. This avoids both a
+continuation alias and a second ordinary worker. The accumulated-prefix
+adapter transports the quotient quartet and handles source blame outside the
+value-indexed rank. The worker is distinct from the target-oriented
+pending-cast worker.
+
+The ordinary recursive value-prefix implementation was deleted after a fresh
+check exposed termination failures at allocation-prefix re-entry and the
+source sequence callback. The stronger runtime-sibling proof is the single
+recursive implementation; the ordinary Proof is a small nonrecursive
+corollary. The source-administration spine carries the live QTI derivation in
+its `casts`, `bullet`, and `ν` states, rather than fabricating an ordinary
+index between quotient narrowing and widening.
 
 Target allocation under a closing `inst` needs a right-oriented typed path
 view.  It must preserve the quotient derivation, the closing pair, the

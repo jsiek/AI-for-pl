@@ -11,7 +11,7 @@ module
 --     or compatibility wrapper.
 
 open import Data.Product using (_,_)
-open import proof.DGG.Core.NuPreservation using (runtime-ν)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-ν)
 open import
   proof.Target.Core.NuImprecisionTargetBlameCatchup
   using

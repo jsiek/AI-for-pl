@@ -7,8 +7,8 @@ module
 --     independent source-no-bullet, target-runtime sibling relation.
 --   * Lifts the sibling to the ambient world once, then keeps the caught
 --     result and exact final sibling together throughout structural recursion.
---   * Delegates only source-runtime and terminal quotient semantic joins to
---     their construction-time sibling-aware contracts.
+--   * Delegates only source-runtime and ranked source quotient
+--     terminalization to their sibling-aware contracts.
 --   * Contains no opaque-final-result sibling transport or permissive option.
 
 open import Agda.Builtin.Equality using (refl)
@@ -68,7 +68,11 @@ open import
   ; world-coherent-left-indexed-catchup
   )
 open import
-  proof.WorldCoherent.Quotient.Final.NuImprecisionWorldCoherentQuotientFinalRuntimeSiblingCatchupDef
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientCloseAccDef
+  using (WorldCoherentSourceQuotientCloseAccᵀ)
+open import
+  proof.WorldCoherent.Source.Terminalization.NuImprecisionWorldCoherentSourceQuotientClosePrefixProof
+  using (world-coherent-source-quotient-close-prefix-proofᵀ)
 open import
   proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeSiblingCatchupDef
 open import
@@ -81,13 +85,13 @@ open import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport using
   ( left-catchup-indexed-prefix-blameᵀ
   ; left-catchup-indexed-prefix-valueᵀ
   )
-open import proof.DGG.Core.NuPreservation using
+open import proof.Core.Properties.NuRuntimeProperties using
   (runtime-ν; runtime-⟨⟩)
 
 
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ :
   WorldCoherentSourceRuntimeSiblingCatchupᵀ →
-  WorldCoherentQuotientFinalRuntimeSiblingCatchupᵀ →
+  WorldCoherentSourceQuotientCloseAccᵀ →
   WorldCoherentLeftValueCatchupRuntimeSiblingAmbientᵀ
 world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
     source-runtime quotient-catchup
@@ -112,7 +116,7 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
         down-square elimination)
       widening-pair pA u-shape u′-shape up-square compatible)
     noR okR′ sibling =
-  quotient-close-sibling quotient-catchup
+  world-coherent-source-quotient-close-prefix-proofᵀ quotient-catchup
     prefix okL vM′ noM′ inert-d′ inert-u′
     mode d⊒ d-shape mode′ d′⊒ d′-shape
     down-square elimination
@@ -538,7 +542,7 @@ world-coherent-left-value-catchup-runtime-sibling-ambientᵀ
 
 world-coherent-left-value-catchup-runtime-sibling-prefix-proofᵀ :
   WorldCoherentSourceRuntimeSiblingCatchupᵀ →
-  WorldCoherentQuotientFinalRuntimeSiblingCatchupᵀ →
+  WorldCoherentSourceQuotientCloseAccᵀ →
   WorldCoherentLeftValueCatchupRuntimeSiblingPrefixᵀ
 world-coherent-left-value-catchup-runtime-sibling-prefix-proofᵀ
     source-runtime quotient-catchup

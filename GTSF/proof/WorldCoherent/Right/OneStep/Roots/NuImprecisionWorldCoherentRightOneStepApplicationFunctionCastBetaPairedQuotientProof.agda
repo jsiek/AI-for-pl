@@ -35,7 +35,8 @@ open import QuotientedTermImprecision using
 open import Types using
   (Ty; TyCtx; _⇒_)
 open import proof.DGG.Core.NuPreservation using
-  (runtime-·₁; value-runtime-No•)
+  (value-runtime-No•)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-·₁)
 open import
   proof.NuCore.Relations.NuImprecisionAssumptionMembershipUniquenessDef
   using (AssumptionMembershipUnique)

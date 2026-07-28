@@ -35,7 +35,7 @@ open import NuTerms using
   ; _⟨_⟩
   )
 open import TermTyping using (forget)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-＇; sv-seal)
 open import

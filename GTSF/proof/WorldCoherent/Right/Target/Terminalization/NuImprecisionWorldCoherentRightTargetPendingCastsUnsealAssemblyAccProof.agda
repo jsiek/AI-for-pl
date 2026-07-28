@@ -52,7 +52,7 @@ open import QuotientedTermImprecision using
 open import TermTyping using (cast-tag-or-id; forget)
 open import Types using
   (★; ★⇒★; _⇒_; `∀; ＇_)
-open import proof.DGG.Core.NuPreservation using (runtime-⟨⟩)
+open import proof.Core.Properties.NuRuntimeProperties using (runtime-⟨⟩)
 open import proof.DGG.Core.NuProgress using
   (canonical-★; canonical-＇; sv-seal; sv-tag)
 open import

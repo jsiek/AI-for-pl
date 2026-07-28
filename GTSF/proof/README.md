@@ -187,7 +187,9 @@ Indexed type-imprecision transitivity similarly lives in
 selector.  It owns `ComposeCtxᵢ`, binder-aware context composition,
 occurrence/non-variable transport, and the three indexed transitivity
 theorems. Consumers import that focused module directly. The historical
-`MaximalLowerBoundsWf` selector has been deleted.
+`MaximalLowerBoundsWf` selector has been deleted. The older raw-imprecision
+`MaximalLowerBounds` selector and its standalone test are deleted as well;
+live compilation uses `EndpointCanonicalMLBSimple`.
 
 Conversion between legacy and well-formed indexed type imprecision lives in
 `NuImprecisionWfBridgeProperties`.  It owns forgetting, reconstruction,

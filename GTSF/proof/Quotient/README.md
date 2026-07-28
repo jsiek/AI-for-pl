@@ -1157,6 +1157,13 @@ directly; `NuImprecisionSimulationCore.agda` keeps one non-public import and
 shrinks from 14,421 to 14,095 lines. The focused module, reduced core, and two
 small representative clients pass strict checks in 24–28 seconds.
 
+The isolated raw-imprecision selector is retired too. Its only Agda client
+was the standalone `MlbTypeTest`; the live compiler uses
+`EndpointCanonicalMLBSimple` and `MLB-monotoneᵖ`. The 4,604-line
+`MaximalLowerBounds.agda`, 253-line test, and stale 308-line `CompilePlan.md`
+are deleted, and the standalone-root inventory is updated. `make audit`
+passes.
+
 The remaining legacy `ν` pattern failure and removed `up⊑upᵀ` consumer are
 independent migration/deletion debt, not reasons to restore obsolete
 constructors. The isolated non-well-formed selector remains a deletion

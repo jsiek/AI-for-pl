@@ -1974,6 +1974,14 @@ core in 28.3 seconds, and two small representative allocation/renaming clients
 in 27.5 and 24.0 seconds. The broad simulation assembly remains deferred to
 the migration phase gate.
 
+The isolated raw-imprecision selector is also retired. Its only Agda client
+was the standalone `MlbTypeTest` suite; the live compiler has long used
+`EndpointCanonicalMLBSimple` and `MLB-monotoneᵖ` instead. The 4,604-line
+`MaximalLowerBounds.agda`, its 253-line test, and the 308-line stale
+`CompilePlan.md` are deleted, and the standalone-root inventory no longer
+lists the removed test. `make audit` passes with no unresolved import and no
+uninventoried strict Proof module.
+
 Two independent migration debts remain from earlier invalidation:
 `GenSafeMismatchBlameRegression` still pattern-matches the pre-`NonVar` `ν`
 shape, while `CompileTermImprecision` still reaches the removed

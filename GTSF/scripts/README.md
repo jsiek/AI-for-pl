@@ -74,7 +74,6 @@ decision:
 - `proof/EndpointMLB/Core/EndpointCanonicalMLBTest.agda`;
 - `proof/EndpointMLB/Core/MLBGlbCounterexample.agda`;
 - `proof/EndpointMLB/Core/MLBGlbExample.agda`;
-- `proof/EndpointMLB/Core/MlbTypeTest.agda`;
 - `proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleFactorCounterexample.agda`;
 - `proof/EndpointMLB/Simple/EndpointCanonicalMLBSimpleTest.agda`;
 - `proof/PairedLambda/Conversions/NuImprecisionPairedLambdaTargetClosingLambdaLambdaConversionRotationCounterexample.agda`;

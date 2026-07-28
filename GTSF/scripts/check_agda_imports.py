@@ -59,7 +59,6 @@ INTENDED_STANDALONE_ROOT_MODULES = (
     "proof.EndpointMLB.Core.EndpointCanonicalMLBTest",
     "proof.EndpointMLB.Core.MLBGlbCounterexample",
     "proof.EndpointMLB.Core.MLBGlbExample",
-    "proof.EndpointMLB.Core.MlbTypeTest",
     "proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleFactorCounterexample",
     "proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleTest",
     "proof.PairedLambda.Conversions."

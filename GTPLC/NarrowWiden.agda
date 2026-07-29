@@ -7,10 +7,12 @@ module NarrowWiden where
 --     grammar, to choose between collapsed and sequenced coercions.
 --   * Exposes smart wrappers and endpoint well-formedness.
 
+open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
 open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
 open import Relation.Nullary using (yes; no)
@@ -64,6 +66,34 @@ idᵢ zero = []
 idᵢ (suc Δ) = (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (idᵢ Δ)
 
 ------------------------------------------------------------------------
+-- Atomic widening and narrowing
+------------------------------------------------------------------------
+
+infix 4 _⊢_⊑ᵃ_
+infix 4 _⊢_⊒ᵃ_
+
+_⊢_⊑ᵃ_ : ∀ {A B} → ImpCtx → Atom A → Atom B → Set
+Φ ⊢ (＇ X) ⊑ᵃ (＇ Y) = (X ˣ⊑ˣ Y) ∈ Φ
+Φ ⊢ (＇ X) ⊑ᵃ (‵ ι) = ⊥
+Φ ⊢ (＇ X) ⊑ᵃ ★ = ⊥
+Φ ⊢ (‵ ι) ⊑ᵃ (＇ Y) = ⊥
+Φ ⊢ (‵ ι) ⊑ᵃ (‵ κ) = ι ≡ κ
+Φ ⊢ (‵ ι) ⊑ᵃ ★ = ⊥
+Φ ⊢ ★ ⊑ᵃ (＇ Y) = ⊥
+Φ ⊢ ★ ⊑ᵃ (‵ ι) = ⊥
+Φ ⊢ ★ ⊑ᵃ ★ = ⊤
+
+_⊢_⊒ᵃ_ : ∀ {A B} → ImpCtx → Atom A → Atom B → Set
+Φ ⊢ a ⊒ᵃ b = Φ ⊢ b ⊑ᵃ a
+
+renameᵃ : ∀ {A} (ρ : Renameᵗ)
+  → Atom A
+  → Atom (renameᵗ ρ A)
+renameᵃ ρ (＇ X) = ＇ (ρ X)
+renameᵃ ρ (‵ ι) = ‵ ι
+renameᵃ ρ ★ = ★
+
+------------------------------------------------------------------------
 -- Coercion-indexed widening and narrowing
 ------------------------------------------------------------------------
 
@@ -75,20 +105,12 @@ mutual
   data _∣_⊢_⦂_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     Coercion → Ty → Ty → TyCtx → Set where
 
-    id★ : ∀ {Δᴿ}
+    idᵃ : ∀ {A B Δᴿ} (a : Atom A) (b : Atom B)
+      → WfTy Δᴸ A
+      → WfTy Δᴿ B
+      → Φ ⊢ a ⊑ᵃ b
        --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ★ ⊑ ★ ⊣ Δᴿ
-
-    idˣ : ∀ {X Y Δᴿ}
-      → (X ˣ⊑ˣ Y) ∈ Φ
-      → X < Δᴸ
-      → Y < Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ＇ X ⊑ ＇ Y ⊣ Δᴿ
-
-    idι : ∀ {ι Δᴿ}
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ‵ ι ⊑ ‵ ι ⊣ Δᴿ
+      → Φ ∣ Δᴸ ⊢ id ⦂ A ⊑ B ⊣ Δᴿ
 
     _↦_ : ∀ {c d A A′ B B′ Δᴿ}
       → Φ ∣ Δᴿ ⊢ c ⦂ A′ ⊒ A ⊣ Δᴸ
@@ -134,20 +156,12 @@ mutual
   data _∣_⊢_⦂_⊒_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     Coercion → Ty → Ty → TyCtx → Set where
 
-    id★ : ∀ {Δᴿ}
+    idᵃ : ∀ {A B Δᴿ} (a : Atom A) (b : Atom B)
+      → WfTy Δᴸ A
+      → WfTy Δᴿ B
+      → Φ ⊢ a ⊒ᵃ b
        --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ★ ⊒ ★ ⊣ Δᴿ
-
-    idˣ : ∀ {X Y Δᴿ}
-      → (Y ˣ⊑ˣ X) ∈ Φ
-      → X < Δᴸ
-      → Y < Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ＇ X ⊒ ＇ Y ⊣ Δᴿ
-
-    idι : ∀ {ι Δᴿ}
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ ‵ ι ⊒ ‵ ι ⊣ Δᴿ
+      → Φ ∣ Δᴸ ⊢ id ⦂ A ⊒ B ⊣ Δᴿ
 
     _↦_ : ∀ {c d A A′ B B′ Δᴿ}
       → Φ ∣ Δᴿ ⊢ c ⦂ A′ ⊑ A ⊣ Δᴸ
@@ -232,9 +246,7 @@ mutual
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → WfTy Δᴿ B
 
-  ⊑-src-wf id★ = wf★
-  ⊑-src-wf (idˣ _ X<Δᴸ _) = wfVar X<Δᴸ
-  ⊑-src-wf idι = wfBase
+  ⊑-src-wf (idᵃ _ _ hA _ _) = hA
   ⊑-src-wf (p ↦ q) = wf⇒ (⊒-tgt-wf p) (⊑-src-wf q)
   ⊑-src-wf (∀ⁱ p) = wf∀ (⊑-src-wf p)
   ⊑-src-wf (tag ι) = wfBase
@@ -243,9 +255,7 @@ mutual
   ⊑-src-wf (tagˣ _ X<Δᴸ) = wfVar X<Δᴸ
   ⊑-src-wf (inst _ _ p _) = wf∀ (⊑-src-wf p)
 
-  ⊑-tgt-wf id★ = wf★
-  ⊑-tgt-wf (idˣ _ _ Y<Δᴿ) = wfVar Y<Δᴿ
-  ⊑-tgt-wf idι = wfBase
+  ⊑-tgt-wf (idᵃ _ _ _ hB _) = hB
   ⊑-tgt-wf (p ↦ q) = wf⇒ (⊒-src-wf p) (⊑-tgt-wf q)
   ⊑-tgt-wf (∀ⁱ p) = wf∀ (⊑-tgt-wf p)
   ⊑-tgt-wf (tag ι) = wf★
@@ -254,9 +264,7 @@ mutual
   ⊑-tgt-wf (tagˣ _ _) = wf★
   ⊑-tgt-wf (inst _ _ p _) = ⊑-tgt-wf p
 
-  ⊒-src-wf id★ = wf★
-  ⊒-src-wf (idˣ _ X<Δᴸ _) = wfVar X<Δᴸ
-  ⊒-src-wf idι = wfBase
+  ⊒-src-wf (idᵃ _ _ hA _ _) = hA
   ⊒-src-wf (p ↦ q) = wf⇒ (⊑-tgt-wf p) (⊒-src-wf q)
   ⊒-src-wf (∀ⁱ p) = wf∀ (⊒-src-wf p)
   ⊒-src-wf (untag ι) = wf★
@@ -265,9 +273,7 @@ mutual
   ⊒-src-wf (untagˣ _ _) = wf★
   ⊒-src-wf (gen _ _ p _) = ⊒-src-wf p
 
-  ⊒-tgt-wf id★ = wf★
-  ⊒-tgt-wf (idˣ _ _ Y<Δᴿ) = wfVar Y<Δᴿ
-  ⊒-tgt-wf idι = wfBase
+  ⊒-tgt-wf (idᵃ _ _ _ hB _) = hB
   ⊒-tgt-wf (p ↦ q) = wf⇒ (⊑-src-wf p) (⊒-tgt-wf q)
   ⊒-tgt-wf (∀ⁱ p) = wf∀ (⊒-tgt-wf p)
   ⊒-tgt-wf (untag ι) = wfBase

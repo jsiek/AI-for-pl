@@ -14,6 +14,7 @@ open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z≤n; s≤s; _<_)
 open import Data.Product using (_,_; ∃-syntax; Σ-syntax)
+open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; subst; sym)
 open import Relation.Nullary using (yes; no)
@@ -26,6 +27,7 @@ open import NarrowWiden
 open import proof.TypeInTypeSubst using
   ( TyRenameWf
   ; TyRenameWf-ext
+  ; renameᵗ-preserves-WfTy
   ; rename-ext-preserves-zero∈
   )
 
@@ -500,6 +502,22 @@ renameFirst-gen : ∀ {ρ Φ Ψ a}
 renameFirst-gen h (here refl) = here refl
 renameFirst-gen h (there a∈) = there (renameFirst-⇑ᴸ h a∈)
 
+rename-first-⊑ᵃ : ∀ {ρ Φ Ψ A B}
+  → (∀ {a} → a ∈ Φ → renameFirst ρ a ∈ Ψ)
+  → (a : Atom A)
+  → (b : Atom B)
+  → Φ ⊢ a ⊑ᵃ b
+  → Ψ ⊢ renameᵃ ρ a ⊑ᵃ b
+rename-first-⊑ᵃ h (＇ X) (＇ Y) X∈ = h X∈
+rename-first-⊑ᵃ h (＇ X) (‵ ι) ()
+rename-first-⊑ᵃ h (＇ X) ★ ()
+rename-first-⊑ᵃ h (‵ ι) (＇ Y) ()
+rename-first-⊑ᵃ h (‵ ι) (‵ κ) refl = refl
+rename-first-⊑ᵃ h (‵ ι) ★ ()
+rename-first-⊑ᵃ h ★ (＇ Y) ()
+rename-first-⊑ᵃ h ★ (‵ ι) ()
+rename-first-⊑ᵃ h ★ ★ tt = tt
+
 mutual
 
   rename-sourceʷ : ∀ {ρ Φ Ψ Δᴸ Δᴸ′ Δᴿ c A B}
@@ -507,10 +525,10 @@ mutual
     → TyRenameWf Δᴸ Δᴸ′ ρ
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
     → Ψ ∣ Δᴸ′ ⊢ renameᶜ ρ c ⦂ renameᵗ ρ A ⊑ B ⊣ Δᴿ
-  rename-sourceʷ h hρ id★ = id★
-  rename-sourceʷ h hρ (idˣ X∈ X<Δᴸ Y<Δᴿ) =
-    idˣ (h X∈) (hρ X<Δᴸ) Y<Δᴿ
-  rename-sourceʷ h hρ idι = idι
+  rename-sourceʷ {ρ = ρ} h hρ (idᵃ a b hA hB a⊑b) =
+    idᵃ (renameᵃ ρ a) b
+      (renameᵗ-preserves-WfTy hA hρ) hB
+      (rename-first-⊑ᵃ h a b a⊑b)
   rename-sourceʷ h hρ (p ↦ q) =
     rename-targetⁿ h hρ p ↦ rename-sourceʷ h hρ q
   rename-sourceʷ h hρ (∀ⁱ p) =
@@ -535,10 +553,10 @@ mutual
     → TyRenameWf Δᴿ Δᴿ′ ρ
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → Ψ ∣ Δᴸ ⊢ renameᶜ ρ c ⦂ A ⊒ renameᵗ ρ B ⊣ Δᴿ′
-  rename-targetⁿ h hρ id★ = id★
-  rename-targetⁿ h hρ (idˣ X∈ X<Δᴸ Y<Δᴿ) =
-    idˣ (h X∈) X<Δᴸ (hρ Y<Δᴿ)
-  rename-targetⁿ h hρ idι = idι
+  rename-targetⁿ {ρ = ρ} h hρ (idᵃ a b hA hB a⊒b) =
+    idᵃ a (renameᵃ ρ b) hA
+      (renameᵗ-preserves-WfTy hB hρ)
+      (rename-first-⊑ᵃ h b a a⊒b)
   rename-targetⁿ h hρ (p ↦ q) =
     rename-sourceʷ h hρ p ↦ rename-targetⁿ h hρ q
   rename-targetⁿ h hρ (∀ⁱ p) =
@@ -677,6 +695,22 @@ renameSecond-gen h (here refl) = here refl
 renameSecond-gen h (there X∈) =
   there (renameSecond-⇑ᴸ h X∈)
 
+rename-second-⊑ᵃ : ∀ {ρ Φ Ψ A B}
+  → (∀ {a} → a ∈ Φ → renameSecond ρ a ∈ Ψ)
+  → (a : Atom A)
+  → (b : Atom B)
+  → Φ ⊢ a ⊑ᵃ b
+  → Ψ ⊢ a ⊑ᵃ renameᵃ ρ b
+rename-second-⊑ᵃ h (＇ X) (＇ Y) X∈ = h X∈
+rename-second-⊑ᵃ h (＇ X) (‵ ι) ()
+rename-second-⊑ᵃ h (＇ X) ★ ()
+rename-second-⊑ᵃ h (‵ ι) (＇ Y) ()
+rename-second-⊑ᵃ h (‵ ι) (‵ κ) refl = refl
+rename-second-⊑ᵃ h (‵ ι) ★ ()
+rename-second-⊑ᵃ h ★ (＇ Y) ()
+rename-second-⊑ᵃ h ★ (‵ ι) ()
+rename-second-⊑ᵃ h ★ ★ tt = tt
+
 mutual
 
   rename-targetʷ : ∀ {ρ Φ Ψ Δᴸ Δᴿ Δᴿ′ c A B}
@@ -684,10 +718,10 @@ mutual
     → TyRenameWf Δᴿ Δᴿ′ ρ
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
     → Ψ ∣ Δᴸ ⊢ c ⦂ A ⊑ renameᵗ ρ B ⊣ Δᴿ′
-  rename-targetʷ h hρ id★ = id★
-  rename-targetʷ h hρ (idˣ X∈ X<Δᴸ Y<Δᴿ) =
-    idˣ (h X∈) X<Δᴸ (hρ Y<Δᴿ)
-  rename-targetʷ h hρ idι = idι
+  rename-targetʷ {ρ = ρ} h hρ (idᵃ a b hA hB a⊑b) =
+    idᵃ a (renameᵃ ρ b) hA
+      (renameᵗ-preserves-WfTy hB hρ)
+      (rename-second-⊑ᵃ h a b a⊑b)
   rename-targetʷ h hρ (p ↦ q) =
     rename-sourceⁿ h hρ p ↦ rename-targetʷ h hρ q
   rename-targetʷ h hρ (∀ⁱ p) =
@@ -709,10 +743,10 @@ mutual
     → TyRenameWf Δᴸ Δᴸ′ ρ
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → Ψ ∣ Δᴸ′ ⊢ c ⦂ renameᵗ ρ A ⊒ B ⊣ Δᴿ
-  rename-sourceⁿ h hρ id★ = id★
-  rename-sourceⁿ h hρ (idˣ X∈ X<Δᴸ Y<Δᴿ) =
-    idˣ (h X∈) (hρ X<Δᴸ) Y<Δᴿ
-  rename-sourceⁿ h hρ idι = idι
+  rename-sourceⁿ {ρ = ρ} h hρ (idᵃ a b hA hB a⊒b) =
+    idᵃ (renameᵃ ρ a) b
+      (renameᵗ-preserves-WfTy hA hρ) hB
+      (rename-second-⊑ᵃ h b a a⊒b)
   rename-sourceⁿ h hρ (p ↦ q) =
     rename-targetʷ h hρ p ↦ rename-sourceⁿ h hρ q
   rename-sourceⁿ h hρ (∀ⁱ p) =
@@ -820,7 +854,8 @@ mutual
     → StarIncl Δᴸ Ψ Φ
     → Ψ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴹ
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴿ
-  recontext-to-starʷ incl id★ = id★
+  recontext-to-starʷ incl (idᵃ ★ ★ hA hB tt) =
+    idᵃ ★ ★ hA wf★ tt
   recontext-to-starʷ incl (tag ι) = tag ι
   recontext-to-starʷ incl tag⇒ = tag⇒
   recontext-to-starʷ incl (p ︔tag⇒[ A≢★⇒★ ]) =
@@ -844,7 +879,8 @@ mutual
     → StarIncl Δᴿ Ψ Φ
     → Ψ ∣ Δᴹ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
     → Φ ∣ Δᴸ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
-  recontext-from-starⁿ incl id★ = id★
+  recontext-from-starⁿ incl (idᵃ ★ ★ hA hB tt) =
+    idᵃ ★ ★ wf★ hB tt
   recontext-from-starⁿ incl (untag ι) = untag ι
   recontext-from-starⁿ incl untag⇒ = untag⇒
   recontext-from-starⁿ incl
@@ -902,11 +938,13 @@ mutual
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
     → X ∈ᵗ B
     → ρ X ∈ᵗ A
-  member-backʷ h id★ ()
-  member-backʷ h (idˣ X∈ X<Δ Y<Δ) var-∈
+  member-backʷ h (idᵃ (＇ X) (＇ Y) hA hB X∈) var-∈
       rewrite h X∈ =
     var-∈
-  member-backʷ h idι ()
+  member-backʷ h (idᵃ (‵ ι) (＇ Y) hA hB ()) var-∈
+  member-backʷ h (idᵃ ★ (＇ Y) hA hB ()) var-∈
+  member-backʷ h (idᵃ a (‵ ι) hA hB a⊑b) ()
+  member-backʷ h (idᵃ a ★ hA hB a⊑b) ()
   member-backʷ h (p ↦ q) (∈-fun-left X∈) =
     ∈-fun-left (member-backⁿ h p X∈)
   member-backʷ h (p ↦ q) (∈-fun-right X∈) =
@@ -925,11 +963,13 @@ mutual
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → X ∈ᵗ A
     → ρ X ∈ᵗ B
-  member-backⁿ h id★ ()
-  member-backⁿ h (idˣ X∈ X<Δ Y<Δ) var-∈
+  member-backⁿ h (idᵃ (＇ X) (＇ Y) hA hB X∈) var-∈
       rewrite h X∈ =
     var-∈
-  member-backⁿ h idι ()
+  member-backⁿ h (idᵃ (＇ X) (‵ ι) hA hB ()) var-∈
+  member-backⁿ h (idᵃ (＇ X) ★ hA hB ()) var-∈
+  member-backⁿ h (idᵃ (‵ ι) b hA hB a⊒b) ()
+  member-backⁿ h (idᵃ ★ b hA hB a⊒b) ()
   member-backⁿ h (p ↦ q) (∈-fun-left X∈) =
     ∈-fun-left (member-backʷ h p X∈)
   member-backⁿ h (p ↦ q) (∈-fun-right X∈) =
@@ -948,9 +988,9 @@ nonvar-backʷ : ∀ {Φ Δᴸ Δᴿ c A B X}
   → NonVar B
   → X ∈ᵗ B
   → NonVar A
-nonvar-backʷ id★ nonvar-star ()
-nonvar-backʷ (idˣ X∈ X<Δ Y<Δ) () occ
-nonvar-backʷ idι nonvar-base ()
+nonvar-backʷ (idᵃ a (＇ Y) hA hB a⊑b) ()
+nonvar-backʷ (idᵃ a (‵ ι) hA hB a⊑b) nonvar-base ()
+nonvar-backʷ (idᵃ a ★ hA hB a⊑b) nonvar-star ()
 nonvar-backʷ (p ↦ q) nonvar-fun X∈ = nonvar-fun
 nonvar-backʷ (∀ⁱ p) nonvar-all X∈ = nonvar-all
 nonvar-backʷ (tag ι) nonvar-star ()
@@ -965,9 +1005,9 @@ nonvar-backⁿ : ∀ {Φ Δᴸ Δᴿ c A B X}
   → NonVar A
   → X ∈ᵗ A
   → NonVar B
-nonvar-backⁿ id★ nonvar-star ()
-nonvar-backⁿ (idˣ X∈ X<Δ Y<Δ) () occ
-nonvar-backⁿ idι nonvar-base ()
+nonvar-backⁿ (idᵃ (＇ X) b hA hB a⊒b) ()
+nonvar-backⁿ (idᵃ (‵ ι) b hA hB a⊒b) nonvar-base ()
+nonvar-backⁿ (idᵃ ★ b hA hB a⊒b) nonvar-star ()
 nonvar-backⁿ (p ↦ q) nonvar-fun X∈ = nonvar-fun
 nonvar-backⁿ (∀ⁱ p) nonvar-all X∈ = nonvar-all
 nonvar-backⁿ (untag ι) nonvar-star ()
@@ -984,12 +1024,14 @@ nonvar-backⁿ (gen nonvar occ p B≢★) nonvarA X∈ =
 fun-idʷ : ∀ {Φ Δᴸ Δᴿ}
   → Φ ∣ Δᴸ ⊢ idᶜ ↦ᶜ idᶜ ⦂
       (★ ⇒ ★) ⊑ (★ ⇒ ★) ⊣ Δᴿ
-fun-idʷ = id★ ↦ id★
+fun-idʷ =
+  idᵃ ★ ★ wf★ wf★ tt ↦ idᵃ ★ ★ wf★ wf★ tt
 
 fun-idⁿ : ∀ {Φ Δᴸ Δᴿ}
   → Φ ∣ Δᴸ ⊢ idᶜ ↦ᶜ idᶜ ⦂
       (★ ⇒ ★) ⊒ (★ ⇒ ★) ⊣ Δᴿ
-fun-idⁿ = id★ ↦ id★
+fun-idⁿ =
+  idᵃ ★ ★ wf★ wf★ tt ↦ idᵃ ★ ★ wf★ wf★ tt
 
 strip-tag⇒ : ∀ {c Φ Δᴸ Δᴿ A}
   → NonVar A
@@ -1028,12 +1070,19 @@ mutual
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → Φᴵ ∣ Δᴿ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
     → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-  composeⁿ comp p id★ = _ , p
-  composeⁿ comp p idι = _ , p
-  composeⁿ comp p (idˣ X∈ X<Δ Y<Δ)
-      rewrite compose-map-var comp X∈ =
+  composeⁿ comp p (idᵃ (＇ X) (＇ Y) hB hC Y⊑X)
+      rewrite compose-map-var comp Y⊑X =
     _ , p
-  composeⁿ comp id★ q =
+  composeⁿ comp p (idᵃ (＇ X) (‵ ι) hB hC ())
+  composeⁿ comp p (idᵃ (＇ X) ★ hB hC ())
+  composeⁿ comp p (idᵃ (‵ ι) (＇ Y) hB hC ())
+  composeⁿ comp p (idᵃ (‵ ι) (‵ κ) hB hC refl) =
+    _ , p
+  composeⁿ comp p (idᵃ (‵ ι) ★ hB hC ())
+  composeⁿ comp p (idᵃ ★ (＇ Y) hB hC ())
+  composeⁿ comp p (idᵃ ★ (‵ ι) hB hC ())
+  composeⁿ comp p (idᵃ ★ ★ hB hC tt) = _ , p
+  composeⁿ comp (idᵃ ★ ★ hA hB tt) q =
     _ , recontext-from-starⁿ (compose-star-left comp) q
   composeⁿ comp untag⇒ q
       with wrap-untag⇒
@@ -1088,16 +1137,23 @@ mutual
     → Φᴵ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ
     → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
     → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-  composeʷ comp p id★ =
+  composeʷ comp p (idᵃ ★ ★ hB hC tt) =
     _ , recontext-to-starʷ (compose-star-left comp) p
-  composeʷ comp idι idι = _ , idι
-  composeʷ comp idι (tag ι) = _ , tag ι
-  composeʷ comp (idˣ X∈ X<Δ Y<Δ)
-      (idˣ Y∈ Y<Δ′ Z<Δ) =
-    _ , idˣ (compose-var-var comp X∈ Y∈) X<Δ Z<Δ
-  composeʷ comp (idˣ X∈ X<Δ Y<Δ)
+  composeʷ comp
+      (idᵃ (‵ ι) (‵ κ) hA hB refl)
+      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
+    _ , idᵃ (‵ ι) (‵ ν) hA hC refl
+  composeʷ comp (idᵃ (‵ ι) (‵ κ) hA hB refl) (tag .κ) =
+    _ , tag κ
+  composeʷ comp
+      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
+      (idᵃ (＇ .Y) (＇ z) hB′ hC Y⊑Z) =
+    _ , idᵃ (＇ X) (＇ z) hA hC
+      (compose-var-var comp X⊑Y Y⊑Z)
+  composeʷ comp
+      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
       (tagˣ Y∈ Y<Δ′)
-      rewrite compose-map-var comp X∈ =
+      rewrite compose-map-var comp X⊑Y =
     _ , tagˣ Y∈ Y<Δ′
   composeʷ comp p tag⇒
       with wrap-tag⇒

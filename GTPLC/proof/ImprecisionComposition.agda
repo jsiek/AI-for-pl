@@ -22,7 +22,12 @@ open import Relation.Nullary using (yes; no)
 open import Types
 open import Coercions
   using (Coercion; renameᶜ)
-  renaming (id to idᶜ; _↦_ to _↦ᶜ_)
+  renaming
+    ( id to idᶜ
+    ; _↦_ to _↦ᶜ_
+    ; `∀ to ∀ᶜ
+    ; _! to _!ᶜ
+    )
 open import NarrowWiden
 open import proof.TypeInTypeSubst using
   ( TyRenameWf
@@ -1070,20 +1075,20 @@ mutual
     → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
     → Φᴵ ∣ Δᴿ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
     → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-  composeⁿ comp p (idᵃ (＇ X) (＇ Y) hB hC Y⊑X)
+  composeⁿ {c} comp p (idᵃ (＇ X) (＇ Y) hB hC Y⊑X)
       rewrite compose-map-var comp Y⊑X =
-    _ , p
+    c , p
   composeⁿ comp p (idᵃ (＇ X) (‵ ι) hB hC ())
   composeⁿ comp p (idᵃ (＇ X) ★ hB hC ())
   composeⁿ comp p (idᵃ (‵ ι) (＇ Y) hB hC ())
-  composeⁿ comp p (idᵃ (‵ ι) (‵ κ) hB hC refl) =
-    _ , p
+  composeⁿ {c} comp p (idᵃ (‵ ι) (‵ κ) hB hC refl) =
+    c , p
   composeⁿ comp p (idᵃ (‵ ι) ★ hB hC ())
   composeⁿ comp p (idᵃ ★ (＇ Y) hB hC ())
   composeⁿ comp p (idᵃ ★ (‵ ι) hB hC ())
-  composeⁿ comp p (idᵃ ★ ★ hB hC tt) = _ , p
-  composeⁿ comp (idᵃ ★ ★ hA hB tt) q =
-    _ , recontext-from-starⁿ (compose-star-left comp) q
+  composeⁿ {c} comp p (idᵃ ★ ★ hB hC tt) = c , p
+  composeⁿ {c}{d} comp (idᵃ ★ ★ hA hB tt) q =
+    d , recontext-from-starⁿ (compose-star-left comp) q
   composeⁿ comp untag⇒ q
       with wrap-untag⇒
         (recontext-from-funⁿ (compose-star-left comp) q)
@@ -1099,7 +1104,7 @@ mutual
       with composeⁿ (compose-all-gen comp) p q
   composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁱ q)
       | r , r⊢ =
-    _ , gen nonvarC occC r⊢ B≢★
+    Coercions.gen r , gen nonvarC occC r⊢ B≢★
     where
     occC = member-backⁿ
       (all-var-map (compose-map-var comp)) q occB
@@ -1121,40 +1126,40 @@ mutual
     t , t⊢
   composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
       | r , r⊢ | no A≢★ =
-    _ , gen nonvarC occC r⊢ A≢★
+    Coercions.gen r , gen nonvarC occC r⊢ A≢★
   composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       with composeʷ comp q₁ p₁ | composeⁿ comp p₂ q₂
   composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    _ , (r₁⊢ ↦ r₂⊢)
+    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
   composeⁿ comp (∀ⁱ p) (∀ⁱ q)
       with composeⁿ (compose-all comp) p q
   composeⁿ comp (∀ⁱ p) (∀ⁱ q) | r , r⊢ =
-    _ , ∀ⁱ r⊢
+    ∀ᶜ r , ∀ⁱ r⊢
 
   composeʷ : ∀ {c d Φᴵ Φ Δᴸ Δᴿ A B C}
     → ComposeCtx Δᴸ Φᴵ Φ Φ
     → Φᴵ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ
     → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
     → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-  composeʷ comp p (idᵃ ★ ★ hB hC tt) =
-    _ , recontext-to-starʷ (compose-star-left comp) p
+  composeʷ {c} comp p (idᵃ ★ ★ hB hC tt) =
+    c , recontext-to-starʷ (compose-star-left comp) p
   composeʷ comp
       (idᵃ (‵ ι) (‵ κ) hA hB refl)
       (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
-    _ , idᵃ (‵ ι) (‵ ν) hA hC refl
+    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
   composeʷ comp (idᵃ (‵ ι) (‵ κ) hA hB refl) (tag .κ) =
-    _ , tag κ
+    (‵ κ) !ᶜ , tag κ
   composeʷ comp
       (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
       (idᵃ (＇ .Y) (＇ z) hB′ hC Y⊑Z) =
-    _ , idᵃ (＇ X) (＇ z) hA hC
+    idᶜ , idᵃ (＇ X) (＇ z) hA hC
       (compose-var-var comp X⊑Y Y⊑Z)
   composeʷ comp
       (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
       (tagˣ Y∈ Y<Δ′)
       rewrite compose-map-var comp X⊑Y =
-    _ , tagˣ Y∈ Y<Δ′
+    Coercions.unseal Y , tagˣ Y∈ Y<Δ′
   composeʷ comp p tag⇒
       with wrap-tag⇒
         (recontext-to-funʷ (compose-star-left comp) p)
@@ -1170,7 +1175,7 @@ mutual
       with composeʷ (compose-all-gen comp) p q
   composeʷ comp (∀ⁱ p) (inst nonvarB occB q C≢★)
       | r , r⊢ =
-    _ , inst nonvarA occA r⊢ C≢★
+    Coercions.inst r , inst nonvarA occA r⊢ C≢★
     where
     occA = member-backʷ
       (all-var-map (compose-map-var comp)) p occB
@@ -1192,16 +1197,16 @@ mutual
     t , t⊢
   composeʷ {C = C} comp (inst nonvarA occA p B≢★) q
       | r , r⊢ | no C≢★ =
-    _ , inst nonvarA occA r⊢ C≢★
+    Coercions.inst r , inst nonvarA occA r⊢ C≢★
   composeʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       with composeⁿ comp q₁ p₁ | composeʷ comp p₂ q₂
   composeʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    _ , (r₁⊢ ↦ r₂⊢)
+    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
   composeʷ comp (∀ⁱ p) (∀ⁱ q)
       with composeʷ (compose-all comp) p q
   composeʷ comp (∀ⁱ p) (∀ⁱ q) | r , r⊢ =
-    _ , ∀ⁱ r⊢
+    ∀ᶜ r , ∀ⁱ r⊢
 
 ------------------------------------------------------------------------
 -- Public two-context composition

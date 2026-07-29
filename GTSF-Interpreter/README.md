@@ -360,6 +360,44 @@ after finite one-sided catch-up. Once that theorem is available,
 decision argument can be replaced by the proof constructed during paired
 evaluation.
 
+## What is proved about catch-up
+
+`DoubleInterpreterCatchUp.agda` proves the executable completeness of both
+single-sided loops.
+
+`RightCatchUpTrace` records zero or more successively larger right-hand
+indices that time out, followed by a right return related to the frozen left
+return. The theorem `catchRight-complete` proves, by induction on this trace,
+that `catchRight` produces `synchronized` at exactly that terminal index.
+
+`LeftCatchUpTrace` and `catchLeft-complete` prove the symmetric result.
+Because backward DGG permits the more precise left program to blame,
+`LeftBlameCatchUpTrace` and `catchLeft-blame-complete` separately prove that
+the loop finds that terminal observation. The
+`doubleInterpretCompiled-catches-*` theorems lift these results through the
+initial paired run; the corresponding `doubleInterpret-catches-*` theorems
+expose the same facts at the closed source-imprecision entry point.
+
+This is the strongest non-circular “always catches up” theorem supported by
+the current development. An unconditional statement from only:
+
+`N⊑N′ : [] ∣ 0 ∣ 0 ∣ [] ∣ []
+  ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p`
+
+would have to manufacture the finite trace. In the forward direction that
+says a left return forces a related right return. In the backward direction
+it says a right return forces a related left return or left blame. Those are
+exactly `ForwardValueDGGDirect` and `BackwardValueDGGDirect`, together with
+fuel stabilization to place the matching observation beyond the current
+index. Using either DGG property to prove catch-up and then using catch-up to
+prove DGG would be circular.
+
+The zero-budget equations `catchRight-zero` and `catchLeft-zero` also make
+the bounded nature of the executable loop explicit: with no catch-up budget,
+the result remains `left-ahead` or `right-ahead`. Thus “always” must mean that
+there exists a sufficiently large finite budget, not that every supplied
+budget succeeds.
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

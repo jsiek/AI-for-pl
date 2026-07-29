@@ -3,6 +3,7 @@ module proof.ImprecisionComposition where
 -- File Charter:
 --   * Composes coercion-indexed GTPLC narrowings and widenings.
 --   * Produces the result coercion together with its typing derivation.
+--   * Proves that left composition with identity preserves the coercion.
 --   * Uses endpoint equality to collapse identity-shaped tag/project
 --     sequences.
 --   * Depends on `NarrowWiden` and its context-indexed judgments.
@@ -13,7 +14,7 @@ open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (zero; suc; z≤n; s≤s; _<_)
-open import Data.Product using (_,_; ∃-syntax; Σ-syntax)
+open import Data.Product using (_,_; proj₁; proj₂; ∃-syntax; Σ-syntax)
 open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; cong; subst; sym)
@@ -1692,6 +1693,64 @@ mutual
     unseal (compose-right-var-star comp X⊑Y Y∈) X<Δ
 
 ------------------------------------------------------------------------
+-- Left identity
+------------------------------------------------------------------------
+
+left-id-compositionᶜ :
+    ∀ {Φᴸ Φᴼ Δ Δᴿ A B c}
+      (comp : ComposeCtxRight Φᴸ (idᵢ Δ) Φᴼ)
+      (i : idᵢ Δ ∣ Δ ⊢ idᶜ ⦂ A ⊒ A ⊣ Δ)
+      (p : Φᴸ ∣ Δ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ)
+  → proj₁ (compose-leftⁿ comp i p) ≡ c
+left-id-compositionᶜ comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (idᵃ (＇ .X) (＇ Y) hA″ hB Y⊑X) =
+  refl
+left-id-compositionᶜ comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (idᵃ (＇ .X) (‵ ι) hA″ hB ())
+left-id-compositionᶜ comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (idᵃ (＇ .X) ★ hA″ hB ())
+left-id-compositionᶜ {B = B ⇒ C} comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (idᵃ a () _ _ _)
+left-id-compositionᶜ {B = `∀ B} comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (idᵃ a () _ _ _)
+left-id-compositionᶜ {B = `∀ B} comp
+    (idᵃ (＇ X) (＇ .X) hA hA′ X⊒X)
+    (gen nonvarB zero∈B p A≢★)
+    rewrite left-id-compositionᶜ (compose-right-gen comp)
+      (idᵃ (＇ X) (＇ X) hA hA′ X⊒X) p =
+  refl
+left-id-compositionᶜ comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (idᵃ (‵ .ι) (‵ κ) hA″ hB refl) =
+  refl
+left-id-compositionᶜ comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (idᵃ (‵ .ι) (＇ X) hA″ hB ())
+left-id-compositionᶜ comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (idᵃ (‵ .ι) ★ hA″ hB ())
+left-id-compositionᶜ {B = B ⇒ C} comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (idᵃ a () _ _ _)
+left-id-compositionᶜ {B = `∀ B} comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (idᵃ a () _ _ _)
+left-id-compositionᶜ {B = `∀ B} comp
+    (idᵃ (‵ ι) (‵ .ι) hA hA′ refl)
+    (gen nonvarB zero∈B p A≢★)
+    rewrite left-id-compositionᶜ (compose-right-gen comp)
+      (idᵃ (‵ ι) (‵ ι) hA hA′ refl) p =
+  refl
+left-id-compositionᶜ comp
+    (idᵃ ★ ★ hA hA′ tt) p =
+  refl
+
+------------------------------------------------------------------------
 -- Public two-context composition
 ------------------------------------------------------------------------
 
@@ -1708,6 +1767,13 @@ narrowing-composition-left : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
 narrowing-composition-left {Φ = Φ} {Δᴸ = Δᴸ} =
   compose-leftⁿ (compose-id-right Δᴸ Φ)
+
+left-id-composition : ∀ {Φ Δ Δᴿ A B}
+  → (i : idᵢ Δ ∣ Δ ⊢ idᶜ ⦂ A ⊒ A ⊣ Δ)
+  → (p : Σ[ c ∈ Coercion ] Φ ∣ Δ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ)
+  → proj₁ (narrowing-composition-left i (proj₂ p)) ≡ proj₁ p
+left-id-composition {Φ = Φ} {Δ = Δ} i (c , p) =
+  left-id-compositionᶜ (compose-id-right Δ Φ) i p
 
 widening-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ

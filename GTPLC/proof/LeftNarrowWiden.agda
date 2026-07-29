@@ -7,8 +7,7 @@ module proof.LeftNarrowWiden where
 --   * Does not yet provide proofs of either formula.
 
 open import Data.List using ([]; _∷_)
-open import Data.Product using (_×_; _,_; proj₁; ∃-syntax; Σ-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 
 open import Types
 open import TyStore
@@ -57,7 +56,7 @@ LeftNarrowing =
     × Value W
     × Σ[ σ′ ∈ χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ⊢ χs ▶ˢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ ]
       Σ[ p′ ∈ χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ⊢ χs ▶ᵗ D ⊒ B ⊣ Δᴿ ]
-        (proj₁ p′ ≡ proj₁ p)
+        (p′ ≐ⁿ p)
       × (χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ ⊢ᴺ W ⊒ V′ ⦂ χs ▶ᵗ D ⊒ B ∶ p′)
 
 ------------------------------------------------------------------------
@@ -82,5 +81,5 @@ LeftWidening =
     × Value W
     × Σ[ σ′ ∈ χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ⊢ χs ▶ˢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ ]
       Σ[ r′ ∈ χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ⊢ χs ▶ᵗ D ⊒ B ⊣ Δᴿ ]
-        (proj₁ r′ ≡ proj₁ r)
+        (r′ ≐ⁿ r)
       × (χs ▶ᵢ Φ ∣ χs ▶ᵈ Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ ⊢ᴺ W ⊒ V′ ⦂ χs ▶ᵗ D ⊒ B ∶ r′)

@@ -116,8 +116,8 @@ _⨟ʷ_ : ∀ {Φ Δᴸ Δᴿ A B C}
   → Φ ∣ Δᴸ ⊢ A ⊑ C ⊣ Δᴿ
 (c , cʷ) ⨟ʷ (d , dʷ) = widening-composition cʷ dʷ
 
-_≐ⁿ_ : ∀ {Φ Δᴸ Δᴿ A B}
+_≐ⁿ_ : ∀ {Φ Ψ Δᴸ Δᴿ Δᴸ′ Δᴿ′ A B C D}
   → Φ ∣ Δᴸ ⊢ A ⊒ B ⊣ Δᴿ
-  → Φ ∣ Δᴸ ⊢ A ⊒ B ⊣ Δᴿ
+  → Ψ ∣ Δᴸ′ ⊢ C ⊒ D ⊣ Δᴿ′
   → Set
 p ≐ⁿ q = proj₁ p ≡ proj₁ q

@@ -13,6 +13,7 @@ import TyStore
 import Ctx
 import Coercions
 import NarrowWiden
+import ImprecisionTheorems
 import Terms
 import Reduction
 

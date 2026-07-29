@@ -125,6 +125,8 @@ mean that every user-supplied catch-up budget succeeds.
   lemmas type-check.
 - [x] Milestone 1 proves terminal stability and extraction of timeout-prefix
   traces from arbitrary eventual returns or blame.
+- [x] Milestone 2 supplies proof-relevant world correspondence, concrete
+  semantic-value narrowing, and paired fresh-name substitution.
 - [x] The current `GTSF-Interpreter` aggregate check passes without holes in
   these modules.
 
@@ -214,18 +216,22 @@ Acceptance criterion:
   converted into the exact finite trace consumed by
   `DoubleInterpreterCatchUp`, without using reduction or DGG.
 
-## Milestone 2: concrete world and value narrowing
+## Milestone 2: concrete world and value narrowing (complete)
 
 Proposed public modules:
 
 - `InterpreterWorldNarrowing.agda`
+- `InterpreterWorldNarrowingProperties.agda`
 - `InterpreterEnvironmentNarrowing.agda`
 - `InterpreterValueNarrowing.agda`
+- `InterpreterValueSubstitution.agda`
 - `InterpreterJoined.agda`
+- `InterpreterValueNarrowingExamples.agda`
 
 Proposed proof modules:
 
 - `proof/InterpreterWorldNarrowingProof.agda`
+- `proof/InterpreterWorldScopeProof.agda`
 - `proof/InterpreterValueNarrowingProof.agda`
 - `proof/InterpreterValueSubstitutionProof.agda`
 
@@ -236,35 +242,35 @@ one proof-relevant world relation.
 
 Action items:
 
-- [ ] Define `WorldRelation W W′` with an explicit correspondence between
+- [x] Define `WorldRelation W W′` with an explicit correspondence between
   allocated seal names.
-- [ ] Require the correspondence to respect declared types and captured type
+- [x] Require the correspondence to respect declared types and captured type
   environments.
-- [ ] State and prove the required functionality, injectivity, and lookup
+- [x] State and prove the required functionality, injectivity, and lookup
   properties of the name correspondence.
-- [ ] Define world extension and prove weakening of existing name links.
-- [ ] Prove that paired allocation extends `WorldRelation`.
-- [ ] Support justified one-sided allocation while preserving old links.
-- [ ] Index `TypeEnvironmentNarrowing` by the same `WorldRelation`.
-- [ ] Index sealed-value narrowing by the same `WorldRelation`.
-- [ ] Define concrete narrowing for all eight official semantic value forms.
-- [ ] Relate closure bodies, captured term environments, and captured type
+- [x] Define world extension and prove weakening of existing name links.
+- [x] Prove that paired allocation extends `WorldRelation`.
+- [x] Support justified one-sided allocation while preserving old links.
+- [x] Index `TypeEnvironmentNarrowing` by the same `WorldRelation`.
+- [x] Index sealed-value narrowing by the same `WorldRelation`.
+- [x] Define concrete narrowing for all eight official semantic value forms.
+- [x] Relate closure bodies, captured term environments, and captured type
   environments explicitly.
-- [ ] Define asymmetric tag/proxy/generalization cases precisely; do not use
+- [x] Define asymmetric tag/proxy/generalization cases precisely; do not use
   an unrestricted wrapper relation.
-- [ ] Prove world-extension monotonicity for environment and value
+- [x] Prove world-extension monotonicity for environment and value
   narrowing.
-- [ ] Prove that `substituteName` preserves value narrowing under the
+- [x] Prove that `substituteName` preserves value narrowing under the
   corresponding allocation extension.
-- [ ] Define the final concrete `Joined W V W′ V′`.
-- [ ] Export `SemanticValueNarrowing` by existentially hiding its
+- [x] Define the final concrete `Joined W V W′ V′`.
+- [x] Export `SemanticValueNarrowing` by existentially hiding its
   `WorldRelation` witness.
-- [ ] Decide whether executable `Joined` is needed. Do not block the DGG
+- [x] Decide whether executable `Joined` is needed. Do not block the DGG
   proof on decidability if a proof-produced join certificate is sufficient.
 
 Acceptance criterion:
 
-- [ ] Every name appearing in related returned values is justified by the
+- [x] Every name appearing in related returned values is justified by the
   same world correspondence used to relate their final worlds.
 
 ## Milestone 3: interpreter-specific term and coercion narrowing
@@ -540,11 +546,11 @@ in the appropriate milestone above.
   interpreter functions.
 - [x] `O2`: A first-terminal bounded search must retain the timeout worlds
   needed by the existing catch-up trace constructors.
-- [ ] `O3`: World and seal-name narrowing must share one correspondence.
-- [ ] `O4`: World extension must support matched and justified one-sided
+- [x] `O3`: World and seal-name narrowing must share one correspondence.
+- [x] `O4`: World extension must support matched and justified one-sided
   allocation.
-- [ ] `O5`: Closure narrowing must remain valid after future allocation.
-- [ ] `O6`: Asymmetric value wrappers need exact constructors rather than a
+- [x] `O5`: Closure narrowing must remain valid after future allocation.
+- [x] `O6`: Asymmetric value wrappers need exact constructors rather than a
   generic wrapper parameter.
 - [ ] `O7`: Compiler monotonicity must target an interpreter-specific term
   relation without using reduction.
@@ -594,6 +600,22 @@ Append dated entries; do not silently rewrite earlier decisions.
   result before the enlarged upper bound, while unused catch-up budget is
   retained by the trace constructor.
 - A generated dependency graph for `InterpreterMilestoneOne` contains no
+  reduction module or reduction-based DGG module.
+- `WorldRelation` is now the sole source of paired seal links. Its allocation
+  constructors record related declared types and captured environments, so
+  value narrowing cannot invent an unrelated seal-name relation.
+- One-sided allocation is structural but justified: left-only cells have
+  declared type `★`, and every unmatched captured environment is scoped in
+  the world that owns it.
+- The asymmetric value rules expose distinct tag, function-proxy,
+  forall-proxy, and generalization boundary evidence. Milestone 3 will
+  instantiate those leaves with coercion-specific judgments; no
+  `Value → Value → Set` wrapper escape hatch remains.
+- Executable decidability of `Joined` is not required. The simulation will
+  construct `SemanticValueNarrowing` certificates directly.
+- Paired `substituteName` preservation is exhaustive over the eight official
+  value forms and the explicit asymmetric boundaries.
+- A generated dependency graph for `InterpreterMilestoneTwo` contains no
   reduction module or reduction-based DGG module.
 
 ## Definition of done

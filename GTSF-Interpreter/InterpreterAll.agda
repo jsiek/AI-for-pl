@@ -7,6 +7,7 @@ module InterpreterAll where
 --   * Checks the structural, catch-up-based double-headed interpreter draft.
 --   * Checks finite-trace completeness of its single-sided catch-up loops.
 --   * Checks reduction-free terminal fuel stability and trace extraction.
+--   * Checks proof-relevant world and semantic-value narrowing.
 
 import Interpreter
 import InterpreterObservations
@@ -16,3 +17,4 @@ import InterpreterDynamicGradualGuaranteeDirect
 import DoubleInterpreter
 import DoubleInterpreterCatchUp
 import InterpreterMilestoneOne
+import InterpreterMilestoneTwo

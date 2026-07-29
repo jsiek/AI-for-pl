@@ -418,6 +418,29 @@ with two timeout observations before return. The focused target is:
 The milestone dependency graph contains no reduction module or
 reduction-based DGG module.
 
+## Concrete world and value narrowing
+
+Milestone 2 replaces the exploratory independent world/name parameters with
+one proof-relevant `WorldRelation`. A `SealLink` can only arise from paired
+allocation in that relation. Its public properties prove functionality,
+injectivity, allocation lookup, and preservation of old links under paired
+or justified one-sided world extension.
+
+`ValueNarrowing` is indexed by the same relation. It covers the eight
+official semantic value forms, relates both environments captured by a
+closure, and uses separate evidence for asymmetric tag, proxy, and
+generalization boundaries. There is no unrestricted wrapper relation.
+World-extension weakening and paired `substituteName` preservation are
+proved for values and environments.
+
+`SemanticValueNarrowing` hides the proof-relevant world relation
+existentially, while `Joined` packages that certificate for final
+interpreter results. A decidable join test is deliberately not required:
+the later simulation proof will construct certificates. The focused
+reduction-free target is:
+
+`make check-milestone-2`
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

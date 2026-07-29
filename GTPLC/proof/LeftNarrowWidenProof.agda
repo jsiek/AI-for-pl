@@ -9,7 +9,7 @@ module proof.LeftNarrowWidenProof where
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
-  using (refl; sym; trans)
+  using (_≡_; refl; sym; trans)
 
 open import Types
 open import Coercions
@@ -20,6 +20,13 @@ open import ImprecisionTheorems using (_⨟ˡⁿ_; _≐ⁿ_)
 open import TermNarrowing
 open import proof.ImprecisionComposition using (left-id-composition)
 open import proof.LeftNarrowWiden
+
+base-source-equal :
+    ∀ {Φ Δᴸ Δᴿ ι κ c}
+  → Φ ∣ Δᴸ ⊢ c ⦂ ‵ κ ⊒ ‵ ι ⊣ Δᴿ
+  → κ ≡ ι
+base-source-equal (idᵃ (‵ κ) (‵ ι) hA hB ι≡κ) =
+  sym ι≡κ
 
 ------------------------------------------------------------------------
 -- Left Narrowing
@@ -46,8 +53,17 @@ left-narrowing {V = V} {d = `∀ c} {σ = σ} {p = p}
 left-narrowing {d⊒ = untag ι} = {!!}
 left-narrowing {d⊒ = untag★⇒★} = {!!}
 left-narrowing {d⊒ = untag★⇒★︔ c [ ★⇒★≢B ]} = {!!}
-left-narrowing {d⊒ = seal X∈ X<Δᴿ} = {!!}
-left-narrowing {d⊒ = gen nonvarA zero∈A c B≢★} = {!!}
+left-narrowing {V = V} {d = seal X} {σ = σ} {p = p}
+    {d⊒ = seal X∈ X<Δᴿ} vV vV′ V⊒V′ seal⊢ eq =
+  [] , (V ⟨ seal X ⟩) , ↠-refl , (vV ⟨ seal X ⟩) ,
+  σ , p , refl ,
+  castⁿ⊒ {d⊒ = seal X∈ X<Δᴿ} seal⊢ V⊒V′ eq
+left-narrowing {V = V} {d = gen c} {σ = σ} {p = p}
+    {d⊒ = gen nonvarA zero∈A c⊒ B≢★}
+    vV vV′ V⊒V′ gen⊢ eq =
+  [] , (V ⟨ gen c ⟩) , ↠-refl , (vV ⟨ gen c ⟩) ,
+  σ , p , refl ,
+  castⁿ⊒ {d⊒ = gen nonvarA zero∈A c⊒ B≢★} gen⊢ V⊒V′ eq
 
 ------------------------------------------------------------------------
 -- Left Widening

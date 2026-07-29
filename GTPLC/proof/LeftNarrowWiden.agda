@@ -33,6 +33,8 @@ leftChangesᵢ [] Φ = Φ
 leftChangesᵢ (keep ∷ χs) Φ = leftChangesᵢ χs Φ
 leftChangesᵢ (bind A ∷ χs) Φ = leftChangesᵢ χs (⇑ᴿᵢ Φ)
 
+syntax leftChangesᵢ χs Φ = χs ⟫ᵢ Φ
+
 ------------------------------------------------------------------------
 -- Left Narrowing
 ------------------------------------------------------------------------
@@ -47,25 +49,19 @@ LeftNarrowing =
     {μ}
   → Value V
   → Value V′
-  → Φ ∣ Δᴸ ∣ Δᴿ ∣ σ ∣ []ᵍ ⊢ᴺ V ⊒ V′
-      ⦂ A ⊒ B ∶ r
+  → Φ ∣ Δᴸ ∣ Δᴿ ∣ σ ∣ []ᵍ ⊢ᴺ V ⊒ V′ ⦂ A ⊒ B ∶ r
   → μ ∣ Δᴸ ∣ Σᴸ ⊢ d ∶ A =⇒ D
   → (d , d⊒) ⨟ˡⁿ p ≐ⁿ r
   → ∃[ χs ] ∃[ W ]
       (V ⟨ d ⟩ —↠[ χs ] W)
     × Value W
-    × Σ[ σ′ ∈ leftChangesᵢ χs Φ
-        ∣ changeTyCtxs χs Δᴸ
-        ⊢ changeStores χs Σᴸ ⊒ˢ Σᴿ
-        ⊣ Δᴿ ]
-      Σ[ p′ ∈ leftChangesᵢ χs Φ
-          ∣ changeTyCtxs χs Δᴸ
-          ⊢ changeTys χs D ⊒ B
-          ⊣ Δᴿ ]
+    × Σ[ σ′ ∈ χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ
+        ⊢ χs ⟫ˢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ ]
+      Σ[ p′ ∈ χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ
+          ⊢ χs ⟫ᵗ D ⊒ B ⊣ Δᴿ ]
         (proj₁ p′ ≡ proj₁ p)
-      × (leftChangesᵢ χs Φ
-          ∣ changeTyCtxs χs Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ
-          ⊢ᴺ W ⊒ V′ ⦂ changeTys χs D ⊒ B ∶ p′)
+      × (χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ
+          ⊢ᴺ W ⊒ V′ ⦂ χs ⟫ᵗ D ⊒ B ∶ p′)
 
 ------------------------------------------------------------------------
 -- Left Widening
@@ -81,22 +77,16 @@ LeftWidening =
     {μ}
   → Value V
   → Value V′
-  → Φ ∣ Δᴸ ∣ Δᴿ ∣ σ ∣ []ᵍ ⊢ᴺ V ⊒ V′
-      ⦂ A ⊒ B ∶ p
+  → Φ ∣ Δᴸ ∣ Δᴿ ∣ σ ∣ []ᵍ ⊢ᴺ V ⊒ V′ ⦂ A ⊒ B ∶ p
   → μ ∣ Δᴸ ∣ Σᴸ ⊢ u ∶ A =⇒ D
   → dualʷ (u , u⊑) ⨟ˡⁿ p ≐ⁿ r
   → ∃[ χs ] ∃[ W ]
       (V ⟨ u ⟩ —↠[ χs ] W)
     × Value W
-    × Σ[ σ′ ∈ leftChangesᵢ χs Φ
-        ∣ changeTyCtxs χs Δᴸ
-        ⊢ changeStores χs Σᴸ ⊒ˢ Σᴿ
-        ⊣ Δᴿ ]
-      Σ[ r′ ∈ leftChangesᵢ χs Φ
-          ∣ changeTyCtxs χs Δᴸ
-          ⊢ changeTys χs D ⊒ B
-          ⊣ Δᴿ ]
+    × Σ[ σ′ ∈ χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ
+        ⊢ χs ⟫ˢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ ]
+      Σ[ r′ ∈ χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ
+          ⊢ χs ⟫ᵗ D ⊒ B ⊣ Δᴿ ]
         (proj₁ r′ ≡ proj₁ r)
-      × (leftChangesᵢ χs Φ
-          ∣ changeTyCtxs χs Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ
-          ⊢ᴺ W ⊒ V′ ⦂ changeTys χs D ⊒ B ∶ r′)
+      × (χs ⟫ᵢ Φ ∣ χs ⟫ᵈ Δᴸ ∣ Δᴿ ∣ σ′ ∣ []ᵍ
+          ⊢ᴺ W ⊒ V′ ⦂ χs ⟫ᵗ D ⊒ B ∶ r′)

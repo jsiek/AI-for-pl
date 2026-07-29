@@ -2,6 +2,7 @@ module Reduction where
 
 -- File Charter:
 --   * Small-step reduction for terms.
+--   * Provides compact action notation for store changes and traces.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; _+_; zero; suc)
@@ -46,6 +47,13 @@ changeᶜExt : StoreChange → Coercion → Coercion
 changeᶜExt keep c = c
 changeᶜExt (bind A) c = renameᶜ (extᵗ suc) c
 
+syntax changeTyCtx χ Δ = χ ▷ᵈ Δ
+syntax changeStore χ Σ = χ ▷ˢ Σ
+syntax changeᵗ χ A = χ ▷ᵗ A
+syntax change χ M = χ ▷ᵀ M
+syntax changeᶜ χ c = χ ▷ᶜ c
+syntax changeᶜExt χ c = χ ▷ᶜᵉ c
+
 StoreChanges : Set
 StoreChanges = List StoreChange
 
@@ -64,6 +72,11 @@ changeTys (χ ∷ χs) A = changeTys χs (changeᵗ χ A)
 changes : StoreChanges → Term → Term
 changes [] M = M
 changes (χ ∷ χs) M = changes χs (change χ M)
+
+syntax changeTyCtxs χs Δ = χs ⟫ᵈ Δ
+syntax changeStores χs Σ = χs ⟫ˢ Σ
+syntax changeTys χs A = χs ⟫ᵗ A
+syntax changes χs M = χs ⟫ᵀ M
 
 --------------------------------------------------------------------------------
 -- Type application

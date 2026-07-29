@@ -8,6 +8,7 @@ module InterpreterAll where
 --   * Checks finite-trace completeness of its single-sided catch-up loops.
 --   * Checks reduction-free terminal fuel stability and trace extraction.
 --   * Checks proof-relevant world and semantic-value narrowing.
+--   * Checks interpreter-source narrowing and direct compiler monotonicity.
 
 import Interpreter
 import InterpreterObservations
@@ -18,3 +19,4 @@ import DoubleInterpreter
 import DoubleInterpreterCatchUp
 import InterpreterMilestoneOne
 import InterpreterMilestoneTwo
+import InterpreterMilestoneThree

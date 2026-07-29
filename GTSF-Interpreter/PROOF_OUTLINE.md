@@ -296,26 +296,30 @@ administrative forms must not enter its source image.
 
 Action items:
 
-- [ ] Define open interpreter-term narrowing with related term contexts,
+- [x] Define open interpreter-term narrowing with related term contexts,
   type contexts, and worlds.
-- [ ] Cover variables, closures, application, type abstraction,
+- [x] Cover variables, closures, application, type abstraction,
   instantiation, constants, primitives, and explicit coercion application.
-- [ ] Include only asymmetric forms actually produced by compilation.
-- [ ] Define the coercion-narrowing evidence required by those term cases.
-- [ ] Reuse only reduction-free facts from the existing narrowing and
+- [x] Define the compact term-shape relation with only compiler-produced
+  left `Λ`, left `ν`, and paired/left/right coercion asymmetry.
+- [ ] Attach that compact shape certificate to the typed compiler theorem.
+- [x] Define the coercion-narrowing evidence required by those term cases.
+- [x] Reuse only reduction-free facts from the existing narrowing and
   coercion metatheory.
-- [ ] Prove weakening, renaming, type substitution, and term substitution for
+- [x] Prove weakening, renaming, type substitution, and term substitution for
   interpreter-term narrowing.
-- [ ] Prove source and target typing projections.
-- [ ] Prove:
+- [x] Prove source and target typing projections.
+- [x] Prove:
 
       compile-preserves-interpreter-narrowing :
         M⊑M′ →
         compiled-leftᴰ M⊑M′ ⊑ᴵ compiled-rightᴰ M⊑M′
 
-- [ ] Prove that closure bodies produced by `closeValue` retain the open
+- [x] Prove that related closure bodies produce the body evidence required by
+  the concrete `ValueNarrowing` closure constructor.
+- [x] Prove that closure bodies produced by `closeValue` retain the open
   interpreter-term narrowing evidence needed by `ValueNarrowing`.
-- [ ] Add compiler-image lemmas excluding runtime bullet and malformed raw
+- [x] Add compiler-image lemmas excluding runtime bullet and malformed raw
   type abstractions.
 
 Acceptance criterion:
@@ -560,6 +564,9 @@ in the appropriate milestone above.
   simulations alone do not prove forward divergence.
 - [ ] `O10`: The simulation proof and full catch-up proof must have a strict
   one-way dependency to avoid circularity.
+- [ ] `O11`: Produce `InterpreterTermShape` alongside the existing static
+  compiler monotonicity proof. Recomputing proof-relevant cast plans in a
+  second source induction causes unacceptable normalization cost.
 
 ## Insights and decisions
 
@@ -616,6 +623,18 @@ Append dated entries; do not silently rewrite earlier decisions.
 - Paired `substituteName` preservation is exhaustive over the eight official
   value forms and the explicit asymmetric boundaries.
 - A generated dependency graph for `InterpreterMilestoneTwo` contains no
+  reduction module or reduction-based DGG module.
+- `OpenInterpreterTermNarrowing` separates the compact interpreter source
+  image from the full static certificate. Future simulation must recurse on
+  interpreter syntax, not on the runtime-oriented quotiented relation.
+- `InterpreterTermShape` records only the compiler's synchronized forms and
+  has structural weakening, renaming, type-name substitution, and term
+  substitution proofs.
+- A second source induction that recomputes canonical cast plans was rejected:
+  its proof-term normalization did not finish within a reasonable focused
+  check. Obligation `O11` will instead produce the compact shape certificate
+  alongside the existing static compiler proof.
+- A generated dependency graph for `InterpreterMilestoneThree` contains no
   reduction module or reduction-based DGG module.
 
 ## Definition of done

@@ -32,6 +32,20 @@ check-milestone-2-firewall:
 	sh scripts/check-no-small-step-imports.sh \
 	  InterpreterMilestoneTwo.agda $(AGDA) -i . -i ../GTSF
 
+check-term-narrowing:
+	$(AGDA) -i . -i ../GTSF InterpreterTermNarrowing.agda
+
+check-compile-narrowing:
+	$(AGDA) -i . -i ../GTSF CompileInterpreterNarrowing.agda
+
+check-milestone-3: check-milestone-3-firewall
+
+check-milestone-3-firewall:
+	sh scripts/check-no-small-step-imports.sh \
+	  InterpreterMilestoneThree.agda $(AGDA) -i . -i ../GTSF
+
 .PHONY: check check-outcome check-fuel check-traces check-milestone-1 \
 	check-milestone-1-firewall check-world-narrowing \
-	check-value-narrowing check-milestone-2 check-milestone-2-firewall
+	check-value-narrowing check-milestone-2 check-milestone-2-firewall \
+	check-term-narrowing check-compile-narrowing check-milestone-3 \
+	check-milestone-3-firewall

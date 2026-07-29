@@ -441,6 +441,41 @@ reduction-free target is:
 
 `make check-milestone-2`
 
+## Interpreter source-term narrowing
+
+Milestone 3 introduces a reduction-free boundary between compilation and the
+interpreter proof.
+
+`InterpreterTerm` is the grammar of terms admitted at interpreter entry. It
+contains variables, closures, applications, value-restricted raw type
+abstractions, `ν`, constants, primitives, and coercion applications. It has no
+constructor for runtime bullet or blame. The proved image consequences are:
+
+- every compiled source term satisfies `No•`; and
+- if a compiled term is a raw `Λ V`, then `V` satisfies `NuTerms.Value`.
+
+`OpenInterpreterTermNarrowing` packages related term/type contexts, a static
+store relation, a proof-relevant interpreter world relation, both endpoint
+image derivations, and the existing reduction-free typed coercion/narrowing
+certificate. Its source and target typing projections are public.
+
+The smaller `InterpreterTermShape` relation records only synchronized forms
+needed by the interpreter. Its one-sided polymorphic constructors are left
+`Λ` and left `ν`; coercion applications have explicit paired, left, and right
+forms. Weakening, term renaming, type-name substitution, and parallel term
+substitution are proved structurally for this relation.
+
+`compile-preserves-interpreter-narrowing` proves that every open gradual
+source narrowing compiles to `OpenInterpreterTermNarrowing`. The remaining
+integration obligation is to attach an `InterpreterTermShape` certificate to
+that theorem without recompiling proof-relevant cast plans. Keeping this
+obligation explicit avoids making the later interpreter simulation recurse
+over all runtime-only constructors of `QuotientedTermImprecision`.
+
+The focused reduction-free target is:
+
+`make check-milestone-3`
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

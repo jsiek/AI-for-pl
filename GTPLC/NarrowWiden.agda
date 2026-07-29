@@ -102,6 +102,9 @@ infix 4 _∣_⊢_⦂_⊒_⊣_
 
 mutual
 
+  ------------------------------------------------------------------
+  -- Widening
+  ------------------------------------------------------------------
   data _∣_⊢_⦂_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     Coercion → Ty → Ty → TyCtx → Set where
 
@@ -118,7 +121,7 @@ mutual
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ c ↦ d ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) ⊣ Δᴿ
 
-    ∀ⁱ_ : ∀ {c A B Δᴿ}
+    ∀ʷ_ : ∀ {c A B Δᴿ}
       → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ suc Δᴿ
        --------------------------------------------------
@@ -128,17 +131,17 @@ mutual
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ (‵ ι) ! ⦂ ‵ ι ⊑ ★ ⊣ Δᴿ
 
-    tag⇒ : ∀ {Δᴿ}
+    tag★⇒★ : ∀ {Δᴿ}
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ ★⇒★ ! ⦂ (★ ⇒ ★) ⊑ ★ ⊣ Δᴿ
 
-    _︔tag⇒[_] : ∀ {c A Δᴿ}
+    _︔tag★⇒★[_] : ∀ {c A Δᴿ}
       → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
       → A ≢ (★ ⇒ ★)
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ (c ︔ (★⇒★ !)) ⦂ A ⊑ ★ ⊣ Δᴿ
 
-    tagˣ : ∀ {X Δᴿ}
+    unseal : ∀ {X Δᴿ}
       → X ˣ⊑★ ∈ Φ
       → X < Δᴸ
        --------------------------------------------------
@@ -147,11 +150,14 @@ mutual
     inst : ∀ {c A B Δᴿ}
       → NonVar A
       → zero ∈ᵗ A
-      → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-          ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+      → (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
       → B ≢ ★
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ inst c ⦂ (`∀ A) ⊑ B ⊣ Δᴿ
+
+  ------------------------------------------------------------------
+  -- Narrowing
+  ------------------------------------------------------------------
 
   data _∣_⊢_⦂_⊒_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
     Coercion → Ty → Ty → TyCtx → Set where
@@ -169,7 +175,7 @@ mutual
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ c ↦ d ⦂ (A ⇒ B) ⊒ (A′ ⇒ B′) ⊣ Δᴿ
 
-    ∀ⁱ_ : ∀ {c A B Δᴿ}
+    ∀ⁿ_ : ∀ {c A B Δᴿ}
       → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
           ∣ suc Δᴸ ⊢ c ⦂ A ⊒ B ⊣ suc Δᴿ
        --------------------------------------------------
@@ -179,17 +185,17 @@ mutual
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ (‵ ι) ？ ⦂ ★ ⊒ ‵ ι ⊣ Δᴿ
 
-    untag⇒ : ∀ {Δᴿ}
+    untag★⇒★ : ∀ {Δᴿ}
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ ★⇒★ ？ ⦂ ★ ⊒ (★ ⇒ ★) ⊣ Δᴿ
 
-    untag⇒︔_[_] : ∀ {c B Δᴿ}
+    untag★⇒★︔_[_] : ∀ {c B Δᴿ}
       → Φ ∣ Δᴸ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
       → (★ ⇒ ★) ≢ B
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ ((★⇒★ ？) ︔ c) ⦂ ★ ⊒ B ⊣ Δᴿ
 
-    untagˣ : ∀ {X Δᴿ}
+    seal : ∀ {X Δᴿ}
       → X ˣ⊑★ ∈ Φ
       → X < Δᴿ
        --------------------------------------------------
@@ -208,21 +214,22 @@ mutual
 -- Smart function-tag wrappers
 ------------------------------------------------------------------------
 
-wrap-tag⇒ : ∀ {c Φ Δᴸ Δᴿ A}
+wrap-tag★⇒★ : ∀ {c Φ Δᴸ Δᴿ A}
   → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
   → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ A ⊑ ★ ⊣ Δᴿ
-wrap-tag⇒ {A = A} p with A ≟Ty (★ ⇒ ★)
-wrap-tag⇒ {A = .(★ ⇒ ★)} p | yes refl = (★⇒★ !) , tag⇒
-wrap-tag⇒ {c = c} p | no A≢★⇒★ =
-  (c ︔ (★⇒★ !)) , p ︔tag⇒[ A≢★⇒★ ]
+wrap-tag★⇒★ {A = A} p with A ≟Ty (★ ⇒ ★)
+wrap-tag★⇒★ {A = .(★ ⇒ ★)} p | yes refl = (★⇒★ !) , tag★⇒★
+wrap-tag★⇒★ {c = c} p | no A≢★⇒★ =
+  (c ︔ (★⇒★ !)) , p ︔tag★⇒★[ A≢★⇒★ ]
 
-wrap-untag⇒ : ∀ {c Φ Δᴸ Δᴿ B}
+wrap-untag★⇒★ : ∀ {c Φ Δᴸ Δᴿ B}
   → Φ ∣ Δᴸ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
   → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ ★ ⊒ B ⊣ Δᴿ
-wrap-untag⇒ {B = B} p with (★ ⇒ ★) ≟Ty B
-wrap-untag⇒ {B = .(★ ⇒ ★)} p | yes refl = (★⇒★ ？) , untag⇒
-wrap-untag⇒ {c = c} p | no ★⇒★≢B =
-  ((★⇒★ ？) ︔ c) , untag⇒︔ p [ ★⇒★≢B ]
+wrap-untag★⇒★ {B = B} p with (★ ⇒ ★) ≟Ty B
+wrap-untag★⇒★ {B = .(★ ⇒ ★)} p | yes refl =
+  (★⇒★ ？) , untag★⇒★
+wrap-untag★⇒★ {c = c} p | no ★⇒★≢B =
+  ((★⇒★ ？) ︔ c) , untag★⇒★︔ p [ ★⇒★≢B ]
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
@@ -248,38 +255,38 @@ mutual
 
   ⊑-src-wf (idᵃ _ _ hA _ _) = hA
   ⊑-src-wf (p ↦ q) = wf⇒ (⊒-tgt-wf p) (⊑-src-wf q)
-  ⊑-src-wf (∀ⁱ p) = wf∀ (⊑-src-wf p)
+  ⊑-src-wf (∀ʷ p) = wf∀ (⊑-src-wf p)
   ⊑-src-wf (tag ι) = wfBase
-  ⊑-src-wf tag⇒ = wf⇒ wf★ wf★
-  ⊑-src-wf (p ︔tag⇒[ _ ]) = ⊑-src-wf p
-  ⊑-src-wf (tagˣ _ X<Δᴸ) = wfVar X<Δᴸ
+  ⊑-src-wf tag★⇒★ = wf⇒ wf★ wf★
+  ⊑-src-wf (p ︔tag★⇒★[ _ ]) = ⊑-src-wf p
+  ⊑-src-wf (unseal _ X<Δᴸ) = wfVar X<Δᴸ
   ⊑-src-wf (inst _ _ p _) = wf∀ (⊑-src-wf p)
 
   ⊑-tgt-wf (idᵃ _ _ _ hB _) = hB
   ⊑-tgt-wf (p ↦ q) = wf⇒ (⊒-src-wf p) (⊑-tgt-wf q)
-  ⊑-tgt-wf (∀ⁱ p) = wf∀ (⊑-tgt-wf p)
+  ⊑-tgt-wf (∀ʷ p) = wf∀ (⊑-tgt-wf p)
   ⊑-tgt-wf (tag ι) = wf★
-  ⊑-tgt-wf tag⇒ = wf★
-  ⊑-tgt-wf (_ ︔tag⇒[ _ ]) = wf★
-  ⊑-tgt-wf (tagˣ _ _) = wf★
+  ⊑-tgt-wf tag★⇒★ = wf★
+  ⊑-tgt-wf (_ ︔tag★⇒★[ _ ]) = wf★
+  ⊑-tgt-wf (unseal _ _) = wf★
   ⊑-tgt-wf (inst _ _ p _) = ⊑-tgt-wf p
 
   ⊒-src-wf (idᵃ _ _ hA _ _) = hA
   ⊒-src-wf (p ↦ q) = wf⇒ (⊑-tgt-wf p) (⊒-src-wf q)
-  ⊒-src-wf (∀ⁱ p) = wf∀ (⊒-src-wf p)
+  ⊒-src-wf (∀ⁿ p) = wf∀ (⊒-src-wf p)
   ⊒-src-wf (untag ι) = wf★
-  ⊒-src-wf untag⇒ = wf★
-  ⊒-src-wf (untag⇒︔ _ [ _ ]) = wf★
-  ⊒-src-wf (untagˣ _ _) = wf★
+  ⊒-src-wf untag★⇒★ = wf★
+  ⊒-src-wf (untag★⇒★︔ _ [ _ ]) = wf★
+  ⊒-src-wf (seal _ _) = wf★
   ⊒-src-wf (gen _ _ p _) = ⊒-src-wf p
 
   ⊒-tgt-wf (idᵃ _ _ _ hB _) = hB
   ⊒-tgt-wf (p ↦ q) = wf⇒ (⊑-src-wf p) (⊒-tgt-wf q)
-  ⊒-tgt-wf (∀ⁱ p) = wf∀ (⊒-tgt-wf p)
+  ⊒-tgt-wf (∀ⁿ p) = wf∀ (⊒-tgt-wf p)
   ⊒-tgt-wf (untag ι) = wfBase
-  ⊒-tgt-wf untag⇒ = wf⇒ wf★ wf★
-  ⊒-tgt-wf (untag⇒︔ p [ _ ]) = ⊒-tgt-wf p
-  ⊒-tgt-wf (untagˣ _ X<Δᴿ) = wfVar X<Δᴿ
+  ⊒-tgt-wf untag★⇒★ = wf⇒ wf★ wf★
+  ⊒-tgt-wf (untag★⇒★︔ p [ _ ]) = ⊒-tgt-wf p
+  ⊒-tgt-wf (seal _ X<Δᴿ) = wfVar X<Δᴿ
   ⊒-tgt-wf (gen _ _ p _) = wf∀ (⊒-tgt-wf p)
 
 ⊑-wf : ∀ {c Δᴸ Δᴿ Φ A B}

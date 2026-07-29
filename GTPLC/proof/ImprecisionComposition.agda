@@ -536,16 +536,16 @@ mutual
       (rename-first-⊑ᵃ h a b a⊑b)
   rename-sourceʷ h hρ (p ↦ q) =
     rename-targetⁿ h hρ p ↦ rename-sourceʷ h hρ q
-  rename-sourceʷ h hρ (∀ⁱ p) =
-    ∀ⁱ (rename-sourceʷ (renameFirst-all h)
+  rename-sourceʷ h hρ (∀ʷ p) =
+    ∀ʷ (rename-sourceʷ (renameFirst-all h)
       (TyRenameWf-ext hρ) p)
   rename-sourceʷ h hρ (tag ι) = tag ι
-  rename-sourceʷ h hρ tag⇒ = tag⇒
-  rename-sourceʷ h hρ (p ︔tag⇒[ A≢★⇒★ ]) =
-    rename-sourceʷ h hρ p ︔tag⇒[
+  rename-sourceʷ h hρ tag★⇒★ = tag★⇒★
+  rename-sourceʷ h hρ (p ︔tag★⇒★[ A≢★⇒★ ]) =
+    rename-sourceʷ h hρ p ︔tag★⇒★[
       rename-fun-star-neq A≢★⇒★ ]
-  rename-sourceʷ h hρ (tagˣ X∈ X<Δᴸ) =
-    tagˣ (h X∈) (hρ X<Δᴸ)
+  rename-sourceʷ h hρ (unseal X∈ X<Δᴸ) =
+    unseal (h X∈) (hρ X<Δᴸ)
   rename-sourceʷ {ρ = ρ} h hρ (inst nonvar occ p B≢★) =
     inst (renameNonVar (extᵗ ρ) nonvar)
       (rename-ext-preserves-zero∈ ρ occ)
@@ -564,16 +564,16 @@ mutual
       (rename-first-⊑ᵃ h b a a⊒b)
   rename-targetⁿ h hρ (p ↦ q) =
     rename-sourceʷ h hρ p ↦ rename-targetⁿ h hρ q
-  rename-targetⁿ h hρ (∀ⁱ p) =
-    ∀ⁱ (rename-targetⁿ (renameFirst-all h)
+  rename-targetⁿ h hρ (∀ⁿ p) =
+    ∀ⁿ (rename-targetⁿ (renameFirst-all h)
       (TyRenameWf-ext hρ) p)
   rename-targetⁿ h hρ (untag ι) = untag ι
-  rename-targetⁿ h hρ untag⇒ = untag⇒
-  rename-targetⁿ h hρ (untag⇒︔ p [ ★⇒★≢B ]) =
-    untag⇒︔ rename-targetⁿ h hρ p [
+  rename-targetⁿ h hρ untag★⇒★ = untag★⇒★
+  rename-targetⁿ h hρ (untag★⇒★︔ p [ ★⇒★≢B ]) =
+    untag★⇒★︔ rename-targetⁿ h hρ p [
       rename-fun-star-neqʳ ★⇒★≢B ]
-  rename-targetⁿ h hρ (untagˣ X∈ X<Δᴿ) =
-    untagˣ (h X∈) (hρ X<Δᴿ)
+  rename-targetⁿ h hρ (seal X∈ X<Δᴿ) =
+    seal (h X∈) (hρ X<Δᴿ)
   rename-targetⁿ {ρ = ρ} h hρ (gen nonvar occ p B≢★) =
     gen (renameNonVar (extᵗ ρ) nonvar)
       (rename-ext-preserves-zero∈ ρ occ)
@@ -729,15 +729,15 @@ mutual
       (rename-second-⊑ᵃ h a b a⊑b)
   rename-targetʷ h hρ (p ↦ q) =
     rename-sourceⁿ h hρ p ↦ rename-targetʷ h hρ q
-  rename-targetʷ h hρ (∀ⁱ p) =
-    ∀ⁱ (rename-targetʷ (renameSecond-all h)
+  rename-targetʷ h hρ (∀ʷ p) =
+    ∀ʷ (rename-targetʷ (renameSecond-all h)
       (TyRenameWf-ext hρ) p)
   rename-targetʷ h hρ (tag ι) = tag ι
-  rename-targetʷ h hρ tag⇒ = tag⇒
-  rename-targetʷ h hρ (p ︔tag⇒[ A≢★⇒★ ]) =
-    rename-targetʷ h hρ p ︔tag⇒[ A≢★⇒★ ]
-  rename-targetʷ h hρ (tagˣ X∈ X<Δᴸ) =
-    tagˣ (h X∈) X<Δᴸ
+  rename-targetʷ h hρ tag★⇒★ = tag★⇒★
+  rename-targetʷ h hρ (p ︔tag★⇒★[ A≢★⇒★ ]) =
+    rename-targetʷ h hρ p ︔tag★⇒★[ A≢★⇒★ ]
+  rename-targetʷ h hρ (unseal X∈ X<Δᴸ) =
+    unseal (h X∈) X<Δᴸ
   rename-targetʷ h hρ (inst nonvar occ p B≢★) =
     inst nonvar occ
       (rename-targetʷ (renameSecond-gen h) hρ p)
@@ -754,15 +754,15 @@ mutual
       (rename-second-⊑ᵃ h b a a⊒b)
   rename-sourceⁿ h hρ (p ↦ q) =
     rename-targetʷ h hρ p ↦ rename-sourceⁿ h hρ q
-  rename-sourceⁿ h hρ (∀ⁱ p) =
-    ∀ⁱ (rename-sourceⁿ (renameSecond-all h)
+  rename-sourceⁿ h hρ (∀ⁿ p) =
+    ∀ⁿ (rename-sourceⁿ (renameSecond-all h)
       (TyRenameWf-ext hρ) p)
   rename-sourceⁿ h hρ (untag ι) = untag ι
-  rename-sourceⁿ h hρ untag⇒ = untag⇒
-  rename-sourceⁿ h hρ (untag⇒︔ p [ ★⇒★≢B ]) =
-    untag⇒︔ rename-sourceⁿ h hρ p [ ★⇒★≢B ]
-  rename-sourceⁿ h hρ (untagˣ X∈ X<Δᴿ) =
-    untagˣ (h X∈) X<Δᴿ
+  rename-sourceⁿ h hρ untag★⇒★ = untag★⇒★
+  rename-sourceⁿ h hρ (untag★⇒★︔ p [ ★⇒★≢B ]) =
+    untag★⇒★︔ rename-sourceⁿ h hρ p [ ★⇒★≢B ]
+  rename-sourceⁿ h hρ (seal X∈ X<Δᴿ) =
+    seal (h X∈) X<Δᴿ
   rename-sourceⁿ h hρ (gen nonvar occ p B≢★) =
     gen nonvar occ
       (rename-sourceⁿ (renameSecond-gen h) hρ p)
@@ -862,11 +862,11 @@ mutual
   recontext-to-starʷ incl (idᵃ ★ ★ hA hB tt) =
     idᵃ ★ ★ hA wf★ tt
   recontext-to-starʷ incl (tag ι) = tag ι
-  recontext-to-starʷ incl tag⇒ = tag⇒
-  recontext-to-starʷ incl (p ︔tag⇒[ A≢★⇒★ ]) =
-    recontext-to-funʷ incl p ︔tag⇒[ A≢★⇒★ ]
-  recontext-to-starʷ incl (tagˣ X∈ X<Δ) =
-    tagˣ (incl X<Δ X∈) X<Δ
+  recontext-to-starʷ incl tag★⇒★ = tag★⇒★
+  recontext-to-starʷ incl (p ︔tag★⇒★[ A≢★⇒★ ]) =
+    recontext-to-funʷ incl p ︔tag★⇒★[ A≢★⇒★ ]
+  recontext-to-starʷ incl (unseal X∈ X<Δ) =
+    unseal (incl X<Δ X∈) X<Δ
   recontext-to-starʷ incl (inst nonvar occ p ★≢★) =
     ⊥-elim (★≢★ refl)
 
@@ -887,12 +887,12 @@ mutual
   recontext-from-starⁿ incl (idᵃ ★ ★ hA hB tt) =
     idᵃ ★ ★ wf★ hB tt
   recontext-from-starⁿ incl (untag ι) = untag ι
-  recontext-from-starⁿ incl untag⇒ = untag⇒
+  recontext-from-starⁿ incl untag★⇒★ = untag★⇒★
   recontext-from-starⁿ incl
-      (untag⇒︔ p [ ★⇒★≢B ]) =
-    untag⇒︔ recontext-from-funⁿ incl p [ ★⇒★≢B ]
-  recontext-from-starⁿ incl (untagˣ X∈ X<Δ) =
-    untagˣ (incl X<Δ X∈) X<Δ
+      (untag★⇒★︔ p [ ★⇒★≢B ]) =
+    untag★⇒★︔ recontext-from-funⁿ incl p [ ★⇒★≢B ]
+  recontext-from-starⁿ incl (seal X∈ X<Δ) =
+    seal (incl X<Δ X∈) X<Δ
   recontext-from-starⁿ incl (gen nonvar occ p ★≢★) =
     ⊥-elim (★≢★ refl)
 
@@ -954,12 +954,12 @@ mutual
     ∈-fun-left (member-backⁿ h p X∈)
   member-backʷ h (p ↦ q) (∈-fun-right X∈) =
     ∈-fun-right (member-backʷ h q X∈)
-  member-backʷ h (∀ⁱ p) (∈-all X∈) =
+  member-backʷ h (∀ʷ p) (∈-all X∈) =
     ∈-all (member-backʷ (all-var-map h) p X∈)
   member-backʷ h (tag ι) ()
-  member-backʷ h tag⇒ ()
-  member-backʷ h (_ ︔tag⇒[ _ ]) ()
-  member-backʷ h (tagˣ X∈ X<Δ) ()
+  member-backʷ h tag★⇒★ ()
+  member-backʷ h (_ ︔tag★⇒★[ _ ]) ()
+  member-backʷ h (unseal X∈ X<Δ) ()
   member-backʷ h (inst nonvar occ p B≢★) X∈ =
     ∈-all (member-backʷ (gen-var-map h) p X∈)
 
@@ -979,12 +979,12 @@ mutual
     ∈-fun-left (member-backʷ h p X∈)
   member-backⁿ h (p ↦ q) (∈-fun-right X∈) =
     ∈-fun-right (member-backⁿ h q X∈)
-  member-backⁿ h (∀ⁱ p) (∈-all X∈) =
+  member-backⁿ h (∀ⁿ p) (∈-all X∈) =
     ∈-all (member-backⁿ (all-var-map h) p X∈)
   member-backⁿ h (untag ι) ()
-  member-backⁿ h untag⇒ ()
-  member-backⁿ h (untag⇒︔ _ [ _ ]) ()
-  member-backⁿ h (untagˣ X∈ X<Δ) ()
+  member-backⁿ h untag★⇒★ ()
+  member-backⁿ h (untag★⇒★︔ _ [ _ ]) ()
+  member-backⁿ h (seal X∈ X<Δ) ()
   member-backⁿ h (gen nonvar occ p B≢★) X∈ =
     ∈-all (member-backⁿ (gen-var-map h) p X∈)
 
@@ -997,11 +997,11 @@ nonvar-backʷ (idᵃ a (＇ Y) hA hB a⊑b) ()
 nonvar-backʷ (idᵃ a (‵ ι) hA hB a⊑b) nonvar-base ()
 nonvar-backʷ (idᵃ a ★ hA hB a⊑b) nonvar-star ()
 nonvar-backʷ (p ↦ q) nonvar-fun X∈ = nonvar-fun
-nonvar-backʷ (∀ⁱ p) nonvar-all X∈ = nonvar-all
+nonvar-backʷ (∀ʷ p) nonvar-all X∈ = nonvar-all
 nonvar-backʷ (tag ι) nonvar-star ()
-nonvar-backʷ tag⇒ nonvar-star ()
-nonvar-backʷ (_ ︔tag⇒[ _ ]) nonvar-star ()
-nonvar-backʷ (tagˣ X∈ X<Δ) nonvar-star ()
+nonvar-backʷ tag★⇒★ nonvar-star ()
+nonvar-backʷ (_ ︔tag★⇒★[ _ ]) nonvar-star ()
+nonvar-backʷ (unseal X∈ X<Δ) nonvar-star ()
 nonvar-backʷ (inst nonvar occ p B≢★) nonvarB X∈ =
   nonvar-all
 
@@ -1014,11 +1014,11 @@ nonvar-backⁿ (idᵃ (＇ X) b hA hB a⊒b) ()
 nonvar-backⁿ (idᵃ (‵ ι) b hA hB a⊒b) nonvar-base ()
 nonvar-backⁿ (idᵃ ★ b hA hB a⊒b) nonvar-star ()
 nonvar-backⁿ (p ↦ q) nonvar-fun X∈ = nonvar-fun
-nonvar-backⁿ (∀ⁱ p) nonvar-all X∈ = nonvar-all
+nonvar-backⁿ (∀ⁿ p) nonvar-all X∈ = nonvar-all
 nonvar-backⁿ (untag ι) nonvar-star ()
-nonvar-backⁿ untag⇒ nonvar-star ()
-nonvar-backⁿ (untag⇒︔ _ [ _ ]) nonvar-star ()
-nonvar-backⁿ (untagˣ X∈ X<Δ) nonvar-star ()
+nonvar-backⁿ untag★⇒★ nonvar-star ()
+nonvar-backⁿ (untag★⇒★︔ _ [ _ ]) nonvar-star ()
+nonvar-backⁿ (seal X∈ X<Δ) nonvar-star ()
 nonvar-backⁿ (gen nonvar occ p B≢★) nonvarA X∈ =
   nonvar-all
 
@@ -1038,30 +1038,30 @@ fun-idⁿ : ∀ {Φ Δᴸ Δᴿ}
 fun-idⁿ =
   idᵃ ★ ★ wf★ wf★ tt ↦ idᵃ ★ ★ wf★ wf★ tt
 
-strip-tag⇒ : ∀ {c Φ Δᴸ Δᴿ A}
+strip-tag★⇒★ : ∀ {c Φ Δᴸ Δᴿ A}
   → NonVar A
   → zero ∈ᵗ A
   → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴿ
   → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
-strip-tag⇒ nonvar-star () p
-strip-tag⇒ nonvar-base () p
-strip-tag⇒ nonvar-fun occ tag⇒ = _ , fun-idʷ
-strip-tag⇒ nonvar-fun occ (p ︔tag⇒[ _ ]) = _ , p
-strip-tag⇒ nonvar-all occ (p ︔tag⇒[ _ ]) = _ , p
-strip-tag⇒ nonvar-all occ (inst nonvar occ′ p ★≢★) =
+strip-tag★⇒★ nonvar-star () p
+strip-tag★⇒★ nonvar-base () p
+strip-tag★⇒★ nonvar-fun occ tag★⇒★ = _ , fun-idʷ
+strip-tag★⇒★ nonvar-fun occ (p ︔tag★⇒★[ _ ]) = _ , p
+strip-tag★⇒★ nonvar-all occ (p ︔tag★⇒★[ _ ]) = _ , p
+strip-tag★⇒★ nonvar-all occ (inst nonvar occ′ p ★≢★) =
   ⊥-elim (★≢★ refl)
 
-strip-untag⇒ : ∀ {c Φ Δᴸ Δᴿ B}
+strip-untag★⇒★ : ∀ {c Φ Δᴸ Δᴿ B}
   → NonVar B
   → zero ∈ᵗ B
   → Φ ∣ Δᴸ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
   → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-strip-untag⇒ nonvar-star () p
-strip-untag⇒ nonvar-base () p
-strip-untag⇒ nonvar-fun occ untag⇒ = _ , fun-idⁿ
-strip-untag⇒ nonvar-fun occ (untag⇒︔ p [ _ ]) = _ , p
-strip-untag⇒ nonvar-all occ (untag⇒︔ p [ _ ]) = _ , p
-strip-untag⇒ nonvar-all occ (gen nonvar occ′ p ★≢★) =
+strip-untag★⇒★ nonvar-star () p
+strip-untag★⇒★ nonvar-base () p
+strip-untag★⇒★ nonvar-fun occ untag★⇒★ = _ , fun-idⁿ
+strip-untag★⇒★ nonvar-fun occ (untag★⇒★︔ p [ _ ]) = _ , p
+strip-untag★⇒★ nonvar-all occ (untag★⇒★︔ p [ _ ]) = _ , p
+strip-untag★⇒★ nonvar-all occ (gen nonvar occ′ p ★≢★) =
   ⊥-elim (★≢★ refl)
 
 ------------------------------------------------------------------------
@@ -1092,21 +1092,21 @@ mutual
   composeⁿ {c}{d} comp (idᵃ ★ ★ hA hB tt) q =
     d , recontext-from-starⁿ (compose-star-left comp) q
     
-  composeⁿ comp untag⇒ q
-      with wrap-untag⇒
+  composeⁿ comp untag★⇒★ q
+      with wrap-untag★⇒★
         (recontext-from-funⁿ (compose-star-left comp) q)
-  composeⁿ comp untag⇒ q | r , r⊢ = r , r⊢
-  composeⁿ comp (untag⇒︔ p [ _ ]) q
+  composeⁿ comp untag★⇒★ q | r , r⊢ = r , r⊢
+  composeⁿ comp (untag★⇒★︔ p [ _ ]) q
       with composeⁿ comp p q
-  composeⁿ comp (untag⇒︔ p [ _ ]) q | r , r⊢
-      with wrap-untag⇒ r⊢
-  composeⁿ comp (untag⇒︔ p [ _ ]) q | r , r⊢
+  composeⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
+      with wrap-untag★⇒★ r⊢
+  composeⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
       | s , s⊢ =
     s , s⊢
     
-  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁱ q)
+  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
       with composeⁿ (compose-all-gen comp) p q
-  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁱ q)
+  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
       | r , r⊢ =
     Coercions.gen r , gen nonvarC occC r⊢ B≢★
     where
@@ -1121,10 +1121,10 @@ mutual
       with A ≟Ty ★
   composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
       | r , r⊢ | yes refl
-      with strip-untag⇒ nonvarC occC r⊢
+      with strip-untag★⇒★ nonvarC occC r⊢
   composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
       | r , r⊢ | yes refl | s , s⊢
-      with wrap-untag⇒ (gen nonvarC occC s⊢ (λ ()))
+      with wrap-untag★⇒★ (gen nonvarC occC s⊢ (λ ()))
   composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
       | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
     t , t⊢
@@ -1138,10 +1138,10 @@ mutual
       | r₁ , r₁⊢ | r₂ , r₂⊢ =
     r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
     
-  composeⁿ comp (∀ⁱ p) (∀ⁱ q)
+  composeⁿ comp (∀ⁿ p) (∀ⁿ q)
       with composeⁿ (compose-all comp) p q
-  composeⁿ comp (∀ⁱ p) (∀ⁱ q) | r , r⊢ =
-    ∀ᶜ r , ∀ⁱ r⊢
+  composeⁿ comp (∀ⁿ p) (∀ⁿ q) | r , r⊢ =
+    ∀ᶜ r , ∀ⁿ r⊢
 
   composeʷ : ∀ {c d Φᴵ Φ Δᴸ Δᴿ A B C}
     → ComposeCtx Δᴸ Φᴵ Φ Φ
@@ -1163,23 +1163,23 @@ mutual
       (compose-var-var comp X⊑Y Y⊑Z)
   composeʷ comp
       (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
-      (tagˣ Y∈ Y<Δ′)
+      (unseal Y∈ Y<Δ′)
       rewrite compose-map-var comp X⊑Y =
-    Coercions.unseal Y , tagˣ Y∈ Y<Δ′
-  composeʷ comp p tag⇒
-      with wrap-tag⇒
+    Coercions.unseal Y , unseal Y∈ Y<Δ′
+  composeʷ comp p tag★⇒★
+      with wrap-tag★⇒★
         (recontext-to-funʷ (compose-star-left comp) p)
-  composeʷ comp p tag⇒ | r , r⊢ = r , r⊢
-  composeʷ comp p (q ︔tag⇒[ _ ])
+  composeʷ comp p tag★⇒★ | r , r⊢ = r , r⊢
+  composeʷ comp p (q ︔tag★⇒★[ _ ])
       with composeʷ comp p q
-  composeʷ comp p (q ︔tag⇒[ _ ]) | r , r⊢
-      with wrap-tag⇒ r⊢
-  composeʷ comp p (q ︔tag⇒[ _ ]) | r , r⊢
+  composeʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
+      with wrap-tag★⇒★ r⊢
+  composeʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
       | s , s⊢ =
     s , s⊢
-  composeʷ comp (∀ⁱ p) (inst nonvarB occB q C≢★)
+  composeʷ comp (∀ʷ p) (inst nonvarB occB q C≢★)
       with composeʷ (compose-all-gen comp) p q
-  composeʷ comp (∀ⁱ p) (inst nonvarB occB q C≢★)
+  composeʷ comp (∀ʷ p) (inst nonvarB occB q C≢★)
       | r , r⊢ =
     Coercions.inst r , inst nonvarA occA r⊢ C≢★
     where
@@ -1194,10 +1194,10 @@ mutual
       with C ≟Ty ★
   composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
       | r , r⊢ | yes refl
-      with strip-tag⇒ nonvarA occA r⊢
+      with strip-tag★⇒★ nonvarA occA r⊢
   composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
       | r , r⊢ | yes refl | s , s⊢
-      with wrap-tag⇒ (inst nonvarA occA s⊢ (λ ()))
+      with wrap-tag★⇒★ (inst nonvarA occA s⊢ (λ ()))
   composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
       | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
     t , t⊢
@@ -1209,10 +1209,10 @@ mutual
   composeʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       | r₁ , r₁⊢ | r₂ , r₂⊢ =
     r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
-  composeʷ comp (∀ⁱ p) (∀ⁱ q)
+  composeʷ comp (∀ʷ p) (∀ʷ q)
       with composeʷ (compose-all comp) p q
-  composeʷ comp (∀ⁱ p) (∀ⁱ q) | r , r⊢ =
-    ∀ᶜ r , ∀ⁱ r⊢
+  composeʷ comp (∀ʷ p) (∀ʷ q) | r , r⊢ =
+    ∀ᶜ r , ∀ʷ r⊢
 
 ------------------------------------------------------------------------
 -- Public two-context composition

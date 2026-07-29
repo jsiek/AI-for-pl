@@ -1083,12 +1083,15 @@ mutual
   composeⁿ comp p (idᵃ (‵ ι) (＇ Y) hB hC ())
   composeⁿ {c} comp p (idᵃ (‵ ι) (‵ κ) hB hC refl) =
     c , p
+    
   composeⁿ comp p (idᵃ (‵ ι) ★ hB hC ())
   composeⁿ comp p (idᵃ ★ (＇ Y) hB hC ())
   composeⁿ comp p (idᵃ ★ (‵ ι) hB hC ())
   composeⁿ {c} comp p (idᵃ ★ ★ hB hC tt) = c , p
+  
   composeⁿ {c}{d} comp (idᵃ ★ ★ hA hB tt) q =
     d , recontext-from-starⁿ (compose-star-left comp) q
+    
   composeⁿ comp untag⇒ q
       with wrap-untag⇒
         (recontext-from-funⁿ (compose-star-left comp) q)
@@ -1100,6 +1103,7 @@ mutual
   composeⁿ comp (untag⇒︔ p [ _ ]) q | r , r⊢
       | s , s⊢ =
     s , s⊢
+    
   composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁱ q)
       with composeⁿ (compose-all-gen comp) p q
   composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁱ q)
@@ -1109,9 +1113,9 @@ mutual
     occC = member-backⁿ
       (all-var-map (compose-map-var comp)) q occB
     nonvarC = nonvar-backⁿ q nonvarB occB
+    
   composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
-      with composeⁿ (compose-gen comp)
-        (target-liftⁿ p) (source-lift-genⁿ q)
+      with composeⁿ (compose-gen comp) (target-liftⁿ p) (source-lift-genⁿ q)
   composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
       | r , r⊢
       with A ≟Ty ★
@@ -1127,11 +1131,13 @@ mutual
   composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
       | r , r⊢ | no A≢★ =
     Coercions.gen r , gen nonvarC occC r⊢ A≢★
+    
   composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       with composeʷ comp q₁ p₁ | composeⁿ comp p₂ q₂
   composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
       | r₁ , r₁⊢ | r₂ , r₂⊢ =
     r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
+    
   composeⁿ comp (∀ⁱ p) (∀ⁱ q)
       with composeⁿ (compose-all comp) p q
   composeⁿ comp (∀ⁱ p) (∀ⁱ q) | r , r⊢ =

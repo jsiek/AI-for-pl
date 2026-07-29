@@ -13,6 +13,7 @@ module All where
 import Types
 import TyStore
 import Ctx
+import Primitives
 import Coercions
 import Terms
 import Reduction

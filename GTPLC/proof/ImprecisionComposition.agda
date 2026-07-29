@@ -1218,16 +1218,16 @@ mutual
 -- Public two-context composition
 ------------------------------------------------------------------------
 
-narrowing-composition-total : ∀ {c d Φ Δᴸ Δᴿ A B C}
+narrowing-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
   → idᵢ Δᴿ ∣ Δᴿ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
   → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-narrowing-composition-total {Φ = Φ} {Δᴿ = Δᴿ} =
+narrowing-composition {Φ = Φ} {Δᴿ = Δᴿ} =
   composeⁿ (compose-id-left Δᴿ Φ)
 
-widening-composition-total : ∀ {c d Φ Δᴸ Δᴿ A B C}
+widening-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ
   → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
   → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-widening-composition-total {Φ = Φ} {Δᴸ = Δᴸ} =
+widening-composition {Φ = Φ} {Δᴸ = Δᴸ} =
   composeʷ (compose-id-left Δᴸ Φ)

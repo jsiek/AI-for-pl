@@ -3,6 +3,8 @@ module NarrowWiden where
 -- File Charter:
 --   * Defines context-indexed narrowing and widening for GTPLC.
 --   * Indexes each judgment directly by its coercion.
+--   * Provides unindexed notation that bundles a coercion with its
+--     narrowing or widening derivation.
 --   * Uses endpoint type equality, rather than a separate non-identity
 --     grammar, to choose between collapsed and sequenced coercions.
 --   * Exposes smart wrappers and endpoint well-formedness.
@@ -11,7 +13,7 @@ open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
 open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
@@ -209,6 +211,29 @@ mutual
       → B ≢ ★
        --------------------------------------------------
       → Φ ∣ Δᴸ ⊢ gen c ⦂ B ⊒ (`∀ A) ⊣ Δᴿ
+
+------------------------------------------------------------------------
+-- Bundled narrowing and widening
+------------------------------------------------------------------------
+
+infix 4 _∣_⊢_⊑_⊣_
+infix 4 _∣_⊢_⊒_⊣_
+infix 4 _⊢_⊑_
+infix 4 _⊢_⊒_
+
+_∣_⊢_⊑_⊣_ : ImpCtx → TyCtx → Ty → Ty → TyCtx → Set
+Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ =
+  Σ[ c ∈ Coercion ] Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+
+_∣_⊢_⊒_⊣_ : ImpCtx → TyCtx → Ty → Ty → TyCtx → Set
+Φ ∣ Δᴸ ⊢ A ⊒ B ⊣ Δᴿ =
+  Σ[ c ∈ Coercion ] Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+
+_⊢_⊑_ : TyCtx → Ty → Ty → Set
+Δ ⊢ A ⊑ B = idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ
+
+_⊢_⊒_ : TyCtx → Ty → Ty → Set
+Δ ⊢ A ⊒ B = idᵢ Δ ∣ Δ ⊢ A ⊒ B ⊣ Δ
 
 ------------------------------------------------------------------------
 -- Smart function-tag wrappers

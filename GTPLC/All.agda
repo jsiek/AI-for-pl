@@ -25,3 +25,5 @@ import Reduction
 import TypeSafety
 import NarrowWiden
 import ImprecisionTheorems
+import EnvironmentNarrowing
+import TermNarrowing

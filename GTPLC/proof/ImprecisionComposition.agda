@@ -27,6 +27,7 @@ open import Coercions
     ; _↦_ to _↦ᶜ_
     ; `∀ to ∀ᶜ
     ; _! to _!ᶜ
+    ; _？ to _？ᶜ
     )
 open import NarrowWiden
 open import proof.TypeInTypeSubst using
@@ -378,6 +379,166 @@ compose-gen comp .compose-star-left {X = suc X}
     (s≤s X<Δ) (there X∈) =
   there (⇑ᴸ-star
     (compose-star-left comp X<Δ (un⇑ᵢ-star X∈)))
+
+------------------------------------------------------------------------
+-- Right-identity context composition
+------------------------------------------------------------------------
+
+record ComposeCtxRight (Φᴸ Φᴵ Φᴼ : ImpCtx) : Set where
+  field
+    compose-right-var-var : ∀ {X Y Z}
+      → (X ˣ⊑ˣ Y) ∈ Φᴸ
+      → (Y ˣ⊑ˣ Z) ∈ Φᴵ
+      → (X ˣ⊑ˣ Z) ∈ Φᴼ
+
+    compose-right-var-star : ∀ {X Y}
+      → (X ˣ⊑ˣ Y) ∈ Φᴸ
+      → (Y ˣ⊑★) ∈ Φᴵ
+      → (X ˣ⊑★) ∈ Φᴼ
+
+    compose-star-right : ∀ {X}
+      → (X ˣ⊑★) ∈ Φᴸ
+      → (X ˣ⊑★) ∈ Φᴼ
+
+open ComposeCtxRight
+
+compose-id-right : ∀ Δ Φ
+  → ComposeCtxRight Φ (idᵢ Δ) Φ
+compose-id-right Δ Φ .compose-right-var-var X∈ Y∈ =
+  subst (λ Y → (_ ˣ⊑ˣ Y) ∈ Φ)
+    (idᵢ-var-identity Y∈) X∈
+compose-id-right Δ Φ .compose-right-var-star X∈ Y∈ =
+  ⊥-elim (idᵢ-no-star Y∈)
+compose-id-right Δ Φ .compose-star-right X∈ = X∈
+
+compose-right-all : ∀ {Φᴸ Φᴵ Φᴼ}
+  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
+  → ComposeCtxRight
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴸ)
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴵ)
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴼ)
+compose-right-all comp .compose-right-var-var
+    (here refl) (here refl) =
+  here refl
+compose-right-all comp .compose-right-var-var
+    (here refl) (there Y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left Y∈)
+compose-right-all comp .compose-right-var-var
+    {X = zero} (there X∈) (here refl) =
+  ⊥-elim (no-⇑ᵢ-zero-left X∈)
+compose-right-all comp .compose-right-var-var
+    {X = zero} (there X∈) (there Y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left X∈)
+compose-right-all comp .compose-right-var-var
+    {X = suc X} {Y = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-right X∈)
+compose-right-all comp .compose-right-var-var
+    {X = suc X} {Y = suc Y} {Z = zero}
+    (there X∈) (there Y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right Y∈)
+compose-right-all comp .compose-right-var-var
+    {X = suc X} {Y = suc Y} {Z = suc z}
+    (there X∈) (there Y∈) =
+  there (⇑ᵢ-var
+    (compose-right-var-var comp
+      (un⇑ᵢ-var X∈) (un⇑ᵢ-var Y∈)))
+compose-right-all comp .compose-right-var-star
+    (here refl) (there Y∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star Y∈)
+compose-right-all comp .compose-right-var-star
+    {X = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-left X∈)
+compose-right-all comp .compose-right-var-star
+    {X = suc X} {Y = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-right X∈)
+compose-right-all comp .compose-right-var-star
+    {X = suc X} {Y = suc Y}
+    (there X∈) (there Y∈) =
+  there (⇑ᵢ-star
+    (compose-right-var-star comp
+      (un⇑ᵢ-var X∈) (un⇑ᵢ-star Y∈)))
+compose-right-all comp .compose-star-right
+    {X = zero} (there X∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star X∈)
+compose-right-all comp .compose-star-right
+    {X = suc X} (there X∈) =
+  there (⇑ᵢ-star
+    (compose-star-right comp (un⇑ᵢ-star X∈)))
+
+compose-right-gen : ∀ {Φᴸ Φᴵ Φᴼ}
+  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
+  → ComposeCtxRight
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
+      Φᴵ
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
+compose-right-gen comp .compose-right-var-var
+    {X = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᴸ-zero-left X∈)
+compose-right-gen comp .compose-right-var-var
+    {X = suc X} (there X∈) Y∈ =
+  there (⇑ᴸ-var
+    (compose-right-var-var comp (un⇑ᴸ-var X∈) Y∈))
+compose-right-gen comp .compose-right-var-star
+    {X = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᴸ-zero-left X∈)
+compose-right-gen comp .compose-right-var-star
+    {X = suc X} (there X∈) Y∈ =
+  there (⇑ᴸ-star
+    (compose-right-var-star comp (un⇑ᴸ-var X∈) Y∈))
+compose-right-gen comp .compose-star-right (here refl) = here refl
+compose-right-gen comp .compose-star-right
+    {X = zero} (there X∈) =
+  ⊥-elim (no-⇑ᴸ-zero-star X∈)
+compose-right-gen comp .compose-star-right
+    {X = suc X} (there X∈) =
+  there (⇑ᴸ-star
+    (compose-star-right comp (un⇑ᴸ-star X∈)))
+
+compose-right-all-gen : ∀ {Φᴸ Φᴵ Φᴼ}
+  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
+  → ComposeCtxRight
+      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴸ)
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴵ)
+      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
+compose-right-all-gen comp .compose-right-var-var
+    (here refl) (there Y∈) =
+  ⊥-elim (no-⇑ᴸ-zero-left Y∈)
+compose-right-all-gen comp .compose-right-var-var
+    {X = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-left X∈)
+compose-right-all-gen comp .compose-right-var-var
+    {X = suc X} {Y = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-right X∈)
+compose-right-all-gen comp .compose-right-var-var
+    {X = suc X} {Y = suc Y} (there X∈) (there Y∈) =
+  there (⇑ᴸ-var
+    (compose-right-var-var comp
+      (un⇑ᵢ-var X∈) (un⇑ᴸ-var Y∈)))
+compose-right-all-gen comp .compose-right-var-star
+    (here refl) (here refl) =
+  here refl
+compose-right-all-gen comp .compose-right-var-star
+    (here refl) (there Y∈) =
+  ⊥-elim (no-⇑ᴸ-zero-star Y∈)
+compose-right-all-gen comp .compose-right-var-star
+    {X = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-left X∈)
+compose-right-all-gen comp .compose-right-var-star
+    {X = suc X} {Y = zero} (there X∈) Y∈ =
+  ⊥-elim (no-⇑ᵢ-zero-right X∈)
+compose-right-all-gen comp .compose-right-var-star
+    {X = suc X} {Y = suc Y}
+    (there X∈) (there Y∈) =
+  there (⇑ᴸ-star
+    (compose-right-var-star comp
+      (un⇑ᵢ-var X∈) (un⇑ᴸ-star Y∈)))
+compose-right-all-gen comp .compose-star-right
+    {X = zero} (there X∈) =
+  ⊥-elim (no-⇑ᵢ-zero-star X∈)
+compose-right-all-gen comp .compose-star-right
+    {X = suc X} (there X∈) =
+  there (⇑ᴸ-star
+    (compose-star-right comp (un⇑ᵢ-star X∈)))
 
 ------------------------------------------------------------------------
 -- Asymmetric renaming
@@ -802,6 +963,28 @@ source-liftⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
 source-liftⁿ =
   rename-sourceⁿ renameSecond-suc (λ X<Δ → s≤s X<Δ)
 
+renameFirst-suc-⇑ᴿ : ∀ {Φ a}
+  → a ∈ ⇑ᴿᵢ Φ
+  → renameFirst suc a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ
+renameFirst-suc-⇑ᴿ a∈ = there (go a∈)
+  where
+  go : ∀ {Φ a}
+    → a ∈ ⇑ᴿᵢ Φ
+    → renameFirst suc a ∈ ⇑ᵢ Φ
+  go {Φ = []} ()
+  go {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
+  go {Φ = (_ ˣ⊑★) ∷ Φ} (there a∈) = there (go a∈)
+  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
+  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there a∈) = there (go a∈)
+
+narrowing-lift : ∀ {Φ Δᴸ Δᴿ c A B}
+  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ renameᶜ suc c ⦂ ⇑ᵗ A ⊒ ⇑ᵗ B ⊣ suc Δᴿ
+narrowing-lift p =
+  rename-targetⁿ renameFirst-suc-⇑ᴿ
+    (λ X<Δ → s≤s X<Δ) (source-liftⁿ p)
+
 ⇑ᴿ-⇑ᴸ : ∀ Φ
   → ⇑ᴿᵢ (⇑ᴸᵢ Φ) ≡ ⇑ᵢ Φ
 ⇑ᴿ-⇑ᴸ [] = refl
@@ -987,6 +1170,104 @@ mutual
   member-backⁿ h (seal X∈ X<Δ) ()
   member-backⁿ h (gen nonvar occ p B≢★) X∈ =
     ∈-all (member-backⁿ (gen-var-map h) p X∈)
+
+Rigid : ImpCtx → TyVar → TyVar → Set
+Rigid Φ X Y =
+  ∀ {Z} → (Z ˣ⊑ˣ Y) ∈ Φ → Z ≡ X
+
+rigid-all : ∀ {Φ X Y}
+  → Rigid Φ X Y
+  → Rigid ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) (suc X) (suc Y)
+rigid-all rigid {Z = zero} (there Z∈) =
+  ⊥-elim (no-⇑ᵢ-zero-left Z∈)
+rigid-all rigid {Z = suc z} (there Z∈) =
+  cong suc (rigid (un⇑ᵢ-var Z∈))
+
+rigid-gen : ∀ {Φ X Y}
+  → Rigid Φ X Y
+  → Rigid ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc X) Y
+rigid-gen rigid {Z = zero} (there Z∈) =
+  ⊥-elim (no-⇑ᴸ-zero-left Z∈)
+rigid-gen rigid {Z = suc z} (there Z∈) =
+  cong suc (rigid (un⇑ᴸ-var Z∈))
+
+rigid-zero : ∀ {Φ}
+  → Rigid ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) zero zero
+rigid-zero (here refl) = refl
+rigid-zero (there Z∈) =
+  ⊥-elim (no-⇑ᵢ-zero-right Z∈)
+
+mutual
+
+  member-rigidʷ : ∀ {Φ Δᴸ Δᴿ c A B X Y}
+    → Rigid Φ X Y
+    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+    → Y ∈ᵗ B
+    → X ∈ᵗ A
+  member-rigidʷ rigid
+      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y) var-∈
+      rewrite rigid X⊑Y =
+    var-∈
+  member-rigidʷ rigid
+      (idᵃ (‵ ι) (＇ Y) hA hB ()) var-∈
+  member-rigidʷ rigid
+      (idᵃ ★ (＇ Y) hA hB ()) var-∈
+  member-rigidʷ rigid (idᵃ a (‵ ι) hA hB a⊑b) ()
+  member-rigidʷ rigid (idᵃ a ★ hA hB a⊑b) ()
+  member-rigidʷ rigid (p ↦ q) (∈-fun-left X∈) =
+    ∈-fun-left (member-rigidⁿ rigid p X∈)
+  member-rigidʷ rigid (p ↦ q) (∈-fun-right X∈) =
+    ∈-fun-right (member-rigidʷ rigid q X∈)
+  member-rigidʷ rigid (∀ʷ p) (∈-all X∈) =
+    ∈-all (member-rigidʷ (rigid-all rigid) p X∈)
+  member-rigidʷ rigid (tag ι) ()
+  member-rigidʷ rigid tag★⇒★ ()
+  member-rigidʷ rigid (_ ︔tag★⇒★[ _ ]) ()
+  member-rigidʷ rigid (unseal X∈ X<Δ) ()
+  member-rigidʷ rigid (inst nonvar occ p B≢★) X∈ =
+    ∈-all (member-rigidʷ (rigid-gen rigid) p X∈)
+
+  member-rigidⁿ : ∀ {Φ Δᴸ Δᴿ c A B X Y}
+    → Rigid Φ Y X
+    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+    → X ∈ᵗ A
+    → Y ∈ᵗ B
+  member-rigidⁿ rigid
+      (idᵃ (＇ X) (＇ Y) hA hB Y⊑X) var-∈
+      rewrite rigid Y⊑X =
+    var-∈
+  member-rigidⁿ rigid
+      (idᵃ (＇ X) (‵ ι) hA hB ()) var-∈
+  member-rigidⁿ rigid
+      (idᵃ (＇ X) ★ hA hB ()) var-∈
+  member-rigidⁿ rigid (idᵃ (‵ ι) b hA hB a⊒b) ()
+  member-rigidⁿ rigid (idᵃ ★ b hA hB a⊒b) ()
+  member-rigidⁿ rigid (p ↦ q) (∈-fun-left X∈) =
+    ∈-fun-left (member-rigidʷ rigid p X∈)
+  member-rigidⁿ rigid (p ↦ q) (∈-fun-right X∈) =
+    ∈-fun-right (member-rigidⁿ rigid q X∈)
+  member-rigidⁿ rigid (∀ⁿ p) (∈-all X∈) =
+    ∈-all (member-rigidⁿ (rigid-all rigid) p X∈)
+  member-rigidⁿ rigid (untag ι) ()
+  member-rigidⁿ rigid untag★⇒★ ()
+  member-rigidⁿ rigid (untag★⇒★︔ _ [ _ ]) ()
+  member-rigidⁿ rigid (seal X∈ X<Δ) ()
+  member-rigidⁿ rigid (gen nonvar occ p B≢★) X∈ =
+    ∈-all (member-rigidⁿ (rigid-gen rigid) p X∈)
+
+zero-member-backʷ : ∀ {Φ Δᴸ Δᴿ c A B}
+  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ suc Δᴿ
+  → zero ∈ᵗ B
+  → zero ∈ᵗ A
+zero-member-backʷ = member-rigidʷ rigid-zero
+
+zero-member-forwardⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
+  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
+      ∣ suc Δᴸ ⊢ c ⦂ A ⊒ B ⊣ suc Δᴿ
+  → zero ∈ᵗ A
+  → zero ∈ᵗ B
+zero-member-forwardⁿ = member-rigidⁿ rigid-zero
 
 nonvar-backʷ : ∀ {Φ Δᴸ Δᴿ c A B X}
   → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
@@ -1215,6 +1496,202 @@ mutual
     ∀ᶜ r , ∀ʷ r⊢
 
 ------------------------------------------------------------------------
+-- Composition with an identity-context narrowing on the left
+------------------------------------------------------------------------
+
+mutual
+
+  compose-leftⁿ : ∀ {c d Φᴵ Φᴸ Φᴼ Δᴸ Δᴹ Δᴿ A B C}
+    → ComposeCtxRight Φᴸ Φᴵ Φᴼ
+    → Φᴵ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴹ
+    → Φᴸ ∣ Δᴹ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
+    → ∃[ r ] Φᴼ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
+  compose-leftⁿ comp
+      (idᵃ (＇ X) (＇ Y) hA hB Y⊑X)
+      (idᵃ (＇ .Y) (＇ z) hB′ hC z⊑Y) =
+    idᶜ , idᵃ (＇ X) (＇ z) hA hC
+      (compose-right-var-var comp z⊑Y Y⊑X)
+  compose-leftⁿ comp
+      (idᵃ (＇ X) (‵ ι) hA hB ()) q
+  compose-leftⁿ comp
+      (idᵃ (＇ X) ★ hA hB ()) q
+  compose-leftⁿ comp
+      (idᵃ (‵ ι) (＇ Y) hA hB ()) q
+  compose-leftⁿ comp
+      (idᵃ (‵ ι) (‵ κ) hA hB refl)
+      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
+    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
+  compose-leftⁿ comp
+      (idᵃ (‵ ι) ★ hA hB ()) q
+  compose-leftⁿ comp
+      (idᵃ ★ (＇ Y) hA hB ()) q
+  compose-leftⁿ comp
+      (idᵃ ★ (‵ ι) hA hB ()) q
+  compose-leftⁿ {d = d} comp (idᵃ ★ ★ hA hB tt) q =
+    d , recontext-from-starⁿ
+      (λ X<Δ X∈ → compose-star-right comp X∈) q
+  compose-leftⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
+      with compose-rightʷ comp q₁ p₁
+         | compose-leftⁿ comp p₂ q₂
+  compose-leftⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
+      | r₁ , r₁⊢ | r₂ , r₂⊢ =
+    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
+  compose-leftⁿ comp (∀ⁿ p) (∀ⁿ q)
+      with compose-leftⁿ (compose-right-all comp) p q
+  compose-leftⁿ comp (∀ⁿ p) (∀ⁿ q) | r , r⊢ =
+    ∀ᶜ r , ∀ⁿ r⊢
+  compose-leftⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
+      with compose-leftⁿ (compose-right-all-gen comp) p q
+  compose-leftⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
+      | r , r⊢ =
+    Coercions.gen r , gen nonvarC occC r⊢ B≢★
+    where
+    occC = zero-member-forwardⁿ q occB
+    nonvarC = nonvar-backⁿ q nonvarB occB
+  compose-leftⁿ {A = A} comp p
+      (gen nonvarC occC q B≢★)
+      with compose-leftⁿ (compose-right-gen comp) p q
+  compose-leftⁿ {A = A} comp p
+      (gen nonvarC occC q B≢★) | r , r⊢
+      with A ≟Ty ★
+  compose-leftⁿ {A = .★} comp p
+      (gen nonvarC occC q B≢★) | r , r⊢ | yes refl
+      with strip-untag★⇒★ nonvarC occC r⊢
+  compose-leftⁿ {A = .★} comp p
+      (gen nonvarC occC q B≢★)
+      | r , r⊢ | yes refl | s , s⊢
+      with wrap-untag★⇒★ (gen nonvarC occC s⊢ (λ ()))
+  compose-leftⁿ {A = .★} comp p
+      (gen nonvarC occC q B≢★)
+      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
+    t , t⊢
+  compose-leftⁿ {A = A} comp p
+      (gen nonvarC occC q B≢★)
+      | r , r⊢ | no A≢★ =
+    Coercions.gen r , gen nonvarC occC r⊢ A≢★
+  compose-leftⁿ comp (untag ι) (idᵃ (‵ .ι) (‵ κ) hB hC refl) =
+    (‵ κ) ？ᶜ , untag κ
+  compose-leftⁿ comp untag★⇒★ q
+      with wrap-untag★⇒★
+        (recontext-from-funⁿ
+          (λ X<Δ X∈ → compose-star-right comp X∈) q)
+  compose-leftⁿ comp untag★⇒★ q | r , r⊢ = r , r⊢
+  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q
+      with compose-leftⁿ comp p q
+  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
+      with wrap-untag★⇒★ r⊢
+  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q
+      | r , r⊢ | s , s⊢ =
+    s , s⊢
+  compose-leftⁿ {B = ＇ Y} comp (seal Y∈ Y<Δ)
+      (idᵃ (＇ .Y) (＇ X) hB (wfVar X<Δ) X⊑Y) =
+    Coercions.seal X ,
+    seal (compose-right-var-star comp X⊑Y Y∈) X<Δ
+
+  compose-rightʷ : ∀ {c d Φᴵ Φᴸ Φᴼ Δᴸ Δᴹ Δᴿ A B C}
+    → ComposeCtxRight Φᴸ Φᴵ Φᴼ
+    → Φᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴹ
+    → Φᴵ ∣ Δᴹ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
+    → ∃[ r ] Φᴼ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
+  compose-rightʷ comp
+      (idᵃ (＇ X) (‵ ι) hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ (＇ X) ★ hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ (‵ ι) (＇ Y) hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ (‵ ι) ★ hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ ★ (＇ Y) hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ ★ (‵ ι) hA hB ()) q
+  compose-rightʷ comp
+      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
+      (idᵃ (＇ .Y) (＇ z) hB′ hC Y⊑z) =
+    idᶜ , idᵃ (＇ X) (＇ z) hA hC
+      (compose-right-var-var comp X⊑Y Y⊑z)
+  compose-rightʷ comp p
+      (idᵃ (＇ X) (‵ ι) hB hC ())
+  compose-rightʷ comp p
+      (idᵃ (＇ X) ★ hB hC ())
+  compose-rightʷ comp p
+      (idᵃ (‵ ι) (＇ Y) hB hC ())
+  compose-rightʷ comp
+      (idᵃ (‵ ι) (‵ κ) hA hB refl)
+      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
+    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
+  compose-rightʷ comp p
+      (idᵃ (‵ ι) ★ hB hC ())
+  compose-rightʷ comp p
+      (idᵃ ★ (＇ Y) hB hC ())
+  compose-rightʷ comp p
+      (idᵃ ★ (‵ ι) hB hC ())
+  compose-rightʷ {c = c} comp p (idᵃ ★ ★ hB hC tt) =
+    c , recontext-to-starʷ
+      (λ X<Δ X∈ → compose-star-right comp X∈) p
+  compose-rightʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
+      with compose-leftⁿ comp q₁ p₁
+         | compose-rightʷ comp p₂ q₂
+  compose-rightʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
+      | r₁ , r₁⊢ | r₂ , r₂⊢ =
+    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
+  compose-rightʷ comp (∀ʷ p) (∀ʷ q)
+      with compose-rightʷ (compose-right-all comp) p q
+  compose-rightʷ comp (∀ʷ p) (∀ʷ q) | r , r⊢ =
+    ∀ᶜ r , ∀ʷ r⊢
+  compose-rightʷ comp (∀ʷ p)
+      (inst nonvarB occB q C≢★)
+      with compose-rightʷ (compose-right-all-gen comp) p q
+  compose-rightʷ comp (∀ʷ p)
+      (inst nonvarB occB q C≢★) | r , r⊢ =
+    Coercions.inst r , inst nonvarA occA r⊢ C≢★
+    where
+    occA = zero-member-backʷ p occB
+    nonvarA = nonvar-backʷ p nonvarB occB
+  compose-rightʷ {C = C} comp
+      (inst nonvarA occA p B≢★) q
+      with compose-rightʷ (compose-right-gen comp) p q
+  compose-rightʷ {C = C} comp
+      (inst nonvarA occA p B≢★) q | r , r⊢
+      with C ≟Ty ★
+  compose-rightʷ {C = .★} comp
+      (inst nonvarA occA p B≢★) q
+      | r , r⊢ | yes refl
+      with strip-tag★⇒★ nonvarA occA r⊢
+  compose-rightʷ {C = .★} comp
+      (inst nonvarA occA p B≢★) q
+      | r , r⊢ | yes refl | s , s⊢
+      with wrap-tag★⇒★ (inst nonvarA occA s⊢ (λ ()))
+  compose-rightʷ {C = .★} comp
+      (inst nonvarA occA p B≢★) q
+      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
+    t , t⊢
+  compose-rightʷ {C = C} comp
+      (inst nonvarA occA p B≢★) q
+      | r , r⊢ | no C≢★ =
+    Coercions.inst r , inst nonvarA occA r⊢ C≢★
+  compose-rightʷ comp
+      (idᵃ (‵ ι) (‵ κ) hA hB refl) (tag .κ) =
+    (‵ κ) !ᶜ , tag κ
+  compose-rightʷ comp p tag★⇒★
+      with wrap-tag★⇒★
+        (recontext-to-funʷ
+          (λ X<Δ X∈ → compose-star-right comp X∈) p)
+  compose-rightʷ comp p tag★⇒★ | r , r⊢ = r , r⊢
+  compose-rightʷ comp p (q ︔tag★⇒★[ _ ])
+      with compose-rightʷ comp p q
+  compose-rightʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
+      with wrap-tag★⇒★ r⊢
+  compose-rightʷ comp p (q ︔tag★⇒★[ _ ])
+      | r , r⊢ | s , s⊢ =
+    s , s⊢
+  compose-rightʷ {B = ＇ Y} comp
+      (idᵃ (＇ X) (＇ Y) (wfVar X<Δ) hB X⊑Y)
+      (unseal Y∈ Y<Δ) =
+    Coercions.unseal X ,
+    unseal (compose-right-var-star comp X⊑Y Y∈) X<Δ
+
+------------------------------------------------------------------------
 -- Public two-context composition
 ------------------------------------------------------------------------
 
@@ -1224,6 +1701,13 @@ narrowing-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
 narrowing-composition {Φ = Φ} {Δᴿ = Δᴿ} =
   composeⁿ (compose-id-left Δᴿ Φ)
+
+narrowing-composition-left : ∀ {c d Φ Δᴸ Δᴿ A B C}
+  → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴸ
+  → Φ ∣ Δᴸ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
+  → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
+narrowing-composition-left {Φ = Φ} {Δᴸ = Δᴸ} =
+  compose-leftⁿ (compose-id-right Δᴸ Φ)
 
 widening-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
   → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ

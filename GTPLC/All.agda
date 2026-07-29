@@ -12,6 +12,8 @@ import Types
 import TyStore
 import Ctx
 import Coercions
+import NarrowWiden
+import Imprecision
 import Terms
 import Reduction
 

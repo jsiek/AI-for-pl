@@ -702,6 +702,25 @@ private
     composeCrossʷ (suc fuel) (`∀ sʷ) (t₁ⁿ ↦ t₂ʷ) =
       nothing
 
+module CompositionInternals where
+
+  coercion-size : Coercion → ℕ
+  coercion-size = sizeᶜ
+
+  composeⁿ-fuel : ∀ {s t}
+    → ℕ
+    → Narrowing s
+    → Narrowing t
+    → Maybe (∃[ u ] Narrowing u)
+  composeⁿ-fuel = composeⁿ
+
+  composeʷ-fuel : ∀ {s t}
+    → ℕ
+    → Widening s
+    → Widening t
+    → Maybe (∃[ u ] Widening u)
+  composeʷ-fuel = composeʷ
+
 _⨟ⁿ_ : ∀ {s t} → Narrowing s → Narrowing t → Maybe (∃[ u ] Narrowing u)
 sⁿ  ⨟ⁿ tⁿ =
   composeⁿ (suc (sizeᶜ (coercionⁿ sⁿ) + sizeᶜ (coercionⁿ tⁿ))) sⁿ tⁿ
@@ -709,4 +728,3 @@ sⁿ  ⨟ⁿ tⁿ =
 _⨟ʷ_ : ∀ {s t} → Widening s → Widening t → Maybe (∃[ u ] Widening u)
 sʷ ⨟ʷ tʷ =
   composeʷ (suc (sizeᶜ (coercionʷ sʷ) + sizeᶜ (coercionʷ tʷ))) sʷ tʷ
-

@@ -35,7 +35,37 @@ data Ty : Set where
   `∀ : Ty → Ty
 
 ------------------------------------------------------------------------
--- _∈_, Tag, Ground, Non∀, Atom
+-- Non-variable types
+------------------------------------------------------------------------
+
+data NonVar : Ty → Set where
+  nonvar-base : ∀ {ι} → NonVar (‵ ι)
+  nonvar-star : NonVar ★
+  nonvar-fun : ∀ {A B} → NonVar (A ⇒ B)
+  nonvar-all : ∀ {A} → NonVar (`∀ A)
+
+nonVar-unique : ∀ {A} (p q : NonVar A)
+  → p ≡ q
+nonVar-unique nonvar-base nonvar-base = refl
+nonVar-unique nonvar-star nonvar-star = refl
+nonVar-unique nonvar-fun nonvar-fun = refl
+nonVar-unique nonvar-all nonvar-all = refl
+
+instance
+  nonVar-base-instance : ∀ {ι} → NonVar (‵ ι)
+  nonVar-base-instance = nonvar-base
+
+  nonVar-star-instance : NonVar ★
+  nonVar-star-instance = nonvar-star
+
+  nonVar-fun-instance : ∀ {A B} → NonVar (A ⇒ B)
+  nonVar-fun-instance = nonvar-fun
+
+  nonVar-all-instance : ∀ {A} → NonVar (`∀ A)
+  nonVar-all-instance = nonvar-all
+
+------------------------------------------------------------------------
+-- _∈ᵗ_, Tag, Non∀, Atom
 ------------------------------------------------------------------------
 
 infix 5 _∈ᵗ_
@@ -180,6 +210,22 @@ substᵗ σ (‵ ι) = ‵ ι
 substᵗ σ ★ = ★
 substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A) = `∀ (substᵗ (extsᵗ σ) A)
+
+renameNonVar : ∀ {A} (ρ : Renameᵗ)
+  → NonVar A
+  → NonVar (renameᵗ ρ A)
+renameNonVar ρ nonvar-base = nonvar-base
+renameNonVar ρ nonvar-star = nonvar-star
+renameNonVar ρ nonvar-fun = nonvar-fun
+renameNonVar ρ nonvar-all = nonvar-all
+
+substNonVar : ∀ {A} (σ : Substᵗ)
+  → NonVar A
+  → NonVar (substᵗ σ A)
+substNonVar σ nonvar-base = nonvar-base
+substNonVar σ nonvar-star = nonvar-star
+substNonVar σ nonvar-fun = nonvar-fun
+substNonVar σ nonvar-all = nonvar-all
 
 singleSubᵗ : Ty → Substᵗ
 singleSubᵗ B zero = B

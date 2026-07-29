@@ -285,6 +285,81 @@ clients, but it is not needed as the primary proof interface. A reasonable
 proof organization is to establish the direct properties first and derive
 the observation-based statements by unfolding their definitions.
 
+## Double-headed interpreter draft
+
+`DoubleInterpreter.agda` explores a more proof-directed execution strategy.
+Its core entry point is:
+
+`doubleInterpretCompiled :
+  (joined? : ...) →
+  (N⊑N′ : [] ∣ 0 ∣ 0 ∣ [] ∣ []
+    ⊢ᴺ N ⊑ N′ ⦂ A ⊑ B ∶ p) →
+  StepIndex → StepIndex → DoubleResult`.
+
+Thus the worker runs on the current compiled
+`QuotientedTermImprecision` derivation, not just on two unrelated terms. The
+source-level wrapper `doubleInterpret` accepts the closed
+`GradualTermImprecision` proof used by the DGG and obtains `N⊑N′` from
+`compile-preserves-term-imprecision`.
+
+The module `DoubleInterpreter.Synchronized` is parameterized only by the
+syntax-specific leaves of semantic narrowing:
+
+- narrowing of open closure bodies;
+- types, ground tags, and coercions;
+- abstract and allocated names; and
+- asymmetric left and right value wrappers.
+
+It supplies the rest structurally. In particular:
+
+- `ValueNarrowing` has a constructor for every official semantic value form;
+- `EnvironmentNarrowing` relates captured term environments pointwise;
+- `TypeEnvironmentNarrowing` relates captured type names pointwise;
+- `AllocationNarrowing` relates paired allocation cells; and
+- `WorldNarrowing` uses `AllocationAlignment`, which admits matched and
+  temporarily one-sided allocations.
+
+The asymmetric wrapper parameters are needed because a valid join need not
+have identical outer value constructors. They should eventually be
+instantiated by the exact tag, function-proxy, forall-proxy, and
+generalization cases from compiled Nu imprecision. They deliberately cannot
+relate arbitrary values.
+
+`DoubleResult` makes the synchronization status explicit:
+
+- `synchronized` contains both returned values and proofs of world and value
+  narrowing;
+- `both-timeout` says neither head has yet finished;
+- `left-ahead` and `right-ahead` retain the returned head and the last world
+  reached by the lagging head;
+- `stopped` records blame or runtime-error combinations; and
+- `unrelated-returns` exposes a failed attempted join.
+
+When one head returns while the other times out, the returned result is
+frozen. `catchLeft` or `catchRight` then spends the separate catch-up index
+only on the lagging term, increasing that term's interpreter index until it
+returns, stops, or exhausts the catch-up budget. The leading term is never
+rerun during this phase. This realizes the intended one-sided catch-up without
+calling small-step reduction.
+
+Because the present interpreter is a recursive-depth evaluator rather than a
+resumable abstract machine, a catch-up attempt reruns the lagging term from its
+initial configuration at a larger index. Fuel stabilization will justify
+viewing those attempts as increasingly deep observations of the same
+execution. A later continuation-based version could resume the saved
+configuration instead, but it would not change the proposed join relation.
+
+The explicit `joined?` argument is the current proof boundary. It decides
+whether two returned worlds and values inhabit `Joined`; it is where the
+terminal cases of compiled Nu narrowing must be connected to semantic
+`ValueNarrowing`. The important next theorem is constructive join
+preservation: interpreting related compiled terms in related environments
+either produces an allowed DGG observation or produces a `Joined` result
+after finite one-sided catch-up. Once that theorem is available,
+`unrelated-returns` becomes impossible for well-typed compiled inputs and the
+decision argument can be replaced by the proof constructed during paired
+evaluation.
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

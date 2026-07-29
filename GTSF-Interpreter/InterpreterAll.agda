@@ -6,6 +6,7 @@ module InterpreterAll where
 --     DGG statements in both observation-based and direct-equation forms.
 --   * Checks the structural, catch-up-based double-headed interpreter draft.
 --   * Checks finite-trace completeness of its single-sided catch-up loops.
+--   * Checks reduction-free terminal fuel stability and trace extraction.
 
 import Interpreter
 import InterpreterObservations
@@ -14,3 +15,4 @@ import InterpreterDynamicGradualGuarantee
 import InterpreterDynamicGradualGuaranteeDirect
 import DoubleInterpreter
 import DoubleInterpreterCatchUp
+import InterpreterMilestoneOne

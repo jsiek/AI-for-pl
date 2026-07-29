@@ -67,7 +67,7 @@ reduction-free module before using it here.
   for the proof development.
 - [ ] List every permitted GTSF module imported by
   `InterpreterProofPrelude.agda` and audit its transitive proof dependencies.
-- [ ] Add a focused import-audit script or check target that rejects
+- [x] Add a focused import-audit script or check target that rejects
   `NuReduction`, reduction-based `Eval`, `DynamicGradualGuarantee`, and
   `proof.NuDGG*` from the interpreter proof cone.
 - [ ] Audit `Compile`, the intended compile-monotonicity theorem, and all
@@ -123,6 +123,8 @@ mean that every user-supplied catch-up budget succeeds.
   traces.
 - [x] The compiled and source-level wrappers of the finite-trace catch-up
   lemmas type-check.
+- [x] Milestone 1 proves terminal stability and extraction of timeout-prefix
+  traces from arbitrary eventual returns or blame.
 - [x] The current `GTSF-Interpreter` aggregate check passes without holes in
   these modules.
 
@@ -155,7 +157,7 @@ Additional rules:
 - [ ] Do not add named abbreviations merely to hide parts of theorem
   conclusions.
 
-## Milestone 1: outcome and fuel metatheory
+## Milestone 1: outcome and fuel metatheory (complete)
 
 Proposed public modules:
 
@@ -165,51 +167,52 @@ Proposed public modules:
 
 Proposed proof modules:
 
-- `proof/InterpreterOutcomeProof.agda`
 - `proof/InterpreterFuelCore.agda`
 - `proof/InterpreterTraceExtractionProof.agda`
 
 `proof/InterpreterFuelCore` is the likely unavoidable mutual SCC because
 `interpret`, `applyValue`, `instantiateValue`, and `coerceValue` call one
-another. Keep syntax-specific inversion and arithmetic outside that core.
+another. Its checked implementation contains only that exhaustive mutual
+case analysis. Outcome discrimination, arithmetic, and trace search remain
+in smaller modules.
 
 Action items:
 
-- [ ] Define a genuine `Terminal` predicate covering `returned`, `blamed`,
+- [x] Define a genuine `Terminal` predicate covering `returned`, `blamed`,
   and `failed`, but not `timed`.
-- [ ] Prove pairwise disjointness of timeout, return, blame, and error
+- [x] Prove pairwise disjointness of timeout, return, blame, and error
   outcomes.
-- [ ] Prove arithmetic lemmas for increasing an interpreter index by an
+- [x] Prove arithmetic lemmas for increasing an interpreter index by an
   arbitrary suffix.
-- [ ] Prove mutual terminal stabilization for `interpret`, `applyValue`,
+- [x] Prove mutual terminal stabilization for `interpret`, `applyValue`,
   `instantiateValue`, and `coerceValue`.
-- [ ] Export:
+- [x] Export:
 
       run-terminal-stable :
         Terminal o →
         run N n ≡ o →
         ∀ k → run N (n + k) ≡ o
 
-- [ ] Prove that a timeout at an index is incompatible with a terminal
+- [x] Prove that a timeout at an index is incompatible with a terminal
   observation at any smaller index.
-- [ ] Define a bounded search from `suc n` to a known stabilized terminal
+- [x] Define a bounded search from `suc n` to a known stabilized terminal
   index.
-- [ ] Prove that this search produces timeouts at every index preceding its
+- [x] Prove that this search produces timeouts at every index preceding its
   first terminal result.
-- [ ] Convert an eventual related right return after a current timeout into
+- [x] Convert an eventual related right return after a current timeout into
   `RightCatchUpTrace`.
-- [ ] Convert an eventual related left return after a current timeout into
+- [x] Convert an eventual related left return after a current timeout into
   `LeftCatchUpTrace`.
-- [ ] Convert eventual left blame after a current timeout into
+- [x] Convert eventual left blame after a current timeout into
   `LeftBlameCatchUpTrace`.
-- [ ] Add normalization examples covering immediate catch-up and two or more
+- [x] Add normalization examples covering immediate catch-up and two or more
   timeout observations before catch-up.
 
 Acceptance criterion:
 
-- [ ] Any arbitrary eventual terminal witness can be converted into the
-  exact finite trace consumed by `DoubleInterpreterCatchUp`, without using
-  reduction or DGG.
+- [x] Any eventual matching return or permitted left-blame witness can be
+  converted into the exact finite trace consumed by
+  `DoubleInterpreterCatchUp`, without using reduction or DGG.
 
 ## Milestone 2: concrete world and value narrowing
 
@@ -533,9 +536,9 @@ Action items:
 Add newly discovered proof obligations here immediately, then place each one
 in the appropriate milestone above.
 
-- [ ] `O1`: Terminal stabilization must cover all four mutually recursive
+- [x] `O1`: Terminal stabilization must cover all four mutually recursive
   interpreter functions.
-- [ ] `O2`: A first-terminal bounded search must retain the timeout worlds
+- [x] `O2`: A first-terminal bounded search must retain the timeout worlds
   needed by the existing catch-up trace constructors.
 - [ ] `O3`: World and seal-name narrowing must share one correspondence.
 - [ ] `O4`: World extension must support matched and justified one-sided
@@ -581,6 +584,17 @@ Append dated entries; do not silently rewrite earlier decisions.
 - The interpreter functions form one proof-recursion SCC. To control compile
   times, individual syntax cases will be factored into small parameterized
   modules and a minimal mutual driver will assemble them.
+- The terminal-stability SCC is necessarily exhaustive but self-contained:
+  its public interface, outcome lemmas, and trace extraction remain in small
+  modules.
+- Trace extraction stabilizes an eventual result at the deliberately later
+  index `current + suc eventual-index`, then scans forward from `current`.
+  This avoids subtraction and an initial comparison between the two indices.
+- The extracted terminal index is existential. The scan may find the stable
+  result before the enlarged upper bound, while unused catch-up budget is
+  retained by the trace constructor.
+- A generated dependency graph for `InterpreterMilestoneOne` contains no
+  reduction module or reduction-based DGG module.
 
 ## Definition of done
 

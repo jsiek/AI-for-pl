@@ -398,6 +398,26 @@ the result remains `left-ahead` or `right-ahead`. Thus “always” must mean th
 there exists a sufficiently large finite budget, not that every supplied
 budget succeeds.
 
+## Reduction-free fuel metatheory
+
+Milestone 1 of `PROOF_OUTLINE.md` is implemented by `InterpreterOutcome`,
+`InterpreterFuel`, and `InterpreterTraceExtraction`. Terminal results of
+`interpret`, `applyValue`, `instantiateValue`, and `coerceValue` are stable
+under arbitrary added fuel. Consequently a terminal result at a smaller
+index is incompatible with timeout at a larger index.
+
+The trace extractor stabilizes an arbitrary eventual return or blame beyond
+the current timeout index, then performs a bounded first-terminal search.
+This constructs `RightCatchUpTrace`, `LeftCatchUpTrace`, or
+`LeftBlameCatchUpTrace` with every intervening timeout world retained.
+`InterpreterFuelExamples` checks both immediate catch-up and a computation
+with two timeout observations before return. The focused target is:
+
+`make check-milestone-1`
+
+The milestone dependency graph contains no reduction module or
+reduction-based DGG module.
+
 ## Link to the earlier big-step draft
 
 There are two useful bridge directions.

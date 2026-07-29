@@ -73,10 +73,10 @@ changes : StoreChanges → Term → Term
 changes [] M = M
 changes (χ ∷ χs) M = changes χs (change χ M)
 
-syntax changeTyCtxs χs Δ = χs ⟫ᵈ Δ
-syntax changeStores χs Σ = χs ⟫ˢ Σ
-syntax changeTys χs A = χs ⟫ᵗ A
-syntax changes χs M = χs ⟫ᵀ M
+syntax changeTyCtxs χs Δ = χs ▶ᵈ Δ
+syntax changeStores χs Σ = χs ▶ˢ Σ
+syntax changeTys χs A = χs ▶ᵗ A
+syntax changes χs M = χs ▶ᵀ M
 
 --------------------------------------------------------------------------------
 -- Type application

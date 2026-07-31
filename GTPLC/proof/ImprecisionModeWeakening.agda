@@ -160,8 +160,9 @@ mutual
   weakenʷ incl (∀ʷ p) = ∀ʷ (weakenʷ (ext-incl incl) p)
   weakenʷ incl (tag G hG allowed G⍉A) =
     tag G hG (tag-incl incl G allowed) G⍉A
-  weakenʷ incl (tag-seq G p hG allowed G⍉B A≠B) =
-    tag-seq G (weakenʷ incl p) hG (tag-incl incl G allowed) G⍉B A≠B
+  weakenʷ incl (tag-seq G p hG allowed G⍉B nonvarA A≠B) =
+    tag-seq G (weakenʷ incl p) hG (tag-incl incl G allowed)
+      G⍉B nonvarA A≠B
   weakenʷ incl (unseal {X = X} X<Delta hA X,A∈Sigma allowed) =
     unseal X<Delta hA X,A∈Sigma (seal-incl incl X allowed)
   weakenʷ incl (unseal-seq {X = X} X<Delta X,A∈Sigma allowed p A≠B) =
@@ -179,9 +180,9 @@ mutual
   weakenⁿ incl (∀ⁿ p) = ∀ⁿ (weakenⁿ (ext-incl incl) p)
   weakenⁿ incl (untag G hG allowed G⍉B) =
     untag G hG (tag-incl incl G allowed) G⍉B
-  weakenⁿ incl (untag-seq G hG allowed G⍉A p A≠B) =
+  weakenⁿ incl (untag-seq G hG allowed G⍉A p nonvarB A≠B) =
     untag-seq G hG (tag-incl incl G allowed) G⍉A
-      (weakenⁿ incl p) A≠B
+      (weakenⁿ incl p) nonvarB A≠B
   weakenⁿ incl (seal {X = X} X<Delta hA X,A∈Sigma allowed) =
     seal X<Delta hA X,A∈Sigma (seal-incl incl X allowed)
   weakenⁿ incl (seal-seq {X = X} p X<Delta X,B∈Sigma allowed A≠B) =

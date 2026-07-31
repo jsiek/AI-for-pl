@@ -74,12 +74,13 @@ mutual
       (modeRename-tagAllowed {μ = μ} {ν = ν} {G = G} rel allowed)
       (rename-preserves-tagged ρ G꞉A)
   renameʷ ρ ψ {μ = μ} {ν = ν} hρ rel inv
-      (tag-seq G p hG allowed G꞉B A≢B) =
+      (tag-seq G p hG allowed G꞉B nonvarA A≢B) =
     tag-seq (renameᵍ ρ G)
       (renameʷ ρ ψ hρ rel inv p)
       (renameᵍ-preserves-WfTag hG hρ)
       (modeRename-tagAllowed {μ = μ} {ν = ν} {G = G} rel allowed)
       (rename-preserves-tagged ρ G꞉B)
+      (renameNonVar ρ nonvarA)
       (rename-≢ ρ ψ inv A≢B)
   renameʷ ρ ψ {μ = μ} {ν = ν} hρ rel inv
       (unseal {X = X} X<Δ hA X,A∈Σ allowed) =
@@ -164,12 +165,13 @@ mutual
       (modeRename-tagAllowed {μ = μ} {ν = ν} {G = G} rel allowed)
       (rename-preserves-tagged ρ G꞉B)
   renameⁿ ρ ψ {μ = μ} {ν = ν} hρ rel inv
-      (untag-seq G hG allowed G꞉A p A≢B) =
+      (untag-seq G hG allowed G꞉A p nonvarB A≢B) =
     untag-seq (renameᵍ ρ G)
       (renameᵍ-preserves-WfTag hG hρ)
       (modeRename-tagAllowed {μ = μ} {ν = ν} {G = G} rel allowed)
       (rename-preserves-tagged ρ G꞉A)
       (renameⁿ ρ ψ hρ rel inv p)
+      (renameNonVar ρ nonvarB)
       (rename-≢ ρ ψ inv A≢B)
   renameⁿ ρ ψ {μ = μ} {ν = ν} hρ rel inv
       (seal {X = X} X<Δ hA X,A∈Σ allowed) =

@@ -12,15 +12,17 @@ open import Data.List using ([]; _∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
 open import Data.Nat using (_<_; zero; suc; z<s; s<s)
-open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
+open import Data.Product using
+  (_×_; _,_; proj₁; proj₂; ∃-syntax; Σ-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; subst; sym)
+  using (_≡_; _≢_; refl; subst; sym)
 
 open import Types
 open import TyStore
 open import Coercions
 open import NarrowWiden
 open import proof.ImprecisionComposition using (_⨟ⁿ_; _⨟ʷ_)
+open import proof.NarrowWidenDeterminism using (narrowing-determined)
 
 ------------------------------------------------------------------------
 -- Mode and store changes performed by duality
@@ -349,10 +351,10 @@ mutual
   narrowing-dualᵐ rel ds (untag G hG allowed G꞉A) =
     dual-untag rel ds hG allowed G꞉A
   narrowing-dualᵐ rel ds
-      (untag-seq G hG allowed G꞉A p A≢B)
+      (untag-seq G hG allowed G꞉A p nonvarB A≢B)
       with narrowing-dualᵐ rel ds p
   narrowing-dualᵐ rel ds
-      (untag-seq G hG allowed G꞉A p A≢B) | d , p′ =
+      (untag-seq G hG allowed G꞉A p nonvarB A≢B) | d , p′ =
     (d , p′) ⨟ʷ dual-untag rel ds hG allowed G꞉A
   narrowing-dualᵐ rel ds (seal X<Δ hA X,A∈Σ allowed) =
     dual-seal rel ds X<Δ hA X,A∈Σ allowed
@@ -387,9 +389,11 @@ mutual
     `∀ c , ∀ⁿ p′
   widening-dualᵐ rel ds (tag G hG allowed G꞉A) =
     dual-tag rel ds hG allowed G꞉A
-  widening-dualᵐ rel ds (tag-seq G p hG allowed G꞉B A≢B)
+  widening-dualᵐ rel ds
+      (tag-seq G p hG allowed G꞉B nonvarA A≢B)
       with widening-dualᵐ rel ds p
-  widening-dualᵐ rel ds (tag-seq G p hG allowed G꞉B A≢B)
+  widening-dualᵐ rel ds
+      (tag-seq G p hG allowed G꞉B nonvarA A≢B)
       | d , p′ =
     dual-tag rel ds hG allowed G꞉B ⨟ⁿ (d , p′)
   widening-dualᵐ rel ds (unseal X<Δ hA X,A∈Σ allowed) =
@@ -421,5 +425,48 @@ narrowing-dual {μ = μ} {Δ = Δ} {Σ = Σ} =
 widening-dual : ∀ {μ Δ Σ c A B}
   → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
   → μ ∣ Δ ∣ Σ ⊢ B ⊒ A
-widening-dual {μ = μ} {Δ = Δ} {Σ = Σ} =
-  widening-dualᵐ normal-action (normal-store Δ μ Σ)
+widening-dual {μ = μ} {Δ = Δ} {Σ = Σ} p@(idᵃ a hA) =
+  widening-dualᵐ normal-action (normal-store Δ μ Σ) p
+widening-dual {μ = μ} {Δ = Δ} {Σ = Σ} p@(_ ↦ _) =
+  widening-dualᵐ normal-action (normal-store Δ μ Σ) p
+widening-dual {μ = μ} {Δ = Δ} {Σ = Σ} p@(∀ʷ q) =
+  widening-dualᵐ normal-action (normal-store Δ μ Σ) p
+widening-dual (tag G hG allowed G꞉A) =
+  G ？ , untag G hG allowed G꞉A
+widening-dual (tag-seq G q hG allowed G꞉B nonvarA A≢B)
+    with widening-dual q
+widening-dual (tag-seq G q hG allowed G꞉B nonvarA A≢B)
+    | d , q′ =
+  (G ？ , untag G hG allowed G꞉B) ⨟ⁿ (d , q′)
+widening-dual (unseal X<Δ hA X,A∈Σ allowed) =
+  seal _ , seal X<Δ hA X,A∈Σ allowed
+widening-dual {μ = μ} {Δ = Δ} {Σ = Σ}
+    p@(unseal-seq X<Δ X,A∈Σ allowed q A≢B) =
+  widening-dualᵐ normal-action (normal-store Δ μ Σ) p
+widening-dual {μ = μ} {Δ = Δ} {Σ = Σ}
+    p@(inst nonvarA zero∈A hB q B≢★) =
+  widening-dualᵐ normal-action (normal-store Δ μ Σ) p
+
+tag-seq-dual-composeⁿ : ∀ {μ Δ Σ G c A B C}
+    {q : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B}
+    {hG : WfTag Δ G}
+    {allowed : tagAllowed μ G ≡ true}
+    {G꞉B : G ꞉ B}
+    {nonvarA : NonVar A}
+    {A≢B : A ≢ B}
+    {p : μ ∣ Δ ∣ Σ ⊢ A ⊒ C}
+  → StoreWf Δ Σ
+  → proj₁
+      (widening-dual
+        (tag-seq G q hG allowed G꞉B nonvarA A≢B) ⨟ⁿ p)
+    ≡ proj₁
+      ((G ？ , untag G hG allowed G꞉B) ⨟ⁿ
+        (widening-dual q ⨟ⁿ p))
+tag-seq-dual-composeⁿ {μ = μ} {Δ = Δ} {Σ = Σ} {G = G}
+    {A = A} {B = B} {C = C} {q = q} {hG = hG}
+    {allowed = allowed} {G꞉B = G꞉B} {nonvarA = nonvarA}
+    {A≢B = A≢B} {p = p} wfΣ =
+  narrowing-determined {μ = μ} {Δ = Δ} {Σ = Σ} {A = ★} {B = C} wfΣ
+    (widening-dual
+      (tag-seq G q hG allowed G꞉B nonvarA A≢B) ⨟ⁿ p)
+    ((G ？ , untag G hG allowed G꞉B) ⨟ⁿ (widening-dual q ⨟ⁿ p))

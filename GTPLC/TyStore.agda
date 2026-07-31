@@ -2,8 +2,10 @@ module TyStore where
 
 -- File Charter:
 --   * Type-store representation and well-formedness invariants.
---   * Defines type-variable renaming on stores and the invariants assumed by
---     preservation.
+--   * Defines type-variable renaming on stores and a recursive construction
+--     relation for well-formed stores.
+--   * Makes type-binder lifting and fresh runtime allocation the only ways to
+--     extend a well-formed store.
 
 open import Agda.Builtin.Equality using (_≡_)
 open import Data.List using (List; []; _∷_)
@@ -28,10 +30,19 @@ renameTyStoreᵗ ρ ((α , A) ∷ Σ) =
 -- Store well-formedness
 ------------------------------------------------------------------------
 
-record StoreWf (Δ : TyCtx) (Σ : TyStore) : Set₁ where
-  field
-    bound : ∀ {α A} → (α , A) ∈ Σ → α < Δ
-    wfTy : ∀ {α A} → (α , A) ∈ Σ → WfTy Δ A
-    unique : ∀ {α A B} → (α , A) ∈ Σ → (α , B) ∈ Σ → A ≡ B
+data StoreWf : TyCtx → TyStore → Set₁ where
 
-open StoreWf public
+  store-empty : StoreWf zero []
+
+  store-lift : ∀ {Δ Σ Σ′}
+    → StoreWf Δ Σ
+    → Σ′ ≡ ⟰ᵗ Σ
+      -------------------
+    → StoreWf (suc Δ) Σ′
+
+  store-bind : ∀ {Δ Σ A Σ′}
+    → StoreWf Δ Σ
+    → WfTy Δ A
+    → Σ′ ≡ ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
+      --------------------------------------
+    → StoreWf (suc Δ) Σ′

@@ -24,8 +24,9 @@ open import NarrowWiden using
   ( _∣_∣_⊢_⦂_⊑_
   ; _∣_∣_⊢_⦂_⊒_
   ; _∣_∣_⊢_⊒_
+  ; _≐ⁿ_
   )
-open import ImprecisionTheorems using (dualʷ)
+open import ImprecisionTheorems using (dualʷ; _⨟ⁿ_)
 open import EnvironmentNarrowing
 
 ------------------------------------------------------------------------
@@ -149,34 +150,42 @@ data _⊢ᴺ_⊒_∶_ :
       ----------------------------------------
     → ρ ⊢ᴺ L ⊕[ addℕ ] M ⊒ L′ ⊕[ addℕ ] M′ ∶ p
 
-  castⁿ⊒ : ∀ {p : ρ ⊢ᵀ A ⊒ B′}
-      {q : ρ ⊢ᵀ B ⊒ B′}
+  castⁿ⊒ : ∀ {pᴸ : ρ ⊢ᴸⁿ A ⊒ C}
+      {qᴸ : ρ ⊢ᴸⁿ B ⊒ C}
+      {relocation : Φ ⊢ C ≈ C′}
+      {pᴿ : ρ ⊢ᴿⁿ C′ ⊒ B′}
       {s⦂ : ρ ⊢ᴸⁿ s ⦂ A ⊒ B}
-    → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → (s , s⦂) ⨟ⁿᶠ q ≐ᶠ p
+    → ρ ⊢ᴺ M ⊒ M′ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
+    → ((s , s⦂) ⨟ⁿ qᴸ) ≐ⁿ pᴸ
       ---------------------
-    → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ q
+    → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ (qᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
 
-  castʷ⊒ : ∀ {p : ρ ⊢ᵀ A ⊒ B′}
-      {q : ρ ⊢ᵀ B ⊒ B′}
+  castʷ⊒ : ∀ {pᴸ : ρ ⊢ᴸⁿ A ⊒ C}
+      {qᴸ : ρ ⊢ᴸⁿ B ⊒ C}
+      {relocation : Φ ⊢ C ≈ C′}
+      {pᴿ : ρ ⊢ᴿⁿ C′ ⊒ B′}
       {s⦂ : ρ ⊢ᴸʷ s ⦂ A ⊑ B}
-    → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → dualʷ (s , s⦂) ⨟ⁿᶠ p ≐ᶠ q
+    → ρ ⊢ᴺ M ⊒ M′ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
+    → (dualʷ (s , s⦂) ⨟ⁿ pᴸ) ≐ⁿ qᴸ
       ---------------------
-    → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ q
+    → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ (qᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
 
-  ⊒castⁿ : ∀ {p : ρ ⊢ᵀ A ⊒ A′}
-      {q : ρ ⊢ᵀ A ⊒ B′}
+  ⊒castⁿ : ∀ {pᴸ : ρ ⊢ᴸⁿ A ⊒ C}
+      {relocation : Φ ⊢ C ≈ C′}
+      {pᴿ : ρ ⊢ᴿⁿ C′ ⊒ A′}
+      {qᴿ : ρ ⊢ᴿⁿ C′ ⊒ B′}
       {t⦂ : ρ ⊢ᴿⁿ t ⦂ A′ ⊒ B′}
-    → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → p ⨟ᶠⁿ (t , t⦂) ≐ᶠ q
+    → ρ ⊢ᴺ M ⊒ M′ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
+    → (pᴿ ⨟ⁿ (t , t⦂)) ≐ⁿ qᴿ
       ---------------------
-    → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ q
+    → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ qᴿ)
 
-  ⊒castʷ : ∀ {p : ρ ⊢ᵀ A ⊒ A′}
-      {q : ρ ⊢ᵀ A ⊒ B′}
+  ⊒castʷ : ∀ {pᴸ : ρ ⊢ᴸⁿ A ⊒ C}
+      {relocation : Φ ⊢ C ≈ C′}
+      {pᴿ : ρ ⊢ᴿⁿ C′ ⊒ A′}
+      {qᴿ : ρ ⊢ᴿⁿ C′ ⊒ B′}
       {t⦂ : ρ ⊢ᴿʷ t ⦂ A′ ⊑ B′}
-    → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → q ⨟ᶠⁿ dualʷ (t , t⦂) ≐ᶠ p
+    → ρ ⊢ᴺ M ⊒ M′ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ pᴿ)
+    → (qᴿ ⨟ⁿ dualʷ (t , t⦂)) ≐ⁿ pᴿ
       ---------------------
-    → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ q
+    → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ (pᴸ ⨟ᶠ relocation ⨟ᶠ qᴿ)

@@ -39,8 +39,8 @@ change-wf {χ = bind Aχ} hA =
   renameᵗ-preserves-WfTy hA TyRenameWf-suc
 
 change-typing : ∀ {Δ Σ M A χ}
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
-  → changeTyCtx χ Δ ∣ changeStore χ Σ ∣ []
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
+  → ⟨ changeTyCtx χ Δ , changeStore χ Σ , [] ⟩
       ⊢ change χ M ⦂ changeᵗ χ A
 change-typing {χ = keep} M⊢ = M⊢
 change-typing {χ = bind Aχ} M⊢ =
@@ -113,9 +113,9 @@ bind-under-binder-coercion-typing
 
 pure-preservation : ∀ {Δ Σ M N A}
   → StoreWf Δ Σ
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
   → M —→ N
-  → Δ ∣ Σ ∣ [] ⊢ N ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ N ⦂ A
 pure-preservation wfΣ
     (⊢⊕ (⊢$ (κℕ m)) addℕ (⊢$ (κℕ n))) δ-⊕ =
   ⊢$ _
@@ -139,7 +139,7 @@ pure-preservation wfΣ
     (⊢⟨⟩ (cast-untag hG ok G꞉A)
       (⊢⟨⟩ (cast-tag hG′ ok′ G꞉A′) V⊢))
     (tag-untag-ok vV) =
-  subst≡ (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
+  subst≡ (λ T → ⟨ _ , _ , _ ⟩ ⊢ _ ⦂ T)
     (tagged-unique G꞉A′ G꞉A) V⊢
 pure-preservation wfΣ
     (⊢⟨⟩ (cast-untag hH ok H꞉B)
@@ -150,7 +150,7 @@ pure-preservation wfΣ
     (⊢⟨⟩ (cast-unseal hB αB∈Σ ok)
       (⊢⟨⟩ (cast-seal hA αA∈Σ ok′) V⊢))
     (seal-unseal vV) =
-  subst≡ (λ T → _ ∣ _ ∣ _ ⊢ _ ⦂ T)
+  subst≡ (λ T → ⟨ _ , _ , _ ⟩ ⊢ _ ⦂ T)
     (unique wfΣ αA∈Σ αB∈Σ) V⊢
 pure-preservation wfΣ
     (⊢· (⊢blame (wf⇒ hA hB)) M⊢) blame-·₁ =
@@ -182,7 +182,7 @@ pure-preservation wfΣ
 
 store-preservation : ∀ {Δ Σ M N A χ}
   → StoreWf Δ Σ
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
   → M —→[ χ ] N
   → StoreWf (changeTyCtx χ Δ) (changeStore χ Σ)
 store-preservation wfΣ M⊢ (pure-step red) = wfΣ
@@ -205,9 +205,9 @@ store-preservation wfΣ (⊢⊕ L⊢ op M⊢) (ξ-⊕₂ vL red) =
 
 preservation : ∀ {Δ Σ M N A χ}
   → StoreWf Δ Σ
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
   → M —→[ χ ] N
-  → changeTyCtx χ Δ ∣ changeStore χ Σ ∣ []
+  → ⟨ changeTyCtx χ Δ , changeStore χ Σ , [] ⟩
       ⊢ N ⦂ changeᵗ χ A
 preservation wfΣ M⊢ (pure-step red) =
   pure-preservation wfΣ M⊢ red
@@ -264,9 +264,9 @@ preservation wfΣ
 
 multi-preservation : ∀ {Δ Σ M N A χs}
   → StoreWf Δ Σ
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
   → M —↠[ χs ] N
-  → changeTyCtxs χs Δ ∣ changeStores χs Σ ∣ []
+  → ⟨ changeTyCtxs χs Δ , changeStores χs Σ , [] ⟩
       ⊢ N ⦂ changeTys χs A
 multi-preservation wfΣ M⊢ ↠-refl = M⊢
 multi-preservation wfΣ M⊢ (↠-step red reds) =

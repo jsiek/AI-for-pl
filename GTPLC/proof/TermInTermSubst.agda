@@ -51,8 +51,8 @@ RenameWf-⤊ hρ h | A , A∈Γ , refl =
 
 typing-rename : ∀ {Δ Σ Γ Γ′ M A ρ}
   → RenameWf Γ Γ′ ρ
-  → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
-  → Δ ∣ Σ ∣ Γ′ ⊢ rename ρ M ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δ , Σ , Γ′ ⟩ ⊢ rename ρ M ⦂ A
 typing-rename hρ (⊢` h) = ⊢` (hρ h)
 typing-rename hρ (⊢ƛ hA hM) =
   ⊢ƛ hA (typing-rename (RenameWf-ext hρ) hM)
@@ -71,8 +71,8 @@ typing-rename hρ (⊢⟨⟩ c⊢ hM) =
 typing-rename hρ (⊢blame hA) = ⊢blame hA
 
 typing-rename-shift : ∀ {Δ Σ Γ M A B}
-  → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
-  → Δ ∣ Σ ∣ (B ∷ Γ) ⊢ rename suc M ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δ , Σ , B ∷ Γ ⟩ ⊢ rename suc M ⦂ A
 typing-rename-shift hM =
   typing-rename (λ h → S h) hM
 
@@ -92,7 +92,7 @@ subst-preserves-Value σ (vV ⟨ i ⟩) =
 
 SubstWf : TyCtx → TyStore → Ctx → Ctx → Subst → Set₁
 SubstWf Δ Σ Γ Γ′ σ =
-  ∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Σ ∣ Γ′ ⊢ σ x ⦂ A
+  ∀ {x A} → Γ ∋ x ⦂ A → ⟨ Δ , Σ , Γ′ ⟩ ⊢ σ x ⦂ A
 
 SubstWf-exts : ∀ {Δ Σ Γ Γ′ A σ}
   → SubstWf Δ Σ Γ Γ′ σ
@@ -110,8 +110,8 @@ SubstWf-↑ hσ h | A , A∈Γ , refl =
 
 typing-subst : ∀ {Δ Σ Γ Γ′ M A σ}
   → SubstWf Δ Σ Γ Γ′ σ
-  → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
-  → Δ ∣ Σ ∣ Γ′ ⊢ Terms.subst σ M ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δ , Σ , Γ′ ⟩ ⊢ Terms.subst σ M ⦂ A
 typing-subst hσ (⊢` h) = hσ h
 typing-subst hσ (⊢ƛ hA hM) =
   ⊢ƛ hA (typing-subst (SubstWf-exts hσ) hM)
@@ -130,14 +130,14 @@ typing-subst hσ (⊢⟨⟩ c⊢ hM) =
 typing-subst hσ (⊢blame hA) = ⊢blame hA
 
 singleSubstWf : ∀ {Δ Σ Γ A V}
-  → Δ ∣ Σ ∣ Γ ⊢ V ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ A
   → SubstWf Δ Σ (A ∷ Γ) Γ (singleSub V)
 singleSubstWf hV Z = hV
 singleSubstWf hV (S h) = ⊢` h
 
 typing-single-subst : ∀ {Δ Σ Γ N V A B}
-  → Δ ∣ Σ ∣ (A ∷ Γ) ⊢ N ⦂ B
-  → Δ ∣ Σ ∣ Γ ⊢ V ⦂ A
-  → Δ ∣ Σ ∣ Γ ⊢ N [ V ] ⦂ B
+  → ⟨ Δ , Σ , A ∷ Γ ⟩ ⊢ N ⦂ B
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ N [ V ] ⦂ B
 typing-single-subst hN hV =
   typing-subst (singleSubstWf hV) hN

@@ -23,7 +23,7 @@ import Reduction
 ----------------------------------------------------------
 
 import TypeSafety
+import TypeNarrow
 import NarrowWiden
-import ImprecisionTheorems
 import EnvironmentNarrowing
 import TermNarrowing

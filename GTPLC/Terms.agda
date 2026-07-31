@@ -2,7 +2,8 @@ module Terms where
 
 -- File Charter:
 --   * Canonical syntax, values, runtime invariants, variable actions, and
---     typing for Nu GTSF terms.
+--     typing for GTPLC terms.
+--   * `TypingEnv` bundles the type context, type store, and term context.
 --   * `Scopedᵐ` records the term-variable scope of raw syntax; `Closedᵐ` is
 --     its closed-term specialization.
 --   * Algebraic and typing properties belong in
@@ -133,58 +134,95 @@ M [ N ] = subst (singleSub N) M
 -- Typing
 --------------------------------------------------------------------------------
 
-infix  4 _∣_∣_⊢_⦂_
+record TypingEnv : Set where
+  constructor ⟨_,_,_⟩
+  field
+    Δᵉ : TyCtx
+    Σᵉ : TyStore
+    Γᵉ : Ctx
 
-data _∣_∣_⊢_⦂_ (Δ : TyCtx) (Σ : TyStore) (Γ : Ctx) : Term → Ty → Set₁ where
+open TypingEnv public
 
-  ⊢` : ∀ {x A}
-     → Γ ∋ x ⦂ A
-      ----------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (` x) ⦂ A
+infixl 5 _,ᶜ_
+infixl 5 _,ˢ_
+infix 4 _⊢ᵀ_
+infix 4 _∋ᵗ_⦂_
+infix 4 _∣_⊢ᶜ_∶_=⇒_
 
-  ⊢ƛ : ∀ {M A B}
-     → WfTy Δ A
-     → Δ ∣ Σ ∣ (A ∷ Γ) ⊢ M ⦂ B
-      ----------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (ƛ M) ⦂ (A ⇒ B)
+_,ᶜ_ : TypingEnv → Ty → TypingEnv
+⟨ Δ , Σ , Γ ⟩ ,ᶜ A = ⟨ Δ , Σ , A ∷ Γ ⟩
 
-  ⊢· : ∀ {L M A B}
-     → Δ ∣ Σ ∣ Γ ⊢ L ⦂ (A ⇒ B)
-     → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
-      -------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (L · M) ⦂ B
+_,ˢ_ : TypingEnv → TyVar × Ty → TypingEnv
+⟨ Δ , Σ , Γ ⟩ ,ˢ e = ⟨ Δ , e ∷ Σ , Γ ⟩
 
-  ⊢Λ : ∀ {M A}
-     → Value M
-     → suc Δ ∣ ⟰ᵗ Σ ∣ ⤊ᵗ Γ ⊢ M ⦂ A
-      ----------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
+⇑ᵉᵗ : TypingEnv → TypingEnv
+⇑ᵉᵗ ⟨ Δ , Σ , Γ ⟩ = ⟨ suc Δ , ⟰ᵗ Σ , ⤊ᵗ Γ ⟩
 
-  ⊢ν : ∀ {L A B C c μ}
-     → WfTy Δ A
-     → Δ ∣ Σ ∣ Γ ⊢ L ⦂ `∀ C
-     → μ ∣ suc Δ ∣ (0 , ⇑ᵗ A) ∷ ⟰ᵗ Σ ⊢ c ∶ C =⇒ ⇑ᵗ B
+_⊢ᵀ_ : TypingEnv → Ty → Set
+⟨ Δ , Σ , Γ ⟩ ⊢ᵀ A = WfTy Δ A
+
+_∋ᵗ_⦂_ : TypingEnv → Var → Ty → Set₁
+⟨ Δ , Σ , Γ ⟩ ∋ᵗ x ⦂ A = Γ ∋ x ⦂ A
+
+_∣_⊢ᶜ_∶_=⇒_ :
+  ModeEnv → TypingEnv → Coercion → Ty → Ty → Set
+μ ∣ ⟨ Δ , Σ , Γ ⟩ ⊢ᶜ c ∶ A =⇒ B =
+  μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+
+private
+  variable
+    Ξ : TypingEnv
+    L L′ M M′ N N′ V V′ : Term
+    A A′ B B′ C C′ D D′ : Ty
+    c d : Coercion
+    μ : ModeEnv
+
+infix 4 _⊢_⦂_
+
+data _⊢_⦂_ : TypingEnv → Term → Ty → Set₁ where
+
+  ⊢` : ∀ {x}
+     → Ξ ∋ᵗ x ⦂ A
+      ----------------
+     → Ξ ⊢ (` x) ⦂ A
+
+  ⊢ƛ : Ξ ⊢ᵀ A
+     → Ξ ,ᶜ A ⊢ M ⦂ B
+      --------------------
+     → Ξ ⊢ (ƛ M) ⦂ (A ⇒ B)
+
+  ⊢· : Ξ ⊢ L ⦂ (A ⇒ B)
+     → Ξ ⊢ M ⦂ A
+      -----------------
+     → Ξ ⊢ (L · M) ⦂ B
+
+  ⊢Λ : Value M
+     → ⇑ᵉᵗ Ξ ⊢ M ⦂ A
+      --------------------
+     → Ξ ⊢ (Λ M) ⦂ (`∀ A)
+
+  ⊢ν : Ξ ⊢ᵀ A
+     → Ξ ⊢ L ⦂ `∀ C
+     → μ ∣ (⇑ᵉᵗ Ξ ,ˢ (zero , ⇑ᵗ A)) ⊢ᶜ c ∶ C =⇒ ⇑ᵗ B
       ----------------------------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ ν A · L •⟨ c ⟩ ⦂ B
+     → Ξ ⊢ ν A · L •⟨ c ⟩ ⦂ B
 
   ⊢$ : ∀ (κ : Const)
-      -------------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ ($ κ) ⦂ constTy κ
-
-  ⊢⊕ : ∀ {L M}
-     → Δ ∣ Σ ∣ Γ ⊢ L ⦂ (‵ `ℕ)
-     → (op : Prim)
-     → Δ ∣ Σ ∣ Γ ⊢ M ⦂ (‵ `ℕ)
-      -----------------------------------
-     → Δ ∣ Σ ∣ Γ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
-
-  ⊢⟨⟩ : ∀ {M A B c μ}
-      → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
-      → Δ ∣ Σ ∣ Γ ⊢ M ⦂ A
-      -------------------------
-      → Δ ∣ Σ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B
-
-  ⊢blame : ∀ {A}
-      → WfTy Δ A
       -----------------------
-      → Δ ∣ Σ ∣ Γ ⊢ blame ⦂ A
+     → Ξ ⊢ ($ κ) ⦂ constTy κ
+
+  ⊢⊕ : Ξ ⊢ L ⦂ (‵ `ℕ)
+     → (op : Prim)
+     → Ξ ⊢ M ⦂ (‵ `ℕ)
+      ---------------------------
+     → Ξ ⊢ (L ⊕[ op ] M) ⦂ (‵ `ℕ)
+
+  ⊢⟨⟩ : μ ∣ Ξ ⊢ᶜ c ∶ A =⇒ B
+      → Ξ ⊢ M ⦂ A
+      -----------------
+      → Ξ ⊢ M ⟨ c ⟩ ⦂ B
+
+  ⊢blame :
+        Ξ ⊢ᵀ A
+      ---------------
+      → Ξ ⊢ blame ⦂ A

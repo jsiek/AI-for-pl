@@ -7,6 +7,7 @@ that the Agda source can link directly to it.
 ## Contents
 
 - [Keep eager checks outside `gen` and `inst`](#gen-inst-side-conditions)
+- [Use canonical association for seal and unseal sequences](#canonical-sequence-association)
 
 <a id="gen-inst-side-conditions"></a>
 ## Keep eager checks outside `gen` and `inst`
@@ -98,3 +99,98 @@ for a mismatched dynamic tag.
 
 [gtsf-narrow-widen]: ../GTSF/NarrowWiden.agda
 [mismatch-regression]: ../GTSF/proof/Compilation/GenSafeMismatchBlameRegression.agda
+
+<a id="canonical-sequence-association"></a>
+## Use canonical association for seal and unseal sequences
+
+### Decision
+
+Seal chains in narrowing associate to the left, while unseal chains in
+widening associate to the right. Thus the canonical forms are
+
+```agda
+((G ？) ︔ seal X) ︔ seal Y
+unseal X ︔ (unseal Y ︔ (G !))
+```
+
+and not
+
+```agda
+(G ？) ︔ (seal X ︔ seal Y)
+(unseal X ︔ unseal Y) ︔ (G !)
+```
+
+The merged narrowing and widening judgments enforce this distinction with
+endpoint-shape premises. The `untag-seq` constructor requires `NonVar B`, so
+it cannot place an untag outside a sequence whose final target is a sealed
+type variable. Such a sequence must instead be extended by `seal-seq`.
+Dually, `tag-seq` requires `NonVar A`, so it cannot place a tag outside a
+sequence whose initial source is an unsealed type variable. Such a sequence
+must instead be extended by `unseal-seq`.
+
+### Why the restriction is necessary
+
+For a concrete example, take the context, store, and mode environment
+
+```agda
+Δ₂ = suc (suc zero)
+
+Σ₂ =
+  (zero , ＇ (suc zero)) ∷
+  (suc zero , ‵ `ℕ) ∷ []
+
+μ-seal X = seal-or-id
+```
+
+The store is recursively well formed:
+
+```agda
+wfΣ₁ = store-bind store-empty wfBase refl
+wfΣ₂ = store-bind wfΣ₁ (wfVar z<s) refl
+```
+
+Thus `zero` is represented by the older variable `suc zero`, which in turn
+is represented by `ℕ`. Before the endpoint-shape premises were added, the
+following two narrowing judgments both held:
+
+```agda
+μ-seal ∣ Δ₂ ∣ Σ₂
+  ⊢ (((‵ `ℕ) ？) ︔ seal (suc zero)) ︔ seal zero
+    ⦂ ★ ⊒ ＇ zero
+
+μ-seal ∣ Δ₂ ∣ Σ₂
+  ⊢ ((‵ `ℕ) ？) ︔ (seal (suc zero) ︔ seal zero)
+    ⦂ ★ ⊒ ＇ zero
+```
+
+The first is canonical. It is built by applying `seal-seq` twice. The second
+would require `untag-seq` with final target `＇ zero`, but its new premise
+would be `NonVar (＇ zero)`, which has no constructor.
+
+The dual ambiguity was
+
+```agda
+μ-seal ∣ Δ₂ ∣ Σ₂
+  ⊢ unseal zero ︔ (unseal (suc zero) ︔ ((‵ `ℕ) !))
+    ⦂ ＇ zero ⊑ ★
+
+μ-seal ∣ Δ₂ ∣ Σ₂
+  ⊢ (unseal zero ︔ unseal (suc zero)) ︔ ((‵ `ℕ) !)
+    ⦂ ＇ zero ⊑ ★
+```
+
+Here the first is canonical and is built by applying `unseal-seq` twice. The
+second would require `tag-seq` with initial source `＇ zero`, but its new
+premise would be `NonVar (＇ zero)`.
+
+Because `_︔_` is a syntax constructor rather than an associative operation
+modulo equality, each noncanonical coercion is propositionally unequal to its
+canonical counterpart. Narrowing and widening therefore were not determined
+by their endpoints, mode environment, and well-formed store.
+
+The separate GTSF normal-form grammar prevented this overlap with its strict
+cross-narrowing and strict cross-widening categories. The endpoint-shape
+premises are the corresponding invariant for GTPLC's merged grammar and type
+system. They keep every judgment index in constructor form; normalization by
+the smart wrappers happens in their proof definitions rather than through a
+composition function in a constructor conclusion.

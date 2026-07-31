@@ -5,7 +5,11 @@ module proof.ImprecisionComposition where
 --   * Normalizes composition structurally through every constructor.
 --   * Retains only canonical tag, untag, seal, and unseal sequences.
 --   * Uses well-founded recursion over the total coercion size.
+--   * Localizes function extensionality to accessibility proof irrelevance.
 
+open import Axiom.Extensionality.Propositional using
+  (Extensionality; implicit-extensionality)
+open import Data.Bool using (true)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
@@ -29,8 +33,10 @@ open import Data.Nat.Properties using
   )
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
 open import Induction.WellFounded using (Acc; acc)
+open import Level using (0ℓ)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; subst; sym)
+  using (_≡_; _≢_; refl; cong; cong₂; subst; sym)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TyStore
@@ -45,6 +51,18 @@ open import proof.ImprecisionModeWeakening using
 open import proof.ImprecisionRenaming using (⇑ⁿ-gen; ⇑ʷ-inst)
 open import proof.TyStore using (∈-⟰ᵗ-inv; ∈-⟰ᵗ-zero)
 open import proof.TypeInTypeSubst using (rename-preserves-∈ᵗ)
+
+private
+
+  postulate
+    funext : Extensionality 0ℓ 0ℓ
+
+  acc-irrelevant : ∀ {n} (a b : Acc _<_ n) → a ≡ b
+  acc-irrelevant (acc f) (acc g) =
+    cong acc
+      (implicit-extensionality funext
+        (λ {m} → funext λ m<n →
+          acc-irrelevant (f m<n) (g m<n)))
 
 ------------------------------------------------------------------------
 -- Store weakening
@@ -85,8 +103,8 @@ mutual
   weaken-storeʷ incl (∀ʷ p) = ∀ʷ (weaken-storeʷ (shift-incl incl) p)
   weaken-storeʷ incl (tag G hG allowed G꞉A) =
     tag G hG allowed G꞉A
-  weaken-storeʷ incl (tag-seq G p hG allowed G꞉B A≢B) =
-    tag-seq G (weaken-storeʷ incl p) hG allowed G꞉B A≢B
+  weaken-storeʷ incl (tag-seq G p hG allowed G꞉B nonvarA A≢B) =
+    tag-seq G (weaken-storeʷ incl p) hG allowed G꞉B nonvarA A≢B
   weaken-storeʷ incl (unseal X<Δ hA X,A∈Σ allowed) =
     unseal X<Δ hA (incl X,A∈Σ) allowed
   weaken-storeʷ incl (unseal-seq X<Δ X,A∈Σ allowed p A≢B) =
@@ -106,8 +124,9 @@ mutual
   weaken-storeⁿ incl (∀ⁿ p) = ∀ⁿ (weaken-storeⁿ (shift-incl incl) p)
   weaken-storeⁿ incl (untag G hG allowed G꞉B) =
     untag G hG allowed G꞉B
-  weaken-storeⁿ incl (untag-seq G hG allowed G꞉A p A≢B) =
-    untag-seq G hG allowed G꞉A (weaken-storeⁿ incl p) A≢B
+  weaken-storeⁿ incl (untag-seq G hG allowed G꞉A p nonvarB A≢B) =
+    untag-seq G hG allowed G꞉A
+      (weaken-storeⁿ incl p) nonvarB A≢B
   weaken-storeⁿ incl (seal X<Δ hA X,A∈Σ allowed) =
     seal X<Δ hA (incl X,A∈Σ) allowed
   weaken-storeⁿ incl (seal-seq p X<Δ X,B∈Σ allowed A≢B) =
@@ -202,7 +221,8 @@ mutual
   narrowing-member fresh (∀ⁿ p) (∈-all X∈A) =
     ∈-all (narrowing-member (shift-fresh fresh) p X∈A)
   narrowing-member fresh (untag G hG allowed G꞉B) ()
-  narrowing-member fresh (untag-seq G hG allowed G꞉A p A≢B) ()
+  narrowing-member fresh
+    (untag-seq G hG allowed G꞉A p nonvarB A≢B) ()
   narrowing-member fresh (seal X<Δ hA X,A∈Σ allowed) X∈A =
     ⊥-elim (fresh X,A∈Σ X∈A)
   narrowing-member fresh
@@ -227,7 +247,8 @@ mutual
   widening-member fresh (∀ʷ p) (∈-all X∈A) =
     ∈-all (widening-member (shift-fresh fresh) p X∈A)
   widening-member fresh (tag G hG allowed G꞉A) ()
-  widening-member fresh (tag-seq G p hG allowed G꞉B A≢B) ()
+  widening-member fresh
+    (tag-seq G p hG allowed G꞉B nonvarA A≢B) ()
   widening-member fresh (unseal X<Δ hA X,A∈Σ allowed) X∈A =
     ⊥-elim (fresh X,A∈Σ X∈A)
   widening-member fresh
@@ -252,7 +273,7 @@ narrowing-nonvar-member fresh (p ↦ q) nonvar-fun X∈A = nonvar-fun
 narrowing-nonvar-member fresh (∀ⁿ p) nonvar-all X∈A = nonvar-all
 narrowing-nonvar-member fresh (untag G hG allowed G꞉B) nonvar-star ()
 narrowing-nonvar-member fresh
-    (untag-seq G hG allowed G꞉A p A≢B) nonvar-star ()
+    (untag-seq G hG allowed G꞉A p nonvarB A≢B) nonvar-star ()
 narrowing-nonvar-member fresh
     (seal X<Δ hA X,A∈Σ allowed) nonvarA X∈A =
   ⊥-elim (fresh X,A∈Σ X∈A)
@@ -275,7 +296,7 @@ widening-nonvar-member fresh (p ↦ q) nonvar-fun X∈A = nonvar-fun
 widening-nonvar-member fresh (∀ʷ p) nonvar-all X∈A = nonvar-all
 widening-nonvar-member fresh (tag G hG allowed G꞉A) nonvar-star ()
 widening-nonvar-member fresh
-    (tag-seq G p hG allowed G꞉B A≢B) nonvar-star ()
+    (tag-seq G p hG allowed G꞉B nonvarA A≢B) nonvar-star ()
 widening-nonvar-member fresh
     (unseal X<Δ hA X,A∈Σ allowed) nonvarA X∈A =
   ⊥-elim (fresh X,A∈Σ X∈A)
@@ -464,6 +485,15 @@ mutual
     → Acc _<_ (sizeᶜ c + sizeᶜ d)
     → μ ∣ Δ ∣ Σ ⊢ A ⊒ C
   composeⁿ (idᵃ a hA) q access = _ , q
+  composeⁿ (untag G hG allowed G꞉B) q access =
+    wrap-untag hG allowed G꞉B q
+  composeⁿ {c = (G ？) ︔ c} {d = d}
+      (untag-seq G hG allowed G꞉B p nonvarC B≢C) q (acc rec)
+      with composeⁿ p q
+        (rec (left-seq-drop-< (sizeᶜ c) (sizeᶜ (G ？)) (sizeᶜ d)))
+  composeⁿ (untag-seq G hG allowed G꞉B p nonvarC B≢C) q (acc rec)
+      | d , r =
+    wrap-untag hG allowed G꞉B r
   composeⁿ p (idᵃ a hB) access = _ , p
   composeⁿ {c = c ↦ d} {d = e ↦ f}
       (p₁ ↦ p₂) (q₁ ↦ q₂) (acc rec)
@@ -481,15 +511,6 @@ mutual
   composeⁿ (∀ⁿ p) (∀ⁿ q) (acc rec)
       | e , r =
     `∀ e , ∀ⁿ r
-  composeⁿ (untag G hG allowed G꞉B) q access =
-    wrap-untag hG allowed G꞉B q
-  composeⁿ {c = (G ？) ︔ c} {d = d}
-      (untag-seq G hG allowed G꞉B p B≢C) q (acc rec)
-      with composeⁿ p q
-        (rec (left-seq-drop-< (sizeᶜ c) (sizeᶜ (G ？)) (sizeᶜ d)))
-  composeⁿ (untag-seq G hG allowed G꞉B p B≢C) q (acc rec)
-      | d , r =
-    wrap-untag hG allowed G꞉B r
   composeⁿ p (seal X<Δ hB X,B∈Σ allowed) access =
     wrap-seal p X<Δ X,B∈Σ allowed
   composeⁿ {c = c} {d = d ︔ seal X}
@@ -580,10 +601,10 @@ mutual
   composeʷ p (tag G hG allowed G꞉B) access =
     wrap-tag p hG allowed G꞉B
   composeʷ {c = c} {d = d ︔ (G !)}
-      p (tag-seq G q hG allowed G꞉C B≢C) (acc rec)
+      p (tag-seq G q hG allowed G꞉C nonvarB B≢C) (acc rec)
       with composeʷ p q
         (rec (right-seq-< (sizeᶜ c) (sizeᶜ d) (sizeᶜ (G !))))
-  composeʷ p (tag-seq G q hG allowed G꞉C B≢C) (acc rec)
+  composeʷ p (tag-seq G q hG allowed G꞉C nonvarB B≢C) (acc rec)
       | d , r =
     wrap-tag r hG allowed G꞉C
   composeʷ {c = `∀ c} {d = inst d}
@@ -635,6 +656,87 @@ mutual
       (unseal-seq X<Δ X,C∈Σ allowed q C≢D) access =
     ⊥-elim (inst-variable-source-no-zero p zero∈A)
 
+composeⁿ-access-irrelevant : ∀ {μ Δ Σ c d A B C}
+    (p : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B)
+    (q : μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊒ C)
+    (a b : Acc _<_ (sizeᶜ c + sizeᶜ d))
+  → composeⁿ p q a ≡ composeⁿ p q b
+composeⁿ-access-irrelevant p q a b
+    rewrite acc-irrelevant a b =
+  refl
+
+composeʷ-access-irrelevant : ∀ {μ Δ Σ c d A B C}
+    (p : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B)
+    (q : μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊑ C)
+    (a b : Acc _<_ (sizeᶜ c + sizeᶜ d))
+  → composeʷ p q a ≡ composeʷ p q b
+composeʷ-access-irrelevant p q a b
+    rewrite acc-irrelevant a b =
+  refl
+
+wrap-seal-coercion-evidence : ∀ {μ Δ Σ X c A B}
+    (p q : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B)
+    (X<Δ : X < Δ)
+    (X,B∈Σ : (X , B) ∈ Σ)
+    (allowed : sealModeAllowed (μ X) ≡ true)
+  → proj₁ (wrap-seal p X<Δ X,B∈Σ allowed) ≡
+    proj₁ (wrap-seal q X<Δ X,B∈Σ allowed)
+wrap-seal-coercion-evidence {A = A} {B = B}
+    p q X<Δ X,B∈Σ allowed with A ≟Ty B
+wrap-seal-coercion-evidence {A = A}
+    p q X<Δ X,B∈Σ allowed | yes refl = refl
+wrap-seal-coercion-evidence {c = c}
+    p q X<Δ X,B∈Σ allowed | no A≢B = refl
+
+seal-prefix-compose-evidence : ∀ {μ Δ Σ X A C}
+    {d : Coercion}
+    (s t : μ ∣ Δ ∣ Σ ⊢ seal X ⦂ A ⊒ ＇ X)
+    (q : μ ∣ Δ ∣ Σ ⊢ d ⦂ ＇ X ⊒ C)
+    (a b : Acc _<_ (sizeᶜ (seal X) + sizeᶜ d))
+  → proj₁ (composeⁿ s q a) ≡ proj₁ (composeⁿ t q b)
+seal-prefix-compose-evidence
+    (seal X<Δ hA X,A∈Σ allowedX)
+    (seal X<Δ′ hA′ X,A′∈Σ allowedX′)
+    (idᵃ (＇ X) hX) a b = refl
+seal-prefix-compose-evidence {μ = μ} {Δ = Δ} {Σ = Σ}
+    {X = X} {A = A}
+    s@(seal X<Δ hA X,A∈Σ allowedX)
+    t@(seal X<Δ′ hA′ X,A′∈Σ allowedX′)
+    (seal {X = Y} Y<Δ hX Y,X∈Σ allowed) a b =
+  wrap-seal-coercion-evidence
+    {μ = μ} {Δ = Δ} {Σ = Σ} {X = Y}
+    {c = seal X} {A = A} {B = ＇ X}
+    s t Y<Δ Y,X∈Σ allowed
+seal-prefix-compose-evidence {X = X}
+    {d = d ︔ seal Y}
+    s@(seal X<Δ hA X,A∈Σ allowedX)
+    t@(seal X<Δ′ hA′ X,A′∈Σ allowedX′)
+    (seal-seq q Y<Δ Y,B∈Σ allowed X≢B)
+    (acc rec₁) (acc rec₂)
+    with composeⁿ s q
+      (rec₁ (right-seq-< (sizeᶜ (seal X)) (sizeᶜ d)
+        (sizeᶜ (seal Y))))
+       | composeⁿ t q
+      (rec₂ (right-seq-< (sizeᶜ (seal X)) (sizeᶜ d)
+        (sizeᶜ (seal Y))))
+       | seal-prefix-compose-evidence s t q
+      (rec₁ (right-seq-< (sizeᶜ (seal X)) (sizeᶜ d)
+        (sizeᶜ (seal Y))))
+      (rec₂ (right-seq-< (sizeᶜ (seal X)) (sizeᶜ d)
+        (sizeᶜ (seal Y))))
+seal-prefix-compose-evidence
+    s@(seal X<Δ hA X,A∈Σ allowedX)
+    t@(seal X<Δ′ hA′ X,A′∈Σ allowedX′)
+    (seal-seq q Y<Δ Y,B∈Σ allowed X≢B)
+    (acc rec₁) (acc rec₂)
+    | e , r | .e , r′ | refl =
+  wrap-seal-coercion-evidence r r′ Y<Δ Y,B∈Σ allowed
+seal-prefix-compose-evidence
+    s@(seal X<Δ hA X,A∈Σ allowedX)
+    t@(seal X<Δ′ hA′ X,A′∈Σ allowedX′)
+    (gen nonvarC zero∈C hX q X≢★) a b =
+  ⊥-elim (shifted-variable-target-no-zero q zero∈C)
+
 _⨟ⁿ_ : ∀ {μ Δ Σ A B C}
   → μ ∣ Δ ∣ Σ ⊢ A ⊒ B
   → μ ∣ Δ ∣ Σ ⊢ B ⊒ C
@@ -646,3 +748,44 @@ _⨟ʷ_ : ∀ {μ Δ Σ A B C}
   → μ ∣ Δ ∣ Σ ⊢ B ⊑ C
   → μ ∣ Δ ∣ Σ ⊢ A ⊑ C
 (c , p) ⨟ʷ (d , q) = composeʷ p q (<-wellFounded (sizeᶜ c + sizeᶜ d))
+
+seal-prefix-composeⁿ-evidence : ∀ {μ Δ Σ X A C}
+    {s t : μ ∣ Δ ∣ Σ ⊢ seal X ⦂ A ⊒ ＇ X}
+    {q : μ ∣ Δ ∣ Σ ⊢ ＇ X ⊒ C}
+  → ((seal X , s) ⨟ⁿ q) ≐ⁿ ((seal X , t) ⨟ⁿ q)
+seal-prefix-composeⁿ-evidence {X = X} {s = s} {t = t} {q = d , q} =
+  seal-prefix-compose-evidence s t q
+    (<-wellFounded (sizeᶜ (seal X) + sizeᶜ d))
+    (<-wellFounded (sizeᶜ (seal X) + sizeᶜ d))
+
+------------------------------------------------------------------------
+-- Canonical sequence reassociation
+------------------------------------------------------------------------
+
+untag-seq-inner-access : ∀ G c d
+  → Acc _<_ (sizeᶜ c + sizeᶜ d)
+untag-seq-inner-access G c d
+    with <-wellFounded (sizeᶜ ((G ？) ︔ c) + sizeᶜ d)
+untag-seq-inner-access G c d | acc rec =
+  rec (left-seq-drop-< (sizeᶜ c) (sizeᶜ (G ？)) (sizeᶜ d))
+
+untag-seq-composeⁿ : ∀ {μ Δ Σ G c d A B C}
+    {hG : WfTag Δ G}
+    {allowed : tagAllowed μ G ≡ true}
+    {G꞉A : G ꞉ A}
+    {p : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B}
+    {nonvarB : NonVar B}
+    {A≢B : A ≢ B}
+    {q : μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊒ C}
+  → proj₁
+      (((G ？) ︔ c ,
+          untag-seq G hG allowed G꞉A p nonvarB A≢B)
+        ⨟ⁿ (d , q))
+    ≡ proj₁
+      ((G ？ , untag G hG allowed G꞉A)
+        ⨟ⁿ ((c , p) ⨟ⁿ (d , q)))
+untag-seq-composeⁿ {G = G} {c = c} {d = d} {p = p} {q = q}
+    rewrite composeⁿ-access-irrelevant p q
+      (untag-seq-inner-access G c d)
+      (<-wellFounded (sizeᶜ c + sizeᶜ d)) =
+  refl

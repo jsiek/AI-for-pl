@@ -214,7 +214,7 @@ narrowing-tgt-star : ∀ {μ Δ Σ c A}
 narrowing-tgt-star (NarrowWiden.idᵃ ★ hA) = refl
 narrowing-tgt-star (NarrowWiden.untag G hG allowed ())
 narrowing-tgt-star
-    (NarrowWiden.untag-seq G hG allowed G꞉A p A≢★) = refl
+    (NarrowWiden.untag-seq G hG allowed G꞉A p nonvar★ A≢★) = refl
 
 relocation-tgt-star : ∀ {Δᴸ Δᴿ A} {Φ : ImpCtx Δᴸ Δᴿ}
   → Φ ⊢ A ≈ ★

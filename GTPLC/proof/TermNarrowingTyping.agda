@@ -9,15 +9,16 @@ module proof.TermNarrowingTyping where
 open import Types hiding (_∋_⦂_)
 open import Ctx
 open import Terms
-open import TypeNarrow
+open import TypeRelocate
+open import FactoredTypeNarrowing
 open import NarrowWiden
 open import EnvironmentNarrowing
 open import TermNarrowing
 
-lookup-source : ∀ {Δᴸ Δᴿ Γᴸ Γᴿ x A B}
+lookup-source : ∀ {Δᴸ Δᴿ μᴸ μᴿ Σᴸ Σᴿ Γᴸ Γᴿ x A B}
     {Φ : ImpCtx Δᴸ Δᴿ}
-    {γ : Φ ∣ Δᴸ ⊢ Γᴸ ⊒ᵍ Γᴿ ⊣ Δᴿ}
-    {p : Φ ⊢ A ⊒ B}
+    {γ : CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ}
+    {p : μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B}
   → γ ∋ x ⦂ p
   → Γᴸ Types.∋ x ⦂ A
 lookup-source Zⁿ = Z
@@ -48,7 +49,7 @@ term-narrowing-source-typing
   term-narrowing-source-typing N⊒V′
 term-narrowing-source-typing
     (ν⊒ν {s⦂ = s⦂} a L⊒L′ square) =
-  ⊢ν (TypeNarrow.⊒-src-wf a)
+  ⊢ν (factor-src-wf a)
      (term-narrowing-source-typing L⊒L′)
      (narrowing-typing s⦂)
 term-narrowing-source-typing

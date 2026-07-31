@@ -2,7 +2,7 @@ module TermNarrowing where
 
 -- File Charter:
 --   * Defines well-typed narrowing between GTPLC terms.
---   * Indexes term narrowing by two-context type narrowing.
+--   * Indexes term narrowing by type relocation followed by coercion narrowing.
 --   * Uses one-context coercion narrowing and widening at casts.
 --   * Checks cast-composition side conditions only by matching endpoints.
 --   * Retains the quotient phase for paired narrowing and widening casts.
@@ -18,7 +18,8 @@ open import Coercions hiding (_↦_; gen)
 open import Coercions using () renaming (gen to genᶜ)
 open import Terms
 open import Primitives
-open import TypeNarrow
+open import TypeRelocate
+open import FactoredTypeNarrowing
 open import NarrowWiden using
   ( _∣_∣_⊢_⦂_⊑_
   ; _∣_∣_⊢_⦂_⊒_
@@ -38,8 +39,8 @@ data _⨟_≈_ : {X Y Z : Set} → X → Y → Z → Set₁ where
       ∀ {μ Δᴸ Δᴿ Σᴸ s A B B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
         {d : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊒ B}
-        {q : Φ ⊢ B ⊒ B′}
-        {p : Φ ⊢ A ⊒ B′}
+        {q : Φ ⊢ B ⊒ᶠ B′}
+        {p : Φ ⊢ A ⊒ᶠ B′}
       ----------------
     → d ⨟ q ≈ p
 
@@ -47,17 +48,17 @@ data _⨟_≈_ : {X Y Z : Set} → X → Y → Z → Set₁ where
       ∀ {μ Δᴸ Δᴿ Σᴸ s A B B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
         {u : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊑ B}
-        {p : Φ ⊢ A ⊒ B′}
-        {q : Φ ⊢ B ⊒ B′}
+        {p : Φ ⊢ A ⊒ᶠ B′}
+        {q : Φ ⊢ B ⊒ᶠ B′}
       ----------------
     → u ⨟ p ≈ q
 
   endpointsʳⁿ :
       ∀ {μ Δᴸ Δᴿ Σᴿ t A A′ B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
-        {p : Φ ⊢ A ⊒ A′}
+        {p : Φ ⊢ A ⊒ᶠ A′}
         {d : μ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊒ B′}
-        {q : Φ ⊢ A ⊒ B′}
+        {q : Φ ⊢ A ⊒ᶠ B′}
       ----------------
     → p ⨟ d ≈ q
 
@@ -65,8 +66,8 @@ data _⨟_≈_ : {X Y Z : Set} → X → Y → Z → Set₁ where
       ∀ {μ Δᴸ Δᴿ Σᴿ t A A′ B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
         {u : μ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊑ B′}
-        {p : Φ ⊢ A ⊒ A′}
-        {q : Φ ⊢ A ⊒ B′}
+        {p : Φ ⊢ A ⊒ᶠ A′}
+        {q : Φ ⊢ A ⊒ᶠ B′}
       ----------------
     → q ⨟ u ≈ p
 
@@ -77,8 +78,8 @@ data _⨟_≈_⨟_ :
       ∀ {μ μ′ Δᴸ Δᴿ Σᴸ Σᴿ s t A A′ B B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
         {c : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊒ B}
-        {q : Φ ⊢ B ⊒ B′}
-        {p : Φ ⊢ A ⊒ A′}
+        {q : Φ ⊢ B ⊒ᶠ B′}
+        {p : Φ ⊢ A ⊒ᶠ A′}
         {d : μ′ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊒ B′}
       ---------------------
     → c ⨟ q ≈ p ⨟ d
@@ -87,8 +88,8 @@ data _⨟_≈_⨟_ :
       ∀ {μ μ′ Δᴸ Δᴿ Σᴸ Σᴿ s t A A′ B B′}
         {Φ : ImpCtx Δᴸ Δᴿ}
         {u : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ B ⊑ A}
-        {q : Φ ⊢ B ⊒ B′}
-        {p : Φ ⊢ A ⊒ A′}
+        {q : Φ ⊢ B ⊒ᶠ B′}
+        {p : Φ ⊢ A ⊒ᶠ A′}
         {v : μ′ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ B′ ⊑ A′}
       ---------------------
     → u ⨟ q ≈ p ⨟ v
@@ -130,11 +131,11 @@ data _⊢ᴺ_⊒_∶_ :
     → ρ ⊢ᴿ A′
     → ρ ,ᵍ p ⊢ᴺ N ⊒ N′ ∶ q
       -------------------------
-    → ρ ⊢ᴺ ƛ N ⊒ ƛ N′ ∶ (p ↦ q)
+    → ρ ⊢ᴺ ƛ N ⊒ ƛ N′ ∶ (p ↦ᶠ q)
 
   ·⊒· : ∀ {p : ρ ⊢ᵀ A ⊒ A′}
       {q : ρ ⊢ᵀ B ⊒ B′}
-    → ρ ⊢ᴺ L ⊒ L′ ∶ (p ↦ q)
+    → ρ ⊢ᴺ L ⊒ L′ ∶ (p ↦ᶠ q)
     → ρ ⊢ᴺ M ⊒ M′ ∶ p
       ------------------------
     → ρ ⊢ᴺ L · M ⊒ L′ · M′ ∶ q
@@ -144,18 +145,18 @@ data _⊢ᴺ_⊒_∶_ :
     → Value V′
     → ⇑ᵉ ρ ⊢ᴺ V ⊒ V′ ∶ p
       ----------------------
-    → ρ ⊢ᴺ Λ V ⊒ Λ V′ ∶ ∀ⁿ p
+    → ρ ⊢ᴺ Λ V ⊒ Λ V′ ∶ ∀ᶠ p
 
   ⊒Λ : ∀ {Ψ : ImpCtx Δᴸ (suc Δᴿ)}
          {ρ′ : NarrowingEnv Ψ {Σᴸ} {⟰ᵗ Σᴿ} {Γᴸ} {⤊ᵗ Γᴿ}}
-         {p : freshᴿ Φ ⊢ B ⊒ A}
          {q : ρ′ ⊢ᵀ B ⊒ A}
          {nvA z∈A B≢★}
-    → SmartExtensionᵉ ρ ρ′
+    → (extension : SmartExtensionᵉ ρ ρ′)
     → Value V′
     → ρ′ ⊢ᴺ N ⊒ V′ ∶ q
       ---------------------------------
-    → ρ ⊢ᴺ N ⊒ Λ V′ ∶ gen nvA z∈A p B≢★
+    → ρ ⊢ᴺ N ⊒ Λ V′
+        ∶ genᶠ (extensionᵉ extension) nvA z∈A q B≢★
 
   ⊒⟨ν⟩ : ∀ {N V′ C c μ}
       {p : ⇑ᴿᵉ ρ ⊢ᵀ B ⊒ A} {nvA z∈A B≢★}
@@ -165,34 +166,36 @@ data _⊢ᴺ_⊒_∶_ :
     → genᵈ μ ∣ ⇑ᴿᵉ ρ ⊢ᴿ c ∶ ⇑ᵗ C =⇒ A
     → ⇑ᴿᵉ ρ ⊢ᴺ N ⊒ (⇑ᵗᵐ V′) ⟨ c ⟩ ∶ p
       ------------------------------------------
-    → ρ ⊢ᴺ N ⊒ V′ ⟨ genᶜ c ⟩ ∶ gen nvA z∈A p B≢★
+    → ρ ⊢ᴺ N ⊒ V′ ⟨ genᶜ c ⟩
+        ∶ genᶠ freshᵢ nvA z∈A p B≢★
 
   ν⊒ν : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
           {Φ : ImpCtx Δᴸ Δᴿ}
           {ρ : NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}}
           {p : ρ ⊢ᵀ B ⊒ B′}
-          {q : bothᵢ Φ ⊢ C ⊒ C′}
+          {q : bothᵢ Φ ⊢ C ⊒ᶠ C′}
           {s⦂ : μ ∣ suc Δᴸ ∣ ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σᴸ)
             ⊢ s ⦂ C ⊒ ⇑ᵗ B}
           {t⦂ : μ′ ∣ suc Δᴿ
             ∣ ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ Σᴿ)
             ⊢ t ⦂ C′ ⊒ ⇑ᵗ B′}
     → (a : ρ ⊢ᵀ A ⊒ A′)
-    → ρ ⊢ᴺ L ⊒ L′ ∶ ∀ⁿ q
-    → s⦂ ⨟ ⇑ᵀ p ≈ q ⨟ t⦂
+    → ρ ⊢ᴺ L ⊒ L′ ∶ ∀ᶠ q
+    → s⦂ ⨟ ⇑ᶠ p ≈ q ⨟ t⦂
       --------------------------------------------
     → ρ ⊢ᴺ ν A · L •⟨ s ⟩ ⊒
         ν A′ · L′ •⟨ t ⟩ ∶ p
 
   ⊒ν : ∀ {p : ρ ⊢ᵀ B ⊒ B′}
-         {q : freshᴿ Φ ⊢ B ⊒ C′}
+         {q : freshᴿ Φ ⊢ B ⊒ᶠ C′}
          {nvC′ zero∈C′ B≢★}
          {d : μ′ ∣ suc Δᴿ
            ∣ ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ Σᴿ)
            ⊢ t ⦂ C′ ⊒ ⇑ᵗ B′}
     → ρ ⊢ᴿ A′
-    → ρ ⊢ᴺ N ⊒ L′ ∶ gen nvC′ zero∈C′ q B≢★
-    → q ⨟ d ≈ ⇑ᴿᵀ p
+    → ρ ⊢ᴺ N ⊒ L′
+        ∶ genᶠ freshᵢ nvC′ zero∈C′ q B≢★
+    → q ⨟ d ≈ ⇑ᴿᶠ p
       -----------------------------
     → ρ ⊢ᴺ N ⊒ ν A′ · L′ •⟨ t ⟩ ∶ p
 

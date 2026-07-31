@@ -2,6 +2,7 @@ module NarrowWiden where
 
 -- File Charter:
 --   * Defines one-context narrowing and widening for GTPLC coercions.
+--   * Characterizes a kind of normal form for coercions.
 --   * Indexes both relations by a coercion, type context, type store,
 --     and mode environment.
 --   * Includes store-indexed seal and unseal rules.
@@ -52,12 +53,6 @@ mutual
         --------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ `∀ c ⦂ (`∀ A) ⊑ (`∀ B)
 
-    seqʷ : ∀ {c d A B C}
-      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
-      → μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊑ C
-        --------------------------------
-      → μ ∣ Δ ∣ Σ ⊢ c ︔ d ⦂ A ⊑ C
-
     tag : ∀ {A} (G : Tag)
       → WfTag Δ G
       → tagAllowed μ G ≡ true
@@ -91,16 +86,6 @@ mutual
         ----------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ (unseal X ︔ c) ⦂ ＇ X ⊑ B
 
-    unseal-tail : ∀ {X c A B}
-      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ ＇ X
-      → X < Δ
-      → WfTy Δ B
-      → (X , B) ∈ Σ
-      → sealModeAllowed (μ X) ≡ true
-      → A ≢ ＇ X
-        ----------------------------------------
-      → μ ∣ Δ ∣ Σ ⊢ (c ︔ unseal X) ⦂ A ⊑ B
-
     inst : ∀ {c A B}
       → NonVar A
       → zero ∈ᵗ A
@@ -132,12 +117,6 @@ mutual
       → extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ⊒ B
         --------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ `∀ c ⦂ (`∀ A) ⊒ (`∀ B)
-
-    seqⁿ : ∀ {c d A B C}
-      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
-      → μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊒ C
-        --------------------------------
-      → μ ∣ Δ ∣ Σ ⊢ c ︔ d ⦂ A ⊒ C
 
     untag : ∀ {B} (G : Tag)
       → WfTag Δ G
@@ -171,16 +150,6 @@ mutual
       → A ≢ B
         --------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ (c ︔ seal X) ⦂ A ⊒ ＇ X
-
-    seal-head : ∀ {X c A B}
-      → X < Δ
-      → WfTy Δ A
-      → (X , A) ∈ Σ
-      → sealModeAllowed (μ X) ≡ true
-      → μ ∣ Δ ∣ Σ ⊢ c ⦂ ＇ X ⊒ B
-      → ＇ X ≢ B
-        --------------------------------------
-      → μ ∣ Δ ∣ Σ ⊢ (seal X ︔ c) ⦂ A ⊒ B
 
     gen : ∀ {c A B}
       → NonVar A
@@ -246,12 +215,10 @@ mutual
   ⊑-src-wf (idᵃ _ hA) = hA
   ⊑-src-wf (p ↦ q) = wf⇒ (⊒-tgt-wf p) (⊑-src-wf q)
   ⊑-src-wf (∀ʷ p) = wf∀ (⊑-src-wf p)
-  ⊑-src-wf (seqʷ p q) = ⊑-src-wf p
   ⊑-src-wf (tag G hG _ G꞉A) = tag-type-wf hG G꞉A
   ⊑-src-wf (tag-seq G p _ _ _ _) = ⊑-src-wf p
   ⊑-src-wf (unseal X<Δ _ _ _) = wfVar X<Δ
   ⊑-src-wf (unseal-seq X<Δ _ _ _ _) = wfVar X<Δ
-  ⊑-src-wf (unseal-tail p _ _ _ _ _) = ⊑-src-wf p
   ⊑-src-wf (inst _ _ _ p _) = wf∀ (⊑-src-wf p)
 
   ⊑-tgt-wf : ∀ {μ Δ Σ c A B}
@@ -260,12 +227,10 @@ mutual
   ⊑-tgt-wf (idᵃ _ hA) = hA
   ⊑-tgt-wf (p ↦ q) = wf⇒ (⊒-src-wf p) (⊑-tgt-wf q)
   ⊑-tgt-wf (∀ʷ p) = wf∀ (⊑-tgt-wf p)
-  ⊑-tgt-wf (seqʷ p q) = ⊑-tgt-wf q
   ⊑-tgt-wf (tag _ _ _ _) = wf★
   ⊑-tgt-wf (tag-seq _ _ _ _ _ _) = wf★
   ⊑-tgt-wf (unseal _ hA _ _) = hA
   ⊑-tgt-wf (unseal-seq _ _ _ p _) = ⊑-tgt-wf p
-  ⊑-tgt-wf (unseal-tail _ _ hB _ _ _) = hB
   ⊑-tgt-wf (inst _ _ hB _ _) = hB
 
   ⊒-src-wf : ∀ {μ Δ Σ c A B}
@@ -274,12 +239,10 @@ mutual
   ⊒-src-wf (idᵃ _ hA) = hA
   ⊒-src-wf (p ↦ q) = wf⇒ (⊑-tgt-wf p) (⊒-src-wf q)
   ⊒-src-wf (∀ⁿ p) = wf∀ (⊒-src-wf p)
-  ⊒-src-wf (seqⁿ p q) = ⊒-src-wf p
   ⊒-src-wf (untag _ _ _ _) = wf★
   ⊒-src-wf (untag-seq _ _ _ _ _ _) = wf★
   ⊒-src-wf (seal _ hA _ _) = hA
   ⊒-src-wf (seal-seq p _ _ _ _) = ⊒-src-wf p
-  ⊒-src-wf (seal-head _ hA _ _ _ _) = hA
   ⊒-src-wf (gen _ _ hB _ _) = hB
 
   ⊒-tgt-wf : ∀ {μ Δ Σ c A B}
@@ -288,12 +251,10 @@ mutual
   ⊒-tgt-wf (idᵃ _ hA) = hA
   ⊒-tgt-wf (p ↦ q) = wf⇒ (⊑-src-wf p) (⊒-tgt-wf q)
   ⊒-tgt-wf (∀ⁿ p) = wf∀ (⊒-tgt-wf p)
-  ⊒-tgt-wf (seqⁿ p q) = ⊒-tgt-wf q
   ⊒-tgt-wf (untag G hG _ G꞉B) = tag-type-wf hG G꞉B
   ⊒-tgt-wf (untag-seq _ _ _ _ p _) = ⊒-tgt-wf p
   ⊒-tgt-wf (seal X<Δ _ _ _) = wfVar X<Δ
   ⊒-tgt-wf (seal-seq _ X<Δ _ _ _) = wfVar X<Δ
-  ⊒-tgt-wf (seal-head _ _ _ _ p _) = ⊒-tgt-wf p
   ⊒-tgt-wf (gen _ _ _ p _) = wf∀ (⊒-tgt-wf p)
 
 ⊑-wf : ∀ {μ Δ Σ c A B}
@@ -319,8 +280,6 @@ mutual
   widening-typing (p ↦ q) =
     cast-fun (narrowing-typing p) (widening-typing q)
   widening-typing (∀ʷ p) = cast-all (widening-typing p)
-  widening-typing (seqʷ p q) =
-    cast-seq (widening-typing p) (widening-typing q)
   widening-typing (tag G hG allowed G꞉A) =
     cast-tag hG allowed G꞉A
   widening-typing (tag-seq G p hG allowed G꞉B _) =
@@ -331,10 +290,6 @@ mutual
     cast-seq
       (cast-unseal (⊑-src-wf p) X,A∈Σ allowed)
       (widening-typing p)
-  widening-typing (unseal-tail p _ hB X,B∈Σ allowed _) =
-    cast-seq
-      (widening-typing p)
-      (cast-unseal hB X,B∈Σ allowed)
   widening-typing (inst _ zero∈A hB p _) =
     cast-inst hB zero∈A (widening-typing p)
 
@@ -345,8 +300,6 @@ mutual
   narrowing-typing (p ↦ q) =
     cast-fun (widening-typing p) (narrowing-typing q)
   narrowing-typing (∀ⁿ p) = cast-all (narrowing-typing p)
-  narrowing-typing (seqⁿ p q) =
-    cast-seq (narrowing-typing p) (narrowing-typing q)
   narrowing-typing (untag G hG allowed G꞉B) =
     cast-untag hG allowed G꞉B
   narrowing-typing (untag-seq G hG allowed G꞉A p _) =
@@ -359,10 +312,6 @@ mutual
     cast-seq
       (narrowing-typing p)
       (cast-seal (⊒-tgt-wf p) X,B∈Σ allowed)
-  narrowing-typing (seal-head _ hA X,A∈Σ allowed p _) =
-    cast-seq
-      (cast-seal hA X,A∈Σ allowed)
-      (narrowing-typing p)
   narrowing-typing (gen _ zero∈A hB p _) =
     cast-gen hB zero∈A (narrowing-typing p)
 
@@ -425,35 +374,3 @@ wrap-seal {X = X} {A = A}
 wrap-seal {X = X} {c = c}
     p X<Δ X,B∈Σ allowed | no A≢B =
   (c ︔ seal X) , seal-seq p X<Δ X,B∈Σ allowed A≢B
-
-wrap-unseal-tail : ∀ {μ Δ Σ X c A B}
-  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ ＇ X
-  → X < Δ
-  → WfTy Δ B
-  → (X , B) ∈ Σ
-  → sealModeAllowed (μ X) ≡ true
-  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ A ⊑ B
-wrap-unseal-tail {X = X} {A = A}
-    p X<Δ hB X,B∈Σ allowed with A ≟Ty ＇ X
-wrap-unseal-tail {X = X} p X<Δ hB X,B∈Σ allowed | yes refl =
-  unseal X , unseal X<Δ hB X,B∈Σ allowed
-wrap-unseal-tail {X = X} {c = c}
-    p X<Δ hB X,B∈Σ allowed | no A≢X =
-  (c ︔ unseal X) ,
-  unseal-tail p X<Δ hB X,B∈Σ allowed A≢X
-
-wrap-seal-head : ∀ {μ Δ Σ X c A B}
-  → X < Δ
-  → WfTy Δ A
-  → (X , A) ∈ Σ
-  → sealModeAllowed (μ X) ≡ true
-  → μ ∣ Δ ∣ Σ ⊢ c ⦂ ＇ X ⊒ B
-  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ A ⊒ B
-wrap-seal-head {X = X} {B = B}
-    X<Δ hA X,A∈Σ allowed p with ＇ X ≟Ty B
-wrap-seal-head {X = X} X<Δ hA X,A∈Σ allowed p | yes refl =
-  seal X , seal X<Δ hA X,A∈Σ allowed
-wrap-seal-head {X = X} {c = c}
-    X<Δ hA X,A∈Σ allowed p | no X≢B =
-  (seal X ︔ c) ,
-  seal-head X<Δ hA X,A∈Σ allowed p X≢B

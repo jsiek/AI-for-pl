@@ -4,7 +4,7 @@ module proof.LeftNarrowWidenProof where
 --   * Proves the administrative and inert Left Narrowing/Widening cases.
 --   * Uses one-context cast evidence directly.
 --   * Uses endpoint matching instead of coercion duality or equations.
---   * Leaves the active tag, seal, sequence, and instantiation cases open.
+--   * Leaves the active tag, seal, and instantiation cases open.
 
 open import Data.List using ([]; _∷_)
 open import Data.Product using (_,_)
@@ -37,8 +37,6 @@ left-narrowing {V = V} {d = `∀ c} {σ = σ} {p = p}
   [] , V ⟨ `∀ c ⟩ , ↠-refl , (vV ⟨ `∀ c ⟩) ,
   σ , p ,
   castⁿ⊒ {s⦂ = ∀ⁿ c⊒} V⊒V′ eq
-left-narrowing {d⊒ = seqⁿ c⊒ d⊒} vV vV′ V⊒V′ eq =
-  {!!}
 left-narrowing
     {d⊒ = untag G hG allowed G꞉B}
     vV vV′ V⊒V′ eq =
@@ -55,10 +53,6 @@ left-narrowing {V = V} {d = seal X} {σ = σ} {p = p}
   castⁿ⊒ {s⦂ = seal X<Δ hA X,A∈Σ allowed} V⊒V′ eq
 left-narrowing
     {d⊒ = seal-seq c⊒ X<Δ X,B∈Σ allowed A≢B}
-    vV vV′ V⊒V′ eq =
-  {!!}
-left-narrowing
-    {d⊒ = seal-head X<Δ hA X,A∈Σ allowed c⊒ X≢B}
     vV vV′ V⊒V′ eq =
   {!!}
 left-narrowing {V = V} {d = gen c} {σ = σ} {p = p}
@@ -90,8 +84,6 @@ left-widening {V = V} {u = `∀ c} {σ = σ} {r = r}
   [] , V ⟨ `∀ c ⟩ , ↠-refl , (vV ⟨ `∀ c ⟩) ,
   σ , r ,
   castʷ⊒ {s⦂ = ∀ʷ c⊑} V⊒V′ eq
-left-widening {u⊑ = seqʷ c⊑ d⊑} vV vV′ V⊒V′ eq =
-  {!!}
 left-widening {V = V} {u = G !} {σ = σ} {r = r}
     {u⊑ = tag G hG allowed G꞉A} vV vV′ V⊒V′ eq =
   [] , V ⟨ G ! ⟩ , ↠-refl , (vV ⟨ G ! ⟩) ,
@@ -107,10 +99,6 @@ left-widening
   {!!}
 left-widening
     {u⊑ = unseal-seq X<Δ X,A∈Σ allowed c⊑ A≢B}
-    vV vV′ V⊒V′ eq =
-  {!!}
-left-widening
-    {u⊑ = unseal-tail c⊑ X<Δ hB X,B∈Σ allowed A≢X}
     vV vV′ V⊒V′ eq =
   {!!}
 left-widening

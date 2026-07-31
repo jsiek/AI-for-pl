@@ -20,6 +20,7 @@ open import Types
 open import TyStore
 open import Coercions
 open import NarrowWiden
+open import proof.ImprecisionComposition using (_⨟ⁿ_; _⨟ʷ_)
 
 ------------------------------------------------------------------------
 -- Mode and store changes performed by duality
@@ -345,104 +346,22 @@ mutual
       with narrowing-dualᵐ (ext-action rel) (ext-store ds) p
   narrowing-dualᵐ rel ds (∀ⁿ p) | c , p′ =
     `∀ c , ∀ʷ p′
-  narrowing-dualᵐ rel ds (seqⁿ p q)
-      with narrowing-dualᵐ rel ds q | narrowing-dualᵐ rel ds p
-  narrowing-dualᵐ rel ds (seqⁿ p q)
-      | d , q′ | c , p′ =
-    (d ︔ c) , seqʷ q′ p′
   narrowing-dualᵐ rel ds (untag G hG allowed G꞉A) =
     dual-untag rel ds hG allowed G꞉A
   narrowing-dualᵐ rel ds
       (untag-seq G hG allowed G꞉A p A≢B)
       with narrowing-dualᵐ rel ds p
-  narrowing-dualᵐ {μ = μ} {η = η} {ν = ν} rel ds
-      (untag-seq (＇ X) hG allowed G꞉A p A≢B)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  narrowing-dualᵐ {ν = ν} rel ds
-      (untag-seq (＇ X) hG allowed G꞉A p A≢B)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  narrowing-dualᵐ {ν = ν} rel ds
-      (untag-seq (＇ X) hG allowed G꞉A p A≢B)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | refl =
-    wrap-tag p′ hG (tag-var-allowed ν X να) G꞉A
-  narrowing-dualᵐ {ν = ν} rel ds
-      (untag-seq (＇ X) (wfTagVar X<Δ) allowed G꞉A p A≢B)
-      | d , p′
-      | seal-or-id | normal | seal-or-id | normal-seal | ()
-  narrowing-dualᵐ {ν = ν} rel ds
-      (untag-seq (＇ X) (wfTagVar X<Δ) allowed (tag-var .X) p A≢B)
-      | d , p′
-      | tag-or-id | tag-to-seal | seal-or-id | tag-seal | refl =
-    wrap-unseal-tail p′ X<Δ wf★ (tag★∈ ds X<Δ ηα)
-      (seal-var-allowed ν X να)
-  narrowing-dualᵐ {ν = ν} rel ds
-      (untag-seq (＇ X) hG allowed G꞉A p A≢B)
-      | d , p′
-      | seal-or-id | seal-to-tag | tag-or-id | seal-tag | ()
   narrowing-dualᵐ rel ds
-      (untag-seq (‵ ι) hG allowed G꞉A p A≢B)
-      | d , p′ =
-    wrap-tag p′ hG refl G꞉A
-  narrowing-dualᵐ rel ds
-      (untag-seq ★⇒★ hG allowed G꞉A p A≢B)
-      | d , p′ =
-    wrap-tag p′ hG refl G꞉A
+      (untag-seq G hG allowed G꞉A p A≢B) | d , p′ =
+    (d , p′) ⨟ʷ dual-untag rel ds hG allowed G꞉A
   narrowing-dualᵐ rel ds (seal X<Δ hA X,A∈Σ allowed) =
     dual-seal rel ds X<Δ hA X,A∈Σ allowed
-  narrowing-dualᵐ {ν = ν} {B = ＇ X} rel ds
+  narrowing-dualᵐ rel ds
       (seal-seq p X<Δ X,B∈Σ allowed A≢B)
       with narrowing-dualᵐ rel ds p
-  narrowing-dualᵐ {μ = μ} {η = η} {ν = ν} {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  narrowing-dualᵐ {ν = ν} {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  narrowing-dualᵐ {ν = ν} {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | ()
-  narrowing-dualᵐ {ν = ν} {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′ | seal-or-id | normal | seal-or-id | normal-seal | refl =
-    wrap-unseal X<Δ (seal∈ ds μα ηα να X,B∈Σ)
-      (seal-var-allowed ν X να) p′
-  narrowing-dualᵐ {ν = ν} {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′ | tag-or-id | tag-to-seal | seal-or-id | tag-seal | ()
-  narrowing-dualᵐ {B = ＇ X} rel ds
-      (seal-seq p X<Δ X,B∈Σ allowed A≢B)
-      | d , p′ | seal-or-id | seal-to-tag | tag-or-id | seal-tag | refl
-      rewrite seal★ ds ηα X,B∈Σ =
-    ⊥-elim (A≢B (narrowing-to-star p))
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      with narrowing-dualᵐ rel ds p
-  narrowing-dualᵐ {μ = μ} {η = η} {ν = ν}
-      {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | ()
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′ | seal-or-id | normal | seal-or-id | normal-seal | refl =
-    wrap-unseal-tail p′ X<Δ hA
-      (seal∈ ds μα ηα να X,A∈Σ) (seal-var-allowed ν X να)
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′ | tag-or-id | tag-to-seal | seal-or-id | tag-seal | ()
-  narrowing-dualᵐ {ν = ν} {c = seal X ︔ c} rel ds
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢B)
-      | d , p′ | seal-or-id | seal-to-tag | tag-or-id | seal-tag | refl
-      rewrite seal★ ds ηα X,A∈Σ =
-    wrap-tag p′ (wfTagVar X<Δ) (tag-var-allowed ν X να) (tag-var X)
+  narrowing-dualᵐ rel ds
+      (seal-seq p X<Δ X,B∈Σ allowed A≢B) | d , p′ =
+    dual-seal rel ds X<Δ (⊒-tgt-wf p) X,B∈Σ allowed ⨟ʷ (d , p′)
   narrowing-dualᵐ rel ds (gen nonvarA zero∈A hB p B≢★)
       with narrowing-dualᵐ
         (gen-inst-action rel) (gen-inst-store ds) p
@@ -466,148 +385,28 @@ mutual
       with widening-dualᵐ (ext-action rel) (ext-store ds) p
   widening-dualᵐ rel ds (∀ʷ p) | c , p′ =
     `∀ c , ∀ⁿ p′
-  widening-dualᵐ rel ds (seqʷ p q)
-      with widening-dualᵐ rel ds q | widening-dualᵐ rel ds p
-  widening-dualᵐ rel ds (seqʷ p q)
-      | d , q′ | c , p′ =
-    (d ︔ c) , seqⁿ q′ p′
   widening-dualᵐ rel ds (tag G hG allowed G꞉A) =
     dual-tag rel ds hG allowed G꞉A
   widening-dualᵐ rel ds (tag-seq G p hG allowed G꞉B A≢B)
       with widening-dualᵐ rel ds p
-  widening-dualᵐ {μ = μ} {η = η} {ν = ν} rel ds
-      (tag-seq (＇ X) p hG allowed G꞉B A≢B)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  widening-dualᵐ {ν = ν} rel ds
-      (tag-seq (＇ X) p hG allowed G꞉B A≢B)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  widening-dualᵐ {ν = ν} rel ds
-      (tag-seq (＇ X) p hG allowed G꞉B A≢B)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | refl =
-    wrap-untag hG (tag-var-allowed ν X να) G꞉B p′
-  widening-dualᵐ {ν = ν} rel ds
-      (tag-seq (＇ X) p (wfTagVar X<Δ) allowed G꞉B A≢B)
-      | d , p′
-      | seal-or-id | normal | seal-or-id | normal-seal | ()
-  widening-dualᵐ {ν = ν} rel ds
-      (tag-seq (＇ X) p (wfTagVar X<Δ) allowed (tag-var .X) A≢B)
-      | d , p′
-      | tag-or-id | tag-to-seal | seal-or-id | tag-seal | refl =
-    wrap-seal-head X<Δ wf★ (tag★∈ ds X<Δ ηα)
-      (seal-var-allowed ν X να) p′
-  widening-dualᵐ {ν = ν} rel ds
-      (tag-seq (＇ X) p hG allowed G꞉B A≢B)
-      | d , p′
-      | seal-or-id | seal-to-tag | tag-or-id | seal-tag | ()
-  widening-dualᵐ rel ds
-      (tag-seq (‵ ι) p hG allowed G꞉B A≢B)
+  widening-dualᵐ rel ds (tag-seq G p hG allowed G꞉B A≢B)
       | d , p′ =
-    wrap-untag hG refl G꞉B p′
-  widening-dualᵐ rel ds
-      (tag-seq ★⇒★ p hG allowed G꞉B A≢B)
-      | d , p′ =
-    wrap-untag hG refl G꞉B p′
+    dual-tag rel ds hG allowed G꞉B ⨟ⁿ (d , p′)
   widening-dualᵐ rel ds (unseal X<Δ hA X,A∈Σ allowed) =
     dual-unseal rel ds X<Δ hA X,A∈Σ allowed
-  widening-dualᵐ {ν = ν} {A = ＇ X} rel ds
+  widening-dualᵐ rel ds
       (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
       with widening-dualᵐ rel ds p
-  widening-dualᵐ {μ = μ} {η = η} {ν = ν} {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  widening-dualᵐ {ν = ν} {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  widening-dualᵐ {ν = ν} {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | ()
-  widening-dualᵐ {ν = ν} {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′ | seal-or-id | normal | seal-or-id | normal-seal | refl =
-    wrap-seal p′ X<Δ (seal∈ ds μα ηα να X,A∈Σ)
-      (seal-var-allowed ν X να)
-  widening-dualᵐ {ν = ν} {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′ | tag-or-id | tag-to-seal | seal-or-id | tag-seal | ()
-  widening-dualᵐ {A = ＇ X} rel ds
-      (unseal-seq X<Δ X,A∈Σ allowed p A≢B)
-      | d , p′ | seal-or-id | seal-to-tag | tag-or-id | seal-tag | refl
-      rewrite seal★ ds ηα X,A∈Σ =
-    ⊥-elim (A≢B (sym (widening-from-star p)))
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      with widening-dualᵐ rel ds p
-  widening-dualᵐ {μ = μ} {η = η} {ν = ν}
-      {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′
-      with μ X in μα | η X in ηα | ν X in να | rel X | allowed
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′ | id-only | normal | id-only | normal-id | ()
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′ | tag-or-id | normal | tag-or-id | normal-tag | ()
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′ | seal-or-id | normal | seal-or-id | normal-seal | refl =
-    wrap-seal-head X<Δ hB (seal∈ ds μα ηα να X,B∈Σ)
-      (seal-var-allowed ν X να) p′
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′ | tag-or-id | tag-to-seal | seal-or-id | tag-seal | ()
-  widening-dualᵐ {ν = ν} {c = c ︔ unseal X} rel ds
-      (unseal-tail p X<Δ hB X,B∈Σ allowed A≢X)
-      | d , p′ | seal-or-id | seal-to-tag | tag-or-id | seal-tag | refl
-      rewrite seal★ ds ηα X,B∈Σ =
-    wrap-untag (wfTagVar X<Δ) (tag-var-allowed ν X να)
-      (tag-var X) p′
+  widening-dualᵐ rel ds
+      (unseal-seq X<Δ X,A∈Σ allowed p A≢B) | d , p′ =
+    (d , p′) ⨟ⁿ
+      dual-unseal rel ds X<Δ (⊑-src-wf p) X,A∈Σ allowed
   widening-dualᵐ rel ds (inst nonvarA zero∈A hB p B≢★)
       with widening-dualᵐ
         (inst-gen-action rel) (inst-gen-store ds) p
   widening-dualᵐ rel ds (inst nonvarA zero∈A hB p B≢★)
       | c , p′ =
     gen c , gen nonvarA zero∈A hB p′ B≢★
-
-  narrowing-to-star : ∀ {μ Δ Σ c A}
-    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ ★
-    → A ≡ ★
-  narrowing-to-star (idᵃ ★ hA) = refl
-  narrowing-to-star (seqⁿ p q)
-      with narrowing-to-star q
-  narrowing-to-star (seqⁿ p q) | refl =
-    narrowing-to-star p
-  narrowing-to-star
-      (untag-seq G hG allowed G꞉A p A≢★)
-      with narrowing-to-star p
-  narrowing-to-star
-      (untag-seq G hG allowed () p A≢★) | refl
-  narrowing-to-star
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢★)
-      with narrowing-to-star p
-  narrowing-to-star
-      (seal-head X<Δ hA X,A∈Σ allowed p X≢★) | ()
-
-  widening-from-star : ∀ {μ Δ Σ c B}
-    → μ ∣ Δ ∣ Σ ⊢ c ⦂ ★ ⊑ B
-    → B ≡ ★
-  widening-from-star (idᵃ ★ hA) = refl
-  widening-from-star (seqʷ p q)
-      with widening-from-star p
-  widening-from-star (seqʷ p q) | refl =
-    widening-from-star q
-  widening-from-star
-      (tag-seq G p hG allowed G꞉A ★≢A)
-      with widening-from-star p
-  widening-from-star
-      (tag-seq G p hG allowed () ★≢A) | refl
-  widening-from-star
-      (unseal-tail p X<Δ hB X,B∈Σ allowed ★≢X)
-      with widening-from-star p
-  widening-from-star
-      (unseal-tail p X<Δ hB X,B∈Σ allowed ★≢X) | ()
 
 ------------------------------------------------------------------------
 -- Public same-world duals

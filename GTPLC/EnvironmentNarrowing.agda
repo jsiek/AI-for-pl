@@ -12,7 +12,8 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; _<_; zero; suc; s≤s)
 open import Data.Product using (_×_; _,_; proj₂; ∃-syntax)
 open import Data.Unit using (tt)
-open import Relation.Binary.PropositionalEquality using (_≡_; cong; cong₂; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; cong; cong₂; refl)
 
 open import Types hiding (_∋_⦂_)
 open import TyStore
@@ -25,6 +26,7 @@ open import NarrowWiden using
   ( _∣_∣_⊢_⦂_⊑_
   ; _∣_∣_⊢_⦂_⊒_
   ; _∣_∣_⊢_⊑_
+  ; _∣_∣_⊢_⊒_
   )
 open import proof.ImprecisionModeWeakening using
   ( ext-gen-incl
@@ -63,7 +65,7 @@ data _∣_⊢_⊒ˢ_⊣_ {Δᴸ Δᴿ} (Φ : ImpCtx Δᴸ Δᴿ) :
     → Φ ∣ Δᴸ ⊢ (α , ★) ∷ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ
 
   rightˢ : ∀ {Σᴸ Σᴿ β B}
-    → Φ ⊢★≈ β
+    → Φ ⊢ β ˣᴿ
     → WfTy Δᴿ B
     → Φ ∣ Δᴸ ⊢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ
       --------------------------------------------------
@@ -73,30 +75,32 @@ data _∣_⊢_⊒ˢ_⊣_ {Δᴸ Δᴿ} (Φ : ImpCtx Δᴸ Δᴿ) :
 -- Term-context narrowing
 ------------------------------------------------------------------------
 
-data CtxNarrowing {Δᴸ Δᴿ} (Φ : ImpCtx Δᴸ Δᴿ) :
-    Ctx → Ctx → Set where
+data CtxNarrowing {Δᴸ Δᴿ}
+    (μᴸ : ModeEnv) (Σᴸ : TyStore) (Φ : ImpCtx Δᴸ Δᴿ)
+    (μᴿ : ModeEnv) (Σᴿ : TyStore) : Ctx → Ctx → Set where
 
   []ᵍ :
-      ----------------
-      CtxNarrowing Φ [] []
+      -------------------------------------
+      CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ [] []
 
   bothᵍ : ∀ {Γᴸ Γᴿ A B}
-    → Φ ⊢ A ⊒ᶠ B
-    → CtxNarrowing Φ Γᴸ Γᴿ
-      -----------------------------
-    → CtxNarrowing Φ (A ∷ Γᴸ) (B ∷ Γᴿ)
+    → μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B
+    → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ
+      --------------------------------------------------
+    → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ (A ∷ Γᴸ) (B ∷ Γᴿ)
 
 private
 
   ⇑ˢ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
     → Φ ∣ Δᴸ ⊢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ
-    → bothᵢ Φ ∣ suc Δᴸ ⊢ ⟰ᵗ Σᴸ ⊒ˢ ⟰ᵗ Σᴿ ⊣ suc Δᴿ
+    → bothᵢ Φ ∣ suc Δᴸ
+        ⊢ ⟰ᵗ Σᴸ ⊒ˢ ⟰ᵗ Σᴿ ⊣ suc Δᴿ
   ⇑ˢ []ˢ = []ˢ
   ⇑ˢ (bothˢ X≈Y p σ) =
     bothˢ (both-thereᵢ X≈Y) (⇑ʳ p) (⇑ˢ σ)
   ⇑ˢ (leftˢ α<Δ σ) = leftˢ (s≤s α<Δ) (⇑ˢ σ)
-  ⇑ˢ (rightˢ ★≈Y hB σ) =
-    rightˢ (both-thereᴿ ★≈Y)
+  ⇑ˢ (rightˢ Yᴿ hB σ) =
+    rightˢ (both-thereᴿ Yᴿ)
       (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
       (⇑ˢ σ)
 
@@ -107,8 +111,8 @@ private
   ⇑ᴿˢ (bothˢ X≈Y p σ) =
     bothˢ (freshᴿ-thereᵢ X≈Y) (⇑ᴿʳ p) (⇑ᴿˢ σ)
   ⇑ᴿˢ (leftˢ α<Δ σ) = leftˢ α<Δ (⇑ᴿˢ σ)
-  ⇑ᴿˢ (rightˢ ★≈Y hB σ) =
-    rightˢ (freshᴿ-thereᴿ ★≈Y)
+  ⇑ᴿˢ (rightˢ Yᴿ hB σ) =
+    rightˢ (freshᴿ-thereᴿ Yᴿ)
       (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
       (⇑ᴿˢ σ)
 
@@ -121,37 +125,41 @@ private
   smart-⇑ᴿˢ reuseᵢ []ˢ = []ˢ
   smart-⇑ᴿˢ reuseᵢ
       (bothˢ (freshᴸ-thereᵢ X≈Y) p σ) =
-    {!!}
+    bothˢ (both-thereᵢ X≈Y) (⇑ᴿ-reuseʳ p)
+      (smart-⇑ᴿˢ reuseᵢ σ)
   smart-⇑ᴿˢ reuseᵢ (leftˢ α<Δ σ) =
     leftˢ α<Δ (smart-⇑ᴿˢ reuseᵢ σ)
   smart-⇑ᴿˢ reuseᵢ
-      (rightˢ (freshᴸ-thereᴿ ★≈Y) hB σ) =
-    rightˢ (both-thereᴿ ★≈Y)
+      (rightˢ (freshᴸ-thereᴿ Yᴿ) hB σ) =
+    rightˢ (both-thereᴿ Yᴿ)
       (renameᵗ-preserves-WfTy hB TyRenameWf-suc)
       (smart-⇑ᴿˢ reuseᵢ σ)
 
-  ⇑ᵍ : ∀ {Δᴸ Δᴿ Γᴸ Γᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
-    → CtxNarrowing Φ Γᴸ Γᴿ
-    → CtxNarrowing (bothᵢ Φ) (⤊ᵗ Γᴸ) (⤊ᵗ Γᴿ)
+  ⇑ᵍ : ∀ {Δᴸ Δᴿ μᴸ μᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+      {Φ : ImpCtx Δᴸ Δᴿ}
+    → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ
+    → CtxNarrowing (extᵈ μᴸ) (⟰ᵗ Σᴸ) (bothᵢ Φ)
+        (extᵈ μᴿ) (⟰ᵗ Σᴿ) (⤊ᵗ Γᴸ) (⤊ᵗ Γᴿ)
   ⇑ᵍ []ᵍ = []ᵍ
   ⇑ᵍ (bothᵍ p γ) = bothᵍ (⇑ᶠ p) (⇑ᵍ γ)
 
-  ⇑ᴿᵍ : ∀ {Δᴸ Δᴿ Γᴸ Γᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
-    → CtxNarrowing Φ Γᴸ Γᴿ
-    → CtxNarrowing (freshᴿ Φ) Γᴸ (⤊ᵗ Γᴿ)
+  ⇑ᴿᵍ : ∀ {Δᴸ Δᴿ μᴸ μᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+      {Φ : ImpCtx Δᴸ Δᴿ}
+    → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ
+    → CtxNarrowing μᴸ Σᴸ (freshᴿ Φ)
+        (genᵈ μᴿ) (⟰ᵗ Σᴿ) Γᴸ (⤊ᵗ Γᴿ)
   ⇑ᴿᵍ []ᵍ = []ᵍ
   ⇑ᴿᵍ (bothᵍ p γ) = bothᵍ (⇑ᴿᶠ p) (⇑ᴿᵍ γ)
 
-  smart-⇑ᴿᵍ : ∀ {Δᴸ Δᴿ Γᴸ Γᴿ}
+  smart-⇑ᴿᵍ : ∀ {Δᴸ Δᴿ μᴸ μᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
       {Φ : ImpCtx Δᴸ Δᴿ} {Ψ : ImpCtx Δᴸ (suc Δᴿ)}
     → SmartExtensionᵢ Φ Ψ
-    → CtxNarrowing Φ Γᴸ Γᴿ
-    → CtxNarrowing Ψ Γᴸ (⤊ᵗ Γᴿ)
-  smart-⇑ᴿᵍ freshᵢ γ = ⇑ᴿᵍ γ
-  smart-⇑ᴿᵍ reuseᵢ []ᵍ = []ᵍ
-  smart-⇑ᴿᵍ reuseᵢ (bothᵍ p γ) =
-    bothᵍ (smart-⇑ᴿᶠ reuseᵢ p)
-      (smart-⇑ᴿᵍ reuseᵢ γ)
+    → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ
+    → CtxNarrowing μᴸ Σᴸ Ψ
+        (genᵈ μᴿ) (⟰ᵗ Σᴿ) Γᴸ (⤊ᵗ Γᴿ)
+  smart-⇑ᴿᵍ extension []ᵍ = []ᵍ
+  smart-⇑ᴿᵍ extension (bothᵍ p γ) =
+    bothᵍ (smart-⇑ᴿᶠ extension p) (smart-⇑ᴿᵍ extension γ)
 
 ------------------------------------------------------------------------
 -- Term-context narrowing lookup
@@ -159,20 +167,23 @@ private
 
 infix 4 _∋_⦂_
 
-data _∋_⦂_ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ} :
-    ∀ {Γᴸ Γᴿ} → CtxNarrowing Φ Γᴸ Γᴿ
-      → ℕ → {A B : Ty} → Φ ⊢ A ⊒ᶠ B → Set where
+data _∋_⦂_ {Δᴸ Δᴿ μᴸ μᴿ Σᴸ Σᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ} :
+    ∀ {Γᴸ Γᴿ} → CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ
+      → ℕ → {A B : Ty}
+      → μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B
+      → Set where
 
   Zⁿ : ∀ {Γᴸ Γᴿ A B}
-      {p : Φ ⊢ A ⊒ᶠ B}
-      {γ : CtxNarrowing Φ Γᴸ Γᴿ}
+      {p : μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B}
+      {γ : CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ}
       --------------------------------
     → bothᵍ p γ ∋ zero ⦂ p
 
   Sⁿ : ∀ {Γᴸ Γᴿ A B C D x}
-      {p : Φ ⊢ A ⊒ᶠ B}
-      {q : Φ ⊢ C ⊒ᶠ D}
-      {γ : CtxNarrowing Φ Γᴸ Γᴿ}
+      {p : μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B}
+      {q : μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ C ⊒ᶠ D}
+      {γ : CtxNarrowing μᴸ Σᴸ Φ μᴿ Σᴿ Γᴸ Γᴿ}
     → γ ∋ x ⦂ p
       --------------------------------
     → bothᵍ q γ ∋ suc x ⦂ p
@@ -181,21 +192,16 @@ data _∋_⦂_ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ} :
 -- Bundled narrowing environments
 ------------------------------------------------------------------------
 
-infix 3 _∣_∣_
-
 record NarrowingEnv {Δᴸ Δᴿ} (Φ : ImpCtx Δᴸ Δᴿ)
     {Σᴸ Σᴿ : TyStore} {Γᴸ Γᴿ : Ctx} : Set where
   constructor env
   field
+    modeᴸ : ModeEnv
     storeⁿ : Φ ∣ Δᴸ ⊢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ
-    contextⁿ : CtxNarrowing Φ Γᴸ Γᴿ
+    modeᴿ : ModeEnv
+    contextⁿ : CtxNarrowing modeᴸ Σᴸ Φ modeᴿ Σᴿ Γᴸ Γᴿ
 
-_∣_∣_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
-    (Φ : ImpCtx Δᴸ Δᴿ)
-  → Φ ∣ Δᴸ ⊢ Σᴸ ⊒ˢ Σᴿ ⊣ Δᴿ
-  → CtxNarrowing Φ Γᴸ Γᴿ
-  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
-Φ ∣ σ ∣ γ = env σ γ
+open NarrowingEnv public
 
 ------------------------------------------------------------------------
 -- Operators on bundled narrowing environments
@@ -203,13 +209,16 @@ _∣_∣_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
 
 ⇑ᵉ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
   → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
-  → NarrowingEnv (bothᵢ Φ) {⟰ᵗ Σᴸ} {⟰ᵗ Σᴿ} {⤊ᵗ Γᴸ} {⤊ᵗ Γᴿ}
-⇑ᵉ (env σ γ) = env (⇑ˢ σ) (⇑ᵍ γ)
+  → NarrowingEnv (bothᵢ Φ)
+      {⟰ᵗ Σᴸ} {⟰ᵗ Σᴿ} {⤊ᵗ Γᴸ} {⤊ᵗ Γᴿ}
+⇑ᵉ (env μᴸ σ μᴿ γ) =
+  env (extᵈ μᴸ) (⇑ˢ σ) (extᵈ μᴿ) (⇑ᵍ γ)
 
 ⇑ᴿᵉ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
   → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
   → NarrowingEnv (freshᴿ Φ) {Σᴸ} {⟰ᵗ Σᴿ} {Γᴸ} {⤊ᵗ Γᴿ}
-⇑ᴿᵉ (env σ γ) = env (⇑ᴿˢ σ) (⇑ᴿᵍ γ)
+⇑ᴿᵉ (env μᴸ σ μᴿ γ) =
+  env μᴸ (⇑ᴿˢ σ) (genᵈ μᴿ) (⇑ᴿᵍ γ)
 
 smart-⇑ᴿᵉ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
     {Φ : ImpCtx Δᴸ Δᴿ}
@@ -217,8 +226,9 @@ smart-⇑ᴿᵉ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
   → SmartExtensionᵢ Φ Ψ
   → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
   → NarrowingEnv Ψ {Σᴸ} {⟰ᵗ Σᴿ} {Γᴸ} {⤊ᵗ Γᴿ}
-smart-⇑ᴿᵉ extension (env σ γ) =
-  env (smart-⇑ᴿˢ extension σ) (smart-⇑ᴿᵍ extension γ)
+smart-⇑ᴿᵉ extension (env μᴸ σ μᴿ γ) =
+  env μᴸ (smart-⇑ᴿˢ extension σ) (genᵈ μᴿ)
+    (smart-⇑ᴿᵍ extension γ)
 
 data SmartExtensionᵉ :
     ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
@@ -252,6 +262,10 @@ extensionᵉ reuseᵉ = reuseᵢ
 
 infix 4 _⊢ᵀ_⊒_
 infix 4 _⊢ᴸ_ _⊢ᴿ_
+infix 4 _⊢ᴸⁿ_⊒_ _⊢ᴿⁿ_⊒_
+infix 4 _⊢ᴿ⁺[_]_⦂_⊒_
+infix 4 _⊢ᴸⁿ_⦂_⊒_ _⊢ᴸʷ_⦂_⊑_
+infix 4 _⊢ᴿⁿ_⦂_⊒_ _⊢ᴿʷ_⦂_⊑_
 infix 4 _⊢ᴸ_⦂_ _⊢ᴿ_⦂_
 infix 4 _∣_⊢ᴸ_⦂_⊑_ _∣_⊢ᴸ_⦂_⊒_
 infix 4 _∣_⊢ᴿ_⦂_⊑_ _∣_⊢ᴿ_⦂_⊒_
@@ -263,7 +277,64 @@ _⊢ᵀ_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
     {Φ : ImpCtx Δᴸ Δᴿ}
   → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
   → Ty → Ty → Set
-_⊢ᵀ_⊒_ {Φ = Φ} ρ A B = Φ ⊢ A ⊒ᶠ B
+_⊢ᵀ_⊒_ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {Φ = Φ}
+    (env μᴸ σ μᴿ γ) A B =
+  μᴸ ∣ Σᴸ ∣ Φ ∣ μᴿ ∣ Σᴿ ⊢ A ⊒ᶠ B
+
+_⊢ᴸⁿ_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Ty → Ty → Set
+_⊢ᴸⁿ_⊒_ {Δᴸ = Δᴸ} {Σᴸ = Σᴸ} (env μᴸ σ μᴿ γ) A B =
+  μᴸ ∣ Δᴸ ∣ Σᴸ ⊢ A ⊒ B
+
+_⊢ᴿⁿ_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Ty → Ty → Set
+_⊢ᴿⁿ_⊒_ {Δᴿ = Δᴿ} {Σᴿ = Σᴿ} (env μᴸ σ μᴿ γ) A B =
+  μᴿ ∣ Δᴿ ∣ Σᴿ ⊢ A ⊒ B
+
+_⊢ᴿ⁺[_]_⦂_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Ty → Coercion → Ty → Ty → Set
+_⊢ᴿ⁺[_]_⦂_⊒_ {Δᴿ = Δᴿ} {Σᴿ = Σᴿ}
+    (env μᴸ σ μᴿ γ) R c A B =
+  genᵈ μᴿ ∣ suc Δᴿ ∣ (zero , R) ∷ ⟰ᵗ Σᴿ
+    ⊢ c ⦂ A ⊒ B
+
+_⊢ᴸⁿ_⦂_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Coercion → Ty → Ty → Set
+_⊢ᴸⁿ_⦂_⊒_ {Δᴸ = Δᴸ} {Σᴸ = Σᴸ}
+    (env μᴸ σ μᴿ γ) c A B =
+  μᴸ ∣ Δᴸ ∣ Σᴸ ⊢ c ⦂ A ⊒ B
+
+_⊢ᴸʷ_⦂_⊑_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Coercion → Ty → Ty → Set
+_⊢ᴸʷ_⦂_⊑_ {Δᴸ = Δᴸ} {Σᴸ = Σᴸ}
+    (env μᴸ σ μᴿ γ) c A B =
+  μᴸ ∣ Δᴸ ∣ Σᴸ ⊢ c ⦂ A ⊑ B
+
+_⊢ᴿⁿ_⦂_⊒_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Coercion → Ty → Ty → Set
+_⊢ᴿⁿ_⦂_⊒_ {Δᴿ = Δᴿ} {Σᴿ = Σᴿ}
+    (env μᴸ σ μᴿ γ) c A B =
+  μᴿ ∣ Δᴿ ∣ Σᴿ ⊢ c ⦂ A ⊒ B
+
+_⊢ᴿʷ_⦂_⊑_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
+    {Φ : ImpCtx Δᴸ Δᴿ}
+  → NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
+  → Coercion → Ty → Ty → Set
+_⊢ᴿʷ_⦂_⊑_ {Δᴿ = Δᴿ} {Σᴿ = Σᴿ}
+    (env μᴸ σ μᴿ γ) c A B =
+  μᴿ ∣ Δᴿ ∣ Σᴿ ⊢ c ⦂ A ⊑ B
 
 _⊢ᴸ_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
     {Φ : ImpCtx Δᴸ Δᴿ}
@@ -343,11 +414,12 @@ _∋ᵉ_⦂_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
     {Φ : ImpCtx Δᴸ Δᴿ}
     (ρ : NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ})
   → ℕ → {A B : Ty} → ρ ⊢ᵀ A ⊒ B → Set
-env σ γ ∋ᵉ x ⦂ p = γ ∋ x ⦂ p
+env μᴸ σ μᴿ γ ∋ᵉ x ⦂ p = γ ∋ x ⦂ p
 
 _,ᵍ_ : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ A B}
     {Φ : ImpCtx Δᴸ Δᴿ}
     (ρ : NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ})
   → ρ ⊢ᵀ A ⊒ B
   → NarrowingEnv Φ {Σᴸ} {Σᴿ} {A ∷ Γᴸ} {B ∷ Γᴿ}
-_,ᵍ_ {Φ = Φ} (env σ γ) p = Φ ∣ σ ∣ bothᵍ p γ
+_,ᵍ_ {Φ = Φ} (env μᴸ σ μᴿ γ) p =
+  env μᴸ σ μᴿ (bothᵍ p γ)

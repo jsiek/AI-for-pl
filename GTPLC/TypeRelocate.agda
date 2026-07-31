@@ -3,7 +3,7 @@ module TypeRelocate where
 -- File Charter:
 --   * Defines intrinsically scoped imprecision contexts.
 --   * Defines relocation of types between two related type contexts.
---   * Relates paired variables and maps one-sided variables to dynamic type.
+--   * Relates only variables synchronized on the left and right.
 --   * Excludes dynamic-type narrowing, coercions, and type-store structure.
 --   * Exposes endpoint well-formedness for type relocation.
 
@@ -46,8 +46,7 @@ data ImpCtx : TyCtx → TyCtx → Set where
     → ImpCtx Δᴸ (suc Δᴿ)
 
 infix 4 _⊢_≈ˣ_
-infix 4 _⊢_≈★
-infix 4 _⊢★≈_
+infix 4 _⊢_ˣᴿ
 
 data _⊢_≈ˣ_ : ∀ {Δᴸ Δᴿ}
     → ImpCtx Δᴸ Δᴿ → TyVar → TyVar → Set where
@@ -72,52 +71,30 @@ data _⊢_≈ˣ_ : ∀ {Δᴸ Δᴿ}
     → freshᴿ Φ ⊢ X ≈ˣ suc Y
 
 ------------------------------------------------------------------------
--- Variables present on only one side
+-- Variables present only on the right
 ------------------------------------------------------------------------
 
-data _⊢_≈★ : ∀ {Δᴸ Δᴿ}
-    → ImpCtx Δᴸ Δᴿ → TyVar → Set where
-
-  hereᴸ : ∀ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
-      ----------------------
-    → freshᴸ Φ ⊢ zero ≈★
-
-  both-thereᴸ : ∀ {Δᴸ Δᴿ X} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢ X ≈★
-      -------------------------
-    → bothᵢ Φ ⊢ suc X ≈★
-
-  freshᴸ-thereᴸ : ∀ {Δᴸ Δᴿ X} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢ X ≈★
-      --------------------------
-    → freshᴸ Φ ⊢ suc X ≈★
-
-  freshᴿ-thereᴸ : ∀ {Δᴸ Δᴿ X} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢ X ≈★
-      ----------------------
-    → freshᴿ Φ ⊢ X ≈★
-
-data _⊢★≈_ : ∀ {Δᴸ Δᴿ}
+data _⊢_ˣᴿ : ∀ {Δᴸ Δᴿ}
     → ImpCtx Δᴸ Δᴿ → TyVar → Set where
 
   hereᴿ : ∀ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
-      ----------------------
-    → freshᴿ Φ ⊢★≈ zero
+      --------------------
+    → freshᴿ Φ ⊢ zero ˣᴿ
 
   both-thereᴿ : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢★≈ Y
-      -------------------------
-    → bothᵢ Φ ⊢★≈ suc Y
+    → Φ ⊢ Y ˣᴿ
+      -----------------------
+    → bothᵢ Φ ⊢ suc Y ˣᴿ
 
   freshᴸ-thereᴿ : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢★≈ Y
-      ----------------------
-    → freshᴸ Φ ⊢★≈ Y
+    → Φ ⊢ Y ˣᴿ
+      --------------------
+    → freshᴸ Φ ⊢ Y ˣᴿ
 
   freshᴿ-thereᴿ : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢★≈ Y
-      --------------------------
-    → freshᴿ Φ ⊢★≈ suc Y
+    → Φ ⊢ Y ˣᴿ
+      ------------------------
+    → freshᴿ Φ ⊢ suc Y ˣᴿ
 
 ≈ˣ-left-bound : ∀ {Δᴸ Δᴿ X Y} {Φ : ImpCtx Δᴸ Δᴿ}
   → Φ ⊢ X ≈ˣ Y
@@ -135,21 +112,13 @@ data _⊢★≈_ : ∀ {Δᴸ Δᴿ}
 ≈ˣ-right-bound (freshᴸ-thereᵢ X≈Y) = ≈ˣ-right-bound X≈Y
 ≈ˣ-right-bound (freshᴿ-thereᵢ X≈Y) = s≤s (≈ˣ-right-bound X≈Y)
 
-≈★-left-bound : ∀ {Δᴸ Δᴿ X} {Φ : ImpCtx Δᴸ Δᴿ}
-  → Φ ⊢ X ≈★
-  → X < Δᴸ
-≈★-left-bound hereᴸ = s≤s z≤n
-≈★-left-bound (both-thereᴸ Xᴸ) = s≤s (≈★-left-bound Xᴸ)
-≈★-left-bound (freshᴸ-thereᴸ Xᴸ) = s≤s (≈★-left-bound Xᴸ)
-≈★-left-bound (freshᴿ-thereᴸ Xᴸ) = ≈★-left-bound Xᴸ
-
-★≈-right-bound : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
-  → Φ ⊢★≈ Y
+ˣᴿ-bound : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
+  → Φ ⊢ Y ˣᴿ
   → Y < Δᴿ
-★≈-right-bound hereᴿ = s≤s z≤n
-★≈-right-bound (both-thereᴿ Yᴿ) = s≤s (★≈-right-bound Yᴿ)
-★≈-right-bound (freshᴸ-thereᴿ Yᴿ) = ★≈-right-bound Yᴿ
-★≈-right-bound (freshᴿ-thereᴿ Yᴿ) = s≤s (★≈-right-bound Yᴿ)
+ˣᴿ-bound hereᴿ = s≤s z≤n
+ˣᴿ-bound (both-thereᴿ Yᴿ) = s≤s (ˣᴿ-bound Yᴿ)
+ˣᴿ-bound (freshᴸ-thereᴿ Yᴿ) = ˣᴿ-bound Yᴿ
+ˣᴿ-bound (freshᴿ-thereᴿ Yᴿ) = s≤s (ˣᴿ-bound Yᴿ)
 
 idᵢ : ∀ Δ → ImpCtx Δ Δ
 idᵢ zero = []ᵢ
@@ -200,16 +169,6 @@ data _⊢_≈ᵃ_ : ∀ {Δᴸ Δᴿ A B}
     → Φ ⊢ X ≈ˣ Y
       -------------------
     → Φ ⊢ ＇ X ≈ᵃ ＇ Y
-
-  left-onlyᵃ : ∀ {Δᴸ Δᴿ X} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢ X ≈★
-      ---------------
-    → Φ ⊢ ＇ X ≈ᵃ ★
-
-  right-onlyᵃ : ∀ {Δᴸ Δᴿ Y} {Φ : ImpCtx Δᴸ Δᴿ}
-    → Φ ⊢★≈ Y
-      ---------------
-    → Φ ⊢ ★ ≈ᵃ ＇ Y
 
   baseᵃ : ∀ {Δᴸ Δᴿ ι} {Φ : ImpCtx Δᴸ Δᴿ}
       --------------------
@@ -288,12 +247,6 @@ private
       pairedᵣ : ∀ {X Y}
         → Φ ⊢ X ≈ˣ Y
         → Ψ ⊢ ρᴸ X ≈ˣ ρᴿ Y
-      left-onlyᵣ : ∀ {X}
-        → Φ ⊢ X ≈★
-        → Ψ ⊢ ρᴸ X ≈★
-      right-onlyᵣ : ∀ {Y}
-        → Φ ⊢★≈ Y
-        → Ψ ⊢★≈ ρᴿ Y
 
   open RenameRelocation
 
@@ -302,9 +255,9 @@ private
     → RenameRelocation ρᴸ ρᴿ Φ Ψ
     → RenameRelocation (extᵗ ρᴸ) (extᵗ ρᴿ)
         (bothᵢ Φ) (bothᵢ Ψ)
-  bothᵣ (rename-relocation hᴸ hᴿ paired left-only right-only) =
+  bothᵣ (rename-relocation hᴸ hᴿ paired) =
     rename-relocation (TyRenameWf-ext hᴸ) (TyRenameWf-ext hᴿ)
-      both-paired both-left-only both-right-only
+      both-paired
     where
     both-paired : ∀ {X Y}
       → bothᵢ _ ⊢ X ≈ˣ Y
@@ -312,44 +265,20 @@ private
     both-paired hereᵢ = hereᵢ
     both-paired (both-thereᵢ X≈Y) = both-thereᵢ (paired X≈Y)
 
-    both-left-only : ∀ {X}
-      → bothᵢ _ ⊢ X ≈★
-      → bothᵢ _ ⊢ extᵗ _ X ≈★
-    both-left-only (both-thereᴸ X≈★) = both-thereᴸ (left-only X≈★)
-
-    both-right-only : ∀ {Y}
-      → bothᵢ _ ⊢★≈ Y
-      → bothᵢ _ ⊢★≈ extᵗ _ Y
-    both-right-only (both-thereᴿ ★≈Y) =
-      both-thereᴿ (right-only ★≈Y)
-
   freshᴿᵣ : ∀ {Δᴸ Δᴿ Δᴸ′ Δᴿ′ ρᴸ ρᴿ}
       {Φ : ImpCtx Δᴸ Δᴿ} {Ψ : ImpCtx Δᴸ′ Δᴿ′}
     → RenameRelocation ρᴸ ρᴿ Φ Ψ
     → RenameRelocation ρᴸ (extᵗ ρᴿ)
         (freshᴿ Φ) (freshᴿ Ψ)
-  freshᴿᵣ (rename-relocation hᴸ hᴿ paired left-only right-only) =
+  freshᴿᵣ (rename-relocation hᴸ hᴿ paired) =
     rename-relocation hᴸ (TyRenameWf-ext hᴿ)
-      fresh-paired fresh-left-only fresh-right-only
+      fresh-paired
     where
     fresh-paired : ∀ {X Y}
       → freshᴿ _ ⊢ X ≈ˣ Y
       → freshᴿ _ ⊢ _ ≈ˣ extᵗ _ Y
     fresh-paired (freshᴿ-thereᵢ X≈Y) =
       freshᴿ-thereᵢ (paired X≈Y)
-
-    fresh-left-only : ∀ {X}
-      → freshᴿ _ ⊢ X ≈★
-      → freshᴿ _ ⊢ _ ≈★
-    fresh-left-only (freshᴿ-thereᴸ X≈★) =
-      freshᴿ-thereᴸ (left-only X≈★)
-
-    fresh-right-only : ∀ {Y}
-      → freshᴿ _ ⊢★≈ Y
-      → freshᴿ _ ⊢★≈ extᵗ _ Y
-    fresh-right-only hereᴿ = hereᴿ
-    fresh-right-only (freshᴿ-thereᴿ ★≈Y) =
-      freshᴿ-thereᴿ (right-only ★≈Y)
 
   rename-≈ : ∀ {Δᴸ Δᴿ Δᴸ′ Δᴿ′ ρᴸ ρᴿ A B}
       {Φ : ImpCtx Δᴸ Δᴿ} {Ψ : ImpCtx Δᴸ′ Δᴿ′}
@@ -361,16 +290,6 @@ private
       (renameᵗ-preserves-WfTy hA (left-wfᵣ r))
       (renameᵗ-preserves-WfTy hB (right-wfᵣ r))
       (varᵃ (pairedᵣ r X≈Y))
-  rename-≈ r (idᵃ (＇ X) ★ hA hB (left-onlyᵃ X≈★)) =
-    idᵃ (＇ _) ★
-      (renameᵗ-preserves-WfTy hA (left-wfᵣ r))
-      (renameᵗ-preserves-WfTy hB (right-wfᵣ r))
-      (left-onlyᵃ (left-onlyᵣ r X≈★))
-  rename-≈ r (idᵃ ★ (＇ Y) hA hB (right-onlyᵃ ★≈Y)) =
-    idᵃ ★ (＇ _)
-      (renameᵗ-preserves-WfTy hA (left-wfᵣ r))
-      (renameᵗ-preserves-WfTy hB (right-wfᵣ r))
-      (right-onlyᵃ (right-onlyᵣ r ★≈Y))
   rename-≈ r (idᵃ (‵ ι) (‵ .ι) hA hB baseᵃ) =
     idᵃ (‵ ι) (‵ ι)
       (renameᵗ-preserves-WfTy hA (left-wfᵣ r))
@@ -385,12 +304,22 @@ private
   shiftᵣ : ∀ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
     → RenameRelocation suc suc Φ (bothᵢ Φ)
   shiftᵣ = rename-relocation TyRenameWf-suc TyRenameWf-suc
-    both-thereᵢ both-thereᴸ both-thereᴿ
+    both-thereᵢ
 
   right-shiftᵣ : ∀ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
     → RenameRelocation (λ X → X) suc Φ (freshᴿ Φ)
   right-shiftᵣ = rename-relocation (λ X<Δ → X<Δ) TyRenameWf-suc
-    freshᴿ-thereᵢ freshᴿ-thereᴸ freshᴿ-thereᴿ
+    freshᴿ-thereᵢ
+
+  reuse-shiftᵣ : ∀ {Δᴸ Δᴿ} {Φ : ImpCtx Δᴸ Δᴿ}
+    → RenameRelocation (λ X → X) suc (freshᴸ Φ) (bothᵢ Φ)
+  reuse-shiftᵣ = rename-relocation (λ X<Δ → X<Δ) TyRenameWf-suc
+    reuse-paired
+    where
+    reuse-paired : ∀ {Δᴸ Δᴿ X Y} {Φ : ImpCtx Δᴸ Δᴿ}
+      → freshᴸ Φ ⊢ X ≈ˣ Y
+      → bothᵢ Φ ⊢ X ≈ˣ suc Y
+    reuse-paired (freshᴸ-thereᵢ X≈Y) = both-thereᵢ X≈Y
 
 ------------------------------------------------------------------------
 -- Relocation under binder extension
@@ -407,3 +336,18 @@ private
 ⇑ᴿʳ {A = A} {B = B} {Φ = Φ} p =
   subst (λ A′ → freshᴿ Φ ⊢ A′ ≈ ⇑ᵗ B)
     (renameᵗ-id A) (rename-≈ right-shiftᵣ p)
+
+⇑ᴿ-reuseʳ : ∀ {Δᴸ Δᴿ A B} {Φ : ImpCtx Δᴸ Δᴿ}
+  → freshᴸ Φ ⊢ A ≈ B
+  → bothᵢ Φ ⊢ A ≈ ⇑ᵗ B
+⇑ᴿ-reuseʳ {A = A} {B = B} {Φ = Φ} p =
+  subst (λ A′ → bothᵢ Φ ⊢ A′ ≈ ⇑ᵗ B)
+    (renameᵗ-id A) (rename-≈ reuse-shiftᵣ p)
+
+smart-⇑ᴿʳ : ∀ {Δᴸ Δᴿ A B}
+    {Φ : ImpCtx Δᴸ Δᴿ} {Ψ : ImpCtx Δᴸ (suc Δᴿ)}
+  → SmartExtensionᵢ Φ Ψ
+  → Φ ⊢ A ≈ B
+  → Ψ ⊢ A ≈ ⇑ᵗ B
+smart-⇑ᴿʳ freshᵢ p = ⇑ᴿʳ p
+smart-⇑ᴿʳ reuseᵢ p = ⇑ᴿ-reuseʳ p

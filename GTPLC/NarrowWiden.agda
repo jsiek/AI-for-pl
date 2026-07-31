@@ -86,11 +86,13 @@ mutual
         ----------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ (unseal X ︔ c) ⦂ ＇ X ⊑ B
 
+    -- See [rationale](Rationale.md#gen-inst-side-conditions).
     inst : ∀ {c A B}
       → NonVar A
       → zero ∈ᵗ A
       → WfTy Δ B
-      → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ c ⦂ A ⊑ ⇑ᵗ B
+      → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
+          ⊢ c ⦂ A ⊑ ⇑ᵗ B
       → B ≢ ★
         -----------------------------------
       → μ ∣ Δ ∣ Σ ⊢ inst c ⦂ (`∀ A) ⊑ B
@@ -151,6 +153,7 @@ mutual
         --------------------------------------
       → μ ∣ Δ ∣ Σ ⊢ (c ︔ seal X) ⦂ A ⊒ ＇ X
 
+    -- See [rationale](Rationale.md#gen-inst-side-conditions).
     gen : ∀ {c A B}
       → NonVar A
       → zero ∈ᵗ A

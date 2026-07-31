@@ -2,9 +2,9 @@ module TermNarrowing where
 
 -- File Charter:
 --   * Defines well-typed narrowing between GTPLC terms.
---   * Indexes term narrowing by type relocation followed by coercion narrowing.
+--   * Indexes term narrowing by three-stage factored type narrowing.
 --   * Uses one-context coercion narrowing and widening at casts.
---   * Checks cast-composition side conditions only by matching endpoints.
+--   * Checks cast squares by normalized composition of factored narrowings.
 --   * Retains the quotient phase for paired narrowing and widening casts.
 
 open import Data.List using (_∷_)
@@ -23,76 +23,10 @@ open import FactoredTypeNarrowing
 open import NarrowWiden using
   ( _∣_∣_⊢_⦂_⊑_
   ; _∣_∣_⊢_⦂_⊒_
+  ; _∣_∣_⊢_⊒_
   )
+open import ImprecisionTheorems using (dualʷ)
 open import EnvironmentNarrowing
-
-------------------------------------------------------------------------
--- Endpoint matching
-------------------------------------------------------------------------
-
-infix 4 _⨟_≈_
-infix 4 _⨟_≈_⨟_
-
-data _⨟_≈_ : {X Y Z : Set} → X → Y → Z → Set₁ where
-
-  endpointsˡⁿ :
-      ∀ {μ Δᴸ Δᴿ Σᴸ s A B B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {d : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊒ B}
-        {q : Φ ⊢ B ⊒ᶠ B′}
-        {p : Φ ⊢ A ⊒ᶠ B′}
-      ----------------
-    → d ⨟ q ≈ p
-
-  endpointsˡʷ :
-      ∀ {μ Δᴸ Δᴿ Σᴸ s A B B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {u : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊑ B}
-        {p : Φ ⊢ A ⊒ᶠ B′}
-        {q : Φ ⊢ B ⊒ᶠ B′}
-      ----------------
-    → u ⨟ p ≈ q
-
-  endpointsʳⁿ :
-      ∀ {μ Δᴸ Δᴿ Σᴿ t A A′ B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {p : Φ ⊢ A ⊒ᶠ A′}
-        {d : μ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊒ B′}
-        {q : Φ ⊢ A ⊒ᶠ B′}
-      ----------------
-    → p ⨟ d ≈ q
-
-  endpointsʳʷ :
-      ∀ {μ Δᴸ Δᴿ Σᴿ t A A′ B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {u : μ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊑ B′}
-        {p : Φ ⊢ A ⊒ᶠ A′}
-        {q : Φ ⊢ A ⊒ᶠ B′}
-      ----------------
-    → q ⨟ u ≈ p
-
-data _⨟_≈_⨟_ :
-    {W X Y Z : Set} → W → X → Y → Z → Set₁ where
-
-  endpointsⁿ :
-      ∀ {μ μ′ Δᴸ Δᴿ Σᴸ Σᴿ s t A A′ B B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {c : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ A ⊒ B}
-        {q : Φ ⊢ B ⊒ᶠ B′}
-        {p : Φ ⊢ A ⊒ᶠ A′}
-        {d : μ′ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ A′ ⊒ B′}
-      ---------------------
-    → c ⨟ q ≈ p ⨟ d
-
-  endpointsʷ :
-      ∀ {μ μ′ Δᴸ Δᴿ Σᴸ Σᴿ s t A A′ B B′}
-        {Φ : ImpCtx Δᴸ Δᴿ}
-        {u : μ ∣ Δᴸ ∣ Σᴸ ⊢ s ⦂ B ⊑ A}
-        {q : Φ ⊢ B ⊒ᶠ B′}
-        {p : Φ ⊢ A ⊒ᶠ A′}
-        {v : μ′ ∣ Δᴿ ∣ Σᴿ ⊢ t ⦂ B′ ⊑ A′}
-      ---------------------
-    → u ⨟ q ≈ p ⨟ v
 
 ------------------------------------------------------------------------
 -- Term narrowing, with a quotient phase for paired casts
@@ -107,7 +41,7 @@ variable
   Φ : ImpCtx Δᴸ Δᴿ
   ρ : NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}
   s t : Coercion
-  μ μ′ : ModeEnv
+  μ : ModeEnv
 
 infix 4 _⊢ᴺ_⊒_∶_
 
@@ -148,54 +82,60 @@ data _⊢ᴺ_⊒_∶_ :
     → ρ ⊢ᴺ Λ V ⊒ Λ V′ ∶ ∀ᶠ p
 
   ⊒Λ : ∀ {Ψ : ImpCtx Δᴸ (suc Δᴿ)}
-         {ρ′ : NarrowingEnv Ψ {Σᴸ} {⟰ᵗ Σᴿ} {Γᴸ} {⤊ᵗ Γᴿ}}
-         {q : ρ′ ⊢ᵀ B ⊒ A}
+         {r : ρ ⊢ᵀ B ⊒ C}
+         {d : ⇑ᴿᵉ ρ ⊢ᴿⁿ ⇑ᵗ C ⊒ A}
          {nvA z∈A B≢★}
-    → (extension : SmartExtensionᵉ ρ ρ′)
+    → (extension : SmartExtensionᵢ Φ Ψ)
     → Value V′
-    → ρ′ ⊢ᴺ N ⊒ V′ ∶ q
+    → smart-⇑ᴿᵉ extension ρ ⊢ᴺ N ⊒ V′
+        ∶ smart-extendᶠ extension r d
       ---------------------------------
     → ρ ⊢ᴺ N ⊒ Λ V′
-        ∶ genᶠ (extensionᵉ extension) nvA z∈A q B≢★
+        ∶ genᶠ nvA z∈A r d B≢★
 
-  ⊒⟨ν⟩ : ∀ {N V′ C c μ}
-      {p : ⇑ᴿᵉ ρ ⊢ᵀ B ⊒ A} {nvA z∈A B≢★}
+  ⊒⟨ν⟩ : ∀ {N V′ C D c μ}
+      {r : ρ ⊢ᵀ B ⊒ D}
+      {d : ⇑ᴿᵉ ρ ⊢ᴿⁿ ⇑ᵗ D ⊒ A}
+      {nvA z∈A B≢★}
     → Value V′
     → ρ ⊢ᴿ V′ ⦂ C
     → ρ ⊢ᴿ C
     → genᵈ μ ∣ ⇑ᴿᵉ ρ ⊢ᴿ c ∶ ⇑ᵗ C =⇒ A
-    → ⇑ᴿᵉ ρ ⊢ᴺ N ⊒ (⇑ᵗᵐ V′) ⟨ c ⟩ ∶ p
+    → ⇑ᴿᵉ ρ ⊢ᴺ N ⊒ (⇑ᵗᵐ V′) ⟨ c ⟩
+        ∶ smart-extendᶠ freshᵢ r d
       ------------------------------------------
     → ρ ⊢ᴺ N ⊒ V′ ⟨ genᶜ c ⟩
-        ∶ genᶠ freshᵢ nvA z∈A p B≢★
+        ∶ genᶠ nvA z∈A r d B≢★
 
   ν⊒ν : ∀ {Δᴸ Δᴿ Σᴸ Σᴿ Γᴸ Γᴿ}
           {Φ : ImpCtx Δᴸ Δᴿ}
           {ρ : NarrowingEnv Φ {Σᴸ} {Σᴿ} {Γᴸ} {Γᴿ}}
           {p : ρ ⊢ᵀ B ⊒ B′}
-          {q : bothᵢ Φ ⊢ C ⊒ᶠ C′}
-          {s⦂ : μ ∣ suc Δᴸ ∣ ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σᴸ)
+          {q : ⇑ᵉ ρ ⊢ᵀ C ⊒ C′}
+          {s⦂ : instᵈ (modeᴸ ρ) ∣ suc Δᴸ
+            ∣ ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σᴸ)
             ⊢ s ⦂ C ⊒ ⇑ᵗ B}
-          {t⦂ : μ′ ∣ suc Δᴿ
+          {t⦂ : instᵈ (modeᴿ ρ) ∣ suc Δᴿ
             ∣ ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ Σᴿ)
             ⊢ t ⦂ C′ ⊒ ⇑ᵗ B′}
     → (a : ρ ⊢ᵀ A ⊒ A′)
     → ρ ⊢ᴺ L ⊒ L′ ∶ ∀ᶠ q
-    → s⦂ ⨟ ⇑ᶠ p ≈ q ⨟ t⦂
+    → (s , s⦂) ⨟ⁿᶠ inst-extendᶠ (⇑ᶠ p)
+        ≐ᶠ inst-extendᶠ q ⨟ᶠⁿ (t , t⦂)
       --------------------------------------------
     → ρ ⊢ᴺ ν A · L •⟨ s ⟩ ⊒
         ν A′ · L′ •⟨ t ⟩ ∶ p
 
   ⊒ν : ∀ {p : ρ ⊢ᵀ B ⊒ B′}
-         {q : freshᴿ Φ ⊢ B ⊒ᶠ C′}
+         {r : ρ ⊢ᵀ B ⊒ C}
+         {e : ⇑ᴿᵉ ρ ⊢ᴿⁿ ⇑ᵗ C ⊒ C′}
          {nvC′ zero∈C′ B≢★}
-         {d : μ′ ∣ suc Δᴿ
-           ∣ ((zero , ⇑ᵗ A′) ∷ ⟰ᵗ Σᴿ)
-           ⊢ t ⦂ C′ ⊒ ⇑ᵗ B′}
+         {d : ρ ⊢ᴿ⁺[ ⇑ᵗ A′ ] t ⦂ C′ ⊒ ⇑ᵗ B′}
     → ρ ⊢ᴿ A′
     → ρ ⊢ᴺ N ⊒ L′
-        ∶ genᶠ freshᵢ nvC′ zero∈C′ q B≢★
-    → q ⨟ d ≈ ⇑ᴿᶠ p
+        ∶ genᶠ nvC′ zero∈C′ r e B≢★
+    → head-extendᴿᶠ (smart-extendᶠ freshᵢ r e)
+        ⨟ᶠⁿ (t , d) ≐ᶠ head-extendᴿᶠ (⇑ᴿᶠ p)
       -----------------------------
     → ρ ⊢ᴺ N ⊒ ν A′ · L′ •⟨ t ⟩ ∶ p
 
@@ -211,32 +151,32 @@ data _⊢ᴺ_⊒_∶_ :
 
   castⁿ⊒ : ∀ {p : ρ ⊢ᵀ A ⊒ B′}
       {q : ρ ⊢ᵀ B ⊒ B′}
-      {s⦂ : μ ∣ ρ ⊢ᴸ s ⦂ A ⊒ B}
+      {s⦂ : ρ ⊢ᴸⁿ s ⦂ A ⊒ B}
     → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → s⦂ ⨟ q ≈ p
+    → (s , s⦂) ⨟ⁿᶠ q ≐ᶠ p
       ---------------------
     → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ q
 
   castʷ⊒ : ∀ {p : ρ ⊢ᵀ A ⊒ B′}
       {q : ρ ⊢ᵀ B ⊒ B′}
-      {s⦂ : μ ∣ ρ ⊢ᴸ s ⦂ A ⊑ B}
+      {s⦂ : ρ ⊢ᴸʷ s ⦂ A ⊑ B}
     → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → s⦂ ⨟ p ≈ q
+    → dualʷ (s , s⦂) ⨟ⁿᶠ p ≐ᶠ q
       ---------------------
     → ρ ⊢ᴺ M ⟨ s ⟩ ⊒ M′ ∶ q
 
   ⊒castⁿ : ∀ {p : ρ ⊢ᵀ A ⊒ A′}
       {q : ρ ⊢ᵀ A ⊒ B′}
-      {t⦂ : μ′ ∣ ρ ⊢ᴿ t ⦂ A′ ⊒ B′}
+      {t⦂ : ρ ⊢ᴿⁿ t ⦂ A′ ⊒ B′}
     → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → p ⨟ t⦂ ≈ q
+    → p ⨟ᶠⁿ (t , t⦂) ≐ᶠ q
       ---------------------
     → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ q
 
   ⊒castʷ : ∀ {p : ρ ⊢ᵀ A ⊒ A′}
       {q : ρ ⊢ᵀ A ⊒ B′}
-      {t⦂ : μ′ ∣ ρ ⊢ᴿ t ⦂ A′ ⊑ B′}
+      {t⦂ : ρ ⊢ᴿʷ t ⦂ A′ ⊑ B′}
     → ρ ⊢ᴺ M ⊒ M′ ∶ p
-    → q ⨟ t⦂ ≈ p
+    → q ⨟ᶠⁿ dualʷ (t , t⦂) ≐ᶠ p
       ---------------------
     → ρ ⊢ᴺ M ⊒ M′ ⟨ t ⟩ ∶ q

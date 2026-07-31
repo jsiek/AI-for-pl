@@ -1,1717 +1,648 @@
 module proof.ImprecisionComposition where
 
 -- File Charter:
---   * Composes coercion-indexed GTPLC narrowings and widenings.
---   * Produces the result coercion together with its typing derivation.
---   * Uses endpoint equality to collapse identity-shaped tag/project
---     sequences.
---   * Depends on `NarrowWiden` and its context-indexed judgments.
+--   * Composes one-context GTPLC narrowing and widening bundles.
+--   * Normalizes composition structurally through every constructor.
+--   * Retains only canonical tag, untag, seal, and unseal sequences.
+--   * Uses well-founded recursion over the total coercion size.
 
-open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using ([]; _∷_)
+open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Nat using (zero; suc; z≤n; s≤s; _<_)
-open import Data.Product using (_,_; ∃-syntax; Σ-syntax)
-open import Data.Unit using (tt)
+open import Data.Nat using (ℕ; _+_; _<_; _≤_; s≤s; zero; suc)
+open import Data.Nat.Induction using (<-wellFounded)
+open import Data.Nat.Properties using
+  ( +-assoc
+  ; +-comm
+  ; +-monoˡ-<
+  ; +-monoʳ-<
+  ; +-monoˡ-≤
+  ; +-monoʳ-≤
+  ; m≤m+n
+  ; m≤n+m
+  ; n<1+n
+  ; n≤1+n
+  ; ≤-<-trans
+  ; ≤-refl
+  ; ≤-trans
+  )
+open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
+open import Induction.WellFounded using (Acc; acc)
 open import Relation.Binary.PropositionalEquality
-  using (_≢_; cong; subst; sym)
-open import Relation.Nullary using (yes; no)
+  using (_≡_; refl; cong; cong₂; subst; sym)
 
 open import Types
+open import TyStore
 open import Coercions
-  using (Coercion; renameᶜ)
-  renaming
-    ( id to idᶜ
-    ; _↦_ to _↦ᶜ_
-    ; `∀ to ∀ᶜ
-    ; _! to _!ᶜ
-    ; _？ to _？ᶜ
-    )
 open import NarrowWiden
-open import proof.TypeInTypeSubst using
-  ( TyRenameWf
-  ; TyRenameWf-ext
-  ; renameᵗ-preserves-WfTy
-  ; rename-ext-preserves-zero∈
+open import proof.ImprecisionModeWeakening using
+  ( ext-gen-incl
+  ; ext-inst-incl
+  ; weakenⁿ
+  ; weakenʷ
   )
+open import proof.ImprecisionRenaming using (⇑ⁿ-gen; ⇑ʷ-inst)
+open import proof.TyStore using (∈-⟰ᵗ-inv; ∈-⟰ᵗ-zero)
+open import proof.TypeInTypeSubst using (rename-preserves-∈ᵗ)
 
 ------------------------------------------------------------------------
--- Identity imprecision contexts
+-- Store weakening
 ------------------------------------------------------------------------
 
-un⇑ᵢ-var : ∀ {Φ X Y}
-  → (suc X ˣ⊑ˣ suc Y) ∈ ⇑ᵢ Φ
-  → (X ˣ⊑ˣ Y) ∈ Φ
-un⇑ᵢ-var {Φ = []} ()
-un⇑ᵢ-var {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (un⇑ᵢ-var X∈)
-un⇑ᵢ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-un⇑ᵢ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (un⇑ᵢ-var X∈)
+StoreIncl : TyStore → TyStore → Set
+StoreIncl Σ Π = ∀ {X A} → (X , A) ∈ Σ → (X , A) ∈ Π
 
-un⇑ᵢ-star : ∀ {Φ X}
-  → (suc X ˣ⊑★) ∈ ⇑ᵢ Φ
-  → (X ˣ⊑★) ∈ Φ
-un⇑ᵢ-star {Φ = []} ()
-un⇑ᵢ-star {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-un⇑ᵢ-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (un⇑ᵢ-star X∈)
-un⇑ᵢ-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (un⇑ᵢ-star X∈)
+∈-⟰ᵗ : ∀ {Σ X A}
+  → (X , A) ∈ Σ
+  → (suc X , ⇑ᵗ A) ∈ ⟰ᵗ Σ
+∈-⟰ᵗ (here refl) = here refl
+∈-⟰ᵗ (there X,A∈Σ) = there (∈-⟰ᵗ X,A∈Σ)
 
-⇑ᵢ-var : ∀ {Φ X Y}
-  → (X ˣ⊑ˣ Y) ∈ Φ
-  → (suc X ˣ⊑ˣ suc Y) ∈ ⇑ᵢ Φ
-⇑ᵢ-var {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (⇑ᵢ-var X∈)
-⇑ᵢ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-⇑ᵢ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (⇑ᵢ-var X∈)
+shift-incl : ∀ {Σ Π}
+  → StoreIncl Σ Π
+  → StoreIncl (⟰ᵗ Σ) (⟰ᵗ Π)
+shift-incl incl {X = suc X} X,A∈Σ with ∈-⟰ᵗ-inv X,A∈Σ
+shift-incl incl {X = suc X} X,A∈Σ | A , refl , X,A∈Σ′ =
+  ∈-⟰ᵗ (incl X,A∈Σ′)
+shift-incl incl {X = zero} X,A∈Σ = ⊥-elim (∈-⟰ᵗ-zero X,A∈Σ)
 
-⇑ᵢ-star : ∀ {Φ X}
-  → (X ˣ⊑★) ∈ Φ
-  → (suc X ˣ⊑★) ∈ ⇑ᵢ Φ
-⇑ᵢ-star {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-⇑ᵢ-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (⇑ᵢ-star X∈)
-⇑ᵢ-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (⇑ᵢ-star X∈)
-
-no-⇑ᵢ-zero-left : ∀ {Φ Y}
-  → (zero ˣ⊑ˣ Y) ∈ ⇑ᵢ Φ
-  → ⊥
-no-⇑ᵢ-zero-left {Φ = []} ()
-no-⇑ᵢ-zero-left {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-left X∈
-no-⇑ᵢ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-left X∈
-
-no-⇑ᵢ-zero-right : ∀ {Φ X}
-  → (X ˣ⊑ˣ zero) ∈ ⇑ᵢ Φ
-  → ⊥
-no-⇑ᵢ-zero-right {Φ = []} ()
-no-⇑ᵢ-zero-right {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-right X∈
-no-⇑ᵢ-zero-right {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-right X∈
-
-no-⇑ᵢ-zero-star : ∀ {Φ}
-  → (zero ˣ⊑★) ∈ ⇑ᵢ Φ
-  → ⊥
-no-⇑ᵢ-zero-star {Φ = []} ()
-no-⇑ᵢ-zero-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-star X∈
-no-⇑ᵢ-zero-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  no-⇑ᵢ-zero-star X∈
-
-idᵢ-var-identity : ∀ {Δ X Y}
-  → (X ˣ⊑ˣ Y) ∈ idᵢ Δ
-  → X ≡ Y
-idᵢ-var-identity {Δ = zero} ()
-idᵢ-var-identity {Δ = suc Δ} {X = zero} {Y = zero}
-    (here refl) =
-  refl
-idᵢ-var-identity {Δ = suc Δ} {X = zero} {Y = zero}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-idᵢ-var-identity {Δ = suc Δ} {X = zero} {Y = suc Y}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-idᵢ-var-identity {Δ = suc Δ} {X = suc X} {Y = zero}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-idᵢ-var-identity {Δ = suc Δ} {X = suc X} {Y = suc Y}
-    (there X∈) =
-  cong suc (idᵢ-var-identity (un⇑ᵢ-var X∈))
-
-idᵢ-no-star : ∀ {Δ X}
-  → (X ˣ⊑★) ∈ idᵢ Δ
-  → ⊥
-idᵢ-no-star {Δ = zero} ()
-idᵢ-no-star {Δ = suc Δ} {X = zero} (there X∈) =
-  no-⇑ᵢ-zero-star X∈
-idᵢ-no-star {Δ = suc Δ} {X = suc X} (there X∈) =
-  idᵢ-no-star (un⇑ᵢ-star X∈)
-
-------------------------------------------------------------------------
--- Context composition
-------------------------------------------------------------------------
-
-record ComposeCtx
-    (Δ : TyCtx) (Φᴵ Φᴿ Φᴼ : ImpCtx) : Set where
-  field
-    compose-map-var : ∀ {X Y}
-      → (X ˣ⊑ˣ Y) ∈ Φᴵ
-      → X ≡ Y
-
-    compose-var-var : ∀ {X Y Z}
-      → (X ˣ⊑ˣ Y) ∈ Φᴵ
-      → (Y ˣ⊑ˣ Z) ∈ Φᴿ
-      → (X ˣ⊑ˣ Z) ∈ Φᴼ
-
-    compose-var-star : ∀ {X Y}
-      → (X ˣ⊑ˣ Y) ∈ Φᴵ
-      → (Y ˣ⊑★) ∈ Φᴿ
-      → (X ˣ⊑★) ∈ Φᴼ
-
-    compose-star-left : ∀ {X}
-      → X < Δ
-      → (X ˣ⊑★) ∈ Φᴵ
-      → (X ˣ⊑★) ∈ Φᴼ
-
-open ComposeCtx
-
-compose-id-left : ∀ Δ Φ
-  → ComposeCtx Δ (idᵢ Δ) Φ Φ
-compose-id-left Δ Φ .compose-map-var X∈ =
-  idᵢ-var-identity X∈
-compose-id-left Δ Φ .compose-var-var X∈ Y∈ =
-  subst (λ X → (X ˣ⊑ˣ _) ∈ Φ)
-    (sym (idᵢ-var-identity X∈)) Y∈
-compose-id-left Δ Φ .compose-var-star X∈ Y∈ =
-  subst (λ X → (X ˣ⊑★) ∈ Φ)
-    (sym (idᵢ-var-identity X∈)) Y∈
-compose-id-left Δ Φ .compose-star-left X<Δ X∈ =
-  ⊥-elim (idᵢ-no-star X∈)
-
-compose-all : ∀ {Δ Φᴵ Φᴿ Φᴼ}
-  → ComposeCtx Δ Φᴵ Φᴿ Φᴼ
-  → ComposeCtx (suc Δ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴵ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴿ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴼ)
-compose-all comp .compose-map-var (here refl) = refl
-compose-all comp .compose-map-var {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all comp .compose-map-var {X = suc X} {Y = zero}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all comp .compose-map-var {X = suc X} {Y = suc Y}
-    (there X∈) =
-  cong suc (compose-map-var comp (un⇑ᵢ-var X∈))
-compose-all comp .compose-var-var (here refl) (here refl) =
-  here refl
-compose-all comp .compose-var-var (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left Y∈)
-compose-all comp .compose-var-var {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all comp .compose-var-var {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all comp .compose-var-var
-    {X = suc X} {Y = suc Y} {Z = zero}
-    (there X∈) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right Y∈)
-compose-all comp .compose-var-var
-    {X = suc X} {Y = suc Y} {Z = suc z}
-    (there X∈) (there Y∈) =
-  there (⇑ᵢ-var
-    (compose-var-var comp
-      (un⇑ᵢ-var X∈) (un⇑ᵢ-var Y∈)))
-compose-all comp .compose-var-star (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star Y∈)
-compose-all comp .compose-var-star {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all comp .compose-var-star {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all comp .compose-var-star {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᵢ-star
-    (compose-var-star comp
-      (un⇑ᵢ-var X∈) (un⇑ᵢ-star Y∈)))
-compose-all comp .compose-star-left {X = zero} X<Δ (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star X∈)
-compose-all comp .compose-star-left {X = suc X}
-    (s≤s X<Δ) (there X∈) =
-  there (⇑ᵢ-star
-    (compose-star-left comp X<Δ (un⇑ᵢ-star X∈)))
-
-⇑ᴸ-var : ∀ {Φ X Y}
-  → (X ˣ⊑ˣ Y) ∈ Φ
-  → (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
-⇑ᴸ-var {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (⇑ᴸ-var X∈)
-⇑ᴸ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-⇑ᴸ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (⇑ᴸ-var X∈)
-
-un⇑ᴸ-var : ∀ {Φ X Y}
-  → (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
-  → (X ˣ⊑ˣ Y) ∈ Φ
-un⇑ᴸ-var {Φ = []} ()
-un⇑ᴸ-var {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (un⇑ᴸ-var X∈)
-un⇑ᴸ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-un⇑ᴸ-var {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (un⇑ᴸ-var X∈)
-
-no-⇑ᴸ-zero-left : ∀ {Φ Y}
-  → (zero ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
-  → ⊥
-no-⇑ᴸ-zero-left {Φ = []} ()
-no-⇑ᴸ-zero-left {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  no-⇑ᴸ-zero-left X∈
-no-⇑ᴸ-zero-left {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  no-⇑ᴸ-zero-left X∈
-
-⇑ᴸ-star : ∀ {Φ X}
-  → (X ˣ⊑★) ∈ Φ
-  → (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ
-⇑ᴸ-star {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-⇑ᴸ-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (⇑ᴸ-star X∈)
-⇑ᴸ-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (⇑ᴸ-star X∈)
-
-un⇑ᴸ-star : ∀ {Φ X}
-  → (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ
-  → (X ˣ⊑★) ∈ Φ
-un⇑ᴸ-star {Φ = []} ()
-un⇑ᴸ-star {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-un⇑ᴸ-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  there (un⇑ᴸ-star X∈)
-un⇑ᴸ-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  there (un⇑ᴸ-star X∈)
-
-no-⇑ᴸ-zero-star : ∀ {Φ}
-  → (zero ˣ⊑★) ∈ ⇑ᴸᵢ Φ
-  → ⊥
-no-⇑ᴸ-zero-star {Φ = []} ()
-no-⇑ᴸ-zero-star {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) =
-  no-⇑ᴸ-zero-star X∈
-no-⇑ᴸ-zero-star {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) =
-  no-⇑ᴸ-zero-star X∈
-
-compose-all-gen : ∀ {Δ Φᴵ Φ}
-  → ComposeCtx Δ Φᴵ Φ Φ
-  → ComposeCtx (suc Δ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴵ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-compose-all-gen comp .compose-map-var (here refl) = refl
-compose-all-gen comp .compose-map-var {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all-gen comp .compose-map-var {X = suc X} {Y = zero}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all-gen comp .compose-map-var {X = suc X} {Y = suc Y}
-    (there X∈) =
-  cong suc (compose-map-var comp (un⇑ᵢ-var X∈))
-compose-all-gen comp .compose-var-var (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᴸ-zero-left Y∈)
-compose-all-gen comp .compose-var-var {X = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all-gen comp .compose-var-var {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all-gen comp .compose-var-var {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᴸ-var
-    (compose-var-var comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-var Y∈)))
-compose-all-gen comp .compose-var-star (here refl) (here refl) =
-  here refl
-compose-all-gen comp .compose-var-star (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᴸ-zero-star Y∈)
-compose-all-gen comp .compose-var-star {X = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-all-gen comp .compose-var-star {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-all-gen comp .compose-var-star {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᴸ-star
-    (compose-var-star comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-star Y∈)))
-compose-all-gen comp .compose-star-left {X = zero}
-    X<Δ (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star X∈)
-compose-all-gen comp .compose-star-left {X = suc X}
-    (s≤s X<Δ) (there X∈) =
-  there (⇑ᴸ-star
-    (compose-star-left comp X<Δ (un⇑ᵢ-star X∈)))
-
-compose-gen : ∀ {Δ Φᴵ Φᴿ Φᴼ}
-  → ComposeCtx Δ Φᴵ Φᴿ Φᴼ
-  → ComposeCtx (suc Δ)
-      ((zero ˣ⊑★) ∷ ⇑ᵢ Φᴵ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴿ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
-compose-gen comp .compose-map-var {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-gen comp .compose-map-var {X = suc X} {Y = zero}
-    (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-gen comp .compose-map-var {X = suc X} {Y = suc Y}
-    (there X∈) =
-  cong suc (compose-map-var comp (un⇑ᵢ-var X∈))
-compose-gen comp .compose-var-var {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-gen comp .compose-var-var {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-gen comp .compose-var-var {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᴸ-var
-    (compose-var-var comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-var Y∈)))
-compose-gen comp .compose-var-star {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-gen comp .compose-var-star {X = suc X} {Y = zero}
-    (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-gen comp .compose-var-star {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᴸ-star
-    (compose-var-star comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-star Y∈)))
-compose-gen comp .compose-star-left {X = zero}
-    (s≤s z≤n) (here refl) =
-  here refl
-compose-gen comp .compose-star-left {X = zero} X<Δ (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star X∈)
-compose-gen comp .compose-star-left {X = suc X}
-    (s≤s X<Δ) (there X∈) =
-  there (⇑ᴸ-star
-    (compose-star-left comp X<Δ (un⇑ᵢ-star X∈)))
-
-------------------------------------------------------------------------
--- Right-identity context composition
-------------------------------------------------------------------------
-
-record ComposeCtxRight (Φᴸ Φᴵ Φᴼ : ImpCtx) : Set where
-  field
-    compose-right-var-var : ∀ {X Y Z}
-      → (X ˣ⊑ˣ Y) ∈ Φᴸ
-      → (Y ˣ⊑ˣ Z) ∈ Φᴵ
-      → (X ˣ⊑ˣ Z) ∈ Φᴼ
-
-    compose-right-var-star : ∀ {X Y}
-      → (X ˣ⊑ˣ Y) ∈ Φᴸ
-      → (Y ˣ⊑★) ∈ Φᴵ
-      → (X ˣ⊑★) ∈ Φᴼ
-
-    compose-star-right : ∀ {X}
-      → (X ˣ⊑★) ∈ Φᴸ
-      → (X ˣ⊑★) ∈ Φᴼ
-
-open ComposeCtxRight
-
-compose-id-right : ∀ Δ Φ
-  → ComposeCtxRight Φ (idᵢ Δ) Φ
-compose-id-right Δ Φ .compose-right-var-var X∈ Y∈ =
-  subst (λ Y → (_ ˣ⊑ˣ Y) ∈ Φ)
-    (idᵢ-var-identity Y∈) X∈
-compose-id-right Δ Φ .compose-right-var-star X∈ Y∈ =
-  ⊥-elim (idᵢ-no-star Y∈)
-compose-id-right Δ Φ .compose-star-right X∈ = X∈
-
-compose-right-all : ∀ {Φᴸ Φᴵ Φᴼ}
-  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
-  → ComposeCtxRight
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴸ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴵ)
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴼ)
-compose-right-all comp .compose-right-var-var
-    (here refl) (here refl) =
-  here refl
-compose-right-all comp .compose-right-var-var
-    (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left Y∈)
-compose-right-all comp .compose-right-var-var
-    {X = zero} (there X∈) (here refl) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-right-all comp .compose-right-var-var
-    {X = zero} (there X∈) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-right-all comp .compose-right-var-var
-    {X = suc X} {Y = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-right-all comp .compose-right-var-var
-    {X = suc X} {Y = suc Y} {Z = zero}
-    (there X∈) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right Y∈)
-compose-right-all comp .compose-right-var-var
-    {X = suc X} {Y = suc Y} {Z = suc z}
-    (there X∈) (there Y∈) =
-  there (⇑ᵢ-var
-    (compose-right-var-var comp
-      (un⇑ᵢ-var X∈) (un⇑ᵢ-var Y∈)))
-compose-right-all comp .compose-right-var-star
-    (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star Y∈)
-compose-right-all comp .compose-right-var-star
-    {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-right-all comp .compose-right-var-star
-    {X = suc X} {Y = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-right-all comp .compose-right-var-star
-    {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᵢ-star
-    (compose-right-var-star comp
-      (un⇑ᵢ-var X∈) (un⇑ᵢ-star Y∈)))
-compose-right-all comp .compose-star-right
-    {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star X∈)
-compose-right-all comp .compose-star-right
-    {X = suc X} (there X∈) =
-  there (⇑ᵢ-star
-    (compose-star-right comp (un⇑ᵢ-star X∈)))
-
-compose-right-gen : ∀ {Φᴸ Φᴵ Φᴼ}
-  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
-  → ComposeCtxRight
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴸ)
-      Φᴵ
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
-compose-right-gen comp .compose-right-var-var
-    {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᴸ-zero-left X∈)
-compose-right-gen comp .compose-right-var-var
-    {X = suc X} (there X∈) Y∈ =
-  there (⇑ᴸ-var
-    (compose-right-var-var comp (un⇑ᴸ-var X∈) Y∈))
-compose-right-gen comp .compose-right-var-star
-    {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᴸ-zero-left X∈)
-compose-right-gen comp .compose-right-var-star
-    {X = suc X} (there X∈) Y∈ =
-  there (⇑ᴸ-star
-    (compose-right-var-star comp (un⇑ᴸ-var X∈) Y∈))
-compose-right-gen comp .compose-star-right (here refl) = here refl
-compose-right-gen comp .compose-star-right
-    {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᴸ-zero-star X∈)
-compose-right-gen comp .compose-star-right
-    {X = suc X} (there X∈) =
-  there (⇑ᴸ-star
-    (compose-star-right comp (un⇑ᴸ-star X∈)))
-
-compose-right-all-gen : ∀ {Φᴸ Φᴵ Φᴼ}
-  → ComposeCtxRight Φᴸ Φᴵ Φᴼ
-  → ComposeCtxRight
-      ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φᴸ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴵ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φᴼ)
-compose-right-all-gen comp .compose-right-var-var
-    (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᴸ-zero-left Y∈)
-compose-right-all-gen comp .compose-right-var-var
-    {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-right-all-gen comp .compose-right-var-var
-    {X = suc X} {Y = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-right-all-gen comp .compose-right-var-var
-    {X = suc X} {Y = suc Y} (there X∈) (there Y∈) =
-  there (⇑ᴸ-var
-    (compose-right-var-var comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-var Y∈)))
-compose-right-all-gen comp .compose-right-var-star
-    (here refl) (here refl) =
-  here refl
-compose-right-all-gen comp .compose-right-var-star
-    (here refl) (there Y∈) =
-  ⊥-elim (no-⇑ᴸ-zero-star Y∈)
-compose-right-all-gen comp .compose-right-var-star
-    {X = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-compose-right-all-gen comp .compose-right-var-star
-    {X = suc X} {Y = zero} (there X∈) Y∈ =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-compose-right-all-gen comp .compose-right-var-star
-    {X = suc X} {Y = suc Y}
-    (there X∈) (there Y∈) =
-  there (⇑ᴸ-star
-    (compose-right-var-star comp
-      (un⇑ᵢ-var X∈) (un⇑ᴸ-star Y∈)))
-compose-right-all-gen comp .compose-star-right
-    {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-star X∈)
-compose-right-all-gen comp .compose-star-right
-    {X = suc X} (there X∈) =
-  there (⇑ᴸ-star
-    (compose-star-right comp (un⇑ᵢ-star X∈)))
-
-------------------------------------------------------------------------
--- Asymmetric renaming
-------------------------------------------------------------------------
-
-rename-star-injective : ∀ {ρ A}
-  → renameᵗ ρ A ≡ ★
-  → A ≡ ★
-rename-star-injective {A = ★} refl = refl
-
-⇒-left-injective : ∀ {A B C D}
-  → (A ⇒ B) ≡ (C ⇒ D)
-  → A ≡ C
-⇒-left-injective refl = refl
-
-⇒-right-injective : ∀ {A B C D}
-  → (A ⇒ B) ≡ (C ⇒ D)
-  → B ≡ D
-⇒-right-injective refl = refl
-
-rename-fun-star-injective : ∀ {ρ A}
-  → renameᵗ ρ A ≡ (★ ⇒ ★)
-  → A ≡ (★ ⇒ ★)
-rename-fun-star-injective {A = A ⇒ B} eq
-    rewrite rename-star-injective (⇒-left-injective eq)
-          | rename-star-injective (⇒-right-injective eq) =
-  refl
-
-rename-star-neq : ∀ {ρ A}
-  → A ≢ ★
-  → renameᵗ ρ A ≢ ★
-rename-star-neq A≢★ eq = A≢★ (rename-star-injective eq)
-
-rename-fun-star-neq : ∀ {ρ A}
-  → A ≢ (★ ⇒ ★)
-  → renameᵗ ρ A ≢ (★ ⇒ ★)
-rename-fun-star-neq A≢★⇒★ eq =
-  A≢★⇒★ (rename-fun-star-injective eq)
-
-rename-fun-star-neqʳ : ∀ {ρ A}
-  → (★ ⇒ ★) ≢ A
-  → (★ ⇒ ★) ≢ renameᵗ ρ A
-rename-fun-star-neqʳ ★⇒★≢A eq =
-  ★⇒★≢A (sym (rename-fun-star-injective (sym eq)))
-
-renameFirst : Renameᵗ → ImpAssm → ImpAssm
-renameFirst ρ (X ˣ⊑★) = ρ X ˣ⊑★
-renameFirst ρ (X ˣ⊑ˣ Y) = ρ X ˣ⊑ˣ Y
-
-renameFirst-⇑ : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameFirst ρ b ∈ Ψ)
-  → a ∈ ⇑ᵢ Φ
-  → renameFirst (extᵗ ρ) a ∈ ⇑ᵢ Ψ
-renameFirst-⇑ {Φ = []} h ()
-renameFirst-⇑ {ρ = ρ} {Φ = (_ ˣ⊑★) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X}
-    → (ρ X ˣ⊑★) ∈ Ψ
-    → (suc (ρ X) ˣ⊑★) ∈ ⇑ᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameFirst-⇑ {ρ = ρ} {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X Y}
-    → (ρ X ˣ⊑ˣ Y) ∈ Ψ
-    → (suc (ρ X) ˣ⊑ˣ suc Y) ∈ ⇑ᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameFirst-⇑ {Φ = (_ ˣ⊑★) ∷ Φ} h (there a∈) =
-  renameFirst-⇑ (λ b∈ → h (there b∈)) a∈
-renameFirst-⇑ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h (there a∈) =
-  renameFirst-⇑ (λ b∈ → h (there b∈)) a∈
-
-renameFirst-all : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameFirst ρ b ∈ Ψ)
-  → a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ
-  → renameFirst (extᵗ ρ) a
-      ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ
-renameFirst-all h (here refl) = here refl
-renameFirst-all h (there a∈) = there (renameFirst-⇑ h a∈)
-
-renameFirst-⇑ᴸ : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameFirst ρ b ∈ Ψ)
-  → a ∈ ⇑ᴸᵢ Φ
-  → renameFirst (extᵗ ρ) a ∈ ⇑ᴸᵢ Ψ
-renameFirst-⇑ᴸ {Φ = []} h ()
-renameFirst-⇑ᴸ {ρ = ρ} {Φ = (_ ˣ⊑★) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X}
-    → (ρ X ˣ⊑★) ∈ Ψ
-    → (suc (ρ X) ˣ⊑★) ∈ ⇑ᴸᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameFirst-⇑ᴸ {ρ = ρ} {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X Y}
-    → (ρ X ˣ⊑ˣ Y) ∈ Ψ
-    → (suc (ρ X) ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameFirst-⇑ᴸ {Φ = (_ ˣ⊑★) ∷ Φ} h (there a∈) =
-  renameFirst-⇑ᴸ (λ b∈ → h (there b∈)) a∈
-renameFirst-⇑ᴸ {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h (there a∈) =
-  renameFirst-⇑ᴸ (λ b∈ → h (there b∈)) a∈
-
-renameFirst-gen : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameFirst ρ b ∈ Ψ)
-  → a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ
-  → renameFirst (extᵗ ρ) a
-      ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ
-renameFirst-gen h (here refl) = here refl
-renameFirst-gen h (there a∈) = there (renameFirst-⇑ᴸ h a∈)
-
-rename-first-⊑ᵃ : ∀ {ρ Φ Ψ A B}
-  → (∀ {a} → a ∈ Φ → renameFirst ρ a ∈ Ψ)
-  → (a : Atom A)
-  → (b : Atom B)
-  → Φ ⊢ a ⊑ᵃ b
-  → Ψ ⊢ renameᵃ ρ a ⊑ᵃ b
-rename-first-⊑ᵃ h (＇ X) (＇ Y) X∈ = h X∈
-rename-first-⊑ᵃ h (＇ X) (‵ ι) ()
-rename-first-⊑ᵃ h (＇ X) ★ ()
-rename-first-⊑ᵃ h (‵ ι) (＇ Y) ()
-rename-first-⊑ᵃ h (‵ ι) (‵ κ) refl = refl
-rename-first-⊑ᵃ h (‵ ι) ★ ()
-rename-first-⊑ᵃ h ★ (＇ Y) ()
-rename-first-⊑ᵃ h ★ (‵ ι) ()
-rename-first-⊑ᵃ h ★ ★ tt = tt
+bind-incl : ∀ {Σ Π}
+  → StoreIncl Σ Π
+  → StoreIncl ((zero , ★) ∷ ⟰ᵗ Σ) ((zero , ★) ∷ ⟰ᵗ Π)
+bind-incl incl (here refl) = here refl
+bind-incl incl (there X,A∈Σ) = there (shift-incl incl X,A∈Σ)
 
 mutual
 
-  rename-sourceʷ : ∀ {ρ Φ Ψ Δᴸ Δᴸ′ Δᴿ c A B}
-    → (∀ {a} → a ∈ Φ → renameFirst ρ a ∈ Ψ)
-    → TyRenameWf Δᴸ Δᴸ′ ρ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-    → Ψ ∣ Δᴸ′ ⊢ renameᶜ ρ c ⦂ renameᵗ ρ A ⊑ B ⊣ Δᴿ
-  rename-sourceʷ {ρ = ρ} h hρ (idᵃ a b hA hB a⊑b) =
-    idᵃ (renameᵃ ρ a) b
-      (renameᵗ-preserves-WfTy hA hρ) hB
-      (rename-first-⊑ᵃ h a b a⊑b)
-  rename-sourceʷ h hρ (p ↦ q) =
-    rename-targetⁿ h hρ p ↦ rename-sourceʷ h hρ q
-  rename-sourceʷ h hρ (∀ʷ p) =
-    ∀ʷ (rename-sourceʷ (renameFirst-all h)
-      (TyRenameWf-ext hρ) p)
-  rename-sourceʷ h hρ (tag ι) = tag ι
-  rename-sourceʷ h hρ tag★⇒★ = tag★⇒★
-  rename-sourceʷ h hρ (p ︔tag★⇒★[ A≢★⇒★ ]) =
-    rename-sourceʷ h hρ p ︔tag★⇒★[
-      rename-fun-star-neq A≢★⇒★ ]
-  rename-sourceʷ h hρ (unseal X∈ X<Δᴸ) =
-    unseal (h X∈) (hρ X<Δᴸ)
-  rename-sourceʷ {ρ = ρ} h hρ (inst nonvar occ p B≢★) =
-    inst (renameNonVar (extᵗ ρ) nonvar)
-      (rename-ext-preserves-zero∈ ρ occ)
-      (rename-sourceʷ (renameFirst-gen h)
-        (TyRenameWf-ext hρ) p)
-      B≢★
+  weaken-storeʷ : ∀ {μ Δ Σ Π c A B}
+    → StoreIncl Σ Π
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+    → μ ∣ Δ ∣ Π ⊢ c ⦂ A ⊑ B
+  weaken-storeʷ incl (idᵃ a hA) = idᵃ a hA
+  weaken-storeʷ incl (p ↦ q) =
+    weaken-storeⁿ incl p ↦ weaken-storeʷ incl q
+  weaken-storeʷ incl (∀ʷ p) = ∀ʷ (weaken-storeʷ (shift-incl incl) p)
+  weaken-storeʷ incl (tag G hG allowed G꞉A) =
+    tag G hG allowed G꞉A
+  weaken-storeʷ incl (tag-seq G p hG allowed G꞉B A≢B) =
+    tag-seq G (weaken-storeʷ incl p) hG allowed G꞉B A≢B
+  weaken-storeʷ incl (unseal X<Δ hA X,A∈Σ allowed) =
+    unseal X<Δ hA (incl X,A∈Σ) allowed
+  weaken-storeʷ incl (unseal-seq X<Δ X,A∈Σ allowed p A≢B) =
+    unseal-seq X<Δ (incl X,A∈Σ) allowed
+      (weaken-storeʷ incl p) A≢B
+  weaken-storeʷ incl (inst nonvarA zero∈A hB p B≢★) =
+    inst nonvarA zero∈A hB
+      (weaken-storeʷ (bind-incl incl) p) B≢★
 
-  rename-targetⁿ : ∀ {ρ Φ Ψ Δᴸ Δᴿ Δᴿ′ c A B}
-    → (∀ {a} → a ∈ Φ → renameFirst ρ a ∈ Ψ)
-    → TyRenameWf Δᴿ Δᴿ′ ρ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → Ψ ∣ Δᴸ ⊢ renameᶜ ρ c ⦂ A ⊒ renameᵗ ρ B ⊣ Δᴿ′
-  rename-targetⁿ {ρ = ρ} h hρ (idᵃ a b hA hB a⊒b) =
-    idᵃ a (renameᵃ ρ b) hA
-      (renameᵗ-preserves-WfTy hB hρ)
-      (rename-first-⊑ᵃ h b a a⊒b)
-  rename-targetⁿ h hρ (p ↦ q) =
-    rename-sourceʷ h hρ p ↦ rename-targetⁿ h hρ q
-  rename-targetⁿ h hρ (∀ⁿ p) =
-    ∀ⁿ (rename-targetⁿ (renameFirst-all h)
-      (TyRenameWf-ext hρ) p)
-  rename-targetⁿ h hρ (untag ι) = untag ι
-  rename-targetⁿ h hρ untag★⇒★ = untag★⇒★
-  rename-targetⁿ h hρ (untag★⇒★︔ p [ ★⇒★≢B ]) =
-    untag★⇒★︔ rename-targetⁿ h hρ p [
-      rename-fun-star-neqʳ ★⇒★≢B ]
-  rename-targetⁿ h hρ (seal X∈ X<Δᴿ) =
-    seal (h X∈) (hρ X<Δᴿ)
-  rename-targetⁿ {ρ = ρ} h hρ (gen nonvar occ p B≢★) =
-    gen (renameNonVar (extᵗ ρ) nonvar)
-      (rename-ext-preserves-zero∈ ρ occ)
-      (rename-targetⁿ (renameFirst-gen h)
-        (TyRenameWf-ext hρ) p)
-      B≢★
+  weaken-storeⁿ : ∀ {μ Δ Σ Π c A B}
+    → StoreIncl Σ Π
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+    → μ ∣ Δ ∣ Π ⊢ c ⦂ A ⊒ B
+  weaken-storeⁿ incl (idᵃ a hA) = idᵃ a hA
+  weaken-storeⁿ incl (p ↦ q) =
+    weaken-storeʷ incl p ↦ weaken-storeⁿ incl q
+  weaken-storeⁿ incl (∀ⁿ p) = ∀ⁿ (weaken-storeⁿ (shift-incl incl) p)
+  weaken-storeⁿ incl (untag G hG allowed G꞉B) =
+    untag G hG allowed G꞉B
+  weaken-storeⁿ incl (untag-seq G hG allowed G꞉A p A≢B) =
+    untag-seq G hG allowed G꞉A (weaken-storeⁿ incl p) A≢B
+  weaken-storeⁿ incl (seal X<Δ hA X,A∈Σ allowed) =
+    seal X<Δ hA (incl X,A∈Σ) allowed
+  weaken-storeⁿ incl (seal-seq p X<Δ X,B∈Σ allowed A≢B) =
+    seal-seq (weaken-storeⁿ incl p) X<Δ (incl X,B∈Σ) allowed A≢B
+  weaken-storeⁿ incl (gen nonvarA zero∈A hB p B≢★) =
+    gen nonvarA zero∈A hB
+      (weaken-storeⁿ (shift-incl incl) p) B≢★
 
-renameFirst-suc-gen : ∀ {Φ a}
-  → a ∈ Φ
-  → renameFirst suc a ∈ (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ
-renameFirst-suc-gen {a = X ˣ⊑★} X∈ =
-  there (go X∈)
-  where
-  go : ∀ {Φ X}
-    → (X ˣ⊑★) ∈ Φ
-    → (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Φ
-  go {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-  go {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) = there (go X∈)
-  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) = there (go X∈)
-renameFirst-suc-gen {a = X ˣ⊑ˣ Y} X∈ =
-  there (go X∈)
-  where
-  go : ∀ {Φ X Y}
-    → (X ˣ⊑ˣ Y) ∈ Φ
-    → (suc X ˣ⊑ˣ Y) ∈ ⇑ᴸᵢ Φ
-  go {Φ = (_ ˣ⊑★) ∷ Φ} (there X∈) = there (go X∈)
-  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there X∈) = there (go X∈)
+add-head : ∀ {Σ} → StoreIncl Σ ((zero , ★) ∷ Σ)
+add-head X,A∈Σ = there X,A∈Σ
 
-source-liftʷ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-  → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ renameᶜ suc c ⦂ ⇑ᵗ A ⊑ B ⊣ Δᴿ
-source-liftʷ =
-  rename-sourceʷ renameFirst-suc-gen (λ X<Δ → s≤s X<Δ)
+⇑ʷ-inst-head : ∀ {μ Δ Σ A B}
+  → μ ∣ Δ ∣ Σ ⊢ A ⊑ B
+  → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
+      ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B
+⇑ʷ-inst-head p with ⇑ʷ-inst p
+⇑ʷ-inst-head p | c , c⊑ = c , weaken-storeʷ add-head c⊑
 
-target-liftⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-  → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ Δᴸ ⊢ renameᶜ suc c ⦂ A ⊒ ⇑ᵗ B ⊣ suc Δᴿ
-target-liftⁿ =
-  rename-targetⁿ renameFirst-suc-gen (λ X<Δ → s≤s X<Δ)
+ext-to-inst : ∀ {μ Δ Σ A B}
+  → extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ A ⊑ B
+  → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ ⊢ A ⊑ B
+ext-to-inst (c , c⊑) =
+  c , weakenʷ ext-inst-incl (weaken-storeʷ add-head c⊑)
 
-renameSecond : Renameᵗ → ImpAssm → ImpAssm
-renameSecond ρ (X ˣ⊑★) = X ˣ⊑★
-renameSecond ρ (X ˣ⊑ˣ Y) = X ˣ⊑ˣ ρ Y
+------------------------------------------------------------------------
+-- Occurrence preservation away from store representations
+------------------------------------------------------------------------
 
-renameSecond-⇑ : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameSecond ρ b ∈ Ψ)
-  → a ∈ ⇑ᵢ Φ
-  → renameSecond (extᵗ ρ) a ∈ ⇑ᵢ Ψ
-renameSecond-⇑ {Φ = []} h ()
-renameSecond-⇑ {ρ = ρ} {Φ = (_ ˣ⊑★) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X}
-    → (X ˣ⊑★) ∈ Ψ
-    → (suc X ˣ⊑★) ∈ ⇑ᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameSecond-⇑ {ρ = ρ} {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X Y}
-    → (X ˣ⊑ˣ ρ Y) ∈ Ψ
-    → (suc X ˣ⊑ˣ suc (ρ Y)) ∈ ⇑ᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameSecond-⇑ {Φ = _ ∷ Φ} h (there X∈) =
-  renameSecond-⇑ (λ Y∈ → h (there Y∈)) X∈
+rename-member-inv : ∀ ρ {X A}
+  → X ∈ᵗ renameᵗ ρ A
+  → Σ[ Y ∈ TyVar ] (X ≡ ρ Y) × (Y ∈ᵗ A)
+rename-member-inv ρ {A = ＇ Y} var-∈ = Y , refl , var-∈
+rename-member-inv ρ {A = A ⇒ B} (∈-fun-left X∈A)
+    with rename-member-inv ρ X∈A
+rename-member-inv ρ {A = A ⇒ B} (∈-fun-left X∈A)
+    | Y , eq , Y∈A = Y , eq , ∈-fun-left Y∈A
+rename-member-inv ρ {A = A ⇒ B} (∈-fun-right X∈B)
+    with rename-member-inv ρ X∈B
+rename-member-inv ρ {A = A ⇒ B} (∈-fun-right X∈B)
+    | Y , eq , Y∈B = Y , eq , ∈-fun-right Y∈B
+rename-member-inv ρ {A = `∀ A} (∈-all X∈A)
+    with rename-member-inv (extᵗ ρ) X∈A
+rename-member-inv ρ {A = `∀ A} (∈-all X∈A)
+    | zero , () , Y∈A
+rename-member-inv ρ {A = `∀ A} (∈-all X∈A)
+    | suc Y , refl , Y∈A = Y , refl , ∈-all Y∈A
 
-renameSecond-all : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameSecond ρ b ∈ Ψ)
-  → a ∈ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-  → renameSecond (extᵗ ρ) a
-      ∈ ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Ψ)
-renameSecond-all h (here refl) = here refl
-renameSecond-all h (there X∈) =
-  there (renameSecond-⇑ h X∈)
+StoreFresh : TyVar → TyStore → Set
+StoreFresh X Σ = ∀ {Y A} → (Y , A) ∈ Σ → X ∈ᵗ A → ⊥
 
-renameSecond-⇑ᴸ : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameSecond ρ b ∈ Ψ)
-  → a ∈ ⇑ᴸᵢ Φ
-  → renameSecond ρ a ∈ ⇑ᴸᵢ Ψ
-renameSecond-⇑ᴸ {Φ = []} h ()
-renameSecond-⇑ᴸ {ρ = ρ} {Φ = (_ ˣ⊑★) ∷ Φ} h
-    (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X}
-    → (X ˣ⊑★) ∈ Ψ
-    → (suc X ˣ⊑★) ∈ ⇑ᴸᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameSecond-⇑ᴸ {ρ = ρ} {Φ = (_ ˣ⊑ˣ _) ∷ Φ} h
-    (here refl) =
-  map-head (h (here refl))
-  where
-  map-head : ∀ {Ψ X Y}
-    → (X ˣ⊑ˣ ρ Y) ∈ Ψ
-    → (suc X ˣ⊑ˣ ρ Y) ∈ ⇑ᴸᵢ Ψ
-  map-head {Ψ = (_ ˣ⊑★) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (here refl) = here refl
-  map-head {Ψ = (_ ˣ⊑ˣ _) ∷ Ψ} (there X∈) =
-    there (map-head X∈)
-renameSecond-⇑ᴸ {Φ = _ ∷ Φ} h (there X∈) =
-  renameSecond-⇑ᴸ (λ Y∈ → h (there Y∈)) X∈
+shift-fresh : ∀ {X Σ}
+  → StoreFresh X Σ
+  → StoreFresh (suc X) (⟰ᵗ Σ)
+shift-fresh fresh {Y = zero} Y,A∈Σ Y∈A =
+  ⊥-elim (∈-⟰ᵗ-zero Y,A∈Σ)
+shift-fresh {X = X} fresh {Y = suc Y} Y,A∈Σ X∈A
+    with ∈-⟰ᵗ-inv Y,A∈Σ
+shift-fresh {X = X} fresh {Y = suc Y} Y,A∈Σ X∈A
+    | A , refl , Y,A∈Σ′ with rename-member-inv suc X∈A
+shift-fresh {X = X} fresh {Y = suc Y} Y,A∈Σ X∈A
+    | A , refl , Y,A∈Σ′ | .X , refl , X∈A′ =
+  fresh Y,A∈Σ′ X∈A′
 
-renameSecond-gen : ∀ {ρ Φ Ψ a}
-  → (∀ {b} → b ∈ Φ → renameSecond ρ b ∈ Ψ)
-  → a ∈ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-  → renameSecond ρ a ∈ ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
-renameSecond-gen h (here refl) = here refl
-renameSecond-gen h (there X∈) =
-  there (renameSecond-⇑ᴸ h X∈)
+zero-fresh-shift : ∀ {Σ} → StoreFresh zero (⟰ᵗ Σ)
+zero-fresh-shift {Σ} {Y = zero} Y,A∈Σ zero∈A =
+  ⊥-elim (∈-⟰ᵗ-zero Y,A∈Σ)
+zero-fresh-shift {Σ} {Y = suc Y} Y,A∈Σ zero∈A
+    with ∈-⟰ᵗ-inv Y,A∈Σ
+zero-fresh-shift {Σ} {Y = suc Y} Y,A∈Σ zero∈A
+    | A , refl , Y,A∈Σ′ with rename-member-inv suc zero∈A
+zero-fresh-shift {Σ} {Y = suc Y} Y,A∈Σ zero∈A
+    | A , refl , Y,A∈Σ′ | _ , () , _
 
-rename-second-⊑ᵃ : ∀ {ρ Φ Ψ A B}
-  → (∀ {a} → a ∈ Φ → renameSecond ρ a ∈ Ψ)
-  → (a : Atom A)
-  → (b : Atom B)
-  → Φ ⊢ a ⊑ᵃ b
-  → Ψ ⊢ a ⊑ᵃ renameᵃ ρ b
-rename-second-⊑ᵃ h (＇ X) (＇ Y) X∈ = h X∈
-rename-second-⊑ᵃ h (＇ X) (‵ ι) ()
-rename-second-⊑ᵃ h (＇ X) ★ ()
-rename-second-⊑ᵃ h (‵ ι) (＇ Y) ()
-rename-second-⊑ᵃ h (‵ ι) (‵ κ) refl = refl
-rename-second-⊑ᵃ h (‵ ι) ★ ()
-rename-second-⊑ᵃ h ★ (＇ Y) ()
-rename-second-⊑ᵃ h ★ (‵ ι) ()
-rename-second-⊑ᵃ h ★ ★ tt = tt
+bind-fresh : ∀ {X Σ}
+  → StoreFresh X Σ
+  → StoreFresh (suc X) ((zero , ★) ∷ ⟰ᵗ Σ)
+bind-fresh fresh (here refl) ()
+bind-fresh fresh (there Y,A∈Σ) X∈A = shift-fresh fresh Y,A∈Σ X∈A
 
 mutual
 
-  rename-targetʷ : ∀ {ρ Φ Ψ Δᴸ Δᴿ Δᴿ′ c A B}
-    → (∀ {a} → a ∈ Φ → renameSecond ρ a ∈ Ψ)
-    → TyRenameWf Δᴿ Δᴿ′ ρ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-    → Ψ ∣ Δᴸ ⊢ c ⦂ A ⊑ renameᵗ ρ B ⊣ Δᴿ′
-  rename-targetʷ {ρ = ρ} h hρ (idᵃ a b hA hB a⊑b) =
-    idᵃ a (renameᵃ ρ b) hA
-      (renameᵗ-preserves-WfTy hB hρ)
-      (rename-second-⊑ᵃ h a b a⊑b)
-  rename-targetʷ h hρ (p ↦ q) =
-    rename-sourceⁿ h hρ p ↦ rename-targetʷ h hρ q
-  rename-targetʷ h hρ (∀ʷ p) =
-    ∀ʷ (rename-targetʷ (renameSecond-all h)
-      (TyRenameWf-ext hρ) p)
-  rename-targetʷ h hρ (tag ι) = tag ι
-  rename-targetʷ h hρ tag★⇒★ = tag★⇒★
-  rename-targetʷ h hρ (p ︔tag★⇒★[ A≢★⇒★ ]) =
-    rename-targetʷ h hρ p ︔tag★⇒★[ A≢★⇒★ ]
-  rename-targetʷ h hρ (unseal X∈ X<Δᴸ) =
-    unseal (h X∈) X<Δᴸ
-  rename-targetʷ h hρ (inst nonvar occ p B≢★) =
-    inst nonvar occ
-      (rename-targetʷ (renameSecond-gen h) hρ p)
-      (rename-star-neq B≢★)
-
-  rename-sourceⁿ : ∀ {ρ Φ Ψ Δᴸ Δᴸ′ Δᴿ c A B}
-    → (∀ {a} → a ∈ Φ → renameSecond ρ a ∈ Ψ)
-    → TyRenameWf Δᴸ Δᴸ′ ρ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → Ψ ∣ Δᴸ′ ⊢ c ⦂ renameᵗ ρ A ⊒ B ⊣ Δᴿ
-  rename-sourceⁿ {ρ = ρ} h hρ (idᵃ a b hA hB a⊒b) =
-    idᵃ (renameᵃ ρ a) b
-      (renameᵗ-preserves-WfTy hA hρ) hB
-      (rename-second-⊑ᵃ h b a a⊒b)
-  rename-sourceⁿ h hρ (p ↦ q) =
-    rename-targetʷ h hρ p ↦ rename-sourceⁿ h hρ q
-  rename-sourceⁿ h hρ (∀ⁿ p) =
-    ∀ⁿ (rename-sourceⁿ (renameSecond-all h)
-      (TyRenameWf-ext hρ) p)
-  rename-sourceⁿ h hρ (untag ι) = untag ι
-  rename-sourceⁿ h hρ untag★⇒★ = untag★⇒★
-  rename-sourceⁿ h hρ (untag★⇒★︔ p [ ★⇒★≢B ]) =
-    untag★⇒★︔ rename-sourceⁿ h hρ p [ ★⇒★≢B ]
-  rename-sourceⁿ h hρ (seal X∈ X<Δᴿ) =
-    seal (h X∈) X<Δᴿ
-  rename-sourceⁿ h hρ (gen nonvar occ p B≢★) =
-    gen nonvar occ
-      (rename-sourceⁿ (renameSecond-gen h) hρ p)
-      (rename-star-neq B≢★)
-
-renameSecond-suc : ∀ {Φ a}
-  → a ∈ Φ
-  → renameSecond suc a ∈ ⇑ᴿᵢ Φ
-renameSecond-suc {Φ = (_ ˣ⊑★) ∷ Φ} {a = X ˣ⊑★}
-    (here refl) =
-  here refl
-renameSecond-suc {Φ = (_ ˣ⊑★) ∷ Φ} {a = X ˣ⊑★}
-    (there X∈) =
-  there (renameSecond-suc X∈)
-renameSecond-suc {Φ = (_ ˣ⊑ˣ _) ∷ Φ} {a = X ˣ⊑★}
-    (there X∈) =
-  there (renameSecond-suc X∈)
-renameSecond-suc {Φ = (_ ˣ⊑★) ∷ Φ} {a = X ˣ⊑ˣ Y}
-    (there X∈) =
-  there (renameSecond-suc X∈)
-renameSecond-suc {Φ = (_ ˣ⊑ˣ _) ∷ Φ} {a = X ˣ⊑ˣ Y}
-    (here refl) =
-  here refl
-renameSecond-suc {Φ = (_ ˣ⊑ˣ _) ∷ Φ} {a = X ˣ⊑ˣ Y}
-    (there X∈) =
-  there (renameSecond-suc X∈)
-
-target-liftʷ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-  → ⇑ᴿᵢ Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ
-target-liftʷ =
-  rename-targetʷ renameSecond-suc (λ X<Δ → s≤s X<Δ)
-
-source-liftⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-  → ⇑ᴿᵢ Φ ∣ suc Δᴸ ⊢ c ⦂ ⇑ᵗ A ⊒ B ⊣ Δᴿ
-source-liftⁿ =
-  rename-sourceⁿ renameSecond-suc (λ X<Δ → s≤s X<Δ)
-
-renameFirst-suc-⇑ᴿ : ∀ {Φ a}
-  → a ∈ ⇑ᴿᵢ Φ
-  → renameFirst suc a ∈ (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ
-renameFirst-suc-⇑ᴿ a∈ = there (go a∈)
-  where
-  go : ∀ {Φ a}
-    → a ∈ ⇑ᴿᵢ Φ
-    → renameFirst suc a ∈ ⇑ᵢ Φ
-  go {Φ = []} ()
-  go {Φ = (_ ˣ⊑★) ∷ Φ} (here refl) = here refl
-  go {Φ = (_ ˣ⊑★) ∷ Φ} (there a∈) = there (go a∈)
-  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (here refl) = here refl
-  go {Φ = (_ ˣ⊑ˣ _) ∷ Φ} (there a∈) = there (go a∈)
-
-narrowing-lift : ∀ {Φ Δᴸ Δᴿ c A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ renameᶜ suc c ⦂ ⇑ᵗ A ⊒ ⇑ᵗ B ⊣ suc Δᴿ
-narrowing-lift p =
-  rename-targetⁿ renameFirst-suc-⇑ᴿ
-    (λ X<Δ → s≤s X<Δ) (source-liftⁿ p)
-
-⇑ᴿ-⇑ᴸ : ∀ Φ
-  → ⇑ᴿᵢ (⇑ᴸᵢ Φ) ≡ ⇑ᵢ Φ
-⇑ᴿ-⇑ᴸ [] = refl
-⇑ᴿ-⇑ᴸ ((X ˣ⊑★) ∷ Φ) =
-  cong ((suc X ˣ⊑★) ∷_) (⇑ᴿ-⇑ᴸ Φ)
-⇑ᴿ-⇑ᴸ ((X ˣ⊑ˣ Y) ∷ Φ) =
-  cong ((suc X ˣ⊑ˣ suc Y) ∷_) (⇑ᴿ-⇑ᴸ Φ)
-
-source-lift-genⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ suc Δᴿ
-  → ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ c ⦂ ⇑ᵗ A ⊒ B ⊣ suc Δᴿ
-source-lift-genⁿ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {c = c} {A = A} {B = B} p =
-  subst
-    (λ Ψ → Ψ ∣ suc Δᴸ ⊢ c ⦂ ⇑ᵗ A ⊒ B ⊣ suc Δᴿ)
-    (cong ((zero ˣ⊑★) ∷_) (⇑ᴿ-⇑ᴸ Φ))
-    (source-liftⁿ p)
-
-target-lift-genʷ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-  → ((zero ˣ⊑★) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ c ⦂ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ
-target-lift-genʷ {Φ = Φ} {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
-    {c = c} {A = A} {B = B} p =
-  subst
-    (λ Ψ → Ψ ∣ suc Δᴸ ⊢ c ⦂ A ⊑ ⇑ᵗ B ⊣ suc Δᴿ)
-    (cong ((zero ˣ⊑★) ∷_) (⇑ᴿ-⇑ᴸ Φ))
-    (target-liftʷ p)
-
-------------------------------------------------------------------------
--- Recontexting relations whose exposed endpoint is ground
-------------------------------------------------------------------------
-
-StarIncl : TyCtx → ImpCtx → ImpCtx → Set
-StarIncl Δ Φ Ψ =
-  ∀ {X} → X < Δ → (X ˣ⊑★) ∈ Φ → (X ˣ⊑★) ∈ Ψ
-
-gen-star-incl : ∀ {Δ Φ Ψ}
-  → StarIncl Δ Φ Ψ
-  → StarIncl (suc Δ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-      ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Ψ)
-gen-star-incl incl (s≤s z≤n) (here refl) = here refl
-gen-star-incl incl {X = zero} X<Δ (there X∈) =
-  ⊥-elim (no-⇑ᴸ-zero-star X∈)
-gen-star-incl incl {X = suc X} (s≤s X<Δ) (there X∈) =
-  there (⇑ᴸ-star (incl X<Δ (un⇑ᴸ-star X∈)))
-
-mutual
-
-  recontext-to-starʷ : ∀ {Φ Ψ Δᴸ Δᴹ Δᴿ c A}
-    → StarIncl Δᴸ Ψ Φ
-    → Ψ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴹ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴿ
-  recontext-to-starʷ incl (idᵃ ★ ★ hA hB tt) =
-    idᵃ ★ ★ hA wf★ tt
-  recontext-to-starʷ incl (tag ι) = tag ι
-  recontext-to-starʷ incl tag★⇒★ = tag★⇒★
-  recontext-to-starʷ incl (p ︔tag★⇒★[ A≢★⇒★ ]) =
-    recontext-to-funʷ incl p ︔tag★⇒★[ A≢★⇒★ ]
-  recontext-to-starʷ incl (unseal X∈ X<Δ) =
-    unseal (incl X<Δ X∈) X<Δ
-  recontext-to-starʷ incl (inst nonvar occ p ★≢★) =
-    ⊥-elim (★≢★ refl)
-
-  recontext-to-funʷ : ∀ {Φ Ψ Δᴸ Δᴹ Δᴿ c A}
-    → StarIncl Δᴸ Ψ Φ
-    → Ψ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴹ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
-  recontext-to-funʷ incl (p ↦ q) =
-    recontext-from-starⁿ incl p ↦ recontext-to-starʷ incl q
-  recontext-to-funʷ incl (inst nonvar occ p ★⇒★≢★) =
-    inst nonvar occ
-      (recontext-to-funʷ (gen-star-incl incl) p) ★⇒★≢★
-
-  recontext-from-starⁿ : ∀ {Φ Ψ Δᴸ Δᴹ Δᴿ c B}
-    → StarIncl Δᴿ Ψ Φ
-    → Ψ ∣ Δᴹ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
-    → Φ ∣ Δᴸ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
-  recontext-from-starⁿ incl (idᵃ ★ ★ hA hB tt) =
-    idᵃ ★ ★ wf★ hB tt
-  recontext-from-starⁿ incl (untag ι) = untag ι
-  recontext-from-starⁿ incl untag★⇒★ = untag★⇒★
-  recontext-from-starⁿ incl
-      (untag★⇒★︔ p [ ★⇒★≢B ]) =
-    untag★⇒★︔ recontext-from-funⁿ incl p [ ★⇒★≢B ]
-  recontext-from-starⁿ incl (seal X∈ X<Δ) =
-    seal (incl X<Δ X∈) X<Δ
-  recontext-from-starⁿ incl (gen nonvar occ p ★≢★) =
-    ⊥-elim (★≢★ refl)
-
-  recontext-from-funⁿ : ∀ {Φ Ψ Δᴸ Δᴹ Δᴿ c B}
-    → StarIncl Δᴿ Ψ Φ
-    → Ψ ∣ Δᴹ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-    → Φ ∣ Δᴸ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-  recontext-from-funⁿ incl (p ↦ q) =
-    recontext-to-starʷ incl p ↦ recontext-from-starⁿ incl q
-  recontext-from-funⁿ incl (gen nonvar occ p ★⇒★≢★) =
-    gen nonvar occ
-      (recontext-from-funⁿ (gen-star-incl incl) p) ★⇒★≢★
-
-------------------------------------------------------------------------
--- Occurrence and non-variable transport
-------------------------------------------------------------------------
-
-VarMap : Renameᵗ → ImpCtx → Set
-VarMap ρ Φ =
-  ∀ {X Y} → (X ˣ⊑ˣ Y) ∈ Φ → X ≡ ρ Y
-
-all-var-map : ∀ {ρ Φ}
-  → VarMap ρ Φ
-  → VarMap (extᵗ ρ) ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-all-var-map h (here refl) = refl
-all-var-map h {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left X∈)
-all-var-map h {X = suc X} {Y = zero} (there X∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right X∈)
-all-var-map h {X = suc X} {Y = suc Y} (there X∈) =
-  cong suc (h (un⇑ᵢ-var X∈))
-
-νRename : Renameᵗ → Renameᵗ
-νRename ρ X = suc (ρ X)
-
-gen-var-map : ∀ {ρ Φ}
-  → VarMap ρ Φ
-  → VarMap (νRename ρ) ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-gen-var-map h {X = zero} (there X∈) =
-  ⊥-elim (no-⇑ᴸ-zero-left X∈)
-gen-var-map h {X = suc X} (there X∈) =
-  cong suc (h (un⇑ᴸ-var X∈))
-
-mutual
-
-  member-backʷ : ∀ {ρ Φ Δᴸ Δᴿ c A B X}
-    → VarMap ρ Φ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+  narrowing-member : ∀ {μ Δ Σ X c A B}
+    → StoreFresh X Σ
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+    → X ∈ᵗ A
     → X ∈ᵗ B
-    → ρ X ∈ᵗ A
-  member-backʷ h (idᵃ (＇ X) (＇ Y) hA hB X∈) var-∈
-      rewrite h X∈ =
-    var-∈
-  member-backʷ h (idᵃ (‵ ι) (＇ Y) hA hB ()) var-∈
-  member-backʷ h (idᵃ ★ (＇ Y) hA hB ()) var-∈
-  member-backʷ h (idᵃ a (‵ ι) hA hB a⊑b) ()
-  member-backʷ h (idᵃ a ★ hA hB a⊑b) ()
-  member-backʷ h (p ↦ q) (∈-fun-left X∈) =
-    ∈-fun-left (member-backⁿ h p X∈)
-  member-backʷ h (p ↦ q) (∈-fun-right X∈) =
-    ∈-fun-right (member-backʷ h q X∈)
-  member-backʷ h (∀ʷ p) (∈-all X∈) =
-    ∈-all (member-backʷ (all-var-map h) p X∈)
-  member-backʷ h (tag ι) ()
-  member-backʷ h tag★⇒★ ()
-  member-backʷ h (_ ︔tag★⇒★[ _ ]) ()
-  member-backʷ h (unseal X∈ X<Δ) ()
-  member-backʷ h (inst nonvar occ p B≢★) X∈ =
-    ∈-all (member-backʷ (gen-var-map h) p X∈)
+  narrowing-member fresh (idᵃ a hA) X∈A = X∈A
+  narrowing-member fresh (p ↦ q) (∈-fun-left X∈A) =
+    ∈-fun-left (widening-member fresh p X∈A)
+  narrowing-member fresh (p ↦ q) (∈-fun-right X∈B) =
+    ∈-fun-right (narrowing-member fresh q X∈B)
+  narrowing-member fresh (∀ⁿ p) (∈-all X∈A) =
+    ∈-all (narrowing-member (shift-fresh fresh) p X∈A)
+  narrowing-member fresh (untag G hG allowed G꞉B) ()
+  narrowing-member fresh (untag-seq G hG allowed G꞉A p A≢B) ()
+  narrowing-member fresh (seal X<Δ hA X,A∈Σ allowed) X∈A =
+    ⊥-elim (fresh X,A∈Σ X∈A)
+  narrowing-member fresh
+      (seal-seq p X<Δ X,B∈Σ allowed A≢B) X∈A =
+    ⊥-elim (fresh X,B∈Σ (narrowing-member fresh p X∈A))
+  narrowing-member fresh
+      (gen nonvarA zero∈A hB p B≢★) X∈B =
+    ∈-all
+      (narrowing-member (shift-fresh fresh) p
+        (rename-preserves-∈ᵗ suc X∈B))
 
-  member-backⁿ : ∀ {ρ Φ Δᴸ Δᴿ c A B X}
-    → VarMap ρ Φ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+  widening-member : ∀ {μ Δ Σ X c A B}
+    → StoreFresh X Σ
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+    → X ∈ᵗ B
     → X ∈ᵗ A
-    → ρ X ∈ᵗ B
-  member-backⁿ h (idᵃ (＇ X) (＇ Y) hA hB X∈) var-∈
-      rewrite h X∈ =
-    var-∈
-  member-backⁿ h (idᵃ (＇ X) (‵ ι) hA hB ()) var-∈
-  member-backⁿ h (idᵃ (＇ X) ★ hA hB ()) var-∈
-  member-backⁿ h (idᵃ (‵ ι) b hA hB a⊒b) ()
-  member-backⁿ h (idᵃ ★ b hA hB a⊒b) ()
-  member-backⁿ h (p ↦ q) (∈-fun-left X∈) =
-    ∈-fun-left (member-backʷ h p X∈)
-  member-backⁿ h (p ↦ q) (∈-fun-right X∈) =
-    ∈-fun-right (member-backⁿ h q X∈)
-  member-backⁿ h (∀ⁿ p) (∈-all X∈) =
-    ∈-all (member-backⁿ (all-var-map h) p X∈)
-  member-backⁿ h (untag ι) ()
-  member-backⁿ h untag★⇒★ ()
-  member-backⁿ h (untag★⇒★︔ _ [ _ ]) ()
-  member-backⁿ h (seal X∈ X<Δ) ()
-  member-backⁿ h (gen nonvar occ p B≢★) X∈ =
-    ∈-all (member-backⁿ (gen-var-map h) p X∈)
+  widening-member fresh (idᵃ a hA) X∈A = X∈A
+  widening-member fresh (p ↦ q) (∈-fun-left X∈A) =
+    ∈-fun-left (narrowing-member fresh p X∈A)
+  widening-member fresh (p ↦ q) (∈-fun-right X∈B) =
+    ∈-fun-right (widening-member fresh q X∈B)
+  widening-member fresh (∀ʷ p) (∈-all X∈A) =
+    ∈-all (widening-member (shift-fresh fresh) p X∈A)
+  widening-member fresh (tag G hG allowed G꞉A) ()
+  widening-member fresh (tag-seq G p hG allowed G꞉B A≢B) ()
+  widening-member fresh (unseal X<Δ hA X,A∈Σ allowed) X∈A =
+    ⊥-elim (fresh X,A∈Σ X∈A)
+  widening-member fresh
+      (unseal-seq X<Δ X,A∈Σ allowed p A≢B) X∈B =
+    ⊥-elim (fresh X,A∈Σ (widening-member fresh p X∈B))
+  widening-member fresh
+      (inst nonvarA zero∈A hB p B≢★) X∈B =
+    ∈-all
+      (widening-member (bind-fresh fresh) p
+        (rename-preserves-∈ᵗ suc X∈B))
 
-Rigid : ImpCtx → TyVar → TyVar → Set
-Rigid Φ X Y =
-  ∀ {Z} → (Z ˣ⊑ˣ Y) ∈ Φ → Z ≡ X
-
-rigid-all : ∀ {Φ X Y}
-  → Rigid Φ X Y
-  → Rigid ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) (suc X) (suc Y)
-rigid-all rigid {Z = zero} (there Z∈) =
-  ⊥-elim (no-⇑ᵢ-zero-left Z∈)
-rigid-all rigid {Z = suc z} (there Z∈) =
-  cong suc (rigid (un⇑ᵢ-var Z∈))
-
-rigid-gen : ∀ {Φ X Y}
-  → Rigid Φ X Y
-  → Rigid ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ) (suc X) Y
-rigid-gen rigid {Z = zero} (there Z∈) =
-  ⊥-elim (no-⇑ᴸ-zero-left Z∈)
-rigid-gen rigid {Z = suc z} (there Z∈) =
-  cong suc (rigid (un⇑ᴸ-var Z∈))
-
-rigid-zero : ∀ {Φ}
-  → Rigid ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ) zero zero
-rigid-zero (here refl) = refl
-rigid-zero (there Z∈) =
-  ⊥-elim (no-⇑ᵢ-zero-right Z∈)
-
-mutual
-
-  member-rigidʷ : ∀ {Φ Δᴸ Δᴿ c A B X Y}
-    → Rigid Φ X Y
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-    → Y ∈ᵗ B
-    → X ∈ᵗ A
-  member-rigidʷ rigid
-      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y) var-∈
-      rewrite rigid X⊑Y =
-    var-∈
-  member-rigidʷ rigid
-      (idᵃ (‵ ι) (＇ Y) hA hB ()) var-∈
-  member-rigidʷ rigid
-      (idᵃ ★ (＇ Y) hA hB ()) var-∈
-  member-rigidʷ rigid (idᵃ a (‵ ι) hA hB a⊑b) ()
-  member-rigidʷ rigid (idᵃ a ★ hA hB a⊑b) ()
-  member-rigidʷ rigid (p ↦ q) (∈-fun-left X∈) =
-    ∈-fun-left (member-rigidⁿ rigid p X∈)
-  member-rigidʷ rigid (p ↦ q) (∈-fun-right X∈) =
-    ∈-fun-right (member-rigidʷ rigid q X∈)
-  member-rigidʷ rigid (∀ʷ p) (∈-all X∈) =
-    ∈-all (member-rigidʷ (rigid-all rigid) p X∈)
-  member-rigidʷ rigid (tag ι) ()
-  member-rigidʷ rigid tag★⇒★ ()
-  member-rigidʷ rigid (_ ︔tag★⇒★[ _ ]) ()
-  member-rigidʷ rigid (unseal X∈ X<Δ) ()
-  member-rigidʷ rigid (inst nonvar occ p B≢★) X∈ =
-    ∈-all (member-rigidʷ (rigid-gen rigid) p X∈)
-
-  member-rigidⁿ : ∀ {Φ Δᴸ Δᴿ c A B X Y}
-    → Rigid Φ Y X
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → X ∈ᵗ A
-    → Y ∈ᵗ B
-  member-rigidⁿ rigid
-      (idᵃ (＇ X) (＇ Y) hA hB Y⊑X) var-∈
-      rewrite rigid Y⊑X =
-    var-∈
-  member-rigidⁿ rigid
-      (idᵃ (＇ X) (‵ ι) hA hB ()) var-∈
-  member-rigidⁿ rigid
-      (idᵃ (＇ X) ★ hA hB ()) var-∈
-  member-rigidⁿ rigid (idᵃ (‵ ι) b hA hB a⊒b) ()
-  member-rigidⁿ rigid (idᵃ ★ b hA hB a⊒b) ()
-  member-rigidⁿ rigid (p ↦ q) (∈-fun-left X∈) =
-    ∈-fun-left (member-rigidʷ rigid p X∈)
-  member-rigidⁿ rigid (p ↦ q) (∈-fun-right X∈) =
-    ∈-fun-right (member-rigidⁿ rigid q X∈)
-  member-rigidⁿ rigid (∀ⁿ p) (∈-all X∈) =
-    ∈-all (member-rigidⁿ (rigid-all rigid) p X∈)
-  member-rigidⁿ rigid (untag ι) ()
-  member-rigidⁿ rigid untag★⇒★ ()
-  member-rigidⁿ rigid (untag★⇒★︔ _ [ _ ]) ()
-  member-rigidⁿ rigid (seal X∈ X<Δ) ()
-  member-rigidⁿ rigid (gen nonvar occ p B≢★) X∈ =
-    ∈-all (member-rigidⁿ (rigid-gen rigid) p X∈)
-
-zero-member-backʷ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ suc Δᴿ
-  → zero ∈ᵗ B
-  → zero ∈ᵗ A
-zero-member-backʷ = member-rigidʷ rigid-zero
-
-zero-member-forwardⁿ : ∀ {Φ Δᴸ Δᴿ c A B}
-  → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-      ∣ suc Δᴸ ⊢ c ⦂ A ⊒ B ⊣ suc Δᴿ
-  → zero ∈ᵗ A
-  → zero ∈ᵗ B
-zero-member-forwardⁿ = member-rigidⁿ rigid-zero
-
-nonvar-backʷ : ∀ {Φ Δᴸ Δᴿ c A B X}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-  → NonVar B
-  → X ∈ᵗ B
-  → NonVar A
-nonvar-backʷ (idᵃ a (＇ Y) hA hB a⊑b) ()
-nonvar-backʷ (idᵃ a (‵ ι) hA hB a⊑b) nonvar-base ()
-nonvar-backʷ (idᵃ a ★ hA hB a⊑b) nonvar-star ()
-nonvar-backʷ (p ↦ q) nonvar-fun X∈ = nonvar-fun
-nonvar-backʷ (∀ʷ p) nonvar-all X∈ = nonvar-all
-nonvar-backʷ (tag ι) nonvar-star ()
-nonvar-backʷ tag★⇒★ nonvar-star ()
-nonvar-backʷ (_ ︔tag★⇒★[ _ ]) nonvar-star ()
-nonvar-backʷ (unseal X∈ X<Δ) nonvar-star ()
-nonvar-backʷ (inst nonvar occ p B≢★) nonvarB X∈ =
-  nonvar-all
-
-nonvar-backⁿ : ∀ {Φ Δᴸ Δᴿ c A B X}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+narrowing-nonvar-member : ∀ {μ Δ Σ X c A B}
+  → StoreFresh X Σ
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
   → NonVar A
   → X ∈ᵗ A
   → NonVar B
-nonvar-backⁿ (idᵃ (＇ X) b hA hB a⊒b) ()
-nonvar-backⁿ (idᵃ (‵ ι) b hA hB a⊒b) nonvar-base ()
-nonvar-backⁿ (idᵃ ★ b hA hB a⊒b) nonvar-star ()
-nonvar-backⁿ (p ↦ q) nonvar-fun X∈ = nonvar-fun
-nonvar-backⁿ (∀ⁿ p) nonvar-all X∈ = nonvar-all
-nonvar-backⁿ (untag ι) nonvar-star ()
-nonvar-backⁿ untag★⇒★ nonvar-star ()
-nonvar-backⁿ (untag★⇒★︔ _ [ _ ]) nonvar-star ()
-nonvar-backⁿ (seal X∈ X<Δ) nonvar-star ()
-nonvar-backⁿ (gen nonvar occ p B≢★) nonvarA X∈ =
-  nonvar-all
+narrowing-nonvar-member fresh (idᵃ (＇ Y) hA) () X∈A
+narrowing-nonvar-member fresh (idᵃ (‵ iota) hA) nonvar-base ()
+narrowing-nonvar-member fresh (idᵃ ★ hA) nonvar-star ()
+narrowing-nonvar-member fresh (p ↦ q) nonvar-fun X∈A = nonvar-fun
+narrowing-nonvar-member fresh (∀ⁿ p) nonvar-all X∈A = nonvar-all
+narrowing-nonvar-member fresh (untag G hG allowed G꞉B) nonvar-star ()
+narrowing-nonvar-member fresh
+    (untag-seq G hG allowed G꞉A p A≢B) nonvar-star ()
+narrowing-nonvar-member fresh
+    (seal X<Δ hA X,A∈Σ allowed) nonvarA X∈A =
+  ⊥-elim (fresh X,A∈Σ X∈A)
+narrowing-nonvar-member fresh
+    (seal-seq p X<Δ X,B∈Σ allowed A≢B) nonvarA X∈A =
+  ⊥-elim (fresh X,B∈Σ (narrowing-member fresh p X∈A))
+narrowing-nonvar-member fresh
+    (gen nonvarB zero∈B hA p A≢★) nonvarA X∈A = nonvar-all
 
-------------------------------------------------------------------------
--- Polymorphic boundary helpers
-------------------------------------------------------------------------
-
-fun-idʷ : ∀ {Φ Δᴸ Δᴿ}
-  → Φ ∣ Δᴸ ⊢ idᶜ ↦ᶜ idᶜ ⦂
-      (★ ⇒ ★) ⊑ (★ ⇒ ★) ⊣ Δᴿ
-fun-idʷ =
-  idᵃ ★ ★ wf★ wf★ tt ↦ idᵃ ★ ★ wf★ wf★ tt
-
-fun-idⁿ : ∀ {Φ Δᴸ Δᴿ}
-  → Φ ∣ Δᴸ ⊢ idᶜ ↦ᶜ idᶜ ⦂
-      (★ ⇒ ★) ⊒ (★ ⇒ ★) ⊣ Δᴿ
-fun-idⁿ =
-  idᵃ ★ ★ wf★ wf★ tt ↦ idᵃ ★ ★ wf★ wf★ tt
-
-strip-tag★⇒★ : ∀ {c Φ Δᴸ Δᴿ A}
-  → NonVar A
-  → zero ∈ᵗ A
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ ★ ⊣ Δᴿ
-  → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
-strip-tag★⇒★ nonvar-star () p
-strip-tag★⇒★ nonvar-base () p
-strip-tag★⇒★ nonvar-fun occ tag★⇒★ = _ , fun-idʷ
-strip-tag★⇒★ nonvar-fun occ (p ︔tag★⇒★[ _ ]) = _ , p
-strip-tag★⇒★ nonvar-all occ (p ︔tag★⇒★[ _ ]) = _ , p
-strip-tag★⇒★ nonvar-all occ (inst nonvar occ′ p ★≢★) =
-  ⊥-elim (★≢★ refl)
-
-strip-untag★⇒★ : ∀ {c Φ Δᴸ Δᴿ B}
+widening-nonvar-member : ∀ {μ Δ Σ X c A B}
+  → StoreFresh X Σ
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
   → NonVar B
-  → zero ∈ᵗ B
-  → Φ ∣ Δᴸ ⊢ c ⦂ ★ ⊒ B ⊣ Δᴿ
-  → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-strip-untag★⇒★ nonvar-star () p
-strip-untag★⇒★ nonvar-base () p
-strip-untag★⇒★ nonvar-fun occ untag★⇒★ = _ , fun-idⁿ
-strip-untag★⇒★ nonvar-fun occ (untag★⇒★︔ p [ _ ]) = _ , p
-strip-untag★⇒★ nonvar-all occ (untag★⇒★︔ p [ _ ]) = _ , p
-strip-untag★⇒★ nonvar-all occ (gen nonvar occ′ p ★≢★) =
-  ⊥-elim (★≢★ refl)
+  → X ∈ᵗ B
+  → NonVar A
+widening-nonvar-member fresh (idᵃ (＇ Y) hA) () X∈A
+widening-nonvar-member fresh (idᵃ (‵ iota) hA) nonvar-base ()
+widening-nonvar-member fresh (idᵃ ★ hA) nonvar-star ()
+widening-nonvar-member fresh (p ↦ q) nonvar-fun X∈A = nonvar-fun
+widening-nonvar-member fresh (∀ʷ p) nonvar-all X∈A = nonvar-all
+widening-nonvar-member fresh (tag G hG allowed G꞉A) nonvar-star ()
+widening-nonvar-member fresh
+    (tag-seq G p hG allowed G꞉B A≢B) nonvar-star ()
+widening-nonvar-member fresh
+    (unseal X<Δ hA X,A∈Σ allowed) nonvarA X∈A =
+  ⊥-elim (fresh X,A∈Σ X∈A)
+widening-nonvar-member fresh
+    (unseal-seq X<Δ X,A∈Σ allowed p A≢B) nonvarB X∈B =
+  ⊥-elim (fresh X,A∈Σ (widening-member fresh p X∈B))
+widening-nonvar-member fresh
+    (inst nonvarA zero∈A hB p B≢★) nonvarB X∈B = nonvar-all
+
+------------------------------------------------------------------------
+-- Fresh-variable exclusions at polymorphic boundaries
+------------------------------------------------------------------------
+
+head-star-unique : ∀ {Σ A}
+  → (zero , A) ∈ ((zero , ★) ∷ ⟰ᵗ Σ)
+  → A ≡ ★
+head-star-unique (here refl) = refl
+head-star-unique (there zero,A∈Σ) =
+  ⊥-elim (∈-⟰ᵗ-zero zero,A∈Σ)
+
+star-widening-variable⊥ : ∀ {μ Δ Σ c X}
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ ★ ⊑ ＇ X
+  → ⊥
+star-widening-variable⊥ ()
+
+shifted-variable-target-no-zero : ∀ {μ Δ Σ X c A}
+  → μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ⦂ ＇ (suc X) ⊒ A
+  → zero ∈ᵗ A
+  → ⊥
+shifted-variable-target-no-zero (idᵃ (＇ ._) hA) ()
+shifted-variable-target-no-zero
+    (seal {X = zero} X<Δ hA zero,A∈Σ allowed) var-∈ =
+  ⊥-elim (∈-⟰ᵗ-zero zero,A∈Σ)
+shifted-variable-target-no-zero
+    (seal-seq {X = zero} p X<Δ zero,A∈Σ allowed A≢B) var-∈ =
+  ⊥-elim (∈-⟰ᵗ-zero zero,A∈Σ)
+shifted-variable-target-no-zero
+    (gen nonvarA zero∈A hB p B≢★) zero∈∀A =
+  shifted-variable-target-no-zero p zero∈A
+
+inst-variable-source-no-zero : ∀ {μ Δ Σ X c A}
+  → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
+      ⊢ c ⦂ A ⊑ ＇ (suc X)
+  → zero ∈ᵗ A
+  → ⊥
+inst-variable-source-no-zero (idᵃ (＇ ._) hA) ()
+inst-variable-source-no-zero
+    (unseal {X = zero} X<Δ hA zero,A∈Σ allowed) var-∈
+    with head-star-unique zero,A∈Σ
+inst-variable-source-no-zero
+    (unseal {X = zero} X<Δ hA zero,A∈Σ allowed) var-∈ | ()
+inst-variable-source-no-zero
+    (unseal-seq {X = zero} X<Δ zero,A∈Σ allowed p A≢B) var-∈
+    with head-star-unique zero,A∈Σ
+inst-variable-source-no-zero
+    (unseal-seq {X = zero} X<Δ zero,A∈Σ allowed p A≢B) var-∈
+    | refl =
+  star-widening-variable⊥ p
+inst-variable-source-no-zero
+    (inst nonvarA zero∈A hB p B≢★) zero∈∀A =
+  inst-variable-source-no-zero p zero∈A
+
+------------------------------------------------------------------------
+-- Termination measure for structural composition
+------------------------------------------------------------------------
+
+sizeᶜ : Coercion → ℕ
+sizeᶜ id = suc zero
+sizeᶜ (c ︔ d) = suc (sizeᶜ c + sizeᶜ d)
+sizeᶜ (c ↦ d) = suc (sizeᶜ c + sizeᶜ d)
+sizeᶜ (`∀ c) = suc (sizeᶜ c)
+sizeᶜ (G !) = suc zero
+sizeᶜ (G ？) = suc zero
+sizeᶜ (seal X) = suc zero
+sizeᶜ (unseal X) = suc zero
+sizeᶜ (gen c) = suc (sizeᶜ c)
+sizeᶜ (inst c) = suc (sizeᶜ c)
+sizeᶜ error = suc zero
+
+sizeᶜ-renameᶜ : ∀ ρ c → sizeᶜ (renameᶜ ρ c) ≡ sizeᶜ c
+sizeᶜ-renameᶜ ρ id = refl
+sizeᶜ-renameᶜ ρ (c ︔ d) =
+  cong suc (cong₂ _+_ (sizeᶜ-renameᶜ ρ c) (sizeᶜ-renameᶜ ρ d))
+sizeᶜ-renameᶜ ρ (c ↦ d) =
+  cong suc (cong₂ _+_ (sizeᶜ-renameᶜ ρ c) (sizeᶜ-renameᶜ ρ d))
+sizeᶜ-renameᶜ ρ (`∀ c) = cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+sizeᶜ-renameᶜ ρ (G !) = refl
+sizeᶜ-renameᶜ ρ (G ？) = refl
+sizeᶜ-renameᶜ ρ (seal X) = refl
+sizeᶜ-renameᶜ ρ (unseal X) = refl
+sizeᶜ-renameᶜ ρ (gen c) =
+  cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+sizeᶜ-renameᶜ ρ (inst c) =
+  cong suc (sizeᶜ-renameᶜ (extᵗ ρ) c)
+sizeᶜ-renameᶜ ρ error = refl
+
+sizeᶜ-⇑ᶜ : ∀ c → sizeᶜ (⇑ᶜ c) ≡ sizeᶜ c
+sizeᶜ-⇑ᶜ = sizeᶜ-renameᶜ suc
+
+arrow-left-≤ : ∀ a b c d → c + a ≤ (a + b) + suc (c + d)
+arrow-left-≤ a b c d = ≤-trans c+a≤a+c a+c≤target
+  where
+  c≤target : c ≤ b + suc (c + d)
+  c≤target =
+    ≤-trans (m≤m+n c d)
+      (≤-trans (n≤1+n (c + d)) (m≤n+m (suc (c + d)) b))
+
+  a+c≤target : a + c ≤ (a + b) + suc (c + d)
+  a+c≤target =
+    subst (a + c ≤_) (sym (+-assoc a b (suc (c + d))))
+      (+-monoʳ-≤ a c≤target)
+
+  c+a≤a+c : c + a ≤ a + c
+  c+a≤a+c = subst (c + a ≤_) (+-comm c a) ≤-refl
+
+arrow-right-≤ : ∀ a b c d → b + d ≤ (a + b) + suc (c + d)
+arrow-right-≤ a b c d = ≤-trans b+d≤inner b+d≤target
+  where
+  d≤inner : d ≤ suc (c + d)
+  d≤inner = ≤-trans (m≤n+m d c) (n≤1+n (c + d))
+
+  b+d≤inner : b + d ≤ b + suc (c + d)
+  b+d≤inner = +-monoʳ-≤ b d≤inner
+
+  b+d≤target : b + suc (c + d) ≤ (a + b) + suc (c + d)
+  b+d≤target =
+    subst (b + suc (c + d) ≤_) (sym (+-assoc a b (suc (c + d))))
+      (m≤n+m (b + suc (c + d)) a)
+
+left-seq-≤ : ∀ a b e → a + e ≤ (b + a) + e
+left-seq-≤ a b e = +-monoˡ-≤ e (m≤n+m a b)
+
+right-seq-< : ∀ a b e → a + b < a + suc (b + e)
+right-seq-< a b e =
+  ≤-<-trans (+-monoʳ-≤ a (m≤m+n b e))
+    (+-monoʳ-< a (n<1+n (b + e)))
+
+fun-left-< : ∀ a b c d → c + a < suc (a + b) + suc (c + d)
+fun-left-< a b c d = s≤s (arrow-left-≤ a b c d)
+
+fun-right-< : ∀ a b c d → b + d < suc (a + b) + suc (c + d)
+fun-right-< a b c d = s≤s (arrow-right-≤ a b c d)
+
+drop-both-< : ∀ a b → a + b < suc a + suc b
+drop-both-< a b = s≤s (+-monoʳ-≤ a (n≤1+n b))
+
+drop-left-< : ∀ a b → a + b < suc a + b
+drop-left-< a b = n<1+n (a + b)
+
+drop-right-< : ∀ a b → a + b < a + suc b
+drop-right-< a b = +-monoʳ-< a (n<1+n b)
+
+keep-left-drop-right-< : ∀ a b → suc a + b < suc a + suc b
+keep-left-drop-right-< a b = +-monoʳ-< (suc a) (n<1+n b)
+
+drop-left-keep-right-< : ∀ a b → a + suc b < suc a + suc b
+drop-left-keep-right-< a b = n<1+n (a + suc b)
+
+left-seq-drop-< : ∀ a b e → a + e < suc (b + a) + e
+left-seq-drop-< a b e = s≤s (left-seq-≤ a b e)
+
+shift-left-drop-right-< : ∀ c d
+  → sizeᶜ (⇑ᶜ c) + sizeᶜ d < sizeᶜ c + suc (sizeᶜ d)
+shift-left-drop-right-< c d =
+  subst (λ n → n + sizeᶜ d < sizeᶜ c + suc (sizeᶜ d))
+    (sym (sizeᶜ-⇑ᶜ c)) (drop-right-< (sizeᶜ c) (sizeᶜ d))
+
+drop-left-shift-right-< : ∀ c d
+  → sizeᶜ c + sizeᶜ (⇑ᶜ d) < suc (sizeᶜ c) + sizeᶜ d
+drop-left-shift-right-< c d =
+  subst (λ n → sizeᶜ c + n < suc (sizeᶜ c) + sizeᶜ d)
+    (sym (sizeᶜ-⇑ᶜ d)) (drop-left-< (sizeᶜ c) (sizeᶜ d))
 
 ------------------------------------------------------------------------
 -- Composition
 ------------------------------------------------------------------------
 
-mutual
-
-  composeⁿ : ∀ {c d Φᴵ Φ Δᴸ Δᴿ A B C}
-    → ComposeCtx Δᴿ Φᴵ Φ Φ
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → Φᴵ ∣ Δᴿ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
-    → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-  composeⁿ {c} comp p (idᵃ (＇ X) (＇ Y) hB hC Y⊑X)
-      rewrite compose-map-var comp Y⊑X =
-    c , p
-  composeⁿ comp p (idᵃ (＇ X) (‵ ι) hB hC ())
-  composeⁿ comp p (idᵃ (＇ X) ★ hB hC ())
-  composeⁿ comp p (idᵃ (‵ ι) (＇ Y) hB hC ())
-  composeⁿ {c} comp p (idᵃ (‵ ι) (‵ κ) hB hC refl) =
-    c , p
-    
-  composeⁿ comp p (idᵃ (‵ ι) ★ hB hC ())
-  composeⁿ comp p (idᵃ ★ (＇ Y) hB hC ())
-  composeⁿ comp p (idᵃ ★ (‵ ι) hB hC ())
-  composeⁿ {c} comp p (idᵃ ★ ★ hB hC tt) = c , p
-  
-  composeⁿ {c}{d} comp (idᵃ ★ ★ hA hB tt) q =
-    d , recontext-from-starⁿ (compose-star-left comp) q
-    
-  composeⁿ comp untag★⇒★ q
-      with wrap-untag★⇒★
-        (recontext-from-funⁿ (compose-star-left comp) q)
-  composeⁿ comp untag★⇒★ q | r , r⊢ = r , r⊢
-  composeⁿ comp (untag★⇒★︔ p [ _ ]) q
-      with composeⁿ comp p q
-  composeⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
-      with wrap-untag★⇒★ r⊢
-  composeⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
-      | s , s⊢ =
-    s , s⊢
-    
-  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
-      with composeⁿ (compose-all-gen comp) p q
-  composeⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
-      | r , r⊢ =
-    Coercions.gen r , gen nonvarC occC r⊢ B≢★
-    where
-    occC = member-backⁿ
-      (all-var-map (compose-map-var comp)) q occB
-    nonvarC = nonvar-backⁿ q nonvarB occB
-    
-  composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
-      with composeⁿ (compose-gen comp) (target-liftⁿ p) (source-lift-genⁿ q)
-  composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
-      | r , r⊢
-      with A ≟Ty ★
-  composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
-      | r , r⊢ | yes refl
-      with strip-untag★⇒★ nonvarC occC r⊢
-  composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
-      | r , r⊢ | yes refl | s , s⊢
-      with wrap-untag★⇒★ (gen nonvarC occC s⊢ (λ ()))
-  composeⁿ {A = .★} comp p (gen nonvarC occC q B≢★)
-      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
-    t , t⊢
-  composeⁿ {A = A} comp p (gen nonvarC occC q B≢★)
-      | r , r⊢ | no A≢★ =
-    Coercions.gen r , gen nonvarC occC r⊢ A≢★
-    
-  composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      with composeʷ comp q₁ p₁ | composeⁿ comp p₂ q₂
-  composeⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
-    
-  composeⁿ comp (∀ⁿ p) (∀ⁿ q)
-      with composeⁿ (compose-all comp) p q
-  composeⁿ comp (∀ⁿ p) (∀ⁿ q) | r , r⊢ =
-    ∀ᶜ r , ∀ⁿ r⊢
-
-  composeʷ : ∀ {c d Φᴵ Φ Δᴸ Δᴿ A B C}
-    → ComposeCtx Δᴸ Φᴵ Φ Φ
-    → Φᴵ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ
-    → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
-    → ∃[ r ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-  composeʷ {c} comp p (idᵃ ★ ★ hB hC tt) =
-    c , recontext-to-starʷ (compose-star-left comp) p
-  composeʷ comp
-      (idᵃ (‵ ι) (‵ κ) hA hB refl)
-      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
-    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
-  composeʷ comp (idᵃ (‵ ι) (‵ κ) hA hB refl) (tag .κ) =
-    (‵ κ) !ᶜ , tag κ
-  composeʷ comp
-      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
-      (idᵃ (＇ .Y) (＇ z) hB′ hC Y⊑Z) =
-    idᶜ , idᵃ (＇ X) (＇ z) hA hC
-      (compose-var-var comp X⊑Y Y⊑Z)
-  composeʷ comp
-      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
-      (unseal Y∈ Y<Δ′)
-      rewrite compose-map-var comp X⊑Y =
-    Coercions.unseal Y , unseal Y∈ Y<Δ′
-  composeʷ comp p tag★⇒★
-      with wrap-tag★⇒★
-        (recontext-to-funʷ (compose-star-left comp) p)
-  composeʷ comp p tag★⇒★ | r , r⊢ = r , r⊢
-  composeʷ comp p (q ︔tag★⇒★[ _ ])
-      with composeʷ comp p q
-  composeʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
-      with wrap-tag★⇒★ r⊢
-  composeʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
-      | s , s⊢ =
-    s , s⊢
-  composeʷ comp (∀ʷ p) (inst nonvarB occB q C≢★)
-      with composeʷ (compose-all-gen comp) p q
-  composeʷ comp (∀ʷ p) (inst nonvarB occB q C≢★)
-      | r , r⊢ =
-    Coercions.inst r , inst nonvarA occA r⊢ C≢★
-    where
-    occA = member-backʷ
-      (all-var-map (compose-map-var comp)) p occB
-    nonvarA = nonvar-backʷ p nonvarB occB
-  composeʷ {C = C} comp (inst nonvarA occA p B≢★) q
-      with composeʷ (compose-gen comp)
-        (target-lift-genʷ p) (source-liftʷ q)
-  composeʷ {C = C} comp (inst nonvarA occA p B≢★) q
-      | r , r⊢
-      with C ≟Ty ★
-  composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl
-      with strip-tag★⇒★ nonvarA occA r⊢
-  composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl | s , s⊢
-      with wrap-tag★⇒★ (inst nonvarA occA s⊢ (λ ()))
-  composeʷ {C = .★} comp (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
-    t , t⊢
-  composeʷ {C = C} comp (inst nonvarA occA p B≢★) q
-      | r , r⊢ | no C≢★ =
-    Coercions.inst r , inst nonvarA occA r⊢ C≢★
-  composeʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      with composeⁿ comp q₁ p₁ | composeʷ comp p₂ q₂
-  composeʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
-  composeʷ comp (∀ʷ p) (∀ʷ q)
-      with composeʷ (compose-all comp) p q
-  composeʷ comp (∀ʷ p) (∀ʷ q) | r , r⊢ =
-    ∀ᶜ r , ∀ʷ r⊢
-
-------------------------------------------------------------------------
--- Composition with an identity-context narrowing on the left
-------------------------------------------------------------------------
+infixl 6 _⨟ⁿ_
+infixl 6 _⨟ʷ_
 
 mutual
 
-  compose-leftⁿ : ∀ {c d Φᴵ Φᴸ Φᴼ Δᴸ Δᴹ Δᴿ A B C}
-    → ComposeCtxRight Φᴸ Φᴵ Φᴼ
-    → Φᴵ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴹ
-    → Φᴸ ∣ Δᴹ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
-    → ∃[ r ] Φᴼ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-  compose-leftⁿ comp
-      (idᵃ (＇ X) (＇ Y) hA hB Y⊑X)
-      (idᵃ (＇ .Y) (＇ z) hB′ hC z⊑Y) =
-    idᶜ , idᵃ (＇ X) (＇ z) hA hC
-      (compose-right-var-var comp z⊑Y Y⊑X)
-  compose-leftⁿ comp
-      (idᵃ (＇ X) (‵ ι) hA hB ()) q
-  compose-leftⁿ comp
-      (idᵃ (＇ X) ★ hA hB ()) q
-  compose-leftⁿ comp
-      (idᵃ (‵ ι) (＇ Y) hA hB ()) q
-  compose-leftⁿ comp
-      (idᵃ (‵ ι) (‵ κ) hA hB refl)
-      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
-    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
-  compose-leftⁿ comp
-      (idᵃ (‵ ι) ★ hA hB ()) q
-  compose-leftⁿ comp
-      (idᵃ ★ (＇ Y) hA hB ()) q
-  compose-leftⁿ comp
-      (idᵃ ★ (‵ ι) hA hB ()) q
-  compose-leftⁿ {d = d} comp (idᵃ ★ ★ hA hB tt) q =
-    d , recontext-from-starⁿ
-      (λ X<Δ X∈ → compose-star-right comp X∈) q
-  compose-leftⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      with compose-rightʷ comp q₁ p₁
-         | compose-leftⁿ comp p₂ q₂
-  compose-leftⁿ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
-  compose-leftⁿ comp (∀ⁿ p) (∀ⁿ q)
-      with compose-leftⁿ (compose-right-all comp) p q
-  compose-leftⁿ comp (∀ⁿ p) (∀ⁿ q) | r , r⊢ =
-    ∀ᶜ r , ∀ⁿ r⊢
-  compose-leftⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
-      with compose-leftⁿ (compose-right-all-gen comp) p q
-  compose-leftⁿ comp (gen nonvarB occB p B≢★) (∀ⁿ q)
-      | r , r⊢ =
-    Coercions.gen r , gen nonvarC occC r⊢ B≢★
+  composeⁿ : ∀ {μ Δ Σ c d A B C}
+    → (p : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B)
+    → (q : μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊒ C)
+    → Acc _<_ (sizeᶜ c + sizeᶜ d)
+    → μ ∣ Δ ∣ Σ ⊢ A ⊒ C
+  composeⁿ (idᵃ a hA) q access = _ , q
+  composeⁿ p (idᵃ a hB) access = _ , p
+  composeⁿ {c = c ↦ d} {d = e ↦ f}
+      (p₁ ↦ p₂) (q₁ ↦ q₂) (acc rec)
+      with composeʷ q₁ p₁
+             (rec (fun-left-< (sizeᶜ c) (sizeᶜ d)
+                     (sizeᶜ e) (sizeᶜ f)))
+         | composeⁿ p₂ q₂
+             (rec (fun-right-< (sizeᶜ c) (sizeᶜ d)
+                     (sizeᶜ e) (sizeᶜ f)))
+  composeⁿ (p₁ ↦ p₂) (q₁ ↦ q₂) (acc rec)
+      | g , r₁ | h , r₂ =
+    (g ↦ h) , (r₁ ↦ r₂)
+  composeⁿ {c = `∀ c} {d = `∀ d} (∀ⁿ p) (∀ⁿ q) (acc rec)
+      with composeⁿ p q (rec (drop-both-< (sizeᶜ c) (sizeᶜ d)))
+  composeⁿ (∀ⁿ p) (∀ⁿ q) (acc rec)
+      | e , r =
+    `∀ e , ∀ⁿ r
+  composeⁿ (untag G hG allowed G꞉B) q access =
+    wrap-untag hG allowed G꞉B q
+  composeⁿ {c = (G ？) ︔ c} {d = d}
+      (untag-seq G hG allowed G꞉B p B≢C) q (acc rec)
+      with composeⁿ p q
+        (rec (left-seq-drop-< (sizeᶜ c) (sizeᶜ (G ？)) (sizeᶜ d)))
+  composeⁿ (untag-seq G hG allowed G꞉B p B≢C) q (acc rec)
+      | d , r =
+    wrap-untag hG allowed G꞉B r
+  composeⁿ p (seal X<Δ hB X,B∈Σ allowed) access =
+    wrap-seal p X<Δ X,B∈Σ allowed
+  composeⁿ {c = c} {d = d ︔ seal X}
+      p (seal-seq q X<Δ X,C∈Σ allowed B≢C) (acc rec)
+      with composeⁿ p q
+        (rec (right-seq-< (sizeᶜ c) (sizeᶜ d) (sizeᶜ (seal X))))
+  composeⁿ p (seal-seq q X<Δ X,C∈Σ allowed B≢C) (acc rec)
+      | d , r =
+    wrap-seal r X<Δ X,C∈Σ allowed
+  composeⁿ (seal X<Δ hA X,A∈Σ allowed)
+      (gen nonvarC zero∈C hB q B≢★) access =
+    ⊥-elim (shifted-variable-target-no-zero q zero∈C)
+  composeⁿ (seal-seq p X<Δ X,A∈Σ allowed B≢A)
+      (gen nonvarC zero∈C hB q A≢★) access =
+    ⊥-elim (shifted-variable-target-no-zero q zero∈C)
+  composeⁿ {c = c ↦ d} {d = gen e}
+      (p₁ ↦ p₂) (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      with composeⁿ (proj₂ (⇑ⁿ-gen ((c ↦ d) , (p₁ ↦ p₂)))) q
+        (rec (shift-left-drop-right-< (c ↦ d) e))
+  composeⁿ {c = c ↦ d} {d = gen e}
+      (p₁ ↦ p₂) (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      | f , r =
+    gen f , gen nonvarC zero∈C
+      (⊒-src-wf (p₁ ↦ p₂)) r (λ ())
+  composeⁿ {c = `∀ c} {d = gen e}
+      (∀ⁿ p) (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      with composeⁿ (proj₂ (⇑ⁿ-gen (`∀ c , ∀ⁿ p))) q
+        (rec (shift-left-drop-right-< (`∀ c) e))
+  composeⁿ {c = `∀ c} {d = gen e}
+      (∀ⁿ p) (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      | f , r =
+    gen f , gen nonvarC zero∈C (wf∀ (⊒-src-wf p)) r (λ ())
+  composeⁿ {c = gen c} {d = gen d}
+      (gen nonvarB zero∈B hA p A≢★)
+      (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      with composeⁿ
+        (proj₂ (⇑ⁿ-gen (gen c , gen nonvarB zero∈B hA p A≢★))) q
+        (rec (shift-left-drop-right-< (gen c) d))
+  composeⁿ {c = gen c} {d = gen d}
+      (gen nonvarB zero∈B hA p A≢★)
+      (gen nonvarC zero∈C hB q B≢★) (acc rec)
+      | e , r =
+    gen e , gen nonvarC zero∈C hA r A≢★
+  composeⁿ {c = gen c} {d = `∀ d}
+      (gen nonvarB zero∈B hA p A≢★) (∀ⁿ q) (acc rec)
+      with composeⁿ p (weakenⁿ ext-gen-incl q)
+        (rec (drop-both-< (sizeᶜ c) (sizeᶜ d)))
+  composeⁿ (gen nonvarB zero∈B hA p A≢★) (∀ⁿ q) (acc rec)
+      | f , r =
+    gen f , gen nonvarC zero∈C hA r A≢★
     where
-    occC = zero-member-forwardⁿ q occB
-    nonvarC = nonvar-backⁿ q nonvarB occB
-  compose-leftⁿ {A = A} comp p
-      (gen nonvarC occC q B≢★)
-      with compose-leftⁿ (compose-right-gen comp) p q
-  compose-leftⁿ {A = A} comp p
-      (gen nonvarC occC q B≢★) | r , r⊢
-      with A ≟Ty ★
-  compose-leftⁿ {A = .★} comp p
-      (gen nonvarC occC q B≢★) | r , r⊢ | yes refl
-      with strip-untag★⇒★ nonvarC occC r⊢
-  compose-leftⁿ {A = .★} comp p
-      (gen nonvarC occC q B≢★)
-      | r , r⊢ | yes refl | s , s⊢
-      with wrap-untag★⇒★ (gen nonvarC occC s⊢ (λ ()))
-  compose-leftⁿ {A = .★} comp p
-      (gen nonvarC occC q B≢★)
-      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
-    t , t⊢
-  compose-leftⁿ {A = A} comp p
-      (gen nonvarC occC q B≢★)
-      | r , r⊢ | no A≢★ =
-    Coercions.gen r , gen nonvarC occC r⊢ A≢★
-  compose-leftⁿ comp (untag ι) (idᵃ (‵ .ι) (‵ κ) hB hC refl) =
-    (‵ κ) ？ᶜ , untag κ
-  compose-leftⁿ comp untag★⇒★ q
-      with wrap-untag★⇒★
-        (recontext-from-funⁿ
-          (λ X<Δ X∈ → compose-star-right comp X∈) q)
-  compose-leftⁿ comp untag★⇒★ q | r , r⊢ = r , r⊢
-  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q
-      with compose-leftⁿ comp p q
-  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q | r , r⊢
-      with wrap-untag★⇒★ r⊢
-  compose-leftⁿ comp (untag★⇒★︔ p [ _ ]) q
-      | r , r⊢ | s , s⊢ =
-    s , s⊢
-  compose-leftⁿ {B = ＇ Y} comp (seal Y∈ Y<Δ)
-      (idᵃ (＇ .Y) (＇ X) hB (wfVar X<Δ) X⊑Y) =
-    Coercions.seal X ,
-    seal (compose-right-var-star comp X⊑Y Y∈) X<Δ
+    zero∈C = narrowing-member zero-fresh-shift q zero∈B
+    nonvarC =
+      narrowing-nonvar-member zero-fresh-shift q nonvarB zero∈B
 
-  compose-rightʷ : ∀ {c d Φᴵ Φᴸ Φᴼ Δᴸ Δᴹ Δᴿ A B C}
-    → ComposeCtxRight Φᴸ Φᴵ Φᴼ
-    → Φᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴹ
-    → Φᴵ ∣ Δᴹ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
-    → ∃[ r ] Φᴼ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-  compose-rightʷ comp
-      (idᵃ (＇ X) (‵ ι) hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ (＇ X) ★ hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ (‵ ι) (＇ Y) hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ (‵ ι) ★ hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ ★ (＇ Y) hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ ★ (‵ ι) hA hB ()) q
-  compose-rightʷ comp
-      (idᵃ (＇ X) (＇ Y) hA hB X⊑Y)
-      (idᵃ (＇ .Y) (＇ z) hB′ hC Y⊑z) =
-    idᶜ , idᵃ (＇ X) (＇ z) hA hC
-      (compose-right-var-var comp X⊑Y Y⊑z)
-  compose-rightʷ comp p
-      (idᵃ (＇ X) (‵ ι) hB hC ())
-  compose-rightʷ comp p
-      (idᵃ (＇ X) ★ hB hC ())
-  compose-rightʷ comp p
-      (idᵃ (‵ ι) (＇ Y) hB hC ())
-  compose-rightʷ comp
-      (idᵃ (‵ ι) (‵ κ) hA hB refl)
-      (idᵃ (‵ .κ) (‵ ν) hB′ hC refl) =
-    idᶜ , idᵃ (‵ ι) (‵ ν) hA hC refl
-  compose-rightʷ comp p
-      (idᵃ (‵ ι) ★ hB hC ())
-  compose-rightʷ comp p
-      (idᵃ ★ (＇ Y) hB hC ())
-  compose-rightʷ comp p
-      (idᵃ ★ (‵ ι) hB hC ())
-  compose-rightʷ {c = c} comp p (idᵃ ★ ★ hB hC tt) =
-    c , recontext-to-starʷ
-      (λ X<Δ X∈ → compose-star-right comp X∈) p
-  compose-rightʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      with compose-leftⁿ comp q₁ p₁
-         | compose-rightʷ comp p₂ q₂
-  compose-rightʷ comp (p₁ ↦ p₂) (q₁ ↦ q₂)
-      | r₁ , r₁⊢ | r₂ , r₂⊢ =
-    r₁ ↦ᶜ r₂ , (r₁⊢ ↦ r₂⊢)
-  compose-rightʷ comp (∀ʷ p) (∀ʷ q)
-      with compose-rightʷ (compose-right-all comp) p q
-  compose-rightʷ comp (∀ʷ p) (∀ʷ q) | r , r⊢ =
-    ∀ᶜ r , ∀ʷ r⊢
-  compose-rightʷ comp (∀ʷ p)
-      (inst nonvarB occB q C≢★)
-      with compose-rightʷ (compose-right-all-gen comp) p q
-  compose-rightʷ comp (∀ʷ p)
-      (inst nonvarB occB q C≢★) | r , r⊢ =
-    Coercions.inst r , inst nonvarA occA r⊢ C≢★
+  composeʷ : ∀ {μ Δ Σ c d A B C}
+    → (p : μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B)
+    → (q : μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊑ C)
+    → Acc _<_ (sizeᶜ c + sizeᶜ d)
+    → μ ∣ Δ ∣ Σ ⊢ A ⊑ C
+  composeʷ (idᵃ a hA) q access = _ , q
+  composeʷ p (idᵃ a hB) access = _ , p
+  composeʷ {c = c ↦ d} {d = e ↦ f}
+      (p₁ ↦ p₂) (q₁ ↦ q₂) (acc rec)
+      with composeⁿ q₁ p₁
+             (rec (fun-left-< (sizeᶜ c) (sizeᶜ d)
+                     (sizeᶜ e) (sizeᶜ f)))
+         | composeʷ p₂ q₂
+             (rec (fun-right-< (sizeᶜ c) (sizeᶜ d)
+                     (sizeᶜ e) (sizeᶜ f)))
+  composeʷ (p₁ ↦ p₂) (q₁ ↦ q₂) (acc rec)
+      | g , r₁ | h , r₂ =
+    (g ↦ h) , (r₁ ↦ r₂)
+  composeʷ {c = `∀ c} {d = `∀ d} (∀ʷ p) (∀ʷ q) (acc rec)
+      with composeʷ p q (rec (drop-both-< (sizeᶜ c) (sizeᶜ d)))
+  composeʷ (∀ʷ p) (∀ʷ q) (acc rec)
+      | e , r =
+    `∀ e , ∀ʷ r
+  composeʷ (unseal X<Δ hA X,A∈Σ allowed) q access =
+    wrap-unseal X<Δ X,A∈Σ allowed q
+  composeʷ {c = unseal X ︔ c} {d = d}
+      (unseal-seq X<Δ X,A∈Σ allowed p A≢B) q (acc rec)
+      with composeʷ p q
+        (rec (left-seq-drop-< (sizeᶜ c) (sizeᶜ (unseal X)) (sizeᶜ d)))
+  composeʷ (unseal-seq X<Δ X,A∈Σ allowed p A≢B) q (acc rec)
+      | d , r =
+    wrap-unseal X<Δ X,A∈Σ allowed r
+  composeʷ p (tag G hG allowed G꞉B) access =
+    wrap-tag p hG allowed G꞉B
+  composeʷ {c = c} {d = d ︔ (G !)}
+      p (tag-seq G q hG allowed G꞉C B≢C) (acc rec)
+      with composeʷ p q
+        (rec (right-seq-< (sizeᶜ c) (sizeᶜ d) (sizeᶜ (G !))))
+  composeʷ p (tag-seq G q hG allowed G꞉C B≢C) (acc rec)
+      | d , r =
+    wrap-tag r hG allowed G꞉C
+  composeʷ {c = `∀ c} {d = inst d}
+      (∀ʷ p) (inst nonvarB zero∈B hC q C≢★) (acc rec)
+      with composeʷ (proj₂ (ext-to-inst (c , p))) q
+        (rec (drop-both-< (sizeᶜ c) (sizeᶜ d)))
+  composeʷ {c = `∀ c} {d = inst d}
+      (∀ʷ p) (inst nonvarB zero∈B hC q C≢★) (acc rec)
+      | e , r =
+    inst e , inst nonvarA zero∈A hC r C≢★
     where
-    occA = zero-member-backʷ p occB
-    nonvarA = nonvar-backʷ p nonvarB occB
-  compose-rightʷ {C = C} comp
-      (inst nonvarA occA p B≢★) q
-      with compose-rightʷ (compose-right-gen comp) p q
-  compose-rightʷ {C = C} comp
-      (inst nonvarA occA p B≢★) q | r , r⊢
-      with C ≟Ty ★
-  compose-rightʷ {C = .★} comp
-      (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl
-      with strip-tag★⇒★ nonvarA occA r⊢
-  compose-rightʷ {C = .★} comp
-      (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl | s , s⊢
-      with wrap-tag★⇒★ (inst nonvarA occA s⊢ (λ ()))
-  compose-rightʷ {C = .★} comp
-      (inst nonvarA occA p B≢★) q
-      | r , r⊢ | yes refl | s , s⊢ | t , t⊢ =
-    t , t⊢
-  compose-rightʷ {C = C} comp
-      (inst nonvarA occA p B≢★) q
-      | r , r⊢ | no C≢★ =
-    Coercions.inst r , inst nonvarA occA r⊢ C≢★
-  compose-rightʷ comp
-      (idᵃ (‵ ι) (‵ κ) hA hB refl) (tag .κ) =
-    (‵ κ) !ᶜ , tag κ
-  compose-rightʷ comp p tag★⇒★
-      with wrap-tag★⇒★
-        (recontext-to-funʷ
-          (λ X<Δ X∈ → compose-star-right comp X∈) p)
-  compose-rightʷ comp p tag★⇒★ | r , r⊢ = r , r⊢
-  compose-rightʷ comp p (q ︔tag★⇒★[ _ ])
-      with compose-rightʷ comp p q
-  compose-rightʷ comp p (q ︔tag★⇒★[ _ ]) | r , r⊢
-      with wrap-tag★⇒★ r⊢
-  compose-rightʷ comp p (q ︔tag★⇒★[ _ ])
-      | r , r⊢ | s , s⊢ =
-    s , s⊢
-  compose-rightʷ {B = ＇ Y} comp
-      (idᵃ (＇ X) (＇ Y) (wfVar X<Δ) hB X⊑Y)
-      (unseal Y∈ Y<Δ) =
-    Coercions.unseal X ,
-    unseal (compose-right-var-star comp X⊑Y Y∈) X<Δ
+    zero∈A = widening-member zero-fresh-shift p zero∈B
+    nonvarA =
+      widening-nonvar-member zero-fresh-shift p nonvarB zero∈B
+  composeʷ {c = inst c} {d = d ↦ e}
+      (inst nonvarA zero∈A hB p B≢★) (q₁ ↦ q₂) (acc rec)
+      with composeʷ p (proj₂ (⇑ʷ-inst-head ((d ↦ e) , (q₁ ↦ q₂))))
+        (rec (drop-left-shift-right-< c (d ↦ e)))
+  composeʷ {c = inst c} {d = d ↦ e}
+      (inst nonvarA zero∈A hB p B≢★) (q₁ ↦ q₂) (acc rec)
+      | f , r =
+    inst f , inst nonvarA zero∈A
+      (⊑-tgt-wf (q₁ ↦ q₂)) r (λ ())
+  composeʷ {c = inst c} {d = `∀ d}
+      (inst nonvarA zero∈A hB p B≢★) (∀ʷ q) (acc rec)
+      with composeʷ p (proj₂ (⇑ʷ-inst-head (`∀ d , ∀ʷ q)))
+        (rec (drop-left-shift-right-< c (`∀ d)))
+  composeʷ {c = inst c} {d = `∀ d}
+      (inst nonvarA zero∈A hB p B≢★) (∀ʷ q) (acc rec)
+      | e , r =
+    inst e , inst nonvarA zero∈A
+      (wf∀ (⊑-tgt-wf q)) r (λ ())
+  composeʷ {c = inst c} {d = inst d}
+      (inst nonvarA zero∈A hB p B≢★)
+      (inst nonvarC zero∈C hD q C≢★) (acc rec)
+      with composeʷ p
+        (proj₂ (⇑ʷ-inst-head
+          (inst d , inst nonvarC zero∈C hD q C≢★)))
+        (rec (drop-left-shift-right-< c (inst d)))
+  composeʷ {c = inst c} {d = inst d}
+      (inst nonvarA zero∈A hB p B≢★)
+      (inst nonvarC zero∈C hD q C≢★) (acc rec)
+      | e , r =
+    inst e , inst nonvarA zero∈A hD r C≢★
+  composeʷ (inst nonvarA zero∈A hB p B≢★)
+      (unseal X<Δ hC X,C∈Σ allowed) access =
+    ⊥-elim (inst-variable-source-no-zero p zero∈A)
+  composeʷ (inst nonvarA zero∈A hB p B≢★)
+      (unseal-seq X<Δ X,C∈Σ allowed q C≢D) access =
+    ⊥-elim (inst-variable-source-no-zero p zero∈A)
 
-------------------------------------------------------------------------
--- Public two-context composition
-------------------------------------------------------------------------
+_⨟ⁿ_ : ∀ {μ Δ Σ A B C}
+  → μ ∣ Δ ∣ Σ ⊢ A ⊒ B
+  → μ ∣ Δ ∣ Σ ⊢ B ⊒ C
+  → μ ∣ Δ ∣ Σ ⊢ A ⊒ C
+(c , p) ⨟ⁿ (d , q) = composeⁿ p q (<-wellFounded (sizeᶜ c + sizeᶜ d))
 
-narrowing-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-  → idᵢ Δᴿ ∣ Δᴿ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
-  → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-narrowing-composition {Φ = Φ} {Δᴿ = Δᴿ} =
-  composeⁿ (compose-id-left Δᴿ Φ)
-
-narrowing-composition-left : ∀ {c d Φ Δᴸ Δᴿ A B C}
-  → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴸ
-  → Φ ∣ Δᴸ ⊢ d ⦂ B ⊒ C ⊣ Δᴿ
-  → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊒ C ⊣ Δᴿ
-narrowing-composition-left {Φ = Φ} {Δᴸ = Δᴸ} =
-  compose-leftⁿ (compose-id-right Δᴸ Φ)
-
-widening-composition : ∀ {c d Φ Δᴸ Δᴿ A B C}
-  → idᵢ Δᴸ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴸ
-  → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ C ⊣ Δᴿ
-  → Σ[ r ∈ Coercion ] Φ ∣ Δᴸ ⊢ r ⦂ A ⊑ C ⊣ Δᴿ
-widening-composition {Φ = Φ} {Δᴸ = Δᴸ} =
-  composeʷ (compose-id-left Δᴸ Φ)
+_⨟ʷ_ : ∀ {μ Δ Σ A B C}
+  → μ ∣ Δ ∣ Σ ⊢ A ⊑ B
+  → μ ∣ Δ ∣ Σ ⊢ B ⊑ C
+  → μ ∣ Δ ∣ Σ ⊢ A ⊑ C
+(c , p) ⨟ʷ (d , q) = composeʷ p q (<-wellFounded (sizeᶜ c + sizeᶜ d))

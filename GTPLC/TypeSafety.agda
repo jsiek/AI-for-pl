@@ -19,7 +19,7 @@ open import proof.Preservation using (multi-preservation)
 type-safety : ∀ {Δ : TyCtx}{Σ : TyStore}{M N : Term}
   {A : Ty}{χs : StoreChanges}
   → StoreWf Δ Σ
-  → Δ ∣ Σ ∣ [] ⊢ M ⦂ A
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
   → M —↠[ χs ] N
   → (∃[ χ ] ∃[ N′ ] (N —→[ χ ] N′))
       ⊎ Value N ⊎ (N ≡ blame)

@@ -23,7 +23,9 @@ import Reduction
 ----------------------------------------------------------
 
 import TypeSafety
+import TypeRelocate
 import NarrowWiden
 import ImprecisionTheorems
+import FactoredTypeNarrowing
 import EnvironmentNarrowing
 import TermNarrowing

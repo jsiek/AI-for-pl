@@ -1,325 +1,379 @@
 module NarrowWiden where
 
 -- File Charter:
---   * Defines context-indexed narrowing and widening for GTPLC.
---   * Indexes each judgment directly by its coercion.
---   * Provides unindexed notation that bundles a coercion with its
---     narrowing or widening derivation.
---   * Uses endpoint type equality, rather than a separate non-identity
---     grammar, to choose between collapsed and sequenced coercions.
---   * Exposes smart wrappers and endpoint well-formedness.
+--   * Defines one-context narrowing and widening for GTPLC coercions.
+--   * Characterizes a kind of normal form for coercions.
+--   * Indexes both relations by a coercion, type context, type store,
+--     and mode environment.
+--   * Includes store-indexed seal and unseal rules.
+--   * Provides bundled notation and proofs of ordinary coercion typing.
 
-open import Data.Empty using (⊥)
-open import Data.List using (List; []; _∷_)
+open import Data.Bool using (true)
+open import Data.List using (_∷_)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Nat using (_<_; zero; suc)
 open import Data.Product using (_×_; _,_; ∃-syntax; Σ-syntax)
-open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
 open import Relation.Nullary using (yes; no)
 
 open import Types
+open import TyStore
 open import Coercions
 
 ------------------------------------------------------------------------
--- Type-imprecision assumptions
+-- One-context coercion-indexed narrowing and widening
 ------------------------------------------------------------------------
 
-data ImpAssm : Set where
-  _ˣ⊑★ : TyVar → ImpAssm
-  _ˣ⊑ˣ_ : TyVar → TyVar → ImpAssm
-
-ImpCtx : Set
-ImpCtx = List ImpAssm
-
-⇑ᵢₐ : ImpAssm → ImpAssm
-⇑ᵢₐ (X ˣ⊑★) = suc X ˣ⊑★
-⇑ᵢₐ (X ˣ⊑ˣ Y) = suc X ˣ⊑ˣ suc Y
-
-⇑ᴸᵢₐ : ImpAssm → ImpAssm
-⇑ᴸᵢₐ (X ˣ⊑★) = suc X ˣ⊑★
-⇑ᴸᵢₐ (X ˣ⊑ˣ Y) = suc X ˣ⊑ˣ Y
-
-⇑ᴿᵢₐ : ImpAssm → ImpAssm
-⇑ᴿᵢₐ (X ˣ⊑★) = X ˣ⊑★
-⇑ᴿᵢₐ (X ˣ⊑ˣ Y) = X ˣ⊑ˣ suc Y
-
-⇑ᵢ : ImpCtx → ImpCtx
-⇑ᵢ [] = []
-⇑ᵢ (a ∷ Φ) = ⇑ᵢₐ a ∷ ⇑ᵢ Φ
-
-⇑ᴸᵢ : ImpCtx → ImpCtx
-⇑ᴸᵢ [] = []
-⇑ᴸᵢ (a ∷ Φ) = ⇑ᴸᵢₐ a ∷ ⇑ᴸᵢ Φ
-
-⇑ᴿᵢ : ImpCtx → ImpCtx
-⇑ᴿᵢ [] = []
-⇑ᴿᵢ (a ∷ Φ) = ⇑ᴿᵢₐ a ∷ ⇑ᴿᵢ Φ
-
-swapRight∀∀ᵢ : ImpCtx → ImpCtx
-swapRight∀∀ᵢ Φ =
-  (zero ˣ⊑ˣ suc zero) ∷
-  (suc zero ˣ⊑ˣ zero) ∷
-  ⇑ᵢ (⇑ᵢ Φ)
-
-idᵢ : TyCtx → ImpCtx
-idᵢ zero = []
-idᵢ (suc Δ) = (zero ˣ⊑ˣ zero) ∷ ⇑ᵢ (idᵢ Δ)
-
-------------------------------------------------------------------------
--- Atomic widening and narrowing
-------------------------------------------------------------------------
-
-infix 4 _⊢_⊑ᵃ_
-infix 4 _⊢_⊒ᵃ_
-
-_⊢_⊑ᵃ_ : ∀ {A B} → ImpCtx → Atom A → Atom B → Set
-Φ ⊢ (＇ X) ⊑ᵃ (＇ Y) = (X ˣ⊑ˣ Y) ∈ Φ
-Φ ⊢ (＇ X) ⊑ᵃ (‵ ι) = ⊥
-Φ ⊢ (＇ X) ⊑ᵃ ★ = ⊥
-Φ ⊢ (‵ ι) ⊑ᵃ (＇ Y) = ⊥
-Φ ⊢ (‵ ι) ⊑ᵃ (‵ κ) = ι ≡ κ
-Φ ⊢ (‵ ι) ⊑ᵃ ★ = ⊥
-Φ ⊢ ★ ⊑ᵃ (＇ Y) = ⊥
-Φ ⊢ ★ ⊑ᵃ (‵ ι) = ⊥
-Φ ⊢ ★ ⊑ᵃ ★ = ⊤
-
-_⊢_⊒ᵃ_ : ∀ {A B} → ImpCtx → Atom A → Atom B → Set
-Φ ⊢ a ⊒ᵃ b = Φ ⊢ b ⊑ᵃ a
-
-renameᵃ : ∀ {A} (ρ : Renameᵗ)
-  → Atom A
-  → Atom (renameᵗ ρ A)
-renameᵃ ρ (＇ X) = ＇ (ρ X)
-renameᵃ ρ (‵ ι) = ‵ ι
-renameᵃ ρ ★ = ★
-
-------------------------------------------------------------------------
--- Coercion-indexed widening and narrowing
-------------------------------------------------------------------------
-
-infix 4 _∣_⊢_⦂_⊑_⊣_
-infix 4 _∣_⊢_⦂_⊒_⊣_
+infix 4 _∣_∣_⊢_⦂_⊑_
+infix 4 _∣_∣_⊢_⦂_⊒_
 
 mutual
 
-  ------------------------------------------------------------------
+  ----------------------------------------------------------------------
   -- Widening
-  ------------------------------------------------------------------
-  data _∣_⊢_⦂_⊑_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
-    Coercion → Ty → Ty → TyCtx → Set where
+  ----------------------------------------------------------------------
 
-    idᵃ : ∀ {A B Δᴿ} (a : Atom A) (b : Atom B)
-      → WfTy Δᴸ A
-      → WfTy Δᴿ B
-      → Φ ⊢ a ⊑ᵃ b
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ A ⊑ B ⊣ Δᴿ
+  data _∣_∣_⊢_⦂_⊑_ (μ : ModeEnv) (Δ : TyCtx) (Σ : TyStore) :
+      Coercion → Ty → Ty → Set where
 
-    _↦_ : ∀ {c d A A′ B B′ Δᴿ}
-      → Φ ∣ Δᴿ ⊢ c ⦂ A′ ⊒ A ⊣ Δᴸ
-      → Φ ∣ Δᴸ ⊢ d ⦂ B ⊑ B′ ⊣ Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ c ↦ d ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′) ⊣ Δᴿ
+    idᵃ : ∀ {A} (a : Atom A)
+      → WfTy Δ A
+        --------------------------
+      → μ ∣ Δ ∣ Σ ⊢ id ⦂ A ⊑ A
 
-    ∀ʷ_ : ∀ {c A B Δᴿ}
-      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ suc Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ `∀ c ⦂ (`∀ A) ⊑ (`∀ B) ⊣ Δᴿ
+    _↦_ : ∀ {c d A A′ B B′}
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A′ ⊒ A
+      → μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊑ B′
+        -------------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ c ↦ d ⦂ (A ⇒ B) ⊑ (A′ ⇒ B′)
 
-    tag_ : ∀ {Δᴿ} (ι : Base)
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ (‵ ι) ! ⦂ ‵ ι ⊑ ★ ⊣ Δᴿ
+    ∀ʷ_ : ∀ {c A B}
+      → extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ⊑ B
+        --------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ `∀ c ⦂ (`∀ A) ⊑ (`∀ B)
 
-    tag★⇒★ : ∀ {Δᴿ}
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ ★⇒★ ! ⦂ (★ ⇒ ★) ⊑ ★ ⊣ Δᴿ
+    tag : ∀ {A} (G : Tag)
+      → WfTag Δ G
+      → tagAllowed μ G ≡ true
+      → G ꞉ A
+        ----------------------------
+      → μ ∣ Δ ∣ Σ ⊢ G ! ⦂ A ⊑ ★
 
-    _︔tag★⇒★[_] : ∀ {c A Δᴿ}
-      → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
-      → A ≢ (★ ⇒ ★)
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ (c ︔ (★⇒★ !)) ⦂ A ⊑ ★ ⊣ Δᴿ
+    tag-seq : ∀ {c A B} (G : Tag)
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+      → WfTag Δ G
+      → tagAllowed μ G ≡ true
+      → G ꞉ B
+      → A ≢ B
+        ----------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ (c ︔ (G !)) ⦂ A ⊑ ★
 
-    unseal : ∀ {X Δᴿ}
-      → X ˣ⊑★ ∈ Φ
-      → X < Δᴸ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ unseal X ⦂ ＇ X ⊑ ★ ⊣ Δᴿ
+    unseal : ∀ {X A}
+      → X < Δ
+      → WfTy Δ A
+      → (X , A) ∈ Σ
+      → sealModeAllowed (μ X) ≡ true
+        ----------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ unseal X ⦂ ＇ X ⊑ A
 
-    inst : ∀ {c A B Δᴿ}
+    unseal-seq : ∀ {X c A B}
+      → X < Δ
+      → (X , A) ∈ Σ
+      → sealModeAllowed (μ X) ≡ true
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+      → A ≢ B
+        ----------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ (unseal X ︔ c) ⦂ ＇ X ⊑ B
+
+    -- See [rationale](Rationale.md#gen-inst-side-conditions).
+    inst : ∀ {c A B}
       → NonVar A
       → zero ∈ᵗ A
-      → (zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ ∣ suc Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+      → WfTy Δ B
+      → instᵈ μ ∣ suc Δ ∣ (zero , ★) ∷ ⟰ᵗ Σ
+          ⊢ c ⦂ A ⊑ ⇑ᵗ B
       → B ≢ ★
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ inst c ⦂ (`∀ A) ⊑ B ⊣ Δᴿ
+        -----------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ inst c ⦂ (`∀ A) ⊑ B
 
-  ------------------------------------------------------------------
+  ----------------------------------------------------------------------
   -- Narrowing
-  ------------------------------------------------------------------
+  ----------------------------------------------------------------------
 
-  data _∣_⊢_⦂_⊒_⊣_ (Φ : ImpCtx) (Δᴸ : TyCtx) :
-    Coercion → Ty → Ty → TyCtx → Set where
+  data _∣_∣_⊢_⦂_⊒_ (μ : ModeEnv) (Δ : TyCtx) (Σ : TyStore) :
+      Coercion → Ty → Ty → Set where
 
-    idᵃ : ∀ {A B Δᴿ} (a : Atom A) (b : Atom B)
-      → WfTy Δᴸ A
-      → WfTy Δᴿ B
-      → Φ ⊢ a ⊒ᵃ b
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ id ⦂ A ⊒ B ⊣ Δᴿ
+    idᵃ : ∀ {A} (a : Atom A)
+      → WfTy Δ A
+        --------------------------
+      → μ ∣ Δ ∣ Σ ⊢ id ⦂ A ⊒ A
 
-    _↦_ : ∀ {c d A A′ B B′ Δᴿ}
-      → Φ ∣ Δᴿ ⊢ c ⦂ A′ ⊑ A ⊣ Δᴸ
-      → Φ ∣ Δᴸ ⊢ d ⦂ B ⊒ B′ ⊣ Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ c ↦ d ⦂ (A ⇒ B) ⊒ (A′ ⇒ B′) ⊣ Δᴿ
+    _↦_ : ∀ {c d A A′ B B′}
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A′ ⊑ A
+      → μ ∣ Δ ∣ Σ ⊢ d ⦂ B ⊒ B′
+        -------------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ c ↦ d ⦂ (A ⇒ B) ⊒ (A′ ⇒ B′)
 
-    ∀ⁿ_ : ∀ {c A B Δᴿ}
-      → ((zero ˣ⊑ˣ zero) ∷ ⇑ᵢ Φ)
-          ∣ suc Δᴸ ⊢ c ⦂ A ⊒ B ⊣ suc Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ `∀ c ⦂ (`∀ A) ⊒ (`∀ B) ⊣ Δᴿ
+    ∀ⁿ_ : ∀ {c A B}
+      → extᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ⦂ A ⊒ B
+        --------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ `∀ c ⦂ (`∀ A) ⊒ (`∀ B)
 
-    untag_ : ∀ {Δᴿ} (ι : Base)
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ (‵ ι) ？ ⦂ ★ ⊒ ‵ ι ⊣ Δᴿ
+    untag : ∀ {B} (G : Tag)
+      → WfTag Δ G
+      → tagAllowed μ G ≡ true
+      → G ꞉ B
+        ----------------------------
+      → μ ∣ Δ ∣ Σ ⊢ G ？ ⦂ ★ ⊒ B
 
-    untag★⇒★ : ∀ {Δᴿ}
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ ★⇒★ ？ ⦂ ★ ⊒ (★ ⇒ ★) ⊣ Δᴿ
+    untag-seq : ∀ {c A B} (G : Tag)
+      → WfTag Δ G
+      → tagAllowed μ G ≡ true
+      → G ꞉ A
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+      → A ≢ B
+        ----------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ ((G ？) ︔ c) ⦂ ★ ⊒ B
 
-    untag★⇒★︔_[_] : ∀ {c B Δᴿ}
-      → Φ ∣ Δᴸ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-      → (★ ⇒ ★) ≢ B
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ ((★⇒★ ？) ︔ c) ⦂ ★ ⊒ B ⊣ Δᴿ
+    seal : ∀ {X A}
+      → X < Δ
+      → WfTy Δ A
+      → (X , A) ∈ Σ
+      → sealModeAllowed (μ X) ≡ true
+        --------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ seal X ⦂ A ⊒ ＇ X
 
-    seal : ∀ {X Δᴿ}
-      → X ˣ⊑★ ∈ Φ
-      → X < Δᴿ
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ seal X ⦂ ★ ⊒ ＇ X ⊣ Δᴿ
+    seal-seq : ∀ {X c A B}
+      → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+      → X < Δ
+      → (X , B) ∈ Σ
+      → sealModeAllowed (μ X) ≡ true
+      → A ≢ B
+        --------------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ (c ︔ seal X) ⦂ A ⊒ ＇ X
 
-    gen : ∀ {c A B Δᴿ}
+    -- See [rationale](Rationale.md#gen-inst-side-conditions).
+    gen : ∀ {c A B}
       → NonVar A
       → zero ∈ᵗ A
-      → ((zero ˣ⊑★) ∷ ⇑ᴸᵢ Φ)
-          ∣ Δᴸ ⊢ c ⦂ B ⊒ A ⊣ suc Δᴿ
+      → WfTy Δ B
+      → genᵈ μ ∣ suc Δ ∣ ⟰ᵗ Σ ⊢ c ⦂ ⇑ᵗ B ⊒ A
       → B ≢ ★
-       --------------------------------------------------
-      → Φ ∣ Δᴸ ⊢ gen c ⦂ B ⊒ (`∀ A) ⊣ Δᴿ
+        ---------------------------------
+      → μ ∣ Δ ∣ Σ ⊢ gen c ⦂ B ⊒ (`∀ A)
 
 ------------------------------------------------------------------------
--- Bundled narrowing and widening
+-- Bundled notation
 ------------------------------------------------------------------------
 
-infix 4 _∣_⊢_⊑_⊣_
-infix 4 _∣_⊢_⊒_⊣_
-infix 4 _⊢_⊑_
-infix 4 _⊢_⊒_
+infix 4 _∣_∣_⊢_⊑_
+infix 4 _∣_∣_⊢_⊒_
+infix 4 _∣_⊢_⦂_⊑_
+infix 4 _∣_⊢_⦂_⊒_
+infix 4 _∣_⊢_⊑_
+infix 4 _∣_⊢_⊒_
 
-_∣_⊢_⊑_⊣_ : ImpCtx → TyCtx → Ty → Ty → TyCtx → Set
-Φ ∣ Δᴸ ⊢ A ⊑ B ⊣ Δᴿ =
-  Σ[ c ∈ Coercion ] Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
+_∣_∣_⊢_⊑_ : ModeEnv → TyCtx → TyStore → Ty → Ty → Set
+μ ∣ Δ ∣ Σ ⊢ A ⊑ B =
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
 
-_∣_⊢_⊒_⊣_ : ImpCtx → TyCtx → Ty → Ty → TyCtx → Set
-Φ ∣ Δᴸ ⊢ A ⊒ B ⊣ Δᴿ =
-  Σ[ c ∈ Coercion ] Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
+_∣_∣_⊢_⊒_ : ModeEnv → TyCtx → TyStore → Ty → Ty → Set
+μ ∣ Δ ∣ Σ ⊢ A ⊒ B =
+  Σ[ c ∈ Coercion ] μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
 
-_⊢_⊑_ : TyCtx → Ty → Ty → Set
-Δ ⊢ A ⊑ B = idᵢ Δ ∣ Δ ⊢ A ⊑ B ⊣ Δ
+_∣_⊢_⦂_⊑_ : TyCtx → TyStore → Coercion → Ty → Ty → Set
+Δ ∣ Σ ⊢ c ⦂ A ⊑ B =
+  Σ[ μ ∈ ModeEnv ] μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
 
-_⊢_⊒_ : TyCtx → Ty → Ty → Set
-Δ ⊢ A ⊒ B = idᵢ Δ ∣ Δ ⊢ A ⊒ B ⊣ Δ
+_∣_⊢_⦂_⊒_ : TyCtx → TyStore → Coercion → Ty → Ty → Set
+Δ ∣ Σ ⊢ c ⦂ A ⊒ B =
+  Σ[ μ ∈ ModeEnv ] μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
 
-------------------------------------------------------------------------
--- Smart function-tag wrappers
-------------------------------------------------------------------------
+_∣_⊢_⊑_ : TyCtx → TyStore → Ty → Ty → Set
+Δ ∣ Σ ⊢ A ⊑ B =
+  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ⦂ A ⊑ B
 
-wrap-tag★⇒★ : ∀ {c Φ Δᴸ Δᴿ A}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ (★ ⇒ ★) ⊣ Δᴿ
-  → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ A ⊑ ★ ⊣ Δᴿ
-wrap-tag★⇒★ {A = A} p with A ≟Ty (★ ⇒ ★)
-wrap-tag★⇒★ {A = .(★ ⇒ ★)} p | yes refl = (★⇒★ !) , tag★⇒★
-wrap-tag★⇒★ {c = c} p | no A≢★⇒★ =
-  (c ︔ (★⇒★ !)) , p ︔tag★⇒★[ A≢★⇒★ ]
-
-wrap-untag★⇒★ : ∀ {c Φ Δᴸ Δᴿ B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ (★ ⇒ ★) ⊒ B ⊣ Δᴿ
-  → ∃[ d ] Φ ∣ Δᴸ ⊢ d ⦂ ★ ⊒ B ⊣ Δᴿ
-wrap-untag★⇒★ {B = B} p with (★ ⇒ ★) ≟Ty B
-wrap-untag★⇒★ {B = .(★ ⇒ ★)} p | yes refl =
-  (★⇒★ ？) , untag★⇒★
-wrap-untag★⇒★ {c = c} p | no ★⇒★≢B =
-  ((★⇒★ ？) ︔ c) , untag★⇒★︔ p [ ★⇒★≢B ]
+_∣_⊢_⊒_ : TyCtx → TyStore → Ty → Ty → Set
+Δ ∣ Σ ⊢ A ⊒ B =
+  Σ[ c ∈ Coercion ] Δ ∣ Σ ⊢ c ⦂ A ⊒ B
 
 ------------------------------------------------------------------------
 -- Endpoint well-formedness
 ------------------------------------------------------------------------
 
+tag-type-wf : ∀ {Δ G A}
+  → WfTag Δ G
+  → G ꞉ A
+  → WfTy Δ A
+tag-type-wf (wfTagVar X<Δ) (tag-var X) = wfVar X<Δ
+tag-type-wf wfTagBase (tag-base ι) = wfBase
+tag-type-wf wf★⇒★ tag-fun = wf⇒ wf★ wf★
+
 mutual
 
-  ⊑-src-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-    → WfTy Δᴸ A
-
-  ⊑-tgt-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-    → WfTy Δᴿ B
-
-  ⊒-src-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → WfTy Δᴸ A
-
-  ⊒-tgt-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-    → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-    → WfTy Δᴿ B
-
-  ⊑-src-wf (idᵃ _ _ hA _ _) = hA
+  ⊑-src-wf : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+    → WfTy Δ A
+  ⊑-src-wf (idᵃ _ hA) = hA
   ⊑-src-wf (p ↦ q) = wf⇒ (⊒-tgt-wf p) (⊑-src-wf q)
   ⊑-src-wf (∀ʷ p) = wf∀ (⊑-src-wf p)
-  ⊑-src-wf (tag ι) = wfBase
-  ⊑-src-wf tag★⇒★ = wf⇒ wf★ wf★
-  ⊑-src-wf (p ︔tag★⇒★[ _ ]) = ⊑-src-wf p
-  ⊑-src-wf (unseal _ X<Δᴸ) = wfVar X<Δᴸ
-  ⊑-src-wf (inst _ _ p _) = wf∀ (⊑-src-wf p)
+  ⊑-src-wf (tag G hG _ G꞉A) = tag-type-wf hG G꞉A
+  ⊑-src-wf (tag-seq G p _ _ _ _) = ⊑-src-wf p
+  ⊑-src-wf (unseal X<Δ _ _ _) = wfVar X<Δ
+  ⊑-src-wf (unseal-seq X<Δ _ _ _ _) = wfVar X<Δ
+  ⊑-src-wf (inst _ _ _ p _) = wf∀ (⊑-src-wf p)
 
-  ⊑-tgt-wf (idᵃ _ _ _ hB _) = hB
+  ⊑-tgt-wf : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+    → WfTy Δ B
+  ⊑-tgt-wf (idᵃ _ hA) = hA
   ⊑-tgt-wf (p ↦ q) = wf⇒ (⊒-src-wf p) (⊑-tgt-wf q)
   ⊑-tgt-wf (∀ʷ p) = wf∀ (⊑-tgt-wf p)
-  ⊑-tgt-wf (tag ι) = wf★
-  ⊑-tgt-wf tag★⇒★ = wf★
-  ⊑-tgt-wf (_ ︔tag★⇒★[ _ ]) = wf★
-  ⊑-tgt-wf (unseal _ _) = wf★
-  ⊑-tgt-wf (inst _ _ p _) = ⊑-tgt-wf p
+  ⊑-tgt-wf (tag _ _ _ _) = wf★
+  ⊑-tgt-wf (tag-seq _ _ _ _ _ _) = wf★
+  ⊑-tgt-wf (unseal _ hA _ _) = hA
+  ⊑-tgt-wf (unseal-seq _ _ _ p _) = ⊑-tgt-wf p
+  ⊑-tgt-wf (inst _ _ hB _ _) = hB
 
-  ⊒-src-wf (idᵃ _ _ hA _ _) = hA
+  ⊒-src-wf : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+    → WfTy Δ A
+  ⊒-src-wf (idᵃ _ hA) = hA
   ⊒-src-wf (p ↦ q) = wf⇒ (⊑-tgt-wf p) (⊒-src-wf q)
   ⊒-src-wf (∀ⁿ p) = wf∀ (⊒-src-wf p)
-  ⊒-src-wf (untag ι) = wf★
-  ⊒-src-wf untag★⇒★ = wf★
-  ⊒-src-wf (untag★⇒★︔ _ [ _ ]) = wf★
-  ⊒-src-wf (seal _ _) = wf★
-  ⊒-src-wf (gen _ _ p _) = ⊒-src-wf p
+  ⊒-src-wf (untag _ _ _ _) = wf★
+  ⊒-src-wf (untag-seq _ _ _ _ _ _) = wf★
+  ⊒-src-wf (seal _ hA _ _) = hA
+  ⊒-src-wf (seal-seq p _ _ _ _) = ⊒-src-wf p
+  ⊒-src-wf (gen _ _ hB _ _) = hB
 
-  ⊒-tgt-wf (idᵃ _ _ _ hB _) = hB
+  ⊒-tgt-wf : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+    → WfTy Δ B
+  ⊒-tgt-wf (idᵃ _ hA) = hA
   ⊒-tgt-wf (p ↦ q) = wf⇒ (⊑-src-wf p) (⊒-tgt-wf q)
   ⊒-tgt-wf (∀ⁿ p) = wf∀ (⊒-tgt-wf p)
-  ⊒-tgt-wf (untag ι) = wfBase
-  ⊒-tgt-wf untag★⇒★ = wf⇒ wf★ wf★
-  ⊒-tgt-wf (untag★⇒★︔ p [ _ ]) = ⊒-tgt-wf p
-  ⊒-tgt-wf (seal _ X<Δᴿ) = wfVar X<Δᴿ
-  ⊒-tgt-wf (gen _ _ p _) = wf∀ (⊒-tgt-wf p)
+  ⊒-tgt-wf (untag G hG _ G꞉B) = tag-type-wf hG G꞉B
+  ⊒-tgt-wf (untag-seq _ _ _ _ p _) = ⊒-tgt-wf p
+  ⊒-tgt-wf (seal X<Δ _ _ _) = wfVar X<Δ
+  ⊒-tgt-wf (seal-seq _ X<Δ _ _ _) = wfVar X<Δ
+  ⊒-tgt-wf (gen _ _ _ p _) = wf∀ (⊒-tgt-wf p)
 
-⊑-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊑ B ⊣ Δᴿ
-  → WfTy Δᴸ A × WfTy Δᴿ B
+⊑-wf : ∀ {μ Δ Σ c A B}
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+  → WfTy Δ A × WfTy Δ B
 ⊑-wf p = ⊑-src-wf p , ⊑-tgt-wf p
 
-⊒-wf : ∀ {c Δᴸ Δᴿ Φ A B}
-  → Φ ∣ Δᴸ ⊢ c ⦂ A ⊒ B ⊣ Δᴿ
-  → WfTy Δᴸ A × WfTy Δᴿ B
+⊒-wf : ∀ {μ Δ Σ c A B}
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+  → WfTy Δ A × WfTy Δ B
 ⊒-wf p = ⊒-src-wf p , ⊒-tgt-wf p
+
+------------------------------------------------------------------------
+-- Narrowing and widening imply ordinary coercion typing
+------------------------------------------------------------------------
+
+mutual
+
+  widening-typing : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+    → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+  widening-typing (idᵃ _ hA) = cast-id hA
+  widening-typing (p ↦ q) =
+    cast-fun (narrowing-typing p) (widening-typing q)
+  widening-typing (∀ʷ p) = cast-all (widening-typing p)
+  widening-typing (tag G hG allowed G꞉A) =
+    cast-tag hG allowed G꞉A
+  widening-typing (tag-seq G p hG allowed G꞉B _) =
+    cast-seq (widening-typing p) (cast-tag hG allowed G꞉B)
+  widening-typing (unseal _ hA X,A∈Σ allowed) =
+    cast-unseal hA X,A∈Σ allowed
+  widening-typing (unseal-seq _ X,A∈Σ allowed p _) =
+    cast-seq
+      (cast-unseal (⊑-src-wf p) X,A∈Σ allowed)
+      (widening-typing p)
+  widening-typing (inst _ zero∈A hB p _) =
+    cast-inst hB zero∈A (widening-typing p)
+
+  narrowing-typing : ∀ {μ Δ Σ c A B}
+    → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+    → μ ∣ Δ ∣ Σ ⊢ c ∶ A =⇒ B
+  narrowing-typing (idᵃ _ hA) = cast-id hA
+  narrowing-typing (p ↦ q) =
+    cast-fun (widening-typing p) (narrowing-typing q)
+  narrowing-typing (∀ⁿ p) = cast-all (narrowing-typing p)
+  narrowing-typing (untag G hG allowed G꞉B) =
+    cast-untag hG allowed G꞉B
+  narrowing-typing (untag-seq G hG allowed G꞉A p _) =
+    cast-seq
+      (cast-untag hG allowed G꞉A)
+      (narrowing-typing p)
+  narrowing-typing (seal _ hA X,A∈Σ allowed) =
+    cast-seal hA X,A∈Σ allowed
+  narrowing-typing (seal-seq p _ X,B∈Σ allowed _) =
+    cast-seq
+      (narrowing-typing p)
+      (cast-seal (⊒-tgt-wf p) X,B∈Σ allowed)
+  narrowing-typing (gen _ zero∈A hB p _) =
+    cast-gen hB zero∈A (narrowing-typing p)
+
+------------------------------------------------------------------------
+-- Smart sequence wrappers
+------------------------------------------------------------------------
+
+wrap-tag : ∀ {μ Δ Σ c A B G}
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+  → WfTag Δ G
+  → tagAllowed μ G ≡ true
+  → G ꞉ B
+  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ A ⊑ ★
+wrap-tag {A = A} {B = B} {G = G} p hG allowed G꞉B
+    with A ≟Ty B
+wrap-tag {B = B} {G = G} p hG allowed G꞉B | yes refl =
+  G ! , tag G hG allowed G꞉B
+wrap-tag {c = c} {G = G} p hG allowed G꞉B | no A≢B =
+  (c ︔ (G !)) , tag-seq G p hG allowed G꞉B A≢B
+
+wrap-untag : ∀ {μ Δ Σ c A B G}
+  → WfTag Δ G
+  → tagAllowed μ G ≡ true
+  → G ꞉ A
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ ★ ⊒ B
+wrap-untag {A = A} {B = B} {G = G} hG allowed G꞉A p
+    with A ≟Ty B
+wrap-untag {A = A} {G = G} hG allowed G꞉A p | yes refl =
+  G ？ , untag G hG allowed G꞉A
+wrap-untag {c = c} {G = G} hG allowed G꞉A p | no A≢B =
+  ((G ？) ︔ c) , untag-seq G hG allowed G꞉A p A≢B
+
+wrap-unseal : ∀ {μ Δ Σ X c A B}
+  → X < Δ
+  → (X , A) ∈ Σ
+  → sealModeAllowed (μ X) ≡ true
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊑ B
+  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ ＇ X ⊑ B
+wrap-unseal {X = X} {A = A} {B = B}
+    X<Δ X,A∈Σ allowed p with A ≟Ty B
+wrap-unseal {X = X} {A = A}
+    X<Δ X,A∈Σ allowed p | yes refl =
+  unseal X , unseal X<Δ (⊑-tgt-wf p) X,A∈Σ allowed
+wrap-unseal {X = X} {c = c}
+    X<Δ X,A∈Σ allowed p | no A≢B =
+  (unseal X ︔ c) , unseal-seq X<Δ X,A∈Σ allowed p A≢B
+
+wrap-seal : ∀ {μ Δ Σ X c A B}
+  → μ ∣ Δ ∣ Σ ⊢ c ⦂ A ⊒ B
+  → X < Δ
+  → (X , B) ∈ Σ
+  → sealModeAllowed (μ X) ≡ true
+  → ∃[ d ] μ ∣ Δ ∣ Σ ⊢ d ⦂ A ⊒ ＇ X
+wrap-seal {X = X} {A = A} {B = B}
+    p X<Δ X,B∈Σ allowed with A ≟Ty B
+wrap-seal {X = X} {A = A}
+    p X<Δ X,A∈Σ allowed | yes refl =
+  seal X , seal X<Δ (⊒-src-wf p) X,A∈Σ allowed
+wrap-seal {X = X} {c = c}
+    p X<Δ X,B∈Σ allowed | no A≢B =
+  (c ︔ seal X) , seal-seq p X<Δ X,B∈Σ allowed A≢B

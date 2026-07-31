@@ -1096,8 +1096,8 @@ base-common-target :
   → (a′ : Atom (‵ κ))
   → (b : Atom B)
   → (b′ : Atom B)
-  → Φ ⊢ a ⊒ᵃ b
-  → Φ ⊢ a′ ⊒ᵃ b′
+  → Φ ⊢ a ≈ᵃ b
+  → Φ ⊢ a′ ≈ᵃ b′
   → ι ≡ κ
 base-common-target (‵ ι) (‵ κ) b b′ μ≡ι μ≡κ with b | b′
 base-common-target (‵ ι) (‵ κ) b b′ () μ≡κ | ＇ X | ＇ Y

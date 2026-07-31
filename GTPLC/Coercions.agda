@@ -135,6 +135,31 @@ instᵈ : ModeEnv → ModeEnv
 instᵈ μ zero = seal-or-id
 instᵈ μ (suc X) = μ X
 
+------------------------------------------------------------------------
+-- Actions used when dualizing coercions
+------------------------------------------------------------------------
+
+data DualAction : Set where
+  normal tag-to-seal seal-to-tag : DualAction
+
+DualActionEnv : Set
+DualActionEnv = TyVar → DualAction
+
+normalᵃ : DualActionEnv
+normalᵃ X = normal
+
+extᵃ : DualActionEnv → DualActionEnv
+extᵃ η zero = normal
+extᵃ η (suc X) = η X
+
+genᵃ : DualActionEnv → DualActionEnv
+genᵃ η zero = tag-to-seal
+genᵃ η (suc X) = η X
+
+instᵃ : DualActionEnv → DualActionEnv
+instᵃ η zero = seal-to-tag
+instᵃ η (suc X) = η X
+
 tagModeAllowed : Mode → Bool
 tagModeAllowed id-only = false
 tagModeAllowed tag-or-id = true
@@ -149,6 +174,47 @@ tagAllowed : ModeEnv → Tag → Bool
 tagAllowed μ (＇ α) = tagModeAllowed (μ α)
 tagAllowed μ (‵ ι) = true
 tagAllowed μ ★⇒★ = true
+
+dualTag : DualActionEnv → Tag → Coercion
+dualTag η (＇ X) with η X
+dualTag η (＇ X) | normal = (＇ X) ？
+dualTag η (＇ X) | tag-to-seal = seal X
+dualTag η (＇ X) | seal-to-tag = (＇ X) ？
+dualTag η (‵ ι) = (‵ ι) ？
+dualTag η ★⇒★ = ★⇒★ ？
+
+dualUntag : DualActionEnv → Tag → Coercion
+dualUntag η (＇ X) with η X
+dualUntag η (＇ X) | normal = (＇ X) !
+dualUntag η (＇ X) | tag-to-seal = unseal X
+dualUntag η (＇ X) | seal-to-tag = (＇ X) !
+dualUntag η (‵ ι) = (‵ ι) !
+dualUntag η ★⇒★ = ★⇒★ !
+
+dualSeal : DualActionEnv → TyVar → Coercion
+dualSeal η X with η X
+dualSeal η X | normal = unseal X
+dualSeal η X | tag-to-seal = unseal X
+dualSeal η X | seal-to-tag = (＇ X) !
+
+dualUnseal : DualActionEnv → TyVar → Coercion
+dualUnseal η X with η X
+dualUnseal η X | normal = seal X
+dualUnseal η X | tag-to-seal = seal X
+dualUnseal η X | seal-to-tag = (＇ X) ？
+
+dual : DualActionEnv → Coercion → Coercion
+dual η id = id
+dual η (c ︔ d) = dual η d ︔ dual η c
+dual η (c ↦ d) = dual η c ↦ dual η d
+dual η (`∀ c) = `∀ (dual (extᵃ η) c)
+dual η (G !) = dualTag η G
+dual η (G ？) = dualUntag η G
+dual η (seal X) = dualSeal η X
+dual η (unseal X) = dualUnseal η X
+dual η (gen c) = inst (dual (genᵃ η) c)
+dual η (inst c) = gen (dual (instᵃ η) c)
+dual η error = error
 
 ------------------------------------------------------------------------
 -- Typing

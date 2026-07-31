@@ -13,6 +13,12 @@ open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types
+open import Coercions using
+  ( ModeEnv
+  ; id-onlyᵈ
+  ; extᵈ
+  ; genᵈ
+  )
 
 ------------------------------------------------------------------------
 -- Intrinsically scoped imprecision contexts
@@ -117,6 +123,16 @@ idᵢ zero = []ᵢ
 idᵢ (suc Δ) = bothᵢ (idᵢ Δ)
 
 ------------------------------------------------------------------------
+-- The coercion mode induced on the right
+------------------------------------------------------------------------
+
+precisionMode : ∀ {Δᴸ Δᴿ} → ImpCtx Δᴸ Δᴿ → ModeEnv
+precisionMode []ᵢ = id-onlyᵈ
+precisionMode (bothᵢ Φ) = extᵈ (precisionMode Φ)
+precisionMode (freshᴸ Φ) = precisionMode Φ
+precisionMode (freshᴿ Φ) = genᵈ (precisionMode Φ)
+
+------------------------------------------------------------------------
 -- Smart extension at a polymorphic boundary
 ------------------------------------------------------------------------
 
@@ -142,19 +158,19 @@ instance
 -- Atomic two-context narrowing
 ------------------------------------------------------------------------
 
-infix 4 _⊢_⊒ᵃ_
+infix 4 _⊢_≈ᵃ_
 
-_⊢_⊒ᵃ_ : ∀ {Δᴸ Δᴿ A B}
+_⊢_≈ᵃ_ : ∀ {Δᴸ Δᴿ A B}
   → ImpCtx Δᴸ Δᴿ → Atom A → Atom B → Set
-Φ ⊢ (＇ X) ⊒ᵃ (＇ Y) = Φ ⊢ X ≈ˣ Y
-Φ ⊢ (＇ X) ⊒ᵃ (‵ ι) = ⊥
-Φ ⊢ (＇ X) ⊒ᵃ ★ = ⊥
-Φ ⊢ (‵ ι) ⊒ᵃ (＇ Y) = ⊥
-Φ ⊢ (‵ ι) ⊒ᵃ (‵ κ) = ι ≡ κ
-Φ ⊢ (‵ ι) ⊒ᵃ ★ = ⊥
-Φ ⊢ ★ ⊒ᵃ (＇ Y) = ⊥
-Φ ⊢ ★ ⊒ᵃ (‵ ι) = ⊥
-Φ ⊢ ★ ⊒ᵃ ★ = ⊤
+Φ ⊢ (＇ X) ≈ᵃ (＇ Y) = Φ ⊢ X ≈ˣ Y
+Φ ⊢ (＇ X) ≈ᵃ (‵ ι) = ⊥
+Φ ⊢ (＇ X) ≈ᵃ ★ = ⊥
+Φ ⊢ (‵ ι) ≈ᵃ (＇ Y) = ⊥
+Φ ⊢ (‵ ι) ≈ᵃ (‵ κ) = ι ≡ κ
+Φ ⊢ (‵ ι) ≈ᵃ ★ = ⊥
+Φ ⊢ ★ ≈ᵃ (＇ Y) = ⊥
+Φ ⊢ ★ ≈ᵃ (‵ ι) = ⊥
+Φ ⊢ ★ ≈ᵃ ★ = ⊤
 
 ------------------------------------------------------------------------
 -- Two-context narrowing
@@ -169,7 +185,7 @@ data _⊢_⊒_ {Δᴸ Δᴿ} (Φ : ImpCtx Δᴸ Δᴿ) :
   idᵃ : ∀ {A B} (a : Atom A) (b : Atom B)
     → WfTy Δᴸ A
     → WfTy Δᴿ B
-    → Φ ⊢ a ⊒ᵃ b
+    → Φ ⊢ a ≈ᵃ b
       ----------------
     → Φ ⊢ A ⊒ B
 

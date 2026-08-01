@@ -2,9 +2,13 @@ module Types where
 
 -- File Charter: Core syntax and operations for polymorphic types.
 
+open import Agda.Builtin.FromNat public
 open import Data.Nat using (ℕ; zero; suc)
+import Data.Nat.Literals as NatLiterals
 open import Data.Fin using (Fin; zero; suc)
+import Data.Fin.Literals as FinLiterals
 open import Data.Fin.Properties using (_≟_)
+open import Data.Unit.Base using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; sym; trans)
 open import Relation.Nullary using (Dec; yes; no)
@@ -18,6 +22,16 @@ TyCtx = ℕ
 
 TyVar : TyCtx → Set
 TyVar Δ = Fin Δ
+
+instance
+  Nat-number : Number ℕ
+  Nat-number = NatLiterals.number
+
+  Fin-number : ∀ {n} → Number (Fin n)
+  Fin-number {n} = FinLiterals.number n
+
+  literal-constraint : ⊤
+  literal-constraint = tt
 
 data Base : Set where
   `ℕ : Base
@@ -241,6 +255,19 @@ substᵗ-cong {σ = σ} {σ′} (`∀ A) eq =
   exts-eq zero = refl
   exts-eq (suc X) = cong (renameᵗ suc) (eq X)
 
+substᵗ-id : ∀ {Δ} (A : Ty Δ)
+  → substᵗ (λ X → ＇ X) A ≡ A
+substᵗ-id (＇ X) = refl
+substᵗ-id (‵ ι) = refl
+substᵗ-id ★ = refl
+substᵗ-id (A ⇒ B) rewrite substᵗ-id A | substᵗ-id B = refl
+substᵗ-id (`∀ A) = cong `∀
+  (trans (substᵗ-cong A ext-id) (substᵗ-id A))
+  where
+  ext-id : ∀ X → extsᵗ (λ Y → ＇ Y) X ≡ ＇ X
+  ext-id zero = refl
+  ext-id (suc X) = refl
+
 renameᵗ-comp : ∀ {Δ₁ Δ₂ Δ₃}
   → (ρ₁ : Δ₁ ⇒ʳ Δ₂)
   → (ρ₂ : Δ₂ ⇒ʳ Δ₃)
@@ -338,3 +365,8 @@ singleSubᵗ B (suc X) = ＇ X
 infixl 8 _[_]ᵗ
 _[_]ᵗ : Ty (suc Δ) → Ty Δ → Ty Δ
 A [ B ]ᵗ = substᵗ (singleSubᵗ B) A
+
+shift-openᵗ : ∀ {Δ} (A B : Ty Δ) → (⇑ᵗ A) [ B ]ᵗ ≡ A
+shift-openᵗ A B =
+  trans (substᵗ-rename (singleSubᵗ B) suc A)
+    (trans (substᵗ-cong A (λ X → refl)) (substᵗ-id A))

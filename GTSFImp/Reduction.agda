@@ -8,9 +8,9 @@ module Reduction where
 --   * Provides intrinsically scoped traces and actions of store changes on
 --     stores, types, consistency evidence, and terms.
 
-open import Data.Nat as Nat using (ℕ; _+_)
+import Data.Nat as Nat
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
 open import TyStore
@@ -34,20 +34,48 @@ applyStore : ∀ {Δ Δ′}
 applyStore keep Σ = Σ
 applyStore (bind A) Σ = store-bind Σ A
 
+-- A white triangle applies one store change; a black triangle below applies
+-- a sequence. Superscripts identify the object being transported.
+syntax applyStore χ Σ = χ ▷ˢ Σ
+
 applyTy : ∀ {Δ Δ′} → StoreChange Δ Δ′ → Ty Δ → Ty Δ′
 applyTy keep A = A
 applyTy (bind B) A = ⇑ᵗ A
+
+syntax applyTy χ A = χ ▷ᵗ A
+
+applyBody : ∀ {Δ Δ′}
+  → StoreChange Δ Δ′
+  → Ty (Nat.suc Δ)
+  → Ty (Nat.suc Δ′)
+applyBody keep A = A
+applyBody (bind B) A = renameᵗ (extᵗ Fin.suc) A
+
+syntax applyBody χ A = χ ▷ᵇ A
 
 applyTerm : ∀ {Δ Δ′} → StoreChange Δ Δ′ → Term Δ → Term Δ′
 applyTerm keep M = M
 applyTerm (bind A) M = ⇑ᵗᵐ M
 
-applyConsistency : ∀ {Δ Δ′} {A B : Ty Δ}
+syntax applyTerm χ M = χ ▷ᵀ M
+
+applyEnv : ∀ {Δ Δ′}
+  → StoreChange Δ Δ′
+  → Env∼ Δ
+  → Env∼ Δ′
+applyEnv keep μ = μ
+applyEnv (bind A) μ = extᵐ μ
+
+syntax applyEnv χ μ = χ ▷ᵉ μ
+
+applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
   → (χ : StoreChange Δ Δ′)
-  → A ∼ B
-  → applyTy χ A ∼ applyTy χ B
+  → μ ⊢ A ∼ B
+  → χ ▷ᵉ μ ⊢ χ ▷ᵗ A ∼ χ ▷ᵗ B
 applyConsistency keep c = c
-applyConsistency (bind A) c = renameᶜ Fin.suc c
+applyConsistency (bind A) c = renameEnvᶜ Fin.suc (λ X → refl) c
+
+syntax applyConsistency χ c = χ ▷ᶜ c
 
 applyVar : ∀ {Δ Δ′}
   → StoreChange Δ Δ′
@@ -56,10 +84,7 @@ applyVar : ∀ {Δ Δ′}
 applyVar keep X = X
 applyVar (bind A) X = Fin.suc X
 
-syntax applyStore χ Σ = χ ▷ˢ Σ
-syntax applyTy χ A = χ ▷ᵗ A
-syntax applyTerm χ M = χ ▷ᵀ M
-syntax applyConsistency χ c = χ ▷ᶜ c
+syntax applyVar χ X = χ ▷ᵛ X
 
 data StoreChanges : TyCtx → TyCtx → Set where
   [] : ∀ {Δ} → StoreChanges Δ Δ
@@ -74,80 +99,22 @@ applyStores : ∀ {Δ Δ′}
   → StoreChanges Δ Δ′
   → TyStore Δ
   → TyStore Δ′
+syntax applyStores χs Σ = χs ▶ˢ Σ
+
 applyStores [] Σ = Σ
-applyStores (χ ∷ χs) Σ = applyStores χs (applyStore χ Σ)
+applyStores (χ ∷ χs) Σ = χs ▶ˢ (χ ▷ˢ Σ)
 
 applyTys : ∀ {Δ Δ′} → StoreChanges Δ Δ′ → Ty Δ → Ty Δ′
+syntax applyTys χs A = χs ▶ᵗ A
+
 applyTys [] A = A
-applyTys (χ ∷ χs) A = applyTys χs (applyTy χ A)
+applyTys (χ ∷ χs) A = χs ▶ᵗ (χ ▷ᵗ A)
 
 applyTerms : ∀ {Δ Δ′} → StoreChanges Δ Δ′ → Term Δ → Term Δ′
-applyTerms [] M = M
-applyTerms (χ ∷ χs) M = applyTerms χs (applyTerm χ M)
-
-syntax applyStores χs Σ = χs ▶ˢ Σ
-syntax applyTys χs A = χs ▶ᵗ A
 syntax applyTerms χs M = χs ▶ᵀ M
 
-------------------------------------------------------------------------
--- Interpreting consistency environments
-------------------------------------------------------------------------
-
-infix 4 _⟪_⟫_
-
-data _⟪_⟫_ {Δ : TyCtx} (M : Term Δ) :
-    ∀ {μ : Env∼ Δ} {A B : Ty Δ}
-    → μ ⊢ A ∼ B
-    → Term Δ
-    → Set where
-
-  cast-id : ∀ {μ : Env∼ Δ} {A : Ty Δ} {a : Atom A}
-      -----------------
-    → M ⟪ id∼ {μ = μ} a ⟫ M
-
-  cast-⇒ : ∀ {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
-      {c : μ ⊢ A ∼ A′} {c′ : flipᵐ μ ⊢ A′ ∼ A}
-      {d : μ ⊢ B ∼ B′} {P Q : Term Δ}
-    → c′ ≡ sym∼ c
-    → (` Nat.zero) ⟪ c′ ⟫ P
-    → (rename Nat.suc M · P) ⟪ d ⟫ Q
-      -----------------------------------
-    → M ⟪ ⇒∼⇒ c d ⟫ ƛ Q
-
-  cast-∀ : ∀ {μ : Env∼ Δ} {A B : Ty (Nat.suc Δ)}
-      {c : extᵐ μ ⊢ A ∼ B} {N : Term (Nat.suc Δ)}
-    → ((⇑ᵗᵐ M) • ＇ Fin.zero) ⟪ c ⟫ N
-      --------------------------
-    → M ⟪ ∀∼∀ c ⟫ Λ N
-
-  cast-tag : ∀ {μ : Env∼ Δ} {A G : Ty Δ}
-      {g : Groundʳ G} {c : μ ⊢ A ∼ G} {N : Term Δ}
-    → M ⟪ c ⟫ N
-      ---------------------------------------------
-    → M ⟪ tag g c ⟫ N ⟨ tag g (idᵍ g) ⟩
-
-  cast-untag : ∀ {μ : Env∼ Δ} {G B : Ty Δ}
-      {g : Groundʳ G} {c : μ ⊢ G ∼ B} {N : Term Δ}
-    → M ⟨ untag g (idᵍ g) ⟩ ⟪ c ⟫ N
-      ---------------------------------------------
-    → M ⟪ untag g c ⟫ N
-
-  cast-X∼★ : ∀ {μ : Env∼ Δ} {X : TyVar Δ}
-      {eq : μ X ≡ X∼★}
-      ---------------------------
-    → M ⟪ X∼★ {μ = μ} {X = X} eq ⟫ reveal M (↑-unseal X)
-
-  cast-★∼X : ∀ {μ : Env∼ Δ} {X : TyVar Δ}
-      {eq : μ X ≡ ★∼X}
-      ---------------------------
-    → M ⟪ ★∼X {μ = μ} {X = X} eq ⟫ conceal M (↓-seal X)
-
-  cast-gen : ∀ {μ : Env∼ Δ} {A : Ty Δ}
-      {B : Ty (Nat.suc Δ)} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
-      {Bnv : NonVar B} {z∈B : Fin.zero ∈ᵗ B} {N : Term (Nat.suc Δ)}
-    → ⇑ᵗᵐ M ⟪ c ⟫ N
-      ---------------------------------
-    → M ⟪ ∼∀ c Bnv z∈B ⟫ Λ N
+applyTerms [] M = M
+applyTerms (χ ∷ χs) M = χs ▶ᵀ (χ ▷ᵀ M)
 
 ------------------------------------------------------------------------
 -- Factoring eager checks out of polymorphic casts
@@ -158,22 +125,23 @@ data GroundGen : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {B : Ty Δ}
     → (c′ : μ ⊢ (★ ⇒ ★) ∼ B)
     → Set where
 
-  ground-gen-⇒ : ∀ {Δ μ} {A B : Ty Δ}
-      {c : μ ⊢ ★ ∼ A} {d : μ ⊢ ★ ∼ B}
-    → GroundGen (untag g-⇒ (⇒∼⇒ c d)) (⇒∼⇒ c d)
+  ground-gen-⇒ : ∀ {Δ μ} {B : Ty Δ}
+      {c : μ ⊢ (★ ⇒ ★) ∼ B} ⦃ Bns : NonStar B ⦄
+    → GenSafe c
+    → GroundGen (？ c) c
 
-  ground-gen-∀ : ∀ {Δ μ} {A : Ty Δ} {B : Ty (Nat.suc Δ)}
+  ground-gen-∀ : ∀ {Δ μ} {B : Ty (Nat.suc Δ)}
       {c : genᵐ μ ⊢ ★ ∼ B}
       {c′ : genᵐ μ ⊢ (★ ⇒ ★) ∼ B}
-      {Bnv : NonVar B} {z∈B : Fin.zero ∈ᵗ B}
+      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : 0 ∈ᵗ B ⦄
     → GroundGen c c′
-    → GroundGen (∼∀ c Bnv z∈B) (∼∀ c′ Bnv z∈B)
+    → GroundGen (gen c) (gen c′)
 
 groundGen-safe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {B : Ty Δ}
     {c : μ ⊢ ★ ∼ B} {c′ : μ ⊢ (★ ⇒ ★) ∼ B}
   → GroundGen c c′
   → GenSafe c′
-groundGen-safe ground-gen-⇒ = safe-⇒
+groundGen-safe (ground-gen-⇒ safe) = safe
 groundGen-safe (ground-gen-∀ factor) = safe-gen (groundGen-safe factor)
 
 data GroundInst : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A : Ty Δ}
@@ -181,16 +149,16 @@ data GroundInst : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A : Ty Δ}
     → (c′ : μ ⊢ A ∼ (★ ⇒ ★))
     → Set where
 
-  ground-inst-⇒ : ∀ {Δ μ} {A B : Ty Δ}
-      {c : μ ⊢ A ∼ ★} {d : μ ⊢ B ∼ ★}
-    → GroundInst (tag g-⇒ (⇒∼⇒ c d)) (⇒∼⇒ c d)
+  ground-inst-⇒ : ∀ {Δ μ} {A : Ty Δ}
+      {c : μ ⊢ A ∼ (★ ⇒ ★)} ⦃ Ans : NonStar A ⦄
+    → GroundInst (c !) c
 
-  ground-inst-∀ : ∀ {Δ μ} {A : Ty (Nat.suc Δ)} {B : Ty Δ}
+  ground-inst-∀ : ∀ {Δ μ} {A : Ty (Nat.suc Δ)}
       {c : instᵐ μ ⊢ A ∼ ★}
       {c′ : instᵐ μ ⊢ A ∼ (★ ⇒ ★)}
-      {Anv : NonVar A} {z∈A : Fin.zero ∈ᵗ A}
+      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : 0 ∈ᵗ A ⦄
     → GroundInst c c′
-    → GroundInst (∀∼ c Anv z∈A) (∀∼ c′ Anv z∈A)
+    → GroundInst (inst c) (inst c′)
 
 ------------------------------------------------------------------------
 -- Pure one-step reduction
@@ -200,108 +168,121 @@ infix 2 _—→_
 
 data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
 
-  δ-⊕ : ∀ {m n : ℕ}
-      -------------------------------------------------
-    → $ (κℕ m) ⊕[ addℕ ] $ (κℕ n) —→ $ (κℕ (m + n))
+  δ-⊕ : ∀ {op κ κ′ κ″}
+    → δ op κ κ′ κ″
+      ---------------------------------
+    → $ κ ⊕[ op ] $ κ′ —→ $ κ″
 
   β : ∀ {N V : Term Δ}
     → Value V
       --------------------
     → (ƛ N) · V —→ N [ V ]
 
-  β-id : ∀ {V : Term Δ} {A : Ty Δ} {a : Atom A}
+  β-id : ∀ {V : Term Δ} {μ : Env∼ Δ} {A : Ty Δ} {a : Atom A}
     → Value V
-      -----------------
-    → V ⟨ id∼ a ⟩ —→ V
+      ------------------------
+    → V ⟨ id {μ = μ} a ⟩ —→ V
 
-  β-⇒ : ∀ {V W : Term Δ} {A A′ B B′ : Ty Δ}
-      {c : A ∼ A′} {c′ : A′ ∼ A} {d : B ∼ B′}
+  β-⇒ : ∀ {V W : Term Δ} {μ : Env∼ Δ}
+      {A A′ B B′ : Ty Δ} {c : μ ⊢ A ∼ A′}
+      {c′ : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Value V
     → Value W
-    → c′ ≡ symᶜ c
-      ------------------------------------------------
-    → (V ⟨ ⇒∼⇒ c d ⟩) · W —→ (V · (W ⟨ c′ ⟩)) ⟨ d ⟩
+    → c′ ≡ sym∼ c
+      --------------------------------------------
+    → (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c′ ⟩)) ⟨ d ⟩
 
-  β-∀ : ∀ {V : Term Δ} {A B : Ty (Nat.suc Δ)} {C : Ty Δ}
-      {c : extᵐ idᶜ ⊢ A ∼ B} {d : A [ C ]ᵗ ∼ B [ C ]ᵗ}
+  β-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
+      {A B : Ty (Nat.suc Δ)} {C : Ty Δ}
+      {c : extᵐ μ ⊢ A ∼ B} {d : μ ⊢ A [ C ]ᵗ ∼ B [ C ]ᵗ}
     → Value V
     → d ≡ c [ C ]ᶜ
-      --------------------------------------------------------
-    → (V ⟨ ∀∼∀ c ⟩) • C —→ (V • C) ⟨ d ⟩
+      -----------------------------------------------
+    → (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→ (V ⦂∀ A [ C ]) ⟨ d ⟩
 
-  expand-∀ : ∀ {V : Term Δ} {B : Ty (Nat.suc Δ)}
-      {c : genᵐ idᶜ ⊢ ★ ∼ B} {Bnv : NonVar B}
-      {c′ : genᵐ idᶜ ⊢ (★ ⇒ ★) ∼ B}
-      {z∈B : Fin.zero ∈ᵗ B}
+  expand-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
+      {B : Ty (Nat.suc Δ)} {c : genᵐ μ ⊢ ★ ∼ B}
+      ⦃ Bnv : NonVar B ⦄ {c′ : genᵐ μ ⊢ (★ ⇒ ★) ∼ B}
+      ⦃ z∈B : 0 ∈ᵗ B ⦄
     → Value V
     → GroundGen c c′
-      -----------------------------------------------------------------------
-    → V ⟨ ∼∀ c Bnv z∈B ⟩ —→
-        V ⟨ untag g-⇒ (idᵍ g-⇒) ⟩ ⟨ ∼∀ c′ Bnv z∈B ⟩
+      ---------------------------------------------------------
+    → V ⟨ gen c ⟩ —→
+        V ⟨ ？ (id {μ = μ} ★ ↦ id ★) ⟩ ⟨ gen c′ ⟩
 
-  ground-∀ : ∀ {V : Term Δ} {A : Ty (Nat.suc Δ)}
-      {c : instᵐ idᶜ ⊢ A ∼ ★} {Anv : NonVar A}
-      {c′ : instᵐ idᶜ ⊢ A ∼ (★ ⇒ ★)}
-      {z∈A : Fin.zero ∈ᵗ A}
+  ground-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
+      {A : Ty (Nat.suc Δ)} {c : instᵐ μ ⊢ A ∼ ★}
+      ⦃ Anv : NonVar A ⦄ {c′ : instᵐ μ ⊢ A ∼ (★ ⇒ ★)}
+      ⦃ z∈A : 0 ∈ᵗ A ⦄
     → Value V
     → GroundInst c c′
-      ---------------------------------------------------------------------
-    → V ⟨ ∀∼ c Anv z∈A ⟩ —→
-        V ⟨ ∀∼ c′ Anv z∈A ⟩ ⟨ tag g-⇒ (idᵍ g-⇒) ⟩
+      -----------------------------------------------------------
+    → V ⟨ inst c ⟩ —→
+        V ⟨ inst c′ ⟩ ⟨ (id {μ = μ} ★ ↦ id ★) ! ⟩
 
-  ground : ∀ {V : Term Δ} {A G : Ty Δ}
-      {g : Groundʳ G} {c : A ∼ G}
+  ground : ∀ {V : Term Δ} {μ : Env∼ Δ} {A G : Ty Δ}
+      ⦃ g : Groundʳ μ X∼★ G ⦄ {c : μ ⊢ A ∼ G}
+      ⦃ Ans : NonStar A ⦄ ⦃ match : GroundMatch g A ⦄
+      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
     → Value V
     → A ≢ G
       ------------------------------------------------
-    → V ⟨ tag g c ⟩ —→ V ⟨ c ⟩ ⟨ tag g (idᵍ g) ⟩
+    → V ⟨ c ! ⟩ —→ V ⟨ c ⟩ ⟨ (idᵍ g) ! ⟩
 
-  expand : ∀ {V : Term Δ} {G B : Ty Δ}
-      {g : Groundʳ G} {c : G ∼ B}
+  expand : ∀ {V : Term Δ} {μ : Env∼ Δ} {G B : Ty Δ}
+      ⦃ g : Groundʳ μ ★∼X G ⦄ {c : μ ⊢ G ∼ B}
+      ⦃ Bns : NonStar B ⦄ ⦃ match : GroundMatch g B ⦄
+      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
     → Value V
     → G ≢ B
-      ----------------------------------------------------------
-    → V ⟨ untag g c ⟩ —→ V ⟨ untag g (idᵍ g) ⟩ ⟨ c ⟩
+      ------------------------------------
+    → V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ g) ⟩ ⟨ c ⟩
 
-  tag-untag : ∀ {V : Term Δ} {G : Ty Δ}
-      {g : Groundʳ G}
+  tag-untag : ∀ {V : Term Δ} {μ ν : Env∼ Δ}
+      {G : Ty Δ}
+      ⦃ g : Groundʳ μ X∼★ G ⦄ ⦃ h : Groundʳ ν ★∼X G ⦄
+      ⦃ Gns : NonStar G ⦄
+      ⦃ gmatch : GroundMatch g G ⦄
+      ⦃ hmatch : GroundMatch h G ⦄
     → Value V
-      ------------------------------------------------------------
-    → V ⟨ tag g (idᵍ g) ⟩ ⟨ untag g (idᵍ g) ⟩ —→ V
+      -----------------------------------
+    → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ V
 
-  tag-untag-bad : ∀ {V : Term Δ} {G H : Ty Δ}
-      {g : Groundʳ G} {h : Groundʳ H}
+  tag-untag-bad : ∀ {V : Term Δ} {μ ν : Env∼ Δ} {G H : Ty Δ}
+      ⦃ g : Groundʳ μ X∼★ G ⦄ ⦃ h : Groundʳ ν ★∼X H ⦄
+      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
+      ⦃ Hns : NonStar H ⦄ ⦃ hmatch : GroundMatch h H ⦄
     → Value V
     → G ≢ H
       ------------------------------------------------------------
-    → V ⟨ tag g (idᵍ g) ⟩ ⟨ untag h (idᵍ h) ⟩ —→ blame
+    → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ blame
 
   β-reveal-⇒ : ∀ {V W : Term Δ} {c : Conv↓ Δ} {d : Conv↑ Δ}
     → Value V
     → Value W
       ---------------------------------------------------------
-    → reveal V (↑-⇒ c d) · W —→ reveal (V · conceal W c) d
+    → (V ↑ (c ↦↑ d)) · W —→ (V · (W ↓ c)) ↑ d
 
   β-conceal-⇒ : ∀ {V W : Term Δ} {c : Conv↑ Δ} {d : Conv↓ Δ}
     → Value V
     → Value W
       ---------------------------------------------------------
-    → conceal V (↓-⇒ c d) · W —→ conceal (V · reveal W c) d
+    → (V ↓ (c ↦↓ d)) · W —→ (V · (W ↑ c)) ↓ d
 
   id-reveal : ∀ {V : Term Δ} {A : Ty Δ}
     → Value V
-      -------------------------
-    → reveal V (↑-id A) —→ V
+      -----------------------
+    → V ↑ id↑ A —→ V
 
   id-conceal : ∀ {V : Term Δ} {A : Ty Δ}
     → Value V
-      --------------------------
-    → conceal V (↓-id A) —→ V
+      ------------------------
+    → V ↓ id↓ A —→ V
 
   conceal-reveal : ∀ {V : Term Δ} {X : TyVar Δ}
     → Value V
       --------------------------------------------------
-    → reveal (conceal V (↓-seal X)) (↑-unseal X) —→ V
+    → (V ↓ seal X) ↑ unseal X —→ V
 
   blame-·₁ : ∀ {M : Term Δ}
       ------------------
@@ -312,29 +293,29 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
       ------------------
     → V · blame —→ blame
 
-  blame-• : ∀ {A : Ty Δ}
-      ------------------
-    → blame • A —→ blame
+  blame-• : ∀ {A : Ty Δ} {B : Ty (Nat.suc Δ)}
+      --------------------------
+    → blame ⦂∀ B [ A ] —→ blame
 
-  blame-⟨⟩ : ∀ {A B : Ty Δ} {c : A ∼ B}
-      ------------------
+  blame-⟨⟩ : ∀ {μ : Env∼ Δ} {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+      ---------------------
     → blame ⟨ c ⟩ —→ blame
 
   blame-reveal : ∀ {c : Conv↑ Δ}
-      -----------------------
-    → reveal blame c —→ blame
+      ------------------------
+    → blame ↑ c —→ blame
 
   blame-conceal : ∀ {c : Conv↓ Δ}
-      ------------------------
-    → conceal blame c —→ blame
+      -------------------------
+    → blame ↓ c —→ blame
 
   blame-⊕₁ : ∀ {M : Term Δ} {op : Prim}
-      ---------------------------
+      --------------------------
     → blame ⊕[ op ] M —→ blame
 
   blame-⊕₂ : ∀ {V : Term Δ} {op : Prim}
     → Value V
-      ---------------------------
+      -------------------------
     → V ⊕[ op ] blame —→ blame
 
 ------------------------------------------------------------------------
@@ -366,50 +347,52 @@ data _—→[_]_ : ∀ {Δ Δ′}
       -----------------
     → M —→[ keep ] M′
 
-  β-Λ : ∀ {Δ} {A : Ty Δ} {V : Term (Nat.suc Δ)}
+  β-Λ : ∀ {Δ} {A : Ty Δ} {B : Ty (Nat.suc Δ)}
+      {V : Term (Nat.suc Δ)}
     → Value V
-      -----------------------
-    → (Λ V) • A —→[ bind A ] V
+      ---------------------------------------------
+    → (Λ V) ⦂∀ B [ A ] —→[ bind A ]  V ↑ 〖 0 ↑ B 〗
 
-  β-inst : ∀ {Δ} {V : Term Δ} {A : Ty (Nat.suc Δ)}
-      {B : Ty Δ} {c : instᵐ idᶜ ⊢ A ∼ ⇑ᵗ B}
-      {Anv : NonVar A} {z∈A : Fin.zero ∈ᵗ A}
-      {N : Term (Nat.suc Δ)}
+  β-inst : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ}
+      {A : Ty (Nat.suc Δ)} {B : Ty Δ}
+      {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : 0 ∈ᵗ A ⦄
     → Value V
     → B ≢ ★
-    → ((⇑ᵗᵐ V) • ＇ Fin.zero) ⟪ c ⟫ N
-      -----------------------------------
-    → V ⟨ ∀∼ c Anv z∈A ⟩ —→[ bind ★ ] N
+      -----------------------------------------------------------------
+    → V ⟨ inst c ⟩ —→[ bind ★ ]
+      ⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ 0 ] ↑ 〖 0 ↑ A 〗 ⟨ ↑ᶜ (c [ ★/0 ]ᶜ) ⟩
 
-  β-gen : ∀ {Δ} {V : Term Δ} {A C : Ty Δ}
-      {B : Ty (Nat.suc Δ)} {c : genᵐ idᶜ ⊢ ⇑ᵗ A ∼ B}
-      {Bnv : NonVar B} {z∈B : Fin.zero ∈ᵗ B}
-      {N : Term (Nat.suc Δ)}
+  β-gen : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ}
+      {A C : Ty Δ} {B : Ty (Nat.suc Δ)}
+      {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : 0 ∈ᵗ B ⦄
     → Value V
     → A ≢ ★
     → GenSafe c
-    → ⇑ᵗᵐ V ⟪ c ⟫ N
-      -------------------------------------
-    → (V ⟨ ∼∀ c Bnv z∈B ⟩) • C —→[ bind C ] N
+      ---------------------------------------------------------------
+    → (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind C ]  ⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 0 ↑ B 〗
 
   β-reveal-∀ : ∀ {Δ} {V : Term Δ} {A : Ty Δ}
+      {B C : Ty (Nat.suc Δ)}
       {c : Conv↑ (Nat.suc Δ)}
     → Value V
       -------------------------------------------------
-    → (reveal V (↑-∀ c)) • A —→[ bind A ]
-        reveal ((⇑ᵗᵐ V) • ＇ Fin.zero) c
+    → (V ↑ `∀↑ c) ⦂∀ B [ A ] —→[ bind A ]
+        ((⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ]) ↑ c ↑ 〖 0 ↑ B 〗)
 
   β-conceal-∀ : ∀ {Δ} {V : Term Δ} {A : Ty Δ}
+      {B C : Ty (Nat.suc Δ)}
       {c : Conv↓ (Nat.suc Δ)}
     → Value V
       --------------------------------------------------
-    → (conceal V (↓-∀ c)) • A —→[ bind A ]
-        conceal ((⇑ᵗᵐ V) • ＇ Fin.zero) c
+    → (V ↓ `∀↓ c) ⦂∀ B [ A ] —→[ bind A ]
+      (⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ] ↓ c ↑ 〖 0 ↑ B 〗)
 
   ξ-·₁ : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {L M : Term Δ} {L′ M′ : Term Δ′}
     → L —→[ χ ] L′
-    → M′ ≡ applyTerm χ M
+    → M′ ≡ χ ▷ᵀ M
       ----------------------------------
     → L · M —→[ χ ] L′ · M′
 
@@ -417,54 +400,58 @@ data _—→[_]_ : ∀ {Δ Δ′}
       {V M : Term Δ} {V′ M′ : Term Δ′}
     → Value V
     → M —→[ χ ] M′
-    → V′ ≡ applyTerm χ V
+    → V′ ≡ χ ▷ᵀ V
       ----------------------------------
     → V · M —→[ χ ] V′ · M′
 
   ξ-• : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
-      {M : Term Δ} {M′ : Term Δ′} {A : Ty Δ} {A′ : Ty Δ′}
+      {M : Term Δ} {M′ : Term Δ′}
+      {A : Ty Δ} {A′ : Ty Δ′}
+      {B : Ty (Nat.suc Δ)} {B′ : Ty (Nat.suc Δ′)}
     → M —→[ χ ] M′
-    → A′ ≡ applyTy χ A
+    → B′ ≡ χ ▷ᵇ B
+    → A′ ≡ χ ▷ᵗ A
       ----------------------------------
-    → M • A —→[ χ ] M′ • A′
+    → M ⦂∀ B [ A ] —→[ χ ] M′ ⦂∀ B′ [ A′ ]
 
   ξ-⟨⟩ : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
-      {M : Term Δ} {M′ : Term Δ′} {A B : Ty Δ} {c : A ∼ B}
-      {c′ : applyTy χ A ∼ applyTy χ B}
+      {M : Term Δ} {M′ : Term Δ′} {μ : Env∼ Δ}
+      {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+      {c′ : χ ▷ᵉ μ ⊢ χ ▷ᵗ A ∼ χ ▷ᵗ B}
     → M —→[ χ ] M′
-    → c′ ≡ applyConsistency χ c
-      ----------------------------------
+    → c′ ≡ χ ▷ᶜ c
+      --------------------------
     → M ⟨ c ⟩ —→[ χ ] M′ ⟨ c′ ⟩
 
   ξ-reveal : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {M : Term Δ} {M′ : Term Δ′} {c : Conv↑ Δ}
       {c′ : Conv↑ Δ′}
     → M —→[ χ ] M′
-    → c′ ≡ rename↑ (applyVar χ) c
-      ----------------------------------
-    → reveal M c —→[ χ ] reveal M′ c′
+    → c′ ≡ rename↑ (λ X → χ ▷ᵛ X) c
+      ------------------------------
+    → M ↑ c —→[ χ ] M′ ↑ c′
 
   ξ-conceal : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {M : Term Δ} {M′ : Term Δ′} {c : Conv↓ Δ}
       {c′ : Conv↓ Δ′}
     → M —→[ χ ] M′
-    → c′ ≡ rename↓ (applyVar χ) c
+    → c′ ≡ rename↓ (λ X → χ ▷ᵛ X) c
       ----------------------------------
-    → conceal M c —→[ χ ] conceal M′ c′
+    → M ↓ c —→[ χ ] M′ ↓ c′
 
   ξ-⊕₁ : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {L M : Term Δ} {L′ M′ : Term Δ′} {op : Prim}
     → L —→[ χ ] L′
-    → M′ ≡ applyTerm χ M
-      ------------------------------------------------
+    → M′ ≡ χ ▷ᵀ M
+      ---------------------------------
     → L ⊕[ op ] M —→[ χ ] L′ ⊕[ op ] M′
 
   ξ-⊕₂ : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {V M : Term Δ} {V′ M′ : Term Δ′} {op : Prim}
     → Value V
     → M —→[ χ ] M′
-    → V′ ≡ applyTerm χ V
-      ------------------------------------------------
+    → V′ ≡ χ ▷ᵀ V
+      ---------------------------------
     → V ⊕[ op ] M —→[ χ ] V′ ⊕[ op ] M′
 
 ------------------------------------------------------------------------

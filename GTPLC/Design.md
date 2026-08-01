@@ -112,3 +112,8 @@ tradeoff because its consumers require typed coercions, and the combined
 judgment gives composition a substantially smaller trusted interface.
 
 The coercion-indexed design is the canonical GTPLC design.
+
+
+
+
+

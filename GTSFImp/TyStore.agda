@@ -1,48 +1,51 @@
 module TyStore where
 
 -- File Charter:
---   * Type-store representation and well-formedness invariants.
---   * Defines type-variable renaming on stores and a recursive construction
---     relation for well-formed stores.
+--   * Intrinsically well-scoped type stores.
 --   * Makes type-binder lifting and fresh runtime allocation the only ways to
---     extend a well-formed store.
+--     extend a store.
+--   * Relates type variables to their representation types in a store.
 
 open import Agda.Builtin.Equality using (_≡_)
-open import Data.List using (List; []; _∷_)
-open import Data.List.Membership.Propositional using (_∈_)
-open import Data.Nat using (ℕ; _<_; zero; suc)
-open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃-syntax)
+open import Data.Nat using (zero; suc)
+open import Data.Fin using (zero; suc)
 
 open import Types
 
-TyStore : Set
-TyStore = List (TyVar × Ty)
+data TyStore : TyCtx → Set where
 
-renameTyStoreᵗ : Renameᵗ → TyStore → TyStore
-renameTyStoreᵗ ρ [] = []
-renameTyStoreᵗ ρ ((α , A) ∷ Σ) =
-  (ρ α , renameᵗ ρ A) ∷ renameTyStoreᵗ ρ Σ
+  store-empty : TyStore zero
 
-⟰ᵗ : TyStore → TyStore
-⟰ᵗ = renameTyStoreᵗ suc
-
-------------------------------------------------------------------------
--- Store well-formedness
-------------------------------------------------------------------------
-
-data StoreWf : TyCtx → TyStore → Set₁ where
-
-  store-empty : StoreWf zero []
-
-  store-lift : ∀ {Δ Σ Σ′}
-    → StoreWf Δ Σ
-    → Σ′ ≡ ⟰ᵗ Σ
+  store-lift : ∀ {Δ}
+    → TyStore Δ
       -------------------
-    → StoreWf (suc Δ) Σ′
+    → TyStore (suc Δ)
 
-  store-bind : ∀ {Δ Σ A Σ′}
-    → StoreWf Δ Σ
-    → WfTy Δ A
-    → Σ′ ≡ ((zero , ⇑ᵗ A) ∷ ⟰ᵗ Σ)
-      --------------------------------------
-    → StoreWf (suc Δ) Σ′
+  store-bind : ∀ {Δ}
+    → TyStore Δ
+    → Ty Δ
+      -------------------
+    → TyStore (suc Δ)
+
+infix 4 _∋_⦂_
+
+data _∋_⦂_ : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ → Set where
+
+  Z∋ : ∀ {Δ} {Σ : TyStore Δ} {A : Ty Δ} {B : Ty (suc Δ)}
+    → B ≡ ⇑ᵗ A
+      ----------------------------------
+    → store-bind Σ A ∋ zero ⦂ B
+
+  S-lift∋ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+      {A : Ty Δ} {B : Ty (suc Δ)}
+    → Σ ∋ X ⦂ A
+    → B ≡ ⇑ᵗ A
+      ----------------------------------
+    → store-lift Σ ∋ suc X ⦂ B
+
+  S-bind∋ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+      {A C : Ty Δ} {B : Ty (suc Δ)}
+    → Σ ∋ X ⦂ A
+    → B ≡ ⇑ᵗ A
+      ----------------------------------
+    → store-bind Σ C ∋ suc X ⦂ B

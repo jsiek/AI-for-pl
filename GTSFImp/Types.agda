@@ -2,10 +2,9 @@ module Types where
 
 -- File Charter: Core syntax and operations for polymorphic types.
 
-open import Data.Bool using (Bool; false; true; _∨_)
-open import Data.List using (List; []; _∷_)
-open import Data.Nat using (ℕ; _<_; zero; suc; z<s; s<s)
-open import Data.Nat.Properties using (_≟_)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Fin using (Fin; zero; suc)
+open import Data.Fin.Properties using (_≟_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; sym; trans)
 open import Relation.Nullary using (Dec; yes; no)
@@ -14,37 +13,44 @@ open import Relation.Nullary using (Dec; yes; no)
 -- Type variables, base types, types
 ------------------------------------------------------------------------
 
-TyVar : Set
-TyVar = ℕ
-
 TyCtx : Set
 TyCtx = ℕ
+
+TyVar : TyCtx → Set
+TyVar Δ = Fin Δ
 
 data Base : Set where
   `ℕ : Base
   `𝔹 : Base
 
 infixr 7 _⇒_
+infixr 7 _⇒ʳ_
+infixr 7 _⇒ˢ_
 infix 6 `∀
 
-data Ty : Set where
-  ＇_ : TyVar → Ty
-  ‵_ : Base → Ty
-  ★ : Ty
-  _⇒_ : Ty → Ty → Ty
-  `∀ : Ty → Ty
+data Ty : TyCtx → Set where
+  ＇_ : ∀ {Δ} → TyVar Δ → Ty Δ
+  ‵_ : ∀ {Δ} → Base → Ty Δ
+  ★ : ∀ {Δ} → Ty Δ
+  _⇒_ : ∀ {Δ} → Ty Δ → Ty Δ → Ty Δ
+  `∀ : ∀ {Δ} → Ty (suc Δ) → Ty Δ
+
+private
+  variable
+    Δ Δ′ : TyCtx
+    A B C D : Ty Δ
 
 ------------------------------------------------------------------------
 -- Non-variable types
 ------------------------------------------------------------------------
 
-data NonVar : Ty → Set where
-  nonvar-base : ∀ {ι} → NonVar (‵ ι)
-  nonvar-star : NonVar ★
-  nonvar-fun : ∀ {A B} → NonVar (A ⇒ B)
-  nonvar-all : ∀ {A} → NonVar (`∀ A)
+data NonVar {Δ : TyCtx} : Ty Δ → Set where
+  nonvar-base : ∀ {ι} → NonVar {Δ} (‵ ι)
+  nonvar-star : NonVar {Δ} ★
+  nonvar-fun : ∀ {A B} → NonVar {Δ} (A ⇒ B)
+  nonvar-all : ∀ {A} → NonVar {Δ} (`∀ A)
 
-nonVar-unique : ∀ {A} (p q : NonVar A)
+nonVar-unique : ∀ {Δ} {A : Ty Δ} (p q : NonVar A)
   → p ≡ q
 nonVar-unique nonvar-base nonvar-base = refl
 nonVar-unique nonvar-star nonvar-star = refl
@@ -52,16 +58,16 @@ nonVar-unique nonvar-fun nonvar-fun = refl
 nonVar-unique nonvar-all nonvar-all = refl
 
 instance
-  nonVar-base-instance : ∀ {ι} → NonVar (‵ ι)
+  nonVar-base-instance : ∀ {Δ ι} → NonVar {Δ} (‵ ι)
   nonVar-base-instance = nonvar-base
 
-  nonVar-star-instance : NonVar ★
+  nonVar-star-instance : ∀ {Δ} → NonVar {Δ} ★
   nonVar-star-instance = nonvar-star
 
-  nonVar-fun-instance : ∀ {A B} → NonVar (A ⇒ B)
+  nonVar-fun-instance : ∀ {Δ} {A B : Ty Δ} → NonVar (A ⇒ B)
   nonVar-fun-instance = nonvar-fun
 
-  nonVar-all-instance : ∀ {A} → NonVar (`∀ A)
+  nonVar-all-instance : ∀ {Δ} {A : Ty (suc Δ)} → NonVar (`∀ A)
   nonVar-all-instance = nonvar-all
 
 ------------------------------------------------------------------------
@@ -69,27 +75,27 @@ instance
 ------------------------------------------------------------------------
 
 infix 5 _∈ᵗ_
-data _∈ᵗ_ : TyVar → Ty → Set where
-  var-∈ : ∀{X} → X ∈ᵗ ＇ X
-  ∈-fun-left : ∀{X A B} → X ∈ᵗ A → X ∈ᵗ A ⇒ B
-  ∈-fun-right : ∀{X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
-  ∈-all : ∀{X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
+data _∈ᵗ_ {Δ : TyCtx} : TyVar Δ → Ty Δ → Set where
+  var-∈ : ∀ {X} → X ∈ᵗ ＇ X
+  ∈-fun-left : ∀ {X A B} → X ∈ᵗ A → X ∈ᵗ A ⇒ B
+  ∈-fun-right : ∀ {X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
+  ∈-all : ∀ {X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
 
-data Ground : Ty → Set where
-  ＇_ : (X : TyVar) → Ground (＇ X)
-  ‵_ : (ι : Base) → Ground (‵ ι)
-  ★⇒★ : Ground (★ ⇒ ★)
+data Ground {Δ : TyCtx} : Ty Δ → Set where
+  ＇_ : (X : TyVar Δ) → Ground {Δ} (＇ X)
+  ‵_ : (ι : Base) → Ground {Δ} (‵ ι)
+  ★⇒★ : Ground {Δ} (★ ⇒ ★)
 
-data Non∀ : Ty → Set where
-  non∀-＇ : ∀ {X} → Non∀ (＇ X)
-  non∀-‵ : ∀ {ι} → Non∀ (‵ ι)
-  non∀-★ : Non∀ ★
-  non∀-⇒ : ∀ {A B} → Non∀ (A ⇒ B)
-  
-data Atom : Ty → Set where
-  ＇_ : (X : TyVar) → Atom (＇ X)
-  ‵_ : (ι : Base) → Atom (‵ ι)
-  ★ : Atom ★
+data Non∀ {Δ : TyCtx} : Ty Δ → Set where
+  non∀-＇ : ∀ {X} → Non∀ {Δ} (＇ X)
+  non∀-‵ : ∀ {ι} → Non∀ {Δ} (‵ ι)
+  non∀-★ : Non∀ {Δ} ★
+  non∀-⇒ : ∀ {A B} → Non∀ {Δ} (A ⇒ B)
+
+data Atom {Δ : TyCtx} : Ty Δ → Set where
+  ＇_ : (X : TyVar Δ) → Atom {Δ} (＇ X)
+  ‵_ : (ι : Base) → Atom {Δ} (‵ ι)
+  ★ : Atom {Δ} ★
 
 ------------------------------------------------------------------------
 -- Decidable equality of base, ground, and types
@@ -104,26 +110,26 @@ _≟Base_ : (ι ι′ : Base) → Dec (ι ≡ ι′)
 
 infix 4 _≟Ground_
 _≟Ground_ :
-  ∀ {G H : Ty} →
+  ∀ {Δ} {G H : Ty Δ} →
   Ground G →
   Ground H →
   Dec (G ≡ H)
 (＇ α) ≟Ground (＇ β) with α ≟ β
-... | yes eq = yes (cong ＇_ eq)
-... | no neq = no (λ { refl → neq refl })
+(＇ α) ≟Ground (＇ β) | yes eq = yes (cong ＇_ eq)
+(＇ α) ≟Ground (＇ β) | no neq = no (λ { refl → neq refl })
 (＇ α) ≟Ground (‵ ι) = no (λ ())
 (＇ α) ≟Ground ★⇒★ = no (λ ())
 (‵ ι) ≟Ground (＇ α) = no (λ ())
 (‵ ι) ≟Ground (‵ ι′) with ι ≟Base ι′
-... | yes eq = yes (cong ‵_ eq)
-... | no neq = no (λ { refl → neq refl })
+(‵ ι) ≟Ground (‵ ι′) | yes eq = yes (cong ‵_ eq)
+(‵ ι) ≟Ground (‵ ι′) | no neq = no (λ { refl → neq refl })
 (‵ ι) ≟Ground ★⇒★ = no (λ ())
 ★⇒★ ≟Ground (＇ α) = no (λ ())
 ★⇒★ ≟Ground (‵ ι) = no (λ ())
 ★⇒★ ≟Ground ★⇒★ = yes refl
 
 infix 4 _≟Ty_
-_≟Ty_ : (A B : Ty) → Dec (A ≡ B)
+_≟Ty_ : ∀ {Δ} (A B : Ty Δ) → Dec (A ≡ B)
 ＇ X ≟Ty ＇ Y with X ≟ Y
 ＇ X ≟Ty ＇ Y | yes X≡Y = yes (cong ＇_ X≡Y)
 ＇ X ≟Ty ＇ Y | no X≢Y = no (λ { refl → X≢Y refl })
@@ -166,46 +172,150 @@ _≟Ty_ : (A B : Ty) → Dec (A ≡ B)
 -- Type-variable renaming and substitution (de Bruijn)
 ------------------------------------------------------------------------
 
-Renameᵗ : Set
-Renameᵗ = TyVar → TyVar
+_⇒ʳ_ : TyCtx → TyCtx → Set
+Δ ⇒ʳ Δ′ = TyVar Δ → TyVar Δ′
 
-Substᵗ : Set
-Substᵗ = TyVar → Ty
+_⇒ˢ_ : TyCtx → TyCtx → Set
+Δ ⇒ˢ Δ′ = TyVar Δ → Ty Δ′
 
-extᵗ : Renameᵗ → Renameᵗ
+extᵗ : Δ ⇒ʳ Δ′ → suc Δ ⇒ʳ suc Δ′
 extᵗ ρ zero = zero
 extᵗ ρ (suc X) = suc (ρ X)
 
-renameᵗ : Renameᵗ → Ty → Ty
+renameᵗ : Δ ⇒ʳ Δ′ → Ty Δ → Ty Δ′
 renameᵗ ρ (＇ X) = ＇ (ρ X)
 renameᵗ ρ (‵ ι) = ‵ ι
 renameᵗ ρ ★ = ★
 renameᵗ ρ (A ⇒ B) = renameᵗ ρ A ⇒ renameᵗ ρ B
 renameᵗ ρ (`∀ A) = `∀ (renameᵗ (extᵗ ρ) A)
 
-singleRenameᵗ : TyVar → Renameᵗ
+singleRenameᵗ : TyVar Δ → suc Δ ⇒ʳ Δ
 singleRenameᵗ Y zero = Y
 singleRenameᵗ Y (suc X) = X
 
-⇑ᵗ : Ty → Ty
+⇑ᵗ : Ty Δ → Ty (suc Δ)
 ⇑ᵗ = renameᵗ suc
 
 infixl 8 _[_]ᴿ
-_[_]ᴿ : Ty → TyVar → Ty
+_[_]ᴿ : Ty (suc Δ) → TyVar Δ → Ty Δ
 A [ X ]ᴿ = renameᵗ (singleRenameᵗ X) A
 
-extsᵗ : Substᵗ → Substᵗ
-extsᵗ σ zero = ＇ 0
+extsᵗ : Δ ⇒ˢ Δ′ → suc Δ ⇒ˢ suc Δ′
+extsᵗ σ zero = ＇ zero
 extsᵗ σ (suc X) = renameᵗ suc (σ X)
 
-substᵗ : Substᵗ → Ty → Ty
+substᵗ : Δ ⇒ˢ Δ′ → Ty Δ → Ty Δ′
 substᵗ σ (＇ X) = σ X
 substᵗ σ (‵ ι) = ‵ ι
 substᵗ σ ★ = ★
 substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A) = `∀ (substᵗ (extsᵗ σ) A)
 
-renameNonVar : ∀ {A} (ρ : Renameᵗ)
+renameᵗ-cong : ∀ {Δ Δ′} {ρ ρ′ : Δ ⇒ʳ Δ′} (A : Ty Δ)
+  → (∀ X → ρ X ≡ ρ′ X)
+  → renameᵗ ρ A ≡ renameᵗ ρ′ A
+renameᵗ-cong (＇ X) eq = cong ＇_ (eq X)
+renameᵗ-cong (‵ ι) eq = refl
+renameᵗ-cong ★ eq = refl
+renameᵗ-cong (A ⇒ B) eq
+  rewrite renameᵗ-cong A eq | renameᵗ-cong B eq = refl
+renameᵗ-cong {ρ = ρ} {ρ′} (`∀ A) eq =
+  cong `∀ (renameᵗ-cong A ext-eq)
+  where
+  ext-eq : ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+  ext-eq zero = refl
+  ext-eq (suc X) = cong suc (eq X)
+
+substᵗ-cong : ∀ {Δ Δ′} {σ σ′ : Δ ⇒ˢ Δ′} (A : Ty Δ)
+  → (∀ X → σ X ≡ σ′ X)
+  → substᵗ σ A ≡ substᵗ σ′ A
+substᵗ-cong (＇ X) eq = eq X
+substᵗ-cong (‵ ι) eq = refl
+substᵗ-cong ★ eq = refl
+substᵗ-cong (A ⇒ B) eq
+  rewrite substᵗ-cong A eq | substᵗ-cong B eq = refl
+substᵗ-cong {σ = σ} {σ′} (`∀ A) eq =
+  cong `∀ (substᵗ-cong A exts-eq)
+  where
+  exts-eq : ∀ X → extsᵗ σ X ≡ extsᵗ σ′ X
+  exts-eq zero = refl
+  exts-eq (suc X) = cong (renameᵗ suc) (eq X)
+
+renameᵗ-comp : ∀ {Δ₁ Δ₂ Δ₃}
+  → (ρ₁ : Δ₁ ⇒ʳ Δ₂)
+  → (ρ₂ : Δ₂ ⇒ʳ Δ₃)
+  → (A : Ty Δ₁)
+  → renameᵗ ρ₂ (renameᵗ ρ₁ A)
+    ≡ renameᵗ (λ X → ρ₂ (ρ₁ X)) A
+renameᵗ-comp ρ₁ ρ₂ (＇ X) = refl
+renameᵗ-comp ρ₁ ρ₂ (‵ ι) = refl
+renameᵗ-comp ρ₁ ρ₂ ★ = refl
+renameᵗ-comp ρ₁ ρ₂ (A ⇒ B)
+  rewrite renameᵗ-comp ρ₁ ρ₂ A | renameᵗ-comp ρ₁ ρ₂ B = refl
+renameᵗ-comp ρ₁ ρ₂ (`∀ A) = cong `∀
+  (trans (renameᵗ-comp (extᵗ ρ₁) (extᵗ ρ₂) A)
+         (renameᵗ-cong A ext-comp))
+  where
+  ext-comp : ∀ X
+    → extᵗ ρ₂ (extᵗ ρ₁ X)
+      ≡ extᵗ (λ Y → ρ₂ (ρ₁ Y)) X
+  ext-comp zero = refl
+  ext-comp (suc X) = refl
+
+renameᵗ-shift : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) (A : Ty Δ)
+  → renameᵗ (extᵗ ρ) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ ρ A)
+renameᵗ-shift ρ A =
+  trans (renameᵗ-comp suc (extᵗ ρ) A)
+    (trans (renameᵗ-cong A (λ X → refl))
+           (sym (renameᵗ-comp ρ suc A)))
+
+renameᵗ-subst : ∀ {Δ₁ Δ₂ Δ₃}
+  → (ρ : Δ₂ ⇒ʳ Δ₃)
+  → (σ : Δ₁ ⇒ˢ Δ₂)
+  → (A : Ty Δ₁)
+  → renameᵗ ρ (substᵗ σ A)
+    ≡ substᵗ (λ X → renameᵗ ρ (σ X)) A
+renameᵗ-subst ρ σ (＇ X) = refl
+renameᵗ-subst ρ σ (‵ ι) = refl
+renameᵗ-subst ρ σ ★ = refl
+renameᵗ-subst ρ σ (A ⇒ B)
+  rewrite renameᵗ-subst ρ σ A | renameᵗ-subst ρ σ B = refl
+renameᵗ-subst ρ σ (`∀ A) = cong `∀
+  (trans (renameᵗ-subst (extᵗ ρ) (extsᵗ σ) A)
+         (substᵗ-cong A exts-comp))
+  where
+  exts-comp : ∀ X
+    → renameᵗ (extᵗ ρ) (extsᵗ σ X)
+      ≡ extsᵗ (λ Y → renameᵗ ρ (σ Y)) X
+  exts-comp zero = refl
+  exts-comp (suc X) = renameᵗ-shift ρ (σ X)
+
+substᵗ-rename : ∀ {Δ₁ Δ₂ Δ₃}
+  → (σ : Δ₂ ⇒ˢ Δ₃)
+  → (ρ : Δ₁ ⇒ʳ Δ₂)
+  → (A : Ty Δ₁)
+  → substᵗ σ (renameᵗ ρ A) ≡ substᵗ (λ X → σ (ρ X)) A
+substᵗ-rename σ ρ (＇ X) = refl
+substᵗ-rename σ ρ (‵ ι) = refl
+substᵗ-rename σ ρ ★ = refl
+substᵗ-rename σ ρ (A ⇒ B)
+  rewrite substᵗ-rename σ ρ A | substᵗ-rename σ ρ B = refl
+substᵗ-rename σ ρ (`∀ A) = cong `∀
+  (trans (substᵗ-rename (extsᵗ σ) (extᵗ ρ) A)
+         (substᵗ-cong A exts-comp))
+  where
+  exts-comp : ∀ X
+    → extsᵗ σ (extᵗ ρ X) ≡ extsᵗ (λ Y → σ (ρ Y)) X
+  exts-comp zero = refl
+  exts-comp (suc X) = refl
+
+substᵗ-shift : ∀ {Δ Δ′} (σ : Δ ⇒ˢ Δ′) (A : Ty Δ)
+  → substᵗ (extsᵗ σ) (⇑ᵗ A) ≡ ⇑ᵗ (substᵗ σ A)
+substᵗ-shift σ A =
+  trans (substᵗ-rename (extsᵗ σ) suc A)
+        (sym (renameᵗ-subst suc σ A))
+
+renameNonVar : ∀ {A : Ty Δ} (ρ : Δ ⇒ʳ Δ′)
   → NonVar A
   → NonVar (renameᵗ ρ A)
 renameNonVar ρ nonvar-base = nonvar-base
@@ -213,7 +323,7 @@ renameNonVar ρ nonvar-star = nonvar-star
 renameNonVar ρ nonvar-fun = nonvar-fun
 renameNonVar ρ nonvar-all = nonvar-all
 
-substNonVar : ∀ {A} (σ : Substᵗ)
+substNonVar : ∀ {A : Ty Δ} (σ : Δ ⇒ˢ Δ′)
   → NonVar A
   → NonVar (substᵗ σ A)
 substNonVar σ nonvar-base = nonvar-base
@@ -221,38 +331,10 @@ substNonVar σ nonvar-star = nonvar-star
 substNonVar σ nonvar-fun = nonvar-fun
 substNonVar σ nonvar-all = nonvar-all
 
-singleSubᵗ : Ty → Substᵗ
+singleSubᵗ : Ty Δ → suc Δ ⇒ˢ Δ
 singleSubᵗ B zero = B
 singleSubᵗ B (suc X) = ＇ X
 
-substVarFrom : TyVar → Ty → Substᵗ
-substVarFrom zero T = singleSubᵗ T
-substVarFrom (suc k) T = extsᵗ (substVarFrom k T)
-
 infixl 8 _[_]ᵗ
-_[_]ᵗ : Ty → Ty → Ty
+_[_]ᵗ : Ty (suc Δ) → Ty Δ → Ty Δ
 A [ B ]ᵗ = substᵗ (singleSubᵗ B) A
-
-------------------------------------------------------------------------
--- Type Well-formedness
-------------------------------------------------------------------------
-
-data WfTy : TyCtx → Ty → Set where
-  wfVar : ∀ {Δ X} → X < Δ → WfTy Δ (＇ X)
-  wfBase : ∀ {Δ ι} → WfTy Δ (‵ ι)
-  wf★ : ∀ {Δ} → WfTy Δ ★
-  wf⇒ : ∀ {Δ A B} → WfTy Δ A → WfTy Δ B → WfTy Δ (A ⇒ B)
-  wf∀ : ∀ {Δ A} → WfTy (suc Δ) A → WfTy Δ (`∀ A)
-
-------------------------------------------------------------------------
--- List Membership
-------------------------------------------------------------------------
-
-infix 4 _∋_⦂_
-data _∋_⦂_ : ∀{X : Set} → List X → ℕ → X → Set₁ where
-  Z : ∀ {X}{Γ : List X}{A : X} →
-      (A ∷ Γ) ∋ zero ⦂ A
-
-  S : ∀{X}{Γ}{A B : X}{x} →
-      Γ ∋ x ⦂ A →
-      (B ∷ Γ) ∋ suc x ⦂ A

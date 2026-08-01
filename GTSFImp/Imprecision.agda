@@ -1,39 +1,33 @@
 module Imprecision where
 
 -- File Charter:
---   * Defines type imprecision.
+--   * Defines intrinsically scoped type imprecision.
 
-open import Data.Bool using (true)
-open import Data.Empty using (⊥-elim)
-open import Data.List using (_∷_)
-open import Data.List.Membership.Propositional using (_∈_)
-open import Data.Nat using (_<_; zero; suc)
-open import Data.Product using (_×_; _,_; proj₁; ∃-syntax; Σ-syntax)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl)
-open import Relation.Nullary using (yes; no)
+open import Data.Nat using (zero; suc)
+open import Data.Fin using (zero; suc)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 
-------------------------------------------------------------------------
--- One-context coercion-indexed narrowing and widening
-------------------------------------------------------------------------
+private
+  variable
+    Δ : TyCtx
 
 data VarImp : Set where
   X⊑X : VarImp
   X⊑★ : VarImp
 
-ImpEnv : Set
-ImpEnv = TyVar → VarImp
+ImpEnv : TyCtx → Set
+ImpEnv Δ = TyVar Δ → VarImp
 
-idᵐ : ImpEnv
+idᵐ : ∀ {Δ} → ImpEnv Δ
 idᵐ X = X⊑X
 
-extᵐ : ImpEnv → ImpEnv
+extᵐ : ImpEnv Δ → ImpEnv (suc Δ)
 extᵐ μ zero = X⊑X
 extᵐ μ (suc X) = μ X
 
-instᵐ : ImpEnv → ImpEnv
+instᵐ : ImpEnv Δ → ImpEnv (suc Δ)
 instᵐ μ zero = X⊑★
 instᵐ μ (suc X) = μ X
 
@@ -41,57 +35,56 @@ instᵐ μ (suc X) = μ X
 -- Imprecision
 ----------------------------------------------------------------------
 
-infix 4 _∣_⊢_⊑_
+infix 4 _⊢_⊑_
 
-data _∣_⊢_⊑_ (Δ : TyCtx) (μ : ImpEnv)  : Ty → Ty → Set where
+data _⊢_⊑_ {Δ : TyCtx} (μ : ImpEnv Δ) : Ty Δ → Ty Δ → Set where
 
   ★⊑★ :
       -------------
-      Δ ∣ μ ⊢ ★ ⊑ ★
+      μ ⊢ ★ ⊑ ★
 
   ι⊑ι : ∀ {ι}
       ---------------------
-      → Δ ∣ μ ⊢ (‵ ι) ⊑ (‵ ι)
+      → μ ⊢ (‵ ι) ⊑ (‵ ι)
 
   X⊑X : ∀ {X}
       -------------------
-    → Δ ∣ μ ⊢ ＇ X ⊑ ＇ X
+    → μ ⊢ ＇ X ⊑ ＇ X
 
   ⇒⊑⇒ : ∀ {A A′ B B′}
-    → Δ ∣ μ ⊢ A ⊑ A′
-    → Δ ∣ μ ⊢ B ⊑ B′
+    → μ ⊢ A ⊑ A′
+    → μ ⊢ B ⊑ B′
       ---------------------------
-    → Δ ∣ μ ⊢ (A ⇒ B) ⊑ (A′ ⇒ B′)
+    → μ ⊢ (A ⇒ B) ⊑ (A′ ⇒ B′)
 
   ∀⊑∀ : ∀ {A B}
-    → suc Δ ∣ extᵐ μ ⊢ A ⊑ B
+    → extᵐ μ ⊢ A ⊑ B
       -----------------------
-    → Δ ∣ μ ⊢ (`∀ A) ⊑ (`∀ B)
+    → μ ⊢ (`∀ A) ⊑ (`∀ B)
 
-  ⇒⊑★ : ∀ {A B} 
-    → Δ ∣ μ ⊢ A ⊑ ★
-    → Δ ∣ μ ⊢ B ⊑ ★
+  ⇒⊑★ : ∀ {A B}
+    → μ ⊢ A ⊑ ★
+    → μ ⊢ B ⊑ ★
       -----------------
-    → Δ ∣ μ ⊢ A ⇒ B ⊑ ★
+    → μ ⊢ A ⇒ B ⊑ ★
 
-  ι⊑★ : ∀ {ι} 
+  ι⊑★ : ∀ {ι}
       ---------------
-    → Δ ∣ μ ⊢ ‵ ι ⊑ ★
+    → μ ⊢ ‵ ι ⊑ ★
 
   X⊑★ : ∀ {X}
     → μ X ≡ X⊑★
       ----------------
-    → Δ ∣ μ ⊢ ＇ X ⊑ ★
+    → μ ⊢ ＇ X ⊑ ★
 
   ∀⊑ : ∀ {A B}
     → NonVar A
     → zero ∈ᵗ A
-    → WfTy Δ B
-    → suc Δ ∣ instᵐ μ ⊢ A ⊑ ⇑ᵗ B
+    → instᵐ μ ⊢ A ⊑ ⇑ᵗ B
       ---------------------------
-    → Δ ∣ μ ⊢ (`∀ A) ⊑ B
+    → μ ⊢ (`∀ A) ⊑ B
 
-infix 4 _⊢_⊑_
+infix 4 _⊑_
 
-_⊢_⊑_ : TyCtx → Ty → Ty → Set
-Δ ⊢ A ⊑ B = Δ ∣ idᵐ ⊢ A ⊑ B
+_⊑_ : ∀ {Δ} → Ty Δ → Ty Δ → Set
+A ⊑ B = idᵐ ⊢ A ⊑ B

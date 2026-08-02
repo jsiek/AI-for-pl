@@ -12,7 +12,7 @@ open import Data.Fin using (zero; suc)
 import Data.Nat as Nat
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; cong; refl; subst; sym; trans)
+  using (_≡_; _≢_; cong; refl; subst; sym; trans)
 open import Relation.Nullary using (no; yes)
 
 open import Types
@@ -225,7 +225,7 @@ target-occurs-source (I.X⊑★ eq) ()
 target-occurs-source (I.∀⊑ Anv z∈A p) X∈B =
   ∈-all (target-occurs-source p (shift-occurs X∈B))
 target-occurs-source I.∀★⊑★ ()
-target-occurs-source (I.∀⊑★ p) ()
+target-occurs-source (I.∀⊑★ Ans p) ()
 target-occurs-source I.bot-elim (∈-all ())
 target-occurs-source I.bot⊑★ ()
 
@@ -246,7 +246,7 @@ source-nonvar-from-target (I.X⊑★ eq) Anv ()
 source-nonvar-from-target (I.∀⊑ Anv z∈A p) Bnv z∈B =
   nonvar-all
 source-nonvar-from-target I.∀★⊑★ Anv ()
-source-nonvar-from-target (I.∀⊑★ p) Anv ()
+source-nonvar-from-target (I.∀⊑★ Ans p) Anv ()
 source-nonvar-from-target I.bot-elim Anv (∈-all ())
 source-nonvar-from-target I.bot⊑★ Anv ()
 
@@ -312,10 +312,23 @@ var-left-to-star h eq (I.∀⊑ Anv z∈A p) =
   I.∀⊑ Anv z∈A
     (var-left-to-star (instantiate-left-lower-env h) eq p)
 
+nonstar-from-≢★ : ∀ {Δ} {A : Ty Δ}
+  → A ≢ ★
+  → NonStar A
+nonstar-from-≢★ {A = ＇ X} A≢★ = nonstar-X
+nonstar-from-≢★ {A = ‵ ι} A≢★ = nonstar-ι
+nonstar-from-≢★ {A = ★} A≢★ = ⊥-elim (A≢★ refl)
+nonstar-from-≢★ {A = A ⇒ B} A≢★ = nonstar-⇒
+nonstar-from-≢★ {A = `∀ A} A≢★ = nonstar-∀
+
 universal-right-to-star : ∀ {Δ} {μ : I.ImpEnv Δ} {D}
   → I._⊢_⊑_ μ D (`∀ ★)
   → I._⊢_⊑_ μ D ★
-universal-right-to-star (I.∀⊑∀ p) = I.∀⊑★ p
+universal-right-to-star {D = `∀ A} (I.∀⊑∀ p) with A ≟Ty ★
+universal-right-to-star {D = `∀ A} (I.∀⊑∀ p) | yes refl =
+  I.∀★⊑★
+universal-right-to-star {D = `∀ A} (I.∀⊑∀ p) | no A≢★ =
+  I.∀⊑★ (nonstar-from-≢★ A≢★) p
 universal-right-to-star (I.∀⊑ Anv z∈A p) =
   I.∀⊑ Anv z∈A (universal-right-to-star p)
 universal-right-to-star I.bot-elim = I.bot⊑★
@@ -461,7 +474,7 @@ source-nonvar-target (I.X⊑★ eq) ()
 source-nonvar-target (I.∀⊑ Anv z∈A p) nonvar-all =
   unshift-nonvar (source-nonvar-target p Anv)
 source-nonvar-target I.∀★⊑★ nonvar-all = nonvar-star
-source-nonvar-target (I.∀⊑★ p) nonvar-all = nonvar-star
+source-nonvar-target (I.∀⊑★ Ans p) nonvar-all = nonvar-star
 source-nonvar-target I.bot-elim nonvar-all = nonvar-all
 source-nonvar-target I.bot⊑★ nonvar-all = nonvar-star
 
@@ -500,9 +513,9 @@ source-occurs-target {X = X} focus (I.∀⊑ Anv z∈A p)
   unshift-occurs
     (source-occurs-target {X = suc X} focus p X∈A)
 source-occurs-target focus I.∀★⊑★ (∈-all ())
-source-occurs-target {X = X} focus (I.∀⊑★ p) (∈-all X∈A)
+source-occurs-target {X = X} focus (I.∀⊑★ Ans p) (∈-all X∈A)
     with source-occurs-target {X = suc X} focus p X∈A
-source-occurs-target {X = X} focus (I.∀⊑★ p) (∈-all X∈A)
+source-occurs-target {X = X} focus (I.∀⊑★ Ans p) (∈-all X∈A)
     | ()
 source-occurs-target focus I.bot-elim (∈-all ())
 source-occurs-target focus I.bot⊑★ (∈-all ())
@@ -854,13 +867,13 @@ lower-bounds-consistentᵐ h safe
   ∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
     (avoid-under-all safe) p q)
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑∀ p) (I.∀⊑★ q) =
+    (I.∀⊑∀ p) (I.∀⊑★ Bns q) =
   _! ⦃ g-∀ ⦄
     (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
       (avoid-under-all-star safe) p q))
     ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑★ p) (I.∀⊑∀ q) =
+    (I.∀⊑★ Ans p) (I.∀⊑∀ q) =
   ？_ ⦃ g-∀ ⦄
     (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
       (avoid-under-star-all safe) p q))
@@ -900,13 +913,13 @@ lower-bounds-consistentᵐ {A = .★} h safe
     (source-nonvar-target q Dnv)
     (source-occurs-target refl q z∈D)
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑ Anv z∈D p) (I.∀⊑★ q) =
+    (I.∀⊑ Anv z∈D p) (I.∀⊑★ Bns q) =
   close-genᶜ
     (lower-bounds-consistentᵐ
       (instantiate-left-lower-env h)
       (avoid-under-inst-star-left safe) p q)
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑★ p) (I.∀⊑ Bnv z∈D q) =
+    (I.∀⊑★ Ans p) (I.∀⊑ Bnv z∈D q) =
   close-instᶜ
     (lower-bounds-consistentᵐ
       (instantiate-right-lower-env h)
@@ -922,11 +935,11 @@ lower-bounds-consistentᵐ h safe
 lower-bounds-consistentᵐ h safe
     I.∀★⊑★ (I.∀⊑∀ I.★⊑★) = star-to-universal-ground
 lower-bounds-consistentᵐ h safe
-    I.∀★⊑★ (I.∀⊑★ q) = id ★
+    I.∀★⊑★ (I.∀⊑★ Bns q) = id ★
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑★ p) I.∀★⊑★ = id ★
+    (I.∀⊑★ Ans p) I.∀★⊑★ = id ★
 lower-bounds-consistentᵐ h safe
-    (I.∀⊑★ p) (I.∀⊑★ q) = id ★
+    (I.∀⊑★ Ans p) (I.∀⊑★ Bns q) = id ★
 lower-bounds-consistentᵐ h safe I.∀★⊑★ I.∀★⊑★ = id ★
 lower-bounds-consistentᵐ h safe
     (I.∀⊑∀ I.X⊑X) I.bot-elim = bot-elim
@@ -936,24 +949,24 @@ lower-bounds-consistentᵐ h safe
     I.bot-elim (I.∀⊑∀ I.X⊑X) = bot-intro
 lower-bounds-consistentᵐ h safe I.bot-elim I.bot-elim =
   refl∼ (`∀ ★)
-lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ q)
+lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ Bns q)
     with source-occurs-target refl q var-∈
-lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ q) | ()
+lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ Bns q) | ()
 lower-bounds-consistentᵐ h safe I.bot-elim I.bot⊑★ =
   universal-ground-to-star
 lower-bounds-consistentᵐ h safe
     I.bot⊑★ (I.∀⊑∀ I.X⊑X) = star-to-bottom
 lower-bounds-consistentᵐ h safe I.bot⊑★ I.bot-elim =
   star-to-universal-ground
-lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ q)
+lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ Bns q)
     with source-occurs-target refl q var-∈
-lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ q) | ()
-lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot-elim
+lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ Bns q) | ()
+lower-bounds-consistentᵐ h safe (I.∀⊑★ Ans p) I.bot-elim
     with source-occurs-target refl p var-∈
-lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot-elim | ()
-lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot⊑★
+lower-bounds-consistentᵐ h safe (I.∀⊑★ Ans p) I.bot-elim | ()
+lower-bounds-consistentᵐ h safe (I.∀⊑★ Ans p) I.bot⊑★
     with source-occurs-target refl p var-∈
-lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot⊑★ | ()
+lower-bounds-consistentᵐ h safe (I.∀⊑★ Ans p) I.bot⊑★ | ()
 lower-bounds-consistentᵐ h safe I.bot⊑★ I.bot⊑★ = id ★
 
 common-lower-consistent : ∀ {Δ} {A B : Ty Δ}

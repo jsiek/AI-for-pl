@@ -93,6 +93,7 @@ data _⊢_⊑_ {Δ : TyCtx} (μ : ImpEnv Δ) : Ty Δ → Ty Δ → Set where
     μ ⊢ (`∀ ★) ⊑ ★
 
   ∀⊑★ : ∀ {A}
+    → NonStar A
     → extᵐ μ ⊢ A ⊑ ★
       -----------------
     → μ ⊢ (`∀ A) ⊑ ★

@@ -78,18 +78,6 @@ groundMatch-unique match-ι match-ι = refl
 groundMatch-unique match-X match-X = refl
 groundMatch-unique match-∀ match-∀ = refl
 
-data NonStar {Δ : TyCtx} : Ty Δ → Set where
-  nonstar-X : ∀ {X} → NonStar (＇ X)
-  nonstar-ι : ∀ {ι} → NonStar (‵ ι)
-  nonstar-⇒ : ∀ {A B} → NonStar (A ⇒ B)
-  nonstar-∀ : ∀ {A} → NonStar (`∀ A)
-
-nonStar≢★ : ∀ {Δ} {A : Ty Δ} → NonStar A → A ≢ ★
-nonStar≢★ nonstar-X = λ ()
-nonStar≢★ nonstar-ι = λ ()
-nonStar≢★ nonstar-⇒ = λ ()
-nonStar≢★ nonstar-∀ = λ ()
-
 instance
   refl-instance : ∀ {A : Set} {x : A} → x ≡ x
   refl-instance = refl
@@ -125,18 +113,6 @@ instance
   match-∀-instance : ∀ {Δ μ r A}
     → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ A)
   match-∀-instance = match-∀
-
-  nonstar-X-instance : ∀ {Δ} {X : TyVar Δ} → NonStar (＇ X)
-  nonstar-X-instance = nonstar-X
-
-  nonstar-ι-instance : ∀ {Δ ι} → NonStar (‵_ {Δ} ι)
-  nonstar-ι-instance = nonstar-ι
-
-  nonstar-⇒-instance : ∀ {Δ} {A B : Ty Δ} → NonStar (A ⇒ B)
-  nonstar-⇒-instance = nonstar-⇒
-
-  nonstar-∀-instance : ∀ {Δ} {A : Ty (suc Δ)} → NonStar (`∀ A)
-  nonstar-∀-instance = nonstar-∀
 
 infix 4 _⊢_∼_
 infixr 7 _↦_
@@ -229,12 +205,6 @@ ground-nonstar g-⇒ = nonstar-⇒
 ground-nonstar g-ι = nonstar-ι
 ground-nonstar (g-X eq) = nonstar-X
 ground-nonstar g-∀ = nonstar-∀
-
-nonStar-unique : ∀ {Δ} {A : Ty Δ} (p q : NonStar A) → p ≡ q
-nonStar-unique nonstar-X nonstar-X = refl
-nonStar-unique nonstar-ι nonstar-ι = refl
-nonStar-unique nonstar-⇒ nonstar-⇒ = refl
-nonStar-unique nonstar-∀ nonstar-∀ = refl
 
 renameNonStar : ∀ {Δ Δ′} {A : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)

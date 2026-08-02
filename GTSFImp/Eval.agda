@@ -5,15 +5,13 @@ module Eval where
 --     terms.
 --   * Decides values and one-step reduction directly from syntax and returns
 --     reduction witnesses suitable for executable examples and traces.
---   * Threads the type store so raw reveal/conceal conversions can recover
---     their hidden source types directly.
+--   * Intrinsic conversion endpoints determine polymorphic reveal/conceal
+--     reduct annotations without consulting typing derivations.
 
 import Data.Fin as Fin
 open import Data.Fin.Properties using (_≟_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
-import Data.Product as Product
-open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (refl; sym)
 open import Relation.Nullary using (yes; no)
 
@@ -25,77 +23,6 @@ open import Primitives
 open import CastTerms
 open import Reduction
 import proof.TypeSafety.Progress as Progress
-
-------------------------------------------------------------------------
--- Executable conversion endpoints
-------------------------------------------------------------------------
-
-representation? : ∀ {Δ} (Σ : TyStore Δ) (X : TyVar Δ)
-  → Maybe (Product.Σ (Ty Δ) (λ A → Σ ∋ X ⦂ A))
-representation? store-empty ()
-representation? (store-lift Σ) Fin.zero = nothing
-representation? (store-lift Σ) (Fin.suc X) with representation? Σ X
-representation? (store-lift Σ) (Fin.suc X) | nothing = nothing
-representation? (store-lift Σ) (Fin.suc X) | just (A , X∈) =
-  just (⇑ᵗ A , S-lift∋ X∈ refl)
-representation? (store-bind Σ A) Fin.zero = just (⇑ᵗ A , Z∋ refl)
-representation? (store-bind Σ A) (Fin.suc X) with representation? Σ X
-representation? (store-bind Σ A) (Fin.suc X) | nothing = nothing
-representation? (store-bind Σ A) (Fin.suc X) | just (B , X∈) =
-  just (⇑ᵗ B , S-bind∋ X∈ refl)
-
-mutual
-  src↑? : ∀ {Δ} → TyStore Δ → Conv↑ Δ → Maybe (Ty Δ)
-  src↑? Σ (unseal X) = just (＇ X)
-  src↑? Σ (c ↦↑ d) with tgt↓? Σ c
-  src↑? Σ (c ↦↑ d) | nothing = nothing
-  src↑? Σ (c ↦↑ d) | just A with src↑? Σ d
-  src↑? Σ (c ↦↑ d) | just A | nothing = nothing
-  src↑? Σ (c ↦↑ d) | just A | just B = just (A ⇒ B)
-  src↑? Σ (`∀↑ c) with src↑? (store-lift Σ) c
-  src↑? Σ (`∀↑ c) | nothing = nothing
-  src↑? Σ (`∀↑ c) | just A = just (`∀ A)
-  src↑? Σ (id↑ A) = just A
-
-  tgt↑? : ∀ {Δ} → TyStore Δ → Conv↑ Δ → Maybe (Ty Δ)
-  tgt↑? Σ (unseal X) with representation? Σ X
-  tgt↑? Σ (unseal X) | nothing = nothing
-  tgt↑? Σ (unseal X) | just (A , X∈) = just A
-  tgt↑? Σ (c ↦↑ d) with src↓? Σ c
-  tgt↑? Σ (c ↦↑ d) | nothing = nothing
-  tgt↑? Σ (c ↦↑ d) | just A with tgt↑? Σ d
-  tgt↑? Σ (c ↦↑ d) | just A | nothing = nothing
-  tgt↑? Σ (c ↦↑ d) | just A | just B = just (A ⇒ B)
-  tgt↑? Σ (`∀↑ c) with tgt↑? (store-lift Σ) c
-  tgt↑? Σ (`∀↑ c) | nothing = nothing
-  tgt↑? Σ (`∀↑ c) | just A = just (`∀ A)
-  tgt↑? Σ (id↑ A) = just A
-
-  src↓? : ∀ {Δ} → TyStore Δ → Conv↓ Δ → Maybe (Ty Δ)
-  src↓? Σ (seal X) with representation? Σ X
-  src↓? Σ (seal X) | nothing = nothing
-  src↓? Σ (seal X) | just (A , X∈) = just A
-  src↓? Σ (c ↦↓ d) with tgt↑? Σ c
-  src↓? Σ (c ↦↓ d) | nothing = nothing
-  src↓? Σ (c ↦↓ d) | just A with src↓? Σ d
-  src↓? Σ (c ↦↓ d) | just A | nothing = nothing
-  src↓? Σ (c ↦↓ d) | just A | just B = just (A ⇒ B)
-  src↓? Σ (`∀↓ c) with src↓? (store-lift Σ) c
-  src↓? Σ (`∀↓ c) | nothing = nothing
-  src↓? Σ (`∀↓ c) | just A = just (`∀ A)
-  src↓? Σ (id↓ A) = just A
-
-  tgt↓? : ∀ {Δ} → TyStore Δ → Conv↓ Δ → Maybe (Ty Δ)
-  tgt↓? Σ (seal X) = just (＇ X)
-  tgt↓? Σ (c ↦↓ d) with src↑? Σ c
-  tgt↓? Σ (c ↦↓ d) | nothing = nothing
-  tgt↓? Σ (c ↦↓ d) | just A with tgt↓? Σ d
-  tgt↓? Σ (c ↦↓ d) | just A | nothing = nothing
-  tgt↓? Σ (c ↦↓ d) | just A | just B = just (A ⇒ B)
-  tgt↓? Σ (`∀↓ c) with tgt↓? (store-lift Σ) c
-  tgt↓? Σ (`∀↓ c) | nothing = nothing
-  tgt↓? Σ (`∀↓ c) | just A = just (`∀ A)
-  tgt↓? Σ (id↓ A) = just A
 
 ------------------------------------------------------------------------
 -- Executable value classification
@@ -139,14 +66,16 @@ inert? (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) | yes refl = nothing
 inert? (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) | no A≠★ =
   just (genᵥ A≠★ (Progress.gen-safe c A≠★ Bnv z∈B))
 
-revealValue? : ∀ {Δ} (c : Conv↑ Δ) → Maybe (RevealValue c)
-revealValue? (unseal X) = nothing
+revealValue? : ∀ {Δ A B} (c : Conv↑ Δ A B)
+  → Maybe (RevealValue c)
+revealValue? (unseal X R) = nothing
 revealValue? (c ↦↑ d) = just fun
 revealValue? (`∀↑ c) = just all
 revealValue? (id↑ A) = nothing
 
-concealValue? : ∀ {Δ} (c : Conv↓ Δ) → Maybe (ConcealValue c)
-concealValue? (seal X) = just seal
+concealValue? : ∀ {Δ A B} (c : Conv↓ Δ A B)
+  → Maybe (ConcealValue c)
+concealValue? (seal X R) = just seal
 concealValue? (c ↦↓ d) = just fun
 concealValue? (`∀↓ c) = just all
 concealValue? (id↓ A) = nothing
@@ -258,18 +187,16 @@ type-app-redex? Σ B A
     (vV 《 genᵥ {B = C} A≠★ safe 》) | no C≠B =
   nothing
 type-app-redex? Σ B A (vV ↑ fun) = nothing
-type-app-redex? Σ B A (vV ↑ (all {c = c}))
-    with src↑? (store-lift Σ) c
-type-app-redex? Σ B A (vV ↑ (all {c = c})) | nothing = nothing
-type-app-redex? Σ B A (vV ↑ (all {c = c})) | just C =
-  just (step-result (bind A) _ (β-reveal-∀ {C = C} vV))
+type-app-redex? Σ B A (vV ↑ (all {B = D})) with D ≟Ty B
+type-app-redex? Σ .D A (vV ↑ (all {B = D})) | yes refl =
+  just (step-result (bind A) _ (β-reveal-∀ vV))
+type-app-redex? Σ B A (vV ↑ (all {B = D})) | no D≠B = nothing
 type-app-redex? Σ B A (vV ↓ seal) = nothing
 type-app-redex? Σ B A (vV ↓ fun) = nothing
-type-app-redex? Σ B A (vV ↓ (all {c = c}))
-    with src↓? (store-lift Σ) c
-type-app-redex? Σ B A (vV ↓ (all {c = c})) | nothing = nothing
-type-app-redex? Σ B A (vV ↓ (all {c = c})) | just C =
-  just (step-result (bind A) _ (β-conceal-∀ {C = C} vV))
+type-app-redex? Σ B A (vV ↓ (all {B = D})) with D ≟Ty B
+type-app-redex? Σ .D A (vV ↓ (all {B = D})) | yes refl =
+  just (step-result (bind A) _ (β-conceal-∀ vV))
+type-app-redex? Σ B A (vV ↓ (all {B = D})) | no D≠B = nothing
 
 type-app-final? : ∀ {Δ}
   → TyStore Δ
@@ -407,19 +334,25 @@ prim-final? op L M | nothing = nothing
 
 reveal-final? : ∀ {Δ}
   → (M : Term Δ)
-  → (c : Conv↑ Δ)
+  → ∀ {A B} (c : Conv↑ Δ A B)
   → Maybe (Step (M ↑ c))
 reveal-final? blame c = just (pure-result blame-reveal)
-reveal-final? M (unseal X) with value? M
-reveal-final? ._ (unseal X)
-    | just (vV ↓ seal {X = Y}) with X ≟ Y
-reveal-final? ._ (unseal .Y)
-    | just (vV ↓ seal {X = Y}) | yes refl =
+reveal-final? M (unseal X R) with value? M
+reveal-final? ._ (unseal X R)
+    | just (vV ↓ seal {X = Y} {R = S}) with X ≟ Y
+reveal-final? ._ (unseal .Y R)
+    | just (vV ↓ seal {X = Y} {R = S}) | yes refl
+    with R ≟Ty S
+reveal-final? ._ (unseal .Y .S)
+    | just (vV ↓ seal {X = Y} {R = S}) | yes refl | yes refl =
   just (pure-result (conceal-reveal vV))
-reveal-final? ._ (unseal X)
-    | just (vV ↓ seal {X = Y}) | no X≠Y = nothing
-reveal-final? M (unseal X) | just vM = nothing
-reveal-final? M (unseal X) | nothing = nothing
+reveal-final? ._ (unseal .Y R)
+    | just (vV ↓ seal {X = Y} {R = S}) | yes refl | no R≠S =
+  nothing
+reveal-final? ._ (unseal X R)
+    | just (vV ↓ seal {X = Y} {R = S}) | no X≠Y = nothing
+reveal-final? M (unseal X R) | just vM = nothing
+reveal-final? M (unseal X R) | nothing = nothing
 reveal-final? M (c ↦↑ d) = nothing
 reveal-final? M (`∀↑ c) = nothing
 reveal-final? M (id↑ A) with value? M
@@ -428,10 +361,10 @@ reveal-final? M (id↑ A) | nothing = nothing
 
 conceal-final? : ∀ {Δ}
   → (M : Term Δ)
-  → (c : Conv↓ Δ)
+  → ∀ {A B} (c : Conv↓ Δ A B)
   → Maybe (Step (M ↓ c))
 conceal-final? blame c = just (pure-result blame-conceal)
-conceal-final? M (seal X) = nothing
+conceal-final? M (seal X R) = nothing
 conceal-final? M (c ↦↓ d) = nothing
 conceal-final? M (`∀↓ c) = nothing
 conceal-final? M (id↓ A) with value? M

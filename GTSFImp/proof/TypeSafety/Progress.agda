@@ -11,7 +11,7 @@ open import Data.List using ([])
 open import Data.Nat using (zero; suc)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans)
+  using (_≡_; _≢_; cong; refl; sym; trans)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -40,9 +40,11 @@ data FunView {Δ : TyCtx} (V : Term Δ) : Set where
     → Value W
     → V ≡ W ⟨ c ↦ d ⟩
     → FunView V
-  fv-reveal : ∀ {W} {c : Conv↓ Δ} {d : Conv↑ Δ}
+  fv-reveal : ∀ {W A A′ B B′}
+      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
     → Value W → V ≡ W ↑ (c ↦↑ d) → FunView V
-  fv-conceal : ∀ {W} {c : Conv↑ Δ} {d : Conv↓ Δ}
+  fv-conceal : ∀ {W A A′ B B′}
+      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
     → Value W → V ≡ W ↓ (c ↦↓ d) → FunView V
 
 data AllView {Δ : TyCtx} (C : Ty (suc Δ)) (V : Term Δ) : Set where
@@ -58,13 +60,11 @@ data AllView {Δ : TyCtx} (C : Ty (suc Δ)) (V : Term Δ) : Set where
     → GenSafe c
     → V ≡ W ⟨ gen c ⟩
     → AllView C V
-  av-reveal : ∀ {W} {c : Conv↑ (suc Δ)}
-    → Ty (suc Δ)
+  av-reveal : ∀ {W A} {c : Conv↑ (suc Δ) A C}
     → Value W
     → V ≡ W ↑ `∀↑ c
     → AllView C V
-  av-conceal : ∀ {W} {c : Conv↓ (suc Δ)}
-    → Ty (suc Δ)
+  av-conceal : ∀ {W A} {c : Conv↓ (suc Δ) A C}
     → Value W
     → V ≡ W ↓ `∀↓ c
     → AllView C V
@@ -82,11 +82,23 @@ data StarView {Δ : TyCtx} (V : Term Δ) : Set where
     → V ≡ W ⟨ _! ⦃ g ⦄ (idᵍ {μ = μ} g) ⟩
     → StarView V
 
-data SealView {Δ : TyCtx} (X : TyVar Δ) (V : Term Δ) : Set where
-  sv-conceal : ∀ {W}
+data SealView {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ)
+    (V : Term Δ) : Set where
+  sv-conceal : ∀ {W R}
+    → Σ ∋ X ⦂ R
     → Value W
-    → V ≡ W ↓ seal X
-    → SealView X V
+    → V ≡ W ↓ seal X R
+    → SealView Σ X V
+
+lookup-unique : ∀ {Δ} {Σ : TyStore Δ} {X A B}
+  → Σ ∋ X ⦂ A
+  → Σ ∋ X ⦂ B
+  → A ≡ B
+lookup-unique (Z∋ eq) (Z∋ eq′) = trans eq (sym eq′)
+lookup-unique (S-lift∋ X∈ eq) (S-lift∋ X∈′ eq′) =
+  trans eq (trans (cong ⇑ᵗ (lookup-unique X∈ X∈′)) (sym eq′))
+lookup-unique (S-bind∋ X∈ eq) (S-bind∋ X∈′ eq′) =
+  trans eq (trans (cong ⇑ᵗ (lookup-unique X∈ X∈′)) (sym eq′))
 
 ------------------------------------------------------------------------
 -- Canonical forms
@@ -106,11 +118,11 @@ canonical-⇒ (vW 《 all 》) ()
 canonical-⇒ (vW 《 genᵥ A≠★ safe 》) ()
 canonical-⇒ (vW ↑ fun) (⊢reveal (⊢↑-⇒ c⊢ d⊢) W⊢) =
   fv-reveal vW refl
-canonical-⇒ (vW ↑ all) (⊢reveal () W⊢)
-canonical-⇒ (vW ↓ seal) (⊢conceal () W⊢)
+canonical-⇒ (vW ↑ all) ()
+canonical-⇒ (vW ↓ seal) ()
 canonical-⇒ (vW ↓ fun) (⊢conceal (⊢↓-⇒ c⊢ d⊢) W⊢) =
   fv-conceal vW refl
-canonical-⇒ (vW ↓ all) (⊢conceal () W⊢)
+canonical-⇒ (vW ↓ all) ()
 
 canonical-∀ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ} {A : Ty (suc Δ)}
   → Value V
@@ -125,15 +137,15 @@ canonical-∀ (vW 《 fun 》) ()
 canonical-∀ (vW 《 all 》) (⊢⟨⟩ W⊢ c) = av-∀ vW refl
 canonical-∀ (vW 《 genᵥ A≠★ safe 》) (⊢⟨⟩ W⊢ c) =
   av-gen vW A≠★ safe refl
-canonical-∀ (vW ↑ fun) (⊢reveal () W⊢)
+canonical-∀ (vW ↑ fun) ()
 canonical-∀ (vW ↑ all)
     (⊢reveal (⊢↑-∀ {A = A} c⊢) W⊢) =
-  av-reveal A vW refl
-canonical-∀ (vW ↓ seal) (⊢conceal () W⊢)
-canonical-∀ (vW ↓ fun) (⊢conceal () W⊢)
+  av-reveal vW refl
+canonical-∀ (vW ↓ seal) ()
+canonical-∀ (vW ↓ fun) ()
 canonical-∀ (vW ↓ all)
     (⊢conceal (⊢↓-∀ {A = A} c⊢) W⊢) =
-  av-conceal A vW refl
+  av-conceal vW refl
 
 canonical-ℕ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
   → Value V
@@ -147,11 +159,11 @@ canonical-ℕ (vW 《 inj 》) ()
 canonical-ℕ (vW 《 fun 》) ()
 canonical-ℕ (vW 《 all 》) ()
 canonical-ℕ (vW 《 genᵥ A≠★ safe 》) ()
-canonical-ℕ (vW ↑ fun) (⊢reveal () W⊢)
-canonical-ℕ (vW ↑ all) (⊢reveal () W⊢)
-canonical-ℕ (vW ↓ seal) (⊢conceal () W⊢)
-canonical-ℕ (vW ↓ fun) (⊢conceal () W⊢)
-canonical-ℕ (vW ↓ all) (⊢conceal () W⊢)
+canonical-ℕ (vW ↑ fun) ()
+canonical-ℕ (vW ↑ all) ()
+canonical-ℕ (vW ↓ seal) ()
+canonical-ℕ (vW ↓ fun) ()
+canonical-ℕ (vW ↓ all) ()
 
 canonical-𝔹 : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
   → Value V
@@ -165,11 +177,11 @@ canonical-𝔹 (vW 《 inj 》) ()
 canonical-𝔹 (vW 《 fun 》) ()
 canonical-𝔹 (vW 《 all 》) ()
 canonical-𝔹 (vW 《 genᵥ A≠★ safe 》) ()
-canonical-𝔹 (vW ↑ fun) (⊢reveal () W⊢)
-canonical-𝔹 (vW ↑ all) (⊢reveal () W⊢)
-canonical-𝔹 (vW ↓ seal) (⊢conceal () W⊢)
-canonical-𝔹 (vW ↓ fun) (⊢conceal () W⊢)
-canonical-𝔹 (vW ↓ all) (⊢conceal () W⊢)
+canonical-𝔹 (vW ↑ fun) ()
+canonical-𝔹 (vW ↑ all) ()
+canonical-𝔹 (vW ↓ seal) ()
+canonical-𝔹 (vW ↓ fun) ()
+canonical-𝔹 (vW ↓ all) ()
 
 canonical-★ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
   → Value V
@@ -184,16 +196,16 @@ canonical-★ (vW 《 inj 》) (⊢⟨⟩ W⊢ c) =
 canonical-★ (vW 《 fun 》) ()
 canonical-★ (vW 《 all 》) ()
 canonical-★ (vW 《 genᵥ A≠★ safe 》) ()
-canonical-★ (vW ↑ fun) (⊢reveal () W⊢)
-canonical-★ (vW ↑ all) (⊢reveal () W⊢)
-canonical-★ (vW ↓ seal) (⊢conceal () W⊢)
-canonical-★ (vW ↓ fun) (⊢conceal () W⊢)
-canonical-★ (vW ↓ all) (⊢conceal () W⊢)
+canonical-★ (vW ↑ fun) ()
+canonical-★ (vW ↑ all) ()
+canonical-★ (vW ↓ seal) ()
+canonical-★ (vW ↓ fun) ()
+canonical-★ (vW ↓ all) ()
 
 canonical-X : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ} {X : TyVar Δ}
   → Value V
   → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ ＇ X
-  → SealView X V
+  → SealView Σ X V
 canonical-X (ƛ N) ()
 canonical-X (Λ vV) ()
 canonical-X ($ (κℕ n)) ()
@@ -202,12 +214,12 @@ canonical-X (vW 《 inj 》) ()
 canonical-X (vW 《 fun 》) ()
 canonical-X (vW 《 all 》) ()
 canonical-X (vW 《 genᵥ A≠★ safe 》) ()
-canonical-X (vW ↑ fun) (⊢reveal () W⊢)
-canonical-X (vW ↑ all) (⊢reveal () W⊢)
+canonical-X (vW ↑ fun) ()
+canonical-X (vW ↑ all) ()
 canonical-X (vW ↓ seal) (⊢conceal (⊢↓-seal X∈) W⊢) =
-  sv-conceal vW refl
-canonical-X (vW ↓ fun) (⊢conceal () W⊢)
-canonical-X (vW ↓ all) (⊢conceal () W⊢)
+  sv-conceal X∈ vW refl
+canonical-X (vW ↓ fun) ()
+canonical-X (vW ↓ all) ()
 
 ------------------------------------------------------------------------
 -- Ground-cast classification
@@ -463,10 +475,10 @@ ground-inst-view (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) Anv′ z∈∀A
 ------------------------------------------------------------------------
 
 cast-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    {A B : Ty Δ}
+    {A B : Ty Δ} {μ : Env∼ Δ}
   → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A
   → Value V
-  → (c : A ∼ B)
+  → (c : μ ⊢ A ∼ B)
   → Progress {Σ = Σ} (V ⟨ c ⟩)
 cast-value-progress V⊢ vV (id a) = step (pure-step (β-id vV))
 cast-value-progress V⊢ vV (c ↦ d) = done (vV 《 fun 》)
@@ -506,14 +518,19 @@ cast-value-progress {Δ = Δ} V⊢ vV
 cast-value-progress {Δ = Δ} V⊢ vV
     (_! ⦃ g-X eq ⦄ c ⦃ Xns ⦄ ⦃ match ⦄)
     with to-ground (g-X eq) match c
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-X eq ⦄ .(idᵍ {μ = idᶜ} (g-X eq))
+cast-value-progress {Δ = Δ} {μ = μ} V⊢ vV
+    (_! ⦃ g-X eq ⦄ .(idᵍ {μ = μ} (g-X eq))
       ⦃ Xns ⦄ ⦃ match ⦄)
     | same rewrite nonStar-unique Xns nonstar-X
                  | groundMatch-unique match match-X =
   done
     (vV 《 inj ⦃ g = g-X eq ⦄ ⦃ Gns = nonstar-X ⦄
       ⦃ match = match-X ⦄ 》)
+cast-value-progress V⊢ vV
+    (_! ⦃ g-X eq ⦄ c ⦃ Xns ⦄ ⦃ match ⦄)
+    | other A≠G =
+  step (pure-step
+    (ground ⦃ g-X eq ⦄ ⦃ Xns ⦄ ⦃ match ⦄ vV A≠G))
 cast-value-progress V⊢ vV
     (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
     with from-ground g match c
@@ -575,23 +592,24 @@ cast-value-progress V⊢ vV
   step (pure-step (expand-∀ vV f))
 
 reveal-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    {A B : Ty Δ} {c : Conv↑ Δ}
-  → Σ ⊢ c ⦂ A ↑ˢ B
+    {A B : Ty Δ} {c : Conv↑ Δ A B}
+  → Σ ⊢↑ c
   → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A
   → Value V
   → Progress {Σ = Σ} (V ↑ c)
 reveal-value-progress (⊢↑-unseal X∈) V⊢ vV
     with canonical-X vV V⊢
 reveal-value-progress (⊢↑-unseal X∈) V⊢ vV
-    | sv-conceal vW refl =
+    | sv-conceal X∈′ vW refl
+    rewrite lookup-unique X∈′ X∈ =
   step (pure-step (conceal-reveal vW))
 reveal-value-progress (⊢↑-⇒ c⊢ d⊢) V⊢ vV = done (vV ↑ fun)
 reveal-value-progress (⊢↑-∀ c⊢) V⊢ vV = done (vV ↑ all)
 reveal-value-progress ⊢↑-id V⊢ vV = step (pure-step (id-reveal vV))
 
 conceal-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    {A B : Ty Δ} {c : Conv↓ Δ}
-  → Σ ⊢ c ⦂ A ↓ˢ B
+    {A B : Ty Δ} {c : Conv↓ Δ A B}
+  → Σ ⊢↓ c
   → Value V
   → Progress {Σ = Σ} (V ↓ c)
 conceal-value-progress (⊢↓-seal X∈) vV = done (vV ↓ seal)
@@ -647,11 +665,11 @@ progress (⊢• {C = C} L⊢) | done vL
     | av-gen vW A≠★ safe refl =
   step (β-gen vW A≠★ safe)
 progress (⊢• {C = C} L⊢) | done vL
-    | av-reveal A vW refl =
-  step (β-reveal-∀ {C = A} vW)
+    | av-reveal vW refl =
+  step (β-reveal-∀ vW)
 progress (⊢• {C = C} L⊢) | done vL
-    | av-conceal A vW refl =
-  step (β-conceal-∀ {C = A} vW)
+    | av-conceal vW refl =
+  step (β-conceal-∀ vW)
 progress (⊢$ κ) = done ($ κ)
 progress (⊢⊕ addℕ L⊢ M⊢) with progress L⊢
 progress (⊢⊕ addℕ L⊢ M⊢) | step L→L′ =

@@ -2,8 +2,7 @@ module Consistency where
 
 -- File Charter:
 --   * Defines environment-indexed type consistency.
---   * Gives `∀ X. ★` a ground representation and bridges the empty
---     universal `∀ X. X` to and from that representation.
+--   * Gives every universal type the ground representation `∀ X. ★`.
 --   * Provides renaming and substitution for consistency evidence.
 --   * Closes instantiation-bound consistency evidence at ★.
 
@@ -68,8 +67,7 @@ data GroundMatch {Δ : TyCtx} {μ : Env∼ Δ} {r : Var∼} :
   match-⇒ : ∀ {A} → GroundMatch g-⇒ A
   match-ι : ∀ {A ι} → GroundMatch (g-ι {ι = ι}) A
   match-X : ∀ {X} {eq : μ X ≡ r} → GroundMatch (g-X eq) (＇ X)
-  match-∀ : GroundMatch g-∀ (`∀ ★)
-  match-⊥ : GroundMatch g-∀ (`∀ (＇ zero))
+  match-∀ : ∀ {A} → GroundMatch g-∀ (`∀ A)
 
 groundMatch-unique : ∀ {Δ} {μ : Env∼ Δ} {r G A}
     {g : Groundʳ μ r G}
@@ -79,7 +77,6 @@ groundMatch-unique match-⇒ match-⇒ = refl
 groundMatch-unique match-ι match-ι = refl
 groundMatch-unique match-X match-X = refl
 groundMatch-unique match-∀ match-∀ = refl
-groundMatch-unique match-⊥ match-⊥ = refl
 
 data NonStar {Δ : TyCtx} : Ty Δ → Set where
   nonstar-X : ∀ {X} → NonStar (＇ X)
@@ -125,13 +122,9 @@ instance
     → GroundMatch (g-X {Δ = Δ} {μ = μ} {r = r} {X = X} eq) (＇ X)
   match-X-instance = match-X
 
-  match-∀-instance : ∀ {Δ μ r}
-    → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ ★)
+  match-∀-instance : ∀ {Δ μ r A}
+    → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ A)
   match-∀-instance = match-∀
-
-  match-⊥-instance : ∀ {Δ μ r}
-    → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ (＇ zero))
-  match-⊥-instance = match-⊥
 
   nonstar-X-instance : ∀ {Δ} {X : TyVar Δ} → NonStar (＇ X)
   nonstar-X-instance = nonstar-X
@@ -276,7 +269,6 @@ flip-GroundMatch match-⇒ = match-⇒
 flip-GroundMatch match-ι = match-ι
 flip-GroundMatch match-X = match-X
 flip-GroundMatch match-∀ = match-∀
-flip-GroundMatch match-⊥ = match-⊥
 
 private
   postulate
@@ -410,7 +402,6 @@ private
   rename-GroundMatch ρ eq match-ι = match-ι
   rename-GroundMatch {μ = μ} {μ′ = μ′} ρ eq match-X = match-X
   rename-GroundMatch ρ eq match-∀ = match-∀
-  rename-GroundMatch ρ eq match-⊥ = match-⊥
 
   rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
       {A B : Ty Δ}
@@ -705,9 +696,9 @@ private
   factor-inst-star
       (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) () z∈A
   factor-inst-star
-      (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv (∈-all ())
-  factor-inst-star
-      (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) Anv (∈-all ())
+      (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv z∈A =
+    _! ⦃ g-∀ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
   factor-inst-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) Anv ()
   factor-inst-star
       (inst_ ⦃ Anv′ ⦄ ⦃ z∈A′ ⦄ c ★≢★) Anv z∈A =
@@ -731,9 +722,9 @@ private
   factor-gen-star
       (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) () z∈B
   factor-gen-star
-      (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv (∈-all ())
-  factor-gen-star
-      (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) Bnv (∈-all ())
+      (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv z∈B =
+    ？_ ⦃ g-∀ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
   factor-gen-star (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c ★≢★) Bnv z∈B =
     ⊥-elim (★≢★ refl)
 
@@ -761,8 +752,6 @@ subst∼ s (_! ⦃ g-X {X = X} eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) =
   to-★ s X eq
 subst∼ s (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) =
   _! ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
-subst∼ s (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) =
-  _! ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
 subst∼ {σ = σ} s
     (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄) =
   ？_ ⦃ g-⇒ ⦄ (subst∼ s c)
@@ -777,8 +766,6 @@ subst∼ s (？_ ⦃ g-X {X = X} eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) =
   from-★ s X eq
 subst∼ s (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) =
   ？_ ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
-subst∼ s (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) =
-  ？_ ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
 subst∼ {σ = σ} s
     (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
     with substᵗ σ B ≟Ty ★
@@ -851,6 +838,37 @@ close-instᶜ {B = B} c =
   subst-right-∼ (shift-openᵗ B ★)
     (subst∼
       (subst-env∼ close-inst-self close-inst-to-★ close-inst-from-★)
+      c)
+
+private
+
+  close-gen-self : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → μ ⊢ singleSubᵗ ★ X ∼ singleSubᵗ ★ X
+  close-gen-self X = refl∼ (singleSubᵗ ★ X)
+
+  close-gen-to-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → genᵐ μ X ≡ X∼★
+    → μ ⊢ singleSubᵗ ★ X ∼ ★
+  close-gen-to-★ zero ()
+  close-gen-to-★ {μ = μ} (suc X) eq =
+    _! ⦃ g-X eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄ ⦃ match-X ⦄
+
+  close-gen-from-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → genᵐ μ X ≡ ★∼X
+    → μ ⊢ ★ ∼ singleSubᵗ ★ X
+  close-gen-from-★ zero eq = id ★
+  close-gen-from-★ {μ = μ} (suc X) eq =
+    ？_ ⦃ g-X eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄ ⦃ match-X ⦄
+
+close-genᶜ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
+  → genᵐ μ ⊢ ⇑ᵗ A ∼ B
+  → μ ⊢ A ∼ B [ ★ ]ᵗ
+close-genᶜ {A = A} c =
+  subst-left-∼ (shift-openᵗ A ★)
+    (subst∼
+      (subst-env∼ close-gen-self close-gen-to-★ close-gen-from-★)
       c)
 
 private

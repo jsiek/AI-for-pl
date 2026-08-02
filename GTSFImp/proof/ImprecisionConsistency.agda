@@ -225,6 +225,7 @@ target-occurs-source (I.X⊑★ eq) ()
 target-occurs-source (I.∀⊑ Anv z∈A p) X∈B =
   ∈-all (target-occurs-source p (shift-occurs X∈B))
 target-occurs-source I.∀★⊑★ ()
+target-occurs-source (I.∀⊑★ p) ()
 target-occurs-source I.bot-elim (∈-all ())
 target-occurs-source I.bot⊑★ ()
 
@@ -245,6 +246,7 @@ source-nonvar-from-target (I.X⊑★ eq) Anv ()
 source-nonvar-from-target (I.∀⊑ Anv z∈A p) Bnv z∈B =
   nonvar-all
 source-nonvar-from-target I.∀★⊑★ Anv ()
+source-nonvar-from-target (I.∀⊑★ p) Anv ()
 source-nonvar-from-target I.bot-elim Anv (∈-all ())
 source-nonvar-from-target I.bot⊑★ Anv ()
 
@@ -310,6 +312,14 @@ var-left-to-star h eq (I.∀⊑ Anv z∈A p) =
   I.∀⊑ Anv z∈A
     (var-left-to-star (instantiate-left-lower-env h) eq p)
 
+universal-right-to-star : ∀ {Δ} {μ : I.ImpEnv Δ} {D}
+  → I._⊢_⊑_ μ D (`∀ ★)
+  → I._⊢_⊑_ μ D ★
+universal-right-to-star (I.∀⊑∀ p) = I.∀⊑★ p
+universal-right-to-star (I.∀⊑ Anv z∈A p) =
+  I.∀⊑ Anv z∈A (universal-right-to-star p)
+universal-right-to-star I.bot-elim = I.bot⊑★
+
 ------------------------------------------------------------------------
 -- Consistency implies a common lower bound
 ------------------------------------------------------------------------
@@ -354,11 +364,12 @@ consistent-common-lowerᵐ h
     | D , D⊑A , D⊑G =
   D , D⊑A , var-right-to-star h eq D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) =
-  `∀ ★ , refl⊑ (`∀ ★) , I.∀★⊑★
+    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄)
+    with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) =
-  `∀ (＇ zero) , refl⊑ (`∀ (＇ zero)) , I.bot⊑★
+    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄)
+    | D , D⊑A , D⊑G =
+  D , D⊑A , universal-right-to-star D⊑G
 consistent-common-lowerᵐ h
     (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄)
     with consistent-common-lowerᵐ h c
@@ -381,11 +392,12 @@ consistent-common-lowerᵐ h
     | D , D⊑G , D⊑B =
   D , var-left-to-star h eq D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) =
-  `∀ ★ , I.∀★⊑★ , refl⊑ (`∀ ★)
+    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄)
+    with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) =
-  `∀ (＇ zero) , I.bot⊑★ , refl⊑ (`∀ (＇ zero))
+    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄)
+    | D , D⊑G , D⊑B =
+  D , universal-right-to-star D⊑G , D⊑B
 consistent-common-lowerᵐ h
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
     with consistent-common-lowerᵐ
@@ -449,6 +461,7 @@ source-nonvar-target (I.X⊑★ eq) ()
 source-nonvar-target (I.∀⊑ Anv z∈A p) nonvar-all =
   unshift-nonvar (source-nonvar-target p Anv)
 source-nonvar-target I.∀★⊑★ nonvar-all = nonvar-star
+source-nonvar-target (I.∀⊑★ p) nonvar-all = nonvar-star
 source-nonvar-target I.bot-elim nonvar-all = nonvar-all
 source-nonvar-target I.bot⊑★ nonvar-all = nonvar-star
 
@@ -487,6 +500,10 @@ source-occurs-target {X = X} focus (I.∀⊑ Anv z∈A p)
   unshift-occurs
     (source-occurs-target {X = suc X} focus p X∈A)
 source-occurs-target focus I.∀★⊑★ (∈-all ())
+source-occurs-target {X = X} focus (I.∀⊑★ p) (∈-all X∈A)
+    with source-occurs-target {X = suc X} focus p X∈A
+source-occurs-target {X = X} focus (I.∀⊑★ p) (∈-all X∈A)
+    | ()
 source-occurs-target focus I.bot-elim (∈-all ())
 source-occurs-target focus I.bot⊑★ (∈-all ())
 
@@ -573,6 +590,44 @@ avoid-under-all safe (suc X) eqL eqR with safe X eqL eqR
 avoid-under-all safe (suc X) eqL eqR
     | ∉-all X∉A , ∉-all X∉B = X∉A , X∉B
 
+avoid-under-all-star : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A}
+  → AvoidBoth φ ψ (`∀ A) ★
+  → AvoidBoth (I.extᵐ φ) (I.extᵐ ψ) A ★
+avoid-under-all-star safe zero eqL eqR =
+  ⊥-elim (var-identity-not-star eqL)
+avoid-under-all-star safe (suc X) eqL eqR with safe X eqL eqR
+avoid-under-all-star safe (suc X) eqL eqR
+    | ∉-all X∉A , ∉-star = X∉A , ∉-star
+
+avoid-under-star-all : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {B}
+  → AvoidBoth φ ψ ★ (`∀ B)
+  → AvoidBoth (I.extᵐ φ) (I.extᵐ ψ) ★ B
+avoid-under-star-all safe zero eqL eqR =
+  ⊥-elim (var-identity-not-star eqL)
+avoid-under-star-all safe (suc X) eqL eqR with safe X eqL eqR
+avoid-under-star-all safe (suc X) eqL eqR
+    | ∉-star , ∉-all X∉B = ∉-star , X∉B
+
+avoid-under-inst-star-right : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {B}
+  → AvoidBoth φ ψ ★ B
+  → AvoidBoth (I.extᵐ φ) (I.instᵐ ψ) ★ (⇑ᵗ B)
+avoid-under-inst-star-right safe zero eqL eqR =
+  ⊥-elim (var-identity-not-star eqL)
+avoid-under-inst-star-right safe (suc X) eqL eqR
+    with safe X eqL eqR
+avoid-under-inst-star-right safe (suc X) eqL eqR
+    | ∉-star , X∉B = ∉-star , shift-not-occurs X∉B
+
+avoid-under-inst-star-left : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A}
+  → AvoidBoth φ ψ A ★
+  → AvoidBoth (I.instᵐ φ) (I.extᵐ ψ) (⇑ᵗ A) ★
+avoid-under-inst-star-left safe zero eqL eqR =
+  ⊥-elim (var-identity-not-star eqR)
+avoid-under-inst-star-left safe (suc X) eqL eqR
+    with safe X eqL eqR
+avoid-under-inst-star-left safe (suc X) eqL eqR
+    | X∉A , ∉-star = shift-not-occurs X∉A , ∉-star
+
 avoid-under-inst-right : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A B}
   → AvoidBoth φ ψ (`∀ A) B
   → AvoidBoth (I.extᵐ φ) (I.instᵐ ψ) A (⇑ᵗ B)
@@ -625,12 +680,12 @@ star-to-universal-ground =
 bottom-to-star : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ (`∀ (＇ zero)) ∼ ★
 bottom-to-star =
-  _! ⦃ g-∀ ⦄ bot-elim ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
+  _! ⦃ g-∀ ⦄ bot-elim ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 
 star-to-bottom : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ ★ ∼ (`∀ (＇ zero))
 star-to-bottom =
-  ？_ ⦃ g-∀ ⦄ bot-intro ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
+  ？_ ⦃ g-∀ ⦄ bot-intro ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 
 factor-inst-star-lower : ∀ {Δ} {μ : Env∼ Δ}
     {A : Ty (Nat.suc Δ)}
@@ -650,9 +705,9 @@ factor-inst-star-lower
 factor-inst-star-lower
     (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) () z∈A
 factor-inst-star-lower
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv (∈-all ())
-factor-inst-star-lower
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) Anv (∈-all ())
+    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv z∈A =
+  _! ⦃ g-∀ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 factor-inst-star-lower
     (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) Anv ()
 factor-inst-star-lower
@@ -679,9 +734,9 @@ factor-gen-star-lower
 factor-gen-star-lower
     (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) () z∈B
 factor-gen-star-lower
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv (∈-all ())
-factor-gen-star-lower
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) Bnv (∈-all ())
+    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv z∈B =
+  ？_ ⦃ g-∀ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 factor-gen-star-lower
     (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c ★≢★) Bnv z∈B =
   ⊥-elim (★≢★ refl)
@@ -798,6 +853,18 @@ lower-bounds-consistentᵐ h safe
     (I.∀⊑∀ p) (I.∀⊑∀ q) =
   ∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
     (avoid-under-all safe) p q)
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑∀ p) (I.∀⊑★ q) =
+  _! ⦃ g-∀ ⦄
+    (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
+      (avoid-under-all-star safe) p q))
+    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑★ p) (I.∀⊑∀ q) =
+  ？_ ⦃ g-∀ ⦄
+    (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
+      (avoid-under-star-all safe) p q))
+    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
 lower-bounds-consistentᵐ {B = B} h safe
     (I.∀⊑∀ p) (I.∀⊑ Dnv z∈D q) with B ≟Ty ★
 lower-bounds-consistentᵐ {B = B} h safe
@@ -832,6 +899,18 @@ lower-bounds-consistentᵐ {A = .★} h safe
       (avoid-under-inst-left safe) p q)
     (source-nonvar-target q Dnv)
     (source-occurs-target refl q z∈D)
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑ Anv z∈D p) (I.∀⊑★ q) =
+  close-genᶜ
+    (lower-bounds-consistentᵐ
+      (instantiate-left-lower-env h)
+      (avoid-under-inst-star-left safe) p q)
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑★ p) (I.∀⊑ Bnv z∈D q) =
+  close-instᶜ
+    (lower-bounds-consistentᵐ
+      (instantiate-right-lower-env h)
+      (avoid-under-inst-star-right safe) p q)
 lower-bounds-consistentᵐ {A = A} {B = B} h safe
     (I.∀⊑ Anv z∈A p) (I.∀⊑ Bnv z∈B q) =
   close-shifted-consistency
@@ -842,6 +921,12 @@ lower-bounds-consistentᵐ h safe
     (I.∀⊑∀ I.★⊑★) I.∀★⊑★ = universal-ground-to-star
 lower-bounds-consistentᵐ h safe
     I.∀★⊑★ (I.∀⊑∀ I.★⊑★) = star-to-universal-ground
+lower-bounds-consistentᵐ h safe
+    I.∀★⊑★ (I.∀⊑★ q) = id ★
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑★ p) I.∀★⊑★ = id ★
+lower-bounds-consistentᵐ h safe
+    (I.∀⊑★ p) (I.∀⊑★ q) = id ★
 lower-bounds-consistentᵐ h safe I.∀★⊑★ I.∀★⊑★ = id ★
 lower-bounds-consistentᵐ h safe
     (I.∀⊑∀ I.X⊑X) I.bot-elim = bot-elim
@@ -851,12 +936,24 @@ lower-bounds-consistentᵐ h safe
     I.bot-elim (I.∀⊑∀ I.X⊑X) = bot-intro
 lower-bounds-consistentᵐ h safe I.bot-elim I.bot-elim =
   refl∼ (`∀ ★)
+lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ q)
+    with source-occurs-target refl q var-∈
+lower-bounds-consistentᵐ h safe I.bot-elim (I.∀⊑★ q) | ()
 lower-bounds-consistentᵐ h safe I.bot-elim I.bot⊑★ =
   universal-ground-to-star
 lower-bounds-consistentᵐ h safe
     I.bot⊑★ (I.∀⊑∀ I.X⊑X) = star-to-bottom
 lower-bounds-consistentᵐ h safe I.bot⊑★ I.bot-elim =
   star-to-universal-ground
+lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ q)
+    with source-occurs-target refl q var-∈
+lower-bounds-consistentᵐ h safe I.bot⊑★ (I.∀⊑★ q) | ()
+lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot-elim
+    with source-occurs-target refl p var-∈
+lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot-elim | ()
+lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot⊑★
+    with source-occurs-target refl p var-∈
+lower-bounds-consistentᵐ h safe (I.∀⊑★ p) I.bot⊑★ | ()
 lower-bounds-consistentᵐ h safe I.bot⊑★ I.bot⊑★ = id ★
 
 common-lower-consistent : ∀ {Δ} {A B : Ty Δ}

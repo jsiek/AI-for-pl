@@ -357,6 +357,9 @@ data ToGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
   other : ∀ {A : Ty Δ} {c : μ ⊢ A ∼ G}
     → A ≢ G → ToGround g c
 
+occurs-star-impossible : ∀ {Δ} {X : TyVar Δ} → X ∈ᵗ ★ → ⊥
+occurs-star-impossible ()
+
 to-ground : ∀ {Δ} {μ : Env∼ Δ} {A G : Ty Δ}
   → (g : Groundʳ μ X∼★ G)
   → GroundMatch g A
@@ -382,17 +385,16 @@ to-ground g-⇒ match-⇒ (c ↦ d)
 to-ground g-⇒ match-⇒
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 to-ground (g-X eq) match-X (id (＇ X)) = same
-to-ground g-∀ match-∀ (∀ᶜ (id ★)) = same
-to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-⇒ ⦄ ()))
-to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-ι ⦄ ()))
-to-ground g-∀ match-⊥
-    (∀ᶜ (_! ⦃ g-X {X = Fin.zero} () ⦄ c))
-to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-∀ ⦄ c ⦃ match = () ⦄))
+to-ground g-∀ match-∀ (∀ᶜ c) with to-star c
+to-ground g-∀ match-∀ (∀ᶜ (id ★)) | same = same
+to-ground g-∀ match-∀ (∀ᶜ c) | other A≠★ =
+  other (λ { refl → A≠★ refl })
 to-ground g-∀ match-∀
     (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
-to-ground g-∀ match-⊥
-    (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
-to-ground g-∀ match-⊥ bot-elim = other (λ ())
+to-ground g-∀ match-∀
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+  other (λ { refl → occurs-star-impossible z∈A })
+to-ground g-∀ match-∀ bot-elim = other (λ ())
 
 data FromGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
     (g : Groundʳ μ ★∼X G) :
@@ -426,17 +428,16 @@ from-ground g-⇒ match-⇒ (c ↦ d)
 from-ground g-⇒ match-⇒
     (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 from-ground (g-X eq) match-X (id (＇ X)) = same
-from-ground g-∀ match-∀ (∀ᶜ (id ★)) = same
-from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-⇒ ⦄ ()))
-from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-ι ⦄ ()))
-from-ground g-∀ match-⊥
-    (∀ᶜ (？_ ⦃ g-X {X = Fin.zero} () ⦄ c))
-from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄))
+from-ground g-∀ match-∀ (∀ᶜ c) with from-star c
+from-ground g-∀ match-∀ (∀ᶜ (id ★)) | same = same
+from-ground g-∀ match-∀ (∀ᶜ c) | other B≠★ =
+  other (λ { refl → B≠★ refl })
 from-ground g-∀ match-∀
     (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
-from-ground g-∀ match-⊥
-    (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
-from-ground g-∀ match-⊥ bot-intro = other (λ ())
+from-ground g-∀ match-∀
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+  other (λ { refl → occurs-star-impossible z∈B })
+from-ground g-∀ match-∀ bot-intro = other (λ ())
 
 ------------------------------------------------------------------------
 -- Polymorphic cast classification

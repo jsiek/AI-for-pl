@@ -2,8 +2,8 @@ module Imprecision where
 
 -- File Charter:
 --   * Defines intrinsically scoped type imprecision.
---   * Includes the universal-ground and empty-universal clauses required
---     for consistency to coincide with existence of a common lower bound.
+--   * Includes structural universal-to-dynamic and empty-universal clauses
+--     required for consistency to coincide with a common lower bound.
 
 open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
@@ -25,13 +25,15 @@ ImpEnv Δ = TyVar Δ → VarImp
 idᵐ : ∀ {Δ} → ImpEnv Δ
 idᵐ X = X⊑X
 
+extendᵐ : VarImp → ImpEnv Δ → ImpEnv (suc Δ)
+extendᵐ v μ zero = v
+extendᵐ v μ (suc X) = μ X
+
 extᵐ : ImpEnv Δ → ImpEnv (suc Δ)
-extᵐ μ zero = X⊑X
-extᵐ μ (suc X) = μ X
+extᵐ = extendᵐ X⊑X
 
 instᵐ : ImpEnv Δ → ImpEnv (suc Δ)
-instᵐ μ zero = X⊑★
-instᵐ μ (suc X) = μ X
+instᵐ = extendᵐ X⊑★
 
 ----------------------------------------------------------------------
 -- Imprecision
@@ -89,6 +91,11 @@ data _⊢_⊑_ {Δ : TyCtx} (μ : ImpEnv Δ) : Ty Δ → Ty Δ → Set where
   ∀★⊑★ :
       ------------------
     μ ⊢ (`∀ ★) ⊑ ★
+
+  ∀⊑★ : ∀ {A}
+    → extᵐ μ ⊢ A ⊑ ★
+      -----------------
+    → μ ⊢ (`∀ A) ⊑ ★
 
   bot-elim :
       --------------------------------

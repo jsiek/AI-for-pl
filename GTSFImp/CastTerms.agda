@@ -72,13 +72,15 @@ data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
   safe-inst : ∀ {Δ μ} {A : Ty (suc Δ)} {B : Ty Δ}
       {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
       ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
-    → GenSafe (inst c)
+    → (B≢★ : B ≢ ★)
+    → GenSafe ((inst c) B≢★)
 
   safe-gen : ∀ {Δ μ} {A : Ty Δ} {B : Ty (suc Δ)}
       {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
       ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
+    → (A≢★ : A ≢ ★)
     → GenSafe c
-    → GenSafe (gen c)
+    → GenSafe ((gen c) A≢★)
 
 data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Set where
@@ -98,9 +100,9 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
   genᵥ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
       {B : Ty (suc Δ)} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
       ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
-    → A ≢ ★
+    → (A≢★ : A ≢ ★)
     → GenSafe c
-    → Inert (gen c)
+    → Inert ((gen c) A≢★)
 
 data RevealValue : ∀ {Δ A B} → Conv↑ Δ A B → Set where
   fun : ∀ {Δ A A′ B B′}

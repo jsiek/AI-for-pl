@@ -2,6 +2,8 @@ module Consistency where
 
 -- File Charter:
 --   * Defines environment-indexed type consistency.
+--   * Gives `∀ X. ★` a ground representation and bridges the empty
+--     universal `∀ X. X` to and from that representation.
 --   * Provides renaming and substitution for consistency evidence.
 --   * Closes instantiation-bound consistency evidence at ★.
 
@@ -12,6 +14,7 @@ open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; sym; trans)
+open import Relation.Nullary using (no; yes)
 
 open import Types
 
@@ -58,12 +61,15 @@ data Groundʳ {Δ : TyCtx} (μ : Env∼ Δ) (r : Var∼) : Ty Δ → Set where
   g-⇒ : Groundʳ μ r (★ ⇒ ★)
   g-ι : ∀ {ι} → Groundʳ μ r (‵ ι)
   g-X : ∀ {X} → μ X ≡ r → Groundʳ μ r (＇ X)
+  g-∀ : Groundʳ μ r (`∀ ★)
 
 data GroundMatch {Δ : TyCtx} {μ : Env∼ Δ} {r : Var∼} :
     ∀ {G} → Groundʳ μ r G → Ty Δ → Set where
   match-⇒ : ∀ {A} → GroundMatch g-⇒ A
   match-ι : ∀ {A ι} → GroundMatch (g-ι {ι = ι}) A
   match-X : ∀ {X} {eq : μ X ≡ r} → GroundMatch (g-X eq) (＇ X)
+  match-∀ : GroundMatch g-∀ (`∀ ★)
+  match-⊥ : GroundMatch g-∀ (`∀ (＇ zero))
 
 groundMatch-unique : ∀ {Δ} {μ : Env∼ Δ} {r G A}
     {g : Groundʳ μ r G}
@@ -72,12 +78,20 @@ groundMatch-unique : ∀ {Δ} {μ : Env∼ Δ} {r G A}
 groundMatch-unique match-⇒ match-⇒ = refl
 groundMatch-unique match-ι match-ι = refl
 groundMatch-unique match-X match-X = refl
+groundMatch-unique match-∀ match-∀ = refl
+groundMatch-unique match-⊥ match-⊥ = refl
 
 data NonStar {Δ : TyCtx} : Ty Δ → Set where
   nonstar-X : ∀ {X} → NonStar (＇ X)
   nonstar-ι : ∀ {ι} → NonStar (‵ ι)
   nonstar-⇒ : ∀ {A B} → NonStar (A ⇒ B)
   nonstar-∀ : ∀ {A} → NonStar (`∀ A)
+
+nonStar≢★ : ∀ {Δ} {A : Ty Δ} → NonStar A → A ≢ ★
+nonStar≢★ nonstar-X = λ ()
+nonStar≢★ nonstar-ι = λ ()
+nonStar≢★ nonstar-⇒ = λ ()
+nonStar≢★ nonstar-∀ = λ ()
 
 instance
   refl-instance : ∀ {A : Set} {x : A} → x ≡ x
@@ -95,6 +109,10 @@ instance
     → Groundʳ {Δ} μ r (＇ X)
   ground-X-instance ⦃ eq ⦄ = g-X eq
 
+  ground-∀-instance : ∀ {Δ μ r}
+    → Groundʳ {Δ} μ r (`∀ ★)
+  ground-∀-instance = g-∀
+
   match-⇒-instance : ∀ {Δ μ r A}
     → GroundMatch (g-⇒ {Δ = Δ} {μ = μ} {r = r}) A
   match-⇒-instance = match-⇒
@@ -106,6 +124,14 @@ instance
   match-X-instance : ∀ {Δ μ r X} {eq : μ X ≡ r}
     → GroundMatch (g-X {Δ = Δ} {μ = μ} {r = r} {X = X} eq) (＇ X)
   match-X-instance = match-X
+
+  match-∀-instance : ∀ {Δ μ r}
+    → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ ★)
+  match-∀-instance = match-∀
+
+  match-⊥-instance : ∀ {Δ μ r}
+    → GroundMatch (g-∀ {Δ = Δ} {μ = μ} {r = r}) (`∀ (＇ zero))
+  match-⊥-instance = match-⊥
 
   nonstar-X-instance : ∀ {Δ} {X : TyVar Δ} → NonStar (＇ X)
   nonstar-X-instance = nonstar-X
@@ -162,6 +188,7 @@ data _⊢_∼_ {Δ : TyCtx} (μ : Env∼ Δ) :
     → ⦃ Anv : NonVar A ⦄
     → ⦃ z∈A : zero ∈ᵗ A ⦄
     → instᵐ μ ⊢ A ∼ ⇑ᵗ B
+    → B ≢ ★
       ---------------------------
     → μ ⊢ (`∀ A) ∼ B
 
@@ -169,8 +196,17 @@ data _⊢_∼_ {Δ : TyCtx} (μ : Env∼ Δ) :
     → ⦃ Bnv : NonVar B ⦄
     → ⦃ z∈B : zero ∈ᵗ B ⦄
     → genᵐ μ ⊢ ⇑ᵗ A ∼ B
+    → A ≢ ★
       ---------------------------
     → μ ⊢ A ∼ (`∀ B)
+
+  bot-elim :
+      --------------------------------
+    μ ⊢ (`∀ (＇ zero)) ∼ (`∀ ★)
+
+  bot-intro :
+      --------------------------------
+    μ ⊢ (`∀ ★) ∼ (`∀ (＇ zero))
 
 infix 4 _∼_
 
@@ -183,6 +219,7 @@ idᵍ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 idᵍ g-⇒ = id ★ ↦ id ★
 idᵍ g-ι = id (‵ _)
 idᵍ (g-X {X = X} eq) = id (＇ X)
+idᵍ g-∀ = ∀ᶜ (id ★)
 
 ground≢★ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
   → Groundʳ μ r G
@@ -190,6 +227,7 @@ ground≢★ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 ground≢★ g-⇒ = λ ()
 ground≢★ g-ι = λ ()
 ground≢★ (g-X eq) = λ ()
+ground≢★ g-∀ = λ ()
 
 ground-nonstar : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
   → Groundʳ μ r G
@@ -197,18 +235,13 @@ ground-nonstar : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 ground-nonstar g-⇒ = nonstar-⇒
 ground-nonstar g-ι = nonstar-ι
 ground-nonstar (g-X eq) = nonstar-X
+ground-nonstar g-∀ = nonstar-∀
 
 nonStar-unique : ∀ {Δ} {A : Ty Δ} (p q : NonStar A) → p ≡ q
 nonStar-unique nonstar-X nonstar-X = refl
 nonStar-unique nonstar-ι nonstar-ι = refl
 nonStar-unique nonstar-⇒ nonstar-⇒ = refl
 nonStar-unique nonstar-∀ nonstar-∀ = refl
-
-nonStar≢★ : ∀ {Δ} {A : Ty Δ} → NonStar A → A ≢ ★
-nonStar≢★ nonstar-X = λ ()
-nonStar≢★ nonstar-ι = λ ()
-nonStar≢★ nonstar-⇒ = λ ()
-nonStar≢★ nonstar-∀ = λ ()
 
 renameNonStar : ∀ {Δ Δ′} {A : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
@@ -225,6 +258,7 @@ ground-match : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 ground-match g-⇒ = match-⇒
 ground-match g-ι = match-ι
 ground-match (g-X eq) = match-X
+ground-match g-∀ = match-∀
 
 flip-Groundʳ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
   → Groundʳ μ r G
@@ -232,6 +266,7 @@ flip-Groundʳ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 flip-Groundʳ g-⇒ = g-⇒
 flip-Groundʳ g-ι = g-ι
 flip-Groundʳ (g-X eq) = g-X (cong flipVar∼ eq)
+flip-Groundʳ g-∀ = g-∀
 
 flip-GroundMatch : ∀ {Δ} {G A : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
     {g : Groundʳ μ r G}
@@ -240,6 +275,8 @@ flip-GroundMatch : ∀ {Δ} {G A : Ty Δ} {μ : Env∼ Δ} {r : Var∼}
 flip-GroundMatch match-⇒ = match-⇒
 flip-GroundMatch match-ι = match-ι
 flip-GroundMatch match-X = match-X
+flip-GroundMatch match-∀ = match-∀
+flip-GroundMatch match-⊥ = match-⊥
 
 private
   postulate
@@ -278,12 +315,14 @@ sym∼ (_! ⦃ G ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) =
 sym∼ (？_ ⦃ G ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
   _! ⦃ flip-Groundʳ G ⦄ (sym∼ c) ⦃ Bns ⦄
     ⦃ flip-GroundMatch match ⦄
-sym∼ (inst_ ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c) =
+sym∼ (inst_ ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★) =
   gen_ ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄
-    (transport-env∼ flip-instᵐ (sym∼ c))
-sym∼ (gen_ ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c) =
+    (transport-env∼ flip-instᵐ (sym∼ c)) B≢★
+sym∼ (gen_ ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★) =
   inst_ ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄
-    (transport-env∼ flip-genᵐ (sym∼ c))
+    (transport-env∼ flip-genᵐ (sym∼ c)) A≢★
+sym∼ bot-elim = bot-intro
+sym∼ bot-intro = bot-elim
 
 symᶜ : ∀ {Δ} {A B : Ty Δ} → A ∼ B → B ∼ A
 symᶜ c = transport-env∼ flip-idᵐ (sym∼ c)
@@ -296,9 +335,24 @@ private
     → ρ X ∈ᵗ renameᵗ ρ A
   rename-∈ᵗ ρ var-∈ = var-∈
   rename-∈ᵗ ρ (∈-fun-left X∈A) = ∈-fun-left (rename-∈ᵗ ρ X∈A)
-  rename-∈ᵗ ρ (∈-fun-right X∈B) =
-    ∈-fun-right (rename-∈ᵗ ρ X∈B)
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      with occurs? (ρ X) (renameᵗ ρ A)
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      | present ρX∈A = ∈-fun-left ρX∈A
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      | absent ρX∉A =
+    ∈-fun-right ρX∉A (rename-∈ᵗ ρ X∈B)
   rename-∈ᵗ ρ (∈-all X∈A) = ∈-all (rename-∈ᵗ (extᵗ ρ) X∈A)
+
+  rename-≢★ : ∀ {Δ Δ′} {A : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → A ≢ ★
+    → renameᵗ ρ A ≢ ★
+  rename-≢★ {A = ＇ X} ρ A≢★ ()
+  rename-≢★ {A = ‵ ι} ρ A≢★ ()
+  rename-≢★ {A = ★} ρ A≢★ refl = A≢★ refl
+  rename-≢★ {A = A ⇒ B} ρ A≢★ ()
+  rename-≢★ {A = `∀ A} ρ A≢★ ()
 
   extᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
     → (ρ : Δ ⇒ʳ Δ′)
@@ -343,6 +397,7 @@ private
   rename-Groundʳ ρ eq g-ι = g-ι
   rename-Groundʳ ρ eq (g-X {X = X} eq-X) =
     g-X (trans (eq X) eq-X)
+  rename-Groundʳ ρ eq g-∀ = g-∀
 
   rename-GroundMatch : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
       {r : Var∼} {G A : Ty Δ} {g : Groundʳ μ r G}
@@ -354,6 +409,8 @@ private
   rename-GroundMatch ρ eq match-⇒ = match-⇒
   rename-GroundMatch ρ eq match-ι = match-ι
   rename-GroundMatch {μ = μ} {μ′ = μ′} ρ eq match-X = match-X
+  rename-GroundMatch ρ eq match-∀ = match-∀
+  rename-GroundMatch ρ eq match-⊥ = match-⊥
 
   rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
       {A B : Ty Δ}
@@ -379,17 +436,21 @@ private
       ⦃ renameNonStar ρ Bns ⦄
       ⦃ rename-GroundMatch {μ = μ} {μ′ = μ′} ρ eq match ⦄
   rename∼ ρ eq
-      (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ A∼B) =
+      (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ A∼B B≢★) =
     inst_ ⦃ renameNonVar (extᵗ ρ) A-nonvar ⦄
       ⦃ rename-∈ᵗ (extᵗ ρ) zero∈A ⦄
       (subst-right-∼ (renameᵗ-shift ρ B)
         (rename∼ (extᵗ ρ) (instᵐ-rename ρ eq) A∼B))
+      (rename-≢★ ρ B≢★)
   rename∼ ρ eq
-      (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ A∼B) =
+      (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ A∼B A≢★) =
     gen_ ⦃ renameNonVar (extᵗ ρ) B-nonvar ⦄
       ⦃ rename-∈ᵗ (extᵗ ρ) zero∈B ⦄
       (subst-left-∼ (renameᵗ-shift ρ A)
         (rename∼ (extᵗ ρ) (genᵐ-rename ρ eq) A∼B))
+      (rename-≢★ ρ A≢★)
+  rename∼ ρ eq bot-elim = bot-elim
+  rename∼ ρ eq bot-intro = bot-intro
 
 renameᶜ : ∀ {Δ Δ′} {A B : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
@@ -560,8 +621,16 @@ private
   subst-∈ᵗ var-∈ Y∈σX = Y∈σX
   subst-∈ᵗ (∈-fun-left X∈A) Y∈σX =
     ∈-fun-left (subst-∈ᵗ X∈A Y∈σX)
-  subst-∈ᵗ (∈-fun-right X∈B) Y∈σX =
-    ∈-fun-right (subst-∈ᵗ X∈B Y∈σX)
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      with occurs? Y (substᵗ σ A)
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      | present Y∈A = ∈-fun-left Y∈A
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      | absent Y∉A =
+    ∈-fun-right Y∉A (subst-∈ᵗ X∈B Y∈σX)
   subst-∈ᵗ {σ = σ} (∈-all X∈A) Y∈σX =
     ∈-all (subst-∈ᵗ {σ = extsᵗ σ} X∈A (rename-∈ᵗ suc Y∈σX))
 
@@ -573,7 +642,7 @@ private
   tag-source-nonvar-⇒
       (？_ ⦃ g ⦄ c ⦃ Gns ⦄ ⦃ match ⦄) Ans =
     ⊥-elim (nonStar≢★ Ans refl)
-  tag-source-nonvar-⇒ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) Ans =
+  tag-source-nonvar-⇒ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Ans =
     nonvar-all
 
   tag-source-nonvar-ι : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {ι}
@@ -584,7 +653,7 @@ private
   tag-source-nonvar-ι
       (？_ ⦃ g ⦄ c ⦃ Gns ⦄ ⦃ match ⦄) Ans =
     ⊥-elim (nonStar≢★ Ans refl)
-  tag-source-nonvar-ι (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) Ans =
+  tag-source-nonvar-ι (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Ans =
     nonvar-all
 
   untag-target-nonvar-⇒ : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ}
@@ -595,7 +664,7 @@ private
   untag-target-nonvar-⇒
       (_! ⦃ g ⦄ c ⦃ Gns ⦄ ⦃ match ⦄) Bns =
     ⊥-elim (nonStar≢★ Bns refl)
-  untag-target-nonvar-⇒ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) Bns =
+  untag-target-nonvar-⇒ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) Bns =
     nonvar-all
 
   untag-target-nonvar-ι : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ} {ι}
@@ -606,7 +675,7 @@ private
   untag-target-nonvar-ι
       (_! ⦃ g ⦄ c ⦃ Gns ⦄ ⦃ match ⦄) Bns =
     ⊥-elim (nonStar≢★ Bns refl)
-  untag-target-nonvar-ι (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) Bns =
+  untag-target-nonvar-ι (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) Bns =
     nonvar-all
 
   subst-nonvar-nonstar : ∀ {Δ Δ′} {A : Ty Δ}
@@ -618,6 +687,55 @@ private
   subst-nonvar-nonstar σ nonvar-star ()
   subst-nonvar-nonstar σ nonvar-fun Ans = nonstar-⇒
   subst-nonvar-nonstar σ nonvar-all Ans = nonstar-∀
+
+  factor-inst-star : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
+    → (c : instᵐ μ ⊢ A ∼ ★)
+    → NonVar A
+    → zero ∈ᵗ A
+    → μ ⊢ (`∀ A) ∼ ★
+  factor-inst-star (id ★) Anv ()
+  factor-inst-star
+      (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match-⇒ ⦄) Anv z∈A =
+    _! ⦃ g-⇒ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-⇒ ⦄
+  factor-inst-star
+      (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match-ι ⦄) Anv z∈A =
+    _! ⦃ g-ι ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-ι ⦄
+  factor-inst-star
+      (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) () z∈A
+  factor-inst-star
+      (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv (∈-all ())
+  factor-inst-star
+      (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) Anv (∈-all ())
+  factor-inst-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) Anv ()
+  factor-inst-star
+      (inst_ ⦃ Anv′ ⦄ ⦃ z∈A′ ⦄ c ★≢★) Anv z∈A =
+    ⊥-elim (★≢★ refl)
+
+  factor-gen-star : ∀ {Δ} {μ : Env∼ Δ} {B : Ty (suc Δ)}
+    → (c : genᵐ μ ⊢ ★ ∼ B)
+    → NonVar B
+    → zero ∈ᵗ B
+    → μ ⊢ ★ ∼ (`∀ B)
+  factor-gen-star (id ★) Bnv ()
+  factor-gen-star (_! ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄) Bnv z∈B
+  factor-gen-star
+      (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄) Bnv z∈B =
+    ？_ ⦃ g-⇒ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-⇒ ⦄
+  factor-gen-star
+      (？_ ⦃ g-ι ⦄ c ⦃ Bns ⦄ ⦃ match-ι ⦄) Bnv z∈B =
+    ？_ ⦃ g-ι ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄ ⦃ match-ι ⦄
+  factor-gen-star
+      (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) () z∈B
+  factor-gen-star
+      (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv (∈-all ())
+  factor-gen-star
+      (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) Bnv (∈-all ())
+  factor-gen-star (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c ★≢★) Bnv z∈B =
+    ⊥-elim (★≢★ refl)
 
 subst∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
     {σ : Δ ⇒ˢ Δ′} {A B : Ty Δ}
@@ -641,6 +759,10 @@ subst∼ {σ = σ} s
     ⦃ match-ι ⦄
 subst∼ s (_! ⦃ g-X {X = X} eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) =
   to-★ s X eq
+subst∼ s (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) =
+  _! ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+subst∼ s (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-⊥ ⦄) =
+  _! ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
 subst∼ {σ = σ} s
     (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄) =
   ？_ ⦃ g-⇒ ⦄ (subst∼ s c)
@@ -653,18 +775,50 @@ subst∼ {σ = σ} s
     ⦃ match-ι ⦄
 subst∼ s (？_ ⦃ g-X {X = X} eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) =
   from-★ s X eq
+subst∼ s (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) =
+  ？_ ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+subst∼ s (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-⊥ ⦄) =
+  ？_ ⦃ g-∀ ⦄ (subst∼ s c) ⦃ nonstar-∀ ⦄ ⦃ match-⊥ ⦄
 subst∼ {σ = σ} s
-    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c) =
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    with substᵗ σ B ≟Ty ★
+subst∼ {σ = σ} s
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    | no Bσ≢★ =
   inst_ ⦃ substNonVar (extsᵗ σ) A-nonvar ⦄
     ⦃ subst-∈ᵗ zero∈A var-∈ ⦄
     (subst-right-∼ (substᵗ-shift σ B)
-      (subst∼ (inst-SubstEnv∼ s) c))
+      (subst∼ (inst-SubstEnv∼ s) c)) Bσ≢★
 subst∼ {σ = σ} s
-    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c) =
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    | yes Bσ≡★ rewrite Bσ≡★ =
+  factor-inst-star
+    (subst-right-∼
+      (trans (substᵗ-shift σ B) (cong (renameᵗ suc) Bσ≡★))
+      (subst∼ (inst-SubstEnv∼ s) c))
+    (substNonVar (extsᵗ σ) A-nonvar)
+    (subst-∈ᵗ zero∈A var-∈)
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    with substᵗ σ A ≟Ty ★
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    | no Aσ≢★ =
   gen_ ⦃ substNonVar (extsᵗ σ) B-nonvar ⦄
     ⦃ subst-∈ᵗ zero∈B var-∈ ⦄
     (subst-left-∼ (substᵗ-shift σ A)
+      (subst∼ (gen-SubstEnv∼ s) c)) Aσ≢★
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    | yes Aσ≡★ rewrite Aσ≡★ =
+  factor-gen-star
+    (subst-left-∼
+      (trans (substᵗ-shift σ A) (cong (renameᵗ suc) Aσ≡★))
       (subst∼ (gen-SubstEnv∼ s) c))
+    (substNonVar (extsᵗ σ) B-nonvar)
+    (subst-∈ᵗ zero∈B var-∈)
+subst∼ s bot-elim = bot-elim
+subst∼ s bot-intro = bot-intro
 
 private
 

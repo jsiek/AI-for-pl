@@ -2,7 +2,8 @@ module Example where
 
 -- File Charter:
 --   * Closed examples that exercise inst, gen, variable-ground
---     injection/projection, and blame from a non-parametric function.
+--     injection/projection, the empty universal fallback, and blame from a
+--     non-parametric function.
 --   * Each example includes a typing derivation and an executable evaluation
 --     check.
 
@@ -78,6 +79,52 @@ nat★-⊢ : ∀ n → ∅ ⊢ nat★ n ⦂ ★
 nat★-⊢ n = ⊢⟨⟩ (nat-⊢ n) ℕ!
 
 ------------------------------------------------------------------------
+-- The empty universal fallback eagerly blames
+------------------------------------------------------------------------
+
+UniversalGround : Ty 0
+UniversalGround = `∀ ★
+
+Bottom : Ty 0
+Bottom = `∀ (＇ 0)
+
+ℕ!¹ : _∼_ {Δ = 1} (‵ `ℕ) ★
+ℕ!¹ = id (‵ `ℕ) !
+
+universalDynamic : Term 0
+universalDynamic = Λ (($ (κℕ 0)) ⟨ ℕ!¹ ⟩)
+
+universalDynamic-⊢ : ∅ ⊢ universalDynamic ⦂ UniversalGround
+universalDynamic-⊢ =
+  ⊢Λ (($ (κℕ 0)) 《 inj 》) (⊢⟨⟩ (⊢$ (κℕ 0)) ℕ!¹)
+
+botIntroExample : Term 0
+botIntroExample =
+  universalDynamic ⟨ bot-intro {μ = idᶜ {Δ = 0}} ⟩
+
+botIntroExample-⊢ : ∅ ⊢ botIntroExample ⦂ Bottom
+botIntroExample-⊢ = ⊢⟨⟩ universalDynamic-⊢ bot-intro
+
+botIntroExample-→ : botIntroExample —→ blame
+botIntroExample-→ =
+  blame-bot-intro (Λ (($ (κℕ 0)) 《 inj 》))
+
+UniversalGround! : UniversalGround ∼ ★
+UniversalGround! =
+  idᵍ (g-∀ {μ = idᶜ {Δ = 0}} {r = X∼★}) !
+
+star∼Bottom : ★ ∼ Bottom
+star∼Bottom = ？ bot-intro
+
+botFromStarExample : Term 0
+botFromStarExample =
+  (universalDynamic ⟨ UniversalGround! ⟩) ⟨ star∼Bottom ⟩
+
+botFromStarExample-⊢ : ∅ ⊢ botFromStarExample ⦂ Bottom
+botFromStarExample-⊢ =
+  ⊢⟨⟩ (⊢⟨⟩ universalDynamic-⊢ UniversalGround!) star∼Bottom
+
+------------------------------------------------------------------------
 -- Instantiate polymorphic identity at ★ ⇒ ★
 ------------------------------------------------------------------------
 
@@ -85,7 +132,7 @@ X! : instᵐ (idᶜ {Δ = 0}) ⊢ ＇ 0 ∼ ★
 X! = id (＇ 0) !
 
 instId : (`∀ X⇒X) ∼ (★ ⇒ ★)
-instId = inst (X! ↦ X!)
+instId = (inst (X! ↦ X!)) (λ ())
 
 instExample : Term 0
 instExample =
@@ -105,7 +152,7 @@ instExample-⊢ =
 ?X = ？ (id (＇ 0))
 
 genId : (★ ⇒ ★) ∼ (`∀ X⇒X)
-genId = gen (?X ↦ ?X)
+genId = (gen (?X ↦ ?X)) (λ ())
 
 genExample : Term 0
 genExample =
@@ -130,7 +177,8 @@ natFirstBody = ‵ `ℕ ⇒ ＇ 0 ⇒ ‵ `ℕ
 
 instance
   Y∈X⇒Y⇒X-instance : 0 ∈ᵗ X⇒Y⇒X
-  Y∈X⇒Y⇒X-instance = ∈-fun-right (∈-fun-left var-∈)
+  Y∈X⇒Y⇒X-instance =
+    ∈-fun-right (∉-var (λ ())) (∈-fun-left var-∈)
 
   X∈polyFirstBody-instance : 0 ∈ᵗ polyFirstBody
   X∈polyFirstBody-instance = ∈-all (∈-fun-left var-∈)
@@ -143,7 +191,7 @@ instance
 ?Y₂ = ？ (id (＇ 0))
 
 genFirst : (★ ⇒ ★ ⇒ ★) ∼ `∀ polyFirstBody
-genFirst = gen (gen (?X₂ ↦ ?Y₂ ↦ ?X₂))
+genFirst = (gen ((gen (?X₂ ↦ ?Y₂ ↦ ?X₂)) (λ ()))) (λ ())
 
 second★ : Term 0
 second★ = ƛ (ƛ (` 0))
@@ -205,3 +253,9 @@ genExample-test = refl
 
 blameExample-test : evalBlame gas blameExample-⊢ ≡ just true
 blameExample-test = refl
+
+botIntroExample-test : evalBlame gas botIntroExample-⊢ ≡ just true
+botIntroExample-test = refl
+
+botFromStarExample-test : evalBlame gas botFromStarExample-⊢ ≡ just true
+botFromStarExample-test = refl

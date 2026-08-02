@@ -10,7 +10,7 @@ import Data.Fin.Literals as FinLiterals
 open import Data.Fin.Properties using (_≟_)
 open import Data.Unit.Base using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; sym; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 open import Relation.Nullary using (Dec; yes; no)
 
 ------------------------------------------------------------------------
@@ -85,15 +85,44 @@ instance
   nonVar-all-instance = nonvar-all
 
 ------------------------------------------------------------------------
--- _∈ᵗ_, Tag, Non∀, Atom
+-- _∈ᵗ_, _∉ᵗ_, Tag, Non∀, Atom
 ------------------------------------------------------------------------
 
-infix 5 _∈ᵗ_
+infix 5 _∈ᵗ_ _∉ᵗ_
+
+data _∉ᵗ_ {Δ : TyCtx} (X : TyVar Δ) : Ty Δ → Set where
+  ∉-var : ∀ {Y} → X ≢ Y → X ∉ᵗ ＇ Y
+  ∉-base : ∀ {ι} → X ∉ᵗ ‵ ι
+  ∉-star : X ∉ᵗ ★
+  ∉-fun : ∀ {A B} → X ∉ᵗ A → X ∉ᵗ B → X ∉ᵗ A ⇒ B
+  ∉-all : ∀ {A} → suc X ∉ᵗ A → X ∉ᵗ `∀ A
+
 data _∈ᵗ_ {Δ : TyCtx} : TyVar Δ → Ty Δ → Set where
   var-∈ : ∀ {X} → X ∈ᵗ ＇ X
   ∈-fun-left : ∀ {X A B} → X ∈ᵗ A → X ∈ᵗ A ⇒ B
-  ∈-fun-right : ∀ {X A B} → X ∈ᵗ B → X ∈ᵗ A ⇒ B
+  ∈-fun-right : ∀ {X A B} → X ∉ᵗ A → X ∈ᵗ B → X ∈ᵗ A ⇒ B
   ∈-all : ∀ {X A} → suc X ∈ᵗ A → X ∈ᵗ `∀ A
+
+data Occurs? {Δ : TyCtx} (X : TyVar Δ) (A : Ty Δ) : Set where
+  present : X ∈ᵗ A → Occurs? X A
+  absent : X ∉ᵗ A → Occurs? X A
+
+occurs? : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ) → Occurs? X A
+occurs? X (＇ Y) with X ≟ Y
+occurs? X (＇ .X) | yes refl = present var-∈
+occurs? X (＇ Y) | no X≢Y = absent (∉-var X≢Y)
+occurs? X (‵ ι) = absent ∉-base
+occurs? X ★ = absent ∉-star
+occurs? X (A ⇒ B) with occurs? X A
+occurs? X (A ⇒ B) | present X∈A = present (∈-fun-left X∈A)
+occurs? X (A ⇒ B) | absent X∉A with occurs? X B
+occurs? X (A ⇒ B) | absent X∉A | present X∈B =
+  present (∈-fun-right X∉A X∈B)
+occurs? X (A ⇒ B) | absent X∉A | absent X∉B =
+  absent (∉-fun X∉A X∉B)
+occurs? X (`∀ A) with occurs? (suc X) A
+occurs? X (`∀ A) | present X∈A = present (∈-all X∈A)
+occurs? X (`∀ A) | absent X∉A = absent (∉-all X∉A)
 
 data Ground {Δ : TyCtx} : Ty Δ → Set where
   ＇_ : (X : TyVar Δ) → Ground {Δ} (＇ X)

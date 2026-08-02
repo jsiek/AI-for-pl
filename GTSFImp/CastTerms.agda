@@ -47,8 +47,8 @@ data Term : (Δ : TyCtx) → Set where
   _⊕[_]_  : Term Δ → Prim → Term Δ → Term Δ
   _⟨_⟩    : Term Δ → {μ : Env∼ Δ} {A B : Ty Δ}
     → (c : μ ⊢ A ∼ B) → Term Δ
-  _↑_     : Term Δ → Conv↑ Δ → Term Δ
-  _↓_     : Term Δ → Conv↓ Δ → Term Δ
+  _↑_     : Term Δ → {A B : Ty Δ} → Conv↑ Δ A B → Term Δ
+  _↓_     : Term Δ → {A B : Ty Δ} → Conv↓ Δ A B → Term Δ
   blame   : Term Δ
 
 private
@@ -102,21 +102,23 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → GenSafe c
     → Inert (gen c)
 
-data RevealValue : ∀ {Δ} → Conv↑ Δ → Set where
-  fun : ∀ {Δ} {c : Conv↓ Δ} {d : Conv↑ Δ}
+data RevealValue : ∀ {Δ A B} → Conv↑ Δ A B → Set where
+  fun : ∀ {Δ A A′ B B′}
+      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
     → RevealValue (c ↦↑ d)
 
-  all : ∀ {Δ} {c : Conv↑ (suc Δ)}
+  all : ∀ {Δ A B} {c : Conv↑ (suc Δ) A B}
     → RevealValue (`∀↑ c)
 
-data ConcealValue : ∀ {Δ} → Conv↓ Δ → Set where
-  seal : ∀ {Δ} {X : TyVar Δ}
-    → ConcealValue (Conversion.seal X)
+data ConcealValue : ∀ {Δ A B} → Conv↓ Δ A B → Set where
+  seal : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
+    → ConcealValue (Conversion.seal X R)
 
-  fun : ∀ {Δ} {c : Conv↑ Δ} {d : Conv↓ Δ}
+  fun : ∀ {Δ A A′ B B′}
+      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
     → ConcealValue (c ↦↓ d)
 
-  all : ∀ {Δ} {c : Conv↓ (suc Δ)}
+  all : ∀ {Δ A B} {c : Conv↓ (suc Δ) A B}
     → ConcealValue (`∀↓ c)
 
 data Value {Δ : TyCtx} : Term Δ → Set where
@@ -126,9 +128,9 @@ data Value {Δ : TyCtx} : Term Δ → Set where
   _《_》 : {V : Term Δ}{μ : Env∼ Δ}{A B : Ty Δ}
       {c : μ ⊢ A ∼ B}
     → Value V → Inert c → Value (V ⟨ c ⟩)
-  _↑_ : {V : Term Δ} {c : Conv↑ Δ}
+  _↑_ : {V : Term Δ} {A B : Ty Δ} {c : Conv↑ Δ A B}
     → Value V → RevealValue c → Value (V ↑ c)
-  _↓_ : {V : Term Δ} {c : Conv↓ Δ}
+  _↓_ : {V : Term Δ} {A B : Ty Δ} {c : Conv↓ Δ A B}
     → Value V → ConcealValue c → Value (V ↓ c)
 
 --------------------------------------------------------------------------------
@@ -207,20 +209,20 @@ data _⊢_⦂_ (Γ : Ctx) : Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
       -------------------------------------
      → Γ ⊢ (L ⊕[ op ] M) ⦂ primResultTy op
 
-  ⊢⟨⟩ : ∀ {M A B}
+  ⊢⟨⟩ : ∀ {M A B μ}
       → Γ ⊢ M ⦂ A
-      → (c : A ∼ B)
+      → (c : μ ⊢ A ∼ B)
       ---------------------
       → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
-  ⊢reveal : ∀ {M A B c}
-      → Σᵉ Γ ⊢ c ⦂ A ↑ˢ B
+  ⊢reveal : ∀ {M A B} {c : Conv↑ (Δᵉ Γ) A B}
+      → Σᵉ Γ ⊢↑ c
       → Γ ⊢ M ⦂ A
       ---------------------
       → Γ ⊢ M ↑ c ⦂ B
 
-  ⊢conceal : ∀ {M A B c}
-      → Σᵉ Γ ⊢ c ⦂ A ↓ˢ B
+  ⊢conceal : ∀ {M A B} {c : Conv↓ (Δᵉ Γ) A B}
+      → Σᵉ Γ ⊢↓ c
       → Γ ⊢ M ⦂ A
       ---------------------
       → Γ ⊢ M ↓ c ⦂ B

@@ -257,13 +257,15 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
       ------------------------------------------------------------
     → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ blame
 
-  β-reveal-⇒ : ∀ {V W : Term Δ} {c : Conv↓ Δ} {d : Conv↑ Δ}
+  β-reveal-⇒ : ∀ {V W : Term Δ} {A A′ B B′}
+      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
     → Value V
     → Value W
       ---------------------------------------------------------
     → (V ↑ (c ↦↑ d)) · W —→ (V · (W ↓ c)) ↑ d
 
-  β-conceal-⇒ : ∀ {V W : Term Δ} {c : Conv↑ Δ} {d : Conv↓ Δ}
+  β-conceal-⇒ : ∀ {V W : Term Δ} {A A′ B B′}
+      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
     → Value V
     → Value W
       ---------------------------------------------------------
@@ -279,10 +281,10 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
       ------------------------
     → V ↓ id↓ A —→ V
 
-  conceal-reveal : ∀ {V : Term Δ} {X : TyVar Δ}
+  conceal-reveal : ∀ {V : Term Δ} {X : TyVar Δ} {R : Ty Δ}
     → Value V
       --------------------------------------------------
-    → (V ↓ seal X) ↑ unseal X —→ V
+    → (V ↓ seal X R) ↑ unseal X R —→ V
 
   blame-·₁ : ∀ {M : Term Δ}
       ------------------
@@ -301,11 +303,11 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
       ---------------------
     → blame ⟨ c ⟩ —→ blame
 
-  blame-reveal : ∀ {c : Conv↑ Δ}
+  blame-reveal : ∀ {A B} {c : Conv↑ Δ A B}
       ------------------------
     → blame ↑ c —→ blame
 
-  blame-conceal : ∀ {c : Conv↓ Δ}
+  blame-conceal : ∀ {A B} {c : Conv↓ Δ A B}
       -------------------------
     → blame ↓ c —→ blame
 
@@ -351,7 +353,7 @@ data _—→[_]_ : ∀ {Δ Δ′}
       {V : Term (Nat.suc Δ)}
     → Value V
       ---------------------------------------------
-    → (Λ V) ⦂∀ B [ A ] —→[ bind A ]  V ↑ 〖 0 ↑ B 〗
+    → (Λ V) ⦂∀ B [ A ] —→[ bind A ] V ↑ 〖 0 , ⇑ᵗ A ↑ B 〗
 
   β-inst : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ}
       {A : Ty (Nat.suc Δ)} {B : Ty Δ}
@@ -361,7 +363,8 @@ data _—→[_]_ : ∀ {Δ Δ′}
     → B ≢ ★
       -----------------------------------------------------------------
     → V ⟨ inst c ⟩ —→[ bind ★ ]
-      ⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ 0 ] ↑ 〖 0 ↑ A 〗 ⟨ ↑ᶜ (c [ ★/0 ]ᶜ) ⟩
+      ⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ 0 ] ↑ 〖 0 , ★ ↑ A 〗
+        ⟨ ↑ᶜ (c [ ★/0 ]ᶜ) ⟩
 
   β-gen : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ}
       {A C : Ty Δ} {B : Ty (Nat.suc Δ)}
@@ -371,23 +374,26 @@ data _—→[_]_ : ∀ {Δ Δ′}
     → A ≢ ★
     → GenSafe c
       ---------------------------------------------------------------
-    → (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind C ]  ⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 0 ↑ B 〗
+    → (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind C ]
+      ⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 0 , ⇑ᵗ C ↑ B 〗
 
   β-reveal-∀ : ∀ {Δ} {V : Term Δ} {A : Ty Δ}
       {B C : Ty (Nat.suc Δ)}
-      {c : Conv↑ (Nat.suc Δ)}
+      {c : Conv↑ (Nat.suc Δ) C B}
     → Value V
       -------------------------------------------------
     → (V ↑ `∀↑ c) ⦂∀ B [ A ] —→[ bind A ]
-        ((⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ]) ↑ c ↑ 〖 0 ↑ B 〗)
+        ((⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ]) ↑ c
+          ↑ 〖 0 , ⇑ᵗ A ↑ B 〗)
 
   β-conceal-∀ : ∀ {Δ} {V : Term Δ} {A : Ty Δ}
       {B C : Ty (Nat.suc Δ)}
-      {c : Conv↓ (Nat.suc Δ)}
+      {c : Conv↓ (Nat.suc Δ) C B}
     → Value V
       --------------------------------------------------
     → (V ↓ `∀↓ c) ⦂∀ B [ A ] —→[ bind A ]
-      (⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ] ↓ c ↑ 〖 0 ↑ B 〗)
+      (⇑ᵗᵐ V ⦂∀ bind A ▷ᵇ C [ ＇ 0 ] ↓ c
+        ↑ 〖 0 , ⇑ᵗ A ↑ B 〗)
 
   ξ-·₁ : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
       {L M : Term Δ} {L′ M′ : Term Δ′}
@@ -424,16 +430,22 @@ data _—→[_]_ : ∀ {Δ Δ′}
     → M ⟨ c ⟩ —→[ χ ] M′ ⟨ c′ ⟩
 
   ξ-reveal : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
-      {M : Term Δ} {M′ : Term Δ′} {c : Conv↑ Δ}
-      {c′ : Conv↑ Δ′}
+      {M : Term Δ} {M′ : Term Δ′} {A B : Ty Δ}
+      {c : Conv↑ Δ A B}
+      {c′ : Conv↑ Δ′
+        (renameᵗ (λ X → χ ▷ᵛ X) A)
+        (renameᵗ (λ X → χ ▷ᵛ X) B)}
     → M —→[ χ ] M′
     → c′ ≡ rename↑ (λ X → χ ▷ᵛ X) c
       ------------------------------
     → M ↑ c —→[ χ ] M′ ↑ c′
 
   ξ-conceal : ∀ {Δ Δ′} {χ : StoreChange Δ Δ′}
-      {M : Term Δ} {M′ : Term Δ′} {c : Conv↓ Δ}
-      {c′ : Conv↓ Δ′}
+      {M : Term Δ} {M′ : Term Δ′} {A B : Ty Δ}
+      {c : Conv↓ Δ A B}
+      {c′ : Conv↓ Δ′
+        (renameᵗ (λ X → χ ▷ᵛ X) A)
+        (renameᵗ (λ X → χ ▷ᵛ X) B)}
     → M —→[ χ ] M′
     → c′ ≡ rename↓ (λ X → χ ▷ᵛ X) c
       ----------------------------------

@@ -55,16 +55,22 @@ inert? {μ = μ}
   just
     (inj ⦃ g = g-X eq ⦄ ⦃ Gns = nonstar-X ⦄
       ⦃ match = match-X ⦄)
+inert? {μ = μ}
+    (_! ⦃ g-∀ ⦄ .(idᵍ {μ = μ} (g-∀ {r = X∼★}))
+      ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄)
+    | Progress.same =
+  just
+    (inj ⦃ g = g-∀ {r = X∼★} ⦄ ⦃ Gns = nonstar-∀ ⦄
+      ⦃ match = match-∀ ⦄)
 inert? (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
     | Progress.other A≠G =
   nothing
 inert? (？ c) = nothing
-inert? (inst c) = nothing
-inert? (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    with A ≟Ty ★
-inert? (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) | yes refl = nothing
-inert? (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) | no A≠★ =
-  just (genᵥ A≠★ (Progress.gen-safe c A≠★ Bnv z∈B))
+inert? (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = nothing
+inert? (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+  just (genᵥ A≢★ (Progress.gen-safe c A≢★ Bnv z∈B))
+inert? bot-elim = nothing
+inert? bot-intro = nothing
 
 revealValue? : ∀ {Δ A B} (c : Conv↑ Δ A B)
   → Maybe (RevealValue c)
@@ -283,33 +289,24 @@ cast-redex? ._ (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
     ⦃ Hns = Bns ⦄ ⦃ hmatch = match ⦄ vW H≠G))
 cast-redex? M (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
     | just vM | Progress.same = nothing
-cast-redex? M (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
+cast-redex? M (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
     with value? M
-cast-redex? M (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
+cast-redex? M (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
     | nothing = nothing
-cast-redex? M (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | just vM with B ≟Ty ★
-cast-redex? M (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | just vM | no B≠★ =
-  just (step-result (bind ★) _ (β-inst vM B≠★))
-cast-redex? M (inst_ {B = .★} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | just vM | yes refl with Progress.ground-inst-view c Anv z∈A
-cast-redex? M (inst_ {B = .★} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | just vM | yes refl | Progress.factor f =
-  just (pure-result (ground-∀ vM f))
-cast-redex? M (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
+cast-redex? M (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
+    | just vM =
+  just (step-result (bind ★) _ (β-inst vM B≢★))
+cast-redex? M (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
     with value? M
-cast-redex? M (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
+cast-redex? M (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
     | nothing = nothing
-cast-redex? M (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | just vM with A ≟Ty ★
-cast-redex? M (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | just vM | no A≠★ = nothing
-cast-redex? M (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | just vM | yes refl with Progress.ground-gen-view c Bnv z∈B
-cast-redex? M (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | just vM | yes refl | Progress.factor f =
-  just (pure-result (expand-∀ vM f))
+cast-redex? M (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
+    | just vM = nothing
+cast-redex? M bot-elim = nothing
+cast-redex? M bot-intro with value? M
+cast-redex? M bot-intro | just vM =
+  just (pure-result (blame-bot-intro vM))
+cast-redex? M bot-intro | nothing = nothing
 
 prim-value-final? : ∀ {Δ} {L : Term Δ}
   → (op : Prim)

@@ -245,8 +245,13 @@ rename-occurs : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
   → rho X ∈ᵗ renameᵗ rho A
 rename-occurs rho var-∈ = var-∈
 rename-occurs rho (∈-fun-left X∈A) = ∈-fun-left (rename-occurs rho X∈A)
-rename-occurs rho (∈-fun-right X∈B) =
-  ∈-fun-right (rename-occurs rho X∈B)
+rename-occurs {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    with occurs? (rho X) (renameᵗ rho A)
+rename-occurs {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | present rhoX∈A = ∈-fun-left rhoX∈A
+rename-occurs {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | absent rhoX∉A =
+  ∈-fun-right rhoX∉A (rename-occurs rho X∈B)
 rename-occurs rho (∈-all X∈A) = ∈-all (rename-occurs (extᵗ rho) X∈A)
 
 renameᵗᵐ-preserves-Value : ∀ {Δ Δ′} (rho : Δ ↪ᵗ Δ′) {V}
@@ -268,6 +273,10 @@ renameᵗᵐ-preserves-Value rho
     (vV 《 inj ⦃ g-X eq ⦄ ⦃ nonstar-X ⦄ ⦃ match-X ⦄ 》) =
   renameᵗᵐ-preserves-Value rho vV
     《 inj ⦃ g-X _ ⦄ ⦃ nonstar-X ⦄ ⦃ match-X ⦄ 》
+renameᵗᵐ-preserves-Value rho
+    (vV 《 inj ⦃ g-∀ ⦄ ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄ 》) =
+  renameᵗᵐ-preserves-Value rho vV
+    《 inj ⦃ g-∀ ⦄ ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄ 》
 renameᵗᵐ-preserves-Value rho (vV 《 fun 》) =
   renameᵗᵐ-preserves-Value rho vV 《 fun 》
 renameᵗᵐ-preserves-Value rho (vV 《 all 》) =

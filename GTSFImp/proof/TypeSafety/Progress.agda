@@ -56,9 +56,9 @@ data AllView {Δ : TyCtx} (C : Ty (suc Δ)) (V : Term Δ) : Set where
       {c : genᵐ μ ⊢ ⇑ᵗ A ∼ C}
       ⦃ Cnv : NonVar C ⦄ ⦃ z∈C : 0 ∈ᵗ C ⦄
     → Value W
-    → A ≢ ★
+    → (A≢★ : A ≢ ★)
     → GenSafe c
-    → V ≡ W ⟨ gen c ⟩
+    → V ≡ W ⟨ (gen c) A≢★ ⟩
     → AllView C V
   av-reveal : ∀ {W A} {c : Conv↑ (suc Δ) A C}
     → Value W
@@ -221,6 +221,104 @@ canonical-X (vW ↓ seal) (⊢conceal (⊢↓-seal X∈) W⊢) =
 canonical-X (vW ↓ fun) ()
 canonical-X (vW ↓ all) ()
 
+private
+
+  X∼★≢X∼X : X∼★ ≢ X∼X
+  X∼★≢X∼X ()
+
+  no-to-distinct-variable : ∀ {Δ} {μ : Env∼ Δ}
+      {A : Ty Δ} {X Y : TyVar Δ}
+    → μ Y ≡ X∼★
+    → μ X ≡ X∼X
+    → μ ⊢ A ∼ ＇ X
+    → Y ∈ᵗ A
+    → ⊥
+  no-to-distinct-variable Y★ XX (id (＇ X)) var-∈ =
+    X∼★≢X∼X (trans (sym Y★) XX)
+  no-to-distinct-variable Y★ XX
+      (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
+  no-to-distinct-variable Y★ XX
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all Y∈A) =
+    no-to-distinct-variable Y★ XX c Y∈A
+
+  consistency-to-fresh : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
+    → extᵐ μ ⊢ A ∼ ＇ Fin.zero
+    → A ≡ ＇ Fin.zero
+  consistency-to-fresh (id (＇ Fin.zero)) = refl
+  consistency-to-fresh (？_ ⦃ g-⇒ ⦄ ())
+  consistency-to-fresh (？_ ⦃ g-ι ⦄ ())
+  consistency-to-fresh
+      (？_ ⦃ g-X {X = Fin.zero} () ⦄ c)
+  consistency-to-fresh
+      (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄)
+  consistency-to-fresh
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+    ⊥-elim (no-to-distinct-variable refl refl c z∈A)
+
+  no-zero-store-lift : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+    → store-lift Σ ∋ Fin.zero ⦂ A
+    → ⊥
+  no-zero-store-lift ()
+
+  fresh-not-shift : ∀ {Δ} (A : Ty Δ)
+    → ＇ Fin.zero ≢ ⇑ᵗ A
+  fresh-not-shift (＇ X) ()
+  fresh-not-shift (‵ ι) ()
+  fresh-not-shift ★ ()
+  fresh-not-shift (A ⇒ B) ()
+  fresh-not-shift (`∀ A) ()
+
+  no-fresh-representation : ∀ {Δ} {Σ : TyStore Δ}
+      {X : TyVar (suc Δ)}
+    → store-lift Σ ∋ X ⦂ ＇ Fin.zero
+    → ⊥
+  no-fresh-representation (S-lift∋ {A = A} X∈ eq) =
+    fresh-not-shift A eq
+
+  reveal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+      {c : Conv↑ (suc Δ) A (＇ Fin.zero)}
+    → store-lift Σ ⊢↑ c
+    → A ≡ ＇ Fin.zero
+  reveal-to-fresh (⊢↑-unseal X∈) =
+    ⊥-elim (no-fresh-representation X∈)
+  reveal-to-fresh ⊢↑-id = refl
+
+  conceal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+      {c : Conv↓ (suc Δ) A (＇ Fin.zero)}
+    → store-lift Σ ⊢↓ c
+    → A ≡ ＇ Fin.zero
+  conceal-to-fresh (⊢↓-seal X∈) =
+    ⊥-elim (no-zero-store-lift X∈)
+  conceal-to-fresh ⊢↓-id = refl
+
+  no-fresh-value : ∀ {Δ} {Σ : TyStore Δ} {V : Term (suc Δ)}
+    → Value V
+    → ⟨ suc Δ , store-lift Σ , [] ⟩ ⊢ V ⦂ ＇ Fin.zero
+    → ⊥
+  no-fresh-value vV V⊢ with canonical-X vV V⊢
+  no-fresh-value vV V⊢ | sv-conceal X∈ vW refl =
+    no-zero-store-lift X∈
+
+  no-bot-value : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
+    → Value V
+    → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ `∀ (＇ Fin.zero)
+    → ⊥
+  no-bot-value (Λ vV) (⊢Λ _ V⊢) = no-fresh-value vV V⊢
+  no-bot-value ($ (κℕ n)) ()
+  no-bot-value ($ (κ𝔹 b)) ()
+  no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c))
+      with consistency-to-fresh c
+  no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c)) | refl =
+    no-bot-value vW W⊢
+  no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢)
+      with reveal-to-fresh c⊢
+  no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢) | refl =
+    no-bot-value vW W⊢
+  no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢)
+      with conceal-to-fresh c⊢
+  no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢) | refl =
+    no-bot-value vW W⊢
+
 ------------------------------------------------------------------------
 -- Ground-cast classification
 ------------------------------------------------------------------------
@@ -236,7 +334,7 @@ to-star : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
 to-star (id ★) = same
 to-star (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) = other (nonStar≢★ Ans)
 to-star (？_ ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄)
-to-star (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) = other (λ ())
+to-star (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 
 data FromStar {Δ : TyCtx} {μ : Env∼ Δ} : ∀ {B : Ty Δ}
     → (c : μ ⊢ ★ ∼ B) → Set where
@@ -250,7 +348,7 @@ from-star (id ★) = same
 from-star (_! ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄)
 from-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
   other (nonStar≢★ Bns)
-from-star (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) = other (λ ())
+from-star (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 
 data ToGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
     (g : Groundʳ μ X∼★ G) :
@@ -267,7 +365,8 @@ to-ground : ∀ {Δ} {μ : Env∼ Δ} {A G : Ty Δ}
 to-ground g-ι match-ι (id (‵ ι)) = same
 to-ground g-ι match-ι (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
   other (λ ())
-to-ground g-ι match-ι (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) = other (λ ())
+to-ground g-ι match-ι
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 to-ground g-⇒ match-⇒ (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
   other (λ ())
 to-ground g-⇒ match-⇒ (c ↦ d) with to-star c | to-star d
@@ -280,8 +379,20 @@ to-ground g-⇒ match-⇒ (c ↦ d) | other A≠★ | same =
 to-ground g-⇒ match-⇒ (c ↦ d)
     | other A≠★ | other B≠★ =
   other (λ { refl → A≠★ refl })
-to-ground g-⇒ match-⇒ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) = other (λ ())
+to-ground g-⇒ match-⇒
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 to-ground (g-X eq) match-X (id (＇ X)) = same
+to-ground g-∀ match-∀ (∀ᶜ (id ★)) = same
+to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-⇒ ⦄ ()))
+to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-ι ⦄ ()))
+to-ground g-∀ match-⊥
+    (∀ᶜ (_! ⦃ g-X {X = Fin.zero} () ⦄ c))
+to-ground g-∀ match-⊥ (∀ᶜ (_! ⦃ g-∀ ⦄ c ⦃ match = () ⦄))
+to-ground g-∀ match-∀
+    (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
+to-ground g-∀ match-⊥
+    (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
+to-ground g-∀ match-⊥ bot-elim = other (λ ())
 
 data FromGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
     (g : Groundʳ μ ★∼X G) :
@@ -298,7 +409,8 @@ from-ground : ∀ {Δ} {μ : Env∼ Δ} {G B : Ty Δ}
 from-ground g-ι match-ι (id (‵ ι)) = same
 from-ground g-ι match-ι (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) =
   other (λ ())
-from-ground g-ι match-ι (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) = other (λ ())
+from-ground g-ι match-ι
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 from-ground g-⇒ match-⇒ (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) =
   other (λ ())
 from-ground g-⇒ match-⇒ (c ↦ d) with from-star c | from-star d
@@ -311,8 +423,20 @@ from-ground g-⇒ match-⇒ (c ↦ d) | other A≠★ | same =
 from-ground g-⇒ match-⇒ (c ↦ d)
     | other A≠★ | other B≠★ =
   other (λ { refl → A≠★ refl })
-from-ground g-⇒ match-⇒ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) = other (λ ())
+from-ground g-⇒ match-⇒
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 from-ground (g-X eq) match-X (id (＇ X)) = same
+from-ground g-∀ match-∀ (∀ᶜ (id ★)) = same
+from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-⇒ ⦄ ()))
+from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-ι ⦄ ()))
+from-ground g-∀ match-⊥
+    (∀ᶜ (？_ ⦃ g-X {X = Fin.zero} () ⦄ c))
+from-ground g-∀ match-⊥ (∀ᶜ (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄))
+from-ground g-∀ match-∀
+    (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
+from-ground g-∀ match-⊥
+    (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
+from-ground g-∀ match-⊥ bot-intro = other (λ ())
 
 ------------------------------------------------------------------------
 -- Polymorphic cast classification
@@ -334,11 +458,16 @@ rename-preimage {A = A ⇒ B} (∈-fun-left Y∈A)
 rename-preimage {A = A ⇒ B} (∈-fun-left Y∈A)
     | found X eq X∈A =
   found X eq (∈-fun-left X∈A)
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∈B)
+rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
     with rename-preimage Y∈B
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∈B)
-    | found X eq X∈B =
-  found X eq (∈-fun-right X∈B)
+rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
+    | found X eq X∈B with occurs? X A
+rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
+    | found X eq X∈B | present X∈A =
+  found X eq (∈-fun-left X∈A)
+rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
+    | found X eq X∈B | absent X∉A =
+  found X eq (∈-fun-right X∉A X∈B)
 rename-preimage {A = `∀ A} (∈-all Y∈A)
     with rename-preimage Y∈A
 rename-preimage {A = `∀ A} (∈-all Y∈A)
@@ -357,7 +486,7 @@ no-to-base : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {X : TyVar Δ} {ι}
   → ⊥
 no-to-base (id (‵ ι)) ()
 no-to-base (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
-no-to-base (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) (∈-all X∈A) =
+no-to-base (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
   no-to-base c X∈A
 
 no-from-base : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ} {X : TyVar Δ} {ι}
@@ -366,7 +495,7 @@ no-from-base : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ} {X : TyVar Δ} {ι}
   → ⊥
 no-from-base (id (‵ ι)) ()
 no-from-base (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) ()
-no-from-base (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) (∈-all X∈B) =
+no-from-base (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) (∈-all X∈B) =
   no-from-base c X∈B
 
 occurrence-nonstar : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
@@ -374,7 +503,7 @@ occurrence-nonstar : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → NonStar A
 occurrence-nonstar var-∈ = nonstar-X
 occurrence-nonstar (∈-fun-left X∈A) = nonstar-⇒
-occurrence-nonstar (∈-fun-right X∈B) = nonstar-⇒
+occurrence-nonstar (∈-fun-right X∉A X∈B) = nonstar-⇒
 occurrence-nonstar (∈-all X∈A) = nonstar-∀
 
 shift-star-injective : ∀ {Δ} {A : Ty Δ}
@@ -402,13 +531,13 @@ gen-safe′ (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) eq A≠★ Bnv ()
 gen-safe′ (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
     eq A≠★ Bnv z∈B =
   ⊥-elim (A≠★ (shift-star-injective (sym eq)))
-gen-safe′ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) eq A≠★ Bnv z∈B = safe-inst
-gen-safe′ (gen_ {A = C} ⦃ Cnv ⦄ ⦃ z∈C ⦄ c)
+gen-safe′ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) eq A≠★ Bnv z∈B =
+  safe-inst B≢★
+gen-safe′ (gen_ {A = C} ⦃ Cnv ⦄ ⦃ z∈C ⦄ c C≢★)
     eq A≠★ Bnv z∈B =
-  safe-gen (gen-safe′ c refl C≠★ Cnv z∈C)
-  where
-  C≠★ : C ≢ ★
-  C≠★ C≡★ = A≠★ (shift-star-injective (trans (sym eq) C≡★))
+  safe-gen C≢★ (gen-safe′ c refl C≢★ Cnv z∈C)
+gen-safe′ bot-elim eq A≠★ Bnv (∈-all ())
+gen-safe′ bot-intro eq A≠★ Bnv (∈-all ())
 
 gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
   → (c : genᵐ μ ⊢ ⇑ᵗ A ∼ B)
@@ -417,58 +546,6 @@ gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
   → 0 ∈ᵗ B
   → GenSafe c
 gen-safe c A≠★ Bnv z∈B = gen-safe′ c refl A≠★ Bnv z∈B
-
-data GroundGenView {Δ : TyCtx} {μ : Env∼ Δ} {B : Ty Δ}
-    (c : μ ⊢ ★ ∼ B) : Set where
-  factor : ∀ {c′ : μ ⊢ (★ ⇒ ★) ∼ B}
-    → GroundGen c c′
-    → GroundGenView c
-
-ground-gen-view : ∀ {Δ} {μ : Env∼ Δ} {B : Ty (suc Δ)}
-  → (c : genᵐ μ ⊢ ★ ∼ B)
-  → NonVar B
-  → 0 ∈ᵗ B
-  → GroundGenView c
-ground-gen-view (id ★) Bnv ()
-ground-gen-view (_! ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄) Bnv z∈B
-ground-gen-view (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄)
-    Bnv z∈B =
-  factor (ground-gen-⇒ (gen-safe c (λ ()) Bnv z∈B))
-ground-gen-view (？_ ⦃ g-ι ⦄ c ⦃ Bns ⦄ ⦃ match-ι ⦄)
-    Bnv z∈B =
-  ⊥-elim (no-from-base c z∈B)
-ground-gen-view (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) () z∈B
-ground-gen-view (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) Bnv′ z∈∀B
-    with ground-gen-view c Bnv z∈B
-ground-gen-view (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c) Bnv′ z∈∀B
-    | factor {c′ = c′} f =
-  factor (ground-gen-∀ {c = c} {c′ = c′}
-    ⦃ Bnv = Bnv ⦄ ⦃ z∈B = z∈B ⦄ f)
-
-data GroundInstView {Δ : TyCtx} {μ : Env∼ Δ} {A : Ty Δ}
-    (c : μ ⊢ A ∼ ★) : Set where
-  factor : ∀ {c′ : μ ⊢ A ∼ (★ ⇒ ★)}
-    → GroundInst c c′
-    → GroundInstView c
-
-ground-inst-view : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
-  → (c : instᵐ μ ⊢ A ∼ ★)
-  → NonVar A
-  → 0 ∈ᵗ A
-  → GroundInstView c
-ground-inst-view (id ★) Anv ()
-ground-inst-view (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match-⇒ ⦄) Anv z∈A =
-  factor ground-inst-⇒
-ground-inst-view (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match-ι ⦄) Anv z∈A =
-  ⊥-elim (no-to-base c z∈A)
-ground-inst-view (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) () z∈A
-ground-inst-view (？_ ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄) Anv z∈A
-ground-inst-view (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) Anv′ z∈∀A
-    with ground-inst-view c Anv z∈A
-ground-inst-view (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c) Anv′ z∈∀A
-    | factor {c′ = c′} f =
-  factor (ground-inst-∀ {c = c} {c′ = c′}
-    ⦃ Anv = Anv ⦄ ⦃ z∈A = z∈A ⦄ f)
 
 ------------------------------------------------------------------------
 -- Progress for values under casts and conversions
@@ -532,6 +609,22 @@ cast-value-progress V⊢ vV
   step (pure-step
     (ground ⦃ g-X eq ⦄ ⦃ Xns ⦄ ⦃ match ⦄ vV A≠G))
 cast-value-progress V⊢ vV
+    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
+    with to-ground g-∀ match c
+cast-value-progress {μ = μ} V⊢ vV
+    (_! ⦃ g-∀ ⦄ .(idᵍ {μ = μ} (g-∀ {r = X∼★}))
+      ⦃ Gns ⦄ ⦃ match ⦄)
+    | same rewrite nonStar-unique Gns nonstar-∀
+                 | groundMatch-unique match match-∀ =
+  done
+    (vV 《 inj ⦃ g = g-∀ {r = X∼★} ⦄ ⦃ Gns = nonstar-∀ ⦄
+      ⦃ match = match-∀ ⦄ 》)
+cast-value-progress V⊢ vV
+    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
+    | other A≠G =
+  step (pure-step
+    (ground ⦃ g-∀ ⦄ ⦃ Ans ⦄ ⦃ match ⦄ vV A≠G))
+cast-value-progress V⊢ vV
     (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
     with from-ground g match c
 cast-value-progress V⊢ vV
@@ -563,33 +656,15 @@ cast-value-progress V⊢ vV
     ⦃ Gns = Gns ⦄ ⦃ gmatch = hmatch ⦄
     ⦃ Hns = Bns ⦄ ⦃ hmatch = match ⦄ vW H≠G))
 cast-value-progress V⊢ vV
-    (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    with B ≟Ty ★
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+  step (β-inst vV B≢★)
 cast-value-progress V⊢ vV
-    (inst_ {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | no B≠★ =
-  step (β-inst vV B≠★)
-cast-value-progress V⊢ vV
-    (inst_ {B = .★} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | yes refl with ground-inst-view c Anv z∈A
-cast-value-progress V⊢ vV
-    (inst_ {B = .★} ⦃ Anv ⦄ ⦃ z∈A ⦄ c)
-    | yes refl | factor f =
-  step (pure-step (ground-∀ vV f))
-cast-value-progress V⊢ vV
-    (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    with A ≟Ty ★
-cast-value-progress V⊢ vV
-    (gen_ {A = A} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | no A≠★ =
-  done (vV 《 genᵥ A≠★ (gen-safe c A≠★ Bnv z∈B) 》)
-cast-value-progress V⊢ vV
-    (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | yes refl with ground-gen-view c Bnv z∈B
-cast-value-progress V⊢ vV
-    (gen_ {A = .★} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c)
-    | yes refl | factor f =
-  step (pure-step (expand-∀ vV f))
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+  done (vV 《 genᵥ A≢★ (gen-safe c A≢★ Bnv z∈B) 》)
+cast-value-progress V⊢ vV bot-elim =
+  ⊥-elim (no-bot-value vV V⊢)
+cast-value-progress V⊢ vV bot-intro =
+  step (pure-step (blame-bot-intro vV))
 
 reveal-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
     {A B : Ty Δ} {c : Conv↑ Δ A B}

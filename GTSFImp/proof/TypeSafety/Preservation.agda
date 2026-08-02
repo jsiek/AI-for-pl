@@ -164,10 +164,6 @@ pure-preservation
   ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ (sym∼ c))) d
 pure-preservation (⊢• (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ vV refl) =
   ⊢⟨⟩ (⊢• V⊢) (c [ _ ]ᶜ)
-pure-preservation (⊢⟨⟩ V⊢ (gen c)) (expand-∀ vV factor) =
-  ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (id ★ ↦ id ★))) _
-pure-preservation (⊢⟨⟩ V⊢ (inst c)) (ground-∀ vV factor) =
-  ⊢⟨⟩ (⊢⟨⟩ V⊢ _) ((id ★ ↦ id ★) !)
 pure-preservation (⊢⟨⟩ V⊢ (c !)) (ground vV A≠G) =
   ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ _) !)
 pure-preservation (⊢⟨⟩ V⊢ (？ c)) (expand vV G≠B) =
@@ -176,6 +172,8 @@ pure-preservation (⊢⟨⟩ (⊢⟨⟩ V⊢ inject) project)
     (tag-untag vV) = V⊢
 pure-preservation (⊢⟨⟩ (⊢⟨⟩ V⊢ inject) project)
     (tag-untag-bad vV G≠H) = ⊢blame
+pure-preservation (⊢⟨⟩ V⊢ bot-intro)
+    (blame-bot-intro vV) = ⊢blame
 pure-preservation (⊢· (⊢reveal (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢)
     (β-reveal-⇒ vV vW) =
   ⊢reveal d⊢ (⊢· V⊢ (⊢conceal c⊢ W⊢))
@@ -209,8 +207,8 @@ preservation : ∀ {Δ Δ′} {Σ : TyStore Δ} {M : Term Δ}
 preservation M⊢ (pure-step red) = pure-preservation M⊢ red
 preservation (⊢• (⊢Λ vV V⊢)) (β-Λ vV′) =
   reveal-zero-typing _ _ (typing-lift-to-bind V⊢)
-preservation {Δ = Δ} {Σ = Σ} (⊢⟨⟩ V⊢ (inst c))
-    (β-inst {V = V} {A = A} {B = B} vV B≠★) =
+preservation {Δ = Δ} {Σ = Σ} (⊢⟨⟩ V⊢ ((inst c) B≢★))
+    (β-inst {V = V} {A = A} {B = B} vV .B≢★) =
   subst≡
     (λ T → ⟨ suc Δ , store-bind Σ ★ , [] ⟩
       ⊢ (⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ Fin.zero ]
@@ -235,7 +233,8 @@ preservation {Δ = Δ} {Σ = Σ} (⊢⟨⟩ V⊢ (inst c))
         ⊢ (⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ Fin.zero ])
           ↑ 〖 Fin.zero , ★ ↑ A 〗 ⦂ T)
       (sym (renameᵗ-wk-eq (A [ ★ ]ᵗ))) revealed⊢
-preservation (⊢• (⊢⟨⟩ V⊢ (gen c))) (β-gen vV A≠★ safe) =
+preservation (⊢• (⊢⟨⟩ V⊢ ((gen c) A≢★)))
+    (β-gen vV .A≢★ safe) =
   reveal-zero-typing _ _ (⊢⟨⟩ (typing-shiftᵗ-bind V⊢) c)
 preservation {Δ = Δ} {Σ = Σ}
     (⊢• (⊢reveal (⊢↑-∀ c⊢) V⊢))

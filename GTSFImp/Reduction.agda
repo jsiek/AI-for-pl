@@ -5,6 +5,8 @@ module Reduction where
 --   * Implements the ground-type cast rules of Figure 4 of "Refined
 --     Criteria for Gradual Typing" and the polymorphic store action of
 --     GTPLC.
+--   * Eagerly blames casts that introduce the empty universal; eliminating
+--     that type has no rule because no closed value can inhabit it.
 --   * Provides intrinsically scoped traces and actions of store changes on
 --     stores, types, consistency evidence, and terms.
 
@@ -117,50 +119,6 @@ applyTerms [] M = M
 applyTerms (χ ∷ χs) M = χs ▶ᵀ (χ ▷ᵀ M)
 
 ------------------------------------------------------------------------
--- Factoring eager checks out of polymorphic casts
-------------------------------------------------------------------------
-
-data GroundGen : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {B : Ty Δ}
-    → (c : μ ⊢ ★ ∼ B)
-    → (c′ : μ ⊢ (★ ⇒ ★) ∼ B)
-    → Set where
-
-  ground-gen-⇒ : ∀ {Δ μ} {B : Ty Δ}
-      {c : μ ⊢ (★ ⇒ ★) ∼ B} ⦃ Bns : NonStar B ⦄
-    → GenSafe c
-    → GroundGen (？ c) c
-
-  ground-gen-∀ : ∀ {Δ μ} {B : Ty (Nat.suc Δ)}
-      {c : genᵐ μ ⊢ ★ ∼ B}
-      {c′ : genᵐ μ ⊢ (★ ⇒ ★) ∼ B}
-      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : 0 ∈ᵗ B ⦄
-    → GroundGen c c′
-    → GroundGen (gen c) (gen c′)
-
-groundGen-safe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {B : Ty Δ}
-    {c : μ ⊢ ★ ∼ B} {c′ : μ ⊢ (★ ⇒ ★) ∼ B}
-  → GroundGen c c′
-  → GenSafe c′
-groundGen-safe (ground-gen-⇒ safe) = safe
-groundGen-safe (ground-gen-∀ factor) = safe-gen (groundGen-safe factor)
-
-data GroundInst : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A : Ty Δ}
-    → (c : μ ⊢ A ∼ ★)
-    → (c′ : μ ⊢ A ∼ (★ ⇒ ★))
-    → Set where
-
-  ground-inst-⇒ : ∀ {Δ μ} {A : Ty Δ}
-      {c : μ ⊢ A ∼ (★ ⇒ ★)} ⦃ Ans : NonStar A ⦄
-    → GroundInst (c !) c
-
-  ground-inst-∀ : ∀ {Δ μ} {A : Ty (Nat.suc Δ)}
-      {c : instᵐ μ ⊢ A ∼ ★}
-      {c′ : instᵐ μ ⊢ A ∼ (★ ⇒ ★)}
-      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : 0 ∈ᵗ A ⦄
-    → GroundInst c c′
-    → GroundInst (inst c) (inst c′)
-
-------------------------------------------------------------------------
 -- Pure one-step reduction
 ------------------------------------------------------------------------
 
@@ -200,26 +158,6 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
       -----------------------------------------------
     → (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→ (V ⦂∀ A [ C ]) ⟨ d ⟩
 
-  expand-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
-      {B : Ty (Nat.suc Δ)} {c : genᵐ μ ⊢ ★ ∼ B}
-      ⦃ Bnv : NonVar B ⦄ {c′ : genᵐ μ ⊢ (★ ⇒ ★) ∼ B}
-      ⦃ z∈B : 0 ∈ᵗ B ⦄
-    → Value V
-    → GroundGen c c′
-      ---------------------------------------------------------
-    → V ⟨ gen c ⟩ —→
-        V ⟨ ？ (id {μ = μ} ★ ↦ id ★) ⟩ ⟨ gen c′ ⟩
-
-  ground-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
-      {A : Ty (Nat.suc Δ)} {c : instᵐ μ ⊢ A ∼ ★}
-      ⦃ Anv : NonVar A ⦄ {c′ : instᵐ μ ⊢ A ∼ (★ ⇒ ★)}
-      ⦃ z∈A : 0 ∈ᵗ A ⦄
-    → Value V
-    → GroundInst c c′
-      -----------------------------------------------------------
-    → V ⟨ inst c ⟩ —→
-        V ⟨ inst c′ ⟩ ⟨ (id {μ = μ} ★ ↦ id ★) ! ⟩
-
   ground : ∀ {V : Term Δ} {μ : Env∼ Δ} {A G : Ty Δ}
       ⦃ g : Groundʳ μ X∼★ G ⦄ {c : μ ⊢ A ∼ G}
       ⦃ Ans : NonStar A ⦄ ⦃ match : GroundMatch g A ⦄
@@ -256,6 +194,11 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
     → G ≢ H
       ------------------------------------------------------------
     → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ blame
+
+  blame-bot-intro : ∀ {V : Term Δ} {μ : Env∼ Δ}
+    → Value V
+      -------------------------
+    → V ⟨ bot-intro {μ = μ} ⟩ —→ blame
 
   β-reveal-⇒ : ∀ {V W : Term Δ} {A A′ B B′}
       {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
@@ -360,9 +303,9 @@ data _—→[_]_ : ∀ {Δ Δ′}
       {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
       ⦃ Anv : NonVar A ⦄ ⦃ z∈A : 0 ∈ᵗ A ⦄
     → Value V
-    → B ≢ ★
+    → (B≢★ : B ≢ ★)
       -----------------------------------------------------------------
-    → V ⟨ inst c ⟩ —→[ bind ★ ]
+    → V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ]
       ⇑ᵗᵐ V ⦂∀ (bind ★ ▷ᵇ A) [ ＇ 0 ] ↑ 〖 0 , ★ ↑ A 〗
         ⟨ ↑ᶜ (c [ ★/0 ]ᶜ) ⟩
 
@@ -371,10 +314,10 @@ data _—→[_]_ : ∀ {Δ Δ′}
       {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
       ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : 0 ∈ᵗ B ⦄
     → Value V
-    → A ≢ ★
+    → (A≢★ : A ≢ ★)
     → GenSafe c
       ---------------------------------------------------------------
-    → (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind C ]
+    → (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ]
       ⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 0 , ⇑ᵗ C ↑ B 〗
 
   β-reveal-∀ : ∀ {Δ} {V : Term Δ} {A : Ty Δ}

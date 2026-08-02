@@ -2,7 +2,7 @@ module proof.DGG.ReductionPreservesReflexiveImprecision where
 
 -- File Charter:
 --   * Proves the DGG warm-up that reflexive cast-term imprecision is
---     preserved by one store-changing reduction step.
+--     preserved by store-changing one-step and multi-step reduction.
 --   * Uses the two-renaming cast-term imprecision relation with identity
 --     embeddings on both reducts.
 --   * Depends on type preservation, type-variable renaming for typing, and
@@ -20,8 +20,10 @@ open import TyStore using (TyStore; store-empty; store-lift; store-bind; _∋_�
 open import Consistency using (id↪ᵗ; toRenameᵗ)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Reduction
-  using (StoreChange; _—→[_]_; applyStore; applyTy)
-open import proof.TypeSafety.Preservation using (preservation)
+  using (StoreChange; StoreChanges; _—→[_]_; _—↠[_]_;
+   applyStore; applyStores; applyTy; applyTys)
+open import proof.TypeSafety.Preservation using
+  (preservation; multi-preservation)
 open import proof.TypeInTermSubst using
   (StoreRename; toRename-id-eq; renameᵗ-pointwise-id;
    typing-renameᵗ)
@@ -105,3 +107,23 @@ reduction-preserves-reflᶜ {Σ = Σ} {N = N} {A = A} {χ = χ} M⊢ step =
       (reflStoreImp-renamings-categorize (applyStore χ Σ))
       (CTI.reflᶜ (typing-renameᵗ StoreRename-toRename-id
         (preservation M⊢ step))))
+
+multi-reduction-preserves-reflᶜ : ∀ {Δ Δ′} {Σ : TyStore Δ}
+    {M : Term Δ} {N : Term Δ′} {A : Ty Δ}
+    {χs : StoreChanges Δ Δ′}
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
+  → M —↠[ χs ] N
+  → id↪ᵗ ∣ id↪ᵗ ∣ reflStoreImp (applyStores χs Σ)
+      ∣ reflCtx (impEnvⁱ (reflStoreImp (applyStores χs Σ))) []
+      ⊢ᶜ N ⊑ N ∶ refl⊑ (applyTys χs A)
+multi-reduction-preserves-reflᶜ
+    {Σ = Σ} {N = N} {A = A} {χs = χs} M⊢ steps =
+  subst≡
+    (λ B → id↪ᵗ ∣ id↪ᵗ ∣ reflStoreImp (applyStores χs Σ)
+      ∣ reflCtx (impEnvⁱ (reflStoreImp (applyStores χs Σ))) []
+      ⊢ᶜ N ⊑ N ∶ refl⊑ B)
+    (renameᵗ-toRename-id (applyTys χs A))
+    (CTI.rename⊑renameᶜ
+      (reflStoreImp-renamings-categorize (applyStores χs Σ))
+      (CTI.reflᶜ (typing-renameᵗ StoreRename-toRename-id
+        (multi-preservation M⊢ steps))))

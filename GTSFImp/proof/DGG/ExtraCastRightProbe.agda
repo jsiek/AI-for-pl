@@ -18,8 +18,8 @@ import Consistency as C
 open import Conversion using (〖_,_↑_〗)
 open import CastTerms using
   (Term; Value; _⊢_⦂_; ⊢⟨⟩; ⟨_,_,_⟩; ƛ_; Λ_; $; _⦂∀_[_];
-   _⟨_⟩; _↑_; _↓_; Inert; inj; fun; all; seal; genᵥ; _《_》;
-   renameᵗᵐ; ⇑ᵗᵐ)
+   _⟨_⟩; _↑_; _↓_; GenSafe; Inert; inj; fun; all; seal; genᵥ;
+   safe-⇒; safe-∀; safe-inst; safe-gen; _《_》; renameᵗᵐ; ⇑ᵗᵐ)
 open import Imprecision using (_⊢_⊑_)
 import Imprecision as I
 import Reduction as R
@@ -28,12 +28,17 @@ import proof.DGG.CastTermImprecision as CTI
 import proof.DGG.ExtraCastRight as ECR
 import proof.DGG.RightInjInversion as RII
 open CTI using (_∣_⊢ᶜ_⊑_∶_; _∣_∣_∣_⊢ᶜ_⊑_∶_)
-open import proof.ImprecisionConsistency using (ground-cast-target⊑)
+open import proof.ImprecisionConsistency using
+  (ground-cast-source⊑; ground-cast-target⊑; ground-targets-unique⊑;
+   ground-target-nonvar-to-star⊑; nonstar-from-≢★;
+   renameᵗ-injective; source-occurs-target; toRenameᵗ-injective;
+   unshift-nonvar)
 import proof.Imprecision as PI
 import proof.TypeSafety.Progress as Prog
 open import proof.TypeSafety.Progress using (gen-safe)
 open import proof.TypeInTermSubst using
-  (rename-star-injective; rename-occurs; renameᵗᵐ-preserves-Value)
+  (rename-star-injective; rename-occurs; renameᵗ-wk-eq;
+   renameᵗᵐ-preserves-Value)
 
 applyEnvs : ∀ {Δ Δ′}
   → R.StoreChanges Δ Δ′
@@ -111,6 +116,160 @@ applyConsistencies-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
 applyConsistencies-Inert R.[] inert = inert
 applyConsistencies-Inert (χ R.∷ χs) inert =
   applyConsistencies-Inert χs (applyStoreChange-Inert χ inert)
+
+gen-safe-source-nonvar : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → GenSafe c
+  → NonVar A
+gen-safe-source-nonvar safe-⇒ = nonvar-fun
+gen-safe-source-nonvar safe-∀ = nonvar-all
+gen-safe-source-nonvar (safe-inst B≢★) = nonvar-all
+gen-safe-source-nonvar (safe-gen A≢★ safe) =
+  unshift-nonvar (gen-safe-source-nonvar safe)
+
+right-inj-index-forces-core : ∀ {Δ} {ρ : CTI.StoreImp Δ}
+    {γ : GTI.CtxImp (CTI.impEnvⁱ ρ)}
+    {M W : Term Δ} {A G H : Ty Δ} {ν κ : Env∼ Δ}
+    {r : C.Var∼}
+    {gH : C.Groundʳ κ C.X∼★ H}
+    {Hns : NonStar H} {hmatch : C.GroundMatch gH H}
+    {cH : κ ⊢ H ∼ H}
+    {p : CTI.impEnvⁱ ρ ⊢ A ⊑ ★}
+  → (gG : C.Groundʳ ν r G)
+  → Value M
+  → ρ ∣ γ ⊢ᶜ M
+      ⊑ W ⟨ _! ⦃ gH ⦄ cH ⦃ Hns ⦄ ⦃ hmatch ⦄ ⟩
+      ∶ p
+  → CTI.impEnvⁱ ρ ⊢ A ⊑ G
+  → CTI.impEnvⁱ ρ ⊢ A ⊑ H
+right-inj-index-forces-core gG vM
+    (CTI.⊑castᶜ {p = A⊑H} c′ M⊑W A⊑★) A⊑G =
+  A⊑H
+right-inj-index-forces-core () (vM 《 inj 》)
+    (CTI.cast⊑castᶜ c c′ M⊑W A⊑★) I.★⊑★
+right-inj-index-forces-core {gH = C.g-⇒} C.g-⇒
+    (vM 《 fun 》)
+    (CTI.cast⊑castᶜ {p = I.⇒⊑⇒ pA pB} (c ↦ d) c′ M⊑W
+      A⊑★)
+    (I.⇒⊑⇒ qA qB) =
+  I.⇒⊑⇒ qA qB
+right-inj-index-forces-core {ρ = ρ} {A = A′} {gH = gH} gG
+    (vM 《 all {c = c} 》)
+    (CTI.cast⊑castᶜ {p = C⊑H} .(∀ᶜ c) c′ M⊑W A′⊑★)
+    A′⊑G =
+  subst≡ (λ T → CTI.impEnvⁱ ρ ⊢ A′ ⊑ T)
+    (ground-targets-unique⊑ gG gH
+      (ground-cast-source⊑ gG nonstar-∀ (∀ᶜ c)
+        (ground-target-nonvar-to-star⊑ gH nonvar-all C⊑H)
+        A′⊑★ A′⊑G)
+      C⊑H)
+    A′⊑G
+right-inj-index-forces-core {ρ = ρ} {A = A′} {gH = gH} gG
+    (vM 《 genᵥ A≢★ safe 》)
+    (CTI.cast⊑castᶜ {p = C⊑H} c c′ M⊑W A′⊑★)
+    A′⊑G =
+  subst≡ (λ T → CTI.impEnvⁱ ρ ⊢ A′ ⊑ T)
+    (ground-targets-unique⊑ gG gH
+      (ground-cast-source⊑ gG (nonstar-from-≢★ A≢★) c
+        (ground-target-nonvar-to-star⊑ gH
+          (unshift-nonvar (gen-safe-source-nonvar safe)) C⊑H)
+        A′⊑★ A′⊑G)
+      C⊑H)
+    A′⊑G
+right-inj-index-forces-core () (vM 《 inj 》)
+    (CTI.cast⊑ᶜ c M⊑W! A⊑★) I.★⊑★
+right-inj-index-forces-core {ρ = ρ} {γ = γ} {A = A′} {H = H}
+    {ν = νG} {κ = κH} {r = rG} {gH = gH} {cH = cH}
+    C.g-⇒ (vM 《 fun 》)
+    (CTI.cast⊑ᶜ {A = A₀} {p = I.⇒⊑★ pA pB}
+      c M⊑W! A⊑★)
+    (I.⇒⊑⇒ qA qB) =
+  subst≡ (λ T → CTI.impEnvⁱ ρ ⊢ A′ ⊑ T) eq (I.⇒⊑⇒ qA qB)
+  where
+  A₀⊑G : CTI.impEnvⁱ ρ ⊢ A₀ ⊑ ★ ⇒ ★
+  A₀⊑G = I.⇒⊑⇒ pA pB
+
+  A₀⊑H : CTI.impEnvⁱ ρ ⊢ A₀ ⊑ H
+  A₀⊑H =
+    right-inj-index-forces-core {ρ = ρ} {γ = γ} {A = A₀}
+      {G = ★ ⇒ ★} {ν = νG} {κ = κH} {r = rG}
+      {gH = gH} {cH = cH}
+      C.g-⇒ vM M⊑W! A₀⊑G
+
+  eq : ★ ⇒ ★ ≡ H
+  eq = ground-targets-unique⊑ {ν = νG} {κ = κH}
+    {r = rG} C.g-⇒ gH A₀⊑G A₀⊑H
+right-inj-index-forces-core {ρ = ρ} {A = A′} {gH = gH} gG
+    (vM 《 all {c = c} 》)
+    (CTI.cast⊑ᶜ {p = p} .(∀ᶜ c) M⊑W! A⊑★) A⊑G =
+  subst≡ (λ T → CTI.impEnvⁱ ρ ⊢ A′ ⊑ T)
+    (ground-targets-unique⊑ gG gH
+      (ground-cast-source⊑ gG nonstar-∀ (∀ᶜ c) p A⊑★ A⊑G)
+      (right-inj-index-forces-core gG vM M⊑W!
+        (ground-cast-source⊑ gG nonstar-∀ (∀ᶜ c) p A⊑★ A⊑G)))
+    A⊑G
+right-inj-index-forces-core {ρ = ρ} {A = A′} {gH = gH} gG
+    (vM 《 genᵥ A≢★ safe 》)
+    (CTI.cast⊑ᶜ {p = p} c M⊑W! A⊑★) A⊑G =
+  subst≡ (λ T → CTI.impEnvⁱ ρ ⊢ A′ ⊑ T)
+    (ground-targets-unique⊑ gG gH
+      (ground-cast-source⊑ gG (nonstar-from-≢★ A≢★) c p
+        A⊑★ A⊑G)
+      (right-inj-index-forces-core gG vM M⊑W!
+        (ground-cast-source⊑ gG (nonstar-from-≢★ A≢★) c p
+          A⊑★ A⊑G)))
+    A⊑G
+right-inj-index-forces-core {ρ = ρ} {W = W} {G = G} {H = H}
+    {ν = νG} {κ = κH} {r = rG} {gH = gH} {cH = cH}
+    gG (Λ vV₀)
+    (CTI.Λ⊑ᶜ {γ′ = γ′} {A = A₀}
+      Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (I.∀⊑ Anv′ zero∈A′ A₀⊑⇑G) =
+  I.∀⊑ Anv′ zero∈A′
+    (subst≡ (λ T → I.instᵐ (CTI.impEnvⁱ ρ) ⊢ A₀ ⊑ T)
+      (renameᵗ-wk-eq H)
+      (right-inj-index-forces-core
+        {ρ = CTI.liftStoreImp I.X⊑★ ρ} {γ = γ′}
+        {W = renameᵗᵐ wk↪ᵗ W}
+        {G = renameᵗ (toRenameᵗ wk↪ᵗ) G}
+        {H = renameᵗ (toRenameᵗ wk↪ᵗ) H}
+        {ν = C.renameEnv∼ wk↪ᵗ νG}
+        {κ = C.renameEnv∼ wk↪ᵗ κH} {r = rG}
+        (ECR.rename-groundʳ wk↪ᵗ gG) vV V⊑⇑W!
+        (subst≡ (λ T → I.instᵐ (CTI.impEnvⁱ ρ) ⊢ A₀ ⊑ T)
+          (sym (renameᵗ-wk-eq G)) A₀⊑⇑G)))
+right-inj-index-forces-core C.g-∀ (Λ vV₀)
+    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (I.∀⊑∀ A⊑★)
+    with source-occurs-target refl A⊑★ zero∈A
+right-inj-index-forces-core C.g-∀ (Λ vV₀)
+    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (I.∀⊑∀ A⊑★) | ()
+right-inj-index-forces-core gG (Λ vV₀)
+    (CTI.Λ⊑ᶜ () zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    I.bot-elim
+right-inj-index-forces-core gG () (CTI.•⊑ᶜ M⊑M′ q′ p) A⊑G
+
+right-inj-index-forces-indexed : ∀ {Δᴸ Δᴿ Δ}
+    {ηᴸ : Δᴸ ↪ᵗ Δ} {ηᴿ : Δᴿ ↪ᵗ Δ}
+    {ρ : CTI.StoreImp Δ} {γ : GTI.CtxImp (CTI.impEnvⁱ ρ)}
+    {M : Term Δᴸ} {W : Term Δᴿ}
+    {A : Ty Δ} {G H : Ty Δᴿ} {ν κ : Env∼ Δᴿ}
+    {r : C.Var∼}
+    {gH : C.Groundʳ κ C.X∼★ H}
+    {Hns : NonStar H} {hmatch : C.GroundMatch gH H}
+    {p : CTI.impEnvⁱ ρ ⊢ A ⊑ ★}
+  → (gG : C.Groundʳ ν r G)
+  → Value M
+  → ηᴸ ∣ ηᴿ ∣ ρ ∣ γ ⊢ᶜ M
+      ⊑ W ⟨ _! ⦃ gH ⦄ (C.idᵍ gH) ⦃ Hns ⦄ ⦃ hmatch ⦄ ⟩
+      ∶ p
+  → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) G
+  → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) H
+right-inj-index-forces-indexed {ηᴿ = ηᴿ} gG vM
+    (CTI.rename⊑renameᶜ categorize M⊑W!) A⊑G =
+  right-inj-index-forces-core (ECR.rename-groundʳ ηᴿ gG)
+    (renameᵗᵐ-preserves-Value _ vM) M⊑W! A⊑G
 
 extra-cast-right-top-partial : ∀ {Δᴸ Δᴿ Δ}
     {ηᴸ : Δᴸ ↪ᵗ Δ} {ηᴿ : Δᴿ ↪ᵗ Δ}
@@ -428,7 +587,12 @@ extra-cast-right-top-partial {Δᴿ = Δᴿ} {Δ = Δ}
         (inj {G = H} ⦃ g = h ⦄ ⦃ Gns = Hns ⦄
           ⦃ match = hmatch ⦄)
     | M⊑M′tag | no B′≢H =
-  {!!}
+  ⊥-elim
+    (B′≢H
+      (renameᵗ-injective (toRenameᵗ-injective ηᴿ)
+        (ground-targets-unique⊑ (ECR.rename-groundʳ ηᴿ g)
+          (ECR.rename-groundʳ ηᴿ h) q
+          (right-inj-index-forces-indexed g vM M⊑M′tag q))))
 extra-cast-right-top-partial {Δᴿ = Δᴿ} {Δ = Δ}
     {ηᴸ = ηᴸ} {ηᴿ = ηᴿ} {ρ = ρ} {γ = γ}
     {M = M} {M′ = M′} {A = A} {B′ = B′}

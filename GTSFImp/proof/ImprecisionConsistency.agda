@@ -12,7 +12,7 @@ open import Data.Fin using (zero; suc)
 import Data.Nat as Nat
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; cong; refl; subst; sym; trans)
+  using (_≡_; _≢_; cong; cong₂; refl; subst; sym; trans)
 open import Relation.Nullary using (no; yes)
 
 open import Types
@@ -113,6 +113,74 @@ ext-injective injective {zero} {suc Y} ()
 ext-injective injective {suc X} {zero} ()
 ext-injective injective {suc X} {suc Y} eq =
   cong suc (injective (fin-suc-injective eq))
+
+toRenameᵗ-injective : ∀ {Δ Δ′}
+  → (η : Δ ↪ᵗ Δ′)
+  → ∀ {X Y} → toRenameᵗ η X ≡ toRenameᵗ η Y → X ≡ Y
+toRenameᵗ-injective empty {()}
+toRenameᵗ-injective (keep η) {zero} {zero} eq = refl
+toRenameᵗ-injective (keep η) {zero} {suc Y} ()
+toRenameᵗ-injective (keep η) {suc X} {zero} ()
+toRenameᵗ-injective (keep η) {suc X} {suc Y} eq =
+  cong suc (toRenameᵗ-injective η (fin-suc-injective eq))
+toRenameᵗ-injective (skip η) eq =
+  toRenameᵗ-injective η (fin-suc-injective eq)
+
+ty-var-injective : ∀ {Δ : TyCtx} {X Y : TyVar Δ}
+  → _≡_ {A = Ty Δ} (＇ X) (＇ Y)
+  → X ≡ Y
+ty-var-injective {X = X} {.X} refl = refl
+
+ty-fun-left-injective : ∀ {Δ} {A A′ B B′ : Ty Δ}
+  → A ⇒ B ≡ A′ ⇒ B′
+  → A ≡ A′
+ty-fun-left-injective refl = refl
+
+ty-fun-right-injective : ∀ {Δ} {A A′ B B′ : Ty Δ}
+  → A ⇒ B ≡ A′ ⇒ B′
+  → B ≡ B′
+ty-fun-right-injective refl = refl
+
+ty-all-injective : ∀ {Δ} {A B : Ty (Nat.suc Δ)}
+  → `∀ A ≡ `∀ B
+  → A ≡ B
+ty-all-injective refl = refl
+
+renameᵗ-injective : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+  → (∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
+  → ∀ {A B : Ty Δ}
+  → renameᵗ ρ A ≡ renameᵗ ρ B
+  → A ≡ B
+renameᵗ-injective {ρ = ρ} injective {A = ＇ X} {B = ＇ Y} eq =
+  cong ＇_ (injective (ty-var-injective {X = ρ X} {Y = ρ Y} eq))
+renameᵗ-injective injective {A = ＇ X} {B = ‵ ι} ()
+renameᵗ-injective injective {A = ＇ X} {B = ★} ()
+renameᵗ-injective injective {A = ＇ X} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ＇ X} {B = `∀ B} ()
+renameᵗ-injective injective {A = ‵ ι} {B = ＇ X} ()
+renameᵗ-injective injective {A = ‵ ι} {B = ‵ ι′} refl = refl
+renameᵗ-injective injective {A = ‵ ι} {B = ★} ()
+renameᵗ-injective injective {A = ‵ ι} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ‵ ι} {B = `∀ B} ()
+renameᵗ-injective injective {A = ★} {B = ＇ X} ()
+renameᵗ-injective injective {A = ★} {B = ‵ ι} ()
+renameᵗ-injective injective {A = ★} {B = ★} eq = refl
+renameᵗ-injective injective {A = ★} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ★} {B = `∀ B} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ＇ X} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ‵ ι} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ★} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = B ⇒ B′} eq =
+  cong₂ _⇒_ (renameᵗ-injective injective (ty-fun-left-injective eq))
+    (renameᵗ-injective injective (ty-fun-right-injective eq))
+renameᵗ-injective injective {A = A ⇒ A′} {B = `∀ B} ()
+renameᵗ-injective injective {A = `∀ A} {B = ＇ X} ()
+renameᵗ-injective injective {A = `∀ A} {B = ‵ ι} ()
+renameᵗ-injective injective {A = `∀ A} {B = ★} ()
+renameᵗ-injective injective {A = `∀ A} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = `∀ A} {B = `∀ B} eq =
+  cong `∀
+    (renameᵗ-injective (ext-injective injective) (ty-all-injective eq))
 
 rename-not-occurs : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
@@ -600,6 +668,34 @@ inst-groundʳ g-ι = g-ι
 inst-groundʳ (g-X eq) = g-X eq
 inst-groundʳ g-∀ = g-∀
 
+ground-target-nonvar-to-star⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν : Env∼ Δ}
+    {r : C.Var∼} {A G : Ty Δ}
+  → Groundʳ ν r G
+  → NonVar A
+  → μ ⊢ A ⊑ G
+  → μ ⊢ A ⊑ ★
+ground-target-nonvar-to-star⊑ () Anv I.★⊑★
+ground-target-nonvar-to-star⊑ g-ι nonvar-base I.ι⊑ι = I.ι⊑★
+ground-target-nonvar-to-star⊑ g () I.X⊑X
+ground-target-nonvar-to-star⊑ g-⇒ nonvar-fun
+    (I.⇒⊑⇒ A⊑★ B⊑★) =
+  I.⇒⊑★ A⊑★ B⊑★
+ground-target-nonvar-to-star⊑ g-∀ nonvar-all (I.∀⊑∀ A⊑G) =
+  universal-right-to-star (I.∀⊑∀ A⊑G)
+ground-target-nonvar-to-star⊑ () nonvar-fun
+    (I.⇒⊑★ A⊑★ B⊑★)
+ground-target-nonvar-to-star⊑ () nonvar-base I.ι⊑★
+ground-target-nonvar-to-star⊑ () () (I.X⊑★ eq)
+ground-target-nonvar-to-star⊑ g nonvar-all
+    (I.∀⊑ Anv zero∈A A⊑G) =
+  I.∀⊑ Anv zero∈A
+    (ground-target-nonvar-to-star⊑ (inst-groundʳ g) Anv A⊑G)
+ground-target-nonvar-to-star⊑ () nonvar-all I.∀★⊑★
+ground-target-nonvar-to-star⊑ () nonvar-all (I.∀⊑★ Ans A⊑★)
+ground-target-nonvar-to-star⊑ g-∀ nonvar-all I.bot-elim =
+  I.bot⊑★
+ground-target-nonvar-to-star⊑ () nonvar-all I.bot⊑★
+
 weaken-star-map-ext : ∀ {Δ} {μ ν : I.ImpEnv Δ}
   → (∀ X → μ X ≡ I.X⊑★ → ν X ≡ I.X⊑★)
   → ∀ X → I.extᵐ μ X ≡ I.X⊑★ → I.extᵐ ν X ≡ I.X⊑★
@@ -790,6 +886,13 @@ unshift-⊑ {A = A} {B = B} p =
       (shift-openᵗ B ★)
       (subst-⊑ open-star-map p))
 
+shift-injectiveᵗ : ∀ {Δ} {A B : Ty Δ}
+  → ⇑ᵗ A ≡ ⇑ᵗ B
+  → A ≡ B
+shift-injectiveᵗ {A = A} {B = B} eq =
+  trans (sym (shift-openᵗ A ★))
+    (trans (cong (λ T → T [ ★ ]ᵗ) eq) (shift-openᵗ B ★))
+
 ext-to-inst-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
   → ∀ X → I.extᵐ μ X ≡ I.X⊑★ → I.instᵐ μ X ≡ I.X⊑★
 ext-to-inst-star-map zero ()
@@ -951,8 +1054,9 @@ ground-cast-target⊑ g-∀ Bns C.bot-elim
   I.bot-elim
 
 ground-cast-source⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν κ : Env∼ Δ}
+    {r : C.Var∼}
     {A B G : Ty Δ}
-  → (g : Groundʳ ν X∼★ G)
+  → (g : Groundʳ ν r G)
   → NonStar A
   → κ ⊢ A ∼ B
   → μ ⊢ A ⊑ ★
@@ -987,7 +1091,8 @@ ground-cast-source⊑ g Ans (∀ᶜ c) A⊑★ B⊑★
     {zero∈B = zero∈B} {B⊑G = B⊑G} A⊑★ B⊑★
   where
   all-imp : ∀ {A B G μ ν κ}
-      {g : Groundʳ ν X∼★ G}
+      {r : C.Var∼}
+      {g : Groundʳ ν r G}
       {c : C.extᵐ κ ⊢ A ∼ B}
       {Bnv : NonVar B}
       {zero∈B : zero ∈ᵗ B}
@@ -1101,6 +1206,66 @@ expand-cast-source⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν : Env∼ Δ}
   → μ ⊢ A ⊑ G
 expand-cast-source⊑ g Bns c A⊑★ A⊑B =
   ground-cast-target⊑ (C.flip-Groundʳ g) Bns (C.sym∼ c) A⊑B A⊑★
+
+nonVar-zero⊥ : ∀ {Δ} → NonVar {Nat.suc Δ} (＇ zero) → ⊥
+nonVar-zero⊥ ()
+
+ground-targets-unique⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν κ : Env∼ Δ}
+    {r s : Var∼} {A G H : Ty Δ}
+  → Groundʳ ν r G
+  → Groundʳ κ s H
+  → μ ⊢ A ⊑ G
+  → μ ⊢ A ⊑ H
+  → G ≡ H
+ground-targets-unique⊑ () gH I.★⊑★ qH
+ground-targets-unique⊑ gG gH I.ι⊑ι I.ι⊑ι = refl
+ground-targets-unique⊑ gG () I.ι⊑ι I.ι⊑★
+ground-targets-unique⊑ gG gH I.X⊑X I.X⊑X = refl
+ground-targets-unique⊑ gG () I.X⊑X (I.X⊑★ eq)
+ground-targets-unique⊑ g-⇒ g-⇒
+    (I.⇒⊑⇒ A⊑★ B⊑★) (I.⇒⊑⇒ A⊑★′ B⊑★′) =
+  refl
+ground-targets-unique⊑ g-⇒ () (I.⇒⊑⇒ A⊑★ B⊑★)
+    (I.⇒⊑★ A⊑★′ B⊑★′)
+ground-targets-unique⊑ () gH (I.⇒⊑★ A⊑★ B⊑★) qH
+ground-targets-unique⊑ g-∀ g-∀ (I.∀⊑∀ A⊑★)
+    (I.∀⊑∀ A⊑★′) =
+  refl
+ground-targets-unique⊑ g-∀ gH (I.∀⊑∀ A⊑★)
+    (I.∀⊑ Anv zero∈A A⊑H)
+    with source-occurs-target refl A⊑★ zero∈A
+ground-targets-unique⊑ g-∀ gH (I.∀⊑∀ A⊑★)
+    (I.∀⊑ Anv zero∈A A⊑H) | ()
+ground-targets-unique⊑ gG () (I.∀⊑∀ A⊑★) I.∀★⊑★
+ground-targets-unique⊑ gG () (I.∀⊑∀ A⊑★) (I.∀⊑★ Ans A⊑★′)
+ground-targets-unique⊑ g-∀ g-∀ (I.∀⊑∀ A⊑★) I.bot-elim =
+  refl
+ground-targets-unique⊑ gG () (I.∀⊑∀ A⊑★) I.bot⊑★
+ground-targets-unique⊑ gG g-∀ (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑∀ A⊑★)
+    with source-occurs-target refl A⊑★ zero∈A
+ground-targets-unique⊑ gG g-∀ (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑∀ A⊑★) | ()
+ground-targets-unique⊑ gG gH (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑ Anv′ zero∈A′ A⊑H) =
+  shift-injectiveᵗ
+    (ground-targets-unique⊑ (inst-groundʳ gG) (inst-groundʳ gH)
+      A⊑G A⊑H)
+ground-targets-unique⊑ gG () (I.∀⊑ Anv zero∈A A⊑G) I.∀★⊑★
+ground-targets-unique⊑ gG () (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑★ Ans A⊑★)
+ground-targets-unique⊑ gG gH (I.∀⊑ () zero∈A A⊑G) I.bot-elim
+ground-targets-unique⊑ gG () (I.∀⊑ Anv zero∈A A⊑G) I.bot⊑★
+ground-targets-unique⊑ () gH I.∀★⊑★ qH
+ground-targets-unique⊑ () gH (I.∀⊑★ Ans A⊑★) qH
+ground-targets-unique⊑ g-∀ g-∀ I.bot-elim (I.∀⊑∀ A⊑★) =
+  refl
+ground-targets-unique⊑ gG gH I.bot-elim
+    (I.∀⊑ Anv zero∈A A⊑H) =
+  ⊥-elim (nonVar-zero⊥ Anv)
+ground-targets-unique⊑ g-∀ g-∀ I.bot-elim I.bot-elim = refl
+ground-targets-unique⊑ gG () I.bot-elim I.bot⊑★
+ground-targets-unique⊑ () gH I.bot⊑★ qH
 
 shift-not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A

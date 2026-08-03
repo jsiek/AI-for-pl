@@ -170,14 +170,14 @@ data _∣_⊢ᶜ_⊑_∶_ {Δ : TyCtx}
       -----------------------------------------------------
     → ρ ∣ γ ⊢ᶜ Λ V ⊑ Λ V′ ∶ ∀⊑∀ p
 
-  Λ⊑ᶜ : ∀ {γ′ V W M A B}
+  Λ⊑ᶜ : ∀ {γ′ V M A B}
       {p : instᵐ (impEnvⁱ ρ) ⊢ A ⊑ ⇑ᵗ B}
     → (Anv : NonVar A)
     → (zero∈A : zero ∈ᵗ A)
     → GTI.LiftCtxⁱ (instᵐ (impEnvⁱ ρ)) γ γ′
     → Value V
     → ⟨ Δ , targetStoreⁱ ρ , GTI.tgtCtxⁱ γ ⟩ ⊢ M ⦂ B
-    → liftStoreImp X⊑★ ρ ∣ γ′ ⊢ᶜ V ⊑ W ∶ p
+    → liftStoreImp X⊑★ ρ ∣ γ′ ⊢ᶜ V ⊑ ⇑ᵗᵐ M ∶ p
       --------------------------------------------------
     → ρ ∣ γ ⊢ᶜ Λ V ⊑ M ∶ ∀⊑ Anv zero∈A p
 
@@ -219,6 +219,14 @@ data _∣_⊢ᶜ_⊑_∶_ {Δ : TyCtx}
     → (q : impEnvⁱ ρ ⊢ A ⊑ B′)
       -------------------------------
     → ρ ∣ γ ⊢ᶜ M ⊑ M′ ⟨ c′ ⟩ ∶ q
+
+  cast⊑ᶜ : ∀ {M M′ A A′ B}
+      {p : impEnvⁱ ρ ⊢ A ⊑ B} {ν : Env∼ Δ}
+    → (c : ν ⊢ A ∼ A′)
+    → ρ ∣ γ ⊢ᶜ M ⊑ M′ ∶ p
+    → (q : impEnvⁱ ρ ⊢ A′ ⊑ B)
+      -------------------------------
+    → ρ ∣ γ ⊢ᶜ M ⟨ c ⟩ ⊑ M′ ∶ q
 
   reveal⊑revealᶜ : ∀ {M M′ A A′ B B′}
       {p : impEnvⁱ ρ ⊢ A ⊑ A′}
@@ -423,6 +431,8 @@ mutual
     ⊢⟨⟩ (cast-term-imprecision-source-typing M⊑M′) c
   cast-term-imprecision-source-typing (⊑castᶜ c′ M⊑M′ q) =
     cast-term-imprecision-source-typing M⊑M′
+  cast-term-imprecision-source-typing (cast⊑ᶜ c M⊑M′ q) =
+    ⊢⟨⟩ (cast-term-imprecision-source-typing M⊑M′) c
   cast-term-imprecision-source-typing
       (reveal⊑revealᶜ c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal c⊢ (cast-term-imprecision-source-typing M⊑M′)
@@ -462,6 +472,8 @@ mutual
     ⊢⟨⟩ (cast-term-imprecision-target-typing M⊑M′) c′
   cast-term-imprecision-target-typing (⊑castᶜ c′ M⊑M′ q) =
     ⊢⟨⟩ (cast-term-imprecision-target-typing M⊑M′) c′
+  cast-term-imprecision-target-typing (cast⊑ᶜ c M⊑M′ q) =
+    cast-term-imprecision-target-typing M⊑M′
   cast-term-imprecision-target-typing
       (reveal⊑revealᶜ c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal c′⊢ (cast-term-imprecision-target-typing M⊑M′)

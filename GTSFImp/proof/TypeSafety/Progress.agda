@@ -184,9 +184,9 @@ canonical-𝔹 (vW ↓ seal) ()
 canonical-𝔹 (vW ↓ fun) ()
 canonical-𝔹 (vW ↓ all) ()
 
-canonical-★ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
+canonical-★ : ∀ {Δ} {Σ : TyStore Δ} {Γ : TermCtx Δ} {V : Term Δ}
   → Value V
-  → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ ★
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ ★
   → StarView V
 canonical-★ (ƛ N) ()
 canonical-★ (Λ vV) ()

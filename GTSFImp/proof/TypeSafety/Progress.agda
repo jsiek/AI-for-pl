@@ -16,6 +16,7 @@ open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TyStore
+open import TermCtx using (TermCtx)
 open import Consistency
 open import Conversion
 open import Primitives
@@ -221,103 +222,118 @@ canonical-X (vW ↓ seal) (⊢conceal (⊢↓-seal X∈) W⊢) =
 canonical-X (vW ↓ fun) ()
 canonical-X (vW ↓ all) ()
 
-private
+------------------------------------------------------------------------
+-- Fresh type-variable contradictions
+------------------------------------------------------------------------
 
-  X∼★≢X∼X : X∼★ ≢ X∼X
-  X∼★≢X∼X ()
+X∼★≢X∼X : X∼★ ≢ X∼X
+X∼★≢X∼X ()
 
-  no-to-distinct-variable : ∀ {Δ} {μ : Env∼ Δ}
-      {A : Ty Δ} {X Y : TyVar Δ}
-    → μ Y ≡ X∼★
-    → μ X ≡ X∼X
-    → μ ⊢ A ∼ ＇ X
-    → Y ∈ᵗ A
-    → ⊥
-  no-to-distinct-variable Y★ XX (id (＇ X)) var-∈ =
-    X∼★≢X∼X (trans (sym Y★) XX)
-  no-to-distinct-variable Y★ XX
-      (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
-  no-to-distinct-variable Y★ XX
-      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all Y∈A) =
-    no-to-distinct-variable Y★ XX c Y∈A
+no-to-distinct-variable : ∀ {Δ} {μ : Env∼ Δ}
+    {A : Ty Δ} {X Y : TyVar Δ}
+  → μ Y ≡ X∼★
+  → μ X ≡ X∼X
+  → μ ⊢ A ∼ ＇ X
+  → Y ∈ᵗ A
+  → ⊥
+no-to-distinct-variable Y★ XX (id (＇ X)) var-∈ =
+  X∼★≢X∼X (trans (sym Y★) XX)
+no-to-distinct-variable Y★ XX
+    (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
+no-to-distinct-variable Y★ XX
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all Y∈A) =
+  no-to-distinct-variable Y★ XX c Y∈A
 
-  consistency-to-fresh : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
-    → extᵐ μ ⊢ A ∼ ＇ Fin.zero
-    → A ≡ ＇ Fin.zero
-  consistency-to-fresh (id (＇ Fin.zero)) = refl
-  consistency-to-fresh (？_ ⦃ g-⇒ ⦄ ())
-  consistency-to-fresh (？_ ⦃ g-ι ⦄ ())
-  consistency-to-fresh
-      (？_ ⦃ g-X {X = Fin.zero} () ⦄ c)
-  consistency-to-fresh
-      (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄)
-  consistency-to-fresh
-      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
-    ⊥-elim (no-to-distinct-variable refl refl c z∈A)
+consistency-to-fresh : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
+  → extᵐ μ ⊢ A ∼ ＇ Fin.zero
+  → A ≡ ＇ Fin.zero
+consistency-to-fresh (id (＇ Fin.zero)) = refl
+consistency-to-fresh (？_ ⦃ g-⇒ ⦄ ())
+consistency-to-fresh (？_ ⦃ g-ι ⦄ ())
+consistency-to-fresh
+    (？_ ⦃ g-X {X = Fin.zero} () ⦄ c)
+consistency-to-fresh
+    (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄)
+consistency-to-fresh
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+  ⊥-elim (no-to-distinct-variable refl refl c z∈A)
 
-  no-zero-store-lift : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
-    → store-lift Σ ∋ Fin.zero ⦂ A
-    → ⊥
-  no-zero-store-lift ()
+no-zero-store-lift : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+  → store-lift Σ ∋ Fin.zero ⦂ A
+  → ⊥
+no-zero-store-lift ()
 
-  fresh-not-shift : ∀ {Δ} (A : Ty Δ)
-    → ＇ Fin.zero ≢ ⇑ᵗ A
-  fresh-not-shift (＇ X) ()
-  fresh-not-shift (‵ ι) ()
-  fresh-not-shift ★ ()
-  fresh-not-shift (A ⇒ B) ()
-  fresh-not-shift (`∀ A) ()
+fresh-not-shift : ∀ {Δ} (A : Ty Δ)
+  → ＇ Fin.zero ≢ ⇑ᵗ A
+fresh-not-shift (＇ X) ()
+fresh-not-shift (‵ ι) ()
+fresh-not-shift ★ ()
+fresh-not-shift (A ⇒ B) ()
+fresh-not-shift (`∀ A) ()
 
-  no-fresh-representation : ∀ {Δ} {Σ : TyStore Δ}
-      {X : TyVar (suc Δ)}
-    → store-lift Σ ∋ X ⦂ ＇ Fin.zero
-    → ⊥
-  no-fresh-representation (S-lift∋ {A = A} X∈ eq) =
-    fresh-not-shift A eq
+no-fresh-representation : ∀ {Δ} {Σ : TyStore Δ}
+    {X : TyVar (suc Δ)}
+  → store-lift Σ ∋ X ⦂ ＇ Fin.zero
+  → ⊥
+no-fresh-representation (S-lift∋ {A = A} X∈ eq) =
+  fresh-not-shift A eq
 
-  reveal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
-      {c : Conv↑ (suc Δ) A (＇ Fin.zero)}
-    → store-lift Σ ⊢↑ c
-    → A ≡ ＇ Fin.zero
-  reveal-to-fresh (⊢↑-unseal X∈) =
-    ⊥-elim (no-fresh-representation X∈)
-  reveal-to-fresh ⊢↑-id = refl
+reveal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+    {c : Conv↑ (suc Δ) A (＇ Fin.zero)}
+  → store-lift Σ ⊢↑ c
+  → A ≡ ＇ Fin.zero
+reveal-to-fresh (⊢↑-unseal X∈) =
+  ⊥-elim (no-fresh-representation X∈)
+reveal-to-fresh ⊢↑-id = refl
 
-  conceal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
-      {c : Conv↓ (suc Δ) A (＇ Fin.zero)}
-    → store-lift Σ ⊢↓ c
-    → A ≡ ＇ Fin.zero
-  conceal-to-fresh (⊢↓-seal X∈) =
-    ⊥-elim (no-zero-store-lift X∈)
-  conceal-to-fresh ⊢↓-id = refl
+conceal-to-fresh : ∀ {Δ} {Σ : TyStore Δ} {A : Ty (suc Δ)}
+    {c : Conv↓ (suc Δ) A (＇ Fin.zero)}
+  → store-lift Σ ⊢↓ c
+  → A ≡ ＇ Fin.zero
+conceal-to-fresh (⊢↓-seal X∈) =
+  ⊥-elim (no-zero-store-lift X∈)
+conceal-to-fresh ⊢↓-id = refl
 
-  no-fresh-value : ∀ {Δ} {Σ : TyStore Δ} {V : Term (suc Δ)}
-    → Value V
-    → ⟨ suc Δ , store-lift Σ , [] ⟩ ⊢ V ⦂ ＇ Fin.zero
-    → ⊥
-  no-fresh-value vV V⊢ with canonical-X vV V⊢
-  no-fresh-value vV V⊢ | sv-conceal X∈ vW refl =
-    no-zero-store-lift X∈
+no-fresh-value : ∀ {Δ} {Σ : TyStore Δ}
+    {Γ : TermCtx (suc Δ)} {V : Term (suc Δ)}
+  → Value V
+  → ⟨ suc Δ , store-lift Σ , Γ ⟩ ⊢ V ⦂ ＇ Fin.zero
+  → ⊥
+no-fresh-value (ƛ N) ()
+no-fresh-value (Λ vV) ()
+no-fresh-value ($ (κℕ n)) ()
+no-fresh-value ($ (κ𝔹 b)) ()
+no-fresh-value (vW 《 inj 》) ()
+no-fresh-value (vW 《 fun 》) ()
+no-fresh-value (vW 《 all 》) ()
+no-fresh-value (vW 《 genᵥ A≠★ safe 》) ()
+no-fresh-value (vW ↑ fun) ()
+no-fresh-value (vW ↑ all) ()
+no-fresh-value (vW ↓ seal) (⊢conceal (⊢↓-seal X∈) W⊢) =
+  no-zero-store-lift X∈
+no-fresh-value (vW ↓ fun) ()
+no-fresh-value (vW ↓ all) ()
 
-  no-bot-value : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
-    → Value V
-    → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ `∀ (＇ Fin.zero)
-    → ⊥
-  no-bot-value (Λ vV) (⊢Λ _ V⊢) = no-fresh-value vV V⊢
-  no-bot-value ($ (κℕ n)) ()
-  no-bot-value ($ (κ𝔹 b)) ()
-  no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c))
-      with consistency-to-fresh c
-  no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c)) | refl =
-    no-bot-value vW W⊢
-  no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢)
-      with reveal-to-fresh c⊢
-  no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢) | refl =
-    no-bot-value vW W⊢
-  no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢)
-      with conceal-to-fresh c⊢
-  no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢) | refl =
-    no-bot-value vW W⊢
+no-bot-value : ∀ {Δ} {Σ : TyStore Δ} {Γ : TermCtx Δ}
+    {V : Term Δ}
+  → Value V
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ `∀ (＇ Fin.zero)
+  → ⊥
+no-bot-value (Λ vV) (⊢Λ _ V⊢) = no-fresh-value vV V⊢
+no-bot-value ($ (κℕ n)) ()
+no-bot-value ($ (κ𝔹 b)) ()
+no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c))
+    with consistency-to-fresh c
+no-bot-value (vW 《 all 》) (⊢⟨⟩ W⊢ (∀ᶜ c)) | refl =
+  no-bot-value vW W⊢
+no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢)
+    with reveal-to-fresh c⊢
+no-bot-value (vW ↑ all) (⊢reveal (⊢↑-∀ c⊢) W⊢) | refl =
+  no-bot-value vW W⊢
+no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢)
+    with conceal-to-fresh c⊢
+no-bot-value (vW ↓ all) (⊢conceal (⊢↓-∀ c⊢) W⊢) | refl =
+  no-bot-value vW W⊢
 
 ------------------------------------------------------------------------
 -- Ground-cast classification

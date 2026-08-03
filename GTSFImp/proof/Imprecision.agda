@@ -530,6 +530,44 @@ imprecise-star : ∀ (A : Ty 0) → I._⊑_ A ★
 imprecise-star A = imprecise-star-shape (shape A) (\ ())
 
 ------------------------------------------------------------------------
+-- Fresh type-variable consequences
+------------------------------------------------------------------------
+
+imprecision-no-to-distinct-variable : ∀ {Δ : TyCtx}
+    {μ : I.ImpEnv Δ} {A : Ty Δ} {X Y : TyVar Δ}
+  → μ Y ≡ I.X⊑★
+  → μ X ≡ I.X⊑X
+  → I._⊢_⊑_ μ A (＇ X)
+  → Y ∈ᵗ A
+  → ⊥
+imprecision-no-to-distinct-variable Y★ XX (I.X⊑X {X = X}) var-∈ =
+  varImp-disjoint XX Y★
+imprecision-no-to-distinct-variable Y★ XX
+    (I.∀⊑ Anv zero∈A A⊑X) (∈-all Y∈A) =
+  imprecision-no-to-distinct-variable Y★ XX A⊑X Y∈A
+
+imprecision-to-fresh : ∀ {Δ : TyCtx} {μ : I.ImpEnv Δ}
+    {A : Ty (Nat.suc Δ)}
+  → I._⊢_⊑_ (I.extᵐ μ) A (＇ zero)
+  → A ≡ ＇ zero
+imprecision-to-fresh (I.X⊑X {X = zero}) = refl
+imprecision-to-fresh (I.∀⊑ Anv zero∈A A⊑X) =
+  ⊥-elim (imprecision-no-to-distinct-variable refl refl A⊑X zero∈A)
+
+imprecision-no-star-to-bot : ∀ {Δ : TyCtx}
+    {μ : I.ImpEnv Δ} {A : Ty Δ} {Y : TyVar Δ}
+  → μ Y ≡ I.X⊑★
+  → I._⊢_⊑_ μ A (`∀ (＇ zero))
+  → Y ∈ᵗ A
+  → ⊥
+imprecision-no-star-to-bot {Y = Y} Y★ (I.∀⊑∀ A⊑X) (∈-all Y∈A) =
+  imprecision-no-to-distinct-variable {X = zero} {Y = suc Y}
+    Y★ refl A⊑X Y∈A
+imprecision-no-star-to-bot {Y = Y} Y★
+    (I.∀⊑ Anv zero∈A A⊑B) (∈-all Y∈A) =
+  imprecision-no-star-to-bot {Y = suc Y} Y★ A⊑B Y∈A
+
+------------------------------------------------------------------------
 -- Uniqueness of occurrence evidence
 ------------------------------------------------------------------------
 

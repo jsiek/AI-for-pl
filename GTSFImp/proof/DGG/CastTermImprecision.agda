@@ -21,11 +21,12 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import TyStore using
-  (TyStore; store-empty; store-lift; store-bind)
+  (TyStore; store-empty; store-lift; store-bind; _∋_⦂_; Z∋; S-lift∋;
+   S-bind∋)
 open import TermCtx using (TermCtx; ⇑ᶜ)
 import TermCtx as T
 import Consistency as Con
-open Con using (Env∼; _⊢_∼_; _↪ᵗ_; toRenameᵗ)
+open Con using (Env∼; _⊢_∼_; _↪ᵗ_; keep; skip; toRenameᵗ)
 open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
 open import Imprecision
 open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
@@ -36,6 +37,35 @@ open import proof.ImprecisionConsistency using (refl⊑)
 ------------------------------------------------------------------------
 -- Relational runtime stores
 ------------------------------------------------------------------------
+
+data LeadsToStar : ∀ {Δ} → TyStore Δ → Ty Δ → Set where
+  leads-star : ∀ {Δ} {Σ : TyStore Δ}
+      --------------------------------
+    → LeadsToStar Σ ★
+
+  leads-var : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ} {A : Ty Δ}
+    → Σ ∋ X ⦂ A
+    → LeadsToStar Σ A
+      --------------------------------
+    → LeadsToStar Σ (＇ X)
+
+leads-zero-star : ∀ {Δ} {Σ : TyStore Δ}
+  → LeadsToStar (store-bind Σ ★) (＇ zero)
+leads-zero-star = leads-var (Z∋ refl) leads-star
+
+leads-lift : ∀ {Δ} {Σ : TyStore Δ} {A : Ty Δ}
+  → LeadsToStar Σ A
+  → LeadsToStar (store-lift Σ) (⇑ᵗ A)
+leads-lift leads-star = leads-star
+leads-lift (leads-var X∈ A⇝★) =
+  leads-var (S-lift∋ X∈ refl) (leads-lift A⇝★)
+
+leads-bind : ∀ {Δ} {Σ : TyStore Δ} {A C : Ty Δ}
+  → LeadsToStar Σ A
+  → LeadsToStar (store-bind Σ C) (⇑ᵗ A)
+leads-bind leads-star = leads-star
+leads-bind (leads-var X∈ A⇝★) =
+  leads-var (S-bind∋ X∈ refl) (leads-bind A⇝★)
 
 data StoreCategories : ∀ {Δ}
     → ImpEnv Δ → TyStore Δ → TyStore Δ → Set where
@@ -66,12 +96,13 @@ data StoreCategories : ∀ {Δ}
     → StoreCategories (extendᵐ v μ)
         (store-bind Σᴸ A) (store-lift Σᴿ)
 
-  categories-right-only : ∀ {Δ μ} {Σᴸ Σᴿ : TyStore Δ}
+  categories-right-only : ∀ {Δ μ} {Σᴸ Σᴿ : TyStore Δ} {B : Ty Δ}
     → (v : VarImp)
     → StoreCategories μ Σᴸ Σᴿ
+    → LeadsToStar Σᴿ B
       -----------------------------------------------------------
     → StoreCategories (extendᵐ v μ)
-        (store-lift Σᴸ) (store-bind Σᴿ ★)
+        (store-lift Σᴸ) (store-bind Σᴿ B)
 
 record StoreImp (Δ : TyCtx) : Set where
   constructor stores
@@ -88,6 +119,16 @@ liftStoreImp : ∀ {Δ} → VarImp → StoreImp Δ → StoreImp (suc Δ)
 liftStoreImp v (stores μ Σᴸ Σᴿ categories) =
   stores (extendᵐ v μ) (store-lift Σᴸ) (store-lift Σᴿ)
     (categories-both-abstract v categories)
+
+rightOnlyStoreImp : ∀ {Δ} (ρ : StoreImp Δ) {B : Ty Δ}
+  → LeadsToStar (targetStoreⁱ ρ) B
+  → StoreImp (suc Δ)
+rightOnlyStoreImp (stores μ Σᴸ Σᴿ categories) {B = B} B⇝★ =
+  stores (instᵐ μ) (store-lift Σᴸ) (store-bind Σᴿ B)
+    (categories-right-only X⊑★ categories B⇝★)
+
+rightOnly★StoreImp : ∀ {Δ} → StoreImp Δ → StoreImp (suc Δ)
+rightOnly★StoreImp ρ = rightOnlyStoreImp ρ leads-star
 
 ------------------------------------------------------------------------
 -- Typed cast-term imprecision
@@ -228,14 +269,14 @@ categoryAt : ∀ {Δ μ} {Σᴸ Σᴿ : TyStore Δ}
 categoryAt (categories-both-abstract v categories) zero = both
 categoryAt (categories-both v categories p) zero = both
 categoryAt (categories-left-only v categories) zero = left-only
-categoryAt (categories-right-only v categories) zero = right-only
+categoryAt (categories-right-only v categories B⇝★) zero = right-only
 categoryAt (categories-both-abstract v categories) (Fin.suc X) =
   categoryAt categories X
 categoryAt (categories-both v categories p) (Fin.suc X) =
   categoryAt categories X
 categoryAt (categories-left-only v categories) (Fin.suc X) =
   categoryAt categories X
-categoryAt (categories-right-only v categories) (Fin.suc X) =
+categoryAt (categories-right-only v categories B⇝★) (Fin.suc X) =
   categoryAt categories X
 
 data InImage {Δ₀ Δ : TyCtx}
@@ -268,6 +309,59 @@ RenamingsCategorize : ∀ {Δᴸ Δᴿ Δ μ} {Σᴸ Σᴿ : TyStore Δ}
 RenamingsCategorize {Δ = Δ} ηᴸ ηᴿ categories =
   (X : TyVar Δ) →
   ImageCategory ηᴸ ηᴿ X (categoryAt categories X)
+
+image-skip-zero⊥ : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+  → InImage (skip η) zero
+  → ⊥
+image-skip-zero⊥ (image X ())
+
+image-skip-suc : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ} {X : TyVar Δ}
+  → InImage (skip η) (Fin.suc X)
+  → InImage η X
+image-skip-suc (image Y refl) = image Y refl
+
+image-keep-suc : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ} {X : TyVar Δ}
+  → InImage (keep η) (Fin.suc X)
+  → InImage η X
+image-keep-suc (image zero ())
+image-keep-suc (image (Fin.suc Y) refl) = image Y refl
+
+image-skip-lift : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ} {X : TyVar Δ}
+  → InImage η X
+  → InImage (skip η) (Fin.suc X)
+image-skip-lift (image Y eq) = image Y (cong Fin.suc eq)
+
+image-keep-lift : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ} {X : TyVar Δ}
+  → InImage η X
+  → InImage (keep η) (Fin.suc X)
+image-keep-lift (image Y eq) = image (Fin.suc Y) (cong Fin.suc eq)
+
+rightOnly-image-category : ∀ {Δᴸ Δᴿ Δ category}
+    {ηᴸ : Δᴸ ↪ᵗ Δ} {ηᴿ : Δᴿ ↪ᵗ Δ} {X : TyVar Δ}
+  → ImageCategory ηᴸ ηᴿ X category
+  → ImageCategory (skip ηᴸ) (keep ηᴿ) (Fin.suc X) category
+rightOnly-image-category (image-both left right) =
+  image-both (image-skip-lift left) (image-keep-lift right)
+rightOnly-image-category (image-left-only left not-right) =
+  image-left-only (image-skip-lift left) λ right →
+    not-right (image-keep-suc right)
+rightOnly-image-category (image-right-only not-left right) =
+  image-right-only (λ left → not-left (image-skip-suc left))
+    (image-keep-lift right)
+
+rightOnly-renamings-categorize : ∀ {Δᴸ Δᴿ Δ}
+    {ηᴸ : Δᴸ ↪ᵗ Δ} {ηᴿ : Δᴿ ↪ᵗ Δ}
+    {ρ : StoreImp Δ} {B : Ty Δ}
+  → (B⇝★ : LeadsToStar (targetStoreⁱ ρ) B)
+  → RenamingsCategorize ηᴸ ηᴿ (categoriesⁱ ρ)
+  → RenamingsCategorize (skip ηᴸ) (keep ηᴿ)
+      (categoriesⁱ (rightOnlyStoreImp ρ B⇝★))
+rightOnly-renamings-categorize {ρ = stores μ Σᴸ Σᴿ categories}
+    B⇝★ categorize zero =
+  image-right-only image-skip-zero⊥ (image zero refl)
+rightOnly-renamings-categorize {ρ = stores μ Σᴸ Σᴿ categories}
+    B⇝★ categorize (Fin.suc X) =
+  rightOnly-image-category (categorize X)
 
 data _∣_∣_∣_⊢ᶜ_⊑_∶_ {Δᴸ Δᴿ Δ}
     (ηᴸ : Δᴸ ↪ᵗ Δ) (ηᴿ : Δᴿ ↪ᵗ Δ)

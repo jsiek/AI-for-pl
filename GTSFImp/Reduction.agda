@@ -435,3 +435,11 @@ pattern _∎[] M = ↠-refl {M = M}
 infixr 2 _—→[_]⟨_⟩_
 pattern _—→[_]⟨_⟩_ L χ L—→M M—↠N =
   ↠-step {M = L} {χ = χ} L—→M M—↠N
+
+infixr 2 _—↠[_]⟨_⟩_
+_—↠[_]⟨_⟩_ : ∀ {Δ Δ′} (M : Term Δ) {N : Term Δ′}
+  → (χs : StoreChanges Δ Δ′)
+  → M —↠[ χs ] N
+  → N —↠[ [] ] N
+  → M —↠[ χs ] N
+M —↠[ χs ]⟨ M↠N ⟩ (_ ∎[]) = M↠N

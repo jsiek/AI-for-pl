@@ -293,7 +293,8 @@ When using ASCII diagrams in informal proofs:
 When writing Agda proofs of reduction sequences, use the local chain notation
 for the reduction relation at hand instead of nested constructor applications.
 Put each intermediate term on its own indented line, put the step justification
-on the following `—→⟨ ... ⟩` line, and end the chain with `∎`.
+on the following `—→⟨ ... ⟩` line, and always end the written chain with `∎`
+so the final term is explicit in the code.
 
 Prefer:
 

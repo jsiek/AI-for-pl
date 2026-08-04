@@ -111,7 +111,7 @@ botIntroExample-→ =
 
 UniversalGround! : UniversalGround ∼ ★
 UniversalGround! =
-  idᵍ (g-∀ {μ = idᶜ {Δ = 0}} {r = X∼★}) !
+  idᵍ ∀★ !
 
 star∼Bottom : ★ ∼ Bottom
 star∼Bottom = ？ bot-intro

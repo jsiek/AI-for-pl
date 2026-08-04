@@ -12,11 +12,13 @@ open import Data.Fin using (zero; suc)
 import Data.Nat as Nat
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; cong; refl; subst; sym; trans)
+  using (_≡_; _≢_; cong; cong₂; refl; subst; sym; trans)
 open import Relation.Nullary using (no; yes)
 
 open import Types
 open import Consistency
+open import Imprecision using (_⊢_⊑_)
+import Consistency as C
 import Imprecision as I
 
 private
@@ -111,6 +113,74 @@ ext-injective injective {zero} {suc Y} ()
 ext-injective injective {suc X} {zero} ()
 ext-injective injective {suc X} {suc Y} eq =
   cong suc (injective (fin-suc-injective eq))
+
+toRenameᵗ-injective : ∀ {Δ Δ′}
+  → (η : Δ ↪ᵗ Δ′)
+  → ∀ {X Y} → toRenameᵗ η X ≡ toRenameᵗ η Y → X ≡ Y
+toRenameᵗ-injective empty {()}
+toRenameᵗ-injective (keep η) {zero} {zero} eq = refl
+toRenameᵗ-injective (keep η) {zero} {suc Y} ()
+toRenameᵗ-injective (keep η) {suc X} {zero} ()
+toRenameᵗ-injective (keep η) {suc X} {suc Y} eq =
+  cong suc (toRenameᵗ-injective η (fin-suc-injective eq))
+toRenameᵗ-injective (skip η) eq =
+  toRenameᵗ-injective η (fin-suc-injective eq)
+
+ty-var-injective : ∀ {Δ : TyCtx} {X Y : TyVar Δ}
+  → _≡_ {A = Ty Δ} (＇ X) (＇ Y)
+  → X ≡ Y
+ty-var-injective {X = X} {.X} refl = refl
+
+ty-fun-left-injective : ∀ {Δ} {A A′ B B′ : Ty Δ}
+  → A ⇒ B ≡ A′ ⇒ B′
+  → A ≡ A′
+ty-fun-left-injective refl = refl
+
+ty-fun-right-injective : ∀ {Δ} {A A′ B B′ : Ty Δ}
+  → A ⇒ B ≡ A′ ⇒ B′
+  → B ≡ B′
+ty-fun-right-injective refl = refl
+
+ty-all-injective : ∀ {Δ} {A B : Ty (Nat.suc Δ)}
+  → `∀ A ≡ `∀ B
+  → A ≡ B
+ty-all-injective refl = refl
+
+renameᵗ-injective : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+  → (∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
+  → ∀ {A B : Ty Δ}
+  → renameᵗ ρ A ≡ renameᵗ ρ B
+  → A ≡ B
+renameᵗ-injective {ρ = ρ} injective {A = ＇ X} {B = ＇ Y} eq =
+  cong ＇_ (injective (ty-var-injective {X = ρ X} {Y = ρ Y} eq))
+renameᵗ-injective injective {A = ＇ X} {B = ‵ ι} ()
+renameᵗ-injective injective {A = ＇ X} {B = ★} ()
+renameᵗ-injective injective {A = ＇ X} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ＇ X} {B = `∀ B} ()
+renameᵗ-injective injective {A = ‵ ι} {B = ＇ X} ()
+renameᵗ-injective injective {A = ‵ ι} {B = ‵ ι′} refl = refl
+renameᵗ-injective injective {A = ‵ ι} {B = ★} ()
+renameᵗ-injective injective {A = ‵ ι} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ‵ ι} {B = `∀ B} ()
+renameᵗ-injective injective {A = ★} {B = ＇ X} ()
+renameᵗ-injective injective {A = ★} {B = ‵ ι} ()
+renameᵗ-injective injective {A = ★} {B = ★} eq = refl
+renameᵗ-injective injective {A = ★} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = ★} {B = `∀ B} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ＇ X} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ‵ ι} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = ★} ()
+renameᵗ-injective injective {A = A ⇒ A′} {B = B ⇒ B′} eq =
+  cong₂ _⇒_ (renameᵗ-injective injective (ty-fun-left-injective eq))
+    (renameᵗ-injective injective (ty-fun-right-injective eq))
+renameᵗ-injective injective {A = A ⇒ A′} {B = `∀ B} ()
+renameᵗ-injective injective {A = `∀ A} {B = ＇ X} ()
+renameᵗ-injective injective {A = `∀ A} {B = ‵ ι} ()
+renameᵗ-injective injective {A = `∀ A} {B = ★} ()
+renameᵗ-injective injective {A = `∀ A} {B = B ⇒ B′} ()
+renameᵗ-injective injective {A = `∀ A} {B = `∀ B} eq =
+  cong `∀
+    (renameᵗ-injective (ext-injective injective) (ty-all-injective eq))
 
 rename-not-occurs : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
   → (ρ : Δ ⇒ʳ Δ′)
@@ -356,59 +426,59 @@ consistent-common-lowerᵐ h (∀ᶜ c)
 consistent-common-lowerᵐ h (∀ᶜ c) | D , D⊑A , D⊑B =
   `∀ D , I.∀⊑∀ D⊑A , I.∀⊑∀ D⊑B
 consistent-common-lowerᵐ h
-    (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match-⇒ ⦄)
+    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match-⇒ ⦄)
+    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄)
     | D , D⊑A , D⊑G =
   D , D⊑A , arrow-right-to-star h D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match-ι ⦄)
+    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match-ι ⦄)
+    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄)
     | D , D⊑A , D⊑G =
   D , D⊑A , base-right-to-star h D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄)
+    (_! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄)
+    (_! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
     | D , D⊑A , D⊑G =
   D , D⊑A , var-right-to-star h eq D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄)
+    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄)
+    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄)
     | D , D⊑A , D⊑G =
   D , D⊑A , universal-right-to-star D⊑G
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄)
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄)
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄)
     | D , D⊑G , D⊑B =
   D , arrow-left-to-star h D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-ι ⦄ c ⦃ Bns ⦄ ⦃ match-ι ⦄)
+    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-ι ⦄ c ⦃ Bns ⦄ ⦃ match-ι ⦄)
+    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄)
     | D , D⊑G , D⊑B =
   D , base-left-to-star h D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄)
+    (？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄)
+    (？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
     | D , D⊑G , D⊑B =
   D , var-left-to-star h eq D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄)
+    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄)
     with consistent-common-lowerᵐ h c
 consistent-common-lowerᵐ h
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄)
+    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄)
     | D , D⊑G , D⊑B =
   D , universal-right-to-star D⊑G , D⊑B
 consistent-common-lowerᵐ h
@@ -519,6 +589,674 @@ source-occurs-target {X = X} focus (I.∀⊑★ Ans p) (∈-all X∈A)
     | ()
 source-occurs-target focus I.bot-elim (∈-all ())
 source-occurs-target focus I.bot⊑★ (∈-all ())
+
+------------------------------------------------------------------------
+-- Ground targets and consistency
+------------------------------------------------------------------------
+
+consistency-var-self-not-star : X∼X ≡ X∼★ → ⊥
+consistency-var-self-not-star ()
+
+ground-self-occurs⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+    {G : Ty Δ}
+  → ν X ≡ X∼X
+  → ν ⊢ G ∼★
+  → X ∈ᵗ G
+  → ⊥
+ground-self-occurs⊥ same ⇒∼★ (∈-fun-left ())
+ground-self-occurs⊥ same ⇒∼★ (∈-fun-right X∉A ())
+ground-self-occurs⊥ same ι∼★ ()
+ground-self-occurs⊥ same (X∼★ᵍ eq) var-∈ =
+  consistency-var-self-not-star (trans (sym same) eq)
+ground-self-occurs⊥ same ∀∼★ (∈-all ())
+
+consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+    {X : TyVar Δ} {A B : Ty Δ}
+  → ν X ≡ X∼X
+  → ν ⊢ A ∼ B
+  → X ∈ᵗ A
+  → X ∈ᵗ B
+consistency-source-occurs-target same (id a) X∈A = X∈A
+consistency-source-occurs-target {A = A ⇒ B} {B = A′ ⇒ B′}
+    same (c ↦ d) (∈-fun-left X∈A) =
+  ∈-fun-left (consistency-source-occurs-target same c X∈A)
+consistency-source-occurs-target {X = X} {A = A ⇒ B}
+    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+    with occurs? X A′
+consistency-source-occurs-target {X = X} {A = A ⇒ B}
+    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+    | present X∈A′ = ∈-fun-left X∈A′
+consistency-source-occurs-target {X = X} {A = A ⇒ B}
+    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+    | absent X∉A′ =
+  ∈-fun-right X∉A′ (consistency-source-occurs-target same d X∈B)
+consistency-source-occurs-target {X = X} {A = `∀ A} {B = `∀ B}
+    same (∀ᶜ c) (∈-all X∈A) =
+  ∈-all (consistency-source-occurs-target {X = suc X} same c X∈A)
+consistency-source-occurs-target {B = ★} same
+    (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
+  ⊥-elim (ground-self-occurs⊥ same G∼★
+    (consistency-source-occurs-target same c X∈A))
+consistency-source-occurs-target {A = ★} same
+    (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
+consistency-source-occurs-target {X = X} {A = `∀ A} same
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
+  unshift-occurs
+    (consistency-source-occurs-target {X = suc X} same c X∈A)
+consistency-source-occurs-target {X = X} {B = `∀ B} same
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) X∈A =
+  ∈-all (consistency-source-occurs-target {X = suc X} same c
+    (shift-occurs X∈A))
+consistency-source-occurs-target {A = `∀ (＇ zero)}
+    same bot-elim (∈-all ())
+consistency-source-occurs-target {A = `∀ ★}
+    same bot-intro (∈-all ())
+
+shift-ground : ∀ {Δ G}
+  → Ground {Δ} G
+  → Ground (⇑ᵗ G)
+shift-ground ★⇒★ = ★⇒★
+shift-ground (‵ ι) = ‵ ι
+shift-ground (＇ X) = ＇ suc X
+shift-ground ∀★ = ∀★
+
+inst-shift-∼★ : ∀ {Δ μ G}
+  → μ ⊢ G ∼★
+  → C.instᵐ {Δ} μ ⊢ ⇑ᵗ G ∼★
+inst-shift-∼★ ⇒∼★ = ⇒∼★
+inst-shift-∼★ ι∼★ = ι∼★
+inst-shift-∼★ (X∼★ᵍ eq) = X∼★ᵍ eq
+inst-shift-∼★ ∀∼★ = ∀∼★
+
+inst-shift-★∼ : ∀ {Δ μ G}
+  → μ ⊢★∼ G
+  → C.instᵐ {Δ} μ ⊢★∼ ⇑ᵗ G
+inst-shift-★∼ ★∼⇒ = ★∼⇒
+inst-shift-★∼ ★∼ι = ★∼ι
+inst-shift-★∼ (★∼Xᵍ eq) = ★∼Xᵍ eq
+inst-shift-★∼ ★∼∀ = ★∼∀
+
+ground-target-nonvar-to-star⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {A G : Ty Δ}
+  → Ground G
+  → NonVar A
+  → μ ⊢ A ⊑ G
+  → μ ⊢ A ⊑ ★
+ground-target-nonvar-to-star⊑ () Anv I.★⊑★
+ground-target-nonvar-to-star⊑ (‵ ι) nonvar-base I.ι⊑ι = I.ι⊑★
+ground-target-nonvar-to-star⊑ g () I.X⊑X
+ground-target-nonvar-to-star⊑ ★⇒★ nonvar-fun
+    (I.⇒⊑⇒ A⊑★ B⊑★) =
+  I.⇒⊑★ A⊑★ B⊑★
+ground-target-nonvar-to-star⊑ ∀★ nonvar-all (I.∀⊑∀ A⊑G) =
+  universal-right-to-star (I.∀⊑∀ A⊑G)
+ground-target-nonvar-to-star⊑ () nonvar-fun
+    (I.⇒⊑★ A⊑★ B⊑★)
+ground-target-nonvar-to-star⊑ () nonvar-base I.ι⊑★
+ground-target-nonvar-to-star⊑ () () (I.X⊑★ eq)
+ground-target-nonvar-to-star⊑ g nonvar-all
+    (I.∀⊑ Anv zero∈A A⊑G) =
+  I.∀⊑ Anv zero∈A
+    (ground-target-nonvar-to-star⊑ (shift-ground g) Anv A⊑G)
+ground-target-nonvar-to-star⊑ () nonvar-all I.∀★⊑★
+ground-target-nonvar-to-star⊑ () nonvar-all (I.∀⊑★ Ans A⊑★)
+ground-target-nonvar-to-star⊑ ∀★ nonvar-all I.bot-elim =
+  I.bot⊑★
+ground-target-nonvar-to-star⊑ () nonvar-all I.bot⊑★
+
+weaken-star-map-ext : ∀ {Δ} {μ ν : I.ImpEnv Δ}
+  → (∀ X → μ X ≡ I.X⊑★ → ν X ≡ I.X⊑★)
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★ → I.extᵐ ν X ≡ I.X⊑★
+weaken-star-map-ext h zero ()
+weaken-star-map-ext h (suc X) eq = h X eq
+
+weaken-star-map-inst : ∀ {Δ} {μ ν : I.ImpEnv Δ}
+  → (∀ X → μ X ≡ I.X⊑★ → ν X ≡ I.X⊑★)
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★ → I.instᵐ ν X ≡ I.X⊑★
+weaken-star-map-inst h zero eq = refl
+weaken-star-map-inst h (suc X) eq = h X eq
+
+imp-env-weaken : ∀ {Δ} {μ ν : I.ImpEnv Δ} {A B : Ty Δ}
+  → (∀ X → μ X ≡ I.X⊑★ → ν X ≡ I.X⊑★)
+  → μ ⊢ A ⊑ B
+  → ν ⊢ A ⊑ B
+imp-env-weaken h I.★⊑★ = I.★⊑★
+imp-env-weaken h I.ι⊑ι = I.ι⊑ι
+imp-env-weaken h I.X⊑X = I.X⊑X
+imp-env-weaken h (I.⇒⊑⇒ A⊑B C⊑D) =
+  I.⇒⊑⇒ (imp-env-weaken h A⊑B) (imp-env-weaken h C⊑D)
+imp-env-weaken h (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀ (imp-env-weaken (weaken-star-map-ext h) A⊑B)
+imp-env-weaken h (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (imp-env-weaken h A⊑★) (imp-env-weaken h B⊑★)
+imp-env-weaken h I.ι⊑★ = I.ι⊑★
+imp-env-weaken h (I.X⊑★ x⊑★) = I.X⊑★ (h _ x⊑★)
+imp-env-weaken h (I.∀⊑ Anv zero∈A A⊑B) =
+  I.∀⊑ Anv zero∈A
+    (imp-env-weaken (weaken-star-map-inst h) A⊑B)
+imp-env-weaken h I.∀★⊑★ = I.∀★⊑★
+imp-env-weaken h (I.∀⊑★ Ans A⊑★) =
+  I.∀⊑★ Ans (imp-env-weaken (weaken-star-map-ext h) A⊑★)
+imp-env-weaken h I.bot-elim = I.bot-elim
+imp-env-weaken h I.bot⊑★ = I.bot⊑★
+
+rename-star-map-ext : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {μ′ : I.ImpEnv Δ′}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → (∀ X → μ X ≡ I.X⊑★ → μ′ (ρ X) ≡ I.X⊑★)
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★
+      → I.extᵐ μ′ (extᵗ ρ X) ≡ I.X⊑★
+rename-star-map-ext ρ h zero ()
+rename-star-map-ext ρ h (suc X) eq = h X eq
+
+rename-star-map-inst : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {μ′ : I.ImpEnv Δ′}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → (∀ X → μ X ≡ I.X⊑★ → μ′ (ρ X) ≡ I.X⊑★)
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
+      → I.instᵐ μ′ (extᵗ ρ X) ≡ I.X⊑★
+rename-star-map-inst ρ h zero eq = refl
+rename-star-map-inst ρ h (suc X) eq = h X eq
+
+rename-⊑ : ∀ {Δ Δ′} {μ : I.ImpEnv Δ} {μ′ : I.ImpEnv Δ′}
+    {A B : Ty Δ}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
+  → (∀ X → μ X ≡ I.X⊑★ → μ′ (ρ X) ≡ I.X⊑★)
+  → μ ⊢ A ⊑ B
+  → μ′ ⊢ renameᵗ ρ A ⊑ renameᵗ ρ B
+rename-⊑ ρ injective h I.★⊑★ = I.★⊑★
+rename-⊑ ρ injective h I.ι⊑ι = I.ι⊑ι
+rename-⊑ ρ injective h I.X⊑X = I.X⊑X
+rename-⊑ ρ injective h (I.⇒⊑⇒ A⊑B C⊑D) =
+  I.⇒⊑⇒ (rename-⊑ ρ injective h A⊑B)
+    (rename-⊑ ρ injective h C⊑D)
+rename-⊑ ρ injective h (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀ (rename-⊑ (extᵗ ρ) (ext-injective injective)
+    (rename-star-map-ext ρ h) A⊑B)
+rename-⊑ ρ injective h (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (rename-⊑ ρ injective h A⊑★)
+    (rename-⊑ ρ injective h B⊑★)
+rename-⊑ ρ injective h I.ι⊑★ = I.ι⊑★
+rename-⊑ ρ injective h (I.X⊑★ x⊑★) =
+  I.X⊑★ (h _ x⊑★)
+rename-⊑ ρ injective h (I.∀⊑ Anv zero∈A A⊑B) =
+  I.∀⊑ (renameNonVar (extᵗ ρ) Anv)
+    (rename-occurs (extᵗ ρ) (ext-injective injective) zero∈A)
+    (subst (λ T → _ ⊢ renameᵗ (extᵗ ρ) _ ⊑ T)
+      (renameᵗ-shift ρ _)
+      (rename-⊑ (extᵗ ρ) (ext-injective injective)
+        (rename-star-map-inst ρ h) A⊑B))
+rename-⊑ ρ injective h I.∀★⊑★ = I.∀★⊑★
+rename-⊑ ρ injective h (I.∀⊑★ Ans A⊑★) =
+  I.∀⊑★ (C.renameNonStar (extᵗ ρ) Ans)
+    (rename-⊑ (extᵗ ρ) (ext-injective injective)
+      (rename-star-map-ext ρ h) A⊑★)
+rename-⊑ ρ injective h I.bot-elim = I.bot-elim
+rename-⊑ ρ injective h I.bot⊑★ = I.bot⊑★
+
+subst-occurs-preserve : ∀ {Δ Δ′} {σ : Δ ⇒ˢ Δ′}
+    {X : TyVar Δ′} {Y : TyVar Δ} {A : Ty Δ}
+  → (∀ {Z} → Y ≡ Z → X ∈ᵗ σ Z)
+  → Y ∈ᵗ A
+  → X ∈ᵗ substᵗ σ A
+subst-occurs-preserve h var-∈ = h refl
+subst-occurs-preserve h (∈-fun-left X∈A) =
+  ∈-fun-left (subst-occurs-preserve h X∈A)
+subst-occurs-preserve {X = X} h (∈-fun-right Y∉A Y∈B)
+    with occurs? X _
+subst-occurs-preserve {X = X} h (∈-fun-right Y∉A Y∈B)
+    | present X∈A′ = ∈-fun-left X∈A′
+subst-occurs-preserve {X = X} h (∈-fun-right Y∉A Y∈B)
+    | absent X∉A′ =
+  ∈-fun-right X∉A′ (subst-occurs-preserve h Y∈B)
+subst-occurs-preserve {σ = σ} {X = X} {Y = Y} h (∈-all Y∈A) =
+  ∈-all (subst-occurs-preserve h′ Y∈A)
+  where
+  h′ : ∀ {Z} → suc Y ≡ Z → suc X ∈ᵗ extsᵗ σ Z
+  h′ {zero} ()
+  h′ {suc Z} eq = shift-occurs (h (fin-suc-injective eq))
+
+subst-zero-occurs-exts : ∀ {Δ Δ′} {σ : Δ ⇒ˢ Δ′}
+    {A : Ty (Nat.suc Δ)}
+  → zero ∈ᵗ A
+  → zero ∈ᵗ substᵗ (extsᵗ σ) A
+subst-zero-occurs-exts =
+  subst-occurs-preserve λ { {zero} refl → var-∈ ; {suc Y} () }
+
+subst-star-map-exts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σ X ⊑ ★)
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★
+      → I.extᵐ ν ⊢ extsᵗ σ X ⊑ ★
+subst-star-map-exts h zero ()
+subst-star-map-exts h (suc X) eq =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (h X eq)
+
+subst-star-map-insts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σ X ⊑ ★)
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
+      → I.instᵐ ν ⊢ extsᵗ σ X ⊑ ★
+subst-star-map-insts h zero eq = I.X⊑★ refl
+subst-star-map-insts h (suc X) eq =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (h X eq)
+
+subst-⊑ : ∀ {Δ Δ′} {μ : I.ImpEnv Δ} {ν : I.ImpEnv Δ′}
+    {σ : Δ ⇒ˢ Δ′} {A B : Ty Δ}
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σ X ⊑ ★)
+  → μ ⊢ A ⊑ B
+  → ν ⊢ substᵗ σ A ⊑ substᵗ σ B
+subst-⊑ h I.★⊑★ = I.★⊑★
+subst-⊑ h I.ι⊑ι = I.ι⊑ι
+subst-⊑ h I.X⊑X = refl⊑ _
+subst-⊑ h (I.⇒⊑⇒ A⊑B C⊑D) =
+  I.⇒⊑⇒ (subst-⊑ h A⊑B) (subst-⊑ h C⊑D)
+subst-⊑ h (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀ (subst-⊑ (subst-star-map-exts h) A⊑B)
+subst-⊑ h (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (subst-⊑ h A⊑★) (subst-⊑ h B⊑★)
+subst-⊑ h I.ι⊑★ = I.ι⊑★
+subst-⊑ h (I.X⊑★ x⊑★) = h _ x⊑★
+subst-⊑ {ν = ν} {σ = σ} h
+    (I.∀⊑ {A = A} {B = B} Anv zero∈A A⊑B) =
+  I.∀⊑ (substNonVar (extsᵗ σ) Anv)
+    (subst-zero-occurs-exts {σ = σ} zero∈A)
+    (subst (λ T → I.instᵐ ν ⊢ substᵗ (extsᵗ σ) A ⊑ T)
+      (substᵗ-shift σ B)
+      (subst-⊑ {ν = I.instᵐ ν} {σ = extsᵗ σ}
+        (subst-star-map-insts h) A⊑B))
+subst-⊑ h I.∀★⊑★ = I.∀★⊑★
+subst-⊑ {σ = σ} h (I.∀⊑★ {A = A} Ans A⊑★)
+    with substᵗ (extsᵗ σ) A ≟Ty ★
+subst-⊑ {σ = σ} h (I.∀⊑★ {A = A} Ans A⊑★)
+    | yes Aσ≡★ =
+  subst (λ T → _ ⊢ `∀ T ⊑ ★) (sym Aσ≡★) I.∀★⊑★
+subst-⊑ {σ = σ} h (I.∀⊑★ {A = A} Ans A⊑★)
+    | no Aσ≢★ =
+  I.∀⊑★ (nonstar-from-≢★ Aσ≢★)
+    (subst-⊑ (subst-star-map-exts h) A⊑★)
+subst-⊑ h I.bot-elim = I.bot-elim
+subst-⊑ h I.bot⊑★ = I.bot⊑★
+
+open-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
+      → μ ⊢ singleSubᵗ ★ X ⊑ ★
+open-star-map zero eq = I.★⊑★
+open-star-map (suc X) eq = I.X⊑★ eq
+
+unshift-⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {A B : Ty Δ}
+  → I.instᵐ μ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B
+  → μ ⊢ A ⊑ B
+unshift-⊑ {A = A} {B = B} p =
+  subst (λ L → _ ⊢ L ⊑ B) (shift-openᵗ A ★)
+    (subst (λ R → _ ⊢ (⇑ᵗ A) [ ★ ]ᵗ ⊑ R)
+      (shift-openᵗ B ★)
+      (subst-⊑ open-star-map p))
+
+shift-injectiveᵗ : ∀ {Δ} {A B : Ty Δ}
+  → ⇑ᵗ A ≡ ⇑ᵗ B
+  → A ≡ B
+shift-injectiveᵗ {A = A} {B = B} eq =
+  trans (sym (shift-openᵗ A ★))
+    (trans (cong (λ T → T [ ★ ]ᵗ) eq) (shift-openᵗ B ★))
+
+ext-to-inst-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★ → I.instᵐ μ X ≡ I.X⊑★
+ext-to-inst-star-map zero ()
+ext-to-inst-star-map (suc X) eq = eq
+
+nonvar-occurs-nonstar : ∀ {Δ X} {A : Ty Δ}
+  → NonVar A
+  → X ∈ᵗ A
+  → NonStar A
+nonvar-occurs-nonstar nonvar-base ()
+nonvar-occurs-nonstar nonvar-star ()
+nonvar-occurs-nonstar nonvar-fun X∈A = nonstar-⇒
+nonvar-occurs-nonstar nonvar-all X∈A = nonstar-∀
+
+zero-not-consistent-shift-ground : ∀ {Δ ν G}
+  → Ground {Δ} G
+  → C.instᵐ ν ⊢ ＇ zero ∼ ⇑ᵗ G
+  → ⊥
+zero-not-consistent-shift-ground ★⇒★ ()
+zero-not-consistent-shift-ground (‵ ι) ()
+zero-not-consistent-shift-ground (＇ X) ()
+zero-not-consistent-shift-ground ∀★
+    (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
+
+consistent-self-var-nonvar-occurs⊥ : ∀ {Δ} {ν : Env∼ Δ}
+    {X : TyVar Δ} {B : Ty Δ}
+  → ν X ≡ X∼X
+  → ν ⊢ ＇ X ∼ B
+  → NonVar B
+  → X ∈ᵗ B
+  → ⊥
+consistent-self-var-nonvar-occurs⊥ same (id (＇ X)) () var-∈
+consistent-self-var-nonvar-occurs⊥ same
+    (_! ⦃ g ⦄ c ⦃ Bns ⦄) nonvar-star ()
+consistent-self-var-nonvar-occurs⊥ same
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) nonvar-all
+    (∈-all X∈B) =
+  consistent-self-var-nonvar-occurs⊥ same c Bnv X∈B
+
+var-star-universal-ground : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
+    {X : TyVar Δ} {A : Ty Δ}
+  → φ X ≡ I.X⊑X
+  → ψ X ≡ I.X⊑★
+  → φ ⊢ A ⊑ ＇ X
+  → ψ ⊢ A ⊑ ★
+  → NonVar A
+  → ψ ⊢ A ⊑ `∀ ★
+var-star-universal-ground same to-star I.X⊑X A⊑★ ()
+var-star-universal-ground same to-star
+    (I.∀⊑ Anv () A⊑X) I.∀★⊑★ nonvar-all
+var-star-universal-ground same to-star
+    (I.∀⊑ Anv zero∈A A⊑X) (I.∀⊑★ Ans A⊑★) nonvar-all =
+  I.∀⊑∀ A⊑★
+var-star-universal-ground same to-star
+    (I.∀⊑ Anv zero∈A A⊑X)
+    (I.∀⊑ Bnv zero∈B A⊑★) nonvar-all =
+  I.∀⊑ Bnv zero∈B
+    (var-star-universal-ground same to-star A⊑X A⊑★ Bnv)
+var-star-universal-ground same to-star
+    (I.∀⊑ () zero∈A A⊑X) I.bot⊑★ nonvar-all
+
+ground-cast-target⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν : Env∼ Δ}
+    {A B G : Ty Δ}
+  → (g : Ground G)
+  → NonStar B
+  → ν ⊢ B ∼ G
+  → μ ⊢ A ⊑ B
+  → μ ⊢ A ⊑ ★
+  → μ ⊢ A ⊑ G
+ground-cast-target⊑ g () c I.★⊑★ I.★⊑★
+ground-cast-target⊑ g Bns (id (‵ ι)) I.ι⊑ι I.ι⊑★ =
+  I.ι⊑ι
+ground-cast-target⊑ g () c I.ι⊑★ I.ι⊑★
+ground-cast-target⊑ g Bns (id (＇ X)) I.X⊑X (I.X⊑★ x⊑★) =
+  I.X⊑X
+ground-cast-target⊑ g () c (I.X⊑★ x⊑★) (I.X⊑★ x⊑★′)
+ground-cast-target⊑ ★⇒★ Bns (c₁ ↦ c₂)
+    (I.⇒⊑⇒ A⊑B C⊑D) (I.⇒⊑★ A⊑★ C⊑★) =
+  I.⇒⊑⇒ A⊑★ C⊑★
+ground-cast-target⊑ g () c (I.⇒⊑★ A⊑★ B⊑★)
+    (I.⇒⊑★ A⊑★′ B⊑★′)
+ground-cast-target⊑ {ν = ν} g Bns c
+    (I.∀⊑ Anv zero∈A A⊑B) (I.∀⊑ Anv′ zero∈A′ A⊑★) =
+  I.∀⊑ Anv zero∈A
+    (ground-cast-target⊑ {ν = C.extᵐ ν}
+      (shift-ground g) (C.renameNonStar suc Bns)
+      (C.renameEnvᶜ {ν = C.extᵐ ν} suc (λ X → refl) c) A⊑B A⊑★)
+ground-cast-target⊑ g Bns c
+    (I.∀⊑ Anv zero∈A A⊑B) (I.∀⊑★ Ans A⊑★)
+    with source-occurs-target refl A⊑★ zero∈A
+ground-cast-target⊑ g Bns c
+    (I.∀⊑ Anv zero∈A A⊑B) (I.∀⊑★ Ans A⊑★)
+    | ()
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) (I.∀⊑ Anv zero∈A A⊑★) =
+  I.∀⊑ Anv zero∈A
+    (ground-cast-target⊑ (shift-ground g)
+      (nonvar-occurs-nonstar Bnv zero∈B) c
+      (imp-env-weaken ext-to-inst-star-map A⊑B) A⊑★)
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) I.∀★⊑★
+    with target-occurs-source A⊑B zero∈B
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) I.∀★⊑★
+    | ()
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    with target-occurs-source A⊑B zero∈B
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    | zero∈A with source-occurs-target refl A⊑★ zero∈A
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    | zero∈A | ()
+ground-cast-target⊑ g Bns
+    (C.inst_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c B≢★)
+    (I.∀⊑∀ I.X⊑X) I.bot⊑★ =
+  ⊥-elim (zero-not-consistent-shift-ground g c)
+ground-cast-target⊑ ∀★ Bns
+    (C.gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★) A⊑B A⊑★
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    (I.∀⊑∀ A⊑B) (I.∀⊑ Anv zero∈A A⊑★)
+    with source-occurs-target refl A⊑B zero∈A
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    (I.∀⊑∀ A⊑B) (I.∀⊑ Anv zero∈A A⊑★)
+    | zero∈B with consistency-source-occurs-target refl c zero∈B
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    (I.∀⊑∀ A⊑B) (I.∀⊑ Anv zero∈A A⊑★)
+    | zero∈B | ()
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    A⊑B I.∀★⊑★ =
+  I.∀⊑∀ I.★⊑★
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    A⊑B (I.∀⊑★ Ans A⊑★) =
+  I.∀⊑∀ A⊑★
+ground-cast-target⊑ ∀★ Bns (∀ᶜ c)
+    A⊑B I.bot⊑★ =
+  I.bot-elim
+ground-cast-target⊑ ∀★ Bns C.bot-elim
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    with target-occurs-source A⊑B var-∈
+ground-cast-target⊑ ∀★ Bns C.bot-elim
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    | zero∈A with source-occurs-target refl A⊑★ zero∈A
+ground-cast-target⊑ ∀★ Bns C.bot-elim
+    (I.∀⊑∀ A⊑B) (I.∀⊑★ Ans A⊑★)
+    | zero∈A | ()
+ground-cast-target⊑ ∀★ Bns C.bot-elim
+    (I.∀⊑∀ A⊑B) (I.∀⊑ Anv zero∈A A⊑★) =
+  I.∀⊑ Anv zero∈A
+    (var-star-universal-ground refl refl A⊑B A⊑★ Anv)
+ground-cast-target⊑ ∀★ Bns C.bot-elim
+    (I.∀⊑∀ A⊑B) I.bot⊑★ =
+  I.bot-elim
+
+ground-cast-source⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {κ : Env∼ Δ}
+    {A B G : Ty Δ}
+  → (g : Ground G)
+  → NonStar A
+  → κ ⊢ A ∼ B
+  → μ ⊢ A ⊑ ★
+  → μ ⊢ B ⊑ ★
+  → μ ⊢ B ⊑ G
+  → μ ⊢ A ⊑ G
+ground-cast-source⊑ g Ans (id x) A⊑★ B⊑★ B⊑G = B⊑G
+ground-cast-source⊑ ★⇒★ Ans (c ↦ d)
+    (I.⇒⊑★ A⊑★ B⊑★) _ (I.⇒⊑⇒ A′⊑G B′⊑G) =
+  I.⇒⊑⇒ A⊑★ B⊑★
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    (I.∀⊑ Anv zero∈A A⊑★) B⊑★ (I.∀⊑∀ B⊑G)
+    with consistency-source-occurs-target refl c zero∈A
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    (I.∀⊑ Anv zero∈A A⊑★) B⊑★ (I.∀⊑∀ B⊑G)
+    | zero∈B with source-occurs-target refl B⊑G zero∈B
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    (I.∀⊑ Anv zero∈A A⊑★) B⊑★ (I.∀⊑∀ B⊑G)
+    | zero∈B | ()
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    I.∀★⊑★ B⊑★ (I.∀⊑∀ B⊑G) =
+  I.∀⊑∀ I.★⊑★
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ (I.∀⊑∀ B⊑G) =
+  I.∀⊑∀ A⊑★
+ground-cast-source⊑ ∀★ Ans (∀ᶜ c)
+    I.bot⊑★ B⊑★ (I.∀⊑∀ B⊑G) =
+  I.bot-elim
+ground-cast-source⊑ g Ans (∀ᶜ c) A⊑★ B⊑★
+    (I.∀⊑ Bnv zero∈B B⊑G) =
+  all-imp {g = g} {c = c} {Bnv = Bnv}
+    {zero∈B = zero∈B} {B⊑G = B⊑G} A⊑★ B⊑★
+  where
+  all-imp : ∀ {A B G μ κ}
+      {g : Ground G}
+      {c : C.extᵐ κ ⊢ A ∼ B}
+      {Bnv : NonVar B}
+      {zero∈B : zero ∈ᵗ B}
+      {B⊑G : I.instᵐ μ ⊢ B ⊑ ⇑ᵗ G}
+    → μ ⊢ `∀ A ⊑ ★
+    → μ ⊢ `∀ B ⊑ ★
+    → μ ⊢ `∀ A ⊑ G
+  all-imp {A = A} {B = B} {G = G} {g = g} {c = c}
+      {B⊑G = B⊑G} (I.∀⊑ Anv zero∈A A⊑★)
+      (I.∀⊑ Bnv′ zero∈B′ B⊑★) =
+    I.∀⊑ Anv zero∈A
+      (ground-cast-source⊑ {A = A} {B = B} {G = ⇑ᵗ G}
+        (shift-ground g)
+        (nonvar-occurs-nonstar Anv zero∈A) c A⊑★ B⊑★ B⊑G)
+  all-imp {zero∈B = zero∈B}
+      (I.∀⊑ Anv zero∈A A⊑★)
+      (I.∀⊑★ Bns B⊑★)
+      with source-occurs-target refl B⊑★ zero∈B
+  all-imp {zero∈B = zero∈B}
+      (I.∀⊑ Anv zero∈A A⊑★)
+      (I.∀⊑★ Bns B⊑★)
+      | ()
+  all-imp {c = c} {zero∈B = zero∈B} I.∀★⊑★ B⊑★
+      with consistency-source-occurs-target refl (C.sym∼ c) zero∈B
+  all-imp {c = c} {zero∈B = zero∈B} I.∀★⊑★ B⊑★ | ()
+  all-imp {c = c} {zero∈B = zero∈B}
+      (I.∀⊑★ Ans′ A⊑★) B⊑★
+      with consistency-source-occurs-target refl (C.sym∼ c) zero∈B
+  all-imp {c = c} {zero∈B = zero∈B}
+      (I.∀⊑★ Ans′ A⊑★) B⊑★
+      | zero∈A with source-occurs-target refl A⊑★ zero∈A
+  all-imp {c = c} {zero∈B = zero∈B}
+      (I.∀⊑★ Ans′ A⊑★) B⊑★ | zero∈A | ()
+  all-imp {c = c} {Bnv = Bnv} {zero∈B = zero∈B}
+      I.bot⊑★ B⊑★ =
+    ⊥-elim (consistent-self-var-nonvar-occurs⊥ refl c Bnv zero∈B)
+ground-cast-source⊑ g Ans (∀ᶜ c)
+    (I.∀⊑ Anv zero∈A A⊑★) B⊑★ I.bot-elim =
+  ⊥-elim
+    (consistent-self-var-nonvar-occurs⊥ refl (C.sym∼ c) Anv zero∈A)
+ground-cast-source⊑ g Ans (∀ᶜ c) I.∀★⊑★ B⊑★ I.bot-elim
+    with consistency-source-occurs-target refl (C.sym∼ c) var-∈
+ground-cast-source⊑ g Ans (∀ᶜ c) I.∀★⊑★ B⊑★ I.bot-elim
+    | ()
+ground-cast-source⊑ g Ans (∀ᶜ c)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ I.bot-elim
+    with consistency-source-occurs-target refl (C.sym∼ c) var-∈
+ground-cast-source⊑ g Ans (∀ᶜ c)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ I.bot-elim
+    | zero∈A with source-occurs-target refl A⊑★ zero∈A
+ground-cast-source⊑ g Ans (∀ᶜ c)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ I.bot-elim
+    | zero∈A | ()
+ground-cast-source⊑ g Ans (∀ᶜ c) I.bot⊑★ B⊑★ I.bot-elim =
+  I.bot-elim
+ground-cast-source⊑ () Ans (c !) A⊑★ B⊑★ I.★⊑★
+ground-cast-source⊑ {G = G} g Ans
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★)
+    (I.∀⊑ Anv′ zero∈A′ A⊑★) B⊑★ B⊑G =
+  I.∀⊑ Anv′ zero∈A′
+    (ground-cast-source⊑ {G = ⇑ᵗ G} (shift-ground g)
+      (nonvar-occurs-nonstar Anv′ zero∈A′) c A⊑★
+      (rename-⊑ suc fin-suc-injective (λ X eq → eq) B⊑★)
+      (rename-⊑ suc fin-suc-injective (λ X eq → eq) B⊑G))
+ground-cast-source⊑ g Ans
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ B⊑G
+    with source-occurs-target refl A⊑★ zero∈A
+ground-cast-source⊑ g Ans
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★)
+    (I.∀⊑★ Ans′ A⊑★) B⊑★ B⊑G
+    | ()
+ground-cast-source⊑ ∀★ Ans
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★)
+    A⊑★ B⊑★ (I.∀⊑∀ B⊑G)
+    with source-occurs-target refl B⊑G zero∈B
+ground-cast-source⊑ ∀★ Ans
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★)
+    A⊑★ B⊑★ (I.∀⊑∀ B⊑G)
+    | ()
+ground-cast-source⊑ {A = A} {G = G} g Ans
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★)
+    A⊑★ (I.∀⊑ Bnv′ zero∈B′ B⊑★) (I.∀⊑ Bnv″ zero∈B″ B⊑G) =
+  unshift-⊑
+    (ground-cast-source⊑ {A = ⇑ᵗ A} {B = _} {G = ⇑ᵗ G}
+      (shift-ground g) (C.renameNonStar suc Ans) c
+      (rename-⊑ suc fin-suc-injective (λ X eq → eq) A⊑★)
+      B⊑★ B⊑G)
+ground-cast-source⊑ g Ans
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★)
+    A⊑★ (I.∀⊑★ Bns B⊑★) (I.∀⊑ Bnv′ zero∈B′ B⊑G)
+    with source-occurs-target refl B⊑★ zero∈B
+ground-cast-source⊑ g Ans
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★)
+    A⊑★ (I.∀⊑★ Bns B⊑★) (I.∀⊑ Bnv′ zero∈B′ B⊑G)
+    | ()
+ground-cast-source⊑ ∀★ Ans bot-elim A⊑★ B⊑★ (I.∀⊑∀ B⊑G) =
+  I.bot-elim
+ground-cast-source⊑ ∀★ Ans bot-intro A⊑★ B⊑★ (I.∀⊑∀ B⊑G) =
+  I.∀⊑∀ I.★⊑★
+ground-cast-source⊑ ∀★ Ans bot-intro A⊑★ B⊑★ I.bot-elim =
+  I.∀⊑∀ I.★⊑★
+
+expand-cast-source⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {ν : Env∼ Δ}
+    {A B G : Ty Δ}
+  → (g : Ground G)
+  → NonStar B
+  → ν ⊢ G ∼ B
+  → μ ⊢ A ⊑ ★
+  → μ ⊢ A ⊑ B
+  → μ ⊢ A ⊑ G
+expand-cast-source⊑ g Bns c A⊑★ A⊑B =
+  ground-cast-target⊑ g Bns (C.sym∼ c) A⊑B A⊑★
+
+nonVar-zero⊥ : ∀ {Δ} → NonVar {Nat.suc Δ} (＇ zero) → ⊥
+nonVar-zero⊥ ()
+
+ground-targets-unique⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {A G H : Ty Δ}
+  → Ground G
+  → Ground H
+  → μ ⊢ A ⊑ G
+  → μ ⊢ A ⊑ H
+  → G ≡ H
+ground-targets-unique⊑ () gH I.★⊑★ qH
+ground-targets-unique⊑ gG gH I.ι⊑ι I.ι⊑ι = refl
+ground-targets-unique⊑ gG () I.ι⊑ι I.ι⊑★
+ground-targets-unique⊑ gG gH I.X⊑X I.X⊑X = refl
+ground-targets-unique⊑ gG () I.X⊑X (I.X⊑★ eq)
+ground-targets-unique⊑ ★⇒★ ★⇒★
+    (I.⇒⊑⇒ A⊑★ B⊑★) (I.⇒⊑⇒ A⊑★′ B⊑★′) =
+  refl
+ground-targets-unique⊑ ∀★ ∀★ (I.∀⊑∀ A⊑★)
+    (I.∀⊑∀ A⊑★′) =
+  refl
+ground-targets-unique⊑ ∀★ gH (I.∀⊑∀ A⊑★)
+    (I.∀⊑ Anv zero∈A A⊑H)
+    with source-occurs-target refl A⊑★ zero∈A
+ground-targets-unique⊑ ∀★ gH (I.∀⊑∀ A⊑★)
+    (I.∀⊑ Anv zero∈A A⊑H) | ()
+ground-targets-unique⊑ ∀★ ∀★ (I.∀⊑∀ A⊑★) I.bot-elim =
+  refl
+ground-targets-unique⊑ gG ∀★ (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑∀ A⊑★)
+    with source-occurs-target refl A⊑★ zero∈A
+ground-targets-unique⊑ gG ∀★ (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑∀ A⊑★) | ()
+ground-targets-unique⊑ gG gH (I.∀⊑ Anv zero∈A A⊑G)
+    (I.∀⊑ Anv′ zero∈A′ A⊑H) =
+  shift-injectiveᵗ
+    (ground-targets-unique⊑ (shift-ground gG) (shift-ground gH)
+      A⊑G A⊑H)
+ground-targets-unique⊑ gG gH (I.∀⊑ () zero∈A A⊑G) I.bot-elim
+ground-targets-unique⊑ ∀★ ∀★ I.bot-elim (I.∀⊑∀ A⊑★) =
+  refl
+ground-targets-unique⊑ gG gH I.bot-elim
+    (I.∀⊑ Anv zero∈A A⊑H) =
+  ⊥-elim (nonVar-zero⊥ Anv)
+ground-targets-unique⊑ ∀★ ∀★ I.bot-elim I.bot-elim = refl
 
 shift-not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
@@ -672,33 +1410,33 @@ variable-to-star : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ}
   → μ X ≡ X∼★
   → μ ⊢ ＇ X ∼ ★
 variable-to-star eq =
-  _! ⦃ g-X eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄ ⦃ match-X ⦄
+  _! ⦃ G∼★ = X∼★ᵍ eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄
 
 star-to-variable : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ}
   → μ X ≡ ★∼X
   → μ ⊢ ★ ∼ ＇ X
 star-to-variable eq =
-  ？_ ⦃ g-X eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄ ⦃ match-X ⦄
+  ？_ ⦃ ★∼G = ★∼Xᵍ eq ⦄ (id (＇ _)) ⦃ nonstar-X ⦄
 
 universal-ground-to-star : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ (`∀ ★) ∼ ★
 universal-ground-to-star =
-  _! ⦃ g-∀ ⦄ (refl∼ (`∀ ★)) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+  _! ⦃ Gᵍ = ∀★ ⦄ (refl∼ (`∀ ★)) ⦃ nonstar-∀ ⦄
 
 star-to-universal-ground : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ ★ ∼ (`∀ ★)
 star-to-universal-ground =
-  ？_ ⦃ g-∀ ⦄ (refl∼ (`∀ ★)) ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+  ？_ ⦃ Gᵍ = ∀★ ⦄ (refl∼ (`∀ ★)) ⦃ nonstar-∀ ⦄
 
 bottom-to-star : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ (`∀ (＇ zero)) ∼ ★
 bottom-to-star =
-  _! ⦃ g-∀ ⦄ bot-elim ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+  _! ⦃ Gᵍ = ∀★ ⦄ bot-elim ⦃ nonstar-∀ ⦄
 
 star-to-bottom : ∀ {Δ} {μ : Env∼ Δ}
   → μ ⊢ ★ ∼ (`∀ (＇ zero))
 star-to-bottom =
-  ？_ ⦃ g-∀ ⦄ bot-intro ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+  ？_ ⦃ Gᵍ = ∀★ ⦄ bot-intro ⦃ nonstar-∀ ⦄
 
 factor-inst-star-lower : ∀ {Δ} {μ : Env∼ Δ}
     {A : Ty (Nat.suc Δ)}
@@ -706,26 +1444,7 @@ factor-inst-star-lower : ∀ {Δ} {μ : Env∼ Δ}
   → NonVar A
   → zero ∈ᵗ A
   → μ ⊢ (`∀ A) ∼ ★
-factor-inst-star-lower (id ★) Anv ()
-factor-inst-star-lower
-    (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match-⇒ ⦄) Anv z∈A =
-  _! ⦃ g-⇒ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-⇒ ⦄
-factor-inst-star-lower
-    (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match-ι ⦄) Anv z∈A =
-  _! ⦃ g-ι ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-ι ⦄
-factor-inst-star-lower
-    (_! ⦃ g-X eq ⦄ c ⦃ Ans ⦄ ⦃ match-X ⦄) () z∈A
-factor-inst-star-lower
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match-∀ ⦄) Anv z∈A =
-  _! ⦃ g-∀ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
-factor-inst-star-lower
-    (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) Anv ()
-factor-inst-star-lower
-    (inst_ ⦃ Anv′ ⦄ ⦃ z∈A′ ⦄ c ★≢★) Anv z∈A =
-  ⊥-elim (★≢★ refl)
+factor-inst-star-lower = C.factor-inst-starᶜ
 
 factor-gen-star-lower : ∀ {Δ} {μ : Env∼ Δ}
     {B : Ty (Nat.suc Δ)}
@@ -733,26 +1452,7 @@ factor-gen-star-lower : ∀ {Δ} {μ : Env∼ Δ}
   → NonVar B
   → zero ∈ᵗ B
   → μ ⊢ ★ ∼ (`∀ B)
-factor-gen-star-lower (id ★) Bnv ()
-factor-gen-star-lower
-    (_! ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄) Bnv z∈B
-factor-gen-star-lower
-    (？_ ⦃ g-⇒ ⦄ c ⦃ Bns ⦄ ⦃ match-⇒ ⦄) Bnv z∈B =
-  ？_ ⦃ g-⇒ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-⇒ ⦄
-factor-gen-star-lower
-    (？_ ⦃ g-ι ⦄ c ⦃ Bns ⦄ ⦃ match-ι ⦄) Bnv z∈B =
-  ？_ ⦃ g-ι ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-ι ⦄
-factor-gen-star-lower
-    (？_ ⦃ g-X eq ⦄ c ⦃ Bns ⦄ ⦃ match-X ⦄) () z∈B
-factor-gen-star-lower
-    (？_ ⦃ g-∀ ⦄ c ⦃ Bns ⦄ ⦃ match-∀ ⦄) Bnv z∈B =
-  ？_ ⦃ g-∀ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
-    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
-factor-gen-star-lower
-    (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c ★≢★) Bnv z∈B =
-  ⊥-elim (★≢★ refl)
+factor-gen-star-lower = C.factor-gen-starᶜ
 
 right-variable-relation : ∀ {r l u}
   → VarLower r l u
@@ -822,9 +1522,9 @@ lower-bounds-consistentᵐ : ∀ {Δ} {μ : Env∼ Δ} {φ ψ}
 lower-bounds-consistentᵐ h safe I.★⊑★ I.★⊑★ = id ★
 lower-bounds-consistentᵐ h safe I.ι⊑ι I.ι⊑ι = id (‵ _)
 lower-bounds-consistentᵐ h safe I.ι⊑ι I.ι⊑★ =
-  _! ⦃ g-ι ⦄ (id (‵ _)) ⦃ nonstar-ι ⦄ ⦃ match-ι ⦄
+  _! ⦃ Gᵍ = ‵ _ ⦄ (id (‵ _)) ⦃ nonstar-ι ⦄
 lower-bounds-consistentᵐ h safe I.ι⊑★ I.ι⊑ι =
-  ？_ ⦃ g-ι ⦄ (id (‵ _)) ⦃ nonstar-ι ⦄ ⦃ match-ι ⦄
+  ？_ ⦃ Gᵍ = ‵ _ ⦄ (id (‵ _)) ⦃ nonstar-ι ⦄
 lower-bounds-consistentᵐ h safe I.ι⊑★ I.ι⊑★ = id ★
 lower-bounds-consistentᵐ {D = ＇ X} h safe I.X⊑X I.X⊑X =
   id (＇ X)
@@ -846,20 +1546,20 @@ lower-bounds-consistentᵐ h safe
   lower-bounds-consistentᵐ h (avoid-arrow-codomain safe) p₂ q₂
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑★ q₁ q₂) =
-  _! ⦃ g-⇒ ⦄
+  _! ⦃ Gᵍ = ★⇒★ ⦄
     (lower-bounds-consistentᵐ h (avoid-arrow-star-domain safe) p₁ q₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-arrow-star-codomain safe) p₂ q₂)
-    ⦃ nonstar-⇒ ⦄ ⦃ match-⇒ ⦄
+    ⦃ nonstar-⇒ ⦄
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑★ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
-  ？_ ⦃ g-⇒ ⦄
+  ？_ ⦃ Gᵍ = ★⇒★ ⦄
     (lower-bounds-consistentᵐ h (avoid-star-arrow-domain safe) p₁ q₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-star-arrow-codomain safe) p₂ q₂)
-    ⦃ nonstar-⇒ ⦄ ⦃ match-⇒ ⦄
+    ⦃ nonstar-⇒ ⦄
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑★ p₁ p₂) (I.⇒⊑★ q₁ q₂) = id ★
 lower-bounds-consistentᵐ h safe
@@ -868,16 +1568,16 @@ lower-bounds-consistentᵐ h safe
     (avoid-under-all safe) p q)
 lower-bounds-consistentᵐ h safe
     (I.∀⊑∀ p) (I.∀⊑★ Bns q) =
-  _! ⦃ g-∀ ⦄
+  _! ⦃ Gᵍ = ∀★ ⦄
     (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
       (avoid-under-all-star safe) p q))
-    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+    ⦃ nonstar-∀ ⦄
 lower-bounds-consistentᵐ h safe
     (I.∀⊑★ Ans p) (I.∀⊑∀ q) =
-  ？_ ⦃ g-∀ ⦄
+  ？_ ⦃ Gᵍ = ∀★ ⦄
     (∀ᶜ (lower-bounds-consistentᵐ (extend-lower-env h)
       (avoid-under-star-all safe) p q))
-    ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄
+    ⦃ nonstar-∀ ⦄
 lower-bounds-consistentᵐ {B = B} h safe
     (I.∀⊑∀ p) (I.∀⊑ Dnv z∈D q) with B ≟Ty ★
 lower-bounds-consistentᵐ {B = B} h safe

@@ -7,21 +7,24 @@ module proof.DGG.Examples where
 --   * Uses Eval to compute reduction traces that finish in returned values.
 
 open import Data.Bool using (Bool; false; true)
+open import Data.Empty using (⊥)
+import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc)
-open import Data.Product using (Σ; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
-open import TyStore using (TyStore; store-empty)
+open import TyStore using (TyStore; store-empty; store-lift; store-bind)
 open import TermCtx using (Z)
 open import Consistency
+import Imprecision as I
 open import Conversion
 open import Primitives
 open import CastTerms
 open import Reduction
 open import Eval
+import proof.DGG.CastTermImprecision as CTI
 
 ------------------------------------------------------------------------
 -- Shared closed instance of the schematic Cambridge26 terms
@@ -68,21 +71,24 @@ X? = ？ (id (＇ 0))
 -- Cambridge26 Example 12: up and then down
 ------------------------------------------------------------------------
 
-example12-left : Term 0
-example12-left =
+-- GTSFImp writes imprecision as source ⊑ target: the left term is more
+-- precise, and the right term is less precise.
+
+example12-right : Term 0
+example12-right =
   (((polyId ⟨ ν̅α-α♯→α♭ ⟩) ⟨ να-α!→α? ⟩) ⦂∀ X⇒X [ ℕᵗ ]) · c
 
-example12-left-⊢ : ∅ ⊢ example12-left ⦂ ℕᵗ
-example12-left-⊢ =
+example12-right-⊢ : ∅ ⊢ example12-right ⦂ ℕᵗ
+example12-right-⊢ =
   ⊢·
     (⊢• (⊢⟨⟩ (⊢⟨⟩ polyId-⊢ ν̅α-α♯→α♭) να-α!→α?))
     c-⊢
 
-example12-right : Term 0
-example12-right = (polyId ⦂∀ X⇒X [ ℕᵗ ]) · c
+example12-left : Term 0
+example12-left = (polyId ⦂∀ X⇒X [ ℕᵗ ]) · c
 
-example12-right-⊢ : ∅ ⊢ example12-right ⦂ ℕᵗ
-example12-right-⊢ = ⊢· (⊢• polyId-⊢) c-⊢
+example12-left-⊢ : ∅ ⊢ example12-left ⦂ ℕᵗ
+example12-left-⊢ = ⊢· (⊢• polyId-⊢) c-⊢
 
 ------------------------------------------------------------------------
 -- Checked one-step traces from Eval
@@ -127,11 +133,11 @@ from-just-value (just v) refl = v
 from-just-value nothing ()
 
 ------------------------------------------------------------------------
--- Left program: up through ν̅, down through ν, instantiate, and apply
+-- Right program: up through ν̅, down through ν, instantiate, and apply
 ------------------------------------------------------------------------
 
-left₀ : Term 0
-left₀ =
+right₀ : Term 0
+right₀ =
   ((((Λ (ƛ (` 0)))
     ⟨ (inst_ {μ = idᶜ {Δ = 0}} ⦃ z∈A = ∈-fun-left var-∈ ⦄
         ((id {μ = instᵐ (idᶜ {Δ = 0})} (＇ 0) !) ↦
@@ -141,15 +147,15 @@ left₀ =
         ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
-left-store₀ : TyStore 0
-left-store₀ = store-empty
+right-store₀ : TyStore 0
+right-store₀ = store-empty
 
 -- 1. β-inst for the ν̅α.α♯→α♭ cast.
-left-step₀ : OneStep left-store₀ left₀
-left-step₀ = from-just-step (step? left-store₀ left₀) refl
+right-step₀ : OneStep right-store₀ right₀
+right-step₀ = from-just-step (step? right-store₀ right₀) refl
 
-left₁ : Term (Δ′ left-step₀)
-left₁ =
+right₁ : Term (Δ′ right-step₀)
+right₁ =
   ((((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ＇ 0 ])
       ↑ (seal 0 ★ ↦↑ unseal 0 ★)
       ⟨ id {μ = renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})} ★ ↦ id ★ ⟩
@@ -158,15 +164,15 @@ left₁ =
           ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
-left-store₁ : TyStore (Δ′ left-step₀)
-left-store₁ = store-after left-step₀
+right-store₁ : TyStore (Δ′ right-step₀)
+right-store₁ = store-after right-step₀
 
 -- 2. β-Λ under the first reveal/cast wrappers.
-left-step₁ : OneStep left-store₁ left₁
-left-step₁ = from-just-step (step? left-store₁ left₁) refl
+right-step₁ : OneStep right-store₁ right₁
+right-step₁ = from-just-step (step? right-store₁ right₁) refl
 
-left₂ : Term (Δ′ left-step₁)
-left₂ =
+right₂ : Term (Δ′ right-step₁)
+right₂ =
   (((((ƛ (` 0))
     ↑ (seal 0 (＇ 1) ↦↑ unseal 0 (＇ 1)))
     ↑ (seal 1 ★ ↦↑ unseal 1 ★))
@@ -177,15 +183,15 @@ left₂ =
         ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
-left-store₂ : TyStore (Δ′ left-step₁)
-left-store₂ = store-after left-step₁
+right-store₂ : TyStore (Δ′ right-step₁)
+right-store₂ = store-after right-step₁
 
 -- 3. β-gen for the να.α!→α? cast at the ℕ instantiation.
-left-step₂ : OneStep left-store₂ left₂
-left-step₂ = from-just-step (step? left-store₂ left₂) refl
+right-step₂ : OneStep right-store₂ right₂
+right-step₂ = from-just-step (step? right-store₂ right₂) refl
 
-left₃ : Term (Δ′ left-step₂)
-left₃ =
+right₃ : Term (Δ′ right-step₂)
+right₃ =
   ((((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -203,15 +209,15 @@ left₃ =
     ↑ (seal 0 (‵ `ℕ) ↦↑ unseal 0 (‵ `ℕ)))
     · $ (κℕ 7)
 
-left-store₃ : TyStore (Δ′ left-step₂)
-left-store₃ = store-after left-step₂
+right-store₃ : TyStore (Δ′ right-step₂)
+right-store₃ = store-after right-step₂
 
 -- 4. β-reveal-⇒ distributes the outer function reveal.
-left-step₃ : OneStep left-store₃ left₃
-left-step₃ = from-just-step (step? left-store₃ left₃) refl
+right-step₃ : OneStep right-store₃ right₃
+right-step₃ = from-just-step (step? right-store₃ right₃) refl
 
-left₄ : Term (Δ′ left-step₃)
-left₄ =
+right₄ : Term (Δ′ right-step₃)
+right₄ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -229,15 +235,15 @@ left₄ =
     · ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₄ : TyStore (Δ′ left-step₃)
-left-store₄ = store-after left-step₃
+right-store₄ : TyStore (Δ′ right-step₃)
+right-store₄ = store-after right-step₃
 
 -- 5. β-⇒ pushes the first function cast to the argument/result.
-left-step₄ : OneStep left-store₄ left₄
-left-step₄ = from-just-step (step? left-store₄ left₄) refl
+right-step₄ : OneStep right-store₄ right₄
+right-step₄ = from-just-step (step? right-store₄ right₄) refl
 
-left₅ : Term (Δ′ left-step₄)
-left₅ =
+right₅ : Term (Δ′ right-step₄)
+right₅ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -255,15 +261,15 @@ left₅ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₅ : TyStore (Δ′ left-step₄)
-left-store₅ = store-after left-step₄
+right-store₅ : TyStore (Δ′ right-step₄)
+right-store₅ = store-after right-step₄
 
 -- 6. β-⇒ pushes the second function cast to the argument/result.
-left-step₅ : OneStep left-store₅ left₅
-left-step₅ = from-just-step (step? left-store₅ left₅) refl
+right-step₅ : OneStep right-store₅ right₅
+right-step₅ = from-just-step (step? right-store₅ right₅) refl
 
-left₆ : Term (Δ′ left-step₅)
-left₆ =
+right₆ : Term (Δ′ right-step₅)
+right₆ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -284,15 +290,15 @@ left₆ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₆ : TyStore (Δ′ left-step₅)
-left-store₆ = store-after left-step₅
+right-store₆ : TyStore (Δ′ right-step₅)
+right-store₆ = store-after right-step₅
 
 -- 7. β-id removes an administrative identity cast from the argument.
-left-step₆ : OneStep left-store₆ left₆
-left-step₆ = from-just-step (step? left-store₆ left₆) refl
+right-step₆ : OneStep right-store₆ right₆
+right-step₆ = from-just-step (step? right-store₆ right₆) refl
 
-left₇ : Term (Δ′ left-step₆)
-left₇ =
+right₇ : Term (Δ′ right-step₆)
+right₇ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -310,15 +316,15 @@ left₇ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₇ : TyStore (Δ′ left-step₆)
-left-store₇ = store-after left-step₆
+right-store₇ : TyStore (Δ′ right-step₆)
+right-store₇ = store-after right-step₆
 
 -- 8. β-reveal-⇒ distributes the next function reveal.
-left-step₇ : OneStep left-store₇ left₇
-left-step₇ = from-just-step (step? left-store₇ left₇) refl
+right-step₇ : OneStep right-store₇ right₇
+right-step₇ = from-just-step (step? right-store₇ right₇) refl
 
-left₈ : Term (Δ′ left-step₇)
-left₈ =
+right₈ : Term (Δ′ right-step₇)
+right₈ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     · ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
@@ -337,15 +343,15 @@ left₈ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₈ : TyStore (Δ′ left-step₇)
-left-store₈ = store-after left-step₇
+right-store₈ : TyStore (Δ′ right-step₇)
+right-store₈ = store-after right-step₇
 
 -- 9. β-reveal-⇒ distributes the innermost function reveal.
-left-step₈ : OneStep left-store₈ left₈
-left-step₈ = from-just-step (step? left-store₈ left₈) refl
+right-step₈ : OneStep right-store₈ right₈
+right-step₈ = from-just-step (step? right-store₈ right₈) refl
 
-left₉ : Term (Δ′ left-step₈)
-left₉ =
+right₉ : Term (Δ′ right-step₈)
+right₉ =
   (((((ƛ (` 0))
     · (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
       ⟨ id {μ = flipᵐ (genᵐ
@@ -365,15 +371,15 @@ left₉ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₉ : TyStore (Δ′ left-step₈)
-left-store₉ = store-after left-step₈
+right-store₉ : TyStore (Δ′ right-step₈)
+right-store₉ = store-after right-step₈
 
 -- 10. β substitutes the fully wrapped argument into the identity body.
-left-step₉ : OneStep left-store₉ left₉
-left-step₉ = from-just-step (step? left-store₉ left₉) refl
+right-step₉ : OneStep right-store₉ right₉
+right-step₉ = from-just-step (step? right-store₉ right₉) refl
 
-left₁₀ : Term (Δ′ left-step₉)
-left₁₀ =
+right₁₀ : Term (Δ′ right-step₉)
+right₁₀ =
   ((((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id {μ = flipᵐ (genᵐ
         (applyEnv (bind (＇ 0))
@@ -392,15 +398,15 @@ left₁₀ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₁₀ : TyStore (Δ′ left-step₉)
-left-store₁₀ = store-after left-step₉
+right-store₁₀ : TyStore (Δ′ right-step₉)
+right-store₁₀ = store-after right-step₉
 
 -- 11. conceal-reveal cancels one abstract-boundary round trip.
-left-step₁₀ : OneStep left-store₁₀ left₁₀
-left-step₁₀ = from-just-step (step? left-store₁₀ left₁₀) refl
+right-step₁₀ : OneStep right-store₁₀ right₁₀
+right-step₁₀ = from-just-step (step? right-store₁₀ right₁₀) refl
 
-left₁₁ : Term (Δ′ left-step₁₀)
-left₁₁ =
+right₁₁ : Term (Δ′ right-step₁₀)
+right₁₁ =
   ((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id {μ = flipᵐ (genᵐ
         (applyEnv (bind (＇ 0))
@@ -417,15 +423,15 @@ left₁₁ =
       (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₁₁ : TyStore (Δ′ left-step₁₀)
-left-store₁₁ = store-after left-step₁₀
+right-store₁₁ : TyStore (Δ′ right-step₁₀)
+right-store₁₁ = store-after right-step₁₀
 
 -- 12. conceal-reveal cancels the next abstract-boundary round trip.
-left-step₁₁ : OneStep left-store₁₁ left₁₁
-left-step₁₁ = from-just-step (step? left-store₁₁ left₁₁) refl
+right-step₁₁ : OneStep right-store₁₁ right₁₁
+right-step₁₁ = from-just-step (step? right-store₁₁ right₁₁) refl
 
-left₁₂ : Term (Δ′ left-step₁₁)
-left₁₂ =
+right₁₂ : Term (Δ′ right-step₁₁)
+right₁₂ =
   (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id {μ = flipᵐ (genᵐ
         (applyEnv (bind (＇ 0))
@@ -440,15 +446,15 @@ left₁₂ =
       (id (＇ 0)) ⟩)
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₁₂ : TyStore (Δ′ left-step₁₁)
-left-store₁₂ = store-after left-step₁₁
+right-store₁₂ : TyStore (Δ′ right-step₁₁)
+right-store₁₂ = store-after right-step₁₁
 
 -- 13. β-id removes the remaining administrative identity cast.
-left-step₁₂ : OneStep left-store₁₂ left₁₂
-left-step₁₂ = from-just-step (step? left-store₁₂ left₁₂) refl
+right-step₁₂ : OneStep right-store₁₂ right₁₂
+right-step₁₂ = from-just-step (step? right-store₁₂ right₁₂) refl
 
-left₁₃ : Term (Δ′ left-step₁₂)
-left₁₃ =
+right₁₃ : Term (Δ′ right-step₁₂)
+right₁₃ =
   ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id {μ = flipᵐ (genᵐ
         (applyEnv (bind (＇ 0))
@@ -460,60 +466,60 @@ left₁₃ =
       (id (＇ 0)) ⟩)
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₁₃ : TyStore (Δ′ left-step₁₂)
-left-store₁₃ = store-after left-step₁₂
+right-store₁₃ : TyStore (Δ′ right-step₁₂)
+right-store₁₃ = store-after right-step₁₂
 
 -- 14. tag-untag cancels the matching variable-ground tag pair.
-left-step₁₃ : OneStep left-store₁₃ left₁₃
-left-step₁₃ = from-just-step (step? left-store₁₃ left₁₃) refl
+right-step₁₃ : OneStep right-store₁₃ right₁₃
+right-step₁₃ = from-just-step (step? right-store₁₃ right₁₃) refl
 
-left₁₄ : Term (Δ′ left-step₁₃)
-left₁₄ =
+right₁₄ : Term (Δ′ right-step₁₃)
+right₁₄ =
   ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
 
-left-store₁₄ : TyStore (Δ′ left-step₁₃)
-left-store₁₄ = store-after left-step₁₃
+right-store₁₄ : TyStore (Δ′ right-step₁₃)
+right-store₁₄ = store-after right-step₁₃
 
 -- 15. conceal-reveal exposes the original natural-number value.
-left-step₁₄ : OneStep left-store₁₄ left₁₄
-left-step₁₄ = from-just-step (step? left-store₁₄ left₁₄) refl
+right-step₁₄ : OneStep right-store₁₄ right₁₄
+right-step₁₄ = from-just-step (step? right-store₁₄ right₁₄) refl
 
-left-final : Term (Δ′ left-step₁₄)
-left-final = $ (κℕ 7)
+right-final : Term (Δ′ right-step₁₄)
+right-final = $ (κℕ 7)
 
-left-final-is-7 : left-final ≡ $ (κℕ 7)
-left-final-is-7 = refl
+right-final-is-7 : right-final ≡ $ (κℕ 7)
+right-final-is-7 = refl
 
-left-final-value : Value left-final
-left-final-value = from-just-value (value? left-final) refl
+right-final-value : Value right-final
+right-final-value = from-just-value (value? right-final) refl
 
-left-changes : StoreChanges 0 (Δ′ left-step₁₄)
-left-changes =
+right-changes : StoreChanges 0 (Δ′ right-step₁₄)
+right-changes =
   bind ★ ∷ bind (＇ 0) ∷ bind (‵ `ℕ) ∷
   keep ∷ keep ∷ keep ∷ keep ∷ keep ∷ keep ∷
   keep ∷ keep ∷ keep ∷ keep ∷ keep ∷ keep ∷ []
 
-example12-left-reduction : example12-left —↠[ left-changes ] left-final
-example12-left-reduction =
+example12-right-reduction : example12-right —↠[ right-changes ] right-final
+example12-right-reduction =
   ((((Λ (ƛ (` 0)))
     ⟨ ((inst ((id (＇ 0) !) ↦ (id (＇ 0) !))) (λ ())) ⟩)
     ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
-  —→[ bind ★ ]⟨ reduction left-step₀ ⟩
+  —→[ bind ★ ]⟨ reduction right-step₀ ⟩
   ((((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ＇ 0 ])
       ↑ (seal 0 ★ ↦↑ unseal 0 ★)
       ⟨ id ★ ↦ id ★ ⟩
       ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
-  —→[ bind (＇ 0) ]⟨ reduction left-step₁ ⟩
+  —→[ bind (＇ 0) ]⟨ reduction right-step₁ ⟩
   (((((ƛ (` 0))
     ↑ (seal 0 (＇ 1) ↦↑ unseal 0 (＇ 1)))
     ↑ (seal 1 ★ ↦↑ unseal 1 ★))
     ⟨ id ★ ↦ id ★ ⟩)
     ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
-  —→[ bind (‵ `ℕ) ]⟨ reduction left-step₂ ⟩
+  —→[ bind (‵ `ℕ) ]⟨ reduction right-step₂ ⟩
   ((((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -521,7 +527,7 @@ example12-left-reduction =
     ⟨ (？ (id (＇ 0))) ↦ (？ (id (＇ 0))) ⟩)
     ↑ (seal 0 (‵ `ℕ) ↦↑ unseal 0 (‵ `ℕ)))
     · $ (κℕ 7)
-  —→[ keep ]⟨ reduction left-step₃ ⟩
+  —→[ keep ]⟨ reduction right-step₃ ⟩
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -529,7 +535,7 @@ example12-left-reduction =
     ⟨ (？ (id (＇ 0))) ↦ (？ (id (＇ 0))) ⟩)
     · ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₄ ⟩
+  —→[ keep ]⟨ reduction right-step₄ ⟩
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -538,7 +544,7 @@ example12-left-reduction =
       ⟨ id (＇ 0) ! ⟩))
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₅ ⟩
+  —→[ keep ]⟨ reduction right-step₅ ⟩
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -548,7 +554,7 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₆ ⟩
+  —→[ keep ]⟨ reduction right-step₆ ⟩
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
@@ -557,7 +563,7 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₇ ⟩
+  —→[ keep ]⟨ reduction right-step₇ ⟩
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     · ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
@@ -567,7 +573,7 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₈ ⟩
+  —→[ keep ]⟨ reduction right-step₈ ⟩
   (((((ƛ (` 0))
     · (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
       ⟨ id (＇ 0) ! ⟩)
@@ -578,7 +584,7 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₉ ⟩
+  —→[ keep ]⟨ reduction right-step₉ ⟩
   ((((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id (＇ 0) ! ⟩)
     ↓ seal 2 ★)
@@ -588,7 +594,7 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₁₀ ⟩
+  —→[ keep ]⟨ reduction right-step₁₀ ⟩
   ((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id (＇ 0) ! ⟩)
     ↓ seal 2 ★)
@@ -596,107 +602,172 @@ example12-left-reduction =
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₁₁ ⟩
+  —→[ keep ]⟨ reduction right-step₁₁ ⟩
   (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id (＇ 0) ! ⟩)
     ⟨ id ★ ⟩)
     ⟨ ？ (id (＇ 0)) ⟩)
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₁₂ ⟩
+  —→[ keep ]⟨ reduction right-step₁₂ ⟩
   ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
     ⟨ id (＇ 0) ! ⟩)
     ⟨ ？ (id (＇ 0)) ⟩)
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₁₃ ⟩
+  —→[ keep ]⟨ reduction right-step₁₃ ⟩
   ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction left-step₁₄ ⟩
+  —→[ keep ]⟨ reduction right-step₁₄ ⟩
   $ (κℕ 7) ∎[]
 
-example12-left-trace :
-  Σ TyCtx (λ Δ′ →
-  Σ (StoreChanges 0 Δ′) (λ χs →
-  Σ (Term Δ′) (λ V →
-    (example12-left —↠[ χs ] V) × Value V)))
-example12-left-trace =
-  Δ′ left-step₁₄ , left-changes , left-final ,
-  example12-left-reduction , left-final-value
-
 ------------------------------------------------------------------------
--- Right program: ordinary polymorphic identity instantiated at ℕ
+-- Left program: ordinary polymorphic identity instantiated at ℕ
 ------------------------------------------------------------------------
 
-right₀ : Term 0
-right₀ = ((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
+left₀ : Term 0
+left₀ = ((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
-right-store₀ : TyStore 0
-right-store₀ = store-empty
+left-store₀ : TyStore 0
+left-store₀ = store-empty
 
 -- 1. β-Λ allocates the ℕ representation for the type application.
-right-step₀ : OneStep right-store₀ right₀
-right-step₀ = from-just-step (step? right-store₀ right₀) refl
+left-step₀ : OneStep left-store₀ left₀
+left-step₀ = from-just-step (step? left-store₀ left₀) refl
 
-right₁ : Term (Δ′ right-step₀)
-right₁ =
+left₁ : Term (Δ′ left-step₀)
+left₁ =
   ((ƛ (` 0)) ↑ (seal 0 (‵ `ℕ) ↦↑ unseal 0 (‵ `ℕ)))
     · $ (κℕ 7)
 
-right-store₁ : TyStore (Δ′ right-step₀)
-right-store₁ = store-after right-step₀
+left-store₁ : TyStore (Δ′ left-step₀)
+left-store₁ = store-after left-step₀
 
 -- 2. β-reveal-⇒ distributes the generated conversion across application.
-right-step₁ : OneStep right-store₁ right₁
-right-step₁ = from-just-step (step? right-store₁ right₁) refl
+left-step₁ : OneStep left-store₁ left₁
+left-step₁ = from-just-step (step? left-store₁ left₁) refl
 
-right₂ : Term (Δ′ right-step₁)
-right₂ =
+left₂ : Term (Δ′ left-step₁)
+left₂ =
   ((ƛ (` 0)) ·
     (($ (κℕ 7)) ↓ seal 0 (‵ `ℕ)))
   ↑ unseal 0 (‵ `ℕ)
 
-right-store₂ : TyStore (Δ′ right-step₁)
-right-store₂ = store-after right-step₁
+left-store₂ : TyStore (Δ′ left-step₁)
+left-store₂ = store-after left-step₁
 
 -- 3. β substitutes the sealed argument into the identity body.
-right-step₂ : OneStep right-store₂ right₂
-right-step₂ = from-just-step (step? right-store₂ right₂) refl
+left-step₂ : OneStep left-store₂ left₂
+left-step₂ = from-just-step (step? left-store₂ left₂) refl
 
-right₃ : Term (Δ′ right-step₂)
-right₃ =
+left₃ : Term (Δ′ left-step₂)
+left₃ =
   (($ (κℕ 7)) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
 
-right-store₃ : TyStore (Δ′ right-step₂)
-right-store₃ = store-after right-step₂
+left-store₃ : TyStore (Δ′ left-step₂)
+left-store₃ = store-after left-step₂
 
 -- 4. conceal-reveal exposes the natural-number value.
-right-step₃ : OneStep right-store₃ right₃
-right-step₃ = from-just-step (step? right-store₃ right₃) refl
+left-step₃ : OneStep left-store₃ left₃
+left-step₃ = from-just-step (step? left-store₃ left₃) refl
 
-right-final : Term (Δ′ right-step₃)
-right-final = $ (κℕ 7)
+left-final : Term (Δ′ left-step₃)
+left-final = $ (κℕ 7)
 
-right-final-is-7 : right-final ≡ $ (κℕ 7)
-right-final-is-7 = refl
+left-final-is-7 : left-final ≡ $ (κℕ 7)
+left-final-is-7 = refl
 
-right-final-value : Value right-final
-right-final-value = from-just-value (value? right-final) refl
+left-final-value : Value left-final
+left-final-value = from-just-value (value? left-final) refl
 
-right-changes : StoreChanges 0 (Δ′ right-step₃)
-right-changes =
+left-changes : StoreChanges 0 (Δ′ left-step₃)
+left-changes =
   bind (‵ `ℕ) ∷ keep ∷ keep ∷ keep ∷ []
 
-example12-right-reduction : example12-right —↠[ right-changes ] right-final
-example12-right-reduction =
+example12-left-reduction : example12-left —↠[ left-changes ] left-final
+example12-left-reduction =
   ((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
-  —→[ bind (‵ `ℕ) ]⟨ reduction right-step₀ ⟩
+  —→[ bind (‵ `ℕ) ]⟨ reduction left-step₀ ⟩
   ((ƛ (` 0)) ↑ (seal 0 (‵ `ℕ) ↦↑ unseal 0 (‵ `ℕ)))
     · $ (κℕ 7)
-  —→[ keep ]⟨ reduction right-step₁ ⟩
+  —→[ keep ]⟨ reduction left-step₁ ⟩
   ((ƛ (` 0)) · (($ (κℕ 7)) ↓ seal 0 (‵ `ℕ)))
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction right-step₂ ⟩
+  —→[ keep ]⟨ reduction left-step₂ ⟩
   (($ (κℕ 7)) ↓ seal 0 (‵ `ℕ))
   ↑ unseal 0 (‵ `ℕ)
-  —→[ keep ]⟨ reduction right-step₃ ⟩
+  —→[ keep ]⟨ reduction left-step₃ ⟩
   $ (κℕ 7) ∎[]
+
+------------------------------------------------------------------------
+-- Simulation bookkeeping for the first store-alignment point
+------------------------------------------------------------------------
+
+-- After the left trace allocates its ℕ cell and the right trace catches up
+-- through the two extra right-only cells plus its matching ℕ cell, the center
+-- context has three variables:
+--
+--   zero          shared ℕ cell, with X⊑★ available during catch-up
+--   suc zero      right-only alias of the next right-only cell
+--   suc (suc zero) right-only ★ cell
+
+example12-right-only-store₀ : CTI.StoreImp 0
+example12-right-only-store₀ = CTI.reflStoreImp store-empty
+
+example12-right-only-store₁ : CTI.StoreImp 1
+example12-right-only-store₁ =
+  CTI.rightOnly★StoreImp example12-right-only-store₀
+
+example12-right-only-store₂ : CTI.StoreImp 2
+example12-right-only-store₂ =
+  CTI.rightOnlyStoreImp example12-right-only-store₁ CTI.leads-zero-star
+
+example12-aligned-store : CTI.StoreImp 3
+example12-aligned-store
+    with example12-right-only-store₂
+example12-aligned-store | CTI.stores μ Σᴸ Σᴿ categories =
+  CTI.stores (I.extendᵐ I.X⊑★ μ)
+    (store-bind Σᴸ (‵ `ℕ))
+    (store-bind Σᴿ (‵ `ℕ))
+    (CTI.categories-both I.X⊑★ categories I.ι⊑ι)
+
+example12-aligned-source-store :
+  CTI.sourceStoreⁱ example12-aligned-store
+    ≡ store-bind (store-lift (store-lift store-empty)) (‵ `ℕ)
+example12-aligned-source-store = refl
+
+example12-aligned-target-store :
+  CTI.targetStoreⁱ example12-aligned-store
+    ≡ store-bind (store-bind (store-bind store-empty ★) (＇ 0)) (‵ `ℕ)
+example12-aligned-target-store = refl
+
+example12-aligned-target-store-is-right₃ :
+  CTI.targetStoreⁱ example12-aligned-store ≡ right-store₃
+example12-aligned-target-store-is-right₃ = refl
+
+example12-ηᴸ-after-alloc : 1 ↪ᵗ 3
+example12-ηᴸ-after-alloc = keep (skip (skip empty))
+
+example12-ηᴿ-after-alloc : 3 ↪ᵗ 3
+example12-ηᴿ-after-alloc = keep (keep (keep empty))
+
+example12-no-left-image₁ :
+  CTI.InImage example12-ηᴸ-after-alloc (Fin.suc Fin.zero) → ⊥
+example12-no-left-image₁ (CTI.image Fin.zero ())
+
+example12-no-left-image₂ :
+  CTI.InImage example12-ηᴸ-after-alloc
+    (Fin.suc (Fin.suc Fin.zero)) → ⊥
+example12-no-left-image₂ (CTI.image Fin.zero ())
+
+example12-renamings-categorize-after-alloc :
+  CTI.RenamingsCategorize example12-ηᴸ-after-alloc
+    example12-ηᴿ-after-alloc (CTI.categoriesⁱ example12-aligned-store)
+example12-renamings-categorize-after-alloc Fin.zero =
+  CTI.image-both (CTI.image Fin.zero refl) (CTI.image Fin.zero refl)
+example12-renamings-categorize-after-alloc (Fin.suc Fin.zero) =
+  CTI.image-right-only example12-no-left-image₁
+    (CTI.image (Fin.suc Fin.zero) refl)
+example12-renamings-categorize-after-alloc
+    (Fin.suc (Fin.suc Fin.zero)) =
+  CTI.image-right-only example12-no-left-image₂
+    (CTI.image (Fin.suc (Fin.suc Fin.zero)) refl)

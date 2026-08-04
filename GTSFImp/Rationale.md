@@ -13,6 +13,8 @@ and [`Reduction.agda`](Reduction.agda).
 - [Instantiation closes consistency at star](#instantiation-closes)
 - [One-sided administrative wrappers in cast-term
   imprecision](#cast-term-imprecision-wrappers)
+- [Example 12 store alignment and right-only
+  variables](#example12-store-alignment)
 - [Generalization uses fresh-name tags](#generalization-tags)
 
 <a id="side-effect-free-instantiation"></a>
@@ -201,6 +203,189 @@ allocation reveal. Keeping reveal and conceal symmetric in the one-sided
 target rules makes the cast-term imprecision relation closed under the
 administrative conversion wrappers that type-application reductions can
 produce on the target.
+
+<a id="example12-store-alignment"></a>
+## Example 12 store alignment and right-only variables
+
+Cambridge26 Example 12 is useful as a stress test for the indexed renamings
+in cast-term imprecision. In GTSFImp orientation, the source term on the left
+is more precise and the target term on the right is less precise.
+
+The direct program is
+
+```text
+((Λ (ƛ x)) ⦂∀ (X ⇒ X) [ ℕ ]) 7
+```
+
+and the less precise program first casts the polymorphic identity up to
+`★ ⇒ ★`, casts it back down to `∀ X. X ⇒ X`, then instantiates at `ℕ`:
+
+```text
+((((Λ (ƛ x)) ⟨ inst ((X !) ↦ (X !)) ⟩)
+              ⟨ gen ((? X) ↦ (? X)) ⟩)
+              ⦂∀ (X ⇒ X) [ ℕ ]) 7
+```
+
+The first plausible weak-simulation comparison is not lock-step. The left
+program takes one allocation step, while the right program takes three
+allocation/catch-up steps.
+
+Diagram:
+
+    ((Λ (ƛ x)) ⦂∀ (X ⇒ X) [ ℕ ]) 7
+      ⊑
+    ((((Λ (ƛ x)) ⟨ inst ((X !) ↦ (X !)) ⟩)
+                 ⟨ gen ((? X) ↦ (? X)) ⟩)
+                 ⦂∀ (X ⇒ X) [ ℕ ]) 7
+
+      │ bind ℕ                         │ bind ★; bind Zᴿ; bind ℕ
+      │ one step                       │ three steps
+      ▼                                ▼
+
+    ((ƛ x) ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)) 7
+      ⊑
+    ((((((ƛ x)
+       ↑ (seal Yᴿ Zᴿ ↦↑ unseal Yᴿ Zᴿ))
+       ↑ (seal Zᴿ ★ ↦↑ unseal Zᴿ ★))
+       ⟨ id ★ ↦ id ★ ⟩)
+       ⟨ (? Xᴿ) ↦ (? Xᴿ) ⟩)
+       ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)) 7
+
+Here `Xᴸ` is the single type variable in the left type context, and `Xᴿ`,
+`Yᴿ`, and `Zᴿ` are the three type variables in the right type context. The
+center type context has variables `X`, `Y`, and `Z`, with no superscripts.
+The intended injective renamings are
+
+```text
+ηᴸ(Xᴸ) = X
+
+ηᴿ(Xᴿ) = X
+ηᴿ(Yᴿ) = Y
+ηᴿ(Zᴿ) = Z
+```
+
+The corresponding relational store shape is
+
+```text
+source store: X ↦ ℕ, with Y and Z lifted/abstract
+target store: X ↦ ℕ, Y ↦ Z, Z ↦ ★
+```
+
+Thus the outer `ℕ` cell is shared, while `Y` and `Z` are right-only. The
+store categories can classify `X` as `both` and `Y`, `Z` as `right-only`.
+For the catch-up proof attempt it is useful for the imprecision environment
+to classify the shared variable as `X⊑★`; the store category remains `both`,
+but the type imprecision relation can also derive `X ⊑ ★` when the right
+side temporarily passes through `★ ⇒ ★`.
+
+This store alignment can be built without the `extend` and `split` rules
+from the Cambridge26 notes. The obstruction is lower down, in the subterm
+typing derivations needed by the term-imprecision rules.
+
+The left function subterm has the typing shape
+
+```text
+ƛ x : Xᴸ ⇒ Xᴸ
+
+seal Xᴸ ℕ   : Conv↓ ℕ Xᴸ
+unseal Xᴸ ℕ : Conv↑ Xᴸ ℕ
+
+seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ
+  : Conv↑ (Xᴸ ⇒ Xᴸ) (ℕ ⇒ ℕ)
+
+(ƛ x) ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)
+  : ℕ ⇒ ℕ
+```
+
+The outer right reveal has the same shape after renaming `Xᴿ` to central
+`X`:
+
+```text
+K : Xᴿ ⇒ Xᴿ
+
+seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ
+  : Conv↑ (Xᴿ ⇒ Xᴿ) (ℕ ⇒ ℕ)
+
+K ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)
+  : ℕ ⇒ ℕ
+```
+
+So the outer reveal forces the successful match
+
+```text
+ηᴸ(Xᴸ) = X
+ηᴿ(Xᴿ) = X
+```
+
+The next right-side layer is the cast
+
+```text
+(? X) ↦ (? X) : (★ ⇒ ★) ∼ (X ⇒ X)
+```
+
+Relating the left function to this right-side cast with `⊑castᶜ` requires
+the premise
+
+```text
+X ⇒ X ⊑ ★ ⇒ ★
+```
+
+which is available if the shared central variable has `X⊑★` in the
+imprecision environment.
+
+The problem appears at the two target-only reveals beneath that cast. The
+right subterm
+
+```text
+((ƛ x) ↑ (seal Y Z ↦↑ unseal Y Z))
+       ↑ (seal Z ★ ↦↑ unseal Z ★)
+```
+
+has, more explicitly,
+
+```text
+seal Z ★ ↦↑ unseal Z ★
+  : Conv↑ (Z ⇒ Z) (★ ⇒ ★)
+```
+
+so before applying `⊑revealᶜ` to the `Z` reveal, the premise would need
+
+```text
+ƛ x ⊑ (ƛ x) ↑ (seal Y Z ↦↑ unseal Y Z)
+  : X ⇒ X ⊑ Z ⇒ Z
+```
+
+and therefore would need `X ⊑ Z`.
+
+For the innermost reveal,
+
+```text
+seal Y Z ↦↑ unseal Y Z
+  : Conv↑ (Y ⇒ Y) (Z ⇒ Z)
+```
+
+the raw right lambda has type `Y ⇒ Y`. Relating the raw lambdas would need
+
+```text
+ƛ x ⊑ ƛ x : X ⇒ X ⊑ Y ⇒ Y
+```
+
+and therefore would need `X ⊑ Y`.
+
+These are the precise failures:
+
+```text
+X ⊑ Y
+X ⊑ Z
+```
+
+The indexed renamings cannot solve this by choosing a different injection.
+The left side has only one type variable, and the outer reveal already needs
+that variable to map to central `X`. The same injective renaming cannot also
+map it to central `Y` or `Z`. Thus Example 12 shows that the store alignment
+itself can be expressed with the current two-renaming setup, but the current
+term-imprecision rules do not explain the extra right-only conversion layers
+that pass through distinct right-only variables.
 
 <a id="generalization-tags"></a>
 ## Generalization uses fresh-name tags

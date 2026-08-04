@@ -85,9 +85,9 @@ data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
 data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Set where
   inj : ∀ {Δ} {μ : Env∼ Δ} {G : Ty Δ}
-      ⦃ g : Groundʳ μ X∼★ G ⦄
-      ⦃ Gns : NonStar G ⦄ ⦃ match : GroundMatch g G ⦄
-    → Inert {μ = μ} ((idᵍ {μ = μ} g) !)
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Inert {μ = μ} ((idᵍ {μ = μ} Gᵍ) !)
 
   fun : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
       {c : μ ⊢ A ∼ A′} {d : μ ⊢ B ∼ B′}

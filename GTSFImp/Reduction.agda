@@ -159,41 +159,40 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
     → (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→ (V ⦂∀ A [ C ]) ⟨ d ⟩
 
   ground : ∀ {V : Term Δ} {μ : Env∼ Δ} {A G : Ty Δ}
-      ⦃ g : Groundʳ μ X∼★ G ⦄ {c : μ ⊢ A ∼ G}
-      ⦃ Ans : NonStar A ⦄ ⦃ match : GroundMatch g A ⦄
-      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      {c : μ ⊢ A ∼ G}
+      ⦃ Ans : NonStar A ⦄ ⦃ Gns : NonStar G ⦄
     → Value V
     → A ≢ G
       ------------------------------------------------
-    → V ⟨ c ! ⟩ —→ V ⟨ c ⟩ ⟨ (idᵍ g) ! ⟩
+    → V ⟨ c ! ⟩ —→ V ⟨ c ⟩ ⟨ (idᵍ Gᵍ) ! ⟩
 
   expand : ∀ {V : Term Δ} {μ : Env∼ Δ} {G B : Ty Δ}
-      ⦃ g : Groundʳ μ ★∼X G ⦄ {c : μ ⊢ G ∼ B}
-      ⦃ Bns : NonStar B ⦄ ⦃ match : GroundMatch g B ⦄
-      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
+      ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+      {c : μ ⊢ G ∼ B}
+      ⦃ Bns : NonStar B ⦄ ⦃ Gns : NonStar G ⦄
     → Value V
     → G ≢ B
       ------------------------------------
-    → V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ g) ⟩ ⟨ c ⟩
+    → V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
 
   tag-untag : ∀ {V : Term Δ} {μ ν : Env∼ Δ}
       {G : Ty Δ}
-      ⦃ g : Groundʳ μ X∼★ G ⦄ ⦃ h : Groundʳ ν ★∼X G ⦄
+      ⦃ Gᵍ : Ground G ⦄
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
       ⦃ Gns : NonStar G ⦄
-      ⦃ gmatch : GroundMatch g G ⦄
-      ⦃ hmatch : GroundMatch h G ⦄
     → Value V
       -----------------------------------
-    → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ V
+    → V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ —→ V
 
   tag-untag-bad : ∀ {V : Term Δ} {μ ν : Env∼ Δ} {G H : Ty Δ}
-      ⦃ g : Groundʳ μ X∼★ G ⦄ ⦃ h : Groundʳ ν ★∼X H ⦄
-      ⦃ Gns : NonStar G ⦄ ⦃ gmatch : GroundMatch g G ⦄
-      ⦃ Hns : NonStar H ⦄ ⦃ hmatch : GroundMatch h H ⦄
+      ⦃ Gᵍ : Ground G ⦄ ⦃ Hᵍ : Ground H ⦄
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼H : ν ⊢★∼ H ⦄
+      ⦃ Gns : NonStar G ⦄ ⦃ Hns : NonStar H ⦄
     → Value V
     → G ≢ H
       ------------------------------------------------------------
-    → V ⟨ (idᵍ g) ! ⟩ ⟨ ？ (idᵍ h) ⟩ —→ blame
+    → V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Hᵍ) ⟩ —→ blame
 
   blame-bot-intro : ∀ {V : Term Δ} {μ : Env∼ Δ}
     → Value V

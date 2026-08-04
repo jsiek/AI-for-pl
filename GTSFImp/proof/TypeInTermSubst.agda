@@ -262,21 +262,14 @@ renameᵗᵐ-preserves-Value rho (Λ vV) =
   Λ (renameᵗᵐ-preserves-Value (keep rho) vV)
 renameᵗᵐ-preserves-Value rho ($ κ) = $ κ
 renameᵗᵐ-preserves-Value rho
-    (vV 《 inj ⦃ g-⇒ ⦄ ⦃ nonstar-⇒ ⦄ ⦃ match-⇒ ⦄ 》) =
+    (vV 《 inj {G = G} ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+      ⦃ Gns = Gns ⦄ 》)
+    =
   renameᵗᵐ-preserves-Value rho vV
-    《 inj ⦃ g-⇒ ⦄ ⦃ nonstar-⇒ ⦄ ⦃ match-⇒ ⦄ 》
-renameᵗᵐ-preserves-Value rho
-    (vV 《 inj ⦃ g-ι ⦄ ⦃ nonstar-ι ⦄ ⦃ match-ι ⦄ 》) =
-  renameᵗᵐ-preserves-Value rho vV
-    《 inj ⦃ g-ι ⦄ ⦃ nonstar-ι ⦄ ⦃ match-ι ⦄ 》
-renameᵗᵐ-preserves-Value rho
-    (vV 《 inj ⦃ g-X eq ⦄ ⦃ nonstar-X ⦄ ⦃ match-X ⦄ 》) =
-  renameᵗᵐ-preserves-Value rho vV
-    《 inj ⦃ g-X _ ⦄ ⦃ nonstar-X ⦄ ⦃ match-X ⦄ 》
-renameᵗᵐ-preserves-Value rho
-    (vV 《 inj ⦃ g-∀ ⦄ ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄ 》) =
-  renameᵗᵐ-preserves-Value rho vV
-    《 inj ⦃ g-∀ ⦄ ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄ 》
+    《 subst≡ Inert (sym (renameᵐᶜ-idᵍ! rho Gᵍ))
+      (inj ⦃ Gᵍ = renameGroundᵐ rho Gᵍ ⦄
+        ⦃ G∼★ = rename∼★ᵐ rho G∼★ ⦄
+        ⦃ Gns = renameNonStar (toRenameᵗ rho) Gns ⦄) 》
 renameᵗᵐ-preserves-Value rho (vV 《 fun 》) =
   renameᵗᵐ-preserves-Value rho vV 《 fun 》
 renameᵗᵐ-preserves-Value rho (vV 《 all 》) =

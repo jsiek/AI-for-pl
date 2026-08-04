@@ -22,14 +22,14 @@ base-ground-target :
 base-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = ‵ `ℕ} {B = ‵ `ℕ} {G = ‵ `ℕ}
-    C.g-ι nonstar-ι (C.id (‵ `ℕ)) I.ι⊑ι I.ι⊑★
+    (‵ `ℕ) nonstar-ι (C.id (‵ `ℕ)) I.ι⊑ι I.ι⊑★
 
 fun-ground-target :
   I._⊢_⊑_ (I.idᵐ {Δ = 0}) (‵ `ℕ ⇒ ‵ `𝔹) (★ ⇒ ★)
 fun-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = ‵ `ℕ ⇒ ‵ `𝔹} {B = ‵ `ℕ ⇒ ‵ `𝔹} {G = ★ ⇒ ★}
-    C.g-⇒ nonstar-⇒
+    ★⇒★ nonstar-⇒
     (C._↦_ (C._! (C.id (‵ `ℕ))) (C._! (C.id (‵ `𝔹))))
     (I.⇒⊑⇒ I.ι⊑ι I.ι⊑ι)
     (I.⇒⊑★ I.ι⊑★ I.ι⊑★)
@@ -41,7 +41,7 @@ var-ground-target =
     {μ = I.instᵐ (I.idᵐ {Δ = 0})}
     {ν = C.instᵐ (C.idᶜ {Δ = 0})}
     {A = ＇ zero} {B = ＇ zero} {G = ＇ zero}
-    (C.g-X refl) nonstar-X (C.id (＇ zero)) I.X⊑X
+    (＇ zero) nonstar-X (C.id (＇ zero)) I.X⊑X
     (I.X⊑★ refl)
 
 ------------------------------------------------------------------------
@@ -53,7 +53,7 @@ all-ground-target :
 all-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ ★} {B = `∀ ★} {G = `∀ ★}
-    C.g-∀ nonstar-∀ (C.∀ᶜ (C.id ★)) (I.∀⊑∀ I.★⊑★)
+    ∀★ nonstar-∀ (C.∀ᶜ (C.id ★)) (I.∀⊑∀ I.★⊑★)
     I.∀★⊑★
 
 bot-elim-ground-target :
@@ -61,7 +61,7 @@ bot-elim-ground-target :
 bot-elim-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ (＇ zero)} {B = `∀ (＇ zero)} {G = `∀ ★}
-    C.g-∀ nonstar-∀ C.bot-elim
+    ∀★ nonstar-∀ C.bot-elim
     (I.∀⊑∀ I.X⊑X) I.bot⊑★
 
 forall-closed-body-to-universal-ground-target :
@@ -69,7 +69,7 @@ forall-closed-body-to-universal-ground-target :
 forall-closed-body-to-universal-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ (‵ `ℕ ⇒ ★)} {B = `∀ (‵ `ℕ ⇒ ★)} {G = `∀ ★}
-    C.g-∀ nonstar-∀
+    ∀★ nonstar-∀
     (C.∀ᶜ (C._! (C._↦_ (C._! (C.id (‵ `ℕ))) (C.id ★))))
     (I.∀⊑∀ (I.⇒⊑⇒ I.ι⊑ι I.★⊑★))
     (I.∀⊑★ nonstar-⇒
@@ -80,7 +80,7 @@ forall-elim-to-fun-ground-target :
 forall-elim-to-fun-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ (＇ zero ⇒ ★)} {B = ★ ⇒ ★} {G = ★ ⇒ ★}
-    C.g-⇒ nonstar-⇒
+    ★⇒★ nonstar-⇒
     (C._↦_ (C.id ★) (C.id ★))
     (I.∀⊑ nonvar-fun (∈-fun-left var-∈)
       (I.⇒⊑⇒ (I.X⊑★ refl) I.★⊑★))
@@ -93,7 +93,7 @@ inst-consistency-to-fun-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ (＇ zero ⇒ ★)} {B = `∀ (＇ zero ⇒ ★)}
     {G = ★ ⇒ ★}
-    C.g-⇒ nonstar-∀
+    ★⇒★ nonstar-∀
     (C.inst_ ⦃ Anv = nonvar-fun ⦄ ⦃ z∈A = ∈-fun-left var-∈ ⦄
       (C._↦_ (C._! (C.id (＇ zero))) (C.id ★)) (λ ()))
     (I.∀⊑∀ (I.⇒⊑⇒ I.X⊑X I.★⊑★))

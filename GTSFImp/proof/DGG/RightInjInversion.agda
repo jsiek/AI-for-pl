@@ -13,7 +13,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import Types
 open import Consistency using
-  (Env∼; _⊢_∼_; _↪ᵗ_; ∀ᶜ_; _!; gen_; toRenameᵗ)
+  (Env∼; _⊢_∼_; _⊢_∼★; _↪ᵗ_; ∀ᶜ_; _!; gen_; toRenameᵗ)
 import Consistency as C
 open import CastTerms using
   (Term; Value; ⊢⟨⟩; Λ_; _⟨_⟩; inj; fun; all; genᵥ; _《_》;
@@ -43,12 +43,12 @@ private
 right-inj-inversion-core : ∀ {Δ} {ρ : CTI.StoreImp Δ}
     {γ : GTI.CtxImp (CTI.impEnvⁱ ρ)}
     {M W : Term Δ} {A H : Ty Δ} {ν : Env∼ Δ}
-    {h : C.Groundʳ ν C.X∼★ H}
-    {Hns : NonStar H} {hmatch : C.GroundMatch h H}
+    {h : Ground H} {H∼★ : ν ⊢ H ∼★}
+    {Hns : NonStar H}
     {c′ : ν ⊢ H ∼ H}
     {p : CTI.impEnvⁱ ρ ⊢ A ⊑ ★}
   → Value M
-  → ρ ∣ γ ⊢ᶜ M ⊑ W ⟨ _! ⦃ h ⦄ c′ ⦃ Hns ⦄ ⦃ hmatch ⦄ ⟩
+  → ρ ∣ γ ⊢ᶜ M ⊑ W ⟨ _! ⦃ h ⦄ ⦃ H∼★ ⦄ c′ ⦃ Hns ⦄ ⟩
       ∶ p
   → (q : CTI.impEnvⁱ ρ ⊢ A ⊑ H)
   → ρ ∣ γ ⊢ᶜ M ⊑ W ∶ q
@@ -60,7 +60,7 @@ right-inj-inversion-core vM
   CTI.cast⊑ᶜ c M⊑W q
 right-inj-inversion-core {Hns = ()} (vM 《 inj 》)
     (CTI.cast⊑ᶜ c M⊑W! q′) I.★⊑★
-right-inj-inversion-core {h = C.g-⇒} (vM 《 fun 》)
+right-inj-inversion-core {h = ★⇒★} (vM 《 fun 》)
     (CTI.cast⊑ᶜ {p = I.⇒⊑★ pA pB} c M⊑W! q′)
     (I.⇒⊑⇒ qA qB) =
   CTI.cast⊑ᶜ c
@@ -89,11 +89,11 @@ right-inj-inversion-core {ρ = ρ} {H = H} (Λ vV₀)
           (λ T → I.instᵐ (CTI.impEnvⁱ ρ) ⊢ A₀ ⊑ T)
           (sym (renameᵗ-wk-eq H))
           qbody)))
-right-inj-inversion-core {h = C.g-∀} (Λ vV₀)
+right-inj-inversion-core {h = ∀★} (Λ vV₀)
     (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
     (I.∀⊑∀ qbody)
     with source-occurs-target refl qbody zero∈A
-right-inj-inversion-core {h = C.g-∀} (Λ vV₀)
+right-inj-inversion-core {h = ∀★} (Λ vV₀)
     (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
     (I.∀⊑∀ qbody)
     | ()
@@ -107,13 +107,12 @@ right-inj-inversion-indexed : ∀ {Δᴸ Δᴿ Δ}
     {ρ : CTI.StoreImp Δ} {γ : GTI.CtxImp (CTI.impEnvⁱ ρ)}
     {M : Term Δᴸ} {W : Term Δᴿ} {A : Ty Δ}
     {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {h : C.Groundʳ ν C.X∼★ H}
-    {Hns : NonStar H} {hmatch : C.GroundMatch h H}
+    {h : Ground H} {H∼★ : ν ⊢ H ∼★}
+    {Hns : NonStar H}
     {p : CTI.impEnvⁱ ρ ⊢ A ⊑ ★}
   → Value M
   → ηᴸ ∣ ηᴿ ∣ ρ ∣ γ ⊢ᶜ M
-      ⊑ W ⟨ _! ⦃ h ⦄ (C.idᵍ h)
-          ⦃ Hns ⦄ ⦃ hmatch ⦄ ⟩
+      ⊑ W ⟨ _! ⦃ h ⦄ ⦃ H∼★ ⦄ (C.idᵍ h) ⦃ Hns ⦄ ⟩
       ∶ p
   → (q : CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) H)
   → ηᴸ ∣ ηᴿ ∣ ρ ∣ γ ⊢ᶜ M ⊑ W ∶ q

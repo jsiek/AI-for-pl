@@ -163,6 +163,26 @@ data Ground {Δ : TyCtx} : Ty Δ → Set where
   ＇_ : (X : TyVar Δ) → Ground {Δ} (＇ X)
   ‵_ : (ι : Base) → Ground {Δ} (‵ ι)
   ★⇒★ : Ground {Δ} (★ ⇒ ★)
+  ∀★ : Ground {Δ} (`∀ ★)
+
+ground-unique : ∀ {Δ} {G : Ty Δ} (p q : Ground G) → p ≡ q
+ground-unique (＇ X) (＇ .X) = refl
+ground-unique (‵ ι) (‵ .ι) = refl
+ground-unique ★⇒★ ★⇒★ = refl
+ground-unique ∀★ ∀★ = refl
+
+instance
+  ground-var-instance : ∀ {Δ} {X : TyVar Δ} → Ground (＇ X)
+  ground-var-instance = ＇ _
+
+  ground-base-instance : ∀ {Δ ι} → Ground {Δ} (‵ ι)
+  ground-base-instance = ‵ _
+
+  ground-fun-instance : ∀ {Δ} → Ground {Δ} (★ ⇒ ★)
+  ground-fun-instance = ★⇒★
+
+  ground-all-instance : ∀ {Δ} → Ground {Δ} (`∀ ★)
+  ground-all-instance = ∀★
 
 data Non∀ {Δ : TyCtx} : Ty Δ → Set where
   non∀-＇ : ∀ {X} → Non∀ {Δ} (＇ X)
@@ -197,14 +217,21 @@ _≟Ground_ :
 (＇ α) ≟Ground (＇ β) | no neq = no (λ { refl → neq refl })
 (＇ α) ≟Ground (‵ ι) = no (λ ())
 (＇ α) ≟Ground ★⇒★ = no (λ ())
+(＇ α) ≟Ground ∀★ = no (λ ())
 (‵ ι) ≟Ground (＇ α) = no (λ ())
 (‵ ι) ≟Ground (‵ ι′) with ι ≟Base ι′
 (‵ ι) ≟Ground (‵ ι′) | yes eq = yes (cong ‵_ eq)
 (‵ ι) ≟Ground (‵ ι′) | no neq = no (λ { refl → neq refl })
 (‵ ι) ≟Ground ★⇒★ = no (λ ())
+(‵ ι) ≟Ground ∀★ = no (λ ())
 ★⇒★ ≟Ground (＇ α) = no (λ ())
 ★⇒★ ≟Ground (‵ ι) = no (λ ())
 ★⇒★ ≟Ground ★⇒★ = yes refl
+★⇒★ ≟Ground ∀★ = no (λ ())
+∀★ ≟Ground (＇ α) = no (λ ())
+∀★ ≟Ground (‵ ι) = no (λ ())
+∀★ ≟Ground ★⇒★ = no (λ ())
+∀★ ≟Ground ∀★ = yes refl
 
 infix 4 _≟Ty_
 _≟Ty_ : ∀ {Δ} (A B : Ty Δ) → Dec (A ≡ B)

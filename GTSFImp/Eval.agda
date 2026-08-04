@@ -34,35 +34,12 @@ inert? : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
 inert? (id a) = nothing
 inert? (c ↦ d) = just fun
 inert? (∀ᶜ c) = just all
-inert? (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    with Progress.to-ground g match c
-inert? {μ = μ}
-    (_! ⦃ g-⇒ ⦄ c
-      ⦃ Ans ⦄ ⦃ match-⇒ ⦄)
+inert? (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
+    with Progress.to-ground Gᵍ c
+inert? (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ .(idᵍ Gᵍ) ⦃ Ans ⦄)
     | Progress.same =
-  just
-    (inj ⦃ Gns = Ans ⦄ ⦃ match = match-⇒ ⦄)
-inert? {μ = μ}
-    (_! ⦃ g-ι ⦄ c
-      ⦃ Ans ⦄ ⦃ match-ι ⦄)
-    | Progress.same =
-  just
-    (inj ⦃ Gns = Ans ⦄ ⦃ match = match-ι ⦄)
-inert? {μ = μ}
-    (_! ⦃ g-X eq ⦄ .(idᵍ {μ = μ} (g-X eq))
-    ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
-    | Progress.same =
-  just
-    (inj ⦃ g = g-X eq ⦄ ⦃ Gns = nonstar-X ⦄
-      ⦃ match = match-X ⦄)
-inert? {μ = μ}
-    (_! ⦃ g-∀ ⦄ .(idᵍ {μ = μ} (g-∀ {r = X∼★}))
-      ⦃ nonstar-∀ ⦄ ⦃ match-∀ ⦄)
-    | Progress.same =
-  just
-    (inj ⦃ g = g-∀ {r = X∼★} ⦄ ⦃ Gns = nonstar-∀ ⦄
-      ⦃ match = match-∀ ⦄)
-inert? (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
+  just (inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ ⦃ Gns = Ans ⦄)
+inert? (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
     | Progress.other A≠G =
   nothing
 inert? (？ c) = nothing
@@ -226,68 +203,61 @@ cast-redex? M (id a) | nothing = nothing
 cast-redex? M (c ↦ d) = nothing
 cast-redex? M (∀ᶜ c) = nothing
 cast-redex? M
-    (_! ⦃ g-X eq ⦄ c ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
     with value? M
 cast-redex? M
-    (_! ⦃ g-X eq ⦄ c ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
     | nothing = nothing
 cast-redex? M
-    (_! ⦃ g-X eq ⦄ c ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
-    | just vM with Progress.to-ground (g-X eq) match-X c
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
+    | just vM with Progress.to-ground Gᵍ c
 cast-redex? M
-    (_! ⦃ g-X eq ⦄ .(idᵍ (g-X eq))
-      ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ .(idᵍ Gᵍ) ⦃ Ans ⦄)
     | just vM | Progress.same = nothing
 cast-redex? M
-    (_! ⦃ g-X eq ⦄ c ⦃ nonstar-X ⦄ ⦃ match-X ⦄)
-    | just vM | Progress.other A≠X =
-  just
-    (pure-result
-      (ground ⦃ g-X eq ⦄ ⦃ nonstar-X ⦄ ⦃ match-X ⦄
-        vM A≠X))
-cast-redex? M (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    with value? M
-cast-redex? M (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    | nothing = nothing
-cast-redex? M (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    | just vM with Progress.to-ground g match c
-cast-redex? M (_! ⦃ g ⦄ .(idᵍ g) ⦃ Ans ⦄ ⦃ match ⦄)
-    | just vM | Progress.same = nothing
-cast-redex? M (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
     | just vM | Progress.other A≠G =
-  just (pure-result (ground ⦃ Gns = ground-nonstar g ⦄
-    ⦃ gmatch = ground-match g ⦄ vM A≠G))
-cast-redex? M (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
+  just (pure-result
+    (ground ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+      ⦃ Ans = Ans ⦄ ⦃ Gns = ground-nonstar Gᵍ ⦄ vM A≠G))
+cast-redex? M
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
     with value? M
-cast-redex? M (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
+cast-redex? M
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
     | nothing = nothing
-cast-redex? M (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
-    | just vM with Progress.from-ground g match c
-cast-redex? M (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
+cast-redex? M
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
+    | just vM with Progress.from-ground Gᵍ c
+cast-redex? M
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
     | just vM | Progress.other B≠G =
-  just (pure-result (expand ⦃ Gns = ground-nonstar g ⦄
-    ⦃ gmatch = ground-match g ⦄ vM (λ G≡B → B≠G (sym G≡B))))
-cast-redex? ._ (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | just
-      (vW 《 inj {G = H} ⦃ h ⦄ ⦃ Hns ⦄ ⦃ hmatch ⦄ 》)
+  just (pure-result
+    (expand ⦃ Gᵍ = Gᵍ ⦄ ⦃ ★∼G = ★∼G ⦄
+      ⦃ Bns = Bns ⦄ ⦃ Gns = ground-nonstar Gᵍ ⦄
+      vM (λ G≡B → B≠G (sym G≡B))))
+cast-redex? ._
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | just (vW 《 inj {G = H} ⦃ Gᵍ = Hᵍ ⦄ ⦃ G∼★ = H∼★ ⦄ ⦃ Hns ⦄ 》)
     | Progress.same with H ≟Ty G
-cast-redex? ._ (？_ {G = .H} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | just
-      (vW 《 inj {G = H} ⦃ h ⦄ ⦃ Hns ⦄ ⦃ hmatch ⦄ 》)
-    | Progress.same | yes refl rewrite nonStar-unique Bns Hns =
-  just (pure-result (tag-untag
-    ⦃ g = h ⦄ ⦃ h = g ⦄
-    ⦃ Gns = Hns ⦄ ⦃ gmatch = hmatch ⦄
-    ⦃ hmatch = match ⦄ vW))
-cast-redex? ._ (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | just
-      (vW 《 inj {G = H} ⦃ h ⦄ ⦃ Hns ⦄ ⦃ hmatch ⦄ 》)
+cast-redex? ._
+    (？_ {G = .H} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | just (vW 《 inj {G = H} ⦃ Gᵍ = Hᵍ ⦄ ⦃ G∼★ = H∼★ ⦄ ⦃ Hns ⦄ 》)
+    | Progress.same | yes refl
+    rewrite nonStar-unique Bns Hns | ground-unique Gᵍ Hᵍ =
+  just (pure-result
+    (tag-untag ⦃ Gᵍ = Hᵍ ⦄ ⦃ G∼★ = H∼★ ⦄
+      ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = Hns ⦄ vW))
+cast-redex? ._
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | just (vW 《 inj {G = H} ⦃ Gᵍ = Hᵍ ⦄ ⦃ G∼★ = H∼★ ⦄ ⦃ Hns ⦄ 》)
     | Progress.same | no H≠G =
-  just (pure-result (tag-untag-bad
-    ⦃ g = h ⦄ ⦃ h = g ⦄
-    ⦃ Gns = Hns ⦄ ⦃ gmatch = hmatch ⦄
-    ⦃ Hns = Bns ⦄ ⦃ hmatch = match ⦄ vW H≠G))
-cast-redex? M (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
+  just (pure-result
+    (tag-untag-bad ⦃ Gᵍ = Hᵍ ⦄ ⦃ Hᵍ = Gᵍ ⦄
+      ⦃ G∼★ = H∼★ ⦄ ⦃ ★∼H = ★∼G ⦄
+      ⦃ Gns = Hns ⦄ ⦃ Hns = Bns ⦄ vW H≠G))
+cast-redex? M
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
     | just vM | Progress.same = nothing
 cast-redex? M (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
     with value? M

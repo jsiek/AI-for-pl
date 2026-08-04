@@ -77,10 +77,10 @@ data BoolView {Δ : TyCtx} (V : Term Δ) : Set where
   bv-const : ∀ {b : Bool} → V ≡ $ (κ𝔹 b) → BoolView V
 
 data StarView {Δ : TyCtx} (V : Term Δ) : Set where
-  sv-tag : ∀ {μ : Env∼ Δ} {W G} {g : Groundʳ μ X∼★ G}
-      ⦃ Gns : NonStar G ⦄ ⦃ match : GroundMatch g G ⦄
+  sv-tag : ∀ {μ : Env∼ Δ} {W G} {Gᵍ : Ground G}
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ Gns : NonStar G ⦄
     → Value W
-    → V ≡ W ⟨ _! ⦃ g ⦄ (idᵍ {μ = μ} g) ⟩
+    → V ≡ W ⟨ _! ⦃ Gᵍ ⦄ (idᵍ {μ = μ} Gᵍ) ⟩
     → StarView V
 
 data SealView {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ)
@@ -125,9 +125,10 @@ canonical-⇒ (vW ↓ fun) (⊢conceal (⊢↓-⇒ c⊢ d⊢) W⊢) =
   fv-conceal vW refl
 canonical-⇒ (vW ↓ all) ()
 
-canonical-∀ : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ} {A : Ty (suc Δ)}
+canonical-∀ : ∀ {Δ} {Σ : TyStore Δ} {Γ : TermCtx Δ}
+    {V : Term Δ} {A : Ty (suc Δ)}
   → Value V
-  → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ `∀ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ `∀ A
   → AllView A V
 canonical-∀ (ƛ N) ()
 canonical-∀ (Λ vV) (⊢Λ _ V⊢) = av-Λ vV refl
@@ -239,7 +240,7 @@ no-to-distinct-variable : ∀ {Δ} {μ : Env∼ Δ}
 no-to-distinct-variable Y★ XX (id (＇ X)) var-∈ =
   X∼★≢X∼X (trans (sym Y★) XX)
 no-to-distinct-variable Y★ XX
-    (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
+    (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
 no-to-distinct-variable Y★ XX
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all Y∈A) =
   no-to-distinct-variable Y★ XX c Y∈A
@@ -248,12 +249,16 @@ consistency-to-fresh : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
   → extᵐ μ ⊢ A ∼ ＇ Fin.zero
   → A ≡ ＇ Fin.zero
 consistency-to-fresh (id (＇ Fin.zero)) = refl
-consistency-to-fresh (？_ ⦃ g-⇒ ⦄ ())
-consistency-to-fresh (？_ ⦃ g-ι ⦄ ())
 consistency-to-fresh
-    (？_ ⦃ g-X {X = Fin.zero} () ⦄ c)
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ ())
 consistency-to-fresh
-    (？_ ⦃ g-∀ ⦄ c ⦃ match = () ⦄)
+    (？_ ⦃ Gᵍ = ‵ ι ⦄ ())
+consistency-to-fresh
+    (？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ () ⦄ c)
+consistency-to-fresh
+    (？_ ⦃ Gᵍ = ＇ Fin.suc X ⦄ ())
+consistency-to-fresh
+    (？_ ⦃ Gᵍ = ∀★ ⦄ (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★))
 consistency-to-fresh
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
   ⊥-elim (no-to-distinct-variable refl refl c z∈A)
@@ -348,8 +353,8 @@ data ToStar {Δ : TyCtx} {μ : Env∼ Δ} : ∀ {A : Ty Δ}
 to-star : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
   → (c : μ ⊢ A ∼ ★) → ToStar c
 to-star (id ★) = same
-to-star (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) = other (nonStar≢★ Ans)
-to-star (？_ ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄)
+to-star (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (nonStar≢★ Ans)
+to-star (？_ ⦃ g ⦄ c ⦃ () ⦄)
 to-star (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 
 data FromStar {Δ : TyCtx} {μ : Env∼ Δ} : ∀ {B : Ty Δ}
@@ -361,99 +366,87 @@ data FromStar {Δ : TyCtx} {μ : Env∼ Δ} : ∀ {B : Ty Δ}
 from-star : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ}
   → (c : μ ⊢ ★ ∼ B) → FromStar c
 from-star (id ★) = same
-from-star (_! ⦃ g ⦄ c ⦃ () ⦄ ⦃ match ⦄)
-from-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
+from-star (_! ⦃ g ⦄ c ⦃ () ⦄)
+from-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄) =
   other (nonStar≢★ Bns)
 from-star (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 
 data ToGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
-    (g : Groundʳ μ X∼★ G) :
+    (Gᵍ : Ground G) :
     ∀ {A : Ty Δ} → μ ⊢ A ∼ G → Set where
-  same : ToGround g (idᵍ g)
+  same : ToGround Gᵍ (idᵍ Gᵍ)
   other : ∀ {A : Ty Δ} {c : μ ⊢ A ∼ G}
-    → A ≢ G → ToGround g c
+    → A ≢ G → ToGround Gᵍ c
 
 occurs-star-impossible : ∀ {Δ} {X : TyVar Δ} → X ∈ᵗ ★ → ⊥
 occurs-star-impossible ()
 
 to-ground : ∀ {Δ} {μ : Env∼ Δ} {A G : Ty Δ}
-  → (g : Groundʳ μ X∼★ G)
-  → GroundMatch g A
+  → (Gᵍ : Ground G)
   → (c : μ ⊢ A ∼ G)
-  → ToGround g c
-to-ground g-ι match-ι (id (‵ ι)) = same
-to-ground g-ι match-ι (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
-  other (λ ())
-to-ground g-ι match-ι
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
-to-ground g-⇒ match-⇒ (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) =
-  other (λ ())
-to-ground g-⇒ match-⇒ (c ↦ d) with to-star c | to-star d
-to-ground g-⇒ match-⇒ (.(id ★) ↦ .(id ★))
-    | same | same = same
-to-ground g-⇒ match-⇒ (c ↦ d) | same | other B≠★ =
+  → ToGround Gᵍ c
+to-ground (‵ ι) (id (‵ ι)) = same
+to-ground (‵ ι) (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
+to-ground (‵ ι) (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
+to-ground ★⇒★ (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
+to-ground ★⇒★ (c ↦ d) with to-star c | to-star d
+to-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
+to-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
-to-ground g-⇒ match-⇒ (c ↦ d) | other A≠★ | same =
+to-ground ★⇒★ (c ↦ d) | other A≠★ | same =
   other (λ { refl → A≠★ refl })
-to-ground g-⇒ match-⇒ (c ↦ d)
-    | other A≠★ | other B≠★ =
+to-ground ★⇒★ (c ↦ d) | other A≠★ | other B≠★ =
   other (λ { refl → A≠★ refl })
-to-ground g-⇒ match-⇒
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
-to-ground (g-X eq) match-X (id (＇ X)) = same
-to-ground g-∀ match-∀ (∀ᶜ c) with to-star c
-to-ground g-∀ match-∀ (∀ᶜ (id ★)) | same = same
-to-ground g-∀ match-∀ (∀ᶜ c) | other A≠★ =
+to-ground ★⇒★ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
+to-ground (＇ X) (id (＇ X)) = same
+to-ground (＇ X) (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
+to-ground (＇ X) (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
+to-ground ∀★ (∀ᶜ c) with to-star c
+to-ground ∀★ (∀ᶜ (id ★)) | same = same
+to-ground ∀★ (∀ᶜ c) | other A≠★ =
   other (λ { refl → A≠★ refl })
-to-ground g-∀ match-∀
-    (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
-to-ground g-∀ match-∀
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+to-ground ∀★ (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
+to-ground ∀★ (gen_ ⦃ Bnv ⦄ ⦃ () ⦄ c A≢★)
+to-ground ∀★ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
   other (λ { refl → occurs-star-impossible z∈A })
-to-ground g-∀ match-∀ bot-elim = other (λ ())
+to-ground ∀★ bot-elim = other (λ ())
 
 data FromGround {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
-    (g : Groundʳ μ ★∼X G) :
+    (Gᵍ : Ground G) :
     ∀ {B : Ty Δ} → μ ⊢ G ∼ B → Set where
-  same : FromGround g (idᵍ g)
+  same : FromGround Gᵍ (idᵍ Gᵍ)
   other : ∀ {B : Ty Δ} {c : μ ⊢ G ∼ B}
-    → B ≢ G → FromGround g c
+    → B ≢ G → FromGround Gᵍ c
 
 from-ground : ∀ {Δ} {μ : Env∼ Δ} {G B : Ty Δ}
-  → (g : Groundʳ μ ★∼X G)
-  → GroundMatch g B
+  → (Gᵍ : Ground G)
   → (c : μ ⊢ G ∼ B)
-  → FromGround g c
-from-ground g-ι match-ι (id (‵ ι)) = same
-from-ground g-ι match-ι (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) =
-  other (λ ())
-from-ground g-ι match-ι
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
-from-ground g-⇒ match-⇒ (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) =
-  other (λ ())
-from-ground g-⇒ match-⇒ (c ↦ d) with from-star c | from-star d
-from-ground g-⇒ match-⇒ (.(id ★) ↦ .(id ★))
-    | same | same = same
-from-ground g-⇒ match-⇒ (c ↦ d) | same | other B≠★ =
+  → FromGround Gᵍ c
+from-ground (‵ ι) (id (‵ ι)) = same
+from-ground (‵ ι) (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
+from-ground (‵ ι) (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
+from-ground ★⇒★ (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
+from-ground ★⇒★ (c ↦ d) with from-star c | from-star d
+from-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
+from-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
-from-ground g-⇒ match-⇒ (c ↦ d) | other A≠★ | same =
+from-ground ★⇒★ (c ↦ d) | other A≠★ | same =
   other (λ { refl → A≠★ refl })
-from-ground g-⇒ match-⇒ (c ↦ d)
-    | other A≠★ | other B≠★ =
+from-ground ★⇒★ (c ↦ d) | other A≠★ | other B≠★ =
   other (λ { refl → A≠★ refl })
-from-ground g-⇒ match-⇒
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
-from-ground (g-X eq) match-X (id (＇ X)) = same
-from-ground g-∀ match-∀ (∀ᶜ c) with from-star c
-from-ground g-∀ match-∀ (∀ᶜ (id ★)) | same = same
-from-ground g-∀ match-∀ (∀ᶜ c) | other B≠★ =
+from-ground ★⇒★ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
+from-ground (＇ X) (id (＇ X)) = same
+from-ground (＇ X) (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
+from-ground (＇ X) (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
+from-ground ∀★ (∀ᶜ c) with from-star c
+from-ground ∀★ (∀ᶜ (id ★)) | same = same
+from-ground ∀★ (∀ᶜ c) | other B≠★ =
   other (λ { refl → B≠★ refl })
-from-ground g-∀ match-∀
-    (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
-from-ground g-∀ match-∀
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+from-ground ∀★ (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
+from-ground ∀★ (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
+from-ground ∀★ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
   other (λ { refl → occurs-star-impossible z∈B })
-from-ground g-∀ match-∀ bot-intro = other (λ ())
+from-ground ∀★ bot-intro = other (λ ())
 
 ------------------------------------------------------------------------
 -- Polymorphic cast classification
@@ -502,7 +495,7 @@ no-to-base : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {X : TyVar Δ} {ι}
   → X ∈ᵗ A
   → ⊥
 no-to-base (id (‵ ι)) ()
-no-to-base (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄) ()
+no-to-base (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
 no-to-base (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
   no-to-base c X∈A
 
@@ -511,7 +504,7 @@ no-from-base : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ} {X : TyVar Δ} {ι}
   → X ∈ᵗ B
   → ⊥
 no-from-base (id (‵ ι)) ()
-no-from-base (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) ()
+no-from-base (_! ⦃ g ⦄ c ⦃ Ans ⦄) ()
 no-from-base (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) (∈-all X∈B) =
   no-from-base c X∈B
 
@@ -544,8 +537,8 @@ gen-safe′ (id a) refl A≠★ Bnv z∈B =
   ⊥-elim (zero-not-shift z∈B)
 gen-safe′ (c ↦ d) eq A≠★ Bnv z∈B = safe-⇒
 gen-safe′ (∀ᶜ c) eq A≠★ Bnv z∈B = safe-∀
-gen-safe′ (_! ⦃ g ⦄ c ⦃ Ans ⦄ ⦃ match ⦄) eq A≠★ Bnv ()
-gen-safe′ (？_ ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
+gen-safe′ (_! ⦃ g ⦄ c ⦃ Ans ⦄) eq A≠★ Bnv ()
+gen-safe′ (？_ ⦃ g ⦄ c ⦃ Bns ⦄)
     eq A≠★ Bnv z∈B =
   ⊥-elim (A≠★ (shift-star-injective (sym eq)))
 gen-safe′ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) eq A≠★ Bnv z∈B =
@@ -577,101 +570,55 @@ cast-value-progress : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ}
 cast-value-progress V⊢ vV (id a) = step (pure-step (β-id vV))
 cast-value-progress V⊢ vV (c ↦ d) = done (vV 《 fun 》)
 cast-value-progress V⊢ vV (∀ᶜ c) = done (vV 《 all 》)
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    with to-ground g-⇒ match c
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-⇒ ⦄ c
-      ⦃ nonstar-⇒ ⦄ ⦃ match-⇒ ⦄)
-    | same =
-  done
-    (vV 《 inj ⦃ Gns = nonstar-⇒ ⦄ ⦃ match = match-⇒ ⦄
-      》)
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-⇒ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    | other A≠G =
-  step
-    (pure-step
-      (ground ⦃ g-⇒ ⦄ ⦃ Ans ⦄ ⦃ match ⦄ vV A≠G))
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    with to-ground g-ι match c
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-ι ⦄ c
-      ⦃ nonstar-ι ⦄ ⦃ match-ι ⦄)
-    | same =
-  done
-    (vV 《 inj ⦃ Gns = nonstar-ι ⦄ ⦃ match = match-ι ⦄
-      》)
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-ι ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    | other A≠G =
-  step
-    (pure-step
-      (ground ⦃ g-ι ⦄ ⦃ Ans ⦄ ⦃ match ⦄ vV A≠G))
-cast-value-progress {Δ = Δ} V⊢ vV
-    (_! ⦃ g-X eq ⦄ c ⦃ Xns ⦄ ⦃ match ⦄)
-    with to-ground (g-X eq) match c
-cast-value-progress {Δ = Δ} {μ = μ} V⊢ vV
-    (_! ⦃ g-X eq ⦄ .(idᵍ {μ = μ} (g-X eq))
-      ⦃ Xns ⦄ ⦃ match ⦄)
-    | same rewrite nonStar-unique Xns nonstar-X
-                 | groundMatch-unique match match-X =
-  done
-    (vV 《 inj ⦃ g = g-X eq ⦄ ⦃ Gns = nonstar-X ⦄
-      ⦃ match = match-X ⦄ 》)
 cast-value-progress V⊢ vV
-    (_! ⦃ g-X eq ⦄ c ⦃ Xns ⦄ ⦃ match ⦄)
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
+    with to-ground Gᵍ c
+cast-value-progress V⊢ vV
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ .(idᵍ Gᵍ) ⦃ Ans ⦄)
+    | same =
+  done (vV 《 inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ ⦃ Gns = Ans ⦄ 》)
+cast-value-progress V⊢ vV
+    (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
     | other A≠G =
   step (pure-step
-    (ground ⦃ g-X eq ⦄ ⦃ Xns ⦄ ⦃ match ⦄ vV A≠G))
+    (ground ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+      ⦃ Ans = Ans ⦄ ⦃ Gns = ground-nonstar Gᵍ ⦄ vV A≠G))
 cast-value-progress V⊢ vV
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    with to-ground g-∀ match c
-cast-value-progress {μ = μ} V⊢ vV
-    (_! ⦃ g-∀ ⦄ .(idᵍ {μ = μ} (g-∀ {r = X∼★}))
-      ⦃ Gns ⦄ ⦃ match ⦄)
-    | same rewrite nonStar-unique Gns nonstar-∀
-                 | groundMatch-unique match match-∀ =
-  done
-    (vV 《 inj ⦃ g = g-∀ {r = X∼★} ⦄ ⦃ Gns = nonstar-∀ ⦄
-      ⦃ match = match-∀ ⦄ 》)
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
+    with from-ground Gᵍ c
 cast-value-progress V⊢ vV
-    (_! ⦃ g-∀ ⦄ c ⦃ Ans ⦄ ⦃ match ⦄)
-    | other A≠G =
-  step (pure-step
-    (ground ⦃ g-∀ ⦄ ⦃ Ans ⦄ ⦃ match ⦄ vV A≠G))
-cast-value-progress V⊢ vV
-    (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
-    with from-ground g match c
-cast-value-progress V⊢ vV
-    (？_ {G = G} ⦃ g ⦄ c ⦃ Bns ⦄ ⦃ match ⦄)
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
     | other B≠G =
-  step (pure-step (expand ⦃ Gns = ground-nonstar g ⦄
-    ⦃ gmatch = ground-match g ⦄ vV (λ G≡B → B≠G (sym G≡B))))
+  step (pure-step
+    (expand ⦃ Gᵍ = Gᵍ ⦄ ⦃ ★∼G = ★∼G ⦄
+      ⦃ Bns = Bns ⦄ ⦃ Gns = ground-nonstar Gᵍ ⦄
+      vV (λ G≡B → B≠G (sym G≡B))))
 cast-value-progress V⊢ vV
-    (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
     | same with canonical-★ vV V⊢
 cast-value-progress V⊢ vV
-    (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | same | sv-tag {G = H} {g = h} ⦃ Gns ⦄ ⦃ hmatch ⦄ vW refl
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | same | sv-tag {G = H} {Gᵍ = Hᵍ} ⦃ G∼★ = H∼★ ⦄
+        ⦃ Gns ⦄ vW refl
     with H ≟Ty G
 cast-value-progress V⊢ vV
-    (？_ {G = .H} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | same | sv-tag {G = H} {g = h} ⦃ Gns ⦄ ⦃ hmatch ⦄ vW refl
-    | yes refl rewrite nonStar-unique Bns Gns =
-  step (pure-step (tag-untag
-    ⦃ g = h ⦄ ⦃ h = g ⦄
-    ⦃ Gns = Gns ⦄ ⦃ gmatch = hmatch ⦄
-    ⦃ hmatch = match ⦄ vW))
+    (？_ {G = .H} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | same | sv-tag {G = H} {Gᵍ = Hᵍ} ⦃ G∼★ = H∼★ ⦄
+        ⦃ Gns ⦄ vW refl
+    | yes refl rewrite nonStar-unique Bns Gns
+                     | ground-unique Gᵍ Hᵍ =
+  step (pure-step
+    (tag-untag ⦃ Gᵍ = Hᵍ ⦄ ⦃ G∼★ = H∼★ ⦄
+      ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = Gns ⦄ vW))
 cast-value-progress V⊢ vV
-    (？_ {G = G} ⦃ g ⦄ .(idᵍ g) ⦃ Bns ⦄ ⦃ match ⦄)
-    | same | sv-tag {G = H} {g = h} ⦃ Gns ⦄ ⦃ hmatch ⦄ vW refl
+    (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
+    | same | sv-tag {G = H} {Gᵍ = Hᵍ} ⦃ G∼★ = H∼★ ⦄
+        ⦃ Gns ⦄ vW refl
     | no H≠G =
-  step (pure-step (tag-untag-bad
-    ⦃ g = h ⦄ ⦃ h = g ⦄
-    ⦃ Gns = Gns ⦄ ⦃ gmatch = hmatch ⦄
-    ⦃ Hns = Bns ⦄ ⦃ hmatch = match ⦄ vW H≠G))
+  step (pure-step
+    (tag-untag-bad ⦃ Gᵍ = Hᵍ ⦄ ⦃ Hᵍ = Gᵍ ⦄
+      ⦃ G∼★ = H∼★ ⦄ ⦃ ★∼H = ★∼G ⦄
+      ⦃ Gns = Gns ⦄ ⦃ Hns = Bns ⦄ vW H≠G))
 cast-value-progress V⊢ vV
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
   step (β-inst vV B≢★)

@@ -26,7 +26,9 @@ open import TermCtx using (TermCtx)
 open import Consistency using
   (Env∼; _⊢_∼_; _∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!)
 open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
-open import Conversion using (id↑; `∀↑_; ⊢↑-∀; ⊢↑-id)
+open import Conversion using
+  (unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓;
+   ⊢↑-∀; ⊢↑-id)
 open import Imprecision
 open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
 open import CastTerms
@@ -223,6 +225,66 @@ record RebaseAt {Δᴸ Δᴿ Δ Δ′}
     sameRuntime : SameRuntime W W′
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
+sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → StoreRepImp W Xᴸ Xᴿ
+    --------------------
+  → RebaseAt W W Xᴸ Xᴿ
+sameWorldRebaseAt = rebase-at (same-runtime refl refl)
+
+------------------------------------------------------------------------
+-- Conversion typing indexed by the converted variable
+------------------------------------------------------------------------
+
+infix 4 _⊢↑[_]_ _⊢↓[_]_
+
+mutual
+  data _⊢↑[_]_ {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ) :
+      ∀ {A B} → Conv↑ Δ A B → Set where
+    ⊢↑-unsealˣ : ∀ {R}
+      → Σ ∋ X ⦂ R
+        ---------------------
+      → Σ ⊢↑[ X ] unseal X R
+
+    ⊢↑-⇒ˣ : ∀ {A A′ B B′}
+        {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
+      → Σ ⊢↓[ X ] c
+      → Σ ⊢↑[ X ] d
+        -----------------
+      → Σ ⊢↑[ X ] c ↦↑ d
+
+    ⊢↑-∀ˣ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↑[ Fin.suc X ] c
+        --------------------
+      → Σ ⊢↑[ X ] `∀↑ c
+
+    ⊢↑-idˣ : ∀ {A}
+        -----------------
+      → Σ ⊢↑[ X ] id↑ A
+
+  data _⊢↓[_]_ {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ) :
+      ∀ {A B} → Conv↓ Δ A B → Set where
+    ⊢↓-sealˣ : ∀ {R}
+      → Σ ∋ X ⦂ R
+        -------------------
+      → Σ ⊢↓[ X ] seal X R
+
+    ⊢↓-⇒ˣ : ∀ {A A′ B B′}
+        {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
+      → Σ ⊢↑[ X ] c
+      → Σ ⊢↓[ X ] d
+        -----------------
+      → Σ ⊢↓[ X ] c ↦↓ d
+
+    ⊢↓-∀ˣ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↓[ Fin.suc X ] c
+        --------------------
+      → Σ ⊢↓[ X ] `∀↓ c
+
+    ⊢↓-idˣ : ∀ {A}
+        -----------------
+      → Σ ⊢↓[ X ] id↓ A
+
 ------------------------------------------------------------------------
 -- Typed cast-term imprecision with recursive worlds
 ------------------------------------------------------------------------
@@ -312,39 +374,23 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
-  ⊑reveal² : ∀ {M M′ A B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {c′ : Conv↑ Δᴿ B B′}
-    → targetStoreʷ W ⊢↑ c′
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
-
   ⊑reveal-rebase² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
     → RebaseAt W W′ Xᴸ Xᴿ
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↑ c′
+    → targetStoreʷ W ⊢↑[ Xᴿ ] c′
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A ⊑ᵂ⟨ W ⟩ B′)
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
-
-  ⊑conceal² : ∀ {M M′ A B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {c′ : Conv↓ Δᴿ B B′}
-    → targetStoreʷ W ⊢↓ c′
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ↓ c′ ∶ q
 
   ⊑conceal-rebase² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
     → RebaseAt W W′ Xᴸ Xᴿ
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↓ c′
+    → targetStoreʷ W ⊢↓[ Xᴿ ] c′
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A ⊑ᵂ⟨ W ⟩ B′)
       -----------------------------
@@ -358,39 +404,23 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
-  reveal⊑² : ∀ {M M′ A A′ B}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {c : Conv↑ Δᴸ A A′}
-    → sourceStoreʷ W ⊢↑ c
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
-
   reveal-rebase⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
     → RebaseAt W W′ Xᴸ Xᴿ
     → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↑ c
+    → sourceStoreʷ W ⊢↑[ Xᴸ ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
-
-  conceal⊑² : ∀ {M M′ A A′ B}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → sourceStoreʷ W ⊢↓ c
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
 
   conceal-rebase⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
     → RebaseAt W W′ Xᴸ Xᴿ
     → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↓ c
+    → sourceStoreʷ W ⊢↓[ Xᴸ ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------

@@ -1,0 +1,1034 @@
+module Consistency where
+
+-- File Charter:
+--   * Defines environment-indexed type consistency.
+--   * Gives every universal type the ground representation `∀ X. ★`.
+--   * Provides renaming and substitution for consistency evidence.
+--   * Closes instantiation-bound consistency evidence at ★.
+
+open import Axiom.Extensionality.Propositional using (Extensionality)
+open import Level using (0ℓ)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Data.Nat using (zero; suc)
+open import Data.Fin using (zero; suc)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; cong; sym; trans)
+open import Relation.Nullary using (no; yes)
+
+open import Types
+
+private
+  variable
+    Δ Δ′ : TyCtx
+
+data Var∼ : Set where
+  X∼X : Var∼
+  X∼★ : Var∼
+  ★∼X : Var∼
+
+flipVar∼ : Var∼ → Var∼
+flipVar∼ X∼X = X∼X
+flipVar∼ X∼★ = ★∼X
+flipVar∼ ★∼X = X∼★
+
+Env∼ : TyCtx → Set
+Env∼ Δ = TyVar Δ → Var∼
+
+idᶜ : ∀ {Δ} → Env∼ Δ
+idᶜ X = X∼X
+
+extᵐ : Env∼ Δ → Env∼ (suc Δ)
+extᵐ μ zero = X∼X
+extᵐ μ (suc X) = μ X
+
+instᵐ : Env∼ Δ → Env∼ (suc Δ)
+instᵐ μ zero = X∼★
+instᵐ μ (suc X) = μ X
+
+genᵐ : Env∼ Δ → Env∼ (suc Δ)
+genᵐ μ zero = ★∼X
+genᵐ μ (suc X) = μ X
+
+flipᵐ : Env∼ Δ → Env∼ Δ
+flipᵐ μ X = flipVar∼ (μ X)
+
+----------------------------------------------------------------------
+-- Consistency
+----------------------------------------------------------------------
+
+infix 4 _⊢_∼★ _⊢★∼_
+
+data _⊢_∼★ {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
+  ⇒∼★ : μ ⊢ (★ ⇒ ★) ∼★
+  ι∼★ : ∀ {ι} → μ ⊢ ‵ ι ∼★
+  X∼★ᵍ : ∀ {X}
+    → μ X ≡ X∼★
+      ---------------
+    → μ ⊢ ＇ X ∼★
+  ∀∼★ : μ ⊢ (`∀ ★) ∼★
+
+data _⊢★∼_ {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
+  ★∼⇒ : μ ⊢★∼ (★ ⇒ ★)
+  ★∼ι : ∀ {ι} → μ ⊢★∼ ‵ ι
+  ★∼Xᵍ : ∀ {X}
+    → μ X ≡ ★∼X
+      ---------------
+    → μ ⊢★∼ ＇ X
+  ★∼∀ : μ ⊢★∼ (`∀ ★)
+
+instance
+  refl-instance : ∀ {A : Set} {x : A} → x ≡ x
+  refl-instance = refl
+
+  ∼★-⇒-instance : ∀ {Δ} {μ : Env∼ Δ} → μ ⊢ (★ ⇒ ★) ∼★
+  ∼★-⇒-instance = ⇒∼★
+
+  ∼★-ι-instance : ∀ {Δ} {μ : Env∼ Δ} {ι} → μ ⊢ ‵ ι ∼★
+  ∼★-ι-instance = ι∼★
+
+  ∼★-X-instance : ∀ {Δ} {μ : Env∼ Δ} {X}
+    → ⦃ eq : μ X ≡ X∼★ ⦄
+    → μ ⊢ ＇ X ∼★
+  ∼★-X-instance ⦃ eq ⦄ = X∼★ᵍ eq
+
+  ∼★-∀-instance : ∀ {Δ} {μ : Env∼ Δ} → μ ⊢ (`∀ ★) ∼★
+  ∼★-∀-instance = ∀∼★
+
+  ★∼-⇒-instance : ∀ {Δ} {μ : Env∼ Δ} → μ ⊢★∼ (★ ⇒ ★)
+  ★∼-⇒-instance = ★∼⇒
+
+  ★∼-ι-instance : ∀ {Δ} {μ : Env∼ Δ} {ι} → μ ⊢★∼ ‵ ι
+  ★∼-ι-instance = ★∼ι
+
+  ★∼-X-instance : ∀ {Δ} {μ : Env∼ Δ} {X}
+    → ⦃ eq : μ X ≡ ★∼X ⦄
+    → μ ⊢★∼ ＇ X
+  ★∼-X-instance ⦃ eq ⦄ = ★∼Xᵍ eq
+
+  ★∼-∀-instance : ∀ {Δ} {μ : Env∼ Δ} → μ ⊢★∼ (`∀ ★)
+  ★∼-∀-instance = ★∼∀
+
+infix 4 _⊢_∼_
+infixr 7 _↦_
+infix 8 _! ？_
+
+data _⊢_∼_ {Δ : TyCtx} (μ : Env∼ Δ) :
+    Ty Δ → Ty Δ → Set where
+
+  id : ∀ {A}
+    → Atom A
+      ---------
+    → μ ⊢ A ∼ A
+
+  _↦_ : ∀ {A A′ B B′}
+    → μ ⊢ A ∼ A′
+    → μ ⊢ B ∼ B′
+      ---------------------------
+    → μ ⊢ (A ⇒ B) ∼ (A′ ⇒ B′)
+
+  ∀ᶜ_ : ∀ {A B}
+    → extᵐ μ ⊢ A ∼ B
+      -----------------------
+    → μ ⊢ (`∀ A) ∼ (`∀ B)
+
+  _! : ∀ {A G}
+    → ⦃ Gᵍ : Ground G ⦄
+    → ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    → μ ⊢ A ∼ G
+    → ⦃ Ans : NonStar A ⦄
+      -----------
+    → μ ⊢ A ∼ ★
+
+  ？_ : ∀ {G B}
+    → ⦃ Gᵍ : Ground G ⦄
+    → ⦃ ★∼G : μ ⊢★∼ G ⦄
+    → μ ⊢ G ∼ B
+    → ⦃ Bns : NonStar B ⦄
+      -----------
+    → μ ⊢ ★ ∼ B
+
+  inst_ : ∀ {A B}
+    → ⦃ Anv : NonVar A ⦄
+    → ⦃ z∈A : zero ∈ᵗ A ⦄
+    → instᵐ μ ⊢ A ∼ ⇑ᵗ B
+    → B ≢ ★
+      ---------------------------
+    → μ ⊢ (`∀ A) ∼ B
+
+  gen_ : ∀ {A B}
+    → ⦃ Bnv : NonVar B ⦄
+    → ⦃ z∈B : zero ∈ᵗ B ⦄
+    → genᵐ μ ⊢ ⇑ᵗ A ∼ B
+    → A ≢ ★
+      ---------------------------
+    → μ ⊢ A ∼ (`∀ B)
+
+  bot-elim :
+      --------------------------------
+    μ ⊢ (`∀ (＇ zero)) ∼ (`∀ ★)
+
+  bot-intro :
+      --------------------------------
+    μ ⊢ (`∀ ★) ∼ (`∀ (＇ zero))
+
+infix 4 _∼_
+
+_∼_ : ∀ {Δ} → Ty Δ → Ty Δ → Set
+A ∼ B = idᶜ ⊢ A ∼ B
+
+idᵍ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
+  → Ground G
+  → μ ⊢ G ∼ G
+idᵍ ★⇒★ = id ★ ↦ id ★
+idᵍ (‵ ι) = id (‵ ι)
+idᵍ (＇ X) = id (＇ X)
+idᵍ ∀★ = ∀ᶜ (id ★)
+
+ground≢★ : ∀ {Δ} {G : Ty Δ}
+  → Ground G
+  → G ≢ ★
+ground≢★ ★⇒★ = λ ()
+ground≢★ (‵ ι) = λ ()
+ground≢★ (＇ X) = λ ()
+ground≢★ ∀★ = λ ()
+
+ground-nonstar : ∀ {Δ} {G : Ty Δ}
+  → Ground G
+  → NonStar G
+ground-nonstar ★⇒★ = nonstar-⇒
+ground-nonstar (‵ ι) = nonstar-ι
+ground-nonstar (＇ X) = nonstar-X
+ground-nonstar ∀★ = nonstar-∀
+
+renameNonStar : ∀ {Δ Δ′} {A : Ty Δ}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → NonStar A
+  → NonStar (renameᵗ ρ A)
+renameNonStar ρ nonstar-X = nonstar-X
+renameNonStar ρ nonstar-ι = nonstar-ι
+renameNonStar ρ nonstar-⇒ = nonstar-⇒
+renameNonStar ρ nonstar-∀ = nonstar-∀
+
+flip-∼★ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
+  → μ ⊢ G ∼★
+  → flipᵐ μ ⊢★∼ G
+flip-∼★ ⇒∼★ = ★∼⇒
+flip-∼★ ι∼★ = ★∼ι
+flip-∼★ (X∼★ᵍ eq) = ★∼Xᵍ (cong flipVar∼ eq)
+flip-∼★ ∀∼★ = ★∼∀
+
+flip-★∼ : ∀ {Δ} {G : Ty Δ} {μ : Env∼ Δ}
+  → μ ⊢★∼ G
+  → flipᵐ μ ⊢ G ∼★
+flip-★∼ ★∼⇒ = ⇒∼★
+flip-★∼ ★∼ι = ι∼★
+flip-★∼ (★∼Xᵍ eq) = X∼★ᵍ (cong flipVar∼ eq)
+flip-★∼ ★∼∀ = ∀∼★
+
+private
+  postulate
+    funext : Extensionality 0ℓ 0ℓ
+
+  flip-extᵐ : ∀ {Δ} {μ : Env∼ Δ}
+    → flipᵐ (extᵐ μ) ≡ extᵐ (flipᵐ μ)
+  flip-extᵐ = funext λ { zero → refl; (suc X) → refl }
+
+  flip-instᵐ : ∀ {Δ} {μ : Env∼ Δ}
+    → flipᵐ (instᵐ μ) ≡ genᵐ (flipᵐ μ)
+  flip-instᵐ = funext λ { zero → refl; (suc X) → refl }
+
+  flip-genᵐ : ∀ {Δ} {μ : Env∼ Δ}
+    → flipᵐ (genᵐ μ) ≡ instᵐ (flipᵐ μ)
+  flip-genᵐ = funext λ { zero → refl; (suc X) → refl }
+
+  flip-idᵐ : ∀ {Δ} → flipᵐ (idᶜ {Δ}) ≡ idᶜ
+  flip-idᵐ = funext (λ X → refl)
+
+  transport-env∼ : ∀ {Δ} {μ ν : Env∼ Δ} {A B : Ty Δ}
+    → μ ≡ ν
+    → μ ⊢ A ∼ B
+    → ν ⊢ A ∼ B
+  transport-env∼ refl c = c
+
+sym∼ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+  → μ ⊢ A ∼ B
+  → flipᵐ μ ⊢ B ∼ A
+sym∼ (id a) = id a
+sym∼ (c ↦ d) = sym∼ c ↦ sym∼ d
+sym∼ (∀ᶜ c) = ∀ᶜ (transport-env∼ flip-extᵐ (sym∼ c))
+sym∼ (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
+  ？_ ⦃ Gᵍ ⦄ ⦃ flip-∼★ G∼★ ⦄ (sym∼ c) ⦃ Ans ⦄
+sym∼ (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
+  _! ⦃ Gᵍ ⦄ ⦃ flip-★∼ ★∼G ⦄ (sym∼ c) ⦃ Bns ⦄
+sym∼ (inst_ ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★) =
+  gen_ ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄
+    (transport-env∼ flip-instᵐ (sym∼ c)) B≢★
+sym∼ (gen_ ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★) =
+  inst_ ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄
+    (transport-env∼ flip-genᵐ (sym∼ c)) A≢★
+sym∼ bot-elim = bot-intro
+sym∼ bot-intro = bot-elim
+
+symᶜ : ∀ {Δ} {A B : Ty Δ} → A ∼ B → B ∼ A
+symᶜ c = transport-env∼ flip-idᵐ (sym∼ c)
+
+private
+
+  rename-∈ᵗ : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → X ∈ᵗ A
+    → ρ X ∈ᵗ renameᵗ ρ A
+  rename-∈ᵗ ρ var-∈ = var-∈
+  rename-∈ᵗ ρ (∈-fun-left X∈A) = ∈-fun-left (rename-∈ᵗ ρ X∈A)
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      with occurs? (ρ X) (renameᵗ ρ A)
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      | present ρX∈A = ∈-fun-left ρX∈A
+  rename-∈ᵗ {X = X} {A = A ⇒ B} ρ (∈-fun-right X∉A X∈B)
+      | absent ρX∉A =
+    ∈-fun-right ρX∉A (rename-∈ᵗ ρ X∈B)
+  rename-∈ᵗ ρ (∈-all X∈A) = ∈-all (rename-∈ᵗ (extᵗ ρ) X∈A)
+
+  rename-≢★ : ∀ {Δ Δ′} {A : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → A ≢ ★
+    → renameᵗ ρ A ≢ ★
+  rename-≢★ {A = ＇ X} ρ A≢★ ()
+  rename-≢★ {A = ‵ ι} ρ A≢★ ()
+  rename-≢★ {A = ★} ρ A≢★ refl = A≢★ refl
+  rename-≢★ {A = A ⇒ B} ρ A≢★ ()
+  rename-≢★ {A = `∀ A} ρ A≢★ ()
+
+  extᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → ∀ X → extᵐ μ′ (extᵗ ρ X) ≡ extᵐ μ X
+  extᵐ-rename ρ eq zero = refl
+  extᵐ-rename ρ eq (suc X) = eq X
+
+  instᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → ∀ X → instᵐ μ′ (extᵗ ρ X) ≡ instᵐ μ X
+  instᵐ-rename ρ eq zero = refl
+  instᵐ-rename ρ eq (suc X) = eq X
+
+  genᵐ-rename : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → ∀ X → genᵐ μ′ (extᵗ ρ X) ≡ genᵐ μ X
+  genᵐ-rename ρ eq zero = refl
+  genᵐ-rename ρ eq (suc X) = eq X
+
+  subst-left-∼ : ∀ {Δ} {μ : Env∼ Δ} {A A′ B : Ty Δ}
+    → A ≡ A′
+    → μ ⊢ A ∼ B
+    → μ ⊢ A′ ∼ B
+  subst-left-∼ refl c = c
+
+  subst-right-∼ : ∀ {Δ} {μ : Env∼ Δ} {A B B′ : Ty Δ}
+    → B ≡ B′
+    → μ ⊢ A ∼ B
+    → μ ⊢ A ∼ B′
+  subst-right-∼ refl c = c
+
+  renameGround : ∀ {Δ Δ′} {G : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → Ground G
+    → Ground (renameᵗ ρ G)
+  renameGround ρ ★⇒★ = ★⇒★
+  renameGround ρ (‵ ι) = ‵ ι
+  renameGround ρ (＇ X) = ＇ (ρ X)
+  renameGround ρ ∀★ = ∀★
+
+  rename∼★ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+      {G : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → μ ⊢ G ∼★
+    → μ′ ⊢ renameᵗ ρ G ∼★
+  rename∼★ ρ eq ⇒∼★ = ⇒∼★
+  rename∼★ ρ eq ι∼★ = ι∼★
+  rename∼★ ρ eq (X∼★ᵍ {X = X} eq-X) =
+    X∼★ᵍ (trans (eq X) eq-X)
+  rename∼★ ρ eq ∀∼★ = ∀∼★
+
+  rename★∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+      {G : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → μ ⊢★∼ G
+    → μ′ ⊢★∼ renameᵗ ρ G
+  rename★∼ ρ eq ★∼⇒ = ★∼⇒
+  rename★∼ ρ eq ★∼ι = ★∼ι
+  rename★∼ ρ eq (★∼Xᵍ {X = X} eq-X) =
+    ★∼Xᵍ (trans (eq X) eq-X)
+  rename★∼ ρ eq ★∼∀ = ★∼∀
+
+  rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+      {A B : Ty Δ}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → μ ⊢ A ∼ B
+    → μ′ ⊢ renameᵗ ρ A ∼ renameᵗ ρ B
+  rename∼ ρ eq (id ★) = id ★
+  rename∼ ρ eq (id (‵ ι)) = id (‵ ι)
+  rename∼ ρ eq (id (＇ X)) = id (＇ (ρ X))
+  rename∼ ρ eq (A∼A′ ↦ B∼B′) =
+    rename∼ ρ eq A∼A′ ↦ rename∼ ρ eq B∼B′
+  rename∼ ρ eq (∀ᶜ A∼B) =
+    ∀ᶜ (rename∼ (extᵗ ρ) (extᵐ-rename ρ eq) A∼B)
+  rename∼ {μ = μ} {μ′ = μ′} ρ eq
+      (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
+    _! ⦃ renameGround ρ Gᵍ ⦄ ⦃ rename∼★ ρ eq G∼★ ⦄
+      (rename∼ ρ eq c) ⦃ renameNonStar ρ Ans ⦄
+  rename∼ {μ = μ} {μ′ = μ′} ρ eq
+      (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
+    ？_ ⦃ renameGround ρ Gᵍ ⦄ ⦃ rename★∼ ρ eq ★∼G ⦄
+      (rename∼ ρ eq c) ⦃ renameNonStar ρ Bns ⦄
+  rename∼ ρ eq
+      (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ A∼B B≢★) =
+    inst_ ⦃ renameNonVar (extᵗ ρ) A-nonvar ⦄
+      ⦃ rename-∈ᵗ (extᵗ ρ) zero∈A ⦄
+      (subst-right-∼ (renameᵗ-shift ρ B)
+        (rename∼ (extᵗ ρ) (instᵐ-rename ρ eq) A∼B))
+      (rename-≢★ ρ B≢★)
+  rename∼ ρ eq
+      (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ A∼B A≢★) =
+    gen_ ⦃ renameNonVar (extᵗ ρ) B-nonvar ⦄
+      ⦃ rename-∈ᵗ (extᵗ ρ) zero∈B ⦄
+      (subst-left-∼ (renameᵗ-shift ρ A)
+        (rename∼ (extᵗ ρ) (genᵐ-rename ρ eq) A∼B))
+      (rename-≢★ ρ A≢★)
+  rename∼ ρ eq bot-elim = bot-elim
+  rename∼ ρ eq bot-intro = bot-intro
+
+renameᶜ : ∀ {Δ Δ′} {A B : Ty Δ}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → A ∼ B
+  → renameᵗ ρ A ∼ renameᵗ ρ B
+renameᶜ ρ c = rename∼ ρ (λ X → refl) c
+
+renameEnvᶜ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+    {A B : Ty Δ}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → (∀ X → ν (ρ X) ≡ μ X)
+  → μ ⊢ A ∼ B
+  → ν ⊢ renameᵗ ρ A ∼ renameᵗ ρ B
+renameEnvᶜ = rename∼
+
+------------------------------------------------------------------------
+-- Order-preserving renaming of environment-indexed consistency
+------------------------------------------------------------------------
+
+infix 4 _↪ᵗ_
+
+data _↪ᵗ_ : TyCtx → TyCtx → Set where
+  empty : ∀ {Δ} → zero ↪ᵗ Δ
+  keep : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → suc Δ ↪ᵗ suc Δ′
+  skip : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Δ ↪ᵗ suc Δ′
+
+toRenameᵗ : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Δ ⇒ʳ Δ′
+toRenameᵗ empty ()
+toRenameᵗ (keep ρ) zero = zero
+toRenameᵗ (keep ρ) (suc X) = suc (toRenameᵗ ρ X)
+toRenameᵗ (skip ρ) X = suc (toRenameᵗ ρ X)
+
+id↪ᵗ : ∀ {Δ} → Δ ↪ᵗ Δ
+id↪ᵗ {zero} = empty
+id↪ᵗ {suc Δ} = keep id↪ᵗ
+
+wk↪ᵗ : ∀ {Δ} → Δ ↪ᵗ suc Δ
+wk↪ᵗ = skip id↪ᵗ
+
+renameEnv∼ : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Env∼ Δ → Env∼ Δ′
+renameEnv∼ empty μ = idᶜ
+renameEnv∼ (keep ρ) μ zero = μ zero
+renameEnv∼ (keep ρ) μ (suc X) =
+  renameEnv∼ ρ (λ Y → μ (suc Y)) X
+renameEnv∼ (skip ρ) μ zero = X∼X
+renameEnv∼ (skip ρ) μ (suc X) = renameEnv∼ ρ μ X
+
+renameEnv∼-preserves : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′) (μ : Env∼ Δ)
+  → ∀ X → renameEnv∼ ρ μ (toRenameᵗ ρ X) ≡ μ X
+renameEnv∼-preserves (keep ρ) μ zero = refl
+renameEnv∼-preserves (keep ρ) μ (suc X) =
+  renameEnv∼-preserves ρ (λ Y → μ (suc Y)) X
+renameEnv∼-preserves (skip ρ) μ X = renameEnv∼-preserves ρ μ X
+
+renameGroundᵐ : ∀ {Δ Δ′} {G : Ty Δ}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → Ground G
+  → Ground (renameᵗ (toRenameᵗ ρ) G)
+renameGroundᵐ ρ = renameGround (toRenameᵗ ρ)
+
+rename∼★ᵐ : ∀ {Δ Δ′} {μ : Env∼ Δ} {G : Ty Δ}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → μ ⊢ G ∼★
+  → renameEnv∼ ρ μ ⊢ renameᵗ (toRenameᵗ ρ) G ∼★
+rename∼★ᵐ {μ = μ} ρ = rename∼★ (toRenameᵗ ρ)
+  (renameEnv∼-preserves ρ μ)
+
+rename★∼ᵐ : ∀ {Δ Δ′} {μ : Env∼ Δ} {G : Ty Δ}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → μ ⊢★∼ G
+  → renameEnv∼ ρ μ ⊢★∼ renameᵗ (toRenameᵗ ρ) G
+rename★∼ᵐ {μ = μ} ρ = rename★∼ (toRenameᵗ ρ)
+  (renameEnv∼-preserves ρ μ)
+
+renameᵐᶜ : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → μ ⊢ A ∼ B
+  → renameEnv∼ ρ μ ⊢ renameᵗ (toRenameᵗ ρ) A ∼
+      renameᵗ (toRenameᵗ ρ) B
+renameᵐᶜ {μ = μ} ρ c = rename∼ (toRenameᵗ ρ)
+  (renameEnv∼-preserves ρ μ) c
+
+renameᵐᶜ-idᵍ : ∀ {Δ Δ′} {μ : Env∼ Δ} {G : Ty Δ}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → (Gᵍ : Ground G)
+  → renameᵐᶜ {μ = μ} ρ (idᵍ Gᵍ) ≡ idᵍ (renameGroundᵐ ρ Gᵍ)
+renameᵐᶜ-idᵍ ρ ★⇒★ = refl
+renameᵐᶜ-idᵍ ρ (‵ ι) = refl
+renameᵐᶜ-idᵍ ρ (＇ X) = refl
+renameᵐᶜ-idᵍ ρ ∀★ = refl
+
+renameᵐᶜ-idᵍ! : ∀ {Δ Δ′} {μ : Env∼ Δ} {G : Ty Δ}
+    {G∼★ : μ ⊢ G ∼★} {Gns : NonStar G}
+  → (ρ : Δ ↪ᵗ Δ′)
+  → (Gᵍ : Ground G)
+  → renameᵐᶜ ρ (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ) ⦃ Gns ⦄)
+      ≡ _! ⦃ renameGroundᵐ ρ Gᵍ ⦄ ⦃ rename∼★ᵐ ρ G∼★ ⦄
+          (idᵍ (renameGroundᵐ ρ Gᵍ))
+          ⦃ renameNonStar (toRenameᵗ ρ) Gns ⦄
+renameᵐᶜ-idᵍ! {G∼★ = ⇒∼★} ρ ★⇒★ = refl
+renameᵐᶜ-idᵍ! {G∼★ = ι∼★} ρ (‵ ι) = refl
+renameᵐᶜ-idᵍ! {G∼★ = X∼★ᵍ eq} ρ (＇ X) = refl
+renameᵐᶜ-idᵍ! {G∼★ = ∀∼★} ρ ∀★ = refl
+
+↑ᶜ_ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+  → μ ⊢ A ∼ B
+  → renameEnv∼ wk↪ᵗ μ
+      ⊢ renameᵗ (toRenameᵗ wk↪ᵗ) A
+      ∼ renameᵗ (toRenameᵗ wk↪ᵗ) B
+↑ᶜ c = renameᵐᶜ wk↪ᵗ c
+
+refl∼ : ∀ {Δ} {μ : Env∼ Δ} (A : Ty Δ) → μ ⊢ A ∼ A
+refl∼ (＇ X) = id (＇ X)
+refl∼ (‵ ι) = id (‵ ι)
+refl∼ ★ = id ★
+refl∼ (A ⇒ B) = refl∼ A ↦ refl∼ B
+refl∼ (`∀ A) = ∀ᶜ (refl∼ A)
+
+record SubstEnv∼ {Δ Δ′ : TyCtx}
+    (μ : Env∼ Δ) (ν : Env∼ Δ′) (σ : Δ ⇒ˢ Δ′) : Set where
+  constructor subst-env∼
+  field
+    self : ∀ X → ν ⊢ σ X ∼ σ X
+    to-★ : ∀ X → μ X ≡ X∼★ → ν ⊢ σ X ∼ ★
+    from-★ : ∀ X → μ X ≡ ★∼X → ν ⊢ ★ ∼ σ X
+
+open SubstEnv∼
+
+private
+
+  ext-SubstEnv∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′}
+    → SubstEnv∼ μ ν σ
+    → SubstEnv∼ (extᵐ μ) (extᵐ ν) (extsᵗ σ)
+  ext-SubstEnv∼ (subst-env∼ self to-★ from-★) =
+    subst-env∼ self′ to-★′ from-★′
+    where
+    self′ : ∀ X → extᵐ _ ⊢ extsᵗ _ X ∼ extsᵗ _ X
+    self′ zero = id (＇ zero)
+    self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
+
+    to-★′ : ∀ X
+      → extᵐ _ X ≡ X∼★
+      → extᵐ _ ⊢ extsᵗ _ X ∼ ★
+    to-★′ zero ()
+    to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
+
+    from-★′ : ∀ X
+      → extᵐ _ X ≡ ★∼X
+      → extᵐ _ ⊢ ★ ∼ extsᵗ _ X
+    from-★′ zero ()
+    from-★′ (suc X) eq =
+      rename∼ suc (λ Y → refl) (from-★ X eq)
+
+  inst-SubstEnv∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′}
+    → SubstEnv∼ μ ν σ
+    → SubstEnv∼ (instᵐ μ) (instᵐ ν) (extsᵗ σ)
+  inst-SubstEnv∼ {ν = ν} (subst-env∼ self to-★ from-★) =
+    subst-env∼ self′ to-★′ from-★′
+    where
+    self′ : ∀ X → instᵐ _ ⊢ extsᵗ _ X ∼ extsᵗ _ X
+    self′ zero = id (＇ zero)
+    self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
+
+    to-★′ : ∀ X
+      → instᵐ _ X ≡ X∼★
+      → instᵐ _ ⊢ extsᵗ _ X ∼ ★
+    to-★′ zero eq =
+      _! ⦃ G∼★ = X∼★ᵍ refl ⦄ (id (＇ zero))
+    to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
+
+    from-★′ : ∀ X
+      → instᵐ _ X ≡ ★∼X
+      → instᵐ _ ⊢ ★ ∼ extsᵗ _ X
+    from-★′ zero ()
+    from-★′ (suc X) eq =
+      rename∼ suc (λ Y → refl) (from-★ X eq)
+
+  gen-SubstEnv∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′}
+    → SubstEnv∼ μ ν σ
+    → SubstEnv∼ (genᵐ μ) (genᵐ ν) (extsᵗ σ)
+  gen-SubstEnv∼ {ν = ν} (subst-env∼ self to-★ from-★) =
+    subst-env∼ self′ to-★′ from-★′
+    where
+    self′ : ∀ X → genᵐ _ ⊢ extsᵗ _ X ∼ extsᵗ _ X
+    self′ zero = id (＇ zero)
+    self′ (suc X) = rename∼ suc (λ Y → refl) (self X)
+
+    to-★′ : ∀ X
+      → genᵐ _ X ≡ X∼★
+      → genᵐ _ ⊢ extsᵗ _ X ∼ ★
+    to-★′ zero ()
+    to-★′ (suc X) eq = rename∼ suc (λ Y → refl) (to-★ X eq)
+
+    from-★′ : ∀ X
+      → genᵐ _ X ≡ ★∼X
+      → genᵐ _ ⊢ ★ ∼ extsᵗ _ X
+    from-★′ zero eq =
+      ？_ ⦃ ★∼G = ★∼Xᵍ refl ⦄ (id (＇ zero))
+    from-★′ (suc X) eq =
+      rename∼ suc (λ Y → refl) (from-★ X eq)
+
+  subst-∈ᵗ : ∀ {Δ Δ′} {σ : Δ ⇒ˢ Δ′} {X : TyVar Δ}
+      {Y : TyVar Δ′} {A : Ty Δ}
+    → X ∈ᵗ A
+    → Y ∈ᵗ σ X
+    → Y ∈ᵗ substᵗ σ A
+  subst-∈ᵗ var-∈ Y∈σX = Y∈σX
+  subst-∈ᵗ (∈-fun-left X∈A) Y∈σX =
+    ∈-fun-left (subst-∈ᵗ X∈A Y∈σX)
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      with occurs? Y (substᵗ σ A)
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      | present Y∈A = ∈-fun-left Y∈A
+  subst-∈ᵗ {σ = σ} {Y = Y} {A = A ⇒ B}
+      (∈-fun-right X∉A X∈B) Y∈σX
+      | absent Y∉A =
+    ∈-fun-right Y∉A (subst-∈ᵗ X∈B Y∈σX)
+  subst-∈ᵗ {σ = σ} (∈-all X∈A) Y∈σX =
+    ∈-all (subst-∈ᵗ {σ = extsᵗ σ} X∈A (rename-∈ᵗ suc Y∈σX))
+
+  tag-source-nonvar-⇒ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
+    → μ ⊢ A ∼ (★ ⇒ ★)
+    → NonStar A
+    → NonVar A
+  tag-source-nonvar-⇒ (c ↦ d) Ans = nonvar-fun
+  tag-source-nonvar-⇒
+      (？_ ⦃ g ⦄ c ⦃ Gns ⦄) Ans =
+    ⊥-elim (nonStar≢★ Ans refl)
+  tag-source-nonvar-⇒ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Ans =
+    nonvar-all
+
+  tag-source-nonvar-ι : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {ι}
+    → μ ⊢ A ∼ (‵ ι)
+    → NonStar A
+    → NonVar A
+  tag-source-nonvar-ι (id (‵ ι)) Ans = nonvar-base
+  tag-source-nonvar-ι
+      (？_ ⦃ g ⦄ c ⦃ Gns ⦄) Ans =
+    ⊥-elim (nonStar≢★ Ans refl)
+  tag-source-nonvar-ι (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Ans =
+    nonvar-all
+
+  tag-source-nonvar-∀ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
+    → μ ⊢ A ∼ (`∀ ★)
+    → NonStar A
+    → NonVar A
+  tag-source-nonvar-∀ (∀ᶜ c) Ans = nonvar-all
+  tag-source-nonvar-∀ (？_ ⦃ g ⦄ c ⦃ Gns ⦄) Ans =
+    ⊥-elim (nonStar≢★ Ans refl)
+  tag-source-nonvar-∀ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Ans =
+    nonvar-all
+  tag-source-nonvar-∀ bot-elim Ans = nonvar-all
+
+  untag-target-nonvar-⇒ : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ}
+    → μ ⊢ (★ ⇒ ★) ∼ B
+    → NonStar B
+    → NonVar B
+  untag-target-nonvar-⇒ (c ↦ d) Bns = nonvar-fun
+  untag-target-nonvar-⇒
+      (_! ⦃ g ⦄ c ⦃ Gns ⦄) Bns =
+    ⊥-elim (nonStar≢★ Bns refl)
+  untag-target-nonvar-⇒ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) Bns =
+    nonvar-all
+
+  untag-target-nonvar-ι : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ} {ι}
+    → μ ⊢ (‵ ι) ∼ B
+    → NonStar B
+    → NonVar B
+  untag-target-nonvar-ι (id (‵ ι)) Bns = nonvar-base
+  untag-target-nonvar-ι
+      (_! ⦃ g ⦄ c ⦃ Gns ⦄) Bns =
+    ⊥-elim (nonStar≢★ Bns refl)
+  untag-target-nonvar-ι (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) Bns =
+    nonvar-all
+
+  untag-target-nonvar-∀ : ∀ {Δ} {μ : Env∼ Δ} {B : Ty Δ}
+    → μ ⊢ (`∀ ★) ∼ B
+    → NonStar B
+    → NonVar B
+  untag-target-nonvar-∀ (∀ᶜ c) Bns = nonvar-all
+  untag-target-nonvar-∀ (_! ⦃ g ⦄ c ⦃ Gns ⦄) Bns =
+    ⊥-elim (nonStar≢★ Bns refl)
+  untag-target-nonvar-∀ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) Bns =
+    nonvar-all
+  untag-target-nonvar-∀ bot-intro Bns = nonvar-all
+
+  nonvar-occurs-nonstar : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
+    → NonVar A
+    → X ∈ᵗ A
+    → NonStar A
+  nonvar-occurs-nonstar nonvar-base ()
+  nonvar-occurs-nonstar nonvar-star ()
+  nonvar-occurs-nonstar nonvar-fun X∈A = nonstar-⇒
+  nonvar-occurs-nonstar nonvar-all X∈A = nonstar-∀
+
+  nonstar-nonvar-to-var-impossible : ∀ {Δ} {μ : Env∼ Δ}
+      {A : Ty Δ} {X}
+    → μ ⊢ A ∼ ＇ X
+    → NonVar A
+    → NonStar A
+    → ⊥
+  nonstar-nonvar-to-var-impossible (id (＇ X)) () Ans
+  nonstar-nonvar-to-var-impossible (？_ c ⦃ Bns ⦄) nonvar-star ()
+  nonstar-nonvar-to-var-impossible
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) nonvar-all Ans =
+    nonstar-nonvar-to-var-impossible c Anv
+      (nonvar-occurs-nonstar Anv z∈A)
+
+  var-to-nonstar-nonvar-impossible : ∀ {Δ} {μ : Env∼ Δ}
+      {B : Ty Δ} {X}
+    → μ ⊢ ＇ X ∼ B
+    → NonVar B
+    → NonStar B
+    → ⊥
+  var-to-nonstar-nonvar-impossible (id (＇ X)) () Bns
+  var-to-nonstar-nonvar-impossible (_! c ⦃ Ans ⦄) nonvar-star ()
+  var-to-nonstar-nonvar-impossible
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) nonvar-all Bns =
+    var-to-nonstar-nonvar-impossible c Bnv
+      (nonvar-occurs-nonstar Bnv z∈B)
+
+  subst-to-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′} {A : Ty Δ} {X}
+    → SubstEnv∼ μ ν σ
+    → μ ⊢ A ∼ ＇ X
+    → μ X ≡ X∼★
+    → NonStar A
+    → ν ⊢ substᵗ σ A ∼ ★
+  subst-to-star-var s (id (＇ X)) eq Ans = to-★ s X eq
+  subst-to-star-var s (？_ c ⦃ Bns ⦄) eq ()
+  subst-to-star-var s c@(inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ d B≢★) eq Ans =
+    ⊥-elim (nonstar-nonvar-to-var-impossible c nonvar-all Ans)
+
+  subst-from-star-var : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′} {B : Ty Δ} {X}
+    → SubstEnv∼ μ ν σ
+    → μ ⊢ ＇ X ∼ B
+    → μ X ≡ ★∼X
+    → NonStar B
+    → ν ⊢ ★ ∼ substᵗ σ B
+  subst-from-star-var s (id (＇ X)) eq Bns = from-★ s X eq
+  subst-from-star-var s (_! c ⦃ Ans ⦄) eq ()
+  subst-from-star-var s c@(gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ d A≢★) eq Bns =
+    ⊥-elim (var-to-nonstar-nonvar-impossible c nonvar-all Bns)
+
+  subst-nonvar-nonstar : ∀ {Δ Δ′} {A : Ty Δ}
+    → (σ : Δ ⇒ˢ Δ′)
+    → NonVar A
+    → NonStar A
+    → NonStar (substᵗ σ A)
+  subst-nonvar-nonstar σ nonvar-base Ans = nonstar-ι
+  subst-nonvar-nonstar σ nonvar-star ()
+  subst-nonvar-nonstar σ nonvar-fun Ans = nonstar-⇒
+  subst-nonvar-nonstar σ nonvar-all Ans = nonstar-∀
+
+  inst-to-var-occurs-impossible : ∀ {Δ} {μ : Env∼ Δ}
+      {A : Ty (suc Δ)} {X}
+    → instᵐ μ ⊢ A ∼ ＇ X
+    → instᵐ μ X ≡ X∼★
+    → NonVar A
+    → X ∈ᵗ A
+    → ⊥
+  inst-to-var-occurs-impossible (id (＇ X)) eq () X∈A
+  inst-to-var-occurs-impossible
+      (？_ ⦃ g ⦄ c ⦃ Bns ⦄) eq nonvar-star ()
+  inst-to-var-occurs-impossible
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) eq nonvar-all (∈-all X∈A) =
+    inst-to-var-occurs-impossible c eq Anv X∈A
+
+  gen-from-var-occurs-impossible : ∀ {Δ} {μ : Env∼ Δ}
+      {B : Ty (suc Δ)} {X}
+    → genᵐ μ ⊢ ＇ X ∼ B
+    → genᵐ μ X ≡ ★∼X
+    → NonVar B
+    → X ∈ᵗ B
+    → ⊥
+  gen-from-var-occurs-impossible (id (＇ X)) eq () X∈B
+  gen-from-var-occurs-impossible (_! ⦃ g ⦄ c ⦃ Ans ⦄) eq nonvar-star ()
+  gen-from-var-occurs-impossible
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) eq nonvar-all (∈-all X∈B) =
+    gen-from-var-occurs-impossible c eq Bnv X∈B
+
+  factor-inst-star : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
+    → (c : instᵐ μ ⊢ A ∼ ★)
+    → NonVar A
+    → zero ∈ᵗ A
+    → μ ⊢ (`∀ A) ∼ ★
+  factor-inst-star (id ★) Anv ()
+  factor-inst-star (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄) Anv z∈A =
+    _! ⦃ Gᵍ = ★⇒★ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-inst-star (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄) Anv z∈A =
+    _! ⦃ Gᵍ = ‵ ι ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-inst-star
+      (_! ⦃ Gᵍ = ＇ zero ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
+      Anv z∈A =
+    ⊥-elim (inst-to-var-occurs-impossible c eq Anv z∈A)
+  factor-inst-star
+      (_! ⦃ Gᵍ = ＇ suc X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
+      Anv z∈A =
+    _! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ())) ⦃ nonstar-∀ ⦄
+  factor-inst-star (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄) Anv z∈A =
+    _! ⦃ Gᵍ = ∀★ ⦄ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-inst-star (？_ ⦃ g ⦄ c ⦃ Bns ⦄) Anv ()
+  factor-inst-star
+      (inst_ ⦃ Anv′ ⦄ ⦃ z∈A′ ⦄ c ★≢★) Anv z∈A =
+    ⊥-elim (★≢★ refl)
+
+  factor-gen-star : ∀ {Δ} {μ : Env∼ Δ} {B : Ty (suc Δ)}
+    → (c : genᵐ μ ⊢ ★ ∼ B)
+    → NonVar B
+    → zero ∈ᵗ B
+    → μ ⊢ ★ ∼ (`∀ B)
+  factor-gen-star (id ★) Bnv ()
+  factor-gen-star (_! ⦃ g ⦄ c ⦃ () ⦄) Bnv z∈B
+  factor-gen-star (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄) Bnv z∈B =
+    ？_ ⦃ Gᵍ = ★⇒★ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-gen-star (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄) Bnv z∈B =
+    ？_ ⦃ Gᵍ = ‵ ι ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-gen-star
+      (？_ ⦃ Gᵍ = ＇ zero ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
+      Bnv z∈B =
+    ⊥-elim (gen-from-var-occurs-impossible c eq Bnv z∈B)
+  factor-gen-star
+      (？_ ⦃ Gᵍ = ＇ suc X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
+      Bnv z∈B =
+    ？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ())) ⦃ nonstar-∀ ⦄
+  factor-gen-star (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄) Bnv z∈B =
+    ？_ ⦃ Gᵍ = ∀★ ⦄ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c (λ ()))
+      ⦃ nonstar-∀ ⦄
+  factor-gen-star (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c ★≢★) Bnv z∈B =
+    ⊥-elim (★≢★ refl)
+
+subst∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+    {σ : Δ ⇒ˢ Δ′} {A B : Ty Δ}
+  → SubstEnv∼ μ ν σ
+  → μ ⊢ A ∼ B
+  → ν ⊢ substᵗ σ A ∼ substᵗ σ B
+subst∼ s (id ★) = id ★
+subst∼ s (id (‵ ι)) = id (‵ ι)
+subst∼ s (id (＇ X)) = self s X
+subst∼ s (c ↦ d) = subst∼ s c ↦ subst∼ s d
+subst∼ s (∀ᶜ c) = ∀ᶜ (subst∼ (ext-SubstEnv∼ s) c)
+subst∼ {σ = σ} s (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄) =
+  _! ⦃ Gᵍ = ★⇒★ ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (tag-source-nonvar-⇒ c Ans) Ans ⦄
+subst∼ {σ = σ} s (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄) =
+  _! ⦃ Gᵍ = ‵ ι ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (tag-source-nonvar-ι c Ans) Ans ⦄
+subst∼ s (_! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄) =
+  subst-to-star-var s c eq Ans
+subst∼ {σ = σ} s (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄) =
+  _! ⦃ Gᵍ = ∀★ ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (tag-source-nonvar-∀ c Ans) Ans ⦄
+subst∼ {σ = σ} s (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄) =
+  ？_ ⦃ Gᵍ = ★⇒★ ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (untag-target-nonvar-⇒ c Bns) Bns ⦄
+subst∼ {σ = σ} s (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄) =
+  ？_ ⦃ Gᵍ = ‵ ι ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (untag-target-nonvar-ι c Bns) Bns ⦄
+subst∼ s (？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄) =
+  subst-from-star-var s c eq Bns
+subst∼ {σ = σ} s (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄) =
+  ？_ ⦃ Gᵍ = ∀★ ⦄ (subst∼ s c)
+    ⦃ subst-nonvar-nonstar σ (untag-target-nonvar-∀ c Bns) Bns ⦄
+subst∼ {σ = σ} s
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    with substᵗ σ B ≟Ty ★
+subst∼ {σ = σ} s
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    | no Bσ≢★ =
+  inst_ ⦃ substNonVar (extsᵗ σ) A-nonvar ⦄
+    ⦃ subst-∈ᵗ zero∈A var-∈ ⦄
+    (subst-right-∼ (substᵗ-shift σ B)
+      (subst∼ (inst-SubstEnv∼ s) c)) Bσ≢★
+subst∼ {σ = σ} s
+    (inst_ {B = B} ⦃ A-nonvar ⦄ ⦃ zero∈A ⦄ c B≢★)
+    | yes Bσ≡★ rewrite Bσ≡★ =
+  factor-inst-star
+    (subst-right-∼
+      (trans (substᵗ-shift σ B) (cong (renameᵗ suc) Bσ≡★))
+      (subst∼ (inst-SubstEnv∼ s) c))
+    (substNonVar (extsᵗ σ) A-nonvar)
+    (subst-∈ᵗ zero∈A var-∈)
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    with substᵗ σ A ≟Ty ★
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    | no Aσ≢★ =
+  gen_ ⦃ substNonVar (extsᵗ σ) B-nonvar ⦄
+    ⦃ subst-∈ᵗ zero∈B var-∈ ⦄
+    (subst-left-∼ (substᵗ-shift σ A)
+      (subst∼ (gen-SubstEnv∼ s) c)) Aσ≢★
+subst∼ {σ = σ} s
+    (gen_ {A = A} ⦃ B-nonvar ⦄ ⦃ zero∈B ⦄ c A≢★)
+    | yes Aσ≡★ rewrite Aσ≡★ =
+  factor-gen-star
+    (subst-left-∼
+      (trans (substᵗ-shift σ A) (cong (renameᵗ suc) Aσ≡★))
+      (subst∼ (gen-SubstEnv∼ s) c))
+    (substNonVar (extsᵗ σ) B-nonvar)
+    (subst-∈ᵗ zero∈B var-∈)
+subst∼ s bot-elim = bot-elim
+subst∼ s bot-intro = bot-intro
+
+factor-inst-starᶜ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)}
+  → instᵐ μ ⊢ A ∼ ★
+  → NonVar A
+  → zero ∈ᵗ A
+  → μ ⊢ (`∀ A) ∼ ★
+factor-inst-starᶜ = factor-inst-star
+
+factor-gen-starᶜ : ∀ {Δ} {μ : Env∼ Δ} {B : Ty (suc Δ)}
+  → genᵐ μ ⊢ ★ ∼ B
+  → NonVar B
+  → zero ∈ᵗ B
+  → μ ⊢ ★ ∼ (`∀ B)
+factor-gen-starᶜ = factor-gen-star
+
+private
+
+  close-inst-self : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → μ ⊢ singleSubᵗ ★ X ∼ singleSubᵗ ★ X
+  close-inst-self X = refl∼ (singleSubᵗ ★ X)
+
+  close-inst-to-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → instᵐ μ X ≡ X∼★
+    → μ ⊢ singleSubᵗ ★ X ∼ ★
+  close-inst-to-★ zero eq = id ★
+  close-inst-to-★ {μ = μ} (suc X) eq =
+    _! ⦃ G∼★ = X∼★ᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+  close-inst-from-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → instᵐ μ X ≡ ★∼X
+    → μ ⊢ ★ ∼ singleSubᵗ ★ X
+  close-inst-from-★ zero ()
+  close-inst-from-★ {μ = μ} (suc X) eq =
+    ？_ ⦃ ★∼G = ★∼Xᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+close-instᶜ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty (suc Δ)} {B : Ty Δ}
+  → instᵐ μ ⊢ A ∼ ⇑ᵗ B
+  → μ ⊢ A [ ★ ]ᵗ ∼ B
+syntax close-instᶜ c = c [ ★/0 ]ᶜ
+
+close-instᶜ {B = B} c =
+  subst-right-∼ (shift-openᵗ B ★)
+    (subst∼
+      (subst-env∼ close-inst-self close-inst-to-★ close-inst-from-★)
+      c)
+
+private
+
+  close-gen-self : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → μ ⊢ singleSubᵗ ★ X ∼ singleSubᵗ ★ X
+  close-gen-self X = refl∼ (singleSubᵗ ★ X)
+
+  close-gen-to-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → genᵐ μ X ≡ X∼★
+    → μ ⊢ singleSubᵗ ★ X ∼ ★
+  close-gen-to-★ zero ()
+  close-gen-to-★ {μ = μ} (suc X) eq =
+    _! ⦃ G∼★ = X∼★ᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+  close-gen-from-★ : ∀ {Δ} {μ : Env∼ Δ} (X : TyVar (suc Δ))
+    → genᵐ μ X ≡ ★∼X
+    → μ ⊢ ★ ∼ singleSubᵗ ★ X
+  close-gen-from-★ zero eq = id ★
+  close-gen-from-★ {μ = μ} (suc X) eq =
+    ？_ ⦃ ★∼G = ★∼Xᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+close-genᶜ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
+  → genᵐ μ ⊢ ⇑ᵗ A ∼ B
+  → μ ⊢ A ∼ B [ ★ ]ᵗ
+close-genᶜ {A = A} c =
+  subst-left-∼ (shift-openᵗ A ★)
+    (subst∼
+      (subst-env∼ close-gen-self close-gen-to-★ close-gen-from-★)
+      c)
+
+private
+
+  open-self : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
+      (X : TyVar (suc Δ))
+    → μ ⊢ singleSubᵗ C X ∼ singleSubᵗ C X
+  open-self C X = refl∼ (singleSubᵗ C X)
+
+  open-to-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
+      (X : TyVar (suc Δ))
+    → extᵐ μ X ≡ X∼★
+    → μ ⊢ singleSubᵗ C X ∼ ★
+  open-to-★ C zero ()
+  open-to-★ {μ = μ} C (suc X) eq =
+    _! ⦃ G∼★ = X∼★ᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+  open-from-★ : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
+      (X : TyVar (suc Δ))
+    → extᵐ μ X ≡ ★∼X
+    → μ ⊢ ★ ∼ singleSubᵗ C X
+  open-from-★ C zero ()
+  open-from-★ {μ = μ} C (suc X) eq =
+    ？_ ⦃ ★∼G = ★∼Xᵍ eq ⦄ (id (＇ X))
+      ⦃ nonstar-X ⦄
+
+infixl 8 _[_]ᶜ
+_[_]ᶜ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
+  → extᵐ μ ⊢ A ∼ B
+  → (C : Ty Δ)
+  → μ ⊢ A [ C ]ᵗ ∼ B [ C ]ᵗ
+_[_]ᶜ {μ = μ} c C =
+  subst∼
+    (subst-env∼ (open-self C) (open-to-★ {μ = μ} C)
+      (open-from-★ C))
+    c

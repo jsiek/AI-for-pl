@@ -3,7 +3,7 @@ module CompileTermImprecision where
 -- File Charter:
 --   * Exposes the compiler monotonicity theorem at the public GTSF boundary.
 --   * Relates gradual-term imprecision to quotiented Nu-term imprecision.
---   * Delegates the proof to `proof.CompileTermImprecision`.
+--   * Delegates the proof to `proof.Compilation.CompileTermImprecision`.
 
 open import Data.List using ([])
 open import Data.Product using (proj₁)
@@ -17,10 +17,10 @@ open import GradualTermImprecision using
   (_∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_)
 open import ImprecisionWf using
   (ImpCtx; _∣_⊢_⊑_⊣_)
-import NuTermImprecision as NTI
+import proof.NuCore.Relations.NuImprecisionTermContextDef as NTI
 open import QuotientedTermImprecision using
   (_∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_)
-import proof.CompileTermImprecision as Proof
+import proof.Compilation.CompileTermImprecision as Proof
 
 variable
   Φ : ImpCtx

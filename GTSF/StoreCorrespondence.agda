@@ -27,8 +27,10 @@ open import NarrowWiden using
   ; srcStoreⁿ
   ; tgtStoreⁿ
   )
-import proof.NarrowWidenProperties as NWP
-open import proof.NarrowWidenProperties using (StoreDetWf)
+import proof.Core.Properties.NarrowWidenStoreInvariantDef as NWStore
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
+import proof.Core.Properties.NarrowWidenStoreInvariantProof as NWStoreProof
 
 ------------------------------------------------------------------------
 -- Explicit seal correspondence
@@ -134,25 +136,26 @@ corr-matched α< β< hA hB hA-old hB-old left-unique right-unique corr =
                 { (here refl) → α<
                 ; (there α∈ρ) →
                     StoreWfAt.bound
-                      (NWP.StoreDetWf.at (leftStore-det corr)) α∈ρ
+                      (NWStore.StoreDetWf.at (leftStore-det corr)) α∈ρ
                 }
             ; wfTy = λ
                 { (here refl) → hA
                 ; (there α∈ρ) →
                     StoreWfAt.wfTy
-                      (NWP.StoreDetWf.at (leftStore-det corr)) α∈ρ
+                      (NWStore.StoreDetWf.at (leftStore-det corr)) α∈ρ
                 }
             }
       ; wfOlder = λ
           { (here refl) → hA-old
-          ; (there α∈ρ) → NWP.StoreDetWf.wfOlder (leftStore-det corr) α∈ρ
+          ; (there α∈ρ) →
+              NWStore.StoreDetWf.wfOlder (leftStore-det corr) α∈ρ
           }
       ; unique = λ
           { (here refl) (here refl) → refl
           ; (here refl) (there α∈ρ) → left-unique α∈ρ
           ; (there α∈ρ) (here refl) → sym (left-unique α∈ρ)
           ; (there α∈ρ) (there α∈ρ′) →
-              NWP.StoreDetWf.unique (leftStore-det corr) α∈ρ α∈ρ′
+              NWStore.StoreDetWf.unique (leftStore-det corr) α∈ρ α∈ρ′
           }
       })
     (record
@@ -162,25 +165,26 @@ corr-matched α< β< hA hB hA-old hB-old left-unique right-unique corr =
                 { (here refl) → β<
                 ; (there β∈ρ) →
                     StoreWfAt.bound
-                      (NWP.StoreDetWf.at (rightStore-det corr)) β∈ρ
+                      (NWStore.StoreDetWf.at (rightStore-det corr)) β∈ρ
                 }
             ; wfTy = λ
                 { (here refl) → hB
                 ; (there β∈ρ) →
                     StoreWfAt.wfTy
-                      (NWP.StoreDetWf.at (rightStore-det corr)) β∈ρ
+                      (NWStore.StoreDetWf.at (rightStore-det corr)) β∈ρ
                 }
             }
       ; wfOlder = λ
           { (here refl) → hB-old
-          ; (there β∈ρ) → NWP.StoreDetWf.wfOlder (rightStore-det corr) β∈ρ
+          ; (there β∈ρ) →
+              NWStore.StoreDetWf.wfOlder (rightStore-det corr) β∈ρ
           }
       ; unique = λ
           { (here refl) (here refl) → refl
           ; (here refl) (there β∈ρ) → right-unique β∈ρ
           ; (there β∈ρ) (here refl) → sym (right-unique β∈ρ)
           ; (there β∈ρ) (there β∈ρ′) →
-              NWP.StoreDetWf.unique (rightStore-det corr) β∈ρ β∈ρ′
+              NWStore.StoreDetWf.unique (rightStore-det corr) β∈ρ β∈ρ′
           }
       })
 
@@ -201,25 +205,26 @@ corr-left α< hA hA-old left-unique corr =
                 { (here refl) → α<
                 ; (there α∈ρ) →
                     StoreWfAt.bound
-                      (NWP.StoreDetWf.at (leftStore-det corr)) α∈ρ
+                      (NWStore.StoreDetWf.at (leftStore-det corr)) α∈ρ
                 }
             ; wfTy = λ
                 { (here refl) → hA
                 ; (there α∈ρ) →
                     StoreWfAt.wfTy
-                      (NWP.StoreDetWf.at (leftStore-det corr)) α∈ρ
+                      (NWStore.StoreDetWf.at (leftStore-det corr)) α∈ρ
                 }
             }
       ; wfOlder = λ
           { (here refl) → hA-old
-          ; (there α∈ρ) → NWP.StoreDetWf.wfOlder (leftStore-det corr) α∈ρ
+          ; (there α∈ρ) →
+              NWStore.StoreDetWf.wfOlder (leftStore-det corr) α∈ρ
           }
       ; unique = λ
           { (here refl) (here refl) → refl
           ; (here refl) (there α∈ρ) → left-unique α∈ρ
           ; (there α∈ρ) (here refl) → sym (left-unique α∈ρ)
           ; (there α∈ρ) (there α∈ρ′) →
-              NWP.StoreDetWf.unique (leftStore-det corr) α∈ρ α∈ρ′
+              NWStore.StoreDetWf.unique (leftStore-det corr) α∈ρ α∈ρ′
           }
       })
     (rightStore-det corr)
@@ -242,25 +247,26 @@ corr-right β< hB hB-old right-unique corr =
                 { (here refl) → β<
                 ; (there β∈ρ) →
                     StoreWfAt.bound
-                      (NWP.StoreDetWf.at (rightStore-det corr)) β∈ρ
+                      (NWStore.StoreDetWf.at (rightStore-det corr)) β∈ρ
                 }
             ; wfTy = λ
                 { (here refl) → hB
                 ; (there β∈ρ) →
                     StoreWfAt.wfTy
-                      (NWP.StoreDetWf.at (rightStore-det corr)) β∈ρ
+                      (NWStore.StoreDetWf.at (rightStore-det corr)) β∈ρ
                 }
             }
       ; wfOlder = λ
           { (here refl) → hB-old
-          ; (there β∈ρ) → NWP.StoreDetWf.wfOlder (rightStore-det corr) β∈ρ
+          ; (there β∈ρ) →
+              NWStore.StoreDetWf.wfOlder (rightStore-det corr) β∈ρ
           }
       ; unique = λ
           { (here refl) (here refl) → refl
           ; (here refl) (there β∈ρ) → right-unique β∈ρ
           ; (there β∈ρ) (here refl) → sym (right-unique β∈ρ)
           ; (there β∈ρ) (there β∈ρ′) →
-              NWP.StoreDetWf.unique (rightStore-det corr) β∈ρ β∈ρ′
+              NWStore.StoreDetWf.unique (rightStore-det corr) β∈ρ β∈ρ′
           }
       })
 
@@ -268,13 +274,13 @@ leftStore-wf :
   ∀ {ΔL ΔR ρ} →
   StoreCorr ΔL ΔR ρ →
   StoreWfAt ΔL (leftStore ρ)
-leftStore-wf corr = NWP.StoreDetWf.at (leftStore-det corr)
+leftStore-wf corr = NWStore.StoreDetWf.at (leftStore-det corr)
 
 rightStore-wf :
   ∀ {ΔL ΔR ρ} →
   StoreCorr ΔL ΔR ρ →
   StoreWfAt ΔR (rightStore ρ)
-rightStore-wf corr = NWP.StoreDetWf.at (rightStore-det corr)
+rightStore-wf corr = NWStore.StoreDetWf.at (rightStore-det corr)
 
 ------------------------------------------------------------------------
 -- Compatibility with the old shared representation
@@ -412,11 +418,11 @@ corr-⇑ᶜorr {ρ = ρ} corr =
     (subst
       (λ Σ → StoreDetWf _ Σ)
       (sym (leftStore-⇑ᶜorr ρ))
-      (NWP.StoreDetWf-⟰ᵗ (leftStore-det corr)))
+      (NWStoreProof.StoreDetWf-⟰ᵗ (leftStore-det corr)))
     (subst
       (λ Σ → StoreDetWf _ Σ)
       (sym (rightStore-⇑ᶜorr ρ))
-      (NWP.StoreDetWf-⟰ᵗ (rightStore-det corr)))
+      (NWStoreProof.StoreDetWf-⟰ᵗ (rightStore-det corr)))
 
 corr-⇑ˡᶜorr :
   ∀ {ΔL ΔR ρ} →
@@ -427,7 +433,7 @@ corr-⇑ˡᶜorr {ρ = ρ} corr =
     (subst
       (λ Σ → StoreDetWf _ Σ)
       (sym (leftStore-⇑ˡᶜorr ρ))
-      (NWP.StoreDetWf-⟰ᵗ (leftStore-det corr)))
+      (NWStoreProof.StoreDetWf-⟰ᵗ (leftStore-det corr)))
     (subst
       (λ Σ → StoreDetWf _ Σ)
       (sym (rightStore-⇑ˡᶜorr ρ))
@@ -446,4 +452,4 @@ corr-⇑ʳᶜorr {ρ = ρ} corr =
     (subst
       (λ Σ → StoreDetWf _ Σ)
       (sym (rightStore-⇑ʳᶜorr ρ))
-      (NWP.StoreDetWf-⟰ᵗ (rightStore-det corr)))
+      (NWStoreProof.StoreDetWf-⟰ᵗ (rightStore-det corr)))

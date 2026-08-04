@@ -1,0 +1,68 @@
+module proof.DGG.Core.NuDGGStrictSpine where
+
+-- File Charter:
+--   * Aggregates the hole-free DGG spine and its terminal-trace support.
+--   * Deliberately excludes the partial terminal proofs and active
+--     catch-up/dispatcher scratch module.
+--   * Provides a strict check target as proof components are promoted.
+
+import proof.DGG.Core.NuDGGPreservation
+import proof.DGG.Core.NuDGGSpine
+import proof.DGG.Core.NuDGGClosedWorld
+import proof.DGG.Core.NuDGGTerminal
+import proof.DGG.TerminalBackward.NuDGGTerminalBackwardBlameAssembly
+import proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueDef
+import proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueWorldCoherentDef
+import proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueWorldCoherentProof
+import proof.DGG.TerminalBackward.NuDGGTerminalBackwardValueProof
+import proof.OneStep.NuImprecisionOneStepDef
+import proof.NuCore.Misc.NuImprecisionValueCatchupDef
+import proof.Catchup.Simulation.NuImprecisionSimulationResultDef
+import proof.OneStep.NuImprecisionOneStepRelated
+import proof.Store.Core.NuImprecisionStoreLift
+import proof.Store.Prefix.NuImprecisionStorePrefix
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceDef
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceProof
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceLemma
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherenceCrossedLemma
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentResultDef
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentOneStepDef
+import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupDef
+import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixDef
+import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupProof
+import proof.WorldCoherent.Value.NuImprecisionWorldCoherentValueCatchupPrefixProof
+import proof.WorldCoherent.Source.RuntimeSteps.NuImprecisionWorldCoherentSourceRuntimeCatchupDef
+import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceConcealCatchup
+import proof.Core.Properties.NuCastImprecision
+import proof.Target.SealTag.NuImprecisionTargetSealCancellationDef
+import proof.Source.SealTag.NuImprecisionSourceSealCancellationDef
+import proof.WorldCoherent.Source.RevealConceal.NuImprecisionWorldCoherentSourceUnsealCatchupDef
+import proof.Target.SealTag.NuImprecisionTargetSealCancellationProof
+import proof.Target.SealTag.NuImprecisionTargetSealCancellationLemma
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentTargetRevealRootDef
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentTargetRevealRootProof
+import proof.DGG.Core.NuDGGTraceAlignment
+import proof.DGG.Core.NuDGGTraceMeasure
+import proof.DGG.Core.NuDGGWeakResultPreservation
+import proof.Catchup.Core.NuImprecisionCatchupPrefixSupport
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseDef
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseProof
+import proof.Catchup.Core.NuImprecisionCatchupPrefixCloseLemma
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupComposition
+import proof.WorldCoherent.Core.NuImprecisionWorldCoherentCatchupPrefixFrames
+import proof.Catchup.Core.NuImprecisionCatchupSourceAllocationTerminal
+import proof.Catchup.Core.NuImprecisionCatchupSourceCastTerminal
+import proof.OneStep.NuImprecisionOneStepSourceCastFrames
+import proof.OneStep.NuImprecisionOneStepSourceConversionFrames
+import proof.OneStep.NuImprecisionOneStepPrimitiveFrames
+import proof.OneStep.NuImprecisionOneStepPrimitiveLeaves
+import proof.OneStep.NuImprecisionOneStepApplicationRoots
+import proof.OneStep.NuImprecisionOneStepTargetBlameRoots
+import proof.OneStep.NuImprecisionAtomicTargetReindex
+import proof.OneStep.NuImprecisionOneStepTargetCastIdentityRoots
+import proof.Target.Core.NuImprecisionTargetCastSequenceMidpointDef
+import proof.OneStep.NuImprecisionOneStepTargetCastSequenceRoots
+import proof.OneStep.NuImprecisionOneStepTargetCastFrames
+import proof.OneStep.NuImprecisionOneStepTargetConversionFrames
+import proof.Quotient.NuImprecisionQuotientInstView
+import proof.Target.Core.NuImprecisionTargetBlameCatchup

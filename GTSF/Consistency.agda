@@ -2,8 +2,8 @@ module Consistency where
 
 -- File Charter:
 --   * Definition of the GTSF type-consistency relation `~`.
---   * Introduce the judgment only; transport/proof lemmas live in
---     `ConsistencyProperties.agda`.
+--   * Introduce the judgment only; current transport/proof lemmas should live
+--     under `proof/`, not in the top-level aggregate surface.
 --   * No coercion synthesis here.
 
 open import Data.Bool using (Bool; true; false)
@@ -120,5 +120,4 @@ data _⊢_~_ (Γ : CCtx) : Ty → Ty → Set where
     → (★~ᶜ 0) ∷ ⇑ᴿ Γ ⊢ A ~ B
     ------------------------
     → Γ ⊢ A ~ (`∀ B)
-
 

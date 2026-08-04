@@ -32,6 +32,9 @@ open import Coercions
 open import Conversion using (_∣_∣_⊢_∶_↑ˢ_; reveal-conversion-env)
 open import Imprecision using (_⊢_~_; idᵢ; id★; _↦_; tag_⇛_)
 import ImprecisionWf as IWF
+import CastImprecisionShape as CastShape
+open CastShape using (_⊢ᶜ_⦂_)
+open import ImprecisionComposition using (⌊_⌋)
 open import Primitives using (Const; Prim; constTy)
 open import NarrowWiden using
   ( _∣_∣_⊢_∶_⊒_
@@ -39,14 +42,19 @@ open import NarrowWiden using
   ; narrow-mode-relax
   ; widen-mode-relax
   )
-open import proof.CompileCoercions using
-  ( coerce-upʷ
-  ; coerce-downⁿ
-  ; realizes-idᵢᴺᵂ-id-only
+open import proof.Compilation.CompileCoercions using
+  ( coerce-upʷ-shape-idᵢ
+  ; coerce-downⁿ-shape-idᵢ
   )
-open import proof.CastImprecision
-  using (castᵢ-id-only; narrowing⇒⊑ᵢ; widening⇒⊑ᵢ)
-open import proof.CoercionProperties
+open import proof.Core.Properties.CastImprecision
+  using
+    ( castᵢ-id-only
+    ; narrowing⇒⊑ᵢ
+    ; widening⇒⊑ᵢ
+    )
+open import proof.Core.Properties.SealModeProperties using
+  (seal★-tag-or-id)
+open import proof.Core.Properties.CoercionProperties
   using
     ( RevealEnv
     ; reveal-typing-env
@@ -55,21 +63,19 @@ open import proof.CoercionProperties
     ; singleSealᵈ
     ; singleSealMode
     )
-open import proof.ImprecisionProperties
+open import proof.Core.Properties.ImprecisionProperties
   using (⊑-src-wf-idᵢ; ⊑-tgt-wf-idᵢ; ~-refl; ~-sym)
-open import proof.EndpointCanonicalMLBSimple using (MLB)
-open import proof.EndpointCanonicalMLBSimpleMaximality using
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimple using (MLB)
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleMaximality using
   (MLB-complete)
-open import proof.EndpointCanonicalMLBSimpleSoundness using
-  (MLB-sound)
-open import proof.MaximalLowerBoundsWf
-  using
-    ( old⊑→wf-idᵢ
-    ; ⊑-forgetᵢ
-    )
-open import proof.NarrowWidenProperties using (StoreDetWf)
-open import proof.NuTermProperties using (CtxWf-⤊)
-open import proof.TypeProperties
+open import proof.EndpointMLB.Simple.EndpointCanonicalMLBSimpleRoutes using
+  (MLB-result-route-sound)
+open import proof.Core.Properties.NuImprecisionWfBridgeProperties
+  using (old⊑→wf-idᵢ)
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
+open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
+open import proof.Core.Properties.TypeProperties
   using
     ( TySubstWf
     ; TyRenameWf-suc
@@ -271,12 +277,16 @@ record CastPlan (Δ : TyCtx) (Σ : Store) (A B : Ty) : Set₁ where
     down⊒ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ down ∶ A ⊒ lower
     lower⊑source :
       IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower A Δ
+    down-shape :
+      CastShape.narrowing ⊢ᶜ down ⦂ ⌊ lower⊑source ⌋
 
     up : Coercion
     up⊢ : Δ ∣ Σ ⊢ up ∶ lower =⇒ B
     up⊑ : id-onlyᵈ ∣ Δ ∣ Σ ⊢ up ∶ lower ⊑ B
     lower⊑target :
       IWF._∣_⊢_⊑_⊣_ (idᵢ Δ) Δ lower B Δ
+    up-shape :
+      CastShape.widening ⊢ᶜ up ⦂ ⌊ lower⊑target ⌋
 
 open CastPlan public
 
@@ -292,22 +302,14 @@ consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
       (IWF.⊑-tgt-wf C⊑A) (IWF.⊑-tgt-wf C⊑B) (C⊑A , C⊑B)
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected
-    with MLB-sound lower-selected
+    with MLB-result-route-sound lower-selected
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected | lower⊑source , lower⊑target
-    with coerce-downⁿ ℓ
-           (IWF.⊑-src-wf lower⊑source)
-           (IWF.⊑-tgt-wf lower⊑source)
-           (realizes-idᵢᴺᵂ-id-only Δ)
-           (⊑-forgetᵢ lower⊑source)
-       | coerce-upʷ ℓ
-           (IWF.⊑-src-wf lower⊑target)
-           (IWF.⊑-tgt-wf lower⊑target)
-           (realizes-idᵢᴺᵂ-id-only Δ)
-           (⊑-forgetᵢ lower⊑target)
+    with coerce-downⁿ-shape-idᵢ ℓ lower⊑source
+       | coerce-upʷ-shape-idᵢ ℓ lower⊑target
 consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     | lower , lower-selected | lower⊑source , lower⊑target
-    | down , down⊒ | up , up⊑ =
+    | down , down⊒ , down-shape | up , up⊑ , up-shape =
   record
     { lower = lower
     ; lower-selected = lower-selected
@@ -315,10 +317,12 @@ consistency-cast-planᵢ {Δ = Δ} ℓ (C , C⊑A , C⊑B)
     ; down⊢ = id-onlyᵈ , proj₁ down⊒
     ; down⊒ = down⊒
     ; lower⊑source = lower⊑source
+    ; down-shape = down-shape
     ; up = up
     ; up⊢ = id-onlyᵈ , proj₁ up⊑
     ; up⊑ = up⊑
     ; lower⊑target = lower⊑target
+    ; up-shape = up-shape
     }
 
 consistency-cast-plan :
@@ -359,11 +363,6 @@ cast⊢ :
 cast⊢ plan M⊢ with down⊢ plan | up⊢ plan
 cast⊢ plan M⊢ | _ , down⊢ᵐ | _ , up⊢ᵐ =
   ⊢ᵀ⟨⟩ up⊢ᵐ (⊢ᵀ⟨⟩ down⊢ᵐ M⊢)
-
-seal★-tag-or-id :
-  ∀ {Σ} →
-  TT.SealModeStore★ tag-or-idᵈ Σ
-seal★-tag-or-id α ()
 
 cast⊢ᵀ :
   ∀ {Δ Γ A B M} →

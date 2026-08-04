@@ -28,7 +28,7 @@ open import Types
 open import Store using (StoreIncl-drop)
 open import Coercions
 open import NarrowWiden
-open import proof.GenSafeProperties
+open import proof.Compilation.GenSafeProperties
   using
     ( GenSafeShape
     ; shape-fun
@@ -42,16 +42,17 @@ open import proof.GenSafeProperties
     ; raise-genSafeShape
     ; narrowing-at-genSafe-source
     )
-open import proof.NarrowWidenProperties
+open import proof.Core.Properties.NarrowWidenProperties
   using
-    ( StoreDetWf
-    ; StoreDetWf-⟰ᵗ
-    ; StoreDetWf-inst
-    ; occurs-var-true→≡
+    ( occurs-var-true→≡
     ; narrowing-cross-ground-target-star⊥
     ; widening-cross-ground-source-star⊥
     )
-open import proof.CoercionProperties using (zero∉-⟰ᵗ)
+open import proof.Core.Properties.NarrowWidenStoreInvariantDef
+  using (StoreDetWf)
+open import proof.Core.Properties.NarrowWidenStoreInvariantProof
+  using (StoreDetWf-⟰ᵗ; StoreDetWf-inst)
+open import proof.Core.Properties.CoercionProperties using (zero∉-⟰ᵗ)
 
 head-star-unique :
   ∀ {Σ A} →

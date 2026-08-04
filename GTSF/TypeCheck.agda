@@ -25,7 +25,7 @@ open import Ctx using (⤊ᵗ)
 open import Coercions
 open import Primitives
 open import NuTerms
-open import proof.TypeProperties using (rename-raise-ext)
+open import proof.Core.Properties.TypeProperties using (rename-raise-ext)
 
 ------------------------------------------------------------------------
 -- Maybe witnesses

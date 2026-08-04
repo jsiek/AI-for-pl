@@ -10,6 +10,20 @@
   structure in the statement itself so the full claim is readable at the use
   site. Add a named definition only when it is a genuine reusable concept, not
   just a shorthand for a proof obligation.
+- Changes to the live term-imprecision relation in
+  `GTSF/QuotientedTermImprecision.agda` require the user's explicit permission
+  before editing that file. The permission request must explain why the
+  relation itself needs to change and include the relevant imprecision and
+  reduction square in LaTeX-style notation, with imprecision horizontal and
+  reduction vertical, for example:
+
+  $$
+  \begin{array}{ccc}
+  M & \sqsubseteq & M' \\
+  \downarrow^{*} & & \downarrow^{*} \\
+  N & \sqsubseteq & N'
+  \end{array}
+  $$
 
 ## Subagent launch notes
 
@@ -207,6 +221,8 @@ When writing design notes for a calculus or translation:
   "identity-like case".
 - Put formal terms, judgments, and propositions in backticks in the prose and
   headings so they stand out from the surrounding explanation.
+- In Markdown documents, delimit displayed LaTeX with `$$ ... $$`. Do not use
+  `\[ ... \]`; Obsidian does not render those delimiters reliably.
 - When giving reduction relations in notes, prefer a clean mathematical
   presentation with the notation used consistently throughout the document.
 
@@ -359,6 +375,27 @@ Over:
       trans
         (cong (λ X → (⇑ᵗ X) [ ＇ zero ]ˢᵗ) eq-src)
         (closeν-inline-open Aν)
+
+## Agda type-signature line-break style (from 2026-07-28)
+
+When a definition's type spans multiple lines, put the definition name and its
+implicit parameters on the first line. Put each implication arrow at the
+beginning of its continuation line, not at the end of the preceding line.
+
+Prefer:
+
+    canonical-⇒ : ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A B : Ty}
+      → Value V
+      → Δ ∣ Σ ∣ [] ⊢ V ⦂ (A ⇒ B)
+      → FunView V
+
+Over:
+
+    canonical-⇒ :
+      ∀ {Δ : TyCtx}{Σ : TyStore}{V : Term}{A B : Ty} →
+      Value V →
+      Δ ∣ Σ ∣ [] ⊢ V ⦂ (A ⇒ B) →
+      FunView V
 
 
 

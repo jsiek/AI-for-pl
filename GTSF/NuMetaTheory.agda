@@ -20,10 +20,11 @@ open import NuStore using (StoreWf)
 open import NuTerms
 open import NuReduction
 
-import proof.CoercionProperties as CoercionProof
-import proof.NarrowWidenProperties as NarrowWidenProof
-import proof.NuProgress as ProgressProof
-import proof.NuPreservation as PreservationProof
+import proof.Core.Properties.CoercionProperties as CoercionProof
+import proof.Core.Properties.NarrowWidenProperties as NarrowWidenProof
+import proof.Core.Properties.NarrowWidenStoreInvariantDef as NWStore
+import proof.DGG.Core.NuProgress as ProgressProof
+import proof.DGG.Core.NuPreservation as PreservationProof
 
 progress :
   ∀ {Δ : TyCtx}{Σ : Store}{M : Term}{A : Ty} →
@@ -65,7 +66,7 @@ multi-runtime-preservation =
 
 narrowing-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  NarrowWidenProof.StoreDetWf Δ Σ →
+  NWStore.StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊒ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊒ B →
   s ≡ t
@@ -74,7 +75,7 @@ narrowing-determinedᵐ =
 
 widening-determinedᵐ :
   ∀ {μ Δ Σ A B s t} →
-  NarrowWidenProof.StoreDetWf Δ Σ →
+  NWStore.StoreDetWf Δ Σ →
   μ ∣ Δ ∣ Σ ⊢ s ∶ A ⊑ B →
   μ ∣ Δ ∣ Σ ⊢ t ∶ A ⊑ B →
   s ≡ t

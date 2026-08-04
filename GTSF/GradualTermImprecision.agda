@@ -4,6 +4,7 @@ module GradualTermImprecision where
 --   * Source-level gradual term imprecision for GTSF.
 --   * Mirrors the structural shape of `GradualTermNarrowing`, but flips the
 --     direction to the type-imprecision judgment from `ImprecisionWf`.
+--   * Requires context lifts to preserve each type-imprecision index shape.
 --   * Carries the typing-rule side conditions directly in the constructors and
 --     exports left/right typing projections for related gradual terms.
 
@@ -17,8 +18,13 @@ open import Types
 open import Ctx using (⤊ᵗ)
 open import GradualTerms
 open import Imprecision using (_⊢_~_)
+open import ImprecisionComposition using (⌊_⌋)
 open import ImprecisionWf
+open import ConversionIndexCompatibility using
+  (_[_↦_]ᴸ_; _[_↦_⊑⟨_⟩_↤_]ᴾ_)
 open import Primitives using (Const; Prim; constTy; κℕ)
+open import proof.Core.Properties.NuImprecisionIndexedRenamingProperties using
+  (⊑-lift∀ᵢ; ⊑-source-liftνᵢ)
 
 variable
   Φ Ψ : ImpCtx
@@ -74,6 +80,7 @@ data LiftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftCtxⁱ Ψ [] []
 
   lift-∷ : ∀ {γ γ′ A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftCtxⁱ Ψ γ γ′
       --------------------------------------------------------------
     → LiftCtxⁱ Ψ (ctx-imp A B p ∷ γ) (ctx-imp (⇑ᵗ A) (⇑ᵗ B) p′ ∷ γ′)
@@ -84,7 +91,7 @@ srcCtxⁱ-lift :
   LiftCtxⁱ Ψ γ γ′ →
   srcCtxⁱ γ′ ≡ ⤊ᵗ (srcCtxⁱ γ)
 srcCtxⁱ-lift lift-[] = refl
-srcCtxⁱ-lift (lift-∷ liftγ) =
+srcCtxⁱ-lift (lift-∷ _ liftγ) =
   cong₂ _∷_ refl (srcCtxⁱ-lift liftγ)
 
 tgtCtxⁱ-lift :
@@ -93,7 +100,7 @@ tgtCtxⁱ-lift :
   LiftCtxⁱ Ψ γ γ′ →
   tgtCtxⁱ γ′ ≡ ⤊ᵗ (tgtCtxⁱ γ)
 tgtCtxⁱ-lift lift-[] = refl
-tgtCtxⁱ-lift (lift-∷ liftγ) =
+tgtCtxⁱ-lift (lift-∷ _ liftγ) =
   cong₂ _∷_ refl (tgtCtxⁱ-lift liftγ)
 
 data LiftLeftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
@@ -102,6 +109,7 @@ data LiftLeftCtxⁱ {Φ Δᴸ Δᴿ} (Ψ : ImpCtx) :
     LiftLeftCtxⁱ Ψ [] []
 
   lift-left-∷ : ∀ {γ γ′ A B p p′}
+    → ⌊ p′ ⌋ ≡ ⌊ p ⌋
     → LiftLeftCtxⁱ Ψ γ γ′
       ------------------------------------------------------------
     → LiftLeftCtxⁱ Ψ (ctx-imp A B p ∷ γ) (ctx-imp (⇑ᵗ A) B p′ ∷ γ′)
@@ -112,7 +120,7 @@ srcCtxⁱ-lift-left :
   LiftLeftCtxⁱ Ψ γ γ′ →
   srcCtxⁱ γ′ ≡ ⤊ᵗ (srcCtxⁱ γ)
 srcCtxⁱ-lift-left lift-left-[] = refl
-srcCtxⁱ-lift-left (lift-left-∷ liftγ) =
+srcCtxⁱ-lift-left (lift-left-∷ _ liftγ) =
   cong₂ _∷_ refl (srcCtxⁱ-lift-left liftγ)
 
 tgtCtxⁱ-lift-left :
@@ -121,7 +129,7 @@ tgtCtxⁱ-lift-left :
   LiftLeftCtxⁱ Ψ γ γ′ →
   tgtCtxⁱ γ′ ≡ tgtCtxⁱ γ
 tgtCtxⁱ-lift-left lift-left-[] = refl
-tgtCtxⁱ-lift-left (lift-left-∷ liftγ) =
+tgtCtxⁱ-lift-left (lift-left-∷ _ liftγ) =
   cong₂ _∷_ refl (tgtCtxⁱ-lift-left liftγ)
 
 ------------------------------------------------------------------------
@@ -206,8 +214,13 @@ data _∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_
     → WfTy (suc Δᴿ) B
     → WfTy Δᴿ T′
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ γ ⊢ᴳ M ⊑ M′ ⦂ `∀ A ⊑ `∀ B ∶ ∀ⁱ p
-    → Φ ∣ Δᴸ ⊢ T ⊑ T′ ⊣ Δᴿ
+    → (q : Φ ∣ Δᴸ ⊢ T ⊑ T′ ⊣ Δᴿ)
     → (r : Φ ∣ Δᴸ ⊢ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ ⊣ Δᴿ)
+    → p
+        [ zero ↦ ⇑ᵗ T
+        ⊑⟨ ⊑-lift∀ᵢ q ⟩
+        ⇑ᵗ T′ ↤ zero ]ᴾ
+      ⊑-lift∀ᵢ r
       ---------------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ γ
         ⊢ᴳ M `[ T ] ⊑ M′ `[ T′ ] ⦂ A [ T ]ᵗ ⊑ B [ T′ ]ᵗ ∶ r
@@ -218,8 +231,9 @@ data _∣_∣_∣_⊢ᴳ_⊑_⦂_⊑_∶_
     → WfTy Δᴸ T
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ γ
         ⊢ᴳ M ⊑ M′ ⦂ `∀ A ⊑ B ∶ ν safe occ p
-    → Φ ∣ Δᴸ ⊢ T ⊑ ★ ⊣ Δᴿ
+    → (q : Φ ∣ Δᴸ ⊢ T ⊑ ★ ⊣ Δᴿ)
     → (r : Φ ∣ Δᴸ ⊢ A [ T ]ᵗ ⊑ B ⊣ Δᴿ)
+    → p [ zero ↦ ⇑ᵗ T ]ᴸ ⊑-source-liftνᵢ r
       -------------------------------------------------
     → Φ ∣ Δᴸ ∣ Δᴿ ∣ γ ⊢ᴳ M `[ T ] ⊑ M′ ⦂ A [ T ]ᵗ ⊑ B ∶ r
 
@@ -307,9 +321,10 @@ mutual
         (srcCtxⁱ-lift-left liftγ)
         (gradual-term-imprecision-source-typing V⊑N′))
   gradual-term-imprecision-source-typing
-      ([]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r) =
+      ([]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r replacement) =
     ⊢• (gradual-term-imprecision-source-typing M⊑M′) hA hT
-  gradual-term-imprecision-source-typing ([]⊑ᴳ hA hT M⊑M′ q r) =
+  gradual-term-imprecision-source-typing
+      ([]⊑ᴳ hA hT M⊑M′ q r replacement) =
     ⊢• (gradual-term-imprecision-source-typing M⊑M′) hA hT
   gradual-term-imprecision-source-typing κ⊑κᴳ =
     ⊢$ (κℕ _)
@@ -357,9 +372,10 @@ mutual
       (tgtCtxⁱ-lift-left liftγ)
       (gradual-term-imprecision-target-typing V⊑N′)
   gradual-term-imprecision-target-typing
-      ([]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r) =
+      ([]⊑[]ᴳ hA hT hB hT′ M⊑M′ q r replacement) =
     ⊢• (gradual-term-imprecision-target-typing M⊑M′) hB hT′
-  gradual-term-imprecision-target-typing ([]⊑ᴳ hA hT M⊑M′ q r) =
+  gradual-term-imprecision-target-typing
+      ([]⊑ᴳ hA hT M⊑M′ q r replacement) =
     gradual-term-imprecision-target-typing M⊑M′
   gradual-term-imprecision-target-typing κ⊑κᴳ =
     ⊢$ (κℕ _)

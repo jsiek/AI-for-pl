@@ -8,7 +8,7 @@ module Types where
 --   * No proof-only metatheory or coercion-specific metatheory.
 -- Note to self:
 --   * Keep this file focused on syntax/judgments and definition-layer algebra;
---     place proof-only type lemmas in `proof/TypeProperties.agda`.
+--     place proof-only type lemmas in `proof/Core/Properties/TypeProperties.agda`.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Bool using (Bool; false; true; _∨_)

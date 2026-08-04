@@ -30,8 +30,8 @@ open import Compile
     )
 open import Eval using (EvalOutcome; eval)
 open import GradualTypeCheck using (type-check)
-open import proof.ImprecisionProperties using (~-sym)
-open import proof.NuTermProperties using (CtxWf-⤊)
+open import proof.Core.Properties.ImprecisionProperties using (~-sym)
+open import proof.Core.Properties.NuTermProperties using (CtxWf-⤊)
 
 open import GradualTerms
   using (GTerm)

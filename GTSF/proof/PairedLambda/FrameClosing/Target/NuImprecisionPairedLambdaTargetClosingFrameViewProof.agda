@@ -1,0 +1,668 @@
+module proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewProof where
+
+-- File Charter:
+--   * Classifies value-shaped, canonical-all source relations into a terminal
+--     polymorphic leaf and a proof-relevant spine of surrounding frames.
+--   * Recurses mutually over ordinary and quotiented term imprecision.
+--   * Contains no semantic catch-up proof, postulate, or permissive option.
+
+open import proof.NuCore.Relations.NuImprecisionQuotientedTyping
+import Coercions as C
+import CastImprecisionShape as CIS
+import Conversion as CV
+import NarrowWiden as NW
+open import Agda.Builtin.Equality using (refl)
+open import CastImprecisionShape using (_⊢ᶜ_⦂_)
+open import Coercions using
+  ( id-onlyᵈ
+  ; ModeIncl
+  ; tag-or-idᵈ
+  )
+open import Data.List using ([])
+open import Data.Nat using (suc; zero)
+open import Data.Product using (_,_)
+open import ImprecisionComposition using (_；⌊_⌋≋ᵖ_；_)
+open import NuTerms using
+  ( No•
+  ; Term
+  ; Value
+  ; $
+  ; ƛ_
+  ; Λ_
+  ; _⟨_⟩
+  ; no•-Λ
+  ; no•-⟨⟩
+  )
+open import QuotientedTermImprecision using
+  ( PairedCast
+  ; QuotientWideningPair
+  ; _∣_∣_∣_∣_⊢ᴺ_⊑_⦂_⊑_∶_
+  ; _∣_∣_∣_∣_⊢ᴺᵖ_⊑_⦂_⊑ᵖ_∶_
+  ; blame⊑ᵀ
+  ; cast⊒⊑ᵀ
+  ; cast⊑⊑ᵀ
+  ; conv↑⊑ᵀ
+  ; conv↓⊑ᵀ
+  ; conv⊑convᵀ
+  ; down·up⊑down·upᵀ
+  ; down⊑downᵀ
+  ; gen-down⊑gen-downᵀ
+  ; gen⊑groundᵀ
+  ; quotient-cast-widening
+  ; quotient-id-widening
+  ; paired-conceal
+  ; paired-conversion
+  ; paired-reveal
+  ; paired-widening
+  ; up⊑upᵀ
+  ; x⊑xᵀ
+  ; Λ⊑Λᵀ
+  ; Λ⊑ᵀ
+  ; α⊑αᵀ
+  ; α⊑ᵀ
+  ; ⊑cast⊒ᵀ
+  ; ⊑cast⊑ᵀ
+  ; ⊑cast⊑idᵀ
+  ; ⊑conv↑ᵀ
+  ; ⊑conv↓ᵀ
+  ; ν⊑νᵀ
+  ; ν⊑ᵀ
+  ; κ⊑κᵀ
+  ; ⊕⊑⊕ᵀ
+  ; ·⊑·ᵀ
+  ; ƛ⊑ƛᵀ
+  ; target-instantiationᵀ
+  )
+open import TermTyping using (forget)
+open import proof.PairedLambda.FrameClosing.Target.NuImprecisionPairedLambdaTargetClosingFrameViewDef
+open import proof.DGG.Core.NuProgress using
+  ( AllView
+  ; av-gen
+  ; av-Λ
+  ; av-∀
+  ; canonical-∀
+  )
+open import ImprecisionWf using (ImpCtx; _∣_⊢_⊑_⊣_; ∀ⁱ_; ν)
+open import ForallPermutation using (_∣_⊢_⊑ᵖ_⊣_)
+open import proof.Store.Core.NuImprecisionRelationalStoreDef using
+  ( StoreImp
+  )
+open import Types using (Ty; TyCtx; `∀)
+
+
+id-only≤gen-tag-or-idᵈ : ModeIncl id-onlyᵈ (C.genᵈ tag-or-idᵈ)
+id-only≤gen-tag-or-idᵈ zero = refl
+id-only≤gen-tag-or-idᵈ (suc X) = refl
+
+
+mutual
+  paired-lambda-target-closing-frame-viewᵀ :
+    PairedLambdaTargetClosingFrameViewᵀ
+
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW (blame⊑ᵀ W′⊢)
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW (x⊑xᵀ x∈)
+  paired-lambda-target-closing-frame-viewᵀ
+      (ƛ N) noW vW′ noW′ (av-Λ ())
+      (ƛ⊑ƛᵀ hA hA′ N⊑N′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (ƛ N) noW vW′ noW′ (av-∀ vN ())
+      (ƛ⊑ƛᵀ hA hA′ N⊑N′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (ƛ N) noW vW′ noW′ (av-gen vN ())
+      (ƛ⊑ƛᵀ hA hA′ N⊑N′)
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW (·⊑·ᵀ L⊑L′ M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (() ⟨ inert-u ⟩) noW vW′ noW′ allW
+      (down·up⊑down·upᵀ
+        mode seal★ d⊒ d-shape mode′ seal★′ d′⊒ d′-shape
+        L⊑L′ M⊑M′ down-square widening
+        u-shape u′-shape up-square compatible)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM))
+      (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM′))
+      (av-Λ ())
+      (up⊑upᵀ down widening pA u-shape u′-shape up-square)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM))
+      (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM′))
+      (av-∀ vMd refl)
+      (up⊑upᵀ {qD = qD} down
+        widening@(quotient-id-widening {D′ = D′} {A′ = B′}
+          (C.cast-all {A = D} {B = B} u⊢ ,
+            NW.cross (NW.`∀ {s = u} uʷ)) u′⊑)
+        pA u-shape u′-shape up-square) =
+    paired-lambda-target-closing-frame-viewᵖ
+      {D = D} {D′ = D′} {B = B} {B′ = B′}
+      {u = u} {qD = qD}
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      down widening pA u-shape u′-shape up-square
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM))
+      (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM′))
+      (av-∀ vMd refl)
+      (up⊑upᵀ {qD = qD} down
+        widening@(quotient-cast-widening {D′ = D′} {A′ = B′}
+          mode seal★
+          (C.cast-all {A = D} {B = B} u⊢ ,
+            NW.cross (NW.`∀ {s = u} uʷ))
+          mode′ seal★′ u′⊑)
+        pA u-shape u′-shape up-square) =
+    paired-lambda-target-closing-frame-viewᵖ
+      {D = D} {D′ = D′} {B = B} {B′ = B′}
+      {u = u} {qD = qD}
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      down widening pA u-shape u′-shape up-square
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM))
+      (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM′))
+      (av-gen vMd refl)
+      (up⊑upᵀ down
+        (quotient-id-widening (_ , NW.cross ()) u′⊑)
+        pA u-shape u′-shape up-square)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-d ⟩ ⟨ inert-u ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM))
+      (vM′ ⟨ inert-d′ ⟩ ⟨ inert-u′ ⟩)
+      (no•-⟨⟩ (no•-⟨⟩ noM′))
+      (av-gen vMd refl)
+      (up⊑upᵀ down
+        (quotient-cast-widening mode seal★ (_ , NW.cross ())
+          mode′ seal★′ u′⊑)
+        pA u-shape u′-shape up-square)
+  paired-lambda-target-closing-frame-viewᵀ
+      (Λ vV) (no•-Λ noV) (Λ vV′) (no•-Λ noV′)
+      (av-Λ refl) (Λ⊑Λᵀ liftρ liftγ vR vR′ V⊑V′) =
+    closing-frame-view
+      (leaf-ΛΛ liftρ liftγ vV noV vV′ noV′ V⊑V′)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      vM₀ noM₀ vM₀′ noM₀′ allM
+      (target-instantiationᵀ embedded) =
+    closing-frame-view
+      (leaf-target-instantiation embedded)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      (Λ vV) (no•-Λ noV) vN′ noN′
+      (av-Λ refl) (Λ⊑ᵀ occ liftρ liftγ vR V⊑N′) =
+    closing-frame-view
+      (leaf-Λ occ liftρ liftγ vV noV vN′ noN′ V⊑N′)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW
+      (α⊑αᵀ vL noL vL′ noL′ p liftρ liftγ L⊑L′
+        prefix L⊢ L′⊢)
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW
+      (α⊑ᵀ vL noL hA liftρ liftγ L⊑N′ prefix L⊢ N′⊢)
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW
+      (ν⊑νᵀ hA hA′ s↑ s′↑ A⊑A′ A↑⊑A′↑
+        liftρ liftγ N⊑N′ replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW
+      (ν⊑ᵀ hA h↑A s↑ liftρ liftγ N⊑N′ replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      ($ k) noW vW′ noW′ (av-Λ ()) κ⊑κᵀ
+  paired-lambda-target-closing-frame-viewᵀ
+      ($ k) noW vW′ noW′ (av-∀ vK ()) κ⊑κᵀ
+  paired-lambda-target-closing-frame-viewᵀ
+      ($ k) noW vW′ noW′ (av-gen vK ()) κ⊑κᵀ
+  paired-lambda-target-closing-frame-viewᵀ
+      () noW vW′ noW′ allW (⊕⊑⊕ᵀ L⊑L′ M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-Λ ()) (cast⊒⊑ᵀ mode seal★ c⊒ M⊑M′ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ))
+        M⊑M′ q c-shape comp)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        c⊒@(C.cast-all c⊢ , NW.cross (NW.`∀ cⁿ))
+        M⊑M′ q c-shape comp)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-cast⊒⊑ frames mode seal★ c⊒ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (gen⊑groundᵀ mode seal★ c⊒ gH vV vW W⊢ V⊑Wtag q) =
+    closing-frame-view
+      (leaf-gen-ground mode seal★ c⊒ gH
+        vV noM vW noM′ W⊢ V⊑Wtag q)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ {p = p} mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
+      with p
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
+      | ∀ⁱ p
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
+      | ∀ⁱ p | closing-frame-view leaf frames =
+    closing-frame-view
+      leaf
+      (frame-gen-all
+        frames mode seal★ hA occ c⊢ cⁿ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
+      | ν _ occ-p p
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (∀ⁱ q) c-shape comp)
+      | ν _ occ-p p | closing-frame-view leaf frames =
+    closing-frame-view
+      leaf
+      (frame-gen-all
+        frames mode seal★ hA occ c⊢ cⁿ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊒⊑ᵀ mode seal★
+        (C.cast-gen hA occ c⊢ , NW.gen cⁿ)
+        M⊑M′ (ν safe occ-r r) c-shape comp) =
+    closing-frame-view
+      (leaf-gen-ν {{safe = safe}}
+        vM noM vM′ noM′ mode seal★
+        hA occ c⊢ cⁿ c-shape M⊑M′ occ-r r comp)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-Λ ()) (cast⊑⊑ᵀ mode seal★ c⊑ M⊑M′ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (cast⊑⊑ᵀ mode seal★
+        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+        M⊑M′ q c-shape comp)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (cast⊑⊑ᵀ mode seal★
+        c⊑@(C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+        M⊑M′ q c-shape comp)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-cast⊑⊑ frames mode seal★ c⊑ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl)
+      (cast⊑⊑ᵀ mode seal★ (_ , NW.cross ())
+        M⊑M′ q c-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c′-shape comp)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′ allM M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊒ᵀ mode′ seal★′ c′⊒ M⊑M′ q c′-shape comp)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-⊑cast⊒
+        frames inert-c′ mode′ seal★′ c′⊒ q c′-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c′-shape comp)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′ allM M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊑ᵀ mode′ seal★′ c′⊑ M⊑M′ q c′-shape comp)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-⊑cast⊑
+        frames inert-c′ mode′ seal★′ c′⊑ q c′-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′ allM M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑cast⊑idᵀ seal★′ c′⊑ M⊑M′ q c′-shape comp)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-⊑cast⊑id
+        frames inert-c′ seal★′ c′⊑ q c′-shape comp)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-Λ ()) (conv⊑convᵀ paired M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-conversion
+          (paired-reveal
+            corr (CV.reveal-all c↑) c′↑ replacement))
+        M⊑M′)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-conversion
+          (paired-reveal
+            corr (CV.reveal-all c↑) c′↑ replacement))
+        M⊑M′)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-conversion
+          (paired-conceal
+            corr (CV.conceal-all c↓) c′↓ replacement))
+        M⊑M′)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-conversion
+          (paired-conceal
+            corr (CV.conceal-all c↓) c′↓ replacement))
+        M⊑M′)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-widening mode seal★
+          (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+          c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        M⊑M′)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-∀ vR refl)
+      (conv⊑convᵀ
+        paired@(paired-widening mode seal★
+          (C.cast-all c⊢ , NW.cross (NW.`∀ cʷ))
+          c-shape mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        M⊑M′)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf (frame-conv⊑conv frames inert-c′ paired)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-gen vR refl)
+      (conv⊑convᵀ
+        (paired-conversion
+          (paired-reveal corr () c′↑ replacement)) M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-gen vR refl)
+      (conv⊑convᵀ
+        (paired-conversion
+          (paired-conceal corr () c′↓ replacement)) M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM)
+      (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′)
+      (av-gen vR refl)
+      (conv⊑convᵀ
+        (paired-widening
+          mode seal★ (_ , NW.cross ()) c-shape
+          mode′ seal★′ c′⊑ c′-shape
+          source-comp target-comp compat)
+        M⊑M′)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-Λ ()) (conv↑⊑ᵀ c↑ M⊑M′ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (conv↑⊑ᵀ
+        c↑@(CV.reveal-all inner) M⊑M′ q replacement)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (conv↑⊑ᵀ
+        c↑@(CV.reveal-all inner) M⊑M′ q replacement)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-conv↑⊑ frames c↑ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl) (conv↑⊑ᵀ () M⊑M′ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-Λ ()) (conv↓⊑ᵀ c↓ M⊑M′ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (conv↓⊑ᵀ
+        c↓@(CV.conceal-all inner) M⊑M′ q replacement)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-∀ vR refl)
+      (conv↓⊑ᵀ
+        c↓@(CV.conceal-all inner) M⊑M′ q replacement)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-conv↓⊑ frames c↓ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      (vM ⟨ inert-c ⟩) (no•-⟨⟩ noM) vM′ noM′
+      (av-gen vR refl) (conv↓⊑ᵀ () M⊑M′ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replacement)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′ allM M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑conv↑ᵀ c′↑ M⊑M′ q replacement)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-⊑conv↑ frames inert-c′ c′↑ q replacement)
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replacement)
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′ allM M⊑M′
+  paired-lambda-target-closing-frame-viewᵀ
+      vM noM (vM′ ⟨ inert-c′ ⟩) (no•-⟨⟩ noM′) allM
+      (⊑conv↓ᵀ c′↓ M⊑M′ q replacement)
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-⊑conv↓ frames inert-c′ c′↓ q replacement)
+
+  paired-lambda-target-closing-frame-viewᵖ :
+      ∀ {Φ : ImpCtx} {Δᴸ Δᴿ : TyCtx}
+        {ρ : StoreImp Φ Δᴸ Δᴿ}
+        {M M′ : Term} {D D′ B B′ : Ty}
+        {d d′ u u′ : C.Coercion}
+        {u-shape u′-shape}
+        {qD : Φ ∣ Δᴸ ⊢ `∀ D ⊑ᵖ D′ ⊣ Δᴿ} →
+    Value M → No• M →
+    Value M′ → No• M′ →
+    C.Inert d → C.Inert d′ → C.Inert (C.`∀ u) → C.Inert u′ →
+    Φ ∣ Δᴸ ∣ Δᴿ ∣ ρ ∣ []
+      ⊢ᴺᵖ M ⟨ d ⟩ ⊑ M′ ⟨ d′ ⟩
+        ⦂ `∀ D ⊑ᵖ D′ ∶ qD →
+    QuotientWideningPair Δᴸ Δᴿ ρ
+      (C.`∀ u) u′ (`∀ D) D′ (`∀ B) B′ →
+    (pB : Φ ∣ Δᴸ ⊢ `∀ B ⊑ B′ ⊣ Δᴿ) →
+    CIS.widening ⊢ᶜ C.`∀ u ⦂ u-shape →
+    CIS.widening ⊢ᶜ u′ ⦂ u′-shape →
+    u-shape ；⌊ pB ⌋≋ᵖ qD ； u′-shape →
+    PairedLambdaTargetClosingFrameView ρ
+      ((M ⟨ d ⟩) ⟨ C.`∀ u ⟩) ((M′ ⟨ d′ ⟩) ⟨ u′ ⟩)
+      (`∀ B) B′ pB
+
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (down⊑downᵀ
+        d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (down⊑downᵀ
+        d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-up-id frames inert-d′ inert-u′
+        d⊒ d-shape d′⊒ d′-shape qD down-square
+        widening pB u-shape u′-shape up-square)
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (down⊑downᵀ
+        (C.cast-gen hC occ d⊢ , NW.gen dⁿ)
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square =
+    closing-frame-view
+      (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
+        (NW.narrow-mode-relax id-only≤gen-tag-or-idᵈ
+          (C.cast-gen hC occ d⊢ , NW.gen dⁿ))
+        d-shape
+        (NW.narrow-mode-relax id-only≤gen-tag-or-idᵈ d′⊒) d′-shape
+        M⊑M′ qD down-square
+        widening pB u-shape u′-shape up-square)
+      frame-refl
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (gen-down⊑gen-downᵀ
+        d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
+      with paired-lambda-target-closing-frame-viewᵀ
+        vM noM vM′ noM′
+        (canonical-∀ vM
+          (forget
+            (nu-term-imprecision-source-typing {γ = []} M⊑M′)))
+        M⊑M′
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (gen-down⊑gen-downᵀ
+        d⊒@(C.cast-all d⊢ , NW.cross (NW.`∀ dⁿ))
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square
+      | closing-frame-view leaf frames =
+    closing-frame-view leaf
+      (frame-up-gen-all frames inert-d′ inert-u′
+        d⊒ d-shape d′⊒ d′-shape qD down-square
+        widening pB u-shape u′-shape up-square)
+  paired-lambda-target-closing-frame-viewᵖ
+      vM noM vM′ noM′ inert-d inert-d′ inert-u inert-u′
+      (gen-down⊑gen-downᵀ
+        (C.cast-gen hC occ d⊢ , NW.gen dⁿ)
+        d-shape d′⊒ d′-shape M⊑M′ qD down-square)
+      widening pB u-shape u′-shape up-square =
+    closing-frame-view
+      (leaf-up-gen vM noM vM′ noM′ inert-d′ inert-u′
+        (C.cast-gen hC occ d⊢ , NW.gen dⁿ) d-shape
+        d′⊒ d′-shape M⊑M′ qD down-square
+        widening pB u-shape u′-shape up-square)
+      frame-refl
+
+
+paired-lambda-target-closing-frame-view-proofᵀ :
+  PairedLambdaTargetClosingFrameViewᵀ
+paired-lambda-target-closing-frame-view-proofᵀ =
+  paired-lambda-target-closing-frame-viewᵀ

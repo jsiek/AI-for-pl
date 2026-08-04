@@ -118,6 +118,24 @@ syntax applyTerms χs M = χs ▶ᵀ M
 applyTerms [] M = M
 applyTerms (χ ∷ χs) M = χs ▶ᵀ (χ ▷ᵀ M)
 
+applyEnvs : ∀ {Δ Δ′}
+  → StoreChanges Δ Δ′
+  → Env∼ Δ
+  → Env∼ Δ′
+syntax applyEnvs χs μ = χs ▶ᵉ μ
+
+applyEnvs [] μ = μ
+applyEnvs (χ ∷ χs) μ = χs ▶ᵉ (χ ▷ᵉ μ)
+
+applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → μ ⊢ A ∼ B
+  → χs ▶ᵉ μ ⊢ χs ▶ᵗ A ∼ χs ▶ᵗ B
+syntax applyConsistencies χs c = χs ▶ᶜ c
+
+applyConsistencies [] c = c
+applyConsistencies (χ ∷ χs) c = χs ▶ᶜ (χ ▷ᶜ c)
+
 ------------------------------------------------------------------------
 -- Pure one-step reduction
 ------------------------------------------------------------------------

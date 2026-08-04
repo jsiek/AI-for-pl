@@ -20,7 +20,7 @@ import Consistency as C
 open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗)
 open import CastTerms using
   (Term; Value; _⊢_⦂_; ⊢⟨⟩; ⟨_,_,_⟩; ƛ_; Λ_; $; _⦂∀_[_];
-   _⟨_⟩; _↑_; _↓_; GenSafe; Inert; inj; fun; all; seal; genᵥ;
+   _⟨_⟩; _↑_; _↓_; GenSafe; inj; fun; all; seal; genᵥ;
    safe-⇒; safe-∀; safe-inst; safe-gen; _《_》; renameᵗᵐ; ⇑ᵗᵐ)
 open import Imprecision using (_⊢_⊑_)
 import Imprecision as I
@@ -36,88 +36,10 @@ open import proof.ImprecisionConsistency using
    source-occurs-target; toRenameᵗ-injective; unshift-nonvar)
 import proof.Imprecision as PI
 import proof.TypeSafety.Progress as Prog
-open import proof.TypeSafety.Progress using (gen-safe)
+open import proof.Consistency using (gen-safe)
+open import proof.Reduction using (cast-↠; applyConsistencies-Inert)
 open import proof.TypeInTermSubst using
-  (rename-star-injective; rename-occurs; renameᵗ-wk-eq;
-   renameᵗᵐ-preserves-Value; toRename-keep-eq)
-
-applyEnvs : ∀ {Δ Δ′}
-  → StoreChanges Δ Δ′
-  → Env∼ Δ
-  → Env∼ Δ′
-applyEnvs [] μ = μ
-applyEnvs (χ ∷ χs) μ = applyEnvs χs (applyEnv χ μ)
-
-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-  → (χs : StoreChanges Δ Δ′)
-  → μ ⊢ A ∼ B
-  → applyEnvs χs μ ⊢ applyTys χs A ∼ applyTys χs B
-applyConsistencies [] c = c
-applyConsistencies (χ ∷ χs) c =
-  applyConsistencies χs (applyConsistency χ c)
-
-cast-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
-    {χs : StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-  → (c : μ ⊢ A ∼ B)
-  → M —↠[ χs ] N
-  → M ⟨ c ⟩ —↠[ χs ] N ⟨ applyConsistencies χs c ⟩
-cast-↠ {M = M} c (_ ∎[]) = (M ⟨ c ⟩) ∎[]
-cast-↠ {M = M} {N = P} {χs = χ ∷ χs} c
-    (_ —→[ χ ]⟨ M→N ⟩ N↠P) =
-  (M ⟨ c ⟩)
-    —→[ χ ]⟨ ξ-⟨⟩ M→N refl ⟩
-  _
-    —↠[ χs ]⟨ cast-↠ (applyConsistency χ c) N↠P ⟩
-  (P ⟨ applyConsistencies χs (applyConsistency χ c) ⟩) ∎[]
-
-applyStoreChange-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → (χ : StoreChange Δ Δ′)
-  → Inert c
-  → Inert (applyConsistency χ c)
-applyStoreChange-Inert keep inert = inert
-applyStoreChange-Inert (bind A)
-    (inj ⦃ Gᵍ = ★⇒★ ⦄ ⦃ G∼★ = C.⇒∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ★⇒★ ⦄ ⦃ G∼★ = C.⇒∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (bind A)
-    (inj ⦃ Gᵍ = ‵ ι ⦄ ⦃ G∼★ = C.ι∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ‵ ι ⦄ ⦃ G∼★ = C.ι∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (bind A)
-    (inj {G = ＇ X} ⦃ Gᵍ = ＇ .X ⦄
-      ⦃ G∼★ = C.X∼★ᵍ eq ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ＇ Fin.suc X ⦄ ⦃ G∼★ = C.X∼★ᵍ eq ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (bind A)
-    (inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (bind A) fun = fun
-applyStoreChange-Inert (bind A) all = all
-applyStoreChange-Inert (bind A)
-    (genᵥ {A = A₀} {B = B} {c = c}
-      ⦃ Bnv = Bnv ⦄ ⦃ z∈B = z∈B ⦄ A≢★ safe) =
-  subst≡
-    (λ z → Inert (gen_ ⦃ Bnv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
-      ⦃ z∈B = z ⦄ _ _))
-    (PI.∈ᵗ-unique (rename-occurs (extᵗ Fin.suc) z∈B) _)
-    (genᵥ ⦃ Bnv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
-      ⦃ z∈B = rename-occurs (extᵗ Fin.suc) z∈B ⦄
-      A′≢★
-      (gen-safe _ A′≢★ (renameNonVar (extᵗ Fin.suc) Bnv)
-        (rename-occurs (extᵗ Fin.suc) z∈B)))
-  where
-  A′≢★ = λ eq → A≢★ (rename-star-injective Fin.suc eq)
-
-applyConsistencies-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → (χs : StoreChanges Δ Δ′)
-  → Inert c
-  → Inert (applyConsistencies χs c)
-applyConsistencies-Inert [] inert = inert
-applyConsistencies-Inert (χ ∷ χs) inert =
-  applyConsistencies-Inert χs (applyStoreChange-Inert χ inert)
+  (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value; toRename-keep-eq)
 
 gen-safe-source-nonvar : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     {c : μ ⊢ A ∼ B}
@@ -430,7 +352,7 @@ extra-cast-right : ∀ {Δᴸ Δᴿ Δ}
     Σ[ transport⊑ ∈ (∀ {C : Ty Δᴿ}
       → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) C
       → CTI.impEnvⁱ ρ′
-          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (applyTys χs C)) ]
+          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (χs ▶ᵗ C)) ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
        × (M′ ⟨ c′ ⟩ —↠[ χs ] N′)
@@ -461,7 +383,7 @@ inst-catchup-right : ∀ {Δᴸ Δᴿ Δ}
     Σ[ transport⊑ ∈ (∀ {C : Ty Δᴿ}
       → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) C
       → CTI.impEnvⁱ ρ′
-          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (applyTys χs C)) ]
+          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (χs ▶ᵗ C)) ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
        × (M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs ] N′)
@@ -550,7 +472,7 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
   Δᴿ′ , Δ′ , keep ∷ χs , ηᴸ′ , ηᴿ′ , ρ′ , γ′ ,
   A′ , transport⊑ ,
   N′
-    ⟨ applyConsistencies χs
+    ⟨ χs ▶ᶜ
         (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
           ⦃ C.ground-nonstar Gᵍ ⦄) ⟩ ,
   vN′
@@ -571,13 +493,13 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
         M′c↠N′
     ⟩
   (N′
-    ⟨ applyConsistencies χs
+    ⟨ χs ▶ᶜ
         (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
           ⦃ C.ground-nonstar Gᵍ ⦄) ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize′
     (CTI.⊑castᶜ
       (renameᵐᶜ ηᴿ′
-        (applyConsistencies χs
+        (χs ▶ᶜ
           (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
             ⦃ C.ground-nonstar Gᵍ ⦄)))
       M⊑N′ (transport⊑ q))

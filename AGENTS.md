@@ -296,6 +296,11 @@ Put each intermediate term on its own indented line, put the step justification
 on the following `—→⟨ ... ⟩` line, and always end the written chain with `∎`
 so the final term is explicit in the code.
 
+When a proof reuses an existing multi-step reduction segment, use the local
+transitive chain syntax, such as `_—↠⟨_⟩_` or `_—↠[_]⟨_⟩_`, and still finish
+with the relation's reflexive terminator. For store-changing chains in
+GTSFImp, that means writing the final term followed by `∎[]`.
+
 Prefer:
 
     twoᶜ · sucᶜ · `zero
@@ -308,6 +313,14 @@ Prefer:
   —→⟨ β-ƛ (V-suc V-zero) ⟩
     `suc (`suc `zero)
   ∎
+
+For store-changing reductions with a reused tail proof, prefer:
+
+    M
+  —→[ keep ]⟨ step ⟩
+    N
+  —↠[ χs ]⟨ N↠P ⟩
+    P ∎[]
 
 Over nested `—→⟨_⟩_` / `↠-step` constructor applications when proving
 reduction sequences.

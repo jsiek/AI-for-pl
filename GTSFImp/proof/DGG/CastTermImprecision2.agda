@@ -223,10 +223,12 @@ record RebaseAt {Δᴸ Δᴿ Δ Δ′}
   constructor rebase-at
   field
     sameRuntime : SameRuntime W W′
+    pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
 sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → toRenameᵗ (ηᴸʷ W) Xᴸ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
   → StoreRepImp W Xᴸ Xᴿ
     --------------------
   → RebaseAt W W Xᴸ Xᴿ
@@ -562,12 +564,12 @@ example12-rebase-X-to-Z :
   RebaseAt example12-world-X example12-world-Z
     Fin.zero (Fin.suc (Fin.suc Fin.zero))
 example12-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl) example12-Z-representation
+  rebase-at (same-runtime refl refl) refl example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) example12-Y-representation
+  rebase-at (same-runtime refl refl) refl example12-Y-representation
 
 example12-outer-function :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -703,7 +705,8 @@ example12-nat-chain-rebase-X-to-Y :
   RebaseAt example12-nat-chain-world-X example12-nat-chain-world-Y
     Fin.zero Fin.zero
 example12-nat-chain-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) example12-nat-chain-Y-representation
+  rebase-at (same-runtime refl refl) refl
+    example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left
@@ -838,10 +841,12 @@ example12-left-path-rebase-X-to-Z :
   RebaseAt example12-left-path-world-X example12-left-path-world-Z
     (Fin.suc (Fin.suc Fin.zero)) Fin.zero
 example12-left-path-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl) example12-left-path-Z-representation
+  rebase-at (same-runtime refl refl) refl
+    example12-left-path-Z-representation
 
 example12-left-path-rebase-X-to-Y :
   RebaseAt example12-left-path-world-X example12-left-path-world-Y
     (Fin.suc Fin.zero) Fin.zero
 example12-left-path-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) example12-left-path-Y-representation
+  rebase-at (same-runtime refl refl) refl
+    example12-left-path-Y-representation

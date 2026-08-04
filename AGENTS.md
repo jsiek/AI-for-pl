@@ -288,6 +288,29 @@ When using ASCII diagrams in informal proofs:
 
 # Agda Development Notes
 
+## Agda reduction sequence proof style
+
+When writing Agda proofs of reduction sequences, use the local chain notation
+for the reduction relation at hand instead of nested constructor applications.
+Put each intermediate term on its own indented line, put the step justification
+on the following `—→⟨ ... ⟩` line, and end the chain with `∎`.
+
+Prefer:
+
+    twoᶜ · sucᶜ · `zero
+  —→⟨ ξ-·₁ (β-ƛ V-ƛ) ⟩
+    (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero
+  —→⟨ β-ƛ V-zero ⟩
+    sucᶜ · (sucᶜ · `zero)
+  —→⟨ ξ-·₂ V-ƛ (β-ƛ V-zero) ⟩
+    sucᶜ · `suc `zero
+  —→⟨ β-ƛ (V-suc V-zero) ⟩
+    `suc (`suc `zero)
+  ∎
+
+Over nested `—→⟨_⟩_` / `↠-step` constructor applications when proving
+reduction sequences.
+
 ## Function extensionality is allowed
 
 It is acceptable to postulate or import function extensionality in Agda proofs

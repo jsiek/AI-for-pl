@@ -220,6 +220,24 @@ data _∣_⊢ᶜ_⊑_∶_ {Δ : TyCtx}
       -------------------------------
     → ρ ∣ γ ⊢ᶜ M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
+  ⊑revealᶜ : ∀ {M M′ A B B′}
+      {p : impEnvⁱ ρ ⊢ A ⊑ B}
+      {c′ : Conv↑ Δ B B′}
+    → targetStoreⁱ ρ ⊢↑ c′
+    → ρ ∣ γ ⊢ᶜ M ⊑ M′ ∶ p
+    → (q : impEnvⁱ ρ ⊢ A ⊑ B′)
+      -------------------------------
+    → ρ ∣ γ ⊢ᶜ M ⊑ M′ ↑ c′ ∶ q
+
+  ⊑concealᶜ : ∀ {M M′ A B B′}
+      {p : impEnvⁱ ρ ⊢ A ⊑ B}
+      {c′ : Conv↓ Δ B B′}
+    → targetStoreⁱ ρ ⊢↓ c′
+    → ρ ∣ γ ⊢ᶜ M ⊑ M′ ∶ p
+    → (q : impEnvⁱ ρ ⊢ A ⊑ B′)
+      -------------------------------
+    → ρ ∣ γ ⊢ᶜ M ⊑ M′ ↓ c′ ∶ q
+
   cast⊑ᶜ : ∀ {M M′ A A′ B}
       {p : impEnvⁱ ρ ⊢ A ⊑ B} {ν : Env∼ Δ}
     → (c : ν ⊢ A ∼ A′)
@@ -431,6 +449,10 @@ mutual
     ⊢⟨⟩ (cast-term-imprecision-source-typing M⊑M′) c
   cast-term-imprecision-source-typing (⊑castᶜ c′ M⊑M′ q) =
     cast-term-imprecision-source-typing M⊑M′
+  cast-term-imprecision-source-typing (⊑revealᶜ c′⊢ M⊑M′ q) =
+    cast-term-imprecision-source-typing M⊑M′
+  cast-term-imprecision-source-typing (⊑concealᶜ c′⊢ M⊑M′ q) =
+    cast-term-imprecision-source-typing M⊑M′
   cast-term-imprecision-source-typing (cast⊑ᶜ c M⊑M′ q) =
     ⊢⟨⟩ (cast-term-imprecision-source-typing M⊑M′) c
   cast-term-imprecision-source-typing
@@ -472,6 +494,10 @@ mutual
     ⊢⟨⟩ (cast-term-imprecision-target-typing M⊑M′) c′
   cast-term-imprecision-target-typing (⊑castᶜ c′ M⊑M′ q) =
     ⊢⟨⟩ (cast-term-imprecision-target-typing M⊑M′) c′
+  cast-term-imprecision-target-typing (⊑revealᶜ c′⊢ M⊑M′ q) =
+    ⊢reveal c′⊢ (cast-term-imprecision-target-typing M⊑M′)
+  cast-term-imprecision-target-typing (⊑concealᶜ c′⊢ M⊑M′ q) =
+    ⊢conceal c′⊢ (cast-term-imprecision-target-typing M⊑M′)
   cast-term-imprecision-target-typing (cast⊑ᶜ c M⊑M′ q) =
     cast-term-imprecision-target-typing M⊑M′
   cast-term-imprecision-target-typing

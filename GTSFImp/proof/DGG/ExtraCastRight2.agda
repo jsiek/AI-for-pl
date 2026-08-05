@@ -10,11 +10,12 @@ module proof.DGG.ExtraCastRight2 where
 --     source type: A : Ty Δᴸ is untouched by target-side allocation,
 --     and only the world and the target types evolve.
 --   * Stage 2: the right-injection inversion lemma, proved for spine
---     values (values built from constants, lambdas, type abstractions,
---     and inert casts).  Reveal- and conceal-wrapped values are the
---     open frontier: inverting through a wrapper must reconstruct the
---     pre-conversion obligation from the post-conversion one, which
---     the free-q wrapper rules do not support locally; see SpineValue.
+--     values: constants, lambdas, type abstractions, inert casts, and
+--     function-shaped reveal/conceal wrappers.  Because obligations
+--     are propositions (proof.Imprecision.⊑-unique), the free q of
+--     the wrapper rules carries no information beyond its type, and
+--     extending to ∀-shaped and seal wrappers is a type-level
+--     inhabitation question; see SpineValue for what remains.
 --   * Version-2 pay-offs visible here: no renaming wrapper around the
 --     relation, the Λ⊑² case recurses with the target data unchanged,
 --     and the ground lemmas of proof.ImprecisionConsistency apply
@@ -34,7 +35,7 @@ open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _↪ᵗ_; keep; skip; toRenameᵗ;
    _!; ∀ᶜ_; gen_; inst_)
 import Consistency as C
-open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_)
+open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; _↦↑_; _↦↓_)
 open import Imprecision
 open import Primitives using (Const)
 open import CastTerms
@@ -194,12 +195,17 @@ liftWorldLeft-⊑ᵂ {W = W} {A = A} {B = B} body =
 -- Stage 2: right-injection inversion for spine values
 ------------------------------------------------------------------------
 
--- Values whose spine contains no reveal or conceal wrapper.  Inverting
--- through a wrapper must rebuild the pre-conversion obligation from
--- the post-conversion one; with the free-q wrapper rules that needs
--- representation-substitution coherence the relation does not yet
--- record, so wrapped values are excluded here and left as the open
--- frontier.
+-- Values whose spine contains no ∀-shaped conversion wrapper and no
+-- bare seal.  Function-shaped reveal and conceal wrappers are fine:
+-- their pre-conversion tag obligation rebuilds from the ⇒⊑★ view of
+-- the premise index, so no transport along the conversion is needed.
+-- Since obligations are propositions (proof.Imprecision.⊑-unique),
+-- extending to the remaining wrappers is a type-level inhabitation
+-- question: an obligation-transport lemma along the pivot-indexed
+-- conversion typing.  Its ∀-cases need occurrence transport along
+-- conversions, and its seal case needs rebase-onlyᴸ to record that no
+-- target variable sits at the pivot's center.  Until that lemma
+-- exists, ∀-shaped and seal wrappers are the open frontier.
 
 data SpineValue {Δ : TyCtx} : Term Δ → Set where
   sv-ƛ : (N : Term Δ) → SpineValue (ƛ N)
@@ -210,6 +216,14 @@ data SpineValue {Δ : TyCtx} : Term Δ → Set where
 
   sv-cast : ∀ {V} {μ : Env∼ Δ} {A B : Ty Δ} {c : μ ⊢ A ∼ B}
     → SpineValue V → Inert c → SpineValue (V ⟨ c ⟩)
+
+  sv-reveal-fun : ∀ {V} {A A′ B B′ : Ty Δ}
+      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
+    → SpineValue V → SpineValue (V ↑ (c ↦↑ d))
+
+  sv-conceal-fun : ∀ {V} {A A′ B B′ : Ty Δ}
+      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
+    → SpineValue V → SpineValue (V ↓ (c ↦↓ d))
 
 -- If a spine value is related to a tagged target value, the tag can be
 -- peeled off the target at any obligation for the tag's ground type.
@@ -353,7 +367,33 @@ right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
            (∈-all z∈))
 ... | ()
 
--- Wrapped values and type applications are not spine values.
-right-inj-inversion² () (CTI2.reveal⊑² _ _ _ _ _) q
-right-inj-inversion² () (CTI2.conceal⊑² _ _ _ _ _) q
+-- Function-shaped reveal: the premise's ⇒⊑★ components rebuild the
+-- premise-level tag obligation, and by ⊑-unique it does not matter
+-- that this inhabitant differs from any other.
+right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
+    (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} rb sc ⊢c prem q₀) (⇒⊑⇒ qA qB) =
+  CTI2.reveal⊑² rb sc ⊢c
+    (right-inj-inversion² sv prem (⇒⊑⇒ pA pB))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
+  (CTI2.reveal⊑² _ _ _ _ _) ()
+right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
+  (CTI2.reveal⊑² _ _ _ _ _) ()
+right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
+  (CTI2.reveal⊑² _ _ _ _ _) ()
+
+-- Function-shaped conceal: same construction.
+right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
+    (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} rb sc ⊢c prem q₀) (⇒⊑⇒ qA qB) =
+  CTI2.conceal⊑² rb sc ⊢c
+    (right-inj-inversion² sv prem (⇒⊑⇒ pA pB))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
+  (CTI2.conceal⊑² _ _ _ _ _) ()
+right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
+  (CTI2.conceal⊑² _ _ _ _ _) ()
+right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
+  (CTI2.conceal⊑² _ _ _ _ _) ()
+
+-- Type applications are not spine values.
 right-inj-inversion² () (CTI2.•⊑² _ _ _ _) q

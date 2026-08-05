@@ -5,14 +5,17 @@ module proof.DGG.CastTermImprecision2 where
 --   * Keeps type imprecision single-context, but makes each term-imprecision
 --     premise carry its current local source/target embeddings into that
 --     center context.
---   * Represents local rebasing explicitly so one-sided administrative
---     reveal/conceal wrappers can descend with a different alignment.
+--   * Represents local rebasing explicitly, letting reveal/conceal wrappers
+--     descend with a different alignment.
 --   * Records the Example 12 alignments Xᴸ≅Xᴿ, Xᴸ≅Zᴿ, and Xᴸ≅Yᴿ as first-class
 --     store-representation witnesses.
 --   * Records a left-hand analogue of Example 12 where the source store, not
 --     the target store, has the representation path to ★.
 --   * Records a variant where the target store has a representation path to
 --     ℕ, showing that representation paths are not only a ★ phenomenon.
+--   * The more rules in this relation, the more cases to prove in the DGG.
+--     So don't add rules unless they are absolutely necessary!
+--     Avoid rules that are not syntax directed.
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat as Nat using (ℕ)
@@ -287,6 +290,16 @@ mutual
         -----------------
       → Σ ⊢↓[ X ] id↓ A
 
+data IdentityReveal {Δ : TyCtx} : ∀ {A B} → Conv↑ Δ A B → Set where
+  identity-reveal-id : ∀ {A}
+      ---------------------------
+    → IdentityReveal (id↑ A)
+
+  identity-reveal-∀ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
+    → IdentityReveal c
+      -------------------------
+    → IdentityReveal (`∀↑ c)
+
 ------------------------------------------------------------------------
 -- Typed cast-term imprecision with recursive worlds
 ------------------------------------------------------------------------
@@ -376,7 +389,17 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
-  ⊑reveal-rebase² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  -- TODO: Find a way to remove the below rule
+  ⊑id-reveal² : ∀ {M M′ A B B′}
+      {p : A ⊑ᵂ⟨ W ⟩ B} {c′ : Conv↑ Δᴿ B B′}
+    → IdentityReveal c′
+    → targetStoreʷ W ⊢↑ c′
+    → W ∣ γ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵂ⟨ W ⟩ B′)
+      -----------------------------
+    → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
+
+  ⊑reveal² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
     → RebaseAt W W′ Xᴸ Xᴿ
@@ -387,10 +410,10 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
-  ⊑conceal-rebase² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  ⊑conceal² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
-    → RebaseAt W W′ Xᴸ Xᴿ
+    → RebaseAt W′ W Xᴸ Xᴿ
     → SameCtx γ γ′
     → targetStoreʷ W ⊢↓[ Xᴿ ] c′
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
@@ -406,7 +429,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
-  reveal-rebase⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  reveal⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
     → RebaseAt W W′ Xᴸ Xᴿ
@@ -417,10 +440,10 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  conceal-rebase⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  conceal⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → RebaseAt W W′ Xᴸ Xᴿ
+    → RebaseAt W′ W Xᴸ Xᴿ
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↓[ Xᴸ ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
@@ -428,22 +451,30 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
 
-  reveal⊑reveal² : ∀ {M M′ A A′ B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ A′}
+  reveal⊑reveal² : ∀ {Δᵖ}
+      {Wᵖ : World Δᴸ Δᴿ Δᵖ} {γᵖ : CtxImp Wᵖ}
+      {M M′ A A′ B B′ Xᴸ Xᴿ}
+      {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
-    → sourceStoreʷ W ⊢↑ c
-    → targetStoreʷ W ⊢↑ c′
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
+    → RebaseAt W Wᵖ Xᴸ Xᴿ
+    → SameCtx γ γᵖ
+    → sourceStoreʷ W ⊢↑[ Xᴸ ] c
+    → targetStoreʷ W ⊢↑[ Xᴿ ] c′
+    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
 
-  conceal⊑conceal² : ∀ {M M′ A A′ B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ A′}
+  conceal⊑conceal² : ∀ {Δᵖ}
+      {Wᵖ : World Δᴸ Δᴿ Δᵖ} {γᵖ : CtxImp Wᵖ}
+      {M M′ A A′ B B′ Xᴸ Xᴿ}
+      {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
-    → sourceStoreʷ W ⊢↓ c
-    → targetStoreʷ W ⊢↓ c′
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
+    → RebaseAt Wᵖ W Xᴸ Xᴿ
+    → SameCtx γ γᵖ
+    → sourceStoreʷ W ⊢↓[ Xᴸ ] c
+    → targetStoreʷ W ⊢↓[ Xᴿ ] c′
+    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q

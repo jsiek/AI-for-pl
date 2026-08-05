@@ -9,6 +9,9 @@ module proof.DGG.CastTermImprecision where
 --   * Proves reflexivity from cast typing and exports source/target typing
 --     projections.
 --   * Deliberately omits runtime-only rules until the DGG requires them.
+--   * The more rules in this relation, the more cases to prove in the DGG.
+--     So don't add rules unless they are absolutely necessary!
+--     Avoid rules that are not syntax directed.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Empty using (⊥)

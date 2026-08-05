@@ -246,7 +246,10 @@ the target simply does not have, and with only two-sided pivots the
 simulation was provably impossible in every world. The `rebase-onlyᴸ`
 case of `RebaseAtᴸ` covers this: the pivot's center is classified
 `X⊑★`, its canonical source representation sits below `★`, and the
-world stays fixed because there is no alignment to change. There is no
+world stays fixed because there is no alignment to change. A third
+condition records the disalignment directly: no target variable embeds
+at the pivot's center, so a pivot with no target partner is disaligned
+by construction rather than merely unaligned by accident. There is no
 right-only mirror, because type imprecision has no rule with a bare
 variable on the imprecise side: a target variable can only appear in an
 obligation opposite an aligned source variable.

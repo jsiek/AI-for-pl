@@ -165,7 +165,7 @@ probe-world₁ = CTI2.leftOnlyWorld X⊑★ probe-world₀ Ex.ℕᵗ
 
 probe-rebase-X : CTI2.RebaseAtᴸ probe-world₁ probe-world₁
     (just Fin.zero)
-probe-rebase-X = CTI2.rebase-onlyᴸ refl ι⊑★
+probe-rebase-X = CTI2.rebase-onlyᴸ refl (λ ()) ι⊑★
 
 probe-X⊑★₁ : (＇ Fin.zero) ⊑ᵂ⟨ probe-world₁ ⟩ ★
 probe-X⊑★₁ = X⊑★ refl

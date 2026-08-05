@@ -311,8 +311,13 @@ data RebaseAtᴸ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ �
   -- must sit below ★; there is no alignment to change, so the world
   -- stays fixed.  Type imprecision has no rule with a bare variable on
   -- the imprecise side, so RebaseAtᴿ needs no mirror constructor.
+  -- The disalignment premise makes "no aligned target variable"
+  -- explicit: no target variable embeds at the pivot's center, which
+  -- lets inversion refute the X⊑X view of a concealed pivot.
   rebase-onlyᴸ : ∀ {W} {Xᴸ : TyVar Δᴸ}
     → impEnvʷ W (toRenameᵗ (ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → (∀ (Xᴿ : TyVar Δᴿ)
+        → toRenameᵗ (ηᴿʷ W) Xᴿ ≢ toRenameᵗ (ηᴸʷ W) Xᴸ)
     → resolveVar (sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
       -------------------------
     → RebaseAtᴸ W W (just Xᴸ)

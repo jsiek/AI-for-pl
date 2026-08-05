@@ -233,6 +233,22 @@ premise and indexed conversion typing evidence such as `Σ ⊢↑[ X ] c` or
 `Σ ⊢↓[ X ] c`. This records which abstract variable the conversion is
 about and which source/target store representations are being compared.
 
+`RebaseAt W W′ Xᴸ Xᴿ` is deliberately pivot-local. Reduction introduces
+one reveal or conceal wrapper per fresh type variable, so descending
+through one wrapper is only allowed to change the alignment of the pivot
+pair. Concretely, the record requires that the two runtime stores, the
+center type context, and the imprecision environment are unchanged, that
+`ηᴸ` agrees with the old world at every variable other than `Xᴸ` and
+`ηᴿ` agrees at every variable other than `Xᴿ`, that the pivots are
+aligned in the new world, and that their store representations are
+related there. Store representations are canonical: `resolveVar` follows
+a variable's representation chain to its end (a non-variable type or a
+store-lift variable), instead of letting the derivation stop the chase
+at an arbitrary intermediate type. Chains terminate because a store-bind
+entry mentions only strictly older variables. This keeps rebasing
+deterministic enough for inversion: given the old world and the pivot
+pair, the new world is fixed up to which side of the pivot moved.
+
 Reveal and conceal use opposite `RebaseAt` directions. A reveal checks the
 premise in the pre-reveal world and produces the result in the post-reveal
 world, so its rebasing premise has the same direction as the one-sided
@@ -256,23 +272,34 @@ comparison is
 
 The function premise naturally lives in the `Y/Z` alignment, while the
 inner argument before the outer `Z` seal naturally lives in the `X/Z`
-alignment. Rather than split application, the proof rebases at the `Z`
-conceal boundary:
+alignment. The two alignments differ only in where target `Y` embeds,
+so under pivot-local rebasing the world may change only at a boundary
+whose pivot is the `Y` pair. Rather than split application, the proof
+keeps the whole application node in the `X/Z` alignment — the `Z`
+conceal boundary uses a same-world rebase because `Z/Z′` are already
+aligned there — and performs the `X/Z` to `Y/Z` change at the paired
+`Y` reveal on the function side:
 
 ```text
-((7 ↓ seal X) ⟨ X! ⟩)
+ƛ y. y
   ⊑
-(7 ⟨ ℕ! ⟩)
+ƛ y. y
+  in the Y/Z alignment
 
-↓ conceal Z / Z′ with RebaseAt XZ YZ Z Z′
+↑ reveal Y / Y′ with RebaseAt XZ YZ Y Y′
 
-(((7 ↓ seal X) ⟨ X! ⟩) ↓ seal Z)
+(ƛ y. y) ↑ reveal Y
   ⊑
-((7 ⟨ ℕ! ⟩) ↓ seal Z′)
+(ƛ y. y) ↑ reveal Y′
+  in the X/Z alignment
 ```
 
 After that boundary step, both the function and argument premises are in
-the `Y/Z` alignment and ordinary application imprecision applies.
+the `X/Z` alignment and ordinary application imprecision applies. When
+the argument is later concealed at `Y` (checkpoint 9 of the example),
+the same `RebaseAt XZ YZ Y Y′` witness carries the argument from the
+`X/Z` premise world into the `Y/Z` conclusion world, again at a
+boundary whose pivot is the moved pair.
 
 <a id="identity-reveals-v2"></a>
 ## Identity reveals in version-2 cast-term imprecision
@@ -536,8 +563,8 @@ map it to central `Y` or `Z`. Thus Example 12 shows that the store alignment
 itself can be expressed with the current two-renaming setup, but the
 conversion-wrapper rules need local rebasing. The version-2 rules handle the
 extra right-only conversion layers by rebasing at the reveal/conceal
-boundary for the converted variable and chasing its store representation
-with the `LeadsTo` machinery.
+boundary for the converted variable and comparing the pivots' canonical
+store representations computed by `resolveVar`.
 
 <a id="generalization-tags"></a>
 ## Generalization uses fresh-name tags

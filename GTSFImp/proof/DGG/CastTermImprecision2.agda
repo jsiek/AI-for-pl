@@ -7,6 +7,12 @@ module proof.DGG.CastTermImprecision2 where
 --     center context.
 --   * Represents local rebasing explicitly, letting reveal/conceal wrappers
 --     descend with a different alignment.
+--   * Rebasing is pivot-local: a RebaseAt keeps the runtime stores, the
+--     center context, and the imprecision environment fixed, and moves at
+--     most the embeddings of the two pivot variables.
+--   * Store representations are canonical: a pivot variable is compared
+--     through resolveVar, which follows the store's representation chain
+--     to its end instead of stopping at an arbitrary intermediate type.
 --   * Records the Example 12 alignments Xᴸ≅Xᴿ, Xᴸ≅Zᴿ, and Xᴸ≅Yᴿ as first-class
 --     store-representation witnesses.
 --   * Records a left-hand analogue of Example 12 where the source store, not
@@ -17,10 +23,11 @@ module proof.DGG.CastTermImprecision2 where
 --     So don't add rules unless they are absolutely necessary!
 --     Avoid rules that are not syntax directed.
 
+open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat as Nat using (ℕ)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
 open import TyStore using
@@ -120,8 +127,8 @@ bothBindWorld v W A B =
     (store-bind (sourceStoreʷ W) A)
     (store-bind (targetStoreʷ W) B)
 
-record SameRuntime {Δᴸ Δᴿ Δ Δ′}
-    (W : World Δᴸ Δᴿ Δ) (W′ : World Δᴸ Δᴿ Δ′) : Set where
+record SameRuntime {Δᴸ Δᴿ Δ}
+    (W W′ : World Δᴸ Δᴿ Δ) : Set where
   constructor same-runtime
   field
     sourceStore-same : sourceStoreʷ W′ ≡ sourceStoreʷ W
@@ -190,42 +197,52 @@ data LiftCtx {Δᴸ Δᴿ Δ} (v : VarImp) {W : World Δᴸ Δᴿ Δ} :
 -- Store representations and local rebasing
 ------------------------------------------------------------------------
 
-data LeadsTo : ∀ {Δ} → TyStore Δ → Ty Δ → Ty Δ → Set where
-  leads-here : ∀ {Δ} {Σ : TyStore Δ} {A : Ty Δ}
-      ------------------
-    → LeadsTo Σ A A
+-- A type variable's canonical store representation: follow the store's
+-- representation chain until it ends at a non-variable type or at a
+-- store-lift (universally bound) variable.  Chains terminate because a
+-- store-bind entry mentions only strictly older variables, so both
+-- functions recurse on the tail of the store.
 
-  leads-var : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ} {A B : Ty Δ}
-    → Σ ∋ X ⦂ A
-    → LeadsTo Σ A B
-      -----------------------
-    → LeadsTo Σ (＇ X) B
+resolveVar : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ
+resolveRep : ∀ {Δ} → TyStore Δ → Ty Δ → Ty Δ
 
-infix 4 _⊢_↝_
+resolveVar (store-lift Σ) Fin.zero = ＇ Fin.zero
+resolveVar (store-lift Σ) (Fin.suc X) = ⇑ᵗ (resolveVar Σ X)
+resolveVar (store-bind Σ A) Fin.zero = ⇑ᵗ (resolveRep Σ A)
+resolveVar (store-bind Σ A) (Fin.suc X) = ⇑ᵗ (resolveVar Σ X)
 
-data _⊢_↝_ {Δ} (Σ : TyStore Δ) : TyVar Δ → Ty Δ → Set where
-  var-leads : ∀ {X A B}
-    → Σ ∋ X ⦂ A
-    → LeadsTo Σ A B
-      ----------------
-    → Σ ⊢ X ↝ B
+resolveRep Σ (＇ X) = resolveVar Σ X
+resolveRep Σ (‵ ι) = ‵ ι
+resolveRep Σ ★ = ★
+resolveRep Σ (A ⇒ B) = A ⇒ B
+resolveRep Σ (`∀ A) = `∀ A
 
 record StoreRepImp {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
     (Xᴸ : TyVar Δᴸ) (Xᴿ : TyVar Δᴿ) : Set where
   constructor store-rep-imp
   field
-    sourceRepTy : Ty Δᴸ
-    targetRepTy : Ty Δᴿ
-    sourceRep : sourceStoreʷ W ⊢ Xᴸ ↝ sourceRepTy
-    targetRep : targetStoreʷ W ⊢ Xᴿ ↝ targetRepTy
-    represented : sourceRepTy ⊑ᵂ⟨ W ⟩ targetRepTy
+    represented :
+      resolveVar (sourceStoreʷ W) Xᴸ
+        ⊑ᵂ⟨ W ⟩ resolveVar (targetStoreʷ W) Xᴿ
 
-record RebaseAt {Δᴸ Δᴿ Δ Δ′}
-    (W : World Δᴸ Δᴿ Δ) (W′ : World Δᴸ Δᴿ Δ′)
+-- RebaseAt W W′ Xᴸ Xᴿ is a pivot-local world update.  Reduction only
+-- introduces one reveal or conceal wrapper per fresh type variable, so
+-- descending through one wrapper may change at most the alignment of
+-- the pivot pair: the stores, the center context, and the imprecision
+-- environment stay fixed, both embeddings agree at every non-pivot
+-- variable, the pivots are aligned in W′, and their canonical store
+-- representations are related in W′.
+
+record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     (Xᴸ : TyVar Δᴸ) (Xᴿ : TyVar Δᴿ) : Set where
   constructor rebase-at
   field
     sameRuntime : SameRuntime W W′
+    ηᴸ-off-pivot : ∀ {Y} → Y ≢ Xᴸ
+      → toRenameᵗ (ηᴸʷ W′) Y ≡ toRenameᵗ (ηᴸʷ W) Y
+    ηᴿ-off-pivot : ∀ {Y} → Y ≢ Xᴿ
+      → toRenameᵗ (ηᴿʷ W′) Y ≡ toRenameᵗ (ηᴿʷ W) Y
+    sameImpEnv : ∀ Z → impEnvʷ W′ Z ≡ impEnvʷ W Z
     pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
@@ -235,7 +252,9 @@ sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → StoreRepImp W Xᴸ Xᴿ
     --------------------
   → RebaseAt W W Xᴸ Xᴿ
-sameWorldRebaseAt = rebase-at (same-runtime refl refl)
+sameWorldRebaseAt =
+  rebase-at (same-runtime refl refl)
+    (λ _ → refl) (λ _ → refl) (λ _ → refl)
 
 ------------------------------------------------------------------------
 -- Conversion typing indexed by the converted variable
@@ -399,7 +418,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
-  ⊑reveal² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  ⊑reveal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
     → RebaseAt W W′ Xᴸ Xᴿ
@@ -410,7 +429,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
-  ⊑conceal² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  ⊑conceal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
     → RebaseAt W′ W Xᴸ Xᴿ
@@ -429,7 +448,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
-  reveal⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  reveal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
     → RebaseAt W W′ Xᴸ Xᴿ
@@ -440,7 +459,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  conceal⊑² : ∀ {Δ′} {W′ : World Δᴸ Δᴿ Δ′}
+  conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
     → RebaseAt W′ W Xᴸ Xᴿ
@@ -451,8 +470,8 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
 
-  reveal⊑reveal² : ∀ {Δᵖ}
-      {Wᵖ : World Δᴸ Δᴿ Δᵖ} {γᵖ : CtxImp Wᵖ}
+  reveal⊑reveal² : ∀
+      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
@@ -465,8 +484,8 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -------------------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
 
-  conceal⊑conceal² : ∀ {Δᵖ}
-      {Wᵖ : World Δᴸ Δᴿ Δᵖ} {γᵖ : CtxImp Wᵖ}
+  conceal⊑conceal² : ∀
+      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
@@ -564,43 +583,31 @@ example12-target-Z∋ :
   example12-target-store ∋ Fin.suc (Fin.suc Fin.zero) ⦂ ★
 example12-target-Z∋ = S-bind∋ (S-bind∋ (Z∋ refl) refl) refl
 
-example12-Z-leads-star :
-  LeadsTo example12-target-store (＇ (Fin.suc (Fin.suc Fin.zero))) ★
-example12-Z-leads-star = leads-var example12-target-Z∋ leads-here
-
 example12-X-representation : StoreRepImp example12-world-X Fin.zero Fin.zero
-example12-X-representation =
-  store-rep-imp (‵ `ℕ) (‵ `ℕ)
-    (var-leads example12-source-X∋ leads-here)
-    (var-leads example12-target-X∋ leads-here)
-    ι⊑ι
+example12-X-representation = store-rep-imp ι⊑ι
 
 example12-Z-representation :
   StoreRepImp example12-world-Z Fin.zero (Fin.suc (Fin.suc Fin.zero))
-example12-Z-representation =
-  store-rep-imp (‵ `ℕ) ★
-    (var-leads example12-source-X∋ leads-here)
-    (var-leads example12-target-Z∋ leads-here)
-    ι⊑★
+example12-Z-representation = store-rep-imp ι⊑★
 
 example12-Y-representation :
   StoreRepImp example12-world-Y Fin.zero (Fin.suc Fin.zero)
-example12-Y-representation =
-  store-rep-imp (‵ `ℕ) ★
-    (var-leads example12-source-X∋ leads-here)
-    (var-leads example12-target-Y∋ example12-Z-leads-star)
-    ι⊑★
+example12-Y-representation = store-rep-imp ι⊑★
 
 example12-rebase-X-to-Z :
   RebaseAt example12-world-X example12-world-Z
     Fin.zero (Fin.suc (Fin.suc Fin.zero))
 example12-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl) refl example12-Z-representation
+  rebase-at (same-runtime refl refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    refl example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) refl example12-Y-representation
+  rebase-at (same-runtime refl refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    refl example12-Y-representation
 
 example12-outer-function :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -710,34 +717,21 @@ example12-nat-chain-target-X∋ :
   example12-nat-chain-target-store ∋ Fin.suc Fin.zero ⦂ ‵ `ℕ
 example12-nat-chain-target-X∋ = S-bind∋ (Z∋ refl) refl
 
-example12-nat-chain-target-X⇝ℕ :
-  LeadsTo example12-nat-chain-target-store (＇ (Fin.suc Fin.zero)) (‵ `ℕ)
-example12-nat-chain-target-X⇝ℕ =
-  leads-var example12-nat-chain-target-X∋ leads-here
-
 example12-nat-chain-X-representation :
   StoreRepImp example12-nat-chain-world-X Fin.zero (Fin.suc Fin.zero)
-example12-nat-chain-X-representation =
-  store-rep-imp (‵ `ℕ) (‵ `ℕ)
-    (var-leads example12-nat-chain-source-X∋ leads-here)
-    (var-leads example12-nat-chain-target-X∋ leads-here)
-    ι⊑ι
+example12-nat-chain-X-representation = store-rep-imp ι⊑ι
 
 example12-nat-chain-Y-representation :
   StoreRepImp example12-nat-chain-world-Y Fin.zero Fin.zero
-example12-nat-chain-Y-representation =
-  store-rep-imp (‵ `ℕ) (‵ `ℕ)
-    (var-leads example12-nat-chain-source-X∋ leads-here)
-    (var-leads example12-nat-chain-target-Y∋
-      example12-nat-chain-target-X⇝ℕ)
-    ι⊑ι
+example12-nat-chain-Y-representation = store-rep-imp ι⊑ι
 
 example12-nat-chain-rebase-X-to-Y :
   RebaseAt example12-nat-chain-world-X example12-nat-chain-world-Y
     Fin.zero Fin.zero
 example12-nat-chain-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) refl
-    example12-nat-chain-Y-representation
+  rebase-at (same-runtime refl refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    refl example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left
@@ -831,53 +825,31 @@ example12-left-path-target-U∋ :
   example12-left-path-target-store ∋ Fin.zero ⦂ ★
 example12-left-path-target-U∋ = Z∋ refl
 
-example12-left-path-source-Z⇝★ :
-  LeadsTo example12-left-path-source-store
-    (＇ (Fin.suc (Fin.suc Fin.zero))) ★
-example12-left-path-source-Z⇝★ =
-  leads-var example12-left-path-source-Z∋ leads-here
-
-example12-left-path-source-Y⇝★ :
-  LeadsTo example12-left-path-source-store (＇ (Fin.suc Fin.zero)) ★
-example12-left-path-source-Y⇝★ =
-  leads-var example12-left-path-source-Y∋ example12-left-path-source-Z⇝★
-
 example12-left-path-X-representation :
   StoreRepImp example12-left-path-world-X Fin.zero Fin.zero
-example12-left-path-X-representation =
-  store-rep-imp (‵ `ℕ) ★
-    (var-leads example12-left-path-source-X∋ leads-here)
-    (var-leads example12-left-path-target-U∋ leads-here)
-    ι⊑★
+example12-left-path-X-representation = store-rep-imp ι⊑★
 
 example12-left-path-Z-representation :
   StoreRepImp example12-left-path-world-Z
     (Fin.suc (Fin.suc Fin.zero)) Fin.zero
-example12-left-path-Z-representation =
-  store-rep-imp ★ ★
-    (var-leads example12-left-path-source-Z∋ leads-here)
-    (var-leads example12-left-path-target-U∋ leads-here)
-    ★⊑★
+example12-left-path-Z-representation = store-rep-imp ★⊑★
 
 example12-left-path-Y-representation :
   StoreRepImp example12-left-path-world-Y (Fin.suc Fin.zero) Fin.zero
-example12-left-path-Y-representation =
-  store-rep-imp ★ ★
-    (var-leads example12-left-path-source-Y∋
-      example12-left-path-source-Z⇝★)
-    (var-leads example12-left-path-target-U∋ leads-here)
-    ★⊑★
+example12-left-path-Y-representation = store-rep-imp ★⊑★
 
 example12-left-path-rebase-X-to-Z :
   RebaseAt example12-left-path-world-X example12-left-path-world-Z
     (Fin.suc (Fin.suc Fin.zero)) Fin.zero
 example12-left-path-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl) refl
-    example12-left-path-Z-representation
+  rebase-at (same-runtime refl refl)
+    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
+    refl example12-left-path-Z-representation
 
 example12-left-path-rebase-X-to-Y :
   RebaseAt example12-left-path-world-X example12-left-path-world-Y
     (Fin.suc Fin.zero) Fin.zero
 example12-left-path-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl) refl
-    example12-left-path-Y-representation
+  rebase-at (same-runtime refl refl)
+    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
+    refl example12-left-path-Y-representation

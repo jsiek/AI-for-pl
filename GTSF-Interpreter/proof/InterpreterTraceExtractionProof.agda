@@ -14,11 +14,11 @@ open import Data.Product using (_,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality using (subst; sym; trans)
 
 open import Coercions using (Coercion)
-import DoubleInterpreter as Double
-import DoubleInterpreterCatchUp as DoubleProof
+import DGG.DoubleInterpreter as Double
+import DGG.DoubleInterpreterCatchUp as DoubleProof
 open import Interpreter
-open import InterpreterFuel
-open import InterpreterOutcome
+open import Core.InterpreterFuel
+open import Core.InterpreterOutcome
 open import NuTerms using (Term)
 open import Types
 

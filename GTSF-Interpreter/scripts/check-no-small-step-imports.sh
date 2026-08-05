@@ -9,7 +9,7 @@ set -eu
 root_module=$1
 shift
 
-graph_file=$(mktemp "./gtsf-interpreter-deps.XXXXXX.dot")
+graph_file=$(mktemp "./gtsf-interpreter-deps.XXXXXX")
 trap 'rm -f "$graph_file"' EXIT HUP INT TERM
 
 "$@" --dependency-graph="$graph_file" "$root_module"

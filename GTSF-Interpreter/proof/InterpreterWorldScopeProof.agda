@@ -6,7 +6,7 @@ module proof.InterpreterWorldScopeProof where
 --   * Keeps scope recursion separate from correspondence algebra.
 
 open import Interpreter
-open import InterpreterWorldNarrowing
+open import Narrowing.InterpreterWorldNarrowing
 import proof.InterpreterWorldNarrowingProof as WorldProof
 open import Types
 
@@ -44,6 +44,10 @@ module WorldScopeProof
   type-environment-left-scoped (X~X′ ∷⊑∷ᵗᵉ θ~θ′) =
     type-name-left-scoped X~X′ ∷-scoped
       type-environment-left-scoped θ~θ′
+  type-environment-left-scoped (X-ok ∷ˡ⊑ᵗᵉ θ~θ′) =
+    X-ok ∷-scoped type-environment-left-scoped θ~θ′
+  type-environment-left-scoped (X′-ok ∷ʳ⊑ᵗᵉ θ~θ′) =
+    type-environment-left-scoped θ~θ′
 
   type-environment-right-scoped :
     ∀ {W W′ θ θ′} {R : WorldRelation W W′} →
@@ -54,6 +58,10 @@ module WorldScopeProof
   type-environment-right-scoped (X~X′ ∷⊑∷ᵗᵉ θ~θ′) =
     type-name-right-scoped X~X′ ∷-scoped
       type-environment-right-scoped θ~θ′
+  type-environment-right-scoped (X-ok ∷ˡ⊑ᵗᵉ θ~θ′) =
+    type-environment-right-scoped θ~θ′
+  type-environment-right-scoped (X′-ok ∷ʳ⊑ᵗᵉ θ~θ′) =
+    X′-ok ∷-scoped type-environment-right-scoped θ~θ′
 
   type-environment-left-scope-weaken :
     ∀ {W W′ U U′ θ}

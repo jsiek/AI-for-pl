@@ -1,7 +1,10 @@
 module InterpreterAll where
 
 -- File Charter:
---   * Aggregate check for the direct interpreter design.
+--   * EXPERIMENTAL mixed aggregate for the direct interpreter design.
+--   * The active type-soundness surface is
+--     `Milestones.InterpreterMilestoneFour`; this
+--     larger aggregate includes the O34/O35-blocked DGG draft.
 --   * Imports the executable semantics, observations, examples, and four
 --     DGG statements in both observation-based and direct-equation forms.
 --   * Checks the structural, catch-up-based double-headed interpreter draft.
@@ -11,12 +14,14 @@ module InterpreterAll where
 --   * Checks interpreter-source narrowing and direct compiler monotonicity.
 
 import Interpreter
-import InterpreterObservations
-import InterpreterExamples
-import InterpreterDynamicGradualGuarantee
-import InterpreterDynamicGradualGuaranteeDirect
-import DoubleInterpreter
-import DoubleInterpreterCatchUp
-import InterpreterMilestoneOne
-import InterpreterMilestoneTwo
-import InterpreterMilestoneThree
+import Core.InterpreterObservations
+import Examples.InterpreterExamples
+import DGG.InterpreterDynamicGradualGuarantee
+import DGG.InterpreterDynamicGradualGuaranteeDirect
+import DGG.DoubleInterpreter
+import DGG.DoubleInterpreterCatchUp
+import Milestones.InterpreterMilestoneOne
+import Milestones.InterpreterMilestoneTwo
+import Milestones.InterpreterMilestoneThree
+import Milestones.InterpreterMilestoneFour
+import Milestones.InterpreterMilestoneFiveFoundation

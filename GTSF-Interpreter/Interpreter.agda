@@ -14,6 +14,7 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _+_; _⊔_; _≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Binary.PropositionalEquality using (_≢_; sym; trans)
 
 open import Coercions
   using (Coercion; Inert)
@@ -55,12 +56,20 @@ StepIndex : Set
 StepIndex = ℕ
 
 -- `Name` ranges over the abstract variables bound by `ΛX`.
-data Name : Set where
-  type-name : ℕ → Name
+record Name : Set where
+  constructor type-name
+  field
+    type-name-index : ℕ
+
+open Name public
 
 -- `SealName` ranges over the fresh nominal names allocated by `ν`.
-data SealName : Set where
-  seal-name-id : ℕ → SealName
+record SealName : Set where
+  constructor seal-name-id
+  field
+    seal-name-index : ℕ
+
+open SealName public
 
 data TypeName : Set where
   abstract-name : Name → TypeName
@@ -82,6 +91,63 @@ seal-name-id α ≟SealName seal-name-id β | no α≢β =
 
 TypeEnvironment : Set
 TypeEnvironment = List TypeName
+
+-- Environments used by active interpreter calls contain allocated seals only.
+-- Abstract names occur transiently while a `Λ` value is being closed; its
+-- body is not interpreted until instantiation replaces that name by a seal.
+data RuntimeTypeEnvironment : TypeEnvironment → Set where
+  runtime-type-empty :
+    RuntimeTypeEnvironment []
+
+  runtime-type-seal :
+    ∀ {α θ} →
+    RuntimeTypeEnvironment θ →
+    RuntimeTypeEnvironment (seal-name α ∷ θ)
+
+lookup : ∀ {A : Set} → List A → ℕ → Maybe A
+lookup [] x = nothing
+lookup (a ∷ as) zero = just a
+lookup (a ∷ as) (suc x) = lookup as x
+
+-- A source type variable denotes a runtime ground type only when its current
+-- environment entry is an allocated seal.  In particular, an abstract `X`
+-- introduced while closing a `Λ` is deliberately not runtime-ground.
+data RuntimeGround (θ : TypeEnvironment) : Ty → Set where
+  seal-variable-ground :
+    ∀ {X α} →
+    lookup θ X ≡ just (seal-name α) →
+    RuntimeGround θ (＇ X)
+
+  base-ground :
+    ∀ ι →
+    RuntimeGround θ (‵ ι)
+
+  function-ground :
+    RuntimeGround θ (★ ⇒ ★)
+
+runtime-ground-syntax :
+  ∀ {θ G} →
+  RuntimeGround θ G →
+  Ground G
+runtime-ground-syntax (seal-variable-ground name-eq) = ＇ _
+runtime-ground-syntax (base-ground ι) = ‵ ι
+runtime-ground-syntax function-ground = ★⇒★
+
+just-injective :
+  ∀ {A : Set} {x y : A} →
+  just x ≡ just y →
+  x ≡ y
+just-injective refl = refl
+
+abstract-name≢seal-name :
+  ∀ {X α} →
+  abstract-name X ≢ seal-name α
+abstract-name≢seal-name ()
+
+nothing≢just :
+  ∀ {A : Set} {x : A} →
+  nothing ≢ just x
+nothing≢just ()
 
 data Tag : Set where
   variable-tag : TypeName → Tag
@@ -139,26 +205,30 @@ data Value : Set where
 Environment : Set
 Environment = List Value
 
-lookup : ∀ {A : Set} → List A → ℕ → Maybe A
-lookup [] x = nothing
-lookup (a ∷ as) zero = just a
-lookup (a ∷ as) (suc x) = lookup as x
-
 ------------------------------------------------------------------------
 -- Syntax-directed construction of the official value forms
 ------------------------------------------------------------------------
 
-ground? : (G : Ty) → Dec (Ground G)
-ground? (＇ X) = yes (＇ X)
-ground? (‵ ι) = yes (‵ ι)
-ground? ★ = no (λ ())
-ground? (A ⇒ B) with A ≟Ty ★ | B ≟Ty ★
-ground? (A ⇒ B) | yes refl | yes refl = yes ★⇒★
-ground? (A ⇒ B) | no A≢★ | B≟★ =
-  no (λ { ★⇒★ → A≢★ refl })
-ground? (A ⇒ B) | yes refl | no B≢★ =
-  no (λ { ★⇒★ → B≢★ refl })
-ground? (`∀ A) = no (λ ())
+ground? : (θ : TypeEnvironment) → (G : Ty) → Dec (RuntimeGround θ G)
+ground? θ (＇ X) with lookup θ X in name-eq
+ground? θ (＇ X) | just (seal-name α) =
+  yes (seal-variable-ground name-eq)
+ground? θ (＇ X) | just (abstract-name Y) =
+  no (λ { (seal-variable-ground seal-eq) →
+    abstract-name≢seal-name
+      (just-injective (trans (sym name-eq) seal-eq)) })
+ground? θ (＇ X) | nothing =
+  no (λ { (seal-variable-ground seal-eq) →
+    nothing≢just (trans (sym name-eq) seal-eq) })
+ground? θ (‵ ι) = yes (base-ground ι)
+ground? θ ★ = no (λ ())
+ground? θ (A ⇒ B) with A ≟Ty ★ | B ≟Ty ★
+ground? θ (A ⇒ B) | yes refl | yes refl = yes function-ground
+ground? θ (A ⇒ B) | no A≢★ | B≟★ =
+  no (λ { function-ground → A≢★ refl })
+ground? θ (A ⇒ B) | yes refl | no B≢★ =
+  no (λ { function-ground → B≢★ refl })
+ground? θ (`∀ A) = no (λ ())
 
 inert? : (c : Coercion) → Dec (Inert c)
 inert? (idᶜ A) = no (λ ())
@@ -198,67 +268,82 @@ nextAbstractIndex [] = zero
 nextAbstractIndex (abstract-name (type-name X) ∷ θ) =
   suc X ⊔ nextAbstractIndex θ
 nextAbstractIndex (seal-name α ∷ θ) =
-  nextAbstractIndex θ
+  suc (nextAbstractIndex θ)
 
 nextAbstractName : TypeEnvironment → Name
 nextAbstractName θ =
   type-name (nextAbstractIndex θ)
 
-closeValue :
-  ∀ {V} →
-  SyntacticValue V →
-  Environment →
-  TypeEnvironment →
-  Maybe Value
-closeValue (ƛᴵ N) γ θ =
-  just (closure N γ θ)
-closeValue (Λᴵ vV) γ θ
-    with closeValue vV γ (abstract-name X ∷ θ)
-  where
-  X : Name
-  X = nextAbstractName θ
-closeValue (Λᴵ vV) γ θ | just V =
-  just (type-abstraction (nextAbstractName θ) V)
-closeValue (Λᴵ vV) γ θ | nothing =
-  nothing
-closeValue ($ᴵ κ) γ θ =
-  just (constant κ)
-closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ
-    with ground? G | closeValue vV γ θ
-closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | yes gG | just V =
-  just (tagged gG θ V)
-closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | yes gG | nothing =
-  nothing
-closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | no ¬gG | result =
-  nothing
-closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
-    with lookup θ X | closeValue vV γ θ
-closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
-    | just (seal-name α) | just V =
-  just (sealed α V)
-closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
-    | just (seal-name α) | nothing =
-  nothing
-closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
-    | just (abstract-name Y) | result =
-  nothing
-closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ | nothing | result =
-  nothing
-closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ with closeValue vV γ θ
-closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ | just V =
-  just (function-proxy p q θ V)
-closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ | nothing =
-  nothing
-closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ with closeValue vV γ θ
-closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ | just V =
-  just (forall-proxy c θ V)
-closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ | nothing =
-  nothing
-closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ with closeValue vV γ θ
-closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ | just V =
-  just (generalized A c θ V)
-closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ | nothing =
-  nothing
+mutual
+
+  closeValue :
+    ∀ {V} →
+    SyntacticValue V →
+    Environment →
+    TypeEnvironment →
+    Maybe Value
+  closeValue (ƛᴵ N) γ θ =
+    just (closure N γ θ)
+  closeValue (Λᴵ vV) γ θ =
+    closeTypeAbstractionBody vV γ θ
+  closeValue ($ᴵ κ) γ θ =
+    just (constant κ)
+  closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ
+      with ground? θ G | closeValue vV γ θ
+  closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | yes runtime-ground | just V =
+    just (tagged (runtime-ground-syntax runtime-ground) θ V)
+  closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | yes runtime-ground | nothing =
+    nothing
+  closeValue (vV ⟨ᴵ G !ᶜ ⟩) γ θ | no not-runtime-ground | result =
+    nothing
+  closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
+      with lookup θ X | closeValue vV γ θ
+  closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
+      | just (seal-name α) | just V =
+    just (sealed α V)
+  closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
+      | just (seal-name α) | nothing =
+    nothing
+  closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ
+      | just (abstract-name Y) | result =
+    nothing
+  closeValue (vV ⟨ᴵ sealᶜ A X ⟩) γ θ | nothing | result =
+    nothing
+  closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ with closeValue vV γ θ
+  closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ | just V =
+    just (function-proxy p q θ V)
+  closeValue (vV ⟨ᴵ p ↦ᶜ q ⟩) γ θ | nothing =
+    nothing
+  closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ with closeValue vV γ θ
+  closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ | just V =
+    just (forall-proxy c θ V)
+  closeValue (vV ⟨ᴵ ∀ᶜ c ⟩) γ θ | nothing =
+    nothing
+  closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ with closeValue vV γ θ
+  closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ | just V =
+    just (generalized A c θ V)
+  closeValue (vV ⟨ᴵ genᶜ A c ⟩) γ θ | nothing =
+    nothing
+
+  -- Process a chain of syntactic type abstractions structurally. Each call
+  -- introduces the abstract name for the current binder; `closeValue` stops
+  -- the chain at the first non-`Λᴵ` value, and the calls then rebuild the
+  -- composed semantic `type-abstraction` value while returning.
+  closeTypeAbstractionBody :
+    ∀ {V} →
+    SyntacticValue V →
+    Environment →
+    TypeEnvironment →
+    Maybe Value
+  closeTypeAbstractionBody vV γ θ
+      with closeValue vV γ (abstract-name X ∷ θ)
+    where
+    X : Name
+    X = nextAbstractName θ
+  closeTypeAbstractionBody vV γ θ | just V =
+    just (type-abstraction (nextAbstractName θ) V)
+  closeTypeAbstractionBody vV γ θ | nothing =
+    nothing
 
 replaceName :
   Name →
@@ -457,6 +542,10 @@ mutual
     blamed W₁
   interpret W γ θ (L ·ᴵ M) (suc n) | failed W₁ e =
     failed W₁ e
+  -- `W₁` threads globally fresh seal names and their representations.
+  -- The term and type environments remain lexical: seals allocated while
+  -- evaluating `L` are available through the returned value `V`, whose
+  -- closures and proxies capture them, but they are not free bindings of `M`.
   interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
       with interpret W₁ γ θ M n
   interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
@@ -476,7 +565,7 @@ mutual
   interpret W γ θ (Λᴵ V) (suc n) | no ¬vV =
     failed W expected-value-under-type-abstraction
   interpret W γ θ (Λᴵ V) (suc n) | yes vV
-      with closeValue (Λᴵ vV) γ θ
+      with closeTypeAbstractionBody vV γ θ
   interpret W γ θ (Λᴵ V) (suc n) | yes vV | just U =
     returned W U
   interpret W γ θ (Λᴵ V) (suc n) | yes vV | nothing =
@@ -678,58 +767,59 @@ mutual
   coerceValue W θ (∀ᶜ c) V (suc n) =
     returned W (forall-proxy c θ V)
 
-  coerceValue W θ (G !ᶜ) V (suc n) with ground? G
-  coerceValue W θ (G !ᶜ) V (suc n) | no ¬gG =
+  coerceValue W θ (G !ᶜ) V (suc n) with ground? θ G
+  coerceValue W θ (G !ᶜ) V (suc n) | no not-runtime-ground =
     failed W (invalid-ground-tag G)
-  coerceValue W θ (G !ᶜ) V (suc n) | yes gG
-      with tagOf θ gG
-  coerceValue W θ (G !ᶜ) V (suc n) | yes gG | just tag =
-    returned W (tagged gG θ V)
-  coerceValue W θ (G !ᶜ) V (suc n) | yes gG | nothing =
+  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground
+      with tagOf θ (runtime-ground-syntax runtime-ground)
+  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground | just tag =
+    returned W (tagged (runtime-ground-syntax runtime-ground) θ V)
+  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground | nothing =
     failed W (invalid-ground-tag G)
 
-  coerceValue W θ (G ？ᶜ) V (suc n) with ground? G
-  coerceValue W θ (G ？ᶜ) V (suc n) | no ¬gG =
+  coerceValue W θ (G ？ᶜ) V (suc n) with ground? θ G
+  coerceValue W θ (G ？ᶜ) V (suc n) | no not-runtime-ground =
     failed W (invalid-ground-tag G)
-  coerceValue W θ (G ？ᶜ) V (suc n) | yes gG
-      with tagOf θ gG
-  coerceValue W θ (G ？ᶜ) V (suc n) | yes gG | nothing =
+  coerceValue W θ (G ？ᶜ) V (suc n) | yes runtime-ground
+      with tagOf θ (runtime-ground-syntax runtime-ground)
+  coerceValue W θ (G ？ᶜ) V (suc n) | yes runtime-ground | nothing =
     failed W (invalid-ground-tag G)
   coerceValue W θ (G ？ᶜ) (tagged {G = H} gH θ′ V) (suc n)
-      | yes gG | just expected
+      | yes runtime-ground | just expected
       with tagOf θ′ gH
   coerceValue W θ (G ？ᶜ) (tagged {G = H} gH θ′ V) (suc n)
-      | yes gG | just expected | nothing =
+      | yes runtime-ground | just expected | nothing =
     failed W (invalid-ground-tag H)
   coerceValue W θ (G ？ᶜ) (tagged {G = H} gH θ′ V) (suc n)
-      | yes gG | just expected | just actual
+      | yes runtime-ground | just expected | just actual
       with expected ≟Tag actual
   coerceValue W θ (G ？ᶜ) (tagged {G = H} gH θ′ V) (suc n)
-      | yes gG | just expected | just actual | yes refl =
+      | yes runtime-ground | just expected | just actual | yes refl =
     returned W V
   coerceValue W θ (G ？ᶜ) (tagged {G = H} gH θ′ V) (suc n)
-      | yes gG | just expected | just actual | no expected≢actual =
+      | yes runtime-ground | just expected | just actual
+      | no expected≢actual =
     blamed W
   coerceValue W θ (G ？ᶜ) (closure N γ θ′) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (type-abstraction X V) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (constant κ) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (sealed α V) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (function-proxy p q θ′ V) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (forall-proxy c θ′ V) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
   coerceValue W θ (G ？ᶜ) (generalized A c θ′ V) (suc n)
-      | yes gG | just expected =
+      | yes runtime-ground | just expected =
     failed W expected-tagged-value
 
   coerceValue W θ (sealᶜ A X) V (suc n) with lookup θ X

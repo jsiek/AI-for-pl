@@ -10,9 +10,9 @@ module proof.InterpreterTermNarrowingProof where
 open import Data.Nat using (zero; suc)
 open import Data.Empty using (⊥)
 
-open import InterpreterCoercionNarrowing
-open import InterpreterTermNarrowingCore
-open import InterpreterWorldNarrowing
+open import Narrowing.InterpreterCoercionNarrowing
+open import Narrowing.InterpreterTermNarrowingCore
+open import Narrowing.InterpreterWorldNarrowing
 import NuTermImprecision as NTI
 import NuTerms as N
 import QuotientedTermImprecision as QTI
@@ -191,8 +191,8 @@ open-interpreter-narrowing-world-weaken :
   OpenInterpreterTermNarrowing
     S Φ Δᴸ Δᴿ ρ γ N N′ A B p
 open-interpreter-narrowing-world-weaken R≤S
-    (open-interpreter-narrowing N-ok N′-ok N~N′) =
-  open-interpreter-narrowing N-ok N′-ok N~N′
+    (open-interpreter-narrowing alignment) =
+  open-interpreter-narrowing alignment
 
 open-interpreter-narrowing-source-typing :
   ∀ {W W′ Φ Δᴸ Δᴿ ρ γ N N′ A B p}

@@ -28,7 +28,7 @@ open import Coercions
     ; inst to instᶜ
     )
 open import Interpreter
-open import InterpreterOutcome
+open import Core.InterpreterOutcome
 open import NuTerms
   using (Term)
   renaming
@@ -464,15 +464,15 @@ mutual
 
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G !ᶜ} {V} terminal eq k
-      with ground? G
+      with ground? θ G
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G !ᶜ} {V} terminal eq k
       | no ¬gG =
     eq
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G !ᶜ} {V} terminal eq k
-      | yes gG
-      with tagOf θ gG
+      | yes runtime-ground
+      with tagOf θ (runtime-ground-syntax runtime-ground)
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G !ᶜ} {V} terminal eq k
       | yes gG | just tag =
@@ -484,15 +484,15 @@ mutual
 
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G ？ᶜ} {V} terminal eq k
-      with ground? G
+      with ground? θ G
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G ？ᶜ} {V} terminal eq k
       | no ¬gG =
     eq
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G ？ᶜ} {V} terminal eq k
-      | yes gG
-      with tagOf θ gG
+      | yes runtime-ground
+      with tagOf θ (runtime-ground-syntax runtime-ground)
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G ？ᶜ} {V} terminal eq k
       | yes gG | nothing =

@@ -4,6 +4,7 @@ import Types
 import TyStore
 import TermCtx
 import Consistency
+import Consistency2
 import ConsistencyExamples
 import Conversion
 import Imprecision
@@ -20,6 +21,7 @@ import proof.TypeSafety.Preservation
 import proof.ImprecisionConsistency
 import proof.Imprecision
 import proof.Consistency
+import proof.Consistency2
 import proof.Reduction
 import proof.DGG.CastTermImprecision
 import proof.DGG.CompilePreservesImprecision

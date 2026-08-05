@@ -13,6 +13,9 @@ and [`Reduction.agda`](Reduction.agda).
 - [Instantiation closes consistency at star](#instantiation-closes)
 - [One-sided administrative wrappers in cast-term
   imprecision](#cast-term-imprecision-wrappers)
+- [Version-2 representation-directed wrappers](#cast-term-imprecision-v2)
+- [Identity reveals in version-2 cast-term
+  imprecision](#identity-reveals-v2)
 - [Example 12 store alignment and right-only
   variables](#example12-store-alignment)
 - [Generalization uses fresh-name tags](#generalization-tags)
@@ -204,6 +207,153 @@ target rules makes the cast-term imprecision relation closed under the
 administrative conversion wrappers that type-application reductions can
 produce on the target.
 
+<a id="cast-term-imprecision-v2"></a>
+## Version-2 representation-directed wrappers
+
+The version-2 relation in
+[`proof/DGG/CastTermImprecision2.agda`](proof/DGG/CastTermImprecision2.agda)
+keeps reveal and conceal wrappers syntax directed. The one-sided rules are
+
+```agda
+⊑reveal²
+⊑conceal²
+reveal⊑²
+conceal⊑²
+```
+
+and the paired rules are
+
+```agda
+reveal⊑reveal²
+conceal⊑conceal²
+```
+
+All six rules are representation directed: each rule carries a `RebaseAt`
+premise and indexed conversion typing evidence such as `Σ ⊢↑[ X ] c` or
+`Σ ⊢↓[ X ] c`. This records which abstract variable the conversion is
+about and which source/target store representations are being compared.
+
+Reveal and conceal use opposite `RebaseAt` directions. A reveal checks the
+premise in the pre-reveal world and produces the result in the post-reveal
+world, so its rebasing premise has the same direction as the one-sided
+reveal rules. A conceal wraps a term after the represented value has already
+been checked, so its rebasing premise points from the premise world to the
+concealed-result world.
+
+The paired rules subsume the old same-world paired reveal/conceal rules by
+using `sameWorldRebaseAt`. Keeping only the rebased versions avoids a
+non-syntax-directed choice between ordinary and rebased wrapper rules.
+
+The relation deliberately does not include an application-specific split
+rule. In the left-representation-path example, the tempting application
+comparison is
+
+```text
+((λ y. y) ↑ reveal Y) · (((7 ↓ seal X) ⟨ X! ⟩) ↓ seal Z)
+  ⊑
+((λ y. y) ↑ reveal Y′) · ((7 ⟨ ℕ! ⟩) ↓ seal Z′)
+```
+
+The function premise naturally lives in the `Y/Z` alignment, while the
+inner argument before the outer `Z` seal naturally lives in the `X/Z`
+alignment. Rather than split application, the proof rebases at the `Z`
+conceal boundary:
+
+```text
+((7 ↓ seal X) ⟨ X! ⟩)
+  ⊑
+(7 ⟨ ℕ! ⟩)
+
+↓ conceal Z / Z′ with RebaseAt XZ YZ Z Z′
+
+(((7 ↓ seal X) ⟨ X! ⟩) ↓ seal Z)
+  ⊑
+((7 ⟨ ℕ! ⟩) ↓ seal Z′)
+```
+
+After that boundary step, both the function and argument premises are in
+the `Y/Z` alignment and ordinary application imprecision applies.
+
+<a id="identity-reveals-v2"></a>
+## Identity reveals in version-2 cast-term imprecision
+
+The version-2 prototype relation in
+[`proof/DGG/CastTermImprecision2.agda`](proof/DGG/CastTermImprecision2.agda)
+includes a narrow target-only identity-reveal rule:
+
+```agda
+⊑id-reveal²
+```
+
+This rule was added for the `β-reveal-∀` / `β-Λ` example in
+[`proof/DGG/Examples2.agda`](proof/DGG/Examples2.agda). The target starts
+with an administrative universal reveal:
+
+```agda
+Ex.polyId ↑ `∀↑ (id↑ Ex.X⇒X)
+```
+
+Semantically, this reveal is an identity conversion. It should be
+admissible to relate a term to the same target term wrapped by such an
+identity reveal:
+
+```text
+M  ⊑  M′
+        |
+        | add administrative target identity reveal
+        v
+M  ⊑  M′ ↑ id
+```
+
+However, this admissibility is not derivable from the other version-2
+constructors as currently written. The only general target-only reveal rule
+is representation-directed:
+
+```agda
+⊑reveal²
+```
+
+It requires a `RebaseAt W W′ Xᴸ Xᴿ` premise and an indexed conversion
+typing premise for the converted target variable `Xᴿ`. That is appropriate
+for real `seal`/`unseal` boundaries, where the proof must say which
+abstract type variable is being revealed and which store representation is
+being chased.
+
+For an identity reveal at an empty target store, there is no such variable.
+The first nat-chain comparison needs to relate
+
+```agda
+Ex.polyId
+  ⊑ Ex.polyId ↑ `∀↑ (id↑ Ex.X⇒X)
+```
+
+at target type context size `0`. There is no `Xᴿ : TyVar 0`, so the
+`RebaseAt`-based reveal rule cannot even be instantiated. Using a rebase
+premise for this case would also be conceptually misleading: there is no
+store representation path to chase.
+
+The prototype therefore separates identity reveals from representation
+reveals with a small syntactic predicate:
+
+```agda
+IdentityReveal (id↑ A)
+IdentityReveal c
+  → IdentityReveal (`∀↑ c)
+```
+
+and the corresponding rule `⊑id-reveal²`. This is intended as an
+admissible closure principle for identity-shaped upward conversions, not as
+a semantic rebase rule. It does not cover arbitrary one-sided reveals and it
+does not introduce any new representation alignment.
+
+A cleaner final design would prove this as an admissibility lemma and then
+remove `⊑id-reveal²` as a primitive constructor. That proof would need some
+separate support for identity conversion irrelevance, normalization of
+identity-shaped conversions, or equality of cast terms modulo identity
+reveals. Until that proof infrastructure exists, the explicit rule records
+the intended admissible step locally and keeps real store-dependent reveals
+under the `RebaseAt` machinery.
+
 <a id="example12-store-alignment"></a>
 ## Example 12 store alignment and right-only variables
 
@@ -383,9 +533,11 @@ The indexed renamings cannot solve this by choosing a different injection.
 The left side has only one type variable, and the outer reveal already needs
 that variable to map to central `X`. The same injective renaming cannot also
 map it to central `Y` or `Z`. Thus Example 12 shows that the store alignment
-itself can be expressed with the current two-renaming setup, but the current
-term-imprecision rules do not explain the extra right-only conversion layers
-that pass through distinct right-only variables.
+itself can be expressed with the current two-renaming setup, but the
+conversion-wrapper rules need local rebasing. The version-2 rules handle the
+extra right-only conversion layers by rebasing at the reveal/conceal
+boundary for the converted variable and chasing its store representation
+with the `LeadsTo` machinery.
 
 <a id="generalization-tags"></a>
 ## Generalization uses fresh-name tags

@@ -457,8 +457,13 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -------------------------------------------------
     → W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ q
 
+  -- The NonVar and occurrence premises mirror the ∀⊑ type rule; the
+  -- extra-cast-right inversion needs them to refute the ∀⊑∀ and
+  -- bot-elim views of q.
   Λ⊑² : ∀ {γ′ V M A B}
       {p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B}
+    → NonVar A
+    → Fin.zero ∈ᵗ A
     → LiftCtxᴸ X⊑★ γ γ′
     → Value V
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B

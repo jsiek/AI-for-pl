@@ -120,7 +120,8 @@ probe-Λ-premise =
 probe-Λ⊑ :
   probe-world₀ ∣ [] ⊢² Λ (ƛ (` 0)) ⊑ ƛ (` 0) ∶ probe-∀⊑⇒★
 probe-Λ⊑ =
-  CTI2.Λ⊑² CTI2.liftᴸ-[] (ƛ (` 0)) probe-target-lambda-⊢
+  CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
+    CTI2.liftᴸ-[] (ƛ (` 0)) probe-target-lambda-⊢
     probe-Λ-premise probe-∀⊑⇒★
 
 probe-function₀ :

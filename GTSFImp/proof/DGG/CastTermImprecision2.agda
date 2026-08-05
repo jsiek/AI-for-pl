@@ -17,6 +17,12 @@ module proof.DGG.CastTermImprecision2 where
 --     built only from identity leaves has no pivot and its wrapper rule
 --     keeps the world fixed; only a conversion that seals or unseals an
 --     actual variable can rebase, and only at that variable.
+--   * Source-only structure needs no target counterpart: Λ⊑² lifts the
+--     world on the left only and compares the target term unweakened,
+--     and a rebase-onlyᴸ pivot handles a source variable with no
+--     aligned target variable, justified by the target seeing ★ there.
+--     There is no right-only mirror because type imprecision has no
+--     rule with a bare variable on the imprecise side.
 --   * Records the Example 12 alignments Xᴸ≅Xᴿ, Xᴸ≅Zᴿ, and Xᴸ≅Yᴿ as first-class
 --     store-representation witnesses.
 --   * Records a left-hand analogue of Example 12 where the source store, not
@@ -98,6 +104,20 @@ liftWorldBoth v W =
     (extendᵐ v (impEnvʷ W))
     (store-lift (sourceStoreʷ W))
     (store-lift (targetStoreʷ W))
+
+-- A universal binder on the source side only: the target context, its
+-- store, and its embedding stay fixed, so target terms and types cross
+-- the binder unweakened.
+
+liftWorldLeft : ∀ {Δᴸ Δᴿ Δ}
+  → VarImp
+  → World Δᴸ Δᴿ Δ
+  → World (Nat.suc Δᴸ) Δᴿ (Nat.suc Δ)
+liftWorldLeft v W =
+  world (keep (ηᴸʷ W)) (skip (ηᴿʷ W))
+    (extendᵐ v (impEnvʷ W))
+    (store-lift (sourceStoreʷ W))
+    (targetStoreʷ W)
 
 leftOnlyWorld : ∀ {Δᴸ Δᴿ Δ}
   → VarImp
@@ -198,6 +218,16 @@ data LiftCtx {Δᴸ Δᴿ Δ} (v : VarImp) {W : World Δᴸ Δᴿ Δ} :
     → LiftCtx v (ctx-imp A B p ∷ γ)
         (ctx-imp (⇑ᵗ A) (⇑ᵗ B) p′ ∷ γ′)
 
+data LiftCtxᴸ {Δᴸ Δᴿ Δ} (v : VarImp) {W : World Δᴸ Δᴿ Δ} :
+    CtxImp W → CtxImp (liftWorldLeft v W) → Set where
+  liftᴸ-[] : LiftCtxᴸ v [] []
+
+  liftᴸ-∷ : ∀ {γ γ′ A B p p′}
+    → LiftCtxᴸ v γ γ′
+      -------------------------------------------------------------
+    → LiftCtxᴸ v (ctx-imp A B p ∷ γ)
+        (ctx-imp (⇑ᵗ A) B p′ ∷ γ′)
+
 ------------------------------------------------------------------------
 -- Store representations and local rebasing
 ------------------------------------------------------------------------
@@ -275,6 +305,17 @@ data RebaseAtᴸ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ �
     → RebaseAt W W′ Xᴸ Xᴿ
       ---------------------------
     → RebaseAtᴸ W W′ (just Xᴸ)
+
+  -- A source pivot with no aligned target variable.  The target views
+  -- the pivot's center as dynamic, so its canonical representation
+  -- must sit below ★; there is no alignment to change, so the world
+  -- stays fixed.  Type imprecision has no rule with a bare variable on
+  -- the imprecise side, so RebaseAtᴿ needs no mirror constructor.
+  rebase-onlyᴸ : ∀ {W} {Xᴸ : TyVar Δᴸ}
+    → impEnvʷ W (toRenameᵗ (ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → resolveVar (sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
+      -------------------------
+    → RebaseAtᴸ W W (just Xᴸ)
 
 data RebaseAtᴿ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
     → Maybe (TyVar Δᴿ) → Set where
@@ -417,11 +458,11 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ q
 
   Λ⊑² : ∀ {γ′ V M A B}
-      {p : A ⊑ᵂ⟨ liftWorldBoth X⊑★ W ⟩ ⇑ᵗ B}
-    → LiftCtx X⊑★ γ γ′
+      {p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B}
+    → LiftCtxᴸ X⊑★ γ γ′
     → Value V
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
-    → liftWorldBoth X⊑★ W ∣ γ′ ⊢² V ⊑ ⇑ᵗᵐ M ∶ p
+    → liftWorldLeft X⊑★ W ∣ γ′ ⊢² V ⊑ M ∶ p
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
       -------------------------------------------
     → W ∣ γ ⊢² Λ V ⊑ M ∶ q

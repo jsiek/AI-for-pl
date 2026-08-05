@@ -4,19 +4,19 @@ module proof.DGG.LambdaImpProbe where
 --   * Probes the Λ⊑² rule with the smallest ∀ ⊑ non-∀ pair: the source
 --     instantiates a type abstraction at ℕ while the target is a
 --     monomorphic lambda at ★ ⇒ ★ and never allocates a type variable.
---   * Checkpoint 0 is the first use of Λ⊑² in the development, showing
---     the rule is derivable where intended.
---   * After the source's β-Λ step, no checkpoint exists at all: the
---     one-sided reveal rules demand a target pivot variable, and the
---     target type context is empty.  This is recorded as negative
---     theorems that hold for every world, not just one alignment.
---   * Separately, the Λ⊑² premise cannot serve as the induction
---     hypothesis for the missing checkpoint even once left-only pivots
---     exist: it weakens the target term with ⇑ᵗᵐ and lifts the target
---     store, so it lives at target type context 1 while the machine's
---     target store stays at context 0, and SameRuntime is homogeneous.
+--   * Checkpoint 0 exercises Λ⊑², whose premise compares the target
+--     term unweakened in a left-only lifted world.
+--   * After the source's β-Λ step the world evolves by leftOnlyWorld
+--     and the source-only reveal, conceal, and sealed argument are
+--     peeled with rebase-onlyᴸ pivots, which need no target variable.
+--     Checkpoints 1-4 complete the weak simulation to the final values.
+--   * An earlier revision of this probe proved the negative results
+--     that forced this design: with the ⇑ᵗᵐ-weakened Λ⊑² premise and
+--     only two-sided pivots, checkpoint 1 was impossible in any world.
+--     The two-sided impossibility is kept below as
+--     no-rebase-empty-target; the rest became derivable and was
+--     replaced by the positive checkpoints.
 
-open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_)
 import Data.Fin as Fin
 open import Data.Maybe using (just; nothing)
@@ -95,7 +95,7 @@ probe-target-reduction =
   probe-target₁ ∎[]
 
 ------------------------------------------------------------------------
--- Checkpoint 0: the first use of Λ⊑²
+-- Checkpoint 0: Λ⊑² with an unweakened target premise
 ------------------------------------------------------------------------
 
 probe-world₀ : CTI2.World 0 0 0
@@ -105,16 +105,12 @@ probe-∀⊑⇒★ : `∀ Ex.X⇒X ⊑ᵂ⟨ probe-world₀ ⟩ (★ ⇒ ★)
 probe-∀⊑⇒★ = Ex2.∀X⇒X⊑★⇒★² {W = probe-world₀}
 
 probe-body⊑ :
-  Ex.X⇒X ⊑ᵂ⟨ CTI2.liftWorldBoth X⊑★ probe-world₀ ⟩ ⇑ᵗ (★ ⇒ ★)
+  Ex.X⇒X ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ probe-world₀ ⟩ (★ ⇒ ★)
 probe-body⊑ = ⇒⊑⇒ (X⊑★ refl) (X⊑★ refl)
 
--- The Λ⊑² premise as the rule demands it: the target lambda is
--- weakened with ⇑ᵗᵐ into the extended target context, and the world
--- lifts both stores.
-
 probe-Λ-premise :
-  CTI2.liftWorldBoth X⊑★ probe-world₀ ∣ [] ⊢²
-    ƛ (` 0) ⊑ ⇑ᵗᵐ (ƛ (` 0)) ∶ probe-body⊑
+  CTI2.liftWorldLeft X⊑★ probe-world₀ ∣ [] ⊢²
+    ƛ (` 0) ⊑ ƛ (` 0) ∶ probe-body⊑
 probe-Λ-premise =
   CTI2.ƛ⊑ƛ²
     {A = ＇ Fin.zero} {A′ = ★}
@@ -124,7 +120,7 @@ probe-Λ-premise =
 probe-Λ⊑ :
   probe-world₀ ∣ [] ⊢² Λ (ƛ (` 0)) ⊑ ƛ (` 0) ∶ probe-∀⊑⇒★
 probe-Λ⊑ =
-  CTI2.Λ⊑² CTI2.lift-[] (ƛ (` 0)) probe-target-lambda-⊢
+  CTI2.Λ⊑² CTI2.liftᴸ-[] (ƛ (` 0)) probe-target-lambda-⊢
     probe-Λ-premise probe-∀⊑⇒★
 
 probe-function₀ :
@@ -145,72 +141,107 @@ probe-checkpoint₀ =
   CTI2.·⊑·² probe-function₀ Ex2.left-path-argument₀
 
 ------------------------------------------------------------------------
--- After β-Λ there is no checkpoint, in any world
+-- Two-sided pivots still need a target variable
 ------------------------------------------------------------------------
 
--- The source steps to
---   ((ƛ x) ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)) · 7
--- with source store Xᴸ ↦ ℕ, while the target's type context stays
--- empty.  Peeling the source-only reveal needs reveal⊑², whose
--- rebasing premise demands a target pivot: rebase-varᴸ wraps a
--- RebaseAt whose Xᴿ inhabits TyVar 0, and rebase-idᴸ demands the
--- conversion have no pivot, but seal/unseal pin the pivot to Xᴸ.
+-- With an empty target type context there is no pivot pair at all;
+-- this is the impossibility that motivates rebase-onlyᴸ.
 
 no-rebase-empty-target : ∀ {Δᴸ Δ} {W W′ : CTI2.World Δᴸ 0 Δ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar 0}
   → ¬ CTI2.RebaseAt W W′ Xᴸ Xᴿ
 no-rebase-empty-target {Xᴿ = ()} _
 
-probe-function₁-unrelatable : ∀ {Δc} {W : CTI2.World 1 0 Δc}
-    {γ : CTI2.CtxImp W} {A B} {q : A ⊑ᵂ⟨ W ⟩ B}
-  → ¬ (W ∣ γ ⊢²
-        (ƛ (` 0)) ↑ Ex2.example12-source-X-reveal ⊑ ƛ (` 0) ∶ q)
-probe-function₁-unrelatable
-  (CTI2.reveal⊑² CTI2.rebase-idᴸ _
-    (CTI2.⊢↑-⇒ˣ CTI2.join-none () _) _ _)
-probe-function₁-unrelatable
-  (CTI2.reveal⊑² (CTI2.rebase-varᴸ ra) _ _ _ _) =
-  ⊥-elim (no-rebase-empty-target ra)
+------------------------------------------------------------------------
+-- After β-Λ: the left-only world and its left-only pivot
+------------------------------------------------------------------------
 
--- No relation rule matches an application against a constant, so once
--- the target has finished reducing there is nothing left to peel.
+-- The source allocates Xᴸ ↦ ℕ, so the world evolves by leftOnlyWorld:
+-- the source store binds ℕ while the target side is untouched.
 
-probe-app⊑const-unrelatable : ∀ {Δᴸ Δc} {W : CTI2.World Δᴸ 0 Δc}
-    {γ : CTI2.CtxImp W} {L M : Term Δᴸ} {κ : Const}
-    {A B} {q : A ⊑ᵂ⟨ W ⟩ B}
-  → ¬ (W ∣ γ ⊢² L · M ⊑ $ κ ∶ q)
-probe-app⊑const-unrelatable ()
+probe-world₁ : CTI2.World 1 0 1
+probe-world₁ = CTI2.leftOnlyWorld X⊑★ probe-world₀ Ex.ℕᵗ
 
--- Checkpoint 1 is impossible against the unstepped target...
+probe-rebase-X : CTI2.RebaseAtᴸ probe-world₁ probe-world₁
+    (just Fin.zero)
+probe-rebase-X = CTI2.rebase-onlyᴸ refl ι⊑★
 
-probe-checkpoint₁-unrelatable : ∀ {Δc} {W : CTI2.World 1 0 Δc}
-    {γ : CTI2.CtxImp W} {A B} {q : A ⊑ᵂ⟨ W ⟩ B}
-  → ¬ (W ∣ γ ⊢² Ex.left₁ ⊑ probe-target ∶ q)
-probe-checkpoint₁-unrelatable (CTI2.·⊑·² fn arg) =
-  probe-function₁-unrelatable fn
+probe-X⊑★₁ : (＇ Fin.zero) ⊑ᵂ⟨ probe-world₁ ⟩ ★
+probe-X⊑★₁ = X⊑★ refl
 
--- ...and against the target's only other reduct, the final value.
+probe-fn⊑₁ :
+  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ probe-world₁ ⟩ (★ ⇒ ★)
+probe-fn⊑₁ = ⇒⊑⇒ probe-X⊑★₁ probe-X⊑★₁
 
-probe-checkpoint₁-stepped-unrelatable : ∀ {Δc} {W : CTI2.World 1 0 Δc}
-    {γ : CTI2.CtxImp W} {A B} {q : A ⊑ᵂ⟨ W ⟩ B}
-  → ¬ (W ∣ γ ⊢² Ex.left₁ ⊑ probe-target₁ ∶ q)
-probe-checkpoint₁-stepped-unrelatable (CTI2.⊑cast² _ prem _) =
-  probe-app⊑const-unrelatable prem
+------------------------------------------------------------------------
+-- Checkpoints 1-4: the simulation completes
+------------------------------------------------------------------------
 
--- Every world relating Term 1 to Term 0 has the shape World 1 0 Δc,
--- because SameRuntime pins the world's stores to the machine's stores
--- and the target store still has type TyStore 0.  So the two lemmas
--- above close off every candidate checkpoint for the β-Λ square: the
--- simulation cannot be completed with the current rules.
---
--- Note the Λ⊑² premise proved in probe-Λ-premise is of no help: it
--- lives in liftWorldBoth X⊑★ probe-world₀ : World 1 1 1, whose target
--- store is store-lift store-empty : TyStore 1 and whose target term is
--- the weakened ⇑ᵗᵐ (ƛ (` 0)).  A usable induction hypothesis needs the
--- unweakened target ƛ (` 0) over target store store-empty : TyStore 0,
--- which is not even the same World index, so no SameRuntime or
--- RebaseAt can connect them.  Restating Λ⊑² with a left-only world
--- lift (keep ηᴸ, skip ηᴿ, store-lift only the source store) and an
--- unweakened premise V ⊑ M removes both obstacles at this rule, and
--- the missing left-only pivot form of RebaseAtᴸ is what reveal⊑² and
--- conceal⊑² additionally need to peel the source-only wrappers.
+probe-lambda₁ :
+  probe-world₁ ∣ [] ⊢² ƛ (` 0) ⊑ ƛ (` 0) ∶ probe-fn⊑₁
+probe-lambda₁ =
+  CTI2.ƛ⊑ƛ²
+    {A = ＇ Fin.zero} {A′ = ★}
+    {pA = probe-X⊑★₁} {pB = probe-X⊑★₁}
+    (CTI2.x⊑x² {p = probe-X⊑★₁} CTI2.Zʷ)
+
+probe-function₁ :
+  probe-world₁ ∣ [] ⊢²
+    (ƛ (` 0)) ↑ Ex2.example12-source-X-reveal ⊑ ƛ (` 0) ∶
+      Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁}
+probe-function₁ =
+  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+    Ex2.example12-source-X-reveal-⊢ˣ probe-lambda₁
+    (Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁})
+
+probe-argument₁ :
+  probe-world₁ ∣ [] ⊢²
+    $ (κℕ 7) ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶
+      Ex2.ℕ⊑★² {W = probe-world₁}
+probe-argument₁ =
+  CTI2.⊑cast² CTI2.example12-ℕ!
+    (CTI2.κ⊑κ² (κℕ 7) (Ex2.ℕ⊑ℕ² {W = probe-world₁}))
+    (Ex2.ℕ⊑★² {W = probe-world₁})
+
+probe-checkpoint₁ :
+  probe-world₁ ∣ [] ⊢² Ex.left₁ ⊑ probe-target ∶
+    Ex2.ℕ⊑★² {W = probe-world₁}
+probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
+
+probe-sealed-arg :
+  probe-world₁ ∣ [] ⊢²
+    ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
+    ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ probe-X⊑★₁
+probe-sealed-arg =
+  CTI2.conceal⊑² probe-rebase-X CTI2.same-[]
+    Ex2.example12-source-X-seal-⊢ˣ probe-argument₁ probe-X⊑★₁
+
+probe-app₂ :
+  probe-world₁ ∣ [] ⊢²
+    (ƛ (` 0)) · (($ (κℕ 7)) ↓ Ex2.example12-source-X-seal)
+    ⊑ (ƛ (` 0)) · (Ex.c ⟨ CTI2.example12-ℕ! ⟩) ∶ probe-X⊑★₁
+probe-app₂ = CTI2.·⊑·² probe-lambda₁ probe-sealed-arg
+
+probe-checkpoint₂ :
+  probe-world₁ ∣ [] ⊢² Ex.left₂ ⊑ probe-target ∶
+    Ex2.ℕ⊑★² {W = probe-world₁}
+probe-checkpoint₂ =
+  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+    Ex2.example12-source-X-unseal-⊢ˣ probe-app₂
+    (Ex2.ℕ⊑★² {W = probe-world₁})
+
+-- The source's β under the reveal is matched by the target's β, so
+-- checkpoint 3 pairs the source with the stepped target.
+
+probe-checkpoint₃ :
+  probe-world₁ ∣ [] ⊢² Ex.left₃ ⊑ probe-target₁ ∶
+    Ex2.ℕ⊑★² {W = probe-world₁}
+probe-checkpoint₃ =
+  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+    Ex2.example12-source-X-unseal-⊢ˣ probe-sealed-arg
+    (Ex2.ℕ⊑★² {W = probe-world₁})
+
+probe-checkpoint₄ :
+  probe-world₁ ∣ [] ⊢² Ex.left-final ⊑ probe-target₁ ∶
+    Ex2.ℕ⊑★² {W = probe-world₁}
+probe-checkpoint₄ = probe-argument₁

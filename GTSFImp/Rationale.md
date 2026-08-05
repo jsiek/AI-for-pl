@@ -237,6 +237,34 @@ conversion has pivot `nothing`, and the one-sided rules take a
 `RebaseAtᴸ`/`RebaseAtᴿ` premise whose `nothing` case forces the premise
 world to equal the conclusion world.
 
+A source pivot does not need an aligned target variable. When the more
+imprecise side never allocates — the probe in
+[`proof/DGG/LambdaImpProbe.agda`](proof/DGG/LambdaImpProbe.agda) pairs
+Example 12's direct program with a monomorphic `(ƛ x) · (7 ⟨ ℕ! ⟩)` —
+the source's `β-Λ` produces reveal and conceal wrappers at a variable
+the target simply does not have, and with only two-sided pivots the
+simulation was provably impossible in every world. The `rebase-onlyᴸ`
+case of `RebaseAtᴸ` covers this: the pivot's center is classified
+`X⊑★`, its canonical source representation sits below `★`, and the
+world stays fixed because there is no alignment to change. There is no
+right-only mirror, because type imprecision has no rule with a bare
+variable on the imprecise side: a target variable can only appear in an
+obligation opposite an aligned source variable.
+
+For the same reason, `Λ⊑²` lifts the world on the left only. Its
+premise compares the type abstraction's body against the target term
+*unweakened*, in `liftWorldLeft X⊑★ W`, which keeps the target context,
+store, and embedding fixed. An earlier version weakened the target with
+`⇑ᵗᵐ` under `liftWorldBoth` — a carryover from the version-1 relation,
+which renamed terms into a shared context. That premise was unusable as
+an induction hypothesis: after `β-Λ` the machine's target store still
+has its old type context, `SameRuntime` pins checkpoint worlds to it,
+and a `liftWorldBoth` world differs from every such world already in
+its `World` indices. With the left-only lift, the premise world differs
+from the post-allocation `leftOnlyWorld` only in binding the fresh
+source variable (`store-lift` versus `store-bind`), which is the
+ordinary world evolution at an allocation step.
+
 `RebaseAt W W′ Xᴸ Xᴿ` is deliberately pivot-local. Reduction introduces
 one reveal or conceal wrapper per fresh type variable, so descending
 through one wrapper is only allowed to change the alignment of the pivot

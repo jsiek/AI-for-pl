@@ -406,3 +406,75 @@ conv↓-zero-post : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
     --------------
   → Fin.zero ∈ᵗ A
 conv↓-zero-post ⊢c = conv↓-occurs-post ⊢c (λ ()) zero-pivot-fresh
+
+------------------------------------------------------------------------
+-- Non-variable transport away from the bound variable
+------------------------------------------------------------------------
+
+-- A conversion pivoted at suc X cannot turn a zero-containing non-variable
+-- type into a variable, or conversely.  These small inversion lemmas are the
+-- shape component used alongside the occurrence transport above.
+
+conv↑-nonvar-pre-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c
+  → NonVar B
+  → Fin.zero ∈ᵗ A
+    ----------------
+  → NonVar A
+conv↑-nonvar-pre-zero (⊢↑-unsealˣ ∋X) Bnv ()
+conv↑-nonvar-pre-zero (⊢↑-⇒ˣ join-both ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↑-nonvar-pre-zero (⊢↑-⇒ˣ join-left ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↑-nonvar-pre-zero (⊢↑-⇒ˣ join-right ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↑-nonvar-pre-zero (⊢↑-∀ˣ ⊢c) Bnv zero∈A = nonvar-all
+
+conv↑-nonvar-post-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {A B : Ty (Nat.suc Δ)} {c : Conv↑ (Nat.suc Δ) A B}
+  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c
+  → NonVar A
+  → Fin.zero ∈ᵗ B
+    ----------------
+  → NonVar B
+conv↑-nonvar-post-zero (⊢↑-unsealˣ ∋X) () zero∈B
+conv↑-nonvar-post-zero (⊢↑-⇒ˣ join-both ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↑-nonvar-post-zero (⊢↑-⇒ˣ join-left ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↑-nonvar-post-zero (⊢↑-⇒ˣ join-right ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↑-nonvar-post-zero (⊢↑-∀ˣ ⊢c) Anv zero∈B = nonvar-all
+
+conv↓-nonvar-pre-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c
+  → NonVar B
+  → Fin.zero ∈ᵗ A
+    ----------------
+  → NonVar A
+conv↓-nonvar-pre-zero (⊢↓-sealˣ ∋X) () zero∈A
+conv↓-nonvar-pre-zero (⊢↓-⇒ˣ join-both ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↓-nonvar-pre-zero (⊢↓-⇒ˣ join-left ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↓-nonvar-pre-zero (⊢↓-⇒ˣ join-right ⊢c ⊢d) Bnv zero∈A =
+  nonvar-fun
+conv↓-nonvar-pre-zero (⊢↓-∀ˣ ⊢c) Bnv zero∈A = nonvar-all
+
+conv↓-nonvar-post-zero : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {A B : Ty (Nat.suc Δ)} {c : Conv↓ (Nat.suc Δ) A B}
+  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c
+  → NonVar A
+  → Fin.zero ∈ᵗ B
+    ----------------
+  → NonVar B
+conv↓-nonvar-post-zero (⊢↓-sealˣ ∋X) Anv ()
+conv↓-nonvar-post-zero (⊢↓-⇒ˣ join-both ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↓-nonvar-post-zero (⊢↓-⇒ˣ join-left ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↓-nonvar-post-zero (⊢↓-⇒ˣ join-right ⊢c ⊢d) Anv zero∈B =
+  nonvar-fun
+conv↓-nonvar-post-zero (⊢↓-∀ˣ ⊢c) Anv zero∈B = nonvar-all

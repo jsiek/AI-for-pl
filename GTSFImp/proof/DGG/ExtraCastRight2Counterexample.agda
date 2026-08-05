@@ -1,24 +1,30 @@
 module proof.DGG.ExtraCastRight2Counterexample where
 
 -- File Charter:
---   * Isolates the type-level obstruction in the bare-seal case of
---     right-injection inversion for CastTermImprecision2.
---   * Builds a valid pivot-local rebase and source seal for which the
---     premise-to-star, conclusion-to-star, and conclusion-to-ground
---     obligations all exist, but the premise-to-ground obligation needed
---     by recursive inversion does not.
---   * Realizes that obstruction with a closed term-imprecision derivation and
---     proves that the relation required after target-tag cancellation is
---     empty when the displaced source variable has a precise center.
---   * Depends only on the version-2 world/rebase definitions and the core
---     type-imprecision relation; it does not change the live relation.
+--   * Regression for the bare-seal case of right-injection inversion.
+--   * Under the original design, where rebasing forced the premise and
+--     conclusion worlds to agree on every imprecision mark, this file
+--     proved a counterexample (commit 69fbef83): a valid input
+--     derivation whose required output after target-tag cancellation
+--     was uninhabited.  The culprit was a stale precise mark: the
+--     outer conceal boundary rebases the target variable Y from U to
+--     Z, leaving U precise but unaligned, and mark equality preserved
+--     the staleness all the way down.
+--   * The relation now carries ImpEnvMono instead: marks may decay
+--     toward X⊑★ from conclusion to premise.  This file rebuilds the
+--     same configuration and proves the previously-empty output
+--     derivable, by descending into a dynamized premise world.
+--   * Ties in the WFWorld invariant: the stale input world is not
+--     mark-honest, the dynamized worlds are, and the repair is
+--     exactly the re-marking that honesty demands.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans; cong)
+  using (_≡_; _≢_; refl)
 
 open import Types
 open import TyStore using
@@ -88,15 +94,14 @@ Z-Y-rebase =
   rebase-at (same-runtime refl refl)
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    (λ _ → refl)
     refl
     Z-Y-representation
 
 Z-seal-typed : source-store ⊢↓[ just Z ] seal Z ★
 Z-seal-typed = ⊢↓-sealˣ source-Z∋
 
--- These are exactly the three type obligations available in the
--- conceal⊑² branch of right-injection inversion.
+-- The three type obligations available at the conceal⊑² boundary of
+-- the stale input.
 
 premise-to-star : ★ ⊑ᵂ⟨ pre-world ⟩ ★
 premise-to-star = ★⊑★
@@ -107,16 +112,32 @@ conclusion-to-star = X⊑★ refl
 conclusion-to-tag : ＇ Z ⊑ᵂ⟨ post-world ⟩ ＇ Y
 conclusion-to-tag = X⊑X
 
--- Recursive inversion would need this fourth obligation.  It cannot be
--- built: before the boundary, Y embeds with U, so its target is a variable,
--- while the source seal representation is dynamic.
+-- In the stale pre-world, Y embeds with U, so the fourth obligation
+-- that recursive inversion would want cannot be built there, and U's
+-- precise mark also blocks the source-tag detour.  These two negative
+-- facts are what made the original counterexample tick; they are
+-- still true of the stale worlds and are kept as documentation.
 
 no-premise-to-tag : ★ ⊑ᵂ⟨ pre-world ⟩ ＇ Y → ⊥
 no-premise-to-tag ()
 
--- The missing premise-to-tag obligation is not merely a type-level corner:
--- paired source/target injections can hide it.  The following closed value
--- relation realizes all the premises of the problematic source-seal branch.
+no-U-to-star : ＇ U ⊑ᵂ⟨ pre-world ⟩ ★ → ⊥
+no-U-to-star (X⊑★ ())
+
+-- The stale input world is not mark-honest: U's center is precise
+-- but no target variable embeds there.
+
+post-world-not-WF : CTI2.WFWorld post-world → ⊥
+post-world-not-WF wf with wf U refl
+post-world-not-WF wf | Fin.zero , ()
+
+pre-world-WF : CTI2.WFWorld pre-world
+pre-world-WF Fin.zero ()
+pre-world-WF (Fin.suc Fin.zero) _ = Fin.zero , refl
+
+------------------------------------------------------------------------
+-- The stale input derivation
+------------------------------------------------------------------------
 
 U-Y-representation : CTI2.StoreRepImp pre-world U Y
 U-Y-representation = store-rep-imp ι⊑★
@@ -124,11 +145,8 @@ U-Y-representation = store-rep-imp ι⊑★
 U-Y-rebase : RebaseAt pre-world pre-world U Y
 U-Y-rebase = CTI2.sameWorldRebaseAt refl U-Y-representation
 
-source-U∈ : source-store ∋ U ⦂ ‵ `ℕ
-source-U∈ = source-U∋
-
 source-U-seal-typed : source-store ⊢↓[ just U ] seal U (‵ `ℕ)
-source-U-seal-typed = ⊢↓-sealˣ source-U∈
+source-U-seal-typed = ⊢↓-sealˣ source-U∋
 
 target-Y-seal-typed : target-store ⊢↓[ just Y ] seal Y ★
 target-Y-seal-typed = ⊢↓-sealˣ target-Y∋
@@ -160,7 +178,7 @@ inner-seals² : pre-world ∣ [] ⊢²
     ($ (κℕ 0)) ↓ seal U (‵ `ℕ)
     ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ X⊑X
 inner-seals² =
-  CTI2.conceal⊑conceal² U-Y-rebase CTI2.same-[]
+  CTI2.conceal⊑conceal² (λ _ eq → eq) U-Y-rebase CTI2.same-[]
     source-U-seal-typed target-Y-seal-typed inner-target-tag² X⊑X
 
 inner-paired-tags² : pre-world ∣ [] ⊢²
@@ -174,146 +192,75 @@ problematic-seal² : post-world ∣ [] ⊢²
     ⊑ (($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★) ⟨ Y! ⟩ ∶
       conclusion-to-star
 problematic-seal² =
-  CTI2.conceal⊑² (CTI2.rebase-varᴸ Z-Y-rebase) CTI2.same-[]
-    Z-seal-typed inner-paired-tags² conclusion-to-star
+  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ Z-Y-rebase)
+    CTI2.same-[] Z-seal-typed inner-paired-tags² conclusion-to-star
 
--- Unlike Z's center, U's center is precise.  The natural reassociation
--- would need the following obligation, which is therefore empty.
+------------------------------------------------------------------------
+-- The repair: descend into a mark-honest, dynamized premise world
+------------------------------------------------------------------------
 
-no-U-to-star : ＇ U ⊑ᵂ⟨ pre-world ⟩ ★ → ⊥
-no-U-to-star (X⊑★ ())
+-- Re-marking U's center as dynamic records that below the Z/Y
+-- boundary U has no target partner.  The dynamized worlds are
+-- mark-honest, and ImpEnvMono admits the descent from the stale
+-- conclusion world.
 
-private
-  U≢Z : U ≢ Z
-  U≢Z ()
+imp-env-dyn : ImpEnv 2
+imp-env-dyn Fin.zero = X⊑★
+imp-env-dyn (Fin.suc Fin.zero) = X⊑★
 
-  UPrecise : World 2 1 2 → Set
-  UPrecise W =
-    CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) U) ≡ X⊑X
+pre-worldᵈ : World 2 1 2
+pre-worldᵈ =
+  world source-η target-η-U imp-env-dyn source-store target-store
 
-  post-U-precise : UPrecise post-world
-  post-U-precise = refl
+pre-worldᵈ-WF : CTI2.WFWorld pre-worldᵈ
+pre-worldᵈ-WF Fin.zero ()
+pre-worldᵈ-WF (Fin.suc Fin.zero) ()
 
-  var-identity-not-star : _≡_ {A = VarImp} X⊑X X⊑★ → ⊥
-  var-identity-not-star ()
+dynamize : CTI2.ImpEnvMono post-world pre-worldᵈ
+dynamize Fin.zero _ = refl
+dynamize (Fin.suc Fin.zero) _ = refl
 
-  U-precise-rebase-back : ∀ {Wᵖ W : World 2 1 2} {Y′}
-    → RebaseAt Wᵖ W Z Y′
-    → UPrecise W
-    → UPrecise Wᵖ
-  U-precise-rebase-back {Wᵖ = Wᵖ} {W = W} rb precise =
-    trans
-      (sym (cong (CTI2.impEnvʷ Wᵖ)
-        (CTI2.RebaseAt.ηᴸ-off-pivot rb U≢Z)))
-      (trans
-        (sym (CTI2.RebaseAt.sameImpEnv rb
-          (toRenameᵗ (CTI2.ηᴸʷ W) U)))
-        precise)
+Z-Y-rebaseᵈ : RebaseAt pre-worldᵈ post-world Z Y
+Z-Y-rebaseᵈ =
+  rebase-at (same-runtime refl refl)
+    (λ _ → refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
+    refl
+    Z-Y-representation
 
-  U-precise-rebaseᴸ-back : ∀ {Wᵖ W : World 2 1 2}
-    → CTI2.RebaseAtᴸ Wᵖ W (just Z)
-    → UPrecise W
-    → UPrecise Wᵖ
-  U-precise-rebaseᴸ-back (CTI2.rebase-varᴸ rb) precise =
-    U-precise-rebase-back rb precise
-  U-precise-rebaseᴸ-back
-      (CTI2.rebase-onlyᴸ to-star disaligned represented) precise =
-    precise
+U-Y-representationᵈ : CTI2.StoreRepImp pre-worldᵈ U Y
+U-Y-representationᵈ = store-rep-imp ι⊑★
 
-  no-U-to-star-at : ∀ {W : World 2 1 2}
-    → UPrecise W
-    → ＇ U ⊑ᵂ⟨ W ⟩ ★
-    → ⊥
-  no-U-to-star-at precise (X⊑★ eq) =
-    var-identity-not-star (trans (sym precise) eq)
+U-Y-rebaseᵈ : RebaseAt pre-worldᵈ pre-worldᵈ U Y
+U-Y-rebaseᵈ = CTI2.sameWorldRebaseAt refl U-Y-representationᵈ
 
-  variable-not-base : ∀ {W : World 2 1 2} {X : TyVar 2}
-    → ＇ X ⊑ᵂ⟨ W ⟩ ‵ `ℕ
-    → ⊥
-  variable-not-base ()
+-- The obligation that was empty in the stale pre-world is inhabited
+-- in the dynamized one.
 
-  star-not-base : ∀ {W : World 2 1 2}
-    → ★ ⊑ᵂ⟨ W ⟩ ‵ `ℕ
-    → ⊥
-  star-not-base ()
+U-to-starᵈ : ＇ U ⊑ᵂ⟨ pre-worldᵈ ⟩ ★
+U-to-starᵈ = X⊑★ refl
 
-  star-not-variable : ∀ {W : World 2 1 2}
-    → ★ ⊑ᵂ⟨ W ⟩ ＇ Y
-    → ⊥
-  star-not-variable ()
+repaired-base² : pre-worldᵈ ∣ [] ⊢²
+    $ (κℕ 0) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ι⊑★
+repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
-  no-inner-tags : ∀ {W : World 2 1 2} {γ : CTI2.CtxImp W}
-      {p : ★ ⊑ᵂ⟨ W ⟩ ★}
-    → UPrecise W
-    → W ∣ γ ⊢² (($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩
-        ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ p
-    → ⊥
-  no-inner-tags {W = W} precise
-      (CTI2.cast⊑cast² {p = p} c c′ prem q) =
-    variable-not-base {W = W} {X = U} p
-  no-inner-tags {W = W} precise
-      (CTI2.⊑cast² {p = p} c′ prem q) =
-    star-not-base {W = W} p
-  no-inner-tags {W = W} precise
-      (CTI2.cast⊑² {p = p} c prem q) =
-    no-U-to-star-at {W = W} precise p
+repaired-seal² : pre-worldᵈ ∣ [] ⊢²
+    ($ (κℕ 0)) ↓ seal U (‵ `ℕ) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ U-to-starᵈ
+repaired-seal² =
+  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ U-Y-rebaseᵈ)
+    CTI2.same-[] source-U-seal-typed repaired-base² U-to-starᵈ
 
-  no-outer-vs-tag : ∀ {W : World 2 1 2} {γ : CTI2.CtxImp W}
-      {p : ＇ Z ⊑ᵂ⟨ W ⟩ ★}
-    → UPrecise W
-    → W ∣ γ ⊢²
-        ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-        ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ p
-    → ⊥
-  no-outer-vs-tag {W = W} precise
-      (CTI2.⊑cast² {p = p} c′ prem q) =
-    variable-not-base {W = W} {X = Z} p
-  no-outer-vs-tag precise
-      (CTI2.conceal⊑² rb sc (CTI2.⊢↓-sealˣ x∋) prem q) =
-    no-inner-tags (U-precise-rebaseᴸ-back rb precise) prem
+repaired-tag² : pre-worldᵈ ∣ [] ⊢²
+    (($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩ ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ★⊑★
+repaired-tag² = CTI2.cast⊑² U! repaired-seal² ★⊑★
 
-  target-rebase-source : ∀ {Wᵖ : World 2 1 2}
-    → CTI2.RebaseAtᴿ Wᵖ post-world (just Y)
-    → RebaseAt Wᵖ post-world Z Y
-  target-rebase-source
-      (CTI2.rebase-varᴿ {Xᴸ = Fin.zero} rb) =
-    rb
-  target-rebase-source
-      (CTI2.rebase-varᴿ {Xᴸ = Fin.suc Fin.zero} rb)
-      with CTI2.RebaseAt.pivotAligned rb
-  target-rebase-source
-      (CTI2.rebase-varᴿ {Xᴸ = Fin.suc Fin.zero} rb) | ()
+-- The output relation demanded by right-injection inversion after the
+-- target's Y! tag cancels.  Under mark equality this type was proved
+-- empty; under monotone dynamization it is inhabited.
 
-no-problematic-result :
-    post-world ∣ [] ⊢²
-      ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-      ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ conclusion-to-tag
-    → ⊥
-no-problematic-result
-    (CTI2.⊑conceal² rb sc (CTI2.⊢↓-sealˣ x∋) prem q) =
-  no-outer-vs-tag
-    (U-precise-rebase-back (target-rebase-source rb) post-U-precise)
-    prem
-no-problematic-result
-    (CTI2.conceal⊑² {W′ = W′} {p = p} rb sc c⊢ prem q) =
-  star-not-variable {W = W′} p
-no-problematic-result
-    (CTI2.conceal⊑conceal² rb sc
-      (CTI2.⊢↓-sealˣ x∋) (CTI2.⊢↓-sealˣ y∋) prem q) =
-  no-inner-tags (U-precise-rebase-back rb post-U-precise) prem
-
--- Thus no bare-seal extension of right-injection inversion can cover this
--- valid input derivation.  Type-imprecision proof irrelevance cannot repair
--- the failure: the required conclusion has no inhabitant at all.
-
-no-bare-seal-right-inj² :
-    (post-world ∣ [] ⊢²
-        ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-        ⊑ (($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★) ⟨ Y! ⟩ ∶
-          conclusion-to-star
-      → post-world ∣ [] ⊢²
-        ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-        ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ conclusion-to-tag)
-    → ⊥
-no-bare-seal-right-inj² invert =
-  no-problematic-result (invert problematic-seal²)
+repaired-result² : post-world ∣ [] ⊢²
+    ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
+    ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ conclusion-to-tag
+repaired-result² =
+  CTI2.conceal⊑conceal² dynamize Z-Y-rebaseᵈ CTI2.same-[]
+    Z-seal-typed target-Y-seal-typed repaired-tag² conclusion-to-tag

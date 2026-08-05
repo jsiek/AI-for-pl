@@ -221,23 +221,23 @@ mutual
   source-typing² (CTI2.cast⊑cast² c c′ M⊑M′ q) =
     ⊢⟨⟩ (source-typing² M⊑M′) c
   source-typing² (CTI2.⊑cast² c′ M⊑M′ q) = source-typing² M⊑M′
-  source-typing² (CTI2.⊑reveal² rb sc c′⊢ M⊑M′ q) =
+  source-typing² (CTI2.⊑reveal² mono rb sc c′⊢ M⊑M′ q) =
     transport-source (rebaseᴿ-source-store rb) sc (source-typing² M⊑M′)
-  source-typing² (CTI2.⊑conceal² rb sc c′⊢ M⊑M′ q) =
+  source-typing² (CTI2.⊑conceal² mono rb sc c′⊢ M⊑M′ q) =
     transport-source (sym (rebaseᴿ-source-store rb)) sc
       (source-typing² M⊑M′)
   source-typing² (CTI2.cast⊑² c M⊑M′ q) = ⊢⟨⟩ (source-typing² M⊑M′) c
-  source-typing² (CTI2.reveal⊑² rb sc c⊢ M⊑M′ q) =
+  source-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c⊢)
       (transport-source (rebaseᴸ-source-store rb) sc (source-typing² M⊑M′))
-  source-typing² (CTI2.conceal⊑² rb sc c⊢ M⊑M′ q) =
+  source-typing² (CTI2.conceal⊑² mono rb sc c⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym (rebaseᴸ-source-store rb)) sc
         (source-typing² M⊑M′))
-  source-typing² (CTI2.reveal⊑reveal² rb sc c⊢ c′⊢ M⊑M′ q) =
+  source-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c⊢)
       (transport-source (rebase-source-store rb) sc (source-typing² M⊑M′))
-  source-typing² (CTI2.conceal⊑conceal² rb sc c⊢ c′⊢ M⊑M′ q) =
+  source-typing² (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym (rebase-source-store rb)) sc
         (source-typing² M⊑M′))
@@ -260,23 +260,23 @@ mutual
   target-typing² (CTI2.cast⊑cast² c c′ M⊑M′ q) =
     ⊢⟨⟩ (target-typing² M⊑M′) c′
   target-typing² (CTI2.⊑cast² c′ M⊑M′ q) = ⊢⟨⟩ (target-typing² M⊑M′) c′
-  target-typing² (CTI2.⊑reveal² rb sc c′⊢ M⊑M′ q) =
+  target-typing² (CTI2.⊑reveal² mono rb sc c′⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c′⊢)
       (transport-target (rebaseᴿ-target-store rb) sc (target-typing² M⊑M′))
-  target-typing² (CTI2.⊑conceal² rb sc c′⊢ M⊑M′ q) =
+  target-typing² (CTI2.⊑conceal² mono rb sc c′⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c′⊢)
       (transport-target (sym (rebaseᴿ-target-store rb)) sc
         (target-typing² M⊑M′))
   target-typing² (CTI2.cast⊑² c M⊑M′ q) = target-typing² M⊑M′
-  target-typing² (CTI2.reveal⊑² rb sc c⊢ M⊑M′ q) =
+  target-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
     transport-target (rebaseᴸ-target-store rb) sc (target-typing² M⊑M′)
-  target-typing² (CTI2.conceal⊑² rb sc c⊢ M⊑M′ q) =
+  target-typing² (CTI2.conceal⊑² mono rb sc c⊢ M⊑M′ q) =
     transport-target (sym (rebaseᴸ-target-store rb)) sc
       (target-typing² M⊑M′)
-  target-typing² (CTI2.reveal⊑reveal² rb sc c⊢ c′⊢ M⊑M′ q) =
+  target-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c′⊢)
       (transport-target (rebase-target-store rb) sc (target-typing² M⊑M′))
-  target-typing² (CTI2.conceal⊑conceal² rb sc c⊢ c′⊢ M⊑M′ q) =
+  target-typing² (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c′⊢)
       (transport-target (sym (rebase-target-store rb)) sc
         (target-typing² M⊑M′))

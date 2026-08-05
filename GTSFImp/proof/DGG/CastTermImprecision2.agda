@@ -7,9 +7,12 @@ module proof.DGG.CastTermImprecision2 where
 --     center context.
 --   * Represents local rebasing explicitly, letting reveal/conceal wrappers
 --     descend with a different alignment.
---   * Rebasing is pivot-local: a RebaseAt keeps the runtime stores, the
---     center context, and the imprecision environment fixed, and moves at
---     most the embeddings of the two pivot variables.
+--   * Rebasing is pivot-local: a RebaseAt keeps the runtime stores and
+--     the center context fixed and moves at most the embeddings of the
+--     two pivot variables.  Imprecision marks are not pinned by the
+--     rebase; instead every wrapper rule carries ImpEnvMono, letting
+--     marks decay toward X⊑★ from conclusion to premise, and WFWorld
+--     names the worlds whose precise marks are honestly aligned.
 --   * Store representations are canonical: a pivot variable is compared
 --     through resolveVar, which follows the store's representation chain
 --     to its end instead of stopping at an arbitrary intermediate type.
@@ -37,6 +40,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ)
+open import Data.Product using (Σ-syntax)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
@@ -159,6 +163,38 @@ record SameRuntime {Δᴸ Δᴿ Δ}
     sourceStore-same : sourceStoreʷ W′ ≡ sourceStoreʷ W
     targetStore-same : targetStoreʷ W′ ≡ targetStoreʷ W
 
+-- Imprecision marks may only decay toward the dynamic type as a rule
+-- descends into its premise: every center the conclusion world marks
+-- X⊑★ stays X⊑★ in the premise world, while precise marks may weaken
+-- to X⊑★.  Equality is too strong: a rebase that displaces a target
+-- variable leaves its old partner precise but unaligned, and the
+-- stale mark blocks tag cancellation (see
+-- proof.DGG.ExtraCastRight2Counterexample).  Each wrapper rule
+-- carries this premise from its conclusion world to its premise
+-- world; the rebase records no longer constrain the marks.
+
+ImpEnvMono : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → World Δᴸ Δᴿ Δ
+  → Set
+ImpEnvMono W W′ =
+  ∀ Z → impEnvʷ W Z ≡ X⊑★ → impEnvʷ W′ Z ≡ X⊑★
+
+-- A world is mark-honest when every source variable whose center is
+-- marked precise has an aligned target variable.  This is the world
+-- invariant that outlaws stale precise marks: the counterexample's
+-- input world fails it at the displaced source variable, and the
+-- repaired derivation dynamizes into a world that satisfies it.
+-- There is no mirror condition for target variables because type
+-- imprecision has no rule with a bare variable on the imprecise side.
+
+WFWorld : ∀ {Δᴸ Δᴿ Δ} → World Δᴸ Δᴿ Δ → Set
+WFWorld {Δᴸ} {Δᴿ} W =
+  ∀ (Xᴸ : TyVar Δᴸ)
+  → impEnvʷ W (toRenameᵗ (ηᴸʷ W) Xᴸ) ≡ X⊑X
+  → Σ[ Xᴿ ∈ TyVar Δᴿ ]
+      toRenameᵗ (ηᴿʷ W) Xᴿ ≡ toRenameᵗ (ηᴸʷ W) Xᴸ
+
 ------------------------------------------------------------------------
 -- Term-context imprecision in local worlds
 ------------------------------------------------------------------------
@@ -277,7 +313,6 @@ record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
       → toRenameᵗ (ηᴸʷ W′) Y ≡ toRenameᵗ (ηᴸʷ W) Y
     ηᴿ-off-pivot : ∀ {Y} → Y ≢ Xᴿ
       → toRenameᵗ (ηᴿʷ W′) Y ≡ toRenameᵗ (ηᴿʷ W) Y
-    sameImpEnv : ∀ Z → impEnvʷ W′ Z ≡ impEnvʷ W Z
     pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
@@ -289,7 +324,7 @@ sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → RebaseAt W W Xᴸ Xᴿ
 sameWorldRebaseAt =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ _ → refl) (λ _ → refl)
+    (λ _ → refl) (λ _ → refl)
 
 -- One-sided wrappers carry an optional pivot: a conversion with no
 -- pivot (an identity-shaped conversion) keeps the world fixed, and a
@@ -518,6 +553,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   ⊑reveal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
+    → ImpEnvMono W W′
     → RebaseAtᴿ W W′ Xᴿ?
     → SameCtx γ γ′
     → targetStoreʷ W ⊢↑[ Xᴿ? ] c′
@@ -529,6 +565,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   ⊑conceal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
+    → ImpEnvMono W W′
     → RebaseAtᴿ W′ W Xᴿ?
     → SameCtx γ γ′
     → targetStoreʷ W ⊢↓[ Xᴿ? ] c′
@@ -548,6 +585,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   reveal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
+    → ImpEnvMono W W′
     → RebaseAtᴸ W W′ Xᴸ?
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
@@ -559,6 +597,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
+    → ImpEnvMono W W′
     → RebaseAtᴸ W′ W Xᴸ?
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
@@ -572,6 +611,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
+    → ImpEnvMono W Wᵖ
     → RebaseAt W Wᵖ Xᴸ Xᴿ
     → SameCtx γ γᵖ
     → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
@@ -586,6 +626,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
+    → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
     → sourceStoreʷ W ⊢↓[ just Xᴸ ] c
@@ -696,14 +737,14 @@ example12-rebase-X-to-Z :
     Fin.zero (Fin.suc (Fin.suc Fin.zero))
 example12-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
     refl example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
     refl example12-Y-representation
 
 example12-outer-function :
@@ -831,7 +872,7 @@ example12-nat-chain-rebase-X-to-Y :
     Fin.zero Fin.zero
 example12-nat-chain-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl) (λ _ → refl)
+    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
     refl example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
@@ -944,7 +985,7 @@ example12-left-path-rebase-X-to-Z :
     (Fin.suc (Fin.suc Fin.zero)) Fin.zero
 example12-left-path-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
+    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     refl example12-left-path-Z-representation
 
 example12-left-path-rebase-X-to-Y :
@@ -952,5 +993,5 @@ example12-left-path-rebase-X-to-Y :
     (Fin.suc Fin.zero) Fin.zero
 example12-left-path-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
+    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     refl example12-left-path-Y-representation

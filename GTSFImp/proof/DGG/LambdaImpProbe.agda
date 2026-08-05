@@ -191,7 +191,7 @@ probe-function₁ :
     (ƛ (` 0)) ↑ Ex2.example12-source-X-reveal ⊑ ƛ (` 0) ∶
       Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁}
 probe-function₁ =
-  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
     Ex2.example12-source-X-reveal-⊢ˣ probe-lambda₁
     (Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁})
 
@@ -214,7 +214,7 @@ probe-sealed-arg :
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
     ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ probe-X⊑★₁
 probe-sealed-arg =
-  CTI2.conceal⊑² probe-rebase-X CTI2.same-[]
+  CTI2.conceal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
     Ex2.example12-source-X-seal-⊢ˣ probe-argument₁ probe-X⊑★₁
 
 probe-app₂ :
@@ -227,7 +227,7 @@ probe-checkpoint₂ :
   probe-world₁ ∣ [] ⊢² Ex.left₂ ⊑ probe-target ∶
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₂ =
-  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
     Ex2.example12-source-X-unseal-⊢ˣ probe-app₂
     (Ex2.ℕ⊑★² {W = probe-world₁})
 
@@ -238,7 +238,7 @@ probe-checkpoint₃ :
   probe-world₁ ∣ [] ⊢² Ex.left₃ ⊑ probe-target₁ ∶
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₃ =
-  CTI2.reveal⊑² probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
     Ex2.example12-source-X-unseal-⊢ˣ probe-sealed-arg
     (Ex2.ℕ⊑★² {W = probe-world₁})
 

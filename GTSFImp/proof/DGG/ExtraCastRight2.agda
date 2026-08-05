@@ -329,7 +329,7 @@ liftRebaseAt {W = W} {W′ = W′} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} {v = v} rb =
         (CTI2.SameRuntime.sourceStore-same (CTI2.RebaseAt.sameRuntime rb)))
       (cong store-lift
         (CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb))))
-    source-off target-off env-same
+    source-off target-off
     (cong Fin.suc (CTI2.RebaseAt.pivotAligned rb))
     (CTI2.store-rep-imp lift-represented)
   where
@@ -387,11 +387,6 @@ liftRebaseAt {W = W} {W′ = W′} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} {v = v} rb =
       (CTI2.RebaseAt.ηᴿ-off-pivot rb
         (λ eq → Y≢ (cong Fin.suc eq)))
 
-  env-same : ∀ Z
-    → impEnvʷ (CTI2.liftWorldBoth v W′) Z
-        ≡ impEnvʷ (CTI2.liftWorldBoth v W) Z
-  env-same Fin.zero = refl
-  env-same (Fin.suc Z) = CTI2.RebaseAt.sameImpEnv rb Z
 
 liftPivot : ∀ {Δ} → Maybe (TyVar Δ) → Maybe (TyVar (suc Δ))
 liftPivot nothing = nothing
@@ -716,31 +711,31 @@ right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
 -- premise-level tag obligation, and by ⊑-unique it does not matter
 -- that this inhabitant differs from any other.
 right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} rb sc ⊢c prem q₀)
+    vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono rb sc ⊢c prem q₀)
     (⇒⊑⇒ qA qB) =
-  CTI2.reveal⊑² rb sc ⊢c
+  CTI2.reveal⊑² mono rb sc ⊢c
     (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
     (⇒⊑⇒ qA qB)
 right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
-  vN (CTI2.reveal⊑² _ _ _ _ _) ()
+  vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
 right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
-  vN (CTI2.reveal⊑² _ _ _ _ _) ()
+  vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
 right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
-  vN (CTI2.reveal⊑² _ _ _ _ _) ()
+  vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
 
 -- Function-shaped conceal: same construction.
 right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} rb sc ⊢c prem q₀)
+    vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} mono rb sc ⊢c prem q₀)
     (⇒⊑⇒ qA qB) =
-  CTI2.conceal⊑² rb sc ⊢c
+  CTI2.conceal⊑² mono rb sc ⊢c
     (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
     (⇒⊑⇒ qA qB)
 right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
-  vN (CTI2.conceal⊑² _ _ _ _ _) ()
+  vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
 right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
-  vN (CTI2.conceal⊑² _ _ _ _ _) ()
+  vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
 right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
-  vN (CTI2.conceal⊑² _ _ _ _ _) ()
+  vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
 
 -- Type applications are not spine values.
 right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q
@@ -771,7 +766,7 @@ right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² V ↑ `∀↑ c ⊑ N ∶ q
 right-inj-reveal-all-id² {W = W} {A = A} {B = B}
     {H = H} {c = c} sv vN sc c⊢ prem q =
-  CTI2.reveal⊑² CTI2.rebase-idᴸ sc (CTI2.⊢↑-∀-idˣ c⊢)
+  CTI2.reveal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↑-∀-idˣ c⊢)
     (right-inj-inversion² sv vN prem
       (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
         (sym (cong `∀ (pivot-id-endpoints↑ c⊢))) q))
@@ -794,7 +789,7 @@ right-inj-conceal-all-id² : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² V ↓ `∀↓ c ⊑ N ∶ q
 right-inj-conceal-all-id² {W = W} {A = A} {B = B}
     {H = H} {c = c} sv vN sc c⊢ prem q =
-  CTI2.conceal⊑² CTI2.rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)
+  CTI2.conceal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)
     (right-inj-inversion² sv vN prem
       (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
         (sym (cong `∀ (pivot-id-endpoints↓ c⊢))) q))

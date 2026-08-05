@@ -271,18 +271,39 @@ ordinary world evolution at an allocation step.
 `RebaseAt W W′ Xᴸ Xᴿ` is deliberately pivot-local. Reduction introduces
 one reveal or conceal wrapper per fresh type variable, so descending
 through one wrapper is only allowed to change the alignment of the pivot
-pair. Concretely, the record requires that the two runtime stores, the
-center type context, and the imprecision environment are unchanged, that
-`ηᴸ` agrees with the old world at every variable other than `Xᴸ` and
-`ηᴿ` agrees at every variable other than `Xᴿ`, that the pivots are
-aligned in the new world, and that their store representations are
-related there. Store representations are canonical: `resolveVar` follows
-a variable's representation chain to its end (a non-variable type or a
-store-lift variable), instead of letting the derivation stop the chase
-at an arbitrary intermediate type. Chains terminate because a store-bind
+pair. Concretely, the record requires that the two runtime stores and
+the center type context are unchanged, that `ηᴸ` agrees with the old
+world at every variable other than `Xᴸ` and `ηᴿ` agrees at every
+variable other than `Xᴿ`, that the pivots are aligned in the new world,
+and that their store representations are related there. Store
+representations are canonical: `resolveVar` follows a variable's
+representation chain to its end (a non-variable type or a store-lift
+variable), instead of letting the derivation stop the chase at an
+arbitrary intermediate type. Chains terminate because a store-bind
 entry mentions only strictly older variables. This keeps rebasing
 deterministic enough for inversion: given the old world and the pivot
-pair, the new world is fixed up to which side of the pivot moved.
+pair, the new world is fixed up to which side of the pivot moved and up
+to mark decay, described next.
+
+Imprecision marks are not pinned by the rebase. An earlier design
+required the premise and conclusion worlds to agree on every mark, but
+the checked configuration in
+[`proof/DGG/ExtraCastRight2Counterexample.agda`](proof/DGG/ExtraCastRight2Counterexample.agda)
+refuted extra-cast-right under that regime: a rebase that displaces a
+target variable leaves its old partner precise but unaligned, and the
+stale `X⊑X` mark — provably preserved by mark equality — makes the
+relation required after target-tag cancellation empty. Instead, every
+wrapper rule now carries an `ImpEnvMono` premise from its conclusion
+world to its premise world: centers marked `X⊑★` stay `X⊑★`, and
+precise marks may decay to `X⊑★`. Mark decay never removes
+derivability, because no imprecision rule requires a precise mark. The
+companion invariant `WFWorld` says a world is mark-honest: every source
+variable whose center is marked precise has an aligned target variable.
+The counterexample's input world fails it exactly at the displaced
+variable; descending into a dynamized, mark-honest premise world is
+what makes the previously-empty output derivable. There is no mirror
+condition for target variables because type imprecision has no rule
+with a bare variable on the imprecise side.
 
 Reveal and conceal use opposite `RebaseAt` directions. A reveal checks the
 premise in the pre-reveal world and produces the result in the post-reveal

@@ -22,6 +22,7 @@ open import Conversion
 open import Primitives
 open import CastTerms
 open import Reduction
+import proof.Consistency as ConsProof
 import proof.TypeSafety.Progress as Progress
 
 ------------------------------------------------------------------------
@@ -45,7 +46,7 @@ inert? (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
 inert? (？ c) = nothing
 inert? (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = nothing
 inert? (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
-  just (genᵥ A≢★ (Progress.gen-safe c A≢★ Bnv z∈B))
+  just (genᵥ A≢★ (ConsProof.gen-safe c A≢★ Bnv z∈B))
 inert? bot-elim = nothing
 inert? bot-intro = nothing
 

@@ -20,11 +20,11 @@ import Consistency as C
 open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗)
 open import CastTerms using
   (Term; Value; _⊢_⦂_; ⊢⟨⟩; ⟨_,_,_⟩; ƛ_; Λ_; $; _⦂∀_[_];
-   _⟨_⟩; _↑_; _↓_; GenSafe; Inert; inj; fun; all; seal; genᵥ;
+   _⟨_⟩; _↑_; _↓_; GenSafe; inj; fun; all; seal; genᵥ;
    safe-⇒; safe-∀; safe-inst; safe-gen; _《_》; renameᵗᵐ; ⇑ᵗᵐ)
 open import Imprecision using (_⊢_⊑_)
 import Imprecision as I
-import Reduction as R
+open import Reduction
 import GradualTermImprecision as GTI
 import proof.DGG.CastTermImprecision as CTI
 import proof.DGG.RightInjInversion as RII
@@ -36,84 +36,10 @@ open import proof.ImprecisionConsistency using
    source-occurs-target; toRenameᵗ-injective; unshift-nonvar)
 import proof.Imprecision as PI
 import proof.TypeSafety.Progress as Prog
-open import proof.TypeSafety.Progress using (gen-safe)
+open import proof.Consistency using (gen-safe)
+open import proof.Reduction using (cast-↠; applyConsistencies-Inert)
 open import proof.TypeInTermSubst using
-  (rename-star-injective; rename-occurs; renameᵗ-wk-eq;
-   renameᵗᵐ-preserves-Value; toRename-keep-eq)
-
-applyEnvs : ∀ {Δ Δ′}
-  → R.StoreChanges Δ Δ′
-  → Env∼ Δ
-  → Env∼ Δ′
-applyEnvs R.[] μ = μ
-applyEnvs (χ R.∷ χs) μ = applyEnvs χs (R.applyEnv χ μ)
-
-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-  → (χs : R.StoreChanges Δ Δ′)
-  → μ ⊢ A ∼ B
-  → applyEnvs χs μ ⊢ R.applyTys χs A ∼ R.applyTys χs B
-applyConsistencies R.[] c = c
-applyConsistencies (χ R.∷ χs) c =
-  applyConsistencies χs (R.applyConsistency χ c)
-
-cast-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
-    {χs : R.StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-  → (c : μ ⊢ A ∼ B)
-  → M R.—↠[ χs ] N
-  → M ⟨ c ⟩ R.—↠[ χs ] N ⟨ applyConsistencies χs c ⟩
-cast-↠ c R.↠-refl = R.↠-refl
-cast-↠ {χs = χ R.∷ χs} c (R.↠-step M→N N↠P) =
-  R.↠-step (R.ξ-⟨⟩ M→N refl)
-    (cast-↠ (R.applyConsistency χ c) N↠P)
-
-applyStoreChange-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → (χ : R.StoreChange Δ Δ′)
-  → Inert c
-  → Inert (R.applyConsistency χ c)
-applyStoreChange-Inert R.keep inert = inert
-applyStoreChange-Inert (R.bind A)
-    (inj ⦃ Gᵍ = ★⇒★ ⦄ ⦃ G∼★ = C.⇒∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ★⇒★ ⦄ ⦃ G∼★ = C.⇒∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (R.bind A)
-    (inj ⦃ Gᵍ = ‵ ι ⦄ ⦃ G∼★ = C.ι∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ‵ ι ⦄ ⦃ G∼★ = C.ι∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (R.bind A)
-    (inj {G = ＇ X} ⦃ Gᵍ = ＇ .X ⦄
-      ⦃ G∼★ = C.X∼★ᵍ eq ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ＇ Fin.suc X ⦄ ⦃ G∼★ = C.X∼★ᵍ eq ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (R.bind A)
-    (inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄ ⦃ Gns = Gns ⦄) =
-  inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄
-    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
-applyStoreChange-Inert (R.bind A) fun = fun
-applyStoreChange-Inert (R.bind A) all = all
-applyStoreChange-Inert (R.bind A)
-    (genᵥ {A = A₀} {B = B} {c = c}
-      ⦃ Bnv = Bnv ⦄ ⦃ z∈B = z∈B ⦄ A≢★ safe) =
-  subst≡
-    (λ z → Inert (gen_ ⦃ Bnv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
-      ⦃ z∈B = z ⦄ _ _))
-    (PI.∈ᵗ-unique (rename-occurs (extᵗ Fin.suc) z∈B) _)
-    (genᵥ ⦃ Bnv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
-      ⦃ z∈B = rename-occurs (extᵗ Fin.suc) z∈B ⦄
-      A′≢★
-      (gen-safe _ A′≢★ (renameNonVar (extᵗ Fin.suc) Bnv)
-        (rename-occurs (extᵗ Fin.suc) z∈B)))
-  where
-  A′≢★ = λ eq → A≢★ (rename-star-injective Fin.suc eq)
-
-applyConsistencies-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → (χs : R.StoreChanges Δ Δ′)
-  → Inert c
-  → Inert (applyConsistencies χs c)
-applyConsistencies-Inert R.[] inert = inert
-applyConsistencies-Inert (χ R.∷ χs) inert =
-  applyConsistencies-Inert χs (applyStoreChange-Inert χ inert)
+  (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value; toRename-keep-eq)
 
 gen-safe-source-nonvar : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     {c : μ ⊢ A ∼ B}
@@ -418,7 +344,7 @@ extra-cast-right : ∀ {Δᴸ Δᴿ Δ}
   → (c′ : ν ⊢ B ∼ B′)
   → (q : CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) B′)
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ χs ∈ R.StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ ηᴸ′ ∈ Δᴸ ↪ᵗ Δ′ ] Σ[ ηᴿ′ ∈ Δᴿ′ ↪ᵗ Δ′ ]
     Σ[ ρ′ ∈ CTI.StoreImp Δ′ ]
     Σ[ γ′ ∈ GTI.CtxImp (CTI.impEnvⁱ ρ′) ]
@@ -426,10 +352,10 @@ extra-cast-right : ∀ {Δᴸ Δᴿ Δ}
     Σ[ transport⊑ ∈ (∀ {C : Ty Δᴿ}
       → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) C
       → CTI.impEnvⁱ ρ′
-          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (R.applyTys χs C)) ]
+          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (χs ▶ᵗ C)) ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
-       × (M′ ⟨ c′ ⟩ R.—↠[ χs ] N′)
+       × (M′ ⟨ c′ ⟩ —↠[ χs ] N′)
        × (ηᴸ′ ∣ ηᴿ′ ∣ ρ′ ∣ γ′ ⊢ᶜ M ⊑ N′ ∶ transport⊑ q))
 
 inst-catchup-right : ∀ {Δᴸ Δᴿ Δ}
@@ -449,7 +375,7 @@ inst-catchup-right : ∀ {Δᴸ Δᴿ Δ}
   → (B′≢★ : B′ ≢ ★)
   → (q : CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) B′)
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ χs ∈ R.StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ ηᴸ′ ∈ Δᴸ ↪ᵗ Δ′ ] Σ[ ηᴿ′ ∈ Δᴿ′ ↪ᵗ Δ′ ]
     Σ[ ρ′ ∈ CTI.StoreImp Δ′ ]
     Σ[ γ′ ∈ GTI.CtxImp (CTI.impEnvⁱ ρ′) ]
@@ -457,10 +383,10 @@ inst-catchup-right : ∀ {Δᴸ Δᴿ Δ}
     Σ[ transport⊑ ∈ (∀ {C : Ty Δᴿ}
       → CTI.impEnvⁱ ρ ⊢ A ⊑ renameᵗ (toRenameᵗ ηᴿ) C
       → CTI.impEnvⁱ ρ′
-          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (R.applyTys χs C)) ]
+          ⊢ A′ ⊑ renameᵗ (toRenameᵗ ηᴿ′) (χs ▶ᵗ C)) ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
-       × (M′ ⟨ (inst c′) B′≢★ ⟩ R.—↠[ χs ] N′)
+       × (M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs ] N′)
        × (ηᴸ′ ∣ ηᴿ′ ∣ ρ′ ∣ γ′ ⊢ᶜ M ⊑ N′ ∶ transport⊑ q))
 
 -- Case: c′ = id a
@@ -469,7 +395,10 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     {M = M} {M′ = M′} {A = A} {B = B} {p = p}
     M⊑M′ vM vM′ (id a) q =
   Δᴿ , Δ , _ , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
-  vM′ , R.↠-step (R.pure-step (R.β-id vM′)) R.↠-refl ,
+  vM′ ,
+  ((M′ ⟨ id a ⟩)
+    —→[ keep ]⟨ pure-step (β-id vM′) ⟩
+  M′ ∎[]) ,
   subst≡ (λ r → ηᴸ ∣ ηᴿ ∣ ρ ∣ γ ⊢ᶜ M ⊑ M′ ∶ r)
     (PI.⊑-unique p q) M⊑M′
 
@@ -478,8 +407,8 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     {ηᴸ = ηᴸ} {ηᴿ = ηᴿ} {ρ = ρ} {γ = γ}
     {M = M} {M′ = M′} {A = A} {B′ = B′}
     (CTI.rename⊑renameᶜ categorize M⊑M′) vM vM′ (c ↦ d) q =
-  Δᴿ , Δ , R.[] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
-  vM′ 《 fun 》 , R.↠-refl ,
+  Δᴿ , Δ , [] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
+  vM′ 《 fun 》 , ((M′ ⟨ c ↦ d ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize
     (CTI.⊑castᶜ (renameᵐᶜ ηᴿ (c ↦ d)) M⊑M′ q)
 
@@ -488,8 +417,8 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     {ηᴸ = ηᴸ} {ηᴿ = ηᴿ} {ρ = ρ} {γ = γ}
     {M = M} {M′ = M′} {A = A} {B′ = B′}
     (CTI.rename⊑renameᶜ categorize M⊑M′) vM vM′ (∀ᶜ c) q =
-  Δᴿ , Δ , R.[] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
-  vM′ 《 all 》 , R.↠-refl ,
+  Δᴿ , Δ , [] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
+  vM′ 《 all 》 , ((M′ ⟨ ∀ᶜ c ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize
     (CTI.⊑castᶜ (renameᵐᶜ ηᴿ (∀ᶜ c)) M⊑M′ q)
 
@@ -508,10 +437,11 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ .(C.idᵍ Gᵍ) ⦃ Bns ⦄) q
     | Prog.same
     rewrite nonStar-unique Bns (C.ground-nonstar Gᵍ) =
-  Δᴿ , Δ , R.[] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
+  Δᴿ , Δ , [] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
   vM′ 《 inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
     ⦃ Gns = C.ground-nonstar Gᵍ ⦄ 》 ,
-  R.↠-refl ,
+  ((M′ ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
+    ⦃ C.ground-nonstar Gᵍ ⦄ ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize
     (CTI.⊑castᶜ
       (renameᵐᶜ ηᴿ
@@ -539,28 +469,37 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     | Δᴿ′ , Δ′ , χs , ηᴸ′ , ηᴿ′ , ρ′ , γ′ , A′ ,
       transport⊑ , N′ , vN′ , M′c↠N′ ,
       CTI.rename⊑renameᶜ categorize′ M⊑N′ =
-  Δᴿ′ , Δ′ , R.keep R.∷ χs , ηᴸ′ , ηᴿ′ , ρ′ , γ′ ,
+  Δᴿ′ , Δ′ , keep ∷ χs , ηᴸ′ , ηᴿ′ , ρ′ , γ′ ,
   A′ , transport⊑ ,
   N′
-    ⟨ applyConsistencies χs
+    ⟨ χs ▶ᶜ
         (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
           ⦃ C.ground-nonstar Gᵍ ⦄) ⟩ ,
   vN′
     《 applyConsistencies-Inert χs
         (inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
           ⦃ Gns = C.ground-nonstar Gᵍ ⦄) 》 ,
-  R.↠-step
-    (R.pure-step
-      (R.ground ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
-        ⦃ Ans = Bns ⦄ ⦃ Gns = C.ground-nonstar Gᵍ ⦄ vM′ B≢G))
-    (cast-↠
-      (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
-        ⦃ C.ground-nonstar Gᵍ ⦄)
-      M′c↠N′) ,
+  ((M′ ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Bns ⦄ ⟩)
+    —→[ keep ]⟨
+      pure-step
+      (ground ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+        ⦃ Ans = Bns ⦄ ⦃ Gns = C.ground-nonstar Gᵍ ⦄ vM′ B≢G)
+    ⟩
+  _
+    —↠[ χs ]⟨
+      cast-↠
+        (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
+          ⦃ C.ground-nonstar Gᵍ ⦄)
+        M′c↠N′
+    ⟩
+  (N′
+    ⟨ χs ▶ᶜ
+        (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
+          ⦃ C.ground-nonstar Gᵍ ⦄) ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize′
     (CTI.⊑castᶜ
       (renameᵐᶜ ηᴿ′
-        (applyConsistencies χs
+        (χs ▶ᶜ
           (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (C.idᵍ Gᵍ)
             ⦃ C.ground-nonstar Gᵍ ⦄)))
       M⊑N′ (transport⊑ q))
@@ -600,21 +539,24 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
 -- Subcase: Prog.from-ground g c = same
 extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     {ηᴸ = ηᴸ} {ηᴿ = ηᴿ} {ρ = ρ} {γ = γ}
-    {M = M} {A = A} {B′ = ._}
+    {M = M} {M′ = M′} {A = A} {B′ = ._}
     (CTI.rename⊑renameᶜ categorize M⊑M′ᶜ) vM vM′
     (？_ {B = ._} ⦃ g ⦄ ⦃ ★∼G ⦄ .(C.idᵍ g) ⦃ Bns ⦄) q
     | Prog.sv-tag {W = W} {G = ._} {Gᵍ = h} ⦃ G∼★ = H∼★ ⦄
         ⦃ Gns = Hns ⦄ vW refl
     | yes refl | Prog.same
     rewrite nonStar-unique Bns Hns | ground-unique g h =
-  Δᴿ , Δ , R.keep R.∷ R.[] , ηᴸ , ηᴿ , ρ , γ , A ,
+  Δᴿ , Δ , keep ∷ [] , ηᴸ , ηᴿ , ρ , γ , A ,
   (λ r → r) , W ,
   vW ,
-  R.↠-step
-    (R.pure-step
-      (R.tag-untag ⦃ Gᵍ = h ⦄ ⦃ G∼★ = H∼★ ⦄
-        ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = Hns ⦄ vW))
-    R.↠-refl ,
+  ((M′ ⟨ ？_ ⦃ Gᵍ = h ⦄ ⦃ ★∼G = ★∼G ⦄ (C.idᵍ h)
+      ⦃ Bns = Hns ⦄ ⟩)
+    —→[ keep ]⟨
+      pure-step
+      (tag-untag ⦃ Gᵍ = h ⦄ ⦃ G∼★ = H∼★ ⦄
+        ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = Hns ⦄ vW)
+    ⟩
+  W ∎[]) ,
   RII.right-inj-inversion-indexed vM
     (CTI.rename⊑renameᶜ categorize M⊑M′ᶜ) q
 
@@ -647,21 +589,27 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     | Δᴿ′ , Δ′ , χs , ηᴸ′ , ηᴿ′ , ρ′ , γ′ , A′ ,
       transport⊑ , N′ , vN′ , Wc↠N′ , M⊑N′
     rewrite ground-unique g h
-          | nonStar-unique Hns (C.ground-nonstar h) =
-  Δᴿ′ , Δ′ , R.keep R.∷ R.keep R.∷ χs ,
+          | sym (nonStar-unique Hns (C.ground-nonstar h)) =
+  Δᴿ′ , Δ′ , keep ∷ keep ∷ χs ,
   ηᴸ′ , ηᴿ′ , ρ′ , γ′ , A′ , transport⊑ , N′ , vN′ ,
-  R.↠-step
-    (R.pure-step
-      (R.expand ⦃ Gᵍ = h ⦄ ⦃ ★∼G = ★∼G ⦄
-        ⦃ Bns = Bns ⦄ ⦃ Gns = C.ground-nonstar h ⦄
-        vM′ (λ eq → B′≢G (sym eq))))
-    (R.↠-step
-      (R.ξ-⟨⟩
-        (R.pure-step
-          (R.tag-untag ⦃ Gᵍ = h ⦄ ⦃ G∼★ = H∼★ ⦄
-            ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = C.ground-nonstar h ⦄ vW))
-        refl)
-      Wc↠N′) ,
+  (_
+    —→[ keep ]⟨
+      pure-step
+      (expand ⦃ Gᵍ = h ⦄ ⦃ ★∼G = ★∼G ⦄
+        ⦃ Bns = Bns ⦄ ⦃ Gns = Hns ⦄
+        vM′ (λ eq → B′≢G (sym eq)))
+    ⟩
+  _
+    —→[ keep ]⟨
+        (ξ-⟨⟩
+          (pure-step
+            (tag-untag ⦃ Gᵍ = h ⦄ ⦃ G∼★ = H∼★ ⦄
+              ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = Hns ⦄ vW))
+          refl)
+    ⟩
+  _
+    —↠[ χs ]⟨ Wc↠N′ ⟩
+  N′ ∎[]) ,
   M⊑N′
 
 -- Subcase: G ≟Ty H = no G≢H
@@ -711,9 +659,9 @@ extra-cast-right {Δᴿ = Δᴿ} {Δ = Δ}
     (CTI.rename⊑renameᶜ categorize M⊑M′) vM vM′
     (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) q
     =
-  Δᴿ , Δ , R.[] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
+  Δᴿ , Δ , [] , ηᴸ , ηᴿ , ρ , γ , A , (λ r → r) , _ ,
   vM′ 《 genᵥ A≢★ (gen-safe c A≢★ Bnv z∈B) 》 ,
-  R.↠-refl ,
+  ((M′ ⟨ gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★ ⟩) ∎[]) ,
   CTI.rename⊑renameᶜ categorize
     (CTI.⊑castᶜ
       (renameᵐᶜ ηᴿ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★))

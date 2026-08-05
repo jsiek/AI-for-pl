@@ -20,5 +20,6 @@ import proof.TypeSafety.Preservation
 import proof.ImprecisionConsistency
 import proof.Imprecision
 import proof.Consistency
+import proof.Reduction
 import proof.DGG.CastTermImprecision
 import proof.DGG.CompilePreservesImprecision

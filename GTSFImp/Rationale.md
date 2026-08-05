@@ -228,10 +228,14 @@ reveal⊑reveal²
 conceal⊑conceal²
 ```
 
-All six rules are representation directed: each rule carries a `RebaseAt`
-premise and indexed conversion typing evidence such as `Σ ⊢↑[ X ] c` or
-`Σ ⊢↓[ X ] c`. This records which abstract variable the conversion is
-about and which source/target store representations are being compared.
+All six rules are representation directed: each rule carries a rebasing
+premise and indexed conversion typing evidence such as `Σ ⊢↑[ just X ] c`
+or `Σ ⊢↓[ just X ] c`. This records which abstract variable the
+conversion is about and which source/target store representations are
+being compared. The pivot index is optional: an identity-shaped
+conversion has pivot `nothing`, and the one-sided rules take a
+`RebaseAtᴸ`/`RebaseAtᴿ` premise whose `nothing` case forces the premise
+world to equal the conclusion world.
 
 `RebaseAt W W′ Xᴸ Xᴿ` is deliberately pivot-local. Reduction introduces
 one reveal or conceal wrapper per fresh type variable, so descending
@@ -304,82 +308,51 @@ boundary whose pivot is the moved pair.
 <a id="identity-reveals-v2"></a>
 ## Identity reveals in version-2 cast-term imprecision
 
-The version-2 prototype relation in
-[`proof/DGG/CastTermImprecision2.agda`](proof/DGG/CastTermImprecision2.agda)
-includes a narrow target-only identity-reveal rule:
-
-```agda
-⊑id-reveal²
-```
-
-This rule was added for the `β-reveal-∀` / `β-Λ` example in
-[`proof/DGG/Examples2.agda`](proof/DGG/Examples2.agda). The target starts
-with an administrative universal reveal:
-
-```agda
-Ex.polyId ↑ `∀↑ (id↑ Ex.X⇒X)
-```
-
-Semantically, this reveal is an identity conversion. It should be
-admissible to relate a term to the same target term wrapped by such an
-identity reveal:
-
-```text
-M  ⊑  M′
-        |
-        | add administrative target identity reveal
-        v
-M  ⊑  M′ ↑ id
-```
-
-However, this admissibility is not derivable from the other version-2
-constructors as currently written. The only general target-only reveal rule
-is representation-directed:
-
-```agda
-⊑reveal²
-```
-
-It requires a `RebaseAt W W′ Xᴸ Xᴿ` premise and an indexed conversion
-typing premise for the converted target variable `Xᴿ`. That is appropriate
-for real `seal`/`unseal` boundaries, where the proof must say which
-abstract type variable is being revealed and which store representation is
-being chased.
-
-For an identity reveal at an empty target store, there is no such variable.
-The first nat-chain comparison needs to relate
+The `β-reveal-∀` / `β-Λ` example in
+[`proof/DGG/Examples2.agda`](proof/DGG/Examples2.agda) needs to relate a
+term to the same target term wrapped in an administrative identity
+reveal:
 
 ```agda
 Ex.polyId
   ⊑ Ex.polyId ↑ `∀↑ (id↑ Ex.X⇒X)
 ```
 
-at target type context size `0`. There is no `Xᴿ : TyVar 0`, so the
-`RebaseAt`-based reveal rule cannot even be instantiated. Using a rebase
-premise for this case would also be conceptually misleading: there is no
-store representation path to chase.
+at target type context size `0`. There is no `Xᴿ : TyVar 0`, so a
+reveal rule that demands a pivot variable and a store representation
+cannot even be instantiated here — and semantically there is nothing to
+chase, because the conversion is an identity.
 
-The prototype therefore separates identity reveals from representation
-reveals with a small syntactic predicate:
+An early prototype handled this with a separate primitive rule,
+`⊑id-reveal²`, guarded by an `IdentityReveal` predicate. That design had
+a loophole in the other direction: the indexed conversion typing had
+`Σ ⊢↑[ X ] id↑ A` for **every** `X`, so the rebasing reveal rule could
+be applied to an identity conversion at an arbitrary pivot and change
+the world under a conversion that mentions no variable at all.
+
+The current design closes the loophole and removes the extra rule at
+the same time by making the pivot index optional:
 
 ```agda
-IdentityReveal (id↑ A)
-IdentityReveal c
-  → IdentityReveal (`∀↑ c)
+Σ ⊢↑[ nothing ] id↑ A
+Σ ⊢↑[ just X ] unseal X R
 ```
 
-and the corresponding rule `⊑id-reveal²`. This is intended as an
-admissible closure principle for identity-shaped upward conversions, not as
-a semantic rebase rule. It does not cover arbitrary one-sided reveals and it
-does not introduce any new representation alignment.
+A composite conversion joins the pivots of its halves with `PivotJoin`:
+identity halves contribute `nothing`, variable halves must agree, so a
+conversion has pivot `just X` exactly when some leaf seals or unseals
+`X` and no leaf mentions another variable. An all-identity conversion
+has pivot `nothing` and no other typing.
 
-A cleaner final design would prove this as an admissibility lemma and then
-remove `⊑id-reveal²` as a primitive constructor. That proof would need some
-separate support for identity conversion irrelevance, normalization of
-identity-shaped conversions, or equality of cast terms modulo identity
-reveals. Until that proof infrastructure exists, the explicit rule records
-the intended admissible step locally and keeps real store-dependent reveals
-under the `RebaseAt` machinery.
+The one-sided wrapper rules take a `RebaseAtᴸ` or `RebaseAtᴿ` premise
+indexed by the optional pivot. Its `rebase-var` case wraps an ordinary
+pivot-local `RebaseAt`; its `rebase-id` case is only available at pivot
+`nothing` and forces the premise world to equal the conclusion world.
+Identity reveals are therefore the `nothing` instance of the ordinary
+`⊑reveal²` rule: they never rebase, and rebasing reveals always name
+the variable they reveal. The paired reveal/conceal rules require
+`just` pivots on both sides; a pairing of an identity conversion with a
+variable conversion decomposes into two one-sided steps.
 
 <a id="example12-store-alignment"></a>
 ## Example 12 store alignment and right-only variables

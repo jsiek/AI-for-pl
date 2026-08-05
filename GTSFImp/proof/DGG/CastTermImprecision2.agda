@@ -13,6 +13,10 @@ module proof.DGG.CastTermImprecision2 where
 --   * Store representations are canonical: a pivot variable is compared
 --     through resolveVar, which follows the store's representation chain
 --     to its end instead of stopping at an arbitrary intermediate type.
+--   * Conversion typing is indexed by an optional pivot.  A conversion
+--     built only from identity leaves has no pivot and its wrapper rule
+--     keeps the world fixed; only a conversion that seals or unseals an
+--     actual variable can rebase, and only at that variable.
 --   * Records the Example 12 alignments Xᴸ≅Xᴿ, Xᴸ≅Zᴿ, and Xᴸ≅Yᴿ as first-class
 --     store-representation witnesses.
 --   * Records a left-hand analogue of Example 12 where the source store, not
@@ -25,6 +29,7 @@ module proof.DGG.CastTermImprecision2 where
 
 open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_; map)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
@@ -256,68 +261,119 @@ sameWorldRebaseAt =
   rebase-at (same-runtime refl refl)
     (λ _ → refl) (λ _ → refl) (λ _ → refl)
 
+-- One-sided wrappers carry an optional pivot: a conversion with no
+-- pivot (an identity-shaped conversion) keeps the world fixed, and a
+-- conversion pivoted on a variable may rebase exactly there.
+
+data RebaseAtᴸ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
+    → Maybe (TyVar Δᴸ) → Set where
+  rebase-idᴸ : ∀ {W}
+      ------------------------
+    → RebaseAtᴸ W W nothing
+
+  rebase-varᴸ : ∀ {W W′ Xᴸ Xᴿ}
+    → RebaseAt W W′ Xᴸ Xᴿ
+      ---------------------------
+    → RebaseAtᴸ W W′ (just Xᴸ)
+
+data RebaseAtᴿ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
+    → Maybe (TyVar Δᴿ) → Set where
+  rebase-idᴿ : ∀ {W}
+      ------------------------
+    → RebaseAtᴿ W W nothing
+
+  rebase-varᴿ : ∀ {W W′ Xᴸ Xᴿ}
+    → RebaseAt W W′ Xᴸ Xᴿ
+      ---------------------------
+    → RebaseAtᴿ W W′ (just Xᴿ)
+
 ------------------------------------------------------------------------
--- Conversion typing indexed by the converted variable
+-- Conversion typing indexed by an optional converted variable
 ------------------------------------------------------------------------
+
+-- The pivot of a composite conversion is the join of the pivots of its
+-- halves: an identity half contributes nothing, and two variable halves
+-- must agree.  An all-identity conversion therefore has pivot nothing
+-- and cannot be retyped at an arbitrary variable.
+
+data PivotJoin {Δ : TyCtx} :
+    Maybe (TyVar Δ) → Maybe (TyVar Δ) → Maybe (TyVar Δ) → Set where
+  join-none :
+      ----------------------------------
+      PivotJoin nothing nothing nothing
+
+  join-left : ∀ {X}
+      ------------------------------------
+    → PivotJoin (just X) nothing (just X)
+
+  join-right : ∀ {X}
+      ------------------------------------
+    → PivotJoin nothing (just X) (just X)
+
+  join-both : ∀ {X}
+      -------------------------------------
+    → PivotJoin (just X) (just X) (just X)
 
 infix 4 _⊢↑[_]_ _⊢↓[_]_
 
 mutual
-  data _⊢↑[_]_ {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ) :
-      ∀ {A B} → Conv↑ Δ A B → Set where
-    ⊢↑-unsealˣ : ∀ {R}
+  data _⊢↑[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
+      Maybe (TyVar Δ) → ∀ {A B} → Conv↑ Δ A B → Set where
+    ⊢↑-unsealˣ : ∀ {X R}
       → Σ ∋ X ⦂ R
-        ---------------------
-      → Σ ⊢↑[ X ] unseal X R
+        ----------------------------
+      → Σ ⊢↑[ just X ] unseal X R
 
-    ⊢↑-⇒ˣ : ∀ {A A′ B B′}
+    ⊢↑-⇒ˣ : ∀ {p q r A A′ B B′}
         {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → Σ ⊢↓[ X ] c
-      → Σ ⊢↑[ X ] d
+      → PivotJoin p q r
+      → Σ ⊢↓[ p ] c
+      → Σ ⊢↑[ q ] d
         -----------------
-      → Σ ⊢↑[ X ] c ↦↑ d
+      → Σ ⊢↑[ r ] c ↦↑ d
 
-    ⊢↑-∀ˣ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑[ Fin.suc X ] c
-        --------------------
-      → Σ ⊢↑[ X ] `∀↑ c
+    ⊢↑-∀ˣ : ∀ {X A B} {c : Conv↑ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↑[ just (Fin.suc X) ] c
+        -------------------------
+      → Σ ⊢↑[ just X ] `∀↑ c
+
+    ⊢↑-∀-idˣ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↑[ nothing ] c
+        -------------------------
+      → Σ ⊢↑[ nothing ] `∀↑ c
 
     ⊢↑-idˣ : ∀ {A}
-        -----------------
-      → Σ ⊢↑[ X ] id↑ A
+        -----------------------
+      → Σ ⊢↑[ nothing ] id↑ A
 
-  data _⊢↓[_]_ {Δ : TyCtx} (Σ : TyStore Δ) (X : TyVar Δ) :
-      ∀ {A B} → Conv↓ Δ A B → Set where
-    ⊢↓-sealˣ : ∀ {R}
+  data _⊢↓[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
+      Maybe (TyVar Δ) → ∀ {A B} → Conv↓ Δ A B → Set where
+    ⊢↓-sealˣ : ∀ {X R}
       → Σ ∋ X ⦂ R
-        -------------------
-      → Σ ⊢↓[ X ] seal X R
+        --------------------------
+      → Σ ⊢↓[ just X ] seal X R
 
-    ⊢↓-⇒ˣ : ∀ {A A′ B B′}
+    ⊢↓-⇒ˣ : ∀ {p q r A A′ B B′}
         {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → Σ ⊢↑[ X ] c
-      → Σ ⊢↓[ X ] d
+      → PivotJoin p q r
+      → Σ ⊢↑[ p ] c
+      → Σ ⊢↓[ q ] d
         -----------------
-      → Σ ⊢↓[ X ] c ↦↓ d
+      → Σ ⊢↓[ r ] c ↦↓ d
 
-    ⊢↓-∀ˣ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓[ Fin.suc X ] c
-        --------------------
-      → Σ ⊢↓[ X ] `∀↓ c
+    ⊢↓-∀ˣ : ∀ {X A B} {c : Conv↓ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↓[ just (Fin.suc X) ] c
+        -------------------------
+      → Σ ⊢↓[ just X ] `∀↓ c
+
+    ⊢↓-∀-idˣ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
+      → store-lift Σ ⊢↓[ nothing ] c
+        -------------------------
+      → Σ ⊢↓[ nothing ] `∀↓ c
 
     ⊢↓-idˣ : ∀ {A}
-        -----------------
-      → Σ ⊢↓[ X ] id↓ A
-
-data IdentityReveal {Δ : TyCtx} : ∀ {A B} → Conv↑ Δ A B → Set where
-  identity-reveal-id : ∀ {A}
-      ---------------------------
-    → IdentityReveal (id↑ A)
-
-  identity-reveal-∀ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-    → IdentityReveal c
-      -------------------------
-    → IdentityReveal (`∀↑ c)
+        -----------------------
+      → Σ ⊢↓[ nothing ] id↓ A
 
 ------------------------------------------------------------------------
 -- Typed cast-term imprecision with recursive worlds
@@ -408,33 +464,23 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
-  -- TODO: Find a way to remove the below rule
-  ⊑id-reveal² : ∀ {M M′ A B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {c′ : Conv↑ Δᴿ B B′}
-    → IdentityReveal c′
-    → targetStoreʷ W ⊢↑ c′
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
-
   ⊑reveal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
+      {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
-    → RebaseAt W W′ Xᴸ Xᴿ
+    → RebaseAtᴿ W W′ Xᴿ?
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↑[ Xᴿ ] c′
+    → targetStoreʷ W ⊢↑[ Xᴿ? ] c′
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A ⊑ᵂ⟨ W ⟩ B′)
       -----------------------------
     → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
   ⊑conceal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A B B′ Xᴸ Xᴿ}
+      {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
-    → RebaseAt W′ W Xᴸ Xᴿ
+    → RebaseAtᴿ W′ W Xᴿ?
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↓[ Xᴿ ] c′
+    → targetStoreʷ W ⊢↓[ Xᴿ? ] c′
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A ⊑ᵂ⟨ W ⟩ B′)
       -----------------------------
@@ -449,22 +495,22 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
   reveal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
+      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
-    → RebaseAt W W′ Xᴸ Xᴿ
+    → RebaseAtᴸ W W′ Xᴸ?
     → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↑[ Xᴸ ] c
+    → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
   conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ Xᴿ}
+      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → RebaseAt W′ W Xᴸ Xᴿ
+    → RebaseAtᴸ W′ W Xᴸ?
     → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↓[ Xᴸ ] c
+    → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -477,8 +523,8 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
     → RebaseAt W Wᵖ Xᴸ Xᴿ
     → SameCtx γ γᵖ
-    → sourceStoreʷ W ⊢↑[ Xᴸ ] c
-    → targetStoreʷ W ⊢↑[ Xᴿ ] c′
+    → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
+    → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -491,8 +537,8 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
-    → sourceStoreʷ W ⊢↓[ Xᴸ ] c
-    → targetStoreʷ W ⊢↓[ Xᴿ ] c′
+    → sourceStoreʷ W ⊢↓[ just Xᴸ ] c
+    → targetStoreʷ W ⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -659,6 +705,10 @@ example12-nat-chain-reveal = `∀↑ (id↑ Ex.X⇒X)
 example12-nat-chain-reveal-⊢ :
   store-empty ⊢↑ example12-nat-chain-reveal
 example12-nat-chain-reveal-⊢ = ⊢↑-∀ ⊢↑-id
+
+example12-nat-chain-reveal-⊢ˣ :
+  store-empty ⊢↑[ nothing ] example12-nat-chain-reveal
+example12-nat-chain-reveal-⊢ˣ = ⊢↑-∀-idˣ ⊢↑-idˣ
 
 example12-nat-chain-target : Term 0
 example12-nat-chain-target =

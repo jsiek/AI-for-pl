@@ -283,7 +283,7 @@ right-inj-index-forces-core {ρ = ρ} {W = W} {G = G} {H = H}
     {κ = κH} {gH = gH} {H∼★ = H∼★} {cH = cH}
     gG (Λ vV₀)
     (CTI.Λ⊑ᶜ {γ′ = γ′} {A = A₀}
-      Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+      Anv zero∈A liftγ vV V⊑⇑W!)
     (I.∀⊑ Anv′ zero∈A′ A₀⊑⇑G) =
   I.∀⊑ Anv′ zero∈A′
     (subst≡ (λ T → I.instᵐ (CTI.impEnvⁱ ρ) ⊢ A₀ ⊑ T)
@@ -300,14 +300,14 @@ right-inj-index-forces-core {ρ = ρ} {W = W} {G = G} {H = H}
         (subst≡ (λ T → I.instᵐ (CTI.impEnvⁱ ρ) ⊢ A₀ ⊑ T)
           (sym (renameᵗ-wk-eq G)) A₀⊑⇑G)))
 right-inj-index-forces-core ∀★ (Λ vV₀)
-    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV V⊑⇑W!)
     (I.∀⊑∀ A⊑★)
     with source-occurs-target refl A⊑★ zero∈A
 right-inj-index-forces-core ∀★ (Λ vV₀)
-    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ Anv zero∈A liftγ vV V⊑⇑W!)
     (I.∀⊑∀ A⊑★) | ()
 right-inj-index-forces-core gG (Λ vV₀)
-    (CTI.Λ⊑ᶜ () zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ () zero∈A liftγ vV V⊑⇑W!)
     I.bot-elim
 right-inj-index-forces-core gG () (CTI.•⊑ᶜ M⊑M′ q′ p) A⊑G
 
@@ -788,7 +788,7 @@ inst-catchup-right {Δᴿ = Δᴿ} {Δ = Δ}
     {M = .(Λ V)} {M′ = .(Λ V′)} {A = A} {B = B} {B′ = B′}
     (CTI.rename⊑renameᶜ categorize M⊑M′ᶜ) vM vM′ view c′ B′≢★ q
     | Λ_ {V = V} vV | Λ_ {V = V′} vV′
-    | CTI.Λ⊑ᶜ Anv zero∈A liftγ vRV M′⊢ V⊑M′ = {!!}
+    | CTI.Λ⊑ᶜ Anv zero∈A liftγ vRV V⊑M′ = {!!}
 
 -- Remaining value shapes are handled by the recursive cast/reveal/conceal
 -- cases of the inst catch-up induction.

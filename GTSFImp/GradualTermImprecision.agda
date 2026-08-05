@@ -8,10 +8,11 @@ module GradualTermImprecision where
 --   * Depends on GradualTerms, Imprecision, and Consistency.
 
 open import Data.List using (List; []; _∷_; map)
+open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 import Data.Fin as Fin
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong₂; subst)
+  using (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import Types
 open import TermCtx using (TermCtx; ⇑ᶜ)
@@ -21,7 +22,13 @@ open import GradualTerms
 open import Imprecision
 open import Primitives
   using (Const; Prim; κℕ; κ𝔹; addℕ; and𝔹; constTy; primArgTy;
-         primResultTy)
+         primResultTy; constTy-renameᵗ)
+open import proof.Consistency
+  using (rename-consistency-left-inverse; rename-left-inverse-injective)
+open import proof.ImprecisionConsistency
+  using (ty-var-injective; ty-fun-left-injective; ty-fun-right-injective;
+         ty-all-injective; unrename-occurs)
+open import proof.TypeInTermSubst using (rename-openᵗ; renameCtx-shift)
 
 constTy-⊑ : ∀ {Δ} (μ : ImpEnv Δ) (κ : Const)
   → μ ⊢ constTy κ ⊑ constTy κ
@@ -94,6 +101,186 @@ tgtCtxⁱ-lift lift-[] = refl
 tgtCtxⁱ-lift (lift-∷ liftγ) =
   cong₂ _∷_ refl (tgtCtxⁱ-lift liftγ)
 
+lookup-zero-eq : ∀ {Δ} {Γ : TermCtx Δ} {A B}
+  → B ∷ Γ T.∋ Nat.zero ⦂ A
+  → A ≡ B
+lookup-zero-eq T.Z = refl
+
+lookup-rename-preimage : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+    {Γ : TermCtx Δ} {x T}
+  → T.renameCtx ρ Γ T.∋ x ⦂ T
+  → ∃[ A ] (T ≡ renameᵗ ρ A × Γ T.∋ x ⦂ A)
+lookup-rename-preimage {Γ = []} ()
+lookup-rename-preimage {ρ = ρ} {Γ = A ∷ Γ} {x = Nat.zero} x∈ =
+  A , lookup-zero-eq x∈ , T.Z
+lookup-rename-preimage {Γ = B ∷ Γ} {x = Nat.suc x} (T.S x∈)
+    with lookup-rename-preimage x∈
+lookup-rename-preimage {Γ = B ∷ Γ} {x = Nat.suc x} (T.S x∈)
+    | A , eq , x∈′ =
+  A , eq , T.S x∈′
+
+exts-left-inverse : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′} {σ : Δ′ ⇒ˢ Δ}
+  → (∀ X → σ (ρ X) ≡ ＇ X)
+  → ∀ X → extsᵗ σ (extᵗ ρ X) ≡ ＇ X
+exts-left-inverse left Fin.zero = refl
+exts-left-inverse left (Fin.suc X) =
+  cong (renameᵗ Fin.suc) (left X)
+
+var-left-inverse-injective : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+    {σ : Δ′ ⇒ˢ Δ}
+  → (∀ X → σ (ρ X) ≡ ＇ X)
+  → ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y
+var-left-inverse-injective {σ = σ} left {X} {Y} eq =
+  ty-var-injective (trans (sym (left X)) (trans (cong σ eq) (left Y)))
+
+primArgTy-renameᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) op
+  → primArgTy {Δ′} op ≡ renameᵗ ρ (primArgTy {Δ} op)
+primArgTy-renameᵗ ρ addℕ = refl
+primArgTy-renameᵗ ρ and𝔹 = refl
+
+primResultTy-renameᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) op
+  → primResultTy {Δ′} op ≡ renameᵗ ρ (primResultTy {Δ} op)
+primResultTy-renameᵗ ρ addℕ = refl
+primResultTy-renameᵗ ρ and𝔹 = refl
+
+rename-value-invᴳ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′} {V}
+  → Value (renameᵗᴳ ρ V)
+  → Value V
+rename-value-invᴳ {V = ` x} ()
+rename-value-invᴳ {V = ƛ A ⇒ N} (ƛ A′ ⇒ N′) = ƛ A ⇒ N
+rename-value-invᴳ {V = L ·[ ℓ ] M} ()
+rename-value-invᴳ {V = Λ N} (Λ N′) = Λ N
+rename-value-invᴳ {V = M `[ A ]} ()
+rename-value-invᴳ {V = $ κ} ($ κ′) = $ κ
+rename-value-invᴳ {V = L ⊕[ op at ℓ ] M} ()
+
+typing-rename-preimageᴳ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+    {σ : Δ′ ⇒ˢ Δ} {Γ : TermCtx Δ} {M T}
+  → (∀ X → σ (ρ X) ≡ ＇ X)
+  → Δ′ ∣ T.renameCtx ρ Γ ⊢ renameᵗᴳ ρ M ⦂ T
+  → ∃[ A ] (T ≡ renameᵗ ρ A × Δ ∣ Γ ⊢ M ⦂ A)
+typing-rename-preimageᴳ {M = ` x} left (⊢` x∈)
+    with lookup-rename-preimage x∈
+typing-rename-preimageᴳ {M = ` x} left (⊢` x∈)
+    | A , eq , x∈′ =
+  A , eq , ⊢` x∈′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {Γ = Γ} {M = ƛ A ⇒ M}
+    left (⊢ƛ M⊢)
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ}
+      {Γ = A ∷ Γ} {M = M} left M⊢
+typing-rename-preimageᴳ {M = ƛ A ⇒ M} left (⊢ƛ M⊢)
+    | B , eq , M⊢′ =
+  A ⇒ B , cong₂ _⇒_ refl eq , ⊢ƛ M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left L⊢
+       | typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left M⊢
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    | ＇ X , () , L⊢′ | A , eqA , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    | ‵ ι , () , L⊢′ | A , eqA , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    | ★ , () , L⊢′ | A , eqA , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    | C ⇒ B , eqL , L⊢′ | A , eqA , M⊢′ =
+  B , ty-fun-right-injective eqL ,
+    ⊢· L⊢′ M⊢′
+      (rename-consistency-left-inverse {ρ = ρ} {σ = σ} left
+        (subst (λ R → R ∼ _)
+          (ty-fun-left-injective eqL)
+          (subst (λ R → _ ∼ R) eqA A∼A′)))
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢· L⊢ M⊢ A∼A′)
+    | `∀ B , () , L⊢′ | A , eqA , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢·★ L⊢ M⊢ A′∼★)
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left L⊢
+       | typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left M⊢
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ·[ ℓ ] M}
+    left (⊢·★ L⊢ M⊢ A′∼★)
+    | A , eqL , L⊢′ | B , eqB , M⊢′ =
+  ★ , refl ,
+    ⊢·★
+      (subst (λ T → _ ∣ _ ⊢ _ ⦂ T)
+        (sym (rename-left-inverse-injective {ρ = ρ} {σ = σ}
+          left eqL)) L⊢′)
+      M⊢′
+      (rename-consistency-left-inverse {ρ = ρ} {σ = σ} left
+        (subst (λ R → R ∼ ★) eqB A′∼★))
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {Γ = Γ} {M = Λ M}
+    left (⊢Λ {zero∈A = z∈T} vM M⊢)
+    with typing-rename-preimageᴳ {ρ = extᵗ ρ} {σ = extsᵗ σ}
+      {Γ = ⇑ᶜ Γ} {M = M} (exts-left-inverse left)
+      (subst (λ Γ′ → _ ∣ Γ′ ⊢ _ ⦂ _)
+        (sym (renameCtx-shift ρ Γ)) M⊢)
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = Λ M}
+    left (⊢Λ {zero∈A = z∈T} vM M⊢)
+    | A , eq , M⊢′ =
+  `∀ A , cong `∀ eq ,
+    ⊢Λ
+      {zero∈A = unrename-occurs (extᵗ ρ)
+        (var-left-inverse-injective {ρ = extᵗ ρ} {σ = extsᵗ σ}
+          (exts-left-inverse {ρ = ρ} {σ = σ} left))
+        (subst (λ T → Fin.zero ∈ᵗ T) eq z∈T)}
+      (rename-value-invᴳ vM) M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left M⊢
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    | ＇ X , () , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    | ‵ ι , () , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    | ★ , () , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    | B ⇒ C , () , M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = M `[ A ]} left (⊢• M⊢)
+    | `∀ B , eq , M⊢′ =
+  B [ A ]ᵗ ,
+    trans (cong (λ T → T [ renameᵗ ρ A ]ᵗ) (ty-all-injective eq))
+      (sym (rename-openᵗ ρ B A)) ,
+    ⊢• M⊢′
+typing-rename-preimageᴳ {ρ = ρ} {M = $ κ} left (⊢$ κ′) =
+  constTy κ , constTy-renameᵗ ρ κ , ⊢$ κ
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ⊕[ op at ℓ ] M}
+    left (⊢⊕ op L⊢ A∼arg M⊢ B∼arg)
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left L⊢
+       | typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left M⊢
+typing-rename-preimageᴳ {ρ = ρ} {σ = σ} {M = L ⊕[ op at ℓ ] M}
+    left (⊢⊕ op L⊢ A∼arg M⊢ B∼arg)
+    | A , eqA , L⊢′ | B , eqB , M⊢′ =
+  primResultTy op , primResultTy-renameᵗ ρ op ,
+    ⊢⊕ op L⊢′
+      (rename-consistency-left-inverse {ρ = ρ} {σ = σ} left
+        (subst (λ R → R ∼ _)
+          eqA (subst (λ R → _ ∼ R) (primArgTy-renameᵗ ρ op) A∼arg)))
+      M⊢′
+      (rename-consistency-left-inverse {ρ = ρ} {σ = σ} left
+        (subst (λ R → R ∼ _)
+          eqB (subst (λ R → _ ∼ R) (primArgTy-renameᵗ ρ op) B∼arg)))
+
+typing-rename-invᴳ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+    {σ : Δ′ ⇒ˢ Δ} {Γ : TermCtx Δ} {M A}
+  → (∀ X → σ (ρ X) ≡ ＇ X)
+  → Δ′ ∣ T.renameCtx ρ Γ ⊢ renameᵗᴳ ρ M ⦂ renameᵗ ρ A
+  → Δ ∣ Γ ⊢ M ⦂ A
+typing-rename-invᴳ {ρ = ρ} {σ = σ} {M = M} {A = A} left M⊢
+    with typing-rename-preimageᴳ {ρ = ρ} {σ = σ} left M⊢
+typing-rename-invᴳ {ρ = ρ} {σ = σ} {M = M} {A = A} left M⊢
+    | A′ , eq , M⊢′ =
+  subst (λ T → _ ∣ _ ⊢ M ⦂ T)
+    (sym (rename-left-inverse-injective {ρ = ρ} {σ = σ} left eq)) M⊢′
+
+typing-shift-invᴳ : ∀ {Δ} {Γ : TermCtx Δ} {M A}
+  → (Nat.suc Δ) ∣ ⇑ᶜ Γ ⊢ ⇑ᵗᴳ M ⦂ ⇑ᵗ A
+  → Δ ∣ Γ ⊢ M ⦂ A
+typing-shift-invᴳ M⊢ =
+  typing-rename-invᴳ {ρ = Fin.suc} {σ = singleSubᵗ ★}
+    (λ X → refl) M⊢
+
 ------------------------------------------------------------------------
 -- Typed gradual-term imprecision
 ------------------------------------------------------------------------
@@ -158,7 +345,6 @@ data _∣_⊢ᴳ_⊑_⦂_⊑_∶_ {Δ} (μ : ImpEnv Δ) (γ : CtxImp μ) :
     → (zero∈A : Fin.zero ∈ᵗ A)
     → LiftCtxⁱ (instᵐ μ) γ γ′
     → Value V
-    → Δ ∣ tgtCtxⁱ γ ⊢ N′ ⦂ B
     → instᵐ μ ∣ γ′ ⊢ᴳ V ⊑ ⇑ᵗᴳ N′
         ⦂ A ⊑ ⇑ᵗ B ∶ p
       --------------------------------------------------
@@ -249,7 +435,7 @@ mutual
       (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _) (srcCtxⁱ-lift liftγ)
         (gradual-term-imprecision-source-typing V⊑V′))
   gradual-term-imprecision-source-typing
-      (Λ⊑ᴳ Anv zero∈A liftγ vV N′⊢ V⊑N′) =
+      (Λ⊑ᴳ Anv zero∈A liftγ vV V⊑N′) =
     ⊢Λ {zero∈A = zero∈A} vV
       (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _) (srcCtxⁱ-lift liftγ)
         (gradual-term-imprecision-source-typing V⊑N′))
@@ -290,8 +476,10 @@ mutual
       (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _) (tgtCtxⁱ-lift liftγ)
         (gradual-term-imprecision-target-typing V⊑V′))
   gradual-term-imprecision-target-typing
-      (Λ⊑ᴳ Anv zero∈A liftγ vV N′⊢ V⊑N′) =
-    N′⊢
+      (Λ⊑ᴳ Anv zero∈A liftγ vV V⊑N′) =
+    typing-shift-invᴳ
+      (subst (λ Γ → _ ∣ Γ ⊢ _ ⦂ _) (tgtCtxⁱ-lift liftγ)
+        (gradual-term-imprecision-target-typing V⊑N′))
   gradual-term-imprecision-target-typing ([]⊑[]ᴳ M⊑M′ q r) =
     ⊢• (gradual-term-imprecision-target-typing M⊑M′)
   gradual-term-imprecision-target-typing ([]⊑ᴳ M⊑M′ q r) =

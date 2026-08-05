@@ -36,6 +36,7 @@ open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
 open import CastTerms
 import GradualTermImprecision as GTI
 open import proof.ImprecisionConsistency using (refl⊑)
+open import proof.TypeInTermSubst using (typing-shiftᵗ-lift-inv)
 
 ------------------------------------------------------------------------
 -- Relational runtime stores
@@ -179,7 +180,6 @@ data _∣_⊢ᶜ_⊑_∶_ {Δ : TyCtx}
     → (zero∈A : zero ∈ᵗ A)
     → GTI.LiftCtxⁱ (instᵐ (impEnvⁱ ρ)) γ γ′
     → Value V
-    → ⟨ Δ , targetStoreⁱ ρ , GTI.tgtCtxⁱ γ ⟩ ⊢ M ⦂ B
     → liftStoreImp X⊑★ ρ ∣ γ′ ⊢ᶜ V ⊑ ⇑ᵗᵐ M ∶ p
       --------------------------------------------------
     → ρ ∣ γ ⊢ᶜ Λ V ⊑ M ∶ ∀⊑ Anv zero∈A p
@@ -436,7 +436,7 @@ mutual
         (GTI.srcCtxⁱ-lift liftγ)
         (cast-term-imprecision-source-typing V⊑V′))
   cast-term-imprecision-source-typing
-      (Λ⊑ᶜ Anv zero∈A liftγ vV M′⊢ V⊑W) =
+      (Λ⊑ᶜ Anv zero∈A liftγ vV V⊑W) =
     ⊢Λ vV
       (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
         (GTI.srcCtxⁱ-lift liftγ)
@@ -484,8 +484,11 @@ mutual
         (GTI.tgtCtxⁱ-lift liftγ)
         (cast-term-imprecision-target-typing V⊑V′))
   cast-term-imprecision-target-typing
-      (Λ⊑ᶜ Anv zero∈A liftγ vV M′⊢ V⊑W) =
-    M′⊢
+      (Λ⊑ᶜ Anv zero∈A liftγ vV V⊑W) =
+    typing-shiftᵗ-lift-inv
+      (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+        (GTI.tgtCtxⁱ-lift liftγ)
+        (cast-term-imprecision-target-typing V⊑W))
   cast-term-imprecision-target-typing (•⊑•ᶜ M⊑M′ q r) =
     ⊢• (cast-term-imprecision-target-typing M⊑M′)
   cast-term-imprecision-target-typing (•⊑ᶜ M⊑M′ q r) =

@@ -11,14 +11,16 @@ open import Data.Product using (_,_; proj₁; proj₂)
 open import Data.Fin using (zero)
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; subst)
+  using (_≡_; refl; cong; subst)
 
 open import Types
 open import TyStore using (TyStore; store-lift)
 open import TermCtx using (TermCtx; ⇑ᶜ)
 open import Consistency using (_∼_; id; _↦_; ？_; symᶜ)
 open import Imprecision
-open import GradualTerms using (GTerm; _∣_⊢_⦂_)
+open import GradualTerms using
+  (GTerm; _∣_⊢_⦂_; `_; ƛ_⇒_; _·[_]_; Λ_; _`[_]; $_;
+   _⊕[_at_]_; ⊢`; ⊢ƛ; ⊢·; ⊢·★; ⊢Λ; ⊢•; ⊢$; ⊢⊕)
 import GradualTerms as G
 open import Primitives using (primArgTy)
 import CastTerms as C
@@ -169,7 +171,7 @@ compile-preserves-imprecision
       {ρ = CTI.liftStoreImp X⊑X ρ} V⊑V′)
 compile-preserves-imprecision
     {ρ = ρ} {γ = γ}
-    (GTI.Λ⊑ᴳ Anv zero∈A liftγ vV N′⊢ V⊑N′)
+    (GTI.Λ⊑ᴳ Anv zero∈A liftγ vV V⊑N′)
     rewrite compile-Λ-term {Σ = CTI.sourceStoreⁱ ρ}
       {Γ = GTI.srcCtxⁱ γ}
       {zero∈A = zero∈A} vV
@@ -182,7 +184,6 @@ compile-preserves-imprecision
   CTI.Λ⊑ᶜ Anv zero∈A liftγ
     (compile-value {Σ = store-lift (CTI.sourceStoreⁱ ρ)} vV
       (GTI.gradual-term-imprecision-source-typing V⊑N′))
-    (proj₂ (compile {Σ = CTI.targetStoreⁱ ρ} N′⊢))
     (compile-preserves-imprecision
       {ρ = CTI.liftStoreImp X⊑★ ρ} V⊑N′)
 compile-preserves-imprecision {ρ = ρ} (GTI.[]⊑[]ᴳ M⊑M′ q r)

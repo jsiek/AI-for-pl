@@ -80,9 +80,9 @@ right-inj-inversion-core {h = h} (vM 《 genᵥ A≠★ safe 》)
     q
 right-inj-inversion-core {ρ = ρ} {H = H} (Λ vV₀)
     (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV
-      (⊢⟨⟩ W⊢ c!) V⊑⇑W!)
+      V⊑⇑W!)
     (I.∀⊑ Anv′ zero∈A′ qbody) =
-  CTI.Λ⊑ᶜ Anv′ zero∈A′ liftγ vV W⊢
+  CTI.Λ⊑ᶜ Anv′ zero∈A′ liftγ vV
     (transport-⊑ᶜ-right-index (renameᵗ-wk-eq H)
       (right-inj-inversion-core vV V⊑⇑W!
         (subst≡
@@ -90,15 +90,15 @@ right-inj-inversion-core {ρ = ρ} {H = H} (Λ vV₀)
           (sym (renameᵗ-wk-eq H))
           qbody)))
 right-inj-inversion-core {h = ∀★} (Λ vV₀)
-    (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV V⊑⇑W!)
     (I.∀⊑∀ qbody)
     with source-occurs-target refl qbody zero∈A
 right-inj-inversion-core {h = ∀★} (Λ vV₀)
-    (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ {A = A₀} Anv zero∈A liftγ vV V⊑⇑W!)
     (I.∀⊑∀ qbody)
     | ()
 right-inj-inversion-core (Λ vV₀)
-    (CTI.Λ⊑ᶜ () zero∈A liftγ vV W!⊢ V⊑⇑W!)
+    (CTI.Λ⊑ᶜ () zero∈A liftγ vV V⊑⇑W!)
     I.bot-elim
 right-inj-inversion-core () (CTI.•⊑ᶜ M⊑M′ q′ p) q
 

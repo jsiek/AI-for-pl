@@ -7,6 +7,7 @@ module proof.TypeInTermSubst where
 --   * Supplies store replacement and lookup uniqueness used by preservation.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (suc)
 import Data.Nat as Nat
@@ -22,7 +23,10 @@ open import Consistency
 open import Conversion
 open import Primitives
 open import CastTerms
-open import proof.Consistency using (gen-safe)
+open import proof.Consistency using (gen-safe; subst-rename-left-inverse)
+open import proof.ImprecisionConsistency using
+  (renameᵗ-injective; toRenameᵗ-injective; subst-zero-occurs-exts)
+import proof.TypeSafety.Progress as Prog
 
 ------------------------------------------------------------------------
 -- Store lookup transport
@@ -139,6 +143,56 @@ StoreRename-wk-bind : ∀ {Δ} {Σ : TyStore Δ} {C : Ty Δ}
   → store-bind Σ C ∋ toRenameᵗ wk↪ᵗ X
       ⦂ renameᵗ (toRenameᵗ wk↪ᵗ) A
 StoreRename-wk-bind X∈ = storeRename-wk-bind-at _ _ _ X∈
+
+StoreSubst : ∀ {Δ Δ′}
+  → (rho : Δ ⇒ʳ Δ′)
+  → (sigma : Δ′ ⇒ˢ Δ)
+  → TyStore Δ′
+  → TyStore Δ
+  → Set
+StoreSubst rho sigma Σ′ Σ =
+  ∀ {X A} → Σ′ ∋ rho X ⦂ A → Σ ∋ X ⦂ substᵗ sigma A
+
+StoreSubst-keep : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′}
+    {sigma : Δ′ ⇒ˢ Δ} {Σ′ Σ}
+  → StoreSubst (toRenameᵗ rho) sigma Σ′ Σ
+  → StoreSubst (toRenameᵗ (keep rho)) (extsᵗ sigma)
+      (store-lift Σ′) (store-lift Σ)
+StoreSubst-keep hΣ {X = Fin.zero} ()
+StoreSubst-keep {sigma = sigma} hΣ {X = Fin.suc X}
+    (S-lift∋ {A = A} X∈ eq) =
+  S-lift∋ (hΣ X∈)
+    (trans (cong (substᵗ (extsᵗ sigma)) eq)
+      (substᵗ-shift sigma A))
+
+StoreSubst-ext : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+    {sigma : Δ′ ⇒ˢ Δ} {Σ′ Σ}
+  → StoreSubst rho sigma Σ′ Σ
+  → StoreSubst (extᵗ rho) (extsᵗ sigma)
+      (store-lift Σ′) (store-lift Σ)
+StoreSubst-ext hΣ {X = Fin.zero} ()
+StoreSubst-ext {sigma = sigma} hΣ {X = Fin.suc X}
+    (S-lift∋ {A = A} X∈ eq) =
+  S-lift∋ (hΣ X∈)
+    (trans (cong (substᵗ (extsᵗ sigma)) eq)
+      (substᵗ-shift sigma A))
+
+StoreSubst-wk-lift-at : ∀ {Δ} {Σ : TyStore Δ}
+    (X : TyVar Δ) (A : Ty (suc Δ))
+  → store-lift Σ ∋ Fin.suc X ⦂ A
+  → Σ ∋ X ⦂ A [ ★ ]ᵗ
+StoreSubst-wk-lift-at X A (S-lift∋ {A = A′} X∈ eq) =
+  subst≡ (λ T → _ ∋ X ⦂ T)
+    (sym (trans (cong (λ T → T [ ★ ]ᵗ) eq)
+      (shift-openᵗ A′ ★)))
+    X∈
+
+StoreSubst-wk-lift : ∀ {Δ} {Σ : TyStore Δ}
+  → StoreSubst (toRenameᵗ wk↪ᵗ) (singleSubᵗ ★) (store-lift Σ) Σ
+StoreSubst-wk-lift {Σ = Σ} {X = X} {A = A} X∈ =
+  StoreSubst-wk-lift-at X A
+    (subst≡ (λ Y → store-lift Σ ∋ Y ⦂ A)
+      (toRename-wk-eq X) X∈)
 
 StoreTransport : ∀ {Δ}
   → TyStore Δ
@@ -293,6 +347,113 @@ renameᵗᵐ-preserves-Value rho (vV ↓ fun) =
 renameᵗᵐ-preserves-Value rho (vV ↓ all) =
   renameᵗᵐ-preserves-Value rho vV ↓ all
 
+rename↑-RevealValue-inv : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+    {A B : Ty Δ} {c : Conv↑ Δ A B}
+  → RevealValue (rename↑ rho c)
+  → RevealValue c
+rename↑-RevealValue-inv {c = unseal X R} ()
+rename↑-RevealValue-inv {c = c ↦↑ d} fun = fun
+rename↑-RevealValue-inv {c = `∀↑ c} all = all
+rename↑-RevealValue-inv {c = id↑ A} ()
+
+rename↓-ConcealValue-inv : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+    {A B : Ty Δ} {c : Conv↓ Δ A B}
+  → ConcealValue (rename↓ rho c)
+  → ConcealValue c
+rename↓-ConcealValue-inv {c = seal X R} seal = seal
+rename↓-ConcealValue-inv {c = c ↦↓ d} fun = fun
+rename↓-ConcealValue-inv {c = `∀↓ c} all = all
+rename↓-ConcealValue-inv {c = id↓ A} ()
+
+mutual
+  renameᵐᶜ-GenSafe-inv : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′}
+      {μ : Env∼ Δ} {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+    → GenSafe (renameᵐᶜ rho c)
+    → GenSafe c
+  renameᵐᶜ-GenSafe-inv {c = id ★} ()
+  renameᵐᶜ-GenSafe-inv {c = id (‵ ι)} ()
+  renameᵐᶜ-GenSafe-inv {c = id (＇ X)} ()
+  renameᵐᶜ-GenSafe-inv {c = c ↦ d} safe-⇒ = safe-⇒
+  renameᵐᶜ-GenSafe-inv {c = ∀ᶜ c} safe-∀ = safe-∀
+  renameᵐᶜ-GenSafe-inv {c = _! c} ()
+  renameᵐᶜ-GenSafe-inv {c = ？ c} ()
+  renameᵐᶜ-GenSafe-inv
+      {c = inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★}
+      (safe-inst B′≢★) =
+    safe-inst B≢★
+  renameᵐᶜ-GenSafe-inv
+      {c = gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★}
+      (safe-gen A′≢★ safe) =
+    safe-gen A≢★ (gen-safe c A≢★ Bnv z∈B)
+  renameᵐᶜ-GenSafe-inv {c = bot-elim} ()
+  renameᵐᶜ-GenSafe-inv {c = bot-intro} ()
+
+  inert-injection-source≡ground : ∀ {Δ} {μ : Env∼ Δ}
+      {A G : Ty Δ} {c : μ ⊢ A ∼ G}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      ⦃ Ans : NonStar A ⦄
+    → Inert (_! ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄)
+    → A ≡ G
+  inert-injection-source≡ground inj = refl
+
+  renameᵐᶜ-Inert-inv : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′}
+      {μ : Env∼ Δ} {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+    → Inert (renameᵐᶜ rho c)
+    → Inert c
+  renameᵐᶜ-Inert-inv {c = id ★} ()
+  renameᵐᶜ-Inert-inv {c = id (‵ ι)} ()
+  renameᵐᶜ-Inert-inv {c = id (＇ X)} ()
+  renameᵐᶜ-Inert-inv {c = c ↦ d} fun = fun
+  renameᵐᶜ-Inert-inv {c = ∀ᶜ c} all = all
+  renameᵐᶜ-Inert-inv {rho = rho}
+      {c = _! {A = A} {G = G} ⦃ Gᵍ = Gᵍ ⦄
+        ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans = Ans ⦄}
+      inert with Prog.to-ground Gᵍ c
+  renameᵐᶜ-Inert-inv {c = _! ⦃ Gᵍ = Gᵍ ⦄
+        ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans = Ans ⦄}
+      inert | Prog.same =
+    inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ ⦃ Gns = Ans ⦄
+  renameᵐᶜ-Inert-inv {rho = rho}
+      {c = _! {A = A} {G = G} ⦃ Gᵍ = Gᵍ ⦄
+        ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans = Ans ⦄}
+      inert | Prog.other A≢G =
+    ⊥-elim (A≢G
+      (renameᵗ-injective (toRenameᵗ-injective rho)
+        (inert-injection-source≡ground
+          ⦃ Gᵍ = renameGroundᵐ rho Gᵍ ⦄
+          ⦃ G∼★ = rename∼★ᵐ rho G∼★ ⦄
+          ⦃ Ans = renameNonStar (toRenameᵗ rho) Ans ⦄
+          inert)))
+  renameᵐᶜ-Inert-inv {c = ？ c} ()
+  renameᵐᶜ-Inert-inv {c = inst_ c B≢★} ()
+  renameᵐᶜ-Inert-inv
+      {c = gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★}
+      (genᵥ A′≢★ safe) =
+    genᵥ A≢★ (gen-safe c A≢★ Bnv z∈B)
+  renameᵐᶜ-Inert-inv {c = bot-elim} ()
+  renameᵐᶜ-Inert-inv {c = bot-intro} ()
+
+renameᵗᵐ-Value-inv : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′} {V}
+  → Value (renameᵗᵐ rho V)
+  → Value V
+renameᵗᵐ-Value-inv {V = ` x} ()
+renameᵗᵐ-Value-inv {V = ƛ N} (ƛ N′) = ƛ N
+renameᵗᵐ-Value-inv {V = L · M} ()
+renameᵗᵐ-Value-inv {rho = rho} {V = Λ V} (Λ vV) =
+  Λ (renameᵗᵐ-Value-inv {rho = keep rho} vV)
+renameᵗᵐ-Value-inv {V = M ⦂∀ B [ A ]} ()
+renameᵗᵐ-Value-inv {V = $ κ} ($ κ′) = $ κ
+renameᵗᵐ-Value-inv {V = L ⊕[ op ] M} ()
+renameᵗᵐ-Value-inv {rho = rho} {V = V ⟨ c ⟩} (vV 《 inert 》) =
+  renameᵗᵐ-Value-inv {rho = rho} vV
+    《 renameᵐᶜ-Inert-inv {rho = rho} inert 》
+renameᵗᵐ-Value-inv {rho = rho} {V = V ↑ c} (vV ↑ rv) =
+  renameᵗᵐ-Value-inv {rho = rho} vV
+    ↑ rename↑-RevealValue-inv rv
+renameᵗᵐ-Value-inv {rho = rho} {V = V ↓ c} (vV ↓ cv) =
+  renameᵗᵐ-Value-inv {rho = rho} vV
+    ↓ rename↓-ConcealValue-inv cv
+
 renameCtx-shift : ∀ {Δ Δ′} (rho : Δ ⇒ʳ Δ′) Γ
   → renameCtx (extᵗ rho) (⇑ᶜ Γ) ≡ ⇑ᶜ (renameCtx rho Γ)
 renameCtx-shift rho [] = refl
@@ -330,6 +491,174 @@ rename-openᵗ rho B A =
       singleSubᵗ (renameᵗ rho A) (extᵗ rho X)
   env-eq Fin.zero = refl
   env-eq (Fin.suc X) = refl
+
+substCtx-shift : ∀ {Δ Δ′} (sigma : Δ ⇒ˢ Δ′) Γ
+  → substCtx (extsᵗ sigma) (⇑ᶜ Γ) ≡ ⇑ᶜ (substCtx sigma Γ)
+substCtx-shift sigma [] = refl
+substCtx-shift sigma (A ∷ Γ) =
+  cong₂ _∷_ (substᵗ-shift sigma A) (substCtx-shift sigma Γ)
+
+substCtx-open-shift : ∀ {Δ} (Γ : TermCtx Δ)
+  → substCtx (singleSubᵗ ★) (⇑ᶜ Γ) ≡ Γ
+substCtx-open-shift [] = refl
+substCtx-open-shift (A ∷ Γ) =
+  cong₂ _∷_ (shift-openᵗ A ★) (substCtx-open-shift Γ)
+
+left-keep : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′}
+    {sigma : Δ′ ⇒ˢ Δ}
+  → (∀ X → sigma (toRenameᵗ rho X) ≡ ＇ X)
+  → ∀ X → extsᵗ sigma (toRenameᵗ (keep rho) X) ≡ ＇ X
+left-keep left Fin.zero = refl
+left-keep left (Fin.suc X) = cong (renameᵗ Fin.suc) (left X)
+
+left-ext : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′} {sigma : Δ′ ⇒ˢ Δ}
+  → (∀ X → sigma (rho X) ≡ ＇ X)
+  → ∀ X → extsᵗ sigma (extᵗ rho X) ≡ ＇ X
+left-ext left Fin.zero = refl
+left-ext left (Fin.suc X) = cong (renameᵗ Fin.suc) (left X)
+
+mutual
+  reveal-open-renamed : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+      {sigma : Δ′ ⇒ˢ Δ} {Σ′ Σ A B}
+      {c : Conv↑ Δ A B}
+    → (left : ∀ X → sigma (rho X) ≡ ＇ X)
+    → StoreSubst rho sigma Σ′ Σ
+    → Σ′ ⊢↑ rename↑ rho c
+    → Σ ⊢↑ c
+  reveal-open-renamed {c = unseal X R} left hΣ (⊢↑-unseal X∈) =
+    ⊢↑-unseal
+      (subst≡ (λ T → _ ∋ X ⦂ T)
+        (subst-rename-left-inverse left R) (hΣ X∈))
+  reveal-open-renamed {c = c ↦↑ d} left hΣ (⊢↑-⇒ c⊢ d⊢) =
+    ⊢↑-⇒ (conceal-open-renamed left hΣ c⊢)
+      (reveal-open-renamed left hΣ d⊢)
+  reveal-open-renamed {rho = rho} {c = `∀↑ c}
+      left hΣ (⊢↑-∀ c⊢) =
+    ⊢↑-∀
+      (reveal-open-renamed {rho = extᵗ rho} (left-ext left)
+        (StoreSubst-ext hΣ) c⊢)
+  reveal-open-renamed {c = id↑ A} left hΣ ⊢↑-id = ⊢↑-id
+
+  conceal-open-renamed : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+      {sigma : Δ′ ⇒ˢ Δ} {Σ′ Σ A B}
+      {c : Conv↓ Δ A B}
+    → (left : ∀ X → sigma (rho X) ≡ ＇ X)
+    → StoreSubst rho sigma Σ′ Σ
+    → Σ′ ⊢↓ rename↓ rho c
+    → Σ ⊢↓ c
+  conceal-open-renamed {c = seal X R} left hΣ (⊢↓-seal X∈) =
+    ⊢↓-seal
+      (subst≡ (λ T → _ ∋ X ⦂ T)
+        (subst-rename-left-inverse left R) (hΣ X∈))
+  conceal-open-renamed {c = c ↦↓ d} left hΣ (⊢↓-⇒ c⊢ d⊢) =
+    ⊢↓-⇒ (reveal-open-renamed left hΣ c⊢)
+      (conceal-open-renamed left hΣ d⊢)
+  conceal-open-renamed {rho = rho} {c = `∀↓ c}
+      left hΣ (⊢↓-∀ c⊢) =
+    ⊢↓-∀
+      (conceal-open-renamed {rho = extᵗ rho} (left-ext left)
+        (StoreSubst-ext hΣ) c⊢)
+  conceal-open-renamed {c = id↓ A} left hΣ ⊢↓-id = ⊢↓-id
+
+typing-open-renamed : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′}
+    {sigma : Δ′ ⇒ˢ Δ} {Σ′ Σ Γ M A}
+  → (left : ∀ X → sigma (toRenameᵗ rho X) ≡ ＇ X)
+  → StoreSubst (toRenameᵗ rho) sigma Σ′ Σ
+  → ⟨ Δ′ , Σ′ , Γ ⟩ ⊢ renameᵗᵐ rho M ⦂ A
+  → ⟨ Δ , Σ , substCtx sigma Γ ⟩ ⊢ M ⦂ substᵗ sigma A
+typing-open-renamed {M = ` x} left hΣ (⊢` x∈) =
+  ⊢` (substᵗ-∋ _ x∈)
+typing-open-renamed {M = ƛ M} left hΣ (⊢ƛ M⊢) =
+  ⊢ƛ (typing-open-renamed left hΣ M⊢)
+typing-open-renamed {M = L · M} left hΣ (⊢· L⊢ M⊢) =
+  ⊢· (typing-open-renamed left hΣ L⊢)
+    (typing-open-renamed left hΣ M⊢)
+typing-open-renamed {rho = rho} {sigma = sigma} {Σ = Σ} {Γ = Γ}
+    {M = Λ M} left hΣ (⊢Λ vM M⊢) =
+  ⊢Λ (renameᵗᵐ-Value-inv {rho = keep rho} vM)
+    (subst≡ (λ Γ′ → ⟨ _ , store-lift Σ , Γ′ ⟩ ⊢ M ⦂ _)
+      (substCtx-shift sigma Γ)
+      (typing-open-renamed {rho = keep rho} {sigma = extsᵗ sigma}
+        (left-keep left) (StoreSubst-keep hΣ) M⊢))
+typing-open-renamed {rho = rho} {sigma = sigma} {Σ = Σ} {Γ = Γ}
+    {M = L ⦂∀ C [ A ]} left hΣ (⊢• L⊢) =
+  subst≡
+    (λ T → ⟨ _ , Σ , substCtx sigma Γ ⟩
+      ⊢ L ⦂∀ C [ A ] ⦂ T)
+    (sym result-eq) (⊢• body⊢)
+  where
+  body-eq =
+    subst-rename-left-inverse (left-keep left) C
+
+  body⊢ =
+    subst≡ (λ T → ⟨ _ , Σ , substCtx sigma Γ ⟩ ⊢ L ⦂ T)
+      (cong `∀ body-eq) (typing-open-renamed left hΣ L⊢)
+
+  target-open-eq =
+    trans
+      (cong (λ T → T [ renameᵗ (toRenameᵗ rho) A ]ᵗ)
+        (renameᵗ-cong C (toRename-keep-eq rho)))
+      (sym (rename-openᵗ (toRenameᵗ rho) C A))
+
+  result-eq =
+    trans (cong (substᵗ sigma) target-open-eq)
+      (subst-rename-left-inverse left (C [ A ]ᵗ))
+typing-open-renamed {M = $ (κℕ n)} left hΣ (⊢$ .(κℕ n)) =
+  ⊢$ (κℕ n)
+typing-open-renamed {M = $ (κ𝔹 b)} left hΣ (⊢$ .(κ𝔹 b)) =
+  ⊢$ (κ𝔹 b)
+typing-open-renamed {M = L ⊕[ addℕ ] M} left hΣ (⊢⊕ addℕ L⊢ M⊢) =
+  ⊢⊕ addℕ (typing-open-renamed left hΣ L⊢)
+    (typing-open-renamed left hΣ M⊢)
+typing-open-renamed {M = L ⊕[ and𝔹 ] M} left hΣ
+    (⊢⊕ and𝔹 L⊢ M⊢) =
+  ⊢⊕ and𝔹 (typing-open-renamed left hΣ L⊢)
+    (typing-open-renamed left hΣ M⊢)
+typing-open-renamed {M = _⟨_⟩ M {A = A} {B = B} c}
+    left hΣ (⊢⟨⟩ M⊢ c′) =
+  subst≡ (λ T → _ ⊢ M ⟨ c ⟩ ⦂ T)
+    (sym (subst-rename-left-inverse left B))
+    (⊢⟨⟩
+      (subst≡ (λ T → _ ⊢ M ⦂ T)
+        (subst-rename-left-inverse left A)
+        (typing-open-renamed left hΣ M⊢))
+      c)
+typing-open-renamed {rho = rho} {M = _↑_ M {A = A} {B = B} c}
+    left hΣ (⊢reveal c⊢ M⊢) =
+  subst≡ (λ T → _ ⊢ M ↑ c ⦂ T)
+    (sym (subst-rename-left-inverse left B))
+    (⊢reveal
+      (reveal-open-renamed {rho = toRenameᵗ rho} left hΣ c⊢)
+      (subst≡ (λ T → _ ⊢ M ⦂ T)
+        (subst-rename-left-inverse left A)
+        (typing-open-renamed left hΣ M⊢)))
+typing-open-renamed {rho = rho} {M = _↓_ M {A = A} {B = B} c}
+    left hΣ (⊢conceal c⊢ M⊢) =
+  subst≡ (λ T → _ ⊢ M ↓ c ⦂ T)
+    (sym (subst-rename-left-inverse left B))
+    (⊢conceal
+      (conceal-open-renamed {rho = toRenameᵗ rho} left hΣ c⊢)
+      (subst≡ (λ T → _ ⊢ M ⦂ T)
+        (subst-rename-left-inverse left A)
+        (typing-open-renamed left hΣ M⊢)))
+typing-open-renamed {M = blame} left hΣ ⊢blame = ⊢blame
+
+typing-open-shiftᵗ-lift : ∀ {Δ} {Σ : TyStore Δ} {Γ M A}
+  → ⟨ suc Δ , store-lift Σ , ⇑ᶜ Γ ⟩ ⊢ ⇑ᵗᵐ M ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A [ ★ ]ᵗ
+typing-open-shiftᵗ-lift {Γ = Γ} M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (substCtx-open-shift Γ)
+    (typing-open-renamed {rho = wk↪ᵗ} {sigma = singleSubᵗ ★}
+      (λ X → cong (singleSubᵗ ★) (toRename-wk-eq X))
+      StoreSubst-wk-lift M⊢)
+
+typing-shiftᵗ-lift-inv : ∀ {Δ} {Σ : TyStore Δ} {Γ M A}
+  → ⟨ suc Δ , store-lift Σ , ⇑ᶜ Γ ⟩ ⊢ ⇑ᵗᵐ M ⦂ ⇑ᵗ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
+typing-shiftᵗ-lift-inv {A = A} M⊢ =
+  subst≡ (λ T → _ ⊢ _ ⦂ T) (shift-openᵗ A ★)
+    (typing-open-shiftᵗ-lift M⊢)
 
 ------------------------------------------------------------------------
 -- Typing under type renaming and store replacement

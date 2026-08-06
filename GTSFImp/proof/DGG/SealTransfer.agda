@@ -4,7 +4,7 @@ module proof.DGG.SealTransfer where
 --   * Provides composition of same-pivot world rebases.
 --   * Extends spine values locally with bare source seals.
 --   * Transfers a target star-seal boundary into a dynamized relation.
---   * Isolates same-target rebasing and inner target chains as hypotheses.
+--   * Isolates same-target rebasing as a hypothesis.
 --   * Depends on SealPeelToolkit, ExtraCastRight2, and term decay.
 
 open import Data.Empty using (⊥; ⊥-elim)
@@ -12,11 +12,13 @@ open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans)
+  renaming (subst to subst≡)
 
 open import Types
 open import Imprecision
 open import Conversion
 open import CastTerms
+open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Primitives using (κℕ; κ𝔹)
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -105,6 +107,26 @@ private
   dyn-var-star {W = W} {X = X} =
     X⊑★ (SPT.dynWorld-mark W (toRenameᵗ (CTI2.ηᴸʷ W) X))
 
+  aligned-var : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+      {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    → toRenameᵗ (CTI2.ηᴸʷ W) X ≡ toRenameᵗ (CTI2.ηᴿʷ W) Y
+    → (＇ X) ⊑ᵂ⟨ SPT.dynWorld W ⟩ (＇ Y)
+  aligned-var {W = W} {X = X} eq =
+    subst≡
+      (λ Z → CTI2.impEnvʷ (SPT.dynWorld W) ⊢
+        ＇ toRenameᵗ (CTI2.ηᴸʷ W) X ⊑ ＇ Z)
+      eq X⊑X
+
+  transport-target-member : ∀ {Δᴸ Δᴿ Δ}
+      {W W′ : World Δᴸ Δᴿ Δ} {Xᴸ Xᴿ Z R}
+    → RebaseAt W W′ Xᴸ Xᴿ
+    → CTI2.targetStoreʷ W ∋ Z ⦂ R
+    → CTI2.targetStoreʷ W′ ∋ Z ⦂ R
+  transport-target-member {Z = Z} {R = R} rb Z∈ =
+    subst≡ (λ Σ → Σ ∋ Z ⦂ R)
+      (sym (CTI2.SameRuntime.targetStore-same
+        (CTI2.RebaseAt.sameRuntime rb))) Z∈
+
   dyn-mono : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono (SPT.dynWorld W) (SPT.dynWorld W′)
   dyn-mono Z eq = refl
@@ -170,33 +192,12 @@ SameTarget = ∀ {Δᴸ Δᴿ Δ}
   → RebaseAt W₅ W₄ Z Y″
   → Y″ ≡ Y
 
--- H2: defer precisely the inner target-seal chain under a variable tag.
-InnerTargetChain : Set
-InnerTargetChain = ∀ {Δᴸ Δᴿ Δ}
-    {W₁ W₄ : World Δᴸ Δᴿ Δ}
-    {γ₁ : CtxImp W₁} {γ₄ : CtxImp W₄}
-    {V₀ : Term Δᴸ} {M′ : Term Δᴿ} {R₂ : Ty Δᴸ}
-    {Z : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
-    {ν : Env∼ Δᴿ} {c : ν ⊢ (＇ Y′) ∼ ★}
-    {p₄ : (＇ Z) ⊑ᵂ⟨ W₄ ⟩ (＇ Y′)}
-  → SealValue V₀
-  → Value M′
-  → Inert c
-  → RebaseAt W₄ W₁ Z Y
-  → CTI2.SameCtx γ₁ γ₄
-  → W₄ ∣ γ₄ ⊢² V₀ ↓ Conversion.seal Z R₂ ⊑ M′ ∶ p₄
-  → Σ[ q★ ∈ (＇ Z) ⊑ᵂ⟨ SPT.dynWorld W₁ ⟩ ★ ]
-      (SPT.dynWorld W₁
-        ∣ WD.decayCtx (SPT.dynWorld-decay W₁) γ₁
-        ⊢² V₀ ↓ Conversion.seal Z R₂ ⊑ M′ ⟨ c ⟩ ∶ q★)
-
--- The landing policy permits one explicit assumption argument.  Its two
--- fields isolate the double-move and inner variable-tag configurations.
+-- The landing policy permits one explicit assumption argument for the
+-- double-move configuration.
 record SealTransferAssumption : Set where
   constructor seal-transfer-assumption
   field
     same-target-assumption : SameTarget
-    inner-target-assumption : InnerTargetChain
 
 ------------------------------------------------------------------------
 -- Seal transfer
@@ -215,27 +216,27 @@ seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
         ∣ WD.decayCtx (SPT.dynWorld-decay W₁) γ₁
         ⊢² V ⊑ U ∶ q★)
 seal-transfer {W₁ = W₁} {V = V} {A = A} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target) sv vU D
+    (seal-transfer-assumption same-target) sv vU D
     with SPT.right-var-obligation-view {W = W₁} {R = A} {Y = Y} p
 seal-transfer {W₁ = W₁} {V = V} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-spine sv) vU D
     | X , refl , aligned =
   ⊥-elim
     (spine-variable-⊥ sv (CTI2T.source-typing² D))
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     with CTI2T.source-typing² D
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
     with D
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -243,7 +244,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
     with target-seal-rebase-source rb₂ p
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -252,7 +253,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | rb₁₄
     with prem₃
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -276,7 +277,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (SPT.dynWorld-decay W₄) prem₄)
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -288,7 +289,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ X∈′) prem₄ q₄
     with same-target rb₁₄ rb₄₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -314,7 +315,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (SPT.dynWorld-decay W₅) prem₄)
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -324,7 +325,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑cast² {p = p₄} c prem₄ q₄
     with vU
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -335,7 +336,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | vM′ 《 inert 》
     with inert-variable-source {W = W₄} {Z = X} inert p₄
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -344,10 +345,245 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | rb₁₄
     | CTI2.⊑cast² {p = p₄} c prem₄ q₄
     | vM′ 《 inert 》
-    | Y′ , refl =
-  inner-target sv vM′ inert rb₁₄ sc₂ prem₄
+    | Y′ , refl
+    with ECR.var-value-view vM′ (CTI2T.target-typing² prem₄)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    with prem₄
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
+    with SPT.right-var-obligation-view {W = W₅} {Y = Y′} p₅
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
+    | X₃ , refl , aligned₅
+    with rb₅
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑² {W′ = .W₄} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
+    | X₃ , refl , aligned₅
+    | CTI2.rebase-onlyᴸ to-star disaligned represented =
+  dyn-var-star {W = W₁} {X = X} ,
+  CTI2.conceal⊑² (dyn-mono {W = W₁} {W′ = W₄})
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt {W₁ = W₄} {W₁ᵈ = SPT.dynWorld W₄}
+        {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
+        (SPT.dynWorld-decay W₄)
+        (SPT.dynWorld-decay W₁) rb₁₄))
+    (WD.decaySameCtx (SPT.dynWorld-decay W₁)
+      (SPT.dynWorld-decay W₄) (composeSameCtx sc₂ sc₅))
+    (CTI2.⊢↓-sealˣ X∈)
+    (CTI2.⊑cast² c
+      (TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem₅
+        (aligned-var {W = W₄} {X = X₃} {Y = Y′} aligned₅))
+      (dyn-var-star {W = W₄} {X = X₃}))
+    (dyn-var-star {W = W₁} {X = X})
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
+    | X₃ , refl , aligned₅
+    | CTI2.rebase-varᴸ rb₄₅
+    with same-target rb₁₄ rb₄₅
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
+    | X₃ , refl , aligned₅
+    | CTI2.rebase-varᴸ rb₄₅
+    | refl =
+  dyn-var-star {W = W₁} {X = X} ,
+  CTI2.conceal⊑² (dyn-mono {W = W₁} {W′ = W₅})
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt {W₁ = W₅} {W₁ᵈ = SPT.dynWorld W₅}
+        {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
+        (SPT.dynWorld-decay W₅)
+        (SPT.dynWorld-decay W₁)
+        (composeRebaseAt rb₁₄ rb₄₅)))
+    (WD.decaySameCtx (SPT.dynWorld-decay W₁)
+      (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
+    (CTI2.⊢↓-sealˣ X∈)
+    (CTI2.⊑cast² c
+      (TD.⊢²-decay-at (SPT.dynWorld-decay W₅) prem₅
+        (aligned-var {W = W₅} {X = X₃} {Y = Y′} aligned₅))
+      (dyn-var-star {W = W₅} {X = X₃}))
+    (dyn-var-star {W = W₁} {X = X})
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.⊑conceal² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ Y′∈′) prem₅ .p₄
+    with target-seal-rebase-source rb₅ p₄
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.⊑conceal² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ Y′∈′) prem₅ .p₄
+    | rb₄₅
+    with same-target rb₁₄ rb₄₅
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y , refl
+    | ECR.varv-seal vM₅ Y∈′ refl
+    | CTI2.⊑conceal² {W′ = W₅} {γ′ = γ₅} {p = p₅}
+        mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ Y∈″) prem₅ .p₄
+    | rb₄₅
+    | refl =
+  dyn-var-star {W = W₁} {X = X} ,
+  CTI2.⊑cast² c
+    (CTI2.⊑conceal² (dyn-mono {W = W₁} {W′ = W₅})
+      (CTI2.rebase-varᴿ
+        (TD.decayRebaseAt {W₁ = W₅} {W₁ᵈ = SPT.dynWorld W₅}
+          {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
+          (SPT.dynWorld-decay W₅)
+          (SPT.dynWorld-decay W₁)
+          (composeRebaseAt rb₁₄ rb₄₅)))
+      (WD.decaySameCtx (SPT.dynWorld-decay W₁)
+        (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
+      (CTI2.⊢↓-sealˣ (transport-target-member rb₁₄ Y∈″))
+      (TD.⊢²-decay (SPT.dynWorld-decay W₅) prem₅)
+      (aligned-var {W = W₁} {X = X} {Y = Y} aligned))
+    (dyn-var-star {W = W₁} {X = X})
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y′ , refl
+    | ECR.varv-seal vM₅ Y′∈ refl
+    | CTI2.conceal⊑conceal² {Wᵖ = W₅} {γᵖ = γ₅}
+        mono₅ rb₄₅ sc₅ (CTI2.⊢↓-sealˣ X∈′)
+        (CTI2.⊢↓-sealˣ Y′∈′) prem₅ .p₄
+    with same-target rb₁₄ rb₄₅
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
+      (sv-sealed sv) vU D
+    | X , refl , aligned
+    | ⊢conceal (⊢↓-seal X∈) V₀⊢
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₂ rb₂ sc₂
+        (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
+    | rb₁₄
+    | CTI2.⊑cast² {p = p₄} c prem₄ q₄
+    | vM′ 《 inert 》
+    | Y , refl
+    | ECR.varv-seal vM₅ Y∈′ refl
+    | CTI2.conceal⊑conceal² {Wᵖ = W₅} {γᵖ = γ₅}
+        mono₅ rb₄₅ sc₅ (CTI2.⊢↓-sealˣ X∈′)
+        (CTI2.⊢↓-sealˣ Y∈″) prem₅ .p₄
+    | refl =
+  dyn-var-star {W = W₁} {X = X} ,
+  CTI2.⊑cast² c
+    (CTI2.conceal⊑conceal²
+      (dyn-mono {W = W₁} {W′ = W₅})
+      (TD.decayRebaseAt {W₁ = W₅} {W₁ᵈ = SPT.dynWorld W₅}
+        {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
+        (SPT.dynWorld-decay W₅)
+        (SPT.dynWorld-decay W₁)
+        (composeRebaseAt rb₁₄ rb₄₅))
+      (WD.decaySameCtx (SPT.dynWorld-decay W₁)
+        (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.⊢↓-sealˣ (transport-target-member rb₁₄ Y∈″))
+      (TD.⊢²-decay (SPT.dynWorld-decay W₅) prem₅)
+      (aligned-var {W = W₁} {X = X} {Y = Y} aligned))
+    (dyn-var-star {W = W₁} {X = X})
+seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -357,7 +593,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑reveal² mono₅ rb₅ sc₅ c′⊢ prem₄ q₄ =
   ⊥-elim (reveal-star-value-⊥ vU)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -367,7 +603,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑conceal² mono₅ rb₅ sc₅ c′⊢ prem₄ q₄ =
   ⊥-elim (conceal-star-value-⊥ vU)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -375,9 +611,9 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ X∈′) prem .p
     with ECR.seal-rebase-target rb p
        | seal-transfer
-           (seal-transfer-assumption same-target inner-target) sv vU prem
+           (seal-transfer-assumption same-target) sv vU prem
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -396,7 +632,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     (CTI2.⊢↓-sealˣ X∈) V₀⊑U
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target inner-target)
+    (seal-transfer-assumption same-target)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢

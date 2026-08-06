@@ -336,8 +336,6 @@ order of the untouched variables. When no such center is free, parking
 space comes from extending the center context (see the world-support
 section below).
 
-Representative instances of each move:
-
 The diagram is oriented like the record: `RebaseAt W W′ Xᴸ Xᴿ` aligns
 the pivots in its second index, and the wrapper rules read the same
 record in both directions (reveal descends along it, conceal ascends —

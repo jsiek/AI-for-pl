@@ -636,9 +636,10 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -------------------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
 
-  -- Source blame is below any well-typed target term: once the more
-  -- dynamic side has blamed, the imprecision claim places no further
-  -- constraint on the more precise side.
+  -- Source blame is below any well-typed target term.  The left side
+  -- is the more static one (A ⊑ ★ for any closed type A, with ★ on
+  -- the right): once the more static side has blamed, imprecision
+  -- places no constraint on the more dynamic side.
   blame⊑² : ∀ {M′ A B}
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M′ ⦂ B
     → (p : A ⊑ᵂ⟨ W ⟩ B)

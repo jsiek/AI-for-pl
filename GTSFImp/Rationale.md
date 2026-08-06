@@ -328,6 +328,7 @@ mean the pivots are aligned there. With the pivots apart in `W`
 for `W′` are:
 
 ```text
+              Center Context
               X      Y      Z
   W    ηᴸ:    Xᴸ
        ηᴿ:           Yᴿ           (pivots apart in W)
@@ -761,3 +762,21 @@ for re-parking, the peel must extend the center context first, using
 the existing world-extension machinery, and transport along the
 extension.  Parking space is therefore obtained by extension, never
 assumed.
+
+Re-parking is pure: the transported derivation must not re-align the
+re-parked variable anywhere.  A first design tried to stop at interior
+rebases that capture the variable as their target pivot and transport
+the sub-derivation by plain renaming, but the conceal-direction rules
+refute it: their rebase aligns the pivots in the world being
+re-parked, so vacating the variable contradicts the node's own
+`pivotAligned` field.  Converting such nodes to `rebase-onlyᴸ` fails
+too — the to-star premise would need "the right of an obligation can
+be dynamized to `★`", which is false for universal types
+(`∀(＇0 ⇒ ι) ⊑ ★` is underivable because `extᵐ` pins the bound
+variable's mark precise) — and a capture boundary that also moves its
+source pivot has no expressible counterpart at all once its partner is
+gone.  So `⊢²-repark` requires, as part of its derivation predicate,
+that the re-parked variable is no rebase's target pivot; callers that
+need to move a variable across its own alignment boundaries must
+re-emit those boundary nodes themselves, which is exactly what the
+seal-peel rebuild does.

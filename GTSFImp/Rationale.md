@@ -305,6 +305,66 @@ what makes the previously-empty output derivable. There is no mirror
 condition for target variables because type imprecision has no rule
 with a bare variable on the imprecise side.
 
+Conversely, what a rebase may change is exactly the placement of its
+pivot pair, plus mark decay. An alignment is the world's hypothesis
+that a source variable and a target variable name the same runtime
+seal; each wrapper boundary is the one place where that hypothesis may
+be revised, and only for the boundary's own pivot. Since every
+non-pivot embedding is pinned and the record's `pivotAligned` field
+forces the pivots to share a center in `W′`, the degrees of freedom
+reduce to the choice of that shared center. Writing centers as columns
+and world evolution downward, the three possible moves from a common
+starting world are:
+
+```text
+             c0    c1    c2
+  W    ηᴸ:   Xᴸ                    (pivots apart in W)
+       ηᴿ:         Y
+
+  W′   (a)   Xᴸ,Y              target pivot joins the source center
+       (b)         Xᴸ,Y        source pivot joins the target center
+       (c)               Xᴸ,Y  both re-park at a third center
+```
+
+Alongside any of these, `ImpEnvMono` lets marks decay `X⊑X → X⊑★` at
+any center, and the pivots' canonical store representations must be
+related in `W′` — the moved hypothesis has to be consistent with what
+the stores actually hold. One practical constraint is not visible in
+the record: embeddings are order-preserving `keep`/`skip` injections,
+so a pivot can only re-park at a center that respects the relative
+order of the untouched variables. When no such center is free, parking
+space comes from extending the center context (see the world-support
+section below).
+
+Representative instances of each move:
+
+The diagram is oriented like the record: `RebaseAt W W′ Xᴸ Xᴿ` aligns
+the pivots in its second index, and the wrapper rules read the same
+record in both directions (reveal descends along it, conceal ascends —
+see the direction paragraph below). Representative instances of each
+move:
+
+- *(a) target joins source* — the outer boundary of
+  [`proof/DGG/SealPeelProbe.agda`](proof/DGG/SealPeelProbe.agda):
+  its record `RebaseAt probe-W′ probe-W Xᴸ Y` starts with the pair
+  apart in `probe-W′` (`Y` sits at `X₂`'s center) and has `Y` joining
+  `Xᴸ`'s center in `probe-W`, revising which source representation the
+  target seal is identified with. Example 12's chains are stacks of
+  such moves, one per wrapper.
+- *(b) source joins target* — the mirror, typical when the source side
+  allocated its seal later than the target; the boundary at the source
+  seal re-aligns `Xᴸ` onto the already-placed `Y`.
+- *(c) both re-park* — no reduction step needs this, but rebuild
+  proofs use the latitude when choosing premise worlds: the seal-peel
+  analysis constructs an intermediate world with both pivots at a
+  center neither occupied before, and the same probe's
+  `probe-Wᵖ` exercises the one-variable version, parking `Y` at a
+  fresh center so that a deeper `rebase-onlyᴸ` disalignment premise
+  holds at the center it vacated.
+- *degenerate* — `rebase-onlyᴸ` and the `nothing`-pivot cases move
+  nothing: `W′ = W`. A pivot with no target partner has no alignment
+  to revise, so the only latitude left is mark decay.
+
 Reveal and conceal use opposite `RebaseAt` directions. A reveal checks the
 premise in the pre-reveal world and produces the result in the post-reveal
 world, so its rebasing premise has the same direction as the one-sided
@@ -444,14 +504,15 @@ Diagram:
       │ one step                       │ three steps
       ▼                                ▼
 
-    ((ƛ x) ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)) 7
+    ((ƛ x)                                  -- Xᴸ ⇒ Xᴸ
+       ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)) 7      -- ℕ ⇒ ℕ   then ℕ
       ⊑
-    ((((((ƛ x)
-       ↑ (seal Yᴿ Zᴿ ↦↑ unseal Yᴿ Zᴿ))
-       ↑ (seal Zᴿ ★ ↦↑ unseal Zᴿ ★))
-       ⟨ id ★ ↦ id ★ ⟩)
-       ⟨ (? Xᴿ) ↦ (? Xᴿ) ⟩)
-       ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)) 7
+    ((((((ƛ x)                              -- Yᴿ ⇒ Yᴿ
+       ↑ (seal Yᴿ Zᴿ ↦↑ unseal Yᴿ Zᴿ))       -- Zᴿ ⇒ Zᴿ
+       ↑ (seal Zᴿ ★ ↦↑ unseal Zᴿ ★))        -- ★ ⇒ ★
+       ⟨ id ★ ↦ id ★ ⟩)                    -- ★ ⇒ ★
+       ⟨ (? Xᴿ) ↦ (? Xᴿ) ⟩)                 -- Xᴿ ⇒ Xᴿ
+       ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)) 7      -- ℕ ⇒ ℕ  then ℕ
 
 Here `Xᴸ` is the single type variable in the left type context, and `Xᴿ`,
 `Yᴿ`, and `Zᴿ` are the three type variables in the right type context. The

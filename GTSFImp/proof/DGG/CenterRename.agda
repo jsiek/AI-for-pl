@@ -479,8 +479,11 @@ renameImpEnvMono π mono = renameEnvMono π mono
     (renameSameCtx {W = W} {W′ = Wᵖ} π sc) c⊢ c′⊢
     (⊢²-rename-center {W = Wᵖ} π M⊑N
       (rename-⊑ᵂ {W = Wᵖ} π p)) p′
-⊢²-rename-center {W = W} π (CTI2.blame⊑blame² p) p′ =
-  CTI2.blame⊑blame² p′
+⊢²-rename-center {W = W} {γ = γ} π (CTI2.blame⊑² M′⊢ p) p′ =
+  CTI2.blame⊑²
+    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (renameCtx-tgt π γ)) M′⊢)
+    p′
 ⊢²-rename-center {W = W} π
     (CTI2.⊕⊑⊕² op {p = p} {q = q} L⊑L′ M⊑M′ r) p′ =
   CTI2.⊕⊑⊕² op

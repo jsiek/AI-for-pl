@@ -241,7 +241,7 @@ mutual
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym (rebase-source-store rb)) sc
         (source-typing² M⊑M′))
-  source-typing² (CTI2.blame⊑blame² p) = ⊢blame
+  source-typing² (CTI2.blame⊑² M′⊢ p) = ⊢blame
   source-typing² (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
     ⊢⊕ op (source-typing² L⊑L′) (source-typing² M⊑M′)
 
@@ -280,6 +280,6 @@ mutual
     ⊢conceal (erase-⊢↓ c′⊢)
       (transport-target (sym (rebase-target-store rb)) sc
         (target-typing² M⊑M′))
-  target-typing² (CTI2.blame⊑blame² p) = ⊢blame
+  target-typing² (CTI2.blame⊑² M′⊢ p) = M′⊢
   target-typing² (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
     ⊢⊕ op (target-typing² L⊑L′) (target-typing² M⊑M′)

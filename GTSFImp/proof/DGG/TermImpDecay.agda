@@ -355,8 +355,11 @@ decayRebaseAt
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     dec@(env-decay refl refl refl refl mono)
-    (CTI2.blame⊑blame² p) =
-  CTI2.blame⊑blame² (decay⊑ᵂ dec p)
+    (CTI2.blame⊑² M′⊢ p) =
+  CTI2.blame⊑²
+    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (decayCtx-tgt dec _)) M′⊢)
+    (decay⊑ᵂ dec p)
 ⊢²-decay
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}

@@ -21,11 +21,15 @@ module proof.DGG.ExtraCastRight2 where
 --   * Binder-lifted world/rebase lemmas support the ∀-shaped frontier.
 --     The identity-pivot universal reveal and conceal subcases are complete;
 --     their conversion endpoints are equal and need no rebasing.
---     Bare seal is not reducible to obligation transport alone:
---     ExtraCastRight2Counterexample gives a checked configuration where
---     the input relation exists but every possible output relation after
---     target-tag cancellation is empty.  General bare-seal inversion needs
---     a stronger relation/world invariant or a restricted theorem domain.
+--   * The inversion carries a WFWorld hypothesis and threads it by
+--     decay: var-rebased wrapper cases move their premises into the
+--     honestified premise world (WorldDecay/TermImpDecay) before
+--     recursing, which is the general form of the counterexample
+--     repair recorded in ExtraCastRight2Counterexample.  The next
+--     frontiers are the ∀-shaped wrappers (proof.DGG.TagTransport has
+--     the obligation transports ready) and the bare seal, whose
+--     boundary decomposition is seal-tag-boundary-view² and whose
+--     inner extraction still needs a seal-peeling companion lemma.
 --   * Version-2 pay-offs visible here: no renaming wrapper around the
 --     relation, the Λ⊑² case recurses with the target data unchanged,
 --     and the ground lemmas of proof.ImprecisionConsistency apply
@@ -55,6 +59,8 @@ open import CastTerms
 open import Reduction
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
+import proof.DGG.WorldDecay as WD
+import proof.DGG.TermImpDecay as TD
 open import proof.DGG.ConvImp using
   (pivot-id-endpoints↑; pivot-id-endpoints↓)
 open CTI2 using
@@ -561,8 +567,38 @@ data SpineValue {Δ : TyCtx} : Term Δ → Set where
       {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
     → SpineValue V → SpineValue (V ↓ (c ↦↓ d))
 
+-- Threading mark-honesty and decay through the inversion.  The
+-- inversion's recursion may enter a wrapper's premise world, which
+-- the input derivation does not constrain to be mark-honest; the
+-- var-rebased wrapper cases therefore decay their premises into the
+-- honestified premise world before recursing.
+
+impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ} {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
+  → CTI2.ImpEnvMono W₁ W₂
+  → CTI2.ImpEnvMono W₂ W₃
+  → CTI2.ImpEnvMono W₁ W₃
+impEnvMono-∘ m₁ m₂ Z eq = m₂ Z (m₁ Z eq)
+
+decaySameCtxʳ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ W″ : World Δᴸ Δᴿ Δ′}
+    {γ : CtxImp W} {γ′ : CTI2.CtxImp W′}
+  → (dec : WD.EnvDecay W′ W″)
+  → CTI2.SameCtx γ γ′
+  → CTI2.SameCtx γ (WD.decayCtx dec γ′)
+decaySameCtxʳ dec CTI2.same-[] = CTI2.same-[]
+decaySameCtxʳ dec (CTI2.same-∷ sc) = CTI2.same-∷ (decaySameCtxʳ dec sc)
+
+liftWorldLeft-WF : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+  → CTI2.WFWorld W
+  → CTI2.WFWorld (CTI2.liftWorldLeft X⊑★ W)
+liftWorldLeft-WF wf Fin.zero ()
+liftWorldLeft-WF wf (Fin.suc Xᴸ) eq with wf Xᴸ eq
+liftWorldLeft-WF wf (Fin.suc Xᴸ) eq | Xᴿ , al =
+  Xᴿ , cong Fin.suc al
+
 -- If a spine value is related to a tagged target value, the tag can be
 -- peeled off the target at any obligation for the tag's ground type.
+-- The world is required to be mark-honest; the seal cases depend on it.
 
 right-inj-inversion² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
@@ -571,6 +607,7 @@ right-inj-inversion² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
     {cH : ν ⊢ H ∼ H}
     {p : A ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.WFWorld W
   → SpineValue M
   → Value N
   → W ∣ γ ⊢² M ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
@@ -578,52 +615,52 @@ right-inj-inversion² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² M ⊑ N ∶ q
 
 -- Target-only cast: the premise already carries the tag obligation.
-right-inj-inversion² sv vN (CTI2.⊑cast² {p = p₀} c′ prem q₀) q =
+right-inj-inversion² wf sv vN (CTI2.⊑cast² {p = p₀} c′ prem q₀) q =
   subst≡ (λ r → _ ∣ _ ⊢² _ ⊑ _ ∶ r) (PI.⊑-unique p₀ q) prem
 
 -- Paired cast: keep the source cast as a source-only cast.
-right-inj-inversion² sv vN (CTI2.cast⊑cast² c c′ prem q₀) q =
+right-inj-inversion² wf sv vN (CTI2.cast⊑cast² c c′ prem q₀) q =
   CTI2.cast⊑² c prem q
 
 -- Source-only cast around an injection value: no obligation matches.
-right-inj-inversion² {gH = ＇ Y} (sv-cast sv inj)
+right-inj-inversion² {gH = ＇ Y} wf (sv-cast sv inj)
   vN (CTI2.cast⊑² c prem q₀) ()
-right-inj-inversion² {gH = ‵ ι} (sv-cast sv inj)
+right-inj-inversion² {gH = ‵ ι} wf (sv-cast sv inj)
   vN (CTI2.cast⊑² c prem q₀) ()
-right-inj-inversion² {gH = ★⇒★} (sv-cast sv inj)
+right-inj-inversion² {gH = ★⇒★} wf (sv-cast sv inj)
   vN (CTI2.cast⊑² c prem q₀) ()
-right-inj-inversion² {gH = ∀★} (sv-cast sv inj)
+right-inj-inversion² {gH = ∀★} wf (sv-cast sv inj)
   vN (CTI2.cast⊑² c prem q₀) ()
 
 -- Source-only function cast: the premise components rebuild the
 -- premise-level tag obligation.
-right-inj-inversion² {gH = ★⇒★} (sv-cast sv fun)
+right-inj-inversion² {gH = ★⇒★} wf (sv-cast sv fun)
     vN (CTI2.cast⊑² {p = ⇒⊑★ pA pB} c prem q₀) (⇒⊑⇒ qA qB) =
   CTI2.cast⊑² c
-    (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
+    (right-inj-inversion² wf sv vN prem (⇒⊑⇒ pA pB))
     (⇒⊑⇒ qA qB)
-right-inj-inversion² {gH = ＇ Y} (sv-cast sv fun)
+right-inj-inversion² {gH = ＇ Y} wf (sv-cast sv fun)
   vN (CTI2.cast⊑² c prem q₀) ()
-right-inj-inversion² {gH = ‵ ι} (sv-cast sv fun)
+right-inj-inversion² {gH = ‵ ι} wf (sv-cast sv fun)
   vN (CTI2.cast⊑² c prem q₀) ()
-right-inj-inversion² {gH = ∀★} (sv-cast sv fun)
+right-inj-inversion² {gH = ∀★} wf (sv-cast sv fun)
   vN (CTI2.cast⊑² c prem q₀) ()
 
 -- Source-only universal cast: chase the tag through the cast with the
 -- embedded consistency evidence.
-right-inj-inversion² {W = W} {gH = gH} (sv-cast sv (all {c = c₁}))
+right-inj-inversion² {W = W} {gH = gH} wf (sv-cast sv (all {c = c₁}))
     vN (CTI2.cast⊑² {p = p₀} .(∀ᶜ c₁) prem q₀) q =
   CTI2.cast⊑² (∀ᶜ c₁)
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² wf sv vN prem
       (ground-cast-source⊑ (C.renameGroundᵐ (ηᴿʷ W) gH) nonstar-∀
         (C.renameᵐᶜ (ηᴸʷ W) (∀ᶜ c₁)) p₀ q₀ q))
     q
 
 -- Source-only generalization cast: same, with the gen tag's source.
-right-inj-inversion² {W = W} {gH = gH} (sv-cast sv (genᵥ A≢★ safe))
+right-inj-inversion² {W = W} {gH = gH} wf (sv-cast sv (genᵥ A≢★ safe))
     vN (CTI2.cast⊑² {p = p₀} c prem q₀) q =
   CTI2.cast⊑² c
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² wf sv vN prem
       (ground-cast-source⊑ (C.renameGroundᵐ (ηᴿʷ W) gH)
         (C.renameNonStar (toRenameᵗ (ηᴸʷ W)) (nonstar-from-≢★ A≢★))
         (C.renameᵐᶜ (ηᴸʷ W) c) p₀ q₀ q))
@@ -631,42 +668,42 @@ right-inj-inversion² {W = W} {gH = gH} (sv-cast sv (genᵥ A≢★ safe))
 
 -- Type abstraction against a non-∀ ground: only the ∀⊑ view is
 -- possible, and its body is exactly a left-only lifted premise.
-right-inj-inversion² {W = W} {gH = ＇ Y} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ＇ Y} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv z∈A liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv z∈A liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ＇ Y} body))
     (∀⊑ Anv′ z∈A′ body)
-right-inj-inversion² {W = W} {gH = ‵ ι} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ‵ ι} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv z∈A liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv z∈A liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ‵ ι} body))
     (∀⊑ Anv′ z∈A′ body)
-right-inj-inversion² {W = W} {gH = ★⇒★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv z∈A liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv z∈A liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ★ ⇒ ★} body))
     (∀⊑ Anv′ z∈A′ body)
 
 -- Type abstraction against the ∀★ ground.  The Λ⊑² occurrence premise
 -- exposes the body's head, which rules out bot-elim, refutes ∀⊑∀ by
 -- occurrence preservation, and leaves the ∀⊑ rebuild.
-right-inj-inversion² {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {gH = ∀★} wf (sv-Λ sv)
   vN (CTI2.Λ⊑² () var-∈ liftγ vV M′⊢ prem q₀) q
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv (∈-fun-left z∈) liftγ vV
       (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv (∈-fun-left z∈) liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
     (∀⊑ Anv′ z∈A′ body)
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² Anv (∈-fun-left z∈) liftγ vV M′⊢ prem q₀)
     (∀⊑∀ qbody)
   with source-occurs-target refl qbody
@@ -674,15 +711,15 @@ right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
            (ext-injective (toRenameᵗ-injective (ηᴸʷ W)))
            (∈-fun-left z∈))
 ... | ()
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv (∈-fun-right z∉ z∈) liftγ vV
       (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv (∈-fun-right z∉ z∈) liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
     (∀⊑ Anv′ z∈A′ body)
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² Anv (∈-fun-right z∉ z∈) liftγ vV M′⊢ prem q₀)
     (∀⊑∀ qbody)
   with source-occurs-target refl qbody
@@ -690,15 +727,15 @@ right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
            (ext-injective (toRenameᵗ-injective (ηᴸʷ W)))
            (∈-fun-right z∉ z∈))
 ... | ()
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² {A = A₀} Anv (∈-all z∈) liftγ vV
       (⊢⟨⟩ N⊢ _) prem q₀)
     (∀⊑ Anv′ z∈A′ body) =
   CTI2.Λ⊑² Anv (∈-all z∈) liftγ vV N⊢
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² (liftWorldLeft-WF {W = W} wf) sv vN prem
       (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
     (∀⊑ Anv′ z∈A′ body)
-right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-Λ sv)
     vN (CTI2.Λ⊑² Anv (∈-all z∈) liftγ vV M′⊢ prem q₀)
     (∀⊑∀ qbody)
   with source-occurs-target refl qbody
@@ -710,35 +747,77 @@ right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
 -- Function-shaped reveal: the premise's ⇒⊑★ components rebuild the
 -- premise-level tag obligation, and by ⊑-unique it does not matter
 -- that this inhabitant differs from any other.
-right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono rb sc ⊢c prem q₀)
+right-inj-inversion² {gH = ★⇒★} wf (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono CTI2.rebase-idᴸ
+      sc ⊢c prem q₀)
     (⇒⊑⇒ qA qB) =
-  CTI2.reveal⊑² mono rb sc ⊢c
-    (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
+  CTI2.reveal⊑² mono CTI2.rebase-idᴸ sc ⊢c
+    (right-inj-inversion² wf sv vN prem (⇒⊑⇒ pA pB))
     (⇒⊑⇒ qA qB)
-right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
+right-inj-inversion² {gH = ★⇒★} wf (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono
+      (CTI2.rebase-onlyᴸ ts dis rep) sc ⊢c prem q₀)
+    (⇒⊑⇒ qA qB) =
+  CTI2.reveal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc ⊢c
+    (right-inj-inversion² wf sv vN prem (⇒⊑⇒ pA pB))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² {W′ = W′} {p = ⇒⊑★ pA pB} mono
+      (CTI2.rebase-varᴸ rb) sc ⊢c prem q₀)
+    (⇒⊑⇒ qA qB) =
+  CTI2.reveal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt WD.decay-refl (WD.honestify-decay {W = W′}) rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc) ⊢c
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′}) (⇒⊑⇒ pA pB)))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {gH = ＇ Y} wf (sv-reveal-fun sv)
   vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
-right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
+right-inj-inversion² {gH = ‵ ι} wf (sv-reveal-fun sv)
   vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
-right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
+right-inj-inversion² {gH = ∀★} wf (sv-reveal-fun sv)
   vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
 
 -- Function-shaped conceal: same construction.
-right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} mono rb sc ⊢c prem q₀)
+right-inj-inversion² {gH = ★⇒★} wf (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} mono CTI2.rebase-idᴸ
+      sc ⊢c prem q₀)
     (⇒⊑⇒ qA qB) =
-  CTI2.conceal⊑² mono rb sc ⊢c
-    (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
+  CTI2.conceal⊑² mono CTI2.rebase-idᴸ sc ⊢c
+    (right-inj-inversion² wf sv vN prem (⇒⊑⇒ pA pB))
     (⇒⊑⇒ qA qB)
-right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
+right-inj-inversion² {gH = ★⇒★} wf (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} mono
+      (CTI2.rebase-onlyᴸ ts dis rep) sc ⊢c prem q₀)
+    (⇒⊑⇒ qA qB) =
+  CTI2.conceal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc ⊢c
+    (right-inj-inversion² wf sv vN prem (⇒⊑⇒ pA pB))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² {W′ = W′} {p = ⇒⊑★ pA pB} mono
+      (CTI2.rebase-varᴸ rb) sc ⊢c prem q₀)
+    (⇒⊑⇒ qA qB) =
+  CTI2.conceal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt (WD.honestify-decay {W = W′}) WD.decay-refl rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc) ⊢c
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′}) (⇒⊑⇒ pA pB)))
+    (⇒⊑⇒ qA qB)
+right-inj-inversion² {gH = ＇ Y} wf (sv-conceal-fun sv)
   vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
-right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
+right-inj-inversion² {gH = ‵ ι} wf (sv-conceal-fun sv)
   vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
-right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
+right-inj-inversion² {gH = ∀★} wf (sv-conceal-fun sv)
   vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
 
 -- Type applications are not spine values.
-right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q
+right-inj-inversion² wf () vN (CTI2.•⊑² _ _ _ _) q
 
 ------------------------------------------------------------------------
 -- Identity-pivot universal wrappers
@@ -756,6 +835,7 @@ right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
     {c : Conv↑ (suc Δᴸ) A B}
     {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
     {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.WFWorld W
   → SpineValue V
   → Value N
   → CTI2.SameCtx γ γ′
@@ -765,9 +845,9 @@ right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
   → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
   → W ∣ γ ⊢² V ↑ `∀↑ c ⊑ N ∶ q
 right-inj-reveal-all-id² {W = W} {A = A} {B = B}
-    {H = H} {c = c} sv vN sc c⊢ prem q =
+    {H = H} {c = c} wf sv vN sc c⊢ prem q =
   CTI2.reveal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↑-∀-idˣ c⊢)
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² wf sv vN prem
       (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
         (sym (cong `∀ (pivot-id-endpoints↑ c⊢))) q))
     q
@@ -779,6 +859,7 @@ right-inj-conceal-all-id² : ∀ {Δᴸ Δᴿ Δ}
     {c : Conv↓ (suc Δᴸ) A B}
     {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
     {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.WFWorld W
   → SpineValue V
   → Value N
   → CTI2.SameCtx γ γ′
@@ -788,9 +869,9 @@ right-inj-conceal-all-id² : ∀ {Δᴸ Δᴿ Δ}
   → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
   → W ∣ γ ⊢² V ↓ `∀↓ c ⊑ N ∶ q
 right-inj-conceal-all-id² {W = W} {A = A} {B = B}
-    {H = H} {c = c} sv vN sc c⊢ prem q =
+    {H = H} {c = c} wf sv vN sc c⊢ prem q =
   CTI2.conceal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)
-    (right-inj-inversion² sv vN prem
+    (right-inj-inversion² wf sv vN prem
       (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
         (sym (cong `∀ (pivot-id-endpoints↓ c⊢))) q))
     q

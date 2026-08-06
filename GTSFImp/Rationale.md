@@ -320,19 +320,21 @@ Recall what a center is: a world carries a shared center type context
 variable to a variable of `Δ` — its center. A source variable is
 aligned with a target variable exactly when the embeddings send them
 to the same center. In the diagram below the center context has three
-variables `c0, c1, c2`, drawn as columns; each row records where the
-embeddings send the two pivots, so two names in one column mean the
-pivots are aligned there. With the pivots apart in `W` (`Xᴸ` at `c0`,
-`Y` at `c1`), the three possible shapes for `W′` are:
+type variables `X, Y, Z`, drawn as columns; the pivot pair is the
+source variable `Xᴸ` and the target variable `Yᴿ`. Each row records
+where the embeddings send the two pivots, so two names in one column
+mean the pivots are aligned there. With the pivots apart in `W`
+(`Xᴸ` at center `X`, `Yᴿ` at center `Y`), the three possible shapes
+for `W′` are:
 
 ```text
-             c0    c1    c2
-  W    ηᴸ:   Xᴸ
-       ηᴿ:         Y           (pivots apart in W)
+              X      Y      Z
+  W    ηᴸ:    Xᴸ
+       ηᴿ:           Yᴿ           (pivots apart in W)
 
-  W′   (a)   Xᴸ,Y              Y moves to c0, where Xᴸ already sits
-       (b)         Xᴸ,Y        Xᴸ moves to c1, where Y already sits
-       (c)               Xᴸ,Y  both move to c2, previously unoccupied
+  W′   (a)   Xᴸ,Yᴿ                Yᴿ moves to X, where Xᴸ already sits
+       (b)          Xᴸ,Yᴿ         Xᴸ moves to Y, where Yᴿ already sits
+       (c)                 Xᴸ,Yᴿ  both move to Z, previously unoccupied
 ```
 
 Alongside any of these, `ImpEnvMono` lets marks decay `X⊑X → X⊑★` at
@@ -360,7 +362,7 @@ move:
   such moves, one per wrapper.
 - *(b) source joins target* — the mirror, typical when the source side
   allocated its seal later than the target; the boundary at the source
-  seal re-aligns `Xᴸ` onto the already-placed `Y`.
+  seal re-aligns the source pivot onto the already-placed target pivot.
 - *(c) both re-park* — no reduction step needs this, but rebuild
   proofs use the latitude when choosing premise worlds: the seal-peel
   analysis constructs an intermediate world with both pivots at a

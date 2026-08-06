@@ -12,6 +12,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (_,_)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -211,6 +212,7 @@ example12-rebase-Z-to-Y =
   CTI2.rebase-at (CTI2.same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     (λ _ → refl) refl
+    (λ moved → ⊥-elim (moved refl))
     CTI2.example12-Y-representation
 
 example12-target-Y-reveal :
@@ -1718,8 +1720,8 @@ left-path-rebase-XZ-to-YZ-Y₃ =
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
        ; {Fin.suc Fin.zero} _ → refl })
-   
-    refl left-path-source-Y-rep₃-YZ
+    refl (λ _ → Fin.zero , refl)
+    left-path-source-Y-rep₃-YZ
 
 left-path-rebase-XZ-Z₃ :
   CTI2.RebaseAt left-path-world₃ left-path-world₃
@@ -2274,8 +2276,8 @@ left-path-rebase-XZ-to-YZ-Y₄ =
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
        ; {Fin.suc Fin.zero} _ → refl })
-   
-    refl left-path-source-Y-rep₄-YZ
+    refl (λ _ → Fin.zero , refl)
+    left-path-source-Y-rep₄-YZ
 
 left-path-rebase-XZ-Z₄ :
   CTI2.RebaseAt left-path-world₄ left-path-world₄

@@ -11,6 +11,7 @@ module proof.DGG.Repark where
 open import Data.List using ([]; _∷_)
 open import Data.Empty using (⊥-elim)
 open import Data.Maybe using (just; nothing)
+open import Data.Product using (Σ-syntax; _,_)
 open import Data.Unit using (⊤; tt)
 import Data.Fin as Fin
 import Data.Nat as Nat
@@ -712,11 +713,13 @@ reparkRebaseAt : ∀ {Δᴸ Δᴿ Δ}
   → Xᴿ ≢ Y
   → CTI2.RebaseAt W W′ Xᴸ Xᴿ
   → CTI2.RebaseAt (reparkWorld W Y) (reparkWorld W′ Y) Xᴸ Xᴿ
-reparkRebaseAt {W = W} {W′} {Xᴸ} {Xᴿ} {Y} Y∈ avoid Xᴿ≠Y
+reparkRebaseAt {Δᴸ = Δᴸ} {W = W} {W′} {Xᴸ} {Xᴿ} {Y}
+    Y∈ avoid Xᴿ≠Y
     (CTI2.rebase-at (CTI2.same-runtime source-eq target-eq)
-      offL offR aligned (CTI2.store-rep-imp represented)) =
+      offL offR aligned anchor (CTI2.store-rep-imp represented)) =
   CTI2.rebase-at (CTI2.same-runtime source-eq target-eq)
     left-off right-off repark-aligned
+    repark-anchor
     (CTI2.store-rep-imp
       (repark-⊑ᵂ {W = W′} {Yₚ = Y}
         (resolveVar-avoid Y∈ avoid Xᴿ≠Y) represented))
@@ -756,6 +759,24 @@ reparkRebaseAt {W = W} {W′} {Xᴸ} {Xᴿ} {Y} Y∈ avoid Xᴿ≠Y
           (toRenameᵗ (insertᶜ (reparkIndex (ηᴿʷ W′) Y)))
           aligned)
         (sym (reparkEmbedᴿ-off (ηᴿʷ W′) Y Xᴿ Xᴿ≠Y)))
+
+  repark-anchor :
+      toRenameᵗ (ηᴿʷ (reparkWorld W Y)) Xᴿ
+        ≢ toRenameᵗ (ηᴿʷ (reparkWorld W′ Y)) Xᴿ
+    → Σ[ Xₒ ∈ TyVar Δᴸ ]
+        toRenameᵗ (ηᴸʷ (reparkWorld W Y)) Xₒ
+          ≡ toRenameᵗ (ηᴿʷ (reparkWorld W Y)) Xᴿ
+  repark-anchor moved with anchor
+      (λ eq → moved
+        (trans (reparkEmbedᴿ-off (ηᴿʷ W) Y Xᴿ Xᴿ≠Y)
+          (trans (insert-map-eq (sym k-eq) eq)
+            (sym (reparkEmbedᴿ-off (ηᴿʷ W′) Y Xᴿ Xᴿ≠Y)))))
+  repark-anchor moved | Xₒ , eq = Xₒ ,
+    trans (toRenameᵗ-∘
+        (insertᶜ (reparkIndex (ηᴿʷ W) Y)) (ηᴸʷ W) Xₒ)
+      (trans (cong
+          (toRenameᵗ (insertᶜ (reparkIndex (ηᴿʷ W) Y))) eq)
+        (sym (reparkEmbedᴿ-off (ηᴿʷ W) Y Xᴿ Xᴿ≠Y)))
 
 repark-source-mark : ∀ {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (Y : TyVar Δᴿ)

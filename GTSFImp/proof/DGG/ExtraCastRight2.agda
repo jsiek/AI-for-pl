@@ -327,7 +327,8 @@ liftRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
   → CTI2.RebaseAt W W′ Xᴸ Xᴿ
   → CTI2.RebaseAt (CTI2.liftWorldBoth v W)
       (CTI2.liftWorldBoth v W′) (Fin.suc Xᴸ) (Fin.suc Xᴿ)
-liftRebaseAt {W = W} {W′ = W′} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} {v = v} rb =
+liftRebaseAt {Δᴸ = Δᴸ} {W = W} {W′ = W′} {Xᴸ = Xᴸ}
+    {Xᴿ = Xᴿ} {v = v} rb =
   CTI2.rebase-at
     (CTI2.same-runtime
       (cong store-lift
@@ -336,8 +337,20 @@ liftRebaseAt {W = W} {W′ = W′} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} {v = v} rb =
         (CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb))))
     source-off target-off
     (cong Fin.suc (CTI2.RebaseAt.pivotAligned rb))
+    lift-anchor
     (CTI2.store-rep-imp lift-represented)
   where
+  lift-anchor :
+      toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W)) (Fin.suc Xᴿ)
+        ≢ toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W′)) (Fin.suc Xᴿ)
+    → Σ[ Xₒ ∈ TyVar (suc Δᴸ) ]
+        toRenameᵗ (ηᴸʷ (CTI2.liftWorldBoth v W)) Xₒ
+          ≡ toRenameᵗ
+              (ηᴿʷ (CTI2.liftWorldBoth v W)) (Fin.suc Xᴿ)
+  lift-anchor moved with CTI2.RebaseAt.anchorᴿ rb
+      (λ eq → moved (cong Fin.suc eq))
+  lift-anchor moved | Xₒ , eq = Fin.suc Xₒ , cong Fin.suc eq
+
   old-represented =
     CTI2.StoreRepImp.represented
       (CTI2.RebaseAt.storeRepresentations rb)

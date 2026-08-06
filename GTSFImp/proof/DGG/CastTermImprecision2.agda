@@ -40,7 +40,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ)
-open import Data.Product using (Σ-syntax)
+open import Data.Product using (Σ-syntax; _,_)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
@@ -314,6 +314,16 @@ record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     ηᴿ-off-pivot : ∀ {Y} → Y ≢ Xᴿ
       → toRenameᵗ (ηᴿʷ W′) Y ≡ toRenameᵗ (ηᴿʷ W) Y
     pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
+    -- Moved-pivot anchoring: a target pivot that relocates between
+    -- the two worlds must sit aligned with some source variable in
+    -- the first world.  Example 12's chains never move the target
+    -- embedding, so their witnesses discharge the premise; the
+    -- MovedLinkProbe counterexample relocates its target pivot to a
+    -- center no source occupies, which this field outlaws, restoring
+    -- invertibility of the bare-seal boundary.
+    anchorᴿ : toRenameᵗ (ηᴿʷ W) Xᴿ ≢ toRenameᵗ (ηᴿʷ W′) Xᴿ
+      → Σ[ Xₒ ∈ TyVar Δᴸ ]
+          toRenameᵗ (ηᴸʷ W) Xₒ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
 sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -322,9 +332,10 @@ sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → StoreRepImp W Xᴸ Xᴿ
     --------------------
   → RebaseAt W W Xᴸ Xᴿ
-sameWorldRebaseAt =
+sameWorldRebaseAt aligned reps =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ _ → refl)
+    (λ _ → refl) (λ _ → refl) aligned
+    (λ moved → ⊥-elim (moved refl)) reps
 
 -- One-sided wrappers carry an optional pivot: a conversion with no
 -- pivot (an identity-shaped conversion) keeps the world fixed, and a
@@ -743,14 +754,16 @@ example12-rebase-X-to-Z :
 example12-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl example12-Z-representation
+    refl (λ moved → ⊥-elim (moved refl))
+    example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl example12-Y-representation
+    refl (λ moved → ⊥-elim (moved refl))
+    example12-Y-representation
 
 example12-outer-function :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -878,7 +891,8 @@ example12-nat-chain-rebase-X-to-Y :
 example12-nat-chain-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl example12-nat-chain-Y-representation
+    refl (λ moved → ⊥-elim (moved refl))
+    example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left
@@ -991,7 +1005,8 @@ example12-left-path-rebase-X-to-Z :
 example12-left-path-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
     (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl example12-left-path-Z-representation
+    refl (λ _ → Fin.zero , refl)
+    example12-left-path-Z-representation
 
 example12-left-path-rebase-X-to-Y :
   RebaseAt example12-left-path-world-X example12-left-path-world-Y
@@ -999,4 +1014,5 @@ example12-left-path-rebase-X-to-Y :
 example12-left-path-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl example12-left-path-Y-representation
+    refl (λ _ → Fin.zero , refl)
+    example12-left-path-Y-representation

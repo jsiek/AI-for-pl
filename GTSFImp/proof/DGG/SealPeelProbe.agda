@@ -7,14 +7,15 @@ module proof.DGG.SealPeelProbe where
 --   * It also records that the right-injection inversion output remains
 --     derivable by rebuilding link-by-link at freshly chosen premise
 --     worlds, rather than by transporting interior derivations.
---   * Here the rebuild re-parks Y at an unused center so the inner seal's
---     rebase-onlyᴸ disalignment holds.
+--   * The output rebuild uses the world where X₂ and Y are aligned, so
+--     its inner source seal has a same-world variable rebase.
 --   * See Rationale.md, section "Seal peeling and world support".
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
 
@@ -192,7 +193,7 @@ probe-outer-input-rebase =
   rebase-at (same-runtime refl refl)
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl probe-Xᴸ-Y-rep
+    refl (λ _ → X₂ , refl) probe-Xᴸ-Y-rep
 
 probe-X₂-Y-rep′ : CTI2.StoreRepImp probe-W′ X₂ Y
 probe-X₂-Y-rep′ = store-rep-imp ★⊑★
@@ -203,7 +204,7 @@ probe-inner-target-rebase =
     (λ { {Fin.zero} _ → refl
        ; {Fin.suc Fin.zero} X₂≢ → ⊥-elim (X₂≢ refl) })
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl probe-X₂-Y-rep′
+    refl (λ _ → X₂ , refl) probe-X₂-Y-rep′
 
 probe-X₂-Y-rep₄ : CTI2.StoreRepImp probe-W₄ X₂ Y
 probe-X₂-Y-rep₄ = store-rep-imp ★⊑★
@@ -212,17 +213,9 @@ probe-inner-source-rebase : RebaseAt probe-W₄ probe-W₄ X₂ Y
 probe-inner-source-rebase =
   CTI2.sameWorldRebaseAt refl probe-X₂-Y-rep₄
 
-probe-outer-output-rebase : RebaseAt probe-Wᵖ probe-W Xᴸ Y
-probe-outer-output-rebase =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl probe-Xᴸ-Y-rep
-
-probe-inner-source-only : CTI2.RebaseAtᴸ probe-Wᵖ probe-Wᵖ
-    (just X₂)
-probe-inner-source-only =
-  CTI2.rebase-onlyᴸ refl (λ { Fin.zero () }) ★⊑★
+probe-output-inner-source-rebase : RebaseAt probe-W′ probe-W′ X₂ Y
+probe-output-inner-source-rebase =
+  CTI2.sameWorldRebaseAt refl probe-X₂-Y-rep′
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: the movable-interior input
@@ -276,23 +269,24 @@ probe-input =
 qOut : ＇ Xᴸ ⊑ᵂ⟨ probe-W ⟩ ＇ Y
 qOut = X⊑X
 
-pᵛ : ＇ X₂ ⊑ᵂ⟨ probe-Wᵖ ⟩ ★
+pᵛ : ＇ X₂ ⊑ᵂ⟨ probe-W′ ⟩ ★
 pᵛ = X⊑★ refl
 
 probe-output-base² :
-  probe-Wᵖ ∣ [] ⊢² probe-V₀₀ ⊑ probe-U₀ ∶ ★⊑★
+  probe-W′ ∣ [] ⊢² probe-V₀₀ ⊑ probe-U₀ ∶ ★⊑★
 probe-output-base² =
   CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
 
 probe-output-inner-seal² :
-  probe-Wᵖ ∣ [] ⊢² probe-V₁ ⊑ probe-U₀ ∶ pᵛ
+  probe-W′ ∣ [] ⊢² probe-V₁ ⊑ probe-U₀ ∶ pᵛ
 probe-output-inner-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq) probe-inner-source-only
+  CTI2.conceal⊑² (λ _ eq → eq)
+    (CTI2.rebase-varᴸ probe-output-inner-source-rebase)
     CTI2.same-[] probe-X₂-seal-⊢ probe-output-base² pᵛ
 
 probe-output-tag² :
-  probe-Wᵖ ∣ [] ⊢² probe-V ⊑ probe-U₀ ∶ ★⊑★
+  probe-W′ ∣ [] ⊢² probe-V ⊑ probe-U₀ ∶ ★⊑★
 probe-output-tag² =
   CTI2.cast⊑² probe-X₂! probe-output-inner-seal² ★⊑★
 
@@ -300,5 +294,5 @@ probe-output :
   probe-W ∣ [] ⊢² probe-M ⊑ probe-U₁ ∶ qOut
 probe-output =
   CTI2.conceal⊑conceal² (λ _ eq → eq)
-    probe-outer-output-rebase CTI2.same-[]
+    probe-outer-input-rebase CTI2.same-[]
     probe-Xᴸ-seal-⊢ probe-Y-seal-⊢ probe-output-tag² qOut

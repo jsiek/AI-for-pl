@@ -8,11 +8,13 @@ module proof.DGG.SealTransfer where
 --   * Depends on SealPeelToolkit, ExtraCastRight2, and term decay.
 
 open import Data.Empty using (⊥; ⊥-elim)
+import Data.Fin as Fin
 open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans)
+  using (_≡_; _≢_; refl; sym; trans)
   renaming (subst to subst≡)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import Imprecision
@@ -42,8 +44,13 @@ composeRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → RebaseAt W₂ W₁ X Y
   → RebaseAt W₃ W₂ X Y
+  → (toRenameᵗ (CTI2.ηᴿʷ W₃) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W₂) Y
+    → toRenameᵗ (CTI2.ηᴸʷ W₃) X
+      ≡ toRenameᵗ (CTI2.ηᴸʷ W₂) X)
   → RebaseAt W₃ W₁ X Y
-composeRebaseAt rb₁ rb₂ =
+composeRebaseAt {Δᴸ = Δᴸ} {W₁ = W₁} {W₂} {W₃} {X} {Y}
+    rb₁ rb₂ stable =
   rebase-at
     (same-runtime
       (trans source₁ source₂)
@@ -51,6 +58,7 @@ composeRebaseAt rb₁ rb₂ =
     (λ Y≠X → trans (source-off₁ Y≠X) (source-off₂ Y≠X))
     (λ Y′≠Y → trans (target-off₁ Y′≠Y) (target-off₂ Y′≠Y))
     (CTI2.RebaseAt.pivotAligned rb₁)
+    compose-anchor
     (CTI2.RebaseAt.storeRepresentations rb₁)
   where
   source₁ = CTI2.SameRuntime.sourceStore-same
@@ -65,6 +73,28 @@ composeRebaseAt rb₁ rb₂ =
   source-off₂ = CTI2.RebaseAt.ηᴸ-off-pivot rb₂
   target-off₁ = CTI2.RebaseAt.ηᴿ-off-pivot rb₁
   target-off₂ = CTI2.RebaseAt.ηᴿ-off-pivot rb₂
+
+  compose-anchor :
+      toRenameᵗ (CTI2.ηᴿʷ W₃) Y
+        ≢ toRenameᵗ (CTI2.ηᴿʷ W₁) Y
+    → Σ[ Xₒ ∈ TyVar Δᴸ ]
+        toRenameᵗ (CTI2.ηᴸʷ W₃) Xₒ
+          ≡ toRenameᵗ (CTI2.ηᴿʷ W₃) Y
+  compose-anchor moved with Fin._≟_
+      (toRenameᵗ (CTI2.ηᴿʷ W₃) Y)
+      (toRenameᵗ (CTI2.ηᴿʷ W₂) Y)
+  compose-anchor moved | no moved₂ =
+    CTI2.RebaseAt.anchorᴿ rb₂ moved₂
+  compose-anchor moved | yes target₃₂ with CTI2.RebaseAt.anchorᴿ rb₁
+      (λ target₂₁ → moved (trans target₃₂ target₂₁))
+  compose-anchor moved | yes target₃₂ | Xₒ , anchored₂
+      with Fin._≟_ Xₒ X
+  compose-anchor moved | yes target₃₂ | Xₒ , anchored₂ | no Xₒ≠X =
+    Xₒ , trans (sym (source-off₂ Xₒ≠X))
+      (trans anchored₂ (sym target₃₂))
+  compose-anchor moved | yes target₃₂ | .X , anchored₂ | yes refl =
+    X , trans (stable target₃₂)
+      (trans (CTI2.RebaseAt.pivotAligned rb₂) (sym target₃₂))
 
 ------------------------------------------------------------------------
 -- Seal values
@@ -192,12 +222,21 @@ SameTarget = ∀ {Δᴸ Δᴿ Δ}
   → RebaseAt W₅ W₄ Z Y″
   → Y″ ≡ Y
 
--- The landing policy permits one explicit assumption argument for the
--- double-move configuration.
+-- The landing policy permits explicit assumptions for the exceptional
+-- stacked-rebase configurations.
 record SealTransferAssumption : Set where
   constructor seal-transfer-assumption
   field
     same-target-assumption : SameTarget
+    compose-pivot-stable-assumption : ∀ {Δᴸ Δᴿ Δ}
+        {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
+        {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      → (rb₁ : RebaseAt W₂ W₁ X Y)
+      → (rb₂ : RebaseAt W₃ W₂ X Y)
+      → toRenameᵗ (CTI2.ηᴿʷ W₃) Y
+          ≡ toRenameᵗ (CTI2.ηᴿʷ W₂) Y
+      → toRenameᵗ (CTI2.ηᴸʷ W₃) X
+          ≡ toRenameᵗ (CTI2.ηᴸʷ W₂) X
 
 ------------------------------------------------------------------------
 -- Seal transfer
@@ -216,27 +255,27 @@ seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
         ∣ WD.decayCtx (SPT.dynWorld-decay W₁) γ₁
         ⊢² V ⊑ U ∶ q★)
 seal-transfer {W₁ = W₁} {V = V} {A = A} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target) sv vU D
+    (seal-transfer-assumption same-target pivot-stable) sv vU D
     with SPT.right-var-obligation-view {W = W₁} {R = A} {Y = Y} p
 seal-transfer {W₁ = W₁} {V = V} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-spine sv) vU D
     | X , refl , aligned =
   ⊥-elim
     (spine-variable-⊥ sv (CTI2T.source-typing² D))
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     with CTI2T.source-typing² D
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
     with D
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -244,7 +283,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ Y∈) prem₃ .p
     with target-seal-rebase-source rb₂ p
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -253,7 +292,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | rb₁₄
     with prem₃
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -277,7 +316,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (SPT.dynWorld-decay W₄) prem₄)
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -289,7 +328,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ X∈′) prem₄ q₄
     with same-target rb₁₄ rb₄₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -307,7 +346,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
         (SPT.dynWorld-decay W₅)
         (SPT.dynWorld-decay W₁)
-        (composeRebaseAt rb₁₄ rb₄₅)))
+        (composeRebaseAt rb₁₄ rb₄₅ (pivot-stable rb₁₄ rb₄₅))))
     (WD.decaySameCtx (SPT.dynWorld-decay W₁)
       (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
     (CTI2.⊢↓-sealˣ X∈)
@@ -315,7 +354,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (SPT.dynWorld-decay W₅) prem₄)
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -325,7 +364,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑cast² {p = p₄} c prem₄ q₄
     with vU
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -336,7 +375,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | vM′ 《 inert 》
     with inert-variable-source {W = W₄} {Z = X} inert p₄
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -348,7 +387,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | Y′ , refl
     with ECR.var-value-view vM′ (CTI2T.target-typing² prem₄)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -361,7 +400,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | ECR.varv-seal vM₅ Y′∈ refl
     with prem₄
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -376,7 +415,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ X∈′) prem₅ .p₄
     with SPT.right-var-obligation-view {W = W₅} {Y = Y′} p₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -392,7 +431,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | X₃ , refl , aligned₅
     with rb₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -423,7 +462,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (dyn-var-star {W = W₄} {X = X₃}))
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -440,7 +479,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.rebase-varᴸ rb₄₅
     with same-target rb₁₄ rb₄₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -463,7 +502,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
         (SPT.dynWorld-decay W₅)
         (SPT.dynWorld-decay W₁)
-        (composeRebaseAt rb₁₄ rb₄₅)))
+        (composeRebaseAt rb₁₄ rb₄₅ (pivot-stable rb₁₄ rb₄₅))))
     (WD.decaySameCtx (SPT.dynWorld-decay W₁)
       (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
     (CTI2.⊢↓-sealˣ X∈)
@@ -473,7 +512,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (dyn-var-star {W = W₅} {X = X₃}))
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -488,7 +527,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         mono₅ rb₅ sc₅ (CTI2.⊢↓-sealˣ Y′∈′) prem₅ .p₄
     with target-seal-rebase-source rb₅ p₄
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -504,7 +543,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | rb₄₅
     with same-target rb₁₄ rb₄₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -527,7 +566,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
           {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
           (SPT.dynWorld-decay W₅)
           (SPT.dynWorld-decay W₁)
-          (composeRebaseAt rb₁₄ rb₄₅)))
+          (composeRebaseAt rb₁₄ rb₄₅ (pivot-stable rb₁₄ rb₄₅))))
       (WD.decaySameCtx (SPT.dynWorld-decay W₁)
         (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
       (CTI2.⊢↓-sealˣ (transport-target-member rb₁₄ Y∈″))
@@ -535,7 +574,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (aligned-var {W = W₁} {X = X} {Y = Y} aligned))
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -551,7 +590,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ Y′∈′) prem₅ .p₄
     with same-target rb₁₄ rb₄₅
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -574,7 +613,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         {W₂ = W₁} {W₂ᵈ = SPT.dynWorld W₁}
         (SPT.dynWorld-decay W₅)
         (SPT.dynWorld-decay W₁)
-        (composeRebaseAt rb₁₄ rb₄₅))
+        (composeRebaseAt rb₁₄ rb₄₅ (pivot-stable rb₁₄ rb₄₅)))
       (WD.decaySameCtx (SPT.dynWorld-decay W₁)
         (SPT.dynWorld-decay W₅) (composeSameCtx sc₂ sc₅))
       (CTI2.⊢↓-sealˣ X∈)
@@ -583,7 +622,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
       (aligned-var {W = W₁} {X = X} {Y = Y} aligned))
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -593,7 +632,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑reveal² mono₅ rb₅ sc₅ c′⊢ prem₄ q₄ =
   ⊥-elim (reveal-star-value-⊥ vU)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -603,7 +642,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     | CTI2.⊑conceal² mono₅ rb₅ sc₅ c′⊢ prem₄ q₄ =
   ⊥-elim (conceal-star-value-⊥ vU)
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -611,9 +650,9 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
         (CTI2.⊢↓-sealˣ X∈′) prem .p
     with ECR.seal-rebase-target rb p
        | seal-transfer
-           (seal-transfer-assumption same-target) sv vU prem
+           (seal-transfer-assumption same-target pivot-stable) sv vU prem
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢
@@ -632,7 +671,7 @@ seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
     (CTI2.⊢↓-sealˣ X∈) V₀⊑U
     (dyn-var-star {W = W₁} {X = X})
 seal-transfer {W₁ = W₁} {A = .(＇ X)} {Y = Y} {p = p}
-    (seal-transfer-assumption same-target)
+    (seal-transfer-assumption same-target pivot-stable)
       (sv-sealed sv) vU D
     | X , refl , aligned
     | ⊢conceal (⊢↓-seal X∈) V₀⊢

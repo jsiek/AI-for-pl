@@ -1,19 +1,19 @@
 module proof.DGG.MovedLinkProbe where
 
 -- File Charter:
---   * This probe decides the moved-inner-link stratum of bare-seal
---     inversion.
---   * Checkpoint 1 and checkpoint 2 together show that bare-seal
---     inversion requires an invariant excluding relocation of a
---     re-paired variable.
---   * The concrete worlds record the shape that such an invariant
---     must outlaw.
+--   * This probe records why moved-pivot anchoring is needed for
+--     bare-seal inversion.
+--   * Checkpoint 1 shows that anchoring excludes the ill-formed
+--     moved-inner link; checkpoint 2 records that the corresponding
+--     inversion output is empty without that invariant.
+--   * The concrete worlds exhibit the excluded relocation.
 --   * See Rationale.md, section "Seal peeling and world support".
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
 open import Relation.Nullary using (¬_)
@@ -178,18 +178,10 @@ probe-outer-target-rebase =
     (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
        ; {Fin.suc Fin.zero} Y′≢ → refl })
-    refl probe-X-Y-rep₁
+    refl (λ moved → ⊥-elim (moved refl)) probe-X-Y-rep₁
 
 probe-X-Y′-rep₄ : CTI2.StoreRepImp probe-W₄ X Y′
 probe-X-Y′-rep₄ = store-rep-imp ★⊑★
-
-probe-inner-target-rebase : RebaseAt probe-W₅ probe-W₄ X Y′
-probe-inner-target-rebase =
-  rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
-    (λ { {Fin.zero} Y≢ → refl
-       ; {Fin.suc Fin.zero} Y′≢ → ⊥-elim (Y′≢ refl) })
-    refl probe-X-Y′-rep₄
 
 probe-X-Y-rep₅ : CTI2.StoreRepImp probe-W₅ X Y
 probe-X-Y-rep₅ = store-rep-imp ★⊑★
@@ -199,52 +191,14 @@ probe-inner-source-rebase =
   CTI2.sameWorldRebaseAt refl probe-X-Y-rep₅
 
 ------------------------------------------------------------------------
--- Checkpoint 1: the moved-inner-link input is derivable
+-- Checkpoint 1: moved-pivot anchoring excludes the inner link
 ------------------------------------------------------------------------
 
-pIn : ＇ X ⊑ᵂ⟨ probe-W₁ ⟩ ＇ Y
-pIn = X⊑X
-
-p₄ : ＇ X ⊑ᵂ⟨ probe-W₄ ⟩ ★
-p₄ = X⊑★ refl
-
-p₅ : ＇ X ⊑ᵂ⟨ probe-W₅ ⟩ ★
-p₅ = X⊑★ refl
-
-pPair₄ : ＇ X ⊑ᵂ⟨ probe-W₄ ⟩ ＇ Y′
-pPair₄ = X⊑X
-
-probe-base² :
-  probe-W₆ ∣ [] ⊢² probe-V₀ ⊑ probe-M₅ ∶ ★⊑★
-probe-base² =
-  CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
-    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
-
-probe-inner-source² :
-  probe-W₅ ∣ [] ⊢² probe-V ⊑ probe-M₅ ∶ p₅
-probe-inner-source² =
-  CTI2.conceal⊑² (λ Z eq → eq)
-    (CTI2.rebase-varᴸ probe-inner-source-rebase)
-    CTI2.same-[] probe-X-seal-⊢ probe-base² p₅
-
-probe-inner-target² :
-  probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-M′ ∶ pPair₄
-probe-inner-target² =
-  CTI2.⊑conceal² (λ Z eq → eq)
-    (CTI2.rebase-varᴿ probe-inner-target-rebase)
-    CTI2.same-[] probe-Y′-seal-⊢ probe-inner-source² pPair₄
-
-probe-inner-tag² :
-  probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-U ∶ p₄
-probe-inner-tag² =
-  CTI2.⊑cast² probe-Y′! probe-inner-target² p₄
-
-probe-input :
-  probe-W₁ ∣ [] ⊢² probe-V ⊑ (probe-U ↓ seal Y ★) ∶ pIn
-probe-input =
-  CTI2.⊑conceal² (λ Z eq → eq)
-    (CTI2.rebase-varᴿ probe-outer-target-rebase)
-    CTI2.same-[] probe-Y-seal-⊢ probe-inner-tag² pIn
+probe-link-ill-formed :
+  ¬ (RebaseAt probe-W₅ probe-W₄ X Y′)
+probe-link-ill-formed rb
+    with CTI2.RebaseAt.anchorᴿ rb (λ ())
+probe-link-ill-formed rb | Fin.zero , ()
 
 ------------------------------------------------------------------------
 -- Checkpoint 2: the corresponding inversion output is empty

@@ -95,6 +95,7 @@ Z-Y-rebase =
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     refl
+    (λ _ → U , refl)
     Z-Y-representation
 
 Z-seal-typed : source-store ⊢↓[ just Z ] seal Z ★
@@ -226,6 +227,7 @@ Z-Y-rebaseᵈ =
     (λ _ → refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     refl
+    (λ _ → U , refl)
     Z-Y-representation
 
 U-Y-representationᵈ : CTI2.StoreRepImp pre-worldᵈ U Y

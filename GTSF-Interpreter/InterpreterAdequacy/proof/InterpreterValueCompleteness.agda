@@ -44,7 +44,7 @@ open import proof.InterpreterSyntacticValueComputationProof using
 open import proof.InterpreterSemanticTypingProperties using
   (environment-lookup-sound; store-lookup-sound)
 open import proof.InterpreterCoercionTyping using
-  (ground?-complete; runtime-ground-from-typing; tagOf-complete)
+  (ground?-complete; runtime-ground-from-typing)
 open import Types
 
 rename-inert-reflect :
@@ -77,29 +77,19 @@ execute-inert-frame-local {W = W} {θ = θ} {V = V}
 execute-inert-frame-local {W = W} {θ = θ} {V = V}
     runtime runtime-env
     (C.cast-tag hG gG allowed) (G C.!)
-    | runtime-ground , ground-eq
-    with tagOf-complete runtime hG
-      (runtime-ground-syntax runtime-ground)
-execute-inert-frame-local {W = W} {θ = θ} {V = V}
-    runtime runtime-env
-    (C.cast-tag hG gG allowed) (G C.!)
-    | runtime-ground , ground-eq | tag , tag-eq =
+    | runtime-ground , ground-eq =
   inert-frame-execution
     (tagged (runtime-ground-syntax runtime-ground) _ _)
     closed-tag-frame
     (λ n → tag-computes
       {W = W} {θ = θ} {G = G} {V = V} {n = n}
-      {runtime-ground = runtime-ground} {tag = tag}
-      ground-eq tag-eq)
+      {runtime-ground = runtime-ground} ground-eq)
   where
-  tag-computes :
-    ∀ {W θ G V n runtime-ground tag} →
-    ground? θ G ≡ yes runtime-ground →
-    tagOf θ (runtime-ground-syntax runtime-ground) ≡
-      just tag →
-    coerceValue W θ (G C.!) V (suc n) ≡
+  tag-computes : ∀ {W θ G V n runtime-ground}
+    → ground? θ G ≡ yes runtime-ground
+    → coerceValue W θ (G C.!) V (suc n) ≡
       returned W (tagged (runtime-ground-syntax runtime-ground) θ V)
-  tag-computes ground-eq tag-eq rewrite ground-eq | tag-eq = refl
+  tag-computes ground-eq rewrite ground-eq = refl
 execute-inert-frame-local {W = W} {θ = θ} {V = V}
     runtime runtime-env
     (C.cast-seal hA X∈Σ allowed) (C.seal A X)

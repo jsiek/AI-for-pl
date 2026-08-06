@@ -279,13 +279,8 @@ coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) eq
     with ground? θ G
 coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) ()
     | no ¬gG
-coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) eq
+coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) ()
     | yes runtime-ground
-    with tagOf θ (runtime-ground-syntax runtime-ground)
-coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) ()
-    | yes gG | just tag
-coerce-inert-never-blames {θ = θ} {n = suc n} (G C.!) ()
-    | yes gG | nothing
 coerce-inert-never-blames {θ = θ} {n = suc n} (C.seal A X) eq
     with lookup θ X
 coerce-inert-never-blames {θ = θ} {n = suc n} (C.seal A X) ()
@@ -407,28 +402,18 @@ syntactic-value-return-unique
     | yes runtime-ground | just V₀ | returned .W .V₀
     | refl , refl | suc k
     with ground? θ G
-       | tagOf θ (runtime-ground-syntax runtime-ground) in tag-eq
 syntactic-value-return-unique
     {W = W} {γ = γ} {θ} (vM N.⟨ G C.! ⟩)
     refl result-eq
     | yes runtime-ground | just V₀ | returned .W .V₀
-    | refl , refl | suc k | no not-runtime-ground | tag-result =
+    | refl , refl | suc k | no not-runtime-ground =
   ⊥-elim (not-runtime-ground runtime-ground)
 syntactic-value-return-unique
     {W = W} {γ = γ} {θ} (vM N.⟨ G C.! ⟩)
     refl result-eq
     | yes runtime-ground | just V₀ | returned .W .V₀
-    | refl , refl | suc k | yes runtime-ground′ | nothing
-    rewrite runtime-ground-irrelevant runtime-ground′ runtime-ground
-          | tag-eq =
-  ⊥-elim (failed-returned-impossible result-eq)
-syntactic-value-return-unique
-    {W = W} {γ = γ} {θ} (vM N.⟨ G C.! ⟩)
-    refl result-eq
-    | yes runtime-ground | just V₀ | returned .W .V₀
-    | refl , refl | suc k | yes runtime-ground′ | just tag
-    rewrite runtime-ground-irrelevant runtime-ground′ runtime-ground
-          | tag-eq =
+    | refl , refl | suc k | yes runtime-ground′
+    rewrite runtime-ground-irrelevant runtime-ground′ runtime-ground =
   returned-shape result-eq
 syntactic-value-return-unique
     {W = W} {γ = γ} {θ} {n = zero} (vM N.⟨ C.seal A X ⟩)

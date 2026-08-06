@@ -1543,13 +1543,30 @@ cone.
 - [x] Prove finite-return completeness as
   `small-step-return-completeᵢ`.
 - [x] Prove finite-blame completeness as `small-step-blame-completeᵢ`.
-- [x] Check all four directions together with `make check-adequacy`.
+- [x] Check all four terminating directions together with
+  `make check-adequacy`.
 
 Return and blame completeness use well-founded induction on the length of
 the supplied finite trace. The four interpreter entry points form the
 recursive problem family. Blame completeness invokes return completeness
 only for successful phases preceding the unique blamed phase, then recurses
 on a strictly shorter blamed suffix.
+
+### 2026-08-06
+
+The adequacy layer now also covers nontermination constructively.
+
+- [x] Define `Diverges M` by requiring an explicit successor from every state
+  reachable by a finite trace from `M`.
+- [x] Prove `run-timeout-soundᵢ` from progress, preservation, and terminal
+  completeness.
+- [x] Prove `small-step-divergence-completeᵢ` from interpreter type
+  soundness, terminal soundness, and terminal irreducibility.
+- [x] Add the two divergence directions to `make check-adequacy`.
+
+Thus, on closed typed terms in the interpreter source fragment, positive
+small-step divergence is equivalent to timeout at every interpreter index.
+Neither direction defines divergence through failure to converge.
 
 - The public interpreter namespace is now organized by topic. Only
   `Interpreter` and `InterpreterAll` remain at the root; all other public

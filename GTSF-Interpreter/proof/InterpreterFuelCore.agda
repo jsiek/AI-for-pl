@@ -471,15 +471,7 @@ mutual
     eq
   coerceValue-terminal-stableᵖ (suc n)
       {W} {θ} {G !ᶜ} {V} terminal eq k
-      | yes runtime-ground
-      with tagOf θ (runtime-ground-syntax runtime-ground)
-  coerceValue-terminal-stableᵖ (suc n)
-      {W} {θ} {G !ᶜ} {V} terminal eq k
-      | yes gG | just tag =
-    eq
-  coerceValue-terminal-stableᵖ (suc n)
-      {W} {θ} {G !ᶜ} {V} terminal eq k
-      | yes gG | nothing =
+      | yes runtime-ground =
     eq
 
   coerceValue-terminal-stableᵖ (suc n)

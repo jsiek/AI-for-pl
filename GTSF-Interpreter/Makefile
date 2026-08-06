@@ -66,6 +66,8 @@ check-adequacy:
 	$(AGDA) -i . -i ../GTSF \
 	  InterpreterAdequacy/SmallStepBlameCompleteness.agda
 	$(AGDA) -i . -i ../GTSF \
+	  InterpreterAdequacy/Divergence.agda
+	$(AGDA) -i . -i ../GTSF \
 	  InterpreterAdequacy/InterpreterValueCompleteness.agda
 	$(AGDA) -i . -i ../GTSF \
 	  InterpreterAdequacy/BulletCatchUpContext.agda

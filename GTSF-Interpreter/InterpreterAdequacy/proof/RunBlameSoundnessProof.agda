@@ -679,13 +679,8 @@ mutual
       with ground? θ G
   coerce-blame-soundᵢ (suc n) world-agreement θ-agrees V-agrees
       {c = G C.!} () | no not-ground
-  coerce-blame-soundᵢ (suc n) {θ = θ} world-agreement θ-agrees V-agrees
-      {c = G C.!} result-eq | yes runtime-ground
-      with tagOf θ (runtime-ground-syntax runtime-ground)
   coerce-blame-soundᵢ (suc n) world-agreement θ-agrees V-agrees
-      {c = G C.!} () | yes runtime-ground | just tag
-  coerce-blame-soundᵢ (suc n) world-agreement θ-agrees V-agrees
-      {c = G C.!} () | yes runtime-ground | nothing
+      {c = G C.!} () | yes runtime-ground
 
   coerce-blame-soundᵢ (suc n) {θ = θ} world-agreement θ-agrees V-agrees
       {c = G C.？} result-eq

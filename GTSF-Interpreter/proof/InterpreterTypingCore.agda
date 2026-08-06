@@ -683,13 +683,7 @@ mutual
   coerceValue-typing (suc n) W⊢ runtime runtime-env
       c⊢@(cast-tag hG gG allowed) V⊢
       | gG′ , ground-eq
-      rewrite ground-eq
-      with tagOf-complete runtime hG
-        (runtime-ground-syntax gG′)
-  coerceValue-typing (suc n) W⊢ runtime runtime-env
-      c⊢@(cast-tag hG gG allowed) V⊢
-      | gG′ , ground-eq | tag , tag-eq
-      rewrite tag-eq =
+      rewrite ground-eq =
     return-typed world-extension-refl W⊢
       (tagged-typed W⊢ runtime gG′
         environment-empty c⊢ V⊢)

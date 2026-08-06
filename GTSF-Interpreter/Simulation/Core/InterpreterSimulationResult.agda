@@ -33,16 +33,8 @@ chain :
   Computation →
   (World → Value → Computation) →
   Computation
-chain head continuation n
-    with head n
-chain head continuation n | timed U =
-  timed U
-chain head continuation n | blamed U =
-  blamed U
-chain head continuation n | failed U e =
-  failed U e
-chain head continuation n | returned U V =
-  continuation U V n
+chain head continuation n =
+  head n >>= λ U V → continuation U V n
 
 guard :
   World →

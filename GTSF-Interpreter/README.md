@@ -223,20 +223,21 @@ Thus, successful interpreter execution is already a direct big-step
 observation. A later declarative semantics can be derived from the interpreter
 equations without mentioning small-step reduction.
 
-Divergence is stated positively:
+Divergence on the interpreter side is stated positively:
 
 `Divergesᴵ M = ∀ n → IsTimeout (run M n)`.
 
 It does not mean `¬ Converges M`. A divergence proof supplies a timeout result
-for every finite observation depth. The useful fuel metatheory still to prove
-is stabilization:
+for every finite observation depth. The fuel metatheory proves stabilization:
 
 - once a run returns, blames, or errors, every sufficiently larger index has
   the same non-timeout result; and
 - a timeout at a larger index implies timeout at every smaller index.
 
-Those facts connect `Divergesᴵ` to the intended infinite computation
-observation without using negated convergence as its definition.
+The small-step adequacy layer separately defines `Diverges M` to mean that
+every finitely reachable `P` has a witnessed successor. For closed, typed
+interpreter terms, `InterpreterAdequacy.Divergence` proves this constructive
+small-step predicate equivalent to timeout at every interpreter index.
 
 ## Four separate DGG statements
 
@@ -818,7 +819,7 @@ The focused reduction-free target is:
 ## Small-step adequacy
 
 `InterpreterAdequacy` is the separate comparison layer; the interpreter itself
-does not import reduction. The following four directions now type-check for
+does not import reduction. The following six directions now type-check for
 closed, typed terms in the interpreter source fragment:
 
 - `run-return-soundᵢ` turns a finite returned run into an exact small-step
@@ -826,9 +827,13 @@ closed, typed terms in the interpreter source fragment:
 - `run-blame-soundᵢ` turns a finite blamed run into an exact small-step trace
   to `blame`;
 - `small-step-return-completeᵢ` turns any finite trace to an official value
-  into a finite returned run, with final world and value agreement; and
+  into a finite returned run, with final world and value agreement;
 - `small-step-blame-completeᵢ` turns any finite trace to `blame` into a finite
-  blamed run.
+  blamed run;
+- `run-timeout-soundᵢ` turns timeout at every index into the positive
+  small-step divergence witness; and
+- `small-step-divergence-completeᵢ` turns positive small-step divergence into
+  timeout at every index.
 
 Return completeness is assembled from these constructive pieces:
 
@@ -854,6 +859,13 @@ length across `interpret`, `applyValue`, `instantiateValue`, and
 Its trace decompositions identify the phase that blames; any earlier phase
 that returns is synchronized with `eventual-return`, and recursion proceeds
 only on a strictly shorter blamed suffix.
+
+The divergence proof reuses the terminal results. For soundness, progress
+classifies the endpoint of an arbitrary finite trace; a value or `blame`
+endpoint would yield a finite non-timeout interpreter run. For completeness,
+interpreter type soundness classifies a run at arbitrary fuel; return and blame
+soundness turn either terminal result into a finite small-step endpoint,
+contradicting the witnessed next step and terminal irreducibility.
 
 This adequacy development deliberately imports the official small-step
 semantics. It is a validation result for the interpreter and is not imported

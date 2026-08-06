@@ -512,6 +512,16 @@ applyPrimitive W addℕ V₁ V₂ =
 -- Direct interpretation
 ------------------------------------------------------------------------
 
+-- Almost-monadic sequencing propagates the world produced by a successful
+-- computation. Timeout, blame, and runtime errors short-circuit unchanged.
+infix 1 _>>=_
+
+_>>=_ : Outcome → (World → Value → Outcome) → Outcome
+timed W >>= f = timed W
+blamed W >>= f = blamed W
+failed W e >>= f = failed W e
+returned W V >>= f = f W V
+
 mutual
 
   interpret :
@@ -534,31 +544,13 @@ mutual
   interpret W γ θ (ƛᴵ N) (suc n) =
     returned W (closure N γ θ)
 
-  interpret W γ θ (L ·ᴵ M) (suc n)
-      with interpret W γ θ L n
-  interpret W γ θ (L ·ᴵ M) (suc n) | timed W₁ =
-    timed W₁
-  interpret W γ θ (L ·ᴵ M) (suc n) | blamed W₁ =
-    blamed W₁
-  interpret W γ θ (L ·ᴵ M) (suc n) | failed W₁ e =
-    failed W₁ e
   -- `W₁` threads globally fresh seal names and their representations.
   -- The term and type environments remain lexical: seals allocated while
   -- evaluating `L` are available through the returned value `V`, whose
   -- closures and proxies capture them, but they are not free bindings of `M`.
-  interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
-      with interpret W₁ γ θ M n
-  interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
-      | timed W₂ =
-    timed W₂
-  interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
-      | blamed W₂ =
-    blamed W₂
-  interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
-      | failed W₂ e =
-    failed W₂ e
-  interpret W γ θ (L ·ᴵ M) (suc n) | returned W₁ V
-      | returned W₂ U =
+  interpret W γ θ (L ·ᴵ M) (suc n) =
+    interpret W γ θ L n >>= λ W₁ V →
+    interpret W₁ γ θ M n >>= λ W₂ U →
     applyValue W₂ V U n
 
   interpret W γ θ (Λᴵ V) (suc n) with syntacticValue? V
@@ -576,70 +568,22 @@ mutual
   interpret W γ θ (M •ᴵ) (suc n) =
     failed W unreachable-runtime-bullet
 
-  interpret W γ θ (νᴵ A L c) (suc n)
-      with interpret W γ θ L n
-  interpret W γ θ (νᴵ A L c) (suc n) | timed W₁ =
-    timed W₁
-  interpret W γ θ (νᴵ A L c) (suc n) | blamed W₁ =
-    blamed W₁
-  interpret W γ θ (νᴵ A L c) (suc n) | failed W₁ e =
-    failed W₁ e
-  interpret W γ θ (νᴵ A L c) (suc n) | returned W₁ V
-      with instantiateValue W₂ α V n
-    where
-    α : SealName
-    α = freshSealName W₁
-
-    W₂ : World
-    W₂ = allocate W₁ A θ
-  interpret W γ θ (νᴵ A L c) (suc n) | returned W₁ V
-      | timed W₃ =
-    timed W₃
-  interpret W γ θ (νᴵ A L c) (suc n) | returned W₁ V
-      | blamed W₃ =
-    blamed W₃
-  interpret W γ θ (νᴵ A L c) (suc n) | returned W₁ V
-      | failed W₃ e =
-    failed W₃ e
-  interpret W γ θ (νᴵ A L c) (suc n) | returned W₁ V
-      | returned W₃ U =
-    coerceValue W₃ (seal-name (freshSealName W₁) ∷ θ) c U n
+  interpret W γ θ (νᴵ A L c) (suc n) =
+    interpret W γ θ L n >>= λ W₁ V →
+    let α = freshSealName W₁ in
+    instantiateValue (allocate W₁ A θ) α V n >>= λ W₂ U →
+    coerceValue W₂ (seal-name α ∷ θ) c U n
 
   interpret W γ θ ($ᴵ κ) (suc n) =
     returned W (constant κ)
 
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n)
-      with interpret W γ θ L n
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | timed W₁ =
-    timed W₁
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | blamed W₁ =
-    blamed W₁
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | failed W₁ e =
-    failed W₁ e
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | returned W₁ V
-      with interpret W₁ γ θ M n
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | returned W₁ V
-      | timed W₂ =
-    timed W₂
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | returned W₁ V
-      | blamed W₂ =
-    blamed W₂
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | returned W₁ V
-      | failed W₂ e =
-    failed W₂ e
-  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) | returned W₁ V
-      | returned W₂ U =
+  interpret W γ θ (L ⊕ᴵ[ op ] M) (suc n) =
+    interpret W γ θ L n >>= λ W₁ V →
+    interpret W₁ γ θ M n >>= λ W₂ U →
     applyPrimitive W₂ op V U
 
-  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n)
-      with interpret W γ θ M n
-  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n) | timed W₁ =
-    timed W₁
-  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n) | blamed W₁ =
-    blamed W₁
-  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n) | failed W₁ e =
-    failed W₁ e
-  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n) | returned W₁ V =
+  interpret W γ θ (M ⟨ᴵ c ⟩) (suc n) =
+    interpret W γ θ M n >>= λ W₁ V →
     coerceValue W₁ θ c V n
 
   interpret W γ θ blameᴵ (suc n) =
@@ -658,29 +602,9 @@ mutual
   applyValue W (closure N γ θ) U (suc n) =
     interpret W (U ∷ γ) θ N n
 
-  applyValue W (function-proxy p q θ V) U (suc n)
-      with coerceValue W θ p U n
-  applyValue W (function-proxy p q θ V) U (suc n) | timed W₁ =
-    timed W₁
-  applyValue W (function-proxy p q θ V) U (suc n) | blamed W₁ =
-    blamed W₁
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | failed W₁ e =
-    failed W₁ e
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | returned W₁ U′
-      with applyValue W₁ V U′ n
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | returned W₁ U′ | timed W₂ =
-    timed W₂
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | returned W₁ U′ | blamed W₂ =
-    blamed W₂
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | returned W₁ U′ | failed W₂ e =
-    failed W₂ e
-  applyValue W (function-proxy p q θ V) U (suc n)
-      | returned W₁ U′ | returned W₂ V′ =
+  applyValue W (function-proxy p q θ V) U (suc n) =
+    coerceValue W θ p U n >>= λ W₁ U′ →
+    applyValue W₁ V U′ n >>= λ W₂ V′ →
     coerceValue W₂ θ q V′ n
 
   applyValue W (type-abstraction X V) U (suc n) =
@@ -709,17 +633,8 @@ mutual
   instantiateValue W α (type-abstraction X V) (suc n) =
     returned W (substituteName X α V)
 
-  instantiateValue W α (forall-proxy c θ V) (suc n)
-      with instantiateValue W α V n
-  instantiateValue W α (forall-proxy c θ V) (suc n) | timed W₁ =
-    timed W₁
-  instantiateValue W α (forall-proxy c θ V) (suc n) | blamed W₁ =
-    blamed W₁
-  instantiateValue W α (forall-proxy c θ V) (suc n)
-      | failed W₁ e =
-    failed W₁ e
-  instantiateValue W α (forall-proxy c θ V) (suc n)
-      | returned W₁ U =
+  instantiateValue W α (forall-proxy c θ V) (suc n) =
+    instantiateValue W α V n >>= λ W₁ U →
     coerceValue W₁ (seal-name α ∷ θ) c U n
 
   instantiateValue W α (generalized A c θ V) (suc n) =
@@ -750,15 +665,8 @@ mutual
   coerceValue W θ (idᶜ A) V (suc n) =
     returned W V
 
-  coerceValue W θ (c ︔ᶜ d) V (suc n)
-      with coerceValue W θ c V n
-  coerceValue W θ (c ︔ᶜ d) V (suc n) | timed W₁ =
-    timed W₁
-  coerceValue W θ (c ︔ᶜ d) V (suc n) | blamed W₁ =
-    blamed W₁
-  coerceValue W θ (c ︔ᶜ d) V (suc n) | failed W₁ e =
-    failed W₁ e
-  coerceValue W θ (c ︔ᶜ d) V (suc n) | returned W₁ U =
+  coerceValue W θ (c ︔ᶜ d) V (suc n) =
+    coerceValue W θ c V n >>= λ W₁ U →
     coerceValue W₁ θ d U n
 
   coerceValue W θ (p ↦ᶜ q) V (suc n) =
@@ -770,12 +678,8 @@ mutual
   coerceValue W θ (G !ᶜ) V (suc n) with ground? θ G
   coerceValue W θ (G !ᶜ) V (suc n) | no not-runtime-ground =
     failed W (invalid-ground-tag G)
-  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground
-      with tagOf θ (runtime-ground-syntax runtime-ground)
-  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground | just tag =
+  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground =
     returned W (tagged (runtime-ground-syntax runtime-ground) θ V)
-  coerceValue W θ (G !ᶜ) V (suc n) | yes runtime-ground | nothing =
-    failed W (invalid-ground-tag G)
 
   coerceValue W θ (G ？ᶜ) V (suc n) with ground? θ G
   coerceValue W θ (G ？ᶜ) V (suc n) | no not-runtime-ground =
@@ -872,22 +776,10 @@ mutual
   coerceValue W θ (genᶜ A c) V (suc n) =
     returned W (generalized A c θ V)
 
-  coerceValue W θ (instᶜ B c) V (suc n)
-      with instantiateValue W₂ α V n
-    where
-    α : SealName
-    α = freshSealName W
-
-    W₂ : World
-    W₂ = allocate W ★ θ
-  coerceValue W θ (instᶜ B c) V (suc n) | timed W₃ =
-    timed W₃
-  coerceValue W θ (instᶜ B c) V (suc n) | blamed W₃ =
-    blamed W₃
-  coerceValue W θ (instᶜ B c) V (suc n) | failed W₃ e =
-    failed W₃ e
-  coerceValue W θ (instᶜ B c) V (suc n) | returned W₃ U =
-    coerceValue W₃ (seal-name (freshSealName W) ∷ θ) c U n
+  coerceValue W θ (instᶜ B c) V (suc n) =
+    let α = freshSealName W in
+    instantiateValue (allocate W ★ θ) α V n >>= λ W₃ U →
+    coerceValue W₃ (seal-name α ∷ θ) c U n
 
 run : Term → StepIndex → Outcome
 run = interpret emptyWorld [] []

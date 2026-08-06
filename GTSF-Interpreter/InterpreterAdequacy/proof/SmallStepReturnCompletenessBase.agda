@@ -23,15 +23,10 @@ import Coercions as C
 open import Interpreter using
   ( RuntimeGround
   ; StepIndex
-  ; Tag
   ; Value
   ; abstract-name
-  ; base-ground
-  ; base-tag
   ; coerceValue
   ; emptyWorld
-  ; function-ground
-  ; function-tag
   ; ground?
   ; interpret
   ; lookup
@@ -39,9 +34,6 @@ open import Interpreter using
   ; run
   ; runtime-ground-syntax
   ; seal-name
-  ; seal-variable-ground
-  ; tagOf
-  ; variable-tag
   )
 open import InterpreterAdequacy.TraceAgreement
 open import InterpreterAdequacy.proof.ClosedValueTrace using
@@ -100,30 +92,13 @@ interpret-cast-after-return {W} {γ} {θ} {M} {c} {V} {U} {n}
         body-return))
     coercion-return
 
-runtime-ground-tag-defined :
-  ∀ {θ G} →
-  (runtime-ground : RuntimeGround θ G) →
-  Σ[ tag ∈ Tag ]
-    tagOf θ (runtime-ground-syntax runtime-ground) ≡ just tag
-runtime-ground-tag-defined
-    (seal-variable-ground {α = α} name-eq)
-    rewrite name-eq =
-  variable-tag (seal-name α) , Agda.Builtin.Equality.refl
-runtime-ground-tag-defined (base-ground ι) =
-  base-tag ι , Agda.Builtin.Equality.refl
-runtime-ground-tag-defined function-ground =
-  function-tag , Agda.Builtin.Equality.refl
-
-tag-coercion-return :
-  ∀ {W θ G V n runtime-ground tag} →
-  ground? θ G ≡ yes runtime-ground →
-  tagOf θ (runtime-ground-syntax runtime-ground) ≡ just tag →
-  coerceValue W θ (G C.!) V (suc n) ≡
+tag-coercion-return : ∀ {W θ G V n runtime-ground}
+  → ground? θ G ≡ yes runtime-ground
+  → coerceValue W θ (G C.!) V (suc n) ≡
     returned W
       (Interpreter.tagged
         (runtime-ground-syntax runtime-ground) θ V)
-tag-coercion-return ground-eq tag-eq
-    rewrite ground-eq | tag-eq =
+tag-coercion-return ground-eq rewrite ground-eq =
   refl
 
 seal-coercion-return :
@@ -180,14 +155,7 @@ closed-value-eventually-returns {W = W} {γ = γ} {θ = θ}
 closed-value-eventually-returns {W = W} {γ = γ} {θ = θ}
     {M = M N.⟨ G C.! ⟩}
     (vM N.⟨ G C.! ⟩) close-eq
-    | yes runtime-ground | just U | refl | n , body-return
-    with runtime-ground-tag-defined runtime-ground
-closed-value-eventually-returns {W = W} {γ = γ} {θ = θ}
-    {M = M N.⟨ G C.! ⟩}
-    (vM N.⟨ G C.! ⟩) close-eq
-    | yes runtime-ground | just U | refl | n , body-return
-    | tag , tag-eq
-    =
+    | yes runtime-ground | just U | refl | n , body-return =
   suc (suc n) ,
     interpret-cast-after-return
       {W = W} {γ = γ} {θ = θ} {M = M} {c = G C.!}
@@ -197,8 +165,7 @@ closed-value-eventually-returns {W = W} {γ = γ} {θ = θ}
       {n = n} body-return
       (tag-coercion-return
         {W = W} {θ = θ} {G = G} {V = U} {n = n}
-        {runtime-ground = runtime-ground} {tag = tag}
-        ground-eq tag-eq)
+        {runtime-ground = runtime-ground} ground-eq)
 closed-value-eventually-returns {W = W} {γ = γ} {θ = θ}
     {M = M N.⟨ C.seal A X ⟩}
     (vM N.⟨ C.seal A X ⟩) close-eq

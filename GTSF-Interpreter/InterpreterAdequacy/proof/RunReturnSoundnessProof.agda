@@ -849,17 +849,12 @@ mutual
       with ground? θ G in ground-eq
   coerce-return-soundᵢ (suc n) world-agreement θ-agrees V-agrees
       {c = G C.!} () | no not-ground
-  coerce-return-soundᵢ (suc n) {θ = θ} world-agreement θ-agrees V-agrees
-      {c = G C.!} result-eq | yes runtime-ground
-      with tagOf θ (runtime-ground-syntax runtime-ground) in tag-eq
   coerce-return-soundᵢ (suc n) {W = W} {θ = θ} {V = V}
       world-agreement θ-agrees V-agrees
-      {c = G C.!} result-eq | yes runtime-ground | just tag =
+      {c = G C.!} result-eq | yes runtime-ground =
     return-trace-result-eq
       result-eq
       (tag-return-sound runtime-ground θ-agrees V-agrees)
-  coerce-return-soundᵢ (suc n) world-agreement θ-agrees V-agrees
-      {c = G C.!} () | yes runtime-ground | nothing
   coerce-return-soundᵢ (suc n) {W = W} {θ = θ}
       world-agreement θ-agrees V-agrees
       {c = G C.？} result-eq

@@ -622,3 +622,58 @@ are never compared.
 This distinction is binder directed: `inst` removes its fresh variable from
 consistency and uses conversions, whereas `gen` retains its fresh variable as
 a tag. There are consequently no general `β-tag-X` or `β-untag-X` rules.
+
+## Seal peeling and world support
+
+The last case of the right-injection inversion is the bare seal: from
+
+```
+W ⊢² (V ↓ seal Xᴸ R) ⊑ N ⟨ ＇Y ! ⟩ ∶ ＇Xᴸ ⊑ ★        q : ＇Xᴸ ⊑ᵂ⟨W⟩ ＇Y
+```
+
+produce `W ⊢² V ↓ seal Xᴸ R ⊑ N ∶ q`.  For non-variable tags `q` is
+uninhabited, and `seal-tag-boundary-view²` already forces
+`N ≡ U ↓ seal Y S` with a paired rebase `RebaseAt W′ W Xᴸ Y`.  The
+remaining work is to relate `V` to `U` and reassemble the two seals.
+Analysis of the reassembly produced two structural findings.
+
+**One rebase link per wrapper node.**  A derivation of the input nests
+one premise world per wrapper rule: the source seal contributes
+`W → W′` pivoted at `(Xᴸ, Y)`, a target seal stripped inside contributes
+`W′ → W″` pivoted at some `(X₂, Y)`, and deeper seals in the spine of
+`V` contribute further links.  No single `RebaseAt` can absorb two
+source-side moves, so any rebuild that composes two links into one
+wrapper node fails: pivot-locality is per node, and that is fine,
+because the output term has exactly as many seal nodes as the premise
+tower has links.  Chained representations (`R = ＇X₂` with `X₂` aligned
+to `Y` one world in) are witnessed by a deeper seal in the spine of `V`
+— canonical forms at variable type — and that deeper node carries the
+extra link.  The rebuild is therefore link-by-link, never composing.
+
+**Interior worlds must be renormalized, not transported.**  The input
+derivation may place interior worlds badly: a premise world may move a
+variable that the rebuilt tower needs kept still (concretely, `W₄` may
+park `X₂` and `Y` at a center the output tower cannot reproduce, since
+the output's node pivots are forced by the seal typings).  Such
+derivations are honest — a checked configuration derives one with all
+marks `X⊑★` and `WFWorld` trivially satisfied — so no invariant excludes
+them.  The resolution is that the peel must not transport interior
+sub-derivations between worlds; it must recursively rebuild them at
+worlds of its own choosing, bottoming out at world-agnostic leaves
+(`κ⊑κ²`, `cast⊑cast²`, `x⊑x²` up to `SameCtx`).  The general tool this
+needs is a world-support lemma: a derivation depends only on the
+embeddings and marks of the type variables occurring in its terms,
+types, and store entries, so it can be moved to any world that agrees
+on that support.  The same lemma is what the eventual simulation needs
+to leave a `liftWorldLeft` premise world, so it is shared
+infrastructure, not a detour.
+
+The concrete configuration that forced both findings: source store
+`Xᴸ ⦂ ★, X₂ ⦂ ★`, target store `Y ⦂ ★`, all marks `X⊑★`,
+`V = (V₀₀ ↓ seal X₂ ★) ⟨ ＇X₂ ! ⟩`, `N = (U ↓ seal Y ★) ⟨ ＇Y ! ⟩`,
+with `Y` aligned to `Xᴸ` in `W` and to `X₂` in `W′`.  The input is
+derivable with an interior world moving `X₂` off its `W`-center, and the
+required output is derivable only by rebuilding: the paired
+`conceal⊑conceal²` at `(Xᴸ, Y)` over a premise world that parks `Y` at
+a third center (so the deeper seal's `rebase-onlyᴸ` disalignment
+holds), with the leaf relation reconstructed from scratch.

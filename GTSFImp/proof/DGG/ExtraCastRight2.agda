@@ -13,23 +13,21 @@ module proof.DGG.ExtraCastRight2 where
 --     zero-change and one-keep world extensions.
 --   * Stage 2: the right-injection inversion lemma, proved for spine
 --     values: constants, lambdas, type abstractions, inert casts, and
---     function-shaped reveal/conceal wrappers.  Because obligations
---     are propositions (proof.Imprecision.⊑-unique), the free q of
---     the wrapper rules carries no information beyond its type, and
---     extending to ∀-shaped wrappers is a type-level inhabitation
---     question; see SpineValue for what remains.
+--     function- and ∀-shaped reveal/conceal wrappers.  Because
+--     obligations are propositions (proof.Imprecision.⊑-unique),
+--     the free q of the wrapper rules carries no information beyond
+--     its type; TagTransport supplies the universal-wrapper obligation.
 --   * Binder-lifted world/rebase lemmas support the ∀-shaped frontier.
---     The identity-pivot universal reveal and conceal subcases are complete;
---     their conversion endpoints are equal and need no rebasing.
+--     Identity-pivot universal wrappers have equal conversion endpoints;
+--     indexed pivots use the TagTransport occurrence lemmas.
 --   * The inversion carries a WFWorld hypothesis and threads it by
 --     decay: var-rebased wrapper cases move their premises into the
 --     honestified premise world (WorldDecay/TermImpDecay) before
 --     recursing, which is the general form of the counterexample
---     repair recorded in ExtraCastRight2Counterexample.  The next
---     frontiers are the ∀-shaped wrappers (proof.DGG.TagTransport has
---     the obligation transports ready) and the bare seal, whose
---     boundary decomposition is seal-tag-boundary-view² and whose
---     inner extraction still needs a seal-peeling companion lemma.
+--     repair recorded in ExtraCastRight2Counterexample.  The remaining
+--     frontier is the bare seal, whose boundary decomposition is
+--     seal-tag-boundary-view² and whose inner extraction still needs a
+--     seal-peeling companion lemma.
 --   * Version-2 pay-offs visible here: no renaming wrapper around the
 --     relation, the Λ⊑² case recurses with the target data unchanged,
 --     and the ground lemmas of proof.ImprecisionConsistency apply
@@ -61,6 +59,7 @@ import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.WorldDecay as WD
 import proof.DGG.TermImpDecay as TD
+import proof.DGG.TagTransport as TT
 open import proof.DGG.ConvImp using
   (pivot-id-endpoints↑; pivot-id-endpoints↓)
 open CTI2 using
@@ -537,16 +536,10 @@ seal-tag-boundary-view² rb vN M↓X⊑N! q
 -- Stage 2: right-injection inversion for spine values
 ------------------------------------------------------------------------
 
--- Values whose spine contains no ∀-shaped conversion wrapper and no
--- bare seal.  Function-shaped reveal and conceal wrappers are fine:
--- their pre-conversion tag obligation rebuilds from the ⇒⊑★ view of
--- the premise index, so no transport along the conversion is needed.
--- Since obligations are propositions (proof.Imprecision.⊑-unique),
--- extending to the remaining wrappers is a type-level inhabitation
--- question: an obligation-transport lemma along the pivot-indexed
--- conversion typing.  Its ∀-cases need occurrence transport along
--- conversions.  Until that lemma exists, ∀-shaped wrappers are open.
--- Bare seals are excluded for a stronger reason: the checked
+-- Values whose spine contains no bare seal.  Function-shaped reveal and
+-- conceal wrappers rebuild their pre-conversion tag obligations directly;
+-- ∀-shaped wrappers transport those obligations via TagTransport.
+-- Bare seals remain excluded for a stronger reason: the checked
 -- ExtraCastRight2Counterexample refutes unrestricted relational inversion.
 
 data SpineValue {Δ : TyCtx} : Term Δ → Set where
@@ -566,6 +559,12 @@ data SpineValue {Δ : TyCtx} : Term Δ → Set where
   sv-conceal-fun : ∀ {V} {A A′ B B′ : Ty Δ}
       {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
     → SpineValue V → SpineValue (V ↓ (c ↦↓ d))
+
+  sv-reveal-all : ∀ {V} {A B : Ty (suc Δ)} {c : Conv↑ (suc Δ) A B}
+    → SpineValue V → SpineValue (V ↑ `∀↑ c)
+
+  sv-conceal-all : ∀ {V} {A B : Ty (suc Δ)} {c : Conv↓ (suc Δ) A B}
+    → SpineValue V → SpineValue (V ↓ `∀↓ c)
 
 -- Threading mark-honesty and decay through the inversion.  The
 -- inversion's recursion may enter a wrapper's premise world, which
@@ -599,6 +598,42 @@ liftWorldLeft-WF wf (Fin.suc Xᴸ) eq | Xᴿ , al =
 -- If a spine value is related to a tagged target value, the tag can be
 -- peeled off the target at any obligation for the tag's ground type.
 -- The world is required to be mark-honest; the seal cases depend on it.
+-- The identity-wrapper helpers are declared first so the inversion can
+-- delegate to their proof bodies below.
+
+right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
+    {V : Term Δᴸ} {N : Term Δᴿ}
+    {A B : Ty (suc Δᴸ)} {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {c : Conv↑ (suc Δᴸ) A B}
+    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
+    {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.WFWorld W
+  → SpineValue V
+  → Value N
+  → CTI2.SameCtx γ γ′
+  → store-lift (sourceStoreʷ W) CTI2.⊢↑[ nothing ] c
+  → W ∣ γ′ ⊢² V
+      ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
+  → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
+  → W ∣ γ ⊢² V ↑ `∀↑ c ⊑ N ∶ q
+
+right-inj-conceal-all-id² : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
+    {V : Term Δᴸ} {N : Term Δᴿ}
+    {A B : Ty (suc Δᴸ)} {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {c : Conv↓ (suc Δᴸ) A B}
+    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
+    {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.WFWorld W
+  → SpineValue V
+  → Value N
+  → CTI2.SameCtx γ γ′
+  → store-lift (sourceStoreʷ W) CTI2.⊢↓[ nothing ] c
+  → W ∣ γ′ ⊢² V
+      ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
+  → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
+  → W ∣ γ ⊢² V ↓ `∀↓ c ⊑ N ∶ q
 
 right-inj-inversion² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
@@ -816,6 +851,196 @@ right-inj-inversion² {gH = ‵ ι} wf (sv-conceal-fun sv)
 right-inj-inversion² {gH = ∀★} wf (sv-conceal-fun sv)
   vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
 
+-- Universal reveal: transport the requested tag obligation through the
+-- body conversion.  Variable rebases recurse in the honestified world.
+right-inj-inversion² wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² mono CTI2.rebase-idᴸ sc (CTI2.⊢↑-∀-idˣ c⊢)
+      prem q₀) q =
+  right-inj-reveal-all-id² wf sv vN sc c⊢ prem q
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  CTI2.reveal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+    (CTI2.⊢↑-∀ˣ c⊢)
+    (right-inj-inversion² wf sv vN prem
+      (TT.transport↑-∀-fun c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q))
+    q
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  CTI2.reveal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+    (CTI2.⊢↑-∀ˣ c⊢)
+    (right-inj-inversion² wf sv vN prem
+      (TT.transport↑-∀-all c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q))
+    q
+right-inj-inversion² {W = W} {gH = ‵ ι} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↑-∀-ι-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ＇ Y} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↑-∀-var-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  CTI2.reveal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono
+      (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt WD.decay-refl (WD.honestify-decay {W = W′})
+        rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc)
+    (CTI2.⊢↑-∀ˣ c⊢)
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′})
+        (TT.transport↑-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q)))
+    q
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  CTI2.reveal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono
+      (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt WD.decay-refl (WD.honestify-decay {W = W′})
+        rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc)
+    (CTI2.⊢↑-∀ˣ c⊢)
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′})
+        (TT.transport↑-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q)))
+    q
+right-inj-inversion² {W = W} {gH = ‵ ι} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↑-∀-ι-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W′))
+      (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ＇ Y} wf (sv-reveal-all sv) vN
+    (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↑-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↑-∀-var-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W′))
+      (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+
+-- Universal conceal: the dual transport has the same obligations, while
+-- the variable-rebase decay uses conceal's opposite rebase orientation.
+right-inj-inversion² wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² mono CTI2.rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)
+      prem q₀) q =
+  right-inj-conceal-all-id² wf sv vN sc c⊢ prem q
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  CTI2.conceal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+    (CTI2.⊢↓-∀ˣ c⊢)
+    (right-inj-inversion² wf sv vN prem
+      (TT.transport↓-∀-fun c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q))
+    q
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  CTI2.conceal⊑² mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+    (CTI2.⊢↓-∀ˣ c⊢)
+    (right-inj-inversion² wf sv vN prem
+      (TT.transport↓-∀-all c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q))
+    q
+right-inj-inversion² {W = W} {gH = ‵ ι} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↓-∀-ι-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ＇ Y} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {p = p₀} mono (CTI2.rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↓-∀-var-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ★⇒★} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  CTI2.conceal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono
+      (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt (WD.honestify-decay {W = W′}) WD.decay-refl
+        rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc)
+    (CTI2.⊢↓-∀ˣ c⊢)
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′})
+        (TT.transport↓-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q)))
+    q
+right-inj-inversion² {W = W} {gH = ∀★} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  CTI2.conceal⊑²
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = WD.honestify W′} mono
+      (WD.EnvDecay.env-mono (WD.honestify-decay {W = W′})))
+    (CTI2.rebase-varᴸ
+      (TD.decayRebaseAt (WD.honestify-decay {W = W′}) WD.decay-refl
+        rb))
+    (decaySameCtxʳ (WD.honestify-decay {W = W′}) sc)
+    (CTI2.⊢↓-∀ˣ c⊢)
+    (right-inj-inversion² (WD.honestify-WF W′) sv vN
+      (TD.⊢²-decay (WD.honestify-decay {W = W′}) prem)
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W′})
+        (TT.transport↓-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q)))
+    q
+right-inj-inversion² {W = W} {gH = ‵ ι} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↓-∀-ι-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W′))
+      (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+right-inj-inversion² {W = W} {gH = ＇ Y} wf (sv-conceal-all sv) vN
+    (CTI2.conceal⊑² {W′ = W′} {p = p₀} mono
+      (CTI2.rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+  ⊥-elim
+    (TT.transport↓-∀-var-⊥ c⊢
+      (toRenameᵗ-injective (ηᴸʷ W′))
+      (toRenameᵗ-injective (ηᴸʷ W))
+      p₀ q)
+
 -- Type applications are not spine values.
 right-inj-inversion² wf () vN (CTI2.•⊑² _ _ _ _) q
 
@@ -828,22 +1053,6 @@ right-inj-inversion² wf () vN (CTI2.•⊑² _ _ _ _) q
 -- wrapper world is definitionally unchanged, so ordinary index transport
 -- exposes the recursive injection obligation.
 
-right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
-    {V : Term Δᴸ} {N : Term Δᴿ}
-    {A B : Ty (suc Δᴸ)} {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {c : Conv↑ (suc Δᴸ) A B}
-    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
-    {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.WFWorld W
-  → SpineValue V
-  → Value N
-  → CTI2.SameCtx γ γ′
-  → store-lift (sourceStoreʷ W) CTI2.⊢↑[ nothing ] c
-  → W ∣ γ′ ⊢² V
-      ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
-  → W ∣ γ ⊢² V ↑ `∀↑ c ⊑ N ∶ q
 right-inj-reveal-all-id² {W = W} {A = A} {B = B}
     {H = H} {c = c} wf sv vN sc c⊢ prem q =
   CTI2.reveal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↑-∀-idˣ c⊢)
@@ -852,22 +1061,6 @@ right-inj-reveal-all-id² {W = W} {A = A} {B = B}
         (sym (cong `∀ (pivot-id-endpoints↑ c⊢))) q))
     q
 
-right-inj-conceal-all-id² : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
-    {V : Term Δᴸ} {N : Term Δᴿ}
-    {A B : Ty (suc Δᴸ)} {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {c : Conv↓ (suc Δᴸ) A B}
-    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
-    {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.WFWorld W
-  → SpineValue V
-  → Value N
-  → CTI2.SameCtx γ γ′
-  → store-lift (sourceStoreʷ W) CTI2.⊢↓[ nothing ] c
-  → W ∣ γ′ ⊢² V
-      ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
-  → W ∣ γ ⊢² V ↓ `∀↓ c ⊑ N ∶ q
 right-inj-conceal-all-id² {W = W} {A = A} {B = B}
     {H = H} {c = c} wf sv vN sc c⊢ prem q =
   CTI2.conceal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)

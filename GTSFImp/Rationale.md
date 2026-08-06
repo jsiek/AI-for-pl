@@ -677,3 +677,17 @@ required output is derivable only by rebuilding: the paired
 `conceal⊑conceal²` at `(Xᴸ, Y)` over a premise world that parks `Y` at
 a third center (so the deeper seal's `rebase-onlyᴸ` disalignment
 holds), with the leaf relation reconstructed from scratch.
+
+Two constraints shape the world-support lemma itself.  First,
+embeddings are order-preserving injections built from `keep`/`skip`,
+not pointwise functions, so "move one variable's center" is not a local
+record update: relocating a pivot can collide with the centers of
+variables in the support, and the lemma's agreement hypothesis must
+carry the injectivity bookkeeping explicitly.  Second, terms mention
+store variables without an enclosing wrapper node (a bare `＇X₂` tag
+deep inside a lambda body), so a sub-derivation's support can include
+the very pivot the rebuild wants to move; when no unused center exists
+for re-parking, the peel must extend the center context first, using
+the existing world-extension machinery, and transport along the
+extension.  Parking space is therefore obtained by extension, never
+assumed.

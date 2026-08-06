@@ -312,18 +312,27 @@ seal; each wrapper boundary is the one place where that hypothesis may
 be revised, and only for the boundary's own pivot. Since every
 non-pivot embedding is pinned and the record's `pivotAligned` field
 forces the pivots to share a center in `W′`, the degrees of freedom
-reduce to the choice of that shared center. Writing centers as columns
-and world evolution downward, the three possible moves from a common
-starting world are:
+reduce to the choice of that shared center.
+
+Recall what a center is: a world carries a shared center type context
+`Δ` alongside the source and target contexts, and its two embeddings
+`ηᴸ : Δᴸ ↪ᵗ Δ` and `ηᴿ : Δᴿ ↪ᵗ Δ` send every source and target
+variable to a variable of `Δ` — its center. A source variable is
+aligned with a target variable exactly when the embeddings send them
+to the same center. In the diagram below the center context has three
+variables `c0, c1, c2`, drawn as columns; each row records where the
+embeddings send the two pivots, so two names in one column mean the
+pivots are aligned there. With the pivots apart in `W` (`Xᴸ` at `c0`,
+`Y` at `c1`), the three possible shapes for `W′` are:
 
 ```text
              c0    c1    c2
-  W    ηᴸ:   Xᴸ                    (pivots apart in W)
-       ηᴿ:         Y
+  W    ηᴸ:   Xᴸ
+       ηᴿ:         Y           (pivots apart in W)
 
-  W′   (a)   Xᴸ,Y              target pivot joins the source center
-       (b)         Xᴸ,Y        source pivot joins the target center
-       (c)               Xᴸ,Y  both re-park at a third center
+  W′   (a)   Xᴸ,Y              Y moves to c0, where Xᴸ already sits
+       (b)         Xᴸ,Y        Xᴸ moves to c1, where Y already sits
+       (c)               Xᴸ,Y  both move to c2, previously unoccupied
 ```
 
 Alongside any of these, `ImpEnvMono` lets marks decay `X⊑X → X⊑★` at

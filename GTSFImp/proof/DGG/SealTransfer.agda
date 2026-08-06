@@ -2,13 +2,15 @@ module proof.DGG.SealTransfer where
 
 -- File Charter:
 --   * Provides composition for a single moved source-representation pivot.
---   * Extends spine values locally with bare source seals.
+--   * Uses SpineValue's total account of value spines, including seals.
 --   * Transfers a target star-seal boundary to an existential output world.
 --   * Closes single-move interiors, including TagBoundaryProbe's case.
---   * Leaves one hypothesis only for interiors moving more than one pivot.
+--   * Leaves H-multi only for ChainRideProbe's multi-pivot interior.
+--     Together with ExtraCastRight2's OpenStrata fields H-walk
+--     (SealPeelProbe analysis), H-absorb (MovedLinkProbe), and H-Schain
+--     (ChainRideProbe), this completes inversion's named open frontier.
 --   * Depends on SealPeelToolkit, ExtraCastRight2, and term decay.
 
-open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
@@ -35,7 +37,7 @@ open CTI2 using
   (World; CtxImp; RebaseAt; StoreRepImp; _⊑ᵂ⟨_⟩_;
    _∣_⊢²_⊑_∶_;
    same-runtime; rebase-at)
-open ECR using (SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast;
+open ECR using (SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal;
   sv-reveal-fun; sv-conceal-fun; sv-reveal-all; sv-conceal-all)
 
 ------------------------------------------------------------------------
@@ -113,41 +115,7 @@ composeSourceRebase {Δᴸ = Δᴸ} {W₁ = W₁} {Wₗ} {W₂}
       (trans (CTI2.RebaseAt.ηᴸ-off-pivot raₗ Z₃≠Z)
         (trans anchored (sym target₂ₗ)))
 
-------------------------------------------------------------------------
--- Seal values
-------------------------------------------------------------------------
-
-data SealValue {Δ : TyCtx} : Term Δ → Set where
-  sv-spine : ∀ {V}
-    → SpineValue V
-    → SealValue V
-
-  sv-sealed : ∀ {V X R}
-    → SealValue V
-    → SealValue (V ↓ Conversion.seal X R)
-
-------------------------------------------------------------------------
--- The present SpineValue interface has no variable-typed inhabitants
-------------------------------------------------------------------------
-
 private
-  spine-variable-⊥ : ∀ {Δ} {Σ} {Γ} {V : Term Δ} {X : TyVar Δ}
-    → SpineValue V
-    → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ ＇ X
-    → ⊥
-  spine-variable-⊥ (sv-ƛ N) ()
-  spine-variable-⊥ (sv-Λ sv) ()
-  spine-variable-⊥ (sv-$ (κℕ n)) ()
-  spine-variable-⊥ (sv-$ (κ𝔹 b)) ()
-  spine-variable-⊥ (sv-cast sv inj) ()
-  spine-variable-⊥ (sv-cast sv fun) ()
-  spine-variable-⊥ (sv-cast sv all) ()
-  spine-variable-⊥ (sv-cast sv (genᵥ A≠★ safe)) ()
-  spine-variable-⊥ (sv-reveal-fun sv) ()
-  spine-variable-⊥ (sv-conceal-fun sv) ()
-  spine-variable-⊥ (sv-reveal-all sv) ()
-  spine-variable-⊥ (sv-conceal-all sv) ()
-
   dyn-var-star : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
       {X : TyVar Δᴸ}
     → (＇ X) ⊑ᵂ⟨ SPT.dynWorld W ⟩ ★
@@ -281,7 +249,7 @@ seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
     {Z : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {p : (＇ Z) ⊑ᵂ⟨ W₁ ⟩ (＇ Y)}
   → SealTransferAssumption
-  → SealValue V
+  → SpineValue V
   → Value U
   → W₁ ∣ γ₁ ⊢² V ⊑ (U ↓ Conversion.seal Y ★) ∶ p
   → Σ[ W₂ ∈ World Δᴸ Δᴿ Δ ] Σ[ γ₂ ∈ CtxImp W₂ ]
@@ -291,23 +259,80 @@ seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
       × Σ[ q₂ ∈ (＇ Z) ⊑ᵂ⟨ W₂ ⟩ ★ ]
           (W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂) )
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-spine sv) vU D =
-  ⊥-elim (spine-variable-⊥ sv (CTI2T.source-typing² D))
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-ƛ N) vU D
     with CTI2T.source-typing² D
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-ƛ N) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-Λ sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-Λ sv) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-$ (κℕ n)) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-$ (κℕ n)) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-$ (κ𝔹 b)) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-$ (κ𝔹 b)) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv inj) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv inj) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv fun) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv fun) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv all) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv all) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv (genᵥ A≠★ safe)) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-cast sv (genᵥ A≠★ safe)) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-reveal-fun sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-reveal-fun sv) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-conceal-fun sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-conceal-fun sv) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-reveal-all sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-reveal-all sv) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-conceal-all sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-conceal-all sv) vU D | ()
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-seal sv) vU D
+    with CTI2T.source-typing² D
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    h (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     with D
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
         (CTI2.⊢↓-sealˣ Y∈) prem .p
     with target-seal-rebase-source rb₄ p
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
         (CTI2.⊢↓-sealˣ Y∈) prem .p
@@ -322,21 +347,21 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
   TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem
     (dyn-var-star {W = W₄} {X = Z})
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
         monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
     with ECR.seal-rebase-target rbₗ p
        | SPT.right-var-obligation-view {W = Wₗ} {Y = Y} pₗ
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h@(seal-transfer-assumption h-multi) (sv-sealed sv) vU D
+    h@(seal-transfer-assumption h-multi) (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
         monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
     | raₗ | Z₃ , refl , alignedₗ
     with seal-transfer h sv vU prem
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h@(seal-transfer-assumption h-multi) (sv-sealed sv) vU D
+    h@(seal-transfer-assumption h-multi) (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
         monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
@@ -345,7 +370,7 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     with Fin._≟_ (toRenameᵗ (CTI2.ηᴸʷ W₂) Z₃)
       (toRenameᵗ (CTI2.ηᴸʷ W₁) Z₃)
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h@(seal-transfer-assumption h-multi) (sv-sealed sv) vU D
+    h@(seal-transfer-assumption h-multi) (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
         monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
@@ -374,7 +399,7 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (TD.⊢²-decay (SPT.dynWorld-decay W₂) V₀⊑U)
     (dyn-var-star {W = W₁} {X = Z})
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h@(seal-transfer-assumption h-multi) (sv-sealed sv) vU D
+    h@(seal-transfer-assumption h-multi) (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
         monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
@@ -384,7 +409,7 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
   h-multi {p = p} {q₂ = q₂}
     raₗ link₂ moved monoₗ mono₂ scₗ sc₂ Z∈′ V₀⊑U
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    h (sv-sealed sv) vU D
+    h (sv-seal sv) vU D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ}
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)

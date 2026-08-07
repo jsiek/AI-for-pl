@@ -28,10 +28,13 @@ import proof.DGG.CompilePreservesImprecision
 import proof.DGG.CompilePreservesImprecision2
 import proof.DGG.Inversion.SpineValueDef
 import proof.DGG.Inversion.RightInjInversion2Def
+import proof.DGG.Inversion.TargetWalkDef
+import proof.DGG.Inversion.TargetWalkSupport
+import proof.DGG.Inversion.TargetChainProof
+import proof.DGG.Inversion.TargetChainLemma
+import proof.DGG.Inversion.RightInjInversion2Proof
 import proof.DGG.Inversion.TargetDescentDef
 import proof.DGG.Inversion.TargetDescentLemma
-import proof.DGG.SealChainView
-import proof.DGG.SealChain
 import proof.DGG.SourceStarProbe
 import proof.DGG.CenterCrossingProbe
 import proof.DGG.TerminusRebuildProbe

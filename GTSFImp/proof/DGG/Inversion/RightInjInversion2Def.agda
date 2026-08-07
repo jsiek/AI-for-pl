@@ -5,6 +5,19 @@ module proof.DGG.Inversion.RightInjInversion2Def where
 --   * Uses the frozen `RebaseAt` relation directly; no ParkedWorld or
 --     OpenStrata premise appears in the public statement.
 --   * Depends on the stable SpineValueDef surface and CastTermImprecision2.
+--
+-- Refuted route, kept here so the bare-seal proof does not retry it:
+-- peeling the target tag first asks a wrapper head such as `Λ⊑²` to prove
+-- a premise with a non-variable source type against a right variable,
+-- schematically
+--
+--   nonvar-left ⊑ ＇Y
+--
+-- But `SPT.right-var-obligation-view` forces the left side of any
+-- `A ⊑ ＇Y` obligation to be a variable, while `Λ⊑²` carries `NonVar A`
+-- and a bound-variable occurrence premise.  Thus the tag-peel-first family
+-- (including rebuilding a wrapper head against a lifted target variable)
+-- is dead; the proof must rebuild at the target-chain terminus instead.
 
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)

@@ -10,9 +10,8 @@ module proof.DGG.SourceStarProbe where
 --     relating the outer source pivot `X₀` to target `Y₁` while the
 --     inner cast still fixes `X₁`; order preservation collapses the two
 --     source centers and refutes the package.
---   * This justifies the downstream SealChain choice to expose only the
---     `★` source-star package and to handle variable targets by a
---     paired-seal reconstruction instead.
+--   * This justifies exposing only the `★` source-star package and handling
+--     variable targets by paired-seal reconstruction instead.
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin

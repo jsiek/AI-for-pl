@@ -27,3 +27,5 @@ import proof.DGG.CastTermImprecision
 import proof.DGG.CompilePreservesImprecision
 import proof.DGG.SealChainView
 import proof.DGG.SealChain
+import proof.DGG.SourceStarProbe
+import proof.DGG.CenterCrossingProbe

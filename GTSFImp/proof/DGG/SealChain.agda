@@ -3,12 +3,11 @@ module proof.DGG.SealChain where
 -- File Charter:
 --   * Records the consumer-facing ChainRideRedesign interface for the
 --     extra-cast-right seal/tag boundary while the requested implementation is
---     blocked by TargetSealVariableCounterScratch.
+--     blocked by CenterCrossingProbe.
 --   * Exports the corrected target-seal packages and abstract corollaries
 --     consumed by SealTransferCore and ExtraCastRight2.
 --   * Deliberately has no variable-target source-star branch; the root
---     SourceStarCounterScratch and SourceStarRideCounterScratch files are the
---     checked design record for that refuted shape.
+--     SourceStarProbe is the checked design record for that refuted shape.
 
 import Data.Fin as Fin
 open import Data.Empty using (⊥-elim)

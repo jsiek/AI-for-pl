@@ -7,10 +7,12 @@ module proof.DGG.Parked.ParkedWorldProof where
 --     evolution.
 --   * Contains only total checked definitions and no permissive option.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero)
 import Data.Fin as Fin
 open import Data.List using ([]; _∷_)
+open import Data.Nat using (_≤_; s≤s; z≤n)
+import Data.Nat as Nat
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong)
@@ -28,8 +30,8 @@ open import Types using
   ; renameᵗ-cong
   ; renameᵗ-shift
   )
-open import Consistency using (_↪ᵗ_; keep; skip; toRenameᵗ)
-open import Imprecision using (X⊑X; _⊢_⊑_)
+open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
+open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 open import Reduction using (StoreChanges)
 import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -39,6 +41,7 @@ open import proof.DGG.Parked.ParkedWorldDef using
   ; ParkedEvolve
   ; ParkedFreshBothᴸᵀ
   ; ParkedFreshBothᴿᵀ
+  ; ParkedFreshLeftᴸᵀ
   ; ParkedFreshRightᴿᵀ
   ; ParkedFreshZeroᵀ
   ; ParkedNoCrossingᵀ
@@ -54,10 +57,12 @@ open import proof.DGG.Parked.ParkedWorldDef using
   ; evolve-both-bind
   ; evolve-keepᴸ
   ; evolve-keepᴿ
+  ; evolve-left-bind
   ; evolve-refl
   ; evolve-right-bind
   ; parked-both-bind
   ; parked-initial
+  ; parked-left-bind
   ; parked-right-bind
   )
 open import proof.ImprecisionConsistency using
@@ -94,6 +99,26 @@ embed-keep-shift η A =
     (renameᵗ-shift (toRenameᵗ η) A)
 
 
+≤-step : ∀ {m n} → m ≤ n → m ≤ Nat.suc n
+≤-step z≤n = z≤n
+≤-step (s≤s m≤n) = s≤s (≤-step m≤n)
+
+
+embed≤ : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Δ ≤ Δ′
+embed≤ empty = z≤n
+embed≤ (keep η) = s≤s (embed≤ η)
+embed≤ (skip η) = ≤-step (embed≤ η)
+
+
+no-suc≤ : ∀ {Δ} → Nat.suc Δ ≤ Δ → ⊥
+no-suc≤ {Nat.zero} ()
+no-suc≤ {Nat.suc Δ} (s≤s sucΔ≤Δ) = no-suc≤ sucΔ≤Δ
+
+
+no-suc↪ᵗ : ∀ {Δ} → Nat.suc Δ ↪ᵗ Δ → ⊥
+no-suc↪ᵗ η = no-suc≤ (embed≤ η)
+
+
 both-bind-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {C : Ty Δᴸ} {D : Ty Δᴿ}
@@ -128,6 +153,23 @@ right-bind-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p =
       (rename-⊑ Fin.suc fin-suc-injective (λ X eq → eq) p))
 
 
+left-bind-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {A′ : Ty Δᴸ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → A ⊑ᵂ⟨ W ⟩ B
+  → ⇑ᵗ A ⊑ᵂ⟨ CTI2.leftOnlyWorld X⊑★ W A′ ⟩ B
+left-bind-⊑ᵂ {W = W} {A′ = A′} {A = A} {B = B} p =
+  subst≡
+    (λ L → impEnvʷ (CTI2.leftOnlyWorld X⊑★ W A′) ⊢ L ⊑
+      embedᴿ (CTI2.leftOnlyWorld X⊑★ W A′) B)
+    (sym (embed-keep-shift (CTI2.ηᴸʷ W) A))
+    (subst≡
+      (λ R → impEnvʷ (CTI2.leftOnlyWorld X⊑★ W A′) ⊢
+        ⇑ᵗ (embedᴸ W A) ⊑ R)
+      (sym (renameᵗ-skip-eq (CTI2.ηᴿʷ W) B))
+      (rename-⊑ Fin.suc fin-suc-injective (λ X eq → eq) p))
+
+
 transport⊑ᴾ-proofᵀ : Transport⊑ᴾᵀ
 transport⊑ᴾ-proofᵀ evolve-refl p = p
 transport⊑ᴾ-proofᵀ (evolve-keepᴸ evol) p =
@@ -141,6 +183,13 @@ transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = C} {B = D}
     {W = CTI2.bothBindWorld X⊑X W A B} {W′ = W′}
     {A = ⇑ᵗ C} {B = ⇑ᵗ D} evol
     (both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D} p)
+transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = C} {B = D}
+    (evolve-left-bind {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+      {W = W} {W′ = W′} {A = A} evol) p =
+  transport⊑ᴾ-proofᵀ {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+    {W = CTI2.leftOnlyWorld X⊑★ W A} {W′ = W′}
+    {A = ⇑ᵗ C} {B = D} evol
+    (left-bind-⊑ᵂ {W = W} {A′ = A} {A = C} {B = D} p)
 transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = A} {B = B}
     (evolve-right-bind {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
       {W = W} {W′ = W′} {B = B′} evol) p =
@@ -166,6 +215,8 @@ parked-world-closed-proofᵀ pw (evolve-keepᴿ evol) =
   parked-world-closed-proofᵀ pw evol
 parked-world-closed-proofᵀ pw (evolve-both-bind evol) =
   parked-world-closed-proofᵀ (parked-both-bind pw) evol
+parked-world-closed-proofᵀ pw (evolve-left-bind evol) =
+  parked-world-closed-proofᵀ (parked-left-bind pw) evol
 parked-world-closed-proofᵀ pw (evolve-right-bind evol) =
   parked-world-closed-proofᵀ (parked-right-bind pw) evol
 
@@ -178,6 +229,8 @@ parked-target-stable-proofᵀ (evolve-keepᴿ evol) Y =
   parked-target-stable-proofᵀ evol Y
 parked-target-stable-proofᵀ (evolve-both-bind evol) Y =
   parked-target-stable-proofᵀ evol (Fin.suc Y)
+parked-target-stable-proofᵀ (evolve-left-bind evol) Y =
+  parked-target-stable-proofᵀ evol Y
 parked-target-stable-proofᵀ (evolve-right-bind evol) Y =
   parked-target-stable-proofᵀ evol (Fin.suc Y)
 
@@ -197,6 +250,8 @@ parked-source-stable (evolve-keepᴿ evol) X =
   parked-source-stable evol X
 parked-source-stable (evolve-both-bind evol) X =
   parked-source-stable evol (Fin.suc X)
+parked-source-stable (evolve-left-bind evol) X =
+  parked-source-stable evol (Fin.suc X)
 parked-source-stable (evolve-right-bind evol) X =
   parked-source-stable evol X
 
@@ -206,6 +261,8 @@ parked-target-identity-proofᵀ parked-initial Y = toRename-id-eq Y
 parked-target-identity-proofᵀ (parked-both-bind pw) zero = refl
 parked-target-identity-proofᵀ (parked-both-bind pw) (Fin.suc Y) =
   cong Fin.suc (parked-target-identity-proofᵀ pw Y)
+parked-target-identity-proofᵀ (parked-left-bind {W = W} pw) Y =
+  ⊥-elim (no-suc↪ᵗ (CTI2.ηᴿʷ W))
 parked-target-identity-proofᵀ (parked-right-bind pw) zero = refl
 parked-target-identity-proofᵀ (parked-right-bind pw) (Fin.suc Y) =
   cong Fin.suc (parked-target-identity-proofᵀ pw Y)
@@ -226,10 +283,16 @@ parked-fresh-rightᴿ-proofᵀ evol =
   parked-target-stable-proofᵀ evol zero
 
 
+parked-fresh-leftᴸ-proofᵀ : ParkedFreshLeftᴸᵀ
+parked-fresh-leftᴸ-proofᵀ evol =
+  parked-source-stable evol zero
+
+
 parked-fresh-zero-proofᵀ : ParkedFreshZeroᵀ
 parked-fresh-zero-proofᵀ =
   parked-fresh-bothᴸ-proofᵀ ,
   parked-fresh-bothᴿ-proofᵀ ,
+  parked-fresh-leftᴸ-proofᵀ ,
   parked-fresh-rightᴿ-proofᵀ
 
 

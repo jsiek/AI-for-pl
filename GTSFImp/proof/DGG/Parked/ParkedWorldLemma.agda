@@ -10,6 +10,7 @@ open import proof.DGG.Parked.ParkedWorldDef using
   ( MapCtxᴾᵀ
   ; ParkedFreshBothᴸᵀ
   ; ParkedFreshBothᴿᵀ
+  ; ParkedFreshLeftᴸᵀ
   ; ParkedFreshRightᴿᵀ
   ; ParkedFreshZeroᵀ
   ; ParkedNoCrossingᵀ
@@ -24,6 +25,7 @@ open import proof.DGG.Parked.ParkedWorldProof using
   ( mapCtxᴾ-proofᵀ
   ; parked-fresh-bothᴸ-proofᵀ
   ; parked-fresh-bothᴿ-proofᵀ
+  ; parked-fresh-leftᴸ-proofᵀ
   ; parked-fresh-rightᴿ-proofᵀ
   ; parked-fresh-zero-proofᵀ
   ; parked-no-crossing-proofᵀ
@@ -62,6 +64,10 @@ parked-fresh-bothᴸ = parked-fresh-bothᴸ-proofᵀ
 
 parked-fresh-bothᴿ : ParkedFreshBothᴿᵀ
 parked-fresh-bothᴿ = parked-fresh-bothᴿ-proofᵀ
+
+
+parked-fresh-leftᴸ : ParkedFreshLeftᴸᵀ
+parked-fresh-leftᴸ = parked-fresh-leftᴸ-proofᵀ
 
 
 parked-fresh-rightᴿ : ParkedFreshRightᴿᵀ

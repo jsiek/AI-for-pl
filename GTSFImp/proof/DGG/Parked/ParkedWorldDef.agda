@@ -2,7 +2,7 @@ module proof.DGG.Parked.ParkedWorldDef where
 
 -- File Charter:
 --   * Defines parked worlds as the initial compile worlds closed under
---     paired and target-only parked allocation.
+--     paired, source-only, and target-only parked allocation.
 --   * Defines two-sided parked evolution indexed by source and target
 --     store-change traces.
 --   * States the transport, geometry, and right-extension bridge theorems
@@ -18,7 +18,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 open import Types using (Ty; TyCtx; TyVar)
 open import TyStore using (TyStore)
 open import Consistency using (toRenameᵗ)
-open import Imprecision using (ImpEnv; X⊑X)
+open import Imprecision using (ImpEnv; X⊑X; X⊑★)
 open import Reduction using (StoreChanges; []; _∷_; keep; bind)
 import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -51,6 +51,12 @@ data ParkedWorld : ∀ {Δᴸ Δᴿ Δ}
     → ParkedWorld W
       ----------------------------------------------------------
     → ParkedWorld (CTI2.bothBindWorld X⊑X W A B)
+
+  parked-left-bind : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ} {A : Ty Δᴸ}
+    → ParkedWorld W
+      ------------------------------------------------
+    → ParkedWorld (CTI2.leftOnlyWorld X⊑★ W A)
 
   parked-right-bind : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
@@ -97,6 +103,16 @@ data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       ---------------------------------------------------
     → ParkedEvolve (bind A ∷ χsᴸ) (bind B ∷ χsᴿ) W W′
 
+  evolve-left-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+      {χsᴸ : StoreChanges (Nat.suc Δᴸ) Δᴸ′}
+      {χsᴿ : StoreChanges Δᴿ Δᴿ′}
+      {W : World Δᴸ Δᴿ Δ}
+      {W′ : World Δᴸ′ Δᴿ′ Δ′}
+      {A : Ty Δᴸ}
+    → ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld X⊑★ W A) W′
+      ---------------------------------------------
+    → ParkedEvolve (bind A ∷ χsᴸ) χsᴿ W W′
+
   evolve-right-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       {χsᴸ : StoreChanges Δᴸ Δᴸ′}
       {χsᴿ : StoreChanges (Nat.suc Δᴿ) Δᴿ′}
@@ -119,6 +135,7 @@ centerVarᴾ evolve-refl Z = Z
 centerVarᴾ (evolve-keepᴸ evol) Z = centerVarᴾ evol Z
 centerVarᴾ (evolve-keepᴿ evol) Z = centerVarᴾ evol Z
 centerVarᴾ (evolve-both-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
+centerVarᴾ (evolve-left-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
 centerVarᴾ (evolve-right-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
 
 
@@ -216,9 +233,22 @@ ParkedFreshRightᴿᵀ =
       ≡ centerVarᴾ evol zero
 
 
+ParkedFreshLeftᴸᵀ : Set
+ParkedFreshLeftᴸᵀ =
+  ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+    {χsᴸ : StoreChanges (Nat.suc Δᴸ) Δᴸ′}
+    {χsᴿ : StoreChanges Δᴿ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
+    {A : Ty Δᴸ}
+  → (evol : ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld X⊑★ W A) W′)
+  → toRenameᵗ (CTI2.ηᴸʷ W′) (χsᴸ ▶ᵛ zero)
+      ≡ centerVarᴾ evol zero
+
+
 ParkedFreshZeroᵀ : Set
 ParkedFreshZeroᵀ =
-  ParkedFreshBothᴸᵀ × ParkedFreshBothᴿᵀ × ParkedFreshRightᴿᵀ
+  ParkedFreshBothᴸᵀ × ParkedFreshBothᴿᵀ ×
+  ParkedFreshLeftᴸᵀ × ParkedFreshRightᴿᵀ
 
 
 ParkedNoCrossingᵀ : Set

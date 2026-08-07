@@ -22,8 +22,9 @@ open import Types
 open import TyStore using (store-empty)
 open import TermCtx using (TermCtx; Z; ⇑ᶜ)
 open import Consistency using
-  (Env∼; flipᵐ; idᶜ; _⊢_∼_; _∼_; id; _!; ？_; _↦_; ∀ᶜ_;
-   inst_; gen_; bot-elim; bot-intro; sym∼)
+  (Env∼; flipᵐ; genᵐ; idᶜ; instᵐ; _⊢_∼_; _∼_; id; _!;
+   ？_; _↦_; ∀ᶜ_; inst_; gen_; bot-elim; bot-intro; sym∼;
+   X∼★ᵍ; ★∼Xᵍ)
 open import GradualTerms
 open import GradualTermImprecision using
   (CtxImp; ctx-imp; _∣_⊢ᴳ_⊑_⦂_⊑_∶_; _∋ⁱ_⦂_;
@@ -83,6 +84,18 @@ compiled-standard e =
     (proj₁ (compile {Σ = store-empty} (typingᴿ e)))
     (gasᴸ e) (gasᴿ e)
 
+inst-X! : ∀ {Δ} {μ : Env∼ Δ}
+  → instᵐ μ ⊢ ＇ Fin.zero ∼ ★
+inst-X! =
+  _! ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ G∼★ = X∼★ᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Ans = nonstar-X ⦄
+
+gen-★?X : ∀ {Δ} {μ : Env∼ Δ}
+  → genᵐ μ ⊢ ★ ∼ ＇ Fin.zero
+gen-★?X =
+  ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
+
 sym-screen : ∀ {Δ} {μ : Env∼ Δ} {A B}
   → μ ⊢ A ∼ B
   → flipᵐ μ ⊢ B ∼ A
@@ -95,8 +108,16 @@ sym-screen (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
   sym∼ (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
 sym-screen (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
   sym∼ (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
+sym-screen {A = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))} {B = ★ ⇒ ★}
+    (inst_ c B≢★) =
+  gen_ ⦃ Bnv = nonvar-fun ⦄ ⦃ z∈B = ∈-fun-left var-∈ ⦄
+    (gen-★?X ↦ gen-★?X) (λ ())
 sym-screen (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
   sym∼ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
+sym-screen {A = ★ ⇒ ★} {B = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))}
+    (gen_ c A≢★) =
+  inst_ ⦃ Anv = nonvar-fun ⦄ ⦃ z∈A = ∈-fun-left var-∈ ⦄
+    (inst-X! ↦ inst-X!) (λ ())
 sym-screen (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
   sym∼ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
 sym-screen bot-elim = bot-intro
@@ -383,6 +404,10 @@ dynId⊢ = ⊢ƛ (⊢` Z)
   I.∀⊑ nonvar-fun (∈-fun-left var-∈)
     (I.⇒⊑⇒ (I.X⊑★ refl) (I.X⊑★ refl))
 
+★⇒★⊑★⇒★ᵗ : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → μ I.⊢ ★⇒★ᵗ ⊑ ★⇒★ᵗ
+★⇒★⊑★⇒★ᵗ = I.⇒⊑⇒ I.★⊑★ I.★⊑★
+
 ℕ⇒ℕ⊑★⇒★ᵗ : ∀ {Δ} {μ : I.ImpEnv Δ}
   → μ I.⊢ (ℕᵗ ⇒ ℕᵗ) ⊑ ★⇒★ᵗ
 ℕ⇒ℕ⊑★⇒★ᵗ = I.⇒⊑⇒ I.ι⊑★ I.ι⊑★
@@ -397,7 +422,15 @@ dynId⊢ = ⊢ƛ (⊢` Z)
 starfun∼∀X⇒X : ∀ {Δ} → ★⇒★ᵗ {Δ} ∼ ∀X⇒X {Δ}
 starfun∼∀X⇒X =
   gen_ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    ((？ (id (＇ Fin.zero))) ↦ (？ (id (＇ Fin.zero)))) (λ ())
+    (gen-★?X ↦ gen-★?X) (λ ())
+
+∀X⇒X∼★⇒★ : ∀ {Δ} → ∀X⇒X {Δ} ∼ ★⇒★ᵗ {Δ}
+∀X⇒X∼★⇒★ =
+  inst_ ⦃ z∈A = ∈-fun-left var-∈ ⦄
+    (inst-X! ↦ inst-X!) (λ ())
+
+★⇒★∼★⇒★ : ∀ {Δ} → ★⇒★ᵗ {Δ} ∼ ★⇒★ᵗ {Δ}
+★⇒★∼★⇒★ = id ★ ↦ id ★
 
 ∀X⇒X∼∀X⇒X : ∀ {Δ} → ∀X⇒X {Δ} ∼ ∀X⇒X {Δ}
 ∀X⇒X∼∀X⇒X = ∀ᶜ (id (＇ Fin.zero) ↦ id (＇ Fin.zero))
@@ -543,6 +576,102 @@ polyId★App⊢ : Δ₀ ∣ [] ⊢ polyId★App ⦂ ★
 polyId★App⊢ =
   ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 7) (？ (id (‵ `ℕ)))
 
+leftOnlyInstPathᴸ : GTerm Δ₀
+leftOnlyInstPathᴸ = (polyId {Δ = Δ₀} `[ ℕ₀ ]) ·[ 46 ] nat 5
+
+leftOnlyInstPathᴿ : GTerm Δ₀
+leftOnlyInstPathᴿ = dynId ·[ 46 ] nat 5
+
+leftOnlyInstPathᴸ⊢ : Δ₀ ∣ [] ⊢ leftOnlyInstPathᴸ ⦂ ℕ₀
+leftOnlyInstPathᴸ⊢ =
+  ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 5) (id (‵ `ℕ))
+
+leftOnlyInstPathᴿ⊢ : Δ₀ ∣ [] ⊢ leftOnlyInstPathᴿ ⦂ ★
+leftOnlyInstPathᴿ⊢ =
+  ⊢· dynId⊢ (nat⊢ 5) (？ (id (‵ `ℕ)))
+
+leftOnlyInstPath⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ leftOnlyInstPathᴸ ⊑ leftOnlyInstPathᴿ
+    ⦂ ℕ₀ ⊑ ★ ∶ I.ι⊑★
+leftOnlyInstPath⊑ =
+  ·⊑·ᴳ polyIdℕ⊑dynId (κ⊑κᴳ (κℕ 5))
+    (id (‵ `ℕ)) (？ (id (‵ `ℕ)))
+
+
+genPathLeftCallee : GTerm Δ₀
+genPathLeftCallee = ƛ ∀X⇒X₀ ⇒ ` 0
+
+genPathRightCallee : GTerm Δ₀
+genPathRightCallee = ƛ ★⇒★₀ ⇒ ` 0
+
+genPathLeftCallee⊢ :
+  Δ₀ ∣ [] ⊢ genPathLeftCallee ⦂ ∀X⇒X₀ ⇒ ∀X⇒X₀
+genPathLeftCallee⊢ = ⊢ƛ (⊢` Z)
+
+genPathRightCallee⊢ :
+  Δ₀ ∣ [] ⊢ genPathRightCallee ⦂ ★⇒★₀ ⇒ ★⇒★₀
+genPathRightCallee⊢ = ⊢ƛ (⊢` Z)
+
+genPathLeftInner : GTerm Δ₀
+genPathLeftInner = genPathLeftCallee ·[ 47 ] dynId
+
+genPathRightInner : GTerm Δ₀
+genPathRightInner = genPathRightCallee ·[ 47 ] dynId
+
+genPathLeftInner⊢ : Δ₀ ∣ [] ⊢ genPathLeftInner ⦂ ∀X⇒X₀
+genPathLeftInner⊢ =
+  ⊢· genPathLeftCallee⊢ dynId⊢ (∀X⇒X∼★⇒★ {Δ = Δ₀})
+
+genPathRightInner⊢ : Δ₀ ∣ [] ⊢ genPathRightInner ⦂ ★⇒★₀
+genPathRightInner⊢ =
+  ⊢· genPathRightCallee⊢ dynId⊢ (★⇒★∼★⇒★ {Δ = Δ₀})
+
+leftOnlyGenPathᴸ : GTerm Δ₀
+leftOnlyGenPathᴸ = (genPathLeftInner `[ ℕ₀ ]) ·[ 48 ] nat 5
+
+leftOnlyGenPathᴿ : GTerm Δ₀
+leftOnlyGenPathᴿ = genPathRightInner ·[ 48 ] nat 5
+
+leftOnlyGenPathᴸ⊢ : Δ₀ ∣ [] ⊢ leftOnlyGenPathᴸ ⦂ ℕ₀
+leftOnlyGenPathᴸ⊢ =
+  ⊢· (⊢• genPathLeftInner⊢) (nat⊢ 5) (id (‵ `ℕ))
+
+leftOnlyGenPathᴿ⊢ : Δ₀ ∣ [] ⊢ leftOnlyGenPathᴿ ⦂ ★
+leftOnlyGenPathᴿ⊢ =
+  ⊢· genPathRightInner⊢ (nat⊢ 5) (？ (id (‵ `ℕ)))
+
+genPathCallee⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ genPathLeftCallee ⊑ genPathRightCallee
+    ⦂ ∀X⇒X₀ ⇒ ∀X⇒X₀ ⊑ ★⇒★₀ ⇒ ★⇒★₀ ∶
+      I.⇒⊑⇒ ∀X⇒X⊑★⇒★ᵗ ∀X⇒X⊑★⇒★ᵗ
+genPathCallee⊑ = ƛ⊑ƛᴳ (x⊑xᴳ Zⁱ)
+
+dynId⊑dynId :
+  I.idᵐ ∣ [] ⊢ᴳ dynId {Δ = Δ₀} ⊑ dynId
+    ⦂ ★⇒★₀ ⊑ ★⇒★₀ ∶ ★⇒★⊑★⇒★ᵗ
+dynId⊑dynId = ƛ⊑ƛᴳ (x⊑xᴳ Zⁱ)
+
+genPathInner⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ genPathLeftInner ⊑ genPathRightInner
+    ⦂ ∀X⇒X₀ ⊑ ★⇒★₀ ∶ ∀X⇒X⊑★⇒★ᵗ
+genPathInner⊑ =
+  ·⊑·ᴳ genPathCallee⊑ dynId⊑dynId
+    (∀X⇒X∼★⇒★ {Δ = Δ₀}) (★⇒★∼★⇒★ {Δ = Δ₀})
+
+genPathInst⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ (genPathLeftInner `[ ℕ₀ ]) ⊑ genPathRightInner
+    ⦂ ℕ₀ ⇒ ℕ₀ ⊑ ★⇒★₀ ∶ ℕ⇒ℕ⊑★⇒★₀
+genPathInst⊑ =
+  []⊑ᴳ genPathInner⊑ I.ι⊑★ ℕ⇒ℕ⊑★⇒★₀
+
+leftOnlyGenPath⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ leftOnlyGenPathᴸ ⊑ leftOnlyGenPathᴿ
+    ⦂ ℕ₀ ⊑ ★ ∶ I.ι⊑★
+leftOnlyGenPath⊑ =
+  ·⊑·ᴳ genPathInst⊑ (κ⊑κᴳ (κℕ 5))
+    (id (‵ `ℕ)) (？ (id (‵ `ℕ)))
+
+
 polyAtX : GTerm Δ₁
 polyAtX = polyId {Δ = Δ₁} `[ X₀ ]
 
@@ -650,6 +779,17 @@ baseline-poly-to-dyn =
     (⊢· dynId⊢ (nat⊢ 7) (？ (id (‵ `ℕ))))
     (·⊑·ᴳ polyIdℕ⊑dynId (κ⊑κᴳ (κℕ 7))
       (id (‵ `ℕ)) (？ (id (‵ `ℕ))))
+
+-- queued: `(ΛX.λx:X.x)[ℕ] 5 ⊑ (λx:★.x) 5`; expected clean.
+left-only-inst-path : SourceEntry
+left-only-inst-path =
+  source-entry
+    leftOnlyInstPathᴸ
+    leftOnlyInstPathᴿ
+    40 40 ℕ₀ ★ I.ι⊑★
+    leftOnlyInstPathᴸ⊢
+    leftOnlyInstPathᴿ⊢
+    leftOnlyInstPath⊑
 
 -- a. Baseline: Bool variant of the polymorphic-to-dynamic run; clean.
 baseline-bool-to-dyn : SourceEntry
@@ -765,6 +905,19 @@ gen-inst-return-poly : SourceEntry
 gen-inst-return-poly =
   same-entry {M = returnPolyUse} {A = ℕ₀} returnPolyUse⊢ 70
 
+-- queued:
+-- `((λf:(∀X.X→X).f)·(λx:★.x))[ℕ] 5
+--    ⊑ ((λf:★→★.f)·(λx:★.x)) 5`; expected clean.
+left-only-gen-path : SourceEntry
+left-only-gen-path =
+  source-entry
+    leftOnlyGenPathᴸ
+    leftOnlyGenPathᴿ
+    80 80 ℕ₀ ★ I.ι⊑★
+    leftOnlyGenPathᴸ⊢
+    leftOnlyGenPathᴿ⊢
+    leftOnlyGenPath⊑
+
 -- e. gen/inst interleaving: self application then Nat instantiation; clean.
 gen-inst-self-nat : SourceEntry
 gen-inst-self-nat =
@@ -848,6 +1001,9 @@ baseline-bool-direct-skeleton-gate = refl
 baseline-poly-to-dyn-skeleton-gate : skeleton-gate baseline-poly-to-dyn
 baseline-poly-to-dyn-skeleton-gate = refl
 
+left-only-inst-path-skeleton-gate : skeleton-gate left-only-inst-path
+left-only-inst-path-skeleton-gate = refl
+
 baseline-bool-to-dyn-skeleton-gate : skeleton-gate baseline-bool-to-dyn
 baseline-bool-to-dyn-skeleton-gate = refl
 
@@ -889,6 +1045,9 @@ tag-boundary-star-inst-skeleton-gate = refl
 gen-inst-return-poly-skeleton-gate :
   skeleton-gate gen-inst-return-poly
 gen-inst-return-poly-skeleton-gate = refl
+
+left-only-gen-path-skeleton-gate : skeleton-gate left-only-gen-path
+left-only-gen-path-skeleton-gate = refl
 
 gen-inst-self-nat-skeleton-gate : skeleton-gate gen-inst-self-nat
 gen-inst-self-nat-skeleton-gate = refl
@@ -949,6 +1108,10 @@ baseline-poly-to-dyn-screens-clean :
   RS.crossing-suspect (compiled baseline-poly-to-dyn) ≡ RS.clean
 baseline-poly-to-dyn-screens-clean = refl
 
+left-only-inst-path-screens-clean :
+  RS.crossing-suspect (compiled left-only-inst-path) ≡ RS.clean
+left-only-inst-path-screens-clean = refl
+
 baseline-bool-to-dyn-screens-clean :
   RS.crossing-suspect (compiled baseline-bool-to-dyn) ≡ RS.clean
 baseline-bool-to-dyn-screens-clean = refl
@@ -1000,6 +1163,10 @@ tag-boundary-star-inst-screens-clean = refl
 gen-inst-return-poly-screens-clean :
   RS.crossing-suspect (compiled gen-inst-return-poly) ≡ RS.clean
 gen-inst-return-poly-screens-clean = refl
+
+left-only-gen-path-screens-clean :
+  RS.crossing-suspect (compiled left-only-gen-path) ≡ RS.clean
+left-only-gen-path-screens-clean = refl
 
 gen-inst-self-nat-screens-clean :
   RS.crossing-suspect (compiled gen-inst-self-nat) ≡ RS.clean

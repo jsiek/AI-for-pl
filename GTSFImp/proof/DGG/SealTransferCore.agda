@@ -56,9 +56,8 @@ composeSourceRebase {Δᴸ = Δᴸ} {W₁ = W₁} {Wₗ} {W₂}
     (same-runtime
       (trans source₁ₗ sourceₗ₂)
       (trans target₁ₗ targetₗ₂))
-    source-off target-off
+    source-off target-frozen
     (CTI2.RebaseAt.pivotAligned raₗ)
-    composite-anchor
     (CTI2.RebaseAt.storeRepresentations raₗ)
   where
   source₁ₗ = CTI2.SameRuntime.sourceStore-same
@@ -79,38 +78,12 @@ composeSourceRebase {Δᴸ = Δᴸ} {W₁ = W₁} {Wₗ} {W₂}
     trans (CTI2.RebaseAt.ηᴸ-off-pivot raₗ Zₒ≠Z)
       (CTI2.RebaseAt.ηᴸ-off-pivot link₂ Zₒ≠Z₃)
 
-  target-off : ∀ {Yₒ} → Yₒ ≢ Y
+  target-frozen : ∀ Yₒ
     → toRenameᵗ (CTI2.ηᴿʷ W₁) Yₒ
       ≡ toRenameᵗ (CTI2.ηᴿʷ W₂) Yₒ
-  target-off Yₒ≠Y =
-    trans (CTI2.RebaseAt.ηᴿ-off-pivot raₗ Yₒ≠Y)
-      (CTI2.RebaseAt.ηᴿ-off-pivot link₂ Yₒ≠Y)
-
-  composite-anchor :
-      toRenameᵗ (CTI2.ηᴿʷ W₂) Y
-        ≢ toRenameᵗ (CTI2.ηᴿʷ W₁) Y
-    → Σ[ Zₒ ∈ TyVar Δᴸ ]
-        toRenameᵗ (CTI2.ηᴸʷ W₂) Zₒ
-          ≡ toRenameᵗ (CTI2.ηᴿʷ W₂) Y
-  composite-anchor moved with Fin._≟_
-      (toRenameᵗ (CTI2.ηᴿʷ W₂) Y)
-      (toRenameᵗ (CTI2.ηᴿʷ Wₗ) Y)
-  composite-anchor moved | no moved₂ =
-    CTI2.RebaseAt.anchorᴿ link₂ moved₂
-  composite-anchor moved | yes target₂ₗ
-      with CTI2.RebaseAt.anchorᴿ raₗ
-        (λ targetₗ₁ → moved (trans target₂ₗ targetₗ₁))
-  composite-anchor moved | yes target₂ₗ | Zₒ , anchored
-      with Fin._≟_ Zₒ Z₃
-  composite-anchor moved | yes target₂ₗ | Zₒ , anchored
-      | no Zₒ≠Z₃ =
-    Zₒ , trans (sym (CTI2.RebaseAt.ηᴸ-off-pivot link₂ Zₒ≠Z₃))
-      (trans anchored (sym target₂ₗ))
-  composite-anchor moved | yes target₂ₗ | .Z₃ , anchored
-      | yes refl =
-    Z₃ , trans agrees
-      (trans (CTI2.RebaseAt.ηᴸ-off-pivot raₗ Z₃≠Z)
-        (trans anchored (sym target₂ₗ)))
+  target-frozen Yₒ =
+    trans (CTI2.RebaseAt.ηᴿ-frozen raₗ Yₒ)
+      (CTI2.RebaseAt.ηᴿ-frozen link₂ Yₒ)
 
 private
   dyn-var-star : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}

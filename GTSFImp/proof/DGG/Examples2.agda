@@ -212,7 +212,6 @@ example12-rebase-Z-to-Y =
   CTI2.rebase-at (CTI2.same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     (λ _ → refl) refl
-    (λ moved → ⊥-elim (moved refl))
     CTI2.example12-Y-representation
 
 example12-target-Y-reveal :
@@ -1709,19 +1708,30 @@ left-path-source-Y-rep₃-YZ :
   CTI2.StoreRepImp left-path-world₃-YZ (Fin.suc Fin.zero) Fin.zero
 left-path-source-Y-rep₃-YZ = CTI2.store-rep-imp ★⊑★
 
--- The XZ and YZ alignments differ only in where target Y embeds, so
--- the world change is pivot-local at the Y pair.  It happens at the
--- paired Y reveal boundary rather than at the Z boundaries.
-left-path-rebase-XZ-to-YZ-Y₃ :
-  CTI2.RebaseAt left-path-world₃ left-path-world₃-YZ
+left-path-source-Z-rep₃-YZ :
+  CTI2.StoreRepImp left-path-world₃-YZ
+    (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
+left-path-source-Z-rep₃-YZ = CTI2.store-rep-imp ★⊑★
+
+left-path-rebase-Y-YZ₃ :
+  CTI2.RebaseAt left-path-world₃-YZ left-path-world₃-YZ
     (Fin.suc Fin.zero) Fin.zero
-left-path-rebase-XZ-to-YZ-Y₃ =
-  CTI2.rebase-at (CTI2.same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} _ → refl })
-    refl (λ _ → Fin.zero , refl)
-    left-path-source-Y-rep₃-YZ
+left-path-rebase-Y-YZ₃ =
+  CTI2.sameWorldRebaseAt refl left-path-source-Y-rep₃-YZ
+
+left-path-rebase-Z-YZ₃ :
+  CTI2.RebaseAt left-path-world₃-YZ left-path-world₃-YZ
+    (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
+left-path-rebase-Z-YZ₃ =
+  CTI2.sameWorldRebaseAt refl left-path-source-Z-rep₃-YZ
+
+left-path-rebase-X-YZ₃ᴸ :
+  CTI2.RebaseAtᴸ left-path-world₃-YZ left-path-world₃-YZ
+    (just Fin.zero)
+left-path-rebase-X-YZ₃ᴸ =
+  CTI2.rebase-onlyᴸ refl
+    (λ { Fin.zero (); (Fin.suc Fin.zero) () })
+    (ℕ⊑★² {W = left-path-world₃-YZ})
 
 left-path-rebase-XZ-Z₃ :
   CTI2.RebaseAt left-path-world₃ left-path-world₃
@@ -1801,9 +1811,28 @@ left-path-Z⇒Z⊑Z⇒Z-XZ₃ :
 left-path-Z⇒Z⊑Z⇒Z-XZ₃ =
   ⇒⊑⇒ left-path-Z-var⊑XZ₃ left-path-Z-var⊑XZ₃
 
+left-path-Z-var⊑YZ₃ :
+  ＇ (Fin.suc (Fin.suc Fin.zero))
+    ⊑ᵂ⟨ left-path-world₃-YZ ⟩ ＇ (Fin.suc Fin.zero)
+left-path-Z-var⊑YZ₃ =
+  Imprecision.X⊑X {X = Fin.suc (Fin.suc Fin.zero)}
+
+left-path-Z⇒Z⊑Z⇒Z-YZ₃ :
+  (＇ (Fin.suc (Fin.suc Fin.zero))
+    ⇒ ＇ (Fin.suc (Fin.suc Fin.zero)))
+    ⊑ᵂ⟨ left-path-world₃-YZ ⟩
+      (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
+left-path-Z⇒Z⊑Z⇒Z-YZ₃ =
+  ⇒⊑⇒ left-path-Z-var⊑YZ₃ left-path-Z-var⊑YZ₃
+
 left-path-Z-var⊑★-XZ₃ :
   ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₃ ⟩ ★
 left-path-Z-var⊑★-XZ₃ =
+  Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
+
+left-path-Z-var⊑★-YZ₃ :
+  ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₃-YZ ⟩ ★
+left-path-Z-var⊑★-YZ₃ =
   Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
 
 left-path-Z⇒Z⊑★⇒★-XZ₃ :
@@ -1813,14 +1842,31 @@ left-path-Z⇒Z⊑★⇒★-XZ₃ :
 left-path-Z⇒Z⊑★⇒★-XZ₃ =
   ⇒⊑⇒ left-path-Z-var⊑★-XZ₃ left-path-Z-var⊑★-XZ₃
 
+left-path-Z⇒Z⊑★⇒★-YZ₃ :
+  (＇ (Fin.suc (Fin.suc Fin.zero))
+    ⇒ ＇ (Fin.suc (Fin.suc Fin.zero)))
+    ⊑ᵂ⟨ left-path-world₃-YZ ⟩ (★ ⇒ ★)
+left-path-Z⇒Z⊑★⇒★-YZ₃ =
+  ⇒⊑⇒ left-path-Z-var⊑★-YZ₃ left-path-Z-var⊑★-YZ₃
+
 left-path-X-var⊑★-XZ₃ :
   ＇ Fin.zero ⊑ᵂ⟨ left-path-world₃ ⟩ ★
 left-path-X-var⊑★-XZ₃ = Imprecision.X⊑★ {X = Fin.zero} refl
+
+left-path-X-var⊑★-YZ₃ :
+  ＇ Fin.zero ⊑ᵂ⟨ left-path-world₃-YZ ⟩ ★
+left-path-X-var⊑★-YZ₃ = Imprecision.X⊑★ {X = Fin.zero} refl
 
 left-path-X⇒X⊑★⇒★-XZ₃ :
   (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ left-path-world₃ ⟩ (★ ⇒ ★)
 left-path-X⇒X⊑★⇒★-XZ₃ =
   ⇒⊑⇒ left-path-X-var⊑★-XZ₃ left-path-X-var⊑★-XZ₃
+
+left-path-X⇒X⊑★⇒★-YZ₃ :
+  (＇ Fin.zero ⇒ ＇ Fin.zero)
+    ⊑ᵂ⟨ left-path-world₃-YZ ⟩ (★ ⇒ ★)
+left-path-X⇒X⊑★⇒★-YZ₃ =
+  ⇒⊑⇒ left-path-X-var⊑★-YZ₃ left-path-X-var⊑★-YZ₃
 
 left-path-target-lambda₃ : Term (Δ′ left-path-target-step₂)
 left-path-target-lambda₃ = ƛ renameᵗᵐ (keep wk↪ᵗ) (` 0)
@@ -1835,68 +1881,69 @@ left-path-lambda₃-YZ =
     {pA = left-path-Y-var⊑YZ₃} {pB = left-path-Y-var⊑YZ₃}
     (x⊑x² {p = left-path-Y-var⊑YZ₃} Zʷ)
 
-left-path-Y-revealed₃ :
-  left-path-world₃ ∣ [] ⊢²
+left-path-Y-revealed₃-YZ :
+  left-path-world₃-YZ ∣ [] ⊢²
     (ƛ (` 0)) ↑ example12-target-Y-reveal
     ⊑ left-path-target-lambda₃ ↑ left-path-Y-reveal₂ ∶
-      left-path-Z⇒Z⊑Z⇒Z-XZ₃
-left-path-Y-revealed₃ =
-  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-XZ-to-YZ-Y₃ CTI2.same-[]
+      left-path-Z⇒Z⊑Z⇒Z-YZ₃
+left-path-Y-revealed₃-YZ =
+  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-Y-YZ₃ CTI2.same-[]
     left-path-source-Y-reveal₃-⊢ˣ left-path-target-Y-reveal₃-⊢ˣ
-    left-path-lambda₃-YZ
-    left-path-Z⇒Z⊑Z⇒Z-XZ₃
+    left-path-lambda₃-YZ left-path-Z⇒Z⊑Z⇒Z-YZ₃
 
-left-path-target-Z-revealed₃-XZ :
-  left-path-world₃ ∣ [] ⊢²
+left-path-target-Z-revealed₃-YZ :
+  left-path-world₃-YZ ∣ [] ⊢²
     (ƛ (` 0)) ↑ example12-target-Y-reveal
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      left-path-Z⇒Z⊑★⇒★-XZ₃
-left-path-target-Z-revealed₃-XZ =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ left-path-rebase-XZ-Z₃) CTI2.same-[]
-    left-path-target-Z-reveal₃-⊢ˣ left-path-Y-revealed₃
-    left-path-Z⇒Z⊑★⇒★-XZ₃
+      left-path-Z⇒Z⊑★⇒★-YZ₃
+left-path-target-Z-revealed₃-YZ =
+  CTI2.⊑reveal² (λ _ eq → eq)
+    (CTI2.rebase-varᴿ left-path-rebase-Z-YZ₃) CTI2.same-[]
+    left-path-target-Z-reveal₃-⊢ˣ left-path-Y-revealed₃-YZ
+    left-path-Z⇒Z⊑★⇒★-YZ₃
 
-left-path-both-Z-revealed₃-XZ :
-  left-path-world₃ ∣ [] ⊢²
+left-path-both-Z-revealed₃-YZ :
+  left-path-world₃-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ★⇒★⊑★⇒★² {W = left-path-world₃}
-left-path-both-Z-revealed₃-XZ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-Z₃) CTI2.same-[]
-    left-path-source-Z-reveal₃-⊢ˣ left-path-target-Z-revealed₃-XZ
-    (★⇒★⊑★⇒★² {W = left-path-world₃})
+      ★⇒★⊑★⇒★² {W = left-path-world₃-YZ}
+left-path-both-Z-revealed₃-YZ =
+  CTI2.reveal⊑² (λ _ eq → eq)
+    (CTI2.rebase-varᴸ left-path-rebase-Z-YZ₃) CTI2.same-[]
+    left-path-source-Z-reveal₃-⊢ˣ left-path-target-Z-revealed₃-YZ
+    (★⇒★⊑★⇒★² {W = left-path-world₃-YZ})
 
-left-path-source-id₃-XZ :
-  left-path-world₃ ∣ [] ⊢²
+left-path-source-id₃-YZ :
+  left-path-world₃-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ★⇒★⊑★⇒★² {W = left-path-world₃}
-left-path-source-id₃-XZ =
+      ★⇒★⊑★⇒★² {W = left-path-world₃-YZ}
+left-path-source-id₃-YZ =
   CTI2.cast⊑² example12-target-id★↦id★
-    left-path-both-Z-revealed₃-XZ
-    (★⇒★⊑★⇒★² {W = left-path-world₃})
+    left-path-both-Z-revealed₃-YZ
+    (★⇒★⊑★⇒★² {W = left-path-world₃-YZ})
 
-left-path-source-X?₃-XZ :
-  left-path-world₃ ∣ [] ⊢²
+left-path-source-X?₃-YZ :
+  left-path-world₃-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
       ⟨ example12-target-X?↦X? ⟩
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      left-path-X⇒X⊑★⇒★-XZ₃
-left-path-source-X?₃-XZ =
-  CTI2.cast⊑² example12-target-X?↦X? left-path-source-id₃-XZ
-    left-path-X⇒X⊑★⇒★-XZ₃
+      left-path-X⇒X⊑★⇒★-YZ₃
+left-path-source-X?₃-YZ =
+  CTI2.cast⊑² example12-target-X?↦X? left-path-source-id₃-YZ
+    left-path-X⇒X⊑★⇒★-YZ₃
 
 left-path-function₃ :
-  left-path-world₃ ∣ [] ⊢²
+  left-path-world₃-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
@@ -1904,11 +1951,12 @@ left-path-function₃ :
       ↑ example12-target-X-reveal
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃}
+      ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃-YZ}
 left-path-function₃ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₃) CTI2.same-[]
-    left-path-source-X-reveal₃-⊢ˣ left-path-source-X?₃-XZ
-    (ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃})
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₃ᴸ
+    CTI2.same-[] left-path-source-X-reveal₃-⊢ˣ
+    left-path-source-X?₃-YZ
+    (ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃-YZ})
 
 left-path-target-id★₃ :
   renameEnv∼ (skip id↪ᵗ) (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))
@@ -1923,24 +1971,24 @@ left-path-target-result-id★₃ =
   applyConsistency (bind (＇ Fin.zero)) (C.↑ᶜ (C.close-instᶜ Ex.X!))
 
 left-path-argument₃ :
-  left-path-world₃ ∣ [] ⊢² $ (κℕ 7)
+  left-path-world₃-YZ ∣ [] ⊢² $ (κℕ 7)
     ⊑ ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ C.sym∼ left-path-target-result-id★₃ ⟩ ∶
-      left-path-ℕ⊑★₃
+      ℕ⊑★² {W = left-path-world₃-YZ}
 left-path-argument₃ =
   ⊑cast² (C.sym∼ left-path-target-result-id★₃)
     (⊑cast² left-path-ℕ!₂
-      (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₃}))
-      left-path-ℕ⊑★₃)
-    left-path-ℕ⊑★₃
+      (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₃-YZ}))
+      (ℕ⊑★² {W = left-path-world₃-YZ}))
+    (ℕ⊑★² {W = left-path-world₃-YZ})
 
 left-path-checkpoint₃ :
-  left-path-world₃ ∣ [] ⊢² Ex.right₃
-    ⊑ left-path-target₃ ∶ left-path-ℕ⊑★₃
+  left-path-world₃-YZ ∣ [] ⊢² Ex.right₃
+    ⊑ left-path-target₃ ∶ ℕ⊑★² {W = left-path-world₃-YZ}
 left-path-checkpoint₃ =
   ⊑cast² left-path-target-result-id★₃
     (·⊑·² left-path-function₃ left-path-argument₃)
-    left-path-ℕ⊑★₃
+    (ℕ⊑★² {W = left-path-world₃-YZ})
 
 left-path-source-X∋₄ : Ex.right-store₄ ∋ Fin.zero ⦂ ‵ `ℕ
 left-path-source-X∋₄ = Z∋ refl
@@ -1973,40 +2021,53 @@ left-path-source-X-unseal₄-⊢ˣ :
 left-path-source-X-unseal₄-⊢ˣ =
   CTI2.⊢↑-unsealˣ left-path-source-X∋₄
 
-left-path-X-var⊑★-XZ₄ :
-  ＇ Fin.zero ⊑ᵂ⟨ left-path-world₄ ⟩ ★
-left-path-X-var⊑★-XZ₄ = Imprecision.X⊑★ {X = Fin.zero} refl
+left-path-ℕ⊑★₄-YZ :
+  (‵ `ℕ) ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ★
+left-path-ℕ⊑★₄-YZ = ℕ⊑★² {W = left-path-world₄-YZ}
 
-left-path-source-X?₄-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-X-var⊑★-YZ₄ :
+  ＇ Fin.zero ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ★
+left-path-X-var⊑★-YZ₄ = Imprecision.X⊑★ {X = Fin.zero} refl
+
+left-path-rebase-X-YZ₄ᴸ :
+  CTI2.RebaseAtᴸ left-path-world₄-YZ left-path-world₄-YZ
+    (just Fin.zero)
+left-path-rebase-X-YZ₄ᴸ =
+  CTI2.rebase-onlyᴸ refl
+    (λ { Fin.zero (); (Fin.suc Fin.zero) () })
+    (ℕ⊑★² {W = left-path-world₄-YZ})
+
+left-path-source-X?₄-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
       ⟨ example12-target-X?↦X? ⟩
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ⇒⊑⇒ left-path-X-var⊑★-XZ₄ left-path-X-var⊑★-XZ₄
-left-path-source-X?₄-XZ = left-path-source-X?₃-XZ
+      ⇒⊑⇒ left-path-X-var⊑★-YZ₄ left-path-X-var⊑★-YZ₄
+left-path-source-X?₄-YZ = left-path-source-X?₃-YZ
 
 left-path-argument₄-base :
-  left-path-world₄ ∣ [] ⊢² $ (κℕ 7)
-    ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² $ (κℕ 7)
+    ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶ left-path-ℕ⊑★₄-YZ
 left-path-argument₄-base =
   ⊑cast² left-path-ℕ!₂
-    (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄}))
-    left-path-ℕ⊑★₄
+    (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄-YZ}))
+    left-path-ℕ⊑★₄-YZ
 
 left-path-argument₄ :
-  left-path-world₄ ∣ [] ⊢² ($ (κℕ 7)) ↓ example12-target-X-seal
+  left-path-world₄-YZ ∣ [] ⊢²
+    ($ (κℕ 7)) ↓ example12-target-X-seal
     ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-argument₄ =
-  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-seal₄-⊢ˣ left-path-argument₄-base
-    left-path-X-var⊑★-XZ₄
+  CTI2.conceal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-seal₄-⊢ˣ
+    left-path-argument₄-base left-path-X-var⊑★-YZ₄
 
 left-path-application₄ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
@@ -2016,32 +2077,32 @@ left-path-application₄ :
         ↑ left-path-Z-reveal₂)
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-application₄ =
   ⊑cast² left-path-target-result-id★₃
-    (·⊑·² left-path-source-X?₄-XZ left-path-argument₄)
-    left-path-X-var⊑★-XZ₄
+    (·⊑·² left-path-source-X?₄-YZ left-path-argument₄)
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₄ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₄
-    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₄
+    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₄ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-application₄
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-application₄ left-path-ℕ⊑★₄-YZ
 
-left-path-source-id₄-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-source-id₄-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ★⇒★⊑★⇒★² {W = left-path-world₄}
-left-path-source-id₄-XZ = left-path-source-id₃-XZ
+      ★⇒★⊑★⇒★² {W = left-path-world₄-YZ}
+left-path-source-id₄-YZ = left-path-source-id₃-YZ
 
 left-path-source-X!₄ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩
     ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶
@@ -2050,7 +2111,7 @@ left-path-source-X!₄ =
   CTI2.cast⊑² example12-target-X! left-path-argument₄ ★⊑★
 
 left-path-application₅-base :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
@@ -2061,10 +2122,10 @@ left-path-application₅-base :
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩) ∶
       ★⊑★
 left-path-application₅-base =
-  ·⊑·² left-path-source-id₄-XZ left-path-source-X!₄
+  ·⊑·² left-path-source-id₄-YZ left-path-source-X!₄
 
 left-path-application₅-target-id :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
@@ -2079,7 +2140,7 @@ left-path-application₅-target-id =
   ⊑cast² left-path-target-result-id★₃ left-path-application₅-base ★⊑★
 
 left-path-source-result-?X₅ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       ⟨ example12-target-id★↦id★ ⟩)
@@ -2090,27 +2151,27 @@ left-path-source-result-?X₅ :
         ↑ left-path-Z-reveal₂)
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₅ =
   CTI2.cast⊑² example12-target-★?X left-path-application₅-target-id
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₅ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₅
-    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₅
+    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₅ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₅
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₅ left-path-ℕ⊑★₄-YZ
 
-left-path-source-bare-Z₄-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-source-bare-Z₄-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         ↑ left-path-Z-reveal₂ ∶
-      ★⇒★⊑★⇒★² {W = left-path-world₄}
-left-path-source-bare-Z₄-XZ = left-path-both-Z-revealed₃-XZ
+      ★⇒★⊑★⇒★² {W = left-path-world₄-YZ}
+left-path-source-bare-Z₄-YZ = left-path-both-Z-revealed₃-YZ
 
 left-path-source-arg-id★₆ :
   C.flipᵐ
@@ -2128,7 +2189,7 @@ left-path-source-result-id★₆ :
 left-path-source-result-id★₆ = id ★
 
 left-path-source-X!-id₆ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ⟨ left-path-source-arg-id★₆ ⟩
@@ -2138,7 +2199,7 @@ left-path-source-X!-id₆ =
   CTI2.cast⊑² left-path-source-arg-id★₆ left-path-source-X!₄ ★⊑★
 
 left-path-application₆-base :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2149,10 +2210,10 @@ left-path-application₆-base :
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩) ∶
       ★⊑★
 left-path-application₆-base =
-  ·⊑·² left-path-source-bare-Z₄-XZ left-path-source-X!-id₆
+  ·⊑·² left-path-source-bare-Z₄-YZ left-path-source-X!-id₆
 
 left-path-source-result-id₆ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2169,7 +2230,7 @@ left-path-source-result-id₆ =
     left-path-application₆-base ★⊑★
 
 left-path-source-result-?X₆ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2181,21 +2242,21 @@ left-path-source-result-?X₆ :
         ↑ left-path-Z-reveal₂)
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₆ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₆
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₆ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₆
-    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₆
+    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₆ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₆
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₆ left-path-ℕ⊑★₄-YZ
 
 left-path-application₇-base :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · ((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2205,10 +2266,10 @@ left-path-application₇-base :
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩) ∶
       ★⊑★
 left-path-application₇-base =
-  ·⊑·² left-path-source-bare-Z₄-XZ left-path-source-X!₄
+  ·⊑·² left-path-source-bare-Z₄-YZ left-path-source-X!₄
 
 left-path-source-result-id₇ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · ((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2224,7 +2285,7 @@ left-path-source-result-id₇ =
     left-path-application₇-base ★⊑★
 
 left-path-source-result-?X₇ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       ↑ example12-target-Z-reveal)
       · ((($ (κℕ 7)) ↓ example12-target-X-seal)
@@ -2235,18 +2296,18 @@ left-path-source-result-?X₇ :
         ↑ left-path-Z-reveal₂)
         · ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₇ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₇
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₇ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₇
-    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₇
+    ⊑ left-path-target₄ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₇ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₇
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₇ left-path-ℕ⊑★₄-YZ
 
 left-path-source-Y∋₄ :
   Ex.right-store₄ ∋ Fin.suc Fin.zero ⦂ ＇ (Fin.suc (Fin.suc Fin.zero))
@@ -2265,25 +2326,28 @@ left-path-source-Z-rep₄-XZ :
     (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
 left-path-source-Z-rep₄-XZ = CTI2.store-rep-imp ★⊑★
 
--- As at step 3, the XZ and YZ alignments differ only at target Y, so
--- the world change happens at the paired Y reveal/conceal boundaries
--- and the Z boundaries stay in the XZ world.
-left-path-rebase-XZ-to-YZ-Y₄ :
-  CTI2.RebaseAt left-path-world₄ left-path-world₄-YZ
+left-path-source-Z-rep₄-YZ :
+  CTI2.StoreRepImp left-path-world₄-YZ
+    (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
+left-path-source-Z-rep₄-YZ = CTI2.store-rep-imp ★⊑★
+
+left-path-rebase-Y-YZ₄ :
+  CTI2.RebaseAt left-path-world₄-YZ left-path-world₄-YZ
     (Fin.suc Fin.zero) Fin.zero
-left-path-rebase-XZ-to-YZ-Y₄ =
-  CTI2.rebase-at (CTI2.same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} _ → refl })
-    refl (λ _ → Fin.zero , refl)
-    left-path-source-Y-rep₄-YZ
+left-path-rebase-Y-YZ₄ =
+  CTI2.sameWorldRebaseAt refl left-path-source-Y-rep₄-YZ
 
 left-path-rebase-XZ-Z₄ :
   CTI2.RebaseAt left-path-world₄ left-path-world₄
     (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
 left-path-rebase-XZ-Z₄ =
   CTI2.sameWorldRebaseAt refl left-path-source-Z-rep₄-XZ
+
+left-path-rebase-Z-YZ₄ :
+  CTI2.RebaseAt left-path-world₄-YZ left-path-world₄-YZ
+    (Fin.suc (Fin.suc Fin.zero)) (Fin.suc Fin.zero)
+left-path-rebase-Z-YZ₄ =
+  CTI2.sameWorldRebaseAt refl left-path-source-Z-rep₄-YZ
 
 left-path-source-Y-reveal₄-⊢ :
   Ex.right-store₄ ⊢↑ example12-target-Y-reveal
@@ -2432,9 +2496,20 @@ left-path-Z-var⊑XZ₄ :
 left-path-Z-var⊑XZ₄ =
   Imprecision.X⊑X {X = Fin.suc (Fin.suc Fin.zero)}
 
+left-path-Z-var⊑YZ₄ :
+  ＇ (Fin.suc (Fin.suc Fin.zero))
+    ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ＇ (Fin.suc Fin.zero)
+left-path-Z-var⊑YZ₄ =
+  Imprecision.X⊑X {X = Fin.suc (Fin.suc Fin.zero)}
+
 left-path-Z-var⊑★-XZ₄ :
   ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₄ ⟩ ★
 left-path-Z-var⊑★-XZ₄ =
+  Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
+
+left-path-Z-var⊑★-YZ₄ :
+  ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ★
+left-path-Z-var⊑★-YZ₄ =
   Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
 
 left-path-Z⇒Z⊑Z⇒Z-XZ₄ :
@@ -2444,6 +2519,14 @@ left-path-Z⇒Z⊑Z⇒Z-XZ₄ :
       (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
 left-path-Z⇒Z⊑Z⇒Z-XZ₄ =
   ⇒⊑⇒ left-path-Z-var⊑XZ₄ left-path-Z-var⊑XZ₄
+
+left-path-Z⇒Z⊑Z⇒Z-YZ₄ :
+  (＇ (Fin.suc (Fin.suc Fin.zero))
+    ⇒ ＇ (Fin.suc (Fin.suc Fin.zero)))
+    ⊑ᵂ⟨ left-path-world₄-YZ ⟩
+      (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
+left-path-Z⇒Z⊑Z⇒Z-YZ₄ =
+  ⇒⊑⇒ left-path-Z-var⊑YZ₄ left-path-Z-var⊑YZ₄
 
 left-path-lambda₄-YZ :
   left-path-world₄-YZ ∣ [] ⊢² ƛ (` 0) ⊑ left-path-target-lambda₃ ∶
@@ -2455,34 +2538,32 @@ left-path-lambda₄-YZ =
     {pA = left-path-Y-var⊑YZ₄} {pB = left-path-Y-var⊑YZ₄}
     (x⊑x² {p = left-path-Y-var⊑YZ₄} Zʷ)
 
-left-path-Y-revealed₄-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-Y-revealed₄-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (ƛ (` 0)) ↑ example12-target-Y-reveal
     ⊑ left-path-target-lambda₃ ↑ left-path-Y-reveal₂ ∶
-      left-path-Z⇒Z⊑Z⇒Z-XZ₄
-left-path-Y-revealed₄-XZ =
-  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-XZ-to-YZ-Y₄ CTI2.same-[]
+      left-path-Z⇒Z⊑Z⇒Z-YZ₄
+left-path-Y-revealed₄-YZ =
+  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-Y-YZ₄ CTI2.same-[]
     left-path-source-Y-reveal₄-⊢ˣ left-path-target-Y-reveal₄-⊢ˣ
-    left-path-lambda₄-YZ
-    left-path-Z⇒Z⊑Z⇒Z-XZ₄
+    left-path-lambda₄-YZ left-path-Z⇒Z⊑Z⇒Z-YZ₄
 
-left-path-argument-Z₈-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-argument-Z₈-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal
     ⊑ ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ↓ left-path-target-Z-seal₂ ∶
-      left-path-Z-var⊑XZ₄
-left-path-argument-Z₈-XZ =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-XZ-Z₄
+      left-path-Z-var⊑YZ₄
+left-path-argument-Z₈-YZ =
+  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-Z-YZ₄
     CTI2.same-[]
     left-path-source-Z-seal₄-⊢ˣ left-path-target-Z-seal₄-⊢ˣ
-    left-path-source-X!₄
-    left-path-Z-var⊑XZ₄
+    left-path-source-X!₄ left-path-Z-var⊑YZ₄
 
-left-path-application₈-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-application₈-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ↑ example12-target-Y-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
           ⟨ example12-target-X! ⟩)
@@ -2490,12 +2571,12 @@ left-path-application₈-XZ :
     ⊑ (left-path-target-lambda₃ ↑ left-path-Y-reveal₂)
         · (($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
             ↓ left-path-target-Z-seal₂) ∶
-      left-path-Z-var⊑XZ₄
-left-path-application₈-XZ =
-  ·⊑·² left-path-Y-revealed₄-XZ left-path-argument-Z₈-XZ
+      left-path-Z-var⊑YZ₄
+left-path-application₈-YZ =
+  ·⊑·² left-path-Y-revealed₄-YZ left-path-argument-Z₈-YZ
 
-left-path-target-Z-revealed₈-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-target-Z-revealed₈-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ↑ example12-target-Y-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
           ⟨ example12-target-X! ⟩)
@@ -2504,14 +2585,15 @@ left-path-target-Z-revealed₈-XZ :
         · (($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
             ↓ left-path-target-Z-seal₂))
         ↑ left-path-target-Z-unseal₂ ∶
-      left-path-Z-var⊑★-XZ₄
-left-path-target-Z-revealed₈-XZ =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-target-Z-unseal₄-⊢ˣ left-path-application₈-XZ
-    left-path-Z-var⊑★-XZ₄
+      left-path-Z-var⊑★-YZ₄
+left-path-target-Z-revealed₈-YZ =
+  CTI2.⊑reveal² (λ _ eq → eq)
+    (CTI2.rebase-varᴿ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-target-Z-unseal₄-⊢ˣ left-path-application₈-YZ
+    left-path-Z-var⊑★-YZ₄
 
-left-path-both-Z-revealed₈-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-both-Z-revealed₈-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ↑ example12-target-Y-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
           ⟨ example12-target-X! ⟩)
@@ -2522,13 +2604,14 @@ left-path-both-Z-revealed₈-XZ :
             ↓ left-path-target-Z-seal₂))
         ↑ left-path-target-Z-unseal₂ ∶
       ★⊑★
-left-path-both-Z-revealed₈-XZ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-revealed₈-XZ
+left-path-both-Z-revealed₈-YZ =
+  CTI2.reveal⊑² (λ _ eq → eq)
+    (CTI2.rebase-varᴸ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-revealed₈-YZ
     ★⊑★
 
 left-path-source-result-id₈ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
           ⟨ example12-target-X! ⟩)
@@ -2543,10 +2626,10 @@ left-path-source-result-id₈ :
       ★⊑★
 left-path-source-result-id₈ =
   cast⊑cast² left-path-source-result-id★₆ left-path-target-result-id★₃
-    left-path-both-Z-revealed₈-XZ ★⊑★
+    left-path-both-Z-revealed₈-YZ ★⊑★
 
 left-path-source-result-?X₈ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
       · (((($ (κℕ 7)) ↓ example12-target-X-seal)
           ⟨ example12-target-X! ⟩)
@@ -2559,18 +2642,18 @@ left-path-source-result-?X₈ :
             ↓ left-path-target-Z-seal₂))
         ↑ left-path-target-Z-unseal₂)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₈ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₈
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₈ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₈
-    ⊑ left-path-target₅ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₈
+    ⊑ left-path-target₅ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₈ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₈
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₈ left-path-ℕ⊑★₄-YZ
 
 left-path-argument-Y₉-YZ :
   left-path-world₄-YZ ∣ [] ⊢²
@@ -2583,10 +2666,10 @@ left-path-argument-Y₉-YZ :
         ↓ left-path-target-Y-seal₂) ∶
       left-path-Y-var⊑YZ₄
 left-path-argument-Y₉-YZ =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-XZ-to-YZ-Y₄
+  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-Y-YZ₄
     CTI2.same-[] left-path-source-Y-seal₄-⊢ˣ
     left-path-target-Y-seal₄-⊢ˣ
-    left-path-argument-Z₈-XZ left-path-Y-var⊑YZ₄
+    left-path-argument-Z₈-YZ left-path-Y-var⊑YZ₄
 
 left-path-application₉-YZ :
   left-path-world₄-YZ ∣ [] ⊢²
@@ -2603,8 +2686,8 @@ left-path-application₉-YZ :
 left-path-application₉-YZ =
   ·⊑·² left-path-lambda₄-YZ left-path-argument-Y₉-YZ
 
-left-path-Y-unsealed₉-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-Y-unsealed₉-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ·
       ((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -2616,15 +2699,14 @@ left-path-Y-unsealed₉-XZ :
           ↓ left-path-target-Z-seal₂)
           ↓ left-path-target-Y-seal₂))
         ↑ left-path-target-Y-unseal₂ ∶
-      left-path-Z-var⊑XZ₄
-left-path-Y-unsealed₉-XZ =
-  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-XZ-to-YZ-Y₄ CTI2.same-[]
+      left-path-Z-var⊑YZ₄
+left-path-Y-unsealed₉-YZ =
+  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-Y-YZ₄ CTI2.same-[]
     left-path-source-Y-unseal₄-⊢ˣ left-path-target-Y-unseal₄-⊢ˣ
-    left-path-application₉-YZ
-    left-path-Z-var⊑XZ₄
+    left-path-application₉-YZ left-path-Z-var⊑YZ₄
 
-left-path-target-Z-unsealed₉-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-target-Z-unsealed₉-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((ƛ (` 0)) ·
       ((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -2637,14 +2719,15 @@ left-path-target-Z-unsealed₉-XZ :
           ↓ left-path-target-Y-seal₂))
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂ ∶
-      left-path-Z-var⊑★-XZ₄
-left-path-target-Z-unsealed₉-XZ =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-target-Z-unseal₄-⊢ˣ left-path-Y-unsealed₉-XZ
-    left-path-Z-var⊑★-XZ₄
+      left-path-Z-var⊑★-YZ₄
+left-path-target-Z-unsealed₉-YZ =
+  CTI2.⊑reveal² (λ _ eq → eq)
+    (CTI2.rebase-varᴿ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-target-Z-unseal₄-⊢ˣ left-path-Y-unsealed₉-YZ
+    left-path-Z-var⊑★-YZ₄
 
-left-path-both-Z-unsealed₉-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-both-Z-unsealed₉-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((ƛ (` 0)) ·
       ((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -2659,13 +2742,14 @@ left-path-both-Z-unsealed₉-XZ :
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂ ∶
       ★⊑★
-left-path-both-Z-unsealed₉-XZ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-unsealed₉-XZ
+left-path-both-Z-unsealed₉-YZ =
+  CTI2.reveal⊑² (λ _ eq → eq)
+    (CTI2.rebase-varᴸ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-unsealed₉-YZ
     ★⊑★
 
 left-path-source-result-id₉ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((ƛ (` 0)) ·
       ((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -2684,10 +2768,10 @@ left-path-source-result-id₉ :
       ★⊑★
 left-path-source-result-id₉ =
   cast⊑cast² left-path-source-result-id★₆ left-path-target-result-id★₃
-    left-path-both-Z-unsealed₉-XZ ★⊑★
+    left-path-both-Z-unsealed₉-YZ ★⊑★
 
 left-path-source-result-?X₉ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((ƛ (` 0)) ·
       ((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -2704,21 +2788,21 @@ left-path-source-result-?X₉ :
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₉ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₉
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₉ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₉
-    ⊑ left-path-target₆ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₉
+    ⊑ left-path-target₆ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₉ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₉
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₉ left-path-ℕ⊑★₄-YZ
 
-left-path-Y-unsealed₁₀-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-Y-unsealed₁₀-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2728,15 +2812,14 @@ left-path-Y-unsealed₁₀-XZ :
         ↓ left-path-target-Z-seal₂)
         ↓ left-path-target-Y-seal₂)
         ↑ left-path-target-Y-unseal₂) ∶
-      left-path-Z-var⊑XZ₄
-left-path-Y-unsealed₁₀-XZ =
-  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-XZ-to-YZ-Y₄ CTI2.same-[]
+      left-path-Z-var⊑YZ₄
+left-path-Y-unsealed₁₀-YZ =
+  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-Y-YZ₄ CTI2.same-[]
     left-path-source-Y-unseal₄-⊢ˣ left-path-target-Y-unseal₄-⊢ˣ
-    left-path-argument-Y₉-YZ
-    left-path-Z-var⊑XZ₄
+    left-path-argument-Y₉-YZ left-path-Z-var⊑YZ₄
 
-left-path-target-Z-unsealed₁₀-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-target-Z-unsealed₁₀-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2747,14 +2830,15 @@ left-path-target-Z-unsealed₁₀-XZ :
         ↓ left-path-target-Y-seal₂)
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂) ∶
-      left-path-Z-var⊑★-XZ₄
-left-path-target-Z-unsealed₁₀-XZ =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-target-Z-unseal₄-⊢ˣ left-path-Y-unsealed₁₀-XZ
-    left-path-Z-var⊑★-XZ₄
+      left-path-Z-var⊑★-YZ₄
+left-path-target-Z-unsealed₁₀-YZ =
+  CTI2.⊑reveal² (λ _ eq → eq)
+    (CTI2.rebase-varᴿ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-target-Z-unseal₄-⊢ˣ left-path-Y-unsealed₁₀-YZ
+    left-path-Z-var⊑★-YZ₄
 
-left-path-both-Z-unsealed₁₀-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-both-Z-unsealed₁₀-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2767,13 +2851,14 @@ left-path-both-Z-unsealed₁₀-XZ :
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂) ∶
       ★⊑★
-left-path-both-Z-unsealed₁₀-XZ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-Z₄) CTI2.same-[]
-    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-unsealed₁₀-XZ
+left-path-both-Z-unsealed₁₀-YZ =
+  CTI2.reveal⊑² (λ _ eq → eq)
+    (CTI2.rebase-varᴸ left-path-rebase-Z-YZ₄) CTI2.same-[]
+    left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-unsealed₁₀-YZ
     ★⊑★
 
 left-path-source-result-id₁₀ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2790,10 +2875,10 @@ left-path-source-result-id₁₀ :
       ★⊑★
 left-path-source-result-id₁₀ =
   cast⊑cast² left-path-source-result-id★₆ left-path-target-result-id★₃
-    left-path-both-Z-unsealed₁₀-XZ ★⊑★
+    left-path-both-Z-unsealed₁₀-YZ ★⊑★
 
 left-path-source-result-?X₁₀ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2808,21 +2893,21 @@ left-path-source-result-?X₁₀ :
         ↑ left-path-target-Y-unseal₂)
         ↑ left-path-target-Z-unseal₂)
         ⟨ left-path-target-result-id★₃ ⟩) ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₁₀ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₁₀
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₁₀ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₁₀
-    ⊑ left-path-target₇ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₁₀
+    ⊑ left-path-target₇ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₁₀ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₁₀
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₁₀ left-path-ℕ⊑★₄-YZ
 
-left-path-both-Z-unsealed₁₁-XZ :
-  left-path-world₄ ∣ [] ⊢²
+left-path-both-Z-unsealed₁₁-YZ :
+  left-path-world₄-YZ ∣ [] ⊢²
     (((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2831,13 +2916,13 @@ left-path-both-Z-unsealed₁₁-XZ :
         ↓ left-path-target-Z-seal₂)
         ↑ left-path-target-Z-unseal₂) ∶
       ★⊑★
-left-path-both-Z-unsealed₁₁-XZ =
-  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-XZ-Z₄ CTI2.same-[]
+left-path-both-Z-unsealed₁₁-YZ =
+  reveal⊑reveal² (λ _ eq → eq) left-path-rebase-Z-YZ₄ CTI2.same-[]
     left-path-source-Z-unseal₄-⊢ˣ left-path-target-Z-unseal₄-⊢ˣ
-    left-path-argument-Z₈-XZ ★⊑★
+    left-path-argument-Z₈-YZ ★⊑★
 
 left-path-source-result-id₁₁ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2850,10 +2935,10 @@ left-path-source-result-id₁₁ :
       ★⊑★
 left-path-source-result-id₁₁ =
   cast⊑cast² left-path-source-result-id★₆ left-path-target-result-id★₃
-    left-path-both-Z-unsealed₁₁-XZ ★⊑★
+    left-path-both-Z-unsealed₁₁-YZ ★⊑★
 
 left-path-source-result-?X₁₁ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ↓ example12-target-Z-seal)
@@ -2864,21 +2949,21 @@ left-path-source-result-?X₁₁ :
         ↓ left-path-target-Z-seal₂)
         ↑ left-path-target-Z-unseal₂)
         ⟨ left-path-target-result-id★₃ ⟩) ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₁₁ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₁₁
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₁₁ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₁₁
-    ⊑ left-path-target₈ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₁₁
+    ⊑ left-path-target₈ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₁₁ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₁₁
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₁₁ left-path-ℕ⊑★₄-YZ
 
 left-path-source-result-id₁₂ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ⟨ left-path-source-result-id★₆ ⟩)
@@ -2890,54 +2975,54 @@ left-path-source-result-id₁₂ =
     left-path-source-X!₄ ★⊑★
 
 left-path-source-result-?X₁₂ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     ((((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ⟨ left-path-source-result-id★₆ ⟩)
       ⟨ example12-target-★?X ⟩)
     ⊑ ($ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩)
         ⟨ left-path-target-result-id★₃ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₁₂ =
   CTI2.cast⊑² example12-target-★?X left-path-source-result-id₁₂
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₁₂ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₁₂
-    ⊑ left-path-target₉ ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₁₂
+    ⊑ left-path-target₉ ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₁₂ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₁₂
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₁₂ left-path-ℕ⊑★₄-YZ
 
 left-path-source-result-?X₁₃ :
-  left-path-world₄ ∣ [] ⊢²
+  left-path-world₄-YZ ∣ [] ⊢²
     (((($ (κℕ 7)) ↓ example12-target-X-seal)
       ⟨ example12-target-X! ⟩)
       ⟨ example12-target-★?X ⟩)
     ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶
-      left-path-X-var⊑★-XZ₄
+      left-path-X-var⊑★-YZ₄
 left-path-source-result-?X₁₃ =
   CTI2.cast⊑² example12-target-★?X left-path-source-X!₄
-    left-path-X-var⊑★-XZ₄
+    left-path-X-var⊑★-YZ₄
 
 left-path-checkpoint₁₃ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₁₃
-    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₁₃
+    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₁₃ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-source-result-?X₁₃
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ
+    left-path-source-result-?X₁₃ left-path-ℕ⊑★₄-YZ
 
 left-path-checkpoint₁₄ :
-  left-path-world₄ ∣ [] ⊢² Ex.right₁₄
-    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right₁₄
+    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint₁₄ =
-  CTI2.reveal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ left-path-rebase-XZ-X₄) CTI2.same-[]
-    left-path-source-X-unseal₄-⊢ˣ left-path-argument₄
-    left-path-ℕ⊑★₄
+  CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
+    CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ left-path-argument₄
+    left-path-ℕ⊑★₄-YZ
 
 left-path-checkpoint-final :
-  left-path-world₄ ∣ [] ⊢² Ex.right-final
-    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄
+  left-path-world₄-YZ ∣ [] ⊢² Ex.right-final
+    ⊑ left-path-target-final ∶ left-path-ℕ⊑★₄-YZ
 left-path-checkpoint-final = left-path-argument₄-base

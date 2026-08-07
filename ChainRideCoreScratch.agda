@@ -1,5 +1,10 @@
 module ChainRideCoreScratch where
 
+-- Pre-M2 design record.  This scratch depends on the old chain-ride
+-- exploration surface and the removed SourceStarCounterScratch module.
+-- It is intentionally excluded from the M2 check set after target
+-- centers were frozen by RebaseAt.
+
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Product using (Σ-syntax; _×_; _,_)

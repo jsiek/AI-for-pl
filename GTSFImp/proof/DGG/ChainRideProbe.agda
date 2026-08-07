@@ -1,15 +1,14 @@
 module proof.DGG.ChainRideProbe where
 
 -- File Charter:
---   * Validates the chain-ride construction for the H-multi stratum.
---   * The target pivot steps down the chain's centers, with each link
---     anchored by the next chain variable.
---   * This shows that the stratum is dischargeable rather than needing an
---     exclusion.
---   * The general lemma must still address target-side order preservation
---     when the target type context has more than one variable.
+--   * Records the pre-M2 chain-ride construction for the H-multi stratum.
+--   * The old construction moved one target pivot down a chain of old
+--     centers.  M2 removes that freedom by freezing every old target
+--     variable in `RebaseAt`.
+--   * The concrete worlds and premise remain as a design record; the
+--     moving links are now proved empty.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
@@ -147,24 +146,16 @@ U = ($ (κℕ 0)) ⟨ probe-ℕ!ᴿ ⟩
 probe-Z-Y-rep₁ : CTI2.StoreRepImp W₁ Z Y
 probe-Z-Y-rep₁ = store-rep-imp ★⊑★
 
-raₗ : RebaseAt Wₗ W₁ Z Y
-raₗ =
-  rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} Z≠ → ⊥-elim (Z≠ refl)
-       ; {Fin.suc Fin.zero} Z₃≠ → refl })
-    (λ { {Fin.zero} Y≠ → ⊥-elim (Y≠ refl) })
-    refl (λ moved → Z₃ , refl) probe-Z-Y-rep₁
+raₗ-empty : RebaseAt Wₗ W₁ Z Y → ⊥
+raₗ-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+raₗ-empty rb | ()
 
 probe-Z₃-Y-repₗ : CTI2.StoreRepImp Wₗ Z₃ Y
 probe-Z₃-Y-repₗ = store-rep-imp ★⊑★
 
-link₂ : RebaseAt W₂ Wₗ Z₃ Y
-link₂ =
-  rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} Z≠ → refl
-       ; {Fin.suc Fin.zero} Z₃≠ → ⊥-elim (Z₃≠ refl) })
-    (λ { {Fin.zero} Y≠ → ⊥-elim (Y≠ refl) })
-    refl (λ moved → Z₃ , refl) probe-Z₃-Y-repₗ
+link₂-empty : RebaseAt W₂ Wₗ Z₃ Y → ⊥
+link₂-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+link₂-empty rb | ()
 
 probe-Z₃-Y-rep₂ : CTI2.StoreRepImp W₂ Z₃ Y
 probe-Z₃-Y-rep₂ = store-rep-imp ★⊑★
@@ -212,43 +203,3 @@ probe-premise =
   CTI2.conceal⊑² (λ X eq → eq)
     (CTI2.rebase-varᴸ probe-premise-rebase)
     CTI2.same-[] probe-Z₃-seal-⊢ probe-base² q₂
-
-------------------------------------------------------------------------
--- Checkpoint 2: the positive chain-ride output
-------------------------------------------------------------------------
-
-qₗ : (＇ Z₃) ⊑ᵂ⟨ Wₗ ⟩ ★
-qₗ = X⊑★ refl
-
-probe-ride-inner : Wₗ ∣ [] ⊢² V ⊑ U ∶ qₗ
-probe-ride-inner =
-  CTI2.conceal⊑² probe-monoₗ₂ (CTI2.rebase-varᴸ link₂)
-    probe-sameₗ₂ probe-Z₃-seal-⊢ probe-base² qₗ
-
-q₃ : (＇ Z) ⊑ᵂ⟨ W₁ ⟩ ★
-q₃ = X⊑★ refl
-
-probe-output :
-  Σ[ q ∈ (＇ Z) ⊑ᵂ⟨ W₁ ⟩ ★ ]
-    (W₁ ∣ [] ⊢² (V ↓ seal Z (＇ Z₃)) ⊑ U ∶ q)
-probe-output =
-  q₃ ,
-  CTI2.conceal⊑² probe-mono₁ₗ (CTI2.rebase-varᴸ raₗ)
-    probe-same₁ₗ probe-Z-seal-⊢ probe-ride-inner q₃
-
-probe-mono₁₁ : CTI2.ImpEnvMono W₁ W₁
-probe-mono₁₁ X eq = eq
-
-probe-same₁₁ : CTI2.SameCtx {W = W₁} {W′ = W₁} [] []
-probe-same₁₁ = CTI2.same-[]
-
-probe-H-multi-output :
-  Σ[ W₃ ∈ World 2 1 3 ] Σ[ γ₃ ∈ CTI2.CtxImp W₃ ]
-    ( RebaseAt W₃ W₁ Z Y
-    × CTI2.ImpEnvMono W₁ W₃
-    × CTI2.SameCtx {W = W₁} [] γ₃
-    × Σ[ q ∈ (＇ Z) ⊑ᵂ⟨ W₃ ⟩ ★ ]
-        (W₃ ∣ γ₃ ⊢² (V ↓ seal Z (＇ Z₃)) ⊑ U ∶ q) )
-probe-H-multi-output =
-  W₁ , [] , probe-output-link , probe-mono₁₁ ,
-  probe-same₁₁ , probe-output

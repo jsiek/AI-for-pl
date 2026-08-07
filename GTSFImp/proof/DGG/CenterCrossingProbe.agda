@@ -1,18 +1,13 @@
 module proof.DGG.CenterCrossingProbe where
 
 -- File Charter:
---   * This probe records the target-seal variable case blocked by the
---     center-crossing obstruction in bare right-injection inversion.
---   * The derivable call-site premise moves the target pivot `Y₀` from
---     center `a` to center `b`, with source variables parked at `a,b`.
---   * Any direct output for `Y₀ : ＇ Y₁` would force the sealed source
---     pivot `X₀` to cross the in-between parked source variable `X₁`;
---     order-preserving embeddings built from `keep`/`skip` forbid this.
---   * The refutation is the target-side companion to the
---     SourceStarCounterScratch/SourceStarRideCounterScratch lineage, now
---     captured permanently by SourceStarProbe.  Together they justify
---     keeping variable-target source-star/target-seal rides out of the
---     downstream chain interface.
+--   * Records the target-seal variable geometry that previously needed
+--     a moved old target center in bare right-injection inversion.
+--   * M2 removes that freedom: `RebaseAt` freezes every old target
+--     variable, so the old outer paired and target-wrapper premises are
+--     underivable at constructor formation time.
+--   * The stable inner target-seal input remains derivable and documents
+--     the source-only parking shape that survived the redesign.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -163,14 +158,18 @@ U = U₀ ↓ seal Y₁ ★
 X₀-Y₀-rep : CTI2.StoreRepImp W X₀ Y₀
 X₀-Y₀-rep = store-rep-imp ★⊑★
 
-rb-outer : RebaseAt W′ W X₀ Y₀
-rb-outer =
-  rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl)
-       ; {Fin.suc Fin.zero} X₁≢ → refl })
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} Y₁≢ → refl })
-    refl (λ moved → X₁ , refl) X₀-Y₀-rep
+no-center-crossing-target : ∀ {Xᴸ} → RebaseAt W′ W Xᴸ Y₀ → ⊥
+no-center-crossing-target rb
+    with CTI2.RebaseAt.ηᴿ-frozen rb Y₀
+no-center-crossing-target rb | ()
+
+no-center-crossing-paired : RebaseAt W′ W X₀ Y₀ → ⊥
+no-center-crossing-paired = no-center-crossing-target
+
+no-center-crossing-outerᴿ :
+  CTI2.RebaseAtᴿ W′ W (just Y₀) → ⊥
+no-center-crossing-outerᴿ (CTI2.rebase-varᴿ rb) =
+  no-center-crossing-target rb
 
 X₁-Y₀-rep : CTI2.StoreRepImp W′ X₁ Y₀
 X₁-Y₀-rep = store-rep-imp ★⊑★
@@ -180,9 +179,7 @@ rb-target-input =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} X₀≢ → refl
        ; {Fin.suc Fin.zero} X₁≢ → ⊥-elim (X₁≢ refl) })
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} Y₁≢ → refl })
-    refl (λ moved → ⊥-elim (moved refl)) X₁-Y₀-rep
+    (λ _ → refl) refl X₁-Y₀-rep
 
 X₁-Y₁-rep : CTI2.StoreRepImp Wᵖ X₁ Y₁
 X₁-Y₁-rep = store-rep-imp ★⊑★
@@ -241,205 +238,3 @@ source-outer-spine :
   ECR.SpineValue ((V ⟨ X₁! ⟩) ↓ seal X₀ ★)
 source-outer-spine =
   ECR.sv-seal (ECR.sv-cast source-spine inert-X₁!)
-
-q-star : ＇ X₀ ⊑ᵂ⟨ W ⟩ ★
-q-star = X⊑★ refl
-
-right-inj-premise :
-  W ∣ [] ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-    ⊑ (U ↓ seal Y₀ (＇ Y₁)) ⟨ Y₀! ⟩ ∶ q-star
-right-inj-premise =
-  CTI2.conceal⊑² (λ Z eq → eq) (CTI2.rebase-varᴸ rb-outer)
-    CTI2.same-[] (CTI2.⊢↓-sealˣ X₀∈)
-    (CTI2.cast⊑cast² X₁! Y₀! input-target-seal-variable ★⊑★)
-    q-star
-
-------------------------------------------------------------------------
--- Checkpoint 2: the target-seal variable output is empty
-------------------------------------------------------------------------
-
-private
-  two≢zero : c ≢ a
-  two≢zero ()
-
-  one≢zero : b ≢ a
-  one≢zero ()
-
-  one≢two : b ≢ c
-  one≢two ()
-
-  X₁≢X₀ : X₁ ≢ X₀
-  X₁≢X₀ ()
-
-  Y₁≢Y₀ : Y₁ ≢ Y₀
-  Y₁≢Y₀ ()
-
-  W-wf : CTI2.WFWorld W
-  W-wf Fin.zero ()
-  W-wf (Fin.suc Fin.zero) ()
-
-call-site-ra′-is-rb-outer :
-  ECR.seal-rebase-target (CTI2.rebase-varᴸ rb-outer) q-out
-    ≡ rb-outer
-call-site-ra′-is-rb-outer = refl
-
-call-site-ra′-moves-target :
-  toRenameᵗ (ηᴿʷ W′) Y₀ ≢ toRenameᵗ (ηᴿʷ W) Y₀
-call-site-ra′-moves-target = one≢zero
-
-no-η-zero-two-one : ∀ (η : 2 ↪ᵗ 3)
-  → toRenameᵗ η X₀ ≡ c
-  → toRenameᵗ η X₁ ≡ b
-  → ⊥
-no-η-zero-two-one (keep (keep (skip empty))) ()
-no-η-zero-two-one (keep (skip (keep empty))) eq₀ ()
-no-η-zero-two-one (skip (keep (keep empty))) ()
-
-no-η-zero-one-same : ∀ (η : 2 ↪ᵗ 3)
-  → toRenameᵗ η X₀ ≡ toRenameᵗ η X₁
-  → ⊥
-no-η-zero-one-same (keep (keep (skip empty))) ()
-no-η-zero-one-same (keep (skip (keep empty))) ()
-no-η-zero-one-same (skip (keep (keep empty))) ()
-no-η-zero-one-same (skip (skip (keep ())))
-no-η-zero-one-same (skip (skip (skip ())))
-
-outer-target-premise-refuted : ∀ {Wᵒ : World 2 2 3}
-    {γᵒ : CtxImp Wᵒ} {p : ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₁}
-  → CTI2.RebaseAtᴿ Wᵒ W (just Y₀)
-  → Wᵒ ∣ γᵒ ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★ ⊑ U ∶ p
-  → ⊥
-outer-target-premise-refuted {Wᵒ = Wᵒ} {p = p}
-    (CTI2.rebase-varᴿ {Xᴸ = Fin.zero} rb) prem =
-  no-η-zero-two-one (ηᴸʷ Wᵒ)
-    (trans
-      (ECR.variable-obligation-aligns
-        {W = Wᵒ} {X = X₀} {Y = Y₁} p)
-      (sym (CTI2.RebaseAt.ηᴿ-off-pivot rb Y₁≢Y₀)))
-    (sym (CTI2.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀))
-outer-target-premise-refuted
-    (CTI2.rebase-varᴿ {Xᴸ = Fin.suc Fin.zero} rb) prem =
-  one≢zero (CTI2.RebaseAt.pivotAligned rb)
-
-outer-target-premise-refuted-any-world :
-  ∀ {Wᵒ Wᵢ : World 2 2 3}
-    {γᵢ : CtxImp Wᵢ} {p : ＇ X₀ ⊑ᵂ⟨ Wᵢ ⟩ ＇ Y₁}
-  → RebaseAt Wᵒ W X₀ Y₀
-  → (qᵒ : ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₀)
-  → CTI2.RebaseAtᴿ Wᵢ Wᵒ (just Y₀)
-  → Wᵢ ∣ γᵢ ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★ ⊑ U ∶ p
-  → ⊥
-outer-target-premise-refuted-any-world {Wᵒ = Wᵒ} {Wᵢ = Wᵢ}
-    {p = p} rbᵒ qᵒ
-    (CTI2.rebase-varᴿ {Xᴸ = Fin.zero} rb) prem =
-  no-η-zero-two-one (ηᴸʷ Wᵢ)
-    (trans
-      (ECR.variable-obligation-aligns
-        {W = Wᵢ} {X = X₀} {Y = Y₁} p)
-      (trans
-        (sym (CTI2.RebaseAt.ηᴿ-off-pivot rb Y₁≢Y₀))
-        (sym (CTI2.RebaseAt.ηᴿ-off-pivot rbᵒ Y₁≢Y₀))))
-    (sym
-      (trans
-        (CTI2.RebaseAt.ηᴸ-off-pivot rbᵒ X₁≢X₀)
-        (CTI2.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀)))
-outer-target-premise-refuted-any-world {Wᵒ = Wᵒ} rbᵒ qᵒ
-    (CTI2.rebase-varᴿ {Xᴸ = Fin.suc Fin.zero} rb) prem =
-  no-η-zero-one-same (ηᴸʷ Wᵒ)
-    (trans
-      (ECR.variable-obligation-aligns
-        {W = Wᵒ} {X = X₀} {Y = Y₀} qᵒ)
-      (sym (CTI2.RebaseAt.pivotAligned rb)))
-
-no-target-seal-variable-output :
-  ¬ (Σ[ q ∈ ＇ X₀ ⊑ᵂ⟨ W ⟩ ＇ Y₀ ]
-      (W ∣ [] ⊢²
-        (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-        ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ q))
-no-target-seal-variable-output (q , out) with out
-no-target-seal-variable-output (q , out)
-    | CTI2.conceal⊑² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) prem .q
-    with p
-no-target-seal-variable-output (q , out)
-    | CTI2.conceal⊑² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) prem .q | ()
-no-target-seal-variable-output (q , out)
-    | CTI2.⊑conceal² rb-mono rb sc
-        (CTI2.⊢↓-sealˣ Y∈) prem .q =
-  outer-target-premise-refuted rb prem
-no-target-seal-variable-output (q , out)
-    | CTI2.conceal⊑conceal² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈) prem .q
-    with p
-no-target-seal-variable-output (q , out)
-    | CTI2.conceal⊑conceal² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈) prem .q
-    | ()
-
-no-target-seal-variable-output-any-world :
-  ¬ (Σ[ Wᵒ ∈ World 2 2 3 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-      ( RebaseAt Wᵒ W X₀ Y₀
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx {W = W} [] γᵒ
-      × Σ[ qᵒ ∈ ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₀ ]
-          (Wᵒ ∣ γᵒ ⊢²
-            (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-            ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ qᵒ) ))
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out) with out
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out)
-    | CTI2.conceal⊑² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) prem .qᵒ
-    with p
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out)
-    | CTI2.conceal⊑² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) prem .qᵒ | ()
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out)
-    | CTI2.⊑conceal² rb-mono rb sc
-        (CTI2.⊢↓-sealˣ Y∈) prem .qᵒ =
-  outer-target-premise-refuted-any-world rbᵒ qᵒ rb prem
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out)
-    | CTI2.conceal⊑conceal² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈) prem .qᵒ
-    with p
-no-target-seal-variable-output-any-world
-    (Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , qᵒ , out)
-    | CTI2.conceal⊑conceal² {p = p} mono rb sc
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈) prem .qᵒ
-    | ()
-
-------------------------------------------------------------------------
--- Checkpoint 3: bare right-injection inversion needs open strata
-------------------------------------------------------------------------
-
-no-right-inj-output :
-  ¬ (W ∣ [] ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-      ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ q-out)
-no-right-inj-output out =
-  no-target-seal-variable-output (q-out , out)
-
-right-inj-inversion²-refutes-open-strata :
-  ECR.OpenStrata → ⊥
-right-inj-inversion²-refutes-open-strata open-strata =
-  no-right-inj-output
-    (ECR.right-inj-inversion² W-wf open-strata source-outer-spine
-      target-outer-value right-inj-premise q-out)
-
-right-inj-inversion²-bare-statement-refuted :
-  ( ECR.SpineValue ((V ⟨ X₁! ⟩) ↓ seal X₀ ★)
-  → Value (U ↓ seal Y₀ (＇ Y₁))
-  → W ∣ [] ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-      ⊑ (U ↓ seal Y₀ (＇ Y₁)) ⟨ Y₀! ⟩ ∶ q-star
-  → (q : ＇ X₀ ⊑ᵂ⟨ W ⟩ ＇ Y₀)
-  → W ∣ [] ⊢² (V ⟨ X₁! ⟩) ↓ seal X₀ ★
-      ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ q )
-  → ⊥
-right-inj-inversion²-bare-statement-refuted bare-inversion =
-  no-right-inj-output
-    (bare-inversion source-outer-spine target-outer-value
-      right-inj-premise q-out)

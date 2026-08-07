@@ -354,20 +354,8 @@ liftRebaseAt {Δᴸ = Δᴸ} {W = W} {W′ = W′} {Xᴸ = Xᴸ}
         (CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb))))
     source-off target-off
     (cong Fin.suc (CTI2.RebaseAt.pivotAligned rb))
-    lift-anchor
     (CTI2.store-rep-imp lift-represented)
   where
-  lift-anchor :
-      toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W)) (Fin.suc Xᴿ)
-        ≢ toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W′)) (Fin.suc Xᴿ)
-    → Σ[ Xₒ ∈ TyVar (suc Δᴸ) ]
-        toRenameᵗ (ηᴸʷ (CTI2.liftWorldBoth v W)) Xₒ
-          ≡ toRenameᵗ
-              (ηᴿʷ (CTI2.liftWorldBoth v W)) (Fin.suc Xᴿ)
-  lift-anchor moved with CTI2.RebaseAt.anchorᴿ rb
-      (λ eq → moved (cong Fin.suc eq))
-  lift-anchor moved | Xₒ , eq = Fin.suc Xₒ , cong Fin.suc eq
-
   old-represented =
     CTI2.StoreRepImp.represented
       (CTI2.RebaseAt.storeRepresentations rb)
@@ -412,15 +400,12 @@ liftRebaseAt {Δᴸ = Δᴸ} {W = W} {W′ = W′} {Xᴸ = Xᴸ}
       (CTI2.RebaseAt.ηᴸ-off-pivot rb
         (λ eq → Y≢ (cong Fin.suc eq)))
 
-  target-off : ∀ {Y}
-    → Y ≢ Fin.suc Xᴿ
+  target-off : ∀ Y
     → toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W′)) Y
         ≡ toRenameᵗ (ηᴿʷ (CTI2.liftWorldBoth v W)) Y
-  target-off {Fin.zero} Y≢ = refl
-  target-off {Fin.suc Y} Y≢ =
-    cong Fin.suc
-      (CTI2.RebaseAt.ηᴿ-off-pivot rb
-        (λ eq → Y≢ (cong Fin.suc eq)))
+  target-off Fin.zero = refl
+  target-off (Fin.suc Y) =
+    cong Fin.suc (CTI2.RebaseAt.ηᴿ-frozen rb Y)
 
 
 liftPivot : ∀ {Δ} → Maybe (TyVar Δ) → Maybe (TyVar (suc Δ))
@@ -694,8 +679,8 @@ composeSealRebase {Δᴸ = Δᴸ} {W = W} {W′ = W′} {W₂ = W₂}
         (CTI2.RebaseAt.sameRuntime ra′))
         (CTI2.SameRuntime.targetStore-same
           (CTI2.RebaseAt.sameRuntime link))))
-    source-off target-off (CTI2.RebaseAt.pivotAligned ra′)
-    composite-anchor (CTI2.RebaseAt.storeRepresentations ra′)
+    source-off target-frozen (CTI2.RebaseAt.pivotAligned ra′)
+    (CTI2.RebaseAt.storeRepresentations ra′)
   where
   source-off : ∀ {Z} → Z ≢ Xᴸ
     → toRenameᵗ (ηᴸʷ W) Z ≡ toRenameᵗ (ηᴸʷ W₂) Z
@@ -706,31 +691,11 @@ composeSealRebase {Δᴸ = Δᴸ} {W = W} {W′ = W′} {W₂ = W₂}
     trans (CTI2.RebaseAt.ηᴸ-off-pivot ra′ Z≠Xᴸ)
       (CTI2.RebaseAt.ηᴸ-off-pivot link Z≠X₂)
 
-  target-off : ∀ {Z} → Z ≢ Y
+  target-frozen : ∀ Z
     → toRenameᵗ (ηᴿʷ W) Z ≡ toRenameᵗ (ηᴿʷ W₂) Z
-  target-off Z≠Y =
-    trans (CTI2.RebaseAt.ηᴿ-off-pivot ra′ Z≠Y)
-      (CTI2.RebaseAt.ηᴿ-off-pivot link Z≠Y)
-
-  composite-anchor :
-      toRenameᵗ (ηᴿʷ W₂) Y ≢ toRenameᵗ (ηᴿʷ W) Y
-    → Σ[ Z ∈ TyVar Δᴸ ]
-        toRenameᵗ (ηᴸʷ W₂) Z ≡ toRenameᵗ (ηᴿʷ W₂) Y
-  composite-anchor moved with Fin._≟_
-      (toRenameᵗ (ηᴿʷ W₂) Y) (toRenameᵗ (ηᴿʷ W′) Y)
-  composite-anchor moved | no moved₂ =
-    CTI2.RebaseAt.anchorᴿ link moved₂
-  composite-anchor moved | yes target₂′
-      with CTI2.RebaseAt.anchorᴿ ra′
-        (λ target′W → moved (trans target₂′ target′W))
-  composite-anchor moved | yes target₂′ | Z , anchored
-      with Fin._≟_ Z X₂
-  composite-anchor moved | yes target₂′ | Z , anchored | no Z≠X₂ =
-    Z , trans (sym (CTI2.RebaseAt.ηᴸ-off-pivot link Z≠X₂))
-      (trans anchored (sym target₂′))
-  composite-anchor moved | yes target₂′ | .X₂ , anchored
-      | yes refl =
-    X₂ , trans agrees (trans anchored (sym target₂′))
+  target-frozen Z =
+    trans (CTI2.RebaseAt.ηᴿ-frozen ra′ Z)
+      (CTI2.RebaseAt.ηᴿ-frozen link Z)
 
 -- `seal-transfer` is implemented in SealTransfer, which imports this
 -- module for SpineValue.  The inversion receives that proved operation

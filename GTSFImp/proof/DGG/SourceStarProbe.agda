@@ -169,7 +169,7 @@ no-source-star-var-output
   where
   target-off :
     toRenameᵗ (ηᴿʷ W₀) Y₁ ≡ toRenameᵗ (ηᴿʷ Wᵒ) Y₁
-  target-off = CTI2.RebaseAt.ηᴿ-off-pivot rb Y₁≢Y₀
+  target-off = CTI2.RebaseAt.ηᴿ-frozen rb Y₁
 
   source-off :
     toRenameᵗ (ηᴸʷ W₀) X₁ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁

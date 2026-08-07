@@ -1,5 +1,10 @@
 module ChainRideInterfaceScratch where
 
+-- Pre-M2 design record.  This scratch refers to the old positive
+-- ChainRideProbe links (`raₗ`/`link₂`), which M2 replaced with
+-- emptiness records because old target centers are frozen by RebaseAt.
+-- It is intentionally excluded from the M2 check set.
+
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Product using (Σ-syntax; _×_; _,_)

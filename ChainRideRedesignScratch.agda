@@ -1,5 +1,10 @@
 module ChainRideRedesignScratch where
 
+-- Pre-M2 design record.  This scratch depends on old source-star and
+-- chain-ride exploration modules that exercised target-moving freedom.
+-- It is intentionally excluded from the M2 check set after RebaseAt
+-- froze old target centers.
+
 -- File Charter:
 --   * Records the consumer-driven chain-ride interface for the
 --     extra-cast-right seal/tag boundary.

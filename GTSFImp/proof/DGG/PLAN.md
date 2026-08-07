@@ -68,7 +68,7 @@ New modules live under `proof/DGG/Parked/`.
 
 | # | Milestone | Size | Status | Landed |
 |---|-----------|------|--------|--------|
-| M1 | Parked foundation: `ParkedWorld`/`ParkedEvolve` (unify with `WorldExtendᴿ`), geometry lemmas (`parked-target-stable`, `parked-no-crossing`), closure, `mapCtxᴾ`; validation = D4 full relation checkpoint through this interface | S | **in progress** | — |
+| M1 | Parked foundation (see PLAN history) | S | **landed** (pe-left amendment queued) | a0897ec |
 | M2 | Asymmetric rebase redesign in `CastTermImprecision2` + downstream sweep. Gates: `compile-preserves-imprecision²` unchanged-or-reproved; Examples2 + 28-entry catalog + decay/repark modules all check; `CenterCrossingProbe` flips to premise-underivable (kept as design record) | L | **design pass in progress** | — |
 | M3 | `right-inj-inversion²-parked`: port non-seal cases from the existing proof; re-prove bare-seal stratum under parkedness (patterns: D2/D3 checkpoints, ChainRideProbe); delete `OpenStrata`; simplify `SealTransfer` (H-multi dissolves) | L | not started | — |
 | M4 | `ExtraCastRight²` consuming cases (projection/tag-untag cancellation) via the parked inversion | M | not started | — |

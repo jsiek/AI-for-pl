@@ -26,6 +26,10 @@ import proof.Reduction
 import proof.DGG.CastTermImprecision
 import proof.DGG.CompilePreservesImprecision
 import proof.DGG.CompilePreservesImprecision2
+import proof.DGG.Inversion.SpineValueDef
+import proof.DGG.Inversion.RightInjInversion2Def
+import proof.DGG.Inversion.TargetDescentDef
+import proof.DGG.Inversion.TargetDescentLemma
 import proof.DGG.SealChainView
 import proof.DGG.SealChain
 import proof.DGG.SourceStarProbe

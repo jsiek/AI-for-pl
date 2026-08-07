@@ -34,6 +34,7 @@ import proof.DGG.SealChainView
 import proof.DGG.SealChain
 import proof.DGG.SourceStarProbe
 import proof.DGG.CenterCrossingProbe
+import proof.DGG.TerminusRebuildProbe
 import proof.DGG.ReachabilityScreen
 import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape

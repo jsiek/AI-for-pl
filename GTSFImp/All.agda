@@ -32,3 +32,5 @@ import proof.DGG.SourceStarProbe
 import proof.DGG.CenterCrossingProbe
 import proof.DGG.ReachabilityScreen
 import proof.DGG.ReachabilityCatalog
+import proof.DGG.CompileImageShape
+import proof.DGG.Phase3DeepDives

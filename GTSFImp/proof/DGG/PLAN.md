@@ -132,14 +132,16 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
   entry actually exercised left-only binds and whether the proxy needs
   a provenance-aware pairing. Queued entries:
   1. inst path: `(ΛX.λx:X.x)[ℕ] 5 ⊑ (λx:★.x) 5` (Λ⊑ᴳ + []⊑ᴳ).
-  2. gen path (right side structurally matched — the user's original
-     right `(λx:★.x) · 5` is NOT source-admissible: no one-sided
+  2. gen path (user-confirmed 2026-08-08; note an earlier right side
+     `(λx:★.x) · 5` was NOT source-admissible — no one-sided
      application rule, application counts must match):
-     `((λf:(∀X.X→X).f)·(λx:★.x))[ℕ] 5 ⊑ ((λf:★.f)·(λx:★.x)) · 5`
-     via ƛ⊑ƛᴳ at (∀X.X→X)⇒(∀X.X→X) ⊑ ★⇒★, ·⊑·ᴳ, []⊑ᴳ, ·⊑·★ᴳ.
-     Left allocates through gen at the [ℕ] instantiation; right is
-     β + function tag, allocation-free. Pending user confirmation of
-     the adjusted right side.
+     `((λf:(∀X.X→X).f)·(λx:★.x))[ℕ] 5
+        ⊑ ((λf:★→★.f)·(λx:★.x)) 5`
+     via ƛ⊑ƛᴳ with ∀⊑ (∀X.X→X ⊑ ★→★), ·⊑·ᴳ, []⊑ᴳ
+     (r : ℕ→ℕ ⊑ ★→★), outer ·⊑·ᴳ at ⇒⊑⇒ ι⊑★ ι⊑★.
+     Left gen-allocates at the [ℕ] instantiation of the gen-wrapped
+     dynamic identity; right is pure β, allocation-free (the ★→★
+     annotation means the right argument position needs no cast).
 
 ## Known risks / open questions
 

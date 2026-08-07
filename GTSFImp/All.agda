@@ -34,3 +34,9 @@ import proof.DGG.ReachabilityScreen
 import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape
 import proof.DGG.Phase3DeepDives
+import proof.DGG.Parked.ParkedWorldDef
+import proof.DGG.Parked.ParkedWorldProof
+import proof.DGG.Parked.ParkedWorldLemma
+import proof.DGG.Parked.ParkedD4CheckpointDef
+import proof.DGG.Parked.ParkedD4CheckpointProof
+import proof.DGG.Parked.ParkedD4CheckpointLemma

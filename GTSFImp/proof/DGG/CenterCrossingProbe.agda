@@ -30,7 +30,7 @@ import CastTerms as CTerms
 open import Imprecision
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Inversion.SpineValueDef as SVD
 open CTI2 using
   (World; world; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
    rebase-at; same-runtime; store-rep-imp; ηᴸʷ; ηᴿʷ)
@@ -216,9 +216,9 @@ input-target-seal-variable =
   CTI2.⊑conceal² (λ Z eq → eq) (CTI2.rebase-varᴿ rb-target-input)
     CTI2.same-[] (CTI2.⊢↓-sealˣ Y₀∈) inner² p-input
 
-source-spine : ECR.SpineValue V
+source-spine : SVD.SpineValue V
 source-spine =
-  ECR.sv-seal (ECR.sv-cast (ECR.sv-$ (κℕ 0)) CTerms.inj)
+  SVD.sv-seal (SVD.sv-cast (SVD.sv-$ (κℕ 0)) CTerms.inj)
 
 inert-X₁! : Inert X₁!
 inert-X₁! = CTerms.inj
@@ -235,6 +235,6 @@ target-outer-value =
   target-value CTerms.↓ (CTerms.seal {X = Y₀} {R = ＇ Y₁})
 
 source-outer-spine :
-  ECR.SpineValue ((V ⟨ X₁! ⟩) ↓ seal X₀ ★)
+  SVD.SpineValue ((V ⟨ X₁! ⟩) ↓ seal X₀ ★)
 source-outer-spine =
-  ECR.sv-seal (ECR.sv-cast source-spine inert-X₁!)
+  SVD.sv-seal (SVD.sv-cast source-spine inert-X₁!)

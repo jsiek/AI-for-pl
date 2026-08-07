@@ -61,7 +61,7 @@ open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
 open import Reduction
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.CastTermImprecision2Typing as CTI2T
+import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.TagTransport as TT
@@ -71,47 +71,19 @@ open import proof.DGG.ConvImp using
 open CTI2 using
   (World; ηᴸʷ; ηᴿʷ; impEnvʷ; sourceStoreʷ; targetStoreʷ; embedᴿ;
    _⊑ᵂ⟨_⟩_; CtxImp; ctx-imp; _∣_⊢²_⊑_∶_)
+open SVD using
+  (AllValueView; allv-Λ; allv-∀; allv-gen; allv-reveal;
+   allv-conceal; SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal;
+   sv-reveal-fun; sv-conceal-fun; sv-reveal-all; sv-conceal-all;
+   VarValueView; varv-seal; right-tag-variable-view;
+   variable-obligation-aligns; seal-rebase-target;
+   seal-tag-boundary-view²; decaySameCtxʳ)
 open import proof.ImprecisionConsistency using
   (ground-cast-source⊑; source-occurs-target; rename-occurs;
    ext-injective; toRenameᵗ-injective; nonstar-from-≢★; rename-⊑;
    fin-suc-injective)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using (toRename-keep-eq)
-
-------------------------------------------------------------------------
--- Target polymorphic value views (for the inst catch-up statement)
-------------------------------------------------------------------------
-
-data AllValueView {Δ : TyCtx} (V : Term Δ) : Set where
-  allv-Λ : ∀ {W}
-    → Value W
-    → V ≡ Λ W
-    → AllValueView V
-
-  allv-∀ : ∀ {μ : Env∼ Δ} {W} {A B : Ty (suc Δ)}
-      {c : C.extᵐ μ ⊢ A ∼ B}
-    → Value W
-    → V ≡ W ⟨ ∀ᶜ c ⟩
-    → AllValueView V
-
-  allv-gen : ∀ {μ : Env∼ Δ} {W} {A : Ty Δ} {B : Ty (suc Δ)}
-      {c : C.genᵐ μ ⊢ ⇑ᵗ A ∼ B}
-      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : Fin.zero ∈ᵗ B ⦄
-    → Value W
-    → (A≢★ : A ≢ ★)
-    → GenSafe c
-    → V ≡ W ⟨ (gen c) A≢★ ⟩
-    → AllValueView V
-
-  allv-reveal : ∀ {W} {A B : Ty (suc Δ)} {c : Conv↑ (suc Δ) A B}
-    → Value W
-    → V ≡ W ↑ `∀↑ c
-    → AllValueView V
-
-  allv-conceal : ∀ {W} {A B : Ty (suc Δ)} {c : Conv↓ (suc Δ) A B}
-    → Value W
-    → V ≡ W ↓ `∀↓ c
-    → AllValueView V
 
 ------------------------------------------------------------------------
 -- Stage 1: statements
@@ -436,152 +408,8 @@ liftRebaseAtᴸ {Δᴿ = Δᴿ} {W = W} {v = v}
     disaligned Xᴿ (fin-suc-injective eq)
 
 ------------------------------------------------------------------------
--- Canonical target values at an abstract variable
-------------------------------------------------------------------------
-
-data VarValueView {Δ : TyCtx} (Σ : TyStore Δ) (V : Term Δ)
-    (X : TyVar Δ) : Set where
-  varv-seal : ∀ {W R}
-    → Value W
-    → Σ ∋ X ⦂ R
-    → V ≡ W ↓ Conversion.seal X R
-    → VarValueView Σ V X
-
-var-value-view : ∀ {Δ} {Σ : TyStore Δ} {Γ} {V : Term Δ} {X}
-  → Value V
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ ＇ X
-  → VarValueView Σ V X
-var-value-view (ƛ N) ()
-var-value-view (Λ vV) ()
-var-value-view ($ (κℕ n)) ()
-var-value-view ($ (κ𝔹 b)) ()
-var-value-view (vV 《 inj 》) ()
-var-value-view (vV 《 fun 》) ()
-var-value-view (vV 《 all 》) ()
-var-value-view (vV 《 genᵥ A≢★ safe 》) ()
-var-value-view (vV ↑ fun) ()
-var-value-view (vV ↑ all) ()
-var-value-view (vV ↓ seal) (⊢conceal (⊢↓-seal X∈) V⊢) =
-  varv-seal vV X∈ refl
-var-value-view (vV ↓ fun) ()
-var-value-view (vV ↓ all) ()
-
-tag-inner-typing : ∀ {Δ} {Σ : TyStore Δ} {Γ} {N : Term Δ}
-    {H : Ty Δ} {ν : Env∼ Δ}
-    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
-    {cH : ν ⊢ H ∼ H}
-  → ⟨ Δ , Σ , Γ ⟩ ⊢
-      N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ⦂ ★
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ N ⦂ H
-tag-inner-typing (⊢⟨⟩ N⊢ cH!) = N⊢
-
-right-tag-variable-view : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
-    {A : Ty Δᴸ} {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
-    {H∼★ : ν ⊢ (＇ Y) ∼★} {Hns : NonStar (＇ Y)}
-    {cH : ν ⊢ (＇ Y) ∼ (＇ Y)} {p : A ⊑ᵂ⟨ W ⟩ ★}
-  → Value N
-  → W ∣ γ ⊢² M
-      ⊑ N ⟨ _! ⦃ ＇ Y ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → VarValueView (targetStoreʷ W) N Y
-right-tag-variable-view vN M⊑N! =
-  var-value-view vN (tag-inner-typing (CTI2T.target-typing² M⊑N!))
-
-variable-imprecision-aligns : ∀ {Δ} {μ : ImpEnv Δ} {X Y : TyVar Δ}
-  → μ ⊢ ＇ X ⊑ ＇ Y
-  → X ≡ Y
-variable-imprecision-aligns X⊑X = refl
-
-variable-obligation-aligns : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
-  → toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
-variable-obligation-aligns q = variable-imprecision-aligns q
-
--- If a source seal's result is related to a target variable, a left rebase
--- cannot be the disaligned rebase-onlyᴸ case.  Its paired pivot is exactly
--- that target variable.
-
-seal-rebase-target : ∀ {Δᴸ Δᴿ Δ} {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → CTI2.RebaseAtᴸ Wᵖ W (just X)
-  → ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
-  → CTI2.RebaseAt Wᵖ W X Y
-seal-rebase-target {W = W} {X = X} {Y = Y}
-    (CTI2.rebase-varᴸ {Xᴿ = Xᴿ} rb) q
-    with toRenameᵗ-injective (ηᴿʷ W)
-      (trans (sym (CTI2.RebaseAt.pivotAligned rb))
-        (variable-obligation-aligns {W = W} {X = X} {Y = Y} q))
-seal-rebase-target (CTI2.rebase-varᴸ rb) q | refl = rb
-seal-rebase-target
-    {W = W} {X = X} {Y = Y}
-    (CTI2.rebase-onlyᴸ to-star disaligned represented) q =
-  ⊥-elim
-    (disaligned Y
-      (sym (variable-obligation-aligns {W = W} {X = X} {Y = Y} q)))
-
--- A source seal related to a variable-tagged target determines both sides
--- of the matching outer boundary.  The target value must itself be sealed
--- at that variable, and the source's nominally one-sided rebase is the
--- corresponding paired rebase.
-
-seal-tag-boundary-view² : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {N : Term Δᴿ} {R : Ty Δᴸ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
-    {H∼★ : ν ⊢ (＇ Y) ∼★} {Hns : NonStar (＇ Y)}
-    {cH : ν ⊢ (＇ Y) ∼ (＇ Y)} {p : ＇ X ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.RebaseAtᴸ Wᵖ W (just X)
-  → Value N
-  → W ∣ γ ⊢² M ↓ Conversion.seal X R
-      ⊑ N ⟨ _! ⦃ ＇ Y ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → (q : ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y)
-  → Σ[ U ∈ Term Δᴿ ] Σ[ S ∈ Ty Δᴿ ]
-      (Value U
-        × (targetStoreʷ W ∋ Y ⦂ S)
-        × (N ≡ U ↓ Conversion.seal Y S)
-        × CTI2.RebaseAt Wᵖ W X Y)
-seal-tag-boundary-view² rb vN M↓X⊑N! q
-    with right-tag-variable-view vN M↓X⊑N!
-seal-tag-boundary-view² rb vN M↓X⊑N! q
-    | varv-seal {W = U} {R = S} vU Y∈ refl =
-  U , S , vU , Y∈ , refl , seal-rebase-target rb q
-
-------------------------------------------------------------------------
 -- Stage 2: right-injection inversion for spine values
 ------------------------------------------------------------------------
-
--- All value spines.  Function-shaped reveal and conceal wrappers rebuild
--- their pre-conversion tag obligations directly; ∀-shaped wrappers
--- transport those obligations via TagTransport, and bare seals use the
--- boundary analysis developed by SealPeelProbe and SealTransfer.
-
-data SpineValue {Δ : TyCtx} : Term Δ → Set where
-  sv-ƛ : (N : Term Δ) → SpineValue (ƛ N)
-
-  sv-Λ : ∀ {V} → SpineValue V → SpineValue (Λ V)
-
-  sv-$ : (κ : Const) → SpineValue ($ κ)
-
-  sv-cast : ∀ {V} {μ : Env∼ Δ} {A B : Ty Δ} {c : μ ⊢ A ∼ B}
-    → SpineValue V → Inert c → SpineValue (V ⟨ c ⟩)
-
-  sv-seal : ∀ {V X R} → SpineValue V
-    → SpineValue (V ↓ Conversion.seal X R)
-
-  sv-reveal-fun : ∀ {V} {A A′ B B′ : Ty Δ}
-      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-    → SpineValue V → SpineValue (V ↑ (c ↦↑ d))
-
-  sv-conceal-fun : ∀ {V} {A A′ B B′ : Ty Δ}
-      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-    → SpineValue V → SpineValue (V ↓ (c ↦↓ d))
-
-  sv-reveal-all : ∀ {V} {A B : Ty (suc Δ)} {c : Conv↑ (suc Δ) A B}
-    → SpineValue V → SpineValue (V ↑ `∀↑ c)
-
-  sv-conceal-all : ∀ {V} {A B : Ty (suc Δ)} {c : Conv↓ (suc Δ) A B}
-    → SpineValue V → SpineValue (V ↓ `∀↓ c)
 
 -- Threading mark-honesty and decay through the inversion.  The
 -- inversion's recursion may enter a wrapper's premise world, which
@@ -594,15 +422,6 @@ impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ} {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W₂ W₃
   → CTI2.ImpEnvMono W₁ W₃
 impEnvMono-∘ m₁ m₂ Z eq = m₂ Z (m₁ Z eq)
-
-decaySameCtxʳ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ W″ : World Δᴸ Δᴿ Δ′}
-    {γ : CtxImp W} {γ′ : CTI2.CtxImp W′}
-  → (dec : WD.EnvDecay W′ W″)
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ (WD.decayCtx dec γ′)
-decaySameCtxʳ dec CTI2.same-[] = CTI2.same-[]
-decaySameCtxʳ dec (CTI2.same-∷ sc) = CTI2.same-∷ (decaySameCtxʳ dec sc)
 
 sameCtx-∘ : ∀ {Δᴸ Δᴿ Δ₁ Δ₂ Δ₃}
     {W₁ : World Δᴸ Δᴿ Δ₁} {W₂ : World Δᴸ Δᴿ Δ₂}

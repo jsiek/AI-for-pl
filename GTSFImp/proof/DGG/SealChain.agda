@@ -25,11 +25,12 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.SealTransferCore as STC
 open CTI2 using
   (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
    sourceStoreʷ; targetStoreʷ; ηᴸʷ)
-open ECR using (SpineValue)
+open SVD using (SpineValue)
 
 ------------------------------------------------------------------------
 -- Corrected consumer-facing branch packages
@@ -172,14 +173,6 @@ record ChainRideRedesign : Set where
 -- Exports consumed by SealTransferCore and ExtraCastRight2
 ------------------------------------------------------------------------
 
-seal-transfer-assumption : ChainRideRedesign
-  → STC.SealTransferAssumption
-seal-transfer-assumption core = record
-  { H-multi = λ ra link moved mono mono₂ sc sc₂ X∈ D →
-      ChainRideRedesign.source-chain-transfer core
-        ra link moved mono mono₂ sc sc₂ X∈ D
-  }
-
 tag-transfer-from-redesign : ChainRideRedesign
   → ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W} {V : Term Δᴸ} {U : Term Δᴿ}
@@ -195,7 +188,7 @@ tag-transfer-from-redesign : ChainRideRedesign
       × Σ[ qᵒ ∈ (＇ X) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢² V ⊑ U ∶ qᵒ) )
 tag-transfer-from-redesign core =
-  STC.seal-transfer (seal-transfer-assumption core)
+  STC.seal-transfer
 
 H-Schain-from-redesign : ChainRideRedesign
   → ∀ {Δᴸ Δᴿ Δ}

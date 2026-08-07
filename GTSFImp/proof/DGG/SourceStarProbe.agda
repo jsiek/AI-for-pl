@@ -33,7 +33,7 @@ open import CastTerms
 open import Imprecision
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Inversion.SpineValueDef as SVD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTI2 using
   (World; world; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
@@ -178,7 +178,7 @@ no-source-star-var-output
   same-center :
     toRenameᵗ (ηᴸʷ Wᵒ) X₀ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁
   same-center =
-    trans (ECR.variable-obligation-aligns {W = Wᵒ} {X = X₀}
+    trans (SVD.variable-obligation-aligns {W = Wᵒ} {X = X₀}
       {Y = Y₁} qᵒ)
       (trans (sym target-off) source-off)
 
@@ -222,6 +222,6 @@ no-source-star-branch-output
     trans
       (sym (η₂-zero (ηᴸʷ Wᵒ)))
       (trans
-        (ECR.variable-obligation-aligns {W = Wᵒ} {X = X₀}
+        (SVD.variable-obligation-aligns {W = Wᵒ} {X = X₀}
           {Y = Y₁} qᵒ)
         (η₂-one (ηᴿʷ Wᵒ)))

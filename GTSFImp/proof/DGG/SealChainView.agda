@@ -5,7 +5,7 @@ module proof.DGG.SealChainView where
 --   * Separates pure constructor inventory from the world-moving fold.
 --   * Names each moving-premise sub-row carried by source, target, and
 --     paired reveal/conceal rules.
---   * Depends only on CastTermImprecision2 and ExtraCastRight2's SpineValue.
+--   * Depends only on CastTermImprecision2 and SpineValueDef's SpineValue.
 
 import Data.Nat as Nat
 import Data.Fin as Fin
@@ -20,12 +20,12 @@ open import Imprecision
 open import Types
 open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Inversion.SpineValueDef as SVD
 open CTI2 using
   (World; CtxImp; ctx-imp; _∋ʷ_⦂_; LiftCtx; LiftCtxᴸ;
    RebaseAt; RebaseAtᴸ; RebaseAtᴿ; ImpEnvMono; SameCtx;
    _⊑ᵂ⟨_⟩_; _⊢↑[_]_; _⊢↓[_]_; _∣_⊢²_⊑_∶_)
-open ECR using (SpineValue)
+open SVD using (SpineValue)
 
 ------------------------------------------------------------------------
 -- Reified node inventory

@@ -156,3 +156,17 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
   redesign should make the answer structural).
 - Obligation transport across evolutions (`applyTy` vs `transport⊑ᵂ`
   families) — expect statement iterations in M6/M7.
+
+## M3 walk closure: strategy pivot (2026-08-08)
+
+Per-case closure of the walk's five remaining sub-shapes stalled twice
+(each case re-instantiates the same strip/recurse/re-emit step and
+needs target-peel machinery mid-case; the holed WIP file re-elaborates
+fully every run at ~2m30s since Agda does not cache interfaces for
+files with unsolved metas). Following the user's observation that the
+per-head casing should be an induction-hypothesis application, the
+walk is being restructured via SOURCE-COLUMN REIFICATION
+(`SourceSpineStrip`, mirroring the proven TargetDescent): strip the
+source wrapper column in one fold, handle a small atom-level core with
+proven machinery, re-emit. Statement-first with validation against all
+five hole goal types before implementation.

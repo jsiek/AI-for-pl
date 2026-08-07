@@ -69,7 +69,7 @@ New modules live under `proof/DGG/Parked/`.
 | # | Milestone | Size | Status | Landed |
 |---|-----------|------|--------|--------|
 | M1 | Parked foundation (see PLAN history) | S | **landed** (pe-left amendment queued) | a0897ec |
-| M2 | Asymmetric rebase redesign in `CastTermImprecision2` + downstream sweep. Gates: `compile-preserves-imprecision²` unchanged-or-reproved; Examples2 + 28-entry catalog + decay/repark modules all check; `CenterCrossingProbe` flips to premise-underivable (kept as design record) | L | **design + pre-flight complete** (`ae64bdf`): ηᴿ-frozen replaces ηᴿ-off-pivot+anchorᴿ; all 8 left-path checkpoints rebuilt frozen, no resisters; implementation starts after the M1 amendment lands | — |
+| M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | `right-inj-inversion²-parked`: port non-seal cases from the existing proof; re-prove bare-seal stratum under parkedness (patterns: D2/D3 checkpoints, ChainRideProbe); delete `OpenStrata`; simplify `SealTransfer` (H-multi dissolves) | L | not started | — |
 | M4 | `ExtraCastRight²` consuming cases (projection/tag-untag cancellation) via the parked inversion | M | not started | — |
 | M5 | `InstCatchupRight²` allocating cases (`inst`/`gen`, right-only extension; `WorldExtendᴿ` machinery exists) | M | not started | — |

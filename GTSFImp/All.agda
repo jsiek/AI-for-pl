@@ -25,3 +25,5 @@ import proof.Consistency2
 import proof.Reduction
 import proof.DGG.CastTermImprecision
 import proof.DGG.CompilePreservesImprecision
+import proof.DGG.SealChainView
+import proof.DGG.SealChain

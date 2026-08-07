@@ -70,12 +70,12 @@ New modules live under `proof/DGG/Parked/`.
 |---|-----------|------|--------|--------|
 | M1 | Parked foundation (see PLAN history) | S | **landed** (pe-left amendment queued) | a0897ec |
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
-| M3 | `right-inj-inversion²-parked`: port non-seal cases from the existing proof; re-prove bare-seal stratum under parkedness (patterns: D2/D3 checkpoints, ChainRideProbe); delete `OpenStrata`; simplify `SealTransfer` (H-multi dissolves) | L | not started | — |
+| M3 | New inversion under the frozen relation. Landed so far: statement with NO OpenStrata/WFWorld/ParkedWorld premise + SpineValueDef extraction + **H-multi deleted** (seal-transfer unconditional) (`309d8a3`); **TargetDescent complete** — terminal ★ package via same-pivot composition (replaces H-absorb's moved-split) + variable-payload re-emission continuation (`ebd6f6a`). In flight: the head-walk cases (old never-proven H-walk stratum) via smaller-spine recursion at the lifted world; then delete OpenStrata + old inversion | L | **in progress** (final leg) | 309d8a3, ebd6f6a |
 | M4 | `ExtraCastRight²` consuming cases (projection/tag-untag cancellation) via the parked inversion | M | not started | — |
 | M5 | `InstCatchupRight²` allocating cases (`inst`/`gen`, right-only extension; `WorldExtendᴿ` machinery exists) | M | not started | — |
 | M6 | Value catch-up theorem: RHS reduces to a related value (induction over the extra cast column, composing M4+M5) | M | not started | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
-| M8 | `dgg-simulation` top-level corollary; cleanup: `SpineValue` extraction (stable/active split), dead-code removal, probe housekeeping | M | not started | — |
+| M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
 
 Parallelism: M4 and M5 are independent given M3 (separate Proof files
 against `Def` interfaces). M6 depends on M4+M5 Defs only. M7 consumes
@@ -90,8 +90,9 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
 | `ExtraCastRight²` consuming cases | not started (M4) |
 | `InstCatchupRight²` statement | proven (stage 1) |
 | `InstCatchupRight²` allocating cases | not started (M5) |
-| `right-inj-inversion²` | proved-but-vacuous (OpenStrata uninhabited); parked restatement = M3 |
-| `seal-transfer` | proved modulo dead H-multi hypothesis; simplifies in M3 |
+| `right-inj-inversion²` (new, frozen setting) | statement proven-consumable (Inversion/RightInjInversion2Def, no extra premises); proof = M3 final leg (head-walk cases) |
+| `TargetDescent` (new) | **proven** (`ebd6f6a`) — terminal ★ + re-emission continuation |
+| `seal-transfer` | **unconditional** — H-multi deleted, collision refuted by frozen centers (`309d8a3`) |
 | Value catch-up (composed) | not stated (M6) |
 | `compile-preserves-imprecision²` (+ identity `initialWorld`) | **proven** (`CompilePreservesImprecision2.agda`) |
 

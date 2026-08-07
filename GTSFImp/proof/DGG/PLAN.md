@@ -126,11 +126,20 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
   foundation — identified 2026-08-08 from the user's example; the M1
   run started with left-only as a placeholder. Each geometry lemma
   gains a mechanical fresh-center case.
-- Add the user's left-only example pair to ReachabilityCatalog, and
+- Add the user's left-only example pairs to ReachabilityCatalog, and
   AUDIT the screen's pair-allocations-by-order proxy: left-only
   allocation breaks order alignment, so check whether any Phase-1
   entry actually exercised left-only binds and whether the proxy needs
-  a provenance-aware pairing.
+  a provenance-aware pairing. Queued entries:
+  1. inst path: `(ΛX.λx:X.x)[ℕ] 5 ⊑ (λx:★.x) 5` (Λ⊑ᴳ + []⊑ᴳ).
+  2. gen path (right side structurally matched — the user's original
+     right `(λx:★.x) · 5` is NOT source-admissible: no one-sided
+     application rule, application counts must match):
+     `((λf:(∀X.X→X).f)·(λx:★.x))[ℕ] 5 ⊑ ((λf:★.f)·(λx:★.x)) · 5`
+     via ƛ⊑ƛᴳ at (∀X.X→X)⇒(∀X.X→X) ⊑ ★⇒★, ·⊑·ᴳ, []⊑ᴳ, ·⊑·★ᴳ.
+     Left allocates through gen at the [ℕ] instantiation; right is
+     β + function tag, allocation-free. Pending user confirmation of
+     the adjusted right side.
 
 ## Known risks / open questions
 

@@ -44,12 +44,6 @@ record Entry : Set where
     more-imprecise : Term 0
     gasᴸ : ℕ
     gasᴿ : ℕ
-    typeᴸ : Ty 0
-    typeᴿ : Ty 0
-    type⊑ : typeᴸ ⊑ᵂ⟨ Ex2.reflWorld store-empty ⟩ typeᴿ
-    initial⊑ :
-      Ex2.reflWorld store-empty ∣ [] ⊢² more-precise
-        ⊑ more-imprecise ∶ type⊑
 
 open Entry
 
@@ -345,25 +339,21 @@ tag-chain-initial⊑ =
 example12-entry : Entry
 example12-entry =
   entry Ex2.example12-more-precise Ex2.example12-more-imprecise
-    30 30 (‵ `ℕ) (‵ `ℕ) Ex2.example12-ℕ⊑ℕ₀
-    Ex2.example12-checkpoint₀
+    30 30
 
 nat-chain-entry : Entry
 nat-chain-entry =
   entry Ex2.nat-chain-more-precise Ex2.nat-chain-more-imprecise
-    30 30 (‵ `ℕ) (‵ `ℕ) Ex2.nat-chain-ℕ⊑ℕ₀
-    Ex2.nat-chain-checkpoint₀
+    30 30
 
 left-path-entry : Entry
 left-path-entry =
   entry Ex2.left-path-more-precise Ex2.left-path-more-imprecise
-    30 30 (‵ `ℕ) ★ Ex2.left-path-ℕ⊑★₀
-    Ex2.left-path-checkpoint₀
+    30 30
 
 adversarial-entry : Entry
 adversarial-entry =
   entry tag-direct-program tag-chain-program 10 10
-    (★ ⇒ ★) (★ ⇒ ★) tag-chain-type⊑ tag-chain-initial⊑
 
 ------------------------------------------------------------------------
 -- Refl-run calibration gates

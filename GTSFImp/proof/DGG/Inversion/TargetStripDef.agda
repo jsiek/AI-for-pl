@@ -25,12 +25,14 @@ open CTI2 using
   (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
    _∣_⊢²_⊑_∶_; targetStoreʷ; tgtCtxʷ)
 
-record TargetStripAt★Data {Δᴸ Δᴿ Δ}
+record TargetSealTerminusData {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (V : Term Δᴸ) (A : Ty Δᴸ)
-    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ) : Set where
-  constructor target-strip★-data
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
+  constructor target-seal-terminus-data
   field
+    U★ : Term Δᴿ
     Y★ : TyVar Δᴿ
     W★ : World Δᴸ Δᴿ Δ
     γ★ : CtxImp W★
@@ -39,14 +41,77 @@ record TargetStripAt★Data {Δᴸ Δᴿ Δ}
     boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
     q★ : A ⊑ᵂ⟨ W★ ⟩ ★
-    premise★ : W★ ∣ γ★ ⊢² V ⊑ U ∶ q★
+    premise★ : W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
+    qᵒ : A ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y
+    reemit :
+      W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
+      → Wᵒ ∣ γᵒ ⊢² V ⊑ U ↓ seal Y S ∶ qᵒ
+
+record TargetSealTerminusᴸData {Δᴸ Δᴿ Δ}
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
+    (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
+  constructor target-seal-terminusᴸ-data
+  field
+    U★ : Term Δᴿ
+    Y★ : TyVar Δᴿ
+    W★ : World Δᴸ Δᴿ Δ
+    γ★ : CtxImp W★
+    γᵒᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵒ)
+    γ★ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W★)
+    liftᵒ : LiftCtxᴸ X⊑★ γᵒ γᵒᴸ
+    lift★ : LiftCtxᴸ X⊑★ γ★ γ★ᴸ
+    mono★ : CTI2.ImpEnvMono Wᵒ W★
+    same★ : CTI2.SameCtx γᵒ γ★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
+    body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★
+    U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
+    premise★ :
+      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+    qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵒ ⟩ ＇ Y
+    reemit :
+      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+      → CTI2.liftWorldLeft X⊑★ Wᵒ ∣ γᵒᴸ ⊢²
+          V ⊑ U ↓ seal Y S ∶ qᵒ
+
+record TargetStripAt★Data {Δᴸ Δᴿ Δ}
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
+    (V : Term Δᴸ) (A : Ty Δᴸ)
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
+    (p : A ⊑ᵂ⟨ Wᵖ ⟩ ★) : Set where
+  constructor target-strip★-data
+  field
+    U★ : Term Δᴿ
+    Y★ : TyVar Δᴿ
+    W★ : World Δᴸ Δᴿ Δ
+    γ★ : CtxImp W★
+    mono★ : CTI2.ImpEnvMono Wᵒ W★
+    same★ : CTI2.SameCtx γᵒ γ★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
+    q★ : A ⊑ᵂ⟨ W★ ⟩ ★
+    premise★ : W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
+    reemit :
+      W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
+      → Wᵖ ∣ γᵖ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
 
 record TargetStripAt★ᴸData {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
-    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ) : Set where
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
+    (γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ))
+    (p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★) : Set where
   constructor target-strip★ᴸ-data
   field
+    U★ : Term Δᴿ
     Y★ : TyVar Δᴿ
     W★ : World Δᴸ Δᴿ Δ
     γ★ : CtxImp W★
@@ -56,11 +121,14 @@ record TargetStripAt★ᴸData {Δᴸ Δᴿ Δ}
     same★ : CTI2.SameCtx γᵒ γ★
     boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
-    q★ : `∀ A ⊑ᵂ⟨ W★ ⟩ ★
     body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★
-    U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U ⦂ ★
+    U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
     premise★ :
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U ∶ body★
+      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+    reemit :
+      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+      → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+          V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
 
 ------------------------------------------------------------------------
 -- Slice 1: target seal descent at a right-variable obligation
@@ -82,7 +150,7 @@ SealDescentAtVar =
   → CTI2.SameCtx γᵒ γʳ
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → Wʳ ∣ γʳ ⊢² V ⊑ U ↓ seal Y S ∶ r
-  → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ
+  → TargetSealTerminusData Wᵒ γᵒ V A U Xᴸ Y S
 
 SealDescentAtVarᴸ : Set
 SealDescentAtVarᴸ =
@@ -103,7 +171,7 @@ SealDescentAtVarᴸ =
   → LiftCtxᴸ X⊑★ γʳ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wʳ ∣ γᵇ ⊢²
       V ⊑ U ↓ seal Y S ∶ r
-  → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ
+  → TargetSealTerminusᴸData Wᵒ γᵒ V A U Xᴸ Y S
 
 ------------------------------------------------------------------------
 -- Slice 2: target tag dispatch at ★
@@ -133,46 +201,50 @@ data TagDispatchAt★Case {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
     (V : Term Δᴸ) (A : Ty Δᴸ)
-    (N : Term Δᴿ) (Xᴸ : TyVar Δᴸ) (Y : TyVar Δᴿ) : Set where
+    (N : Term Δᴿ) (Xᴸ : TyVar Δᴸ) (Y : TyVar Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (p : A ⊑ᵂ⟨ Wᵖ ⟩ ★) : Set where
 
   dispatch-tag :
     TagNodeAt★ Wᵖ γᵖ V A N Y
-    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y
+    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y cY p
 
   dispatch-source-fold :
     (∀ {U S}
       → N ≡ U ↓ seal Y S
       → Value U
       → targetStoreʷ Wᵒ ∋ Y ⦂ S
-      → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ)
-    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y
+      → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ p)
+    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y cY p
 
   dispatch-nonvar-empty :
     ⊥
-    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y
+    → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y cY p
 
 data TagDispatchAt★ᴸCase {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
-    (Wᵖ : World Δᴸ Δᴿ Δ)
+    (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
     (γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ))
     (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
-    (N : Term Δᴿ) (Xᴸ : TyVar Δᴸ) (Y : TyVar Δᴿ) : Set where
+    (N : Term Δᴿ) (Xᴸ : TyVar Δᴸ) (Y : TyVar Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★) : Set where
 
   dispatch-tagᴸ :
     TagNodeAt★ᴸ Wᵖ γᵇ V A N Y
-    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵇ V A N Xᴸ Y
+    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵖ γᵇ V A N Xᴸ Y cY p
 
   dispatch-source-foldᴸ :
     (∀ {U S}
       → N ≡ U ↓ seal Y S
       → Value U
       → targetStoreʷ Wᵒ ∋ Y ⦂ S
-      → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ)
-    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵇ V A N Xᴸ Y
+      → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ γᵇ p)
+    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵖ γᵇ V A N Xᴸ Y cY p
 
   dispatch-nonvar-emptyᴸ :
     ⊥
-    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵇ V A N Xᴸ Y
+    → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵖ γᵇ V A N Xᴸ Y cY p
 
 TagDispatchAt★ : Set
 TagDispatchAt★ =
@@ -190,7 +262,7 @@ TagDispatchAt★ =
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
   → Wᵖ ∣ γᵖ ⊢² V ⊑ N ⟨ cY ⟩ ∶ p
-  → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y
+  → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y cY p
 
 TagDispatchAt★ᴸ : Set
 TagDispatchAt★ᴸ =
@@ -211,7 +283,7 @@ TagDispatchAt★ᴸ =
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ N ⟨ cY ⟩ ∶ p
-  → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵇ V A N Xᴸ Y
+  → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵖ γᵇ V A N Xᴸ Y cY p
 
 TargetStripAt★ : Set
 TargetStripAt★ =
@@ -229,7 +301,7 @@ TargetStripAt★ =
   → CTI2.SameCtx γᵒ γᵖ
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → Wᵖ ∣ γᵖ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
-  → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ
+  → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ p
 
 TargetStripAt★ᴸ : Set
 TargetStripAt★ᴸ =
@@ -251,7 +323,7 @@ TargetStripAt★ᴸ =
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
-  → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ
+  → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ γᵇ p
 
 target-strip★-from-slices :
   SealDescentAtVar
@@ -262,8 +334,15 @@ target-strip★-from-slices seal-at-var tag-dispatch
     with tag-dispatch sv (vU ↓ seal) mono rb sc D
 target-strip★-from-slices seal-at-var tag-dispatch
     sv vU mono rb sc target∈ D
-    | dispatch-tag (tag-node★ r prem) =
-  seal-at-var sv vU mono rb sc target∈ prem
+    | dispatch-tag (tag-node★ r prem)
+    with seal-at-var sv vU mono rb sc target∈ prem
+target-strip★-from-slices seal-at-var tag-dispatch
+    sv vU mono rb sc target∈ D
+    | dispatch-tag (tag-node★ r prem)
+    | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★ boundary★
+        target∈★ q★ premise★ qᵒ reemit =
+  target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★ target∈★
+    q★ premise★ (λ _ → D)
 target-strip★-from-slices seal-at-var tag-dispatch
     sv vU mono rb sc target∈ D
     | dispatch-source-fold resume =
@@ -282,8 +361,16 @@ target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
     with tag-dispatchᴸ sv (vU ↓ seal) mono rb sc liftγ D
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
     sv vU mono rb sc target∈ liftγ D
-    | dispatch-tagᴸ (tag-node★ᴸ r prem) =
-  seal-at-varᴸ sv vU mono rb sc target∈ liftγ prem
+    | dispatch-tagᴸ (tag-node★ᴸ r prem)
+    with seal-at-varᴸ sv vU mono rb sc target∈ liftγ prem
+target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
+    sv vU mono rb sc target∈ liftγ D
+    | dispatch-tagᴸ (tag-node★ᴸ r prem)
+    | target-seal-terminusᴸ-data U★ Y★ W★ γ★ γᵒᴸ γ★ᴸ liftᵒ lift★
+        mono★ same★ boundary★ target∈★ body★ U⊢★ premise★ qᵒ
+        reemit =
+  target-strip★ᴸ-data U★ Y★ W★ γ★ γ★ᴸ lift★ mono★ same★
+    boundary★ target∈★ body★ U⊢★ premise★ (λ _ → D)
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
     sv vU mono rb sc target∈ liftγ D
     | dispatch-source-foldᴸ resume =

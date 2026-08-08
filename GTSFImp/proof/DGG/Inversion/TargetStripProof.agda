@@ -14,6 +14,7 @@ open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
 open import TyStore using (_∋_⦂_)
+open import Consistency using (toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using (Term; Value; _↓_)
 open import Imprecision
@@ -23,7 +24,8 @@ import proof.DGG.SealPeelToolkit as SPT
 open import proof.DGG.Inversion.TargetStripDef using
   (SealDescentAtVar; SealDescentAtVarᴸ; TagDispatchAt★;
    TagDispatchAt★ᴸ; TargetStripAt★; TargetStripAt★ᴸ;
-   TargetStripAt★Data; target-strip★-data;
+   TargetSealTerminusData; target-seal-terminus-data;
+   TargetSealTerminusᴸData; TargetStripAt★Data; target-strip★-data;
    target-strip★-from-slices; target-strip★ᴸ-from-slices)
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open import proof.DGG.Inversion.TargetDescentLemma using
@@ -33,7 +35,7 @@ open import proof.DGG.Inversion.TargetWalkSupport using
 
 open CTI2 using
   (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   targetStoreʷ)
+   impEnvʷ; ηᴸʷ; ηᴿʷ; targetStoreʷ)
 
 private
   rebase-target-membership-forward : ∀ {Δᴸ Δᴿ Δ}
@@ -46,6 +48,18 @@ private
     subst≡ (λ Σ → Σ ∋ _ ⦂ _)
       (CTI2.SameRuntime.targetStore-same
         (CTI2.RebaseAt.sameRuntime rb)) Z∈
+
+  origin-var-obligation : ∀ {Δᴸ Δᴿ Δ}
+      {Wᵒ Wʳ : World Δᴸ Δᴿ Δ}
+      {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    → RebaseAt Wʳ Wᵒ Xᴸ Y
+    → (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y
+  origin-var-obligation {Wᵒ = Wᵒ} {Xᴸ = Xᴸ} {Y = Y} rb =
+    subst≡
+      (λ Z → impEnvʷ Wᵒ ⊢
+        ＇ (toRenameᵗ (ηᴸʷ Wᵒ) Xᴸ) ⊑ ＇ Z)
+      (CTI2.RebaseAt.pivotAligned rb)
+      X⊑X
 
 postulate
   seal-descent-at-varᴸ : SealDescentAtVarᴸ
@@ -65,7 +79,7 @@ postulate
     → CTI2.SameCtx γᵒ γʳ
     → targetStoreʷ Wᵒ ∋ Y ⦂ ＇ Y′
     → Wʳ ∣ γʳ ⊢² V ⊑ U ↓ seal Y (＇ Y′) ∶ r
-    → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ
+    → TargetSealTerminusData Wᵒ γᵒ V A U Xᴸ Y (＇ Y′)
 
   seal-descent-at-var-nonvar : ∀ {Δᴸ Δᴿ Δ}
       {Wᵒ Wʳ : World Δᴸ Δᴿ Δ}
@@ -83,7 +97,7 @@ postulate
     → CTI2.SameCtx γᵒ γʳ
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
     → Wʳ ∣ γʳ ⊢² V ⊑ U ↓ seal Y S ∶ r
-    → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ
+    → TargetSealTerminusData Wᵒ γᵒ V A U Xᴸ Y S
 
 seal-descent-at-var : SealDescentAtVar
 seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
@@ -105,7 +119,7 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {Xᴸ = Xᴸ} {Y = Y} sv vU mono rb sc target∈ D
     | .Xᴸ , refl , aligned | refl
     | W★ , γ★ , link , mono★ʳ , same★ʳ , q★ , premise★ =
-  target-strip★-data Y W★ γ★
+  target-seal-terminus-data U Y W★ γ★
     (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = W★}
       mono mono★ʳ)
     (sameCtx-∘ sc same★ʳ)
@@ -113,6 +127,15 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     (rebase-target-membership-forward (composeSamePivotRebase rb link)
       target∈)
     q★ premise★
+    (origin-var-obligation rb)
+    (λ D★ → CTI2.⊑conceal²
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = W★}
+        mono mono★ʳ)
+      (CTI2.rebase-varᴿ (composeSamePivotRebase rb link))
+      (sameCtx-∘ sc same★ʳ)
+      (CTI2.⊢↓-sealˣ target∈)
+      D★
+      (origin-var-obligation rb))
 seal-descent-at-var {S = ＇ Y′} sv vU mono rb sc target∈ D =
   seal-descent-at-var-＇ sv vU mono rb sc target∈ D
 seal-descent-at-var {S = ‵ ι} sv vU mono rb sc target∈ D =

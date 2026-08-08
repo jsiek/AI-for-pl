@@ -48,6 +48,7 @@ record TargetChainData {Δᴸ Δᴿ Δ}
     (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
   constructor target-chain-data
   field
+    U★ : Term Δᴿ
     Y★ : TyVar Δᴿ
     S★ : Ty Δᴿ
     S★≡★ : S★ ≡ ★
@@ -58,7 +59,15 @@ record TargetChainData {Δᴸ Δᴿ Δ}
     boundary★ : RebaseAt W★ Wᶜ Xᴸ Y★
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ S★
     q★ : A ⊑ᵂ⟨ W★ ⟩ S★
-    premise★ : W★ ∣ γ★ ⊢² P ⊑ U ∶ q★
+    premise★ : W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+    Wᵖ : World Δᴸ Δᴿ Δ
+    γᵖ : CtxImp Wᵖ
+    pᵖ : A ⊑ᵂ⟨ Wᵖ ⟩ ★
+    νᵖ : Env∼ Δᴿ
+    cYᵖ : νᵖ ⊢ (＇ Y) ∼ ★
+    reemit :
+      W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+      → Wᵖ ∣ γᵖ ⊢² P ⊑ (U ↓ seal Y S) ⟨ cYᵖ ⟩ ∶ pᵖ
 
 data CoreRebuild {Δᴸ Δᴿ Δ}
     (Wᶜ : World Δᴸ Δᴿ Δ) (γᶜ : CtxImp Wᶜ)

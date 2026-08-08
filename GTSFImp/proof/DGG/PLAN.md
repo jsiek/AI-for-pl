@@ -199,3 +199,10 @@ Examples2, catalog, probes, M3 proofs).
   2. Live rule restriction + immediate M3 Inversion stack gate (the
      riskiest consumer), before probes/harness/polish migration.
   3. Remaining migration per the dossier; full gate suite last.
+  4. PRUNE HIGH (user, 2026-08-09): after the restriction, catch the
+     newly-impossible branches as HIGH in the case trees as possible —
+     build canonical top-level views (sealed-source partner view:
+     name-tagged / untagged / matched-nonstar) and refactor consumers
+     to case on the view at first analysis, deleting per-leaf ⊥-elim
+     refutations wholesale. Expected large negative diff; measure and
+     report the shrinkage per file.

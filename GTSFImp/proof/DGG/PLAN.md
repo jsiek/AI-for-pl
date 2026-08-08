@@ -190,3 +190,12 @@ Examples2, catalog, probes, M3 proofs).
   after M3 lands. Dossier: TAG-DISCIPLINE-DOSSIER.md (cb2c6bf).
   Expected downstream: ExtraCastRight² keeps its original value
   conclusion; M4's mismatch family closes by lemma-level refutation.
+  Surgery execution order (user, 2026-08-09: highest-risk first):
+  1. PRE-FLIGHT in scratch before any live edit — rebuild under the
+     restricted rule the constructions most likely to secretly use the
+     rep-tag freedom: the M3 walk/descent re-emission steps with
+     tagged partners, and left-path-argument₄'s semantic content.
+     First resister stops the surgery with the failing construction.
+  2. Live rule restriction + immediate M3 Inversion stack gate (the
+     riskiest consumer), before probes/harness/polish migration.
+  3. Remaining migration per the dossier; full gate suite last.

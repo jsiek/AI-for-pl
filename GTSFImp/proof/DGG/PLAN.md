@@ -190,7 +190,7 @@ Examples2, catalog, probes, M3 proofs).
   after M3 lands. Dossier: TAG-DISCIPLINE-DOSSIER.md (cb2c6bf).
   Expected downstream: ExtraCastRight² keeps its original value
   conclusion; M4's mismatch family closes by lemma-level refutation.
-  Surgery execution order (user, 2026-08-09: highest-risk first):
+  SURGERY LANDED (2f0fa9d, 2026-08-09): rep-keyed restriction live; proven M3 stack green on it; partner views in; worker file pruned 1266→17 (two frozen statements = the M3 residue); quarantines resolved to negative records; ExtraCastRight² unblocked with original value conclusion (M4). Execution order used (user: highest-risk first):
   1. PRE-FLIGHT in scratch before any live edit — rebuild under the
      restricted rule the constructions most likely to secretly use the
      rep-tag freedom: the M3 walk/descent re-emission steps with

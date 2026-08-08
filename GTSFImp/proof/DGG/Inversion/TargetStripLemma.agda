@@ -6,4 +6,5 @@ module proof.DGG.Inversion.TargetStripLemma where
 --   * Re-exports no source-strip or target-walk theorem.
 
 open import proof.DGG.Inversion.TargetStripProof public using
-  (target-strip-at★; target-strip-at★ᴸ)
+  (seal-descent-at-var; seal-descent-at-varᴸ; tag-dispatch-at★;
+   tag-dispatch-at★ᴸ; target-strip-at★; target-strip-at★ᴸ)

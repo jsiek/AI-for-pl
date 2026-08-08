@@ -23,7 +23,7 @@ import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using
   (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; targetStoreʷ; tgtCtxʷ)
+   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ; tgtCtxʷ)
 
 record TargetSealTerminusData {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
@@ -38,14 +38,10 @@ record TargetSealTerminusData {Δᴸ Δᴿ Δ}
     γ★ : CtxImp W★
     mono★ : CTI2.ImpEnvMono Wᵒ W★
     same★ : CTI2.SameCtx γᵒ γ★
-    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
     q★ : A ⊑ᵂ⟨ W★ ⟩ ★
     premise★ : W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
-    qᵒ : A ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y
-    reemit :
-      W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
-      → Wᵒ ∣ γᵒ ⊢² V ⊑ U ↓ seal Y S ∶ qᵒ
 
 record TargetSealTerminusᴸData {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
@@ -64,17 +60,12 @@ record TargetSealTerminusᴸData {Δᴸ Δᴿ Δ}
     lift★ : LiftCtxᴸ X⊑★ γ★ γ★ᴸ
     mono★ : CTI2.ImpEnvMono Wᵒ W★
     same★ : CTI2.SameCtx γᵒ γ★
-    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
     body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★
     U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
     premise★ :
       CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
-    qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵒ ⟩ ＇ Y
-    reemit :
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
-      → CTI2.liftWorldLeft X⊑★ Wᵒ ∣ γᵒᴸ ⊢²
-          V ⊑ U ↓ seal Y S ∶ qᵒ
 
 record TargetStripAt★Data {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
@@ -92,7 +83,7 @@ record TargetStripAt★Data {Δᴸ Δᴿ Δ}
     γ★ : CtxImp W★
     mono★ : CTI2.ImpEnvMono Wᵒ W★
     same★ : CTI2.SameCtx γᵒ γ★
-    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
     q★ : A ⊑ᵂ⟨ W★ ⟩ ★
     premise★ : W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
@@ -119,7 +110,7 @@ record TargetStripAt★ᴸData {Δᴸ Δᴿ Δ}
     lift★ : LiftCtxᴸ X⊑★ γ★ γ★ᴸ
     mono★ : CTI2.ImpEnvMono Wᵒ W★
     same★ : CTI2.SameCtx γᵒ γ★
-    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y★
+    boundary★ : RebaseAt W★ Wᵒ Xᴸ Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
     body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★
     U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
@@ -148,6 +139,7 @@ SealDescentAtVar =
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γʳ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → Wʳ ∣ γʳ ⊢² V ⊑ U ↓ seal Y S ∶ r
   → TargetSealTerminusData Wᵒ γᵒ V A U Xᴸ Y S
@@ -167,6 +159,7 @@ SealDescentAtVarᴸ =
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γʳ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → LiftCtxᴸ X⊑★ γʳ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wʳ ∣ γᵇ ⊢²
@@ -261,6 +254,7 @@ TagDispatchAt★ =
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → Wᵖ ∣ γᵖ ⊢² V ⊑ N ⟨ cY ⟩ ∶ p
   → TagDispatchAt★Case Wᵒ γᵒ Wᵖ γᵖ V A N Xᴸ Y cY p
 
@@ -280,6 +274,7 @@ TagDispatchAt★ᴸ =
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ N ⟨ cY ⟩ ∶ p
@@ -299,6 +294,7 @@ TargetStripAt★ =
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → Wᵖ ∣ γᵖ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
   → TargetStripAt★Data Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ p
@@ -319,6 +315,7 @@ TargetStripAt★ᴸ =
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
@@ -330,25 +327,25 @@ target-strip★-from-slices :
   → TagDispatchAt★
   → TargetStripAt★
 target-strip★-from-slices seal-at-var tag-dispatch
-    sv vU mono rb sc target∈ D
-    with tag-dispatch sv (vU ↓ seal) mono rb sc D
+    sv vU mono rb sc source∈ target∈ D
+    with tag-dispatch sv (vU ↓ seal) mono rb sc source∈ D
 target-strip★-from-slices seal-at-var tag-dispatch
-    sv vU mono rb sc target∈ D
+    sv vU mono rb sc source∈ target∈ D
     | dispatch-tag (tag-node★ r prem)
-    with seal-at-var sv vU mono rb sc target∈ prem
+    with seal-at-var sv vU mono rb sc source∈ target∈ prem
 target-strip★-from-slices seal-at-var tag-dispatch
-    sv vU mono rb sc target∈ D
+    sv vU mono rb sc source∈ target∈ D
     | dispatch-tag (tag-node★ r prem)
     | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★ boundary★
-        target∈★ q★ premise★ qᵒ reemit =
+        target∈★ q★ premise★ =
   target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★ target∈★
     q★ premise★ (λ _ → D)
 target-strip★-from-slices seal-at-var tag-dispatch
-    sv vU mono rb sc target∈ D
+    sv vU mono rb sc source∈ target∈ D
     | dispatch-source-fold resume =
   resume refl vU target∈
 target-strip★-from-slices seal-at-var tag-dispatch
-    sv vU mono rb sc target∈ D
+    sv vU mono rb sc source∈ target∈ D
     | dispatch-nonvar-empty bad =
   ⊥-elim bad
 
@@ -357,25 +354,24 @@ target-strip★ᴸ-from-slices :
   → TagDispatchAt★ᴸ
   → TargetStripAt★ᴸ
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    sv vU mono rb sc target∈ liftγ D
-    with tag-dispatchᴸ sv (vU ↓ seal) mono rb sc liftγ D
+    sv vU mono rb sc source∈ target∈ liftγ D
+    with tag-dispatchᴸ sv (vU ↓ seal) mono rb sc source∈ liftγ D
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    sv vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc source∈ target∈ liftγ D
     | dispatch-tagᴸ (tag-node★ᴸ r prem)
-    with seal-at-varᴸ sv vU mono rb sc target∈ liftγ prem
+    with seal-at-varᴸ sv vU mono rb sc source∈ target∈ liftγ prem
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    sv vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc source∈ target∈ liftγ D
     | dispatch-tagᴸ (tag-node★ᴸ r prem)
     | target-seal-terminusᴸ-data U★ Y★ W★ γ★ γᵒᴸ γ★ᴸ liftᵒ lift★
-        mono★ same★ boundary★ target∈★ body★ U⊢★ premise★ qᵒ
-        reemit =
+        mono★ same★ boundary★ target∈★ body★ U⊢★ premise★ =
   target-strip★ᴸ-data U★ Y★ W★ γ★ γ★ᴸ lift★ mono★ same★
     boundary★ target∈★ body★ U⊢★ premise★ (λ _ → D)
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    sv vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc source∈ target∈ liftγ D
     | dispatch-source-foldᴸ resume =
   resume refl vU target∈
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    sv vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc source∈ target∈ liftγ D
     | dispatch-nonvar-emptyᴸ bad =
   ⊥-elim bad

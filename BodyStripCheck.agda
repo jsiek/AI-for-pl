@@ -28,7 +28,7 @@ open import proof.TypeInTermSubst using (rename-occurs; toRename-keep-eq)
 
 open CTI2 using
   (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; targetStoreʷ; tgtCtxʷ)
+   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ; tgtCtxʷ)
 
 private
   all-to-star-obligation : ∀ {Δᴸ Δᴿ Δ}
@@ -105,6 +105,7 @@ lambda-core-from-member :
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → ⟨ Δᴿ , targetStoreʷ Wᵖ , tgtCtxʷ γᵖ ⟩ ⊢
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
@@ -113,10 +114,10 @@ lambda-core-from-member :
   → CoreRebuild Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
 lambda-core-from-member stripᴸ {q = q}
     Anv z∈A liftγ sv vV vU mono rb sc
-    Y∈ target⊢ bodyD =
+    X∈★ Y∈ target⊢ bodyD =
   lambda-core-from-target-strip★ᴸ {q = q}
     Anv z∈A liftγ vV target⊢
-    (stripᴸ sv vU mono rb sc Y∈ liftγ bodyD)
+    (stripᴸ sv vU mono rb sc X∈★ Y∈ liftγ bodyD)
 
 ------------------------------------------------------------------------
 -- Validation B: walk-from-strip composition remains unchanged
@@ -134,7 +135,8 @@ walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core {Xᴸ = X�
 walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core {Xᴸ = Xᴸ}
     sv vU mono rb sc X∈ Y∈ D
     | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom target∈ᵒ premiseᶜ resume =
+        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
   resume
     (core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ target∈ᵒ premiseᶜ)
+      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      premiseᶜ)

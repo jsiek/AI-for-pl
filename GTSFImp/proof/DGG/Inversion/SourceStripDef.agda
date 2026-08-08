@@ -56,7 +56,7 @@ record TargetChainData {Δᴸ Δᴿ Δ}
     γ★ : CtxImp W★
     mono★ : CTI2.ImpEnvMono Wᶜ W★
     same★ : CTI2.SameCtx γᶜ γ★
-    boundary★ : RebaseAt W★ Wᶜ Xᴸ Y★
+    boundary★ : RebaseAt W★ Wᶜ Xᴸ Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ S★
     q★ : A ⊑ᵂ⟨ W★ ⟩ S★
     premise★ : W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
@@ -129,6 +129,7 @@ record SourceSpineStripResult {Δᴸ Δᴿ Δ}
     sameᵒᵖ : CTI2.SameCtx γᵒ γᵖ
     boundaryᵖᵒ : RebaseAt Wᵖ Wᵒ X₀ Y
     atomᶜ : SourceAtom Core
+    source∈ᵒ : sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
     target∈ᵒ : targetStoreʷ Wᵒ ∋ Y ⦂ S
     premiseᶜ :
       SourceCorePremise Wᵖ γᵖ Core CoreTy U Y S pᵖ cY
@@ -178,6 +179,7 @@ record SourceColumnStripResult {Δᴸ Δᴿ Δ}
     sameᵒᵖ : CTI2.SameCtx γᵒ γᵖ
     boundaryᵖᵒ : RebaseAt Wᵖ Wᵒ X₀ Y
     atomᶜ : SourceAtom Core
+    source∈ᵒ : sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
     target∈ᵒ : targetStoreʷ Wᵒ ∋ Y ⦂ S
     premiseᶜ :
       SourceCorePremise Wᵖ γᵖ Core CoreTy U Y S pᵖ cY
@@ -219,6 +221,7 @@ SourceTagSealCore =
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
   → CTI2.SameCtx γᵒ γᵖ
+  → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → SourceCorePremise Wᵖ γᵖ P A U Y S p cY
   → CoreRebuild Wᵒ γᵒ P A U Xᴸ Y S

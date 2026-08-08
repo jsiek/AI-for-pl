@@ -71,9 +71,10 @@ walk-from-shared-fold-consumers consumers {Xᴸ = Xᴸ}
 walk-from-shared-fold-consumers consumers {Xᴸ = Xᴸ}
     sv vU mono rb sc X∈ Y∈ D
     | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom target∈ᵒ premiseᶜ resume =
+        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
   resume
     (source-core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ target∈ᵒ premiseᶜ)
+      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      premiseᶜ)
   where
   open SharedFoldConsumers consumers

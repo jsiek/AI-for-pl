@@ -22,7 +22,7 @@ open import proof.DGG.Inversion.TargetStripProof using
   (seal-descent-at-var-nonvar)
 open CTI2 using
   (World; world; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   store-rep-imp)
+   sourceStoreʷ; store-rep-imp)
 
 X : TyVar 1
 X = Fin.zero
@@ -79,20 +79,26 @@ D =
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) q
 
 package :
+  sourceStoreʷ W ∋ X ⦂ ★ →
   TargetSealTerminusData W [] V (＇ X) U X Y (‵ `ℕ)
-package =
+package X∈★ =
   seal-descent-at-var-nonvar nonvar-base nonstar-ι
-    svV vU mono-refl rb CTI2.same-[] Y∈ℕ D
+    svV vU mono-refl rb CTI2.same-[] X∈★ Y∈ℕ D
 
-no-target-star : ∀ {Z : TyVar 1} → storeℕ ∋ Z ⦂ ★ → ⊥
-no-target-star {Fin.zero} (Z∋ ())
+no-source-star : ∀ {Z : TyVar 1} → storeℕ ∋ Z ⦂ ★ → ⊥
+no-source-star {Fin.zero} (Z∋ ())
 
-contradiction : ⊥
-contradiction =
-  no-target-star {Z = TSD.TargetSealTerminusData.Y★ package}
+counterexample-premise-impossible : sourceStoreʷ W ∋ X ⦂ ★ → ⊥
+counterexample-premise-impossible = no-source-star
+
+contradiction :
+  sourceStoreʷ W ∋ X ⦂ ★ →
+  ⊥
+contradiction X∈★ =
+  no-source-star {Z = TSD.TargetSealTerminusData.Y★ (package X∈★)}
     (subst≡
-      (λ Σ → Σ ∋ TSD.TargetSealTerminusData.Y★ package ⦂ ★)
+      (λ Σ → Σ ∋ TSD.TargetSealTerminusData.Y★ (package X∈★) ⦂ ★)
       (sym (CTI2.SameRuntime.targetStore-same
         (CTI2.RebaseAt.sameRuntime
-          (TSD.TargetSealTerminusData.boundary★ package))))
-      (TSD.TargetSealTerminusData.target∈★ package))
+          (TSD.TargetSealTerminusData.boundary★ (package X∈★)))))
+      (TSD.TargetSealTerminusData.target∈★ (package X∈★)))

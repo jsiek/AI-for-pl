@@ -75,11 +75,13 @@ source-spine-strip : SourceSpineStrip
 source-spine-strip = source-spine-strip-worker
 
 source-tag-seal-core : SourceTagSealCore
-source-tag-seal-core atom vU mono rb sc target∈ (core-untagged qᶜ D) =
+source-tag-seal-core atom vU mono rb sc source∈ target∈
+    (core-untagged qᶜ D) =
   core-sealed _ _ mono sc (CTI2.rebase-varᴸ rb)
     (rebase-target-membership-forward rb target∈) qᶜ D
 source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
-    {ν = ν} {cY = cY} (atom-Λ sv) vU mono rb sc target∈
+    {ν = ν} {cY = cY} (atom-Λ sv) vU mono rb sc source∈
+    target∈
     (core-tagged
       (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem q)) =
   core-terminus
@@ -93,17 +95,18 @@ source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
         (reemit premise★) q))
   where
   strip★ᴸ =
-    target-strip-at★ᴸ sv vU mono rb sc target∈ liftγ prem
+    target-strip-at★ᴸ sv vU mono rb sc source∈ target∈ liftγ prem
 
   open TargetStripAt★ᴸData strip★ᴸ
 source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
-    {ν = ν} {cY = cY} {p = p} atom vU mono rb sc target∈
+    {ν = ν} {cY = cY} {p = p} atom vU mono rb sc source∈
+    target∈
     (core-tagged D)
     with target-strip-at★ (source-atom-spine atom)
-      vU mono rb sc target∈ D
+      vU mono rb sc source∈ target∈ D
 source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
-    {ν = ν} {cY = cY} {p = p} atom vU mono rb sc target∈
-    (core-tagged D)
+    {ν = ν} {cY = cY} {p = p} atom vU mono rb sc source∈
+    target∈ (core-tagged D)
     | target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
         target∈★ q★ premise★ reemit =
   core-terminus

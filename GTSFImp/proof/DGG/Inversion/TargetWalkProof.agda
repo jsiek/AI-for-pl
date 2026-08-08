@@ -22,17 +22,19 @@ target-walk-from-strip strip core {Xᴸ = Xᴸ} sv vU mono rb sc X∈ Y∈ D
     with strip sv vU mono rb sc X∈ Y∈ D
 target-walk-from-strip strip core {Xᴸ = Xᴸ} sv vU mono rb sc X∈ Y∈ D
     | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom target∈ᵒ premiseᶜ resume =
+        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
   resume
     (core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ target∈ᵒ premiseᶜ)
+      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      premiseᶜ)
 
 target-tag-seal-walk : TargetTagSealWalk
 target-tag-seal-walk {Xᴸ = Xᴸ} sv vU mono rb sc X∈ Y∈ D
     with source-spine-strip sv vU mono rb sc X∈ Y∈ D
 target-tag-seal-walk {Xᴸ = Xᴸ} sv vU mono rb sc X∈ Y∈ D
     | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom target∈ᵒ premiseᶜ resume =
+        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
   resume
     (source-tag-seal-core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ target∈ᵒ premiseᶜ)
+      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      premiseᶜ)

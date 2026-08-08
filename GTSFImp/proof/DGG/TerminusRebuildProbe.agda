@@ -4,7 +4,10 @@ module proof.DGG.TerminusRebuildProbe where
 --   * Records concrete terminus-rebuild instances for the M3 head cases.
 --   * Instance A is the S = ★ base template: rebuild a `Λ⊑²` head
 --     against the unsealed target value, then pair the source and target
---     seals with `conceal⊑conceal²`.
+--     seals with `conceal⊑conceal²`.  The direct source-seal/bare
+--     `dyn-id` input is recorded negatively because `dyn-id` is a
+--     top-level function-to-★ tag and the source seal representation is
+--     not literally ★.
 --   * Instance B is the S = ＇Y₂ chain template: the input has the
 --     source inert variable cast required by the blocked M3 branch, and
 --     the output pairs at the ★ terminus before re-emitting the outer
@@ -14,7 +17,7 @@ module proof.DGG.TerminusRebuildProbe where
 --     at the target-chain terminus instead of against a right variable.
 
 import Data.Fin as Fin
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Relation.Binary.PropositionalEquality using (refl)
@@ -190,10 +193,27 @@ module InstanceA where
     CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
       CTI2.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
 
-  terminus-input : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W
-  terminus-input =
-    CTI2.conceal⊑² (mono-refl {W = W}) (CTI2.rebase-varᴸ rb-X-Y)
-      CTI2.same-[] source-seal-⊢ head-U² X⊑★-W
+  terminus-input-partner-empty : ∀ {Xᴿ?}
+    → CTI2.SourceConcealPartnerOK (seal X ∀X⇒X) Xᴿ? U
+    → ⊥
+  terminus-input-partner-empty
+      (CTI2.seal-partner-ok (CTI2.plain-target ()))
+
+  terminus-input-empty′ : ∀ {X′}
+    → (q : ＇ X′ ⊑ᵂ⟨ W ⟩ ★)
+    → W ∣ [] ⊢² source ⊑ U ∶ q
+    → ⊥
+  terminus-input-empty′ q₀
+      (CTI2.⊑cast² {p = p} c′ D .q₀) with p
+  terminus-input-empty′ (X⊑★ eq)
+      (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
+  terminus-input-empty′ q₀
+      (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
+    terminus-input-partner-empty ok
+
+  terminus-input-empty : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W → ⊥
+  terminus-input-empty =
+    terminus-input-empty′ {X′ = X} X⊑★-W
 
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =
@@ -371,7 +391,8 @@ module InstanceB where
 
   inner-source-seal² : Wᵖ ∣ [] ⊢² V ⊑ U₀ ∶ X⊑★-Wᵖ
   inner-source-seal² =
-    CTI2.conceal⊑² (mono-refl {W = Wᵖ}) (CTI2.rebase-varᴸ rb-X-Y₂)
+    CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+      (mono-refl {W = Wᵖ}) (CTI2.tag-rebase-varᴸ rb-X-Y₂)
       CTI2.same-[] source-seal-⊢ base² X⊑★-Wᵖ
 
   payload² : Wᵖ ∣ [] ⊢² source-payload ⊑ U₀ ∶ ★⊑★
@@ -404,5 +425,6 @@ module InstanceB where
 
   tagged-input : W ∣ [] ⊢² source ⊑ target-tagged ∶ X⊑★-W
   tagged-input =
-    CTI2.conceal⊑² (mono-refl {W = W}) (CTI2.rebase-varᴸ rb-X-Y)
+    CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+      (mono-refl {W = W}) (CTI2.tag-rebase-varᴸ rb-X-Y)
       CTI2.same-[] source-seal-⊢ premise-casts² X⊑★-W

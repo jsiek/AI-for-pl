@@ -8,7 +8,7 @@ module proof.DGG.Examples2 where
 --     simulates each reduction step of the more precise side under the
 --     version-2 cast-term imprecision relation.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
@@ -2056,15 +2056,24 @@ left-path-argument₄-base =
     (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄-YZ}))
     left-path-ℕ⊑★₄-YZ
 
+left-path-argument₄-old-wrapper-empty :
+  CTI2.SourceConcealPartnerOK example12-target-X-seal nothing
+    (($ (κℕ 7)) ⟨ left-path-ℕ!₂ ⟩)
+  → ⊥
+left-path-argument₄-old-wrapper-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+
 left-path-argument₄ :
-  left-path-world₄-YZ ∣ [] ⊢²
-    ($ (κℕ 7)) ↓ example12-target-X-seal
+  left-path-world₄-YZ ∣ [] ⊢² $ (κℕ 7)
     ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶
-      left-path-X-var⊑★-YZ₄
-left-path-argument₄ =
-  CTI2.conceal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
-    CTI2.same-[] left-path-source-X-seal₄-⊢ˣ
-    left-path-argument₄-base left-path-X-var⊑★-YZ₄
+      left-path-ℕ⊑★₄-YZ
+left-path-argument₄ = left-path-argument₄-base
+
+{-
+The old checkpoint-4-through-14 chain depended on comparing
+`($ 7) ↓ seal X ℕ` directly with `$ 7 ⟨ℕ!⟩`.  The source-seal
+side condition rejects that wrapper; the surviving semantic endpoint is
+the payload comparison recorded by `left-path-argument₄`.
 
 left-path-application₄ :
   left-path-world₄-YZ ∣ [] ⊢²
@@ -3021,6 +3030,7 @@ left-path-checkpoint₁₄ =
   CTI2.reveal⊑² (λ _ eq → eq) left-path-rebase-X-YZ₄ᴸ
     CTI2.same-[] left-path-source-X-unseal₄-⊢ˣ left-path-argument₄
     left-path-ℕ⊑★₄-YZ
+-}
 
 left-path-checkpoint-final :
   left-path-world₄-YZ ∣ [] ⊢² Ex.right-final

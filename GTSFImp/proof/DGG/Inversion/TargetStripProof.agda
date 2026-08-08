@@ -728,7 +728,7 @@ seal-descent-current-star : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y ★ ∶ r
   → TargetSealTerminusData W γ V (＇ X) U X Y ★
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
-    with STC.seal-transfer sv vU D
+    with STC.seal-transfer sv vU source∈ D
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
     | W★ , γ★ , link , mono★ , same★ , q★ , premise★ =
   target-seal-terminus-data U Y W★ γ★ mono★ same★ link
@@ -749,7 +749,7 @@ seal-descent-current-var {Y = Y} (sv-cast sv₀ ()) vU
     source∈ target∈ (CTI2.cast⊑² c prem r)
 seal-descent-current-var {Y = Y} (sv-seal sv₀) vU
     source∈ target∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono rb sc
+    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} ok mono rb sc
       (CTI2.⊢↓-sealˣ source∈′) prem r) =
   ⊥-elim
     (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y}
@@ -918,7 +918,8 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {Xᴸ = Xᴸ} {Y = Y} {r = r} sv vU mono rb sc source∈
     target∈ D
     | .Xᴸ , refl , aligned | refl
-    with STC.seal-transfer sv vU D
+    with STC.seal-transfer sv vU
+      (rebase-source-membership rb source∈) D
 seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {U = U} {S = ★}
     {Xᴸ = Xᴸ} {Y = Y} sv vU mono rb sc source∈ target∈ D
@@ -1159,7 +1160,7 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     {γᵖ = γᵖ} {V = V ↓ seal X R} {N = N}
     {A = ＇ X} {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = q}
     (sv-seal sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem .q) =
+    D@(CTI2.conceal⊑² ok mono₁ rb₁ sc₁ c⊢ prem .q) =
   dispatch-source-fold resume
   where
   resume : ∀ {U S}
@@ -1178,7 +1179,7 @@ tag-dispatch-at★ (sv-reveal-fun sv) vN mono rb sc source∈
   tagged-seal-source-fold-⊥ (sv-reveal-fun sv) nonvar-fun
     nonstar-⇒ D
 tag-dispatch-at★ (sv-conceal-fun sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.conceal⊑² ok mono₁ rb₁ sc₁ c⊢ prem q) =
   tagged-seal-source-fold-⊥ (sv-conceal-fun sv) nonvar-fun
     nonstar-⇒ D
 tag-dispatch-at★ (sv-reveal-all sv) vN mono rb sc source∈
@@ -1186,7 +1187,7 @@ tag-dispatch-at★ (sv-reveal-all sv) vN mono rb sc source∈
   tagged-seal-source-fold-⊥ (sv-reveal-all sv) nonvar-all
     nonstar-∀ D
 tag-dispatch-at★ (sv-conceal-all sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.conceal⊑² ok mono₁ rb₁ sc₁ c⊢ prem q) =
   tagged-seal-source-fold-⊥ (sv-conceal-all sv) nonvar-all
     nonstar-∀ D
 

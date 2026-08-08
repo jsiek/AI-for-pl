@@ -207,8 +207,8 @@ probe-base² =
 probe-source-seal² :
   probe-W₅ ∣ [] ⊢² probe-V ⊑ probe-M₅ ∶ p₅
 probe-source-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq)
-    (CTI2.rebase-varᴸ probe-inner-source-rebase)
+  CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+    (λ _ eq → eq) (CTI2.tag-rebase-varᴸ probe-inner-source-rebase)
     CTI2.same-[] probe-X-seal-⊢ probe-base² p₅
 
 probe-inner-seal² :
@@ -239,6 +239,6 @@ qOut = X⊑X
 probe-no-output :
   ¬ (probe-W₁ ∣ [] ⊢² probe-V ⊑ probe-U ∶ qOut)
 probe-no-output
-    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) with p
+    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) with p
 probe-no-output
-    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) | ()
+    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) | ()

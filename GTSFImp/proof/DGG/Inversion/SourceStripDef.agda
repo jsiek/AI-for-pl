@@ -6,7 +6,7 @@ module proof.DGG.Inversion.SourceStripDef where
 --   * Packages core rebuilds with the boundary rebases needed by source
 --     re-emission and an existential target-chain terminus.
 --   * Keeps the statement independent of the proof script and exposes only
---     the small source-atom surface consumed by the core rebuild proof.
+--     the source-spine surface consumed by the core rebuild proof.
 
 open import Data.List using ([])
 open import Data.Maybe using (just)
@@ -24,20 +24,6 @@ open CTI2 using
   (World; CtxImp; RebaseAt; RebaseAtᴸ; _⊑ᵂ⟨_⟩_;
    _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ)
 
-------------------------------------------------------------------------
--- Core atoms
-------------------------------------------------------------------------
-
-data SourceAtom {Δ : TyCtx} : Term Δ → Set where
-  atom-ƛ : ∀ N → SourceAtom (ƛ N)
-
-  atom-Λ : ∀ {V}
-    → SpineValue V
-    → SourceAtom (Λ V)
-
-  atom-$ : ∀ κ → SourceAtom ($ κ)
-
-------------------------------------------------------------------------
 -- Rebuild packages
 ------------------------------------------------------------------------
 
@@ -89,6 +75,19 @@ data CoreRebuild {Δᴸ Δᴿ Δ}
     TargetChainData Wᶜ γᶜ P A U Xᴸ Y S
     → CoreRebuild Wᶜ γᶜ P A U Xᴸ Y S
 
+  core-paired :
+      (Wʳ : World Δᴸ Δᴿ Δ)
+      (γʳ : CtxImp Wʳ)
+    → CTI2.ImpEnvMono Wᶜ Wʳ
+    → CTI2.SameCtx γᶜ γʳ
+    → RebaseAt Wʳ Wᶜ Xᴸ Y
+    → sourceStoreʷ Wᶜ ∋ Xᴸ ⦂ A
+    → targetStoreʷ Wᶜ ∋ Y ⦂ S
+    → CTI2.StoreRepImp Wᶜ Xᴸ Y
+    → (rʳ : A ⊑ᵂ⟨ Wʳ ⟩ S)
+    → Wʳ ∣ γʳ ⊢² P ⊑ U ∶ rʳ
+    → CoreRebuild Wᶜ γᶜ P A U Xᴸ Y S
+
 data SourceCorePremise {Δᴸ Δᴿ Δ}
     (Wᶜ : World Δᴸ Δᴿ Δ) (γᶜ : CtxImp Wᶜ)
     (P : Term Δᴸ) (A : Ty Δᴸ)
@@ -103,6 +102,41 @@ data SourceCorePremise {Δᴸ Δᴿ Δ}
       (rᶜ : A ⊑ᵂ⟨ Wᶜ ⟩ (＇ Y))
     → Wᶜ ∣ γᶜ ⊢² P ⊑ U ↓ seal Y S ∶ rᶜ
     → SourceCorePremise Wᶜ γᶜ P A U Y S pᶜ cY
+
+data SourceTerminal {Δᴸ Δᴿ Δ}
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
+    (Core : Term Δᴸ) (CoreTy : Ty Δᴸ)
+    (U : Term Δᴿ) (S : Ty Δᴿ)
+    (X₀ : TyVar Δᴸ) (Y : TyVar Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★) : Set where
+  terminal-rebuild :
+    CoreRebuild Wᵒ γᵒ Core CoreTy U X₀ Y S
+    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
+
+  terminal-tagged :
+      (Wᵖ : World Δᴸ Δᴿ Δ)
+      (γᵖ : CtxImp Wᵖ)
+    → (pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
+    → CTI2.ImpEnvMono Wᵒ Wᵖ
+    → CTI2.SameCtx γᵒ γᵖ
+    → RebaseAt Wᵖ Wᵒ X₀ Y
+    → sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
+    → targetStoreʷ Wᵒ ∋ Y ⦂ S
+    → Wᵖ ∣ γᵖ ⊢² Core ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
+    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
+
+  terminal-paired :
+      (Wᵖ : World Δᴸ Δᴿ Δ)
+      (γᵖ : CtxImp Wᵖ)
+    → CTI2.ImpEnvMono Wᵒ Wᵖ
+    → CTI2.SameCtx γᵒ γᵖ
+    → RebaseAt Wᵖ Wᵒ X₀ Y
+    → sourceStoreʷ Wᵒ ∋ X₀ ⦂ CoreTy
+    → targetStoreʷ Wᵒ ∋ Y ⦂ S
+    → CTI2.StoreRepImp Wᵒ X₀ Y
+    → (rᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ S)
+    → Wᵖ ∣ γᵖ ⊢² Core ⊑ U ∶ rᵖ
+    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
 
 ------------------------------------------------------------------------
 -- Source strip surfaces
@@ -119,22 +153,14 @@ record SourceSpineStripResult {Δᴸ Δᴿ Δ}
   field
     Core : Term Δᴸ
     CoreTy : Ty Δᴸ
+    Xᵒ : TyVar Δᴸ
     Wᵒ : World Δᴸ Δᴿ Δ
     γᵒ : CtxImp Wᵒ
-    qᵒ : (＇ X₀) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
-    Wᵖ : World Δᴸ Δᴿ Δ
-    γᵖ : CtxImp Wᵖ
-    pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★
-    monoᵒᵖ : CTI2.ImpEnvMono Wᵒ Wᵖ
-    sameᵒᵖ : CTI2.SameCtx γᵒ γᵖ
-    boundaryᵖᵒ : RebaseAt Wᵖ Wᵒ X₀ Y
-    atomᶜ : SourceAtom Core
-    source∈ᵒ : sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
-    target∈ᵒ : targetStoreʷ Wᵒ ∋ Y ⦂ S
-    premiseᶜ :
-      SourceCorePremise Wᵖ γᵖ Core CoreTy U Y S pᵖ cY
+    qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
+    spineᶜ : SpineValue Core
+    terminalᶜ : SourceTerminal Wᵒ γᵒ Core CoreTy U S Xᵒ Y cY
     resume :
-      CoreRebuild Wᵒ γᵒ Core CoreTy U X₀ Y S
+      CoreRebuild Wᵒ γᵒ Core CoreTy U Xᵒ Y S
       → W₀ ∣ γ₀ ⊢² V ↓ seal X₀ R ⊑ U ↓ seal Y S ∶ q₀
 
 SourceSpineStrip : Set
@@ -169,22 +195,14 @@ record SourceColumnStripResult {Δᴸ Δᴿ Δ}
   field
     Core : Term Δᴸ
     CoreTy : Ty Δᴸ
+    Xᵒ : TyVar Δᴸ
     Wᵒ : World Δᴸ Δᴿ Δ
     γᵒ : CtxImp Wᵒ
-    qᵒ : (＇ X₀) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
-    Wᵖ : World Δᴸ Δᴿ Δ
-    γᵖ : CtxImp Wᵖ
-    pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★
-    monoᵒᵖ : CTI2.ImpEnvMono Wᵒ Wᵖ
-    sameᵒᵖ : CTI2.SameCtx γᵒ γᵖ
-    boundaryᵖᵒ : RebaseAt Wᵖ Wᵒ X₀ Y
-    atomᶜ : SourceAtom Core
-    source∈ᵒ : sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
-    target∈ᵒ : targetStoreʷ Wᵒ ∋ Y ⦂ S
-    premiseᶜ :
-      SourceCorePremise Wᵖ γᵖ Core CoreTy U Y S pᵖ cY
+    qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
+    spineᶜ : SpineValue Core
+    terminalᶜ : SourceTerminal Wᵒ γᵒ Core CoreTy U S Xᵒ Y cY
     resume :
-      CoreRebuild Wᵒ γᵒ Core CoreTy U X₀ Y S
+      CoreRebuild Wᵒ γᵒ Core CoreTy U Xᵒ Y S
       → W₀ ∣ γ₀ ⊢² V ⊑ U ↓ seal Y S ∶ q₀
 
 SourceColumnStrip : Set
@@ -216,7 +234,7 @@ SourceTagSealCore =
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ ★}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)}
-  → SourceAtom P
+  → SpineValue P
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y

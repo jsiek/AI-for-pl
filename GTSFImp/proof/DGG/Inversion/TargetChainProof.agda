@@ -38,7 +38,7 @@ target-source-star-at {W = W} {X = X} {Y = Y}
     (CTI2.cast⊑² c₁ prem .q)
 target-source-star-at {W = W} {X = X} {Y = Y}
     {q = q} (sv-seal sv₀) inert vU X∈ Y∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono rb sc
+    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} ok mono rb sc
       (CTI2.⊢↓-sealˣ X∈′) prem .q) =
   ⊥-elim
     (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y}
@@ -82,7 +82,7 @@ target-source-star-at {W = W} {X = X} {S = `∀ A}
         (store-lookup-unique X∈′ X∈) p)
       nonstar-∀)
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
-    with STC.seal-transfer sv vU D
+    with STC.seal-transfer sv vU X∈ D
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
     | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
   CTI2.conceal⊑conceal² mono₂ link sc₂
@@ -135,13 +135,13 @@ target-source-star-chain {V = V ⟨ c₁ ⟩} (sv-cast sv₀ ())
 target-source-star-chain {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {p₂ = p₂} {q = q}
     (sv-seal sv₀) inert vU mono ra sc X∈ Y∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono₁ rb₁ sc₁
+    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} ok mono₁ rb₁ sc₁
       (CTI2.⊢↓-sealˣ X∈′) prem .p₂)
     with inner-source-pivot-eq ra q p₂
 target-source-star-chain {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {p₂ = p₂} {q = q}
     (sv-seal sv₀) inert vU mono ra sc X∈ Y∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono₁ rb₁ sc₁
+    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} ok mono₁ rb₁ sc₁
       (CTI2.⊢↓-sealˣ X∈′) prem .p₂)
     | refl =
   ⊥-elim

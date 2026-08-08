@@ -5,7 +5,9 @@ module SliceCheck where
 -- members and remain compatible with the source-strip walk composition.
 
 open import proof.DGG.Inversion.SourceStripDef using
-  (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore; source-strip)
+  (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore; core-paired;
+   core-tagged; source-strip; terminal-paired; terminal-rebuild;
+   terminal-tagged)
 open import proof.DGG.Inversion.TargetStripDef using
   (SealDescentAtVar; SealDescentAtVarᴸ; TagDispatchAt★;
    TagDispatchAt★ᴸ; TargetStripAt★; TargetStripAt★ᴸ;
@@ -63,18 +65,37 @@ shared-target-stripᴸ consumers =
 walk-from-shared-fold-consumers :
   SharedFoldConsumers
   → TargetTagSealWalk
-walk-from-shared-fold-consumers consumers {Xᴸ = Xᴸ}
+walk-from-shared-fold-consumers consumers
     sv vU mono rb sc X∈ Y∈ D
     with source-spine sv vU mono rb sc X∈ Y∈ D
   where
   open SharedFoldConsumers consumers
-walk-from-shared-fold-consumers consumers {Xᴸ = Xᴸ}
+walk-from-shared-fold-consumers consumers
     sv vU mono rb sc X∈ Y∈ D
-    | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-rebuild rebuild)
+        resume =
+  resume rebuild
+walk-from-shared-fold-consumers consumers
+    sv vU mono rb sc X∈ Y∈ D
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-tagged Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
+          source∈ᵒ target∈ᵒ premiseᶜ)
+        resume =
   resume
-    (source-core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
-      premiseᶜ)
+    (source-core {Xᴸ = Xᵒ} {q = qᵒ}
+      spine vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      (core-tagged premiseᶜ))
+  where
+  open SharedFoldConsumers consumers
+walk-from-shared-fold-consumers consumers
+    sv vU mono rb sc X∈ Y∈ D
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
+          source∈ᵒ target∈ᵒ repᵒ rᵖ premiseᵖ)
+        resume =
+  resume
+    (core-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ source∈ᵒ
+      target∈ᵒ repᵒ rᵖ premiseᵖ)
   where
   open SharedFoldConsumers consumers

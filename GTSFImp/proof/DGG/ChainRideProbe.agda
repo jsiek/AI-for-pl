@@ -200,6 +200,6 @@ probe-base² =
 
 probe-premise : W₂ ∣ [] ⊢² V ⊑ U ∶ q₂
 probe-premise =
-  CTI2.conceal⊑² (λ X eq → eq)
-    (CTI2.rebase-varᴸ probe-premise-rebase)
+  CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+    (λ X eq → eq) (CTI2.tag-rebase-varᴸ probe-premise-rebase)
     CTI2.same-[] probe-Z₃-seal-⊢ probe-base² q₂

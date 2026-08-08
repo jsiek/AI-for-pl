@@ -332,6 +332,21 @@ renameRebaseAtᴸ {W = W} π
     (rename-disaligned π W disaligned)
     (rename-⊑ᵂ {W = W} π represented)
 
+renameTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+  → CTI2.TagRebaseAtᴸ (renameWorld π W) (renameWorld π W′) Xᴸ? Xᴿ?
+renameTagRebaseAtᴸ π CTI2.tag-rebase-idᴸ = CTI2.tag-rebase-idᴸ
+renameTagRebaseAtᴸ π (CTI2.tag-rebase-varᴸ rb) =
+  CTI2.tag-rebase-varᴸ (renameRebaseAt π rb)
+renameTagRebaseAtᴸ {W = W} π
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+  CTI2.tag-rebase-onlyᴸ
+    (trans (rename-mark-image π W) to-star)
+    (rename-disaligned π W disaligned)
+    (rename-⊑ᵂ {W = W} π represented)
+
 renameRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W W′ : CTI2.World Δᴸ Δᴿ Δ} {Xᴿ?}
   → (π : Δ ↪ᵗ Δ′)
@@ -459,9 +474,10 @@ renameImpEnvMono π mono = renameEnvMono π mono
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.conceal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q) p′ =
-  CTI2.conceal⊑² (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameRebaseAtᴸ {W = W′} {W′ = W} π rb)
+    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q) p′ =
+  CTI2.conceal⊑² ok
+    (renameImpEnvMono {W = W} {W′ = W′} π mono)
+    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′

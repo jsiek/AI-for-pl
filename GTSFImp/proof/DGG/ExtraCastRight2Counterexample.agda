@@ -6,13 +6,15 @@ module proof.DGG.ExtraCastRight2Counterexample where
 --     center `U` to old source center `Z`.
 --   * M2 removes that target-moving rebase: both the stale and dynamized
 --     Z/Y outer rebases are empty by `ηᴿ-frozen`.
---   * The stale world facts are kept to document the configuration that
---     motivated mark monotonicity before the parked rebase redesign.
+--   * The source-seal/direct-target repair attempted below is now a
+--     design record of a removed admission: the source seal has
+--     representation ℕ and the target partner is the bare `ℕ!` tag, so
+--     the source-conceal side condition makes the shape empty.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
-open import Data.Maybe using (just)
+open import Data.Maybe using (just; nothing)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
@@ -213,18 +215,57 @@ U-Y-rebaseᵈ = CTI2.sameWorldRebaseAt refl U-Y-representationᵈ
 -- in the dynamized one.
 
 U-to-starᵈ : ＇ U ⊑ᵂ⟨ pre-worldᵈ ⟩ ★
-U-to-starᵈ = X⊑★ refl
+U-to-starᵈ = X⊑★ {X = U} refl
+
+no-U-to-natᵈ : ＇ U ⊑ᵂ⟨ pre-worldᵈ ⟩ ‵ `ℕ → ⊥
+no-U-to-natᵈ ()
+
+no-star-to-natᵈ : ★ ⊑ᵂ⟨ pre-worldᵈ ⟩ ‵ `ℕ → ⊥
+no-star-to-natᵈ ()
 
 repaired-base² : pre-worldᵈ ∣ [] ⊢²
     $ (κℕ 0) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ι⊑★
 repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
-repaired-seal² : pre-worldᵈ ∣ [] ⊢²
-    ($ (κℕ 0)) ↓ seal U (‵ `ℕ) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ U-to-starᵈ
-repaired-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ U-Y-rebaseᵈ)
-    CTI2.same-[] source-U-seal-typed repaired-base² U-to-starᵈ
+repaired-seal-partner-empty : ∀ {Xᴿ?}
+  → CTI2.SourceConcealPartnerOK (seal U (‵ `ℕ)) Xᴿ?
+    (($ (κℕ 0)) ⟨ ℕ! ⟩)
+  → ⊥
+repaired-seal-partner-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))
 
-repaired-tag² : pre-worldᵈ ∣ [] ⊢²
+repaired-seal²-empty′ : ∀ {X}
+  → (q : ＇ X ⊑ᵂ⟨ pre-worldᵈ ⟩ ★)
+  → pre-worldᵈ ∣ [] ⊢²
+      ($ (κℕ 0)) ↓ seal U (‵ `ℕ) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ q
+  → ⊥
+repaired-seal²-empty′ q₀
+    (CTI2.⊑cast² {p = p} c′ D .q₀) with p
+repaired-seal²-empty′ (X⊑★ eq)
+    (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
+repaired-seal²-empty′ q₀
+    (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
+  repaired-seal-partner-empty ok
+
+repaired-seal²-empty :
+  pre-worldᵈ ∣ [] ⊢²
+    ($ (κℕ 0)) ↓ seal U (‵ `ℕ) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶
+      U-to-starᵈ
+  → ⊥
+repaired-seal²-empty = repaired-seal²-empty′ {X = U} U-to-starᵈ
+
+repaired-tag²-empty :
+  pre-worldᵈ ∣ [] ⊢²
     (($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩ ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ★⊑★
-repaired-tag² = CTI2.cast⊑² U! repaired-seal² ★⊑★
+  → ⊥
+repaired-tag²-empty
+    (CTI2.cast⊑cast² {C = ＇ .U} {C′ = ‵ `ℕ} {p = p}
+      c c′ D .★⊑★) =
+  no-U-to-natᵈ p
+repaired-tag²-empty
+    (CTI2.⊑cast² {A = ★} {B = ‵ `ℕ} {p = p} c′ D .★⊑★) =
+  no-star-to-natᵈ p
+repaired-tag²-empty
+    (CTI2.cast⊑² {A = ＇ .U} {A′ = ★} {B = ★} {p = p}
+      c D .★⊑★) =
+  repaired-seal²-empty′ {X = U} p D

@@ -25,6 +25,8 @@ import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SpineValueDef using
   (SpineValue; variable-obligation-aligns)
+open import proof.DGG.Inversion.TargetWalkSupport using
+  (rebase-source-membership)
 open import proof.DGG.Inversion.TargetDescentDef using
   (TargetSealDescentResult; TargetSealReemit; TargetSealTerminal;
    target-reemit; target-terminal; target-seal★)
@@ -133,7 +135,7 @@ target-seal★-descent {W = W} {W′ = W′}
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {c = c} sv inert vU mono rb sc X∈ Y∈ D
     | refl
-    with STC.seal-transfer sv vU D
+    with STC.seal-transfer sv vU (rebase-source-membership rb X∈) D
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {c = c} sv inert vU mono rb sc X∈ Y∈ D
     | refl | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =

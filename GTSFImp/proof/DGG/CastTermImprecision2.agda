@@ -358,6 +358,93 @@ data RebaseAtᴸ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ �
       -------------------------
     → RebaseAtᴸ W W (just Xᴸ)
 
+-- Source-side seal descent exposes just enough target-shape information
+-- to preserve the seal-name/representation distinction.  A source seal
+-- whose representation is literally ★ may descend against any target.
+-- Otherwise the target must either be untagged at the top level or tagged
+-- only after an aligned target-name seal.
+
+data NotTopTag {Δ : TyCtx} : Term Δ → Set where
+  not-` : ∀ x → NotTopTag (` x)
+  not-ƛ : ∀ {M} → NotTopTag (ƛ M)
+  not-· : ∀ {L M} → NotTopTag (L · M)
+  not-Λ : ∀ {M} → NotTopTag (Λ M)
+  not-⦂∀ : ∀ {M A B} → NotTopTag (M ⦂∀ A [ B ])
+  not-$ : ∀ κ → NotTopTag ($ κ)
+  not-⊕ : ∀ {L M} op → NotTopTag (L ⊕[ op ] M)
+  not-↑ : ∀ {M A B} {c : Conv↑ Δ A B} → NotTopTag (M ↑ c)
+  not-↓ : ∀ {M A B} {c : Conv↓ Δ A B} → NotTopTag (M ↓ c)
+  not-blame : NotTopTag blame
+
+data SealPartnerOK {Δᴸ Δᴿ : TyCtx} :
+    Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  star-rep-target : ∀ {Xᴿ? M′}
+      ------------------------------------
+    → SealPartnerOK ★ Xᴿ? M′
+
+  plain-target : ∀ {R Xᴿ? M′}
+    → NotTopTag M′
+      ------------------------------------
+    → SealPartnerOK R Xᴿ? M′
+
+  name-protected-target : ∀ {R X S M μ}
+      {c : μ ⊢ (＇ X) ∼ ★}
+      ----------------------------------------------------
+    → SealPartnerOK R (just X) ((M ↓ seal X S) ⟨ c ⟩)
+
+data SourceConcealPartnerOK {Δᴸ Δᴿ : TyCtx} :
+    {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
+    → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  seal-partner-ok : ∀ {X R Xᴿ? M′}
+    → SealPartnerOK R Xᴿ? M′
+      ----------------------------------------------------
+    → SourceConcealPartnerOK (seal X R) Xᴿ? M′
+
+  fun-conceal-target : ∀ {A A′ B B′ Xᴿ? M′}
+      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK (c ↦↓ d) Xᴿ? M′
+
+  all-conceal-target : ∀ {A B Xᴿ? M′}
+      {c : Conv↓ (Nat.suc Δᴸ) A B}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK (`∀↓ c) Xᴿ? M′
+
+  id-conceal-target : ∀ {A Xᴿ? M′}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK (id↓ A) Xᴿ? M′
+
+data TagRebaseAtᴸ {Δᴸ Δᴿ Δ}
+    : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
+    → Maybe (TyVar Δᴸ) → Maybe (TyVar Δᴿ) → Set where
+  tag-rebase-idᴸ : ∀ {W}
+      ----------------------------------
+    → TagRebaseAtᴸ W W nothing nothing
+
+  tag-rebase-varᴸ : ∀ {W W′ Xᴸ Xᴿ}
+    → RebaseAt W W′ Xᴸ Xᴿ
+      ---------------------------------------
+    → TagRebaseAtᴸ W W′ (just Xᴸ) (just Xᴿ)
+
+  tag-rebase-onlyᴸ : ∀ {W} {Xᴸ : TyVar Δᴸ}
+    → impEnvʷ W (toRenameᵗ (ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → (∀ (Xᴿ : TyVar Δᴿ)
+        → toRenameᵗ (ηᴿʷ W) Xᴿ
+            ≢ toRenameᵗ (ηᴸʷ W) Xᴸ)
+    → resolveVar (sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
+      -------------------------------------------------
+    → TagRebaseAtᴸ W W (just Xᴸ) nothing
+
+forgetTagRebaseᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+    --------------------------
+  → RebaseAtᴸ W W′ Xᴸ?
+forgetTagRebaseᴸ tag-rebase-idᴸ = rebase-idᴸ
+forgetTagRebaseᴸ (tag-rebase-varᴸ rb) = rebase-varᴸ rb
+forgetTagRebaseᴸ (tag-rebase-onlyᴸ to-star disaligned represented) =
+  rebase-onlyᴸ to-star disaligned represented
+
 data RebaseAtᴿ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
     → Maybe (TyVar Δᴿ) → Set where
   rebase-idᴿ : ∀ {W}
@@ -596,10 +683,11 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
   conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
+      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
+    → SourceConcealPartnerOK c Xᴿ? M′
     → ImpEnvMono W W′
-    → RebaseAtᴸ W′ W Xᴸ?
+    → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p

@@ -6,10 +6,11 @@ module proof.DGG.LambdaImpProbe where
 --     monomorphic lambda at ★ ⇒ ★ and never allocates a type variable.
 --   * Checkpoint 0 exercises Λ⊑², whose premise compares the target
 --     term unweakened in a left-only lifted world.
---   * After the source's β-Λ step the world evolves by leftOnlyWorld
---     and the source-only reveal, conceal, and sealed argument are
---     peeled with rebase-onlyᴸ pivots, which need no target variable.
---     Checkpoints 1-4 complete the weak simulation to the final values.
+--   * After the source's β-Λ step the world evolves by leftOnlyWorld.
+--     The old direct sealed-argument checkpoint is now recorded
+--     negatively: the source seal has representation ℕ and its target
+--     partner is the bare `ℕ!` tag, so source-side conceal formation is
+--     rejected.  The final payload comparison remains derivable.
 --   * An earlier revision of this probe proved the negative results
 --     that forced this design: with the ⇑ᵗᵐ-weakened Λ⊑² premise and
 --     only two-sided pivots, checkpoint 1 was impossible in any world.
@@ -17,6 +18,7 @@ module proof.DGG.LambdaImpProbe where
 --     no-rebase-empty-target; the rest became derivable and was
 --     replaced by the positive checkpoints.
 
+open import Data.Empty using (⊥)
 open import Data.List using ([]; _∷_)
 import Data.Fin as Fin
 open import Data.Maybe using (just; nothing)
@@ -209,13 +211,39 @@ probe-checkpoint₁ :
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
 
-probe-sealed-arg :
+probe-sealed-arg-partner-empty : ∀ {Xᴿ?}
+  → CTI2.SourceConcealPartnerOK Ex2.example12-source-X-seal Xᴿ?
+      (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+  → ⊥
+probe-sealed-arg-partner-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+
+probe-sealed-arg-empty′ : ∀ {X}
+  → (q : ＇ X ⊑ᵂ⟨ probe-world₁ ⟩ ★)
+  → probe-world₁ ∣ [] ⊢²
+      ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
+      ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ q
+  → ⊥
+probe-sealed-arg-empty′ q₀
+    (CTI2.⊑cast² {p = p} c′ D .q₀) with p
+probe-sealed-arg-empty′ (X⊑★ eq)
+    (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
+probe-sealed-arg-empty′ q₀
+    (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
+  probe-sealed-arg-partner-empty ok
+
+probe-sealed-arg-empty :
   probe-world₁ ∣ [] ⊢²
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
     ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ probe-X⊑★₁
-probe-sealed-arg =
-  CTI2.conceal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
-    Ex2.example12-source-X-seal-⊢ˣ probe-argument₁ probe-X⊑★₁
+  → ⊥
+probe-sealed-arg-empty =
+  probe-sealed-arg-empty′ {X = Fin.zero} probe-X⊑★₁
+
+{-
+The following positive checkpoints used the removed direct
+source-seal/bare-target-tag admission.  Their semantic payload survives as
+`probe-argument₁` and `probe-checkpoint₄`.
 
 probe-app₂ :
   probe-world₁ ∣ [] ⊢²
@@ -241,6 +269,7 @@ probe-checkpoint₃ =
   CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
     Ex2.example12-source-X-unseal-⊢ˣ probe-sealed-arg
     (Ex2.ℕ⊑★² {W = probe-world₁})
+-}
 
 probe-checkpoint₄ :
   probe-world₁ ∣ [] ⊢² Ex.left-final ⊑ probe-target₁ ∶

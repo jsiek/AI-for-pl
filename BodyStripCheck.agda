@@ -19,7 +19,8 @@ open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SourceStripDef using
   (CoreRebuild; SourceSpineStrip; SourceTagSealCore; core-terminus;
-   source-strip; target-chain-data)
+   core-paired; core-tagged; source-strip; target-chain-data;
+   terminal-paired; terminal-rebuild; terminal-tagged)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★; TargetStripAt★ᴸ; TargetStripAt★ᴸData)
 open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
@@ -129,14 +130,31 @@ walk-from-strip-with-target-strip★ :
   → TargetStripAt★ᴸ
   → SourceTagSealCore
   → TargetTagSealWalk
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core {Xᴸ = Xᴸ}
+walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     sv vU mono rb sc X∈ Y∈ D
     with strip sv vU mono rb sc X∈ Y∈ D
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core {Xᴸ = Xᴸ}
+walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     sv vU mono rb sc X∈ Y∈ D
-    | source-strip P A Wᵒ γᵒ qᵒ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-        boundaryᵖᵒ atom source∈ᵒ target∈ᵒ premiseᶜ resume =
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-rebuild rebuild)
+        resume =
+  resume rebuild
+walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
+    sv vU mono rb sc X∈ Y∈ D
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-tagged Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
+          source∈ᵒ target∈ᵒ premiseᶜ)
+        resume =
   resume
-    (core {Xᴸ = Xᴸ} {q = qᵒ}
-      atom vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
-      premiseᶜ)
+    (core {Xᴸ = Xᵒ} {q = qᵒ}
+      spine vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      (core-tagged premiseᶜ))
+walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
+    sv vU mono rb sc X∈ Y∈ D
+    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
+        (terminal-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
+          source∈ᵒ target∈ᵒ repᵒ rᵖ premiseᵖ)
+        resume =
+  resume
+    (core-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ source∈ᵒ
+      target∈ᵒ repᵒ rᵖ premiseᵖ)

@@ -287,20 +287,21 @@ decayRebaseAt
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑² rule-mono CTI2.rebase-idᴸ sc
+    (CTI2.conceal⊑² ok rule-mono CTI2.tag-rebase-idᴸ sc
       c⊢ M⊑M′ q) =
-  CTI2.conceal⊑² (λ _ eq → eq) CTI2.rebase-idᴸ
+  CTI2.conceal⊑² ok (λ _ eq → eq) CTI2.tag-rebase-idᴸ
     (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑² {W′ = W′} rule-mono
-      (CTI2.rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
+    (CTI2.conceal⊑² {W′ = W′} ok rule-mono
+      (CTI2.tag-rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
   CTI2.conceal⊑²
+    ok
     (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
-    (CTI2.rebase-varᴸ
+    (CTI2.tag-rebase-varᴸ
       (decayRebaseAt
         (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) dec rb))
     (decaySameCtx dec
@@ -312,11 +313,11 @@ decayRebaseAt
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑² rule-mono
-      (CTI2.rebase-onlyᴸ to-star disaligned represented)
+    (CTI2.conceal⊑² ok rule-mono
+      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
       sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑² (λ _ eq → eq)
-    (CTI2.rebase-onlyᴸ (mono _ to-star) disaligned
+  CTI2.conceal⊑² ok (λ _ eq → eq)
+    (CTI2.tag-rebase-onlyᴸ (mono _ to-star) disaligned
       (decay⊑ᵂ dec represented))
     (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)

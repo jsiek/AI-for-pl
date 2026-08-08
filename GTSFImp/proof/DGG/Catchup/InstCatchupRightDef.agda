@@ -3,7 +3,7 @@ module proof.DGG.Catchup.InstCatchupRightDef where
 -- File Charter:
 --   * States checked auxiliary surfaces for the right-instantiation
 --     catch-up milestone.
---   * Keeps the concrete right-only bind extension and per-view allocation
+--   * Keeps the concrete right-only bind extensions and per-view allocation
 --     redexes separate from the full relational driver.
 --   * Depends on the stage-1 ExtraCastRight2 interface, core reduction,
 --     and the shared target value-spine view.
@@ -34,6 +34,21 @@ RightBindWorldExtendᴿᵀ : Set
 RightBindWorldExtendᴿᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ECR.WorldExtendᴿ (bind B ∷ []) W (CTI2.rightOnlyWorld W B)
+
+
+RightBindKeepWorldExtendᴿᵀ : Set
+RightBindKeepWorldExtendᴿᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → ECR.WorldExtendᴿ
+      (bind B ∷ keep ∷ []) W (CTI2.rightOnlyWorld W B)
+
+
+RightBindRightBindWorldExtendᴿᵀ : Set
+RightBindRightBindWorldExtendᴿᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {B : Ty Δᴿ} {C : Ty (suc Δᴿ)}
+  → ECR.WorldExtendᴿ (bind B ∷ bind C ∷ []) W
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W B) C)
 
 
 RightBindTransport⊑ᵂᵀ : Set

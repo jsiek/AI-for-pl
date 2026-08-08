@@ -10,6 +10,7 @@ module proof.DGG.Inversion.SourceStripDef where
 
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -24,69 +25,64 @@ open CTI2 using
   (World; CtxImp; RebaseAt; RebaseAtᴸ; _⊑ᵂ⟨_⟩_;
    _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ)
 
--- Rebuild packages
+-- Core branch packages
 ------------------------------------------------------------------------
 
-record TargetChainData {Δᴸ Δᴿ Δ}
-    (Wᶜ : World Δᴸ Δᴿ Δ) (γᶜ : CtxImp Wᶜ)
+data SourceTagSealCoreBranch {Δᴸ Δᴿ Δ}
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (P : Term Δᴸ) (A : Ty Δᴸ)
     (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
-    (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
-  constructor target-chain-data
-  field
-    U★ : Term Δᴿ
-    Y★ : TyVar Δᴿ
-    S★ : Ty Δᴿ
-    S★≡★ : S★ ≡ ★
-    W★ : World Δᴸ Δᴿ Δ
-    γ★ : CtxImp W★
-    mono★ : CTI2.ImpEnvMono Wᶜ W★
-    same★ : CTI2.SameCtx γᶜ γ★
-    boundary★ : RebaseAt W★ Wᶜ Xᴸ Y
-    target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ S★
-    q★ : A ⊑ᵂ⟨ W★ ⟩ S★
-    premise★ : W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
-    Wᵖ : World Δᴸ Δᴿ Δ
-    γᵖ : CtxImp Wᵖ
-    pᵖ : A ⊑ᵂ⟨ Wᵖ ⟩ ★
-    νᵖ : Env∼ Δᴿ
-    cYᵖ : νᵖ ⊢ (＇ Y) ∼ ★
-    reemit :
-      W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
-      → Wᵖ ∣ γᵖ ⊢² P ⊑ (U ↓ seal Y S) ⟨ cYᵖ ⟩ ∶ pᵖ
-
-data CoreRebuild {Δᴸ Δᴿ Δ}
-    (Wᶜ : World Δᴸ Δᴿ Δ) (γᶜ : CtxImp Wᶜ)
-    (P : Term Δᴸ) (A : Ty Δᴸ)
-    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
-    (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
+    (pᵖ : A ⊑ᵂ⟨ Wᵖ ⟩ ★) : Set where
   core-sealed :
-      (Wʳ : World Δᴸ Δᴿ Δ)
-      (γʳ : CtxImp Wʳ)
-    → CTI2.ImpEnvMono Wᶜ Wʳ
-    → CTI2.SameCtx γᶜ γʳ
-    → RebaseAtᴸ Wʳ Wᶜ (just Xᴸ)
-    → targetStoreʷ Wʳ ∋ Y ⦂ S
-    → (qʳ : A ⊑ᵂ⟨ Wʳ ⟩ (＇ Y))
-    → Wʳ ∣ γʳ ⊢² P ⊑ U ↓ seal Y S ∶ qʳ
-    → CoreRebuild Wᶜ γᶜ P A U Xᴸ Y S
+    (Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+     Σ[ γʳ ∈ CtxImp Wʳ ]
+     Σ[ qʳ ∈ A ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+       (CTI2.ImpEnvMono Wᵒ Wʳ
+        × CTI2.SameCtx γᵒ γʳ
+        × RebaseAtᴸ Wʳ Wᵒ (just Xᴸ)
+        × targetStoreʷ Wʳ ∋ Y ⦂ S
+        × Wʳ ∣ γʳ ⊢² P ⊑ U ↓ seal Y S ∶ qʳ))
+    → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY
+        Wᵖ γᵖ pᵖ
 
   core-terminus :
-    TargetChainData Wᶜ γᶜ P A U Xᴸ Y S
-    → CoreRebuild Wᶜ γᶜ P A U Xᴸ Y S
+    (Σ[ U★ ∈ Term Δᴿ ]
+     Σ[ Y★ ∈ TyVar Δᴿ ]
+     Σ[ S★ ∈ Ty Δᴿ ]
+     (S★ ≡ ★
+      × Σ[ W★ ∈ World Δᴸ Δᴿ Δ ]
+      Σ[ γ★ ∈ CtxImp W★ ]
+      (CTI2.ImpEnvMono Wᵒ W★
+       × CTI2.SameCtx γᵒ γ★
+       × RebaseAt W★ Wᵒ Xᴸ Y
+       × targetStoreʷ W★ ∋ Y★ ⦂ S★
+       × Σ[ q★ ∈ A ⊑ᵂ⟨ W★ ⟩ S★ ]
+       (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+        × (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+           → Wᵖ ∣ γᵖ ⊢² P ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)))))
+    → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY
+        Wᵖ γᵖ pᵖ
 
+data SourcePairedBranch {Δᴸ Δᴿ Δ}
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
+    (P : Term Δᴸ) (A : Ty Δᴸ)
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ) : Set where
   core-paired :
-      (Wʳ : World Δᴸ Δᴿ Δ)
-      (γʳ : CtxImp Wʳ)
-    → CTI2.ImpEnvMono Wᶜ Wʳ
-    → CTI2.SameCtx γᶜ γʳ
-    → RebaseAt Wʳ Wᶜ Xᴸ Y
-    → sourceStoreʷ Wᶜ ∋ Xᴸ ⦂ A
-    → targetStoreʷ Wᶜ ∋ Y ⦂ S
-    → CTI2.StoreRepImp Wᶜ Xᴸ Y
-    → (rʳ : A ⊑ᵂ⟨ Wʳ ⟩ S)
-    → Wʳ ∣ γʳ ⊢² P ⊑ U ∶ rʳ
-    → CoreRebuild Wᶜ γᶜ P A U Xᴸ Y S
+    (Σ[ Wᵖ ∈ World Δᴸ Δᴿ Δ ]
+     Σ[ γᵖ ∈ CtxImp Wᵖ ]
+     Σ[ rᵖ ∈ A ⊑ᵂ⟨ Wᵖ ⟩ S ]
+       (CTI2.ImpEnvMono Wᵒ Wᵖ
+        × CTI2.SameCtx γᵒ γᵖ
+        × RebaseAt Wᵖ Wᵒ Xᴸ Y
+        × sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ A
+        × targetStoreʷ Wᵒ ∋ Y ⦂ S
+        × CTI2.StoreRepImp Wᵒ Xᴸ Y
+        × Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ rᵖ))
+    → SourcePairedBranch Wᵒ γᵒ P A U Xᴸ Y S
 
 data SourceCorePremise {Δᴸ Δᴿ Δ}
     (Wᶜ : World Δᴸ Δᴿ Δ) (γᶜ : CtxImp Wᶜ)
@@ -103,65 +99,99 @@ data SourceCorePremise {Δᴸ Δᴿ Δ}
     → Wᶜ ∣ γᶜ ⊢² P ⊑ U ↓ seal Y S ∶ rᶜ
     → SourceCorePremise Wᶜ γᶜ P A U Y S pᶜ cY
 
-data SourceTerminal {Δᴸ Δᴿ Δ}
+data SourceSpineStripBranch {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
+    (V : Term Δᴸ) (R : Ty Δᴸ)
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y))
+    (Core : Term Δᴸ) (CoreTy : Ty Δᴸ) (Xᵒ : TyVar Δᴸ)
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
-    (Core : Term Δᴸ) (CoreTy : Ty Δᴸ)
-    (U : Term Δᴿ) (S : Ty Δᴿ)
-    (X₀ : TyVar Δᴸ) (Y : TyVar Δᴿ)
-    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★) : Set where
-  terminal-rebuild :
-    CoreRebuild Wᵒ γᵒ Core CoreTy U X₀ Y S
-    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
+    (qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)) : Set where
+  spine-sealed :
+    (Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+     Σ[ γʳ ∈ CtxImp Wʳ ]
+     Σ[ qʳ ∈ CoreTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+       (CTI2.ImpEnvMono Wᵒ Wʳ
+        × CTI2.SameCtx γᵒ γʳ
+        × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+        × targetStoreʷ Wʳ ∋ Y ⦂ S
+        × Wʳ ∣ γʳ ⊢² Core ⊑ U ↓ seal Y S ∶ qʳ))
+    → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q
+    → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
-  terminal-tagged :
+  spine-tagged :
       (Wᵖ : World Δᴸ Δᴿ Δ)
       (γᵖ : CtxImp Wᵖ)
     → (pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
     → CTI2.ImpEnvMono Wᵒ Wᵖ
     → CTI2.SameCtx γᵒ γᵖ
-    → RebaseAt Wᵖ Wᵒ X₀ Y
-    → sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
+    → RebaseAt Wᵖ Wᵒ Xᵒ Y
+    → sourceStoreʷ Wᵒ ∋ Xᵒ ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
     → Wᵖ ∣ γᵖ ⊢² Core ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
-    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
+    → (SourceTagSealCoreBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+          cY Wᵖ γᵖ pᵖ
+       → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q)
+    → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
-  terminal-paired :
+  spine-paired :
+    SourcePairedBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+    → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q
+    → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
+
+data SourceColumnStripBranch {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
+    (V : Term Δᴸ)
+    (U : Term Δᴿ) (Xᴸ : TyVar Δᴸ)
+    (Y : TyVar Δᴿ) (S : Ty Δᴿ)
+    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
+    (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y))
+    (Core : Term Δᴸ) (CoreTy : Ty Δᴸ) (Xᵒ : TyVar Δᴸ)
+    (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
+    (qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)) : Set where
+  column-sealed :
+    (Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+     Σ[ γʳ ∈ CtxImp Wʳ ]
+     Σ[ qʳ ∈ CoreTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+       (CTI2.ImpEnvMono Wᵒ Wʳ
+        × CTI2.SameCtx γᵒ γʳ
+        × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+        × targetStoreʷ Wʳ ∋ Y ⦂ S
+        × Wʳ ∣ γʳ ⊢² Core ⊑ U ↓ seal Y S ∶ qʳ))
+    → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
+    → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
+
+  column-tagged :
       (Wᵖ : World Δᴸ Δᴿ Δ)
       (γᵖ : CtxImp Wᵖ)
+    → (pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
     → CTI2.ImpEnvMono Wᵒ Wᵖ
     → CTI2.SameCtx γᵒ γᵖ
-    → RebaseAt Wᵖ Wᵒ X₀ Y
-    → sourceStoreʷ Wᵒ ∋ X₀ ⦂ CoreTy
+    → RebaseAt Wᵖ Wᵒ Xᵒ Y
+    → sourceStoreʷ Wᵒ ∋ Xᵒ ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
-    → CTI2.StoreRepImp Wᵒ X₀ Y
-    → (rᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ S)
-    → Wᵖ ∣ γᵖ ⊢² Core ⊑ U ∶ rᵖ
-    → SourceTerminal Wᵒ γᵒ Core CoreTy U S X₀ Y cY
+    → Wᵖ ∣ γᵖ ⊢² Core ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
+    → (SourceTagSealCoreBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+          cY Wᵖ γᵖ pᵖ
+       → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q)
+    → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
+
+  column-paired :
+    SourcePairedBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+    → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
+    → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
+        Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
 ------------------------------------------------------------------------
 -- Source strip surfaces
 ------------------------------------------------------------------------
-
-record SourceSpineStripResult {Δᴸ Δᴿ Δ}
-    (W₀ : World Δᴸ Δᴿ Δ) (γ₀ : CtxImp W₀)
-    (V : Term Δᴸ) (U : Term Δᴿ)
-    (R : Ty Δᴸ) (S : Ty Δᴿ)
-    (X₀ : TyVar Δᴸ) (Y : TyVar Δᴿ)
-    (q₀ : (＇ X₀) ⊑ᵂ⟨ W₀ ⟩ (＇ Y))
-    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★) : Set where
-  constructor source-strip
-  field
-    Core : Term Δᴸ
-    CoreTy : Ty Δᴸ
-    Xᵒ : TyVar Δᴸ
-    Wᵒ : World Δᴸ Δᴿ Δ
-    γᵒ : CtxImp Wᵒ
-    qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
-    spineᶜ : SpineValue Core
-    terminalᶜ : SourceTerminal Wᵒ γᵒ Core CoreTy U S Xᵒ Y cY
-    resume :
-      CoreRebuild Wᵒ γᵒ Core CoreTy U Xᵒ Y S
-      → W₀ ∣ γ₀ ⊢² V ↓ seal X₀ R ⊑ U ↓ seal Y S ∶ q₀
 
 SourceSpineStrip : Set
 SourceSpineStrip =
@@ -182,28 +212,15 @@ SourceSpineStrip =
   → sourceStoreʷ W ∋ Xᴸ ⦂ R
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
-  → SourceSpineStripResult W γ V U R S Xᴸ Y q cY
-
-record SourceColumnStripResult {Δᴸ Δᴿ Δ}
-    (W₀ : World Δᴸ Δᴿ Δ) (γ₀ : CtxImp W₀)
-    (V : Term Δᴸ) (A : Ty Δᴸ)
-    (U : Term Δᴿ) (S : Ty Δᴿ) (Y : TyVar Δᴿ)
-    (X₀ : TyVar Δᴸ)
-    (q₀ : (＇ X₀) ⊑ᵂ⟨ W₀ ⟩ (＇ Y))
-    {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★) : Set where
-  constructor source-column-strip
-  field
-    Core : Term Δᴸ
-    CoreTy : Ty Δᴸ
-    Xᵒ : TyVar Δᴸ
-    Wᵒ : World Δᴸ Δᴿ Δ
-    γᵒ : CtxImp Wᵒ
-    qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)
-    spineᶜ : SpineValue Core
-    terminalᶜ : SourceTerminal Wᵒ γᵒ Core CoreTy U S Xᵒ Y cY
-    resume :
-      CoreRebuild Wᵒ γᵒ Core CoreTy U Xᵒ Y S
-      → W₀ ∣ γ₀ ⊢² V ⊑ U ↓ seal Y S ∶ q₀
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
 
 SourceColumnStrip : Set
 SourceColumnStrip =
@@ -222,7 +239,15 @@ SourceColumnStrip =
   → CTI2.SameCtx γ γ′
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
-  → SourceColumnStripResult W γ V (＇ Xᴸ) U S Y Xᴸ q cY
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceColumnStripBranch W γ V U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
 
 SourceTagSealCore : Set
 SourceTagSealCore =
@@ -242,4 +267,4 @@ SourceTagSealCore =
   → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → SourceCorePremise Wᵖ γᵖ P A U Y S p cY
-  → CoreRebuild Wᵒ γᵒ P A U Xᴸ Y S
+  → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY Wᵖ γᵖ p

@@ -8,6 +8,7 @@ module proof.DGG.Inversion.SourceStripProof where
 
 open import Relation.Binary.PropositionalEquality using (refl)
   renaming (subst to subst≡)
+open import Data.Product using (_,_)
 
 open import Types
 open import TyStore using (_∋_⦂_)
@@ -17,8 +18,8 @@ open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore;
-   SourceCorePremise; CoreRebuild; TargetChainData; core-sealed;
-   core-terminus; core-tagged; core-untagged; target-chain-data)
+   SourceCorePremise; core-sealed; core-terminus; core-tagged;
+   core-untagged)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★Data; target-strip★-data)
 open import proof.DGG.Inversion.TargetStripLemma using
@@ -47,8 +48,9 @@ source-spine-strip = source-spine-strip-worker
 source-tag-seal-core : SourceTagSealCore
 source-tag-seal-core sv vU mono rb sc source∈ target∈
     (core-untagged qᶜ D) =
-  core-sealed _ _ mono sc (CTI2.rebase-varᴸ rb)
-    (rebase-target-membership-forward rb target∈) qᶜ D
+  core-sealed
+    (_ , _ , qᶜ , mono , sc , CTI2.rebase-varᴸ rb ,
+      rebase-target-membership-forward rb target∈ , D)
 source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
     {ν = ν} {cY = cY} {p = p} sv vU mono rb sc source∈
     target∈
@@ -60,6 +62,5 @@ source-tag-seal-core {Wᵖ = Wᵖ} {γᵖ = γᵖ} {Xᴸ = Xᴸ}
     | target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
         target∈★ q★ premise★ reemit =
   core-terminus
-    (target-chain-data
-      U★ Y★ _ refl W★ γ★ mono★ same★ boundary★ target∈★ q★
-      premise★ Wᵖ γᵖ p ν cY reemit)
+    (U★ , Y★ , _ , refl , W★ , γ★ , mono★ , same★ ,
+      boundary★ , target∈★ , q★ , premise★ , reemit)

@@ -9,9 +9,10 @@ module proof.DGG.Inversion.SourceStripWorkerProof where
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip)
 
--- WIP handoff: the restricted sealed-source partner view is now checked in
--- `TargetWalkSupport`.  The worker proof remains the remaining integration
--- residue, so the public tree stays green through these two frozen surfaces.
+-- The worker statements are still being recut.  The checked obstruction is
+-- that the old column worker asked for inverse rebase transport with no
+-- enclosing source wrapper.  Keep the module green while the public strip
+-- surface and consumers are adjusted around the restricted branch data.
 postulate
   source-column-strip-worker : SourceColumnStrip
   source-spine-strip-worker : SourceSpineStrip

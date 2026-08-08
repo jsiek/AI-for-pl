@@ -7,6 +7,7 @@ module BodyStripCheck where
 
 import Data.Fin as Fin
 open import Data.Nat using (suc)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (refl)
   renaming (subst to subst≡)
 
@@ -18,9 +19,9 @@ open import CastTerms
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SourceStripDef using
-  (CoreRebuild; SourceSpineStrip; SourceTagSealCore; core-terminus;
-   core-paired; core-tagged; source-strip; target-chain-data;
-   terminal-paired; terminal-rebuild; terminal-tagged)
+  (SourceSpineStrip; SourceTagSealCore; SourceTagSealCoreBranch;
+   core-terminus; core-tagged; spine-paired; spine-sealed;
+   spine-tagged)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★; TargetStripAt★ᴸ; TargetStripAt★ᴸData)
 open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
@@ -69,18 +70,17 @@ lambda-core-from-target-strip★ᴸ :
   → ⟨ Δᴿ , targetStoreʷ Wᵖ , tgtCtxʷ γᵖ ⟩ ⊢
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
   → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ γᵇ p
-  → CoreRebuild Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
+  → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
+      cY Wᵖ γᵖ q
 lambda-core-from-target-strip★ᴸ {Wᵖ = Wᵖ} {γᵖ = γᵖ}
     {ν = ν} {cY = cY} {q = q}
     Anv z∈A liftγ vV target⊢ d =
   core-terminus
-    (target-chain-data
-      U★ Y★ ★ refl W★ γ★ mono★ same★ boundary★ target∈★
-      q★
-      (CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★)
-      Wᵖ γᵖ q ν cY
-      (λ _ → CTI2.Λ⊑² Anv z∈A liftγ vV target⊢
-        (reemit premise★) q))
+    (U★ , Y★ , ★ , refl , W★ , γ★ , mono★ , same★ ,
+      boundary★ , target∈★ , q★ ,
+      CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★ ,
+      λ _ → CTI2.Λ⊑² Anv z∈A liftγ vV target⊢
+        (reemit premise★) q)
   where
   open TargetStripAt★ᴸData d
   q★ = all-to-star-obligation {W = W★} Anv z∈A body★
@@ -112,7 +112,8 @@ lambda-core-from-member :
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
-  → CoreRebuild Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
+  → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
+      cY Wᵖ γᵖ q
 lambda-core-from-member stripᴸ {q = q}
     Anv z∈A liftγ sv vV vU mono rb sc
     X∈★ Y∈ target⊢ bodyD =
@@ -135,26 +136,20 @@ walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     with strip sv vU mono rb sc X∈ Y∈ D
 walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     sv vU mono rb sc X∈ Y∈ D
-    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
-        (terminal-rebuild rebuild)
-        resume =
-  resume rebuild
+    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
+        spine-sealed sealed final =
+  final
 walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     sv vU mono rb sc X∈ Y∈ D
-    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
-        (terminal-tagged Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
-          source∈ᵒ target∈ᵒ premiseᶜ)
-        resume =
-  resume
+    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
+        spine-tagged Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
+          source∈ᵒ target∈ᵒ premiseᶜ finish =
+  finish
     (core {Xᴸ = Xᵒ} {q = qᵒ}
       spine vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
       (core-tagged premiseᶜ))
 walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
     sv vU mono rb sc X∈ Y∈ D
-    | source-strip P A Xᵒ Wᵒ γᵒ qᵒ spine
-        (terminal-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
-          source∈ᵒ target∈ᵒ repᵒ rᵖ premiseᵖ)
-        resume =
-  resume
-    (core-paired Wᵖ γᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ source∈ᵒ
-      target∈ᵒ repᵒ rᵖ premiseᵖ)
+    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
+        spine-paired paired final =
+  final

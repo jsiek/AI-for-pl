@@ -30,9 +30,15 @@ import proof.DGG.Inversion.SpineValueDef
 import proof.DGG.Inversion.RightInjInversion2Def
 import proof.DGG.Inversion.TargetWalkDef
 import proof.DGG.Inversion.TargetWalkSupport
+import proof.DGG.Inversion.SourceStripDef
+import proof.DGG.Inversion.SourceStripProof
+import proof.DGG.Inversion.SourceStripLemma
 import proof.DGG.Inversion.TargetChainProof
 import proof.DGG.Inversion.TargetChainLemma
+import proof.DGG.Inversion.TargetWalkProof
+import proof.DGG.Inversion.TargetWalkLemma
 import proof.DGG.Inversion.RightInjInversion2Proof
+import proof.DGG.Inversion.RightInjInversion2Lemma
 import proof.DGG.Inversion.TargetDescentDef
 import proof.DGG.Inversion.TargetDescentLemma
 import proof.DGG.SourceStarProbe

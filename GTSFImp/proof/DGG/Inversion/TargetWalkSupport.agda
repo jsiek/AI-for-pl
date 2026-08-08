@@ -54,7 +54,7 @@ open SVD using
 open import proof.ImprecisionConsistency using
   (ground-cast-source⊑; source-occurs-target; rename-occurs;
    ext-injective; toRenameᵗ-injective; nonstar-from-≢★; rename-⊑;
-   fin-suc-injective; nonvar-occurs-nonstar)
+   fin-suc-injective; nonvar-occurs-nonstar; unshift-⊑)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using (toRename-keep-eq)
 
@@ -89,6 +89,22 @@ liftWorldLeft-⊑ᵂ {W = W} {A = A} {B = B} body =
          renameᵗ (extᵗ (toRenameᵗ (ηᴸʷ W))) A ⊑ T)
       (sym (renameᵗ-skip-eq (ηᴿʷ W) B))
       body)
+
+lowerWorldLeft-shift-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → ⇑ᵗ A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ B
+  → A ⊑ᵂ⟨ W ⟩ B
+lowerWorldLeft-shift-⊑ᵂ {W = W} {A = A} {B = B} p =
+  unshift-⊑
+    (subst≡
+      (λ R → instᵐ (impEnvʷ W) ⊢ ⇑ᵗ (CTI2.embedᴸ W A) ⊑ R)
+      (renameᵗ-skip-eq (ηᴿʷ W) B)
+      (subst≡
+        (λ L → instᵐ (impEnvʷ W) ⊢ L ⊑
+          renameᵗ (toRenameᵗ (skip (ηᴿʷ W))) B)
+        (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq (ηᴸʷ W)))
+          (renameᵗ-shift (toRenameᵗ (ηᴸʷ W)) A))
+        p))
 
 liftWorldBoth-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {v : VarImp}
@@ -800,4 +816,3 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
     Anv Ans (CTI2.conceal⊑² mono rb sc c⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
-

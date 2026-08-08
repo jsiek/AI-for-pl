@@ -20,6 +20,7 @@ open import CastTerms using
   (Term; Value; _↓_; _⟨_⟩; _⊢_⦂_; ⟨_,_,_⟩; seal)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
+open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using
   (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
    _∣_⊢²_⊑_∶_; targetStoreʷ; tgtCtxʷ)
@@ -74,6 +75,7 @@ SealDescentAtVar =
     {A : Ty Δᴸ} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {r : A ⊑ᵂ⟨ Wʳ ⟩ ＇ Y}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
@@ -92,6 +94,7 @@ SealDescentAtVarᴸ =
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wʳ ⟩ ＇ Y}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
@@ -181,6 +184,7 @@ TagDispatchAt★ =
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
     {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value N
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -199,6 +203,7 @@ TagDispatchAt★ᴸ =
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
     {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value N
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -217,6 +222,7 @@ TargetStripAt★ =
     {A : Ty Δᴸ} {S : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -236,6 +242,7 @@ TargetStripAt★ᴸ =
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -251,18 +258,18 @@ target-strip★-from-slices :
   → TagDispatchAt★
   → TargetStripAt★
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
-    with tag-dispatch (vU ↓ seal) mono rb sc D
+    sv vU mono rb sc target∈ D
+    with tag-dispatch sv (vU ↓ seal) mono rb sc D
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-tag (tag-node★ r prem) =
-  seal-at-var vU mono rb sc target∈ prem
+  seal-at-var sv vU mono rb sc target∈ prem
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-source-fold resume =
   resume refl vU target∈
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-nonvar-empty bad =
   ⊥-elim bad
 
@@ -271,17 +278,17 @@ target-strip★ᴸ-from-slices :
   → TagDispatchAt★ᴸ
   → TargetStripAt★ᴸ
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
-    with tag-dispatchᴸ (vU ↓ seal) mono rb sc liftγ D
+    sv vU mono rb sc target∈ liftγ D
+    with tag-dispatchᴸ sv (vU ↓ seal) mono rb sc liftγ D
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-tagᴸ (tag-node★ᴸ r prem) =
-  seal-at-varᴸ vU mono rb sc target∈ liftγ prem
+  seal-at-varᴸ sv vU mono rb sc target∈ liftγ prem
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-source-foldᴸ resume =
   resume refl vU target∈
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-nonvar-emptyᴸ bad =
   ⊥-elim bad

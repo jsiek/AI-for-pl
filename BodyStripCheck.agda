@@ -20,6 +20,7 @@ open import proof.DGG.Inversion.SourceStripDef using
   (CoreRebuild; SourceSpineStrip; SourceTagSealCore; TargetChainData;
    core-terminus; source-strip; target-chain-data)
 open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
+open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 import proof.DGG.TerminusRebuildProbe as TRP
 
 open CTI2 using
@@ -89,6 +90,7 @@ TargetStripAt★ =
     {A : Ty Δᴸ} {S : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -108,6 +110,7 @@ TargetStripAt★ᴸ =
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -155,6 +158,7 @@ lambda-core-from-member :
   → NonVar A
   → Fin.zero ∈ᵗ A
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
+  → SpineValue V
   → Value V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
@@ -164,9 +168,10 @@ lambda-core-from-member :
   → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
   → CoreRebuild Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
-lambda-core-from-member stripᴸ Anv z∈A liftγ vV vU mono rb sc Y∈ bodyD =
+lambda-core-from-member stripᴸ Anv z∈A liftγ sv vV vU mono rb sc
+    Y∈ bodyD =
   lambda-core-from-target-strip★ᴸ Anv z∈A vV
-    (stripᴸ vU mono rb sc Y∈ liftγ bodyD)
+    (stripᴸ sv vU mono rb sc Y∈ liftγ bodyD)
 
 ------------------------------------------------------------------------
 -- Validation B: TerminusRebuildProbe Instance A's body fits the package

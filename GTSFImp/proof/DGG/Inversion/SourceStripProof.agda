@@ -11,12 +11,13 @@ open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
 open import TyStore using (_∋_⦂_)
+open import CastTerms using (Term)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore;
    SourceAtom;
    SourceCorePremise; CoreRebuild; TargetChainData; core-sealed;
-   core-terminus; core-tagged; core-untagged; atom-Λ;
+   core-terminus; core-tagged; core-untagged; atom-ƛ; atom-Λ; atom-$;
    target-chain-data)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★Data; TargetStripAt★ᴸData;
@@ -25,6 +26,8 @@ open import proof.DGG.Inversion.TargetStripLemma using
   (target-strip-at★; target-strip-at★ᴸ)
 open import proof.DGG.Inversion.SourceStripWorkerProof using
   (source-column-strip-worker; source-spine-strip-worker)
+open import proof.DGG.Inversion.SpineValueDef using
+  (SpineValue; sv-ƛ; sv-Λ; sv-$)
 
 private
   rebase-target-membership-forward : ∀ {Δᴸ Δᴿ Δ}
@@ -37,6 +40,13 @@ private
     subst≡ (λ Σ → Σ ∋ _ ⦂ _)
       (CTI2.SameRuntime.targetStore-same
         (CTI2.RebaseAt.sameRuntime rb)) Y∈
+
+  source-atom-spine : ∀ {Δ : TyCtx} {P : Term Δ}
+    → SourceAtom P
+    → SpineValue P
+  source-atom-spine (atom-ƛ N) = sv-ƛ N
+  source-atom-spine (atom-Λ sv) = sv-Λ sv
+  source-atom-spine (atom-$ κ) = sv-$ κ
 
 source-column-strip : SourceColumnStrip
 source-column-strip = source-column-strip-worker
@@ -57,12 +67,13 @@ source-tag-seal-core {Xᴸ = Xᴸ} (atom-Λ sv) vU mono rb sc target∈
       (CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★))
   where
   strip★ᴸ =
-    target-strip-at★ᴸ vU mono rb sc target∈ liftγ prem
+    target-strip-at★ᴸ sv vU mono rb sc target∈ liftγ prem
 
   open TargetStripAt★ᴸData strip★ᴸ
 source-tag-seal-core {Xᴸ = Xᴸ} atom vU mono rb sc target∈
     (core-tagged D)
-    with target-strip-at★ vU mono rb sc target∈ D
+    with target-strip-at★ (source-atom-spine atom)
+      vU mono rb sc target∈ D
 source-tag-seal-core {Xᴸ = Xᴸ} atom vU mono rb sc target∈
     (core-tagged D)
     | target-strip★-data Y★ W★ γ★ mono★ same★ boundary★

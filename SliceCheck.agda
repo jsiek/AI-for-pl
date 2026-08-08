@@ -22,12 +22,14 @@ import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SourceStripDef using
   (CoreRebuild; SourceAtom; SourceColumnStrip; SourceCorePremise;
    SourceSpineStrip; SourceTagSealCore; TargetChainData; atom-Λ;
-   core-sealed; core-tagged; core-terminus; core-untagged; source-strip;
-   target-chain-data)
+   atom-ƛ; atom-$; core-sealed; core-tagged; core-terminus;
+   core-untagged; source-strip; target-chain-data)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★; TargetStripAt★Data; TargetStripAt★ᴸ;
    TargetStripAt★ᴸData; target-strip★-data; target-strip★ᴸ-data)
 open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
+open import proof.DGG.Inversion.SpineValueDef using
+  (SpineValue; sv-ƛ; sv-Λ; sv-$)
 import proof.DGG.TerminusRebuildProbe as TRP
 
 open CTI2 using
@@ -47,6 +49,7 @@ SealDescentAtVar =
     {A : Ty Δᴸ} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {r : A ⊑ᵂ⟨ Wʳ ⟩ ＇ Y}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
@@ -65,6 +68,7 @@ SealDescentAtVarᴸ =
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wʳ ⟩ ＇ Y}
+  → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wʳ
   → RebaseAt Wʳ Wᵒ Xᴸ Y
@@ -154,6 +158,7 @@ TagDispatchAt★ =
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
     {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value N
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -172,6 +177,7 @@ TagDispatchAt★ᴸ =
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
     {cY : ν ⊢ (＇ Y) ∼ ★}
     {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+  → SpineValue V
   → Value N
   → CTI2.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
@@ -190,18 +196,18 @@ target-strip★-from-slices :
   → TagDispatchAt★
   → TargetStripAt★
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
-    with tag-dispatch (vU ↓ seal) mono rb sc D
+    sv vU mono rb sc target∈ D
+    with tag-dispatch sv (vU ↓ seal) mono rb sc D
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-tag (tag-node★ r prem) =
-  seal-at-var vU mono rb sc target∈ prem
+  seal-at-var sv vU mono rb sc target∈ prem
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-source-fold resume =
   resume refl vU target∈
 target-strip★-from-slices seal-at-var tag-dispatch
-    vU mono rb sc target∈ D
+    sv vU mono rb sc target∈ D
     | dispatch-nonvar-empty bad =
   ⊥-elim bad
 
@@ -210,18 +216,18 @@ target-strip★ᴸ-from-slices :
   → TagDispatchAt★ᴸ
   → TargetStripAt★ᴸ
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
-    with tag-dispatchᴸ (vU ↓ seal) mono rb sc liftγ D
+    sv vU mono rb sc target∈ liftγ D
+    with tag-dispatchᴸ sv (vU ↓ seal) mono rb sc liftγ D
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-tagᴸ (tag-node★ᴸ r prem) =
-  seal-at-varᴸ vU mono rb sc target∈ liftγ prem
+  seal-at-varᴸ sv vU mono rb sc target∈ liftγ prem
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-source-foldᴸ resume =
   resume refl vU target∈
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
-    vU mono rb sc target∈ liftγ D
+    sv vU mono rb sc target∈ liftγ D
     | dispatch-nonvar-emptyᴸ bad =
   ⊥-elim bad
 
@@ -268,6 +274,13 @@ private
       (CTI2.SameRuntime.targetStore-same
         (CTI2.RebaseAt.sameRuntime rb)) Y∈
 
+  source-atom-spine : ∀ {Δ : TyCtx} {P : Term Δ}
+    → SourceAtom P
+    → SpineValue P
+  source-atom-spine (atom-ƛ N) = sv-ƛ N
+  source-atom-spine (atom-Λ sv) = sv-Λ sv
+  source-atom-spine (atom-$ κ) = sv-$ κ
+
 source-tag-seal-core-from-slices :
   SealDescentAtVar
   → SealDescentAtVarᴸ
@@ -286,10 +299,11 @@ source-tag-seal-core-from-slices sealD sealDᴸ tag tagᴸ {Xᴸ = Xᴸ}
   where
   strip★ᴸ =
     target-strip★ᴸ-from-slices sealDᴸ tagᴸ
-      vU mono rb sc target∈ liftγ prem
+      sv vU mono rb sc target∈ liftγ prem
 source-tag-seal-core-from-slices sealD sealDᴸ tag tagᴸ {Xᴸ = Xᴸ}
     atom vU mono rb sc target∈ (core-tagged D)
-    with target-strip★-from-slices sealD tag vU mono rb sc target∈ D
+    with target-strip★-from-slices sealD tag (source-atom-spine atom)
+      vU mono rb sc target∈ D
 source-tag-seal-core-from-slices sealD sealDᴸ tag tagᴸ {Xᴸ = Xᴸ}
     atom vU mono rb sc target∈ (core-tagged D)
     | target-strip★-data Y★ W★ γ★ mono★ same★ boundary★

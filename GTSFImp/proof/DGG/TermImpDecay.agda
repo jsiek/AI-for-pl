@@ -106,10 +106,9 @@ decayRebaseAt
     (env-decay refl refl refl refl mono₁)
     dec₂@(env-decay refl refl refl refl mono₂)
     (CTI2.rebase-at (CTI2.same-runtime source-eq target-eq)
-      offL offR aligned anchor
-      (CTI2.store-rep-imp represented)) =
+      offL frozenR aligned (CTI2.store-rep-imp represented)) =
   CTI2.rebase-at (CTI2.same-runtime source-eq target-eq)
-    offL offR aligned anchor
+    offL frozenR aligned
     (CTI2.store-rep-imp (decay⊑ᵂ dec₂ represented))
 
 ------------------------------------------------------------------------

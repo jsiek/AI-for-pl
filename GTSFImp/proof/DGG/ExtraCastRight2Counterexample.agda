@@ -1,22 +1,13 @@
 module proof.DGG.ExtraCastRight2Counterexample where
 
 -- File Charter:
---   * Regression for the bare-seal case of right-injection inversion.
---   * Under the original design, where rebasing forced the premise and
---     conclusion worlds to agree on every imprecision mark, this file
---     proved a counterexample (commit 69fbef83): a valid input
---     derivation whose required output after target-tag cancellation
---     was uninhabited.  The culprit was a stale precise mark: the
---     outer conceal boundary rebases the target variable Y from U to
---     Z, leaving U precise but unaligned, and mark equality preserved
---     the staleness all the way down.
---   * The relation now carries ImpEnvMono instead: marks may decay
---     toward X⊑★ from conclusion to premise.  This file rebuilds the
---     same configuration and proves the previously-empty output
---     derivable, by descending into a dynamized premise world.
---   * Ties in the WFWorld invariant: the stale input world is not
---     mark-honest, the dynamized worlds are, and the repair is
---     exactly the re-marking that honesty demands.
+--   * Design record for the bare-seal stale-mark counterexample.
+--   * The pre-M2 construction moved target variable `Y` from old source
+--     center `U` to old source center `Z`.
+--   * M2 removes that target-moving rebase: both the stale and dynamized
+--     Z/Y outer rebases are empty by `ηᴿ-frozen`.
+--   * The stale world facts are kept to document the configuration that
+--     motivated mark monotonicity before the parked rebase redesign.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -89,14 +80,9 @@ post-world = world source-η target-η-Z imp-env source-store target-store
 Z-Y-representation : CTI2.StoreRepImp post-world Z Y
 Z-Y-representation = store-rep-imp ★⊑★
 
-Z-Y-rebase : RebaseAt pre-world post-world Z Y
-Z-Y-rebase =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl
-    (λ _ → U , refl)
-    Z-Y-representation
+Z-Y-rebase-empty : RebaseAt pre-world post-world Z Y → ⊥
+Z-Y-rebase-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+Z-Y-rebase-empty rb | ()
 
 Z-seal-typed : source-store ⊢↓[ just Z ] seal Z ★
 Z-seal-typed = ⊢↓-sealˣ source-Z∋
@@ -188,14 +174,6 @@ inner-paired-tags² : pre-world ∣ [] ⊢²
 inner-paired-tags² =
   CTI2.cast⊑cast² U! Y! inner-seals² ★⊑★
 
-problematic-seal² : post-world ∣ [] ⊢²
-    ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-    ⊑ (($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★) ⟨ Y! ⟩ ∶
-      conclusion-to-star
-problematic-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ Z-Y-rebase)
-    CTI2.same-[] Z-seal-typed inner-paired-tags² conclusion-to-star
-
 ------------------------------------------------------------------------
 -- The repair: descend into a mark-honest, dynamized premise world
 ------------------------------------------------------------------------
@@ -221,14 +199,9 @@ dynamize : CTI2.ImpEnvMono post-world pre-worldᵈ
 dynamize Fin.zero _ = refl
 dynamize (Fin.suc Fin.zero) _ = refl
 
-Z-Y-rebaseᵈ : RebaseAt pre-worldᵈ post-world Z Y
-Z-Y-rebaseᵈ =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl
-    (λ _ → U , refl)
-    Z-Y-representation
+Z-Y-rebaseᵈ-empty : RebaseAt pre-worldᵈ post-world Z Y → ⊥
+Z-Y-rebaseᵈ-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+Z-Y-rebaseᵈ-empty rb | ()
 
 U-Y-representationᵈ : CTI2.StoreRepImp pre-worldᵈ U Y
 U-Y-representationᵈ = store-rep-imp ι⊑★
@@ -255,14 +228,3 @@ repaired-seal² =
 repaired-tag² : pre-worldᵈ ∣ [] ⊢²
     (($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩ ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ★⊑★
 repaired-tag² = CTI2.cast⊑² U! repaired-seal² ★⊑★
-
--- The output relation demanded by right-injection inversion after the
--- target's Y! tag cancels.  Under mark equality this type was proved
--- empty; under monotone dynamization it is inhabited.
-
-repaired-result² : post-world ∣ [] ⊢²
-    ((($ (κℕ 0)) ↓ seal U (‵ `ℕ)) ⟨ U! ⟩) ↓ seal Z ★
-    ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ conclusion-to-tag
-repaired-result² =
-  CTI2.conceal⊑conceal² dynamize Z-Y-rebaseᵈ CTI2.same-[]
-    Z-seal-typed target-Y-seal-typed repaired-tag² conclusion-to-tag

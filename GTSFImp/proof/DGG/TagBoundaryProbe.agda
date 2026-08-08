@@ -162,9 +162,8 @@ probe-outer-target-rebase : RebaseAt probe-W₄ probe-W₁ X Y
 probe-outer-target-rebase =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} Y′≢ → refl })
-    refl (λ moved → ⊥-elim (moved refl)) probe-X-Y-rep₁
+    (λ _ → refl)
+    refl probe-X-Y-rep₁
 
 probe-X-Y′-rep₄ : CTI2.StoreRepImp probe-W₄ X Y′
 probe-X-Y′-rep₄ = store-rep-imp ★⊑★
@@ -173,9 +172,8 @@ probe-inner-target-rebase : RebaseAt probe-W₅ probe-W₄ X Y′
 probe-inner-target-rebase =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
-    (λ { {Fin.zero} Y≢ → refl
-       ; {Fin.suc Fin.zero} Y′≢ → ⊥-elim (Y′≢ refl) })
-    refl (λ moved → ⊥-elim (moved refl)) probe-X-Y′-rep₄
+    (λ _ → refl)
+    refl probe-X-Y′-rep₄
 
 probe-X-Y′-rep₅ : CTI2.StoreRepImp probe-W₅ X Y′
 probe-X-Y′-rep₅ = store-rep-imp ★⊑★

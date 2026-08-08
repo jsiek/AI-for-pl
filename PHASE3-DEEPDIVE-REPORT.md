@@ -1,0 +1,260 @@
+# Phase 3 Deep-Dive Report
+
+Date: 2026-08-07
+
+Branch: `agent/gtsf-extra-cast-right`
+
+## Summary
+
+Phase 3 did not find a reachable moved-pivot witness.  The Phase-0
+hand-built suspect is excluded by a checked compile-image shape test.
+The source-derived dives all continue to fit the parked-pivot pattern:
+fresh allocations extend the world with identity embeddings, and the
+checked relation checkpoints use `sameWorldRebaseAt`.
+
+The main limitation is scope.  `Phase3DeepDives.agda` keeps the active
+source-derived artifacts modest.  D2 and D3 include one v2 relation
+checkpoint at the checked allocation boundary.  D2 and D4 also include
+later executable trace and parked-store gates, but they do not duplicate
+the large `Examples2` proof scripts at every later state.
+
+## D1. Compile-Image Membership
+
+Artifact: `GTSFImp/proof/DGG/CompileImageShape.agda`.
+
+The file defines `image-shape?`, a decidable syntactic
+over-approximation of ordinary `Compile.compile` output.  The checked
+theorem
+
+`compile-image-shape`
+
+proves that every ordinary compiler output satisfies the predicate.
+The file then records 28 `refl` gates over `compiled-standard`, covering
+both sides of each catalog entry, so all 56 catalog terms pass.
+
+The Phase-0 suspect terms fail:
+
+`tag-chain-program-outside-image`
+
+`tag-direct-program-outside-image`
+
+Verdict: the Phase-0 suspect is outside the ordinary compile image.
+Since `image-shape?` is an over-approximation proved to contain all
+ordinary compiler outputs, failing it is a checked reachability
+exclusion for direct compilation.
+
+## D2. `adversarial-source-chain`
+
+Artifact: `GTSFImp/proof/DGG/Phase3DeepDives.agda`.
+
+The checked initial relation is
+
+`adversarial-source-chain-initial²`
+
+from `compile-preserves-imprecision²`.
+
+The first ordinary `compile` step allocates Nat:
+
+`adversarial-source-chain-change₀ : bind RC.ℕ₀`
+
+The post-step v2 checkpoint is
+
+`adversarial-source-chain-checkpoint₁`
+
+under
+
+`adversarial-source-chain-world₁ =
+ bothBindWorld X⊑X initialWorld RC.ℕ₀ RC.ℕ₀`.
+
+The relation proof is carried by:
+
+- `reveal⊑reveal²`
+- `cast⊑cast²`
+- `·⊑·²`
+- `sameWorldRebaseAt`
+
+No moved target pivot is used at this checked boundary.
+
+The ordinary `compile` term then hits the known proof-transport cast
+execution issue, so the later locator uses the executable
+`ReachabilityCatalog.compiled` screen term.  The fully formed nested
+source-chain store is located by these checked changes:
+
+- step 0: `bind RC.ℕ₀`
+- step 1: `keep`
+- step 2: `keep`
+- step 3: `keep`
+- step 4: `bind (＇ Fin.zero)`
+- step 5: `bind (＇ (Fin.suc Fin.zero))`
+- step 6: `bind (＇ (Fin.suc (Fin.suc Fin.zero)))`
+
+The store after step 6 is definitionally the store of
+`adversarial-source-chain-world₄`, built by four parked
+`bothBindWorld` extensions.  The fresh and original pivots remain
+identity-embedded on both sides.
+
+Verdict: the checked relation boundary and the later chain-store gates
+support parked pivots.  A full relation derivation for the later
+source-screen state was not duplicated here.
+
+## D3. `tag-boundary-star-inst` And `skew-star-inst`
+
+Artifact: `GTSFImp/proof/DGG/Phase3DeepDives.agda`.
+
+Both entries have checked initial v2 relations:
+
+`skew-star-inst-initial²`
+
+`tag-boundary-star-inst-initial²`
+
+They are definitionally the same compiled program at this probe:
+
+`tag-boundary-star-inst-same-compiled`
+
+The interesting allocation step is:
+
+`star-inst-change₀ : bind ★`
+
+The checked post-step relation is:
+
+`star-inst-checkpoint₁`
+
+under
+
+`star-inst-world₁ =
+ bothBindWorld X⊑X initialWorld ★ ★`.
+
+The relation proof is carried by:
+
+- `reveal⊑reveal²`
+- `cast⊑cast²`
+- `·⊑·²`
+- `sameWorldRebaseAt`
+
+Verdict: parked-pivot world extension suffices at the star
+instantiation boundary.
+
+## D4. `higher-order-shared-arg`
+
+Artifact: `GTSFImp/proof/DGG/Phase3DeepDives.agda`.
+
+The checked initial relation is
+
+`higher-order-shared-arg-initial²`
+
+from `compile-preserves-imprecision²`.
+
+The executable screen trace locates the relevant allocations:
+
+- step 0: `bind RC.∀X⇒X₀`
+- steps 1 to 6: `keep`
+- step 7: `bind (RC.ℕᵗ {Δ = 1})`
+- steps 8 and 9: `keep`
+
+The store after step 7 is definitionally the store of
+`higher-order-shared-arg-world₂`, built by two parked
+`bothBindWorld` extensions:
+
+- first for `RC.∀X⇒X₀`
+- second for `RC.ℕᵗ {Δ = 1}`
+
+The checked embedding gates show that the fresh callee pivot and the
+older shared pivot are still identity-embedded on both sides.
+
+Verdict: the callee-side allocation stress did not force a re-park at
+the checked trace and world-shape level.  A full v2 relation checkpoint
+for the post-step screen state remains future work.
+
+## Recommended Invariant
+
+Formalize invariant (c) as a reduction-preservation premise over
+compile-reachable parked worlds:
+
+If `W ∣ γ ⊢² M ⊑ N ∶ p` is produced from
+`compile-preserves-imprecision²`, and a simulated reduction segment from
+compiled code takes `M , N` to `M′ , N′` with store changes generated by
+compiled type instantiation, reveal, conceal, or cast wrappers, then
+there exist `W′`, `γ′`, and `p′` such that:
+
+- `W′ ∣ γ′ ⊢² M′ ⊑ N′ ∶ p′`;
+- `W′` is obtained from `W` only by parked extensions:
+  `bothBindWorld X⊑X`, `rightOnlyWorld`, and the source-left analogue
+  if a future simulation direction needs it;
+- every fresh pivot introduced by an extension maps to `Fin.zero` on
+  the allocating side;
+- every old target variable keeps its center after shifting:
+  `ηᴿʷ W′ (suc Y) = suc (ηᴿʷ W Y)`;
+- wrapper descent may use `sameWorldRebaseAt` at the fresh pivot, but
+  must not change the center image of an old target pivot.
+
+This is narrower than arbitrary v2 reachability.  It is the property
+observed in the Phase 3 checked artifacts and in the existing
+`Examples2` Nat-chain proof.
+
+## File Summary
+
+- `GTSFImp/proof/DGG/CompileImageShape.agda`: new compile-image shape
+  predicate, generic compiler theorem, 56 catalog gates, and Phase-0
+  suspect exclusion gates.
+- `GTSFImp/proof/DGG/Phase3DeepDives.agda`: new Phase 3 initial
+  relations, single-step checkpoints, trace locators, and parked-world
+  gates for D2 to D4.
+- `GTSFImp/All.agda`: registers both new modules.
+
+## Verification Transcript
+
+The requested exact timer path was unavailable:
+
+```text
+$ find GTSFImp -name '*.agdai' -delete
+$ /usr/bin/time -p env AGDA_DIR=$AGDA_DIR agda -i GTSFImp -v0 \
+    GTSFImp/All.agda
+/bin/bash: line 2: /usr/bin/time: No such file or directory
+```
+
+The same fresh check was then run with the shell `time -p` builtin and
+the user-provided `AGDA_DIR`:
+
+```text
+$ time -p env AGDA_DIR=$AGDA_DIR agda -i GTSFImp -v0 \
+    GTSFImp/All.agda
+real 71.50
+user 71.09
+sys 0.47
+```
+
+Exit code: 0.
+
+Hygiene over touched files:
+
+```text
+$ awk 'length($0)>80 { print FILENAME ":" FNR ":" length($0) }' \
+    GTSFImp/proof/DGG/CompileImageShape.agda \
+    GTSFImp/proof/DGG/Phase3DeepDives.agda \
+    GTSFImp/All.agda PHASE3-DEEPDIVE-REPORT.md
+<no output>
+
+$ rg -n <hygiene-regex> \
+    GTSFImp/proof/DGG/CompileImageShape.agda \
+    GTSFImp/proof/DGG/Phase3DeepDives.agda \
+    PHASE3-DEEPDIVE-REPORT.md
+<no output; rg exit code 1>
+```
+
+A full `GTSFImp` grep is not clean because of pre-existing files that
+were not edited in this phase:
+
+```text
+GTSFImp/proof/Imprecision.agda:23: assumption declaration
+GTSFImp/Consistency.agda:229: assumption declaration
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:755: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:762: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:776: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:783: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:791: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:807: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:814: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:821: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:828: open hole
+GTSFImp/proof/DGG/ExtraCastRightProbe.agda:835: open hole
+```

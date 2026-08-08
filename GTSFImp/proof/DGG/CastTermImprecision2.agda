@@ -7,12 +7,13 @@ module proof.DGG.CastTermImprecision2 where
 --     center context.
 --   * Represents local rebasing explicitly, letting reveal/conceal wrappers
 --     descend with a different alignment.
---   * Rebasing is pivot-local: a RebaseAt keeps the runtime stores and
---     the center context fixed and moves at most the embeddings of the
---     two pivot variables.  Imprecision marks are not pinned by the
---     rebase; instead every wrapper rule carries ImpEnvMono, letting
---     marks decay toward X⊑★ from conclusion to premise, and WFWorld
---     names the worlds whose precise marks are honestly aligned.
+--   * Rebasing is asymmetric: a RebaseAt keeps the runtime stores and
+--     the center context fixed, may move only the source pivot, and
+--     freezes every old target variable's center.  Imprecision marks are
+--     not pinned by the rebase; instead every wrapper rule carries
+--     ImpEnvMono, letting marks decay toward X⊑★ from conclusion to
+--     premise, and WFWorld names the worlds whose precise marks are
+--     honestly aligned.
 --   * Store representations are canonical: a pivot variable is compared
 --     through resolveVar, which follows the store's representation chain
 --     to its end instead of stopping at an arbitrary intermediate type.
@@ -296,13 +297,13 @@ record StoreRepImp {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
       resolveVar (sourceStoreʷ W) Xᴸ
         ⊑ᵂ⟨ W ⟩ resolveVar (targetStoreʷ W) Xᴿ
 
--- RebaseAt W W′ Xᴸ Xᴿ is a pivot-local world update.  Reduction only
--- introduces one reveal or conceal wrapper per fresh type variable, so
--- descending through one wrapper may change at most the alignment of
--- the pivot pair: the stores, the center context, and the imprecision
--- environment stay fixed, both embeddings agree at every non-pivot
--- variable, the pivots are aligned in W′, and their canonical store
--- representations are related in W′.
+-- RebaseAt W W′ Xᴸ Xᴿ is an asymmetric source re-parking update.
+-- Reduction only introduces one reveal or conceal wrapper per fresh
+-- type variable, so descending through one wrapper may change the
+-- source pivot's center.  The stores, the center context, and the
+-- imprecision environment stay fixed; every old target variable's
+-- center is frozen; the pivots are aligned in W′; and their canonical
+-- store representations are related in W′.
 
 record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     (Xᴸ : TyVar Δᴸ) (Xᴿ : TyVar Δᴿ) : Set where
@@ -311,19 +312,9 @@ record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     sameRuntime : SameRuntime W W′
     ηᴸ-off-pivot : ∀ {Y} → Y ≢ Xᴸ
       → toRenameᵗ (ηᴸʷ W′) Y ≡ toRenameᵗ (ηᴸʷ W) Y
-    ηᴿ-off-pivot : ∀ {Y} → Y ≢ Xᴿ
+    ηᴿ-frozen : ∀ Y
       → toRenameᵗ (ηᴿʷ W′) Y ≡ toRenameᵗ (ηᴿʷ W) Y
     pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
-    -- Moved-pivot anchoring: a target pivot that relocates between
-    -- the two worlds must sit aligned with some source variable in
-    -- the first world.  Example 12's chains never move the target
-    -- embedding, so their witnesses discharge the premise; the
-    -- MovedLinkProbe counterexample relocates its target pivot to a
-    -- center no source occupies, which this field outlaws, restoring
-    -- invertibility of the bare-seal boundary.
-    anchorᴿ : toRenameᵗ (ηᴿʷ W) Xᴿ ≢ toRenameᵗ (ηᴿʷ W′) Xᴿ
-      → Σ[ Xₒ ∈ TyVar Δᴸ ]
-          toRenameᵗ (ηᴸʷ W) Xₒ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
 sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -334,8 +325,7 @@ sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → RebaseAt W W Xᴸ Xᴿ
 sameWorldRebaseAt aligned reps =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ _ → refl) aligned
-    (λ moved → ⊥-elim (moved refl)) reps
+    (λ _ → refl) (λ _ → refl) aligned reps
 
 -- One-sided wrappers carry an optional pivot: a conversion with no
 -- pivot (an identity-shaped conversion) keeps the world fixed, and a
@@ -754,16 +744,14 @@ example12-rebase-X-to-Z :
 example12-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-Z-representation
+    refl example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-Y-representation
+    refl example12-Y-representation
 
 example12-outer-function :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -891,8 +879,7 @@ example12-nat-chain-rebase-X-to-Y :
 example12-nat-chain-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-nat-chain-Y-representation
+    refl example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left
@@ -998,21 +985,3 @@ example12-left-path-Z-representation = store-rep-imp ★⊑★
 example12-left-path-Y-representation :
   StoreRepImp example12-left-path-world-Y (Fin.suc Fin.zero) Fin.zero
 example12-left-path-Y-representation = store-rep-imp ★⊑★
-
-example12-left-path-rebase-X-to-Z :
-  RebaseAt example12-left-path-world-X example12-left-path-world-Z
-    (Fin.suc (Fin.suc Fin.zero)) Fin.zero
-example12-left-path-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → Fin.zero , refl)
-    example12-left-path-Z-representation
-
-example12-left-path-rebase-X-to-Y :
-  RebaseAt example12-left-path-world-X example12-left-path-world-Y
-    (Fin.suc Fin.zero) Fin.zero
-example12-left-path-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → Fin.zero , refl)
-    example12-left-path-Y-representation

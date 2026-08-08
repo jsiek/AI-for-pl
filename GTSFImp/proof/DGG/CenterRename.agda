@@ -286,22 +286,12 @@ renameRebaseAt : ∀ {Δᴸ Δᴿ Δ Δ′}
   → CTI2.RebaseAt (renameWorld π W) (renameWorld π W′) Xᴸ Xᴿ
 renameRebaseAt {Δᴸ = Δᴸ} {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} π
-    (CTI2.rebase-at runtime offL offR aligned anchor reps) =
+    (CTI2.rebase-at runtime offL frozenR aligned reps) =
   CTI2.rebase-at (renameSameRuntime π runtime)
     (λ Y≢ → rename-embedding-eq π (offL Y≢))
-    (λ Y≢ → rename-embedding-eq π (offR Y≢))
-    (rename-embedding-eq π aligned) renamed-anchor
+    (λ Y → rename-embedding-eq π (frozenR Y))
+    (rename-embedding-eq π aligned)
     (renameStoreRep π reps)
-  where
-  renamed-anchor :
-      toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ
-        ≢ toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W′)) Xᴿ
-    → Σ[ Xₒ ∈ TyVar Δᴸ ]
-        toRenameᵗ (CTI2.ηᴸʷ (renameWorld π W)) Xₒ
-          ≡ toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ
-  renamed-anchor moved with anchor
-      (λ eq → moved (rename-embedding-eq π eq))
-  renamed-anchor moved | Xₒ , eq = Xₒ , rename-embedding-eq π eq
 
 rename-mark-image : ∀ {Δᴸ Δᴿ Δ Δ′}
     (π : Δ ↪ᵗ Δ′) (W : CTI2.World Δᴸ Δᴿ Δ)

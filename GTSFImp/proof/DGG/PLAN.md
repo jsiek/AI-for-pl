@@ -185,3 +185,8 @@ locate the collapse (term-relation rule vs world facts: unconditional
 X⊑X + rep-resolving StoreRepImp), why the rep-tag shape was originally
 admitted, the restriction design, and full gate validation (compile²,
 Examples2, catalog, probes, M3 proofs).
+
+- 2026-08-09: tag-discipline surgery authorized (user), sequenced
+  after M3 lands. Dossier: TAG-DISCIPLINE-DOSSIER.md (cb2c6bf).
+  Expected downstream: ExtraCastRight² keeps its original value
+  conclusion; M4's mismatch family closes by lemma-level refutation.

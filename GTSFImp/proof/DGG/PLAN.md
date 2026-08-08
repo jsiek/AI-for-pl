@@ -170,3 +170,18 @@ walk is being restructured via SOURCE-COLUMN REIFICATION
 source wrapper column in one fold, handle a small atom-level core with
 proven machinery, re-emit. Statement-first with validation against all
 five hole goal types before implementation.
+
+## Tag-discipline decision (2026-08-09, user)
+
+The seal-name/representation distinction is the parametricity
+mechanism; the mismatch-probe counterexample (MISMATCH-PROBE.md)
+exploits a collapse of it — the relation admits sealed sources related
+to REPRESENTATION-tagged targets ("repaired sealed-source/right-tag
+relation" in ExtraCastRight2Counterexample.agda). Decision: option (b)
+— repair the invariant/relation so the tag discipline (sealed values
+tag at their seal NAME, opaquely) is restored; option (a) (blame
+disjunct) rejected as can-kicking. Investigation dossier in flight:
+locate the collapse (term-relation rule vs world facts: unconditional
+X⊑X + rep-resolving StoreRepImp), why the rep-tag shape was originally
+admitted, the restriction design, and full gate validation (compile²,
+Examples2, catalog, probes, M3 proofs).

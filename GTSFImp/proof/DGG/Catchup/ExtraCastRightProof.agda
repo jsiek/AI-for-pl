@@ -34,7 +34,11 @@ import Imprecision as I
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.ExtraCastRight2 using
-  (ExtraCastRight²; InstCatchupRight²; WorldExtendᴿ; mapCtxᴿ;
+  (ExtraCastRight²; InstCatchupRight²; CatchupCast;
+   catchup-inert; catchup-id; catchup-ground-other; catchup-projection;
+   catchup-inst; catchup-bot-elim; catchup-bot-intro;
+   generated-project-same; generated-project-expand;
+   WorldExtendᴿ; mapCtxᴿ;
    mapCtxᴿ-keep; sameWorldKeepExtendᴿ; inert-extra-cast-right²;
    id-extra-cast-right²)
 open import proof.DGG.Inversion.RightInjInversion2Def using
@@ -46,8 +50,7 @@ open import proof.DGG.Inversion.SpineValueDef using
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 open import proof.Consistency using (gen-safe)
 open import proof.ImprecisionConsistency using
-  (ground-cast-target⊑; expand-cast-source⊑; ground-targets-unique⊑;
-   renameᵗ-injective; ext-injective; toRenameᵗ-injective)
+  (renameᵗ-injective; ext-injective; toRenameᵗ-injective)
 import proof.Imprecision as PI
 open import proof.Reduction using (cast-↠; applyConsistencies-Inert)
 import proof.TypeSafety.Progress as Prog
@@ -252,6 +255,8 @@ module _
     → (c : ν ⊢ B ∼ G)
     → B ≢ G
     → (q : A ⊑ᵂ⟨ W ⟩ ★)
+    → (r : A ⊑ᵂ⟨ W ⟩ G)
+    → CatchupCast p M′ c r
     → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
       Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
       Σ[ ext ∈ WorldExtendᴿ χs W W′ ]
@@ -265,12 +270,8 @@ module _
   extra-cast-right-ground-other² ecr
       {W = W} {γ = γ} {M = M} {M′ = M′}
       {Gᵍ = Gᵍ} {G∼★ = G∼★} {Bns = Bns} {p = p}
-      M⊑M′ vM vM′ c B≢G q
-      with ecr M⊑M′ vM vM′ c
-        (ground-cast-target⊑
-          (C.renameGroundᵐ (CTI2.ηᴿʷ W) Gᵍ)
-          (C.renameNonStar (toRenameᵗ (CTI2.ηᴿʷ W)) Bns)
-          (C.renameᵐᶜ (CTI2.ηᴿʷ W) c) p q)
+      M⊑M′ vM vM′ c B≢G q r generated-c
+      with ecr M⊑M′ vM vM′ c r generated-c
   ... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
         vN′ , M′c↠N′ , M⊑N′ =
     Δᴿ′ , keep ∷ χs , Δ′ , W′ , keepWorldExtendᴿ ext ,
@@ -370,6 +371,8 @@ module _
     → (c : ν ⊢ G ∼ B)
     → B ≢ G
     → (q : A ⊑ᵂ⟨ W ⟩ B)
+    → (r : A ⊑ᵂ⟨ W ⟩ G)
+    → CatchupCast r N c q
     → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
       Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
       Σ[ ext ∈ WorldExtendᴿ χs W W′ ]
@@ -387,14 +390,10 @@ module _
       {W = W} {γ = γ} {M = M} {N = N}
       {Gᵍ = Gᵍ} {G∼★ = G∼★} {★∼G = ★∼G}
       {Bns = Bns} {p = p}
-      M⊑N! vM vN c B≢G q
+      M⊑N! vM vN c B≢G q r generated-c
       with ecr
-        (inversion (value→spine vM) vN M⊑N!
-          (expand-cast-source⊑
-            (C.renameGroundᵐ (CTI2.ηᴿʷ W) Gᵍ)
-            (C.renameNonStar (toRenameᵗ (CTI2.ηᴿʷ W)) Bns)
-            (C.renameᵐᶜ (CTI2.ηᴿʷ W) c) p q))
-        vM vN c q
+        (inversion (value→spine vM) vN M⊑N! r)
+        vM vN c q generated-c
   ... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
         vN′ , Nc↠N′ , M⊑N′ =
     Δᴿ′ , keep ∷ keep ∷ χs , Δ′ , W′ ,
@@ -566,3 +565,132 @@ module _
       (all-view→all-value-view
         (Prog.canonical-∀ vM′ (CTI2T.target-typing² M⊑M′)))
       c′ B′≢★ q
+
+  extra-cast-right-by-provenance : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+      {M : Term Δᴸ} {M′ : Term Δᴿ}
+      {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      {p : A ⊑ᵂ⟨ W ⟩ B} {c′ : ν ⊢ B ∼ B′}
+      {q : A ⊑ᵂ⟨ W ⟩ B′}
+    → CatchupCast {W = W} {A = A} p M′ c′ q
+    → W ∣ γ ⊢² M ⊑ M′ ∶ p
+    → Value M
+    → Value M′
+    → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      Σ[ ext ∈ WorldExtendᴿ χs W W′ ]
+      Σ[ N′ ∈ Term Δᴿ′ ]
+        (Value N′
+          × (M′ ⟨ c′ ⟩ —↠[ χs ] N′)
+          × (W′ ∣ mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
+              WorldExtendᴿ.transport⊑ᵂ ext q))
+  extra-cast-right-by-provenance {c′ = c′} {q = q}
+      (catchup-inert inert) M⊑M′ vM vM′ =
+    extra-cast-right-inert² M⊑M′ vM vM′ c′ inert q
+  extra-cast-right-by-provenance {q = q}
+      (catchup-id a) M⊑M′ vM vM′ =
+    extra-cast-right-id² M⊑M′ vM vM′ a q
+  extra-cast-right-by-provenance
+      {W = W} {γ = γ} {M = M} {M′ = M′} {q = q}
+      (catchup-ground-other {Gᵍ = Gᵍ} {G∼★ = G∼★}
+        {Bns = Bns} {c = c} B≢G r generated-c)
+      M⊑M′ vM vM′
+      with extra-cast-right-by-provenance generated-c M⊑M′ vM vM′
+  ... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
+        vN′ , M′c↠N′ , M⊑N′ =
+    Δᴿ′ , keep ∷ χs , Δ′ , W′ , keepWorldExtendᴿ ext ,
+    N′ ⟨ χs ▶ᶜ tag ⟩ ,
+    vN′ 《 applyConsistencies-Inert χs tag-inert 》 ,
+    (M′ ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Bns ⦄ ⟩
+      —→[ keep ]⟨
+        pure-step
+          (ground ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+            ⦃ Ans = Bns ⦄ ⦃ Gns = C.ground-nonstar Gᵍ ⦄
+            vM′ B≢G)
+      ⟩
+    M′ ⟨ c ⟩ ⟨ tag ⟩
+      —↠[ χs ]⟨ cast-↠ tag M′c↠N′ ⟩
+    N′ ⟨ χs ▶ᶜ tag ⟩ ∎[]) ,
+    subst≡
+      (λ γ′ → W′ ∣ γ′ ⊢² M ⊑ N′ ⟨ χs ▶ᶜ tag ⟩ ∶
+        WorldExtendᴿ.transport⊑ᵂ ext q)
+      (sym (mapCtxᴿ-keepWorldExtend ext γ))
+      (CTI2.⊑cast² (χs ▶ᶜ tag) M⊑N′
+        (WorldExtendᴿ.transport⊑ᵂ ext q))
+    where
+    tag : _ ⊢ _ ∼ ★
+    tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
+      ⦃ C.ground-nonstar Gᵍ ⦄
+
+    tag-inert : Inert tag
+    tag-inert = inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+      ⦃ Gns = C.ground-nonstar Gᵍ ⦄
+  extra-cast-right-by-provenance {q = q}
+      (catchup-projection
+        (generated-project-same {Gᵍ = Gᵍ} vN))
+      M⊑N! vM vN! =
+    extra-cast-right-project-same² M⊑N! vM vN q
+  extra-cast-right-by-provenance
+      {W = W} {γ = γ} {M = M} {q = q}
+      (catchup-projection
+        (generated-project-expand {Gᵍ = Gᵍ} {G∼★ = G∼★}
+          {★∼G = ★∼G} {Bns = Bns} {N = N} {c = c}
+          vN B≢G r generated-c))
+      M⊑N! vM vN!
+      with extra-cast-right-by-provenance generated-c
+        (inversion (value→spine vM) vN M⊑N! r)
+        vM vN
+  ... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
+        vN′ , Nc↠N′ , M⊑N′ =
+    Δᴿ′ , keep ∷ keep ∷ χs , Δ′ , W′ ,
+    keepWorldExtendᴿ (keepWorldExtendᴿ ext) , N′ ,
+    vN′ ,
+    (N ⟨ tag ⟩ ⟨ ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄ ⟩
+      —→[ keep ]⟨
+        pure-step
+          (expand ⦃ Gᵍ = Gᵍ ⦄ ⦃ ★∼G = ★∼G ⦄
+            ⦃ Bns = Bns ⦄ ⦃ Gns = C.ground-nonstar Gᵍ ⦄
+            (vN 《 tag-inert 》) (λ eq → B≢G (sym eq)))
+      ⟩
+    N ⟨ tag ⟩ ⟨ proj ⟩ ⟨ c ⟩
+      —→[ keep ]⟨
+        ξ-⟨⟩
+          (pure-step
+            (tag-untag ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+              ⦃ ★∼G = ★∼G ⦄ ⦃ Gns = C.ground-nonstar Gᵍ ⦄
+              vN))
+          refl
+      ⟩
+    N ⟨ c ⟩
+      —↠[ χs ]⟨ Nc↠N′ ⟩
+    N′ ∎[]) ,
+    subst≡
+      (λ γ′ → W′ ∣ γ′ ⊢² M ⊑ N′ ∶
+        WorldExtendᴿ.transport⊑ᵂ ext q)
+      (sym (mapCtxᴿ-keep²WorldExtend ext γ))
+      M⊑N′
+    where
+    tag : _ ⊢ _ ∼ ★
+    tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
+      ⦃ C.ground-nonstar Gᵍ ⦄
+
+    tag-inert : Inert tag
+    tag-inert = inj ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+      ⦃ Gns = C.ground-nonstar Gᵍ ⦄
+
+    proj : _ ⊢ ★ ∼ _
+    proj = ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ (idᵍ Gᵍ)
+      ⦃ C.ground-nonstar Gᵍ ⦄
+  extra-cast-right-by-provenance
+      {q = q} catchup-inst M⊑M′ vM vM′ =
+    extra-cast-right-inst-canonical² M⊑M′ vM vM′ _ _ q
+  extra-cast-right-by-provenance
+      {q = q} catchup-bot-elim M⊑M′ vM vM′ =
+    extra-cast-right-bot-elim² M⊑M′ vM vM′ q
+  extra-cast-right-by-provenance
+      {q = q} catchup-bot-intro M⊑M′ vM vM′ =
+    extra-cast-right-bot-intro² M⊑M′ vM vM′ q
+
+  extra-cast-right² : ExtraCastRight²
+  extra-cast-right² M⊑M′ vM vM′ c′ q generated =
+    extra-cast-right-by-provenance generated M⊑M′ vM vM′

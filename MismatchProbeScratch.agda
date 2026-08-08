@@ -24,6 +24,8 @@ open import CastTerms using
 open import Reduction
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
+open import proof.DGG.ExtraCastRight2 using
+  (CatchupCast; catchup-projection)
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
    store-rep-imp; ⊢↓-sealˣ)
@@ -113,27 +115,25 @@ InputRelation =
   CTI2._∣_⊢²_⊑_∶_ probe-world [] source-term target-tagged
     {A = ＇ U} {B = ★} probe-p
 
-input-relation : InputRelation
-input-relation =
-  CTI2.conceal⊑² (λ _ eq → eq) (CTI2.rebase-varᴸ U-Y-rebase)
-    CTI2.same-[] source-U-seal-typed
-    (CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★)
-    probe-p
-
 InputPackage : Set
 InputPackage =
-  InputRelation × (Value source-term
+  Value source-term
     × (Value target-tagged
     × ((target-env-proj ⊢ ★ ∼ ＇ Y)
-    × (＇ U ⊑ᵂ⟨ probe-world ⟩ ＇ Y))))
+    × (＇ U ⊑ᵂ⟨ probe-world ⟩ ＇ Y)))
 
-input-package : InputPackage
-input-package =
-  input-relation ,
+input-package-without-live-premise : InputPackage
+input-package-without-live-premise =
   source-value ,
   target-tagged-value ,
   Y? ,
   probe-q
+
+mismatch-violates-provenance :
+  CatchupCast {W = probe-world} {A = ＇ U}
+    probe-p target-tagged Y? probe-q
+  → ⊥
+mismatch-violates-provenance (catchup-projection ())
 
 ℕ-type : Ty 1
 ℕ-type = ‵ `ℕ

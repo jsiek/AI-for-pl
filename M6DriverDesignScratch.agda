@@ -137,6 +137,7 @@ ExtraCastRightAt fuel = ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → (c′ : ν ⊢ B ∼ B′)
   → castSize c′ < fuel
   → (q : A ⊑ᵂ⟨ W ⟩ B′)
+  → ECR.CatchupCast {W = W} {A = A} p M′ c′ q
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]

@@ -7,6 +7,7 @@ module QHuntScratch where
 
 open import Data.Bool using (Bool; false; true; _∨_)
 open import Data.Empty using (⊥)
+import Data.Fin as Fin
 open import Data.Maybe using (Maybe; just; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (yes; no)
@@ -175,14 +176,16 @@ adversarial-source-chain-screen-clean =
   RC.adversarial-source-chain-screens-clean
 
 ------------------------------------------------------------------------
--- Exact abstract rep-★ mismatch is still a theorem-shape refutation
+-- Exact abstract rep-★ mismatch violates generated-call provenance
 ------------------------------------------------------------------------
 
 abstract-rep★-mismatch-blames :
   PMS.mismatch-term —↠[ keep ∷ [] ] blame
 abstract-rep★-mismatch-blames = PMS.mismatch-steps-to-blame
 
-abstract-rep★-refutes-extra-cast-right :
-  ECR.ExtraCastRight² → ⊥
-abstract-rep★-refutes-extra-cast-right =
-  PMS.extra-cast-right²-contradiction
+abstract-rep★-violates-provenance :
+  ECR.CatchupCast {W = PMS.probe-world} {A = ＇ Fin.zero}
+    PMS.probe-p PMS.target-tagged PMS.Y? PMS.probe-q
+  → ⊥
+abstract-rep★-violates-provenance =
+  PMS.projection-mismatch-violates-provenance

@@ -49,7 +49,8 @@ data SourceTagSealCoreBranch {Δᴸ Δᴿ Δ}
         Wᵖ γᵖ pᵖ
 
   core-terminus :
-    (Σ[ U★ ∈ Term Δᴿ ]
+    A ≡ ★
+    → (Σ[ U★ ∈ Term Δᴿ ]
      Σ[ Y★ ∈ TyVar Δᴿ ]
      Σ[ S★ ∈ Ty Δᴿ ]
      (S★ ≡ ★
@@ -62,7 +63,34 @@ data SourceTagSealCoreBranch {Δᴸ Δᴿ Δ}
        × Σ[ q★ ∈ A ⊑ᵂ⟨ W★ ⟩ S★ ]
        (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
         × (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
-           → Wᵖ ∣ γᵖ ⊢² P ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)))))
+           → Wᵖ ∣ γᵖ ⊢² P
+               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)
+        × ((qᵒ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★)
+           → (q′ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★)
+           → Wᵖ ∣ γᵖ ⊢² P
+               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ q′
+           → Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᴸ ★
+               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ qᵒ)))))
+    → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY
+        Wᵖ γᵖ pᵖ
+
+  core-terminus-nonstar :
+    NonStar A
+    → (Σ[ U★ ∈ Term Δᴿ ]
+       Σ[ Y★ ∈ TyVar Δᴿ ]
+       Σ[ S★ ∈ Ty Δᴿ ]
+       (S★ ≡ ★
+        × Σ[ W★ ∈ World Δᴸ Δᴿ Δ ]
+        Σ[ γ★ ∈ CtxImp W★ ]
+        (CTI2.ImpEnvMono Wᵒ W★
+         × CTI2.SameCtx γᵒ γ★
+         × RebaseAt W★ Wᵒ Xᴸ Y
+         × targetStoreʷ W★ ∋ Y★ ⦂ S★
+         × Σ[ q★ ∈ A ⊑ᵂ⟨ W★ ⟩ S★ ]
+         (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+          × (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
+             → Wᵖ ∣ γᵖ ⊢² P
+                 ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)))))
     → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY
         Wᵖ γᵖ pᵖ
 
@@ -110,37 +138,56 @@ data SourceSpineStripBranch {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)) : Set where
   spine-sealed :
-    (Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
-     Σ[ γʳ ∈ CtxImp Wʳ ]
-     Σ[ qʳ ∈ CoreTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
-       (CTI2.ImpEnvMono Wᵒ Wʳ
-        × CTI2.SameCtx γᵒ γʳ
-        × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
-        × targetStoreʷ Wʳ ∋ Y ⦂ S
-        × Wʳ ∣ γʳ ⊢² Core ⊑ U ↓ seal Y S ∶ qʳ))
-    → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (sealed :
+        Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+        Σ[ γʳ ∈ CtxImp Wʳ ]
+        Σ[ qʳ ∈ PremiseTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+          (CTI2.ImpEnvMono Wᵒ Wʳ
+           × CTI2.SameCtx γᵒ γʳ
+           × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+           × targetStoreʷ Wʳ ∋ Y ⦂ S
+           × Wʳ ∣ γʳ ⊢² Premise ⊑ U ↓ seal Y S ∶ qʳ))
+    → ((Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+        Σ[ γʳ ∈ CtxImp Wʳ ]
+        Σ[ qʳ ∈ PremiseTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+          (CTI2.ImpEnvMono Wᵒ Wʳ
+           × CTI2.SameCtx γᵒ γʳ
+           × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+           × targetStoreʷ Wʳ ∋ Y ⦂ S
+           × Wʳ ∣ γʳ ⊢² Premise ⊑ U ↓ seal Y S ∶ qʳ))
+       → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q)
     → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
   spine-tagged :
-      (Wᵖ : World Δᴸ Δᴿ Δ)
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (Wᵖ : World Δᴸ Δᴿ Δ)
       (γᵖ : CtxImp Wᵖ)
-    → (pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
+    → (pᵖ : PremiseTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
     → CTI2.ImpEnvMono Wᵒ Wᵖ
     → CTI2.SameCtx γᵒ γᵖ
     → RebaseAt Wᵖ Wᵒ Xᵒ Y
     → sourceStoreʷ Wᵒ ∋ Xᵒ ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
-    → Wᵖ ∣ γᵖ ⊢² Core ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
-    → (SourceTagSealCoreBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+    → Wᵖ ∣ γᵖ ⊢² Premise ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
+    → (SourceTagSealCoreBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S
           cY Wᵖ γᵖ pᵖ
        → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q)
     → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
   spine-paired :
-    SourcePairedBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
-    → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (paired : SourcePairedBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S)
+    → (SourcePairedBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S
+       → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q)
     → SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
@@ -155,37 +202,56 @@ data SourceColumnStripBranch {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (qᵒ : (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)) : Set where
   column-sealed :
-    (Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
-     Σ[ γʳ ∈ CtxImp Wʳ ]
-     Σ[ qʳ ∈ CoreTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
-       (CTI2.ImpEnvMono Wᵒ Wʳ
-        × CTI2.SameCtx γᵒ γʳ
-        × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
-        × targetStoreʷ Wʳ ∋ Y ⦂ S
-        × Wʳ ∣ γʳ ⊢² Core ⊑ U ↓ seal Y S ∶ qʳ))
-    → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (sealed :
+        Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+        Σ[ γʳ ∈ CtxImp Wʳ ]
+        Σ[ qʳ ∈ PremiseTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+          (CTI2.ImpEnvMono Wᵒ Wʳ
+           × CTI2.SameCtx γᵒ γʳ
+           × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+           × targetStoreʷ Wʳ ∋ Y ⦂ S
+           × Wʳ ∣ γʳ ⊢² Premise ⊑ U ↓ seal Y S ∶ qʳ))
+    → ((Σ[ Wʳ ∈ World Δᴸ Δᴿ Δ ]
+        Σ[ γʳ ∈ CtxImp Wʳ ]
+        Σ[ qʳ ∈ PremiseTy ⊑ᵂ⟨ Wʳ ⟩ (＇ Y) ]
+          (CTI2.ImpEnvMono Wᵒ Wʳ
+           × CTI2.SameCtx γᵒ γʳ
+           × RebaseAtᴸ Wʳ Wᵒ (just Xᵒ)
+           × targetStoreʷ Wʳ ∋ Y ⦂ S
+           × Wʳ ∣ γʳ ⊢² Premise ⊑ U ↓ seal Y S ∶ qʳ))
+       → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q)
     → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
   column-tagged :
-      (Wᵖ : World Δᴸ Δᴿ Δ)
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (Wᵖ : World Δᴸ Δᴿ Δ)
       (γᵖ : CtxImp Wᵖ)
-    → (pᵖ : CoreTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
+    → (pᵖ : PremiseTy ⊑ᵂ⟨ Wᵖ ⟩ ★)
     → CTI2.ImpEnvMono Wᵒ Wᵖ
     → CTI2.SameCtx γᵒ γᵖ
     → RebaseAt Wᵖ Wᵒ Xᵒ Y
     → sourceStoreʷ Wᵒ ∋ Xᵒ ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
-    → Wᵖ ∣ γᵖ ⊢² Core ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
-    → (SourceTagSealCoreBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
+    → Wᵖ ∣ γᵖ ⊢² Premise ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ
+    → (SourceTagSealCoreBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S
           cY Wᵖ γᵖ pᵖ
        → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q)
     → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 
   column-paired :
-    SourcePairedBranch Wᵒ γᵒ Core CoreTy U Xᵒ Y S
-    → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
+      (Premise : Term Δᴸ)
+      (PremiseTy : Ty Δᴸ)
+    → SpineValue Premise
+    → (paired : SourcePairedBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S)
+    → (SourcePairedBranch Wᵒ γᵒ Premise PremiseTy U Xᵒ Y S
+       → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q)
     → SourceColumnStripBranch W γ V U Xᴸ Y S cY q
         Core CoreTy Xᵒ Wᵒ γᵒ qᵒ
 

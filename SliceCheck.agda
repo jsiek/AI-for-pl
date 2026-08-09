@@ -74,23 +74,23 @@ walk-from-shared-fold-consumers consumers
 walk-from-shared-fold-consumers consumers
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-sealed sealed final =
-  final
+        spine-sealed Pᵖ Aᵖ spineᵖ sealed finish =
+  finish sealed
 walk-from-shared-fold-consumers consumers
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-tagged Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ boundaryᵖᵒ
-          source∈ᵒ target∈ᵒ premiseᶜ finish =
+        spine-tagged Pᵖ Aᵖ spineᵖ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
+          boundaryᵖᵒ source∈ᵒ target∈ᵒ premiseᶜ finish =
   finish
     (source-core {Xᴸ = Xᵒ} {q = qᵒ}
-      spine vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
+      spineᵖ vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
       (core-tagged premiseᶜ))
   where
   open SharedFoldConsumers consumers
 walk-from-shared-fold-consumers consumers
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-paired paired final =
-  final
+        spine-paired Pᵖ Aᵖ spineᵖ paired finish =
+  finish paired
   where
   open SharedFoldConsumers consumers

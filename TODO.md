@@ -404,7 +404,7 @@ New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
     composite raw, so the existential form is already usable there —
     this is base-language cleanup, not migration-blocking.
 
-- [ ] GTSFImp: fix the source consistency relation — rigid type
+[ ] GTSFImp: fix the source consistency relation — rigid type
   variables cannot meet ★ (both `idᶜ ⊢ ＇X ∼ ★` and `★ ∼ ＇X` are
   underivable; checked in RoundTripTraceScratch.agda), so programs
   with dynamic code inside polymorphic code, e.g.

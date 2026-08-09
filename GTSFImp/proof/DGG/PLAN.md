@@ -221,3 +221,14 @@ finish-star-rep-tagged, placed so the domain-A producer never owes it.
 Five sessions each satisfied two of three. Candidate next steps:
 interactive assembly (constraint map above) or a run with the
 checklist enforced as hard rules.
+
+## Parked (2026-08-09): single-source-pair pedigree for the probe instance
+
+The cast-level initial pair (InitialPairScratch, committed) is
+⊢²-related and reaches both probe states. A SINGLE ⊑ᴳ source pair
+generating both is still open: the λg-factoring needed for Q's gen
+shape changes P's instantiation path (the compiled ⟨id ∀⟩ cast on the
+g-value routes type application through the inst-cast machinery, so
+the seals don't stack), and the ignore-g factoring is unrelatable
+(no closed-term-vs-variable source rule). Revisit after M3; possibly
+tied to the ⟨id ∀⟩-changes-reduction-path wart.

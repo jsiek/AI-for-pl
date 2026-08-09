@@ -206,3 +206,18 @@ Examples2, catalog, probes, M3 proofs).
      to case on the view at first analysis, deleting per-leaf ⊥-elim
      refutations wholesale. Expected large negative diff; measure and
      report the shrinkage per file.
+
+## M3 frontier (2026-08-09): the star-rep assembly
+
+All M3 mathematics is proven except ONE helper assembly
+(source-spine-strip-star-rep-target; red attempts archived in
+StarRepAssembly.red). Three simultaneous constraints, each checked:
+(1) never demand ＇X ⊑ ＇Y — refuted (rebase-only-star-rep-no-var-target);
+(2) re-emit the inner star seal premise-side via the generic checked
+builders (plain/injected-star-rep-premise);
+(3) bridge premise (★⊑★ in Wᵖ) to the final pair via a target-only
+continuation produced at the descent-built terminus, consumed in
+finish-star-rep-tagged, placed so the domain-A producer never owes it.
+Five sessions each satisfied two of three. Candidate next steps:
+interactive assembly (constraint map above) or a run with the
+checklist enforced as hard rules.

@@ -232,3 +232,36 @@ g-value routes type application through the inst-cast machinery, so
 the seals don't stack), and the ignore-g factoring is unrelatable
 (no closed-term-vs-variable source rule). Revisit after M3; possibly
 tied to the ⟨id ∀⟩-changes-reduction-path wart.
+
+## Tightening migration ledger (rounds 1-13, 2026-08-09)
+
+Design decisions that landed (each pre-flighted in a root scratch
+before going live; see TIGHTEN*-PREFLIGHT.md and round*.red):
+
+1. PREMISE-WORLD partner predicates: the alignment-bearing clauses of
+   Rep★PartnerOK / SealPartnerOK / SourceConcealPartnerOK are stated
+   in the rule's premise world, where the derivation's evidence lives.
+   The conclusion-world formulation demanded facts RebaseAt destroys
+   (same-pivot case, reachable via Example 12).
+2. PARTNER-FLOW INVERSION: seal rules OWN their partner premises;
+   seal-transfer harvests from the derivation it destructs instead of
+   taking a caller-supplied witness (the caller-side synthesis lemma
+   was proven false by a checked counter-witness).
+3. var-tag-value-sealed (SpineValueDef): a variable-tagged value's
+   payload is a sealed value at that variable — the syntactic shadow
+   of the seal-name/representation distinction; discharges name
+   protection with no alignment transport.
+4. SEE-THROUGH clause (rep★-round-trip): the partner predicate looks
+   through same-name rep-★ seal∘tag round-trip wrappers on the source
+   payload. Laundering blocked (different-name and non-rep-★ wrappers
+   rejected). Worker-clause emptiness and poison exclusion survive.
+5. Support lemmas: decay-rep★-round-trip, aligned-functional /
+   target-pedigree-unique (alignment is functional in a world).
+6. In flight (round 13): tagged-transfer surface — seal-transfer
+   variant returning the rebuilt premise AND the partner in one
+   common world, built at destruct time where the evidence coexists.
+
+Residue unchanged: the two worker postulates
+(Inversion/SourceStripWorkerProof.agda:475) fall to the …-empty₃
+proofs once TargetChainProof:88 is discharged. ExtraCastRightProbe.agda
+is an orphan (no importers) — delete at final cleanup.

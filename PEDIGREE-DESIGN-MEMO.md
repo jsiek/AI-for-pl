@@ -86,3 +86,30 @@ commitment the DGG simulation will live with through M7/M8.
 
 Both paths keep: the tightened discipline, see-through, transport,
 tagged transfer, and all landed green work.
+
+## Addendum (round 18): the question recurses to the source-only rule
+
+Pre-flight 8 validated option B against a transfer branch model where
+conceal⊑²'s partner pedigree and tag-rebase pivot were implicitly
+tied; the live rule quantifies them independently (Xᴿᵖ? vs Xᴿ?,
+CastTermImprecision2.agda:778-789). The in-branch packaging therefore
+faces two incompatible candidate indices (round18 .red): the partner
+holds the premise-side pedigree, the rebase provides the
+conclusion-side one, and rep★-var-tag couples pedigree to the target
+tag so pivot-transport cannot bridge them.
+
+The fork, one level down:
+ (i)  Tie the indices in conceal⊑² (Xᴿᵖ? = Xᴿ?): restores the
+      surface pre-flight 8 actually validated; the question is
+      whether every live derivation site can supply the tied form —
+      needs its own sweep of conceal⊑² construction sites.
+ (ii) Premise-world treatment of the var-tag clause itself
+      (decouple tag-name from pedigree): touches the protection
+      content directly; highest-risk, needs the full laundering
+      battery from scratch.
+
+Supervisor recommendation: (i) first — it is the conservative reading
+and matches what the validated scratch actually modeled. But the
+pedigree semantics of the source-only seal rule is now the load-
+bearing design commitment, and review by the relation's author is
+warranted before more live surgery.

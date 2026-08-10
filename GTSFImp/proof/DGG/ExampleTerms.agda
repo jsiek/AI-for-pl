@@ -1,30 +1,29 @@
-module proof.DGG.Examples where
+module proof.DGG.ExampleTerms where
 
 -- File Charter:
 --   * Ports Cambridge26 Example 12 to the GTSFImp cast calculus.
---   * Records the two executable programs from that example without proving
---     their imprecision relation yet.
---   * Uses Eval to compute reduction traces that finish in returned values.
+--   * Records the two executable programs from that example and their typing
+--     derivations.
+--   * Uses Eval and OneStep to compute reduction traces that finish in
+--     returned values.
 
-open import Data.Bool using (Bool; false; true)
-open import Data.Empty using (⊥)
-import Data.Fin as Fin
-open import Data.List using ([])
-open import Data.Maybe using (Maybe; just; nothing)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
-open import TyStore using (TyStore; store-empty; store-lift; store-bind)
+open import TyStore using (TyStore; store-empty)
 open import TermCtx using (Z)
 open import Consistency
-import Imprecision as I
 open import Conversion
 open import Primitives
 open import CastTerms
 open import Reduction
-open import Eval
-import proof.DGG.CastTermImprecision as CTI
+open import Eval using (step?; value?)
+import proof.DGG.OneStep as Step
+open Step using
+  (OneStep; Δ′; reduction; from-just-step; store-after;
+   from-just-value)
 
 ------------------------------------------------------------------------
 -- Shared closed instance of the schematic Cambridge26 terms
@@ -76,12 +75,14 @@ X? = ？ (id (＇ 0))
 
 example12-right : Term 0
 example12-right =
-  (((polyId ⟨ ν̅α-α♯→α♭ ⟩) ⟨ να-α!→α? ⟩) ⦂∀ X⇒X [ ℕᵗ ]) · c
+  (((polyId ⟨ ν̅α-α♯→α♭ ⟩) ⟨ να-α!→α? ⟩)
+    ⦂∀ X⇒X [ ℕᵗ ]) · c
 
 example12-right-⊢ : ∅ ⊢ example12-right ⦂ ℕᵗ
 example12-right-⊢ =
   ⊢·
-    (⊢• (⊢⟨⟩ (⊢⟨⟩ polyId-⊢ ν̅α-α♯→α♭) να-α!→α?))
+    (⊢• (⊢⟨⟩
+      (⊢⟨⟩ polyId-⊢ ν̅α-α♯→α♭) να-α!→α?))
     c-⊢
 
 example12-left : Term 0
@@ -94,43 +95,8 @@ example12-left-⊢ = ⊢· (⊢• polyId-⊢) c-⊢
 -- Checked one-step traces from Eval
 ------------------------------------------------------------------------
 
-record OneStep {Δ : TyCtx} (Σ : TyStore Δ) (M : Term Δ) : Set where
-  constructor one-step
-  field
-    Δ′ : TyCtx
-    change : StoreChange Δ Δ′
-    next : Term Δ′
-    reduction : M —→[ change ] next
-
-open OneStep
-
-hasStep? : ∀ {Δ} {M : Term Δ} → Maybe (Step M) → Bool
-hasStep? (just _) = true
-hasStep? nothing = false
-
-from-just-step : ∀ {Δ} {Σ : TyStore Δ} {M : Term Δ}
-  → (s : Maybe (Step M))
-  → hasStep? s ≡ true
-  → OneStep Σ M
-from-just-step (just (step-result χ N M→N)) refl =
-  one-step _ χ N M→N
-from-just-step nothing ()
-
-store-after : ∀ {Δ} {Σ : TyStore Δ} {M : Term Δ}
-  → (s : OneStep Σ M)
-  → TyStore (Δ′ s)
-store-after {Σ = Σ} s = change s ▷ˢ Σ
-
-hasValue? : ∀ {Δ} {M : Term Δ} → Maybe (Value M) → Bool
-hasValue? (just _) = true
-hasValue? nothing = false
-
-from-just-value : ∀ {Δ} {M : Term Δ}
-  → (v : Maybe (Value M))
-  → hasValue? v ≡ true
-  → Value M
-from-just-value (just v) refl = v
-from-just-value nothing ()
+-- The helper record and conversion from executable `Maybe` results live in
+-- proof.DGG.OneStep; this module keeps the concrete Example 12 traces.
 
 ------------------------------------------------------------------------
 -- Right program: up through ν̅, down through ν, instantiate, and apply
@@ -697,77 +663,3 @@ example12-left-reduction =
   ↑ unseal 0 (‵ `ℕ)
   —→[ keep ]⟨ reduction left-step₃ ⟩
   $ (κℕ 7) ∎[]
-
-------------------------------------------------------------------------
--- Simulation bookkeeping for the first store-alignment point
-------------------------------------------------------------------------
-
--- After the left trace allocates its ℕ cell and the right trace catches up
--- through the two extra right-only cells plus its matching ℕ cell, the center
--- context has three variables:
---
---   zero          shared ℕ cell, with X⊑★ available during catch-up
---   suc zero      right-only alias of the next right-only cell
---   suc (suc zero) right-only ★ cell
-
-example12-right-only-store₀ : CTI.StoreImp 0
-example12-right-only-store₀ = CTI.reflStoreImp store-empty
-
-example12-right-only-store₁ : CTI.StoreImp 1
-example12-right-only-store₁ =
-  CTI.rightOnly★StoreImp example12-right-only-store₀
-
-example12-right-only-store₂ : CTI.StoreImp 2
-example12-right-only-store₂ =
-  CTI.rightOnlyStoreImp example12-right-only-store₁ CTI.leads-zero-star
-
-example12-aligned-store : CTI.StoreImp 3
-example12-aligned-store
-    with example12-right-only-store₂
-example12-aligned-store | CTI.stores μ Σᴸ Σᴿ categories =
-  CTI.stores (I.extendᵐ I.X⊑★ μ)
-    (store-bind Σᴸ (‵ `ℕ))
-    (store-bind Σᴿ (‵ `ℕ))
-    (CTI.categories-both I.X⊑★ categories I.ι⊑ι)
-
-example12-aligned-source-store :
-  CTI.sourceStoreⁱ example12-aligned-store
-    ≡ store-bind (store-lift (store-lift store-empty)) (‵ `ℕ)
-example12-aligned-source-store = refl
-
-example12-aligned-target-store :
-  CTI.targetStoreⁱ example12-aligned-store
-    ≡ store-bind (store-bind (store-bind store-empty ★) (＇ 0)) (‵ `ℕ)
-example12-aligned-target-store = refl
-
-example12-aligned-target-store-is-right₃ :
-  CTI.targetStoreⁱ example12-aligned-store ≡ right-store₃
-example12-aligned-target-store-is-right₃ = refl
-
-example12-ηᴸ-after-alloc : 1 ↪ᵗ 3
-example12-ηᴸ-after-alloc = keep (skip (skip empty))
-
-example12-ηᴿ-after-alloc : 3 ↪ᵗ 3
-example12-ηᴿ-after-alloc = keep (keep (keep empty))
-
-example12-no-left-image₁ :
-  CTI.InImage example12-ηᴸ-after-alloc (Fin.suc Fin.zero) → ⊥
-example12-no-left-image₁ (CTI.image Fin.zero ())
-
-example12-no-left-image₂ :
-  CTI.InImage example12-ηᴸ-after-alloc
-    (Fin.suc (Fin.suc Fin.zero)) → ⊥
-example12-no-left-image₂ (CTI.image Fin.zero ())
-
-example12-renamings-categorize-after-alloc :
-  CTI.RenamingsCategorize example12-ηᴸ-after-alloc
-    example12-ηᴿ-after-alloc (CTI.categoriesⁱ example12-aligned-store)
-example12-renamings-categorize-after-alloc Fin.zero =
-  CTI.image-both (CTI.image Fin.zero refl) (CTI.image Fin.zero refl)
-example12-renamings-categorize-after-alloc (Fin.suc Fin.zero) =
-  CTI.image-right-only example12-no-left-image₁
-    (CTI.image (Fin.suc Fin.zero) refl)
-example12-renamings-categorize-after-alloc
-    (Fin.suc (Fin.suc Fin.zero)) =
-  CTI.image-right-only example12-no-left-image₂
-    (CTI.image (Fin.suc (Fin.suc Fin.zero)) refl)

@@ -7,8 +7,7 @@ module proof.DGG.CompilePreservesImprecision2 where
 --     embeddings are identity, and the paired runtime stores are the same
 --     compilation store.
 --   * Depends on Compile, GradualTermImprecision,
---     proof.DGG.CompilePreservesImprecision, and
---     proof.DGG.CastTermImprecision2.
+--     proof.DGG.Elab, and proof.DGG.CastTermImprecision2.
 
 open import Data.List using ([]; _∷_)
 open import Data.Fin using (zero)
@@ -41,8 +40,8 @@ open C using (⟨_,_,_⟩; _⊢_⦂_)
             _⊕[_]_ to _⊕ᵀ[_]_; _⟨_⟩ to _⟨ᵀ_⟩)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (World; world; _∣_⊢²_⊑_∶_)
-import proof.DGG.CompilePreservesImprecision as CPI
-import proof.DGG.Examples as Ex
+import proof.DGG.Elab as CPI
+import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency

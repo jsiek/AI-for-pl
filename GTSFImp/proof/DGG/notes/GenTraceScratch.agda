@@ -20,7 +20,8 @@ open import CastTerms using (Term; Value; $; _⟨_⟩; _↓_; _《_》; inj)
 open import Reduction using (bind; keep; applyEnv)
 open import Primitives using (κℕ)
 
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
+import proof.DGG.OneStep as Step
 import proof.DGG.ReachabilityCatalog as Cat
 import proof.DGG.ReachabilityScreen as RS
 
@@ -66,15 +67,15 @@ example12-name-tagged-sealed-value :
 example12-name-tagged-sealed-value = ($ (κℕ 7) ↓ CT.seal) 《 inj 》
 
 example12-right-step₂-change :
-  Ex.OneStep.change Ex.right-step₂ ≡ bind (‵ `ℕ)
+  Step.change Ex.right-step₂ ≡ bind (‵ `ℕ)
 example12-right-step₂-change = refl
 
 example12-right-step₄-change :
-  Ex.OneStep.change Ex.right-step₄ ≡ keep
+  Step.change Ex.right-step₄ ≡ keep
 example12-right-step₄-change = refl
 
 example12-right-step₄-next :
-  Ex.OneStep.next Ex.right-step₄ ≡ Ex.right₅
+  Step.next Ex.right-step₄ ≡ Ex.right₅
 example12-right-step₄-next = refl
 
 

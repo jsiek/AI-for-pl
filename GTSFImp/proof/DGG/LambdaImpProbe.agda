@@ -34,8 +34,9 @@ open import Primitives using (Const; κℕ)
 open import CastTerms
 open import Reduction
 open import Eval using (step?; value?)
-import proof.DGG.Examples as Ex
-open Ex.OneStep using (Δ′; change; next; reduction)
+import proof.DGG.ExampleTerms as Ex
+import proof.DGG.OneStep as Step
+open Step using (Δ′; change; next; reduction)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 import proof.DGG.Examples2 as Ex2
@@ -76,15 +77,15 @@ probe-source-reduction = Ex.example12-left-reduction
 -- The target never allocates: its argument 7 ⟨ ℕ! ⟩ is already a
 -- value, so the only step is the β for the monomorphic lambda.
 
-probe-target-step₀ : Ex.OneStep store-empty probe-target
+probe-target-step₀ : Step.OneStep store-empty probe-target
 probe-target-step₀ =
-  Ex.from-just-step (step? store-empty probe-target) refl
+  Step.from-just-step (step? store-empty probe-target) refl
 
 probe-target₁ : Term (Δ′ probe-target-step₀)
 probe-target₁ = next probe-target-step₀
 
 probe-target₁-value : Value probe-target₁
-probe-target₁-value = Ex.from-just-value (value? probe-target₁) refl
+probe-target₁-value = Step.from-just-value (value? probe-target₁) refl
 
 probe-target-changes : StoreChanges 0 (Δ′ probe-target-step₀)
 probe-target-changes = change probe-target-step₀ ∷ []

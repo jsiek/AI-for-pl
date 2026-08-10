@@ -63,7 +63,7 @@ open import CastTerms
     (Term; Var; Value; Ctx; ⟨_,_,_⟩; _⊢_⦂_; `_ ; ƛ_; _·_; Λ_;
      _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_; blame; ⇑ᵗᵐ;
      ⊢·; ⊢⟨⟩; ⊢•; ⊢reveal)
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
 
 ------------------------------------------------------------------------
 -- Local worlds

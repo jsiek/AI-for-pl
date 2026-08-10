@@ -19,7 +19,7 @@ open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.TerminusRebuildProbe as TRB
 import proof.DGG.Inversion.TargetDescentDef as TDD

@@ -24,7 +24,7 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 open import Imprecision
 
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.Parked.ParkedD4CheckpointLemma as D4

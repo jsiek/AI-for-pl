@@ -17,7 +17,7 @@ import GradualTermImprecision as GTI
 open import Compile using (compile)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (World; world; _∣_⊢²_⊑_∶_)
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using

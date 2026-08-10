@@ -2,8 +2,8 @@ module proof.DGG.Examples2 where
 
 -- File Charter:
 --   * Collects the three running DGG version-2 imprecision examples.
---   * Reuses the executable reduction machinery from Examples.agda and records
---     reduction traces for each more precise / more imprecise pair.
+--   * Reuses ExampleTerms and OneStep to record reduction traces for each
+--     more precise / more imprecise pair.
 --   * States the checkpoint obligations showing that the more imprecise side
 --     simulates each reduction step of the more precise side under the
 --     version-2 cast-term imprecision relation.
@@ -35,8 +35,9 @@ open import CastTerms
 open import Reduction
 open import Eval using (step?; value?)
 open import proof.ImprecisionConsistency using (refl⊑)
-import proof.DGG.Examples as Ex
-open Ex.OneStep
+import proof.DGG.ExampleTerms as Ex
+import proof.DGG.OneStep as Step
+open Step
   using (Δ′; change; next; reduction)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
@@ -685,71 +686,79 @@ nat-target₀ = nat-chain-more-imprecise
 nat-target-store₀ : TyStore 0
 nat-target-store₀ = store-empty
 
-nat-target-step₀ : Ex.OneStep nat-target-store₀ nat-target₀
-nat-target-step₀ = Ex.from-just-step (step? nat-target-store₀ nat-target₀) refl
+nat-target-step₀ : Step.OneStep nat-target-store₀ nat-target₀
+nat-target-step₀ =
+  Step.from-just-step (step? nat-target-store₀ nat-target₀) refl
 
 nat-target₁ : Term (Δ′ nat-target-step₀)
 nat-target₁ = next nat-target-step₀
 
 nat-target-store₁ : TyStore (Δ′ nat-target-step₀)
-nat-target-store₁ = Ex.store-after nat-target-step₀
+nat-target-store₁ = Step.store-after nat-target-step₀
 
-nat-target-step₁ : Ex.OneStep nat-target-store₁ nat-target₁
-nat-target-step₁ = Ex.from-just-step (step? nat-target-store₁ nat-target₁) refl
+nat-target-step₁ : Step.OneStep nat-target-store₁ nat-target₁
+nat-target-step₁ =
+  Step.from-just-step (step? nat-target-store₁ nat-target₁) refl
 
 nat-target₂ : Term (Δ′ nat-target-step₁)
 nat-target₂ = next nat-target-step₁
 
 nat-target-store₂ : TyStore (Δ′ nat-target-step₁)
-nat-target-store₂ = Ex.store-after nat-target-step₁
+nat-target-store₂ = Step.store-after nat-target-step₁
 
-nat-target-step₂ : Ex.OneStep nat-target-store₂ nat-target₂
-nat-target-step₂ = Ex.from-just-step (step? nat-target-store₂ nat-target₂) refl
+nat-target-step₂ : Step.OneStep nat-target-store₂ nat-target₂
+nat-target-step₂ =
+  Step.from-just-step (step? nat-target-store₂ nat-target₂) refl
 
 nat-target₃ : Term (Δ′ nat-target-step₂)
 nat-target₃ = next nat-target-step₂
 
 nat-target-store₃ : TyStore (Δ′ nat-target-step₂)
-nat-target-store₃ = Ex.store-after nat-target-step₂
+nat-target-store₃ = Step.store-after nat-target-step₂
 
-nat-target-step₃ : Ex.OneStep nat-target-store₃ nat-target₃
-nat-target-step₃ = Ex.from-just-step (step? nat-target-store₃ nat-target₃) refl
+nat-target-step₃ : Step.OneStep nat-target-store₃ nat-target₃
+nat-target-step₃ =
+  Step.from-just-step (step? nat-target-store₃ nat-target₃) refl
 
 nat-target₄ : Term (Δ′ nat-target-step₃)
 nat-target₄ = next nat-target-step₃
 
 nat-target-store₄ : TyStore (Δ′ nat-target-step₃)
-nat-target-store₄ = Ex.store-after nat-target-step₃
+nat-target-store₄ = Step.store-after nat-target-step₃
 
-nat-target-step₄ : Ex.OneStep nat-target-store₄ nat-target₄
-nat-target-step₄ = Ex.from-just-step (step? nat-target-store₄ nat-target₄) refl
+nat-target-step₄ : Step.OneStep nat-target-store₄ nat-target₄
+nat-target-step₄ =
+  Step.from-just-step (step? nat-target-store₄ nat-target₄) refl
 
 nat-target₅ : Term (Δ′ nat-target-step₄)
 nat-target₅ = next nat-target-step₄
 
 nat-target-store₅ : TyStore (Δ′ nat-target-step₄)
-nat-target-store₅ = Ex.store-after nat-target-step₄
+nat-target-store₅ = Step.store-after nat-target-step₄
 
-nat-target-step₅ : Ex.OneStep nat-target-store₅ nat-target₅
-nat-target-step₅ = Ex.from-just-step (step? nat-target-store₅ nat-target₅) refl
+nat-target-step₅ : Step.OneStep nat-target-store₅ nat-target₅
+nat-target-step₅ =
+  Step.from-just-step (step? nat-target-store₅ nat-target₅) refl
 
 nat-target₆ : Term (Δ′ nat-target-step₅)
 nat-target₆ = next nat-target-step₅
 
 nat-target-store₆ : TyStore (Δ′ nat-target-step₅)
-nat-target-store₆ = Ex.store-after nat-target-step₅
+nat-target-store₆ = Step.store-after nat-target-step₅
 
-nat-target-step₆ : Ex.OneStep nat-target-store₆ nat-target₆
-nat-target-step₆ = Ex.from-just-step (step? nat-target-store₆ nat-target₆) refl
+nat-target-step₆ : Step.OneStep nat-target-store₆ nat-target₆
+nat-target-step₆ =
+  Step.from-just-step (step? nat-target-store₆ nat-target₆) refl
 
 nat-target₇ : Term (Δ′ nat-target-step₆)
 nat-target₇ = next nat-target-step₆
 
 nat-target-store₇ : TyStore (Δ′ nat-target-step₆)
-nat-target-store₇ = Ex.store-after nat-target-step₆
+nat-target-store₇ = Step.store-after nat-target-step₆
 
-nat-target-step₇ : Ex.OneStep nat-target-store₇ nat-target₇
-nat-target-step₇ = Ex.from-just-step (step? nat-target-store₇ nat-target₇) refl
+nat-target-step₇ : Step.OneStep nat-target-store₇ nat-target₇
+nat-target-step₇ =
+  Step.from-just-step (step? nat-target-store₇ nat-target₇) refl
 
 nat-target-final : Term (Δ′ nat-target-step₇)
 nat-target-final = next nat-target-step₇
@@ -1082,109 +1091,119 @@ left-path-target₀ = left-path-more-imprecise
 left-path-target-store₀ : TyStore 0
 left-path-target-store₀ = store-empty
 
-left-path-target-step₀ : Ex.OneStep left-path-target-store₀ left-path-target₀
+left-path-target-step₀ :
+  Step.OneStep left-path-target-store₀ left-path-target₀
 left-path-target-step₀ =
-  Ex.from-just-step (step? left-path-target-store₀ left-path-target₀) refl
+  Step.from-just-step (step? left-path-target-store₀ left-path-target₀) refl
 
 left-path-target₁ : Term (Δ′ left-path-target-step₀)
 left-path-target₁ = next left-path-target-step₀
 
 left-path-target-store₁ : TyStore (Δ′ left-path-target-step₀)
-left-path-target-store₁ = Ex.store-after left-path-target-step₀
+left-path-target-store₁ = Step.store-after left-path-target-step₀
 
-left-path-target-step₁ : Ex.OneStep left-path-target-store₁ left-path-target₁
+left-path-target-step₁ :
+  Step.OneStep left-path-target-store₁ left-path-target₁
 left-path-target-step₁ =
-  Ex.from-just-step (step? left-path-target-store₁ left-path-target₁) refl
+  Step.from-just-step (step? left-path-target-store₁ left-path-target₁) refl
 
 left-path-target₂ : Term (Δ′ left-path-target-step₁)
 left-path-target₂ = next left-path-target-step₁
 
 left-path-target-store₂ : TyStore (Δ′ left-path-target-step₁)
-left-path-target-store₂ = Ex.store-after left-path-target-step₁
+left-path-target-store₂ = Step.store-after left-path-target-step₁
 
-left-path-target-step₂ : Ex.OneStep left-path-target-store₂ left-path-target₂
+left-path-target-step₂ :
+  Step.OneStep left-path-target-store₂ left-path-target₂
 left-path-target-step₂ =
-  Ex.from-just-step (step? left-path-target-store₂ left-path-target₂) refl
+  Step.from-just-step (step? left-path-target-store₂ left-path-target₂) refl
 
 left-path-target₃ : Term (Δ′ left-path-target-step₂)
 left-path-target₃ = next left-path-target-step₂
 
 left-path-target-store₃ : TyStore (Δ′ left-path-target-step₂)
-left-path-target-store₃ = Ex.store-after left-path-target-step₂
+left-path-target-store₃ = Step.store-after left-path-target-step₂
 
-left-path-target-step₃ : Ex.OneStep left-path-target-store₃ left-path-target₃
+left-path-target-step₃ :
+  Step.OneStep left-path-target-store₃ left-path-target₃
 left-path-target-step₃ =
-  Ex.from-just-step (step? left-path-target-store₃ left-path-target₃) refl
+  Step.from-just-step (step? left-path-target-store₃ left-path-target₃) refl
 
 left-path-target₄ : Term (Δ′ left-path-target-step₃)
 left-path-target₄ = next left-path-target-step₃
 
 left-path-target-store₄ : TyStore (Δ′ left-path-target-step₃)
-left-path-target-store₄ = Ex.store-after left-path-target-step₃
+left-path-target-store₄ = Step.store-after left-path-target-step₃
 
-left-path-target-step₄ : Ex.OneStep left-path-target-store₄ left-path-target₄
+left-path-target-step₄ :
+  Step.OneStep left-path-target-store₄ left-path-target₄
 left-path-target-step₄ =
-  Ex.from-just-step (step? left-path-target-store₄ left-path-target₄) refl
+  Step.from-just-step (step? left-path-target-store₄ left-path-target₄) refl
 
 left-path-target₅ : Term (Δ′ left-path-target-step₄)
 left-path-target₅ = next left-path-target-step₄
 
 left-path-target-store₅ : TyStore (Δ′ left-path-target-step₄)
-left-path-target-store₅ = Ex.store-after left-path-target-step₄
+left-path-target-store₅ = Step.store-after left-path-target-step₄
 
-left-path-target-step₅ : Ex.OneStep left-path-target-store₅ left-path-target₅
+left-path-target-step₅ :
+  Step.OneStep left-path-target-store₅ left-path-target₅
 left-path-target-step₅ =
-  Ex.from-just-step (step? left-path-target-store₅ left-path-target₅) refl
+  Step.from-just-step (step? left-path-target-store₅ left-path-target₅) refl
 
 left-path-target₆ : Term (Δ′ left-path-target-step₅)
 left-path-target₆ = next left-path-target-step₅
 
 left-path-target-store₆ : TyStore (Δ′ left-path-target-step₅)
-left-path-target-store₆ = Ex.store-after left-path-target-step₅
+left-path-target-store₆ = Step.store-after left-path-target-step₅
 
-left-path-target-step₆ : Ex.OneStep left-path-target-store₆ left-path-target₆
+left-path-target-step₆ :
+  Step.OneStep left-path-target-store₆ left-path-target₆
 left-path-target-step₆ =
-  Ex.from-just-step (step? left-path-target-store₆ left-path-target₆) refl
+  Step.from-just-step (step? left-path-target-store₆ left-path-target₆) refl
 
 left-path-target₇ : Term (Δ′ left-path-target-step₆)
 left-path-target₇ = next left-path-target-step₆
 
 left-path-target-store₇ : TyStore (Δ′ left-path-target-step₆)
-left-path-target-store₇ = Ex.store-after left-path-target-step₆
+left-path-target-store₇ = Step.store-after left-path-target-step₆
 
-left-path-target-step₇ : Ex.OneStep left-path-target-store₇ left-path-target₇
+left-path-target-step₇ :
+  Step.OneStep left-path-target-store₇ left-path-target₇
 left-path-target-step₇ =
-  Ex.from-just-step (step? left-path-target-store₇ left-path-target₇) refl
+  Step.from-just-step (step? left-path-target-store₇ left-path-target₇) refl
 
 left-path-target₈ : Term (Δ′ left-path-target-step₇)
 left-path-target₈ = next left-path-target-step₇
 
 left-path-target-store₈ : TyStore (Δ′ left-path-target-step₇)
-left-path-target-store₈ = Ex.store-after left-path-target-step₇
+left-path-target-store₈ = Step.store-after left-path-target-step₇
 
-left-path-target-step₈ : Ex.OneStep left-path-target-store₈ left-path-target₈
+left-path-target-step₈ :
+  Step.OneStep left-path-target-store₈ left-path-target₈
 left-path-target-step₈ =
-  Ex.from-just-step (step? left-path-target-store₈ left-path-target₈) refl
+  Step.from-just-step (step? left-path-target-store₈ left-path-target₈) refl
 
 left-path-target₉ : Term (Δ′ left-path-target-step₈)
 left-path-target₉ = next left-path-target-step₈
 
 left-path-target-store₉ : TyStore (Δ′ left-path-target-step₈)
-left-path-target-store₉ = Ex.store-after left-path-target-step₈
+left-path-target-store₉ = Step.store-after left-path-target-step₈
 
-left-path-target-step₉ : Ex.OneStep left-path-target-store₉ left-path-target₉
+left-path-target-step₉ :
+  Step.OneStep left-path-target-store₉ left-path-target₉
 left-path-target-step₉ =
-  Ex.from-just-step (step? left-path-target-store₉ left-path-target₉) refl
+  Step.from-just-step (step? left-path-target-store₉ left-path-target₉) refl
 
 left-path-target-final : Term (Δ′ left-path-target-step₉)
 left-path-target-final = next left-path-target-step₉
 
 left-path-target-store-final : TyStore (Δ′ left-path-target-step₉)
-left-path-target-store-final = Ex.store-after left-path-target-step₉
+left-path-target-store-final = Step.store-after left-path-target-step₉
 
 left-path-target-final-value : Value left-path-target-final
 left-path-target-final-value =
-  Ex.from-just-value (value? left-path-target-final) refl
+  Step.from-just-value (value? left-path-target-final) refl
 
 left-path-target-changes : StoreChanges 0 (Δ′ left-path-target-step₉)
 left-path-target-changes =

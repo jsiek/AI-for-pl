@@ -13,6 +13,7 @@ open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 
 open import Types
+open import Conversion using (Conv↓)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -114,6 +115,76 @@ decayRebaseAt
 ------------------------------------------------------------------------
 -- Term-imprecision decay
 ------------------------------------------------------------------------
+
+private
+  decayRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {X : TyVar Δᴸ} {P Xᴿ? M′}
+    → EnvDecay W Wᵈ
+    → CTI2.Rep★PartnerOK W X P Xᴿ? M′
+    → CTI2.Rep★PartnerOK Wᵈ X P Xᴿ? M′
+  decayRep★PartnerOK (env-decay refl refl refl refl mono)
+      (CTI2.rep★-untagged nt) =
+    CTI2.rep★-untagged nt
+  decayRep★PartnerOK (env-decay refl refl refl refl mono)
+      (CTI2.rep★-nonvar-tag Gnv) =
+    CTI2.rep★-nonvar-tag Gnv
+  decayRep★PartnerOK (env-decay refl refl refl refl mono)
+      (CTI2.rep★-var-tag aligned) =
+    CTI2.rep★-var-tag aligned
+  decayRep★PartnerOK (env-decay refl refl refl refl mono)
+      (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+    CTI2.rep★-matched-inner-tags X₂≢X aligned
+  decayRep★PartnerOK dec (CTI2.rep★-round-trip ok) =
+    CTI2.rep★-round-trip (decayRep★PartnerOK dec ok)
+
+  decaySealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {X : TyVar Δᴸ} {P R Xᴿ? M′}
+    → EnvDecay W Wᵈ
+    → CTI2.SealPartnerOK W X P R Xᴿ? M′
+    → CTI2.SealPartnerOK Wᵈ X P R Xᴿ? M′
+  decaySealPartnerOK dec (CTI2.star-rep-target ok) =
+    CTI2.star-rep-target (decayRep★PartnerOK dec ok)
+  decaySealPartnerOK dec (CTI2.plain-target nt) =
+    CTI2.plain-target nt
+  decaySealPartnerOK dec CTI2.name-protected-target =
+    CTI2.name-protected-target
+
+  decaySourceConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+    → EnvDecay W Wᵈ
+    → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
+    → CTI2.SourceConcealPartnerOK Wᵈ M c Xᴿ? M′
+  decaySourceConcealPartnerOK dec (CTI2.seal-partner-ok ok) =
+    CTI2.seal-partner-ok (decaySealPartnerOK dec ok)
+  decaySourceConcealPartnerOK dec CTI2.fun-conceal-target =
+    CTI2.fun-conceal-target
+  decaySourceConcealPartnerOK dec CTI2.all-conceal-target =
+    CTI2.all-conceal-target
+  decaySourceConcealPartnerOK dec CTI2.id-conceal-target =
+    CTI2.id-conceal-target
+
+  decayMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A A′} {Y M′}
+    → EnvDecay W Wᵈ
+    → CTI2.MatchedConcealPartnerOK W M c Y M′
+    → CTI2.MatchedConcealPartnerOK Wᵈ M c Y M′
+  decayMatchedConcealPartnerOK dec
+      (CTI2.matched-seal-star-partner ok) =
+    CTI2.matched-seal-star-partner (decayRep★PartnerOK dec ok)
+  decayMatchedConcealPartnerOK dec (CTI2.matched-seal-nonstar Rns) =
+    CTI2.matched-seal-nonstar Rns
+  decayMatchedConcealPartnerOK dec CTI2.matched-fun-conceal-target =
+    CTI2.matched-fun-conceal-target
+  decayMatchedConcealPartnerOK dec CTI2.matched-all-conceal-target =
+    CTI2.matched-all-conceal-target
+  decayMatchedConcealPartnerOK dec CTI2.matched-id-conceal-target =
+    CTI2.matched-id-conceal-target
 
 ⊢²-decay : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -289,7 +360,8 @@ decayRebaseAt
     dec@(env-decay refl refl refl refl mono)
     (CTI2.conceal⊑² ok rule-mono CTI2.tag-rebase-idᴸ sc
       c⊢ M⊑M′ q) =
-  CTI2.conceal⊑² ok (λ _ eq → eq) CTI2.tag-rebase-idᴸ
+  CTI2.conceal⊑² (decaySourceConcealPartnerOK dec ok)
+    (λ _ eq → eq) CTI2.tag-rebase-idᴸ
     (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
@@ -299,7 +371,8 @@ decayRebaseAt
     (CTI2.conceal⊑² {W′ = W′} ok rule-mono
       (CTI2.tag-rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
   CTI2.conceal⊑²
-    ok
+    (decaySourceConcealPartnerOK
+      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) ok)
     (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
     (CTI2.tag-rebase-varᴸ
       (decayRebaseAt
@@ -316,7 +389,8 @@ decayRebaseAt
     (CTI2.conceal⊑² ok rule-mono
       (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
       sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑² ok (λ _ eq → eq)
+  CTI2.conceal⊑² (decaySourceConcealPartnerOK dec ok)
+    (λ _ eq → eq)
     (CTI2.tag-rebase-onlyᴸ (mono _ to-star) disaligned
       (decay⊑ᵂ dec represented))
     (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
@@ -340,9 +414,11 @@ decayRebaseAt
     {W = CTI2.world ηL ηR μ ΣL ΣR}
     {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} rule-mono rb sc
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} ok rule-mono rb sc
       c⊢ c′⊢ M⊑M′ q) =
   CTI2.conceal⊑conceal²
+    (decayMatchedConcealPartnerOK
+      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) ok)
     (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ})
     (decayRebaseAt
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) dec rb)
@@ -350,6 +426,24 @@ decayRebaseAt
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
     c⊢ c′⊢
     (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} ok rule-mono rb sc
+      c⊢ c′⊢ M⊑M′ sourcePrem q) =
+  CTI2.packaged-seal-star²
+    (decayMatchedConcealPartnerOK
+      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) ok)
+    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ})
+    (decayRebaseAt
+      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) dec rb)
+    (decaySameCtx dec
+      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
+    c⊢ c′⊢
+    (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
+    (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sourcePrem)
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {W = CTI2.world ηL ηR μ ΣL ΣR}

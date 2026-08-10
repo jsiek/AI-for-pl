@@ -10,6 +10,7 @@ module proof.DGG.Inversion.TargetDescentDef where
 --   * Keeps the statement independent of OpenStrata, ParkedWorld, and
 --     SealChain so M4 can reuse the same package directly.
 
+open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_)
 
 open import Types
@@ -36,6 +37,7 @@ record TargetSealTerminal {Δᴸ Δᴿ Δ}
     monoᵒ : CTI2.ImpEnvMono W₀ Wᵒ
     sameᵒ : CTI2.SameCtx γ₀ γᵒ
     premiseᵒ : Wᵒ ∣ γᵒ ⊢² P ⊑ U ∶ ★⊑★
+    partnerᵒ : CTI2.MatchedConcealPartnerOK Wᵒ P (seal Xᵒ ★) (just Yᵒ) U
 
 record TargetSealReemit {Δᴸ Δᴿ Δ}
     (W₀ : World Δᴸ Δᴿ Δ) (γ₀ : CtxImp W₀)

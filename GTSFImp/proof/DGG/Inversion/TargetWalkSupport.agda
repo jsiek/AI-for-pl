@@ -544,6 +544,43 @@ rebase-pivot-obligation {W′ = W′} {X = X} rb =
     (CTI2.RebaseAt.pivotAligned rb)
     X⊑X
 
+aligned-functional : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
+  → CTI2.CenterAligned W X Y
+  → CTI2.CenterAligned W X Y′
+  → Y ≡ Y′
+aligned-functional {W = W} aligned aligned′ =
+  toRenameᵗ-injective (ηᴿʷ W) (trans (sym aligned) aligned′)
+
+rebase-target-functional : ∀ {Δᴸ Δᴿ Δ}
+    {Wᵖ W : World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
+  → CTI2.RebaseAt Wᵖ W X Y
+  → CTI2.RebaseAt Wᵖ W X Y′
+  → Y ≡ Y′
+rebase-target-functional {W = W} {X = X} rb rb′ =
+  aligned-functional {W = W} {X = X}
+    (CTI2.RebaseAt.pivotAligned rb)
+    (CTI2.RebaseAt.pivotAligned rb′)
+
+target-pedigree-unique : ∀ {Δᴸ Δᴿ Δ}
+    {Wᵖ W : World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {Y Yᵖ : TyVar Δᴿ}
+  → CTI2.RebaseAt Wᵖ W X Y
+  → CTI2.RebaseAt Wᵖ W X Yᵖ
+  → Yᵖ ≡ Y
+target-pedigree-unique rb rbᵖ =
+  sym (rebase-target-functional rb rbᵖ)
+
+tag-target-pedigree-unique : ∀ {Δᴸ Δᴿ Δ}
+    {Wᵖ W : World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {Y Yᵖ : TyVar Δᴿ}
+  → CTI2.RebaseAt Wᵖ W X Y
+  → CTI2.TagRebaseAtᴸ Wᵖ W (just X) (just Yᵖ)
+  → Yᵖ ≡ Y
+tag-target-pedigree-unique rb (CTI2.tag-rebase-varᴸ rbᵖ) =
+  target-pedigree-unique rb rbᵖ
+
 star-source-nonstar-⊥ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {S : Ty Δᴿ}
   → ★ ⊑ᵂ⟨ W ⟩ S
@@ -683,24 +720,59 @@ composeSamePivotRebase {W = W} {W′ = W′} {W₂ = W₂}
   target-frozen Z =
     trans (CTI2.RebaseAt.ηᴿ-frozen rb₁ Z)
       (CTI2.RebaseAt.ηᴿ-frozen rb₂ Z)
+
+composeOuterRebase : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ W₂ : World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
+  → CTI2.RebaseAt W′ W X Y
+  → CTI2.RebaseAt W₂ W′ X Y′
+  → CTI2.RebaseAt W₂ W X Y
+composeOuterRebase {W = W} {W′ = W′} {W₂ = W₂}
+    {X = X} {Y = Y} rb₁ rb₂ =
+  CTI2.rebase-at
+    (CTI2.same-runtime
+      (trans (CTI2.SameRuntime.sourceStore-same
+        (CTI2.RebaseAt.sameRuntime rb₁))
+        (CTI2.SameRuntime.sourceStore-same
+          (CTI2.RebaseAt.sameRuntime rb₂)))
+      (trans (CTI2.SameRuntime.targetStore-same
+        (CTI2.RebaseAt.sameRuntime rb₁))
+        (CTI2.SameRuntime.targetStore-same
+          (CTI2.RebaseAt.sameRuntime rb₂))))
+    source-off target-frozen (CTI2.RebaseAt.pivotAligned rb₁)
+    (CTI2.RebaseAt.storeRepresentations rb₁)
+  where
+  source-off : ∀ {Z} → Z ≢ X
+    → toRenameᵗ (ηᴸʷ W) Z ≡ toRenameᵗ (ηᴸʷ W₂) Z
+  source-off Z≢X =
+    trans (CTI2.RebaseAt.ηᴸ-off-pivot rb₁ Z≢X)
+      (CTI2.RebaseAt.ηᴸ-off-pivot rb₂ Z≢X)
+
+  target-frozen : ∀ Z
+    → toRenameᵗ (ηᴿʷ W) Z ≡ toRenameᵗ (ηᴿʷ W₂) Z
+  target-frozen Z =
+    trans (CTI2.RebaseAt.ηᴿ-frozen rb₁ Z)
+      (CTI2.RebaseAt.ηᴿ-frozen rb₂ Z)
 -- Proven helpers used by the isolated target walk.
 
-data SealSourcePartnerView {Δᴸ Δᴿ : TyCtx}
-    : Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  seal-partner-rep★ : ∀ {Xᴿ? M′}
+data SealSourcePartnerView {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
+    Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  seal-partner-rep★ : ∀ {P Xᴿ? M′}
+    → CTI2.Rep★PartnerOK W X P Xᴿ? M′
       -----------------------------------------
-    → SealSourcePartnerView ★ Xᴿ? M′
+    → SealSourcePartnerView W X P ★ Xᴿ? M′
 
-  seal-partner-untagged : ∀ {R Xᴿ? M′}
+  seal-partner-untagged : ∀ {P R Xᴿ? M′}
     → CTI2.NotTopTag M′
       -----------------------------------------
-    → SealSourcePartnerView R Xᴿ? M′
+    → SealSourcePartnerView W X P R Xᴿ? M′
 
-  seal-partner-name-tagged : ∀ {R X S M μ}
-      {c : μ ⊢ (＇ X) ∼ ★}
+  seal-partner-name-tagged : ∀ {P R Y S M μ}
+      {c : μ ⊢ (＇ Y) ∼ ★}
       -------------------------------------------------------
-    → SealSourcePartnerView R (just X)
-        ((M ↓ Conversion.seal X S) ⟨ c ⟩)
+    → SealSourcePartnerView W X P R (just Y)
+        ((M ↓ Conversion.seal Y S) ⟨ c ⟩)
 
 data SealedSourcePartnerView {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
@@ -709,6 +781,7 @@ data SealedSourcePartnerView {Δᴸ Δᴿ Δ}
     → Set where
   sealed-source-rep★ : ∀ {W′ γ′ N B Xᴿ?}
       {p : ★ ⊑ᵂ⟨ W′ ⟩ B}
+    → CTI2.Rep★PartnerOK W X M Xᴿ? N
     → CTI2.ImpEnvMono W W′
     → CTI2.TagRebaseAtᴸ W′ W (just X) Xᴿ?
     → CTI2.SameCtx γ γ′
@@ -752,13 +825,15 @@ data SealedSourcePartnerView {Δᴸ Δᴿ Δ}
     → SealedSourcePartnerView W γ M X R
         (U ↓ Conversion.seal Y S) (＇ Y)
 
-seal-source-partner-view : ∀ {Δᴸ Δᴿ}
-    {R : Ty Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)} {M′ : Term Δᴿ}
-  → CTI2.SealPartnerOK R Xᴿ? M′
+seal-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {P : Term Δᴸ} {R : Ty Δᴸ}
+    {Xᴿ? : Maybe (TyVar Δᴿ)} {M′ : Term Δᴿ}
+  → CTI2.SealPartnerOK W X P R Xᴿ? M′
     ----------------------------------------
-  → SealSourcePartnerView R Xᴿ? M′
-seal-source-partner-view CTI2.star-rep-target =
-  seal-partner-rep★
+  → SealSourcePartnerView W X P R Xᴿ? M′
+seal-source-partner-view (CTI2.star-rep-target ok) =
+  seal-partner-rep★ ok
 seal-source-partner-view (CTI2.plain-target nt) =
   seal-partner-untagged nt
 seal-source-partner-view CTI2.name-protected-target =
@@ -771,7 +846,7 @@ sealed-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
     {R : Ty Δᴸ} {N : Term Δᴿ} {B : Ty Δᴿ}
     {Xᴿ? : Maybe (TyVar Δᴿ)}
     {p : R ⊑ᵂ⟨ W′ ⟩ B}
-  → CTI2.SourceConcealPartnerOK (Conversion.seal X R) Xᴿ? N
+  → CTI2.SourceConcealPartnerOK W M (Conversion.seal X R) Xᴿ? N
   → CTI2.ImpEnvMono W W′
   → CTI2.TagRebaseAtᴸ W′ W (just X) Xᴿ?
   → CTI2.SameCtx γ γ′
@@ -780,8 +855,9 @@ sealed-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
     -------------------------------------------------
   → SealedSourcePartnerView W γ M X R N B
 sealed-source-partner-view
-    (CTI2.seal-partner-ok CTI2.star-rep-target) mono rb sc X∈ prem =
-  sealed-source-rep★ mono rb sc X∈ prem
+    (CTI2.seal-partner-ok (CTI2.star-rep-target ok))
+    mono rb sc X∈ prem =
+  sealed-source-rep★ ok mono rb sc X∈ prem
 sealed-source-partner-view
     (CTI2.seal-partner-ok (CTI2.plain-target nt)) mono rb sc X∈ prem =
   sealed-source-untagged nt mono rb sc X∈ prem
@@ -819,7 +895,7 @@ tagged-target-nonvar-nonstar-spine-⊥ : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² V ⊑ (U ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p
   → ⊥
 
-target-source-var-chain {q = q} sv vU mono ra sc X∈ Y∈ D =
+target-source-var-chain {Y = Y} {q = q} sv vU mono ra sc X∈ Y∈ D =
   CTI2.conceal⊑² (CTI2.seal-partner-ok
       (CTI2.plain-target CTI2.not-↓))
     mono (CTI2.tag-rebase-varᴸ ra) sc

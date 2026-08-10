@@ -10,6 +10,7 @@ module proof.DGG.Inversion.TargetDescentProof where
 import Data.Fin as Fin
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
+open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans)
@@ -125,26 +126,37 @@ target-seal★-descent : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
+  → (∀ {W₂ : World Δᴸ Δᴿ Δ} {γ₂ : CtxImp W₂}
+      → RebaseAt W₂ W′ X₂ Y
+      → CTI2.ImpEnvMono W′ W₂
+      → CTI2.SameCtx γ′ γ₂
+      → (q₂ : (＇ X₂) ⊑ᵂ⟨ W₂ ⟩ ★)
+      → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
+      → CTI2.MatchedConcealPartnerOK W₂
+          (V ⟨ c ⟩) (seal X₂ ★) (just Y) U)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → TargetSealDescentResult {W₀ = W} {γ₀ = γ} {P = V ⟨ c ⟩}
       {U = U} Xᴸ Y q ★
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c} {p₂ = p₂}
-    sv inert vU mono rb sc X∈ Y∈ D
+    sv inert vU mono rb sc X∈ Y∈ makePartner D
     with inner-source-pivot-eqᴿ rb p₂
 target-seal★-descent {W = W} {W′ = W′}
-    {Xᴸ = Xᴸ} {Y = Y} {c = c} sv inert vU mono rb sc X∈ Y∈ D
+    {Xᴸ = Xᴸ} {Y = Y} {c = c}
+    sv inert vU mono rb sc X∈ Y∈ makePartner D
     | refl
     with STC.seal-transfer sv vU (rebase-source-membership rb X∈) D
 target-seal★-descent {W = W} {W′ = W′}
-    {Xᴸ = Xᴸ} {Y = Y} {c = c} sv inert vU mono rb sc X∈ Y∈ D
+    {Xᴸ = Xᴸ} {Y = Y} {c = c}
+    sv inert vU mono rb sc X∈ Y∈ makePartner D
     | refl | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
   target-seal★
     (target-terminal W₂ γ₂
       (composeSamePivotRebase rb link)
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = W₂} mono mono₂)
       (sameCtx-∘ sc sc₂)
-      (CTI2.cast⊑² c D₂ ★⊑★))
+      (CTI2.cast⊑² c D₂ ★⊑★)
+      (makePartner link mono₂ sc₂ q₂ D₂))
 
 target-seal★-extract : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -155,8 +167,8 @@ target-seal★-extract : ∀ {Δᴸ Δᴿ Δ}
   → targetStoreʷ W ∋ Y ⦂ ★
   → (q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y))
   → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y ★ ∶ q
-target-seal★-extract (target-terminal Wᵒ γᵒ rb mono sc D) X∈ Y∈ q =
-  CTI2.conceal⊑conceal² mono rb sc
+target-seal★-extract (target-terminal Wᵒ γᵒ rb mono sc D ok) X∈ Y∈ q =
+  CTI2.conceal⊑conceal² ok mono rb sc
     (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈) D q
 
 target-seal＇-reemit : ∀ {Δᴸ Δᴿ Δ}

@@ -142,6 +142,17 @@ tag-inner-typing : ∀ {Δ} {Σ : TyStore Δ} {Γ} {N : Term Δ}
   → ⟨ Δ , Σ , Γ ⟩ ⊢ N ⦂ H
 tag-inner-typing (⊢⟨⟩ N⊢ cH!) = N⊢
 
+var-tag-value-sealed : ∀ {Δ} {Σ : TyStore Δ} {Γ}
+    {N : Term Δ} {A : Ty Δ} {Y : TyVar Δ} {ν : Env∼ Δ}
+    {Y∼★ : ν ⊢ (＇ Y) ∼★}
+    {cY : ν ⊢ A ∼ ＇ Y} {Ans : NonStar A}
+  → Value (N ⟨ _! ⦃ ＇ Y ⦄ ⦃ Y∼★ ⦄ cY ⦃ Ans ⦄ ⟩)
+  → ⟨ Δ , Σ , Γ ⟩ ⊢
+      N ⟨ _! ⦃ ＇ Y ⦄ ⦃ Y∼★ ⦄ cY ⦃ Ans ⦄ ⟩ ⦂ ★
+  → VarValueView Σ N Y
+var-tag-value-sealed (vN 《 inj 》) N!⊢ =
+  var-value-view vN (tag-inner-typing N!⊢)
+
 right-tag-variable-view : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
     {A : Ty Δᴸ} {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}

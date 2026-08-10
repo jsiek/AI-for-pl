@@ -767,7 +767,7 @@ seal-descent-current-var {Y = Y} (sv-seal sv₀) vU
       nonstar-X)
 seal-descent-current-var {Y′ = Y′} (sv-seal sv₀) vU
     source∈ target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono rb sc
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono rb sc
       (CTI2.⊢↓-sealˣ source∈′) target⊢ prem r) =
   ⊥-elim
     (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y′}
@@ -896,20 +896,20 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
 seal-descent-at-var-＇ {Wʳ = Wʳ} {A = A} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono₁ rb₁ sc₁
       (CTI2.⊢↓-sealˣ source∈′) target⊢ prem .r)
     with SPT.right-var-obligation-view {W = Wʳ} {R = A} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono₁ rb₁ sc₁
       (CTI2.⊢↓-sealˣ source∈′) target⊢ prem .r)
     | X₂ , refl , aligned
     with inner-source-pivot-eqᴿ rb r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono₁ rb₁ sc₁
       (CTI2.⊢↓-sealˣ source∈′) target⊢ prem .r)
     | .Xᴸ , refl , aligned | refl =
   ⊥-elim
@@ -953,11 +953,11 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑conceal² mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
+    (CTI2.conceal⊑conceal² ok mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
     with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑conceal² mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
+    (CTI2.conceal⊑conceal² ok mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
     | ()
 seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {A = A} {Xᴸ = Xᴸ}

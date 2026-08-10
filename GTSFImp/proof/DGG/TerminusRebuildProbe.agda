@@ -193,8 +193,8 @@ module InstanceA where
     CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
       CTI2.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
 
-  terminus-input-partner-empty : ∀ {Xᴿ?}
-    → CTI2.SourceConcealPartnerOK (seal X ∀X⇒X) Xᴿ? U
+  terminus-input-partner-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
+    → CTI2.SourceConcealPartnerOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
     → ⊥
   terminus-input-partner-empty
       (CTI2.seal-partner-ok (CTI2.plain-target ()))
@@ -217,7 +217,9 @@ module InstanceA where
 
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =
-    CTI2.conceal⊑conceal² (mono-refl {W = W}) rb-X-Y CTI2.same-[]
+    CTI2.conceal⊑conceal²
+      (CTI2.matched-seal-nonstar {Xᴿ? = just Y} nonstar-∀)
+      (mono-refl {W = W}) rb-X-Y CTI2.same-[]
       source-seal-⊢ target-seal-⊢ head-U² X⊑Y
 
   -- The observable tagged premise is available, but the rebuild above
@@ -391,7 +393,8 @@ module InstanceB where
 
   inner-source-seal² : Wᵖ ∣ [] ⊢² V ⊑ U₀ ∶ X⊑★-Wᵖ
   inner-source-seal² =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+    CTI2.conceal⊑² (CTI2.seal-partner-ok
+      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-fun)))
       (mono-refl {W = Wᵖ}) (CTI2.tag-rebase-varᴸ rb-X-Y₂)
       CTI2.same-[] source-seal-⊢ base² X⊑★-Wᵖ
 
@@ -400,7 +403,10 @@ module InstanceB where
 
   terminus-pair² : Wᵖ ∣ [] ⊢² source ⊑ U ∶ X⊑Y₂
   terminus-pair² =
-    CTI2.conceal⊑conceal² (mono-refl {W = Wᵖ}) rb-X-Y₂
+    CTI2.conceal⊑conceal²
+      (CTI2.matched-seal-star-partner {Xᴿ? = just Y₂}
+        (CTI2.rep★-nonvar-tag nonvar-fun))
+      (mono-refl {W = Wᵖ}) rb-X-Y₂
       CTI2.same-[]
       source-seal-⊢ target-Y₂-seal-⊢ payload² X⊑Y₂
 
@@ -413,7 +419,10 @@ module InstanceB where
   premise-chain² =
     CTI2.⊑conceal² mono-W-Wᵖ (CTI2.rebase-varᴿ rb-chain)
       CTI2.same-[] target-Y-seal-⊢
-      (CTI2.conceal⊑conceal² (mono-refl {W = Wᵖ}) rb-X-Y₂
+      (CTI2.conceal⊑conceal²
+        (CTI2.matched-seal-star-partner {Xᴿ? = just Y₂}
+          (CTI2.rep★-nonvar-tag nonvar-fun))
+        (mono-refl {W = Wᵖ}) rb-X-Y₂
         CTI2.same-[]
         source-seal-⊢ target-Y₂-seal-⊢ base² X⊑Y₂)
       X⊑Y
@@ -425,6 +434,8 @@ module InstanceB where
 
   tagged-input : W ∣ [] ⊢² source ⊑ target-tagged ∶ X⊑★-W
   tagged-input =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+    CTI2.conceal⊑² (CTI2.seal-partner-ok
+      (CTI2.star-rep-target
+        (CTI2.rep★-var-tag (CTI2.RebaseAt.pivotAligned rb-X-Y))))
       (mono-refl {W = W}) (CTI2.tag-rebase-varᴸ rb-X-Y)
       CTI2.same-[] source-seal-⊢ premise-casts² X⊑★-W

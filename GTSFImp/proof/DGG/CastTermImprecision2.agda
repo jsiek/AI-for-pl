@@ -50,7 +50,8 @@ open import TyStore using
   (TyStore; store-empty; store-lift; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import TermCtx using (TermCtx)
 open import Consistency using
-  (Env∼; _⊢_∼_; _∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!)
+  (Env∼; _⊢_∼_; _⊢_∼★; _∼_; _↪ᵗ_; empty; keep; skip;
+   toRenameᵗ; id; _!)
 open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
 open import Conversion using
   (unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓;
@@ -376,43 +377,134 @@ data NotTopTag {Δ : TyCtx} : Term Δ → Set where
   not-↓ : ∀ {M A B} {c : Conv↓ Δ A B} → NotTopTag (M ↓ c)
   not-blame : NotTopTag blame
 
-data SealPartnerOK {Δᴸ Δᴿ : TyCtx} :
-    Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  star-rep-target : ∀ {Xᴿ? M′}
-      ------------------------------------
-    → SealPartnerOK ★ Xᴿ? M′
+CenterAligned : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δᴸ
+  → TyVar Δᴿ
+  → Set
+CenterAligned W X Y =
+  toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
 
-  plain-target : ∀ {R Xᴿ? M′}
+data Rep★PartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
+    Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  rep★-untagged : ∀ {P Xᴿ? M′}
     → NotTopTag M′
       ------------------------------------
-    → SealPartnerOK R Xᴿ? M′
+    → Rep★PartnerOK W X P Xᴿ? M′
 
-  name-protected-target : ∀ {R X S M μ}
-      {c : μ ⊢ (＇ X) ∼ ★}
+  rep★-nonvar-tag : ∀ {P Xᴿ? M A G μ}
+      {Gᵍ : Ground G} {G∼★ : μ ⊢ G ∼★}
+      {c : μ ⊢ A ∼ G} {Ans : NonStar A}
+    → NonVar G
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X P Xᴿ?
+        (M ⟨ _! {G = G} ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+              c ⦃ Ans = Ans ⦄ ⟩)
+
+  rep★-var-tag : ∀ {P M A Y μ}
+      {Y∼★ : μ ⊢ (＇ Y) ∼★}
+      {c : μ ⊢ A ∼ ＇ Y} {Ans : NonStar A}
+    → CenterAligned W X Y
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X P (just Y)
+        (M ⟨ _! {G = ＇ Y} ⦃ Gᵍ = ＇ Y ⦄
+              ⦃ G∼★ = Y∼★ ⦄ c ⦃ Ans = Ans ⦄ ⟩)
+
+  rep★-matched-inner-tags : ∀ {Y X₂ Y₂ V₂ U₂ Aᴸ Aᴿ μᴸ μᴿ}
+      {X₂∼★ : μᴸ ⊢ (＇ X₂) ∼★}
+      {Y₂∼★ : μᴿ ⊢ (＇ Y₂) ∼★}
+      {cX : μᴸ ⊢ Aᴸ ∼ ＇ X₂} {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂}
+      {AnsX : NonStar Aᴸ} {AnsY : NonStar Aᴿ}
+    → X₂ ≢ X
+    → CenterAligned W X₂ Y₂
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X
+        (V₂ ⟨ _! {G = ＇ X₂} ⦃ Gᵍ = ＇ X₂ ⦄
+              ⦃ G∼★ = X₂∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
+        (just Y)
+        (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
+              ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
+
+  rep★-round-trip : ∀ {P Xᴿ? M′ A μ}
+      {X∼★ : μ ⊢ (＇ X) ∼★}
+      {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X
+        ((P ↓ seal X ★)
+          ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
+              ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
+        Xᴿ? M′
+
+data SealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
+    Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  star-rep-target : ∀ {P Xᴿ? M′}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ------------------------------------
+    → SealPartnerOK W X P ★ Xᴿ? M′
+
+  plain-target : ∀ {P R Xᴿ? M′}
+    → NotTopTag M′
+      ------------------------------------
+    → SealPartnerOK W X P R Xᴿ? M′
+
+  name-protected-target : ∀ {P R Y S M μ}
+      {c : μ ⊢ (＇ Y) ∼ ★}
       ----------------------------------------------------
-    → SealPartnerOK R (just X) ((M ↓ seal X S) ⟨ c ⟩)
+    → SealPartnerOK W X P R (just Y) ((M ↓ seal Y S) ⟨ c ⟩)
 
-data SourceConcealPartnerOK {Δᴸ Δᴿ : TyCtx} :
-    {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
+data SourceConcealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
     → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  seal-partner-ok : ∀ {X R Xᴿ? M′}
-    → SealPartnerOK R Xᴿ? M′
+  seal-partner-ok : ∀ {P X R Xᴿ? M′}
+    → SealPartnerOK W X P R Xᴿ? M′
       ----------------------------------------------------
-    → SourceConcealPartnerOK (seal X R) Xᴿ? M′
+    → SourceConcealPartnerOK W P (seal X R) Xᴿ? M′
 
-  fun-conceal-target : ∀ {A A′ B B′ Xᴿ? M′}
+  fun-conceal-target : ∀ {P A A′ B B′ Xᴿ? M′}
       {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
       ----------------------------------------------------
-    → SourceConcealPartnerOK (c ↦↓ d) Xᴿ? M′
+    → SourceConcealPartnerOK W P (c ↦↓ d) Xᴿ? M′
 
-  all-conceal-target : ∀ {A B Xᴿ? M′}
+  all-conceal-target : ∀ {P A B Xᴿ? M′}
       {c : Conv↓ (Nat.suc Δᴸ) A B}
       ----------------------------------------------------
-    → SourceConcealPartnerOK (`∀↓ c) Xᴿ? M′
+    → SourceConcealPartnerOK W P (`∀↓ c) Xᴿ? M′
 
-  id-conceal-target : ∀ {A Xᴿ? M′}
+  id-conceal-target : ∀ {P A Xᴿ? M′}
       ----------------------------------------------------
-    → SourceConcealPartnerOK (id↓ A) Xᴿ? M′
+    → SourceConcealPartnerOK W P (id↓ A) Xᴿ? M′
+
+data MatchedConcealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
+    → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  matched-seal-star-partner : ∀ {P X Xᴿ? M′}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (seal X ★) Xᴿ? M′
+
+  matched-seal-nonstar : ∀ {P X R Xᴿ? M′}
+    → NonStar R
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (seal X R) Xᴿ? M′
+
+  matched-fun-conceal-target : ∀ {P A A′ B B′ Xᴿ? M′}
+      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (c ↦↓ d) Xᴿ? M′
+
+  matched-all-conceal-target : ∀ {P A B Xᴿ? M′}
+      {c : Conv↓ (Nat.suc Δᴸ) A B}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (`∀↓ c) Xᴿ? M′
+
+  matched-id-conceal-target : ∀ {P A Xᴿ? M′}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (id↓ A) Xᴿ? M′
 
 data TagRebaseAtᴸ {Δᴸ Δᴿ Δ}
     : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
@@ -685,7 +777,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → SourceConcealPartnerOK c Xᴿ? M′
+    → SourceConcealPartnerOK W′ M c Xᴿ? M′
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → SameCtx γ γ′
@@ -715,6 +807,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
+    → MatchedConcealPartnerOK Wᵖ M c (just Xᴿ) M′
     → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
@@ -724,6 +817,23 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
+
+  packaged-seal-star² : ∀
+      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
+      {M M′ Xᴸ Xᴿ Xᴿ?}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {qᵖ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
+    → MatchedConcealPartnerOK Wᵖ M (seal Xᴸ ★) Xᴿ? M′
+    → ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Xᴿ
+    → SameCtx γ γᵖ
+    → sourceStoreʷ W ⊢↓[ just Xᴸ ] seal Xᴸ ★
+    → targetStoreʷ W ⊢↓[ just Xᴿ ] seal Xᴿ ★
+    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p★
+    → Wᵖ ∣ γᵖ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ∶ qᵖ
+    → (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Xᴿ))
+      --------------------------------------------------------
+    → W ∣ γ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ↓ seal Xᴿ ★ ∶ q
 
   -- Source blame is below any well-typed target term.  The left side
   -- is the more static one (A ⊑ ★ for any closed type A, with ★ on

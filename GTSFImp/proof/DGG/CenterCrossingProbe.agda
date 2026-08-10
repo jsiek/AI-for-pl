@@ -207,7 +207,10 @@ base² =
 
 inner² : Wᵖ ∣ [] ⊢² V ⊑ U ∶ p-inner
 inner² =
-  CTI2.conceal⊑conceal² (λ Z eq → eq) rb-inner CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-star-partner
+      (CTI2.rep★-nonvar-tag nonvar-base))
+    (λ Z eq → eq) rb-inner CTI2.same-[]
     (CTI2.⊢↓-sealˣ X₁∈) (CTI2.⊢↓-sealˣ Y₁∈) base² p-inner
 
 input-target-seal-variable :

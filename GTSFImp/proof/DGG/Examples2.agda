@@ -534,7 +534,9 @@ example12-sealed-const :
     ⊑ ($ (κℕ 7)) ↓ example12-target-X-seal ∶
       example12-X-var⊑
 example12-sealed-const =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) example12-rebase-X-same CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-nonstar nonstar-ι)
+    (λ _ eq → eq) example12-rebase-X-same CTI2.same-[]
     example12-source-X-seal-⊢ˣ example12-target-X-seal-⊢ˣ
     (κ⊑κ² (κℕ 7) example12-ℕ⊑ℕ-X) example12-X-var⊑
 
@@ -1022,7 +1024,9 @@ nat-chain-sealed-const-X :
     ⊑ ($ (κℕ 7)) ↓ nat-chain-target-X-seal ∶
       nat-chain-X-var⊑
 nat-chain-sealed-const-X =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) nat-chain-rebase-X-same CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-nonstar nonstar-ι)
+    (λ _ eq → eq) nat-chain-rebase-X-same CTI2.same-[]
     nat-chain-source-X-seal-⊢ˣ nat-chain-target-X-seal-⊢ˣ
     (κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ-X) nat-chain-X-var⊑
 
@@ -2056,8 +2060,10 @@ left-path-argument₄-base =
     (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄-YZ}))
     left-path-ℕ⊑★₄-YZ
 
-left-path-argument₄-old-wrapper-empty :
-  CTI2.SourceConcealPartnerOK example12-target-X-seal nothing
+left-path-argument₄-old-wrapper-empty : ∀ {P}
+  →
+  CTI2.SourceConcealPartnerOK left-path-world₄-YZ
+    P example12-target-X-seal nothing
     (($ (κℕ 7)) ⟨ left-path-ℕ!₂ ⟩)
   → ⊥
 left-path-argument₄-old-wrapper-empty
@@ -2566,7 +2572,10 @@ left-path-argument-Z₈-YZ :
         ↓ left-path-target-Z-seal₂ ∶
       left-path-Z-var⊑YZ₄
 left-path-argument-Z₈-YZ =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-Z-YZ₄
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-star-partner
+      (CTI2.rep★-nonvar-tag nonvar-base))
+    (λ _ eq → eq) left-path-rebase-Z-YZ₄
     CTI2.same-[]
     left-path-source-Z-seal₄-⊢ˣ left-path-target-Z-seal₄-⊢ˣ
     left-path-source-X!₄ left-path-Z-var⊑YZ₄
@@ -2675,7 +2684,10 @@ left-path-argument-Y₉-YZ :
         ↓ left-path-target-Y-seal₂) ∶
       left-path-Y-var⊑YZ₄
 left-path-argument-Y₉-YZ =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) left-path-rebase-Y-YZ₄
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-star-partner
+      (CTI2.rep★-untagged CTI2.not-↓))
+    (λ _ eq → eq) left-path-rebase-Y-YZ₄
     CTI2.same-[] left-path-source-Y-seal₄-⊢ˣ
     left-path-target-Y-seal₄-⊢ˣ
     left-path-argument-Z₈-YZ left-path-Y-var⊑YZ₄

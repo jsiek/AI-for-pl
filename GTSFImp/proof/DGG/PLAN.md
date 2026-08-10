@@ -265,3 +265,37 @@ Residue unchanged: the two worker postulates
 (Inversion/SourceStripWorkerProof.agda:475) fall to the …-empty₃
 proofs once TargetChainProof:88 is discharged. ExtraCastRightProbe.agda
 is an orphan (no importers) — delete at final cleanup.
+
+## M3 COMPLETE (2026-08-10)
+
+right-inj-inversion² : RightInjInversion² is live
+(Inversion/RightInjInversion2Lemma.agda), zero postulates in the
+stack, GTSFImp/All.agda green, hygiene = the 2 pre-existing baseline
+postulates only (Consistency.agda:229, proof/Imprecision.agda:23).
+ExtraCastRightProbe.agda (unimported pre-M4 orphan with holes)
+deleted per closed-world convention.
+
+Endgame record: the two SourceStripWorkerProof postulates were
+replaced by real proofs via tag-destruct → chain-call → repackage
+composition (the proven TargetChainLemma is imported by the strip
+layer). Final obstacles were tooling, not mathematics: a monolithic
+clause set that Agda could not process (fixed by coarse SpineValue
+dispatch + type-specialized helpers + view staging,
+SourceStripColumnView.agda), and an Agda 2.7.0.1 internal error
+(__IMPOSSIBLE__, CompiledClause/Compile.hs:170) isolated by bisection
+to one deep dispatcher and fixed by a shallow derivation-first
+restructure; minimal reproducer preserved at
+/AgdaInternalErrorRepro.agda for an upstream report.
+
+Design decisions that landed on the way (each pre-flighted; see
+TIGHTEN*-PREFLIGHT.md, PEDIGREE-DESIGN-MEMO.md, round*.red):
+premise-world partner predicates; partner-flow inversion;
+var-tag-value-sealed; see-through rep★-round-trip with X₂ ≢ X
+orthogonalization; witness-transport across pivot rebases;
+premise-world pedigree on the rule surface (memo option B); tied
+conceal⊑² indices (pre-flight 9: no site needs the loose form);
+in-branch tagged-transfer packaging.
+
+Next: M5 relational continuations + M6 driver (designs validated),
+then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
+pedigree; TODO.md: consistency-relation rigid-var/★ fix.

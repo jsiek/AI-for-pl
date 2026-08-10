@@ -211,8 +211,10 @@ probe-checkpoint₁ :
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
 
-probe-sealed-arg-partner-empty : ∀ {Xᴿ?}
-  → CTI2.SourceConcealPartnerOK Ex2.example12-source-X-seal Xᴿ?
+probe-sealed-arg-partner-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
+    {P Xᴿ?}
+  → CTI2.SourceConcealPartnerOK W
+      P Ex2.example12-source-X-seal Xᴿ?
       (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
   → ⊥
 probe-sealed-arg-partner-empty

@@ -180,13 +180,16 @@ base² =
 inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
   CTI2.conceal⊑²
-    (CTI2.seal-partner-ok CTI2.star-rep-target)
+    (CTI2.seal-partner-ok
+      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
     (λ Z eq → eq) inner-source-only-rebase CTI2.same-[]
     source-X-seal-⊢ base² inner-type
 
 output : W ∣ [] ⊢² M ⊑ target-sealed ∶ q
 output =
-  CTI2.conceal⊑conceal² (λ Z eq → eq) outer-rebase CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-nonstar nonstar-X)
+    (λ Z eq → eq) outer-rebase CTI2.same-[]
     source-Xᴸ-seal-⊢ target-Y-seal-⊢ inner-source² q
 
 input : W ∣ [] ⊢² M ⊑ N ∶ input-type

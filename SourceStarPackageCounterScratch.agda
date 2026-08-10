@@ -90,7 +90,7 @@ counter-premise :
 counter-premise = tagged-input
 
 no-output-package :
-  STC.TaggedTransferOutput W [] source-output-tag target-tag X Y₂
+  STC.TaggedTransferOutput W [] source-output-tag target-tag X (just Y₂)
   → ⊥
 no-output-package pkg
     with STC.TaggedTransferOutput.partner pkg

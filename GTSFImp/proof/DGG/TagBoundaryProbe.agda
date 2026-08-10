@@ -207,7 +207,8 @@ probe-base² =
 probe-source-seal² :
   probe-W₅ ∣ [] ⊢² probe-V ⊑ probe-M₅ ∶ p₅
 probe-source-seal² =
-  CTI2.conceal⊑² (CTI2.seal-partner-ok CTI2.star-rep-target)
+  CTI2.conceal⊑² (CTI2.seal-partner-ok
+    (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
     (λ _ eq → eq) (CTI2.tag-rebase-varᴸ probe-inner-source-rebase)
     CTI2.same-[] probe-X-seal-⊢ probe-base² p₅
 

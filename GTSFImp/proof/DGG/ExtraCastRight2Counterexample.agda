@@ -167,7 +167,9 @@ inner-seals² : pre-world ∣ [] ⊢²
     ($ (κℕ 0)) ↓ seal U (‵ `ℕ)
     ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ X⊑X
 inner-seals² =
-  CTI2.conceal⊑conceal² (λ _ eq → eq) U-Y-rebase CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-nonstar nonstar-ι)
+    (λ _ eq → eq) U-Y-rebase CTI2.same-[]
     source-U-seal-typed target-Y-seal-typed inner-target-tag² X⊑X
 
 inner-paired-tags² : pre-world ∣ [] ⊢²
@@ -227,8 +229,8 @@ repaired-base² : pre-worldᵈ ∣ [] ⊢²
     $ (κℕ 0) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ι⊑★
 repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
-repaired-seal-partner-empty : ∀ {Xᴿ?}
-  → CTI2.SourceConcealPartnerOK (seal U (‵ `ℕ)) Xᴿ?
+repaired-seal-partner-empty : ∀ {Wᵖ : World 2 1 2} {P Xᴿ?}
+  → CTI2.SourceConcealPartnerOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?
     (($ (κℕ 0)) ⟨ ℕ! ⟩)
   → ⊥
 repaired-seal-partner-empty

@@ -140,7 +140,10 @@ q₁ = X⊑X
 
 D : W₀ ∣ [] ⊢² V ⊑ U ∶ q₁
 D =
-  CTI2.conceal⊑conceal² (λ Z eq → eq) link₁ CTI2.same-[]
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-star-partner
+      (CTI2.rep★-nonvar-tag nonvar-base))
+    (λ Z eq → eq) link₁ CTI2.same-[]
     (CTI2.⊢↓-sealˣ X₁∈) (CTI2.⊢↓-sealˣ Y₁∈) base² q₁
 
 private

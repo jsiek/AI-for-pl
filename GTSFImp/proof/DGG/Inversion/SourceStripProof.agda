@@ -72,7 +72,7 @@ private
         boundary★ , target∈★ , q★ , premise★ , reemit ,
         λ qᵒ q′ final →
           CTI2.conceal⊑²
-            (CTI2.seal-partner-ok CTI2.star-rep-target)
+            (CTI2.seal-partner-ok CTI2.name-protected-target)
             mono (CTI2.tag-rebase-varᴸ rb) sc
             (CTI2.⊢↓-sealˣ source∈) final qᵒ)
   source-tag-seal-core-tagged (＇ X) sv vU mono rb sc source∈

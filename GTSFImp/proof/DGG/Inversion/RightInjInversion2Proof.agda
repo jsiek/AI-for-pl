@@ -608,24 +608,10 @@ module _
       | ra′ | varv-seal {W = U} vU Y∈ refl
       | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
       | X₂ , refl , aligned | inj₂ refl | ★
-      | refl
-      with STC.seal-transfer sv₀ vU
-        (rebase-source-membership ra′ Xᴸ∈) prem₂
-  right-inj-inversion² {W = W} {gH = ＇ Y}
-      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
-      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
-        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
-      | ra′ | varv-seal {W = U} vU Y∈ refl
-      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
-      | X₂ , refl , aligned | inj₂ refl | ★
-      | refl | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
-    CTI2.conceal⊑conceal²
-      (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = W₂} mono mono₂)
-      (composeSamePivotRebase ra′ link)
-      (sameCtx-∘ sc sc₂)
-      (CTI2.⊢↓-sealˣ Xᴸ∈)
-      (CTI2.⊢↓-sealˣ (rebase-target-membership ra′ Y∈))
-      (CTI2.cast⊑² c D₂ ★⊑★) q
+      | refl =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈)
+      (CTI2.cast⊑cast² c c′ prem₂ p₀)
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc

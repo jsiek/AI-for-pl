@@ -22,7 +22,7 @@ import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.CenterCrossingProbe as CCP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.WorldDecay as WD
 

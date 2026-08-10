@@ -51,11 +51,12 @@ open CTI2 using
    lift-∷; liftᴸ-[]; liftᴸ-∷; x⊑x²; ƛ⊑ƛ²; ·⊑·²;
    Λ⊑²; •⊑•²; •⊑²; κ⊑κ²; cast⊑cast²; ⊑cast²)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
+import proof.DGG.OneStep as Step
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
 import proof.DGG.StarRepChainProbe as Probe
-import PPrimeTraceScratch as P
+import proof.DGG.notes.PPrimeTraceScratch as P
 
 ------------------------------------------------------------------------
 -- Shared closed casts and the right GEN partner
@@ -149,68 +150,68 @@ Qᶜ-eval-tags-nonempty ()
 -- Right trace to the generated-name tagged sealed input
 ------------------------------------------------------------------------
 
-Q-step₀ : Ex.OneStep store-empty Qᶜ
-Q-step₀ = Ex.from-just-step (step? store-empty Qᶜ) refl
+Q-step₀ : Step.OneStep store-empty Qᶜ
+Q-step₀ = Step.from-just-step (step? store-empty Qᶜ) refl
 
-Q₁ : Term (Ex.OneStep.Δ′ Q-step₀)
-Q₁ = Ex.OneStep.next Q-step₀
+Q₁ : Term (Step.Δ′ Q-step₀)
+Q₁ = Step.next Q-step₀
 
-Q-store₁ = Ex.store-after Q-step₀
+Q-store₁ = Step.store-after Q-step₀
 
-Q-step₁ : Ex.OneStep Q-store₁ Q₁
-Q-step₁ = Ex.from-just-step (step? Q-store₁ Q₁) refl
+Q-step₁ : Step.OneStep Q-store₁ Q₁
+Q-step₁ = Step.from-just-step (step? Q-store₁ Q₁) refl
 
-Q₂ : Term (Ex.OneStep.Δ′ Q-step₁)
-Q₂ = Ex.OneStep.next Q-step₁
+Q₂ : Term (Step.Δ′ Q-step₁)
+Q₂ = Step.next Q-step₁
 
-Q-store₂ = Ex.store-after Q-step₁
+Q-store₂ = Step.store-after Q-step₁
 
-Q-step₂ : Ex.OneStep Q-store₂ Q₂
-Q-step₂ = Ex.from-just-step (step? Q-store₂ Q₂) refl
+Q-step₂ : Step.OneStep Q-store₂ Q₂
+Q-step₂ = Step.from-just-step (step? Q-store₂ Q₂) refl
 
-Q₃ : Term (Ex.OneStep.Δ′ Q-step₂)
-Q₃ = Ex.OneStep.next Q-step₂
+Q₃ : Term (Step.Δ′ Q-step₂)
+Q₃ = Step.next Q-step₂
 
-Q-store₃ = Ex.store-after Q-step₂
+Q-store₃ = Step.store-after Q-step₂
 
-Q-step₃ : Ex.OneStep Q-store₃ Q₃
-Q-step₃ = Ex.from-just-step (step? Q-store₃ Q₃) refl
+Q-step₃ : Step.OneStep Q-store₃ Q₃
+Q-step₃ = Step.from-just-step (step? Q-store₃ Q₃) refl
 
-Q₄ : Term (Ex.OneStep.Δ′ Q-step₃)
-Q₄ = Ex.OneStep.next Q-step₃
+Q₄ : Term (Step.Δ′ Q-step₃)
+Q₄ = Step.next Q-step₃
 
-Q-store₄ = Ex.store-after Q-step₃
+Q-store₄ = Step.store-after Q-step₃
 
-Q-step₄ : Ex.OneStep Q-store₄ Q₄
-Q-step₄ = Ex.from-just-step (step? Q-store₄ Q₄) refl
+Q-step₄ : Step.OneStep Q-store₄ Q₄
+Q-step₄ = Step.from-just-step (step? Q-store₄ Q₄) refl
 
-Q₅ : Term (Ex.OneStep.Δ′ Q-step₄)
-Q₅ = Ex.OneStep.next Q-step₄
+Q₅ : Term (Step.Δ′ Q-step₄)
+Q₅ = Step.next Q-step₄
 
-Q-store₅ = Ex.store-after Q-step₄
+Q-store₅ = Step.store-after Q-step₄
 
-Q-step₅ : Ex.OneStep Q-store₅ Q₅
-Q-step₅ = Ex.from-just-step (step? Q-store₅ Q₅) refl
+Q-step₅ : Step.OneStep Q-store₅ Q₅
+Q-step₅ = Step.from-just-step (step? Q-store₅ Q₅) refl
 
-Q₆ : Term (Ex.OneStep.Δ′ Q-step₅)
-Q₆ = Ex.OneStep.next Q-step₅
+Q₆ : Term (Step.Δ′ Q-step₅)
+Q₆ = Step.next Q-step₅
 
-Q-step₀-change : Ex.OneStep.change Q-step₀ ≡ keep
+Q-step₀-change : Step.change Q-step₀ ≡ keep
 Q-step₀-change = refl
 
-Q-step₁-change : Ex.OneStep.change Q-step₁ ≡ bind ★
+Q-step₁-change : Step.change Q-step₁ ≡ bind ★
 Q-step₁-change = refl
 
-Q-step₂-change : Ex.OneStep.change Q-step₂ ≡ keep
+Q-step₂-change : Step.change Q-step₂ ≡ keep
 Q-step₂-change = refl
 
-Q-step₃-change : Ex.OneStep.change Q-step₃ ≡ keep
+Q-step₃-change : Step.change Q-step₃ ≡ keep
 Q-step₃-change = refl
 
-Q-step₄-change : Ex.OneStep.change Q-step₄ ≡ keep
+Q-step₄-change : Step.change Q-step₄ ≡ keep
 Q-step₄-change = refl
 
-Q-step₅-change : Ex.OneStep.change Q-step₅ ≡ keep
+Q-step₅-change : Step.change Q-step₅ ≡ keep
 Q-step₅-change = refl
 
 Q-tag-env : Env∼ 1
@@ -238,79 +239,79 @@ Q₆-generated-tagged-input-gate = refl
 -- Left trace to the two-seal state
 ------------------------------------------------------------------------
 
-P-step₀ : Ex.OneStep store-empty Pᶜ
-P-step₀ = Ex.from-just-step (step? store-empty Pᶜ) refl
+P-step₀ : Step.OneStep store-empty Pᶜ
+P-step₀ = Step.from-just-step (step? store-empty Pᶜ) refl
 
-P₁ : Term (Ex.OneStep.Δ′ P-step₀)
-P₁ = Ex.OneStep.next P-step₀
+P₁ : Term (Step.Δ′ P-step₀)
+P₁ = Step.next P-step₀
 
-P-store₁ = Ex.store-after P-step₀
+P-store₁ = Step.store-after P-step₀
 
-P-step₁ : Ex.OneStep P-store₁ P₁
-P-step₁ = Ex.from-just-step (step? P-store₁ P₁) refl
+P-step₁ : Step.OneStep P-store₁ P₁
+P-step₁ = Step.from-just-step (step? P-store₁ P₁) refl
 
-P₂ : Term (Ex.OneStep.Δ′ P-step₁)
-P₂ = Ex.OneStep.next P-step₁
+P₂ : Term (Step.Δ′ P-step₁)
+P₂ = Step.next P-step₁
 
-P-store₂ = Ex.store-after P-step₁
+P-store₂ = Step.store-after P-step₁
 
-P-step₂ : Ex.OneStep P-store₂ P₂
-P-step₂ = Ex.from-just-step (step? P-store₂ P₂) refl
+P-step₂ : Step.OneStep P-store₂ P₂
+P-step₂ = Step.from-just-step (step? P-store₂ P₂) refl
 
-P₃ : Term (Ex.OneStep.Δ′ P-step₂)
-P₃ = Ex.OneStep.next P-step₂
+P₃ : Term (Step.Δ′ P-step₂)
+P₃ = Step.next P-step₂
 
-P-store₃ = Ex.store-after P-step₂
+P-store₃ = Step.store-after P-step₂
 
-P-step₃ : Ex.OneStep P-store₃ P₃
-P-step₃ = Ex.from-just-step (step? P-store₃ P₃) refl
+P-step₃ : Step.OneStep P-store₃ P₃
+P-step₃ = Step.from-just-step (step? P-store₃ P₃) refl
 
-P₄ : Term (Ex.OneStep.Δ′ P-step₃)
-P₄ = Ex.OneStep.next P-step₃
+P₄ : Term (Step.Δ′ P-step₃)
+P₄ = Step.next P-step₃
 
-P-store₄ = Ex.store-after P-step₃
+P-store₄ = Step.store-after P-step₃
 
-P-step₄ : Ex.OneStep P-store₄ P₄
-P-step₄ = Ex.from-just-step (step? P-store₄ P₄) refl
+P-step₄ : Step.OneStep P-store₄ P₄
+P-step₄ = Step.from-just-step (step? P-store₄ P₄) refl
 
-P₅ : Term (Ex.OneStep.Δ′ P-step₄)
-P₅ = Ex.OneStep.next P-step₄
+P₅ : Term (Step.Δ′ P-step₄)
+P₅ = Step.next P-step₄
 
-P-store₅ = Ex.store-after P-step₄
+P-store₅ = Step.store-after P-step₄
 
-P-step₅ : Ex.OneStep P-store₅ P₅
-P-step₅ = Ex.from-just-step (step? P-store₅ P₅) refl
+P-step₅ : Step.OneStep P-store₅ P₅
+P-step₅ = Step.from-just-step (step? P-store₅ P₅) refl
 
-P₆ : Term (Ex.OneStep.Δ′ P-step₅)
-P₆ = Ex.OneStep.next P-step₅
+P₆ : Term (Step.Δ′ P-step₅)
+P₆ = Step.next P-step₅
 
-P-store₆ = Ex.store-after P-step₅
+P-store₆ = Step.store-after P-step₅
 
-P-step₆ : Ex.OneStep P-store₆ P₆
-P-step₆ = Ex.from-just-step (step? P-store₆ P₆) refl
+P-step₆ : Step.OneStep P-store₆ P₆
+P-step₆ = Step.from-just-step (step? P-store₆ P₆) refl
 
-P₇ : Term (Ex.OneStep.Δ′ P-step₆)
-P₇ = Ex.OneStep.next P-step₆
+P₇ : Term (Step.Δ′ P-step₆)
+P₇ = Step.next P-step₆
 
-P-step₀-change : Ex.OneStep.change P-step₀ ≡ bind ★
+P-step₀-change : Step.change P-step₀ ≡ bind ★
 P-step₀-change = refl
 
-P-step₁-change : Ex.OneStep.change P-step₁ ≡ keep
+P-step₁-change : Step.change P-step₁ ≡ keep
 P-step₁-change = refl
 
-P-step₂-change : Ex.OneStep.change P-step₂ ≡ keep
+P-step₂-change : Step.change P-step₂ ≡ keep
 P-step₂-change = refl
 
-P-step₃-change : Ex.OneStep.change P-step₃ ≡ bind (＇ Fin.zero)
+P-step₃-change : Step.change P-step₃ ≡ bind (＇ Fin.zero)
 P-step₃-change = refl
 
-P-step₄-change : Ex.OneStep.change P-step₄ ≡ keep
+P-step₄-change : Step.change P-step₄ ≡ keep
 P-step₄-change = refl
 
-P-step₅-change : Ex.OneStep.change P-step₅ ≡ keep
+P-step₅-change : Step.change P-step₅ ≡ keep
 P-step₅-change = refl
 
-P-step₆-change : Ex.OneStep.change P-step₆ ≡ keep
+P-step₆-change : Step.change P-step₆ ≡ keep
 P-step₆-change = refl
 
 P-two-seal-env : Env∼ 2

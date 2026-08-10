@@ -1,4 +1,4 @@
-module PPrimeTraceScratch where
+module proof.DGG.notes.PPrimeTraceScratch where
 
 -- Root-only scratch for the P' trace question.
 -- It keeps the source term, compile-screen term, and checked evaluator gates

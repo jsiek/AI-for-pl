@@ -23,8 +23,9 @@ import proof.Imprecision
 import proof.Consistency
 import proof.Consistency2
 import proof.Reduction
-import proof.DGG.CastTermImprecision
-import proof.DGG.CompilePreservesImprecision
+import proof.DGG.OneStep
+import proof.DGG.ExampleTerms
+import proof.DGG.Elab
 import proof.DGG.CompilePreservesImprecision2
 import proof.DGG.Inversion.SpineValueDef
 import proof.DGG.Inversion.RightInjInversion2Def

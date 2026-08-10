@@ -32,12 +32,13 @@ open import Eval using (step?)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
-import proof.DGG.Examples as Ex
+import proof.DGG.ExampleTerms as Ex
+import proof.DGG.OneStep as Step
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
 
-open Ex.OneStep using (Δ′; change; next; reduction)
+open Step using (Δ′; change; next; reduction)
 
 ------------------------------------------------------------------------
 -- Shared initial theorem surface
@@ -99,9 +100,9 @@ adversarial-source-chain₀ =
     (RC.typingᴸ RC.adversarial-source-chain))
 
 adversarial-source-chain-step₀ :
-  Ex.OneStep store-empty adversarial-source-chain₀
+  Step.OneStep store-empty adversarial-source-chain₀
 adversarial-source-chain-step₀ =
-  Ex.from-just-step (step? store-empty adversarial-source-chain₀) refl
+  Step.from-just-step (step? store-empty adversarial-source-chain₀) refl
 
 adversarial-source-chain-change₀ :
   change adversarial-source-chain-step₀ ≡ bind RC.ℕ₀
@@ -194,9 +195,9 @@ adversarial-source-chain-screen₀ =
   RS.Entry.more-precise (RC.compiled RC.adversarial-source-chain)
 
 adversarial-source-chain-screen-step₀ :
-  Ex.OneStep store-empty adversarial-source-chain-screen₀
+  Step.OneStep store-empty adversarial-source-chain-screen₀
 adversarial-source-chain-screen-step₀ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? store-empty adversarial-source-chain-screen₀) refl
 
 adversarial-source-chain-screen-change₀ :
@@ -211,14 +212,14 @@ adversarial-source-chain-screen₁ =
 adversarial-source-chain-screen-store₁ :
   TyStore (Δ′ adversarial-source-chain-screen-step₀)
 adversarial-source-chain-screen-store₁ =
-  Ex.store-after adversarial-source-chain-screen-step₀
+  Step.store-after adversarial-source-chain-screen-step₀
 
 adversarial-source-chain-screen-step₁ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₁
     adversarial-source-chain-screen₁
 adversarial-source-chain-screen-step₁ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₁
       adversarial-source-chain-screen₁)
     refl
@@ -235,14 +236,14 @@ adversarial-source-chain-screen₂ =
 adversarial-source-chain-screen-store₂ :
   TyStore (Δ′ adversarial-source-chain-screen-step₁)
 adversarial-source-chain-screen-store₂ =
-  Ex.store-after adversarial-source-chain-screen-step₁
+  Step.store-after adversarial-source-chain-screen-step₁
 
 adversarial-source-chain-screen-step₂ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₂
     adversarial-source-chain-screen₂
 adversarial-source-chain-screen-step₂ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₂
       adversarial-source-chain-screen₂)
     refl
@@ -259,14 +260,14 @@ adversarial-source-chain-screen₃ =
 adversarial-source-chain-screen-store₃ :
   TyStore (Δ′ adversarial-source-chain-screen-step₂)
 adversarial-source-chain-screen-store₃ =
-  Ex.store-after adversarial-source-chain-screen-step₂
+  Step.store-after adversarial-source-chain-screen-step₂
 
 adversarial-source-chain-screen-step₃ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₃
     adversarial-source-chain-screen₃
 adversarial-source-chain-screen-step₃ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₃
       adversarial-source-chain-screen₃)
     refl
@@ -283,14 +284,14 @@ adversarial-source-chain-screen₄ =
 adversarial-source-chain-screen-store₄ :
   TyStore (Δ′ adversarial-source-chain-screen-step₃)
 adversarial-source-chain-screen-store₄ =
-  Ex.store-after adversarial-source-chain-screen-step₃
+  Step.store-after adversarial-source-chain-screen-step₃
 
 adversarial-source-chain-screen-step₄ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₄
     adversarial-source-chain-screen₄
 adversarial-source-chain-screen-step₄ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₄
       adversarial-source-chain-screen₄)
     refl
@@ -307,14 +308,14 @@ adversarial-source-chain-screen₅ =
 adversarial-source-chain-screen-store₅ :
   TyStore (Δ′ adversarial-source-chain-screen-step₄)
 adversarial-source-chain-screen-store₅ =
-  Ex.store-after adversarial-source-chain-screen-step₄
+  Step.store-after adversarial-source-chain-screen-step₄
 
 adversarial-source-chain-screen-step₅ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₅
     adversarial-source-chain-screen₅
 adversarial-source-chain-screen-step₅ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₅
       adversarial-source-chain-screen₅)
     refl
@@ -332,14 +333,14 @@ adversarial-source-chain-screen₆ =
 adversarial-source-chain-screen-store₆ :
   TyStore (Δ′ adversarial-source-chain-screen-step₅)
 adversarial-source-chain-screen-store₆ =
-  Ex.store-after adversarial-source-chain-screen-step₅
+  Step.store-after adversarial-source-chain-screen-step₅
 
 adversarial-source-chain-screen-step₆ :
-  Ex.OneStep
+  Step.OneStep
     adversarial-source-chain-screen-store₆
     adversarial-source-chain-screen₆
 adversarial-source-chain-screen-step₆ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? adversarial-source-chain-screen-store₆
       adversarial-source-chain-screen₆)
     refl
@@ -352,7 +353,7 @@ adversarial-source-chain-screen-change₆ = refl
 adversarial-source-chain-screen-store₇ :
   TyStore (Δ′ adversarial-source-chain-screen-step₆)
 adversarial-source-chain-screen-store₇ =
-  Ex.store-after adversarial-source-chain-screen-step₆
+  Step.store-after adversarial-source-chain-screen-step₆
 
 adversarial-source-chain-world₂ : CTI2.World 2 2 2
 adversarial-source-chain-world₂ =
@@ -443,9 +444,9 @@ tag-boundary-star-inst-same-compiled :
     ≡ star-inst₀
 tag-boundary-star-inst-same-compiled = refl
 
-star-inst-step₀ : Ex.OneStep store-empty star-inst₀
+star-inst-step₀ : Step.OneStep store-empty star-inst₀
 star-inst-step₀ =
-  Ex.from-just-step (step? store-empty star-inst₀) refl
+  Step.from-just-step (step? store-empty star-inst₀) refl
 
 star-inst-change₀ : change star-inst-step₀ ≡ bind ★
 star-inst-change₀ = refl
@@ -549,9 +550,9 @@ higher-order-shared-arg₀ =
   RS.Entry.more-precise (RC.compiled RC.higher-order-shared-arg)
 
 higher-order-shared-arg-step₀ :
-  Ex.OneStep store-empty higher-order-shared-arg₀
+  Step.OneStep store-empty higher-order-shared-arg₀
 higher-order-shared-arg-step₀ =
-  Ex.from-just-step (step? store-empty higher-order-shared-arg₀) refl
+  Step.from-just-step (step? store-empty higher-order-shared-arg₀) refl
 
 higher-order-shared-arg-change₀ :
   change higher-order-shared-arg-step₀ ≡ bind RC.∀X⇒X₀
@@ -563,12 +564,12 @@ higher-order-shared-arg₁ = next higher-order-shared-arg-step₀
 higher-order-shared-arg-store₁ :
   TyStore (Δ′ higher-order-shared-arg-step₀)
 higher-order-shared-arg-store₁ =
-  Ex.store-after higher-order-shared-arg-step₀
+  Step.store-after higher-order-shared-arg-step₀
 
 higher-order-shared-arg-step₁ :
-  Ex.OneStep higher-order-shared-arg-store₁ higher-order-shared-arg₁
+  Step.OneStep higher-order-shared-arg-store₁ higher-order-shared-arg₁
 higher-order-shared-arg-step₁ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₁ higher-order-shared-arg₁) refl
 
 higher-order-shared-arg-change₁ :
@@ -581,12 +582,12 @@ higher-order-shared-arg₂ = next higher-order-shared-arg-step₁
 higher-order-shared-arg-store₂ :
   TyStore (Δ′ higher-order-shared-arg-step₁)
 higher-order-shared-arg-store₂ =
-  Ex.store-after higher-order-shared-arg-step₁
+  Step.store-after higher-order-shared-arg-step₁
 
 higher-order-shared-arg-step₂ :
-  Ex.OneStep higher-order-shared-arg-store₂ higher-order-shared-arg₂
+  Step.OneStep higher-order-shared-arg-store₂ higher-order-shared-arg₂
 higher-order-shared-arg-step₂ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₂ higher-order-shared-arg₂) refl
 
 higher-order-shared-arg-change₂ :
@@ -599,12 +600,12 @@ higher-order-shared-arg₃ = next higher-order-shared-arg-step₂
 higher-order-shared-arg-store₃ :
   TyStore (Δ′ higher-order-shared-arg-step₂)
 higher-order-shared-arg-store₃ =
-  Ex.store-after higher-order-shared-arg-step₂
+  Step.store-after higher-order-shared-arg-step₂
 
 higher-order-shared-arg-step₃ :
-  Ex.OneStep higher-order-shared-arg-store₃ higher-order-shared-arg₃
+  Step.OneStep higher-order-shared-arg-store₃ higher-order-shared-arg₃
 higher-order-shared-arg-step₃ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₃ higher-order-shared-arg₃) refl
 
 higher-order-shared-arg-change₃ :
@@ -617,12 +618,12 @@ higher-order-shared-arg₄ = next higher-order-shared-arg-step₃
 higher-order-shared-arg-store₄ :
   TyStore (Δ′ higher-order-shared-arg-step₃)
 higher-order-shared-arg-store₄ =
-  Ex.store-after higher-order-shared-arg-step₃
+  Step.store-after higher-order-shared-arg-step₃
 
 higher-order-shared-arg-step₄ :
-  Ex.OneStep higher-order-shared-arg-store₄ higher-order-shared-arg₄
+  Step.OneStep higher-order-shared-arg-store₄ higher-order-shared-arg₄
 higher-order-shared-arg-step₄ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₄ higher-order-shared-arg₄) refl
 
 higher-order-shared-arg-change₄ :
@@ -635,12 +636,12 @@ higher-order-shared-arg₅ = next higher-order-shared-arg-step₄
 higher-order-shared-arg-store₅ :
   TyStore (Δ′ higher-order-shared-arg-step₄)
 higher-order-shared-arg-store₅ =
-  Ex.store-after higher-order-shared-arg-step₄
+  Step.store-after higher-order-shared-arg-step₄
 
 higher-order-shared-arg-step₅ :
-  Ex.OneStep higher-order-shared-arg-store₅ higher-order-shared-arg₅
+  Step.OneStep higher-order-shared-arg-store₅ higher-order-shared-arg₅
 higher-order-shared-arg-step₅ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₅ higher-order-shared-arg₅) refl
 
 higher-order-shared-arg-change₅ :
@@ -653,12 +654,12 @@ higher-order-shared-arg₆ = next higher-order-shared-arg-step₅
 higher-order-shared-arg-store₆ :
   TyStore (Δ′ higher-order-shared-arg-step₅)
 higher-order-shared-arg-store₆ =
-  Ex.store-after higher-order-shared-arg-step₅
+  Step.store-after higher-order-shared-arg-step₅
 
 higher-order-shared-arg-step₆ :
-  Ex.OneStep higher-order-shared-arg-store₆ higher-order-shared-arg₆
+  Step.OneStep higher-order-shared-arg-store₆ higher-order-shared-arg₆
 higher-order-shared-arg-step₆ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₆ higher-order-shared-arg₆) refl
 
 higher-order-shared-arg-change₆ :
@@ -671,12 +672,12 @@ higher-order-shared-arg₇ = next higher-order-shared-arg-step₆
 higher-order-shared-arg-store₇ :
   TyStore (Δ′ higher-order-shared-arg-step₆)
 higher-order-shared-arg-store₇ =
-  Ex.store-after higher-order-shared-arg-step₆
+  Step.store-after higher-order-shared-arg-step₆
 
 higher-order-shared-arg-step₇ :
-  Ex.OneStep higher-order-shared-arg-store₇ higher-order-shared-arg₇
+  Step.OneStep higher-order-shared-arg-store₇ higher-order-shared-arg₇
 higher-order-shared-arg-step₇ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₇ higher-order-shared-arg₇) refl
 
 higher-order-shared-arg-change₇ :
@@ -689,12 +690,12 @@ higher-order-shared-arg₈ = next higher-order-shared-arg-step₇
 higher-order-shared-arg-store₈ :
   TyStore (Δ′ higher-order-shared-arg-step₇)
 higher-order-shared-arg-store₈ =
-  Ex.store-after higher-order-shared-arg-step₇
+  Step.store-after higher-order-shared-arg-step₇
 
 higher-order-shared-arg-step₈ :
-  Ex.OneStep higher-order-shared-arg-store₈ higher-order-shared-arg₈
+  Step.OneStep higher-order-shared-arg-store₈ higher-order-shared-arg₈
 higher-order-shared-arg-step₈ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₈ higher-order-shared-arg₈) refl
 
 higher-order-shared-arg-change₈ :
@@ -707,12 +708,12 @@ higher-order-shared-arg₉ = next higher-order-shared-arg-step₈
 higher-order-shared-arg-store₉ :
   TyStore (Δ′ higher-order-shared-arg-step₈)
 higher-order-shared-arg-store₉ =
-  Ex.store-after higher-order-shared-arg-step₈
+  Step.store-after higher-order-shared-arg-step₈
 
 higher-order-shared-arg-step₉ :
-  Ex.OneStep higher-order-shared-arg-store₉ higher-order-shared-arg₉
+  Step.OneStep higher-order-shared-arg-store₉ higher-order-shared-arg₉
 higher-order-shared-arg-step₉ =
-  Ex.from-just-step
+  Step.from-just-step
     (step? higher-order-shared-arg-store₉ higher-order-shared-arg₉) refl
 
 higher-order-shared-arg-change₉ :

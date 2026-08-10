@@ -7,12 +7,13 @@ module proof.DGG.CastTermImprecision2 where
 --     center context.
 --   * Represents local rebasing explicitly, letting reveal/conceal wrappers
 --     descend with a different alignment.
---   * Rebasing is pivot-local: a RebaseAt keeps the runtime stores and
---     the center context fixed and moves at most the embeddings of the
---     two pivot variables.  Imprecision marks are not pinned by the
---     rebase; instead every wrapper rule carries ImpEnvMono, letting
---     marks decay toward X⊑★ from conclusion to premise, and WFWorld
---     names the worlds whose precise marks are honestly aligned.
+--   * Rebasing is asymmetric: a RebaseAt keeps the runtime stores and
+--     the center context fixed, may move only the source pivot, and
+--     freezes every old target variable's center.  Imprecision marks are
+--     not pinned by the rebase; instead every wrapper rule carries
+--     ImpEnvMono, letting marks decay toward X⊑★ from conclusion to
+--     premise, and WFWorld names the worlds whose precise marks are
+--     honestly aligned.
 --   * Store representations are canonical: a pivot variable is compared
 --     through resolveVar, which follows the store's representation chain
 --     to its end instead of stopping at an arbitrary intermediate type.
@@ -49,7 +50,8 @@ open import TyStore using
   (TyStore; store-empty; store-lift; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import TermCtx using (TermCtx)
 open import Consistency using
-  (Env∼; _⊢_∼_; _∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!)
+  (Env∼; _⊢_∼_; _⊢_∼★; _∼_; _↪ᵗ_; empty; keep; skip;
+   toRenameᵗ; id; _!)
 open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
 open import Conversion using
   (unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓;
@@ -296,13 +298,13 @@ record StoreRepImp {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
       resolveVar (sourceStoreʷ W) Xᴸ
         ⊑ᵂ⟨ W ⟩ resolveVar (targetStoreʷ W) Xᴿ
 
--- RebaseAt W W′ Xᴸ Xᴿ is a pivot-local world update.  Reduction only
--- introduces one reveal or conceal wrapper per fresh type variable, so
--- descending through one wrapper may change at most the alignment of
--- the pivot pair: the stores, the center context, and the imprecision
--- environment stay fixed, both embeddings agree at every non-pivot
--- variable, the pivots are aligned in W′, and their canonical store
--- representations are related in W′.
+-- RebaseAt W W′ Xᴸ Xᴿ is an asymmetric source re-parking update.
+-- Reduction only introduces one reveal or conceal wrapper per fresh
+-- type variable, so descending through one wrapper may change the
+-- source pivot's center.  The stores, the center context, and the
+-- imprecision environment stay fixed; every old target variable's
+-- center is frozen; the pivots are aligned in W′; and their canonical
+-- store representations are related in W′.
 
 record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     (Xᴸ : TyVar Δᴸ) (Xᴿ : TyVar Δᴿ) : Set where
@@ -311,19 +313,9 @@ record RebaseAt {Δᴸ Δᴿ Δ} (W W′ : World Δᴸ Δᴿ Δ)
     sameRuntime : SameRuntime W W′
     ηᴸ-off-pivot : ∀ {Y} → Y ≢ Xᴸ
       → toRenameᵗ (ηᴸʷ W′) Y ≡ toRenameᵗ (ηᴸʷ W) Y
-    ηᴿ-off-pivot : ∀ {Y} → Y ≢ Xᴿ
+    ηᴿ-frozen : ∀ Y
       → toRenameᵗ (ηᴿʷ W′) Y ≡ toRenameᵗ (ηᴿʷ W) Y
     pivotAligned : toRenameᵗ (ηᴸʷ W′) Xᴸ ≡ toRenameᵗ (ηᴿʷ W′) Xᴿ
-    -- Moved-pivot anchoring: a target pivot that relocates between
-    -- the two worlds must sit aligned with some source variable in
-    -- the first world.  Example 12's chains never move the target
-    -- embedding, so their witnesses discharge the premise; the
-    -- MovedLinkProbe counterexample relocates its target pivot to a
-    -- center no source occupies, which this field outlaws, restoring
-    -- invertibility of the bare-seal boundary.
-    anchorᴿ : toRenameᵗ (ηᴿʷ W) Xᴿ ≢ toRenameᵗ (ηᴿʷ W′) Xᴿ
-      → Σ[ Xₒ ∈ TyVar Δᴸ ]
-          toRenameᵗ (ηᴸʷ W) Xₒ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
     storeRepresentations : StoreRepImp W′ Xᴸ Xᴿ
 
 sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -334,8 +326,7 @@ sameWorldRebaseAt : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → RebaseAt W W Xᴸ Xᴿ
 sameWorldRebaseAt aligned reps =
   rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ _ → refl) aligned
-    (λ moved → ⊥-elim (moved refl)) reps
+    (λ _ → refl) (λ _ → refl) aligned reps
 
 -- One-sided wrappers carry an optional pivot: a conversion with no
 -- pivot (an identity-shaped conversion) keeps the world fixed, and a
@@ -367,6 +358,184 @@ data RebaseAtᴸ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ �
     → resolveVar (sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
       -------------------------
     → RebaseAtᴸ W W (just Xᴸ)
+
+-- Source-side seal descent exposes just enough target-shape information
+-- to preserve the seal-name/representation distinction.  A source seal
+-- whose representation is literally ★ may descend against any target.
+-- Otherwise the target must either be untagged at the top level or tagged
+-- only after an aligned target-name seal.
+
+data NotTopTag {Δ : TyCtx} : Term Δ → Set where
+  not-` : ∀ x → NotTopTag (` x)
+  not-ƛ : ∀ {M} → NotTopTag (ƛ M)
+  not-· : ∀ {L M} → NotTopTag (L · M)
+  not-Λ : ∀ {M} → NotTopTag (Λ M)
+  not-⦂∀ : ∀ {M A B} → NotTopTag (M ⦂∀ A [ B ])
+  not-$ : ∀ κ → NotTopTag ($ κ)
+  not-⊕ : ∀ {L M} op → NotTopTag (L ⊕[ op ] M)
+  not-↑ : ∀ {M A B} {c : Conv↑ Δ A B} → NotTopTag (M ↑ c)
+  not-↓ : ∀ {M A B} {c : Conv↓ Δ A B} → NotTopTag (M ↓ c)
+  not-blame : NotTopTag blame
+
+CenterAligned : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δᴸ
+  → TyVar Δᴿ
+  → Set
+CenterAligned W X Y =
+  toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
+
+data Rep★PartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
+    Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  rep★-untagged : ∀ {P Xᴿ? M′}
+    → NotTopTag M′
+      ------------------------------------
+    → Rep★PartnerOK W X P Xᴿ? M′
+
+  rep★-nonvar-tag : ∀ {P Xᴿ? M A G μ}
+      {Gᵍ : Ground G} {G∼★ : μ ⊢ G ∼★}
+      {c : μ ⊢ A ∼ G} {Ans : NonStar A}
+    → NonVar G
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X P Xᴿ?
+        (M ⟨ _! {G = G} ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+              c ⦃ Ans = Ans ⦄ ⟩)
+
+  rep★-var-tag : ∀ {P M A Y μ}
+      {Y∼★ : μ ⊢ (＇ Y) ∼★}
+      {c : μ ⊢ A ∼ ＇ Y} {Ans : NonStar A}
+    → CenterAligned W X Y
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X P (just Y)
+        (M ⟨ _! {G = ＇ Y} ⦃ Gᵍ = ＇ Y ⦄
+              ⦃ G∼★ = Y∼★ ⦄ c ⦃ Ans = Ans ⦄ ⟩)
+
+  rep★-matched-inner-tags : ∀ {Y X₂ Y₂ V₂ U₂ Aᴸ Aᴿ μᴸ μᴿ}
+      {X₂∼★ : μᴸ ⊢ (＇ X₂) ∼★}
+      {Y₂∼★ : μᴿ ⊢ (＇ Y₂) ∼★}
+      {cX : μᴸ ⊢ Aᴸ ∼ ＇ X₂} {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂}
+      {AnsX : NonStar Aᴸ} {AnsY : NonStar Aᴿ}
+    → X₂ ≢ X
+    → CenterAligned W X₂ Y₂
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X
+        (V₂ ⟨ _! {G = ＇ X₂} ⦃ Gᵍ = ＇ X₂ ⦄
+              ⦃ G∼★ = X₂∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
+        (just Y)
+        (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
+              ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
+
+  rep★-round-trip : ∀ {P Xᴿ? M′ A μ}
+      {X∼★ : μ ⊢ (＇ X) ∼★}
+      {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ------------------------------------------------------------
+    → Rep★PartnerOK W X
+        ((P ↓ seal X ★)
+          ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
+              ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
+        Xᴿ? M′
+
+data SealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
+    Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  star-rep-target : ∀ {P Xᴿ? M′}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ------------------------------------
+    → SealPartnerOK W X P ★ Xᴿ? M′
+
+  plain-target : ∀ {P R Xᴿ? M′}
+    → NotTopTag M′
+      ------------------------------------
+    → SealPartnerOK W X P R Xᴿ? M′
+
+  name-protected-target : ∀ {P R Y S M μ}
+      {c : μ ⊢ (＇ Y) ∼ ★}
+      ----------------------------------------------------
+    → SealPartnerOK W X P R (just Y) ((M ↓ seal Y S) ⟨ c ⟩)
+
+data SourceConcealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
+    → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  seal-partner-ok : ∀ {P X R Xᴿ? M′}
+    → SealPartnerOK W X P R Xᴿ? M′
+      ----------------------------------------------------
+    → SourceConcealPartnerOK W P (seal X R) Xᴿ? M′
+
+  fun-conceal-target : ∀ {P A A′ B B′ Xᴿ? M′}
+      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK W P (c ↦↓ d) Xᴿ? M′
+
+  all-conceal-target : ∀ {P A B Xᴿ? M′}
+      {c : Conv↓ (Nat.suc Δᴸ) A B}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK W P (`∀↓ c) Xᴿ? M′
+
+  id-conceal-target : ∀ {P A Xᴿ? M′}
+      ----------------------------------------------------
+    → SourceConcealPartnerOK W P (id↓ A) Xᴿ? M′
+
+data MatchedConcealPartnerOK {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
+    → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
+  matched-seal-star-partner : ∀ {P X Xᴿ? M′}
+    → Rep★PartnerOK W X P Xᴿ? M′
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (seal X ★) Xᴿ? M′
+
+  matched-seal-nonstar : ∀ {P X R Xᴿ? M′}
+    → NonStar R
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (seal X R) Xᴿ? M′
+
+  matched-fun-conceal-target : ∀ {P A A′ B B′ Xᴿ? M′}
+      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (c ↦↓ d) Xᴿ? M′
+
+  matched-all-conceal-target : ∀ {P A B Xᴿ? M′}
+      {c : Conv↓ (Nat.suc Δᴸ) A B}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (`∀↓ c) Xᴿ? M′
+
+  matched-id-conceal-target : ∀ {P A Xᴿ? M′}
+      ----------------------------------------------------
+    → MatchedConcealPartnerOK W P (id↓ A) Xᴿ? M′
+
+data TagRebaseAtᴸ {Δᴸ Δᴿ Δ}
+    : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
+    → Maybe (TyVar Δᴸ) → Maybe (TyVar Δᴿ) → Set where
+  tag-rebase-idᴸ : ∀ {W}
+      ----------------------------------
+    → TagRebaseAtᴸ W W nothing nothing
+
+  tag-rebase-varᴸ : ∀ {W W′ Xᴸ Xᴿ}
+    → RebaseAt W W′ Xᴸ Xᴿ
+      ---------------------------------------
+    → TagRebaseAtᴸ W W′ (just Xᴸ) (just Xᴿ)
+
+  tag-rebase-onlyᴸ : ∀ {W} {Xᴸ : TyVar Δᴸ}
+    → impEnvʷ W (toRenameᵗ (ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → (∀ (Xᴿ : TyVar Δᴿ)
+        → toRenameᵗ (ηᴿʷ W) Xᴿ
+            ≢ toRenameᵗ (ηᴸʷ W) Xᴸ)
+    → resolveVar (sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
+      -------------------------------------------------
+    → TagRebaseAtᴸ W W (just Xᴸ) nothing
+
+forgetTagRebaseᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+    --------------------------
+  → RebaseAtᴸ W W′ Xᴸ?
+forgetTagRebaseᴸ tag-rebase-idᴸ = rebase-idᴸ
+forgetTagRebaseᴸ (tag-rebase-varᴸ rb) = rebase-varᴸ rb
+forgetTagRebaseᴸ (tag-rebase-onlyᴸ to-star disaligned represented) =
+  rebase-onlyᴸ to-star disaligned represented
 
 data RebaseAtᴿ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ Δ
     → Maybe (TyVar Δᴿ) → Set where
@@ -606,10 +775,11 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
   conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
+      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
+    → SourceConcealPartnerOK W′ M c Xᴿ? M′
     → ImpEnvMono W W′
-    → RebaseAtᴸ W′ W Xᴸ?
+    → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
@@ -637,6 +807,7 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
+    → MatchedConcealPartnerOK Wᵖ M c (just Xᴿ) M′
     → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
@@ -646,6 +817,23 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
+
+  packaged-seal-star² : ∀
+      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
+      {M M′ Xᴸ Xᴿ Xᴿ?}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {qᵖ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
+    → MatchedConcealPartnerOK Wᵖ M (seal Xᴸ ★) Xᴿ? M′
+    → ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Xᴿ
+    → SameCtx γ γᵖ
+    → sourceStoreʷ W ⊢↓[ just Xᴸ ] seal Xᴸ ★
+    → targetStoreʷ W ⊢↓[ just Xᴿ ] seal Xᴿ ★
+    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p★
+    → Wᵖ ∣ γᵖ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ∶ qᵖ
+    → (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Xᴿ))
+      --------------------------------------------------------
+    → W ∣ γ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ↓ seal Xᴿ ★ ∶ q
 
   -- Source blame is below any well-typed target term.  The left side
   -- is the more static one (A ⊑ ★ for any closed type A, with ★ on
@@ -754,16 +942,14 @@ example12-rebase-X-to-Z :
 example12-rebase-X-to-Z =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-Z-representation
+    refl example12-Z-representation
 
 example12-rebase-X-to-Y :
   RebaseAt example12-world-X example12-world-Y Fin.zero (Fin.suc Fin.zero)
 example12-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-Y-representation
+    refl example12-Y-representation
 
 example12-outer-function :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -891,8 +1077,7 @@ example12-nat-chain-rebase-X-to-Y :
 example12-nat-chain-rebase-X-to-Y =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) }) (λ _ → refl)
-    refl (λ moved → ⊥-elim (moved refl))
-    example12-nat-chain-Y-representation
+    refl example12-nat-chain-Y-representation
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left
@@ -998,21 +1183,3 @@ example12-left-path-Z-representation = store-rep-imp ★⊑★
 example12-left-path-Y-representation :
   StoreRepImp example12-left-path-world-Y (Fin.suc Fin.zero) Fin.zero
 example12-left-path-Y-representation = store-rep-imp ★⊑★
-
-example12-left-path-rebase-X-to-Z :
-  RebaseAt example12-left-path-world-X example12-left-path-world-Z
-    (Fin.suc (Fin.suc Fin.zero)) Fin.zero
-example12-left-path-rebase-X-to-Z =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → Fin.zero , refl)
-    example12-left-path-Z-representation
-
-example12-left-path-rebase-X-to-Y :
-  RebaseAt example12-left-path-world-X example12-left-path-world-Y
-    (Fin.suc Fin.zero) Fin.zero
-example12-left-path-rebase-X-to-Y =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl) (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → Fin.zero , refl)
-    example12-left-path-Y-representation

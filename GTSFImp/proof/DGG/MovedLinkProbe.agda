@@ -1,12 +1,12 @@
 module proof.DGG.MovedLinkProbe where
 
 -- File Charter:
---   * This probe records why moved-pivot anchoring is needed for
---     bare-seal inversion.
---   * Checkpoint 1 shows that anchoring excludes the ill-formed
---     moved-inner link; checkpoint 2 records that the corresponding
---     inversion output is empty without that invariant.
---   * The concrete worlds exhibit the excluded relocation.
+--   * Records the moved-target link that M2 removes from `RebaseAt`.
+--   * The old inner link relocated target `Y′` from one old center to
+--     another; this is now impossible because every old target center is
+--     frozen by the rebase relation.
+--   * The concrete worlds remain as a design record for the excluded
+--     relocation.
 --   * See Rationale.md, section "Seal peeling and world support".
 
 open import Data.Empty using (⊥; ⊥-elim)
@@ -176,9 +176,8 @@ probe-outer-target-rebase : RebaseAt probe-W₄ probe-W₁ X Y
 probe-outer-target-rebase =
   rebase-at (same-runtime refl refl)
     (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl)
-       ; {Fin.suc Fin.zero} Y′≢ → refl })
-    refl (λ moved → ⊥-elim (moved refl)) probe-X-Y-rep₁
+    (λ _ → refl)
+    refl probe-X-Y-rep₁
 
 probe-X-Y′-rep₄ : CTI2.StoreRepImp probe-W₄ X Y′
 probe-X-Y′-rep₄ = store-rep-imp ★⊑★
@@ -197,8 +196,8 @@ probe-inner-source-rebase =
 probe-link-ill-formed :
   ¬ (RebaseAt probe-W₅ probe-W₄ X Y′)
 probe-link-ill-formed rb
-    with CTI2.RebaseAt.anchorᴿ rb (λ ())
-probe-link-ill-formed rb | Fin.zero , ()
+    with CTI2.RebaseAt.ηᴿ-frozen rb Y′
+probe-link-ill-formed rb | ()
 
 ------------------------------------------------------------------------
 -- Checkpoint 2: the corresponding inversion output is empty
@@ -210,6 +209,6 @@ qOut = X⊑X
 probe-no-output :
   ¬ (probe-W₁ ∣ [] ⊢² probe-V ⊑ probe-U ∶ qOut)
 probe-no-output
-    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) with p
+    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) with p
 probe-no-output
-    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) | ()
+    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) | ()

@@ -1,17 +1,14 @@
 module proof.DGG.SealPeelProbe where
 
 -- File Charter:
---   * This probe records that inputs whose interior worlds move a
---     third-party pivot are derivable and mark-honest, so no invariant
---     excludes them.
---   * It also records that the right-injection inversion output remains
---     derivable by rebuilding link-by-link at freshly chosen premise
---     worlds, rather than by transporting interior derivations.
---   * The output rebuild uses the world where X₂ and Y are aligned, so
---     its inner source seal has a same-world variable rebase.
---   * See Rationale.md, section "Seal peeling and world support".
+--   * Records the seal-peeling geometry whose input previously moved an
+--     old target center.
+--   * M2 removes that freedom: both the outer and inner target-moving
+--     rebases are now empty by `ηᴿ-frozen`.
+--   * The remaining worlds and stores are kept as a design record for
+--     the excluded pre-M2 input shape.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
@@ -188,23 +185,20 @@ probe-N! = probe-U₁ ⟨ probe-Y! ⟩
 probe-Xᴸ-Y-rep : CTI2.StoreRepImp probe-W Xᴸ Y
 probe-Xᴸ-Y-rep = store-rep-imp ★⊑★
 
-probe-outer-input-rebase : RebaseAt probe-W′ probe-W Xᴸ Y
-probe-outer-input-rebase =
-  rebase-at (same-runtime refl refl)
-    (λ _ → refl)
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → X₂ , refl) probe-Xᴸ-Y-rep
+probe-outer-input-rebase-empty :
+  RebaseAt probe-W′ probe-W Xᴸ Y → ⊥
+probe-outer-input-rebase-empty rb
+    with CTI2.RebaseAt.ηᴿ-frozen rb Y
+probe-outer-input-rebase-empty rb | ()
 
 probe-X₂-Y-rep′ : CTI2.StoreRepImp probe-W′ X₂ Y
 probe-X₂-Y-rep′ = store-rep-imp ★⊑★
 
-probe-inner-target-rebase : RebaseAt probe-W₄ probe-W′ X₂ Y
-probe-inner-target-rebase =
-  rebase-at (same-runtime refl refl)
-    (λ { {Fin.zero} _ → refl
-       ; {Fin.suc Fin.zero} X₂≢ → ⊥-elim (X₂≢ refl) })
-    (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
-    refl (λ _ → X₂ , refl) probe-X₂-Y-rep′
+probe-inner-target-rebase-empty :
+  RebaseAt probe-W₄ probe-W′ X₂ Y → ⊥
+probe-inner-target-rebase-empty rb
+    with CTI2.RebaseAt.ηᴿ-frozen rb Y
+probe-inner-target-rebase-empty rb | ()
 
 probe-X₂-Y-rep₄ : CTI2.StoreRepImp probe-W₄ X₂ Y
 probe-X₂-Y-rep₄ = store-rep-imp ★⊑★
@@ -212,87 +206,3 @@ probe-X₂-Y-rep₄ = store-rep-imp ★⊑★
 probe-inner-source-rebase : RebaseAt probe-W₄ probe-W₄ X₂ Y
 probe-inner-source-rebase =
   CTI2.sameWorldRebaseAt refl probe-X₂-Y-rep₄
-
-probe-output-inner-source-rebase : RebaseAt probe-W′ probe-W′ X₂ Y
-probe-output-inner-source-rebase =
-  CTI2.sameWorldRebaseAt refl probe-X₂-Y-rep′
-
-------------------------------------------------------------------------
--- Checkpoint 1: the movable-interior input
-------------------------------------------------------------------------
-
-pIn : ＇ Xᴸ ⊑ᵂ⟨ probe-W ⟩ ★
-pIn = X⊑★ refl
-
-pMid : ＇ X₂ ⊑ᵂ⟨ probe-W′ ⟩ ＇ Y
-pMid = X⊑X
-
-p₄ : ＇ X₂ ⊑ᵂ⟨ probe-W₄ ⟩ ★
-p₄ = X⊑★ refl
-
-probe-base² :
-  probe-W₄ ∣ [] ⊢² probe-V₀₀ ⊑ probe-U₀ ∶ ★⊑★
-probe-base² =
-  CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
-    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
-
-probe-inner-seal² :
-  probe-W₄ ∣ [] ⊢² probe-V₁ ⊑ probe-U₀ ∶ p₄
-probe-inner-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq)
-    (CTI2.rebase-varᴸ probe-inner-source-rebase)
-    CTI2.same-[] probe-X₂-seal-⊢ probe-base² p₄
-
-probe-target-seal² :
-  probe-W′ ∣ [] ⊢² probe-V₁ ⊑ probe-U₁ ∶ pMid
-probe-target-seal² =
-  CTI2.⊑conceal² (λ _ eq → eq)
-    (CTI2.rebase-varᴿ probe-inner-target-rebase)
-    CTI2.same-[] probe-Y-seal-⊢ probe-inner-seal² pMid
-
-probe-paired-tags² :
-  probe-W′ ∣ [] ⊢² probe-V ⊑ probe-N! ∶ ★⊑★
-probe-paired-tags² =
-  CTI2.cast⊑cast² probe-X₂! probe-Y! probe-target-seal² ★⊑★
-
-probe-input :
-  probe-W ∣ [] ⊢² probe-M ⊑ probe-N! ∶ pIn
-probe-input =
-  CTI2.conceal⊑² (λ _ eq → eq)
-    (CTI2.rebase-varᴸ probe-outer-input-rebase)
-    CTI2.same-[] probe-Xᴸ-seal-⊢ probe-paired-tags² pIn
-
-------------------------------------------------------------------------
--- Checkpoint 2: the link-by-link inversion output
-------------------------------------------------------------------------
-
-qOut : ＇ Xᴸ ⊑ᵂ⟨ probe-W ⟩ ＇ Y
-qOut = X⊑X
-
-pᵛ : ＇ X₂ ⊑ᵂ⟨ probe-W′ ⟩ ★
-pᵛ = X⊑★ refl
-
-probe-output-base² :
-  probe-W′ ∣ [] ⊢² probe-V₀₀ ⊑ probe-U₀ ∶ ★⊑★
-probe-output-base² =
-  CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
-    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
-
-probe-output-inner-seal² :
-  probe-W′ ∣ [] ⊢² probe-V₁ ⊑ probe-U₀ ∶ pᵛ
-probe-output-inner-seal² =
-  CTI2.conceal⊑² (λ _ eq → eq)
-    (CTI2.rebase-varᴸ probe-output-inner-source-rebase)
-    CTI2.same-[] probe-X₂-seal-⊢ probe-output-base² pᵛ
-
-probe-output-tag² :
-  probe-W′ ∣ [] ⊢² probe-V ⊑ probe-U₀ ∶ ★⊑★
-probe-output-tag² =
-  CTI2.cast⊑² probe-X₂! probe-output-inner-seal² ★⊑★
-
-probe-output :
-  probe-W ∣ [] ⊢² probe-M ⊑ probe-U₁ ∶ qOut
-probe-output =
-  CTI2.conceal⊑conceal² (λ _ eq → eq)
-    probe-outer-input-rebase CTI2.same-[]
-    probe-Xᴸ-seal-⊢ probe-Y-seal-⊢ probe-output-tag² qOut

@@ -403,3 +403,13 @@ New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
     mediated composition records (`⨟ʳ`/`⨟ˡ`) take an arbitrary
     composite raw, so the existential form is already usable there —
     this is base-language cleanup, not migration-blocking.
+
+[ ] GTSFImp: fix the source consistency relation — rigid type
+  variables cannot meet ★ (both `idᶜ ⊢ ＇X ∼ ★` and `★ ∼ ＇X` are
+  underivable; checked in RoundTripTraceScratch.agda), so programs
+  with dynamic code inside polymorphic code, e.g.
+  (ΛX. λx:X. (λy:★. y) · x), are untypable. Intended design admits
+  them (they are the canonical name-tag minters). Ripples: compile
+  clauses for the new casts, compile-preserves-imprecision², catalog,
+  tag-discipline gates. Design-dossier-first.
+[ ] GTSFImp: retire the remaining v1 imprecision files (CastTermImprecision.agda, CompilePreservesImprecision.agda, DGG/Examples.agda). Blocked on re-pointing the v2 importers (CastTermImprecision2, Examples2, Phase3DeepDives, LambdaImpProbe, CompilePreservesImprecision2) at the shared example terms/compile helpers, which should move to a v1-free module first. RightInjInversion.agda and ReductionPreservesReflexiveImprecision.agda (v1 orphans) already deleted.

@@ -20,6 +20,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; toRenameᵗ; wk↪ᵗ)
+open import Conversion using (Conv↓)
 open import Imprecision
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -286,22 +287,12 @@ renameRebaseAt : ∀ {Δᴸ Δᴿ Δ Δ′}
   → CTI2.RebaseAt (renameWorld π W) (renameWorld π W′) Xᴸ Xᴿ
 renameRebaseAt {Δᴸ = Δᴸ} {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} π
-    (CTI2.rebase-at runtime offL offR aligned anchor reps) =
+    (CTI2.rebase-at runtime offL frozenR aligned reps) =
   CTI2.rebase-at (renameSameRuntime π runtime)
     (λ Y≢ → rename-embedding-eq π (offL Y≢))
-    (λ Y≢ → rename-embedding-eq π (offR Y≢))
-    (rename-embedding-eq π aligned) renamed-anchor
+    (λ Y → rename-embedding-eq π (frozenR Y))
+    (rename-embedding-eq π aligned)
     (renameStoreRep π reps)
-  where
-  renamed-anchor :
-      toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ
-        ≢ toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W′)) Xᴿ
-    → Σ[ Xₒ ∈ TyVar Δᴸ ]
-        toRenameᵗ (CTI2.ηᴸʷ (renameWorld π W)) Xₒ
-          ≡ toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ
-  renamed-anchor moved with anchor
-      (λ eq → moved (rename-embedding-eq π eq))
-  renamed-anchor moved | Xₒ , eq = Xₒ , rename-embedding-eq π eq
 
 rename-mark-image : ∀ {Δᴸ Δᴿ Δ Δ′}
     (π : Δ ↪ᵗ Δ′) (W : CTI2.World Δᴸ Δᴿ Δ)
@@ -342,6 +333,21 @@ renameRebaseAtᴸ {W = W} π
     (rename-disaligned π W disaligned)
     (rename-⊑ᵂ {W = W} π represented)
 
+renameTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+  → CTI2.TagRebaseAtᴸ (renameWorld π W) (renameWorld π W′) Xᴸ? Xᴿ?
+renameTagRebaseAtᴸ π CTI2.tag-rebase-idᴸ = CTI2.tag-rebase-idᴸ
+renameTagRebaseAtᴸ π (CTI2.tag-rebase-varᴸ rb) =
+  CTI2.tag-rebase-varᴸ (renameRebaseAt π rb)
+renameTagRebaseAtᴸ {W = W} π
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+  CTI2.tag-rebase-onlyᴸ
+    (trans (rename-mark-image π W) to-star)
+    (rename-disaligned π W disaligned)
+    (rename-⊑ᵂ {W = W} π represented)
+
 renameRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W W′ : CTI2.World Δᴸ Δᴿ Δ} {Xᴿ?}
   → (π : Δ ↪ᵗ Δ′)
@@ -350,6 +356,71 @@ renameRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
 renameRebaseAtᴿ π CTI2.rebase-idᴿ = CTI2.rebase-idᴿ
 renameRebaseAtᴿ π (CTI2.rebase-varᴿ rb) =
   CTI2.rebase-varᴿ (renameRebaseAt π rb)
+
+renameRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {P Xᴿ? M′}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.Rep★PartnerOK W X P Xᴿ? M′
+  → CTI2.Rep★PartnerOK (renameWorld π W) X P Xᴿ? M′
+renameRep★PartnerOK π (CTI2.rep★-untagged nt) =
+  CTI2.rep★-untagged nt
+renameRep★PartnerOK π (CTI2.rep★-nonvar-tag Gnv) =
+  CTI2.rep★-nonvar-tag Gnv
+renameRep★PartnerOK π (CTI2.rep★-var-tag aligned) =
+  CTI2.rep★-var-tag (rename-embedding-eq π aligned)
+renameRep★PartnerOK π (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+  CTI2.rep★-matched-inner-tags X₂≢X (rename-embedding-eq π aligned)
+renameRep★PartnerOK π (CTI2.rep★-round-trip ok) =
+  CTI2.rep★-round-trip (renameRep★PartnerOK π ok)
+
+renameSealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {P R Xᴿ? M′}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.SealPartnerOK W X P R Xᴿ? M′
+  → CTI2.SealPartnerOK (renameWorld π W) X P R Xᴿ? M′
+renameSealPartnerOK π (CTI2.star-rep-target ok) =
+  CTI2.star-rep-target (renameRep★PartnerOK π ok)
+renameSealPartnerOK π (CTI2.plain-target nt) =
+  CTI2.plain-target nt
+renameSealPartnerOK π CTI2.name-protected-target =
+  CTI2.name-protected-target
+
+renameSourceConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
+  → CTI2.SourceConcealPartnerOK (renameWorld π W) M c Xᴿ? M′
+renameSourceConcealPartnerOK π (CTI2.seal-partner-ok ok) =
+  CTI2.seal-partner-ok (renameSealPartnerOK π ok)
+renameSourceConcealPartnerOK π CTI2.fun-conceal-target =
+  CTI2.fun-conceal-target
+renameSourceConcealPartnerOK π CTI2.all-conceal-target =
+  CTI2.all-conceal-target
+renameSourceConcealPartnerOK π CTI2.id-conceal-target =
+  CTI2.id-conceal-target
+
+renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Y M′}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.MatchedConcealPartnerOK W M c Y M′
+  → CTI2.MatchedConcealPartnerOK (renameWorld π W) M c Y M′
+renameMatchedConcealPartnerOK π
+    (CTI2.matched-seal-star-partner ok) =
+  CTI2.matched-seal-star-partner (renameRep★PartnerOK π ok)
+renameMatchedConcealPartnerOK π (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+renameMatchedConcealPartnerOK π CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+renameMatchedConcealPartnerOK π CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+renameMatchedConcealPartnerOK π CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
 
 renameEnvMono : ∀ {Δ Δ′} {μ ν : ImpEnv Δ}
   → (π : Δ ↪ᵗ Δ′)
@@ -469,9 +540,10 @@ renameImpEnvMono π mono = renameEnvMono π mono
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.conceal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q) p′ =
-  CTI2.conceal⊑² (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameRebaseAtᴸ {W = W′} {W′ = W} π rb)
+    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q) p′ =
+  CTI2.conceal⊑² (renameSourceConcealPartnerOK π ok)
+    (renameImpEnvMono {W = W} {W′ = W′} π mono)
+    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′
@@ -486,13 +558,27 @@ renameImpEnvMono π mono = renameEnvMono π mono
       (rename-⊑ᵂ {W = Wᵖ} π p)) p′
 ⊢²-rename-center {W = W} π
     (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
-      mono rb sc c⊢ c′⊢ M⊑N q) p′ =
+      ok mono rb sc c⊢ c′⊢ M⊑N q) p′ =
   CTI2.conceal⊑conceal²
+    (renameMatchedConcealPartnerOK π ok)
     (renameImpEnvMono {W = W} {W′ = Wᵖ} π mono)
     (renameRebaseAt {W = Wᵖ} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = Wᵖ} π sc) c⊢ c′⊢
     (⊢²-rename-center {W = Wᵖ} π M⊑N
       (rename-⊑ᵂ {W = Wᵖ} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
+      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑N sourcePrem q) p′ =
+  CTI2.packaged-seal-star²
+    (renameMatchedConcealPartnerOK π ok)
+    (renameImpEnvMono {W = W} {W′ = Wᵖ} π mono)
+    (renameRebaseAt {W = Wᵖ} {W′ = W} π rb)
+    (renameSameCtx {W = W} {W′ = Wᵖ} π sc) c⊢ c′⊢
+    (⊢²-rename-center {W = Wᵖ} π M⊑N
+      (rename-⊑ᵂ {W = Wᵖ} π p★))
+    (⊢²-rename-center {W = Wᵖ} π sourcePrem
+      (rename-⊑ᵂ {W = Wᵖ} π qᵖ))
+    p′
 ⊢²-rename-center {W = W} {γ = γ} π (CTI2.blame⊑² M′⊢ p) p′ =
   CTI2.blame⊑²
     (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)

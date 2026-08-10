@@ -177,3 +177,12 @@ lived at a ∀ᶜ slot; strict restores the occurrence-transport proof);
 common-refinement characterization is scoped by CrossFree (no
 crossable-gate uses) instead of RigidFree; totality's side-well-
 modedness premise becomes "no strict variables on that side".
+
+## 9a. Naming (2026-08-10, user)
+
+The crossable value is named ∼X∼ (crossings available on both
+sides), completing the Var∼ family: X∼★, ★∼X, ∼X∼, X∼X. The strict
+value KEEPS the name X∼X — existing matches/lemmas on X∼X assumed
+exactly the no-crossing discipline that strict formalizes, so they
+remain literally correct; extᵐ is unchanged. Migration = add ∼X∼,
+re-point idᶜ, key the star gates (renamed X∼★ᵍʳ→ gates on ∼X∼) on it.

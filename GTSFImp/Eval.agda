@@ -116,7 +116,7 @@ app-redex? (Λ vL) vM = nothing
 app-redex? ($ κ) vM = nothing
 app-redex? (vL 《 inj 》) vM = nothing
 app-redex? (vL 《 fun 》) vM =
-  just (pure-result (β-⇒ vL vM refl))
+  just (pure-result (β-⇒ vL vM))
 app-redex? (vL 《 all 》) vM = nothing
 app-redex? (vL 《 genᵥ A≠★ safe 》) vM = nothing
 app-redex? (vL ↑ fun) vM =

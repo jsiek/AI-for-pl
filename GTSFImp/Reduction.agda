@@ -160,13 +160,12 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
     → V ⟨ id {μ = μ} a ⟩ —→ V
 
   β-⇒ : ∀ {V W : Term Δ} {μ : Env∼ Δ}
-      {A A′ B B′ : Ty Δ} {c : μ ⊢ A ∼ A′}
-      {c′ : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+      {A A′ B B′ : Ty Δ}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Value V
     → Value W
-    → c′ ≡ sym∼ c
       --------------------------------------------
-    → (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c′ ⟩)) ⟨ d ⟩
+    → (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c ⟩)) ⟨ d ⟩
 
   β-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
       {A B : Ty (Nat.suc Δ)} {C : Ty Δ}

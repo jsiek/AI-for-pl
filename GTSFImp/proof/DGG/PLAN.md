@@ -70,9 +70,9 @@ New modules live under `proof/DGG/Parked/`.
 |---|-----------|------|--------|--------|
 | M1 | Parked foundation (see PLAN history) | S | **landed** (pe-left amendment queued) | a0897ec |
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
-| M3 | HANDOFF: four postulates (TargetStrip★/ᴸ, two fold workers) with frozen validated statements, user working on target-strip-at★ interactively (36eefb2); source-tag-seal-core PROVEN; everything else green. Was: New inversion under the frozen relation. Landed so far: statement with NO OpenStrata/WFWorld/ParkedWorld premise + SpineValueDef extraction + **H-multi deleted** (seal-transfer unconditional) (`309d8a3`); **TargetDescent complete** — terminal ★ package via same-pivot composition (replaces H-absorb's moved-split) + variable-payload re-emission continuation (`ebd6f6a`). The tag-peel-first route (incl. the hand-off's original H-walk plan) is REFUTED (right-var-obligation-view vs NonVar); the correct terminus-rebuild construction is validated concretely in TerminusRebuildProbe (`3bed622`, both blocked cases constructible). In flight: generalizing the probe template to close all OpenStrata sites, then delete OpenStrata + old inversion | L | **in progress** (final leg) | 309d8a3, ebd6f6a, 3bed622 |
-| M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction; stitch Lemma pending the walk inhabitant | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` allocating cases (Catchup/InstCatchupRight*; per-view workers over AllValueView; right-only bind extension) | M | **in progress** | — |
+| M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
+| M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
+| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver | M | **half landed** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | not started (knot design fixed by M5 finding) | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -87,10 +87,10 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
 |---|---|
 | `ExtraCastRight²` statement (+ `WorldExtendᴿ`/`transport⊑ᵂ` machinery) | proven / in `ExtraCastRight2.agda` stage 1 |
 | `inert-extra-cast-right²`, `id-extra-cast-right²` | proven |
-| `ExtraCastRight²` consuming cases | not started (M4) |
+| `ExtraCastRight²` consuming cases | **proven** higher-order (M4, Catchup/ExtraCastRightProof) |
 | `InstCatchupRight²` statement | proven (stage 1) |
-| `InstCatchupRight²` allocating cases | not started (M5) |
-| `right-inj-inversion²` (new, frozen setting) | statement proven-consumable (Inversion/RightInjInversion2Def, no extra premises); proof = M3 final leg (head-walk cases) |
+| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); relational continuations pending M6 |
+| `right-inj-inversion²` (new, frozen setting) | **PROVEN AND LIVE** (2026-08-10): Inversion/RightInjInversion2Lemma, zero postulates |
 | `TargetDescent` (new) | **proven** (`ebd6f6a`) — terminal ★ + re-emission continuation |
 | `seal-transfer` | **unconditional** — H-multi deleted, collision refuted by frozen centers (`309d8a3`) |
 | Value catch-up (composed) | not stated (M6) |

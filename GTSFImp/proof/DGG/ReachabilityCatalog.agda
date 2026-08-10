@@ -96,6 +96,18 @@ gen-★?X =
   ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
     (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
 
+flip-inst-★?X : ∀ {Δ} {μ : Env∼ Δ}
+  → flipᵐ (instᵐ μ) ⊢ ★ ∼ ＇ Fin.zero
+flip-inst-★?X =
+  ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
+
+flip-gen-X! : ∀ {Δ} {μ : Env∼ Δ}
+  → flipᵐ (genᵐ μ) ⊢ ＇ Fin.zero ∼ ★
+flip-gen-X! =
+  _! ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ G∼★ = X∼★ᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Ans = nonstar-X ⦄
+
 sym-screen : ∀ {Δ} {μ : Env∼ Δ} {A B}
   → μ ⊢ A ∼ B
   → flipᵐ μ ⊢ B ∼ A
@@ -108,16 +120,18 @@ sym-screen (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
   sym∼ (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
 sym-screen (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
   sym∼ (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
-sym-screen {A = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))} {B = ★ ⇒ ★}
+sym-screen {μ = μ} {A = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))}
+    {B = ★ ⇒ ★}
     (inst_ c B≢★) =
   gen_ ⦃ Bnv = nonvar-fun ⦄ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    (gen-★?X ↦ gen-★?X) (λ ())
+    (flip-gen-X! {μ = flipᵐ μ} ↦ gen-★?X {μ = flipᵐ μ}) (λ ())
 sym-screen (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
   sym∼ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
-sym-screen {A = ★ ⇒ ★} {B = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))}
+sym-screen {μ = μ} {A = ★ ⇒ ★}
+    {B = `∀ ((＇ Fin.zero) ⇒ (＇ Fin.zero))}
     (gen_ c A≢★) =
   inst_ ⦃ Anv = nonvar-fun ⦄ ⦃ z∈A = ∈-fun-left var-∈ ⦄
-    (inst-X! ↦ inst-X!) (λ ())
+    (flip-inst-★?X {μ = flipᵐ μ} ↦ inst-X! {μ = flipᵐ μ}) (λ ())
 sym-screen (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
   sym∼ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
 sym-screen bot-elim = bot-intro
@@ -422,12 +436,12 @@ dynId⊢ = ⊢ƛ (⊢` Z)
 starfun∼∀X⇒X : ∀ {Δ} → ★⇒★ᵗ {Δ} ∼ ∀X⇒X {Δ}
 starfun∼∀X⇒X =
   gen_ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    (gen-★?X ↦ gen-★?X) (λ ())
+    (flip-gen-X! {μ = idᶜ} ↦ gen-★?X {μ = idᶜ}) (λ ())
 
 ∀X⇒X∼★⇒★ : ∀ {Δ} → ∀X⇒X {Δ} ∼ ★⇒★ᵗ {Δ}
 ∀X⇒X∼★⇒★ =
   inst_ ⦃ z∈A = ∈-fun-left var-∈ ⦄
-    (inst-X! ↦ inst-X!) (λ ())
+    (flip-inst-★?X {μ = idᶜ} ↦ inst-X! {μ = idᶜ}) (λ ())
 
 ★⇒★∼★⇒★ : ∀ {Δ} → ★⇒★ᵗ {Δ} ∼ ★⇒★ᵗ {Δ}
 ★⇒★∼★⇒★ = id ★ ↦ id ★

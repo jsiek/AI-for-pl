@@ -60,11 +60,17 @@ X! = id (＇ 0) !
 X? : genᵐ (idᶜ {Δ = 0}) ⊢ ★ ∼ ＇ 0
 X? = ？ (id (＇ 0))
 
+X?-inst-domain : flipᵐ (instᵐ (idᶜ {Δ = 0})) ⊢ ★ ∼ ＇ 0
+X?-inst-domain = ？ (id (＇ 0))
+
+X!-gen-domain : flipᵐ (genᵐ (idᶜ {Δ = 0})) ⊢ ＇ 0 ∼ ★
+X!-gen-domain = id (＇ 0) !
+
 ν̅α-α♯→α♭ : (`∀ X⇒X) ∼ (★ ⇒ ★)
-ν̅α-α♯→α♭ = (inst (X! ↦ X!)) (λ ())
+ν̅α-α♯→α♭ = (inst (X?-inst-domain ↦ X!)) (λ ())
 
 να-α!→α? : (★ ⇒ ★) ∼ (`∀ X⇒X)
-να-α!→α? = (gen (X? ↦ X?)) (λ ())
+να-α!→α? = (gen (X!-gen-domain ↦ X?)) (λ ())
 
 ------------------------------------------------------------------------
 -- Cambridge26 Example 12: up and then down
@@ -106,11 +112,10 @@ right₀ : Term 0
 right₀ =
   ((((Λ (ƛ (` 0)))
     ⟨ (inst_ {μ = idᶜ {Δ = 0}} ⦃ z∈A = ∈-fun-left var-∈ ⦄
-        ((id {μ = instᵐ (idᶜ {Δ = 0})} (＇ 0) !) ↦
-         (id {μ = instᵐ (idᶜ {Δ = 0})} (＇ 0) !))
+        (X?-inst-domain ↦ X!)
         (λ ())) ⟩)
     ⟨ (gen_ {μ = idᶜ {Δ = 0}} ⦃ z∈B = ∈-fun-left var-∈ ⦄
-        ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩)
+        (X!-gen-domain ↦ X?) (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
 right-store₀ : TyStore 0
@@ -124,10 +129,14 @@ right₁ : Term (Δ′ right-step₀)
 right₁ =
   ((((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ＇ 0 ])
       ↑ (seal 0 ★ ↦↑ unseal 0 ★)
-      ⟨ id {μ = renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})} ★ ↦ id ★ ⟩
+      ⟨ id {μ = flipᵐ (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))} ★ ↦
+        id {μ = renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})} ★ ⟩
       ⟨ (gen_ {μ = extᵐ (idᶜ {Δ = 0})}
           ⦃ z∈B = ∈-fun-left var-∈ ⦄
-          ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩)
+          ((id {μ = flipᵐ (genᵐ (extᵐ (idᶜ {Δ = 0})))} (＇ 0) !)
+            ↦
+           (？_ {μ = genᵐ (extᵐ (idᶜ {Δ = 0}))} (id (＇ 0))))
+          (λ ())) ⟩)
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
 right-store₁ : TyStore (Δ′ right-step₀)
@@ -142,11 +151,17 @@ right₂ =
   (((((ƛ (` 0))
     ↑ (seal 0 (＇ 1) ↦↑ unseal 0 (＇ 1)))
     ↑ (seal 1 ★ ↦↑ unseal 1 ★))
-    ⟨ id {μ = applyEnv (bind (＇ 0))
-        (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))} ★ ↦ id ★ ⟩)
+    ⟨ id {μ = flipᵐ (applyEnv (bind (＇ 0))
+        (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ↦
+      id {μ = applyEnv (bind (＇ 0))
+        (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))} ★ ⟩)
     ⟨ (gen_ {μ = extᵐ (extᵐ (idᶜ {Δ = 0}))}
         ⦃ z∈B = ∈-fun-left var-∈ ⦄
-        ((？ (id (＇ 0))) ↦ (？ (id (＇ 0)))) (λ ())) ⟩
+        ((id {μ = flipᵐ (genᵐ (extᵐ (extᵐ (idᶜ {Δ = 0}))))}
+            (＇ 0) !)
+          ↦
+         (？_ {μ = genᵐ (extᵐ (extᵐ (idᶜ {Δ = 0})))} (id (＇ 0))))
+        (λ ())) ⟩
     ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
 
 right-store₂ : TyStore (Δ′ right-step₁)
@@ -161,13 +176,16 @@ right₃ =
   ((((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id {μ = renameEnv∼ wk↪ᵗ
+    ⟨ id {μ = flipᵐ (renameEnv∼ wk↪ᵗ
         (applyEnv (bind (＇ 0))
-          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ↦ id ★ ⟩)
-    ⟨ (？_ {μ = genᵐ
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))))} ★ ↦
+      id {μ = renameEnv∼ wk↪ᵗ
+        (applyEnv (bind (＇ 0))
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ⟩)
+    ⟨ (id {μ = flipᵐ (genᵐ
           (applyEnv (bind (＇ 0))
-            (applyEnv (bind ★) (idᶜ {Δ = 0})))}
-        (id (＇ 0)))
+            (applyEnv (bind ★) (idᶜ {Δ = 0}))))}
+        (＇ 0) !)
       ↦ (？_ {μ = genᵐ
           (applyEnv (bind (＇ 0))
             (applyEnv (bind ★) (idᶜ {Δ = 0})))}
@@ -187,13 +205,16 @@ right₄ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id {μ = renameEnv∼ wk↪ᵗ
+    ⟨ id {μ = flipᵐ (renameEnv∼ wk↪ᵗ
         (applyEnv (bind (＇ 0))
-          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ↦ id ★ ⟩)
-    ⟨ (？_ {μ = genᵐ
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))))} ★ ↦
+      id {μ = renameEnv∼ wk↪ᵗ
+        (applyEnv (bind (＇ 0))
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ⟩)
+    ⟨ (id {μ = flipᵐ (genᵐ
           (applyEnv (bind (＇ 0))
-            (applyEnv (bind ★) (idᶜ {Δ = 0})))}
-        (id (＇ 0)))
+            (applyEnv (bind ★) (idᶜ {Δ = 0}))))}
+        (＇ 0) !)
       ↦ (？_ {μ = genᵐ
           (applyEnv (bind (＇ 0))
             (applyEnv (bind ★) (idᶜ {Δ = 0})))}
@@ -213,9 +234,12 @@ right₅ =
   (((((ƛ (` 0))
     ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
     ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id {μ = renameEnv∼ wk↪ᵗ
+    ⟨ id {μ = flipᵐ (renameEnv∼ wk↪ᵗ
         (applyEnv (bind (＇ 0))
-          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ↦ id ★ ⟩)
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))))} ★ ↦
+      id {μ = renameEnv∼ wk↪ᵗ
+        (applyEnv (bind (＇ 0))
+          (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0})))} ★ ⟩)
     · (($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
       ⟨ id {μ = flipᵐ (genᵐ
           (applyEnv (bind (＇ 0))
@@ -468,122 +492,37 @@ right-changes =
 
 example12-right-reduction : example12-right —↠[ right-changes ] right-final
 example12-right-reduction =
-  ((((Λ (ƛ (` 0)))
-    ⟨ ((inst ((id (＇ 0) !) ↦ (id (＇ 0) !))) (λ ())) ⟩)
-    ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩)
-    ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
+  right₀
   —→[ bind ★ ]⟨ reduction right-step₀ ⟩
-  ((((Λ (ƛ (` 0))) ⦂∀ (＇ 0 ⇒ ＇ 0) [ ＇ 0 ])
-      ↑ (seal 0 ★ ↦↑ unseal 0 ★)
-      ⟨ id ★ ↦ id ★ ⟩
-      ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩)
-    ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
+  right₁
   —→[ bind (＇ 0) ]⟨ reduction right-step₁ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 0 (＇ 1) ↦↑ unseal 0 (＇ 1)))
-    ↑ (seal 1 ★ ↦↑ unseal 1 ★))
-    ⟨ id ★ ↦ id ★ ⟩)
-    ⟨ ((gen ((？ (id (＇ 0))) ↦ (？ (id (＇ 0))))) (λ ())) ⟩
-    ⦂∀ (＇ 0 ⇒ ＇ 0) [ ‵ `ℕ ]) · $ (κℕ 7)
+  right₂
   —→[ bind (‵ `ℕ) ]⟨ reduction right-step₂ ⟩
-  ((((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id ★ ↦ id ★ ⟩)
-    ⟨ (？ (id (＇ 0))) ↦ (？ (id (＇ 0))) ⟩)
-    ↑ (seal 0 (‵ `ℕ) ↦↑ unseal 0 (‵ `ℕ)))
-    · $ (κℕ 7)
+  right₃
   —→[ keep ]⟨ reduction right-step₃ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id ★ ↦ id ★ ⟩)
-    ⟨ (？ (id (＇ 0))) ↦ (？ (id (＇ 0))) ⟩)
-    · ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-  ↑ unseal 0 (‵ `ℕ)
+  right₄
   —→[ keep ]⟨ reduction right-step₄ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    ⟨ id ★ ↦ id ★ ⟩)
-    · (($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-      ⟨ id (＇ 0) ! ⟩))
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₅
   —→[ keep ]⟨ reduction right-step₅ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    · ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-      ⟨ id (＇ 0) ! ⟩)
-      ⟨ id ★ ⟩))
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₆
   —→[ keep ]⟨ reduction right-step₆ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    ↑ (seal 2 ★ ↦↑ unseal 2 ★))
-    · (($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-      ⟨ id (＇ 0) ! ⟩))
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₇
   —→[ keep ]⟨ reduction right-step₇ ⟩
-  (((((ƛ (` 0))
-    ↑ (seal 1 (＇ 2) ↦↑ unseal 1 (＇ 2)))
-    · ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-      ⟨ id (＇ 0) ! ⟩)
-      ↓ seal 2 ★))
-    ↑ unseal 2 ★)
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₈
   —→[ keep ]⟨ reduction right-step₈ ⟩
-  (((((ƛ (` 0))
-    · (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-      ⟨ id (＇ 0) ! ⟩)
-      ↓ seal 2 ★)
-      ↓ seal 1 (＇ 2)))
-    ↑ unseal 1 (＇ 2))
-    ↑ unseal 2 ★)
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₉
   —→[ keep ]⟨ reduction right-step₉ ⟩
-  ((((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-    ⟨ id (＇ 0) ! ⟩)
-    ↓ seal 2 ★)
-    ↓ seal 1 (＇ 2))
-    ↑ unseal 1 (＇ 2))
-    ↑ unseal 2 ★)
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₁₀
   —→[ keep ]⟨ reduction right-step₁₀ ⟩
-  ((((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-    ⟨ id (＇ 0) ! ⟩)
-    ↓ seal 2 ★)
-    ↑ unseal 2 ★)
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩
-  ↑ unseal 0 (‵ `ℕ)
+  right₁₁
   —→[ keep ]⟨ reduction right-step₁₁ ⟩
-  (((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-    ⟨ id (＇ 0) ! ⟩)
-    ⟨ id ★ ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩)
-  ↑ unseal 0 (‵ `ℕ)
+  right₁₂
   —→[ keep ]⟨ reduction right-step₁₂ ⟩
-  ((($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-    ⟨ id (＇ 0) ! ⟩)
-    ⟨ ？ (id (＇ 0)) ⟩)
-  ↑ unseal 0 (‵ `ℕ)
+  right₁₃
   —→[ keep ]⟨ reduction right-step₁₃ ⟩
-  ($ (κℕ 7) ↓ seal 0 (‵ `ℕ))
-  ↑ unseal 0 (‵ `ℕ)
+  right₁₄
   —→[ keep ]⟨ reduction right-step₁₄ ⟩
-  $ (κℕ 7) ∎[]
+  right-final ∎[]
 
 ------------------------------------------------------------------------
 -- Left program: ordinary polymorphic identity instantiated at ℕ

@@ -131,8 +131,11 @@ botFromStarExample-⊢ =
 X! : instᵐ (idᶜ {Δ = 0}) ⊢ ＇ 0 ∼ ★
 X! = id (＇ 0) !
 
+?X-inst-domain : flipᵐ (instᵐ (idᶜ {Δ = 0})) ⊢ ★ ∼ ＇ 0
+?X-inst-domain = ？ (id (＇ 0))
+
 instId : (`∀ X⇒X) ∼ (★ ⇒ ★)
-instId = (inst (X! ↦ X!)) (λ ())
+instId = (inst (?X-inst-domain ↦ X!)) (λ ())
 
 instExample : Term 0
 instExample =
@@ -151,8 +154,11 @@ instExample-⊢ =
 ?X : genᵐ (idᶜ {Δ = 0}) ⊢ ★ ∼ ＇ 0
 ?X = ？ (id (＇ 0))
 
+X!-gen-domain : flipᵐ (genᵐ (idᶜ {Δ = 0})) ⊢ ＇ 0 ∼ ★
+X!-gen-domain = id (＇ 0) !
+
 genId : (★ ⇒ ★) ∼ (`∀ X⇒X)
-genId = (gen (?X ↦ ?X)) (λ ())
+genId = (gen (X!-gen-domain ↦ ?X)) (λ ())
 
 genExample : Term 0
 genExample =
@@ -190,8 +196,15 @@ instance
 ?Y₂ : genᵐ (genᵐ (idᶜ {Δ = 0})) ⊢ ★ ∼ ＇ 0
 ?Y₂ = ？ (id (＇ 0))
 
+X!₂-domain : flipᵐ (genᵐ (genᵐ (idᶜ {Δ = 0}))) ⊢ ＇ 1 ∼ ★
+X!₂-domain = id (＇ 1) !
+
+Y!₂-domain : flipᵐ (genᵐ (genᵐ (idᶜ {Δ = 0}))) ⊢ ＇ 0 ∼ ★
+Y!₂-domain = id (＇ 0) !
+
 genFirst : (★ ⇒ ★ ⇒ ★) ∼ `∀ polyFirstBody
-genFirst = (gen ((gen (?X₂ ↦ ?Y₂ ↦ ?X₂)) (λ ()))) (λ ())
+genFirst =
+  (gen ((gen (X!₂-domain ↦ Y!₂-domain ↦ ?X₂)) (λ ()))) (λ ())
 
 second★ : Term 0
 second★ = ƛ (ƛ (` 0))

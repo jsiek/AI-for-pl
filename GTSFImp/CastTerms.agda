@@ -62,7 +62,7 @@ private
 data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Set where
   safe-⇒ : ∀ {Δ μ} {A A′ B B′ : Ty Δ}
-      {c : μ ⊢ A ∼ A′} {d : μ ⊢ B ∼ B′}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → GenSafe (c ↦ d)
 
   safe-∀ : ∀ {Δ μ} {A B : Ty (suc Δ)}
@@ -90,7 +90,7 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → Inert {μ = μ} ((idᵍ {μ = μ} Gᵍ) !)
 
   fun : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
-      {c : μ ⊢ A ∼ A′} {d : μ ⊢ B ∼ B′}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Inert (c ↦ d)
 
   all : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}

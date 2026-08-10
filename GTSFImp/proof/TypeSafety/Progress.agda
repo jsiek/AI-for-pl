@@ -38,7 +38,7 @@ data Progress {Δ : TyCtx} {Σ : TyStore Δ} (M : Term Δ) : Set where
 data FunView {Δ : TyCtx} (V : Term Δ) : Set where
   fv-ƛ : ∀ {N} → V ≡ ƛ N → FunView V
   fv-⇒ : ∀ {μ : Env∼ Δ} {W} {A A′ B B′ : Ty Δ}
-      {c : μ ⊢ A ∼ A′} {d : μ ⊢ B ∼ B′}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Value W
     → V ≡ W ⟨ c ↦ d ⟩
     → FunView V
@@ -390,7 +390,7 @@ to-ground (‵ ι) (id (‵ ι)) = same
 to-ground (‵ ι) (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
 to-ground (‵ ι) (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 to-ground ★⇒★ (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
-to-ground ★⇒★ (c ↦ d) with to-star c | to-star d
+to-ground ★⇒★ (c ↦ d) with from-star c | to-star d
 to-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
 to-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
@@ -427,7 +427,7 @@ from-ground (‵ ι) (id (‵ ι)) = same
 from-ground (‵ ι) (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
 from-ground (‵ ι) (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 from-ground ★⇒★ (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
-from-ground ★⇒★ (c ↦ d) with from-star c | from-star d
+from-ground ★⇒★ (c ↦ d) with to-star c | from-star d
 from-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
 from-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
@@ -599,7 +599,7 @@ progress (⊢· L⊢ M⊢) | done vL | done vM | fv-ƛ refl =
   step (pure-step (β vM))
 progress (⊢· L⊢ M⊢) | done vL | done vM
     | fv-⇒ vW refl =
-  step (pure-step (β-⇒ vW vM refl))
+  step (pure-step (β-⇒ vW vM))
 progress (⊢· L⊢ M⊢) | done vL | done vM
     | fv-reveal vW refl =
   step (pure-step (β-reveal-⇒ vW vM))

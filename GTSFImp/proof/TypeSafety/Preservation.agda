@@ -160,8 +160,8 @@ pure-preservation (⊢· (⊢ƛ N⊢) V⊢) (β vV) =
   typing-single-subst N⊢ V⊢
 pure-preservation (⊢⟨⟩ V⊢ (id a)) (β-id vV) = V⊢
 pure-preservation
-    (⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ vV vW refl) =
-  ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ (sym∼ c))) d
+    (⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ vV vW) =
+  ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ c)) d
 pure-preservation (⊢• (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ vV refl) =
   ⊢⟨⟩ (⊢• V⊢) (c [ _ ]ᶜ)
 pure-preservation (⊢⟨⟩ V⊢ (c !)) (ground vV A≠G) =

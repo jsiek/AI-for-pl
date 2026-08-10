@@ -30,7 +30,7 @@ fun-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = ‵ `ℕ ⇒ ‵ `𝔹} {B = ‵ `ℕ ⇒ ‵ `𝔹} {G = ★ ⇒ ★}
     ★⇒★ nonstar-⇒
-    (C._↦_ (C._! (C.id (‵ `ℕ))) (C._! (C.id (‵ `𝔹))))
+    (C._↦_ (C.？ (C.id (‵ `ℕ))) (C._! (C.id (‵ `𝔹))))
     (I.⇒⊑⇒ I.ι⊑ι I.ι⊑ι)
     (I.⇒⊑★ I.ι⊑★ I.ι⊑★)
 
@@ -70,7 +70,7 @@ forall-closed-body-to-universal-ground-target =
   IC.ground-cast-target⊑ {Δ = 0} {μ = I.idᵐ} {ν = C.idᶜ}
     {A = `∀ (‵ `ℕ ⇒ ★)} {B = `∀ (‵ `ℕ ⇒ ★)} {G = `∀ ★}
     ∀★ nonstar-∀
-    (C.∀ᶜ (C._! (C._↦_ (C._! (C.id (‵ `ℕ))) (C.id ★))))
+    (C.∀ᶜ (C._! (C._↦_ (C.？ (C.id (‵ `ℕ))) (C.id ★))))
     (I.∀⊑∀ (I.⇒⊑⇒ I.ι⊑ι I.★⊑★))
     (I.∀⊑★ nonstar-⇒
       (I.⇒⊑★ I.ι⊑★ I.★⊑★))
@@ -95,7 +95,11 @@ inst-consistency-to-fun-ground-target =
     {G = ★ ⇒ ★}
     ★⇒★ nonstar-∀
     (C.inst_ ⦃ Anv = nonvar-fun ⦄ ⦃ z∈A = ∈-fun-left var-∈ ⦄
-      (C._↦_ (C._! (C.id (＇ zero))) (C.id ★)) (λ ()))
+      (C._↦_
+        (C.？_ {μ = C.flipᵐ (C.instᵐ (C.idᶜ {Δ = 0}))}
+          (C.id (＇ zero)))
+        (C.id ★))
+      (λ ()))
     (I.∀⊑∀ (I.⇒⊑⇒ I.X⊑X I.★⊑★))
     (I.∀⊑ nonvar-fun (∈-fun-left var-∈)
       (I.⇒⊑★ (I.X⊑★ refl) I.★⊑★))
@@ -108,7 +112,10 @@ no-star-counterexample-consistency :
   C._⊢_∼_ (C.instᵐ (C.idᶜ {Δ = 0}))
     (＇ zero ⇒ ＇ zero) (★ ⇒ ★)
 no-star-counterexample-consistency =
-  C._↦_ (C._! (C.id (＇ zero))) (C._! (C.id (＇ zero)))
+  C._↦_
+    (C.？_ {μ = C.flipᵐ (C.instᵐ (C.idᶜ {Δ = 0}))}
+      (C.id (＇ zero)))
+    (C._! (C.id (＇ zero)))
 
 no-star-counterexample-imprecision :
   I._⊢_⊑_ (I.idᵐ {Δ = 1})

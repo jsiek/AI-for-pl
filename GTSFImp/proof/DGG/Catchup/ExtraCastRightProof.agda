@@ -150,7 +150,7 @@ module _
     → W ∣ γ ⊢² M ⊑ M′ ∶ p
     → Value M
     → (vM′ : Value M′)
-    → (c : ν ⊢ B ∼ B′)
+    → (c : C.flipᵐ ν ⊢ B′ ∼ B)
     → (d : ν ⊢ C ∼ C′)
     → (q : A ⊑ᵂ⟨ W ⟩ (B′ ⇒ C′))
     → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]

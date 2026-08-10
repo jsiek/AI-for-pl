@@ -70,6 +70,19 @@ identity-lower-env : ∀ {Δ}
   → LowerEnv (idᶜ {Δ}) (I.idᵐ {Δ}) (I.idᵐ {Δ})
 identity-lower-env X = var-refl
 
+flip-var-lower : ∀ {r φ ψ}
+  → VarLower r φ ψ
+  → VarLower (flipVar∼ r) ψ φ
+flip-var-lower var-refl = var-refl
+flip-var-lower var-to-star = var-from-star
+flip-var-lower var-from-star = var-to-star
+flip-var-lower both-to-star = both-to-star
+
+flip-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
+  → LowerEnv μ φ ψ
+  → LowerEnv (flipᵐ μ) ψ φ
+flip-lower-env h X = flip-var-lower (h X)
+
 right-star-from-var-lower : ∀ {r l u}
   → VarLower r l u
   → r ≡ X∼★
@@ -416,10 +429,10 @@ consistent-common-lowerᵐ h (id ★) = ★ , I.★⊑★ , I.★⊑★
 consistent-common-lowerᵐ h (id (‵ ι)) = ‵ ι , I.ι⊑ι , I.ι⊑ι
 consistent-common-lowerᵐ h (id (＇ X)) = ＇ X , I.X⊑X , I.X⊑X
 consistent-common-lowerᵐ h (c ↦ d)
-    with consistent-common-lowerᵐ h c
+    with consistent-common-lowerᵐ (flip-lower-env h) c
        | consistent-common-lowerᵐ h d
 consistent-common-lowerᵐ h (c ↦ d)
-    | A , A⊑L , A⊑R | B , B⊑L , B⊑R =
+    | A , A⊑R , A⊑L | B , B⊑L , B⊑R =
   A ⇒ B , I.⇒⊑⇒ A⊑L B⊑L , I.⇒⊑⇒ A⊑R B⊑R
 consistent-common-lowerᵐ h (∀ᶜ c)
     with consistent-common-lowerᵐ (extend-lower-env h) c
@@ -597,6 +610,19 @@ source-occurs-target focus I.bot⊑★ (∈-all ())
 consistency-var-self-not-star : X∼X ≡ X∼★ → ⊥
 consistency-var-self-not-star ()
 
+consistency-var-self-not-from-star : X∼X ≡ ★∼X → ⊥
+consistency-var-self-not-from-star ()
+
+flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+  → ν X ≡ X∼X
+  → flipᵐ ν X ≡ X∼X
+flip-self-mode same = cong flipVar∼ same
+
+flip-flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+  → ν X ≡ X∼X
+  → flipᵐ (flipᵐ ν) X ≡ X∼X
+flip-flip-self-mode same = cong flipVar∼ (cong flipVar∼ same)
+
 ground-self-occurs⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
     {G : Ty Δ}
   → ν X ≡ X∼X
@@ -610,47 +636,112 @@ ground-self-occurs⊥ same (X∼★ᵍ eq) var-∈ =
   consistency-var-self-not-star (trans (sym same) eq)
 ground-self-occurs⊥ same ∀∼★ (∈-all ())
 
-consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
-    {X : TyVar Δ} {A B : Ty Δ}
+ground-self-occurs★∼⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+    {G : Ty Δ}
   → ν X ≡ X∼X
-  → ν ⊢ A ∼ B
-  → X ∈ᵗ A
-  → X ∈ᵗ B
-consistency-source-occurs-target same (id a) X∈A = X∈A
-consistency-source-occurs-target {A = A ⇒ B} {B = A′ ⇒ B′}
-    same (c ↦ d) (∈-fun-left X∈A) =
-  ∈-fun-left (consistency-source-occurs-target same c X∈A)
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    with occurs? X A′
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    | present X∈A′ = ∈-fun-left X∈A′
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    | absent X∉A′ =
-  ∈-fun-right X∉A′ (consistency-source-occurs-target same d X∈B)
-consistency-source-occurs-target {X = X} {A = `∀ A} {B = `∀ B}
-    same (∀ᶜ c) (∈-all X∈A) =
-  ∈-all (consistency-source-occurs-target {X = suc X} same c X∈A)
-consistency-source-occurs-target {B = ★} same
-    (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
-  ⊥-elim (ground-self-occurs⊥ same G∼★
-    (consistency-source-occurs-target same c X∈A))
-consistency-source-occurs-target {A = ★} same
-    (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
-consistency-source-occurs-target {X = X} {A = `∀ A} same
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
-  unshift-occurs
-    (consistency-source-occurs-target {X = suc X} same c X∈A)
-consistency-source-occurs-target {X = X} {B = `∀ B} same
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) X∈A =
-  ∈-all (consistency-source-occurs-target {X = suc X} same c
-    (shift-occurs X∈A))
-consistency-source-occurs-target {A = `∀ (＇ zero)}
-    same bot-elim (∈-all ())
-consistency-source-occurs-target {A = `∀ ★}
-    same bot-intro (∈-all ())
+  → ν ⊢★∼ G
+  → X ∈ᵗ G
+  → ⊥
+ground-self-occurs★∼⊥ same ★∼⇒ (∈-fun-left ())
+ground-self-occurs★∼⊥ same ★∼⇒ (∈-fun-right X∉A ())
+ground-self-occurs★∼⊥ same ★∼ι ()
+ground-self-occurs★∼⊥ same (★∼Xᵍ eq) var-∈ =
+  consistency-var-self-not-from-star (trans (sym same) eq)
+ground-self-occurs★∼⊥ same ★∼∀ (∈-all ())
+
+mutual
+  consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → ν X ≡ X∼X
+    → ν ⊢ A ∼ B
+    → X ∈ᵗ A
+    → X ∈ᵗ B
+  consistency-source-occurs-target same (id a) X∈A = X∈A
+  consistency-source-occurs-target {ν = ν} {X = X}
+      {A = A ⇒ B} {B = A′ ⇒ B′} same (c ↦ d)
+      (∈-fun-left X∈A) =
+    ∈-fun-left
+      (consistency-target-occurs-source {ν = flipᵐ ν} {X = X}
+        (flip-self-mode {ν = ν} {X = X} same) c X∈A)
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      with occurs? X A′
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      | present X∈A′ = ∈-fun-left X∈A′
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      | absent X∉A′ =
+    ∈-fun-right X∉A′
+      (consistency-source-occurs-target same d X∈B)
+  consistency-source-occurs-target {X = X} {A = `∀ A} {B = `∀ B}
+      same (∀ᶜ c) (∈-all X∈A) =
+    ∈-all (consistency-source-occurs-target {X = suc X} same c X∈A)
+  consistency-source-occurs-target {B = ★} same
+      (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
+    ⊥-elim (ground-self-occurs⊥ same G∼★
+      (consistency-source-occurs-target same c X∈A))
+  consistency-source-occurs-target {A = ★} same
+      (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
+  consistency-source-occurs-target {X = X} {A = `∀ A} same
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
+    unshift-occurs
+      (consistency-source-occurs-target {X = suc X} same c X∈A)
+  consistency-source-occurs-target {X = X} {B = `∀ B} same
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) X∈A =
+    ∈-all (consistency-source-occurs-target {X = suc X} same c
+      (shift-occurs X∈A))
+  consistency-source-occurs-target {A = `∀ (＇ zero)}
+      same bot-elim (∈-all ())
+  consistency-source-occurs-target {A = `∀ ★}
+      same bot-intro (∈-all ())
+
+  consistency-target-occurs-source : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → ν X ≡ X∼X
+    → ν ⊢ A ∼ B
+    → X ∈ᵗ B
+    → X ∈ᵗ A
+  consistency-target-occurs-source same (id a) X∈B = X∈B
+  consistency-target-occurs-source {ν = ν} {X = X}
+      {A = A ⇒ B} {B = A′ ⇒ B′} same (c ↦ d)
+      (∈-fun-left X∈A′) =
+    ∈-fun-left
+      (consistency-source-occurs-target {ν = flipᵐ ν} {X = X}
+        (flip-self-mode {ν = ν} {X = X} same) c X∈A′)
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      with occurs? X A
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      | present X∈A = ∈-fun-left X∈A
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      | absent X∉A =
+    ∈-fun-right X∉A
+      (consistency-target-occurs-source same d X∈B′)
+  consistency-target-occurs-source {X = X} {A = `∀ A} {B = `∀ B}
+      same (∀ᶜ c) (∈-all X∈B) =
+    ∈-all (consistency-target-occurs-source {X = suc X} same c X∈B)
+  consistency-target-occurs-source {B = ★} same
+      (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) ()
+  consistency-target-occurs-source {A = ★} same
+      (？_ ⦃ ★∼G = ★∼G ⦄ c ⦃ Bns ⦄) X∈B =
+    ⊥-elim (ground-self-occurs★∼⊥ same ★∼G
+      (consistency-target-occurs-source same c X∈B))
+  consistency-target-occurs-source {X = X} {A = `∀ A} same
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) X∈B =
+    ∈-all
+      (consistency-target-occurs-source {X = suc X} same c
+        (shift-occurs X∈B))
+  consistency-target-occurs-source {X = X} {B = `∀ B} same
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) (∈-all X∈B) =
+    unshift-occurs
+      (consistency-target-occurs-source {X = suc X} same c X∈B)
+  consistency-target-occurs-source {B = `∀ ★}
+      same bot-elim (∈-all ())
+  consistency-target-occurs-source {B = `∀ (＇ zero)}
+      same bot-intro (∈-all ())
 
 shift-ground : ∀ {Δ G}
   → Ground {Δ} G
@@ -1290,6 +1381,12 @@ identity-avoids-both : ∀ {Δ} {A B : Ty Δ}
 identity-avoids-both X eqL eqR =
   ⊥-elim (var-identity-not-star eqL)
 
+swap-avoid-both : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A B}
+  → AvoidBoth φ ψ A B
+  → AvoidBoth ψ φ B A
+swap-avoid-both safe X eqL eqR with safe X eqR eqL
+swap-avoid-both safe X eqL eqR | X∉A , X∉B = X∉B , X∉A
+
 avoid-arrow-domain : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A B C D}
   → AvoidBoth φ ψ (A ⇒ B) (C ⇒ D)
   → AvoidBoth φ ψ A C
@@ -1542,12 +1639,14 @@ lower-bounds-consistentᵐ h safe (I.X⊑★ eqL) (I.X⊑★ eqR) =
   id ★
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
-  lower-bounds-consistentᵐ h (avoid-arrow-domain safe) p₁ q₁ ↦
+  lower-bounds-consistentᵐ (flip-lower-env h)
+    (swap-avoid-both (avoid-arrow-domain safe)) q₁ p₁ ↦
   lower-bounds-consistentᵐ h (avoid-arrow-codomain safe) p₂ q₂
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑★ q₁ q₂) =
   _! ⦃ Gᵍ = ★⇒★ ⦄
-    (lower-bounds-consistentᵐ h (avoid-arrow-star-domain safe) p₁ q₁
+    (lower-bounds-consistentᵐ (flip-lower-env h)
+      (swap-avoid-both (avoid-arrow-star-domain safe)) q₁ p₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-arrow-star-codomain safe) p₂ q₂)
@@ -1555,7 +1654,8 @@ lower-bounds-consistentᵐ h safe
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑★ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
   ？_ ⦃ Gᵍ = ★⇒★ ⦄
-    (lower-bounds-consistentᵐ h (avoid-star-arrow-domain safe) p₁ q₁
+    (lower-bounds-consistentᵐ (flip-lower-env h)
+      (swap-avoid-both (avoid-star-arrow-domain safe)) q₁ p₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-star-arrow-codomain safe) p₂ q₂)

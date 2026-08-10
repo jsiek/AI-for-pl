@@ -268,7 +268,10 @@ tag-inst-var! = id (＇ Fin.zero) !
 tag-inst-body :
   instᵐ (idᶜ {Δ = 0}) ⊢
     (＇ Fin.zero ⇒ ★) ∼ (★ ⇒ ★)
-tag-inst-body = tag-inst-var! ↦ id ★
+tag-inst-body =
+  ？_ {μ = Consistency.flipᵐ (instᵐ (idᶜ {Δ = 0}))}
+    (id (＇ Fin.zero)) ↦
+  id {μ = instᵐ (idᶜ {Δ = 0})} ★
 
 tag-inst-cast : idᶜ {Δ = 0} ⊢ `∀ (＇ Fin.zero ⇒ ★) ∼ (★ ⇒ ★)
 tag-inst-cast =

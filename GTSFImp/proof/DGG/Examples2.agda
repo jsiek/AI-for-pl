@@ -462,7 +462,16 @@ example12-target-X?↦X? :
       (applyEnv (bind ★) (idᶜ {Δ = 0})))
     ⊢ (★ ⇒ ★) ∼ (＇ Fin.zero ⇒ ＇ Fin.zero)
 example12-target-X?↦X? =
-  ？ (id (＇ Fin.zero)) ↦ ？ (id (＇ Fin.zero))
+  (id {μ = C.flipᵐ
+      (genᵐ
+        (applyEnv (bind (＇ Fin.zero))
+          (applyEnv (bind ★) (idᶜ {Δ = 0}))))}
+    (＇ Fin.zero) !) ↦
+  ？_ {μ =
+      genᵐ
+        (applyEnv (bind (＇ Fin.zero))
+          (applyEnv (bind ★) (idᶜ {Δ = 0})))}
+    (id (＇ Fin.zero))
 
 example12-target-X! :
   C.flipᵐ
@@ -1339,7 +1348,7 @@ left-path-id★↦id★₁-source = id ★ ↦ id ★
 left-path-id★↦id★₁-target :
   renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}) ⊢ (★ ⇒ ★) ∼ (★ ⇒ ★)
 left-path-id★↦id★₁-target =
-  C.↑ᶜ C.close-instᶜ (Ex.X! ↦ Ex.X!)
+  C.↑ᶜ C.close-instᶜ (Ex.X?-inst-domain ↦ Ex.X!)
 
 left-path-id★↦id★₂-source :
   applyEnv (bind (＇ Fin.zero)) (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))
@@ -1362,14 +1371,25 @@ left-path-gen₁ :
   C.extᵐ (idᶜ {Δ = 0}) ⊢ (★ ⇒ ★) ∼ `∀ left-path-X⇒X₁
 left-path-gen₁ =
   gen_ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    ((？ (id (＇ Fin.zero))) ↦ (？ (id (＇ Fin.zero)))) (λ ())
+    ((id {μ = C.flipᵐ (genᵐ (C.extᵐ (idᶜ {Δ = 0})))}
+        (＇ Fin.zero) !)
+      ↦
+     (？_ {μ = genᵐ (C.extᵐ (idᶜ {Δ = 0}))}
+        (id (＇ Fin.zero))))
+    (λ ())
 
 left-path-gen₂ :
   C.extᵐ (C.extᵐ (idᶜ {Δ = 0})) ⊢ (★ ⇒ ★) ∼
     `∀ left-path-X⇒X₂
 left-path-gen₂ =
   gen_ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    ((？ (id (＇ Fin.zero))) ↦ (？ (id (＇ Fin.zero)))) (λ ())
+    ((id {μ = C.flipᵐ
+        (genᵐ (C.extᵐ (C.extᵐ (idᶜ {Δ = 0}))))}
+        (＇ Fin.zero) !)
+      ↦
+     (？_ {μ = genᵐ (C.extᵐ (C.extᵐ (idᶜ {Δ = 0})))}
+        (id (＇ Fin.zero))))
+    (λ ())
 
 left-path-reveal★₁ : Conv↑ 1 (＇ Fin.zero ⇒ ＇ Fin.zero) (★ ⇒ ★)
 left-path-reveal★₁ = seal Fin.zero ★ ↦↑ unseal Fin.zero ★

@@ -27,7 +27,8 @@ import Imprecision as I
 open import proof.ImprecisionConsistency
   using (LowerEnv; VarLower; both-to-star; common-lower-consistent;
          extend-lower-env; identity-lower-env; instantiate-left-lower-env;
-         instantiate-right-lower-env; source-nonvar-from-target;
+         instantiate-right-lower-env; flip-lower-env;
+         source-nonvar-from-target;
          target-occurs-source; shift-occurs; unshift-occurs; var-from-star;
          var-refl; var-to-star)
 
@@ -74,7 +75,7 @@ four-fourth nothing nothing nothing (just x) is-just = is-just
 
 arrow-lower-success : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
     {A A′ B B′ : Ty Δ}
-    {left : Maybe (Lower φ ψ A A′)}
+    {left : Maybe (Lower ψ φ A′ A)}
     {right : Maybe (Lower φ ψ B B′)}
   → IsJust left
   → IsJust right
@@ -224,42 +225,6 @@ ground-occurs-to-star C.ι∼★ ()
 ground-occurs-to-star (C.X∼★ᵍ eq) var-∈ = eq
 ground-occurs-to-star C.∀∼★ (∈-all ())
 
-source-occurs-target-safe : ∀ {Δ} {μ : C.Env∼ Δ}
-    {X : TyVar Δ} {A B : Ty Δ}
-  → μ X ≢ C.X∼★
-  → C._⊢_∼_ μ A B
-  → X ∈ᵗ A
-  → X ∈ᵗ B
-source-occurs-target-safe not-star (C.id a) X∈A = X∈A
-source-occurs-target-safe not-star (c C.↦ d) (∈-fun-left X∈A) =
-  ∈-fun-left (source-occurs-target-safe not-star c X∈A)
-source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-    (c C.↦ d) (∈-fun-right X∉A X∈B) with occurs? X A′
-source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-    (c C.↦ d) (∈-fun-right X∉A X∈B) | present X∈A′ =
-  ∈-fun-left X∈A′
-source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-    (c C.↦ d) (∈-fun-right X∉A X∈B) | absent X∉A′ =
-  ∈-fun-right X∉A′ (source-occurs-target-safe not-star d X∈B)
-source-occurs-target-safe {X = X} not-star (C.∀ᶜ c)
-    (∈-all X∈A) =
-  ∈-all (source-occurs-target-safe {X = suc X} not-star c X∈A)
-source-occurs-target-safe not-star
-    (C._! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
-  ⊥-elim (not-star (ground-occurs-to-star G∼★
-    (source-occurs-target-safe not-star c X∈A)))
-source-occurs-target-safe not-star (C.？_ c) ()
-source-occurs-target-safe {X = X} not-star
-    (C.inst_ c B≢★) (∈-all X∈A) =
-  unshift-occurs
-    (source-occurs-target-safe {X = suc X} not-star c X∈A)
-source-occurs-target-safe {X = X} not-star
-    (C.gen_ c A≢★) X∈A =
-  ∈-all (source-occurs-target-safe {X = suc X} not-star c
-    (shift-occurs X∈A))
-source-occurs-target-safe not-star C.bot-elim (∈-all ())
-source-occurs-target-safe not-star C.bot-intro (∈-all ())
-
 star-no-occurs : ∀ {Δ} {X : TyVar Δ} → X ∈ᵗ ★ → ⊥
 star-no-occurs ()
 
@@ -274,41 +239,96 @@ ground-occurs-from-star C.★∼ι ()
 ground-occurs-from-star (C.★∼Xᵍ eq) var-∈ = eq
 ground-occurs-from-star C.★∼∀ (∈-all ())
 
-target-occurs-source-safe : ∀ {Δ} {μ : C.Env∼ Δ}
-    {X : TyVar Δ} {A B : Ty Δ}
+flip-not-from-star : ∀ {Δ} {μ : C.Env∼ Δ} {X : TyVar Δ}
+  → μ X ≢ C.X∼★
+  → C.flipᵐ μ X ≢ C.★∼X
+flip-not-from-star not-star eq =
+  not-star (C.flipVar∼-to-★∼X eq)
+
+flip-not-to-star : ∀ {Δ} {μ : C.Env∼ Δ} {X : TyVar Δ}
   → μ X ≢ C.★∼X
-  → C._⊢_∼_ μ A B
-  → X ∈ᵗ B
-  → X ∈ᵗ A
-target-occurs-source-safe not-star (C.id a) X∈B = X∈B
-target-occurs-source-safe not-star (c C.↦ d) (∈-fun-left X∈A) =
-  ∈-fun-left (target-occurs-source-safe not-star c X∈A)
-target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-    (c C.↦ d) (∈-fun-right X∉A′ X∈B′) with occurs? X A
-target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-    (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | present X∈A =
-  ∈-fun-left X∈A
-target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-    (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | absent X∉A =
-  ∈-fun-right X∉A (target-occurs-source-safe not-star d X∈B′)
-target-occurs-source-safe {X = X} not-star (C.∀ᶜ c)
-    (∈-all X∈B) =
-  ∈-all (target-occurs-source-safe {X = suc X} not-star c X∈B)
-target-occurs-source-safe not-star (C._! c) ()
-target-occurs-source-safe not-star
-    (C.？_ ⦃ ★∼G = ★∼G ⦄ c) X∈B =
-  ⊥-elim (not-star (ground-occurs-from-star ★∼G
-    (target-occurs-source-safe not-star c X∈B)))
-target-occurs-source-safe {X = X} not-star
-    (C.inst_ c B≢★) X∈B =
-  ∈-all (target-occurs-source-safe {X = suc X} not-star c
-    (shift-occurs X∈B))
-target-occurs-source-safe {X = X} not-star
-    (C.gen_ c A≢★) (∈-all X∈B) =
-  unshift-occurs
-    (target-occurs-source-safe {X = suc X} not-star c X∈B)
-target-occurs-source-safe not-star C.bot-elim (∈-all ())
-target-occurs-source-safe not-star C.bot-intro (∈-all ())
+  → C.flipᵐ μ X ≢ C.X∼★
+flip-not-to-star not-star eq =
+  not-star (C.flipVar∼-to-X∼★ eq)
+
+mutual
+  source-occurs-target-safe : ∀ {Δ} {μ : C.Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → μ X ≢ C.X∼★
+    → C._⊢_∼_ μ A B
+    → X ∈ᵗ A
+    → X ∈ᵗ B
+  source-occurs-target-safe not-star (C.id a) X∈A = X∈A
+  source-occurs-target-safe {μ = μ} {X = X} not-star
+      (c C.↦ d) (∈-fun-left X∈A) =
+    ∈-fun-left
+      (target-occurs-source-safe {μ = C.flipᵐ μ} {X = X}
+        (flip-not-from-star {μ = μ} {X = X} not-star) c X∈A)
+  source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
+      (c C.↦ d) (∈-fun-right X∉A X∈B) with occurs? X A′
+  source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
+      (c C.↦ d) (∈-fun-right X∉A X∈B) | present X∈A′ =
+    ∈-fun-left X∈A′
+  source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
+      (c C.↦ d) (∈-fun-right X∉A X∈B) | absent X∉A′ =
+    ∈-fun-right X∉A′ (source-occurs-target-safe not-star d X∈B)
+  source-occurs-target-safe {X = X} not-star (C.∀ᶜ c)
+      (∈-all X∈A) =
+    ∈-all (source-occurs-target-safe {X = suc X} not-star c X∈A)
+  source-occurs-target-safe not-star
+      (C._! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
+    ⊥-elim (not-star (ground-occurs-to-star G∼★
+      (source-occurs-target-safe not-star c X∈A)))
+  source-occurs-target-safe not-star (C.？_ c) ()
+  source-occurs-target-safe {X = X} not-star
+      (C.inst_ c B≢★) (∈-all X∈A) =
+    unshift-occurs
+      (source-occurs-target-safe {X = suc X} not-star c X∈A)
+  source-occurs-target-safe {X = X} not-star
+      (C.gen_ c A≢★) X∈A =
+    ∈-all (source-occurs-target-safe {X = suc X} not-star c
+      (shift-occurs X∈A))
+  source-occurs-target-safe not-star C.bot-elim (∈-all ())
+  source-occurs-target-safe not-star C.bot-intro (∈-all ())
+
+  target-occurs-source-safe : ∀ {Δ} {μ : C.Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → μ X ≢ C.★∼X
+    → C._⊢_∼_ μ A B
+    → X ∈ᵗ B
+    → X ∈ᵗ A
+  target-occurs-source-safe not-star (C.id a) X∈B = X∈B
+  target-occurs-source-safe {μ = μ} {X = X} not-star
+      (c C.↦ d) (∈-fun-left X∈A) =
+    ∈-fun-left
+      (source-occurs-target-safe {μ = C.flipᵐ μ} {X = X}
+        (flip-not-to-star {μ = μ} {X = X} not-star) c X∈A)
+  target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
+      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) with occurs? X A
+  target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
+      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | present X∈A =
+    ∈-fun-left X∈A
+  target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
+      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | absent X∉A =
+    ∈-fun-right X∉A (target-occurs-source-safe not-star d X∈B′)
+  target-occurs-source-safe {X = X} not-star (C.∀ᶜ c)
+      (∈-all X∈B) =
+    ∈-all (target-occurs-source-safe {X = suc X} not-star c X∈B)
+  target-occurs-source-safe not-star (C._! c) ()
+  target-occurs-source-safe not-star
+      (C.？_ ⦃ ★∼G = ★∼G ⦄ c) X∈B =
+    ⊥-elim (not-star (ground-occurs-from-star ★∼G
+      (target-occurs-source-safe not-star c X∈B)))
+  target-occurs-source-safe {X = X} not-star
+      (C.inst_ c B≢★) X∈B =
+    ∈-all (target-occurs-source-safe {X = suc X} not-star c
+      (shift-occurs X∈B))
+  target-occurs-source-safe {X = X} not-star
+      (C.gen_ c A≢★) (∈-all X∈B) =
+    unshift-occurs
+      (target-occurs-source-safe {X = suc X} not-star c X∈B)
+  target-occurs-source-safe not-star C.bot-elim (∈-all ())
+  target-occurs-source-safe not-star C.bot-intro (∈-all ())
 
 right-dynamic-at : ∀ {r : C.Var∼} {l u : I.VarImp}
   → VarLower r l u
@@ -437,8 +457,8 @@ lowerAcc-complete h (C.id (＇ X)) access | no X≠X = ⊥-elim (X≠X refl)
 lowerAcc-complete {A = A ⇒ B} {B = A′ ⇒ B′} h
     (c C.↦ d) (acc smaller) =
   arrow-lower-success
-    (lowerAcc-complete h c
-      (smaller (arrow-left-size A B A′ B′)))
+    (lowerAcc-complete (flip-lower-env h) c
+      (smaller (arrow-left-size-swapped A B A′ B′)))
     (lowerAcc-complete h d
       (smaller (arrow-right-size A B A′ B′)))
 lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h

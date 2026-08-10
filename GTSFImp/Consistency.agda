@@ -6,8 +6,6 @@ module Consistency where
 --   * Provides renaming and substitution for consistency evidence.
 --   * Closes instantiation-bound consistency evidence at ★.
 
-open import Axiom.Extensionality.Propositional using (Extensionality)
-open import Level using (0ℓ)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
@@ -16,6 +14,7 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary using (no; yes)
 
 open import Types
+open import FunExt using (funext)
 
 private
   variable
@@ -30,6 +29,25 @@ flipVar∼ : Var∼ → Var∼
 flipVar∼ X∼X = X∼X
 flipVar∼ X∼★ = ★∼X
 flipVar∼ ★∼X = X∼★
+
+flipVar∼-involutive : ∀ v → flipVar∼ (flipVar∼ v) ≡ v
+flipVar∼-involutive X∼X = refl
+flipVar∼-involutive X∼★ = refl
+flipVar∼-involutive ★∼X = refl
+
+flipVar∼-to-X∼★ : ∀ {v}
+  → flipVar∼ v ≡ X∼★
+  → v ≡ ★∼X
+flipVar∼-to-X∼★ {X∼X} ()
+flipVar∼-to-X∼★ {X∼★} ()
+flipVar∼-to-X∼★ {★∼X} refl = refl
+
+flipVar∼-to-★∼X : ∀ {v}
+  → flipVar∼ v ≡ ★∼X
+  → v ≡ X∼★
+flipVar∼-to-★∼X {X∼X} ()
+flipVar∼-to-★∼X {X∼★} refl = refl
+flipVar∼-to-★∼X {★∼X} ()
 
 Env∼ : TyCtx → Set
 Env∼ Δ = TyVar Δ → Var∼
@@ -51,6 +69,9 @@ genᵐ μ (suc X) = μ X
 
 flipᵐ : Env∼ Δ → Env∼ Δ
 flipᵐ μ X = flipVar∼ (μ X)
+
+flipᵐ-involutive : ∀ {Δ} {μ : Env∼ Δ} → flipᵐ (flipᵐ μ) ≡ μ
+flipᵐ-involutive = funext λ X → flipVar∼-involutive _
 
 ----------------------------------------------------------------------
 -- Consistency
@@ -121,7 +142,7 @@ data _⊢_∼_ {Δ : TyCtx} (μ : Env∼ Δ) :
     → μ ⊢ A ∼ A
 
   _↦_ : ∀ {A A′ B B′}
-    → μ ⊢ A ∼ A′
+    → flipᵐ μ ⊢ A′ ∼ A
     → μ ⊢ B ∼ B′
       ---------------------------
     → μ ⊢ (A ⇒ B) ∼ (A′ ⇒ B′)
@@ -226,9 +247,6 @@ flip-★∼ (★∼Xᵍ eq) = X∼★ᵍ (cong flipVar∼ eq)
 flip-★∼ ★∼∀ = ∀∼★
 
 private
-  postulate
-    funext : Extensionality 0ℓ 0ℓ
-
   flip-extᵐ : ∀ {Δ} {μ : Env∼ Δ}
     → flipᵐ (extᵐ μ) ≡ extᵐ (flipᵐ μ)
   flip-extᵐ = funext λ { zero → refl; (suc X) → refl }
@@ -365,6 +383,12 @@ private
     ★∼Xᵍ (trans (eq X) eq-X)
   rename★∼ ρ eq ★∼∀ = ★∼∀
 
+  flip-rename-env : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    → (ρ : Δ ⇒ʳ Δ′)
+    → (∀ X → μ′ (ρ X) ≡ μ X)
+    → ∀ X → flipᵐ μ′ (ρ X) ≡ flipᵐ μ X
+  flip-rename-env ρ eq X = cong flipVar∼ (eq X)
+
   rename∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
       {A B : Ty Δ}
     → (ρ : Δ ⇒ʳ Δ′)
@@ -374,8 +398,10 @@ private
   rename∼ ρ eq (id ★) = id ★
   rename∼ ρ eq (id (‵ ι)) = id (‵ ι)
   rename∼ ρ eq (id (＇ X)) = id (＇ (ρ X))
-  rename∼ ρ eq (A∼A′ ↦ B∼B′) =
-    rename∼ ρ eq A∼A′ ↦ rename∼ ρ eq B∼B′
+  rename∼ {μ = μ} {μ′ = μ′} ρ eq (A∼A′ ↦ B∼B′) =
+    rename∼ {μ = flipᵐ μ} {μ′ = flipᵐ μ′} ρ
+      (flip-rename-env {μ = μ} {μ′ = μ′} ρ eq) A∼A′ ↦
+    rename∼ {μ = μ} {μ′ = μ′} ρ eq B∼B′
   rename∼ ρ eq (∀ᶜ A∼B) =
     ∀ᶜ (rename∼ (extᵗ ρ) (extᵐ-rename ρ eq) A∼B)
   rename∼ {μ = μ} {μ′ = μ′} ρ eq
@@ -605,6 +631,27 @@ private
       ？_ ⦃ ★∼G = ★∼Xᵍ refl ⦄ (id (＇ zero))
     from-★′ (suc X) eq =
       rename∼ suc (λ Y → refl) (from-★ X eq)
+
+  flip-SubstEnv∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
+      {σ : Δ ⇒ˢ Δ′}
+    → SubstEnv∼ μ ν σ
+    → SubstEnv∼ (flipᵐ μ) (flipᵐ ν) σ
+  flip-SubstEnv∼ {μ = μ} {ν = ν} {σ = σ}
+      (subst-env∼ self to-★ from-★) =
+    subst-env∼ self′ to-★′ from-★′
+    where
+    self′ : ∀ X → flipᵐ ν ⊢ σ X ∼ σ X
+    self′ X = sym∼ (self X)
+
+    to-★′ : ∀ X
+      → flipᵐ μ X ≡ X∼★
+      → flipᵐ ν ⊢ σ X ∼ ★
+    to-★′ X eq = sym∼ (from-★ X (flipVar∼-to-X∼★ eq))
+
+    from-★′ : ∀ X
+      → flipᵐ μ X ≡ ★∼X
+      → flipᵐ ν ⊢ ★ ∼ σ X
+    from-★′ X eq = sym∼ (to-★ X (flipVar∼-to-★∼X eq))
 
   subst-∈ᵗ : ∀ {Δ Δ′} {σ : Δ ⇒ˢ Δ′} {X : TyVar Δ}
       {Y : TyVar Δ′} {A : Ty Δ}
@@ -854,7 +901,7 @@ subst∼ : ∀ {Δ Δ′} {μ : Env∼ Δ} {ν : Env∼ Δ′}
 subst∼ s (id ★) = id ★
 subst∼ s (id (‵ ι)) = id (‵ ι)
 subst∼ s (id (＇ X)) = self s X
-subst∼ s (c ↦ d) = subst∼ s c ↦ subst∼ s d
+subst∼ s (c ↦ d) = subst∼ (flip-SubstEnv∼ s) c ↦ subst∼ s d
 subst∼ s (∀ᶜ c) = ∀ᶜ (subst∼ (ext-SubstEnv∼ s) c)
 subst∼ {σ = σ} s (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄) =
   _! ⦃ Gᵍ = ★⇒★ ⦄ (subst∼ s c)

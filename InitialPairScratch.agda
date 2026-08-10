@@ -83,10 +83,16 @@ X? =
   ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
     (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
 
+X!-gen-domain : ∀ {Δ} {μ : Env∼ Δ}
+  → flipᵐ (genᵐ μ) ⊢ ＇ Fin.zero ∼ ★
+X!-gen-domain =
+  _! ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ G∼★ = X∼★ᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Ans = nonstar-X ⦄
+
 ★⇒★∼∀X⇒X : ∀ {Δ} → idᶜ {Δ = Δ} ⊢ ★ ⇒ ★ ∼ `∀ X⇒X
 ★⇒★∼∀X⇒X =
   gen_ ⦃ Bnv = nonvar-fun ⦄ ⦃ z∈B = ∈-fun-left var-∈ ⦄
-    (X? ↦ X?) (λ ())
+    (X!-gen-domain ↦ X?) (λ ())
 
 dynIdᶜ : ∀ {Δ} → Term Δ
 dynIdᶜ = ƛ (` 0)

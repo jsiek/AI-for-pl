@@ -16,7 +16,7 @@ import Data.Nat as Nat
 import Data.Nat.Induction as NatInduction
 open import Data.Nat.Properties using
   (+-mono-≤; +-monoʳ-≤; +-suc; m≤m+n; m≤n+m; n<1+n;
-   n≤1+n; ≤-<-trans)
+   n≤1+n; +-comm; ≤-<-trans)
 open import Induction.WellFounded using (Acc; acc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; inspect; [_])
@@ -206,12 +206,12 @@ nothing orElse y = y
 
 arrow-lower : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
     {A A′ B B′ : Ty Δ}
-  → Maybe (Lower φ ψ A A′)
+  → Maybe (Lower ψ φ A′ A)
   → Maybe (Lower φ ψ B B′)
   → Maybe (Lower φ ψ (A ⇒ B) (A′ ⇒ B′))
 arrow-lower nothing right = nothing
 arrow-lower (just left) nothing = nothing
-arrow-lower (just (lower C C⊑A C⊑A′))
+arrow-lower (just (lower C C⊑A′ C⊑A))
     (just (lower D D⊑B D⊑B′)) =
   just (lower (C ⇒ D) (I.⇒⊑⇒ C⊑A D⊑B)
                          (I.⇒⊑⇒ C⊑A′ D⊑B′))
@@ -305,6 +305,12 @@ arrow-left-size A B A′ B′ =
       (+-monoʳ-≤ (size A + size B)
         (n≤1+n (size A′ + size B′)))
 
+arrow-left-size-swapped : ∀ {Δ} (A B A′ B′ : Ty Δ)
+  → size A′ + size A < size (A ⇒ B) + size (A′ ⇒ B′)
+arrow-left-size-swapped A B A′ B′
+    rewrite +-comm (size A′) (size A) =
+  arrow-left-size A B A′ B′
+
 arrow-right-size : ∀ {Δ} (A B A′ B′ : Ty Δ)
   → size B + size B′ < size (A ⇒ B) + size (A′ ⇒ B′)
 arrow-right-size A B A′ B′ =
@@ -360,7 +366,8 @@ lowerAcc φ ψ (‵ ι) (‵ .ι) access | yes refl =
 lowerAcc φ ψ (‵ ι) (‵ ι′) access | no ι≠ι′ = nothing
 lowerAcc φ ψ (A ⇒ B) (A′ ⇒ B′) (acc smaller) =
   arrow-lower
-    (lowerAcc φ ψ A A′ (smaller (arrow-left-size A B A′ B′)))
+    (lowerAcc ψ φ A′ A
+      (smaller (arrow-left-size-swapped A B A′ B′)))
     (lowerAcc φ ψ B B′ (smaller (arrow-right-size A B A′ B′)))
 lowerAcc φ ψ (`∀ A) (`∀ B) (acc smaller) =
   all-lower

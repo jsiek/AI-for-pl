@@ -413,3 +413,9 @@ New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
   clauses for the new casts, compile-preserves-imprecision², catalog,
   tag-discipline gates. Design-dossier-first.
 [x] GTSFImp: retire the remaining v1 imprecision files (CastTermImprecision.agda, CompilePreservesImprecision.agda, DGG/Examples.agda). Blocked on re-pointing the v2 importers (CastTermImprecision2, Examples2, Phase3DeepDives, LambdaImpProbe, CompilePreservesImprecision2) at the shared example terms/compile helpers, which should move to a v1-free module first. RightInjInversion.agda and ReductionPreservesReflexiveImprecision.agda (v1 orphans) already deleted.
+[ ] GTSF: port the rigid-gate consistency fix from GTSFImp (rigid
+  type variables meeting ★ from both sides). GTSF has the same gap:
+  its ordinary ∀ consistency rule adds only `0 ~ᶜ 0`, so rigid
+  variable-to-★ is underivable (see
+  GTSFImp/proof/DGG/notes/SRCCONSIST-DOSSIER.md §4). Sequence after
+  the GTSFImp fix lands and its repair patterns are known.

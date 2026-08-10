@@ -133,3 +133,23 @@ Then the live migration in the usual pre-flight → live loop.
  Q4. Mode of the rigid tag under the NEW contravariant _↦_: rigid
      gates are flipᵐ-fixed points, so domain positions are
      unaffected — confirm no interaction wanted here.
+
+## 8. Settled design decisions (2026-08-10, user)
+
+- Q1 totality is MODE-RESTRICTED: to-★/from-★ hold for side-well-
+  moded types (off-side occurrences are correctly ungated).
+- Imprecision does NOT gain a rigid crossing. ★ is the greatest
+  element of ⊑ only over the mark discipline: X⊑★ crossings are
+  exclusively the one-sided-binder relation. User's examples:
+    ΛX. λx:X. x ⊑ λx:★. x        -- OK (left binds, right doesn't)
+    ΛX. λx:X. x ⊑ ΛX. λx:★. x    -- NOT wanted (shared binder,
+                                  -- pointwise erasure; breaks the
+                                  -- parametricity story)
+  Hence consistency (rigid ＇X ∼ ★ admitted; casts may blame) and
+  imprecision (no rigid crossing; guarantee-direction) deliberately
+  diverge at rigid variables.
+- consistent-common-lowerᵐ is therefore restricted to rigid-gate-free
+  consistency derivations: the classical consistent-iff-common-
+  refinement characterization is scoped to the dynamic-mode fragment
+  by design (checked counterexample for the unrestricted rigid case
+  in srcconsist-rigid-lower-bound-blocked.red). Zero consumers today.

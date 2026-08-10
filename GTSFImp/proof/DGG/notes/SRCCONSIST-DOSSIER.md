@@ -153,3 +153,27 @@ Then the live migration in the usual pre-flight → live loop.
   refinement characterization is scoped to the dynamic-mode fragment
   by design (checked counterexample for the unrestricted rigid case
   in srcconsist-rigid-lower-bound-blocked.red). Zero consumers today.
+
+## 9. Design revision (2026-08-10, user): split X∼X
+
+Env∼'s single rigid value conflated program-binder rigidity with
+type-pairing rigidity. DECISION: split X∼X into
+  X∼Xᶜ (crossable): program/typing binders (idᶜ); the rigid star
+    gates key on crossable ONLY.
+  X∼Xˢ (strict): ∀ᶜ's extᵐ fresh slot; NO star gates.
+Both are flipᵐ-fixed points. The five calibration judgments:
+  1. Λ-bound X ⊢ X ∼ ★                          ACCEPT (crossable gate)
+  2. (∀X. X→X) ∼ (∀X. X→★)                      REJECT (strict slot)
+  3. (∀X. X→X) ∼ (★→★)                          ACCEPT (inst)
+  4. (∀Y. ★→Y→★) ∼ (∀X. X→★→X)                  ACCEPT (inst∘gen, no
+                                                  gates needed)
+  5. ∀Z.(X→Z) ∼ ∀Z.(★→Z), X ambient             ACCEPT (crossing at
+                                                  ambient X; strictness
+                                                  is slot-local, not
+                                                  scope-deep)
+Consequences: ground-cast-target⊑'s rigid counterexample dies (it
+lived at a ∀ᶜ slot; strict restores the occurrence-transport proof);
+∀ᶜ cases of the base theorems keep their original arguments; the
+common-refinement characterization is scoped by CrossFree (no
+crossable-gate uses) instead of RigidFree; totality's side-well-
+modedness premise becomes "no strict variables on that side".

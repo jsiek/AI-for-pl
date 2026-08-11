@@ -56,3 +56,12 @@ Smallest unblocking statement:
   existential `InstPostCatalogPackage`.
 
 No live statement was weakened, and no postulate or hole was added.
+
+RESOLVED (2026-08-11): the live `InstPostCatalogPackageAt` is indexed by
+the caller-supplied `χs₂`, `W₂`, and `ext₂`, so the recursive result no
+longer hides the post-catalog world.  The root bridge
+`inst-post-at→root-package` discharges the existential once, after
+`inst-post-at-finish` composes the indexed prefix-to-residual trace with
+the smaller extra-cast worker.  The next resister is the `Λ⊑Λ²`
+post-catalog body transport, recorded separately in
+`m5-inst-inversion-lambda-base-post-blocked.red`.

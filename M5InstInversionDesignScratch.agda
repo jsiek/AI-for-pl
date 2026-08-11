@@ -10,15 +10,19 @@ open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)
 open import proof.DGG.Catchup.InstInversionDef using
   (InstInversionPackage; InstPostCatalogPackage;
-   Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
+   InstPostCatalogPackageAt;
+   Λ⊑²AtRewrapᵀ; Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ;
+   RightBindUnderLeftLiftᵀ)
 open import Data.Nat using (ℕ; suc; _<_)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; instᵐ; inst_)
-open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; Λ_)
+open import CastTerms using
+  (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_)
 open import Imprecision using (X⊑★)
-open import Reduction using (bind; _∷_; [])
+open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -26,8 +30,81 @@ open CTI2 using (World; CtxImp; LiftCtxᴸ; liftWorldLeft;
   rightOnlyWorld; targetStoreʷ; tgtCtxʷ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
+inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
+  → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
+  → (vM : Value M)
+  → (vM′ : Value M′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+  → (q : A ⊑ᵂ⟨ W ⟩ B′)
+  → (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂)
+  → (Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
+      Σ[ N′ ∈ Term Δᴿ′ ]
+        (Value N′
+          × (M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs ] N′)
+          × (W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
+              ECR.transport⊑ᵂ ext q)))
+  → InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
+      c<fuel q χs₂ W₂ ext₂
+  → InstPostCatalogPackage fuel rel vM vM′ c′ B′≢★ c<fuel q
+inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
+    finish pkg =
+  record
+    { Δᴿ₂ = _
+    ; χs₂ = _
+    ; Δ₂ = _
+    ; W₂ = _
+    ; ext₂ = ext₂
+    ; B₂ = InstPostCatalogPackageAt.at-B₂ pkg
+    ; post = InstPostCatalogPackageAt.at-post pkg
+    ; p₂ = InstPostCatalogPackageAt.at-p₂ pkg
+    ; post-relation =
+        InstPostCatalogPackageAt.at-post-relation pkg
+    ; ν₂ = InstPostCatalogPackageAt.at-ν₂ pkg
+    ; residual-cast =
+        InstPostCatalogPackageAt.at-residual-cast pkg
+    ; residual-provenance =
+        InstPostCatalogPackageAt.at-residual-provenance pkg
+    ; spine-descent =
+        InstPostCatalogPackageAt.at-spine-descent pkg
+    ; finish = finish
+    }
+
+
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
   field
+    derivation-recursive-Λ-at : ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+        {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+        {γ : CtxImp W}
+        {M : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+        {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+        {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+        {χs₂ : StoreChanges Δᴿ Δᴿ₂}
+      → (rel : W ∣ γ ⊢² M ⊑ Λ V′ ∶ p)
+      → (vM : Value M)
+      → (vM′ : Value (Λ V′))
+      → Value V′
+      → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+      → ⦃ Bnv : NonVar B ⦄
+      → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+      → (B′≢★ : B′ ≢ ★)
+      → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+      → (q : A ⊑ᵂ⟨ W ⟩ B′)
+      → (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂)
+      → InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
+          c<fuel q χs₂ W₂ ext₂
+
     derivation-recursive-Λ : ∀ {Δᴸ Δᴿ Δ}
         {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
         {M : Term Δᴸ} {V′ : Term (suc Δᴿ)}
@@ -93,6 +170,12 @@ record LeftLiftRightBindPreflight : Set₁ where
     {p₂ = p₂} ext Anv zero∈A liftγ vV target⊢ bodyRel =
   CTI2.Λ⊑² Anv zero∈A (mapCtxᴿ-liftᴸ ext liftγ) vV
     target⊢ bodyRel p₂
+
+
+Λ⊑²-at-rewrap-preflight : Λ⊑²AtRewrapᵀ
+Λ⊑²-at-rewrap-preflight {p₂ = p₂} Anv zero∈A liftγ vV
+    target⊢ bodyRel =
+  CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ bodyRel p₂
 
 
 inst-inversion→rel-surface : ∀ {fuel}

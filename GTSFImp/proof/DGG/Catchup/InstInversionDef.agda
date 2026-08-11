@@ -86,6 +86,31 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
       ⊢² Λ V ⊑ post ∶ p₂
 
 
+Λ⊑²AtRewrapᵀ : Set
+Λ⊑²AtRewrapᵀ =
+  ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+    {V : Term (suc Δᴸ)} {post : Term Δᴿ₂}
+    {A : Ty (suc Δᴸ)} {B : Ty Δᴿ₂}
+    {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B}
+    {p₂ : `∀ A ⊑ᵂ⟨ W₂ ⟩ B}
+    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
+    {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+    {extᴸ₂ : ECR.WorldExtendᴿ χs₂
+      (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂)}
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (ECR.mapCtxᴿ extᴸ₂ γᴸ)
+  → Value V
+  → ⟨ Δᴿ₂ , targetStoreʷ W₂ , tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+      ⊢ post ⦂ B
+  → liftWorldLeft X⊑★ W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γᴸ
+      ⊢² V ⊑ post ∶ body-p
+  → W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
+
+
 Catchup⁻NonStarᵀ : Set
 Catchup⁻NonStarᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -131,6 +156,47 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
     final-relation :
       W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ final ∶
         ECR.transport⊑ᵂ ext p
+
+
+record InstPostCatalogPackageAt (fuel : ℕ)
+    {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+    (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
+    (vM : Value M)
+    (vM′ : Value M′)
+    (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+    ⦃ Bnv : NonVar B ⦄
+    ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+    (B′≢★ : B′ ≢ ★)
+    (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+    (q : A ⊑ᵂ⟨ W ⟩ B′)
+    (χs₂ : StoreChanges Δᴿ Δᴿ₂)
+    (W₂ : World Δᴸ Δᴿ₂ Δ₂)
+    (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂) : Set₁ where
+  field
+    at-B₂ : Ty Δᴿ₂
+    at-post : Term Δᴿ₂
+    at-p₂ : A ⊑ᵂ⟨ W₂ ⟩ at-B₂
+    at-post-relation :
+      W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ at-post ∶ at-p₂
+    at-post-value : Value at-post
+    at-ν₂ : Env∼ Δᴿ₂
+    at-residual-cast : at-ν₂ ⊢ at-B₂ ∼ applyTys χs₂ B′
+    at-residual-provenance :
+      CatchupCast⁻ {W = W₂} {A = A} at-p₂ at-residual-cast
+        (ECR.transport⊑ᵂ ext₂ q)
+    at-residual-fuel :
+      suc (castSize at-residual-cast) < fuel
+    at-prefix-reduction :
+      M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs₂ ]
+        at-post ⟨ at-residual-cast ⟩
+    at-spine-descent :
+      InstSpineDescentPackage W₂ (ECR.mapCtxᴿ ext₂ γ) M
+        at-post at-p₂
 
 
 record InstPostCatalogPackage (fuel : ℕ)

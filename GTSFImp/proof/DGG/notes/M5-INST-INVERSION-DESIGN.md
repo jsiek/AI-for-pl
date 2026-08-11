@@ -178,6 +178,29 @@ It must be produced by the new source-strip plus target-polymorphic package.
 This is not the same shape as the M3 crossing refutation. The target value
 is a known polymorphic view, not an aligned tag variable, and no checked
 counterexample currently shows the desired post-application relation is false.
+
+## Phase A‴ Addendum: Indexed Post Catalog
+
+The live surface now has:
+
+```agda
+record InstPostCatalogPackageAt ...
+  (χs₂ : StoreChanges Δᴿ Δᴿ₂)
+  (W₂ : World Δᴸ Δᴿ₂ Δ₂)
+  (ext₂ : WorldExtendᴿ χs₂ W W₂) : Set₁
+```
+
+It fixes the post-catalog world instead of existentially packaging it.
+The root bridge packages that indexed result into the old driver-facing
+`InstPostCatalogPackage` only once, after composing the indexed
+prefix-to-residual trace with the smaller extra-cast worker.
+
+The indexed/CPS blocker is resolved. The next blocker is the `Λ⊑Λ²`
+base body transport: the available body premise is in
+`liftWorldBoth X⊑X W`, but the post-catalog package needs the body
+relation in `liftWorldLeft X⊑★ W₂` against the generated `β-Λ` target
+body plus reveal wrappers. See
+`m5-inst-inversion-lambda-base-post-blocked.red`.
 The design therefore keeps the relation as a required package field rather
 than weakening the live statement.
 

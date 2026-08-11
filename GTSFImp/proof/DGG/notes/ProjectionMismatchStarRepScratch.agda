@@ -115,7 +115,8 @@ input-relation :
   probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ probe-p
 input-relation =
   CTI2.conceal⊑²
-    (CTI2.seal-partner-ok CTI2.star-rep-target)
+    (CTI2.seal-partner-ok
+      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
     (λ _ eq → eq)
     (CTI2.tag-rebase-varᴸ X-Y-rebase)
     CTI2.same-[]

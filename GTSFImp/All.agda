@@ -50,6 +50,13 @@ import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
 
 ------------------------------------------------------------------------
+-- Current frontier (M6: value catch-up foundation)
+------------------------------------------------------------------------
+
+import proof.DGG.Catchup.ValueCatchupRightDef
+import proof.DGG.Catchup.ColumnSupportProof
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 

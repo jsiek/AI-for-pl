@@ -32,46 +32,46 @@ infixr 7 _↦₅_ _⇒ᵢ₅_
 ------------------------------------------------------------------------
 
 data Var∼₅ : Set where
-  X∼Xᶜ : Var∼₅
-  X∼Xˢ : Var∼₅
+  ★∼X∼★ : Var∼₅
+  X∼X : Var∼₅
   X∼★ : Var∼₅
   ★∼X : Var∼₅
 
 flipVar∼₅ : Var∼₅ → Var∼₅
-flipVar∼₅ X∼Xᶜ = X∼Xᶜ
-flipVar∼₅ X∼Xˢ = X∼Xˢ
+flipVar∼₅ ★∼X∼★ = ★∼X∼★
+flipVar∼₅ X∼X = X∼X
 flipVar∼₅ X∼★ = ★∼X
 flipVar∼₅ ★∼X = X∼★
 
-flip-cross₅ : flipVar∼₅ X∼Xᶜ ≡ X∼Xᶜ
+flip-cross₅ : flipVar∼₅ ★∼X∼★ ≡ ★∼X∼★
 flip-cross₅ = refl
 
-flip-strict₅ : flipVar∼₅ X∼Xˢ ≡ X∼Xˢ
+flip-strict₅ : flipVar∼₅ X∼X ≡ X∼X
 flip-strict₅ = refl
 
 flipVar∼-involutive₅ : ∀ v → flipVar∼₅ (flipVar∼₅ v) ≡ v
-flipVar∼-involutive₅ X∼Xᶜ = refl
-flipVar∼-involutive₅ X∼Xˢ = refl
+flipVar∼-involutive₅ ★∼X∼★ = refl
+flipVar∼-involutive₅ X∼X = refl
 flipVar∼-involutive₅ X∼★ = refl
 flipVar∼-involutive₅ ★∼X = refl
 
-X∼Xˢ≢X∼★₅ : X∼Xˢ ≢ X∼★
-X∼Xˢ≢X∼★₅ ()
+X∼X≢X∼★₅ : X∼X ≢ X∼★
+X∼X≢X∼★₅ ()
 
-X∼Xˢ≢★∼X₅ : X∼Xˢ ≢ ★∼X
-X∼Xˢ≢★∼X₅ ()
+X∼X≢★∼X₅ : X∼X ≢ ★∼X
+X∼X≢★∼X₅ ()
 
-X∼Xˢ≢X∼Xᶜ₅ : X∼Xˢ ≢ X∼Xᶜ
-X∼Xˢ≢X∼Xᶜ₅ ()
+X∼X≢★∼X∼★₅ : X∼X ≢ ★∼X∼★
+X∼X≢★∼X∼★₅ ()
 
 Env∼₅ : TyCtx → Set
 Env∼₅ Δ = TyVar Δ → Var∼₅
 
 idᶜ₅ : ∀ {Δ} → Env∼₅ Δ
-idᶜ₅ X = X∼Xᶜ
+idᶜ₅ X = ★∼X∼★
 
 extᵐ₅ : Env∼₅ Δ → Env∼₅ (Nat.suc Δ)
-extᵐ₅ μ zero = X∼Xˢ
+extᵐ₅ μ zero = X∼X
 extᵐ₅ μ (suc X) = μ X
 
 instᵐ₅ : Env∼₅ Δ → Env∼₅ (Nat.suc Δ)
@@ -96,7 +96,7 @@ data _⊢_∼★₅ {Δ : TyCtx} (μ : Env∼₅ Δ) : Ty Δ → Set where
     → μ X ≡ X∼★
     → μ ⊢ ＇ X ∼★₅
   X∼★ᶜ₅ : ∀ {X}
-    → μ X ≡ X∼Xᶜ
+    → μ X ≡ ★∼X∼★
     → μ ⊢ ＇ X ∼★₅
   ∀∼★₅ : μ ⊢ (`∀ ★) ∼★₅
 
@@ -107,7 +107,7 @@ data _⊢★∼₅_ {Δ : TyCtx} (μ : Env∼₅ Δ) : Ty Δ → Set where
     → μ X ≡ ★∼X
     → μ ⊢★∼₅ ＇ X
   ★∼Xᶜ₅ : ∀ {X}
-    → μ X ≡ X∼Xᶜ
+    → μ X ≡ ★∼X∼★
     → μ ⊢★∼₅ ＇ X
   ★∼∀₅ : μ ⊢★∼₅ (`∀ ★)
 
@@ -122,22 +122,22 @@ no-strict-from-star-gate₅ (★∼Xᵍ₅ ())
 no-strict-from-star-gate₅ (★∼Xᶜ₅ ())
 
 strict-mode-no-to-star-gate₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X}
-  → μ X ≡ X∼Xˢ
+  → μ X ≡ X∼X
   → μ ⊢ ＇ X ∼★₅
   → ⊥
 strict-mode-no-to-star-gate₅ same (X∼★ᵍ₅ eq) =
-  X∼Xˢ≢X∼★₅ (trans (sym same) eq)
+  X∼X≢X∼★₅ (trans (sym same) eq)
 strict-mode-no-to-star-gate₅ same (X∼★ᶜ₅ eq) =
-  X∼Xˢ≢X∼Xᶜ₅ (trans (sym same) eq)
+  X∼X≢★∼X∼★₅ (trans (sym same) eq)
 
 strict-mode-no-from-star-gate₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X}
-  → μ X ≡ X∼Xˢ
+  → μ X ≡ X∼X
   → μ ⊢★∼₅ ＇ X
   → ⊥
 strict-mode-no-from-star-gate₅ same (★∼Xᵍ₅ eq) =
-  X∼Xˢ≢★∼X₅ (trans (sym same) eq)
+  X∼X≢★∼X₅ (trans (sym same) eq)
 strict-mode-no-from-star-gate₅ same (★∼Xᶜ₅ eq) =
-  X∼Xˢ≢X∼Xᶜ₅ (trans (sym same) eq)
+  X∼X≢★∼X∼★₅ (trans (sym same) eq)
 
 ------------------------------------------------------------------------
 -- Consistency model
@@ -211,19 +211,19 @@ star-to-var-dyn₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X : TyVar Δ}
 star-to-var-dyn₅ eq = proj₅ (＇ _) (★∼Xᵍ₅ eq) (id₅ (＇ _)) nonstar-X
 
 var-to-star-cross₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X : TyVar Δ}
-  → μ X ≡ X∼Xᶜ
+  → μ X ≡ ★∼X∼★
   → μ ⊢ ＇ X ∼₅ ★
 var-to-star-cross₅ eq =
   tag₅ (＇ _) (X∼★ᶜ₅ eq) (id₅ (＇ _)) nonstar-X
 
 star-to-var-cross₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X : TyVar Δ}
-  → μ X ≡ X∼Xᶜ
+  → μ X ≡ ★∼X∼★
   → μ ⊢ ★ ∼₅ ＇ X
 star-to-var-cross₅ eq =
   proj₅ (＇ _) (★∼Xᶜ₅ eq) (id₅ (＇ _)) nonstar-X
 
 strict-mode-var-not-to-star₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X}
-  → μ X ≡ X∼Xˢ
+  → μ X ≡ X∼X
   → ¬ (μ ⊢ ＇ X ∼₅ ★)
 strict-mode-var-not-to-star₅ same
     (tag₅ (＇ _) G∼★ (id₅ (＇ _)) nonstar-X) =
@@ -236,7 +236,7 @@ strict-var-not-to-star₅ : ∀ {Δ} {μ : Env∼₅ Δ}
 strict-var-not-to-star₅ = strict-mode-var-not-to-star₅ refl
 
 strict-mode-var-not-from-star₅ : ∀ {Δ} {μ : Env∼₅ Δ} {X}
-  → μ X ≡ X∼Xˢ
+  → μ X ≡ X∼X
   → ¬ (μ ⊢ ★ ∼₅ ＇ X)
 strict-mode-var-not-from-star₅ same
     (proj₅ (＇ _) ★∼G (id₅ (＇ _)) nonstar-X) =
@@ -509,8 +509,8 @@ data _⊢_⊑₅_ {Δ : TyCtx} (μ : ImpEnv₅ Δ) :
   ∀★⊑★₅ : μ ⊢ (`∀ ★) ⊑₅ ★
 
 data VarLower₅ : Var∼₅ → VarImp₅ → VarImp₅ → Set where
-  lower-cross-refl₅ : VarLower₅ X∼Xᶜ X⊑X₅ X⊑X₅
-  lower-strict-refl₅ : VarLower₅ X∼Xˢ X⊑X₅ X⊑X₅
+  lower-cross-refl₅ : VarLower₅ ★∼X∼★ X⊑X₅ X⊑X₅
+  lower-strict-refl₅ : VarLower₅ X∼X X⊑X₅ X⊑X₅
   lower-to-star₅ : VarLower₅ X∼★ X⊑X₅ X⊑★₅
   lower-from-star₅ : VarLower₅ ★∼X X⊑★₅ X⊑X₅
 
@@ -577,8 +577,8 @@ mutual
     to★-X∼★₅ : ∀ {X}
       → μ X ≡ X∼★
       → To★OK₅ μ (＇ X)
-    to★-X∼Xᶜ₅ : ∀ {X}
-      → μ X ≡ X∼Xᶜ
+    to★-★∼X∼★₅ : ∀ {X}
+      → μ X ≡ ★∼X∼★
       → To★OK₅ μ (＇ X)
     to★-ι₅ : ∀ {ι} → To★OK₅ μ (‵ ι)
     to★-★₅ : To★OK₅ μ ★
@@ -594,8 +594,8 @@ mutual
     from★-★∼X₅ : ∀ {X}
       → μ X ≡ ★∼X
       → From★OK₅ μ (＇ X)
-    from★-X∼Xᶜ₅ : ∀ {X}
-      → μ X ≡ X∼Xᶜ
+    from★-★∼X∼★₅ : ∀ {X}
+      → μ X ≡ ★∼X∼★
       → From★OK₅ μ (＇ X)
     from★-ι₅ : ∀ {ι} → From★OK₅ μ (‵ ι)
     from★-★₅ : From★OK₅ μ ★
@@ -612,7 +612,7 @@ mutual
     → To★OK₅ μ C
     → μ ⊢ C ∼₅ ★
   to-★₅ (to★-X∼★₅ eq) = var-to-star-dyn₅ eq
-  to-★₅ (to★-X∼Xᶜ₅ eq) = var-to-star-cross₅ eq
+  to-★₅ (to★-★∼X∼★₅ eq) = var-to-star-cross₅ eq
   to-★₅ to★-ι₅ = tag₅ (‵ _) ι∼★₅ (id₅ (‵ _)) nonstar-ι
   to-★₅ to★-★₅ = id₅ ★
   to-★₅ (to★-⇒₅ A-ok B-ok) =
@@ -624,7 +624,7 @@ mutual
     → From★OK₅ μ C
     → μ ⊢ ★ ∼₅ C
   from-★₅ (from★-★∼X₅ eq) = star-to-var-dyn₅ eq
-  from-★₅ (from★-X∼Xᶜ₅ eq) = star-to-var-cross₅ eq
+  from-★₅ (from★-★∼X∼★₅ eq) = star-to-var-cross₅ eq
   from-★₅ from★-ι₅ = proj₅ (‵ _) ★∼ι₅ (id₅ (‵ _)) nonstar-ι
   from-★₅ from★-★₅ = id₅ ★
   from-★₅ (from★-⇒₅ A-ok B-ok) =
@@ -633,10 +633,10 @@ mutual
     proj₅ ∀★ ★∼∀₅ (∀ᶜ₅ from-★₅ A-ok) nonstar-∀
 
 to★-crossable-var-ok₅ : To★OK₅ (idᶜ₅ {Δ = 1}) (＇ zero)
-to★-crossable-var-ok₅ = to★-X∼Xᶜ₅ refl
+to★-crossable-var-ok₅ = to★-★∼X∼★₅ refl
 
 from★-crossable-var-ok₅ : From★OK₅ (idᶜ₅ {Δ = 1}) (＇ zero)
-from★-crossable-var-ok₅ = from★-X∼Xᶜ₅ refl
+from★-crossable-var-ok₅ = from★-★∼X∼★₅ refl
 
 to★-dynamic-var-ok₅ : ∀ {Δ} {μ : Env∼₅ Δ}
   → To★OK₅ (instᵐ₅ μ) (＇ zero)
@@ -649,12 +649,12 @@ from★-dynamic-var-ok₅ = from★-★∼X₅ refl
 to★-strict-var-impossible₅ : ∀ {Δ} {μ : Env∼₅ Δ}
   → To★OK₅ (extᵐ₅ μ) (＇ zero) → ⊥
 to★-strict-var-impossible₅ (to★-X∼★₅ ())
-to★-strict-var-impossible₅ (to★-X∼Xᶜ₅ ())
+to★-strict-var-impossible₅ (to★-★∼X∼★₅ ())
 
 from★-strict-var-impossible₅ : ∀ {Δ} {μ : Env∼₅ Δ}
   → From★OK₅ (extᵐ₅ μ) (＇ zero) → ⊥
 from★-strict-var-impossible₅ (from★-★∼X₅ ())
-from★-strict-var-impossible₅ (from★-X∼Xᶜ₅ ())
+from★-strict-var-impossible₅ (from★-★∼X∼★₅ ())
 
 ------------------------------------------------------------------------
 -- Substitution environments: rigid fields re-key to crossable only
@@ -667,22 +667,22 @@ record SubstEnv∼₅ {Δ Δ′ : TyCtx}
     self : ∀ X → ν ⊢ σ X ∼₅ σ X
     to-★ᵍ : ∀ X → μ X ≡ X∼★ → ν ⊢ σ X ∼₅ ★
     from-★ᵍ : ∀ X → μ X ≡ ★∼X → ν ⊢ ★ ∼₅ σ X
-    cross-to-★ : ∀ X → μ X ≡ X∼Xᶜ → ν ⊢ σ X ∼₅ ★
-    cross-from-★ : ∀ X → μ X ≡ X∼Xᶜ → ν ⊢ ★ ∼₅ σ X
+    cross-to-★ : ∀ X → μ X ≡ ★∼X∼★ → ν ⊢ σ X ∼₅ ★
+    cross-from-★ : ∀ X → μ X ≡ ★∼X∼★ → ν ⊢ ★ ∼₅ σ X
 
 open SubstEnv∼₅
 
 subst-env-cross-to-star₅ : ∀ {Δ Δ′} {μ : Env∼₅ Δ}
     {ν : Env∼₅ Δ′} {σ : Δ ⇒ˢ Δ′} {X}
   → SubstEnv∼₅ μ ν σ
-  → μ X ≡ X∼Xᶜ
+  → μ X ≡ ★∼X∼★
   → ν ⊢ σ X ∼₅ ★
 subst-env-cross-to-star₅ s eq = cross-to-★ s _ eq
 
 subst-env-cross-from-star₅ : ∀ {Δ Δ′} {μ : Env∼₅ Δ}
     {ν : Env∼₅ Δ′} {σ : Δ ⇒ˢ Δ′} {X}
   → SubstEnv∼₅ μ ν σ
-  → μ X ≡ X∼Xᶜ
+  → μ X ≡ ★∼X∼★
   → ν ⊢ ★ ∼₅ σ X
 subst-env-cross-from-star₅ s eq = cross-from-★ s _ eq
 
@@ -695,9 +695,9 @@ open-from-★-strict-slot-impossible₅ : ∀ {Δ} {μ : Env∼₅ Δ}
 open-from-★-strict-slot-impossible₅ ()
 
 open-cross-to-★-strict-slot-impossible₅ : ∀ {Δ} {μ : Env∼₅ Δ}
-  → extᵐ₅ μ zero ≡ X∼Xᶜ → ⊥
+  → extᵐ₅ μ zero ≡ ★∼X∼★ → ⊥
 open-cross-to-★-strict-slot-impossible₅ ()
 
 open-strict-slot-is-strict₅ : ∀ {Δ} {μ : Env∼₅ Δ}
-  → extᵐ₅ μ zero ≡ X∼Xˢ
+  → extᵐ₅ μ zero ≡ X∼X
 open-strict-slot-is-strict₅ = refl

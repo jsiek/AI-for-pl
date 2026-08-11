@@ -1,9 +1,9 @@
-# Design dossier: rigid type variables meeting ★ (source consistency)
+# Design dossier: source type variables meeting ★ (source consistency)
 
-Status: FOR DISCUSSION — no implementation. Branch
-agent/gtsf-source-consistency. Companion: SRCCONSIST-INVENTORY.md
-(full classified site table), SrcConsistBlocked.agda (the checked
-negative witness: the gate failure for (ΛX. λx:X. (λy:★. y) · x)).
+Status: IMPLEMENTED on `codex/gtsf-source-consistency`. Companion:
+SRCCONSIST-INVENTORY.md (the pre-implementation classified site table),
+SourceConsistencyExamples.agda (live calibration and compilation regressions),
+and SPLIT-PREFLIGHT.md / SplitPf.agda (the checked split-mode model).
 
 ## 1. The problem
 
@@ -158,9 +158,9 @@ Then the live migration in the usual pre-flight → live loop.
 
 Env∼'s single rigid value conflated program-binder rigidity with
 type-pairing rigidity. DECISION: split X∼X into
-  X∼Xᶜ (crossable): program/typing binders (idᶜ); the rigid star
+  ★∼X∼★ (crossable): program/typing binders (idᶜ); the rigid star
     gates key on crossable ONLY.
-  X∼Xˢ (strict): ∀ᶜ's extᵐ fresh slot; NO star gates.
+  X∼X (strict): ∀ᶜ's extᵐ fresh slot; NO star gates.
 Both are flipᵐ-fixed points. The five calibration judgments:
   1. Λ-bound X ⊢ X ∼ ★                          ACCEPT (crossable gate)
   2. (∀X. X→X) ∼ (∀X. X→★)                      REJECT (strict slot)
@@ -178,11 +178,31 @@ common-refinement characterization is scoped by CrossFree (no
 crossable-gate uses) instead of RigidFree; totality's side-well-
 modedness premise becomes "no strict variables on that side".
 
-## 9a. Naming (2026-08-10, user)
+## 9a. Naming update (2026-08-10, user)
 
-The crossable value is named ∼X∼ (crossings available on both
-sides), completing the Var∼ family: X∼★, ★∼X, ∼X∼, X∼X. The strict
-value KEEPS the name X∼X — existing matches/lemmas on X∼X assumed
-exactly the no-crossing discipline that strict formalizes, so they
-remain literally correct; extᵐ is unchanged. Migration = add ∼X∼,
-re-point idᶜ, key the star gates (renamed X∼★ᵍʳ→ gates on ∼X∼) on it.
+The crossable value is named ★∼X∼★ (crossings available on both
+sides), completing the Var∼ family: X∼★, ★∼X, ★∼X∼★, X∼X. The
+strict value KEEPS the name X∼X — existing matches/lemmas on X∼X
+assumed exactly the no-crossing discipline that strict formalizes,
+so they remain literally correct; extᵐ is unchanged. Migration = add
+★∼X∼★, re-point idᶜ, and key the new star gates on ★∼X∼★.
+
+## 10. Implementation record (2026-08-10)
+
+The live relation now has the four modes `X∼★`, `★∼X`, `★∼X∼★`, and
+`X∼X`. `idᶜ` selects `★∼X∼★`; `extᵐ` continues to select strict `X∼X`;
+and `instᵐ` / `genᵐ` are unchanged. The two new variable-star gates require
+`★∼X∼★`, so a fresh strict `∀ᶜ` slot cannot cross ★.
+
+Substitution records separate crossable obligations, and public totality is
+restricted by the side-indexed `To★OK` / `From★OK` predicates. The
+common-lower and unique-consistency completeness directions now require
+`CrossFree`; their converse directions remain unrestricted. The
+term-imprecision relation was not changed.
+
+`SourceConsistencyExamples.agda` checks the accepted calibration judgments,
+the two strict-slot gate contradictions, the motivating polymorphic minter,
+compilation plus target typing of a closed, fully applied minter program, and
+live same-name success / different-name blame steps for crossable variable
+tags. The rejected shared-binder calibration and the mode/substitution laws
+remain checked in `SplitPf.agda`.

@@ -55,6 +55,7 @@ import proof.DGG.Catchup.InstCatchupRightProof
 -- Example suites and catalogs
 import Example
 import ConsistencyExamples
+import SourceConsistencyExamples
 import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape
 import proof.DGG.Phase3DeepDives

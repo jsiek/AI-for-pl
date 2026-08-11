@@ -1,11 +1,11 @@
 # GTSFImp Source-Consistency Inventory
 
-Branch: `agent/gtsf-source-consistency`.
+Branch investigated: `agent/gtsf-source-consistency`.
 
-Scope: read-only investigation of gate/inversion sites for
-`_⊢_∼★`, `_⊢★∼_`, and `Var∼` mode equalities.  I did not edit
-`GTSFImp/`, `PLAN.md`, or `TODO.md`.  The only scratch source added is
-`SrcConsistBlocked.agda`.
+Scope: this is the pre-implementation inventory of gate/inversion sites for
+`_⊢_∼★`, `_⊢★∼_`, and `Var∼` mode equalities. The former negative scratch
+witness has been replaced by the live passing regressions in
+`GTSFImp/SourceConsistencyExamples.agda`.
 
 Class legend:
 
@@ -18,7 +18,7 @@ Class legend:
 
 ## Scratch Check
 
-`SrcConsistBlocked.agda` attempts the source term
+The former `SrcConsistBlocked.agda` attempted the source term
 `ΛX. λx:X. (λy:★. y) · x`.
 
 Command:
@@ -39,8 +39,9 @@ function of type
 idᶜ ⊢ G ∼ B → ⦃ Bns : NonStar B ⦄ → idᶜ ⊢ ★ ∼ B
 ```
 
-This is exactly the current gate block for `★ ∼ ＇0` under `idᶜ`, where
-`idᶜ Fin.zero = X∼X`.
+This was exactly the old gate block for `★ ∼ ＇0` under `idᶜ`, where
+`idᶜ Fin.zero = X∼X`. The implemented split instead makes
+`idᶜ Fin.zero = ★∼X∼★`, and the live minter now type-checks and compiles.
 
 ## Gate Match / Inversion Sites
 

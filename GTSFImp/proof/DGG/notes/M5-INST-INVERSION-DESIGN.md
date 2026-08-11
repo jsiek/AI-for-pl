@@ -1,6 +1,6 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-11. Status: checked design scratch.
+Date: 2026-08-11. Status: blocked on lift-to-bind source-side rebase.
 
 Checked artifact:
 
@@ -218,7 +218,7 @@ pending type application that only later reaches a target value.
 
 ## Phase A⁗ Addendum: Λ Base Transport Surface
 
-The live Def surface now includes the checked caller-indexed statement:
+The live Def surface now includes the checked concrete two-bind statement:
 
 ```agda
 Λ⊑Λ²PostBodyTransportᵀ : Set
@@ -226,9 +226,10 @@ The live Def surface now includes the checked caller-indexed statement:
 
 It consumes the original `liftWorldBoth X⊑X W` body premise from a
 `Λ⊑Λ²` core and returns the post body relation in
-`liftWorldLeft X⊑★ W₂`, together with the transported lifted context, the
-post target value/typing, the body obligation, and the aligned top `∀`
-obligation. The scratch checks:
+`liftWorldLeft X⊑★ (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero))`,
+together with the transported lifted context, the post target
+value/typing, the body obligation, and the aligned top `∀` obligation.
+The scratch checks:
 
 ```agda
 Λ⊑Λ²-base-rewrap-preflight :
@@ -237,12 +238,64 @@ obligation. The scratch checks:
 
 so the base rewrap is mechanical once the transport exists.
 
-Implementation is blocked one layer earlier than the reveal rebuild. The
-missing component is a derivation-level target-extension theorem for CTI2:
-the body relation must transport from `V′` in the original target Λ binder
-context to `renameᵗᵐ (keep wk↪ᵗ) V′` in the post-`β-Λ` target store
-before the generated reveals can be rebuilt. `TermImpDecay` handles mark
-decay, `CenterRename` handles center injections, and `WorldExtendᴿ`
-transports obligations, but none transports `_∣_⊢²_⊑_∶_` derivations
-through target store changes. See
-`m5-inst-inversion-lambda-target-extension-blocked.red`.
+The first target insertion now checks with
+`TargetExtend.⊢²-target-insert` and `keepRightBindTargetInsert`, producing
+the post-`β-Λ` body target `renameᵗᵐ (keep wk↪ᵗ) V′`. Implementation is
+blocked at the next store-sensitive step: the inserted body relation is in
+target store `store-lift (store-bind Σ ★)`, while the catalogued `β-Λ`
+post body lives in `store-bind (store-bind Σ ★) (＇ zero)`. Preservation
+has `typing-lift-to-bind` for typing, but CTI2 has no relation-level
+analogue for arbitrary `_∣_⊢²_⊑_∶_` derivations. See
+`m5-inst-inversion-lambda-post-store-transport-blocked.red`.
+
+## Phase A⁗⁺ Addendum: Fresh Lift-To-Bind Conversion
+
+The approved concrete tower remains the live post-body surface. The scratch
+now additionally validates the prefix composition:
+
+```agda
+target-insert bind ★
+→ fresh lift-to-bind conversion
+→ X⊑X-to-X⊑★ decay
+```
+
+The fresh conversion world is:
+
+```agda
+ΛLiftToBindFreshWorld v W =
+  world
+    (skip (keep (skip (ηᴸʷ W))))
+    (skip (keep (keep (ηᴿʷ W))))
+    (instᵐ (extendᵐ v (instᵐ (impEnvʷ W))))
+    (store-lift (sourceStoreʷ W))
+    (store-bind (store-bind (targetStoreʷ W) ★) (＇ zero))
+```
+
+`proof/DGG/TargetBindLift.agda` now checks the reusable foundation:
+center-rename normalization, indexed conversion store transport,
+pivot-to-store inversion for target conversions, target typing transport, and
+target-side `RebaseAt` transport when a target indexed conversion supplies the
+pivot store lookup.
+
+The remaining blocker is not target-side. It is the source-side rebase-var
+constructors:
+
+```agda
+reveal⊑² ... (rebase-varᴸ rb) ... c⊢ M⊑M′ q
+conceal⊑² ... (tag-rebase-varᴸ rb) ... c⊢ M⊑M′ q
+```
+
+These constructors can carry a `StoreRepImp` whose aligned target pivot is the
+fresh abstract target binder, but they provide no target conversion premise
+from which to obtain a target store lookup. The fresh lift-to-bind store
+changes:
+
+```agda
+resolveVar (store-lift (store-bind Σ ★)) zero = ＇ zero
+resolveVar (store-bind (store-bind Σ ★) (＇ zero)) zero = ★
+```
+
+Before the planned `X⊑X → X⊑★` decay, transporting that `StoreRepImp` would
+require `resolveVar sourceStore Xᴸ ⊑ᵂ ★` from only
+`resolveVar sourceStore Xᴸ ⊑ᵂ ＇ zero`. See
+`m5-inst-inversion-lift-to-bind-source-rebase-blocked.red`.

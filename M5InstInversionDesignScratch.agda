@@ -16,16 +16,22 @@ open import proof.DGG.Catchup.InstInversionDef using
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Types
-open import Consistency using (Env∼; _⊢_∼_; instᵐ; inst_)
+open import Consistency using
+  (Env∼; _⊢_∼_; instᵐ; inst_; keep; skip; toRenameᵗ; wk↪ᵗ)
 open import CastTerms using
-  (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_)
-open import Imprecision using (X⊑★; X⊑X)
+  (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_; renameᵗᵐ)
+import Imprecision as I
+open import Imprecision using (VarImp; X⊑★; X⊑X)
 open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
+open import TyStore using (store-lift; store-bind)
 open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.TargetExtend as TE
+import proof.DGG.TermImpDecay as TD
+import proof.DGG.WorldDecay as WD
 open CTI2 using (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
   liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
   _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
@@ -83,34 +89,157 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     }
 
 
+ΛLiftToBindFreshWorld : ∀ {Δᴸ Δᴿ Δ}
+  → VarImp
+  → World Δᴸ Δᴿ Δ
+  → World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
+ΛLiftToBindFreshWorld v W =
+  CTI2.world
+    (skip (keep (skip (CTI2.ηᴸʷ W))))
+    (skip (keep (keep (CTI2.ηᴿʷ W))))
+    (I.instᵐ (I.extendᵐ v (I.instᵐ (CTI2.impEnvʷ W))))
+    (store-lift (CTI2.sourceStoreʷ W))
+    (store-bind (store-bind (CTI2.targetStoreʷ W) ★) (＇ Fin.zero))
+
+
+ΛLiftToBindFreshTransportᵀ : Set
+ΛLiftToBindFreshTransportᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {v : VarImp}
+    {γ : CtxImp (liftWorldBoth v (rightOnlyWorld W ★))}
+    {M : Term (suc Δᴸ)} {M′ : Term (suc (suc Δᴿ))}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+    {p : A ⊑ᵂ⟨ liftWorldBoth v (rightOnlyWorld W ★) ⟩ B}
+  → liftWorldBoth v (rightOnlyWorld W ★) ∣ γ ⊢² M ⊑ M′ ∶ p
+  → Σ[ γᵇ ∈ CtxImp (ΛLiftToBindFreshWorld v W) ]
+    Σ[ pᵇ ∈ A ⊑ᵂ⟨ ΛLiftToBindFreshWorld v W ⟩ B ]
+      ΛLiftToBindFreshWorld v W ∣ γᵇ ⊢² M ⊑ M′ ∶ pᵇ
+
+
+ΛLiftToBindFreshDecay :
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+  → WD.EnvDecay
+      (ΛLiftToBindFreshWorld X⊑X W)
+      (ΛLiftToBindFreshWorld X⊑★ W)
+ΛLiftToBindFreshDecay = WD.env-decay refl refl refl refl mono
+  where
+  mono : ∀ {Δ} {μ : I.ImpEnv Δ}
+    → (Z : Fin.Fin (suc (suc (suc Δ))))
+    → I.instᵐ (I.extendᵐ X⊑X (I.instᵐ μ)) Z ≡ X⊑★
+    → I.instᵐ (I.extendᵐ X⊑★ (I.instᵐ μ)) Z ≡ X⊑★
+  mono Fin.zero eq = refl
+  mono (Fin.suc Fin.zero) ()
+  mono (Fin.suc (Fin.suc Fin.zero)) eq = refl
+  mono (Fin.suc (Fin.suc (Fin.suc Z))) eq = eq
+
+
+Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight :
+  ΛLiftToBindFreshTransportᵀ
+  → ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γᵈ ∈ CtxImp (ΛLiftToBindFreshWorld X⊑★ W) ]
+    Σ[ Bᵈ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ postᵈ ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ pᵈ ∈ A ⊑ᵂ⟨ ΛLiftToBindFreshWorld X⊑★ W ⟩ Bᵈ ]
+      ΛLiftToBindFreshWorld X⊑★ W ∣ γᵈ ⊢² V ⊑ postᵈ ∶ pᵈ
+Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight
+    convert {W = W} {V′ = V′} {B = B} bodyRel
+    with convert
+      {M′ = renameᵗᵐ (keep wk↪ᵗ) V′}
+      {B = renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B}
+      (TE.⊢²-target-insert
+        (TE.keepRightBindTargetInsert {B = ★} {v = X⊑X})
+        bodyRel)
+Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight
+    convert {W = W} {V′ = V′} {B = B} bodyRel
+  | γᵇ , pᵇ , relᵇ =
+  WD.decayCtx ΛLiftToBindFreshDecay γᵇ ,
+  renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B ,
+  renameᵗᵐ (keep wk↪ᵗ) V′ ,
+  WD.decay⊑ᵂ
+    {W = ΛLiftToBindFreshWorld X⊑X W}
+    {Wᵈ = ΛLiftToBindFreshWorld X⊑★ W}
+    ΛLiftToBindFreshDecay pᵇ ,
+  TD.⊢²-decay
+    {W = ΛLiftToBindFreshWorld X⊑X W}
+    {Wᵈ = ΛLiftToBindFreshWorld X⊑★ W}
+    ΛLiftToBindFreshDecay relᵇ
+
+
+ΛPostRevealRebuildᵀ : Set
+ΛPostRevealRebuildᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {γᵈ : CtxImp (ΛLiftToBindFreshWorld X⊑★ W)}
+    {V : Term (suc Δᴸ)}
+    {prePost : Term (suc (suc Δᴿ))}
+    {A : Ty (suc Δᴸ)} {Bᵈ : Ty (suc (suc Δᴿ))}
+    {pre-p : A ⊑ᵂ⟨ ΛLiftToBindFreshWorld X⊑★ W ⟩ Bᵈ}
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
+  → ΛLiftToBindFreshWorld X⊑★ W ∣ γᵈ
+      ⊢² V ⊑ prePost ∶ pre-p
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))) ]
+    Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ⟩ B₂ ]
+    Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨
+        rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩ B₂ ]
+      LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
+      × Value post
+      × ⟨ suc (suc Δᴿ) ,
+          targetStoreʷ
+            (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ,
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
+      × liftWorldLeft X⊑★
+          (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+          ∣ γ₂ᴸ ⊢² V ⊑ post ∶ body-p₂
+
+
 Λ⊑Λ²-base-rewrap-preflight :
   Λ⊑Λ²PostBodyTransportᵀ
-  → ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
-    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+  → ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
     {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
     {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
     {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
-    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
-    {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
   → (Anv : NonVar A)
   → (zero∈A : Fin.zero ∈ᵗ A)
   → (liftγ : LiftCtx X⊑X γ γᴮ)
   → (vV : Value V)
   → (vV′ : Value V′)
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ B₂ ∈ Ty Δᴿ₂ ] Σ[ post ∈ Term Δᴿ₂ ]
-    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩ B₂ ]
+  → Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨
+      rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩ B₂ ]
       Value post
-      × ⟨ Δᴿ₂ , targetStoreʷ W₂ ,
+      × ⟨ suc (suc Δᴿ) ,
+          targetStoreʷ
+            (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ,
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
-      × W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
-Λ⊑Λ²-base-rewrap-preflight transport Anv zero∈A liftγ vV vV′
-    bodyRel
-    with transport Anv zero∈A liftγ vV vV′ bodyRel
-Λ⊑Λ²-base-rewrap-preflight transport Anv zero∈A liftγ vV vV′
-    bodyRel
+      × rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)
+          ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
+Λ⊑Λ²-base-rewrap-preflight transport ext₂ Anv zero∈A liftγ vV
+    vV′ bodyRel
+    with transport ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+Λ⊑Λ²-base-rewrap-preflight transport ext₂ Anv zero∈A liftγ vV
+    vV′ bodyRel
   | γ₂ᴸ , B₂ , post , body-p₂ ,
     top-p₂ , liftγ₂ , vPost , post⊢ , bodyRel₂ =
   B₂ , post , top-p₂ ,

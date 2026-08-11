@@ -13,6 +13,9 @@ module M6ProvenancePreflightScratch where
 --       2. the projection-mismatch package is excluded at the head by
 --          the checked provenance emptiness, and in tails by
 --          construction (the fragment has no projection constructor).
+--   * Tooling note: with the standard root-only command, also pass
+--     `-i GTSFImp/proof/DGG/notes` because this root scratch imports
+--     `ProjectionMismatchStarRepScratch` from the notes directory.
 
 import Data.Fin as Fin
 open import Data.Empty using (⊥)

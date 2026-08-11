@@ -114,30 +114,39 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
 
 Λ⊑Λ²PostBodyTransportᵀ : Set
 Λ⊑Λ²PostBodyTransportᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
-    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
     {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
     {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
     {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
-    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
-    {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
   → NonVar A
   → Fin.zero ∈ᵗ A
   → LiftCtx X⊑X γ γᴮ
   → Value V
   → Value V′
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
-    Σ[ B₂ ∈ Ty Δᴿ₂ ] Σ[ post ∈ Term Δᴿ₂ ]
-    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B₂ ]
-    Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩ B₂ ]
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))) ]
+    Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ⟩ B₂ ]
+    Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨
+        rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩ B₂ ]
       LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
       × Value post
-      × ⟨ Δᴿ₂ , targetStoreʷ W₂ ,
+      × ⟨ suc (suc Δᴿ) ,
+          targetStoreʷ
+            (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ,
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
-      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ ⊢² V ⊑ post ∶ body-p₂
+      × liftWorldLeft X⊑★
+          (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+          ∣ γ₂ᴸ ⊢² V ⊑ post ∶ body-p₂
 
 
 Catchup⁻NonStarᵀ : Set

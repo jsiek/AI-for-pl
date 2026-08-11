@@ -19,7 +19,7 @@ open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; _↦_; ∀ᶜ_;
    _!; ？_; inst_; gen_; instᵐ; ↑ᶜ_; close-instᶜ;
    bot-elim; bot-intro)
-open import Consistency using (castSize) public
+open import proof.Consistency using (castSize) public
 open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using
   (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;

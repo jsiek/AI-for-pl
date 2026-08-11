@@ -16,8 +16,9 @@ open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 
 open import Types
-open import Consistency using
-  (Env∼; _⊢_∼_; castSize-renameEnvᶜ; castSize-close-inst-≤)
+open import Consistency using (Env∼; _⊢_∼_)
+open import proof.Consistency using
+  (castSize-renameEnvᶜ; castSize-close-inst-≤)
 open import CastTerms using (Term)
 open import Reduction using
   (StoreChange; StoreChanges; _—→[_]_; _—↠[_]_; keep; bind;

@@ -28,6 +28,7 @@ open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _↪ᵗ_; keep; skip; toRenameᵗ;
    id; _!; ∀ᶜ_; gen_; inst_)
 import Consistency as C
+import proof.Consistency as PC
 open import Conversion using
   (Conv↑; Conv↓; _⊢↓_; `∀↑_; `∀↓_; _↦↑_; _↦↓_;
    ⊢↓-seal)
@@ -149,7 +150,7 @@ module _
       vN (CTI2.cast⊑² {p = p₀} .(∀ᶜ c₁) prem q₀) q =
     CTI2.cast⊑² (∀ᶜ c₁)
       (right-inj-inversion² sv vN prem
-        (ground-cast-source⊑ (C.renameGroundᵐ (ηᴿʷ W) gH) nonstar-∀
+        (ground-cast-source⊑ (PC.renameGroundᵐ (ηᴿʷ W) gH) nonstar-∀
           (C.renameᵐᶜ (ηᴸʷ W) (∀ᶜ c₁)) p₀ q₀ q))
       q
 
@@ -159,7 +160,7 @@ module _
       vN (CTI2.cast⊑² {p = p₀} c prem q₀) q =
     CTI2.cast⊑² c
       (right-inj-inversion² sv vN prem
-        (ground-cast-source⊑ (C.renameGroundᵐ (ηᴿʷ W) gH)
+        (ground-cast-source⊑ (PC.renameGroundᵐ (ηᴿʷ W) gH)
           (C.renameNonStar (toRenameᵗ (ηᴸʷ W))
             (nonstar-from-≢★ A≢★))
           (C.renameᵐᶜ (ηᴸʷ W) c) p₀ q₀ q))
@@ -222,7 +223,8 @@ module _
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
       (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
-      vN (CTI2.Λ⊑² Anv (∈-fun-right z∉ z∈) liftγ vV M′⊢ prem q₀)
+      vN
+      (CTI2.Λ⊑² Anv (∈-fun-right z∉ z∈) liftγ vV M′⊢ prem q₀)
       (∀⊑∀ qbody)
     with source-occurs-target refl qbody
            (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
@@ -323,7 +325,8 @@ module _
       (CTI2.⊢↑-∀ˣ c⊢)
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ∀★} (sv-reveal-all sv) vN
@@ -333,7 +336,8 @@ module _
       (CTI2.⊢↑-∀ˣ c⊢)
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ‵ ι} (sv-reveal-all sv) vN
@@ -404,7 +408,8 @@ module _
       (CTI2.⊢↓-∀ˣ c⊢)
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ∀★}
@@ -417,7 +422,8 @@ module _
       (CTI2.⊢↓-∀ˣ c⊢)
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ‵ ι}

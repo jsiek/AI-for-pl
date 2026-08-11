@@ -10,6 +10,91 @@ open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)
 open import proof.DGG.Catchup.InstInversionDef using
   (InstInversionPackage; InstPostCatalogPackage)
+open import Data.Nat using (ℕ; suc; _<_)
+import Data.Fin as Fin
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Types
+open import Consistency using (Env∼; _⊢_∼_; instᵐ; inst_)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; Λ_)
+open import Imprecision using (X⊑★)
+open import Reduction using (bind; _∷_; [])
+open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
+import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.ExtraCastRight2 as ECR
+open CTI2 using (World; CtxImp; LiftCtxᴸ; liftWorldLeft;
+  rightOnlyWorld; targetStoreʷ; tgtCtxʷ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+
+
+record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
+  field
+    derivation-recursive-Λ : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+        {M : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+        {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+        {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+      → (rel : W ∣ γ ⊢² M ⊑ Λ V′ ∶ p)
+      → (vM : Value M)
+      → (vM′ : Value (Λ V′))
+      → Value V′
+      → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+      → ⦃ Bnv : NonVar B ⦄
+      → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+      → (B′≢★ : B′ ≢ ★)
+      → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+      → (q : A ⊑ᵂ⟨ W ⟩ B′)
+      → InstPostCatalogPackage fuel rel vM vM′ c′ B′≢★ c<fuel q
+
+    Λ⊑²-rewrap : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+        {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+        {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+        {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+        {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+        {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ `∀ B}
+        {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
+      → (Anv : NonVar A)
+      → (zero∈A : Fin.zero ∈ᵗ A)
+      → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
+      → (vV : Value V)
+      → (vΛV : Value (Λ V))
+      → (vΛV′ : Value (Λ V′))
+      → (target⊢ :
+          ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩
+            ⊢ (Λ V′) ⦂ `∀ B)
+      → (rel : liftWorldLeft X⊑★ W ∣ γᴸ ⊢² V ⊑ Λ V′ ∶
+          body-p)
+      → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+      → ⦃ Bnv : NonVar B ⦄
+      → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+      → (B′≢★ : B′ ≢ ★)
+      → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+      → (body-q : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B′)
+      → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
+      → InstPostCatalogPackage fuel rel vV vΛV′ c′ B′≢★
+          c<fuel body-q
+      → InstPostCatalogPackage fuel
+          (CTI2.Λ⊑² Anv zero∈A liftγ vV
+            target⊢ rel p)
+          vΛV vΛV′ c′ B′≢★ c<fuel q
+
+
+record LeftLiftRightBindPreflight : Set₁ where
+  field
+    right-bind-under-left-lift : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+      → ECR.WorldExtendᴿ (bind B ∷ [])
+          (liftWorldLeft X⊑★ W)
+          (liftWorldLeft X⊑★ (rightOnlyWorld W B))
+
+    mapCtxᴿ-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+        {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+      → (ext : ECR.WorldExtendᴿ (bind B ∷ []) W
+          (rightOnlyWorld W B))
+      → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
+      → LiftCtxᴸ X⊑★
+          (ECR.mapCtxᴿ ext γ)
+          (ECR.mapCtxᴿ right-bind-under-left-lift γᴸ)
 
 
 inst-inversion→rel-surface : ∀ {fuel}

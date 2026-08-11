@@ -32,6 +32,10 @@ open import proof.DGG.Catchup.ValueCatchupRightDef
   using
     ( castSize; CastColumn; []ᶜ; _▻ᶜ_; columnSize; applyColumn
     ; mapColumn₁; mapColumn; _++χ_
+    ; CatchupCast⁻; catchup⁻-inert; catchup⁻-id
+    ; catchup⁻-ground-other; catchup⁻-inst
+    ; catchup⁻-bot-elim; catchup⁻-bot-intro
+    ; Catchup⁻Embedᵀ
     ; ground-other-decreaseᵀ; project-expand-decreaseᵀ
     ; castSize-↑close-instᵀ; inst-alloc-decreaseᵀ
     ; columnSize-mapᵀ
@@ -161,3 +165,16 @@ liftReductionThroughColumn κ ↠-refl = ↠-refl
 liftReductionThroughColumn κ (↠-step M→N N↠P) =
   ↠-step (liftStepThroughColumn κ M→N)
     (liftReductionThroughColumn (mapColumn₁ _ κ) N↠P)
+
+------------------------------------------------------------------------
+-- Fragment embedding: term-independent provenance holds at any term
+------------------------------------------------------------------------
+
+catchup⁻-embed : Catchup⁻Embedᵀ
+catchup⁻-embed N (catchup⁻-inert i) = ECR.catchup-inert i
+catchup⁻-embed N (catchup⁻-id a) = ECR.catchup-id a
+catchup⁻-embed N (catchup⁻-ground-other B≢G r k) =
+  ECR.catchup-ground-other B≢G r (catchup⁻-embed N k)
+catchup⁻-embed N catchup⁻-inst = ECR.catchup-inst
+catchup⁻-embed N catchup⁻-bot-elim = ECR.catchup-bot-elim
+catchup⁻-embed N catchup⁻-bot-intro = ECR.catchup-bot-intro

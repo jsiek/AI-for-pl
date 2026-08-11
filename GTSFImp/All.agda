@@ -88,3 +88,4 @@ import proof.DGG.ExtraCastRight2Counterexample
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename
 import proof.DGG.WorldSupport
+import proof.DGG.TargetExtend

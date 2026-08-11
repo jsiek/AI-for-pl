@@ -26,6 +26,7 @@ import FunExt
 
 import proof.TypeSafety.Progress
 import proof.TypeSafety.Preservation
+import GradualTypeCheck
 import proof.ImprecisionConsistency
 import proof.Imprecision
 import proof.Consistency
@@ -54,6 +55,7 @@ import proof.DGG.Catchup.InstCatchupRightProof
 
 -- Example suites and catalogs
 import Example
+import GradualTypeCheckExamples
 import ConsistencyExamples
 import SourceConsistencyExamples
 import proof.DGG.ReachabilityCatalog

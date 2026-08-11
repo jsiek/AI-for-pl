@@ -42,3 +42,8 @@ variable with `★`.  In this case the original tag-to-dynamic cast
 is represented as `_! (id (＇ zero))`, whose size is `2`; closing at `★`
 collapses it to `id ★`, whose size is `1`.  The intended M6 allocation
 decrease uses a `B ≢ ★` premise, but the support lemma as stated does not.
+
+RESOLVED (2026-08-11): the support surface now uses the non-increasing
+form `castSize (↑ᶜ (close-instᶜ c)) ≤ castSize c`.  The measure and proof
+were moved into `Consistency.agda`, where the private substitution workers
+and their transport-size lemmas are visible.

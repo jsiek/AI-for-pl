@@ -30,3 +30,7 @@ this decrease may still be provable from a restricted replacement lemma:
 or directly from a non-increasing close-inst size theorem.  Such a repair
 would change the support surface relative to the scratch, so it was not
 introduced in this foundation pass.
+
+RESOLVED (2026-08-11): the repaired close-inst support theorem is the
+non-increasing `≤` form, proved inside `Consistency.agda`.  The allocation
+decrease composes that bound with `n<1+n` using `≤-<-trans`.

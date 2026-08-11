@@ -36,3 +36,8 @@ task forbids editing `GTSFImp/Consistency.agda`.  The statement is still
 expected to be mathematically true for store-change renaming; completing it
 needs an exported size-preservation lemma for `renameEnvᶜ`/`renameᵐᶜ` or
 for the private `subst-left-∼`/`subst-right-∼` transports.
+
+RESOLVED (2026-08-11): `castSize` now lives in `Consistency.agda` with
+`castSize-renameEnvᶜ`, proved by induction on the private `rename∼`
+worker and transport-size helpers.  `columnSize-map` uses that exported
+renaming equality for the `bind` store-change case.

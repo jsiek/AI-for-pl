@@ -55,6 +55,11 @@ applyStoreChange-Inert (bind A)
   inj ⦃ Gᵍ = ＇ Fin.suc X ⦄ ⦃ G∼★ = C.X∼★ᵍ eq ⦄
     ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
 applyStoreChange-Inert (bind A)
+    (inj {G = ＇ X} ⦃ Gᵍ = ＇ .X ⦄
+      ⦃ G∼★ = C.X∼★ᶜ eq ⦄ ⦃ Gns = Gns ⦄) =
+  inj ⦃ Gᵍ = ＇ Fin.suc X ⦄ ⦃ G∼★ = C.X∼★ᶜ eq ⦄
+    ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄
+applyStoreChange-Inert (bind A)
     (inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄ ⦃ Gns = Gns ⦄) =
   inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = C.∀∼★ ⦄
     ⦃ Gns = C.renameNonStar Fin.suc Gns ⦄

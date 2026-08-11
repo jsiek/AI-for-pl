@@ -25,7 +25,12 @@ import Consistency as C
 open import Consistency2
 import Imprecision as I
 open import proof.ImprecisionConsistency
-  using (LowerEnv; VarLower; both-to-star; common-lower-consistent;
+  using (CrossFree; CrossFree∼★; CrossFree★∼; LowerEnv; VarLower;
+         both-to-star; cf-!; cf-↦; cf-∀ᶜ; cf-？; cf-bot-elim;
+         cf-bot-intro; cf-gen; cf-id; cf-inst; cf-X∼★ᵍ; cf-⇒∼★;
+         cf-∀∼★; cf-ι∼★; cf-★∼Xᵍ; cf-★∼⇒; cf-★∼∀;
+         cf-★∼ι;
+         common-lower-consistent; cross-refl;
          extend-lower-env; identity-lower-env; instantiate-left-lower-env;
          instantiate-right-lower-env; flip-lower-env;
          source-nonvar-from-target;
@@ -215,29 +220,29 @@ dynamic-success {μ = μ} {A = `∀ A} dynamic
 ------------------------------------------------------------------------
 
 ground-occurs-to-star : ∀ {Δ} {μ : C.Env∼ Δ}
-    {X : TyVar Δ} {G : Ty Δ}
-  → C._⊢_∼★ μ G
+    {X : TyVar Δ} {G : Ty Δ} {g : C._⊢_∼★ μ G}
+  → CrossFree∼★ g
   → X ∈ᵗ G
   → μ X ≡ C.X∼★
-ground-occurs-to-star C.⇒∼★ (∈-fun-left ())
-ground-occurs-to-star C.⇒∼★ (∈-fun-right X∉A ())
-ground-occurs-to-star C.ι∼★ ()
-ground-occurs-to-star (C.X∼★ᵍ eq) var-∈ = eq
-ground-occurs-to-star C.∀∼★ (∈-all ())
+ground-occurs-to-star cf-⇒∼★ (∈-fun-left ())
+ground-occurs-to-star cf-⇒∼★ (∈-fun-right X∉A ())
+ground-occurs-to-star cf-ι∼★ ()
+ground-occurs-to-star (cf-X∼★ᵍ {eq = eq}) var-∈ = eq
+ground-occurs-to-star cf-∀∼★ (∈-all ())
 
 star-no-occurs : ∀ {Δ} {X : TyVar Δ} → X ∈ᵗ ★ → ⊥
 star-no-occurs ()
 
 ground-occurs-from-star : ∀ {Δ} {μ : C.Env∼ Δ}
-    {X : TyVar Δ} {G : Ty Δ}
-  → C._⊢★∼_ μ G
+    {X : TyVar Δ} {G : Ty Δ} {g : C._⊢★∼_ μ G}
+  → CrossFree★∼ g
   → X ∈ᵗ G
   → μ X ≡ C.★∼X
-ground-occurs-from-star C.★∼⇒ (∈-fun-left ())
-ground-occurs-from-star C.★∼⇒ (∈-fun-right X∉A ())
-ground-occurs-from-star C.★∼ι ()
-ground-occurs-from-star (C.★∼Xᵍ eq) var-∈ = eq
-ground-occurs-from-star C.★∼∀ (∈-all ())
+ground-occurs-from-star cf-★∼⇒ (∈-fun-left ())
+ground-occurs-from-star cf-★∼⇒ (∈-fun-right X∉A ())
+ground-occurs-from-star cf-★∼ι ()
+ground-occurs-from-star (cf-★∼Xᵍ {eq = eq}) var-∈ = eq
+ground-occurs-from-star cf-★∼∀ (∈-all ())
 
 flip-not-from-star : ∀ {Δ} {μ : C.Env∼ Δ} {X : TyVar Δ}
   → μ X ≢ C.X∼★
@@ -255,86 +260,105 @@ mutual
   source-occurs-target-safe : ∀ {Δ} {μ : C.Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
     → μ X ≢ C.X∼★
-    → C._⊢_∼_ μ A B
+    → (c : C._⊢_∼_ μ A B)
+    → CrossFree c
     → X ∈ᵗ A
     → X ∈ᵗ B
-  source-occurs-target-safe not-star (C.id a) X∈A = X∈A
+  source-occurs-target-safe not-star (C.id a) cf-id X∈A = X∈A
   source-occurs-target-safe {μ = μ} {X = X} not-star
-      (c C.↦ d) (∈-fun-left X∈A) =
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-left X∈A) =
     ∈-fun-left
       (target-occurs-source-safe {μ = C.flipᵐ μ} {X = X}
-        (flip-not-from-star {μ = μ} {X = X} not-star) c X∈A)
+        (flip-not-from-star {μ = μ} {X = X} not-star)
+        c c-free X∈A)
   source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-      (c C.↦ d) (∈-fun-right X∉A X∈B) with occurs? X A′
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A X∈B)
+      with occurs? X A′
   source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-      (c C.↦ d) (∈-fun-right X∉A X∈B) | present X∈A′ =
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A X∈B)
+      | present X∈A′ =
     ∈-fun-left X∈A′
   source-occurs-target-safe {X = X} {B = A′ ⇒ B′} not-star
-      (c C.↦ d) (∈-fun-right X∉A X∈B) | absent X∉A′ =
-    ∈-fun-right X∉A′ (source-occurs-target-safe not-star d X∈B)
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A X∈B)
+      | absent X∉A′ =
+    ∈-fun-right X∉A′
+      (source-occurs-target-safe not-star d d-free X∈B)
   source-occurs-target-safe {X = X} not-star (C.∀ᶜ c)
-      (∈-all X∈A) =
-    ∈-all (source-occurs-target-safe {X = suc X} not-star c X∈A)
+      (cf-∀ᶜ c-free) (∈-all X∈A) =
+    ∈-all
+      (source-occurs-target-safe {X = suc X} not-star c c-free X∈A)
   source-occurs-target-safe not-star
-      (C._! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
-    ⊥-elim (not-star (ground-occurs-to-star G∼★
-      (source-occurs-target-safe not-star c X∈A)))
-  source-occurs-target-safe not-star (C.？_ c) ()
+      (C._! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄)
+      (cf-! gate-free c-free) X∈A =
+    ⊥-elim (not-star (ground-occurs-to-star gate-free
+      (source-occurs-target-safe not-star c c-free X∈A)))
+  source-occurs-target-safe not-star (C.？_ c)
+      (cf-？ gate-free c-free) ()
   source-occurs-target-safe {X = X} not-star
-      (C.inst_ c B≢★) (∈-all X∈A) =
+      (C.inst_ c B≢★) (cf-inst c-free) (∈-all X∈A) =
     unshift-occurs
-      (source-occurs-target-safe {X = suc X} not-star c X∈A)
+      (source-occurs-target-safe {X = suc X} not-star c c-free X∈A)
   source-occurs-target-safe {X = X} not-star
-      (C.gen_ c A≢★) X∈A =
-    ∈-all (source-occurs-target-safe {X = suc X} not-star c
+      (C.gen_ c A≢★) (cf-gen c-free) X∈A =
+    ∈-all (source-occurs-target-safe {X = suc X} not-star c c-free
       (shift-occurs X∈A))
-  source-occurs-target-safe not-star C.bot-elim (∈-all ())
-  source-occurs-target-safe not-star C.bot-intro (∈-all ())
+  source-occurs-target-safe not-star C.bot-elim cf-bot-elim (∈-all ())
+  source-occurs-target-safe not-star C.bot-intro cf-bot-intro (∈-all ())
 
   target-occurs-source-safe : ∀ {Δ} {μ : C.Env∼ Δ}
       {X : TyVar Δ} {A B : Ty Δ}
     → μ X ≢ C.★∼X
-    → C._⊢_∼_ μ A B
+    → (c : C._⊢_∼_ μ A B)
+    → CrossFree c
     → X ∈ᵗ B
     → X ∈ᵗ A
-  target-occurs-source-safe not-star (C.id a) X∈B = X∈B
+  target-occurs-source-safe not-star (C.id a) cf-id X∈B = X∈B
   target-occurs-source-safe {μ = μ} {X = X} not-star
-      (c C.↦ d) (∈-fun-left X∈A) =
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-left X∈A) =
     ∈-fun-left
       (source-occurs-target-safe {μ = C.flipᵐ μ} {X = X}
-        (flip-not-to-star {μ = μ} {X = X} not-star) c X∈A)
+        (flip-not-to-star {μ = μ} {X = X} not-star)
+        c c-free X∈A)
   target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) with occurs? X A
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A′ X∈B′)
+      with occurs? X A
   target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | present X∈A =
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A′ X∈B′)
+      | present X∈A =
     ∈-fun-left X∈A
   target-occurs-source-safe {X = X} {A = A ⇒ B} not-star
-      (c C.↦ d) (∈-fun-right X∉A′ X∈B′) | absent X∉A =
-    ∈-fun-right X∉A (target-occurs-source-safe not-star d X∈B′)
+      (c C.↦ d) (cf-↦ c-free d-free) (∈-fun-right X∉A′ X∈B′)
+      | absent X∉A =
+    ∈-fun-right X∉A
+      (target-occurs-source-safe not-star d d-free X∈B′)
   target-occurs-source-safe {X = X} not-star (C.∀ᶜ c)
-      (∈-all X∈B) =
-    ∈-all (target-occurs-source-safe {X = suc X} not-star c X∈B)
-  target-occurs-source-safe not-star (C._! c) ()
+      (cf-∀ᶜ c-free) (∈-all X∈B) =
+    ∈-all
+      (target-occurs-source-safe {X = suc X} not-star c c-free X∈B)
+  target-occurs-source-safe not-star (C._! c)
+      (cf-! gate-free c-free) ()
   target-occurs-source-safe not-star
-      (C.？_ ⦃ ★∼G = ★∼G ⦄ c) X∈B =
-    ⊥-elim (not-star (ground-occurs-from-star ★∼G
-      (target-occurs-source-safe not-star c X∈B)))
+      (C.？_ ⦃ ★∼G = ★∼G ⦄ c) (cf-？ gate-free c-free) X∈B =
+    ⊥-elim (not-star (ground-occurs-from-star gate-free
+      (target-occurs-source-safe not-star c c-free X∈B)))
   target-occurs-source-safe {X = X} not-star
-      (C.inst_ c B≢★) X∈B =
-    ∈-all (target-occurs-source-safe {X = suc X} not-star c
+      (C.inst_ c B≢★) (cf-inst c-free) X∈B =
+    ∈-all (target-occurs-source-safe {X = suc X} not-star c c-free
       (shift-occurs X∈B))
   target-occurs-source-safe {X = X} not-star
-      (C.gen_ c A≢★) (∈-all X∈B) =
+      (C.gen_ c A≢★) (cf-gen c-free) (∈-all X∈B) =
     unshift-occurs
-      (target-occurs-source-safe {X = suc X} not-star c X∈B)
-  target-occurs-source-safe not-star C.bot-elim (∈-all ())
-  target-occurs-source-safe not-star C.bot-intro (∈-all ())
+      (target-occurs-source-safe {X = suc X} not-star c c-free X∈B)
+  target-occurs-source-safe not-star C.bot-elim cf-bot-elim (∈-all ())
+  target-occurs-source-safe not-star C.bot-intro cf-bot-intro (∈-all ())
 
 right-dynamic-at : ∀ {r : C.Var∼} {l u : I.VarImp}
   → VarLower r l u
   → (r ≢ C.X∼★ → ⊥)
   → u ≡ I.X⊑★
 right-dynamic-at var-refl impossible =
+  ⊥-elim (impossible (λ ()))
+right-dynamic-at cross-refl impossible =
   ⊥-elim (impossible (λ ()))
 right-dynamic-at var-to-star impossible = refl
 right-dynamic-at var-from-star impossible =
@@ -347,6 +371,8 @@ left-dynamic-at : ∀ {r : C.Var∼} {l u : I.VarImp}
   → l ≡ I.X⊑★
 left-dynamic-at var-refl impossible =
   ⊥-elim (impossible (λ ()))
+left-dynamic-at cross-refl impossible =
+  ⊥-elim (impossible (λ ()))
 left-dynamic-at var-to-star impossible =
   ⊥-elim (impossible (λ ()))
 left-dynamic-at var-from-star impossible = refl
@@ -355,22 +381,26 @@ left-dynamic-at both-to-star impossible = refl
 right-dynamic : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
     {A : Ty Δ}
   → LowerEnv μ φ ψ
-  → C._⊢_∼_ μ A ★
+  → (c : C._⊢_∼_ μ A ★)
+  → CrossFree c
   → AllDynamic ψ A
-right-dynamic h c X X∈A =
+right-dynamic h c c-free X X∈A =
   right-dynamic-at (h X)
     (λ not-star →
-      star-no-occurs (source-occurs-target-safe not-star c X∈A))
+      star-no-occurs
+        (source-occurs-target-safe not-star c c-free X∈A))
 
 left-dynamic : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
     {B : Ty Δ}
   → LowerEnv μ φ ψ
-  → C._⊢_∼_ μ ★ B
+  → (c : C._⊢_∼_ μ ★ B)
+  → CrossFree c
   → AllDynamic φ B
-left-dynamic h c X X∈B =
+left-dynamic h c c-free X X∈B =
   left-dynamic-at (h X)
     (λ not-star →
-      star-no-occurs (target-occurs-source-safe not-star c X∈B))
+      star-no-occurs
+        (target-occurs-source-safe not-star c c-free X∈B))
 
 no-success : ∀ {A : Set} → IsJust (nothing {A = A}) → ⊥
 no-success ()
@@ -408,32 +438,35 @@ left-star-test nonstar-∀ success | just dynamic = is-just
 right-star-success : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
     {A : Ty Δ}
   → LowerEnv μ φ ψ
-  → C._⊢_∼_ μ A ★
+  → (c : C._⊢_∼_ μ A ★)
+  → CrossFree c
   → (access : Acc _<_ (size A + 1))
   → IsJust (lowerAcc φ ψ A ★ access)
-right-star-success {φ = φ} {ψ = ψ} {A = A} h c access =
+right-star-success {φ = φ} {ψ = ψ} {A = A} h c c-free access =
   right-star-test {φ = φ} {ψ = ψ} {A = A} {access = access}
-    (dynamic-success (right-dynamic h c))
+    (dynamic-success (right-dynamic h c c-free))
 
 left-star-success : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
     {B : Ty Δ}
   → LowerEnv μ φ ψ
-  → C._⊢_∼_ μ ★ B
+  → (c : C._⊢_∼_ μ ★ B)
+  → CrossFree c
   → (access : Acc _<_ (1 + size B))
   → IsJust (lowerAcc φ ψ ★ B access)
-left-star-success {B = ★} h c access = right-star-success h c access
-left-star-success {φ = φ} {ψ = ψ} {B = ＇ X} h c access =
+left-star-success {B = ★} h c c-free access =
+  right-star-success h c c-free access
+left-star-success {φ = φ} {ψ = ψ} {B = ＇ X} h c c-free access =
   left-star-test {φ = φ} {ψ = ψ} {B = ＇ X} {access = access}
-    nonstar-X (dynamic-success (left-dynamic h c))
-left-star-success {φ = φ} {ψ = ψ} {B = ‵ ι} h c access =
+    nonstar-X (dynamic-success (left-dynamic h c c-free))
+left-star-success {φ = φ} {ψ = ψ} {B = ‵ ι} h c c-free access =
   left-star-test {φ = φ} {ψ = ψ} {B = ‵ ι} {access = access}
-    nonstar-ι (dynamic-success (left-dynamic h c))
-left-star-success {φ = φ} {ψ = ψ} {B = A ⇒ B} h c access =
+    nonstar-ι (dynamic-success (left-dynamic h c c-free))
+left-star-success {φ = φ} {ψ = ψ} {B = A ⇒ B} h c c-free access =
   left-star-test {φ = φ} {ψ = ψ} {B = A ⇒ B} {access = access}
-    nonstar-⇒ (dynamic-success (left-dynamic h c))
-left-star-success {φ = φ} {ψ = ψ} {B = `∀ B} h c access =
+    nonstar-⇒ (dynamic-success (left-dynamic h c c-free))
+left-star-success {φ = φ} {ψ = ψ} {B = `∀ B} h c c-free access =
   left-star-test {φ = φ} {ψ = ψ} {B = `∀ B} {access = access}
-    nonstar-∀ (dynamic-success (left-dynamic h c))
+    nonstar-∀ (dynamic-success (left-dynamic h c c-free))
 
 ------------------------------------------------------------------------
 -- Completeness of lower-bound search
@@ -442,53 +475,62 @@ left-star-success {φ = φ} {ψ = ψ} {B = `∀ B} h c access =
 lowerAcc-complete : ∀ {Δ} {μ : C.Env∼ Δ} {φ ψ}
     {A B : Ty Δ}
   → LowerEnv μ φ ψ
-  → C._⊢_∼_ μ A B
+  → (c : C._⊢_∼_ μ A B)
+  → CrossFree c
   → (access : Acc _<_ (size A + size B))
   → IsJust (lowerAcc φ ψ A B access)
-lowerAcc-complete h c@(C.id ★) access = right-star-success h c access
-lowerAcc-complete h (C.id (‵ ι)) access with ι ≟Base ι
-lowerAcc-complete h (C.id (‵ ι)) access | yes refl = is-just
-lowerAcc-complete h (C.id (‵ ι)) access | no ι≠ι =
+lowerAcc-complete h c@(C.id ★) cf-id access =
+  right-star-success h c cf-id access
+lowerAcc-complete h (C.id (‵ ι)) cf-id access with ι ≟Base ι
+lowerAcc-complete h (C.id (‵ ι)) cf-id access | yes refl = is-just
+lowerAcc-complete h (C.id (‵ ι)) cf-id access | no ι≠ι =
   ⊥-elim (ι≠ι refl)
-lowerAcc-complete h (C.id (＇ X)) access
+lowerAcc-complete h (C.id (＇ X)) cf-id access
     with X Fin.≟ X
-lowerAcc-complete h (C.id (＇ X)) access | yes refl = is-just
-lowerAcc-complete h (C.id (＇ X)) access | no X≠X = ⊥-elim (X≠X refl)
+lowerAcc-complete h (C.id (＇ X)) cf-id access | yes refl = is-just
+lowerAcc-complete h (C.id (＇ X)) cf-id access | no X≠X =
+  ⊥-elim (X≠X refl)
 lowerAcc-complete {A = A ⇒ B} {B = A′ ⇒ B′} h
-    (c C.↦ d) (acc smaller) =
+    (c C.↦ d) (cf-↦ c-free d-free) (acc smaller) =
   arrow-lower-success
-    (lowerAcc-complete (flip-lower-env h) c
+    (lowerAcc-complete (flip-lower-env h) c c-free
       (smaller (arrow-left-size-swapped A B A′ B′)))
-    (lowerAcc-complete h d
+    (lowerAcc-complete h d d-free
       (smaller (arrow-right-size A B A′ B′)))
 lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h
-    (C.∀ᶜ c) (acc smaller) =
+    (C.∀ᶜ c) (cf-∀ᶜ c-free) (acc smaller) =
   orElse-left
     (all-lower-success
-      (lowerAcc-complete (extend-lower-env h) c
+      (lowerAcc-complete (extend-lower-env h) c c-free
         (smaller (all-size-less A B))))
-lowerAcc-complete h c@(C._! d) access = right-star-success h c access
-lowerAcc-complete h c@(C.？_ d) access = left-star-success h c access
+lowerAcc-complete h c@(C._! d) c-free access =
+  right-star-success h c c-free access
+lowerAcc-complete h c@(C.？_ d) c-free access =
+  left-star-success h c c-free access
 lowerAcc-complete {A = `∀ A} {B = ＇ X} h
-    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (acc smaller) =
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (cf-inst c-free)
+    (acc smaller) =
   inst-lower-success Anv zero∈A
-    (lowerAcc-complete (instantiate-right-lower-env h) c
+    (lowerAcc-complete (instantiate-right-lower-env h) c c-free
       (smaller (inst-size-less A (＇ X))))
 lowerAcc-complete {A = `∀ A} {B = ‵ ι} h
-    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (acc smaller) =
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (cf-inst c-free)
+    (acc smaller) =
   inst-lower-success Anv zero∈A
-    (lowerAcc-complete (instantiate-right-lower-env h) c
+    (lowerAcc-complete (instantiate-right-lower-env h) c c-free
       (smaller (inst-size-less A (‵ ι))))
 lowerAcc-complete {A = `∀ A} {B = ★} h
-    (C.inst_ c B≢★) (acc smaller) =
+    (C.inst_ c B≢★) (cf-inst c-free) (acc smaller) =
   ⊥-elim (B≢★ refl)
 lowerAcc-complete {A = `∀ A} {B = B₁ ⇒ B₂} h
-    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (acc smaller) =
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (cf-inst c-free)
+    (acc smaller) =
   inst-lower-success Anv zero∈A
-    (lowerAcc-complete (instantiate-right-lower-env h) c
+    (lowerAcc-complete (instantiate-right-lower-env h) c c-free
       (smaller (inst-size-less A (B₁ ⇒ B₂))))
 lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h
-    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (acc smaller) =
+    (C.inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) (cf-inst c-free)
+    (acc smaller) =
   four-second
     (all-lower
       (lowerAcc (I.extᵐ φ) (I.extᵐ ψ) A B
@@ -501,28 +543,32 @@ lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h
         (smaller (gen-size-less (`∀ A) B))))
     (bot-lower A B)
     (inst-lower-success Anv zero∈A
-      (lowerAcc-complete (instantiate-right-lower-env h) c
+      (lowerAcc-complete (instantiate-right-lower-env h) c c-free
         (smaller (inst-size-less A (`∀ B)))))
 lowerAcc-complete {A = ＇ X} {B = `∀ B} h
-    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (acc smaller) =
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (cf-gen c-free)
+    (acc smaller) =
   gen-lower-success Bnv zero∈B
-    (lowerAcc-complete (instantiate-left-lower-env h) c
+    (lowerAcc-complete (instantiate-left-lower-env h) c c-free
       (smaller (gen-size-less (＇ X) B)))
 lowerAcc-complete {A = ‵ ι} {B = `∀ B} h
-    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (acc smaller) =
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (cf-gen c-free)
+    (acc smaller) =
   gen-lower-success Bnv zero∈B
-    (lowerAcc-complete (instantiate-left-lower-env h) c
+    (lowerAcc-complete (instantiate-left-lower-env h) c c-free
       (smaller (gen-size-less (‵ ι) B)))
 lowerAcc-complete {A = ★} {B = `∀ B} h
-    (C.gen_ c A≢★) (acc smaller) =
+    (C.gen_ c A≢★) (cf-gen c-free) (acc smaller) =
   ⊥-elim (A≢★ refl)
 lowerAcc-complete {A = A₁ ⇒ A₂} {B = `∀ B} h
-    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (acc smaller) =
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (cf-gen c-free)
+    (acc smaller) =
   gen-lower-success Bnv zero∈B
-    (lowerAcc-complete (instantiate-left-lower-env h) c
+    (lowerAcc-complete (instantiate-left-lower-env h) c c-free
       (smaller (gen-size-less (A₁ ⇒ A₂) B)))
 lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h
-    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (acc smaller) =
+    (C.gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) (cf-gen c-free)
+    (acc smaller) =
   four-third
     (all-lower
       (lowerAcc (I.extᵐ φ) (I.extᵐ ψ) A B
@@ -535,9 +581,9 @@ lowerAcc-complete {φ = φ} {ψ = ψ} {A = `∀ A} {B = `∀ B} h
         (smaller (gen-size-less (`∀ A) B))))
     (bot-lower A B)
     (gen-lower-success Bnv zero∈B
-      (lowerAcc-complete (instantiate-left-lower-env h) c
+      (lowerAcc-complete (instantiate-left-lower-env h) c c-free
         (smaller (gen-size-less (`∀ A) B))))
-lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-elim
+lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-elim cf-bot-elim
     (acc smaller) =
   four-fourth
     (all-lower
@@ -551,7 +597,7 @@ lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-elim
         (smaller (gen-size-less {Δ = Δ} (`∀ (＇ zero)) ★))))
     (bot-lower (＇ zero) ★)
     bot-left-success
-lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-intro
+lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-intro cf-bot-intro
     (acc smaller) =
   four-fourth
     (all-lower
@@ -572,11 +618,12 @@ lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-intro
 ------------------------------------------------------------------------
 
 ∼→∼ᵘ : ∀ {Δ} {A B : Ty Δ}
-  → C._∼_ A B
+  → (c : C._∼_ A B)
+  → CrossFree c
   → A ∼ᵘ B
-∼→∼ᵘ c =
+∼→∼ᵘ c c-free =
   map-success
-    (lowerAcc-complete identity-lower-env c
+    (lowerAcc-complete identity-lower-env c c-free
       (NatInduction.<-wellFounded _))
 
 ∼ᵘ→∼ : ∀ {Δ} {A B : Ty Δ}
@@ -591,5 +638,6 @@ lowerAcc-complete {Δ = Δ} {φ = φ} {ψ = ψ} h C.bot-intro
   common-lower-consistent (D , D⊑A , D⊑B)
 
 consistency↔consistency2 : ∀ {Δ} {A B : Ty Δ}
-  → (C._∼_ A B → A ∼ᵘ B) × (A ∼ᵘ B → C._∼_ A B)
+  → ((c : C._∼_ A B) → CrossFree c → A ∼ᵘ B)
+    × (A ∼ᵘ B → C._∼_ A B)
 consistency↔consistency2 = ∼→∼ᵘ , ∼ᵘ→∼

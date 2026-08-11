@@ -35,7 +35,8 @@ Diagram:
   Λ V                    ⊑                  Λ V′
    | β/context                               | target right bind
    v                                         v
-  Λ V                    ⊑                  Λ (renameᵗᵐ (keep wk↪ᵗ) V′)
+  Λ V                    ⊑
+  Λ (renameᵗᵐ (keep wk↪ᵗ) V′)
 
 and for the body:
 
@@ -48,8 +49,8 @@ The available root extension theorem shape would recursively target
 
   rightOnlyWorld (liftWorldBoth X⊑X W) (⇑ᵗ B′)
 
-with target term `renameᵗᵐ wk↪ᵗ V′`.  That world is not the one required
-by the constructor:
+with target term `renameᵗᵐ wk↪ᵗ V′`.  That world is not the one
+required by the constructor:
 
   rightOnlyWorld (liftWorldBoth X⊑X W) (⇑ᵗ B′)
     has target store `store-bind (store-lift Σ) (⇑ᵗ B′)`
@@ -75,3 +76,11 @@ its base case.  The helper must transport the same evidence families
 already started in `proof/DGG/TargetExtend.agda`: indexed conversion
 typing, `RebaseAt`/`RebaseAtᴸ`/`RebaseAtᴿ`/`TagRebaseAtᴸ`, and the
 partner predicates.
+
+RESOLVED, 2026-08-11.
+
+The reusable OPE theorem is `⊢²-target-insert : TargetExtendOPEᵀ`.
+The depth-0 surface is `⊢²-target-extend-bind : TargetExtendBindᵀ`,
+and the under-binder target insertion instance is
+`keepRightBindTargetInsert`, which transports target terms with
+`renameᵗᵐ (keep wk↪ᵗ)`.

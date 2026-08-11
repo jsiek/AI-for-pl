@@ -24,12 +24,16 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TyStore using (TyStore; store-lift)
 open import Imprecision
+open import Primitives using
+  (Prim; addℕ; and𝔹; constTy; primArgTy; primResultTy;
+   constTy-renameᵗ)
 import TermCtx as T
 open import Consistency using
-  (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
+  (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ;
+   renameᵐᶜ)
 import Conversion
 open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
-open import CastTerms using (Term; Value; renameᵗᵐ)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; renameᵗᵐ)
 import Reduction
 open import Reduction using (bind; _∷_; [])
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -37,7 +41,7 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.TypeInTermSubst using
   (StoreRename; StoreRename-ext; StoreRename-keep; StoreRename-wk-bind;
    renameᵗᵐ-preserves-Value; renameᵗ-wk-eq; toRename-id-eq;
-   toRename-keep-eq; toRename-wk-eq; typing-renameᵗ)
+   toRename-keep-eq; toRename-wk-eq; typing-renameᵗ; rename-openᵗ)
 open import proof.ImprecisionConsistency using
   (fin-suc-injective; rename-⊑; toRenameᵗ-injective)
 open import proof.DGG.Parked.ParkedWorldProof using (right-bind-⊑ᵂ)
@@ -106,12 +110,37 @@ record TargetInsert {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
       → preimage? π Z′ ≡ nothing
       → CTI2.impEnvʷ W′ Z′ ≡ X⊑★
 
+    target-center-reflect : ∀ {Y′ Z}
+      → toRenameᵗ (CTI2.ηᴿʷ W′) Y′ ≡ toRenameᵗ π Z
+      → Σ[ Y ∈ TyVar Δᴿ ]
+          Y′ ≡ toRenameᵗ ρ Y ×
+          toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+
     target-source-reflect : ∀ {Xᴸ Y′}
       → CTI2.CenterAligned W′ Xᴸ Y′
       → Σ[ Y ∈ TyVar Δᴿ ]
           Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
 
 open TargetInsert public
+
+target-source-reflect-from-center : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ Y′}
+  → (ins : TargetInsert ρ π W W′)
+  → CTI2.CenterAligned W′ Xᴸ Y′
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
+target-source-reflect-from-center {π = π} {W = W} {W′ = W′}
+    {Xᴸ = Xᴸ} {Y′ = Y′} ins aligned
+    with target-center-reflect ins target-image
+  where
+  target-image : toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+  target-image = trans (sym aligned) (source-insert ins Xᴸ)
+target-source-reflect-from-center ins aligned
+    | Y , y′-eq , target-eq =
+  Y , y′-eq , sym target-eq
 
 mapCtxᵀ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -263,6 +292,14 @@ ctx-imp-target-eq {W = W} {A = A} {B = B} {p = p} {q = q} refl =
 just≢nothing : ∀ {A : Set} {x : A} → just x ≢ nothing
 just≢nothing ()
 
+zero≢suc : ∀ {Δ} {X : TyVar Δ}
+  → Fin.zero ≢ Fin.suc X
+zero≢suc ()
+
+suc≢zero : ∀ {Δ} {X : TyVar Δ}
+  → Fin.suc X ≢ Fin.zero
+suc≢zero ()
+
 sucMaybe-just-suc : ∀ {Δ} {m : Maybe (TyVar Δ)} {Z}
   → sucMaybe m ≡ just (Fin.suc Z)
   → m ≡ just Z
@@ -322,6 +359,32 @@ liftBoth-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
 liftBoth-target-insert ins Fin.zero = refl
 liftBoth-target-insert ins (Fin.suc X) =
   cong Fin.suc (target-insert ins X)
+
+liftBoth-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {v : VarImp} {Y′ : TyVar (Nat.suc Δᴿ′)}
+    {Z : TyVar (Nat.suc Δ)}
+  → (ins : TargetInsert ρ π W W′)
+  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W′)) Y′
+      ≡ toRenameᵗ (keep π) Z
+  → Σ[ Y ∈ TyVar (Nat.suc Δᴿ) ]
+      Y′ ≡ toRenameᵗ (keep ρ) Y ×
+      toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W)) Y ≡ Z
+liftBoth-target-center-reflect {Y′ = Fin.zero} {Z = Fin.zero}
+    ins eq =
+  Fin.zero , refl , refl
+liftBoth-target-center-reflect {Y′ = Fin.zero} {Z = Fin.suc Z}
+    ins eq =
+  ⊥-elim (zero≢suc eq)
+liftBoth-target-center-reflect {Y′ = Fin.suc Y′} {Z = Fin.zero}
+    ins eq =
+  ⊥-elim (suc≢zero eq)
+liftBoth-target-center-reflect {Y′ = Fin.suc Y′} {Z = Fin.suc Z}
+    ins eq with target-center-reflect ins (fin-suc-injective eq)
+liftBoth-target-center-reflect {Y′ = Fin.suc Y′} {Z = Fin.suc Z}
+    ins eq | Y , y′-eq , target-eq =
+  Fin.suc Y , cong Fin.suc y′-eq , cong Fin.suc target-eq
 
 liftBoth-impEnv-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -455,6 +518,8 @@ liftBothTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′} {v = v} ins =
     ; impEnv-off-insert =
         λ {Z′} eq →
           liftBoth-impEnv-off-insert {v = v} {Z′ = Z′} ins eq
+    ; target-center-reflect =
+        liftBoth-target-center-reflect {v = v} ins
     ; target-source-reflect = liftBoth-target-source-reflect {v = v} ins
     }
 
@@ -480,8 +545,26 @@ liftLeft-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′))
       (toRenameᵗ ρ X)
       ≡ toRenameᵗ (keep π)
-          (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)) X)
+      (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)) X)
 liftLeft-target-insert ins X = cong Fin.suc (target-insert ins X)
+
+liftLeft-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {v : VarImp} {Y′ : TyVar Δᴿ′} {Z : TyVar (Nat.suc Δ)}
+  → (ins : TargetInsert ρ π W W′)
+  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′)) Y′
+      ≡ toRenameᵗ (keep π) Z
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ ρ Y ×
+      toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)) Y ≡ Z
+liftLeft-target-center-reflect {Z = Fin.zero} ins eq =
+  ⊥-elim (suc≢zero eq)
+liftLeft-target-center-reflect {Z = Fin.suc Z} ins eq
+    with target-center-reflect ins (fin-suc-injective eq)
+liftLeft-target-center-reflect {Z = Fin.suc Z} ins eq
+    | Y , y′-eq , target-eq =
+  Y , y′-eq , cong Fin.suc target-eq
 
 liftLeft-impEnv-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -588,6 +671,8 @@ liftLeftTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′} {v = v} ins =
     ; impEnv-off-insert =
         λ {Z′} eq →
           liftLeft-impEnv-off-insert {v = v} {Z′ = Z′} ins eq
+    ; target-center-reflect =
+        liftLeft-target-center-reflect {v = v} ins
     ; target-source-reflect = liftLeft-target-source-reflect {v = v} ins
     }
 
@@ -698,6 +783,24 @@ insertRebase-impEnv : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
       ≡ CTI2.impEnvʷ Wᵖ Z
 insertRebase-impEnv {π = π} {Wᵖ = Wᵖ} ins Z =
   renameEnv-image π (CTI2.impEnvʷ Wᵖ) Z
+
+insertRebase-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+      ≡ toRenameᵗ π Z
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ ρ Y ×
+      toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y ≡ Z
+insertRebase-target-center-reflect ins rb eq
+    with target-center-reflect ins eq
+insertRebase-target-center-reflect ins rb eq
+    | Y , y′-eq , target-eq =
+  Y , y′-eq , trans (CTI2.RebaseAt.ηᴿ-frozen rb Y) target-eq
 
 insertRebase-target-source-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -827,6 +930,126 @@ insertRebase-target-resolve {ρ = ρ} {W = W} {Wᵖ = Wᵖ} ins rb Y =
       (CTI2.SameRuntime.targetStore-same
         (CTI2.RebaseAt.sameRuntime rb))
 
+insertRebase-target-rev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → ∀ Y
+  → toRenameᵗ
+      (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y)
+insertRebase-target-rev {π = π} ins rb Y =
+  trans (target-insert ins Y)
+    (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴿ-frozen rb Y))
+
+insertRebase-target-center-reflect-rev :
+    ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+      {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+      {W Wᵖ : World Δᴸ Δᴿ Δ}
+      {W⁺ : World Δᴸ Δᴿ′ Δ′}
+      {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+      ≡ toRenameᵗ π Z
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ ρ Y ×
+      toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y ≡ Z
+insertRebase-target-center-reflect-rev ins rb eq
+    with target-center-reflect ins eq
+insertRebase-target-center-reflect-rev ins rb eq
+    | Y , y′-eq , target-eq =
+  Y , y′-eq , trans (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)) target-eq
+
+insertRebase-target-source-reflect-rev :
+    ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+      {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+      {W Wᵖ : World Δᴸ Δᴿ Δ}
+      {W⁺ : World Δᴸ Δᴿ′ Δ′}
+      {Xᵖ : TyVar Δᴸ} {Yᵖ : TyVar Δᴿ} {Xᴸ Y′}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᵖ Yᵖ)
+  → CTI2.CenterAligned (insertRebaseWorld ins Wᵖ) Xᴸ Y′
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵖ Xᴸ Y
+insertRebase-target-source-reflect-rev {π = π} {Wᵖ = Wᵖ}
+    {Xᴸ = Xᴸ} {Y′ = Y′} ins rb aligned
+    with insertRebase-target-center-reflect-rev ins rb target-image
+  where
+  target-image : toRenameᵗ
+      (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ Wᵖ) Xᴸ)
+  target-image =
+    trans (sym aligned) (insertRebase-source {Wᵖ = Wᵖ} ins Xᴸ)
+insertRebase-target-source-reflect-rev ins rb aligned
+    | Y , y′-eq , target-eq =
+  Y , y′-eq , sym target-eq
+
+insertRebase-target-embed-rev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → (B : Ty Δᴿ)
+  → CTI2.embedᴿ (insertRebaseWorld ins Wᵖ)
+      (renameᵗ (toRenameᵗ ρ) B)
+      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ Wᵖ B)
+insertRebase-target-embed-rev {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb B =
+  trans
+    (renameᵗ-comp (toRenameᵗ ρ)
+      (toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ))) B)
+    (trans (renameᵗ-cong B (insertRebase-target-rev ins rb))
+      (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵖ))
+        (toRenameᵗ π) B)))
+
+insertRebase-targetStore-rename-rev :
+    ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+      {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+      {W Wᵖ : World Δᴸ Δᴿ Δ}
+      {W⁺ : World Δᴸ Δᴿ′ Δ′}
+      {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → StoreRename (toRenameᵗ ρ) (CTI2.targetStoreʷ Wᵖ)
+      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+insertRebase-targetStore-rename-rev {ρ = ρ} {W⁺ = W⁺} ins rb =
+  subst≡
+    (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTI2.targetStoreʷ W⁺))
+    (CTI2.SameRuntime.targetStore-same
+      (CTI2.RebaseAt.sameRuntime rb))
+    (targetStore-rename ins)
+
+insertRebase-target-resolve-rev :
+    ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+      {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+      {W Wᵖ : World Δᴸ Δᴿ Δ}
+      {W⁺ : World Δᴸ Δᴿ′ Δ′}
+      {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → ∀ Y
+  → CTI2.resolveVar
+      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+      (toRenameᵗ ρ Y)
+      ≡ renameᵗ (toRenameᵗ ρ)
+          (CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y)
+insertRebase-target-resolve-rev {ρ = ρ} {W = W} {Wᵖ = Wᵖ}
+    ins rb Y =
+  trans (target-resolve ins Y)
+    (cong (renameᵗ (toRenameᵗ ρ)) target-same)
+  where
+  target-same : CTI2.resolveVar (CTI2.targetStoreʷ W) Y
+      ≡ CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y
+  target-same =
+    cong (λ Σ → CTI2.resolveVar Σ Y)
+      (CTI2.SameRuntime.targetStore-same
+        (CTI2.RebaseAt.sameRuntime rb))
+
 insertRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W Wᵖ : World Δᴸ Δᴿ Δ}
@@ -856,7 +1079,42 @@ insertRebaseTargetInsert {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb = record
   ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = Wᵖ} ins Z
   ; impEnv-off-insert =
       λ eq → renameEnv-off π (CTI2.impEnvʷ Wᵖ) eq
+  ; target-center-reflect = insertRebase-target-center-reflect ins rb
   ; target-source-reflect = insertRebase-target-source-reflect ins rb
+  }
+
+insertRebaseTargetInsertRev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → TargetInsert ρ π Wᵖ (insertRebaseWorld ins Wᵖ)
+insertRebaseTargetInsertRev {ρ = ρ} {π = π} {Wᵖ = Wᵖ}
+    ins rb = record
+  { sourceStore-kept = refl
+  ; transport⊑ᵂ = λ {A = A} {B = B} p →
+      transport⊑ᵂ-from-geometry {ρ = ρ} {π = π} {W = Wᵖ}
+        {W′ = insertRebaseWorld ins Wᵖ} {A = A} {B = B}
+        (insertRebase-source-embed {Wᵖ = Wᵖ} ins)
+        (insertRebase-target-embed-rev {Wᵖ = Wᵖ} ins rb)
+        (λ Z eq → trans (insertRebase-impEnv {Wᵖ = Wᵖ} ins Z) eq)
+        p
+  ; targetStore-rename = insertRebase-targetStore-rename-rev ins rb
+  ; source-resolve = λ X → refl
+  ; target-resolve = insertRebase-target-resolve-rev ins rb
+  ; align-insert = λ {Xᴸ} {Xᴿ} aligned →
+      trans (insertRebase-source {Wᵖ = Wᵖ} ins Xᴸ)
+        (trans (cong (toRenameᵗ π) aligned)
+          (sym (insertRebase-target-rev {Wᵖ = Wᵖ} ins rb Xᴿ)))
+  ; source-insert = λ X → insertRebase-source {Wᵖ = Wᵖ} ins X
+  ; target-insert = λ Y → insertRebase-target-rev {Wᵖ = Wᵖ} ins rb Y
+  ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = Wᵖ} ins Z
+  ; impEnv-off-insert =
+      λ eq → renameEnv-off π (CTI2.impEnvʷ Wᵖ) eq
+  ; target-center-reflect = insertRebase-target-center-reflect-rev ins rb
+  ; target-source-reflect = insertRebase-target-source-reflect-rev ins rb
   }
 
 insertRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -915,6 +1173,58 @@ insertRebaseAt {ρ = ρ} {π = π} {Wᵖ = Wᵖ} {W⁺ = W⁺}
       Xᴸ (toRenameᵗ ρ Xᴿ)
   reps =
     storeRep-insert insᵖ (CTI2.RebaseAt.storeRepresentations rb)
+
+reverseRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      CTI2.RebaseAt Wᵖ⁺ W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+reverseRebaseAt {ρ = ρ} {π = π} {Wᵖ = Wᵖ} {W⁺ = W⁺}
+    {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} ins rb =
+  insertRebaseWorld ins Wᵖ , insᵖ ,
+    CTI2.rebase-at runtime off-left frozen-target aligned reps
+  where
+  insᵖ = insertRebaseTargetInsertRev ins rb
+
+  runtime : CTI2.SameRuntime (insertRebaseWorld ins Wᵖ) W⁺
+  runtime =
+    CTI2.same-runtime
+      (trans (sourceStore-kept ins)
+        (CTI2.SameRuntime.sourceStore-same
+          (CTI2.RebaseAt.sameRuntime rb)))
+      refl
+
+  off-left : ∀ {Y} → Y ≢ Xᴸ
+    → toRenameᵗ (CTI2.ηᴸʷ W⁺) Y
+      ≡ toRenameᵗ
+          (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Y
+  off-left {Y} Y≢ =
+    trans (source-insert ins Y)
+      (trans
+        (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Y≢))
+        (sym (insertRebase-source {Wᵖ = Wᵖ} ins Y)))
+
+  frozen-target : ∀ Y
+    → toRenameᵗ (CTI2.ηᴿʷ W⁺) Y
+      ≡ toRenameᵗ
+          (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y
+  frozen-target Y = refl
+
+  aligned : toRenameᵗ (CTI2.ηᴸʷ W⁺) Xᴸ
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W⁺) (toRenameᵗ ρ Xᴿ)
+  aligned =
+    trans (source-insert ins Xᴸ)
+      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
+        (sym (target-insert ins Xᴿ)))
+
+  reps : CTI2.StoreRepImp W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+  reps =
+    storeRep-insert ins (CTI2.RebaseAt.storeRepresentations rb)
 
 TargetExtendOPEᵀ : Set₁
 TargetExtendOPEᵀ =
@@ -1070,6 +1380,77 @@ insertTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
   Wᵖ⁺ , insᵖ , CTI2.tag-rebase-varᴸ rb⁺
 insertTagRebaseAtᴸ {W⁺ = W⁺} ins
+    (CTI2.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
+      to-star disaligned represented) =
+  W⁺ , ins ,
+    CTI2.tag-rebase-onlyᴸ
+      (insert-to-starᴸ ins to-star)
+      (insert-disalignedᴸ ins disaligned)
+      (insert-represented★ᴸ ins represented)
+
+reverseRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      CTI2.RebaseAtᴿ Wᵖ⁺ W⁺ (mapPivot (toRenameᵗ ρ) Xᴿ?)
+reverseRebaseAtᴿ ins CTI2.rebase-idᴿ =
+  _ , ins , CTI2.rebase-idᴿ
+reverseRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+    with reverseRebaseAt ins rb
+reverseRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴿ rb⁺
+
+reverseRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ? : Maybe (TyVar Δᴸ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → CTI2.RebaseAtᴸ Wᵖ W Xᴸ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      CTI2.RebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+reverseRebaseAtᴸ ins CTI2.rebase-idᴸ =
+  _ , ins , CTI2.rebase-idᴸ
+reverseRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+    with reverseRebaseAt ins rb
+reverseRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴸ rb⁺
+reverseRebaseAtᴸ {W⁺ = W⁺} ins
+    (CTI2.rebase-onlyᴸ {Xᴸ = Xᴸ}
+      to-star disaligned represented) =
+  W⁺ , ins ,
+    CTI2.rebase-onlyᴸ
+      (insert-to-starᴸ ins to-star)
+      (insert-disalignedᴸ ins disaligned)
+      (insert-represented★ᴸ ins represented)
+
+reverseTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      CTI2.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+        (mapPivot (toRenameᵗ ρ) Xᴿ?)
+reverseTagRebaseAtᴸ ins CTI2.tag-rebase-idᴸ =
+  _ , ins , CTI2.tag-rebase-idᴸ
+reverseTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+    with reverseRebaseAt ins rb
+reverseTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTI2.tag-rebase-varᴸ rb⁺
+reverseTagRebaseAtᴸ {W⁺ = W⁺} ins
     (CTI2.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   W⁺ , ins ,
@@ -1324,6 +1705,19 @@ right-bind-impEnv-off-insert {Z′ = Fin.suc Z′} eq
     rewrite preimage-id↪ Z′ =
   ⊥-elim (just≢nothing eq)
 
+right-bind-target-center-reflect : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Y′ Z}
+  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Y′
+      ≡ toRenameᵗ wk↪ᵗ Z
+  → Σ[ Y ∈ TyVar Δᴿ ]
+      Y′ ≡ toRenameᵗ wk↪ᵗ Y ×
+      toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+right-bind-target-center-reflect {Y′ = Fin.zero} {Z = Z} eq =
+  ⊥-elim (zero≢suc (trans eq (toRename-wk-eq Z)))
+right-bind-target-center-reflect {Y′ = Fin.suc Y} {Z = Z} eq =
+  Y , sym (toRename-wk-eq Y) ,
+    fin-suc-injective (trans eq (toRename-wk-eq Z))
+
 right-bind-target-source-reflect : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Y′}
   → CTI2.CenterAligned (CTI2.rightOnlyWorld W B) Xᴸ Y′
@@ -1377,9 +1771,19 @@ rightBindTargetInsert {W = W} {B = B} = record
   ; impEnv-off-insert =
       λ {Z′} eq →
         right-bind-impEnv-off-insert {W = W} {B = B} {Z′ = Z′} eq
+  ; target-center-reflect =
+      right-bind-target-center-reflect {W = W} {B = B}
   ; target-source-reflect =
       right-bind-target-source-reflect {W = W} {B = B}
   }
+
+keepRightBindTargetInsert : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {v : VarImp}
+  → TargetInsert (keep wk↪ᵗ) (keep wk↪ᵗ)
+      (CTI2.liftWorldBoth v W)
+      (CTI2.liftWorldBoth v (CTI2.rightOnlyWorld W B))
+keepRightBindTargetInsert {W = W} {B = B} {v = v} =
+  liftBothTargetInsert {v = v} (rightBindTargetInsert {W = W} {B = B})
 
 right-storeRep : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Xᴿ}
@@ -1542,6 +1946,325 @@ mapCtxᴿ-∋ ext (CTI2.Sʷ x∈) = CTI2.Sʷ (mapCtxᴿ-∋ ext x∈)
   → W ∣ γ ⊢² M ⊑ N ∶ q
 ⊢²-retargetᴿ refl d = ⊢²-retarget d
 
+source-reveal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
+    {c : Conv↑ Δᴸ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → CTI2.sourceStoreʷ W ⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W′ ⊢↑[ X? ] c
+source-reveal-insert ins c⊢ =
+  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+
+source-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → CTI2.sourceStoreʷ W ⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W′ ⊢↓[ X? ] c
+source-conceal-insert ins c⊢ =
+  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+
+target-typing-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {γ : CtxImp W} {M : Term Δᴿ} {B : Ty Δᴿ}
+  → (ins : TargetInsert ρ π W W′)
+  → ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ γ ⟩ ⊢ M ⦂ B
+  → ⟨ Δᴿ′ , CTI2.targetStoreʷ W′ ,
+        CTI2.tgtCtxʷ (mapCtxᵀ ins γ) ⟩
+      ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) B
+target-typing-insert {ρ = ρ} {γ = γ} ins M⊢ =
+  subst≡
+    (λ Γ → ⟨ _ , _ , Γ ⟩
+      ⊢ renameᵗᵐ ρ _ ⦂ renameᵗ (toRenameᵗ ρ) _)
+    (sym (mapCtxᵀ-tgt ins γ))
+    (typing-renameᵗ (targetStore-rename ins) M⊢)
+
+rename-open↪ᵗ : ∀ {Δ Δ′}
+    (ρ : Δ ↪ᵗ Δ′) (C : Ty (Nat.suc Δ)) (A : Ty Δ)
+  → renameᵗ (toRenameᵗ ρ) (C [ A ]ᵗ)
+      ≡ renameᵗ (toRenameᵗ (keep ρ)) C
+          [ renameᵗ (toRenameᵗ ρ) A ]ᵗ
+rename-open↪ᵗ ρ C A =
+  trans (rename-openᵗ (toRenameᵗ ρ) C A)
+    (cong (λ T → T [ renameᵗ (toRenameᵗ ρ) A ]ᵗ)
+      (renameᵗ-cong C (λ X → sym (toRename-keep-eq ρ X))))
+
+primArgTy-renameᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) op
+  → primArgTy {Δ′} op ≡ renameᵗ ρ (primArgTy {Δ} op)
+primArgTy-renameᵗ ρ addℕ = refl
+primArgTy-renameᵗ ρ and𝔹 = refl
+
+primResultTy-renameᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) op
+  → primResultTy {Δ′} op ≡ renameᵗ ρ (primResultTy {Δ} op)
+primResultTy-renameᵗ ρ addℕ = refl
+primResultTy-renameᵗ ρ and𝔹 = refl
+
+⊢²-target-insert : TargetExtendOPEᵀ
+⊢²-target-insert ins (CTI2.x⊑x² x∈) =
+  CTI2.x⊑x² (mapCtxᵀ-∋ ins x∈)
+⊢²-target-insert {W = W} ins
+    (CTI2.ƛ⊑ƛ² {pA = pA} {pB = pB} M⊑M′) =
+  ⊢²-retarget
+    (CTI2.ƛ⊑ƛ²
+      (⊢²-target-insert ins M⊑M′))
+⊢²-target-insert {W = W} ins
+    (CTI2.·⊑·² {pA = pA} {pB = pB} L⊑L′ M⊑M′) =
+  CTI2.·⊑·²
+    (⊢²-retarget (⊢²-target-insert ins L⊑L′))
+    (⊢²-target-insert ins M⊑M′)
+⊢²-target-insert {ρ = ρ} {W′ = W′} ins
+    (CTI2.Λ⊑Λ² {A = A} {B = B} {p = p}
+      liftγ vV vV′ V⊑V′ q) =
+  ⊢²-retargetᴿ (cong `∀ body-eq)
+    (CTI2.Λ⊑Λ² (targetLiftCtxBoth ins liftγ) vV
+      (renameᵗᵐ-preserves-Value _ vV′)
+      (⊢²-target-insert (liftBothTargetInsert {v = X⊑X} ins) V⊑V′)
+      q-keep)
+  where
+  body-eq : renameᵗ (toRenameᵗ (keep ρ)) B
+      ≡ renameᵗ (extᵗ (toRenameᵗ ρ)) B
+  body-eq = renameᵗ-cong B (toRename-keep-eq ρ)
+
+  q-keep : `∀ A ⊑ᵂ⟨ W′ ⟩ `∀ (renameᵗ (toRenameᵗ (keep ρ)) B)
+  q-keep =
+    subst≡ (λ T → `∀ A ⊑ᵂ⟨ W′ ⟩ `∀ T)
+      (sym body-eq) (transport⊑ᵂ ins q)
+⊢²-target-insert {W = W} {γ = γ} ins
+    (CTI2.Λ⊑² {p = p} Anv zero∈A liftγ vV M′⊢ V⊑M′ q) =
+  CTI2.Λ⊑² Anv zero∈A (targetLiftCtxLeft ins liftγ) vV
+    (target-typing-insert ins M′⊢)
+    (⊢²-target-insert (liftLeftTargetInsert {v = X⊑★} ins) V⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} {W′ = W′} ins
+    (CTI2.•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+      p∀ M⊑M′ q r) =
+  ⊢²-retargetᴿ (sym open-eq)
+    (CTI2.•⊑•² p∀-keep
+      (⊢²-retargetᴿ (sym (cong `∀ body-eq))
+        (⊢²-target-insert ins M⊑M′))
+      (transport⊑ᵂ ins q) r-open)
+  where
+  body-eq : renameᵗ (toRenameᵗ (keep ρ)) C′
+      ≡ renameᵗ (extᵗ (toRenameᵗ ρ)) C′
+  body-eq = renameᵗ-cong C′ (toRename-keep-eq ρ)
+
+  open-eq = rename-open↪ᵗ ρ C′ A′
+
+  p∀-keep : `∀ C ⊑ᵂ⟨ W′ ⟩
+      `∀ (renameᵗ (toRenameᵗ (keep ρ)) C′)
+  p∀-keep =
+    subst≡ (λ T → `∀ C ⊑ᵂ⟨ W′ ⟩ `∀ T)
+      (sym body-eq) (transport⊑ᵂ ins p∀)
+
+  r-open : (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩
+      (renameᵗ (toRenameᵗ (keep ρ)) C′
+        [ renameᵗ (toRenameᵗ ρ) A′ ]ᵗ)
+  r-open =
+    subst≡
+      (λ T → (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩ T)
+      open-eq
+      (transport⊑ᵂ ins r)
+⊢²-target-insert {W = W} ins
+    (CTI2.•⊑² p∀ M⊑M′ q r) =
+  CTI2.•⊑² (transport⊑ᵂ ins p∀)
+    (⊢²-target-insert ins M⊑M′)
+    (transport⊑ᵂ ins q) (transport⊑ᵂ ins r)
+⊢²-target-insert {ρ = ρ} {W′ = W′} ins (CTI2.κ⊑κ² κ p) =
+  ⊢²-retargetᴿ const-eq (CTI2.κ⊑κ² κ p-const)
+  where
+  const-eq = constTy-renameᵗ (toRenameᵗ ρ) κ
+
+  p-const =
+    subst≡
+      (λ T → constTy κ ⊑ᵂ⟨ W′ ⟩ T)
+      (sym const-eq)
+      (transport⊑ᵂ ins p)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.cast⊑cast² {p = p} c c′ M⊑M′ q) =
+  CTI2.cast⊑cast² c (renameᵐᶜ ρ c′)
+    (⊢²-target-insert ins M⊑M′) (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.⊑cast² {p = p} c′ M⊑M′ q) =
+  CTI2.⊑cast² (renameᵐᶜ ρ c′)
+    (⊢²-target-insert ins M⊑M′) (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.⊑reveal² {W′ = W′} {p = p}
+      mono rb sc c′⊢ M⊑M′ q)
+    with insertRebaseAtᴿ ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.⊑reveal² {W′ = W′} {p = p}
+      mono rb sc c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.⊑reveal²
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (reveal-renameˣ (targetStore-rename ins) c′⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.⊑conceal² {W′ = W′} {p = p}
+      mono rb sc c′⊢ M⊑M′ q)
+    with reverseRebaseAtᴿ ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.⊑conceal² {W′ = W′} {p = p}
+      mono rb sc c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.⊑conceal²
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (conceal-renameˣ (targetStore-rename ins) c′⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert ins
+    (CTI2.cast⊑² {p = p} c M⊑M′ q) =
+  CTI2.cast⊑² c
+    (⊢²-target-insert ins M⊑M′) (transport⊑ᵂ ins q)
+⊢²-target-insert ins
+    (CTI2.reveal⊑² {W′ = W′} {p = p}
+      mono rb sc c⊢ M⊑M′ q)
+    with insertRebaseAtᴸ ins rb
+⊢²-target-insert ins
+    (CTI2.reveal⊑² {W′ = W′} {p = p}
+      mono rb sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.reveal⊑²
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-reveal-insert ins c⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑² {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    with reverseTagRebaseAtᴸ ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑² {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.conceal⊑²
+    (renameSourceConcealPartnerOK (align-insert insᵖ) ok)
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-conceal-insert ins c⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
+      mono rb sc c⊢ c′⊢ M⊑M′ q)
+    with insertRebaseAt ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
+      mono rb sc c⊢ c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.reveal⊑reveal²
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-reveal-insert ins c⊢)
+    (reveal-renameˣ (targetStore-rename ins) c′⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      ok mono rb sc c⊢ c′⊢ M⊑M′ q)
+    with reverseRebaseAt ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      ok mono rb sc c⊢ c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.conceal⊑conceal²
+    (renameMatchedConcealPartnerOK (align-insert insᵖ) ok)
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-conceal-insert ins c⊢)
+    (conceal-renameˣ (targetStore-rename ins) c′⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ}
+      {p★ = p★} {qᵖ = qᵖ}
+      ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
+    with reverseRebaseAt ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ}
+      {p★ = p★} {qᵖ = qᵖ}
+      ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.packaged-seal-star²
+    (renameMatchedConcealPartnerOK (align-insert insᵖ) ok)
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-conceal-insert ins c⊢)
+    (conceal-renameˣ (targetStore-rename ins) c′⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (⊢²-target-insert insᵖ sourcePrem)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {W = W} {γ = γ} ins
+    (CTI2.blame⊑² M′⊢ p) =
+  CTI2.blame⊑²
+    (target-typing-insert ins M′⊢)
+    (transport⊑ᵂ ins p)
+⊢²-target-insert {Δᴿ = Δᴿ} {Δᴿ′ = Δᴿ′} {ρ = ρ}
+    {W′ = W′} {γ = γ} ins
+    (CTI2.⊕⊑⊕² op {L = L} {L′ = L′} {M = M} {M′ = M′}
+      {p = p} {q = q} L⊑L′ M⊑M′ r) =
+  ⊢²-retargetᴿ result-eq
+    (CTI2.⊕⊑⊕² op
+      L-arg
+      M-arg
+      r-result)
+  where
+  arg-eq : primArgTy {Δᴿ′} op
+      ≡ renameᵗ (toRenameᵗ ρ) (primArgTy {Δᴿ} op)
+  arg-eq = primArgTy-renameᵗ (toRenameᵗ ρ) op
+
+  result-eq : primResultTy {Δᴿ′} op
+      ≡ renameᵗ (toRenameᵗ ρ) (primResultTy {Δᴿ} op)
+  result-eq = primResultTy-renameᵗ (toRenameᵗ ρ) op
+
+  p-arg : primArgTy op ⊑ᵂ⟨ W′ ⟩ primArgTy op
+  p-arg =
+    subst≡
+      (λ T → primArgTy op ⊑ᵂ⟨ W′ ⟩ T)
+      (sym arg-eq)
+      (transport⊑ᵂ ins p)
+
+  q-arg : primArgTy op ⊑ᵂ⟨ W′ ⟩ primArgTy op
+  q-arg =
+    subst≡
+      (λ T → primArgTy op ⊑ᵂ⟨ W′ ⟩ T)
+      (sym arg-eq)
+      (transport⊑ᵂ ins q)
+
+  L-arg : W′ ∣ mapCtxᵀ ins γ
+      ⊢² L ⊑ renameᵗᵐ ρ L′ ∶ p-arg
+  L-arg =
+    ⊢²-retargetᴿ {q = p-arg}
+      (sym arg-eq) (⊢²-target-insert ins L⊑L′)
+
+  M-arg : W′ ∣ mapCtxᵀ ins γ
+      ⊢² M ⊑ renameᵗᵐ ρ M′ ∶ q-arg
+  M-arg =
+    ⊢²-retargetᴿ {q = q-arg}
+      (sym arg-eq) (⊢²-target-insert ins M⊑M′)
+
+  r-result =
+    subst≡
+      (λ T → primResultTy op ⊑ᵂ⟨ W′ ⟩ T)
+      (sym result-eq)
+      (transport⊑ᵂ ins r)
+
 ------------------------------------------------------------------------
 -- Public single-bind surface
 ------------------------------------------------------------------------
@@ -1560,3 +2283,38 @@ TargetExtendBindᵀ =
   → CTI2.rightOnlyWorld W B′
       ∣ ECR.mapCtxᴿ ext γ
       ⊢² M ⊑ renameᵗᵐ wk↪ᵗ M′ ∶ ECR.transport⊑ᵂ ext p
+
+mapCtx-rightBind-ECR : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
+    (ext : ECR.WorldExtendᴿ (bind B′ ∷ []) W
+      (CTI2.rightOnlyWorld W B′))
+    (γ : CtxImp W)
+  → ECR.mapCtxᴿ ext γ ≡ mapCtxᵀ rightBindTargetInsert γ
+mapCtx-rightBind-ECR ext [] = refl
+mapCtx-rightBind-ECR {W = W} {B′ = B′} ext
+    (CTI2.ctx-imp A B p ∷ γ) =
+  cong₂ _∷_ entry-eq (mapCtx-rightBind-ECR ext γ)
+  where
+  entry-eq :
+      CTI2.ctx-imp A (⇑ᵗ B) (ECR.transport⊑ᵂ ext p)
+      ≡ CTI2.ctx-imp A (renameᵗ (toRenameᵗ wk↪ᵗ) B)
+          (transport⊑ᵂ (rightBindTargetInsert {W = W} {B = B′}) p)
+  entry-eq =
+    ctx-imp-target-eq {W = CTI2.rightOnlyWorld W B′}
+      {A = A} {B = ⇑ᵗ B}
+      {B′ = renameᵗ (toRenameᵗ wk↪ᵗ) B}
+      {p = ECR.transport⊑ᵂ ext p}
+      {q = transport⊑ᵂ (rightBindTargetInsert {W = W} {B = B′}) p}
+      (sym (renameᵗ-wk-eq B))
+
+⊢²-target-extend-bind : TargetExtendBindᵀ
+⊢²-target-extend-bind {W = W} {γ = γ} {M = M} {M′ = M′}
+    {B = B} {B′ = B′} {p = p} ext M⊑M′ =
+  subst≡
+    (λ γ′ → CTI2.rightOnlyWorld W B′ ∣ γ′
+      ⊢² M ⊑ renameᵗᵐ wk↪ᵗ M′ ∶ ECR.transport⊑ᵂ ext p)
+    (sym (mapCtx-rightBind-ECR ext γ))
+    (⊢²-retargetᴿ {q = ECR.transport⊑ᵂ ext p}
+      (renameᵗ-wk-eq B)
+      (⊢²-target-insert
+        (rightBindTargetInsert {W = W} {B = B′}) M⊑M′))

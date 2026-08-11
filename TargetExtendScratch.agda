@@ -16,7 +16,8 @@ import proof.DGG.CastTermImprecision2 as CTI2
 
 open CTI2 using
   ( World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_
-  ; RebaseAtᴿ; ImpEnvMono; SameCtx; _⊢↑[_]_
+  ; RebaseAt; RebaseAtᴿ; RebaseAtᴸ; TagRebaseAtᴸ
+  ; ImpEnvMono; SameCtx; _⊢↑[_]_
   )
 
 mapPivot : ∀ {Δ Δ′}
@@ -70,6 +71,12 @@ record TargetInsert {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
       → preimage? π Z′ ≡ nothing
       → CTI2.impEnvʷ W′ Z′ ≡ X⊑★
 
+    target-center-reflect : ∀ {Y′ Z}
+      → toRenameᵗ (CTI2.ηᴿʷ W′) Y′ ≡ toRenameᵗ π Z
+      → Σ[ Y ∈ TyVar Δᴿ ]
+          Y′ ≡ toRenameᵗ ρ Y ×
+          toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+
     target-source-reflect : ∀ {Xᴸ Y′}
       → CTI2.CenterAligned W′ Xᴸ Y′
       → Σ[ Y ∈ TyVar Δᴿ ]
@@ -116,6 +123,57 @@ RevealRightCommuteᵀ =
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
       RebaseAtᴿ W⁺ Wᵖ⁺
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
+
+ReverseRebaseCommuteᵀ : Set₁
+ReverseRebaseCommuteᵀ =
+  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → RebaseAt Wᵖ W Xᴸ Xᴿ
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      RebaseAt Wᵖ⁺ W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+
+ReverseRebaseRightCommuteᵀ : Set₁
+ReverseRebaseRightCommuteᵀ =
+  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → RebaseAtᴿ Wᵖ W Xᴿ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      RebaseAtᴿ Wᵖ⁺ W⁺ (mapPivot (toRenameᵗ ρ) Xᴿ?)
+
+ReverseRebaseLeftCommuteᵀ : Set₁
+ReverseRebaseLeftCommuteᵀ =
+  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ? : Maybe (TyVar Δᴸ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → RebaseAtᴸ Wᵖ W Xᴸ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ × RebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+
+ReverseTagRebaseLeftCommuteᵀ : Set₁
+ReverseTagRebaseLeftCommuteᵀ =
+  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
+      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
+      TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ? (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
 RevealRightWrapperᵀ : TargetExtendOPEᵀ → RevealRightCommuteᵀ → Set₁
 RevealRightWrapperᵀ target-extend commute =

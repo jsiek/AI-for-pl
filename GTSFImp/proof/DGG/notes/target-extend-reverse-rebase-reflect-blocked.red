@@ -95,3 +95,12 @@ whose center lies in the old center image must be an old target variable.
 That would let the reverse proof reflect `Y′` through `ρ` and then use
 target freezing plus injectivity of `π` to recover the old premise
 alignment.
+
+RESOLVED, 2026-08-11.
+
+`proof.DGG.TargetExtend` now strengthens `TargetInsert` with
+`target-center-reflect`.  The reverse commute is proved by
+`reverseRebaseAt`, with one-sided/tagged variants
+`reverseRebaseAtᴿ`, `reverseRebaseAtᴸ`, and
+`reverseTagRebaseAtᴸ`.  The insertion ρ/π is unchanged across each
+rebase; only the orientation of `ηᴿ-frozen` changes.

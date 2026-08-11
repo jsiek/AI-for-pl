@@ -83,3 +83,11 @@ using target-frozen/rebase facts rather than by syntactic world shape.
 
 No live theorem statement was weakened, and no postulate or hole was
 added.
+
+RESOLVED, 2026-08-11.
+
+`proof.DGG.TargetExtend` now constructs arbitrary inserted premise
+worlds with `insertRebaseWorld` and proves both forward and reverse
+commutes for `RebaseAt`, `RebaseAtᴿ`, `RebaseAtᴸ`, and
+`TagRebaseAtᴸ`.  The wrapper constructors recurse through those
+inserted premise worlds in `⊢²-target-insert`.

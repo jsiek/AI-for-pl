@@ -298,4 +298,14 @@ in-branch tagged-transfer packaging.
 
 Next: M5 relational continuations + M6 driver (designs validated),
 then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
-pedigree; TODO.md: consistency-relation rigid-var/★ fix.
+pedigree.
+
+## Source-consistency interlude LANDED (2026-08-11, PR #128)
+
+The consistency-relation rigid-var/★ fix parked above shipped as the
+four-mode split (crossable `★∼X∼★` program binders vs strict `X∼X`
+`∀ᶜ` slots; SRCCONSIST-DOSSIER.md §§8-10). The term-imprecision
+relation was NOT changed, so M5-M8 proceed on unchanged foundations.
+The rigid-gate route it replaced is refuted in
+notes/srcconsist-rigid-{lower-bound,ground-cast-helper}-blocked.red.
+Remaining sibling work (GTSF port) is tracked in TODO.md.

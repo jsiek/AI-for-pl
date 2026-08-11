@@ -10,7 +10,7 @@ open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)
 open import proof.DGG.Catchup.InstInversionDef using
   (InstInversionPackage; InstPostCatalogPackage;
-   InstPostCatalogPackageAt;
+   InstPostCatalogPackageAt; Λ⊑Λ²PostBodyTransportᵀ;
    Λ⊑²AtRewrapᵀ; Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ;
    RightBindUnderLeftLiftᵀ)
 open import Data.Nat using (ℕ; suc; _<_)
@@ -21,13 +21,14 @@ open import Types
 open import Consistency using (Env∼; _⊢_∼_; instᵐ; inst_)
 open import CastTerms using
   (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_)
-open import Imprecision using (X⊑★)
+open import Imprecision using (X⊑★; X⊑X)
 open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
-open CTI2 using (World; CtxImp; LiftCtxᴸ; liftWorldLeft;
-  rightOnlyWorld; targetStoreʷ; tgtCtxʷ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
+  liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
+  _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -80,6 +81,41 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
         InstPostCatalogPackageAt.at-spine-descent pkg
     ; finish = finish
     }
+
+
+Λ⊑Λ²-base-rewrap-preflight :
+  Λ⊑Λ²PostBodyTransportᵀ
+  → ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CtxImp W}
+    {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
+    {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (liftγ : LiftCtx X⊑X γ γᴮ)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ B₂ ∈ Ty Δᴿ₂ ] Σ[ post ∈ Term Δᴿ₂ ]
+    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩ B₂ ]
+      Value post
+      × ⟨ Δᴿ₂ , targetStoreʷ W₂ ,
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
+      × W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
+Λ⊑Λ²-base-rewrap-preflight transport Anv zero∈A liftγ vV vV′
+    bodyRel
+    with transport Anv zero∈A liftγ vV vV′ bodyRel
+Λ⊑Λ²-base-rewrap-preflight transport Anv zero∈A liftγ vV vV′
+    bodyRel
+  | γ₂ᴸ , B₂ , post , body-p₂ ,
+    top-p₂ , liftγ₂ , vPost , post⊢ , bodyRel₂ =
+  B₂ , post , top-p₂ ,
+  vPost , post⊢ ,
+  CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂
 
 
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where

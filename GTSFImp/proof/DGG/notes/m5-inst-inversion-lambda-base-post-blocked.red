@@ -62,3 +62,9 @@ Smallest unblocking statement:
 Equivalently, the Λ base package can carry this as a premise-world
 predicate, but it must be stated at the caller's post-catalog world; an
 existential package would recreate the CPS blocker.
+
+REFINED (2026-08-11): the caller-indexed transport surface now checks as
+`Λ⊑Λ²PostBodyTransportᵀ`, and the scratch validates that it rewraps the
+base case through `Λ⊑²`.  The remaining implementation blocker is the
+derivation-level target-extension leg needed before the reveal rebuild;
+see `m5-inst-inversion-lambda-target-extension-blocked.red`.

@@ -215,3 +215,34 @@ obligations harvested from the relation inversion.
 The non-value branches must recurse on target wrapper depth. A single catalog
 step is insufficient for `∀`, `gen`, `reveal`, and `conceal`; each leaves a
 pending type application that only later reaches a target value.
+
+## Phase A⁗ Addendum: Λ Base Transport Surface
+
+The live Def surface now includes the checked caller-indexed statement:
+
+```agda
+Λ⊑Λ²PostBodyTransportᵀ : Set
+```
+
+It consumes the original `liftWorldBoth X⊑X W` body premise from a
+`Λ⊑Λ²` core and returns the post body relation in
+`liftWorldLeft X⊑★ W₂`, together with the transported lifted context, the
+post target value/typing, the body obligation, and the aligned top `∀`
+obligation. The scratch checks:
+
+```agda
+Λ⊑Λ²-base-rewrap-preflight :
+  Λ⊑Λ²PostBodyTransportᵀ → ...
+```
+
+so the base rewrap is mechanical once the transport exists.
+
+Implementation is blocked one layer earlier than the reveal rebuild. The
+missing component is a derivation-level target-extension theorem for CTI2:
+the body relation must transport from `V′` in the original target Λ binder
+context to `renameᵗᵐ (keep wk↪ᵗ) V′` in the post-`β-Λ` target store
+before the generated reveals can be rebuilt. `TermImpDecay` handles mark
+decay, `CenterRename` handles center injections, and `WorldExtendᴿ`
+transports obligations, but none transports `_∣_⊢²_⊑_∶_` derivations
+through target store changes. See
+`m5-inst-inversion-lambda-target-extension-blocked.red`.

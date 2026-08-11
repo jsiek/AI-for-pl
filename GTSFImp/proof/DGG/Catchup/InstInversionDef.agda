@@ -15,7 +15,7 @@ open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types
-open import Imprecision using (X⊑★)
+open import Imprecision using (X⊑★; X⊑X)
 open import Consistency using
   (Env∼; _⊢_∼_; ∀ᶜ_; inst_; gen_; extᵐ; instᵐ; genᵐ;
    ↑ᶜ_; close-instᶜ; toRenameᵗ; wk↪ᵗ)
@@ -33,8 +33,9 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
 open CTI2 using
-  (World; CtxImp; LiftCtxᴸ; liftWorldLeft; rightOnlyWorld;
-   targetStoreʷ; tgtCtxʷ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+  (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
+   liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
+   _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
 RightBindUnderLeftLiftᵀ : Set
@@ -109,6 +110,34 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   → liftWorldLeft X⊑★ W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γᴸ
       ⊢² V ⊑ post ∶ body-p
   → W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
+
+
+Λ⊑Λ²PostBodyTransportᵀ : Set
+Λ⊑Λ²PostBodyTransportᵀ =
+  ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
+    {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CtxImp W}
+    {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+    {χs₂ : StoreChanges Δᴿ Δᴿ₂}
+    {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → LiftCtx X⊑X γ γᴮ
+  → Value V
+  → Value V′
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
+    Σ[ B₂ ∈ Ty Δᴿ₂ ] Σ[ post ∈ Term Δᴿ₂ ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B₂ ]
+    Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩ B₂ ]
+      LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
+      × Value post
+      × ⟨ Δᴿ₂ , targetStoreʷ W₂ ,
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
+      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ ⊢² V ⊑ post ∶ body-p₂
 
 
 Catchup⁻NonStarᵀ : Set

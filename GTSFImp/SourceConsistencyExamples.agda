@@ -3,15 +3,18 @@ module SourceConsistencyExamples where
 -- File Charter:
 --   * Records live regressions for crossable source-consistency variables.
 --   * Checks the accepted calibration judgments, strict-slot gate rejection,
---     and compilation of dynamic code inside a polymorphic source term.
---   * Depends on the source language, consistency, and compilation.
+--     compilation, and blame/success execution of dynamic code inside
+--     polymorphic source terms.
+--   * Depends on the source language, consistency, compilation, and evaluator.
 
+open import Data.Bool using (true)
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([])
+open import Data.Maybe using (just)
 open import Data.Nat using (suc)
-open import Data.Product using (Σ-syntax)
-open import Relation.Binary.PropositionalEquality using (refl)
+open import Data.Product using (Σ-syntax; proj₁; proj₂)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import TermCtx using (Z)
@@ -24,6 +27,7 @@ open import CastTerms
 open import Reduction using (_—→_; tag-untag; tag-untag-bad)
 open import Compile using (compile)
 open import Primitives using (κℕ)
+import Example as Ex
 
 ------------------------------------------------------------------------
 -- Crossable program binders and strict consistency binders
@@ -157,3 +161,60 @@ minter-run-⊢ =
 minter-run-compile :
   Σ[ N ∈ Term 0 ] ⟨ 0 , store-empty , [] ⟩ ⊢ N ⦂ ℕᵗ
 minter-run-compile = compile {Σ = store-empty} minter-run-⊢
+
+minter-run-term : Term 0
+minter-run-term = proj₁ minter-run-compile
+
+minter-run-term-⊢ :
+  ⟨ 0 , store-empty , [] ⟩ ⊢ minter-run-term ⦂ ℕᵗ
+minter-run-term-⊢ = proj₂ minter-run-compile
+
+minter-run-blames :
+  Ex.evalBlame Ex.gas minter-run-term-⊢ ≡ just true
+minter-run-blames = refl
+
+------------------------------------------------------------------------
+-- Same-name round trip inside the polymorphic scope
+------------------------------------------------------------------------
+
+roundtrip : GTerm 0
+roundtrip =
+  Λ (ƛ ＇ Fin.zero ⇒
+    ((ƛ ＇ Fin.zero ⇒ ` 0) ·[ 1 ]
+      ((ƛ ★ ⇒ ` 0) ·[ 0 ] ` 0)))
+
+roundtrip-⊢ :
+  0 ∣ [] ⊢ roundtrip ⦂ `∀ (＇ Fin.zero ⇒ ＇ Fin.zero)
+roundtrip-⊢ =
+  ⊢Λ {zero∈A = ∈-fun-left var-∈}
+    (ƛ ＇ Fin.zero ⇒
+      ((ƛ ＇ Fin.zero ⇒ ` 0) ·[ 1 ]
+        ((ƛ ★ ⇒ ` 0) ·[ 0 ] ` 0)))
+    (⊢ƛ
+      (⊢·
+        (⊢ƛ (⊢` Z))
+        (⊢· (⊢ƛ (⊢` Z)) (⊢` Z)
+          (total-from-★ (from★-★∼X∼★ refl)))
+        (total-to-★ (to★-★∼X∼★ refl))))
+
+roundtrip-run : GTerm 0
+roundtrip-run = (roundtrip `[ ℕᵗ ]) ·[ 2 ] $ (κℕ 42)
+
+roundtrip-run-⊢ : 0 ∣ [] ⊢ roundtrip-run ⦂ ℕᵗ
+roundtrip-run-⊢ =
+  ⊢· (⊢• roundtrip-⊢) (⊢$ (κℕ 42)) (id (‵ `ℕ))
+
+roundtrip-run-compile :
+  Σ[ N ∈ Term 0 ] ⟨ 0 , store-empty , [] ⟩ ⊢ N ⦂ ℕᵗ
+roundtrip-run-compile = compile {Σ = store-empty} roundtrip-run-⊢
+
+roundtrip-run-term : Term 0
+roundtrip-run-term = proj₁ roundtrip-run-compile
+
+roundtrip-run-term-⊢ :
+  ⟨ 0 , store-empty , [] ⟩ ⊢ roundtrip-run-term ⦂ ℕᵗ
+roundtrip-run-term-⊢ = proj₂ roundtrip-run-compile
+
+roundtrip-run-eval :
+  Ex.evalNat Ex.gas roundtrip-run-term-⊢ ≡ just 42
+roundtrip-run-eval = refl

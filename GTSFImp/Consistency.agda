@@ -317,7 +317,7 @@ private
   flip-genᵐ = funext λ { zero → refl; (suc X) → refl }
 
   flip-idᵐ : ∀ {Δ} → flipᵐ (idᶜ {Δ}) ≡ idᶜ
-  flip-idᵐ = funext (λ X → refl)
+  flip-idᵐ = refl
 
   transport-env∼ : ∀ {Δ} {μ ν : Env∼ Δ} {A B : Ty Δ}
     → μ ≡ ν

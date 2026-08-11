@@ -66,3 +66,11 @@ current package records only target wrapper descent after the catalog
 step, not this source-core descent.
 
 No live statement was weakened, and no postulate or hole was added.
+
+RESOLVED (2026-08-11): the one-sided core rewrap is now CPS-style over a
+caller-supplied extension tower.  The live `Λ⊑²CPSRewrapᵀ` statement and
+`Λ⊑²-cps-rewrap` proof consume a body relation already transported to
+`liftWorldLeft X⊑★ (rightOnlyWorld W Balloc)`, using the directly proved
+`right-bind-under-left-lift` and `mapCtxᴿ-liftᴸ` compatibility.  The
+remaining obstruction is package indexing, recorded separately in
+`m5-inst-inversion-lambda-cps-package-blocked.red`.

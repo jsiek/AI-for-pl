@@ -68,3 +68,12 @@ Equivalently, the recursive Λ inversion package could expose its result
 already transported through this swap, but that still requires the same
 new geometry lemma. No live statement was weakened, and no postulate or
 hole was added.
+
+RESOLVED (2026-08-11): the swap is avoided rather than transported across.
+`right-bind-under-left-lift` is constructed directly by renaming the
+old center with `extᵗ Fin.suc`, so the source-only fresh binder stays at
+center `zero` and the right-only fresh binder is inserted after it.  The
+pointwise environment proof is by cases on the center variable:
+`zero` preserves the left-only `X⊑★` mark, and `suc X` follows the
+target `instᵐ` weakening.  The companion `mapCtxᴿ-liftᴸ` proof is a
+direct induction on `LiftCtxᴸ`.

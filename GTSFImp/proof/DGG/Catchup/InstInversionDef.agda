@@ -15,13 +15,15 @@ open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types
+open import Imprecision using (X⊑★)
 open import Consistency using
   (Env∼; _⊢_∼_; ∀ᶜ_; inst_; gen_; extᵐ; instᵐ; genᵐ;
    ↑ᶜ_; close-instᶜ; toRenameᵗ; wk↪ᵗ)
 open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_)
 open import CastTerms using
-  (Term; Value; GenSafe; _⟨_⟩; _↑_; _↓_; Λ_)
-open import Reduction using (StoreChanges; _—↠[_]_; applyTys)
+  (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_; _↓_; Λ_)
+open import Reduction using
+  (StoreChanges; _—↠[_]_; applyTys; bind; _∷_; [])
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -30,7 +32,58 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  (World; CtxImp; LiftCtxᴸ; liftWorldLeft; rightOnlyWorld;
+   targetStoreʷ; tgtCtxʷ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+
+
+RightBindUnderLeftLiftᵀ : Set
+RightBindUnderLeftLiftᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → ECR.WorldExtendᴿ (bind B ∷ [])
+      (liftWorldLeft X⊑★ W)
+      (liftWorldLeft X⊑★ (rightOnlyWorld W B))
+
+
+MapCtxᴿLiftᴸᵀ : RightBindUnderLeftLiftᵀ → Set
+MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+  → (ext : ECR.WorldExtendᴿ (bind B ∷ []) W
+      (rightOnlyWorld W B))
+  → LiftCtxᴸ X⊑★ γ γᴸ
+  → LiftCtxᴸ X⊑★
+      (ECR.mapCtxᴿ ext γ)
+      (ECR.mapCtxᴿ right-bind-under-left-lift γᴸ)
+
+
+Λ⊑²CPSRewrapᵀ :
+  (right-bind-under-left-lift : RightBindUnderLeftLiftᵀ)
+  → MapCtxᴿLiftᴸᵀ right-bind-under-left-lift
+  → Set
+Λ⊑²CPSRewrapᵀ right-bind-under-left-lift mapCtxᴿ-liftᴸ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+    {V : Term (suc Δᴸ)} {post : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {Balloc : Ty Δᴿ} {C : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★
+      (rightOnlyWorld W Balloc) ⟩ C}
+    {p₂ : `∀ A ⊑ᵂ⟨ rightOnlyWorld W Balloc ⟩ C}
+  → (ext : ECR.WorldExtendᴿ (bind Balloc ∷ []) W
+      (rightOnlyWorld W Balloc))
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
+  → (vV : Value V)
+  → ⟨ suc Δᴿ , targetStoreʷ (rightOnlyWorld W Balloc) ,
+      tgtCtxʷ (ECR.mapCtxᴿ ext γ) ⟩ ⊢ post ⦂ C
+  → liftWorldLeft X⊑★ (rightOnlyWorld W Balloc)
+      ∣ ECR.mapCtxᴿ right-bind-under-left-lift γᴸ
+      ⊢² V ⊑ post ∶ body-p
+  → rightOnlyWorld W Balloc
+      ∣ ECR.mapCtxᴿ ext γ
+      ⊢² Λ V ⊑ post ∶ p₂
 
 
 Catchup⁻NonStarᵀ : Set

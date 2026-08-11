@@ -9,7 +9,8 @@ module M5InstInversionDesignScratch where
 open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)
 open import proof.DGG.Catchup.InstInversionDef using
-  (InstInversionPackage; InstPostCatalogPackage)
+  (InstInversionPackage; InstPostCatalogPackage;
+   Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
 open import Data.Nat using (ℕ; suc; _<_)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
@@ -80,21 +81,18 @@ record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
 
 record LeftLiftRightBindPreflight : Set₁ where
   field
-    right-bind-under-left-lift : ∀ {Δᴸ Δᴿ Δ}
-        {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
-      → ECR.WorldExtendᴿ (bind B ∷ [])
-          (liftWorldLeft X⊑★ W)
-          (liftWorldLeft X⊑★ (rightOnlyWorld W B))
+    right-bind-under-left-lift : RightBindUnderLeftLiftᵀ
+    mapCtxᴿ-liftᴸ : MapCtxᴿLiftᴸᵀ right-bind-under-left-lift
 
-    mapCtxᴿ-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
-        {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
-        {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
-      → (ext : ECR.WorldExtendᴿ (bind B ∷ []) W
-          (rightOnlyWorld W B))
-      → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
-      → LiftCtxᴸ X⊑★
-          (ECR.mapCtxᴿ ext γ)
-          (ECR.mapCtxᴿ right-bind-under-left-lift γᴸ)
+
+Λ⊑²-cps-rewrap-preflight :
+  (right-bind-under-left-lift : RightBindUnderLeftLiftᵀ)
+  → (mapCtxᴿ-liftᴸ : MapCtxᴿLiftᴸᵀ right-bind-under-left-lift)
+  → Λ⊑²CPSRewrapᵀ right-bind-under-left-lift mapCtxᴿ-liftᴸ
+Λ⊑²-cps-rewrap-preflight right-bind-under-left-lift mapCtxᴿ-liftᴸ
+    {p₂ = p₂} ext Anv zero∈A liftγ vV target⊢ bodyRel =
+  CTI2.Λ⊑² Anv zero∈A (mapCtxᴿ-liftᴸ ext liftγ) vV
+    target⊢ bodyRel p₂
 
 
 inst-inversion→rel-surface : ∀ {fuel}

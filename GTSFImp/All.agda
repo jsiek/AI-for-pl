@@ -48,6 +48,7 @@ import proof.DGG.Parked.ParkedD4CheckpointLemma
 
 import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
+import proof.DGG.Catchup.InstCatchupRightRelProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

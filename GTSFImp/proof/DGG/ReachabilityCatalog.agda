@@ -26,6 +26,8 @@ open import Consistency using
    ？_; _↦_; ∀ᶜ_; inst_; gen_; bot-elim; bot-intro; sym∼;
    X∼★ᵍ; ★∼Xᵍ)
 open import GradualTerms
+open import GradualTypeCheck
+  using (fromJust; is-just; type-check-expect)
 open import GradualTermImprecision using
   (CtxImp; ctx-imp; _∣_⊢ᴳ_⊑_⦂_⊑_∶_; _∋ⁱ_⦂_;
    Zⁱ; Sⁱ; LiftCtxⁱ; lift-[]; lift-∷; x⊑xᴳ; ƛ⊑ƛᴳ;
@@ -707,11 +709,9 @@ returnPolyAtX =
 
 returnPolyAtX⊢ : Δ₀ ∣ [] ⊢ returnPolyAtX ⦂ ★⇒★₀
 returnPolyAtX⊢ =
-  ⊢·
-    (⊢• (⊢Λ {zero∈A = X∈X⇒X⇒X}
-      (ƛ X₀ ⇒ polyAtX) (⊢ƛ polyAtX⊢)))
-    (nat⊢ 7)
-    (？ (id (‵ `ℕ)))
+  fromJust
+    (type-check-expect Δ₀ [] returnPolyAtX ★⇒★₀)
+    is-just
 
 badDynBool : GTerm Δ₀
 badDynBool =
@@ -719,11 +719,9 @@ badDynBool =
 
 badDynBool⊢ : Δ₀ ∣ [] ⊢ badDynBool ⦂ ℕ₀
 badDynBool⊢ =
-  ⊢⊕ addℕ
-    (⊢· dynId⊢ (⊢$ (κ𝔹 true)) (？ (id (‵ `𝔹))))
-    (？ (id (‵ `ℕ)))
-    (nat⊢ 1)
-    (id (‵ `ℕ))
+  fromJust
+    (type-check-expect Δ₀ [] badDynBool ℕ₀)
+    is-just
 
 returnPolyFun : GTerm Δ₀
 returnPolyFun = ƛ ℕ₀ ⇒ polyId
@@ -736,10 +734,9 @@ returnPolyUse = ((returnPolyFun ·[ 41 ] nat 0) `[ ℕ₀ ]) ·[ 42 ] nat 2
 
 returnPolyUse⊢ : Δ₀ ∣ [] ⊢ returnPolyUse ⦂ ℕ₀
 returnPolyUse⊢ =
-  ⊢·
-    (⊢• (⊢· returnPolyFun⊢ (nat⊢ 0) (id (‵ `ℕ))))
-    (nat⊢ 2)
-    (id (‵ `ℕ))
+  fromJust
+    (type-check-expect Δ₀ [] returnPolyUse ℕ₀)
+    is-just
 
 usePolyNat : GTerm Δ₀
 usePolyNat = ƛ ∀X⇒X₀ ⇒ (((` 0) `[ ℕ₀ ]) ·[ 43 ] nat 5)
@@ -753,15 +750,18 @@ higherOrderPolyArg = usePolyNat ·[ 44 ] polyId
 
 higherOrderPolyArg⊢ : Δ₀ ∣ [] ⊢ higherOrderPolyArg ⦂ ℕ₀
 higherOrderPolyArg⊢ =
-  ⊢· usePolyNat⊢ (polyId⊢ {Δ = Δ₀})
-    (∀X⇒X∼∀X⇒X {Δ = Δ₀})
+  fromJust
+    (type-check-expect Δ₀ [] higherOrderPolyArg ℕ₀)
+    is-just
 
 higherOrderSharedArg : GTerm Δ₀
 higherOrderSharedArg = usePolyNat ·[ 45 ] polyIdSelf
 
 higherOrderSharedArg⊢ : Δ₀ ∣ [] ⊢ higherOrderSharedArg ⦂ ℕ₀
 higherOrderSharedArg⊢ =
-  ⊢· usePolyNat⊢ polyIdSelf⊢ (∀X⇒X∼∀X⇒X {Δ = Δ₀})
+  fromJust
+    (type-check-expect Δ₀ [] higherOrderSharedArg ℕ₀)
+    is-just
 
 ------------------------------------------------------------------------
 -- Phase-1 catalog entries

@@ -10,12 +10,14 @@ module proof.DGG.Catchup.ColumnSupportProof where
 
 import Data.Fin as Fin
 import Data.List as List
-open import Data.Nat.Properties using (n<1+n)
+open import Data.Nat.Properties using (n<1+n; ≤-<-trans)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; cong₂; trans)
   renaming (subst to subst≡)
 
 open import Types
+open import Consistency using
+  (Env∼; _⊢_∼_; castSize-renameEnvᶜ; castSize-close-inst-≤)
 open import CastTerms using (Term)
 open import Reduction using
   (StoreChange; StoreChanges; _—→[_]_; _—↠[_]_; keep; bind;
@@ -30,6 +32,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef
     ( castSize; CastColumn; []ᶜ; _▻ᶜ_; columnSize; applyColumn
     ; mapColumn₁; mapColumn; _++χ_
     ; ground-other-decreaseᵀ; project-expand-decreaseᵀ
+    ; castSize-↑close-instᵀ; inst-alloc-decreaseᵀ
+    ; columnSize-mapᵀ
     ; composeWorldExtendᴿᵀ; mapCtxᴿ-composeᵀ
     ; composeReductionᵀ; liftReductionThroughColumnᵀ
     )
@@ -43,6 +47,39 @@ ground-other-decrease c = n<1+n (castSize c)
 
 project-expand-decrease : project-expand-decreaseᵀ
 project-expand-decrease c = n<1+n (castSize c)
+
+castSize-↑close-inst : castSize-↑close-instᵀ
+castSize-↑close-inst {c = c} = castSize-close-inst-≤ c
+
+inst-alloc-decrease : inst-alloc-decreaseᵀ
+inst-alloc-decrease {c = c} B≢★ =
+  ≤-<-trans (castSize-close-inst-≤ c) (n<1+n (castSize c))
+
+------------------------------------------------------------------------
+-- Cast-column size preservation under store changes
+------------------------------------------------------------------------
+
+castSize-applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χ : StoreChange Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (applyConsistency χ c) ≡ castSize c
+castSize-applyConsistency keep c = refl
+castSize-applyConsistency (bind A) c =
+  castSize-renameEnvᶜ Fin.suc (λ X → refl) c
+
+columnSize-map₁ : ∀ {Δ Δ′} {A B : Ty Δ}
+  → (χ : StoreChange Δ Δ′)
+  → (κ : CastColumn A B)
+  → columnSize (mapColumn₁ χ κ) ≡ columnSize κ
+columnSize-map₁ χ []ᶜ = refl
+columnSize-map₁ χ (c ▻ᶜ κ)
+  rewrite castSize-applyConsistency χ c | columnSize-map₁ χ κ = refl
+
+columnSize-map : columnSize-mapᵀ
+columnSize-map [] κ = refl
+columnSize-map (χ ∷ χs) κ =
+  trans (columnSize-map χs (mapColumn₁ χ κ)) (columnSize-map₁ χ κ)
 
 ------------------------------------------------------------------------
 -- Store-change append algebra

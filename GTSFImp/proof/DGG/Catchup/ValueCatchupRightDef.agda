@@ -10,7 +10,7 @@ module proof.DGG.Catchup.ValueCatchupRightDef where
 --     the shared target value-spine view.
 
 import Data.Fin as Fin
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_)
 open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
@@ -19,6 +19,7 @@ open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; _↦_; ∀ᶜ_;
    _!; ？_; inst_; gen_; instᵐ; ↑ᶜ_; close-instᶜ;
    bot-elim; bot-intro)
+open import Consistency using (castSize) public
 open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using
   (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;
@@ -30,21 +31,8 @@ open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
--- Cast-column measure
+-- Cast columns
 ------------------------------------------------------------------------
-
-castSize : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-  → μ ⊢ A ∼ B
-  → ℕ
-castSize (id a) = suc zero
-castSize (c ↦ d) = suc (castSize c + castSize d)
-castSize (∀ᶜ c) = suc (castSize c)
-castSize (_! c) = suc (castSize c)
-castSize (？ c) = suc (castSize c)
-castSize (inst_ c B≢★) = suc (castSize c)
-castSize (gen_ c A≢★) = suc (castSize c)
-castSize bot-elim = suc zero
-castSize bot-intro = suc zero
 
 infixr 5 _▻ᶜ_
 
@@ -95,6 +83,12 @@ _++χ_ : ∀ {Δ Δ′ Δ″}
 -- Result and driver surfaces
 ------------------------------------------------------------------------
 
+-- WARNING: refuted as stated — an arbitrary CastColumn with no
+-- per-cast CatchupCast provenance admits the projection-mismatch
+-- package (checked: ValueCatchupProvenanceGapScratch.agda at the repo
+-- root). The M6 driver milestone will replace this surface with a
+-- provenance-carrying statement. Kept for interface reference only;
+-- do not attempt to inhabit.
 ValueCatchupRight² : Set
 ValueCatchupRight² = ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
@@ -162,6 +156,12 @@ InstCatchupRightAt fuel = ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
         × (W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
             ECR.transport⊑ᵂ ext q))
 
+-- WARNING: refuted as stated — an arbitrary CastColumn with no
+-- per-cast CatchupCast provenance admits the projection-mismatch
+-- package (checked: ValueCatchupProvenanceGapScratch.agda at the repo
+-- root). The M6 driver milestone will replace this surface with a
+-- provenance-carrying statement. Kept for interface reference only;
+-- do not attempt to inhabit.
 ValueCatchupRightAt : ℕ → Set
 ValueCatchupRightAt fuel = ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -215,10 +215,12 @@ project-expand-decreaseᵀ = ∀ {Δ} {μ : Env∼ Δ} {G B : Ty Δ}
   → castSize c < castSize (？ c)
 
 castSize-↑close-instᵀ : Set
+-- Equality was refuted; see
+-- m6-foundation-castSize-↑close-inst-blocked.red.
 castSize-↑close-instᵀ = ∀ {Δ} {ν : Env∼ Δ}
     {A : Ty (suc Δ)} {B : Ty Δ}
     {c : instᵐ ν ⊢ A ∼ ⇑ᵗ B}
-  → castSize (↑ᶜ (close-instᶜ c)) ≡ castSize c
+  → castSize (↑ᶜ (close-instᶜ c)) ≤ castSize c
 
 inst-alloc-decreaseᵀ : Set
 inst-alloc-decreaseᵀ = ∀ {Δ} {ν : Env∼ Δ}

@@ -1,6 +1,11 @@
 M5 smart comma M-2 blocked at TargetExtend smart-fresh-behind.
 
-Status: BLOCKED, 2026-08-12.
+Status: RESOLVED in the M-2 continuation, 2026-08-12.
+
+Continuation: `proof.DGG.TargetExtend` now carries the off-image
+disjointness lemmas and closes both smart constructor branches of
+`⊢²-target-insert`.  The next blocker is recorded in
+`m5-smart-comma-target-bind-lift-pivot-blocked.red`.
 
 Checked before the block:
 

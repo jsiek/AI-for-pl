@@ -47,7 +47,8 @@ open import proof.ImprecisionConsistency using
 open import proof.DGG.Parked.ParkedWorldProof using (right-bind-⊑ᵂ)
 open import proof.DGG.CenterRename using
   (_∘↪_; toRenameᵗ-∘; sucMaybe; preimage?; sucMaybe-nothing;
-   renameEnv; renameEnv-image; renameEnv-off)
+   preimage?-image; EmbeddingPair; pair; embeddingPair; EmbeddingPushout;
+   embeddingPushout; renameEnv; renameEnv-image; renameEnv-off)
 import proof.Imprecision as PI
 
 open CTI2 using
@@ -332,6 +333,82 @@ preimage-id↪ {Nat.suc Δ} Fin.zero = refl
 preimage-id↪ {Nat.suc Δ} (Fin.suc Z)
     rewrite preimage-id↪ Z =
   refl
+
+embeddingPair-disjoint : ∀ Δ₁ Δ₂
+    {Z₁ : TyVar Δ₁} {Z₂ : TyVar Δ₂}
+  → toRenameᵗ (EmbeddingPair.right (embeddingPair Δ₁ Δ₂)) Z₂
+    ≢ toRenameᵗ (EmbeddingPair.left (embeddingPair Δ₁ Δ₂)) Z₁
+embeddingPair-disjoint Nat.zero Δ₂ {Z₁ = ()}
+embeddingPair-disjoint (Nat.suc Δ₁) Δ₂ {Z₁ = Fin.zero} eq =
+  suc≢zero eq
+embeddingPair-disjoint (Nat.suc Δ₁) Δ₂ {Z₁ = Fin.suc Z₁} eq =
+  embeddingPair-disjoint Δ₁ Δ₂ (fin-suc-injective eq)
+
+pushout-off-image-disjoint : ∀ {Δ Δ′ Δᵐ}
+  → (π : Δ ↪ᵗ Δ′)
+  → (old : Δ ↪ᵗ Δᵐ)
+  → {Z′ : TyVar Δ′} {Zᵐ : TyVar Δᵐ}
+  → preimage? π Z′ ≡ nothing
+  → toRenameᵗ (EmbeddingPushout.old′ (embeddingPushout π old)) Z′
+    ≢ toRenameᵗ (EmbeddingPushout.premise (embeddingPushout π old)) Zᵐ
+pushout-off-image-disjoint {Δ′ = Δ′} {Δᵐ = Δᵐ} empty empty pre eq =
+  embeddingPair-disjoint Δᵐ Δ′ eq
+pushout-off-image-disjoint empty (skip old)
+    {Zᵐ = Fin.zero} pre eq =
+  suc≢zero eq
+pushout-off-image-disjoint empty (skip old)
+    {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint empty old pre (fin-suc-injective eq)
+pushout-off-image-disjoint (skip π) old
+    {Z′ = Fin.zero} pre eq =
+  zero≢suc eq
+pushout-off-image-disjoint (skip π) old
+    {Z′ = Fin.suc Z′} pre eq =
+  pushout-off-image-disjoint π old pre (fin-suc-injective eq)
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.zero} pre eq =
+  just≢nothing pre
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.zero} pre eq =
+  suc≢zero eq
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint (keep π) old pre
+    (fin-suc-injective eq)
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.zero} pre eq =
+  just≢nothing pre
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.zero} pre eq =
+  suc≢zero eq
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint π old
+    (sucMaybe-nothing (preimage? π Z′) pre)
+    (fin-suc-injective eq)
+
+target-insert-off-image-center : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Y′ : TyVar Δᴿ′}
+  → (ins : TargetInsert ρ π W W′)
+  → preimage? ρ Y′ ≡ nothing
+  → preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ nothing
+target-insert-off-image-center {ρ = ρ} {π = π} {W′ = W′} {Y′ = Y′}
+    ins off
+    with preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) in pre
+target-insert-off-image-center {ρ = ρ} {π = π} {Y′ = Y′} ins off
+    | nothing = refl
+target-insert-off-image-center {ρ = ρ} {π = π} {Y′ = Y′} ins off
+    | just Z with target-center-reflect ins (preimage?-sound π pre)
+target-insert-off-image-center {ρ = ρ} {π = π} {Y′ = Y′} ins off
+    | just Z | Y , y′-eq , target-eq =
+  ⊥-elim (just≢nothing just-eq)
+  where
+  just-eq : just Y ≡ nothing
+  just-eq =
+    trans (sym (preimage?-image ρ Y))
+      (trans (sym (cong (preimage? ρ) y′-eq)) off)
 
 liftBoth-source-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -734,6 +811,459 @@ targetLiftCtxLeft : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
 targetLiftCtxLeft ins CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
 targetLiftCtxLeft ins (CTI2.liftᴸ-∷ liftγ) =
   CTI2.liftᴸ-∷ (targetLiftCtxLeft ins liftγ)
+
+targetSmartLiftCtxLeft : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ Δᵐ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′} {πᵐ : Δᵐ ↪ᵗ Δᵐ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+    {Wᵐ′ : World (Nat.suc Δᴸ) Δᴿ′ Δᵐ′}
+    {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
+  → (ins : TargetInsert ρ π W W′)
+  → (insᵐ : TargetInsert ρ πᵐ Wᵐ Wᵐ′)
+  → CTI2.SmartLiftCtxᴸ γ γᵐ
+  → CTI2.SmartLiftCtxᴸ (mapCtxᵀ ins γ) (mapCtxᵀ insᵐ γᵐ)
+targetSmartLiftCtxLeft ins insᵐ CTI2.smart-lift-[] =
+  CTI2.smart-lift-[]
+targetSmartLiftCtxLeft ins insᵐ (CTI2.smart-lift-∷ liftγ) =
+  CTI2.smart-lift-∷ (targetSmartLiftCtxLeft ins insᵐ liftγ)
+
+smartAliasInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+  → TargetInsert ρ π W W′
+  → World (Nat.suc Δᴸ) Δᴿ Δ
+  → World (Nat.suc Δᴸ) Δᴿ′ Δ′
+smartAliasInsertWorld {π = π} {W′ = W′} ins Wᵐ =
+  CTI2.world (π ∘↪ CTI2.ηᴸʷ Wᵐ) (CTI2.ηᴿʷ W′)
+    (renameEnv π (CTI2.impEnvʷ Wᵐ))
+    (CTI2.sourceStoreʷ Wᵐ) (CTI2.targetStoreʷ W′)
+
+smartAlias-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ∀ Y
+  → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ))
+      (toRenameᵗ ρ Y)
+    ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+smartAlias-target-insert {π = π} {W = W} ins guard Y =
+  trans (target-insert ins Y)
+    (cong (toRenameᵗ π)
+      (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y)))
+
+smartAliasTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → TargetInsert ρ π Wᵐ (smartAliasInsertWorld ins Wᵐ)
+smartAliasTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} ins guard =
+  record
+    { sourceStore-kept = refl
+    ; transport⊑ᵂ = λ {A = A} {B = B} p →
+        transport⊑ᵂ-from-geometry {ρ = ρ} {π = π}
+          {W = Wᵐ} {W′ = smartAliasInsertWorld ins Wᵐ}
+          {A = A} {B = B}
+          (λ C → trans
+            (renameᵗ-cong C (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ)))
+            (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ Wᵐ))
+              (toRenameᵗ π) C)))
+          (λ C → trans
+            (renameᵗ-comp (toRenameᵗ ρ)
+              (toRenameᵗ (CTI2.ηᴿʷ
+                (smartAliasInsertWorld ins Wᵐ))) C)
+            (trans
+              (renameᵗ-cong C (smartAlias-target-insert ins guard))
+              (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵐ))
+                (toRenameᵗ π) C))))
+          (λ Z eq → trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ) Z) eq)
+          p
+    ; targetStore-rename =
+        subst≡ (λ Σ → StoreRename (toRenameᵗ ρ) Σ
+          (CTI2.targetStoreʷ W′))
+          (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard))
+          (targetStore-rename ins)
+    ; source-resolve = λ X → refl
+    ; target-resolve = λ X →
+        trans (target-resolve ins X)
+          (cong (λ Σ → renameᵗ (toRenameᵗ ρ)
+            (CTI2.resolveVar Σ X))
+            (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
+    ; align-insert = align′
+    ; source-insert = toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ)
+    ; target-insert = smartAlias-target-insert ins guard
+    ; impEnv-insert = renameEnv-image π (CTI2.impEnvʷ Wᵐ)
+    ; impEnv-off-insert = renameEnv-off π (CTI2.impEnvʷ Wᵐ)
+    ; target-center-reflect = target-center-reflect′
+    ; target-source-reflect = target-source-reflect′
+    }
+  where
+  align′ : ∀ {Xᴸ Xᴿ}
+    → CTI2.CenterAligned Wᵐ Xᴸ Xᴿ
+    → CTI2.CenterAligned (smartAliasInsertWorld ins Wᵐ)
+        Xᴸ (toRenameᵗ ρ Xᴿ)
+  align′ {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} aligned =
+    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+      (trans (cong (toRenameᵗ π) aligned)
+        (sym (smartAlias-target-insert ins guard Xᴿ)))
+
+  target-center-reflect′ : ∀ {Y′ Z}
+    → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
+        ≡ toRenameᵗ π Z
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y ×
+        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+  target-center-reflect′ eq
+      with target-center-reflect ins eq
+  target-center-reflect′ eq | Y , y′-eq , target-eq =
+    Y , y′-eq ,
+      trans (CTI2.SmartAliasMergeGuard.target-frozen guard Y) target-eq
+
+  target-source-reflect′ : ∀ {Xᴸ Y′}
+    → CTI2.CenterAligned (smartAliasInsertWorld ins Wᵐ) Xᴸ Y′
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵐ Xᴸ Y
+  target-source-reflect′ {Xᴸ = Xᴸ} {Y′ = Y′} aligned
+      with target-center-reflect ins target-image
+    where
+    target-image : toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+    target-image =
+      trans (sym aligned) (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+  target-source-reflect′ aligned | Y , y′-eq , target-eq =
+    Y , y′-eq ,
+      trans (sym target-eq)
+        (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y))
+
+smartAliasGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → CTI2.SmartAliasMergeGuard W′ (smartAliasInsertWorld ins Wᵐ)
+      (toRenameᵗ ρ β) (toRenameᵗ ρ α)
+smartAliasGuardInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} {β = β} {α = α} ins guard =
+  CTI2.smart-alias-merge-guard
+    (targetStore-rename ins
+      (CTI2.SmartAliasMergeGuard.β:=＇α guard))
+    (targetStore-rename ins
+      (CTI2.SmartAliasMergeGuard.α:=★ guard))
+    source-store target-store target-frozen′ pending-at-alias′
+    old-source-frozen′ no-old-source-at-alias′ alias-mark′ name-mark′
+  where
+  source-store : CTI2.sourceStoreʷ (smartAliasInsertWorld ins Wᵐ)
+      ≡ store-lift (CTI2.sourceStoreʷ W′)
+  source-store =
+    trans (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
+      (cong store-lift (sym (sourceStore-kept ins)))
+
+  target-store : CTI2.targetStoreʷ (smartAliasInsertWorld ins Wᵐ)
+      ≡ CTI2.targetStoreʷ W′
+  target-store = refl
+
+  target-frozen′ : ∀ Y′
+    → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+  target-frozen′ Y′ = refl
+
+  pending-at-alias′ :
+    toRenameᵗ (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) Fin.zero
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β)
+  pending-at-alias′ =
+    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+      (trans (cong (toRenameᵗ π)
+        (CTI2.SmartAliasMergeGuard.pending-at-alias guard))
+        (sym (target-insert ins β)))
+
+  old-source-frozen′ : ∀ Xᴸ
+    → toRenameᵗ
+        (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
+  old-source-frozen′ Xᴸ =
+    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
+      (trans (cong (toRenameᵗ π)
+        (CTI2.SmartAliasMergeGuard.old-source-frozen guard Xᴸ))
+        (sym (source-insert ins Xᴸ)))
+
+  no-old-source-at-alias′ : ∀ Xᴸ
+    → toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
+      ≢ toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β)
+  no-old-source-at-alias′ Xᴸ eq =
+    CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard Xᴸ
+      (toRenameᵗ-injective π
+        (trans (sym (source-insert ins Xᴸ))
+          (trans eq (target-insert ins β))))
+
+  alias-mark′ :
+    CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+      (toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β))
+      ≡ X⊑★
+  alias-mark′ =
+    trans (cong (renameEnv π (CTI2.impEnvʷ Wᵐ))
+        (target-insert ins β))
+      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTI2.ηᴿʷ W) β))
+        (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard))
+
+  name-mark′ :
+    CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+      (toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ α))
+      ≡ X⊑★
+  name-mark′ =
+    trans (cong (renameEnv π (CTI2.impEnvʷ Wᵐ))
+        (target-insert ins α))
+      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTI2.ηᴿʷ W) α))
+        (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard))
+
+smartFreshInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → World (Nat.suc Δᴸ) Δᴿ′
+      (EmbeddingPushout.Δᵐ′
+        (embeddingPushout π
+          (CTI2.SmartFreshBehindGuard.oldCenters guard)))
+smartFreshInsertWorld {π = π} {W′ = W′} {Wᵐ = Wᵐ} ins guard =
+  CTI2.world
+    (EmbeddingPushout.premise po ∘↪ CTI2.ηᴸʷ Wᵐ)
+    (EmbeddingPushout.old′ po ∘↪ CTI2.ηᴿʷ W′)
+    (renameEnv (EmbeddingPushout.premise po) (CTI2.impEnvʷ Wᵐ))
+    (CTI2.sourceStoreʷ Wᵐ) (CTI2.targetStoreʷ W′)
+  where
+  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+
+smartFresh-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ∀ Y
+  → toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard))
+      (toRenameᵗ ρ Y)
+    ≡ toRenameᵗ (EmbeddingPushout.premise
+        (embeddingPushout π
+          (CTI2.SmartFreshBehindGuard.oldCenters guard)))
+        (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+smartFresh-target-insert {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} ins guard Y =
+  trans (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ Y))
+    (trans (cong (toRenameᵗ old′) (target-insert ins Y))
+      (trans (sym (commutes (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+        (cong (toRenameᵗ πᵐ)
+          (sym (CTI2.SmartFreshBehindGuard.target-frozen guard Y)))))
+  where
+  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  πᵐ = EmbeddingPushout.premise po
+  old′ = EmbeddingPushout.old′ po
+  commutes = EmbeddingPushout.commutes po
+
+smartFreshTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → TargetInsert ρ (EmbeddingPushout.premise
+      (embeddingPushout π
+        (CTI2.SmartFreshBehindGuard.oldCenters guard))) Wᵐ
+      (smartFreshInsertWorld ins guard)
+smartFreshTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} ins guard =
+  record
+    { sourceStore-kept = refl
+    ; transport⊑ᵂ = λ {A = A} {B = B} p →
+        transport⊑ᵂ-from-geometry {ρ = ρ} {π = πᵐ}
+          {W = Wᵐ} {W′ = smartFreshInsertWorld ins guard}
+          {A = A} {B = B}
+          (λ C → trans
+            (renameᵗ-cong C (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ)))
+            (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ Wᵐ))
+              (toRenameᵗ πᵐ) C)))
+          (λ C → trans
+            (renameᵗ-comp (toRenameᵗ ρ)
+              (toRenameᵗ (CTI2.ηᴿʷ
+                (smartFreshInsertWorld ins guard))) C)
+            (trans
+              (renameᵗ-cong C (smartFresh-target-insert ins guard))
+              (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵐ))
+                (toRenameᵗ πᵐ) C))))
+          (λ Z eq → trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ) Z) eq)
+          p
+    ; targetStore-rename =
+        subst≡ (λ Σ → StoreRename (toRenameᵗ ρ) Σ
+          (CTI2.targetStoreʷ W′))
+          (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard))
+          (targetStore-rename ins)
+    ; source-resolve = λ X → refl
+    ; target-resolve = λ X →
+        trans (target-resolve ins X)
+          (cong (λ Σ → renameᵗ (toRenameᵗ ρ)
+            (CTI2.resolveVar Σ X))
+            (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard)))
+    ; align-insert = align′
+    ; source-insert = toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ)
+    ; target-insert = smartFresh-target-insert ins guard
+    ; impEnv-insert = renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
+    ; impEnv-off-insert = renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ)
+    ; target-center-reflect = target-center-reflect′
+    ; target-source-reflect = target-source-reflect′
+    }
+  where
+  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  πᵐ = EmbeddingPushout.premise po
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old′ = EmbeddingPushout.old′ po
+  commutes = EmbeddingPushout.commutes po
+
+  align′ : ∀ {Xᴸ Xᴿ}
+    → CTI2.CenterAligned Wᵐ Xᴸ Xᴿ
+    → CTI2.CenterAligned (smartFreshInsertWorld ins guard)
+        Xᴸ (toRenameᵗ ρ Xᴿ)
+  align′ {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} aligned =
+    trans (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+      (trans (cong (toRenameᵗ πᵐ) aligned)
+        (sym (smartFresh-target-insert ins guard Xᴿ)))
+
+  target-center-reflect′ : ∀ {Y′ Z}
+    → toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        ≡ toRenameᵗ πᵐ Z
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y ×
+        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+  target-center-reflect′ {Y′ = Y′} {Z = Z} eq
+      with preimage? ρ Y′ in pre
+  target-center-reflect′ {Y′ = Y′} {Z = Z} eq
+      | nothing =
+    ⊥-elim (pushout-off-image-disjoint π old
+      (target-insert-off-image-center ins pre) nested-eq)
+    where
+    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+      ≡ toRenameᵗ πᵐ Z
+    nested-eq =
+      trans (sym (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Y′)) eq
+  target-center-reflect′ {Y′ = Y′} {Z = Z} eq
+      | just Y =
+    Y , preimage?-sound ρ pre ,
+      toRenameᵗ-injective πᵐ (trans (sym left-image) nested-eq)
+    where
+    y′-eq : Y′ ≡ toRenameᵗ ρ Y
+    y′-eq = preimage?-sound ρ pre
+
+    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+      ≡ toRenameᵗ πᵐ Z
+    nested-eq =
+      trans (sym (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Y′)) eq
+
+    left-image : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    left-image =
+      trans (cong (λ T →
+          toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) T)) y′-eq)
+        (trans (cong (toRenameᵗ old′) (target-insert ins Y))
+          (trans (sym (commutes (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+            (cong (toRenameᵗ πᵐ)
+              (sym (CTI2.SmartFreshBehindGuard.target-frozen guard Y)))))
+
+  target-source-reflect′ : ∀ {Xᴸ Y′}
+    → CTI2.CenterAligned (smartFreshInsertWorld ins guard) Xᴸ Y′
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵐ Xᴸ Y
+  target-source-reflect′ {Xᴸ = Xᴸ} {Y′ = Y′} aligned
+      with target-center-reflect′ target-image
+    where
+    target-image :
+      toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+    target-image =
+      trans (sym aligned) (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+  target-source-reflect′ aligned | Y , y′-eq , target-eq =
+    Y , y′-eq , sym target-eq
+
+smartFreshGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → CTI2.SmartFreshBehindGuard W′ (smartFreshInsertWorld ins guard)
+smartFreshGuardInsert {π = π} {W = W} {W′ = W′} {Wᵐ = Wᵐ}
+    ins guard =
+  CTI2.smart-fresh-behind-guard old′
+    source-store target-store target-frozen′ old-source-frozen′
+    fresh-not-target′ fresh-mark′
+  where
+  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  πᵐ = EmbeddingPushout.premise po
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old′ = EmbeddingPushout.old′ po
+  commutes = EmbeddingPushout.commutes po
+
+  source-store : CTI2.sourceStoreʷ (smartFreshInsertWorld ins guard)
+      ≡ store-lift (CTI2.sourceStoreʷ W′)
+  source-store =
+    trans (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
+      (cong store-lift (sym (sourceStore-kept ins)))
+
+  target-store : CTI2.targetStoreʷ (smartFreshInsertWorld ins guard)
+      ≡ CTI2.targetStoreʷ W′
+  target-store = refl
+
+  target-frozen′ : ∀ Y′
+    → toRenameᵗ
+        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+      ≡ toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+  target-frozen′ = toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′)
+
+  old-source-frozen′ : ∀ Xᴸ
+    → toRenameᵗ
+        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ)
+  old-source-frozen′ Xᴸ =
+    trans (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
+      (trans (cong (toRenameᵗ πᵐ)
+        (CTI2.SmartFreshBehindGuard.old-source-frozen guard Xᴸ))
+        (trans (commutes (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ))
+          (cong (toRenameᵗ old′) (sym (source-insert ins Xᴸ)))))
+
+  fresh-not-target′ : ∀ Y′
+    → toRenameᵗ
+        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+      ≢ toRenameᵗ
+        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero
+  fresh-not-target′ Y′ eq
+      with target-center-reflect
+        (smartFreshTargetInsert ins guard) target-image
+    where
+    target-image :
+      toRenameᵗ
+        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+    target-image =
+      trans eq (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+  fresh-not-target′ Y′ eq | Y , y′-eq , target-eq =
+    CTI2.SmartFreshBehindGuard.fresh-not-target guard Y target-eq
+
+  fresh-mark′ :
+    CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+      (toRenameᵗ
+        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero)
+      ≡ X⊑★
+  fresh-mark′ =
+    trans (cong (renameEnv πᵐ (CTI2.impEnvʷ Wᵐ))
+        (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Fin.zero))
+      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero))
+        (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard))
 
 insertRebaseWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2039,6 +2569,26 @@ primResultTy-renameᵗ ρ and𝔹 = refl
   CTI2.Λ⊑² Anv zero∈A (targetLiftCtxLeft ins liftγ) vV
     (target-typing-insert ins M′⊢)
     (⊢²-target-insert (liftLeftTargetInsert {v = X⊑★} ins) V⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {W = W} {γ = γ} ins
+    (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {p = p}
+      Anv zero∈A (CTI2.smart-merge-alias guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (CTI2.smart-merge-alias (smartAliasGuardInsert ins guard))
+    (targetSmartLiftCtxLeft ins (smartAliasTargetInsert ins guard) liftγ)
+    vV (target-typing-insert ins M′⊢)
+    (⊢²-target-insert (smartAliasTargetInsert ins guard) V⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {W = W} {γ = γ} ins
+    (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {p = p}
+      Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (CTI2.smart-fresh-behind (smartFreshGuardInsert ins guard))
+    (targetSmartLiftCtxLeft ins (smartFreshTargetInsert ins guard) liftγ)
+    vV (target-typing-insert ins M′⊢)
+    (⊢²-target-insert (smartFreshTargetInsert ins guard) V⊑M′)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} {W′ = W′} ins
     (CTI2.•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}

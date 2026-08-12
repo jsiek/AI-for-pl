@@ -1,6 +1,8 @@
 module DGG.DoubleInterpreter where
 
 -- File Charter:
+--   * EXPERIMENTAL DEAD END: retained to document the abandoned synchronized
+--     execution route; it is not an intended dependency of the DGG proof.
 --   * Runs the two compiled endpoints of a closed gradual-term imprecision
 --     derivation together.
 --   * Defines structural narrowing for semantic values, including closure

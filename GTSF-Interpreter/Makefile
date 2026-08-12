@@ -72,6 +72,22 @@ check-adequacy:
 	$(AGDA) -i . -i ../GTSF \
 	  InterpreterAdequacy/BulletCatchUpContext.agda
 
+check-lr:
+	sh scripts/check-no-small-step-imports.sh \
+	  LR/LRAll.agda $(AGDA) -i . -i ../GTSF
+
+check-lr-narrow:
+	sh scripts/check-no-small-step-imports.sh \
+	  LR-narrow/LRNarrowAll.agda $(AGDA) -i . -i ../GTSF
+
+check-pretty:
+	sh scripts/check-no-small-step-imports.sh \
+	  Pretty/PrettyAll.agda $(AGDA) -i . -i ../GTSF
+
+check-lr-context:
+	sh scripts/check-no-small-step-imports.sh \
+	  LR-narrow/Context/ContextAll.agda $(AGDA) -i . -i ../GTSF
+
 check-milestone-4: check-milestone-4-firewall
 
 check-milestone-4-firewall:
@@ -191,7 +207,8 @@ check-simulation-layer-firewall:
 	check-value-narrowing check-milestone-2 check-milestone-2-firewall \
 	check-term-narrowing check-compile-narrowing check-milestone-3 \
 	check-milestone-3-firewall check-semantic-typing check-error-freedom \
-	check-type-soundness check-adequacy \
+	check-type-soundness check-adequacy check-lr check-lr-narrow check-pretty \
+	check-lr-context \
 	check-milestone-4 check-milestone-4-firewall \
 	check-milestone-5-foundation \
 	check-static-inversion \

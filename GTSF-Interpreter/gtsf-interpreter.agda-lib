@@ -1,0 +1,5 @@
+name: gtsf-interpreter
+depend: standard-library
+include:
+  .
+  ../GTSF

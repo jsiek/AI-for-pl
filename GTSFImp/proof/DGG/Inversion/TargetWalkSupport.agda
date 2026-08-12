@@ -943,6 +943,10 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv₀) Anv Ans
     (CTI2.Λ⊑² Anv₀ z∈A liftγ vV target⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ Anv₀
     (nonvar-occurs-nonstar Anv₀ z∈A) prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv₀) Anv Ans
+    (CTI2.Λ⊑²-smart-comma Anv₀ z∈A liftW liftγ vV target⊢ prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ Anv₀
+    (nonvar-occurs-nonstar Anv₀ z∈A) prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-cast sv₀ inj)
     Anv () (CTI2.cast⊑² c prem q)
 tagged-target-nonvar-nonstar-spine-⊥ (sv-cast sv₀ fun)

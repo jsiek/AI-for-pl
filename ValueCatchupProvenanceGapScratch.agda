@@ -10,6 +10,9 @@ module ValueCatchupProvenanceGapScratch where
 --     the column; the fuel surface ValueCatchupRightAt inherits the same
 --     requirement. The CatchupCast premise on ExtraCastRight² is doing
 --     real work and must not be dropped one level up.
+--   * Tooling note: with the standard root-only command, also pass
+--     `-i GTSFImp/proof/DGG/notes` because this root scratch imports
+--     `ProjectionMismatchStarRepScratch` from the notes directory.
 
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ-syntax; _×_; _,_)

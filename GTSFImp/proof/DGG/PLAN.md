@@ -300,6 +300,64 @@ Next: M5 relational continuations + M6 driver (designs validated),
 then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
 pedigree.
 
+## M5 depth-≥1 satisfiability finding (2026-08-12, ESCALATED)
+
+The Λ branch of the instantiation inversion is CLOSED at depth 0 (the
+Λ⊑Λ² base: PR #135 + branch). At recursion depth ≥1 (source values with
+NESTED one-sided type abstractions meeting an inst cast), the
+post-instantiation relation appears INEXPRESSIBLE in the current
+parked/rebase discipline — machine-checked two ways
+(M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
+same-side source OPE reversal (impossible), and the non-moving
+sameWorldRebaseAt route leaves an empty post obligation (reduces to
+＇1 ⊑ ＇3 at a concrete finite body). Full resister chain in
+notes/m5-inst-inversion-*.red; verdict note:
+m5-inst-inversion-lambda-under-lift-satisfiability.red.
+
+Screen verdict (2026-08-12, notes/M5-DEPTH-SCREEN.md): REACHED — the
+compile image produces the depth-2 geometry (use-dyn source-triple ⊑
+use-dyn target-one; Λ⊑ᴳ/Λ⊑ᴳ/Λ⊑Λᴳ argument stack; right inst cast in the
+initial compiled operand). Caveat: screening-grade evidence (source
+shape + inst site checked; the target ⊢² stack inferred from
+compile-preservation, not per-step). A simple program-reachability
+premise on InstCatchupRight² is therefore NOT viable.
+
+DECIDED (user, 2026-08-12): approach A3 — the SMART-COMMA rule variant
+(cambridge26 notes, Example 4 + "Smart comma" section). The pending
+source binder's Λ⊑² lift ALIGHTS ON THE EXISTING ALIAS CENTER (β := ＇α)
+with DYNAMIC (X⊑★-family) marks at both fresh centers — the mechanized
+`Γ ,, α:=★` with the id_★ mark arithmetic, two-clause (merge when the
+partner exists, plain extension otherwise). Selected by the calibration
+matrix (notes/M5-SMART-COMMA-CALIBRATION.md; scratch
+M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
+cells CHECKED-OK on both E4 (depth-0, coexists with the live closure)
+and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
+evidence because StoreRepImp canonicalizes the alias through the name
+to ★; A2 (merge at the name) dies at the variable leaf.
+
+## A3 smart-comma migration (M-1..M-3 done) — FRONTIER MARKER
+
+Migration gates (each gated on All.agda green; hygiene FunExt-only):
+  M-1  DONE: informal rule + exact constructor premises pre-flighted in
+       scratch, validated against BOTH calibration examples (E4 re-derived;
+       D1 package derived; Λ⊑Λ² undisturbed).
+  M-2  DONE (`85dfd28`): live rule in CastTermImprecision2 + stack
+       migration, riskiest consumers first (M3 Inversion stack, then
+       CenterRename, TargetExtend, M4 Catchup workers, decay/lift modules).
+  M-3  DONE (`da0541e`): BLOCKER-OVERCOME WITNESS
+       `proof.DGG.SmartCommaWitness.d1-top-smart-live` derives the report's
+       D1 instance (notes/M5-DEPTH1-RAW-REPORT.md §4 — Λ (Λ V) ⊑ post at
+       W₂) LIVE; RESOLVED postscripts added to the satisfiability .red notes.
+  M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
+       of the M5 instantiation inversion (Catchup/InstInversionProof),
+       then the source-strip cases, then Λ-package assembly, then the
+       M5 dispatcher closes InstCatchupRightAt, then the M6 driver
+       knot (ValueCatchupRightProvAt), then M7 sim-right².
+       NOTE for M-4: with the smart rule, retry the DIRECT route for
+       the recursive case first — the lift-outside/exchange saga
+       (center-map/CenterMapSupport layers) may be bypassable entirely,
+       since the smart Λ⊑² no longer forces a fresh front center.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

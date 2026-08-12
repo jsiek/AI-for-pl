@@ -49,6 +49,8 @@ import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
 import proof.DGG.Catchup.InstCatchupRightRelProof
+import proof.DGG.Catchup.InstInversionDef
+import proof.DGG.Catchup.InstInversionProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)
@@ -70,6 +72,7 @@ import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape
 import proof.DGG.Phase3DeepDives
 import proof.DGG.GroundCastTargetExamples
+import proof.DGG.SmartCommaWitness
 
 -- Probes and counterexample records (design decisions, kept checked)
 import proof.DGG.SourceStarProbe
@@ -86,3 +89,5 @@ import proof.DGG.ExtraCastRight2Counterexample
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename
 import proof.DGG.WorldSupport
+import proof.DGG.TargetExtend
+import proof.DGG.TargetBindLift

@@ -8,18 +8,22 @@ module proof.DGG.TermImpDecay where
 
 open import Data.List using ([]; _∷_)
 import Data.Fin as Fin
+open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong)
+  using (_≡_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
 open import Types
+open import Consistency using (keep; skip; toRenameᵗ)
 open import Conversion using (Conv↓)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
+import proof.DGG.SealPeelToolkit as SPT
 open import proof.DGG.WorldDecay
 import proof.Imprecision as PI
+open import proof.ImprecisionConsistency using (subst-⊑)
 
 ------------------------------------------------------------------------
 -- Decay under type binders
@@ -41,6 +45,19 @@ liftDecayBoth
     → extendᵐ v μᵈ Z ≡ X⊑★
   lift-mono Fin.zero eq = eq
   lift-mono (Fin.suc Z) eq = mono Z eq
+
+liftBothBinderDecay : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → EnvDecay
+      (CTI2.liftWorldBoth X⊑X W)
+      (CTI2.liftWorldBoth X⊑★ W)
+liftBothBinderDecay = env-decay refl refl refl refl lift-mono
+  where
+  lift-mono : ∀ {Δ} {μ : ImpEnv Δ}
+    → (Z : Fin.Fin (suc Δ))
+    → extendᵐ X⊑X μ Z ≡ X⊑★
+    → extendᵐ X⊑★ μ Z ≡ X⊑★
+  lift-mono Fin.zero eq = refl
+  lift-mono (Fin.suc Z) eq = eq
 
 liftDecayLeft : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
   → (v : VarImp)
@@ -80,6 +97,226 @@ decayLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ} {v} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
 decayLiftCtxᴸ dec CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
 decayLiftCtxᴸ dec (CTI2.liftᴸ-∷ liftγ) =
   CTI2.liftᴸ-∷ (decayLiftCtxᴸ dec liftγ)
+
+decaySmartLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ Wᵐᵈ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → (decᵐ : EnvDecay Wᵐ Wᵐᵈ)
+  → CTI2.SmartLiftCtxᴸ γ γᵐ
+  → CTI2.SmartLiftCtxᴸ (decayCtx dec γ) (decayCtx decᵐ γᵐ)
+decaySmartLiftCtxᴸ dec decᵐ CTI2.smart-lift-[] = CTI2.smart-lift-[]
+decaySmartLiftCtxᴸ dec decᵐ (CTI2.smart-lift-∷ liftγ) =
+  CTI2.smart-lift-∷ (decaySmartLiftCtxᴸ dec decᵐ liftγ)
+
+rename-as-subst : ∀ {Δ Δ′}
+  → (ρ : Δ ⇒ʳ Δ′)
+  → (A : Ty Δ)
+  → substᵗ (λ X → ＇ ρ X) A ≡ renameᵗ ρ A
+rename-as-subst ρ (＇ X) = refl
+rename-as-subst ρ (‵ ι) = refl
+rename-as-subst ρ ★ = refl
+rename-as-subst ρ (A ⇒ B)
+    rewrite rename-as-subst ρ A | rename-as-subst ρ B =
+  refl
+rename-as-subst ρ (`∀ A) =
+  cong `∀
+    (trans (substᵗ-cong A exts-eq)
+      (rename-as-subst (extᵗ ρ) A))
+  where
+  exts-eq : ∀ X
+    → extsᵗ (λ Y → ＇ ρ Y) X ≡ ＇ extᵗ ρ X
+  exts-eq Fin.zero = refl
+  exts-eq (Fin.suc X) = refl
+
+transport⊑ᵂ-by-subst : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ Δ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (σ : Δ ⇒ˢ Δ′)
+  → (∀ Z → CTI2.impEnvʷ W Z ≡ X⊑★
+      → CTI2.impEnvʷ W′ ⊢ σ Z ⊑ ★)
+  → (∀ C → substᵗ σ (CTI2.embedᴸ W C) ≡ CTI2.embedᴸ W′ C)
+  → (∀ C → substᵗ σ (CTI2.embedᴿ W C) ≡ CTI2.embedᴿ W′ C)
+  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → A CTI2.⊑ᵂ⟨ W′ ⟩ B
+transport⊑ᵂ-by-subst {W = W} {W′ = W′} {A = A} {B = B}
+    σ star-map source-eq target-eq p =
+  subst≡
+    (λ L → CTI2.impEnvʷ W′ ⊢ L ⊑ CTI2.embedᴿ W′ B)
+    (source-eq A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ W′ ⊢ substᵗ σ (CTI2.embedᴸ W A) ⊑ R)
+      (target-eq B)
+      (subst-⊑ star-map p))
+
+decaySmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartFreshBehindGuard W Wᵐ
+  → CTI2.SmartFreshBehindGuard Wᵈ (SPT.dynWorld Wᵐ)
+decaySmartFreshBehindGuard
+    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {Δ = Δ} {Δᵐ = Δᵐ}
+    {W = W} {Wᵈ = Wᵈ} {Wᵐ = Wᵐ}
+    (env-decay refl refl refl refl mono) guard =
+  CTI2.smart-fresh-behind-guard
+    (CTI2.SmartFreshBehindGuard.oldCenters guard)
+    (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
+    (CTI2.SmartFreshBehindGuard.targetStore-same guard)
+    transport′
+    (λ Z star → refl)
+    (CTI2.SmartFreshBehindGuard.target-frozen guard)
+    (CTI2.SmartFreshBehindGuard.old-source-frozen guard)
+    (CTI2.SmartFreshBehindGuard.fresh-not-target guard)
+    refl
+    (λ Xᴿ star → refl)
+  where
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+
+  smartSubst : suc Δ ⇒ˢ Δᵐ
+  smartSubst Fin.zero =
+    ＇ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+  smartSubst (Fin.suc Z) = ＇ (toRenameᵗ old Z)
+
+  smartStar : ∀ Z
+    → CTI2.impEnvʷ (CTI2.liftWorldLeft X⊑★ Wᵈ) Z ≡ X⊑★
+    → CTI2.impEnvʷ (SPT.dynWorld Wᵐ) ⊢ smartSubst Z ⊑ ★
+  smartStar Fin.zero star = X⊑★ refl
+  smartStar (Fin.suc Z) star = X⊑★ refl
+
+  source-point : ∀ X
+    → smartSubst (toRenameᵗ (keep (CTI2.ηᴸʷ W)) X)
+      ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) X)
+  source-point Fin.zero = refl
+  source-point (Fin.suc X) =
+    cong ＇_ (sym (CTI2.SmartFreshBehindGuard.old-source-frozen guard X))
+
+  target-point : ∀ Y
+    → smartSubst (toRenameᵗ (skip (CTI2.ηᴿʷ W)) Y)
+      ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+  target-point Y =
+    cong ＇_ (sym (CTI2.SmartFreshBehindGuard.target-frozen guard Y))
+
+  source-eq : ∀ C
+    → substᵗ smartSubst
+        (CTI2.embedᴸ (CTI2.liftWorldLeft X⊑★ Wᵈ) C)
+      ≡ CTI2.embedᴸ (SPT.dynWorld Wᵐ) C
+  source-eq C =
+    trans (substᵗ-rename smartSubst
+        (toRenameᵗ (keep (CTI2.ηᴸʷ W))) C)
+      (trans (substᵗ-cong C source-point)
+        (rename-as-subst (toRenameᵗ (CTI2.ηᴸʷ Wᵐ)) C))
+
+  target-eq : ∀ C
+    → substᵗ smartSubst
+        (CTI2.embedᴿ (CTI2.liftWorldLeft X⊑★ Wᵈ) C)
+      ≡ CTI2.embedᴿ (SPT.dynWorld Wᵐ) C
+  target-eq C =
+    trans (substᵗ-rename smartSubst
+        (toRenameᵗ (skip (CTI2.ηᴿʷ W))) C)
+      (trans (substᵗ-cong C target-point)
+        (rename-as-subst (toRenameᵗ (CTI2.ηᴿʷ Wᵐ)) C))
+
+  transport′ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+    → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵈ ⟩ B
+    → A CTI2.⊑ᵂ⟨ SPT.dynWorld Wᵐ ⟩ B
+  transport′ =
+    transport⊑ᵂ-by-subst
+      {W = CTI2.liftWorldLeft X⊑★ Wᵈ}
+      {W′ = SPT.dynWorld Wᵐ}
+      smartSubst smartStar source-eq target-eq
+
+decaySmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : TyVar Δᴿ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartAliasMergeGuard W Wᵐ β α
+  → CTI2.SmartAliasMergeGuard Wᵈ (SPT.dynWorld Wᵐ) β α
+decaySmartAliasMergeGuard
+    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {Δ = Δ}
+    {W = W} {Wᵈ = Wᵈ} {Wᵐ = Wᵐ} {β = β}
+    (env-decay refl refl refl refl mono) guard =
+  CTI2.smart-alias-merge-guard
+    (CTI2.SmartAliasMergeGuard.β:=＇α guard)
+    (CTI2.SmartAliasMergeGuard.α:=★ guard)
+    (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
+    (CTI2.SmartAliasMergeGuard.targetStore-same guard)
+    transport′
+    (λ Z star → refl)
+    (CTI2.SmartAliasMergeGuard.target-frozen guard)
+    (CTI2.SmartAliasMergeGuard.pending-at-alias guard)
+    (CTI2.SmartAliasMergeGuard.old-source-frozen guard)
+    (CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard)
+    refl
+    refl
+    (λ Xᴿ Xᴿ≢β Xᴿ≢α star → refl)
+  where
+  smartSubst : suc Δ ⇒ˢ Δ
+  smartSubst Fin.zero = ＇ (toRenameᵗ (CTI2.ηᴿʷ W) β)
+  smartSubst (Fin.suc Z) = ＇ Z
+
+  smartStar : ∀ Z
+    → CTI2.impEnvʷ (CTI2.liftWorldLeft X⊑★ Wᵈ) Z ≡ X⊑★
+    → CTI2.impEnvʷ (SPT.dynWorld Wᵐ) ⊢ smartSubst Z ⊑ ★
+  smartStar Fin.zero star = X⊑★ refl
+  smartStar (Fin.suc Z) star = X⊑★ refl
+
+  source-point : ∀ X
+    → smartSubst (toRenameᵗ (keep (CTI2.ηᴸʷ W)) X)
+      ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) X)
+  source-point Fin.zero =
+    cong ＇_ (sym (CTI2.SmartAliasMergeGuard.pending-at-alias guard))
+  source-point (Fin.suc X) =
+    cong ＇_ (sym (CTI2.SmartAliasMergeGuard.old-source-frozen guard X))
+
+  target-point : ∀ Y
+    → smartSubst (toRenameᵗ (skip (CTI2.ηᴿʷ W)) Y)
+      ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+  target-point Y =
+    cong ＇_ (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y))
+
+  source-eq : ∀ C
+    → substᵗ smartSubst
+        (CTI2.embedᴸ (CTI2.liftWorldLeft X⊑★ Wᵈ) C)
+      ≡ CTI2.embedᴸ (SPT.dynWorld Wᵐ) C
+  source-eq C =
+    trans (substᵗ-rename smartSubst
+        (toRenameᵗ (keep (CTI2.ηᴸʷ W))) C)
+      (trans (substᵗ-cong C source-point)
+        (rename-as-subst (toRenameᵗ (CTI2.ηᴸʷ Wᵐ)) C))
+
+  target-eq : ∀ C
+    → substᵗ smartSubst
+        (CTI2.embedᴿ (CTI2.liftWorldLeft X⊑★ Wᵈ) C)
+      ≡ CTI2.embedᴿ (SPT.dynWorld Wᵐ) C
+  target-eq C =
+    trans (substᵗ-rename smartSubst
+        (toRenameᵗ (skip (CTI2.ηᴿʷ W))) C)
+      (trans (substᵗ-cong C target-point)
+        (rename-as-subst (toRenameᵗ (CTI2.ηᴿʷ Wᵐ)) C))
+
+  transport′ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+    → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵈ ⟩ B
+    → A CTI2.⊑ᵂ⟨ SPT.dynWorld Wᵐ ⟩ B
+  transport′ =
+    transport⊑ᵂ-by-subst
+      {W = CTI2.liftWorldLeft X⊑★ Wᵈ}
+      {W′ = SPT.dynWorld Wᵐ}
+      smartSubst smartStar source-eq target-eq
+
+decaySmartCommaLiftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.SmartCommaLiftᴸ Wᵈ (SPT.dynWorld Wᵐ)
+decaySmartCommaLiftᴸ dec (CTI2.smart-fresh-behind guard) =
+  CTI2.smart-fresh-behind (decaySmartFreshBehindGuard dec guard)
+decaySmartCommaLiftᴸ dec (CTI2.smart-merge-alias guard) =
+  CTI2.smart-merge-alias (decaySmartAliasMergeGuard dec guard)
 
 decayCtx-tgt : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
   → (dec : EnvDecay W Wᵈ)
@@ -228,6 +465,20 @@ private
     (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
       (sym (decayCtx-tgt dec γ)) M′⊢)
     (⊢²-decay (liftDecayLeft X⊑★ dec) V⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    {γ = γ}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} Anv zero∈A liftW
+      liftγ vV M′⊢ V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (decaySmartCommaLiftᴸ dec liftW)
+    (decaySmartLiftCtxᴸ dec (SPT.dynWorld-decay Wᵐ) liftγ) vV
+    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (decayCtx-tgt dec γ)) M′⊢)
+    (⊢²-decay (SPT.dynWorld-decay Wᵐ) V⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {W = CTI2.world ηL ηR μ ΣL ΣR}

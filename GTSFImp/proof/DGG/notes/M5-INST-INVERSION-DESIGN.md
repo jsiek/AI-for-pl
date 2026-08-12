@@ -1,6 +1,16 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-11. Status: checked design scratch.
+Date: 2026-08-12. Status: latest non-moving under-lift reveal check
+found a satisfiability-class blocker.  The under-left old-evidence
+prefix (`Λ⊑Λ²-route1ᴸ-prefix`) still checks through target insert,
+decay, center extension, and `freshLiftToBindTargetMove★ᴸ`.  A
+same-world generated target reveal is accepted at the `RebaseAtᴿ` and
+conversion-typing fields, but its post type relation is empty for the
+finite non-variable body `＇ zero ⇒ ★`; the moving route still requires
+the impossible source OPE `zero ↦ 3`, `suc zero ↦ 2`.  See
+`m5-inst-inversion-lambda-under-lift-satisfiability.red`.  The previous
+under-lift-generation, image-indexed, window-fresh, and finite
+counterexample notes remain as design records.
 
 Checked artifact:
 
@@ -19,6 +29,20 @@ inst-inversion→rel-surface : ∀ {fuel}
   → InstInversionPackage fuel
   → InstRelContinuationSurface fuel
 ```
+
+It also checks the k=1 consumer rewrap:
+
+```agda
+Λ⊑Λ²-one-lift-rewrap-preflight
+Λ⊑Λ²-one-lift-born-rewrap-preflight
+```
+
+The first statement shows the recursive `Λ⊑²` case accepts a one-left-lift
+instance of the tower-indexed transport.  The second checks the sound
+born-order base route: instantiate the closed depth-0 theorem at
+`W := liftWorldLeft X⊑★ W₀`.  The remaining blocker is a term-derivation
+exchange from that born-order result into the `liftWorldLeft W₂` world
+required by the recursive `Λ⊑²` rewrap.
 
 ## Proposed Package
 
@@ -178,6 +202,29 @@ It must be produced by the new source-strip plus target-polymorphic package.
 This is not the same shape as the M3 crossing refutation. The target value
 is a known polymorphic view, not an aligned tag variable, and no checked
 counterexample currently shows the desired post-application relation is false.
+
+## Phase A‴ Addendum: Indexed Post Catalog
+
+The live surface now has:
+
+```agda
+record InstPostCatalogPackageAt ...
+  (χs₂ : StoreChanges Δᴿ Δᴿ₂)
+  (W₂ : World Δᴸ Δᴿ₂ Δ₂)
+  (ext₂ : WorldExtendᴿ χs₂ W W₂) : Set₁
+```
+
+It fixes the post-catalog world instead of existentially packaging it.
+The root bridge packages that indexed result into the old driver-facing
+`InstPostCatalogPackage` only once, after composing the indexed
+prefix-to-residual trace with the smaller extra-cast worker.
+
+The indexed/CPS blocker is resolved. The next blocker is the `Λ⊑Λ²`
+base body transport: the available body premise is in
+`liftWorldBoth X⊑X W`, but the post-catalog package needs the body
+relation in `liftWorldLeft X⊑★ W₂` against the generated `β-Λ` target
+body plus reveal wrappers. See
+`m5-inst-inversion-lambda-base-post-blocked.red`.
 The design therefore keeps the relation as a required package field rather
 than weakening the live statement.
 
@@ -192,3 +239,153 @@ obligations harvested from the relation inversion.
 The non-value branches must recurse on target wrapper depth. A single catalog
 step is insufficient for `∀`, `gen`, `reveal`, and `conceal`; each leaves a
 pending type application that only later reaches a target value.
+
+## Phase A⁗ Addendum: Λ Base Transport Surface
+
+The live Def surface now includes the checked concrete two-bind statement:
+
+```agda
+Λ⊑Λ²PostBodyTransportᵀ : Set
+```
+
+It consumes the original `liftWorldBoth X⊑X W` body premise from a
+`Λ⊑Λ²` core and returns the post body relation in
+`liftWorldLeft X⊑★ (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero))`,
+together with the transported lifted context, the post target
+value/typing, the body obligation, and the aligned top `∀` obligation.
+The scratch checks:
+
+```agda
+Λ⊑Λ²-base-rewrap-preflight :
+  Λ⊑Λ²PostBodyTransportᵀ → ...
+```
+
+so the base rewrap is mechanical once the transport exists.
+
+The first target insertion now checks with
+`TargetExtend.⊢²-target-insert` and `keepRightBindTargetInsert`, producing
+the post-`β-Λ` body target `renameᵗᵐ (keep wk↪ᵗ) V′`. Implementation is
+blocked at the next store-sensitive step: the inserted body relation is in
+target store `store-lift (store-bind Σ ★)`, while the catalogued `β-Λ`
+post body lives in `store-bind (store-bind Σ ★) (＇ zero)`. Preservation
+has `typing-lift-to-bind` for typing, but CTI2 has no relation-level
+analogue for arbitrary `_∣_⊢²_⊑_∶_` derivations. See
+`m5-inst-inversion-lambda-post-store-transport-blocked.red`.
+
+## Phase A⁗⁺ Addendum: Fresh Lift-To-Bind Conversion
+
+The approved concrete tower remains the live post-body surface. The scratch
+now additionally validates the prefix composition:
+
+```agda
+target-insert bind ★
+→ fresh lift-to-bind conversion
+→ X⊑X-to-X⊑★ decay
+```
+
+The fresh conversion world is:
+
+```agda
+ΛLiftToBindFreshWorld v W =
+  world
+    (skip (keep (skip (ηᴸʷ W))))
+    (skip (keep (keep (ηᴿʷ W))))
+    (instᵐ (extendᵐ v (instᵐ (impEnvʷ W))))
+    (store-lift (sourceStoreʷ W))
+    (store-bind (store-bind (targetStoreʷ W) ★) (＇ zero))
+```
+
+`proof/DGG/TargetBindLift.agda` now checks the reusable foundation:
+center-rename normalization, indexed conversion store transport,
+pivot-to-store inversion for target conversions, target typing transport, and
+target-side `RebaseAt` transport when a target indexed conversion supplies the
+pivot store lookup.
+
+The remaining blocker is not target-side. It is the source-side rebase-var
+constructors:
+
+```agda
+reveal⊑² ... (rebase-varᴸ rb) ... c⊢ M⊑M′ q
+conceal⊑² ... (tag-rebase-varᴸ rb) ... c⊢ M⊑M′ q
+```
+
+These constructors can carry a `StoreRepImp` whose aligned target pivot is the
+fresh abstract target binder, but they provide no target conversion premise
+from which to obtain a target store lookup. The fresh lift-to-bind store
+changes:
+
+```agda
+resolveVar (store-lift (store-bind Σ ★)) zero = ＇ zero
+resolveVar (store-bind (store-bind Σ ★) (＇ zero)) zero = ★
+```
+
+Before the planned `X⊑X → X⊑★` decay, transporting that `StoreRepImp` would
+require `resolveVar sourceStore Xᴸ ⊑ᵂ ★` from only
+`resolveVar sourceStore Xᴸ ⊑ᵂ ＇ zero`. See
+`m5-inst-inversion-lift-to-bind-source-rebase-blocked.red`.
+
+RESOLVED (2026-08-12): Route 1 reorders the proof so decay happens before
+the fresh lift-to-bind conversion.  The checked live composition is:
+
+```agda
+target-insert bind ★
+→ decay X⊑X to X⊑★ under liftWorldBoth
+→ center extension
+→ fresh lift-to-bind conversion at the ★ mark
+→ generated target reveals via RebaseAtᴿ
+→ target typing via target-typing²
+```
+
+`Λ⊑Λ²-post-body-transport`, `Λ⊑Λ²-base-package-at`, and the scratch
+preflight check.  The remaining recursive assembly blocker is not the base
+transport itself.  In the `Λ⊑²` case, body recursion must return its indexed
+post package at
+
+```agda
+liftWorldLeft X⊑★
+  (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero))
+```
+
+while the specialized `Λ⊑Λ²` base for the body world lands at
+
+```agda
+rightOnlyWorld
+  (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+  (＇ zero)
+```
+
+These towers differ by the order of the existing source left lift and the two
+generated right binds.  See
+`m5-inst-inversion-lambda-recursive-extension-blocked.red`.
+
+## Phase A⁗⁺⁺ Addendum: Left-Lift Tower Surface
+
+The live definition now records the approved depth-indexed surface:
+
+```agda
+data Λ⊑Λ²LeftTower W W₂ ext₂ : Set₁
+
+Λ⊑Λ²PostBodyTransportᴸᵀ : Set₁
+```
+
+`Λ⊑Λ²LeftTower` has a depth-zero constructor for the concrete two-bind
+tower and a successor constructor for lifting both the input world and
+the post world by `liftWorldLeft X⊑★`.  The scratch checks:
+
+```agda
+Λ⊑Λ²-base-rewrap-preflightᴸ :
+  Λ⊑Λ²PostBodyTransportᴸᵀ → ...
+```
+
+so a transport at the caller-supplied tower rewraps through `Λ⊑²`
+mechanically.
+
+Implementation is blocked in the successor case.  After the first
+target insertion under the left tower and the `liftWorldBoth` decay, the
+abstract target binder introduced by `liftWorldBoth` remains before the
+existing source-only binder.  The lifted two-bind post world needs the
+generated target names after that source binder.  `TargetStoreMove`
+cannot change target embeddings, `CenterRename` is order-preserving, and
+the generated target reveal rebuilds freeze target embeddings through
+`RebaseAtᴿ`.  See
+`m5-inst-inversion-lambda-lifted-target-pivot-blocked.red`.

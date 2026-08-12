@@ -1,15 +1,17 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: window-fresh invariant, freshness-aware
-derivation transport, and TargetExtend image discharge check.  The
-support induction is now derivation-freshness indexed, and
-`⊢²-target-insert-window-fresh` proves inserted derivations are fresh
-whenever the old target image is disjoint from the exchange window.  The
-remaining support closure needs a stronger parked-reachability/image
-invariant than the boolean no-on-window predicate preserves; see
-`m5-inst-inversion-lambda-window-fresh-support-blocked.red`.  The
-permanent finite counterexample for the excluded on-window case remains
-`m5-inst-inversion-lambda-side-stable-cycle-output-blocked.red`.
+Date: 2026-08-12. Status: image-indexed exchange investigated after
+the window-fresh blocker.  The under-left TargetBindLift foundation now
+checks (`ΛLiftToBindFreshWorldᴸ`, `freshLiftToBindMoveᴸ`,
+`freshLiftToBindTargetMove★ᴸ`), confirming that the fresh-variable
+lift-to-bind conversion remains target-store bookkeeping.  The fused
+old-body insertion/exchange route avoids the earlier arbitrary
+post-insertion rebase counterexample, but does not close the recursive
+`Λ⊑²` consumer because the two generated target reveals are on-window
+wrappers, not old TargetExtend image evidence; see
+`m5-inst-inversion-lambda-image-indexed-exchange-blocked.red`.  The
+previous window-fresh support note and the permanent finite
+counterexample remain as design records.
 
 Checked artifact:
 

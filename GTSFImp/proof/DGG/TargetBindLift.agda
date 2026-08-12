@@ -82,6 +82,21 @@ renameEnv-id {suc Δ} μ =
     (store-lift (CTI2.sourceStoreʷ W))
     (store-bind (store-bind (CTI2.targetStoreʷ W) ★) (＇ Fin.zero))
 
+
+ΛLiftToBindFreshWorldᴸ : ∀ {Δᴸ Δᴿ Δ}
+  → VarImp
+  → World Δᴸ Δᴿ Δ
+  → World (suc (suc Δᴸ)) (suc (suc Δᴿ))
+      (suc (suc (suc (suc Δ))))
+ΛLiftToBindFreshWorldᴸ v W =
+  CTI2.world
+    (skip (keep (keep (skip (CTI2.ηᴸʷ W)))))
+    (skip (keep (skip (keep (CTI2.ηᴿʷ W)))))
+    (instᵐ (extendᵐ v (extendᵐ X⊑★
+      (instᵐ (CTI2.impEnvʷ W)))))
+    (store-lift (store-lift (CTI2.sourceStoreʷ W)))
+    (store-bind (store-bind (CTI2.targetStoreʷ W) ★) (＇ Fin.zero))
+
 ------------------------------------------------------------------------
 -- Indexed conversion typing under store transport
 ------------------------------------------------------------------------
@@ -1004,6 +1019,62 @@ freshLiftToBindTargetMove★ {W = W} =
               (CR.renameWorld wk↪ᵗ
                 (CTI2.liftWorldBoth X⊑★
                   (CTI2.rightOnlyWorld W ★)))) Z
+  other Fin.zero neq = ⊥-elim (neq refl)
+  other (Fin.suc Z) neq = refl
+
+freshLiftToBindMoveᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {v : VarImp}
+  → TargetStoreMove
+      (CR.renameWorld wk↪ᵗ
+        (CTI2.liftWorldBoth v
+          (CTI2.liftWorldLeft X⊑★ (CTI2.rightOnlyWorld W ★))))
+      (ΛLiftToBindFreshWorldᴸ v W)
+freshLiftToBindMoveᴸ {W = W} {v = v} =
+  target-store-move
+    (cong skip
+      (sym (∘↪-idˡ (keep (keep (skip (CTI2.ηᴸʷ W)))))))
+    (cong skip
+      (sym (∘↪-idˡ (keep (skip (keep (CTI2.ηᴿʷ W)))))))
+    (sym (cong (extendᵐ X⊑★)
+      (renameEnv-id
+        (extendᵐ v (extendᵐ X⊑★
+          (instᵐ (CTI2.impEnvʷ W)))))))
+    refl
+    StoreTransport-lift-bind
+    resolve
+  where
+  resolve : ∀ {Δ} {Σ : TyStore (suc Δ)} {X R}
+    → store-lift Σ ∋ X ⦂ R
+    → CTI2.resolveVar (store-bind Σ (＇ Fin.zero)) X
+        ≡ CTI2.resolveVar (store-lift Σ) X
+  resolve (S-lift∋ X∈ eq) = refl
+
+freshLiftToBindTargetMove★ᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+  → TargetBindLiftMove
+      (CR.renameWorld wk↪ᵗ
+        (CTI2.liftWorldBoth X⊑★
+          (CTI2.liftWorldLeft X⊑★ (CTI2.rightOnlyWorld W ★))))
+      (ΛLiftToBindFreshWorldᴸ X⊑★ W)
+      Fin.zero
+freshLiftToBindTargetMove★ᴸ {W = W} =
+  target-bind-lift-move
+    (freshLiftToBindMoveᴸ {W = W} {v = X⊑★})
+    refl
+    refl
+    refl
+    other
+  where
+  other : ∀ Z
+    → Z ≢ Fin.zero
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ (ΛLiftToBindFreshWorldᴸ X⊑★ W)) Z
+        ≡ CTI2.resolveVar
+            (CTI2.targetStoreʷ
+              (CR.renameWorld wk↪ᵗ
+                (CTI2.liftWorldBoth X⊑★
+                  (CTI2.liftWorldLeft X⊑★
+                    (CTI2.rightOnlyWorld W ★))))) Z
   other Fin.zero neq = ⊥-elim (neq refl)
   other (Fin.suc Z) neq = refl
 

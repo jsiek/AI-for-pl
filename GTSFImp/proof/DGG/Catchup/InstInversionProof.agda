@@ -2175,11 +2175,11 @@ center-map-∋ʷ mp (CTI2.Sʷ x∈) = CTI2.Sʷ (center-map-∋ʷ mp x∈)
 
 
 center-map-same-ctx : ∀ {Δᴸ Δᴿ Δ}
-    {ρ : TyVar Δ → TyVar Δ}
+    {ρ ρ′ : TyVar Δ → TyVar Δ}
     {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W} {γ′ : CTI2.CtxImp W′}
   → (mp : CenterMapWorld ρ W Wˣ)
-  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → (mp′ : CenterMapWorld ρ′ W′ W′ˣ)
   → CTI2.SameCtx γ γ′
   → CTI2.SameCtx (center-map-ctx mp γ) (center-map-ctx mp′ γ′)
 center-map-same-ctx mp mp′ CTI2.same-[] = CTI2.same-[]
@@ -2211,10 +2211,10 @@ center-map-aligned {ρ = ρ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} mp aligned =
 
 
 center-map-same-runtime : ∀ {Δᴸ Δᴿ Δ}
-    {ρ : TyVar Δ → TyVar Δ}
+    {ρ ρ′ : TyVar Δ → TyVar Δ}
     {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
   → (mp : CenterMapWorld ρ W Wˣ)
-  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → (mp′ : CenterMapWorld ρ′ W′ W′ˣ)
   → CTI2.SameRuntime W W′
   → CTI2.SameRuntime Wˣ W′ˣ
 center-map-same-runtime mp mp′
@@ -2578,49 +2578,67 @@ record CenterMapSupport {Δᴸ Δᴿ Δ}
     rebaseAtForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.RebaseAt Wˣ Wᵖˣ Xᴸ Xᴿ
 
     rebaseAtBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.RebaseAt Wᵖˣ Wˣ Xᴸ Xᴿ
 
     rebaseAtᴿForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴿ? : Maybe (TyVar Δᴿ)}
       → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.RebaseAtᴿ Wˣ Wᵖˣ Xᴿ?
 
     rebaseAtᴿBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴿ? : Maybe (TyVar Δᴿ)}
       → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.RebaseAtᴿ Wᵖˣ Wˣ Xᴿ?
 
     rebaseAtᴸForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴸ? : Maybe (TyVar Δᴸ)}
       → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.RebaseAtᴸ Wˣ Wᵖˣ Xᴸ?
 
     tagRebaseAtᴸBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
         {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
       → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+      → CTI2.ImpEnvMono W Wᵖ
       → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
-        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
           CenterMapSupport mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
           × CTI2.TagRebaseAtᴸ Wᵖˣ Wˣ Xᴸ? Xᴿ?
 
 
@@ -2693,38 +2711,38 @@ open CenterMapSupport
 ⊢²-center-map mp sup
     (CTI2.⊑reveal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q)
     p′
-    with rebaseAtᴿForward sup rb
-... | W′ˣ , mp′ , sup′ , rb′ =
-  CTI2.⊑reveal² (center-map-imp-mono mp mp′ mono) rb′
+    with rebaseAtᴿForward sup rb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.⊑reveal² mono′ rb′
     (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↑ mp c′⊢)
     (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
     p′
 ⊢²-center-map mp sup
     (CTI2.⊑conceal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q)
     p′
-    with rebaseAtᴿBackward sup rb
-... | W′ˣ , mp′ , sup′ , rb′ =
-  CTI2.⊑conceal² (center-map-imp-mono mp mp′ mono) rb′
+    with rebaseAtᴿBackward sup rb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.⊑conceal² mono′ rb′
     (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↓ mp c′⊢)
     (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
     p′
 ⊢²-center-map mp sup
     (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q)
     p′
-    with rebaseAtᴸForward sup rb
-... | W′ˣ , mp′ , sup′ , rb′ =
-  CTI2.reveal⊑² (center-map-imp-mono mp mp′ mono) rb′
+    with rebaseAtᴸForward sup rb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.reveal⊑² mono′ rb′
     (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↑ mp c⊢)
     (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
     p′
 ⊢²-center-map mp sup
     (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q)
     p′
-    with tagRebaseAtᴸBackward sup rb
-... | W′ˣ , mp′ , sup′ , rb′ =
+    with tagRebaseAtᴸBackward sup rb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
   CTI2.conceal⊑²
     (center-map-source-conceal-partner-ok mp′ ok)
-    (center-map-imp-mono mp mp′ mono) rb′
+    mono′ rb′
     (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↓ mp c⊢)
     (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
     p′
@@ -2732,10 +2750,10 @@ open CenterMapSupport
     (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
       mono rb sc c⊢ c′⊢ M⊑N q)
     p′
-    with rebaseAtForward sup rb
-... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+    with rebaseAtForward sup rb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
   CTI2.reveal⊑reveal²
-    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    monoᵖ rbᵖ
     (center-map-same-ctx mp mpᵖ sc)
     (center-map-source-⊢↑ mp c⊢) (center-map-target-⊢↑ mp c′⊢)
     (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p))
@@ -2744,11 +2762,11 @@ open CenterMapSupport
     (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
       ok mono rb sc c⊢ c′⊢ M⊑N q)
     p′
-    with rebaseAtBackward sup rb
-... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+    with rebaseAtBackward sup rb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
   CTI2.conceal⊑conceal²
     (center-map-matched-conceal-partner-ok mpᵖ ok)
-    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    monoᵖ rbᵖ
     (center-map-same-ctx mp mpᵖ sc)
     (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
     (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p))
@@ -2757,11 +2775,11 @@ open CenterMapSupport
     (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
       {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑N sourcePrem q)
     p′
-    with rebaseAtBackward sup rb
-... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+    with rebaseAtBackward sup rb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
   CTI2.packaged-seal-star²
     (center-map-matched-conceal-partner-ok mpᵖ ok)
-    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    monoᵖ rbᵖ
     (center-map-same-ctx mp mpᵖ sc)
     (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
     (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p★))

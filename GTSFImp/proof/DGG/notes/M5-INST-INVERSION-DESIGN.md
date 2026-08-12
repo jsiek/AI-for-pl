@@ -1,8 +1,8 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: blocked on the term-level cross-side exchange
-needed after applying the closed depth-0 Λ transport at a lifted base; see
-`m5-inst-inversion-lambda-cross-side-term-exchange-blocked.red`.
+Date: 2026-08-12. Status: blocked on side-stable OPE reification for
+the premise worlds of the approved derivation-level cross-side exchange;
+see `m5-inst-inversion-lambda-cross-side-premise-ope-blocked.red`.
 
 Checked artifact:
 

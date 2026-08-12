@@ -68,3 +68,19 @@ REFINED (2026-08-11): the caller-indexed transport surface now checks as
 base case through `Λ⊑²`.  The remaining implementation blocker is the
 derivation-level target-extension leg needed before the reveal rebuild;
 see `m5-inst-inversion-lambda-target-extension-blocked.red`.
+
+RESOLVED (2026-08-12):
+
+  The live surface is specialized to the concrete two-bind post tower, and
+  `Λ⊑Λ²-post-body-transport` now proves the body relation, target typing,
+  post value, body obligation, and top `∀` obligation needed by the
+  `Λ⊑Λ²` base package.  The checked composition order is:
+
+    target-insert `bind ★`
+    → decay `X⊑X` to `X⊑★` under `liftWorldBoth`
+    → center extension
+    → fresh lift-to-bind move at the `★` mark
+    → generated reveal rebuilds by `RebaseAtᴿ`
+    → target typing by `target-typing²`
+
+  `Λ⊑Λ²-base-package-at` now checks against the specialized tower.

@@ -83,3 +83,13 @@ Smallest unblocking work:
   `Λ⊑Λ²-base-rewrap-preflight`.
 
 No live statement was weakened, and no postulate or hole was added.
+
+RESOLVED (2026-08-12):
+
+  `proof.DGG.TargetExtend.⊢²-target-insert` with
+  `keepRightBindTargetInsert` now supplies the derivation-level target
+  insertion leg.  The checked Route 1 composition in
+  `Λ⊑Λ²-post-body-transport` inserts `bind ★`, decays under the
+  both-lift, then moves the fresh lifted target binder to
+  `bind (＇ zero)`.  The base package uses the concrete
+  `bind ★ ∷ bind (＇ zero) ∷ []` tower.

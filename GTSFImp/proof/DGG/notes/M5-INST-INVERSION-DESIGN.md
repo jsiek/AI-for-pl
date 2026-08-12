@@ -1,6 +1,7 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-11. Status: blocked on lift-to-bind source-side rebase.
+Date: 2026-08-11. Status: blocked on Λ recursive extension tower
+after the Route 1 base transport closed.
 
 Checked artifact:
 
@@ -299,3 +300,37 @@ Before the planned `X⊑X → X⊑★` decay, transporting that `StoreRepImp` wo
 require `resolveVar sourceStore Xᴸ ⊑ᵂ ★` from only
 `resolveVar sourceStore Xᴸ ⊑ᵂ ＇ zero`. See
 `m5-inst-inversion-lift-to-bind-source-rebase-blocked.red`.
+
+RESOLVED (2026-08-12): Route 1 reorders the proof so decay happens before
+the fresh lift-to-bind conversion.  The checked live composition is:
+
+```agda
+target-insert bind ★
+→ decay X⊑X to X⊑★ under liftWorldBoth
+→ center extension
+→ fresh lift-to-bind conversion at the ★ mark
+→ generated target reveals via RebaseAtᴿ
+→ target typing via target-typing²
+```
+
+`Λ⊑Λ²-post-body-transport`, `Λ⊑Λ²-base-package-at`, and the scratch
+preflight check.  The remaining recursive assembly blocker is not the base
+transport itself.  In the `Λ⊑²` case, body recursion must return its indexed
+post package at
+
+```agda
+liftWorldLeft X⊑★
+  (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero))
+```
+
+while the specialized `Λ⊑Λ²` base for the body world lands at
+
+```agda
+rightOnlyWorld
+  (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+  (＇ zero)
+```
+
+These towers differ by the order of the existing source left lift and the two
+generated right binds.  See
+`m5-inst-inversion-lambda-recursive-extension-blocked.red`.

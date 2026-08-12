@@ -96,3 +96,13 @@ Supervisor decision needed:
 
 No live statement was weakened, and no postulate, hole, or catch-all was
 added.
+
+RESOLVED (2026-08-12):
+
+  Route 1 closed the missing evidence by reordering the composition:
+  insert `bind ★`, then run `TermImpDecay.⊢²-decay` through the
+  both-lift with `liftBothBinderDecay`, then apply the fresh
+  lift-to-bind move at the already-decayed `★` mark.  The source-side
+  `rebase-varᴸ` / `tag-rebase-varᴸ` wrapper cases in
+  `TargetBindLift.⊢²-target-bind-lift-move` now receive the needed
+  fresh-alias `X⊑★` evidence.

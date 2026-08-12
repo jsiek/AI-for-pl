@@ -218,3 +218,19 @@ into the World representation:
   `Catchup/InstInversionProof.agda` (`Λ⊑Λ²-post-body-transport`).
 - The Λ⊑²/Λ⊑Λ² rules quoted in §2: CastTermImprecision2.agda:668-693.
 - β-inst / β-Λ quoted in §3: Reduction.agda:311-326.
+
+## 7. Resolution by A3 smart comma
+
+M-3 closes the obstruction with the live A3 rule.  The leaf-gated witness
+`proof.DGG.SmartCommaWitness.d1-top-smart-live` has statement:
+
+```agda
+(outer∈ : Fin.zero ∈ᵗ `∀ d1-source-body)
+  → W₂ ∣ γ₂ ⊢² Λ (Λ d1-source-lam) ⊑ post ∶ p₂ outer∈
+```
+
+This is at the concrete two-allocation world from §4.  The explicit `outer∈`
+argument is the existing `Λ⊑²` occurrence side condition, not a smart-comma
+premise.  Commit `da0541e` adds the checked witness: the current-rule dead
+routes above stay archived, but the missing D1 state is now representable and
+derivable through `Λ⊑²-smart-comma`.

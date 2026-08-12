@@ -105,3 +105,18 @@ Verdict:
 
 No live relation was changed, and no postulate, hole, catch-all, or live
 statement weakening was added.
+
+RESOLVED (2026-08-12, live witness commit `da0541e`):
+
+  The finite refutations above still describe the current-rule routes:
+  front-lift plus moving reveal needs an impossible source OPE reversal, and
+  front-lift plus same-world reveal leaves the unequal-variable leaf.  The
+  A3 smart-comma rule adds the missing representable premise layout.  The
+  live witness
+
+    `proof.DGG.SmartCommaWitness.d1-top-smart-live`
+
+  checks the D1 two-allocation relation with the outer occurrence side
+  condition kept explicit, matching the existing `Λ⊑²` side condition.  Thus
+  the satisfiability-class blocker is closed for the migration: the old
+  failed routes are archived, and the A3 route is live.

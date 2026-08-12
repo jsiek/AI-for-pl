@@ -103,3 +103,17 @@ Consequence:
 
 No live relation was changed, and no postulate, hole, or catch-all was
 added.
+
+RESOLVED (2026-08-12, live witness commit `da0541e`):
+
+  This remains a correct negative record for the pre-A3 exchange route:
+  replaying the depth-0 script under an existing source-left lift does not
+  produce a valid local transport.  The blocker is overcome by the A3
+  smart-comma rule instead of by adding that exchange.  The live leaf-gated
+  witness
+
+    `proof.DGG.SmartCommaWitness.d1-top-smart-live`
+
+  derives the D1 two-allocation relation using `Λ⊑²-smart-comma`, with the
+  outer source binder entering fresh behind the β/α target window and the
+  inner pending binder merging at the existing alias center.

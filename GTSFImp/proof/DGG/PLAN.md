@@ -335,19 +335,19 @@ and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
 evidence because StoreRepImp canonicalizes the alias through the name
 to ★; A2 (merge at the name) dies at the variable leaf.
 
-## A3 smart-comma migration (in flight) — FRONTIER MARKER
+## A3 smart-comma migration (M-1..M-3 done) — FRONTIER MARKER
 
 Migration gates (each gated on All.agda green; hygiene FunExt-only):
-  M-1  informal rule + exact constructor premises pre-flighted in
-       scratch, validated against BOTH calibration examples (E4 must
-       re-derive; D1's package must derive; Λ⊑Λ² undisturbed).
-  M-2  live rule in CastTermImprecision2 + stack migration, riskiest
-       consumers first (M3 Inversion stack, then CenterRename,
-       TargetExtend, M4 Catchup workers, decay/lift modules).
-  M-3  BLOCKER-OVERCOME WITNESS: the report's D1 instance
-       (notes/M5-DEPTH1-RAW-REPORT.md §4 — Λ (Λ V) ⊑ post at W₂)
-       derived LIVE; RESOLVED postscripts on the satisfiability .red
-       notes. Migration is DONE when M-3 checks.
+  M-1  DONE: informal rule + exact constructor premises pre-flighted in
+       scratch, validated against BOTH calibration examples (E4 re-derived;
+       D1 package derived; Λ⊑Λ² undisturbed).
+  M-2  DONE (`85dfd28`): live rule in CastTermImprecision2 + stack
+       migration, riskiest consumers first (M3 Inversion stack, then
+       CenterRename, TargetExtend, M4 Catchup workers, decay/lift modules).
+  M-3  DONE (`da0541e`): BLOCKER-OVERCOME WITNESS
+       `proof.DGG.SmartCommaWitness.d1-top-smart-live` derives the report's
+       D1 instance (notes/M5-DEPTH1-RAW-REPORT.md §4 — Λ (Λ V) ⊑ post at
+       W₂) LIVE; RESOLVED postscripts added to the satisfiability .red notes.
   M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
        of the M5 instantiation inversion (Catchup/InstInversionProof),
        then the source-strip cases, then Λ-package assembly, then the

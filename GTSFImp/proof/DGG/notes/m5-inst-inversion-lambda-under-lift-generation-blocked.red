@@ -124,3 +124,13 @@ Consequence:
 
 No live relation was changed, and no postulate, hole, catch-all, or live
 statement weakening was added.
+
+RESOLVED (2026-08-12, live witness commit `da0541e`):
+
+  The in-place generated-reveal route remains blocked for the current
+  front-lift world order described above.  M-3 resolves the satisfiability
+  issue by using the A3 smart-comma premise layout rather than by generating
+  those reveals in the old under-lift world.  The checked live witness is
+  `proof.DGG.SmartCommaWitness.d1-top-smart-live`; it derives the same D1
+  post-reduction relation at the two-allocation world through the live
+  `Λ⊑²-smart-comma` constructor.

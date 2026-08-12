@@ -2044,7 +2044,6 @@ record CenterMapWorld {Δᴸ Δᴿ Δ}
     (W Wˣ : CTI2.World Δᴸ Δᴿ Δ) : Set₁ where
   field
     map-injective : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y
-    map-involutive : ∀ X → ρ (ρ X) ≡ X
 
     source-center-map : ∀ Xᴸ
       → ρ (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
@@ -2134,7 +2133,6 @@ swapWorld-map : ∀ {Δᴸ Δᴿ Δ}
   → CenterMapWorld ρ W (swapWorld W src tgt)
 swapWorld-map {ρ = ρ} {W = W} ρ-inj ρ-inv src tgt = record
   { map-injective = ρ-inj
-  ; map-involutive = ρ-inv
   ; source-center-map = λ X →
       sym (adjacent-swap-ope-rename src X)
   ; target-center-map = λ X →
@@ -2226,26 +2224,6 @@ center-map-same-runtime mp mp′
       (trans target-eq (sym (targetStore-map mp))))
 
 
-center-map-imp-mono : ∀ {Δᴸ Δᴿ Δ}
-    {ρ : TyVar Δ → TyVar Δ}
-    {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
-  → (mp : CenterMapWorld ρ W Wˣ)
-  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
-  → CTI2.ImpEnvMono W W′
-  → CTI2.ImpEnvMono Wˣ W′ˣ
-center-map-imp-mono {ρ = ρ} {Wˣ = Wˣ} {W′ˣ = W′ˣ}
-    mp mp′ mono Z star =
-  subst≡ (λ Y → CTI2.impEnvʷ W′ˣ Y ≡ I.X⊑★)
-    (map-involutive mp Z)
-    (impEnv-map mp′ (ρ Z) (mono (ρ Z) old-star))
-  where
-  star-at-ρρ =
-    subst≡ (λ Y → CTI2.impEnvʷ Wˣ Y ≡ I.X⊑★)
-      (sym (map-involutive mp Z)) star
-
-  old-star = impEnv-unmap mp (ρ Z) star-at-ρρ
-
-
 center-map-lift-both : ∀ {Δᴸ Δᴿ Δ}
     {ρ : TyVar Δ → TyVar Δ}
     {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
@@ -2256,10 +2234,6 @@ center-map-lift-both : ∀ {Δᴸ Δᴿ Δ}
       (CTI2.liftWorldBoth v Wˣ)
 center-map-lift-both mp = record
   { map-injective = ext-injective (map-injective mp)
-  ; map-involutive = λ
-      { Fin.zero → refl
-      ; (Fin.suc X) → cong Fin.suc (map-involutive mp X)
-      }
   ; source-center-map = λ
       { Fin.zero → refl
       ; (Fin.suc X) → cong Fin.suc (source-center-map mp X)
@@ -2291,10 +2265,6 @@ center-map-lift-left : ∀ {Δᴸ Δᴿ Δ}
       (CTI2.liftWorldLeft v Wˣ)
 center-map-lift-left mp = record
   { map-injective = ext-injective (map-injective mp)
-  ; map-involutive = λ
-      { Fin.zero → refl
-      ; (Fin.suc X) → cong Fin.suc (map-involutive mp X)
-      }
   ; source-center-map = λ
       { Fin.zero → refl
       ; (Fin.suc X) → cong Fin.suc (source-center-map mp X)
@@ -2855,7 +2825,6 @@ right-left-center-map : ∀ {Δᴸ Δᴿ Δ}
       (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
 right-left-center-map {W = W} = record
   { map-injective = swap01-injective
-  ; map-involutive = swap01-involutive
   ; source-center-map = λ X →
       sym (adjacent-swap-ope-rename
         (top-source-swap-ope {η = CTI2.ηᴸʷ W}) X)
@@ -3003,7 +2972,6 @@ right-left-under-right-center-map : ∀ {Δᴸ Δᴿ Δ}
         B₂)
 right-left-under-right-center-map {W = W} = record
   { map-injective = swap12-injective
-  ; map-involutive = swap12-involutive
   ; source-center-map = λ X →
       sym (adjacent-swap-ope-rename
         (under-right-source-swap-ope {η = CTI2.ηᴸʷ W}) X)

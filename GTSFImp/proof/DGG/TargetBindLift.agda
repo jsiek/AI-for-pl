@@ -38,6 +38,7 @@ import proof.DGG.SealPeelToolkit as SPT
 open import proof.TypeInTermSubst using
   (StoreTransport; StoreTransport-lift; StoreTransport-lift-bind;
    typing-store-transport)
+open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 
 open CTI2 using
   (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; PivotJoin;
@@ -442,12 +443,23 @@ targetStoreAs W Σᴿ =
   CTI2.world (CTI2.ηᴸʷ W) (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W)
     (CTI2.sourceStoreʷ W) Σᴿ
 
-premiseMoveEq : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵗ W′ : World Δᴸ Δᴿ Δ}
+target-pivot-star-source : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
+  → TargetBindLiftMove W Wᵗ Y
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
+target-pivot-star-source
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other) =
+  pivot-star
+
+premiseMoveEqAny : ∀ {Δᴸ Δᴿ Δ Δᴸ′ Δ′}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {W′ : World Δᴸ′ Δᴿ Δ′}
   → (mv : TargetStoreMove W Wᵗ)
   → CTI2.targetStoreʷ W′ ≡ CTI2.targetStoreʷ W
   → TargetStoreMove W′ (targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ))
-premiseMoveEq
+premiseMoveEqAny
     {Wᵗ = Wᵗ}
     {W′ = W′}
     (target-store-move refl refl refl refl hΣ resolve)
@@ -467,6 +479,13 @@ premiseMoveEq
     trans
       (resolve (subst≡ (λ Σ → Σ ∋ X ⦂ R) targetEq X∈))
       (cong (λ Σ → CTI2.resolveVar Σ X) (sym targetEq))
+
+premiseMoveEq : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ}
+  → (mv : TargetStoreMove W Wᵗ)
+  → CTI2.targetStoreʷ W′ ≡ CTI2.targetStoreʷ W
+  → TargetStoreMove W′ (targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ))
+premiseMoveEq = premiseMoveEqAny
 
 premiseTargetBindMove : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y}
@@ -506,6 +525,182 @@ premiseTargetBindMove
   other′ Z Z≢Y =
     trans (other Z Z≢Y)
       (cong (λ Σ → CTI2.resolveVar Σ Z) (sym targetEq))
+
+smartAliasPivotStar : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δ} {Y β α}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.SmartAliasMergeGuard W Wᵐ β α
+  → CTI2.impEnvʷ Wᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y) ≡ X⊑★
+smartAliasPivotStar {W = W} {Wᵐ = Wᵐ} {Y = Y} {β = β} {α = α}
+    mv guard with FinP._≟_ Y β
+smartAliasPivotStar {W = W} {Wᵐ = Wᵐ} {Y = .β} {β = β}
+    mv guard | yes refl =
+  subst≡
+    (λ C → CTI2.impEnvʷ Wᵐ C ≡ X⊑★)
+    (sym (CTI2.SmartAliasMergeGuard.target-frozen guard β))
+    (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard)
+smartAliasPivotStar {W = W} {Wᵐ = Wᵐ} {Y = Y} {β = β} {α = α}
+    mv guard | no Y≢β with FinP._≟_ Y α
+smartAliasPivotStar {W = W} {Wᵐ = Wᵐ} {Y = .α} {β = β} {α = α}
+    mv guard | no Y≢β | yes refl =
+  subst≡
+    (λ C → CTI2.impEnvʷ Wᵐ C ≡ X⊑★)
+    (sym (CTI2.SmartAliasMergeGuard.target-frozen guard α))
+    (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard)
+smartAliasPivotStar {W = W} {Wᵐ = Wᵐ} {Y = Y} {β = β} {α = α}
+    mv guard | no Y≢β | no Y≢α =
+  CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard Y
+    Y≢β Y≢α (target-pivot-star-source mv)
+
+smartFreshPivotStar : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ} {Y}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.SmartFreshBehindGuard W Wᵐ
+  → CTI2.impEnvʷ Wᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y) ≡ X⊑★
+smartFreshPivotStar mv guard =
+  CTI2.SmartFreshBehindGuard.target-mark-mono guard _
+    (target-pivot-star-source mv)
+
+smartAliasTargetBindMove : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δ} {Y β α}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → TargetBindLiftMove Wᵐ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ)) Y
+smartAliasTargetBindMove {Wᵗ = Wᵗ} {Wᵐ = Wᵐ} {Y = Y} mv guard =
+  target-bind-lift-move
+    (premiseMoveEqAny (baseMove mv)
+      (CTI2.SmartAliasMergeGuard.targetStore-same guard))
+    (smartAliasPivotStar mv guard)
+    old-pivot′
+    (target-resolve-pivot mv)
+    other′
+  where
+  targetEq = CTI2.SmartAliasMergeGuard.targetStore-same guard
+
+  old-pivot′ : CTI2.resolveVar (CTI2.targetStoreʷ Wᵐ) Y ≡ ＇ Y
+  old-pivot′ =
+    trans (cong (λ Σ → CTI2.resolveVar Σ Y) targetEq)
+      (target-resolve-pivot-old mv)
+
+  other′ : ∀ Z
+    → Z ≢ Y
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ
+          (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ))) Z
+        ≡ CTI2.resolveVar (CTI2.targetStoreʷ Wᵐ) Z
+  other′ Z Z≢Y =
+    trans (target-resolve-other mv Z Z≢Y)
+      (cong (λ Σ → CTI2.resolveVar Σ Z) (sym targetEq))
+
+smartFreshTargetBindMove : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ} {Y}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → TargetBindLiftMove Wᵐ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ)) Y
+smartFreshTargetBindMove {Wᵗ = Wᵗ} {Wᵐ = Wᵐ} {Y = Y} mv guard =
+  target-bind-lift-move
+    (premiseMoveEqAny (baseMove mv)
+      (CTI2.SmartFreshBehindGuard.targetStore-same guard))
+    (smartFreshPivotStar mv guard)
+    old-pivot′
+    (target-resolve-pivot mv)
+    other′
+  where
+  targetEq = CTI2.SmartFreshBehindGuard.targetStore-same guard
+
+  old-pivot′ : CTI2.resolveVar (CTI2.targetStoreʷ Wᵐ) Y ≡ ＇ Y
+  old-pivot′ =
+    trans (cong (λ Σ → CTI2.resolveVar Σ Y) targetEq)
+      (target-resolve-pivot-old mv)
+
+  other′ : ∀ Z
+    → Z ≢ Y
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ
+          (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ))) Z
+        ≡ CTI2.resolveVar (CTI2.targetStoreʷ Wᵐ) Z
+  other′ Z Z≢Y =
+    trans (target-resolve-other mv Z Z≢Y)
+      (cong (λ Σ → CTI2.resolveVar Σ Z) (sym targetEq))
+
+moveSmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δ} {Y β α}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.SmartAliasMergeGuard W Wᵐ β α
+  → CTI2.SmartAliasMergeGuard Wᵗ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ)) β α
+moveSmartAliasMergeGuard
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    guard =
+  CTI2.smart-alias-merge-guard
+    (hΣ (CTI2.SmartAliasMergeGuard.β:=＇α guard))
+    (hΣ (CTI2.SmartAliasMergeGuard.α:=★ guard))
+    (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
+    refl
+    (CTI2.SmartAliasMergeGuard.target-frozen guard)
+    (CTI2.SmartAliasMergeGuard.pending-at-alias guard)
+    (CTI2.SmartAliasMergeGuard.old-source-frozen guard)
+    (CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard)
+    (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard)
+    (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard)
+    (CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard)
+
+moveSmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ} {Y}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.SmartFreshBehindGuard W Wᵐ
+  → CTI2.SmartFreshBehindGuard Wᵗ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ))
+moveSmartFreshBehindGuard
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    guard =
+  CTI2.smart-fresh-behind-guard
+    (CTI2.SmartFreshBehindGuard.oldCenters guard)
+    (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
+    refl
+    (CTI2.SmartFreshBehindGuard.target-frozen guard)
+    (CTI2.SmartFreshBehindGuard.old-source-frozen guard)
+    (CTI2.SmartFreshBehindGuard.fresh-not-target guard)
+    (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard)
+    (CTI2.SmartFreshBehindGuard.target-mark-mono guard)
+
+moveSmartCommaLiftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ} {Y}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.SmartCommaLiftᴸ Wᵗ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ))
+moveSmartCommaLiftᴸ mv (CTI2.smart-fresh-behind guard) =
+  CTI2.smart-fresh-behind (moveSmartFreshBehindGuard mv guard)
+moveSmartCommaLiftᴸ mv (CTI2.smart-merge-alias guard) =
+  CTI2.smart-merge-alias (moveSmartAliasMergeGuard mv guard)
+
+moveSmartLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CtxImp W} {γᵐ : CtxImp Wᵐ} {Y}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → (mvᵐ : TargetBindLiftMove Wᵐ
+      (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ)) Y)
+  → CTI2.SmartLiftCtxᴸ γ γᵐ
+  → CTI2.SmartLiftCtxᴸ (moveCtx (baseMove mv) γ)
+      (moveCtx (baseMove mvᵐ) γᵐ)
+moveSmartLiftCtxᴸ mv mvᵐ CTI2.smart-lift-[] = CTI2.smart-lift-[]
+moveSmartLiftCtxᴸ mv mvᵐ (CTI2.smart-lift-∷ liftγ) =
+  CTI2.smart-lift-∷ (moveSmartLiftCtxᴸ mv mvᵐ liftγ)
 
 moveStoreRepBindLift : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {Y Xᴸ Xᴿ}
@@ -827,6 +1022,30 @@ source-conceal-move
     (⊢²-target-bind-lift-move
       (liftTargetBindMoveLeft X⊑★ mv) V⊑M′)
     (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.Λ⊑²-smart-comma
+      Anv zero∈A (CTI2.smart-merge-alias guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (CTI2.smart-merge-alias (moveSmartAliasMergeGuard mv guard))
+    (moveSmartLiftCtxᴸ mv mvᵐ liftγ) vV
+    (target-typing-move (baseMove mv) M′⊢)
+    (⊢²-target-bind-lift-move mvᵐ V⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+  where
+  mvᵐ = smartAliasTargetBindMove mv guard
+⊢²-target-bind-lift-move mv
+    (CTI2.Λ⊑²-smart-comma
+      Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (CTI2.smart-fresh-behind (moveSmartFreshBehindGuard mv guard))
+    (moveSmartLiftCtxᴸ mv mvᵐ liftγ) vV
+    (target-typing-move (baseMove mv) M′⊢)
+    (⊢²-target-bind-lift-move mvᵐ V⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+  where
+  mvᵐ = smartFreshTargetBindMove mv guard
 ⊢²-target-bind-lift-move mv (CTI2.•⊑•² p∀ M⊑M′ q r) =
   CTI2.•⊑•² (move⊑ᵂ (baseMove mv) p∀)
     (⊢²-target-bind-lift-move mv M⊑M′)

@@ -305,6 +305,9 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
         ≢ toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero
     fresh-mark-dynamic :
       impEnvʷ Wᵐ (toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero) ≡ X⊑★
+    target-mark-mono : ∀ Xᴿ
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
 
 
 record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
@@ -332,6 +335,11 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
       impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) β) ≡ X⊑★
     name-mark-dynamic :
       impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) α) ≡ X⊑★
+    target-mark-off-footprint : ∀ Xᴿ
+      → Xᴿ ≢ β
+      → Xᴿ ≢ α
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
 
 
 data SmartCommaLiftᴸ {Δᴸ Δᴿ Δ}

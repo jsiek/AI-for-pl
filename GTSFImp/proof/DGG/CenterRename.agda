@@ -8,6 +8,7 @@ module proof.DGG.CenterRename where
 --   * Exports the general center-renaming theorem and its weakening
 --     specialization.
 
+open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _,_)
@@ -154,6 +155,108 @@ preimage?-image (keep π) (Fin.suc Z)
     rewrite preimage?-image π Z =
   refl
 preimage?-image (skip π) Z = preimage?-image π Z
+
+just≢nothing : ∀ {A : Set} {x : A} → just x ≢ nothing
+just≢nothing ()
+
+sucMaybe-just-suc : ∀ {Δ} {m : Maybe (TyVar Δ)} {Z}
+  → sucMaybe m ≡ just (Fin.suc Z)
+  → m ≡ just Z
+sucMaybe-just-suc {m = just Z} refl = refl
+sucMaybe-just-suc {m = nothing} ()
+
+preimage?-sound : ∀ {Δ Δ′} (π : Δ ↪ᵗ Δ′) {Z′ Z}
+  → preimage? π Z′ ≡ just Z
+  → Z′ ≡ toRenameᵗ π Z
+preimage?-sound empty ()
+preimage?-sound (keep π) {Z′ = Fin.zero} {Z = Fin.zero} refl =
+  refl
+preimage?-sound (keep π) {Z′ = Fin.zero} {Z = Fin.suc Z} ()
+preimage?-sound (keep π) {Z′ = Fin.suc Z′} {Z = Fin.zero} eq
+    with preimage? π Z′
+preimage?-sound (keep π) {Z′ = Fin.suc Z′} {Z = Fin.zero} ()
+    | just Y
+preimage?-sound (keep π) {Z′ = Fin.suc Z′} {Z = Fin.zero} ()
+    | nothing
+preimage?-sound (keep π) {Z′ = Fin.suc Z′} {Z = Fin.suc Z} eq =
+  cong Fin.suc (preimage?-sound π (sucMaybe-just-suc eq))
+preimage?-sound (skip π) {Z′ = Fin.zero} ()
+preimage?-sound (skip π) {Z′ = Fin.suc Z′} eq =
+  cong Fin.suc (preimage?-sound π eq)
+
+fin-suc-injective : ∀ {n} {X Y : Fin.Fin n}
+  → Fin.suc X ≡ Fin.suc Y
+  → X ≡ Y
+fin-suc-injective refl = refl
+
+embeddingPair-disjoint : ∀ Δ₁ Δ₂
+    {Z₁ : TyVar Δ₁} {Z₂ : TyVar Δ₂}
+  → toRenameᵗ (EmbeddingPair.right (embeddingPair Δ₁ Δ₂)) Z₂
+    ≢ toRenameᵗ (EmbeddingPair.left (embeddingPair Δ₁ Δ₂)) Z₁
+embeddingPair-disjoint Nat.zero Δ₂ {Z₁ = ()}
+embeddingPair-disjoint (Nat.suc Δ₁) Δ₂ {Z₁ = Fin.zero} ()
+embeddingPair-disjoint (Nat.suc Δ₁) Δ₂ {Z₁ = Fin.suc Z₁} eq =
+  embeddingPair-disjoint Δ₁ Δ₂ (fin-suc-injective eq)
+
+pushout-off-image-disjoint : ∀ {Δ Δ′ Δᵐ}
+  → (π : Δ ↪ᵗ Δ′)
+  → (old : Δ ↪ᵗ Δᵐ)
+  → {Z′ : TyVar Δ′} {Zᵐ : TyVar Δᵐ}
+  → preimage? π Z′ ≡ nothing
+  → toRenameᵗ (EmbeddingPushout.old′ (embeddingPushout π old)) Z′
+    ≢ toRenameᵗ (EmbeddingPushout.premise (embeddingPushout π old)) Zᵐ
+pushout-off-image-disjoint {Δ′ = Δ′} {Δᵐ = Δᵐ} empty empty pre eq =
+  embeddingPair-disjoint Δᵐ Δ′ eq
+pushout-off-image-disjoint empty (skip old)
+    {Zᵐ = Fin.zero} pre ()
+pushout-off-image-disjoint empty (skip old)
+    {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint empty old pre (fin-suc-injective eq)
+pushout-off-image-disjoint (skip π) old
+    {Z′ = Fin.zero} pre ()
+pushout-off-image-disjoint (skip π) old
+    {Z′ = Fin.suc Z′} pre eq =
+  pushout-off-image-disjoint π old pre (fin-suc-injective eq)
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.zero} pre eq =
+  just≢nothing pre
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.zero} pre ()
+pushout-off-image-disjoint (keep π) (skip old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint (keep π) old pre
+    (fin-suc-injective eq)
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.zero} pre eq =
+  just≢nothing pre
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.zero} pre ()
+pushout-off-image-disjoint (keep π) (keep old)
+    {Z′ = Fin.suc Z′} {Zᵐ = Fin.suc Zᵐ} pre eq =
+  pushout-off-image-disjoint π old
+    (sucMaybe-nothing (preimage? π Z′) pre)
+    (fin-suc-injective eq)
+
+pushout-old-off-premise : ∀ {Δ Δ′ Δᵐ}
+  → (π : Δ ↪ᵗ Δ′)
+  → (old : Δ ↪ᵗ Δᵐ)
+  → {Z′ : TyVar Δ′}
+  → preimage? π Z′ ≡ nothing
+  → preimage?
+      (EmbeddingPushout.premise (embeddingPushout π old))
+      (toRenameᵗ (EmbeddingPushout.old′ (embeddingPushout π old)) Z′)
+    ≡ nothing
+pushout-old-off-premise π old {Z′ = Z′} off
+    with preimage?
+      (EmbeddingPushout.premise (embeddingPushout π old))
+      (toRenameᵗ (EmbeddingPushout.old′ (embeddingPushout π old)) Z′) in pre
+pushout-old-off-premise π old {Z′ = Z′} off
+    | nothing = refl
+pushout-old-off-premise π old {Z′ = Z′} off
+    | just Zᵐ =
+  ⊥-elim (pushout-off-image-disjoint π old off
+    (preimage?-sound
+      (EmbeddingPushout.premise (embeddingPushout π old)) pre))
 
 renameEnv : ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → ImpEnv Δ → ImpEnv Δ′
 renameEnv empty μ = λ Z → X⊑★
@@ -562,6 +665,7 @@ renameSmartAliasMergeGuard {W = W} {Wᵐ = Wᵐ} {β = β} {α = α}
       (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
         (toRenameᵗ (CTI2.ηᴿʷ W) α))
         (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard)))
+    target-mark-off-footprint′
   where
   no-old-source-at-alias′ : ∀ Xᴸ
     → toRenameᵗ (CTI2.ηᴸʷ (renameWorld π W)) Xᴸ
@@ -572,22 +676,43 @@ renameSmartAliasMergeGuard {W = W} {Wᵐ = Wᵐ} {β = β} {α = α}
         (trans (sym (toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ))
           (trans eq (toRenameᵗ-∘ π (CTI2.ηᴿʷ W) β))))
 
+  target-mark-off-footprint′ : ∀ Xᴿ
+    → Xᴿ ≢ β
+    → Xᴿ ≢ α
+    → CTI2.impEnvʷ (renameWorld π W)
+        (toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ) ≡ X⊑★
+    → CTI2.impEnvʷ (renameWorld π Wᵐ)
+        (toRenameᵗ (CTI2.ηᴿʷ (renameWorld π Wᵐ)) Xᴿ) ≡ X⊑★
+  target-mark-off-footprint′ Xᴿ Xᴿ≢β Xᴿ≢α star =
+    trans (rename-target-mark-image π Wᵐ)
+      (CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard
+        Xᴿ Xᴿ≢β Xᴿ≢α
+        (trans (sym (rename-target-mark-image π W)) star))
+
 renameSmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Wᵐ : CTI2.World (Nat.suc Δᴸ) Δᴿ Δᵐ}
   → (π : Δ ↪ᵗ Δ′)
   → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
-  → (po : EmbeddingPushout π
-      (CTI2.SmartFreshBehindGuard.oldCenters guard))
   → CTI2.SmartFreshBehindGuard (renameWorld π W)
-      (renameWorld (EmbeddingPushout.premise po) Wᵐ)
-renameSmartFreshBehindGuard {W = W} {Wᵐ = Wᵐ} π guard
-    (pushout πᵐ old′ commutes) =
+      (renameWorld
+        (EmbeddingPushout.premise
+          (embeddingPushout π
+            (CTI2.SmartFreshBehindGuard.oldCenters guard)))
+        Wᵐ)
+renameSmartFreshBehindGuard {W = W} {Wᵐ = Wᵐ} π guard =
   CTI2.smart-fresh-behind-guard old′
     (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
     (CTI2.SmartFreshBehindGuard.targetStore-same guard)
     target-frozen′ old-source-frozen′ fresh-not-target′ fresh-mark′
+    target-mark-frozen′
   where
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  po = embeddingPushout π old
+  πᵐ = EmbeddingPushout.premise po
+  old′ = EmbeddingPushout.old′ po
+  commutes = EmbeddingPushout.commutes po
+
   target-frozen′ : ∀ Xᴿ
     → toRenameᵗ
         (CTI2.ηᴿʷ (renameWorld πᵐ Wᵐ)) Xᴿ
@@ -633,6 +758,16 @@ renameSmartFreshBehindGuard {W = W} {Wᵐ = Wᵐ} π guard
   fresh-mark′ =
     trans (rename-mark-image πᵐ Wᵐ {Fin.zero})
       (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard)
+
+  target-mark-frozen′ : ∀ Xᴿ
+    → CTI2.impEnvʷ (renameWorld π W)
+        (toRenameᵗ (CTI2.ηᴿʷ (renameWorld π W)) Xᴿ) ≡ X⊑★
+    → CTI2.impEnvʷ (renameWorld πᵐ Wᵐ)
+        (toRenameᵗ (CTI2.ηᴿʷ (renameWorld πᵐ Wᵐ)) Xᴿ) ≡ X⊑★
+  target-mark-frozen′ Xᴿ star =
+    trans (rename-target-mark-image πᵐ Wᵐ)
+      (CTI2.SmartFreshBehindGuard.target-mark-mono guard Xᴿ
+        (trans (sym (rename-target-mark-image π W)) star))
 
 ------------------------------------------------------------------------
 -- Derivation transport
@@ -697,23 +832,19 @@ renameSmartFreshBehindGuard {W = W} {Wᵐ = Wᵐ} π guard
 ⊢²-rename-center {W = W} {γ = γ} π
     (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {γᵐ = γᵐ} {p = p}
       Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV N⊢
-      V⊑N q) p′
-    with embeddingPushout π
-      (CTI2.SmartFreshBehindGuard.oldCenters guard)
-⊢²-rename-center {W = W} {γ = γ} π
-    (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {γᵐ = γᵐ} {p = p}
-      Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV N⊢
-      V⊑N q) p′
-    | po =
+      V⊑N q) p′ =
   CTI2.Λ⊑²-smart-comma Anv zero∈A
     (CTI2.smart-fresh-behind
-      (renameSmartFreshBehindGuard π guard po))
+      (renameSmartFreshBehindGuard π guard))
     (renameSmartLiftCtxᴸ π (EmbeddingPushout.premise po) liftγ) vV
     (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
       (sym (renameCtx-tgt π γ)) N⊢)
     (⊢²-rename-center {W = Wᵐ} (EmbeddingPushout.premise po)
       V⊑N
       (rename-⊑ᵂ {W = Wᵐ} (EmbeddingPushout.premise po) p)) p′
+  where
+  po = embeddingPushout π
+    (CTI2.SmartFreshBehindGuard.oldCenters guard)
 ⊢²-rename-center {W = W} π (CTI2.•⊑•² p∀ M⊑N q r) p′ =
   CTI2.•⊑•² (rename-⊑ᵂ {W = W} π p∀)
     (⊢²-rename-center {W = W} π M⊑N

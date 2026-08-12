@@ -11,7 +11,7 @@ module proof.DGG.TargetExtend where
 
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 import Data.Fin as Fin
 import Data.Fin.Properties as FinP
 import Data.Nat as Nat
@@ -956,6 +956,7 @@ smartAliasGuardInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
       (CTI2.SmartAliasMergeGuard.α:=★ guard))
     source-store target-store target-frozen′ pending-at-alias′
     old-source-frozen′ no-old-source-at-alias′ alias-mark′ name-mark′
+    target-mark-off-footprint′
   where
   source-store : CTI2.sourceStoreʷ (smartAliasInsertWorld ins Wᵐ)
       ≡ store-lift (CTI2.sourceStoreʷ W′)
@@ -1021,6 +1022,64 @@ smartAliasGuardInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
       (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
         (toRenameᵗ (CTI2.ηᴿʷ W) α))
         (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard))
+
+  target-mark-off-footprint′ : ∀ Y′
+    → Y′ ≢ toRenameᵗ ρ β
+    → Y′ ≢ toRenameᵗ ρ α
+    → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ X⊑★
+    → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+        (toRenameᵗ
+          (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′)
+      ≡ X⊑★
+  target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
+      with preimage? ρ Y′ in pre
+  target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
+      | nothing =
+    renameEnv-off π (CTI2.impEnvʷ Wᵐ)
+      (target-insert-off-image-center ins pre)
+  target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
+      | just Y =
+    subst≡
+      (λ C → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ) C
+        ≡ X⊑★)
+      (sym smart-image-eq)
+      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
+          (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y))
+        (CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard
+          Y Y≢β Y≢α old-star))
+    where
+    y′-eq : Y′ ≡ toRenameᵗ ρ Y
+    y′-eq = preimage?-sound ρ pre
+
+    Y≢β : Y ≢ β
+    Y≢β eq = Y′≢β (trans y′-eq (cong (toRenameᵗ ρ) eq))
+
+    Y≢α : Y ≢ α
+    Y≢α eq = Y′≢α (trans y′-eq (cong (toRenameᵗ ρ) eq))
+
+    old-center-eq :
+      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+    old-center-eq =
+      trans (cong (toRenameᵗ (CTI2.ηᴿʷ W′)) y′-eq)
+        (target-insert ins Y)
+
+    old-star :
+      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
+    old-star =
+      trans (sym (impEnv-insert ins
+          (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+        (subst≡
+          (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+          old-center-eq star)
+
+    smart-image-eq :
+      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    smart-image-eq =
+      trans old-center-eq
+        (cong (toRenameᵗ π)
+          (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y)))
 
 smartFreshInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1196,11 +1255,11 @@ smartFreshGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
   → (ins : TargetInsert ρ π W W′)
   → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
   → CTI2.SmartFreshBehindGuard W′ (smartFreshInsertWorld ins guard)
-smartFreshGuardInsert {π = π} {W = W} {W′ = W′} {Wᵐ = Wᵐ}
+smartFreshGuardInsert {ρ = ρ} {π = π} {W = W} {W′ = W′} {Wᵐ = Wᵐ}
     ins guard =
   CTI2.smart-fresh-behind-guard old′
     source-store target-store target-frozen′ old-source-frozen′
-    fresh-not-target′ fresh-mark′
+    fresh-not-target′ fresh-mark′ target-mark-mono′
   where
   po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
   πᵐ = EmbeddingPushout.premise po
@@ -1264,6 +1323,77 @@ smartFreshGuardInsert {π = π} {W = W} {W′ = W′} {Wᵐ = Wᵐ}
       (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
         (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero))
         (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard))
+
+  target-mark-mono′ : ∀ Y′
+    → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ X⊑★
+    → CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+        (toRenameᵗ
+          (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′)
+      ≡ X⊑★
+  target-mark-mono′ Y′ star with preimage? ρ Y′ in pre
+  target-mark-mono′ Y′ star | nothing
+      with preimage? πᵐ
+        (toRenameᵗ
+          (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′) in preᵐ
+  target-mark-mono′ Y′ star | nothing | nothing =
+    renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ) preᵐ
+  target-mark-mono′ Y′ star | nothing | just Z =
+    ⊥-elim (just≢nothing just-eq)
+    where
+    reflected :
+      Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y ×
+        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+    reflected =
+      target-center-reflect (smartFreshTargetInsert ins guard)
+        (preimage?-sound πᵐ preᵐ)
+
+    Y = proj₁ reflected
+
+    y′-eq : Y′ ≡ toRenameᵗ ρ Y
+    y′-eq = proj₁ (proj₂ reflected)
+
+    just-eq : just Y ≡ nothing
+    just-eq =
+      trans (sym (preimage?-image ρ Y))
+        (trans (cong (preimage? ρ) (sym y′-eq)) pre)
+  target-mark-mono′ Y′ star | just Y =
+    subst≡
+      (λ C → CTI2.impEnvʷ (smartFreshInsertWorld ins guard) C
+        ≡ X⊑★)
+      (sym smart-image-eq)
+      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
+          (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y))
+        (CTI2.SmartFreshBehindGuard.target-mark-mono guard Y old-star))
+    where
+    y′-eq : Y′ ≡ toRenameᵗ ρ Y
+    y′-eq = preimage?-sound ρ pre
+
+    old-center-eq :
+      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+    old-center-eq =
+      trans (cong (toRenameᵗ (CTI2.ηᴿʷ W′)) y′-eq)
+        (target-insert ins Y)
+
+    old-star :
+      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
+    old-star =
+      trans (sym (impEnv-insert ins
+          (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+        (subst≡
+          (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+          old-center-eq star)
+
+    smart-image-eq :
+      toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    smart-image-eq =
+      trans
+        (cong
+          (toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)))
+          y′-eq)
+        (smartFresh-target-insert ins guard Y)
 
 insertRebaseWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}

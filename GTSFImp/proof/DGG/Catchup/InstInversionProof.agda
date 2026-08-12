@@ -2803,6 +2803,9 @@ WindowFresh² Window
 WindowFresh² Window
     (CTI2.Λ⊑² Anv zero∈A liftγ vV M⊢ V⊑M q) =
   WindowFresh² Window V⊑M
+WindowFresh² Window
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M⊢ V⊑M q) =
+  WindowFresh² Window V⊑M
 WindowFresh² Window (CTI2.•⊑•² p∀ M⊑M′ q r) =
   WindowFresh² Window M⊑M′
 WindowFresh² Window (CTI2.•⊑² p∀ M⊑M′ q r) =
@@ -3047,6 +3050,18 @@ targetImageFresh-rebase-reverse ins off rb | Wᵖ⁺ , insᵖ , rb⁺ =
     (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q) =
   ⊢²-target-insert-window-fresh Window
     (TE.liftLeftTargetInsert {v = I.X⊑★} ins) off V⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.Λ⊑²-smart-comma
+      Anv zero∈A (CTI2.smart-merge-alias guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window
+    (TE.smartAliasTargetInsert ins guard) off V⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.Λ⊑²-smart-comma
+      Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV M′⊢
+      V⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window
+    (TE.smartFreshTargetInsert ins guard) off V⊑M′
 ⊢²-target-insert-window-fresh {ρ = ρ} {W⁺ = W⁺} Window ins off
     (CTI2.•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
       p∀ M⊑M′ q r) =

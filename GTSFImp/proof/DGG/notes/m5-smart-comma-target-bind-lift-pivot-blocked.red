@@ -1,6 +1,11 @@
 M5 smart comma M-2 continuation blocked at TargetBindLift.
 
-Status: BLOCKED, 2026-08-12.
+Status: RESOLVED in the M-2 continuation 2, 2026-08-12.
+
+Continuation 2: `proof.DGG.TargetBindLift` now carries smart-lift
+target-mark locality support and closes both `Λ⊑²-smart-comma` branches of
+`⊢²-target-bind-lift-move`.  The next blocker is recorded in
+`m5-smart-comma-center-map-smart-premise-blocked.red`.
 
 The TargetExtend off-image finding is resolved in
 `proof.DGG.TargetExtend`:

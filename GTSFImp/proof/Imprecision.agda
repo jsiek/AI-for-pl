@@ -7,21 +7,17 @@ module proof.Imprecision where
 --   * Proves uniqueness for occurrence and type-imprecision evidence.
 --   * Depends only on Types and Imprecision.
 
-open import Axiom.Extensionality.Propositional using (Extensionality)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 import Data.Nat as Nat
-open import Level using (0ℓ)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 
 open import Types
+open import FunExt using (funext)
 import Imprecision as I
 
 private
-
-  postulate
-    funext : Extensionality 0ℓ 0ℓ
 
   ¬-unique : ∀ {A : Set} (p q : A → ⊥) → p ≡ q
   ¬-unique p q = funext (λ x → ⊥-elim (p x))

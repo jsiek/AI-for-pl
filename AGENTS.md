@@ -288,6 +288,43 @@ When using ASCII diagrams in informal proofs:
 
 # Agda Development Notes
 
+## Agda reduction sequence proof style
+
+When writing Agda proofs of reduction sequences, use the local chain notation
+for the reduction relation at hand instead of nested constructor applications.
+Put each intermediate term on its own indented line, put the step justification
+on the following `—→⟨ ... ⟩` line, and always end the written chain with `∎`
+so the final term is explicit in the code.
+
+When a proof reuses an existing multi-step reduction segment, use the local
+transitive chain syntax, such as `_—↠⟨_⟩_` or `_—↠[_]⟨_⟩_`, and still finish
+with the relation's reflexive terminator. For store-changing chains in
+GTSFImp, that means writing the final term followed by `∎[]`.
+
+Prefer:
+
+    twoᶜ · sucᶜ · `zero
+  —→⟨ ξ-·₁ (β-ƛ V-ƛ) ⟩
+    (ƛ "z" ⇒ sucᶜ · (sucᶜ · ` "z")) · `zero
+  —→⟨ β-ƛ V-zero ⟩
+    sucᶜ · (sucᶜ · `zero)
+  —→⟨ ξ-·₂ V-ƛ (β-ƛ V-zero) ⟩
+    sucᶜ · `suc `zero
+  —→⟨ β-ƛ (V-suc V-zero) ⟩
+    `suc (`suc `zero)
+  ∎
+
+For store-changing reductions with a reused tail proof, prefer:
+
+    M
+  —→[ keep ]⟨ step ⟩
+    N
+  —↠[ χs ]⟨ N↠P ⟩
+    P ∎[]
+
+Over nested `—→⟨_⟩_` / `↠-step` constructor applications when proving
+reduction sequences.
+
 ## Function extensionality is allowed
 
 It is acceptable to postulate or import function extensionality in Agda proofs

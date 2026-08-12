@@ -403,3 +403,18 @@ New proof work goes to the `⊒ᵐ` ports (`proof/*Mediated.agda`,
     mediated composition records (`⨟ʳ`/`⨟ˡ`) take an arbitrary
     composite raw, so the existential form is already usable there —
     this is base-language cleanup, not migration-blocking.
+
+[x] GTSFImp: fix source consistency with a four-mode split. Program
+  binders use crossable `★∼X∼★`, while `∀ᶜ` uses strict `X∼X` and
+  cannot cross ★. The motivating polymorphic minter and a closed,
+  fully applied use now type-check and compile. Totality is mode-
+  restricted, common-lower/unique-completeness results are scoped by
+  `CrossFree`, and term imprecision remains unchanged. See
+  SourceConsistencyExamples.agda and SRCCONSIST-DOSSIER.md §10.
+[x] GTSFImp: retire the remaining v1 imprecision files (CastTermImprecision.agda, CompilePreservesImprecision.agda, DGG/Examples.agda). Blocked on re-pointing the v2 importers (CastTermImprecision2, Examples2, Phase3DeepDives, LambdaImpProbe, CompilePreservesImprecision2) at the shared example terms/compile helpers, which should move to a v1-free module first. RightInjInversion.agda and ReductionPreservesReflexiveImprecision.agda (v1 orphans) already deleted.
+[ ] GTSF: port the four-mode source-consistency split from GTSFImp
+  (crossable program binders and strict consistency binders). GTSF has
+  the same source-language gap: its ordinary ∀ consistency rule adds
+  only `0 ~ᶜ 0`, so program-bound variable-to-★ is underivable (see
+  GTSFImp/proof/DGG/notes/SRCCONSIST-DOSSIER.md §4). Sequence after
+  the GTSFImp fix lands and its repair patterns are known.

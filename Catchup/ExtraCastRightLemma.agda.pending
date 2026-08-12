@@ -1,0 +1,65 @@
+module Catchup.ExtraCastRightLemma where
+
+-- PENDING STITCH:
+--   This file is intentionally outside GTSFImp and is not registered.
+--   It records the final M4 wiring shape, but remains pending until the
+--   M3 inversion walk and the M5 inst-catch-up lemma are available, and
+--   until the remaining M4 dispatcher case listed below is closed.
+--
+--   The current checked worker file is:
+--
+--     proof.DGG.Catchup.ExtraCastRightProof
+--
+--   Intended final stitch:
+--
+--     open import proof.DGG.ExtraCastRight2 using (ExtraCastRight²)
+--     open import proof.DGG.Inversion.RightInjInversion2Lemma
+--       using (right-inj-inversion²)
+--     open import proof.DGG.Catchup.InstCatchupRightLemma
+--       using (inst-catchup-right²)
+--     open import proof.DGG.Catchup.ExtraCastRightProof as Proof
+--
+--     extra-cast-right² : ExtraCastRight²
+--     extra-cast-right² =
+--       Proof.extra-cast-right²
+--         right-inj-inversion²
+--         inst-catchup-right²
+--
+--   Checked M4 worker families in
+--   `proof.DGG.Catchup.ExtraCastRightProof`:
+--
+--   * inert/id/fun/∀ᶜ/safe-gen
+--   * matching ground injection
+--   * non-identity ground injection
+--   * matching projection cancellation
+--   * projection expansion after matching tag exposure
+--   * bot-elim
+--   * bot-intro
+--   * canonical `AllValueView` acquisition for the inst route
+--
+--   Remaining M4 driver blocker:
+--
+--   1. Projection mismatch refutation is not derivable from the current
+--      live relation plus the original `ExtraCastRight²` value conclusion.
+--      `ProjectionMismatchStarRepScratch` checks a literal-`★`
+--      source-seal representation case admitted by
+--      `CTI2.seal-partner-ok CTI2.star-rep-target`:
+--
+--        (($ 0) ⟨ ℕ! ⟩) ↓ seal X ★
+--          ⊑ ($ 0) ⟨ ℕ! ⟩
+--          ∶ ＇ X ⊑ ★
+--
+--      with the requested extra projection
+--
+--        ★ ∼ ＇ Y
+--
+--      and side obligation
+--
+--        ＇ X ⊑ ＇ Y.
+--
+--      The target term `(($ 0) ⟨ ℕ! ⟩) ⟨ Y? ⟩` reduces to `blame`,
+--      and the scratch proves that no value reduct is reachable.  It also
+--      proves `ExtraCastRight² → ⊥` from this package.  Therefore the full
+--      dispatcher cannot be total while keeping the original value
+--      conclusion unless this literal-`★` partner route is ruled out by the
+--      relation or the theorem statement is weakened to permit blame.

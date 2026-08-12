@@ -4,8 +4,6 @@ module ConsistencyExamples where
 --   * Catalogs derivations of consistency for a closed polymorphic type.
 --   * Makes the constructor choices in each derivation explicit.
 
-open import Axiom.Extensionality.Propositional using (Extensionality)
-open import Level using (0ℓ)
 open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
 open import Relation.Binary.PropositionalEquality
@@ -29,44 +27,45 @@ all-all =
   ∀ᶜ (∀ᶜ (id (＇ 1) ↦ id (＇ 0) ↦ id (＇ 1)))
 
 ------------------------------------------------------------------------
--- (∀ X. ∀ Y. X ⇒ Y ⇒ X) ∼ (∀ X. X ⇒ ★ ⇒ X)
+-- (∀ X. ∀ Y. X ⇒ X ⇒ Y) ∼ (∀ X. X ⇒ X ⇒ ★)
 ------------------------------------------------------------------------
 
 -- This is the only constructor-distinct derivation.  The outer X binders
 -- must be paired by ∀ᶜ, after which inst relates the remaining Y to ★.
 instance
-  Y∈X⇒Y⇒X-instance :
-    _∈ᵗ_ {Δ = 2} 0 (＇ 1 ⇒ ＇ 0 ⇒ ＇ 1)
-  Y∈X⇒Y⇒X-instance =
-    ∈-fun-right (∉-var (λ ())) (∈-fun-left var-∈)
+  Y∈X⇒X⇒Y-instance :
+    _∈ᵗ_ {Δ = 2} 0 (＇ 1 ⇒ ＇ 1 ⇒ ＇ 0)
+  Y∈X⇒X⇒Y-instance =
+    ∈-fun-right (∉-var (λ ()))
+      (∈-fun-right (∉-var (λ ())) var-∈)
 
 all-all∼all-star :
   _∼_ {Δ = 0}
-    (`∀ (`∀ (＇ 1 ⇒ ＇ 0 ⇒ ＇ 1)))
-    (`∀ (＇ 0 ⇒ ★ ⇒ ＇ 0))
+    (`∀ (`∀ (＇ 1 ⇒ ＇ 1 ⇒ ＇ 0)))
+    (`∀ (＇ 0 ⇒ ＇ 0 ⇒ ★))
 all-all∼all-star =
   ∀ᶜ
-    ((inst (id (＇ 1) ↦ (id (＇ 0) !) ↦ id (＇ 1))) (λ ()))
+    ((inst (id (＇ 1) ↦ id (＇ 1) ↦ (id (＇ 0) !))) (λ ()))
 
 ------------------------------------------------------------------------
--- (∀ X. X ⇒ X) ∼ ★
+-- (∀ X. ★ ⇒ X) ∼ ★
 ------------------------------------------------------------------------
 
 -- The side conditions on inst and ∈-fun-right leave one derivation: inst
--- targets ★ ⇒ ★ and the occurrence premise selects the domain X.
+-- targets ★ ⇒ ★ and the occurrence premise selects the codomain X.
 
-module XOccursLeft where
+module XOccursRight where
 
   private
     instance
-      X∈X⇒X-left-instance :
-        _∈ᵗ_ {Δ = 1} 0 (＇ 0 ⇒ ＇ 0)
-      X∈X⇒X-left-instance = ∈-fun-left var-∈
+      X∈★⇒X-right-instance :
+        _∈ᵗ_ {Δ = 1} 0 (★ ⇒ ＇ 0)
+      X∈★⇒X-right-instance = ∈-fun-right ∉-star var-∈
 
   tag-after-inst :
-    _∼_ {Δ = 0} (`∀ (＇ 0 ⇒ ＇ 0)) ★
+    _∼_ {Δ = 0} (`∀ (★ ⇒ ＇ 0)) ★
   tag-after-inst =
-    ((inst ((id (＇ 0) !) ↦ (id (＇ 0) !))) (λ ())) !
+    ((inst (id ★ ↦ (id (＇ 0) !))) (λ ())) !
 
 ------------------------------------------------------------------------
 -- (∀ X. X) ∼ ★  and  ★ ∼ (∀ X. X)

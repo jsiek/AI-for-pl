@@ -31,6 +31,7 @@ private
 
 data VarLower : Var∼ → I.VarImp → I.VarImp → Set where
   var-refl : VarLower X∼X I.X⊑X I.X⊑X
+  cross-refl : VarLower ★∼X∼★ I.X⊑X I.X⊑X
   var-to-star : VarLower X∼★ I.X⊑X I.X⊑★
   var-from-star : VarLower ★∼X I.X⊑★ I.X⊑X
   both-to-star : VarLower X∼X I.X⊑★ I.X⊑★
@@ -68,13 +69,28 @@ instantiate-both-lower-env h (suc X) = h X
 
 identity-lower-env : ∀ {Δ}
   → LowerEnv (idᶜ {Δ}) (I.idᵐ {Δ}) (I.idᵐ {Δ})
-identity-lower-env X = var-refl
+identity-lower-env X = cross-refl
+
+flip-var-lower : ∀ {r φ ψ}
+  → VarLower r φ ψ
+  → VarLower (flipVar∼ r) ψ φ
+flip-var-lower var-refl = var-refl
+flip-var-lower cross-refl = cross-refl
+flip-var-lower var-to-star = var-from-star
+flip-var-lower var-from-star = var-to-star
+flip-var-lower both-to-star = both-to-star
+
+flip-lower-env : ∀ {μ : Env∼ Δ} {φ ψ}
+  → LowerEnv μ φ ψ
+  → LowerEnv (flipᵐ μ) ψ φ
+flip-lower-env h X = flip-var-lower (h X)
 
 right-star-from-var-lower : ∀ {r l u}
   → VarLower r l u
   → r ≡ X∼★
   → u ≡ I.X⊑★
 right-star-from-var-lower var-refl ()
+right-star-from-var-lower cross-refl ()
 right-star-from-var-lower var-to-star refl = refl
 right-star-from-var-lower var-from-star ()
 right-star-from-var-lower both-to-star ()
@@ -84,6 +100,7 @@ left-star-from-var-lower : ∀ {r l u}
   → r ≡ ★∼X
   → l ≡ I.X⊑★
 left-star-from-var-lower var-refl ()
+left-star-from-var-lower cross-refl ()
 left-star-from-var-lower var-to-star ()
 left-star-from-var-lower var-from-star refl = refl
 left-star-from-var-lower both-to-star ()
@@ -407,110 +424,183 @@ universal-right-to-star I.bot-elim = I.bot⊑★
 -- Consistency implies a common lower bound
 ------------------------------------------------------------------------
 
+data CrossFree∼★ : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
+    → μ ⊢ G ∼★ → Set where
+  cf-⇒∼★ : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree∼★ (⇒∼★ {μ = μ})
+  cf-ι∼★ : ∀ {Δ} {μ : Env∼ Δ} {ι}
+    → CrossFree∼★ (ι∼★ {μ = μ} {ι = ι})
+  cf-X∼★ᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ X ≡ X∼★}
+    → CrossFree∼★ (X∼★ᵍ {μ = μ} {X = X} eq)
+  cf-∀∼★ : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree∼★ (∀∼★ {μ = μ})
+
+data CrossFree★∼ : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {G : Ty Δ}
+    → μ ⊢★∼ G → Set where
+  cf-★∼⇒ : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree★∼ (★∼⇒ {μ = μ})
+  cf-★∼ι : ∀ {Δ} {μ : Env∼ Δ} {ι}
+    → CrossFree★∼ (★∼ι {μ = μ} {ι = ι})
+  cf-★∼Xᵍ : ∀ {Δ} {μ : Env∼ Δ} {X} {eq : μ X ≡ ★∼X}
+    → CrossFree★∼ (★∼Xᵍ {μ = μ} {X = X} eq)
+  cf-★∼∀ : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree★∼ (★∼∀ {μ = μ})
+
+data CrossFree : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
+    → μ ⊢ A ∼ B → Set where
+  cf-id : ∀ {Δ} {μ : Env∼ Δ} {A} {a : Atom A}
+    → CrossFree (id {μ = μ} a)
+  cf-↦ : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+    → CrossFree c
+    → CrossFree d
+    → CrossFree (c ↦ d)
+  cf-∀ᶜ : ∀ {Δ} {μ : Env∼ Δ} {A B}
+      {c : extᵐ μ ⊢ A ∼ B}
+    → CrossFree c
+    → CrossFree (∀ᶜ c)
+  cf-! : ∀ {Δ} {μ : Env∼ Δ} {A G}
+      {g : Ground G} {G∼★ : μ ⊢ G ∼★}
+      {c : μ ⊢ A ∼ G} {Ans : NonStar A}
+    → CrossFree∼★ G∼★
+    → CrossFree c
+    → CrossFree (_! ⦃ g ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄)
+  cf-？ : ∀ {Δ} {μ : Env∼ Δ} {G B}
+      {g : Ground G} {★∼G : μ ⊢★∼ G}
+      {c : μ ⊢ G ∼ B} {Bns : NonStar B}
+    → CrossFree★∼ ★∼G
+    → CrossFree c
+    → CrossFree (？_ ⦃ g ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄)
+  cf-inst : ∀ {Δ} {μ : Env∼ Δ} {A B}
+      {Anv : NonVar A} {z∈A : zero ∈ᵗ A}
+      {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B} {B≢★ : B ≢ ★}
+    → CrossFree c
+    → CrossFree (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
+  cf-gen : ∀ {Δ} {μ : Env∼ Δ} {A B}
+      {Bnv : NonVar B} {z∈B : zero ∈ᵗ B}
+      {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B} {A≢★ : A ≢ ★}
+    → CrossFree c
+    → CrossFree (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
+  cf-bot-elim : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree (bot-elim {μ = μ})
+  cf-bot-intro : ∀ {Δ} {μ : Env∼ Δ}
+    → CrossFree (bot-intro {μ = μ})
+
 consistent-common-lowerᵐ : ∀ {Δ} {μ : Env∼ Δ} {φ ψ}
     {A B : Ty Δ}
   → LowerEnv μ φ ψ
-  → μ ⊢ A ∼ B
+  → (c : μ ⊢ A ∼ B)
+  → CrossFree c
   → ∃[ D ] I._⊢_⊑_ φ D A × I._⊢_⊑_ ψ D B
-consistent-common-lowerᵐ h (id ★) = ★ , I.★⊑★ , I.★⊑★
-consistent-common-lowerᵐ h (id (‵ ι)) = ‵ ι , I.ι⊑ι , I.ι⊑ι
-consistent-common-lowerᵐ h (id (＇ X)) = ＇ X , I.X⊑X , I.X⊑X
-consistent-common-lowerᵐ h (c ↦ d)
-    with consistent-common-lowerᵐ h c
-       | consistent-common-lowerᵐ h d
-consistent-common-lowerᵐ h (c ↦ d)
-    | A , A⊑L , A⊑R | B , B⊑L , B⊑R =
+consistent-common-lowerᵐ h (id ★) cf-id = ★ , I.★⊑★ , I.★⊑★
+consistent-common-lowerᵐ h (id (‵ ι)) cf-id =
+  ‵ ι , I.ι⊑ι , I.ι⊑ι
+consistent-common-lowerᵐ h (id (＇ X)) cf-id = ＇ X , I.X⊑X , I.X⊑X
+consistent-common-lowerᵐ h (c ↦ d) (cf-↦ c-free d-free)
+    with consistent-common-lowerᵐ (flip-lower-env h) c c-free
+       | consistent-common-lowerᵐ h d d-free
+consistent-common-lowerᵐ h (c ↦ d) (cf-↦ c-free d-free)
+    | A , A⊑R , A⊑L | B , B⊑L , B⊑R =
   A ⇒ B , I.⇒⊑⇒ A⊑L B⊑L , I.⇒⊑⇒ A⊑R B⊑R
-consistent-common-lowerᵐ h (∀ᶜ c)
-    with consistent-common-lowerᵐ (extend-lower-env h) c
-consistent-common-lowerᵐ h (∀ᶜ c) | D , D⊑A , D⊑B =
+consistent-common-lowerᵐ h (∀ᶜ c) (cf-∀ᶜ c-free)
+    with consistent-common-lowerᵐ (extend-lower-env h) c c-free
+consistent-common-lowerᵐ h (∀ᶜ c) (cf-∀ᶜ c-free)
+    | D , D⊑A , D⊑B =
   `∀ D , I.∀⊑∀ D⊑A , I.∀⊑∀ D⊑B
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄)
-    with consistent-common-lowerᵐ h c
+    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄) (cf-! cf-⇒∼★ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄)
+    (_! ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Ans ⦄) (cf-! cf-⇒∼★ c-free)
     | D , D⊑A , D⊑G =
   D , D⊑A , arrow-right-to-star h D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄)
-    with consistent-common-lowerᵐ h c
+    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄) (cf-! cf-ι∼★ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄)
+    (_! ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Ans ⦄) (cf-! cf-ι∼★ c-free)
     | D , D⊑A , D⊑G =
   D , D⊑A , base-right-to-star h D⊑G
 consistent-common-lowerᵐ h
     (_! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
-    with consistent-common-lowerᵐ h c
+    (cf-! cf-X∼★ᵍ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
     (_! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ᵍ eq ⦄ c ⦃ Ans ⦄)
+    (cf-! cf-X∼★ᵍ c-free)
     | D , D⊑A , D⊑G =
   D , D⊑A , var-right-to-star h eq D⊑G
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄)
-    with consistent-common-lowerᵐ h c
+    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄) (cf-! cf-∀∼★ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄)
+    (_! ⦃ Gᵍ = ∀★ ⦄ c ⦃ Ans ⦄) (cf-! cf-∀∼★ c-free)
     | D , D⊑A , D⊑G =
   D , D⊑A , universal-right-to-star D⊑G
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄)
-    with consistent-common-lowerᵐ h c
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼⇒ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄)
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼⇒ c-free)
     | D , D⊑G , D⊑B =
   D , arrow-left-to-star h D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄)
-    with consistent-common-lowerᵐ h c
+    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼ι c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄)
+    (？_ ⦃ Gᵍ = ‵ ι ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼ι c-free)
     | D , D⊑G , D⊑B =
   D , base-left-to-star h D⊑G , D⊑B
 consistent-common-lowerᵐ h
     (？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
-    with consistent-common-lowerᵐ h c
+    (cf-？ cf-★∼Xᵍ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
     (？_ ⦃ Gᵍ = ＇ X ⦄ ⦃ ★∼G = ★∼Xᵍ eq ⦄ c ⦃ Bns ⦄)
+    (cf-？ cf-★∼Xᵍ c-free)
     | D , D⊑G , D⊑B =
   D , var-left-to-star h eq D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄)
-    with consistent-common-lowerᵐ h c
+    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼∀ c-free)
+    with consistent-common-lowerᵐ h c c-free
 consistent-common-lowerᵐ h
-    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄)
+    (？_ ⦃ Gᵍ = ∀★ ⦄ c ⦃ Bns ⦄) (cf-？ cf-★∼∀ c-free)
     | D , D⊑G , D⊑B =
   D , universal-right-to-star D⊑G , D⊑B
 consistent-common-lowerᵐ h
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
+    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (cf-inst c-free)
     with consistent-common-lowerᵐ
-      (instantiate-right-lower-env h) c
+      (instantiate-right-lower-env h) c c-free
 consistent-common-lowerᵐ h
     (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★)
+    (cf-inst c-free)
     | D , D⊑A , D⊑B =
   `∀ D , I.∀⊑∀ D⊑A ,
   I.∀⊑ (source-nonvar-from-target D⊑A Anv z∈A)
     (target-occurs-source D⊑A z∈A) D⊑B
 consistent-common-lowerᵐ h
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) (cf-gen c-free)
     with consistent-common-lowerᵐ
-      (instantiate-left-lower-env h) c
+      (instantiate-left-lower-env h) c c-free
 consistent-common-lowerᵐ h
     (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★)
+    (cf-gen c-free)
     | D , D⊑A , D⊑B =
   `∀ D ,
   I.∀⊑ (source-nonvar-from-target D⊑B Bnv z∈B)
     (target-occurs-source D⊑B z∈B) D⊑A ,
   I.∀⊑∀ D⊑B
-consistent-common-lowerᵐ h bot-elim =
+consistent-common-lowerᵐ h bot-elim cf-bot-elim =
   `∀ (＇ zero) , refl⊑ (`∀ (＇ zero)) , I.bot-elim
-consistent-common-lowerᵐ h bot-intro =
+consistent-common-lowerᵐ h bot-intro cf-bot-intro =
   `∀ (＇ zero) , I.bot-elim , refl⊑ (`∀ (＇ zero))
 
 consistent-common-lower : ∀ {Δ} {A B : Ty Δ}
-  → A ∼ B
+  → (c : A ∼ B)
+  → CrossFree c
   → ∃[ D ] I._⊑_ D A × I._⊑_ D B
-consistent-common-lower = consistent-common-lowerᵐ identity-lower-env
+consistent-common-lower c =
+  consistent-common-lowerᵐ identity-lower-env c
 
 ------------------------------------------------------------------------
 -- Properties used to reconstruct consistency from lower bounds
@@ -597,6 +687,22 @@ source-occurs-target focus I.bot⊑★ (∈-all ())
 consistency-var-self-not-star : X∼X ≡ X∼★ → ⊥
 consistency-var-self-not-star ()
 
+consistency-var-self-not-from-star : X∼X ≡ ★∼X → ⊥
+consistency-var-self-not-from-star ()
+
+consistency-var-self-not-cross : X∼X ≡ ★∼X∼★ → ⊥
+consistency-var-self-not-cross ()
+
+flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+  → ν X ≡ X∼X
+  → flipᵐ ν X ≡ X∼X
+flip-self-mode same = cong flipVar∼ same
+
+flip-flip-self-mode : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+  → ν X ≡ X∼X
+  → flipᵐ (flipᵐ ν) X ≡ X∼X
+flip-flip-self-mode same = cong flipVar∼ (cong flipVar∼ same)
+
 ground-self-occurs⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
     {G : Ty Δ}
   → ν X ≡ X∼X
@@ -608,49 +714,118 @@ ground-self-occurs⊥ same ⇒∼★ (∈-fun-right X∉A ())
 ground-self-occurs⊥ same ι∼★ ()
 ground-self-occurs⊥ same (X∼★ᵍ eq) var-∈ =
   consistency-var-self-not-star (trans (sym same) eq)
+ground-self-occurs⊥ same (X∼★ᶜ eq) var-∈ =
+  consistency-var-self-not-cross (trans (sym same) eq)
 ground-self-occurs⊥ same ∀∼★ (∈-all ())
 
-consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
-    {X : TyVar Δ} {A B : Ty Δ}
+ground-self-occurs★∼⊥ : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {X : TyVar Δ}
+    {G : Ty Δ}
   → ν X ≡ X∼X
-  → ν ⊢ A ∼ B
-  → X ∈ᵗ A
-  → X ∈ᵗ B
-consistency-source-occurs-target same (id a) X∈A = X∈A
-consistency-source-occurs-target {A = A ⇒ B} {B = A′ ⇒ B′}
-    same (c ↦ d) (∈-fun-left X∈A) =
-  ∈-fun-left (consistency-source-occurs-target same c X∈A)
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    with occurs? X A′
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    | present X∈A′ = ∈-fun-left X∈A′
-consistency-source-occurs-target {X = X} {A = A ⇒ B}
-    {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
-    | absent X∉A′ =
-  ∈-fun-right X∉A′ (consistency-source-occurs-target same d X∈B)
-consistency-source-occurs-target {X = X} {A = `∀ A} {B = `∀ B}
-    same (∀ᶜ c) (∈-all X∈A) =
-  ∈-all (consistency-source-occurs-target {X = suc X} same c X∈A)
-consistency-source-occurs-target {B = ★} same
-    (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
-  ⊥-elim (ground-self-occurs⊥ same G∼★
-    (consistency-source-occurs-target same c X∈A))
-consistency-source-occurs-target {A = ★} same
-    (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
-consistency-source-occurs-target {X = X} {A = `∀ A} same
-    (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
-  unshift-occurs
-    (consistency-source-occurs-target {X = suc X} same c X∈A)
-consistency-source-occurs-target {X = X} {B = `∀ B} same
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) X∈A =
-  ∈-all (consistency-source-occurs-target {X = suc X} same c
-    (shift-occurs X∈A))
-consistency-source-occurs-target {A = `∀ (＇ zero)}
-    same bot-elim (∈-all ())
-consistency-source-occurs-target {A = `∀ ★}
-    same bot-intro (∈-all ())
+  → ν ⊢★∼ G
+  → X ∈ᵗ G
+  → ⊥
+ground-self-occurs★∼⊥ same ★∼⇒ (∈-fun-left ())
+ground-self-occurs★∼⊥ same ★∼⇒ (∈-fun-right X∉A ())
+ground-self-occurs★∼⊥ same ★∼ι ()
+ground-self-occurs★∼⊥ same (★∼Xᵍ eq) var-∈ =
+  consistency-var-self-not-from-star (trans (sym same) eq)
+ground-self-occurs★∼⊥ same (★∼Xᶜ eq) var-∈ =
+  consistency-var-self-not-cross (trans (sym same) eq)
+ground-self-occurs★∼⊥ same ★∼∀ (∈-all ())
+
+mutual
+  consistency-source-occurs-target : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → ν X ≡ X∼X
+    → ν ⊢ A ∼ B
+    → X ∈ᵗ A
+    → X ∈ᵗ B
+  consistency-source-occurs-target same (id a) X∈A = X∈A
+  consistency-source-occurs-target {ν = ν} {X = X}
+      {A = A ⇒ B} {B = A′ ⇒ B′} same (c ↦ d)
+      (∈-fun-left X∈A) =
+    ∈-fun-left
+      (consistency-target-occurs-source {ν = flipᵐ ν} {X = X}
+        (flip-self-mode {ν = ν} {X = X} same) c X∈A)
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      with occurs? X A′
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      | present X∈A′ = ∈-fun-left X∈A′
+  consistency-source-occurs-target {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A X∈B)
+      | absent X∉A′ =
+    ∈-fun-right X∉A′
+      (consistency-source-occurs-target same d X∈B)
+  consistency-source-occurs-target {X = X} {A = `∀ A} {B = `∀ B}
+      same (∀ᶜ c) (∈-all X∈A) =
+    ∈-all (consistency-source-occurs-target {X = suc X} same c X∈A)
+  consistency-source-occurs-target {B = ★} same
+      (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) X∈A =
+    ⊥-elim (ground-self-occurs⊥ same G∼★
+      (consistency-source-occurs-target same c X∈A))
+  consistency-source-occurs-target {A = ★} same
+      (？_ ⦃ g ⦄ c ⦃ Bns ⦄) ()
+  consistency-source-occurs-target {X = X} {A = `∀ A} same
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) (∈-all X∈A) =
+    unshift-occurs
+      (consistency-source-occurs-target {X = suc X} same c X∈A)
+  consistency-source-occurs-target {X = X} {B = `∀ B} same
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) X∈A =
+    ∈-all (consistency-source-occurs-target {X = suc X} same c
+      (shift-occurs X∈A))
+  consistency-source-occurs-target {A = `∀ (＇ zero)}
+      same bot-elim (∈-all ())
+  consistency-source-occurs-target {A = `∀ ★}
+      same bot-intro (∈-all ())
+
+  consistency-target-occurs-source : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+      {X : TyVar Δ} {A B : Ty Δ}
+    → ν X ≡ X∼X
+    → ν ⊢ A ∼ B
+    → X ∈ᵗ B
+    → X ∈ᵗ A
+  consistency-target-occurs-source same (id a) X∈B = X∈B
+  consistency-target-occurs-source {ν = ν} {X = X}
+      {A = A ⇒ B} {B = A′ ⇒ B′} same (c ↦ d)
+      (∈-fun-left X∈A′) =
+    ∈-fun-left
+      (consistency-source-occurs-target {ν = flipᵐ ν} {X = X}
+        (flip-self-mode {ν = ν} {X = X} same) c X∈A′)
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      with occurs? X A
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      | present X∈A = ∈-fun-left X∈A
+  consistency-target-occurs-source {X = X} {A = A ⇒ B}
+      {B = A′ ⇒ B′} same (c ↦ d) (∈-fun-right X∉A′ X∈B′)
+      | absent X∉A =
+    ∈-fun-right X∉A
+      (consistency-target-occurs-source same d X∈B′)
+  consistency-target-occurs-source {X = X} {A = `∀ A} {B = `∀ B}
+      same (∀ᶜ c) (∈-all X∈B) =
+    ∈-all (consistency-target-occurs-source {X = suc X} same c X∈B)
+  consistency-target-occurs-source {B = ★} same
+      (_! ⦃ G∼★ = G∼★ ⦄ c ⦃ Ans ⦄) ()
+  consistency-target-occurs-source {A = ★} same
+      (？_ ⦃ ★∼G = ★∼G ⦄ c ⦃ Bns ⦄) X∈B =
+    ⊥-elim (ground-self-occurs★∼⊥ same ★∼G
+      (consistency-target-occurs-source same c X∈B))
+  consistency-target-occurs-source {X = X} {A = `∀ A} same
+      (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) X∈B =
+    ∈-all
+      (consistency-target-occurs-source {X = suc X} same c
+        (shift-occurs X∈B))
+  consistency-target-occurs-source {X = X} {B = `∀ B} same
+      (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) (∈-all X∈B) =
+    unshift-occurs
+      (consistency-target-occurs-source {X = suc X} same c X∈B)
+  consistency-target-occurs-source {B = `∀ ★}
+      same bot-elim (∈-all ())
+  consistency-target-occurs-source {B = `∀ (＇ zero)}
+      same bot-intro (∈-all ())
 
 shift-ground : ∀ {Δ G}
   → Ground {Δ} G
@@ -666,6 +841,7 @@ inst-shift-∼★ : ∀ {Δ μ G}
 inst-shift-∼★ ⇒∼★ = ⇒∼★
 inst-shift-∼★ ι∼★ = ι∼★
 inst-shift-∼★ (X∼★ᵍ eq) = X∼★ᵍ eq
+inst-shift-∼★ (X∼★ᶜ eq) = X∼★ᶜ eq
 inst-shift-∼★ ∀∼★ = ∀∼★
 
 inst-shift-★∼ : ∀ {Δ μ G}
@@ -674,6 +850,7 @@ inst-shift-★∼ : ∀ {Δ μ G}
 inst-shift-★∼ ★∼⇒ = ★∼⇒
 inst-shift-★∼ ★∼ι = ★∼ι
 inst-shift-★∼ (★∼Xᵍ eq) = ★∼Xᵍ eq
+inst-shift-★∼ (★∼Xᶜ eq) = ★∼Xᶜ eq
 inst-shift-★∼ ★∼∀ = ★∼∀
 
 ground-target-nonvar-to-star⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {A G : Ty Δ}
@@ -1290,6 +1467,12 @@ identity-avoids-both : ∀ {Δ} {A B : Ty Δ}
 identity-avoids-both X eqL eqR =
   ⊥-elim (var-identity-not-star eqL)
 
+swap-avoid-both : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A B}
+  → AvoidBoth φ ψ A B
+  → AvoidBoth ψ φ B A
+swap-avoid-both safe X eqL eqR with safe X eqR eqL
+swap-avoid-both safe X eqL eqR | X∉A , X∉B = X∉B , X∉A
+
 avoid-arrow-domain : ∀ {Δ} {φ ψ : I.ImpEnv Δ} {A B C D}
   → AvoidBoth φ ψ (A ⇒ B) (C ⇒ D)
   → AvoidBoth φ ψ A C
@@ -1542,12 +1725,14 @@ lower-bounds-consistentᵐ h safe (I.X⊑★ eqL) (I.X⊑★ eqR) =
   id ★
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
-  lower-bounds-consistentᵐ h (avoid-arrow-domain safe) p₁ q₁ ↦
+  lower-bounds-consistentᵐ (flip-lower-env h)
+    (swap-avoid-both (avoid-arrow-domain safe)) q₁ p₁ ↦
   lower-bounds-consistentᵐ h (avoid-arrow-codomain safe) p₂ q₂
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑★ q₁ q₂) =
   _! ⦃ Gᵍ = ★⇒★ ⦄
-    (lower-bounds-consistentᵐ h (avoid-arrow-star-domain safe) p₁ q₁
+    (lower-bounds-consistentᵐ (flip-lower-env h)
+      (swap-avoid-both (avoid-arrow-star-domain safe)) q₁ p₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-arrow-star-codomain safe) p₂ q₂)
@@ -1555,7 +1740,8 @@ lower-bounds-consistentᵐ h safe
 lower-bounds-consistentᵐ h safe
     (I.⇒⊑★ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
   ？_ ⦃ Gᵍ = ★⇒★ ⦄
-    (lower-bounds-consistentᵐ h (avoid-star-arrow-domain safe) p₁ q₁
+    (lower-bounds-consistentᵐ (flip-lower-env h)
+      (swap-avoid-both (avoid-star-arrow-domain safe)) q₁ p₁
       ↦
      lower-bounds-consistentᵐ h
        (avoid-star-arrow-codomain safe) p₂ q₂)
@@ -1677,7 +1863,8 @@ common-lower-consistent (D , D⊑A , D⊑B) =
     identity-avoids-both D⊑A D⊑B
 
 consistency-iff-common-lower : ∀ {Δ} {A B : Ty Δ}
-  → (A ∼ B → ∃[ D ] I._⊑_ D A × I._⊑_ D B)
+  → ((c : A ∼ B) → CrossFree c
+      → ∃[ D ] I._⊑_ D A × I._⊑_ D B)
     × ((∃[ D ] I._⊑_ D A × I._⊑_ D B) → A ∼ B)
 consistency-iff-common-lower =
   consistent-common-lower , common-lower-consistent

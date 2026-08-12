@@ -22,6 +22,7 @@ open import Conversion
 open import Primitives
 open import CastTerms
 open import Reduction
+open import proof.Consistency using (gen-safe)
 
 ------------------------------------------------------------------------
 -- Progress and canonical views
@@ -37,7 +38,7 @@ data Progress {Δ : TyCtx} {Σ : TyStore Δ} (M : Term Δ) : Set where
 data FunView {Δ : TyCtx} (V : Term Δ) : Set where
   fv-ƛ : ∀ {N} → V ≡ ƛ N → FunView V
   fv-⇒ : ∀ {μ : Env∼ Δ} {W} {A A′ B B′ : Ty Δ}
-      {c : μ ⊢ A ∼ A′} {d : μ ⊢ B ∼ B′}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Value W
     → V ≡ W ⟨ c ↦ d ⟩
     → FunView V
@@ -389,7 +390,7 @@ to-ground (‵ ι) (id (‵ ι)) = same
 to-ground (‵ ι) (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
 to-ground (‵ ι) (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) = other (λ ())
 to-ground ★⇒★ (？_ ⦃ g ⦄ c ⦃ Bns ⦄) = other (λ ())
-to-ground ★⇒★ (c ↦ d) with to-star c | to-star d
+to-ground ★⇒★ (c ↦ d) with from-star c | to-star d
 to-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
 to-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
@@ -426,7 +427,7 @@ from-ground (‵ ι) (id (‵ ι)) = same
 from-ground (‵ ι) (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
 from-ground (‵ ι) (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) = other (λ ())
 from-ground ★⇒★ (_! ⦃ g ⦄ c ⦃ Ans ⦄) = other (λ ())
-from-ground ★⇒★ (c ↦ d) with from-star c | from-star d
+from-ground ★⇒★ (c ↦ d) with to-star c | from-star d
 from-ground ★⇒★ (.(id ★) ↦ .(id ★)) | same | same = same
 from-ground ★⇒★ (c ↦ d) | same | other B≠★ =
   other (λ { refl → B≠★ refl })
@@ -447,48 +448,6 @@ from-ground ∀★ (inst_ ⦃ Anv ⦄ ⦃ () ⦄ c B≢★)
 from-ground ∀★ (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
   other (λ { refl → occurs-star-impossible z∈B })
 from-ground ∀★ bot-intro = other (λ ())
-
-------------------------------------------------------------------------
--- Polymorphic cast classification
-------------------------------------------------------------------------
-
-data Preimage {Δ Δ′ : TyCtx} (ρ : Δ ⇒ʳ Δ′) (Y : TyVar Δ′)
-    (A : Ty Δ) : Set where
-  found : (X : TyVar Δ) → ρ X ≡ Y → X ∈ᵗ A → Preimage ρ Y A
-
-rename-preimage : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′} {Y : TyVar Δ′}
-    {A : Ty Δ}
-  → Y ∈ᵗ renameᵗ ρ A
-  → Preimage ρ Y A
-rename-preimage {A = ＇ X} var-∈ = found X refl var-∈
-rename-preimage {A = ‵ ι} ()
-rename-preimage {A = ★} ()
-rename-preimage {A = A ⇒ B} (∈-fun-left Y∈A)
-    with rename-preimage Y∈A
-rename-preimage {A = A ⇒ B} (∈-fun-left Y∈A)
-    | found X eq X∈A =
-  found X eq (∈-fun-left X∈A)
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
-    with rename-preimage Y∈B
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
-    | found X eq X∈B with occurs? X A
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
-    | found X eq X∈B | present X∈A =
-  found X eq (∈-fun-left X∈A)
-rename-preimage {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
-    | found X eq X∈B | absent X∉A =
-  found X eq (∈-fun-right X∉A X∈B)
-rename-preimage {A = `∀ A} (∈-all Y∈A)
-    with rename-preimage Y∈A
-rename-preimage {A = `∀ A} (∈-all Y∈A)
-    | found Fin.zero () X∈A
-rename-preimage {A = `∀ A} (∈-all Y∈A)
-    | found (Fin.suc X) refl X∈A =
-  found X refl (∈-all X∈A)
-
-zero-not-shift : ∀ {Δ} {A : Ty Δ} → 0 ∈ᵗ ⇑ᵗ A → ⊥
-zero-not-shift z∈ with rename-preimage z∈
-zero-not-shift z∈ | found X () X∈A
 
 no-to-base : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {X : TyVar Δ} {ι}
   → μ ⊢ A ∼ ‵ ι
@@ -515,47 +474,6 @@ occurrence-nonstar var-∈ = nonstar-X
 occurrence-nonstar (∈-fun-left X∈A) = nonstar-⇒
 occurrence-nonstar (∈-fun-right X∉A X∈B) = nonstar-⇒
 occurrence-nonstar (∈-all X∈A) = nonstar-∀
-
-shift-star-injective : ∀ {Δ} {A : Ty Δ}
-  → ⇑ᵗ A ≡ ★
-  → A ≡ ★
-shift-star-injective {A = ＇ X} ()
-shift-star-injective {A = ‵ ι} ()
-shift-star-injective {A = ★} refl = refl
-shift-star-injective {A = A ⇒ B} ()
-shift-star-injective {A = `∀ A} ()
-
-gen-safe′ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
-    {C B : Ty (suc Δ)}
-  → (c : genᵐ μ ⊢ C ∼ B)
-  → C ≡ ⇑ᵗ A
-  → A ≢ ★
-  → NonVar B
-  → 0 ∈ᵗ B
-  → GenSafe c
-gen-safe′ (id a) refl A≠★ Bnv z∈B =
-  ⊥-elim (zero-not-shift z∈B)
-gen-safe′ (c ↦ d) eq A≠★ Bnv z∈B = safe-⇒
-gen-safe′ (∀ᶜ c) eq A≠★ Bnv z∈B = safe-∀
-gen-safe′ (_! ⦃ g ⦄ c ⦃ Ans ⦄) eq A≠★ Bnv ()
-gen-safe′ (？_ ⦃ g ⦄ c ⦃ Bns ⦄)
-    eq A≠★ Bnv z∈B =
-  ⊥-elim (A≠★ (shift-star-injective (sym eq)))
-gen-safe′ (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) eq A≠★ Bnv z∈B =
-  safe-inst B≢★
-gen-safe′ (gen_ {A = C} ⦃ Cnv ⦄ ⦃ z∈C ⦄ c C≢★)
-    eq A≠★ Bnv z∈B =
-  safe-gen C≢★ (gen-safe′ c refl C≢★ Cnv z∈C)
-gen-safe′ bot-elim eq A≠★ Bnv (∈-all ())
-gen-safe′ bot-intro eq A≠★ Bnv (∈-all ())
-
-gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
-  → (c : genᵐ μ ⊢ ⇑ᵗ A ∼ B)
-  → A ≢ ★
-  → NonVar B
-  → 0 ∈ᵗ B
-  → GenSafe c
-gen-safe c A≠★ Bnv z∈B = gen-safe′ c refl A≠★ Bnv z∈B
 
 ------------------------------------------------------------------------
 -- Progress for values under casts and conversions
@@ -681,7 +599,7 @@ progress (⊢· L⊢ M⊢) | done vL | done vM | fv-ƛ refl =
   step (pure-step (β vM))
 progress (⊢· L⊢ M⊢) | done vL | done vM
     | fv-⇒ vW refl =
-  step (pure-step (β-⇒ vW vM refl))
+  step (pure-step (β-⇒ vW vM))
 progress (⊢· L⊢ M⊢) | done vL | done vM
     | fv-reveal vW refl =
   step (pure-step (β-reveal-⇒ vW vM))

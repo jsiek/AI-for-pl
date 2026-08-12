@@ -80,3 +80,79 @@ Checked state:
 
 No live relation was changed, and no postulate, hole, or catch-all was
 added.
+
+M-4 continuation, base-transport pass:
+
+  The prefix-package side of the approved base-parameterization now checks.
+  The live proof has a parameterized consumer:
+
+    `Λ⊑Λ²PostBodyTransportAtᵀ`
+
+  and the wrapper around it:
+
+    `Λ⊑Λ²-base-prefix-at-base`
+
+  The design scratch validates both call sites that matter:
+
+    `Λ⊑Λ²-base-prefix-at-base-preflight`
+    `Λ⊑Λ²-smart-premise-base-preflight`
+
+  The exact remaining concrete ingredient is the reveal-window part of
+  `Λ⊑Λ²-post-body-transport`, not the prefix package.  Its composition is
+  still hard-coded through:
+
+    `ΛPostMidWorld W`
+
+  and the final post world:
+
+    `liftWorldLeft X⊑★
+       (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero))`
+
+  The concrete dependencies are:
+
+    `Λ-route1-out-ctx`
+    `Λ-route1-out-liftCtxᴸ`
+    `Λ-mid-to-out-shifted-⊑ᵂ`
+    `Λ-out-mid-mono`
+    `Λ-outer-rebaseᴿ`
+    `Λ-final-body-⊑ᵂ`
+
+  plus the final target typing extraction through `liftCtxᴸ-target`.
+
+  These helpers need the two generated target centers and the two intermediate
+  reveal rebases to be definitionally the concrete right-only window.  A plain
+  `WorldExtendᴿ` at the pushout-indexed smart premise world only carries store
+  and obligation transport; it does not expose the target OPE/image facts,
+  intermediate worlds, context equality, `ImpEnvMono`, or `RebaseAtᴿ` witnesses
+  needed to rebuild the two generated reveals.
+
+  `TargetExtend.⊢²-target-insert` is also insufficient as-is: it transports an
+  already-built derivation forward from the pre-insertion world.  The
+  `Λ⊑Λ²` post-body transport must first construct the reveal-wrapped target
+  term and its two reveal premises at the post world.  Transporting the
+  concrete right-only result afterward would require a same-dimension bridge
+  from:
+
+    `rightOnlyWorld (rightOnlyWorld Wᵐ ★) (＇ zero)`
+
+  to:
+
+    `smartAliasInsertWorld ... Wᵐ`
+
+  or:
+
+    `smartFreshInsertWorld ... guard`
+
+  including context, obligation, typing, and rebase transport for the
+  already reveal-wrapped term.  That bridge is not part of the current
+  `TargetInsert`/`CenterRename` surface.
+
+  Smallest next surface:
+
+    add a post-window geometry package for the two generated target binds,
+    carrying the target insertion evidence and the concrete middle/out reveal
+    witnesses (`ImpEnvMono`, `RebaseAtᴿ`, context transport, final obligation
+    transport, and typing context equality) for the supplied `W₂`; then
+    implement `Λ⊑Λ²PostBodyTransportAtᵀ` from that package.  The existing
+    concrete right-only instance should remain as the proven consumer for the
+    depth-0/base path.

@@ -78,7 +78,7 @@ open import proof.DGG.Catchup.InstInversionDef using
   (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
    InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ;
-   Λ⊑²AtRewrapᵀ;
+   Λ⊑Λ²PostBodyTransportAtᵀ; Λ⊑²AtRewrapᵀ;
    Λ⊑Λ²BodyAfter★; Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂;
    Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
 open import proof.DGG.Catchup.InstCatchupRightDef using
@@ -3458,6 +3458,50 @@ right-bind-right-bind-tag-rebaseᴸ rb =
         subst≡ (λ C → `∀ A CTI2.⊑ᵂ⟨
             CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
           ⟩ C)
+          (residual-source₂-eq B) top-p₂
+    ; prefix-relation =
+        rel-target-transportᴿ (residual-source₂-eq B) top-p₂
+          (CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂)
+    ; prefix-value = vPost
+    ; prefix-reduction =
+        Λ⊑Λ²-prefix-reduction vV′ B′≢★
+    }
+
+
+Λ⊑Λ²-base-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W} {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → Λ⊑Λ²PostBodyTransportAtᵀ
+  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : CT.Value V)
+  → (vV′ : CT.Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ⊑Λ²-base-prefix-at-base {Δᴿ = Δᴿ} {W₂ = W₂}
+    {V′ = V′} {A = A} {B = B} transportAt rel vV vV′ c′
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ ext₂ liftγ Anv zero∈A bodyRel
+    with transportAt ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+... | γ₂ᴸ , body-p₂ , top-p₂ ,
+      liftγ₂ , vPost , post⊢ , bodyRel₂ =
+  record
+    { prefix-p₂ =
+        subst≡ (λ C → `∀ A CTI2.⊑ᵂ⟨ W₂ ⟩ C)
           (residual-source₂-eq B) top-p₂
     ; prefix-relation =
         rel-target-transportᴿ (residual-source₂-eq B) top-p₂

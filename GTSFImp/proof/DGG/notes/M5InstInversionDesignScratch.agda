@@ -519,6 +519,64 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   IIP.Λ⊑²-smart-recursive-prefix-at-base
 
 
+Λ⊑Λ²-base-prefix-at-base-preflight : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CtxImp W} {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+    {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
+  → Λ⊑Λ²PostBodyTransportAtᵀ
+  → (rel : W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → (liftγ : LiftCtx X⊑X γ γᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → IIP.ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ⊑Λ²-base-prefix-at-base-preflight =
+  IIP.Λ⊑Λ²-base-prefix-at-base
+
+
+Λ⊑Λ²-smart-premise-base-preflight : ∀ {Δᴸ Δᴿ Δᵐ Δᵐ₂}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γᵐ : CtxImp Wᵐ}
+    {γᵐᴮ : CtxImp (liftWorldBoth X⊑X Wᵐ)}
+    {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X Wᵐ ⟩ B}
+    {p : `∀ A ⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+  → Λ⊑Λ²PostBodyTransportAtᵀ
+  → (rel : Wᵐ ∣ γᵐ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (extᵐ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂)
+  → (liftγᵐ : LiftCtx X⊑X γᵐ γᵐᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → liftWorldBoth X⊑X Wᵐ ∣ γᵐᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → IIP.ΛPostPrefixPackageAtBase rel extᵐ₂ c′ B′≢★
+Λ⊑Λ²-smart-premise-base-preflight =
+  IIP.Λ⊑Λ²-base-prefix-at-base
+
+
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
   field
     derivation-recursive-Λ-at : ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}

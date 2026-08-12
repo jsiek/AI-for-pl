@@ -393,6 +393,18 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        post world; the live base transport is still concrete-only.  See
        `notes/m5-inst-inversion-lambda-base-prefix-at-world-blocked.red`.
 
+       M-4 continuation checkpoint (base transport at smart post world):
+       the parameterized `Λ⊑Λ²PostBodyTransportAtᵀ` consumer and
+       `Λ⊑Λ²-base-prefix-at-base` wrapper check, with smart-premise
+       instantiation validated in the design scratch.  The remaining
+       concrete lock is lower: the reveal-window ingredients inside
+       `Λ⊑Λ²-post-body-transport` (`ΛPostMidWorld`, out-context,
+       `ImpEnvMono`, `RebaseAtᴿ`, final body obligation, and typing context)
+       are still hard-coded to `rightOnly (rightOnly W)`, while the smart
+       recursive premise needs the M-2 pushout-indexed smart post world.
+       See the same blocker note for the next required post-window geometry
+       surface.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

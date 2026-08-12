@@ -322,18 +322,41 @@ shape + inst site checked; the target ⊢² stack inferred from
 compile-preservation, not per-step). A simple program-reachability
 premise on InstCatchupRight² is therefore NOT viable.
 
-Decision pending (user), sharpened options:
-(a′) CONFIGURATION-level restriction — does M7's driver ever invoke
-     inst catch-up under nested one-sided stacking, or only at
-     configurations where the left's own β-inst consumed the matched
-     binder? Needs M7 invocation-site analysis before trusting.
-(b)  rebase/world-semantics revision so the depth-≥1 post state is
-     expressible (deep M2/M3-foundation surgery).
-(c)  conclusion reshaping (blame/weaker disjunct — previously rejected).
-(d)  exotic-derivation hunt: the emptiness proof is route-scoped; the
-     WorldDecay "honestify" machinery was not explored as a route.
-All landed work (TargetExtend, TargetBindLift, decay extensions,
-depth-0 closure) survives any option.
+DECIDED (user, 2026-08-12): approach A3 — the SMART-COMMA rule variant
+(cambridge26 notes, Example 4 + "Smart comma" section). The pending
+source binder's Λ⊑² lift ALIGHTS ON THE EXISTING ALIAS CENTER (β := ＇α)
+with DYNAMIC (X⊑★-family) marks at both fresh centers — the mechanized
+`Γ ,, α:=★` with the id_★ mark arithmetic, two-clause (merge when the
+partner exists, plain extension otherwise). Selected by the calibration
+matrix (notes/M5-SMART-COMMA-CALIBRATION.md; scratch
+M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
+cells CHECKED-OK on both E4 (depth-0, coexists with the live closure)
+and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
+evidence because StoreRepImp canonicalizes the alias through the name
+to ★; A2 (merge at the name) dies at the variable leaf.
+
+## A3 smart-comma migration (in flight) — FRONTIER MARKER
+
+Migration gates (each gated on All.agda green; hygiene FunExt-only):
+  M-1  informal rule + exact constructor premises pre-flighted in
+       scratch, validated against BOTH calibration examples (E4 must
+       re-derive; D1's package must derive; Λ⊑Λ² undisturbed).
+  M-2  live rule in CastTermImprecision2 + stack migration, riskiest
+       consumers first (M3 Inversion stack, then CenterRename,
+       TargetExtend, M4 Catchup workers, decay/lift modules).
+  M-3  BLOCKER-OVERCOME WITNESS: the report's D1 instance
+       (notes/M5-DEPTH1-RAW-REPORT.md §4 — Λ (Λ V) ⊑ post at W₂)
+       derived LIVE; RESOLVED postscripts on the satisfiability .red
+       notes. Migration is DONE when M-3 checks.
+  M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
+       of the M5 instantiation inversion (Catchup/InstInversionProof),
+       then the source-strip cases, then Λ-package assembly, then the
+       M5 dispatcher closes InstCatchupRightAt, then the M6 driver
+       knot (ValueCatchupRightProvAt), then M7 sim-right².
+       NOTE for M-4: with the smart rule, retry the DIRECT route for
+       the recursive case first — the lift-outside/exchange saga
+       (center-map/CenterMapSupport layers) may be bypassable entirely,
+       since the smart Λ⊑² no longer forces a fresh front center.
 
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 

@@ -358,6 +358,13 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        (center-map/CenterMapSupport layers) may be bypassable entirely,
        since the smart Λ⊑² no longer forces a fresh front center.
 
+       M-4 checkpoint (`59c750f`): the direct recursive case now checks via
+       `Λ⊑²-smart-recursive-package-at`; no exchange layer was revived.  The
+       next resister is the source-strip recursion surface, not smart comma:
+       source-only wrappers need a post-prefix-only helper instead of the full
+       residual `InstPostCatalogPackageAt` recursive call.  See
+       `notes/m5-inst-inversion-source-strip-post-only-surface-blocked.red`.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

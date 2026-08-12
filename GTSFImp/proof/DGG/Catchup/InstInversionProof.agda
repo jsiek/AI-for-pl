@@ -3139,6 +3139,75 @@ open ΛRouteOnePostWindowSupport public
 Λ-route1-out-mid-mono-at Z eq = eq
 
 
+Λ-route1-mid-fresh-mono-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.ImpEnvMono
+      (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+Λ-route1-mid-fresh-mono-at {W₁ = W₁} {W₂ = W₂}
+    {κ₂ = κ₂} facts Fin.zero eq = refl
+Λ-route1-mid-fresh-mono-at {W₁ = W₁} {W₂ = W₂}
+    {κ₂ = κ₂} {ins₂ = ins₂} facts (Fin.suc Z′) eq
+    with CR.preimage? κ₂ Z′ in pre
+Λ-route1-mid-fresh-mono-at {W₁ = W₁} {W₂ = W₂}
+    {κ₂ = κ₂} {ins₂ = ins₂} facts (Fin.suc Z′) eq
+    | nothing =
+  CR.renameEnv-off κ₂
+    (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ W₁))
+    pre
+Λ-route1-mid-fresh-mono-at {W₁ = W₁} {W₂ = W₂}
+    {κ₂ = κ₂} {ins₂ = ins₂} facts (Fin.suc Z′) eq
+    | just Fin.zero =
+  subst≡
+    (λ C → CR.renameEnv κ₂
+      (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ W₁)) C
+      ≡ I.X⊑★)
+    (sym image-eq)
+    (CR.renameEnv-image κ₂
+      (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ W₁))
+      Fin.zero)
+  where
+  image-eq : Z′ ≡ toRenameᵗ κ₂ Fin.zero
+  image-eq = CR.preimage?-sound κ₂ pre
+Λ-route1-mid-fresh-mono-at {W₁ = W₁} {W₂ = W₂}
+    {π₂ = π₂} {κ₂ = κ₂} {ins₂ = ins₂} facts (Fin.suc Z′) eq
+    | just (Fin.suc Z) =
+  subst≡
+    (λ C → CR.renameEnv κ₂
+      (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ W₁)) C
+      ≡ I.X⊑★)
+    (sym image-eq)
+    (trans
+      (CR.renameEnv-image κ₂
+        (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ W₁))
+        (Fin.suc Z))
+      old-star)
+  where
+  image-eq : Z′ ≡ toRenameᵗ κ₂ (Fin.suc Z)
+  image-eq = CR.preimage?-sound κ₂ pre
+
+  final-star : CTI2.impEnvʷ W₂ (toRenameᵗ π₂ Z) ≡ I.X⊑★
+  final-star =
+    subst≡ (λ C → CTI2.impEnvʷ W₂ C ≡ I.X⊑★)
+      (sym
+        (trans (TE.TargetWindowInsert.window-old
+          (ΛRouteOneWindowFacts.targetWindow₂ facts) Z)
+          (sym image-eq)))
+      eq
+
+  old-star : CTI2.impEnvʷ W₁ Z ≡ I.X⊑★
+  old-star = trans (sym (TE.impEnv-insert ins₂ Z)) final-star
+
+
 Λ-route1-post-window-support-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}

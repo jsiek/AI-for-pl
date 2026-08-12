@@ -95,3 +95,12 @@ Consequence:
   remain open.
 
 No live relation was changed, and no postulate, hole, or catch-all was added.
+
+Postscript 2026-08-12:
+
+  The proposed parent-map composed with a re-park cycle correction was
+  checked against the finite source-repark geometry.  The obstruction is
+  stronger than the missing total-map combinator recorded above:
+  `SideStableCycleCounterScratch.agda` proves that the exchanged wrapper
+  evidence itself cannot exist for a valid pre-exchange source re-park.
+  See `m5-inst-inversion-lambda-side-stable-cycle-output-blocked.red`.

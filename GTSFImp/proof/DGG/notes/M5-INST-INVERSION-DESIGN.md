@@ -3,9 +3,11 @@
 Date: 2026-08-12. Status: parametric `CenterMapSupport` and
 `⊢²-center-map` check.  The support surface now returns fresh premise
 maps and transported `ImpEnvMono`, and `CenterMapWorld` no longer assumes
-involutive swaps.  Concrete support is still blocked by the missing finite
-side-stable OPE merge/bijection needed after source re-parks; see
-`m5-inst-inversion-lambda-side-stable-map-repark-blocked.red`.
+involutive swaps.  The proposed side-stable cycle correction is blocked:
+`SideStableCycleCounterScratch.agda` proves a legal pre-exchange source
+re-park whose exchanged counterpart has no possible `RebaseAt` output
+world.  See
+`m5-inst-inversion-lambda-side-stable-cycle-output-blocked.red`.
 
 Checked artifact:
 

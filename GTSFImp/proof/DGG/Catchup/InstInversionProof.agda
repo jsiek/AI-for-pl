@@ -2019,6 +2019,316 @@ route1-target-inner-eq {W = W} {W₂ = W₂}
     (Λ-route1-inner-body-⊑ᵂ facts body-p)
 
 
+Λ-route1-context-target-suc-eq : ∀ {Δ} (B : Ty Δ)
+  → applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+    ≡ renameᵗ Fin.suc (⇑ᵗ B)
+Λ-route1-context-target-suc-eq B = refl
+
+
+Λ-route1-context-target-double-eq : ∀ {Δ} (B : Ty Δ)
+  → applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+    ≡ renameᵗ (λ X → Fin.suc (Fin.suc X)) B
+Λ-route1-context-target-double-eq B =
+  renameᵗ-comp Fin.suc Fin.suc B
+
+
+Λ-route1-context-inner-target-eq : ∀ {Δ} (B : Ty Δ)
+  → replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero))
+      (applyBody (bind ★) (⇑ᵗ B))
+    ≡ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+Λ-route1-context-inner-target-eq B =
+  trans (inner-reveal-target-eq-applyBody (⇑ᵗ B))
+    (sym (Λ-route1-context-target-suc-eq B))
+
+
+Λ-route1-context-final-target-eq : ∀ {Δ} (B : Ty Δ)
+  → substᵗ Λ⊑Λ²TargetSplit₂ (⇑ᵗ B)
+    ≡ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+Λ-route1-context-final-target-eq B =
+  trans (substᵗ-rename Λ⊑Λ²TargetSplit₂ Fin.suc B)
+    (trans (substᵗ-cong B (λ X → refl))
+      (trans (rename-as-subst (λ X → Fin.suc (Fin.suc X)) B)
+        (sym (Λ-route1-context-target-double-eq B))))
+
+
+Λ-route1-fresh-entry-raw-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ (⇑ᵗ B)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+Λ-route1-fresh-entry-raw-at {W = W} {W₁ = W₁} {W₂ = W₂}
+    {π₁ = π₁} {κ₂ = κ₂} {ins₁ = ins₁} {A = A} {B = B}
+    facts p =
+  pᵇ
+  where
+  ins₁ᴮ : TE.TargetInsert (keep wk↪ᵗ) (keep π₁)
+      (CTI2.liftWorldBoth I.X⊑X W)
+      (CTI2.liftWorldBoth I.X⊑X W₁)
+  ins₁ᴮ = TE.liftBothTargetInsert {v = I.X⊑X} ins₁
+
+  p₁ : (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        CTI2.liftWorldBoth I.X⊑X W₁
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+  p₁ = TE.transport⊑ᵂ ins₁ᴮ p
+
+  pᵈ : (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        CTI2.liftWorldBoth I.X⊑★ W₁
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+  pᵈ =
+    WD.decay⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑X W₁}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★ W₁}
+      TD.liftBothBinderDecay p₁
+
+  pʳ : (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★ W₁}
+      (skip κ₂) pᵈ
+
+  mv : TBL.TargetBindLiftMove
+      (CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁))
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+      Fin.zero
+  mv =
+    TBL.freshLiftToBindTargetMoveAtκ (skip κ₂)
+      (ΛRouteOneWindowFacts.pivotMark facts)
+      (ΛRouteOneWindowFacts.targetStoreTransport facts)
+      (ΛRouteOneWindowFacts.targetZeroResolves facts)
+      (ΛRouteOneWindowFacts.targetOtherResolves facts)
+
+  pᵇ : (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+  pᵇ = TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
+
+
+Λ-route1-fresh-entry-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ (⇑ᵗ B)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+Λ-route1-fresh-entry-at {W₁ = W₁} {W₂ = W₂}
+    {κ₂ = κ₂} {A = A} {B = B} facts p =
+  subst≡
+    (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+      ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+    ⟩ C)
+    (sym (Λ-route1-context-target-eq B))
+    (Λ-route1-fresh-entry-raw-at facts p)
+
+
+Λ-route1-fresh-ctx-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+Λ-route1-fresh-ctx-at facts CTI2.lift-[] = List.[]
+Λ-route1-fresh-ctx-at facts
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (Λ-route1-fresh-entry-at facts p′) List.∷
+  Λ-route1-fresh-ctx-at facts liftγ
+
+
+Λ-route1-mid-entry-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ (⇑ᵗ B)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        ΛRouteOneMidWorldAt W W₂ κ₁ κ₂
+      ⟩ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+Λ-route1-mid-entry-at {W = W} {W₂ = W₂}
+    {κ₁ = κ₁} {κ₂ = κ₂} {A = A} {B = B} facts p =
+  subst≡
+    (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+      ΛRouteOneMidWorldAt W W₂ κ₁ κ₂ ⟩ C)
+    (Λ-route1-context-inner-target-eq B)
+    (Λ-route1-inner-body-⊑ᵂ-applyBody facts p)
+
+
+Λ-route1-out-entry-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ (⇑ᵗ B)
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        CTI2.liftWorldLeft I.X⊑★ W₂
+      ⟩ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+Λ-route1-out-entry-at {W₂ = W₂} {A = A} {B = B} facts p =
+  subst≡
+    (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W₂ ⟩ C)
+    (Λ-route1-context-final-target-eq B)
+    (Λ-route1-final-body-⊑ᵂ facts p)
+
+
+Λ-route1-mid-ctx-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+Λ-route1-mid-ctx-at facts CTI2.lift-[] = List.[]
+Λ-route1-mid-ctx-at facts
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (Λ-route1-mid-entry-at facts p′) List.∷
+  Λ-route1-mid-ctx-at facts liftγ
+
+
+Λ-route1-out-ctx-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W₂)
+Λ-route1-out-ctx-at facts CTI2.lift-[] = List.[]
+Λ-route1-out-ctx-at facts
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (Λ-route1-out-entry-at facts p′) List.∷
+  Λ-route1-out-ctx-at facts liftγ
+
+
+Λ-route1-mid-fresh-same-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.SameCtx (Λ-route1-mid-ctx-at facts liftγ)
+      (Λ-route1-fresh-ctx-at facts liftγ)
+Λ-route1-mid-fresh-same-at facts CTI2.lift-[] = CTI2.same-[]
+Λ-route1-mid-fresh-same-at facts (CTI2.lift-∷ liftγ) =
+  CTI2.same-∷ (Λ-route1-mid-fresh-same-at facts liftγ)
+
+
+Λ-route1-out-mid-same-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.SameCtx (Λ-route1-out-ctx-at facts liftγ)
+      (Λ-route1-mid-ctx-at facts liftγ)
+Λ-route1-out-mid-same-at facts CTI2.lift-[] = CTI2.same-[]
+Λ-route1-out-mid-same-at facts (CTI2.lift-∷ liftγ) =
+  CTI2.same-∷ (Λ-route1-out-mid-same-at facts liftγ)
+
+
+Λ-route1-out-liftCtxᴸ-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (Λ-route1-out-ctx-at facts liftγ)
+Λ-route1-out-liftCtxᴸ-at facts CTI2.lift-[] = CTI2.liftᴸ-[]
+Λ-route1-out-liftCtxᴸ-at facts (CTI2.lift-∷ liftγ) =
+  CTI2.liftᴸ-∷ (Λ-route1-out-liftCtxᴸ-at facts liftγ)
+
+
 source-split₃-eq : ∀ {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ) (A : Ty (suc Δᴸ))
   → substᵗ splitSource₃
@@ -2386,6 +2696,95 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     rel-target-transportᴿ (sym (applyBody-bind★-eq B)) pᵇ relᵇ
 
 
+Λ-route1-prefix-map-ctx-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+  → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
+  → CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)
+  → CTI2.CtxImp
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+Λ-route1-prefix-map-ctx-at {W = W} {W₁ = W₁} {W₂ = W₂}
+    {π₁ = π₁} {κ₂ = κ₂} {ins₁ = ins₁} facts γᴮ =
+  TBL.moveCtx (TBL.baseMove mv)
+    (CR.renameCtx (skip κ₂)
+      (WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ ins₁ᴮ γᴮ)))
+  where
+  ins₁ᴮ : TE.TargetInsert (keep wk↪ᵗ) (keep π₁)
+      (CTI2.liftWorldBoth I.X⊑X W)
+      (CTI2.liftWorldBoth I.X⊑X W₁)
+  ins₁ᴮ = TE.liftBothTargetInsert {v = I.X⊑X} ins₁
+
+  mv : TBL.TargetBindLiftMove
+      (CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁))
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+      Fin.zero
+  mv =
+    TBL.freshLiftToBindTargetMoveAtκ (skip κ₂)
+      (ΛRouteOneWindowFacts.pivotMark facts)
+      (ΛRouteOneWindowFacts.targetStoreTransport facts)
+      (ΛRouteOneWindowFacts.targetZeroResolves facts)
+      (ΛRouteOneWindowFacts.targetOtherResolves facts)
+
+
+Λ-route1-prefix-map-ctx-at-eq : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → Λ-route1-prefix-map-ctx-at facts γᴮ
+      ≡ Λ-route1-fresh-ctx-at facts liftγ
+Λ-route1-prefix-map-ctx-at-eq facts CTI2.lift-[] = refl
+Λ-route1-prefix-map-ctx-at-eq facts
+    (CTI2.lift-∷ {B = B} {p′ = p′} liftγ) =
+  cong₂ List._∷_
+    (ctx-imp-transportᴿ
+      (sym (Λ-route1-context-target-eq B))
+      (Λ-route1-fresh-entry-raw-at facts p′))
+    (Λ-route1-prefix-map-ctx-at-eq facts liftγ)
+
+
+Λ-route1-prefix-at-ctx : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → (bodyRel : CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p)
+  → proj₁ (Λ-route1-prefix-at facts bodyRel)
+      ≡ Λ-route1-fresh-ctx-at facts liftγ
+Λ-route1-prefix-at-ctx facts liftγ bodyRel =
+  Λ-route1-prefix-map-ctx-at-eq facts liftγ
+
+
 Λ-route1-inner-rebase-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
@@ -2728,6 +3127,71 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
           CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ)
 
 open ΛRouteOnePostWindowSupport public
+
+
+Λ-route1-out-mid-mono-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+  → CTI2.ImpEnvMono (CTI2.liftWorldLeft I.X⊑★ W₂)
+      (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+Λ-route1-out-mid-mono-at Z eq = eq
+
+
+Λ-route1-post-window-support-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.ImpEnvMono
+      (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+  → (∀ {B : Ty (suc Δᴿ)}
+      → Fin.zero ∈ᵗ applyBody (bind ★) B
+      → CTI2.targetStoreʷ (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+          CTI2.⊢↑[ just Fin.zero ]
+          〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗)
+  → (∀ {B : Ty (suc Δᴿ)}
+      → Fin.zero ∈ᵗ B
+      → CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂)
+          CTI2.⊢↑[ just (Fin.suc Fin.zero) ]
+          rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗))
+  → ΛRouteOnePostWindowSupport {ext₂ = ext₂} facts
+Λ-route1-post-window-support-at {W = W} {W₂ = W₂}
+    {κ₁ = κ₁} {κ₂ = κ₂} {ext₂ = ext₂}
+    facts midFreshMono innerReveal outerReveal =
+  record
+    { midCtx = Λ-route1-mid-ctx-at facts
+    ; outCtx = Λ-route1-out-ctx-at facts
+    ; midFreshMono = midFreshMono
+    ; midFreshSame = λ liftγ bodyRel →
+        subst≡
+          (λ γᶠ → CTI2.SameCtx
+            (Λ-route1-mid-ctx-at facts liftγ) γᶠ)
+          (sym (Λ-route1-prefix-at-ctx facts liftγ bodyRel))
+          (Λ-route1-mid-fresh-same-at facts liftγ)
+    ; outMidMono =
+        Λ-route1-out-mid-mono-at {W = W} {W₂ = W₂}
+          {κ₁ = κ₁} {κ₂ = κ₂}
+    ; outMidSame = Λ-route1-out-mid-same-at facts
+    ; outLiftCtxᴸ = Λ-route1-out-liftCtxᴸ-at {ext₂ = ext₂} facts
+    ; innerReveal⊢ = innerReveal
+    ; outerReveal⊢ = outerReveal
+    ; innerBody⊑ᵂ = Λ-route1-inner-body-⊑ᵂ-applyBody facts
+    ; finalBody⊑ᵂ = Λ-route1-final-body-⊑ᵂ facts
+    ; outTargetCtx = λ liftγ →
+        liftCtxᴸ-target
+          (Λ-route1-out-liftCtxᴸ-at {ext₂ = ext₂} facts liftγ)
+    }
 
 
 Λ-route1-post-window-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}

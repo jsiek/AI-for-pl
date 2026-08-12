@@ -58,8 +58,9 @@ open import proof.ImprecisionConsistency using
    toRenameᵗ-injective)
 import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
-  (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport-lift-bind;
-   StoreRename-suc-bind; toRename-id-eq; toRename-keep-eq;
+  (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport;
+   StoreTransport-lift-bind; StoreRename-suc-bind; toRename-id-eq;
+   toRename-keep-eq;
    toRename-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
@@ -1657,6 +1658,176 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
       → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
       → CTI2.tgtCtxʷ (outCtx liftγ) ≡
           CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ)
+
+
+ΛRouteOneFreshWorldAt : ∀ {Δᴸ Δᴿ Δ₁ Δ₂}
+  → (W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁)
+  → (κ₂ : suc Δ₁ ↪ᵗ Δ₂)
+  → TyStore (suc (suc Δᴿ))
+  → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc Δ₂)
+ΛRouteOneFreshWorldAt W₁ κ₂ Σ₂ =
+  TBL.targetStoreAs
+    (CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁))
+    Σ₂
+
+
+record ΛRouteOneWindowFacts {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    (κ₂ : suc Δ₁ ↪ᵗ Δ₂)
+    (ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁)
+    (ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂) : Set where
+  field
+    targetWindow : TE.TargetWindowInsert ins₂ κ₂
+    pivotMark :
+      CTI2.impEnvʷ
+        (CR.renameWorld (skip κ₂)
+          (CTI2.liftWorldBoth I.X⊑★ W₁))
+        (toRenameᵗ
+          (CTI2.ηᴿʷ
+            (CR.renameWorld (skip κ₂)
+              (CTI2.liftWorldBoth I.X⊑★ W₁)))
+          Fin.zero)
+        ≡ I.X⊑★
+    targetStoreTransport :
+      StoreTransport (store-lift (CTI2.targetStoreʷ W₁))
+        (CTI2.targetStoreʷ W₂)
+    targetZeroResolves :
+      CTI2.resolveVar (CTI2.targetStoreʷ W₂) Fin.zero ≡ ★
+    targetOtherResolves : ∀ Z
+      → Z ≢ Fin.zero
+      → CTI2.resolveVar (CTI2.targetStoreʷ W₂) Z
+          ≡ CTI2.resolveVar (store-lift (CTI2.targetStoreʷ W₁)) Z
+
+open ΛRouteOneWindowFacts public
+
+
+Λ-route1-prefix-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → ΛRouteOneWindowFacts κ₂ ins₁ ins₂
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γᶠ ∈ CTI2.CtxImp
+        (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)) ]
+    Σ[ pᶠ ∈ A CTI2.⊑ᵂ⟨
+          ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        ⟩ applyBody (bind ★) B ]
+      ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γᶠ
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+Λ-route1-prefix-at {W = W} {W₁ = W₁} {W₂ = W₂}
+    {π₁ = π₁} {κ₂ = κ₂} {ins₁ = ins₁} {γᴮ = γᴮ} {V = V}
+    {V′ = V′} {A = A} {B = B} {body-p = body-p} facts rel =
+  γfresh , pᶠ , relFresh
+  where
+  ins₁ᴮ : TE.TargetInsert (keep wk↪ᵗ) (keep π₁)
+      (CTI2.liftWorldBoth I.X⊑X W)
+      (CTI2.liftWorldBoth I.X⊑X W₁)
+  ins₁ᴮ = TE.liftBothTargetInsert {v = I.X⊑X} ins₁
+
+  p₁ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W₁ ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  p₁ = TE.transport⊑ᵂ ins₁ᴮ body-p
+
+  rel₁ : CTI2.liftWorldBoth I.X⊑X W₁
+      CTI2.∣ TE.mapCtxᵀ ins₁ᴮ γᴮ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
+  rel₁ = TE.⊢²-target-insert ins₁ᴮ rel
+
+  pᵈ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑★ W₁ ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵈ =
+    WD.decay⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑X W₁}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★ W₁}
+      TD.liftBothBinderDecay p₁
+
+  relᵈ : CTI2.liftWorldBoth I.X⊑★ W₁
+      CTI2.∣ WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ ins₁ᴮ γᴮ)
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
+  relᵈ =
+    TD.⊢²-decay
+      {W = CTI2.liftWorldBoth I.X⊑X W₁}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★ W₁}
+      TD.liftBothBinderDecay rel₁
+
+  pʳ : A CTI2.⊑ᵂ⟨
+        CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★ W₁}
+      (skip κ₂) pᵈ
+
+  relʳ : CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁)
+      CTI2.∣ CR.renameCtx (skip κ₂)
+        (WD.decayCtx TD.liftBothBinderDecay
+          (TE.mapCtxᵀ ins₁ᴮ γᴮ))
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pʳ
+  relʳ = CR.⊢²-rename-center (skip κ₂) relᵈ pʳ
+
+  mv : TBL.TargetBindLiftMove
+      (CR.renameWorld (skip κ₂) (CTI2.liftWorldBoth I.X⊑★ W₁))
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+      Fin.zero
+  mv =
+    TBL.freshLiftToBindTargetMoveAtκ (skip κ₂)
+      (ΛRouteOneWindowFacts.pivotMark facts)
+      (ΛRouteOneWindowFacts.targetStoreTransport facts)
+      (ΛRouteOneWindowFacts.targetZeroResolves facts)
+      (ΛRouteOneWindowFacts.targetOtherResolves facts)
+
+  γfresh : CTI2.CtxImp
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+  γfresh =
+    TBL.moveCtx (TBL.baseMove mv)
+      (CR.renameCtx (skip κ₂)
+        (WD.decayCtx TD.liftBothBinderDecay
+          (TE.mapCtxᵀ ins₁ᴮ γᴮ)))
+
+  pᵇ : A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵇ = TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
+
+  relᵇ :
+      ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γfresh
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+  relᵇ = TBL.⊢²-target-bind-lift-move mv relʳ
+
+  pᶠ : A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ applyBody (bind ★) B
+  pᶠ =
+    subst≡
+      (λ C → A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ C)
+      (sym (applyBody-bind★-eq B))
+      pᵇ
+
+  relFresh :
+      ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γfresh
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+  relFresh =
+    rel-target-transportᴿ (sym (applyBody-bind★-eq B)) pᵇ relᵇ
 
 
 Λ-concrete-route1-prefix : ∀ {Δᴸ Δᴿ Δ}

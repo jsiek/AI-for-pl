@@ -294,6 +294,12 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
       sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
     targetStore-same :
       targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ oldCenters Z) ≡ X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ
         ≡ toRenameᵗ oldCenters (toRenameᵗ (ηᴿʷ W) Xᴿ)
@@ -322,6 +328,12 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
       sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
     targetStore-same :
       targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ Z ≡ X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
     pending-at-alias :
@@ -354,6 +366,18 @@ data SmartCommaLiftᴸ {Δᴸ Δᴿ Δ}
     ∀ {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
     → SmartAliasMergeGuard W Wᵐ β α
     → SmartCommaLiftᴸ W Wᵐ
+
+smartCommaLift-transport⊑ᵂ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → SmartCommaLiftᴸ W Wᵐ
+  → ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+  → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+  → A ⊑ᵂ⟨ Wᵐ ⟩ B
+smartCommaLift-transport⊑ᵂ (smart-fresh-behind guard) =
+  SmartFreshBehindGuard.transport⊑ᵂ guard
+smartCommaLift-transport⊑ᵂ (smart-merge-alias guard) =
+  SmartAliasMergeGuard.transport⊑ᵂ guard
 
 ------------------------------------------------------------------------
 -- Store representations and local rebasing

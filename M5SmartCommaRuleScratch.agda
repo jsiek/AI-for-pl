@@ -11,10 +11,13 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans; cong)
+  renaming (subst to subst≡)
 
 open import Types using
-  (Ty; ★; ＇_; _⇒_; `∀; ⇑ᵗ; NonVar; _∈ᵗ_;
+  (Ty; ★; ＇_; ‵_; _⇒_; `∀; ⇑ᵗ; NonVar; _∈ᵗ_; renameᵗ;
+   substᵗ; substᵗ-cong; substᵗ-id; substᵗ-rename; extsᵗ; extᵗ;
    nonvar-fun; nonvar-all; ∈-fun-left; var-∈)
 open import TyStore using (store-empty; store-lift; _∋_⦂_)
 open import TermCtx as TC using ()
@@ -30,6 +33,7 @@ import M5SmartCommaCalibrationScratch as Cal
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CastTermImprecision2Typing as CTI2Typing
+open import proof.ImprecisionConsistency using (subst-⊑)
 
 ------------------------------------------------------------------------
 -- Smart-comma premise-world surface.
@@ -58,6 +62,12 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
       CTI2.sourceStoreʷ Wᵐ ≡ store-lift (CTI2.sourceStoreʷ W)
     targetStore-same :
       CTI2.targetStoreʷ Wᵐ ≡ CTI2.targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ B
+      → A CTI2.⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → CTI2.impEnvʷ W Z ≡ I.X⊑★
+      → CTI2.impEnvʷ Wᵐ (toRenameᵗ oldCenters Z) ≡ I.X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Xᴿ
         ≡ toRenameᵗ oldCenters (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
@@ -84,6 +94,12 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
       CTI2.sourceStoreʷ Wᵐ ≡ store-lift (CTI2.sourceStoreʷ W)
     targetStore-same :
       CTI2.targetStoreʷ Wᵐ ≡ CTI2.targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ B
+      → A CTI2.⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → CTI2.impEnvʷ W Z ≡ I.X⊑★
+      → CTI2.impEnvʷ Wᵐ Z ≡ I.X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Xᴿ
         ≡ toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
@@ -221,6 +237,230 @@ d1-outer-smart-world =
   CTI2.world (skip (skip (keep empty))) Cal.η-tgt-βα-3 all-star₃
     (store-lift store-empty) Cal.target-store-βα
 
+rename-as-subst : ∀ {Δ Δ′}
+  → (ρ : Fin.Fin Δ → Fin.Fin Δ′)
+  → (A : Ty Δ)
+  → substᵗ (λ X → ＇ ρ X) A ≡ renameᵗ ρ A
+rename-as-subst ρ (＇ X) = refl
+rename-as-subst ρ (‵ ι) = refl
+rename-as-subst ρ ★ = refl
+rename-as-subst ρ (A ⇒ B)
+    rewrite rename-as-subst ρ A | rename-as-subst ρ B =
+  refl
+rename-as-subst ρ (`∀ A) =
+  cong `∀
+    (trans (substᵗ-cong A exts-eq)
+      (rename-as-subst (extᵗ ρ) A))
+  where
+  exts-eq : ∀ X
+    → extsᵗ (λ Y → ＇ ρ Y) X ≡ ＇ extᵗ ρ X
+  exts-eq Fin.zero = refl
+  exts-eq (Fin.suc X) = refl
+
+transport⊑ᵂ-by-subst : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ Δ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (σ : Fin.Fin Δ → Ty Δ′)
+  → (∀ Z → CTI2.impEnvʷ W Z ≡ I.X⊑★
+      → I._⊢_⊑_ (CTI2.impEnvʷ W′) (σ Z) ★)
+  → (∀ C → substᵗ σ (CTI2.embedᴸ W C) ≡ CTI2.embedᴸ W′ C)
+  → (∀ C → substᵗ σ (CTI2.embedᴿ W C) ≡ CTI2.embedᴿ W′ C)
+  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → A CTI2.⊑ᵂ⟨ W′ ⟩ B
+transport⊑ᵂ-by-subst {W = W} {W′ = W′} {A = A} {B = B}
+    σ star-map source-eq target-eq p =
+  subst≡
+    (λ L → I._⊢_⊑_ (CTI2.impEnvʷ W′) L (CTI2.embedᴿ W′ B))
+    (source-eq A)
+    (subst≡
+      (λ R → I._⊢_⊑_ (CTI2.impEnvʷ W′)
+        (substᵗ σ (CTI2.embedᴸ W A)) R)
+      (target-eq B)
+      (subst-⊑ star-map p))
+
+e4-merge-subst : Fin.Fin 3 → Ty 2
+e4-merge-subst Fin.zero = ＇ Fin.zero
+e4-merge-subst (Fin.suc Fin.zero) = ＇ Fin.zero
+e4-merge-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
+
+e4-merge-star : ∀ Z
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) Z
+    ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ Cal.a3-e4-alias-world)
+      (e4-merge-subst Z) ★
+e4-merge-star Fin.zero star = I.X⊑★ refl
+e4-merge-star (Fin.suc Fin.zero) star = I.X⊑★ refl
+e4-merge-star (Fin.suc (Fin.suc Fin.zero)) star = I.X⊑★ refl
+
+e4-merge-source-point : ∀ X
+  → e4-merge-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ IL.post-world)) X)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ Cal.a3-e4-alias-world) X)
+e4-merge-source-point Fin.zero = refl
+
+e4-merge-target-point : ∀ Y
+  → e4-merge-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ IL.post-world)) Y)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ Cal.a3-e4-alias-world) Y)
+e4-merge-target-point Fin.zero = refl
+e4-merge-target-point (Fin.suc Fin.zero) = refl
+
+e4-merge-source-eq : ∀ C
+  → substᵗ e4-merge-subst
+      (CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) C)
+    ≡ CTI2.embedᴸ Cal.a3-e4-alias-world C
+e4-merge-source-eq C =
+  trans (substᵗ-rename e4-merge-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ IL.post-world))) C)
+    (trans (substᵗ-cong C e4-merge-source-point)
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴸʷ Cal.a3-e4-alias-world)) C))
+
+e4-merge-target-eq : ∀ C
+  → substᵗ e4-merge-subst
+      (CTI2.embedᴿ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) C)
+    ≡ CTI2.embedᴿ Cal.a3-e4-alias-world C
+e4-merge-target-eq C =
+  trans (substᵗ-rename e4-merge-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ IL.post-world))) C)
+    (trans (substᵗ-cong C e4-merge-target-point)
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴿʷ Cal.a3-e4-alias-world)) C))
+
+e4-merge-transport : ∀ {A : Ty 1} {B : Ty 2}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ IL.post-world ⟩ B
+  → A CTI2.⊑ᵂ⟨ Cal.a3-e4-alias-world ⟩ B
+e4-merge-transport =
+  transport⊑ᵂ-by-subst
+    {W = CTI2.liftWorldLeft I.X⊑★ IL.post-world}
+    {W′ = Cal.a3-e4-alias-world}
+    e4-merge-subst e4-merge-star e4-merge-source-eq
+    e4-merge-target-eq
+
+d1-fresh-subst : Fin.Fin 3 → Ty 3
+d1-fresh-subst Fin.zero = ＇ (Fin.suc (Fin.suc Fin.zero))
+d1-fresh-subst (Fin.suc Fin.zero) = ＇ Fin.zero
+d1-fresh-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
+
+d1-fresh-star : ∀ Z
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) Z
+    ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ d1-outer-smart-world)
+      (d1-fresh-subst Z) ★
+d1-fresh-star Fin.zero star = I.X⊑★ refl
+d1-fresh-star (Fin.suc Fin.zero) star = I.X⊑★ refl
+d1-fresh-star (Fin.suc (Fin.suc Fin.zero)) star = I.X⊑★ refl
+
+d1-fresh-source-point : ∀ X
+  → d1-fresh-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ IL.post-world)) X)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ d1-outer-smart-world) X)
+d1-fresh-source-point Fin.zero = refl
+
+d1-fresh-target-point : ∀ Y
+  → d1-fresh-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ IL.post-world)) Y)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ d1-outer-smart-world) Y)
+d1-fresh-target-point Fin.zero = refl
+d1-fresh-target-point (Fin.suc Fin.zero) = refl
+
+d1-fresh-source-eq : ∀ C
+  → substᵗ d1-fresh-subst
+      (CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) C)
+    ≡ CTI2.embedᴸ d1-outer-smart-world C
+d1-fresh-source-eq C =
+  trans (substᵗ-rename d1-fresh-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ IL.post-world))) C)
+    (trans (substᵗ-cong C d1-fresh-source-point)
+      (rename-as-subst (toRenameᵗ (CTI2.ηᴸʷ d1-outer-smart-world)) C))
+
+d1-fresh-target-eq : ∀ C
+  → substᵗ d1-fresh-subst
+      (CTI2.embedᴿ (CTI2.liftWorldLeft I.X⊑★ IL.post-world) C)
+    ≡ CTI2.embedᴿ d1-outer-smart-world C
+d1-fresh-target-eq C =
+  trans (substᵗ-rename d1-fresh-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ IL.post-world))) C)
+    (trans (substᵗ-cong C d1-fresh-target-point)
+      (rename-as-subst (toRenameᵗ (CTI2.ηᴿʷ d1-outer-smart-world)) C))
+
+d1-fresh-transport : ∀ {A : Ty 1} {B : Ty 2}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ IL.post-world ⟩ B
+  → A CTI2.⊑ᵂ⟨ d1-outer-smart-world ⟩ B
+d1-fresh-transport =
+  transport⊑ᵂ-by-subst
+    {W = CTI2.liftWorldLeft I.X⊑★ IL.post-world}
+    {W′ = d1-outer-smart-world}
+    d1-fresh-subst d1-fresh-star d1-fresh-source-eq
+    d1-fresh-target-eq
+
+d1-merge-subst : Fin.Fin 4 → Ty 3
+d1-merge-subst Fin.zero = ＇ Fin.zero
+d1-merge-subst (Fin.suc Fin.zero) = ＇ Fin.zero
+d1-merge-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
+d1-merge-subst (Fin.suc (Fin.suc (Fin.suc Fin.zero))) =
+  ＇ (Fin.suc (Fin.suc Fin.zero))
+
+d1-merge-star : ∀ Z
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ d1-outer-smart-world) Z
+    ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ Cal.a3-d1-alias-world)
+      (d1-merge-subst Z) ★
+d1-merge-star Fin.zero star = I.X⊑★ refl
+d1-merge-star (Fin.suc Fin.zero) star = I.X⊑★ refl
+d1-merge-star (Fin.suc (Fin.suc Fin.zero)) star = I.X⊑★ refl
+d1-merge-star (Fin.suc (Fin.suc (Fin.suc Fin.zero))) star =
+  I.X⊑★ refl
+
+d1-merge-source-point : ∀ X
+  → d1-merge-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ d1-outer-smart-world)) X)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ Cal.a3-d1-alias-world) X)
+d1-merge-source-point Fin.zero = refl
+d1-merge-source-point (Fin.suc Fin.zero) = refl
+
+d1-merge-target-point : ∀ Y
+  → d1-merge-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ d1-outer-smart-world)) Y)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ Cal.a3-d1-alias-world) Y)
+d1-merge-target-point Fin.zero = refl
+d1-merge-target-point (Fin.suc Fin.zero) = refl
+
+d1-merge-source-eq : ∀ C
+  → substᵗ d1-merge-subst
+      (CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+    ≡ CTI2.embedᴸ Cal.a3-d1-alias-world C
+d1-merge-source-eq C =
+  trans (substᵗ-rename d1-merge-subst
+      (toRenameᵗ (keep (CTI2.ηᴸʷ d1-outer-smart-world))) C)
+    (trans (substᵗ-cong C d1-merge-source-point)
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴸʷ Cal.a3-d1-alias-world)) C))
+
+d1-merge-target-eq : ∀ C
+  → substᵗ d1-merge-subst
+      (CTI2.embedᴿ (CTI2.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+    ≡ CTI2.embedᴿ Cal.a3-d1-alias-world C
+d1-merge-target-eq C =
+  trans (substᵗ-rename d1-merge-subst
+      (toRenameᵗ (skip (CTI2.ηᴿʷ d1-outer-smart-world))) C)
+    (trans (substᵗ-cong C d1-merge-target-point)
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴿʷ Cal.a3-d1-alias-world)) C))
+
+d1-merge-transport : ∀ {A : Ty 2} {B : Ty 2}
+  → A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ d1-outer-smart-world
+    ⟩ B
+  → A CTI2.⊑ᵂ⟨ Cal.a3-d1-alias-world ⟩ B
+d1-merge-transport =
+  transport⊑ᵂ-by-subst
+    {W = CTI2.liftWorldLeft I.X⊑★ d1-outer-smart-world}
+    {W′ = Cal.a3-d1-alias-world}
+    d1-merge-subst d1-merge-star d1-merge-source-eq
+    d1-merge-target-eq
+
 star-mono-e4-name-alias :
   CTI2.ImpEnvMono Cal.a3-e4-name-world Cal.a3-e4-alias-world
 star-mono-e4-name-alias _ _ = refl
@@ -274,7 +514,8 @@ e4-merge-guard :
     Cal.target-β Cal.target-α
 e4-merge-guard =
   smart-alias-merge-guard Cal.target-β-entry Cal.target-α-entry
-    refl refl (λ _ → refl) refl (λ ()) (λ ())
+    refl refl e4-merge-transport (λ _ _ → refl)
+    (λ _ → refl) refl (λ ()) (λ ())
     refl refl
 
 e4-smart-preflight :
@@ -329,6 +570,7 @@ d1-fresh-guard :
   SmartFreshBehindGuard IL.post-world d1-outer-smart-world
 d1-fresh-guard =
   smart-fresh-behind-guard Cal.η-tgt-βα-3 refl refl
+    d1-fresh-transport (λ _ _ → refl)
     target-frozen (λ ()) fresh-not-target refl
   where
   target-frozen : ∀ Xᴿ
@@ -349,7 +591,8 @@ d1-merge-guard :
     Cal.target-β Cal.target-α
 d1-merge-guard =
   smart-alias-merge-guard Cal.target-β-entry Cal.target-α-entry
-    refl refl (λ _ → refl) refl old-source-frozen no-old-source
+    refl refl d1-merge-transport (λ _ _ → refl)
+    (λ _ → refl) refl old-source-frozen no-old-source
     refl refl
   where
   old-source-frozen : ∀ Xᴸ

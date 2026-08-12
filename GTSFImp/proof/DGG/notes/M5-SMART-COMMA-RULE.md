@@ -110,6 +110,12 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
       sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
     targetStore-same :
       targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ Z ≡ X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
     pending-at-alias :
@@ -123,6 +129,11 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
       impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) β) ≡ X⊑★
     name-mark-dynamic :
       impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) α) ≡ X⊑★
+    target-mark-off-footprint : ∀ Xᴿ
+      → Xᴿ ≢ β
+      → Xᴿ ≢ α
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
 ```
 
 The fresh-behind guard is needed for D1's remaining one-sided outer source
@@ -138,6 +149,12 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
       sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
     targetStore-same :
       targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ oldCenters Z) ≡ X⊑★
     target-frozen : ∀ Xᴿ
       → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ
         ≡ toRenameᵗ oldCenters (toRenameᵗ (ηᴿʷ W) Xᴿ)
@@ -149,7 +166,36 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
         ≢ toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero
     fresh-mark-dynamic :
       impEnvʷ Wᵐ (toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero) ≡ X⊑★
+    target-mark-mono : ∀ Xᴿ
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
 ```
+
+### M-2 continuation 4 guard extension
+
+The right-injection inversion needs the smart premise to accept the ordinary
+front-left body obligation after the target injection has been peeled.  The
+minimal field added to both smart guards is:
+
+```agda
+transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+  → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+  → A ⊑ᵂ⟨ Wᵐ ⟩ B
+```
+
+The companion mark-locality field is:
+
+```agda
+old-mark-mono : ∀ Z
+  → impEnvʷ W Z ≡ X⊑★
+  → impEnvʷ Wᵐ (old-center-image Z) ≡ X⊑★
+```
+
+For `SmartAliasMergeGuard`, `old-center-image Z = Z`; for
+`SmartFreshBehindGuard`, `old-center-image Z = toRenameᵗ oldCenters Z`.
+`M5SmartCommaRuleScratch.agda` revalidates the A3 E4/D1 instances with finite
+substitution transports named `e4-merge-transport`, `d1-fresh-transport`, and
+`d1-merge-transport`.
 
 ## Pre-flight status
 

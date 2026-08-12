@@ -27,7 +27,7 @@ open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.ImprecisionConsistency using
-  (rename-⊑; toRenameᵗ-injective)
+  (rename-⊑; subst-⊑; toRenameᵗ-injective)
 import proof.Imprecision as PI
 
 ------------------------------------------------------------------------
@@ -332,6 +332,73 @@ rename-⊑ᵂ {W = W} {A = A} {B = B} π p =
       (sym (embedᴿ-rename π W B))
       (rename-⊑ (toRenameᵗ π) (toRenameᵗ-injective π)
         (λ X eq → trans (renameEnv-image π (CTI2.impEnvʷ W) X) eq)
+        p))
+
+preimageSubst : ∀ {Δ Δ′}
+  → Δ ↪ᵗ Δ′
+  → Δ′ ⇒ˢ Δ
+preimageSubst π Z′ with preimage? π Z′
+preimageSubst π Z′ | just Z = ＇ Z
+preimageSubst π Z′ | nothing = ★
+
+preimageSubst-image : ∀ {Δ Δ′}
+  → (π : Δ ↪ᵗ Δ′)
+  → ∀ Z
+  → preimageSubst π (toRenameᵗ π Z) ≡ ＇ Z
+preimageSubst-image π Z rewrite preimage?-image π Z = refl
+
+preimageSubst-rename : ∀ {Δ Δ′}
+  → (π : Δ ↪ᵗ Δ′)
+  → (A : Ty Δ)
+  → substᵗ (preimageSubst π) (renameᵗ (toRenameᵗ π) A) ≡ A
+preimageSubst-rename π A =
+  trans (substᵗ-rename (preimageSubst π) (toRenameᵗ π) A)
+    (trans (substᵗ-cong A (preimageSubst-image π))
+      (substᵗ-id A))
+
+preimageSubst-star : ∀ {Δ Δ′}
+    {μ : ImpEnv Δ}
+  → (π : Δ ↪ᵗ Δ′)
+  → ∀ Z′
+  → renameEnv π μ Z′ ≡ X⊑★
+  → μ ⊢ preimageSubst π Z′ ⊑ ★
+preimageSubst-star {μ = μ} π Z′ star with preimage? π Z′ in pre
+preimageSubst-star {μ = μ} π Z′ star | just Z =
+  X⊑★ (trans (sym (renameEnv-image π μ Z))
+    (subst≡ (λ C → renameEnv π μ C ≡ X⊑★)
+      (preimage?-sound π pre) star))
+preimageSubst-star π Z′ star | nothing = ★⊑★
+
+unrename-⊑ : ∀ {Δ Δ′}
+    {μ : ImpEnv Δ} {A B : Ty Δ}
+  → (π : Δ ↪ᵗ Δ′)
+  → renameEnv π μ ⊢ renameᵗ (toRenameᵗ π) A
+      ⊑ renameᵗ (toRenameᵗ π) B
+  → μ ⊢ A ⊑ B
+unrename-⊑ {μ = μ} {A = A} {B = B} π p =
+  subst≡ (λ L → μ ⊢ L ⊑ B) (preimageSubst-rename π A)
+    (subst≡
+      (λ R → μ ⊢ substᵗ (preimageSubst π)
+        (renameᵗ (toRenameᵗ π) A) ⊑ R)
+      (preimageSubst-rename π B)
+      (subst-⊑ (preimageSubst-star π) p))
+
+unrename-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (π : Δ ↪ᵗ Δ′)
+  → A CTI2.⊑ᵂ⟨ renameWorld π W ⟩ B
+  → A CTI2.⊑ᵂ⟨ W ⟩ B
+unrename-⊑ᵂ {W = W} {A = A} {B = B} π p =
+  unrename-⊑ π
+    (subst≡
+      (λ L → CTI2.impEnvʷ (renameWorld π W) ⊢
+        L ⊑ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ W B))
+      (embedᴸ-rename π W A)
+      (subst≡
+        (λ R → CTI2.impEnvʷ (renameWorld π W) ⊢
+          CTI2.embedᴸ (renameWorld π W) A ⊑ R)
+        (embedᴿ-rename π W B)
         p))
 
 renameCtx : ∀ {Δᴸ Δᴿ Δ Δ′} {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -641,13 +708,15 @@ renameSmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ Δ′}
   → CTI2.SmartAliasMergeGuard W Wᵐ β α
   → CTI2.SmartAliasMergeGuard (renameWorld π W)
       (renameWorld π Wᵐ) β α
-renameSmartAliasMergeGuard {W = W} {Wᵐ = Wᵐ} {β = β} {α = α}
-    π guard =
+renameSmartAliasMergeGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+    {W = W} {Wᵐ = Wᵐ} {β = β} {α = α} π guard =
   CTI2.smart-alias-merge-guard
     (CTI2.SmartAliasMergeGuard.β:=＇α guard)
     (CTI2.SmartAliasMergeGuard.α:=★ guard)
     (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
     (CTI2.SmartAliasMergeGuard.targetStore-same guard)
+    transport′
+    old-mark-mono′
     (λ Xᴿ → rename-embedding-eq π
       (CTI2.SmartAliasMergeGuard.target-frozen guard Xᴿ))
     (rename-embedding-eq π
@@ -674,7 +743,38 @@ renameSmartAliasMergeGuard {W = W} {Wᵐ = Wᵐ} {β = β} {α = α}
     CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard Xᴸ
       (toRenameᵗ-injective π
         (trans (sym (toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ))
-          (trans eq (toRenameᵗ-∘ π (CTI2.ηᴿʷ W) β))))
+        (trans eq (toRenameᵗ-∘ π (CTI2.ηᴿʷ W) β))))
+
+  transport′ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+    → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ (renameWorld π W) ⟩ B
+    → A CTI2.⊑ᵂ⟨ renameWorld π Wᵐ ⟩ B
+  transport′ p =
+    rename-⊑ᵂ {W = Wᵐ} π
+      (CTI2.SmartAliasMergeGuard.transport⊑ᵂ guard
+        (unrename-⊑ᵂ {W = CTI2.liftWorldLeft X⊑★ W} (keep π) p))
+
+  old-mark-mono′ : ∀ Z′
+    → CTI2.impEnvʷ (renameWorld π W) Z′ ≡ X⊑★
+    → CTI2.impEnvʷ (renameWorld π Wᵐ) Z′ ≡ X⊑★
+  old-mark-mono′ Z′ star with preimage? π Z′ in pre
+  old-mark-mono′ Z′ star | nothing =
+    renameEnv-off π (CTI2.impEnvʷ Wᵐ) pre
+  old-mark-mono′ Z′ star | just Z =
+    subst≡
+      (λ C → CTI2.impEnvʷ (renameWorld π Wᵐ) C ≡ X⊑★)
+      (sym image-eq)
+      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ) Z)
+        (CTI2.SmartAliasMergeGuard.old-mark-mono guard Z old-star))
+    where
+    image-eq : Z′ ≡ toRenameᵗ π Z
+    image-eq = preimage?-sound π pre
+
+    old-star : CTI2.impEnvʷ W Z ≡ X⊑★
+    old-star =
+      trans (sym (renameEnv-image π (CTI2.impEnvʷ W) Z))
+        (subst≡
+          (λ C → CTI2.impEnvʷ (renameWorld π W) C ≡ X⊑★)
+          image-eq star)
 
   target-mark-off-footprint′ : ∀ Xᴿ
     → Xᴿ ≢ β
@@ -700,18 +800,58 @@ renameSmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ′}
           (embeddingPushout π
             (CTI2.SmartFreshBehindGuard.oldCenters guard)))
         Wᵐ)
-renameSmartFreshBehindGuard {W = W} {Wᵐ = Wᵐ} π guard =
+renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+    {W = W} {Wᵐ = Wᵐ} π guard =
   CTI2.smart-fresh-behind-guard old′
     (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
     (CTI2.SmartFreshBehindGuard.targetStore-same guard)
-    target-frozen′ old-source-frozen′ fresh-not-target′ fresh-mark′
-    target-mark-frozen′
+    transport′ old-mark-mono′ target-frozen′ old-source-frozen′
+    fresh-not-target′ fresh-mark′ target-mark-frozen′
   where
   old = CTI2.SmartFreshBehindGuard.oldCenters guard
   po = embeddingPushout π old
   πᵐ = EmbeddingPushout.premise po
   old′ = EmbeddingPushout.old′ po
   commutes = EmbeddingPushout.commutes po
+
+  transport′ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+    → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ (renameWorld π W) ⟩ B
+    → A CTI2.⊑ᵂ⟨ renameWorld πᵐ Wᵐ ⟩ B
+  transport′ p =
+    rename-⊑ᵂ {W = Wᵐ} πᵐ
+      (CTI2.SmartFreshBehindGuard.transport⊑ᵂ guard
+        (unrename-⊑ᵂ {W = CTI2.liftWorldLeft X⊑★ W} (keep π) p))
+
+  old-mark-mono′ : ∀ Z′
+    → CTI2.impEnvʷ (renameWorld π W) Z′ ≡ X⊑★
+    → CTI2.impEnvʷ (renameWorld πᵐ Wᵐ) (toRenameᵗ old′ Z′)
+        ≡ X⊑★
+  old-mark-mono′ Z′ star with preimage? π Z′ in pre
+  old-mark-mono′ Z′ star | nothing =
+    renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ)
+      (pushout-old-off-premise π old pre)
+  old-mark-mono′ Z′ star | just Z =
+    subst≡
+      (λ C → CTI2.impEnvʷ (renameWorld πᵐ Wᵐ) C ≡ X⊑★)
+      (sym smart-image-eq)
+      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
+          (toRenameᵗ old Z))
+        (CTI2.SmartFreshBehindGuard.old-mark-mono guard Z old-star))
+    where
+    image-eq : Z′ ≡ toRenameᵗ π Z
+    image-eq = preimage?-sound π pre
+
+    old-star : CTI2.impEnvʷ W Z ≡ X⊑★
+    old-star =
+      trans (sym (renameEnv-image π (CTI2.impEnvʷ W) Z))
+        (subst≡
+          (λ C → CTI2.impEnvʷ (renameWorld π W) C ≡ X⊑★)
+          image-eq star)
+
+    smart-image-eq :
+      toRenameᵗ old′ Z′ ≡ toRenameᵗ πᵐ (toRenameᵗ old Z)
+    smart-image-eq =
+      trans (cong (toRenameᵗ old′) image-eq) (sym (commutes Z))
 
   target-frozen′ : ∀ Xᴿ
     → toRenameᵗ

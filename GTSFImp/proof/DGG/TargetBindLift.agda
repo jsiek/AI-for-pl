@@ -646,6 +646,8 @@ moveSmartAliasMergeGuard
     (hΣ (CTI2.SmartAliasMergeGuard.α:=★ guard))
     (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
     refl
+    (CTI2.SmartAliasMergeGuard.transport⊑ᵂ guard)
+    (CTI2.SmartAliasMergeGuard.old-mark-mono guard)
     (CTI2.SmartAliasMergeGuard.target-frozen guard)
     (CTI2.SmartAliasMergeGuard.pending-at-alias guard)
     (CTI2.SmartAliasMergeGuard.old-source-frozen guard)
@@ -670,6 +672,8 @@ moveSmartFreshBehindGuard
     (CTI2.SmartFreshBehindGuard.oldCenters guard)
     (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
     refl
+    (CTI2.SmartFreshBehindGuard.transport⊑ᵂ guard)
+    (CTI2.SmartFreshBehindGuard.old-mark-mono guard)
     (CTI2.SmartFreshBehindGuard.target-frozen guard)
     (CTI2.SmartFreshBehindGuard.old-source-frozen guard)
     (CTI2.SmartFreshBehindGuard.fresh-not-target guard)

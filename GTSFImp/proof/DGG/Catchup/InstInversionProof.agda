@@ -1671,17 +1671,34 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     Σ₂
 
 
+ΛRouteOneMidWorldAt : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+  → (W : CTI2.World Δᴸ Δᴿ Δ)
+  → (W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂)
+  → (κ₁ : suc Δ ↪ᵗ Δ₁)
+  → (κ₂ : suc Δ₁ ↪ᵗ Δ₂)
+  → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc Δ₂)
+ΛRouteOneMidWorldAt W W₂ κ₁ κ₂ =
+  CTI2.world
+    (skip (κ₂ CR.∘↪ skip (κ₁ CR.∘↪ keep (CTI2.ηᴸʷ W))))
+    (skip (CTI2.ηᴿʷ W₂))
+    (CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W₂))
+    (CTI2.sourceStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂))
+    (CTI2.targetStoreʷ W₂)
+
+
 record ΛRouteOneWindowFacts {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {π₁ : Δ ↪ᵗ Δ₁}
     {π₂ : Δ₁ ↪ᵗ Δ₂}
+    (κ₁ : suc Δ ↪ᵗ Δ₁)
     (κ₂ : suc Δ₁ ↪ᵗ Δ₂)
     (ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁)
     (ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂) : Set where
   field
-    targetWindow : TE.TargetWindowInsert ins₂ κ₂
+    targetWindow₁ : TE.TargetWindowInsert ins₁ κ₁
+    targetWindow₂ : TE.TargetWindowInsert ins₂ κ₂
     pivotMark :
       CTI2.impEnvʷ
         (CR.renameWorld (skip κ₂)
@@ -1711,6 +1728,7 @@ open ΛRouteOneWindowFacts public
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {π₁ : Δ ↪ᵗ Δ₁}
     {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
     {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
     {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
     {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
@@ -1718,7 +1736,7 @@ open ΛRouteOneWindowFacts public
     {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
     {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
-  → ΛRouteOneWindowFacts κ₂ ins₁ ins₂
+  → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
   → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
       ⊢² V ⊑ V′ ∶ body-p
   → Σ[ γᶠ ∈ CTI2.CtxImp
@@ -1828,6 +1846,133 @@ open ΛRouteOneWindowFacts public
         ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
   relFresh =
     rel-target-transportᴿ (sym (applyBody-bind★-eq B)) pᵇ relᵇ
+
+
+Λ-route1-inner-rebase-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+  → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
+  → CTI2.RebaseAtᴿ
+      (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+      (ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂))
+      (just Fin.zero)
+Λ-route1-inner-rebase-at {W = W} {W₁ = W₁} {W₂ = W₂}
+    {π₂ = π₂} {κ₁ = κ₁} {κ₂ = κ₂} {ins₁ = ins₁}
+    {ins₂ = ins₂} facts =
+  CTI2.rebase-varᴿ
+    (CTI2.rebase-at runtime source-off target-frozen
+      fresh-zero-aligned store-rep)
+  where
+  win₁ = ΛRouteOneWindowFacts.targetWindow₁ facts
+  win₂ = ΛRouteOneWindowFacts.targetWindow₂ facts
+
+  Wfresh =
+    ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+
+  Wmid =
+    ΛRouteOneMidWorldAt W W₂ κ₁ κ₂
+
+  runtime : CTI2.SameRuntime Wmid Wfresh
+  runtime =
+    CTI2.same-runtime
+      (sym (cong store-lift (TE.sourceStore-kept ins₂)))
+      refl
+
+  source-off : ∀ {Y}
+    → Y ≢ Fin.zero
+    → toRenameᵗ (CTI2.ηᴸʷ Wfresh) Y
+      ≡ toRenameᵗ (CTI2.ηᴸʷ Wmid) Y
+  source-off {Fin.zero} neq = ⊥-elim (neq refl)
+  source-off {Fin.suc X} neq =
+    trans
+      (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₂ (keep (CTI2.ηᴸʷ W₁)) (Fin.suc X)))
+      (trans
+        (cong (λ C → Fin.suc (toRenameᵗ κ₂ (Fin.suc C)))
+          source₁)
+        (cong Fin.suc
+          (sym (CR.toRenameᵗ-∘ κ₂
+            (skip (κ₁ CR.∘↪ keep (CTI2.ηᴸʷ W))) (Fin.suc X)))))
+    where
+    source₁ :
+        toRenameᵗ (CTI2.ηᴸʷ W₁) X
+          ≡ toRenameᵗ (κ₁ CR.∘↪ keep (CTI2.ηᴸʷ W)) (Fin.suc X)
+    source₁ =
+      trans (TE.source-insert ins₁ X)
+        (trans (TE.window-old win₁ (toRenameᵗ (CTI2.ηᴸʷ W) X))
+          (sym (CR.toRenameᵗ-∘ κ₁ (keep (CTI2.ηᴸʷ W))
+            (Fin.suc X))))
+
+  target-zero :
+      toRenameᵗ (CTI2.ηᴿʷ Wfresh) Fin.zero
+        ≡ toRenameᵗ (CTI2.ηᴿʷ Wmid) Fin.zero
+  target-zero =
+    trans
+      (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₂ (keep (CTI2.ηᴿʷ W₁)) Fin.zero))
+      (cong Fin.suc (sym (TE.window-zero win₂)))
+
+  target-suc : ∀ X
+    → toRenameᵗ (CTI2.ηᴿʷ Wfresh) (Fin.suc X)
+      ≡ toRenameᵗ (CTI2.ηᴿʷ Wmid) (Fin.suc X)
+  target-suc X =
+    trans
+      (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₂ (keep (CTI2.ηᴿʷ W₁)) (Fin.suc X)))
+      (cong Fin.suc
+        (trans (sym (TE.window-old win₂
+          (toRenameᵗ (CTI2.ηᴿʷ W₁) X)))
+          (sym target-insert-suc)))
+    where
+    target-insert-suc :
+        toRenameᵗ (CTI2.ηᴿʷ W₂) (Fin.suc X)
+          ≡ toRenameᵗ π₂ (toRenameᵗ (CTI2.ηᴿʷ W₁) X)
+    target-insert-suc =
+      subst≡
+        (λ Y → toRenameᵗ (CTI2.ηᴿʷ W₂) Y
+          ≡ toRenameᵗ π₂ (toRenameᵗ (CTI2.ηᴿʷ W₁) X))
+        (toRename-wk-eq X)
+        (TE.target-insert ins₂ X)
+
+  target-frozen : ∀ Y
+    → toRenameᵗ (CTI2.ηᴿʷ Wfresh) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ Wmid) Y
+  target-frozen Fin.zero = target-zero
+  target-frozen (Fin.suc X) = target-suc X
+
+  fresh-zero-aligned :
+      toRenameᵗ (CTI2.ηᴸʷ Wfresh) Fin.zero
+        ≡ toRenameᵗ (CTI2.ηᴿʷ Wfresh) Fin.zero
+  fresh-zero-aligned =
+    trans
+      (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₂ (keep (CTI2.ηᴸʷ W₁)) Fin.zero))
+      (sym (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₂ (keep (CTI2.ηᴿʷ W₁)) Fin.zero)))
+
+  sourcePivotMark :
+      CTI2.impEnvʷ Wfresh
+        (toRenameᵗ (CTI2.ηᴸʷ Wfresh) Fin.zero) ≡ I.X⊑★
+  sourcePivotMark =
+    subst≡ (λ C → CTI2.impEnvʷ Wfresh C ≡ I.X⊑★)
+      (sym fresh-zero-aligned)
+      (ΛRouteOneWindowFacts.pivotMark facts)
+
+  store-rep : CTI2.StoreRepImp Wfresh Fin.zero Fin.zero
+  store-rep =
+    CTI2.store-rep-imp
+      (subst≡
+        (λ R → CTI2.resolveVar (CTI2.sourceStoreʷ Wfresh) Fin.zero
+          CTI2.⊑ᵂ⟨ Wfresh ⟩ R)
+        (sym (ΛRouteOneWindowFacts.targetZeroResolves facts))
+        (I.X⊑★ sourcePivotMark))
 
 
 Λ-concrete-route1-prefix : ∀ {Δᴸ Δᴿ Δ}

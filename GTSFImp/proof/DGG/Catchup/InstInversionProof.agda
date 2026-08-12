@@ -9,40 +9,74 @@ module proof.DGG.Catchup.InstInversionProof where
 
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
+open import Data.Fin.Properties using (_≟_)
 import Data.List as List
-open import Data.Nat using (ℕ; suc; _<_)
-open import Data.Nat.Properties using (n<1+n)
+open import Data.Maybe using (just; nothing)
+open import Data.Nat using (ℕ; suc; _<_; s≤s)
+open import Data.Nat.Properties using (n<1+n; ≤-trans)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂)
   renaming (subst to subst≡)
+open import Relation.Nullary using (yes; no)
 
 open import Types
+open import TyStore using
+  (TyStore; store-lift; store-bind; _∋_⦂_; Z∋; S-lift∋;
+   S-bind∋)
 open import Consistency using
   (Env∼; _⊢_∼_; id; _↦_; ∀ᶜ_; _!; ？_; inst_; gen_;
    bot-elim; bot-intro; instᵐ; ↑ᶜ_; close-instᶜ; renameNonStar;
-   _↪ᵗ_; keep; skip; toRenameᵗ; wk↪ᵗ)
+   subst-left-∼; subst-right-∼; _↪ᵗ_; keep; skip; toRenameᵗ; wk↪ᵗ)
+open import Conversion using
+  (Conv↑; replaceTy; makeConceal; 〖_,_↑_〗; rename↑)
 import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
 open import Reduction using
-  (StoreChanges; _—↠[_]_; bind; _∷_; []; ↠-refl; ↠-step;
-   applyStores; applyTys)
+  (StoreChanges; _—↠[_]_; _—→[_]⟨_⟩_; _∎[]; bind; _∷_; [];
+   ↠-refl; ↠-step; β-inst; β-Λ; ξ-⟨⟩; ξ-reveal; ξ-•;
+   applyStores; applyTys; applyBody; applyVar; applyConsistency)
+import TermCtx as T
 import CastTerms as CT
-open import CastTerms using (_⟨_⟩)
-open import proof.Consistency using (gen-safe)
+open import CastTerms using
+  (⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _⦂∀_[_]; _↑_; Λ_; ⇑ᵗᵐ;
+   Value; RevealValue)
+open import FunExt using (funext)
+open import proof.Consistency using
+  (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
 open import proof.ImprecisionConsistency using
-  (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑)
+  (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
+   source-nonvar-target; source-occurs-target; subst-zero-occurs-exts;
+   toRenameᵗ-injective)
+import proof.ImprecisionConsistency as PIC
+open import proof.TypeInTermSubst using
+  (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport-lift-bind;
+   StoreRename-suc-bind; toRename-keep-eq; toRename-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision2Typing as CTI2T
+import proof.DGG.CenterRename as CR
+import proof.DGG.TargetBindLift as TBL
+import proof.DGG.TargetExtend as TE
+import proof.DGG.TermImpDecay as TD
+import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; _++χ_; FuelStepSurface; Catchup⁻Embedᵀ;
+   inst-alloc-decreaseᵀ;
    catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
    catchup⁻-bot-elim; catchup⁻-bot-intro)
 open import proof.DGG.Catchup.InstInversionDef using
   (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
-   InstSpineDescentPackage; Λ⊑²AtRewrapᵀ;
+   InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ; Λ⊑²AtRewrapᵀ;
+   Λ⊑Λ²BodyAfter★; Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂;
    Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
+open import proof.DGG.Catchup.InstCatchupRightDef using
+  (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
+open import proof.DGG.Catchup.InstCatchupRightProof using
+  (right-bind-right-bind-world-extendᴿ)
+open import proof.DGG.Catchup.ColumnSupportProof using
+  (castSize-applyConsistency)
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -88,6 +122,12 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     ; post-relation =
         InstPostCatalogPackageAt.at-post-relation pkg
     ; ν₂ = InstPostCatalogPackageAt.at-ν₂ pkg
+    ; residual-target =
+        InstPostCatalogPackageAt.at-residual-target pkg
+    ; residual-q =
+        InstPostCatalogPackageAt.at-residual-q pkg
+    ; residual-target-eq =
+        InstPostCatalogPackageAt.at-residual-target-eq pkg
     ; residual-cast =
         InstPostCatalogPackageAt.at-residual-cast pkg
     ; residual-provenance =
@@ -195,6 +235,1341 @@ rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
 rel-target-transportᴿ refl p rel = rel
 
 
+------------------------------------------------------------------------
+-- Λ⊑Λ² post-body transport
+------------------------------------------------------------------------
+
+Λ⊑Λ²-route1-entry-p : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  → A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+Λ⊑Λ²-route1-entry-p {W = W} p =
+  TBL.move⊑ᵂ (TBL.baseMove mv)
+    (CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)}
+      wk↪ᵗ
+      (WD.decay⊑ᵂ
+        {W = CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★)}
+        {Wᵈ = CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)}
+        TD.liftBothBinderDecay
+        (TE.transport⊑ᵂ ins₁ p)))
+  where
+  ins₁ = TE.keepRightBindTargetInsert {W = W} {B = ★} {v = I.X⊑X}
+  mv = TBL.freshLiftToBindTargetMove★ {W = W}
+
+
+Λ⊑Λ²-route1-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)
+  → CTI2.CtxImp (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+Λ⊑Λ²-route1-ctx List.[] = List.[]
+Λ⊑Λ²-route1-ctx {W = W} (CTI2.ctx-imp A B p List.∷ γᴮ) =
+  CTI2.ctx-imp A (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+    (Λ⊑Λ²-route1-entry-p {W = W} p) List.∷
+  Λ⊑Λ²-route1-ctx γᴮ
+
+
+Λ⊑Λ²-route1-map-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)
+  → CTI2.CtxImp (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+Λ⊑Λ²-route1-map-ctx {W = W} γᴮ =
+  TBL.moveCtx (TBL.baseMove mv)
+    (CR.renameCtx wk↪ᵗ
+      (WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ
+          (TE.keepRightBindTargetInsert {W = W} {B = ★} {v = I.X⊑X})
+          γᴮ)))
+  where
+  mv = TBL.freshLiftToBindTargetMove★ {W = W}
+
+
+Λ⊑Λ²-route1-map-ctx-eq : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    (γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W))
+  → Λ⊑Λ²-route1-map-ctx γᴮ ≡ Λ⊑Λ²-route1-ctx γᴮ
+Λ⊑Λ²-route1-map-ctx-eq List.[] = refl
+Λ⊑Λ²-route1-map-ctx-eq {W = W}
+    (CTI2.ctx-imp A B p List.∷ γᴮ) =
+  cong (CTI2.ctx-imp A (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+    (Λ⊑Λ²-route1-entry-p {W = W} p) List.∷_)
+    (Λ⊑Λ²-route1-map-ctx-eq γᴮ)
+
+
+Λ⊑Λ²-route1-prefix : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ pᵇ ∈ A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B ]
+      TBL.ΛLiftToBindFreshWorld I.X⊑★ W CTI2.∣
+        Λ⊑Λ²-route1-ctx γᴮ ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+Λ⊑Λ²-route1-prefix {W = W} {γᴮ = γᴮ} {V = V} {V′ = V′}
+    {A = A} {B = B} {body-p = body-p} rel =
+  pᵇ ,
+  subst≡
+    (λ γᵇ → TBL.ΛLiftToBindFreshWorld I.X⊑★ W CTI2.∣ γᵇ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ)
+    (Λ⊑Λ²-route1-map-ctx-eq γᴮ)
+    (TBL.⊢²-target-bind-lift-move mv relʳ)
+  where
+  ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep wk↪ᵗ)
+      (CTI2.liftWorldBoth I.X⊑X W)
+      (CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★))
+  ins₁ = TE.keepRightBindTargetInsert {W = W} {B = ★} {v = I.X⊑X}
+
+  p₁ : A CTI2.⊑ᵂ⟨
+        CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  p₁ =
+    TE.transport⊑ᵂ ins₁ body-p
+
+  rel₁ : CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★)
+      CTI2.∣ TE.mapCtxᵀ ins₁ γᴮ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
+  rel₁ =
+    TE.⊢²-target-insert ins₁ rel
+
+  pᵈ : A CTI2.⊑ᵂ⟨
+        CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵈ =
+    WD.decay⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★)}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)}
+      TD.liftBothBinderDecay p₁
+
+  relᵈ : CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)
+      CTI2.∣ WD.decayCtx TD.liftBothBinderDecay (TE.mapCtxᵀ ins₁ γᴮ)
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
+  relᵈ =
+    TD.⊢²-decay
+      {W = CTI2.liftWorldBoth I.X⊑X (CTI2.rightOnlyWorld W ★)}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)}
+      TD.liftBothBinderDecay rel₁
+
+  pʳ : A CTI2.⊑ᵂ⟨
+        CR.renameWorld wk↪ᵗ
+          (CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★))
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★)}
+      wk↪ᵗ pᵈ
+
+  relʳ : CR.renameWorld wk↪ᵗ
+        (CTI2.liftWorldBoth I.X⊑★ (CTI2.rightOnlyWorld W ★))
+      CTI2.∣ CR.renameCtx wk↪ᵗ
+        (WD.decayCtx TD.liftBothBinderDecay (TE.mapCtxᵀ ins₁ γᴮ))
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pʳ
+  relʳ =
+    CR.⊢²-extend-center relᵈ pʳ
+
+  mv = TBL.freshLiftToBindTargetMove★ {W = W}
+
+  pᵇ : A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵇ =
+    TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
+
+
+ΛPostMidWorld : ∀ {Δᴸ Δᴿ Δ}
+  → CTI2.World Δᴸ Δᴿ Δ
+  → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
+ΛPostMidWorld W =
+  CTI2.world
+    (skip (skip (keep (CTI2.ηᴸʷ W))))
+    (skip (keep (keep (CTI2.ηᴿʷ W))))
+    (I.instᵐ (I.instᵐ (I.instᵐ (CTI2.impEnvʷ W))))
+    (store-lift (CTI2.sourceStoreʷ W))
+    (store-bind (store-bind (CTI2.targetStoreʷ W) ★) (＇ Fin.zero))
+
+
+Λ-route1-context-target-eq : ∀ {Δ} (B : Ty Δ)
+  → applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+    ≡ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) (⇑ᵗ B)
+Λ-route1-context-target-eq B =
+  trans (renameᵗ-comp Fin.suc Fin.suc B)
+    (trans (renameᵗ-cong B var-eq)
+      (sym (renameᵗ-comp Fin.suc
+        (toRenameᵗ (keep wk↪ᵗ)) B)))
+  where
+  var-eq : ∀ X
+    → Fin.suc (Fin.suc X) ≡
+      toRenameᵗ (keep wk↪ᵗ) (Fin.suc X)
+  var-eq X = cong Fin.suc (sym (toRename-wk-eq X))
+
+
+applyBody-bind★-eq : ∀ {Δ} (B : Ty (suc Δ))
+  → applyBody (bind ★) B
+    ≡ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+applyBody-bind★-eq B = renameᵗ-cong B var-eq
+  where
+  var-eq : ∀ X
+    → extᵗ Fin.suc X ≡ toRenameᵗ (keep wk↪ᵗ) X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = cong Fin.suc (sym (toRename-wk-eq X))
+
+
+shifted-source-rename-eq : ∀ {Δ Δ′}
+    (ρ₁ ρ₂ : TyVar (suc Δ) → TyVar Δ′)
+  → (∀ X → ρ₁ (Fin.suc X) ≡ ρ₂ (Fin.suc X))
+  → (A : Ty Δ)
+  → renameᵗ ρ₁ (⇑ᵗ A) ≡ renameᵗ ρ₂ (⇑ᵗ A)
+shifted-source-rename-eq ρ₁ ρ₂ eq A =
+  trans (renameᵗ-comp Fin.suc ρ₁ A)
+    (trans (renameᵗ-cong A eq)
+      (sym (renameᵗ-comp Fin.suc ρ₂ A)))
+
+
+target-left-lift-eq : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (B : Ty Δ₀)
+  → renameᵗ (toRenameᵗ (skip η)) B
+    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) B)
+target-left-lift-eq η B =
+  trans (renameᵗ-cong B (λ X → refl))
+    (sym (renameᵗ-comp (toRenameᵗ η) Fin.suc B))
+
+
+Λ-fresh-mid-env-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.impEnvʷ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+    ≡ CTI2.impEnvʷ (ΛPostMidWorld W)
+Λ-fresh-mid-env-eq W =
+  funext λ
+    { Fin.zero → refl
+    ; (Fin.suc Fin.zero) → refl
+    ; (Fin.suc (Fin.suc Fin.zero)) → refl
+    ; (Fin.suc (Fin.suc (Fin.suc Z))) → refl
+    }
+
+
+Λ-mid-out-env-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.impEnvʷ (ΛPostMidWorld W)
+    ≡ CTI2.impEnvʷ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+Λ-mid-out-env-eq W =
+  funext λ
+    { Fin.zero → refl
+    ; (Fin.suc Fin.zero) → refl
+    ; (Fin.suc (Fin.suc Fin.zero)) → refl
+    ; (Fin.suc (Fin.suc (Fin.suc Z))) → refl
+    }
+
+
+Λ-fresh-mid-source-shift-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (A : Ty Δᴸ)
+  → CTI2.embedᴸ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) (⇑ᵗ A)
+    ≡ CTI2.embedᴸ (ΛPostMidWorld W) (⇑ᵗ A)
+Λ-fresh-mid-source-shift-eq W A =
+  shifted-source-rename-eq
+    (toRenameᵗ (CTI2.ηᴸʷ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)))
+    (toRenameᵗ (CTI2.ηᴸʷ (ΛPostMidWorld W)))
+    (λ X → refl)
+    A
+
+
+Λ-mid-out-source-shift-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (A : Ty Δᴸ)
+  → CTI2.embedᴸ (ΛPostMidWorld W) (⇑ᵗ A)
+    ≡ CTI2.embedᴸ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      (⇑ᵗ A)
+Λ-mid-out-source-shift-eq W A =
+  shifted-source-rename-eq
+    (toRenameᵗ (CTI2.ηᴸʷ (ΛPostMidWorld W)))
+    (toRenameᵗ (CTI2.ηᴸʷ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))))
+    (λ X → refl)
+    A
+
+
+Λ-fresh-mid-target-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (B : Ty (suc (suc Δᴿ)))
+  → CTI2.embedᴿ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) B
+    ≡ CTI2.embedᴿ (ΛPostMidWorld W) B
+Λ-fresh-mid-target-eq W B = renameᵗ-cong B (λ X → refl)
+
+
+Λ-mid-out-target-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (B : Ty (suc (suc Δᴿ)))
+  → CTI2.embedᴿ (ΛPostMidWorld W) B
+    ≡ CTI2.embedᴿ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      B
+Λ-mid-out-target-eq W B = renameᵗ-cong B (λ X → refl)
+
+
+Λ-fresh-to-mid-shifted-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty (suc (suc Δᴿ))}
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+      TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ B
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩ B
+Λ-fresh-to-mid-shifted-⊑ᵂ {W = W} {A = A} {B = B} p =
+  subst≡
+    (λ μ → μ ⊢ CTI2.embedᴸ (ΛPostMidWorld W) (⇑ᵗ A)
+      ⊑ CTI2.embedᴿ (ΛPostMidWorld W) B)
+    (Λ-fresh-mid-env-eq W)
+    (subst≡
+      (λ R → CTI2.impEnvʷ
+          (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+        ⊢ CTI2.embedᴸ (ΛPostMidWorld W) (⇑ᵗ A) ⊑ R)
+      (Λ-fresh-mid-target-eq W B)
+      (subst≡
+        (λ L → CTI2.impEnvʷ
+            (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+          ⊢ L ⊑ CTI2.embedᴿ
+            (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) B)
+        (Λ-fresh-mid-source-shift-eq W A)
+        p))
+
+
+Λ-mid-to-out-shifted-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty (suc (suc Δᴿ))}
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩ B
+  → (⇑ᵗ A) CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      ⟩ B
+Λ-mid-to-out-shifted-⊑ᵂ {W = W} {A = A} {B = B} p =
+  subst≡
+    (λ μ → μ ⊢ CTI2.embedᴸ Wout (⇑ᵗ A)
+      ⊑ CTI2.embedᴿ Wout B)
+    (Λ-mid-out-env-eq W)
+    (subst≡
+      (λ R → CTI2.impEnvʷ (ΛPostMidWorld W)
+        ⊢ CTI2.embedᴸ Wout (⇑ᵗ A) ⊑ R)
+      (Λ-mid-out-target-eq W B)
+      (subst≡
+        (λ L → CTI2.impEnvʷ (ΛPostMidWorld W)
+          ⊢ L ⊑ CTI2.embedᴿ (ΛPostMidWorld W) B)
+        (Λ-mid-out-source-shift-eq W A)
+        p))
+  where
+  Wout =
+    CTI2.liftWorldLeft I.X⊑★
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+
+
+Λ-route1-fresh-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+Λ-route1-fresh-ctx CTI2.lift-[] = List.[]
+Λ-route1-fresh-ctx {W = W}
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (subst≡
+      (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+        TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ C)
+      (sym (Λ-route1-context-target-eq B))
+      (Λ⊑Λ²-route1-entry-p {W = W} p′)) List.∷
+  Λ-route1-fresh-ctx liftγ
+
+
+Λ-route1-mid-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp (ΛPostMidWorld W)
+Λ-route1-mid-ctx CTI2.lift-[] = List.[]
+Λ-route1-mid-ctx {W = W}
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (Λ-fresh-to-mid-shifted-⊑ᵂ {W = W} {A = A}
+      {B = applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B}
+      (subst≡
+        (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+          TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ C)
+        (sym (Λ-route1-context-target-eq B))
+        (Λ⊑Λ²-route1-entry-p {W = W} p′))) List.∷
+  Λ-route1-mid-ctx liftγ
+
+
+Λ-route1-out-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+Λ-route1-out-ctx CTI2.lift-[] = List.[]
+Λ-route1-out-ctx {W = W}
+    (CTI2.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
+  CTI2.ctx-imp (⇑ᵗ A)
+    (applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B)
+    (Λ-mid-to-out-shifted-⊑ᵂ {W = W} {A = A}
+      {B = applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B}
+      (Λ-fresh-to-mid-shifted-⊑ᵂ {W = W} {A = A}
+        {B = applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B}
+        (subst≡
+          (λ C → (⇑ᵗ A) CTI2.⊑ᵂ⟨
+            TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ C)
+          (sym (Λ-route1-context-target-eq B))
+          (Λ⊑Λ²-route1-entry-p {W = W} p′)))) List.∷
+  Λ-route1-out-ctx liftγ
+
+
+Λ-route1-ctx-fresh-eq : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → Λ⊑Λ²-route1-ctx γᴮ ≡ Λ-route1-fresh-ctx liftγ
+Λ-route1-ctx-fresh-eq CTI2.lift-[] = refl
+Λ-route1-ctx-fresh-eq {W = W}
+    (CTI2.lift-∷ {B = B} {p′ = p′} liftγ) =
+  cong₂ List._∷_
+    (ctx-imp-transportᴿ
+      (sym (Λ-route1-context-target-eq B))
+      (Λ⊑Λ²-route1-entry-p {W = W} p′))
+    (Λ-route1-ctx-fresh-eq liftγ)
+
+
+Λ-route1-mid-fresh-same : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.SameCtx (Λ-route1-mid-ctx liftγ)
+      (Λ-route1-fresh-ctx liftγ)
+Λ-route1-mid-fresh-same CTI2.lift-[] = CTI2.same-[]
+Λ-route1-mid-fresh-same (CTI2.lift-∷ liftγ) =
+  CTI2.same-∷ (Λ-route1-mid-fresh-same liftγ)
+
+
+Λ-route1-out-mid-same : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.SameCtx (Λ-route1-out-ctx liftγ)
+      (Λ-route1-mid-ctx liftγ)
+Λ-route1-out-mid-same CTI2.lift-[] = CTI2.same-[]
+Λ-route1-out-mid-same (CTI2.lift-∷ liftγ) =
+  CTI2.same-∷ (Λ-route1-out-mid-same liftγ)
+
+
+Λ-route1-out-liftCtxᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (Λ-route1-out-ctx liftγ)
+Λ-route1-out-liftCtxᴸ ext₂ CTI2.lift-[] = CTI2.liftᴸ-[]
+Λ-route1-out-liftCtxᴸ ext₂ (CTI2.lift-∷ liftγ) =
+  CTI2.liftᴸ-∷ (Λ-route1-out-liftCtxᴸ ext₂ liftγ)
+
+
+liftCtxᴸ-target : ∀ {Δᴸ Δᴿ Δ} {v}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γ′ : CTI2.CtxImp (CTI2.liftWorldLeft v W)}
+  → CTI2.LiftCtxᴸ v γ γ′
+  → CTI2.tgtCtxʷ γ′ ≡ CTI2.tgtCtxʷ γ
+liftCtxᴸ-target CTI2.liftᴸ-[] = refl
+liftCtxᴸ-target (CTI2.liftᴸ-∷ liftγ) =
+  cong (_ List.∷_) (liftCtxᴸ-target liftγ)
+
+
+Λ-mid-fresh-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.ImpEnvMono (ΛPostMidWorld W)
+      (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
+Λ-mid-fresh-mono W Fin.zero eq = refl
+Λ-mid-fresh-mono W (Fin.suc Fin.zero) eq = refl
+Λ-mid-fresh-mono W (Fin.suc (Fin.suc Fin.zero)) eq = refl
+Λ-mid-fresh-mono W (Fin.suc (Fin.suc (Fin.suc Z))) eq = eq
+
+
+Λ-out-mid-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.ImpEnvMono
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      (ΛPostMidWorld W)
+Λ-out-mid-mono W Fin.zero eq = refl
+Λ-out-mid-mono W (Fin.suc Fin.zero) eq = refl
+Λ-out-mid-mono W (Fin.suc (Fin.suc Fin.zero)) eq = refl
+Λ-out-mid-mono W (Fin.suc (Fin.suc (Fin.suc Z))) eq = eq
+
+
+Λ-inner-rebaseᴿ : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.RebaseAtᴿ (ΛPostMidWorld W)
+      (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) (just Fin.zero)
+Λ-inner-rebaseᴿ W =
+  CTI2.rebase-varᴿ
+    (CTI2.rebase-at (CTI2.same-runtime refl refl)
+      source-off (λ Y → refl) refl
+      (CTI2.store-rep-imp (I.X⊑★ refl)))
+  where
+  source-off : ∀ {Y}
+    → Y ≢ Fin.zero
+    → toRenameᵗ (CTI2.ηᴸʷ
+        (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)) Y
+      ≡ toRenameᵗ (CTI2.ηᴸʷ (ΛPostMidWorld W)) Y
+  source-off {Fin.zero} neq = ⊥-elim (neq refl)
+  source-off {Fin.suc Y} neq = refl
+
+
+Λ-outer-rebaseᴿ : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → CTI2.RebaseAtᴿ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      (ΛPostMidWorld W) (just (Fin.suc Fin.zero))
+Λ-outer-rebaseᴿ W =
+  CTI2.rebase-varᴿ
+    (CTI2.rebase-at (CTI2.same-runtime refl refl)
+      source-off (λ Y → refl) refl
+      (CTI2.store-rep-imp (I.X⊑★ refl)))
+  where
+  source-off : ∀ {Y}
+    → Y ≢ Fin.zero
+    → toRenameᵗ (CTI2.ηᴸʷ (ΛPostMidWorld W)) Y
+      ≡ toRenameᵗ (CTI2.ηᴸʷ
+        (CTI2.liftWorldLeft I.X⊑★
+          (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+            (＇ Fin.zero)))) Y
+  source-off {Fin.zero} neq = ⊥-elim (neq refl)
+  source-off {Fin.suc Y} neq = refl
+
+
+generated-reveal-value : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}
+  → NonVar B
+  → X ∈ᵗ B
+  → RevealValue (〖 X , R ↑ B 〗)
+generated-reveal-value nonvar-base ()
+generated-reveal-value nonvar-star ()
+generated-reveal-value nonvar-fun X∈B = CT.fun
+generated-reveal-value nonvar-all X∈B = CT.all
+
+
+reveal-value-rename : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′)
+    {A B : Ty Δ} {c : Conv↑ Δ A B}
+  → RevealValue c
+  → RevealValue (rename↑ ρ c)
+reveal-value-rename ρ CT.fun = CT.fun
+reveal-value-rename ρ CT.all = CT.all
+
+
+unrenameNonVar : ∀ {Δ Δ′} {A : Ty Δ} (ρ : Δ ⇒ʳ Δ′)
+  → NonVar (renameᵗ ρ A)
+  → NonVar A
+unrenameNonVar {A = ＇ X} ρ ()
+unrenameNonVar {A = ‵ ι} ρ nonvar-base = nonvar-base
+unrenameNonVar {A = ★} ρ nonvar-star = nonvar-star
+unrenameNonVar {A = A ⇒ B} ρ nonvar-fun = nonvar-fun
+unrenameNonVar {A = `∀ A} ρ nonvar-all = nonvar-all
+
+
+subst₂-star-map-exts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★
+      → I.extᵐ ν ⊢ extsᵗ σᴸ X ⊑ ★
+subst₂-star-map-exts star Fin.zero ()
+subst₂-star-map-exts star (Fin.suc X) eq =
+  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
+
+
+subst₂-star-map-insts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
+      → I.instᵐ ν ⊢ extsᵗ σᴸ X ⊑ ★
+subst₂-star-map-insts star Fin.zero eq = I.X⊑★ refl
+subst₂-star-map-insts star (Fin.suc X) eq =
+  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
+
+
+subst₂-same-map-exts : ∀ {Δ Δ′}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
+  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
+  → ∀ X
+      → I.extᵐ ν ⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
+subst₂-same-map-exts same Fin.zero = I.X⊑X
+subst₂-same-map-exts same (Fin.suc X) =
+  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (same X)
+
+
+subst₂-same-map-insts : ∀ {Δ Δ′}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
+  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
+  → ∀ X
+      → I.instᵐ ν ⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
+subst₂-same-map-insts same Fin.zero = I.X⊑X
+subst₂-same-map-insts same (Fin.suc X) =
+  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (same X)
+
+
+subst₂-⊑ : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
+    {A B : Ty Δ}
+  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
+  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
+  → μ ⊢ A ⊑ B
+  → ν ⊢ substᵗ σᴸ A ⊑ substᵗ σᴿ B
+subst₂-⊑ same star I.★⊑★ = I.★⊑★
+subst₂-⊑ same star I.ι⊑ι = I.ι⊑ι
+subst₂-⊑ same star I.X⊑X = same _
+subst₂-⊑ same star (I.⇒⊑⇒ A⊑B C⊑D) =
+  I.⇒⊑⇒ (subst₂-⊑ same star A⊑B)
+    (subst₂-⊑ same star C⊑D)
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
+    (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀
+    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
+      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+      (subst₂-same-map-exts same)
+      (subst₂-star-map-exts star) A⊑B)
+subst₂-⊑ same star (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (subst₂-⊑ same star A⊑★)
+    (subst₂-⊑ same star B⊑★)
+subst₂-⊑ same star I.ι⊑★ = I.ι⊑★
+subst₂-⊑ same star (I.X⊑★ x⊑★) = star _ x⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
+    (I.∀⊑ {A = A} {B = B} Anv zero∈A A⊑B) =
+  I.∀⊑ (substNonVar (extsᵗ σᴸ) Anv)
+    (subst-zero-occurs-exts zero∈A)
+    (subst≡ (λ T → I.instᵐ ν ⊢ substᵗ (extsᵗ σᴸ) A ⊑ T)
+      (substᵗ-shift σᴿ B)
+      (subst₂-⊑ {μ = I.instᵐ μ} {ν = I.instᵐ ν}
+        {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+        (subst₂-same-map-insts same)
+        (subst₂-star-map-insts star) A⊑B))
+subst₂-⊑ same star I.∀★⊑★ = I.∀★⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} Ans A⊑★)
+    with substᵗ (extsᵗ σᴸ) A ≟Ty ★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} Ans A⊑★)
+    | yes Aσ≡★ =
+  subst≡ (λ T → _ ⊢ `∀ T ⊑ ★) (sym Aσ≡★) I.∀★⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} Ans A⊑★)
+    | no Aσ≢★ =
+  I.∀⊑★ (nonstar-from-≢★ Aσ≢★)
+    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
+      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+      (subst₂-same-map-exts same)
+      (subst₂-star-map-exts star) A⊑★)
+subst₂-⊑ same star I.bot-elim = I.bot-elim
+subst₂-⊑ same star I.bot⊑★ = I.bot⊑★
+
+
+mutual
+  generated-reveal-⊢↑-present :
+      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+        {X : TyVar Δ} {R B : Ty Δ}
+    → X ∈ᵗ B
+    → Σ ∋ X ⦂ R
+    → Σ CTI2.⊢↑[ just X ] 〖 X , R ↑ B 〗
+  generated-reveal-⊢↑-present {X = X} var-∈ X∈ with X ≟ X
+  generated-reveal-⊢↑-present {X = X} var-∈ X∈ | yes refl =
+    CTI2.⊢↑-unsealˣ X∈
+  generated-reveal-⊢↑-present {X = X} var-∈ X∈ | no X≢X =
+    ⊥-elim (X≢X refl)
+  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ with occurs? X B
+  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ | present X∈B =
+    CTI2.⊢↑-⇒ˣ CTI2.join-both
+      (generated-conceal-⊢↓-present X∈A X∈)
+      (generated-reveal-⊢↑-present X∈B X∈)
+  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ | absent X∉B =
+    CTI2.⊢↑-⇒ˣ CTI2.join-left
+      (generated-conceal-⊢↓-present X∈A X∈)
+      (generated-reveal-⊢↑-absent X∉B X∈)
+  generated-reveal-⊢↑-present
+      (∈-fun-right X∉A X∈B) X∈ =
+    CTI2.⊢↑-⇒ˣ CTI2.join-right
+      (generated-conceal-⊢↓-absent X∉A X∈)
+      (generated-reveal-⊢↑-present X∈B X∈)
+  generated-reveal-⊢↑-present (∈-all X∈B) X∈ =
+    CTI2.⊢↑-∀ˣ
+      (generated-reveal-⊢↑-present X∈B (S-lift∋ X∈ refl))
+
+  generated-reveal-⊢↑-absent :
+      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+        {X : TyVar Δ} {R B : Ty Δ}
+    → X ∉ᵗ B
+    → Σ ∋ X ⦂ R
+    → Σ CTI2.⊢↑[ nothing ] 〖 X , R ↑ B 〗
+  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      with X ≟ Y
+  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      | yes refl =
+    ⊥-elim (X≢Y refl)
+  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      | no X≢Y′ =
+    CTI2.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-base X∈ = CTI2.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-star X∈ = CTI2.⊢↑-idˣ
+  generated-reveal-⊢↑-absent (∉-fun X∉A X∉B) X∈ =
+    CTI2.⊢↑-⇒ˣ CTI2.join-none
+      (generated-conceal-⊢↓-absent X∉A X∈)
+      (generated-reveal-⊢↑-absent X∉B X∈)
+  generated-reveal-⊢↑-absent (∉-all X∉B) X∈ =
+    CTI2.⊢↑-∀-idˣ
+      (generated-reveal-⊢↑-absent X∉B (S-lift∋ X∈ refl))
+
+  generated-conceal-⊢↓-present :
+      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+        {X : TyVar Δ} {R B : Ty Δ}
+    → X ∈ᵗ B
+    → Σ ∋ X ⦂ R
+    → Σ CTI2.⊢↓[ just X ] makeConceal X R B
+  generated-conceal-⊢↓-present {X = X} var-∈ X∈ with X ≟ X
+  generated-conceal-⊢↓-present {X = X} var-∈ X∈ | yes refl =
+    CTI2.⊢↓-sealˣ X∈
+  generated-conceal-⊢↓-present {X = X} var-∈ X∈ | no X≢X =
+    ⊥-elim (X≢X refl)
+  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ with occurs? X B
+  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ | present X∈B =
+    CTI2.⊢↓-⇒ˣ CTI2.join-both
+      (generated-reveal-⊢↑-present X∈A X∈)
+      (generated-conceal-⊢↓-present X∈B X∈)
+  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
+      (∈-fun-left X∈A) X∈ | absent X∉B =
+    CTI2.⊢↓-⇒ˣ CTI2.join-left
+      (generated-reveal-⊢↑-present X∈A X∈)
+      (generated-conceal-⊢↓-absent X∉B X∈)
+  generated-conceal-⊢↓-present
+      (∈-fun-right X∉A X∈B) X∈ =
+    CTI2.⊢↓-⇒ˣ CTI2.join-right
+      (generated-reveal-⊢↑-absent X∉A X∈)
+      (generated-conceal-⊢↓-present X∈B X∈)
+  generated-conceal-⊢↓-present (∈-all X∈B) X∈ =
+    CTI2.⊢↓-∀ˣ
+      (generated-conceal-⊢↓-present X∈B (S-lift∋ X∈ refl))
+
+  generated-conceal-⊢↓-absent :
+      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+        {X : TyVar Δ} {R B : Ty Δ}
+    → X ∉ᵗ B
+    → Σ ∋ X ⦂ R
+    → Σ CTI2.⊢↓[ nothing ] makeConceal X R B
+  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      with X ≟ Y
+  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      | yes refl =
+    ⊥-elim (X≢Y refl)
+  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
+      | no X≢Y′ =
+    CTI2.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-base X∈ = CTI2.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-star X∈ = CTI2.⊢↓-idˣ
+  generated-conceal-⊢↓-absent (∉-fun X∉A X∉B) X∈ =
+    CTI2.⊢↓-⇒ˣ CTI2.join-none
+      (generated-reveal-⊢↑-absent X∉A X∈)
+      (generated-conceal-⊢↓-absent X∉B X∈)
+  generated-conceal-⊢↓-absent (∉-all X∉B) X∈ =
+    CTI2.⊢↓-∀-idˣ
+      (generated-conceal-⊢↓-absent X∉B (S-lift∋ X∈ refl))
+
+
+rename-as-subst : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) (A : Ty Δ)
+  → substᵗ (λ X → ＇ ρ X) A ≡ renameᵗ ρ A
+rename-as-subst ρ (＇ X) = refl
+rename-as-subst ρ (‵ ι) = refl
+rename-as-subst ρ ★ = refl
+rename-as-subst ρ (A ⇒ B)
+    rewrite rename-as-subst ρ A | rename-as-subst ρ B =
+  refl
+rename-as-subst ρ (`∀ A) =
+  cong `∀
+    (trans (substᵗ-cong A exts-eq)
+      (rename-as-subst (extᵗ ρ) A))
+  where
+  exts-eq : ∀ X → extsᵗ (λ Y → ＇ ρ Y) X ≡ ＇ extᵗ ρ X
+  exts-eq Fin.zero = refl
+  exts-eq (Fin.suc X) = refl
+
+
+replaceEnv : ∀ {Δ} → TyVar Δ → Ty Δ → Δ ⇒ˢ Δ
+replaceEnv X R Y with X ≟ Y
+replaceEnv X R .X | yes refl = R
+replaceEnv X R Y | no X≠Y = ＇ Y
+
+
+replaceEnv-ext : ∀ {Δ} (X : TyVar Δ) (R : Ty Δ)
+    (Y : TyVar (suc Δ))
+  → replaceEnv (Fin.suc X) (⇑ᵗ R) Y ≡ extsᵗ (replaceEnv X R) Y
+replaceEnv-ext X R Fin.zero = refl
+replaceEnv-ext X R (Fin.suc Y) with X ≟ Y
+replaceEnv-ext X R (Fin.suc .X) | yes refl = refl
+replaceEnv-ext X R (Fin.suc Y) | no X≠Y = refl
+
+
+replaceTy-subst : ∀ {Δ} (X : TyVar Δ) (R B : Ty Δ)
+  → replaceTy X R B ≡ substᵗ (replaceEnv X R) B
+replaceTy-subst X R (＇ Y) with X ≟ Y
+replaceTy-subst X R (＇ .X) | yes refl = refl
+replaceTy-subst X R (＇ Y) | no X≠Y = refl
+replaceTy-subst X R (‵ ι) = refl
+replaceTy-subst X R ★ = refl
+replaceTy-subst X R (A ⇒ B)
+    rewrite replaceTy-subst X R A | replaceTy-subst X R B =
+  refl
+replaceTy-subst X R (`∀ B) =
+  cong `∀
+    (trans (replaceTy-subst (Fin.suc X) (⇑ᵗ R) B)
+      (substᵗ-cong B (replaceEnv-ext X R)))
+
+
+inner-reveal-target-eq : ∀ {Δ} (B : Ty (suc Δ))
+  → replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero))
+      (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+    ≡ renameᵗ Fin.suc B
+inner-reveal-target-eq B =
+  trans
+    (replaceTy-subst Fin.zero (⇑ᵗ (＇ Fin.zero))
+      (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B))
+    (trans
+      (substᵗ-rename
+        (replaceEnv Fin.zero (⇑ᵗ (＇ Fin.zero)))
+        (toRenameᵗ (keep wk↪ᵗ)) B)
+      (trans (substᵗ-cong B var-eq)
+        (rename-as-subst Fin.suc B)))
+  where
+  var-eq : ∀ X
+    → replaceEnv Fin.zero (⇑ᵗ (＇ Fin.zero))
+        (toRenameᵗ (keep wk↪ᵗ) X)
+      ≡ ＇ Fin.suc X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = cong (λ Z → ＇ Fin.suc Z) (toRename-wk-eq X)
+
+
+inner-reveal-target-eq-applyBody : ∀ {Δ} (B : Ty (suc Δ))
+  → replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)) (applyBody (bind ★) B)
+    ≡ renameᵗ Fin.suc B
+inner-reveal-target-eq-applyBody B =
+  trans
+    (cong (replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)))
+      (applyBody-bind★-eq B))
+    (inner-reveal-target-eq B)
+
+
+ΛResidualSource₂ : ∀ {Δ} → Ty (suc Δ) → Ty (suc (suc Δ))
+ΛResidualSource₂ B = ⇑ᵗ (renameᵗ (toRenameᵗ wk↪ᵗ) (B [ ★ ]ᵗ))
+
+
+ΛResidualTarget₂ : ∀ {Δ} → Ty Δ → Ty (suc (suc Δ))
+ΛResidualTarget₂ B = ⇑ᵗ (renameᵗ (toRenameᵗ wk↪ᵗ) B)
+
+
+residual-source₂-eq : ∀ {Δ} (B : Ty (suc Δ))
+  → substᵗ Λ⊑Λ²TargetSplit₂ B ≡ ΛResidualSource₂ B
+residual-source₂-eq B =
+  sym
+    (trans
+      (renameᵗ-comp (toRenameᵗ wk↪ᵗ) Fin.suc (B [ ★ ]ᵗ))
+      (trans
+        (renameᵗ-subst
+          (λ X → Fin.suc (toRenameᵗ wk↪ᵗ X))
+          (singleSubᵗ ★) B)
+        (substᵗ-cong B var-eq)))
+  where
+  var-eq : ∀ X
+    → renameᵗ (λ Y → Fin.suc (toRenameᵗ wk↪ᵗ Y))
+        (singleSubᵗ ★ X)
+      ≡ Λ⊑Λ²TargetSplit₂ X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) =
+    cong (λ Y → ＇ Fin.suc Y) (toRename-wk-eq X)
+
+
+residual-target₂-eq : ∀ {Δ} (B : Ty Δ)
+  → applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
+    ≡ ΛResidualTarget₂ B
+residual-target₂-eq B =
+  trans (renameᵗ-comp Fin.suc Fin.suc B)
+    (trans (renameᵗ-cong B var-eq)
+      (sym (renameᵗ-comp (toRenameᵗ wk↪ᵗ) Fin.suc B)))
+  where
+  var-eq : ∀ X
+    → Fin.suc (Fin.suc X) ≡ Fin.suc (toRenameᵗ wk↪ᵗ X)
+  var-eq X = cong Fin.suc (sym (toRename-wk-eq X))
+
+
+outer-reveal-target-eq : ∀ {Δ} (B : Ty (suc Δ))
+  → renameᵗ Fin.suc (replaceTy Fin.zero ★ B)
+    ≡ substᵗ Λ⊑Λ²TargetSplit₂ B
+outer-reveal-target-eq B =
+  trans (cong (renameᵗ Fin.suc) (replaceTy-subst Fin.zero ★ B))
+    (trans (renameᵗ-subst Fin.suc (replaceEnv Fin.zero ★) B)
+      (substᵗ-cong B var-eq))
+  where
+  var-eq : ∀ X
+    → renameᵗ Fin.suc (replaceEnv Fin.zero ★ X)
+      ≡ Λ⊑Λ²TargetSplit₂ X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+outer-reveal-target-generated-eq : ∀ {Δ} (B : Ty (suc Δ))
+  → replaceTy (Fin.suc Fin.zero) ★ (renameᵗ Fin.suc B)
+    ≡ substᵗ Λ⊑Λ²TargetSplit₂ B
+outer-reveal-target-generated-eq B =
+  trans
+    (replaceTy-subst (Fin.suc Fin.zero) ★ (renameᵗ Fin.suc B))
+    (trans
+      (substᵗ-rename (replaceEnv (Fin.suc Fin.zero) ★)
+        Fin.suc B)
+      (substᵗ-cong B var-eq))
+  where
+  var-eq : ∀ X
+    → replaceEnv (Fin.suc Fin.zero) ★ (Fin.suc X)
+      ≡ Λ⊑Λ²TargetSplit₂ X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+splitSource₃ : ∀ {Δ}
+  → TyVar (suc Δ)
+  → Ty (suc (suc (suc Δ)))
+splitSource₃ Fin.zero = ＇ Fin.zero
+splitSource₃ (Fin.suc X) = ＇ (Fin.suc (Fin.suc (Fin.suc X)))
+
+
+splitTarget★₃ : ∀ {Δ}
+  → TyVar (suc Δ)
+  → Ty (suc (suc (suc Δ)))
+splitTarget★₃ Fin.zero = ★
+splitTarget★₃ (Fin.suc X) = ＇ (Fin.suc (Fin.suc (Fin.suc X)))
+
+
+innerρ₃ : ∀ {Δ}
+  → TyVar (suc Δ)
+  → TyVar (suc (suc (suc Δ)))
+innerρ₃ Fin.zero = Fin.suc (Fin.suc Fin.zero)
+innerρ₃ (Fin.suc X) = Fin.suc (Fin.suc (Fin.suc X))
+
+
+innerρ₃-injective : ∀ {Δ} {X Y : TyVar (suc Δ)}
+  → innerρ₃ X ≡ innerρ₃ Y
+  → X ≡ Y
+innerρ₃-injective {X = Fin.zero} {Y = Fin.zero} eq = refl
+innerρ₃-injective {X = Fin.zero} {Y = Fin.suc Y} ()
+innerρ₃-injective {X = Fin.suc X} {Y = Fin.zero} ()
+innerρ₃-injective {X = Fin.suc X} {Y = Fin.suc Y} eq =
+  cong Fin.suc
+    (fin-suc-injective (fin-suc-injective (fin-suc-injective eq)))
+
+
+innerρ₃-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X → I.extendᵐ I.X⊑X μ X ≡ I.X⊑★
+      → I.instᵐ (I.instᵐ (I.instᵐ μ)) (innerρ₃ X) ≡ I.X⊑★
+innerρ₃-star-map Fin.zero ()
+innerρ₃-star-map (Fin.suc X) eq = eq
+
+
+split★-same : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.instᵐ (I.instᵐ (I.instᵐ μ))
+      ⊢ splitSource₃ X ⊑ splitTarget★₃ X
+split★-same Fin.zero = I.X⊑★ refl
+split★-same (Fin.suc X) = I.X⊑X
+
+
+split★-star : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.extendᵐ I.X⊑X μ X ≡ I.X⊑★
+  → I.instᵐ (I.instᵐ (I.instᵐ μ)) ⊢ splitSource₃ X ⊑ ★
+split★-star Fin.zero ()
+split★-star (Fin.suc X) eq = I.X⊑★ eq
+
+
+source-split₃-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (A : Ty (suc Δᴸ))
+  → substᵗ splitSource₃
+      (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+    ≡ CTI2.embedᴸ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      A
+source-split₃-eq W A =
+  trans (substᵗ-rename splitSource₃ (toRenameᵗ (keep (CTI2.ηᴸʷ W))) A)
+    (trans (substᵗ-cong A var-eq)
+      (rename-as-subst
+        (toRenameᵗ (keep (skip (skip (CTI2.ηᴸʷ W))))) A))
+  where
+  var-eq : ∀ X
+    → splitSource₃ (toRenameᵗ (keep (CTI2.ηᴸʷ W)) X)
+      ≡ ＇ toRenameᵗ (keep (skip (skip (CTI2.ηᴸʷ W)))) X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+target-split★₃-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (B : Ty (suc Δᴿ))
+  → substᵗ splitTarget★₃
+      (CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+    ≡ CTI2.embedᴿ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      (substᵗ Λ⊑Λ²TargetSplit₂ B)
+target-split★₃-eq W B =
+  trans (substᵗ-rename splitTarget★₃ (toRenameᵗ (keep (CTI2.ηᴿʷ W))) B)
+    (trans (substᵗ-cong B var-eq)
+      (sym (renameᵗ-subst
+        (toRenameᵗ (skip (keep (keep (CTI2.ηᴿʷ W)))))
+        Λ⊑Λ²TargetSplit₂ B)))
+  where
+  var-eq : ∀ X
+    → splitTarget★₃ (toRenameᵗ (keep (CTI2.ηᴿʷ W)) X)
+      ≡ renameᵗ
+          (toRenameᵗ (skip (keep (keep (CTI2.ηᴿʷ W)))))
+          (Λ⊑Λ²TargetSplit₂ X)
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+Λ-final-body-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-p =
+  subst≡
+    (λ L → CTI2.impEnvʷ Wout ⊢ L ⊑
+      CTI2.embedᴿ Wout (substᵗ Λ⊑Λ²TargetSplit₂ B))
+    (source-split₃-eq W A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ Wout ⊢
+        substᵗ splitSource₃
+          (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+        ⊑ R)
+      (target-split★₃-eq W B)
+      (subst₂-⊑ split★-same split★-star body-p))
+  where
+  Wout =
+    CTI2.liftWorldLeft I.X⊑★
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+
+
+source-inner₃-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (A : Ty (suc Δᴸ))
+  → renameᵗ innerρ₃
+      (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+    ≡ CTI2.embedᴸ (ΛPostMidWorld W) A
+source-inner₃-eq W A =
+  trans (renameᵗ-comp (toRenameᵗ (keep (CTI2.ηᴸʷ W))) innerρ₃ A)
+    (renameᵗ-cong A var-eq)
+  where
+  var-eq : ∀ X
+    → innerρ₃ (toRenameᵗ (keep (CTI2.ηᴸʷ W)) X)
+      ≡ toRenameᵗ (skip (skip (keep (CTI2.ηᴸʷ W)))) X
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+target-inner₃-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (B : Ty (suc Δᴿ))
+  → renameᵗ innerρ₃
+      (CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+    ≡ CTI2.embedᴿ (ΛPostMidWorld W)
+        (replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero))
+          (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B))
+target-inner₃-eq W B =
+  trans
+    (renameᵗ-comp (toRenameᵗ (keep (CTI2.ηᴿʷ W))) innerρ₃ B)
+    (trans (renameᵗ-cong B var-eq)
+      (trans (sym (renameᵗ-comp Fin.suc
+        (toRenameᵗ (skip (keep (keep (CTI2.ηᴿʷ W))))) B))
+        (sym (cong (CTI2.embedᴿ (ΛPostMidWorld W))
+          (inner-reveal-target-eq B)))))
+  where
+  var-eq : ∀ X
+    → innerρ₃ (toRenameᵗ (keep (CTI2.ηᴿʷ W)) X)
+      ≡ toRenameᵗ (skip (keep (keep (CTI2.ηᴿʷ W)))) (Fin.suc X)
+  var-eq Fin.zero = refl
+  var-eq (Fin.suc X) = refl
+
+
+Λ-inner-body-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  → A CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩
+      replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero))
+        (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+Λ-inner-body-⊑ᵂ {W = W} {A = A} {B = B} body-p =
+  subst≡
+    (λ L → CTI2.impEnvʷ (ΛPostMidWorld W) ⊢ L ⊑
+      CTI2.embedᴿ (ΛPostMidWorld W)
+        (replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero))
+          (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)))
+    (source-inner₃-eq W A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ (ΛPostMidWorld W) ⊢
+        renameᵗ innerρ₃
+          (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+        ⊑ R)
+      (target-inner₃-eq W B)
+      (rename-⊑ innerρ₃ innerρ₃-injective innerρ₃-star-map body-p))
+
+
+Λ-inner-body-⊑ᵂ-applyBody : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  → A CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩
+      replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)) (applyBody (bind ★) B)
+Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p =
+  subst≡
+    (λ C → A CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩ C)
+    (sym (cong (replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)))
+      (applyBody-bind★-eq B)))
+    (Λ-inner-body-⊑ᵂ {W = W} {A = A} {B = B} body-p)
+
+
+Λ⊑Λ²-post-body-transport : Λ⊑Λ²PostBodyTransportᵀ
+Λ⊑Λ²-post-body-transport {Δᴿ = Δᴿ} {W = W} {γ = γ} {γᴮ = γᴮ}
+    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
+    ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+    with Λ⊑Λ²-route1-prefix bodyRel
+Λ⊑Λ²-post-body-transport {Δᴿ = Δᴿ} {W = W} {γ = γ}
+    {γᴮ = γᴮ}
+    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
+    ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+  | pᵇ , relFreshRoute =
+  γout , body-p₂ , top-p₂ ,
+  liftOut , postVal , post⊢ , relOut
+  where
+  Wfresh =
+    TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+
+  Wmid =
+    ΛPostMidWorld W
+
+  Wout =
+    CTI2.liftWorldLeft I.X⊑★
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+
+  γfresh = Λ-route1-fresh-ctx liftγ
+  γmid = Λ-route1-mid-ctx liftγ
+  γout = Λ-route1-out-ctx liftγ
+
+  Bpre : Ty (suc (suc Δᴿ))
+  Bpre = applyBody (bind ★) B
+
+  Bmid : Ty (suc (suc Δᴿ))
+  Bmid = replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)) Bpre
+
+  BouterIn : Ty (suc (suc Δᴿ))
+  BouterIn = renameᵗ Fin.suc B
+
+  BouterOut : Ty (suc (suc Δᴿ))
+  BouterOut = renameᵗ Fin.suc (replaceTy Fin.zero ★ B)
+
+  B₂ : Ty (suc (suc Δᴿ))
+  B₂ = substᵗ Λ⊑Λ²TargetSplit₂ B
+
+  cInner = 〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ Bpre 〗
+
+  cOuter = rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
+
+  post₁ : CT.Term (suc (suc Δᴿ))
+  post₁ = CT.renameᵗᵐ (keep wk↪ᵗ) V′ ↑ cInner
+
+  post : CT.Term (suc (suc Δᴿ))
+  post = post₁ ↑ cOuter
+
+  pᵇBody : A CTI2.⊑ᵂ⟨ Wfresh ⟩ Bpre
+  pᵇBody =
+    subst≡ (λ C → A CTI2.⊑ᵂ⟨ Wfresh ⟩ C)
+      (sym (applyBody-bind★-eq B)) pᵇ
+
+  relFreshRouteCtx : Wfresh CTI2.∣ γfresh
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+  relFreshRouteCtx =
+    subst≡
+      (λ γᶠ → Wfresh CTI2.∣ γᶠ
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ)
+      (Λ-route1-ctx-fresh-eq liftγ)
+      relFreshRoute
+
+  relFresh : Wfresh CTI2.∣ γfresh
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇBody
+  relFresh =
+    rel-target-transportᴿ (sym (applyBody-bind★-eq B))
+      pᵇ relFreshRouteCtx
+
+  rawAnv : NonVar
+      (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+  rawAnv = renameNonVar (toRenameᵗ (keep (CTI2.ηᴸʷ W))) Anv
+
+  rawBnv : NonVar
+      (CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+  rawBnv = source-nonvar-target body-p rawAnv
+
+  Bnv : NonVar B
+  Bnv = unrenameNonVar (toRenameᵗ (keep (CTI2.ηᴿʷ W))) rawBnv
+
+  rawSrcOcc :
+      toRenameᵗ (keep (CTI2.ηᴸʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A
+  rawSrcOcc =
+    rename-occurs (toRenameᵗ (keep (CTI2.ηᴸʷ W))) zero∈A
+
+  rawTgtOcc :
+      toRenameᵗ (keep (CTI2.ηᴿʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B
+  rawTgtOcc =
+    source-occurs-target refl body-p rawSrcOcc
+
+  zero∈B : Fin.zero ∈ᵗ B
+  zero∈B =
+    PIC.unrename-occurs
+      (toRenameᵗ (keep (CTI2.ηᴿʷ W)))
+      (toRenameᵗ-injective (keep (CTI2.ηᴿʷ W)))
+      rawTgtOcc
+
+  Bpre-nv : NonVar Bpre
+  Bpre-nv = renameNonVar (extᵗ Fin.suc) Bnv
+
+  Bpre-zero∈ : Fin.zero ∈ᵗ Bpre
+  Bpre-zero∈ =
+    rename-occurs (extᵗ Fin.suc) zero∈B
+
+  Bouter-nv : NonVar BouterIn
+  Bouter-nv = renameNonVar Fin.suc Bnv
+
+  Bouter-zero∈ : Fin.suc Fin.zero ∈ᵗ BouterIn
+  Bouter-zero∈ = rename-occurs Fin.suc zero∈B
+
+  cInner⊢ :
+      CTI2.targetStoreʷ Wmid CTI2.⊢↑[ just Fin.zero ] cInner
+  cInner⊢ =
+    generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl)
+
+  cOuter⊢ :
+      CTI2.targetStoreʷ Wout
+        CTI2.⊢↑[ just (Fin.suc Fin.zero) ] cOuter
+  cOuter⊢ =
+    TE.reveal-renameˣ StoreRename-suc-bind
+      (generated-reveal-⊢↑-present zero∈B (Z∋ refl))
+
+  rvInner : RevealValue cInner
+  rvInner = generated-reveal-value Bpre-nv Bpre-zero∈
+
+  rvOuter : RevealValue cOuter
+  rvOuter =
+    reveal-value-rename Fin.suc
+      (generated-reveal-value Bnv zero∈B)
+
+  postVal : Value post
+  postVal =
+    (renameᵗᵐ-preserves-Value (keep wk↪ᵗ) vV′ ↑ rvInner) ↑ rvOuter
+
+  qInner : A CTI2.⊑ᵂ⟨ Wmid ⟩ Bmid
+  qInner = Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p
+
+  relMid : Wmid CTI2.∣ γmid ⊢² V ⊑ post₁ ∶ qInner
+  relMid =
+    CTI2.⊑reveal² (Λ-mid-fresh-mono W) (Λ-inner-rebaseᴿ W)
+      (Λ-route1-mid-fresh-same liftγ) cInner⊢ relFresh qInner
+
+  relMidOuterPrem : Wmid CTI2.∣ γmid
+      ⊢² V ⊑ post₁ ∶
+        subst≡ (λ C → A CTI2.⊑ᵂ⟨ Wmid ⟩ C)
+          (inner-reveal-target-eq-applyBody B) qInner
+  relMidOuterPrem =
+    rel-target-transportᴿ (inner-reveal-target-eq-applyBody B) qInner relMid
+
+  body-p₂ : A CTI2.⊑ᵂ⟨ Wout ⟩ B₂
+  body-p₂ = Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-p
+
+  qOuter : A CTI2.⊑ᵂ⟨ Wout ⟩ BouterOut
+  qOuter =
+    subst≡ (λ C → A CTI2.⊑ᵂ⟨ Wout ⟩ C)
+      (sym (outer-reveal-target-eq B))
+      body-p₂
+
+  relOutConv : Wout CTI2.∣ γout ⊢² V ⊑ post ∶ qOuter
+  relOutConv =
+    CTI2.⊑reveal² (Λ-out-mid-mono W) (Λ-outer-rebaseᴿ W)
+      (Λ-route1-out-mid-same liftγ) cOuter⊢ relMidOuterPrem qOuter
+
+  relOut : Wout CTI2.∣ γout ⊢² V ⊑ post ∶ body-p₂
+  relOut =
+    TBL.⊢²-retarget {q = body-p₂}
+      (rel-target-transportᴿ
+        {W = Wout} {γ = γout} {M = V} {N = post}
+        {A = A} {B = BouterOut} {B′ = B₂}
+        (outer-reveal-target-eq B)
+        qOuter relOutConv)
+
+  top-p₂ : `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ B₂
+  top-p₂ =
+    subst≡
+      (λ L → CTI2.impEnvʷ Wbase₂ ⊢ `∀ L
+        ⊑ CTI2.embedᴿ Wbase₂ B₂)
+      (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ Wbase₂)))
+      (I.∀⊑
+        (renameNonVar
+          (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) Anv)
+        (rename-occurs
+          (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) zero∈A)
+        (subst≡
+          (λ R → I.instᵐ (CTI2.impEnvʷ Wbase₂)
+            ⊢ renameᵗ (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) A
+              ⊑ R)
+          (target-left-lift-eq (CTI2.ηᴿʷ Wbase₂) B₂)
+          body-p₂))
+    where
+    Wbase₂ =
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+
+  liftOut : CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ) γout
+  liftOut = Λ-route1-out-liftCtxᴸ ext₂ liftγ
+
+  post⊢ :
+      ⟨ suc (suc Δᴿ) ,
+        CTI2.targetStoreʷ
+          (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+            (＇ Fin.zero)) ,
+        CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+      ⊢ post ⦂ B₂
+  post⊢ =
+    subst≡
+      (λ Γ → ⟨ _ , CTI2.targetStoreʷ
+          (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+            (＇ Fin.zero)) , Γ ⟩
+        ⊢ post ⦂ B₂)
+      (liftCtxᴸ-target liftOut)
+      (CTI2T.target-typing² relOut)
+
+
 inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₂ : CTI2.World Δᴸ Δᴿ₂ Δ₂}
@@ -236,7 +1611,7 @@ inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
       (InstPostCatalogPackageAt.at-residual-cast pkg)
       (n<1+n (castSize
         (InstPostCatalogPackageAt.at-residual-cast pkg)))
-      (ECR.transport⊑ᵂ ext₂ q)
+      (InstPostCatalogPackageAt.at-residual-q pkg)
       (catchup⁻-embed
         (InstPostCatalogPackageAt.at-post pkg)
         (InstPostCatalogPackageAt.at-residual-provenance pkg))
@@ -255,7 +1630,14 @@ inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
     (mapCtxᴿ-compose ext₂ ext′ γ)
     (rel-target-transportᴿ (applyTys-++ χs₂ ψs B′)
       (ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ q))
-      rel′)
+      (TBL.⊢²-retarget
+        {q = ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ q)}
+        (rel-target-transportᴿ
+          (cong (applyTys ψs)
+            (InstPostCatalogPackageAt.at-residual-target-eq pkg))
+          (ECR.transport⊑ᵂ ext′
+            (InstPostCatalogPackageAt.at-residual-q pkg))
+          rel′)))
 
 
 spine-descent-zero : ∀ {Δᴸ Δᴿ Δ}
@@ -440,6 +1822,144 @@ inst-residual-source-nonstar nonvar-base ()
 inst-residual-source-nonstar nonvar-star ()
 inst-residual-source-nonstar nonvar-fun zero∈B = nonstar-⇒
 inst-residual-source-nonstar nonvar-all zero∈B = nonstar-∀
+
+
+Λ⊑Λ²-prefix-reduction : ∀ {Δ} {V′ : CT.Term (suc Δ)}
+    {B : Ty (suc Δ)} {B′ : Ty Δ} {ν : Env∼ Δ}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → Value V′
+  → (B′≢★ : B′ ≢ ★)
+  → (Λ V′) ⟨ (inst c′) B′≢★ ⟩
+      —↠[ bind ★ ∷ bind {Δ = suc Δ} (＇ (Fin.zero {n = Δ})) ∷ [] ]
+    ((CT.renameᵗᵐ (keep wk↪ᵗ) V′ ↑
+        〖 Fin.zero , ⇑ᵗ (＇ (Fin.zero {n = Δ})) ↑
+          Λ⊑Λ²BodyAfter★ B 〗)
+      ↑ rename↑ Fin.suc (〖 (Fin.zero {n = Δ}) , ★ ↑ B 〗))
+      ⟨ applyConsistency (bind {Δ = suc Δ} (＇ (Fin.zero {n = Δ})))
+          (↑ᶜ (close-instᶜ c′)) ⟩
+Λ⊑Λ²-prefix-reduction {Δ = Δ} {V′ = V′} {B = B} {c′ = c′}
+    vV′ B′≢★ =
+  (Λ V′) ⟨ (inst c′) B′≢★ ⟩
+    —→[ bind ★ ]⟨ β-inst (CT.Λ vV′) B′≢★ ⟩
+  ((_⦂∀_[_] {Δ = suc Δ}
+      (Λ (CT.renameᵗᵐ (keep wk↪ᵗ) V′))
+      (Λ⊑Λ²BodyAfter★ B)
+      (＇ (Fin.zero {n = Δ}))
+    ↑ 〖 (Fin.zero {n = Δ}) , ★ ↑ B 〗)
+    ⟨ ↑ᶜ (close-instᶜ c′) ⟩)
+    —→[ bind {Δ = suc Δ} (＇ (Fin.zero {n = Δ})) ]⟨ ξ-⟨⟩
+      (ξ-reveal
+        (β-Λ (renameᵗᵐ-preserves-Value (keep wk↪ᵗ) vV′))
+        refl)
+      refl ⟩
+  ((CT.renameᵗᵐ (keep wk↪ᵗ) V′ ↑
+      〖 Fin.zero , ⇑ᵗ (＇ (Fin.zero {n = Δ})) ↑
+        Λ⊑Λ²BodyAfter★ B 〗)
+    ↑ rename↑ Fin.suc (〖 (Fin.zero {n = Δ}) , ★ ↑ B 〗))
+    ⟨ applyConsistency (bind {Δ = suc Δ} (＇ (Fin.zero {n = Δ})))
+        (↑ᶜ (close-instᶜ c′)) ⟩ ∎[]
+
+
+Λ⊑Λ²-base-package-at : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W} {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
+  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vΛV : CT.Value (Λ V))
+  → (vΛV′ : CT.Value (Λ V′))
+  → (vV : CT.Value V)
+  → (vV′ : CT.Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+  → (q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → InstPostCatalogPackageAt fuel rel vΛV vΛV′
+      c′ B′≢★ c<fuel q
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      right-bind-right-bind-world-extendᴿ
+Λ⊑Λ²-base-package-at {fuel = fuel} {Δᴿ = Δᴿ} {W = W} {V′ = V′}
+    {A = A} {B = B} {B′ = B′}
+    fuel-step catchup⁻-embed inst-decrease rel
+    vΛV vΛV′ vV vV′ c′ B′≢★ c<fuel q liftγ Anv zero∈A
+    bodyRel
+    with Λ⊑Λ²-post-body-transport
+      right-bind-right-bind-world-extendᴿ Anv zero∈A
+      liftγ vV vV′ bodyRel
+Λ⊑Λ²-base-package-at {fuel = fuel} {Δᴿ = Δᴿ} {W = W} {V′ = V′}
+    {A = A} {B = B} {B′ = B′}
+    fuel-step catchup⁻-embed inst-decrease rel
+    vΛV vΛV′ vV vV′ c′
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ c<fuel q liftγ Anv zero∈A
+    bodyRel
+  | γ₂ᴸ , body-p₂ , top-p₂ ,
+    liftγ₂ , vPost , post⊢ , bodyRel₂ =
+  record
+    { at-B₂ = ΛResidualSource₂ B
+    ; at-post = Λ⊑Λ²PostTerm V′ B
+    ; at-p₂ =
+        subst≡ (λ C → `∀ A CTI2.⊑ᵂ⟨
+            CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+          ⟩ C)
+          (residual-source₂-eq B) top-p₂
+    ; at-post-relation =
+        rel-target-transportᴿ (residual-source₂-eq B) top-p₂
+          (CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂)
+    ; at-post-value = vPost
+    ; at-ν₂ = _
+    ; at-residual-target = ΛResidualTarget₂ B′
+    ; at-residual-q =
+        subst≡ (λ C → `∀ A CTI2.⊑ᵂ⟨
+            CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+          ⟩ C)
+          (residual-target₂-eq B′)
+          (ECR.transport⊑ᵂ
+            (right-bind-right-bind-world-extendᴿ
+              {W = W} {B = ★} {C = ＇ Fin.zero})
+            q)
+    ; at-residual-target-eq = sym (residual-target₂-eq B′)
+    ; at-residual-cast =
+        applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+          (↑ᶜ (close-instᶜ c′))
+    ; at-residual-provenance =
+        catchup⁻-nonstar
+          (renameNonStar Fin.suc
+            (renameNonStar (toRenameᵗ wk↪ᵗ)
+              (inst-residual-source-nonstar Bnv zero∈B)))
+          (renameNonStar Fin.suc
+            (renameNonStar (toRenameᵗ wk↪ᵗ)
+              (nonstar-from-≢★ B′≢★)))
+          (applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+            (↑ᶜ (close-instᶜ c′)))
+    ; at-residual-fuel =
+        subst≡ (λ n → suc n < fuel)
+          (sym (castSize-applyConsistency
+            (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+            (↑ᶜ (close-instᶜ c′))))
+          (≤-trans (s≤s (inst-decrease B′≢★)) c<fuel)
+    ; at-prefix-reduction =
+        Λ⊑Λ²-prefix-reduction vV′ B′≢★
+    ; at-spine-descent =
+        spine-descent-zero vPost
+          (rel-target-transportᴿ (residual-source₂-eq B) top-p₂
+            (CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂))
+    }
 
 
 inst-residual-provenance : InstResidualProvenanceᵀ

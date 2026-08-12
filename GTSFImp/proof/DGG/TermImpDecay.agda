@@ -8,6 +8,7 @@ module proof.DGG.TermImpDecay where
 
 open import Data.List using ([]; _∷_)
 import Data.Fin as Fin
+open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong)
   renaming (subst to subst≡)
@@ -41,6 +42,19 @@ liftDecayBoth
     → extendᵐ v μᵈ Z ≡ X⊑★
   lift-mono Fin.zero eq = eq
   lift-mono (Fin.suc Z) eq = mono Z eq
+
+liftBothBinderDecay : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → EnvDecay
+      (CTI2.liftWorldBoth X⊑X W)
+      (CTI2.liftWorldBoth X⊑★ W)
+liftBothBinderDecay = env-decay refl refl refl refl lift-mono
+  where
+  lift-mono : ∀ {Δ} {μ : ImpEnv Δ}
+    → (Z : Fin.Fin (suc Δ))
+    → extendᵐ X⊑X μ Z ≡ X⊑★
+    → extendᵐ X⊑★ μ Z ≡ X⊑★
+  lift-mono Fin.zero eq = refl
+  lift-mono (Fin.suc Z) eq = eq
 
 liftDecayLeft : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
   → (v : VarImp)

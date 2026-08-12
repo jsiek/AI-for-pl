@@ -11,17 +11,21 @@ module proof.DGG.TargetBindLift where
 --     by the M5 instantiation-inversion Λ case.
 
 open import Data.List using ([]; _∷_)
+open import Data.Empty using (⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 import Data.Fin as Fin
+import Data.Fin.Properties as FinP
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TyStore using (TyStore; store-lift; store-bind; _∋_⦂_; S-lift∋)
-open import Imprecision using (VarImp; ImpEnv; X⊑★; X⊑X; instᵐ; extendᵐ)
+open import Imprecision using
+  (VarImp; ImpEnv; X⊑★; X⊑X; ⇒⊑⇒; instᵐ; extendᵐ; _⊢_⊑_)
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
 open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_)
@@ -30,6 +34,7 @@ import TermCtx as T
 import proof.Imprecision as PI
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
+import proof.DGG.SealPeelToolkit as SPT
 open import proof.TypeInTermSubst using
   (StoreTransport; StoreTransport-lift; StoreTransport-lift-bind;
    typing-store-transport)
@@ -328,6 +333,92 @@ target-typing-move mv M⊢ =
     (sym (moveCtx-tgt mv _))
     (typing-store-transport (targetStore-transport mv) M⊢)
 
+record TargetBindLiftMove {Δᴸ Δᴿ Δ}
+    (W Wᵗ : World Δᴸ Δᴿ Δ) (Y : TyVar Δᴿ) : Set where
+  constructor target-bind-lift-move
+  field
+    baseMove : TargetStoreMove W Wᵗ
+    target-pivot-star :
+      CTI2.impEnvʷ Wᵗ (toRenameᵗ (CTI2.ηᴿʷ Wᵗ) Y) ≡ X⊑★
+    target-resolve-pivot-old :
+      CTI2.resolveVar (CTI2.targetStoreʷ W) Y ≡ ＇ Y
+    target-resolve-pivot :
+      CTI2.resolveVar (CTI2.targetStoreʷ Wᵗ) Y ≡ ★
+    target-resolve-other : ∀ Z
+      → Z ≢ Y
+      → CTI2.resolveVar (CTI2.targetStoreʷ Wᵗ) Z
+          ≡ CTI2.resolveVar (CTI2.targetStoreʷ W) Z
+
+open TargetBindLiftMove public
+
+fin-suc-injective : ∀ {n} {X Y : Fin.Fin n}
+  → Fin.suc X ≡ Fin.suc Y
+  → X ≡ Y
+fin-suc-injective refl = refl
+
+target-bind-lift-move⊑ᵂ :
+  ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → TargetBindLiftMove W Wᵗ Y
+  → A ⊑ᵂ⟨ W ⟩ B
+  → A ⊑ᵂ⟨ Wᵗ ⟩ B
+target-bind-lift-move⊑ᵂ mv = move⊑ᵂ (baseMove mv)
+
+moveLiftCtx : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {v} {γ : CtxImp W} {γ′ : CtxImp (CTI2.liftWorldBoth v W)}
+  → (mv : TargetStoreMove W Wᵗ)
+  → CTI2.LiftCtx v γ γ′
+  → CTI2.LiftCtx v (moveCtx mv γ)
+      (moveCtx (liftMoveBoth v mv) γ′)
+moveLiftCtx mv CTI2.lift-[] = CTI2.lift-[]
+moveLiftCtx mv (CTI2.lift-∷ liftγ) =
+  CTI2.lift-∷ (moveLiftCtx mv liftγ)
+
+moveLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {v} {γ : CtxImp W} {γ′ : CtxImp (CTI2.liftWorldLeft v W)}
+  → (mv : TargetStoreMove W Wᵗ)
+  → CTI2.LiftCtxᴸ v γ γ′
+  → CTI2.LiftCtxᴸ v (moveCtx mv γ)
+      (moveCtx (liftMoveLeft v mv) γ′)
+moveLiftCtxᴸ mv CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
+moveLiftCtxᴸ mv (CTI2.liftᴸ-∷ liftγ) =
+  CTI2.liftᴸ-∷ (moveLiftCtxᴸ mv liftγ)
+
+liftTargetBindMoveBoth : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
+  → (v : VarImp)
+  → TargetBindLiftMove W Wᵗ Y
+  → TargetBindLiftMove
+      (CTI2.liftWorldBoth v W)
+      (CTI2.liftWorldBoth v Wᵗ)
+      (Fin.suc Y)
+liftTargetBindMoveBoth {W = W} {Wᵗ = Wᵗ} {Y = Y} v
+    (target-bind-lift-move mv pivot-star old-pivot pivot-res other) =
+  target-bind-lift-move (liftMoveBoth v mv) pivot-star
+    (cong ⇑ᵗ old-pivot) (cong ⇑ᵗ pivot-res) other′
+  where
+  other′ : ∀ Z
+    → Z ≢ Fin.suc Y
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ (CTI2.liftWorldBoth v Wᵗ)) Z
+        ≡ CTI2.resolveVar
+            (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W)) Z
+  other′ Fin.zero neq = refl
+  other′ (Fin.suc Z) neq = cong ⇑ᵗ (other Z (λ eq → neq (cong Fin.suc eq)))
+
+liftTargetBindMoveLeft : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
+  → (v : VarImp)
+  → TargetBindLiftMove W Wᵗ Y
+  → TargetBindLiftMove
+      (CTI2.liftWorldLeft v W)
+      (CTI2.liftWorldLeft v Wᵗ)
+      Y
+liftTargetBindMoveLeft v
+    (target-bind-lift-move mv pivot-star old-pivot pivot-res other) =
+  target-bind-lift-move (liftMoveLeft v mv) pivot-star old-pivot
+    pivot-res other
+
 targetStoreAs : ∀ {Δᴸ Δᴿ Δ}
   → World Δᴸ Δᴿ Δ
   → TyStore Δᴿ
@@ -361,6 +452,236 @@ premiseMoveEq
     trans
       (resolve (subst≡ (λ Σ → Σ ∋ X ⦂ R) targetEq X∈))
       (cong (λ Σ → CTI2.resolveVar Σ X) (sym targetEq))
+
+premiseTargetBindMove : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y}
+  → TargetBindLiftMove W Wᵗ Y
+  → CTI2.ImpEnvMono W W′
+  → CTI2.targetStoreʷ W′ ≡ CTI2.targetStoreʷ W
+  → toRenameᵗ (CTI2.ηᴿʷ W′) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W) Y
+  → TargetBindLiftMove W′ (targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ)) Y
+premiseTargetBindMove
+    {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    mono targetEq frozenY =
+  target-bind-lift-move
+    (premiseMoveEq
+      {W = W} {Wᵗ = Wᵗ} {W′ = W′}
+      (target-store-move refl refl refl refl hΣ resolve) targetEq)
+    pivot-star′ old-pivot′ pivot-res other′
+  where
+  pivot-star′ :
+    CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y) ≡ X⊑★
+  pivot-star′ =
+    subst≡ (λ Z → CTI2.impEnvʷ W′ Z ≡ X⊑★)
+      (sym frozenY)
+      (mono (toRenameᵗ (CTI2.ηᴿʷ W) Y) pivot-star)
+
+  old-pivot′ : CTI2.resolveVar (CTI2.targetStoreʷ W′) Y ≡ ＇ Y
+  old-pivot′ =
+    trans (cong (λ Σ → CTI2.resolveVar Σ Y) targetEq) old-pivot
+
+  other′ : ∀ Z
+    → Z ≢ Y
+    → CTI2.resolveVar (CTI2.targetStoreʷ Wᵗ) Z
+        ≡ CTI2.resolveVar (CTI2.targetStoreʷ W′) Z
+  other′ Z Z≢Y =
+    trans (other Z Z≢Y)
+      (cong (λ Σ → CTI2.resolveVar Σ Z) (sym targetEq))
+
+moveStoreRepBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {Y Xᴸ Xᴿ}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.StoreRepImp W Xᴸ Xᴿ
+  → CTI2.StoreRepImp Wᵗ Xᴸ Xᴿ
+moveStoreRepBindLift
+    {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    (CTI2.store-rep-imp represented)
+    with FinP._≟_ Xᴿ Y
+moveStoreRepBindLift
+    {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = .Y}
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    (CTI2.store-rep-imp represented)
+    | yes refl
+    with SPT.right-var-obligation-view
+      {W = W} {R = CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ}
+      {Y = Y}
+      (subst≡
+        (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+          ⊑ᵂ⟨ W ⟩ B)
+        old-pivot
+        represented)
+moveStoreRepBindLift
+    {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = .Y}
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    (CTI2.store-rep-imp represented)
+    | yes refl | X₂ , source-eq , aligned =
+  CTI2.store-rep-imp
+    (subst≡
+      (λ R → R ⊑ᵂ⟨ Wᵗ ⟩ CTI2.resolveVar (CTI2.targetStoreʷ Wᵗ) Y)
+      (sym source-eq)
+      (subst≡
+        (λ B → ＇ X₂ ⊑ᵂ⟨ Wᵗ ⟩ B)
+        (sym pivot-res)
+        (subst≡
+          (λ Z → CTI2.impEnvʷ Wᵗ ⊢ (＇ Z) ⊑ ★)
+          (sym aligned)
+          (X⊑★ pivot-star))))
+moveStoreRepBindLift
+    {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    (CTI2.store-rep-imp represented)
+    | no Xᴿ≢Y =
+  CTI2.store-rep-imp
+    (subst≡
+      (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+        ⊑ᵂ⟨ Wᵗ ⟩ B)
+      (sym (other Xᴿ Xᴿ≢Y))
+      represented)
+
+moveRebaseAtForwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ Xᴿ}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.RebaseAt W W′ Xᴸ Xᴿ
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.RebaseAt Wᵗ W′ᵗ Xᴸ Xᴿ
+moveRebaseAtForwardBindLift
+    {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
+    mv@(target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    mono
+    (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
+      off frozen aligned reps) =
+  W′ᵗ , mv′ ,
+  CTI2.rebase-at (CTI2.same-runtime sourceEq refl)
+    off frozen aligned (moveStoreRepBindLift mv′ reps)
+  where
+  W′ᵗ = targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ)
+  mv′ = premiseTargetBindMove mv mono targetEq (frozen Y)
+
+moveRebaseAtBackwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ Xᴿ}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.RebaseAt W′ W Xᴸ Xᴿ
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.RebaseAt W′ᵗ Wᵗ Xᴸ Xᴿ
+moveRebaseAtBackwardBindLift
+    {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
+    mv@(target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    mono
+    (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
+      off frozen aligned reps) =
+  W′ᵗ , mv′ ,
+  CTI2.rebase-at (CTI2.same-runtime sourceEq refl)
+    off frozen aligned (moveStoreRepBindLift mv reps)
+  where
+  W′ᵗ = targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ)
+  mv′ = premiseTargetBindMove mv mono (sym targetEq) (sym (frozen Y))
+
+moveRebaseAtᴿForwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴿ?}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.RebaseAtᴿ W W′ Xᴿ?
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.RebaseAtᴿ Wᵗ W′ᵗ Xᴿ?
+moveRebaseAtᴿForwardBindLift mv mono CTI2.rebase-idᴿ =
+  _ , mv , CTI2.rebase-idᴿ
+moveRebaseAtᴿForwardBindLift mv mono (CTI2.rebase-varᴿ rb)
+    with moveRebaseAtForwardBindLift mv mono rb
+moveRebaseAtᴿForwardBindLift mv mono (CTI2.rebase-varᴿ rb)
+    | W′ᵗ , mv′ , rb′ =
+  W′ᵗ , mv′ , CTI2.rebase-varᴿ rb′
+
+moveRebaseAtᴿBackwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴿ?}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.RebaseAtᴿ W′ W Xᴿ?
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.RebaseAtᴿ W′ᵗ Wᵗ Xᴿ?
+moveRebaseAtᴿBackwardBindLift mv mono CTI2.rebase-idᴿ =
+  _ , mv , CTI2.rebase-idᴿ
+moveRebaseAtᴿBackwardBindLift mv mono (CTI2.rebase-varᴿ rb)
+    with moveRebaseAtBackwardBindLift mv mono rb
+moveRebaseAtᴿBackwardBindLift mv mono (CTI2.rebase-varᴿ rb)
+    | W′ᵗ , mv′ , rb′ =
+  W′ᵗ , mv′ , CTI2.rebase-varᴿ rb′
+
+moveRebaseAtᴸForwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ?}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.RebaseAtᴸ W W′ Xᴸ?
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.RebaseAtᴸ Wᵗ W′ᵗ Xᴸ?
+moveRebaseAtᴸForwardBindLift mv mono CTI2.rebase-idᴸ =
+  _ , mv , CTI2.rebase-idᴸ
+moveRebaseAtᴸForwardBindLift mv mono (CTI2.rebase-varᴸ rb)
+    with moveRebaseAtForwardBindLift mv mono rb
+moveRebaseAtᴸForwardBindLift mv mono (CTI2.rebase-varᴸ rb)
+    | W′ᵗ , mv′ , rb′ =
+  W′ᵗ , mv′ , CTI2.rebase-varᴸ rb′
+moveRebaseAtᴸForwardBindLift
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    mono
+    (CTI2.rebase-onlyᴸ to-star disaligned represented) =
+  _ ,
+  target-bind-lift-move
+    (target-store-move refl refl refl refl hΣ resolve)
+    pivot-star old-pivot pivot-res other ,
+  CTI2.rebase-onlyᴸ to-star disaligned represented
+
+moveTagRebaseAtᴸBackwardBindLift : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ? Xᴿ?}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
+  → Σ[ W′ᵗ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ mv′ ∈ TargetBindLiftMove W′ W′ᵗ Y ]
+      CTI2.TagRebaseAtᴸ W′ᵗ Wᵗ Xᴸ? Xᴿ?
+moveTagRebaseAtᴸBackwardBindLift mv mono CTI2.tag-rebase-idᴸ =
+  _ , mv , CTI2.tag-rebase-idᴸ
+moveTagRebaseAtᴸBackwardBindLift mv mono (CTI2.tag-rebase-varᴸ rb)
+    with moveRebaseAtBackwardBindLift mv mono rb
+moveTagRebaseAtᴸBackwardBindLift mv mono (CTI2.tag-rebase-varᴸ rb)
+    | W′ᵗ , mv′ , rb′ =
+  W′ᵗ , mv′ , CTI2.tag-rebase-varᴸ rb′
+moveTagRebaseAtᴸBackwardBindLift
+    (target-bind-lift-move
+      (target-store-move refl refl refl refl hΣ resolve)
+      pivot-star old-pivot pivot-res other)
+    mono
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+  _ ,
+  target-bind-lift-move
+    (target-store-move refl refl refl refl hΣ resolve)
+    pivot-star old-pivot pivot-res other ,
+  CTI2.tag-rebase-onlyᴸ to-star disaligned represented
 
 moveStoreRepWithTarget∈ : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {Xᴸ Xᴿ R}
@@ -431,6 +752,210 @@ moveRebaseAtBackwardWithTarget∈
   W′ᵗ = targetStoreAs W′ (CTI2.targetStoreʷ Wᵗ)
   mv′ = premiseMoveEq mv (sym targetEq)
 
+⊢²-retarget : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p q : A ⊑ᵂ⟨ W ⟩ B}
+  → W ∣ γ ⊢² M ⊑ N ∶ p
+  → W ∣ γ ⊢² M ⊑ N ∶ q
+⊢²-retarget {W = W} {γ = γ} {M = M} {N = N} {p = p} {q = q} d =
+  subst≡ (λ r → W ∣ γ ⊢² M ⊑ N ∶ r) (PI.⊑-unique p q) d
+
+source-reveal-move : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {X? A B}
+    {c : Conv↑ Δᴸ A B}
+  → (mv : TargetStoreMove W Wᵗ)
+  → CTI2.sourceStoreʷ W CTI2.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↑[ X? ] c
+source-reveal-move
+    (target-store-move refl refl refl refl hΣ resolve) c⊢ = c⊢
+
+source-conceal-move : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {X? A B}
+    {c : Conv↓ Δᴸ A B}
+  → (mv : TargetStoreMove W Wᵗ)
+  → CTI2.sourceStoreʷ W CTI2.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↓[ X? ] c
+source-conceal-move
+    (target-store-move refl refl refl refl hΣ resolve) c⊢ = c⊢
+
+⊢²-target-bind-lift-move : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
+    {γ : CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+  → (mv : TargetBindLiftMove W Wᵗ Y)
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → Wᵗ ∣ moveCtx (baseMove mv) γ ⊢² M ⊑ M′ ∶
+      move⊑ᵂ (baseMove mv) p
+⊢²-target-bind-lift-move mv (CTI2.x⊑x² x∈) =
+  CTI2.x⊑x² (move∋ʷ (baseMove mv) x∈)
+⊢²-target-bind-lift-move mv (CTI2.ƛ⊑ƛ² M⊑M′) =
+  ⊢²-retarget (CTI2.ƛ⊑ƛ² (⊢²-target-bind-lift-move mv M⊑M′))
+⊢²-target-bind-lift-move {p = p} mv
+    (CTI2.·⊑·² {pA = pA} {pB = pB} L⊑L′ M⊑M′) =
+  ⊢²-retarget {q = move⊑ᵂ (baseMove mv) p}
+    (CTI2.·⊑·²
+      (⊢²-retarget
+        {q = ⇒⊑⇒ (move⊑ᵂ (baseMove mv) pA)
+          (move⊑ᵂ (baseMove mv) pB)}
+        (⊢²-target-bind-lift-move mv L⊑L′))
+      (⊢²-target-bind-lift-move mv M⊑M′))
+⊢²-target-bind-lift-move mv
+    (CTI2.Λ⊑Λ² liftγ vV vV′ V⊑V′ q) =
+  CTI2.Λ⊑Λ² (moveLiftCtx (baseMove mv) liftγ) vV vV′
+    (⊢²-target-bind-lift-move
+      (liftTargetBindMoveBoth X⊑X mv) V⊑V′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q) =
+  CTI2.Λ⊑² Anv zero∈A (moveLiftCtxᴸ (baseMove mv) liftγ) vV
+    (target-typing-move (baseMove mv) M′⊢)
+    (⊢²-target-bind-lift-move
+      (liftTargetBindMoveLeft X⊑★ mv) V⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv (CTI2.•⊑•² p∀ M⊑M′ q r) =
+  CTI2.•⊑•² (move⊑ᵂ (baseMove mv) p∀)
+    (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+    (move⊑ᵂ (baseMove mv) r)
+⊢²-target-bind-lift-move mv (CTI2.•⊑² p∀ M⊑M′ q r) =
+  CTI2.•⊑² (move⊑ᵂ (baseMove mv) p∀)
+    (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+    (move⊑ᵂ (baseMove mv) r)
+⊢²-target-bind-lift-move mv (CTI2.κ⊑κ² κ p) =
+  CTI2.κ⊑κ² κ (move⊑ᵂ (baseMove mv) p)
+⊢²-target-bind-lift-move mv
+    (CTI2.cast⊑cast² c c′ M⊑M′ q) =
+  CTI2.cast⊑cast² c c′
+    (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv (CTI2.⊑cast² c′ M⊑M′ q) =
+  CTI2.⊑cast² c′ (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv (CTI2.cast⊑² c M⊑M′ q) =
+  CTI2.cast⊑² c (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.⊑reveal² {W′ = W′} {p = p} mono rb sc c′⊢
+      M⊑M′ q)
+    with moveRebaseAtᴿForwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.⊑reveal² {W′ = W′} {p = p} mono rb sc c′⊢
+      M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.⊑reveal²
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (revealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.⊑conceal² {W′ = W′} {p = p} mono rb sc c′⊢
+      M⊑M′ q)
+    with moveRebaseAtᴿBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.⊑conceal² {W′ = W′} {p = p} mono rb sc c′⊢
+      M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.⊑conceal²
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (concealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢
+      M⊑M′ q)
+    with moveRebaseAtᴸForwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢
+      M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.reveal⊑²
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (source-reveal-move (baseMove mv) c⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢
+      M⊑M′ q)
+    with moveTagRebaseAtᴸBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢
+      M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.conceal⊑²
+    (moveSourceConcealPartnerOK (baseMove mv′) ok)
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (source-conceal-move (baseMove mv) c⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p} mono rb sc
+      c⊢ c′⊢ M⊑M′ q)
+    with moveRebaseAtForwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p} mono rb sc
+      c⊢ c′⊢ M⊑M′ q)
+    | Wᵖᵗ , mvᵖ , rbᵖ =
+  CTI2.reveal⊑reveal²
+    (moveImpEnvMono (baseMove mv) (baseMove mvᵖ) mono)
+    rbᵖ
+    (moveSameCtx (baseMove mv) (baseMove mvᵖ) sc)
+    (source-reveal-move (baseMove mv) c⊢)
+    (revealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
+    (⊢²-target-bind-lift-move mvᵖ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono rb
+      sc c⊢ c′⊢ M⊑M′ q)
+    with moveRebaseAtBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono rb
+      sc c⊢ c′⊢ M⊑M′ q)
+    | Wᵖᵗ , mvᵖ , rbᵖ =
+  CTI2.conceal⊑conceal²
+    (moveMatchedConcealPartnerOK (baseMove mvᵖ) ok)
+    (moveImpEnvMono (baseMove mv) (baseMove mvᵖ) mono)
+    rbᵖ
+    (moveSameCtx (baseMove mv) (baseMove mvᵖ) sc)
+    (source-conceal-move (baseMove mv) c⊢)
+    (concealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
+    (⊢²-target-bind-lift-move mvᵖ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
+      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
+    with moveRebaseAtBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
+      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
+    | Wᵖᵗ , mvᵖ , rbᵖ =
+  CTI2.packaged-seal-star²
+    (moveMatchedConcealPartnerOK (baseMove mvᵖ) ok)
+    (moveImpEnvMono (baseMove mv) (baseMove mvᵖ) mono)
+    rbᵖ
+    (moveSameCtx (baseMove mv) (baseMove mvᵖ) sc)
+    (source-conceal-move (baseMove mv) c⊢)
+    (concealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
+    (⊢²-target-bind-lift-move mvᵖ M⊑M′)
+    (⊢²-target-bind-lift-move mvᵖ sourcePrem)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv (CTI2.blame⊑² M′⊢ p) =
+  CTI2.blame⊑² (target-typing-move (baseMove mv) M′⊢)
+    (move⊑ᵂ (baseMove mv) p)
+⊢²-target-bind-lift-move mv (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
+  CTI2.⊕⊑⊕² op
+    (⊢²-target-bind-lift-move mv L⊑L′)
+    (⊢²-target-bind-lift-move mv M⊑M′)
+    (move⊑ᵂ (baseMove mv) r)
+
 freshLiftToBindMove : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {v : VarImp}
   → TargetStoreMove
@@ -454,3 +979,64 @@ freshLiftToBindMove {W = W} {v = v} =
     → CTI2.resolveVar (store-bind Σ (＇ Fin.zero)) X
         ≡ CTI2.resolveVar (store-lift Σ) X
   resolve (S-lift∋ X∈ eq) = refl
+
+freshLiftToBindTargetMove★ : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+  → TargetBindLiftMove
+      (CR.renameWorld wk↪ᵗ
+        (CTI2.liftWorldBoth X⊑★ (CTI2.rightOnlyWorld W ★)))
+      (ΛLiftToBindFreshWorld X⊑★ W)
+      Fin.zero
+freshLiftToBindTargetMove★ {W = W} =
+  target-bind-lift-move
+    (freshLiftToBindMove {W = W} {v = X⊑★})
+    refl
+    refl
+    refl
+    other
+  where
+  other : ∀ Z
+    → Z ≢ Fin.zero
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ (ΛLiftToBindFreshWorld X⊑★ W)) Z
+        ≡ CTI2.resolveVar
+            (CTI2.targetStoreʷ
+              (CR.renameWorld wk↪ᵗ
+                (CTI2.liftWorldBoth X⊑★
+                  (CTI2.rightOnlyWorld W ★)))) Z
+  other Fin.zero neq = ⊥-elim (neq refl)
+  other (Fin.suc Z) neq = refl
+
+ΛLiftToBindFreshTransport : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp (CTI2.liftWorldBoth X⊑★ (CTI2.rightOnlyWorld W ★))}
+    {M : Term (suc Δᴸ)} {M′ : Term (suc (suc Δᴿ))}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+    {p : A ⊑ᵂ⟨ CTI2.liftWorldBoth X⊑★
+      (CTI2.rightOnlyWorld W ★) ⟩ B}
+  → CTI2.liftWorldBoth X⊑★ (CTI2.rightOnlyWorld W ★)
+      ∣ γ ⊢² M ⊑ M′ ∶ p
+  → Σ[ γᵇ ∈ CtxImp (ΛLiftToBindFreshWorld X⊑★ W) ]
+    Σ[ pᵇ ∈ A ⊑ᵂ⟨ ΛLiftToBindFreshWorld X⊑★ W ⟩ B ]
+      ΛLiftToBindFreshWorld X⊑★ W ∣ γᵇ ⊢² M ⊑ M′ ∶ pᵇ
+ΛLiftToBindFreshTransport {W = W} {γ = γ} {p = p} rel =
+  moveCtx (baseMove mv) (CR.renameCtx wk↪ᵗ γ) ,
+  pᵇ ,
+  ⊢²-target-bind-lift-move mv relʳ
+  where
+  Wʳ = CR.renameWorld wk↪ᵗ
+    (CTI2.liftWorldBoth X⊑★ (CTI2.rightOnlyWorld W ★))
+
+  pʳ : _ ⊑ᵂ⟨ Wʳ ⟩ _
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth X⊑★ (CTI2.rightOnlyWorld W ★)}
+      wk↪ᵗ p
+
+  relʳ : Wʳ ∣ CR.renameCtx wk↪ᵗ γ ⊢² _ ⊑ _ ∶ pʳ
+  relʳ = CR.⊢²-extend-center rel pʳ
+
+  mv = freshLiftToBindTargetMove★ {W = W}
+
+  pᵇ : _ ⊑ᵂ⟨ ΛLiftToBindFreshWorld X⊑★ W ⟩ _
+  pᵇ = move⊑ᵂ (baseMove mv) pʳ

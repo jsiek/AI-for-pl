@@ -11,8 +11,8 @@ open import proof.DGG.Catchup.InstCatchupRightRelDef using
 open import proof.DGG.Catchup.InstInversionDef using
   (InstInversionPackage; InstPostCatalogPackage;
    InstPostCatalogPackageAt; Λ⊑Λ²PostBodyTransportᵀ;
-   Λ⊑²AtRewrapᵀ; Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ;
-   RightBindUnderLeftLiftᵀ)
+   Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂; Λ⊑²AtRewrapᵀ;
+   Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 import Data.Fin as Fin
@@ -79,6 +79,12 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     ; post-relation =
         InstPostCatalogPackageAt.at-post-relation pkg
     ; ν₂ = InstPostCatalogPackageAt.at-ν₂ pkg
+    ; residual-target =
+        InstPostCatalogPackageAt.at-residual-target pkg
+    ; residual-q =
+        InstPostCatalogPackageAt.at-residual-q pkg
+    ; residual-target-eq =
+        InstPostCatalogPackageAt.at-residual-target-eq pkg
     ; residual-cast =
         InstPostCatalogPackageAt.at-residual-cast pkg
     ; residual-provenance =
@@ -134,7 +140,7 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
   mono (Fin.suc (Fin.suc (Fin.suc Z))) eq = eq
 
 
-Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight :
+Λ⊑Λ²-first-insert-decay-lift-to-bind-preflight :
   ΛLiftToBindFreshTransportᵀ
   → ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
@@ -148,28 +154,26 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     Σ[ postᵈ ∈ Term (suc (suc Δᴿ)) ]
     Σ[ pᵈ ∈ A ⊑ᵂ⟨ ΛLiftToBindFreshWorld X⊑★ W ⟩ Bᵈ ]
       ΛLiftToBindFreshWorld X⊑★ W ∣ γᵈ ⊢² V ⊑ postᵈ ∶ pᵈ
-Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight
+Λ⊑Λ²-first-insert-decay-lift-to-bind-preflight
     convert {W = W} {V′ = V′} {B = B} bodyRel
     with convert
       {M′ = renameᵗᵐ (keep wk↪ᵗ) V′}
       {B = renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B}
-      (TE.⊢²-target-insert
-        (TE.keepRightBindTargetInsert {B = ★} {v = X⊑X})
-        bodyRel)
-Λ⊑Λ²-first-insert-lift-to-bind-decay-preflight
+      (TD.⊢²-decay
+        {W = liftWorldBoth X⊑X (rightOnlyWorld W ★)}
+        {Wᵈ = liftWorldBoth X⊑★ (rightOnlyWorld W ★)}
+        TD.liftBothBinderDecay
+        (TE.⊢²-target-insert
+          (TE.keepRightBindTargetInsert {B = ★} {v = X⊑X})
+          bodyRel))
+Λ⊑Λ²-first-insert-decay-lift-to-bind-preflight
     convert {W = W} {V′ = V′} {B = B} bodyRel
   | γᵇ , pᵇ , relᵇ =
-  WD.decayCtx ΛLiftToBindFreshDecay γᵇ ,
+  γᵇ ,
   renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B ,
   renameᵗᵐ (keep wk↪ᵗ) V′ ,
-  WD.decay⊑ᵂ
-    {W = ΛLiftToBindFreshWorld X⊑X W}
-    {Wᵈ = ΛLiftToBindFreshWorld X⊑★ W}
-    ΛLiftToBindFreshDecay pᵇ ,
-  TD.⊢²-decay
-    {W = ΛLiftToBindFreshWorld X⊑X W}
-    {Wᵈ = ΛLiftToBindFreshWorld X⊑★ W}
-    ΛLiftToBindFreshDecay relᵇ
+  pᵇ ,
+  relᵇ
 
 
 ΛPostRevealRebuildᵀ : Set
@@ -235,14 +239,15 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
       × rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)
           ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
-Λ⊑Λ²-base-rewrap-preflight transport ext₂ Anv zero∈A liftγ vV
+Λ⊑Λ²-base-rewrap-preflight transport {V′ = V′} {B = B}
+    ext₂ Anv zero∈A liftγ vV
     vV′ bodyRel
     with transport ext₂ Anv zero∈A liftγ vV vV′ bodyRel
-Λ⊑Λ²-base-rewrap-preflight transport ext₂ Anv zero∈A liftγ vV
+Λ⊑Λ²-base-rewrap-preflight transport {V′ = V′} {B = B}
+    ext₂ Anv zero∈A liftγ vV
     vV′ bodyRel
-  | γ₂ᴸ , B₂ , post , body-p₂ ,
-    top-p₂ , liftγ₂ , vPost , post⊢ , bodyRel₂ =
-  B₂ , post , top-p₂ ,
+  | γ₂ᴸ , body-p₂ , top-p₂ , liftγ₂ , vPost , post⊢ , bodyRel₂ =
+  substᵗ Λ⊑Λ²TargetSplit₂ B , Λ⊑Λ²PostTerm V′ B , top-p₂ ,
   vPost , post⊢ ,
   CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂
 

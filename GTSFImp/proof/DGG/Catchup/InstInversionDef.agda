@@ -18,12 +18,13 @@ open import Types
 open import Imprecision using (X⊑★; X⊑X)
 open import Consistency using
   (Env∼; _⊢_∼_; ∀ᶜ_; inst_; gen_; extᵐ; instᵐ; genᵐ;
-   ↑ᶜ_; close-instᶜ; toRenameᵗ; wk↪ᵗ)
-open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_)
+   ↑ᶜ_; close-instᶜ; keep; toRenameᵗ; wk↪ᵗ)
+open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
 open import CastTerms using
-  (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_; _↓_; Λ_)
+  (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_;
+   _↓_; Λ_; renameᵗᵐ)
 open import Reduction using
-  (StoreChanges; _—↠[_]_; applyTys; bind; _∷_; [])
+  (StoreChanges; _—↠[_]_; applyTys; applyBody; bind; _∷_; [])
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -36,6 +37,27 @@ open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
    liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
    _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+
+
+Λ⊑Λ²TargetSplit₂ : ∀ {Δ}
+  → TyVar (suc Δ)
+  → Ty (suc (suc Δ))
+Λ⊑Λ²TargetSplit₂ Fin.zero = ★
+Λ⊑Λ²TargetSplit₂ (Fin.suc X) = ＇ (Fin.suc (Fin.suc X))
+
+
+Λ⊑Λ²BodyAfter★ : ∀ {Δ} → Ty (suc Δ) → Ty (suc (suc Δ))
+Λ⊑Λ²BodyAfter★ B = applyBody (bind ★) B
+
+
+Λ⊑Λ²PostTerm : ∀ {Δ}
+  → Term (suc Δ)
+  → Ty (suc Δ)
+  → Term (suc (suc Δ))
+Λ⊑Λ²PostTerm V′ B =
+  (renameᵗᵐ (keep wk↪ᵗ) V′ ↑
+    〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ Λ⊑Λ²BodyAfter★ B 〗)
+  ↑ rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
 
 RightBindUnderLeftLiftᵀ : Set
@@ -132,21 +154,23 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
   → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★
         (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))) ]
-    Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
-    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
     Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★
-        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ⟩ B₂ ]
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨
-        rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩ B₂ ]
+        rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
       LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
-      × Value post
+      × Value (Λ⊑Λ²PostTerm V′ B)
       × ⟨ suc (suc Δᴿ) ,
           targetStoreʷ
             (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ,
-          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+          ⊢ Λ⊑Λ²PostTerm V′ B ⦂
+          substᵗ Λ⊑Λ²TargetSplit₂ B
       × liftWorldLeft X⊑★
           (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
-          ∣ γ₂ᴸ ⊢² V ⊑ post ∶ body-p₂
+          ∣ γ₂ᴸ ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
 Catchup⁻NonStarᵀ : Set
@@ -223,10 +247,13 @@ record InstPostCatalogPackageAt (fuel : ℕ)
       W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ at-post ∶ at-p₂
     at-post-value : Value at-post
     at-ν₂ : Env∼ Δᴿ₂
-    at-residual-cast : at-ν₂ ⊢ at-B₂ ∼ applyTys χs₂ B′
+    at-residual-target : Ty Δᴿ₂
+    at-residual-q : A ⊑ᵂ⟨ W₂ ⟩ at-residual-target
+    at-residual-target-eq : at-residual-target ≡ applyTys χs₂ B′
+    at-residual-cast : at-ν₂ ⊢ at-B₂ ∼ at-residual-target
     at-residual-provenance :
       CatchupCast⁻ {W = W₂} {A = A} at-p₂ at-residual-cast
-        (ECR.transport⊑ᵂ ext₂ q)
+        at-residual-q
     at-residual-fuel :
       suc (castSize at-residual-cast) < fuel
     at-prefix-reduction :
@@ -264,10 +291,13 @@ record InstPostCatalogPackage (fuel : ℕ)
     post-relation :
       W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ post ∶ p₂
     ν₂ : Env∼ Δᴿ₂
-    residual-cast : ν₂ ⊢ B₂ ∼ applyTys χs₂ B′
+    residual-target : Ty Δᴿ₂
+    residual-q : A ⊑ᵂ⟨ W₂ ⟩ residual-target
+    residual-target-eq : residual-target ≡ applyTys χs₂ B′
+    residual-cast : ν₂ ⊢ B₂ ∼ residual-target
     residual-provenance :
       CatchupCast⁻ {W = W₂} {A = A} p₂ residual-cast
-        (ECR.transport⊑ᵂ ext₂ q)
+        residual-q
     spine-descent :
       InstSpineDescentPackage W₂ (ECR.mapCtxᴿ ext₂ γ) M post p₂
     finish :

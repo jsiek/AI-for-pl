@@ -6,7 +6,7 @@ module LR-narrow.ClosingSubstitution where
 --   * Defines endpoint-context lifting along future worlds.
 --   * Contains no lookup, typing, or future-transport proofs.
 
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc; _≤_)
 
 open import Types
@@ -54,17 +54,55 @@ close γ M = subst (closingSubstitution γ) M
 -- Related closing substitutions
 ------------------------------------------------------------------------
 
+record ContextImprecisionEntry {Δᴾ Δᴵ Δᶜ : TyCtx}
+    (W : World Δᴾ Δᴵ Δᶜ) : Set where
+  constructor context-imp
+  field
+    preciseType : Ty Δᴾ
+    impreciseType : Ty Δᴵ
+    typeImprecision : preciseType ⊑ᵂ⟨ core W ⟩ impreciseType
+
+open ContextImprecisionEntry public
+
+ContextImprecision : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+  → World Δᴾ Δᴵ Δᶜ
+  → Set
+ContextImprecision W = List (ContextImprecisionEntry W)
+
+preciseContext : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ}
+  → ContextImprecision W
+  → TermCtx Δᴾ
+preciseContext = map preciseType
+
+impreciseContext : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ}
+  → ContextImprecision W
+  → TermCtx Δᴵ
+impreciseContext = map impreciseType
+
+infix 4 _∋ᴿ_⦂_
+
+data _∋ᴿ_⦂_ {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ} :
+    ContextImprecision W → ℕ → ContextImprecisionEntry W → Set where
+  Zᴿ : ∀ {Γ Aᴾ Aᴵ p}
+    → (context-imp Aᴾ Aᴵ p ∷ Γ) ∋ᴿ zero ⦂ context-imp Aᴾ Aᴵ p
+
+  Sᴿ : ∀ {Γ e e′ x}
+    → Γ ∋ᴿ x ⦂ e
+    → (e′ ∷ Γ) ∋ᴿ suc x ⦂ e
+
 data RelatedClosingSubstitutions {Δᴾ Δᴵ Δᶜ : TyCtx}
     (W : World Δᴾ Δᴵ Δᶜ) (k : ℕ) :
-    TermCtx Δᴾ → TermCtx Δᴵ → Set₁ where
-  related-empty : RelatedClosingSubstitutions W k [] []
+    ContextImprecision W → Set₁ where
+  related-empty : RelatedClosingSubstitutions W k []
 
-  related-cons : ∀ {Γᴾ Γᴵ Aᴾ Aᴵ Vᴾ Vᴵ}
+  related-cons : ∀ {Γ Aᴾ Aᴵ Vᴾ Vᴵ}
     → (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
     → (∀ j → j ≤ k → ValueImprecision W p j Vᴵ Vᴾ)
-    → RelatedClosingSubstitutions W k Γᴾ Γᴵ
+    → RelatedClosingSubstitutions W k Γ
     → RelatedClosingSubstitutions W k
-        (Aᴾ ∷ Γᴾ) (Aᴵ ∷ Γᴵ)
+        (context-imp Aᴾ Aᴵ p ∷ Γ)
 
 ------------------------------------------------------------------------
 -- Endpoint contexts in future worlds
@@ -89,3 +127,16 @@ liftImpreciseContext : ∀
 liftImpreciseContext W≼W′ [] = []
 liftImpreciseContext W≼W′ (A ∷ Γ) =
   liftImpreciseTy W≼W′ A ∷ liftImpreciseContext W≼W′ Γ
+
+liftContextImprecision : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → (W≼W′ : Future W W′)
+  → ContextImprecision W
+  → ContextImprecision W′
+liftContextImprecision W≼W′ [] = []
+liftContextImprecision W≼W′ (context-imp Aᴾ Aᴵ p ∷ Γ) =
+  context-imp (liftPreciseTy W≼W′ Aᴾ)
+    (liftImpreciseTy W≼W′ Aᴵ)
+    (liftLocalImprecision W≼W′ p)
+    ∷ liftContextImprecision W≼W′ Γ

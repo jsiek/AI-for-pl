@@ -121,9 +121,9 @@ close-preserves-typing γ = typing-subst (closing-substitution-wf γ)
 
 preciseClosingSubstitution : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
-  → ClosingSubstitution (preciseStore (core W)) Γᴾ
+    {Γ : ContextImprecision W}
+  → RelatedClosingSubstitutions W k Γ
+  → ClosingSubstitution (preciseStore (core W)) (preciseContext Γ)
 preciseClosingSubstitution related-empty = closing-empty
 preciseClosingSubstitution {k = k} (related-cons p related γ) =
   closing-cons (precise-value endpoints)
@@ -134,9 +134,9 @@ preciseClosingSubstitution {k = k} (related-cons p related γ) =
 
 impreciseClosingSubstitution : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
-  → ClosingSubstitution (impreciseStore (core W)) Γᴵ
+    {Γ : ContextImprecision W}
+  → RelatedClosingSubstitutions W k Γ
+  → ClosingSubstitution (impreciseStore (core W)) (impreciseContext Γ)
 impreciseClosingSubstitution related-empty = closing-empty
 impreciseClosingSubstitution {k = k} (related-cons p related γ) =
   closing-cons (imprecise-value endpoints)
@@ -147,20 +147,15 @@ impreciseClosingSubstitution {k = k} (related-cons p related γ) =
 
 related-closing-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ} {x Aᴾ}
-    (x∈ : Γᴾ T.∋ x ⦂ Aᴾ)
-    (γ : RelatedClosingSubstitutions W k Γᴾ Γᴵ)
-  → Σ[ Aᴵ ∈ Ty Δᴵ ]
-    Σ[ p ∈ Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ ]
-      (Γᴵ T.∋ x ⦂ Aᴵ)
-      × (∀ j → j ≤ k → ValueImprecision W p j
-            (lookupClosing (impreciseClosingSubstitution γ) x)
-            (lookupClosing (preciseClosingSubstitution γ) x))
-related-closing-lookup T.Z (related-cons p related γ) =
-  _ , p , T.Z , related
-related-closing-lookup (T.S x∈) (related-cons p related γ) =
-  let Aᴵ , q , x∈ᴵ , values = related-closing-lookup x∈ γ
-  in Aᴵ , q , T.S x∈ᴵ , values
+    {Γ : ContextImprecision W} {x Aᴾ Aᴵ p}
+    (x∈ : Γ ∋ᴿ x ⦂ context-imp Aᴾ Aᴵ p)
+    (γ : RelatedClosingSubstitutions W k Γ)
+  → (∀ j → j ≤ k → ValueImprecision W p j
+        (lookupClosing (impreciseClosingSubstitution γ) x)
+        (lookupClosing (preciseClosingSubstitution γ) x))
+related-closing-lookup Zᴿ (related-cons p related γ) = related
+related-closing-lookup (Sᴿ x∈) (related-cons p related γ) =
+  related-closing-lookup x∈ γ
 
 ------------------------------------------------------------------------
 -- Future transport
@@ -274,12 +269,11 @@ imprecise-closing-future {Γ = Γ}
 related-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {k : ℕ} {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
+    {k : ℕ} {Γ : ContextImprecision W}
     (W≼W′ : Future W W′)
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
+  → RelatedClosingSubstitutions W k Γ
   → RelatedClosingSubstitutions W′ k
-      (liftPreciseContext W≼W′ Γᴾ)
-      (liftImpreciseContext W≼W′ Γᴵ)
+      (liftContextImprecision W≼W′ Γ)
 related-closing-future W≼W′ related-empty = related-empty
 related-closing-future W≼W′
     (related-cons {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} p related γ) =

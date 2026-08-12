@@ -28,7 +28,13 @@ The port currently contains:
 - `LR-narrow/ClosingSubstitution.agda`: typed closing substitutions and
   pointwise LR-related pairs, with lookup, typing, extension across a fresh
   type binding, and future-world transport exposed by the companion
-  properties module.
+  properties module;
+- `LR-narrow/TermRelation.agda`: the compilation-facing open-term relation,
+  obtained by closing both compiled endpoints with a related substitution;
+- `LR-narrow/ImmediateReturn.agda`: the evaluator lemma lifting related values
+  to related computations;
+- `LR-narrow/Variable.agda` and `LR-narrow/Constant.agda`: the first checked
+  compatibility cases for the compiled term-imprecision relation.
 
 ## Three-context worlds
 
@@ -127,6 +133,13 @@ value relation needed by the variable compatibility case.
 Both individual and related closing substitutions transport through future
 worlds. Paired future extensions weaken both endpoint substitutions, while a
 precise-only extension weakens only the precise substitution.
+
+`CompiledTermRelation` translates the term-imprecision context used by
+`proof.DGG.CastTermImprecision2` into this semantic context and quantifies over
+all related closing substitutions. The variable case is therefore a direct
+use of related lookup. Constants construct the base-value clause at every
+step index. Both cases use a shared immediate-return theorem, which supplies
+the zero-step evaluator traces and unchanged-store witnesses.
 
 ## Deliberate draft boundaries
 

@@ -12,3 +12,7 @@ open import LR-narrow.DynamicPayload public
 open import LR-narrow.Closure public
 open import LR-narrow.ClosingSubstitution public
 open import LR-narrow.ClosingSubstitutionProperties public
+open import LR-narrow.TermRelation public
+open import LR-narrow.ImmediateReturn public
+open import LR-narrow.Variable public
+open import LR-narrow.Constant public

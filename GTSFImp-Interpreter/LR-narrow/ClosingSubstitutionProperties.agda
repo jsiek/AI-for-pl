@@ -62,29 +62,26 @@ close-preserves-typing = Proof.close-preserves-typing
 
 preciseClosingSubstitution : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
-  → ClosingSubstitution (preciseStore (core W)) Γᴾ
+    {Γ : ContextImprecision W}
+  → RelatedClosingSubstitutions W k Γ
+  → ClosingSubstitution (preciseStore (core W)) (preciseContext Γ)
 preciseClosingSubstitution = Proof.preciseClosingSubstitution
 
 impreciseClosingSubstitution : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
-  → ClosingSubstitution (impreciseStore (core W)) Γᴵ
+    {Γ : ContextImprecision W}
+  → RelatedClosingSubstitutions W k Γ
+  → ClosingSubstitution (impreciseStore (core W)) (impreciseContext Γ)
 impreciseClosingSubstitution = Proof.impreciseClosingSubstitution
 
 related-closing-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
-    {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ} {x Aᴾ}
-    (x∈ : Γᴾ T.∋ x ⦂ Aᴾ)
-    (γ : RelatedClosingSubstitutions W k Γᴾ Γᴵ)
-  → Σ[ Aᴵ ∈ Ty Δᴵ ]
-    Σ[ p ∈ Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ ]
-      (Γᴵ T.∋ x ⦂ Aᴵ)
-      × (∀ j → j ≤ k → ValueImprecision W p j
-            (lookupClosing (impreciseClosingSubstitution γ) x)
-            (lookupClosing (preciseClosingSubstitution γ) x))
+    {Γ : ContextImprecision W} {x Aᴾ Aᴵ p}
+    (x∈ : Γ ∋ᴿ x ⦂ context-imp Aᴾ Aᴵ p)
+    (γ : RelatedClosingSubstitutions W k Γ)
+  → (∀ j → j ≤ k → ValueImprecision W p j
+        (lookupClosing (impreciseClosingSubstitution γ) x)
+        (lookupClosing (preciseClosingSubstitution γ) x))
 related-closing-lookup = Proof.related-closing-lookup
 
 shiftClosingBind : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
@@ -114,10 +111,9 @@ imprecise-closing-future = Proof.imprecise-closing-future
 related-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {k : ℕ} {Γᴾ : T.TermCtx Δᴾ} {Γᴵ : T.TermCtx Δᴵ}
+    {k : ℕ} {Γ : ContextImprecision W}
     (W≼W′ : Future W W′)
-  → RelatedClosingSubstitutions W k Γᴾ Γᴵ
+  → RelatedClosingSubstitutions W k Γ
   → RelatedClosingSubstitutions W′ k
-      (liftPreciseContext W≼W′ Γᴾ)
-      (liftImpreciseContext W≼W′ Γᴵ)
+      (liftContextImprecision W≼W′ Γ)
 related-closing-future = Proof.related-closing-future

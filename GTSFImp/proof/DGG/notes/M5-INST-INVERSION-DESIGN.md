@@ -1,9 +1,9 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: side-stable OPE reification foundation
-checked; blocked on the recursive support surface for the derivation-level
-cross-side exchange; see
-`m5-inst-inversion-lambda-center-map-support-blocked.red`.
+Date: 2026-08-12. Status: parametric `CenterMapSupport` and
+`⊢²-center-map` check, but the concrete general support constructor is
+blocked by source rebase breaking side-stability; see
+`m5-inst-inversion-lambda-center-map-source-rebase-blocked.red`.
 
 Checked artifact:
 

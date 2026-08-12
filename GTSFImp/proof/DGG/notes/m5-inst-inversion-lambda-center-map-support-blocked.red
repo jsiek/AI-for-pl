@@ -104,3 +104,17 @@ Consequence:
   open until the derivation-level support surface is chosen and implemented.
 
 No live relation was changed, and no postulate, hole, or catch-all was added.
+
+Postscript 2026-08-12:
+
+  The general support shape and the parametric derivation induction now
+  type-check in `Catchup/InstInversionProof.agda`:
+
+    `CenterMapSupport`
+    `⊢²-center-map`
+
+  Constructor coverage in the induction is complete, including the
+  wrapper constructors listed above.  The remaining blocker is not the
+  induction but constructing concrete support for the adjacent exchange
+  positions under arbitrary recursive source rebases; see
+  `m5-inst-inversion-lambda-center-map-source-rebase-blocked.red`.

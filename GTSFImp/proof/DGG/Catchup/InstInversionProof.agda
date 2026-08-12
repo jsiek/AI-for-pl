@@ -2519,6 +2519,269 @@ center-map-matched-conceal-partner-ok mp
   CTI2.matched-id-conceal-target
 
 
+center-map-target-⊢↑ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴿ? A B} {c : Conv↑ Δᴿ A B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c
+  → CTI2.targetStoreʷ Wˣ CTI2.⊢↑[ Xᴿ? ] c
+center-map-target-⊢↑ mp c⊢ =
+  subst≡ (λ Σ → Σ CTI2.⊢↑[ _ ] _) (sym (targetStore-map mp)) c⊢
+
+
+center-map-target-⊢↓ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴿ? A B} {c : Conv↓ Δᴿ A B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c
+  → CTI2.targetStoreʷ Wˣ CTI2.⊢↓[ Xᴿ? ] c
+center-map-target-⊢↓ mp c⊢ =
+  subst≡ (λ Σ → Σ CTI2.⊢↓[ _ ] _) (sym (targetStore-map mp)) c⊢
+
+
+center-map-source-⊢↑ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ? A B} {c : Conv↑ Δᴸ A B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ Wˣ CTI2.⊢↑[ Xᴸ? ] c
+center-map-source-⊢↑ mp c⊢ =
+  subst≡ (λ Σ → Σ CTI2.⊢↑[ _ ] _) (sym (sourceStore-map mp)) c⊢
+
+
+center-map-source-⊢↓ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ? A B} {c : Conv↓ Δᴸ A B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ Wˣ CTI2.⊢↓[ Xᴸ? ] c
+center-map-source-⊢↓ mp c⊢ =
+  subst≡ (λ Σ → Σ CTI2.⊢↓[ _ ] _) (sym (sourceStore-map mp)) c⊢
+
+
+record CenterMapSupport {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    (mp : CenterMapWorld ρ W Wˣ) : Set₁ where
+  coinductive
+  field
+    liftBothSupport :
+      CenterMapSupport (center-map-lift-both {v = I.X⊑X} mp)
+
+    liftLeftSupport :
+      CenterMapSupport (center-map-lift-left {v = I.X⊑★} mp)
+
+    rebaseAtForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.RebaseAt Wˣ Wᵖˣ Xᴸ Xᴿ
+
+    rebaseAtBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.RebaseAt Wᵖˣ Wˣ Xᴸ Xᴿ
+
+    rebaseAtᴿForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.RebaseAtᴿ Wˣ Wᵖˣ Xᴿ?
+
+    rebaseAtᴿBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.RebaseAtᴿ Wᵖˣ Wˣ Xᴿ?
+
+    rebaseAtᴸForward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ? : Maybe (TyVar Δᴸ)}
+      → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.RebaseAtᴸ Wˣ Wᵖˣ Xᴸ?
+
+    tagRebaseAtᴸBackward : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρ Wᵖ Wᵖˣ ]
+          CenterMapSupport mpᵖ
+          × CTI2.TagRebaseAtᴸ Wᵖˣ Wˣ Xᴸ? Xᴿ?
+
+
+open CenterMapSupport
+
+
+⊢²-center-map : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W} {M : CT.Term Δᴸ} {N : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CenterMapSupport mp
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → (p′ : A CTI2.⊑ᵂ⟨ Wˣ ⟩ B)
+  → Wˣ CTI2.∣ center-map-ctx mp γ ⊢² M ⊑ N ∶ p′
+⊢²-center-map mp sup (CTI2.x⊑x² x∈) p′ =
+  TBL.⊢²-retarget (CTI2.x⊑x² (center-map-∋ʷ mp x∈))
+⊢²-center-map mp sup
+    (CTI2.ƛ⊑ƛ² {pA = pA} {pB = pB} M⊑N) p′ =
+  TBL.⊢²-retarget (CTI2.ƛ⊑ƛ²
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp pB)))
+⊢²-center-map mp sup
+    (CTI2.·⊑·² {pA = pA} {pB = pB} L⊑L′ M⊑M′) p′ =
+  TBL.⊢²-retarget (CTI2.·⊑·²
+    (⊢²-center-map mp sup L⊑L′
+      (I.⇒⊑⇒ (center-map-⊑ᵂ mp pA) (center-map-⊑ᵂ mp pB)))
+    (⊢²-center-map mp sup M⊑M′ (center-map-⊑ᵂ mp pA)))
+⊢²-center-map mp sup
+    (CTI2.Λ⊑Λ² {p = p} liftγ vV vV′ V⊑V′ q) p′ =
+  CTI2.Λ⊑Λ² (center-map-lift-ctx mp liftγ) vV vV′
+    (⊢²-center-map (center-map-lift-both {v = I.X⊑X} mp)
+      (liftBothSupport sup) V⊑V′
+      (center-map-⊑ᵂ (center-map-lift-both {v = I.X⊑X} mp) p))
+    p′
+⊢²-center-map {γ = γ} mp sup
+    (CTI2.Λ⊑² {p = p} Anv zero∈A liftγ vV N⊢ V⊑N q) p′ =
+  CTI2.Λ⊑² Anv zero∈A (center-map-lift-ctxᴸ mp liftγ) vV
+    (subst≡ (λ Σ → ⟨ _ , Σ , CTI2.tgtCtxʷ (center-map-ctx mp γ) ⟩
+        ⊢ _ ⦂ _)
+      (sym (targetStore-map mp))
+      (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+        (sym (center-map-ctx-tgt mp γ)) N⊢))
+    (⊢²-center-map (center-map-lift-left {v = I.X⊑★} mp)
+      (liftLeftSupport sup) V⊑N
+      (center-map-⊑ᵂ (center-map-lift-left {v = I.X⊑★} mp) p))
+    p′
+⊢²-center-map mp sup (CTI2.•⊑•² p∀ M⊑N q r) p′ =
+  CTI2.•⊑•² (center-map-⊑ᵂ mp p∀)
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp p∀))
+    (center-map-⊑ᵂ mp q) p′
+⊢²-center-map mp sup (CTI2.•⊑² p∀ M⊑N q r) p′ =
+  CTI2.•⊑² (center-map-⊑ᵂ mp p∀)
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp p∀))
+    (center-map-⊑ᵂ mp q) p′
+⊢²-center-map mp sup (CTI2.κ⊑κ² κ p) p′ =
+  CTI2.κ⊑κ² κ p′
+⊢²-center-map mp sup
+    (CTI2.cast⊑cast² {p = p} c c′ M⊑N q) p′ =
+  CTI2.cast⊑cast² c c′
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map mp sup
+    (CTI2.⊑cast² {p = p} c′ M⊑N q) p′ =
+  CTI2.⊑cast² c′
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map mp sup
+    (CTI2.cast⊑² {p = p} c M⊑N q) p′ =
+  CTI2.cast⊑² c
+    (⊢²-center-map mp sup M⊑N (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map mp sup
+    (CTI2.⊑reveal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q)
+    p′
+    with rebaseAtᴿForward sup rb
+... | W′ˣ , mp′ , sup′ , rb′ =
+  CTI2.⊑reveal² (center-map-imp-mono mp mp′ mono) rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↑ mp c′⊢)
+    (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.⊑conceal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q)
+    p′
+    with rebaseAtᴿBackward sup rb
+... | W′ˣ , mp′ , sup′ , rb′ =
+  CTI2.⊑conceal² (center-map-imp-mono mp mp′ mono) rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q)
+    p′
+    with rebaseAtᴸForward sup rb
+... | W′ˣ , mp′ , sup′ , rb′ =
+  CTI2.reveal⊑² (center-map-imp-mono mp mp′ mono) rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↑ mp c⊢)
+    (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q)
+    p′
+    with tagRebaseAtᴸBackward sup rb
+... | W′ˣ , mp′ , sup′ , rb′ =
+  CTI2.conceal⊑²
+    (center-map-source-conceal-partner-ok mp′ ok)
+    (center-map-imp-mono mp mp′ mono) rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↓ mp c⊢)
+    (⊢²-center-map mp′ sup′ M⊑N (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
+      mono rb sc c⊢ c′⊢ M⊑N q)
+    p′
+    with rebaseAtForward sup rb
+... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+  CTI2.reveal⊑reveal²
+    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↑ mp c⊢) (center-map-target-⊢↑ mp c′⊢)
+    (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      ok mono rb sc c⊢ c′⊢ M⊑N q)
+    p′
+    with rebaseAtBackward sup rb
+... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+  CTI2.conceal⊑conceal²
+    (center-map-matched-conceal-partner-ok mpᵖ ok)
+    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p))
+    p′
+⊢²-center-map mp sup
+    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
+      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑N sourcePrem q)
+    p′
+    with rebaseAtBackward sup rb
+... | Wᵖˣ , mpᵖ , supᵖ , rbᵖ =
+  CTI2.packaged-seal-star²
+    (center-map-matched-conceal-partner-ok mpᵖ ok)
+    (center-map-imp-mono mp mpᵖ mono) rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map mpᵖ supᵖ M⊑N (center-map-⊑ᵂ mpᵖ p★))
+    (⊢²-center-map mpᵖ supᵖ sourcePrem (center-map-⊑ᵂ mpᵖ qᵖ))
+    p′
+⊢²-center-map {γ = γ} mp sup (CTI2.blame⊑² M′⊢ p) p′ =
+  CTI2.blame⊑²
+    (subst≡ (λ Σ → ⟨ _ , Σ , CTI2.tgtCtxʷ (center-map-ctx mp γ) ⟩
+        ⊢ _ ⦂ _)
+      (sym (targetStore-map mp))
+      (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+        (sym (center-map-ctx-tgt mp γ)) M′⊢))
+    p′
+⊢²-center-map mp sup
+    (CTI2.⊕⊑⊕² op {p = p} {q = q} L⊑L′ M⊑M′ r) p′ =
+  CTI2.⊕⊑⊕² op
+    (⊢²-center-map mp sup L⊑L′ (center-map-⊑ᵂ mp p))
+    (⊢²-center-map mp sup M⊑M′ (center-map-⊑ᵂ mp q)) p′
+
+
 swap01-left-right-source : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
     (A : Ty (suc Δ₀))
   → renameᵗ swap01 (renameᵗ (toRenameᵗ (skip (keep η))) A)

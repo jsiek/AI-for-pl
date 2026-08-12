@@ -24,7 +24,11 @@ The port currently contains:
   introduction cases for the payload relations;
 - `LR-narrow/Closure.agda`: public statements of downward closure and
   future-world monotonicity for typed endpoints, functions, paired and
-  right-only universals, and the full value relation.
+  right-only universals, and the full value relation;
+- `LR-narrow/ClosingSubstitution.agda`: typed closing substitutions and
+  pointwise LR-related pairs, with lookup, typing, extension across a fresh
+  type binding, and future-world transport exposed by the companion
+  properties module.
 
 ## Three-context worlds
 
@@ -108,6 +112,21 @@ The checked closure layer establishes:
 The function and universal proofs use explicit composition lemmas because
 lifting through a composite future is propositionally, rather than
 definitionally, equal to lifting in two stages.
+
+## Closing open terms
+
+The evaluator accepts a term directly rather than a separate term-value
+environment. Open compiled terms are therefore interpreted only after a
+typed `ClosingSubstitution` has replaced every term variable by a closed
+value. `RelatedClosingSubstitutions` pairs the precise and imprecise closing
+substitutions pointwise with `ValueImprecision` at every observation index up
+to the current budget. Its projections provide the ordinary substitutions
+consumed by `CastTerms.subst`, and its lookup theorem recovers the residual
+value relation needed by the variable compatibility case.
+
+Both individual and related closing substitutions transport through future
+worlds. Paired future extensions weaken both endpoint substitutions, while a
+precise-only extension weakens only the precise substitution.
 
 ## Deliberate draft boundaries
 

@@ -10,3 +10,5 @@ open import LR-narrow.Computation public
 open import LR-narrow.LogicalRelation public
 open import LR-narrow.DynamicPayload public
 open import LR-narrow.Closure public
+open import LR-narrow.ClosingSubstitution public
+open import LR-narrow.ClosingSubstitutionProperties public

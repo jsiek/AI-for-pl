@@ -3807,6 +3807,37 @@ target-insert-bind-world-extendᴿ {W′ = W′} {B = B} ins target-follows =
     }
 
 
+smart-fresh-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {B : Ty Δᴿ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ECR.WorldExtendᴿ (bind B ∷ []) Wᵐ
+      (TE.smartFreshInsertWorld
+        (TE.rightBindTargetInsert {W = W} {B = B}) guard)
+smart-fresh-bind-world-extendᴿ {B = B} guard =
+  target-insert-bind-world-extendᴿ
+    (TE.smartFreshTargetInsert TE.rightBindTargetInsert guard)
+    (cong (applyStores (bind B ∷ []))
+      (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard)))
+
+
+smart-alias-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+    {B : Ty Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ECR.WorldExtendᴿ (bind B ∷ []) Wᵐ
+      (TE.smartAliasInsertWorld
+        (TE.rightBindTargetInsert {W = W} {B = B}) Wᵐ)
+smart-alias-bind-world-extendᴿ {B = B} guard =
+  target-insert-bind-world-extendᴿ
+    (TE.smartAliasTargetInsert TE.rightBindTargetInsert guard)
+    (cong (applyStores (bind B ∷ []))
+      (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
+
+
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.World Δᴸ Δᴿ Δ
   → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))

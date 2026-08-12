@@ -1270,6 +1270,37 @@ freshLiftToBindTargetMoveAt {W = W} {Σ₂ = Σ₂} hΣ pivot other =
         ≡ CTI2.resolveVar (store-lift (CTI2.targetStoreʷ W)) X
   resolve (S-lift∋ {X = X} X∈ eq) = other (Fin.suc X) (λ ())
 
+
+freshLiftToBindTargetMoveAtκ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : World Δᴸ (suc Δᴿ) Δ}
+    (κ : suc Δ ↪ᵗ Δ′)
+    {Σ₂ : TyStore (suc (suc Δᴿ))}
+  → CTI2.impEnvʷ (CR.renameWorld κ (CTI2.liftWorldBoth X⊑★ W))
+      (toRenameᵗ
+        (CTI2.ηᴿʷ (CR.renameWorld κ (CTI2.liftWorldBoth X⊑★ W)))
+        Fin.zero)
+      ≡ X⊑★
+  → StoreTransport (store-lift (CTI2.targetStoreʷ W)) Σ₂
+  → CTI2.resolveVar Σ₂ Fin.zero ≡ ★
+  → (∀ Z → Z ≢ Fin.zero
+      → CTI2.resolveVar Σ₂ Z
+          ≡ CTI2.resolveVar (store-lift (CTI2.targetStoreʷ W)) Z)
+  → TargetBindLiftMove
+      (CR.renameWorld κ (CTI2.liftWorldBoth X⊑★ W))
+      (targetStoreAs (CR.renameWorld κ (CTI2.liftWorldBoth X⊑★ W)) Σ₂)
+      Fin.zero
+freshLiftToBindTargetMoveAtκ {W = W} κ {Σ₂ = Σ₂}
+    pivot-star hΣ pivot other =
+  target-bind-lift-move
+    (target-store-move refl refl refl refl hΣ resolve)
+    pivot-star refl pivot other
+  where
+  resolve : ∀ {X R}
+    → store-lift (CTI2.targetStoreʷ W) ∋ X ⦂ R
+    → CTI2.resolveVar Σ₂ X
+        ≡ CTI2.resolveVar (store-lift (CTI2.targetStoreʷ W)) X
+  resolve (S-lift∋ {X = X} X∈ eq) = other (Fin.suc X) (λ ())
+
 freshLiftToBindMoveᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {v : VarImp}
   → TargetStoreMove

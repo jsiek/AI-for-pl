@@ -332,6 +332,53 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     vV vV′ bodyRel
 
 
+Λ⊑Λ²-one-lift-born-rewrap-preflight :
+  Λ⊑Λ²PostBodyTransportᵀ
+  → ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γᴮ : CtxImp
+      (liftWorldBoth X⊑X (liftWorldLeft X⊑★ W))}
+    {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨
+      liftWorldBoth X⊑X (liftWorldLeft X⊑★ W) ⟩ B}
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (liftWorldLeft X⊑★ W)
+      (rightOnlyWorld
+        (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+        (＇ Fin.zero)))
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (liftγ : LiftCtx X⊑X γ γᴮ)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → liftWorldBoth X⊑X (liftWorldLeft X⊑★ W)
+      ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨
+      rightOnlyWorld
+        (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+        (＇ Fin.zero) ⟩ B₂ ]
+      Value post
+      × ⟨ suc (suc Δᴿ) ,
+          targetStoreʷ
+            (rightOnlyWorld
+              (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+              (＇ Fin.zero)) ,
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
+      × rightOnlyWorld
+          (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+          (＇ Fin.zero) ∣ ECR.mapCtxᴿ ext₂ γ
+          ⊢² Λ V ⊑ post ∶ p₂
+Λ⊑Λ²-one-lift-born-rewrap-preflight transport ext₂ Anv zero∈A
+    liftγ vV vV′ bodyRel =
+  Λ⊑Λ²-base-rewrap-preflight transport ext₂ Anv zero∈A
+    liftγ vV vV′ bodyRel
+
+
 Λ⊑Λ²PostBodyTransportAtᵀ : Set
 Λ⊑Λ²PostBodyTransportAtᵀ =
   ∀ {Δᴸ Δᴿ Δ Δ₂}

@@ -1740,6 +1740,96 @@ left-right-star-map Fin.zero eq = refl
 left-right-star-map (Fin.suc X) eq = eq
 
 
+swap01 : ∀ {Δ} → Fin.Fin (suc (suc Δ)) → Fin.Fin (suc (suc Δ))
+swap01 Fin.zero = Fin.suc Fin.zero
+swap01 (Fin.suc Fin.zero) = Fin.zero
+swap01 (Fin.suc (Fin.suc X)) = Fin.suc (Fin.suc X)
+
+
+swap01-injective : ∀ {Δ} {X Y : Fin.Fin (suc (suc Δ))}
+  → swap01 X ≡ swap01 Y
+  → X ≡ Y
+swap01-injective {X = Fin.zero} {Y = Fin.zero} eq = refl
+swap01-injective {X = Fin.zero} {Y = Fin.suc Fin.zero} ()
+swap01-injective {X = Fin.zero} {Y = Fin.suc (Fin.suc Y)} ()
+swap01-injective {X = Fin.suc Fin.zero} {Y = Fin.zero} ()
+swap01-injective {X = Fin.suc Fin.zero} {Y = Fin.suc Fin.zero} eq =
+  refl
+swap01-injective {X = Fin.suc Fin.zero} {Y = Fin.suc (Fin.suc Y)} ()
+swap01-injective {X = Fin.suc (Fin.suc X)} {Y = Fin.zero} ()
+swap01-injective {X = Fin.suc (Fin.suc X)} {Y = Fin.suc Fin.zero} ()
+swap01-injective {X = Fin.suc (Fin.suc X)}
+    {Y = Fin.suc (Fin.suc Y)} eq =
+  cong (λ Z → Fin.suc (Fin.suc Z)) (fin-suc-injective
+    (fin-suc-injective eq))
+
+
+swap01-left-right-source : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
+    (A : Ty (suc Δ₀))
+  → renameᵗ swap01 (renameᵗ (toRenameᵗ (skip (keep η))) A)
+    ≡ renameᵗ (toRenameᵗ (keep (skip η))) A
+swap01-left-right-source η A =
+  trans (renameᵗ-comp (toRenameᵗ (skip (keep η))) swap01 A)
+    (renameᵗ-cong A eq)
+  where
+  eq : ∀ X
+    → swap01 (toRenameᵗ (skip (keep η)) X)
+      ≡ toRenameᵗ (keep (skip η)) X
+  eq Fin.zero = refl
+  eq (Fin.suc X) = refl
+
+
+swap01-left-right-target : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
+    (B : Ty (suc Δ₀))
+  → renameᵗ swap01 (renameᵗ (toRenameᵗ (keep (skip η))) B)
+    ≡ renameᵗ (toRenameᵗ (skip (keep η))) B
+swap01-left-right-target η B =
+  trans (renameᵗ-comp (toRenameᵗ (keep (skip η))) swap01 B)
+    (renameᵗ-cong B eq)
+  where
+  eq : ∀ X
+    → swap01 (toRenameᵗ (keep (skip η)) X)
+      ≡ toRenameᵗ (skip (keep η)) X
+  eq Fin.zero = refl
+  eq (Fin.suc X) = refl
+
+
+left-right-swap-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.instᵐ (I.extendᵐ I.X⊑★ μ) X ≡ I.X⊑★
+  → I.extendᵐ I.X⊑★ (I.instᵐ μ) (swap01 X) ≡ I.X⊑★
+left-right-swap-star-map Fin.zero eq = refl
+left-right-swap-star-map (Fin.suc Fin.zero) eq = refl
+left-right-swap-star-map (Fin.suc (Fin.suc X)) eq = eq
+
+
+right-left-exchange-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B′
+    ⟩ B
+  → A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′)
+    ⟩ B
+right-left-exchange-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p =
+  subst≡
+    (λ L → CTI2.impEnvʷ Wout ⊢ L ⊑ CTI2.embedᴿ Wout B)
+    (swap01-left-right-source (CTI2.ηᴸʷ W) A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ Wout ⊢
+        renameᵗ swap01 (CTI2.embedᴸ Win A) ⊑ R)
+      (swap01-left-right-target (CTI2.ηᴿʷ W) B)
+      (rename-⊑ swap01 swap01-injective
+        left-right-swap-star-map p))
+  where
+  Win =
+    CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B′
+
+  Wout =
+    CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′)
+
+
 right-bind-under-left-lift-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}

@@ -2,6 +2,14 @@ M5 instantiation inversion blocker: under-left-lift premise order
 
 Date: 2026-08-12
 
+Refined by:
+
+  `m5-inst-inversion-lambda-cross-side-term-exchange-blocked.red`.
+  The newer note follows the approved route that avoids same-side swaps:
+  instantiate the closed depth-0 theorem at the lifted base, prove the
+  one-bind cross-side type exchange, and isolate the remaining missing
+  term-derivation exchange.
+
 Blocked target:
 
   implementation of the successor-depth case of the tower-indexed

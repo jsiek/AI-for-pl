@@ -7,7 +7,7 @@ check-isomorphism:
 	$(AGDA) -i . -i ../GTSFImp NarrowWidenIsomorphism.agda
 
 check-lr:
-	$(AGDA) -i . -i ../GTSFImp LR/LRAll.agda
+	$(AGDA) -i . -i ../GTSFImp LR-narrow/LRNarrowAll.agda
 
 check: check-interpreter check-isomorphism check-lr
 

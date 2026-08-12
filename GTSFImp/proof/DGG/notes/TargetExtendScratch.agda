@@ -1,5 +1,13 @@
 module TargetExtendScratch where
 
+-- File Charter:
+--   * Notes scratch for target-extension transport pre-flight.
+--   * Records the map-pivot and rebase shapes used by the M-2 migration.
+--   * This file is not imported by the live development.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/TargetExtendScratch.agda`.
+
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_)

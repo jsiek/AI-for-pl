@@ -1,12 +1,13 @@
 # Split Preflight
 
-Scope: root scratch only.  `GTSFImp/` was read for the dossier and blocked
+Scope: notes scratch only.  `GTSFImp/` was read for the dossier and blocked
 notes, but not edited.
 
 Agda check:
 
 ```sh
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 SplitPf.agda
+AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+  -i GTSFImp/proof/DGG/notes -v0 GTSFImp/proof/DGG/notes/SplitPf.agda
 ```
 
 Result: pass.

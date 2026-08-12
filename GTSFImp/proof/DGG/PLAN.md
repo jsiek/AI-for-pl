@@ -307,12 +307,12 @@ The Λ branch of the instantiation inversion is CLOSED at depth 0 (the
 NESTED one-sided type abstractions meeting an inst cast), the
 post-instantiation relation appears INEXPRESSIBLE in the current
 parked/rebase discipline — machine-checked two ways
-(M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
+(notes/M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
 same-side source OPE reversal (impossible), and the non-moving
 sameWorldRebaseAt route leaves an empty post obligation (reduces to
 ＇1 ⊑ ＇3 at a concrete finite body). Full resister chain in
 notes/m5-inst-inversion-*.red; verdict note:
-m5-inst-inversion-lambda-under-lift-satisfiability.red.
+notes/m5-inst-inversion-lambda-under-lift-satisfiability.red.
 
 Screen verdict (2026-08-12, notes/M5-DEPTH-SCREEN.md): REACHED — the
 compile image produces the depth-2 geometry (use-dyn source-triple ⊑
@@ -329,7 +329,7 @@ with DYNAMIC (X⊑★-family) marks at both fresh centers — the mechanized
 `Γ ,, α:=★` with the id_★ mark arithmetic, two-clause (merge when the
 partner exists, plain extension otherwise). Selected by the calibration
 matrix (notes/M5-SMART-COMMA-CALIBRATION.md; scratch
-M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
+notes/M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
 cells CHECKED-OK on both E4 (depth-0, coexists with the live closure)
 and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
 evidence because StoreRepImp canonicalizes the alias through the name

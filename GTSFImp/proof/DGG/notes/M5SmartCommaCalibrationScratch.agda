@@ -1,12 +1,15 @@
 module M5SmartCommaCalibrationScratch where
 
 -- File Charter:
---   * Root-only scratch for calibrating smart-comma layouts against E4 and
+--   * Notes scratch for calibrating smart-comma layouts against E4 and
 --     the M5 depth-1 obstruction.
 --   * Checks finite world/reveal/type/term leaves for A0 current rules,
 --     A1 smart-at-alias with an X⊑X mark, A2 smart-at-name with an X⊑X mark,
 --     and A3 smart-at-alias with dynamic marks.
 --   * This file is not imported by the live development.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5SmartCommaCalibrationScratch.agda`.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)

@@ -1,7 +1,8 @@
 # M5 smart-comma rule statement
 
 Gate: M-1 only.  This note drafts the rule and pre-flights its statement in
-`M5SmartCommaRuleScratch.agda`.  No live relation file is edited here.
+`GTSFImp/proof/DGG/notes/M5SmartCommaRuleScratch.agda`.  No live
+relation file is edited here.
 
 ## Informal rule
 
@@ -193,23 +194,24 @@ old-mark-mono : ∀ Z
 
 For `SmartAliasMergeGuard`, `old-center-image Z = Z`; for
 `SmartFreshBehindGuard`, `old-center-image Z = toRenameᵗ oldCenters Z`.
-`M5SmartCommaRuleScratch.agda` revalidates the A3 E4/D1 instances with finite
-substitution transports named `e4-merge-transport`, `d1-fresh-transport`, and
-`d1-merge-transport`.
+`GTSFImp/proof/DGG/notes/M5SmartCommaRuleScratch.agda` revalidates the
+A3 E4/D1 instances with finite substitution transports named
+`e4-merge-transport`, `d1-fresh-transport`, and `d1-merge-transport`.
 
 ## Pre-flight status
 
 Checked command:
 
 ```sh
-env AGDA_DIR=/home/runner/AI-for-pl/.agda-cache agda -l standard-library \
-  -i GTSFImp -i . -v0 M5SmartCommaRuleScratch.agda
+AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+  -i GTSFImp/proof/DGG/notes -v0 \
+  GTSFImp/proof/DGG/notes/M5SmartCommaRuleScratch.agda
 ```
 
 - E4: `CHECKED-OK`.
   `e4-smart-preflight` instantiates `Λ⊑²-smart-comma` with
   `e4-merge-guard`, `e4-post-rel`, `e4-target-post-⊢`, and the A3 witnesses
-  from `M5SmartCommaCalibrationScratch.agda`
+  from `GTSFImp/proof/DGG/notes/M5SmartCommaCalibrationScratch.agda`
   (`a3-e4-inner-rebaseᴿ`, `a3-e4-outer-rebaseᴿ`,
   `a3-e4-term-var-leaf-ok`, `a3-e4-type-leaf-ok`).  This is the
   smart-comma counterpart of the existing depth-0 package

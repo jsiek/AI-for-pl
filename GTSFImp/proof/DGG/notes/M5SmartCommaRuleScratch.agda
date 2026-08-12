@@ -1,11 +1,14 @@
 module M5SmartCommaRuleScratch where
 
 -- File Charter:
---   * Root-only M-1 scratch for the proposed A3 smart-comma Λ⊑² surface.
+--   * Notes M-1 scratch for the proposed A3 smart-comma Λ⊑² surface.
 --   * Defines the guarded premise-world surface without editing the live
 --     `⊢²` relation.
 --   * Checks concrete E4 and D1 instantiations against the A3 calibration
 --     worlds and reveal witnesses.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5SmartCommaRuleScratch.agda`.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)

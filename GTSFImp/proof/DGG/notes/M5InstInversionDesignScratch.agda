@@ -1,10 +1,13 @@
 module M5InstInversionDesignScratch where
 
 -- File Charter:
---   * Root-level scratch for the M5 target-instantiation inversion design.
+--   * Notes scratch for the M5 target-instantiation inversion design.
 --   * Imports the promoted live package records from `InstInversionDef`.
 --   * Checks that such packages project mechanically to the live
 --     `InstRelContinuationSurface`, without adding live proof code.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda`.
 
 open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)

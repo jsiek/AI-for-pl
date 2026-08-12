@@ -44,10 +44,10 @@ Checked commands:
     GTSFImp/All.agda
 
   AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
-    M5InstInversionDesignScratch.agda
+    GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda
 
   AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
-    M5RelContinuationScratch.agda
+    GTSFImp/proof/DGG/notes/M5RelContinuationScratch.agda
 
   AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
     -i GTSFImp/proof/DGG/notes -v0 \

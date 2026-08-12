@@ -6,7 +6,7 @@ Context:
 
   The approved post-prefix-only surface from
   `m5-inst-inversion-source-strip-post-only-surface-blocked.red` was
-  stated in `M5InstInversionDesignScratch.agda` as
+  stated in `GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda` as
   `ΛPostPrefixOnlySourceStripSurface`.  The live proof module now has
   checked support for the parts that do not depend on source-strip
   wrappers:

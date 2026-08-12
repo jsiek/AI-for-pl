@@ -6,7 +6,8 @@ Blocked target:
 
   the `Λ⊑²` recursive rewrap in `InstInversionPackage.Λ-package`
 
-Phase A′ pre-flight extended `M5InstInversionDesignScratch.agda` with
+Phase A′ pre-flight extended
+`GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda` with
 the derivation-recursive statement:
 
   RecursiveΛInversionPreflight.derivation-recursive-Λ

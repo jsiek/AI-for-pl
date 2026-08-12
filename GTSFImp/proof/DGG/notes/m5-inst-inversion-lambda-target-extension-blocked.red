@@ -10,7 +10,8 @@ Blocked target:
 
 Pre-flight status:
 
-  `M5InstInversionDesignScratch.agda` now imports the live
+  `GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda` now imports the
+  live
   `Λ⊑Λ²PostBodyTransportᵀ` statement and checks:
 
     Λ⊑Λ²-base-rewrap-preflight :

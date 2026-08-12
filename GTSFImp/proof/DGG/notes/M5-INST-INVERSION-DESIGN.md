@@ -16,7 +16,7 @@ Checked artifact:
 
 ```text
 AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
-  M5InstInversionDesignScratch.agda
+  GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda
 # exit 0
 ```
 

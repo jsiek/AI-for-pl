@@ -11,8 +11,9 @@ The M6 design scratch's driver surface
 takes an arbitrary cast column with NO provenance premise. It is FALSE:
 instantiated at the singleton column `Y?` with the QHUNT
 projection-mismatch package, the target blames and never reaches a value.
-Machine-checked in `ValueCatchupProvenanceGapScratch.agda` (repo root,
-commit b886024), against the current post-#128 relation — the package's
+Machine-checked in
+`GTSFImp/proof/DGG/notes/ValueCatchupProvenanceGapScratch.agda`
+(commit b886024), against the current post-#128 relation — the package's
 `⊢²` derivation was re-validated after the see-through tightening
 (`rep★-nonvar-tag` admits the `ℕ!` top tag).
 
@@ -90,7 +91,7 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 
 ## Sequencing
 
-1. Pre-flight (A) in a root scratch: define `CatchupCast⁻`,
+1. Pre-flight (A) in a notes scratch: define `CatchupCast⁻`,
    `CatchupColumn`, the provenance-carrying
    `ValueCatchupRightProv²`; check the catalog column inhabits it and
    that the three support lemmas are stateable. Validate the fuel-knot

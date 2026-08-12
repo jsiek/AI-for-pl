@@ -1,6 +1,7 @@
 # M5 smart-comma calibration
 
-Checked artifact: `M5SmartCommaCalibrationScratch.agda` at the repo root.
+Checked artifact:
+`GTSFImp/proof/DGG/notes/M5SmartCommaCalibrationScratch.agda`.
 
 This calibrates the two smart-comma candidates against both requested finite
 examples:
@@ -19,7 +20,8 @@ reveal evidence is checked against CTI2's canonical store representations.
 
 Status meanings:
 
-- `CHECKED-OK`: the named witness is in `M5SmartCommaCalibrationScratch.agda`.
+- `CHECKED-OK`: the named witness is in
+  `GTSFImp/proof/DGG/notes/M5SmartCommaCalibrationScratch.agda`.
 - `REFUTED`: the named finite emptiness proof is in the scratch, or in the
   imported interleave scratch when the whole current-rule package is being
   refuted.
@@ -28,7 +30,7 @@ Status meanings:
 | Approach | Example | (i) world | (ii) reveals + rebase evidence | (iii) type leaf | (iv) term variable leaf | (v) E4 coexistence |
 | --- | --- | --- | --- | --- | --- | --- |
 | A0 PLAIN | E4 | `CHECKED-OK`: live package `a0-e4-depth0-transport`; rebases `a0-e4-inner-rebaseᴿ`, `a0-e4-outer-rebaseᴿ`. | `CHECKED-OK`: reveal typings `e4-inner-reveal-⊢↑`, `e4-outer-reveal-⊢↑`; live rebases above. | `CHECKED-OK`: inside `a0-e4-depth0-transport`. | `CHECKED-OK`: inside `a0-e4-depth0-transport`. | `CHECKED-OK`: exactly `IIP.Λ⊑Λ²-post-body-transport`. |
-| A0 PLAIN | D1 | `REFUTED` as a complete package: `a0-d1-all-orders-die`. Prefix worlds exist, but no legal peel order reaches a full derivation. | `REFUTED`: all six interleavings die by `a0-d1-all-orders-die`; the same-world reveal prefix is accepted only to reach the leaf refutation below. | `REFUTED`: `a0-d1-sameWorld-type-refuted` (`UL.depth1-inner-sameWorld-q-empty`). | `REFUTED`: covered by `a0-d1-all-orders-die`; crossing route uses the imported unequal-center/order failures from `M5InterleaveScratch.agda`. | `N/A`. |
+| A0 PLAIN | D1 | `REFUTED` as a complete package: `a0-d1-all-orders-die`. Prefix worlds exist, but no legal peel order reaches a full derivation. | `REFUTED`: all six interleavings die by `a0-d1-all-orders-die`; the same-world reveal prefix is accepted only to reach the leaf refutation below. | `REFUTED`: `a0-d1-sameWorld-type-refuted` (`UL.depth1-inner-sameWorld-q-empty`). | `REFUTED`: covered by `a0-d1-all-orders-die`; crossing route uses the imported unequal-center/order failures from `GTSFImp/proof/DGG/notes/M5InterleaveScratch.agda`. | `N/A`. |
 | A1 SMART-AT-ALIAS, `X⊑X` at cβ | E4 | `CHECKED-OK`: `a1-e4-alias-world`, `a1-e4-name-world`, `a1-e4-alias-WFWorld`. | `REFUTED`: inner reveal rebase is empty by `a1-e4-inner-rebase-refuted`; outer rebase alone is `a1-e4-outer-rebaseᴿ`. | `CHECKED-OK`: `a1-e4-type-leaf-ok`. | `CHECKED-OK`: `a1-e4-term-var-leaf-ok`. | `REFUTED`: cannot replace the live E4 closure because the inner generated reveal lacks CTI2 `StoreRepImp`. |
 | A1 SMART-AT-ALIAS, `X⊑X` at cβ | D1 | `CHECKED-OK`: `a1-d1-alias-world`/`a1-d1-alias-WFWorld` (the previous `[cβ,cα,ℓout]` candidate) and `a1-d1-name-world`/`a1-d1-name-WFWorld`. | `REFUTED`: inner reveal rebase is empty by `a1-d1-inner-rebase-refuted`; outer rebase alone is `a1-d1-outer-rebaseᴿ`. | `CHECKED-OK`: `a1-d1-type-leaf-ok`. | `CHECKED-OK`: `a1-d1-term-var-leaf-ok`. | `N/A`. |
 | A2 SMART-AT-NAME, `X⊑X` at cα | E4 | `CHECKED-OK`: `a2-e4-name-world`, `a2-e4-name-WFWorld`. | `REFUTED`: outer reveal rebase is empty by `a2-e4-outer-rebase-refuted`. | `CHECKED-OK`: `a2-e4-type-leaf-ok`. | `REFUTED`: `a2-e4-term-var-refuted` (`no-var1⊑var0`). | `REFUTED`: does not reproduce E4; it fails both reveal evidence and the alias-variable leaf. |

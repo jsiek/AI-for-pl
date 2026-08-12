@@ -82,7 +82,8 @@ RESOLVED (2026-08-11):
     χs₂ = bind ★ ∷ bind (＇ zero) ∷ []
 
   The live statement takes the corresponding `WorldExtendᴿ χs₂ W W₂`
-  explicitly, and `M5InstInversionDesignScratch.agda` checks the updated
+  explicitly, and `GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda`
+  checks the updated
   `Λ⊑Λ²-base-rewrap-preflight`.  The Λ base call site accepts the tower;
   the remaining blocker is now inside the post-body transport proof, not
   its exported surface.

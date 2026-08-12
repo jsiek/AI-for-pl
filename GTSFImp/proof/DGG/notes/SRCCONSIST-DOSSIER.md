@@ -3,7 +3,8 @@
 Status: IMPLEMENTED on `codex/gtsf-source-consistency`. Companion:
 SRCCONSIST-INVENTORY.md (the pre-implementation classified site table),
 SourceConsistencyExamples.agda (live calibration and compilation regressions),
-and SPLIT-PREFLIGHT.md / SplitPf.agda (the checked split-mode model).
+and notes/SPLIT-PREFLIGHT.md / notes/SplitPf.agda (the checked split-mode
+model).
 
 ## 1. The problem
 
@@ -205,4 +206,4 @@ the two strict-slot gate contradictions, the motivating polymorphic minter,
 compilation plus target typing of a closed, fully applied minter program, and
 live same-name success / different-name blame steps for crossable variable
 tags. The rejected shared-binder calibration and the mode/substitution laws
-remain checked in `SplitPf.agda`.
+remain checked in `GTSFImp/proof/DGG/notes/SplitPf.agda`.

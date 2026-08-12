@@ -155,6 +155,19 @@ satisfies `WFWorld` in the concrete no-old-center instance. This does not add a
 relation rule; it only confirms that "Λ⊑² premise lift enters at an existing
 target center" is representable.
 
+## 4c. Smart-comma calibration against E4 and depth 1
+
+Follow-up check: `M5-SMART-COMMA-CALIBRATION.md` tries A0 current rules, A1
+smart-at-alias with an `X⊑X` mark, A2 smart-at-name with an `X⊑X` mark, and
+the natural A3 alias-merge variant with dynamic marks on both Cambridge
+Example 4 and this depth-1 instance. A0 reproduces the existing E4/depth-0
+closure and still fails D1. A1 and A2 as marked fail generated reveal evidence:
+CTI2 `StoreRepImp` canonicalizes β through α to `★`, so reveal evidence needs
+`＇c ⊑ ★` at the aligned center, not a precise mark. A2 also fails the body
+variable leaf against the alias β. A3 passes both E4 and D1 finite checks and
+is the mechanized counterpart of Cambridge's smart comma. No live rule was
+added.
+
 ## 5. Answer to the invariant question
 
 It is genuinely a third thing, but of your two readings it is much closer

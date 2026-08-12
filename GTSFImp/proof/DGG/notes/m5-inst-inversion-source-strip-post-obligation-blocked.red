@@ -91,5 +91,37 @@ Checked commands after backing out the non-checking worker:
   AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
     GTSFImp/proof/DGG/Catchup/InstInversionProof.agda
 
+RESOLVED 2026-08-12:
+
+  The missing type-level post obligation was extracted/generalized in
+  `GTSFImp/proof/DGG/Catchup/InstInversionProof.agda` as:
+
+    `Λ-post-outer-obligation :
+       Aₒ ⊑ᵂ⟨ W ⟩ `∀ B
+       → Aₒ ⊑ᵂ⟨ rightOnlyWorld (rightOnlyWorld W ★) (＇ zero) ⟩
+           substᵗ Λ⊑Λ²TargetSplit₂ B`
+
+  and packaged for the residual source type as:
+
+    `Λ-strip-prefix-p₂ :
+       A ⊑ᵂ⟨ W ⟩ `∀ B
+       → A ⊑ᵂ⟨ rightOnlyWorld (rightOnlyWorld W ★) (＇ zero) ⟩
+           ΛResidualSource₂ B`
+
+  The proof inverts the outer `∀` obligation, refutes the impossible
+  target-variable/base/star views using the existing `NonVar` and
+  occurrence premises, and reuses the `Λ⊑Λ²` post-body transport shape for
+  the `∀⊑∀` branch.
+
+  After this was resolved, the next live resister moved to the original
+  `Λ⊑²-smart-comma` source case of the recursive prefix worker.  See
+  `m5-inst-inversion-smart-source-prefix-world-blocked.red`.
+
+Checked command after resolution:
+
+  AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+    -i GTSFImp/proof/DGG/notes -v0 \
+    GTSFImp/proof/DGG/Catchup/InstInversionProof.agda
+
 No live relation was changed, and no postulate, hole, or catch-all was
 added.

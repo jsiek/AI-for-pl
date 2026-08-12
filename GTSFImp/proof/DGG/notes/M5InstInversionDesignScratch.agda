@@ -418,6 +418,16 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
 
 record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   field
+    post-outer-obligation : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ}
+        {Aₒ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+      → ⦃ Bnv : NonVar B ⦄
+      → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+      → Aₒ ⊑ᵂ⟨ W ⟩ `∀ B
+      → Aₒ ⊑ᵂ⟨
+          rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)
+        ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+
     post-prefix-only : ∀ {Δᴸ Δᴿ Δ Δᵖ Δ₂ Δᵖ₂}
         {W : World Δᴸ Δᴿ Δ}
         {Wᵖ : World Δᴸ Δᴿ Δᵖ}

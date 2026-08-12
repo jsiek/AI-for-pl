@@ -373,6 +373,17 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        the reduced post body.  See
        `notes/m5-inst-inversion-source-strip-post-obligation-blocked.red`.
 
+       M-4 continuation checkpoint (post-obligation pass after the root
+       sweep): the type-level post obligation now checks as
+       `Λ-post-outer-obligation`, with residual-source packaging by
+       `Λ-strip-prefix-p₂`; the old post-obligation `.red` has a RESOLVED
+       postscript.  The next resister is the original
+       `Λ⊑²-smart-comma` source case in the recursive prefix worker: the
+       fixed post-prefix package uses concrete `rightOnly (rightOnly Wᵐ)`,
+       but the existing smart target-transport stack produces a
+       pushout-indexed smart premise world.  See
+       `notes/m5-inst-inversion-smart-source-prefix-world-blocked.red`.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

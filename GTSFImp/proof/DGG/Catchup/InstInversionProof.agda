@@ -53,8 +53,9 @@ open import proof.Consistency using
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
-   source-nonvar-target; source-occurs-target; subst-⊑;
-   subst-zero-occurs-exts; toRenameᵗ-injective)
+   source-nonvar-from-target; source-nonvar-target; source-occurs-target;
+   subst-⊑; subst-zero-occurs-exts; target-occurs-source;
+   toRenameᵗ-injective)
 import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
   (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport-lift-bind;
@@ -622,6 +623,30 @@ target-left-lift-eq : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (B : Ty Δ₀)
 target-left-lift-eq η B =
   trans (renameᵗ-cong B (λ X → refl))
     (sym (renameᵗ-comp (toRenameᵗ η) Fin.suc B))
+
+
+∀⊑ᵂ-from-left-lift : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ B
+  → `∀ A CTI2.⊑ᵂ⟨ W ⟩ B
+∀⊑ᵂ-from-left-lift {W = W} {A = A} {B = B} Anv zero∈A body-p =
+  subst≡
+    (λ L → CTI2.impEnvʷ W ⊢ `∀ L ⊑ CTI2.embedᴿ W B)
+    (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ W)))
+    (I.∀⊑
+      (renameNonVar
+        (toRenameᵗ (keep (CTI2.ηᴸʷ W))) Anv)
+      (rename-occurs
+        (toRenameᵗ (keep (CTI2.ηᴸʷ W))) zero∈A)
+      (subst≡
+        (λ R → I.instᵐ (CTI2.impEnvʷ W)
+          ⊢ renameᵗ (toRenameᵗ (keep (CTI2.ηᴸʷ W))) A
+            ⊑ R)
+        (target-left-lift-eq (CTI2.ηᴿʷ W) B)
+        body-p))
 
 
 Λ-fresh-mid-env-eq : ∀ {Δᴸ Δᴿ Δ}
@@ -1720,24 +1745,11 @@ target-inner₃-eq W B =
       CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
     ⟩ B₂
   top-p₂ =
-    subst≡
-      (λ L → CTI2.impEnvʷ Wbase₂ ⊢ `∀ L
-        ⊑ CTI2.embedᴿ Wbase₂ B₂)
-      (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ Wbase₂)))
-      (I.∀⊑
-        (renameNonVar
-          (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) Anv)
-        (rename-occurs
-          (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) zero∈A)
-        (subst≡
-          (λ R → I.instᵐ (CTI2.impEnvʷ Wbase₂)
-            ⊢ renameᵗ (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) A
-              ⊑ R)
-          (target-left-lift-eq (CTI2.ηᴿʷ Wbase₂) B₂)
-          body-p₂))
-    where
-    Wbase₂ =
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ∀⊑ᵂ-from-left-lift
+      {W = CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+        (＇ Fin.zero)}
+      {A = A} {B = B₂}
+      Anv zero∈A body-p₂
 
   liftOut : CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ) γout
   liftOut = Λ-route1-out-liftCtxᴸ ext₂ liftγ
@@ -2224,24 +2236,330 @@ right-bind-right-bind-under-left-lift {W = W} =
       CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
     ⟩ B
 Λ⊑²-smart-fresh-top {W = W} {A = A} {B = B} Anv zero∈A p =
-  subst≡
-    (λ L → CTI2.impEnvʷ Wbase₂ ⊢ `∀ L
-      ⊑ CTI2.embedᴿ Wbase₂ B)
-    (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ Wbase₂)))
-    (I.∀⊑
-      (renameNonVar
-        (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) Anv)
-      (rename-occurs
-        (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) zero∈A)
-      (subst≡
-        (λ R → I.instᵐ (CTI2.impEnvʷ Wbase₂)
-          ⊢ renameᵗ (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) A
-            ⊑ R)
-        (target-left-lift-eq (CTI2.ηᴿʷ Wbase₂) B)
-        (Λ⊑²-smart-fresh-untransport {W = W} p)))
+  ∀⊑ᵂ-from-left-lift
+    {W = CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+      (＇ Fin.zero)}
+    {A = A} {B = B}
+    Anv zero∈A
+    (Λ⊑²-smart-fresh-untransport {W = W} p)
+
+
+Λ-post-outer-obligation : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Aₒ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → Aₒ CTI2.⊑ᵂ⟨ W ⟩ `∀ B
+  → Aₒ CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+
+
+Λ-post-outer-obligation-∀ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → I._⊢_⊑_ (CTI2.impEnvʷ W)
+      (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A))
+      (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B))
+  → `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+
+
+Λ-post-outer-obligation-∀∀-case : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → I._⊢_⊑_ (I.extᵐ (CTI2.impEnvʷ W))
+      (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
+      (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B)
+  → `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+Λ-post-outer-obligation-∀∀-case {W = W} {A = A} {B = B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ body-p =
+  ∀⊑ᵂ-from-left-lift
+    {W = CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+      (＇ Fin.zero)}
+    {A = A} {B = substᵗ Λ⊑Λ²TargetSplit₂ B}
+    Anv zero∈A
+    (Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-pᵂ)
   where
-  Wbase₂ =
-    CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+  raw-source-eq :
+      renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
+    ≡ CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A
+  raw-source-eq = sym (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ W)))
+
+  raw-target-eq :
+      renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B
+    ≡ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B
+  raw-target-eq = sym (renameᵗ-cong B (toRename-keep-eq (CTI2.ηᴿʷ W)))
+
+  body-pᵂ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  body-pᵂ =
+    subst≡
+      (λ L → I.extᵐ (CTI2.impEnvʷ W) ⊢ L
+        ⊑ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+      raw-source-eq
+      (subst≡
+        (λ R → I.extᵐ (CTI2.impEnvʷ W)
+          ⊢ renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A ⊑ R)
+        raw-target-eq
+        body-p)
+
+  rawBnv : NonVar
+      (CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+  rawBnv =
+    renameNonVar (toRenameᵗ (keep (CTI2.ηᴿʷ W))) Bnv
+
+  rawZero∈B :
+      toRenameᵗ (keep (CTI2.ηᴿʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B
+  rawZero∈B =
+    rename-occurs (toRenameᵗ (keep (CTI2.ηᴿʷ W))) zero∈B
+
+  rawAnv : NonVar
+      (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+  rawAnv = source-nonvar-from-target body-pᵂ rawBnv rawZero∈B
+
+  rawZero∈A :
+      toRenameᵗ (keep (CTI2.ηᴸʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A
+  rawZero∈A = target-occurs-source body-pᵂ rawZero∈B
+
+  Anv : NonVar A
+  Anv = unrenameNonVar (toRenameᵗ (keep (CTI2.ηᴸʷ W))) rawAnv
+
+  zero∈A : Fin.zero ∈ᵗ A
+  zero∈A =
+    PIC.unrename-occurs
+      (toRenameᵗ (keep (CTI2.ηᴸʷ W)))
+      (toRenameᵗ-injective (keep (CTI2.ηᴸʷ W)))
+      rawZero∈A
+Λ-post-outer-obligation-∀⊑-case : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → NonVar (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
+  → Fin.zero ∈ᵗ renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
+  → I._⊢_⊑_ (I.instᵐ (CTI2.impEnvʷ W))
+      (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
+      (⇑ᵗ (CTI2.embedᴿ W (`∀ B)))
+  → `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+Λ-post-outer-obligation-∀⊑-case {W = W} {A = A} {B = B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    rawAnv rawZero∈A rawBody =
+  Λ⊑²-smart-fresh-top
+    {W = W} {A = A} {B = substᵗ Λ⊑Λ²TargetSplit₂ B}
+    Anv zero∈A
+    (Λ-post-outer-obligation
+      {W = CTI2.liftWorldLeft I.X⊑★ W}
+      {Aₒ = A} {B = B}
+      ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
+      (subst≡
+        (λ R → I.instᵐ (CTI2.impEnvʷ W)
+          ⊢ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
+            ⊑ R)
+        (sym (target-left-lift-eq (CTI2.ηᴿʷ W) (`∀ B)))
+        body-source))
+  where
+  raw-source-eq :
+      renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
+    ≡ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
+  raw-source-eq = sym (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ W)))
+
+  body-source :
+      I.instᵐ (CTI2.impEnvʷ W)
+        ⊢ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
+        ⊑ ⇑ᵗ (CTI2.embedᴿ W (`∀ B))
+  body-source =
+    subst≡
+      (λ L → I.instᵐ (CTI2.impEnvʷ W)
+        ⊢ L ⊑ ⇑ᵗ (CTI2.embedᴿ W (`∀ B)))
+      raw-source-eq
+      rawBody
+
+  Anv : NonVar A
+  Anv = unrenameNonVar (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) rawAnv
+
+  zero∈A : Fin.zero ∈ᵗ A
+  zero∈A =
+    PIC.unrename-occurs
+      (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W)))
+      (ext-injective (toRenameᵗ-injective (CTI2.ηᴸʷ W)))
+      rawZero∈A
+Λ-post-outer-obligation-∀ {B = ＇ X} ⦃ Bnv = () ⦄ q
+Λ-post-outer-obligation-∀ {B = ‵ ι} ⦃ zero∈B = () ⦄ q
+Λ-post-outer-obligation-∀ {B = ★} ⦃ zero∈B = () ⦄ q
+Λ-post-outer-obligation-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+  Λ-post-outer-obligation-∀∀-case
+    {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
+Λ-post-outer-obligation-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    (I.∀⊑ rawAnv rawZero∈A rawBody) =
+  Λ-post-outer-obligation-∀⊑-case
+    {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
+    rawAnv rawZero∈A rawBody
+Λ-post-outer-obligation-∀ {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+  Λ-post-outer-obligation-∀∀-case
+    {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
+Λ-post-outer-obligation-∀ {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    (I.∀⊑ rawAnv rawZero∈A rawBody) =
+  Λ-post-outer-obligation-∀⊑-case
+    {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
+    rawAnv rawZero∈A rawBody
+
+
+Λ-post-outer-obligation {Aₒ = ＇ X} ()
+Λ-post-outer-obligation {Aₒ = ‵ ι} ()
+Λ-post-outer-obligation {Aₒ = ★} ()
+Λ-post-outer-obligation {Aₒ = A₁ ⇒ A₂} ()
+Λ-post-outer-obligation {W = W} {Aₒ = `∀ A} {B = B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
+  Λ-post-outer-obligation-∀
+    {W = W} {A = A} {B = B}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q
+
+
+Λ-source-body-nonvar-occurs-∀∀ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → I._⊢_⊑_ (I.extᵐ (CTI2.impEnvʷ W))
+      (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
+      (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B)
+  → NonVar A × Fin.zero ∈ᵗ A
+Λ-source-body-nonvar-occurs-∀∀ {W = W} {A = A} {B = B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ body-p =
+  Anv , zero∈A
+  where
+  raw-source-eq :
+      renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
+    ≡ CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A
+  raw-source-eq = sym (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ W)))
+
+  raw-target-eq :
+      renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B
+    ≡ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B
+  raw-target-eq = sym (renameᵗ-cong B (toRename-keep-eq (CTI2.ηᴿʷ W)))
+
+  body-pᵂ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+  body-pᵂ =
+    subst≡
+      (λ L → I.extᵐ (CTI2.impEnvʷ W) ⊢ L
+        ⊑ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+      raw-source-eq
+      (subst≡
+        (λ R → I.extᵐ (CTI2.impEnvʷ W)
+          ⊢ renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A ⊑ R)
+        raw-target-eq
+        body-p)
+
+  rawBnv : NonVar
+      (CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B)
+  rawBnv =
+    renameNonVar (toRenameᵗ (keep (CTI2.ηᴿʷ W))) Bnv
+
+  rawZero∈B :
+      toRenameᵗ (keep (CTI2.ηᴿʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴿ (CTI2.liftWorldBoth I.X⊑X W) B
+  rawZero∈B =
+    rename-occurs (toRenameᵗ (keep (CTI2.ηᴿʷ W))) zero∈B
+
+  rawAnv : NonVar
+      (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
+  rawAnv = source-nonvar-from-target body-pᵂ rawBnv rawZero∈B
+
+  rawZero∈A :
+      toRenameᵗ (keep (CTI2.ηᴸʷ W)) Fin.zero
+        ∈ᵗ CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A
+  rawZero∈A = target-occurs-source body-pᵂ rawZero∈B
+
+  Anv : NonVar A
+  Anv = unrenameNonVar (toRenameᵗ (keep (CTI2.ηᴸʷ W))) rawAnv
+
+  zero∈A : Fin.zero ∈ᵗ A
+  zero∈A =
+    PIC.unrename-occurs
+      (toRenameᵗ (keep (CTI2.ηᴸʷ W)))
+      (toRenameᵗ-injective (keep (CTI2.ηᴸʷ W)))
+      rawZero∈A
+
+
+Λ-source-body-nonvar-occurs-∀⊑ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → NonVar (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
+  → Fin.zero ∈ᵗ renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
+  → NonVar A × Fin.zero ∈ᵗ A
+Λ-source-body-nonvar-occurs-∀⊑ {W = W} rawAnv rawZero∈A =
+  unrenameNonVar (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) rawAnv ,
+  PIC.unrename-occurs
+    (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W)))
+    (ext-injective (toRenameᵗ-injective (CTI2.ηᴸʷ W)))
+    rawZero∈A
+
+
+Λ-source-body-nonvar-occurs-∀ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → I._⊢_⊑_ (CTI2.impEnvʷ W)
+      (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A))
+      (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B))
+  → NonVar A × Fin.zero ∈ᵗ A
+Λ-source-body-nonvar-occurs-∀ {B = ＇ X} ⦃ Bnv = () ⦄ q
+Λ-source-body-nonvar-occurs-∀ {B = ‵ ι} ⦃ zero∈B = () ⦄ q
+Λ-source-body-nonvar-occurs-∀ {B = ★} ⦃ zero∈B = () ⦄ q
+Λ-source-body-nonvar-occurs-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+  Λ-source-body-nonvar-occurs-∀∀
+    {W = W} {A = A} {B = B₁ ⇒ B₂}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
+Λ-source-body-nonvar-occurs-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
+    (I.∀⊑ rawAnv rawZero∈A rawBody) =
+  Λ-source-body-nonvar-occurs-∀⊑ {W = W} {A = A}
+    {B = B₁ ⇒ B₂}
+    rawAnv rawZero∈A
+Λ-source-body-nonvar-occurs-∀ {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+  Λ-source-body-nonvar-occurs-∀∀
+    {W = W} {A = A} {B = `∀ B}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
+Λ-source-body-nonvar-occurs-∀ {W = W} {A = A} {B = `∀ B}
+    (I.∀⊑ rawAnv rawZero∈A rawBody) =
+  Λ-source-body-nonvar-occurs-∀⊑ {W = W} {A = A}
+    {B = `∀ B}
+    rawAnv rawZero∈A
+
+
+Λ-source-body-nonvar-occurs : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B
+  → NonVar A × Fin.zero ∈ᵗ A
+Λ-source-body-nonvar-occurs {W = W} {A = A} {B = B}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
+  Λ-source-body-nonvar-occurs-∀
+    {W = W} {A = A} {B = B}
+    ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q
 
 
 Λ⊑²-smart-fresh-catchup⁻ : ∀ {Δᴸ Δᴿ Δ}
@@ -2821,6 +3139,66 @@ post-source-conceal-partner-ok {c = `∀↓ c} =
   CTI2.all-conceal-target
 post-source-conceal-partner-ok {c = id↓ A} =
   CTI2.id-conceal-target
+
+
+Λ-strip-prefix-p₂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → A CTI2.⊑ᵂ⟨ W ⟩ `∀ B
+  → A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ ΛResidualSource₂ B
+Λ-strip-prefix-p₂ {W = W} {A = A} {B = B} ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
+  subst≡
+    (λ C → A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ C)
+    (residual-source₂-eq B)
+    (Λ-post-outer-obligation
+      {W = W} {Aₒ = A} {B = B}
+      ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q)
+
+
+right-bind-right-bind-mono : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.ImpEnvMono W Wᵖ
+  → CTI2.ImpEnvMono
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld Wᵖ ★) (＇ Fin.zero))
+right-bind-right-bind-mono {W = W} {Wᵖ = Wᵖ} mono =
+  rightOnlyImpEnvMono
+    {W = CTI2.rightOnlyWorld W ★}
+    {Wᵖ = CTI2.rightOnlyWorld Wᵖ ★}
+    {B = ＇ Fin.zero}
+    (rightOnlyImpEnvMono {W = W} {Wᵖ = Wᵖ} {B = ★} mono)
+
+
+right-bind-right-bind-rebaseᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ?}
+  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → CTI2.RebaseAtᴸ
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld Wᵖ ★) (＇ Fin.zero))
+      Xᴸ?
+right-bind-right-bind-rebaseᴸ rb =
+  TE.rightRebaseAtᴸ {B = ＇ Fin.zero}
+    (TE.rightRebaseAtᴸ {B = ★} rb)
+
+
+right-bind-right-bind-tag-rebaseᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
+  → CTI2.TagRebaseAtᴸ
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld Wᵖ ★) (＇ Fin.zero))
+      Xᴸ?
+      (TE.mapPivot (toRenameᵗ wk↪ᵗ)
+        (TE.mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?))
+right-bind-right-bind-tag-rebaseᴸ rb =
+  TE.rightTagRebaseAtᴸ {B = ＇ Fin.zero}
+    (TE.rightTagRebaseAtᴸ {B = ★} rb)
 
 
 Λ-post-prefix→package-at : ∀ {fuel Δᴸ Δᴿ Δ}

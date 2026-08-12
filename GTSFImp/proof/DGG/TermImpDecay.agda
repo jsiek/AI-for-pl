@@ -95,6 +95,66 @@ decayLiftCtxᴸ dec CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
 decayLiftCtxᴸ dec (CTI2.liftᴸ-∷ liftγ) =
   CTI2.liftᴸ-∷ (decayLiftCtxᴸ dec liftγ)
 
+decaySmartLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartLiftCtxᴸ γ γᵐ
+  → CTI2.SmartLiftCtxᴸ (decayCtx dec γ) γᵐ
+decaySmartLiftCtxᴸ dec CTI2.smart-lift-[] = CTI2.smart-lift-[]
+decaySmartLiftCtxᴸ dec (CTI2.smart-lift-∷ liftγ) =
+  CTI2.smart-lift-∷ (decaySmartLiftCtxᴸ dec liftγ)
+
+decaySmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartFreshBehindGuard W Wᵐ
+  → CTI2.SmartFreshBehindGuard Wᵈ Wᵐ
+decaySmartFreshBehindGuard
+    (env-decay refl refl refl refl mono) guard =
+  CTI2.smart-fresh-behind-guard
+    (CTI2.SmartFreshBehindGuard.oldCenters guard)
+    (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
+    (CTI2.SmartFreshBehindGuard.targetStore-same guard)
+    (CTI2.SmartFreshBehindGuard.target-frozen guard)
+    (CTI2.SmartFreshBehindGuard.old-source-frozen guard)
+    (CTI2.SmartFreshBehindGuard.fresh-not-target guard)
+    (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard)
+
+decaySmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : TyVar Δᴿ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartAliasMergeGuard W Wᵐ β α
+  → CTI2.SmartAliasMergeGuard Wᵈ Wᵐ β α
+decaySmartAliasMergeGuard
+    (env-decay refl refl refl refl mono) guard =
+  CTI2.smart-alias-merge-guard
+    (CTI2.SmartAliasMergeGuard.β:=＇α guard)
+    (CTI2.SmartAliasMergeGuard.α:=★ guard)
+    (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
+    (CTI2.SmartAliasMergeGuard.targetStore-same guard)
+    (CTI2.SmartAliasMergeGuard.target-frozen guard)
+    (CTI2.SmartAliasMergeGuard.pending-at-alias guard)
+    (CTI2.SmartAliasMergeGuard.old-source-frozen guard)
+    (CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard)
+    (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard)
+    (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard)
+
+decaySmartCommaLiftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.SmartCommaLiftᴸ Wᵈ Wᵐ
+decaySmartCommaLiftᴸ dec (CTI2.smart-fresh-behind guard) =
+  CTI2.smart-fresh-behind (decaySmartFreshBehindGuard dec guard)
+decaySmartCommaLiftᴸ dec (CTI2.smart-merge-alias guard) =
+  CTI2.smart-merge-alias (decaySmartAliasMergeGuard dec guard)
+
 decayCtx-tgt : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
   → (dec : EnvDecay W Wᵈ)
   → (γ : CTI2.CtxImp W)
@@ -242,6 +302,20 @@ private
     (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
       (sym (decayCtx-tgt dec γ)) M′⊢)
     (⊢²-decay (liftDecayLeft X⊑★ dec) V⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    {γ = γ}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M′⊢
+      V⊑M′ q) =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (decaySmartCommaLiftᴸ dec liftW)
+    (decaySmartLiftCtxᴸ dec liftγ) vV
+    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (decayCtx-tgt dec γ)) M′⊢)
+    V⊑M′
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {W = CTI2.world ηL ηR μ ΣL ΣR}

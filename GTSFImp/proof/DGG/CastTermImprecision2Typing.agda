@@ -9,12 +9,13 @@ module proof.DGG.CastTermImprecision2Typing where
 --   * Erases optional-pivot conversion typing to ordinary store validity.
 
 open import Data.List using ([]; _∷_)
+open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong)
   renaming (subst to subst≡)
 
 open import Types
-open import TyStore using (TyStore)
+open import TyStore using (TyStore; store-lift)
 import TermCtx as T
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_;
@@ -26,6 +27,8 @@ open CTI2 using
   (World; sourceStoreʷ; targetStoreʷ; CtxImp; ctx-imp; srcTyʷ; tgtTyʷ;
    srcCtxʷ; tgtCtxʷ; _∋ʷ_⦂_; Zʷ; Sʷ; SameCtx; same-[]; same-∷;
    LiftCtx; lift-[]; lift-∷; LiftCtxᴸ; liftᴸ-[]; liftᴸ-∷;
+   SmartLiftCtxᴸ; smart-lift-[]; smart-lift-∷; SmartCommaLiftᴸ;
+   smart-fresh-behind; smart-merge-alias;
    RebaseAt; RebaseAtᴸ; RebaseAtᴿ; _⊢↑[_]_; _⊢↓[_]_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
@@ -82,6 +85,24 @@ liftCtxᴸ-source : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
   → srcCtxʷ γ′ ≡ T.⇑ᶜ (srcCtxʷ γ)
 liftCtxᴸ-source liftᴸ-[] = refl
 liftCtxᴸ-source (liftᴸ-∷ liftγ) = cong (_ ∷_) (liftCtxᴸ-source liftγ)
+
+smartLiftCtxᴸ-source : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : World Δᴸ Δᴿ Δ} {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
+  → SmartLiftCtxᴸ γ γᵐ
+  → srcCtxʷ γᵐ ≡ T.⇑ᶜ (srcCtxʷ γ)
+smartLiftCtxᴸ-source smart-lift-[] = refl
+smartLiftCtxᴸ-source (smart-lift-∷ liftγ) =
+  cong (_ ∷_) (smartLiftCtxᴸ-source liftγ)
+
+smartLift-source-store : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : World Δᴸ Δᴿ Δ} {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+  → SmartCommaLiftᴸ W Wᵐ
+  → sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
+smartLift-source-store (smart-fresh-behind guard) =
+  CTI2.SmartFreshBehindGuard.sourceStore-lifted guard
+smartLift-source-store (smart-merge-alias guard) =
+  CTI2.SmartAliasMergeGuard.sourceStore-lifted guard
 
 ------------------------------------------------------------------------
 -- Indexed conversion typing erases to ordinary validity
@@ -215,6 +236,14 @@ mutual
     ⊢Λ vV
       (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
         (liftCtxᴸ-source liftγ) (source-typing² V⊑M′))
+  source-typing²
+      (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M′⊢
+        V⊑M′ q) =
+    ⊢Λ vV
+      (subst≡ (λ Σ → ⟨ _ , Σ , T.⇑ᶜ (srcCtxʷ _) ⟩ ⊢ _ ⦂ _)
+        (smartLift-source-store liftW)
+        (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+          (smartLiftCtxᴸ-source liftγ) (source-typing² V⊑M′)))
   source-typing² (CTI2.•⊑•² p∀ M⊑M′ q r) = ⊢• (source-typing² M⊑M′)
   source-typing² (CTI2.•⊑² p∀ M⊑M′ q r) = ⊢• (source-typing² M⊑M′)
   source-typing² (CTI2.κ⊑κ² κ p) = ⊢$ κ
@@ -261,6 +290,9 @@ mutual
       (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
         (liftCtx-target liftγ) (target-typing² V⊑V′))
   target-typing² (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q) = M′⊢
+  target-typing²
+      (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M′⊢
+        V⊑M′ q) = M′⊢
   target-typing² (CTI2.•⊑•² p∀ M⊑M′ q r) = ⊢• (target-typing² M⊑M′)
   target-typing² (CTI2.•⊑² p∀ M⊑M′ q r) = target-typing² M⊑M′
   target-typing² (CTI2.κ⊑κ² κ p) = ⊢$ κ

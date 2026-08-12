@@ -20,8 +20,8 @@ The port currently contains:
 - `LR-narrow/LogicalRelation.agda`: a step-indexed LR indexed canonically by
   `Imprecision`, plus `ValueNarrowing` obtained by reindexing through the
   derivation isomorphism;
-- `LR-narrow/DynamicPayload.agda`: base, function, variable, and universal
-  ground introduction cases for `DynamicPayloadRelated`;
+- `LR-narrow/DynamicPayload.agda`: two-sided and precise-to-dynamic ground
+  introduction cases for the payload relations;
 - `LR-narrow/Closure.agda`: public statements of downward closure and
   future-world monotonicity for typed endpoints, functions, paired and
   right-only universals, and the full value relation.
@@ -67,6 +67,12 @@ universal is instantiated at the fresh variable while the imprecise term is
 returned unchanged. There is no imprecise-only counterpart because `VarImp`
 has no `★⊑X` mode with which to type its fresh center slot.
 
+`RightDynamicPayloadRelated` handles a different asymmetry: the imprecise
+value is an injected ground payload while the precise value remains untagged.
+Its shape records the imprecise ground type and injection, and its payload is
+related to the precise value at the ground type before injection. The
+`ι⊑★`, `⇒⊑★`, `∀⊑★`, and `∀★⊑★` clauses are instances of this one definition.
+
 ## Why imprecision and narrowing give the same LR index
 
 For `p : μ ⊢ Aᴾ ⊑ Aᴵ`, the narrowing endpoint order is reversed:
@@ -93,6 +99,8 @@ The checked closure layer establishes:
 - future monotonicity of `TypedEndpoints`;
 - future monotonicity of `FunctionsRelated`, `UniversalsRelated`, and
   `RightUniversalsRelated`;
+- downward closure and future monotonicity of
+  `RightDynamicPayloadRelated`;
 - future monotonicity of the complete value relation;
 - constructors turning positive-index paired and dynamic semantic-entry
   witnesses into the strengthened `X⊑X` and `X⊑★` value clauses.
@@ -103,14 +111,14 @@ definitionally, equal to lifting in two stages.
 
 ## Deliberate draft boundaries
 
-The structural clauses are complete for `★⊑★`, `X⊑X`, `X⊑★`, ordinary
-functions, paired universals, and `∀⊑`. The `∀⊑★` clause additionally requires
-the imprecise value to be a dynamically tagged universal whose payload is
-related to the precise universal by `∀⊑∀`; its behavior therefore reuses the
-paired-universal clause after the dynamic boundary is exposed.
+The structural clauses are complete for every non-bottom imprecision
+constructor. The ground-to-`★` cases expose the imprecise injection and reuse
+the LR recursively on its payload: `ι⊑ι` for bases, `⇒⊑⇒` for functions, and
+`∀⊑∀` for universals. `X⊑★` remains atom-based because its abstract
+representation is supplied by the world rather than by a fixed ground form.
 
-The remaining gradual constructors `⇒⊑★`, `ι⊑★`, `∀★⊑★`, and the bottom
-cases still impose endpoint valuehood and typing only. Strengthening the
-function and base dynamic-boundary cases is the next semantic milestone.
+The bottom cases still impose endpoint valuehood and typing only. Their useful
+elimination principles should be derived from typing and canonical-form
+inversion rather than by adding observable value behavior to bottom.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

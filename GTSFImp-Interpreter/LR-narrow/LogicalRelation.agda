@@ -97,6 +97,27 @@ record DynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
 
 open DynamicPayloadShape public
 
+record RightDynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᶜ)
+    (Vᴵ : Term Δᴵ) : Set₁ where
+  constructor right-dynamic-payload-shape
+  field
+    right-imprecise-ground : Ty Δᴵ
+    right-imprecise-ground-proof : Ground right-imprecise-ground
+    right-imprecise-consistency-env : Env∼ Δᴵ
+    right-imprecise-ground-to-star :
+      right-imprecise-consistency-env ⊢ right-imprecise-ground ∼★
+    right-dynamic-imprecise-payload : Term Δᴵ
+    right-dynamic-imprecise-shape : Vᴵ ≡
+      right-dynamic-imprecise-payload
+        ⟨ groundInjection right-imprecise-ground-proof
+          right-imprecise-ground-to-star ⟩
+    right-payload-imprecision :
+      impEnv (core W) I.⊢ Aᴾ
+        ⊑ embedImprecise (core W) right-imprecise-ground
+
+open RightDynamicPayloadShape public
+
 ------------------------------------------------------------------------
 -- Step-indexed value relation
 ------------------------------------------------------------------------
@@ -138,11 +159,14 @@ mutual
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
       × UniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
 
-  ValueImprecisionᵏ (suc k) W (I.⇒⊑★ p q) Vᴵ Vᴾ =
-    TypedEndpoints W (I.⇒⊑★ p q) Vᴵ Vᴾ
+  ValueImprecisionᵏ (suc k) W
+      (I.⇒⊑★ {A = A} {B = B} p q) Vᴵ Vᴾ =
+    TypedEndpoints W (I.⇒⊑★ p q) Vᴵ Vᴾ ×
+    RightDynamicPayloadRelated W (A ⇒ B) k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.ι⊑★ {ι = ι}) Vᴵ Vᴾ =
-    TypedEndpoints W (I.ι⊑★ {ι = ι}) Vᴵ Vᴾ
+    TypedEndpoints W (I.ι⊑★ {ι = ι}) Vᴵ Vᴾ ×
+    RightDynamicPayloadRelated W (‵ ι) k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.X⊑★ eq) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ ×
@@ -156,11 +180,13 @@ mutual
       × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.∀★⊑★ Vᴵ Vᴾ =
-    TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ
+    TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ ×
+    RightDynamicPayloadRelated W (`∀ ★) k Vᴵ Vᴾ
 
-  ValueImprecisionᵏ (suc k) W (I.∀⊑★ nonstar p) Vᴵ Vᴾ =
+  ValueImprecisionᵏ (suc k) W
+      (I.∀⊑★ {A = A} nonstar p) Vᴵ Vᴾ =
     TypedEndpoints W (I.∀⊑★ nonstar p) Vᴵ Vᴾ ×
-    DynamicUniversalRelated W p k Vᴵ Vᴾ
+    RightDynamicPayloadRelated W (`∀ A) k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.bot-elim Vᴵ Vᴾ =
     TypedEndpoints W I.bot-elim Vᴵ Vᴾ
@@ -253,18 +279,17 @@ mutual
               ⦂∀ liftPreciseBody W≼B Bᴾ [ ＇ Fin.zero ]))
     × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
 
-  DynamicUniversalRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+  RightDynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)
-    → I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ★
+    → Ty Δᶜ
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
     → Set₁
-  DynamicUniversalRelated W p k Vᴵ Vᴾ =
-    Σ[ μᴵ ∈ Env∼ _ ]
-    Σ[ Uᴵ ∈ Term _ ]
-      (Vᴵ ≡ Uᴵ ⟨ groundInjection ∀★ (C.∀∼★ {μ = μᴵ}) ⟩)
-      × ValueImprecisionᵏ k W (I.∀⊑∀ p) Uᴵ Vᴾ
+  RightDynamicPayloadRelated W Aᴾ k Vᴵ Vᴾ =
+    Σ[ shape ∈ RightDynamicPayloadShape W Aᴾ Vᴵ ]
+      ValueImprecisionᵏ k W (right-payload-imprecision shape)
+        (right-dynamic-imprecise-payload shape) Vᴾ
 
   DynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)

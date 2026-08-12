@@ -73,6 +73,16 @@ value-imprecision-future : ∀
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 value-imprecision-future = Proof.value-imprecision-future
 
+right-dynamic-payload-related-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {k Vᴵ Vᴾ} (W≼W′ : Future W W′)
+  → RightDynamicPayloadRelated W Aᴾ k Vᴵ Vᴾ
+  → RightDynamicPayloadRelated W′ (liftCenterTy W≼W′ Aᴾ) k
+      (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+right-dynamic-payload-related-future =
+  Proof.right-dynamic-payload-related-future
+
 value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
@@ -80,6 +90,12 @@ value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → ValueImprecision W p (suc k) Vᴵ Vᴾ
   → ValueImprecision W p k Vᴵ Vᴾ
 value-imprecision-downward = Proof.value-imprecision-downward
+
+right-dynamic-payload-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k Vᴵ Vᴾ}
+  → RightDynamicPayloadRelated W Aᴾ (suc k) Vᴵ Vᴾ
+  → RightDynamicPayloadRelated W Aᴾ k Vᴵ Vᴾ
+right-dynamic-payload-downward = Proof.right-dynamic-payload-downward
 
 semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}

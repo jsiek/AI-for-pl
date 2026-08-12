@@ -4,7 +4,7 @@ module LR-narrow.DynamicPayload where
 --   * Constructs DynamicPayloadRelated for every GTSFImp ground form.
 --   * Supports distinct endpoint contexts via the world's center embeddings.
 --   * Uses semantic-atom alignment for the variable-tag case.
---   * Constructs the one-dynamic universal boundary used by ∀⊑★.
+--   * Constructs one-sided dynamic boundaries for the ground-to-★ clauses.
 
 open import Data.Nat using (ℕ)
 open import Data.Product using (_,_)
@@ -84,12 +84,57 @@ dynamic-payload-universal {μᴾ = μᴾ} {μᴵ = μᴵ} payload-related =
     (C.∀∼★ {μ = μᴵ})
     (I.∀⊑∀ I.★⊑★) payload-related
 
-dynamic-universal-boundary : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+right-tags-and-payload : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Gᴵ : Ty Δᴵ} (gᴵ : Ground Gᴵ)
+    {μᴵ : Env∼ Δᴵ} (Gᴵ∼★ : μᴵ ⊢ Gᴵ ∼★)
+    {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+    (q : impEnv (core W) I.⊢ Aᴾ ⊑ embedImprecise (core W) Gᴵ)
+  → ValueImprecision W q k Uᴵ Vᴾ
+  → RightDynamicPayloadRelated W Aᴾ k
+      (Uᴵ ⟨ groundInjection gᴵ Gᴵ∼★ ⟩) Vᴾ
+right-tags-and-payload gᴵ Gᴵ∼★ q related =
+  right-dynamic-payload-shape _ gᴵ _ Gᴵ∼★ _ refl q , related
+
+right-dynamic-payload-base : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ} {ι : Base}
+    {μᴵ : Env∼ Δᴵ} {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.ι⊑ι {ι = ι}) k Uᴵ Vᴾ
+  → RightDynamicPayloadRelated W (‵ ι) k
+      (Uᴵ ⟨ groundInjection (Types.‵ ι)
+        (C.ι∼★ {μ = μᴵ}) ⟩) Vᴾ
+right-dynamic-payload-base {μᴵ = μᴵ} related =
+  right-tags-and-payload _ (C.ι∼★ {μ = μᴵ}) I.ι⊑ι related
+
+right-dynamic-payload-function : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Bᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ ★)
+    (q : impEnv (core W) I.⊢ Bᴾ ⊑ ★)
+    {μᴵ : Env∼ Δᴵ} {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.⇒⊑⇒ p q) k Uᴵ Vᴾ
+  → RightDynamicPayloadRelated W (Aᴾ ⇒ Bᴾ) k
+      (Uᴵ ⟨ groundInjection ★⇒★ (C.⇒∼★ {μ = μᴵ}) ⟩) Vᴾ
+right-dynamic-payload-function p q {μᴵ = μᴵ} related =
+  right-tags-and-payload ★⇒★ (C.⇒∼★ {μ = μᴵ})
+    (I.⇒⊑⇒ p q) related
+
+right-dynamic-payload-universal : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     (p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ★)
     {μᴵ : Env∼ Δᴵ} {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ p) k Uᴵ Vᴾ
-  → DynamicUniversalRelated W p k
+  → RightDynamicPayloadRelated W (`∀ Aᴾ) k
       (Uᴵ ⟨ groundInjection ∀★ (C.∀∼★ {μ = μᴵ}) ⟩) Vᴾ
-dynamic-universal-boundary p {μᴵ = μᴵ} {Uᴵ = Uᴵ} related =
-  μᴵ , Uᴵ , refl , related
+right-dynamic-payload-universal p {μᴵ = μᴵ} related =
+  right-tags-and-payload ∀★ (C.∀∼★ {μ = μᴵ})
+    (I.∀⊑∀ p) related
+
+right-dynamic-payload-universal-star : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {μᴵ : Env∼ Δᴵ} {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑∀ I.★⊑★) k Uᴵ Vᴾ
+  → RightDynamicPayloadRelated W (`∀ ★) k
+      (Uᴵ ⟨ groundInjection ∀★ (C.∀∼★ {μ = μᴵ}) ⟩) Vᴾ
+right-dynamic-payload-universal-star {μᴵ = μᴵ} related =
+  right-tags-and-payload ∀★ (C.∀∼★ {μ = μᴵ})
+    (I.∀⊑∀ I.★⊑★) related

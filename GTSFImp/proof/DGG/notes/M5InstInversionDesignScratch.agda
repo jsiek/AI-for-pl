@@ -485,6 +485,18 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   IIP.Λ-post-prefix-concrete-base
 
 
+Λ-concrete-post-window-preflight : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))}
+  → IIP.ΛPostWindowGeometry W
+      (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+      ext₂
+Λ-concrete-post-window-preflight =
+  IIP.Λ-concrete-post-window
+
+
 Λ-post-prefix-smart-base-preflight : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
     {W : World Δᴸ Δᴿ Δ}
     {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
@@ -528,7 +540,6 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
     {ν : Env∼ Δᴿ}
     {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
     {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
-  → Λ⊑Λ²PostBodyTransportAtᵀ
   → (rel : W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vV : Value V)
   → (vV′ : Value V′)
@@ -538,6 +549,7 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   → (B′≢★ : B′ ≢ ★)
   → (ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → IIP.ΛPostWindowGeometry W W₂ ext₂
   → (liftγ : LiftCtx X⊑X γ γᴮ)
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -557,7 +569,6 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X Wᵐ ⟩ B}
     {p : `∀ A ⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
-  → Λ⊑Λ²PostBodyTransportAtᵀ
   → (rel : Wᵐ ∣ γᵐ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vV : Value V)
   → (vV′ : Value V′)
@@ -567,6 +578,7 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   → (B′≢★ : B′ ≢ ★)
   → (extᵐ₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂)
+  → IIP.ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂
   → (liftγᵐ : LiftCtx X⊑X γᵐ γᵐᴮ)
   → NonVar A
   → Fin.zero ∈ᵗ A

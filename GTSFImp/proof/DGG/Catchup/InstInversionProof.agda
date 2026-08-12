@@ -1564,32 +1564,264 @@ target-inner₃-eq W B =
     (Λ-inner-body-⊑ᵂ {W = W} {A = A} {B = B} body-p)
 
 
-Λ⊑Λ²-post-body-transport : Λ⊑Λ²PostBodyTransportᵀ
-Λ⊑Λ²-post-body-transport {Δᴿ = Δᴿ} {W = W} {γ = γ} {γᴮ = γᴮ}
-    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
-    ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+    (W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂)
+    (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂) : Set₁ where
+  field
+    freshWorld : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc Δ₂)
+    midWorld : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc Δ₂)
+
+    route1Prefix : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+        {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+        {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+        {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+      → CTI2.LiftCtx I.X⊑X γ γᴮ
+      → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+          ⊢² V ⊑ V′ ∶ body-p
+      → Σ[ γᶠ ∈ CTI2.CtxImp freshWorld ]
+        Σ[ pᶠ ∈ A CTI2.⊑ᵂ⟨ freshWorld ⟩ applyBody (bind ★) B ]
+          freshWorld CTI2.∣ γᶠ
+            ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+
+    midCtx : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+      → CTI2.LiftCtx I.X⊑X γ γᴮ
+      → CTI2.CtxImp midWorld
+
+    outCtx : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+      → CTI2.LiftCtx I.X⊑X γ γᴮ
+      → CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W₂)
+
+    midFreshMono :
+      CTI2.ImpEnvMono midWorld freshWorld
+
+    innerRebaseᴿ :
+      CTI2.RebaseAtᴿ midWorld freshWorld (just Fin.zero)
+
+    midFreshSame : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+        {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+        {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+        {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+      → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+      → (bodyRel : CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+          ⊢² V ⊑ V′ ∶ body-p)
+      → CTI2.SameCtx (midCtx liftγ)
+          (proj₁ (route1Prefix liftγ bodyRel))
+
+    outMidMono :
+      CTI2.ImpEnvMono (CTI2.liftWorldLeft I.X⊑★ W₂) midWorld
+
+    outerRebaseᴿ :
+      CTI2.RebaseAtᴿ (CTI2.liftWorldLeft I.X⊑★ W₂) midWorld
+        (just (Fin.suc Fin.zero))
+
+    outMidSame : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+      → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+      → CTI2.SameCtx (outCtx liftγ) (midCtx liftγ)
+
+    outLiftCtxᴸ : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+      → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+      → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+          (outCtx liftγ)
+
+    innerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
+      → Fin.zero ∈ᵗ applyBody (bind ★) B
+      → CTI2.targetStoreʷ midWorld CTI2.⊢↑[ just Fin.zero ]
+          〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗
+
+    outerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
+      → Fin.zero ∈ᵗ B
+      → CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂)
+          CTI2.⊢↑[ just (Fin.suc Fin.zero) ]
+          rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
+
+    innerBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+      → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+      → A CTI2.⊑ᵂ⟨ midWorld ⟩
+          replaceTy Fin.zero (⇑ᵗ (＇ Fin.zero)) (applyBody (bind ★) B)
+
+    finalBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+      → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B
+      → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W₂ ⟩
+          substᵗ Λ⊑Λ²TargetSplit₂ B
+
+    outTargetCtx : ∀ {γ : CTI2.CtxImp W}
+        {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+      → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+      → CTI2.tgtCtxʷ (outCtx liftγ) ≡
+          CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ)
+
+
+Λ-concrete-route1-prefix : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γᶠ ∈ CTI2.CtxImp (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) ]
+    Σ[ pᶠ ∈ A CTI2.⊑ᵂ⟨
+          TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ applyBody (bind ★) B ]
+      TBL.ΛLiftToBindFreshWorld I.X⊑★ W CTI2.∣ γᶠ
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+Λ-concrete-route1-prefix {W = W} {V = V} {V′ = V′}
+    {A = A} {B = B} liftγ bodyRel
     with Λ⊑Λ²-route1-prefix bodyRel
-Λ⊑Λ²-post-body-transport {Δᴿ = Δᴿ} {W = W} {γ = γ}
-    {γᴮ = γᴮ}
-    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
-    ext₂ Anv zero∈A liftγ vV vV′ bodyRel
-  | pᵇ , relFreshRoute =
-  γout , body-p₂ , top-p₂ ,
-  liftOut , postVal , post⊢ , relOut
+... | pᵇ , relFreshRoute =
+  γfresh , pᶠ , relFresh
   where
+  γfresh = Λ-route1-fresh-ctx liftγ
+
+  relFreshRouteCtx : TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+      CTI2.∣ γfresh
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+  relFreshRouteCtx =
+    subst≡
+      (λ γᶠ → TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+        CTI2.∣ γᶠ
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ)
+      (Λ-route1-ctx-fresh-eq liftγ)
+      relFreshRoute
+
+  pᶠ : A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩
+      applyBody (bind ★) B
+  pᶠ =
+    subst≡
+      (λ C → A CTI2.⊑ᵂ⟨
+        TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ C)
+      (sym (applyBody-bind★-eq B))
+      pᵇ
+
+  relFresh : TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+      CTI2.∣ γfresh
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+  relFresh =
+    rel-target-transportᴿ (sym (applyBody-bind★-eq B))
+      pᵇ relFreshRouteCtx
+
+
+Λ-concrete-route1-prefix-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
+  → (bodyRel : CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p)
+  → proj₁ (Λ-concrete-route1-prefix liftγ bodyRel)
+      ≡ Λ-route1-fresh-ctx liftγ
+Λ-concrete-route1-prefix-ctx liftγ bodyRel
+    with Λ⊑Λ²-route1-prefix bodyRel
+... | pᵇ , relFreshRoute = refl
+
+
+Λ-concrete-post-window : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))}
+  → ΛPostWindowGeometry W
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      ext₂
+Λ-concrete-post-window {W = W} {ext₂ = ext₂} = record
+  { freshWorld = TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+  ; midWorld = ΛPostMidWorld W
+  ; route1Prefix = Λ-concrete-route1-prefix
+  ; midCtx = Λ-route1-mid-ctx
+  ; outCtx = Λ-route1-out-ctx
+  ; midFreshMono = Λ-mid-fresh-mono W
+  ; innerRebaseᴿ = Λ-inner-rebaseᴿ W
+  ; midFreshSame = λ liftγ bodyRel →
+      subst≡ (λ γ → CTI2.SameCtx (Λ-route1-mid-ctx liftγ) γ)
+        (sym (Λ-concrete-route1-prefix-ctx liftγ bodyRel))
+        (Λ-route1-mid-fresh-same liftγ)
+  ; outMidMono = Λ-out-mid-mono W
+  ; outerRebaseᴿ = Λ-outer-rebaseᴿ W
+  ; outMidSame = Λ-route1-out-mid-same
+  ; outLiftCtxᴸ = Λ-route1-out-liftCtxᴸ ext₂
+  ; innerReveal⊢ = λ Bpre-zero∈ →
+      generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl)
+  ; outerReveal⊢ = λ zero∈B →
+      TE.reveal-renameˣ StoreRename-suc-bind
+        (generated-reveal-⊢↑-present zero∈B (Z∋ refl))
+  ; innerBody⊑ᵂ = λ {A} {B} body-p →
+      Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p
+  ; finalBody⊑ᵂ = λ {A} {B} body-p →
+      Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-p
+  ; outTargetCtx = λ liftγ →
+      liftCtxᴸ-target (Λ-route1-out-liftCtxᴸ ext₂ liftγ)
+  }
+
+
+Λ⊑Λ²-post-body-transport-at : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
+  → {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+  → ΛPostWindowGeometry W W₂ ext₂
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CT.Value V
+  → CT.Value V′
+  → CTI2.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γ₂ᴸ ∈ CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W₂) ]
+    Σ[ body-p₂ ∈ A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W₂ ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
+    Σ[ top-p₂ ∈ `∀ A CTI2.⊑ᵂ⟨ W₂ ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
+      CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
+      × Value (Λ⊑Λ²PostTerm V′ B)
+      × ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ ,
+          CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+          ⊢ Λ⊑Λ²PostTerm V′ B ⦂
+          substᵗ Λ⊑Λ²TargetSplit₂ B
+      × CTI2.liftWorldLeft I.X⊑★ W₂ CTI2.∣ γ₂ᴸ
+          ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
+Λ⊑Λ²-post-body-transport-at {Δᴿ = Δᴿ} {W = W} {W₂ = W₂}
+    {γ = γ} {γᴮ = γᴮ}
+    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
+    {ext₂ = ext₂} geom Anv zero∈A liftγ vV vV′ bodyRel
+  =
+  γout , body-p₂ , top-p₂ , liftOut , postVal , post⊢ , relOut
+  where
+  route = ΛPostWindowGeometry.route1Prefix geom liftγ bodyRel
+
+  γfresh = proj₁ route
+
+  pFresh = proj₁ (proj₂ route)
+
+  relFresh = proj₂ (proj₂ route)
+
   Wfresh =
-    TBL.ΛLiftToBindFreshWorld I.X⊑★ W
+    ΛPostWindowGeometry.freshWorld geom
 
   Wmid =
-    ΛPostMidWorld W
+    ΛPostWindowGeometry.midWorld geom
 
   Wout =
-    CTI2.liftWorldLeft I.X⊑★
-      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+    CTI2.liftWorldLeft I.X⊑★ W₂
 
-  γfresh = Λ-route1-fresh-ctx liftγ
-  γmid = Λ-route1-mid-ctx liftγ
-  γout = Λ-route1-out-ctx liftγ
+  γmid = ΛPostWindowGeometry.midCtx geom liftγ
+  γout = ΛPostWindowGeometry.outCtx geom liftγ
 
   Bpre : Ty (suc (suc Δᴿ))
   Bpre = applyBody (bind ★) B
@@ -1615,26 +1847,6 @@ target-inner₃-eq W B =
 
   post : CT.Term (suc (suc Δᴿ))
   post = post₁ ↑ cOuter
-
-  pᵇBody : A CTI2.⊑ᵂ⟨ Wfresh ⟩ Bpre
-  pᵇBody =
-    subst≡ (λ C → A CTI2.⊑ᵂ⟨ Wfresh ⟩ C)
-      (sym (applyBody-bind★-eq B)) pᵇ
-
-  relFreshRouteCtx : Wfresh CTI2.∣ γfresh
-      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
-  relFreshRouteCtx =
-    subst≡
-      (λ γᶠ → Wfresh CTI2.∣ γᶠ
-        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ)
-      (Λ-route1-ctx-fresh-eq liftγ)
-      relFreshRoute
-
-  relFresh : Wfresh CTI2.∣ γfresh
-      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇBody
-  relFresh =
-    rel-target-transportᴿ (sym (applyBody-bind★-eq B))
-      pᵇ relFreshRouteCtx
 
   rawAnv : NonVar
       (CTI2.embedᴸ (CTI2.liftWorldBoth I.X⊑X W) A)
@@ -1682,14 +1894,13 @@ target-inner₃-eq W B =
   cInner⊢ :
       CTI2.targetStoreʷ Wmid CTI2.⊢↑[ just Fin.zero ] cInner
   cInner⊢ =
-    generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl)
+    ΛPostWindowGeometry.innerReveal⊢ geom Bpre-zero∈
 
   cOuter⊢ :
       CTI2.targetStoreʷ Wout
         CTI2.⊢↑[ just (Fin.suc Fin.zero) ] cOuter
   cOuter⊢ =
-    TE.reveal-renameˣ StoreRename-suc-bind
-      (generated-reveal-⊢↑-present zero∈B (Z∋ refl))
+    ΛPostWindowGeometry.outerReveal⊢ geom zero∈B
 
   rvInner : RevealValue cInner
   rvInner = generated-reveal-value Bpre-nv Bpre-zero∈
@@ -1704,12 +1915,15 @@ target-inner₃-eq W B =
     (renameᵗᵐ-preserves-Value (keep wk↪ᵗ) vV′ ↑ rvInner) ↑ rvOuter
 
   qInner : A CTI2.⊑ᵂ⟨ Wmid ⟩ Bmid
-  qInner = Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p
+  qInner = ΛPostWindowGeometry.innerBody⊑ᵂ geom body-p
 
   relMid : Wmid CTI2.∣ γmid ⊢² V ⊑ post₁ ∶ qInner
   relMid =
-    CTI2.⊑reveal² (Λ-mid-fresh-mono W) (Λ-inner-rebaseᴿ W)
-      (Λ-route1-mid-fresh-same liftγ) cInner⊢ relFresh qInner
+    CTI2.⊑reveal²
+      (ΛPostWindowGeometry.midFreshMono geom)
+      (ΛPostWindowGeometry.innerRebaseᴿ geom)
+      (ΛPostWindowGeometry.midFreshSame geom liftγ bodyRel)
+      cInner⊢ relFresh qInner
 
   relMidOuterPrem : Wmid CTI2.∣ γmid
       ⊢² V ⊑ post₁ ∶
@@ -1719,7 +1933,7 @@ target-inner₃-eq W B =
     rel-target-transportᴿ (inner-reveal-target-eq-applyBody B) qInner relMid
 
   body-p₂ : A CTI2.⊑ᵂ⟨ Wout ⟩ B₂
-  body-p₂ = Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-p
+  body-p₂ = ΛPostWindowGeometry.finalBody⊑ᵂ geom body-p
 
   qOuter : A CTI2.⊑ᵂ⟨ Wout ⟩ BouterOut
   qOuter =
@@ -1729,8 +1943,11 @@ target-inner₃-eq W B =
 
   relOutConv : Wout CTI2.∣ γout ⊢² V ⊑ post ∶ qOuter
   relOutConv =
-    CTI2.⊑reveal² (Λ-out-mid-mono W) (Λ-outer-rebaseᴿ W)
-      (Λ-route1-out-mid-same liftγ) cOuter⊢ relMidOuterPrem qOuter
+    CTI2.⊑reveal²
+      (ΛPostWindowGeometry.outMidMono geom)
+      (ΛPostWindowGeometry.outerRebaseᴿ geom)
+      (ΛPostWindowGeometry.outMidSame geom liftγ)
+      cOuter⊢ relMidOuterPrem qOuter
 
   relOut : Wout CTI2.∣ γout ⊢² V ⊑ post ∶ body-p₂
   relOut =
@@ -1741,34 +1958,30 @@ target-inner₃-eq W B =
         (outer-reveal-target-eq B)
         qOuter relOutConv)
 
-  top-p₂ : `∀ A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ B₂
+  top-p₂ : `∀ A CTI2.⊑ᵂ⟨ W₂ ⟩ B₂
   top-p₂ =
     ∀⊑ᵂ-from-left-lift
-      {W = CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
-        (＇ Fin.zero)}
-      {A = A} {B = B₂}
-      Anv zero∈A body-p₂
+      {W = W₂} {A = A} {B = B₂} Anv zero∈A body-p₂
 
   liftOut : CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ) γout
-  liftOut = Λ-route1-out-liftCtxᴸ ext₂ liftγ
+  liftOut = ΛPostWindowGeometry.outLiftCtxᴸ geom liftγ
 
   post⊢ :
-      ⟨ suc (suc Δᴿ) ,
-        CTI2.targetStoreʷ
-          (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
-            (＇ Fin.zero)) ,
+      ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ ,
         CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
       ⊢ post ⦂ B₂
   post⊢ =
     subst≡
-      (λ Γ → ⟨ _ , CTI2.targetStoreʷ
-          (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
-            (＇ Fin.zero)) , Γ ⟩
+      (λ Γ → ⟨ _ , CTI2.targetStoreʷ W₂ , Γ ⟩
         ⊢ post ⦂ B₂)
-      (liftCtxᴸ-target liftOut)
+      (ΛPostWindowGeometry.outTargetCtx geom liftγ)
       (CTI2T.target-typing² relOut)
+
+
+Λ⊑Λ²-post-body-transport : Λ⊑Λ²PostBodyTransportᵀ
+Λ⊑Λ²-post-body-transport {W = W} {body-p = body-p} ext₂ =
+  Λ⊑Λ²-post-body-transport-at
+    (Λ-concrete-post-window {W = W} {ext₂ = ext₂})
 
 
 inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -3477,7 +3690,6 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     {ν : Env∼ Δᴿ}
     {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
     {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-  → Λ⊑Λ²PostBodyTransportAtᵀ
   → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
@@ -3487,6 +3699,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
   → (B′≢★ : B′ ≢ ★)
   → (ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → ΛPostWindowGeometry W W₂ ext₂
   → (liftγ : CTI2.LiftCtx I.X⊑X γ γᴮ)
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -3494,9 +3707,10 @@ right-bind-right-bind-tag-rebaseᴸ rb =
       ⊢² V ⊑ V′ ∶ body-p
   → ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
 Λ⊑Λ²-base-prefix-at-base {Δᴿ = Δᴿ} {W₂ = W₂}
-    {V′ = V′} {A = A} {B = B} transportAt rel vV vV′ c′
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ ext₂ liftγ Anv zero∈A bodyRel
-    with transportAt ext₂ Anv zero∈A liftγ vV vV′ bodyRel
+    {V′ = V′} {A = A} {B = B} rel vV vV′ c′
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ ext₂ geom liftγ Anv zero∈A bodyRel
+    with Λ⊑Λ²-post-body-transport-at geom Anv zero∈A
+      liftγ vV vV′ bodyRel
 ... | γ₂ᴸ , body-p₂ , top-p₂ ,
       liftγ₂ , vPost , post⊢ , bodyRel₂ =
   record

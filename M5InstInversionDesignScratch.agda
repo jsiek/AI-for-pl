@@ -12,6 +12,7 @@ open import proof.DGG.Catchup.InstInversionDef using
   (InstInversionPackage; InstPostCatalogPackage;
    InstPostCatalogPackageAt; Λ⊑Λ²PostBodyTransportᵀ;
    Λ⊑Λ²PostBodyTransportᴸᵀ; Λ⊑Λ²LeftTower;
+   left-tower-suc;
    Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂; Λ⊑²AtRewrapᵀ;
    Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
 open import Data.Nat using (ℕ; suc; _<_)
@@ -288,6 +289,47 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
   substᵗ Λ⊑Λ²TargetSplit₂ B , Λ⊑Λ²PostTerm V′ B , top-p₂ ,
   vPost , post⊢ ,
   CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂
+
+
+Λ⊑Λ²-one-lift-rewrap-preflight :
+  Λ⊑Λ²PostBodyTransportᴸᵀ
+  → ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᴸ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂)}
+    {γ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γᴮ : CtxImp
+      (liftWorldBoth X⊑X (liftWorldLeft X⊑★ W))}
+    {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨
+      liftWorldBoth X⊑X (liftWorldLeft X⊑★ W) ⟩ B}
+  → Λ⊑Λ²LeftTower W W₂ ext₂
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (liftγ : LiftCtx X⊑X γ γᴮ)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → liftWorldBoth X⊑X (liftWorldLeft X⊑★ W)
+      ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
+    Σ[ post ∈ Term (suc (suc Δᴿ)) ]
+    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B₂ ]
+      Value post
+      × ⟨ suc (suc Δᴿ) ,
+          targetStoreʷ (liftWorldLeft X⊑★ W₂) ,
+          tgtCtxʷ (ECR.mapCtxᴿ extᴸ₂ γ) ⟩ ⊢ post ⦂ B₂
+      × liftWorldLeft X⊑★ W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γ
+          ⊢² Λ V ⊑ post ∶ p₂
+Λ⊑Λ²-one-lift-rewrap-preflight transport tower Anv zero∈A liftγ
+    vV vV′ bodyRel =
+  Λ⊑Λ²-base-rewrap-preflightᴸ transport
+    (left-tower-suc tower _) Anv zero∈A liftγ
+    vV vV′ bodyRel
 
 
 Λ⊑Λ²PostBodyTransportAtᵀ : Set

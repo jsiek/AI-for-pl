@@ -1,7 +1,8 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-11. Status: blocked on the lifted target-pivot center in
-the successor case of the tower-indexed Λ base transport.
+Date: 2026-08-12. Status: blocked on the under-left-lift premise order in
+the successor case of the tower-indexed Λ base transport; see
+`m5-inst-inversion-lambda-under-lift-premise-blocked.red`.
 
 Checked artifact:
 
@@ -20,6 +21,17 @@ inst-inversion→rel-surface : ∀ {fuel}
   → InstInversionPackage fuel
   → InstRelContinuationSurface fuel
 ```
+
+It also checks the k=1 consumer rewrap:
+
+```agda
+Λ⊑Λ²-one-lift-rewrap-preflight
+```
+
+That statement shows the recursive `Λ⊑²` case accepts a one-left-lift
+instance of the tower-indexed transport.  The remaining blocker is proving
+the successor-depth transport itself from the actual premise world
+`liftWorldBoth X⊑X (liftWorldLeft X⊑★ W)`.
 
 ## Proposed Package
 

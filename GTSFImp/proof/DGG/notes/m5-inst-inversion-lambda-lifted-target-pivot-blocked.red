@@ -2,6 +2,13 @@ M5 instantiation inversion blocker: lifted target pivot center
 
 Date: 2026-08-12
 
+Refined by:
+
+  `m5-inst-inversion-lambda-under-lift-premise-blocked.red`.  The newer
+  note records the k=1 consumer preflight that now checks, and isolates
+  the remaining false premise conversion before the under-left-lift
+  helper stack can run.
+
 Blocked target:
 
   implementation of the successor case of the tower-indexed

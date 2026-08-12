@@ -385,6 +385,186 @@ rel-target-transportᴿ refl p rel = rel
     TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
 
 
+Λ⊑Λ²-route1ᴸ-entry-p : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W) ⟩ B
+  → A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+Λ⊑Λ²-route1ᴸ-entry-p {W = W} p =
+  TBL.move⊑ᵂ (TBL.baseMove mv)
+    (CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      wk↪ᵗ
+      (WD.decay⊑ᵂ
+        {W = CTI2.liftWorldBoth I.X⊑X
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+        {Wᵈ = CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+        TD.liftBothBinderDecay
+        (TE.transport⊑ᵂ ins₁ p)))
+  where
+  ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★)))
+  ins₁ =
+    TE.liftBothTargetInsert {v = I.X⊑X}
+      (TE.liftLeftTargetInsert {v = I.X⊑★}
+        (TE.rightBindTargetInsert {W = W} {B = ★}))
+
+  mv = TBL.freshLiftToBindTargetMove★ᴸ {W = W}
+
+
+Λ⊑Λ²-route1ᴸ-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W))
+  → CTI2.CtxImp (TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W)
+Λ⊑Λ²-route1ᴸ-ctx List.[] = List.[]
+Λ⊑Λ²-route1ᴸ-ctx {W = W}
+    (CTI2.ctx-imp A B p List.∷ γᴮ) =
+  CTI2.ctx-imp A (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+    (Λ⊑Λ²-route1ᴸ-entry-p {W = W} p) List.∷
+  Λ⊑Λ²-route1ᴸ-ctx γᴮ
+
+
+Λ⊑Λ²-route1ᴸ-map-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W))
+  → CTI2.CtxImp (TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W)
+Λ⊑Λ²-route1ᴸ-map-ctx {W = W} γᴮ =
+  TBL.moveCtx (TBL.baseMove mv)
+    (CR.renameCtx wk↪ᵗ
+      (WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ ins₁ γᴮ)))
+  where
+  ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★)))
+  ins₁ =
+    TE.liftBothTargetInsert {v = I.X⊑X}
+      (TE.liftLeftTargetInsert {v = I.X⊑★}
+        (TE.rightBindTargetInsert {W = W} {B = ★}))
+
+  mv = TBL.freshLiftToBindTargetMove★ᴸ {W = W}
+
+
+Λ⊑Λ²-route1ᴸ-map-ctx-eq : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    (γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W)))
+  → Λ⊑Λ²-route1ᴸ-map-ctx γᴮ ≡ Λ⊑Λ²-route1ᴸ-ctx γᴮ
+Λ⊑Λ²-route1ᴸ-map-ctx-eq List.[] = refl
+Λ⊑Λ²-route1ᴸ-map-ctx-eq {W = W}
+    (CTI2.ctx-imp A B p List.∷ γᴮ) =
+  cong (CTI2.ctx-imp A (renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B)
+    (Λ⊑Λ²-route1ᴸ-entry-p {W = W} p) List.∷_)
+    (Λ⊑Λ²-route1ᴸ-map-ctx-eq γᴮ)
+
+
+Λ⊑Λ²-route1ᴸ-prefix : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W))}
+    {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W) ⟩ B}
+  → CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+      CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ pᵇ ∈ A CTI2.⊑ᵂ⟨
+        TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B ]
+      TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W CTI2.∣
+        Λ⊑Λ²-route1ᴸ-ctx γᴮ ⊢² V
+          ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+Λ⊑Λ²-route1ᴸ-prefix {W = W} {γᴮ = γᴮ} {V = V} {V′ = V′}
+    {A = A} {B = B} {body-p = body-p} rel =
+  pᵇ ,
+  subst≡
+    (λ γᵇ → TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W CTI2.∣ γᵇ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ)
+    (Λ⊑Λ²-route1ᴸ-map-ctx-eq γᴮ)
+    (TBL.⊢²-target-bind-lift-move mv relʳ)
+  where
+  ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★)))
+  ins₁ =
+    TE.liftBothTargetInsert {v = I.X⊑X}
+      (TE.liftLeftTargetInsert {v = I.X⊑★}
+        (TE.rightBindTargetInsert {W = W} {B = ★}))
+
+  p₁ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))
+        ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  p₁ = TE.transport⊑ᵂ ins₁ body-p
+
+  rel₁ : CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))
+      CTI2.∣ TE.mapCtxᵀ ins₁ γᴮ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
+  rel₁ = TE.⊢²-target-insert ins₁ rel
+
+  pᵈ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))
+        ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵈ =
+    WD.decay⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      TD.liftBothBinderDecay p₁
+
+  relᵈ : CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))
+      CTI2.∣ WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ ins₁ γᴮ)
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
+  relᵈ =
+    TD.⊢²-decay
+      {W = CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      TD.liftBothBinderDecay rel₁
+
+  pʳ : A CTI2.⊑ᵂ⟨ CR.renameWorld wk↪ᵗ
+          (CTI2.liftWorldBoth I.X⊑★
+            (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★)))
+        ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★))}
+      wk↪ᵗ pᵈ
+
+  relʳ : CR.renameWorld wk↪ᵗ
+        (CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W ★)))
+      CTI2.∣ CR.renameCtx wk↪ᵗ
+        (WD.decayCtx TD.liftBothBinderDecay
+          (TE.mapCtxᵀ ins₁ γᴮ))
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pʳ
+  relʳ = CR.⊢²-extend-center relᵈ pʳ
+
+  mv = TBL.freshLiftToBindTargetMove★ᴸ {W = W}
+
+  pᵇ : A CTI2.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W ⟩
+      renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵇ = TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
+
+
 ΛPostMidWorld : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.World Δᴸ Δᴿ Δ
   → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))

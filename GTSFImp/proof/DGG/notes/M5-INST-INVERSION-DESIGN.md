@@ -1,17 +1,15 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: image-indexed exchange investigated after
-the window-fresh blocker.  The under-left TargetBindLift foundation now
-checks (`ΛLiftToBindFreshWorldᴸ`, `freshLiftToBindMoveᴸ`,
-`freshLiftToBindTargetMove★ᴸ`), confirming that the fresh-variable
-lift-to-bind conversion remains target-store bookkeeping.  The fused
-old-body insertion/exchange route avoids the earlier arbitrary
-post-insertion rebase counterexample, but does not close the recursive
-`Λ⊑²` consumer because the two generated target reveals are on-window
-wrappers, not old TargetExtend image evidence; see
-`m5-inst-inversion-lambda-image-indexed-exchange-blocked.red`.  The
-previous window-fresh support note and the permanent finite
-counterexample remain as design records.
+Date: 2026-08-12. Status: latest generate-in-place route checked the
+under-left old-evidence prefix (`Λ⊑Λ²-route1ᴸ-prefix`) through target
+insert, decay, center extension, and `freshLiftToBindTargetMove★ᴸ`.
+The generated target reveals still do not close under an existing source
+lift: `RebaseAtᴿ` wraps a full source-pivot `RebaseAt`, whose
+`pivotAligned` and `ηᴸ-off-pivot` fields would force the current source
+binder to move past the older source binder.  See
+`m5-inst-inversion-lambda-under-lift-generation-blocked.red`.  The
+previous image-indexed, window-fresh, and finite counterexample notes
+remain as design records.
 
 Checked artifact:
 

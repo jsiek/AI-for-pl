@@ -173,6 +173,67 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
           ∣ γ₂ᴸ ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
+data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    (W : World Δᴸ Δᴿ Δ)
+    (W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂)
+    (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → Set₁ where
+  left-tower-zero : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ}
+    → (ext₂ : ECR.WorldExtendᴿ
+        (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+        W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
+    → Λ⊑Λ²LeftTower W
+        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ext₂
+
+  left-tower-suc : ∀ {Δᴸ Δᴿ Δ Δ₂}
+      {W : World Δᴸ Δᴿ Δ}
+      {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+      {ext₂ : ECR.WorldExtendᴿ
+        (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    → Λ⊑Λ²LeftTower W W₂ ext₂
+    → (extᴸ₂ : ECR.WorldExtendᴿ
+        (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+        (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂))
+    → Λ⊑Λ²LeftTower (liftWorldLeft X⊑★ W)
+        (liftWorldLeft X⊑★ W₂) extᴸ₂
+
+
+Λ⊑Λ²PostBodyTransportᴸᵀ : Set₁
+Λ⊑Λ²PostBodyTransportᴸᵀ =
+  ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {γ : CtxImp W}
+    {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+  → Λ⊑Λ²LeftTower W W₂ ext₂
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → LiftCtx X⊑X γ γᴮ
+  → Value V
+  → Value V′
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
+    Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩
+        substᵗ Λ⊑Λ²TargetSplit₂ B ]
+      LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
+      × Value (Λ⊑Λ²PostTerm V′ B)
+      × ⟨ suc (suc Δᴿ) , targetStoreʷ W₂ ,
+          tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+          ⊢ Λ⊑Λ²PostTerm V′ B ⦂
+          substᵗ Λ⊑Λ²TargetSplit₂ B
+      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
+          ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
+
+
 Catchup⁻NonStarᵀ : Set
 Catchup⁻NonStarᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}

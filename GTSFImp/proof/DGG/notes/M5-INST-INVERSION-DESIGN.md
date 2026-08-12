@@ -1,7 +1,7 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-11. Status: blocked on Λ recursive extension tower
-after the Route 1 base transport closed.
+Date: 2026-08-11. Status: blocked on the lifted target-pivot center in
+the successor case of the tower-indexed Λ base transport.
 
 Checked artifact:
 
@@ -334,3 +334,35 @@ rightOnlyWorld
 These towers differ by the order of the existing source left lift and the two
 generated right binds.  See
 `m5-inst-inversion-lambda-recursive-extension-blocked.red`.
+
+## Phase A⁗⁺⁺ Addendum: Left-Lift Tower Surface
+
+The live definition now records the approved depth-indexed surface:
+
+```agda
+data Λ⊑Λ²LeftTower W W₂ ext₂ : Set₁
+
+Λ⊑Λ²PostBodyTransportᴸᵀ : Set₁
+```
+
+`Λ⊑Λ²LeftTower` has a depth-zero constructor for the concrete two-bind
+tower and a successor constructor for lifting both the input world and
+the post world by `liftWorldLeft X⊑★`.  The scratch checks:
+
+```agda
+Λ⊑Λ²-base-rewrap-preflightᴸ :
+  Λ⊑Λ²PostBodyTransportᴸᵀ → ...
+```
+
+so a transport at the caller-supplied tower rewraps through `Λ⊑²`
+mechanically.
+
+Implementation is blocked in the successor case.  After the first
+target insertion under the left tower and the `liftWorldBoth` decay, the
+abstract target binder introduced by `liftWorldBoth` remains before the
+existing source-only binder.  The lifted two-bind post world needs the
+generated target names after that source binder.  `TargetStoreMove`
+cannot change target embeddings, `CenterRename` is order-preserving, and
+the generated target reveal rebuilds freeze target embeddings through
+`RebaseAtᴿ`.  See
+`m5-inst-inversion-lambda-lifted-target-pivot-blocked.red`.

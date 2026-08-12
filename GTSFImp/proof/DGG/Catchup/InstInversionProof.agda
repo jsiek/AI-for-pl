@@ -68,7 +68,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
 open import proof.DGG.Catchup.InstInversionDef using
   (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
-   InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ; Λ⊑²AtRewrapᵀ;
+   InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ;
+   Λ⊑²AtRewrapᵀ;
    Λ⊑Λ²BodyAfter★; Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂;
    Λ⊑²CPSRewrapᵀ; MapCtxᴿLiftᴸᵀ; RightBindUnderLeftLiftᵀ)
 open import proof.DGG.Catchup.InstCatchupRightDef using
@@ -1773,6 +1774,20 @@ right-bind-under-left-lift {W = W} {B = B′} = record
       right-bind-under-left-lift-⊑ᵂ
         {W = W} {B′ = B′} {A = A} {B = C} p
   }
+
+
+right-bind-right-bind-under-left-lift : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ W)
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+          (＇ Fin.zero)))
+right-bind-right-bind-under-left-lift {W = W} =
+  composeWorldExtendᴿ
+    (right-bind-under-left-lift {W = W} {B = ★})
+    (right-bind-under-left-lift
+      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
 
 
 mapCtxᴿ-liftᴸ : MapCtxᴿLiftᴸᵀ right-bind-under-left-lift

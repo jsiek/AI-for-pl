@@ -81,3 +81,11 @@ Smallest unblocking work:
 
 No live statement was weakened, and no postulate, hole, or catch-all was
 added.
+
+REFINED (2026-08-12): the live surface is now tower-indexed by
+`Λ⊑Λ²LeftTower`, and the scratch validates the recursive rewrap consumer
+shape.  The remaining obstruction is inside the successor transport
+implementation: the abstract target pivot introduced by `liftWorldBoth`
+still sits before an existing source-only binder, while the lifted
+two-bind post tower needs the generated target names after it.  See
+`m5-inst-inversion-lambda-lifted-target-pivot-blocked.red`.

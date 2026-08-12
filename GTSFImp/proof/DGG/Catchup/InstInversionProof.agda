@@ -3098,6 +3098,82 @@ record ΛPostPrefixPackageAt
           (↑ᶜ (close-instᶜ c′)) ⟩
 
 
+record ΛPostPrefixPackageAtBase
+    {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    (rel : W CTI2.∣ γ ⊢² M ⊑ Λ V′ ∶ p)
+    (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+    (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+    ⦃ Bnv : NonVar B ⦄
+    ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+    (B′≢★ : B′ ≢ ★) : Set₁ where
+  field
+    prefix-p₂ : A CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B
+    prefix-relation :
+      W₂ CTI2.∣ ECR.mapCtxᴿ ext₂ γ
+        ⊢² M ⊑ Λ⊑Λ²PostTerm V′ B ∶ prefix-p₂
+    prefix-value : Value (Λ⊑Λ²PostTerm V′ B)
+    prefix-reduction :
+      (Λ V′) ⟨ (inst c′) B′≢★ ⟩
+        —↠[ bind ★ ∷ bind (＇ Fin.zero) ∷ [] ]
+      Λ⊑Λ²PostTerm V′ B ⟨
+        applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+          (↑ᶜ (close-instᶜ c′)) ⟩
+
+
+Λ-post-prefix-concrete-base : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {rel : W CTI2.∣ γ ⊢² M ⊑ Λ V′ ∶ p}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → {B′≢★ : B′ ≢ ★}
+  → ΛPostPrefixPackageAt rel c′ B′≢★
+  → ΛPostPrefixPackageAtBase rel
+      (right-bind-right-bind-world-extendᴿ
+        {W = W} {B = ★} {C = ＇ Fin.zero})
+      c′ B′≢★
+Λ-post-prefix-concrete-base prefix =
+  record
+    { prefix-p₂ = ΛPostPrefixPackageAt.prefix-p₂ prefix
+    ; prefix-relation = ΛPostPrefixPackageAt.prefix-relation prefix
+    ; prefix-value = ΛPostPrefixPackageAt.prefix-value prefix
+    ; prefix-reduction = ΛPostPrefixPackageAt.prefix-reduction prefix
+    }
+
+
+smartCommaLift-target-store : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.targetStoreʷ Wᵐ ≡ CTI2.targetStoreʷ W
+smartCommaLift-target-store (CTI2.smart-fresh-behind guard) =
+  CTI2.SmartFreshBehindGuard.targetStore-same guard
+smartCommaLift-target-store (CTI2.smart-merge-alias guard) =
+  CTI2.SmartAliasMergeGuard.targetStore-same guard
+
+
+smartLiftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → CTI2.SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
+  → CTI2.tgtCtxʷ γᵐ ≡ CTI2.tgtCtxʷ γ
+smartLiftCtxᴸ-target-ctx CTI2.smart-lift-[] = refl
+smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
+  cong (_ ∷_) (smartLiftCtxᴸ-target-ctx liftγ)
+
+
 mapCtxᴿ-sameCtx : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δᵖ Δ₂ Δᵖ₂}
     {χs : StoreChanges Δᴿ Δᴿ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -3274,6 +3350,77 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     }
 
 
+Λ-post-prefix-base→package-at : ∀ {fuel Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → inst-alloc-decreaseᵀ
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ Λ V′ ∶ p)
+  → (vM : CT.Value M)
+  → (vΛV′ : CT.Value (Λ V′))
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+  → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+  → InstPostCatalogPackageAt fuel rel vM vΛV′ c′ B′≢★
+      c<fuel q
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W₂ ext₂
+Λ-post-prefix-base→package-at {fuel = fuel} {Δᴿ = Δᴿ}
+    {Δ₂ = Δ₂} {W = W} {W₂ = W₂} {V′ = V′}
+    {A = A} {B = B} {B′ = B′}
+    inst-decrease rel vM vΛV′ c′
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ c<fuel q ext₂ prefix =
+  record
+    { at-B₂ = ΛResidualSource₂ B
+    ; at-post = Λ⊑Λ²PostTerm V′ B
+    ; at-p₂ = ΛPostPrefixPackageAtBase.prefix-p₂ prefix
+    ; at-post-relation =
+        ΛPostPrefixPackageAtBase.prefix-relation prefix
+    ; at-post-value = ΛPostPrefixPackageAtBase.prefix-value prefix
+    ; at-ν₂ = _
+    ; at-residual-target = ΛResidualTarget₂ B′
+    ; at-residual-q =
+        subst≡ (λ C → A CTI2.⊑ᵂ⟨ W₂ ⟩ C)
+          (residual-target₂-eq B′)
+          (ECR.transport⊑ᵂ ext₂ q)
+    ; at-residual-target-eq = sym (residual-target₂-eq B′)
+    ; at-residual-cast =
+        applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+          (↑ᶜ (close-instᶜ c′))
+    ; at-residual-provenance =
+        catchup⁻-nonstar
+          (renameNonStar Fin.suc
+            (renameNonStar (toRenameᵗ wk↪ᵗ)
+              (inst-residual-source-nonstar Bnv zero∈B)))
+          (renameNonStar Fin.suc
+            (renameNonStar (toRenameᵗ wk↪ᵗ)
+              (nonstar-from-≢★ B′≢★)))
+          (applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+            (↑ᶜ (close-instᶜ c′)))
+    ; at-residual-fuel =
+        subst≡ (λ n → suc n < fuel)
+          (sym (castSize-applyConsistency
+            (bind {Δ = suc Δᴿ} (＇ Fin.zero))
+            (↑ᶜ (close-instᶜ c′))))
+          (≤-trans (s≤s (inst-decrease B′≢★)) c<fuel)
+    ; at-prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction prefix
+    ; at-spine-descent =
+        spine-descent-zero
+          (ΛPostPrefixPackageAtBase.prefix-value prefix)
+          (ΛPostPrefixPackageAtBase.prefix-relation prefix)
+    }
+
+
 Λ⊑Λ²-base-prefix-at : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W} {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
@@ -3357,4 +3504,208 @@ right-bind-right-bind-tag-rebaseᴸ rb =
         ΛPostPrefixPackageAt.prefix-value bodyPrefix
     ; prefix-reduction =
         ΛPostPrefixPackageAt.prefix-reduction bodyPrefix
+    }
+
+
+Λ⊑²-smart-recursive-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵐ₂ : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᵐ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
+  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : CT.Value V)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → CTI2.SmartCommaLiftᴸ W₂ Wᵐ₂
+  → CTI2.SmartLiftCtxᴸ
+      (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
+  → (bodyRel : Wᵐ CTI2.∣ γᵐ ⊢² V ⊑ Λ V′ ∶ body-p)
+  → (top-p₂ : `∀ A CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase bodyRel extᵐ₂ c′ B′≢★
+  → ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ⊑²-smart-recursive-prefix-at-base {Δᴿ = Δᴿ}
+    {W₂ = W₂} {Wᵐ₂ = Wᵐ₂} {γ = γ} {γᵐ = γᵐ}
+    {V′ = V′} {B = B} {ext₂ = ext₂} {extᵐ₂ = extᵐ₂}
+    rel vV c′ B′≢★ Anv zero∈A liftW₂ liftγ₂ bodyRel top-p₂
+    bodyPrefix =
+  record
+    { prefix-p₂ = top-p₂
+    ; prefix-relation =
+        CTI2.Λ⊑²-smart-comma Anv zero∈A liftW₂ liftγ₂ vV
+          target⊢
+          (ΛPostPrefixPackageAtBase.prefix-relation bodyPrefix)
+          top-p₂
+    ; prefix-value =
+        ΛPostPrefixPackageAtBase.prefix-value bodyPrefix
+    ; prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction bodyPrefix
+    }
+  where
+  postRel = ΛPostPrefixPackageAtBase.prefix-relation bodyPrefix
+
+  postTarget⊢ᵐ :
+      ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ Wᵐ₂ ,
+        CTI2.tgtCtxʷ (ECR.mapCtxᴿ extᵐ₂ γᵐ) ⟩
+      ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B
+  postTarget⊢ᵐ = CTI2T.target-typing² postRel
+
+  target⊢ :
+      ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ ,
+        CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+      ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B
+  target⊢ =
+    subst≡
+      (λ Γ → ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ , Γ ⟩
+        ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B)
+      (smartLiftCtxᴸ-target-ctx liftγ₂)
+      (subst≡
+        (λ Σ → ⟨ suc (suc Δᴿ) , Σ ,
+          CTI2.tgtCtxʷ (ECR.mapCtxᴿ extᵐ₂ γᵐ) ⟩
+          ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B)
+        (smartCommaLift-target-store liftW₂)
+        postTarget⊢ᵐ)
+
+
+Λ-post-prefix-cast⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {νᴸ : Env∼ Δᴸ}
+    {p₀ : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {p : A′ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+    {prem : W CTI2.∣ γ ⊢² M ⊑ Λ V′ ∶ p₀}
+    (c : νᴸ ⊢ A ∼ A′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase prem ext₂ c′ B′≢★
+  → ΛPostPrefixPackageAtBase (CTI2.cast⊑² c prem p) ext₂
+      c′ B′≢★
+Λ-post-prefix-cast⊑²-base c B′≢★ top-p₂ prefix =
+  record
+    { prefix-p₂ = top-p₂
+    ; prefix-relation =
+        CTI2.cast⊑² c
+          (ΛPostPrefixPackageAtBase.prefix-relation prefix)
+          top-p₂
+    ; prefix-value = ΛPostPrefixPackageAtBase.prefix-value prefix
+    ; prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction prefix
+    }
+
+
+Λ-post-prefix-reveal⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵖ₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p₀ : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
+    {p : A′ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {Xᴸ?}
+    {c : Conv↑ Δᴸ A A′}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᵖ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵖ Wᵖ₂}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+    {prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ Λ V′ ∶ p₀}
+  → (mono : CTI2.ImpEnvMono W Wᵖ)
+  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → (sc : CTI2.SameCtx γ γᵖ)
+  → (c⊢ : CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → CTI2.ImpEnvMono W₂ Wᵖ₂
+  → CTI2.RebaseAtᴸ W₂ Wᵖ₂ Xᴸ?
+  → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
+  → CTI2.sourceStoreʷ W₂ CTI2.⊢↑[ Xᴸ? ] c
+  → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
+  → ΛPostPrefixPackageAtBase
+      (CTI2.reveal⊑² mono rb sc c⊢ prem p) ext₂ c′ B′≢★
+Λ-post-prefix-reveal⊑²-base mono rb sc c⊢ B′≢★ mono₂ rb₂
+    sc₂ c⊢₂ top-p₂ prefix =
+  record
+    { prefix-p₂ = top-p₂
+    ; prefix-relation =
+        CTI2.reveal⊑² mono₂ rb₂ sc₂ c⊢₂
+          (ΛPostPrefixPackageAtBase.prefix-relation prefix)
+          top-p₂
+    ; prefix-value = ΛPostPrefixPackageAtBase.prefix-value prefix
+    ; prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction prefix
+    }
+
+
+Λ-post-prefix-conceal⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵖ₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p₀ : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
+    {p : A′ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {Xᴸ? Xᴿ?} {Xᴿ₂? : Maybe (Fin.Fin (suc (suc Δᴿ)))}
+    {c : Conv↓ Δᴸ A A′}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᵖ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵖ Wᵖ₂}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+    {prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ Λ V′ ∶ p₀}
+  → (ok : CTI2.SourceConcealPartnerOK Wᵖ M c Xᴿ? (Λ V′))
+  → (mono : CTI2.ImpEnvMono W Wᵖ)
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → (sc : CTI2.SameCtx γ γᵖ)
+  → (c⊢ : CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → CTI2.SourceConcealPartnerOK Wᵖ₂ M c Xᴿ₂?
+      (Λ⊑Λ²PostTerm V′ B)
+  → CTI2.ImpEnvMono W₂ Wᵖ₂
+  → CTI2.TagRebaseAtᴸ Wᵖ₂ W₂ Xᴸ? Xᴿ₂?
+  → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
+  → CTI2.sourceStoreʷ W₂ CTI2.⊢↓[ Xᴸ? ] c
+  → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
+  → ΛPostPrefixPackageAtBase
+      (CTI2.conceal⊑² ok mono rb sc c⊢ prem p) ext₂ c′ B′≢★
+Λ-post-prefix-conceal⊑²-base ok mono rb sc c⊢ B′≢★ ok₂ mono₂
+    rb₂ sc₂ c⊢₂ top-p₂ prefix =
+  record
+    { prefix-p₂ = top-p₂
+    ; prefix-relation =
+        CTI2.conceal⊑² ok₂ mono₂ rb₂ sc₂ c⊢₂
+          (ΛPostPrefixPackageAtBase.prefix-relation prefix)
+          top-p₂
+    ; prefix-value = ΛPostPrefixPackageAtBase.prefix-value prefix
+    ; prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction prefix
     }

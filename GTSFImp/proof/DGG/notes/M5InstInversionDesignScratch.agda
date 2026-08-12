@@ -35,6 +35,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Catchup.InstCatchupRightProof as ICRP
+import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.TargetExtend as TE
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
@@ -461,6 +463,60 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
               Aₒ ⊑ᵂ⟨ W₂ ⟩ residual-target ]
             CatchupCast⁻ {W = W₂} {A = Aₒ}
               outer-post-p residual-cast outer-residual-q
+
+
+Λ-post-prefix-concrete-base-preflight : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+    {rel : W ∣ γ ⊢² M ⊑ Λ V′ ∶ p}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → {B′≢★ : B′ ≢ ★}
+  → IIP.ΛPostPrefixPackageAt rel c′ B′≢★
+  → IIP.ΛPostPrefixPackageAtBase rel
+      (ICRP.right-bind-right-bind-world-extendᴿ
+        {W = W} {B = ★} {C = ＇ Fin.zero})
+      c′ B′≢★
+Λ-post-prefix-concrete-base-preflight =
+  IIP.Λ-post-prefix-concrete-base
+
+
+Λ-post-prefix-smart-base-preflight : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+    {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᵐ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
+  → (rel : W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → CTI2.SmartCommaLiftᴸ W₂ Wᵐ₂
+  → CTI2.SmartLiftCtxᴸ
+      (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
+  → (bodyRel : Wᵐ ∣ γᵐ ⊢² V ⊑ Λ V′ ∶ body-p)
+  → (top-p₂ : `∀ A ⊑ᵂ⟨ W₂ ⟩ IIP.ΛResidualSource₂ B)
+  → IIP.ΛPostPrefixPackageAtBase bodyRel extᵐ₂ c′ B′≢★
+  → IIP.ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ-post-prefix-smart-base-preflight =
+  IIP.Λ⊑²-smart-recursive-prefix-at-base
 
 
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where

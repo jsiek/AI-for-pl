@@ -384,6 +384,15 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        pushout-indexed smart premise world.  See
        `notes/m5-inst-inversion-smart-source-prefix-world-blocked.red`.
 
+       M-4 continuation checkpoint (parameterized prefix base): the
+       fixed-vs-parameterized prefix package mismatch is resolved by
+       `ΛPostPrefixPackageAtBase`, with concrete and smart instantiations
+       checked in the design scratch.  The source-strip wrapper rebuilds now
+       have parameterized prefix helpers.  The remaining resister is the
+       ordinary `Λ⊑Λ²` base transport at the pushout-indexed smart premise
+       post world; the live base transport is still concrete-only.  See
+       `notes/m5-inst-inversion-lambda-base-prefix-at-world-blocked.red`.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

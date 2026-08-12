@@ -113,3 +113,35 @@ Checked state after backing out the non-checking worker:
 
 No live relation was changed, and no postulate, hole, or catch-all was
 added.
+
+RESOLVED 2026-08-12:
+
+  The fixed-vs-parameterized prefix surface has been resolved by keeping the
+  proven concrete package and adding the parameterized companion:
+
+    `ΛPostPrefixPackageAtBase`
+
+  whose post world is an explicit `W₂` with an explicit two-bind
+  `WorldExtendᴿ`.  The concrete package embeds by:
+
+    `Λ-post-prefix-concrete-base`
+
+  and the smart source rewrap consumes a smart premise post world by:
+
+    `Λ⊑²-smart-recursive-prefix-at-base`
+
+  The source-strip wrapper rebuilds also have parameterized prefix helpers:
+
+    `Λ-post-prefix-cast⊑²-base`
+    `Λ-post-prefix-reveal⊑²-base`
+    `Λ-post-prefix-conceal⊑²-base`
+
+  The design scratch validates both required instantiations:
+
+    `Λ-post-prefix-concrete-base-preflight`
+    `Λ-post-prefix-smart-base-preflight`
+
+  The remaining obstruction is no longer this prefix-package index mismatch.
+  It is the base `Λ⊑Λ²` prefix transport needed when the recursive smart
+  premise itself reaches a `Λ⊑Λ²` leaf at a pushout-indexed post world.
+  See `m5-inst-inversion-lambda-base-prefix-at-world-blocked.red`.

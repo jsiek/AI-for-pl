@@ -130,3 +130,54 @@ Checked state:
 
   No live relation was changed, and no postulate, hole, or catch-all was
   added.
+
+RESOLVED 2026-08-12:
+
+  The parameterized route-one support is now live and checked in
+  `GTSFImp/proof/DGG/Catchup/InstInversionProof.agda`.
+
+  The concrete-only body transports were generalized over the supplied target
+  window embeddings and target insertion witnesses:
+
+    `route1SplitSource`
+    `route1SplitTarget★`
+    `Λ-route1-inner-body-⊑ᵂ`
+    `Λ-route1-final-body-⊑ᵂ`
+    `Λ-route1-post-window-support-at`
+
+  The missing mid-to-fresh monotonicity field is now:
+
+    `Λ-route1-mid-fresh-mono-at`
+
+  The smart pushout instances are now checked for both smart guard branches:
+
+    `Λ-route1-smart-alias-facts`
+    `Λ-route1-smart-alias-ext₂`
+    `Λ-route1-smart-alias-post-window`
+    `Λ-route1-smart-fresh-facts`
+    `Λ-route1-smart-fresh-ext₂`
+    `Λ-route1-smart-fresh-post-window`
+
+  These instantiate `ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂` at the target-inserted
+  smart route-one worlds.  Therefore the ordinary `Λ⊑Λ²` leaf under a smart
+  premise can now be closed by:
+
+    `Λ⊑Λ²-base-prefix-at-base`
+
+  with either `Λ-route1-smart-alias-post-window` or
+  `Λ-route1-smart-fresh-post-window`.
+
+  The next obstruction is no longer the route-one body transport.  It is the
+  source-left recursive post-prefix surface needed by plain `Λ⊑²` and
+  source-strip wrappers under a supplied smart post window.  See:
+
+    `m5-inst-inversion-source-left-post-prefix-at-blocked.red`
+
+Checked commands after resolution:
+
+  AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+    -i GTSFImp/proof/DGG/notes -v0 \
+    GTSFImp/proof/DGG/Catchup/InstInversionProof.agda
+
+  AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+    -i GTSFImp/proof/DGG/notes -v0 GTSFImp/All.agda

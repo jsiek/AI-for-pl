@@ -156,3 +156,20 @@ M-4 continuation, base-transport pass:
     implement `Λ⊑Λ²PostBodyTransportAtᵀ` from that package.  The existing
     concrete right-only instance should remain as the proven consumer for the
     depth-0/base path.
+
+Postscript, post-window package pass (2026-08-12):
+
+  The package surface described above now exists and checks:
+
+    `ΛPostWindowGeometry`
+    `Λ-concrete-post-window`
+    `Λ⊑Λ²-post-body-transport-at`
+    `Λ⊑Λ²-base-prefix-at-base`
+
+  The concrete right-only consumer is resolved.  The remaining resister moved
+  one level lower: the smart pushout instance cannot be built from the current
+  M-2 guard/target-transport fields because they expose only the final smart
+  post world, not the route-one `freshWorld`, `midWorld`, or the smart
+  target-bind-lift move needed by the ordinary `Λ⊑Λ²` base transport.  See:
+
+    `m5-inst-inversion-smart-post-window-geometry-blocked.red`

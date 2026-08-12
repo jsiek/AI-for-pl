@@ -405,6 +405,16 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        See the same blocker note for the next required post-window geometry
        surface.
 
+       M-4 continuation checkpoint (`92a7406`): the post-window geometry
+       surface landed as `ΛPostWindowGeometry`, with checked concrete instance
+       `Λ-concrete-post-window`; `Λ⊑Λ²-post-body-transport-at` now consumes
+       the package and `Λ⊑Λ²-base-prefix-at-base` is package-indexed.  The
+       concrete right-only lock is resolved.  The next resister is the smart
+       pushout instance: M-2 exposes the final target-inserted smart world but
+       not the route-one `freshWorld`, `midWorld`, or smart target-bind-lift
+       move needed for ordinary `Λ⊑Λ²` inside the smart premise.  See
+       `notes/m5-inst-inversion-smart-post-window-geometry-blocked.red`.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

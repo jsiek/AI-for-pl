@@ -314,11 +314,26 @@ sameWorldRebaseAt route leaves an empty post obligation (reduces to
 notes/m5-inst-inversion-*.red; verdict note:
 m5-inst-inversion-lambda-under-lift-satisfiability.red.
 
-Decision pending (user): reachability premise on InstCatchupRight²
-(M3-style restriction — compile-image screen in flight), vs
-rebase/world-semantics revision, vs conclusion reshaping. All landed
-work (TargetExtend, TargetBindLift, decay extensions, depth-0 closure)
-survives any of the three.
+Screen verdict (2026-08-12, notes/M5-DEPTH-SCREEN.md): REACHED — the
+compile image produces the depth-2 geometry (use-dyn source-triple ⊑
+use-dyn target-one; Λ⊑ᴳ/Λ⊑ᴳ/Λ⊑Λᴳ argument stack; right inst cast in the
+initial compiled operand). Caveat: screening-grade evidence (source
+shape + inst site checked; the target ⊢² stack inferred from
+compile-preservation, not per-step). A simple program-reachability
+premise on InstCatchupRight² is therefore NOT viable.
+
+Decision pending (user), sharpened options:
+(a′) CONFIGURATION-level restriction — does M7's driver ever invoke
+     inst catch-up under nested one-sided stacking, or only at
+     configurations where the left's own β-inst consumed the matched
+     binder? Needs M7 invocation-site analysis before trusting.
+(b)  rebase/world-semantics revision so the depth-≥1 post state is
+     expressible (deep M2/M3-foundation surgery).
+(c)  conclusion reshaping (blame/weaker disjunct — previously rejected).
+(d)  exotic-derivation hunt: the emptiness proof is route-scoped; the
+     WorldDecay "honestify" machinery was not explored as a route.
+All landed work (TargetExtend, TargetBindLift, decay extensions,
+depth-0 closure) survives any option.
 
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 

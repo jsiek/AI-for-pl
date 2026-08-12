@@ -1,8 +1,9 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: blocked on side-stable OPE reification for
-the premise worlds of the approved derivation-level cross-side exchange;
-see `m5-inst-inversion-lambda-cross-side-premise-ope-blocked.red`.
+Date: 2026-08-12. Status: side-stable OPE reification foundation
+checked; blocked on the recursive support surface for the derivation-level
+cross-side exchange; see
+`m5-inst-inversion-lambda-center-map-support-blocked.red`.
 
 Checked artifact:
 

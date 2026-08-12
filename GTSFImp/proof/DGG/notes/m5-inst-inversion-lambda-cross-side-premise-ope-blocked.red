@@ -90,3 +90,15 @@ Consequence:
 
 No live relation was changed, and no postulate, hole, or catch-all was
 added.
+
+Postscript 2026-08-12:
+
+  The requested OPE foundation is now checked in
+  `Catchup/InstInversionProof.agda`: `Swap01OPE`, `AdjacentSwapOPE`,
+  `swapWorld`, `CenterMapWorld`, and the generated target-side
+  `RebaseAtᴿ` commutes for both the top-level and under-right exchange
+  positions.
+
+  The remaining blocker has moved from OPE reification itself to the
+  recursive support surface for the full derivation-level exchange; see
+  `m5-inst-inversion-lambda-center-map-support-blocked.red`.

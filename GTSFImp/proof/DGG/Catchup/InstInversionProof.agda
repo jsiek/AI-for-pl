@@ -10,8 +10,9 @@ module proof.DGG.Catchup.InstInversionProof where
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
 open import Data.Fin.Properties using (_≟_)
+open import Data.List using ([]; _∷_)
 import Data.List as List
-open import Data.Maybe using (just; nothing)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc; _<_; s≤s)
 open import Data.Nat.Properties using (n<1+n; ≤-trans)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -27,9 +28,10 @@ open import TyStore using
 open import Consistency using
   (Env∼; _⊢_∼_; id; _↦_; ∀ᶜ_; _!; ？_; inst_; gen_;
    bot-elim; bot-intro; instᵐ; ↑ᶜ_; close-instᶜ; renameNonStar;
-   subst-left-∼; subst-right-∼; _↪ᵗ_; keep; skip; toRenameᵗ; wk↪ᵗ)
+   subst-left-∼; subst-right-∼; _↪ᵗ_; empty; keep; skip; toRenameᵗ;
+   wk↪ᵗ)
 open import Conversion using
-  (Conv↑; replaceTy; makeConceal; 〖_,_↑_〗; rename↑)
+  (Conv↑; Conv↓; replaceTy; makeConceal; 〖_,_↑_〗; rename↑)
 import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
 open import Reduction using
@@ -1764,6 +1766,759 @@ swap01-injective {X = Fin.suc (Fin.suc X)}
     (fin-suc-injective eq))
 
 
+swap01-involutive : ∀ {Δ} (X : Fin.Fin (suc (suc Δ)))
+  → swap01 (swap01 X) ≡ X
+swap01-involutive Fin.zero = refl
+swap01-involutive (Fin.suc Fin.zero) = refl
+swap01-involutive (Fin.suc (Fin.suc X)) = refl
+
+
+swap12 : ∀ {Δ} → Fin.Fin (suc (suc (suc Δ)))
+  → Fin.Fin (suc (suc (suc Δ)))
+swap12 = extᵗ swap01
+
+
+swap12-injective : ∀ {Δ}
+    {X Y : Fin.Fin (suc (suc (suc Δ)))}
+  → swap12 X ≡ swap12 Y
+  → X ≡ Y
+swap12-injective = ext-injective swap01-injective
+
+
+swap12-involutive : ∀ {Δ} (X : Fin.Fin (suc (suc (suc Δ))))
+  → swap12 (swap12 X) ≡ X
+swap12-involutive Fin.zero = refl
+swap12-involutive (Fin.suc X) = cong Fin.suc (swap01-involutive X)
+
+
+data Swap01OPE : ∀ {Δ₀ Δ}
+    → Δ₀ ↪ᵗ suc (suc Δ) → Δ₀ ↪ᵗ suc (suc Δ) → Set where
+  swap01-empty : ∀ {Δ} → Swap01OPE {Δ = Δ} empty empty
+  swap01-skip-empty : ∀ {Δ}
+    → Swap01OPE {Δ = Δ} (skip empty) empty
+  swap01-keep-empty : ∀ {Δ}
+    → Swap01OPE {Δ = Δ} (keep empty) (skip (keep empty))
+  swap01-skip-skip : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → Swap01OPE (skip (skip η)) (skip (skip η))
+  swap01-skip-keep : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → Swap01OPE (skip (keep η)) (keep (skip η))
+  swap01-keep-skip : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → Swap01OPE (keep (skip η)) (skip (keep η))
+
+
+data NoKeepKeep01 : ∀ {Δ₀ Δ}
+    → Δ₀ ↪ᵗ suc (suc Δ) → Set where
+  no-keep-keep-empty : ∀ {Δ}
+    → NoKeepKeep01 {Δ = Δ} empty
+  no-keep-keep-skip-empty : ∀ {Δ}
+    → NoKeepKeep01 {Δ = Δ} (skip empty)
+  no-keep-keep-keep-empty : ∀ {Δ}
+    → NoKeepKeep01 {Δ = Δ} (keep empty)
+  no-keep-keep-skip-skip : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → NoKeepKeep01 (skip (skip η))
+  no-keep-keep-skip-keep : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → NoKeepKeep01 (skip (keep η))
+  no-keep-keep-keep-skip : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+    → NoKeepKeep01 (keep (skip η))
+
+
+swap01-reify-ope : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ suc (suc Δ)}
+  → NoKeepKeep01 η
+  → Σ[ ηˣ ∈ Δ₀ ↪ᵗ suc (suc Δ) ] Swap01OPE η ηˣ
+swap01-reify-ope no-keep-keep-empty =
+  empty , swap01-empty
+swap01-reify-ope no-keep-keep-skip-empty =
+  empty , swap01-skip-empty
+swap01-reify-ope no-keep-keep-keep-empty =
+  skip (keep empty) , swap01-keep-empty
+swap01-reify-ope (no-keep-keep-skip-skip {η = η}) =
+  skip (skip η) , swap01-skip-skip
+swap01-reify-ope (no-keep-keep-skip-keep {η = η}) =
+  keep (skip η) , swap01-skip-keep
+swap01-reify-ope (no-keep-keep-keep-skip {η = η}) =
+  skip (keep η) , swap01-keep-skip
+
+
+top-target-frozen-no-keep-keep : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ Δ}
+    {η′ : suc Δ₀ ↪ᵗ suc (suc Δ)}
+  → (∀ Y → toRenameᵗ η′ Y ≡ toRenameᵗ (keep (skip η)) Y)
+  → NoKeepKeep01 η′
+top-target-frozen-no-keep-keep {η′ = skip (skip η′)} frozen =
+  no-keep-keep-skip-skip
+top-target-frozen-no-keep-keep {η′ = skip (keep η′)} frozen =
+  no-keep-keep-skip-keep
+top-target-frozen-no-keep-keep {η′ = keep empty} frozen =
+  no-keep-keep-keep-empty
+top-target-frozen-no-keep-keep {η′ = keep (skip η′)} frozen =
+  no-keep-keep-keep-skip
+top-target-frozen-no-keep-keep {η′ = keep (keep η′)} frozen
+    with frozen (Fin.suc Fin.zero)
+top-target-frozen-no-keep-keep {η′ = keep (keep η′)} frozen | ()
+
+
+top-source-off-no-keep-keep : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ Δ}
+    {η′ : suc Δ₀ ↪ᵗ suc (suc Δ)}
+    {X : Fin.Fin (suc Δ₀)}
+  → (∀ {Y} → Y ≢ X
+      → toRenameᵗ η′ Y ≡ toRenameᵗ (skip (keep η)) Y)
+  → NoKeepKeep01 η′
+top-source-off-no-keep-keep {η′ = skip (skip η′)} off =
+  no-keep-keep-skip-skip
+top-source-off-no-keep-keep {η′ = skip (keep η′)} off =
+  no-keep-keep-skip-keep
+top-source-off-no-keep-keep {η′ = keep empty} off =
+  no-keep-keep-keep-empty
+top-source-off-no-keep-keep {η′ = keep (skip η′)} off =
+  no-keep-keep-keep-skip
+top-source-off-no-keep-keep {η′ = keep (keep η′)} {X = Fin.zero} off
+    with off {Y = Fin.suc Fin.zero} (λ ())
+top-source-off-no-keep-keep {η′ = keep (keep η′)} {X = Fin.zero} off
+    | ()
+top-source-off-no-keep-keep {η′ = keep (keep η′)} {X = Fin.suc X} off
+    with off {Y = Fin.zero} (λ ())
+top-source-off-no-keep-keep {η′ = keep (keep η′)} {X = Fin.suc X} off
+    | ()
+
+
+top-skip-skip-frozen-no-keep-keep : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ Δ}
+    {η′ : Δ₀ ↪ᵗ suc (suc Δ)}
+  → (∀ Y → toRenameᵗ η′ Y ≡ toRenameᵗ (skip (skip η)) Y)
+  → NoKeepKeep01 η′
+top-skip-skip-frozen-no-keep-keep {η′ = empty} frozen =
+  no-keep-keep-empty
+top-skip-skip-frozen-no-keep-keep {η′ = skip empty} frozen =
+  no-keep-keep-skip-empty
+top-skip-skip-frozen-no-keep-keep {η′ = skip (skip η′)} frozen =
+  no-keep-keep-skip-skip
+top-skip-skip-frozen-no-keep-keep {η′ = skip (keep η′)} frozen
+    with frozen Fin.zero
+top-skip-skip-frozen-no-keep-keep {η′ = skip (keep η′)} frozen | ()
+top-skip-skip-frozen-no-keep-keep {η′ = keep empty} frozen
+    with frozen Fin.zero
+top-skip-skip-frozen-no-keep-keep {η′ = keep empty} frozen | ()
+top-skip-skip-frozen-no-keep-keep {η′ = keep (skip η′)} frozen
+    with frozen Fin.zero
+top-skip-skip-frozen-no-keep-keep {η′ = keep (skip η′)} frozen | ()
+top-skip-skip-frozen-no-keep-keep {η′ = keep (keep η′)} frozen
+    with frozen Fin.zero
+top-skip-skip-frozen-no-keep-keep {η′ = keep (keep η′)} frozen | ()
+
+
+data AdjacentSwapOPE : ∀ {Δ₀ Δ}
+    (ρ : TyVar Δ → TyVar Δ)
+    → Δ₀ ↪ᵗ Δ → Δ₀ ↪ᵗ Δ → Set where
+  adj-swap01 : ∀ {Δ₀ Δ}
+      {η ηˣ : Δ₀ ↪ᵗ suc (suc Δ)}
+    → Swap01OPE η ηˣ
+    → AdjacentSwapOPE swap01 η ηˣ
+
+  adj-under-skip : ∀ {Δ₀ Δ} {ρ : TyVar Δ → TyVar Δ}
+      {η ηˣ : Δ₀ ↪ᵗ Δ}
+    → AdjacentSwapOPE ρ η ηˣ
+    → AdjacentSwapOPE (extᵗ ρ) (skip η) (skip ηˣ)
+
+  adj-under-keep : ∀ {Δ₀ Δ} {ρ : TyVar Δ → TyVar Δ}
+      {η ηˣ : Δ₀ ↪ᵗ Δ}
+    → AdjacentSwapOPE ρ η ηˣ
+    → AdjacentSwapOPE (extᵗ ρ) (keep η) (keep ηˣ)
+
+
+under-right-target-reify-ope : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ Δ}
+    {η′ : suc (suc Δ₀) ↪ᵗ suc (suc (suc Δ))}
+  → (∀ Y → toRenameᵗ η′ Y ≡ toRenameᵗ (keep (keep (skip η))) Y)
+  → Σ[ ηˣ ∈ suc (suc Δ₀) ↪ᵗ suc (suc (suc Δ)) ]
+      AdjacentSwapOPE swap12 η′ ηˣ
+under-right-target-reify-ope {η′ = skip η′} frozen
+    with frozen Fin.zero
+under-right-target-reify-ope {η′ = skip η′} frozen | ()
+under-right-target-reify-ope {η = η} {η′ = keep η′} frozen
+    with swap01-reify-ope
+      (top-target-frozen-no-keep-keep
+        {η = η} {η′ = η′} tail-frozen)
+  where
+  tail-frozen : ∀ Y
+    → toRenameᵗ η′ Y ≡ toRenameᵗ (keep (skip η)) Y
+  tail-frozen Y = fin-suc-injective (frozen (Fin.suc Y))
+under-right-target-reify-ope {η = η} {η′ = keep η′} frozen
+    | ηˣ , ope =
+  keep ηˣ , adj-under-keep (adj-swap01 ope)
+
+
+under-right-source-reify-ope : ∀ {Δ₀ Δ}
+    {η : Δ₀ ↪ᵗ Δ}
+    {η′ : suc Δ₀ ↪ᵗ suc (suc (suc Δ))}
+    {X : Fin.Fin (suc Δ₀)}
+  → (∀ {Y} → Y ≢ X
+      → toRenameᵗ η′ Y ≡ toRenameᵗ (skip (skip (keep η))) Y)
+  → Σ[ ηˣ ∈ suc Δ₀ ↪ᵗ suc (suc (suc Δ)) ]
+      AdjacentSwapOPE swap12 η′ ηˣ
+under-right-source-reify-ope {η = η} {η′ = skip η′} {X = X} off
+    with swap01-reify-ope
+      (top-source-off-no-keep-keep
+        {η = η} {η′ = η′} {X = X} tail-off)
+  where
+  tail-off : ∀ {Y}
+    → Y ≢ X
+    → toRenameᵗ η′ Y ≡ toRenameᵗ (skip (keep η)) Y
+  tail-off Y≢ = fin-suc-injective (off Y≢)
+under-right-source-reify-ope {η′ = skip η′} off | ηˣ , ope =
+  skip ηˣ , adj-under-skip (adj-swap01 ope)
+under-right-source-reify-ope {η = η} {η′ = keep η′} {X = Fin.zero} off
+    with swap01-reify-ope
+      (top-skip-skip-frozen-no-keep-keep
+        {η = η} {η′ = η′} tail-frozen)
+  where
+  tail-frozen : ∀ Y
+    → toRenameᵗ η′ Y ≡ toRenameᵗ (skip (skip η)) Y
+  tail-frozen Y =
+    fin-suc-injective (off {Y = Fin.suc Y} (λ ()))
+under-right-source-reify-ope {η′ = keep η′} {X = Fin.zero} off
+    | ηˣ , ope =
+  keep ηˣ , adj-under-keep (adj-swap01 ope)
+under-right-source-reify-ope {η′ = keep η′} {X = Fin.suc X} off
+    with off {Y = Fin.zero} (λ ())
+under-right-source-reify-ope {η′ = keep η′} {X = Fin.suc X} off | ()
+
+
+swap01-ope-rename : ∀ {Δ₀ Δ}
+    {η ηˣ : Δ₀ ↪ᵗ suc (suc Δ)}
+  → Swap01OPE η ηˣ
+  → ∀ X
+  → toRenameᵗ ηˣ X ≡ swap01 (toRenameᵗ η X)
+swap01-ope-rename swap01-empty ()
+swap01-ope-rename swap01-skip-empty ()
+swap01-ope-rename swap01-keep-empty Fin.zero = refl
+swap01-ope-rename swap01-skip-skip X = refl
+swap01-ope-rename swap01-skip-keep Fin.zero = refl
+swap01-ope-rename swap01-skip-keep (Fin.suc X) = refl
+swap01-ope-rename swap01-keep-skip Fin.zero = refl
+swap01-ope-rename swap01-keep-skip (Fin.suc X) = refl
+
+
+adjacent-swap-ope-rename : ∀ {Δ₀ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {η ηˣ : Δ₀ ↪ᵗ Δ}
+  → AdjacentSwapOPE ρ η ηˣ
+  → ∀ X
+  → toRenameᵗ ηˣ X ≡ ρ (toRenameᵗ η X)
+adjacent-swap-ope-rename (adj-swap01 ope) X =
+  swap01-ope-rename ope X
+adjacent-swap-ope-rename (adj-under-skip ope) X =
+  cong Fin.suc (adjacent-swap-ope-rename ope X)
+adjacent-swap-ope-rename (adj-under-keep ope) Fin.zero = refl
+adjacent-swap-ope-rename (adj-under-keep ope) (Fin.suc X) =
+  cong Fin.suc (adjacent-swap-ope-rename ope X)
+
+
+top-source-swap-ope : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+  → AdjacentSwapOPE swap01 (skip (keep η)) (keep (skip η))
+top-source-swap-ope = adj-swap01 swap01-skip-keep
+
+
+top-target-swap-ope : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+  → AdjacentSwapOPE swap01 (keep (skip η)) (skip (keep η))
+top-target-swap-ope = adj-swap01 swap01-keep-skip
+
+
+under-right-source-swap-ope : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+  → AdjacentSwapOPE swap12
+      (skip (skip (keep η))) (skip (keep (skip η)))
+under-right-source-swap-ope =
+  adj-under-skip top-source-swap-ope
+
+
+under-right-target-swap-ope : ∀ {Δ₀ Δ} {η : Δ₀ ↪ᵗ Δ}
+  → AdjacentSwapOPE swap12
+      (keep (keep (skip η))) (keep (skip (keep η)))
+under-right-target-swap-ope =
+  adj-under-keep top-target-swap-ope
+
+
+record CenterMapWorld {Δᴸ Δᴿ Δ}
+    (ρ : TyVar Δ → TyVar Δ)
+    (W Wˣ : CTI2.World Δᴸ Δᴿ Δ) : Set₁ where
+  field
+    map-injective : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y
+    map-involutive : ∀ X → ρ (ρ X) ≡ X
+
+    source-center-map : ∀ Xᴸ
+      → ρ (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+          ≡ toRenameᵗ (CTI2.ηᴸʷ Wˣ) Xᴸ
+
+    target-center-map : ∀ Xᴿ
+      → ρ (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+          ≡ toRenameᵗ (CTI2.ηᴿʷ Wˣ) Xᴿ
+
+    impEnv-map : ∀ Z
+      → CTI2.impEnvʷ W Z ≡ I.X⊑★
+      → CTI2.impEnvʷ Wˣ (ρ Z) ≡ I.X⊑★
+
+    impEnv-unmap : ∀ Z
+      → CTI2.impEnvʷ Wˣ (ρ Z) ≡ I.X⊑★
+      → CTI2.impEnvʷ W Z ≡ I.X⊑★
+
+    sourceStore-map :
+      CTI2.sourceStoreʷ Wˣ ≡ CTI2.sourceStoreʷ W
+
+    targetStore-map :
+      CTI2.targetStoreʷ Wˣ ≡ CTI2.targetStoreʷ W
+
+
+open CenterMapWorld
+
+
+center-map-source : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → CenterMapWorld ρ W Wˣ
+  → ∀ A
+  → renameᵗ ρ (CTI2.embedᴸ W A) ≡ CTI2.embedᴸ Wˣ A
+center-map-source {ρ = ρ} {W = W} mp A =
+  trans (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ W)) ρ A)
+    (renameᵗ-cong A (source-center-map mp))
+
+
+center-map-target : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → CenterMapWorld ρ W Wˣ
+  → ∀ B
+  → renameᵗ ρ (CTI2.embedᴿ W B) ≡ CTI2.embedᴿ Wˣ B
+center-map-target {ρ = ρ} {W = W} mp B =
+  trans (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ W)) ρ B)
+    (renameᵗ-cong B (target-center-map mp))
+
+
+center-map-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → A CTI2.⊑ᵂ⟨ Wˣ ⟩ B
+center-map-⊑ᵂ {ρ = ρ} {W = W} {Wˣ = Wˣ} {A = A} {B = B} mp p =
+  subst≡
+    (λ L → CTI2.impEnvʷ Wˣ ⊢ L ⊑ CTI2.embedᴿ Wˣ B)
+    (center-map-source mp A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ Wˣ ⊢ renameᵗ ρ (CTI2.embedᴸ W A) ⊑ R)
+      (center-map-target mp B)
+      (rename-⊑ ρ (map-injective mp) (impEnv-map mp) p))
+
+
+swapWorld : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {ηᴸˣ : Δᴸ ↪ᵗ Δ} {ηᴿˣ : Δᴿ ↪ᵗ Δ}
+  → (W : CTI2.World Δᴸ Δᴿ Δ)
+  → AdjacentSwapOPE ρ (CTI2.ηᴸʷ W) ηᴸˣ
+  → AdjacentSwapOPE ρ (CTI2.ηᴿʷ W) ηᴿˣ
+  → CTI2.World Δᴸ Δᴿ Δ
+swapWorld {ρ = ρ} {ηᴸˣ = ηᴸˣ} {ηᴿˣ = ηᴿˣ} W src tgt =
+  CTI2.world ηᴸˣ ηᴿˣ (λ Z → CTI2.impEnvʷ W (ρ Z))
+    (CTI2.sourceStoreʷ W) (CTI2.targetStoreʷ W)
+
+
+swapWorld-map : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {ηᴸˣ : Δᴸ ↪ᵗ Δ} {ηᴿˣ : Δᴿ ↪ᵗ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → (ρ-inj : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
+  → (ρ-inv : ∀ X → ρ (ρ X) ≡ X)
+  → (src : AdjacentSwapOPE ρ (CTI2.ηᴸʷ W) ηᴸˣ)
+  → (tgt : AdjacentSwapOPE ρ (CTI2.ηᴿʷ W) ηᴿˣ)
+  → CenterMapWorld ρ W (swapWorld W src tgt)
+swapWorld-map {ρ = ρ} {W = W} ρ-inj ρ-inv src tgt = record
+  { map-injective = ρ-inj
+  ; map-involutive = ρ-inv
+  ; source-center-map = λ X →
+      sym (adjacent-swap-ope-rename src X)
+  ; target-center-map = λ X →
+      sym (adjacent-swap-ope-rename tgt X)
+  ; impEnv-map = λ Z star →
+      subst≡ (λ Y → CTI2.impEnvʷ W Y ≡ I.X⊑★)
+        (sym (ρ-inv Z)) star
+  ; impEnv-unmap = λ Z star →
+      subst≡ (λ Y → CTI2.impEnvʷ W Y ≡ I.X⊑★)
+        (ρ-inv Z) star
+  ; sourceStore-map = refl
+  ; targetStore-map = refl
+  }
+
+
+center-map-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → CenterMapWorld ρ W Wˣ
+  → CTI2.CtxImp W
+  → CTI2.CtxImp Wˣ
+center-map-ctx mp [] = []
+center-map-ctx mp (CTI2.ctx-imp A B p ∷ γ) =
+  CTI2.ctx-imp A B (center-map-⊑ᵂ mp p) ∷ center-map-ctx mp γ
+
+
+center-map-∋ʷ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W} {x A B}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → γ CTI2.∋ʷ x ⦂ CTI2.ctx-imp A B p
+  → center-map-ctx mp γ CTI2.∋ʷ x ⦂
+      CTI2.ctx-imp A B (center-map-⊑ᵂ mp p)
+center-map-∋ʷ mp CTI2.Zʷ = CTI2.Zʷ
+center-map-∋ʷ mp (CTI2.Sʷ x∈) = CTI2.Sʷ (center-map-∋ʷ mp x∈)
+
+
+center-map-same-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W} {γ′ : CTI2.CtxImp W′}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → CTI2.SameCtx γ γ′
+  → CTI2.SameCtx (center-map-ctx mp γ) (center-map-ctx mp′ γ′)
+center-map-same-ctx mp mp′ CTI2.same-[] = CTI2.same-[]
+center-map-same-ctx mp mp′ (CTI2.same-∷ sc) =
+  CTI2.same-∷ (center-map-same-ctx mp mp′ sc)
+
+
+center-map-ctx-tgt : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (γ : CTI2.CtxImp W)
+  → CTI2.tgtCtxʷ (center-map-ctx mp γ) ≡ CTI2.tgtCtxʷ γ
+center-map-ctx-tgt mp [] = refl
+center-map-ctx-tgt mp (CTI2.ctx-imp A B p ∷ γ) =
+  cong (B ∷_) (center-map-ctx-tgt mp γ)
+
+
+center-map-aligned : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.CenterAligned W Xᴸ Xᴿ
+  → CTI2.CenterAligned Wˣ Xᴸ Xᴿ
+center-map-aligned {ρ = ρ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} mp aligned =
+  trans (sym (source-center-map mp Xᴸ))
+    (trans (cong ρ aligned) (target-center-map mp Xᴿ))
+
+
+center-map-same-runtime : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → CTI2.SameRuntime W W′
+  → CTI2.SameRuntime Wˣ W′ˣ
+center-map-same-runtime mp mp′
+    (CTI2.same-runtime source-eq target-eq) =
+  CTI2.same-runtime
+    (trans (sourceStore-map mp′)
+      (trans source-eq (sym (sourceStore-map mp))))
+    (trans (targetStore-map mp′)
+      (trans target-eq (sym (targetStore-map mp))))
+
+
+center-map-imp-mono : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → CTI2.ImpEnvMono W W′
+  → CTI2.ImpEnvMono Wˣ W′ˣ
+center-map-imp-mono {ρ = ρ} {Wˣ = Wˣ} {W′ˣ = W′ˣ}
+    mp mp′ mono Z star =
+  subst≡ (λ Y → CTI2.impEnvʷ W′ˣ Y ≡ I.X⊑★)
+    (map-involutive mp Z)
+    (impEnv-map mp′ (ρ Z) (mono (ρ Z) old-star))
+  where
+  star-at-ρρ =
+    subst≡ (λ Y → CTI2.impEnvʷ Wˣ Y ≡ I.X⊑★)
+      (sym (map-involutive mp Z)) star
+
+  old-star = impEnv-unmap mp (ρ Z) star-at-ρρ
+
+
+center-map-lift-both : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {v : I.VarImp}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CenterMapWorld (extᵗ ρ)
+      (CTI2.liftWorldBoth v W)
+      (CTI2.liftWorldBoth v Wˣ)
+center-map-lift-both mp = record
+  { map-injective = ext-injective (map-injective mp)
+  ; map-involutive = λ
+      { Fin.zero → refl
+      ; (Fin.suc X) → cong Fin.suc (map-involutive mp X)
+      }
+  ; source-center-map = λ
+      { Fin.zero → refl
+      ; (Fin.suc X) → cong Fin.suc (source-center-map mp X)
+      }
+  ; target-center-map = λ
+      { Fin.zero → refl
+      ; (Fin.suc X) → cong Fin.suc (target-center-map mp X)
+      }
+  ; impEnv-map = λ
+      { Fin.zero eq → eq
+      ; (Fin.suc Z) eq → impEnv-map mp Z eq
+      }
+  ; impEnv-unmap = λ
+      { Fin.zero eq → eq
+      ; (Fin.suc Z) eq → impEnv-unmap mp Z eq
+      }
+  ; sourceStore-map = cong store-lift (sourceStore-map mp)
+  ; targetStore-map = cong store-lift (targetStore-map mp)
+  }
+
+
+center-map-lift-left : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {v : I.VarImp}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CenterMapWorld (extᵗ ρ)
+      (CTI2.liftWorldLeft v W)
+      (CTI2.liftWorldLeft v Wˣ)
+center-map-lift-left mp = record
+  { map-injective = ext-injective (map-injective mp)
+  ; map-involutive = λ
+      { Fin.zero → refl
+      ; (Fin.suc X) → cong Fin.suc (map-involutive mp X)
+      }
+  ; source-center-map = λ
+      { Fin.zero → refl
+      ; (Fin.suc X) → cong Fin.suc (source-center-map mp X)
+      }
+  ; target-center-map = λ X →
+      cong Fin.suc (target-center-map mp X)
+  ; impEnv-map = λ
+      { Fin.zero eq → eq
+      ; (Fin.suc Z) eq → impEnv-map mp Z eq
+      }
+  ; impEnv-unmap = λ
+      { Fin.zero eq → eq
+      ; (Fin.suc Z) eq → impEnv-unmap mp Z eq
+      }
+  ; sourceStore-map = cong store-lift (sourceStore-map mp)
+  ; targetStore-map = targetStore-map mp
+  }
+
+
+center-map-lift-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴮ : CTI2.CtxImp (CTI2.liftWorldBoth I.X⊑X W)}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.LiftCtx I.X⊑X γ γᴮ
+  → CTI2.LiftCtx I.X⊑X (center-map-ctx mp γ)
+      (center-map-ctx (center-map-lift-both mp) γᴮ)
+center-map-lift-ctx mp CTI2.lift-[] = CTI2.lift-[]
+center-map-lift-ctx mp (CTI2.lift-∷ liftγ) =
+  CTI2.lift-∷ (center-map-lift-ctx mp liftγ)
+
+
+center-map-lift-ctxᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTI2.LiftCtxᴸ I.X⊑★ (center-map-ctx mp γ)
+      (center-map-ctx (center-map-lift-left mp) γᴸ)
+center-map-lift-ctxᴸ mp CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
+center-map-lift-ctxᴸ mp (CTI2.liftᴸ-∷ liftγ) =
+  CTI2.liftᴸ-∷ (center-map-lift-ctxᴸ mp liftγ)
+
+
+center-map-store-rep : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.StoreRepImp W Xᴸ Xᴿ
+  → CTI2.StoreRepImp Wˣ Xᴸ Xᴿ
+center-map-store-rep {W = W} {Wˣ = Wˣ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    mp (CTI2.store-rep-imp represented) =
+  CTI2.store-rep-imp
+    (subst≡
+      (λ A → A CTI2.⊑ᵂ⟨ Wˣ ⟩
+        CTI2.resolveVar (CTI2.targetStoreʷ Wˣ) Xᴿ)
+      (sym source-eq)
+      (subst≡
+        (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+          CTI2.⊑ᵂ⟨ Wˣ ⟩ B)
+        (sym target-eq)
+        (center-map-⊑ᵂ mp represented)))
+  where
+  source-eq =
+    cong (λ Σ → CTI2.resolveVar Σ Xᴸ) (sourceStore-map mp)
+
+  target-eq =
+    cong (λ Σ → CTI2.resolveVar Σ Xᴿ) (targetStore-map mp)
+
+
+center-map-rebase-at : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W W′ Wˣ W′ˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (mp′ : CenterMapWorld ρ W′ W′ˣ)
+  → CTI2.RebaseAt W W′ Xᴸ Xᴿ
+  → CTI2.RebaseAt Wˣ W′ˣ Xᴸ Xᴿ
+center-map-rebase-at {ρ = ρ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} mp mp′
+    (CTI2.rebase-at runtime offL frozenR aligned reps) =
+  CTI2.rebase-at
+    (center-map-same-runtime mp mp′ runtime)
+    (λ Y≢ → trans (sym (source-center-map mp′ _))
+      (trans (cong ρ (offL Y≢)) (source-center-map mp _)))
+    (λ Y → trans (sym (target-center-map mp′ Y))
+      (trans (cong ρ (frozenR Y)) (target-center-map mp Y)))
+    (center-map-aligned mp′ aligned)
+    (center-map-store-rep mp′ reps)
+
+
+center-map-mark-starᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ I.X⊑★
+  → CTI2.impEnvʷ Wˣ (toRenameᵗ (CTI2.ηᴸʷ Wˣ) Xᴸ) ≡ I.X⊑★
+center-map-mark-starᴸ {W = W} {Wˣ = Wˣ} {Xᴸ = Xᴸ} mp to-star =
+  subst≡ (λ Z → CTI2.impEnvʷ Wˣ Z ≡ I.X⊑★)
+    (source-center-map mp Xᴸ)
+    (impEnv-map mp (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) to-star)
+
+
+center-map-disalignedᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → (∀ Xᴿ → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+  → ∀ Xᴿ → toRenameᵗ (CTI2.ηᴿʷ Wˣ) Xᴿ
+      ≢ toRenameᵗ (CTI2.ηᴸʷ Wˣ) Xᴸ
+center-map-disalignedᴸ {ρ = ρ} {Xᴸ = Xᴸ} mp disaligned Xᴿ eq =
+  disaligned Xᴿ
+    (map-injective mp
+      (trans (target-center-map mp Xᴿ)
+        (trans eq (sym (source-center-map mp Xᴸ)))))
+
+
+center-map-represented★ᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ CTI2.⊑ᵂ⟨ W ⟩ ★
+  → CTI2.resolveVar (CTI2.sourceStoreʷ Wˣ) Xᴸ
+      CTI2.⊑ᵂ⟨ Wˣ ⟩ ★
+center-map-represented★ᴸ {W = W} {Wˣ = Wˣ} {Xᴸ = Xᴸ} mp represented =
+  subst≡ (λ A → A CTI2.⊑ᵂ⟨ Wˣ ⟩ ★)
+    (sym source-eq)
+    (center-map-⊑ᵂ mp represented)
+  where
+  source-eq =
+    cong (λ Σ → CTI2.resolveVar Σ Xᴸ) (sourceStore-map mp)
+
+
+center-map-rep★-partner-ok : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {P Xᴿ? M′}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.Rep★PartnerOK W X P Xᴿ? M′
+  → CTI2.Rep★PartnerOK Wˣ X P Xᴿ? M′
+center-map-rep★-partner-ok mp (CTI2.rep★-untagged nt) =
+  CTI2.rep★-untagged nt
+center-map-rep★-partner-ok mp (CTI2.rep★-nonvar-tag Gnv) =
+  CTI2.rep★-nonvar-tag Gnv
+center-map-rep★-partner-ok mp (CTI2.rep★-var-tag aligned) =
+  CTI2.rep★-var-tag (center-map-aligned mp aligned)
+center-map-rep★-partner-ok mp
+    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+  CTI2.rep★-matched-inner-tags X₂≢X
+    (center-map-aligned mp aligned)
+center-map-rep★-partner-ok mp (CTI2.rep★-round-trip ok) =
+  CTI2.rep★-round-trip (center-map-rep★-partner-ok mp ok)
+
+
+center-map-seal-partner-ok : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴸ} {P R Xᴿ? M′}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.SealPartnerOK W X P R Xᴿ? M′
+  → CTI2.SealPartnerOK Wˣ X P R Xᴿ? M′
+center-map-seal-partner-ok mp (CTI2.star-rep-target ok) =
+  CTI2.star-rep-target (center-map-rep★-partner-ok mp ok)
+center-map-seal-partner-ok mp (CTI2.plain-target nt) =
+  CTI2.plain-target nt
+center-map-seal-partner-ok mp CTI2.name-protected-target =
+  CTI2.name-protected-target
+
+
+center-map-source-conceal-partner-ok : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {M : CT.Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
+  → CTI2.SourceConcealPartnerOK Wˣ M c Xᴿ? M′
+center-map-source-conceal-partner-ok mp
+    (CTI2.seal-partner-ok ok) =
+  CTI2.seal-partner-ok (center-map-seal-partner-ok mp ok)
+center-map-source-conceal-partner-ok mp
+    CTI2.fun-conceal-target =
+  CTI2.fun-conceal-target
+center-map-source-conceal-partner-ok mp
+    CTI2.all-conceal-target =
+  CTI2.all-conceal-target
+center-map-source-conceal-partner-ok mp
+    CTI2.id-conceal-target =
+  CTI2.id-conceal-target
+
+
+center-map-matched-conceal-partner-ok : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {M : CT.Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Y M′}
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CTI2.MatchedConcealPartnerOK W M c Y M′
+  → CTI2.MatchedConcealPartnerOK Wˣ M c Y M′
+center-map-matched-conceal-partner-ok mp
+    (CTI2.matched-seal-star-partner ok) =
+  CTI2.matched-seal-star-partner
+    (center-map-rep★-partner-ok mp ok)
+center-map-matched-conceal-partner-ok mp
+    (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+center-map-matched-conceal-partner-ok mp
+    CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+center-map-matched-conceal-partner-ok mp
+    CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+center-map-matched-conceal-partner-ok mp
+    CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
+
+
 swap01-left-right-source : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
     (A : Ty (suc Δ₀))
   → renameᵗ swap01 (renameᵗ (toRenameᵗ (skip (keep η))) A)
@@ -1803,6 +2558,78 @@ left-right-swap-star-map (Fin.suc Fin.zero) eq = refl
 left-right-swap-star-map (Fin.suc (Fin.suc X)) eq = eq
 
 
+left-right-swap-star-unmap : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.extendᵐ I.X⊑★ (I.instᵐ μ) (swap01 X) ≡ I.X⊑★
+  → I.instᵐ (I.extendᵐ I.X⊑★ μ) X ≡ I.X⊑★
+left-right-swap-star-unmap Fin.zero eq = refl
+left-right-swap-star-unmap (Fin.suc Fin.zero) eq = refl
+left-right-swap-star-unmap (Fin.suc (Fin.suc X)) eq = eq
+
+
+right-left-center-map : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
+  → CenterMapWorld swap01
+      (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B′)
+      (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
+right-left-center-map {W = W} = record
+  { map-injective = swap01-injective
+  ; map-involutive = swap01-involutive
+  ; source-center-map = λ X →
+      sym (adjacent-swap-ope-rename
+        (top-source-swap-ope {η = CTI2.ηᴸʷ W}) X)
+  ; target-center-map = λ X →
+      sym (adjacent-swap-ope-rename
+        (top-target-swap-ope {η = CTI2.ηᴿʷ W}) X)
+  ; impEnv-map = left-right-swap-star-map
+  ; impEnv-unmap = left-right-swap-star-unmap
+  ; sourceStore-map = refl
+  ; targetStore-map = refl
+  }
+
+
+right-left-rebase-atᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
+    {Wᵖ : CTI2.World (suc Δᴸ) (suc Δᴿ) (suc (suc Δ))}
+    {Xᴿ? : Maybe (TyVar (suc Δᴿ))}
+  → CTI2.RebaseAtᴿ
+      (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B′)
+      Wᵖ Xᴿ?
+  → Σ[ Wᵖˣ ∈ CTI2.World (suc Δᴸ) (suc Δᴿ) (suc (suc Δ)) ]
+      CenterMapWorld swap01 Wᵖ Wᵖˣ
+      × CTI2.RebaseAtᴿ
+          (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
+          Wᵖˣ Xᴿ?
+right-left-rebase-atᴿ {W = W} {B′ = B′} CTI2.rebase-idᴿ =
+  CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′) ,
+  right-left-center-map {W = W} {B′ = B′} ,
+  CTI2.rebase-idᴿ
+right-left-rebase-atᴿ {W = W} {B′ = B′} {Wᵖ = Wᵖ}
+    (CTI2.rebase-varᴿ rb@(CTI2.rebase-at runtime offL frozenR
+      aligned reps))
+    with swap01-reify-ope
+      (top-source-off-no-keep-keep
+        {η = CTI2.ηᴸʷ W} {η′ = CTI2.ηᴸʷ Wᵖ} offL)
+... | ηᴸˣ , src-ope
+    with swap01-reify-ope
+      (top-target-frozen-no-keep-keep
+        {η = CTI2.ηᴿʷ W} {η′ = CTI2.ηᴿʷ Wᵖ} frozenR)
+... | ηᴿˣ , tgt-ope =
+  Wᵖˣ , mpᵖ ,
+  CTI2.rebase-varᴿ
+    (center-map-rebase-at
+      (right-left-center-map {W = W} {B′ = B′}) mpᵖ rb)
+  where
+  src-adj = adj-swap01 src-ope
+
+  tgt-adj = adj-swap01 tgt-ope
+
+  Wᵖˣ = swapWorld Wᵖ src-adj tgt-adj
+
+  mpᵖ = swapWorld-map swap01-injective swap01-involutive
+    src-adj tgt-adj
+
+
 right-left-exchange-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
@@ -1828,6 +2655,173 @@ right-left-exchange-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p =
 
   Wout =
     CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′)
+
+
+swap12-left-right-source : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
+    (A : Ty (suc Δ₀))
+  → renameᵗ swap12
+      (renameᵗ (toRenameᵗ (skip (skip (keep η)))) A)
+    ≡ renameᵗ (toRenameᵗ (skip (keep (skip η)))) A
+swap12-left-right-source η A =
+  trans (renameᵗ-comp (toRenameᵗ (skip (skip (keep η)))) swap12 A)
+    (renameᵗ-cong A eq)
+  where
+  eq : ∀ X
+    → swap12 (toRenameᵗ (skip (skip (keep η))) X)
+      ≡ toRenameᵗ (skip (keep (skip η))) X
+  eq Fin.zero = refl
+  eq (Fin.suc X) = refl
+
+
+swap12-left-right-target : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)
+    (B : Ty (suc (suc Δ₀)))
+  → renameᵗ swap12
+      (renameᵗ (toRenameᵗ (keep (keep (skip η)))) B)
+    ≡ renameᵗ (toRenameᵗ (keep (skip (keep η)))) B
+swap12-left-right-target η B =
+  trans (renameᵗ-comp (toRenameᵗ (keep (keep (skip η)))) swap12 B)
+    (renameᵗ-cong B eq)
+  where
+  eq : ∀ X
+    → swap12 (toRenameᵗ (keep (keep (skip η))) X)
+      ≡ toRenameᵗ (keep (skip (keep η))) X
+  eq Fin.zero = refl
+  eq (Fin.suc Fin.zero) = refl
+  eq (Fin.suc (Fin.suc X)) = refl
+
+
+left-right-swap12-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.instᵐ (I.instᵐ (I.extendᵐ I.X⊑★ μ)) X ≡ I.X⊑★
+  → I.instᵐ (I.extendᵐ I.X⊑★ (I.instᵐ μ)) (swap12 X) ≡ I.X⊑★
+left-right-swap12-star-map Fin.zero eq = refl
+left-right-swap12-star-map (Fin.suc Fin.zero) eq = refl
+left-right-swap12-star-map (Fin.suc (Fin.suc Fin.zero)) eq = refl
+left-right-swap12-star-map (Fin.suc (Fin.suc (Fin.suc X))) eq = eq
+
+
+left-right-swap12-star-unmap : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ∀ X
+  → I.instᵐ (I.extendᵐ I.X⊑★ (I.instᵐ μ)) (swap12 X) ≡ I.X⊑★
+  → I.instᵐ (I.instᵐ (I.extendᵐ I.X⊑★ μ)) X ≡ I.X⊑★
+left-right-swap12-star-unmap Fin.zero eq = refl
+left-right-swap12-star-unmap (Fin.suc Fin.zero) eq = refl
+left-right-swap12-star-unmap (Fin.suc (Fin.suc Fin.zero)) eq = refl
+left-right-swap12-star-unmap (Fin.suc (Fin.suc (Fin.suc X))) eq = eq
+
+
+right-left-under-right-center-map : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {B₁ : Ty Δᴿ} {B₂ : Ty (suc Δᴿ)}
+  → CenterMapWorld swap12
+      (CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B₁)
+        B₂)
+      (CTI2.rightOnlyWorld
+        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B₁))
+        B₂)
+right-left-under-right-center-map {W = W} = record
+  { map-injective = swap12-injective
+  ; map-involutive = swap12-involutive
+  ; source-center-map = λ X →
+      sym (adjacent-swap-ope-rename
+        (under-right-source-swap-ope {η = CTI2.ηᴸʷ W}) X)
+  ; target-center-map = λ X →
+      sym (adjacent-swap-ope-rename
+        (under-right-target-swap-ope {η = CTI2.ηᴿʷ W}) X)
+  ; impEnv-map = left-right-swap12-star-map
+  ; impEnv-unmap = left-right-swap12-star-unmap
+  ; sourceStore-map = refl
+  ; targetStore-map = refl
+  }
+
+
+right-left-under-right-rebase-atᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {B₁ : Ty Δᴿ} {B₂ : Ty (suc Δᴿ)}
+    {Wᵖ : CTI2.World
+      (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))}
+    {Xᴿ? : Maybe (TyVar (suc (suc Δᴿ)))}
+  → CTI2.RebaseAtᴿ
+      (CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B₁)
+        B₂)
+      Wᵖ Xᴿ?
+  → Σ[ Wᵖˣ ∈ CTI2.World
+        (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ))) ]
+      CenterMapWorld swap12 Wᵖ Wᵖˣ
+      × CTI2.RebaseAtᴿ
+          (CTI2.rightOnlyWorld
+            (CTI2.liftWorldLeft I.X⊑★
+              (CTI2.rightOnlyWorld W B₁))
+            B₂)
+          Wᵖˣ Xᴿ?
+right-left-under-right-rebase-atᴿ {W = W} {B₁ = B₁} {B₂ = B₂}
+    CTI2.rebase-idᴿ =
+  CTI2.rightOnlyWorld
+    (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B₁))
+    B₂ ,
+  right-left-under-right-center-map {W = W} {B₁ = B₁} {B₂ = B₂} ,
+  CTI2.rebase-idᴿ
+right-left-under-right-rebase-atᴿ
+    {W = W} {B₁ = B₁} {B₂ = B₂} {Wᵖ = Wᵖ}
+    (CTI2.rebase-varᴿ rb@(CTI2.rebase-at runtime offL frozenR
+      aligned reps))
+    with under-right-source-reify-ope
+      {η = CTI2.ηᴸʷ W} {η′ = CTI2.ηᴸʷ Wᵖ} offL
+... | ηᴸˣ , src-adj
+    with under-right-target-reify-ope
+      {η = CTI2.ηᴿʷ W} {η′ = CTI2.ηᴿʷ Wᵖ} frozenR
+... | ηᴿˣ , tgt-adj =
+  Wᵖˣ , mpᵖ ,
+  CTI2.rebase-varᴿ
+    (center-map-rebase-at
+      (right-left-under-right-center-map
+        {W = W} {B₁ = B₁} {B₂ = B₂})
+      mpᵖ rb)
+  where
+  Wᵖˣ = swapWorld Wᵖ src-adj tgt-adj
+
+  mpᵖ = swapWorld-map swap12-injective swap12-involutive
+    src-adj tgt-adj
+
+
+right-left-under-right-exchange-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B₁ : Ty Δᴿ}
+    {B₂ : Ty (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+  → A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B₁)
+        B₂
+    ⟩ B
+  → A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld
+        (CTI2.liftWorldLeft I.X⊑★
+          (CTI2.rightOnlyWorld W B₁))
+        B₂
+    ⟩ B
+right-left-under-right-exchange-⊑ᵂ
+    {W = W} {B₁ = B₁} {B₂ = B₂} {A = A} {B = B} p =
+  subst≡
+    (λ L → CTI2.impEnvʷ Wout ⊢ L ⊑ CTI2.embedᴿ Wout B)
+    (swap12-left-right-source (CTI2.ηᴸʷ W) A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ Wout ⊢
+        renameᵗ swap12 (CTI2.embedᴸ Win A) ⊑ R)
+      (swap12-left-right-target (CTI2.ηᴿʷ W) B)
+      (rename-⊑ swap12 swap12-injective
+        left-right-swap12-star-map p))
+  where
+  Win =
+    CTI2.rightOnlyWorld
+      (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) B₁)
+      B₂
+
+  Wout =
+    CTI2.rightOnlyWorld
+      (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B₁))
+      B₂
 
 
 right-bind-under-left-lift-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}

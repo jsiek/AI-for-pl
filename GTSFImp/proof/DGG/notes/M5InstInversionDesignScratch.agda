@@ -599,11 +599,14 @@ record SmartRouteOnePostWindowPreflight : Set₁ where
         {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
         {πᵐ₁ : Δᵐ ↪ᵗ Δᵐ₁}
         {πᵐ₂ : Δᵐ₁ ↪ᵗ Δᵐ₂}
+        {κᵐ₂ : suc Δᵐ₁ ↪ᵗ Δᵐ₂}
         {extᵐ₂ : ECR.WorldExtendᴿ
           (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
       → CTI2.SmartCommaLiftᴸ W Wᵐ
       → TE.TargetInsert wk↪ᵗ πᵐ₁ Wᵐ Wᵐ₁
       → TE.TargetInsert wk↪ᵗ πᵐ₂ Wᵐ₁ Wᵐ₂
+      → (∀ Z → toRenameᵗ πᵐ₂ Z ≡ toRenameᵗ κᵐ₂ (Fin.suc Z))
+      → toRenameᵗ (CTI2.ηᴿʷ Wᵐ₂) Fin.zero ≡ toRenameᵗ κᵐ₂ Fin.zero
       → CTI2.SmartCommaLiftᴸ
           (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
           Wᵐ₂

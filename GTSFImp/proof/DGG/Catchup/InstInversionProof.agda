@@ -30,7 +30,7 @@ open import Consistency using
   (Env∼; _⊢_∼_; id; _↦_; ∀ᶜ_; _!; ？_; inst_; gen_;
    bot-elim; bot-intro; instᵐ; ↑ᶜ_; close-instᶜ; renameNonStar;
    subst-left-∼; subst-right-∼; _↪ᵗ_; empty; keep; skip; toRenameᵗ;
-   wk↪ᵗ)
+   id↪ᵗ; wk↪ᵗ)
 open import Conversion using
   (Conv↑; Conv↓; replaceTy; makeConceal; 〖_,_↑_〗; rename↑)
 import Imprecision as I
@@ -52,12 +52,13 @@ open import proof.Consistency using
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
-   source-nonvar-target; source-occurs-target; subst-zero-occurs-exts;
-   toRenameᵗ-injective)
+   source-nonvar-target; source-occurs-target; subst-⊑;
+   subst-zero-occurs-exts; toRenameᵗ-injective)
 import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
   (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport-lift-bind;
-   StoreRename-suc-bind; toRename-keep-eq; toRename-wk-eq)
+   StoreRename-suc-bind; toRename-id-eq; toRename-keep-eq;
+   toRename-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.CenterRename as CR
@@ -67,10 +68,10 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (castSize; _++χ_; FuelStepSurface; Catchup⁻Embedᵀ;
+  (castSize; _++χ_; FuelStepSurface; CatchupCast⁻; Catchup⁻Embedᵀ;
    inst-alloc-decreaseᵀ;
    catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
-   catchup⁻-bot-elim; catchup⁻-bot-intro)
+   catchup⁻-ground-other; catchup⁻-bot-elim; catchup⁻-bot-intro)
 open import proof.DGG.Catchup.InstInversionDef using
   (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
@@ -1977,10 +1978,462 @@ right-bind-right-bind-under-left-lift {W = W} =
       {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
 
 
+Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}
+  → CTI2.World Δᴸ Δᴿ Δ
+  → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
+Λ⊑²-smart-fresh-world W =
+  CTI2.rightOnlyWorld
+    (CTI2.rightOnlyWorld (CTI2.liftWorldLeft I.X⊑★ W) ★)
+    (＇ Fin.zero)
+
+
+Λ⊑²-smart-front-world : ∀ {Δᴸ Δᴿ Δ}
+  → CTI2.World Δᴸ Δᴿ Δ
+  → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
+Λ⊑²-smart-front-world W =
+  CTI2.liftWorldLeft I.X⊑★
+    (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+
+
+Λ⊑²-smart-fresh-oldCenters : ∀ {Δ}
+  → suc (suc Δ) ↪ᵗ suc (suc (suc Δ))
+Λ⊑²-smart-fresh-oldCenters = keep (keep (skip id↪ᵗ))
+
+
+Λ⊑²-smart-fresh-subst : ∀ {Δ}
+  → TyVar (suc (suc (suc Δ)))
+  → Ty (suc (suc (suc Δ)))
+Λ⊑²-smart-fresh-subst Fin.zero = ＇ (Fin.suc (Fin.suc Fin.zero))
+Λ⊑²-smart-fresh-subst (Fin.suc Fin.zero) = ＇ Fin.zero
+Λ⊑²-smart-fresh-subst (Fin.suc (Fin.suc Fin.zero)) =
+  ＇ (Fin.suc Fin.zero)
+Λ⊑²-smart-fresh-subst (Fin.suc (Fin.suc (Fin.suc Z))) =
+  ＇ (Fin.suc (Fin.suc (Fin.suc Z)))
+
+
+Λ⊑²-smart-fresh-star : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ Z
+  → CTI2.impEnvʷ
+      (CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
+      Z ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W))
+      (Λ⊑²-smart-fresh-subst Z) ★
+Λ⊑²-smart-fresh-star Fin.zero eq = I.X⊑★ refl
+Λ⊑²-smart-fresh-star (Fin.suc Fin.zero) eq = I.X⊑★ refl
+Λ⊑²-smart-fresh-star (Fin.suc (Fin.suc Fin.zero)) eq =
+  I.X⊑★ refl
+Λ⊑²-smart-fresh-star (Fin.suc (Fin.suc (Fin.suc Z))) eq =
+  I.X⊑★ eq
+
+
+Λ⊑²-smart-fresh-source-point : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ X
+  → Λ⊑²-smart-fresh-subst
+      (toRenameᵗ
+        (CTI2.ηᴸʷ
+          (CTI2.liftWorldLeft I.X⊑★
+            (CTI2.rightOnlyWorld
+              (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))) X)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W)) X)
+Λ⊑²-smart-fresh-source-point W Fin.zero = refl
+Λ⊑²-smart-fresh-source-point W (Fin.suc X) = refl
+
+
+Λ⊑²-smart-fresh-target-point : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Y
+  → Λ⊑²-smart-fresh-subst
+      (toRenameᵗ
+        (CTI2.ηᴿʷ
+          (CTI2.liftWorldLeft I.X⊑★
+            (CTI2.rightOnlyWorld
+              (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))) Y)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W)) Y)
+Λ⊑²-smart-fresh-target-point W Fin.zero = refl
+Λ⊑²-smart-fresh-target-point W (Fin.suc Fin.zero) = refl
+Λ⊑²-smart-fresh-target-point W (Fin.suc (Fin.suc Y)) = refl
+
+
+Λ⊑²-smart-fresh-source-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) C
+  → substᵗ Λ⊑²-smart-fresh-subst
+      (CTI2.embedᴸ
+        (CTI2.liftWorldLeft I.X⊑★
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) C)
+    ≡ CTI2.embedᴸ (Λ⊑²-smart-fresh-world W) C
+Λ⊑²-smart-fresh-source-eq W C =
+  trans (substᵗ-rename Λ⊑²-smart-fresh-subst
+      (toRenameᵗ
+        (CTI2.ηᴸʷ
+          (CTI2.liftWorldLeft I.X⊑★
+            (CTI2.rightOnlyWorld
+              (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))))) C)
+    (trans (substᵗ-cong C (Λ⊑²-smart-fresh-source-point W))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W))) C))
+
+
+Λ⊑²-smart-fresh-target-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) C
+  → substᵗ Λ⊑²-smart-fresh-subst
+      (CTI2.embedᴿ
+        (CTI2.liftWorldLeft I.X⊑★
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) C)
+    ≡ CTI2.embedᴿ (Λ⊑²-smart-fresh-world W) C
+Λ⊑²-smart-fresh-target-eq W C =
+  trans (substᵗ-rename Λ⊑²-smart-fresh-subst
+      (toRenameᵗ
+        (CTI2.ηᴿʷ
+          (CTI2.liftWorldLeft I.X⊑★
+            (CTI2.rightOnlyWorld
+              (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))))) C)
+    (trans (substᵗ-cong C (Λ⊑²-smart-fresh-target-point W))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W))) C))
+
+
+Λ⊑²-smart-fresh-transport : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+  → A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+    ⟩ B
+  → A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B
+Λ⊑²-smart-fresh-transport {W = W} {A = A} {B = B} p =
+  subst≡
+    (λ L → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W) ⊢ L ⊑
+      CTI2.embedᴿ (Λ⊑²-smart-fresh-world W) B)
+    (Λ⊑²-smart-fresh-source-eq W A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W) ⊢
+        substᵗ Λ⊑²-smart-fresh-subst
+          (CTI2.embedᴸ
+            (CTI2.liftWorldLeft I.X⊑★
+              (CTI2.rightOnlyWorld
+                (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) A)
+        ⊑ R)
+      (Λ⊑²-smart-fresh-target-eq W B)
+      (subst-⊑ (Λ⊑²-smart-fresh-star {W = W}) p))
+
+
+Λ⊑²-smart-front-subst : ∀ {Δ}
+  → TyVar (suc (suc (suc Δ)))
+  → Ty (suc (suc (suc Δ)))
+Λ⊑²-smart-front-subst Fin.zero = ＇ (Fin.suc Fin.zero)
+Λ⊑²-smart-front-subst (Fin.suc Fin.zero) =
+  ＇ (Fin.suc (Fin.suc Fin.zero))
+Λ⊑²-smart-front-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ Fin.zero
+Λ⊑²-smart-front-subst (Fin.suc (Fin.suc (Fin.suc Z))) =
+  ＇ (Fin.suc (Fin.suc (Fin.suc Z)))
+
+
+Λ⊑²-smart-front-star : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ Z
+  → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W) Z ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ (Λ⊑²-smart-front-world W))
+      (Λ⊑²-smart-front-subst Z) ★
+Λ⊑²-smart-front-star Fin.zero eq = I.X⊑★ refl
+Λ⊑²-smart-front-star (Fin.suc Fin.zero) eq = I.X⊑★ refl
+Λ⊑²-smart-front-star (Fin.suc (Fin.suc Fin.zero)) eq =
+  I.X⊑★ refl
+Λ⊑²-smart-front-star (Fin.suc (Fin.suc (Fin.suc Z))) eq =
+  I.X⊑★ eq
+
+
+Λ⊑²-smart-front-source-point : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ X
+  → Λ⊑²-smart-front-subst
+      (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W)) X)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-front-world W)) X)
+Λ⊑²-smart-front-source-point W Fin.zero = refl
+Λ⊑²-smart-front-source-point W (Fin.suc X) = refl
+
+
+Λ⊑²-smart-front-target-point : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Y
+  → Λ⊑²-smart-front-subst
+      (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W)) Y)
+    ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-front-world W)) Y)
+Λ⊑²-smart-front-target-point W Fin.zero = refl
+Λ⊑²-smart-front-target-point W (Fin.suc Fin.zero) = refl
+Λ⊑²-smart-front-target-point W (Fin.suc (Fin.suc Y)) = refl
+
+
+Λ⊑²-smart-front-source-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) C
+  → substᵗ Λ⊑²-smart-front-subst
+      (CTI2.embedᴸ (Λ⊑²-smart-fresh-world W) C)
+    ≡ CTI2.embedᴸ (Λ⊑²-smart-front-world W) C
+Λ⊑²-smart-front-source-eq W C =
+  trans (substᵗ-rename Λ⊑²-smart-front-subst
+      (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W))) C)
+    (trans (substᵗ-cong C (Λ⊑²-smart-front-source-point W))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-front-world W))) C))
+
+
+Λ⊑²-smart-front-target-eq : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) C
+  → substᵗ Λ⊑²-smart-front-subst
+      (CTI2.embedᴿ (Λ⊑²-smart-fresh-world W) C)
+    ≡ CTI2.embedᴿ (Λ⊑²-smart-front-world W) C
+Λ⊑²-smart-front-target-eq W C =
+  trans (substᵗ-rename Λ⊑²-smart-front-subst
+      (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W))) C)
+    (trans (substᵗ-cong C (Λ⊑²-smart-front-target-point W))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-front-world W))) C))
+
+
+Λ⊑²-smart-fresh-untransport : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+  → A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B
+  → A CTI2.⊑ᵂ⟨ Λ⊑²-smart-front-world W ⟩ B
+Λ⊑²-smart-fresh-untransport {W = W} {A = A} {B = B} p =
+  subst≡
+    (λ L → CTI2.impEnvʷ (Λ⊑²-smart-front-world W) ⊢ L ⊑
+      CTI2.embedᴿ (Λ⊑²-smart-front-world W) B)
+    (Λ⊑²-smart-front-source-eq W A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ (Λ⊑²-smart-front-world W) ⊢
+        substᵗ Λ⊑²-smart-front-subst
+          (CTI2.embedᴸ (Λ⊑²-smart-fresh-world W) A)
+        ⊑ R)
+      (Λ⊑²-smart-front-target-eq W B)
+      (subst-⊑ (Λ⊑²-smart-front-star {W = W}) p))
+
+
+Λ⊑²-smart-fresh-top : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B
+  → `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ B
+Λ⊑²-smart-fresh-top {W = W} {A = A} {B = B} Anv zero∈A p =
+  subst≡
+    (λ L → CTI2.impEnvʷ Wbase₂ ⊢ `∀ L
+      ⊑ CTI2.embedᴿ Wbase₂ B)
+    (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ Wbase₂)))
+    (I.∀⊑
+      (renameNonVar
+        (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) Anv)
+      (rename-occurs
+        (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) zero∈A)
+      (subst≡
+        (λ R → I.instᵐ (CTI2.impEnvʷ Wbase₂)
+          ⊢ renameᵗ (toRenameᵗ (keep (CTI2.ηᴸʷ Wbase₂))) A
+            ⊑ R)
+        (target-left-lift-eq (CTI2.ηᴿʷ Wbase₂) B)
+        (Λ⊑²-smart-fresh-untransport {W = W} p)))
+  where
+  Wbase₂ =
+    CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+
+
+Λ⊑²-smart-fresh-catchup⁻ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴸ)} {B B′ : Ty (suc (suc Δᴿ))}
+    {ν : Env∼ (suc (suc Δᴿ))}
+    {p : A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B}
+    {c : ν ⊢ B ∼ B′}
+    {q : A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B′}
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → CatchupCast⁻ {W = Λ⊑²-smart-fresh-world W} {A = A} p c q
+  → CatchupCast⁻
+      {W = CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)}
+      {A = `∀ A}
+      (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p)
+      c
+      (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q)
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    (catchup⁻-inert i) =
+  catchup⁻-inert {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} i
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    (catchup⁻-id a) =
+  catchup⁻-id {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} a
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    (catchup⁻-ground-other B≢G r k) =
+  catchup⁻-ground-other
+    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} B≢G
+    (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A r)
+    (Λ⊑²-smart-fresh-catchup⁻ {W = W} Anv zero∈A k)
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    catchup⁻-inst =
+  catchup⁻-inst {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    catchup⁻-bot-elim =
+  catchup⁻-bot-elim
+    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
+Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
+    catchup⁻-bot-intro =
+  catchup⁻-bot-intro
+    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
+    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
+
+
+Λ⊑²-smart-fresh-target-frozen : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴿ
+  → toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W)) Xᴿ
+    ≡ toRenameᵗ Λ⊑²-smart-fresh-oldCenters
+        (toRenameᵗ (CTI2.ηᴿʷ
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) Xᴿ)
+Λ⊑²-smart-fresh-target-frozen W Fin.zero = refl
+Λ⊑²-smart-fresh-target-frozen W (Fin.suc Fin.zero) = refl
+Λ⊑²-smart-fresh-target-frozen W (Fin.suc (Fin.suc Xᴿ)) =
+  cong (λ Z → Fin.suc (Fin.suc (Fin.suc Z)))
+    (sym (toRename-id-eq (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)))
+
+
+Λ⊑²-smart-fresh-old-source-frozen : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴸ
+  → toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W)) (Fin.suc Xᴸ)
+    ≡ toRenameᵗ Λ⊑²-smart-fresh-oldCenters
+        (toRenameᵗ (CTI2.ηᴸʷ
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) Xᴸ)
+Λ⊑²-smart-fresh-old-source-frozen W Xᴸ =
+  cong (λ Z → Fin.suc (Fin.suc (Fin.suc Z)))
+    (sym (toRename-id-eq (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)))
+
+
+Λ⊑²-smart-fresh-not-target : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴿ
+  → toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W)) Xᴿ
+    ≢ toRenameᵗ (CTI2.ηᴸʷ (Λ⊑²-smart-fresh-world W)) Fin.zero
+Λ⊑²-smart-fresh-not-target W Fin.zero ()
+Λ⊑²-smart-fresh-not-target W (Fin.suc Fin.zero) ()
+Λ⊑²-smart-fresh-not-target W (Fin.suc (Fin.suc Xᴿ)) ()
+
+
+Λ⊑²-smart-fresh-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Z
+  → CTI2.impEnvʷ
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      Z
+    ≡ I.X⊑★
+  → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W)
+      (toRenameᵗ Λ⊑²-smart-fresh-oldCenters Z)
+    ≡ I.X⊑★
+Λ⊑²-smart-fresh-old-mark-mono W Fin.zero old-star = refl
+Λ⊑²-smart-fresh-old-mark-mono W (Fin.suc Fin.zero) old-star = refl
+Λ⊑²-smart-fresh-old-mark-mono W (Fin.suc (Fin.suc Z)) old-star =
+  subst≡
+    (λ Y → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W)
+      (Fin.suc (Fin.suc (Fin.suc Y))) ≡ I.X⊑★)
+    (sym (toRename-id-eq Z))
+    old-star
+
+
+Λ⊑²-smart-fresh-target-mark-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴿ
+  → CTI2.impEnvʷ
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (toRenameᵗ
+        (CTI2.ηᴿʷ
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) Xᴿ)
+    ≡ I.X⊑★
+  → CTI2.impEnvʷ (Λ⊑²-smart-fresh-world W)
+      (toRenameᵗ (CTI2.ηᴿʷ (Λ⊑²-smart-fresh-world W)) Xᴿ)
+    ≡ I.X⊑★
+Λ⊑²-smart-fresh-target-mark-mono W Fin.zero eq = refl
+Λ⊑²-smart-fresh-target-mark-mono W (Fin.suc Fin.zero) eq = refl
+Λ⊑²-smart-fresh-target-mark-mono W (Fin.suc (Fin.suc Xᴿ)) eq = eq
+
+
+Λ⊑²-smart-fresh-guard : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.SmartFreshBehindGuard
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (Λ⊑²-smart-fresh-world W)
+Λ⊑²-smart-fresh-guard {W = W} =
+    CTI2.smart-fresh-behind-guard
+    Λ⊑²-smart-fresh-oldCenters
+    refl refl
+    (λ {A} {B} p →
+      Λ⊑²-smart-fresh-transport {W = W} {A = A} {B = B} p)
+    (Λ⊑²-smart-fresh-old-mark-mono W)
+    (Λ⊑²-smart-fresh-target-frozen W)
+    (Λ⊑²-smart-fresh-old-source-frozen W)
+    (Λ⊑²-smart-fresh-not-target W)
+    refl
+    (Λ⊑²-smart-fresh-target-mark-mono W)
+
+
 mapCtxᴿ-liftᴸ : MapCtxᴿLiftᴸᵀ right-bind-under-left-lift
 mapCtxᴿ-liftᴸ ext CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
 mapCtxᴿ-liftᴸ ext (CTI2.liftᴸ-∷ liftγ) =
   CTI2.liftᴸ-∷ (mapCtxᴿ-liftᴸ ext liftγ)
+
+
+mapCtxᴿ-smart-fresh-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTI2.SmartLiftCtxᴸ
+      {W = CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)}
+      {Wᵐ = Λ⊑²-smart-fresh-world W}
+      (ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = W} {B = ★} {C = ＇ Fin.zero})
+        γ)
+      (ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = CTI2.liftWorldLeft I.X⊑★ W}
+          {B = ★} {C = ＇ Fin.zero})
+        γᴸ)
+mapCtxᴿ-smart-fresh-liftᴸ CTI2.liftᴸ-[] = CTI2.smart-lift-[]
+mapCtxᴿ-smart-fresh-liftᴸ (CTI2.liftᴸ-∷ liftγ) =
+  CTI2.smart-lift-∷ (mapCtxᴿ-smart-fresh-liftᴸ liftγ)
+
+
+mapCtxᴿ-smart-fresh-target-ctx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTI2.tgtCtxʷ
+      (ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = CTI2.liftWorldLeft I.X⊑★ W}
+          {B = ★} {C = ＇ Fin.zero})
+        γᴸ)
+    ≡ CTI2.tgtCtxʷ
+      (ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = W} {B = ★} {C = ＇ Fin.zero})
+        γ)
+mapCtxᴿ-smart-fresh-target-ctx CTI2.liftᴸ-[] = refl
+mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
+  cong (_ ∷_) (mapCtxᴿ-smart-fresh-target-ctx liftγ)
 
 
 Λ⊑²-cps-rewrap :
@@ -1995,6 +2448,125 @@ mapCtxᴿ-liftᴸ ext (CTI2.liftᴸ-∷ liftγ) =
 Λ⊑²-at-rewrap {p₂ = p₂} Anv zero∈A liftγ vV
     target⊢ bodyRel =
   CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ bodyRel p₂
+
+
+Λ⊑²-smart-fresh-at-rewrap : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {V : CT.Term (suc Δᴸ)} {post : CT.Term (suc (suc Δᴿ))}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
+    {body-p : A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B}
+    {top-p : `∀ A CTI2.⊑ᵂ⟨
+      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+    ⟩ B}
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → (liftγ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
+  → Value V
+  → Λ⊑²-smart-fresh-world W
+      CTI2.∣
+      ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = CTI2.liftWorldLeft I.X⊑★ W}
+          {B = ★} {C = ＇ Fin.zero})
+        γᴸ
+      ⊢² V ⊑ post ∶ body-p
+  → CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+      CTI2.∣
+      ECR.mapCtxᴿ
+        (right-bind-right-bind-world-extendᴿ
+          {W = W} {B = ★} {C = ＇ Fin.zero})
+        γ
+      ⊢² Λ V ⊑ post ∶ top-p
+Λ⊑²-smart-fresh-at-rewrap {W = W} Anv zero∈A liftγ vV bodyRel =
+  CTI2.Λ⊑²-smart-comma Anv zero∈A
+    (CTI2.smart-fresh-behind (Λ⊑²-smart-fresh-guard {W = W}))
+    (mapCtxᴿ-smart-fresh-liftᴸ liftγ)
+    vV
+    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (mapCtxᴿ-smart-fresh-target-ctx liftγ)
+      (CTI2T.target-typing² bodyRel))
+    bodyRel
+    _
+
+
+Λ⊑²-smart-recursive-package-at : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vΛV : CT.Value (Λ V))
+  → (vΛV′ : CT.Value (Λ V′))
+  → (vV : CT.Value V)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+  → (body-q : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ B′)
+  → (q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (liftγ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (bodyRel : CTI2.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
+      ⊢² V ⊑ Λ V′ ∶ body-p)
+  → InstPostCatalogPackageAt fuel bodyRel vV vΛV′ c′
+      B′≢★ c<fuel body-q
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (Λ⊑²-smart-fresh-world W)
+      (right-bind-right-bind-world-extendᴿ
+        {W = CTI2.liftWorldLeft I.X⊑★ W}
+        {B = ★} {C = ＇ Fin.zero})
+  → InstPostCatalogPackageAt fuel rel vΛV vΛV′ c′
+      B′≢★ c<fuel q
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
+      (right-bind-right-bind-world-extendᴿ
+        {W = W} {B = ★} {C = ＇ Fin.zero})
+Λ⊑²-smart-recursive-package-at {W = W}
+    rel vΛV vΛV′ vV c′ B′≢★ c<fuel body-q q
+    liftγ Anv zero∈A bodyRel bodyPkg =
+  record
+    { at-B₂ = InstPostCatalogPackageAt.at-B₂ bodyPkg
+    ; at-post = InstPostCatalogPackageAt.at-post bodyPkg
+    ; at-p₂ =
+        Λ⊑²-smart-fresh-top {W = W} Anv zero∈A
+          (InstPostCatalogPackageAt.at-p₂ bodyPkg)
+    ; at-post-relation =
+        Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
+          (InstPostCatalogPackageAt.at-post-relation bodyPkg)
+    ; at-post-value = InstPostCatalogPackageAt.at-post-value bodyPkg
+    ; at-ν₂ = InstPostCatalogPackageAt.at-ν₂ bodyPkg
+    ; at-residual-target =
+        InstPostCatalogPackageAt.at-residual-target bodyPkg
+    ; at-residual-q =
+        Λ⊑²-smart-fresh-top {W = W} Anv zero∈A
+          (InstPostCatalogPackageAt.at-residual-q bodyPkg)
+    ; at-residual-target-eq =
+        InstPostCatalogPackageAt.at-residual-target-eq bodyPkg
+    ; at-residual-cast =
+        InstPostCatalogPackageAt.at-residual-cast bodyPkg
+    ; at-residual-provenance =
+        Λ⊑²-smart-fresh-catchup⁻ {W = W} Anv zero∈A
+          (InstPostCatalogPackageAt.at-residual-provenance bodyPkg)
+    ; at-residual-fuel =
+        InstPostCatalogPackageAt.at-residual-fuel bodyPkg
+    ; at-prefix-reduction =
+        InstPostCatalogPackageAt.at-prefix-reduction bodyPkg
+    ; at-spine-descent =
+        spine-descent-zero
+          (InstPostCatalogPackageAt.at-post-value bodyPkg)
+          (Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
+            (InstPostCatalogPackageAt.at-post-relation bodyPkg))
+    }
 
 
 catchup⁻-nonstar : Catchup⁻NonStarᵀ

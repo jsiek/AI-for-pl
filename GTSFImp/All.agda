@@ -72,6 +72,7 @@ import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape
 import proof.DGG.Phase3DeepDives
 import proof.DGG.GroundCastTargetExamples
+import proof.DGG.SmartCommaWitness
 
 -- Probes and counterexample records (design decisions, kept checked)
 import proof.DGG.SourceStarProbe

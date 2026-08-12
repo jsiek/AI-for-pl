@@ -28,7 +28,8 @@ import Imprecision as I
 open import Imprecision using (VarImp; X⊑★; X⊑X)
 open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import TyStore using (store-lift; store-bind)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (CatchupCast⁻; castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
@@ -410,6 +411,43 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
           substᵗ Λ⊑Λ²TargetSplit₂ B
       × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
+
+
+record ΛPostPrefixOnlySourceStripSurface : Set₁ where
+  field
+    post-prefix-only : ∀ {Δᴸ Δᴿ Δ Δᵖ Δ₂ Δᵖ₂}
+        {W : World Δᴸ Δᴿ Δ}
+        {Wᵖ : World Δᴸ Δᴿ Δᵖ}
+        {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+        {Wᵖ₂ : World Δᴸ (suc (suc Δᴿ)) Δᵖ₂}
+        {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+        {Mₒ Mᵖ : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+        {Aₒ : Ty Δᴸ} {Aᵖ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+        {pₒ : Aₒ ⊑ᵂ⟨ W ⟩ `∀ B}
+        {pᵖ : Aᵖ ⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
+        {χs₂ : StoreChanges Δᴿ (suc (suc Δᴿ))}
+        {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+        {extᵖ₂ : ECR.WorldExtendᴿ χs₂ Wᵖ Wᵖ₂}
+        {ν₂ : Env∼ (suc (suc Δᴿ))}
+        {residual-target : Ty (suc (suc Δᴿ))}
+        {residual-cast :
+          ν₂ ⊢ substᵗ Λ⊑Λ²TargetSplit₂ B ∼ residual-target}
+      → (outer-rel : W ∣ γ ⊢² Mₒ ⊑ Λ V′ ∶ pₒ)
+      → (premise-rel : Wᵖ ∣ γᵖ ⊢² Mᵖ ⊑ Λ V′ ∶ pᵖ)
+      → Σ[ premise-post-p ∈
+            Aᵖ ⊑ᵂ⟨ Wᵖ₂ ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B ]
+        Σ[ premise-post-rel ∈
+            Wᵖ₂ ∣ ECR.mapCtxᴿ extᵖ₂ γᵖ
+              ⊢² Mᵖ ⊑ Λ⊑Λ²PostTerm V′ B ∶ premise-post-p ]
+        Σ[ outer-post-p ∈
+            Aₒ ⊑ᵂ⟨ W₂ ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B ]
+        Σ[ rebuilt-outer-post-rel ∈
+            W₂ ∣ ECR.mapCtxᴿ ext₂ γ
+              ⊢² Mₒ ⊑ Λ⊑Λ²PostTerm V′ B ∶ outer-post-p ]
+          Σ[ outer-residual-q ∈
+              Aₒ ⊑ᵂ⟨ W₂ ⟩ residual-target ]
+            CatchupCast⁻ {W = W₂} {A = Aₒ}
+              outer-post-p residual-cast outer-residual-q
 
 
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where

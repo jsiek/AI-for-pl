@@ -94,3 +94,11 @@ Required next surface:
   layer of `InstInversionPackage.Λ-package`.
 
 No live relation was changed, and no postulate, hole, or catch-all was added.
+
+Follow-up (2026-08-12):
+
+  The post-prefix-only package shape was stated and its non-source-strip
+  support was checked, but implementing the source-strip cases exposed a
+  sharper missing obligation: the wrapper's outer `A ⊑ᵂ `∀ B` obligation
+  does not transport to the fixed two-allocation post body.  See
+  `m5-inst-inversion-source-strip-post-obligation-blocked.red`.

@@ -365,6 +365,14 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
        residual `InstPostCatalogPackageAt` recursive call.  See
        `notes/m5-inst-inversion-source-strip-post-only-surface-blocked.red`.
 
+       M-4 continuation checkpoint (`post-prefix-only`): the surface was
+       stated in the design scratch and the live prefix support checks, but
+       the source-strip rebuild still lacks the outer post obligation
+       `A ⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B` for the wrapper source type.  Plain
+       transport of `A ⊑ᵂ⟨ W ⟩ `∀ B` lands at `applyTys χs₂ (`∀ B)`, not at
+       the reduced post body.  See
+       `notes/m5-inst-inversion-source-strip-post-obligation-blocked.red`.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

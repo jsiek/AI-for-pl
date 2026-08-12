@@ -24,7 +24,8 @@ import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Types
 open import Consistency using
-  (Env∼; _⊢_∼_; instᵐ; inst_; keep; skip; toRenameᵗ; wk↪ᵗ)
+  (Env∼; _⊢_∼_; _↪ᵗ_; instᵐ; inst_; keep; skip; toRenameᵗ;
+   wk↪ᵗ)
 open import CastTerms using
   (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_; renameᵗᵐ)
 import Imprecision as I
@@ -587,6 +588,26 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   → IIP.ΛPostPrefixPackageAtBase rel extᵐ₂ c′ B′≢★
 Λ⊑Λ²-smart-premise-base-preflight =
   IIP.Λ⊑Λ²-base-prefix-at-base
+
+
+record SmartRouteOnePostWindowPreflight : Set₁ where
+  field
+    smart-route-one-post-window : ∀ {Δᴸ Δᴿ Δ Δᵐ Δᵐ₁ Δᵐ₂}
+        {W : World Δᴸ Δᴿ Δ}
+        {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+        {Wᵐ₁ : World (suc Δᴸ) (suc Δᴿ) Δᵐ₁}
+        {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+        {πᵐ₁ : Δᵐ ↪ᵗ Δᵐ₁}
+        {πᵐ₂ : Δᵐ₁ ↪ᵗ Δᵐ₂}
+        {extᵐ₂ : ECR.WorldExtendᴿ
+          (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
+      → CTI2.SmartCommaLiftᴸ W Wᵐ
+      → TE.TargetInsert wk↪ᵗ πᵐ₁ Wᵐ Wᵐ₁
+      → TE.TargetInsert wk↪ᵗ πᵐ₂ Wᵐ₁ Wᵐ₂
+      → CTI2.SmartCommaLiftᴸ
+          (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+          Wᵐ₂
+      → IIP.ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂
 
 
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where

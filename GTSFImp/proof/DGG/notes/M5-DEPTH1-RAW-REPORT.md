@@ -139,6 +139,22 @@ column never moves):
                                                         (routes A and B
                                                          both refuted)
 
+## 4b. Interleaving `Λ⊑²` and right-only reveal peels
+
+Follow-up check: `M5-INTERLEAVE-CHECK.md` enumerates the six legal top-down
+orders preserving `Lₒ < Lᵢ` and `Rₒ < Rᵢ`. All six still fail under the current
+rules. The checked blockers are either immediate absence of a source pivot for
+`RebaseAtᴿ ... (just α)`, an order-preserving-embedding impossibility, or the
+same unequal-variable type leaf (`＇0 ⊑ ＇3`) at the concrete body
+`＇0 ⇒ ★`.
+
+The same scratch also checks the candidate fix's representation shape:
+`[ c_β , c_α , ℓ_out , old… ]`, with `inner ↦ c_β`,
+`outer ↦ ℓ_out`, `β ↦ c_β`, and `α ↦ c_α`, is a valid `World` shape and
+satisfies `WFWorld` in the concrete no-old-center instance. This does not add a
+relation rule; it only confirms that "Λ⊑² premise lift enters at an existing
+target center" is representable.
+
 ## 5. Answer to the invariant question
 
 It is genuinely a third thing, but of your two readings it is much closer

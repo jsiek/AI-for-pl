@@ -1,0 +1,5 @@
+name: gtsfimp-interpreter
+depend: standard-library
+include:
+  .
+  ../GTSFImp

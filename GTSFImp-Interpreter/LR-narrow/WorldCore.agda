@@ -3,13 +3,14 @@ module LR-narrow.WorldCore where
 -- File Charter:
 --   * Defines the three-context core used by the intrinsic LR world.
 --   * Embeds precise and imprecise runtime types into one center context.
---   * Provides paired fresh binding while keeping endpoint stores distinct.
+--   * Provides paired and precise-only fresh bindings while keeping endpoint
+--     stores distinct.
 
 open import Data.Nat using (suc)
 
 open import Types
 open import TyStore
-open import Consistency using (_↪ᵗ_; keep; toRenameᵗ)
+open import Consistency using (_↪ᵗ_; keep; skip; toRenameᵗ)
 import Imprecision as I
 
 record CoreWorld (Δᴾ Δᴵ Δᶜ : TyCtx) : Set where
@@ -54,3 +55,12 @@ pairedBindCore W Aᴾ Aᴵ =
   core-world (keep (preciseEmbedding W)) (keep (impreciseEmbedding W))
     (I.extᵐ (impEnv W)) (store-bind (preciseStore W) Aᴾ)
     (store-bind (impreciseStore W) Aᴵ)
+
+preciseBindCore : ∀ {Δᴾ Δᴵ Δᶜ}
+  → CoreWorld Δᴾ Δᴵ Δᶜ
+  → Ty Δᴾ
+  → CoreWorld (suc Δᴾ) Δᴵ (suc Δᶜ)
+preciseBindCore W Aᴾ =
+  core-world (keep (preciseEmbedding W)) (skip (impreciseEmbedding W))
+    (I.instᵐ (impEnv W)) (store-bind (preciseStore W) Aᴾ)
+    (impreciseStore W)

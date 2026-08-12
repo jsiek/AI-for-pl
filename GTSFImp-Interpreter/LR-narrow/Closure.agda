@@ -6,6 +6,7 @@ module LR-narrow.Closure where
 --   * Delegates proof scripts to proof.LR-narrow.Closure.
 
 open import Data.Nat using (ℕ; suc)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 import Imprecision as I
@@ -49,6 +50,19 @@ universals-related-future : ∀
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 universals-related-future = Proof.universals-related-future
 
+right-universals-related-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {k : ℕ} {Vᴵ Vᴾ}
+    (W≼W′ : Future W W′)
+  → RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+  → RightUniversalsRelated W′
+      (liftCenterDynamicBodyImprecision W≼W′ p)
+      (liftPreciseBody W≼W′ Bᴾ) k
+      (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+right-universals-related-future = Proof.right-universals-related-future
+
 value-imprecision-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -69,6 +83,13 @@ value-imprecision-downward = Proof.value-imprecision-downward
 
 semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}
-  → AtomHolds (semanticAtom W X) (suc k) Vᴵ Vᴾ
+  → PairedAtomHolds (semanticEntry W X) (suc k) Vᴵ Vᴾ
   → ValueImprecision W (I.X⊑X {X = X}) (suc k) Vᴵ Vᴾ
 semantic-atom-value = Proof.semantic-atom-value
+
+dynamic-semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}
+    (eq : impEnv (core W) X ≡ I.X⊑★)
+  → DynamicAtomHolds (semanticEntry W X) eq (suc k) Vᴵ Vᴾ
+  → ValueImprecision W (I.X⊑★ eq) (suc k) Vᴵ Vᴾ
+dynamic-semantic-atom-value = Proof.dynamic-semantic-atom-value

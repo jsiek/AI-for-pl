@@ -4,8 +4,11 @@ module LR-narrow.DynamicPayload where
 --   * Constructs DynamicPayloadRelated for every GTSFImp ground form.
 --   * Supports distinct endpoint contexts via the world's center embeddings.
 --   * Uses semantic-atom alignment for the variable-tag case.
+--   * Constructs the one-dynamic universal boundary used by ∀⊑★.
 
 open import Data.Nat using (ℕ)
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
 open import CastTerms using (Term; _⟨_⟩)
@@ -80,3 +83,13 @@ dynamic-payload-universal {μᴾ = μᴾ} {μᴵ = μᴵ} payload-related =
   tags-and-payload ∀★ ∀★ (C.∀∼★ {μ = μᴾ})
     (C.∀∼★ {μ = μᴵ})
     (I.∀⊑∀ I.★⊑★) payload-related
+
+dynamic-universal-boundary : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    (p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ★)
+    {μᴵ : Env∼ Δᴵ} {Uᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑∀ p) k Uᴵ Vᴾ
+  → DynamicUniversalRelated W p k
+      (Uᴵ ⟨ groundInjection ∀★ (C.∀∼★ {μ = μᴵ}) ⟩) Vᴾ
+dynamic-universal-boundary p {μᴵ = μᴵ} {Uᴵ = Uᴵ} related =
+  μᴵ , Uᴵ , refl , related

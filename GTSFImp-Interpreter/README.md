@@ -12,10 +12,10 @@ The port currently contains:
   both round trips proved, between `Imprecision` and each polarization;
 - `LR-narrow/WorldCore.agda`: precise, imprecise, and center contexts with
   embeddings of both endpoints into the center;
-- `LR-narrow/Atoms.agda`: step-indexed semantic atoms carrying downward
-  closure and endpoint typing;
-- `LR-narrow/World.agda`: paired fresh world extensions, fresh semantic
-  atoms, and lifting through futures;
+- `LR-narrow/Atoms.agda`: mode-indexed `X⊑X` and `X⊑★` semantic entries
+  carrying downward closure and endpoint typing;
+- `LR-narrow/World.agda`: paired and precise-only fresh world extensions,
+  fresh semantic entries, and lifting through futures;
 - `LR-narrow/Computation.agda`: the three directed DGG observations;
 - `LR-narrow/LogicalRelation.agda`: a step-indexed LR indexed canonically by
   `Imprecision`, plus `ValueNarrowing` obtained by reindexing through the
@@ -23,8 +23,8 @@ The port currently contains:
 - `LR-narrow/DynamicPayload.agda`: base, function, variable, and universal
   ground introduction cases for `DynamicPayloadRelated`;
 - `LR-narrow/Closure.agda`: public statements of downward closure and
-  future-world monotonicity for typed endpoints, functions, universals, and
-  the full value relation.
+  future-world monotonicity for typed endpoints, functions, paired and
+  right-only universals, and the full value relation.
 
 ## Three-context worlds
 
@@ -42,10 +42,12 @@ that embedding them yields the center endpoints of the derivation. This avoids
 identifying the endpoint contexts merely because a narrowing derivation uses
 one context.
 
-Every center variable currently has a `SemanticAtom`. Its relation is
-step-indexed and downward closed, and related values must be values well typed
-at the corresponding endpoint variables. At a positive index, the `X ⊑ X`
-clause requires that atom relation, not just endpoint typing.
+Every center variable has a `SemanticEntry` indexed by its `impEnv` mode. An
+`X⊑X` entry contains endpoint variables on both sides. An `X⊑★` entry contains
+only a precise endpoint variable and relates its abstract values to imprecise
+values of type `★`. Both relations are step-indexed and downward closed. The
+corresponding positive-index LR clauses require these relations, not just
+endpoint typing.
 
 A paired future extension supplies:
 
@@ -56,6 +58,14 @@ A paired future extension supplies:
 
 The universal clause quantifies over exactly this extension. Consequently its
 body may use the fresh atom when the quantified variable is encountered.
+
+A precise-only future extension instead supplies a representation type
+`Rᴾ : Ty Δᴾ`, binds only the precise store, uses `keep` for the precise
+embedding and `skip` for the imprecise embedding, and installs an `X⊑★`
+semantic entry. This extension supports `RightUniversalsRelated`: the precise
+universal is instantiated at the fresh variable while the imprecise term is
+returned unchanged. There is no imprecise-only counterpart because `VarImp`
+has no `★⊑X` mode with which to type its fresh center slot.
 
 ## Why imprecision and narrowing give the same LR index
 
@@ -81,10 +91,11 @@ The checked closure layer establishes:
 
 - one-step downward closure of `ValueImprecision`;
 - future monotonicity of `TypedEndpoints`;
-- future monotonicity of `FunctionsRelated` and `UniversalsRelated`;
+- future monotonicity of `FunctionsRelated`, `UniversalsRelated`, and
+  `RightUniversalsRelated`;
 - future monotonicity of the complete value relation;
-- a constructor turning a positive-index semantic-atom witness into the
-  strengthened `X ⊑ X` value clause.
+- constructors turning positive-index paired and dynamic semantic-entry
+  witnesses into the strengthened `X⊑X` and `X⊑★` value clauses.
 
 The function and universal proofs use explicit composition lemmas because
 lifting through a composite future is propositionally, rather than
@@ -92,16 +103,14 @@ definitionally, equal to lifting in two stages.
 
 ## Deliberate draft boundaries
 
-The structural clauses are complete for `★ ⊑ ★`, `X ⊑ X`, ordinary
-functions, and paired universals. The other gradual constructors currently
-impose endpoint valuehood and typing only.
+The structural clauses are complete for `★⊑★`, `X⊑X`, `X⊑★`, ordinary
+functions, paired universals, and `∀⊑`. The `∀⊑★` clause additionally requires
+the imprecise value to be a dynamically tagged universal whose payload is
+related to the precise universal by `∀⊑∀`; its behavior therefore reuses the
+paired-universal clause after the dynamic boundary is exposed.
 
-The world type already permits different endpoint context sizes, but `Future`
-currently has only paired allocation. Also, `semanticAtom` is total on center
-variables, so every center variable must be aligned with a variable at both
-endpoints. Supporting universal-to-non-universal cases still requires
-one-sided future constructors and a partial or mode-indexed atom environment.
-Those additions should reuse the left/right/center embeddings rather than
-returning to one shared type context.
+The remaining gradual constructors `⇒⊑★`, `ι⊑★`, `∀★⊑★`, and the bottom
+cases still impose endpoint valuehood and typing only. Strengthening the
+function and base dynamic-boundary cases is the next semantic milestone.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

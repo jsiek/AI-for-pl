@@ -3,8 +3,9 @@ module LR-narrow.LogicalRelation where
 -- File Charter:
 --   * Defines the draft step-indexed Kripke LR over center imprecision.
 --   * Keeps precise and imprecise values in distinct endpoint contexts.
---   * Interprets center variables through semantic atoms and universals
---     through fresh paired extensions.
+--   * Interprets X⊑X and X⊑★ center variables through mode-indexed atoms.
+--   * Interprets paired and right-only universals through matching fresh
+--     world extensions.
 --   * Reindexes the relation over polarized narrowing via the proved
 --     derivation isomorphism.
 
@@ -122,7 +123,7 @@ mutual
 
   ValueImprecisionᵏ (suc k) W (I.X⊑X {X = X}) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑X {X = X}) Vᴵ Vᴾ ×
-    AtomHolds (semanticAtom W X) (suc k) Vᴵ Vᴾ
+    PairedAtomHolds (semanticEntry W X) (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.⇒⊑⇒ p q) Vᴵ Vᴾ =
     TypedEndpoints W (I.⇒⊑⇒ p q) Vᴵ Vᴾ ×
@@ -144,16 +145,22 @@ mutual
     TypedEndpoints W (I.ι⊑★ {ι = ι}) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.X⊑★ eq) Vᴵ Vᴾ =
-    TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ
+    TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ ×
+    DynamicAtomHolds (semanticEntry W _) eq (suc k) Vᴵ Vᴾ
 
-  ValueImprecisionᵏ (suc k) W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ =
-    TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ
+  ValueImprecisionᵏ (suc k) W
+      (I.∀⊑ {A = Aᴾ} nonvar occurs p) Vᴵ Vᴾ =
+    TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ ×
+    Σ[ Bᴾ ∈ Ty _ ]
+      (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
+      × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.∀★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.∀⊑★ nonstar p) Vᴵ Vᴾ =
-    TypedEndpoints W (I.∀⊑★ nonstar p) Vᴵ Vᴾ
+    TypedEndpoints W (I.∀⊑★ nonstar p) Vᴵ Vᴾ ×
+    DynamicUniversalRelated W p k Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.bot-elim Vᴵ Vᴾ =
     TypedEndpoints W I.bot-elim Vᴵ Vᴾ
@@ -218,6 +225,46 @@ mutual
             (liftPreciseTerm W≼B Vᴾ
               ⦂∀ liftPreciseBody W≼B Bᴾ [ ＇ Fin.zero ]))
     × UniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
+
+  RightUniversalsRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    → (W : World Δᴾ Δᴵ Δᶜ)
+    → I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ
+    → Ty (suc Δᴾ)
+    → ℕ
+    → Term Δᴵ
+    → Term Δᴾ
+    → Set₁
+
+  RightUniversalsRelated W p Bᴾ zero Vᴵ Vᴾ = ⊤
+
+  RightUniversalsRelated W p Bᴾ (suc k) Vᴵ Vᴾ =
+    (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+        (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
+        (fresh : DynamicSemanticAtom
+          (preciseBindCore (core W′) Rᴾ) Fin.zero)
+      → let bound = preciseBindWorld W′ Rᴾ fresh
+            W≼B = future-precise W≼W′ fresh
+            body = openFreshDynamicImprecision {W = bound} refl
+              (liftCenterDynamicBodyImprecision W≼B p)
+        in ComputationsRelated bound
+            (FutureValueRelation {W = bound} body) (suc k)
+            (liftImpreciseTerm W≼B Vᴵ)
+            (liftPreciseTerm W≼B Vᴾ
+              ⦂∀ liftPreciseBody W≼B Bᴾ [ ＇ Fin.zero ]))
+    × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+
+  DynamicUniversalRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
+    → (W : World Δᴾ Δᴵ Δᶜ)
+    → I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ★
+    → ℕ
+    → Term Δᴵ
+    → Term Δᴾ
+    → Set₁
+  DynamicUniversalRelated W p k Vᴵ Vᴾ =
+    Σ[ μᴵ ∈ Env∼ _ ]
+    Σ[ Uᴵ ∈ Term _ ]
+      (Vᴵ ≡ Uᴵ ⟨ groundInjection ∀★ (C.∀∼★ {μ = μᴵ}) ⟩)
+      × ValueImprecisionᵏ k W (I.∀⊑∀ p) Uᴵ Vᴾ
 
   DynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)

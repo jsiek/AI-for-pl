@@ -3907,6 +3907,117 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
       (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
 
 
+Λ-route1-smart-alias-facts : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ΛRouteOneWindowFacts id↪ᵗ id↪ᵗ
+      (TE.smartAliasTargetInsert
+        (TE.rightBindTargetInsert {W = W} {B = ★}) guard)
+      (TE.smartAliasTargetInsert
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartAliasGuardInsert
+          (TE.rightBindTargetInsert {W = W} {B = ★}) guard))
+Λ-route1-smart-alias-facts {W = W} {Wᵐ = Wᵐ} guard =
+  record
+    { targetWindow₁ =
+        TE.smartAliasTargetWindowInsert
+          (TE.rightBindTargetInsert {W = W} {B = ★})
+          guard TE.rightBindTargetWindowInsert
+    ; targetWindow₂ =
+        TE.smartAliasTargetWindowInsert
+          (TE.rightBindTargetInsert
+            {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+          guard₁ TE.rightBindTargetWindowInsert
+    ; pivotMark = refl
+    ; targetStoreTransport = StoreTransport-lift-bind
+    ; firstTargetZeroResolves = refl
+    ; targetZeroResolves = refl
+    ; targetOtherResolves = target-other
+    ; midSourcePivotMark = refl
+    }
+  where
+  guard₁ =
+    TE.smartAliasGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+  target-other : ∀ Z
+    → Z ≢ Fin.zero
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ
+          (TE.smartAliasInsertWorld
+            (TE.rightBindTargetInsert
+              {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+            (TE.smartAliasInsertWorld
+              (TE.rightBindTargetInsert {W = W} {B = ★}) Wᵐ)))
+        Z
+      ≡ CTI2.resolveVar
+          (store-lift
+            (CTI2.targetStoreʷ
+              (TE.smartAliasInsertWorld
+                (TE.rightBindTargetInsert {W = W} {B = ★}) Wᵐ)))
+          Z
+  target-other Fin.zero neq = ⊥-elim (neq refl)
+  target-other (Fin.suc Z) neq = refl
+
+
+Λ-route1-smart-fresh-facts : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ΛRouteOneWindowFacts
+      (TE.rightPushoutWindow
+        (CTI2.SmartFreshBehindGuard.oldCenters guard))
+      (TE.rightPushoutWindow
+        (CTI2.SmartFreshBehindGuard.oldCenters
+          (TE.smartFreshGuardInsert
+            (TE.rightBindTargetInsert {W = W} {B = ★}) guard)))
+      (TE.smartFreshTargetInsert
+        (TE.rightBindTargetInsert {W = W} {B = ★}) guard)
+      (TE.smartFreshTargetInsert
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartFreshGuardInsert
+          (TE.rightBindTargetInsert {W = W} {B = ★}) guard))
+Λ-route1-smart-fresh-facts {W = W} {Wᵐ = Wᵐ} guard =
+  record
+    { targetWindow₁ =
+        TE.smartFreshRightBindTargetWindowInsert guard
+    ; targetWindow₂ =
+        TE.smartFreshRightBindTargetWindowInsert guard₁
+    ; pivotMark = refl
+    ; targetStoreTransport = StoreTransport-lift-bind
+    ; firstTargetZeroResolves = refl
+    ; targetZeroResolves = refl
+    ; targetOtherResolves = target-other
+    ; midSourcePivotMark = refl
+    }
+  where
+  guard₁ =
+    TE.smartFreshGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+  target-other : ∀ Z
+    → Z ≢ Fin.zero
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ
+          (TE.smartFreshInsertWorld
+            (TE.rightBindTargetInsert
+              {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+            guard₁))
+        Z
+      ≡ CTI2.resolveVar
+          (store-lift
+            (CTI2.targetStoreʷ
+              (TE.smartFreshInsertWorld
+                (TE.rightBindTargetInsert {W = W} {B = ★}) guard)))
+          Z
+  target-other Fin.zero neq = ⊥-elim (neq refl)
+  target-other (Fin.suc Z) neq = refl
+
+
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.World Δᴸ Δᴿ Δ
   → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))

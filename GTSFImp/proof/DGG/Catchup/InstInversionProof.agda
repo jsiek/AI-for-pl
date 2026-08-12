@@ -7,7 +7,7 @@ module proof.DGG.Catchup.InstInversionProof where
 --   * Imports only the live Def surface plus core/proof-only consistency
 --     support; it does not consume other catch-up Proof modules.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
@@ -15,7 +15,8 @@ import Data.List as List
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; suc; _<_; s≤s)
 open import Data.Nat.Properties using (n<1+n; ≤-trans)
-open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
+open import Data.Unit using (⊤; tt)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂)
   renaming (subst to subst≡)
@@ -34,6 +35,8 @@ open import Conversion using
   (Conv↑; Conv↓; replaceTy; makeConceal; 〖_,_↑_〗; rename↑)
 import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
+open import Primitives using
+  (constTy-renameᵗ; primArgTy; primResultTy)
 open import Reduction using
   (StoreChanges; _—↠[_]_; _—→[_]⟨_⟩_; _∎[]; bind; _∷_; [];
    ↠-refl; ↠-step; β-inst; β-Λ; ξ-⟨⟩; ξ-reveal; ξ-•;
@@ -46,6 +49,7 @@ open import CastTerms using
 open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
+import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
    source-nonvar-target; source-occurs-target; subst-zero-occurs-exts;
@@ -2533,6 +2537,533 @@ center-map-source-⊢↓ mp c⊢ =
   subst≡ (λ Σ → Σ CTI2.⊢↓[ _ ] _) (sym (sourceStore-map mp)) c⊢
 
 
+------------------------------------------------------------------------
+-- Exchange-window freshness
+------------------------------------------------------------------------
+
+liftTargetWindow : ∀ {Δ}
+  → (TyVar Δ → Set)
+  → TyVar (suc Δ)
+  → Set
+liftTargetWindow Window Fin.zero = ⊥
+liftTargetWindow Window (Fin.suc X) = Window X
+
+
+TargetPivotFresh : ∀ {Δ}
+  → (TyVar Δ → Set)
+  → TyVar Δ
+  → Set
+TargetPivotFresh Window X = Window X → ⊥
+
+
+RebaseAtWindowFresh : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (TyVar Δᴿ → Set)
+  → CTI2.RebaseAt W W′ Xᴸ Xᴿ
+  → Set
+RebaseAtWindowFresh {Xᴿ = Xᴿ} Window rb =
+  TargetPivotFresh Window Xᴿ
+
+
+RebaseAtᴿWindowFresh : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (TyVar Δᴿ → Set)
+  → CTI2.RebaseAtᴿ W W′ Xᴿ?
+  → Set
+RebaseAtᴿWindowFresh Window CTI2.rebase-idᴿ = ⊤
+RebaseAtᴿWindowFresh Window (CTI2.rebase-varᴿ rb) =
+  RebaseAtWindowFresh Window rb
+
+
+RebaseAtᴸWindowFresh : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ? : Maybe (TyVar Δᴸ)}
+  → (TyVar Δᴿ → Set)
+  → CTI2.RebaseAtᴸ W W′ Xᴸ?
+  → Set
+RebaseAtᴸWindowFresh Window CTI2.rebase-idᴸ = ⊤
+RebaseAtᴸWindowFresh Window (CTI2.rebase-varᴸ rb) =
+  RebaseAtWindowFresh Window rb
+RebaseAtᴸWindowFresh Window
+    (CTI2.rebase-onlyᴸ to-star disaligned represented) =
+  ⊤
+
+
+TagRebaseAtᴸWindowFresh : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (TyVar Δᴿ → Set)
+  → CTI2.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+  → Set
+TagRebaseAtᴸWindowFresh Window CTI2.tag-rebase-idᴸ = ⊤
+TagRebaseAtᴸWindowFresh Window (CTI2.tag-rebase-varᴸ rb) =
+  RebaseAtWindowFresh Window rb
+TagRebaseAtᴸWindowFresh Window
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+  ⊤
+
+
+WindowFresh² : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (TyVar Δᴿ → Set)
+  → W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p
+  → Set
+WindowFresh² Window (CTI2.x⊑x² x∈) = ⊤
+WindowFresh² Window (CTI2.ƛ⊑ƛ² M⊑M′) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.·⊑·² L⊑L′ M⊑M′) =
+  WindowFresh² Window L⊑L′ × WindowFresh² Window M⊑M′
+WindowFresh² Window
+    (CTI2.Λ⊑Λ² liftγ vV vV′ V⊑V′ q) =
+  WindowFresh² (liftTargetWindow Window) V⊑V′
+WindowFresh² Window
+    (CTI2.Λ⊑² Anv zero∈A liftγ vV M⊢ V⊑M q) =
+  WindowFresh² Window V⊑M
+WindowFresh² Window (CTI2.•⊑•² p∀ M⊑M′ q r) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.•⊑² p∀ M⊑M′ q r) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.κ⊑κ² κ p) = ⊤
+WindowFresh² Window (CTI2.cast⊑cast² c c′ M⊑M′ q) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.⊑cast² c′ M⊑M′ q) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.⊑reveal² mono rb sc c′⊢ M⊑M′ q) =
+  RebaseAtᴿWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.⊑conceal² mono rb sc c′⊢ M⊑M′ q) =
+  RebaseAtᴿWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.cast⊑² c M⊑M′ q) =
+  WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
+  RebaseAtᴸWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window (CTI2.conceal⊑² ok mono rb sc c⊢ M⊑M′ q) =
+  TagRebaseAtᴸWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window
+    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
+  RebaseAtWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window
+    (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q) =
+  RebaseAtWindowFresh Window rb × WindowFresh² Window M⊑M′
+WindowFresh² Window
+    (CTI2.packaged-seal-star²
+      ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q) =
+  RebaseAtWindowFresh Window rb
+    × WindowFresh² Window M⊑M′
+    × WindowFresh² Window sourcePrem
+WindowFresh² Window (CTI2.blame⊑² M′⊢ p) = ⊤
+WindowFresh² Window (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
+  WindowFresh² Window L⊑L′ × WindowFresh² Window M⊑M′
+
+
+WindowFresh²-subst : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p q : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p}
+    {Window : TyVar Δᴿ → Set}
+  → (eq : p ≡ q)
+  → WindowFresh² Window rel
+  → WindowFresh² Window
+      (subst≡ (λ r → W CTI2.∣ γ ⊢² M ⊑ M′ ∶ r) eq rel)
+WindowFresh²-subst refl wf = wf
+
+
+WindowFresh²-retarget : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p q : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {Window : TyVar Δᴿ → Set}
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → WindowFresh² Window rel
+  → WindowFresh² Window (TE.⊢²-retarget {q = q} rel)
+WindowFresh²-retarget {p = p} {q = q} rel wf =
+  WindowFresh²-subst (PI.⊑-unique p q) wf
+
+
+WindowFresh²-retargetᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B C : Ty Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B} {q : A CTI2.⊑ᵂ⟨ W ⟩ C}
+    {Window : TyVar Δᴿ → Set}
+  → (eq : B ≡ C)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → WindowFresh² Window rel
+  → WindowFresh² Window (TE.⊢²-retargetᴿ {q = q} eq rel)
+WindowFresh²-retargetᴿ refl rel wf =
+  WindowFresh²-retarget rel wf
+
+
+targetImageFresh-keep : ∀ {Δ Δ′}
+    {ρ : Δ ↪ᵗ Δ′}
+    {Window : TyVar Δ′ → Set}
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → ∀ X → TargetPivotFresh (liftTargetWindow Window)
+      (toRenameᵗ (keep ρ) X)
+targetImageFresh-keep off Fin.zero ()
+targetImageFresh-keep off (Fin.suc X) win = off X win
+
+
+targetImageFreshᴿ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.RebaseAtᴿ W Wᵖ Xᴿ?)
+  → RebaseAtᴿWindowFresh Window
+      (proj₂ (proj₂ (TE.insertRebaseAtᴿ ins rb)))
+targetImageFreshᴿ ins off CTI2.rebase-idᴿ = tt
+targetImageFreshᴿ ins off (CTI2.rebase-varᴿ rb)
+    with TE.insertRebaseAt ins rb
+targetImageFreshᴿ ins off (CTI2.rebase-varᴿ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+
+
+targetImageFreshᴿ-reverse : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.RebaseAtᴿ Wᵖ W Xᴿ?)
+  → RebaseAtᴿWindowFresh Window
+      (proj₂ (proj₂ (TE.reverseRebaseAtᴿ ins rb)))
+targetImageFreshᴿ-reverse ins off CTI2.rebase-idᴿ = tt
+targetImageFreshᴿ-reverse ins off (CTI2.rebase-varᴿ rb)
+    with TE.reverseRebaseAt ins rb
+targetImageFreshᴿ-reverse ins off (CTI2.rebase-varᴿ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+
+
+targetImageFreshᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴸ? : Maybe (TyVar Δᴸ)}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → RebaseAtᴸWindowFresh Window
+      (proj₂ (proj₂ (TE.insertRebaseAtᴸ ins rb)))
+targetImageFreshᴸ ins off CTI2.rebase-idᴸ = tt
+targetImageFreshᴸ ins off (CTI2.rebase-varᴸ rb)
+    with TE.insertRebaseAt ins rb
+targetImageFreshᴸ ins off (CTI2.rebase-varᴸ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+targetImageFreshᴸ ins off
+    (CTI2.rebase-onlyᴸ to-star disaligned represented) =
+  tt
+
+
+targetImageFreshTagᴸ-reverse : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → TagRebaseAtᴸWindowFresh Window
+      (proj₂ (proj₂ (TE.reverseTagRebaseAtᴸ ins rb)))
+targetImageFreshTagᴸ-reverse ins off CTI2.tag-rebase-idᴸ = tt
+targetImageFreshTagᴸ-reverse ins off (CTI2.tag-rebase-varᴸ rb)
+    with TE.reverseRebaseAt ins rb
+targetImageFreshTagᴸ-reverse ins off (CTI2.tag-rebase-varᴸ rb)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+targetImageFreshTagᴸ-reverse ins off
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+  tt
+
+
+targetImageFresh-rebase : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → RebaseAtWindowFresh Window
+      (proj₂ (proj₂ (TE.insertRebaseAt ins rb)))
+targetImageFresh-rebase ins off rb
+    with TE.insertRebaseAt ins rb
+targetImageFresh-rebase ins off rb | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+
+
+targetImageFresh-rebase-reverse : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Window : TyVar Δᴿ′ → Set}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → RebaseAtWindowFresh Window
+      (proj₂ (proj₂ (TE.reverseRebaseAt ins rb)))
+targetImageFresh-rebase-reverse ins off rb
+    with TE.reverseRebaseAt ins rb
+targetImageFresh-rebase-reverse ins off rb | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _
+
+
+⊢²-target-insert-window-fresh : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (Window : TyVar Δᴿ′ → Set)
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (∀ X → TargetPivotFresh Window (toRenameᵗ ρ X))
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → WindowFresh² Window (TE.⊢²-target-insert ins rel)
+⊢²-target-insert-window-fresh Window ins off (CTI2.x⊑x² x∈) =
+  tt
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.ƛ⊑ƛ² {pA = pA} {pB = pB} M⊑M′) =
+  WindowFresh²-subst
+    (PI.⊑-unique
+      (I.⇒⊑⇒ (TE.transport⊑ᵂ ins pA) (TE.transport⊑ᵂ ins pB))
+      (TE.transport⊑ᵂ ins (I.⇒⊑⇒ pA pB)))
+    (⊢²-target-insert-window-fresh Window ins off M⊑M′)
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.·⊑·² L⊑L′ M⊑M′) =
+  WindowFresh²-retarget (TE.⊢²-target-insert ins L⊑L′)
+    (⊢²-target-insert-window-fresh Window ins off L⊑L′) ,
+  ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh {ρ = ρ} Window ins off
+    (CTI2.Λ⊑Λ² {B = B} liftγ vV vV′ V⊑V′ q) =
+  WindowFresh²-retargetᴿ
+    (cong `∀ (renameᵗ-cong B (toRename-keep-eq ρ)))
+    (CTI2.Λ⊑Λ² (TE.targetLiftCtxBoth ins liftγ) vV
+      (renameᵗᵐ-preserves-Value (keep ρ) vV′)
+      (TE.⊢²-target-insert (TE.liftBothTargetInsert {v = I.X⊑X} ins)
+        V⊑V′)
+      _)
+    (⊢²-target-insert-window-fresh (liftTargetWindow Window)
+      (TE.liftBothTargetInsert {v = I.X⊑X} ins)
+      (targetImageFresh-keep off) V⊑V′)
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window
+    (TE.liftLeftTargetInsert {v = I.X⊑★} ins) off V⊑M′
+⊢²-target-insert-window-fresh {ρ = ρ} {W⁺ = W⁺} Window ins off
+    (CTI2.•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+      p∀ M⊑M′ q r) =
+  WindowFresh²-retargetᴿ (sym open-eq)
+    (CTI2.•⊑•² p∀-keep
+      (TE.⊢²-retargetᴿ
+        (sym (cong `∀ body-eq))
+        (TE.⊢²-target-insert ins M⊑M′))
+      (TE.transport⊑ᵂ ins q)
+      r-open)
+    (WindowFresh²-retargetᴿ
+      (sym (cong `∀ body-eq))
+      (TE.⊢²-target-insert ins M⊑M′)
+      (⊢²-target-insert-window-fresh Window ins off M⊑M′))
+  where
+  body-eq : renameᵗ (toRenameᵗ (keep ρ)) C′
+      ≡ renameᵗ (extᵗ (toRenameᵗ ρ)) C′
+  body-eq = renameᵗ-cong C′ (toRename-keep-eq ρ)
+
+  open-eq = TE.rename-open↪ᵗ ρ C′ A′
+
+  p∀-keep : `∀ C CTI2.⊑ᵂ⟨ W⁺ ⟩
+      `∀ (renameᵗ (toRenameᵗ (keep ρ)) C′)
+  p∀-keep =
+    subst≡ (λ T → `∀ C CTI2.⊑ᵂ⟨ W⁺ ⟩ `∀ T)
+      (sym body-eq) (TE.transport⊑ᵂ ins p∀)
+
+  r-open : (C [ A ]ᵗ) CTI2.⊑ᵂ⟨ W⁺ ⟩
+      (renameᵗ (toRenameᵗ (keep ρ)) C′
+        [ renameᵗ (toRenameᵗ ρ) A′ ]ᵗ)
+  r-open =
+    subst≡
+      (λ T → (C [ A ]ᵗ) CTI2.⊑ᵂ⟨ W⁺ ⟩ T)
+      open-eq
+      (TE.transport⊑ᵂ ins r)
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.•⊑² p∀ M⊑M′ q r) =
+  ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh {ρ = ρ} Window ins off
+    (CTI2.κ⊑κ² κ p) =
+  WindowFresh²-retargetᴿ (constTy-renameᵗ (toRenameᵗ ρ) κ)
+    (CTI2.κ⊑κ² κ _) tt
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.cast⊑cast² c c′ M⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑cast² c′ M⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑reveal² mono CTI2.rebase-idᴿ sc c′⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑reveal² mono (CTI2.rebase-varᴿ rb) sc c′⊢ M⊑M′ q)
+    with TE.insertRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑reveal² mono (CTI2.rebase-varᴿ rb) sc c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsert ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑conceal² mono CTI2.rebase-idᴿ sc c′⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc c′⊢ M⊑M′ q)
+    with TE.reverseRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsertRev ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.cast⊑² c M⊑M′ q) =
+  ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑² mono CTI2.rebase-idᴸ sc c⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑² mono (CTI2.rebase-varᴸ rb) sc c⊢ M⊑M′ q)
+    with TE.insertRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑² mono (CTI2.rebase-varᴸ rb) sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsert ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑² mono
+      (CTI2.rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑² ok mono CTI2.tag-rebase-idᴸ sc c⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑² ok mono (CTI2.tag-rebase-varᴸ rb)
+      sc c⊢ M⊑M′ q)
+    with TE.reverseRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑² ok mono (CTI2.tag-rebase-varᴸ rb)
+      sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsertRev ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑² ok mono
+      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ M⊑M′ q) =
+  tt , ⊢²-target-insert-window-fresh Window ins off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q)
+    with TE.insertRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsert ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q)
+    with TE.reverseRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsertRev ins rb) off M⊑M′
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢ M⊑M′
+      sourcePrem q)
+    with TE.reverseRebaseAt ins rb
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢ M⊑M′
+      sourcePrem q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  off _ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsertRev ins rb) off M⊑M′ ,
+  ⊢²-target-insert-window-fresh Window
+    (TE.insertRebaseTargetInsertRev ins rb) off sourcePrem
+⊢²-target-insert-window-fresh Window ins off
+    (CTI2.blame⊑² M′⊢ p) =
+  tt
+⊢²-target-insert-window-fresh
+    {Δᴿ = Δᴿ} {Δᴿ′ = Δᴿ′} {ρ = ρ} {W⁺ = W⁺}
+    Window ins off
+    (CTI2.⊕⊑⊕² op {p = p} {q = q} L⊑L′ M⊑M′ r) =
+  WindowFresh²-retargetᴿ result-eq
+    (CTI2.⊕⊑⊕² op L-arg M-arg r-result)
+    (WindowFresh²-retargetᴿ
+      (sym arg-eq)
+      (TE.⊢²-target-insert ins L⊑L′)
+      (⊢²-target-insert-window-fresh Window ins off L⊑L′) ,
+     WindowFresh²-retargetᴿ
+      (sym arg-eq)
+      (TE.⊢²-target-insert ins M⊑M′)
+      (⊢²-target-insert-window-fresh Window ins off M⊑M′))
+  where
+  arg-eq : primArgTy {Δᴿ′} op
+      ≡ renameᵗ (toRenameᵗ ρ) (primArgTy {Δᴿ} op)
+  arg-eq = TE.primArgTy-renameᵗ (toRenameᵗ ρ) op
+
+  result-eq : primResultTy {Δᴿ′} op
+      ≡ renameᵗ (toRenameᵗ ρ) (primResultTy {Δᴿ} op)
+  result-eq = TE.primResultTy-renameᵗ (toRenameᵗ ρ) op
+
+  p-arg : primArgTy op CTI2.⊑ᵂ⟨ W⁺ ⟩ primArgTy op
+  p-arg =
+    subst≡
+      (λ T → primArgTy op CTI2.⊑ᵂ⟨ W⁺ ⟩ T)
+      (sym arg-eq)
+      (TE.transport⊑ᵂ ins p)
+
+  q-arg : primArgTy op CTI2.⊑ᵂ⟨ W⁺ ⟩ primArgTy op
+  q-arg =
+    subst≡
+      (λ T → primArgTy op CTI2.⊑ᵂ⟨ W⁺ ⟩ T)
+      (sym arg-eq)
+      (TE.transport⊑ᵂ ins q)
+
+  L-arg =
+    TE.⊢²-retargetᴿ {q = p-arg}
+      (sym arg-eq) (TE.⊢²-target-insert ins L⊑L′)
+
+  M-arg =
+    TE.⊢²-retargetᴿ {q = q-arg}
+      (sym arg-eq) (TE.⊢²-target-insert ins M⊑M′)
+
+  r-result =
+    subst≡
+      (λ T → primResultTy op CTI2.⊑ᵂ⟨ W⁺ ⟩ T)
+      (sym result-eq)
+      (TE.transport⊑ᵂ ins r)
+
+
 record CenterMapSupport {Δᴸ Δᴿ Δ}
     {ρ : TyVar Δ → TyVar Δ}
     {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
@@ -2768,6 +3299,278 @@ open CenterMapSupport
   CTI2.⊕⊑⊕² op
     (⊢²-center-map mp sup L⊑L′ (center-map-⊑ᵂ mp p))
     (⊢²-center-map mp sup M⊑M′ (center-map-⊑ᵂ mp q)) p′
+
+
+record CenterMapWindowSupport {Δᴸ Δᴿ Δ}
+    (Window : TyVar Δᴿ → Set)
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    (mp : CenterMapWorld ρ W Wˣ) : Set₁ where
+  coinductive
+  field
+    liftBothWindowSupport :
+      CenterMapWindowSupport (liftTargetWindow Window)
+        (center-map-lift-both {v = I.X⊑X} mp)
+
+    liftLeftWindowSupport :
+      CenterMapWindowSupport Window
+        (center-map-lift-left {v = I.X⊑★} mp)
+
+    rebaseAtForwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+      → RebaseAtWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.RebaseAt Wˣ Wᵖˣ Xᴸ Xᴿ
+
+    rebaseAtBackwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+      → RebaseAtWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.RebaseAt Wᵖˣ Wˣ Xᴸ Xᴿ
+
+    rebaseAtᴿForwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → (rb : CTI2.RebaseAtᴿ W Wᵖ Xᴿ?)
+      → RebaseAtᴿWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.RebaseAtᴿ Wˣ Wᵖˣ Xᴿ?
+
+    rebaseAtᴿBackwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → (rb : CTI2.RebaseAtᴿ Wᵖ W Xᴿ?)
+      → RebaseAtᴿWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.RebaseAtᴿ Wᵖˣ Wˣ Xᴿ?
+
+    rebaseAtᴸForwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ? : Maybe (TyVar Δᴸ)}
+      → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+      → RebaseAtᴸWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.RebaseAtᴸ Wˣ Wᵖˣ Xᴸ?
+
+    tagRebaseAtᴸBackwardFresh : ∀ {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+        {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+      → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+      → TagRebaseAtᴸWindowFresh Window rb
+      → CTI2.ImpEnvMono W Wᵖ
+      → Σ[ Wᵖˣ ∈ CTI2.World Δᴸ Δᴿ Δ ]
+        Σ[ ρᵖ ∈ (TyVar Δ → TyVar Δ) ]
+        Σ[ mpᵖ ∈ CenterMapWorld ρᵖ Wᵖ Wᵖˣ ]
+          CenterMapWindowSupport Window mpᵖ
+          × CTI2.ImpEnvMono Wˣ Wᵖˣ
+          × CTI2.TagRebaseAtᴸ Wᵖˣ Wˣ Xᴸ? Xᴿ?
+
+
+open CenterMapWindowSupport
+
+
+⊢²-center-map-window : ∀ {Δᴸ Δᴿ Δ}
+    {ρ : TyVar Δ → TyVar Δ}
+    {W Wˣ : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W} {M : CT.Term Δᴸ} {N : CT.Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (Window : TyVar Δᴿ → Set)
+  → (mp : CenterMapWorld ρ W Wˣ)
+  → CenterMapWindowSupport Window mp
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ N ∶ p)
+  → WindowFresh² Window rel
+  → (p′ : A CTI2.⊑ᵂ⟨ Wˣ ⟩ B)
+  → Wˣ CTI2.∣ center-map-ctx mp γ ⊢² M ⊑ N ∶ p′
+⊢²-center-map-window Window mp sup (CTI2.x⊑x² x∈) wf p′ =
+  TBL.⊢²-retarget (CTI2.x⊑x² (center-map-∋ʷ mp x∈))
+⊢²-center-map-window Window mp sup
+    (CTI2.ƛ⊑ƛ² {pB = pB} M⊑N) wf p′ =
+  TBL.⊢²-retarget (CTI2.ƛ⊑ƛ²
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp pB)))
+⊢²-center-map-window Window mp sup
+    (CTI2.·⊑·² {pA = pA} {pB = pB} L⊑L′ M⊑M′)
+    (wfL , wfM) p′ =
+  TBL.⊢²-retarget (CTI2.·⊑·²
+    (⊢²-center-map-window Window mp sup L⊑L′ wfL
+      (I.⇒⊑⇒ (center-map-⊑ᵂ mp pA) (center-map-⊑ᵂ mp pB)))
+    (⊢²-center-map-window Window mp sup M⊑M′ wfM
+      (center-map-⊑ᵂ mp pA)))
+⊢²-center-map-window Window mp sup
+    (CTI2.Λ⊑Λ² {p = p} liftγ vV vV′ V⊑V′ q) wf p′ =
+  CTI2.Λ⊑Λ² (center-map-lift-ctx mp liftγ) vV vV′
+    (⊢²-center-map-window (liftTargetWindow Window)
+      (center-map-lift-both {v = I.X⊑X} mp)
+      (liftBothWindowSupport sup) V⊑V′ wf
+      (center-map-⊑ᵂ (center-map-lift-both {v = I.X⊑X} mp) p))
+    p′
+⊢²-center-map-window {γ = γ} Window mp sup
+    (CTI2.Λ⊑² {p = p} Anv zero∈A liftγ vV N⊢ V⊑N q) wf p′ =
+  CTI2.Λ⊑² Anv zero∈A (center-map-lift-ctxᴸ mp liftγ) vV
+    (subst≡ (λ Σ → ⟨ _ , Σ , CTI2.tgtCtxʷ (center-map-ctx mp γ) ⟩
+        ⊢ _ ⦂ _)
+      (sym (targetStore-map mp))
+      (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+        (sym (center-map-ctx-tgt mp γ)) N⊢))
+    (⊢²-center-map-window Window
+      (center-map-lift-left {v = I.X⊑★} mp)
+      (liftLeftWindowSupport sup) V⊑N wf
+      (center-map-⊑ᵂ (center-map-lift-left {v = I.X⊑★} mp) p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.•⊑•² p∀ M⊑N q r) wf p′ =
+  CTI2.•⊑•² (center-map-⊑ᵂ mp p∀)
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp p∀))
+    (center-map-⊑ᵂ mp q) p′
+⊢²-center-map-window Window mp sup
+    (CTI2.•⊑² p∀ M⊑N q r) wf p′ =
+  CTI2.•⊑² (center-map-⊑ᵂ mp p∀)
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp p∀))
+    (center-map-⊑ᵂ mp q) p′
+⊢²-center-map-window Window mp sup (CTI2.κ⊑κ² κ p) wf p′ =
+  CTI2.κ⊑κ² κ p′
+⊢²-center-map-window Window mp sup
+    (CTI2.cast⊑cast² {p = p} c c′ M⊑N q) wf p′ =
+  CTI2.cast⊑cast² c c′
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map-window Window mp sup
+    (CTI2.⊑cast² {p = p} c′ M⊑N q) wf p′ =
+  CTI2.⊑cast² c′
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map-window Window mp sup
+    (CTI2.⊑reveal² {p = p} mono rb sc c′⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with rebaseAtᴿForwardFresh sup rb wfRb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.⊑reveal² mono′ rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↑ mp c′⊢)
+    (⊢²-center-map-window Window mp′ sup′ M⊑N wfM
+      (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.⊑conceal² {p = p} mono rb sc c′⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with rebaseAtᴿBackwardFresh sup rb wfRb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.⊑conceal² mono′ rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map-window Window mp′ sup′ M⊑N wfM
+      (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.cast⊑² {p = p} c M⊑N q) wf p′ =
+  CTI2.cast⊑² c
+    (⊢²-center-map-window Window mp sup M⊑N wf
+      (center-map-⊑ᵂ mp p)) p′
+⊢²-center-map-window Window mp sup
+    (CTI2.reveal⊑² {p = p} mono rb sc c⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with rebaseAtᴸForwardFresh sup rb wfRb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.reveal⊑² mono′ rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↑ mp c⊢)
+    (⊢²-center-map-window Window mp′ sup′ M⊑N wfM
+      (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with tagRebaseAtᴸBackwardFresh sup rb wfRb mono
+... | W′ˣ , ρ′ , mp′ , sup′ , mono′ , rb′ =
+  CTI2.conceal⊑²
+    (center-map-source-conceal-partner-ok mp′ ok)
+    mono′ rb′
+    (center-map-same-ctx mp mp′ sc) (center-map-source-⊢↓ mp c⊢)
+    (⊢²-center-map-window Window mp′ sup′ M⊑N wfM
+      (center-map-⊑ᵂ mp′ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.reveal⊑reveal² {p = p}
+      mono rb sc c⊢ c′⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with rebaseAtForwardFresh sup rb wfRb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
+  CTI2.reveal⊑reveal²
+    monoᵖ rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↑ mp c⊢) (center-map-target-⊢↑ mp c′⊢)
+    (⊢²-center-map-window Window mpᵖ supᵖ M⊑N wfM
+      (center-map-⊑ᵂ mpᵖ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.conceal⊑conceal² {p = p}
+      ok mono rb sc c⊢ c′⊢ M⊑N q)
+    (wfRb , wfM) p′
+    with rebaseAtBackwardFresh sup rb wfRb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
+  CTI2.conceal⊑conceal²
+    (center-map-matched-conceal-partner-ok mpᵖ ok)
+    monoᵖ rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map-window Window mpᵖ supᵖ M⊑N wfM
+      (center-map-⊑ᵂ mpᵖ p))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.packaged-seal-star² {p★ = p★} {qᵖ = qᵖ}
+      ok mono rb sc c⊢ c′⊢ M⊑N sourcePrem q)
+    (wfRb , wfM , wfSource) p′
+    with rebaseAtBackwardFresh sup rb wfRb mono
+... | Wᵖˣ , ρᵖ , mpᵖ , supᵖ , monoᵖ , rbᵖ =
+  CTI2.packaged-seal-star²
+    (center-map-matched-conceal-partner-ok mpᵖ ok)
+    monoᵖ rbᵖ
+    (center-map-same-ctx mp mpᵖ sc)
+    (center-map-source-⊢↓ mp c⊢) (center-map-target-⊢↓ mp c′⊢)
+    (⊢²-center-map-window Window mpᵖ supᵖ M⊑N wfM
+      (center-map-⊑ᵂ mpᵖ p★))
+    (⊢²-center-map-window Window mpᵖ supᵖ sourcePrem wfSource
+      (center-map-⊑ᵂ mpᵖ qᵖ))
+    p′
+⊢²-center-map-window {γ = γ} Window mp sup
+    (CTI2.blame⊑² M′⊢ p) wf p′ =
+  CTI2.blame⊑²
+    (subst≡ (λ Σ → ⟨ _ , Σ , CTI2.tgtCtxʷ (center-map-ctx mp γ) ⟩
+        ⊢ _ ⦂ _)
+      (sym (targetStore-map mp))
+      (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+        (sym (center-map-ctx-tgt mp γ)) M′⊢))
+    p′
+⊢²-center-map-window Window mp sup
+    (CTI2.⊕⊑⊕² op {p = p} {q = q} L⊑L′ M⊑M′ r)
+    (wfL , wfM) p′ =
+  CTI2.⊕⊑⊕² op
+    (⊢²-center-map-window Window mp sup L⊑L′ wfL
+      (center-map-⊑ᵂ mp p))
+    (⊢²-center-map-window Window mp sup M⊑M′ wfM
+      (center-map-⊑ᵂ mp q)) p′
 
 
 swap01-left-right-source : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ)

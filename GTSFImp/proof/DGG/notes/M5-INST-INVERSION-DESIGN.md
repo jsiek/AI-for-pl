@@ -1,12 +1,14 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: parametric `CenterMapSupport` and
-`⊢²-center-map` check.  The support surface now returns fresh premise
-maps and transported `ImpEnvMono`, and `CenterMapWorld` no longer assumes
-involutive swaps.  The proposed side-stable cycle correction is blocked:
-`SideStableCycleCounterScratch.agda` proves a legal pre-exchange source
-re-park whose exchanged counterpart has no possible `RebaseAt` output
-world.  See
+Date: 2026-08-12. Status: window-fresh invariant, freshness-aware
+derivation transport, and TargetExtend image discharge check.  The
+support induction is now derivation-freshness indexed, and
+`⊢²-target-insert-window-fresh` proves inserted derivations are fresh
+whenever the old target image is disjoint from the exchange window.  The
+remaining support closure needs a stronger parked-reachability/image
+invariant than the boolean no-on-window predicate preserves; see
+`m5-inst-inversion-lambda-window-fresh-support-blocked.red`.  The
+permanent finite counterexample for the excluded on-window case remains
 `m5-inst-inversion-lambda-side-stable-cycle-output-blocked.red`.
 
 Checked artifact:

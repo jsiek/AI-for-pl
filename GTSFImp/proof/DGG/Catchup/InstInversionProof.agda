@@ -60,7 +60,7 @@ import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
   (renameᵗᵐ-preserves-Value; rename-occurs; StoreTransport;
    StoreTransport-lift-bind; StoreRename-suc-bind; toRename-id-eq;
-   toRename-keep-eq;
+   toRename-keep-eq; renameᵗ-wk-eq;
    toRename-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
@@ -3786,6 +3786,25 @@ right-bind-right-bind-under-left-lift {W = W} =
     (right-bind-under-left-lift {W = W} {B = ★})
     (right-bind-under-left-lift
       {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+
+
+target-insert-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {π : Δ ↪ᵗ Δ′} {B : Ty Δᴿ}
+  → (ins : TE.TargetInsert wk↪ᵗ π W W′)
+  → CTI2.targetStoreʷ W′
+      ≡ applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
+  → ECR.WorldExtendᴿ (bind B ∷ []) W W′
+target-insert-bind-world-extendᴿ {W′ = W′} {B = B} ins target-follows =
+  record
+    { sourceStore-kept = TE.sourceStore-kept ins
+    ; targetStore-follows = target-follows
+    ; transport⊑ᵂ = λ {A = A} {C = C} p →
+        subst≡ (λ C′ → A CTI2.⊑ᵂ⟨ W′ ⟩ C′)
+          (renameᵗ-wk-eq C)
+          (TE.transport⊑ᵂ ins p)
+    }
 
 
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}

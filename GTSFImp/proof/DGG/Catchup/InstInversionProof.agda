@@ -3963,6 +3963,53 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
   target-other (Fin.suc Z) neq = refl
 
 
+Λ-route1-smart-alias-ext₂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ
+      (TE.smartAliasInsertWorld
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartAliasInsertWorld
+          (TE.rightBindTargetInsert {W = W} {B = ★}) Wᵐ))
+Λ-route1-smart-alias-ext₂ {W = W} guard =
+  composeWorldExtendᴿ
+    (smart-alias-bind-world-extendᴿ {W = W} {B = ★} guard)
+    (smart-alias-bind-world-extendᴿ
+      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero} guard₁)
+  where
+  guard₁ =
+    TE.smartAliasGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+
+Λ-route1-smart-alias-post-window : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ΛPostWindowGeometry Wᵐ
+      (TE.smartAliasInsertWorld
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartAliasInsertWorld
+          (TE.rightBindTargetInsert {W = W} {B = ★}) Wᵐ))
+      (Λ-route1-smart-alias-ext₂ guard)
+Λ-route1-smart-alias-post-window guard =
+  Λ-route1-post-window-at facts
+    (Λ-route1-post-window-support-at facts
+      (Λ-route1-mid-fresh-mono-at facts)
+      (λ Bpre-zero∈ →
+        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+      (λ zero∈B →
+        TE.reveal-renameˣ StoreRename-suc-bind
+          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+  where
+  facts = Λ-route1-smart-alias-facts guard
+
+
 Λ-route1-smart-fresh-facts : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
@@ -4016,6 +4063,51 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
           Z
   target-other Fin.zero neq = ⊥-elim (neq refl)
   target-other (Fin.suc Z) neq = refl
+
+
+Λ-route1-smart-fresh-ext₂ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ
+      (TE.smartFreshInsertWorld
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartFreshGuardInsert
+          (TE.rightBindTargetInsert {W = W} {B = ★}) guard))
+Λ-route1-smart-fresh-ext₂ {W = W} guard =
+  composeWorldExtendᴿ
+    (smart-fresh-bind-world-extendᴿ {W = W} {B = ★} guard)
+    (smart-fresh-bind-world-extendᴿ
+      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero} guard₁)
+  where
+  guard₁ =
+    TE.smartFreshGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+
+Λ-route1-smart-fresh-post-window : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ΛPostWindowGeometry Wᵐ
+      (TE.smartFreshInsertWorld
+        (TE.rightBindTargetInsert
+          {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+        (TE.smartFreshGuardInsert
+          (TE.rightBindTargetInsert {W = W} {B = ★}) guard))
+      (Λ-route1-smart-fresh-ext₂ guard)
+Λ-route1-smart-fresh-post-window guard =
+  Λ-route1-post-window-at facts
+    (Λ-route1-post-window-support-at facts
+      (Λ-route1-mid-fresh-mono-at facts)
+      (λ Bpre-zero∈ →
+        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+      (λ zero∈B →
+        TE.reveal-renameˣ StoreRename-suc-bind
+          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+  where
+  facts = Λ-route1-smart-fresh-facts guard
 
 
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}

@@ -300,6 +300,26 @@ Next: M5 relational continuations + M6 driver (designs validated),
 then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
 pedigree.
 
+## M5 depth-≥1 satisfiability finding (2026-08-12, ESCALATED)
+
+The Λ branch of the instantiation inversion is CLOSED at depth 0 (the
+Λ⊑Λ² base: PR #135 + branch). At recursion depth ≥1 (source values with
+NESTED one-sided type abstractions meeting an inst cast), the
+post-instantiation relation appears INEXPRESSIBLE in the current
+parked/rebase discipline — machine-checked two ways
+(M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
+same-side source OPE reversal (impossible), and the non-moving
+sameWorldRebaseAt route leaves an empty post obligation (reduces to
+＇1 ⊑ ＇3 at a concrete finite body). Full resister chain in
+notes/m5-inst-inversion-*.red; verdict note:
+m5-inst-inversion-lambda-under-lift-satisfiability.red.
+
+Decision pending (user): reachability premise on InstCatchupRight²
+(M3-style restriction — compile-image screen in flight), vs
+rebase/world-semantics revision, vs conclusion reshaping. All landed
+work (TargetExtend, TargetBindLift, decay extensions, depth-0 closure)
+survives any of the three.
+
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
 The consistency-relation rigid-var/★ fix parked above shipped as the

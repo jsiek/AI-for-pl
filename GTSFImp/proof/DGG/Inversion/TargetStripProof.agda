@@ -927,6 +927,14 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
     sc source∈ target∈
     (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem r)
     | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
+    sc source∈ target∈
+    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
+    sc source∈ target∈
+    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem r)
+    | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
     mono rb sc source∈ target∈
     (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
@@ -1286,6 +1294,9 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
       q★ = all-to-star-obligation {W = W★} Anv z∈A body★
       premiseΛ =
         CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★
+tag-dispatch-at★ (sv-Λ sv) vN mono rb sc source∈
+    D@(CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem q) =
+  tagged-seal-source-fold-⊥ (sv-Λ sv) nonvar-all nonstar-∀ D
 tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     {γᵖ = γᵖ} {V = V ⟨ c ⟩} {N = N} {A = ★}
     {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = q}

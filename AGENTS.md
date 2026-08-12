@@ -5,6 +5,13 @@
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of
   preserving them for hypothetical external users.
+- Do not clutter the repository root. Place files where they belong from the
+  start: design notes, investigation reports, pre-flight records, and
+  completed-arc scratch files go under the language's notes directory (e.g.
+  `GTSFImp/proof/DGG/notes/`, checked with an extra `-i` include when they
+  are Agda files); proof modules go under the language's `proof/` tree. A
+  scratch file may sit at the root only while its arc is ACTIVELY being
+  worked, and must be moved (or deleted) when the arc completes (2026-08-12).
 - Do not introduce new named aliases merely for parts of lemma or theorem
   statements. Inline existential witnesses, conjunctions, and other conclusion
   structure in the statement itself so the full claim is readable at the use

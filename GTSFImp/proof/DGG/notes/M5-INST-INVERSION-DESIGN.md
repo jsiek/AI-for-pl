@@ -1,15 +1,16 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: latest generate-in-place route checked the
-under-left old-evidence prefix (`Λ⊑Λ²-route1ᴸ-prefix`) through target
-insert, decay, center extension, and `freshLiftToBindTargetMove★ᴸ`.
-The generated target reveals still do not close under an existing source
-lift: `RebaseAtᴿ` wraps a full source-pivot `RebaseAt`, whose
-`pivotAligned` and `ηᴸ-off-pivot` fields would force the current source
-binder to move past the older source binder.  See
-`m5-inst-inversion-lambda-under-lift-generation-blocked.red`.  The
-previous image-indexed, window-fresh, and finite counterexample notes
-remain as design records.
+Date: 2026-08-12. Status: latest non-moving under-lift reveal check
+found a satisfiability-class blocker.  The under-left old-evidence
+prefix (`Λ⊑Λ²-route1ᴸ-prefix`) still checks through target insert,
+decay, center extension, and `freshLiftToBindTargetMove★ᴸ`.  A
+same-world generated target reveal is accepted at the `RebaseAtᴿ` and
+conversion-typing fields, but its post type relation is empty for the
+finite non-variable body `＇ zero ⇒ ★`; the moving route still requires
+the impossible source OPE `zero ↦ 3`, `suc zero ↦ 2`.  See
+`m5-inst-inversion-lambda-under-lift-satisfiability.red`.  The previous
+under-lift-generation, image-indexed, window-fresh, and finite
+counterexample notes remain as design records.
 
 Checked artifact:
 

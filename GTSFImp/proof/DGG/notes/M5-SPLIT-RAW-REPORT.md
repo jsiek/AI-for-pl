@@ -395,6 +395,21 @@ constructor independently.  For S2, it should check both instances of the one
 generalized constructor.  For S3, it should include the checked
 order-preservation obstruction as a negative cell.
 
+## 7b. Calibration result
+
+The calibration is recorded in `M5-SPLIT-CALIBRATION.md` and checked by
+`M5SplitCalibrationScratch.agda`.
+
+Both syntax-directed split designs survive the finite ES4 and SL checks.  S1
+survives as a second `Λ/Λ` constructor with an explicit split guard.  S2
+survives as a placement index on the existing `Λ⊑Λ²` constructor.  S3 is
+refuted by the same finite no-split and no-crossing facts recorded above.
+
+The calibration selects S1 as the lower-risk migration surface: it adds one
+syntax-directed `Λ/Λ` case and leaves the existing shared-center `Λ⊑Λ²`
+consumers intact, while S2 requires every existing `Λ⊑Λ²` consumer to become
+placement-polymorphic.
+
 ## 8. Invariant diagnosis
 
 This is not a problem with the target reduction sequence.  The two target

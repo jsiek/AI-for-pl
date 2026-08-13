@@ -9,7 +9,6 @@ import proof.DGG.TargetExtend as TE
 open import Imprecision using (VarImp)
 open import Reduction using (StoreChanges)
 open import proof.DGG.Catchup.StructuralWorldExtendDef
-open import proof.DGG.Catchup.StructuralWorldLiftLeftDef
 
 
 structural-lift-left : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -18,19 +17,11 @@ structural-lift-left : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → (v : VarImp)
-  → StructuralLiftLeftResult plan v
-structural-lift-left structural-[] v = record
-  { premise-plan = structural-[] }
-structural-lift-left (structural-keep plan) v
-    with structural-lift-left plan v
-structural-lift-left (structural-keep plan) v
-    | record { premise-plan = planᴸ } =
-  record { premise-plan = structural-keep planᴸ }
-structural-lift-left (structural-bind ins follows plan) v
-    with structural-lift-left plan v
-structural-lift-left (structural-bind ins follows plan) v
-    | record { premise-plan = planᴸ } =
-  record
-    { premise-plan = structural-bind
-        (TE.liftLeftTargetInsert {v = v} ins) follows planᴸ
-    }
+  → StructuralWorldExtendᴿ χs (CTI2.liftWorldLeft v W)
+      (CTI2.liftWorldLeft v W′)
+structural-lift-left structural-[] v = structural-[]
+structural-lift-left (structural-keep plan) v =
+  structural-keep (structural-lift-left plan v)
+structural-lift-left (structural-bind ins follows plan) v =
+  structural-bind (TE.liftLeftTargetInsert {v = v} ins) follows
+    (structural-lift-left plan v)

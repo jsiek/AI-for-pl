@@ -65,7 +65,6 @@ import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 import proof.DGG.Catchup.StructuralValueInstantiationViewDef
 import proof.DGG.Catchup.StructuralValueInstantiationViewProof
 import proof.DGG.Catchup.StructuralValueInstantiationCastProof
-import proof.DGG.Catchup.StructuralValueInstantiationTransportProof
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof
@@ -73,9 +72,10 @@ import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 import proof.DGG.Catchup.StructuralWorldSmartLiftDef
 import proof.DGG.Catchup.StructuralWorldSmartLiftProof
-import proof.DGG.Catchup.StructuralWorldLiftLeftDef
 import proof.DGG.Catchup.StructuralWorldLiftLeftProof
 import proof.DGG.Catchup.StructuralWorldEvidenceProof
+import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
+import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 

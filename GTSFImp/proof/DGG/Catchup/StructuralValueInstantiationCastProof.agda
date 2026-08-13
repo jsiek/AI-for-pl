@@ -2,69 +2,37 @@ module
   proof.DGG.Catchup.StructuralValueInstantiationCastProof where
 
 -- File Charter:
---   * Rebuilds fixed-mass source and target inert-cast descent cases.
---   * Consumes an already-descended strict imprecision premise.
+--   * Replays a source inert-cast rule at a structural trace endpoint.
+--   * Keeps target-frame evaluation in the target normalization phase.
 
 open import Types using (Ty)
 open import Consistency using (Env∼; _⊢_∼_)
-open import CastTerms using (Term; Inert; _⟨_⟩; _《_》)
-open import Reduction using (applyConsistencies)
-open import proof.Reduction using (cast-↠; applyConsistencies-Inert)
-
+open import CastTerms using (Term; Inert; _⟨_⟩)
+open import Reduction using (StoreChanges)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
-open import proof.DGG.Catchup.InstInversionDef using
-  (InstSpineDescentPackage)
+open import proof.DGG.Catchup.StructuralWorldExtendDef
+open import proof.DGG.Catchup.StructuralWorldExtendProof
 
 
-source-inert-cast-descent : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {post : Term Δᴿ}
+structural-inert-cast-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {F : Term Δᴿ′}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {ν : Env∼ Δᴸ}
-    {p : A ⊑ᵂ⟨ W ⟩ B} {q : A′ ⊑ᵂ⟨ W ⟩ B}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {q : A′ CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (plan : StructuralWorldExtendᴿ χs W W′)
   → (c : ν ⊢ A ∼ A′)
   → Inert c
-  → InstSpineDescentPackage W γ M post p
-  → InstSpineDescentPackage W γ (M ⟨ c ⟩) post q
-source-inert-cast-descent c inert pkg = record
-  { Δᴿ′ = InstSpineDescentPackage.Δᴿ′ pkg
-  ; χs = InstSpineDescentPackage.χs pkg
-  ; Δ′ = InstSpineDescentPackage.Δ′ pkg
-  ; W′ = InstSpineDescentPackage.W′ pkg
-  ; ext = InstSpineDescentPackage.ext pkg
-  ; final = InstSpineDescentPackage.final pkg
-  ; final-value = InstSpineDescentPackage.final-value pkg
-  ; post-reduction = InstSpineDescentPackage.post-reduction pkg
-  ; final-relation = CTI2.cast⊑² c
-      (InstSpineDescentPackage.final-relation pkg)
-      (ECR.transport⊑ᵂ (InstSpineDescentPackage.ext pkg) _)
-  }
-
-
-target-inert-cast-descent : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {post : Term Δᴿ}
-    {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {p : A ⊑ᵂ⟨ W ⟩ B} {q : A ⊑ᵂ⟨ W ⟩ B′}
-    {c : ν ⊢ B ∼ B′}
-  → Inert c
-  → InstSpineDescentPackage W γ M post p
-  → InstSpineDescentPackage W γ M (post ⟨ c ⟩) q
-target-inert-cast-descent inert pkg = record
-  { Δᴿ′ = InstSpineDescentPackage.Δᴿ′ pkg
-  ; χs = InstSpineDescentPackage.χs pkg
-  ; Δ′ = InstSpineDescentPackage.Δ′ pkg
-  ; W′ = InstSpineDescentPackage.W′ pkg
-  ; ext = InstSpineDescentPackage.ext pkg
-  ; final = InstSpineDescentPackage.final pkg ⟨
-      applyConsistencies (InstSpineDescentPackage.χs pkg) _ ⟩
-  ; final-value = InstSpineDescentPackage.final-value pkg 《
-      applyConsistencies-Inert
-        (InstSpineDescentPackage.χs pkg) inert 》
-  ; post-reduction = cast-↠ _
-      (InstSpineDescentPackage.post-reduction pkg)
-  ; final-relation = CTI2.⊑cast² _
-      (InstSpineDescentPackage.final-relation pkg)
-      (ECR.transport⊑ᵂ (InstSpineDescentPackage.ext pkg) _)
-  }
+  → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+      ⊢² M ⊑ F ∶
+        ECR.transport⊑ᵂ (structural-world-extendᴿ plan) p
+  → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+      ⊢² M ⟨ c ⟩ ⊑ F ∶
+        ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
+structural-inert-cast-replay plan c inert rel =
+  CTI2.cast⊑² c rel
+    (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) _)

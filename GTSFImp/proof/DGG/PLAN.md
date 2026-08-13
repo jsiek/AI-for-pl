@@ -573,11 +573,13 @@ Commit `7ca0ac1c` removes the contradictory immediate-post value field from
 the descent, and calls smaller-fuel catch-up only at the descended value.
 The package now also omits the stronger immediate-post relation.  The descent
 package owns the relation only after the administrative spine has reduced to
-a value.  The fixed-mass source-cast rewrap and target-inert-cast lift are live
-in `StructuralValueInstantiationCastProof`; both consume an already-descended
-strict premise.  `type-transport-descent` erases the zero-syntax transport
-frame by retargeting only the final imprecision index.  The four non-Λ view
-packages still need their remaining descent cases and producers.
+a value.  Re-evaluation showed that a completed child trace cannot generally
+be inverted through fresh pushouts.  The target normalization trace must be
+known first and the imprecision derivation replayed against it.  The obsolete
+post-package target-cast and type-transport shims were therefore removed;
+target frames belong to normalization, while `structural-inert-cast-replay`
+rebuilds the source cast at the known endpoint.  The four non-Λ view packages
+still need their remaining descent cases and producers.
 `StructuralWorldExtendᴿ` now retains the `keep`/target-insert history needed
 to transform an unfinished descent through source `Λ`, reveal, and conceal
 wrappers, and erases to the existing public `WorldExtendᴿ`.
@@ -599,6 +601,10 @@ smart lift contexts, and source reveal/conceal typing; the older local
 `mapCtxᴿ-sameCtx` duplicate has been removed.  The replay step therefore has
 all wrapper evidence at the transformed endpoint except the conceal partner
 condition, which must be preserved with the target normalization result.
+The ordinary and smart source-Λ endpoint replays and the source reveal/conceal
+endpoint replays are now checked.  They consume a caller-supplied outer trace,
+transform it in the only sound direction, and rebuild the corresponding live
+relation rule at the final target value.
 `StructuralInstantiationDescentPackage` is now the internal worker result.  It
 retains that structural trace while the public erasure returns the existing
 `InstSpineDescentPackage`; its empty-spine constructor is checked.  The worker

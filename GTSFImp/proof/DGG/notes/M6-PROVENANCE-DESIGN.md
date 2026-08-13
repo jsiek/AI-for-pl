@@ -108,11 +108,14 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 3. DONE (2026-08-13): `catchup-column⁻-transport` proves
    `CatchupColumn⁻Transportᵀ`, transporting every tail link through the store
    changes returned by a head catch-up.
-4. NEXT after M5: implement `ValueCatchupRightProvAt`: run the head through
+4. DONE (2026-08-13): `extra-cast-right-at` adapts M4 to the fuel-indexed
+   surface.  Its ground-other and project-expand cases call `smaller-extra`;
+   instantiation consumes the supplied same-fuel `InstCatchupRightAt`.
+5. NEXT after M5: implement `ValueCatchupRightProvAt`: run the head through
    M4/M5, transport
    the tail, embed its first term-independent link at the resulting value, and
    recurse on the strictly smaller tail column.
-5. Tie `ExtraCastRightAt`, `InstCatchupRightAt`, and
+6. Tie `ExtraCastRightAt`, `InstCatchupRightAt`, and
    `ValueCatchupRightProvAt` into `FuelKnot`, then expose the unindexed M6
    theorem.
 

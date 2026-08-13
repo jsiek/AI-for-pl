@@ -58,6 +58,7 @@ import proof.DGG.Catchup.InstInversionProof
 
 import proof.DGG.Catchup.ValueCatchupRightDef
 import proof.DGG.Catchup.ColumnSupportProof
+import proof.DGG.Catchup.ExtraCastRightAtProof
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

@@ -147,6 +147,13 @@ recursive knots at `m < fuel`, then builds the current M5 instantiation
 worker, the current M4 extra-cast worker, and the current column worker in
 that order.
 
+The first current-fuel worker is now live in
+`proof/DGG/Catchup/ExtraCastRightAtProof.agda`.
+`extra-cast-right-at` is exhaustive over `CatchupCast`: recursive
+ground-other and project-expand provenance uses `smaller-extra`, whereas the
+instantiation case calls the supplied same-fuel `InstCatchupRightAt`.  This
+leaves the provenance-carrying column worker and the final accessibility knot.
+
 ## Checked Wiring
 
 `proof/DGG/notes/M6DriverDesignScratch.agda` imports these read-only modules:

@@ -513,9 +513,14 @@ Revised work order:
         It transforms the post plan at every recursive constructor and uses
         the plan-indexed top obligation at each rewrap.  Focused and full
         no-metas gates pass without a catch-all clause.
-  NS-3b NEXT: assemble `InstInversionPackage.Λ-package` from the hereditary
-        worker and wire its relational continuation.  Then resume the four
-        descent views and discharge the live M6 knot's M5 factory argument.
+  NS-3b DONE: `Λ-inst-inversion-package` composes the canonical two-insert
+        plan, hereditary prefix worker, residual-provenance package bridge,
+        and repaired root finalizer.  Its result has exactly the
+        `InstInversionPackage.Λ-package` field type, so the already-live
+        `inst-inversion→rel-surface` adapter supplies the Λ continuation.
+  NS-4 NEXT: implement the four non-Λ descent package producers (`∀`, `gen`,
+        reveal, and conceal), assemble `InstInversionPackage`, and discharge
+        the live M6 knot's M5 factory argument.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from

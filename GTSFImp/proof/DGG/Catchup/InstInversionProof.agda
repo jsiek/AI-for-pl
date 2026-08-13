@@ -1,9 +1,9 @@
 module proof.DGG.Catchup.InstInversionProof where
 
 -- File Charter:
---   * Proves support lemmas for the M5 target-instantiation inversion
---     packages.
---   * Starts with residual `CatchupCast⁻` provenance for the Λ package.
+--   * Proves the M5 target-instantiation inversion package infrastructure.
+--   * Provides residual provenance, hereditary Λ inversion, and the live Λ
+--     package worker.
 --   * Imports only the live Def surface plus core/proof-only consistency
 --     support; it does not consume other catch-up Proof modules.
 
@@ -7465,3 +7465,36 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
       (TE.source-conceal-insert (ins₁ plan) c⊢))
     (Λ-strip-prefix-p₂ plan q)
     (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)
+
+
+Λ-inst-inversion-package : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
+    {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → FuelStepSurface fuel
+  → inst-alloc-decreaseᵀ
+  → Catchup⁻Embedᵀ
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → (vM : CT.Value M)
+  → (vM′ : CT.Value M′)
+  → CT.Value V′
+  → M′ ≡ Λ V′
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
+  → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → InstPostCatalogPackage fuel rel vM vM′ c′ B′≢★ c<fuel q
+Λ-inst-inversion-package {W = W} fuel-step inst-decrease
+    catchup⁻-embed rel vM vM′ vV′ refl c′ B′≢★ c<fuel q =
+  inst-post-at→root-package fuel-step catchup⁻-embed rel vM vM′
+    c′ B′≢★ c<fuel q (postExtend plan)
+    (Λ-post-prefix-base→package-at inst-decrease rel vM vM′ c′
+      B′≢★ c<fuel q (postExtend plan)
+      (Λ-post-prefix-hereditary plan rel vM vV′ c′ B′≢★))
+  where
+  plan = Λ-concrete-two-insert-post-plan {W = W}

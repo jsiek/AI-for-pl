@@ -3,14 +3,12 @@
 Date: 2026-08-13. Status: the historical under-lift obstruction was bypassed
 by the live smart-comma/no-split interleaving.  The finite hereditary
 two-insert plan, generic target windows, smart alias/fresh child plans, and
-source reveal/conceal plan transports are now checked.  The current resister
-is narrower: the parent `Λ⊑²` rewrap needs a top post type relation at the
-parent world, while recursive evidence lives at the transformed smart child
-world and the smart guard supplies only forward transport.  See
-`m5-inst-inversion-hereditary-top-post-plan-blocked.red`.  The first retry is
-to generalize the outer post obligation over the plan and derive it from the
-parent's original relation, before considering a general guarded reverse
-transport.
+source reveal/conceal plan transports are checked.  The narrower top-post
+resister is now closed as well: `ExactSmartFreshGuard` supports reverse type
+transport for the controlled front-fresh recursion and remains exact through
+target insertion.  `Λ-post-outer-obligation` is plan-indexed and constructs
+the parent top relation directly from the original relation.  The next step
+is the derivation-recursive prefix worker and its source-wrapper clauses.
 
 Checked artifact:
 

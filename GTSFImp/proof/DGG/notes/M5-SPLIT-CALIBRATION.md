@@ -251,24 +251,20 @@ Revised gates:
         alias/fresh child transformer are live.  Generic smart-fresh windows
         are constructed by hereditary embedding pushouts; no split relation
         constructor was added.
-  NS-2c RED-STOP after green source-rebase support: reveal and conceal plans
-        now transport through two insertions, but the recursive worker cannot
-        yet construct the parent's top post relation from evidence at an
-        arbitrary smart child post world.  Smart lifts provide only forward
-        type transport.  See
-        `m5-inst-inversion-hereditary-top-post-plan-blocked.red`; its first
-        recommended retry is a plan-indexed outer obligation built from the
-        parent's original type relation, which may require only the controlled
-        front-fresh post bridge.
+  NS-2c DONE: reveal and conceal plans transport through two insertions.  The
+        recommended plan-indexed retry also succeeded.  Exact front-fresh
+        guards admit reverse type transport, exactness is preserved by target
+        insertion, and `Λ-post-outer-obligation` now derives the parent top
+        relation at an arbitrary plan post world.  No arbitrary smart-alias
+        inverse and no relation change were needed.
   NS-3  After NS-2c, use the worker in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
         Then resume the four descent views and discharge the M5 factory
         argument of the already-live M6 fuel knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
-NS-2a and NS-2b closed without a relation change; NS-2c remains a proof-surface
-threading problem, so the split-rule design remains suspended.  Resume it
-only if a later step finds a new machine-checked
+NS-2a through NS-2c closed without a relation change, so the split-rule design
+remains suspended.  Resume it only if a later step finds a new machine-checked
 relation-expressibility obstruction that also excludes the checked
 derivation-tree interleaving at the recursive caller.
 

@@ -4595,6 +4595,385 @@ mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
         (generated-reveal-⊢↑-present z first-entry)))
 
 
+Λ-front-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Z
+  → CTI2.impEnvʷ W Z ≡ I.X⊑★
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+      (toRenameᵗ (skip id↪ᵗ) Z) ≡ I.X⊑★
+Λ-front-old-mark-mono W Z eq =
+  subst≡
+    (λ Y → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+      (Fin.suc Y) ≡ I.X⊑★)
+    (sym (toRename-id-eq Z)) eq
+
+
+Λ-front-target-frozen : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴿ
+  → toRenameᵗ
+      (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W)) Xᴿ
+    ≡ toRenameᵗ (skip id↪ᵗ)
+        (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+Λ-front-target-frozen W Xᴿ =
+  cong Fin.suc
+    (sym (toRename-id-eq (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)))
+
+
+Λ-front-old-source-frozen : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴸ
+  → toRenameᵗ
+      (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) (Fin.suc Xᴸ)
+    ≡ toRenameᵗ (skip id↪ᵗ)
+        (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+Λ-front-old-source-frozen W Xᴸ =
+  cong Fin.suc
+    (sym (toRename-id-eq (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)))
+
+
+Λ-front-target-mark-mono : ∀ {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+  → ∀ Xᴿ
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ) ≡ I.X⊑★
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+      (toRenameᵗ
+        (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W)) Xᴿ) ≡ I.X⊑★
+Λ-front-target-mark-mono W Xᴿ eq = eq
+
+
+Λ-front-smart-guard : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.SmartFreshBehindGuard W
+      (CTI2.liftWorldLeft I.X⊑★ W)
+Λ-front-smart-guard {W = W} =
+  CTI2.smart-fresh-behind-guard (skip id↪ᵗ) refl refl
+    (λ p → p) (Λ-front-old-mark-mono W) (Λ-front-target-frozen W)
+    (Λ-front-old-source-frozen W) (λ _ ()) refl
+    (Λ-front-target-mark-mono W)
+
+
+record ExactSmartFreshGuard {Δᴸ Δᴿ Δ Δᵐ}
+    (W : CTI2.World Δᴸ Δᴿ Δ)
+    (Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ) : Set where
+  field
+    guard : CTI2.SmartFreshBehindGuard W Wᵐ
+    old-mark-exact : ∀ Z
+      → CTI2.impEnvʷ Wᵐ
+          (toRenameᵗ
+            (CTI2.SmartFreshBehindGuard.oldCenters guard) Z)
+        ≡ CTI2.impEnvʷ W Z
+    fresh-off-old :
+      CR.preimage? (CTI2.SmartFreshBehindGuard.oldCenters guard)
+        (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero) ≡ nothing
+
+open ExactSmartFreshGuard public
+
+
+Λ-front-exact-smart-guard : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ExactSmartFreshGuard W (CTI2.liftWorldLeft I.X⊑★ W)
+Λ-front-exact-smart-guard {W = W} = record
+  { guard = Λ-front-smart-guard
+  ; old-mark-exact = exact
+  ; fresh-off-old = refl
+  }
+  where
+  exact : ∀ Z
+    → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+        (toRenameᵗ (skip id↪ᵗ) Z)
+      ≡ CTI2.impEnvʷ W Z
+  exact Z =
+    subst≡
+      (λ Y → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+        (Fin.suc Y) ≡ CTI2.impEnvʷ W Z)
+      (sym (toRename-id-eq Z)) refl
+
+
+exactSmartFreshSubst : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → ExactSmartFreshGuard W Wᵐ
+  → Fin.Fin Δᵐ
+  → Ty (suc Δ)
+exactSmartFreshSubst exact Zᵐ
+    with CR.preimage?
+      (CTI2.SmartFreshBehindGuard.oldCenters (guard exact)) Zᵐ
+exactSmartFreshSubst exact Zᵐ | just Z = ＇ (Fin.suc Z)
+exactSmartFreshSubst exact Zᵐ | nothing = ＇ Fin.zero
+
+
+exactSmartFreshSubst-image : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ Z
+  → exactSmartFreshSubst exact
+      (toRenameᵗ
+        (CTI2.SmartFreshBehindGuard.oldCenters (guard exact)) Z)
+    ≡ ＇ (Fin.suc Z)
+exactSmartFreshSubst-image exact Z
+  rewrite CR.preimage?-image
+    (CTI2.SmartFreshBehindGuard.oldCenters (guard exact)) Z = refl
+
+
+exactSmartFreshSubst-fresh : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → exactSmartFreshSubst exact
+      (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+    ≡ ＇ Fin.zero
+exactSmartFreshSubst-fresh exact
+  rewrite fresh-off-old exact = refl
+
+
+exactSmartFreshSubst-source : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ X
+  → exactSmartFreshSubst exact (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) X)
+    ≡ ＇ (toRenameᵗ
+        (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) X)
+exactSmartFreshSubst-source exact Fin.zero =
+  exactSmartFreshSubst-fresh exact
+exactSmartFreshSubst-source {W = W} exact (Fin.suc X) =
+  trans
+    (cong (exactSmartFreshSubst exact)
+      (CTI2.SmartFreshBehindGuard.old-source-frozen
+        (guard exact) X))
+    (exactSmartFreshSubst-image exact
+      (toRenameᵗ (CTI2.ηᴸʷ W) X))
+
+
+exactSmartFreshSubst-target : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ Y
+  → exactSmartFreshSubst exact (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    ≡ ＇ (toRenameᵗ
+        (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W)) Y)
+exactSmartFreshSubst-target {W = W} exact Y =
+  trans
+    (cong (exactSmartFreshSubst exact)
+      (CTI2.SmartFreshBehindGuard.target-frozen (guard exact) Y))
+    (exactSmartFreshSubst-image exact
+      (toRenameᵗ (CTI2.ηᴿʷ W) Y))
+
+
+exactSmartFreshSubst-star : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ Zᵐ
+  → CTI2.impEnvʷ Wᵐ Zᵐ ≡ I.X⊑★
+  → I._⊢_⊑_ (CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W))
+      (exactSmartFreshSubst exact Zᵐ) ★
+exactSmartFreshSubst-star {W = W} {Wᵐ = Wᵐ} exact Zᵐ star
+    with CR.preimage?
+      (CTI2.SmartFreshBehindGuard.oldCenters (guard exact)) Zᵐ in pre
+exactSmartFreshSubst-star {W = W} {Wᵐ = Wᵐ} exact Zᵐ star
+    | nothing = I.X⊑★ refl
+exactSmartFreshSubst-star {W = W} {Wᵐ = Wᵐ} exact Zᵐ star
+    | just Z =
+  I.X⊑★ parent-star
+  where
+  old = CTI2.SmartFreshBehindGuard.oldCenters (guard exact)
+
+  image-eq : Zᵐ ≡ toRenameᵗ old Z
+  image-eq = CR.preimage?-sound old pre
+
+  child-star : CTI2.impEnvʷ Wᵐ (toRenameᵗ old Z) ≡ I.X⊑★
+  child-star =
+    subst≡ (λ C → CTI2.impEnvʷ Wᵐ C ≡ I.X⊑★) image-eq star
+
+  parent-star : CTI2.impEnvʷ W Z ≡ I.X⊑★
+  parent-star = trans (sym (old-mark-exact exact Z)) child-star
+
+
+exactSmartFreshSubst-source-eq : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ A
+  → substᵗ (exactSmartFreshSubst exact) (CTI2.embedᴸ Wᵐ A)
+    ≡ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
+exactSmartFreshSubst-source-eq {W = W} {Wᵐ = Wᵐ} exact A =
+  trans
+    (substᵗ-rename (exactSmartFreshSubst exact)
+      (toRenameᵗ (CTI2.ηᴸʷ Wᵐ)) A)
+    (trans (substᵗ-cong A (exactSmartFreshSubst-source exact))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W))) A))
+
+
+exactSmartFreshSubst-target-eq : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ∀ B
+  → substᵗ (exactSmartFreshSubst exact) (CTI2.embedᴿ Wᵐ B)
+    ≡ CTI2.embedᴿ (CTI2.liftWorldLeft I.X⊑★ W) B
+exactSmartFreshSubst-target-eq {W = W} {Wᵐ = Wᵐ} exact B =
+  trans
+    (substᵗ-rename (exactSmartFreshSubst exact)
+      (toRenameᵗ (CTI2.ηᴿʷ Wᵐ)) B)
+    (trans (substᵗ-cong B (exactSmartFreshSubst-target exact))
+      (rename-as-subst
+        (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W))) B))
+
+
+exactSmartFresh-untransport : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → A CTI2.⊑ᵂ⟨ Wᵐ ⟩ B
+  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ B
+exactSmartFresh-untransport {W = W} {Wᵐ = Wᵐ} {A = A} {B = B}
+    exact p =
+  subst≡
+    (λ L → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W) ⊢ L
+      ⊑ CTI2.embedᴿ (CTI2.liftWorldLeft I.X⊑★ W) B)
+    (exactSmartFreshSubst-source-eq exact A)
+    (subst≡
+      (λ R → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+        ⊢ substᵗ (exactSmartFreshSubst exact) (CTI2.embedᴸ Wᵐ A)
+        ⊑ R)
+      (exactSmartFreshSubst-target-eq exact B)
+      (subst-⊑ (exactSmartFreshSubst-star exact) p))
+
+
+exactSmartFreshGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (exact : ExactSmartFreshGuard W Wᵐ)
+  → ExactSmartFreshGuard W′
+      (TE.smartFreshInsertWorld ins (guard exact))
+exactSmartFreshGuardInsert {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} ins exact = record
+  { guard = TE.smartFreshGuardInsert ins guard₀
+  ; old-mark-exact = exact′
+  ; fresh-off-old = fresh-off′
+  }
+  where
+  guard₀ = guard exact
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard₀
+  po = CR.embeddingPushout π old
+  premise = CR.EmbeddingPushout.premise po
+  old′ = CR.EmbeddingPushout.old′ po
+  commutes = CR.EmbeddingPushout.commutes po
+
+  exact′ : ∀ Z′
+    → CTI2.impEnvʷ (TE.smartFreshInsertWorld ins guard₀)
+        (toRenameᵗ old′ Z′)
+      ≡ CTI2.impEnvʷ W′ Z′
+  exact′ Z′ with CR.preimage? π Z′ in pre
+  exact′ Z′ | nothing =
+    trans
+      (CR.renameEnv-off premise (CTI2.impEnvʷ Wᵐ)
+        (CR.pushout-old-off-premise π old pre))
+      (sym (TE.impEnv-off-insert ins pre))
+  exact′ Z′ | just Z =
+    trans
+      (cong (CR.renameEnv premise (CTI2.impEnvʷ Wᵐ)) old-image)
+      (trans
+        (CR.renameEnv-image premise (CTI2.impEnvʷ Wᵐ)
+          (toRenameᵗ old Z))
+        (trans (old-mark-exact exact Z) (sym target-image)))
+    where
+    z′-eq : Z′ ≡ toRenameᵗ π Z
+    z′-eq = CR.preimage?-sound π pre
+
+    old-image : toRenameᵗ old′ Z′
+      ≡ toRenameᵗ premise (toRenameᵗ old Z)
+    old-image = trans (cong (toRenameᵗ old′) z′-eq)
+      (sym (commutes Z))
+
+    target-image : CTI2.impEnvʷ W′ Z′ ≡ CTI2.impEnvʷ W Z
+    target-image = trans (cong (CTI2.impEnvʷ W′) z′-eq)
+      (TE.impEnv-insert ins Z)
+
+  fresh-center =
+    toRenameᵗ
+      (CTI2.ηᴸʷ (TE.smartFreshInsertWorld ins guard₀)) Fin.zero
+
+  old-fresh-center = toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero
+
+  fresh-center-eq : fresh-center ≡ toRenameᵗ premise old-fresh-center
+  fresh-center-eq = CR.toRenameᵗ-∘ premise (CTI2.ηᴸʷ Wᵐ) Fin.zero
+
+  fresh-off′ : CR.preimage? old′ fresh-center ≡ nothing
+  fresh-off′ with CR.preimage? old′ fresh-center in post-pre
+  fresh-off′ | nothing = refl
+  fresh-off′ | just Z′ with CR.preimage? π Z′ in root-pre
+  fresh-off′ | just Z′ | nothing =
+    ⊥-elim
+      (CR.pushout-off-image-disjoint π old root-pre
+        (trans (sym post-image) fresh-center-eq))
+    where
+    post-image : fresh-center ≡ toRenameᵗ old′ Z′
+    post-image = CR.preimage?-sound old′ post-pre
+  fresh-off′ | just Z′ | just Z =
+    ⊥-elim
+      (impossible (trans (sym old-preimage) (fresh-off-old exact)))
+    where
+    impossible : just Z ≡ nothing → ⊥
+    impossible ()
+
+    post-image : fresh-center ≡ toRenameᵗ old′ Z′
+    post-image = CR.preimage?-sound old′ post-pre
+
+    z′-eq : Z′ ≡ toRenameᵗ π Z
+    z′-eq = CR.preimage?-sound π root-pre
+
+    old-fresh-eq : toRenameᵗ old Z ≡ old-fresh-center
+    old-fresh-eq = toRenameᵗ-injective premise
+      (trans (commutes Z)
+        (trans (cong (toRenameᵗ old′) (sym z′-eq))
+          (trans (sym post-image) fresh-center-eq)))
+
+    old-preimage : CR.preimage? old old-fresh-center ≡ just Z
+    old-preimage = trans
+      (cong (CR.preimage? old) (sym old-fresh-eq))
+      (CR.preimage?-image old Z)
+
+
+record ΛFrontChildPostPlan {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    (plan : ΛTwoInsertPostPlan W) : Set₁ where
+  field
+    frontChildPlan :
+      ΛTwoInsertPostPlan (CTI2.liftWorldLeft I.X⊑★ W)
+    frontPostExact : ExactSmartFreshGuard
+      (W₂ plan) (W₂ frontChildPlan)
+
+open ΛFrontChildPostPlan public
+
+
+Λ-two-insert-front-child : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → (plan : ΛTwoInsertPostPlan W)
+  → ΛFrontChildPostPlan plan
+Λ-two-insert-front-child plan = record
+  { frontChildPlan = ΛSmartChildPostPlan.childPlan smartChild
+  ; frontPostExact = exact₂
+  }
+  where
+  smartChild = Λ-two-insert-smart-child plan
+    (CTI2.smart-fresh-behind Λ-front-smart-guard)
+
+  exact₁ = exactSmartFreshGuardInsert
+    (ins₁ plan) Λ-front-exact-smart-guard
+
+  exact₂ = exactSmartFreshGuardInsert (ins₂ plan) exact₁
+
+
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.World Δᴸ Δᴿ Δ
   → CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
@@ -4851,46 +5230,43 @@ mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
 Λ-post-outer-obligation : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Aₒ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+  → (plan : ΛTwoInsertPostPlan W)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → Aₒ CTI2.⊑ᵂ⟨ W ⟩ `∀ B
-  → Aₒ CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+  → Aₒ CTI2.⊑ᵂ⟨ W₂ plan ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
 
 
 Λ-post-outer-obligation-∀ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → (plan : ΛTwoInsertPostPlan W)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → I._⊢_⊑_ (CTI2.impEnvʷ W)
       (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A))
       (`∀ (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B))
-  → `∀ A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+  → `∀ A CTI2.⊑ᵂ⟨ W₂ plan ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
 
 
 Λ-post-outer-obligation-∀∀-case : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → (plan : ΛTwoInsertPostPlan W)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → I._⊢_⊑_ (I.extᵐ (CTI2.impEnvʷ W))
       (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
       (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴿʷ W))) B)
-  → `∀ A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+  → `∀ A CTI2.⊑ᵂ⟨ W₂ plan ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
 Λ-post-outer-obligation-∀∀-case {W = W} {A = A} {B = B}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ body-p =
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄ body-p =
   ∀⊑ᵂ-from-left-lift
-    {W = CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
-      (＇ Fin.zero)}
+    {W = W₂ plan}
     {A = A} {B = substᵗ Λ⊑Λ²TargetSplit₂ B}
     Anv zero∈A
-    (Λ-final-body-⊑ᵂ {W = W} {A = A} {B = B} body-pᵂ)
+    (ΛPostWindowGeometry.finalBody⊑ᵂ
+      (postGeometry plan) body-pᵂ)
   where
   raw-source-eq :
       renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
@@ -4946,6 +5322,7 @@ mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
 Λ-post-outer-obligation-∀⊑-case : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+  → (plan : ΛTwoInsertPostPlan W)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → NonVar (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
@@ -4953,26 +5330,27 @@ mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
   → I._⊢_⊑_ (I.instᵐ (CTI2.impEnvʷ W))
       (renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A)
       (⇑ᵗ (CTI2.embedᴿ W (`∀ B)))
-  → `∀ A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+  → `∀ A CTI2.⊑ᵂ⟨ W₂ plan ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
 Λ-post-outer-obligation-∀⊑-case {W = W} {A = A} {B = B}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄
     rawAnv rawZero∈A rawBody =
-  Λ⊑²-smart-fresh-top
-    {W = W} {A = A} {B = substᵗ Λ⊑Λ²TargetSplit₂ B}
+  ∀⊑ᵂ-from-left-lift
+    {W = W₂ plan}
+    {A = A} {B = substᵗ Λ⊑Λ²TargetSplit₂ B}
     Anv zero∈A
-    (Λ-post-outer-obligation
-      {W = CTI2.liftWorldLeft I.X⊑★ W}
-      {Aₒ = A} {B = B}
-      ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
-      (subst≡
-        (λ R → I.instᵐ (CTI2.impEnvʷ W)
-          ⊢ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
-            ⊑ R)
-        (sym (target-left-lift-eq (CTI2.ηᴿʷ W) (`∀ B)))
-        body-source))
+    (exactSmartFresh-untransport (frontPostExact front)
+      (Λ-post-outer-obligation {Aₒ = A} {B = B}
+        (frontChildPlan front)
+        ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
+        (subst≡
+          (λ R → I.instᵐ (CTI2.impEnvʷ W)
+            ⊢ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
+              ⊑ R)
+          (sym (target-left-lift-eq (CTI2.ηᴿʷ W) (`∀ B)))
+          body-source)))
   where
+  front = Λ-two-insert-front-child plan
+
   raw-source-eq :
       renameᵗ (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) A
     ≡ CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A
@@ -4998,43 +5376,43 @@ mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
       (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W)))
       (ext-injective (toRenameᵗ-injective (CTI2.ηᴸʷ W)))
       rawZero∈A
-Λ-post-outer-obligation-∀ {B = ＇ X} ⦃ Bnv = () ⦄ q
-Λ-post-outer-obligation-∀ {B = ‵ ι} ⦃ zero∈B = () ⦄ q
-Λ-post-outer-obligation-∀ {B = ★} ⦃ zero∈B = () ⦄ q
+Λ-post-outer-obligation-∀ {B = ＇ X} plan ⦃ Bnv = () ⦄ q
+Λ-post-outer-obligation-∀ {B = ‵ ι} plan ⦃ zero∈B = () ⦄ q
+Λ-post-outer-obligation-∀ {B = ★} plan ⦃ zero∈B = () ⦄ q
 Λ-post-outer-obligation-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
   Λ-post-outer-obligation-∀∀-case
-    {W = W} {A = A} {B = B₁ ⇒ B₂}
+    {W = W} {A = A} {B = B₁ ⇒ B₂} plan
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
 Λ-post-outer-obligation-∀ {W = W} {A = A} {B = B₁ ⇒ B₂}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄
     (I.∀⊑ rawAnv rawZero∈A rawBody) =
   Λ-post-outer-obligation-∀⊑-case
-    {W = W} {A = A} {B = B₁ ⇒ B₂}
+    {W = W} {A = A} {B = B₁ ⇒ B₂} plan
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
     rawAnv rawZero∈A rawBody
 Λ-post-outer-obligation-∀ {W = W} {A = A} {B = `∀ B}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄ (I.∀⊑∀ body-p) =
   Λ-post-outer-obligation-∀∀-case
-    {W = W} {A = A} {B = `∀ B}
+    {W = W} {A = A} {B = `∀ B} plan
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ body-p
 Λ-post-outer-obligation-∀ {W = W} {A = A} {B = `∀ B}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄
     (I.∀⊑ rawAnv rawZero∈A rawBody) =
   Λ-post-outer-obligation-∀⊑-case
-    {W = W} {A = A} {B = `∀ B}
+    {W = W} {A = A} {B = `∀ B} plan
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
     rawAnv rawZero∈A rawBody
 
 
-Λ-post-outer-obligation {Aₒ = ＇ X} ()
-Λ-post-outer-obligation {Aₒ = ‵ ι} ()
-Λ-post-outer-obligation {Aₒ = ★} ()
-Λ-post-outer-obligation {Aₒ = A₁ ⇒ A₂} ()
+Λ-post-outer-obligation {Aₒ = ＇ X} plan ()
+Λ-post-outer-obligation {Aₒ = ‵ ι} plan ()
+Λ-post-outer-obligation {Aₒ = ★} plan ()
+Λ-post-outer-obligation {Aₒ = A₁ ⇒ A₂} plan ()
 Λ-post-outer-obligation {W = W} {Aₒ = `∀ A} {B = B}
-    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
   Λ-post-outer-obligation-∀
-    {W = W} {A = A} {B = B}
+    {W = W} {A = A} {B = B} plan
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q
 
 
@@ -5954,6 +6332,7 @@ post-source-conceal-partner-ok {c = id↓ A} =
     (residual-source₂-eq B)
     (Λ-post-outer-obligation
       {W = W} {Aₒ = A} {B = B}
+      Λ-concrete-two-insert-post-plan
       ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q)
 
 

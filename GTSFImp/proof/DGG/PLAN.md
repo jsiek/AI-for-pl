@@ -500,17 +500,16 @@ Revised work order:
         smart-alias/smart-fresh child transformer are live.  The transformer
         carries the post smart lift and transported contexts without assuming
         a canonical right-only child world.
-  NS-2c DONE up to the next resister: two-step reveal/rebase and
-        conceal/tag-rebase child-plan transformers are focused-green.  They
-        rebuild the two insertions, windows, route-one facts, post geometry,
-        monotonicity, and rebases.  RED-STOP: recursive evidence at the smart
-        child post world cannot yet supply the parent's top `p₂`, because
-        `SmartCommaLiftᴸ` exposes only forward type transport.  The exact
-        machine-checked mismatch and the narrower generalized-outer-
-        obligation route to try first are recorded in
-        `notes/m5-inst-inversion-hereditary-top-post-plan-blocked.red`.
-  NS-3  After the NS-2c top-obligation surface checks, close the source-strip
-        wrappers, assemble
+  NS-2c DONE: two-step reveal/rebase and conceal/tag-rebase child-plan
+        transformers are live.  The top-post resister is also closed without
+        changing the relation: `ExactSmartFreshGuard` records the exact old
+        environment of the controlled front-fresh child, exactness survives
+        arbitrary target insertions, and `Λ-post-outer-obligation` now
+        consumes a `ΛTwoInsertPostPlan`.  Its one-sided recursive case uses
+        the exact reverse transport; its matched case uses the plan's final
+        body geometry.  The historical blocker note has a RESOLVED postscript.
+  NS-3  Use the plan-indexed top obligation in the hereditary prefix worker,
+        close the source-strip wrappers, assemble
         `InstInversionPackage.Λ-package`, and wire the dispatcher; then
         resume the four descent views and discharge the live M6 knot's M5
         factory argument.

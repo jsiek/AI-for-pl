@@ -131,3 +131,24 @@ Recommended re-evaluation before strengthening every smart guard:
 
 No relation change, postulate, hole, catch-all clause, or weakened statement
 was added.
+
+RESOLVED, 2026-08-13:
+
+  The recommended narrower route succeeded.  `ExactSmartFreshGuard` records
+  equality, not merely monotonicity, of the old imprecision environment and
+  proves that the fresh source center is outside the old embedding.  This is
+  enough to define a preimage substitution and the reverse theorem
+
+    exactSmartFresh-untransport :
+      A ⊑ᵂ⟨ Wᵐ ⟩ B
+        → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B.
+
+  `exactSmartFreshGuardInsert` preserves the exact guard through an arbitrary
+  `TargetInsert`.  Applying it twice to the controlled front guard pairs the
+  hereditary front child plan with an exact post guard.
+
+  `Λ-post-outer-obligation` now consumes `ΛTwoInsertPostPlan W`.  Its `∀⊑∀`
+  case uses `postGeometry.finalBody⊑ᵂ`; its one-sided `∀⊑` case recursively
+  uses the front child plan, exact reverse transport, and
+  `∀⊑ᵂ-from-left-lift`.  The focused no-metas gate passes.  No arbitrary
+  smart-alias inverse and no live relation change were required.

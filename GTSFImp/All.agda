@@ -73,6 +73,8 @@ import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 import proof.DGG.Catchup.StructuralWorldSmartLiftDef
 import proof.DGG.Catchup.StructuralWorldSmartLiftProof
+import proof.DGG.Catchup.StructuralWorldLiftLeftDef
+import proof.DGG.Catchup.StructuralWorldLiftLeftProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 

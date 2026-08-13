@@ -208,6 +208,8 @@ premise-to-conclusion orientation and mapping the target pivot across the
 complete store-change trace.
 `structural-smart-liftᴸ` supplies the source-Λ case, including the
 pushout-computed center of the smart-fresh branch.  The internal
+`structural-lift-left` transformer supplies the ordinary, canonical source-Λ
+case.  The internal
 `StructuralInstantiationDescentPackage` now retains one of these structural
 traces until all source wrappers are rebuilt.  Its checked erasure is the
 public `InstSpineDescentPackage`, and its zero-spine case simply returns the

@@ -589,7 +589,10 @@ maps the target pivot across every bind in the trace.
 same trace through either smart-alias or smart-fresh insertion, returning the
 post smart lift; its result exposes the transformed center because the fresh
 case computes that center by embedding pushout.  Thus all three source-wrapper
-geometries needed by the equal-mass recursion are now structurally available.
+geometries needed by the smart/rebase cases are structurally available.
+`structural-lift-left` separately handles ordinary source `Λ` by lifting every
+target insertion under the canonical left binder.  This closes the remaining
+source-wrapper trace geometry.
 `StructuralInstantiationDescentPackage` is now the internal worker result.  It
 retains that structural trace while the public erasure returns the existing
 `InstSpineDescentPackage`; its empty-spine constructor is checked.  The worker

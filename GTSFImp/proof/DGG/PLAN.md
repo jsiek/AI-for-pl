@@ -575,8 +575,9 @@ The package now also omits the stronger immediate-post relation.  The descent
 package owns the relation only after the administrative spine has reduced to
 a value.  The fixed-mass source-cast rewrap and target-inert-cast lift are live
 in `StructuralValueInstantiationCastProof`; both consume an already-descended
-strict premise.  The four non-Λ view packages still need their remaining
-descent cases and producers.
+strict premise.  `type-transport-descent` erases the zero-syntax transport
+frame by retargeting only the final imprecision index.  The four non-Λ view
+packages still need their remaining descent cases and producers.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

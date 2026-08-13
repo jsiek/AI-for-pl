@@ -191,7 +191,8 @@ The first two fixed-mass clauses are live in
 a source cast around a descended strict premise.  `target-inert-cast-descent`
 lifts the premise reduction through the target cast, maps its consistency and
 inertness across store changes, and rebuilds the target-only relation at the
-final value.
+final value.  `type-transport-descent` closes the term-invariant transport
+frame by proof-index retargeting.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

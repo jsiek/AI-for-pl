@@ -5,6 +5,7 @@ module proof.DGG.Catchup.InstInversionDef where
 --   * Packages the post-catalog relation, residual provenance, and
 --     target-spine descent output needed by the right-instantiation
 --     relational continuations.
+--   * States the fuel-free structural value-instantiation descent surface.
 --   * Contains no proof scripts and depends only on core syntax/reduction,
 --     the catch-up Def surfaces, and the stage-1 DGG world-extension
 --     interface.
@@ -22,7 +23,7 @@ open import Consistency using
 open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
 open import CastTerms using
   (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_;
-   _↓_; Λ_; renameᵗᵐ)
+   _↓_; Λ_; _⦂∀_[_]; renameᵗᵐ)
 open import Reduction using
   (StoreChanges; _—↠[_]_; applyTys; applyBody; bind; _∷_; [])
 
@@ -33,6 +34,7 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
+open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
    liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
@@ -312,6 +314,20 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
     final-relation :
       W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ final ∶
         ECR.transport⊑ᵂ ext p
+
+
+StructuralValueInstantiationᵀ : Set₁
+StructuralValueInstantiationᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {D : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ `∀ B} {q : A ⊑ᵂ⟨ W ⟩ B [ D ]ᵗ}
+  → W ∣ γ ⊢² M ⊑ V ∶ p
+  → Value M
+  → Value V
+  → AllValueView V
+  → InstSpineDescentPackage W γ M (V ⦂∀ B [ D ]) q
 
 
 record InstPostCatalogPackageAt (fuel : ℕ)

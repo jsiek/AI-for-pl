@@ -137,6 +137,23 @@ administration rank.  The old `M5AllFuelBoundScratch` arithmetic only refutes
 borrowing the outer residual fuel for an arbitrary cast; its concrete opened
 cast is inert.
 
+The statement-first structural surface is now:
+
+```agda
+StructuralValueInstantiationᵀ =
+  ∀ {p : A ⊑ᵂ⟨ W ⟩ `∀ B} {q : A ⊑ᵂ⟨ W ⟩ B [ D ]ᵗ}
+  → W ∣ γ ⊢² M ⊑ V ∶ p
+  → Value M
+  → Value V
+  → AllValueView V
+  → InstSpineDescentPackage W γ M (V ⦂∀ B [ D ]) q
+```
+
+The source `M` is explicitly a value.  The theorem has no residual-cast fuel;
+its result already carries any right-store extension and the transported
+relation.  The M5 finalizer applies residual-column catch-up only after this
+structural descent has produced a value.
+
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the
 immediate catalog post to be a value.  `inst-post-at-finish` lifts the descent

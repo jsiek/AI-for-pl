@@ -283,6 +283,11 @@ single combined administration rank, following the Cambridge26/GTSF shape,
 is preferred over a second independent target-wrapper fuel.  See the
 resolved postscript in `m5-all-spine-fuel-bound-blocked.red`.
 
+The checked statement is `StructuralValueInstantiationᵀ` in
+`InstInversionDef.agda`.  It returns the existing
+`InstSpineDescentPackage`, so the four view packages need no second descent
+result type.  Its proof is the next NS-4 chunk.
+
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design
 remains suspended.  Resume it only if a later step finds a new machine-checked

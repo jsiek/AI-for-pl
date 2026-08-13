@@ -620,9 +620,13 @@ and localizes the opened-type equality with `replace-zero-open`.
 The binding transitions are now complete: `structural-target-gen-step` and
 `structural-target-inst-step` expose exactly the already-proved strictly
 smaller cast-mass child spines, while `structural-target-{reveal,conceal}-step`
-record the universal conversion frames.  The remaining target constructor is
-the `β-∀` `keep` step, whose congruence maps conversions by identity only
-propositionally; that equality remains isolated at this frontier.
+record the universal conversion frames.  `structural-target-all-step` closes
+the final target constructor by lifting `β-∀` through an arbitrary spine.
+Its `keep` congruence normalizes identity-renamed reveal and conceal
+conversions at one raw-term boundary; no reduction or imprecision constructor
+changes.  The target transition inventory is complete.  The next chunk is the
+nested-accessibility target worker, followed by relation replay over its known
+trace.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

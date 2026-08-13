@@ -8,7 +8,7 @@ module proof.DGG.Catchup.StructuralValueInstantiationStateDef where
 import Data.Fin as Fin
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; cong; refl; trans)
+  (_≡_; cong; refl; trans; subst)
 
 open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
 open import Consistency using (Env∼; _⊢_∼_)
@@ -16,7 +16,8 @@ open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import CastTerms using (Term; _⟨_⟩; _⦂∀_[_]; _↑_; _↓_)
 open import Reduction using
   (StoreChange; keep; bind; applyTy; applyBody; applyConsistency; applyVar)
-open import proof.TypeInTermSubst using (rename-openᵗ)
+open import proof.TypeInTermSubst using
+  (rename-openᵗ; renameᵗ-pointwise-id)
 
 
 data InstantiationFrame {Δ} : Ty Δ → Ty Δ → Set where
@@ -76,6 +77,26 @@ applyInstantiationSpine M (frame ▻ⁱ spine) =
   applyInstantiationSpine (applyInstantiationFrame M frame) spine
 
 
+normalize-renamed↑ : ∀ {Δ} {A B : Ty Δ}
+    (c : Conv↑ Δ A B)
+  → Conv↑ Δ A B
+normalize-renamed↑ {A = A} {B = B} c =
+  subst (Conv↑ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst (λ A′ → Conv↑ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↑ (λ X → X) c))
+
+
+normalize-renamed↓ : ∀ {Δ} {A B : Ty Δ}
+    (c : Conv↓ Δ A B)
+  → Conv↓ Δ A B
+normalize-renamed↓ {A = A} {B = B} c =
+  subst (Conv↓ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst (λ A′ → Conv↓ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↓ (λ X → X) c))
+
+
 mapInstantiationFrame : ∀ {Δ Δ′ A B}
   → (χ : StoreChange Δ Δ′)
   → InstantiationFrame A B
@@ -92,10 +113,12 @@ mapInstantiationFrame (bind S) (name-type-app-frame B X eqA eqC) =
 mapInstantiationFrame keep (cast-frame c) = cast-frame c
 mapInstantiationFrame (bind R) (cast-frame c) =
   cast-frame (applyConsistency (bind R) c)
-mapInstantiationFrame keep (reveal-frame c) = reveal-frame c
+mapInstantiationFrame keep (reveal-frame c) =
+  reveal-frame (normalize-renamed↑ c)
 mapInstantiationFrame (bind R) (reveal-frame c) =
   reveal-frame (rename↑ Fin.suc c)
-mapInstantiationFrame keep (conceal-frame c) = conceal-frame c
+mapInstantiationFrame keep (conceal-frame c) =
+  conceal-frame (normalize-renamed↓ c)
 mapInstantiationFrame (bind R) (conceal-frame c) =
   conceal-frame (rename↓ Fin.suc c)
 

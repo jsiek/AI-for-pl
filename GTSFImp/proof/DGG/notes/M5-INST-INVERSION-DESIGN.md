@@ -230,9 +230,14 @@ records the runtime-name allocation, and one zero-syntax transport frame uses
 All four allocating target transitions are now checked.  `β-gen` and the
 recursive `β-inst` reuse the exact strictly smaller child spines from the cast
 mass proofs; universal reveal and conceal record their inner conversion frames
-under the same canonical bind trace.  Only `β-∀` remains: its `keep`
-congruence renames conversion syntax by the identity function, so its
-propositional identity transport is being kept in one boundary lemma.
+under the same canonical bind trace.  The nonallocating `β-∀` transition is
+also checked.  Its generic `keep` congruence represents reveal and conceal
+frames using the semantics' identity-renamed conversions, then normalizes
+their dependent endpoints at one raw-term boundary.  Thus the target
+transition inventory is complete without changing the reduction relation.
+The remaining construction is the nested-accessibility worker: recurse
+structurally at fixed cast mass, and restart from accessibility only at the
+three already-proved strict mass decreases.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

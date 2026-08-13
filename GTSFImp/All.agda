@@ -82,6 +82,7 @@ import proof.DGG.Catchup.StructuralTargetLambdaStepProof
 import proof.DGG.Catchup.StructuralTargetGenStepProof
 import proof.DGG.Catchup.StructuralTargetInstStepProof
 import proof.DGG.Catchup.StructuralTargetConversionStepProof
+import proof.DGG.Catchup.StructuralTargetAllStepProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 

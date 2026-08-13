@@ -578,6 +578,9 @@ in `StructuralValueInstantiationCastProof`; both consume an already-descended
 strict premise.  `type-transport-descent` erases the zero-syntax transport
 frame by retargeting only the final imprecision index.  The four non-Λ view
 packages still need their remaining descent cases and producers.
+`StructuralWorldExtendᴿ` now retains the `keep`/target-insert history needed
+to transform an unfinished descent through source `Λ`, reveal, and conceal
+wrappers, and erases to the existing public `WorldExtendᴿ`.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

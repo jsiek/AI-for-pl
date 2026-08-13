@@ -5952,6 +5952,56 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     }
 
 
+Λ⊑²-plain-shared-prefix-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {γᴮ : CTI2.CtxImp
+      (CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W))}
+    {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+      ⟩ B}
+    {inner-p : `∀ A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {outer-p : `∀ (`∀ A) CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → (vV : CT.Value V)
+  → (vV′ : CT.Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (liftγᴸ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
+  → (liftγᴮ : CTI2.LiftCtx I.X⊑X γᴸ γᴮ)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (outer∈ : Fin.zero ∈ᵗ `∀ A)
+  → (target⊢ :
+      ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ γ ⟩
+        ⊢ Λ V′ ⦂ `∀ B)
+  → (bodyRel :
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+        CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
+  → ΛPostPrefixPackageAt
+      (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
+        (CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel inner-p) outer-p)
+      c′ B′≢★
+Λ⊑²-plain-shared-prefix-at vV vV′ c′ B′≢★ liftγᴸ liftγᴮ
+    Anv zero∈A outer∈ target⊢ bodyRel =
+  Λ⊑²-smart-recursive-prefix-at outerRel (CT.Λ vV) c′ B′≢★
+    liftγᴸ nonvar-all outer∈ innerRel
+    (Λ⊑Λ²-base-prefix-at innerRel vV vV′ c′ B′≢★ liftγᴮ
+      Anv zero∈A bodyRel)
+  where
+  innerRel = CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel _
+
+  outerRel =
+    CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
+      innerRel _
+
+
 Λ⊑²-plain-recursive-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
@@ -6091,6 +6141,69 @@ right-bind-right-bind-tag-rebaseᴸ rb =
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B)
         (smartCommaLift-target-store liftW₂)
         postTarget⊢ᵐ)
+
+
+Λ⊑²-plain-shared-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂ Δᶠ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᶠ₂ : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) Δᶠ₂}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {γᴮ : CTI2.CtxImp
+      (CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W))}
+    {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+      ⟩ B}
+    {inner-p : `∀ A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {outer-p : `∀ (`∀ A) CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᶠ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ W) Wᶠ₂}
+  → (vV : CT.Value V)
+  → (vV′ : CT.Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (liftγᴸ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
+  → (liftγᴮ : CTI2.LiftCtx I.X⊑X γᴸ γᴮ)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (outer∈ : Fin.zero ∈ᵗ `∀ A)
+  → (target⊢ :
+      ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ γ ⟩
+        ⊢ Λ V′ ⦂ `∀ B)
+  → (bodyRel :
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+        CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
+  → CTI2.SmartCommaLiftᴸ W₂ Wᶠ₂
+  → CTI2.SmartLiftCtxᴸ
+      (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᶠ₂ γᴸ)
+  → ΛPostWindowGeometry
+      (CTI2.liftWorldLeft I.X⊑★ W) Wᶠ₂ extᶠ₂
+  → (`∀ (`∀ A) CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase
+      (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
+        (CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel inner-p) outer-p)
+      ext₂ c′ B′≢★
+Λ⊑²-plain-shared-prefix-at-base vV vV′ c′ B′≢★ liftγᴸ liftγᴮ
+    Anv zero∈A outer∈ target⊢ bodyRel liftW₂ liftγ₂ geom top-p₂ =
+  Λ⊑²-smart-recursive-prefix-at-base outerRel (CT.Λ vV)
+    c′ B′≢★ nonvar-all outer∈ liftW₂ liftγ₂ innerRel top-p₂
+    (Λ⊑Λ²-base-prefix-at-base innerRel vV vV′ c′ B′≢★
+      _ geom liftγᴮ Anv zero∈A bodyRel)
+  where
+  innerRel = CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel _
+
+  outerRel =
+    CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
+      innerRel _
 
 
 Λ-post-prefix-cast⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}

@@ -525,11 +525,13 @@ Revised work order:
 NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
 `M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
 outer inst cast, but its opened cast is a function consistency and therefore
-inert.  It needs no extra-cast call.  The live `ext-safe` theorem now proves
-the general invariant: if `d : extᵐ ν ⊢ B₀ ∼ B₁`, `B₁` is
-non-variable, and the fresh variable occurs in `B₁`, then `GenSafe d`.
-Thus the `∀ᶜ` view exposes a structural value-instantiation spine, not an
-arbitrary cast whose size must fit beneath the residual-column fuel.
+inert.  It needs no extra-cast call.  The live `strict-safe` theorem proves
+the general invariant: if `ν X = X∼X`, `d : ν ⊢ B₀ ∼ B₁`, `B₁` is
+non-variable, and `X` occurs in `B₁`, then `GenSafe d`; `ext-safe` is its
+fresh-binder specialization.  `GenSafeView` then classifies such a cast as
+inert or exactly `safe-inst`.  Thus the `∀ᶜ` view exposes a structural
+value-instantiation spine, not an arbitrary cast whose size must fit beneath
+the residual-column fuel.
 
 The remaining `safe-inst` case still needs a terminating structural
 normalizer.  State it over related source and target values and recurse over

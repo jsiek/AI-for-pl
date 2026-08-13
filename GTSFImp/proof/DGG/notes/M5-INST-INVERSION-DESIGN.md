@@ -114,21 +114,28 @@ application under a smaller target value wrapper. The branch proof must
 descend on target wrapper depth until the target is a value.
 
 Re-evaluation, 2026-08-13: this descent is structural, not an arbitrary
-extra-cast call charged to the outer inst cast.  The live theorem
+extra-cast call charged to the outer inst cast.  The live theorems
 
 ```agda
+strict-safe : ν X ≡ X∼X
+  → (d : ν ⊢ B₀ ∼ B₁)
+  → NonVar B₁
+  → X ∈ᵗ B₁
+  → GenSafe d
+
 ext-safe : (d : extᵐ ν ⊢ B₀ ∼ B₁)
   → NonVar B₁
   → zero ∈ᵗ B₁
   → GenSafe d
 ```
 
-classifies the stored consistency in the `∀ᶜ` view.  Function,
-universal, and generated `GenSafe` casts are already inert; `safe-inst` is
-the sole case that continues instantiation.  The next proof surface should
-normalize that value-instantiation spine with a combined administration
-rank.  The old `M5AllFuelBoundScratch` arithmetic only refutes borrowing the
-outer residual fuel for an arbitrary cast; its concrete opened cast is inert.
+classify both the stored consistency and its fresh-name opening.
+`GenSafeView` proves that function, universal, and generated cases are inert;
+`safe-inst` is the sole case that continues instantiation.  The next proof
+surface should normalize that value-instantiation spine with a combined
+administration rank.  The old `M5AllFuelBoundScratch` arithmetic only refutes
+borrowing the outer residual fuel for an arbitrary cast; its concrete opened
+cast is inert.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the

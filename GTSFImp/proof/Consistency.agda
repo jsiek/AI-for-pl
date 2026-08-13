@@ -22,6 +22,7 @@ open import Relation.Nullary using (no; yes)
 open import Types
 open import Consistency
 open SubstEnv∼
+import CastTerms as CT
 open import CastTerms using (GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
 open import proof.Imprecision using (imprecise-star)
 open import proof.ImprecisionConsistency
@@ -837,23 +838,55 @@ gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
   → GenSafe c
 gen-safe c A≢★ Bnv z∈B = gen-safe′ c refl A≢★ Bnv z∈B
 
+strict-safe : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ} {A B : Ty Δ}
+  → μ X ≡ X∼X
+  → (c : μ ⊢ A ∼ B)
+  → NonVar B
+  → X ∈ᵗ B
+  → GenSafe c
+strict-safe same (id (‵ ι)) nonvar-base ()
+strict-safe same (id ★) nonvar-star ()
+strict-safe same (id (＇ X)) () X∈B
+strict-safe same (c ↦ d) Bnv X∈B = safe-⇒
+strict-safe same (∀ᶜ c) Bnv X∈B = safe-∀
+strict-safe same (_! ⦃ g ⦄ c ⦃ Ans ⦄) Bnv ()
+strict-safe same c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv X∈B
+    with consistency-target-occurs-source same c X∈B
+strict-safe same c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv X∈B | ()
+strict-safe same (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Bnv X∈B =
+  safe-inst B≢★
+strict-safe same (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c A≢★) Bnv X∈B =
+  safe-gen A≢★ (gen-safe c A≢★ Bnv′ z∈B′)
+strict-safe same bot-elim Bnv (∈-all ())
+strict-safe same bot-intro Bnv (∈-all ())
+
 ext-safe : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
   → (c : extᵐ μ ⊢ A ∼ B)
   → NonVar B
   → Fin.zero ∈ᵗ B
   → GenSafe c
-ext-safe (id (‵ ι)) nonvar-base ()
-ext-safe (id ★) nonvar-star ()
-ext-safe (id (＇ X)) () z∈B
-ext-safe (c ↦ d) Bnv z∈B = safe-⇒
-ext-safe (∀ᶜ c) Bnv z∈B = safe-∀
-ext-safe (_! ⦃ g ⦄ c ⦃ Ans ⦄) Bnv ()
-ext-safe c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv z∈B
-    with consistency-target-occurs-source refl c z∈B
-ext-safe c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv z∈B | ()
-ext-safe (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Bnv z∈B =
-  safe-inst B≢★
-ext-safe (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c A≢★) Bnv z∈B =
-  safe-gen A≢★ (gen-safe c A≢★ Bnv′ z∈B′)
-ext-safe bot-elim Bnv (∈-all ())
-ext-safe bot-intro Bnv (∈-all ())
+ext-safe = strict-safe refl
+
+data GenSafeView {Δ : TyCtx} {μ : Env∼ Δ} :
+    ∀ {A B : Ty Δ} {c : μ ⊢ A ∼ B} → GenSafe c → Set where
+  gen-safe-inert : ∀ {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+      {safe : GenSafe c}
+    → CT.Inert c
+    → GenSafeView safe
+
+  gen-safe-inst : ∀ {A₀ : Ty (suc Δ)} {B₀ : Ty Δ}
+      {d : instᵐ μ ⊢ A₀ ∼ ⇑ᵗ B₀}
+      ⦃ A₀nv : NonVar A₀ ⦄ ⦃ z∈A₀ : Fin.zero ∈ᵗ A₀ ⦄
+    → (B₀≢★ : B₀ ≢ ★)
+    → GenSafeView {A = `∀ A₀} {B = B₀}
+        {c = (inst d) B₀≢★} (safe-inst B₀≢★)
+
+gen-safe-view : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (safe : GenSafe c)
+  → GenSafeView safe
+gen-safe-view safe-⇒ = gen-safe-inert CT.fun
+gen-safe-view safe-∀ = gen-safe-inert CT.all
+gen-safe-view (safe-inst B≢★) = gen-safe-inst B≢★
+gen-safe-view (safe-gen A≢★ safe) =
+  gen-safe-inert (CT.genᵥ A≢★ safe)

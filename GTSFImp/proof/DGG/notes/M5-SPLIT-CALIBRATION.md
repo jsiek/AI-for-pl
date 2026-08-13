@@ -271,10 +271,10 @@ Revised gates:
 NS-4's first statement-level red stop has been retracted.  The checked
 `allv-∀` example still shows that the stored universal body cast can be as
 large as the outer inst cast, but the same scratch now checks that its opened
-cast is inert.  More generally, live `ext-safe` classifies every stored cast
-under the `∀ᶜ` view as `GenSafe` when the target body is non-variable and
-contains the fresh variable.  The old arithmetic therefore does not imply a
-smaller-extra call.
+cast is inert.  More generally, live `strict-safe` classifies consistency at
+any strict name as `GenSafe`; `ext-safe` is the fresh-binder specialization.
+`GenSafeView` proves that the result is inert or exactly `safe-inst`.  The old
+arithmetic therefore does not imply a smaller-extra call.
 
 The next statement is a structural value-instantiation normalizer over
 related values.  Its `GenSafe` cases are already value-forming except for

@@ -9,13 +9,17 @@ not follow from it.  The checked witness `d` is a function consistency, so
 `d [ ＇ zero ]ᶜ` is inert and applying it to a value immediately constructs
 another value.  `M5AllFuelBoundScratch.agda` now checks both facts.
 
-The live theorem `proof.Consistency.ext-safe` proves the general invariant:
+The live theorem `proof.Consistency.strict-safe` proves the general invariant:
 
-  d : extᵐ ν ⊢ B₀ ∼ B₁
+  ν X = X∼X
+  d : ν ⊢ B₀ ∼ B₁
   NonVar B₁
-  zero ∈ᵗ B₁
+  X ∈ᵗ B₁
   --------------------------------
   GenSafe d
+
+`ext-safe` is the fresh-binder specialization, and `GenSafeView` classifies
+the result as inert or exactly `safe-inst`.
 
 Thus the `allv-∀` branch exposes a `GenSafe` administration spine.
 Function, universal, and generated cases are inert.  Only `safe-inst`

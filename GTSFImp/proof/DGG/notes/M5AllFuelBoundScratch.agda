@@ -17,7 +17,7 @@ open import Types
 open import Consistency
 open import CastTerms using
   (Term; Value; GenSafe; Inert; fun; _⟨_⟩; _《_》)
-open import proof.Consistency using (castSize; ext-safe)
+open import proof.Consistency using (castSize; strict-safe; ext-safe)
 
 
 μ₀ : Env∼ 0
@@ -80,6 +80,10 @@ allocated-d = id (＇ Fin.zero) ↦
 opened-d-size : castSize
     (allocated-d [ ＇ Fin.zero ]ᶜ) ≡ 5
 opened-d-size = refl
+
+
+opened-d-safe : GenSafe (allocated-d [ ＇ Fin.zero ]ᶜ)
+opened-d-safe = strict-safe refl _ B₁-nonvar zero∈B₁
 
 
 opened-d-inert : Inert (allocated-d [ ＇ Fin.zero ]ᶜ)

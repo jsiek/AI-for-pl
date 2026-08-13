@@ -12,6 +12,7 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
+open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 
 
 record StructuralInstantiationDescentPackage {Δᴸ Δᴿ Δ}
@@ -20,17 +21,15 @@ record StructuralInstantiationDescentPackage {Δᴸ Δᴿ Δ}
     (spine : InstantiationSpine B E)
     (q : A CTI2.⊑ᵂ⟨ W ⟩ E) : Set₁ where
   field
-    Δᴿ′ : TyCtx
-    χs : StoreChanges Δᴿ Δᴿ′
-    Δ′ : TyCtx
-    W′ : CTI2.World Δᴸ Δᴿ′ Δ′
-    structural-ext : StructuralWorldExtendᴿ χs W W′
-    final : Term Δᴿ′
-    final-value : Value final
-    post-reduction : applyInstantiationSpine V spine —↠[ χs ] final
+    target-descent : StructuralTargetInstantiationPackage W V spine
     final-relation :
-      W′ CTI2.∣ ECR.mapCtxᴿ
-        (structural-world-extendᴿ structural-ext) γ
-        ⊢² M ⊑ final ∶
+      StructuralTargetInstantiationPackage.W′ target-descent CTI2.∣
+        ECR.mapCtxᴿ (structural-world-extendᴿ
+          (StructuralTargetInstantiationPackage.structural-ext
+            target-descent)) γ
+        ⊢² M ⊑
+          StructuralTargetInstantiationPackage.final target-descent ∶
           ECR.transport⊑ᵂ
-            (structural-world-extendᴿ structural-ext) q
+            (structural-world-extendᴿ
+              (StructuralTargetInstantiationPackage.structural-ext
+                target-descent)) q

@@ -606,11 +606,12 @@ endpoint replays are now checked.  They consume a caller-supplied outer trace,
 transform it in the only sound direction, and rebuild the corresponding live
 relation rule at the final target value.
 `StructuralInstantiationDescentPackage` is now the internal worker result.  It
-retains that structural trace while the public erasure returns the existing
-`InstSpineDescentPackage`; its empty-spine constructor is checked.  The worker
-state therefore relates source and target values and separately carries the
-pending typed target spine, rather than asserting a relation to a raw type
-application.
+contains a `StructuralTargetInstantiationPackage`, which owns only the target
+trace, reduction, and final value, plus the replayed endpoint relation.  The
+public erasure returns the existing `InstSpineDescentPackage`; both empty-spine
+constructors are checked.  The worker state therefore relates source and
+target values and separately carries the pending typed target spine, rather
+than asserting a relation to a raw type application.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

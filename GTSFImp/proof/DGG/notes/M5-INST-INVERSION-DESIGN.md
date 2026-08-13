@@ -215,10 +215,13 @@ pushout-computed center of the smart-fresh branch.  The internal
 `structural-lift-left` transformer supplies the ordinary, canonical source-Λ
 case.  The internal
 `StructuralInstantiationDescentPackage` now retains one of these structural
-traces until all source wrappers are rebuilt.  Its checked erasure is the
-public `InstSpineDescentPackage`, and its zero-spine case simply returns the
-already-related target value.  Consequently the recursive state relates the
-two base values and carries the pending target spine separately.
+traces until all source wrappers are rebuilt.  The nested
+`StructuralTargetInstantiationPackage` owns the target-only trace, reduction,
+and final value; the outer package adds only the endpoint relation.  Their
+checked zero-spine constructors return the already-related target value, and
+the checked erasure is the public `InstSpineDescentPackage`.  Consequently the
+recursive state relates the two base values and carries the pending target
+spine separately.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

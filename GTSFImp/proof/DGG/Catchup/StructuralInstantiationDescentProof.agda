@@ -17,6 +17,8 @@ open import proof.DGG.Catchup.InstInversionDef using
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
+open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTargetInstantiationProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 
 
@@ -28,14 +30,7 @@ structural-descent-zero : ∀ {Δᴸ Δᴿ Δ}
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ q
   → StructuralInstantiationDescentPackage W γ M V []ⁱ q
 structural-descent-zero {W = W} {γ = γ} vV rel = record
-  { Δᴿ′ = _
-  ; χs = []
-  ; Δ′ = _
-  ; W′ = W
-  ; structural-ext = structural-[]
-  ; final = _
-  ; final-value = vV
-  ; post-reduction = ↠-refl
+  { target-descent = structural-target-zero vV
   ; final-relation = subst≡
       (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (sym (ECR.mapCtxᴿ-same γ)) rel
@@ -51,16 +46,17 @@ erase-structural-descent : ∀ {Δᴸ Δᴿ Δ}
   → InstSpineDescentPackage W γ M
       (applyInstantiationSpine V spine) q
 erase-structural-descent pkg = record
-  { Δᴿ′ = StructuralInstantiationDescentPackage.Δᴿ′ pkg
-  ; χs = StructuralInstantiationDescentPackage.χs pkg
-  ; Δ′ = StructuralInstantiationDescentPackage.Δ′ pkg
-  ; W′ = StructuralInstantiationDescentPackage.W′ pkg
+  { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
+  ; χs = StructuralTargetInstantiationPackage.χs target
+  ; Δ′ = StructuralTargetInstantiationPackage.Δ′ target
+  ; W′ = StructuralTargetInstantiationPackage.W′ target
   ; ext = structural-world-extendᴿ
-      (StructuralInstantiationDescentPackage.structural-ext pkg)
-  ; final = StructuralInstantiationDescentPackage.final pkg
-  ; final-value = StructuralInstantiationDescentPackage.final-value pkg
-  ; post-reduction =
-      StructuralInstantiationDescentPackage.post-reduction pkg
+      (StructuralTargetInstantiationPackage.structural-ext target)
+  ; final = StructuralTargetInstantiationPackage.final target
+  ; final-value = StructuralTargetInstantiationPackage.final-value target
+  ; post-reduction = StructuralTargetInstantiationPackage.post-reduction target
   ; final-relation =
       StructuralInstantiationDescentPackage.final-relation pkg
   }
+  where
+  target = StructuralInstantiationDescentPackage.target-descent pkg

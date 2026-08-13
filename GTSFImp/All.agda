@@ -76,6 +76,8 @@ import proof.DGG.Catchup.StructuralWorldLiftLeftProof
 import proof.DGG.Catchup.StructuralWorldEvidenceProof
 import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
 import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
+import proof.DGG.Catchup.StructuralTargetInstantiationDef
+import proof.DGG.Catchup.StructuralTargetInstantiationProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 

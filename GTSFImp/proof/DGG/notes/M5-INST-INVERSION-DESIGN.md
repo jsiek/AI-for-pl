@@ -243,6 +243,10 @@ pending frame can be consumed definitionally once its applied term has a
 completed package, and a root `keep` reduction can be lifted through the
 mapped tail.  Inert/value-forming frames use the first operation; identity
 and unseal conversion steps use the second.
+The checked `StructuralFrameOutcome` classification makes this exhaustive:
+a typed reveal or conceal over a value is either value-forming, or an
+identity/unseal case with one `keep` step directly to a value.  Consequently
+conversion frames do not need a measure component or an accessibility restart.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

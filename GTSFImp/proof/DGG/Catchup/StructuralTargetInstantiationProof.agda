@@ -17,6 +17,7 @@ import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import
   proof.DGG.Catchup.StructuralValueInstantiationReductionProof
+open import proof.DGG.Catchup.StructuralFrameOutcomeDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 
@@ -95,6 +96,29 @@ structural-target-frame-keep-step {spine = spine} step child =
   structural-target-frame
     (structural-target-keep-step
       (lift-instantiation-spine-keep step spine) child)
+
+
+structural-target-frame-outcome : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {V : Term Δᴿ} {A B E : Ty Δᴿ}
+    {frame : InstantiationFrame A B}
+    {spine : InstantiationSpine B E}
+  → StructuralFrameOutcome (applyInstantiationFrame V frame)
+  → (Value (applyInstantiationFrame V frame)
+      → StructuralTargetInstantiationPackage W
+          (applyInstantiationFrame V frame) spine)
+  → (∀ {V₁}
+      → applyInstantiationFrame V frame —→[ keep ] V₁
+      → Value V₁
+      → StructuralTargetInstantiationPackage W V₁
+          (mapInstantiationSpine keep spine))
+  → StructuralTargetInstantiationPackage W V (frame ▻ⁱ spine)
+structural-target-frame-outcome (structural-frame-value vF)
+    value-child keep-child =
+  structural-target-frame (value-child vF)
+structural-target-frame-outcome (structural-frame-keep step vF)
+    value-child keep-child =
+  structural-target-frame-keep-step step (keep-child step vF)
 
 
 structural-target-bind-step : ∀ {Δᴸ Δᴿ Δ Δ₁}

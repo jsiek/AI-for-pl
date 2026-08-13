@@ -61,6 +61,8 @@ import proof.DGG.Catchup.StructuralValueInstantiationPendingCastMassProof
 import proof.DGG.Catchup.StructuralValueInstantiationGenCastMassProof
 import proof.DGG.Catchup.StructuralValueInstantiationInstCastMassProof
 import proof.DGG.Catchup.StructuralValueInstantiationAllCastMassProof
+import proof.DGG.Catchup.StructuralFrameOutcomeDef
+import proof.DGG.Catchup.StructuralFrameOutcomeProof
 import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 import proof.DGG.Catchup.StructuralValueInstantiationViewDef
 import proof.DGG.Catchup.StructuralValueInstantiationViewProof

@@ -631,6 +631,10 @@ Completed target packages now also compose definitionally through one pending
 frame, and a root `keep` reduction can be lifted through the mapped tail in a
 single helper.  These are the two worker combinators needed for value-forming
 frames and identity/unseal conversion steps; neither adds a termination case.
+`StructuralFrameOutcome` now checks that every well-typed reveal or conceal
+frame over a value is either already a value or takes exactly one `keep` step
+to a value.  Its package eliminator selects the corresponding composition
+operation, making conversion administration finite and nonrecursive.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

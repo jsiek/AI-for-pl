@@ -6608,6 +6608,277 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     }
 
 
+rebaseAtᴸ-target-store : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ?}
+  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → CTI2.targetStoreʷ Wᵖ ≡ CTI2.targetStoreʷ W
+rebaseAtᴸ-target-store CTI2.rebase-idᴸ = refl
+rebaseAtᴸ-target-store (CTI2.rebase-varᴸ rb) =
+  CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb)
+rebaseAtᴸ-target-store (CTI2.rebase-onlyᴸ to-star disaligned rep) =
+  refl
+
+
+rebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ?}
+  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → ∀ Y → toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W) Y
+rebaseAtᴸ-target-frozen CTI2.rebase-idᴸ Y = refl
+rebaseAtᴸ-target-frozen (CTI2.rebase-varᴸ rb) =
+  CTI2.RebaseAt.ηᴿ-frozen rb
+rebaseAtᴸ-target-frozen (CTI2.rebase-onlyᴸ to-star disaligned rep) =
+  λ Y → refl
+
+
+tagRebaseAtᴸ-target-store : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
+  → CTI2.targetStoreʷ Wᵖ ≡ CTI2.targetStoreʷ W
+tagRebaseAtᴸ-target-store CTI2.tag-rebase-idᴸ = refl
+tagRebaseAtᴸ-target-store (CTI2.tag-rebase-varᴸ rb) =
+  CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb)
+tagRebaseAtᴸ-target-store
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned rep) = refl
+
+
+tagRebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
+  → ∀ Y → toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W) Y
+tagRebaseAtᴸ-target-frozen CTI2.tag-rebase-idᴸ Y = refl
+tagRebaseAtᴸ-target-frozen (CTI2.tag-rebase-varᴸ rb) =
+  CTI2.RebaseAt.ηᴿ-frozen rb
+tagRebaseAtᴸ-target-frozen
+    (CTI2.tag-rebase-onlyᴸ to-star disaligned rep) Y = refl
+
+
+rebaseTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {π : Δ ↪ᵗ Δ′} {κ : suc Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {ins : TE.TargetInsert wk↪ᵗ π W W′}
+    {insᵖ : TE.TargetInsert wk↪ᵗ π Wᵖ Wᵖ′}
+  → TE.TargetWindowInsert ins κ
+  → (∀ Y → toRenameᵗ (CTI2.ηᴿʷ Wᵖ′) Y
+      ≡ toRenameᵗ (CTI2.ηᴿʷ W′) Y)
+  → TE.TargetWindowInsert insᵖ κ
+rebaseTargetWindowInsert win frozen = record
+  { windowEmbedding = TE.windowEmbedding win
+  ; window-zero = trans (frozen Fin.zero) (TE.window-zero win)
+  ; window-old = TE.window-old win
+  }
+
+
+record ΛRebaseChildPostPlan {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    (plan : ΛTwoInsertPostPlan W) (Xᴸ? : Maybe (Fin.Fin Δᴸ))
+    : Set₁ where
+  field
+    childPlan : ΛTwoInsertPostPlan Wᵖ
+    sameΔ₂ : Δ₂ childPlan ≡ Δ₂ plan
+    postMono : CTI2.ImpEnvMono W Wᵖ
+      → CTI2.ImpEnvMono (W₂ plan)
+          (subst≡ (CTI2.World _ _) sameΔ₂ (W₂ childPlan))
+    postRebase : CTI2.RebaseAtᴸ
+      (W₂ plan) (subst≡ (CTI2.World _ _) sameΔ₂ (W₂ childPlan))
+      Xᴸ?
+
+
+record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    (plan : ΛTwoInsertPostPlan W)
+    (Xᴸ? : Maybe (Fin.Fin Δᴸ)) (Xᴿ? : Maybe (Fin.Fin Δᴿ))
+    : Set₁ where
+  field
+    childPlan : ΛTwoInsertPostPlan Wᵖ
+    sameΔ₂ : Δ₂ childPlan ≡ Δ₂ plan
+    postMono : CTI2.ImpEnvMono W Wᵖ
+      → CTI2.ImpEnvMono (W₂ plan)
+          (subst≡ (CTI2.World _ _) sameΔ₂ (W₂ childPlan))
+    postRebase : CTI2.TagRebaseAtᴸ
+      (subst≡ (CTI2.World _ _) sameΔ₂ (W₂ childPlan))
+      (W₂ plan) Xᴸ?
+      (TE.mapPivot (toRenameᵗ wk↪ᵗ)
+        (TE.mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?))
+
+
+Λ-two-insert-rebase-child : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ?}
+  → (plan : ΛTwoInsertPostPlan W)
+  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → ΛRebaseChildPostPlan plan Xᴸ?
+Λ-two-insert-rebase-child plan rb
+    with TE.insertRebaseAtᴸ (ins₁ plan) rb
+Λ-two-insert-rebase-child plan rb | Wᵖ₁ , insᵖ₁ , rb₁
+    with TE.insertRebaseAtᴸ (ins₂ plan) rb₁
+Λ-two-insert-rebase-child plan rb
+    | Wᵖ₁ , insᵖ₁ , rb₁ | Wᵖ₂ , insᵖ₂ , rb₂ =
+  record
+    { childPlan = child ; sameΔ₂ = refl
+    ; postMono = λ mono → TE.impEnvMono-insert (ins₂ plan) insᵖ₂
+        (TE.impEnvMono-insert (ins₁ plan) insᵖ₁ mono)
+    ; postRebase = rb₂
+    }
+  where
+  follows₁ = trans (rebaseAtᴸ-target-store rb₁)
+    (trans (targetFollows₁ plan)
+      (cong (applyStores (bind ★ ∷ []))
+        (sym (rebaseAtᴸ-target-store rb))))
+  follows₂ = trans (rebaseAtᴸ-target-store rb₂)
+    (trans (targetFollows₂ plan)
+      (cong (applyStores (bind (＇ Fin.zero) ∷ []))
+        (sym (rebaseAtᴸ-target-store rb₁))))
+  store₁ = rebaseAtᴸ-target-store rb₁
+  store₂ = rebaseAtᴸ-target-store rb₂
+  winᵖ₁ = rebaseTargetWindowInsert
+    (targetWindow₁ (windowFacts plan))
+    (rebaseAtᴸ-target-frozen rb₁)
+  winᵖ₂ = rebaseTargetWindowInsert
+    (targetWindow₂ (windowFacts plan))
+    (rebaseAtᴸ-target-frozen rb₂)
+  extᵖ = composeWorldExtendᴿ
+    (target-insert-bind-world-extendᴿ insᵖ₁ follows₁)
+    (target-insert-bind-world-extendᴿ insᵖ₂ follows₂)
+  facts = record
+    { targetWindow₁ = winᵖ₁ ; targetWindow₂ = winᵖ₂
+    ; pivotMark = subst≡ (λ C → CTI2.impEnvʷ
+          (CR.renameWorld (skip (κ₂ plan))
+            (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) C ≡ I.X⊑★)
+        (sym (CR.toRenameᵗ-∘ (skip (κ₂ plan))
+          (CTI2.ηᴿʷ (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) Fin.zero))
+        (CR.renameEnv-image (skip (κ₂ plan))
+          (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) Fin.zero)
+    ; targetStoreTransport = subst≡
+        (λ Σ₁ → StoreTransport (store-lift Σ₁)
+          (CTI2.targetStoreʷ Wᵖ₂)) (sym store₁)
+        (subst≡ (λ Σ₂ → StoreTransport
+            (store-lift (CTI2.targetStoreʷ (W₁ plan))) Σ₂)
+          (sym store₂) (targetStoreTransport (windowFacts plan)))
+    ; firstTargetZeroResolves = subst≡
+        (λ Σ → CTI2.resolveVar Σ Fin.zero ≡ ★)
+        (sym store₁) (firstTargetZeroResolves (windowFacts plan))
+    ; targetZeroResolves = subst≡
+        (λ Σ → CTI2.resolveVar Σ Fin.zero ≡ ★)
+        (sym store₂) (targetZeroResolves (windowFacts plan))
+    ; targetOtherResolves = λ Z neq → subst≡
+        (λ Σ₁ → CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ₂) Z
+          ≡ CTI2.resolveVar (store-lift Σ₁) Z) (sym store₁)
+        (subst≡ (λ Σ₂ → CTI2.resolveVar Σ₂ Z
+            ≡ CTI2.resolveVar
+              (store-lift (CTI2.targetStoreʷ (W₁ plan))) Z)
+          (sym store₂) (targetOtherResolves (windowFacts plan) Z neq))
+    ; midSourcePivotMark =
+        route1-mid-source-pivot-from-windows winᵖ₁ winᵖ₂ }
+  first-entry = subst≡
+    (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
+  support = Λ-route1-post-window-support-at facts
+    (Λ-route1-mid-fresh-mono-at facts)
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+      (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
+        (generated-reveal-⊢↑-present z first-entry)))
+  child = record
+    { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
+    ; π₁ = π₁ plan ; π₂ = π₂ plan
+    ; κ₁ = κ₁ plan ; κ₂ = κ₂ plan
+    ; ins₁ = insᵖ₁ ; ins₂ = insᵖ₂
+    ; targetFollows₁ = follows₁ ; targetFollows₂ = follows₂
+    ; windowFacts = facts ; postExtend = extᵖ
+    ; postGeometry = Λ-route1-post-window-at facts support
+    }
+
+
+Λ-two-insert-tag-rebase-child : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+  → (plan : ΛTwoInsertPostPlan W)
+  → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → ΛTagRebaseChildPostPlan plan Xᴸ? Xᴿ?
+Λ-two-insert-tag-rebase-child plan rb
+    with TE.reverseTagRebaseAtᴸ (ins₁ plan) rb
+Λ-two-insert-tag-rebase-child plan rb | Wᵖ₁ , insᵖ₁ , rb₁
+    with TE.reverseTagRebaseAtᴸ (ins₂ plan) rb₁
+Λ-two-insert-tag-rebase-child plan rb
+    | Wᵖ₁ , insᵖ₁ , rb₁ | Wᵖ₂ , insᵖ₂ , rb₂ =
+  record
+    { childPlan = child ; sameΔ₂ = refl
+    ; postMono = λ mono → TE.impEnvMono-insert (ins₂ plan) insᵖ₂
+        (TE.impEnvMono-insert (ins₁ plan) insᵖ₁ mono)
+    ; postRebase = rb₂
+    }
+  where
+  store₀ = tagRebaseAtᴸ-target-store rb
+  store₁ = tagRebaseAtᴸ-target-store rb₁
+  store₂ = tagRebaseAtᴸ-target-store rb₂
+  follows₁ = trans (sym store₁)
+    (trans (targetFollows₁ plan)
+      (cong (applyStores (bind ★ ∷ [])) store₀))
+  follows₂ = trans (sym store₂)
+    (trans (targetFollows₂ plan)
+      (cong (applyStores (bind (＇ Fin.zero) ∷ [])) store₁))
+  winᵖ₁ = rebaseTargetWindowInsert
+    (targetWindow₁ (windowFacts plan))
+    (λ Y → sym (tagRebaseAtᴸ-target-frozen rb₁ Y))
+  winᵖ₂ = rebaseTargetWindowInsert
+    (targetWindow₂ (windowFacts plan))
+    (λ Y → sym (tagRebaseAtᴸ-target-frozen rb₂ Y))
+  extᵖ = composeWorldExtendᴿ
+    (target-insert-bind-world-extendᴿ insᵖ₁ follows₁)
+    (target-insert-bind-world-extendᴿ insᵖ₂ follows₂)
+  facts = record
+    { targetWindow₁ = winᵖ₁ ; targetWindow₂ = winᵖ₂
+    ; pivotMark = subst≡ (λ C → CTI2.impEnvʷ
+          (CR.renameWorld (skip (κ₂ plan))
+            (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) C ≡ I.X⊑★)
+        (sym (CR.toRenameᵗ-∘ (skip (κ₂ plan))
+          (CTI2.ηᴿʷ (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) Fin.zero))
+        (CR.renameEnv-image (skip (κ₂ plan))
+          (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ Wᵖ₁)) Fin.zero)
+    ; targetStoreTransport = subst≡
+        (λ Σ₁ → StoreTransport (store-lift Σ₁)
+          (CTI2.targetStoreʷ Wᵖ₂)) store₁
+        (subst≡ (λ Σ₂ → StoreTransport
+            (store-lift (CTI2.targetStoreʷ (W₁ plan))) Σ₂)
+          store₂ (targetStoreTransport (windowFacts plan)))
+    ; firstTargetZeroResolves = subst≡
+        (λ Σ → CTI2.resolveVar Σ Fin.zero ≡ ★)
+        store₁ (firstTargetZeroResolves (windowFacts plan))
+    ; targetZeroResolves = subst≡
+        (λ Σ → CTI2.resolveVar Σ Fin.zero ≡ ★)
+        store₂ (targetZeroResolves (windowFacts plan))
+    ; targetOtherResolves = λ Z neq → subst≡
+        (λ Σ₁ → CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ₂) Z
+          ≡ CTI2.resolveVar (store-lift Σ₁) Z) store₁
+        (subst≡ (λ Σ₂ → CTI2.resolveVar Σ₂ Z
+            ≡ CTI2.resolveVar
+              (store-lift (CTI2.targetStoreʷ (W₁ plan))) Z)
+          store₂ (targetOtherResolves (windowFacts plan) Z neq))
+    ; midSourcePivotMark =
+        route1-mid-source-pivot-from-windows winᵖ₁ winᵖ₂ }
+  first-entry = subst≡
+    (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
+  support = Λ-route1-post-window-support-at facts
+    (Λ-route1-mid-fresh-mono-at facts)
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+      (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
+        (generated-reveal-⊢↑-present z first-entry)))
+  child = record
+    { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
+    ; π₁ = π₁ plan ; π₂ = π₂ plan
+    ; κ₁ = κ₁ plan ; κ₂ = κ₂ plan
+    ; ins₁ = insᵖ₁ ; ins₂ = insᵖ₂
+    ; targetFollows₁ = follows₁ ; targetFollows₂ = follows₂
+    ; windowFacts = facts ; postExtend = extᵖ
+    ; postGeometry = Λ-route1-post-window-at facts support
+    }
+
+
 Λ-post-prefix-reveal⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}

@@ -106,7 +106,9 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 
 1. DONE: select and pre-flight option (A); make the provenance-carrying
    surfaces live in `ValueCatchupRightDef.agda`.
-2. IN PROGRESS: finish M5's `InstInversionPackage`.  Each view must mint the
+2. IN PROGRESS: finish M5's `InstInversionPackage`.  The shared finalizer now
+   consumes `InstSpineDescentPackage` and transports residual provenance
+   before smaller-fuel catch-up.  Each non-Λ view must still mint the
    residual `CatchupCast⁻`; the Λ support already constructs the non-star
    residual provenance.
 3. DONE (2026-08-13): `catchup-column⁻-transport` proves

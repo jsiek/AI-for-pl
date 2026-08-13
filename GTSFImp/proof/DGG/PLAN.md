@@ -495,19 +495,32 @@ Revised work order:
         the already-live canonical target-first witnesses.  The earlier
         center-order diagnosis for this leaf was backwards; no new world
         equality or relation constructor is required.
-  NS-2b RED-STOP: the derivation-recursive worker needs a hereditary
-        two-target-insertion plan, not only `ext₂` plus post geometry.  Nested
-        smart-comma and source rebase wrappers must transform the caller's
-        plan; the current smart route-one helpers restart canonical binds at
-        their local root.  State the plan with insertion/window facts and
-        child transformers before resuming proof code.  Exact indices and
-        required transformations are in
-        `notes/m5-inst-inversion-generalized-post-plan-threading-blocked.red`.
-  NS-3  After the NS-2b statement surface checks, close the source-strip
+  NS-2b DONE (`ffadb7c5`, `e7c1bf27`, `f80874d2`): the finite hereditary
+        `ΛTwoInsertPostPlan`, structural target-window transport, and exhaustive
+        smart-alias/smart-fresh child transformer are live.  The transformer
+        carries the post smart lift and transported contexts without assuming
+        a canonical right-only child world.
+  NS-2c DONE up to the next resister: two-step reveal/rebase and
+        conceal/tag-rebase child-plan transformers are focused-green.  They
+        rebuild the two insertions, windows, route-one facts, post geometry,
+        monotonicity, and rebases.  RED-STOP: recursive evidence at the smart
+        child post world cannot yet supply the parent's top `p₂`, because
+        `SmartCommaLiftᴸ` exposes only forward type transport.  The exact
+        machine-checked mismatch and the narrower generalized-outer-
+        obligation route to try first are recorded in
+        `notes/m5-inst-inversion-hereditary-top-post-plan-blocked.red`.
+  NS-3  After the NS-2c top-obligation surface checks, close the source-strip
         wrappers, assemble
         `InstInversionPackage.Λ-package`, and wire the dispatcher; then
         resume the four descent views and discharge the live M6 knot's M5
         factory argument.
+
+The shared descent consumer is no longer part of the NS-3 uncertainty.
+Commit `7ca0ac1c` removes the contradictory immediate-post value field from
+`InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes
+`InstSpineDescentPackage`, transports the residual cast/provenance through
+the descent, and calls smaller-fuel catch-up only at the descended value.
+The four non-Λ view packages still need their descent producers.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

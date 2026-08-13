@@ -247,18 +247,26 @@ Revised gates:
         existing canonical target-first smart witnesses.  The first analysis
         had the inserted-center order for that leaf backwards: two right
         bindings put the target window before the pending source-fresh center.
-  NS-2b RED-STOP: a one-level post world and geometry do not compose through
-        arbitrary nesting.  State a hereditary two-target-insertion plan with
-        smart alias/fresh and source-rebase child transformers before resuming
-        the recursive proof.  The exact first non-composing indices are in
-        `m5-inst-inversion-generalized-post-plan-threading-blocked.red`.
-  NS-3  After NS-2b, use the worker in the source-strip wrapper cases,
+  NS-2b DONE: the finite two-target-insertion plan and its exhaustive smart
+        alias/fresh child transformer are live.  Generic smart-fresh windows
+        are constructed by hereditary embedding pushouts; no split relation
+        constructor was added.
+  NS-2c RED-STOP after green source-rebase support: reveal and conceal plans
+        now transport through two insertions, but the recursive worker cannot
+        yet construct the parent's top post relation from evidence at an
+        arbitrary smart child post world.  Smart lifts provide only forward
+        type transport.  See
+        `m5-inst-inversion-hereditary-top-post-plan-blocked.red`; its first
+        recommended retry is a plan-indexed outer obligation built from the
+        parent's original type relation, which may require only the controlled
+        front-fresh post bridge.
+  NS-3  After NS-2c, use the worker in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
         Then resume the four descent views and discharge the M5 factory
         argument of the already-live M6 fuel knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
-NS-2a closed without an obstruction and NS-2b remains a proof-surface
+NS-2a and NS-2b closed without a relation change; NS-2c remains a proof-surface
 threading problem, so the split-rule design remains suspended.  Resume it
 only if a later step finds a new machine-checked
 relation-expressibility obstruction that also excludes the checked

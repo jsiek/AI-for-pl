@@ -227,6 +227,12 @@ checked `structural-target-Λ-step` handles the first equal-mass target case:
 `β-Λ` is lifted through the remaining spine, the canonical target insertion
 records the runtime-name allocation, and one zero-syntax transport frame uses
 `replace-zero-open` to align the reduct with the mapped tail.
+All four allocating target transitions are now checked.  `β-gen` and the
+recursive `β-inst` reuse the exact strictly smaller child spines from the cast
+mass proofs; universal reveal and conceal record their inner conversion frames
+under the same canonical bind trace.  Only `β-∀` remains: its `keep`
+congruence renames conversion syntax by the identity function, so its
+propositional identity transport is being kept in one boundary lemma.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

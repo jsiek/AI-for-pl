@@ -617,6 +617,12 @@ a completed target package while preserving the structural trace.  The first
 concrete equal-mass transition, `structural-target-Λ-step`, is checked: it
 lifts `β-Λ` through the remaining spine, records the fresh runtime-name bind,
 and localizes the opened-type equality with `replace-zero-open`.
+The binding transitions are now complete: `structural-target-gen-step` and
+`structural-target-inst-step` expose exactly the already-proved strictly
+smaller cast-mass child spines, while `structural-target-{reveal,conceal}-step`
+record the universal conversion frames.  The remaining target constructor is
+the `β-∀` `keep` step, whose congruence maps conversions by identity only
+propositionally; that equality remains isolated at this frontier.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

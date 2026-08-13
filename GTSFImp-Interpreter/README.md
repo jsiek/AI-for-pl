@@ -153,13 +153,15 @@ traces and unchanged-store witnesses.
 At function types, `related-function-application` exposes the positive-index
 head of `FunctionsRelated`: a function related at index `suc (suc k)` applied
 to an argument related at `suc k` produces computations related at `suc k`.
-The lambda lemma constructs the arrow endpoints and all residual value
-indices once the corresponding `FunctionsRelated` elimination obligations
-are supplied at each future world. `related-function-body-substitution`
-discharges the world/index/context part of those obligations: it transports
-the outer substitution to the function-call world, lowers its index, composes
-the two future extensions, and adds the related argument at the head of the
-body context.
+`related-beta-expand` lifts related contracta across one matching beta step on
+both endpoints and accounts for the consumed evaluator fuel and LR index.
+`functions-related-from-body` constructs every elimination obligation from a
+semantic body premise. It transports the outer substitution to the call world,
+lowers its index, composes the two future extensions, adds the related argument
+at the head of the body context, and reconciles closing with beta substitution.
+Consequently, `lambda-compatible-from-body` is the body-driven lambda
+introduction theorem. The lower-level `lambda-compatible` remains available
+when a proof already has the function-elimination obligations directly.
 
 ## Deliberate draft boundaries
 
@@ -173,18 +175,11 @@ The bottom cases still impose endpoint valuehood and typing only. Their useful
 elimination principles should be derived from typing and canonical-form
 inversion rather than by adding observable value behavior to bottom.
 
-The lambda lemma is not yet the fundamental lambda case from a semantic body
-premise. The related body substitution is now constructed, but the lemma
-deliberately exposes the remaining function-elimination obligation instead of
-postulating it. Term-substitution fusion through both term and type binders is
-now available as `sub-sub`; `beta-close-cons` derives the corresponding
-equation between beta substitution into a closed body and closing the open
-body with the argument-consed substitution. Deriving the remaining obligation
-from `CompiledTermRelation` requires two reusable transport results:
-
-- type-future lifting commutes with closing a term;
-- related computations are preserved by matching deterministic beta
-  expansion on both endpoints.
+Lambda introduction is complete from a semantic body premise at every
+residual index up to the current budget. Term-substitution fusion through both
+term and type binders is available as `sub-sub`; `beta-close-cons` supplies the
+beta/closing equation; closing commutes with future lifting; and matching beta
+expansion preserves `ComputationsRelated`.
 
 No postulate, hole, or unchecked metavariable is used at this draft boundary.
 

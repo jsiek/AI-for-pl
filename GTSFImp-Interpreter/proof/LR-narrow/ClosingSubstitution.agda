@@ -4,6 +4,7 @@ module proof.LR-narrow.ClosingSubstitution where
 --   * Proves lookup and typing for closing substitutions.
 --   * Projects related substitutions to their typed endpoint substitutions.
 --   * Proves lookup and future-world transport for related substitutions.
+--   * Proves endpoint projection coherence under index and future transport.
 --   * Supplies proof terms re-exported by the public properties module.
 
 open import Data.List using ([]; _∷_)
@@ -22,7 +23,7 @@ import Consistency as C
 import Imprecision as I
 open import proof.TermInTermSubst using
   (SubstWf; typing-subst; subst-preserves-Value; subst-cong;
-   subst-rename; subst-id; single-subst-exts)
+   subst-rename; subst-id; single-subst-exts; subst-renameᵗᵐ)
 open import proof.TypeInTermSubst using
   (renameᵗᵐ-preserves-Value; typing-shiftᵗ-bind)
 open import proof.ImprecisionConsistency using
@@ -310,6 +311,23 @@ shiftClosingBind (closing-cons vV V⊢ γ) =
   closing-cons (renameᵗᵐ-preserves-Value C.wk↪ᵗ vV)
     (typing-shiftᵗ-bind V⊢) (shiftClosingBind γ)
 
+lookupClosing-subst : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ Γ′ : T.TermCtx Δ}
+    (eq : Γ ≡ Γ′) (γ : ClosingSubstitution Σ Γ) x
+  → lookupClosing (subst≡ (ClosingSubstitution Σ) eq γ) x
+    ≡ lookupClosing γ x
+lookupClosing-subst refl γ x = refl
+
+lookup-shiftClosingBind : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} {B : Ty Δ}
+    (γ : ClosingSubstitution Σ Γ) x
+  → lookupClosing (shiftClosingBind {B = B} γ) x
+    ≡ ⇑ᵗᵐ (lookupClosing γ x)
+lookup-shiftClosingBind closing-empty x = refl
+lookup-shiftClosingBind (closing-cons vV V⊢ γ) zero = refl
+lookup-shiftClosingBind (closing-cons vV V⊢ γ) (suc x) =
+  lookup-shiftClosingBind γ x
+
 precise-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -352,6 +370,164 @@ imprecise-closing-future {Γ = Γ}
     (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-closing-future W≼W′ γ)
 
+precise-closing-future-lookup : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴾ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (preciseStore (core W)) Γ) x
+  → lookupClosing (precise-closing-future W≼W′ γ) x
+    ≡ liftPreciseTerm W≼W′ (lookupClosing γ x)
+precise-closing-future-lookup future-refl closing-empty x = refl
+precise-closing-future-lookup future-refl
+    (closing-cons vV V⊢ γ) zero = refl
+precise-closing-future-lookup future-refl
+    (closing-cons vV V⊢ γ) (suc x) =
+  precise-closing-future-lookup future-refl γ x
+precise-closing-future-lookup
+    {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related fresh) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftPreciseContext-paired W≼W′ Γ))
+      (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ)) x)
+    (trans (lookup-shiftClosingBind (precise-closing-future W≼W′ γ) x)
+      (cong ⇑ᵗᵐ (precise-closing-future-lookup W≼W′ γ x)))
+precise-closing-future-lookup
+    {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ fresh) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftPreciseContext-precise W≼W′ Γ))
+      (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ)) x)
+    (trans (lookup-shiftClosingBind (precise-closing-future W≼W′ γ) x)
+      (cong ⇑ᵗᵐ (precise-closing-future-lookup W≼W′ γ x)))
+
+imprecise-closing-future-lookup : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴵ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (impreciseStore (core W)) Γ) x
+  → lookupClosing (imprecise-closing-future W≼W′ γ) x
+    ≡ liftImpreciseTerm W≼W′ (lookupClosing γ x)
+imprecise-closing-future-lookup future-refl closing-empty x = refl
+imprecise-closing-future-lookup future-refl
+    (closing-cons vV V⊢ γ) zero = refl
+imprecise-closing-future-lookup future-refl
+    (closing-cons vV V⊢ γ) (suc x) =
+  imprecise-closing-future-lookup future-refl γ x
+imprecise-closing-future-lookup
+    {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related fresh) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftImpreciseContext-paired W≼W′ Γ))
+      (shiftClosingBind {B = Bᴵ}
+        (imprecise-closing-future W≼W′ γ)) x)
+    (trans
+      (lookup-shiftClosingBind (imprecise-closing-future W≼W′ γ) x)
+      (cong ⇑ᵗᵐ (imprecise-closing-future-lookup W≼W′ γ x)))
+imprecise-closing-future-lookup
+    {Γ = Γ} (future-precise W≼W′ fresh) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftImpreciseContext-precise W≼W′ Γ))
+      (imprecise-closing-future W≼W′ γ) x)
+    (imprecise-closing-future-lookup W≼W′ γ x)
+
+precise-close-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴾ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (preciseStore (core W)) Γ) M
+  → liftPreciseTerm W≼W′ (close γ M)
+    ≡ close (precise-closing-future W≼W′ γ)
+        (liftPreciseTerm W≼W′ M)
+precise-close-future future-refl γ M =
+  subst-cong (λ x → sym (precise-closing-future-lookup future-refl γ x)) M
+precise-close-future
+    (future-paired W≼W′ related fresh) γ M =
+  trans (cong ⇑ᵗᵐ (precise-close-future W≼W′ γ M))
+    (sym (subst-renameᵗᵐ C.wk↪ᵗ
+      (closingSubstitution
+        (precise-closing-future
+          (future-paired W≼W′ related fresh) γ))
+      (closingSubstitution (precise-closing-future W≼W′ γ))
+      (liftPreciseTerm W≼W′ M) env-eq))
+  where
+  env-eq : ∀ x
+    → closingSubstitution
+        (precise-closing-future
+          (future-paired W≼W′ related fresh) γ) x
+      ≡ ⇑ᵗᵐ (closingSubstitution
+          (precise-closing-future W≼W′ γ) x)
+  env-eq x =
+    trans
+      (precise-closing-future-lookup
+        (future-paired W≼W′ related fresh) γ x)
+      (cong ⇑ᵗᵐ (sym (precise-closing-future-lookup W≼W′ γ x)))
+precise-close-future
+    (future-precise W≼W′ fresh) γ M =
+  trans (cong ⇑ᵗᵐ (precise-close-future W≼W′ γ M))
+    (sym (subst-renameᵗᵐ C.wk↪ᵗ
+      (closingSubstitution
+        (precise-closing-future (future-precise W≼W′ fresh) γ))
+      (closingSubstitution (precise-closing-future W≼W′ γ))
+      (liftPreciseTerm W≼W′ M) env-eq))
+  where
+  env-eq : ∀ x
+    → closingSubstitution
+        (precise-closing-future (future-precise W≼W′ fresh) γ) x
+      ≡ ⇑ᵗᵐ (closingSubstitution
+          (precise-closing-future W≼W′ γ) x)
+  env-eq x =
+    trans (precise-closing-future-lookup
+      (future-precise W≼W′ fresh) γ x)
+      (cong ⇑ᵗᵐ (sym (precise-closing-future-lookup W≼W′ γ x)))
+
+imprecise-close-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴵ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (impreciseStore (core W)) Γ) M
+  → liftImpreciseTerm W≼W′ (close γ M)
+    ≡ close (imprecise-closing-future W≼W′ γ)
+        (liftImpreciseTerm W≼W′ M)
+imprecise-close-future future-refl γ M =
+  subst-cong
+    (λ x → sym (imprecise-closing-future-lookup future-refl γ x)) M
+imprecise-close-future
+    (future-paired W≼W′ related fresh) γ M =
+  trans (cong ⇑ᵗᵐ (imprecise-close-future W≼W′ γ M))
+    (sym (subst-renameᵗᵐ C.wk↪ᵗ
+      (closingSubstitution
+        (imprecise-closing-future
+          (future-paired W≼W′ related fresh) γ))
+      (closingSubstitution (imprecise-closing-future W≼W′ γ))
+      (liftImpreciseTerm W≼W′ M) env-eq))
+  where
+  env-eq : ∀ x
+    → closingSubstitution
+        (imprecise-closing-future
+          (future-paired W≼W′ related fresh) γ) x
+      ≡ ⇑ᵗᵐ (closingSubstitution
+          (imprecise-closing-future W≼W′ γ) x)
+  env-eq x =
+    trans
+      (imprecise-closing-future-lookup
+        (future-paired W≼W′ related fresh) γ x)
+      (cong ⇑ᵗᵐ
+        (sym (imprecise-closing-future-lookup W≼W′ γ x)))
+imprecise-close-future
+    (future-precise W≼W′ fresh) γ M =
+  trans (imprecise-close-future W≼W′ γ M)
+    (subst-cong env-eq (liftImpreciseTerm W≼W′ M))
+  where
+  env-eq : ∀ x
+    → closingSubstitution (imprecise-closing-future W≼W′ γ) x
+      ≡ closingSubstitution
+          (imprecise-closing-future (future-precise W≼W′ fresh) γ) x
+  env-eq x =
+    trans (imprecise-closing-future-lookup W≼W′ γ x)
+      (sym (imprecise-closing-future-lookup
+        (future-precise W≼W′ fresh) γ x))
+
 related-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -373,3 +549,138 @@ related-closing-future W≼W′
     (embedPrecise-lift W≼W′ Aᴾ)
     (embedImprecise-lift W≼W′ Aᴵ)
     (value-imprecision-future W≼W′ (related j j≤k))
+
+------------------------------------------------------------------------
+-- Endpoint projections preserve the entries of related substitutions
+------------------------------------------------------------------------
+
+lift-precise-blame : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′)
+  → liftPreciseTerm W≼W′ blame ≡ blame
+lift-precise-blame future-refl = refl
+lift-precise-blame (future-paired W≼W′ related fresh)
+    rewrite lift-precise-blame W≼W′ = refl
+lift-precise-blame (future-precise W≼W′ fresh)
+    rewrite lift-precise-blame W≼W′ = refl
+
+lift-imprecise-blame : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′)
+  → liftImpreciseTerm W≼W′ blame ≡ blame
+lift-imprecise-blame future-refl = refl
+lift-imprecise-blame (future-paired W≼W′ related fresh)
+    rewrite lift-imprecise-blame W≼W′ = refl
+lift-imprecise-blame (future-precise W≼W′ fresh) =
+  lift-imprecise-blame W≼W′
+
+precise-related-downward-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {j k : ℕ}
+    {Γ : ContextImprecision W}
+    (j≤k : j ≤ k) (γ : RelatedClosingSubstitutions W k Γ) x
+  → lookupClosing
+      (preciseClosingSubstitution (related-closing-downward j≤k γ)) x
+    ≡ lookupClosing (preciseClosingSubstitution γ) x
+precise-related-downward-lookup j≤k related-empty x = refl
+precise-related-downward-lookup j≤k (related-cons p related γ) zero =
+  refl
+precise-related-downward-lookup j≤k (related-cons p related γ) (suc x) =
+  precise-related-downward-lookup j≤k γ x
+
+imprecise-related-downward-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {j k : ℕ}
+    {Γ : ContextImprecision W}
+    (j≤k : j ≤ k) (γ : RelatedClosingSubstitutions W k Γ) x
+  → lookupClosing
+      (impreciseClosingSubstitution (related-closing-downward j≤k γ)) x
+    ≡ lookupClosing (impreciseClosingSubstitution γ) x
+imprecise-related-downward-lookup j≤k related-empty x = refl
+imprecise-related-downward-lookup j≤k (related-cons p related γ) zero =
+  refl
+imprecise-related-downward-lookup j≤k
+    (related-cons p related γ) (suc x) =
+  imprecise-related-downward-lookup j≤k γ x
+
+precise-related-future-lookup : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {k : ℕ} {Γ : ContextImprecision W}
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W k Γ) x
+  → lookupClosing
+      (preciseClosingSubstitution (related-closing-future W≼W′ γ)) x
+    ≡ liftPreciseTerm W≼W′
+        (lookupClosing (preciseClosingSubstitution γ) x)
+precise-related-future-lookup W≼W′ related-empty x =
+  sym (lift-precise-blame W≼W′)
+precise-related-future-lookup W≼W′
+    (related-cons p related γ) zero = refl
+precise-related-future-lookup W≼W′
+    (related-cons p related γ) (suc x) =
+  precise-related-future-lookup W≼W′ γ x
+
+imprecise-related-future-lookup : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {k : ℕ} {Γ : ContextImprecision W}
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W k Γ) x
+  → lookupClosing
+      (impreciseClosingSubstitution (related-closing-future W≼W′ γ)) x
+    ≡ liftImpreciseTerm W≼W′
+        (lookupClosing (impreciseClosingSubstitution γ) x)
+imprecise-related-future-lookup W≼W′ related-empty x =
+  sym (lift-imprecise-blame W≼W′)
+imprecise-related-future-lookup W≼W′
+    (related-cons p related γ) zero = refl
+imprecise-related-future-lookup W≼W′
+    (related-cons p related γ) (suc x) =
+  imprecise-related-future-lookup W≼W′ γ x
+
+precise-related-trans-lookup : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁ : TyCtx}
+    {Δᴾ₂ Δᴵ₂ Δᶜ₂ : TyCtx}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {k : ℕ} {Γ : ContextImprecision W₀}
+    (W₀≼W₁ : Future W₀ W₁) (W₁≼W₂ : Future W₁ W₂)
+    (γ : RelatedClosingSubstitutions W₂ k
+      (liftContextImprecision W₁≼W₂
+        (liftContextImprecision W₀≼W₁ Γ))) x
+  → lookupClosing
+      (preciseClosingSubstitution
+        (related-closing-trans W₀≼W₁ W₁≼W₂ γ)) x
+    ≡ lookupClosing (preciseClosingSubstitution γ) x
+precise-related-trans-lookup {Γ = []} W₀≼W₁ W₁≼W₂ related-empty x =
+  refl
+precise-related-trans-lookup {Γ = context-imp Aᴾ Aᴵ p ∷ Γ}
+    W₀≼W₁ W₁≼W₂ (related-cons q related γ) zero = refl
+precise-related-trans-lookup {Γ = context-imp Aᴾ Aᴵ p ∷ Γ}
+    W₀≼W₁ W₁≼W₂ (related-cons q related γ) (suc x) =
+  precise-related-trans-lookup W₀≼W₁ W₁≼W₂ γ x
+
+imprecise-related-trans-lookup : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁ : TyCtx}
+    {Δᴾ₂ Δᴵ₂ Δᶜ₂ : TyCtx}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {k : ℕ} {Γ : ContextImprecision W₀}
+    (W₀≼W₁ : Future W₀ W₁) (W₁≼W₂ : Future W₁ W₂)
+    (γ : RelatedClosingSubstitutions W₂ k
+      (liftContextImprecision W₁≼W₂
+        (liftContextImprecision W₀≼W₁ Γ))) x
+  → lookupClosing
+      (impreciseClosingSubstitution
+        (related-closing-trans W₀≼W₁ W₁≼W₂ γ)) x
+    ≡ lookupClosing (impreciseClosingSubstitution γ) x
+imprecise-related-trans-lookup {Γ = []}
+    W₀≼W₁ W₁≼W₂ related-empty x = refl
+imprecise-related-trans-lookup {Γ = context-imp Aᴾ Aᴵ p ∷ Γ}
+    W₀≼W₁ W₁≼W₂ (related-cons q related γ) zero = refl
+imprecise-related-trans-lookup {Γ = context-imp Aᴾ Aᴵ p ∷ Γ}
+    W₀≼W₁ W₁≼W₂ (related-cons q related γ) (suc x) =
+  imprecise-related-trans-lookup W₀≼W₁ W₁≼W₂ γ x

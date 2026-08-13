@@ -3,7 +3,8 @@ module LR-narrow.World where
 -- File Charter:
 --   * Adds mode-indexed semantic entries to a three-context GTSFImp world.
 --   * Defines paired and precise-only future-world extensions.
---   * Lifts endpoint syntax and center imprecision through future worlds.
+--   * Lifts endpoint syntax and center imprecision through future worlds,
+--     with structural and composition laws for the lifted syntax.
 
 import Data.Fin as Fin
 open import Data.Nat using (suc)
@@ -12,7 +13,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import TyStore using (store-empty)
-open import CastTerms using (Term; ⇑ᵗᵐ)
+open import CastTerms using (Term; ⇑ᵗᵐ; ƛ_)
 open import Primitives using (Const; κℕ; κ𝔹; constTy)
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 import Imprecision as I
@@ -176,6 +177,28 @@ liftImpreciseTerm (future-paired W≼W′ related fresh) M =
   ⇑ᵗᵐ (liftImpreciseTerm W≼W′ M)
 liftImpreciseTerm (future-precise W≼W′ fresh) M =
   liftImpreciseTerm W≼W′ M
+
+liftPreciseTerm-lambda : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) N
+  → liftPreciseTerm W≼W′ (ƛ N) ≡ ƛ liftPreciseTerm W≼W′ N
+liftPreciseTerm-lambda future-refl N = refl
+liftPreciseTerm-lambda (future-paired W≼W′ related fresh) N
+    rewrite liftPreciseTerm-lambda W≼W′ N = refl
+liftPreciseTerm-lambda (future-precise W≼W′ fresh) N
+    rewrite liftPreciseTerm-lambda W≼W′ N = refl
+
+liftImpreciseTerm-lambda : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) N
+  → liftImpreciseTerm W≼W′ (ƛ N) ≡ ƛ liftImpreciseTerm W≼W′ N
+liftImpreciseTerm-lambda future-refl N = refl
+liftImpreciseTerm-lambda (future-paired W≼W′ related fresh) N
+    rewrite liftImpreciseTerm-lambda W≼W′ N = refl
+liftImpreciseTerm-lambda (future-precise W≼W′ fresh) N =
+  liftImpreciseTerm-lambda W≼W′ N
 
 liftPreciseTerm-variable : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}

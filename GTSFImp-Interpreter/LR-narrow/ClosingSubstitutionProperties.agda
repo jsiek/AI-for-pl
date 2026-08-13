@@ -30,6 +30,20 @@ value-imprecision-endpoints : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → TypedEndpoints W p Vᴵ Vᴾ
 value-imprecision-endpoints = Proof.value-imprecision-endpoints
 
+precise-endpoint-typing : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Vᴾ Vᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ} {k : ℕ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ⟨ Δᴾ , preciseStore (core W) , [] ⟩ ⊢ Vᴾ ⦂ Aᴾ
+precise-endpoint-typing = Proof.precise-endpoint-typing
+
+imprecise-endpoint-typing : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Vᴾ Vᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ} {k : ℕ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ⟨ Δᴵ , impreciseStore (core W) , [] ⟩ ⊢ Vᴵ ⦂ Aᴵ
+imprecise-endpoint-typing = Proof.imprecise-endpoint-typing
+
 closing-lookup-value : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
     {Γ : T.TermCtx Δ} {x A}
     (γ : ClosingSubstitution Σ Γ)
@@ -189,6 +203,26 @@ imprecise-closing-future : ∀
   → ClosingSubstitution (impreciseStore (core W′))
       (liftImpreciseContext W≼W′ Γ)
 imprecise-closing-future = Proof.imprecise-closing-future
+
+precise-close-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴾ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (preciseStore (core W)) Γ) M
+  → liftPreciseTerm W≼W′ (close γ M)
+    ≡ close (precise-closing-future W≼W′ γ)
+        (liftPreciseTerm W≼W′ M)
+precise-close-future = Proof.precise-close-future
+
+imprecise-close-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴵ} (W≼W′ : Future W W′)
+    (γ : ClosingSubstitution (impreciseStore (core W)) Γ) M
+  → liftImpreciseTerm W≼W′ (close γ M)
+    ≡ close (imprecise-closing-future W≼W′ γ)
+        (liftImpreciseTerm W≼W′ M)
+imprecise-close-future = Proof.imprecise-close-future
 
 related-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}

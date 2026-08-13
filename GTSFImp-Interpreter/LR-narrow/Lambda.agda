@@ -1,7 +1,8 @@
 module LR-narrow.Lambda where
 
 -- File Charter:
---   * Exposes lambda compatibility from function-elimination obligations.
+--   * Exposes lambda compatibility from a semantic body premise.
+--   * Retains the lower-level function-elimination formulation.
 --   * Exposes construction of the related function-body substitution.
 --   * Keeps the compiled-term theorem statement at the public LR boundary.
 --   * Delegates endpoint and step-index proof scripts to the proof namespace.
@@ -43,6 +44,28 @@ related-function-body-substitution : ∀
 related-function-body-substitution =
   Proof.related-function-body-substitution
 
+functions-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
+    {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
+  → (∀ i → i ≤ k → CompiledTermRelation {W = W} q i
+      (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) Nᴾ Nᴵ)
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      (W≼W′ : Future W W′)
+      (γ : RelatedClosingSubstitutions W′ k
+        (liftContextImprecision W≼W′ (compiledContext W Γ)))
+      (j : ℕ)
+  → j ≤ k
+  → FunctionsRelated W′ (liftCenterImprecision W≼W′ p)
+      (liftCenterImprecision W≼W′ q) j
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ (ƛ Nᴵ)))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (ƛ Nᴾ)))
+functions-related-from-body = Proof.functions-related-from-body
+
 lambda-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     {Γ : CTI.CtxImp (forgetWorld W)}
@@ -66,3 +89,16 @@ lambda-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
   → CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) k Γ
       (ƛ Nᴾ) (ƛ Nᴵ)
 lambda-compatible = Proof.lambda-compatible
+
+lambda-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
+    {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
+  → forgetWorld W ∣ (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ)
+      ⊢² Nᴾ ⊑ Nᴵ ∶ q
+  → (∀ i → i ≤ k → CompiledTermRelation {W = W} q i
+      (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) Nᴾ Nᴵ)
+  → CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) k Γ
+      (ƛ Nᴾ) (ƛ Nᴵ)
+lambda-compatible-from-body = Proof.lambda-compatible-from-body

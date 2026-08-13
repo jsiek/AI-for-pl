@@ -424,3 +424,25 @@ relation was NOT changed, so M5-M8 proceed on unchanged foundations.
 The rigid-gate route it replaced is refuted in
 notes/srcconsist-rigid-{lower-bound,ground-cast-helper}-blocked.red.
 Remaining sibling work (GTSF port) is tracked in TODO.md.
+
+## SPLIT-rule finding (2026-08-13, ESCALATED — the other half of Example 4)
+
+M-4 progress: the k=1 Λ⊑² recursive case is CLOSED; the smart-premise
+Λ⊑Λ² leaf is CLOSED (post-window geometry instantiated for both smart
+branches). The remaining Λ-package obstruction is the SOURCE-LEFT
+companion (plain Λ⊑² / strip wrappers under smart premises), and the
+born-in-place preflight isolated a live-relation expressibility gap
+(m5-inst-inversion-born-in-place-prefix-depth-blocked.red): Λ⊑Λ²'s
+premise carries ONE shared X⊑X center for the matched binders, and the
+post state needs that center SPLIT around a source-left prefix (source
+half before, target half born after). No transport can split a shared
+center — same species as the depth-1 finding, now for the two-sided
+core. The cambridge26 notes already carry the mechanism: Example 4's
+FIRST derivation uses the SPLIT rule (Γ, α:=☆ → separate entries with
+mark bookkeeping) — we mechanized the smart comma (the second
+derivation's device); this case needs split (the first's).
+
+Decision pending (user): mechanize the split rule with the same
+calibration-matrix method as A3 (Example 4 first derivation + the
+concrete source-left instance as the two calibration examples), or an
+alternative. Pausing proof dispatches on this surface meanwhile.

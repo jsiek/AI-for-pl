@@ -186,6 +186,13 @@ accessibility: ordinary structural recursion at fixed mass, and an
 accessibility restart only for the strictly smaller `safe-inst` cast mass.
 No secondary numeric potential or public fuel is needed.
 
+The first two fixed-mass clauses are live in
+`StructuralValueInstantiationCastProof`.  `source-inert-cast-descent` rebuilds
+a source cast around a descended strict premise.  `target-inert-cast-descent`
+lifts the premise reduction through the target cast, maps its consistency and
+inertness across store changes, and rebuilds the target-only relation at the
+final value.
+
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate
 catalog-post value nor an immediate catalog-post relation.

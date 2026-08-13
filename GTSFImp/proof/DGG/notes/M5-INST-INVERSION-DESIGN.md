@@ -7,8 +7,10 @@ source reveal/conceal plan transports are checked.  The narrower top-post
 resister is now closed as well: `ExactSmartFreshGuard` supports reverse type
 transport for the controlled front-fresh recursion and remains exact through
 target insertion.  `Λ-post-outer-obligation` is plan-indexed and constructs
-the parent top relation directly from the original relation.  The next step
-is the derivation-recursive prefix worker and its source-wrapper clauses.
+the parent top relation directly from the original relation.  The exhaustive
+`Λ-post-prefix-hereditary` worker is now live for matched, plain, smart, cast,
+reveal, and conceal source shapes.  The next step is Λ-package assembly and
+the relational continuation.
 
 Checked artifact:
 

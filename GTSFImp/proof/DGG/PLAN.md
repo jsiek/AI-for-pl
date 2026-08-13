@@ -508,11 +508,14 @@ Revised work order:
         consumes a `ΛTwoInsertPostPlan`.  Its one-sided recursive case uses
         the exact reverse transport; its matched case uses the plan's final
         body geometry.  The historical blocker note has a RESOLVED postscript.
-  NS-3  Use the plan-indexed top obligation in the hereditary prefix worker,
-        close the source-strip wrappers, assemble
-        `InstInversionPackage.Λ-package`, and wire the dispatcher; then
-        resume the four descent views and discharge the live M6 knot's M5
-        factory argument.
+  NS-3a DONE: `Λ-post-prefix-hereditary` is exhaustive over the matched Λ,
+        plain Λ, smart Λ, inert source cast, reveal, and conceal value shapes.
+        It transforms the post plan at every recursive constructor and uses
+        the plan-indexed top obligation at each rewrap.  Focused and full
+        no-metas gates pass without a catch-all clause.
+  NS-3b NEXT: assemble `InstInversionPackage.Λ-package` from the hereditary
+        worker and wire its relational continuation.  Then resume the four
+        descent views and discharge the live M6 knot's M5 factory argument.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from

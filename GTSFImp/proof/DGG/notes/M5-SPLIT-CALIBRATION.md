@@ -257,10 +257,12 @@ Revised gates:
         insertion, and `Λ-post-outer-obligation` now derives the parent top
         relation at an arbitrary plan post world.  No arbitrary smart-alias
         inverse and no relation change were needed.
-  NS-3  After NS-2c, use the worker in the source-strip wrapper cases,
-        assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
-        Then resume the four descent views and discharge the M5 factory
-        argument of the already-live M6 fuel knot.
+  NS-3a DONE: the exhaustive hereditary prefix worker now handles the matched,
+        plain, smart, cast, reveal, and conceal source shapes with transformed
+        child plans and caller-world top obligations.
+  NS-3b NEXT: assemble `InstInversionPackage.Λ-package` and wire the
+        relational continuation.  Then resume the four descent views and
+        discharge the M5 factory argument of the already-live M6 fuel knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design

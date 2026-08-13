@@ -47,7 +47,7 @@ import TermCtx as T
 import CastTerms as CT
 open import CastTerms using
   (⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _⦂∀_[_]; _↑_; Λ_; ⇑ᵗᵐ;
-   Value; RevealValue)
+   Value; RevealValue; _《_》; _↓_)
 open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
@@ -4944,6 +4944,17 @@ exactSmartFreshGuardInsert {π = π} {W = W} {W′ = W′}
       (CR.preimage?-image old Z)
 
 
+Λ-front-smart-liftCtx : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTI2.SmartLiftCtxᴸ γ γᴸ
+Λ-front-smart-liftCtx CTI2.liftᴸ-[] = CTI2.smart-lift-[]
+Λ-front-smart-liftCtx (CTI2.liftᴸ-∷ liftγ) =
+  CTI2.smart-lift-∷ (Λ-front-smart-liftCtx liftγ)
+
+
 record ΛFrontChildPostPlan {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     (plan : ΛTwoInsertPostPlan W) : Set₁ where
@@ -4952,6 +4963,13 @@ record ΛFrontChildPostPlan {Δᴸ Δᴿ Δ}
       ΛTwoInsertPostPlan (CTI2.liftWorldLeft I.X⊑★ W)
     frontPostExact : ExactSmartFreshGuard
       (W₂ plan) (W₂ frontChildPlan)
+    frontPostLift : CTI2.SmartCommaLiftᴸ
+      (W₂ plan) (W₂ frontChildPlan)
+    frontPostLiftCtx : ∀ {γ γᴸ}
+      → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+      → CTI2.SmartLiftCtxᴸ
+          (ECR.mapCtxᴿ (postExtend plan) γ)
+          (ECR.mapCtxᴿ (postExtend frontChildPlan) γᴸ)
 
 open ΛFrontChildPostPlan public
 
@@ -4963,6 +4981,10 @@ open ΛFrontChildPostPlan public
 Λ-two-insert-front-child plan = record
   { frontChildPlan = ΛSmartChildPostPlan.childPlan smartChild
   ; frontPostExact = exact₂
+  ; frontPostLift = ΛSmartChildPostPlan.postLift smartChild
+  ; frontPostLiftCtx = λ liftγ →
+      ΛSmartChildPostPlan.postLiftCtx smartChild
+        (Λ-front-smart-liftCtx liftγ)
   }
   where
   smartChild = Λ-two-insert-smart-child plan
@@ -6297,14 +6319,13 @@ rightOnlyImpEnvMono mono Fin.zero eq = refl
 rightOnlyImpEnvMono mono (Fin.suc Z) eq = mono Z eq
 
 
-post-source-conceal-partner-ok : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
+post-source-conceal-partner-ok : ∀ {Δᴸ Δᴿ Δ₂}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
     {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {Xᴿ?}
     {c : Conv↓ Δᴸ A A′}
-  → CTI2.SourceConcealPartnerOK
-      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
-      M c Xᴿ? (Λ⊑Λ²PostTerm V′ B)
+  → CTI2.SourceConcealPartnerOK W₂ M c Xᴿ?
+      (Λ⊑Λ²PostTerm V′ B)
 post-source-conceal-partner-ok {c = seal X R} =
   CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↑)
 post-source-conceal-partner-ok {c = c ↦↓ d} =
@@ -6318,21 +6339,18 @@ post-source-conceal-partner-ok {c = id↓ A} =
 Λ-strip-prefix-p₂ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+  → (plan : ΛTwoInsertPostPlan W)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → A CTI2.⊑ᵂ⟨ W ⟩ `∀ B
-  → A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ ΛResidualSource₂ B
-Λ-strip-prefix-p₂ {W = W} {A = A} {B = B} ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
+  → A CTI2.⊑ᵂ⟨ W₂ plan ⟩ ΛResidualSource₂ B
+Λ-strip-prefix-p₂ {W = W} {A = A} {B = B}
+    plan ⦃ Bnv ⦄ ⦃ zero∈B ⦄ q =
   subst≡
-    (λ C → A CTI2.⊑ᵂ⟨
-      CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
-    ⟩ C)
+    (λ C → A CTI2.⊑ᵂ⟨ W₂ plan ⟩ C)
     (residual-source₂-eq B)
     (Λ-post-outer-obligation
-      {W = W} {Aₒ = A} {B = B}
-      Λ-concrete-two-insert-post-plan
+      {W = W} {Aₒ = A} {B = B} plan
       ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q)
 
 
@@ -6950,7 +6968,8 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     (mapCtxᴿ-smart-fresh-liftᴸ liftγᴸ)
     (Λ-concrete-post-window
       {W = CTI2.liftWorldLeft I.X⊑★ W})
-    (Λ-strip-prefix-p₂ {W = W} {A = `∀ (`∀ A)} {B = B} outer-p)
+    (Λ-strip-prefix-p₂ {W = W} {A = `∀ (`∀ A)} {B = B}
+      Λ-concrete-two-insert-post-plan outer-p)
 
 
 Λ-post-prefix-cast⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
@@ -7353,3 +7372,96 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     ; prefix-reduction =
         ΛPostPrefixPackageAtBase.prefix-reduction prefix
     }
+
+
+Λ-post-prefix-hereditary : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → (plan : ΛTwoInsertPostPlan W)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ Λ V′ ∶ p)
+  → CT.Value M
+  → CT.Value V′
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → ΛPostPrefixPackageAtBase rel (postExtend plan) c′ B′≢★
+Λ-post-prefix-hereditary {W = W} {A = `∀ A} {B = B} plan
+    rel@(CTI2.Λ⊑Λ² liftγ vV vV′ bodyRel q)
+    (CT.Λ source-value) target-value c′
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ =
+  Λ⊑Λ²-base-prefix-at-base rel vV vV′ c′ B′≢★
+    (postExtend plan) (postGeometry plan) liftγ Anv zero∈A bodyRel
+  where
+  source-facts : NonVar A × Fin.zero ∈ᵗ A
+  source-facts = Λ-source-body-nonvar-occurs
+    {W = W} {A = A} {B = B} q
+  Anv = proj₁ source-facts
+  zero∈A = proj₂ source-facts
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ bodyRel q)
+    (CT.Λ source-value) target-value c′ B′≢★ =
+  Λ⊑²-smart-recursive-prefix-at-base rel vV c′ B′≢★
+    Anv zero∈A (frontPostLift front)
+    (frontPostLiftCtx front liftγ) bodyRel
+    (Λ-strip-prefix-p₂ plan q)
+    (Λ-post-prefix-hereditary (frontChildPlan front) bodyRel
+      vV target-value c′ B′≢★)
+  where
+  front = Λ-two-insert-front-child plan
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV
+      target⊢ bodyRel q)
+    (CT.Λ source-value) target-value c′ B′≢★ =
+  Λ⊑²-smart-recursive-prefix-at-base rel vV c′ B′≢★
+    Anv zero∈A (ΛSmartChildPostPlan.postLift child)
+    (ΛSmartChildPostPlan.postLiftCtx child liftγ) bodyRel
+    (Λ-strip-prefix-p₂ plan q)
+    (Λ-post-prefix-hereditary
+      (ΛSmartChildPostPlan.childPlan child) bodyRel
+      vV target-value c′ B′≢★)
+  where
+  child = Λ-two-insert-smart-child plan liftW
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.cast⊑² c prem q)
+    (vM 《 inert 》) target-value c′ B′≢★ =
+  Λ-post-prefix-cast⊑²-base c B′≢★
+    (Λ-strip-prefix-p₂ plan q)
+    (Λ-post-prefix-hereditary plan prem vM target-value c′ B′≢★)
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.reveal⊑² mono rb sc c⊢ prem q)
+    (vM ↑ reveal-value) target-value c′ B′≢★
+    with Λ-two-insert-rebase-child plan rb
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.reveal⊑² mono rb sc c⊢ prem q)
+    (vM ↑ reveal-value) target-value c′ B′≢★
+    | record
+        { childPlan = child ; sameΔ₂ = refl
+        ; postMono = post-mono ; postRebase = post-rb } =
+  Λ-post-prefix-reveal⊑²-base mono rb sc c⊢ B′≢★
+    (post-mono mono) post-rb
+    (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
+    (TE.source-reveal-insert (ins₂ plan)
+      (TE.source-reveal-insert (ins₁ plan) c⊢))
+    (Λ-strip-prefix-p₂ plan q)
+    (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.conceal⊑² ok mono rb sc c⊢ prem q)
+    (vM ↓ conceal-value) target-value c′ B′≢★
+    with Λ-two-insert-tag-rebase-child plan rb
+Λ-post-prefix-hereditary plan
+    rel@(CTI2.conceal⊑² ok mono rb sc c⊢ prem q)
+    (vM ↓ conceal-value) target-value c′ B′≢★
+    | record
+        { childPlan = child ; sameΔ₂ = refl
+        ; postMono = post-mono ; postRebase = post-rb } =
+  Λ-post-prefix-conceal⊑²-base ok mono rb sc c⊢ B′≢★
+    post-source-conceal-partner-ok (post-mono mono) post-rb
+    (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
+    (TE.source-conceal-insert (ins₂ plan)
+      (TE.source-conceal-insert (ins₁ plan) c⊢))
+    (Λ-strip-prefix-p₂ plan q)
+    (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)

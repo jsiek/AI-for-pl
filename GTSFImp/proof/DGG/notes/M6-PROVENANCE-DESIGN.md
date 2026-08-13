@@ -109,7 +109,7 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 2. IN PROGRESS: finish M5's `InstInversionPackage`.  The shared finalizer now
    consumes `InstSpineDescentPackage` and transports residual provenance
    before smaller-fuel catch-up.  The plan-indexed Λ top-post obligation is
-   live; the hereditary prefix worker and package assembly remain.  Each
+   live, as is the hereditary prefix worker; package assembly remains.  Each
    non-Λ view must still mint the residual `CatchupCast⁻`; the Λ support
    already constructs the non-star residual provenance.
 3. DONE (2026-08-13): `catchup-column⁻-transport` proves

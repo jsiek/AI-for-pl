@@ -4,6 +4,7 @@ module LR-narrow.ClosingSubstitution where
 --   * Defines typed substitutions that close term variables before evaluation.
 --   * Defines paired closing substitutions whose entries satisfy the value LR.
 --   * Defines endpoint-context lifting along future worlds.
+--   * Defines closing below a universal type binder.
 --   * Records the context equalities induced by each future-world step.
 --   * Contains no lookup, typing, or substitution-transport proofs.
 
@@ -53,6 +54,13 @@ close : ∀ {Δ : TyCtx} {Σ : TyStore Δ} {Γ : TermCtx Δ}
   → Term Δ
   → Term Δ
 close γ M = subst (closingSubstitution γ) M
+
+closeTypeBody : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : TermCtx Δ}
+  → ClosingSubstitution Σ Γ
+  → Term (suc Δ)
+  → Term (suc Δ)
+closeTypeBody γ M = subst (liftˢ (closingSubstitution γ)) M
 
 ------------------------------------------------------------------------
 -- Related closing substitutions

@@ -20,3 +20,5 @@ open import LR-narrow.FunctionApplication public
 open import LR-narrow.BetaExpansion public
 open import LR-narrow.Lambda public
 open import LR-narrow.Application public
+open import LR-narrow.TypeBetaExpansion public
+open import LR-narrow.Universal public

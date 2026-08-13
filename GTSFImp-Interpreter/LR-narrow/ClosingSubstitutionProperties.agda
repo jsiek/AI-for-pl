@@ -63,6 +63,17 @@ closing-substitution-wf : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
   → SubstWf Δ Σ Γ [] (closingSubstitution γ)
 closing-substitution-wf = Proof.closing-substitution-wf
 
+close-universal : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) N
+  → close γ (Λ N) ≡ Λ (closeTypeBody γ N)
+close-universal = Proof.close-universal
+
+close-type-body-preserves-value : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) {V}
+  → Value V
+  → Value (closeTypeBody γ V)
+close-type-body-preserves-value = Proof.close-type-body-preserves-value
+
 close-preserves-value : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
     {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) {V}
   → Value V

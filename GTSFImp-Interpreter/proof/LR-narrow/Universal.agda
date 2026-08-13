@@ -1,0 +1,487 @@
+module proof.LR-narrow.Universal where
+
+-- File Charter:
+--   * Constructs related universal values from their elimination obligations.
+--   * Constructs those obligations from a binder-specific body relation.
+--   * Derives endpoint typing from symmetric universal term imprecision.
+--   * Keeps evaluator and endpoint proof details out of the public module.
+
+open import Data.Nat using (ℕ; zero; suc; _≤_)
+open import Data.Nat.Properties using (n≤1+n; ≤-trans)
+open import Data.Product using (_,_)
+open import Data.Unit.Polymorphic.Base using (tt)
+import Data.Fin as Fin
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; cong₂)
+  renaming (subst to subst≡)
+
+open import Types
+open import CastTerms
+open import proof.TermInTermSubst using (subst-cong)
+open import proof.TypeInTermSubst using (toRename-keep-eq)
+import Consistency
+import Imprecision as I
+import proof.Imprecision as PI
+import proof.DGG.CastTermImprecision2 as CTI
+open CTI using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision2Typing as CTIT
+open import LR-narrow.World
+open import LR-narrow.Computation
+open import LR-narrow.LogicalRelation
+open import LR-narrow.Closure
+open import LR-narrow.ClosingSubstitution
+open import LR-narrow.ClosingSubstitutionProperties
+open import LR-narrow.TermRelation
+open import LR-narrow.ImmediateReturn
+open import LR-narrow.TypeBetaExpansion using
+  (empty-paired-atom; paired-step; related-type-beta-expand)
+import proof.LR-narrow.Closure as ClosureProof
+import proof.LR-narrow.ClosingSubstitution as ClosingProof
+
+universal-body-imprecision : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty (suc Δᴵ)}
+  → Aᴾ CTI.⊑ᵂ⟨ CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ
+  → I.extᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Aᴾ
+      ⊑ renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (impreciseEmbedding (core W)))) Aᴵ
+universal-body-imprecision {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} p =
+  subst≡ (λ L → I.extᵐ (impEnv (core W)) I.⊢ L ⊑ right)
+    precise-eq
+    (subst≡
+      (λ R → I.extᵐ (impEnv (core W)) I.⊢
+        CTI.embedᴸ (CTI.liftWorldBoth I.X⊑X (forgetWorld W)) Aᴾ ⊑ R)
+      imprecise-eq p)
+  where
+  right = renameᵗ (extᵗ (Consistency.toRenameᵗ
+    (impreciseEmbedding (core W)))) Aᴵ
+
+  precise-eq : CTI.embedᴸ
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W)) Aᴾ
+      ≡ renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (preciseEmbedding (core W)))) Aᴾ
+  precise-eq = renameᵗ-cong Aᴾ
+    (toRename-keep-eq (preciseEmbedding (core W)))
+
+  imprecise-eq : CTI.embedᴿ
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W)) Aᴵ ≡ right
+  imprecise-eq = renameᵗ-cong Aᴵ
+    (toRename-keep-eq (impreciseEmbedding (core W)))
+
+universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty (suc Δᴵ)}
+    {Nᴾ : Term (suc Δᴾ)} {Nᴵ : Term (suc Δᴵ)}
+  → Value Nᴾ
+  → Value Nᴵ
+  → (∀ i → i ≤ k →
+      CompiledUniversalBodyRelation p Bᴾ Bᴵ i Γ Nᴾ Nᴵ)
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      (W≼W′ : Future W W′)
+      (γ : RelatedClosingSubstitutions W′ k
+        (liftContextImprecision W≼W′ (compiledContext W Γ)))
+      (j : ℕ)
+  → j ≤ k
+  → UniversalsRelated W′ (liftCenterBodyImprecision W≼W′ p)
+      (liftPreciseBody W≼W′ Bᴾ) (liftImpreciseBody W≼W′ Bᴵ) j
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (Λ Nᴾ)))
+universals-related-from-body vNᴾ vNᴵ body-related W≼W′ γ zero
+    j≤k = tt
+universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {W = W} {k} {Γ} {p} {Bᴾ} {Bᴵ} {Nᴾ} {Nᴵ}
+    vNᴾ vNᴵ body-related
+    {W′ = W′} W≼W′ γ (suc j) sj≤k = head , tail
+  where
+  j≤k = ≤-trans (n≤1+n j) sj≤k
+
+  tail = universals-related-from-body vNᴾ vNᴵ body-related
+    W≼W′ γ j j≤k
+
+  head : ∀ {Δᴾ″ Δᴵ″ Δᶜ″}
+      (W″ : World Δᴾ″ Δᴵ″ Δᶜ″)
+      (W′≼W″ : Future W′ W″)
+      (Rᴾ : Ty Δᴾ″) (Rᴵ : Ty Δᴵ″)
+      (r : Rᴾ ⊑ᵂ⟨ core W″ ⟩ Rᴵ)
+      (fresh : SemanticAtom
+        (pairedBindCore (core W″) Rᴾ Rᴵ) Fin.zero)
+    → let tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
+          W′≼tested = future-paired W′≼W″ r fresh
+          body = openFreshImprecision {W = tested}
+            (liftCenterBodyImprecision W′≼tested
+              (liftCenterBodyImprecision W≼W′ p))
+      in ComputationsRelated tested (FutureValueRelation body) (suc j)
+          (liftImpreciseTerm W′≼tested
+            (close (impreciseClosingSubstitution γ)
+              (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
+            ⦂∀ liftImpreciseBody W′≼tested
+              (liftImpreciseBody W≼W′ Bᴵ) [ ＇ Fin.zero ])
+          (liftPreciseTerm W′≼tested
+            (close (preciseClosingSubstitution γ)
+              (liftPreciseTerm W≼W′ (Λ Nᴾ)))
+            ⦂∀ liftPreciseBody W′≼tested
+              (liftPreciseBody W≼W′ Bᴾ) [ ＇ Fin.zero ])
+  head W″ W′≼W″ Rᴾ Rᴵ r fresh =
+    ClosureProof.computations-related-reindex
+      body-composite body-sequential
+      precise-open-eq imprecise-open-eq
+      imprecise-redex-eq precise-redex-eq canonical
+    where
+    test-step = paired-step W″ r fresh
+    tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
+    W′≼tested = future-paired W′≼W″ r fresh
+    W≼W″ = future-trans W≼W′ W′≼W″
+    W≼tested = future-trans W≼W″ test-step
+
+    body-composite = openFreshImprecision {W = tested}
+      (liftCenterBodyImprecision W≼tested p)
+    body-sequential = openFreshImprecision {W = tested}
+      (liftCenterBodyImprecision W′≼tested
+        (liftCenterBodyImprecision W≼W′ p))
+
+    precise-open-eq = cong (λ A → A [ ＇ Fin.zero ]ᵗ)
+      (liftCenterBody-trans W≼W′ W′≼tested Aᴾ)
+    imprecise-open-eq = cong (λ A → A [ ＇ Fin.zero ]ᵗ)
+      (liftCenterBody-trans W≼W′ W′≼tested Aᴵ)
+
+    γ-down = related-closing-downward j≤k γ
+    γ-future = related-closing-future W′≼W″ γ-down
+    γ-tail = related-closing-trans W≼W′ W′≼W″ γ-future
+
+    γᴵ-tail = impreciseClosingSubstitution γ-tail
+    γᴾ-tail = preciseClosingSubstitution γ-tail
+    γᴵ-tested = imprecise-closing-future test-step γᴵ-tail
+    γᴾ-tested = precise-closing-future test-step γᴾ-tail
+
+    bodyᴵ = closeTypeBody γᴵ-tested
+      (liftImpreciseBodyTerm W≼tested Nᴵ)
+    bodyᴾ = closeTypeBody γᴾ-tested
+      (liftPreciseBodyTerm W≼tested Nᴾ)
+
+    vBodyᴵ = close-type-body-preserves-value γᴵ-tested
+      (liftImpreciseBodyTerm-value W≼tested vNᴵ)
+    vBodyᴾ = close-type-body-preserves-value γᴾ-tested
+      (liftPreciseBodyTerm-value W≼tested vNᴾ)
+
+    admin = empty-paired-atom tested (＇ Fin.zero) (＇ Fin.zero)
+
+    contract-related = body-related j j≤k W″ W≼W″ γ-tail
+      Rᴾ Rᴵ r fresh
+
+    canonical = related-type-beta-expand
+      {W = tested} {p = body-composite}
+      {Rᴾ = ＇ Fin.zero} {Rᴵ = ＇ Fin.zero}
+      {r = I.X⊑X} {fresh = admin}
+      {Bᴾ = liftPreciseBody W≼tested Bᴾ}
+      {Bᴵ = liftImpreciseBody W≼tested Bᴵ}
+      {Vᴾ = bodyᴾ} {Vᴵ = bodyᴵ}
+      vBodyᴵ vBodyᴾ contract-related
+
+    imprecise-tail-env-eq : ∀ x →
+        closingSubstitution (imprecise-closing-future W′≼W″
+          (impreciseClosingSubstitution γ)) x
+        ≡ closingSubstitution γᴵ-tail x
+    imprecise-tail-env-eq x =
+      trans
+        (ClosingProof.imprecise-closing-future-lookup W′≼W″
+          (impreciseClosingSubstitution γ) x)
+        (sym (trans
+          (ClosingProof.imprecise-related-trans-lookup
+            W≼W′ W′≼W″ γ-future x)
+          (trans
+            (ClosingProof.imprecise-related-future-lookup
+              W′≼W″ γ-down x)
+            (cong (liftImpreciseTerm W′≼W″)
+              (ClosingProof.imprecise-related-downward-lookup
+                j≤k γ x)))))
+
+    precise-tail-env-eq : ∀ x →
+        closingSubstitution (precise-closing-future W′≼W″
+          (preciseClosingSubstitution γ)) x
+        ≡ closingSubstitution γᴾ-tail x
+    precise-tail-env-eq x =
+      trans
+        (ClosingProof.precise-closing-future-lookup W′≼W″
+          (preciseClosingSubstitution γ) x)
+        (sym (trans
+          (ClosingProof.precise-related-trans-lookup
+            W≼W′ W′≼W″ γ-future x)
+          (trans
+            (ClosingProof.precise-related-future-lookup
+              W′≼W″ γ-down x)
+            (cong (liftPreciseTerm W′≼W″)
+              (ClosingProof.precise-related-downward-lookup
+                j≤k γ x)))))
+
+    imprecise-tested-env-eq : ∀ x →
+        closingSubstitution (imprecise-closing-future W′≼tested
+          (impreciseClosingSubstitution γ)) x
+        ≡ closingSubstitution γᴵ-tested x
+    imprecise-tested-env-eq x =
+      trans
+        (ClosingProof.imprecise-closing-future-lookup W′≼tested
+          (impreciseClosingSubstitution γ) x)
+        (trans
+          (liftImpreciseTerm-trans W′≼W″ test-step
+            (closingSubstitution (impreciseClosingSubstitution γ) x))
+          (trans
+            (cong (liftImpreciseTerm test-step)
+              (trans
+                (sym (ClosingProof.imprecise-closing-future-lookup
+                  W′≼W″ (impreciseClosingSubstitution γ) x))
+                (imprecise-tail-env-eq x)))
+            (sym (ClosingProof.imprecise-closing-future-lookup
+              test-step γᴵ-tail x))))
+
+    precise-tested-env-eq : ∀ x →
+        closingSubstitution (precise-closing-future W′≼tested
+          (preciseClosingSubstitution γ)) x
+        ≡ closingSubstitution γᴾ-tested x
+    precise-tested-env-eq x =
+      trans
+        (ClosingProof.precise-closing-future-lookup W′≼tested
+          (preciseClosingSubstitution γ) x)
+        (trans
+          (liftPreciseTerm-trans W′≼W″ test-step
+            (closingSubstitution (preciseClosingSubstitution γ) x))
+          (trans
+            (cong (liftPreciseTerm test-step)
+              (trans
+                (sym (ClosingProof.precise-closing-future-lookup
+                  W′≼W″ (preciseClosingSubstitution γ) x))
+                (precise-tail-env-eq x)))
+            (sym (ClosingProof.precise-closing-future-lookup
+              test-step γᴾ-tail x))))
+
+    imprecise-universal-eq : liftImpreciseTerm W′≼tested
+        (close (impreciseClosingSubstitution γ)
+          (liftImpreciseTerm W≼W′ (Λ Nᴵ))) ≡ Λ bodyᴵ
+    imprecise-universal-eq =
+      trans
+        (imprecise-close-future W′≼tested
+          (impreciseClosingSubstitution γ)
+          (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
+        (trans
+          (cong (close (imprecise-closing-future W′≼tested
+            (impreciseClosingSubstitution γ)))
+            (sym (liftImpreciseTerm-trans W≼W′ W′≼tested (Λ Nᴵ))))
+          (trans
+            (subst-cong imprecise-tested-env-eq
+              (liftImpreciseTerm W≼tested (Λ Nᴵ)))
+            (trans
+              (cong (close γᴵ-tested)
+                (liftImpreciseTerm-universal W≼tested Nᴵ))
+              (close-universal γᴵ-tested
+                (liftImpreciseBodyTerm W≼tested Nᴵ)))))
+
+    precise-universal-eq : liftPreciseTerm W′≼tested
+        (close (preciseClosingSubstitution γ)
+          (liftPreciseTerm W≼W′ (Λ Nᴾ))) ≡ Λ bodyᴾ
+    precise-universal-eq =
+      trans
+        (precise-close-future W′≼tested
+          (preciseClosingSubstitution γ)
+          (liftPreciseTerm W≼W′ (Λ Nᴾ)))
+        (trans
+          (cong (close (precise-closing-future W′≼tested
+            (preciseClosingSubstitution γ)))
+            (sym (liftPreciseTerm-trans W≼W′ W′≼tested (Λ Nᴾ))))
+          (trans
+            (subst-cong precise-tested-env-eq
+              (liftPreciseTerm W≼tested (Λ Nᴾ)))
+            (trans
+              (cong (close γᴾ-tested)
+                (liftPreciseTerm-universal W≼tested Nᴾ))
+              (close-universal γᴾ-tested
+                (liftPreciseBodyTerm W≼tested Nᴾ)))))
+
+    imprecise-redex-eq = cong₂
+      (λ F B → F ⦂∀ B [ ＇ Fin.zero ])
+      (sym imprecise-universal-eq)
+      (liftImpreciseBody-trans W≼W′ W′≼tested Bᴵ)
+
+    precise-redex-eq = cong₂
+      (λ F B → F ⦂∀ B [ ＇ Fin.zero ])
+      (sym precise-universal-eq)
+      (liftPreciseBody-trans W≼W′ W′≼tested Bᴾ)
+
+universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty (suc Δᴵ)}
+    {p : Aᴾ CTI.⊑ᵂ⟨ CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+  → (liftΓ : CTI.LiftCtx I.X⊑X Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ `∀ Aᴵ)
+  → (∀
+      (q-body : I.extᵐ (impEnv (core W)) I.⊢
+        renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (preciseEmbedding (core W)))) Aᴾ
+        ⊑ renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (impreciseEmbedding (core W)))) Aᴵ)
+      → q ≡ I.∀⊑∀ q-body
+      → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+          (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+          (W≼W′ : Future W W′)
+          (γ : RelatedClosingSubstitutions W′ k
+            (liftContextImprecision W≼W′ (compiledContext W Γ)))
+          (j : ℕ)
+      → j ≤ k
+      → UniversalsRelated W′
+          (liftCenterBodyImprecision W≼W′ q-body)
+          (liftPreciseBody W≼W′ Aᴾ)
+          (liftImpreciseBody W≼W′ Aᴵ) j
+          (close (impreciseClosingSubstitution γ)
+            (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
+          (close (preciseClosingSubstitution γ)
+            (liftPreciseTerm W≼W′ (Λ Vᴾ))))
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) (Λ Vᴵ)
+universal-compatible {W = W} {k = k} {Γ = Γ}
+    {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {p = p}
+    {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
+    liftΓ vVᴾ vVᴵ body q universals W′ W≼W′ γ =
+  related-values-return (imprecise-value endpoints)
+    (precise-value endpoints) related
+  where
+  precise-γ = preciseClosingSubstitution γ
+  imprecise-γ = impreciseClosingSubstitution γ
+
+  precise-body-base =
+    renameᵗ (extᵗ (Consistency.toRenameᵗ
+      (preciseEmbedding (core W)))) Aᴾ
+
+  imprecise-body-base =
+    renameᵗ (extᵗ (Consistency.toRenameᵗ
+      (impreciseEmbedding (core W)))) Aᴵ
+
+  p-body : I.extᵐ (impEnv (core W)) I.⊢
+      precise-body-base ⊑ imprecise-body-base
+  p-body = universal-body-imprecision {W = W} p
+
+  universal-imprecision =
+    CTI.Λ⊑Λ² liftΓ vVᴾ vVᴵ body q
+
+  precise-universal-typing = precise-open-typing-future W≼W′
+    (CTIT.source-typing² universal-imprecision)
+
+  precise-universal-typing′ =
+    subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+      (sym (compiled-precise-context-future W≼W′ Γ))
+      precise-universal-typing
+
+  imprecise-universal-typing = imprecise-open-typing-future W≼W′
+    (CTIT.target-typing² universal-imprecision)
+
+  imprecise-universal-typing′ =
+    subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+      (sym (compiled-imprecise-context-future W≼W′ Γ))
+      imprecise-universal-typing
+
+  endpoints : TypedEndpoints W′ (liftCenterImprecision W≼W′ q)
+      (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
+      (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
+  endpoints = typed-endpoints
+    (liftImpreciseTy W≼W′ (`∀ Aᴵ))
+    (liftPreciseTy W≼W′ (`∀ Aᴾ))
+    (embedImprecise-lift W≼W′ (`∀ Aᴵ))
+    (embedPrecise-lift W≼W′ (`∀ Aᴾ))
+    (close-preserves-value imprecise-γ
+      (ClosureProof.imprecise-value-future W≼W′ (Λ vVᴵ)))
+    (close-preserves-value precise-γ
+      (ClosureProof.precise-value-future W≼W′ (Λ vVᴾ)))
+    (close-preserves-typing imprecise-γ imprecise-universal-typing′)
+    (close-preserves-typing precise-γ precise-universal-typing′)
+
+  explicit-universal = I.∀⊑∀
+    (liftCenterBodyImprecision W≼W′ p-body)
+
+  precise-body-eq = trans
+    (cong (embedPrecise (core W′))
+      (sym (liftPreciseTy-universal W≼W′ Aᴾ)))
+    (trans (embedPrecise-lift W≼W′ (`∀ Aᴾ))
+      (liftCenterTy-universal W≼W′
+        (renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (preciseEmbedding (core W)))) Aᴾ)))
+
+  imprecise-body-eq = trans
+    (cong (embedImprecise (core W′))
+      (sym (liftImpreciseTy-universal W≼W′ Aᴵ)))
+    (trans (embedImprecise-lift W≼W′ (`∀ Aᴵ))
+      (liftCenterTy-universal W≼W′
+        (renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (impreciseEmbedding (core W)))) Aᴵ)))
+
+  explicit-endpoints : TypedEndpoints W′ explicit-universal
+      (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
+      (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
+  explicit-endpoints = ClosureProof.value-imprecision-reindex
+    explicit-universal (liftCenterImprecision W≼W′ q) {k = zero}
+    (sym (liftCenterTy-universal W≼W′ precise-body-base))
+    (sym (liftCenterTy-universal W≼W′ imprecise-body-base)) endpoints
+
+  related : ∀ j → j ≤ k →
+      FutureValueRelation (liftCenterImprecision W≼W′ q)
+        W′ future-refl j
+        (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
+        (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
+  related zero j≤k = endpoints
+  related (suc j) j≤k =
+    ClosureProof.value-imprecision-reindex
+      (liftCenterImprecision W≼W′ q) explicit-universal
+      (liftCenterTy-universal W≼W′ precise-body-base)
+      (liftCenterTy-universal W≼W′ imprecise-body-base)
+      (explicit-endpoints ,
+        liftPreciseBody W≼W′ Aᴾ , liftImpreciseBody W≼W′ Aᴵ ,
+        precise-body-eq , imprecise-body-eq ,
+        universals p-body (PI.⊑-unique q (I.∀⊑∀ p-body))
+          W′ W≼W′ γ (suc j) j≤k)
+
+universal-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty (suc Δᴵ)}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+  → (liftΓ : CTI.LiftCtx I.X⊑X Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ `∀ Aᴵ)
+  → (∀ i → i ≤ k → CompiledUniversalBodyRelation
+      (universal-body-imprecision {W = W} p) Aᴾ Aᴵ i Γ Vᴾ Vᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) (Λ Vᴵ)
+universal-compatible-from-body {W = W} {p = p}
+    liftΓ vVᴾ vVᴵ body q body-related =
+  universal-compatible liftΓ vVᴾ vVᴵ body q
+    (λ q-body q-eq W′ W≼W′ γ j j≤k →
+      subst≡
+        (λ r → UniversalsRelated W′
+          (liftCenterBodyImprecision W≼W′ r)
+          (liftPreciseBody W≼W′ _)
+          (liftImpreciseBody W≼W′ _) j
+          (close (impreciseClosingSubstitution γ)
+            (liftImpreciseTerm W≼W′ (Λ _)))
+          (close (preciseClosingSubstitution γ)
+            (liftPreciseTerm W≼W′ (Λ _))))
+        (PI.⊑-unique p-body q-body)
+        (universals-related-from-body vVᴾ vVᴵ body-related
+          W≼W′ γ j j≤k))
+  where
+  p-body = universal-body-imprecision {W = W} p

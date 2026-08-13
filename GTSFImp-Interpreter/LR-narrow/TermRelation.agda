@@ -5,20 +5,27 @@ module LR-narrow.TermRelation where
 --   * Quantifies over future worlds and closes both endpoint terms with
 --     related typed substitutions before applying the computation relation.
 --   * Bridges the LR world and context to the cast-term imprecision relation.
+--   * Defines the semantic body premise below a universal type binder.
 --   * Contains no compatibility proof.
 
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; suc)
+import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong₂)
 
 open import Types
-open import CastTerms using (Term)
+open import Conversion using (〖_,_↑_〗)
+open import CastTerms using (Term; _↑_)
+import TermCtx as T
+import Imprecision as I
 import proof.DGG.CastTermImprecision2 as CTI
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
+open import LR-narrow.TypeBetaExpansion using
+  (empty-paired-atom; paired-step)
 
 ------------------------------------------------------------------------
 -- The syntactic shadow of an LR world
@@ -48,6 +55,24 @@ compiled-context-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
 compiled-context-lookup CTI.Zʷ = Zᴿ
 compiled-context-lookup (CTI.Sʷ x∈) =
   Sᴿ (compiled-context-lookup x∈)
+
+lifted-source-context : ∀ {Δᴾ Δᴵ Δᶜ v}
+    {W : CTI.World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp W} {Γ′ : CTI.CtxImp (CTI.liftWorldBoth v W)}
+  → CTI.LiftCtx v Γ Γ′
+  → CTI.srcCtxʷ Γ′ ≡ T.⇑ᶜ (CTI.srcCtxʷ Γ)
+lifted-source-context CTI.lift-[] = refl
+lifted-source-context (CTI.lift-∷ liftΓ) =
+  cong₂ _∷_ refl (lifted-source-context liftΓ)
+
+lifted-target-context : ∀ {Δᴾ Δᴵ Δᶜ v}
+    {W : CTI.World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp W} {Γ′ : CTI.CtxImp (CTI.liftWorldBoth v W)}
+  → CTI.LiftCtx v Γ Γ′
+  → CTI.tgtCtxʷ Γ′ ≡ T.⇑ᶜ (CTI.tgtCtxʷ Γ)
+lifted-target-context CTI.lift-[] = refl
+lifted-target-context (CTI.lift-∷ liftΓ) =
+  cong₂ _∷_ refl (lifted-target-context liftΓ)
 
 compiled-precise-context-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -107,3 +132,49 @@ CompiledTermRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → Set₁
 CompiledTermRelation {W = W} p k Γ =
   TermRelation p k (compiledContext W Γ)
+
+------------------------------------------------------------------------
+-- Open terms below a universal type binder
+------------------------------------------------------------------------
+
+CompiledUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+  → (p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+  → (Bᴾ : Ty (suc Δᴾ))
+  → (Bᴵ : Ty (suc Δᴵ))
+  → ℕ
+  → (Γ : CTI.CtxImp (forgetWorld W))
+  → Term (suc Δᴾ)
+  → Term (suc Δᴵ)
+  → Set₁
+CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
+  ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′ (compiledContext W Γ)))
+    (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
+    (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
+    (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
+  → let tested = pairedBindWorld W′ Rᴾ Rᴵ fresh
+        test-step = paired-step W′ r fresh
+        W≼tested = future-trans W≼W′ test-step
+        p-open = openFreshImprecision {W = tested}
+          (liftCenterBodyImprecision W≼tested p)
+        admin = empty-paired-atom tested
+          (＇ Fin.zero) (＇ Fin.zero)
+        admin-step = paired-step tested I.X⊑X admin
+        allocated = pairedBindWorld tested
+          (＇ Fin.zero) (＇ Fin.zero) admin
+        γᴵ = imprecise-closing-future test-step
+          (impreciseClosingSubstitution γ)
+        γᴾ = precise-closing-future test-step
+          (preciseClosingSubstitution γ)
+    in ComputationsRelated allocated
+        (FutureValueRelation
+          (liftCenterImprecision admin-step p-open)) k
+        (closeTypeBody γᴵ (liftImpreciseBodyTerm W≼tested Nᴵ)
+          ↑ 〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑
+            liftImpreciseBody W≼tested Bᴵ 〗)
+        (closeTypeBody γᴾ (liftPreciseBodyTerm W≼tested Nᴾ)
+          ↑ 〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑
+            liftPreciseBody W≼tested Bᴾ 〗)

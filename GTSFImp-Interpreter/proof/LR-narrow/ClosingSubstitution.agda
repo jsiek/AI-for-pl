@@ -104,6 +104,18 @@ closing-substitution-wf : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
   → SubstWf Δ Σ Γ [] (closingSubstitution γ)
 closing-substitution-wf γ = closing-lookup-typing γ
 
+close-universal : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) N
+  → close γ (Λ N) ≡ Λ (closeTypeBody γ N)
+close-universal γ N = refl
+
+close-type-body-preserves-value : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) {V}
+  → Value V
+  → Value (closeTypeBody γ V)
+close-type-body-preserves-value γ =
+  subst-preserves-Value (liftˢ (closingSubstitution γ))
+
 close-preserves-value : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
     {Γ : T.TermCtx Δ} (γ : ClosingSubstitution Σ Γ) {V}
   → Value V

@@ -39,7 +39,12 @@ The port currently contains:
   value at a related value argument;
 - `LR-narrow/Lambda.agda`: construction of related closed lambdas from their
   function-elimination obligations, including endpoint typing and Kripke
-  reindexing.
+  reindexing;
+- `LR-narrow/TypeBetaExpansion.agda`: matching type-beta expansion through
+  paired store allocation, for both return and blame observations;
+- `LR-narrow/Universal.agda`: body-driven compatibility for
+  `CTI.Λ⊑Λ²`, including the two fresh paired extensions and closing below a
+  type binder.
 
 ## Three-context worlds
 
@@ -168,6 +173,23 @@ when a proof already has the function-elimination obligations directly.
 call phases; threads the paired future worlds and stores between phases; and
 reassembles return and blame observations for the whole applications.
 
+Universal introduction needs a binder-specific body judgment. The syntactic
+premise of `CTI.Λ⊑Λ²` lives under `store-lift`, whereas an LR test of the
+universal first creates a semantic `store-bind` extension. Consequently the
+ordinary `CompiledTermRelation` is not a well-typed induction hypothesis for
+the body. `CompiledUniversalBodyRelation` is the corresponding fundamental
+premise below a type binder: it quantifies over the arbitrary paired test
+extension, transports and shifts the outer closing substitution, then relates
+the converted contracta after the evaluator's second, administrative
+allocation. `lifted-source-context` and `lifted-target-context` record the
+endpoint-context equalities supplied by `CTI.LiftCtx`.
+
+`universals-related-from-body` recursively constructs every positive-index
+`UniversalsRelated` obligation from that body premise. It reconciles composite
+and sequential futures, applies matching type-beta expansion, and spends one
+step exactly at beta. `universal-compatible-from-body` combines this result
+with the endpoint typing derivation furnished by `CTI.Λ⊑Λ²`.
+
 ## Deliberate draft boundaries
 
 The structural clauses are complete for every non-bottom imprecision
@@ -185,6 +207,11 @@ residual index up to the current budget. Term-substitution fusion through both
 term and type binders is available as `sub-sub`; `beta-close-cons` supplies the
 beta/closing equation; closing commutes with future lifting; and matching beta
 expansion preserves `ComputationsRelated`.
+
+Symmetric universal introduction is complete at every residual index through
+the binder-specific body relation. Its proof uses a second empty semantic atom
+only for the administrative beta allocation; the arbitrary first atom remains
+the interpretation of the tested abstract type.
 
 No postulate, hole, or unchecked metavariable is used at this draft boundary.
 

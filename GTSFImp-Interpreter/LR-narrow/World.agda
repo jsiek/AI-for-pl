@@ -13,13 +13,15 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import TyStore using (store-empty)
-open import CastTerms using (Term; ⇑ᵗᵐ; ƛ_)
+open import CastTerms using (Term; renameᵗᵐ; ⇑ᵗᵐ; ƛ_; Λ_)
 open import Primitives using (Const; κℕ; κ𝔹; constTy)
-open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
+open import Consistency using
+  (_↪ᵗ_; empty; keep; skip; wk↪ᵗ; toRenameᵗ)
 import Imprecision as I
 open import proof.ImprecisionConsistency
   using (ext-injective; fin-suc-injective; rename-⊑; subst-⊑)
-open import proof.TypeInTermSubst using (toRename-keep-eq)
+open import proof.TypeInTermSubst using
+  (toRename-keep-eq; renameᵗᵐ-preserves-Value)
 open import LR-narrow.WorldCore public
 open import LR-narrow.Atoms public
 
@@ -178,6 +180,78 @@ liftImpreciseTerm (future-paired W≼W′ related fresh) M =
 liftImpreciseTerm (future-precise W≼W′ fresh) M =
   liftImpreciseTerm W≼W′ M
 
+liftPreciseBodyTerm : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′
+  → Term (suc Δᴾ)
+  → Term (suc Δᴾ′)
+liftPreciseBodyTerm future-refl M = M
+liftPreciseBodyTerm (future-paired W≼W′ related fresh) M =
+  renameᵗᵐ (keep wk↪ᵗ) (liftPreciseBodyTerm W≼W′ M)
+liftPreciseBodyTerm (future-precise W≼W′ fresh) M =
+  renameᵗᵐ (keep wk↪ᵗ) (liftPreciseBodyTerm W≼W′ M)
+
+liftImpreciseBodyTerm : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′
+  → Term (suc Δᴵ)
+  → Term (suc Δᴵ′)
+liftImpreciseBodyTerm future-refl M = M
+liftImpreciseBodyTerm (future-paired W≼W′ related fresh) M =
+  renameᵗᵐ (keep wk↪ᵗ) (liftImpreciseBodyTerm W≼W′ M)
+liftImpreciseBodyTerm (future-precise W≼W′ fresh) M =
+  liftImpreciseBodyTerm W≼W′ M
+
+liftPreciseTerm-universal : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) N
+  → liftPreciseTerm W≼W′ (Λ N) ≡ Λ (liftPreciseBodyTerm W≼W′ N)
+liftPreciseTerm-universal future-refl N = refl
+liftPreciseTerm-universal (future-paired W≼W′ related fresh) N
+    rewrite liftPreciseTerm-universal W≼W′ N = refl
+liftPreciseTerm-universal (future-precise W≼W′ fresh) N
+    rewrite liftPreciseTerm-universal W≼W′ N = refl
+
+liftImpreciseTerm-universal : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) N
+  → liftImpreciseTerm W≼W′ (Λ N) ≡
+      Λ (liftImpreciseBodyTerm W≼W′ N)
+liftImpreciseTerm-universal future-refl N = refl
+liftImpreciseTerm-universal (future-paired W≼W′ related fresh) N
+    rewrite liftImpreciseTerm-universal W≼W′ N = refl
+liftImpreciseTerm-universal (future-precise W≼W′ fresh) N =
+  liftImpreciseTerm-universal W≼W′ N
+
+liftPreciseBodyTerm-value : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {V : Term (suc Δᴾ)}
+  → CastTerms.Value V
+  → CastTerms.Value (liftPreciseBodyTerm W≼W′ V)
+liftPreciseBodyTerm-value future-refl vV = vV
+liftPreciseBodyTerm-value (future-paired W≼W′ related fresh) vV =
+  renameᵗᵐ-preserves-Value (keep wk↪ᵗ)
+    (liftPreciseBodyTerm-value W≼W′ vV)
+liftPreciseBodyTerm-value (future-precise W≼W′ fresh) vV =
+  renameᵗᵐ-preserves-Value (keep wk↪ᵗ)
+    (liftPreciseBodyTerm-value W≼W′ vV)
+
+liftImpreciseBodyTerm-value : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {V : Term (suc Δᴵ)}
+  → CastTerms.Value V
+  → CastTerms.Value (liftImpreciseBodyTerm W≼W′ V)
+liftImpreciseBodyTerm-value future-refl vV = vV
+liftImpreciseBodyTerm-value (future-paired W≼W′ related fresh) vV =
+  renameᵗᵐ-preserves-Value (keep wk↪ᵗ)
+    (liftImpreciseBodyTerm-value W≼W′ vV)
+liftImpreciseBodyTerm-value (future-precise W≼W′ fresh) vV =
+  liftImpreciseBodyTerm-value W≼W′ vV
+
 liftPreciseTerm-lambda : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -331,6 +405,39 @@ liftCenterBody (future-paired W≼W′ related fresh) A =
   renameᵗ (extᵗ Fin.suc) (liftCenterBody W≼W′ A)
 liftCenterBody (future-precise W≼W′ fresh) A =
   renameᵗ (extᵗ Fin.suc) (liftCenterBody W≼W′ A)
+
+liftPreciseTy-universal : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) A
+  → liftPreciseTy W≼W′ (`∀ A) ≡ `∀ (liftPreciseBody W≼W′ A)
+liftPreciseTy-universal future-refl A = refl
+liftPreciseTy-universal (future-paired W≼W′ related fresh) A
+    rewrite liftPreciseTy-universal W≼W′ A = refl
+liftPreciseTy-universal (future-precise W≼W′ fresh) A
+    rewrite liftPreciseTy-universal W≼W′ A = refl
+
+liftImpreciseTy-universal : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) A
+  → liftImpreciseTy W≼W′ (`∀ A) ≡ `∀ (liftImpreciseBody W≼W′ A)
+liftImpreciseTy-universal future-refl A = refl
+liftImpreciseTy-universal (future-paired W≼W′ related fresh) A
+    rewrite liftImpreciseTy-universal W≼W′ A = refl
+liftImpreciseTy-universal (future-precise W≼W′ fresh) A =
+  liftImpreciseTy-universal W≼W′ A
+
+liftCenterTy-universal : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) A
+  → liftCenterTy W≼W′ (`∀ A) ≡ `∀ (liftCenterBody W≼W′ A)
+liftCenterTy-universal future-refl A = refl
+liftCenterTy-universal (future-paired W≼W′ related fresh) A
+    rewrite liftCenterTy-universal W≼W′ A = refl
+liftCenterTy-universal (future-precise W≼W′ fresh) A
+    rewrite liftCenterTy-universal W≼W′ A = refl
 
 liftCenterImprecision : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -655,6 +762,47 @@ liftImpreciseTerm-trans W₀≼W₁
   cong ⇑ᵗᵐ (liftImpreciseTerm-trans W₀≼W₁ W₁≼W₂ M)
 liftImpreciseTerm-trans W₀≼W₁ (future-precise W₁≼W₂ fresh) M =
   liftImpreciseTerm-trans W₀≼W₁ W₁≼W₂ M
+
+liftPreciseBodyTerm-trans : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁
+     Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    (W₀≼W₁ : Future W₀ W₁) (W₁≼W₂ : Future W₁ W₂)
+    (M : Term (suc Δᴾ₀))
+  → liftPreciseBodyTerm (future-trans W₀≼W₁ W₁≼W₂) M
+      ≡ liftPreciseBodyTerm W₁≼W₂
+          (liftPreciseBodyTerm W₀≼W₁ M)
+liftPreciseBodyTerm-trans W₀≼W₁ future-refl M = refl
+liftPreciseBodyTerm-trans W₀≼W₁
+    (future-paired W₁≼W₂ related fresh) M =
+  cong (renameᵗᵐ (keep wk↪ᵗ))
+    (liftPreciseBodyTerm-trans W₀≼W₁ W₁≼W₂ M)
+liftPreciseBodyTerm-trans W₀≼W₁
+    (future-precise W₁≼W₂ fresh) M =
+  cong (renameᵗᵐ (keep wk↪ᵗ))
+    (liftPreciseBodyTerm-trans W₀≼W₁ W₁≼W₂ M)
+
+liftImpreciseBodyTerm-trans : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁
+     Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    (W₀≼W₁ : Future W₀ W₁) (W₁≼W₂ : Future W₁ W₂)
+    (M : Term (suc Δᴵ₀))
+  → liftImpreciseBodyTerm (future-trans W₀≼W₁ W₁≼W₂) M
+      ≡ liftImpreciseBodyTerm W₁≼W₂
+          (liftImpreciseBodyTerm W₀≼W₁ M)
+liftImpreciseBodyTerm-trans W₀≼W₁ future-refl M = refl
+liftImpreciseBodyTerm-trans W₀≼W₁
+    (future-paired W₁≼W₂ related fresh) M =
+  cong (renameᵗᵐ (keep wk↪ᵗ))
+    (liftImpreciseBodyTerm-trans W₀≼W₁ W₁≼W₂ M)
+liftImpreciseBodyTerm-trans W₀≼W₁
+    (future-precise W₁≼W₂ fresh) M =
+  liftImpreciseBodyTerm-trans W₀≼W₁ W₁≼W₂ M
 
 liftPreciseBody-trans : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁

@@ -446,3 +446,12 @@ Decision pending (user): mechanize the split rule with the same
 calibration-matrix method as A3 (Example 4 first derivation + the
 concrete source-left instance as the two calibration examples), or an
 alternative. Pausing proof dispatches on this surface meanwhile.
+
+DECIDED (user, 2026-08-13): S1 — a second syntax-directed Λ/Λ
+constructor `Λ⊑Λ²-split` (guarded premise world, split centers,
+dynamic window marks). Calibration matrix: S1/S2 both pass all cells;
+S3 refuted; S1 chosen for transparent two-case inversions over S2's
+hidden placement branch. Constructor definition + migration plan
+(gates SP-1..SP-4, A3 playbook) in notes/M5-SPLIT-CALIBRATION.md.
+Continuation handed to a successor agent; the plan section is the
+authoritative work order.

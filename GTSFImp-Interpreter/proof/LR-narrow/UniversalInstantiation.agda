@@ -2,7 +2,8 @@ module proof.LR-narrow.UniversalInstantiation where
 
 -- File Charter:
 --   * Eliminates the positive-index head of UniversalsRelated.
---   * Selects the current world and caller-provided paired fresh extension.
+--   * Observes type application in the current, pre-allocation world.
+--   * Exposes that successful returns factor through the chosen extension.
 --   * Returns the endpoint body witnesses stored in ValueImprecision.
 
 open import Data.Nat using (ℕ; suc)
@@ -32,14 +33,11 @@ related-universal-instantiation : ∀
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
       × let bound = pairedBindWorld W Rᴾ Rᴵ fresh
-        in let step = future-paired (future-refl {W = W}) r fresh
-        in ComputationsRelated bound
-             (FutureValueRelation (openFreshImprecision {W = bound}
-               (liftCenterBodyImprecision step p))) (suc k)
-              (liftImpreciseTerm step Vᴵ
-                ⦂∀ liftImpreciseBody step Bᴵ [ ＇ Fin.zero ])
-              (liftPreciseTerm step Vᴾ
-                ⦂∀ liftPreciseBody step Bᴾ [ ＇ Fin.zero ])
+            step = future-paired (future-refl {W = W}) r fresh
+            body = openFreshImprecision {W = bound}
+              (liftCenterBodyImprecision step p)
+        in ComputationsRelated W (PostBindValueRelation step body)
+             (suc k) (Vᴵ ⦂∀ Bᴵ [ Rᴵ ]) (Vᴾ ⦂∀ Bᴾ [ Rᴾ ])
 related-universal-instantiation {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {W = W}
     {r = r} {fresh = fresh}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =

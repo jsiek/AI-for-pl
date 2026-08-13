@@ -281,6 +281,23 @@ computations-related-reindex : ∀
 computations-related-reindex p q refl refl refl refl related
   rewrite PI.⊑-unique p q = related
 
+computations-related-post-bind-reindex : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾᵇ Δᴵᵇ Δᶜᵇ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    {W≼B : Future W bound}
+    (p : impEnv (core bound) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q : impEnv (core bound) I.⊢ Aᴾ′ ⊑ Aᴵ′)
+    {k} {Mᴵ Mᴵ′ : Term Δᴵ} {Mᴾ Mᴾ′ : Term Δᴾ}
+  → Aᴾ ≡ Aᴾ′
+  → Aᴵ ≡ Aᴵ′
+  → Mᴵ ≡ Mᴵ′
+  → Mᴾ ≡ Mᴾ′
+  → ComputationsRelated W (PostBindValueRelation W≼B p) k Mᴵ Mᴾ
+  → ComputationsRelated W (PostBindValueRelation W≼B q) k Mᴵ′ Mᴾ′
+computations-related-post-bind-reindex p q refl refl refl refl related
+  rewrite PI.⊑-unique p q = related
+
 right-universals-related-reindex : ∀
     {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
     {W : World Δᴾ Δᴵ Δᶜ} {Bᴾ : Ty (suc Δᴾ)} {k Vᴵ Vᴾ}
@@ -343,24 +360,26 @@ universals-related-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = suc k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     W≼W′ (head , tail) =
   (λ K W′≼K Rᴾ Rᴵ r fresh →
-      let W′≼B = future-paired W′≼K r fresh
+      let step = future-paired (future-refl {W = K}) r fresh
+          W′≼B = future-trans W′≼K step
           composite = future-trans W≼W′ W′≼B
           p-composite = openFreshImprecision
             (liftCenterBodyImprecision composite _)
           p-sequential = openFreshImprecision
             (liftCenterBodyImprecision W′≼B
               (liftCenterBodyImprecision W≼W′ _))
-      in computations-related-reindex p-composite p-sequential
+      in computations-related-post-bind-reindex
+          p-composite p-sequential
           (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
             (liftCenterBody-trans W≼W′ W′≼B Aᴾ))
           (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
             (liftCenterBody-trans W≼W′ W′≼B Aᴵ))
-          (cong₂ (λ V B → V ⦂∀ B [ ＇ Fin.zero ])
-            (liftImpreciseTerm-trans W≼W′ W′≼B Vᴵ)
-            (liftImpreciseBody-trans W≼W′ W′≼B Bᴵ))
-          (cong₂ (λ V B → V ⦂∀ B [ ＇ Fin.zero ])
-            (liftPreciseTerm-trans W≼W′ W′≼B Vᴾ)
-            (liftPreciseBody-trans W≼W′ W′≼B Bᴾ))
+          (cong₂ (λ V B → V ⦂∀ B [ Rᴵ ])
+            (liftImpreciseTerm-trans W≼W′ W′≼K Vᴵ)
+            (liftImpreciseBody-trans W≼W′ W′≼K Bᴵ))
+          (cong₂ (λ V B → V ⦂∀ B [ Rᴾ ])
+            (liftPreciseTerm-trans W≼W′ W′≼K Vᴾ)
+            (liftPreciseBody-trans W≼W′ W′≼K Bᴾ))
           (head K (future-trans W≼W′ W′≼K) Rᴾ Rᴵ r fresh)) ,
   universals-related-future W≼W′ tail
 

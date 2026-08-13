@@ -41,10 +41,13 @@ The port currently contains:
   function-elimination obligations, including endpoint typing and Kripke
   reindexing;
 - `LR-narrow/TypeBetaExpansion.agda`: matching type-beta expansion through
-  paired store allocation, for both return and blame observations;
+  paired store allocation, retaining an explicit factorization of successful
+  result worlds through the allocated world;
 - `LR-narrow/Universal.agda`: body-driven compatibility for
-  `CTI.Λ⊑Λ²`, including the two fresh paired extensions and closing below a
-  type binder.
+  `CTI.Λ⊑Λ²`, using the single paired extension selected by the universal
+  observation and closing below a type binder;
+- `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
+  positive-index `∀⊑∀` value at the pre-allocation type application.
 
 ## Three-context worlds
 
@@ -179,54 +182,43 @@ universal first creates a semantic `store-bind` extension. Consequently the
 ordinary `CompiledTermRelation` is not a well-typed induction hypothesis for
 the body. `CompiledUniversalBodyRelation` is the corresponding fundamental
 premise below a type binder: it quantifies over the arbitrary paired test
-extension, transports and shifts the outer closing substitution, then relates
-the converted contracta after the evaluator's second, administrative
-allocation. `lifted-source-context` and `lifted-target-context` record the
-endpoint-context equalities supplied by `CTI.LiftCtx`.
+extension and relates the actual type-beta contracta in that extension.
+`lifted-source-context` and `lifted-target-context` record the endpoint-context
+equalities supplied by `CTI.LiftCtx`.
 
 `universals-related-from-body` recursively constructs every positive-index
 `UniversalsRelated` obligation from that body premise. It reconciles composite
-and sequential futures, applies matching type-beta expansion, and spends one
-step exactly at beta. `universal-compatible-from-body` combines this result
-with the endpoint typing derivation furnished by `CTI.Λ⊑Λ²`.
+and sequential futures, expands the contracta back across the selected
+type-beta step, and spends one step exactly at beta.
+`universal-compatible-from-body` combines this result with the endpoint typing
+derivation furnished by `CTI.Λ⊑Λ²`.
 
 `related-universal-instantiation` exposes the positive-index head of a
 structural `∀⊑∀` value relation. It selects the current world, a supplied
 pair of program argument types, their imprecision derivation, and a supplied
-fresh semantic atom. The result is the computation relation stored at the
-corresponding paired extension, together with the endpoint universal-body
-witnesses needed to reconcile the evaluator annotations.
-
-There is an unresolved boundary between that semantic test and the compiled
-type-application constructor. The current `UniversalsRelated` clause first
-installs the concrete paired extension and then observes
+fresh semantic atom. The observed computation is the actual application in
+the current world:
 
 ```agda
-⇑ᵗᵐ V ⦂∀ ⇑ᵗ B [ ＇ zero ]
+Vᴵ ⦂∀ Bᴵ [ Rᴵ ]    Vᴾ ⦂∀ Bᴾ [ Rᴾ ]
 ```
 
-in the extended world. By contrast, the compiled term evaluates
+Let `step : Future W bound` be the paired extension chosen by this
+observation. Successful returns use `PostBindValueRelation step p`. At a
+returned world `K` with the computation's recorded future `W≼K`, this relation
+requires witnesses
 
 ```agda
-V ⦂∀ B [ A ]
+bound≼K : Future bound K
+future-trans step bound≼K ≡ W≼K
 ```
 
-in the old world; its first type-beta step installs the paired extension and
-continues with the contractum. Evaluating the semantic test therefore performs
-one additional alias allocation. Existing future monotonicity transports the
-real contractum to that further extension, but no converse allocation-
-reflection theorem is available. Consequently the head of
-`UniversalsRelated` is not yet sufficient to prove compatibility for
-`CTI.•⊑•²`.
-
-There are two coherent ways to close the boundary. One is to state the
-universal observation in the pre-allocation world and use a result relation
-that requires returned worlds to factor through the chosen paired extension.
-The other is to retain the present clause and prove that evaluation and the LR
-reflect across the fresh alias allocation. The former matches the operational
-phase boundary directly; the latter preserves the stronger existing
-post-extension test but requires substantially more evaluator and conversion
-transport metatheory.
+together with value relatedness lifted along `bound≼K`. Thus the semantic test
+observes the same pre-allocation phase as compiled type application, and its
+return world is definitionally required to factor through the exact paired
+extension chosen for the quantified type. Matching type-beta expansion proves
+this factorization for both return directions; blame observations need no
+result-world witness.
 
 ## Deliberate draft boundaries
 
@@ -247,9 +239,9 @@ beta/closing equation; closing commutes with future lifting; and matching beta
 expansion preserves `ComputationsRelated`.
 
 Symmetric universal introduction is complete at every residual index through
-the binder-specific body relation. Its proof uses a second empty semantic atom
-only for the administrative beta allocation; the arbitrary first atom remains
-the interpretation of the tested abstract type.
+the binder-specific body relation. Its proof uses exactly the arbitrary fresh
+atom supplied by the universal observation; there is no administrative alias
+allocation.
 
 No postulate, hole, or unchecked metavariable is used at this draft boundary.
 

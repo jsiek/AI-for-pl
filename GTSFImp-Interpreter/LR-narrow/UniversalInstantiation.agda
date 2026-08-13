@@ -2,7 +2,8 @@ module LR-narrow.UniversalInstantiation where
 
 -- File Charter:
 --   * Exposes elimination of structurally related universal values.
---   * Allocates the paired world used by matching type applications.
+--   * Observes matching type applications before their paired allocation.
+--   * Requires successful returns to factor through that paired extension.
 --   * Delegates existential endpoint-body bookkeeping to the proof module.
 
 open import Data.Nat using (ℕ; suc)
@@ -33,14 +34,11 @@ related-universal-instantiation : ∀
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
       × let bound = pairedBindWorld W Rᴾ Rᴵ fresh
-        in let step = future-paired (future-refl {W = W}) r fresh
-        in ComputationsRelated bound
-             (FutureValueRelation (openFreshImprecision {W = bound}
-               (liftCenterBodyImprecision step p))) (suc k)
-              (liftImpreciseTerm step Vᴵ
-                ⦂∀ liftImpreciseBody step Bᴵ [ ＇ Fin.zero ])
-              (liftPreciseTerm step Vᴾ
-                ⦂∀ liftPreciseBody step Bᴾ [ ＇ Fin.zero ])
+            step = future-paired (future-refl {W = W}) r fresh
+            body = openFreshImprecision {W = bound}
+              (liftCenterBodyImprecision step p)
+        in ComputationsRelated W (PostBindValueRelation step body)
+             (suc k) (Vᴵ ⦂∀ Bᴵ [ Rᴵ ]) (Vᴾ ⦂∀ Bᴾ [ Rᴾ ])
 related-universal-instantiation {W = W} {p = p} {r = r}
     {fresh = fresh} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} =
   Proof.related-universal-instantiation {W = W} {p = p} {r = r}

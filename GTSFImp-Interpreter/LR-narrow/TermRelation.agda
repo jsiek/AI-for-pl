@@ -24,8 +24,7 @@ open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
-open import LR-narrow.TypeBetaExpansion using
-  (empty-paired-atom; paired-step)
+open import LR-narrow.TypeBetaExpansion using (paired-step)
 
 ------------------------------------------------------------------------
 -- The syntactic shadow of an LR world
@@ -160,21 +159,11 @@ CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
         W≼tested = future-trans W≼W′ test-step
         p-open = openFreshImprecision {W = tested}
           (liftCenterBodyImprecision W≼tested p)
-        admin = empty-paired-atom tested
-          (＇ Fin.zero) (＇ Fin.zero)
-        admin-step = paired-step tested I.X⊑X admin
-        allocated = pairedBindWorld tested
-          (＇ Fin.zero) (＇ Fin.zero) admin
-        γᴵ = imprecise-closing-future test-step
-          (impreciseClosingSubstitution γ)
-        γᴾ = precise-closing-future test-step
-          (preciseClosingSubstitution γ)
-    in ComputationsRelated allocated
-        (FutureValueRelation
-          (liftCenterImprecision admin-step p-open)) k
-        (closeTypeBody γᴵ (liftImpreciseBodyTerm W≼tested Nᴵ)
-          ↑ 〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑
-            liftImpreciseBody W≼tested Bᴵ 〗)
-        (closeTypeBody γᴾ (liftPreciseBodyTerm W≼tested Nᴾ)
-          ↑ 〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑
-            liftPreciseBody W≼tested Bᴾ 〗)
+    in ComputationsRelated tested (FutureValueRelation p-open) k
+        (closeTypeBody (impreciseClosingSubstitution γ)
+          (liftImpreciseBodyTerm W≼W′ Nᴵ)
+          ↑ 〖 Fin.zero , ⇑ᵗ Rᴵ ↑
+            liftImpreciseBody W≼W′ Bᴵ 〗)
+        (closeTypeBody (preciseClosingSubstitution γ)
+          (liftPreciseBodyTerm W≼W′ Nᴾ)
+          ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ liftPreciseBody W≼W′ Bᴾ 〗)

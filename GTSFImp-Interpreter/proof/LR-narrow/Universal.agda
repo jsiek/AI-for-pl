@@ -34,7 +34,7 @@ open import LR-narrow.ClosingSubstitutionProperties
 open import LR-narrow.TermRelation
 open import LR-narrow.ImmediateReturn
 open import LR-narrow.TypeBetaExpansion using
-  (empty-paired-atom; paired-step; related-type-beta-expand)
+  (paired-step; related-type-beta-expand)
 import proof.LR-narrow.Closure as ClosureProof
 import proof.LR-narrow.ClosingSubstitution as ClosingProof
 
@@ -113,32 +113,34 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (fresh : SemanticAtom
         (pairedBindCore (core W″) Rᴾ Rᴵ) Fin.zero)
     → let tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
-          W′≼tested = future-paired W′≼W″ r fresh
+          test-step = future-paired (future-refl {W = W″}) r fresh
+          W′≼tested = future-trans W′≼W″ test-step
           body = openFreshImprecision {W = tested}
             (liftCenterBodyImprecision W′≼tested
               (liftCenterBodyImprecision W≼W′ p))
-      in ComputationsRelated tested (FutureValueRelation body) (suc j)
-          (liftImpreciseTerm W′≼tested
+      in ComputationsRelated W″
+          (PostBindValueRelation test-step body) (suc j)
+          (liftImpreciseTerm W′≼W″
             (close (impreciseClosingSubstitution γ)
               (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
-            ⦂∀ liftImpreciseBody W′≼tested
-              (liftImpreciseBody W≼W′ Bᴵ) [ ＇ Fin.zero ])
-          (liftPreciseTerm W′≼tested
+            ⦂∀ liftImpreciseBody W′≼W″
+              (liftImpreciseBody W≼W′ Bᴵ) [ Rᴵ ])
+          (liftPreciseTerm W′≼W″
             (close (preciseClosingSubstitution γ)
               (liftPreciseTerm W≼W′ (Λ Nᴾ)))
-            ⦂∀ liftPreciseBody W′≼tested
-              (liftPreciseBody W≼W′ Bᴾ) [ ＇ Fin.zero ])
+            ⦂∀ liftPreciseBody W′≼W″
+              (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ])
   head W″ W′≼W″ Rᴾ Rᴵ r fresh =
-    ClosureProof.computations-related-reindex
+    ClosureProof.computations-related-post-bind-reindex
       body-composite body-sequential
       precise-open-eq imprecise-open-eq
       imprecise-redex-eq precise-redex-eq canonical
     where
     test-step = paired-step W″ r fresh
     tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
-    W′≼tested = future-paired W′≼W″ r fresh
     W≼W″ = future-trans W≼W′ W′≼W″
     W≼tested = future-trans W≼W″ test-step
+    W′≼tested = future-trans W′≼W″ test-step
 
     body-composite = openFreshImprecision {W = tested}
       (liftCenterBodyImprecision W≼tested p)
@@ -157,30 +159,25 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
 
     γᴵ-tail = impreciseClosingSubstitution γ-tail
     γᴾ-tail = preciseClosingSubstitution γ-tail
-    γᴵ-tested = imprecise-closing-future test-step γᴵ-tail
-    γᴾ-tested = precise-closing-future test-step γᴾ-tail
 
-    bodyᴵ = closeTypeBody γᴵ-tested
-      (liftImpreciseBodyTerm W≼tested Nᴵ)
-    bodyᴾ = closeTypeBody γᴾ-tested
-      (liftPreciseBodyTerm W≼tested Nᴾ)
+    bodyᴵ = closeTypeBody γᴵ-tail
+      (liftImpreciseBodyTerm W≼W″ Nᴵ)
+    bodyᴾ = closeTypeBody γᴾ-tail
+      (liftPreciseBodyTerm W≼W″ Nᴾ)
 
-    vBodyᴵ = close-type-body-preserves-value γᴵ-tested
-      (liftImpreciseBodyTerm-value W≼tested vNᴵ)
-    vBodyᴾ = close-type-body-preserves-value γᴾ-tested
-      (liftPreciseBodyTerm-value W≼tested vNᴾ)
-
-    admin = empty-paired-atom tested (＇ Fin.zero) (＇ Fin.zero)
+    vBodyᴵ = close-type-body-preserves-value γᴵ-tail
+      (liftImpreciseBodyTerm-value W≼W″ vNᴵ)
+    vBodyᴾ = close-type-body-preserves-value γᴾ-tail
+      (liftPreciseBodyTerm-value W≼W″ vNᴾ)
 
     contract-related = body-related j j≤k W″ W≼W″ γ-tail
       Rᴾ Rᴵ r fresh
 
     canonical = related-type-beta-expand
-      {W = tested} {p = body-composite}
-      {Rᴾ = ＇ Fin.zero} {Rᴵ = ＇ Fin.zero}
-      {r = I.X⊑X} {fresh = admin}
-      {Bᴾ = liftPreciseBody W≼tested Bᴾ}
-      {Bᴵ = liftImpreciseBody W≼tested Bᴵ}
+      {W = W″} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
+      {r = r} {fresh = fresh} {p = body-composite}
+      {Bᴾ = liftPreciseBody W≼W″ Bᴾ}
+      {Bᴵ = liftImpreciseBody W≼W″ Bᴵ}
       {Vᴾ = bodyᴾ} {Vᴵ = bodyᴵ}
       vBodyᴵ vBodyᴾ contract-related
 
@@ -220,97 +217,57 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
               (ClosingProof.precise-related-downward-lookup
                 j≤k γ x)))))
 
-    imprecise-tested-env-eq : ∀ x →
-        closingSubstitution (imprecise-closing-future W′≼tested
-          (impreciseClosingSubstitution γ)) x
-        ≡ closingSubstitution γᴵ-tested x
-    imprecise-tested-env-eq x =
-      trans
-        (ClosingProof.imprecise-closing-future-lookup W′≼tested
-          (impreciseClosingSubstitution γ) x)
-        (trans
-          (liftImpreciseTerm-trans W′≼W″ test-step
-            (closingSubstitution (impreciseClosingSubstitution γ) x))
-          (trans
-            (cong (liftImpreciseTerm test-step)
-              (trans
-                (sym (ClosingProof.imprecise-closing-future-lookup
-                  W′≼W″ (impreciseClosingSubstitution γ) x))
-                (imprecise-tail-env-eq x)))
-            (sym (ClosingProof.imprecise-closing-future-lookup
-              test-step γᴵ-tail x))))
-
-    precise-tested-env-eq : ∀ x →
-        closingSubstitution (precise-closing-future W′≼tested
-          (preciseClosingSubstitution γ)) x
-        ≡ closingSubstitution γᴾ-tested x
-    precise-tested-env-eq x =
-      trans
-        (ClosingProof.precise-closing-future-lookup W′≼tested
-          (preciseClosingSubstitution γ) x)
-        (trans
-          (liftPreciseTerm-trans W′≼W″ test-step
-            (closingSubstitution (preciseClosingSubstitution γ) x))
-          (trans
-            (cong (liftPreciseTerm test-step)
-              (trans
-                (sym (ClosingProof.precise-closing-future-lookup
-                  W′≼W″ (preciseClosingSubstitution γ) x))
-                (precise-tail-env-eq x)))
-            (sym (ClosingProof.precise-closing-future-lookup
-              test-step γᴾ-tail x))))
-
-    imprecise-universal-eq : liftImpreciseTerm W′≼tested
+    imprecise-universal-eq : liftImpreciseTerm W′≼W″
         (close (impreciseClosingSubstitution γ)
           (liftImpreciseTerm W≼W′ (Λ Nᴵ))) ≡ Λ bodyᴵ
     imprecise-universal-eq =
       trans
-        (imprecise-close-future W′≼tested
+        (imprecise-close-future W′≼W″
           (impreciseClosingSubstitution γ)
           (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
         (trans
-          (cong (close (imprecise-closing-future W′≼tested
+          (cong (close (imprecise-closing-future W′≼W″
             (impreciseClosingSubstitution γ)))
-            (sym (liftImpreciseTerm-trans W≼W′ W′≼tested (Λ Nᴵ))))
+            (sym (liftImpreciseTerm-trans W≼W′ W′≼W″ (Λ Nᴵ))))
           (trans
-            (subst-cong imprecise-tested-env-eq
-              (liftImpreciseTerm W≼tested (Λ Nᴵ)))
+            (subst-cong imprecise-tail-env-eq
+              (liftImpreciseTerm W≼W″ (Λ Nᴵ)))
             (trans
-              (cong (close γᴵ-tested)
-                (liftImpreciseTerm-universal W≼tested Nᴵ))
-              (close-universal γᴵ-tested
-                (liftImpreciseBodyTerm W≼tested Nᴵ)))))
+              (cong (close γᴵ-tail)
+                (liftImpreciseTerm-universal W≼W″ Nᴵ))
+              (close-universal γᴵ-tail
+                (liftImpreciseBodyTerm W≼W″ Nᴵ)))))
 
-    precise-universal-eq : liftPreciseTerm W′≼tested
+    precise-universal-eq : liftPreciseTerm W′≼W″
         (close (preciseClosingSubstitution γ)
           (liftPreciseTerm W≼W′ (Λ Nᴾ))) ≡ Λ bodyᴾ
     precise-universal-eq =
       trans
-        (precise-close-future W′≼tested
+        (precise-close-future W′≼W″
           (preciseClosingSubstitution γ)
           (liftPreciseTerm W≼W′ (Λ Nᴾ)))
         (trans
-          (cong (close (precise-closing-future W′≼tested
+          (cong (close (precise-closing-future W′≼W″
             (preciseClosingSubstitution γ)))
-            (sym (liftPreciseTerm-trans W≼W′ W′≼tested (Λ Nᴾ))))
+            (sym (liftPreciseTerm-trans W≼W′ W′≼W″ (Λ Nᴾ))))
           (trans
-            (subst-cong precise-tested-env-eq
-              (liftPreciseTerm W≼tested (Λ Nᴾ)))
+            (subst-cong precise-tail-env-eq
+              (liftPreciseTerm W≼W″ (Λ Nᴾ)))
             (trans
-              (cong (close γᴾ-tested)
-                (liftPreciseTerm-universal W≼tested Nᴾ))
-              (close-universal γᴾ-tested
-                (liftPreciseBodyTerm W≼tested Nᴾ)))))
+              (cong (close γᴾ-tail)
+                (liftPreciseTerm-universal W≼W″ Nᴾ))
+              (close-universal γᴾ-tail
+                (liftPreciseBodyTerm W≼W″ Nᴾ)))))
 
     imprecise-redex-eq = cong₂
-      (λ F B → F ⦂∀ B [ ＇ Fin.zero ])
+      (λ F B → F ⦂∀ B [ Rᴵ ])
       (sym imprecise-universal-eq)
-      (liftImpreciseBody-trans W≼W′ W′≼tested Bᴵ)
+      (liftImpreciseBody-trans W≼W′ W′≼W″ Bᴵ)
 
     precise-redex-eq = cong₂
-      (λ F B → F ⦂∀ B [ ＇ Fin.zero ])
+      (λ F B → F ⦂∀ B [ Rᴾ ])
       (sym precise-universal-eq)
-      (liftPreciseBody-trans W≼W′ W′≼tested Bᴾ)
+      (liftPreciseBody-trans W≼W′ W′≼W″ Bᴾ)
 
 universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

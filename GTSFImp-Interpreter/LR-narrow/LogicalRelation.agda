@@ -6,6 +6,8 @@ module LR-narrow.LogicalRelation where
 --   * Interprets X⊑X and X⊑★ center variables through mode-indexed atoms.
 --   * Interprets paired and right-only universals through matching fresh
 --     world extensions.
+--   * Observes paired universal instantiation before allocation and records
+--     that every successful return factors through the chosen extension.
 --   * Reindexes the relation over polarized narrowing via the proved
 --     derivation isomorphism.
 
@@ -201,6 +203,19 @@ mutual
   FutureValueRelation p W′ W≼W′ k Vᴵ Vᴾ =
     ValueImprecisionᵏ k W′ (liftCenterImprecision W≼W′ p) Vᴵ Vᴾ
 
+  PostBindValueRelation : ∀
+      {Δᴾ Δᴵ Δᶜ Δᴾᵇ Δᴵᵇ Δᶜᵇ Aᴾ Aᴵ}
+      {W : World Δᴾ Δᴵ Δᶜ}
+      {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    → Future W bound
+    → impEnv (core bound) I.⊢ Aᴾ ⊑ Aᴵ
+    → IndexedValueRelation W
+  PostBindValueRelation {bound = bound} W≼B p W′ W≼W′ k Vᴵ Vᴾ =
+    Σ[ bound≼W′ ∈ Future bound W′ ]
+      (future-trans W≼B bound≼W′ ≡ W≼W′)
+      × ValueImprecisionᵏ k W′
+          (liftCenterImprecision bound≼W′ p) Vᴵ Vᴾ
+
   FunctionsRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     → (W : World Δᴾ Δᴵ Δᶜ)
     → impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ
@@ -241,15 +256,16 @@ mutual
         (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
         (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
       → let bound = pairedBindWorld W′ Rᴾ Rᴵ fresh
-            W≼B = future-paired W≼W′ r fresh
+            W′≼B = future-paired (future-refl {W = W′}) r fresh
+            W≼B = future-trans W≼W′ W′≼B
             body = openFreshImprecision {W = bound}
               (liftCenterBodyImprecision W≼B p)
-        in ComputationsRelated bound
-            (FutureValueRelation {W = bound} body) (suc k)
-            (liftImpreciseTerm W≼B Vᴵ
-              ⦂∀ liftImpreciseBody W≼B Bᴵ [ ＇ Fin.zero ])
-            (liftPreciseTerm W≼B Vᴾ
-              ⦂∀ liftPreciseBody W≼B Bᴾ [ ＇ Fin.zero ]))
+        in ComputationsRelated W′
+            (PostBindValueRelation W′≼B body) (suc k)
+            (liftImpreciseTerm W≼W′ Vᴵ
+              ⦂∀ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ])
+            (liftPreciseTerm W≼W′ Vᴾ
+              ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]))
     × UniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
 
   RightUniversalsRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}

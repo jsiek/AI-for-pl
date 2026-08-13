@@ -113,6 +113,23 @@ and `conceal` branches, the one catalog step exposes another pending type
 application under a smaller target value wrapper. The branch proof must
 descend on target wrapper depth until the target is a value.
 
+Re-evaluation, 2026-08-13: this descent is structural, not an arbitrary
+extra-cast call charged to the outer inst cast.  The live theorem
+
+```agda
+ext-safe : (d : extᵐ ν ⊢ B₀ ∼ B₁)
+  → NonVar B₁
+  → zero ∈ᵗ B₁
+  → GenSafe d
+```
+
+classifies the stored consistency in the `∀ᶜ` view.  Function,
+universal, and generated `GenSafe` casts are already inert; `safe-inst` is
+the sole case that continues instantiation.  The next proof surface should
+normalize that value-instantiation spine with a combined administration
+rank.  The old `M5AllFuelBoundScratch` arithmetic only refutes borrowing the
+outer residual fuel for an arbitrary cast; its concrete opened cast is inert.
+
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the
 immediate catalog post to be a value.  `inst-post-at-finish` lifts the descent

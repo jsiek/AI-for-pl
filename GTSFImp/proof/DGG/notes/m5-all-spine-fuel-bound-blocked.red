@@ -2,6 +2,27 @@ M5 `allv-∀` spine fuel bound blocker
 
 Date: 2026-08-13
 
+RESOLVED / DIAGNOSIS RETRACTED (2026-08-13)
+
+The size calculation below is correct, but the claimed recursive call does
+not follow from it.  The checked witness `d` is a function consistency, so
+`d [ ＇ zero ]ᶜ` is inert and applying it to a value immediately constructs
+another value.  `M5AllFuelBoundScratch.agda` now checks both facts.
+
+The live theorem `proof.Consistency.ext-safe` proves the general invariant:
+
+  d : extᵐ ν ⊢ B₀ ∼ B₁
+  NonVar B₁
+  zero ∈ᵗ B₁
+  --------------------------------
+  GenSafe d
+
+Thus the `allv-∀` branch exposes a `GenSafe` administration spine.
+Function, universal, and generated cases are inert.  Only `safe-inst`
+continues with structural value instantiation.  The next surface should
+normalize that spine using a combined administration rank; this note no
+longer recommends a separate arbitrary-cast fuel.
+
 Blocked step
 
 The first non-Λ package producer must descend through the catalog post

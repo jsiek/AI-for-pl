@@ -522,22 +522,22 @@ Revised work order:
         reveal, and conceal), assemble `InstInversionPackage`, and discharge
         the live M6 knot's M5 factory argument.
 
-NS-4 RED-STOP (2026-08-13): the first `allv-∀` producer exposed a missing
-well-foundedness component in the live Def surface.  The package only carries
-the residual-column bound
-`castSize ((inst c′) B′≢★) < fuel`, but descending the catalog post may need
-an extra-cast worker for the universal value's stored body cast.  The checked
-finite counterexample in `notes/M5AllFuelBoundScratch.agda` has stored/opened
-cast size 5 and instantiation-body size 4, so the outer inst cast has size 5:
-fuel 6 admits the outer cast but cannot provide a strictly smaller worker for
-the size-5 spine cast.  See
-`notes/m5-all-spine-fuel-bound-blocked.red`.
+NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
+`M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
+outer inst cast, but its opened cast is a function consistency and therefore
+inert.  It needs no extra-cast call.  The live `ext-safe` theorem now proves
+the general invariant: if `d : extᵐ ν ⊢ B₀ ∼ B₁`, `B₁` is
+non-variable, and the fresh variable occurs in `B₁`, then `GenSafe d`.
+Thus the `∀ᶜ` view exposes a structural value-instantiation spine, not an
+arbitrary cast whose size must fit beneath the residual-column fuel.
 
-Next: state a separate target-wrapper descent budget, or an equivalent
-lexicographic accessibility surface, before implementing the four NS-4
-producers.  Do not conflate it with the M6 residual-column fuel, and do not
-resume the proof with a fixed one-unit fuel padding until nested-wrapper
-decrease has been checked.
+The remaining `safe-inst` case still needs a terminating structural
+normalizer.  State it over related source and target values and recurse over
+the target value/`GenSafe` administration spine.  The Cambridge26-style
+single administration rank, which charges suspended value wrappers and
+pending casts together, is the leading implementation route.  Do not add a
+second independent fuel merely from the old size arithmetic.  The corrected
+status is recorded in `notes/m5-all-spine-fuel-bound-blocked.red`.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from

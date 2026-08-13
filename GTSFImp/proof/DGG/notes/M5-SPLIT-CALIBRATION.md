@@ -268,13 +268,20 @@ Revised gates:
         complete inversion package, and discharge the M5 factory argument of
         the already-live M6 fuel knot.
 
-NS-4 is currently at a statement-level red stop, not a relation resister.
-The checked `allv-∀` example in `M5AllFuelBoundScratch.agda` shows that the
-stored universal body cast can be as large as the entire outer inst cast.
-Consequently the existing residual-column `fuel` cannot also justify the
-strictly smaller extra-cast call needed by spine descent.  The next statement
-must expose a separate target-wrapper descent budget or lexicographic
-accessibility witness; see `m5-all-spine-fuel-bound-blocked.red`.
+NS-4's first statement-level red stop has been retracted.  The checked
+`allv-∀` example still shows that the stored universal body cast can be as
+large as the outer inst cast, but the same scratch now checks that its opened
+cast is inert.  More generally, live `ext-safe` classifies every stored cast
+under the `∀ᶜ` view as `GenSafe` when the target body is non-variable and
+contains the fresh variable.  The old arithmetic therefore does not imply a
+smaller-extra call.
+
+The next statement is a structural value-instantiation normalizer over
+related values.  Its `GenSafe` cases are already value-forming except for
+`safe-inst`, which continues with another administrative instantiation.  A
+single combined administration rank, following the Cambridge26/GTSF shape,
+is preferred over a second independent target-wrapper fuel.  See the
+resolved postscript in `m5-all-spine-fuel-bound-blocked.red`.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design

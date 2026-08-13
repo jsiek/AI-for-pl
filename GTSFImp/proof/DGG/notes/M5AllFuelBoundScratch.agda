@@ -1,11 +1,11 @@
 module proof.DGG.notes.M5AllFuelBoundScratch where
 
 -- File Charter:
---   * Checks the smallest fuel bound needed by the M5 `allv-∀` spine.
+--   * Re-evaluates the old M5 `allv-∀` fuel-bound diagnosis.
 --   * Exhibits a target universal cast whose opened body cast is not
 --     strictly smaller than the outer instantiation cast.
---   * Records only the finite consistency witnesses; it changes no live
---     catch-up or imprecision surface.
+--   * Checks that the same stored cast is `GenSafe` and that its opened
+--     function cast is inert, so this example needs no extra-cast call.
 
 import Data.Fin as Fin
 open import Data.Nat using (suc; _<_; _≤_; s≤s)
@@ -15,7 +15,9 @@ open import Relation.Nullary using (¬_)
 
 open import Types
 open import Consistency
-open import proof.Consistency using (castSize)
+open import CastTerms using
+  (Term; Value; GenSafe; Inert; fun; _⟨_⟩; _《_》)
+open import proof.Consistency using (castSize; ext-safe)
 
 
 μ₀ : Env∼ 0
@@ -52,6 +54,10 @@ d = id (＇ Fin.zero) ↦
     (∀ᶜ (id ★)) ⦃ nonstar-∀ ⦄
 
 
+d-safe : GenSafe d
+d-safe = ext-safe d B₁-nonvar zero∈B₁
+
+
 c′ : instᵐ μ₀ ⊢ B₁ ∼ ⇑ᵗ B′
 c′ =
   ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄
@@ -74,6 +80,16 @@ allocated-d = id (＇ Fin.zero) ↦
 opened-d-size : castSize
     (allocated-d [ ＇ Fin.zero ]ᶜ) ≡ 5
 opened-d-size = refl
+
+
+opened-d-inert : Inert (allocated-d [ ＇ Fin.zero ]ᶜ)
+opened-d-inert = fun
+
+
+opened-d-preserves-value : ∀ {V : Term 1}
+  → Value V
+  → Value (V ⟨ allocated-d [ ＇ Fin.zero ]ᶜ ⟩)
+opened-d-preserves-value vV = vV 《 opened-d-inert 》
 
 
 c′-size : castSize c′ ≡ 4

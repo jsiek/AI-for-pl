@@ -25,7 +25,8 @@ open SubstEnv∼
 open import CastTerms using (GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
 open import proof.Imprecision using (imprecise-star)
 open import proof.ImprecisionConsistency
-  using (common-lower-consistent; refl⊑)
+  using (common-lower-consistent; refl⊑;
+    consistency-target-occurs-source)
 
 ------------------------------------------------------------------------
 -- Renaming conveniences for proof code
@@ -835,3 +836,24 @@ gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
   → Fin.zero ∈ᵗ B
   → GenSafe c
 gen-safe c A≢★ Bnv z∈B = gen-safe′ c refl A≢★ Bnv z∈B
+
+ext-safe : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
+  → (c : extᵐ μ ⊢ A ∼ B)
+  → NonVar B
+  → Fin.zero ∈ᵗ B
+  → GenSafe c
+ext-safe (id (‵ ι)) nonvar-base ()
+ext-safe (id ★) nonvar-star ()
+ext-safe (id (＇ X)) () z∈B
+ext-safe (c ↦ d) Bnv z∈B = safe-⇒
+ext-safe (∀ᶜ c) Bnv z∈B = safe-∀
+ext-safe (_! ⦃ g ⦄ c ⦃ Ans ⦄) Bnv ()
+ext-safe c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv z∈B
+    with consistency-target-occurs-source refl c z∈B
+ext-safe c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv z∈B | ()
+ext-safe (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Bnv z∈B =
+  safe-inst B≢★
+ext-safe (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c A≢★) Bnv z∈B =
+  safe-gen A≢★ (gen-safe c A≢★ Bnv′ z∈B′)
+ext-safe bot-elim Bnv (∈-all ())
+ext-safe bot-intro Bnv (∈-all ())

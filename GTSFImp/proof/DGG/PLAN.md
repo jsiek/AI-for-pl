@@ -72,7 +72,7 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); its relational continuations are the sole missing input to the live M6 knot. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the source-left prefix and its one-level canonical smart-post specialization check without a split constructor. General smart-comma recursion must still thread a hereditary two-target-insertion plan and post geometry | M→L | **half landed; relational half re-scoped** | — |
+| M5 | The operational catalog, relational dispatcher, repaired descent consumer, and complete hereditary `Λ` package are live. The remaining four views share the fuel-free structural value-instantiation normalizer. Its source term is explicitly a value. A typed pending spine now includes runtime-name type applications and zero-syntax type transports. Primary cast-mass descent is checked for the concrete `∀`, `gen`, and `safe-inst` transitions; the next chunk is fixed-mass structural accessibility for wrapper/frame administration, followed by the four package producers and factory assembly. | M→L | **Λ complete; structural descent in progress** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -534,20 +534,38 @@ value-instantiation spine, not an arbitrary cast whose size must fit beneath
 the residual-column fuel.
 
 The remaining `safe-inst` case still needs a terminating structural
-normalizer.  State it over related source and target values and recurse over
-the target value/`GenSafe` administration spine.  The Cambridge26-style
-single administration rank, which charges suspended value wrappers and
-pending casts together, is the leading implementation route.  Do not add a
-second independent fuel merely from the old size arithmetic.  The corrected
-status is recorded in `notes/m5-all-spine-fuel-bound-blocked.red`.
+normalizer over the target value and its pending administration spine.  The
+first single-number candidate was retracted after checking the complete
+administrative machine: it assigned zero to runtime-name applications and
+conversion frames, although those frames can later become value wrappers.
+Its isolated arithmetic lemmas were therefore removed from the live surface.
 
-The statement-first boundary is now live as
-`StructuralValueInstantiationᵀ`.  It is fuel-free and specialized to the
-actual allocation shape: the target value is a weakening of a pre-allocation
-value, and its type argument is the available fresh runtime name.  It keeps
-both input terms as values, takes the result imprecision witness explicitly,
-and returns an `InstSpineDescentPackage`.  Prove this surface before wiring
-the four non-`Λ` catalog packages.
+The Cambridge26 intuition survives as the primary component.  Define cast
+mass as the consistency syntax retained in the target value plus the pending
+spine.  The concrete `∀` opening, `gen` allocation, and `safe-inst`
+allocation transitions all strictly decrease this mass; the last theorem
+uses the live strict decrease for `↑ᶜ (close-instᶜ c)`.  Renaming a value and
+mapping a spine through allocation preserve the mass.  A checked finite
+witness in `notes/M5SafeInstExposureScratch.agda` confirms why the
+`safe-inst` branch is real: `β-gen` can expose a cast which is neither inert
+nor a value.
+
+At equal cast mass, termination is purely structural: peel a `Λ`, universal
+reveal, or universal conceal; move an inert cast/conversion frame into value
+form; or erase a type-transport frame.  The next statement should express
+accessibility for exactly those fixed-mass transitions.  Two equivalent
+implementations remain available: a lexicographic numeric rank whose second
+component charges every name/conversion frame, or nested accessibility that
+recurses structurally at fixed mass and restarts after a primary decrease.
+Prefer nested accessibility unless the first complete case table yields a
+small obvious secondary number.  Neither approach adds public fuel.
+
+The statement-first boundaries are live as
+`StructuralValueSpineDescentᵀ` and `StructuralValueInstantiationᵀ`.  They are
+fuel-free and keep the source `M` explicitly value-indexed.  The general
+surface normalizes an already-related typed spine; the allocation-specialized
+surface starts with a weakened pre-allocation value instantiated at the fresh
+runtime name.  Both return the existing `InstSpineDescentPackage`.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from

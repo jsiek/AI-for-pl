@@ -20,7 +20,8 @@ open import Imprecision using (X⊑★; X⊑X)
 open import Consistency using
   (Env∼; _⊢_∼_; ∀ᶜ_; inst_; gen_; extᵐ; instᵐ; genᵐ;
    ↑ᶜ_; close-instᶜ; keep; toRenameᵗ; wk↪ᵗ)
-open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
+open import Conversion using
+  (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
 open import CastTerms using
   (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_;
    _↓_; Λ_; _⦂∀_[_]; renameᵗᵐ)
@@ -35,6 +36,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
+open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
+  using (InstantiationSpine; applyInstantiationSpine)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
    liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
@@ -314,6 +317,20 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
     final-relation :
       W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ final ∶
         ECR.transport⊑ᵂ ext p
+
+
+StructuralValueSpineDescentᵀ : Set₁
+StructuralValueSpineDescentᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B C : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ C}
+  → (spine : InstantiationSpine B C)
+  → W ∣ γ ⊢² M ⊑ applyInstantiationSpine V spine ∶ q
+  → Value M
+  → Value V
+  → InstSpineDescentPackage W γ M
+      (applyInstantiationSpine V spine) q
 
 
 StructuralValueInstantiationᵀ : Set₁

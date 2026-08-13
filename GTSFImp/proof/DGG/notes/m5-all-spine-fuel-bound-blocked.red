@@ -101,3 +101,19 @@ column fuel for residual casts.  State and check the combined descent surface
 before changing `InstInversionPackage` or any proof worker.
 
 No term-imprecision relation change is indicated by this blocker.
+
+SECOND RE-EVALUATION (2026-08-13)
+
+The first fuel diagnosis remains retracted, but the initial replacement rank
+was also incomplete.  It assigned zero to runtime-name type applications and
+conversion frames, although consuming one of those frames can create a value
+wrapper.  The rank's local arithmetic was true but did not order the complete
+administrative machine, so its unused live modules were removed.
+
+The replacement is a primary cast mass plus fixed-mass structural descent.
+The primary component is now checked on the actual typed spines for fresh
+`∀` opening, `β-gen`, and recursive `β-inst`.  The finite checked witness in
+`M5SafeInstExposureScratch.agda` confirms that `safe-inst` is genuinely
+reachable and can expose a non-value.  The next proof obligation is internal
+accessibility for the cast-mass-preserving wrapper/frame steps; it does not
+add public fuel and does not change the term-imprecision relation.

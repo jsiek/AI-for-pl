@@ -52,13 +52,16 @@ import proof.DGG.Catchup.InstCatchupRightProof
 import proof.DGG.Catchup.InstCatchupRightRelProof
 import proof.DGG.Catchup.InstInversionDef
 import proof.DGG.Catchup.InstInversionProof
-import proof.DGG.Catchup.StructuralValueInstantiationMeasureProof
 import proof.DGG.Catchup.StructuralValueInstantiationStateDef
-import proof.DGG.Catchup.StructuralValueInstantiationSpineMeasureProof
-import proof.DGG.Catchup.StructuralValueInstantiationWrapperMeasureProof
-import proof.DGG.Catchup.StructuralValueInstantiationCastMeasureProof
-import proof.DGG.Catchup.StructuralValueInstantiationAllMeasureProof
-import proof.DGG.Catchup.StructuralValueInstantiationOpenMeasureProof
+import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
+import proof.DGG.Catchup.StructuralValueInstantiationCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationValueCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationSpineCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationPendingCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationGenCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationInstCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationAllCastMassProof
+import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

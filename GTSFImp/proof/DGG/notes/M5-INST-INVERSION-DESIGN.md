@@ -1,16 +1,10 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-13. Status: the historical under-lift obstruction was bypassed
-by the live smart-comma/no-split interleaving.  The finite hereditary
-two-insert plan, generic target windows, smart alias/fresh child plans, and
-source reveal/conceal plan transports are checked.  The narrower top-post
-resister is now closed as well: `ExactSmartFreshGuard` supports reverse type
-transport for the controlled front-fresh recursion and remains exact through
-target insertion.  `Λ-post-outer-obligation` is plan-indexed and constructs
-the parent top relation directly from the original relation.  The exhaustive
-`Λ-post-prefix-hereditary` worker is now live for matched, plain, smart, cast,
-reveal, and conceal source shapes.  The next step is Λ-package assembly and
-the relational continuation.
+Date: 2026-08-13. Status: the complete hereditary `Λ` package and relational
+continuation are live without a split constructor.  The remaining four view
+packages share a fuel-free structural value-instantiation descent.  Its typed
+state, primary cast-mass layer, and concrete `∀`, `gen`, and `safe-inst`
+decreases are checked; fixed-mass wrapper/frame accessibility is next.
 
 Checked artifact:
 
@@ -131,9 +125,11 @@ ext-safe : (d : extᵐ ν ⊢ B₀ ∼ B₁)
 
 classify both the stored consistency and its fresh-name opening.
 `GenSafeView` proves that function, universal, and generated cases are inert;
-`safe-inst` is the sole case that continues instantiation.  The next proof
-surface should normalize that value-instantiation spine with a combined
-administration rank.  The old `M5AllFuelBoundScratch` arithmetic only refutes
+`safe-inst` is the sole case that continues instantiation.  A checked finite
+witness now shows it is reachable beneath a generated value cast and that
+`β-gen` can expose a non-inert, non-value cast.  Therefore the structural
+normalizer must include runtime-name type applications as well as casts and
+conversions.  The old `M5AllFuelBoundScratch` arithmetic only refutes
 borrowing the outer residual fuel for an arbitrary cast; its concrete opened
 cast is inert.
 
@@ -158,6 +154,34 @@ The theorem has no residual-cast fuel; its result already carries any
 right-store extension and the transported relation.  The M5 finalizer applies
 residual-column catch-up only after this structural descent has produced a
 value.
+
+## Termination Re-evaluation
+
+The first `pendingAdministrationRank` was not a measure for the complete
+machine.  It charged casts and value wrappers but assigned zero to name
+applications and conversion frames.  A zero-cost frame can later become a
+value wrapper, so the alleged rank may rise.  The unused rank modules have
+been removed rather than retained as a misleading public surface.
+
+The checked replacement begins with
+
+```agda
+pendingCastMass vV spine = valueCastMass vV + spineCastMass spine
+```
+
+It counts consistency syntax wherever it currently resides.  Allocation
+preserves this count under value weakening and spine mapping.  The concrete
+fresh-open `∀` step, the `gen` step, and the recursive `safe-inst` step each
+strictly decrease it.  The typed child spines contain explicit zero-syntax
+type transports for the propositional equalities between `replaceTy`, opened
+types, and OPE weakening; this localizes transport instead of spreading
+`subst` through the worker.
+
+Cast-mass-preserving steps remain.  They only consume target value structure
+or move a pending frame into value form.  The next proof will first enumerate
+that fixed-mass transition table, then choose between a small secondary
+numeric potential and nested structural accessibility.  This is internal
+well-foundedness, not a second public fuel parameter.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the

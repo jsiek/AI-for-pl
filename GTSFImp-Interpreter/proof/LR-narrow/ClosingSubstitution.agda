@@ -11,7 +11,7 @@ open import Data.Nat using (ℕ; zero; suc; _≤_)
 open import Data.Nat.Properties using (≤-refl; ≤-trans)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; sym)
+  using (_≡_; refl; cong; sym; trans)
   renaming (subst to subst≡)
 
 open import Types
@@ -21,7 +21,8 @@ open import CastTerms
 import Consistency as C
 import Imprecision as I
 open import proof.TermInTermSubst using
-  (SubstWf; typing-subst; subst-preserves-Value)
+  (SubstWf; typing-subst; subst-preserves-Value; subst-cong;
+   subst-rename; subst-id; single-subst-exts)
 open import proof.TypeInTermSubst using
   (renameᵗᵐ-preserves-Value; typing-shiftᵗ-bind)
 open import proof.ImprecisionConsistency using
@@ -113,6 +114,26 @@ close-preserves-typing : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
   → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
   → ⟨ Δ , Σ , [] ⟩ ⊢ close γ M ⦂ A
 close-preserves-typing γ = typing-subst (closing-substitution-wf γ)
+
+beta-close-cons : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} {A : Ty Δ} {V N : Term Δ}
+    (vV : Value V)
+    (V⊢ : ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A)
+    (γ : ClosingSubstitution Σ Γ)
+  → (CastTerms.subst (exts (closingSubstitution γ)) N) [ V ]
+    ≡ close (closing-cons vV V⊢ γ) N
+beta-close-cons {V = V} {N} vV V⊢ γ =
+  trans (single-subst-exts (closingSubstitution γ) N V)
+    (subst-cong env-eq N)
+  where
+  env-eq : ∀ x
+    → CastTerms.subst (singleSub V)
+        (exts (closingSubstitution γ) x)
+      ≡ closingSubstitution (closing-cons vV V⊢ γ) x
+  env-eq zero = refl
+  env-eq (suc x) =
+    trans (subst-rename (singleSub V) suc (lookupClosing γ x))
+      (subst-id (lookupClosing γ x))
 
 precise-open-typing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}

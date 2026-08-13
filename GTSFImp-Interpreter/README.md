@@ -176,18 +176,16 @@ inversion rather than by adding observable value behavior to bottom.
 The lambda lemma is not yet the fundamental lambda case from a semantic body
 premise. The related body substitution is now constructed, but the lemma
 deliberately exposes the remaining function-elimination obligation instead of
-postulating it. Deriving that obligation from `CompiledTermRelation` for the
-body requires three reusable syntactic/evaluator results that are not yet in
-the `GTSFImp` substitution API:
+postulating it. Term-substitution fusion through both term and type binders is
+now available as `sub-sub`; `beta-close-cons` derives the corresponding
+equation between beta substitution into a closed body and closing the open
+body with the argument-consed substitution. Deriving the remaining obligation
+from `CompiledTermRelation` requires two reusable transport results:
 
 - type-future lifting commutes with closing a term;
-- beta substitution of an argument into a closed lambda body equals closing
-  the open body with the argument-consed substitution;
 - related computations are preserved by matching deterministic beta
   expansion on both endpoints.
 
-The first two require term-substitution fusion through both term and type
-binders. No postulate, hole, or unchecked metavariable is used at this draft
-boundary.
+No postulate, hole, or unchecked metavariable is used at this draft boundary.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

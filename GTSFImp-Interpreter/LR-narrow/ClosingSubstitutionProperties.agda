@@ -9,6 +9,7 @@ module LR-narrow.ClosingSubstitutionProperties where
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; _≤_)
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import TyStore
@@ -59,6 +60,16 @@ close-preserves-typing : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
   → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
   → ⟨ Δ , Σ , [] ⟩ ⊢ close γ M ⦂ A
 close-preserves-typing = Proof.close-preserves-typing
+
+beta-close-cons : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
+    {Γ : T.TermCtx Δ} {A : Ty Δ} {V N : Term Δ}
+    (vV : Value V)
+    (V⊢ : ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A)
+    (γ : ClosingSubstitution Σ Γ)
+  → (CastTerms.subst (exts (closingSubstitution γ)) N) [ V ]
+    ≡ close (closing-cons vV V⊢ γ) N
+beta-close-cons {N = N} vV V⊢ γ =
+  Proof.beta-close-cons {N = N} vV V⊢ γ
 
 precise-open-typing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}

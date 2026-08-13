@@ -36,8 +36,6 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
-open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
-  using (InstantiationSpine; applyInstantiationSpine)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
    liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
@@ -319,20 +317,6 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
         ECR.transport⊑ᵂ ext p
 
 
-StructuralValueSpineDescentᵀ : Set₁
-StructuralValueSpineDescentᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {V : Term Δᴿ}
-    {A : Ty Δᴸ} {B C : Ty Δᴿ}
-    {q : A ⊑ᵂ⟨ W ⟩ C}
-  → (spine : InstantiationSpine B C)
-  → W ∣ γ ⊢² M ⊑ applyInstantiationSpine V spine ∶ q
-  → Value M
-  → Value V
-  → InstSpineDescentPackage W γ M
-      (applyInstantiationSpine V spine) q
-
-
 StructuralValueInstantiationᵀ : Set₁
 StructuralValueInstantiationᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
@@ -373,8 +357,6 @@ record InstPostCatalogPackageAt (fuel : ℕ)
     at-B₂ : Ty Δᴿ₂
     at-post : Term Δᴿ₂
     at-p₂ : A ⊑ᵂ⟨ W₂ ⟩ at-B₂
-    at-post-relation :
-      W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ at-post ∶ at-p₂
     at-ν₂ : Env∼ Δᴿ₂
     at-residual-target : Ty Δᴿ₂
     at-residual-q : A ⊑ᵂ⟨ W₂ ⟩ at-residual-target
@@ -417,8 +399,6 @@ record InstPostCatalogPackage (fuel : ℕ)
     B₂ : Ty Δᴿ₂
     post : Term Δᴿ₂
     p₂ : A ⊑ᵂ⟨ W₂ ⟩ B₂
-    post-relation :
-      W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ post ∶ p₂
     ν₂ : Env∼ Δᴿ₂
     residual-target : Ty Δᴿ₂
     residual-q : A ⊑ᵂ⟨ W₂ ⟩ residual-target

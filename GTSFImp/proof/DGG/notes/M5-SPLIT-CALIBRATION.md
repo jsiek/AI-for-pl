@@ -282,23 +282,22 @@ related values.  Its `GenSafe` cases are already value-forming except for
 checked finite instance now confirms that this branch is reachable and that
 the cast exposed by `β-gen` need not be a value.
 
-The first combined natural-number rank has been retracted: it gave zero cost
-to name applications and conversion frames even though those frames can
-become value wrappers.  The live replacement uses cast mass as a primary
-component.  Its concrete `∀`, `gen`, and `safe-inst` transitions strictly
-decrease, while value weakening and pending-spine allocation preserve it.
-The next chunk handles the cast-mass-preserving wrapper/frame transitions by
-fixed-mass structural accessibility (or, if the complete case table makes it
-obvious, a properly charged secondary numeric component).  No independent
-target-wrapper fuel is planned.
+The first combined natural-number rank has been retracted.  The replacement
+uses cast mass only as a primary component.  Its concrete `∀`, `gen`, and
+`safe-inst` transitions strictly decrease, while value weakening and spine
+allocation preserve it.  At fixed mass, the checked
+`no-value-source-type-app` proof follows strict imprecision premises and
+retains the exposed source `Value`.  The next chunk implements that same case
+split inside nested accessibility; no secondary rank or target-wrapper fuel
+is planned.
 
-The checked statements are `StructuralValueSpineDescentᵀ` and
-`StructuralValueInstantiationᵀ` in `InstInversionDef.agda`.  The former
-normalizes an already-related typed spine.  The latter accepts the live M5
-allocation shape: a weakened pre-allocation value instantiated at the fresh
-runtime name.  Both keep the source term explicitly as a value and return the
-existing `InstSpineDescentPackage`, so the four view packages need no second
-descent result type.
+The checked public statement is `StructuralValueInstantiationᵀ` in
+`InstInversionDef.agda`.  It accepts the live M5 allocation shape: a weakened
+pre-allocation value instantiated at the fresh runtime name, and returns the
+existing `InstSpineDescentPackage`.  The over-general spine statement was
+removed because it assumed a relation to an intermediate raw type
+application.  The package records now likewise place the relation only in the
+descent result, after the target has reached a value.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design

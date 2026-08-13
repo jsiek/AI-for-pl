@@ -4,12 +4,13 @@ Date: 2026-08-13. Status: the complete hereditary `Λ` package and relational
 continuation are live without a split constructor.  The remaining four view
 packages share a fuel-free structural value-instantiation descent.  Its typed
 state, primary cast-mass layer, and concrete `∀`, `gen`, and `safe-inst`
-decreases are checked; fixed-mass wrapper/frame accessibility is next.
+decreases are checked.  Fixed-mass recursion follows strict imprecision
+premises; the nested-accessibility worker is next.
 
 Checked artifact:
 
 ```text
-AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
+env -u AGDA_DIR agda -i GTSFImp -v0 --no-allow-unsolved-metas \
   GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda
 # exit 0
 ```
@@ -177,19 +178,22 @@ type transports for the propositional equalities between `replaceTy`, opened
 types, and OPE weakening; this localizes transport instead of spreading
 `subst` through the worker.
 
-Cast-mass-preserving steps remain.  They only consume target value structure
-or move a pending frame into value form.  The next proof will first enumerate
-that fixed-mass transition table, then choose between a small secondary
-numeric potential and nested structural accessibility.  This is internal
-well-foundedness, not a second public fuel parameter.
+Cast-mass-preserving steps recurse on strict premises of the imprecision
+derivation.  The checked `value-type-app-source-view` case split is exhaustive,
+and `no-value-source-type-app` recursively eliminates all five admissible
+outer rules while retaining an inner source `Value`.  This validates nested
+accessibility: ordinary structural recursion at fixed mass, and an
+accessibility restart only for the strictly smaller `safe-inst` cast mass.
+No secondary numeric potential or public fuel is needed.
 
 Update, 2026-08-13: the live finalizer now treats this package as
-authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the
-immediate catalog post to be a value.  `inst-post-at-finish` lifts the descent
-through the pending residual cast, transports `CatchupCast⁻` and cast size,
-and invokes the smaller extra-cast worker only on the descended value.  Thus
-the four remaining view branches need to produce their descent packages; they
-do not need to bypass descent with an impossible immediate-value proof.
+authoritative.  `InstPostCatalogPackageAt` requires neither an immediate
+catalog-post value nor an immediate catalog-post relation.
+`inst-post-at-finish` lifts the descent through the pending residual cast,
+transports `CatchupCast⁻` and cast size, and invokes the smaller extra-cast
+worker only on the descended value.  Thus the four remaining view branches
+produce the relation at the descended value, not at an intermediate raw type
+application.
 
 ## Per-View Composition Status
 

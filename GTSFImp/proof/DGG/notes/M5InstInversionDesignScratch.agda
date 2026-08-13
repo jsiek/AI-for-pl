@@ -85,8 +85,6 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     ; B₂ = InstPostCatalogPackageAt.at-B₂ pkg
     ; post = InstPostCatalogPackageAt.at-post pkg
     ; p₂ = InstPostCatalogPackageAt.at-p₂ pkg
-    ; post-relation =
-        InstPostCatalogPackageAt.at-post-relation pkg
     ; ν₂ = InstPostCatalogPackageAt.at-ν₂ pkg
     ; residual-target =
         InstPostCatalogPackageAt.at-residual-target pkg

@@ -133,8 +133,6 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     ; B₂ = InstPostCatalogPackageAt.at-B₂ pkg
     ; post = InstPostCatalogPackageAt.at-post pkg
     ; p₂ = InstPostCatalogPackageAt.at-p₂ pkg
-    ; post-relation =
-        InstPostCatalogPackageAt.at-post-relation pkg
     ; ν₂ = InstPostCatalogPackageAt.at-ν₂ pkg
     ; residual-target =
         InstPostCatalogPackageAt.at-residual-target pkg
@@ -5932,83 +5930,6 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
     _
 
 
-Λ⊑²-smart-recursive-package-at : ∀ {fuel Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {γ : CTI2.CtxImp W}
-    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
-    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
-    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
-    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {body-p : A CTI2.⊑ᵂ⟨
-      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
-    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
-  → (vΛV : CT.Value (Λ V))
-  → (vΛV′ : CT.Value (Λ V′))
-  → (vV : CT.Value V)
-  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
-  → ⦃ Bnv : NonVar B ⦄
-  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
-  → (B′≢★ : B′ ≢ ★)
-  → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-  → (body-q : A CTI2.⊑ᵂ⟨
-      CTI2.liftWorldLeft I.X⊑★ W ⟩ B′)
-  → (q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ B′)
-  → (liftγ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
-  → (Anv : NonVar A)
-  → (zero∈A : Fin.zero ∈ᵗ A)
-  → (bodyRel : CTI2.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
-      ⊢² V ⊑ Λ V′ ∶ body-p)
-  → (bodyPkg : InstPostCatalogPackageAt fuel bodyRel vV vΛV′ c′
-      B′≢★ c<fuel body-q
-      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (Λ⊑²-smart-fresh-world W)
-      (right-bind-right-bind-world-extendᴿ
-        {W = CTI2.liftWorldLeft I.X⊑★ W}
-        {B = ★} {C = ＇ Fin.zero}))
-  → CT.Value (InstPostCatalogPackageAt.at-post bodyPkg)
-  → InstPostCatalogPackageAt fuel rel vΛV vΛV′ c′
-      B′≢★ c<fuel q
-      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
-      (right-bind-right-bind-world-extendᴿ
-        {W = W} {B = ★} {C = ＇ Fin.zero})
-Λ⊑²-smart-recursive-package-at {W = W}
-    rel vΛV vΛV′ vV c′ B′≢★ c<fuel body-q q
-    liftγ Anv zero∈A bodyRel bodyPkg vPost =
-  record
-    { at-B₂ = InstPostCatalogPackageAt.at-B₂ bodyPkg
-    ; at-post = InstPostCatalogPackageAt.at-post bodyPkg
-    ; at-p₂ =
-        Λ⊑²-smart-fresh-top {W = W} Anv zero∈A
-          (InstPostCatalogPackageAt.at-p₂ bodyPkg)
-    ; at-post-relation =
-        Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
-          (InstPostCatalogPackageAt.at-post-relation bodyPkg)
-    ; at-ν₂ = InstPostCatalogPackageAt.at-ν₂ bodyPkg
-    ; at-residual-target =
-        InstPostCatalogPackageAt.at-residual-target bodyPkg
-    ; at-residual-q =
-        Λ⊑²-smart-fresh-top {W = W} Anv zero∈A
-          (InstPostCatalogPackageAt.at-residual-q bodyPkg)
-    ; at-residual-target-eq =
-        InstPostCatalogPackageAt.at-residual-target-eq bodyPkg
-    ; at-residual-cast =
-        InstPostCatalogPackageAt.at-residual-cast bodyPkg
-    ; at-residual-provenance =
-        Λ⊑²-smart-fresh-catchup⁻ {W = W} Anv zero∈A
-          (InstPostCatalogPackageAt.at-residual-provenance bodyPkg)
-    ; at-residual-fuel =
-        InstPostCatalogPackageAt.at-residual-fuel bodyPkg
-    ; at-prefix-reduction =
-        InstPostCatalogPackageAt.at-prefix-reduction bodyPkg
-    ; at-spine-descent =
-        spine-descent-zero vPost
-          (Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
-            (InstPostCatalogPackageAt.at-post-relation bodyPkg))
-    }
-
-
 catchup⁻-nonstar : Catchup⁻NonStarᵀ
 catchup⁻-nonstar Bns B′ns (id ★) = catchup⁻-id ★
 catchup⁻-nonstar Bns B′ns (id (‵ ι)) = catchup⁻-id (‵ ι)
@@ -6132,9 +6053,6 @@ inst-residual-source-nonstar nonvar-all zero∈B = nonstar-∀
             CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
           ⟩ C)
           (residual-source₂-eq B) top-p₂
-    ; at-post-relation =
-        rel-target-transportᴿ (residual-source₂-eq B) top-p₂
-          (CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂)
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =
@@ -6425,7 +6343,6 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     { at-B₂ = ΛResidualSource₂ B
     ; at-post = Λ⊑Λ²PostTerm V′ B
     ; at-p₂ = ΛPostPrefixPackageAt.prefix-p₂ prefix
-    ; at-post-relation = ΛPostPrefixPackageAt.prefix-relation prefix
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =
@@ -6499,8 +6416,6 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     { at-B₂ = ΛResidualSource₂ B
     ; at-post = Λ⊑Λ²PostTerm V′ B
     ; at-p₂ = ΛPostPrefixPackageAtBase.prefix-p₂ prefix
-    ; at-post-relation =
-        ΛPostPrefixPackageAtBase.prefix-relation prefix
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =

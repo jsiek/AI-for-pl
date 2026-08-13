@@ -72,7 +72,7 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | The operational catalog, relational dispatcher, repaired descent consumer, and complete hereditary `Λ` package are live. The remaining four views share the fuel-free structural value-instantiation normalizer. Its source term is explicitly a value. A typed pending spine now includes runtime-name type applications and zero-syntax type transports. Primary cast-mass descent is checked for the concrete `∀`, `gen`, and `safe-inst` transitions; the next chunk is fixed-mass structural accessibility for wrapper/frame administration, followed by the four package producers and factory assembly. | M→L | **Λ complete; structural descent in progress** | — |
+| M5 | The operational catalog, relational dispatcher, repaired descent consumer, and complete hereditary `Λ` package are live. The remaining four views share the fuel-free structural value-instantiation normalizer. Its source term is explicitly a value. Primary cast-mass descent is checked for `∀`, `gen`, and `safe-inst`; fixed-mass recursion is now checked to follow strict imprecision premises. The next chunk is the nested-accessibility worker, followed by the four package producers and factory assembly. | M→L | **Λ complete; structural descent in progress** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -550,29 +550,30 @@ witness in `notes/M5SafeInstExposureScratch.agda` confirms why the
 `safe-inst` branch is real: `β-gen` can expose a cast which is neither inert
 nor a value.
 
-At equal cast mass, termination is purely structural: peel a `Λ`, universal
-reveal, or universal conceal; move an inert cast/conversion frame into value
-form; or erase a type-transport frame.  The next statement should express
-accessibility for exactly those fixed-mass transitions.  Two equivalent
-implementations remain available: a lexicographic numeric rank whose second
-component charges every name/conversion frame, or nested accessibility that
-recurses structurally at fixed mass and restarts after a primary decrease.
-Prefer nested accessibility unless the first complete case table yields a
-small obvious secondary number.  Neither approach adds public fuel.
+At equal cast mass, termination is structural recursion on the imprecision
+derivation.  `value-type-app-source-view` exhaustively identifies the five
+admissible outer rules, and `no-value-source-type-app` checks that every case
+recurses on a strict premise whose exposed source is still a `Value`.  This is
+the Cambridge26 proof shape, with the old `⊒⟨ν⟩` gap closed by the live
+relation's explicit value premises.  A second numeric component is therefore
+unnecessary.  Nested accessibility restarts only when `safe-inst` strictly
+decreases cast mass; it uses ordinary derivation recursion otherwise.
 
-The statement-first boundaries are live as
-`StructuralValueSpineDescentᵀ` and `StructuralValueInstantiationᵀ`.  They are
-fuel-free and keep the source `M` explicitly value-indexed.  The general
-surface normalizes an already-related typed spine; the allocation-specialized
-surface starts with a weakened pre-allocation value instantiated at the fresh
-runtime name.  Both return the existing `InstSpineDescentPackage`.
+The remaining statement-first boundary is
+`StructuralValueInstantiationᵀ`.  It is fuel-free, keeps the source `M`
+explicitly value-indexed, and starts with a weakened pre-allocation value
+instantiated at the fresh runtime name.  The earlier general spine statement
+was removed: its premise demanded a relation to a raw type application, which
+`no-value-source-type-app` refutes.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from
 `InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes
 `InstSpineDescentPackage`, transports the residual cast/provenance through
 the descent, and calls smaller-fuel catch-up only at the descended value.
-The four non-Λ view packages still need their descent producers.
+The package now also omits the stronger immediate-post relation.  The descent
+package owns the relation only after the administrative spine has reduced to
+a value.  The four non-Λ view packages still need their descent producers.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

@@ -10,15 +10,20 @@ module proof.DGG.Catchup.ColumnSupportProof where
 
 import Data.Fin as Fin
 import Data.List as List
+open import Data.Nat using (suc)
 open import Data.Nat.Properties using (n<1+n; ≤-<-trans)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; trans)
+  using (_≡_; _≢_; refl; sym; cong; cong₂; trans)
   renaming (subst to subst≡)
 
 open import Types
-open import Consistency using (Env∼; _⊢_∼_)
+open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import proof.Consistency using
   (castSize-renameEnvᶜ; castSize-close-inst-≤)
+open import proof.ImprecisionConsistency using
+  (fin-suc-injective; ext-injective; renameᵗ-injective; rename-occurs)
+open import proof.TypeInTermSubst using (rename-star-injective)
+open import proof.Reduction using (applyConsistencies-Inert)
 open import CastTerms using (Term)
 open import Reduction using
   (StoreChange; StoreChanges; _—→[_]_; _—↠[_]_; keep; bind;
@@ -27,6 +32,7 @@ open import Reduction using
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.Imprecision as PI
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
 open import proof.DGG.Catchup.ValueCatchupRightDef
   using
@@ -35,7 +41,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef
     ; CatchupCast⁻; catchup⁻-inert; catchup⁻-id
     ; catchup⁻-ground-other; catchup⁻-inst
     ; catchup⁻-bot-elim; catchup⁻-bot-intro
-    ; Catchup⁻Embedᵀ
+    ; CatchupColumn⁻; ccol⁻-[]; ccol⁻-▻
+    ; Catchup⁻Embedᵀ; CatchupColumn⁻Transportᵀ
     ; ground-other-decreaseᵀ; project-expand-decreaseᵀ
     ; castSize-↑close-instᵀ; inst-alloc-decreaseᵀ
     ; columnSize-mapᵀ
@@ -178,3 +185,170 @@ catchup⁻-embed N (catchup⁻-ground-other B≢G r k) =
 catchup⁻-embed N catchup⁻-inst = ECR.catchup-inst
 catchup⁻-embed N catchup⁻-bot-elim = ECR.catchup-bot-elim
 catchup⁻-embed N catchup⁻-bot-intro = ECR.catchup-bot-intro
+
+------------------------------------------------------------------------
+-- Column-provenance transport through target store changes
+------------------------------------------------------------------------
+
+mapAtom : ∀ {Δ Δ′} {χs : StoreChanges Δ Δ′}
+    {A : Ty Δ}
+  → Atom A
+  → Atom (applyTys χs A)
+mapAtom {χs = []} a = a
+mapAtom {χs = keep ∷ χs} a = mapAtom {χs = χs} a
+mapAtom {χs = bind A ∷ χs} (＇ X) =
+  mapAtom {χs = χs} (＇ Fin.suc X)
+mapAtom {χs = bind A ∷ χs} (‵ ι) = mapAtom {χs = χs} (‵ ι)
+mapAtom {χs = bind A ∷ χs} ★ = mapAtom {χs = χs} ★
+
+applyConsistencies-id : ∀ {Δ Δ′} {χs : StoreChanges Δ Δ′}
+    {A : Ty Δ} {ν : Env∼ Δ}
+  → (a : Atom A)
+  → Reduction.applyConsistencies χs (Consistency.id {μ = ν} a) ≡
+    Consistency.id (mapAtom {χs = χs} a)
+applyConsistencies-id {χs = []} a = refl
+applyConsistencies-id {χs = keep ∷ χs} a =
+  applyConsistencies-id {χs = χs} a
+applyConsistencies-id {χs = bind A ∷ χs} (＇ X) =
+  applyConsistencies-id {χs = χs} (＇ Fin.suc X)
+applyConsistencies-id {χs = bind A ∷ χs} (‵ ι) =
+  applyConsistencies-id {χs = χs} (‵ ι)
+applyConsistencies-id {χs = bind A ∷ χs} ★ =
+  applyConsistencies-id {χs = χs} ★
+
+mapGroundOther : ∀ {Δᴸ Δ₀ Δ₁ Δ}
+    {χs : StoreChanges Δ₀ Δ₁} {W : World Δᴸ Δ₁ Δ}
+    {A : Ty Δᴸ} {B G : Ty Δ₀} {ν : Env∼ Δ₀}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
+    ⦃ Bns : NonStar B ⦄ {c : ν ⊢ B ∼ G}
+    {p : A ⊑ᵂ⟨ W ⟩ applyTys χs B}
+    {r : A ⊑ᵂ⟨ W ⟩ applyTys χs G}
+    {q : A ⊑ᵂ⟨ W ⟩ applyTys χs ★}
+  → B ≢ G
+  → CatchupCast⁻ {W = W} {A = A} p
+      (Reduction.applyConsistencies χs c) r
+  → CatchupCast⁻ {W = W} {A = A} p
+      (Reduction.applyConsistencies χs
+        (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Bns ⦄)) q
+mapGroundOther {χs = []} B≢G k = catchup⁻-ground-other B≢G _ k
+mapGroundOther {χs = keep ∷ χs} B≢G k =
+  mapGroundOther {χs = χs} B≢G k
+mapGroundOther {χs = bind A ∷ χs} ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄
+    ⦃ Bns ⦄ B≢G k =
+  mapGroundOther {χs = χs}
+    ⦃ Gᵍ = Consistency.renameGround Fin.suc Gᵍ ⦄
+    ⦃ G∼★ = Consistency.rename∼★ Fin.suc (λ X → refl) G∼★ ⦄
+    ⦃ Bns = Consistency.renameNonStar Fin.suc Bns ⦄
+    (λ eq → B≢G (renameᵗ-injective fin-suc-injective eq)) k
+
+mapInst : ∀ {Δᴸ Δ₀ Δ₁ Δ}
+    {χs : StoreChanges Δ₀ Δ₁} {W : World Δᴸ Δ₁ Δ}
+    {A : Ty Δᴸ} {B₀ : Ty (suc Δ₀)} {B′ : Ty Δ₀}
+    {ν : Env∼ Δ₀} {c′ : Consistency.instᵐ ν ⊢ B₀ ∼ ⇑ᵗ B′}
+    ⦃ Bnv : NonVar B₀ ⦄ ⦃ zero∈B : Fin.zero ∈ᵗ B₀ ⦄
+    {B′≢★ : B′ ≢ ★}
+    {p : A ⊑ᵂ⟨ W ⟩ applyTys χs (`∀ B₀)}
+    {q : A ⊑ᵂ⟨ W ⟩ applyTys χs B′}
+  → CatchupCast⁻ {W = W} {A = A} p
+      (Reduction.applyConsistencies χs ((Consistency.inst c′) B′≢★)) q
+mapInst {χs = []} = catchup⁻-inst
+mapInst {χs = keep ∷ χs} = mapInst {χs = χs}
+mapInst {χs = bind A ∷ χs} {B₀ = B₀} {B′ = B′} {c′ = c′}
+    ⦃ Bnv ⦄ ⦃ zero∈B ⦄ {B′≢★} =
+  subst≡
+    (λ z → CatchupCast⁻ _
+      (Reduction.applyConsistencies χs
+        (Consistency.inst_
+          ⦃ Anv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
+          ⦃ z∈A = z ⦄ c′₁ B′₁≢★)) _)
+    (PI.∈ᵗ-unique zero∈B₁ _)
+    (mapInst {χs = χs}
+      {B₀ = renameᵗ (extᵗ Fin.suc) B₀}
+      {B′ = renameᵗ Fin.suc B′} {c′ = c′₁}
+      ⦃ Bnv = renameNonVar (extᵗ Fin.suc) Bnv ⦄
+      ⦃ zero∈B = zero∈B₁ ⦄ {B′≢★ = B′₁≢★})
+  where
+  c′₁ = Consistency.subst-right-∼ (renameᵗ-shift Fin.suc B′)
+    (Consistency.rename∼ (extᵗ Fin.suc)
+      (Consistency.instᵐ-rename Fin.suc (λ X → refl)) c′)
+  zero∈B₁ = rename-occurs (extᵗ Fin.suc)
+    (ext-injective fin-suc-injective) zero∈B
+  B′₁≢★ = λ eq → B′≢★ (rename-star-injective Fin.suc eq)
+
+mapBotElim : ∀ {Δᴸ Δ₀ Δ₁ Δ}
+    {χs : StoreChanges Δ₀ Δ₁} {W : World Δᴸ Δ₁ Δ}
+    {A : Ty Δᴸ} {ν : Env∼ Δ₀}
+    {p : A ⊑ᵂ⟨ W ⟩ applyTys χs (`∀ (＇ Fin.zero))}
+    {q : A ⊑ᵂ⟨ W ⟩ applyTys χs (`∀ ★)}
+  → CatchupCast⁻ {W = W} {A = A} p
+      (Reduction.applyConsistencies χs
+        (Consistency.bot-elim {μ = ν})) q
+mapBotElim {χs = []} = catchup⁻-bot-elim
+mapBotElim {χs = keep ∷ χs} = mapBotElim {χs = χs}
+mapBotElim {χs = bind A ∷ χs} = mapBotElim {χs = χs}
+
+mapBotIntro : ∀ {Δᴸ Δ₀ Δ₁ Δ}
+    {χs : StoreChanges Δ₀ Δ₁} {W : World Δᴸ Δ₁ Δ}
+    {A : Ty Δᴸ} {ν : Env∼ Δ₀}
+    {p : A ⊑ᵂ⟨ W ⟩ applyTys χs (`∀ ★)}
+    {q : A ⊑ᵂ⟨ W ⟩ applyTys χs (`∀ (＇ Fin.zero))}
+  → CatchupCast⁻ {W = W} {A = A} p
+      (Reduction.applyConsistencies χs
+        (Consistency.bot-intro {μ = ν})) q
+mapBotIntro {χs = []} = catchup⁻-bot-intro
+mapBotIntro {χs = keep ∷ χs} = mapBotIntro {χs = χs}
+mapBotIntro {χs = bind A ∷ χs} = mapBotIntro {χs = χs}
+
+transportCatchup⁻ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ᵂ}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′ᵂ}
+    {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ B} {c : ν ⊢ B ∼ B′}
+    {q : A ⊑ᵂ⟨ W ⟩ B′}
+  → (ext : ECR.WorldExtendᴿ χs W W′)
+  → CatchupCast⁻ {W = W} {A = A} p c q
+  → CatchupCast⁻ {W = W′} {A = A}
+      (ECR.transport⊑ᵂ ext p) (Reduction.applyConsistencies χs c)
+      (ECR.transport⊑ᵂ ext q)
+transportCatchup⁻ {χs = χs} ext (catchup⁻-inert i) =
+  catchup⁻-inert (applyConsistencies-Inert χs i)
+transportCatchup⁻ {χs = χs} ext (catchup⁻-id a) =
+  subst≡
+    (λ c → CatchupCast⁻ (ECR.transport⊑ᵂ ext _) c
+      (ECR.transport⊑ᵂ ext _))
+    (sym (applyConsistencies-id {χs = χs} a))
+    (catchup⁻-id (mapAtom {χs = χs} a))
+transportCatchup⁻ {χs = χs} ext
+    (catchup⁻-ground-other {Gᵍ = Gᵍ} {G∼★ = G∼★}
+      {Bns = Bns} B≢G r k) =
+  mapGroundOther {χs = χs} ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+    ⦃ Bns = Bns ⦄ B≢G (transportCatchup⁻ ext k)
+transportCatchup⁻ {χs = χs} ext catchup⁻-inst = mapInst {χs = χs}
+transportCatchup⁻ {χs = χs} ext catchup⁻-bot-elim =
+  mapBotElim {χs = χs}
+transportCatchup⁻ {χs = χs} ext catchup⁻-bot-intro =
+  mapBotIntro {χs = χs}
+
+mapColumn-▻ : ∀ {Δ Δ′} {χs : StoreChanges Δ Δ′}
+    {A B C : Ty Δ} {ν : Env∼ Δ}
+  → (c : ν ⊢ A ∼ B)
+  → (k : CastColumn B C)
+  → mapColumn χs (c ▻ᶜ k) ≡
+    (Reduction.applyConsistencies χs c ▻ᶜ mapColumn χs k)
+mapColumn-▻ {χs = []} c k = refl
+mapColumn-▻ {χs = χ ∷ χs} c k =
+  mapColumn-▻ {χs = χs} (applyConsistency χ c) (mapColumn₁ χ k)
+
+mapColumn-[] : ∀ {Δ Δ′} {χs : StoreChanges Δ Δ′} {A : Ty Δ}
+  → mapColumn χs ([]ᶜ {A = A}) ≡ []ᶜ
+mapColumn-[] {χs = []} = refl
+mapColumn-[] {χs = χ ∷ χs} = mapColumn-[] {χs = χs}
+
+catchup-column⁻-transport : CatchupColumn⁻Transportᵀ
+catchup-column⁻-transport {χs = χs} ext (ccol⁻-[] {B = B})
+  rewrite mapColumn-[] {χs = χs} {A = B} = ccol⁻-[]
+catchup-column⁻-transport {χs = χs} ext
+    (ccol⁻-▻ {c = c} {κ = κ} k ks)
+  rewrite mapColumn-▻ {χs = χs} c κ =
+  ccol⁻-▻ (transportCatchup⁻ ext k)
+    (catchup-column⁻-transport ext ks)

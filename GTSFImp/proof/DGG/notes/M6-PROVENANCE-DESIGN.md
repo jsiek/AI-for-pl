@@ -1,6 +1,15 @@
 # M6 Driver Provenance Design
 
-Date: 2026-08-11. Status: design memo, pre-flight pending.
+Date: 2026-08-11. Status: option (A) selected and live; driver pending.
+
+Update, 2026-08-13: the pre-flight described below has landed in
+`Catchup/ValueCatchupRightDef.agda`.  `CatchupCast⁻`, `CatchupColumn⁻`,
+`CatchupColumn`, `ValueCatchupRightProv²`, the fuel-indexed `...At`
+interfaces, and `FuelKnot` are now the live M6 surface.  The decrease,
+column-size, world-extension, context-composition, reduction-composition,
+column-lifting, and `catchup⁻-embed` support is proved in
+`Catchup/ColumnSupportProof.agda`.  This memo remains the rationale for that
+surface, not a pending choice among (A), (B), and (C).
 
 ## The gap (checked)
 
@@ -38,8 +47,8 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 
 ## Candidate interfaces
 
-(A) **Head-full, tail-term-independent** (RECOMMENDED, pre-flight
-    first). Define the term-independent fragment `CatchupCast⁻`
+(A) **Head-full, tail-term-independent** (SELECTED AND LIVE). Define the
+    term-independent fragment `CatchupCast⁻`
     (constructors above minus the projection family; `ground-other`
     recursion also lands in the fragment). Column provenance:
 
@@ -89,16 +98,24 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
     needed by any call shape known today; sketch kept as the fallback.
     Cross-reference: QHUNT-REPORT.md "Candidate Invariant Interface".
 
-## Sequencing
+## Current sequencing
 
-1. Pre-flight (A) in a notes scratch: define `CatchupCast⁻`,
-   `CatchupColumn`, the provenance-carrying
-   `ValueCatchupRightProv²`; check the catalog column inhabits it and
-   that the three support lemmas are stateable. Validate the fuel-knot
-   surfaces (`...At`) with the provenance threaded.
-2. Only then let the driver implementation start; the M5 relational
-   continuations must mint the residual's `CatchupCast⁻` as part of
-   their conclusion (knot obligation, now explicit).
-3. The refuted surfaces in `ValueCatchupRightDef.agda` stay as
-   commented interface references until the Prov² statement replaces
-   them in the same file.
+1. DONE: select and pre-flight option (A); make the provenance-carrying
+   surfaces live in `ValueCatchupRightDef.agda`.
+2. IN PROGRESS: finish M5's `InstInversionPackage`.  Each view must mint the
+   residual `CatchupCast⁻`; the Λ support already constructs the non-star
+   residual provenance.
+3. DONE (2026-08-13): `catchup-column⁻-transport` proves
+   `CatchupColumn⁻Transportᵀ`, transporting every tail link through the store
+   changes returned by a head catch-up.
+4. NEXT after M5: implement `ValueCatchupRightProvAt`: run the head through
+   M4/M5, transport
+   the tail, embed its first term-independent link at the resulting value, and
+   recurse on the strictly smaller tail column.
+5. Tie `ExtraCastRightAt`, `InstCatchupRightAt`, and
+   `ValueCatchupRightProvAt` into `FuelKnot`, then expose the unindexed M6
+   theorem.
+
+The provenance-free surface remains only as a refuted design reference.  Do
+not revive it or admit projection casts in `CatchupCast⁻` without a new
+machine-checked call shape requiring option (C).

@@ -128,3 +128,86 @@ assumptions and pays one explicit syntax-directed case where needed.  S2 is
 conceptually compact, but in this codebase it turns the current shared-front
 world shape from a definitional fact into a parameter that all old proofs must
 respect.
+
+## S1 DECIDED (user, 2026-08-13) — the proposed live constructor
+
+The mechanized split is a second syntax-directed `Λ/Λ` constructor in
+`proof/DGG/CastTermImprecision2.agda`, alongside the untouched `Λ⊑Λ²`,
+following the guarded-premise-world pattern of `Λ⊑²-smart-comma`
+(guard record parameter, NOT a new world former):
+
+    Λ⊑Λ²-split : ∀ {Δˢ}
+        {Wˢ : World (suc Δᴸ) (suc Δᴿ) Δˢ}
+        {γˢ : CtxImp Wˢ}
+        {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+        {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+        {p : A ⊑ᵂ⟨ Wˢ ⟩ B}
+      → SplitLiftΛΛ W Wˢ
+      → SplitLiftCtx {W = W} {Wˢ = Wˢ} γ γˢ
+      → Value V
+      → Value V′
+      → Wˢ ∣ γˢ ⊢² V ⊑ V′ ∶ p
+      → (q : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B)
+        -------------------------------------------------
+      → W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ q
+
+with the guard `SplitLiftΛΛ W Wˢ` carrying (generalizing the checked
+calibration surface `S1SplitGuard` = wf/reveals/type-leaf/term-leaf,
+plus the A3 M-2 lesson):
+
+  - source-half placement: the source binder's fresh center sits at the
+    FRONT of Wˢ's center context (as in liftWorldBoth), embedding
+    equations `ηᴸ`-style as in the calibration's `sl-inner-at-ℓᵢ`;
+  - target-half placement: the target binder's fresh center is born at
+    the guarded position BEHIND a declared source-only prefix
+    (calibration: `sl-target-β-at-cβ`, `sl-target-α-at-cα`), with the
+    generated-window structure (name rep ★, alias := ＇name) and
+    DYNAMIC (X⊑★-family) marks at both window centers — the same
+    id_★-flavored bookkeeping the A3 calibration selected;
+  - `WFWorld Wˢ`;
+  - obligation transport: `A ⊑ᵂ⟨ W ⟩ H → (transported) ⊑ᵂ⟨ Wˢ ⟩ …`
+    fields for both endpoints, included FROM THE START (the A3
+    migration had to retrofit exactly this for the right-injection
+    inversion — do not repeat that);
+  - pointwise mark locality (off-footprint preservation), which
+    TargetBindLift's migration will consume as it did for smart-comma.
+
+Exact field inventory is pinned by gate SP-1 below; the shape above is
+what the calibration witnesses (`s1-sl-guard-ok`, `s1-es4-guard-ok`)
+already inhabit at their concrete instances.
+
+## S1 migration plan (for the continuing agent)
+
+Mirror the A3 gates (PLAN.md "A3 smart-comma migration" — DONE — is the
+template; reuse its patterns everywhere):
+
+  SP-1  Rule pre-flight: state `Λ⊑Λ²-split` + `SplitLiftΛΛ`/`SplitLiftCtx`
+        exactly; validate in the design scratch that (a) the two
+        calibration instances inhabit the guard, (b) ES4 and SL
+        packages derive through the constructor, (c) `Λ⊑Λ²`, `Λ⊑²`,
+        and `Λ⊑²-smart-comma` are untouched. Produce the migration
+        inventory (expect the A3 list: typing, CenterRename,
+        TargetExtend, TermImpDecay, TargetBindLift, strip workers, M3
+        inversion stack — two-case Λ/Λ views per the checked skeleton
+        `s1-right-inj-Λ-skeleton-ok` — M4 workers, probes/examples).
+  SP-2  Live rule + stack migration riskiest-first, tier gates
+        (`AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0
+        GTSFImp/All.agda`), commit AND push every tier. Expected
+        cheaper than A3: every transport pattern (off-image
+        disjointness, mark locality, guard obligation transport)
+        already exists for smart-comma — the split cases are their
+        second instantiation.
+  SP-3  Witness gate (= "blocker overcome"): derive LIVE the source-left
+        post judgment of M5-SPLIT-RAW-REPORT.md §4; RESOLVED postscripts
+        on m5-inst-inversion-source-left-post-prefix-at-blocked.red and
+        m5-inst-inversion-born-in-place-prefix-depth-blocked.red.
+  SP-4  Return to the frontier: close the source-left strip cases with
+        the split constructor, assemble InstInversionPackage.Λ-package
+        (root helpers proven), wire the dispatcher, update PLAN.md's M5
+        row; then the four descent views (∀/gen/reveal/conceal — the
+        InstRelContinuationSurface fields), then the M6 driver knot
+        (ValueCatchupRightProvAt), then M7.
+
+Discipline (unchanged): statement-first; .red + stop on genuine
+resisters; never weaken live statements; hygiene = FunExt only; commit
+and push every chunk.

@@ -155,8 +155,10 @@ instantiation case calls the supplied same-fuel `InstCatchupRightAt`.  This
 is joined by `value-catchup-right-prov-at` in
 `proof/DGG/Catchup/ValueCatchupRightProof.agda`: it processes one full-
 provenance head, transports and re-heads the tail, and recurses through
-`smaller-value`.  M5-to-`InstCatchupRightAt` wiring and the final
-accessibility knot remain.
+`smaller-value`.  `proof/DGG/Catchup/FuelKnotProof.agda` then constructs
+`FuelKnot fuel` by `Acc _<_` and exposes the unindexed theorem at
+`suc (columnSize κ)`.  Its sole remaining input is the explicit M5 factory
+`∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`.
 
 ## Checked Wiring
 

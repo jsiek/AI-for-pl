@@ -60,6 +60,7 @@ import proof.DGG.Catchup.ValueCatchupRightDef
 import proof.DGG.Catchup.ColumnSupportProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
+import proof.DGG.Catchup.FuelKnotProof
 
 ------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked

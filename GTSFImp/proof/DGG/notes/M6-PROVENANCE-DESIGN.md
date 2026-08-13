@@ -115,9 +115,12 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
    the current-fuel M4 worker, transports the tail, embeds its first
    term-independent link at the resulting value, and recurses through
    `smaller-value` on the strictly smaller mapped tail column.
-6. NEXT after M5: tie `ExtraCastRightAt`, `InstCatchupRightAt`, and
-   `ValueCatchupRightProvAt` into `FuelKnot`, then expose the unindexed M6
-   theorem.
+6. DONE modulo M5 (2026-08-13): `build-fuel-knot-acc` ties
+   `ExtraCastRightAt`, `InstCatchupRightAt`, and
+   `ValueCatchupRightProvAt` by `Acc _<_`.  The unindexed
+   `value-catchup-right-prov²` is live with one explicit argument:
+   `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`.  Completing
+   M5 supplies that factory without changing M6.
 
 `FuelStepSurface.next-knot` was removed on 2026-08-13.  It was unused by M5
 or M6, and it pointed in the wrong well-founded direction: constructing the

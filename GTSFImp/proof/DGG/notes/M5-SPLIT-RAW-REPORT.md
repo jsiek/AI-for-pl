@@ -483,3 +483,29 @@ Paper source:
     GTSF/cambridge26.lagda.md
       Example 4, first derivation, split step
       Smart comma section, `,,` clauses
+
+## 10. Re-evaluation: the fixed split layout is not required
+
+The invariant diagnosis in §8 is superseded for the concrete source-left
+case.  It assumed the output derivation had to preserve a premise in which the
+source half of the shared binder appeared before the source-only prefix while
+the generated target half appeared after it.  The live relation admits a
+different derivation order:
+
+1. Use the existing `Λ⊑Λ²` base-prefix construction on the shared inner core,
+   including the two generated target binds and reveals.
+2. Rebuild the pending outer plain `Λ⊑²` wrapper with
+   `Λ⊑²-smart-comma` after that target window exists.
+
+The checked live theorem is `Λ⊑²-plain-shared-prefix-at` in
+`proof/DGG/Catchup/InstInversionProof.agda`; the caller-supplied post-world
+version is `Λ⊑²-plain-shared-prefix-at-base`.  Thus the shared center is
+neither split nor exchanged, and no new relation constructor is justified by
+this example.
+
+The calibration remains useful as a conditional comparison of S1 and S2, but
+its successful type/term leaf cells use `SplitTyRel` and
+`SplitTermVarLeaf`, while its S3 refutations test re-parking into the fixed
+split layout.  They do not refute this derivation-tree interleaving.  The
+remaining work is the recursive smart-post plan producer recorded in
+`m5-inst-inversion-no-split-smart-plan-producer-blocked.red`.

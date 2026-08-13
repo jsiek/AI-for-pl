@@ -1,5 +1,11 @@
 # M5 split-rule calibration
 
+> **Status (2026-08-13): historical/conditional.** This calibration compares
+> split-rule designs after fixing the split post layout; it does not prove
+> that a split constructor is necessary. A live no-constructor interleaving
+> now derives the concrete source-left package. The revised no-split work
+> order at the bottom supersedes SP-1.
+
 Checked artifact:
 `GTSFImp/proof/DGG/notes/M5SplitCalibrationScratch.agda`.
 
@@ -15,7 +21,10 @@ This calibrates the syntax-directed split candidates from
 
 The scratch does not edit the live relation.  S1 and S2 are Set-level candidate
 surfaces with explicit split guards; S3 is checked as the no-split/re-park
-alternative and is refuted by finite center facts.
+alternative and is refuted by finite center facts.  In particular, the S1/S2
+type and term leaf cells are witnesses of the auxiliary `SplitTyRel` and
+`SplitTermVarLeaf` relations.  They are useful candidate-surface checks, but
+they are not inhabitants of the live type and term imprecision judgments.
 
 No S4 emerged.
 
@@ -176,12 +185,13 @@ Exact field inventory is pinned by gate SP-1 below; the shape above is
 what the calibration witnesses (`s1-sl-guard-ok`, `s1-es4-guard-ok`)
 already inhabit at their concrete instances.
 
-## S1 migration plan (for the continuing agent)
+## Historical S1 migration plan (SUSPENDED)
 
 Mirror the A3 gates (PLAN.md "A3 smart-comma migration" — DONE — is the
 template; reuse its patterns everywhere):
 
-  SP-1  Rule pre-flight: state `Λ⊑Λ²-split` + `SplitLiftΛΛ`/`SplitLiftCtx`
+  SP-1  SUSPENDED. Rule pre-flight: state `Λ⊑Λ²-split` +
+        `SplitLiftΛΛ`/`SplitLiftCtx`
         exactly; validate in the design scratch that (a) the two
         calibration instances inhabit the guard, (b) ES4 and SL
         packages derive through the constructor, (c) `Λ⊑Λ²`, `Λ⊑²`,
@@ -211,3 +221,49 @@ template; reuse its patterns everywhere):
 Discipline (unchanged): statement-first; .red + stop on genuine
 resisters; never weaken live statements; hygiene = FunExt only; commit
 and push every chunk.
+
+## Revised no-split plan (AUTHORITATIVE, 2026-08-13)
+
+The fixed-layout diagnosis is superseded by a checked interleaving of the
+existing rules.  For an actual plain `Λ⊑²` whose body is an ordinary
+`Λ⊑Λ²`, `Λ⊑²-plain-shared-prefix-at` recursively constructs the shared
+inner post prefix and then rewraps the outer source abstraction with
+`Λ⊑²-smart-comma`.  The generated target window therefore exists before the
+pending source wrapper is rebuilt; no shared center is split.
+
+The proof is in `proof/DGG/Catchup/InstInversionProof.agda` and its design
+preflight is `M5SplitInterleavingScratch.agda`.  The generic theorem
+`Λ⊑²-plain-shared-prefix-at-base` additionally shows that no relation change
+is hidden by the concrete right-only world: it consumes any supplied post
+world equipped with the existing smart lift, context lift, post-window
+geometry, and top type obligation.
+
+Revised gates:
+
+  NS-1  DONE (`98d3523c`): concrete live source-left package plus generic
+        post-world consumer.  The focused proof gate and `All.agda` pass.
+  NS-2  NEXT: make the derivation-recursive worker produce the generic
+        caller plan (`SmartCommaLiftᴸ`, `SmartLiftCtxᴸ`, and
+        `ΛPostWindowGeometry`) under an existing smart premise.  The
+        front-guard-through-`TargetInsert` closure checked in the scratch
+        preserves its original placement, so it is not by itself the needed
+        target-window-first producer.  The exact residual is recorded in
+        `m5-inst-inversion-no-split-smart-plan-producer-blocked.red`.
+  NS-3  Use that producer in the plain source-left and strip-wrapper cases,
+        assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
+        Then resume the four descent views and the M6 driver knot.
+
+Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
+Resume split-rule design only if NS-2 produces a machine-checked obstruction
+that also excludes the checked derivation-tree interleaving at the recursive
+caller.
+
+This checkout is on a different computer from the one that supplied the
+historical `/tmp/agda-work/agda-home` path.  On this Mac, remove that stale
+override and use the installed Agda registration:
+
+    env -u AGDA_DIR agda -i GTSFImp -v0 GTSFImp/All.agda
+
+Discipline remains statement-first; `.red` + stop on genuine resisters;
+never weaken live statements; hygiene = FunExt only; commit and push every
+chunk.

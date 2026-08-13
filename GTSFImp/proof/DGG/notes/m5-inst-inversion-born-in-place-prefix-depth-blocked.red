@@ -1,6 +1,7 @@
 M5 instantiation inversion blocker: born-in-place source-left prefix depth
 
-Status: BLOCKED, 2026-08-13.
+Status: SUPERSEDED AS A RELATION-EXPRESSIBILITY BLOCKER, 2026-08-13.
+The original investigation is retained below as history.
 
 Context:
 
@@ -103,3 +104,17 @@ Checked state:
 
   No live relation was changed, and no postulate, hole, or catch-all was
   added.
+
+RESOLVED postscript, 2026-08-13:
+
+  The failing `route1Prefix` field belonged to a fixed born-in-place premise
+  layout.  The live no-split proof does not transport the shared `X⊑X` center
+  into that layout.  Instead, `Λ⊑²-plain-shared-prefix-at` recursively closes
+  the ordinary shared `Λ⊑Λ²` prefix and then rebuilds the pending source
+  abstraction with `Λ⊑²-smart-comma` in the output derivation.
+
+  Therefore this note does not establish that the live relation needs a new
+  constructor.  Its finite order-preservation observations remain valid for
+  the attempted born-in-place transport, but they do not apply to the checked
+  interleaving.  The residual recursive-caller plan is recorded separately in
+  `m5-inst-inversion-no-split-smart-plan-producer-blocked.red`.

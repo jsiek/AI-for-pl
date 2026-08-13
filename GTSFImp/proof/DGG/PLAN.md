@@ -72,7 +72,7 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; inversion design pre-flight in flight | M→L | **half landed; relational half re-scoped** | — |
+| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the concrete source-left prefix now checks without a split constructor (`98d3523c`); recursive smart-post plan production is next | M→L | **half landed; relational half re-scoped** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **foundation landed**: castSize measure (in proof/Consistency) + all six support lemmas proven; the provenance-free driver surface is REFUTED (ValueCatchupProvenanceGapScratch) and the provenance-carrying replacement (CatchupCast⁻/CatchupColumn/ValueCatchupRightProv², design in notes/M6-PROVENANCE-DESIGN.md) is LIVE in the Def with the fuel knot re-pointed at it and catchup⁻-embed proven; driver knot pending | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -455,3 +455,62 @@ hidden placement branch. Constructor definition + migration plan
 (gates SP-1..SP-4, A3 playbook) in notes/M5-SPLIT-CALIBRATION.md.
 Continuation handed to a successor agent; the plan section is the
 authoritative work order.
+
+## NO-SPLIT re-evaluation (2026-08-13, CHECKED — supersedes SP-1)
+
+The split decision above was based on an over-constrained post layout,
+not on an impossibility result for the live relation.  The successful
+S1/S2 type and term leaves in `M5SplitCalibrationScratch.agda` use the
+auxiliary `SplitTyRel` and `SplitTermVarLeaf`, not live `_⊑ᵂ_` and
+`_⊢²_⊑_∶_`.  The S3 refutations rule out re-parking a shared center into
+the same fixed split layout; they do not rule out a different output
+derivation tree.
+
+The no-constructor interleaving now checks on the live proof surface:
+
+- `Λ⊑²-plain-shared-prefix-at` consumes the actual plain `Λ⊑²` over
+  `Λ⊑Λ²` source-left shape and returns its complete concrete
+  `ΛPostPrefixPackageAt`.
+- `Λ⊑²-plain-shared-prefix-at-base` is the corresponding consumer at a
+  caller-supplied post world.  It takes the smart lift, transported
+  contexts, `ΛPostWindowGeometry`, and the outer post obligation
+  explicitly and returns `ΛPostPrefixPackageAtBase`.
+- The proof first constructs the shared inner `Λ⊑Λ²` post prefix with
+  the existing target-bind/reveal machinery.  It then rebuilds the
+  pending outer source wrapper with `Λ⊑²-smart-comma`.  No shared center
+  is split or moved through a source-only prefix.
+
+This is live at commit `98d3523c`; the relation in
+`CastTermImprecision2.agda` is unchanged.  The design preflight remains
+in `notes/M5SplitInterleavingScratch.agda`.
+
+Revised work order:
+
+  NS-1  DONE: live concrete source-left witness and generic post-world
+        consumer.  Focused `InstInversionProof.agda` and full
+        `GTSFImp/All.agda` gates pass.
+  NS-2  NEXT: produce the generic smart-post plan required by the
+        derivation-recursive caller: `SmartCommaLiftᴸ`,
+        `SmartLiftCtxᴸ`, and `ΛPostWindowGeometry` for the post world
+        chosen under an existing smart premise.  Merely transporting a
+        front smart guard through `TargetInsert` preserves that plan's
+        placement and does not identify it with the target-window-first
+        plan consumed by the theorem.  See
+        `notes/m5-inst-inversion-no-split-smart-plan-producer-blocked.red`.
+  NS-3  Close the source-strip wrappers, assemble
+        `InstInversionPackage.Λ-package`, and wire the dispatcher; then
+        resume the four descent views and the M6 driver knot.
+
+SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
+ends in a new machine-checked relation-expressibility obstruction that
+also rules out derivation-tree interleavings.
+
+The `/tmp/agda-work/agda-home` setting in the historical plan came from
+another computer.  On this Mac, remove that stale override and use the
+installed Agda registration:
+
+    env -u AGDA_DIR agda -i GTSFImp -v0 GTSFImp/All.agda
+
+Discipline remains statement-first; `.red` + stop on genuine resisters;
+no weakening of live statements; hygiene = FunExt only; commit and push
+every proof or planning chunk.

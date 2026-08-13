@@ -36,7 +36,9 @@ import proof.DGG.TargetExtend as TE
 open import proof.TypeInTermSubst using (toRename-id-eq)
 
 ------------------------------------------------------------------------
--- A plain front lift becomes smart-fresh after target insertion.
+-- A front lift remains a valid smart guard after target insertion.
+-- This closure preserves its placement; it is not by itself the
+-- target-window-first producer used by the concrete theorem below.
 ------------------------------------------------------------------------
 
 front-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}

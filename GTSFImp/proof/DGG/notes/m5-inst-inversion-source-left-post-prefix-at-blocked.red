@@ -1,7 +1,8 @@
 M5 instantiation inversion blocker: source-left post-prefix at a supplied
 smart post window
 
-Status: BLOCKED, 2026-08-12.
+Status: SUPERSEDED AS A RELATION-EXPRESSIBILITY BLOCKER, 2026-08-13.
+The original investigation is retained below as history.
 
 Context:
 
@@ -179,3 +180,27 @@ Born-in-place refinement, 2026-08-13:
   the prefix.  The born-in-place route needs that center split around the
   source-left prefix, which is not expressible by `_↪ᵗ_`, `TargetStoreMove`,
   `TargetInsert`, or `WorldExtendᴿ`.
+
+RESOLVED postscript, 2026-08-13:
+
+  The conclusion above fixed the wrong output derivation shape.  The live
+  theorem:
+
+    `Λ⊑²-plain-shared-prefix-at`
+
+  now derives the complete concrete `ΛPostPrefixPackageAt` for an actual
+  plain `Λ⊑²` over an ordinary shared `Λ⊑Λ²`.  It first consumes the shared
+  inner core with `Λ⊑Λ²-base-prefix-at`, then rebuilds the outer wrapper with
+  `Λ⊑²-smart-recursive-prefix-at`.  The latter uses the existing
+  `Λ⊑²-smart-comma` output rule.  No center is split or exchanged.
+
+  The caller-supplied version:
+
+    `Λ⊑²-plain-shared-prefix-at-base`
+
+  also checks.  It consumes `SmartCommaLiftᴸ`, `SmartLiftCtxᴸ`, and
+  `ΛPostWindowGeometry` for the selected post world.  Producing those fields
+  in the full derivation-recursive smart-premise caller remains a proof-plan
+  integration problem, now isolated in
+  `m5-inst-inversion-no-split-smart-plan-producer-blocked.red`; it is not the
+  relation-expressibility obstruction claimed by this note.

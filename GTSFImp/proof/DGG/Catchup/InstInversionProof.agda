@@ -1700,7 +1700,7 @@ route1-old-mark-out {W₁ = W₁} {W₂ = W₂}
     {κ₁ = κ₁} {ins₁ = ins₁} {ins₂ = ins₂} facts Z old-star =
   subst≡
     (λ C → CTI2.impEnvʷ W₂ C ≡ I.X⊑★)
-    (TE.window-old (ΛRouteOneWindowFacts.targetWindow₂ facts)
+    (TE.window-old (targetWindow₂ facts)
       (toRenameᵗ κ₁ (Fin.suc Z)))
     (trans (TE.impEnv-insert ins₂
         (toRenameᵗ κ₁ (Fin.suc Z)))
@@ -1710,8 +1710,49 @@ route1-old-mark-out {W₁ = W₁} {W₂ = W₂}
       CTI2.impEnvʷ W₁ (toRenameᵗ κ₁ (Fin.suc Z)) ≡ I.X⊑★
   old-star₁ =
     subst≡ (λ C → CTI2.impEnvʷ W₁ C ≡ I.X⊑★)
-      (TE.window-old (ΛRouteOneWindowFacts.targetWindow₁ facts) Z)
+      (TE.window-old (targetWindow₁ facts) Z)
       (trans (TE.impEnv-insert ins₁ Z) old-star)
+
+
+window-zero-off : ∀ {Δ Δ′}
+    {π : Δ ↪ᵗ Δ′} {κ : suc Δ ↪ᵗ Δ′}
+  → CR.EmbeddingWindow π κ
+  → CR.preimage? π (toRenameᵗ κ Fin.zero) ≡ nothing
+window-zero-off CR.window-here = refl
+window-zero-off (CR.window-skip win) = window-zero-off win
+
+
+route1-mid-source-pivot-from-windows : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁} {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁} {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+  → TE.TargetWindowInsert ins₁ κ₁
+  → TE.TargetWindowInsert ins₂ κ₂
+  → CTI2.impEnvʷ (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
+      (toRenameᵗ (CTI2.ηᴸʷ (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂))
+        Fin.zero) ≡ I.X⊑★
+route1-mid-source-pivot-from-windows {W = W} {W₂ = W₂}
+    {κ₁ = κ₁} {κ₂ = κ₂} {ins₁ = ins₁} {ins₂ = ins₂}
+    win₁ win₂ =
+  subst≡ (λ C → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W₂) C
+      ≡ I.X⊑★)
+    (sym point-eq) star₂
+  where
+  star₁ = TE.impEnv-off-insert ins₁
+    (window-zero-off (TE.windowEmbedding win₁))
+  star₂ = subst≡ (λ C → CTI2.impEnvʷ W₂ C ≡ I.X⊑★)
+    (TE.window-old win₂ (toRenameᵗ κ₁ Fin.zero))
+    (trans (TE.impEnv-insert ins₂ (toRenameᵗ κ₁ Fin.zero)) star₁)
+  point-eq = cong Fin.suc
+    (trans
+      (CR.toRenameᵗ-∘ κ₂ (skip (κ₁ CR.∘↪ keep (CTI2.ηᴸʷ W)))
+        Fin.zero)
+      (cong (toRenameᵗ κ₂) (cong Fin.suc
+        (CR.toRenameᵗ-∘ κ₁ (keep (CTI2.ηᴸʷ W)) Fin.zero))))
 
 
 route1-split★-same : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
@@ -3624,12 +3665,33 @@ record ΛTwoInsertPostPlan {Δᴸ Δᴿ Δ}
     κ₂ : suc Δ₁ ↪ᵗ Δ₂
     ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁
     ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂
+    targetFollows₁ : CTI2.targetStoreʷ W₁
+      ≡ applyStores (bind ★ ∷ []) (CTI2.targetStoreʷ W)
+    targetFollows₂ : CTI2.targetStoreʷ W₂
+      ≡ applyStores (bind (＇ Fin.zero) ∷ []) (CTI2.targetStoreʷ W₁)
     windowFacts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
     postExtend : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂
     postGeometry : ΛPostWindowGeometry W W₂ postExtend
 
 open ΛTwoInsertPostPlan public
+
+
+record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    (plan : ΛTwoInsertPostPlan W) : Set₁ where
+  field
+    childPlan : ΛTwoInsertPostPlan Wᵐ
+    postLift : CTI2.SmartCommaLiftᴸ
+      (ΛTwoInsertPostPlan.W₂ plan)
+      (ΛTwoInsertPostPlan.W₂ childPlan)
+    postLiftCtx : ∀ {γ γᵐ}
+      → CTI2.SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
+      → CTI2.SmartLiftCtxᴸ
+          (ECR.mapCtxᴿ (ΛTwoInsertPostPlan.postExtend plan) γ)
+          (ECR.mapCtxᴿ
+            (ΛTwoInsertPostPlan.postExtend childPlan) γᵐ)
 
 
 Λ-concrete-two-insert-post-plan : ∀ {Δᴸ Δᴿ Δ}
@@ -3647,6 +3709,8 @@ open ΛTwoInsertPostPlan public
   ; κ₂ = id↪ᵗ
   ; ins₁ = TE.rightBindTargetInsert
   ; ins₂ = TE.rightBindTargetInsert
+  ; targetFollows₁ = refl
+  ; targetFollows₂ = refl
   ; windowFacts = Λ-route1-right-bind-facts
   ; postExtend = right-bind-right-bind-world-extendᴿ
   ; postGeometry = Λ-concrete-post-window
@@ -4142,6 +4206,23 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
       (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
 
 
+mapCtxᴿ-smart-liftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
+    {χs : StoreChanges Δᴿ (suc (suc Δᴿ))}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵐ₂ : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → {ext₂ : ECR.WorldExtendᴿ χs W W₂}
+  → {extᵐ₂ : ECR.WorldExtendᴿ χs Wᵐ Wᵐ₂}
+  → CTI2.SmartLiftCtxᴸ γ γᵐ
+  → CTI2.SmartLiftCtxᴸ
+      (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
+mapCtxᴿ-smart-liftᴸ CTI2.smart-lift-[] = CTI2.smart-lift-[]
+mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
+  CTI2.smart-lift-∷ (mapCtxᴿ-smart-liftᴸ liftγ)
+
+
 Λ-route1-smart-alias-facts : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
@@ -4343,6 +4424,142 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
           (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
   where
   facts = Λ-route1-smart-fresh-facts guard
+
+
+Λ-two-insert-smart-child : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (plan : ΛTwoInsertPostPlan W)
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → ΛSmartChildPostPlan plan
+Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
+    (CTI2.smart-merge-alias guard) =
+  record
+    { childPlan = record
+        { Δ₁ = _ ; Δ₂ = _ ; W₁ = Wᵐ₁ ; W₂ = Wᵐ₂
+        ; π₁ = π₁ plan ; π₂ = π₂ plan
+        ; κ₁ = κ₁ plan ; κ₂ = κ₂ plan
+        ; ins₁ = insᵐ₁ ; ins₂ = insᵐ₂
+        ; targetFollows₁ = follows₁ ; targetFollows₂ = follows₂
+        ; windowFacts = facts ; postExtend = extᵐ
+        ; postGeometry = Λ-route1-post-window-at facts support }
+    ; postLift = CTI2.smart-merge-alias guard₂
+    ; postLiftCtx = mapCtxᴿ-smart-liftᴸ
+    }
+  where
+  Wᵐ₁ = TE.smartAliasInsertWorld (ins₁ plan) Wᵐ
+  insᵐ₁ = TE.smartAliasTargetInsert (ins₁ plan) guard
+  guard₁ = TE.smartAliasGuardInsert (ins₁ plan) guard
+  Wᵐ₂ = TE.smartAliasInsertWorld (ins₂ plan) Wᵐ₁
+  insᵐ₂ = TE.smartAliasTargetInsert (ins₂ plan) guard₁
+  guard₂ = TE.smartAliasGuardInsert (ins₂ plan) guard₁
+  follows₁ = trans (targetFollows₁ plan)
+    (cong (applyStores (bind ★ ∷ []))
+      (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
+  follows₂ = trans (targetFollows₂ plan)
+    (cong (applyStores (bind (＇ Fin.zero) ∷ []))
+      (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard₁)))
+  extᵐ = composeWorldExtendᴿ
+    (target-insert-bind-world-extendᴿ insᵐ₁ follows₁)
+    (target-insert-bind-world-extendᴿ insᵐ₂ follows₂)
+  winᵐ₁ = TE.smartAliasTargetWindowInsert
+    (ins₁ plan) guard (targetWindow₁ (windowFacts plan))
+  winᵐ₂ = TE.smartAliasTargetWindowInsert
+    (ins₂ plan) guard₁ (targetWindow₂ (windowFacts plan))
+  facts = record
+    { targetWindow₁ = winᵐ₁
+    ; targetWindow₂ = winᵐ₂
+    ; pivotMark = subst≡ (λ C → CTI2.impEnvʷ
+          (CR.renameWorld (skip (κ₂ plan))
+            (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) C ≡ I.X⊑★)
+        (sym (CR.toRenameᵗ-∘ (skip (κ₂ plan))
+          (CTI2.ηᴿʷ (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) Fin.zero))
+        (CR.renameEnv-image (skip (κ₂ plan))
+          (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) Fin.zero)
+    ; targetStoreTransport = targetStoreTransport (windowFacts plan)
+    ; firstTargetZeroResolves = firstTargetZeroResolves (windowFacts plan)
+    ; targetZeroResolves = targetZeroResolves (windowFacts plan)
+    ; targetOtherResolves = targetOtherResolves (windowFacts plan)
+    ; midSourcePivotMark =
+        route1-mid-source-pivot-from-windows winᵐ₁ winᵐ₂ }
+  first-entry = subst≡
+    (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
+  support = Λ-route1-post-window-support-at facts
+    (Λ-route1-mid-fresh-mono-at facts)
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+      (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
+        (generated-reveal-⊢↑-present z first-entry)))
+Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
+    (CTI2.smart-fresh-behind guard)
+    with TE.smartFreshTargetWindowInsert (ins₁ plan) guard
+      (targetWindow₁ (windowFacts plan))
+Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
+    (CTI2.smart-fresh-behind guard) | κᵐ₁ , winᵐ₁
+    with TE.smartFreshTargetWindowInsert (ins₂ plan) guard₁
+      (targetWindow₂ (windowFacts plan))
+  where
+  guard₁ = TE.smartFreshGuardInsert (ins₁ plan) guard
+Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
+    (CTI2.smart-fresh-behind guard)
+    | κᵐ₁ , winᵐ₁ | κᵐ₂ , winᵐ₂ =
+  record
+    { childPlan = record
+        { Δ₁ = _ ; Δ₂ = _ ; W₁ = Wᵐ₁ ; W₂ = Wᵐ₂
+        ; π₁ = πᵐ₁ ; π₂ = πᵐ₂
+        ; κ₁ = κᵐ₁ ; κ₂ = κᵐ₂
+        ; ins₁ = insᵐ₁ ; ins₂ = insᵐ₂
+        ; targetFollows₁ = follows₁ ; targetFollows₂ = follows₂
+        ; windowFacts = facts ; postExtend = extᵐ
+        ; postGeometry = Λ-route1-post-window-at facts support }
+    ; postLift = CTI2.smart-fresh-behind guard₂
+    ; postLiftCtx = mapCtxᴿ-smart-liftᴸ
+    }
+  where
+  πᵐ₁ = CR.EmbeddingPushout.premise (CR.embeddingPushout
+    (π₁ plan) (CTI2.SmartFreshBehindGuard.oldCenters guard))
+  Wᵐ₁ = TE.smartFreshInsertWorld (ins₁ plan) guard
+  insᵐ₁ = TE.smartFreshTargetInsert (ins₁ plan) guard
+  guard₁ = TE.smartFreshGuardInsert (ins₁ plan) guard
+  πᵐ₂ = CR.EmbeddingPushout.premise (CR.embeddingPushout
+    (π₂ plan) (CTI2.SmartFreshBehindGuard.oldCenters guard₁))
+  Wᵐ₂ = TE.smartFreshInsertWorld (ins₂ plan) guard₁
+  insᵐ₂ = TE.smartFreshTargetInsert (ins₂ plan) guard₁
+  guard₂ = TE.smartFreshGuardInsert (ins₂ plan) guard₁
+  follows₁ = trans (targetFollows₁ plan)
+    (cong (applyStores (bind ★ ∷ []))
+      (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard)))
+  follows₂ = trans (targetFollows₂ plan)
+    (cong (applyStores (bind (＇ Fin.zero) ∷ []))
+      (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard₁)))
+  extᵐ = composeWorldExtendᴿ
+    (target-insert-bind-world-extendᴿ insᵐ₁ follows₁)
+    (target-insert-bind-world-extendᴿ insᵐ₂ follows₂)
+  facts = record
+    { targetWindow₁ = winᵐ₁ ; targetWindow₂ = winᵐ₂
+    ; pivotMark = subst≡ (λ C → CTI2.impEnvʷ
+          (CR.renameWorld (skip κᵐ₂)
+            (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) C ≡ I.X⊑★)
+        (sym (CR.toRenameᵗ-∘ (skip κᵐ₂)
+          (CTI2.ηᴿʷ (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) Fin.zero))
+        (CR.renameEnv-image (skip κᵐ₂)
+          (CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑★ Wᵐ₁)) Fin.zero)
+    ; targetStoreTransport = targetStoreTransport (windowFacts plan)
+    ; firstTargetZeroResolves = firstTargetZeroResolves (windowFacts plan)
+    ; targetZeroResolves = targetZeroResolves (windowFacts plan)
+    ; targetOtherResolves = targetOtherResolves (windowFacts plan)
+    ; midSourcePivotMark =
+        route1-mid-source-pivot-from-windows winᵐ₁ winᵐ₂ }
+  first-entry = subst≡
+    (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
+  support = Λ-route1-post-window-support-at facts
+    (Λ-route1-mid-fresh-mono-at facts)
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+      (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
+        (generated-reveal-⊢↑-present z first-entry)))
 
 
 Λ⊑²-smart-fresh-world : ∀ {Δᴸ Δᴿ Δ}

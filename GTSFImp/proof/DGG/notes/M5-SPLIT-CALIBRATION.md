@@ -247,11 +247,11 @@ Revised gates:
         existing canonical target-first smart witnesses.  The first analysis
         had the inserted-center order for that leaf backwards: two right
         bindings put the target window before the pending source-fresh center.
-  NS-2b NEXT: thread the two target insertions and post-window geometry through
-        the derivation-recursive worker.  An explicit `Λ⊑²-smart-comma` must
-        recurse at the guard-insert world, using
-        `Λ-route1-smart-{alias,fresh}-ext₂/post-window`; its premise cannot in
-        general choose canonical `rightOnlyWorld` twice.
+  NS-2b RED-STOP: a one-level post world and geometry do not compose through
+        arbitrary nesting.  State a hereditary two-target-insertion plan with
+        smart alias/fresh and source-rebase child transformers before resuming
+        the recursive proof.  The exact first non-composing indices are in
+        `m5-inst-inversion-generalized-post-plan-threading-blocked.red`.
   NS-3  After NS-2b, use the worker in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
         Then resume the four descent views and the M6 driver knot.

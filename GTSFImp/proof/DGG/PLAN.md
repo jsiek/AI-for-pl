@@ -494,13 +494,16 @@ Revised work order:
         the already-live canonical target-first witnesses.  The earlier
         center-order diagnosis for this leaf was backwards; no new world
         equality or relation constructor is required.
-  NS-2b NEXT: generalize the derivation-recursive worker so it threads the
-        two target insertions and post-window geometry.  At an explicit
-        `Λ⊑²-smart-comma`, branch on the guard and recurse at the corresponding
-        `Λ-route1-smart-{alias,fresh}-ext₂` world, using its checked
-        `...-post-window` geometry; do not substitute canonical
-        `rightOnlyWorld` twice at the premise world.
-  NS-3  After NS-2b, close the source-strip wrappers, assemble
+  NS-2b RED-STOP: the derivation-recursive worker needs a hereditary
+        two-target-insertion plan, not only `ext₂` plus post geometry.  Nested
+        smart-comma and source rebase wrappers must transform the caller's
+        plan; the current smart route-one helpers restart canonical binds at
+        their local root.  State the plan with insertion/window facts and
+        child transformers before resuming proof code.  Exact indices and
+        required transformations are in
+        `notes/m5-inst-inversion-generalized-post-plan-threading-blocked.red`.
+  NS-3  After the NS-2b statement surface checks, close the source-strip
+        wrappers, assemble
         `InstInversionPackage.Λ-package`, and wire the dispatcher; then
         resume the four descent views and the M6 driver knot.
 

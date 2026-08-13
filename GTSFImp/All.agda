@@ -69,6 +69,8 @@ import proof.DGG.Catchup.StructuralValueInstantiationTransportProof
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof
+import proof.DGG.Catchup.StructuralWorldTagRebaseDef
+import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

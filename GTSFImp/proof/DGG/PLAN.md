@@ -583,6 +583,8 @@ to transform an unfinished descent through source `Λ`, reveal, and conceal
 wrappers, and erases to the existing public `WorldExtendᴿ`.
 `structural-rebase-atᴸ` now transforms an arbitrary such trace through a
 source-reveal rebase, returning both the premise trace and the final rebase.
+`structural-tag-rebase-atᴸ` provides the conceal-direction analogue and
+maps the target pivot across every bind in the trace.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

@@ -203,6 +203,9 @@ trace before packaging it.
 `structural-rebase-atᴸ` is the first checked transformer: it commutes every
 target bind through a source reveal using `insertRebaseAtᴸ`, preserves keeps,
 and returns the final rebase needed to rebuild `reveal⊑²`.
+`structural-tag-rebase-atᴸ` mirrors this for source conceal, retaining the
+premise-to-conclusion orientation and mapping the target pivot across the
+complete store-change trace.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

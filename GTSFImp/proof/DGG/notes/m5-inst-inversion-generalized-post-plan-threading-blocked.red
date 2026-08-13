@@ -130,3 +130,16 @@ Consequence:
 
 No live relation was changed, and no postulate, hole, catch-all, or weakening
 of a theorem statement was added.
+
+Progress, 2026-08-13:
+
+  The finite statement surface is now live as `ΛTwoInsertPostPlan` in
+  `Catchup/InstInversionProof.agda`, together with its canonical root
+  inhabitant `Λ-concrete-two-insert-post-plan`.  It carries both target
+  insertions, their `ΛRouteOneWindowFacts` (including both window maps), the
+  composed two-bind `WorldExtendᴿ`, and `ΛPostWindowGeometry`.  The record is
+  intentionally not recursively self-referential; smart and source-rebase
+  closure are separate theorem obligations.  The first remaining closure
+  lemma is the generic smart-fresh target-window transformer, since the live
+  `smartFreshRightBindTargetWindowInsert` is specialized to a canonical root
+  right bind.

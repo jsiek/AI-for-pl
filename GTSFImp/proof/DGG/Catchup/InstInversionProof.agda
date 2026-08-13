@@ -3581,6 +3581,78 @@ open ΛRouteOnePostWindowSupport public
   }
 
 
+Λ-route1-right-bind-facts : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ΛRouteOneWindowFacts id↪ᵗ id↪ᵗ
+      (TE.rightBindTargetInsert {W = W} {B = ★})
+      (TE.rightBindTargetInsert
+        {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+Λ-route1-right-bind-facts {W = W} = record
+  { targetWindow₁ = TE.rightBindTargetWindowInsert
+  ; targetWindow₂ = TE.rightBindTargetWindowInsert
+  ; pivotMark = refl
+  ; targetStoreTransport = StoreTransport-lift-bind
+  ; firstTargetZeroResolves = refl
+  ; targetZeroResolves = refl
+  ; targetOtherResolves = target-other
+  ; midSourcePivotMark = refl
+  }
+  where
+  target-other : ∀ Z
+    → Z ≢ Fin.zero
+    → CTI2.resolveVar
+        (CTI2.targetStoreʷ
+          (CTI2.rightOnlyWorld
+            (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) Z
+      ≡ CTI2.resolveVar
+          (store-lift
+            (CTI2.targetStoreʷ (CTI2.rightOnlyWorld W ★))) Z
+  target-other Fin.zero neq = ⊥-elim (neq refl)
+  target-other (Fin.suc Z) neq = refl
+
+
+record ΛTwoInsertPostPlan {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) : Set₁ where
+  field
+    Δ₁ : TyCtx
+    Δ₂ : TyCtx
+    W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁
+    W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂
+    π₁ : Δ ↪ᵗ Δ₁
+    π₂ : Δ₁ ↪ᵗ Δ₂
+    κ₁ : suc Δ ↪ᵗ Δ₁
+    κ₂ : suc Δ₁ ↪ᵗ Δ₂
+    ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁
+    ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂
+    windowFacts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
+    postExtend : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂
+    postGeometry : ΛPostWindowGeometry W W₂ postExtend
+
+open ΛTwoInsertPostPlan public
+
+
+Λ-concrete-two-insert-post-plan : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ΛTwoInsertPostPlan W
+Λ-concrete-two-insert-post-plan {W = W} = record
+  { Δ₁ = _
+  ; Δ₂ = _
+  ; W₁ = CTI2.rightOnlyWorld W ★
+  ; W₂ = CTI2.rightOnlyWorld
+      (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)
+  ; π₁ = wk↪ᵗ
+  ; π₂ = wk↪ᵗ
+  ; κ₁ = id↪ᵗ
+  ; κ₂ = id↪ᵗ
+  ; ins₁ = TE.rightBindTargetInsert
+  ; ins₂ = TE.rightBindTargetInsert
+  ; windowFacts = Λ-route1-right-bind-facts
+  ; postExtend = right-bind-right-bind-world-extendᴿ
+  ; postGeometry = Λ-concrete-post-window
+  }
+
+
 Λ⊑Λ²-post-body-transport-at : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}

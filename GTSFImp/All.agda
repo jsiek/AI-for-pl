@@ -55,6 +55,10 @@ import proof.DGG.Catchup.InstInversionProof
 import proof.DGG.Catchup.StructuralValueInstantiationMeasureProof
 import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralValueInstantiationSpineMeasureProof
+import proof.DGG.Catchup.StructuralValueInstantiationWrapperMeasureProof
+import proof.DGG.Catchup.StructuralValueInstantiationCastMeasureProof
+import proof.DGG.Catchup.StructuralValueInstantiationAllMeasureProof
+import proof.DGG.Catchup.StructuralValueInstantiationOpenMeasureProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

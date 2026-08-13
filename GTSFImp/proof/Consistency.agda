@@ -751,6 +751,20 @@ castSize-close-inst-≤ {B = B} c
           close-inst-cross-to-★ close-inst-cross-from-★)
         close-inst-SubstEnvSize≤ c)
 
+castSize-open-fresh-≤ : ∀ {Δ} {μ : Env∼ Δ}
+    {A B : Ty (suc (suc Δ))}
+  → (c : extᵐ (renameEnv∼ wk↪ᵗ μ) ⊢ A ∼ B)
+  → castSize (c [ ＇ zero ]ᶜ) ≤ castSize c
+castSize-open-fresh-≤ c =
+  castSize-subst∼-≤ _
+    (subst-env-size≤
+      (λ { zero → ≤-refl ; (suc X) → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl }))
+    c
+
 consistent-star : ∀ (A : Ty 0) → A ∼ ★
 consistent-star A = common-lower-consistent
   (A , refl⊑ A , imprecise-star A)

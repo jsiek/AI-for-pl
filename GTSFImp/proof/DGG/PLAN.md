@@ -522,6 +522,23 @@ Revised work order:
         reveal, and conceal), assemble `InstInversionPackage`, and discharge
         the live M6 knot's M5 factory argument.
 
+NS-4 RED-STOP (2026-08-13): the first `allv-∀` producer exposed a missing
+well-foundedness component in the live Def surface.  The package only carries
+the residual-column bound
+`castSize ((inst c′) B′≢★) < fuel`, but descending the catalog post may need
+an extra-cast worker for the universal value's stored body cast.  The checked
+finite counterexample in `notes/M5AllFuelBoundScratch.agda` has stored/opened
+cast size 5 and instantiation-body size 4, so the outer inst cast has size 5:
+fuel 6 admits the outer cast but cannot provide a strictly smaller worker for
+the size-5 spine cast.  See
+`notes/m5-all-spine-fuel-bound-blocked.red`.
+
+Next: state a separate target-wrapper descent budget, or an equivalent
+lexicographic accessibility surface, before implementing the four NS-4
+producers.  Do not conflate it with the M6 residual-column fuel, and do not
+resume the proof with a fixed one-unit fuel padding until nested-wrapper
+decrease has been checked.
+
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from
 `InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes

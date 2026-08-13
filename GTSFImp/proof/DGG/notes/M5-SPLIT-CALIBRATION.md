@@ -268,6 +268,14 @@ Revised gates:
         complete inversion package, and discharge the M5 factory argument of
         the already-live M6 fuel knot.
 
+NS-4 is currently at a statement-level red stop, not a relation resister.
+The checked `allv-∀` example in `M5AllFuelBoundScratch.agda` shows that the
+stored universal body cast can be as large as the entire outer inst cast.
+Consequently the existing residual-column `fuel` cannot also justify the
+strictly smaller extra-cast call needed by spine descent.  The next statement
+must expose a separate target-wrapper descent budget or lexicographic
+accessibility witness; see `m5-all-spine-fuel-bound-blocked.red`.
+
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design
 remains suspended.  Resume it only if a later step finds a new machine-checked

@@ -16,7 +16,7 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; +-mono-≤)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
 open import Relation.Nullary using (no; yes)
 
 open import Types
@@ -24,9 +24,9 @@ open import Consistency
 open SubstEnv∼
 import CastTerms as CT
 open import CastTerms using (GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
-open import proof.Imprecision using (imprecise-star)
+open import proof.Imprecision using (imprecise-star; ∈ᵗ-unique)
 open import proof.ImprecisionConsistency
-  using (common-lower-consistent; refl⊑;
+  using (common-lower-consistent; refl⊑; nonstar-from-≢★;
     consistency-target-occurs-source)
 
 ------------------------------------------------------------------------
@@ -890,3 +890,73 @@ gen-safe-view safe-∀ = gen-safe-inert CT.all
 gen-safe-view (safe-inst B≢★) = gen-safe-inst B≢★
 gen-safe-view (safe-gen A≢★ safe) =
   gen-safe-inert (CT.genᵥ A≢★ safe)
+
+rename-occursᶜ : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
+  → (rho : Δ ⇒ʳ Δ′)
+  → X ∈ᵗ A
+  → rho X ∈ᵗ renameᵗ rho A
+rename-occursᶜ rho var-∈ = var-∈
+rename-occursᶜ rho (∈-fun-left X∈A) =
+  ∈-fun-left (rename-occursᶜ rho X∈A)
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    with occurs? (rho X) (renameᵗ rho A)
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | present rhoX∈A = ∈-fun-left rhoX∈A
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | absent rhoX∉A =
+  ∈-fun-right rhoX∉A (rename-occursᶜ rho X∈B)
+rename-occursᶜ rho (∈-all X∈A) =
+  ∈-all (rename-occursᶜ (extᵗ rho) X∈A)
+subst-left-gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A A′ B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (eq : A ≡ A′)
+  → GenSafe c
+  → GenSafe (subst-left-∼ eq c)
+subst-left-gen-safe refl safe = safe
+renameGenSafe : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+  → (rho : Δ ⇒ʳ Δ′)
+  → (eq : ∀ X → μ′ (rho X) ≡ μ X)
+  → GenSafe c
+  → GenSafe (rename∼ {μ = μ} {μ′ = μ′} rho eq c)
+renameGenSafe rho eq safe-⇒ = safe-⇒
+renameGenSafe rho eq safe-∀ = safe-∀
+renameGenSafe {μ = μ} {μ′ = μ′} rho eq
+    (safe-inst {A = A} {B = B} {c = c}
+      ⦃ Anv ⦄ ⦃ z∈A ⦄ B≢★) =
+  subst
+    (λ z → GenSafe
+      (inst_ ⦃ renameNonVar (extᵗ rho) Anv ⦄
+        ⦃ z ⦄ c′ B′≢★))
+    (∈ᵗ-unique (rename-occursᶜ (extᵗ rho) z∈A) _)
+    (safe-inst
+      ⦃ renameNonVar (extᵗ rho) Anv ⦄
+      ⦃ rename-occursᶜ (extᵗ rho) z∈A ⦄
+      B′≢★)
+  where
+  c′ = subst-right-∼ (renameᵗ-shift rho B)
+    (rename∼ {μ = instᵐ μ} {μ′ = instᵐ μ′}
+      (extᵗ rho) (instᵐ-rename rho eq) c)
+  B′≢★ = nonStar≢★
+    (renameNonStar rho (nonstar-from-≢★ B≢★))
+renameGenSafe {μ = μ} {μ′ = μ′} rho eq
+    (safe-gen {A = A} {B = B} {c = c}
+      ⦃ Bnv ⦄ ⦃ z∈B ⦄ A≢★ safe) =
+  subst
+    (λ z → GenSafe
+      (gen_ ⦃ renameNonVar (extᵗ rho) Bnv ⦄
+        ⦃ z ⦄ c′ A′≢★))
+    (∈ᵗ-unique (rename-occursᶜ (extᵗ rho) z∈B) _)
+    (safe-gen
+      ⦃ renameNonVar (extᵗ rho) Bnv ⦄
+      ⦃ rename-occursᶜ (extᵗ rho) z∈B ⦄
+      A′≢★
+      (subst-left-gen-safe (renameᵗ-shift rho _)
+        (renameGenSafe {μ′ = genᵐ μ′} (extᵗ rho)
+          (genᵐ-rename rho eq) safe)))
+  where
+  c′ = subst-left-∼ (renameᵗ-shift rho A)
+    (rename∼ {μ = genᵐ μ} {μ′ = genᵐ μ′}
+      (extᵗ rho) (genᵐ-rename rho eq) c)
+  A′≢★ = nonStar≢★
+    (renameNonStar rho (nonstar-from-≢★ A≢★))

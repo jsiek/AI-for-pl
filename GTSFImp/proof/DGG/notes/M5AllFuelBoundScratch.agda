@@ -17,7 +17,8 @@ open import Types
 open import Consistency
 open import CastTerms using
   (Term; Value; GenSafe; Inert; fun; _⟨_⟩; _《_》)
-open import proof.Consistency using (castSize; strict-safe; ext-safe)
+open import proof.Consistency using
+  (castSize; strict-safe; ext-safe; renameGenSafe)
 
 
 μ₀ : Env∼ 0
@@ -75,6 +76,10 @@ allocated-d : extᵐ (renameEnv∼ wk↪ᵗ μ₀) ⊢
 allocated-d = id (＇ Fin.zero) ↦
   _! ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = ∀∼★ ⦄
     (∀ᶜ (id ★)) ⦃ nonstar-∀ ⦄
+allocated-d-safe-by-rename : GenSafe (renameᵐᶜ wk↪ᵗ d)
+allocated-d-safe-by-rename =
+  renameGenSafe (toRenameᵗ wk↪ᵗ)
+    (renameEnv∼-preserves wk↪ᵗ _) d-safe
 
 
 opened-d-size : castSize

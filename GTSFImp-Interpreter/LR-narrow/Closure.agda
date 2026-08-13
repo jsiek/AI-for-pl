@@ -55,14 +55,16 @@ right-universals-related-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
-    {Bᴾ : Ty (suc Δᴾ)} {k : ℕ} {Vᴵ Vᴾ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ} {Vᴵ Vᴾ}
     (W≼W′ : Future W W′)
-  → RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+  → RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
   → RightUniversalsRelated W′
       (liftCenterDynamicBodyImprecision W≼W′ p)
-      (liftPreciseBody W≼W′ Bᴾ) k
+      (liftPreciseBody W≼W′ Bᴾ) (liftImpreciseTy W≼W′ Bᴵ) k
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
-right-universals-related-future = Proof.right-universals-related-future
+right-universals-related-future {p = p} {Bᴵ = Bᴵ} W≼W′ related =
+  Proof.right-universals-related-future {p = p} {Bᴵ = Bᴵ}
+    W≼W′ related
 
 value-imprecision-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}

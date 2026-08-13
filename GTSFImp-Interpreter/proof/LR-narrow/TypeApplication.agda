@@ -29,6 +29,7 @@ import Eval as E
 open import Interpreter
 import Imprecision as I
 import proof.Imprecision as PI
+import proof.ImprecisionConsistency as IC
 open import proof.ImprecisionConsistency using
   (renameᵗ-injective; toRenameᵗ-injective; ty-all-injective)
 import proof.DGG.CastTermImprecision2 as CTI
@@ -155,9 +156,68 @@ lift-precise-open (future-precise W₀≼W₁ fresh) B A =
     (rename-openᵗ Fin.suc
       (liftPreciseBody W₀≼W₁ B)
       (liftPreciseTy W₀≼W₁ A))
+
+lift-center-shift : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    (W₀≼W₁ : Future W₀ W₁) (A : Ty Δᶜ₀)
+  → liftCenterBody W₀≼W₁ (⇑ᵗ A)
+      ≡ ⇑ᵗ (liftCenterTy W₀≼W₁ A)
+lift-center-shift future-refl A = refl
+lift-center-shift (future-paired W₀≼W₁ related fresh) A =
+  trans (cong (renameᵗ (extᵗ Fin.suc))
+    (lift-center-shift W₀≼W₁ A))
+    (renameᵗ-shift Fin.suc (liftCenterTy W₀≼W₁ A))
+lift-center-shift (future-precise W₀≼W₁ fresh) A =
+  trans (cong (renameᵗ (extᵗ Fin.suc))
+    (lift-center-shift W₀≼W₁ A))
+    (renameᵗ-shift Fin.suc (liftCenterTy W₀≼W₁ A))
+
+lift-center-body-nonvar : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {A : Ty (suc Δᶜ₀)}
+  → (W₀≼W₁ : Future W₀ W₁)
+  → NonVar A
+  → NonVar (liftCenterBody W₀≼W₁ A)
+lift-center-body-nonvar future-refl nonvar = nonvar
+lift-center-body-nonvar (future-paired W₀≼W₁ related fresh) nonvar =
+  renameNonVar (extᵗ Fin.suc)
+    (lift-center-body-nonvar W₀≼W₁ nonvar)
+lift-center-body-nonvar (future-precise W₀≼W₁ fresh) nonvar =
+  renameNonVar (extᵗ Fin.suc)
+    (lift-center-body-nonvar W₀≼W₁ nonvar)
+
+lift-center-body-occurs : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {A : Ty (suc Δᶜ₀)}
+  → (W₀≼W₁ : Future W₀ W₁)
+  → Fin.zero ∈ᵗ A
+  → Fin.zero ∈ᵗ liftCenterBody W₀≼W₁ A
+lift-center-body-occurs future-refl occurs = occurs
+lift-center-body-occurs
+    (future-paired W₀≼W₁ related fresh) occurs =
+  IC.rename-occurs (extᵗ Fin.suc)
+    (IC.ext-injective IC.fin-suc-injective)
+    (lift-center-body-occurs W₀≼W₁ occurs)
+lift-center-body-occurs (future-precise W₀≼W₁ fresh) occurs =
+  IC.rename-occurs (extᵗ Fin.suc)
+    (IC.ext-injective IC.fin-suc-injective)
+    (lift-center-body-occurs W₀≼W₁ occurs)
+
 ------------------------------------------------------------------------
 -- Evaluator phase packages
 ------------------------------------------------------------------------
+
+returned-injective : ∀ {Δ} {M : Term Δ}
+    {r s : E.EvalResult M}
+  → returned r ≡ returned s
+  → r ≡ s
+returned-injective refl = refl
 
 applyBodies : ∀ {Δ Δ′}
   → StoreChanges Δ Δ′
@@ -1082,6 +1142,13 @@ empty-paired-atom W Aᴾ Aᴵ =
   fresh-semantic-atom {W = W} Aᴾ Aᴵ
     (λ k Vᴵ Vᴾ → ⊥) (λ ()) (λ ())
 
+empty-dynamic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ)
+  → DynamicSemanticAtom (preciseBindCore W Aᴾ) Fin.zero
+empty-dynamic-atom W Aᴾ =
+  fresh-dynamic-semantic-atom {W = W} Aᴾ
+    (λ k Vᴵ Vᴾ → ⊥) (λ ()) (λ ())
+
 precise-universal-body-eq : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {B C : Ty (suc Δᴾ)}
@@ -1127,6 +1194,17 @@ imprecise-universal-bodies-eq {W = W} B-eq C-eq =
     (renameᵗ-injective
       (toRenameᵗ-injective (impreciseEmbedding (core W)))
       (trans B-eq (sym C-eq)))
+
+imprecise-types-eq : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {P : Ty Δᶜ}
+    {B C : Ty Δᴵ}
+  → embedImprecise (core W) B ≡ P
+  → embedImprecise (core W) C ≡ P
+  → B ≡ C
+imprecise-types-eq {W = W} B-eq C-eq =
+  renameᵗ-injective
+    (toRenameᵗ-injective (impreciseEmbedding (core W)))
+    (trans B-eq (sym C-eq))
 
 precise-body-lift-eq : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -1234,6 +1312,35 @@ positive-universal-application {W = W} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ}
     | Bᴾ , Bᴵ , eqᴾ , eqᴵ , call
     rewrite precise-universal-bodies-eq {W = W} eqᴾ Cᴾ-eq
           | imprecise-universal-bodies-eq {W = W} eqᴵ Cᴵ-eq =
+  call s
+
+right-universal-application : ∀
+    {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Cᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {Rᴾ : Ty Δᴾ}
+    {Pᴾ : Ty (suc Δᶜ)} {Pᴵ : Ty Δᶜ}
+    {p : I.instᵐ (impEnv (core W)) I.⊢ Pᴾ ⊑ ⇑ᵗ Pᴵ}
+    {nonvar : NonVar Pᴾ} {occurs : Fin.zero ∈ᵗ Pᴾ}
+    {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
+    {fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → embedPrecise (core W) (`∀ Cᴾ) ≡ `∀ Pᴾ
+  → embedImprecise (core W) Bᴵ ≡ Pᴵ
+  → ValueImprecision W (I.∀⊑ nonvar occurs p) k Vᴵ Vᴾ
+  → let step = future-precise (future-refl {W = W}) fresh
+    in ComputationsRelated W (PostBindValueRelation step s) k
+      Vᴵ (Vᴾ ⦂∀ Cᴾ [ Rᴾ ])
+right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
+    {Rᴾ = Rᴾ} {s = s} {fresh = fresh}
+    Cᴾ-eq Bᴵ-eq related
+    with right-related-universal-instantiation
+      {W = W} {fresh = fresh} related
+right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
+    {Rᴾ = Rᴾ} {s = s} {fresh = fresh}
+    Cᴾ-eq Bᴵ-eq related
+    | Dᴾ , Dᴵ , eqᴾ , eqᴵ , call
+    rewrite precise-universal-bodies-eq {W = W} eqᴾ Cᴾ-eq
+          | imprecise-types-eq {W = W} eqᴵ Bᴵ-eq =
   call s
 
 positive-lifted-universal-application : ∀
@@ -1457,9 +1564,212 @@ related-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
     {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = p} {r = r} {s = s}
     composite fresh positive compositeFunction
 
+right-type-call-after-function : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁
+     Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {Cᴾ : Ty (suc Δᴾ₀)} {Bᴵ : Ty Δᴵ₀} {Rᴾ : Ty Δᴾ₀}
+    {p : I.instᵐ (impEnv (core W₀)) I.⊢
+      renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W₀)))) Cᴾ
+      ⊑ ⇑ᵗ (embedImprecise (core W₀) Bᴵ)}
+    {nonvar : NonVar (renameᵗ (extᵗ (Consistency.toRenameᵗ
+      (preciseEmbedding (core W₀)))) Cᴾ)}
+    {occurs : Fin.zero ∈ᵗ renameᵗ
+      (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W₀)))) Cᴾ}
+    {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W₀ ⟩ Bᴵ}
+    {Dᴾ : Ty (suc Δᴾ₂)} {Sᴾ : Ty Δᴾ₂}
+    {Vᴾ : Term Δᴾ₂} {Vᴵ : Term Δᴵ₂} {k : ℕ}
+  → (W₀≼W₁ : Future W₀ W₁)
+  → (W₁≼W₂ : Future W₁ W₂)
+  → Dᴾ ≡ liftPreciseBody W₁≼W₂
+      (liftPreciseBody W₀≼W₁ Cᴾ)
+  → Sᴾ ≡ liftPreciseTy W₁≼W₂ (liftPreciseTy W₀≼W₁ Rᴾ)
+  → ValueImprecision W₂
+      (liftCenterImprecision W₁≼W₂
+        (liftCenterImprecision W₀≼W₁
+          (I.∀⊑ nonvar occurs p))) k Vᴵ Vᴾ
+  → let composite = future-trans W₀≼W₁ W₁≼W₂
+        fresh = empty-dynamic-atom (core W₂)
+          (liftPreciseTy composite Rᴾ)
+        step = future-precise (future-refl {W = W₂}) fresh
+    in ComputationsRelated W₂
+      (PostBindValueRelation step
+        (liftCenterImprecision W₁≼W₂
+          (liftCenterImprecision W₀≼W₁ s))) k
+      Vᴵ (Vᴾ ⦂∀ Dᴾ [ Sᴾ ])
+right-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
+    {Cᴾ = Cᴾ} {Bᴵ = Bᴵ} {Rᴾ = Rᴾ}
+    {p = p} {nonvar = nonvar} {occurs = occurs} {s = s}
+    {Dᴾ = Dᴾ} {Sᴾ = Sᴾ} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ} {k = k}
+    W₀≼W₁ W₁≼W₂ bodyEqᴾ argumentEqᴾ functionRelated =
+  ClosureProof.computations-related-post-bind-reindex
+    local-result sequential-result
+    preciseResultEq impreciseResultEq refl preciseTermEq localCall
+  where
+  composite = future-trans W₀≼W₁ W₁≼W₂
+
+  compositeFunction = ClosureProof.value-imprecision-reindex
+    (liftCenterImprecision composite (I.∀⊑ nonvar occurs p))
+    (liftCenterImprecision W₁≼W₂
+      (liftCenterImprecision W₀≼W₁ (I.∀⊑ nonvar occurs p)))
+    (liftCenterTy-trans W₀≼W₁ W₁≼W₂
+      (embedPrecise (core W₀) (`∀ Cᴾ)))
+    (liftCenterTy-trans W₀≼W₁ W₁≼W₂
+      (embedImprecise (core W₀) Bᴵ)) functionRelated
+
+  p-lifted = liftCenterDynamicBodyImprecision composite p
+
+  p-structural = subst≡
+    (λ T → I.instᵐ (impEnv (core W₂)) I.⊢
+      liftCenterBody composite
+        (renameᵗ (extᵗ (Consistency.toRenameᵗ
+          (preciseEmbedding (core W₀)))) Cᴾ) ⊑ T)
+    (lift-center-shift composite (embedImprecise (core W₀) Bᴵ)) p-lifted
+
+  structural = I.∀⊑
+    (lift-center-body-nonvar composite nonvar)
+    (lift-center-body-occurs composite occurs)
+    p-structural
+
+  structuralFunction = ClosureProof.value-imprecision-reindex
+    structural
+    (liftCenterImprecision composite (I.∀⊑ nonvar occurs p))
+    (sym (liftCenterTy-universal composite
+      (renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W₀)))) Cᴾ)))
+    refl compositeFunction
+
+  local-result = ClosureProof.local-imprecision-reindex {W = W₂}
+    (liftLocalImprecision composite s)
+    (sym (lift-precise-open composite Cᴾ Rᴾ)) refl
+
+  fresh = empty-dynamic-atom (core W₂)
+    (liftPreciseTy composite Rᴾ)
+
+  step = future-precise (future-refl {W = W₂}) fresh
+
+  localCall = right-universal-application
+    {W = W₂} {p = p-structural} {s = local-result}
+    {fresh = fresh} {k = k}
+    (cong `∀ (precise-body-lift-eq composite Cᴾ))
+    (embedImprecise-lift composite Bᴵ) structuralFunction
+
+  sequential-result = liftCenterImprecision W₁≼W₂
+    (liftCenterImprecision W₀≼W₁ s)
+
+  preciseResultEq = trans
+    (cong (embedPrecise (core W₂))
+      (sym (lift-precise-open composite Cᴾ Rᴾ)))
+    (trans (embedPrecise-lift composite (Cᴾ [ Rᴾ ]ᵗ))
+      (liftCenterTy-trans W₀≼W₁ W₁≼W₂
+        (embedPrecise (core W₀) (Cᴾ [ Rᴾ ]ᵗ))))
+
+  impreciseResultEq = trans (embedImprecise-lift composite Bᴵ)
+    (liftCenterTy-trans W₀≼W₁ W₁≼W₂
+      (embedImprecise (core W₀) Bᴵ))
+
+  preciseTermEq = cong₂ (λ D S → Vᴾ ⦂∀ D [ S ])
+    (trans (liftPreciseBody-trans W₀≼W₁ W₁≼W₂ Cᴾ)
+      (sym bodyEqᴾ))
+    (trans (liftPreciseTy-trans W₀≼W₁ W₁≼W₂ Rᴾ)
+      (sym argumentEqᴾ))
+
 ------------------------------------------------------------------------
 -- Joining the operator and instantiated-call worlds
 ------------------------------------------------------------------------
+
+assemble-right-type-application-pair : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᶜ₁ Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {Aᴾ Aᴵ : Ty Δᶜ₀}
+    {q : impEnv (core W₀) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Lᴾ : Term Δᴾ₀} {Lᴵ : Term Δᴵ₀}
+    {functionResultᴾ : E.EvalResult Lᴾ}
+    {functionResultᴵ : E.EvalResult Lᴵ}
+    {Bᴾ : Ty (suc Δᴾ₀)} {Rᴾ : Ty Δᴾ₀}
+    {callResultᴾ : E.EvalResult
+      (E.term functionResultᴾ
+        ⦂∀ applyBodies (E.changes functionResultᴾ) Bᴾ
+        [ E.changes functionResultᴾ ▶ᵗ Rᴾ ])}
+    {W₁ : World (E.Δ′ functionResultᴾ)
+      (E.Δ′ functionResultᴵ) Δᶜ₁}
+    {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    {j k : ℕ}
+  → (W₀≼W₁ : Future W₀ W₁)
+  → impreciseStore (core W₁) ≡
+      E.changes functionResultᴵ ▶ˢ impreciseStore (core W₀)
+  → preciseStore (core W₁) ≡
+      E.changes functionResultᴾ ▶ˢ preciseStore (core W₀)
+  → (∀ M → E.changes functionResultᴵ ▶ᵀ M ≡
+      liftImpreciseTerm W₀≼W₁ M)
+  → (∀ M → E.changes functionResultᴾ ▶ᵀ M ≡
+      liftPreciseTerm W₀≼W₁ M)
+  → (step : Future W₁ bound)
+  → PairedReturns W₁
+      (PostBindValueRelation step
+        (liftCenterImprecision W₀≼W₁ q)) j
+      (E.result _ [] (E.term functionResultᴵ) ↠-refl
+        (E.value functionResultᴵ)) callResultᴾ
+  → j ≡ k
+  → PairedReturns W₀ (FutureValueRelation q) k functionResultᴵ
+      (sequence-type-application-result functionResultᴾ callResultᴾ)
+assemble-right-type-application-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {q = q} {functionResultᴾ = functionResultᴾ}
+    {functionResultᴵ = functionResultᴵ}
+    {Bᴾ = Bᴾ} {Rᴾ = Rᴾ} {callResultᴾ = callResultᴾ}
+    W₀≼W₁ functionStoreᴵ functionStoreᴾ
+    functionTermsᴵ functionTermsᴾ step
+    (paired-returns W₂ W₁≼W₂ callStoreᴵ callStoreᴾ
+      callTermsᴵ callTermsᴾ
+      (bound≼W₂ , factors , callValueRelated)) indexEq =
+  paired-returns W₂ W₀≼W₂ impreciseStoreEq preciseStoreEq
+    impreciseTermsEq preciseTermsEq finalValueRelated
+  where
+  W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
+
+  impreciseStoreEq = trans callStoreᴵ functionStoreᴵ
+
+  preciseStoreEq = trans callStoreᴾ
+    (trans
+      (cong (λ Σ → E.changes callResultᴾ ▶ˢ Σ) functionStoreᴾ)
+      (apply-stores-++ (E.changes functionResultᴾ)
+        (E.changes callResultᴾ) (preciseStore (core W₀))))
+
+  preciseResult = sequence-type-application-result
+    {B = Bᴾ} {A = Rᴾ} functionResultᴾ callResultᴾ
+
+  impreciseTermsEq : ∀ M → E.changes functionResultᴵ ▶ᵀ M ≡
+      liftImpreciseTerm W₀≼W₂ M
+  impreciseTermsEq M = trans (functionTermsᴵ M)
+    (trans
+      (callTermsᴵ (liftImpreciseTerm W₀≼W₁ M))
+      (sym (liftImpreciseTerm-trans W₀≼W₁ W₁≼W₂ M)))
+
+  preciseTermsEq : ∀ M → E.changes preciseResult ▶ᵀ M ≡
+      liftPreciseTerm W₀≼W₂ M
+  preciseTermsEq M = trans
+    (sym (apply-terms-++ (E.changes functionResultᴾ)
+      (E.changes callResultᴾ) M))
+    (trans
+      (cong (λ N → E.changes callResultᴾ ▶ᵀ N)
+        (functionTermsᴾ M))
+      (trans
+        (callTermsᴾ (liftPreciseTerm W₀≼W₁ M))
+        (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
+
+  compositeQ = liftCenterImprecision W₀≼W₂ q
+  sequentialQ = liftCenterImprecision W₁≼W₂
+    (liftCenterImprecision W₀≼W₁ q)
+
+  finalValueRelated = ClosureProof.value-imprecision-reindex
+    compositeQ sequentialQ
+    (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴾ)
+    (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴵ)
+    (value-index-reindex indexEq callValueRelated)
 
 assemble-type-application-pair : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᶜ₁ Δᴾᵇ Δᴵᵇ Δᶜᵇ}
@@ -2062,4 +2372,292 @@ type-application-compatible {W = W} {Γ = Γ}
           paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
             functionTermsᴵ functionTermsᴾ functionValueRelated)
       | preciseCallGas , preciseCallBlame
+      | wholeGas , wholeBlame = wholeGas , wholeBlame
+
+------------------------------------------------------------------------
+-- Asymmetric right type-application compatibility
+------------------------------------------------------------------------
+
+right-type-application-compatible : ∀
+    {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Cᴾ : Ty (suc Δᴾ)} {Aᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ}
+    {p : I.instᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Cᴾ
+      ⊑ ⇑ᵗ (embedImprecise (core W) Bᴵ)}
+    {nonvar : NonVar (renameᵗ (extᵗ (Consistency.toRenameᵗ
+      (preciseEmbedding (core W)))) Cᴾ)}
+    {occurs : Fin.zero ∈ᵗ renameᵗ
+      (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Cᴾ}
+    {q : Aᴾ ⊑ᵂ⟨ core W ⟩ ★}
+    {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
+    {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑ nonvar occurs p
+  → (∀ k → CompiledTermRelation {W = W}
+      (I.∀⊑ nonvar occurs p) k Γ Lᴾ Lᴵ)
+  → ∀ k → CompiledTermRelation {W = W} r k Γ
+      (Lᴾ ⦂∀ Cᴾ [ Aᴾ ]) Lᴵ
+right-type-application-compatible {W = W} {Γ = Γ}
+    {Cᴾ = Cᴾ} {Aᴾ = Aᴾ} {Bᴵ = Bᴵ}
+    {p = p} {nonvar = nonvar} {occurs = occurs}
+    {q = q} {r = r} {Lᴾ = Lᴾ} {Lᴵ = Lᴵ}
+    L⊑ L-related k W′ W≼W′ γ =
+  ClosureProof.computations-related-reindex
+    (liftCenterImprecision W≼W′ r) (liftCenterImprecision W≼W′ r)
+    refl refl refl (sym precise-type-app-eq)
+    (record
+      { forward-return = forward
+      ; backward-return = backward
+      ; forward-blame = forwardBlame
+      })
+  where
+  Lᴵ′ = close (impreciseClosingSubstitution γ)
+    (liftImpreciseTerm W≼W′ Lᴵ)
+  Lᴾ′ = close (preciseClosingSubstitution γ)
+    (liftPreciseTerm W≼W′ Lᴾ)
+  Cᴾ′ = liftPreciseBody W≼W′ Cᴾ
+  Aᴾ′ = liftPreciseTy W≼W′ Aᴾ
+
+  precise-type-app-eq :
+      close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (Lᴾ ⦂∀ Cᴾ [ Aᴾ ])) ≡
+      Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]
+  precise-type-app-eq = cong
+    (close (preciseClosingSubstitution γ))
+    (lift-precise-type-application W≼W′ Lᴾ Cᴾ Aᴾ)
+
+  function-related = L-related k W′ W≼W′ γ
+
+  forward : ∀ {n} {resultᴵ : E.EvalResult Lᴵ′}
+    → n ≤ k
+    → interpretFrom (impreciseStore (core W′)) n Lᴵ′
+        ≡ returned resultᴵ
+    → (Σ[ m ∈ ℕ ]
+       Σ[ resultᴾ ∈ E.EvalResult (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]) ]
+         interpretFrom (preciseStore (core W′)) m
+           (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]) ≡ returned resultᴾ
+         × PairedReturns W′
+            (FutureValueRelation (liftCenterImprecision W≼W′ r))
+            (k ∸ n) resultᴵ resultᴾ)
+      ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W′)) m
+          (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]))
+  forward {n} {resultᴵ} n≤k result-eq
+      with forward-return function-related n≤k result-eq
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₂ (preciseFunctionGas , preciseFunctionBlame)
+      with type-function-blame-expand
+        {Σ = preciseStore (core W′)}
+        {functionGas = preciseFunctionGas}
+        {L = Lᴾ′} {B = Cᴾ′} {A = Aᴾ′} preciseFunctionBlame
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₂ (preciseFunctionGas , preciseFunctionBlame)
+      | wholeGas , wholeBlame = inj₂ (wholeGas , wholeBlame)
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₁ (preciseFunctionGas , preciseFunctionResult ,
+          preciseFunctionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated)
+      with forward-return call-related z≤n callReturnᴵ
+    where
+    bodyEqᴾ = precise-phase-body-eq
+      {χs = E.changes preciseFunctionResult} W′≼W₁
+      functionTermsᴾ Cᴾ′ Aᴾ′
+    argumentEqᴾ = precise-phase-argument-eq
+      {χs = E.changes preciseFunctionResult} W′≼W₁
+      functionTermsᴾ Cᴾ′ Aᴾ′
+
+    call-related = right-type-call-after-function
+      {W₀ = W} {W₁ = W′} {W₂ = W₁}
+      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r}
+      {Dᴾ = applyBodies (E.changes preciseFunctionResult) Cᴾ′}
+      {Sᴾ = E.changes preciseFunctionResult ▶ᵗ Aᴾ′}
+      {Vᴾ = E.term preciseFunctionResult}
+      {Vᴵ = E.term resultᴵ} {k = k ∸ n}
+      W≼W′ W′≼W₁ bodyEqᴾ argumentEqᴾ functionValueRelated
+
+    callReturnᴵ = value-return-exact
+      {Σ = impreciseStore (core W₁)} zero (E.value resultᴵ)
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₁ (preciseFunctionGas , preciseFunctionResult ,
+          preciseFunctionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated)
+      | inj₂ (preciseCallGas , preciseCallBlame)
+      with type-application-call-blame-expand
+        {Σ = preciseStore (core W′)}
+        {functionGas = preciseFunctionGas}
+        {callGas = preciseCallGas} {L = Lᴾ′}
+        {B = Cᴾ′} {A = Aᴾ′} preciseFunctionReturn
+        (blame-store-reindex {gas = preciseCallGas}
+          {M = E.term preciseFunctionResult ⦂∀
+            applyBodies (E.changes preciseFunctionResult) Cᴾ′
+            [ E.changes preciseFunctionResult ▶ᵗ Aᴾ′ ]}
+          (sym functionStoreᴾ) preciseCallBlame)
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₁ (preciseFunctionGas , preciseFunctionResult ,
+          preciseFunctionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated)
+      | inj₂ (preciseCallGas , preciseCallBlame)
+      | wholeGas , wholeBlame = inj₂ (wholeGas , wholeBlame)
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₁ (preciseFunctionGas , preciseFunctionResult ,
+          preciseFunctionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated)
+      | inj₁ (preciseCallGas , preciseCallResult , preciseCallReturn ,
+          callPair)
+      with type-application-return-expand
+        {Σ = preciseStore (core W′)}
+        {functionGas = preciseFunctionGas}
+        {callGas = preciseCallGas} {L = Lᴾ′}
+        {B = Cᴾ′} {A = Aᴾ′}
+        preciseFunctionReturn preciseCallPhaseReturn
+    where
+    preciseCallPhaseReturn = return-store-reindex
+      {gas = preciseCallGas}
+      {M = E.term preciseFunctionResult ⦂∀
+        applyBodies (E.changes preciseFunctionResult) Cᴾ′
+        [ E.changes preciseFunctionResult ▶ᵗ Aᴾ′ ]}
+      (sym functionStoreᴾ) preciseCallReturn
+  forward {n} {resultᴵ} n≤k result-eq
+      | inj₁ (preciseFunctionGas , preciseFunctionResult ,
+          preciseFunctionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated)
+      | inj₁ (preciseCallGas , preciseCallResult , preciseCallReturn ,
+          callPair)
+      | wholeGas , wholeReturn =
+    inj₁ (wholeGas , preciseWholeResult , wholeReturn , assembledPair)
+    where
+    preciseWholeResult = sequence-type-application-result
+      preciseFunctionResult preciseCallResult
+
+    assembledPair = assemble-right-type-application-pair
+      {W₀ = W′} {q = liftCenterImprecision W≼W′ r}
+      {functionResultᴾ = preciseFunctionResult}
+      {functionResultᴵ = resultᴵ}
+      {callResultᴾ = preciseCallResult}
+      W′≼W₁ functionStoreᴵ functionStoreᴾ
+      functionTermsᴵ functionTermsᴾ _ callPair refl
+
+  backward : ∀ {n}
+      {resultᴾ : E.EvalResult (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ])}
+    → n ≤ k
+    → interpretFrom (preciseStore (core W′)) n
+        (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]) ≡ returned resultᴾ
+    → Σ[ m ∈ ℕ ]
+      Σ[ resultᴵ ∈ E.EvalResult Lᴵ′ ]
+        interpretFrom (impreciseStore (core W′)) m Lᴵ′
+          ≡ returned resultᴵ
+        × PairedReturns W′
+            (FutureValueRelation (liftCenterImprecision W≼W′ r))
+            (k ∸ n) resultᴵ resultᴾ
+  backward {n} n≤k result-eq
+      with type-application-return-phases
+        {Σ = preciseStore (core W′)} result-eq
+  backward {n} n≤k result-eq
+      | type-return-phases preciseFunctionGas preciseFunctionResult
+          preciseFunctionReturn preciseCallGas preciseCallResult
+          preciseCallReturn result-split gas-split
+      with backward-return function-related {n = preciseFunctionGas}
+        functionGas≤ preciseFunctionReturn
+    where
+    phases≤ = subst≤ gas-split n≤k
+      where
+      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ refl a≤k = a≤k
+
+    functionGas≤ = first-of-two≤ phases≤
+  backward {n} n≤k result-eq
+      | type-return-phases preciseFunctionGas preciseFunctionResult
+          preciseFunctionReturn preciseCallGas preciseCallResult
+          preciseCallReturn result-split gas-split
+      | functionGas , functionResult , functionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated
+      with backward-return call-related {n = preciseCallGas}
+        callGas≤ callPhaseReturn
+    where
+    phases≤ = subst≤ gas-split n≤k
+      where
+      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ refl a≤k = a≤k
+
+    callGas≤ = drop-left-≤ phases≤
+
+    bodyEqᴾ = precise-phase-body-eq
+      {χs = E.changes preciseFunctionResult} W′≼W₁
+      functionTermsᴾ Cᴾ′ Aᴾ′
+    argumentEqᴾ = precise-phase-argument-eq
+      {χs = E.changes preciseFunctionResult} W′≼W₁
+      functionTermsᴾ Cᴾ′ Aᴾ′
+
+    call-related = right-type-call-after-function
+      {W₀ = W} {W₁ = W′} {W₂ = W₁}
+      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r}
+      {Dᴾ = applyBodies (E.changes preciseFunctionResult) Cᴾ′}
+      {Sᴾ = E.changes preciseFunctionResult ▶ᵗ Aᴾ′}
+      {Vᴾ = E.term preciseFunctionResult}
+      {Vᴵ = E.term functionResult}
+      {k = k ∸ preciseFunctionGas}
+      W≼W′ W′≼W₁ bodyEqᴾ argumentEqᴾ functionValueRelated
+
+    callPhaseReturn = return-store-reindex {gas = preciseCallGas}
+      {M = E.term preciseFunctionResult ⦂∀
+        applyBodies (E.changes preciseFunctionResult) Cᴾ′
+        [ E.changes preciseFunctionResult ▶ᵗ Aᴾ′ ]}
+      functionStoreᴾ preciseCallReturn
+  backward {n} n≤k result-eq
+      | type-return-phases preciseFunctionGas preciseFunctionResult
+          preciseFunctionReturn preciseCallGas preciseCallResult
+          preciseCallReturn result-split gas-split
+      | functionGas , functionResult , functionReturn ,
+          paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
+            functionTermsᴵ functionTermsᴾ functionValueRelated
+      | callGas , callResult , callReturn , callPair =
+    functionGas , functionResult , functionReturn ,
+      paired-returns-reindex refl result-split assembledPair
+    where
+    exactCallResult = E.result _ [] (E.term functionResult) ↠-refl
+      (E.value functionResult)
+
+    callResultEq : callResult ≡ exactCallResult
+    callResultEq = returned-injective
+      (trans (sym callReturn)
+        (value-return-exact {Σ = impreciseStore (core W₁)}
+          callGas (E.value functionResult)))
+
+    exactCallPair = paired-returns-reindex
+      (sym callResultEq) refl callPair
+
+    indexEq = trans
+      (subtract-phases k preciseFunctionGas preciseCallGas)
+      (cong (k ∸_) gas-split)
+
+    assembledPair = assemble-right-type-application-pair
+      {W₀ = W′} {q = liftCenterImprecision W≼W′ r}
+      {functionResultᴾ = preciseFunctionResult}
+      {functionResultᴵ = functionResult}
+      {callResultᴾ = preciseCallResult}
+      W′≼W₁ functionStoreᴵ functionStoreᴾ
+      functionTermsᴵ functionTermsᴾ _ exactCallPair indexEq
+
+  forwardBlame : ∀ {n}
+    → n ≤ k
+    → BlamesFrom (impreciseStore (core W′)) n Lᴵ′
+    → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W′)) m
+        (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ])
+  forwardBlame {n} n≤k blaming
+      with forward-blame function-related n≤k blaming
+  forwardBlame {n} n≤k blaming
+      | preciseFunctionGas , preciseFunctionBlame
+      with type-function-blame-expand
+        {Σ = preciseStore (core W′)}
+        {functionGas = preciseFunctionGas}
+        {L = Lᴾ′} {B = Cᴾ′} {A = Aᴾ′} preciseFunctionBlame
+  forwardBlame {n} n≤k blaming
+      | preciseFunctionGas , preciseFunctionBlame
       | wholeGas , wholeBlame = wholeGas , wholeBlame

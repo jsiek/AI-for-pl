@@ -387,17 +387,30 @@ universal-compatible {W = W} {k = k} {Γ = Γ}
   explicit-endpoints : TypedEndpoints W′ explicit-universal
       (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
       (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
-  explicit-endpoints = ClosureProof.value-imprecision-reindex
-    explicit-universal (liftCenterImprecision W≼W′ q) {k = zero}
-    (sym (liftCenterTy-universal W≼W′ precise-body-base))
-    (sym (liftCenterTy-universal W≼W′ imprecise-body-base)) endpoints
+  explicit-endpoints = typed-endpoints
+    (impreciseType endpoints) (preciseType endpoints)
+    (trans (impreciseEmbedded endpoints)
+      (liftCenterTy-universal W≼W′ imprecise-body-base))
+    (trans (preciseEmbedded endpoints)
+      (liftCenterTy-universal W≼W′ precise-body-base))
+    (imprecise-value endpoints) (precise-value endpoints)
+    (imprecise-typed endpoints) (precise-typed endpoints)
+
+  q-zero : ValueImprecision W′ (liftCenterImprecision W≼W′ q) zero
+      (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
+      (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
+  q-zero = ClosureProof.value-imprecision-reindex
+    (liftCenterImprecision W≼W′ q) explicit-universal {k = zero}
+    (liftCenterTy-universal W≼W′ precise-body-base)
+    (liftCenterTy-universal W≼W′ imprecise-body-base)
+    explicit-endpoints
 
   related : ∀ j → j ≤ k →
       FutureValueRelation (liftCenterImprecision W≼W′ q)
         W′ future-refl j
         (close imprecise-γ (liftImpreciseTerm W≼W′ (Λ Vᴵ)))
         (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
-  related zero j≤k = endpoints
+  related zero j≤k = q-zero
   related (suc j) j≤k =
     ClosureProof.value-imprecision-reindex
       (liftCenterImprecision W≼W′ q) explicit-universal

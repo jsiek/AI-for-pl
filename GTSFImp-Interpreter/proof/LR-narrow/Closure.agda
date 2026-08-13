@@ -57,7 +57,8 @@ value-imprecision-downward {p = I.X⊑★ eq} {k = zero}
     (endpoints , related) =
   endpoints
 value-imprecision-downward {p = I.∀⊑ nonvar occurs p} {k = zero}
-    (endpoints , Bᴾ , eqᴾ , related) = endpoints
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
+  endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , tail
 value-imprecision-downward {p = I.∀★⊑★} {k = zero}
     (endpoints , payload) =
   endpoints
@@ -91,8 +92,8 @@ value-imprecision-downward {W = W} {p = I.X⊑★ {X = X} eq}
     {k = suc k} (endpoints , related) =
   endpoints , dynamic-atom-downward (semanticEntry W X) eq related
 value-imprecision-downward {p = I.∀⊑ nonvar occurs p} {k = suc k}
-    (endpoints , Bᴾ , eqᴾ , head , tail) =
-  endpoints , Bᴾ , eqᴾ , tail
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
+  endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , tail
 value-imprecision-downward {p = I.∀★⊑★} {k = suc k}
     (endpoints , shape , payload) =
   endpoints , shape , value-imprecision-downward payload
@@ -301,13 +302,14 @@ computations-related-post-bind-reindex p q refl refl refl refl related
 
 right-universals-related-reindex : ∀
     {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
-    {W : World Δᴾ Δᴵ Δᶜ} {Bᴾ : Ty (suc Δᴾ)} {k Vᴵ Vᴾ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {k Vᴵ Vᴾ}
     (p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
     (q : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ′ ⊑ Aᴵ′)
   → Aᴾ ≡ Aᴾ′
   → Aᴵ ≡ Aᴵ′
-  → RightUniversalsRelated W q Bᴾ k Vᴵ Vᴾ
-  → RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+  → RightUniversalsRelated W q Bᴾ Bᴵ k Vᴵ Vᴾ
+  → RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
 right-universals-related-reindex p q refl refl related
   rewrite PI.⊑-unique q p = related
 
@@ -393,36 +395,64 @@ right-universals-related-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
-    {Bᴾ : Ty (suc Δᴾ)} {k : ℕ} {Vᴵ Vᴾ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ} {Vᴵ Vᴾ}
     (W≼W′ : Future W W′)
-  → RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+  → RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
   → RightUniversalsRelated W′
       (liftCenterDynamicBodyImprecision W≼W′ p)
-      (liftPreciseBody W≼W′ Bᴾ) k
+      (liftPreciseBody W≼W′ Bᴾ) (liftImpreciseTy W≼W′ Bᴵ) k
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
-right-universals-related-future {k = zero} W≼W′ related = tt
-right-universals-related-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {Bᴾ = Bᴾ} {k = suc k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+right-universals-related-future {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = zero}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} W≼W′ head =
+  λ K W′≼K Rᴾ fresh s →
+    let composite = future-trans W≼W′ W′≼K
+        precise-result-trans = cong (λ C → C [ Rᴾ ]ᵗ)
+          (liftPreciseBody-trans W≼W′ W′≼K Bᴾ)
+        s-composite = subst≡
+          (λ L → L ⊑ᵂ⟨ core K ⟩ liftImpreciseTy composite Bᴵ)
+          (sym precise-result-trans)
+          (subst≡
+            (λ R → liftPreciseBody W′≼K
+              (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
+              ⊑ᵂ⟨ core K ⟩ R)
+            (sym (liftImpreciseTy-trans W≼W′ W′≼K Bᴵ)) s)
+    in computations-related-post-bind-reindex
+        s-composite s
+        (cong (embedPrecise (core K)) precise-result-trans)
+        (cong (embedImprecise (core K))
+          (liftImpreciseTy-trans W≼W′ W′≼K Bᴵ))
+        (liftImpreciseTerm-trans W≼W′ W′≼K Vᴵ)
+        (cong₂ (λ V B → V ⦂∀ B [ Rᴾ ])
+          (liftPreciseTerm-trans W≼W′ W′≼K Vᴾ)
+          (liftPreciseBody-trans W≼W′ W′≼K Bᴾ))
+        (head K composite Rᴾ fresh s-composite)
+right-universals-related-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {p = p}
+    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = suc k}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     W≼W′ (head , tail) =
-  (λ K W′≼K Rᴾ fresh →
-      let W′≼B = future-precise W′≼K fresh
-          composite = future-trans W≼W′ W′≼B
-          p-composite = openFreshDynamicImprecision refl
-            (liftCenterDynamicBodyImprecision composite _)
-          p-sequential = openFreshDynamicImprecision refl
-            (liftCenterDynamicBodyImprecision W′≼B
-              (liftCenterDynamicBodyImprecision W≼W′ _))
-      in computations-related-reindex p-composite p-sequential
-          (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-            (liftCenterBody-trans W≼W′ W′≼B Aᴾ))
-          (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-            (liftCenterBody-trans W≼W′ W′≼B Aᴵ))
-          (liftImpreciseTerm-trans W≼W′ W′≼B Vᴵ)
-          (cong₂ (λ V B → V ⦂∀ B [ ＇ Fin.zero ])
-            (liftPreciseTerm-trans W≼W′ W′≼B Vᴾ)
-            (liftPreciseBody-trans W≼W′ W′≼B Bᴾ))
-          (head K (future-trans W≼W′ W′≼K) Rᴾ fresh)) ,
-  right-universals-related-future W≼W′ tail
+  (λ K W′≼K Rᴾ fresh s →
+      let composite = future-trans W≼W′ W′≼K
+          precise-result-trans = cong (λ C → C [ Rᴾ ]ᵗ)
+            (liftPreciseBody-trans W≼W′ W′≼K Bᴾ)
+          s-composite = subst≡
+            (λ L → L ⊑ᵂ⟨ core K ⟩ liftImpreciseTy composite Bᴵ)
+            (sym precise-result-trans)
+            (subst≡
+              (λ R → liftPreciseBody W′≼K
+                (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
+                ⊑ᵂ⟨ core K ⟩ R)
+              (sym (liftImpreciseTy-trans W≼W′ W′≼K Bᴵ)) s)
+      in computations-related-post-bind-reindex
+          s-composite s
+          (cong (embedPrecise (core K)) precise-result-trans)
+          (cong (embedImprecise (core K))
+            (liftImpreciseTy-trans W≼W′ W′≼K Bᴵ))
+          (liftImpreciseTerm-trans W≼W′ W′≼K Vᴵ)
+          (cong₂ (λ V B → V ⦂∀ B [ Rᴾ ])
+            (liftPreciseTerm-trans W≼W′ W′≼K Vᴾ)
+            (liftPreciseBody-trans W≼W′ W′≼K Bᴾ))
+          (head K composite Rᴾ fresh s-composite)) ,
+  right-universals-related-future {p = p} {Bᴵ = Bᴵ} W≼W′ tail
 
 precise-ground-type : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -765,7 +795,82 @@ value-imprecision-paired : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴾ Rᴵ}
       (liftCenterImprecision (paired-future W r fresh) p) k
       (liftImpreciseTerm (paired-future W r fresh) Vᴵ)
       (liftPreciseTerm (paired-future W r fresh) Vᴾ)
-value-imprecision-paired W r fresh {k = zero} endpoints =
+value-imprecision-paired W r fresh
+    {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = zero}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related-zero) =
+  let step = paired-future W r fresh
+      lifted = liftCenterImprecision step (I.∀⊑ nonvar occurs p)
+      p-lifted = liftCenterDynamicBodyImprecision step p
+      p-structural =
+        subst≡
+          (λ T → I.instᵐ (impEnv (core (pairedBindWorld W _ _ fresh)))
+            I.⊢ liftCenterBody step _ ⊑ T)
+          (renameᵗ-shift Fin.suc Aᴵ) p-lifted
+      related-structural : RightUniversalsRelated
+        (pairedBindWorld W _ _ fresh) p-structural
+        (liftPreciseBody step Bᴾ) (liftImpreciseTy step Bᴵ) zero
+        (liftImpreciseTerm step Vᴵ) (liftPreciseTerm step Vᴾ)
+      related-structural = right-universals-related-reindex
+        p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh′ s →
+          right-universals-related-future
+            {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+            {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step
+            (λ {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′′ t →
+              related-zero {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′′ t)
+            K W≼K Rᴾ fresh′ s)
+      structural = I.∀⊑
+        (renameNonVar (extᵗ Fin.suc) nonvar)
+        (IC.rename-occurs (extᵗ Fin.suc)
+          (IC.ext-injective IC.fin-suc-injective) occurs)
+        p-structural
+      structural-endpoints = typed-endpoints-derivation-reindex
+        lifted structural (typed-endpoints-future step endpoints)
+      structural-related = structural-endpoints ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
+        trans (embedPrecise-lift step (`∀ Bᴾ))
+          (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh′ s →
+          related-structural {Δᴾ′} {Δᴵ′} {Δᶜ′}
+            K W≼K Rᴾ fresh′ s)
+  in value-imprecision-reindex lifted structural {zero} refl refl
+       structural-related
+value-imprecision-paired W r fresh {p = I.★⊑★} {k = zero} endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.ι⊑ι} {k = zero} endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.X⊑X} {k = zero} endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.⇒⊑⇒ p q} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.∀⊑∀ p} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.⇒⊑★ p q} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.ι⊑★} {k = zero} endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.X⊑★ eq} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.∀★⊑★} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.∀⊑★ nonstar p}
+    {k = zero} endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.bot-elim} {k = zero}
+    endpoints =
+  typed-endpoints-future (paired-future W r fresh) endpoints
+value-imprecision-paired W r fresh {p = I.bot⊑★} {k = zero}
+    endpoints =
   typed-endpoints-future (paired-future W r fresh) endpoints
 value-imprecision-paired {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} W r fresh
     {p = I.★⊑★} {k = suc k}
@@ -834,7 +939,8 @@ value-imprecision-paired W r fresh {p = I.X⊑★ eq} {k = suc k}
   dynamic-atom-holds-future (paired-future W r fresh) eq related
 value-imprecision-paired W r fresh
     {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = suc k}
-    (endpoints , Bᴾ , eqᴾ , related) =
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) =
   let step = paired-future W r fresh
       lifted = liftCenterImprecision step
         (I.∀⊑ nonvar occurs p)
@@ -846,7 +952,8 @@ value-imprecision-paired W r fresh
           (renameᵗ-shift Fin.suc Aᴵ) p-lifted
       related-structural = right-universals-related-reindex
         p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
-        (right-universals-related-future step related)
+        (right-universals-related-future {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+          {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step related)
       structural = I.∀⊑
         (renameNonVar (extᵗ Fin.suc) nonvar)
         (IC.rename-occurs (extᵗ Fin.suc)
@@ -855,9 +962,11 @@ value-imprecision-paired W r fresh
       structural-endpoints = typed-endpoints-derivation-reindex
         lifted structural (typed-endpoints-future step endpoints)
       structural-related = structural-endpoints ,
-        liftPreciseBody step Bᴾ ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
         trans (embedPrecise-lift step (`∀ Bᴾ))
           (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
         related-structural
   in value-imprecision-reindex lifted structural {suc k} refl refl
        structural-related
@@ -889,7 +998,81 @@ value-imprecision-precise : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴾ}
       (liftCenterImprecision (precise-future W fresh) p) k
       (liftImpreciseTerm (precise-future W fresh) Vᴵ)
       (liftPreciseTerm (precise-future W fresh) Vᴾ)
-value-imprecision-precise W fresh {k = zero} endpoints =
+value-imprecision-precise W fresh
+    {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = zero}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related-zero) =
+  let step = precise-future W fresh
+      lifted = liftCenterImprecision step (I.∀⊑ nonvar occurs p)
+      p-lifted = liftCenterDynamicBodyImprecision step p
+      p-structural = subst≡
+        (λ T → I.instᵐ (impEnv (core (preciseBindWorld W _ fresh)))
+          I.⊢ liftCenterBody step _ ⊑ T)
+        (renameᵗ-shift Fin.suc Aᴵ) p-lifted
+      related-structural : RightUniversalsRelated
+        (preciseBindWorld W _ fresh) p-structural
+        (liftPreciseBody step Bᴾ) (liftImpreciseTy step Bᴵ) zero
+        (liftImpreciseTerm step Vᴵ) (liftPreciseTerm step Vᴾ)
+      related-structural = right-universals-related-reindex
+        p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh′ s →
+          right-universals-related-future
+            {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+            {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step
+            (λ {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′′ t →
+              related-zero {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′′ t)
+            K W≼K Rᴾ fresh′ s)
+      structural = I.∀⊑
+        (renameNonVar (extᵗ Fin.suc) nonvar)
+        (IC.rename-occurs (extᵗ Fin.suc)
+          (IC.ext-injective IC.fin-suc-injective) occurs)
+        p-structural
+      structural-endpoints = typed-endpoints-derivation-reindex
+        lifted structural (typed-endpoints-future step endpoints)
+      structural-related = structural-endpoints ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
+        trans (embedPrecise-lift step (`∀ Bᴾ))
+          (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh′ s →
+          related-structural {Δᴾ′} {Δᴵ′} {Δᶜ′}
+            K W≼K Rᴾ fresh′ s)
+  in value-imprecision-reindex lifted structural {zero} refl refl
+       structural-related
+value-imprecision-precise W fresh {p = I.★⊑★} {k = zero} endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.ι⊑ι} {k = zero} endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.X⊑X} {k = zero} endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.⇒⊑⇒ p q} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.∀⊑∀ p} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.⇒⊑★ p q} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.ι⊑★} {k = zero} endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.X⊑★ eq} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.∀★⊑★} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.∀⊑★ nonstar p}
+    {k = zero} endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.bot-elim} {k = zero}
+    endpoints =
+  typed-endpoints-future (precise-future W fresh) endpoints
+value-imprecision-precise W fresh {p = I.bot⊑★} {k = zero}
+    endpoints =
   typed-endpoints-future (precise-future W fresh) endpoints
 value-imprecision-precise {Rᴾ = Rᴾ} W fresh
     {p = I.★⊑★} {k = suc k} (endpoints , shape , payload) =
@@ -956,7 +1139,8 @@ value-imprecision-precise W fresh {p = I.X⊑★ eq} {k = suc k}
   dynamic-atom-holds-future (precise-future W fresh) eq related
 value-imprecision-precise W fresh
     {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = suc k}
-    (endpoints , Bᴾ , eqᴾ , related) =
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) =
   let step = precise-future W fresh
       lifted = liftCenterImprecision step (I.∀⊑ nonvar occurs p)
       p-lifted = liftCenterDynamicBodyImprecision step p
@@ -967,7 +1151,8 @@ value-imprecision-precise W fresh
         (renameᵗ-shift Fin.suc Aᴵ) p-lifted
       related-structural = right-universals-related-reindex
         p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
-        (right-universals-related-future step related)
+        (right-universals-related-future {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+          {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step related)
       structural = I.∀⊑
         (renameNonVar (extᵗ Fin.suc) nonvar)
         (IC.rename-occurs (extᵗ Fin.suc)
@@ -976,9 +1161,11 @@ value-imprecision-precise W fresh
       structural-endpoints = typed-endpoints-derivation-reindex
         lifted structural (typed-endpoints-future step endpoints)
       structural-related = structural-endpoints ,
-        liftPreciseBody step Bᴾ ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
         trans (embedPrecise-lift step (`∀ Bᴾ))
           (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
         related-structural
   in value-imprecision-reindex lifted structural {suc k} refl refl
        structural-related

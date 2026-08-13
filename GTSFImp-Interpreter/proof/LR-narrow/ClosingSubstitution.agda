@@ -45,7 +45,28 @@ value-imprecision-endpoints : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {k : ℕ} {Vᴵ Vᴾ}
   → ValueImprecision W p k Vᴵ Vᴾ
   → TypedEndpoints W p Vᴵ Vᴾ
-value-imprecision-endpoints {k = zero} related = related
+value-imprecision-endpoints {p = I.∀⊑ nonvar occurs p} {k = zero}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) = endpoints
+value-imprecision-endpoints {p = I.★⊑★} {k = zero} related = related
+value-imprecision-endpoints {p = I.ι⊑ι} {k = zero} related = related
+value-imprecision-endpoints {p = I.X⊑X} {k = zero} related = related
+value-imprecision-endpoints {p = I.⇒⊑⇒ p q} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.∀⊑∀ p} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.⇒⊑★ p q} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.ι⊑★} {k = zero} related = related
+value-imprecision-endpoints {p = I.X⊑★ eq} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.∀★⊑★} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.∀⊑★ nonstar p} {k = zero}
+    related = related
+value-imprecision-endpoints {p = I.bot-elim} {k = zero} related =
+  related
+value-imprecision-endpoints {p = I.bot⊑★} {k = zero} related =
+  related
 value-imprecision-endpoints {k = suc k} related =
   value-imprecision-endpoints (value-imprecision-downward related)
 

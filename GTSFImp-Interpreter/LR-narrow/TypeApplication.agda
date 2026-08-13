@@ -1,11 +1,12 @@
 module LR-narrow.TypeApplication where
 
 -- File Charter:
---   * Exposes compatibility of structural CTI type application.
+--   * Exposes symmetric and asymmetric structural CTI type application.
 --   * Keeps evaluator phase decomposition and world factorization private.
 --   * States the theorem at the public compiled-term LR boundary.
 
 open import Data.Nat using (ℕ; suc)
+import Data.Fin as Fin
 
 open import Types
 open import CastTerms
@@ -37,3 +38,27 @@ type-application-compatible : ∀
       (Lᴾ ⦂∀ Cᴾ [ Aᴾ ]) (Lᴵ ⦂∀ Cᴵ [ Aᴵ ])
 type-application-compatible {q = q} =
   Proof.type-application-compatible {q = q}
+
+right-type-application-compatible : ∀
+    {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Cᴾ : Ty (suc Δᴾ)} {Aᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ}
+    {p : I.instᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Cᴾ
+      ⊑ ⇑ᵗ (embedImprecise (core W) Bᴵ)}
+    {nonvar : NonVar (renameᵗ (extᵗ (Consistency.toRenameᵗ
+      (preciseEmbedding (core W)))) Cᴾ)}
+    {occurs : Fin.zero ∈ᵗ renameᵗ
+      (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Cᴾ}
+    {q : Aᴾ ⊑ᵂ⟨ core W ⟩ ★}
+    {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
+    {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑ nonvar occurs p
+  → (∀ k → CompiledTermRelation {W = W}
+      (I.∀⊑ nonvar occurs p) k Γ Lᴾ Lᴵ)
+  → ∀ k → CompiledTermRelation {W = W} r k Γ
+      (Lᴾ ⦂∀ Cᴾ [ Aᴾ ]) Lᴵ
+right-type-application-compatible {q = q} =
+  Proof.right-type-application-compatible {q = q}

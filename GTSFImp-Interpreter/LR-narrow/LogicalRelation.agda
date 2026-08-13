@@ -134,6 +134,15 @@ mutual
     → Term Δᴾ
     → Set₁
 
+  ValueImprecisionᵏ zero W
+      (I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p) Vᴵ Vᴾ =
+    TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ ×
+    Σ[ Bᴾ ∈ Ty _ ]
+    Σ[ Bᴵ ∈ Ty _ ]
+      (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
+      × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
+      × RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ
+
   ValueImprecisionᵏ zero W p Vᴵ Vᴾ = TypedEndpoints W p Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
@@ -175,11 +184,13 @@ mutual
     DynamicAtomHolds (semanticEntry W _) eq (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W
-      (I.∀⊑ {A = Aᴾ} nonvar occurs p) Vᴵ Vᴾ =
+      (I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p) Vᴵ Vᴾ =
     TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ ×
     Σ[ Bᴾ ∈ Ty _ ]
+    Σ[ Bᴵ ∈ Ty _ ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
-      × RightUniversalsRelated W p Bᴾ (suc k) Vᴵ Vᴾ
+      × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
+      × RightUniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.∀★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ ×
@@ -271,28 +282,42 @@ mutual
     → (W : World Δᴾ Δᴵ Δᶜ)
     → I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ
     → Ty (suc Δᴾ)
+    → Ty Δᴵ
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
     → Set₁
 
-  RightUniversalsRelated W p Bᴾ zero Vᴵ Vᴾ = ⊤
+  RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ =
+    ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
+      (fresh : DynamicSemanticAtom
+        (preciseBindCore (core W′) Rᴾ) Fin.zero)
+      (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
+    → let bound = preciseBindWorld W′ Rᴾ fresh
+          W′≼B = future-precise (future-refl {W = W′}) fresh
+      in ComputationsRelated W′
+          (PostBindValueRelation W′≼B s) zero
+          (liftImpreciseTerm W≼W′ Vᴵ)
+          (liftPreciseTerm W≼W′ Vᴾ
+            ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ])
 
-  RightUniversalsRelated W p Bᴾ (suc k) Vᴵ Vᴾ =
+  RightUniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ =
     (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
         (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
         (fresh : DynamicSemanticAtom
           (preciseBindCore (core W′) Rᴾ) Fin.zero)
+        (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+          ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
       → let bound = preciseBindWorld W′ Rᴾ fresh
-            W≼B = future-precise W≼W′ fresh
-            body = openFreshDynamicImprecision {W = bound} refl
-              (liftCenterDynamicBodyImprecision W≼B p)
-        in ComputationsRelated bound
-            (FutureValueRelation {W = bound} body) (suc k)
-            (liftImpreciseTerm W≼B Vᴵ)
-            (liftPreciseTerm W≼B Vᴾ
-              ⦂∀ liftPreciseBody W≼B Bᴾ [ ＇ Fin.zero ]))
-    × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+            W′≼B = future-precise (future-refl {W = W′}) fresh
+        in ComputationsRelated W′
+            (PostBindValueRelation W′≼B s) (suc k)
+            (liftImpreciseTerm W≼W′ Vᴵ)
+            (liftPreciseTerm W≼W′ Vᴾ
+              ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]))
+    × RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
 
   RightDynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)

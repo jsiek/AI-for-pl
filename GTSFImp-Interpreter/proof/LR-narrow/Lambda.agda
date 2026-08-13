@@ -368,13 +368,16 @@ lambda-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
   explicit-endpoints : TypedEndpoints W′ explicit-arrow
       (close imprecise-γ (liftImpreciseTerm W≼W′ (ƛ Nᴵ)))
       (close precise-γ (liftPreciseTerm W≼W′ (ƛ Nᴾ)))
-  explicit-endpoints = ClosureProof.value-imprecision-reindex
-    explicit-arrow (liftCenterImprecision W≼W′ (I.⇒⊑⇒ p q)) {k = zero}
-    (sym (liftCenterTy-arrow W≼W′
-      (embedPrecise (core W) Aᴾ) (embedPrecise (core W) Bᴾ)))
-    (sym (liftCenterTy-arrow W≼W′
-      (embedImprecise (core W) Aᴵ) (embedImprecise (core W) Bᴵ)))
-    endpoints
+  explicit-endpoints = typed-endpoints
+    (impreciseType endpoints) (preciseType endpoints)
+    (trans (impreciseEmbedded endpoints)
+      (liftCenterTy-arrow W≼W′
+        (embedImprecise (core W) Aᴵ) (embedImprecise (core W) Bᴵ)))
+    (trans (preciseEmbedded endpoints)
+      (liftCenterTy-arrow W≼W′
+        (embedPrecise (core W) Aᴾ) (embedPrecise (core W) Bᴾ)))
+    (imprecise-value endpoints) (precise-value endpoints)
+    (imprecise-typed endpoints) (precise-typed endpoints)
 
   related : ∀ j → j ≤ k →
       FutureValueRelation
@@ -382,7 +385,13 @@ lambda-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
         W′ future-refl j
         (close imprecise-γ (liftImpreciseTerm W≼W′ (ƛ Nᴵ)))
         (close precise-γ (liftPreciseTerm W≼W′ (ƛ Nᴾ)))
-  related zero j≤k = endpoints
+  related zero j≤k = ClosureProof.value-imprecision-reindex
+    (liftCenterImprecision W≼W′ (I.⇒⊑⇒ p q)) explicit-arrow {k = zero}
+    (liftCenterTy-arrow W≼W′
+      (embedPrecise (core W) Aᴾ) (embedPrecise (core W) Bᴾ))
+    (liftCenterTy-arrow W≼W′
+      (embedImprecise (core W) Aᴵ) (embedImprecise (core W) Bᴵ))
+    explicit-endpoints
   related (suc j) j≤k = ClosureProof.value-imprecision-reindex
     (liftCenterImprecision W≼W′ (I.⇒⊑⇒ p q)) explicit-arrow
     (liftCenterTy-arrow W≼W′

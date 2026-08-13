@@ -6,7 +6,7 @@ module proof.LR-narrow.UniversalInstantiation where
 --   * Exposes that successful returns factor through the chosen extension.
 --   * Returns the endpoint body witnesses stored in ValueImprecision.
 
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_)
@@ -43,3 +43,32 @@ related-universal-instantiation {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {W = W}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
   (λ s → head W (future-refl {W = W}) Rᴾ Rᴵ r fresh s)
+
+right-related-universal-instantiation : ∀
+    {Δᴾ Δᴵ Δᶜ} {Aᴾ : Ty (suc Δᶜ)} {Aᴵ : Ty Δᶜ}
+    {Rᴾ : Ty Δᴾ} {W : World Δᴾ Δᴵ Δᶜ}
+    {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ⇑ᵗ Aᴵ}
+    {nonvar : NonVar Aᴾ} {occurs : Fin.zero ∈ᵗ Aᴾ}
+    {fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑ nonvar occurs p) k Vᴵ Vᴾ
+  → Σ[ Bᴾ ∈ Ty (suc Δᴾ) ]
+    Σ[ Bᴵ ∈ Ty Δᴵ ]
+      (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
+      × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
+      × ((s : Bᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+        → let bound = preciseBindWorld W Rᴾ fresh
+              step = future-precise (future-refl {W = W}) fresh
+          in ComputationsRelated W (PostBindValueRelation step s)
+               k Vᴵ (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
+right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W}
+    {fresh = fresh} {k = zero}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head) =
+  Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
+  (λ s → head W (future-refl {W = W}) Rᴾ fresh s)
+right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W}
+    {fresh = fresh} {k = suc k}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
+  Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
+  (λ s → head W (future-refl {W = W}) Rᴾ fresh s)

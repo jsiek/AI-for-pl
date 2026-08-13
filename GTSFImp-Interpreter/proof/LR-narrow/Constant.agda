@@ -35,7 +35,10 @@ constant-values-related : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} (k : ℕ) (κ : Const)
     {p : constTy {Δᴾ} κ ⊑ᵂ⟨ core W ⟩ constTy {Δᴵ} κ}
   → ValueImprecision W p k ($ κ) ($ κ)
-constant-values-related zero κ = constant-endpoints κ
+constant-values-related zero (κℕ n) {p = I.ι⊑ι} =
+  constant-endpoints (κℕ n)
+constant-values-related zero (κ𝔹 b) {p = I.ι⊑ι} =
+  constant-endpoints (κ𝔹 b)
 constant-values-related (suc k) (κℕ n) {p = I.ι⊑ι} =
   constant-endpoints (κℕ n) , same-natural n
 constant-values-related (suc k) (κ𝔹 b) {p = I.ι⊑ι} =

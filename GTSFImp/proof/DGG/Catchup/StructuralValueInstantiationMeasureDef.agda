@@ -4,8 +4,8 @@ module
 -- File Charter:
 --   * Defines the well-founded rank for structural value instantiation.
 --   * Charges polymorphic value structure and pending consistency casts.
---   * Gives reveal and conceal wrappers zero weight: after their inner
---     spine is a value, they require no recursive instantiation call.
+--   * Charges reveal and conceal wrappers once for their inner recursion;
+--     their conversion frames need no additional pending-cast weight.
 
 open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
@@ -33,9 +33,9 @@ valueAdministrationWeight ($ k) = zero
 valueAdministrationWeight {V = V ⟨ c ⟩} (vV 《 inert 》) =
   valueAdministrationWeight vV + castAdministrationWeight c
 valueAdministrationWeight (vV ↑ reveal-value) =
-  valueAdministrationWeight vV
+  suc (valueAdministrationWeight vV)
 valueAdministrationWeight (vV ↓ conceal-value) =
-  valueAdministrationWeight vV
+  suc (valueAdministrationWeight vV)
 
 
 pendingAdministrationWeight : List ℕ → ℕ
@@ -51,11 +51,3 @@ pendingAdministrationRank : ∀ {Δ} {V : Term Δ}
 pendingAdministrationRank vV ws =
   2 * (valueAdministrationWeight vV + pendingAdministrationWeight ws)
     + length ws
-
-
-instantiationAdministrationRank : ∀ {Δ} {V : Term Δ}
-  → Value V
-  → List ℕ
-  → ℕ
-instantiationAdministrationRank vV ws =
-  suc (pendingAdministrationRank vV ws)

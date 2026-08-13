@@ -206,6 +206,13 @@ and returns the final rebase needed to rebuild `reveal⊑²`.
 `structural-tag-rebase-atᴸ` mirrors this for source conceal, retaining the
 premise-to-conclusion orientation and mapping the target pivot across the
 complete store-change trace.
+`structural-smart-liftᴸ` supplies the source-Λ case, including the
+pushout-computed center of the smart-fresh branch.  The internal
+`StructuralInstantiationDescentPackage` now retains one of these structural
+traces until all source wrappers are rebuilt.  Its checked erasure is the
+public `InstSpineDescentPackage`, and its zero-spine case simply returns the
+already-related target value.  Consequently the recursive state relates the
+two base values and carries the pending target spine separately.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

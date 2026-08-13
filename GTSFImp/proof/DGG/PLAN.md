@@ -590,6 +590,12 @@ same trace through either smart-alias or smart-fresh insertion, returning the
 post smart lift; its result exposes the transformed center because the fresh
 case computes that center by embedding pushout.  Thus all three source-wrapper
 geometries needed by the equal-mass recursion are now structurally available.
+`StructuralInstantiationDescentPackage` is now the internal worker result.  It
+retains that structural trace while the public erasure returns the existing
+`InstSpineDescentPackage`; its empty-spine constructor is checked.  The worker
+state therefore relates source and target values and separately carries the
+pending typed target spine, rather than asserting a relation to a raw type
+application.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

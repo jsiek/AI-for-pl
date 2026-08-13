@@ -627,6 +627,10 @@ conversions at one raw-term boundary; no reduction or imprecision constructor
 changes.  The target transition inventory is complete.  The next chunk is the
 nested-accessibility target worker, followed by relation replay over its known
 trace.
+Completed target packages now also compose definitionally through one pending
+frame, and a root `keep` reduction can be lifted through the mapped tail in a
+single helper.  These are the two worker combinators needed for value-forming
+frames and identity/unseal conversion steps; neither adds a termination case.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

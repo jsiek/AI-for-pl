@@ -238,6 +238,11 @@ transition inventory is complete without changing the reduction relation.
 The remaining construction is the nested-accessibility worker: recurse
 structurally at fixed cast mass, and restart from accessibility only at the
 three already-proved strict mass decreases.
+The target package now has two corresponding composition operations.  A
+pending frame can be consumed definitionally once its applied term has a
+completed package, and a root `keep` reduction can be lifted through the
+mapped tail.  Inert/value-forming frames use the first operation; identity
+and unseal conversion steps use the second.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

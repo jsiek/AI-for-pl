@@ -1,7 +1,8 @@
 module proof.DGG.Catchup.StructuralTargetInstantiationProof where
 
 -- File Charter:
---   * Constructs target-only normalization for an empty pending spine.
+--   * Constructs target-only normalization for empty and framed spines.
+--   * Composes pure keep and allocating bind steps with completed packages.
 
 open import Types using (Ty)
 open import Data.Nat using (suc)
@@ -14,6 +15,8 @@ open import Reduction using
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
+open import
+  proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 
@@ -31,6 +34,28 @@ structural-target-zero {W = W} vV = record
   ; final = _
   ; final-value = vV
   ; post-reduction = ↠-refl
+  }
+
+
+structural-target-frame : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {V : Term Δᴿ} {A B E : Ty Δᴿ}
+    {frame : InstantiationFrame A B}
+    {spine : InstantiationSpine B E}
+  → StructuralTargetInstantiationPackage W
+      (applyInstantiationFrame V frame) spine
+  → StructuralTargetInstantiationPackage W V (frame ▻ⁱ spine)
+structural-target-frame child = record
+  { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ child
+  ; χs = StructuralTargetInstantiationPackage.χs child
+  ; Δ′ = StructuralTargetInstantiationPackage.Δ′ child
+  ; W′ = StructuralTargetInstantiationPackage.W′ child
+  ; structural-ext =
+      StructuralTargetInstantiationPackage.structural-ext child
+  ; final = StructuralTargetInstantiationPackage.final child
+  ; final-value = StructuralTargetInstantiationPackage.final-value child
+  ; post-reduction =
+      StructuralTargetInstantiationPackage.post-reduction child
   }
 
 
@@ -55,6 +80,21 @@ structural-target-keep-step step child = record
   ; post-reduction = ↠-step step
       (StructuralTargetInstantiationPackage.post-reduction child)
   }
+
+
+structural-target-frame-keep-step : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {V V₁ : Term Δᴿ} {A B E : Ty Δᴿ}
+    {frame : InstantiationFrame A B}
+    {spine : InstantiationSpine B E}
+  → applyInstantiationFrame V frame —→[ keep ] V₁
+  → StructuralTargetInstantiationPackage W V₁
+      (mapInstantiationSpine keep spine)
+  → StructuralTargetInstantiationPackage W V (frame ▻ⁱ spine)
+structural-target-frame-keep-step {spine = spine} step child =
+  structural-target-frame
+    (structural-target-keep-step
+      (lift-instantiation-spine-keep step spine) child)
 
 
 structural-target-bind-step : ∀ {Δᴸ Δᴿ Δ Δ₁}

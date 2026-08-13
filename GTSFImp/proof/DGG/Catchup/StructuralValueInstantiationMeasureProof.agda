@@ -5,9 +5,7 @@ module proof.DGG.Catchup.StructuralValueInstantiationMeasureProof where
 --   * Establishes that weakening a value preserves its administration weight.
 --   * Depends on cast-size invariance and value-renaming preservation.
 
-open import Data.List using (length)
-open import Data.Nat using (suc; _+_)
-open import Data.Nat.Solver using (module +-*-Solver)
+open import Data.Nat using (_+_)
 open import Relation.Binary.PropositionalEquality using (_≡_; cong₂; refl)
 
 open import Consistency using (_↪ᵗ_; keep)
@@ -16,9 +14,6 @@ open import proof.Consistency using (castSize-renameᵐᶜ)
 open import proof.TypeInTermSubst using (renameᵗᵐ-preserves-Value)
 open import
   proof.DGG.Catchup.StructuralValueInstantiationMeasureDef
-
-open +-*-Solver using (solve; _:+_; _:*_; con)
-  renaming (_:=_ to _:=ᵉ_)
 
 cast-administration-weight-rename : ∀ {Δ Δ′ μ A B}
     (rho : Δ ↪ᵗ Δ′) (c : μ Consistency.⊢ A ∼ B)
@@ -62,18 +57,3 @@ value-administration-weight-rename rho (vV CT.↓ CT.fun)
     rewrite value-administration-weight-rename rho vV = refl
 value-administration-weight-rename rho (vV CT.↓ CT.all)
     rewrite value-administration-weight-rename rho vV = refl
-
-
-lambda-instantiation-rank-decreases : ∀ {Δ} {V : CT.Term (suc Δ)}
-    (vV : CT.Value V) ws
-  → pendingAdministrationRank (CT.Λ vV) ws ≡
-      suc (suc (pendingAdministrationRank vV ws))
-lambda-instantiation-rank-decreases vV ws =
-  solve 3
-    (λ w p l →
-      (con 2 :* ((con 1 :+ w) :+ p)) :+ l :=ᵉ
-      con 2 :+ ((con 2 :* (w :+ p)) :+ l))
-    refl
-    (valueAdministrationWeight vV)
-    (pendingAdministrationWeight ws)
-    (length ws)

@@ -7,7 +7,6 @@ module
 --   * Charges reveal and conceal wrappers once for their inner recursion;
 --     their conversion frames need no additional pending-cast weight.
 
-open import Data.List using (List; []; _∷_; length)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
 
 open import Types using (Ty)
@@ -15,6 +14,8 @@ open import Consistency using (_⊢_∼_)
 open import CastTerms using
   (Term; Value; ƛ_; Λ_; $; _《_》; _↑_; _↓_; _⟨_⟩)
 open import proof.Consistency using (castSize)
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (CastColumn; []ᶜ; _▻ᶜ_)
 
 
 castAdministrationWeight : ∀ {Δ μ} {A B : Ty Δ}
@@ -38,16 +39,25 @@ valueAdministrationWeight (vV ↓ conceal-value) =
   suc (valueAdministrationWeight vV)
 
 
-pendingAdministrationWeight : List ℕ → ℕ
-pendingAdministrationWeight [] = zero
-pendingAdministrationWeight (w ∷ ws) =
-  w + pendingAdministrationWeight ws
-
-
-pendingAdministrationRank : ∀ {Δ} {V : Term Δ}
-  → Value V
-  → List ℕ
+columnAdministrationWeight : ∀ {Δ} {A B : Ty Δ}
+  → CastColumn A B
   → ℕ
-pendingAdministrationRank vV ws =
-  2 * (valueAdministrationWeight vV + pendingAdministrationWeight ws)
-    + length ws
+columnAdministrationWeight []ᶜ = zero
+columnAdministrationWeight (c ▻ᶜ κ) =
+  castAdministrationWeight c + columnAdministrationWeight κ
+
+
+columnLength : ∀ {Δ} {A B : Ty Δ}
+  → CastColumn A B
+  → ℕ
+columnLength []ᶜ = zero
+columnLength (c ▻ᶜ κ) = suc (columnLength κ)
+
+
+pendingAdministrationRank : ∀ {Δ} {V : Term Δ} {A B : Ty Δ}
+  → Value V
+  → CastColumn A B
+  → ℕ
+pendingAdministrationRank vV κ =
+  2 * (valueAdministrationWeight vV + columnAdministrationWeight κ)
+    + columnLength κ

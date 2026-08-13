@@ -315,7 +315,6 @@ record FuelStepSurface (fuel : ℕ) : Set₁ where
     smaller-extra : ∀ {m} → m < fuel → ExtraCastRightAt m
     smaller-inst : ∀ {m} → m < fuel → InstCatchupRightAt m
     smaller-value : ∀ {m} → m < fuel → ValueCatchupRightProvAt m
-    next-knot : FuelKnot (suc fuel)
 
 ------------------------------------------------------------------------
 -- Strict-decrease and column-support statements

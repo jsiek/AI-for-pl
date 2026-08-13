@@ -1,8 +1,10 @@
 # M6 Value Catch-Up Driver Design
 
-This is a design-only pass for M6 on branch
-`agent/gtsf-extra-cast-right`.  I did not edit `GTSFImp/`; the checked
-artifact is the root scratch module `M6DriverDesignScratch.agda`.
+This records the original design-only pass for M6.  Its checked artifact now
+lives at `proof/DGG/notes/M6DriverDesignScratch.agda`; the selected
+provenance-carrying surface and its support lemmas are live under
+`proof/DGG/Catchup/`.  See `M6-PROVENANCE-DESIGN.md` for the later provenance
+correction and current implementation sequence.
 
 ## Measure
 
@@ -133,9 +135,21 @@ This avoids committing the final proof to a particular `Acc` plumbing layout
 while still type-checking the mutual-call surface and the strict-decrease
 obligations.
 
+Update, 2026-08-13: the live implementation will use `Acc _<_ fuel` for that
+plumbing.  The original pre-flight field
+`FuelStepSurface.next-knot : FuelKnot (suc fuel)` has been removed from both
+the scratch and `Catchup/ValueCatchupRightDef.agda`.  It was never consumed,
+and it made the surface impossible to build by well-founded recursion: a knot
+at every fuel required a knot at the next larger fuel, beginning with an
+upward obligation from zero.  `FuelStepSurface` now exposes only workers at
+strictly smaller fuel.  An accessibility step obtains those workers from
+recursive knots at `m < fuel`, then builds the current M5 instantiation
+worker, the current M4 extra-cast worker, and the current column worker in
+that order.
+
 ## Checked Wiring
 
-`M6DriverDesignScratch.agda` imports these read-only modules:
+`proof/DGG/notes/M6DriverDesignScratch.agda` imports these read-only modules:
 
 - `proof.DGG.Catchup.ExtraCastRightProof`
 - `proof.DGG.Catchup.InstCatchupRightDef`
@@ -191,21 +205,10 @@ be proved when M6 is implemented in the real `Catchup` tree:
 
 ## Transcript
 
-All commands were run from `/home/runner/AI-for-pl`:
+Current Mac gate:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/InstCatchupRightDef.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/InstCatchupRightProof.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/ExtraCastRightProof.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/ExtraCastRight2.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 M6DriverDesignScratch.agda
+env -u AGDA_DIR agda -i GTSFImp -i GTSFImp/proof/DGG/notes -v0 \
+  GTSFImp/proof/DGG/notes/M6DriverDesignScratch.agda
 # exit 0, no output
 ```

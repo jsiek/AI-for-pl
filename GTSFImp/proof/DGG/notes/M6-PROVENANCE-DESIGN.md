@@ -116,6 +116,15 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
    `ValueCatchupRightProvAt` into `FuelKnot`, then expose the unindexed M6
    theorem.
 
+`FuelStepSurface.next-knot` was removed on 2026-08-13.  It was unused by M5
+or M6, and it pointed in the wrong well-founded direction: constructing the
+surface at `fuel` demanded a complete knot at `suc fuel`, so even the
+zero-fuel case generated an infinite upward obligation.  The live surface now
+contains only the three strictly smaller workers.  The knot is assembled by
+`Acc _<_ fuel`: recursive calls provide knots at `m < fuel`; their three
+fields populate `smaller-extra`, `smaller-inst`, and `smaller-value`; the
+current M5, M4, and column workers then populate `FuelKnot fuel`.
+
 The provenance-free surface remains only as a refuted design reference.  Do
 not revive it or admit projection casts in `CatchupCast⁻` without a new
 machine-checked call shape requiring option (C).

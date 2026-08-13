@@ -71,6 +71,8 @@ import proof.DGG.Catchup.StructuralWorldExtendProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof
 import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 import proof.DGG.Catchup.StructuralWorldTagRebaseProof
+import proof.DGG.Catchup.StructuralWorldSmartLiftDef
+import proof.DGG.Catchup.StructuralWorldSmartLiftProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

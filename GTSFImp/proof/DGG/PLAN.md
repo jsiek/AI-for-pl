@@ -585,6 +585,11 @@ wrappers, and erases to the existing public `WorldExtendᴿ`.
 source-reveal rebase, returning both the premise trace and the final rebase.
 `structural-tag-rebase-atᴸ` provides the conceal-direction analogue and
 maps the target pivot across every bind in the trace.
+`structural-smart-liftᴸ` provides the source-Λ analogue.  It follows the
+same trace through either smart-alias or smart-fresh insertion, returning the
+post smart lift; its result exposes the transformed center because the fresh
+case computes that center by embedding pushout.  Thus all three source-wrapper
+geometries needed by the equal-mass recursion are now structurally available.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

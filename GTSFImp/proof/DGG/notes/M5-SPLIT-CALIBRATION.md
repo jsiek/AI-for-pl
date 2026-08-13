@@ -299,6 +299,13 @@ removed because it assumed a relation to an intermediate raw type
 application.  The package records now likewise place the relation only in the
 descent result, after the target has reached a value.
 
+The internal `StructuralWorldExtendᴿ` trace now commutes through every
+source-only wrapper used by the fixed-mass recursion.  Reveal uses
+`structural-rebase-atᴸ`, conceal uses `structural-tag-rebase-atᴸ`, and source
+Λ uses `structural-smart-liftᴸ`.  The Λ transformer is exhaustive over smart
+alias and smart fresh; the latter returns its pushout-computed center
+existentially.  These are trace transformations, not new imprecision rules.
+
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a through NS-2c closed without a relation change, so the split-rule design
 remains suspended.  Resume it only if a later step finds a new machine-checked

@@ -48,7 +48,9 @@ open import proof.DGG.Parked.ParkedWorldProof using (right-bind-⊑ᵂ)
 open import proof.DGG.CenterRename using
   (_∘↪_; toRenameᵗ-∘; sucMaybe; preimage?; sucMaybe-nothing;
    preimage?-image; EmbeddingPair; pair; embeddingPair; EmbeddingPushout;
-   pushout; embeddingPushout; pushout-old-off-premise; renameEnv;
+   pushout; embeddingPushout; EmbeddingWindow; window-here;
+   pushout-window; embeddingPushoutWindow;
+   pushout-old-off-premise; renameEnv;
    renameEnv-image; renameEnv-off)
 import proof.Imprecision as PI
 
@@ -133,6 +135,7 @@ record TargetWindowInsert {Δᴸ Δᴿ Δ Δ′}
     (ins : TargetInsert wk↪ᵗ π W W′)
     (κ : Nat.suc Δ ↪ᵗ Δ′) : Set where
   field
+    windowEmbedding : EmbeddingWindow π κ
     window-zero :
       toRenameᵗ (CTI2.ηᴿʷ W′) Fin.zero ≡ toRenameᵗ κ Fin.zero
     window-old : ∀ Z
@@ -1008,7 +1011,8 @@ smartAliasTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
   → TargetWindowInsert ins κ
   → TargetWindowInsert (smartAliasTargetInsert ins guard) κ
 smartAliasTargetWindowInsert ins guard win = record
-  { window-zero = TargetWindowInsert.window-zero win
+  { windowEmbedding = TargetWindowInsert.windowEmbedding win
+  ; window-zero = TargetWindowInsert.window-zero win
   ; window-old = TargetWindowInsert.window-old win
   }
 
@@ -1634,6 +1638,41 @@ smartFreshGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
           (toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)))
           y′-eq)
         (smartFresh-target-insert ins guard Y)
+
+
+smartFreshTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′ Δᵐ}
+    {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {W′ : World Δᴸ (Nat.suc Δᴿ) Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+    {κ : Nat.suc Δ ↪ᵗ Δ′}
+  → (ins : TargetInsert wk↪ᵗ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → TargetWindowInsert ins κ
+  → Σ[ κᵐ ∈ Nat.suc Δᵐ ↪ᵗ
+      EmbeddingPushout.Δᵐ′
+        (embeddingPushout π
+          (CTI2.SmartFreshBehindGuard.oldCenters guard)) ]
+      TargetWindowInsert (smartFreshTargetInsert ins guard) κᵐ
+smartFreshTargetWindowInsert {π = π} {W′ = W′} ins guard win
+    with embeddingPushoutWindow old (TargetWindowInsert.windowEmbedding win)
+  where
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+smartFreshTargetWindowInsert {π = π} {W′ = W′} ins guard win
+    | pushout-window κᵐ window-ok zero-commutes old-commutes =
+  κᵐ , record
+    { windowEmbedding = window-ok
+    ; window-zero =
+        trans (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Fin.zero)
+          (trans
+            (cong (toRenameᵗ old′)
+              (TargetWindowInsert.window-zero win))
+            zero-commutes)
+    ; window-old = old-commutes
+    }
+  where
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old′ = EmbeddingPushout.old′ (embeddingPushout π old)
 
 
 rightPushoutWindow : ∀ {Δ Δᵐ}
@@ -2689,7 +2728,8 @@ rightBindTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → TargetWindowInsert (rightBindTargetInsert {W = W} {B = B}) id↪ᵗ
 rightBindTargetWindowInsert = record
-  { window-zero = refl
+  { windowEmbedding = window-here
+  ; window-zero = refl
   ; window-old = λ Z → refl
   }
 
@@ -2705,7 +2745,8 @@ smartFreshRightBindTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δᵐ}
         (CTI2.SmartFreshBehindGuard.oldCenters guard))
 smartFreshRightBindTargetWindowInsert guard =
   record
-    { window-zero = refl
+    { windowEmbedding = window-here
+    ; window-zero = refl
     ; window-old = λ Z → refl
     }
 

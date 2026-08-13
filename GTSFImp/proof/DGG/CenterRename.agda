@@ -72,6 +72,23 @@ record EmbeddingPushout {Δ Δ′ Δᵐ}
       → toRenameᵗ premise (toRenameᵗ old X)
         ≡ toRenameᵗ old′ (toRenameᵗ π X)
 
+-- A one-slot window extends an embedding by placing its distinguished
+-- slot before every point in the old embedding.  Keeping this structural
+-- witness, rather than only its pointwise action, matters at an empty
+-- source context, where several syntactically different OPEs act on no
+-- points at all.
+
+data EmbeddingWindow : ∀ {Δ Δ′ : TyCtx}
+    → Δ ↪ᵗ Δ′ → Nat.suc Δ ↪ᵗ Δ′ → Set where
+  window-here : ∀ {Δ Δ′} {π : Δ ↪ᵗ Δ′}
+    → EmbeddingWindow (skip π) (keep π)
+
+  window-skip : ∀ {Δ Δ′} {π : Δ ↪ᵗ Δ′}
+      {κ : Nat.suc Δ ↪ᵗ Δ′}
+    → EmbeddingWindow π κ
+    → EmbeddingWindow (skip π) (skip κ)
+
+
 record EmbeddingPair (Δ₁ Δ₂ : TyCtx) : Set where
   constructor pair
   field
@@ -122,6 +139,44 @@ embeddingPushout (keep π) (keep old)
       ≡ toRenameᵗ (keep old′) (toRenameᵗ (keep π) X)
   commutes′ Fin.zero = refl
   commutes′ (Fin.suc X) = cong Fin.suc (commutes X)
+
+
+record EmbeddingPushoutWindow {Δ Δ′ Δᵐ : TyCtx}
+    (π : Δ ↪ᵗ Δ′) (old : Δ ↪ᵗ Δᵐ)
+    (κ : Nat.suc Δ ↪ᵗ Δ′)
+    (po : EmbeddingPushout π old) : Set where
+  constructor pushout-window
+  field
+    window : Nat.suc Δᵐ ↪ᵗ EmbeddingPushout.Δᵐ′ po
+    window-embedding :
+      EmbeddingWindow (EmbeddingPushout.premise po) window
+    window-zero-commutes :
+      toRenameᵗ (EmbeddingPushout.old′ po)
+          (toRenameᵗ κ Fin.zero)
+        ≡ toRenameᵗ window Fin.zero
+    window-old-commutes : ∀ Z
+      → toRenameᵗ (EmbeddingPushout.premise po) Z
+        ≡ toRenameᵗ window (Fin.suc Z)
+
+
+embeddingPushoutWindow : ∀ {Δ Δ′ Δᵐ : TyCtx}
+    {π : Δ ↪ᵗ Δ′} {κ : Nat.suc Δ ↪ᵗ Δ′}
+  → (old : Δ ↪ᵗ Δᵐ)
+  → EmbeddingWindow π κ
+  → EmbeddingPushoutWindow π old κ (embeddingPushout π old)
+embeddingPushoutWindow {π = skip π} old window-here
+    with embeddingPushout π old
+embeddingPushoutWindow {π = skip π} old window-here
+    | pushout premise old′ commutes =
+  pushout-window (keep premise) window-here refl (λ Z → refl)
+embeddingPushoutWindow {π = skip π} old (window-skip window-ok)
+    with embeddingPushout π old | embeddingPushoutWindow old window-ok
+embeddingPushoutWindow {π = skip π} old (window-skip window-ok)
+    | pushout premise old′ commutes
+    | pushout-window κᵐ window-okᵐ zero-commutes old-commutes =
+  pushout-window (skip κᵐ) (window-skip window-okᵐ)
+    (cong Fin.suc zero-commutes)
+    (λ Z → cong Fin.suc (old-commutes Z))
 
 ------------------------------------------------------------------------
 -- Preimages and imprecision environments

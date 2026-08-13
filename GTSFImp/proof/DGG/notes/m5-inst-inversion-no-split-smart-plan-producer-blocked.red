@@ -1,6 +1,27 @@
 M5 instantiation inversion blocker: no-split smart post-plan producer
 
-Status: BLOCKED AT THE RECURSIVE CALLER, 2026-08-13.
+Status: RESOLVED, 2026-08-13.
+
+Resolution:
+
+  `Λ⊑²-plain-shared-smart-plan-prefix-at-base` now checks in
+  `Catchup/InstInversionProof.agda`.  It instantiates the generic consumer
+  with the existing canonical target-first witnesses:
+
+    `Λ⊑²-smart-fresh-guard`
+    `mapCtxᴿ-smart-fresh-liftᴸ`
+    `Λ-concrete-post-window`
+    `Λ-strip-prefix-p₂`
+
+  The analysis below had the center order after two right bindings
+  backwards.  Starting with the front source-fresh guard, the first right
+  binding produces `[target₁, sourceFresh, old...]`; the second produces
+  `[target₂, target₁, sourceFresh, old...]`.  This is already the
+  target-window-first layout required by the generic consumer.  No new
+  `TargetInsert` bridge, world equality, or live relation constructor is
+  needed.
+
+  The historical blocker analysis is retained below as the rejected route.
 
 Resolved relation question:
 
@@ -17,7 +38,7 @@ Resolved relation question:
 
     `Λ⊑²-plain-shared-prefix-at-base`
 
-Exact remaining caller obligation:
+Former caller obligation:
 
   To use the generic theorem below an already smart premise, the recursive
   worker must select a post world `Wᶠ₂` and construct all of:
@@ -35,7 +56,7 @@ Exact remaining caller obligation:
   theorem returns the required `ΛPostPrefixPackageAtBase` without changing
   the relation.
 
-Why the first producer attempt is insufficient:
+Why the first producer diagnosis was incorrect:
 
   `TargetExtend.smartFreshGuardInsert` proves that a front smart guard remains
   valid after one or two target insertions.  The checked scratch lemmas are:
@@ -43,26 +64,17 @@ Why the first producer attempt is insufficient:
     `front-smart-after-target-insert`
     `front-smart-after-two-target-inserts`
 
-  This closure keeps the world chosen by the target-insert pushout.  It does
-  not identify that world with the target-window-first smart world used by the
-  concrete interleaving.  The attempted equality between those worlds is
-  rejected definitionally, so this is not yet the producer required by the
-  recursive caller.
+  This closure keeps the world chosen by the target-insert pushout.  The
+  rejected attempt then asked for the wrong world equality because it assumed
+  the pending source-fresh center preceded the two target centers.  Computing
+  the two insertions shows the opposite order, so the live canonical witnesses
+  already discharge the caller obligation without that equality.
 
-Smallest next step:
+Next step after resolution:
 
-  State the recursive caller's no-split post plan as explicit quantified
-  fields (not a new alias for a theorem conclusion), then construct it either:
-
-    * directly, choosing the two target inserts before rebuilding the pending
-      source smart lift; or
-    * by a proof-surface bridge from the target-insert pushout world to the
-      existing target-window-first smart world.
-
-  Retry the direct rule interleavings before proposing any live relation
-  change.  The old S1 split plan may be resumed only if this producer attempt
-  ends in a machine-checked obstruction that also excludes the already checked
-  concrete derivation tree.
+  Close the source-strip wrapper cases using the checked specialization,
+  assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.  The old
+  S1 split plan remains suspended.
 
 Checked state before stopping:
 

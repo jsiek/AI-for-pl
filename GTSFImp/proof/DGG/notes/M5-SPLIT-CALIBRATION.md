@@ -242,21 +242,21 @@ Revised gates:
 
   NS-1  DONE (`98d3523c`): concrete live source-left package plus generic
         post-world consumer.  The focused proof gate and `All.agda` pass.
-  NS-2  NEXT: make the derivation-recursive worker produce the generic
-        caller plan (`SmartCommaLiftᴸ`, `SmartLiftCtxᴸ`, and
-        `ΛPostWindowGeometry`) under an existing smart premise.  The
-        front-guard-through-`TargetInsert` closure checked in the scratch
-        preserves its original placement, so it is not by itself the needed
-        target-window-first producer.  The exact residual is recorded in
-        `m5-inst-inversion-no-split-smart-plan-producer-blocked.red`.
-  NS-3  Use that producer in the plain source-left and strip-wrapper cases,
+  NS-2  DONE: `Λ⊑²-plain-shared-smart-plan-prefix-at-base` specializes the
+        generic consumer with the existing canonical target-first smart
+        witnesses.  The first analysis had the inserted-center order
+        backwards: two right bindings put the target window before the
+        pending source-fresh center, exactly as the consumer requires.  No
+        additional `TargetInsert` bridge or relation constructor is needed.
+  NS-3  NEXT: use that specialization in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
         Then resume the four descent views and the M6 driver knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
-Resume split-rule design only if NS-2 produces a machine-checked obstruction
-that also excludes the checked derivation-tree interleaving at the recursive
-caller.
+NS-2 closed without an obstruction, so the split-rule design remains
+suspended.  Resume it only if a later step finds a new machine-checked
+relation-expressibility obstruction that also excludes the checked
+derivation-tree interleaving at the recursive caller.
 
 This checkout is on a different computer from the one that supplied the
 historical `/tmp/agda-work/agda-home` path.  On this Mac, remove that stale

@@ -6206,6 +6206,56 @@ right-bind-right-bind-tag-rebaseᴸ rb =
       innerRel _
 
 
+Λ⊑²-plain-shared-smart-plan-prefix-at-base : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {γᴮ : CTI2.CtxImp
+      (CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W))}
+    {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+      ⟩ B}
+    {inner-p : `∀ A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {outer-p : `∀ (`∀ A) CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → (vV : CT.Value V)
+  → (vV′ : CT.Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (liftγᴸ : CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ)
+  → (liftγᴮ : CTI2.LiftCtx I.X⊑X γᴸ γᴮ)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → (outer∈ : Fin.zero ∈ᵗ `∀ A)
+  → (target⊢ :
+      ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ γ ⟩
+        ⊢ Λ V′ ⦂ `∀ B)
+  → (bodyRel :
+      CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+        CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
+  → ΛPostPrefixPackageAtBase
+      (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
+        (CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel inner-p) outer-p)
+      (right-bind-right-bind-world-extendᴿ
+        {W = W} {B = ★} {C = ＇ Fin.zero})
+      c′ B′≢★
+Λ⊑²-plain-shared-smart-plan-prefix-at-base {W = W} {A = A} {B = B}
+    {outer-p = outer-p} vV vV′ c′ B′≢★ liftγᴸ liftγᴮ
+    Anv zero∈A outer∈ target⊢ bodyRel =
+  Λ⊑²-plain-shared-prefix-at-base vV vV′ c′ B′≢★
+    liftγᴸ liftγᴮ Anv zero∈A outer∈ target⊢ bodyRel
+    (CTI2.smart-fresh-behind (Λ⊑²-smart-fresh-guard {W = W}))
+    (mapCtxᴿ-smart-fresh-liftᴸ liftγᴸ)
+    (Λ-concrete-post-window
+      {W = CTI2.liftWorldLeft I.X⊑★ W})
+    (Λ-strip-prefix-p₂ {W = W} {A = `∀ (`∀ A)} {B = B} outer-p)
+
+
 Λ-post-prefix-cast⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}

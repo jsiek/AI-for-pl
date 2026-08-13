@@ -154,12 +154,12 @@ CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
     (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
     (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
     (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
+    (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+      ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ]ᵗ)
   → let tested = pairedBindWorld W′ Rᴾ Rᴵ fresh
         test-step = paired-step W′ r fresh
-        W≼tested = future-trans W≼W′ test-step
-        p-open = openFreshImprecision {W = tested}
-          (liftCenterBodyImprecision W≼tested p)
-    in ComputationsRelated tested (FutureValueRelation p-open) k
+    in ComputationsRelated tested
+        (FutureValueRelation (liftCenterImprecision test-step s)) k
         (closeTypeBody (impreciseClosingSubstitution γ)
           (liftImpreciseBodyTerm W≼W′ Nᴵ)
           ↑ 〖 Fin.zero , ⇑ᵗ Rᴵ ↑

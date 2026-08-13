@@ -48,6 +48,9 @@ The port currently contains:
   observation and closing below a type binder;
 - `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
   positive-index `∀⊑∀` value at the pre-allocation type application.
+- `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
+  application, including operator/call phase decomposition and returned-world
+  factorization through the paired allocation.
 
 ## Three-context worlds
 
@@ -65,8 +68,8 @@ that embedding them yields the center endpoints of the derivation. This avoids
 identifying the endpoint contexts merely because a narrowing derivation uses
 one context.
 
-Every center variable has a `SemanticEntry` indexed by its `impEnv` mode. An
-`X⊑X` entry contains endpoint variables on both sides. An `X⊑★` entry contains
+Every center variable has a `SemanticEntry` indexed by its `impEnv` mode.
+An `X⊑X` entry contains endpoint variables on both sides. An `X⊑★` entry
 only a precise endpoint variable and relates its abstract values to imprecise
 values of type `★`. Both relations are step-indexed and downward closed. The
 corresponding positive-index LR clauses require these relations, not just
@@ -93,8 +96,9 @@ has no `★⊑X` mode with which to type its fresh center slot.
 `RightDynamicPayloadRelated` handles a different asymmetry: the imprecise
 value is an injected ground payload while the precise value remains untagged.
 Its shape records the imprecise ground type and injection, and its payload is
-related to the precise value at the ground type before injection. The
-`ι⊑★`, `⇒⊑★`, `∀⊑★`, and `∀★⊑★` clauses are instances of this one definition.
+related to the precise value at the ground type before injection. The four
+ground-to-dynamic clauses are instances of the same definition: `ι⊑★`,
+`⇒⊑★`, `∀⊑★`, and `∀★⊑★`.
 
 ## Why imprecision and narrowing give the same LR index
 
@@ -213,18 +217,20 @@ bound≼K : Future bound K
 future-trans step bound≼K ≡ W≼K
 ```
 
-together with value relatedness lifted along `bound≼K`. Thus the semantic test
-observes the same pre-allocation phase as compiled type application, and its
-return world is definitionally required to factor through the exact paired
-extension chosen for the quantified type. Matching type-beta expansion proves
-this factorization for both return directions; blame observations need no
-result-world witness.
+together with value relatedness lifted along `W≼K`. Thus the semantic test
+observes the same pre-allocation phase as compiled type application. The value
+relation itself is lifted along the computation's recorded `W≼K`; the two
+factorization witnesses separately require that path to pass through the exact
+paired extension chosen for the quantified type. Matching type-beta expansion
+proves this factorization for both return directions; blame observations need
+no result-world witness.
 
 ## Deliberate draft boundaries
 
 The structural clauses are complete for every non-bottom imprecision
 constructor. The ground-to-`★` cases expose the imprecise injection and reuse
-the LR recursively on its payload: `ι⊑ι` for bases, `⇒⊑⇒` for functions, and
+the LR recursively on its payload: `ι⊑ι` for bases, `⇒⊑⇒` for
+functions, and
 `∀⊑∀` for universals. `X⊑★` remains atom-based because its abstract
 representation is supplied by the world rather than by a fixed ground form.
 
@@ -242,6 +248,13 @@ Symmetric universal introduction is complete at every residual index through
 the binder-specific body relation. Its proof uses exactly the arbitrary fresh
 atom supplied by the universal observation; there is no administrative alias
 allocation.
+
+Structural universal elimination now handles `CTI.•⊑•²`. Evaluation is
+split into the operator and pre-allocation application phases, the universal
+observation chooses one paired extension, and successful returned worlds are
+joined only after proving that they factor through that extension. The
+`bot-elim` type-application case remains at the deliberate bottom-clause
+boundary above.
 
 No postulate, hole, or unchecked metavariable is used at this draft boundary.
 

@@ -33,12 +33,12 @@ related-universal-instantiation : ∀
     Σ[ Bᴵ ∈ Ty (suc Δᴵ) ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
-      × let bound = pairedBindWorld W Rᴾ Rᴵ fresh
-            step = future-paired (future-refl {W = W}) r fresh
-            body = openFreshImprecision {W = bound}
-              (liftCenterBodyImprecision step p)
-        in ComputationsRelated W (PostBindValueRelation step body)
-             (suc k) (Vᴵ ⦂∀ Bᴵ [ Rᴵ ]) (Vᴾ ⦂∀ Bᴾ [ Rᴾ ])
+      × ((s : Bᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ [ Rᴵ ]ᵗ)
+        → let bound = pairedBindWorld W Rᴾ Rᴵ fresh
+              step = future-paired (future-refl {W = W}) r fresh
+          in ComputationsRelated W (PostBindValueRelation step s)
+               (suc k) (Vᴵ ⦂∀ Bᴵ [ Rᴵ ])
+                 (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
 related-universal-instantiation {W = W} {p = p} {r = r}
     {fresh = fresh} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} =
   Proof.related-universal-instantiation {W = W} {p = p} {r = r}

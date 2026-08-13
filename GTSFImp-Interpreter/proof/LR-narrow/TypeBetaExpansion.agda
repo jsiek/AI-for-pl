@@ -29,6 +29,7 @@ open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import proof.LR-narrow.ImmediateReturn using
   (value-question-complete)
+import proof.LR-narrow.Closure as ClosureProof
 
 paired-step : ∀ {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) {Aᴾ : Ty Δᴾ} {Aᴵ : Ty Δᴵ}
@@ -258,9 +259,8 @@ paired-returns-type-beta : ∀ {Δᴾ Δᴵ Δᶜ}
     {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
     {fresh : SemanticAtom (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
-    {Aᴾ : Ty (suc Δᶜ)} {Aᴵ : Ty (suc Δᶜ)}
-    {p : impEnv (core (pairedBindWorld W Rᴾ Rᴵ fresh))
-      I.⊢ Aᴾ ⊑ Aᴵ}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
     {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty (suc Δᴵ)}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)} {k : ℕ}
     {resultᴵ : E.EvalResult
@@ -270,7 +270,9 @@ paired-returns-type-beta : ∀ {Δᴾ Δᴵ Δᶜ}
   → (vVᴵ : Value Vᴵ)
   → (vVᴾ : Value Vᴾ)
   → PairedReturns (pairedBindWorld W Rᴾ Rᴵ fresh)
-      (FutureValueRelation p) k resultᴵ resultᴾ
+      (FutureValueRelation
+        (liftCenterImprecision (paired-step W r fresh) p))
+      k resultᴵ resultᴾ
   → PairedReturns W
       (PostBindValueRelation (paired-step W r fresh) p) k
       (prepend-type-beta-result vVᴵ resultᴵ)
@@ -282,10 +284,21 @@ paired-returns-type-beta {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} {W = W}
     (paired-returns W′ bound≼W′ imprecise-store precise-store
       imprecise-terms precise-terms related) =
   paired-returns W′ W≼W′ imprecise-store precise-store
-    imprecise-terms′ precise-terms′ (bound≼W′ , refl , related)
+      imprecise-terms′ precise-terms′
+      (bound≼W′ , refl , finalRelated)
   where
   step = paired-step W r fresh
   W≼W′ = future-trans step bound≼W′
+
+  compositeP = liftCenterImprecision W≼W′ _
+  sequentialP = liftCenterImprecision bound≼W′
+    (liftCenterImprecision step _)
+
+  finalRelated = ClosureProof.value-imprecision-reindex
+    compositeP sequentialP
+    (liftCenterTy-trans step bound≼W′ _)
+    (liftCenterTy-trans step bound≼W′ _)
+    related
 
   imprecise-terms′ : ∀ (M : Term Δᴵ) →
       E.changes (prepend-type-beta-result vVᴵ resultᴵ) ▶ᵀ M
@@ -306,15 +319,15 @@ related-type-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
     {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
     {fresh : SemanticAtom (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
-    {Aᴾ : Ty (suc Δᶜ)} {Aᴵ : Ty (suc Δᶜ)}
-    {p : impEnv (core (pairedBindWorld W Rᴾ Rᴵ fresh))
-      I.⊢ Aᴾ ⊑ Aᴵ}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
     {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty (suc Δᴵ)}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)} {k : ℕ}
   → Value Vᴵ
   → Value Vᴾ
   → ComputationsRelated (pairedBindWorld W Rᴾ Rᴵ fresh)
-      (FutureValueRelation p) k
+      (FutureValueRelation
+        (liftCenterImprecision (paired-step W r fresh) p)) k
       (Vᴵ ↑ 〖 Fin.zero , ⇑ᵗ Rᴵ ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴾ 〗)
   → ComputationsRelated W

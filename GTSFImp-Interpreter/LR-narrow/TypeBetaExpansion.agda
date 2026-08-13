@@ -29,15 +29,15 @@ related-type-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
     {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
     {fresh : SemanticAtom (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
-    {Aᴾ : Ty (suc Δᶜ)} {Aᴵ : Ty (suc Δᶜ)}
-    {p : impEnv (core (pairedBindWorld W Rᴾ Rᴵ fresh))
-      Imprecision.⊢ Aᴾ ⊑ Aᴵ}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) Imprecision.⊢ Aᴾ ⊑ Aᴵ}
     {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty (suc Δᴵ)}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)} {k : ℕ}
   → Value Vᴵ
   → Value Vᴾ
   → ComputationsRelated (pairedBindWorld W Rᴾ Rᴵ fresh)
-      (FutureValueRelation p) k
+      (FutureValueRelation
+        (liftCenterImprecision (paired-step W r fresh) p)) k
       (Vᴵ ↑ 〖 Fin.zero , ⇑ᵗ Rᴵ ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴾ 〗)
   → ComputationsRelated W

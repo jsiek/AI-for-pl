@@ -102,7 +102,7 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
   where
   j≤k = ≤-trans (n≤1+n j) sj≤k
 
-  tail = universals-related-from-body vNᴾ vNᴵ body-related
+  tail = universals-related-from-body {p = p} vNᴾ vNᴵ body-related
     W≼W′ γ j j≤k
 
   head : ∀ {Δᴾ″ Δᴵ″ Δᶜ″}
@@ -112,14 +112,15 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (r : Rᴾ ⊑ᵂ⟨ core W″ ⟩ Rᴵ)
       (fresh : SemanticAtom
         (pairedBindCore (core W″) Rᴾ Rᴵ) Fin.zero)
+      (s : liftPreciseBody W′≼W″
+            (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
+        ⊑ᵂ⟨ core W″ ⟩
+          liftImpreciseBody W′≼W″
+            (liftImpreciseBody W≼W′ Bᴵ) [ Rᴵ ]ᵗ)
     → let tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
           test-step = future-paired (future-refl {W = W″}) r fresh
-          W′≼tested = future-trans W′≼W″ test-step
-          body = openFreshImprecision {W = tested}
-            (liftCenterBodyImprecision W′≼tested
-              (liftCenterBodyImprecision W≼W′ p))
       in ComputationsRelated W″
-          (PostBindValueRelation test-step body) (suc j)
+          (PostBindValueRelation test-step s) (suc j)
           (liftImpreciseTerm W′≼W″
             (close (impreciseClosingSubstitution γ)
               (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
@@ -130,29 +131,31 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
               (liftPreciseTerm W≼W′ (Λ Nᴾ)))
             ⦂∀ liftPreciseBody W′≼W″
               (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ])
-  head W″ W′≼W″ Rᴾ Rᴵ r fresh =
+  head W″ W′≼W″ Rᴾ Rᴵ r fresh s =
     ClosureProof.computations-related-post-bind-reindex
-      body-composite body-sequential
-      precise-open-eq imprecise-open-eq
+      s-composite s
+      (cong (embedPrecise (core W″)) precise-result-trans)
+      (cong (embedImprecise (core W″)) imprecise-result-trans)
       imprecise-redex-eq precise-redex-eq canonical
     where
     test-step = paired-step W″ r fresh
     tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
     W≼W″ = future-trans W≼W′ W′≼W″
-    W≼tested = future-trans W≼W″ test-step
-    W′≼tested = future-trans W′≼W″ test-step
 
-    body-composite = openFreshImprecision {W = tested}
-      (liftCenterBodyImprecision W≼tested p)
-    body-sequential = openFreshImprecision {W = tested}
-      (liftCenterBodyImprecision W′≼tested
-        (liftCenterBodyImprecision W≼W′ p))
+    precise-result-trans = cong (λ C → C [ Rᴾ ]ᵗ)
+      (liftPreciseBody-trans W≼W′ W′≼W″ Bᴾ)
+    imprecise-result-trans = cong (λ C → C [ Rᴵ ]ᵗ)
+      (liftImpreciseBody-trans W≼W′ W′≼W″ Bᴵ)
 
-    precise-open-eq = cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-      (liftCenterBody-trans W≼W′ W′≼tested Aᴾ)
-    imprecise-open-eq = cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-      (liftCenterBody-trans W≼W′ W′≼tested Aᴵ)
-
+    s-composite = subst≡
+      (λ L → L ⊑ᵂ⟨ core W″ ⟩
+        liftImpreciseBody W≼W″ Bᴵ [ Rᴵ ]ᵗ)
+      (sym precise-result-trans)
+      (subst≡
+        (λ R → liftPreciseBody W′≼W″
+          (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
+          ⊑ᵂ⟨ core W″ ⟩ R)
+        (sym imprecise-result-trans) s)
     γ-down = related-closing-downward j≤k γ
     γ-future = related-closing-future W′≼W″ γ-down
     γ-tail = related-closing-trans W≼W′ W′≼W″ γ-future
@@ -171,11 +174,11 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (liftPreciseBodyTerm-value W≼W″ vNᴾ)
 
     contract-related = body-related j j≤k W″ W≼W″ γ-tail
-      Rᴾ Rᴵ r fresh
+      Rᴾ Rᴵ r fresh s-composite
 
     canonical = related-type-beta-expand
       {W = W″} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
-      {r = r} {fresh = fresh} {p = body-composite}
+      {r = r} {fresh = fresh} {p = s-composite}
       {Bᴾ = liftPreciseBody W≼W″ Bᴾ}
       {Bᴵ = liftImpreciseBody W≼W″ Bᴵ}
       {Vᴾ = bodyᴾ} {Vᴵ = bodyᴵ}
@@ -438,7 +441,8 @@ universal-compatible-from-body {W = W} {p = p}
           (close (preciseClosingSubstitution γ)
             (liftPreciseTerm W≼W′ (Λ _))))
         (PI.⊑-unique p-body q-body)
-        (universals-related-from-body vVᴾ vVᴵ body-related
+        (universals-related-from-body {p = p-body}
+          vVᴾ vVᴵ body-related
           W≼W′ γ j j≤k))
   where
   p-body = universal-body-imprecision {W = W} p

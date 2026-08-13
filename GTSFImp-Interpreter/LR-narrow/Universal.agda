@@ -56,7 +56,8 @@ universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
         (liftImpreciseTerm W≼W′ (Λ Nᴵ)))
       (close (preciseClosingSubstitution γ)
         (liftPreciseTerm W≼W′ (Λ Nᴾ)))
-universals-related-from-body = Proof.universals-related-from-body
+universals-related-from-body {p = p} =
+  Proof.universals-related-from-body {p = p}
 
 universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

@@ -282,12 +282,13 @@ computations-related-reindex p q refl refl refl refl related
   rewrite PI.⊑-unique p q = related
 
 computations-related-post-bind-reindex : ∀
-    {Δᴾ Δᴵ Δᶜ Δᴾᵇ Δᴵᵇ Δᶜᵇ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
+    {Δᴾ Δᴵ Δᶜ Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    {Aᴾ Aᴾ′ Aᴵ Aᴵ′ : Ty Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
     {W≼B : Future W bound}
-    (p : impEnv (core bound) I.⊢ Aᴾ ⊑ Aᴵ)
-    (q : impEnv (core bound) I.⊢ Aᴾ′ ⊑ Aᴵ′)
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q : impEnv (core W) I.⊢ Aᴾ′ ⊑ Aᴵ′)
     {k} {Mᴵ Mᴵ′ : Term Δᴵ} {Mᴾ Mᴾ′ : Term Δᴾ}
   → Aᴾ ≡ Aᴾ′
   → Aᴵ ≡ Aᴵ′
@@ -357,31 +358,36 @@ universals-related-future : ∀
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 universals-related-future {k = zero} W≼W′ related = tt
 universals-related-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = suc k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = suc k}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     W≼W′ (head , tail) =
-  (λ K W′≼K Rᴾ Rᴵ r fresh →
-      let step = future-paired (future-refl {W = K}) r fresh
-          W′≼B = future-trans W′≼K step
-          composite = future-trans W≼W′ W′≼B
-          p-composite = openFreshImprecision
-            (liftCenterBodyImprecision composite _)
-          p-sequential = openFreshImprecision
-            (liftCenterBodyImprecision W′≼B
-              (liftCenterBodyImprecision W≼W′ _))
+  (λ K W′≼K Rᴾ Rᴵ r fresh s →
+      let composite = future-trans W≼W′ W′≼K
+          precise-result-trans = cong (λ C → C [ Rᴾ ]ᵗ)
+            (liftPreciseBody-trans W≼W′ W′≼K Bᴾ)
+          imprecise-result-trans = cong (λ C → C [ Rᴵ ]ᵗ)
+            (liftImpreciseBody-trans W≼W′ W′≼K Bᴵ)
+          s-composite = subst≡
+            (λ L → L ⊑ᵂ⟨ core K ⟩
+              liftImpreciseBody composite Bᴵ [ Rᴵ ]ᵗ)
+            (sym precise-result-trans)
+            (subst≡
+              (λ R → liftPreciseBody W′≼K
+                (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
+                ⊑ᵂ⟨ core K ⟩ R)
+              (sym imprecise-result-trans) s)
       in computations-related-post-bind-reindex
-          p-composite p-sequential
-          (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-            (liftCenterBody-trans W≼W′ W′≼B Aᴾ))
-          (cong (λ A → A [ ＇ Fin.zero ]ᵗ)
-            (liftCenterBody-trans W≼W′ W′≼B Aᴵ))
+          s-composite s
+          (cong (embedPrecise (core K)) precise-result-trans)
+          (cong (embedImprecise (core K)) imprecise-result-trans)
           (cong₂ (λ V B → V ⦂∀ B [ Rᴵ ])
             (liftImpreciseTerm-trans W≼W′ W′≼K Vᴵ)
             (liftImpreciseBody-trans W≼W′ W′≼K Bᴵ))
           (cong₂ (λ V B → V ⦂∀ B [ Rᴾ ])
             (liftPreciseTerm-trans W≼W′ W′≼K Vᴾ)
             (liftPreciseBody-trans W≼W′ W′≼K Bᴾ))
-          (head K (future-trans W≼W′ W′≼K) Rᴾ Rᴵ r fresh)) ,
-  universals-related-future W≼W′ tail
+          (head K composite Rᴾ Rᴵ r fresh s-composite)) ,
+  universals-related-future {p = p} W≼W′ tail
 
 right-universals-related-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
@@ -807,7 +813,7 @@ value-imprecision-paired W r fresh
           (cong (liftCenterTy step) eqᴾ) ,
         trans (embedImprecise-lift step (`∀ Bᴵ))
           (cong (liftCenterTy step) eqᴵ) ,
-        universals-related-future step related
+        universals-related-future {p = p} step related
   in value-imprecision-reindex lifted structural {suc k} refl refl
        structural-related
 value-imprecision-paired W r fresh {p = I.⇒⊑★ p q} {k = suc k}
@@ -929,7 +935,7 @@ value-imprecision-precise W fresh
           (cong (liftCenterTy step) eqᴾ) ,
         trans (embedImprecise-lift step (`∀ Bᴵ))
           (cong (liftCenterTy step) eqᴵ) ,
-        universals-related-future step related
+        universals-related-future {p = p} step related
   in value-imprecision-reindex lifted structural {suc k} refl refl
        structural-related
 value-imprecision-precise W fresh {p = I.⇒⊑★ p q} {k = suc k}

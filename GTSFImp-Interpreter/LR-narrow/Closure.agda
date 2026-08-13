@@ -48,7 +48,8 @@ universals-related-future : ∀
   → UniversalsRelated W′ (liftCenterBodyImprecision W≼W′ p)
       (liftPreciseBody W≼W′ Bᴾ) (liftImpreciseBody W≼W′ Bᴵ) k
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
-universals-related-future = Proof.universals-related-future
+universals-related-future {p = p} W≼W′ related =
+  Proof.universals-related-future {p = p} W≼W′ related
 
 right-universals-related-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}

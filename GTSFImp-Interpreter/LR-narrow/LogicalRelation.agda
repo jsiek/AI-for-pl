@@ -208,13 +208,13 @@ mutual
       {W : World Δᴾ Δᴵ Δᶜ}
       {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
     → Future W bound
-    → impEnv (core bound) I.⊢ Aᴾ ⊑ Aᴵ
+    → impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ
     → IndexedValueRelation W
   PostBindValueRelation {bound = bound} W≼B p W′ W≼W′ k Vᴵ Vᴾ =
     Σ[ bound≼W′ ∈ Future bound W′ ]
       (future-trans W≼B bound≼W′ ≡ W≼W′)
       × ValueImprecisionᵏ k W′
-          (liftCenterImprecision bound≼W′ p) Vᴵ Vᴾ
+          (liftCenterImprecision W≼W′ p) Vᴵ Vᴾ
 
   FunctionsRelated : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     → (W : World Δᴾ Δᴵ Δᶜ)
@@ -255,13 +255,12 @@ mutual
         (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
         (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
         (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
+        (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+          ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ]ᵗ)
       → let bound = pairedBindWorld W′ Rᴾ Rᴵ fresh
             W′≼B = future-paired (future-refl {W = W′}) r fresh
-            W≼B = future-trans W≼W′ W′≼B
-            body = openFreshImprecision {W = bound}
-              (liftCenterBodyImprecision W≼B p)
         in ComputationsRelated W′
-            (PostBindValueRelation W′≼B body) (suc k)
+            (PostBindValueRelation W′≼B s) (suc k)
             (liftImpreciseTerm W≼W′ Vᴵ
               ⦂∀ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ])
             (liftPreciseTerm W≼W′ Vᴾ

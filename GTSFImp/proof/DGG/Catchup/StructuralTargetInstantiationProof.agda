@@ -4,9 +4,15 @@ module proof.DGG.Catchup.StructuralTargetInstantiationProof where
 --   * Constructs target-only normalization for an empty pending spine.
 
 open import Types using (Ty)
+open import Data.Nat using (suc)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 open import CastTerms using (Term; Value)
-open import Reduction using ([]; ↠-refl)
+open import Consistency using (_↪ᵗ_; wk↪ᵗ)
+open import Reduction using
+  (StoreChanges; []; _∷_; keep; bind; applyStores;
+   _—→[_]_; ↠-refl; ↠-step)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
@@ -25,4 +31,56 @@ structural-target-zero {W = W} vV = record
   ; final = _
   ; final-value = vV
   ; post-reduction = ↠-refl
+  }
+
+
+structural-target-keep-step : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {V V₁ : Term Δᴿ} {B E B₁ E₁ : Ty Δᴿ}
+    {spine : InstantiationSpine B E}
+    {spine₁ : InstantiationSpine B₁ E₁}
+  → applyInstantiationSpine V spine —→[ keep ]
+      applyInstantiationSpine V₁ spine₁
+  → StructuralTargetInstantiationPackage W V₁ spine₁
+  → StructuralTargetInstantiationPackage W V spine
+structural-target-keep-step step child = record
+  { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ child
+  ; χs = keep ∷ StructuralTargetInstantiationPackage.χs child
+  ; Δ′ = StructuralTargetInstantiationPackage.Δ′ child
+  ; W′ = StructuralTargetInstantiationPackage.W′ child
+  ; structural-ext = structural-keep
+      (StructuralTargetInstantiationPackage.structural-ext child)
+  ; final = StructuralTargetInstantiationPackage.final child
+  ; final-value = StructuralTargetInstantiationPackage.final-value child
+  ; post-reduction = ↠-step step
+      (StructuralTargetInstantiationPackage.post-reduction child)
+  }
+
+
+structural-target-bind-step : ∀ {Δᴸ Δᴿ Δ Δ₁}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {R : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+    {V : Term Δᴿ} {V₁ : Term (suc Δᴿ)}
+    {B E : Ty Δᴿ} {B₁ E₁ : Ty (suc Δᴿ)}
+    {spine : InstantiationSpine B E}
+    {spine₁ : InstantiationSpine B₁ E₁}
+  → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
+  → CTI2.targetStoreʷ W₁ ≡
+      applyStores (bind R ∷ []) (CTI2.targetStoreʷ W)
+  → applyInstantiationSpine V spine —→[ bind R ]
+      applyInstantiationSpine V₁ spine₁
+  → StructuralTargetInstantiationPackage W₁ V₁ spine₁
+  → StructuralTargetInstantiationPackage W V spine
+structural-target-bind-step ins follows step child = record
+  { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ child
+  ; χs = bind _ ∷ StructuralTargetInstantiationPackage.χs child
+  ; Δ′ = StructuralTargetInstantiationPackage.Δ′ child
+  ; W′ = StructuralTargetInstantiationPackage.W′ child
+  ; structural-ext = structural-bind ins follows
+      (StructuralTargetInstantiationPackage.structural-ext child)
+  ; final = StructuralTargetInstantiationPackage.final child
+  ; final-value = StructuralTargetInstantiationPackage.final-value child
+  ; post-reduction = ↠-step step
+      (StructuralTargetInstantiationPackage.post-reduction child)
   }

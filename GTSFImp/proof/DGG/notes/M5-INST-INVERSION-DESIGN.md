@@ -222,6 +222,11 @@ checked zero-spine constructors return the already-related target value, and
 the checked erasure is the public `InstSpineDescentPackage`.  Consequently the
 recursive state relates the two base values and carries the pending target
 spine separately.
+Target packages compose through generic `keep` and target-bind steps.  The
+checked `structural-target-Λ-step` handles the first equal-mass target case:
+`β-Λ` is lifted through the remaining spine, the canonical target insertion
+records the runtime-name allocation, and one zero-syntax transport frame uses
+`replace-zero-open` to align the reduct with the mapped tail.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

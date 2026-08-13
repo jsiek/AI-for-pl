@@ -612,6 +612,11 @@ public erasure returns the existing `InstSpineDescentPackage`; both empty-spine
 constructors are checked.  The worker state therefore relates source and
 target values and separately carries the pending typed target spine, rather
 than asserting a relation to a raw type application.
+Generic `keep` and target-bind composition now prepend one operational step to
+a completed target package while preserving the structural trace.  The first
+concrete equal-mass transition, `structural-target-Λ-step`, is checked: it
+lifts `β-Λ` through the remaining spine, records the fresh runtime-name bind,
+and localizes the opened-type equality with `replace-zero-open`.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

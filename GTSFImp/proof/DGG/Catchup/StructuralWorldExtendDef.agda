@@ -6,8 +6,9 @@ module proof.DGG.Catchup.StructuralWorldExtendDef where
 
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Data.Maybe using (Maybe)
 
-open import Types using (Ty)
+open import Types using (Ty; TyVar)
 open import Consistency using (_↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores)
@@ -43,3 +44,15 @@ data StructuralWorldExtendᴿ {Δᴸ} :
         applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
     → StructuralWorldExtendᴿ χs W₁ W′
     → StructuralWorldExtendᴿ (bind B ∷ χs) W W′
+
+
+record StructuralRebaseAtᴸResult {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    (plan : StructuralWorldExtendᴿ χs W W′)
+    {Wᵖ : World Δᴸ Δᴿ Δ} {Xᴸ? : Maybe (TyVar Δᴸ)}
+    (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?) : Set₁ where
+  field
+    Wᵖ′ : World Δᴸ Δᴿ′ Δ′
+    premise-plan : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′
+    post-rebase : CTI2.RebaseAtᴸ W′ Wᵖ′ Xᴸ?

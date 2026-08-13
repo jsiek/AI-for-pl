@@ -200,6 +200,9 @@ The internal worker now uses `StructuralWorldExtendᴿ`, an inductive trace of
 `keep` and target-bind insertion steps.  Its erasure theorem returns the
 public extension record; future wrapper clauses transform the structural
 trace before packaging it.
+`structural-rebase-atᴸ` is the first checked transformer: it commutes every
+target bind through a source reveal using `insertRebaseAtᴸ`, preserves keeps,
+and returns the final rebase needed to rebuild `reveal⊑²`.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

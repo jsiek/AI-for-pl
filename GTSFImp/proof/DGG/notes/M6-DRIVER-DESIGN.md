@@ -120,8 +120,9 @@ The scratch records the needed composition surfaces:
 
 ## Recursion Form
 
-The intended final proof can use `Induction.WellFounded` over `columnSize`.
-For this pass, I used a fuel-indexed validation surface:
+The final proof uses `Induction.WellFounded` through an `Acc _<_` argument
+over fuel derived from `columnSize`.  The design pass first used this
+fuel-indexed validation surface:
 
 ```agda
 ExtraCastRightAt : ℕ → Set
@@ -131,11 +132,11 @@ FuelKnot : ℕ → Set₁
 FuelStepSurface : ℕ → Set₁
 ```
 
-This avoids committing the final proof to a particular `Acc` plumbing layout
-while still type-checking the mutual-call surface and the strict-decrease
-obligations.
+This first avoided committing the proof to a particular `Acc` plumbing layout
+while still type-checking the mutual-call surface and strict-decrease
+obligations.  `Catchup/FuelKnotProof.agda` now supplies that plumbing.
 
-Update, 2026-08-13: the live implementation will use `Acc _<_ fuel` for that
+Update, 2026-08-13: the live implementation uses `Acc _<_ fuel` for that
 plumbing.  The original pre-flight field
 `FuelStepSurface.next-knot : FuelKnot (suc fuel)` has been removed from both
 the scratch and `Catchup/ValueCatchupRightDef.agda`.  It was never consumed,
@@ -202,10 +203,10 @@ catalog-inst-then-function-weight = refl
 This is `inst` followed by a function cast.  The normalized weight is `9`
 with the scratch `castSize` clauses.
 
-## Remaining Proof Obligations
+## Original Scratch Obligations (Now Discharged)
 
-The scratch intentionally postulates the proof-engineering lemmas that should
-be proved when M6 is implemented in the real `Catchup` tree:
+The scratch intentionally postulates the proof-engineering lemmas below.  Their
+live counterparts are now proved in the `Catchup` tree:
 
 - `castSize-↑close-inst`: close/rename preserves body cast size after
   `β-inst`.

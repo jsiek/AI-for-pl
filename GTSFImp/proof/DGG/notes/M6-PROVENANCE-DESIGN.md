@@ -1,6 +1,7 @@
 # M6 Driver Provenance Design
 
-Date: 2026-08-11. Status: option (A) selected and live; driver pending.
+Date: 2026-08-11. Status: option (A), driver, and fuel knot live; the closed
+theorem awaits only the M5 instantiation factory.
 
 Update, 2026-08-13: the pre-flight described below has landed in
 `Catchup/ValueCatchupRightDef.agda`.  `CatchupCast⁻`, `CatchupColumn⁻`,
@@ -8,8 +9,11 @@ Update, 2026-08-13: the pre-flight described below has landed in
 interfaces, and `FuelKnot` are now the live M6 surface.  The decrease,
 column-size, world-extension, context-composition, reduction-composition,
 column-lifting, and `catchup⁻-embed` support is proved in
-`Catchup/ColumnSupportProof.agda`.  This memo remains the rationale for that
-surface, not a pending choice among (A), (B), and (C).
+`Catchup/ColumnSupportProof.agda`.  The fuel-aware extra-cast worker, column
+driver, and `Acc _<_` knot are live in `Catchup/ExtraCastRightAtProof.agda`,
+`Catchup/ValueCatchupRightProof.agda`, and `Catchup/FuelKnotProof.agda`.
+This memo remains the rationale for that surface, not a pending choice among
+(A), (B), and (C).
 
 ## The gap (checked)
 

@@ -215,8 +215,8 @@ template; reuse its patterns everywhere):
         the split constructor, assemble InstInversionPackage.Λ-package
         (root helpers proven), wire the dispatcher, update PLAN.md's M5
         row; then the four descent views (∀/gen/reveal/conceal — the
-        InstRelContinuationSurface fields), then the M6 driver knot
-        (ValueCatchupRightProvAt), then M7.
+        InstRelContinuationSurface fields), then discharge the M5 factory
+        argument of the already-live M6 fuel knot, then M7.
 
 Discipline (unchanged): statement-first; .red + stop on genuine
 resisters; never weaken live statements; hygiene = FunExt only; commit
@@ -254,7 +254,8 @@ Revised gates:
         `m5-inst-inversion-generalized-post-plan-threading-blocked.red`.
   NS-3  After NS-2b, use the worker in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
-        Then resume the four descent views and the M6 driver knot.
+        Then resume the four descent views and discharge the M5 factory
+        argument of the already-live M6 fuel knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
 NS-2a closed without an obstruction and NS-2b remains a proof-surface

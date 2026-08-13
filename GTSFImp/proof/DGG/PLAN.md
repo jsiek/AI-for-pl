@@ -72,7 +72,7 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the source-left prefix and its one-level canonical smart-post specialization check without a split constructor. General smart-comma recursion must still thread the two target insertions and post geometry | M→L | **half landed; relational half re-scoped** | — |
+| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); its relational continuations are the sole missing input to the live M6 knot. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the source-left prefix and its one-level canonical smart-post specialization check without a split constructor. General smart-comma recursion must still thread a hereditary two-target-insertion plan and post geometry | M→L | **half landed; relational half re-scoped** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -89,11 +89,11 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
 | `inert-extra-cast-right²`, `id-extra-cast-right²` | proven |
 | `ExtraCastRight²` consuming cases | **proven** higher-order (M4, Catchup/ExtraCastRightProof) |
 | `InstCatchupRight²` statement | proven (stage 1) |
-| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); relational continuations pending M6 |
+| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); M5 relational continuations remain |
 | `right-inj-inversion²` (new, frozen setting) | **PROVEN AND LIVE** (2026-08-10): Inversion/RightInjInversion2Lemma, zero postulates |
 | `TargetDescent` (new) | **proven** (`ebd6f6a`) — terminal ★ + re-emission continuation |
 | `seal-transfer` | **unconditional** — H-multi deleted, collision refuted by frozen centers (`309d8a3`) |
-| Value catch-up (composed) | not stated (M6) |
+| Value catch-up (composed) | **PROVEN MODULO M5 FACTORY** (`Catchup/FuelKnotProof.agda`) |
 | `compile-preserves-imprecision²` (+ identity `initialWorld`) | **proven** (`CompilePreservesImprecision2.agda`) |
 
 ## Investigation artifacts (design records; keep)
@@ -296,9 +296,10 @@ premise-world pedigree on the rule surface (memo option B); tied
 conceal⊑² indices (pre-flight 9: no site needs the loose form);
 in-branch tagged-transfer packaging.
 
-Next: M5 relational continuations + M6 driver (designs validated),
-then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
-pedigree.
+Next: state and prove the M5 hereditary smart-post plan, close the M5
+dispatcher and relational continuations, and discharge the sole factory
+argument of the live M6 knot.  Then M7 sim-right² and M8 dgg-simulation.
+Parked: single-source-pair pedigree.
 
 ## M5 depth-≥1 satisfiability finding (2026-08-12, ESCALATED)
 
@@ -351,8 +352,8 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
   M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
        of the M5 instantiation inversion (Catchup/InstInversionProof),
        then the source-strip cases, then Λ-package assembly, then the
-       M5 dispatcher closes InstCatchupRightAt, then the M6 driver
-       knot (ValueCatchupRightProvAt), then M7 sim-right².
+       M5 dispatcher closes InstCatchupRightAt and discharges the already-live
+       M6 fuel knot's factory argument, then M7 sim-right².
        NOTE for M-4: with the smart rule, retry the DIRECT route for
        the recursive case first — the lift-outside/exchange saga
        (center-map/CenterMapSupport layers) may be bypassable entirely,
@@ -505,7 +506,8 @@ Revised work order:
   NS-3  After the NS-2b statement surface checks, close the source-strip
         wrappers, assemble
         `InstInversionPackage.Λ-package`, and wire the dispatcher; then
-        resume the four descent views and the M6 driver knot.
+        resume the four descent views and discharge the live M6 knot's M5
+        factory argument.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

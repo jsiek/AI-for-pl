@@ -14,8 +14,7 @@ open import Consistency using (_⊢_∼_)
 open import CastTerms using
   (Term; Value; ƛ_; Λ_; $; _《_》; _↑_; _↓_; _⟨_⟩)
 open import proof.Consistency using (castSize)
-open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (CastColumn; []ᶜ; _▻ᶜ_)
+open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 
 
 castAdministrationWeight : ∀ {Δ μ} {A B : Ty Δ}
@@ -39,25 +38,31 @@ valueAdministrationWeight (vV ↓ conceal-value) =
   suc (valueAdministrationWeight vV)
 
 
-columnAdministrationWeight : ∀ {Δ} {A B : Ty Δ}
-  → CastColumn A B
+spineAdministrationWeight : ∀ {Δ} {A B : Ty Δ}
+  → InstantiationSpine A B
   → ℕ
-columnAdministrationWeight []ᶜ = zero
-columnAdministrationWeight (c ▻ᶜ κ) =
-  castAdministrationWeight c + columnAdministrationWeight κ
+spineAdministrationWeight []ⁱ = zero
+spineAdministrationWeight (cast-frame c ▻ⁱ spine) =
+  castAdministrationWeight c + spineAdministrationWeight spine
+spineAdministrationWeight (reveal-frame c ▻ⁱ spine) =
+  spineAdministrationWeight spine
+spineAdministrationWeight (conceal-frame c ▻ⁱ spine) =
+  spineAdministrationWeight spine
 
 
-columnLength : ∀ {Δ} {A B : Ty Δ}
-  → CastColumn A B
+spineCastLength : ∀ {Δ} {A B : Ty Δ}
+  → InstantiationSpine A B
   → ℕ
-columnLength []ᶜ = zero
-columnLength (c ▻ᶜ κ) = suc (columnLength κ)
+spineCastLength []ⁱ = zero
+spineCastLength (cast-frame c ▻ⁱ spine) = suc (spineCastLength spine)
+spineCastLength (reveal-frame c ▻ⁱ spine) = spineCastLength spine
+spineCastLength (conceal-frame c ▻ⁱ spine) = spineCastLength spine
 
 
 pendingAdministrationRank : ∀ {Δ} {V : Term Δ} {A B : Ty Δ}
   → Value V
-  → CastColumn A B
+  → InstantiationSpine A B
   → ℕ
-pendingAdministrationRank vV κ =
-  2 * (valueAdministrationWeight vV + columnAdministrationWeight κ)
-    + columnLength κ
+pendingAdministrationRank vV spine =
+  2 * (valueAdministrationWeight vV + spineAdministrationWeight spine)
+    + spineCastLength spine

@@ -148,7 +148,7 @@ mutual
 
   ValueImprecisionᵏ (suc k) W (I.⇒⊑⇒ p q) Vᴵ Vᴾ =
     TypedEndpoints W (I.⇒⊑⇒ p q) Vᴵ Vᴾ ×
-    FunctionsRelated W p q k Vᴵ Vᴾ
+    FunctionsRelated W p q (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W
       (I.∀⊑∀ {A = Aᴾ} {B = Aᴵ} p) Vᴵ Vᴾ =
@@ -157,7 +157,7 @@ mutual
     Σ[ Bᴵ ∈ Ty _ ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
-      × UniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
+      × UniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W
       (I.⇒⊑★ {A = A} {B = B} p q) Vᴵ Vᴾ =
@@ -177,7 +177,7 @@ mutual
     TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ ×
     Σ[ Bᴾ ∈ Ty _ ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
-      × RightUniversalsRelated W p Bᴾ k Vᴵ Vᴾ
+      × RightUniversalsRelated W p Bᴾ (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.∀★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ ×

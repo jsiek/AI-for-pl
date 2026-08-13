@@ -163,6 +163,11 @@ Consequently, `lambda-compatible-from-body` is the body-driven lambda
 introduction theorem. The lower-level `lambda-compatible` remains available
 when a proof already has the function-elimination obligations directly.
 
+`application-compatible` supplies the corresponding elimination case for
+`CTI.·⊑·²`. It decomposes both evaluator runs into function, argument, and
+call phases; threads the paired future worlds and stores between phases; and
+reassembles return and blame observations for the whole applications.
+
 ## Deliberate draft boundaries
 
 The structural clauses are complete for every non-bottom imprecision
@@ -175,7 +180,7 @@ The bottom cases still impose endpoint valuehood and typing only. Their useful
 elimination principles should be derived from typing and canonical-form
 inversion rather than by adding observable value behavior to bottom.
 
-Lambda introduction is complete from a semantic body premise at every
+Lambda introduction and application elimination are complete at every
 residual index up to the current budget. Term-substitution fusion through both
 term and type binders is available as `sub-sub`; `beta-close-cons` supplies the
 beta/closing equation; closing commutes with future lifting; and matching beta

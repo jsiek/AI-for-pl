@@ -19,3 +19,4 @@ open import LR-narrow.Constant public
 open import LR-narrow.FunctionApplication public
 open import LR-narrow.BetaExpansion public
 open import LR-narrow.Lambda public
+open import LR-narrow.Application public

@@ -158,7 +158,7 @@ related-values-return {W = W} {R = R} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
   forward {n = n} n≤k result-eq
       | vVᴵ′ , imprecise-return | vVᴾ′ , precise-return | refl =
     inj₁ (zero , E.result _ [] Vᴾ ↠-refl vVᴾ′ , precise-return ,
-      paired-returns W future-refl refl refl
+      paired-returns W future-refl refl refl (λ M → refl) (λ M → refl)
         (related (k ∸ n) (m∸n≤m k n)))
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Vᴾ}
@@ -177,7 +177,7 @@ related-values-return {W = W} {R = R} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
   backward {n = n} n≤k result-eq
       | vVᴾ′ , precise-return | vVᴵ′ , imprecise-return | refl =
     zero , E.result _ [] Vᴵ ↠-refl vVᴵ′ , imprecise-return ,
-    paired-returns W future-refl refl refl
+    paired-returns W future-refl refl refl (λ M → refl) (λ M → refl)
       (related (k ∸ n) (m∸n≤m k n))
 
   blame-impossible : ∀ {n}

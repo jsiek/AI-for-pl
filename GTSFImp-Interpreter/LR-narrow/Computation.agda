@@ -13,7 +13,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types
 open import TyStore
 open import CastTerms using (Term; Value; blame)
-open import Reduction using (StoreChanges; _—↠[_]_; applyStores)
+open import Reduction using
+  (StoreChanges; _—↠[_]_; applyStores; applyTerms)
 import Eval as E
 open import Interpreter
 open import LR-narrow.World
@@ -33,22 +34,20 @@ data PairedReturns {Δᴾ Δᴵ Δᶜ}
     {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
     (W : World Δᴾ Δᴵ Δᶜ) (R : IndexedValueRelation W) (k : ℕ) :
     E.EvalResult Mᴵ → E.EvalResult Mᴾ → Set₁ where
-  paired-returns : ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
-      {changesᴵ : StoreChanges Δᴵ Δᴵ′}
-      {changesᴾ : StoreChanges Δᴾ Δᴾ′}
-      {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
-      {Mᴵ↞Vᴵ : Mᴵ —↠[ changesᴵ ] Vᴵ}
-      {Mᴾ↞Vᴾ : Mᴾ —↠[ changesᴾ ] Vᴾ}
-      {vVᴵ : Value Vᴵ} {vVᴾ : Value Vᴾ}
-    → (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+  paired-returns : ∀ {resultᴵ : E.EvalResult Mᴵ}
+      {resultᴾ : E.EvalResult Mᴾ} {Δᶜ′}
+    → (W′ : World (E.Δ′ resultᴾ) (E.Δ′ resultᴵ) Δᶜ′)
     → (W≼W′ : Future W W′)
     → impreciseStore (core W′) ≡
-        changesᴵ ▶ˢ impreciseStore (core W)
-    → preciseStore (core W′) ≡ changesᴾ ▶ˢ preciseStore (core W)
-    → R W′ W≼W′ k Vᴵ Vᴾ
-    → PairedReturns W R k
-        (E.result Δᴵ′ changesᴵ Vᴵ Mᴵ↞Vᴵ vVᴵ)
-        (E.result Δᴾ′ changesᴾ Vᴾ Mᴾ↞Vᴾ vVᴾ)
+        E.changes resultᴵ ▶ˢ impreciseStore (core W)
+    → preciseStore (core W′) ≡
+        E.changes resultᴾ ▶ˢ preciseStore (core W)
+    → (∀ M → E.changes resultᴵ ▶ᵀ M ≡
+        liftImpreciseTerm W≼W′ M)
+    → (∀ M → E.changes resultᴾ ▶ᵀ M ≡
+        liftPreciseTerm W≼W′ M)
+    → R W′ W≼W′ k (E.term resultᴵ) (E.term resultᴾ)
+    → PairedReturns W R k resultᴵ resultᴾ
 
 BlamesFrom : ∀ {Δ}
   → TyStore Δ

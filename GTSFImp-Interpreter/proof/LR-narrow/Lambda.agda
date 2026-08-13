@@ -390,7 +390,7 @@ lambda-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     (liftCenterTy-arrow W≼W′
       (embedImprecise (core W) Aᴵ) (embedImprecise (core W) Bᴵ))
     (explicit-endpoints ,
-      functions W′ W≼W′ γ j (≤-trans (n≤1+n j) j≤k))
+      functions W′ W≼W′ γ (suc j) j≤k)
 
 lambda-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

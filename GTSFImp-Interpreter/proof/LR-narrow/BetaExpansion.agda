@@ -297,8 +297,10 @@ paired-returns-beta : ∀ {Δᴾ Δᴵ Δᶜ}
       (prepend-beta-result {Δᴾ} {Nᴾ} {Vᴾ} vVᴾ resultᴾ)
 paired-returns-beta {Δᴾ} {Δᴵ} {Δᶜ} {W} {R} {k}
     {Nᴵ} {Vᴵ} {Nᴾ} {Vᴾ} vVᴵ vVᴾ
-    (paired-returns W′ W≼W′ imprecise-eq precise-eq related) =
-  paired-returns W′ W≼W′ imprecise-eq precise-eq related
+    (paired-returns W′ W≼W′ imprecise-eq precise-eq
+      imprecise-terms precise-terms related) =
+  paired-returns W′ W≼W′ imprecise-eq precise-eq
+    imprecise-terms precise-terms related
 
 related-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W} {k : ℕ}

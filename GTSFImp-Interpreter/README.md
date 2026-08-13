@@ -190,6 +190,44 @@ and sequential futures, applies matching type-beta expansion, and spends one
 step exactly at beta. `universal-compatible-from-body` combines this result
 with the endpoint typing derivation furnished by `CTI.Λ⊑Λ²`.
 
+`related-universal-instantiation` exposes the positive-index head of a
+structural `∀⊑∀` value relation. It selects the current world, a supplied
+pair of program argument types, their imprecision derivation, and a supplied
+fresh semantic atom. The result is the computation relation stored at the
+corresponding paired extension, together with the endpoint universal-body
+witnesses needed to reconcile the evaluator annotations.
+
+There is an unresolved boundary between that semantic test and the compiled
+type-application constructor. The current `UniversalsRelated` clause first
+installs the concrete paired extension and then observes
+
+```agda
+⇑ᵗᵐ V ⦂∀ ⇑ᵗ B [ ＇ zero ]
+```
+
+in the extended world. By contrast, the compiled term evaluates
+
+```agda
+V ⦂∀ B [ A ]
+```
+
+in the old world; its first type-beta step installs the paired extension and
+continues with the contractum. Evaluating the semantic test therefore performs
+one additional alias allocation. Existing future monotonicity transports the
+real contractum to that further extension, but no converse allocation-
+reflection theorem is available. Consequently the head of
+`UniversalsRelated` is not yet sufficient to prove compatibility for
+`CTI.•⊑•²`.
+
+There are two coherent ways to close the boundary. One is to state the
+universal observation in the pre-allocation world and use a result relation
+that requires returned worlds to factor through the chosen paired extension.
+The other is to retain the present clause and prove that evaluation and the LR
+reflect across the fresh alias allocation. The former matches the operational
+phase boundary directly; the latter preserves the stronger existing
+post-extension test but requires substantially more evaluator and conversion
+transport metatheory.
+
 ## Deliberate draft boundaries
 
 The structural clauses are complete for every non-bottom imprecision

@@ -22,3 +22,4 @@ open import LR-narrow.Lambda public
 open import LR-narrow.Application public
 open import LR-narrow.TypeBetaExpansion public
 open import LR-narrow.Universal public
+open import LR-narrow.UniversalInstantiation public

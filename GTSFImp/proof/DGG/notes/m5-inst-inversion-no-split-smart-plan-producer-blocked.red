@@ -1,6 +1,6 @@
 M5 instantiation inversion blocker: no-split smart post-plan producer
 
-Status: RESOLVED, 2026-08-13.
+Status: PARTIALLY RESOLVED; GENERAL SMART RECURSION REMAINS, 2026-08-13.
 
 Resolution:
 
@@ -21,7 +21,24 @@ Resolution:
   `TargetInsert` bridge, world equality, or live relation constructor is
   needed.
 
-  The historical blocker analysis is retained below as the rejected route.
+  This resolves the concrete one-level plain-over-shared leaf only.  The
+  historical blocker analysis is retained below as the rejected equality
+  route.
+
+Remaining generalized-worker obligation:
+
+  An arbitrary `Λ⊑²-smart-comma` premise lives at a caller-supplied smart
+  world `Wᵐ`.  Its recursive result cannot in general choose
+  `rightOnlyWorld (rightOnlyWorld Wᵐ ★) (＇ Fin.zero)`, because the outer
+  rewrap must preserve the existing guard.  The worker must instead thread
+  the two target insertions and recurse at the guard-insert post world:
+
+    fresh: `Λ-route1-smart-fresh-ext₂/post-window`
+    alias: `Λ-route1-smart-alias-ext₂/post-window`
+
+  The outer case then uses the twice-inserted guard and transported smart
+  context.  This is an obligation on the recursive proof surface, not a
+  machine-checked obstruction in the live term-imprecision relation.
 
 Resolved relation question:
 
@@ -70,9 +87,10 @@ Why the first producer diagnosis was incorrect:
   the two insertions shows the opposite order, so the live canonical witnesses
   already discharge the caller obligation without that equality.
 
-Next step after resolution:
+Next step after the partial resolution:
 
-  Close the source-strip wrapper cases using the checked specialization,
+  State and implement the generalized worker with explicit target-insertion
+  and post-geometry parameters.  Then close the source-strip wrapper cases,
   assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.  The old
   S1 split plan remains suspended.
 

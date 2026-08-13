@@ -242,19 +242,24 @@ Revised gates:
 
   NS-1  DONE (`98d3523c`): concrete live source-left package plus generic
         post-world consumer.  The focused proof gate and `All.agda` pass.
-  NS-2  DONE: `Λ⊑²-plain-shared-smart-plan-prefix-at-base` specializes the
-        generic consumer with the existing canonical target-first smart
-        witnesses.  The first analysis had the inserted-center order
-        backwards: two right bindings put the target window before the
-        pending source-fresh center, exactly as the consumer requires.  No
-        additional `TargetInsert` bridge or relation constructor is needed.
-  NS-3  NEXT: use that specialization in the source-strip wrapper cases,
+  NS-2a DONE: `Λ⊑²-plain-shared-smart-plan-prefix-at-base` specializes the
+        generic consumer for the one-level plain-over-shared leaf with the
+        existing canonical target-first smart witnesses.  The first analysis
+        had the inserted-center order for that leaf backwards: two right
+        bindings put the target window before the pending source-fresh center.
+  NS-2b NEXT: thread the two target insertions and post-window geometry through
+        the derivation-recursive worker.  An explicit `Λ⊑²-smart-comma` must
+        recurse at the guard-insert world, using
+        `Λ-route1-smart-{alias,fresh}-ext₂/post-window`; its premise cannot in
+        general choose canonical `rightOnlyWorld` twice.
+  NS-3  After NS-2b, use the worker in the source-strip wrapper cases,
         assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
         Then resume the four descent views and the M6 driver knot.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
-NS-2 closed without an obstruction, so the split-rule design remains
-suspended.  Resume it only if a later step finds a new machine-checked
+NS-2a closed without an obstruction and NS-2b remains a proof-surface
+threading problem, so the split-rule design remains suspended.  Resume it
+only if a later step finds a new machine-checked
 relation-expressibility obstruction that also excludes the checked
 derivation-tree interleaving at the recursive caller.
 

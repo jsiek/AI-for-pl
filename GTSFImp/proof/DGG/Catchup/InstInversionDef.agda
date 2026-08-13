@@ -318,16 +318,19 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
 
 StructuralValueInstantiationᵀ : Set₁
 StructuralValueInstantiationᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
     {γ : CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {D : Ty Δᴿ}
-    {p : A ⊑ᵂ⟨ W ⟩ `∀ B} {q : A ⊑ᵂ⟨ W ⟩ B [ D ]ᵗ}
-  → W ∣ γ ⊢² M ⊑ V ∶ p
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {R : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
+    {q : A ⊑ᵂ⟨ W ⟩
+      applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
+  → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
   → Value M
   → Value V
   → AllValueView V
-  → InstSpineDescentPackage W γ M (V ⦂∀ B [ D ]) q
+  → InstSpineDescentPackage W γ M
+      (renameᵗᵐ wk↪ᵗ V ⦂∀ applyBody (bind R) B [ ＇ Fin.zero ]) q
 
 
 record InstPostCatalogPackageAt (fuel : ℕ)

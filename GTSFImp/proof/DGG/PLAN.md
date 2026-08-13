@@ -542,10 +542,12 @@ second independent fuel merely from the old size arithmetic.  The corrected
 status is recorded in `notes/m5-all-spine-fuel-bound-blocked.red`.
 
 The statement-first boundary is now live as
-`StructuralValueInstantiationᵀ`.  It is fuel-free, keeps both input terms as
-values, takes the result imprecision witness explicitly, and returns an
-`InstSpineDescentPackage` for the target runtime type application.  Prove this
-surface before wiring the four non-`Λ` catalog packages.
+`StructuralValueInstantiationᵀ`.  It is fuel-free and specialized to the
+actual allocation shape: the target value is a weakening of a pre-allocation
+value, and its type argument is the available fresh runtime name.  It keeps
+both input terms as values, takes the result imprecision witness explicitly,
+and returns an `InstSpineDescentPackage`.  Prove this surface before wiring
+the four non-`Λ` catalog packages.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from

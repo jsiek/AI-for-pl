@@ -141,18 +141,23 @@ The statement-first structural surface is now:
 
 ```agda
 StructuralValueInstantiationᵀ =
-  ∀ {p : A ⊑ᵂ⟨ W ⟩ `∀ B} {q : A ⊑ᵂ⟨ W ⟩ B [ D ]ᵗ}
-  → W ∣ γ ⊢² M ⊑ V ∶ p
+  ∀ {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
+    {q : A ⊑ᵂ⟨ W ⟩ applyBody (bind R) B [ ＇ zero ]ᵗ}
+  → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
   → Value M
   → Value V
   → AllValueView V
-  → InstSpineDescentPackage W γ M (V ⦂∀ B [ D ]) q
+  → InstSpineDescentPackage W γ M
+      (renameᵗᵐ wk↪ᵗ V ⦂∀ applyBody (bind R) B [ ＇ zero ]) q
 ```
 
-The source `M` is explicitly a value.  The theorem has no residual-cast fuel;
-its result already carries any right-store extension and the transported
-relation.  The M5 finalizer applies residual-column catch-up only after this
-structural descent has produced a value.
+The source `M` is explicitly a value.  The target is specifically the
+weakening of a pre-allocation value and is instantiated at the available
+fresh runtime name; an arbitrary raw type argument is intentionally excluded.
+The theorem has no residual-cast fuel; its result already carries any
+right-store extension and the transported relation.  The M5 finalizer applies
+residual-column catch-up only after this structural descent has produced a
+value.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the

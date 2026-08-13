@@ -284,7 +284,9 @@ is preferred over a second independent target-wrapper fuel.  See the
 resolved postscript in `m5-all-spine-fuel-bound-blocked.red`.
 
 The checked statement is `StructuralValueInstantiationᵀ` in
-`InstInversionDef.agda`.  It returns the existing
+`InstInversionDef.agda`.  It only accepts the live M5 allocation shape: a
+weakened pre-allocation value instantiated at the available fresh runtime
+name.  It returns the existing
 `InstSpineDescentPackage`, so the four view packages need no second descent
 result type.  Its proof is the next NS-4 chunk.
 

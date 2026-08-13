@@ -4830,6 +4830,124 @@ mapCtxᴿ-liftᴸ ext (CTI2.liftᴸ-∷ liftγ) =
   CTI2.liftᴸ-∷ (mapCtxᴿ-liftᴸ ext liftγ)
 
 
+mapCtxᴿ-liftᴸ-at : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ₂}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ Δᴿ′ Δ₂}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {ext₂ : ECR.WorldExtendᴿ χs W W₂}
+    {extᴸ₂ : ECR.WorldExtendᴿ χs
+      (CTI2.liftWorldLeft I.X⊑★ W)
+      (CTI2.liftWorldLeft I.X⊑★ W₂)}
+  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (ECR.mapCtxᴿ extᴸ₂ γᴸ)
+mapCtxᴿ-liftᴸ-at CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
+mapCtxᴿ-liftᴸ-at (CTI2.liftᴸ-∷ liftγ) =
+  CTI2.liftᴸ-∷ (mapCtxᴿ-liftᴸ-at liftγ)
+
+
+target-insert-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {π : Δ ↪ᵗ Δ′} {B : Ty Δᴿ}
+  → (ins : TE.TargetInsert wk↪ᵗ π W W′)
+  → CTI2.targetStoreʷ W′
+      ≡ applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
+  → ECR.WorldExtendᴿ (bind B ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ W)
+      (CTI2.liftWorldLeft I.X⊑★ W′)
+target-insert-bind-under-left-liftᴿ ins target-follows =
+  target-insert-bind-world-extendᴿ
+    (TE.liftLeftTargetInsert {v = I.X⊑★} ins)
+    target-follows
+
+
+smart-alias-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+    {B : Ty Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ECR.WorldExtendᴿ (bind B ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTI2.liftWorldLeft I.X⊑★
+        (TE.smartAliasInsertWorld
+          (TE.rightBindTargetInsert {W = W} {B = B}) Wᵐ))
+smart-alias-bind-under-left-liftᴿ {W = W} {B = B} guard =
+  target-insert-bind-under-left-liftᴿ
+    (TE.smartAliasTargetInsert
+      (TE.rightBindTargetInsert {W = W} {B = B}) guard)
+    (ECR.targetStore-follows
+      (smart-alias-bind-world-extendᴿ {W = W} {B = B} guard))
+
+
+smart-fresh-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {B : Ty Δᴿ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ECR.WorldExtendᴿ (bind B ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTI2.liftWorldLeft I.X⊑★
+        (TE.smartFreshInsertWorld
+          (TE.rightBindTargetInsert {W = W} {B = B}) guard))
+smart-fresh-bind-under-left-liftᴿ {W = W} {B = B} guard =
+  target-insert-bind-under-left-liftᴿ
+    (TE.smartFreshTargetInsert
+      (TE.rightBindTargetInsert {W = W} {B = B}) guard)
+    (ECR.targetStore-follows
+      (smart-fresh-bind-world-extendᴿ {W = W} {B = B} guard))
+
+
+Λ-route1-smart-alias-left-ext₂ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {β α : Fin.Fin Δᴿ}
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTI2.liftWorldLeft I.X⊑★
+        (TE.smartAliasInsertWorld
+          (TE.rightBindTargetInsert
+            {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+          (TE.smartAliasInsertWorld
+            (TE.rightBindTargetInsert {W = W} {B = ★}) Wᵐ)))
+Λ-route1-smart-alias-left-ext₂ {W = W} guard =
+  composeWorldExtendᴿ
+    (smart-alias-bind-under-left-liftᴿ {W = W} {B = ★} guard)
+    (smart-alias-bind-under-left-liftᴿ
+      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero} guard₁)
+  where
+  guard₁ =
+    TE.smartAliasGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+
+Λ-route1-smart-fresh-left-ext₂ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTI2.liftWorldLeft I.X⊑★
+        (TE.smartFreshInsertWorld
+          (TE.rightBindTargetInsert
+            {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+          (TE.smartFreshGuardInsert
+            (TE.rightBindTargetInsert {W = W} {B = ★}) guard)))
+Λ-route1-smart-fresh-left-ext₂ {W = W} guard =
+  composeWorldExtendᴿ
+    (smart-fresh-bind-under-left-liftᴿ {W = W} {B = ★} guard)
+    (smart-fresh-bind-under-left-liftᴿ
+      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero} guard₁)
+  where
+  guard₁ =
+    TE.smartFreshGuardInsert
+      (TE.rightBindTargetInsert {W = W} {B = ★}) guard
+
+
 mapCtxᴿ-smart-fresh-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
@@ -5669,6 +5787,74 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     ; prefix-reduction =
         ΛPostPrefixPackageAt.prefix-reduction bodyPrefix
     }
+
+
+Λ⊑²-plain-recursive-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CTI2.CtxImp W}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A CTI2.⊑ᵂ⟨
+      CTI2.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᴸ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      (CTI2.liftWorldLeft I.X⊑★ W)
+      (CTI2.liftWorldLeft I.X⊑★ W₂)}
+  → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : CT.Value V)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (ECR.mapCtxᴿ extᴸ₂ γᴸ)
+  → (bodyRel : CTI2.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
+      ⊢² V ⊑ Λ V′ ∶ body-p)
+  → (top-p₂ : `∀ A CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
+  → ΛPostPrefixPackageAtBase bodyRel extᴸ₂ c′ B′≢★
+  → ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ⊑²-plain-recursive-prefix-at-base {Δᴿ = Δᴿ}
+    {W₂ = W₂} {γ = γ} {γᴸ = γᴸ}
+    {V′ = V′} {B = B} {ext₂ = ext₂} {extᴸ₂ = extᴸ₂}
+    rel vV c′ B′≢★ Anv zero∈A liftγ₂ bodyRel top-p₂ bodyPrefix =
+  record
+    { prefix-p₂ = top-p₂
+    ; prefix-relation =
+        Λ⊑²-at-rewrap Anv zero∈A liftγ₂ vV target⊢
+          (ΛPostPrefixPackageAtBase.prefix-relation bodyPrefix)
+    ; prefix-value =
+        ΛPostPrefixPackageAtBase.prefix-value bodyPrefix
+    ; prefix-reduction =
+        ΛPostPrefixPackageAtBase.prefix-reduction bodyPrefix
+    }
+  where
+  postRel = ΛPostPrefixPackageAtBase.prefix-relation bodyPrefix
+
+  postTarget⊢ᴸ :
+      ⟨ suc (suc Δᴿ) ,
+        CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂) ,
+        CTI2.tgtCtxʷ (ECR.mapCtxᴿ extᴸ₂ γᴸ) ⟩
+      ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B
+  postTarget⊢ᴸ = CTI2T.target-typing² postRel
+
+  target⊢ :
+      ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ ,
+        CTI2.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
+      ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B
+  target⊢ =
+    subst≡
+      (λ Γ → ⟨ suc (suc Δᴿ) , CTI2.targetStoreʷ W₂ , Γ ⟩
+        ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B)
+      (liftCtxᴸ-target liftγ₂)
+      postTarget⊢ᴸ
 
 
 Λ⊑²-smart-recursive-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}

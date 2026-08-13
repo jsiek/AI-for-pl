@@ -1,8 +1,10 @@
 # M6 Value Catch-Up Driver Design
 
-This is a design-only pass for M6 on branch
-`agent/gtsf-extra-cast-right`.  I did not edit `GTSFImp/`; the checked
-artifact is the root scratch module `M6DriverDesignScratch.agda`.
+This records the original design-only pass for M6.  Its checked artifact now
+lives at `proof/DGG/notes/M6DriverDesignScratch.agda`; the selected
+provenance-carrying surface and its support lemmas are live under
+`proof/DGG/Catchup/`.  See `M6-PROVENANCE-DESIGN.md` for the later provenance
+correction and current implementation sequence.
 
 ## Measure
 
@@ -118,8 +120,9 @@ The scratch records the needed composition surfaces:
 
 ## Recursion Form
 
-The intended final proof can use `Induction.WellFounded` over `columnSize`.
-For this pass, I used a fuel-indexed validation surface:
+The final proof uses `Induction.WellFounded` through an `Acc _<_` argument
+over fuel derived from `columnSize`.  The design pass first used this
+fuel-indexed validation surface:
 
 ```agda
 ExtraCastRightAt : ℕ → Set
@@ -129,13 +132,44 @@ FuelKnot : ℕ → Set₁
 FuelStepSurface : ℕ → Set₁
 ```
 
-This avoids committing the final proof to a particular `Acc` plumbing layout
-while still type-checking the mutual-call surface and the strict-decrease
-obligations.
+This first avoided committing the proof to a particular `Acc` plumbing layout
+while still type-checking the mutual-call surface and strict-decrease
+obligations.  `Catchup/FuelKnotProof.agda` now supplies that plumbing.
+
+Update, 2026-08-13: the live implementation uses `Acc _<_ fuel` for that
+plumbing.  The original pre-flight field
+`FuelStepSurface.next-knot : FuelKnot (suc fuel)` has been removed from both
+the scratch and `Catchup/ValueCatchupRightDef.agda`.  It was never consumed,
+and it made the surface impossible to build by well-founded recursion: a knot
+at every fuel required a knot at the next larger fuel, beginning with an
+upward obligation from zero.  `FuelStepSurface` now exposes only workers at
+strictly smaller fuel.  An accessibility step obtains those workers from
+recursive knots at `m < fuel`, then builds the current M5 instantiation
+worker, the current M4 extra-cast worker, and the current column worker in
+that order.
+
+The current-fuel workers are now live in
+`proof/DGG/Catchup/ExtraCastRightAtProof.agda`.
+`extra-cast-right-at` is exhaustive over `CatchupCast`: recursive
+ground-other and project-expand provenance uses `smaller-extra`, whereas the
+instantiation case calls the supplied same-fuel `InstCatchupRightAt`.  This
+is joined by `value-catchup-right-prov-at` in
+`proof/DGG/Catchup/ValueCatchupRightProof.agda`: it processes one full-
+provenance head, transports and re-heads the tail, and recurses through
+`smaller-value`.  `proof/DGG/Catchup/FuelKnotProof.agda` then constructs
+`FuelKnot fuel` by `Acc _<_` and exposes the unindexed theorem at
+`suc (columnSize κ)`.  Its sole remaining input is the explicit M5 factory
+`∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`.
+
+M5 status, 2026-08-13: its common finalizer is now correctly descent-driven,
+so non-value `∀`/`gen`/reveal/conceal catalog posts fit the live package.
+The remaining factory blocker is upstream of M6: hereditary Λ-prefix
+production still needs the parent top post obligation across a transformed
+smart child plan.  M6's fuel knot and factory type require no change.
 
 ## Checked Wiring
 
-`M6DriverDesignScratch.agda` imports these read-only modules:
+`proof/DGG/notes/M6DriverDesignScratch.agda` imports these read-only modules:
 
 - `proof.DGG.Catchup.ExtraCastRightProof`
 - `proof.DGG.Catchup.InstCatchupRightDef`
@@ -175,10 +209,10 @@ catalog-inst-then-function-weight = refl
 This is `inst` followed by a function cast.  The normalized weight is `9`
 with the scratch `castSize` clauses.
 
-## Remaining Proof Obligations
+## Original Scratch Obligations (Now Discharged)
 
-The scratch intentionally postulates the proof-engineering lemmas that should
-be proved when M6 is implemented in the real `Catchup` tree:
+The scratch intentionally postulates the proof-engineering lemmas below.  Their
+live counterparts are now proved in the `Catchup` tree:
 
 - `castSize-↑close-inst`: close/rename preserves body cast size after
   `β-inst`.
@@ -191,21 +225,10 @@ be proved when M6 is implemented in the real `Catchup` tree:
 
 ## Transcript
 
-All commands were run from `/home/runner/AI-for-pl`:
+Current Mac gate:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/InstCatchupRightDef.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/InstCatchupRightProof.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Catchup/ExtraCastRightProof.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/ExtraCastRight2.agda
-# exit 0, no output
-
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 M6DriverDesignScratch.agda
+env -u AGDA_DIR agda -i GTSFImp -i GTSFImp/proof/DGG/notes -v0 \
+  GTSFImp/proof/DGG/notes/M6DriverDesignScratch.agda
 # exit 0, no output
 ```

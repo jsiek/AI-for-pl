@@ -11,12 +11,13 @@ Question tested:
 
 Checked scratch:
 
-  `M5UnderLiftRevealScratch.agda`
+  `GTSFImp/proof/DGG/notes/M5UnderLiftRevealScratch.agda`
 
   Command:
 
-    AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
-      M5UnderLiftRevealScratch.agda
+    AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+      -i GTSFImp/proof/DGG/notes -v0 \
+      GTSFImp/proof/DGG/notes/M5UnderLiftRevealScratch.agda
 
 What the target reveal rule demands:
 

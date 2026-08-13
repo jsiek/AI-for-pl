@@ -1,12 +1,15 @@
 module M5InterleaveScratch where
 
 -- File Charter:
---   * Root-only scratch for the M5 depth-1 interleaving question.
+--   * Notes scratch for the M5 depth-1 interleaving question.
 --   * Enumerates the six legal top-down peel orders of two source-only
 --     `Λ⊑²` heads and two right-only generated reveals.
 --   * Records finite refutations for the current rules, plus the concrete
 --     candidate world whose inner source binder enters at target center β.
 --   * This file is not imported by the live development.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5InterleaveScratch.agda`.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (just)

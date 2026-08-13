@@ -1,22 +1,22 @@
 # M5 Instantiation Inversion Design
 
-Date: 2026-08-12. Status: latest non-moving under-lift reveal check
-found a satisfiability-class blocker.  The under-left old-evidence
-prefix (`Λ⊑Λ²-route1ᴸ-prefix`) still checks through target insert,
-decay, center extension, and `freshLiftToBindTargetMove★ᴸ`.  A
-same-world generated target reveal is accepted at the `RebaseAtᴿ` and
-conversion-typing fields, but its post type relation is empty for the
-finite non-variable body `＇ zero ⇒ ★`; the moving route still requires
-the impossible source OPE `zero ↦ 3`, `suc zero ↦ 2`.  See
-`m5-inst-inversion-lambda-under-lift-satisfiability.red`.  The previous
-under-lift-generation, image-indexed, window-fresh, and finite
-counterexample notes remain as design records.
+Date: 2026-08-13. Status: the historical under-lift obstruction was bypassed
+by the live smart-comma/no-split interleaving.  The finite hereditary
+two-insert plan, generic target windows, smart alias/fresh child plans, and
+source reveal/conceal plan transports are now checked.  The current resister
+is narrower: the parent `Λ⊑²` rewrap needs a top post type relation at the
+parent world, while recursive evidence lives at the transformed smart child
+world and the smart guard supplies only forward transport.  See
+`m5-inst-inversion-hereditary-top-post-plan-blocked.red`.  The first retry is
+to generalize the outer post obligation over the plan and derive it from the
+parent's original relation, before considering a general guarded reverse
+transport.
 
 Checked artifact:
 
 ```text
 AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp -v0 \
-  M5InstInversionDesignScratch.agda
+  GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda
 # exit 0
 ```
 
@@ -110,9 +110,16 @@ record InstSpineDescentPackage W γ M post p : Set₁ where
 
 For the `Λ` branch this can be zero descent. For the `∀`, `gen`, `reveal`,
 and `conceal` branches, the one catalog step exposes another pending type
-application under a smaller target value wrapper. The future proof should
-recursively descend on target wrapper depth until the target is a value, then
-call the smaller extra-cast worker on the residual provenance.
+application under a smaller target value wrapper. The branch proof must
+descend on target wrapper depth until the target is a value.
+
+Update, 2026-08-13: the live finalizer now treats this package as
+authoritative.  `InstPostCatalogPackageAt` no longer incorrectly requires the
+immediate catalog post to be a value.  `inst-post-at-finish` lifts the descent
+through the pending residual cast, transports `CatchupCast⁻` and cast size,
+and invokes the smaller extra-cast worker only on the descended value.  Thus
+the four remaining view branches need to produce their descent packages; they
+do not need to bypass descent with an impossible immediate-value proof.
 
 ## Per-View Composition Status
 

@@ -1,10 +1,13 @@
 module M5InstInversionDesignScratch where
 
 -- File Charter:
---   * Root-level scratch for the M5 target-instantiation inversion design.
+--   * Notes scratch for the M5 target-instantiation inversion design.
 --   * Imports the promoted live package records from `InstInversionDef`.
 --   * Checks that such packages project mechanically to the live
 --     `InstRelContinuationSurface`, without adding live proof code.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda`.
 
 open import proof.DGG.Catchup.InstCatchupRightRelDef using
   (InstRelContinuationSurface)
@@ -21,16 +24,20 @@ import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Types
 open import Consistency using
-  (Env∼; _⊢_∼_; instᵐ; inst_; keep; skip; toRenameᵗ; wk↪ᵗ)
+  (Env∼; _⊢_∼_; _↪ᵗ_; instᵐ; inst_; keep; skip; toRenameᵗ;
+   wk↪ᵗ)
 open import CastTerms using
   (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; Λ_; renameᵗᵐ)
 import Imprecision as I
 open import Imprecision using (VarImp; X⊑★; X⊑X)
 open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import TyStore using (store-lift; store-bind)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (CatchupCast⁻; castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.Catchup.InstCatchupRightProof as ICRP
+import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.TargetExtend as TE
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
@@ -410,6 +417,200 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
           substᵗ Λ⊑Λ²TargetSplit₂ B
       × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
+
+
+record ΛPostPrefixOnlySourceStripSurface : Set₁ where
+  field
+    post-outer-obligation : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ}
+        {Aₒ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+      → ⦃ Bnv : NonVar B ⦄
+      → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+      → Aₒ ⊑ᵂ⟨ W ⟩ `∀ B
+      → Aₒ ⊑ᵂ⟨
+          rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)
+        ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B
+
+    post-prefix-only : ∀ {Δᴸ Δᴿ Δ Δᵖ Δ₂ Δᵖ₂}
+        {W : World Δᴸ Δᴿ Δ}
+        {Wᵖ : World Δᴸ Δᴿ Δᵖ}
+        {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+        {Wᵖ₂ : World Δᴸ (suc (suc Δᴿ)) Δᵖ₂}
+        {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+        {Mₒ Mᵖ : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+        {Aₒ : Ty Δᴸ} {Aᵖ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+        {pₒ : Aₒ ⊑ᵂ⟨ W ⟩ `∀ B}
+        {pᵖ : Aᵖ ⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
+        {χs₂ : StoreChanges Δᴿ (suc (suc Δᴿ))}
+        {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
+        {extᵖ₂ : ECR.WorldExtendᴿ χs₂ Wᵖ Wᵖ₂}
+        {ν₂ : Env∼ (suc (suc Δᴿ))}
+        {residual-target : Ty (suc (suc Δᴿ))}
+        {residual-cast :
+          ν₂ ⊢ substᵗ Λ⊑Λ²TargetSplit₂ B ∼ residual-target}
+      → (outer-rel : W ∣ γ ⊢² Mₒ ⊑ Λ V′ ∶ pₒ)
+      → (premise-rel : Wᵖ ∣ γᵖ ⊢² Mᵖ ⊑ Λ V′ ∶ pᵖ)
+      → Σ[ premise-post-p ∈
+            Aᵖ ⊑ᵂ⟨ Wᵖ₂ ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B ]
+        Σ[ premise-post-rel ∈
+            Wᵖ₂ ∣ ECR.mapCtxᴿ extᵖ₂ γᵖ
+              ⊢² Mᵖ ⊑ Λ⊑Λ²PostTerm V′ B ∶ premise-post-p ]
+        Σ[ outer-post-p ∈
+            Aₒ ⊑ᵂ⟨ W₂ ⟩ substᵗ Λ⊑Λ²TargetSplit₂ B ]
+        Σ[ rebuilt-outer-post-rel ∈
+            W₂ ∣ ECR.mapCtxᴿ ext₂ γ
+              ⊢² Mₒ ⊑ Λ⊑Λ²PostTerm V′ B ∶ outer-post-p ]
+          Σ[ outer-residual-q ∈
+              Aₒ ⊑ᵂ⟨ W₂ ⟩ residual-target ]
+            CatchupCast⁻ {W = W₂} {A = Aₒ}
+              outer-post-p residual-cast outer-residual-q
+
+
+Λ-post-prefix-concrete-base-preflight : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V′ : Term (suc Δᴿ)}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ `∀ B}
+    {rel : W ∣ γ ⊢² M ⊑ Λ V′ ∶ p}
+    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → {B′≢★ : B′ ≢ ★}
+  → IIP.ΛPostPrefixPackageAt rel c′ B′≢★
+  → IIP.ΛPostPrefixPackageAtBase rel
+      (ICRP.right-bind-right-bind-world-extendᴿ
+        {W = W} {B = ★} {C = ＇ Fin.zero})
+      c′ B′≢★
+Λ-post-prefix-concrete-base-preflight =
+  IIP.Λ-post-prefix-concrete-base
+
+
+Λ-concrete-post-window-preflight : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
+      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))}
+  → IIP.ΛPostWindowGeometry W
+      (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+      ext₂
+Λ-concrete-post-window-preflight =
+  IIP.Λ-concrete-post-window
+
+
+Λ-post-prefix-smart-base-preflight : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+    {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
+    {ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
+    {extᵐ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
+  → (rel : W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (Anv : NonVar A)
+  → (zero∈A : Fin.zero ∈ᵗ A)
+  → CTI2.SmartCommaLiftᴸ W₂ Wᵐ₂
+  → CTI2.SmartLiftCtxᴸ
+      (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
+  → (bodyRel : Wᵐ ∣ γᵐ ⊢² V ⊑ Λ V′ ∶ body-p)
+  → (top-p₂ : `∀ A ⊑ᵂ⟨ W₂ ⟩ IIP.ΛResidualSource₂ B)
+  → IIP.ΛPostPrefixPackageAtBase bodyRel extᵐ₂ c′ B′≢★
+  → IIP.ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ-post-prefix-smart-base-preflight =
+  IIP.Λ⊑²-smart-recursive-prefix-at-base
+
+
+Λ⊑Λ²-base-prefix-at-base-preflight : ∀ {Δᴸ Δᴿ Δ Δ₂}
+    {W : World Δᴸ Δᴿ Δ}
+    {W₂ : World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {γ : CtxImp W} {γᴮ : CtxImp (liftWorldBoth X⊑X W)}
+    {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
+    {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
+    {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
+  → (rel : W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (ext₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂)
+  → IIP.ΛPostWindowGeometry W W₂ ext₂
+  → (liftγ : LiftCtx X⊑X γ γᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → IIP.ΛPostPrefixPackageAtBase rel ext₂ c′ B′≢★
+Λ⊑Λ²-base-prefix-at-base-preflight =
+  IIP.Λ⊑Λ²-base-prefix-at-base
+
+
+Λ⊑Λ²-smart-premise-base-preflight : ∀ {Δᴸ Δᴿ Δᵐ Δᵐ₂}
+    {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+    {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γᵐ : CtxImp Wᵐ}
+    {γᵐᴮ : CtxImp (liftWorldBoth X⊑X Wᵐ)}
+    {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X Wᵐ ⟩ B}
+    {p : `∀ A ⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+  → (rel : Wᵐ ∣ γᵐ ⊢² Λ V ⊑ Λ V′ ∶ p)
+  → (vV : Value V)
+  → (vV′ : Value V′)
+  → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
+  → ⦃ Bnv : NonVar B ⦄
+  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
+  → (B′≢★ : B′ ≢ ★)
+  → (extᵐ₂ : ECR.WorldExtendᴿ
+      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂)
+  → IIP.ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂
+  → (liftγᵐ : LiftCtx X⊑X γᵐ γᵐᴮ)
+  → NonVar A
+  → Fin.zero ∈ᵗ A
+  → liftWorldBoth X⊑X Wᵐ ∣ γᵐᴮ
+      ⊢² V ⊑ V′ ∶ body-p
+  → IIP.ΛPostPrefixPackageAtBase rel extᵐ₂ c′ B′≢★
+Λ⊑Λ²-smart-premise-base-preflight =
+  IIP.Λ⊑Λ²-base-prefix-at-base
+
+
+record SmartRouteOnePostWindowPreflight : Set₁ where
+  field
+    smart-route-one-post-window : ∀ {Δᴸ Δᴿ Δ Δᵐ Δᵐ₁ Δᵐ₂}
+        {W : World Δᴸ Δᴿ Δ}
+        {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+        {Wᵐ₁ : World (suc Δᴸ) (suc Δᴿ) Δᵐ₁}
+        {Wᵐ₂ : World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+        {πᵐ₁ : Δᵐ ↪ᵗ Δᵐ₁}
+        {πᵐ₂ : Δᵐ₁ ↪ᵗ Δᵐ₂}
+        {κᵐ₂ : suc Δᵐ₁ ↪ᵗ Δᵐ₂}
+        {extᵐ₂ : ECR.WorldExtendᴿ
+          (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
+      → CTI2.SmartCommaLiftᴸ W Wᵐ
+      → TE.TargetInsert wk↪ᵗ πᵐ₁ Wᵐ Wᵐ₁
+      → TE.TargetInsert wk↪ᵗ πᵐ₂ Wᵐ₁ Wᵐ₂
+      → (∀ Z → toRenameᵗ πᵐ₂ Z ≡ toRenameᵗ κᵐ₂ (Fin.suc Z))
+      → toRenameᵗ (CTI2.ηᴿʷ Wᵐ₂) Fin.zero ≡ toRenameᵗ κᵐ₂ Fin.zero
+      → CTI2.SmartCommaLiftᴸ
+          (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+          Wᵐ₂
+      → IIP.ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂
 
 
 record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where

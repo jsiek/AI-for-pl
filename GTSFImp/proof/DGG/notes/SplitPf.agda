@@ -1,12 +1,15 @@
 module SplitPf where
 
 -- File Charter:
---   Root-only preflight scratch for the source-consistency crossable/strict
+--   Notes preflight scratch for the source-consistency crossable/strict
 --   split.  This file models the four-valued variable mode relation, checks
 --   the five calibration judgments from SRCCONSIST-DOSSIER.md section 9, and
 --   records the proof-shape obligations for ground-cast-target, CrossFree,
 --   totality, and substitution environments.  It intentionally imports only
 --   the shared type syntax, not the live GTSFImp consistency relation.
+--   Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--   -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--   GTSFImp/proof/DGG/notes/SplitPf.agda`.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Nat as Nat

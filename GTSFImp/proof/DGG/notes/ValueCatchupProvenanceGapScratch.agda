@@ -1,7 +1,7 @@
 module ValueCatchupProvenanceGapScratch where
 
 -- File Charter:
---   * Pre-flight for the M6 driver statement (root scratch, not imported).
+--   * Notes pre-flight for the M6 driver statement; not imported.
 --   * Machine-checks that the design-scratch ValueCatchupRight² surface
 --     (arbitrary CastColumn, NO per-cast CatchupCast provenance) is FALSE:
 --     the QHUNT projection-mismatch package feeds it the singleton column
@@ -10,9 +10,9 @@ module ValueCatchupProvenanceGapScratch where
 --     the column; the fuel surface ValueCatchupRightAt inherits the same
 --     requirement. The CatchupCast premise on ExtraCastRight² is doing
 --     real work and must not be dropped one level up.
---   * Tooling note: with the standard root-only command, also pass
---     `-i GTSFImp/proof/DGG/notes` because this root scratch imports
---     `ProjectionMismatchStarRepScratch` from the notes directory.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/ValueCatchupProvenanceGapScratch.agda`.
 
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ-syntax; _×_; _,_)

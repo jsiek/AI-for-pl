@@ -72,8 +72,8 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; inversion design pre-flight in flight | M→L | **half landed; relational half re-scoped** | — |
-| M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **foundation landed**: castSize measure (in proof/Consistency) + all six support lemmas proven; the provenance-free driver surface is REFUTED (ValueCatchupProvenanceGapScratch) and the provenance-carrying replacement (CatchupCast⁻/CatchupColumn/ValueCatchupRightProv², design in notes/M6-PROVENANCE-DESIGN.md) is LIVE in the Def with the fuel knot re-pointed at it and catchup⁻-embed proven; driver knot pending | — |
+| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); its relational continuations are the sole missing input to the live M6 knot. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the source-left prefix and its one-level canonical smart-post specialization check without a split constructor. General smart-comma recursion must still thread a hereditary two-target-insertion plan and post geometry | M→L | **half landed; relational half re-scoped** | — |
+| M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
 
@@ -89,11 +89,11 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
 | `inert-extra-cast-right²`, `id-extra-cast-right²` | proven |
 | `ExtraCastRight²` consuming cases | **proven** higher-order (M4, Catchup/ExtraCastRightProof) |
 | `InstCatchupRight²` statement | proven (stage 1) |
-| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); relational continuations pending M6 |
+| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); M5 relational continuations remain |
 | `right-inj-inversion²` (new, frozen setting) | **PROVEN AND LIVE** (2026-08-10): Inversion/RightInjInversion2Lemma, zero postulates |
 | `TargetDescent` (new) | **proven** (`ebd6f6a`) — terminal ★ + re-emission continuation |
 | `seal-transfer` | **unconditional** — H-multi deleted, collision refuted by frozen centers (`309d8a3`) |
-| Value catch-up (composed) | not stated (M6) |
+| Value catch-up (composed) | **PROVEN MODULO M5 FACTORY** (`Catchup/FuelKnotProof.agda`) |
 | `compile-preserves-imprecision²` (+ identity `initialWorld`) | **proven** (`CompilePreservesImprecision2.agda`) |
 
 ## Investigation artifacts (design records; keep)
@@ -296,9 +296,10 @@ premise-world pedigree on the rule surface (memo option B); tied
 conceal⊑² indices (pre-flight 9: no site needs the loose form);
 in-branch tagged-transfer packaging.
 
-Next: M5 relational continuations + M6 driver (designs validated),
-then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
-pedigree.
+Next: state and prove the M5 hereditary smart-post plan, close the M5
+dispatcher and relational continuations, and discharge the sole factory
+argument of the live M6 knot.  Then M7 sim-right² and M8 dgg-simulation.
+Parked: single-source-pair pedigree.
 
 ## M5 depth-≥1 satisfiability finding (2026-08-12, ESCALATED)
 
@@ -307,12 +308,12 @@ The Λ branch of the instantiation inversion is CLOSED at depth 0 (the
 NESTED one-sided type abstractions meeting an inst cast), the
 post-instantiation relation appears INEXPRESSIBLE in the current
 parked/rebase discipline — machine-checked two ways
-(M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
+(notes/M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
 same-side source OPE reversal (impossible), and the non-moving
 sameWorldRebaseAt route leaves an empty post obligation (reduces to
 ＇1 ⊑ ＇3 at a concrete finite body). Full resister chain in
 notes/m5-inst-inversion-*.red; verdict note:
-m5-inst-inversion-lambda-under-lift-satisfiability.red.
+notes/m5-inst-inversion-lambda-under-lift-satisfiability.red.
 
 Screen verdict (2026-08-12, notes/M5-DEPTH-SCREEN.md): REACHED — the
 compile image produces the depth-2 geometry (use-dyn source-triple ⊑
@@ -329,7 +330,7 @@ with DYNAMIC (X⊑★-family) marks at both fresh centers — the mechanized
 `Γ ,, α:=★` with the id_★ mark arithmetic, two-clause (merge when the
 partner exists, plain extension otherwise). Selected by the calibration
 matrix (notes/M5-SMART-COMMA-CALIBRATION.md; scratch
-M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
+notes/M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
 cells CHECKED-OK on both E4 (depth-0, coexists with the live closure)
 and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
 evidence because StoreRepImp canonicalizes the alias through the name
@@ -351,12 +352,69 @@ Migration gates (each gated on All.agda green; hygiene FunExt-only):
   M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
        of the M5 instantiation inversion (Catchup/InstInversionProof),
        then the source-strip cases, then Λ-package assembly, then the
-       M5 dispatcher closes InstCatchupRightAt, then the M6 driver
-       knot (ValueCatchupRightProvAt), then M7 sim-right².
+       M5 dispatcher closes InstCatchupRightAt and discharges the already-live
+       M6 fuel knot's factory argument, then M7 sim-right².
        NOTE for M-4: with the smart rule, retry the DIRECT route for
        the recursive case first — the lift-outside/exchange saga
        (center-map/CenterMapSupport layers) may be bypassable entirely,
        since the smart Λ⊑² no longer forces a fresh front center.
+
+       M-4 checkpoint (`59c750f`): the direct recursive case now checks via
+       `Λ⊑²-smart-recursive-package-at`; no exchange layer was revived.  The
+       next resister is the source-strip recursion surface, not smart comma:
+       source-only wrappers need a post-prefix-only helper instead of the full
+       residual `InstPostCatalogPackageAt` recursive call.  See
+       `notes/m5-inst-inversion-source-strip-post-only-surface-blocked.red`.
+
+       M-4 continuation checkpoint (`post-prefix-only`): the surface was
+       stated in the design scratch and the live prefix support checks, but
+       the source-strip rebuild still lacks the outer post obligation
+       `A ⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B` for the wrapper source type.  Plain
+       transport of `A ⊑ᵂ⟨ W ⟩ `∀ B` lands at `applyTys χs₂ (`∀ B)`, not at
+       the reduced post body.  See
+       `notes/m5-inst-inversion-source-strip-post-obligation-blocked.red`.
+
+       M-4 continuation checkpoint (post-obligation pass after the root
+       sweep): the type-level post obligation now checks as
+       `Λ-post-outer-obligation`, with residual-source packaging by
+       `Λ-strip-prefix-p₂`; the old post-obligation `.red` has a RESOLVED
+       postscript.  The next resister is the original
+       `Λ⊑²-smart-comma` source case in the recursive prefix worker: the
+       fixed post-prefix package uses concrete `rightOnly (rightOnly Wᵐ)`,
+       but the existing smart target-transport stack produces a
+       pushout-indexed smart premise world.  See
+       `notes/m5-inst-inversion-smart-source-prefix-world-blocked.red`.
+
+       M-4 continuation checkpoint (parameterized prefix base): the
+       fixed-vs-parameterized prefix package mismatch is resolved by
+       `ΛPostPrefixPackageAtBase`, with concrete and smart instantiations
+       checked in the design scratch.  The source-strip wrapper rebuilds now
+       have parameterized prefix helpers.  The remaining resister is the
+       ordinary `Λ⊑Λ²` base transport at the pushout-indexed smart premise
+       post world; the live base transport is still concrete-only.  See
+       `notes/m5-inst-inversion-lambda-base-prefix-at-world-blocked.red`.
+
+       M-4 continuation checkpoint (base transport at smart post world):
+       the parameterized `Λ⊑Λ²PostBodyTransportAtᵀ` consumer and
+       `Λ⊑Λ²-base-prefix-at-base` wrapper check, with smart-premise
+       instantiation validated in the design scratch.  The remaining
+       concrete lock is lower: the reveal-window ingredients inside
+       `Λ⊑Λ²-post-body-transport` (`ΛPostMidWorld`, out-context,
+       `ImpEnvMono`, `RebaseAtᴿ`, final body obligation, and typing context)
+       are still hard-coded to `rightOnly (rightOnly W)`, while the smart
+       recursive premise needs the M-2 pushout-indexed smart post world.
+       See the same blocker note for the next required post-window geometry
+       surface.
+
+       M-4 continuation checkpoint (`92a7406`): the post-window geometry
+       surface landed as `ΛPostWindowGeometry`, with checked concrete instance
+       `Λ-concrete-post-window`; `Λ⊑Λ²-post-body-transport-at` now consumes
+       the package and `Λ⊑Λ²-base-prefix-at-base` is package-indexed.  The
+       concrete right-only lock is resolved.  The next resister is the smart
+       pushout instance: M-2 exposes the final target-inserted smart world but
+       not the route-one `freshWorld`, `midWorld`, or smart target-bind-lift
+       move needed for ordinary `Λ⊑Λ²` inside the smart premise.  See
+       `notes/m5-inst-inversion-smart-post-window-geometry-blocked.red`.
 
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
@@ -367,3 +425,113 @@ relation was NOT changed, so M5-M8 proceed on unchanged foundations.
 The rigid-gate route it replaced is refuted in
 notes/srcconsist-rigid-{lower-bound,ground-cast-helper}-blocked.red.
 Remaining sibling work (GTSF port) is tracked in TODO.md.
+
+## SPLIT-rule finding (2026-08-13, ESCALATED — the other half of Example 4)
+
+M-4 progress: the k=1 Λ⊑² recursive case is CLOSED; the smart-premise
+Λ⊑Λ² leaf is CLOSED (post-window geometry instantiated for both smart
+branches). The remaining Λ-package obstruction is the SOURCE-LEFT
+companion (plain Λ⊑² / strip wrappers under smart premises), and the
+born-in-place preflight isolated a live-relation expressibility gap
+(m5-inst-inversion-born-in-place-prefix-depth-blocked.red): Λ⊑Λ²'s
+premise carries ONE shared X⊑X center for the matched binders, and the
+post state needs that center SPLIT around a source-left prefix (source
+half before, target half born after). No transport can split a shared
+center — same species as the depth-1 finding, now for the two-sided
+core. The cambridge26 notes already carry the mechanism: Example 4's
+FIRST derivation uses the SPLIT rule (Γ, α:=☆ → separate entries with
+mark bookkeeping) — we mechanized the smart comma (the second
+derivation's device); this case needs split (the first's).
+
+Decision pending (user): mechanize the split rule with the same
+calibration-matrix method as A3 (Example 4 first derivation + the
+concrete source-left instance as the two calibration examples), or an
+alternative. Pausing proof dispatches on this surface meanwhile.
+
+DECIDED (user, 2026-08-13): S1 — a second syntax-directed Λ/Λ
+constructor `Λ⊑Λ²-split` (guarded premise world, split centers,
+dynamic window marks). Calibration matrix: S1/S2 both pass all cells;
+S3 refuted; S1 chosen for transparent two-case inversions over S2's
+hidden placement branch. Constructor definition + migration plan
+(gates SP-1..SP-4, A3 playbook) in notes/M5-SPLIT-CALIBRATION.md.
+Continuation handed to a successor agent; the plan section is the
+authoritative work order.
+
+## NO-SPLIT re-evaluation (2026-08-13, CHECKED — supersedes SP-1)
+
+The split decision above was based on an over-constrained post layout,
+not on an impossibility result for the live relation.  The successful
+S1/S2 type and term leaves in `M5SplitCalibrationScratch.agda` use the
+auxiliary `SplitTyRel` and `SplitTermVarLeaf`, not live `_⊑ᵂ_` and
+`_⊢²_⊑_∶_`.  The S3 refutations rule out re-parking a shared center into
+the same fixed split layout; they do not rule out a different output
+derivation tree.
+
+The no-constructor interleaving now checks on the live proof surface:
+
+- `Λ⊑²-plain-shared-prefix-at` consumes the actual plain `Λ⊑²` over
+  `Λ⊑Λ²` source-left shape and returns its complete concrete
+  `ΛPostPrefixPackageAt`.
+- `Λ⊑²-plain-shared-prefix-at-base` is the corresponding consumer at a
+  caller-supplied post world.  It takes the smart lift, transported
+  contexts, `ΛPostWindowGeometry`, and the outer post obligation
+  explicitly and returns `ΛPostPrefixPackageAtBase`.
+- The proof first constructs the shared inner `Λ⊑Λ²` post prefix with
+  the existing target-bind/reveal machinery.  It then rebuilds the
+  pending outer source wrapper with `Λ⊑²-smart-comma`.  No shared center
+  is split or moved through a source-only prefix.
+
+This is live at commit `98d3523c`; the relation in
+`CastTermImprecision2.agda` is unchanged.  The design preflight remains
+in `notes/M5SplitInterleavingScratch.agda`.
+
+Revised work order:
+
+  NS-1  DONE: live concrete source-left witness and generic post-world
+        consumer.  Focused `InstInversionProof.agda` and full
+        `GTSFImp/All.agda` gates pass.
+  NS-2a DONE: `Λ⊑²-plain-shared-smart-plan-prefix-at-base` instantiates
+        the generic consumer for the one-level plain-over-shared leaf with
+        the already-live canonical target-first witnesses.  The earlier
+        center-order diagnosis for this leaf was backwards; no new world
+        equality or relation constructor is required.
+  NS-2b DONE (`ffadb7c5`, `e7c1bf27`, `f80874d2`): the finite hereditary
+        `ΛTwoInsertPostPlan`, structural target-window transport, and exhaustive
+        smart-alias/smart-fresh child transformer are live.  The transformer
+        carries the post smart lift and transported contexts without assuming
+        a canonical right-only child world.
+  NS-2c DONE up to the next resister: two-step reveal/rebase and
+        conceal/tag-rebase child-plan transformers are focused-green.  They
+        rebuild the two insertions, windows, route-one facts, post geometry,
+        monotonicity, and rebases.  RED-STOP: recursive evidence at the smart
+        child post world cannot yet supply the parent's top `p₂`, because
+        `SmartCommaLiftᴸ` exposes only forward type transport.  The exact
+        machine-checked mismatch and the narrower generalized-outer-
+        obligation route to try first are recorded in
+        `notes/m5-inst-inversion-hereditary-top-post-plan-blocked.red`.
+  NS-3  After the NS-2c top-obligation surface checks, close the source-strip
+        wrappers, assemble
+        `InstInversionPackage.Λ-package`, and wire the dispatcher; then
+        resume the four descent views and discharge the live M6 knot's M5
+        factory argument.
+
+The shared descent consumer is no longer part of the NS-3 uncertainty.
+Commit `7ca0ac1c` removes the contradictory immediate-post value field from
+`InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes
+`InstSpineDescentPackage`, transports the residual cast/provenance through
+the descent, and calls smaller-fuel catch-up only at the descended value.
+The four non-Λ view packages still need their descent producers.
+
+SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
+ends in a new machine-checked relation-expressibility obstruction that
+also rules out derivation-tree interleavings.
+
+The `/tmp/agda-work/agda-home` setting in the historical plan came from
+another computer.  On this Mac, remove that stale override and use the
+installed Agda registration:
+
+    env -u AGDA_DIR agda -i GTSFImp -v0 GTSFImp/All.agda
+
+Discipline remains statement-first; `.red` + stop on genuine resisters;
+no weakening of live statements; hygiene = FunExt only; commit and push
+every proof or planning chunk.

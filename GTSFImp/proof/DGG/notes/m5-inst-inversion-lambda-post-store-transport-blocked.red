@@ -14,7 +14,7 @@ Pre-flight status:
     W₂ = rightOnlyWorld (rightOnlyWorld W ★) (＇ zero)
     χs₂ = bind ★ ∷ bind (＇ zero) ∷ []
 
-  `M5InstInversionDesignScratch.agda` rechecks
+  `GTSFImp/proof/DGG/notes/M5InstInversionDesignScratch.agda` rechecks
   `Λ⊑Λ²-base-rewrap-preflight`, so the Λ base call site accepts the
   two-bind tower once the body transport exists.
 

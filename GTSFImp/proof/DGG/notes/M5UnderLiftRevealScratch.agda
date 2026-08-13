@@ -1,10 +1,13 @@
 module M5UnderLiftRevealScratch where
 
 -- File Charter:
---   * Scratch for the M5 depth-1 under-lift generated reveal question.
+--   * Notes scratch for the M5 depth-1 under-lift generated reveal question.
 --   * Checks the non-moving `sameWorldRebaseAt` route for the first target
 --     reveal, then records the finite post-type obstruction in the same world.
 --   * This file is not imported by the live development.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5UnderLiftRevealScratch.agda`.
 
 open import Data.Empty using (⊥)
 open import Data.Maybe using (just)

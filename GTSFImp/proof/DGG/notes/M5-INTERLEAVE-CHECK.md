@@ -4,7 +4,7 @@ This note answers the follow-up question about interleaving the two
 source-only `Λ⊑²` peels with the two right-only generated reveal peels in the
 depth-1 instance from `M5-DEPTH1-RAW-REPORT.md`.
 
-Checked artifact: `M5InterleaveScratch.agda` at the repo root.
+Checked artifact: `GTSFImp/proof/DGG/notes/M5InterleaveScratch.agda`.
 
 Notation below is top-down:
 

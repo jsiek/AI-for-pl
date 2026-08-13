@@ -1,12 +1,15 @@
 module M5RelContinuationScratch where
 
 -- File Charter:
---   * Root-level scratch for the M5 right-instantiation relational
+--   * Notes scratch for the M5 right-instantiation relational
 --     continuations.
 --   * Splits the intended `InstCatchupRightAt` proof into one continuation
 --     obligation per `AllValueView` constructor.
 --   * Checks that those per-view obligations dispatch back to the live
 --     fuel-indexed inst catch-up surface.
+--   * Tooling note: check with `AGDA_DIR=/tmp/agda-work/agda-home agda
+--     -i GTSFImp -i GTSFImp/proof/DGG/notes -v0
+--     GTSFImp/proof/DGG/notes/M5RelContinuationScratch.agda`.
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)

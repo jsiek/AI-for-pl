@@ -107,7 +107,8 @@ required source embedding is then
 
 i.e. the newer source binder must land BEHIND the older one. No
 order-preserving embedding does this. Machine-checked:
-`no-ope-0↦3-1↦2` (M5UnderLiftRevealScratch.agda). At depth 0 there is no
+`no-ope-0↦3-1↦2`
+(`GTSFImp/proof/DGG/notes/M5UnderLiftRevealScratch.agda`). At depth 0 there is no
 ℓ_out in between — the move crosses only target centers, which is legal —
 and that case is fully proven.
 
@@ -208,7 +209,7 @@ into the World representation:
 
 ## 6. Machine-checked artifacts
 
-- `M5UnderLiftRevealScratch.agda` (repo root): both refutations
+- `GTSFImp/proof/DGG/notes/M5UnderLiftRevealScratch.agda`: both refutations
   (`no-ope-0↦3-1↦2`, `depth1-inner-sameWorld-q-empty`) and the checked
   acceptance of the non-moving reveal evidence.
 - `notes/M5-DEPTH-SCREEN.md` + `notes/M5DepthScreenScratch.agda`: the

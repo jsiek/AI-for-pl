@@ -276,8 +276,8 @@ The decomposition is also explicit:
 
 The M4/M5/M6 knot is intentionally higher-order.  M4 consumes
 `RightInjInversion²` and `InstCatchupRight²`, M5 handles per-view allocation
-steps, and M6 is planned as a value-catch-up driver tying the mutual recursion
-by a well-founded measure on target cast-column size
+steps, and M6 implements a value-catch-up driver tying the mutual recursion by
+a well-founded measure on target cast-column size
 (`GTSFImp/proof/DGG/PLAN.md:67-82`).  The M6 design chooses structural
 `castSize`/`columnSize`, not surface term-cast length, because `β-inst` removes
 the outer `inst` constructor while still leaving one surface term cast
@@ -312,9 +312,10 @@ allocation and seal/reveal structure in the cast calculus and proves internal
 typed imprecision/catch-up lemmas.
 
 It postpones only the **finished DGG proof**, not the representation of the
-extra binding.  As of the ledger, M4 and M5 are in progress, M6 is not started,
-and `sim-right²`/`dgg-simulation` are not started
-(`GTSFImp/proof/DGG/PLAN.md:67-97`).  The architecture says where the
+extra binding.  As of the ledger, M4 is landed as a higher-order theorem, M5's
+relational half remains, and M6's driver and well-founded knot are live modulo
+the M5 instantiation factory.  `sim-right²` and `dgg-simulation` are not
+started (`GTSFImp/proof/DGG/PLAN.md:67-97`).  The architecture says where the
 `α:β`-like skew lives; it has not yet delivered the final top-level theorem.
 
 ## Axis 3: The Term Narrowing Relation
@@ -497,24 +498,21 @@ resulting administrative reveal/conceal and consistency wrappers.
 ## Open In Both
 
 - **Full DGG simulation.**  Cambridge26 leaves the gradual guarantee as a
-  proof sketch; `GTSFImp` still has M4/M5 in progress, M6/M7/M8 not complete
-  (`GTSFImp/proof/DGG/PLAN.md:67-97`).
+  proof sketch; `GTSFImp` has M4 and the parameterized M6 knot, while M5's
+  relational half and M7/M8 remain (`GTSFImp/proof/DGG/PLAN.md:67-97`).
 
 - **The `⊒⟨ν⟩` / value-catch-up knot.**  The sketch identifies the
   non-value body problem for `να.(★→★)? ; (α!→α?)`
   (`GTSF/cambridge26.lagda.md:3-12`, `4610-4630`).  `GTSFImp` replaces this
-  with `InstCatchupRight²` plus the planned M6 value-catch-up driver, but M6 is
-  not implemented (`M6-DRIVER-DESIGN.md:119-190`).
+  with `InstCatchupRight²` plus the live M6 value-catch-up driver and fuel
+  knot.  The knot is parameterized only by the unfinished M5 instantiation
+  factory (`M6-DRIVER-DESIGN.md:119-190`).
 
 - **Tag-discipline surgery is not live yet.**  The dossier validates the
   restriction in scratch and the ledger records the user decision, but the live
   `CastTermImprecision2` relation still admits the old probe until the planned
   surgery is applied (`TAG-DISCIPLINE-DOSSIER.md:121-160`,
   `GTSFImp/proof/DGG/PLAN.md:174-201`).
-
-- **Right-injection inversion final closure.**  The statement is consumable and
-  the architecture is clear, but the ledger still marks the M3 final leg as in
-  progress (`GTSFImp/proof/DGG/PLAN.md:71-76`, `84-96`).
 
 - **World-support/reparking infrastructure.**  The rationale identifies the
   need to rebuild interior worlds rather than transport them directly, and
@@ -528,4 +526,3 @@ resulting administrative reveal/conceal and consistency wrappers.
 - **Old narrowing relation integration.**  `GTSF/TermNarrowing.agda` is
   obsolete (`GTSF/TermNarrowing.agda:1-19`).  Its algebraic narrowing/widening
   ideas are not integrated into `GTSFImp`'s world-based `⊢²` relation.
-

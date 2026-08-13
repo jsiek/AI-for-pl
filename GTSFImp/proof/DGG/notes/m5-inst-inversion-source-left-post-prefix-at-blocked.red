@@ -110,3 +110,57 @@ Checked state before stopping:
     -i GTSFImp/proof/DGG/notes -v0 GTSFImp/All.agda
 
 No live relation was changed, and no postulate, hole, or catch-all was added.
+
+Continuation attempt, 2026-08-13:
+
+  The first target-bind part of the source-left companion is not the blocker.
+  The following support now checks:
+
+    `TargetBindLift.freshLiftToBindTargetMoveAtκᴸ`
+    `ΛRouteOneFreshWorldAtᴸ`
+    `Λ-route1ᴸ-prefix-at`
+
+  The checked prefix transports a `Λ⊑Λ²` body premise under an existing
+  source-left lift through the first generated target bind, decay,
+  `renameWorld (skip (keep κ₂))`, and the source-left `TargetBindLift`
+  move.  This validates the one-sided shadow of the route-one fresh step.
+
+  The obstruction reappears at the reveal geometry.  The source-left fresh
+  route embeds the abstract target pivot before the existing source-left
+  center.  In the concrete notation from the old lifted-pivot note, the
+  fresh route has the target variable `zero` at center `suc zero`:
+
+    `ηᴿ(ΛLiftToBindFreshWorldᴸ X⊑★ W) zero = suc zero`
+
+  The caller-supplied post world required by the recursive prefix is:
+
+    `liftWorldLeft X⊑★
+       (liftWorldLeft X⊑★
+         (rightOnlyWorld (rightOnlyWorld W ★) (＇ zero)))`
+
+  and in that world the same generated target variable is after both
+  source-left binders:
+
+    `ηᴿ(...) zero = suc (suc zero)`
+
+  A `ΛPostWindowGeometry` companion would need both generated reveal rebuilds
+  to use `RebaseAtᴿ`.  Its `ηᴿ-frozen` field freezes every target variable,
+  so the target embeddings of the fresh/mid/out worlds must agree on `zero`.
+  The two placements above therefore cannot be connected by the existing
+  reveal rule or by `TargetBindLift.TargetStoreMove`, which also preserves
+  `ηᴿ`.
+
+  This is the same order-preserving center obstruction recorded in
+  `m5-inst-inversion-lambda-lifted-target-pivot-blocked.red`, now localized
+  to the approved source-left companion surface.  The smart-comma guard and
+  target-insert transports handle the smart premise world after the two target
+  binds, but they do not supply a relation-level transport that swaps the
+  abstract `liftWorldBoth` target binder past an existing source-only binder.
+
+  Checked before stopping:
+
+    AGDA_DIR=/tmp/agda-work/agda-home agda -i GTSFImp \
+      -i GTSFImp/proof/DGG/notes -v0 GTSFImp/All.agda
+
+  No live relation was changed, and no postulate, hole, or catch-all was
+  added.

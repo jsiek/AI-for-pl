@@ -1478,6 +1478,20 @@ route1SplitTarget★ κ₁ κ₂ (Fin.suc Z) =
     Σ₂
 
 
+ΛRouteOneFreshWorldAtᴸ : ∀ {Δᴸ Δᴿ Δ₁ Δ₂}
+  → (W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁)
+  → (κ₂ : suc Δ₁ ↪ᵗ Δ₂)
+  → TyStore (suc (suc Δᴿ))
+  → CTI2.World (suc (suc Δᴸ)) (suc (suc Δᴿ))
+      (suc (suc Δ₂))
+ΛRouteOneFreshWorldAtᴸ W₁ κ₂ Σ₂ =
+  TBL.targetStoreAs
+    (CR.renameWorld (skip (keep κ₂))
+      (CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ W₁)))
+    Σ₂
+
+
 ΛRouteOneMidWorldAt : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
   → (W : CTI2.World Δᴸ Δᴿ Δ)
   → (W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂)
@@ -2690,6 +2704,155 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
 
   relFresh :
       ΛRouteOneFreshWorldAt W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γfresh
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+  relFresh =
+    rel-target-transportᴿ (sym (applyBody-bind★-eq B)) pᵇ relᵇ
+
+
+Λ-route1ᴸ-prefix-at : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁}
+    {π₂ : Δ₁ ↪ᵗ Δ₂}
+    {κ₁ : suc Δ ↪ᵗ Δ₁}
+    {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
+    {ins₁ : TE.TargetInsert wk↪ᵗ π₁ W W₁}
+    {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
+    {γᴮ : CTI2.CtxImp
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W))}
+    {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
+    {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
+    {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X
+      (CTI2.liftWorldLeft I.X⊑★ W) ⟩ B}
+  → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
+  → CTI2.liftWorldBoth I.X⊑X (CTI2.liftWorldLeft I.X⊑★ W)
+      CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
+  → Σ[ γᶠ ∈ CTI2.CtxImp
+        (ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)) ]
+    Σ[ pᶠ ∈ A CTI2.⊑ᵂ⟨
+          ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        ⟩ applyBody (bind ★) B ]
+      ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γᶠ
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
+Λ-route1ᴸ-prefix-at {W = W} {W₁ = W₁} {W₂ = W₂}
+    {π₁ = π₁} {κ₂ = κ₂} {ins₁ = ins₁} {γᴮ = γᴮ}
+    {V = V} {V′ = V′} {A = A} {B = B} {body-p = body-p}
+    facts rel =
+  γfresh , pᶠ , relFresh
+  where
+  ins₁ᴮ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep π₁))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W))
+      (CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W₁))
+  ins₁ᴮ =
+    TE.liftBothTargetInsert {v = I.X⊑X}
+      (TE.liftLeftTargetInsert {v = I.X⊑★} ins₁)
+
+  p₁ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X
+          (CTI2.liftWorldLeft I.X⊑★ W₁)
+        ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  p₁ = TE.transport⊑ᵂ ins₁ᴮ body-p
+
+  rel₁ : CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W₁)
+      CTI2.∣ TE.mapCtxᵀ ins₁ᴮ γᴮ
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
+  rel₁ = TE.⊢²-target-insert ins₁ᴮ rel
+
+  pᵈ : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ W₁)
+        ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵈ =
+    WD.decay⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W₁)}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ W₁)}
+      TD.liftBothBinderDecay p₁
+
+  relᵈ : CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ W₁)
+      CTI2.∣ WD.decayCtx TD.liftBothBinderDecay
+        (TE.mapCtxᵀ ins₁ᴮ γᴮ)
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
+  relᵈ =
+    TD.⊢²-decay
+      {W = CTI2.liftWorldBoth I.X⊑X
+        (CTI2.liftWorldLeft I.X⊑★ W₁)}
+      {Wᵈ = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ W₁)}
+      TD.liftBothBinderDecay rel₁
+
+  pʳ : A CTI2.⊑ᵂ⟨
+        CR.renameWorld (skip (keep κ₂))
+          (CTI2.liftWorldBoth I.X⊑★
+            (CTI2.liftWorldLeft I.X⊑★ W₁))
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pʳ =
+    CR.rename-⊑ᵂ
+      {W = CTI2.liftWorldBoth I.X⊑★
+        (CTI2.liftWorldLeft I.X⊑★ W₁)}
+      (skip (keep κ₂)) pᵈ
+
+  relʳ : CR.renameWorld (skip (keep κ₂))
+        (CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ W₁))
+      CTI2.∣ CR.renameCtx (skip (keep κ₂))
+        (WD.decayCtx TD.liftBothBinderDecay
+          (TE.mapCtxᵀ ins₁ᴮ γᴮ))
+      ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pʳ
+  relʳ = CR.⊢²-rename-center (skip (keep κ₂)) relᵈ pʳ
+
+  mv : TBL.TargetBindLiftMove
+      (CR.renameWorld (skip (keep κ₂))
+        (CTI2.liftWorldBoth I.X⊑★
+          (CTI2.liftWorldLeft I.X⊑★ W₁)))
+      (ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂))
+      Fin.zero
+  mv =
+    TBL.freshLiftToBindTargetMoveAtκᴸ (skip (keep κ₂))
+      refl
+      (ΛRouteOneWindowFacts.targetStoreTransport facts)
+      (ΛRouteOneWindowFacts.targetZeroResolves facts)
+      (ΛRouteOneWindowFacts.targetOtherResolves facts)
+
+  γfresh : CTI2.CtxImp
+      (ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂))
+  γfresh =
+    TBL.moveCtx (TBL.baseMove mv)
+      (CR.renameCtx (skip (keep κ₂))
+        (WD.decayCtx TD.liftBothBinderDecay
+          (TE.mapCtxᵀ ins₁ᴮ γᴮ)))
+
+  pᵇ : A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
+  pᵇ = TBL.move⊑ᵂ (TBL.baseMove mv) pʳ
+
+  relᵇ :
+      ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+        CTI2.∣ γfresh
+        ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵇ
+  relᵇ = TBL.⊢²-target-bind-lift-move mv relʳ
+
+  pᶠ : A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ applyBody (bind ★) B
+  pᶠ =
+    subst≡
+      (λ C → A CTI2.⊑ᵂ⟨
+        ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
+      ⟩ C)
+      (sym (applyBody-bind★-eq B))
+      pᵇ
+
+  relFresh :
+      ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTI2.targetStoreʷ W₂)
         CTI2.∣ γfresh
         ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᶠ
   relFresh =

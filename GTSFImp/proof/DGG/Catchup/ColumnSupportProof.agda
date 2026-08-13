@@ -80,6 +80,18 @@ castSize-applyConsistency keep c = refl
 castSize-applyConsistency (bind A) c =
   castSize-renameEnvᶜ Fin.suc (λ X → refl) c
 
+
+castSize-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (Reduction.applyConsistencies χs c) ≡ castSize c
+castSize-applyConsistencies [] c = refl
+castSize-applyConsistencies (χ ∷ χs) c =
+  trans (castSize-applyConsistencies χs (applyConsistency χ c))
+    (castSize-applyConsistency χ c)
+
+
 columnSize-map₁ : ∀ {Δ Δ′} {A B : Ty Δ}
   → (χ : StoreChange Δ Δ′)
   → (κ : CastColumn A B)

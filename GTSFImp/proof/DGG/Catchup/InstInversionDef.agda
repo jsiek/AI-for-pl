@@ -339,7 +339,6 @@ record InstPostCatalogPackageAt (fuel : ℕ)
     at-p₂ : A ⊑ᵂ⟨ W₂ ⟩ at-B₂
     at-post-relation :
       W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ at-post ∶ at-p₂
-    at-post-value : Value at-post
     at-ν₂ : Env∼ Δᴿ₂
     at-residual-target : Ty Δᴿ₂
     at-residual-q : A ⊑ᵂ⟨ W₂ ⟩ at-residual-target

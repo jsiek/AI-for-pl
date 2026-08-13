@@ -41,7 +41,8 @@ open import Primitives using
 open import Reduction using
   (StoreChanges; _—↠[_]_; _—→[_]⟨_⟩_; _∎[]; bind; _∷_; [];
    ↠-refl; ↠-step; β-inst; β-Λ; ξ-⟨⟩; ξ-reveal; ξ-•;
-   applyStores; applyTys; applyBody; applyVar; applyConsistency)
+   applyStores; applyTys; applyBody; applyVar; applyConsistency;
+   applyConsistencies)
 import TermCtx as T
 import CastTerms as CT
 open import CastTerms using
@@ -50,6 +51,7 @@ open import CastTerms using
 open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
+open import proof.Reduction using (cast-↠)
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
@@ -87,7 +89,8 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
 open import proof.DGG.Catchup.ColumnSupportProof using
-  (castSize-applyConsistency)
+  (castSize-applyConsistency; castSize-applyConsistencies;
+   transportCatchup⁻)
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -3969,41 +3972,71 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
     fuel-step catchup⁻-embed rel vM vM′ c′
     B′≢★ c<fuel q ext₂ pkg
-    with FuelStepSurface.smaller-extra fuel-step
-      (InstPostCatalogPackageAt.at-residual-fuel pkg)
-      (InstPostCatalogPackageAt.at-post-relation pkg)
-      vM
-      (InstPostCatalogPackageAt.at-post-value pkg)
-      (InstPostCatalogPackageAt.at-residual-cast pkg)
-      (n<1+n (castSize
-        (InstPostCatalogPackageAt.at-residual-cast pkg)))
-      (InstPostCatalogPackageAt.at-residual-q pkg)
-      (catchup⁻-embed
-        (InstPostCatalogPackageAt.at-post pkg)
-        (InstPostCatalogPackageAt.at-residual-provenance pkg))
+    with InstPostCatalogPackageAt.at-spine-descent pkg
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
     fuel-step catchup⁻-embed rel vM vM′ c′
     B′≢★ c<fuel q ext₂ pkg
+  | record { Δᴿ′ = Δᴿᵈ ; χs = δs ; Δ′ = Δᵈ ; W′ = Wᵈ
+      ; ext = extᵈ ; final = final ; final-value = vFinal
+      ; post-reduction = post↠Final ; final-relation = relFinal }
+    with FuelStepSurface.smaller-extra fuel-step
+      (subst≡ (λ n → suc n < _)
+        (sym (castSize-applyConsistencies δs residual-cast))
+        (InstPostCatalogPackageAt.at-residual-fuel pkg))
+      relFinal vM vFinal
+      (applyConsistencies δs residual-cast)
+      (n<1+n (castSize (applyConsistencies δs residual-cast)))
+      (ECR.transport⊑ᵂ extᵈ
+        (InstPostCatalogPackageAt.at-residual-q pkg))
+      (catchup⁻-embed final
+        (transportCatchup⁻ extᵈ
+          (InstPostCatalogPackageAt.at-residual-provenance pkg)))
+  where
+  residual-cast = InstPostCatalogPackageAt.at-residual-cast pkg
+inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
+    fuel-step catchup⁻-embed rel vM vM′ c′
+    B′≢★ c<fuel q ext₂ pkg
+  | record { Δᴿ′ = Δᴿᵈ ; χs = δs ; Δ′ = Δᵈ ; W′ = Wᵈ
+      ; ext = extᵈ ; final = final ; final-value = vFinal
+      ; post-reduction = post↠Final ; final-relation = relFinal }
   | Δᴿ′ , ψs , Δ′ , W′ , ext′ , N′ ,
     (vN′ , post↠N′ , rel′) =
-  Δᴿ′ , _ , Δ′ , W′ , composeWorldExtendᴿ ext₂ ext′ , N′ ,
+  Δᴿ′ , _ , Δ′ , W′ , composeWorldExtendᴿ ext₂ᵈ ext′ , N′ ,
   vN′ ,
   composeReduction
-    (InstPostCatalogPackageAt.at-prefix-reduction pkg) post↠N′ ,
+    (composeReduction
+      (InstPostCatalogPackageAt.at-prefix-reduction pkg)
+      (cast-↠ residual-cast post↠Final))
+    post↠N′ ,
   subst≡
     (λ γ′ → W′ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶
-      ECR.transport⊑ᵂ (composeWorldExtendᴿ ext₂ ext′) q)
-    (mapCtxᴿ-compose ext₂ ext′ γ)
-    (rel-target-transportᴿ (applyTys-++ χs₂ ψs B′)
-      (ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ q))
+      ECR.transport⊑ᵂ (composeWorldExtendᴿ ext₂ᵈ ext′) q)
+    context-eq
+    (rel-target-transportᴿ (applyTys-++ (χs₂ ++χ δs) ψs B′)
+      (ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ᵈ q))
       (TBL.⊢²-retarget
-        {q = ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ q)}
+        {q = ECR.transport⊑ᵂ ext′ (ECR.transport⊑ᵂ ext₂ᵈ q)}
         (rel-target-transportᴿ
-          (cong (applyTys ψs)
-            (InstPostCatalogPackageAt.at-residual-target-eq pkg))
+          (cong (applyTys ψs) residual-target-eq)
           (ECR.transport⊑ᵂ ext′
-            (InstPostCatalogPackageAt.at-residual-q pkg))
+            (ECR.transport⊑ᵂ extᵈ
+              (InstPostCatalogPackageAt.at-residual-q pkg)))
           rel′)))
+  where
+  residual-cast = InstPostCatalogPackageAt.at-residual-cast pkg
+
+  ext₂ᵈ = composeWorldExtendᴿ ext₂ extᵈ
+
+  residual-target-eq =
+    trans
+      (cong (applyTys δs)
+        (InstPostCatalogPackageAt.at-residual-target-eq pkg))
+      (applyTys-++ χs₂ δs B′)
+
+  context-eq =
+    trans
+      (cong (ECR.mapCtxᴿ ext′) (mapCtxᴿ-compose ext₂ extᵈ γ))
+      (mapCtxᴿ-compose ext₂ᵈ ext′ γ)
 
 
 spine-descent-zero : ∀ {Δᴸ Δᴿ Δ}
@@ -5526,13 +5559,14 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
   → (zero∈A : Fin.zero ∈ᵗ A)
   → (bodyRel : CTI2.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
       ⊢² V ⊑ Λ V′ ∶ body-p)
-  → InstPostCatalogPackageAt fuel bodyRel vV vΛV′ c′
+  → (bodyPkg : InstPostCatalogPackageAt fuel bodyRel vV vΛV′ c′
       B′≢★ c<fuel body-q
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
       (Λ⊑²-smart-fresh-world W)
       (right-bind-right-bind-world-extendᴿ
         {W = CTI2.liftWorldLeft I.X⊑★ W}
-        {B = ★} {C = ＇ Fin.zero})
+        {B = ★} {C = ＇ Fin.zero}))
+  → CT.Value (InstPostCatalogPackageAt.at-post bodyPkg)
   → InstPostCatalogPackageAt fuel rel vΛV vΛV′ c′
       B′≢★ c<fuel q
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
@@ -5541,7 +5575,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
         {W = W} {B = ★} {C = ＇ Fin.zero})
 Λ⊑²-smart-recursive-package-at {W = W}
     rel vΛV vΛV′ vV c′ B′≢★ c<fuel body-q q
-    liftγ Anv zero∈A bodyRel bodyPkg =
+    liftγ Anv zero∈A bodyRel bodyPkg vPost =
   record
     { at-B₂ = InstPostCatalogPackageAt.at-B₂ bodyPkg
     ; at-post = InstPostCatalogPackageAt.at-post bodyPkg
@@ -5551,7 +5585,6 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
     ; at-post-relation =
         Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
           (InstPostCatalogPackageAt.at-post-relation bodyPkg)
-    ; at-post-value = InstPostCatalogPackageAt.at-post-value bodyPkg
     ; at-ν₂ = InstPostCatalogPackageAt.at-ν₂ bodyPkg
     ; at-residual-target =
         InstPostCatalogPackageAt.at-residual-target bodyPkg
@@ -5570,8 +5603,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
     ; at-prefix-reduction =
         InstPostCatalogPackageAt.at-prefix-reduction bodyPkg
     ; at-spine-descent =
-        spine-descent-zero
-          (InstPostCatalogPackageAt.at-post-value bodyPkg)
+        spine-descent-zero vPost
           (Λ⊑²-smart-fresh-at-rewrap Anv zero∈A liftγ vV
             (InstPostCatalogPackageAt.at-post-relation bodyPkg))
     }
@@ -5703,7 +5735,6 @@ inst-residual-source-nonstar nonvar-all zero∈B = nonstar-∀
     ; at-post-relation =
         rel-target-transportᴿ (residual-source₂-eq B) top-p₂
           (CTI2.Λ⊑² Anv zero∈A liftγ₂ vV post⊢ bodyRel₂ top-p₂)
-    ; at-post-value = vPost
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =
@@ -5998,7 +6029,6 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     ; at-post = Λ⊑Λ²PostTerm V′ B
     ; at-p₂ = ΛPostPrefixPackageAt.prefix-p₂ prefix
     ; at-post-relation = ΛPostPrefixPackageAt.prefix-relation prefix
-    ; at-post-value = ΛPostPrefixPackageAt.prefix-value prefix
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =
@@ -6074,7 +6104,6 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     ; at-p₂ = ΛPostPrefixPackageAtBase.prefix-p₂ prefix
     ; at-post-relation =
         ΛPostPrefixPackageAtBase.prefix-relation prefix
-    ; at-post-value = ΛPostPrefixPackageAtBase.prefix-value prefix
     ; at-ν₂ = _
     ; at-residual-target = ΛResidualTarget₂ B′
     ; at-residual-q =

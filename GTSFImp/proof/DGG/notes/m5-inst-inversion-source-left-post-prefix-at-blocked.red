@@ -164,3 +164,18 @@ Continuation attempt, 2026-08-13:
 
   No live relation was changed, and no postulate, hole, or catch-all was
   added.
+
+Born-in-place refinement, 2026-08-13:
+
+  The no-swap retry is recorded in:
+
+    `m5-inst-inversion-born-in-place-prefix-depth-blocked.red`
+
+  It isolates the exact first field that cannot be inhabited with the current
+  live relation: the source-left prefix-depth companion of
+  `ΛPostWindowGeometry.route1Prefix`.  The reveal fields themselves can be
+  stated for born-in-place worlds, but the live `Λ⊑Λ²` constructor supplies a
+  body premise whose source and target binders share one `X⊑X` center before
+  the prefix.  The born-in-place route needs that center split around the
+  source-left prefix, which is not expressible by `_↪ᵗ_`, `TargetStoreMove`,
+  `TargetInsert`, or `WorldExtendᴿ`.

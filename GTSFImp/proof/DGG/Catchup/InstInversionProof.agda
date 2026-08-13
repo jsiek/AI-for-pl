@@ -91,6 +91,8 @@ open import proof.DGG.Catchup.InstCatchupRightProof using
 open import proof.DGG.Catchup.ColumnSupportProof using
   (castSize-applyConsistency; castSize-applyConsistencies;
    transportCatchup⁻)
+open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
+  (mapCtxᴿ-sameCtx)
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -6210,22 +6212,6 @@ smartLiftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ Δᵐ}
 smartLiftCtxᴸ-target-ctx CTI2.smart-lift-[] = refl
 smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
   cong (_ ∷_) (smartLiftCtxᴸ-target-ctx liftγ)
-
-
-mapCtxᴿ-sameCtx : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δᵖ Δ₂ Δᵖ₂}
-    {χs : StoreChanges Δᴿ Δᴿ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵖ : CTI2.World Δᴸ Δᴿ Δᵖ}
-    {W₂ : CTI2.World Δᴸ Δᴿ′ Δ₂}
-    {Wᵖ₂ : CTI2.World Δᴸ Δᴿ′ Δᵖ₂}
-    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
-  → (ext₂ : ECR.WorldExtendᴿ χs W W₂)
-  → (extᵖ₂ : ECR.WorldExtendᴿ χs Wᵖ Wᵖ₂)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
-mapCtxᴿ-sameCtx ext₂ extᵖ₂ CTI2.same-[] = CTI2.same-[]
-mapCtxᴿ-sameCtx ext₂ extᵖ₂ (CTI2.same-∷ sc) =
-  CTI2.same-∷ (mapCtxᴿ-sameCtx ext₂ extᵖ₂ sc)
 
 
 rightOnlyImpEnvMono : ∀ {Δᴸ Δᴿ Δ}

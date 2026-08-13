@@ -75,6 +75,7 @@ import proof.DGG.Catchup.StructuralWorldSmartLiftDef
 import proof.DGG.Catchup.StructuralWorldSmartLiftProof
 import proof.DGG.Catchup.StructuralWorldLiftLeftDef
 import proof.DGG.Catchup.StructuralWorldLiftLeftProof
+import proof.DGG.Catchup.StructuralWorldEvidenceProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 

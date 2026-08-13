@@ -38,3 +38,4 @@ record StructuralTagRebaseAtᴸResult
     premise-plan : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′
     post-rebase : CTI2.TagRebaseAtᴸ Wᵖ′ W′ Xᴸ?
       (mapPivotChanges χs Xᴿ?)
+    post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′

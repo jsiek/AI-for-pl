@@ -56,3 +56,4 @@ record StructuralRebaseAtᴸResult {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     Wᵖ′ : World Δᴸ Δᴿ′ Δ′
     premise-plan : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′
     post-rebase : CTI2.RebaseAtᴸ W′ Wᵖ′ Xᴸ?
+    post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′

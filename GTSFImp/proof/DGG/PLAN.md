@@ -593,6 +593,12 @@ geometries needed by the smart/rebase cases are structurally available.
 `structural-lift-left` separately handles ordinary source `Λ` by lifting every
 target insertion under the canonical left binder.  This closes the remaining
 source-wrapper trace geometry.
+The reveal/conceal transformers now also compute the induced endpoint
+`ImpEnvMono`.  Shared structural evidence transports `SameCtx`, ordinary and
+smart lift contexts, and source reveal/conceal typing; the older local
+`mapCtxᴿ-sameCtx` duplicate has been removed.  The replay step therefore has
+all wrapper evidence at the transformed endpoint except the conceal partner
+condition, which must be preserved with the target normalization result.
 `StructuralInstantiationDescentPackage` is now the internal worker result.  It
 retains that structural trace while the public erasure returns the existing
 `InstSpineDescentPackage`; its empty-spine constructor is checked.  The worker

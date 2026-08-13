@@ -27,16 +27,18 @@ structural-tag-rebase-atᴸ structural-[] rb = record
   { Wᵖ′ = _
   ; premise-plan = structural-[]
   ; post-rebase = rb
+  ; post-mono = λ mono → mono
   }
 structural-tag-rebase-atᴸ (structural-keep plan) rb
     with structural-tag-rebase-atᴸ plan rb
 structural-tag-rebase-atᴸ (structural-keep plan) rb
     | record { Wᵖ′ = Wᵖ′ ; premise-plan = planᵖ
-             ; post-rebase = rb′ } =
+             ; post-rebase = rb′ ; post-mono = mono′ } =
   record
     { Wᵖ′ = Wᵖ′
     ; premise-plan = structural-keep planᵖ
     ; post-rebase = rb′
+    ; post-mono = mono′
     }
 structural-tag-rebase-atᴸ
     (structural-bind {B = B} ins follows plan) rb
@@ -49,11 +51,12 @@ structural-tag-rebase-atᴸ
     (structural-bind {B = B} ins follows plan) rb
     | Wᵖ₁ , insᵖ , rb₁
     | record { Wᵖ′ = Wᵖ′ ; premise-plan = planᵖ
-             ; post-rebase = rb′ } =
+             ; post-rebase = rb′ ; post-mono = mono′ } =
   record
     { Wᵖ′ = Wᵖ′
     ; premise-plan = structural-bind insᵖ followsᵖ planᵖ
     ; post-rebase = rb′
+    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert ins insᵖ mono)
     }
   where
   followsᵖ =

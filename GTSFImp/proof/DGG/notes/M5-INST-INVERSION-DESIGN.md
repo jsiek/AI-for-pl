@@ -206,6 +206,11 @@ and returns the final rebase needed to rebuild `reveal⊑²`.
 `structural-tag-rebase-atᴸ` mirrors this for source conceal, retaining the
 premise-to-conclusion orientation and mapping the target pivot across the
 complete store-change trace.
+Both rebase transformers now compute the final `ImpEnvMono` from the initial
+one.  `StructuralWorldEvidenceProof` provides the common endpoint transport
+for `SameCtx`, ordinary/smart lift contexts, and source conversion typing.
+This is the evidence layer needed to replay source wrappers once the target
+normalization trace is known.
 `structural-smart-liftᴸ` supplies the source-Λ case, including the
 pushout-computed center of the smart-fresh branch.  The internal
 `structural-lift-left` transformer supplies the ordinary, canonical source-Λ

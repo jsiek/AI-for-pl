@@ -7,9 +7,8 @@ module proof.LR-narrow.ClosingSubstitution where
 --   * Supplies proof terms re-exported by the public properties module.
 
 open import Data.List using ([]; _∷_)
-import Data.Fin as Fin
 open import Data.Nat using (ℕ; zero; suc; _≤_)
-open import Data.Nat.Properties using (≤-refl)
+open import Data.Nat.Properties using (≤-refl; ≤-trans)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; sym)
@@ -115,6 +114,52 @@ close-preserves-typing : ∀ {Δ : TyCtx} {Σ : TyStore Δ}
   → ⟨ Δ , Σ , [] ⟩ ⊢ close γ M ⦂ A
 close-preserves-typing γ = typing-subst (closing-substitution-wf γ)
 
+precise-open-typing-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴾ} {M : Term Δᴾ} {A : Ty Δᴾ}
+    (W≼W′ : Future W W′)
+  → ⟨ Δᴾ , preciseStore (core W) , Γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δᴾ′ , preciseStore (core W′) ,
+        liftPreciseContext W≼W′ Γ ⟩
+      ⊢ liftPreciseTerm W≼W′ M ⦂ liftPreciseTy W≼W′ A
+precise-open-typing-future {Γ = Γ} future-refl M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftPreciseContext-refl Γ)) M⊢
+precise-open-typing-future {Γ = Γ}
+    (future-paired W≼W′ related fresh) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftPreciseContext-paired W≼W′ Γ))
+    (typing-shiftᵗ-bind (precise-open-typing-future W≼W′ M⊢))
+precise-open-typing-future {Γ = Γ}
+    (future-precise W≼W′ fresh) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftPreciseContext-precise W≼W′ Γ))
+    (typing-shiftᵗ-bind (precise-open-typing-future W≼W′ M⊢))
+
+imprecise-open-typing-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : T.TermCtx Δᴵ} {M : Term Δᴵ} {A : Ty Δᴵ}
+    (W≼W′ : Future W W′)
+  → ⟨ Δᴵ , impreciseStore (core W) , Γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δᴵ′ , impreciseStore (core W′) ,
+        liftImpreciseContext W≼W′ Γ ⟩
+      ⊢ liftImpreciseTerm W≼W′ M ⦂ liftImpreciseTy W≼W′ A
+imprecise-open-typing-future {Γ = Γ} future-refl M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftImpreciseContext-refl Γ)) M⊢
+imprecise-open-typing-future {Γ = Γ}
+    (future-paired W≼W′ related fresh) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftImpreciseContext-paired W≼W′ Γ))
+    (typing-shiftᵗ-bind (imprecise-open-typing-future W≼W′ M⊢))
+imprecise-open-typing-future {Γ = Γ}
+    (future-precise W≼W′ fresh) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftImpreciseContext-precise W≼W′ Γ))
+    (imprecise-open-typing-future W≼W′ M⊢)
+
 ------------------------------------------------------------------------
 -- Endpoint projections and related lookup
 ------------------------------------------------------------------------
@@ -157,6 +202,80 @@ related-closing-lookup Zᴿ (related-cons p related γ) = related
 related-closing-lookup (Sᴿ x∈) (related-cons p related γ) =
   related-closing-lookup x∈ γ
 
+lift-context-lookup : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Γ : ContextImprecision W} {x Aᴾ Aᴵ p}
+    (W≼W′ : Future W W′)
+  → Γ ∋ᴿ x ⦂ context-imp Aᴾ Aᴵ p
+  → liftContextImprecision W≼W′ Γ ∋ᴿ x ⦂
+      context-imp (liftPreciseTy W≼W′ Aᴾ)
+        (liftImpreciseTy W≼W′ Aᴵ) (liftLocalImprecision W≼W′ p)
+lift-context-lookup W≼W′ Zᴿ = Zᴿ
+lift-context-lookup W≼W′ (Sᴿ x∈) =
+  Sᴿ (lift-context-lookup W≼W′ x∈)
+
+related-closing-downward : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {j k : ℕ}
+    {Γ : ContextImprecision W}
+  → j ≤ k
+  → RelatedClosingSubstitutions W k Γ
+  → RelatedClosingSubstitutions W j Γ
+related-closing-downward j≤k related-empty = related-empty
+related-closing-downward j≤k (related-cons p related γ) =
+  related-cons p (λ i i≤j → related i (≤-trans i≤j j≤k))
+    (related-closing-downward j≤k γ)
+
+related-closing-bind : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {k : ℕ} {Γ : ContextImprecision W} {Aᴾ Aᴵ}
+    (W≼W′ : Future W W′) (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
+    {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
+  → (∀ j → j ≤ k →
+      ValueImprecision W′ (liftCenterImprecision W≼W′ p) j Vᴵ Vᴾ)
+  → RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′ Γ)
+  → RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′
+        (context-imp Aᴾ Aᴵ p ∷ Γ))
+related-closing-bind W≼W′ p related γ =
+  related-cons (liftLocalImprecision W≼W′ p)
+    (λ j j≤k → ClosureProof.value-imprecision-center→local W≼W′ p
+      (related j j≤k)) γ
+
+related-closing-trans : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁ : TyCtx}
+    {Δᴾ₂ Δᴵ₂ Δᶜ₂ : TyCtx}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {k : ℕ} {Γ : ContextImprecision W₀}
+    (W₀≼W₁ : Future W₀ W₁) (W₁≼W₂ : Future W₁ W₂)
+  → RelatedClosingSubstitutions W₂ k
+      (liftContextImprecision W₁≼W₂
+        (liftContextImprecision W₀≼W₁ Γ))
+  → RelatedClosingSubstitutions W₂ k
+      (liftContextImprecision (future-trans W₀≼W₁ W₁≼W₂) Γ)
+related-closing-trans {Γ = []} W₀≼W₁ W₁≼W₂ related-empty =
+  related-empty
+related-closing-trans {W₂ = W₂} {k = k}
+    {Γ = context-imp Aᴾ Aᴵ p ∷ Γ} W₀≼W₁ W₁≼W₂
+    (related-cons {Vᴾ = Vᴾ} {Vᴵ = Vᴵ} sequential related γ) =
+  related-cons composite related′
+    (related-closing-trans W₀≼W₁ W₁≼W₂ γ)
+  where
+  W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
+  composite = liftLocalImprecision W₀≼W₂ p
+  related′ : ∀ i → i ≤ k → ValueImprecision W₂ composite i Vᴵ Vᴾ
+  related′ i i≤k =
+    ClosureProof.value-imprecision-reindex composite sequential
+      (cong (embedPrecise (core W₂))
+        (liftPreciseTy-trans W₀≼W₁ W₁≼W₂ Aᴾ))
+      (cong (embedImprecise (core W₂))
+        (liftImpreciseTy-trans W₀≼W₁ W₁≼W₂ Aᴵ))
+      (related i i≤k)
+
 ------------------------------------------------------------------------
 -- Future transport
 ------------------------------------------------------------------------
@@ -169,60 +288,6 @@ shiftClosingBind closing-empty = closing-empty
 shiftClosingBind (closing-cons vV V⊢ γ) =
   closing-cons (renameᵗᵐ-preserves-Value C.wk↪ᵗ vV)
     (typing-shiftᵗ-bind V⊢) (shiftClosingBind γ)
-
-lift-precise-context-paired : ∀
-    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
-    {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
-    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
-    (W≼W′ : Future W W′) (Γ : T.TermCtx Δᴾ)
-  → liftPreciseContext (future-paired W≼W′ r fresh) Γ
-      ≡ T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
-lift-precise-context-paired W≼W′ [] = refl
-lift-precise-context-paired W≼W′ (A ∷ Γ) =
-  cong (⇑ᵗ (liftPreciseTy W≼W′ A) ∷_)
-    (lift-precise-context-paired W≼W′ Γ)
-
-lift-precise-context-precise : ∀
-    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {Bᴾ : Ty Δᴾ′}
-    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
-    (W≼W′ : Future W W′) (Γ : T.TermCtx Δᴾ)
-  → liftPreciseContext (future-precise W≼W′ fresh) Γ
-      ≡ T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
-lift-precise-context-precise W≼W′ [] = refl
-lift-precise-context-precise W≼W′ (A ∷ Γ) =
-  cong (⇑ᵗ (liftPreciseTy W≼W′ A) ∷_)
-    (lift-precise-context-precise W≼W′ Γ)
-
-lift-imprecise-context-paired : ∀
-    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
-    {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
-    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
-    (W≼W′ : Future W W′) (Γ : T.TermCtx Δᴵ)
-  → liftImpreciseContext (future-paired W≼W′ r fresh) Γ
-      ≡ T.⇑ᶜ (liftImpreciseContext W≼W′ Γ)
-lift-imprecise-context-paired W≼W′ [] = refl
-lift-imprecise-context-paired W≼W′ (A ∷ Γ) =
-  cong (⇑ᵗ (liftImpreciseTy W≼W′ A) ∷_)
-    (lift-imprecise-context-paired W≼W′ Γ)
-
-lift-imprecise-context-precise : ∀
-    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    {Bᴾ : Ty Δᴾ′}
-    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
-    (W≼W′ : Future W W′) (Γ : T.TermCtx Δᴵ)
-  → liftImpreciseContext (future-precise W≼W′ fresh) Γ
-      ≡ liftImpreciseContext W≼W′ Γ
-lift-imprecise-context-precise W≼W′ [] = refl
-lift-imprecise-context-precise W≼W′ (A ∷ Γ) =
-  cong (liftImpreciseTy W≼W′ A ∷_)
-    (lift-imprecise-context-precise W≼W′ Γ)
 
 precise-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -237,12 +302,12 @@ precise-closing-future future-refl (closing-cons vV V⊢ γ) =
 precise-closing-future
     {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related fresh) γ =
   subst≡ (ClosingSubstitution _)
-    (sym (lift-precise-context-paired W≼W′ Γ))
+    (sym (liftPreciseContext-paired W≼W′ Γ))
     (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ))
 precise-closing-future
     {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ fresh) γ =
   subst≡ (ClosingSubstitution _)
-    (sym (lift-precise-context-precise W≼W′ Γ))
+    (sym (liftPreciseContext-precise W≼W′ Γ))
     (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ))
 
 imprecise-closing-future : ∀
@@ -258,12 +323,12 @@ imprecise-closing-future future-refl (closing-cons vV V⊢ γ) =
 imprecise-closing-future
     {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related fresh) γ =
   subst≡ (ClosingSubstitution _)
-    (sym (lift-imprecise-context-paired W≼W′ Γ))
+    (sym (liftImpreciseContext-paired W≼W′ Γ))
     (shiftClosingBind {B = Bᴵ} (imprecise-closing-future W≼W′ γ))
 imprecise-closing-future {Γ = Γ}
     (future-precise W≼W′ fresh) γ =
   subst≡ (ClosingSubstitution _)
-    (sym (lift-imprecise-context-precise W≼W′ Γ))
+    (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-closing-future W≼W′ γ)
 
 related-closing-future : ∀

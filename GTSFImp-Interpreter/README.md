@@ -34,7 +34,12 @@ The port currently contains:
 - `LR-narrow/ImmediateReturn.agda`: the evaluator lemma lifting related values
   to related computations;
 - `LR-narrow/Variable.agda` and `LR-narrow/Constant.agda`: the first checked
-  compatibility cases for the compiled term-imprecision relation.
+  compatibility cases for the compiled term-imprecision relation;
+- `LR-narrow/FunctionApplication.agda`: elimination of a related function
+  value at a related value argument;
+- `LR-narrow/Lambda.agda`: construction of related closed lambdas from their
+  function-elimination obligations, including endpoint typing and Kripke
+  reindexing.
 
 ## Three-context worlds
 
@@ -132,14 +137,29 @@ value relation needed by the variable compatibility case.
 
 Both individual and related closing substitutions transport through future
 worlds. Paired future extensions weaken both endpoint substitutions, while a
-precise-only extension weakens only the precise substitution.
+precise-only extension weakens only the precise substitution. Related
+substitutions are downward closed in the observation index, can be extended
+by a center-indexed related argument, and can be normalized from two
+successive future lifts to their composite future.
 
 `CompiledTermRelation` translates the term-imprecision context used by
 `proof.DGG.CastTermImprecision2` into this semantic context and quantifies over
-all related closing substitutions. The variable case is therefore a direct
-use of related lookup. Constants construct the base-value clause at every
-step index. Both cases use a shared immediate-return theorem, which supplies
-the zero-step evaluator traces and unchanged-store witnesses.
+all future worlds and all related closing substitutions in the lifted
+context. The variable case is therefore a direct use of related lookup.
+Constants construct the base-value clause at every step index. Both cases use
+a shared immediate-return theorem, which supplies the zero-step evaluator
+traces and unchanged-store witnesses.
+
+At function types, `related-function-application` exposes the positive-index
+head of `FunctionsRelated`: a function related at index `suc (suc k)` applied
+to an argument related at `suc k` produces computations related at `suc k`.
+The lambda lemma constructs the arrow endpoints and all residual value
+indices once the corresponding `FunctionsRelated` elimination obligations
+are supplied at each future world. `related-function-body-substitution`
+discharges the world/index/context part of those obligations: it transports
+the outer substitution to the function-call world, lowers its index, composes
+the two future extensions, and adds the related argument at the head of the
+body context.
 
 ## Deliberate draft boundaries
 
@@ -152,5 +172,22 @@ representation is supplied by the world rather than by a fixed ground form.
 The bottom cases still impose endpoint valuehood and typing only. Their useful
 elimination principles should be derived from typing and canonical-form
 inversion rather than by adding observable value behavior to bottom.
+
+The lambda lemma is not yet the fundamental lambda case from a semantic body
+premise. The related body substitution is now constructed, but the lemma
+deliberately exposes the remaining function-elimination obligation instead of
+postulating it. Deriving that obligation from `CompiledTermRelation` for the
+body requires three reusable syntactic/evaluator results that are not yet in
+the `GTSFImp` substitution API:
+
+- type-future lifting commutes with closing a term;
+- beta substitution of an argument into a closed lambda body equals closing
+  the open body with the argument-consed substitution;
+- related computations are preserved by matching deterministic beta
+  expansion on both endpoints.
+
+The first two require term-substitution fusion through both term and type
+binders. No postulate, hole, or unchecked metavariable is used at this draft
+boundary.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

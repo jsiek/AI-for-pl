@@ -5,7 +5,7 @@ module LR-narrow.Closure where
 --   * States downward closure and Kripke monotonicity at the public boundary.
 --   * Delegates proof scripts to proof.LR-narrow.Closure.
 
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; suc; _≤_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -73,6 +73,24 @@ value-imprecision-future : ∀
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 value-imprecision-future = Proof.value-imprecision-future
 
+value-imprecision-local→center : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
+    {k Vᴵ Vᴾ}
+  → ValueImprecision W′ (liftLocalImprecision W≼W′ p) k Vᴵ Vᴾ
+  → ValueImprecision W′ (liftCenterImprecision W≼W′ p) k Vᴵ Vᴾ
+value-imprecision-local→center = Proof.value-imprecision-local→center
+
+value-imprecision-center→local : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
+    {k Vᴵ Vᴾ}
+  → ValueImprecision W′ (liftCenterImprecision W≼W′ p) k Vᴵ Vᴾ
+  → ValueImprecision W′ (liftLocalImprecision W≼W′ p) k Vᴵ Vᴾ
+value-imprecision-center→local = Proof.value-imprecision-center→local
+
 right-dynamic-payload-related-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -90,6 +108,15 @@ value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → ValueImprecision W p (suc k) Vᴵ Vᴾ
   → ValueImprecision W p k Vᴵ Vᴾ
 value-imprecision-downward = Proof.value-imprecision-downward
+
+value-imprecision-downward-to : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {j k : ℕ} {Vᴵ Vᴾ}
+  → j ≤ k
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ValueImprecision W p j Vᴵ Vᴾ
+value-imprecision-downward-to = Proof.value-imprecision-downward-to
 
 right-dynamic-payload-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {k Vᴵ Vᴾ}

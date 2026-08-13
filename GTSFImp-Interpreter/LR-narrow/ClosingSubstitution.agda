@@ -4,14 +4,18 @@ module LR-narrow.ClosingSubstitution where
 --   * Defines typed substitutions that close term variables before evaluation.
 --   * Defines paired closing substitutions whose entries satisfy the value LR.
 --   * Defines endpoint-context lifting along future worlds.
---   * Contains no lookup, typing, or future-transport proofs.
+--   * Records the context equalities induced by each future-world step.
+--   * Contains no lookup, typing, or substitution-transport proofs.
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Nat using (ℕ; zero; suc; _≤_)
+import Data.Fin as Fin
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong₂)
 
 open import Types
 open import TyStore
 open import TermCtx using (TermCtx)
+import TermCtx as T
 open import CastTerms
 open import LR-narrow.World
 open import LR-narrow.LogicalRelation
@@ -118,6 +122,13 @@ liftPreciseContext W≼W′ [] = []
 liftPreciseContext W≼W′ (A ∷ Γ) =
   liftPreciseTy W≼W′ A ∷ liftPreciseContext W≼W′ Γ
 
+liftPreciseContext-refl : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} (Γ : TermCtx Δᴾ)
+  → liftPreciseContext (future-refl {W = W}) Γ ≡ Γ
+liftPreciseContext-refl [] = refl
+liftPreciseContext-refl {W = W} (A ∷ Γ)
+    rewrite liftPreciseContext-refl {W = W} Γ = refl
+
 liftImpreciseContext : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -127,6 +138,63 @@ liftImpreciseContext : ∀
 liftImpreciseContext W≼W′ [] = []
 liftImpreciseContext W≼W′ (A ∷ Γ) =
   liftImpreciseTy W≼W′ A ∷ liftImpreciseContext W≼W′ Γ
+
+liftImpreciseContext-refl : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} (Γ : TermCtx Δᴵ)
+  → liftImpreciseContext (future-refl {W = W}) Γ ≡ Γ
+liftImpreciseContext-refl [] = refl
+liftImpreciseContext-refl {W = W} (A ∷ Γ)
+    rewrite liftImpreciseContext-refl {W = W} Γ = refl
+
+liftPreciseContext-paired : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
+    {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
+    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
+    (W≼W′ : Future W W′) (Γ : TermCtx Δᴾ)
+  → liftPreciseContext (future-paired W≼W′ r fresh) Γ ≡
+      T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
+liftPreciseContext-paired W≼W′ [] = refl
+liftPreciseContext-paired W≼W′ (A ∷ Γ) =
+  cong₂ _∷_ refl (liftPreciseContext-paired W≼W′ Γ)
+
+liftPreciseContext-precise : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Bᴾ : Ty Δᴾ′}
+    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
+    (W≼W′ : Future W W′) (Γ : TermCtx Δᴾ)
+  → liftPreciseContext (future-precise W≼W′ fresh) Γ ≡
+      T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
+liftPreciseContext-precise W≼W′ [] = refl
+liftPreciseContext-precise W≼W′ (A ∷ Γ) =
+  cong₂ _∷_ refl (liftPreciseContext-precise W≼W′ Γ)
+
+liftImpreciseContext-paired : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
+    {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
+    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
+    (W≼W′ : Future W W′) (Γ : TermCtx Δᴵ)
+  → liftImpreciseContext (future-paired W≼W′ r fresh) Γ ≡
+      T.⇑ᶜ (liftImpreciseContext W≼W′ Γ)
+liftImpreciseContext-paired W≼W′ [] = refl
+liftImpreciseContext-paired W≼W′ (A ∷ Γ) =
+  cong₂ _∷_ refl (liftImpreciseContext-paired W≼W′ Γ)
+
+liftImpreciseContext-precise : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Bᴾ : Ty Δᴾ′}
+    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
+    (W≼W′ : Future W W′) (Γ : TermCtx Δᴵ)
+  → liftImpreciseContext (future-precise W≼W′ fresh) Γ ≡
+      liftImpreciseContext W≼W′ Γ
+liftImpreciseContext-precise W≼W′ [] = refl
+liftImpreciseContext-precise W≼W′ (A ∷ Γ) =
+  cong₂ _∷_ refl (liftImpreciseContext-precise W≼W′ Γ)
 
 liftContextImprecision : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}

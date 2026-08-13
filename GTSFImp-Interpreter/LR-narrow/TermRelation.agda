@@ -2,13 +2,14 @@ module LR-narrow.TermRelation where
 
 -- File Charter:
 --   * Defines the open logical relation for compiled cast terms.
---   * Closes both endpoint terms with related typed substitutions before
---     applying the computation relation.
+--   * Quantifies over future worlds and closes both endpoint terms with
+--     related typed substitutions before applying the computation relation.
 --   * Bridges the LR world and context to the cast-term imprecision relation.
 --   * Contains no compatibility proof.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong₂)
 
 open import Types
 open import CastTerms using (Term)
@@ -48,6 +49,30 @@ compiled-context-lookup CTI.Zʷ = Zᴿ
 compiled-context-lookup (CTI.Sʷ x∈) =
   Sᴿ (compiled-context-lookup x∈)
 
+compiled-precise-context-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (Γ : CTI.CtxImp (forgetWorld W))
+  → preciseContext
+      (liftContextImprecision W≼W′ (compiledContext W Γ))
+      ≡ liftPreciseContext W≼W′ (CTI.srcCtxʷ Γ)
+compiled-precise-context-future W≼W′ [] = refl
+compiled-precise-context-future W≼W′
+    (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) =
+  cong₂ _∷_ refl (compiled-precise-context-future W≼W′ Γ)
+
+compiled-imprecise-context-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (Γ : CTI.CtxImp (forgetWorld W))
+  → impreciseContext
+      (liftContextImprecision W≼W′ (compiledContext W Γ))
+      ≡ liftImpreciseContext W≼W′ (CTI.tgtCtxʷ Γ)
+compiled-imprecise-context-future W≼W′ [] = refl
+compiled-imprecise-context-future W≼W′
+    (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) =
+  cong₂ _∷_ refl (compiled-imprecise-context-future W≼W′ Γ)
+
 ------------------------------------------------------------------------
 -- Open compiled terms
 ------------------------------------------------------------------------
@@ -61,10 +86,16 @@ TermRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → Term Δᴵ
   → Set₁
 TermRelation {W = W} p k Γ Mᴾ Mᴵ =
-  (γ : RelatedClosingSubstitutions W k Γ)
-  → ComputationsRelated W (FutureValueRelation p) k
-      (close (impreciseClosingSubstitution γ) Mᴵ)
-      (close (preciseClosingSubstitution γ) Mᴾ)
+  ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′ Γ))
+  → ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ p)) k
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ Mᴵ))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ Mᴾ))
 
 CompiledTermRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}

@@ -13,6 +13,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TyStore using (store-empty)
 open import CastTerms using (Term; ⇑ᵗᵐ)
+open import Primitives using (Const; κℕ; κ𝔹; constTy)
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 import Imprecision as I
 open import proof.ImprecisionConsistency
@@ -175,6 +176,105 @@ liftImpreciseTerm (future-paired W≼W′ related fresh) M =
   ⇑ᵗᵐ (liftImpreciseTerm W≼W′ M)
 liftImpreciseTerm (future-precise W≼W′ fresh) M =
   liftImpreciseTerm W≼W′ M
+
+liftPreciseTerm-variable : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) x
+  → liftPreciseTerm W≼W′ (CastTerms.` x) ≡ CastTerms.` x
+liftPreciseTerm-variable future-refl x = refl
+liftPreciseTerm-variable (future-paired W≼W′ related fresh) x
+    rewrite liftPreciseTerm-variable W≼W′ x = refl
+liftPreciseTerm-variable (future-precise W≼W′ fresh) x
+    rewrite liftPreciseTerm-variable W≼W′ x = refl
+
+liftImpreciseTerm-variable : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) x
+  → liftImpreciseTerm W≼W′ (CastTerms.` x) ≡ CastTerms.` x
+liftImpreciseTerm-variable future-refl x = refl
+liftImpreciseTerm-variable (future-paired W≼W′ related fresh) x
+    rewrite liftImpreciseTerm-variable W≼W′ x = refl
+liftImpreciseTerm-variable (future-precise W≼W′ fresh) x =
+  liftImpreciseTerm-variable W≼W′ x
+
+liftPreciseTerm-constant : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) κ
+  → liftPreciseTerm W≼W′ (CastTerms.$ κ) ≡ CastTerms.$ κ
+liftPreciseTerm-constant future-refl κ = refl
+liftPreciseTerm-constant (future-paired W≼W′ related fresh) κ
+    rewrite liftPreciseTerm-constant W≼W′ κ = refl
+liftPreciseTerm-constant (future-precise W≼W′ fresh) κ
+    rewrite liftPreciseTerm-constant W≼W′ κ = refl
+
+liftImpreciseTerm-constant : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) κ
+  → liftImpreciseTerm W≼W′ (CastTerms.$ κ) ≡ CastTerms.$ κ
+liftImpreciseTerm-constant future-refl κ = refl
+liftImpreciseTerm-constant (future-paired W≼W′ related fresh) κ
+    rewrite liftImpreciseTerm-constant W≼W′ κ = refl
+liftImpreciseTerm-constant (future-precise W≼W′ fresh) κ =
+  liftImpreciseTerm-constant W≼W′ κ
+
+liftPreciseTy-constant : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (κ : Const)
+  → liftPreciseTy W≼W′ (constTy κ) ≡ constTy κ
+liftPreciseTy-constant future-refl κ = refl
+liftPreciseTy-constant (future-paired W≼W′ related fresh) (κℕ n)
+    rewrite liftPreciseTy-constant W≼W′ (κℕ n) = refl
+liftPreciseTy-constant (future-paired W≼W′ related fresh) (κ𝔹 b)
+    rewrite liftPreciseTy-constant W≼W′ (κ𝔹 b) = refl
+liftPreciseTy-constant (future-precise W≼W′ fresh) (κℕ n)
+    rewrite liftPreciseTy-constant W≼W′ (κℕ n) = refl
+liftPreciseTy-constant (future-precise W≼W′ fresh) (κ𝔹 b)
+    rewrite liftPreciseTy-constant W≼W′ (κ𝔹 b) = refl
+
+liftImpreciseTy-constant : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (κ : Const)
+  → liftImpreciseTy W≼W′ (constTy κ) ≡ constTy κ
+liftImpreciseTy-constant future-refl κ = refl
+liftImpreciseTy-constant (future-paired W≼W′ related fresh) (κℕ n)
+    rewrite liftImpreciseTy-constant W≼W′ (κℕ n) = refl
+liftImpreciseTy-constant (future-paired W≼W′ related fresh) (κ𝔹 b)
+    rewrite liftImpreciseTy-constant W≼W′ (κ𝔹 b) = refl
+liftImpreciseTy-constant (future-precise W≼W′ fresh) κ =
+  liftImpreciseTy-constant W≼W′ κ
+
+liftCenterTy-constant : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (κ : Const)
+  → liftCenterTy W≼W′ (constTy κ) ≡ constTy κ
+liftCenterTy-constant future-refl κ = refl
+liftCenterTy-constant (future-paired W≼W′ related fresh) (κℕ n)
+    rewrite liftCenterTy-constant W≼W′ (κℕ n) = refl
+liftCenterTy-constant (future-paired W≼W′ related fresh) (κ𝔹 b)
+    rewrite liftCenterTy-constant W≼W′ (κ𝔹 b) = refl
+liftCenterTy-constant (future-precise W≼W′ fresh) (κℕ n)
+    rewrite liftCenterTy-constant W≼W′ (κℕ n) = refl
+liftCenterTy-constant (future-precise W≼W′ fresh) (κ𝔹 b)
+    rewrite liftCenterTy-constant W≼W′ (κ𝔹 b) = refl
+
+liftCenterTy-arrow : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (A B : Ty Δᶜ)
+  → liftCenterTy W≼W′ (A ⇒ B) ≡
+      (liftCenterTy W≼W′ A ⇒ liftCenterTy W≼W′ B)
+liftCenterTy-arrow future-refl A B = refl
+liftCenterTy-arrow (future-paired W≼W′ related fresh) A B
+    rewrite liftCenterTy-arrow W≼W′ A B = refl
+liftCenterTy-arrow (future-precise W≼W′ fresh) A B
+    rewrite liftCenterTy-arrow W≼W′ A B = refl
 
 liftPreciseBody : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}

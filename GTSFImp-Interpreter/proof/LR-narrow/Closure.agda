@@ -7,8 +7,10 @@ module proof.LR-narrow.Closure where
 
 import Data.Fin as Fin
 open import Data.List using ([])
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _≤_; z≤n; s≤s)
+open import Data.Nat.Properties using (m≤n⇒m<n∨m≡n)
 open import Data.Product using (_,_)
+open import Data.Sum using (inj₁; inj₂)
 open import Data.Unit.Polymorphic.Base using (tt)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; cong; cong₂; refl; sym; trans)
@@ -101,6 +103,24 @@ value-imprecision-downward {p = I.bot-elim} {k = suc k} endpoints =
   endpoints
 value-imprecision-downward {p = I.bot⊑★} {k = suc k} endpoints =
   endpoints
+
+value-imprecision-downward-to : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {j k : ℕ} {Vᴵ Vᴾ}
+  → j ≤ k
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ValueImprecision W p j Vᴵ Vᴾ
+value-imprecision-downward-to {j = zero} {k = zero} z≤n related = related
+value-imprecision-downward-to {j = suc j} {k = zero} () related
+value-imprecision-downward-to {j = j} {k = suc k} j≤sk related
+    with m≤n⇒m<n∨m≡n j≤sk
+value-imprecision-downward-to {j = j} {k = suc k} j≤sk related
+    | inj₁ (s≤s j≤k) =
+  value-imprecision-downward-to j≤k
+    (value-imprecision-downward related)
+value-imprecision-downward-to {j = j} {k = suc k} j≤sk related
+    | inj₂ refl = related
 
 right-dynamic-payload-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {k Vᴵ Vᴾ}
@@ -211,6 +231,32 @@ value-imprecision-reindex : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
   → ValueImprecision W p k Vᴵ Vᴾ
 value-imprecision-reindex p q refl refl related
   rewrite PI.⊑-unique q p = related
+
+value-imprecision-local→center : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
+    {k Vᴵ Vᴾ}
+  → ValueImprecision W′ (liftLocalImprecision W≼W′ p) k Vᴵ Vᴾ
+  → ValueImprecision W′ (liftCenterImprecision W≼W′ p) k Vᴵ Vᴾ
+value-imprecision-local→center {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} W≼W′ p =
+  value-imprecision-reindex (liftCenterImprecision W≼W′ p)
+    (liftLocalImprecision W≼W′ p)
+    (sym (embedPrecise-lift W≼W′ Aᴾ))
+    (sym (embedImprecise-lift W≼W′ Aᴵ))
+
+value-imprecision-center→local : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ)
+    {k Vᴵ Vᴾ}
+  → ValueImprecision W′ (liftCenterImprecision W≼W′ p) k Vᴵ Vᴾ
+  → ValueImprecision W′ (liftLocalImprecision W≼W′ p) k Vᴵ Vᴾ
+value-imprecision-center→local {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} W≼W′ p =
+  value-imprecision-reindex (liftLocalImprecision W≼W′ p)
+    (liftCenterImprecision W≼W′ p)
+    (embedPrecise-lift W≼W′ Aᴾ)
+    (embedImprecise-lift W≼W′ Aᴵ)
 
 typed-endpoints-derivation-reindex : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}

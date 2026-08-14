@@ -92,6 +92,7 @@ import proof.DGG.Catchup.StructuralInstantiationDescentProof
 import proof.DGG.Catchup.StructuralAllDescentProof
 import proof.DGG.Catchup.StructuralGenDescentProof
 import proof.DGG.Catchup.StructuralInstDescentProof
+import proof.DGG.Catchup.StructuralNameInstantiationProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M6: value catch-up foundation)

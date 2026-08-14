@@ -113,3 +113,17 @@ Live code status:
   No frozen files were edited.  No postulates, holes, catch-alls, or weakened
   statements were added.  The stage 1g statement scratch and generalized
   skeleton chunks remain the only committed code changes before this blocker.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The missing target-frame intermediate endpoint is now supplied by
+  `TargetFrameAbsorptionChain` in
+  `GTSFImp/proof/DGG/Catchup/StructuralTargetFrameAbsorptionDef.agda`.
+  In particular, `tfa-cast` stores the post-cast endpoint and
+  `target-frame-cast-absorption` turns a value-anchored relation into the
+  relation needed for the cast-frame child.
+
+  The reveal/conceal analogues were subsequently strengthened in stage 1m
+  with supplied premise-relation transport fields, matching the rebased
+  premises required by `⊑reveal²` and `⊑conceal²`.

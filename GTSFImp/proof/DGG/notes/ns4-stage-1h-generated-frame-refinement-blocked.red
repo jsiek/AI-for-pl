@@ -150,3 +150,16 @@ target insert/follows data, and it should provide exactly the witnesses listed
 above.  Once that record exists, the live constructor helpers in
 `StructuralTargetFrameAbsorptionDef.agda` can be strengthened from explicit
 witness inputs to derived refinement lemmas.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The reusable generated-frame geometry surface now lives in
+  `GTSFImp/proof/DGG/Catchup/StructuralGeneratedFrameGeometryDef.agda`.
+  It provides the `allv-∀`, reveal, and conceal generated-frame witnesses
+  consumed by the chain-refinement helpers in
+  `StructuralTargetFrameAbsorptionDef.agda`.
+
+  Stage 1m strengthened the reveal/conceal generated geometry with
+  `transport₁` and `transport₂`, so generated frame chains now carry the
+  rebased premise-relation transport demanded by the live relation rules.

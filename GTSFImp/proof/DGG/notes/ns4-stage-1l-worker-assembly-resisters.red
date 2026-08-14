@@ -148,3 +148,16 @@ rebased premise relation required by `⊑reveal²` and `⊑conceal²`.
 Separately, either parameterize the public value-instantiation surface by the
 root `StructuralTargetInstantiationPackage`, or add a fuel-free target-only
 normalizer that constructs it from `AllValueView`.
+
+
+PARTIAL RESOLUTION postscript, 2026-08-14:
+
+Resister 1 is closed in live Agda.  `TargetFrameAbsorptionChain` reveal and
+conceal entries now include supplied premise-relation transport, and
+`target-frame-reveal-absorption` / `target-frame-conceal-absorption` use that
+transport before calling `⊑reveal²` / `⊑conceal²`.
+
+Resister 2 remains open.  The attempted target-only builder is now tracked as
+`ns4-stage-1m-target-only-builder-resister.red`, because the raw
+`InstantiationSpine` surface does not carry the target conversion typing
+needed by reveal/conceal frame normalization.

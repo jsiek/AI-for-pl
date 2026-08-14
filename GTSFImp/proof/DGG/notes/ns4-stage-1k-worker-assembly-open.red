@@ -103,3 +103,21 @@ the generic endpoint obstruction, but worker assembly still needs target-frame
 package decomposition for the non-name frame cases before
 `StructuralNameInstantiationᵀ` and `StructuralValueInstantiationᵀ` can be
 inhabited without adding a circular whole-worker argument.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The inverse target-frame package decompositions now check in
+  `GTSFImp/proof/DGG/Catchup/StructuralTargetFrameDecompositionProof.agda`:
+
+  - `structural-target-frame-value-peel`
+  - `structural-target-reveal-frame-keep-peel`
+  - `structural-target-conceal-frame-keep-peel`
+
+  The safe-inst branch also has the required inverse package in
+  `GTSFImp/proof/DGG/Catchup/StructuralTargetInstPeelProof.agda` via
+  `structural-target-inst-peel`.
+
+  These close the target-trace decomposition obstruction recorded here.  The
+  remaining assembly issues after 1m are about the target-only builder and the
+  exact worker signature, not this inverse-package surface.

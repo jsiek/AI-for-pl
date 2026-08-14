@@ -69,3 +69,19 @@ Status:
 
   No worker clauses were added in this chunk.  The checked peels remain
   available as separate lemmas; the worker is not assembled.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The same-mass strict-head blocker was closed by the secondary
+  `pendingRank` measure in
+  `GTSFImp/proof/DGG/Catchup/StructuralValueInstantiationRankDef.agda` and
+  the checked descent lemmas in
+  `GTSFImp/proof/DGG/Catchup/StructuralValueInstantiationRankProof.agda`:
+
+  - `lambda-rank-decreases`
+  - `reveal-rank-decreases`
+  - `conceal-rank-decreases`
+
+  Primary cast-mass remains the outer measure; `pendingRank` handles the
+  fixed-mass `Λ`, reveal, and conceal strict heads.

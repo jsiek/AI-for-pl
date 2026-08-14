@@ -24,6 +24,9 @@ import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
+open import proof.DGG.Catchup.StructuralValueInstantiationRankDef
+open import proof.DGG.Catchup.StructuralValueInstantiationRankProof
+  using (_<ʳ_)
 open import proof.DGG.Catchup.StructuralValueInstantiationCastProof
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof
@@ -36,6 +39,34 @@ open import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
+
+
+StructuralValueSpineInstantiationAccᵀ : Set₁
+StructuralValueSpineInstantiationAccᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {C₀ E : Ty Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ C₀}
+    {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → StructuralNamePostPlan W A E q
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → Value M
+  → (vV : Value V)
+  → (spine : InstantiationSpine C₀ E)
+  → Acc _<_ (pendingCastMass vV spine)
+  → Acc _<ʳ_ (pendingRank vV spine)
+  → (target : StructuralTargetInstantiationPackage W V spine)
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+      ECR.mapCtxᴿ
+        (structural-world-extendᴿ
+          (StructuralTargetInstantiationPackage.structural-ext target))
+        γ
+      ⊢² M ⊑ StructuralTargetInstantiationPackage.final target ∶
+        ECR.transport⊑ᵂ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          q
 
 
 StructuralNameInstantiationAccᵀ : Set₁
@@ -55,6 +86,8 @@ StructuralNameInstantiationAccᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → Acc _<_ (pendingCastMass vV
       (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → Acc _<ʳ_ (pendingRank vV
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
   → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -71,12 +104,12 @@ StructuralNameInstantiationAccᵀ =
 
 StructuralNameInstantiationEqualᵀ : Set₁
 StructuralNameInstantiationEqualᵀ =
-  StructuralNameInstantiationAccᵀ
+  StructuralValueSpineInstantiationAccᵀ
 
 
 StructuralNameInstantiationStrictᵀ : Set₁
 StructuralNameInstantiationStrictᵀ =
-  StructuralNameInstantiationAccᵀ
+  StructuralValueSpineInstantiationAccᵀ
 
 
 StructuralNameConcealEqualOKᵀ : Set₁
@@ -151,6 +184,8 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → Acc _<ʳ_ (pendingRank vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -164,15 +199,17 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-cast-equal worker plan c inert prem vU vN view spine
-    acc target
+structural-name-cast-equal worker {B = B} {X = X}
+    plan c inert prem vU vN view spine acc rank target
     with StructuralNamePostPlan.cast-child plan c
-structural-name-cast-equal worker plan c inert prem vU vN view spine
-    acc target | q₀ , child-plan =
+structural-name-cast-equal worker {B = B} {X = X}
+    plan c inert prem vU vN view spine acc rank target
+    | q₀ , child-plan =
   structural-inert-cast-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     c inert
-    (worker child-plan prem vU vN view spine acc target)
+    (worker child-plan prem vU vN
+      (name-type-app-frame B X refl refl ▻ⁱ spine) acc rank target)
 
 
 structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
@@ -195,6 +232,8 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → Acc _<ʳ_ (pendingRank vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -209,10 +248,12 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
 structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
-    plan Anv z∈A liftγ prem vU vN view spine acc target
+    {B = B} {X = X}
+    plan Anv z∈A liftγ prem vU vN view spine acc rank target
     with StructuralNamePostPlan.plain-Λ-child plan refl
 structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
-    plan Anv z∈A liftγ prem vU vN view spine acc target
+    {B = B} {X = X}
+    plan Anv z∈A liftγ prem vU vN view spine acc rank target
     | q₀ , child-plan =
   structural-Λ-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
@@ -221,7 +262,8 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
   targetᴸ = structural-target-lift-left X⊑★ target
 
   child-rel =
-    worker child-plan prem vU vN view spine acc targetᴸ
+    worker child-plan prem vU vN
+      (name-type-app-frame B X refl refl ▻ⁱ spine) acc rank targetᴸ
 
   liftγ′ =
     mapCtxᴿ-liftCtxᴸ
@@ -259,6 +301,8 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → Acc _<ʳ_ (pendingRank vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -273,16 +317,19 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
-    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    {B = B} {X = X}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc rank target
     with StructuralNamePostPlan.smart-Λ-child plan refl liftW
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
-    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    {B = B} {X = X}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc rank target
     | q₀ , child-plan
     with structural-smart-liftᴸ
       (StructuralTargetInstantiationPackage.structural-ext target)
       liftW
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
-    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    {B = B} {X = X}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc rank target
     | q₀ , child-plan
     | record { premise-plan = planᵐ ; post-lift = liftW′ } =
   CTI2.Λ⊑²-smart-comma Anv z∈A liftW′ liftγ′ vU target⊢
@@ -306,7 +353,8 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     }
 
   child-rel =
-    worker child-plan prem vU vN view spine acc targetᵐ
+    worker child-plan prem vU vN
+      (name-type-app-frame B X refl refl ▻ⁱ spine) acc rank targetᵐ
 
   liftγ′ =
     mapCtxᴿ-smartLiftCtxᴸ
@@ -348,6 +396,8 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → Acc _<ʳ_ (pendingRank vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -361,15 +411,17 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-reveal-equal worker {c = c} plan mono rb sc c⊢
-    prem vU vN view spine acc target
+structural-name-reveal-equal worker {B = B} {X = X} {c = c}
+    plan mono rb sc c⊢ prem vU vN view spine acc rank target
     with StructuralNamePostPlan.reveal-child plan {c = c} rb
-structural-name-reveal-equal worker {c = c} plan mono rb sc c⊢
-    prem vU vN view spine acc target | q₀ , child-plan =
+structural-name-reveal-equal worker {B = B} {X = X} {c = c}
+    plan mono rb sc c⊢ prem vU vN view spine acc rank target
+    | q₀ , child-plan =
   structural-reveal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
-    (worker child-plan prem vU vN view spine acc
+    (worker child-plan prem vU vN
+      (name-type-app-frame B X refl refl ▻ⁱ spine) acc rank
       (structural-target-rebase-left rb target))
 
 
@@ -398,6 +450,8 @@ structural-name-conceal-equal :
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → Acc _<ʳ_ (pendingRank vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralTargetInstantiationPackage.W′ target CTI2.∣
@@ -411,15 +465,16 @@ structural-name-conceal-equal :
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-conceal-equal ok-equal worker {c = c}
-    plan ok mono rb sc c⊢ prem vU vN view spine acc target
+structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
+    plan ok mono rb sc c⊢ prem vU vN view spine acc rank target
     with StructuralNamePostPlan.conceal-child plan {c = c} rb
-structural-name-conceal-equal ok-equal worker {c = c}
-    plan ok mono rb sc c⊢ prem vU vN view spine acc target
+structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
+    plan ok mono rb sc c⊢ prem vU vN view spine acc rank target
     | q₀ , child-plan =
   structural-conceal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
     (ok-equal rb ok spine target)
-    (worker child-plan prem vU vN view spine acc
+    (worker child-plan prem vU vN
+      (name-type-app-frame B X refl refl ▻ⁱ spine) acc rank
       (structural-target-tag-rebase-left rb target))

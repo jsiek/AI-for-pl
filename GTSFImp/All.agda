@@ -88,6 +88,7 @@ import proof.DGG.Catchup.StructuralTargetInstantiationDef
 import proof.DGG.Catchup.StructuralTargetInstantiationProof
 import proof.DGG.Catchup.StructuralTargetPeelSupportProof
 import proof.DGG.Catchup.StructuralTargetSpineStepInversionProof
+import proof.DGG.Catchup.StructuralTargetFrameDecompositionProof
 import proof.DGG.Catchup.StructuralTargetSourceTransportProof
 import proof.DGG.Catchup.StructuralTargetLambdaStepProof
 import proof.DGG.Catchup.StructuralTargetGenStepProof

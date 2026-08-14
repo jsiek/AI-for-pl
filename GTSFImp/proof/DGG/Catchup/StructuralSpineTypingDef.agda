@@ -6,7 +6,7 @@ module proof.DGG.Catchup.StructuralSpineTypingDef where
 --   * Builds the typed generated/root spines consumed by NS-4 workers.
 
 import Data.Fin as Fin
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; suc; _<_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to subst≡)
 
@@ -29,80 +29,91 @@ open import proof.TypeSafety.Preservation using
 import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
+open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
 
 
-data CastFrameClass {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+data CastFrameClass {fuel : ℕ} {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
     (c : μ ⊢ A ∼ B) : Set where
 
-  cast-inert : Inert c → CastFrameClass c
+  cast-inert : Inert c → CastFrameClass {fuel = fuel} c
 
-  cast-safe : GenSafe c → CastFrameClass c
+  cast-safe : GenSafe c → CastFrameClass {fuel = fuel} c
+
+  cast-residual : suc (castSize c) < fuel
+    → CastFrameClass {fuel = fuel} c
 
 
-cast-frame-class-map : ∀ {Δ Δ′ μ A B}
+cast-frame-class-map : ∀ {fuel Δ Δ′ μ A B}
     (χ : StoreChange Δ Δ′) {c : μ ⊢ A ∼ B}
-  → CastFrameClass c
-  → CastFrameClass (applyConsistency χ c)
-cast-frame-class-map keep cls = cls
-cast-frame-class-map (bind R) (cast-inert inert) =
-  cast-inert (applyStoreChange-Inert (bind R) inert)
-cast-frame-class-map (bind R) (cast-safe safe) =
-  cast-safe (PC.renameGenSafe Fin.suc (λ X → refl) safe)
+  → CastFrameClass {fuel = fuel} c
+  → CastFrameClass {fuel = fuel} (applyConsistency χ c)
+cast-frame-class-map {fuel = fuel} keep cls = cls
+cast-frame-class-map {fuel = fuel} (bind R) (cast-inert inert) =
+  cast-inert {fuel = fuel} (applyStoreChange-Inert (bind R) inert)
+cast-frame-class-map {fuel = fuel} (bind R) (cast-safe safe) =
+  cast-safe {fuel = fuel} (PC.renameGenSafe Fin.suc (λ X → refl) safe)
+cast-frame-class-map {fuel = fuel} (bind R) (cast-residual c<fuel) =
+  cast-residual {fuel = fuel}
+    (subst≡ (λ n → suc n < _)
+      (sym (PC.castSize-renameEnvᶜ Fin.suc (λ X → refl) _))
+      c<fuel)
 
 
-data SpineTyped {Δ} (Σ : TyStore Δ) :
+data SpineTyped {fuel : ℕ} {Δ} (Σ : TyStore Δ) :
     ∀ {A B : Ty Δ}
     → InstantiationSpine A B
     → Set where
 
   st-[] : ∀ {A}
-    → SpineTyped Σ ([]ⁱ {A = A})
+    → SpineTyped {fuel = fuel} Σ ([]ⁱ {A = A})
 
   st-type : ∀ {A B C}
       {eq : A ≡ B} {spine : InstantiationSpine B C}
-    → SpineTyped Σ spine
-    → SpineTyped Σ (type-transport-frame eq ▻ⁱ spine)
+    → SpineTyped {fuel = fuel} Σ spine
+    → SpineTyped {fuel = fuel} Σ (type-transport-frame eq ▻ⁱ spine)
 
   st-name : ∀ {A C E X}
       {B : Ty (suc Δ)} {eqA : A ≡ `∀ B}
       {eqC : C ≡ B [ ＇ X ]ᵗ}
       {spine : InstantiationSpine C E}
-    → SpineTyped Σ spine
-    → SpineTyped Σ (name-type-app-frame B X eqA eqC ▻ⁱ spine)
+    → SpineTyped {fuel = fuel} Σ spine
+    → SpineTyped {fuel = fuel} Σ
+        (name-type-app-frame B X eqA eqC ▻ⁱ spine)
 
   st-cast : ∀ {A B E μ}
       {c : μ ⊢ A ∼ B} {spine : InstantiationSpine B E}
-    → CastFrameClass c
-    → SpineTyped Σ spine
-    → SpineTyped Σ (cast-frame c ▻ⁱ spine)
+    → CastFrameClass {fuel = fuel} c
+    → SpineTyped {fuel = fuel} Σ spine
+    → SpineTyped {fuel = fuel} Σ (cast-frame c ▻ⁱ spine)
 
   st-reveal : ∀ {A B E}
       {c : Conv↑ Δ A B} {spine : InstantiationSpine B E}
     → Σ ⊢↑ c
-    → SpineTyped Σ spine
-    → SpineTyped Σ (reveal-frame c ▻ⁱ spine)
+    → SpineTyped {fuel = fuel} Σ spine
+    → SpineTyped {fuel = fuel} Σ (reveal-frame c ▻ⁱ spine)
 
   st-conceal : ∀ {A B E}
       {c : Conv↓ Δ A B} {spine : InstantiationSpine B E}
     → Σ ⊢↓ c
-    → SpineTyped Σ spine
-    → SpineTyped Σ (conceal-frame c ▻ⁱ spine)
+    → SpineTyped {fuel = fuel} Σ spine
+    → SpineTyped {fuel = fuel} Σ (conceal-frame c ▻ⁱ spine)
 
 
-SpineTypedʷ : ∀ {Δᴸ Δᴿ Δ} {A B : Ty Δᴿ}
+SpineTypedʷ : ∀ {fuel Δᴸ Δᴿ Δ} {A B : Ty Δᴿ}
   → CTI2.World Δᴸ Δᴿ Δ
   → InstantiationSpine A B
   → Set
-SpineTypedʷ W spine = SpineTyped (CTI2.targetStoreʷ W) spine
+SpineTypedʷ {fuel = fuel} W spine =
+  SpineTyped {fuel = fuel} (CTI2.targetStoreʷ W) spine
 
 
-spine-typed-store-eq : ∀ {Δ} {Σ Σ′ : TyStore Δ}
+spine-typed-store-eq : ∀ {fuel Δ} {Σ Σ′ : TyStore Δ}
     {A B : Ty Δ} {spine : InstantiationSpine A B}
   → Σ′ ≡ Σ
-  → SpineTyped Σ spine
-  → SpineTyped Σ′ spine
+  → SpineTyped {fuel = fuel} Σ spine
+  → SpineTyped {fuel = fuel} Σ′ spine
 spine-typed-store-eq refl typed = typed
 
 
@@ -140,10 +151,10 @@ normalize-renamed↓-typed {A = A} {B = B} {c = c} c⊢ =
   conceal-typing-subst refl refl d⊢ = d⊢
 
 
-spine-typed-map-keep : ∀ {Δ} {Σ : TyStore Δ} {A B}
+spine-typed-map-keep : ∀ {fuel Δ} {Σ : TyStore Δ} {A B}
     {spine : InstantiationSpine A B}
-  → SpineTyped Σ spine
-  → SpineTyped Σ (mapInstantiationSpine keep spine)
+  → SpineTyped {fuel = fuel} Σ spine
+  → SpineTyped {fuel = fuel} Σ (mapInstantiationSpine keep spine)
 spine-typed-map-keep st-[] = st-[]
 spine-typed-map-keep (st-type typed) =
   st-type (spine-typed-map-keep typed)
@@ -159,10 +170,10 @@ spine-typed-map-keep (st-conceal c⊢ typed) =
     (spine-typed-map-keep typed)
 
 
-spine-typed-map-bind : ∀ {Δ} {Σ : TyStore Δ} {A B}
+spine-typed-map-bind : ∀ {fuel Δ} {Σ : TyStore Δ} {A B}
     (R : Ty Δ) {spine : InstantiationSpine A B}
-  → SpineTyped Σ spine
-  → SpineTyped (store-bind Σ R)
+  → SpineTyped {fuel = fuel} Σ spine
+  → SpineTyped {fuel = fuel} (store-bind Σ R)
       (mapInstantiationSpine (bind R) spine)
 spine-typed-map-bind R st-[] = st-[]
 spine-typed-map-bind R (st-type typed) =
@@ -180,58 +191,59 @@ spine-typed-map-bind R (st-conceal c⊢ typed) =
     (spine-typed-map-bind R typed)
 
 
-spine-typed-map-bindʷ : ∀ {Δᴸ Δᴿ Δ Δ₁}
+spine-typed-map-bindʷ : ∀ {fuel Δᴸ Δᴿ Δ Δ₁}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {A B : Ty Δᴿ} {spine : InstantiationSpine A B}
     (R : Ty Δᴿ)
   → CTI2.targetStoreʷ W₁ ≡
       applyStores (bind R ∷ []) (CTI2.targetStoreʷ W)
-  → SpineTypedʷ W spine
-  → SpineTypedʷ W₁ (mapInstantiationSpine (bind R) spine)
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} W₁
+      (mapInstantiationSpine (bind R) spine)
 spine-typed-map-bindʷ R follows typed =
   spine-typed-store-eq follows (spine-typed-map-bind R typed)
 
 
-spine-typed-rebase-left : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-rebase-left : ∀ {fuel Δᴸ Δᴿ Δ}
     {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
     {A B : Ty Δᴿ} {spine : InstantiationSpine A B} {Xᴸ?}
   → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
-  → SpineTypedʷ W spine
-  → SpineTypedʷ Wᵖ spine
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} Wᵖ spine
 spine-typed-rebase-left rb =
   spine-typed-store-eq (CTI2T.rebaseᴸ-target-store rb)
 
 
-spine-typed-tag-rebase-left : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-tag-rebase-left : ∀ {fuel Δᴸ Δᴿ Δ}
     {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
     {A B : Ty Δᴿ} {spine : InstantiationSpine A B} {Xᴸ? Xᴿ?}
   → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
-  → SpineTypedʷ W spine
-  → SpineTypedʷ Wᵖ spine
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} Wᵖ spine
 spine-typed-tag-rebase-left rb =
   spine-typed-store-eq
     (sym (CTI2T.rebaseᴸ-target-store (CTI2.forgetTagRebaseᴸ rb)))
 
 
-spine-typed-lift-left : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-lift-left : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {A B : Ty Δᴿ} {spine : InstantiationSpine A B}
-  → SpineTypedʷ W spine
-  → SpineTypedʷ (CTI2.liftWorldLeft X⊑★ W) spine
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} (CTI2.liftWorldLeft X⊑★ W) spine
 spine-typed-lift-left typed = typed
 
 
-spine-typed-all-child : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-all-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Aₛ : Ty Δᴸ} {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {X : TyVar Δᴿ} {μ : Env∼ Δᴿ}
     {d : extᵐ μ ⊢ B ∼ C}
     {spine : InstantiationSpine (C [ ＇ X ]ᵗ) E}
   → GFG.StructuralAllGeneratedFrameGeometry W Aₛ C X
-  → CastFrameClass (d [ ＇ X ]ᶜ)
-  → SpineTypedʷ W (mapInstantiationSpine keep spine)
-  → SpineTypedʷ W
+  → CastFrameClass {fuel = fuel} (d [ ＇ X ]ᶜ)
+  → SpineTypedʷ {fuel = fuel} W (mapInstantiationSpine keep spine)
+  → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine)
@@ -239,12 +251,12 @@ spine-typed-all-child geom cls typed =
   st-name (st-cast cls typed)
 
 
-spine-typed-Λ-child : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-Λ-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {B : Ty (suc Δᴿ)} {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
-  → SpineTypedʷ W spine
-  → SpineTypedʷ (CTI2.rightOnlyWorld W (＇ X))
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} (CTI2.rightOnlyWorld W (＇ X))
       (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine)
@@ -256,15 +268,16 @@ spine-typed-Λ-child {W = W} {B = B} {X = X} typed =
         (＇ X) refl typed))
 
 
-spine-typed-reveal-child : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-reveal-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ (suc Δᴿ) Δ}
     {γ : CTI2.CtxImp W}
     {Aₛ : Ty Δᴸ} {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {X : TyVar Δᴿ} {c : Conv↑ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
   → GFG.StructuralRevealGeneratedFrameGeometry W γ Aₛ B C X c
-  → SpineTypedʷ W (mapInstantiationSpine (bind (＇ X)) spine)
-  → SpineTypedʷ W
+  → SpineTypedʷ {fuel = fuel} W
+      (mapInstantiationSpine (bind (＇ X)) spine)
+  → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame (applyBody (bind (＇ X)) C)
           Fin.zero refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero C) ▻ⁱ
@@ -281,15 +294,16 @@ spine-typed-reveal-child geom typed =
   module RG = GFG.StructuralRevealGeneratedFrameGeometry
 
 
-spine-typed-conceal-child : ∀ {Δᴸ Δᴿ Δ}
+spine-typed-conceal-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ (suc Δᴿ) Δ}
     {γ : CTI2.CtxImp W}
     {Aₛ : Ty Δᴸ} {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {X : TyVar Δᴿ} {c : Conv↓ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
   → GFG.StructuralConcealGeneratedFrameGeometry W γ Aₛ B C X c
-  → SpineTypedʷ W (mapInstantiationSpine (bind (＇ X)) spine)
-  → SpineTypedʷ W
+  → SpineTypedʷ {fuel = fuel} W
+      (mapInstantiationSpine (bind (＇ X)) spine)
+  → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame (applyBody (bind (＇ X)) C)
           Fin.zero refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero C) ▻ⁱ
@@ -306,10 +320,10 @@ spine-typed-conceal-child geom typed =
   module CG = GFG.StructuralConcealGeneratedFrameGeometry
 
 
-root-value-instantiation-spine-typed : ∀ {Δᴸ Δᴿ Δ}
+root-value-instantiation-spine-typed : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ (suc Δᴿ) Δ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {R : Ty Δᴿ}
-  → SpineTypedʷ W
+  → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame (applyBody (bind R) B)
         Fin.zero refl refl ▻ⁱ []ⁱ)
 root-value-instantiation-spine-typed = st-name st-[]

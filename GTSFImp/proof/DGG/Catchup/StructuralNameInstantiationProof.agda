@@ -7,7 +7,7 @@ module proof.DGG.Catchup.StructuralNameInstantiationProof where
 
 import Data.Fin as Fin
 import Data.List as List
-open import Data.Nat using (suc; _<_)
+open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (_,_)
 open import Induction.WellFounded using (Acc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
@@ -45,20 +45,20 @@ open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 StructuralValueSpineInstantiationAccᵀ : Set₁
 StructuralValueSpineInstantiationAccᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {C₀ E : Ty Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ C₀}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
-  → StructuralNameChainPlan W γ A E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → (vV : Value V)
   → (spine : InstantiationSpine C₀ E)
   → TargetFrameAbsorptionChain W γ A spine q
-  → SpineTypedʷ W spine
+  → SpineTypedʷ {fuel = fuel} W spine
   → Acc _<_ (pendingCastMass vV spine)
   → Acc _<ʳ_ (pendingRank vV spine)
   → (target : StructuralTargetInstantiationPackage W V spine)
@@ -76,7 +76,7 @@ StructuralValueSpineInstantiationAccᵀ =
 
 StructuralNameInstantiationAccᵀ : Set₁
 StructuralNameInstantiationAccᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -84,7 +84,7 @@ StructuralNameInstantiationAccᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
-  → StructuralNameChainPlan W γ A E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → (vV : Value V)
@@ -92,7 +92,8 @@ StructuralNameInstantiationAccᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ A
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → Acc _<_ (pendingCastMass vV
       (name-type-app-frame B X refl refl ▻ⁱ spine))
   → Acc _<ʳ_ (pendingRank vV
@@ -176,7 +177,7 @@ smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
 
 
 structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {U V : Term Δᴸ} {N : Term Δᴿ}
       {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -184,7 +185,7 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
       {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W A′ E q)
-    → StructuralNameChainPlan W γ A′ E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → (c : ν ⊢ A ∼ A′)
     → Inert c
     → W CTI2.∣ γ ⊢² U ⊑ N ∶ p
@@ -194,7 +195,7 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → (chain : TargetFrameAbsorptionChain W γ A′
         (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ W
+    → (typed : SpineTypedʷ {fuel = fuel} W
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
@@ -232,7 +233,7 @@ structural-name-cast-equal worker {B = B} {X = X}
 
 
 structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
       {U : Term (suc Δᴸ)} {N : Term Δᴿ}
@@ -241,7 +242,7 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
       {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ `∀ B}
       {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W (`∀ A) E q)
-    → StructuralNameChainPlan W γ (`∀ A) E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ (`∀ A) E q plan
     → NonVar A
     → Fin.zero ∈ᵗ A
     → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
@@ -252,7 +253,7 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → (chain : TargetFrameAbsorptionChain W γ (`∀ A)
         (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ W
+    → (typed : SpineTypedʷ {fuel = fuel} W
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
@@ -310,7 +311,7 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
 
 
 structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
-  → ∀ {Δᴸ Δᴿ Δ Δᵐ}
+  → ∀ {fuel Δᴸ Δᴿ Δ Δᵐ}
       {W : CTI2.World Δᴸ Δᴿ Δ}
       {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
       {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
@@ -320,7 +321,7 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
       {p : A CTI2.⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
       {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W (`∀ A) E q)
-    → StructuralNameChainPlan W γ (`∀ A) E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ (`∀ A) E q plan
     → NonVar A
     → Fin.zero ∈ᵗ A
     → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
@@ -332,7 +333,7 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → (chain : TargetFrameAbsorptionChain W γ (`∀ A)
         (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ W
+    → (typed : SpineTypedʷ {fuel = fuel} W
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
@@ -418,7 +419,7 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
 
 
 structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
-  → ∀ {Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ}
       {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
       {U : Term Δᴸ} {N : Term Δᴿ}
@@ -428,7 +429,7 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
       {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W A′ E q)
-    → StructuralNameChainPlan W γ A′ E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → CTI2.ImpEnvMono W Wᵖ
     → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
     → CTI2.SameCtx γ γᵖ
@@ -440,7 +441,7 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → (chain : TargetFrameAbsorptionChain W γ A′
         (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ W
+    → (typed : SpineTypedʷ {fuel = fuel} W
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))
@@ -482,7 +483,7 @@ structural-name-reveal-equal worker {B = B} {X = X} {c = c}
 structural-name-conceal-equal :
   StructuralNameConcealEqualOKᵀ
   → StructuralNameInstantiationEqualᵀ
-  → ∀ {Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ}
       {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
       {U : Term Δᴸ} {N : Term Δᴿ}
@@ -492,7 +493,7 @@ structural-name-conceal-equal :
       {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W A′ E q)
-    → StructuralNameChainPlan W γ A′ E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? N
     → CTI2.ImpEnvMono W Wᵖ
     → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
@@ -505,7 +506,7 @@ structural-name-conceal-equal :
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → (chain : TargetFrameAbsorptionChain W γ A′
         (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ W
+    → (typed : SpineTypedʷ {fuel = fuel} W
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → Acc _<_ (pendingCastMass vN
         (name-type-app-frame B X refl refl ▻ⁱ spine))

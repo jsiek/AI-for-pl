@@ -4,7 +4,7 @@ module proof.DGG.Catchup.StructuralInstantiationDescentDef where
 --   * Records target-spine descent with a structural world-extension trace.
 --   * Retains insertion history until source wrappers have been rebuilt.
 
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyCtx; TyVar; ＇_; `∀; _[_]ᵗ)
@@ -80,7 +80,7 @@ record StructuralNamePostPlan {Δᴸ Δᴿ Δ}
           StructuralNamePostPlan Wᵖ A₀ E q₀
 
 
-record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
+record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ) (γ : CTI2.CtxImp W)
     (A : Ty Δᴸ) (E : Ty Δᴿ)
     (q : A CTI2.⊑ᵂ⟨ W ⟩ E)
@@ -91,12 +91,12 @@ record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
         {B : Ty Δᴿ} {spine : InstantiationSpine B E}
       → (c : ν ⊢ A₀ ∼ A)
       → TargetFrameAbsorptionChain W γ A spine q
-      → SpineTypedʷ W spine
+      → SpineTypedʷ {fuel = fuel} W spine
       → let child = StructuralNamePostPlan.cast-child plan c in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain W γ A₀ spine (proj₁ child) ]
-          Σ[ child-typed ∈ SpineTypedʷ W spine ]
-            StructuralNameChainPlan W γ A₀ E (proj₁ child)
+          Σ[ child-typed ∈ SpineTypedʷ {fuel = fuel} W spine ]
+            StructuralNameChainPlan {fuel = fuel} W γ A₀ E (proj₁ child)
               (proj₂ child)
 
     plain-Λ-child : ∀ {A₀ : Ty (suc Δᴸ)}
@@ -105,15 +105,17 @@ record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
       → (eq : A ≡ `∀ A₀)
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
       → TargetFrameAbsorptionChain W γ A spine q
-      → SpineTypedʷ W spine
+      → SpineTypedʷ {fuel = fuel} W spine
       → let child = StructuralNamePostPlan.plain-Λ-child plan eq in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain
               (CTI2.liftWorldLeft X⊑★ W) γᴸ A₀ spine
               (proj₁ child) ]
           Σ[ child-typed ∈
-            SpineTypedʷ (CTI2.liftWorldLeft X⊑★ W) spine ]
-            StructuralNameChainPlan (CTI2.liftWorldLeft X⊑★ W)
+            SpineTypedʷ {fuel = fuel}
+              (CTI2.liftWorldLeft X⊑★ W) spine ]
+            StructuralNameChainPlan {fuel = fuel}
+              (CTI2.liftWorldLeft X⊑★ W)
               γᴸ A₀ E (proj₁ child) (proj₂ child)
 
     smart-Λ-child : ∀ {Δᵐ} {A₀ : Ty (suc Δᴸ)}
@@ -124,13 +126,14 @@ record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
       → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
       → CTI2.SmartLiftCtxᴸ γ γᵐ
       → TargetFrameAbsorptionChain W γ A spine q
-      → SpineTypedʷ W spine
+      → SpineTypedʷ {fuel = fuel} W spine
       → let child = StructuralNamePostPlan.smart-Λ-child plan eq liftW in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain Wᵐ γᵐ A₀ spine
               (proj₁ child) ]
-          Σ[ child-typed ∈ SpineTypedʷ Wᵐ spine ]
-            StructuralNameChainPlan Wᵐ γᵐ A₀ E (proj₁ child)
+          Σ[ child-typed ∈ SpineTypedʷ {fuel = fuel} Wᵐ spine ]
+            StructuralNameChainPlan {fuel = fuel} Wᵐ γᵐ A₀ E
+              (proj₁ child)
               (proj₂ child)
 
     reveal-child : ∀ {A₀ : Ty Δᴸ} {Wᵖ Xᴸ?}
@@ -139,13 +142,14 @@ record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
       → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
       → CTI2.SameCtx γ γᵖ
       → TargetFrameAbsorptionChain W γ A spine q
-      → SpineTypedʷ W spine
+      → SpineTypedʷ {fuel = fuel} W spine
       → let child = StructuralNamePostPlan.reveal-child plan {c = c} rb in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain Wᵖ γᵖ A₀ spine
               (proj₁ child) ]
-          Σ[ child-typed ∈ SpineTypedʷ Wᵖ spine ]
-            StructuralNameChainPlan Wᵖ γᵖ A₀ E (proj₁ child)
+          Σ[ child-typed ∈ SpineTypedʷ {fuel = fuel} Wᵖ spine ]
+            StructuralNameChainPlan {fuel = fuel} Wᵖ γᵖ A₀ E
+              (proj₁ child)
               (proj₂ child)
 
     conceal-child : ∀ {A₀ : Ty Δᴸ} {Wᵖ Xᴸ? Xᴿ?}
@@ -154,19 +158,20 @@ record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
       → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
       → CTI2.SameCtx γ γᵖ
       → TargetFrameAbsorptionChain W γ A spine q
-      → SpineTypedʷ W spine
+      → SpineTypedʷ {fuel = fuel} W spine
       → let child = StructuralNamePostPlan.conceal-child plan {c = c} rb in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain Wᵖ γᵖ A₀ spine
               (proj₁ child) ]
-          Σ[ child-typed ∈ SpineTypedʷ Wᵖ spine ]
-            StructuralNameChainPlan Wᵖ γᵖ A₀ E (proj₁ child)
+          Σ[ child-typed ∈ SpineTypedʷ {fuel = fuel} Wᵖ spine ]
+            StructuralNameChainPlan {fuel = fuel} Wᵖ γᵖ A₀ E
+              (proj₁ child)
               (proj₂ child)
 
 
 StructuralNameInstantiationᵀ : Set₁
 StructuralNameInstantiationᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -174,7 +179,7 @@ StructuralNameInstantiationᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
-  → StructuralNameChainPlan W γ A E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
@@ -182,7 +187,8 @@ StructuralNameInstantiationᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ A
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
   → StructuralTargetInstantiationPackage.W′ target CTI2.∣

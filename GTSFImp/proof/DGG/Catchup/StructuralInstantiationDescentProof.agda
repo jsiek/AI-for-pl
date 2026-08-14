@@ -4,7 +4,7 @@ module proof.DGG.Catchup.StructuralInstantiationDescentProof where
 --   * Builds the zero-spine structural descent package.
 --   * Erases structural traces to the public instantiation package.
 
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to subst≡)
 
@@ -156,7 +156,7 @@ erase-structural-descent pkg = record
 
 structural-name-package :
   StructuralNameInstantiationᵀ
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
       {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -164,7 +164,7 @@ structural-name-package :
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W A E q)
-    → StructuralNameChainPlan W γ A E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
     → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
@@ -172,7 +172,8 @@ structural-name-package :
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → TargetFrameAbsorptionChain W γ A
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-    → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+    → SpineTypedʷ {fuel = fuel} W
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
@@ -188,7 +189,7 @@ structural-name-package worker plan chain-plan rel vM vV view spine
 
 erase-structural-name-root :
   StructuralNameInstantiationᵀ
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
       {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -196,7 +197,7 @@ erase-structural-name-root :
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
     → (plan : StructuralNamePostPlan W A E q)
-    → StructuralNameChainPlan W γ A E q plan
+    → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
     → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
@@ -204,7 +205,8 @@ erase-structural-name-root :
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
     → TargetFrameAbsorptionChain W γ A
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-    → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+    → SpineTypedʷ {fuel = fuel} W
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → InstSpineDescentPackage W γ M

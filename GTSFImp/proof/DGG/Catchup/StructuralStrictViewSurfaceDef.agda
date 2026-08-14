@@ -8,7 +8,7 @@ module proof.DGG.Catchup.StructuralStrictViewSurfaceDef where
 --     and target-frame absorption chain needed by the structural worker.
 
 import Data.Fin as Fin
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
 
@@ -34,7 +34,7 @@ open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 
 
-record StructuralStrictChild {Δᴸ Δᴿ Δ}
+record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ)
     (γ : CTI2.CtxImp W)
     (M : Term Δᴸ)
@@ -46,15 +46,16 @@ record StructuralStrictChild {Δᴸ Δᴿ Δ}
   field
     child-endpoint : A CTI2.⊑ᵂ⟨ W ⟩ B
     child-plan : StructuralNamePostPlan W A E q
-    child-chain-plan : StructuralNameChainPlan W γ A E q child-plan
+    child-chain-plan :
+      StructuralNameChainPlan {fuel = fuel} W γ A E q child-plan
     child-relation : W CTI2.∣ γ ⊢² M ⊑ V ∶ child-endpoint
     child-chain : TargetFrameAbsorptionChain W γ A spine q
-    child-typed : SpineTypedʷ W spine
+    child-typed : SpineTypedʷ {fuel = fuel} W spine
 
 
 StructuralΛStrictSurfaceᵀ : Set₁
 StructuralΛStrictSurfaceᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δ₁}
+  ∀ {fuel Δᴸ Δᴿ Δ Δ₁}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {γ : CTI2.CtxImp W}
@@ -64,14 +65,15 @@ StructuralΛStrictSurfaceᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
-  → StructuralNameChainPlan W γ A E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ Λ V ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ A
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -80,7 +82,7 @@ StructuralΛStrictSurfaceᵀ =
       (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine))
   → let ext₁ = target-insert-bind-world-extendᴿ ins follows
-     in StructuralStrictChild W₁ (ECR.mapCtxᴿ ext₁ γ) M
+     in StructuralStrictChild {fuel = fuel} W₁ (ECR.mapCtxᴿ ext₁ γ) M
           (V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
           A _ (applyTy (bind (＇ X)) E)
           (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
@@ -90,7 +92,7 @@ StructuralΛStrictSurfaceᵀ =
 
 StructuralAllCastStrictSurfaceᵀ : Set₁
 StructuralAllCastStrictSurfaceᵀ =
-  ∀ {Δᴸ Δᴿ Δ}
+  ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
@@ -100,19 +102,20 @@ StructuralAllCastStrictSurfaceᵀ =
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ C}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
-  → StructuralNameChainPlan W γ Aₛ E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (C [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame C X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame C X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame C X refl refl ▻ⁱ spine)
   → (child-target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine))
-  → StructuralStrictChild W γ M V Aₛ (`∀ B) E
+  → StructuralStrictChild {fuel = fuel} W γ M V Aₛ (`∀ B) E
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine)
@@ -121,7 +124,7 @@ StructuralAllCastStrictSurfaceᵀ =
 
 StructuralGenStrictSurfaceᵀ : Set₁
 StructuralGenStrictSurfaceᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δ₁}
+  ∀ {fuel Δᴸ Δᴿ Δ Δ₁}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {γ : CTI2.CtxImp W}
@@ -134,7 +137,7 @@ StructuralGenStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
     ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : Fin.zero ∈ᵗ B ⦄
   → (plan : StructuralNamePostPlan W Aₛ E q)
-  → StructuralNameChainPlan W γ Aₛ E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → (A≢★ : A ≢ ★)
   → W CTI2.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
   → Value M
@@ -143,7 +146,8 @@ StructuralGenStrictSurfaceᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -153,7 +157,7 @@ StructuralGenStrictSurfaceᵀ =
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine))
   → let ext₁ = target-insert-bind-world-extendᴿ ins follows
-     in StructuralStrictChild W₁ (ECR.mapCtxᴿ ext₁ γ) M
+     in StructuralStrictChild {fuel = fuel} W₁ (ECR.mapCtxᴿ ext₁ γ) M
           (⇑ᵗᵐ V) Aₛ _ (applyTy (bind (＇ X)) E)
           (cast-frame c ▻ⁱ
             reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
@@ -164,7 +168,7 @@ StructuralGenStrictSurfaceᵀ =
 
 StructuralRevealStrictSurfaceᵀ : Set₁
 StructuralRevealStrictSurfaceᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δ₁}
+  ∀ {fuel Δᴸ Δᴿ Δ Δ₁}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {γ : CTI2.CtxImp W}
@@ -175,14 +179,15 @@ StructuralRevealStrictSurfaceᵀ =
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
-  → StructuralNameChainPlan W γ Aₛ E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -195,7 +200,7 @@ StructuralRevealStrictSurfaceᵀ =
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine))
   → let ext₁ = target-insert-bind-world-extendᴿ ins follows
-     in StructuralStrictChild W₁ (ECR.mapCtxᴿ ext₁ γ) M
+     in StructuralStrictChild {fuel = fuel} W₁ (ECR.mapCtxᴿ ext₁ γ) M
           (⇑ᵗᵐ V) Aₛ _ (applyTy (bind (＇ X)) E)
           (name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
               refl refl ▻ⁱ
@@ -209,7 +214,7 @@ StructuralRevealStrictSurfaceᵀ =
 
 StructuralConcealStrictSurfaceᵀ : Set₁
 StructuralConcealStrictSurfaceᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δ₁}
+  ∀ {fuel Δᴸ Δᴿ Δ Δ₁}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
     {γ : CTI2.CtxImp W}
@@ -220,14 +225,15 @@ StructuralConcealStrictSurfaceᵀ =
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
-  → StructuralNameChainPlan W γ Aₛ E q plan
+  → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -240,7 +246,7 @@ StructuralConcealStrictSurfaceᵀ =
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine))
   → let ext₁ = target-insert-bind-world-extendᴿ ins follows
-     in StructuralStrictChild W₁ (ECR.mapCtxᴿ ext₁ γ) M
+     in StructuralStrictChild {fuel = fuel} W₁ (ECR.mapCtxᴿ ext₁ γ) M
           (⇑ᵗᵐ V) Aₛ _ (applyTy (bind (＇ X)) E)
           (name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
               refl refl ▻ⁱ

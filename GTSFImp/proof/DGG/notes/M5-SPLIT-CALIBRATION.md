@@ -291,6 +291,12 @@ retains the exposed source `Value`.  The next chunk implements that same case
 split inside nested accessibility; no secondary rank or target-wrapper fuel
 is planned.
 
+The first strict-mass branch is live.  `structural-all-descent` composes the
+opened-cast child package with the target `β-∀` step.  Prepending `keep` to the
+child's structural world extension preserves its context and endpoint
+imprecision definitionally; this branch therefore consumes only the strict
+cast-mass decrease already proved for universal opening.
+
 The checked public statement is `StructuralValueInstantiationᵀ` in
 `InstInversionDef.agda`.  It accepts the live M5 allocation shape: a weakened
 pre-allocation value instantiated at the fresh runtime name, and returns the

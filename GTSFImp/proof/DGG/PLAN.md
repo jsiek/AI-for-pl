@@ -642,6 +642,11 @@ structural target trace plus the endpoint relation.  The public
 `StructuralValueInstantiationᵀ` is now a checked specialization at the fresh
 weakened runtime name.  Implement this relational worker by nested
 accessibility, using the completed target steps and source replay lemmas.
+The first strict cast-mass branch is now checked.  `structural-all-descent`
+composes the smaller opened-cast child with the target `β-∀` transition.  A
+canonical keep-prefixed world extension makes its transported context and
+endpoint imprecision definitionally the child's, so this branch adds no
+secondary termination measure.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

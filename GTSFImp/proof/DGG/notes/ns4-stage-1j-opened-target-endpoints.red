@@ -131,3 +131,30 @@ mark arithmetic requires a precise/shared fresh variable relation, while the
 right-only bind provides only the fresh dynamic mark:
 
 `instᵐ μ zero = X⊑★`.
+
+
+SUPERSEDED-BY-VIEW-DISPATCH postscript, 2026-08-14
+--------------------------------------------------
+
+This tripwire is not resolved by a stronger generic opened-endpoint theorem.
+The generic route is abandoned.
+
+The replacement surface is view-dispatched: the opened obligations are now
+owned by the source/target derivation core for each strict target head.  The
+checked contract module is:
+
+`GTSFImp/proof/DGG/Catchup/StructuralStrictViewSurfaceDef.agda`
+
+It states one child-continuation surface per strict target family:
+
+- `StructuralΛStrictSurfaceᵀ`
+- `StructuralAllCastStrictSurfaceᵀ`
+- `StructuralGenStrictSurfaceᵀ`
+- `StructuralRevealStrictSurfaceᵀ`
+- `StructuralConcealStrictSurfaceᵀ`
+
+Each surface receives the parent relation core, the caller's post-plan and
+target-frame chain, and the peeled child target package.  It returns the child
+endpoint, child post-plan, child relation, and child chain that the worker
+needs.  The missing precise/shared mark is therefore no longer requested from
+bare type-level endpoint data.

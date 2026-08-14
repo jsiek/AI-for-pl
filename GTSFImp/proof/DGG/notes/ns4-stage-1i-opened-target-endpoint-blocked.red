@@ -100,3 +100,23 @@ C2/C3 helpers without any new worker inputs.
 
 No live relation was changed, and no postulate, hole, catch-all, or weakened
 statement was added.
+
+
+SUPERSEDED-BY-VIEW-DISPATCH postscript, 2026-08-14
+--------------------------------------------------
+
+The required proof surface above is superseded, not proved.  The generic
+opened-target-endpoint family was ruled out by the stage 1j tripwire: a bare
+endpoint witness cannot recover the precise/shared fresh mark required by the
+matched `∀⊑∀` case after a right-only target bind.
+
+The replacement checked surface is:
+
+`GTSFImp/proof/DGG/Catchup/StructuralStrictViewSurfaceDef.agda`
+
+The new contracts move these obligations to the view-dispatched derivation
+core.  In particular, strict target producers must consume the relevant
+source/target relation constructor and the peel child data, then return the
+child endpoint, child post-plan, child relation, and child absorption chain.
+The old generic geometry route remains a negative record and should not be
+continued as a theorem family.

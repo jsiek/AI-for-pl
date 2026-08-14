@@ -69,3 +69,28 @@ Status:
 
   Strict target peel files were not landed.  The live tree remains green with
   only the checked support lemma above.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The spine inversion blocker is closed.
+
+  Landed support:
+
+    `StructuralTargetSpineStepInversionProof.spine-step-inversion`
+    `StructuralTargetSpineStepInversionProof.spine-bind-step-inversion`
+    `StructuralTargetSpineStepInversionProof.spine-keep-step-inversion`
+
+  The checked strict target peels are now:
+
+    `StructuralTargetLambdaPeelProof.structural-target-Λ-peel`
+    `StructuralTargetAllPeelProof.structural-target-all-peel`
+    `StructuralTargetGenPeelProof.structural-target-gen-peel`
+    `StructuralTargetRevealPeelProof.structural-target-reveal-peel`
+    `StructuralTargetConcealPeelProof.structural-target-conceal-peel`
+
+  The bind-head peels return the actual `TargetInsert`, intermediate world,
+  and one-bind store-following proof exposed by the caller package's
+  `structural-bind`, rather than forcing the canonical `rightOnlyWorld`.
+  This is the strongest inverse statement justified by an arbitrary completed
+  caller package and keeps the parent package reconstructable from the child.

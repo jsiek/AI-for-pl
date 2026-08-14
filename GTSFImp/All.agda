@@ -93,6 +93,7 @@ import proof.DGG.Catchup.StructuralTargetAllPeelProof
 import proof.DGG.Catchup.StructuralTargetLambdaPeelProof
 import proof.DGG.Catchup.StructuralTargetGenPeelProof
 import proof.DGG.Catchup.StructuralTargetRevealPeelProof
+import proof.DGG.Catchup.StructuralTargetConcealPeelProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 import proof.DGG.Catchup.StructuralAllDescentProof

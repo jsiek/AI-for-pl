@@ -187,3 +187,66 @@ spine-step-inversion (frame ▻ⁱ spine) noM step head
     trans eq-tail
       (cong (λ N → applyInstantiationSpine N
         (mapInstantiationSpine _ spine)) eq-frame)
+
+
+frame-bind-step-inversion : ∀ {Δ A B}
+    {M : Term Δ} {N : Term (suc Δ)} {R : Ty Δ}
+  → (frame : InstantiationFrame A B)
+  → (Value M → ⊥)
+  → applyInstantiationFrame M frame —→[ bind R ] N
+  → Σ[ M₂ ∈ Term (suc Δ) ]
+      ((M —→[ bind R ] M₂)
+      × (N ≡ applyInstantiationFrame M₂
+          (mapInstantiationFrame (bind R) frame)))
+frame-bind-step-inversion (type-transport-frame eq) noM step =
+  _ , step , refl
+frame-bind-step-inversion (name-type-app-frame B X eqA eqC) noM
+    (β-Λ vM) =
+  ⊥-elim (noM (Λ vM))
+frame-bind-step-inversion (name-type-app-frame B X eqA eqC) noM
+    (β-gen vM A≢★ safe) =
+  ⊥-elim (noM (vM CT.《 CT.genᵥ A≢★ safe 》))
+frame-bind-step-inversion (name-type-app-frame B X eqA eqC) noM
+    (β-reveal-∀ vM) =
+  ⊥-elim (noM (vM CT.↑ CT.all))
+frame-bind-step-inversion (name-type-app-frame B X eqA eqC) noM
+    (β-conceal-∀ vM) =
+  ⊥-elim (noM (vM CT.↓ CT.all))
+frame-bind-step-inversion (name-type-app-frame B X eqA eqC) noM
+    (ξ-• step refl refl) =
+  _ , step , refl
+frame-bind-step-inversion (cast-frame c) noM (β-inst vM B≢★) =
+  ⊥-elim (noM vM)
+frame-bind-step-inversion (cast-frame c) noM (ξ-⟨⟩ step refl) =
+  _ , step , refl
+frame-bind-step-inversion (reveal-frame c) noM (ξ-reveal step refl) =
+  _ , step , refl
+frame-bind-step-inversion (conceal-frame c) noM (ξ-conceal step refl) =
+  _ , step , refl
+
+
+spine-bind-step-inversion : ∀ {Δ A B}
+    {M : Term Δ} {N : Term (suc Δ)} {R : Ty Δ}
+  → (spine : InstantiationSpine A B)
+  → (Value M → ⊥)
+  → applyInstantiationSpine M spine —→[ bind R ] N
+  → Σ[ M₂ ∈ Term (suc Δ) ]
+      ((M —→[ bind R ] M₂)
+      × (N ≡ applyInstantiationSpine M₂
+          (mapInstantiationSpine (bind R) spine)))
+spine-bind-step-inversion []ⁱ noM step =
+  _ , step , refl
+spine-bind-step-inversion (frame ▻ⁱ spine) noM step
+    with spine-bind-step-inversion spine
+      (no-value-frame frame noM)
+      step
+spine-bind-step-inversion (frame ▻ⁱ spine) noM step
+    | F₁ , (frame-step , eq-tail)
+    with frame-bind-step-inversion frame noM frame-step
+spine-bind-step-inversion (frame ▻ⁱ spine) noM step
+    | F₁ , (frame-step , eq-tail)
+    | M₂ , (head-step , eq-frame) =
+  M₂ , head-step ,
+    trans eq-tail
+      (cong (λ N → applyInstantiationSpine N
+        (mapInstantiationSpine _ spine)) eq-frame)

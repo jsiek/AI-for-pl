@@ -5,21 +5,18 @@ module proof.DGG.Catchup.StructuralAllDescentProof where
 --   * Consumes the strictly smaller opened-cast child package.
 
 open import Data.Nat using (suc)
-open import Relation.Binary.PropositionalEquality using (refl; sym)
-  renaming (subst to subst≡)
+open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types using (Ty; TyVar; ＇_; _[_]ᵗ)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; ∀ᶜ_; _[_]ᶜ)
 open import CastTerms using (Term; Value; _⟨_⟩)
-open import Reduction using (keep)
+open import Reduction using (keep; pure-step; β-∀)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
-open import proof.DGG.Catchup.StructuralWorldExtendDef
-open import proof.DGG.Catchup.StructuralWorldExtendProof
-open import proof.DGG.Catchup.StructuralTargetInstantiationDef
-open import proof.DGG.Catchup.StructuralTargetAllStepProof
+open import
+  proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
+open import proof.DGG.Catchup.StructuralInstantiationDescentProof
 
 
 structural-all-descent : ∀ {Δᴸ Δᴿ Δ}
@@ -36,16 +33,8 @@ structural-all-descent : ∀ {Δᴸ Δᴿ Δ}
         mapInstantiationSpine keep spine) q
   → StructuralInstantiationDescentPackage W γ M (V ⟨ ∀ᶜ d ⟩)
       (name-type-app-frame C X refl refl ▻ⁱ spine) q
-structural-all-descent {W = W} {γ = γ} vV spine child = record
-  { target-descent = target
-  ; final-relation = subst≡
-      (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
-      (sym (mapCtxᴿ-structural-keep
-        (StructuralTargetInstantiationPackage.structural-ext child-target)
-        γ))
-      (StructuralInstantiationDescentPackage.final-relation child)
-  }
-  where
-  child-target =
-    StructuralInstantiationDescentPackage.target-descent child
-  target = structural-target-all-step vV spine child-target
+structural-all-descent vV spine child =
+  structural-descent-keep-step
+    (lift-instantiation-spine-keep
+      (pure-step (β-∀ vV refl)) spine)
+    child

@@ -7,13 +7,14 @@ module proof.DGG.Catchup.StructuralSpineTypingDef where
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyVar; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
+open import Types using (Ty; TyVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
 open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
-open import Consistency using (Env∼; extᵐ; _⊢_∼_; _[_]ᶜ)
+open import Consistency using
+  (Env∼; extᵐ; instᵐ; _⊢_∼_; ↑ᶜ_; close-instᶜ; _[_]ᶜ)
 open import CastTerms using (Inert; GenSafe)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
@@ -23,7 +24,7 @@ open import Reduction using
 open import proof.Reduction using (applyStoreChange-Inert)
 open import proof.TypeInTermSubst using
   (StoreRename-suc-bind; reveal-renameᵗ; conceal-renameᵗ;
-   reveal-rename-id; conceal-rename-id; renameᵗ-id)
+   reveal-rename-id; conceal-rename-id; renameᵗ-id; renameᵗ-wk-eq)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open; structural-reveal-typing)
 import proof.Consistency as PC
@@ -318,6 +319,35 @@ spine-typed-conceal-child geom typed =
         (st-type typed))))
   where
   module CG = GFG.StructuralConcealGeneratedFrameGeometry
+
+
+spine-typed-inst-child : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {A : Ty (suc Δᴿ)} {B E : Ty Δᴿ}
+    {μ : Env∼ Δᴿ} {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+    {spine : InstantiationSpine B E}
+  → suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
+  → SpineTypedʷ {fuel = fuel} W spine
+  → SpineTypedʷ {fuel = fuel} (CTI2.rightOnlyWorld W ★)
+      (name-type-app-frame (applyBody (bind ★) A) Fin.zero
+          refl refl ▻ⁱ
+        type-transport-frame (applyBody-open-zero A) ▻ⁱ
+        reveal-frame (〖 Fin.zero , ★ ↑ A 〗) ▻ⁱ
+        type-transport-frame
+          (trans (replace-zero-open A ★)
+            (sym (renameᵗ-wk-eq (A [ ★ ]ᵗ)))) ▻ⁱ
+        cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
+        type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
+        mapInstantiationSpine (bind ★) spine)
+spine-typed-inst-child {W = W} {A = A} {B = B} residual<fuel typed =
+  st-name (st-type
+    (st-reveal (structural-reveal-typing A (Z∋ refl))
+      (st-type
+        (st-cast (cast-residual residual<fuel)
+          (st-type
+            (spine-typed-map-bindʷ
+              {W = W} {W₁ = CTI2.rightOnlyWorld W ★}
+              ★ refl typed))))))
 
 
 root-value-instantiation-spine-typed : ∀ {fuel Δᴸ Δᴿ Δ}

@@ -55,6 +55,8 @@ import proof.DGG.Catchup.InstInversionProof
 import proof.DGG.Catchup.InstInversionLambdaProof
 import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
+import proof.DGG.Catchup.StructuralValueInstantiationRankDef
+import proof.DGG.Catchup.StructuralValueInstantiationRankProof
 import proof.DGG.Catchup.StructuralValueInstantiationCastMassProof
 import proof.DGG.Catchup.StructuralValueInstantiationValueCastMassProof
 import proof.DGG.Catchup.StructuralValueInstantiationSpineCastMassProof

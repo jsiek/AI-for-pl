@@ -46,6 +46,7 @@ record StructuralStrictChild {Δᴸ Δᴿ Δ}
   field
     child-endpoint : A CTI2.⊑ᵂ⟨ W ⟩ B
     child-plan : StructuralNamePostPlan W A E q
+    child-chain-plan : StructuralNameChainPlan W γ A E q child-plan
     child-relation : W CTI2.∣ γ ⊢² M ⊑ V ∶ child-endpoint
     child-chain : TargetFrameAbsorptionChain W γ A spine q
     child-typed : SpineTypedʷ W spine
@@ -62,7 +63,8 @@ StructuralΛStrictSurfaceᵀ =
     {X : TyVar Δᴿ} {π : Δ ↪ᵗ Δ₁}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
-  → StructuralNamePostPlan W A E q
+  → (plan : StructuralNamePostPlan W A E q)
+  → StructuralNameChainPlan W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ Λ V ∶ p
   → Value M
   → Value V
@@ -97,7 +99,8 @@ StructuralAllCastStrictSurfaceᵀ =
     {d : extᵐ μ ⊢ B ∼ C}
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ C}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
-  → StructuralNamePostPlan W Aₛ E q
+  → (plan : StructuralNamePostPlan W Aₛ E q)
+  → StructuralNameChainPlan W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
   → Value M
   → Value V
@@ -130,7 +133,8 @@ StructuralGenStrictSurfaceᵀ =
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
     ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : Fin.zero ∈ᵗ B ⦄
-  → StructuralNamePostPlan W Aₛ E q
+  → (plan : StructuralNamePostPlan W Aₛ E q)
+  → StructuralNameChainPlan W γ Aₛ E q plan
   → (A≢★ : A ≢ ★)
   → W CTI2.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
   → Value M
@@ -170,7 +174,8 @@ StructuralRevealStrictSurfaceᵀ =
     {π : Δ ↪ᵗ Δ₁}
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
-  → StructuralNamePostPlan W Aₛ E q
+  → (plan : StructuralNamePostPlan W Aₛ E q)
+  → StructuralNameChainPlan W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
   → Value M
   → Value V
@@ -214,7 +219,8 @@ StructuralConcealStrictSurfaceᵀ =
     {π : Δ ↪ᵗ Δ₁}
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
-  → StructuralNamePostPlan W Aₛ E q
+  → (plan : StructuralNamePostPlan W Aₛ E q)
+  → StructuralNameChainPlan W γ Aₛ E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
   → Value M
   → Value V

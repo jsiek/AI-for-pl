@@ -90,6 +90,7 @@ import proof.DGG.Catchup.StructuralTargetInstStepProof
 import proof.DGG.Catchup.StructuralTargetConversionStepProof
 import proof.DGG.Catchup.StructuralTargetAllStepProof
 import proof.DGG.Catchup.StructuralTargetAllPeelProof
+import proof.DGG.Catchup.StructuralTargetLambdaPeelProof
 import proof.DGG.Catchup.StructuralInstantiationDescentDef
 import proof.DGG.Catchup.StructuralInstantiationDescentProof
 import proof.DGG.Catchup.StructuralAllDescentProof

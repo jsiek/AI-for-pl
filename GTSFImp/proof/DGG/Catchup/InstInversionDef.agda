@@ -319,13 +319,16 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
 
 StructuralValueInstantiationᵀ : Set₁
 StructuralValueInstantiationᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
+  ∀ {fuel Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
     {γ : CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {R : Ty Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
     {q : A ⊑ᵂ⟨ W ⟩
       applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
   → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
   → Value M
   → Value V

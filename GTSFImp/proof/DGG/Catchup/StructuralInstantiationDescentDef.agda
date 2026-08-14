@@ -21,6 +21,8 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -178,6 +180,9 @@ StructuralNameInstantiationᵀ =
     {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p

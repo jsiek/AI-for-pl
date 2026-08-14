@@ -60,6 +60,28 @@ structural-target-frame child = record
   }
 
 
+structural-target-frame-peel : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {V : Term Δᴿ} {A B E : Ty Δᴿ}
+    {frame : InstantiationFrame A B}
+    {spine : InstantiationSpine B E}
+  → StructuralTargetInstantiationPackage W V (frame ▻ⁱ spine)
+  → StructuralTargetInstantiationPackage W
+      (applyInstantiationFrame V frame) spine
+structural-target-frame-peel target = record
+  { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
+  ; χs = StructuralTargetInstantiationPackage.χs target
+  ; Δ′ = StructuralTargetInstantiationPackage.Δ′ target
+  ; W′ = StructuralTargetInstantiationPackage.W′ target
+  ; structural-ext =
+      StructuralTargetInstantiationPackage.structural-ext target
+  ; final = StructuralTargetInstantiationPackage.final target
+  ; final-value = StructuralTargetInstantiationPackage.final-value target
+  ; post-reduction =
+      StructuralTargetInstantiationPackage.post-reduction target
+  }
+
+
 structural-target-keep-step : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {V V₁ : Term Δᴿ} {B E B₁ E₁ : Ty Δᴿ}

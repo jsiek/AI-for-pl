@@ -2,6 +2,7 @@ module proof.DGG.Catchup.StructuralTargetLambdaStepProof where
 
 -- File Charter:
 --   * Builds the target-only β-Λ trace step under a pending spine.
+--   * Exposes the value-anchored generated-reveal helper used by NS-4.
 --   * Records the fresh right bind and the opened-type transport.
 
 import Data.Fin as Fin
@@ -39,3 +40,22 @@ structural-target-Λ-step {W = W} {X = X} vV spine child =
   structural-target-bind-step
     (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
     (lift-instantiation-spine-bind (β-Λ vV) spine) child
+
+
+structural-target-Λ-value-step : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {X : TyVar Δᴿ} {B : Ty (suc Δᴿ)} {E : Ty Δᴿ}
+    {V : Term (suc Δᴿ)}
+    (vV : Value V)
+    (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → StructuralTargetInstantiationPackage
+      (CTI2.rightOnlyWorld W (＇ X))
+      V
+      (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+        type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+        mapInstantiationSpine (bind (＇ X)) spine)
+  → StructuralTargetInstantiationPackage W (Λ V)
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
+structural-target-Λ-value-step vV spine child =
+  structural-target-Λ-step vV spine
+    (structural-target-frame-peel child)

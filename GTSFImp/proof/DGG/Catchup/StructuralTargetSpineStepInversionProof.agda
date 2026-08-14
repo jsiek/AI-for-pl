@@ -250,3 +250,100 @@ spine-bind-step-inversion (frame ▻ⁱ spine) noM step
     trans eq-tail
       (cong (λ N → applyInstantiationSpine N
         (mapInstantiationSpine _ spine)) eq-frame)
+
+
+frame-keep-step-inversion : ∀ {Δ A B}
+    {M N : Term Δ} {M₁ : Term (suc Δ)} {R : Ty Δ}
+  → (frame : InstantiationFrame A B)
+  → M —→[ bind R ] M₁
+  → (Value M → ⊥)
+  → applyInstantiationFrame M frame —→[ keep ] N
+  → Σ[ M₂ ∈ Term Δ ]
+      ((M —→[ keep ] M₂)
+      × (N ≡ applyInstantiationFrame M₂
+          (mapInstantiationFrame keep frame)))
+frame-keep-step-inversion (type-transport-frame eq) head noM step =
+  _ , step , refl
+frame-keep-step-inversion (name-type-app-frame B X eqA eqC) head noM
+    (pure-step (β-∀ vM refl)) =
+  ⊥-elim (noM (vM CT.《 CT.all 》))
+frame-keep-step-inversion (name-type-app-frame B X eqA eqC) head noM
+    (pure-step blame-•) =
+  ⊥-elim (no-step-blame head)
+frame-keep-step-inversion (name-type-app-frame B X eqA eqC) head noM
+    (ξ-• step refl refl) =
+  _ , step , refl
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (β-id vM)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (ground vM A≢G)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (expand vM G≢B)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (tag-untag vM)) =
+  ⊥-elim (noM (vM CT.《 CT.inj 》))
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (tag-untag-bad vM G≢H)) =
+  ⊥-elim (noM (vM CT.《 CT.inj 》))
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step (blame-bot-intro vM)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (cast-frame c) head noM
+    (pure-step blame-⟨⟩) =
+  ⊥-elim (no-step-blame head)
+frame-keep-step-inversion (cast-frame c) head noM
+    (ξ-⟨⟩ step refl) =
+  _ , step , refl
+frame-keep-step-inversion (reveal-frame c) head noM
+    (ξ-reveal step refl) =
+  _ , step , renamed↑-to-normalized-term _ c
+frame-keep-step-inversion (reveal-frame c) head noM
+    (pure-step (id-reveal vM)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (reveal-frame c) head noM
+    (pure-step (conceal-reveal vM)) =
+  ⊥-elim (noM (vM CT.↓ CT.seal))
+frame-keep-step-inversion (reveal-frame c) head noM
+    (pure-step blame-reveal) =
+  ⊥-elim (no-step-blame head)
+frame-keep-step-inversion (conceal-frame c) head noM
+    (ξ-conceal step refl) =
+  _ , step , renamed↓-to-normalized-term _ c
+frame-keep-step-inversion (conceal-frame c) head noM
+    (pure-step (id-conceal vM)) =
+  ⊥-elim (noM vM)
+frame-keep-step-inversion (conceal-frame c) head noM
+    (pure-step blame-conceal) =
+  ⊥-elim (no-step-blame head)
+
+
+spine-keep-step-inversion : ∀ {Δ A B}
+    {M N : Term Δ} {M₁ : Term (suc Δ)} {R : Ty Δ}
+  → (spine : InstantiationSpine A B)
+  → M —→[ bind R ] M₁
+  → (Value M → ⊥)
+  → applyInstantiationSpine M spine —→[ keep ] N
+  → Σ[ M₂ ∈ Term Δ ]
+      ((M —→[ keep ] M₂)
+      × (N ≡ applyInstantiationSpine M₂
+          (mapInstantiationSpine keep spine)))
+spine-keep-step-inversion []ⁱ head noM step =
+  _ , step , refl
+spine-keep-step-inversion (frame ▻ⁱ spine) head noM step
+    with spine-keep-step-inversion spine
+      (lift-instantiation-frame-bind head frame)
+      (no-value-frame frame noM)
+      step
+spine-keep-step-inversion (frame ▻ⁱ spine) head noM step
+    | F₁ , (frame-step , eq-tail)
+    with frame-keep-step-inversion frame head noM frame-step
+spine-keep-step-inversion (frame ▻ⁱ spine) head noM step
+    | F₁ , (frame-step , eq-tail)
+    | M₂ , (head-step , eq-frame) =
+  M₂ , head-step ,
+    trans eq-tail
+      (cong (λ N → applyInstantiationSpine N
+        (mapInstantiationSpine _ spine)) eq-frame)

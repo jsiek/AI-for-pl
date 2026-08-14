@@ -286,7 +286,9 @@ The stable relation in `GTSF/QuotientedTermImprecision.agda` avoids this
 problem by recording cast direction/shape and equations relating composition
 with the surrounding type imprecision.  The GTSFImp CTI cast constructors
 need an analogous restriction before their three compatibility lemmas can be
-completed soundly.
+completed soundly.  `ProjectionMismatchStarRepScratch.agda` records a checked
+CTI derivation of the bad square together with its precise-return and
+imprecise-blame traces.
 
 The cast proof remains a checked draft with explicit interaction holes at that
 boundary; it introduces no postulate.

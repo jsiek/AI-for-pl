@@ -2807,7 +2807,7 @@ assemble-application-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {q = q}
 -- Reopening a component relation after a returned phase
 ------------------------------------------------------------------------
 
-compiled-component-future : ∀
+compiled-component-future-at : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
     {Δᴾ₂ Δᴵ₂ Δᶜ₂}
     {Aᴾ Aᴵ} {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
@@ -2817,8 +2817,7 @@ compiled-component-future : ∀
     {p : Aᴾ ⊑ᵂ⟨ core W₀ ⟩ Aᴵ}
     {Mᴾ : Term Δᴾ₀} {Mᴵ : Term Δᴵ₀}
     {j k : ℕ}
-  → (related : ∀ i →
-      CompiledTermRelation {W = W₀} p i Γ Mᴾ Mᴵ)
+  → CompiledTermRelation {W = W₀} p j Γ Mᴾ Mᴵ
   → (W₀≼W₁ : Future W₀ W₁)
   → (γ : RelatedClosingSubstitutions W₁ k
       (liftContextImprecision W₀≼W₁ (compiledContext W₀ Γ)))
@@ -2834,7 +2833,7 @@ compiled-component-future : ∀
       (liftPreciseTerm W₁≼W₂
         (close (preciseClosingSubstitution γ)
           (liftPreciseTerm W₀≼W₁ Mᴾ)))
-compiled-component-future {W₀ = W₀} {W₂ = W₂} {Γ = Γ}
+compiled-component-future-at {W₀ = W₀} {W₂ = W₂} {Γ = Γ}
     {p = p} {Mᴾ = Mᴾ} {Mᴵ = Mᴵ} {j = j}
     related W₀≼W₁ γ W₁≼W₂ j≤k =
   ClosureProof.computations-related-reindex p-composite p-sequential
@@ -2843,7 +2842,7 @@ compiled-component-future {W₀ = W₀} {W₂ = W₂} {Γ = Γ}
     (liftCenterTy-trans W₀≼W₁ W₁≼W₂
       (embedImprecise (core W₀) _))
     imprecise-term-eq precise-term-eq
-    (related j W₂ W₀≼W₂ γ-trans)
+    (related W₂ W₀≼W₂ γ-trans)
   where
   W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
   γ-down = related-closing-downward j≤k γ
@@ -2916,25 +2915,56 @@ compiled-component-future {W₀ = W₀} {W₂ = W₂} {Γ = Γ}
         (preciseClosingSubstitution γ)
         (liftPreciseTerm W₀≼W₁ Mᴾ))))
 
+compiled-component-future : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {Aᴾ Aᴵ} {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {Γ : CTI.CtxImp (forgetWorld W₀)}
+    {p : Aᴾ ⊑ᵂ⟨ core W₀ ⟩ Aᴵ}
+    {Mᴾ : Term Δᴾ₀} {Mᴵ : Term Δᴵ₀}
+    {j k : ℕ}
+  → (∀ i → CompiledTermRelation {W = W₀} p i Γ Mᴾ Mᴵ)
+  → (W₀≼W₁ : Future W₀ W₁)
+  → (γ : RelatedClosingSubstitutions W₁ k
+      (liftContextImprecision W₀≼W₁ (compiledContext W₀ Γ)))
+  → (W₁≼W₂ : Future W₁ W₂)
+  → j ≤ k
+  → ComputationsRelated W₂
+      (FutureValueRelation
+        (liftCenterImprecision W₁≼W₂
+          (liftCenterImprecision W₀≼W₁ p))) j
+      (liftImpreciseTerm W₁≼W₂
+        (close (impreciseClosingSubstitution γ)
+          (liftImpreciseTerm W₀≼W₁ Mᴵ)))
+      (liftPreciseTerm W₁≼W₂
+        (close (preciseClosingSubstitution γ)
+          (liftPreciseTerm W₀≼W₁ Mᴾ)))
+compiled-component-future {j = j} related =
+  compiled-component-future-at (related j)
+
 ------------------------------------------------------------------------
 -- Compiled application compatibility
 ------------------------------------------------------------------------
 
-application-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
+application-semantic-bounded : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {Γ : CTI.CtxImp (forgetWorld W)}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ}
     {Lᴾ Mᴾ : Term Δᴾ} {Lᴵ Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.⇒⊑⇒ p q
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
-  → (∀ k → CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) k Γ Lᴾ Lᴵ)
-  → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
-  → ∀ k → CompiledTermRelation {W = W} q k Γ
+  → (k : ℕ)
+  → (∀ j → j ≤ k →
+      CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) j Γ Lᴾ Lᴵ)
+  → (∀ j → j ≤ k →
+      CompiledTermRelation {W = W} p j Γ Mᴾ Mᴵ)
+  → CompiledTermRelation {W = W} q k Γ
       (Lᴾ · Mᴾ) (Lᴵ · Mᴵ)
-application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     {W = W} {Γ = Γ} {p = p} {q = q}
     {Lᴾ = Lᴾ} {Mᴾ = Mᴾ} {Lᴵ = Lᴵ} {Mᴵ = Mᴵ}
-    L⊑ M⊑ L-related M-related k W′ W≼W′ γ =
+    k L-related M-related W′ W≼W′ γ =
   ClosureProof.computations-related-reindex
     (liftCenterImprecision W≼W′ q) (liftCenterImprecision W≼W′ q)
     refl refl (sym imprecise-application-eq)
@@ -2966,7 +2996,7 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     (close (preciseClosingSubstitution γ))
     (lift-precise-application W≼W′ Lᴾ Mᴾ)
 
-  function-related = L-related k W′ W≼W′ γ
+  function-related = L-related k ≤-refl W′ W≼W′ γ
 
   forward : ∀ {n} {resultᴵ : E.EvalResult (Lᴵ′ · Mᴵ′)}
     → n ≤ k
@@ -3028,8 +3058,9 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     argumentGas≤ = second-phase≤
       {a = functionGas} {argumentGas} {callGas} phases≤
 
-    raw-argument-related = compiled-component-future M-related W≼W′ γ
-      W′≼W₁ (m∸n≤m k functionGas)
+    raw-argument-related = compiled-component-future-at
+      (M-related (k ∸ functionGas) (m∸n≤m k functionGas))
+      W≼W′ γ W′≼W₁ (m∸n≤m k functionGas)
 
     argument-related = ClosureProof.computations-related-reindex
       (liftCenterImprecision W′≼W₁
@@ -3347,8 +3378,10 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
       {a = preciseFunctionGas} {preciseArgumentGas} {preciseCallGas}
       phases≤
 
-    raw-argument-related = compiled-component-future M-related W≼W′ γ
-      W′≼W₁ (m∸n≤m k preciseFunctionGas)
+    raw-argument-related = compiled-component-future-at
+      (M-related (k ∸ preciseFunctionGas)
+        (m∸n≤m k preciseFunctionGas))
+      W≼W′ γ W′≼W₁ (m∸n≤m k preciseFunctionGas)
 
     argument-related = ClosureProof.computations-related-reindex
       (liftCenterImprecision W′≼W₁
@@ -3597,8 +3630,9 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     argumentGas≤ : argumentGas ≤ k ∸ functionGas
     argumentGas≤ = drop-left-≤ phases≤k
 
-    raw-argument-related = compiled-component-future M-related W≼W′ γ
-      W′≼W₁ (m∸n≤m k functionGas)
+    raw-argument-related = compiled-component-future-at
+      (M-related (k ∸ functionGas) (m∸n≤m k functionGas))
+      W≼W′ γ W′≼W₁ (m∸n≤m k functionGas)
 
     argument-related = ClosureProof.computations-related-reindex
       (liftCenterImprecision W′≼W₁
@@ -3676,8 +3710,9 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     argumentGas≤ = second-phase≤
       {a = functionGas} {argumentGas} {callGas} phases≤k
 
-    raw-argument-related = compiled-component-future M-related W≼W′ γ
-      W′≼W₁ (m∸n≤m k functionGas)
+    raw-argument-related = compiled-component-future-at
+      (M-related (k ∸ functionGas) (m∸n≤m k functionGas))
+      W≼W′ γ W′≼W₁ (m∸n≤m k functionGas)
 
     argument-related = ClosureProof.computations-related-reindex
       (liftCenterImprecision W′≼W₁
@@ -3865,3 +3900,20 @@ application-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
             argumentTermsᴵ argumentTermsᴾ argumentValueRelated)
       | preciseCallGas , preciseCallBlame
       | wholeGas , wholeBlame = wholeGas , wholeBlame
+
+application-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
+    {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ}
+    {Lᴾ Mᴾ : Term Δᴾ} {Lᴵ Mᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.⇒⊑⇒ p q
+  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
+  → (∀ k → CompiledTermRelation {W = W}
+      (I.⇒⊑⇒ p q) k Γ Lᴾ Lᴵ)
+  → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
+  → ∀ k → CompiledTermRelation {W = W} q k Γ
+      (Lᴾ · Mᴾ) (Lᴵ · Mᴵ)
+application-compatible L⊑ M⊑ L-related M-related k =
+  application-semantic-bounded k
+    (λ j j≤k → L-related j)
+    (λ j j≤k → M-related j)

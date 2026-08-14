@@ -267,14 +267,28 @@ joined only after proving that they factor through that extension. The
 `bot-elim` type-application case remains at the deliberate bottom-clause
 boundary above.
 
-The cast layer currently establishes the fundamental returned-value cases
-for paired identity casts, each one-sided identity cast, the precise-only
-abstract-variable injection, and the symmetric precise injection versus
-imprecise `id★` square. The shared phase theorem that first evaluates an
-arbitrary cast operand and then invokes these returned-value cases remains to
-be established before the three complete CTI cast-constructor compatibility
-lemmas can be exposed.
+The cast layer now splits a cast run into operand and returned-value phases.
+The paired and precise-only phase-composition theorems preserve the residual
+index, compose returned store changes, and factor the returned worlds.  The
+returned-value analysis covers identities and most dynamic tag/projection
+squares.
 
-No postulate, hole, or unchecked metavariable is used at this draft boundary.
+The remaining abstract-dynamic projection square exposes a definition
+boundary in the CTI cast rules.  `CTI.cast⊑cast²` currently relates arbitrary
+consistency witnesses using only imprecision of their source and target
+types.  This is insufficient at `★`, where different consistency derivations
+can inspect different runtime tags.  In particular, the LR admits an
+`X⊑★` atom whose precise injection projects successfully while an unrelated
+imprecise ground projection blames.  This violates `backward-return`; adding
+an obligation to `DynamicSemanticAtom` would only hide the bad CTI square.
+
+The stable relation in `GTSF/QuotientedTermImprecision.agda` avoids this
+problem by recording cast direction/shape and equations relating composition
+with the surrounding type imprecision.  The GTSFImp CTI cast constructors
+need an analogous restriction before their three compatibility lemmas can be
+completed soundly.
+
+The cast proof remains a checked draft with explicit interaction holes at that
+boundary; it introduces no postulate.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

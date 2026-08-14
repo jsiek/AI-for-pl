@@ -6,7 +6,7 @@ module proof.TermInTermSubst where
 --   * Derives the single-variable typing substitution theorem used by beta
 --     reduction preservation.
 
-open import Data.List using (_∷_)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_; _×_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -411,6 +411,57 @@ subst-id (M ⟨ c ⟩) = cong (_⟨ c ⟩) (subst-id M)
 subst-id (M ↑ c) = cong (_↑ c) (subst-id M)
 subst-id (M ↓ c) = cong (_↓ c) (subst-id M)
 subst-id blame = refl
+
+subst-agree-exts : ∀ {Δ} {Γ : TermCtx Δ} {A : Ty Δ}
+    {sigma tau : Subst Δ}
+  → (∀ {x B} → TermCtx._∋_⦂_ Γ x B → sigma x ≡ tau x)
+  → ∀ {x B} → TermCtx._∋_⦂_ (A ∷ Γ) x B
+  → exts sigma x ≡ exts tau x
+subst-agree-exts agree Z = refl
+subst-agree-exts agree (S x∈) = cong (rename suc) (agree x∈)
+
+subst-agree-liftˢ : ∀ {Δ} {Γ : TermCtx Δ}
+    {sigma tau : Subst Δ}
+  → (∀ {x B} → TermCtx._∋_⦂_ Γ x B → sigma x ≡ tau x)
+  → ∀ {x B} → TermCtx._∋_⦂_ (⇑ᶜ Γ) x B
+  → liftˢ sigma x ≡ liftˢ tau x
+subst-agree-liftˢ agree x∈ with lookup-shift-inv x∈
+subst-agree-liftˢ agree x∈ | A , A∈ , refl =
+  cong ⇑ᵗᵐ (agree A∈)
+
+subst-typing-cong : ∀ {Δ} {Σ : TyStore Δ} {Γ : TermCtx Δ}
+    {M : Term Δ} {A : Ty Δ} {sigma tau : Subst Δ}
+  → (∀ {x B} → TermCtx._∋_⦂_ Γ x B → sigma x ≡ tau x)
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A
+  → CastTerms.subst sigma M ≡ CastTerms.subst tau M
+subst-typing-cong agree (⊢` x∈) = agree x∈
+subst-typing-cong agree (⊢ƛ M⊢) =
+  cong ƛ_ (subst-typing-cong (subst-agree-exts agree) M⊢)
+subst-typing-cong agree (⊢· L⊢ M⊢) =
+  cong₂ _·_ (subst-typing-cong agree L⊢)
+    (subst-typing-cong agree M⊢)
+subst-typing-cong agree (⊢Λ vM M⊢) =
+  cong Λ_ (subst-typing-cong (subst-agree-liftˢ agree) M⊢)
+subst-typing-cong {M = L ⦂∀ C [ A ]} agree (⊢• L⊢) =
+  cong (_⦂∀ C [ A ]) (subst-typing-cong agree L⊢)
+subst-typing-cong agree (⊢$ κ) = refl
+subst-typing-cong agree (⊢⊕ op L⊢ M⊢) =
+  cong₂ (λ L M → L ⊕[ op ] M) (subst-typing-cong agree L⊢)
+    (subst-typing-cong agree M⊢)
+subst-typing-cong agree (⊢⟨⟩ M⊢ c) =
+  cong (_⟨ c ⟩) (subst-typing-cong agree M⊢)
+subst-typing-cong {M = M ↑ c} agree (⊢reveal c⊢ M⊢) =
+  cong (_↑ c) (subst-typing-cong agree M⊢)
+subst-typing-cong {M = M ↓ c} agree (⊢conceal c⊢ M⊢) =
+  cong (_↓ c) (subst-typing-cong agree M⊢)
+subst-typing-cong agree ⊢blame = refl
+
+subst-closed : ∀ {Δ} {Σ : TyStore Δ} {M : Term Δ} {A : Ty Δ}
+  → (sigma : Subst Δ)
+  → ⟨ Δ , Σ , [] ⟩ ⊢ M ⦂ A
+  → CastTerms.subst sigma M ≡ M
+subst-closed {M = M} sigma M⊢ =
+  trans (subst-typing-cong (λ ()) M⊢) (subst-id M)
 
 single-subst-exts : ∀ {Δ} (sigma : Subst Δ) (N V : Term Δ)
   → (CastTerms.subst (exts sigma) N) [ V ]

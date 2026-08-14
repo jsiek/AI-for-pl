@@ -14,19 +14,42 @@ open import Types using (Ty; TyVar; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
 open import TyStore using (TyStore; store-bind)
 open import Imprecision using (X⊑★)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; _[_]ᶜ)
+open import CastTerms using (Inert; GenSafe)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
 open import Reduction using
-  (StoreChange; keep; bind; applyStores; applyTy; applyBody; _∷_; [])
+  (StoreChange; keep; bind; applyStores; applyTy; applyBody;
+   applyConsistency; _∷_; [])
+open import proof.Reduction using (applyStoreChange-Inert)
 open import proof.TypeInTermSubst using
   (StoreRename-suc-bind; reveal-renameᵗ; conceal-renameᵗ;
    reveal-rename-id; conceal-rename-id; renameᵗ-id)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
+import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
+
+
+data CastFrameClass {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+    (c : μ ⊢ A ∼ B) : Set where
+
+  cast-inert : Inert c → CastFrameClass c
+
+  cast-safe : GenSafe c → CastFrameClass c
+
+
+cast-frame-class-map : ∀ {Δ Δ′ μ A B}
+    (χ : StoreChange Δ Δ′) {c : μ ⊢ A ∼ B}
+  → CastFrameClass c
+  → CastFrameClass (applyConsistency χ c)
+cast-frame-class-map keep cls = cls
+cast-frame-class-map (bind R) (cast-inert inert) =
+  cast-inert (applyStoreChange-Inert (bind R) inert)
+cast-frame-class-map (bind R) (cast-safe safe) =
+  cast-safe (PC.renameGenSafe Fin.suc (λ X → refl) safe)
 
 
 data SpineTyped {Δ} (Σ : TyStore Δ) :
@@ -51,6 +74,7 @@ data SpineTyped {Δ} (Σ : TyStore Δ) :
 
   st-cast : ∀ {A B E μ}
       {c : μ ⊢ A ∼ B} {spine : InstantiationSpine B E}
+    → CastFrameClass c
     → SpineTyped Σ spine
     → SpineTyped Σ (cast-frame c ▻ⁱ spine)
 
@@ -125,8 +149,8 @@ spine-typed-map-keep (st-type typed) =
   st-type (spine-typed-map-keep typed)
 spine-typed-map-keep (st-name typed) =
   st-name (spine-typed-map-keep typed)
-spine-typed-map-keep (st-cast typed) =
-  st-cast (spine-typed-map-keep typed)
+spine-typed-map-keep (st-cast cls typed) =
+  st-cast (cast-frame-class-map keep cls) (spine-typed-map-keep typed)
 spine-typed-map-keep (st-reveal c⊢ typed) =
   st-reveal (normalize-renamed↑-typed c⊢)
     (spine-typed-map-keep typed)
@@ -145,8 +169,9 @@ spine-typed-map-bind R (st-type typed) =
   st-type (spine-typed-map-bind R typed)
 spine-typed-map-bind R (st-name typed) =
   st-name (spine-typed-map-bind R typed)
-spine-typed-map-bind R (st-cast typed) =
-  st-cast (spine-typed-map-bind R typed)
+spine-typed-map-bind R (st-cast cls typed) =
+  st-cast (cast-frame-class-map (bind R) cls)
+    (spine-typed-map-bind R typed)
 spine-typed-map-bind R (st-reveal c⊢ typed) =
   st-reveal (reveal-renameᵗ StoreRename-suc-bind c⊢)
     (spine-typed-map-bind R typed)
@@ -204,13 +229,14 @@ spine-typed-all-child : ∀ {Δᴸ Δᴿ Δ}
     {d : extᵐ μ ⊢ B ∼ C}
     {spine : InstantiationSpine (C [ ＇ X ]ᵗ) E}
   → GFG.StructuralAllGeneratedFrameGeometry W Aₛ C X
+  → CastFrameClass (d [ ＇ X ]ᶜ)
   → SpineTypedʷ W (mapInstantiationSpine keep spine)
   → SpineTypedʷ W
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine)
-spine-typed-all-child geom typed =
-  st-name (st-cast typed)
+spine-typed-all-child geom cls typed =
+  st-name (st-cast cls typed)
 
 
 spine-typed-reveal-child : ∀ {Δᴸ Δᴿ Δ}

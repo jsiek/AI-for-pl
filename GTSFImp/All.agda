@@ -72,6 +72,7 @@ import proof.DGG.Catchup.StructuralValueInstantiationViewProof
 import proof.DGG.Catchup.StructuralValueInstantiationCastProof
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef
 import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
+import proof.DGG.Catchup.StructuralStrictViewSurfaceDef
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof

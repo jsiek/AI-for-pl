@@ -522,6 +522,16 @@ Revised work order:
         reveal, and conceal), assemble `InstInversionPackage`, and discharge
         the live M6 knot's M5 factory argument.
 
+Housekeeping (supervisor, 2026-08-14, `735430a`): the Λ mass was split out
+of the 7.4k-line `InstInversionProof.agda` monolith before NS-4 lands more
+code there — `InstInversionLambdaProof.agda` (6,532 lines, Λ-specific:
+route1 geometry, ΛPost*/two-insert plans, hereditary worker, the Λ package)
+now imports the 964-line shared base (package plumbing, provenance, generic
+transports). Pure code motion, verified by declaration-name diff; full
+gate green. NS-4 execution order: stage 1 = the `StructuralNameInstantiationᵀ`
+nested-accessibility worker; stage 2 = the four producers + assembly, each
+supervisor-reviewed before push.
+
 NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
 `M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
 outer inst cast, but its opened cast is a function consistency and therefore

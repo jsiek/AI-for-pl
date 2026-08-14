@@ -147,6 +147,17 @@ liftCenterVariable (future-paired W≼W′ related fresh) X =
 liftCenterVariable (future-precise W≼W′ fresh) X =
   Fin.suc (liftCenterVariable W≼W′ X)
 
+liftCenterTy-variable : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (X : TyVar Δᶜ)
+  → liftCenterTy W≼W′ (＇ X) ≡ ＇ liftCenterVariable W≼W′ X
+liftCenterTy-variable future-refl X = refl
+liftCenterTy-variable (future-paired W≼W′ related fresh) X =
+  cong ⇑ᵗ (liftCenterTy-variable W≼W′ X)
+liftCenterTy-variable (future-precise W≼W′ fresh) X =
+  cong ⇑ᵗ (liftCenterTy-variable W≼W′ X)
+
 liftCenterMode : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     (W≼W′ : Future W W′) (X : TyVar Δᶜ)

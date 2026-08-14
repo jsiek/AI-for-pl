@@ -51,6 +51,9 @@ The port currently contains:
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
   application, including operator/call phase decomposition and returned-world
   factorization through the paired allocation.
+- `LR-narrow/Cast.agda`: value-level compatibility for paired and one-sided
+  identity casts, together with the precise `X` injection versus imprecise
+  `id★` boundary.
 
 ## Three-context worlds
 
@@ -74,6 +77,14 @@ only a precise endpoint variable and relates its abstract values to imprecise
 values of type `★`. Both relations are step-indexed and downward closed. The
 corresponding positive-index LR clauses require these relations, not just
 endpoint typing.
+
+At `★⊑★`, a dynamic value may also carry a precise ground tag whose
+payload is related through an `X⊑★` semantic entry to the untagged imprecise
+value.
+This `DynamicAtomTagRelated` alternative is needed by the cast square in
+which the precise endpoint injects an abstract `X` representation while the
+imprecise endpoint executes `id★`. It is downward closed and stable under
+both paired and precise-only future extensions.
 
 A paired future extension supplies:
 
@@ -255,6 +266,14 @@ observation chooses one paired extension, and successful returned worlds are
 joined only after proving that they factor through that extension. The
 `bot-elim` type-application case remains at the deliberate bottom-clause
 boundary above.
+
+The cast layer currently establishes the fundamental returned-value cases
+for paired identity casts, each one-sided identity cast, the precise-only
+abstract-variable injection, and the symmetric precise injection versus
+imprecise `id★` square. The shared phase theorem that first evaluates an
+arbitrary cast operand and then invokes these returned-value cases remains to
+be established before the three complete CTI cast-constructor compatibility
+lemmas can be exposed.
 
 No postulate, hole, or unchecked metavariable is used at this draft boundary.
 

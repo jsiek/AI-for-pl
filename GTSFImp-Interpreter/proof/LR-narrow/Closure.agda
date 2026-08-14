@@ -31,6 +31,17 @@ open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 
+dynamic-atom-tag-downward : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k Vᴵ Vᴾ}
+  → DynamicAtomTagRelated W (suc k) Vᴵ Vᴾ
+  → DynamicAtomTagRelated W k Vᴵ Vᴾ
+dynamic-atom-tag-downward {W = W}
+    (dynamic-atom-tag-related Z mode G g ground-center μ G∼★ U
+      tag-shape related) =
+  dynamic-atom-tag-related Z mode G g ground-center μ G∼★ U
+    tag-shape
+    (dynamic-atom-downward (semanticEntry W Z) mode related)
+
 value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
@@ -69,8 +80,11 @@ value-imprecision-downward {p = I.bot-elim} {k = zero} endpoints =
 value-imprecision-downward {p = I.bot⊑★} {k = zero} endpoints =
   endpoints
 value-imprecision-downward {p = I.★⊑★} {k = suc k}
-    (endpoints , shape , payload) =
-  endpoints , shape , value-imprecision-downward payload
+    (endpoints , inj₁ (shape , payload)) =
+  endpoints , inj₁ (shape , value-imprecision-downward payload)
+value-imprecision-downward {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₂ related) =
+  endpoints , inj₂ (dynamic-atom-tag-downward related)
 value-imprecision-downward {p = I.ι⊑ι} {k = suc k} related =
   related
 value-imprecision-downward {W = W} {p = I.X⊑X {X = X}} {k = suc k}
@@ -672,6 +686,49 @@ dynamic-payload-shape-future {W′ = W′} W≼W′ shape =
       (precise-ground-type-eq W≼W′ (precise-ground shape))
       (imprecise-ground-type-eq W≼W′ (imprecise-ground shape)))
 
+dynamic-atom-tag-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {k Vᴵ Vᴾ} (W≼W′ : Future W W′)
+  → DynamicAtomTagRelated W k Vᴵ Vᴾ
+  → DynamicAtomTagRelated W′ k
+      (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+dynamic-atom-tag-future {W′ = W′} W≼W′ related =
+  dynamic-atom-tag-related
+    (liftCenterVariable W≼W′ (dynamic-center-variable related))
+    mode′
+    (precise-ground-type W≼W′ (atom-precise-ground related))
+    (precise-ground-future W≼W′
+      (atom-precise-ground-proof related))
+    ground-center′
+    (precise-consistency-env-future W≼W′
+      (atom-precise-consistency-env related))
+    (precise-ground-to-star-future W≼W′
+      (atom-precise-ground-to-star related))
+    (liftPreciseTerm W≼W′ (atom-precise-payload related))
+    tag-shape′
+    (dynamic-atom-holds-future W≼W′ (dynamic-mode related)
+      (atom-relation-holds related))
+  where
+  mode′ = trans
+    (liftCenterMode W≼W′ (dynamic-center-variable related))
+    (dynamic-mode related)
+
+  ground-center′ = trans
+    (cong (embedPrecise (core W′))
+      (precise-ground-type-eq W≼W′ (atom-precise-ground related)))
+    (trans (embedPrecise-lift W≼W′ (atom-precise-ground related))
+      (trans (cong (liftCenterTy W≼W′)
+          (atom-precise-ground-center related))
+        (liftCenterTy-variable W≼W′
+          (dynamic-center-variable related))))
+
+  tag-shape′ = trans
+    (cong (liftPreciseTerm W≼W′) (atom-precise-tag-shape related))
+    (precise-injection-future W≼W′ (atom-precise-payload related)
+      (atom-precise-ground-proof related)
+      (atom-precise-ground-to-star related))
+
 right-dynamic-payload-shape-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -874,7 +931,7 @@ value-imprecision-paired W r fresh {p = I.bot⊑★} {k = zero}
   typed-endpoints-future (paired-future W r fresh) endpoints
 value-imprecision-paired {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} W r fresh
     {p = I.★⊑★} {k = suc k}
-    (endpoints , shape , payload) =
+    (endpoints , inj₁ (shape , payload)) =
   let step = paired-future W r fresh
       shape′ = dynamic-payload-shape-future step shape
       payload′ = value-imprecision-paired W r fresh payload
@@ -890,7 +947,12 @@ value-imprecision-paired {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} W r fresh
         (payload-imprecision shape′)
         (liftCenterImprecision step (payload-imprecision shape))
         precise-eq imprecise-eq payload′
-  in typed-endpoints-future step endpoints , shape′ , related′
+  in typed-endpoints-future step endpoints , inj₁ (shape′ , related′)
+value-imprecision-paired W r fresh {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₂ related) =
+  let step = paired-future W r fresh
+  in typed-endpoints-future step endpoints ,
+     inj₂ (dynamic-atom-tag-future step related)
 value-imprecision-paired W r fresh {p = I.ι⊑ι} {k = suc k}
     (endpoints , same) =
   typed-endpoints-future (paired-future W r fresh) endpoints ,
@@ -1075,7 +1137,8 @@ value-imprecision-precise W fresh {p = I.bot⊑★} {k = zero}
     endpoints =
   typed-endpoints-future (precise-future W fresh) endpoints
 value-imprecision-precise {Rᴾ = Rᴾ} W fresh
-    {p = I.★⊑★} {k = suc k} (endpoints , shape , payload) =
+    {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₁ (shape , payload)) =
   let step = precise-future W fresh
       shape′ = dynamic-payload-shape-future step shape
       payload′ = value-imprecision-precise W fresh payload
@@ -1091,7 +1154,12 @@ value-imprecision-precise {Rᴾ = Rᴾ} W fresh
         (payload-imprecision shape′)
         (liftCenterImprecision step (payload-imprecision shape))
         precise-eq imprecise-eq payload′
-  in typed-endpoints-future step endpoints , shape′ , related′
+  in typed-endpoints-future step endpoints , inj₁ (shape′ , related′)
+value-imprecision-precise W fresh {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₂ related) =
+  let step = precise-future W fresh
+  in typed-endpoints-future step endpoints ,
+     inj₂ (dynamic-atom-tag-future step related)
 value-imprecision-precise W fresh {p = I.ι⊑ι} {k = suc k}
     (endpoints , same) =
   typed-endpoints-future (precise-future W fresh) endpoints ,

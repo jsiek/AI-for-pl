@@ -15,6 +15,7 @@ import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Data.Sum using (_⊎_)
 open import Data.Unit.Polymorphic.Base using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -120,6 +121,33 @@ record RightDynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
 
 open RightDynamicPayloadShape public
 
+record DynamicAtomTagRelated {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) (k : ℕ)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  constructor dynamic-atom-tag-related
+  field
+    dynamic-center-variable : TyVar Δᶜ
+    dynamic-mode : impEnv (core W) dynamic-center-variable ≡ I.X⊑★
+    atom-precise-ground : Ty Δᴾ
+    atom-precise-ground-proof : Ground atom-precise-ground
+    atom-precise-ground-center :
+      embedPrecise (core W) atom-precise-ground ≡
+        ＇ dynamic-center-variable
+    atom-precise-consistency-env : Env∼ Δᴾ
+    atom-precise-ground-to-star :
+      atom-precise-consistency-env ⊢ atom-precise-ground ∼★
+    atom-precise-payload : Term Δᴾ
+    atom-precise-tag-shape : Vᴾ ≡
+      atom-precise-payload
+        ⟨ groundInjection atom-precise-ground-proof
+          atom-precise-ground-to-star ⟩
+    atom-relation-holds :
+      DynamicAtomHolds
+        (semanticEntry W dynamic-center-variable) dynamic-mode
+        k Vᴵ atom-precise-payload
+
+open DynamicAtomTagRelated public
+
 ------------------------------------------------------------------------
 -- Step-indexed value relation
 ------------------------------------------------------------------------
@@ -147,7 +175,8 @@ mutual
 
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.★⊑★ Vᴵ Vᴾ ×
-    DynamicPayloadRelated W k Vᴵ Vᴾ
+    (DynamicPayloadRelated W k Vᴵ Vᴾ ⊎
+      DynamicAtomTagRelated W k Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ =
     TypedEndpoints W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ ×
@@ -377,3 +406,17 @@ tags-and-payload : ∀ {Δᴾ Δᴵ Δᶜ}
 tags-and-payload gᴾ gᴵ Gᴾ∼★ Gᴵ∼★ q payload-related =
   dynamic-payload-shape _ _ gᴾ gᴵ _ _ Gᴾ∼★ Gᴵ∼★
     _ _ refl refl q , payload-related
+
+dynamic-atom-tag : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ} {Z : TyVar Δᶜ}
+    (mode : impEnv (core W) Z ≡ I.X⊑★)
+    {Gᴾ : Ty Δᴾ} (gᴾ : Ground Gᴾ)
+    (ground-center : embedPrecise (core W) Gᴾ ≡ ＇ Z)
+    {μᴾ : Env∼ Δᴾ} (Gᴾ∼★ : μᴾ ⊢ Gᴾ ∼★)
+    {Vᴵ : Term Δᴵ} {Uᴾ : Term Δᴾ}
+  → DynamicAtomHolds (semanticEntry W Z) mode k Vᴵ Uᴾ
+  → DynamicAtomTagRelated W k Vᴵ
+      (Uᴾ ⟨ groundInjection gᴾ Gᴾ∼★ ⟩)
+dynamic-atom-tag mode gᴾ ground-center Gᴾ∼★ related =
+  dynamic-atom-tag-related _ mode _ gᴾ ground-center _ Gᴾ∼★
+    _ refl related

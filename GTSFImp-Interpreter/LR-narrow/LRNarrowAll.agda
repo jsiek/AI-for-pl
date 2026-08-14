@@ -24,3 +24,4 @@ open import LR-narrow.TypeBetaExpansion public
 open import LR-narrow.Universal public
 open import LR-narrow.UniversalInstantiation public
 open import LR-narrow.TypeApplication public
+open import LR-narrow.Cast public

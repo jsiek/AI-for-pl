@@ -129,3 +129,24 @@ Live code status:
   No live proof modules were edited.  The strict worker clauses and final
   `StructuralNameInstantiationᵀ` assembly remain blocked on a replacement
   secondary measure or a non-recursive continuation for the conversion peels.
+
+
+RESOLVED postscript, 2026-08-14:
+
+  The replacement secondary measure is live:
+
+    `StructuralValueInstantiationRankDef.pendingRank`
+    `StructuralValueInstantiationRankProof.reveal-rank-decreases`
+    `StructuralValueInstantiationRankProof.conceal-rank-decreases`
+
+  The accepted linear counterexample is closed by exponential charging.
+  For the literal child spines above, if `n = nameFrames spine`, then the
+  parent universal conversion wrapper charges `3 ^ (n + 1)`, while the two
+  generated child conversion frames each sit after the inner name frame and
+  charge `3 ^ n`.  Thus:
+
+    `3 ^ (n + 1) = 3 * 3 ^ n > 2 * 3 ^ n`
+
+  The type-transport frames charge nothing, and `mapInstantiationSpine`
+  preserves frame classes and order.  Therefore the same-mass reveal/conceal
+  peels now strictly decrease `expPotential` with `nameFrames` unchanged.

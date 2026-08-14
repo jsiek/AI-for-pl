@@ -110,3 +110,26 @@ spine surface that packages the target conversion typing owned by the strict
 view geometry and by root callers.
 
 No live Agda proof module was weakened for this resister.
+
+
+PARTIAL RESOLUTION postscript, 2026-08-14
+-----------------------------------------
+
+Resister 1 is closed in live Agda by:
+
+`GTSFImp/proof/DGG/Catchup/StructuralSpineTypingDef.agda`
+
+The new checked surface is `SpineTyped Σ spine`, with world abbreviation
+`SpineTypedʷ W spine`.  It carries target conversion typing for reveal and
+conceal frames, provides transports for `mapInstantiationSpine keep`,
+`mapInstantiationSpine (bind R)`, left rebase/tag-rebase/lift, and constructs
+the generated/root typed spines.
+
+Resister 2 is only partially advanced.  `StructuralNameInstantiationᵀ`,
+`structural-name-package`, `erase-structural-name-root`, and the strict view
+surface skeleton now thread the target chain and typed spine as sibling data.
+The Acc/Equal worker skeleton still needs hereditary child-chain evidence for
+source-wrapper equal premises.  That remaining statement-plumbing obstruction
+is tracked in:
+
+`GTSFImp/proof/DGG/notes/ns4-stage-1n-chain-threading-resister.red`

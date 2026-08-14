@@ -20,6 +20,13 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
+open import proof.DGG.Catchup.InstInversionDef using
+  (StructuralValueInstantiationᵀ)
+open import proof.DGG.Inversion.SpineValueProof using
+  (rename-all-value-view)
+open import proof.TypeInTermSubst using
+  (renameᵗᵐ-preserves-Value)
+open import Consistency using (wk↪ᵗ)
 
 
 structural-descent-zero : ∀ {Δᴸ Δᴿ Δ}
@@ -60,3 +67,12 @@ erase-structural-descent pkg = record
   }
   where
   target = StructuralInstantiationDescentPackage.target-descent pkg
+
+
+structural-name→value-instantiation :
+  StructuralNameInstantiationᵀ
+  → StructuralValueInstantiationᵀ
+structural-name→value-instantiation worker rel vM vV view =
+  erase-structural-descent
+    (worker rel vM (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
+      (rename-all-value-view wk↪ᵗ view) []ⁱ)

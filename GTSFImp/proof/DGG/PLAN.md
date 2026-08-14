@@ -624,9 +624,7 @@ record the universal conversion frames.  `structural-target-all-step` closes
 the final target constructor by lifting `β-∀` through an arbitrary spine.
 Its `keep` congruence normalizes identity-renamed reveal and conceal
 conversions at one raw-term boundary; no reduction or imprecision constructor
-changes.  The target transition inventory is complete.  The next chunk is the
-nested-accessibility target worker, followed by relation replay over its known
-trace.
+changes.  The target transition inventory is complete.
 Completed target packages now also compose definitionally through one pending
 frame, and a root `keep` reduction can be lifted through the mapped tail in a
 single helper.  These are the two worker combinators needed for value-forming
@@ -635,6 +633,15 @@ frames and identity/unseal conversion steps; neither adds a termination case.
 frame over a value is either already a value or takes exactly one `keep` step
 to a value.  Its package eliminator selects the corresponding composition
 operation, making conversion administration finite and nonrecursive.
+The next worker is not target-only.  A typed pending cast may reduce to blame,
+so successful normalization depends on the related source `Value` and the
+final type-imprecision witness.  The checked internal statement
+`StructuralNameInstantiationᵀ` starts from related source and target values,
+one named type application, and a typed tail spine.  Its result retains the
+structural target trace plus the endpoint relation.  The public
+`StructuralValueInstantiationᵀ` is now a checked specialization at the fresh
+weakened runtime name.  Implement this relational worker by nested
+accessibility, using the completed target steps and source replay lemmas.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

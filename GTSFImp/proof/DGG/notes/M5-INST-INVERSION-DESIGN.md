@@ -235,9 +235,9 @@ also checked.  Its generic `keep` congruence represents reveal and conceal
 frames using the semantics' identity-renamed conversions, then normalizes
 their dependent endpoints at one raw-term boundary.  Thus the target
 transition inventory is complete without changing the reduction relation.
-The remaining construction is the nested-accessibility worker: recurse
-structurally at fixed cast mass, and restart from accessibility only at the
-three already-proved strict mass decreases.
+The remaining construction is the nested-accessibility relational worker:
+recurse structurally at fixed cast mass, and restart from accessibility only
+at the three already-proved strict mass decreases.
 The target package now has two corresponding composition operations.  A
 pending frame can be consumed definitionally once its applied term has a
 completed package, and a root `keep` reduction can be lifted through the
@@ -247,6 +247,14 @@ The checked `StructuralFrameOutcome` classification makes this exhaustive:
 a typed reveal or conceal over a value is either value-forming, or an
 identity/unseal case with one `keep` step directly to a value.  Consequently
 conversion frames do not need a measure component or an accessibility restart.
+Re-evaluation rules out an autonomous target-only worker for arbitrary typed
+spines: `bot-intro` is a well-typed cast whose application reduces to blame.
+Successful descent additionally needs the related source `Value` and the final
+type-imprecision witness.  The checked internal statement is therefore
+`StructuralNameInstantiationᵀ`.  It accepts related source and target values,
+one named type application, and its typed tail spine, then returns the combined
+structural trace and endpoint relation.  The public theorem is now a checked
+thin specialization using target weakening and the fresh name `zero`.
 The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition

@@ -137,3 +137,41 @@ provide.
 
 No live relation was weakened, and no postulates, holes, or catch-all cases
 were added for this resister.
+
+
+RESOLVED postscript, 2026-08-14
+-------------------------------
+
+The source-wrapper chain-threading obstruction is closed in live Agda by:
+
+`GTSFImp/proof/DGG/Catchup/StructuralInstantiationDescentDef.agda`
+
+`GTSFImp/proof/DGG/Catchup/StructuralNameInstantiationProof.agda`
+
+The chosen design is a sibling record,
+`StructuralNameChainPlan W γ A E q plan`, rather than adding target-context
+data to `StructuralNamePostPlan`.  This keeps the source post plan independent
+of target contexts and pending spines, while tying every chain child to the
+actual child returned by the corresponding `StructuralNamePostPlan` branch.
+
+The five equal helpers now consume the matching child entry from
+`StructuralNameChainPlan`:
+
+- source inert cast
+- plain source `Λ`
+- smart source `Λ`
+- source reveal
+- source conceal
+
+Each recursive call receives the child post-plan, child chain plan, child
+`TargetFrameAbsorptionChain`, and child `SpineTypedʷ` directly.  The parent
+chain is no longer transported through source wrappers.
+
+The strict-child surface was also tightened so strict target recursion returns
+the child's `StructuralNameChainPlan` alongside its child post-plan, chain,
+and typed spine.
+
+The target-only builder and general worker remain open.  The current builder
+blocker is tracked in:
+
+`GTSFImp/proof/DGG/notes/ns4-stage-1o-target-builder-resister.red`

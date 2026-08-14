@@ -81,3 +81,38 @@ So the safe-inst residual is not uniformly classifiable as `Inert` or
 Option 3 would be a semantic restriction and should not be introduced as a
 proof-local change. Options 1 or 2 preserve the current reduction relation and
 match the type-safety route already used for value typing through steps.
+
+
+RESOLVED postscript, 2026-08-14
+--------------------------------
+
+The classifier obstruction is closed in live Agda by:
+
+`GTSFImp/proof/DGG/Catchup/StructuralSpineTypingDef.agda`
+
+`CastFrameClass` is now indexed by the governing fuel and has a third case:
+
+```agda
+cast-residual : suc (castSize c) < fuel → CastFrameClass c
+```
+
+The case is a stop marker only.  It carries the strict residual cast-size
+bound used to select `FuelStepSurface.smaller-extra`; it does not claim the
+cast is `Inert` or `GenSafe`.
+
+The generated safe-inst child spine is also typed by
+`spine-typed-inst-child`.  Its administrative frames are typed normally, and
+the generated residual
+
+```agda
+cast-frame (↑ᶜ (close-instᶜ c))
+```
+
+is classified with `cast-residual` from the supplied
+
+```agda
+suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
+```
+
+bound.  Store-change mapping preserves this residual bound by
+`castSize-renameEnvᶜ`.

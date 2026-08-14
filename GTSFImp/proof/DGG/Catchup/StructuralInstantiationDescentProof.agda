@@ -5,10 +5,10 @@ module proof.DGG.Catchup.StructuralInstantiationDescentProof where
 --   * Erases structural traces to the public instantiation package.
 
 open import Data.Nat using (suc)
-open import Relation.Binary.PropositionalEquality using (_≡_; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to subst≡)
 
-open import Types using (Ty)
+open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
 open import CastTerms using (Term; Value)
 open import Consistency using (_↪ᵗ_; wk↪ᵗ)
 open import Reduction using
@@ -26,13 +26,7 @@ open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
-open import proof.DGG.Catchup.InstInversionDef using
-  (StructuralValueInstantiationᵀ)
-open import proof.DGG.Inversion.SpineValueProof using
-  (rename-all-value-view)
-open import proof.TypeInTermSubst using
-  (renameᵗᵐ-preserves-Value)
-open import Consistency using (wk↪ᵗ)
+open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
 structural-descent-zero : ∀ {Δᴸ Δᴿ Δ}
@@ -158,10 +152,52 @@ erase-structural-descent pkg = record
   target = StructuralInstantiationDescentPackage.target-descent pkg
 
 
-structural-name→value-instantiation :
+structural-name-package :
   StructuralNameInstantiationᵀ
-  → StructuralValueInstantiationᵀ
-structural-name→value-instantiation worker rel vM vV view =
+  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+      {γ : CTI2.CtxImp W}
+      {M : Term Δᴸ} {V : Term Δᴿ}
+      {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+      {E : Ty Δᴿ} {X : TyVar Δᴿ}
+      {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+      {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → StructuralNamePostPlan W A E q
+    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → Value M
+    → Value V
+    → AllValueView V
+    → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → (target : StructuralTargetInstantiationPackage W V
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → StructuralInstantiationDescentPackage W γ M V
+        (name-type-app-frame B X refl refl ▻ⁱ spine) q
+structural-name-package worker plan rel vM vV view spine target =
+  record
+    { target-descent = target
+    ; final-relation = worker plan rel vM vV view spine target
+    }
+
+
+erase-structural-name-root :
+  StructuralNameInstantiationᵀ
+  → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+      {γ : CTI2.CtxImp W}
+      {M : Term Δᴸ} {V : Term Δᴿ}
+      {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+      {E : Ty Δᴿ} {X : TyVar Δᴿ}
+      {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+      {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → StructuralNamePostPlan W A E q
+    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → Value M
+    → Value V
+    → AllValueView V
+    → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → (target : StructuralTargetInstantiationPackage W V
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → InstSpineDescentPackage W γ M
+        (applyInstantiationSpine V
+          (name-type-app-frame B X refl refl ▻ⁱ spine)) q
+erase-structural-name-root worker plan rel vM vV view spine target =
   erase-structural-descent
-    (worker rel vM (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
-      (rename-all-value-view wk↪ᵗ view) []ⁱ)
+    (structural-name-package worker plan rel vM vV view spine target)

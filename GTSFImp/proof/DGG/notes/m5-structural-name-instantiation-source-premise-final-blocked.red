@@ -127,3 +127,58 @@ Consequence:
   supplies the final obligation for the strict source premise before replay.
   Per NS-4 discipline, no live Def statement was weakened, no relation was
   changed, and no postulate, hole, or catch-all clause was added.
+
+RESOLVED-BY-DESIGN postscript, 2026-08-14:
+
+  Calibration scratch:
+
+    `GTSFImp/proof/DGG/notes/M5StructuralNamePostPlanScratch.agda`
+
+  Checked command:
+
+    AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
+      agda -i GTSFImp -v0 \
+        GTSFImp/proof/DGG/notes/M5StructuralNamePostPlanScratch.agda
+
+  Matrix outcome:
+
+    R1, hereditary obligation plan plus target-threaded finalization:
+
+      C1 CHECKED-OK.  The source `cast⊑²` cell passes by obtaining a
+      premise post-plan from the parent plan and replaying against the
+      caller's target trace.
+
+      C2 CHECKED-OK.  Plain source Λ, smart source Λ, reveal, and conceal
+      all type-check at the statement level when the caller's
+      `StructuralTargetInstantiationPackage` is transformed into the premise
+      world (`structural-target-lift-left`,
+      `structural-target-smart-lift-left`,
+      `structural-target-rebase-left`,
+      `structural-target-tag-rebase-left`) before replay.
+
+      C3 CHECKED-OK.  The root plan is indexed by the caller's endpoint
+      witness `q`, and `plan-root-contract` erases through the frozen
+      `InstSpineDescentPackage ... q` surface.
+
+    R2, pure existential endpoint:
+
+      C1 CHECKED-OK and C2 CHECKED-OK at equal-wrapper statement level: the
+      recursive premise can return an in-place Σ endpoint and the replay
+      lemma can consume that child endpoint plus the parent's obligation.
+
+      C3 REJECTED.  A pure existential endpoint returns some
+      `q₀ : A ⊑ᵂ⟨ W ⟩ E`; the frozen root contract requires the caller's
+      specific `q`.  Without adding an equality/finalizer layer, which is
+      strictly larger than R1's indexed plan at the live boundary, the
+      erasure cannot deliver `InstSpineDescentPackage ... q`.
+
+  Chosen live shape:
+
+    R1.  The internal structural-name worker should be target-threaded: it
+    consumes a hereditary `StructuralNamePostPlan W A E q`, the source/target
+    relation, values, view, spine, and the caller's
+    `StructuralTargetInstantiationPackage`; it returns only the final
+    relation at that target trace and at the plan's indexed endpoint `q`.
+    A thin internal packaging helper then combines the target trace and final
+    relation into `StructuralInstantiationDescentPackage`, preserving the
+    frozen root erasure.

@@ -13,8 +13,11 @@ open import Relation.Binary.PropositionalEquality using (refl)
 open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
 open import CastTerms using (Term; Value)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
+open import proof.DGG.Catchup.StructuralWorldExtendProof
+open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
@@ -28,6 +31,7 @@ StructuralNameInstantiationAccᵀ =
     {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → StructuralNamePostPlan W A E q
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → (vV : Value V)
@@ -35,8 +39,18 @@ StructuralNameInstantiationAccᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → Acc _<_ (pendingCastMass vV
       (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → StructuralInstantiationDescentPackage W γ M V
-      (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+      ECR.mapCtxᴿ
+        (structural-world-extendᴿ
+          (StructuralTargetInstantiationPackage.structural-ext target))
+        γ
+      ⊢² M ⊑ StructuralTargetInstantiationPackage.final target ∶
+        ECR.transport⊑ᵂ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          q
 
 
 StructuralNameInstantiationEqualᵀ : Set₁

@@ -80,6 +80,7 @@ import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
 import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
 import proof.DGG.Catchup.StructuralTargetInstantiationDef
 import proof.DGG.Catchup.StructuralTargetInstantiationProof
+import proof.DGG.Catchup.StructuralTargetSourceTransportProof
 import proof.DGG.Catchup.StructuralTargetLambdaStepProof
 import proof.DGG.Catchup.StructuralTargetGenStepProof
 import proof.DGG.Catchup.StructuralTargetInstStepProof

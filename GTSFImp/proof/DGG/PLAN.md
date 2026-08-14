@@ -653,6 +653,12 @@ child packages in the canonical right-only world and prepend `β-gen` and
 `β-inst`, respectively.  The common relational bind combinator composes both
 the transported context and endpoint imprecision, so the three primary-mass
 decreases now have exact worker-facing result constructors.
+Plan-first source recursion is now represented at the package level.
+Completed target packages transport through ordinary left lift, smart left
+lift, source rebase, and source tag rebase without changing their target
+reduction or final value.  The worker can therefore transform a caller-world
+trace into each strict source premise and use the existing endpoint replay
+lemmas; it never has to invert a child trace through a smart-fresh pushout.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

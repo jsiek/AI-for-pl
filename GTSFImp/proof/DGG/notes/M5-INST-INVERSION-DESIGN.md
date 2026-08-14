@@ -265,6 +265,13 @@ constructors.  `structural-all-descent`, `structural-gen-descent`, and
 cast-mass child packages into their parent packages.  Thus accessibility is
 needed only to obtain those children; world/context composition is no longer
 duplicated inside the eventual worker.
+`StructuralTargetSourceTransportProof` implements the complementary
+plan-first direction for fixed-mass source recursion.  A completed caller
+target package is transported through ordinary/smart source Λ, source reveal,
+or source conceal before descending into the strict relation premise.  Its
+target reduction and final value are unchanged.  This direction is essential:
+an arbitrary smart-fresh child trace cannot soundly be inverted to recover its
+caller trace.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

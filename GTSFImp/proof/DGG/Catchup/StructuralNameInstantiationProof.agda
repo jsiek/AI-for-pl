@@ -33,6 +33,8 @@ open import proof.DGG.Catchup.StructuralTargetSourceTransportProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
 open import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
+open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
+open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -75,6 +77,27 @@ StructuralNameInstantiationEqualᵀ =
 StructuralNameInstantiationStrictᵀ : Set₁
 StructuralNameInstantiationStrictᵀ =
   StructuralNameInstantiationAccᵀ
+
+
+StructuralNameConcealEqualOKᵀ : Set₁
+StructuralNameConcealEqualOKᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {U : Term Δᴸ} {V : Term Δᴿ}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+    {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
+    {c : Conv↓ Δᴸ A A′}
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → let child = structural-tag-rebase-atᴸ (StructuralTargetInstantiationPackage.structural-ext target) rb
+     in CTI2.SourceConcealPartnerOK
+          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
+          (mapPivotChanges
+            (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
+          (StructuralTargetInstantiationPackage.final target)
 
 
 liftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ} {v}
@@ -348,3 +371,55 @@ structural-name-reveal-equal worker {c = c} plan mono rb sc c⊢
     mono rb sc c⊢
     (worker child-plan prem vU vN view spine acc
       (structural-target-rebase-left rb target))
+
+
+structural-name-conceal-equal :
+  StructuralNameConcealEqualOKᵀ
+  → StructuralNameInstantiationEqualᵀ
+  → ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+      {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+      {U : Term Δᴸ} {N : Term Δᴿ}
+      {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+      {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
+      {c : Conv↓ Δᴸ A A′}
+      {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
+      {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
+    → (plan : StructuralNamePostPlan W A′ E q)
+    → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? N
+    → CTI2.ImpEnvMono W Wᵖ
+    → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+    → CTI2.SameCtx γ γᵖ
+    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ N ∶ p
+    → Value U
+    → (vN : Value N)
+    → AllValueView N
+    → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → Acc _<_ (pendingCastMass vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → (target : StructuralTargetInstantiationPackage W N
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+        ECR.mapCtxᴿ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          γ
+        ⊢² U ↓ c ⊑
+          StructuralTargetInstantiationPackage.final target ∶
+          ECR.transport⊑ᵂ
+            (structural-world-extendᴿ
+              (StructuralTargetInstantiationPackage.structural-ext target))
+            q
+structural-name-conceal-equal ok-equal worker {c = c}
+    plan ok mono rb sc c⊢ prem vU vN view spine acc target
+    with StructuralNamePostPlan.conceal-child plan {c = c} rb
+structural-name-conceal-equal ok-equal worker {c = c}
+    plan ok mono rb sc c⊢ prem vU vN view spine acc target
+    | q₀ , child-plan =
+  structural-conceal-replay
+    (StructuralTargetInstantiationPackage.structural-ext target)
+    mono rb sc c⊢
+    (ok-equal rb ok spine target)
+    (worker child-plan prem vU vN view spine acc
+      (structural-target-tag-rebase-left rb target))

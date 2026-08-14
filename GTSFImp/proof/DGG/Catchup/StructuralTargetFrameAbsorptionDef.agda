@@ -23,6 +23,7 @@ open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
+import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
 
 
 data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
@@ -108,15 +109,16 @@ allv-∀-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
     {d : extᵐ μ ⊢ B ∼ C}
     {spine : InstantiationSpine (C [ ＇ X ]ᵗ) E}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
-  → Aₛ CTI2.⊑ᵂ⟨ W ⟩ C [ ＇ X ]ᵗ
+  → GFG.StructuralAllGeneratedFrameGeometry W Aₛ C X
   → TargetFrameAbsorptionChain W γ Aₛ
       (mapInstantiationSpine keep spine) q
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine) q
-allv-∀-child-frame-chain qCast tail =
-  tfa-name (tfa-cast qCast tail)
+allv-∀-child-frame-chain geom tail =
+  tfa-name (tfa-cast
+    (GFG.StructuralAllGeneratedFrameGeometry.qCast geom) tail)
 
 
 allv-reveal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
@@ -125,22 +127,7 @@ allv-reveal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴿ} {c : Conv↑ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTy (bind (＇ X)) E}
-    {X₁? X₂? : Maybe (TyVar (suc Δᴿ))}
-    {Wᵖ₁ Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ}
-    {γᵖ₁ : CTI2.CtxImp Wᵖ₁}
-    {γᵖ₂ : CTI2.CtxImp Wᵖ₂}
-  → CTI2.ImpEnvMono W Wᵖ₁
-  → CTI2.RebaseAtᴿ W Wᵖ₁ X₁?
-  → CTI2.SameCtx γ γᵖ₁
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₁? ] c
-  → Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
-  → CTI2.ImpEnvMono W Wᵖ₂
-  → CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
-  → CTI2.SameCtx γ γᵖ₂
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
-      〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
-  → Aₛ CTI2.⊑ᵂ⟨ W ⟩
-      replaceTy Fin.zero (⇑ᵗ (＇ X)) B
+  → GFG.StructuralRevealGeneratedFrameGeometry W γ Aₛ B C X c
   → TargetFrameAbsorptionChain W γ Aₛ
       (mapInstantiationSpine (bind (＇ X)) spine) q
   → TargetFrameAbsorptionChain W γ Aₛ
@@ -151,10 +138,17 @@ allv-reveal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
         reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine) q
-allv-reveal-child-frame-chain mono₁ rb₁ sc₁ c⊢₁ q₁
-    mono₂ rb₂ sc₂ c⊢₂ q₂ tail =
-  tfa-name (tfa-type (tfa-reveal mono₁ rb₁ sc₁ c⊢₁ q₁
-    (tfa-reveal mono₂ rb₂ sc₂ c⊢₂ q₂ (tfa-type tail))))
+allv-reveal-child-frame-chain geom tail =
+  tfa-name (tfa-type
+    (tfa-reveal
+      (RG.mono₁ geom) (RG.rebase₁ geom) (RG.same₁ geom)
+      (RG.targetConversion₁ geom) (RG.q₁ geom)
+      (tfa-reveal
+        (RG.mono₂ geom) (RG.rebase₂ geom) (RG.same₂ geom)
+        (RG.targetConversion₂ geom) (RG.q₂ geom)
+        (tfa-type tail))))
+  where
+  module RG = GFG.StructuralRevealGeneratedFrameGeometry
 
 
 allv-conceal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
@@ -163,22 +157,7 @@ allv-conceal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴿ} {c : Conv↓ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTy (bind (＇ X)) E}
-    {X₁? X₂? : Maybe (TyVar (suc Δᴿ))}
-    {Wᵖ₁ Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ}
-    {γᵖ₁ : CTI2.CtxImp Wᵖ₁}
-    {γᵖ₂ : CTI2.CtxImp Wᵖ₂}
-  → CTI2.ImpEnvMono W Wᵖ₁
-  → CTI2.RebaseAtᴿ Wᵖ₁ W X₁?
-  → CTI2.SameCtx γ γᵖ₁
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ X₁? ] c
-  → Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
-  → CTI2.ImpEnvMono W Wᵖ₂
-  → CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
-  → CTI2.SameCtx γ γᵖ₂
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
-      〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
-  → Aₛ CTI2.⊑ᵂ⟨ W ⟩
-      replaceTy Fin.zero (⇑ᵗ (＇ X)) B
+  → GFG.StructuralConcealGeneratedFrameGeometry W γ Aₛ B C X c
   → TargetFrameAbsorptionChain W γ Aₛ
       (mapInstantiationSpine (bind (＇ X)) spine) q
   → TargetFrameAbsorptionChain W γ Aₛ
@@ -189,10 +168,17 @@ allv-conceal-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}
         reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine) q
-allv-conceal-child-frame-chain mono₁ rb₁ sc₁ c⊢₁ q₁
-    mono₂ rb₂ sc₂ c⊢₂ q₂ tail =
-  tfa-name (tfa-type (tfa-conceal mono₁ rb₁ sc₁ c⊢₁ q₁
-    (tfa-reveal mono₂ rb₂ sc₂ c⊢₂ q₂ (tfa-type tail))))
+allv-conceal-child-frame-chain geom tail =
+  tfa-name (tfa-type
+    (tfa-conceal
+      (CG.mono₁ geom) (CG.rebase₁ geom) (CG.same₁ geom)
+      (CG.targetConversion₁ geom) (CG.q₁ geom)
+      (tfa-reveal
+        (CG.mono₂ geom) (CG.rebase₂ geom) (CG.same₂ geom)
+        (CG.targetConversion₂ geom) (CG.q₂ geom)
+        (tfa-type tail))))
+  where
+  module CG = GFG.StructuralConcealGeneratedFrameGeometry
 
 
 root-value-instantiation-frame-chain : ∀ {Δᴸ Δᴿ Δ}

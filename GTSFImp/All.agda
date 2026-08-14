@@ -70,6 +70,7 @@ import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
 import proof.DGG.Catchup.StructuralValueInstantiationViewDef
 import proof.DGG.Catchup.StructuralValueInstantiationViewProof
 import proof.DGG.Catchup.StructuralValueInstantiationCastProof
+import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof

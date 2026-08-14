@@ -31,6 +31,7 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
+open import proof.DGG.Catchup.StructuralSpineTypingDef
 
 
 record StructuralStrictChild {Δᴸ Δᴿ Δ}
@@ -47,6 +48,7 @@ record StructuralStrictChild {Δᴸ Δᴿ Δ}
     child-plan : StructuralNamePostPlan W A E q
     child-relation : W CTI2.∣ γ ⊢² M ⊑ V ∶ child-endpoint
     child-chain : TargetFrameAbsorptionChain W γ A spine q
+    child-typed : SpineTypedʷ W spine
 
 
 StructuralΛStrictSurfaceᵀ : Set₁
@@ -67,6 +69,7 @@ StructuralΛStrictSurfaceᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ A
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -101,6 +104,7 @@ StructuralAllCastStrictSurfaceᵀ =
   → (spine : InstantiationSpine (C [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame C X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame C X refl refl ▻ⁱ spine)
   → (child-target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
@@ -135,6 +139,7 @@ StructuralGenStrictSurfaceᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -172,6 +177,7 @@ StructuralRevealStrictSurfaceᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
@@ -215,6 +221,7 @@ StructuralConcealStrictSurfaceᵀ =
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → TargetFrameAbsorptionChain W γ Aₛ
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))

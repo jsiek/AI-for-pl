@@ -19,6 +19,8 @@ open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
+open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -93,6 +95,9 @@ StructuralNameInstantiationᵀ =
   → Value V
   → AllValueView V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → TargetFrameAbsorptionChain W γ A
+      (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
   → StructuralTargetInstantiationPackage.W′ target CTI2.∣

@@ -24,6 +24,8 @@ open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationProof
+open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
+open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
@@ -167,14 +169,18 @@ structural-name-package :
     → Value V
     → AllValueView V
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → TargetFrameAbsorptionChain W γ A
+        (name-type-app-frame B X refl refl ▻ⁱ spine) q
+    → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package worker plan rel vM vV view spine target =
+structural-name-package worker plan rel vM vV view spine chain typed
+    target =
   record
     { target-descent = target
-    ; final-relation = worker plan rel vM vV view spine target
+    ; final-relation = worker plan rel vM vV view spine chain typed target
     }
 
 
@@ -193,11 +199,16 @@ erase-structural-name-root :
     → Value V
     → AllValueView V
     → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → TargetFrameAbsorptionChain W γ A
+        (name-type-app-frame B X refl refl ▻ⁱ spine) q
+    → SpineTypedʷ W (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root worker plan rel vM vV view spine target =
+erase-structural-name-root worker plan rel vM vV view spine chain typed
+    target =
   erase-structural-descent
-    (structural-name-package worker plan rel vM vV view spine target)
+    (structural-name-package worker plan rel vM vV view spine chain typed
+      target)

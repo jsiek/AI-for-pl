@@ -647,6 +647,12 @@ composes the smaller opened-cast child with the target `β-∀` transition.  A
 canonical keep-prefixed world extension makes its transported context and
 endpoint imprecision definitionally the child's, so this branch adds no
 secondary termination measure.
+The corresponding allocating compositions are also checked.
+`structural-gen-descent` and `structural-inst-descent` consume their smaller
+child packages in the canonical right-only world and prepend `β-gen` and
+`β-inst`, respectively.  The common relational bind combinator composes both
+the transported context and endpoint imprecision, so the three primary-mass
+decreases now have exact worker-facing result constructors.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

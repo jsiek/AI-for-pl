@@ -259,6 +259,12 @@ The endpoint replay lemmas are now checked for ordinary source Λ, smart source
 Λ, source reveal, source conceal, and source inert cast.  Conceal deliberately
 takes the final `SourceConcealPartnerOK` as an input; preserving that condition
 is part of the target-normalization result, not a geometric trace fact.
+The relational composition layer now has reusable keep and right-bind
+constructors.  `structural-all-descent`, `structural-gen-descent`, and
+`structural-inst-descent` use them to turn the three strictly smaller
+cast-mass child packages into their parent packages.  Thus accessibility is
+needed only to obtain those children; world/context composition is no longer
+duplicated inside the eventual worker.
 
 Update, 2026-08-13: the live finalizer now treats this package as
 authoritative.  `InstPostCatalogPackageAt` requires neither an immediate

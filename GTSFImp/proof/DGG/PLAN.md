@@ -532,6 +532,37 @@ gate green. NS-4 execution order: stage 1 = the `StructuralNameInstantiationᵀ`
 nested-accessibility worker; stage 2 = the four producers + assembly, each
 supervisor-reviewed before push.
 
+NS-4 stage-1 ledger (supervisor, 2026-08-14, stages 1a-1g):
+  1a/1b  Bare-q statement REFUTED (source-premise final witness not
+         derivable; finite counterexample). Calibration chose R1: the
+         hereditary `StructuralNamePostPlan` (per-premise child
+         obligations with per-wrapper world geometry); R2 existential
+         endpoint failed the root cell. Live in
+         StructuralInstantiationDescentDef.
+  1c     Four of five equal-mass source-wrapper helpers live (cast,
+         plain Λ, smart Λ, reveal). Conceal equal case blocked on
+         endpoint SourceConcealPartnerOK preservation → factored as the
+         higher-order argument `StructuralNameConcealEqualOKᵀ` (1f).
+  1d     Generic spine one-step inversion + all five strict-head peel
+         lemmas live (peel = inverse of structural-target-*-step; NOT
+         the refuted cross-pushout inversion — same-world trace
+         peeling).
+  1e     Supervisor's linear crossing-potential rank REFUTED by codex
+         (universal conversion wrapper expands into TWO frames past a
+         re-emitted inner name frame: child-parent = n-1).
+  1f     Exponential rank landed and fully calibrated:
+         pendingRank = (nameFrames, Σ 3^crossings, spineLength),
+         strictly below pendingCastMass; closes all same-mass heads
+         (3^(n+1) = 3·3^n > 2·3^n absorbs the duplication).
+         StructuralValueInstantiationRank{Def,Proof}.
+  1g     Assembly needs a GENERAL spine worker above the name-headed
+         one (peel children are not name-headed). Its statement needs a
+         per-frame premise chain: the relation's target-absorption
+         rules (⊑cast²/⊑reveal²/⊑conceal²) each demand an intermediate
+         witness (cast-frame square in the 1g .red) plus rebase
+         geometry for conversions. Next: TargetFrameAbsorptionChain
+         input, calibrated statement-first (stage 1h).
+
 NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
 `M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
 outer inst cast, but its opened cast is a function consistency and therefore

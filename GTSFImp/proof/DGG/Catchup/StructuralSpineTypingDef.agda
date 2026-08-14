@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to subst≡)
 
 open import Types using (Ty; TyVar; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
-open import TyStore using (TyStore; store-bind)
+open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; _[_]ᶜ)
 open import CastTerms using (Inert; GenSafe)
@@ -25,7 +25,7 @@ open import proof.TypeInTermSubst using
   (StoreRename-suc-bind; reveal-renameᵗ; conceal-renameᵗ;
    reveal-rename-id; conceal-rename-id; renameᵗ-id)
 open import proof.TypeSafety.Preservation using
-  (applyBody-open-zero; replace-zero-open)
+  (applyBody-open-zero; replace-zero-open; structural-reveal-typing)
 import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
@@ -237,6 +237,23 @@ spine-typed-all-child : ∀ {Δᴸ Δᴿ Δ}
         mapInstantiationSpine keep spine)
 spine-typed-all-child geom cls typed =
   st-name (st-cast cls typed)
+
+
+spine-typed-Λ-child : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {B : Ty (suc Δᴿ)} {E : Ty Δᴿ} {X : TyVar Δᴿ}
+    {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+  → SpineTypedʷ W spine
+  → SpineTypedʷ (CTI2.rightOnlyWorld W (＇ X))
+      (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+        type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+        mapInstantiationSpine (bind (＇ X)) spine)
+spine-typed-Λ-child {W = W} {B = B} {X = X} typed =
+  st-reveal (structural-reveal-typing B (Z∋ refl))
+    (st-type
+      (spine-typed-map-bindʷ
+        {W = W} {W₁ = CTI2.rightOnlyWorld W (＇ X)}
+        (＇ X) refl typed))
 
 
 spine-typed-reveal-child : ∀ {Δᴸ Δᴿ Δ}

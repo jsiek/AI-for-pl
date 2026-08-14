@@ -27,6 +27,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
 open import proof.DGG.Catchup.StructuralValueInstantiationCastProof
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof
+open import proof.DGG.Catchup.StructuralWorldSmartLiftProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetSourceTransportProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
@@ -85,6 +86,28 @@ liftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ} {v}
 liftCtxᴸ-target-ctx CTI2.liftᴸ-[] = refl
 liftCtxᴸ-target-ctx (CTI2.liftᴸ-∷ liftγ) =
   cong (_ List.∷_) (liftCtxᴸ-target-ctx liftγ)
+
+
+smartCommaLift-target-store : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.targetStoreʷ Wᵐ ≡ CTI2.targetStoreʷ W
+smartCommaLift-target-store (CTI2.smart-fresh-behind guard) =
+  CTI2.SmartFreshBehindGuard.targetStore-same guard
+smartCommaLift-target-store (CTI2.smart-merge-alias guard) =
+  CTI2.SmartAliasMergeGuard.targetStore-same guard
+
+
+smartLiftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → CTI2.SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
+  → CTI2.tgtCtxʷ γᵐ ≡ CTI2.tgtCtxʷ γ
+smartLiftCtxᴸ-target-ctx CTI2.smart-lift-[] = refl
+smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
+  cong (_ List.∷_) (smartLiftCtxᴸ-target-ctx liftγ)
 
 
 structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
@@ -189,6 +212,95 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
     subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
       (liftCtxᴸ-target-ctx liftγ′)
       (CTI2T.target-typing² child-rel)
+
+
+structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
+  → ∀ {Δᴸ Δᴿ Δ Δᵐ}
+      {W : CTI2.World Δᴸ Δᴿ Δ}
+      {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+      {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+      {U : Term (suc Δᴸ)} {N : Term Δᴿ}
+      {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
+      {E : Ty Δᴿ} {X : TyVar Δᴿ}
+      {p : A CTI2.⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
+      {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → (plan : StructuralNamePostPlan W (`∀ A) E q)
+    → NonVar A
+    → Fin.zero ∈ᵗ A
+    → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
+    → CTI2.SmartLiftCtxᴸ γ γᵐ
+    → Wᵐ CTI2.∣ γᵐ ⊢² U ⊑ N ∶ p
+    → Value U
+    → (vN : Value N)
+    → AllValueView N
+    → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+    → Acc _<_ (pendingCastMass vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → (target : StructuralTargetInstantiationPackage W N
+        (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+        ECR.mapCtxᴿ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          γ
+        ⊢² Λ U ⊑
+          StructuralTargetInstantiationPackage.final target ∶
+          ECR.transport⊑ᵂ
+            (structural-world-extendᴿ
+              (StructuralTargetInstantiationPackage.structural-ext target))
+            q
+structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    with StructuralNamePostPlan.smart-Λ-child plan refl liftW
+structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    | q₀ , child-plan
+    with structural-smart-liftᴸ
+      (StructuralTargetInstantiationPackage.structural-ext target)
+      liftW
+structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+    plan Anv z∈A liftW liftγ prem vU vN view spine acc target
+    | q₀ , child-plan
+    | record { premise-plan = planᵐ ; post-lift = liftW′ } =
+  CTI2.Λ⊑²-smart-comma Anv z∈A liftW′ liftγ′ vU target⊢
+    child-rel
+    (ECR.transport⊑ᵂ
+      (structural-world-extendᴿ
+        (StructuralTargetInstantiationPackage.structural-ext target))
+      _)
+  where
+  targetᵐ = record
+    { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
+    ; χs = StructuralTargetInstantiationPackage.χs target
+    ; Δ′ = _
+    ; W′ = _
+    ; structural-ext = planᵐ
+    ; final = StructuralTargetInstantiationPackage.final target
+    ; final-value =
+        StructuralTargetInstantiationPackage.final-value target
+    ; post-reduction =
+        StructuralTargetInstantiationPackage.post-reduction target
+    }
+
+  child-rel =
+    worker child-plan prem vU vN view spine acc targetᵐ
+
+  liftγ′ =
+    mapCtxᴿ-smartLiftCtxᴸ
+      (structural-world-extendᴿ
+        (StructuralTargetInstantiationPackage.structural-ext target))
+      (structural-world-extendᴿ planᵐ)
+      liftγ
+
+  postTarget⊢ =
+    CTI2T.target-typing² child-rel
+
+  target⊢ =
+    subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (smartLiftCtxᴸ-target-ctx liftγ′)
+      (subst≡ (λ Σ → ⟨ _ , Σ , _ ⟩ ⊢ _ ⦂ _)
+        (smartCommaLift-target-store liftW′)
+        postTarget⊢)
 
 
 structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ

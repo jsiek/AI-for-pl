@@ -10,9 +10,11 @@ module proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef where
 import Data.Fin as Fin
 open import Data.Nat using (suc)
 open import Data.Maybe using (Maybe)
+open import Data.Product using (Σ-syntax)
 
 open import Types using (Ty; TyVar; ＇_; ⇑ᵗ; _[_]ᵗ)
 open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
+open import CastTerms using (Term)
 import proof.DGG.CastTermImprecision2 as CTI2
 
 
@@ -40,6 +42,12 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     rebase₁ : CTI2.RebaseAtᴿ W Wᵖ₁ X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
     targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₁? ] c
+    transport₁ :
+      ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
+        {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
+      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
+          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
@@ -50,6 +58,12 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     same₂ : CTI2.SameCtx γ γᵖ₂
     targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
+    transport₂ :
+      ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
+        {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
+      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
+          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
 
@@ -69,6 +83,12 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     rebase₁ : CTI2.RebaseAtᴿ Wᵖ₁ W X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
     targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↓[ X₁? ] c
+    transport₁ :
+      ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
+        {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
+      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
+          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
@@ -79,5 +99,11 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     same₂ : CTI2.SameCtx γ γᵖ₂
     targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
+    transport₂ :
+      ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
+        {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
+      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
+          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B

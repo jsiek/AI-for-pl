@@ -10,7 +10,7 @@ open import Data.Nat using (ℕ; suc; _<_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
+open import Types using (Ty; TyCtx; TyVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
 open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
 open import Consistency using
@@ -20,7 +20,8 @@ open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
 open import Reduction using
   (StoreChange; keep; bind; applyStores; applyTy; applyBody;
-   applyConsistency; _∷_; [])
+   applyTys; applyConsistency; applyConsistencies; StoreChanges;
+   _∷_; [])
 open import proof.Reduction using (applyStoreChange-Inert)
 open import proof.TypeInTermSubst using
   (StoreRename-suc-bind; reveal-renameᵗ; conceal-renameᵗ;
@@ -30,9 +31,40 @@ open import proof.TypeSafety.Preservation using
 import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
-open import proof.DGG.Catchup.ValueCatchupRightDef using (castSize)
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (CatchupCast⁻; castSize)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
+
+
+ResidualFrameProvenance : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
+  → μ ⊢ A ∼ B
+  → Set
+ResidualFrameProvenance {Δ = Δ} {A = A} {B = B} c =
+  ∀ {Δᴸ Δ′ Δᵂ} {χs : StoreChanges Δ Δ′}
+    {W : CTI2.World Δᴸ Δ′ Δᵂ}
+    {Aₛ : Ty Δᴸ}
+    {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTys χs A}
+    {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTys χs B}
+  → CatchupCast⁻ {W = W} {A = Aₛ} p
+      (applyConsistencies χs c) q
+
+
+residual-provenance-same : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → ResidualFrameProvenance c
+  → ResidualFrameProvenance c
+residual-provenance-same prov {χs = χs} = prov {χs = χs}
+
+
+residual-provenance-map-bind : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+    (R : Ty Δ) {c : μ ⊢ A ∼ B}
+  → ResidualFrameProvenance c
+  → ResidualFrameProvenance (applyConsistency (bind R) c)
+residual-provenance-map-bind R prov {χs = χs} =
+  prov {χs = bind R ∷ χs}
 
 
 data CastFrameClass {fuel : ℕ} {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
@@ -42,7 +74,9 @@ data CastFrameClass {fuel : ℕ} {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
 
   cast-safe : GenSafe c → CastFrameClass {fuel = fuel} c
 
-  cast-residual : suc (castSize c) < fuel
+  cast-residual :
+      suc (castSize c) < fuel
+    → ResidualFrameProvenance c
     → CastFrameClass {fuel = fuel} c
 
 
@@ -55,11 +89,17 @@ cast-frame-class-map {fuel = fuel} (bind R) (cast-inert inert) =
   cast-inert {fuel = fuel} (applyStoreChange-Inert (bind R) inert)
 cast-frame-class-map {fuel = fuel} (bind R) (cast-safe safe) =
   cast-safe {fuel = fuel} (PC.renameGenSafe Fin.suc (λ X → refl) safe)
-cast-frame-class-map {fuel = fuel} (bind R) (cast-residual c<fuel) =
+cast-frame-class-map {fuel = fuel} (bind R) {c = c}
+    (cast-residual c<fuel prov) =
   cast-residual {fuel = fuel}
     (subst≡ (λ n → suc n < _)
       (sym (PC.castSize-renameEnvᶜ Fin.suc (λ X → refl) _))
       c<fuel)
+    (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+       {W = W} {Aₛ = Aₛ} {p = p} {q = q} →
+       prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+         {χs = bind R ∷ χs} {W = W} {Aₛ = Aₛ}
+         {p = p} {q = q})
 
 
 data SpineTyped {fuel : ℕ} {Δ} (Σ : TyStore Δ) :
@@ -327,6 +367,7 @@ spine-typed-inst-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {μ : Env∼ Δᴿ} {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
     {spine : InstantiationSpine B E}
   → suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
+  → ResidualFrameProvenance (↑ᶜ (close-instᶜ c))
   → SpineTypedʷ {fuel = fuel} W spine
   → SpineTypedʷ {fuel = fuel} (CTI2.rightOnlyWorld W ★)
       (name-type-app-frame (applyBody (bind ★) A) Fin.zero
@@ -339,11 +380,17 @@ spine-typed-inst-child : ∀ {fuel Δᴸ Δᴿ Δ}
         cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
         type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
         mapInstantiationSpine (bind ★) spine)
-spine-typed-inst-child {W = W} {A = A} {B = B} residual<fuel typed =
+spine-typed-inst-child {W = W} {A = A} {B = B} {c = c}
+    residual<fuel residual-prov typed =
   st-name (st-type
     (st-reveal (structural-reveal-typing A (Z∋ refl))
       (st-type
-        (st-cast (cast-residual residual<fuel)
+        (st-cast (cast-residual residual<fuel
+          (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+             {W = W′} {Aₛ = Aₛ} {p = p} {q = q} →
+             residual-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+               {χs = χs} {W = W′} {Aₛ = Aₛ}
+               {p = p} {q = q}))
           (st-type
             (spine-typed-map-bindʷ
               {W = W} {W₁ = CTI2.rightOnlyWorld W ★}

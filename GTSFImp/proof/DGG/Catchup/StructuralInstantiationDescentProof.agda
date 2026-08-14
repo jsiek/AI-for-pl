@@ -161,9 +161,10 @@ structural-name-package :
       {M : Term Δᴸ} {V : Term Δᴿ}
       {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
       {E : Ty Δᴿ} {X : TyVar Δᴿ}
-      {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-      {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
-    → StructuralNamePostPlan W A E q
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → (plan : StructuralNamePostPlan W A E q)
+    → StructuralNameChainPlan W γ A E q plan
     → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
@@ -176,11 +177,12 @@ structural-name-package :
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package worker plan rel vM vV view spine chain typed
-    target =
+structural-name-package worker plan chain-plan rel vM vV view spine
+    chain typed target =
   record
     { target-descent = target
-    ; final-relation = worker plan rel vM vV view spine chain typed target
+    ; final-relation =
+        worker plan chain-plan rel vM vV view spine chain typed target
     }
 
 
@@ -191,9 +193,10 @@ erase-structural-name-root :
       {M : Term Δᴸ} {V : Term Δᴿ}
       {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
       {E : Ty Δᴿ} {X : TyVar Δᴿ}
-      {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-      {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
-    → StructuralNamePostPlan W A E q
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → (plan : StructuralNamePostPlan W A E q)
+    → StructuralNameChainPlan W γ A E q plan
     → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
@@ -207,8 +210,8 @@ erase-structural-name-root :
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root worker plan rel vM vV view spine chain typed
-    target =
+erase-structural-name-root worker plan chain-plan rel vM vV view spine
+    chain typed target =
   erase-structural-descent
-    (structural-name-package worker plan rel vM vV view spine chain typed
-      target)
+    (structural-name-package worker plan chain-plan rel vM vV view spine
+      chain typed target)

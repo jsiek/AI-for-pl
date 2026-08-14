@@ -5,7 +5,7 @@ module proof.DGG.Catchup.StructuralInstantiationDescentDef where
 --   * Retains insertion history until source wrappers have been rebuilt.
 
 open import Data.Nat using (suc)
-open import Data.Product using (Σ-syntax)
+open import Data.Product using (Σ-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyCtx; TyVar; ＇_; `∀; _[_]ᵗ)
 open import CastTerms using (Term; Value)
@@ -80,6 +80,90 @@ record StructuralNamePostPlan {Δᴸ Δᴿ Δ}
           StructuralNamePostPlan Wᵖ A₀ E q₀
 
 
+record StructuralNameChainPlan {Δᴸ Δᴿ Δ}
+    (W : CTI2.World Δᴸ Δᴿ Δ) (γ : CTI2.CtxImp W)
+    (A : Ty Δᴸ) (E : Ty Δᴿ)
+    (q : A CTI2.⊑ᵂ⟨ W ⟩ E)
+    (plan : StructuralNamePostPlan W A E q) : Set₁ where
+  inductive
+  field
+    cast-child : ∀ {A₀ : Ty Δᴸ} {ν : Env∼ Δᴸ}
+        {B : Ty Δᴿ} {spine : InstantiationSpine B E}
+      → (c : ν ⊢ A₀ ∼ A)
+      → TargetFrameAbsorptionChain W γ A spine q
+      → SpineTypedʷ W spine
+      → let child = StructuralNamePostPlan.cast-child plan c in
+          Σ[ child-chain ∈
+            TargetFrameAbsorptionChain W γ A₀ spine (proj₁ child) ]
+          Σ[ child-typed ∈ SpineTypedʷ W spine ]
+            StructuralNameChainPlan W γ A₀ E (proj₁ child)
+              (proj₂ child)
+
+    plain-Λ-child : ∀ {A₀ : Ty (suc Δᴸ)}
+        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+        {B : Ty Δᴿ} {spine : InstantiationSpine B E}
+      → (eq : A ≡ `∀ A₀)
+      → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
+      → TargetFrameAbsorptionChain W γ A spine q
+      → SpineTypedʷ W spine
+      → let child = StructuralNamePostPlan.plain-Λ-child plan eq in
+          Σ[ child-chain ∈
+            TargetFrameAbsorptionChain
+              (CTI2.liftWorldLeft X⊑★ W) γᴸ A₀ spine
+              (proj₁ child) ]
+          Σ[ child-typed ∈
+            SpineTypedʷ (CTI2.liftWorldLeft X⊑★ W) spine ]
+            StructuralNameChainPlan (CTI2.liftWorldLeft X⊑★ W)
+              γᴸ A₀ E (proj₁ child) (proj₂ child)
+
+    smart-Λ-child : ∀ {Δᵐ} {A₀ : Ty (suc Δᴸ)}
+        {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+        {γᵐ : CTI2.CtxImp Wᵐ}
+        {B : Ty Δᴿ} {spine : InstantiationSpine B E}
+      → (eq : A ≡ `∀ A₀)
+      → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
+      → CTI2.SmartLiftCtxᴸ γ γᵐ
+      → TargetFrameAbsorptionChain W γ A spine q
+      → SpineTypedʷ W spine
+      → let child = StructuralNamePostPlan.smart-Λ-child plan eq liftW in
+          Σ[ child-chain ∈
+            TargetFrameAbsorptionChain Wᵐ γᵐ A₀ spine
+              (proj₁ child) ]
+          Σ[ child-typed ∈ SpineTypedʷ Wᵐ spine ]
+            StructuralNameChainPlan Wᵐ γᵐ A₀ E (proj₁ child)
+              (proj₂ child)
+
+    reveal-child : ∀ {A₀ : Ty Δᴸ} {Wᵖ Xᴸ?}
+        {γᵖ : CTI2.CtxImp Wᵖ} {c : Conv↑ Δᴸ A₀ A}
+        {B : Ty Δᴿ} {spine : InstantiationSpine B E}
+      → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+      → CTI2.SameCtx γ γᵖ
+      → TargetFrameAbsorptionChain W γ A spine q
+      → SpineTypedʷ W spine
+      → let child = StructuralNamePostPlan.reveal-child plan {c = c} rb in
+          Σ[ child-chain ∈
+            TargetFrameAbsorptionChain Wᵖ γᵖ A₀ spine
+              (proj₁ child) ]
+          Σ[ child-typed ∈ SpineTypedʷ Wᵖ spine ]
+            StructuralNameChainPlan Wᵖ γᵖ A₀ E (proj₁ child)
+              (proj₂ child)
+
+    conceal-child : ∀ {A₀ : Ty Δᴸ} {Wᵖ Xᴸ? Xᴿ?}
+        {γᵖ : CTI2.CtxImp Wᵖ} {c : Conv↓ Δᴸ A₀ A}
+        {B : Ty Δᴿ} {spine : InstantiationSpine B E}
+      → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+      → CTI2.SameCtx γ γᵖ
+      → TargetFrameAbsorptionChain W γ A spine q
+      → SpineTypedʷ W spine
+      → let child = StructuralNamePostPlan.conceal-child plan {c = c} rb in
+          Σ[ child-chain ∈
+            TargetFrameAbsorptionChain Wᵖ γᵖ A₀ spine
+              (proj₁ child) ]
+          Σ[ child-typed ∈ SpineTypedʷ Wᵖ spine ]
+            StructuralNameChainPlan Wᵖ γᵖ A₀ E (proj₁ child)
+              (proj₂ child)
+
+
 StructuralNameInstantiationᵀ : Set₁
 StructuralNameInstantiationᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -89,7 +173,8 @@ StructuralNameInstantiationᵀ =
     {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
-  → StructuralNamePostPlan W A E q
+  → (plan : StructuralNamePostPlan W A E q)
+  → StructuralNameChainPlan W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V

@@ -17,13 +17,14 @@ open import Conversion using (seal)
 open import CastTerms using (Term; Value; _↓_; _⟨_⟩)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore;
    SourceTagSealCoreBranch; SourceCorePremise; core-sealed;
    core-terminus; core-tagged; core-terminus-nonstar; core-untagged)
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open import proof.DGG.Inversion.TargetStripDef using
-  (TargetStripAt★Data; target-strip★-data)
+  (TargetStripAt★Data; target-strip★-data; target-strip★-paired)
 open import proof.DGG.Inversion.TargetStripLemma using
   (target-strip-at★)
 open import proof.DGG.Inversion.SourceStripWorkerProof using
@@ -85,6 +86,20 @@ private
     core-terminus-nonstar nonstar-X
       (U★ , Y★ , _ , refl , W★ , γ★ , mono★ , same★ ,
         boundary★ , target∈★ , q★ , premise★ , reemit)
+  source-tag-seal-core-tagged {Xᴸ = Xᴸ} (＇ .Xᴸ) sv vU mono rb sc
+      source∈ target∈ D
+      | target-strip★-paired {qᵒ = qᵒ} source∈ᵒ target∈ᵒ
+          boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit =
+    core-sealed
+      (_ , _ , qᵒ ,
+        STC.impEnvMono-refl ,
+        STC.sameCtx-refl ,
+        CTI2.rebase-varᴸ
+          (CTI2.sameWorldRebaseAt
+            (CTI2.RebaseAt.pivotAligned boundaryᵒ)
+            (CTI2.RebaseAt.storeRepresentations boundaryᵒ)) ,
+        target∈ᵒ ,
+        residualᵒ)
   source-tag-seal-core-tagged (‵ ι) sv vU mono rb sc source∈
       target∈ D
       with target-strip-at★ sv vU mono rb sc source∈ target∈ D

@@ -70,3 +70,18 @@ or strengthening the helper inputs so they only accept an already-final
 `TargetSourceStarAtResult`/`TargetSourceStarChainResult`.  The current old
 final-record statements cannot consume the new LG-1 paired alternatives
 without reintroducing the rejected source-seal/bare-target premise.
+
+Postscript 2026-08-15: the target-strip half of this diagnosis is resolved in
+`TargetStripDef`/`TargetStripProof` by carrying paired terminus/strip
+alternatives through the target strip surfaces and consuming them at the
+matching target-cast branch with `cast⊑cast²`.
+
+The source-worker half remains open.  `SourceStripWorkerProof` still exposes
+the old final-only `wrap-star-cast-final` obstruction when checked through
+`SourceStripProof`: `target-source-star-at` and `target-source-star-chain`
+can return residual/paired/payload alternatives, and the helper has no matching
+target cast in its input.  Moving those alternatives to the existing legacy
+worker pragmas or reintroducing the removed pragma would hide the mismatch
+rather than close it.  A real close needs a source-strip surface that carries
+the cast-restored residual to a consumer with the target cast, without changing
+the protected top-level theorem surface.

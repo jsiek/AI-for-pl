@@ -160,6 +160,21 @@ value-conversion-units-rename ρ (vV CT.↓ CT.all) =
   cong suc (value-conversion-units-rename ρ vV)
 
 
+value-conversion-units-irrel : ∀ {Δ} {V : CT.Term Δ}
+  → (v₁ v₂ : CT.Value V)
+  → valueConversionUnits v₁ ≡ valueConversionUnits v₂
+value-conversion-units-irrel (CT.ƛ N) (CT.ƛ N′) = refl
+value-conversion-units-irrel (CT.Λ v₁) (CT.Λ v₂) =
+  value-conversion-units-irrel v₁ v₂
+value-conversion-units-irrel (CT.$ k) (CT.$ k′) = refl
+value-conversion-units-irrel (v₁ CT.《 inert₁ 》) (v₂ CT.《 inert₂ 》) =
+  value-conversion-units-irrel v₁ v₂
+value-conversion-units-irrel (v₁ CT.↑ rv₁) (v₂ CT.↑ rv₂) =
+  cong suc (value-conversion-units-irrel v₁ v₂)
+value-conversion-units-irrel (v₁ CT.↓ cv₁) (v₂ CT.↓ cv₂) =
+  cong suc (value-conversion-units-irrel v₁ v₂)
+
+
 nameFrames-map : ∀ {Δ Δ′ A B}
     (χ : StoreChange Δ Δ′) (spine : InstantiationSpine A B)
   → nameFrames (mapInstantiationSpine χ spine) ≡ nameFrames spine
@@ -364,6 +379,22 @@ reveal-frame-value-rank-decreases vV rv spine =
     (n<1+n (spineLength spine))
 
 
+reveal-frame-value-rank-decreases-any : ∀ {Δ A B E V}
+    {c : Conv↑ Δ A B}
+    (vV : CT.Value V) (child : CT.Value (V CT.↑ c))
+    (spine : InstantiationSpine B E)
+  → pendingRank child spine <ʳ
+      pendingRank vV (reveal-frame c ▻ⁱ spine)
+reveal-frame-value-rank-decreases-any vV (vW CT.↑ rv) spine
+    rewrite value-conversion-units-irrel vW vV =
+  rank-length< refl
+    (frame-wrapper-potential-same
+      (valueConversionUnits vV)
+      (nameFrames spine)
+      (spineConversionPotential spine))
+    (n<1+n (spineLength spine))
+
+
 conceal-frame-value-rank-decreases : ∀ {Δ A B E V}
     {c : Conv↓ Δ A B}
     (vV : CT.Value V) (cv : CT.ConcealValue c)
@@ -371,6 +402,22 @@ conceal-frame-value-rank-decreases : ∀ {Δ A B E V}
   → pendingRank (vV CT.↓ cv) spine <ʳ
       pendingRank vV (conceal-frame c ▻ⁱ spine)
 conceal-frame-value-rank-decreases vV cv spine =
+  rank-length< refl
+    (frame-wrapper-potential-same
+      (valueConversionUnits vV)
+      (nameFrames spine)
+      (spineConversionPotential spine))
+    (n<1+n (spineLength spine))
+
+
+conceal-frame-value-rank-decreases-any : ∀ {Δ A B E V}
+    {c : Conv↓ Δ A B}
+    (vV : CT.Value V) (child : CT.Value (V CT.↓ c))
+    (spine : InstantiationSpine B E)
+  → pendingRank child spine <ʳ
+      pendingRank vV (conceal-frame c ▻ⁱ spine)
+conceal-frame-value-rank-decreases-any vV (vW CT.↓ cv) spine
+    rewrite value-conversion-units-irrel vW vV =
   rank-length< refl
     (frame-wrapper-potential-same
       (valueConversionUnits vV)

@@ -61,14 +61,6 @@ ResidualFrameProvenance {Δ = Δ} {A = A} {B = B} c =
       (applyConsistencies χs c) q
 
 
-residual-provenance-same : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
-    {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → ResidualFrameProvenance c
-  → ResidualFrameProvenance c
-residual-provenance-same prov {χs = χs} = prov {χs = χs}
-
-
 residual-provenance-map-bind : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
     {A B : Ty Δ}
     (R : Ty Δ) {c : μ ⊢ A ∼ B}

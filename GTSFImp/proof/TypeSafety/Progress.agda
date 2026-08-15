@@ -205,9 +205,10 @@ canonical-★ (vW ↓ seal) ()
 canonical-★ (vW ↓ fun) ()
 canonical-★ (vW ↓ all) ()
 
-canonical-X : ∀ {Δ} {Σ : TyStore Δ} {V : Term Δ} {X : TyVar Δ}
+canonical-X : ∀ {Δ} {Σ : TyStore Δ} {Γ : TermCtx Δ}
+    {V : Term Δ} {X : TyVar Δ}
   → Value V
-  → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ ＇ X
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ ＇ X
   → SealView Σ X V
 canonical-X (ƛ N) ()
 canonical-X (Λ vV) ()

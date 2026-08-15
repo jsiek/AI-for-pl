@@ -765,6 +765,22 @@ castSize-open-fresh-≤ c =
       (λ { zero () ; (suc X) eq → ≤-refl }))
     c
 
+
+castSize-open-var-≤ : ∀ {Δ} {μ : Env∼ Δ}
+    {A B : Ty (suc Δ)}
+  → (c : extᵐ μ ⊢ A ∼ B)
+  → (X : TyVar Δ)
+  → castSize (c [ ＇ X ]ᶜ) ≤ castSize c
+castSize-open-var-≤ c X =
+  castSize-subst∼-≤ _
+    (subst-env-size≤
+      (λ { zero → ≤-refl ; (suc Y) → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl }))
+    c
+
 consistent-star : ∀ (A : Ty 0) → A ∼ ★
 consistent-star A = common-lower-consistent
   (A , refl⊑ A , imprecise-star A)

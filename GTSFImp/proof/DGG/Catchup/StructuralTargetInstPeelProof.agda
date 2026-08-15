@@ -27,9 +27,12 @@ open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
+open import proof.DGG.Catchup.StructuralWorldExtendProof
+open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-apply-spine; value-no-step; no-value-blame)
@@ -98,8 +101,9 @@ structural-target-inst-peel : ∀ {Δᴸ Δᴿ Δ}
     (vV : Value V)
     (B≢★ : B ≢ ★)
     (spine : InstantiationSpine B E)
-  → StructuralTargetInstantiationPackage W V
+  → (target : StructuralTargetInstantiationPackage W V
       (cast-frame ((inst c) B≢★) ▻ⁱ spine)
+    )
   → Σ[ Δ₁ ∈ TyCtx ]
     Σ[ π ∈ Δ ↪ᵗ Δ₁ ]
     Σ[ W₁ ∈ CTI2.World Δᴸ (suc Δᴿ) Δ₁ ]
@@ -107,17 +111,44 @@ structural-target-inst-peel : ∀ {Δᴸ Δᴿ Δ}
     Σ[ follows ∈
       CTI2.targetStoreʷ W₁ ≡
         applyStores (bind ★ ∷ []) (CTI2.targetStoreʷ W) ]
-      StructuralTargetInstantiationPackage W₁ (⇑ᵗᵐ V)
-        (name-type-app-frame (applyBody (bind ★) A) Fin.zero
-            refl refl ▻ⁱ
-          type-transport-frame (applyBody-open-zero A) ▻ⁱ
-          reveal-frame (〖 Fin.zero , ★ ↑ A 〗) ▻ⁱ
-          type-transport-frame
-            (trans (replace-zero-open A ★)
-              (sym (renameᵗ-wk-eq (A [ ★ ]ᵗ)))) ▻ⁱ
-          cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
-          type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
-          mapInstantiationSpine (bind ★) spine)
+      Σ[ child-target ∈
+        StructuralTargetInstantiationPackage W₁ (⇑ᵗᵐ V)
+          (name-type-app-frame (applyBody (bind ★) A) Fin.zero
+              refl refl ▻ⁱ
+            type-transport-frame (applyBody-open-zero A) ▻ⁱ
+            reveal-frame (〖 Fin.zero , ★ ↑ A 〗) ▻ⁱ
+            type-transport-frame
+              (trans (replace-zero-open A ★)
+                (sym (renameᵗ-wk-eq (A [ ★ ]ᵗ)))) ▻ⁱ
+            cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
+            type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
+            mapInstantiationSpine (bind ★) spine) ]
+        (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
+           {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
+         → let ext₁ = target-insert-bind-world-extendᴿ ins follows
+            in StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+              ECR.mapCtxᴿ
+                (structural-world-extendᴿ
+                  (StructuralTargetInstantiationPackage.structural-ext
+                    child-target))
+                (ECR.mapCtxᴿ ext₁ γ)
+              ⊢² M ⊑ StructuralTargetInstantiationPackage.final child-target
+                ∶ ECR.transport⊑ᵂ
+                  (structural-world-extendᴿ
+                    (StructuralTargetInstantiationPackage.structural-ext
+                      child-target))
+                  (ECR.transport⊑ᵂ ext₁ q)
+         → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+             ECR.mapCtxᴿ
+               (structural-world-extendᴿ
+                 (StructuralTargetInstantiationPackage.structural-ext target))
+               γ
+             ⊢² M ⊑ StructuralTargetInstantiationPackage.final target
+               ∶ ECR.transport⊑ᵂ
+                 (structural-world-extendᴿ
+                   (StructuralTargetInstantiationPackage.structural-ext
+                     target))
+                 q)
 structural-target-inst-peel vV B≢★ spine target
     with StructuralTargetInstantiationPackage.post-reduction target
 structural-target-inst-peel vV B≢★ spine target | ↠-refl =
@@ -156,7 +187,14 @@ structural-target-inst-peel {A = A} {B = B} {V = V}
       (head-step , eq)
     | inst-bind-target
     | structural-bind {π = π} {W₁ = W₁} ins follows child-ext =
-  _ , π , W₁ , ins , follows ,
+  _ , π , W₁ , ins , follows , child-target ,
+    (λ {γ = γ} child-rel →
+      subst≡
+        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (mapCtxᴿ-compose ext₁ (structural-world-extendᴿ child-ext) γ)
+        child-rel)
+  where
+  child-target =
     record
       { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
       ; χs = χs
@@ -171,3 +209,5 @@ structural-target-inst-peel {A = A} {B = B} {V = V}
             eq
             rest
       }
+
+  ext₁ = target-insert-bind-world-extendᴿ ins follows

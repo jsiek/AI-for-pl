@@ -9,6 +9,7 @@ open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types using (Ty)
 open import TyStore using (TyStore)
+open import TermCtx using (TermCtx)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_;
    ⊢↑-unseal; ⊢↑-⇒; ⊢↑-∀; ⊢↑-id;
@@ -23,9 +24,10 @@ open import proof.DGG.Catchup.StructuralFrameOutcomeDef
 
 
 structural-reveal-frame-outcome : ∀ {Δ} {Σ : TyStore Δ}
+    {Γ : TermCtx Δ}
     {V : Term Δ} {A B : Ty Δ} {c : Conv↑ Δ A B}
   → Σ ⊢↑ c
-  → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ A
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ V ⦂ A
   → Value V
   → StructuralFrameOutcome (V ↑ c)
 structural-reveal-frame-outcome (⊢↑-unseal X∈) V⊢ vV

@@ -10,8 +10,9 @@ module
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
-open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; trans; cong)
+open import Data.Product using (Σ-syntax; _,_)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
 open import Types using (Ty)
@@ -23,8 +24,10 @@ open import Reduction using
    pure-step; id-reveal; id-conceal; conceal-reveal; blame-reveal;
    blame-conceal; ξ-reveal; ξ-conceal)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
+open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-apply-spine; value-no-step; no-value-blame)
@@ -123,10 +126,37 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
     (spine : InstantiationSpine B E)
   → (head : (V ↑ c) —→[ keep ] V₁)
   → Value V₁
-  → StructuralTargetInstantiationPackage W V
+  → (target : StructuralTargetInstantiationPackage W V
       (reveal-frame c ▻ⁱ spine)
-  → StructuralTargetInstantiationPackage W V₁
-      (mapInstantiationSpine keep spine)
+    )
+  → Σ[ child-target ∈
+      StructuralTargetInstantiationPackage W V₁
+        (mapInstantiationSpine keep spine) ]
+      (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
+         {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
+       → StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+           ECR.mapCtxᴿ
+             (structural-world-extendᴿ
+               (StructuralTargetInstantiationPackage.structural-ext
+                 child-target))
+             γ
+           ⊢² M ⊑ StructuralTargetInstantiationPackage.final child-target
+             ∶ ECR.transport⊑ᵂ
+               (structural-world-extendᴿ
+                 (StructuralTargetInstantiationPackage.structural-ext
+                   child-target))
+               q
+       → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+           ECR.mapCtxᴿ
+             (structural-world-extendᴿ
+               (StructuralTargetInstantiationPackage.structural-ext target))
+             γ
+           ⊢² M ⊑ StructuralTargetInstantiationPackage.final target
+             ∶ ECR.transport⊑ᵂ
+               (structural-world-extendᴿ
+                 (StructuralTargetInstantiationPackage.structural-ext
+                   target))
+               q)
 structural-target-reveal-frame-keep-peel vV spine head vV₁ target
     with StructuralTargetInstantiationPackage.post-reduction target
 structural-target-reveal-frame-keep-peel vV spine head vV₁ target
@@ -144,7 +174,15 @@ structural-target-reveal-frame-keep-peel vV spine head vV₁ target
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     | structural-keep child-ext
     | V₂ , (head′ , eq) =
-  record
+  child-target ,
+    (λ {γ = γ} child-rel →
+      subst≡
+        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (sym (mapCtxᴿ-structural-keep child-ext γ))
+        child-rel)
+  where
+  child-target =
+    record
     { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
     ; χs = χs
     ; Δ′ = StructuralTargetInstantiationPackage.Δ′ target
@@ -180,10 +218,37 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
     (spine : InstantiationSpine B E)
   → (head : (V ↓ c) —→[ keep ] V₁)
   → Value V₁
-  → StructuralTargetInstantiationPackage W V
+  → (target : StructuralTargetInstantiationPackage W V
       (conceal-frame c ▻ⁱ spine)
-  → StructuralTargetInstantiationPackage W V₁
-      (mapInstantiationSpine keep spine)
+    )
+  → Σ[ child-target ∈
+      StructuralTargetInstantiationPackage W V₁
+        (mapInstantiationSpine keep spine) ]
+      (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
+         {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
+       → StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+           ECR.mapCtxᴿ
+             (structural-world-extendᴿ
+               (StructuralTargetInstantiationPackage.structural-ext
+                 child-target))
+             γ
+           ⊢² M ⊑ StructuralTargetInstantiationPackage.final child-target
+             ∶ ECR.transport⊑ᵂ
+               (structural-world-extendᴿ
+                 (StructuralTargetInstantiationPackage.structural-ext
+                   child-target))
+               q
+       → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+           ECR.mapCtxᴿ
+             (structural-world-extendᴿ
+               (StructuralTargetInstantiationPackage.structural-ext target))
+             γ
+           ⊢² M ⊑ StructuralTargetInstantiationPackage.final target
+             ∶ ECR.transport⊑ᵂ
+               (structural-world-extendᴿ
+                 (StructuralTargetInstantiationPackage.structural-ext
+                   target))
+               q)
 structural-target-conceal-frame-keep-peel vV spine head vV₁ target
     with StructuralTargetInstantiationPackage.post-reduction target
 structural-target-conceal-frame-keep-peel vV spine head vV₁ target
@@ -201,7 +266,15 @@ structural-target-conceal-frame-keep-peel vV spine head vV₁ target
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     | structural-keep child-ext
     | V₂ , (head′ , eq) =
-  record
+  child-target ,
+    (λ {γ = γ} child-rel →
+      subst≡
+        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (sym (mapCtxᴿ-structural-keep child-ext γ))
+        child-rel)
+  where
+  child-target =
+    record
     { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
     ; χs = χs
     ; Δ′ = StructuralTargetInstantiationPackage.Δ′ target

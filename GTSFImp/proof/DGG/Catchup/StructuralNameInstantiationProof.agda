@@ -9,8 +9,8 @@ import Data.Fin as Fin
 import Data.List as List
 import Data.Nat.Induction as NatInduction
 open import Data.Empty using (⊥-elim)
-open import Data.Nat using (ℕ; suc; _<_; _+_)
-open import Data.Nat.Properties using (+-assoc; n<1+n)
+open import Data.Nat using (ℕ; suc; _<_; _+_; s≤s)
+open import Data.Nat.Properties using (+-assoc; n<1+n; ≤-trans)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 import Data.Product.Relation.Binary.Lex.Strict as ProductLex
 open import Data.Sum.Base using (inj₁; inj₂)
@@ -25,17 +25,19 @@ open import Types using
    renameᵗ)
 open import Imprecision using (X⊑★)
 open import Consistency using
-  (Env∼; _↪ᵗ_; wk↪ᵗ; keep; toRenameᵗ; _⊢_∼_; inst_; ↑ᶜ_;
-   close-instᶜ; ∀ᶜ_; gen_)
-open import Conversion using (Conv↑; Conv↓)
+  (Env∼; _↪ᵗ_; wk↪ᵗ; keep; toRenameᵗ; extᵐ; instᵐ; genᵐ;
+   _⊢_∼_; inst_; ↑ᶜ_; close-instᶜ; _↦_; ∀ᶜ_; gen_; _[_]ᶜ)
+import Conversion as Conv
+open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
 import CastTerms as CT
 open import CastTerms using
   (Term; Value; Inert; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩;
    _↑_; _↓_; _⦂∀_[_]; renameᵗᵐ; ⇑ᵗᵐ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTy;
-   _—→[_]_; _—↠[_]_; ↠-refl; ↠-step; pure-step;
-   β-Λ; β-∀; β-gen; β-inst; id-reveal; id-conceal; conceal-reveal)
+   applyBody; _—→[_]_; _—↠[_]_; ↠-refl; ↠-step; pure-step;
+   β-Λ; β-∀; β-gen; β-inst; β-reveal-∀; β-conceal-∀;
+   id-reveal; id-conceal; conceal-reveal; ξ-reveal; ξ-conceal)
 open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
 open import proof.TypeSafety.Preservation using
@@ -61,10 +63,14 @@ open import proof.DGG.Catchup.StructuralValueInstantiationRankProof
      lambda-rank-decreases; reveal-rank-decreases;
      conceal-rank-decreases; cast-frame-rank-decreases;
      reveal-frame-value-rank-decreases;
+     reveal-frame-value-rank-decreases-any;
      conceal-frame-value-rank-decreases;
+     conceal-frame-value-rank-decreases-any;
      reveal-frame-id-rank-decreases;
      reveal-frame-conceal-rank-decreases;
      conceal-frame-id-rank-decreases)
+open import proof.DGG.Catchup.StructuralValueInstantiationCastMassProof
+  using (all-cast-mass-decreases)
 open import proof.DGG.Catchup.StructuralValueInstantiationCastProof
 open import proof.DGG.Catchup.StructuralValueInstantiationAllCastMassProof
 open import proof.DGG.Catchup.StructuralValueInstantiationGenCastMassProof
@@ -263,6 +269,130 @@ rank-access-from-lex r (WF.acc smaller) =
 
 rank-access : ∀ r → Acc _<ʳ_ r
 rank-access r = rank-access-from-lex r (rank-lex-wf (rank-tuple r))
+
+
+cast-mass-access : ∀ n → Acc _<_ n
+cast-mass-access = NatInduction.<-wellFounded
+
+
+rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {N : Term Δᴿ}
+    {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
+  → (eq : B ≡ B′)
+  → {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ subst≡ (A CTI2.⊑ᵂ⟨ W ⟩_) eq p
+rel-target-transportᴿ refl rel = rel
+
+
+type-frame-rank-decreases : ∀ {Δ A B E V}
+    {eq : A ≡ B}
+    (vV : Value {Δ = Δ} V)
+    (spine : InstantiationSpine B E)
+  → pendingRank vV spine <ʳ
+      pendingRank vV (type-transport-frame eq ▻ⁱ spine)
+type-frame-rank-decreases vV spine =
+  rank-length< refl refl (n<1+n (spineLength spine))
+
+
+all-primary-decreases-at : ∀ {Δ} {μ : Env∼ Δ}
+    {A B : Ty (suc Δ)} {E : Ty Δ} {V}
+    (vV : CT.Value {Δ = Δ} V)
+    (d : extᵐ μ ⊢ A ∼ B)
+    (X : TyVar Δ)
+    (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → pendingCastMass vV
+      (name-type-app-frame A X refl refl ▻ⁱ
+        cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
+        mapInstantiationSpine keep spine) <
+      pendingCastMass (vV CT.《 CT.all {c = d} 》)
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
+all-primary-decreases-at vV d X spine
+    rewrite spine-cast-mass-map keep spine =
+  all-cast-mass-decreases vV spine (PC.castSize-open-var-≤ d X)
+
+
+safe-inst-child-spine : ∀ {Δ} {μ : Env∼ Δ}
+    {A : Ty (suc Δ)} {B E : Ty Δ}
+    {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+  → InstantiationSpine B E
+  → InstantiationSpine (applyTy (bind ★) (`∀ A)) (applyTy (bind ★) E)
+safe-inst-child-spine {A = A} {B = B} {c = c} spine =
+  name-type-app-frame (applyBody (bind ★) A) Fin.zero refl refl ▻ⁱ
+  type-transport-frame (applyBody-open-zero A) ▻ⁱ
+  reveal-frame (〖 Fin.zero , ★ ↑ A 〗) ▻ⁱ
+  type-transport-frame
+    (trans (replace-zero-open A ★)
+      (sym (renameᵗ-wk-eq (A [ ★ ]ᵗ)))) ▻ⁱ
+  cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
+  type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
+  mapInstantiationSpine (bind ★) spine
+
+
+lambda-child-spine : ∀ {Δ} {B : Ty (suc Δ)} {E : Ty Δ}
+    {X : TyVar Δ}
+  → InstantiationSpine (B [ ＇ X ]ᵗ) E
+  → InstantiationSpine
+      (replaceTy Fin.zero (⇑ᵗ (＇ X)) B)
+      (applyTy (bind (＇ X)) E)
+lambda-child-spine {B = B} {X = X} spine =
+  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+  mapInstantiationSpine (bind (＇ X)) spine
+
+
+all-cast-child-spine : ∀ {Δ} {μ : Env∼ Δ}
+    {B C : Ty (suc Δ)} {E : Ty Δ} {X : TyVar Δ}
+    {d : extᵐ μ ⊢ B ∼ C}
+  → InstantiationSpine (C [ ＇ X ]ᵗ) E
+  → InstantiationSpine (`∀ B) E
+all-cast-child-spine {B = B} {X = X} {d = d} spine =
+  name-type-app-frame B X refl refl ▻ⁱ
+  cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
+  mapInstantiationSpine keep spine
+
+
+gen-child-spine : ∀ {Δ} {μ : Env∼ Δ}
+    {A E : Ty Δ} {B : Ty (suc Δ)} {X : TyVar Δ}
+    {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+  → InstantiationSpine (B [ ＇ X ]ᵗ) E
+  → InstantiationSpine (⇑ᵗ A) (applyTy (bind (＇ X)) E)
+gen-child-spine {B = B} {X = X} {c = c} spine =
+  cast-frame c ▻ⁱ
+  reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+  mapInstantiationSpine (bind (＇ X)) spine
+
+
+reveal-child-spine : ∀ {Δ} {B C : Ty (suc Δ)} {E : Ty Δ}
+    {X : TyVar Δ} {c : Conv↑ (suc Δ) C B}
+  → InstantiationSpine (B [ ＇ X ]ᵗ) E
+  → InstantiationSpine (applyTy (bind (＇ X)) (`∀ C))
+      (applyTy (bind (＇ X)) E)
+reveal-child-spine {B = B} {C = C} {X = X} {c = c} spine =
+  name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
+    refl refl ▻ⁱ
+  type-transport-frame (applyBody-open-zero C) ▻ⁱ
+  reveal-frame c ▻ⁱ
+  reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+  mapInstantiationSpine (bind (＇ X)) spine
+
+
+conceal-child-spine : ∀ {Δ} {B C : Ty (suc Δ)} {E : Ty Δ}
+    {X : TyVar Δ} {c : Conv↓ (suc Δ) C B}
+  → InstantiationSpine (B [ ＇ X ]ᵗ) E
+  → InstantiationSpine (applyTy (bind (＇ X)) (`∀ C))
+      (applyTy (bind (＇ X)) E)
+conceal-child-spine {B = B} {C = C} {X = X} {c = c} spine =
+  name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
+    refl refl ▻ⁱ
+  type-transport-frame (applyBody-open-zero C) ▻ⁱ
+  conceal-frame c ▻ⁱ
+  reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
+  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
+  mapInstantiationSpine (bind (＇ X)) spine
 
 
 all-view→all-value-view : ∀ {Δ} {B : Ty (suc Δ)} {V : Term Δ}
@@ -816,6 +946,732 @@ structural-name-conceal-equal surfaces worker {B = B} {X = X} {c = c}
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank
       (structural-target-tag-rebase-left rb target))
+
+
+{-# TERMINATING #-}
+mutual
+
+  structural-value-spine-instantiation-acc :
+    StructuralValueSpineInstantiationAccᵀ
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      []ⁱ tfa-[] st-[] acc rank target =
+    target-empty-final-relation vV rel target
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (type-transport-frame eq ▻ⁱ spine) (tfa-type chain)
+      (st-type typed) acc rank target =
+    child-rel
+    where
+    child-target = structural-target-frame-value-peel vV target
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan
+        (rel-target-transportᴿ eq rel) vM vV spine chain typed
+        (cast-mass-access (pendingCastMass vV spine))
+        (acc-smaller rank (type-frame-rank-decreases {eq = eq} vV spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
+      (tfa-name chain) (st-name typed) acc rank target =
+    structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM vV
+      (relation-all-value-view vV rel) spine (tfa-name chain)
+      (st-name typed) acc rank target
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-inert inert) typed-tail) acc rank target
+      with target-frame-cast-absorption chain rel
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-inert inert) typed-tail) acc rank target
+      | qC′ , rel-cast =
+    child-rel
+    where
+    child-value = vV CT.《 inert 》
+    child-target = structural-target-frame-value-peel child-value target
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-cast vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank (cast-frame-rank-decreases vV inert spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (c ↦ d) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe CT.safe-⇒ parent< parent-prov) typed-tail)
+      acc rank target
+      with target-frame-cast-absorption chain rel
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (c ↦ d) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe CT.safe-⇒ parent< parent-prov) typed-tail)
+      acc rank target
+      | qC′ , rel-cast =
+    child-rel
+    where
+    child-value = vV CT.《 CT.fun 》
+    child-target = structural-target-frame-value-peel child-value target
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-cast vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank
+          (cast-frame-rank-decreases {c = c ↦ d} vV CT.fun spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (∀ᶜ c) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe CT.safe-∀ parent< parent-prov) typed-tail)
+      acc rank target
+      with target-frame-cast-absorption chain rel
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (∀ᶜ c) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe CT.safe-∀ parent< parent-prov) typed-tail)
+      acc rank target
+      | qC′ , rel-cast =
+    child-rel
+    where
+    child-value = vV CT.《 CT.all 》
+    child-target = structural-target-frame-value-peel child-value target
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-cast vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank
+          (cast-frame-rank-decreases {c = ∀ᶜ c} vV CT.all spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame ((gen c) A≢★) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe (CT.safe-gen A≢★′ safe)
+        parent< parent-prov) typed-tail)
+      acc rank target
+      with target-frame-cast-absorption chain rel
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame ((gen c) A≢★) ▻ⁱ spine) chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-safe (CT.safe-gen A≢★′ safe)
+        parent< parent-prov) typed-tail)
+      acc rank target
+      | qC′ , rel-cast =
+    child-rel
+    where
+    child-inert = CT.genᵥ A≢★ safe
+    child-value = vV CT.《 child-inert 》
+    child-target = structural-target-frame-value-peel child-value target
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-cast vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank
+          (cast-frame-rank-decreases {c = (gen c) A≢★} vV
+            child-inert spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .c}
+        (cast-residual residual<fuel residual-prov)
+        typed-tail)
+      acc rank target
+      with target-frame-cast-absorption chain rel
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .c}
+        (cast-residual residual<fuel residual-prov)
+        typed-tail)
+      acc rank target
+      | qC′ , rel-cast
+        with residual-cast-stop-package {B = B₀} {C = C}
+          {q = qC′} {c = c}
+          fuel-step catchup⁻-embed
+          rel vM vV residual<fuel
+          (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+             {W = W′} {Aₛ = Aₛ} {p = p} {q = q} →
+             residual-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+               {χs = χs} {W = W′} {Aₛ = Aₛ}
+               {p = p} {q = q})
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .c}
+        (cast-residual residual<fuel residual-prov)
+        typed-tail)
+      acc rank target
+      | qC′ , rel-cast
+      | record { Δᴿ′ = Δᴿ′ ; χs = χs ; Δ′ = Δ′ ; W′ = W′
+          ; ext = ext ; final = N ; final-value = vN
+          ; post-reduction = post↠ ; final-relation = stop-rel }
+        with StructuralNameChainPlan.residual-tail-child chain-plan
+          {B = B₀} {C = C} {c = c} {qC = qC′}
+          vV residual<fuel
+          (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+             {W = W′} {Aₛ = Aₛ} {p = p} {q = q} →
+             residual-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+               {χs = χs} {W = W′} {Aₛ = Aₛ}
+               {p = p} {q = q})
+          chain typed
+        χs W′ ext N vN post↠ stop-rel target
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame {A = B₀} {B = C} c ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast (cast-residual residual<fuel residual-prov) typed-tail)
+      acc rank target
+      | qC′ , rel-cast
+      | record { Δᴿ′ = Δᴿ′ ; χs = χs ; Δ′ = Δ′ ; W′ = W′
+          ; ext = ext ; final = N ; final-value = vN
+          ; post-reduction = post↠ ; final-relation = stop-rel }
+      | child-spine , child-plan , child-chain-plan , child-chain ,
+        child-typed , child-target , mass< , finish =
+      finish
+        (structural-value-spine-instantiation-acc surfaces fuel-step
+          catchup⁻-embed inst-decrease child-plan child-chain-plan
+          stop-rel vM vN child-spine child-chain child-typed
+          (acc-smaller acc mass<) (rank-access (pendingRank vN child-spine))
+          child-target)
+  structural-value-spine-instantiation-acc surfaces {W = W} fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (inst_ {A = A} {B = B} c B≢★) ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .((inst c) B≢★)}
+        (cast-safe (CT.safe-inst B≢★′)
+        parent< parent-prov) typed-tail) acc rank target
+      with structural-target-inst-peel vV B≢★ spine target
+  structural-value-spine-instantiation-acc surfaces {W = W} fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (inst_ {A = A} {B = B} c B≢★) ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .((inst c) B≢★)}
+        (cast-safe (CT.safe-inst B≢★′)
+        parent< parent-prov) typed-tail) acc rank target
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      with StructuralNamePostPlan.target-bind-child plan ins follows
+         | StructuralNameChainPlan.target-bind-child chain-plan ins follows
+             (safe-inst-child-spine {A = A} {B = B} {c = c} spine)
+  structural-value-spine-instantiation-acc surfaces {W = W} fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (cast-frame (inst_ {A = A} {B = B} c B≢★) ▻ⁱ spine)
+      chain@(tfa-cast qC tail)
+      typed@(st-cast {c = .((inst c) B≢★)}
+        (cast-safe (CT.safe-inst B≢★′)
+        parent< parent-prov) typed-tail) acc rank target
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      | child-plan | child-chain , (child-typed′ , child-chain-plan) =
+    finish-target child-final
+    where
+    child-value = renameᵗᵐ-preserves-Value wk↪ᵗ vV
+
+    residual<fuel =
+      ≤-trans (s≤s (inst-decrease {c = c} B≢★)) parent<
+
+    residual-prov =
+      inst-residual-frame-provenance {A = A} {B = B} {c = c} B≢★
+
+    child-typed =
+      spine-typed-store-eq follows
+        (spine-typed-inst-child {W = W} {A = A} {B = B} {c = c}
+          {spine = spine}
+          residual<fuel
+          (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+             {W = W′} {Aₛ = Aₛ} {p = p} {q = q} →
+             residual-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+               {χs = χs} {W = W′} {Aₛ = Aₛ}
+               {p = p} {q = q})
+          typed-tail)
+
+    child-rel =
+      target-insert-bind-relation ins follows rel
+
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease child-plan child-chain-plan
+        child-rel vM child-value
+        (safe-inst-child-spine {A = A} {B = B} {c = c} spine)
+        child-chain child-typed
+        (acc-smaller acc (inst-primary-decreases vV B≢★ spine))
+        (rank-access
+          (pendingRank child-value
+            (safe-inst-child-spine {A = A} {B = B} {c = c} spine)))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (reveal-frame c ▻ⁱ spine)
+      chain@(tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-reveal c⊢′ typed-tail) acc rank target
+      with transport rel
+         | structural-reveal-frame-outcome c⊢′ (CTI2T.target-typing² rel) vV
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (reveal-frame c ▻ⁱ spine)
+      chain@(tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-reveal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ | structural-frame-value child-value =
+    child-rel
+    where
+    child-target = structural-target-frame-value-peel child-value target
+
+    rel-reveal = CTI2.⊑reveal² mono rb sc c⊢ relᵖ qC
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-reveal vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank
+          (reveal-frame-value-rank-decreases-any vV child-value spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (reveal-frame c ▻ⁱ spine)
+      chain@(tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-reveal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ
+      | structural-frame-keep step@(pure-step (id-reveal vStep)) vN =
+    finish-target child-rel
+    where
+    child-peel =
+      structural-target-reveal-frame-keep-peel vV spine step vV target
+
+    child-target = proj₁ child-peel
+
+    finish-target = proj₂ child-peel
+
+    rel-reveal = CTI2.⊑reveal² mono rb sc c⊢ relᵖ qC
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan
+        (keep-rel rel-reveal step vV) vM vV
+        (mapInstantiationSpine keep spine) keep-chain
+        (spine-typed-map-keep typed-tail)
+        (cast-mass-access
+          (pendingCastMass vV (mapInstantiationSpine keep spine)))
+        (acc-smaller rank
+          (reveal-frame-id-rank-decreases {c = c} vV spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM
+      (vInner CT.↓ CT.seal {X = Xₛ} {R = Rₛ})
+      (reveal-frame c ▻ⁱ spine)
+      chain@(tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-reveal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ
+      | structural-frame-keep step@(pure-step (conceal-reveal vStep)) vN =
+    finish-target child-rel
+    where
+    child-peel =
+      structural-target-reveal-frame-keep-peel
+        (vInner CT.↓ CT.seal) spine step vInner target
+
+    child-target = proj₁ child-peel
+
+    finish-target = proj₂ child-peel
+
+    rel-reveal = CTI2.⊑reveal² mono rb sc c⊢ relᵖ qC
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan
+        (keep-rel rel-reveal step vInner) vM vInner
+        (mapInstantiationSpine keep spine) keep-chain
+        (spine-typed-map-keep typed-tail)
+        (cast-mass-access
+          (pendingCastMass vInner (mapInstantiationSpine keep spine)))
+        (acc-smaller rank
+          (reveal-frame-conceal-rank-decreases {c = c}
+            {d = Conv.seal Xₛ Rₛ} vInner
+            (CT.seal {X = Xₛ} {R = Rₛ}) spine))
+        child-target
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (reveal-frame c ▻ⁱ spine)
+      chain@(tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-reveal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ
+      | structural-frame-keep (ξ-reveal step eq) vN =
+    ⊥-elim (value-no-step vV step)
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (conceal-frame c ▻ⁱ spine)
+      chain@(tfa-conceal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-conceal c⊢′ typed-tail) acc rank target
+      with transport rel
+         | structural-conceal-frame-outcome c⊢′ vV
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (conceal-frame c ▻ⁱ spine)
+      chain@(tfa-conceal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-conceal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ | structural-frame-value child-value =
+    child-rel
+    where
+    child-target = structural-target-frame-value-peel child-value target
+
+    rel-conceal = CTI2.⊑conceal² mono rb sc c⊢ relᵖ qC
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan rel-conceal vM
+        child-value spine tail typed-tail
+        (cast-mass-access (pendingCastMass child-value spine))
+        (acc-smaller rank
+          (conceal-frame-value-rank-decreases-any vV child-value spine))
+        child-target
+
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (conceal-frame c ▻ⁱ spine)
+      chain@(tfa-conceal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-conceal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ
+      | structural-frame-keep step@(pure-step (id-conceal vStep)) vN =
+    finish-target child-rel
+    where
+    child-peel =
+      structural-target-conceal-frame-keep-peel vV spine step vV target
+
+    child-target = proj₁ child-peel
+
+    finish-target = proj₂ child-peel
+
+    rel-conceal = CTI2.⊑conceal² mono rb sc c⊢ relᵖ qC
+
+    child-rel =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease plan chain-plan
+        (keep-rel rel-conceal step vV) vM vV
+        (mapInstantiationSpine keep spine) keep-chain
+        (spine-typed-map-keep typed-tail)
+        (cast-mass-access
+          (pendingCastMass vV (mapInstantiationSpine keep spine)))
+        (acc-smaller rank
+          (conceal-frame-id-rank-decreases {c = c} vV spine))
+        child-target
+  structural-value-spine-instantiation-acc surfaces fuel-step
+      catchup⁻-embed inst-decrease plan chain-plan rel vM vV
+      (conceal-frame c ▻ⁱ spine)
+      chain@(tfa-conceal mono rb sc c⊢ transport qC keep-rel keep-chain tail)
+      typed@(st-conceal c⊢′ typed-tail) acc rank target
+      | pᵖ , relᵖ
+      | structural-frame-keep (ξ-conceal step eq) vN =
+    ⊥-elim (value-no-step vV step)
+
+
+
+  structural-name-instantiation-acc : StructuralNameInstantiationAccᵀ
+  structural-name-instantiation-acc surfaces {W = W} {γ = γ}
+      {A = A′} {B = B} {E = E} {X = X} {q = qE}
+      fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.cast⊑² {A = A₀} {A′ = .A′} {B = .(`∀ B)}
+        {p = p₀} c prem q)
+      (vU CT.《 inert 》) vN view spine chain typed acc rank target
+      with StructuralNamePostPlan.cast-child plan c
+         | StructuralNameChainPlan.cast-child chain-plan c chain typed
+  structural-name-instantiation-acc surfaces {W = W} {γ = γ}
+      {A = A′} {B = B} {E = E} {X = X} {q = qE}
+      fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.cast⊑² {A = A₀} {A′ = .A′} {B = .(`∀ B)}
+        {p = p₀} c prem q)
+      (vU CT.《 inert 》) vN view spine chain typed acc rank target
+      | q₀ , child-plan
+      | child-chain , (child-typed , child-chain-plan) =
+    structural-inert-cast-replay
+      (StructuralTargetInstantiationPackage.structural-ext target)
+      c inert
+      (structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease child-plan child-chain-plan prem vU vN
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
+        child-chain child-typed acc rank target)
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.Λ⊑² Anv z∈A liftγ vU target⊢ prem q)
+      (CT.Λ vU′) vN view spine chain typed acc rank target =
+    structural-name-plain-Λ-equal surfaces
+      structural-value-spine-instantiation-acc fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan Anv z∈A liftγ prem vU vN view
+      spine chain typed acc rank target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vU target⊢ prem q)
+      (CT.Λ vU′) vN view spine chain typed acc rank target =
+    structural-name-smart-Λ-equal surfaces
+      structural-value-spine-instantiation-acc fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan Anv z∈A liftW liftγ prem vU vN view
+      spine chain typed acc rank target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.reveal⊑² mono rb sc c⊢ prem q)
+      (vU CT.↑ rv) vN view spine chain typed acc rank target =
+    structural-name-reveal-equal surfaces
+      structural-value-spine-instantiation-acc fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan mono rb sc c⊢ prem vU vN view
+      spine chain typed acc rank target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan
+      (CTI2.conceal⊑² ok mono rb sc c⊢ prem q)
+      (vU CT.↓ cv) vN view spine chain typed acc rank target =
+    structural-name-conceal-equal surfaces
+      structural-value-spine-instantiation-acc fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan ok mono rb sc c⊢ prem vU vN view
+      spine chain typed acc rank target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (CT.Λ vV)
+      (allv-Λ vV′ refl) spine chain typed acc rank target
+      with structural-target-Λ-peel vV spine target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (CT.Λ vV)
+      (allv-Λ vV′ refl) spine chain typed acc rank target
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      with StructuralStrictViewSurfaces.Λ-cell surfaces plan chain-plan
+        rel vM vV spine chain typed ins follows child-target
+  structural-name-instantiation-acc surfaces {B = B} {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (CT.Λ vV)
+      (allv-Λ vV′ refl) spine chain typed acc rank target
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      | child =
+    finish-target child-final
+    where
+    child-value = StructuralStrictChild.child-value child
+
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease
+        (StructuralStrictChild.child-plan child)
+        (StructuralStrictChild.child-chain-plan child)
+        (StructuralStrictChild.child-relation child) vM child-value
+        (lambda-child-spine {B = B} {X = X} spine)
+        (StructuralStrictChild.child-chain child)
+        (StructuralStrictChild.child-typed child)
+        (cast-mass-access
+          (pendingCastMass child-value
+            (lambda-child-spine {B = B} {X = X} spine)))
+        (acc-smaller rank
+          (lambda-rank-decreases {X = X} vV child-value spine))
+        child-target
+
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (vV CT.《 CT.all {c = d} 》)
+      (allv-∀ vV′ refl) spine chain typed acc rank target
+      with Prog.canonical-∀ (vV CT.《 CT.all {c = d} 》)
+        (CTI2T.target-typing² rel)
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (vV CT.《 CT.all {c = d} 》)
+      (allv-∀ vV′ refl) spine chain typed acc rank target
+      | Prog.av-∀ vVᵗ refl
+      with structural-target-all-peel vV spine target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (vV CT.《 CT.all {c = d} 》)
+      (allv-∀ vV′ refl) spine chain typed acc rank target
+      | Prog.av-∀ vVᵗ refl
+      | child-target , finish-target
+      with StructuralStrictViewSurfaces.∀-cast-cell surfaces plan
+        chain-plan rel vM vV spine chain typed child-target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM (vV CT.《 CT.all {c = d} 》)
+      (allv-∀ vV′ refl) spine chain typed acc rank target
+      | Prog.av-∀ vVᵗ refl
+      | child-target , finish-target
+      | child =
+    finish-target child-final
+    where
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease
+        (StructuralStrictChild.child-plan child)
+        (StructuralStrictChild.child-chain-plan child)
+        (StructuralStrictChild.child-relation child) vM vV
+        (all-cast-child-spine {X = X} {d = d} spine)
+        (StructuralStrictChild.child-chain child)
+        (StructuralStrictChild.child-typed child)
+        (acc-smaller acc (all-primary-decreases-at vV d X spine))
+        (rank-access
+          (pendingRank vV
+            (all-cast-child-spine {X = X} {d = d} spine)))
+        child-target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.《 CT.genᵥ {c = c} A≢★ safe 》)
+      (allv-gen vV′ A≢★′ safe′ refl) spine chain typed acc rank target
+      with Prog.canonical-∀ (vV CT.《 CT.genᵥ A≢★ safe 》)
+        (CTI2T.target-typing² rel)
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.《 CT.genᵥ A≢★ safe 》)
+      (allv-gen vV′ A≢★′ safe′ refl) spine chain typed acc rank target
+      | Prog.av-gen vVᵗ A≢★ᵗ safeᵗ refl
+      with structural-target-gen-peel vV A≢★ safe spine target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.《 CT.genᵥ {c = c} A≢★ safe 》)
+      (allv-gen vV′ A≢★′ safe′ refl) spine chain typed acc rank target
+      | Prog.av-gen vVᵗ A≢★ᵗ safeᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      with StructuralStrictViewSurfaces.gen-cell surfaces plan chain-plan
+        A≢★ rel vM vV safe spine chain typed ins follows child-target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.《 CT.genᵥ {c = c} A≢★ safe 》)
+      (allv-gen vV′ A≢★′ safe′ refl) spine chain typed acc rank target
+      | Prog.av-gen vVᵗ A≢★ᵗ safeᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      | child =
+    finish-target child-final
+    where
+    child-value = renameᵗᵐ-preserves-Value wk↪ᵗ vV
+
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease
+        (StructuralStrictChild.child-plan child)
+        (StructuralStrictChild.child-chain-plan child)
+        (StructuralStrictChild.child-relation child) vM child-value
+        (gen-child-spine {X = X} {c = c} spine)
+        (StructuralStrictChild.child-chain child)
+        (StructuralStrictChild.child-typed child)
+        (acc-smaller acc
+          (gen-primary-decreases {X = X} {c = c} {A≠★ = A≢★}
+            vV safe spine))
+        (rank-access
+          (pendingRank child-value
+            (gen-child-spine {X = X} {c = c} spine)))
+        child-target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↑ CT.all {c = c})
+      (allv-reveal vV′ refl) spine chain typed acc rank target
+      with Prog.canonical-∀ (vV CT.↑ CT.all {c = c})
+        (CTI2T.target-typing² rel)
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↑ CT.all {c = c})
+      (allv-reveal vV′ refl) spine chain typed acc rank target
+      | Prog.av-reveal vVᵗ refl
+      with structural-target-reveal-peel vV spine target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↑ CT.all {c = c})
+      (allv-reveal vV′ refl) spine chain typed acc rank target
+      | Prog.av-reveal vVᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      with StructuralStrictViewSurfaces.reveal-cell surfaces plan
+        chain-plan rel vM vV spine chain typed ins follows child-target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↑ CT.all {c = c})
+      (allv-reveal vV′ refl) spine chain typed acc rank target
+      | Prog.av-reveal vVᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      | child =
+    finish-target child-final
+    where
+    child-value = renameᵗᵐ-preserves-Value wk↪ᵗ vV
+
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease
+        (StructuralStrictChild.child-plan child)
+        (StructuralStrictChild.child-chain-plan child)
+        (StructuralStrictChild.child-relation child) vM child-value
+        (reveal-child-spine {X = X} {c = c} spine)
+        (StructuralStrictChild.child-chain child)
+        (StructuralStrictChild.child-typed child)
+        (cast-mass-access
+          (pendingCastMass child-value
+            (reveal-child-spine {X = X} {c = c} spine)))
+        (acc-smaller rank (reveal-rank-decreases {c = c} vV spine))
+        child-target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↓ CT.all {c = c})
+      (allv-conceal vV′ refl) spine chain typed acc rank target
+      with Prog.canonical-∀ (vV CT.↓ CT.all {c = c})
+        (CTI2T.target-typing² rel)
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↓ CT.all {c = c})
+      (allv-conceal vV′ refl) spine chain typed acc rank target
+      | Prog.av-conceal vVᵗ refl
+      with structural-target-conceal-peel vV spine target
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↓ CT.all {c = c})
+      (allv-conceal vV′ refl) spine chain typed acc rank target
+      | Prog.av-conceal vVᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      with StructuralStrictViewSurfaces.conceal-cell surfaces plan
+        chain-plan rel vM vV spine chain typed ins follows child-target
+  structural-name-instantiation-acc surfaces {X = X} fuel-step catchup⁻-embed
+      inst-decrease plan chain-plan rel vM
+      (vV CT.↓ CT.all {c = c})
+      (allv-conceal vV′ refl) spine chain typed acc rank target
+      | Prog.av-conceal vVᵗ refl
+      | Δ₁ , π , W₁ , ins , follows , child-target , finish-target
+      | child =
+    finish-target child-final
+    where
+    child-value = renameᵗᵐ-preserves-Value wk↪ᵗ vV
+
+    child-final =
+      structural-value-spine-instantiation-acc surfaces fuel-step
+        catchup⁻-embed inst-decrease
+        (StructuralStrictChild.child-plan child)
+        (StructuralStrictChild.child-chain-plan child)
+        (StructuralStrictChild.child-relation child) vM child-value
+        (conceal-child-spine {X = X} {c = c} spine)
+        (StructuralStrictChild.child-chain child)
+        (StructuralStrictChild.child-typed child)
+        (cast-mass-access
+          (pendingCastMass child-value
+            (conceal-child-spine {X = X} {c = c} spine)))
+        (acc-smaller rank (conceal-rank-decreases {c = c} vV spine))
+        child-target
+
+
+structural-name-instantiation : StructuralNameInstantiationᵀ
+structural-name-instantiation surfaces {B = B} {X = X}
+    fuel-step catchup⁻-embed
+    inst-decrease plan chain-plan rel vM vV view spine chain typed target =
+  structural-name-instantiation-acc surfaces fuel-step catchup⁻-embed
+    inst-decrease plan chain-plan rel vM vV view spine chain typed
+    (cast-mass-access
+      (pendingCastMass vV
+        (name-type-app-frame B X refl refl ▻ⁱ spine)))
+    (rank-access
+      (pendingRank vV
+        (name-type-app-frame B X refl refl ▻ⁱ spine)))
+    target
 
 
 structural-value-instantiation : StructuralValueInstantiationᵀ

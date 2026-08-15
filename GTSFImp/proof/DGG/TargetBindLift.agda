@@ -29,7 +29,6 @@ open import Imprecision using
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
 open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_)
-open import FunExt using (funext)
 import TermCtx as T
 import proof.Imprecision as PI
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -38,7 +37,8 @@ import proof.DGG.SealPeelToolkit as SPT
 open import proof.TypeInTermSubst using
   (StoreTransport; StoreTransport-lift; StoreTransport-lift-bind;
    typing-store-transport)
-open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
+open import proof.ImprecisionConsistency using
+  (imp-env-weaken; toRenameᵗ-injective)
 
 open CTI2 using
   (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; PivotJoin;
@@ -57,15 +57,12 @@ open CTI2 using
 
 renameEnv-id : ∀ {Δ}
   → (μ : ImpEnv Δ)
-  → CR.renameEnv id↪ᵗ μ ≡ μ
-renameEnv-id {zero} μ = funext λ ()
-renameEnv-id {suc Δ} μ =
-  funext λ
-    { Fin.zero → refl
-    ; (Fin.suc X) →
-        cong (λ ν → ν X)
-          (renameEnv-id (λ Y → μ (Fin.suc Y)))
-    }
+  → ∀ X
+  → CR.renameEnv id↪ᵗ μ X ≡ μ X
+renameEnv-id {zero} μ ()
+renameEnv-id {suc Δ} μ Fin.zero = refl
+renameEnv-id {suc Δ} μ (Fin.suc X) =
+  renameEnv-id (λ Y → μ (Fin.suc Y)) X
 
 ------------------------------------------------------------------------
 -- The fresh target bind tower
@@ -182,7 +179,7 @@ record TargetStoreMove {Δᴸ Δᴿ Δ}
   field
     ηᴸ-same : CTI2.ηᴸʷ Wᵗ ≡ CTI2.ηᴸʷ W
     ηᴿ-same : CTI2.ηᴿʷ Wᵗ ≡ CTI2.ηᴿʷ W
-    impEnv-same : CTI2.impEnvʷ Wᵗ ≡ CTI2.impEnvʷ W
+    impEnv-same : ∀ X → CTI2.impEnvʷ Wᵗ X ≡ CTI2.impEnvʷ W X
     sourceStore-same : CTI2.sourceStoreʷ Wᵗ ≡ CTI2.sourceStoreʷ W
     targetStore-transport :
       StoreTransport (CTI2.targetStoreʷ W) (CTI2.targetStoreʷ Wᵗ)
@@ -198,7 +195,16 @@ move⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → TargetStoreMove W Wᵗ
   → A ⊑ᵂ⟨ W ⟩ B
   → A ⊑ᵂ⟨ Wᵗ ⟩ B
-move⊑ᵂ (target-store-move refl refl refl refl hΣ resolve) p = p
+move⊑ᵂ (target-store-move refl refl same refl hΣ resolve) p =
+  imp-env-weaken (λ X dynamic → trans (same X) dynamic) p
+
+move⊑ᵂ-back : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → TargetStoreMove W Wᵗ
+  → A ⊑ᵂ⟨ Wᵗ ⟩ B
+  → A ⊑ᵂ⟨ W ⟩ B
+move⊑ᵂ-back (target-store-move refl refl same refl hΣ resolve) p =
+  imp-env-weaken (λ X dynamic → trans (sym (same X)) dynamic) p
 
 moveCtx : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → TargetStoreMove W Wᵗ
@@ -235,10 +241,10 @@ moveImpEnvMono : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W₁ W₂
   → CTI2.ImpEnvMono W₁ᵗ W₂ᵗ
 moveImpEnvMono
-    (target-store-move refl refl refl refl hΣ₁ resolve₁)
-    (target-store-move refl refl refl refl hΣ₂ resolve₂)
-    mono =
-  mono
+    (target-store-move refl refl same₁ refl hΣ₁ resolve₁)
+    (target-store-move refl refl same₂ refl hΣ₂ resolve₂)
+    mono X dynamic =
+  trans (same₂ X) (mono X (trans (sym (same₁ X)) dynamic))
 
 private
   moveRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ}
@@ -247,16 +253,16 @@ private
     → TargetStoreMove W Wᵗ
     → CTI2.Rep★PartnerOK W X P Xᴿ? M′
     → CTI2.Rep★PartnerOK Wᵗ X P Xᴿ? M′
-  moveRep★PartnerOK (target-store-move refl refl refl refl hΣ resolve)
+  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
       (CTI2.rep★-untagged nt) =
     CTI2.rep★-untagged nt
-  moveRep★PartnerOK (target-store-move refl refl refl refl hΣ resolve)
+  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
       (CTI2.rep★-nonvar-tag Gnv) =
     CTI2.rep★-nonvar-tag Gnv
-  moveRep★PartnerOK (target-store-move refl refl refl refl hΣ resolve)
+  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
       (CTI2.rep★-var-tag aligned) =
     CTI2.rep★-var-tag aligned
-  moveRep★PartnerOK (target-store-move refl refl refl refl hΣ resolve)
+  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
       (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
     CTI2.rep★-matched-inner-tags X₂≢X aligned
   moveRep★PartnerOK mv (CTI2.rep★-round-trip ok) =
@@ -314,10 +320,14 @@ liftMoveBoth : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → TargetStoreMove W Wᵗ
   → TargetStoreMove (CTI2.liftWorldBoth v W) (CTI2.liftWorldBoth v Wᵗ)
-liftMoveBoth v (target-store-move refl refl refl refl hΣ resolve) =
-  target-store-move refl refl refl refl (StoreTransport-lift hΣ)
+liftMoveBoth v (target-store-move refl refl same refl hΣ resolve) =
+  target-store-move refl refl same′ refl (StoreTransport-lift hΣ)
     resolve-lift
   where
+  same′ : ∀ X → extendᵐ v _ X ≡ extendᵐ v _ X
+  same′ Fin.zero = refl
+  same′ (Fin.suc X) = same X
+
   resolve-lift : ∀ {X R}
     → store-lift _ ∋ X ⦂ R
     → CTI2.resolveVar (store-lift _) X ≡ CTI2.resolveVar (store-lift _) X
@@ -327,8 +337,12 @@ liftMoveLeft : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → TargetStoreMove W Wᵗ
   → TargetStoreMove (CTI2.liftWorldLeft v W) (CTI2.liftWorldLeft v Wᵗ)
-liftMoveLeft v (target-store-move refl refl refl refl hΣ resolve) =
-  target-store-move refl refl refl refl hΣ resolve
+liftMoveLeft v (target-store-move refl refl same refl hΣ resolve) =
+  target-store-move refl refl same′ refl hΣ resolve
+  where
+  same′ : ∀ X → extendᵐ v _ X ≡ extendᵐ v _ X
+  same′ Fin.zero = refl
+  same′ (Fin.suc X) = same X
 
 moveCtx-tgt : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → (mv : TargetStoreMove W Wᵗ)
@@ -449,9 +463,9 @@ target-pivot-star-source : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
 target-pivot-star-source
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other) =
-  pivot-star
+  trans (sym (same _)) pivot-star
 
 premiseMoveEqAny : ∀ {Δᴸ Δᴿ Δ Δᴸ′ Δ′}
     {W Wᵗ : World Δᴸ Δᴿ Δ}
@@ -462,9 +476,9 @@ premiseMoveEqAny : ∀ {Δᴸ Δᴿ Δ Δᴸ′ Δ′}
 premiseMoveEqAny
     {Wᵗ = Wᵗ}
     {W′ = W′}
-    (target-store-move refl refl refl refl hΣ resolve)
+    (target-store-move refl refl same refl hΣ resolve)
     targetEq =
-  target-store-move refl refl refl refl transport′ resolve′
+  target-store-move refl refl (λ X → refl) refl transport′ resolve′
   where
   transport′ :
     StoreTransport (CTI2.targetStoreʷ W′) (CTI2.targetStoreʷ Wᵗ)
@@ -498,13 +512,13 @@ premiseTargetBindMove : ∀ {Δᴸ Δᴿ Δ}
 premiseTargetBindMove
     {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     mono targetEq frozenY =
   target-bind-lift-move
     (premiseMoveEq
       {W = W} {Wᵗ = Wᵗ} {W′ = W′}
-      (target-store-move refl refl refl refl hΣ resolve) targetEq)
+      (target-store-move refl refl same refl hΣ resolve) targetEq)
     pivot-star′ old-pivot′ pivot-res other′
   where
   pivot-star′ :
@@ -512,7 +526,8 @@ premiseTargetBindMove
   pivot-star′ =
     subst≡ (λ Z → CTI2.impEnvʷ W′ Z ≡ X⊑★)
       (sym frozenY)
-      (mono (toRenameᵗ (CTI2.ηᴿʷ W) Y) pivot-star)
+      (mono (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+        (trans (sym (same _)) pivot-star))
 
   old-pivot′ : CTI2.resolveVar (CTI2.targetStoreʷ W′) Y ≡ ＇ Y
   old-pivot′ =
@@ -638,7 +653,7 @@ moveSmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
       (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ)) β α
 moveSmartAliasMergeGuard
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     guard =
   CTI2.smart-alias-merge-guard
@@ -646,15 +661,19 @@ moveSmartAliasMergeGuard
     (hΣ (CTI2.SmartAliasMergeGuard.α:=★ guard))
     (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
     refl
-    (CTI2.SmartAliasMergeGuard.transport⊑ᵂ guard)
-    (CTI2.SmartAliasMergeGuard.old-mark-mono guard)
+    (λ p → CTI2.SmartAliasMergeGuard.transport⊑ᵂ guard
+      (move⊑ᵂ-back (liftMoveLeft X⊑★ mv) p))
+    (λ Z dynamic → CTI2.SmartAliasMergeGuard.old-mark-mono guard Z
+      (trans (sym (same Z)) dynamic))
     (CTI2.SmartAliasMergeGuard.target-frozen guard)
     (CTI2.SmartAliasMergeGuard.pending-at-alias guard)
     (CTI2.SmartAliasMergeGuard.old-source-frozen guard)
     (CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard)
     (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard)
     (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard)
-    (CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard)
+    (λ X X≢β X≢α dynamic →
+      CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard
+        X X≢β X≢α (trans (sym (same _)) dynamic))
 
 moveSmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {W Wᵗ : World Δᴸ Δᴿ Δ}
@@ -665,20 +684,23 @@ moveSmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
       (targetStoreAs Wᵐ (CTI2.targetStoreʷ Wᵗ))
 moveSmartFreshBehindGuard
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     guard =
   CTI2.smart-fresh-behind-guard
     (CTI2.SmartFreshBehindGuard.oldCenters guard)
     (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
     refl
-    (CTI2.SmartFreshBehindGuard.transport⊑ᵂ guard)
-    (CTI2.SmartFreshBehindGuard.old-mark-mono guard)
+    (λ p → CTI2.SmartFreshBehindGuard.transport⊑ᵂ guard
+      (move⊑ᵂ-back (liftMoveLeft X⊑★ mv) p))
+    (λ Z dynamic → CTI2.SmartFreshBehindGuard.old-mark-mono guard Z
+      (trans (sym (same Z)) dynamic))
     (CTI2.SmartFreshBehindGuard.target-frozen guard)
     (CTI2.SmartFreshBehindGuard.old-source-frozen guard)
     (CTI2.SmartFreshBehindGuard.fresh-not-target guard)
     (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard)
-    (CTI2.SmartFreshBehindGuard.target-mark-mono guard)
+    (λ X dynamic → CTI2.SmartFreshBehindGuard.target-mark-mono guard X
+      (trans (sym (same _)) dynamic))
 
 moveSmartCommaLiftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {W Wᵗ : World Δᴸ Δᴿ Δ}
@@ -714,14 +736,14 @@ moveStoreRepBindLift : ∀ {Δᴸ Δᴿ Δ}
 moveStoreRepBindLift
     {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     (CTI2.store-rep-imp represented)
     with FinP._≟_ Xᴿ Y
 moveStoreRepBindLift
     {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = .Y}
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     (CTI2.store-rep-imp represented)
     | yes refl
@@ -736,7 +758,7 @@ moveStoreRepBindLift
 moveStoreRepBindLift
     {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = .Y}
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     (CTI2.store-rep-imp represented)
     | yes refl | X₂ , source-eq , aligned =
@@ -754,7 +776,7 @@ moveStoreRepBindLift
 moveStoreRepBindLift
     {W = W} {Wᵗ = Wᵗ} {Y = Y} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     (CTI2.store-rep-imp represented)
     | no Xᴿ≢Y =
@@ -763,7 +785,7 @@ moveStoreRepBindLift
       (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
         ⊑ᵂ⟨ Wᵗ ⟩ B)
       (sym (other Xᴿ Xᴿ≢Y))
-      represented)
+      (move⊑ᵂ mv represented))
 
 moveRebaseAtForwardBindLift : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ Xᴿ}
@@ -776,7 +798,7 @@ moveRebaseAtForwardBindLift : ∀ {Δᴸ Δᴿ Δ}
 moveRebaseAtForwardBindLift
     {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
     mv@(target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     mono
     (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
@@ -799,7 +821,7 @@ moveRebaseAtBackwardBindLift : ∀ {Δᴸ Δᴿ Δ}
 moveRebaseAtBackwardBindLift
     {W = W} {Wᵗ = Wᵗ} {W′ = W′} {Y = Y}
     mv@(target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      (target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     mono
     (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
@@ -860,15 +882,16 @@ moveRebaseAtᴸForwardBindLift mv mono (CTI2.rebase-varᴸ rb)
   W′ᵗ , mv′ , CTI2.rebase-varᴸ rb′
 moveRebaseAtᴸForwardBindLift
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     mono
     (CTI2.rebase-onlyᴸ to-star disaligned represented) =
   _ ,
   target-bind-lift-move
-    (target-store-move refl refl refl refl hΣ resolve)
+    mv
     pivot-star old-pivot pivot-res other ,
-  CTI2.rebase-onlyᴸ to-star disaligned represented
+  CTI2.rebase-onlyᴸ (trans (same _) to-star) disaligned
+    (move⊑ᵂ mv represented)
 
 moveTagRebaseAtᴸBackwardBindLift : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Y Xᴸ? Xᴿ?}
@@ -887,15 +910,16 @@ moveTagRebaseAtᴸBackwardBindLift mv mono (CTI2.tag-rebase-varᴸ rb)
   W′ᵗ , mv′ , CTI2.tag-rebase-varᴸ rb′
 moveTagRebaseAtᴸBackwardBindLift
     (target-bind-lift-move
-      (target-store-move refl refl refl refl hΣ resolve)
+      mv@(target-store-move refl refl same refl hΣ resolve)
       pivot-star old-pivot pivot-res other)
     mono
     (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
   _ ,
   target-bind-lift-move
-    (target-store-move refl refl refl refl hΣ resolve)
+    mv
     pivot-star old-pivot pivot-res other ,
-  CTI2.tag-rebase-onlyᴸ to-star disaligned represented
+  CTI2.tag-rebase-onlyᴸ (trans (same _) to-star) disaligned
+    (move⊑ᵂ mv represented)
 
 moveStoreRepWithTarget∈ : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {Xᴸ Xᴿ R}
@@ -907,7 +931,7 @@ moveStoreRepWithTarget∈
     {W = W}
     {Wᵗ = Wᵗ}
     {Xᴸ = Xᴸ}
-    (target-store-move refl refl refl refl hΣ resolve)
+    mv@(target-store-move refl refl same refl hΣ resolve)
     X∈
     (CTI2.store-rep-imp represented) =
   CTI2.store-rep-imp
@@ -915,7 +939,7 @@ moveStoreRepWithTarget∈
       (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
         ⊑ᵂ⟨ Wᵗ ⟩ B)
       (sym (resolve X∈))
-      represented)
+      (move⊑ᵂ mv represented))
 
 moveRebaseAtForwardWithTarget∈ : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ W′ : World Δᴸ Δᴿ Δ} {Xᴸ Xᴿ R}
@@ -930,7 +954,7 @@ moveRebaseAtForwardWithTarget∈
     {W′ = W′}
     {Xᴿ = Xᴿ}
     {R = R}
-    mv@(target-store-move refl refl refl refl hΣ resolve)
+    mv@(target-store-move refl refl same refl hΣ resolve)
     (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
       off frozen aligned reps)
     X∈ =
@@ -954,7 +978,7 @@ moveRebaseAtBackwardWithTarget∈ : ∀ {Δᴸ Δᴿ Δ}
 moveRebaseAtBackwardWithTarget∈
     {Wᵗ = Wᵗ}
     {W′ = W′}
-    mv@(target-store-move refl refl refl refl hΣ resolve)
+    mv@(target-store-move refl refl same refl hΣ resolve)
     (CTI2.rebase-at (CTI2.same-runtime sourceEq targetEq)
       off frozen aligned reps)
     X∈ =
@@ -981,7 +1005,7 @@ source-reveal-move : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.sourceStoreʷ W CTI2.⊢↑[ X? ] c
   → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↑[ X? ] c
 source-reveal-move
-    (target-store-move refl refl refl refl hΣ resolve) c⊢ = c⊢
+    (target-store-move refl refl same refl hΣ resolve) c⊢ = c⊢
 
 source-conceal-move : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {X? A B}
@@ -990,7 +1014,7 @@ source-conceal-move : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.sourceStoreʷ W CTI2.⊢↓[ X? ] c
   → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↓[ X? ] c
 source-conceal-move
-    (target-store-move refl refl refl refl hΣ resolve) c⊢ = c⊢
+    (target-store-move refl refl same refl hΣ resolve) c⊢ = c⊢
 
 ⊢²-target-bind-lift-move : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {Y}
@@ -1206,12 +1230,20 @@ freshLiftToBindMove {W = W} {v = v} =
       (sym (∘↪-idˡ (keep (skip (CTI2.ηᴸʷ W))))))
     (cong skip
       (sym (∘↪-idˡ (keep (keep (CTI2.ηᴿʷ W))))))
-    (sym (cong (extendᵐ X⊑★)
-      (renameEnv-id (extendᵐ v (instᵐ (CTI2.impEnvʷ W))))))
+    same
     refl
     StoreTransport-lift-bind
     resolve
   where
+  same : ∀ X
+    → extendᵐ X⊑★ (extendᵐ v (instᵐ (CTI2.impEnvʷ W))) X
+      ≡ extendᵐ X⊑★
+          (CR.renameEnv id↪ᵗ
+            (extendᵐ v (instᵐ (CTI2.impEnvʷ W)))) X
+  same Fin.zero = refl
+  same (Fin.suc X) =
+    sym (renameEnv-id (extendᵐ v (instᵐ (CTI2.impEnvʷ W))) X)
+
   resolve : ∀ {Δ} {Σ : TyStore (suc Δ)} {X R}
     → store-lift Σ ∋ X ⦂ R
     → CTI2.resolveVar (store-bind Σ (＇ Fin.zero)) X
@@ -1261,7 +1293,7 @@ freshLiftToBindTargetMoveAt : ∀ {Δᴸ Δᴿ Δ}
       Fin.zero
 freshLiftToBindTargetMoveAt {W = W} {Σ₂ = Σ₂} hΣ pivot other =
   target-bind-lift-move
-    (target-store-move refl refl refl refl hΣ resolve)
+    (target-store-move refl refl (λ X → refl) refl hΣ resolve)
     refl refl pivot other
   where
   resolve : ∀ {X R}
@@ -1292,7 +1324,7 @@ freshLiftToBindTargetMoveAtκ : ∀ {Δᴸ Δᴿ Δ Δ′}
 freshLiftToBindTargetMoveAtκ {W = W} κ {Σ₂ = Σ₂}
     pivot-star hΣ pivot other =
   target-bind-lift-move
-    (target-store-move refl refl refl refl hΣ resolve)
+    (target-store-move refl refl (λ X → refl) refl hΣ resolve)
     pivot-star refl pivot other
   where
   resolve : ∀ {X R}
@@ -1335,7 +1367,7 @@ freshLiftToBindTargetMoveAtκᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
 freshLiftToBindTargetMoveAtκᴸ {W = W} κ {Σ₂ = Σ₂}
     pivot-star hΣ pivot other =
   target-bind-lift-move
-    (target-store-move refl refl refl refl hΣ resolve)
+    (target-store-move refl refl (λ X → refl) refl hΣ resolve)
     pivot-star refl pivot other
   where
   resolve : ∀ {X R}
@@ -1357,14 +1389,24 @@ freshLiftToBindMoveᴸ {W = W} {v = v} =
       (sym (∘↪-idˡ (keep (keep (skip (CTI2.ηᴸʷ W)))))))
     (cong skip
       (sym (∘↪-idˡ (keep (skip (keep (CTI2.ηᴿʷ W)))))))
-    (sym (cong (extendᵐ X⊑★)
-      (renameEnv-id
-        (extendᵐ v (extendᵐ X⊑★
-          (instᵐ (CTI2.impEnvʷ W)))))))
+    same
     refl
     StoreTransport-lift-bind
     resolve
   where
+  same : ∀ X
+    → extendᵐ X⊑★
+        (extendᵐ v (extendᵐ X⊑★
+          (instᵐ (CTI2.impEnvʷ W)))) X
+      ≡ extendᵐ X⊑★
+          (CR.renameEnv id↪ᵗ
+            (extendᵐ v (extendᵐ X⊑★
+              (instᵐ (CTI2.impEnvʷ W))))) X
+  same Fin.zero = refl
+  same (Fin.suc X) =
+    sym (renameEnv-id
+      (extendᵐ v (extendᵐ X⊑★ (instᵐ (CTI2.impEnvʷ W)))) X)
+
   resolve : ∀ {Δ} {Σ : TyStore (suc Δ)} {X R}
     → store-lift Σ ∋ X ⦂ R
     → CTI2.resolveVar (store-bind Σ (＇ Fin.zero)) X

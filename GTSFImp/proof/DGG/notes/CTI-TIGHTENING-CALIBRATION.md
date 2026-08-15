@@ -109,6 +109,7 @@ scratch is `CTITighteningProvScratch.agda`.
 | Candidate | Scope | Verdict | Reason |
 | --- | --- | --- | --- |
 | S-NARROW | Direction/shape composition only | **Refuted** | C1 still derives the bad square because the bad and good projections have identical cast/world endpoints. |
+| S-WORLD | Items 1-3 only: provenance cells and capability-gated `⊑ᵂ`, type-level cast rules | **Refuted** | C1-W still derives the bad square by rerouting through the good square's final target-projection tuple. |
 | S-PROV CORE | Items 1-5: provenance cells, decay capability, runtime alignment witnesses, cast-derivation relation, term-shaped projections | **Recommended** | C1 blocks the mismatch and keeps the matching and residual controls.  C2 is compatible when the term-shaped clause is scoped to generated/runtime-aligned projections. |
 | S-PROV item 6 | Remove `CatchupCast`, `CatchupCast⁻`, and `CatchupColumn` | **Defer** | It reworks the M4/M6/NS-4 fuel knot and is not needed for the CORE tightening. |
 
@@ -320,9 +321,44 @@ Verdict: **defer item 6**.  Keep the catch-up judgments while landing CORE,
 then remove them in a separate arc once CTI-internal inversion has the same
 term-independent tail embedding story.
 
+## S-WORLD Column
+
+Status: evaluation only.  No live CTI2 or proof files were edited.  The checked
+scratch is `CTITighteningWorldScratch.agda`.
+
+The faithful S-WORLD rendering used for the negative test records
+`probe-cell` as
+`source-only-birth, mark-X⊑★, source-star-use, runtime-aligned,
+matched-generated-cast`.  `SourceStarCapability` gates the `X⊑★` endpoint, and
+`RuntimeAlignment` gates the `qXY : ＇X ⊑ᵂ ＇Y` endpoint with explicit
+`StoreRepImp`, `RebaseAt`, and cast-ancestry witnesses.  `decay-cell` changes
+only the current mark, with `decay-preserves-capability` and
+`probe-decay-preserves-capability` checking that capability is preserved.  A
+stricter matched-only endpoint gate was also checked: it proves
+`strict-runtime-endpoint-blocks-good-square`, so it blocks the genuine runtime
+state and is too strong for the positive control.
+
+| Cell | S-WORLD verdict | Evidence |
+| --- | --- | --- |
+| C1-W Soundness | **CHECKED-FAIL** | Outcome A: `world-only-bad-square-still-derivableᵂ` typechecks.  The derivation first builds the source side through `X!` and `X?` back to `X⊑★W`, then applies `target-project-Y?-OKᵂ`. |
+| Positive control | **CHECKED-OK** | `matching-projectionᵂ`, `good-generated-projection-siteᵂ`, `post-cancellation-residualᵂ`, and `good-generated-catchupᵂ` typecheck with the same rule set. |
+| C2 Compile representatives | **CHECKED-OK** | `compile-paired-base-siteᵂ`, `compile-source-one-sided-siteᵂ`, and `compile-target-one-sided-siteᵂ` typecheck. |
+| Strict variant | **CHECKED-FAIL for viability** | `strict-runtime-endpoint-blocks-good-square` shows the only stricter plausible gate blocks the positive `qXY` endpoint itself. |
+
+Verdict: world-only tightening does not suffice.  The distinguishing power
+missing from S-WORLD is term-level memory of the target input to the final
+projection.  In the good square and rerouted bad square, the final rule uses
+the same world `N.W`, the same premise witness `N.X⊑★W`, the same conclusion
+witness `N.qXY`, the same cast `N.Y?`, and the same capability/runtime
+alignment witnesses.  The only difference is the target term before the final
+projection: the good square has the generated input `V⟨Y!⟩`, while the bad
+square has `0⟨ℕ!⟩`.  A type-level target cast rule cannot see that difference;
+the term-shaped projection/residual clauses from S-PROV CORE are the needed
+extra invariant.
+
 ## Recommendation
 
-Land S-PROV CORE, not S-NARROW.  The CORE rule should be scoped so the
+Land S-PROV CORE, not S-NARROW or S-WORLD.  The CORE rule should be scoped so the
 term-shaped projection restriction governs generated/runtime-aligned
 projections, while ordinary compile-time dynamic projections keep a separate
 non-generated premise.  Defer item 6 until after the world-provenance and

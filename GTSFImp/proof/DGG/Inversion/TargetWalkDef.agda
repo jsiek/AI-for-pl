@@ -121,6 +121,64 @@ TargetSourceStarAt =
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
   → TargetSourceStarAtResult W γ V U X Y S c q
 
+data TargetSourceStarChainResult {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
+    (V : Term Δᴸ) (U : Term Δᴿ)
+    (Xᴸ X₂ : TyVar Δᴸ) (Y Y₂ : TyVar Δᴿ) :
+    {ν : Env∼ Δᴸ} (c : ν ⊢ (＇ X₂) ∼ ★) →
+    (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)) → Set where
+  target-source-star-chain-final : ∀ {ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → W ∣ γ ⊢²
+        (V ⟨ c ⟩) ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-residual : ∀ {P ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-paired : ∀ {P Uᵖ Yᵖ Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Y
+    → CTI2.SameCtx γ γᵖ
+    → CTI2.MatchedConcealPartnerOK Wᵖ P (seal Xᴸ ★) (just Yᵖ) Uᵖ
+    → Wᵖ ∣ γᵖ ⊢² P ⊑ Uᵖ ∶ p★
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-payload : ∀ {P Uᵖ Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {pᵖ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Y
+    → CTI2.SameCtx γ γᵖ
+    → Wᵖ ∣ γᵖ ⊢² P ↓ seal Xᴸ ★ ⊑ Uᵖ ∶ pᵖ
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
 TargetSourceStarChain : Set
 TargetSourceStarChain =
   ∀ {Δᴸ Δᴿ Δ}
@@ -140,6 +198,4 @@ TargetSourceStarChain =
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y (＇ Y₂) ∶ p₂
-  → W ∣ γ ⊢²
-      (V ⟨ c ⟩) ↓ seal Xᴸ ★
-      ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+  → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q

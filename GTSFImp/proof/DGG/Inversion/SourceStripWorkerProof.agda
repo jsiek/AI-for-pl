@@ -42,7 +42,9 @@ open import proof.DGG.Inversion.SpineValueDef using
    var-value-view; variable-obligation-aligns; seal-rebase-target)
 open import proof.DGG.Inversion.TargetChainLemma using
   (target-source-star-at; target-source-star-chain)
-open import proof.DGG.Inversion.TargetWalkDef using (TargetSourceStarAt)
+open import proof.DGG.Inversion.TargetWalkDef using
+  (TargetSourceStarAt; target-source-star-final;
+   target-source-star-chain-final)
 open import proof.DGG.Inversion.TargetWalkSupport using
   (impEnvMono-∘; inner-source-pivot-eq; rebase-source-membership;
    rebase-source-membership-back; rebase-target-membership;
@@ -391,6 +393,7 @@ private
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
     → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
         ⊑ U ↓ seal Y S ∶ q
+  {-# NON_COVERING #-}
   wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
       {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
       {c = c} {p₂ = p₂} {q = q}
@@ -400,19 +403,29 @@ private
       {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
       {c = c} {p₂ = p₂} {q = q}
       sv inert vU mono rb sc source∈ target∈ final
-      | refl =
-    source-column-untagged-final mono rb sc target∈
-      (target-source-star-at-opaque
+      | refl
+      with target-source-star-at-opaque
         {W = W′} {γ = γ′} {V = V} {U = U}
         {X = Xᴸ} {Y = Y} {S = ★} {c = c} {q = p₂}
         sv inert vU
         (rebase-source-membership rb source∈)
         (rebase-target-membership-forward rb target∈)
-        final)
+        final
+  wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
+      {c = c} {p₂ = p₂} {q = q}
+      sv inert vU mono rb sc source∈ target∈ final
+      | refl | target-source-star-final sourcePrem =
+    source-column-untagged-final mono rb sc target∈
+      sourcePrem
   wrap-star-cast-final {S = ＇ Y₂}
-      sv inert vU mono rb sc source∈ target∈ final =
-    target-source-star-chain sv inert vU mono rb sc source∈
-      target∈ final
+      sv inert vU mono rb sc source∈ target∈ final
+      with target-source-star-chain sv inert vU mono rb sc source∈
+        target∈ final
+  wrap-star-cast-final {S = ＇ Y₂}
+      sv inert vU mono rb sc source∈ target∈ final
+      | target-source-star-chain-final chain =
+    chain
   wrap-star-cast-final {S = ‵ ι}
       sv inert vU mono rb sc source∈ target∈ final =
     ⊥-elim

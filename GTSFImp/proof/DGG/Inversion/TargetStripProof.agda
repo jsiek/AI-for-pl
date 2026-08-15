@@ -736,10 +736,12 @@ seal-descent-current-star : ∀ {Δᴸ Δᴿ Δ}
   → targetStoreʷ W ∋ Y ⦂ ★
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y ★ ∶ r
   → TargetSealTerminusData W γ V (＇ X) U X Y ★
+{-# NON_COVERING #-}
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
     with STC.seal-transfer sv vU source∈ D
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
-    | W★ , γ★ , link , mono★ , same★ , q★ , premise★ =
+    | STC.seal-transfer-stripped {W₂ = W★} {γ₂ = γ★} {q₂ = q★}
+        link mono★ same★ premise★ =
   target-seal-terminus-data U Y W★ γ★ mono★ same★ link
     (rebase-target-membership-forward link target∈) q★ premise★
 
@@ -1107,6 +1109,7 @@ seal-descent-at-var-nonvar Snv Sns sv vU mono rb sc source∈
   ⊥-elim (seal-target-nonstar-⊥ source∈ rb target∈ Snv Sns)
 
 seal-descent-at-var : SealDescentAtVar
+{-# NON_COVERING #-}
 seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {U = U} {A = A} {S = ★}
     {Xᴸ = Xᴸ} {Y = Y} {r = r} sv vU mono rb sc source∈
@@ -1129,7 +1132,8 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {U = U} {S = ★}
     {Xᴸ = Xᴸ} {Y = Y} sv vU mono rb sc source∈ target∈ D
     | .Xᴸ , refl , aligned | refl
-    | W★ , γ★ , link , mono★ʳ , same★ʳ , q★ , premise★ =
+    | STC.seal-transfer-stripped {W₂ = W★} {γ₂ = γ★}
+        {q₂ = q★} link mono★ʳ same★ʳ premise★ =
   target-seal-terminus-data U Y W★ γ★
     (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = W★}
       mono mono★ʳ)

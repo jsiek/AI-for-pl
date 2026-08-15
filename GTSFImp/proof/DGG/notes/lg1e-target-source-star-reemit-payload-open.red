@@ -47,3 +47,36 @@ cannot be consumed by the next re-emission layer.  The next patch should either:
 
 This is not a protected public-surface stop: `TargetWalkDef` and
 `TargetChainProof` are M3-internal machinery per the LG-1d supervisor ruling.
+
+2026-08-15 RESOLVED postscript for LG-1g:
+
+`TargetSourceStarChain` now returns the branch-sensitive
+`TargetSourceStarChainResult` family instead of forcing the old single final
+proof.  The three recursive `target-source-star-at` terminus shapes are carried
+one level up:
+
+- `target-source-star-chain-residual` carries the residual source-seal square,
+  same-world rebase, and source/target store memberships.
+- `target-source-star-chain-paired` carries the rebuilt paired seal square plus
+  the matched partner evidence and premise-world provenance.
+- `target-source-star-chain-payload` carries the rebuilt target-payload square
+  plus the premise-world provenance.
+
+`TargetChainProof.target-source-star-chain` closes the former payload hole by
+constructing these alternatives rather than attempting the impossible source
+cast step from `＇ X ⊑ ＇ Y` to `★ ⊑ ＇ Y`.  `RightInjInversion2Proof` consumes
+all alternatives at the site where the matching target cast is available, using
+the carried residual square under `cast⊑cast²`.
+
+Regression evidence:
+
+- `GTSFImp/proof/DGG/Inversion/TargetWalkDef.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/TargetChainProof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/SourceStripWorkerProof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/TargetStripProof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/TargetWalkProof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/SourceStripProof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/RightInjInversion2Proof.agda`: pass
+- `GTSFImp/proof/DGG/Inversion/RightInjInversion2Lemma.agda`: pass
+- full gate `cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`:
+  pass, `postulate-check: OK (FunExt-only)`.

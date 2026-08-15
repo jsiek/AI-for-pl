@@ -10,12 +10,16 @@ open import Data.Nat using (ℕ; suc; _<_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyCtx; TyVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
+open import Types using
+  (Ty; TyCtx; TyVar; NonVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ;
+   _∈ᵗ_; var-∈; singleSubᵗ; substNonVar)
 open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
 open import Consistency using
-  (Env∼; extᵐ; instᵐ; _⊢_∼_; ↑ᶜ_; close-instᶜ; _[_]ᶜ)
-open import CastTerms using (Inert; GenSafe)
+  (Env∼; X∼X; extᵐ; instᵐ; _⊢_∼_; ↑ᶜ_; close-instᶜ;
+   _[_]ᶜ; subst-∈ᵗ)
+open import CastTerms using
+  (Inert; GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
 open import Reduction using
@@ -100,6 +104,47 @@ cast-frame-class-map {fuel = fuel} (bind R) {c = c}
        prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
          {χs = bind R ∷ χs} {W = W} {Aₛ = Aₛ}
          {p = p} {q = q})
+
+
+cast-frame-class-from-gen-safe-view : ∀ {fuel : ℕ} {Δ : TyCtx}
+    {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (safe : GenSafe c)
+  → PC.GenSafeView safe
+  → CastFrameClass {fuel = fuel} c
+cast-frame-class-from-gen-safe-view safe-⇒ (PC.gen-safe-inert inert) =
+  cast-inert inert
+cast-frame-class-from-gen-safe-view safe-∀ (PC.gen-safe-inert inert) =
+  cast-inert inert
+cast-frame-class-from-gen-safe-view (safe-inst B≢★)
+    (PC.gen-safe-inert ())
+cast-frame-class-from-gen-safe-view (safe-inst B≢★)
+    (PC.gen-safe-inst _) =
+  cast-safe (safe-inst B≢★)
+cast-frame-class-from-gen-safe-view (safe-gen A≢★ safe)
+    (PC.gen-safe-inert inert) =
+  cast-inert inert
+
+
+opened-all-cast-frame-class : ∀ {fuel : ℕ} {Δ : TyCtx} {μ : Env∼ Δ}
+    {B C : Ty (suc Δ)} {X : TyVar Δ}
+    {d : extᵐ μ ⊢ B ∼ C}
+  → μ X ≡ X∼X
+  → NonVar C
+  → Fin.zero ∈ᵗ C
+  → CastFrameClass {fuel = fuel} (d [ ＇ X ]ᶜ)
+opened-all-cast-frame-class {C = C} {X = X} {d = d} strict Cnv zero∈C =
+  cast-frame-class-from-gen-safe-view safe (PC.gen-safe-view safe)
+  where
+  opened-nonvar : NonVar (C [ ＇ X ]ᵗ)
+  opened-nonvar = substNonVar (singleSubᵗ (＇ X)) Cnv
+
+  opened-occurs : X ∈ᵗ C [ ＇ X ]ᵗ
+  opened-occurs = subst-∈ᵗ zero∈C var-∈
+
+  safe : GenSafe (d [ ＇ X ]ᶜ)
+  safe = PC.strict-safe strict (d [ ＇ X ]ᶜ)
+    opened-nonvar opened-occurs
 
 
 data SpineTyped {fuel : ℕ} {Δ} (Σ : TyStore Δ) :
@@ -282,14 +327,22 @@ spine-typed-all-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {d : extᵐ μ ⊢ B ∼ C}
     {spine : InstantiationSpine (C [ ＇ X ]ᵗ) E}
   → GFG.StructuralAllGeneratedFrameGeometry W Aₛ C X
-  → CastFrameClass {fuel = fuel} (d [ ＇ X ]ᶜ)
+  → μ X ≡ X∼X
+  → NonVar C
+  → Fin.zero ∈ᵗ C
   → SpineTypedʷ {fuel = fuel} W (mapInstantiationSpine keep spine)
   → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine)
-spine-typed-all-child geom cls typed =
-  st-name (st-cast cls typed)
+spine-typed-all-child {fuel = fuel} {Δᴿ = Δᴿ} {B = B} {C = C}
+    {X = X} {μ = μ} {d = d} geom strict Cnv zero∈C typed =
+  st-name
+    (st-cast
+      (opened-all-cast-frame-class
+        {fuel = fuel} {Δ = Δᴿ} {μ = μ} {B = B} {C = C}
+        {X = X} {d = d} strict Cnv zero∈C)
+      typed)
 
 
 spine-typed-Λ-child : ∀ {fuel Δᴸ Δᴿ Δ}

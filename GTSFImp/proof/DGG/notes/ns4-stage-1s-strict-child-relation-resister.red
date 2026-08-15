@@ -103,3 +103,35 @@ carry that relation evidence.
 This is independent of the older public value adapter blocker from
 `ns4-stage-1o-target-builder-resister.red`: `StructuralValueInstantiationᵀ`
 still lacks a caller-supplied root target package or a total target normalizer.
+
+
+SUPERVISOR CORRECTION postscript, 2026-08-15
+--------------------------------------------
+
+The strict-child relation gaps named above are not stage-1 obligations.
+They are intentionally deferred to the higher-order strict view surface
+inhabitants:
+
+- `StructuralΛStrictSurfaceᵀ`
+- `StructuralAllCastStrictSurfaceᵀ`
+- `StructuralGenStrictSurfaceᵀ`
+- `StructuralRevealStrictSurfaceᵀ`
+- `StructuralConcealStrictSurfaceᵀ`
+
+Those inhabitants are NS-4 stage 2 producers and are expected to use the
+M3-style target-wrapper inversion machinery.  Stage 1 only delegates to these
+surfaces and consumes their returned `StructuralStrictChild` data.
+
+The deferred square for each strict target wrapper has the same shape:
+
+$$
+\begin{array}{ccc}
+M & \sqsubseteq & \operatorname{wrap}(V) \\
+\downarrow^{0} & & \downarrow \\
+M & \sqsubseteq & V_{\mathsf{child}}
+\end{array}
+$$
+
+Precision is horizontal and reduction is vertical.  The bottom horizontal
+edge is supplied by the corresponding strict surface inhabitant, not by the
+stage-1 structural worker.

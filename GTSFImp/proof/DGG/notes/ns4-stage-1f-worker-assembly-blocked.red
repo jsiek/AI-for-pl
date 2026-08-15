@@ -84,3 +84,17 @@ Live code status:
   statements were added.  The tree gates after the rank and conceal-equal
   helper chunks.  `StructuralNameInstantiationᵀ` and
   `structural-name→value-instantiation` are not assembled in this chunk.
+
+
+POSTSCRIPT, 2026-08-15
+----------------------
+
+The original blocker in this note is narrowed.  A general value-spine
+accumulator is live in `StructuralNameInstantiationProof.agda`, and the public
+value adapter is checked as `structural-value-instantiation` against a
+caller-supplied root target package.
+
+The full `StructuralNameInstantiationᵀ` worker is still not assembled.  The
+remaining non-name child-continuation fields are tracked in:
+
+`GTSFImp/proof/DGG/notes/ns4-stage-1t-assembly-missing-fields.red`

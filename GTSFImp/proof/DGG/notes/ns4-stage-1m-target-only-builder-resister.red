@@ -133,3 +133,23 @@ source-wrapper equal premises.  That remaining statement-plumbing obstruction
 is tracked in:
 
 `GTSFImp/proof/DGG/notes/ns4-stage-1n-chain-threading-resister.red`
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The target-only builder path is superseded.  The checked public value surface
+now requires the root caller to provide:
+
+```agda
+StructuralTargetInstantiationPackage W (renameᵗᵐ wk↪ᵗ V)
+  (name-type-app-frame (applyBody (bind R) B) Fin.zero refl refl ▻ⁱ []ⁱ)
+```
+
+The adapter `structural-value-instantiation` consumes that package directly.
+No root target normalizer over raw `InstantiationSpine` is needed for stage 1.
+
+The remaining worker obstruction is no longer this target-only builder; it is
+the non-name child-continuation gap recorded in:
+
+`GTSFImp/proof/DGG/notes/ns4-stage-1t-assembly-missing-fields.red`

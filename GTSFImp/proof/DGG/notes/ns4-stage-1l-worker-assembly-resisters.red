@@ -161,3 +161,19 @@ Resister 2 remains open.  The attempted target-only builder is now tracked as
 `ns4-stage-1m-target-only-builder-resister.red`, because the raw
 `InstantiationSpine` surface does not carry the target conversion typing
 needed by reveal/conceal frame normalization.
+
+
+POSTSCRIPT, 2026-08-15
+----------------------
+
+Resister 2 is closed by the amended public value surface.  The live
+`StructuralValueInstantiationᵀ` now takes the caller-supplied root
+`StructuralTargetInstantiationPackage`, and `structural-value-instantiation`
+checks as the adapter through `erase-structural-name-root`.
+
+The general name-worker assembly remains open on two non-name child
+continuation fields: the target-bind plan/chain continuation for `safe-inst`,
+and the relation to reveal/conceal keep reducts.  That narrower blocker is
+tracked in:
+
+`GTSFImp/proof/DGG/notes/ns4-stage-1t-assembly-missing-fields.red`

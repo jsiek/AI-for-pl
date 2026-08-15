@@ -109,3 +109,26 @@ Stop on the target-only builder surface.  A live builder needs at least:
 The source-wrapper hereditary-chain correction is independent and remains
 green.  No live relation was weakened, and no postulates, holes, or catch-all
 cases were added for this resister.
+
+
+SUPERSEDED postscript, 2026-08-15
+---------------------------------
+
+The root-normalizer plan is superseded.  The public
+`StructuralValueInstantiationᵀ` surface now asks the caller to supply the
+root `StructuralTargetInstantiationPackage` for:
+
+```agda
+renameᵗᵐ wk↪ᵗ V
+```
+
+under:
+
+```agda
+name-type-app-frame (applyBody (bind R) B) Fin.zero refl refl ▻ⁱ []ⁱ
+```
+
+The checked adapter `structural-value-instantiation` consumes that package
+and the assembled `StructuralNameInstantiationᵀ` worker.  Stage-2 root callers
+own the catalog geometry and target trace, so no fuel-free target-only
+normalizer is required for this stage-1 surface.

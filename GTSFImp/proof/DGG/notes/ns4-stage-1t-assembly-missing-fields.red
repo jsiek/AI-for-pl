@@ -2,7 +2,8 @@
 
 Date: 2026-08-15
 
-Status: open.
+Status: resolved for the original two contract gaps; superseded by
+`ns4-stage-1u-residual-tail-resister.red` for the next worker blocker.
 
 Scope correction applied:
 
@@ -142,3 +143,32 @@ one of the following:
 
 No strict target-wrapper inversion is requested here; that remains delegated
 to the strict view surface inhabitants by design.
+
+Stage 1u postscript
+-------------------
+
+Ruling 1 took the hereditary-field route, not generic plan transport.
+`ECR.WorldExtendᴿ` remembers only source-store equality, target-store
+following, and transported imprecision.  That is not enough to answer the
+smart/rebase child-world queries of an arbitrary existing
+`StructuralNamePostPlan` after a right-only target bind: the smart branches
+would require a preimage smart-lift query in the original world.  Live
+contracts now expose `target-bind-child` on both `StructuralNamePostPlan` and
+`StructuralNameChainPlan`.
+
+Ruling 2 took the supplied-field route, not a decay lemma.  The
+`structural-reveal-frame-outcome` and `structural-conceal-frame-outcome`
+classifiers emit exactly these keep administrative steps:
+
+- reveal `id-reveal`;
+- reveal `conceal-reveal` after `⊢↑-unseal`;
+- conceal `id-conceal`.
+
+The frame generators now supply the relation from the absorbed framed term to
+the keep reduct, plus the keep-mapped child chain needed to continue through
+`mapInstantiationSpine keep spine`.
+
+The strict-child record also now carries the child value proof needed by the
+recursive worker.  The remaining name-worker blocker is no longer either of
+the two stage-1t fields; it is the residual-cast-with-tail surface recorded in
+`ns4-stage-1u-residual-tail-resister.red`.

@@ -4,27 +4,29 @@ module proof.DGG.Catchup.StructuralInstantiationDescentDef where
 --   * Records target-spine descent with a structural world-extension trace.
 --   * Retains insertion history until source wrappers have been rebuilt.
 
-open import Data.Nat using (ℕ; suc)
-open import Data.Product using (Σ-syntax; proj₁; proj₂)
+open import Data.Nat using (ℕ; suc; _<_)
+open import Data.Product using (Σ-syntax; _×_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyCtx; TyVar; ＇_; `∀; _[_]ᵗ)
-open import CastTerms using (Term; Value)
+open import CastTerms using (Term; Value; _⟨_⟩)
 open import Consistency using (Env∼; _↪ᵗ_; wk↪ᵗ; _⊢_∼_)
 open import Conversion using (Conv↑; Conv↓)
 open import Imprecision using (X⊑★)
 open import Reduction using
-  (StoreChanges; _—↠[_]_; bind; _∷_; []; applyTy; applyStores)
+  (StoreChanges; _—↠[_]_; bind; _∷_; []; applyTy; applyTys;
+   applyStores)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
+open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
+  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ; castSize)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -198,6 +200,75 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
               StructuralNameChainPlan {fuel = fuel} W₁
                 (ECR.mapCtxᴿ ext γ) A (applyTy (bind R) E)
                 (ECR.transport⊑ᵂ ext q) child
+
+    residual-tail-child : ∀ {B C μ}
+        {c : μ ⊢ B ∼ C}
+        {spine : InstantiationSpine C E}
+        {qC : A CTI2.⊑ᵂ⟨ W ⟩ C}
+        {M : Term Δᴸ}
+        {V : Term Δᴿ}
+      → (vV : Value V)
+      → suc (castSize c) < fuel
+      → ResidualFrameProvenance c
+      → TargetFrameAbsorptionChain W γ A (cast-frame c ▻ⁱ spine) q
+      → SpineTypedʷ {fuel = fuel} W (cast-frame c ▻ⁱ spine)
+      → ∀ {Δᴿ′ Δ′}
+        → (χs : StoreChanges Δᴿ Δᴿ′)
+        → (W′ : CTI2.World Δᴸ Δᴿ′ Δ′)
+        → (ext : ECR.WorldExtendᴿ χs W W′)
+        → (N : Term Δᴿ′)
+        → (vN : Value N)
+        → (V ⟨ c ⟩) —↠[ χs ] N
+        → W′ CTI2.∣ ECR.mapCtxᴿ ext γ ⊢²
+            M ⊑ N ∶ ECR.transport⊑ᵂ ext qC
+        → (target : StructuralTargetInstantiationPackage W V
+            (cast-frame c ▻ⁱ spine))
+        → Σ[ child-spine ∈
+              InstantiationSpine (applyTys χs C) (applyTys χs E) ]
+          Σ[ child-plan ∈
+              StructuralNamePostPlan W′ A (applyTys χs E)
+                (ECR.transport⊑ᵂ ext q) ]
+          Σ[ child-chain-plan ∈
+              StructuralNameChainPlan {fuel = fuel} W′
+                (ECR.mapCtxᴿ ext γ) A (applyTys χs E)
+                (ECR.transport⊑ᵂ ext q) child-plan ]
+          Σ[ child-chain ∈
+              TargetFrameAbsorptionChain W′ (ECR.mapCtxᴿ ext γ)
+                A child-spine (ECR.transport⊑ᵂ ext q) ]
+          Σ[ child-typed ∈
+              SpineTypedʷ {fuel = fuel} W′ child-spine ]
+          Σ[ child-target ∈
+              StructuralTargetInstantiationPackage W′ N child-spine ]
+            pendingCastMass vN child-spine <
+              pendingCastMass vV (cast-frame c ▻ⁱ spine)
+            ×
+            (StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+              ECR.mapCtxᴿ
+                (structural-world-extendᴿ
+                  (StructuralTargetInstantiationPackage.structural-ext
+                    child-target))
+                (ECR.mapCtxᴿ ext γ)
+              ⊢² M ⊑
+                StructuralTargetInstantiationPackage.final child-target ∶
+                ECR.transport⊑ᵂ
+                  (structural-world-extendᴿ
+                    (StructuralTargetInstantiationPackage.structural-ext
+                      child-target))
+                  (ECR.transport⊑ᵂ ext q)
+              →
+              StructuralTargetInstantiationPackage.W′ target CTI2.∣
+                ECR.mapCtxᴿ
+                  (structural-world-extendᴿ
+                    (StructuralTargetInstantiationPackage.structural-ext
+                      target))
+                  γ
+                ⊢² M ⊑
+                  StructuralTargetInstantiationPackage.final target ∶
+                  ECR.transport⊑ᵂ
+                    (structural-world-extendᴿ
+                      (StructuralTargetInstantiationPackage.structural-ext
+                        target))
+                    q)
 
 
 StructuralNameInstantiationᵀ : Set₁

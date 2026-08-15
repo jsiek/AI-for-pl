@@ -76,3 +76,21 @@ constructor there is no corresponding `D₂ : V ⊑ U`.
 Because `TargetDescentDef` is listed as protected by the supervisor ruling,
 reshaping this terminal result would be a public-statement change, not merely
 an internal M3 walk migration.
+
+2026-08-15 RESOLVED/SUPERSEDED postscript:
+
+The LG-1e supervisor ruling de-protected `TargetDescentDef` after import search
+confirmed that its only consumer is `TargetDescentProof`.  The terminal family
+has been reshaped branch-sensitively:
+
+- stripped terminal payloads still carry `P ⊑ U` where that shape is
+  legitimately derivable;
+- paired terminal payloads carry the source payload under the matched target
+  seal, avoiding the false source-seal/bare-target square;
+- `TargetSealReemit.resume` now consumes a branch-sensitive reemit input rather
+  than only the stripped source-seal/bare-target shape.
+
+`TargetDescentProof` checks with this reshaped terminal/reemit family.  The
+remaining LG-1e open item is the separate internal TargetChain
+source-star/reemit payload shape, recorded in
+`lg1e-target-source-star-reemit-payload-open.red`.

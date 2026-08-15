@@ -866,3 +866,26 @@ riskiest-first per the V2 table, live negative record replacing
 projection-mismatch². Cast rules untouched. LG-2 (grounding theorems)
 and LG-3 (CatchupCast-family removal, consumers to inversion) follow
 in separate gates on this branch or its successors.
+
+LG-1 COMPLETE (2026-08-15, branch agent/gtsf-cti-lg1, PR #141). The
+occupancy gate is live: Occupied/NoTargetOccupant(AtSource) in
+CastTermImprecision2 + the single premise on star-rep-target — the
+relation diff is exactly the calibrated change. Full gate green;
+notes regression suite green (projection-mismatch² is now a checked
+LIVE emptiness, projection-mismatch-empty). Migration findings: the
+unsound stripped square had been baked into THREE layers of M3
+machinery, each reshaped branch-sensitively (results carry more
+information, never less): SealTransferCore.seal-transfer →
+SealTransferResult; TargetDescentDef's TargetSealTerminal/Reemit
+(de-protected: single-consumer M3-internal); TargetWalkDef/
+TargetChainProof's target-source-star chain (terminus alternatives:
+residual/paired/payload with rebase+partner provenance).
+RightInjInversion2Def passed the producibility scan unchanged — the
+public M3 theorem survives on the strengthened relation. Two M2-era
+probes (ChainRide, TerminusRebuild) had hand-built the forbidden
+shape; both now carry checked emptiness records. Occupancy decision
+helpers live in proof/DGG/Occupancy.agda. NEXT: LG-2 (grounding:
+compile² minting audit-to-theorem, reduction preservation of the
+discipline), then LG-3 (CatchupCast-family removal, consumers to CTI
+inversion per the V1′ model). NS-4 stage 2 remains paused until the
+repair completes.

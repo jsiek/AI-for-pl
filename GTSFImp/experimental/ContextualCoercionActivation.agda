@@ -175,7 +175,8 @@ replace-not-occurs : ∀ {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → replaceTy X ★ A ≡ A
 replace-not-occurs {X = X} (∉-var {Y = Y} X≠Y) with X ≟ Y
-replace-not-occurs (∉-var X≠X) | yes refl = ⊥-elim (X≠X refl)
+replace-not-occurs (∉-var X≠X) | yes refl =
+  ⊥-elim (≢ᶠ→≢ X≠X refl)
 replace-not-occurs (∉-var X≠Y) | no X≠Y′ = refl
 replace-not-occurs ∉-base = refl
 replace-not-occurs ∉-star = refl
@@ -292,7 +293,7 @@ generic-fresh-out : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
 generic-fresh-out activation generic-⇒ = ∉-fun ∉-star ∉-star
 generic-fresh-out activation generic-ι = ∉-base
 generic-fresh-out activation (generic-X ordinary-Y) =
-  ∉-var (ordinary-away-out activation ordinary-Y)
+  ∉-var (≢→≢ᶠ (ordinary-away-out activation ordinary-Y))
 generic-fresh-out activation generic-∀ = ∉-all ∉-star
 
 generic-fresh-in : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
@@ -302,7 +303,7 @@ generic-fresh-in : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
 generic-fresh-in activation generic-⇒ = ∉-fun ∉-star ∉-star
 generic-fresh-in activation generic-ι = ∉-base
 generic-fresh-in activation (generic-X ordinary-Y) =
-  ∉-var (ordinary-away-in activation ordinary-Y)
+  ∉-var (≢→≢ᶠ (ordinary-away-in activation ordinary-Y))
 generic-fresh-in activation generic-∀ = ∉-all ∉-star
 
 generic-not-star : ∀ {κ : CastCtx Δ} {G}
@@ -317,7 +318,7 @@ absent-present : ∀ {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → X ∈ᵗ A
   → ⊥
-absent-present (∉-var X≠Y) var-∈ = X≠Y refl
+absent-present (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
 absent-present ∉-base ()
 absent-present ∉-star ()
 absent-present (∉-fun X∉A X∉B) (∈-fun-left X∈A) =

@@ -106,7 +106,7 @@ not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → X ∈ᵗ A
   → ⊥
-not-occurs (∉-var X≠Y) var-∈ = X≠Y refl
+not-occurs (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
 not-occurs ∉-base ()
 not-occurs ∉-star ()
 not-occurs (∉-fun X∉A X∉B) (∈-fun-left X∈A) =

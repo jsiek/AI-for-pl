@@ -413,7 +413,7 @@ mutual
       with X ≟ Y
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | yes refl =
-    ⊥-elim (X≢Y refl)
+    ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
     CTI2.⊢↑-idˣ
@@ -469,7 +469,7 @@ mutual
       with X ≟ Y
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | yes refl =
-    ⊥-elim (X≢Y refl)
+    ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
     CTI2.⊢↓-idˣ

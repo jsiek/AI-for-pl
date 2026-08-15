@@ -36,8 +36,8 @@ instance
   Y∈X⇒X⇒Y-instance :
     _∈ᵗ_ {Δ = 2} 0 (＇ 1 ⇒ ＇ 1 ⇒ ＇ 0)
   Y∈X⇒X⇒Y-instance =
-    ∈-fun-right (∉-var (λ ()))
-      (∈-fun-right (∉-var (λ ())) var-∈)
+    ∈-fun-right (∉-var (≢→≢ᶠ (λ ())))
+      (∈-fun-right (∉-var (≢→≢ᶠ (λ ()))) var-∈)
 
 all-all∼all-star :
   _∼_ {Δ = 0}

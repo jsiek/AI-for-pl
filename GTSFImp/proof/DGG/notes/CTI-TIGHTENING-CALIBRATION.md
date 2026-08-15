@@ -384,7 +384,7 @@ aliases the reachability fact that the target input before projection is
 | C1 Soundness | **CHECKED-OK** | `bad-input-underivableᴼ`, `source-tagged-bare-underivableᴼ`, `source-projected-bare-underivableᴼ`, and `bad-square-underivableᴼ` typecheck. |
 | C2 Compile monotonicity | **CHECKED-OK** | Base compile representatives check in both regimes: `aligned-baseᴼ`, `aligned-target-one-sided-baseᴼ`, `aligned-source-one-sided-baseᴼ`, `pre-baseᴼ`, `pre-target-one-sided-baseᴼ`, and `pre-source-one-sided-baseᴼ`.  The source-seal see-through representative is checked only in the source-only world as `prealignment-see-throughᴼ`, matching initial/compile-image worlds with no aligned occupant. |
 | C3 Good executions + skew window | **CHECKED-OK** | Pre-alignment see-through checks as `prealignment-see-throughᴼ`; post-alignment matched seals and generated projection check as `matching-outputᴼ`, `matching-inputᴼ`, `matching-projectionᴼ`, and `good-generated-catchupᴼ`.  The skew window does **not** exist in the checked reachability run: `post-alignment-input-is-taggedᴼ` fixes the input as sealed-and-`Y!`-tagged, and `target-catchup-routeᴼ` is the existing two-step cancellation route. |
-| C5 LR cell | **AUDITED** (inspection-grade, not machine-checked — see the S-PROV C5 caveat) | The LR reference needs same-tag projection facts and residual recursion.  Under the later user decision the CatchupCast machinery is removed, so these facts must come from CTI inversion (the V1 pre-flight's subject); confirmation requires building the LR development against the migrated relation. |
+| C5 LR cell | **AUDITED** (inspection-grade, not machine-checked — see the S-PROV C5 caveat) | The LR reference needs same-tag projection facts and residual recursion.  Under the later user decision the CatchupCast machinery is removed, so these facts must come from CTI inversion (now checked by the V1′ pre-flight); confirmation requires building the LR development against the migrated relation. |
 
 ### C1 Reroute Table
 
@@ -453,6 +453,7 @@ Status: evaluation only.  No live CTI2 or proof files were edited.  Checked
 scratch files:
 
 - `CTIOccInversionCatchupScratch.agda`
+- `CTIOccLiveFaithfulScratch.agda`
 - `CTIOccLiveTransportScratch.agda`
 
 The user decision for this pre-flight is that the `CatchupCast`/
@@ -461,39 +462,66 @@ The replacement invariant lives in CTI2 inversion plus compile/grounding
 theorems; no cast-imprecision rule is redesigned with term-shaped projection
 clauses.
 
-## V1. Inversion-Based Catch-Up
+## V1. Inversion-Based Catch-Up (Superseded)
 
-Verdict: **CHECKED-OK for the calibrated generated-name projection case**.
+Verdict: **SUPERSEDED by V1′**.
 
-`CTIOccInversionCatchupScratch.agda` proves the projection case without a
-catch-up premise in the new theorem statements:
+PR #140 review finding P1 is accepted.  `CTIOccInversionCatchupScratch.agda`
+gave the mini-relation's cast rules the S-NARROW premises
+`TargetCastOK`, `PairedCastOK`, and `SourceCastOK`.  Therefore
+`generated-Y-projection-catchupᴼ` succeeded partly by inverting
+`target-narrow-★-to-var`, which the live `⊑cast²` rule does not carry.  The
+old V1 remains a useful historical check, but it is no longer GO evidence for
+the adopted no-cast-rule-change design.
 
-- `generated-Y-projection-catchupᴼ` peels the final
-  `⊑castᴼ (target-narrow-★-to-var ...)`.
-- `aligned-Y-tag-input-inversionᴼ` peels the generated-name input
-  `⊑castᴼ (target-widen-var-to★ ...)`.
-- The residual CTI premise is retargeted by proof-irrelevance of type
-  imprecision and reused directly after `tag-untag`.
-- The source-see-through branch is eliminated by occupancy:
-  `star-rep-targetᴼ` has empty `NoTargetOccupant aligned-occ`;
-  `plain-targetᴼ` cannot match `target-name-tagged`; and the
-  `name-protected-targetᴼ` branch reduces to the checked empty premise
-  `base-source-to-target-name-tagged-emptyᴼ`.
+## V1′. Live-Faithful Inversion-Based Catch-Up
 
-The ground-tag control also checks:
+Verdict: **CHECKED-OK; GO restored for the V1 projection concern**.
 
-- `target-narrow-★-to-base` was added to the notes-only S-NARROW shape model so
-  the mini-relation can express `ℕ?`.
-- `ground-ℕ-projection-catchupᴼ` proves the `ℕ!`/`ℕ?` cancellation route with
-  no occupancy premise, confirming this branch is type-level/cast-shape
-  inversion rather than source-seal occupancy.
+`CTIOccLiveFaithfulScratch.agda` defines `_∣_⊢ᴼ²[_]_⊑_∶_`.  Its
+`cast⊑castᴼ²`, `⊑castᴼ²`, and `cast⊑ᴼ²` constructors carry exactly the live
+cast-rule premises: bare consistency derivation(s), the recursive CTI premise,
+and the conclusion witness `q`.  The partner predicates keep the S-OCC
+occupancy gate.  The only mini-relation divergence is the inherited
+single-world/single-context conceal shape from the earlier S-OCC scratch; the
+live transport premises are intentionally outside this V1′ cast-rule check.
 
-The mini replacement interface for the old extra-cast-right fuel knot
-elaborates as `ExtraCastRightProjectionInputᴼ`: a consumer receives the CTI
-premise, source/target values, and the checked projection result instead of a
-`Catchup⁻Embed`-style witness.
+C1 still blocks the bad square by checked emptiness:
 
-No V1 constructor gap was found.
+- `bad-input-underivableᴼ²`: aligned source seal against bare `0⟨ℕ!⟩` dies at
+  the occupied `star-rep-targetᴼ²` branch.
+- `source-tagged-bare-underivableᴼ²` and
+  `source-projected-bare-underivableᴼ²`: the source `X!`/`X?` reroutes reduce
+  back to the same empty aligned see-through premise.
+- `bad-square-underivableᴼ²`: both the paired-projection route and the
+  target-only `Y?` route close without `PairedCastOK`/`TargetCastOK`.
+- `route-X⊑X-variable-witness-closedᴼ²`,
+  `route-X⊑★-intermediate-closedᴼ²`,
+  `route-★⊑★-intermediate-closedᴼ²`,
+  `route-rep★-round-trip-closedᴼ²`, and
+  `var-tag-value-sealed-bare-target-closedᴼ²` re-check the S-OCC reroute table.
+
+V1′ replaces the old TargetCastOK inversion with syntactic analysis of bare
+consistency derivations:
+
+- `generated-Y-projection-catchupᴼ²` peels the live-faithful
+  `⊑castᴼ² c′ prem q` and analyzes `c′ : ν ⊢ ★ ∼ ＇Y` with
+  `var-project-cast-viewᴼ²`.
+- `aligned-Y-tag-input-inversionᴼ²` analyzes the generated input
+  `c′ : ν ⊢ ＇Y ∼ ★` with `var-tag-cast-viewᴼ²`.
+- The `？`/`!` same-variable cases expose the residual CTI premise, retargeted
+  by proof-irrelevance of type imprecision and reused after `tag-untag`.
+- The universal-ground alternatives are explicitly closed by the impossible
+  hidden occurrence premises in `inst_`/`gen_`; no missing fact is required from
+  the term-imprecision relation.
+
+The ground control also checks: `ground-ℕ-projection-catchupᴼ²` uses
+`base-project-cast-viewᴼ²` and `base-tag-cast-viewᴼ²` for the `ℕ?`/`ℕ!`
+cancellation route.  The ExtraCastRight-style consumer surface elaborates as
+`ExtraCastRightProjectionInputᴼ²`: a consumer receives the CTI premise,
+source/target values, and the checked projection result.
+
+No V1′ constructor gap was found.
 
 ## V2. Live Occupancy And Transport
 
@@ -613,5 +641,5 @@ migration requirements:
   the newly occupied center; rederive the relation from the matched
   seal/tag/allocation facts.
 
-No NO-GO gap was found in V1/V2/V3.  The remaining work is implementation
+No NO-GO gap was found in V1′/V2/V3.  The remaining work is implementation
 cost, not a detected inconsistency in the adoption plan.

@@ -765,10 +765,16 @@ FINDING (external, verified): the three CTI cast rules (cast⊑cast²,
 from peterthiemann:codex/gtsf-big-dgg d2cb44f) derives a term relation
 whose target blames on an unrelated generated-name projection while the
 source returns. Independently, codex/gtsf-cti-source-reachability
-(notes/SOURCE-CTI-REACHABILITY.md) proves the bad square is
-source-UNREACHABLE — relation-tightening of the M3 species, not a DGG
-threat. PR #137 was merged first (relation untouched there); NS-4
-stage 2 stays paused pending the repair.
+(notes/SOURCE-CTI-REACHABILITY.md) provides EVIDENCE (not yet a
+theorem — one related pair traced end-to-end, one blame-forcing
+variant refuted; the dossier itself lists the general preservation
+theorem as future work) that the bad square is source-unreachable —
+pointing at a relation-tightening of the M3 species rather than a DGG
+threat. The general statement is exactly the LG-2 grounding
+obligation: compile mints the discipline and related reduction
+preserves it, closing the gap between evidence and theorem. PR #137
+was merged first (relation untouched there); NS-4 stage 2 stays
+paused pending the repair.
 
 CALIBRATION (branch agent/gtsf-cti-calibration, notes/
 CTI-TIGHTENING-CALIBRATION.md + three checked scratch mini-relations):

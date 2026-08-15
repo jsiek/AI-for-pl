@@ -7,40 +7,90 @@ module proof.DGG.Catchup.StructuralNameInstantiationProof where
 
 import Data.Fin as Fin
 import Data.List as List
-open import Data.Nat using (ℕ; suc; _<_)
-open import Data.Product using (_,_)
+import Data.Nat.Induction as NatInduction
+open import Data.Nat using (ℕ; suc; _<_; _+_)
+open import Data.Nat.Properties using (+-assoc; n<1+n)
+open import Data.Product using (_×_; _,_)
+import Data.Product.Relation.Binary.Lex.Strict as ProductLex
+open import Data.Sum.Base using (inj₁; inj₂)
+import Induction.WellFounded as WF
 open import Induction.WellFounded using (Acc)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; cong₂)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyVar; NonVar; _∈ᵗ_; ＇_; `∀; _[_]ᵗ)
+open import Types using
+  (Ty; TyVar; NonVar; _∈ᵗ_; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ;
+   renameᵗ)
 open import Imprecision using (X⊑★)
-open import Consistency using (Env∼; _⊢_∼_)
+open import Consistency using
+  (Env∼; _↪ᵗ_; wk↪ᵗ; keep; toRenameᵗ; _⊢_∼_; inst_; ↑ᶜ_;
+   close-instᶜ; ∀ᶜ_; gen_)
 open import Conversion using (Conv↑; Conv↓)
+import CastTerms as CT
 open import CastTerms using
-  (Term; Value; Inert; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩; _↑_; _↓_)
+  (Term; Value; Inert; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩;
+   _↑_; _↓_; _⦂∀_[_]; renameᵗᵐ; ⇑ᵗᵐ)
+open import Reduction using (StoreChanges; []; _∷_; bind; applyStores)
+open import proof.TypeInTermSubst using
+  (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
+open import proof.TypeSafety.Preservation using
+  (applyBody-open-zero; replace-zero-open)
+import proof.TypeSafety.Progress as Prog
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.TargetExtend as TE
+import proof.DGG.Inversion.SpineValueProof as SpineValueProof
+open import proof.DGG.Catchup.InstInversionDef using
+  (StructuralValueInstantiationᵀ)
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ; castSize)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
 open import proof.DGG.Catchup.StructuralValueInstantiationRankDef
 open import proof.DGG.Catchup.StructuralValueInstantiationRankProof
-  using (_<ʳ_)
+  using
+    (_<ʳ_; rank-name<; rank-exp<; rank-length<;
+     lambda-rank-decreases; reveal-rank-decreases;
+     conceal-rank-decreases; cast-frame-rank-decreases;
+     reveal-frame-value-rank-decreases;
+     conceal-frame-value-rank-decreases)
 open import proof.DGG.Catchup.StructuralValueInstantiationCastProof
+open import proof.DGG.Catchup.StructuralValueInstantiationAllCastMassProof
+open import proof.DGG.Catchup.StructuralValueInstantiationGenCastMassProof
+open import proof.DGG.Catchup.StructuralValueInstantiationInstCastMassProof
+open import proof.DGG.Catchup.StructuralValueInstantiationPendingCastMassProof
+open import proof.DGG.Catchup.StructuralValueInstantiationSpineCastMassProof
+open import proof.DGG.Catchup.StructuralValueInstantiationValueCastMassProof
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof
 open import proof.DGG.Catchup.StructuralWorldSmartLiftProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTargetInstantiationProof
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralTargetSourceTransportProof
+open import proof.DGG.Catchup.StructuralTargetFrameDecompositionProof
+open import proof.DGG.Catchup.StructuralTargetInstPeelProof
+open import proof.DGG.Catchup.StructuralTargetLambdaPeelProof
+open import proof.DGG.Catchup.StructuralTargetAllPeelProof
+open import proof.DGG.Catchup.StructuralTargetGenPeelProof
+open import proof.DGG.Catchup.StructuralTargetRevealPeelProof
+open import proof.DGG.Catchup.StructuralTargetConcealPeelProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
 open import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
+open import proof.DGG.Catchup.StructuralAllDescentProof
+open import proof.DGG.Catchup.StructuralGenDescentProof
+open import proof.DGG.Catchup.StructuralInstDescentProof
+open import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
+open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
-open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
+open import proof.DGG.Inversion.SpineValueDef using
+  (AllValueView; allv-Λ; allv-∀; allv-gen; allv-reveal;
+   allv-conceal)
 
 
 StructuralValueSpineInstantiationAccᵀ : Set₁
@@ -141,6 +191,150 @@ StructuralNameConcealEqualOKᵀ =
           (mapPivotChanges
             (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
           (StructuralTargetInstantiationPackage.final target)
+
+
+acc-smaller : ∀ {A : Set} {R : A → A → Set} {x y}
+  → Acc R y
+  → R x y
+  → Acc R x
+acc-smaller (WF.acc smaller) lt = smaller lt
+
+
+acc-transport : ∀ {A : Set} {R : A → A → Set} {x y}
+  → x ≡ y
+  → Acc R x
+  → Acc R y
+acc-transport refl accessible = accessible
+
+
+RankTuple : Set
+RankTuple = ℕ × (ℕ × ℕ)
+
+
+rank-tuple : InstantiationRank → RankTuple
+rank-tuple (inst-rank names exp length) = names , (exp , length)
+
+
+_<ʳlex_ : RankTuple → RankTuple → Set
+_<ʳlex_ =
+  ProductLex.×-Lex _≡_ _<_
+    (ProductLex.×-Lex _≡_ _<_ _<_)
+
+
+rank<→lex : ∀ {r r′}
+  → r <ʳ r′
+  → rank-tuple r <ʳlex rank-tuple r′
+rank<→lex (rank-name< names<) = inj₁ names<
+rank<→lex (rank-exp< names≡ exp<) =
+  inj₂ (names≡ , inj₁ exp<)
+rank<→lex (rank-length< names≡ exp≡ length<) =
+  inj₂ (names≡ , inj₂ (exp≡ , length<))
+
+
+rank-lex-wf : WF.WellFounded _<ʳlex_
+rank-lex-wf =
+  ProductLex.×-wellFounded NatInduction.<-wellFounded
+    (ProductLex.×-wellFounded NatInduction.<-wellFounded
+      NatInduction.<-wellFounded)
+
+
+rank-access-from-lex : ∀ r
+  → Acc _<ʳlex_ (rank-tuple r)
+  → Acc _<ʳ_ r
+rank-access-from-lex r (WF.acc smaller) =
+  WF.acc λ {r′} r′<r →
+    rank-access-from-lex r′ (smaller (rank<→lex r′<r))
+
+
+rank-access : ∀ r → Acc _<ʳ_ r
+rank-access r = rank-access-from-lex r (rank-lex-wf (rank-tuple r))
+
+
+all-view→all-value-view : ∀ {Δ} {B : Ty (suc Δ)} {V : Term Δ}
+  → Prog.AllView B V
+  → AllValueView V
+all-view→all-value-view (Prog.av-Λ vV refl) =
+  allv-Λ vV refl
+all-view→all-value-view (Prog.av-∀ vV refl) =
+  allv-∀ vV refl
+all-view→all-value-view (Prog.av-gen vV A≢★ safe refl) =
+  allv-gen vV A≢★ safe refl
+all-view→all-value-view (Prog.av-reveal vV refl) =
+  allv-reveal vV refl
+all-view→all-value-view (Prog.av-conceal vV refl) =
+  allv-conceal vV refl
+
+
+relation-all-value-view : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+  → Value V
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → AllValueView V
+relation-all-value-view vV rel =
+  all-view→all-value-view
+    (Prog.canonical-∀ vV (CTI2T.target-typing² rel))
+
+
+mapCtx-target-insert-bind : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {π : Δ ↪ᵗ Δ′} {R : Ty Δᴿ}
+  → (ins : TE.TargetInsert wk↪ᵗ π W W′)
+  → (follows : CTI2.targetStoreʷ W′ ≡
+      applyStores (bind R ∷ []) (CTI2.targetStoreʷ W))
+  → (γ : CTI2.CtxImp W)
+  → ECR.mapCtxᴿ (target-insert-bind-world-extendᴿ ins follows) γ ≡
+      TE.mapCtxᵀ ins γ
+mapCtx-target-insert-bind ins follows List.[] = refl
+mapCtx-target-insert-bind {W′ = W′} {R = R} ins follows
+    (CTI2.ctx-imp A B p List.∷ γ) =
+  cong₂ List._∷_ entry-eq (mapCtx-target-insert-bind ins follows γ)
+  where
+  ext = target-insert-bind-world-extendᴿ ins follows
+
+  entry-eq :
+      CTI2.ctx-imp A (⇑ᵗ B) (ECR.transport⊑ᵂ ext p) ≡
+      CTI2.ctx-imp A (renameᵗ (toRenameᵗ wk↪ᵗ) B)
+        (TE.transport⊑ᵂ ins p)
+  entry-eq =
+    TE.ctx-imp-target-eq {W = W′}
+      {A = A} {B = ⇑ᵗ B}
+      {B′ = renameᵗ (toRenameᵗ wk↪ᵗ) B}
+      {p = ECR.transport⊑ᵂ ext p}
+      {q = TE.transport⊑ᵂ ins p}
+      (sym (renameᵗ-wk-eq B))
+
+
+target-insert-bind-relation : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {π : Δ ↪ᵗ Δ′} {R : Ty Δᴿ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → (ins : TE.TargetInsert wk↪ᵗ π W W′)
+  → (follows : CTI2.targetStoreʷ W′ ≡
+      applyStores (bind R ∷ []) (CTI2.targetStoreʷ W))
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W′ CTI2.∣
+      ECR.mapCtxᴿ (target-insert-bind-world-extendᴿ ins follows) γ
+      ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶
+        ECR.transport⊑ᵂ (target-insert-bind-world-extendᴿ ins follows) p
+target-insert-bind-relation {γ = γ} {B = B} {p = p}
+    ins follows rel =
+  subst≡
+    (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶
+      ECR.transport⊑ᵂ ext p)
+    (sym (mapCtx-target-insert-bind ins follows γ))
+    (TE.⊢²-retargetᴿ {q = ECR.transport⊑ᵂ ext p}
+      (renameᵗ-wk-eq B) (TE.⊢²-target-insert ins rel))
+  where
+  ext = target-insert-bind-world-extendᴿ ins follows
 
 
 liftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ} {v}

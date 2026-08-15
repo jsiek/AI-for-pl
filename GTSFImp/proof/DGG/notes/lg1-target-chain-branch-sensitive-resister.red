@@ -52,3 +52,16 @@ So `TargetSourceStarAt` cannot absorb the paired case while keeping its current
 public meaning.  Weakening the M3 statement to return a paired alternative
 would be a public statement change, and the task explicitly says
 `right-inj-inversion²` and the M3 stack statements must keep their meaning.
+
+2026-08-15 RESOLVED/SUPERSEDED postscript:
+
+The supervisor ruling for LG-1d narrowed the protected surface.  The M3
+chain/walk proof-file statements, including `TargetSourceStarAt`, are internal
+proof machinery and may be reshaped branch-sensitively.  This note is therefore
+not a stop condition for `TargetSourceStarAt` itself.
+
+The remaining public-surface stop discovered during LG-1d is recorded in
+`lg1d-target-descent-terminal-public-blocked.red`: `TargetDescentDef` is still
+protected, and its terminal record requires the old source-seal/bare-target
+payload premise at precisely the branch where `SealTransferResult` now returns
+only the paired matched-seal square.

@@ -13,9 +13,11 @@ module proof.DGG.Occupancy where
 open import Data.Empty using (⊥)
 open import Data.Product using (Σ-syntax; _,_)
 import Data.Fin as Fin
+import Data.Fin.Properties as FinP
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
+open import Relation.Nullary using (Dec; yes; no)
 
 open import Types
 open import TyStore using (TyStore)
@@ -32,6 +34,50 @@ open import proof.ImprecisionConsistency using
 ------------------------------------------------------------------------
 -- Initial and direct world constructors
 ------------------------------------------------------------------------
+
+fin-image? : ∀ {m n}
+  → (f : Fin.Fin m → Fin.Fin n)
+  → (Z : Fin.Fin n)
+  → Dec (Σ[ Y ∈ Fin.Fin m ] f Y ≡ Z)
+fin-image? {m = Nat.zero} f Z =
+  no (λ { (() , eq) })
+fin-image? {m = Nat.suc m} f Z with FinP._≟_ (f Fin.zero) Z
+fin-image? {m = Nat.suc m} f Z | yes eq =
+  yes (Fin.zero , eq)
+fin-image? {m = Nat.suc m} f Z | no neq
+    with fin-image? (λ Y → f (Fin.suc Y)) Z
+fin-image? {m = Nat.suc m} f Z | no neq | yes (Y , eq) =
+  yes (Fin.suc Y , eq)
+fin-image? {m = Nat.suc m} f Z | no neq | no no-tail =
+  no no-image
+  where
+  no-image : (Σ[ Y ∈ Fin.Fin (Nat.suc m) ] f Y ≡ Z) → ⊥
+  no-image (Fin.zero , eq) = neq eq
+  no-image (Fin.suc Y , eq) = no-tail (Y , eq)
+
+occupied? : ∀ {Δᴸ Δᴿ Δ}
+  → (W : CTI2.World Δᴸ Δᴿ Δ)
+  → (Z : TyVar Δ)
+  → Dec (CTI2.Occupied W Z)
+occupied? {Δᴿ = Δᴿ} W Z =
+  fin-image? (toRenameᵗ (CTI2.ηᴿʷ W)) Z
+
+occupied-at-source? : ∀ {Δᴸ Δᴿ Δ}
+  → (W : CTI2.World Δᴸ Δᴿ Δ)
+  → (X : TyVar Δᴸ)
+  → Dec (CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X))
+occupied-at-source? W X =
+  occupied? W (toRenameᵗ (CTI2.ηᴸʷ W) X)
+
+no-target-at-source? : ∀ {Δᴸ Δᴿ Δ}
+  → (W : CTI2.World Δᴸ Δᴿ Δ)
+  → (X : TyVar Δᴸ)
+  → Dec (CTI2.NoTargetOccupantAtSource W X)
+no-target-at-source? W X with occupied-at-source? W X
+no-target-at-source? W X | yes occ =
+  no (λ no-target → no-target occ)
+no-target-at-source? W X | no no-occ =
+  yes no-occ
 
 initialWorldᴼ : ∀ {Δ}
   → ImpEnv Δ

@@ -70,3 +70,32 @@ and root residual paths use existing inst-residual provenance ingredients, but
 the general structural worker cannot be assembled until this opened-body
 provenance bridge is added or the `∀` branch is otherwise classified without a
 residual stop.
+
+
+RESOLVED postscript, 2026-08-15
+--------------------------------
+
+This resister is closed without adding `catchup⁻-∀-open`.
+
+Live Agda now classifies the opened body cast in
+`StructuralSpineTypingDef.agda`:
+
+```agda
+opened-all-cast-frame-class :
+  μ X ≡ X∼X →
+  NonVar C →
+  zero ∈ᵗ C →
+  CastFrameClass (d [ ＇ X ]ᶜ)
+```
+
+The route is:
+
+- open `C` with `＇ X`;
+- transport `NonVar C` by `substNonVar (singleSubᵗ (＇ X))`;
+- transport `zero ∈ᵗ C` to `X ∈ᵗ C [ ＇ X ]ᵗ` by
+  `subst-∈ᵗ zero∈C var-∈`;
+- apply `strict-safe` with the strict mark equation `μ X ≡ X∼X`;
+- run `GenSafeView`.
+
+`GenSafeView` returns either an inert cast or exactly `safe-inst`; the opened
+cast no longer produces `cast-residual`.

@@ -2,7 +2,8 @@
 
 Date: 2026-08-15
 
-Status: open.
+Status: resolved for the missing strict-surface argument.  Worker assembly
+continues in `ns4-stage-1w-safe-inst-residual-bound-resister.red`.
 
 The residual-tail continuation route requested for stage 1v is now landed as a
 live checked field on `StructuralNameChainPlan`:
@@ -94,3 +95,22 @@ because the signature itself was not changed.  It remains a thin call through
 No live term-imprecision relation, reduction relation, M4 Def surface,
 `InstSpineDescentPackage`, `CatchupCast⁻` constructor, or public adapter was
 weakened.  No postulate, hole, or catch-all case was added.
+
+RESOLVED postscript, 2026-08-15
+--------------------------------
+
+The signature obstruction recorded here is closed in live Agda:
+
+- `StructuralNameInstantiationᵀ` now receives the
+  `StructuralStrictViewSurfaces` bundle.
+- `StructuralValueInstantiationᵀ` receives the same bundle and passes it
+  through to the name worker.
+- `StructuralStrictViewSurfaces` includes `conceal-equal-ok :
+  StructuralNameConcealEqualOKᵀ`.
+- The equal-helper skeletons in
+  `StructuralNameInstantiationProof.agda` thread the bundle through recursive
+  worker calls and use `conceal-equal-ok` for source conceal replay.
+
+The next open worker blocker is not the strict-view surface argument.  It is
+the non-name `safe-inst` residual stop data recorded in
+`ns4-stage-1w-safe-inst-residual-bound-resister.red`.

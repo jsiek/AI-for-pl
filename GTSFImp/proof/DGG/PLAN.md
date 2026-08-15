@@ -563,6 +563,48 @@ NS-4 stage-1 ledger (supervisor, 2026-08-14, stages 1a-1g):
          geometry for conversions. Next: TargetFrameAbsorptionChain
          input, calibrated statement-first (stage 1h).
 
+NS-4 STAGE 1 COMPLETE (supervisor, 2026-08-15, stages 1h-1y; PAUSED
+here before stage 2 by user instruction):
+  `StructuralNameInstantiationᵀ` and `StructuralValueInstantiationᵀ`
+  are INHABITED (StructuralNameInstantiationProof.agda), gate green,
+  hygiene FunExt-only, no TERMINATING pragmas (explicit five-component
+  lexicographic measure; call-site table in
+  notes/ns4-stage-1y-termination-measure.md). The worker is
+  HIGHER-ORDER over: `StructuralStrictViewSurfaces` (Λ/∀-cast/gen/
+  reveal/conceal strict cells + conceal-equal-ok), the fuel-knot
+  arguments (FuelStepSurface, Catchup⁻Embedᵀ, inst-alloc-decreaseᵀ),
+  the hereditary `StructuralNamePostPlan` + `StructuralNameChainPlan`
+  (with target-bind and residual-tail children), the
+  `TargetFrameAbsorptionChain` (supplied premise-relation transports,
+  keep-reduct evidence), `SpineTypedʷ` (per-frame typing + fuel-indexed
+  `CastFrameClass` carrying bounds/provenance), and the caller's root
+  `StructuralTargetInstantiationPackage`.
+  Design findings that shaped the statements (all machine-checked,
+  .red chain under notes/ns4-stage-1*):
+    - inputs that cross source wrappers cannot be transported; they
+      are supplied hereditarily (post plan, chain plan, chains);
+    - same-mass strict heads terminate by the exponential
+      administration rank (3^crossings potential — duplication-proof);
+    - target traces are consumed as INPUT and peeled (same-world
+      first-step inversion; never inverted through smart-fresh
+      pushouts);
+    - opened endpoints come from the term derivation per view case,
+      never from the bare type witness (matched ∀⊑∀ vs right-only
+      binds refutation);
+    - non-inert residuals (safe-inst closure) are discharged via the
+      M4/M6 fuel knot with carried CatchupCast⁻ provenance — the
+      segmented builder/replay architecture.
+  STAGE 2 (not started): inhabit the five strict view surfaces (Λ cell
+  from the live Λ machinery in InstInversionLambdaProof; ∀-cast/gen/
+  reveal/conceal cells = the target-wrapper inversion producers) and
+  the conceal-equal argument; construct root plans/chains/packages at
+  the catalog call sites; assemble `InstInversionPackage`; discharge
+  the M6 knot's M5 factory argument.
+  Hygiene note (supervisor): the postulate-check does not catch
+  TERMINATING pragmas — one slipped into a checkpoint commit (removed
+  in `d569c56`). Recommend adding TERMINATING/NON_TERMINATING to the
+  hygiene grep.
+
 NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
 `M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
 outer inst cast, but its opened cast is a function consistency and therefore

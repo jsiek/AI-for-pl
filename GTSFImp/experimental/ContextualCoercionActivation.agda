@@ -19,7 +19,6 @@ open import Relation.Nullary using (yes; no)
 
 open import Types renaming (`∀ to `∀ᵗ)
 open import Conversion using (replaceTy)
-open import FunExt using (funext)
 open import proof.ImprecisionConsistency using
   (shift-not-occurs; zero-absent-shift; subst-zero-occurs-exts)
 import proof.TypeSafety.Preservation as Preservation
@@ -157,15 +156,13 @@ in-entry-mode-eq {X = X} activation Y | no X≠Y =
 
 toEnv∼-out-activation : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ}
   → OutActivation {X = X} κ κ′
-  → toEnv∼ κ ≡ toEnv∼ κ′
-toEnv∼-out-activation activation =
-  funext (out-entry-mode-eq activation)
+  → C.Env∼Eq (toEnv∼ κ) (toEnv∼ κ′)
+toEnv∼-out-activation = out-entry-mode-eq
 
 toEnv∼-in-activation : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ}
   → InActivation {X = X} κ κ′
-  → toEnv∼ κ ≡ toEnv∼ κ′
-toEnv∼-in-activation activation =
-  funext (in-entry-mode-eq activation)
+  → C.Env∼Eq (toEnv∼ κ) (toEnv∼ κ′)
+toEnv∼-in-activation = in-entry-mode-eq
 
 ------------------------------------------------------------------------
 -- Type replacement and generic-ground support
@@ -354,32 +351,32 @@ activate-to-star-out : ∀ {X : TyVar Δ}
   → OutActivation {X = X} κ κ′
   → C._⊢_∼★ (toEnv∼ κ) G
   → C._⊢_∼★ (toEnv∼ κ′) G
-activate-to-star-out {G = G} activation =
-  subst (λ μ → C._⊢_∼★ μ G) (toEnv∼-out-activation activation)
+activate-to-star-out activation =
+  C.transport-∼★ (toEnv∼-out-activation activation)
 
 activate-to-star-in : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → InActivation {X = X} κ κ′
   → C._⊢_∼★ (toEnv∼ κ) G
   → C._⊢_∼★ (toEnv∼ κ′) G
-activate-to-star-in {G = G} activation =
-  subst (λ μ → C._⊢_∼★ μ G) (toEnv∼-in-activation activation)
+activate-to-star-in activation =
+  C.transport-∼★ (toEnv∼-in-activation activation)
 
 activate-from-star-out : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → OutActivation {X = X} κ κ′
   → C._⊢★∼_ (toEnv∼ κ) G
   → C._⊢★∼_ (toEnv∼ κ′) G
-activate-from-star-out {G = G} activation =
-  subst (λ μ → C._⊢★∼_ μ G) (toEnv∼-out-activation activation)
+activate-from-star-out activation =
+  C.transport-★∼ (toEnv∼-out-activation activation)
 
 activate-from-star-in : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → InActivation {X = X} κ κ′
   → C._⊢★∼_ (toEnv∼ κ) G
   → C._⊢★∼_ (toEnv∼ κ′) G
-activate-from-star-in {G = G} activation =
-  subst (λ μ → C._⊢★∼_ μ G) (toEnv∼-in-activation activation)
+activate-from-star-in activation =
+  C.transport-★∼ (toEnv∼-in-activation activation)
 
 nonvar-variable-impossible : ∀ {X : TyVar Δ} → NonVar (＇ X) → ⊥
 nonvar-variable-impossible ()

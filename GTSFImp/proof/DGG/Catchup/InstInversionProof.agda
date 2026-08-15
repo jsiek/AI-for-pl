@@ -48,7 +48,6 @@ import CastTerms as CT
 open import CastTerms using
   (⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _⦂∀_[_]; _↑_; Λ_; ⇑ᵗᵐ;
    Value; RevealValue; _《_》; _↓_)
-open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
 open import proof.Reduction using (cast-↠)

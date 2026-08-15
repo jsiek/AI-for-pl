@@ -17,7 +17,6 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
 
 open import Types renaming (`∀ to `∀ᵗ)
-open import FunExt using (funext)
 import Consistency as C
 
 private
@@ -72,8 +71,8 @@ fromEnv∼ : C.Env∼ Δ → CastCtx Δ
 fromEnv∼ μ X = ordinary (μ X)
 
 toEnv∼-fromEnv∼ : ∀ {μ : C.Env∼ Δ}
-  → toEnv∼ (fromEnv∼ μ) ≡ μ
-toEnv∼-fromEnv∼ = refl
+  → C.Env∼Eq (toEnv∼ (fromEnv∼ μ)) μ
+toEnv∼-fromEnv∼ X = refl
 
 ordinaryCtx : ∀ {Δ} → CastCtx Δ
 ordinaryCtx = fromEnv∼ C.idᶜ
@@ -99,8 +98,8 @@ genCtx κ zero = ordinary C.★∼X
 genCtx κ (suc X) = κ X
 
 toEnv∼-flip : ∀ {κ : CastCtx Δ}
-  → toEnv∼ (flipCtx κ) ≡ C.flipᵐ (toEnv∼ κ)
-toEnv∼-flip {κ = κ} = funext λ X → entry-flip (κ X)
+  → C.Env∼Eq (toEnv∼ (flipCtx κ)) (C.flipᵐ (toEnv∼ κ))
+toEnv∼-flip {κ = κ} X = entry-flip (κ X)
   where
   entry-flip : ∀ entry
     → entryMode (flipEntry entry) ≡ C.flipVar∼ (entryMode entry)
@@ -112,16 +111,19 @@ toEnv∼-flip {κ = κ} = funext λ X → entry-flip (κ X)
   entry-flip (inst-in-bound phase) = refl
 
 toEnv∼-ext : ∀ {κ : CastCtx Δ}
-  → toEnv∼ (extCtx κ) ≡ C.extᵐ (toEnv∼ κ)
-toEnv∼-ext = funext λ { zero → refl; (suc X) → refl }
+  → C.Env∼Eq (toEnv∼ (extCtx κ)) (C.extᵐ (toEnv∼ κ))
+toEnv∼-ext zero = refl
+toEnv∼-ext (suc X) = refl
 
 toEnv∼-inst : ∀ phase {κ : CastCtx Δ}
-  → toEnv∼ (instCtx phase κ) ≡ C.instᵐ (toEnv∼ κ)
-toEnv∼-inst phase = funext λ { zero → refl; (suc X) → refl }
+  → C.Env∼Eq (toEnv∼ (instCtx phase κ)) (C.instᵐ (toEnv∼ κ))
+toEnv∼-inst phase zero = refl
+toEnv∼-inst phase (suc X) = refl
 
 toEnv∼-gen : ∀ {κ : CastCtx Δ}
-  → toEnv∼ (genCtx κ) ≡ C.genᵐ (toEnv∼ κ)
-toEnv∼-gen = funext λ { zero → refl; (suc X) → refl }
+  → C.Env∼Eq (toEnv∼ (genCtx κ)) (C.genᵐ (toEnv∼ κ))
+toEnv∼-gen zero = refl
+toEnv∼-gen (suc X) = refl
 
 ------------------------------------------------------------------------
 -- Leaf-local realization and generic-ground gate
@@ -228,10 +230,10 @@ data _⊢_∶_⇒_ {Δ : TyCtx} (κ : CastCtx Δ) :
 ------------------------------------------------------------------------
 
 transport-consistency : ∀ {μ ν : C.Env∼ Δ} {A B}
-  → μ ≡ ν
+  → C.Env∼Eq μ ν
   → C._⊢_∼_ μ A B
   → C._⊢_∼_ ν A B
-transport-consistency refl c = c
+transport-consistency = C.transport-env∼
 
 inst-out-leaf-consistency : ∀ {κ : CastCtx Δ} {X phase}
   → κ X ≡ inst-out-bound phase
@@ -475,7 +477,7 @@ flip-agrees : ∀ {μ : C.Env∼ Δ} {κ : CastCtx Δ}
   → EnvAgrees (C.flipᵐ μ) (flipCtx κ)
 flip-agrees {κ = κ} agrees X =
   trans (cong C.flipVar∼ (agrees X))
-    (sym (cong (λ env → env X) (toEnv∼-flip {κ = κ})))
+    (sym (toEnv∼-flip {κ = κ} X))
 
 ext-agrees : ∀ {μ : C.Env∼ Δ} {κ : CastCtx Δ}
   → EnvAgrees μ κ
@@ -496,16 +498,16 @@ gen-agrees agrees zero = refl
 gen-agrees agrees (suc X) = agrees X
 
 transport-∼★ : ∀ {μ ν : C.Env∼ Δ} {G}
-  → μ ≡ ν
+  → C.Env∼Eq μ ν
   → C._⊢_∼★ μ G
   → C._⊢_∼★ ν G
-transport-∼★ refl G∼★ = G∼★
+transport-∼★ = C.transport-∼★
 
 transport-★∼ : ∀ {μ ν : C.Env∼ Δ} {G}
-  → μ ≡ ν
+  → C.Env∼Eq μ ν
   → C._⊢★∼_ μ G
   → C._⊢★∼_ ν G
-transport-★∼ refl ★∼G = ★∼G
+transport-★∼ = C.transport-★∼
 
 aligned-mode : ∀ {μ : C.Env∼ Δ} {κ : CastCtx Δ} {X mode}
   → EnvAgrees μ κ
@@ -517,13 +519,13 @@ aligned-∼★ : ∀ {μ : C.Env∼ Δ} {κ : CastCtx Δ} {G}
   → EnvAgrees μ κ
   → C._⊢_∼★ μ G
   → C._⊢_∼★ (toEnv∼ κ) G
-aligned-∼★ {κ = κ} agrees = transport-∼★ (funext agrees)
+aligned-∼★ {κ = κ} agrees = transport-∼★ agrees
 
 aligned-★∼ : ∀ {μ : C.Env∼ Δ} {κ : CastCtx Δ} {G}
   → EnvAgrees μ κ
   → C._⊢★∼_ μ G
   → C._⊢★∼_ (toEnv∼ κ) G
-aligned-★∼ {κ = κ} agrees = transport-★∼ (funext agrees)
+aligned-★∼ {κ = κ} agrees = transport-★∼ agrees
 
 consistency→coercion-with : ∀ {μ : C.Env∼ Δ}
     {κ : CastCtx Δ} {A B}

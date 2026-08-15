@@ -95,3 +95,41 @@ V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
 ```
 
 and for the corresponding rank decrease.
+
+
+Stage 1v postscript
+-------------------
+
+The residual-tail continuation surface is now live and checked in:
+
+`GTSFImp/proof/DGG/Catchup/StructuralInstantiationDescentDef.agda`
+
+The field is carried by `StructuralNameChainPlan` as
+`residual-tail-child`.  It consumes the residual discharge data from
+`residual-cast-stop-package`:
+
+```agda
+(V ⟨ c ⟩) —↠[ χs ] N
+W′ ∣ ECR.mapCtxᴿ ext γ ⊢²
+  M ⊑ N ∶ ECR.transport⊑ᵂ ext qC
+```
+
+and returns exactly the recursive-worker inputs at the discharge world:
+
+```agda
+child-spine
+child-plan
+child-chain-plan
+child-chain
+child-typed
+child-target
+pendingCastMass vN child-spine <
+  pendingCastMass vV (cast-frame c ▻ⁱ spine)
+```
+
+plus the alignment function that turns the recursive child final relation into
+the caller target package's final relation.  This resolves the residual-tail
+interface requested by this note.
+
+The name worker itself remains open on the separate strict-view delegate
+placement recorded in `ns4-stage-1v-strict-surface-signature-resister.red`.

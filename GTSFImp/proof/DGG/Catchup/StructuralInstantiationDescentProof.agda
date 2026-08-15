@@ -4,13 +4,15 @@ module proof.DGG.Catchup.StructuralInstantiationDescentProof where
 --   * Builds the zero-spine structural descent package.
 --   * Erases structural traces to the public instantiation package.
 
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; suc; _<_)
+open import Data.Nat.Properties using (n<1+n)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
   renaming (subst to subst≡)
 
 open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
-open import CastTerms using (Term; Value)
-open import Consistency using (_↪ᵗ_; wk↪ᵗ)
+open import CastTerms using (Term; Value; _⟨_⟩)
+open import Consistency using (Env∼; _⊢_∼_; _↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores;
    applyTy; _—→[_]_; ↠-refl)
@@ -28,7 +30,7 @@ open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
+  (FuelStepSurface; Catchup⁻Embedᵀ; castSize; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
@@ -154,6 +156,41 @@ erase-structural-descent pkg = record
   }
   where
   target = StructuralInstantiationDescentPackage.target-descent pkg
+
+
+residual-cast-stop-package : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B C : Ty Δᴿ} {μ : Env∼ Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {q : A CTI2.⊑ᵂ⟨ W ⟩ C}
+    {c : μ ⊢ B ∼ C}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → Value M
+  → Value V
+  → suc (castSize c) < fuel
+  → ResidualFrameProvenance c
+  → InstSpineDescentPackage W γ M (V ⟨ c ⟩) q
+residual-cast-stop-package {p = p} {q = q} {c = c}
+    fuel-step catchup⁻-embed rel vM vV residual<fuel prov
+    with FuelStepSurface.smaller-extra fuel-step residual<fuel
+      rel vM vV c (n<1+n (castSize c)) q
+      (catchup⁻-embed _ (prov {χs = []} {p = p} {q = q}))
+... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
+    (vN′ , post↠N′ , rel′) =
+  record
+    { Δᴿ′ = Δᴿ′
+    ; χs = χs
+    ; Δ′ = Δ′
+    ; W′ = W′
+    ; ext = ext
+    ; final = N′
+    ; final-value = vN′
+    ; post-reduction = post↠N′
+    ; final-relation = rel′
+    }
 
 
 structural-name-package :

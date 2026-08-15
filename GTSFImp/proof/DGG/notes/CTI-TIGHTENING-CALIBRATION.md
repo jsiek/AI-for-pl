@@ -111,6 +111,7 @@ scratch is `CTITighteningProvScratch.agda`.
 | S-NARROW | Direction/shape composition only | **Refuted** | C1 still derives the bad square because the bad and good projections have identical cast/world endpoints. |
 | S-WORLD | Items 1-3 only: provenance cells and capability-gated `⊑ᵂ`, type-level cast rules | **Refuted** | C1-W still derives the bad square by rerouting through the good square's final target-projection tuple. |
 | S-PROV CORE | Items 1-5: provenance cells, decay capability, runtime alignment witnesses, cast-derivation relation, term-shaped projections | **Recommended** | C1 blocks the mismatch and keeps the matching and residual controls.  C2 is compatible when the term-shaped clause is scoped to generated/runtime-aligned projections. |
+| S-OCC | Occupancy-gated source-seal see-through partner | **Checked viable** | C1 blocks the bad square at the aligned source-seal/bare-target premise, while pre-alignment see-through, matched post-alignment seals, and existing catch-up/projection machinery remain available. |
 | S-PROV item 6 | Remove `CatchupCast`, `CatchupCast⁻`, and `CatchupColumn` | **Defer** | It reworks the M4/M6/NS-4 fuel knot and is not needed for the CORE tightening. |
 
 ## CORE Rule Forms
@@ -356,10 +357,92 @@ square has `0⟨ℕ!⟩`.  A type-level target cast rule cannot see that differe
 the term-shaped projection/residual clauses from S-PROV CORE are the needed
 extra invariant.
 
+## S-OCC Column
+
+Status: evaluation only.  No live CTI2 or proof files were edited.  The checked
+scratch is `CTITighteningOccScratch.agda`.
+
+The faithful S-OCC rendering keeps the ordinary cast premises and target
+projection witnesses from S-NARROW/S-WORLD, and changes only the source-seal
+partner discipline.  The scratch has two occupancy states:
+
+- `pre-occ = source-only-cell`, a source-only cell with no target occupant.
+  In this state `star-rep-targetᴼ` is available and delegates to the existing
+  `Rep★PartnerOK`.
+- `aligned-occ = target-occupied-cell`, the probe state where target `Y`
+  occupies the shared center.  In this state `star-rep-targetᴼ` requires
+  `NoTargetOccupant aligned-occ`, which is empty.
+
+Matched target seals are unchanged: `matching-outputᴼ` uses the existing
+`matched-seal-star-partner`, and `matching-inputᴼ`/`matching-projectionᴼ` then
+use the unchanged `Y!`/`Y?` cast witnesses.  `post-alignment-input-is-taggedᴼ`
+aliases the reachability fact that the target input before projection is
+`target-sealed ⟨ Y! ⟩`.
+
+| Cell | S-OCC verdict | Evidence |
+| --- | --- | --- |
+| C1 Soundness | **CHECKED-OK** | `bad-input-underivableᴼ`, `source-tagged-bare-underivableᴼ`, `source-projected-bare-underivableᴼ`, and `bad-square-underivableᴼ` typecheck. |
+| C2 Compile monotonicity | **CHECKED-OK** | Base compile representatives check in both regimes: `aligned-baseᴼ`, `aligned-target-one-sided-baseᴼ`, `aligned-source-one-sided-baseᴼ`, `pre-baseᴼ`, `pre-target-one-sided-baseᴼ`, and `pre-source-one-sided-baseᴼ`.  The source-seal see-through representative is checked only in the source-only world as `prealignment-see-throughᴼ`, matching initial/compile-image worlds with no aligned occupant. |
+| C3 Good executions + skew window | **CHECKED-OK** | Pre-alignment see-through checks as `prealignment-see-throughᴼ`; post-alignment matched seals and generated projection check as `matching-outputᴼ`, `matching-inputᴼ`, `matching-projectionᴼ`, and `good-generated-catchupᴼ`.  The skew window does **not** exist in the checked reachability run: `post-alignment-input-is-taggedᴼ` fixes the input as sealed-and-`Y!`-tagged, and `target-catchup-routeᴼ` is the existing two-step cancellation route. |
+| C5 LR cell | **CHECKED-OK** | The LR reference needs same-tag projection facts and residual recursion.  S-OCC does not make these CTI-internal, but it keeps the existing `CatchupCast`/projection machinery that supplies `generated-project-same` and the residual cast recursion. |
+
+### C1 Reroute Table
+
+| Attempted route | Checked name | Why it dies |
+| --- | --- | --- |
+| Direct aligned source seal vs bare target at `X ⊑ ★` | `bad-input-underivableᴼ` | The only live bad partner shape is `star-rep-target`; in `aligned-occ` its `NoTargetOccupant` premise is empty.  `plain-target` cannot match a top cast, and `name-protected-target` cannot match the bare non-sealed target. |
+| Cast source through `X!`, then project back through `X?` | `source-tagged-bare-underivableᴼ`, `source-projected-bare-underivableᴼ`, `bad-square-underivableᴼ` | The source/paired cast-shape premises refine the intermediate endpoints back to the sealed-source/bare-target premise, which is already empty. |
+| Try the `X ⊑ X` variable witness instead of the `X ⊑ ★` witness | `route-X⊑X-variable-witness-closedᴼ` | The target is still the bare `ℕ!` value; the aligned source-seal partner gate closes before the endpoint witness matters. |
+| Try the `rep★-round-trip` source package | `route-rep★-round-trip-closedᴼ` | The enclosing `star-rep-targetᴼ` is rejected by occupancy before the round-trip subcase can reopen see-through. |
+| Try a variable-tagged sealed source value | `var-tag-value-sealed-bare-target-closedᴼ` | This is the `var-tag-value-sealed` territory: target values carrying the partnered seal/tag are good, but the bare non-`Y` target still needs the aligned star-rep see-through gate, which is empty.  No blames-right/returns-left witness derives. |
+
+### C3 Skew Window
+
+The live reduction rules make the allocation/tag step atomic for the relevant
+target generation.  `β-gen` allocates with `bind C` and returns the already
+casted contractum `⇑ᵗᵐ V ⟨ c ⟩ ...`; `β-inst` similarly allocates with
+`bind ★` and returns the wrapped/casted contractum.  The checked reachability
+state agrees: immediately before the generated projection, the target input is
+
+$$
+\left((0\langle\mathbb{N}!\rangle)
+  \mathbin{\downarrow}\operatorname{seal}Y\,\star\right)
+\langle Y!\rangle .
+$$
+
+So there is no reachable state in this run where the cell is occupied while
+the target copy relevant to the relation is still the unsealed bare
+`0⟨ℕ!⟩`.  The only unsealed-target state checked by S-OCC is the
+pre-alignment one, `prealignment-see-throughᴼ`, where the cell has no target
+occupant and the see-through premise is intentionally available.
+
+## S-OCC vs S-PROV CORE
+
+Both S-OCC and S-PROV CORE pass this calibration, but they move the invariant
+to different places.  S-PROV CORE changes the cast/projection clauses so
+generated projections must retain the matching injected target input or a
+post-cancellation residual derivation; this directly serves M3 inversion and
+LR-style projection reasoning, but forces term-shaped cast-premise threading
+through `cast⊑²`/`⊑cast²`/`cast⊑cast²` consumers.  S-OCC is narrower: it
+changes the seal partner predicate and world evolution so source-seal
+see-through is available only before target occupancy.  That is less invasive
+for M4/M6/NS-4 and item-6-style cleanup because `CatchupCast`,
+`CatchupCast⁻`, `CatchupColumn`, and ordinary target projection rules remain
+unchanged.  Its live migration cost is instead concentrated in world occupancy
+tracking plus every consumer that transports or rebuilds
+`SourceConcealPartnerOK`/`SealPartnerOK` through M3 seal transfer, target
+extension/bind lift, center rename, and decay.
+
+Conclusion: S-OCC is a viable lower-surface alternative if the live proof can
+maintain the reachability invariant that every bad blames-right/returns-left
+projection must pass through aligned source-seal/bare-target see-through.
+S-PROV CORE is more explicit and robust at the cast rule itself, but also more
+invasive for cast consumers.
+
 ## Recommendation
 
-Land S-PROV CORE, not S-NARROW or S-WORLD.  The CORE rule should be scoped so the
-term-shaped projection restriction governs generated/runtime-aligned
-projections, while ordinary compile-time dynamic projections keep a separate
-non-generated premise.  Defer item 6 until after the world-provenance and
-term-shaped projection migration is green.
+Do not land S-NARROW or S-WORLD.  S-PROV CORE remains the more explicit
+cast-rule repair; S-OCC is now a checked viable alternative with a smaller
+cast-consumer surface but a stronger burden on world occupancy and source-seal
+partner transport.  Defer item 6 under either viable route until after the
+chosen tightening is green.

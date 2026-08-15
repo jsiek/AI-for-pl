@@ -802,3 +802,27 @@ generated-name scoping from C2) as the live CastTermImprecision2
 tightening, migrated by the A3/tag-discipline playbook (pre-flight in
 scratch; riskiest consumers first: M3 Inversion stack, seal-transfer,
 Λ machinery, NS-4 equal helpers/absorption; full gates last).
+
+DECIDED (user, 2026-08-15): the CatchupCast/CatchupCast⁻/CatchupColumn
+predicate family MUST BE REMOVED regardless of candidate — item 6 is
+mandatory, overriding the calibration's earlier DEFER verdict.
+Rationale (user): the external predicate HID the CTI unsoundness for
+some time (the mismatch probe had flagged the same permissiveness in
+the M3 era), enlarging today's migration; invariants of this kind
+belong in the CTI2 relation itself and MUST be connected to gradual
+source-term imprecision by the compile-monotonicity proof — compile²
+is re-proven as the MINTING theorem (compilation derives all
+birth/use/ancestry evidence from the source derivation; related
+reduction preserves it). Without that connection the invariants are
+ungrounded ("an imaginary world").
+
+Consequences for the calibration: the mandated shape is S-PROV FULL
+(items 1-6 + the two-stage grounding theorem), with the generated-name
+scoping from C2. The in-flight S-OCC column is reinterpreted as a
+COMPONENT evaluation (does occupancy-gating belong in the partner
+predicate's design, and does the alignment skew window exist?), not as
+a standalone alternative — S-OCC as posed retains CatchupCast, which
+the decision forbids. Migration plan must include: ExtraCastRight and
+the M6 fuel knot reworked to CTI-inversion provenance; NS-4 stage-1's
+ResidualFrameProvenance/chain threading re-pointed at the strengthened
+constructors (the higher-order surfaces localize this).

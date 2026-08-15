@@ -110,7 +110,8 @@ open import proof.DGG.Inversion.SpineValueDef using
 
 StructuralValueSpineInstantiationAccᵀ : Set₁
 StructuralValueSpineInstantiationAccᵀ =
-  ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  StructuralStrictViewSurfaces
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {C₀ E : Ty Δᴿ}
@@ -144,7 +145,8 @@ StructuralValueSpineInstantiationAccᵀ =
 
 StructuralNameInstantiationAccᵀ : Set₁
 StructuralNameInstantiationAccᵀ =
-  ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  StructuralStrictViewSurfaces
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
@@ -417,7 +419,9 @@ smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
   cong (_ List.∷_) (smartLiftCtxᴸ-target-ctx liftγ)
 
 
-structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
+structural-name-cast-equal :
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationEqualᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {U V : Term Δᴸ} {N : Term Δᴿ}
@@ -458,12 +462,12 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-cast-equal worker {B = B} {X = X}
+structural-name-cast-equal surfaces worker {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan c inert
     prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.cast-child plan c
        | StructuralNameChainPlan.cast-child chain-plan c chain typed
-structural-name-cast-equal worker {B = B} {X = X}
+structural-name-cast-equal surfaces worker {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan c inert
     prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
@@ -471,13 +475,15 @@ structural-name-cast-equal worker {B = B} {X = X}
   structural-inert-cast-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     c inert
-    (worker fuel-step catchup⁻-embed inst-decrease
+    (worker surfaces fuel-step catchup⁻-embed inst-decrease
       child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank target)
 
 
-structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
+structural-name-plain-Λ-equal :
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationEqualᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
@@ -520,14 +526,14 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
+structural-name-plain-Λ-equal surfaces worker {γ = γ} {γᴸ = γᴸ}
     {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
     liftγ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.plain-Λ-child plan refl
        | StructuralNameChainPlan.plain-Λ-child chain-plan refl liftγ
            chain typed
-structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
+structural-name-plain-Λ-equal surfaces worker {γ = γ} {γᴸ = γᴸ}
     {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
     liftγ prem vU vN view spine chain typed acc rank target
@@ -540,7 +546,7 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
   targetᴸ = structural-target-lift-left X⊑★ target
 
   child-rel =
-    worker fuel-step catchup⁻-embed inst-decrease
+    worker surfaces fuel-step catchup⁻-embed inst-decrease
       child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank targetᴸ
@@ -559,7 +565,9 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
       (CTI2T.target-typing² child-rel)
 
 
-structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
+structural-name-smart-Λ-equal :
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationEqualᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ Δᵐ}
       {W : CTI2.World Δᴸ Δᴿ Δ}
       {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
@@ -604,14 +612,14 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+structural-name-smart-Λ-equal surfaces worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
     liftW liftγ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.smart-Λ-child plan refl liftW
        | StructuralNameChainPlan.smart-Λ-child chain-plan refl liftW
            liftγ chain typed
-structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+structural-name-smart-Λ-equal surfaces worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
     liftW liftγ prem vU vN view spine chain typed acc rank target
@@ -620,7 +628,7 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     with structural-smart-liftᴸ
       (StructuralTargetInstantiationPackage.structural-ext target)
       liftW
-structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
+structural-name-smart-Λ-equal surfaces worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
     liftW liftγ prem vU vN view spine chain typed acc rank target
@@ -648,7 +656,7 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     }
 
   child-rel =
-    worker fuel-step catchup⁻-embed inst-decrease
+    worker surfaces fuel-step catchup⁻-embed inst-decrease
       child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank targetᵐ
@@ -671,7 +679,9 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
         postTarget⊢)
 
 
-structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
+structural-name-reveal-equal :
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationEqualᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ}
       {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
@@ -716,13 +726,13 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-reveal-equal worker {B = B} {X = X} {c = c}
+structural-name-reveal-equal surfaces worker {B = B} {X = X} {c = c}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan mono rb sc
     c⊢ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.reveal-child plan {c = c} rb
        | StructuralNameChainPlan.reveal-child chain-plan {c = c} rb sc
            chain typed
-structural-name-reveal-equal worker {B = B} {X = X} {c = c}
+structural-name-reveal-equal surfaces worker {B = B} {X = X} {c = c}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan mono rb sc
     c⊢ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
@@ -730,7 +740,7 @@ structural-name-reveal-equal worker {B = B} {X = X} {c = c}
   structural-reveal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
-    (worker fuel-step catchup⁻-embed inst-decrease
+    (worker surfaces fuel-step catchup⁻-embed inst-decrease
       child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank
@@ -738,7 +748,7 @@ structural-name-reveal-equal worker {B = B} {X = X} {c = c}
 
 
 structural-name-conceal-equal :
-  StructuralNameConcealEqualOKᵀ
+  StructuralStrictViewSurfaces
   → StructuralNameInstantiationEqualᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ}
       {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
@@ -785,13 +795,13 @@ structural-name-conceal-equal :
             (structural-world-extendᴿ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
-structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
+structural-name-conceal-equal surfaces worker {B = B} {X = X} {c = c}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan ok mono rb
     sc c⊢ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.conceal-child plan {c = c} rb
        | StructuralNameChainPlan.conceal-child chain-plan {c = c} rb sc
            chain typed
-structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
+structural-name-conceal-equal surfaces worker {B = B} {X = X} {c = c}
     fuel-step catchup⁻-embed inst-decrease plan chain-plan ok mono rb
     sc c⊢ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
@@ -799,8 +809,9 @@ structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
   structural-conceal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
-    (ok-equal rb ok spine target)
-    (worker fuel-step catchup⁻-embed inst-decrease
+    (StructuralStrictViewSurfaces.conceal-equal-ok surfaces rb ok
+      spine target)
+    (worker surfaces fuel-step catchup⁻-embed inst-decrease
       child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank

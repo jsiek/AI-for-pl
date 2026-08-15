@@ -9,12 +9,14 @@ open import Data.Product using (Σ-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyCtx; TyVar; ＇_; `∀; _[_]ᵗ)
 open import CastTerms using (Term; Value)
-open import Consistency using (Env∼; _⊢_∼_)
+open import Consistency using (Env∼; _↪ᵗ_; wk↪ᵗ; _⊢_∼_)
 open import Conversion using (Conv↑; Conv↓)
 open import Imprecision using (X⊑★)
-open import Reduction using (StoreChanges; _—↠[_]_)
+open import Reduction using
+  (StoreChanges; _—↠[_]_; bind; _∷_; []; applyTy; applyStores)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
@@ -80,6 +82,15 @@ record StructuralNamePostPlan {Δᴸ Δᴿ Δ}
       → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
       → Σ[ q₀ ∈ A₀ CTI2.⊑ᵂ⟨ Wᵖ ⟩ E ]
           StructuralNamePostPlan Wᵖ A₀ E q₀
+
+    target-bind-child : ∀ {Δ₁} {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+        {R : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+      → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
+      → (follows : CTI2.targetStoreʷ W₁ ≡
+          applyStores (bind R ∷ []) (CTI2.targetStoreʷ W))
+      → let ext = target-insert-bind-world-extendᴿ ins follows in
+          StructuralNamePostPlan W₁ A (applyTy (bind R) E)
+            (ECR.transport⊑ᵂ ext q)
 
 
 record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
@@ -169,6 +180,24 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
             StructuralNameChainPlan {fuel = fuel} Wᵖ γᵖ A₀ E
               (proj₁ child)
               (proj₂ child)
+
+    target-bind-child : ∀ {Δ₁} {W₁ : CTI2.World Δᴸ (suc Δᴿ) Δ₁}
+        {R : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+        {B₁ : Ty (suc Δᴿ)}
+      → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
+      → (follows : CTI2.targetStoreʷ W₁ ≡
+          applyStores (bind R ∷ []) (CTI2.targetStoreʷ W))
+      → (child-spine : InstantiationSpine B₁ (applyTy (bind R) E))
+      → let ext = target-insert-bind-world-extendᴿ ins follows
+            child = StructuralNamePostPlan.target-bind-child plan ins follows
+         in Σ[ child-chain ∈
+              TargetFrameAbsorptionChain W₁ (ECR.mapCtxᴿ ext γ) A
+                child-spine (ECR.transport⊑ᵂ ext q) ]
+            Σ[ child-typed ∈
+              SpineTypedʷ {fuel = fuel} W₁ child-spine ]
+              StructuralNameChainPlan {fuel = fuel} W₁
+                (ECR.mapCtxᴿ ext γ) A (applyTy (bind R) E)
+                (ECR.transport⊑ᵂ ext q) child
 
 
 StructuralNameInstantiationᵀ : Set₁

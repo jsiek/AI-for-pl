@@ -17,8 +17,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyVar; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; _[_]ᶜ)
 open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
-open import CastTerms using (Term; _⟨_⟩; _↑_; _↓_)
-open import Reduction using (keep; bind; applyTy; applyBody)
+open import CastTerms using (Term; Value; _⟨_⟩; _↑_; _↓_)
+open import Reduction using (keep; bind; applyTy; applyBody; _—→[_]_)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -73,7 +73,12 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
         → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B ]
             Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
-    → A CTI2.⊑ᵂ⟨ W ⟩ C
+    → (qC : A CTI2.⊑ᵂ⟨ W ⟩ C)
+    → (∀ {M N N₁}
+        → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ qC
+        → (N ↑ c) —→[ keep ] N₁
+        → Value N₁
+        → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ qC)
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (reveal-frame c ▻ⁱ spine) q
 
@@ -90,7 +95,12 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
         → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B ]
             Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
-    → A CTI2.⊑ᵂ⟨ W ⟩ C
+    → (qC : A CTI2.⊑ᵂ⟨ W ⟩ C)
+    → (∀ {M N N₁}
+        → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ qC
+        → (N ↓ c) —→[ keep ] N₁
+        → Value N₁
+        → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ qC)
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (conceal-frame c ▻ⁱ spine) q
 
@@ -122,10 +132,10 @@ target-frame-reveal-absorption : ∀ {Δᴸ Δᴿ Δ}
   → Σ[ qC ∈ A CTI2.⊑ᵂ⟨ W ⟩ C ]
       W CTI2.∣ γ ⊢² M ⊑ (V ↑ c) ∶ qC
 target-frame-reveal-absorption
-    (tfa-reveal mono rb sc c⊢ transport qC tail) rel
+    (tfa-reveal mono rb sc c⊢ transport qC keep-rel tail) rel
     with transport rel
 target-frame-reveal-absorption
-    (tfa-reveal mono rb sc c⊢ transport qC tail) rel
+    (tfa-reveal mono rb sc c⊢ transport qC keep-rel tail) rel
     | pᵖ , relᵖ =
   qC , CTI2.⊑reveal² mono rb sc c⊢ relᵖ qC
 
@@ -142,10 +152,10 @@ target-frame-conceal-absorption : ∀ {Δᴸ Δᴿ Δ}
   → Σ[ qC ∈ A CTI2.⊑ᵂ⟨ W ⟩ C ]
       W CTI2.∣ γ ⊢² M ⊑ (V ↓ c) ∶ qC
 target-frame-conceal-absorption
-    (tfa-conceal mono rb sc c⊢ transport qC tail) rel
+    (tfa-conceal mono rb sc c⊢ transport qC keep-rel tail) rel
     with transport rel
 target-frame-conceal-absorption
-    (tfa-conceal mono rb sc c⊢ transport qC tail) rel
+    (tfa-conceal mono rb sc c⊢ transport qC keep-rel tail) rel
     | pᵖ , relᵖ =
   qC , CTI2.⊑conceal² mono rb sc c⊢ relᵖ qC
 
@@ -191,9 +201,11 @@ allv-reveal-child-frame-chain geom tail =
     (tfa-reveal
       (RG.mono₁ geom) (RG.rebase₁ geom) (RG.same₁ geom)
       (RG.targetConversion₁ geom) (RG.transport₁ geom) (RG.q₁ geom)
+      (RG.keep₁ geom)
       (tfa-reveal
         (RG.mono₂ geom) (RG.rebase₂ geom) (RG.same₂ geom)
         (RG.targetConversion₂ geom) (RG.transport₂ geom) (RG.q₂ geom)
+        (RG.keep₂ geom)
         (tfa-type tail))))
   where
   module RG = GFG.StructuralRevealGeneratedFrameGeometry
@@ -221,9 +233,11 @@ allv-conceal-child-frame-chain geom tail =
     (tfa-conceal
       (CG.mono₁ geom) (CG.rebase₁ geom) (CG.same₁ geom)
       (CG.targetConversion₁ geom) (CG.transport₁ geom) (CG.q₁ geom)
+      (CG.keep₁ geom)
       (tfa-reveal
         (CG.mono₂ geom) (CG.rebase₂ geom) (CG.same₂ geom)
         (CG.targetConversion₂ geom) (CG.transport₂ geom) (CG.q₂ geom)
+        (CG.keep₂ geom)
         (tfa-type tail))))
   where
   module CG = GFG.StructuralConcealGeneratedFrameGeometry

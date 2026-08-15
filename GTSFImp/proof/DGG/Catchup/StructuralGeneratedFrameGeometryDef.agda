@@ -14,7 +14,8 @@ open import Data.Product using (Σ-syntax)
 
 open import Types using (Ty; TyVar; ＇_; ⇑ᵗ; _[_]ᵗ)
 open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
-open import CastTerms using (Term)
+open import CastTerms using (Term; Value; _↑_; _↓_)
+open import Reduction using (keep; _—→[_]_)
 import proof.DGG.CastTermImprecision2 as CTI2
 
 
@@ -49,6 +50,11 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
           Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
+    keep₁ : ∀ {M N N₁}
+      → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ q₁
+      → (N ↑ c) —→[ keep ] N₁
+      → Value N₁
+      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -66,6 +72,12 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
           Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
+    keep₂ : ∀ {M N N₁}
+      → W CTI2.∣ γ ⊢² M
+          ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
+      → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
+      → Value N₁
+      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂
 
 
 record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
@@ -90,6 +102,11 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
           Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
+    keep₁ : ∀ {M N N₁}
+      → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ q₁
+      → (N ↓ c) —→[ keep ] N₁
+      → Value N₁
+      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -107,3 +124,9 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
           Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
+    keep₂ : ∀ {M N N₁}
+      → W CTI2.∣ γ ⊢² M
+          ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
+      → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
+      → Value N₁
+      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂

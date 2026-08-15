@@ -45,6 +45,7 @@ record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
     (q : A CTI2.⊑ᵂ⟨ W ⟩ E) : Set₁ where
   field
     child-endpoint : A CTI2.⊑ᵂ⟨ W ⟩ B
+    child-value : Value V
     child-plan : StructuralNamePostPlan W A E q
     child-chain-plan :
       StructuralNameChainPlan {fuel = fuel} W γ A E q child-plan

@@ -34,7 +34,8 @@ open import CastTerms using
    _↑_; _↓_; _⦂∀_[_]; renameᵗᵐ; ⇑ᵗᵐ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTy;
-   _—→[_]_; _—↠[_]_; ↠-refl; ↠-step)
+   _—→[_]_; _—↠[_]_; ↠-refl; ↠-step; pure-step;
+   β-Λ; β-∀; β-gen; β-inst; id-reveal; id-conceal; conceal-reveal)
 open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
 open import proof.TypeSafety.Preservation using

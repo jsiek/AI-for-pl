@@ -206,10 +206,83 @@ The experiment supports three connected source invariants.
    `SourceStarProbe.agda` refutes that crossing in the representative
    two-allocation world.
 
-The unrestricted CTI rule `\sqsubseteq\mathrm{cast}^{2}` forgets the first
-invariant: it can append `Y?` using only its endpoint type obligations. A
-manually assembled CTI world can also omit the allocation history needed to
-recover the second invariant.
+The unrestricted CTI rule `\sqsubseteq\mathrm{cast}^{2}` forgets the first two
+invariants: after decay it can treat the current mark as fresh star-use
+permission and append `Y?` using only endpoint type obligations. A manually
+assembled CTI world can also omit the allocation history needed to recover the
+third invariant.
+
+## Proposed strengthening of CTI
+
+The CTI should distinguish a world's current approximation from the evidence
+that authorized each type-variable use. A world cell needs at least the
+following provenance.
+
+- **Birth origin:** either `matched`, introduced by source
+  `\Lambda\sqsubseteq\Lambda`, or `source-only`, introduced by
+  `\Lambda\sqsubseteq N'`.
+- **Current mark:** `X\sqsubseteq X` or `X\sqsubseteq\star`, together with the
+  decay history from the birth mark. This is operational approximation data,
+  not by itself permission to derive a new source `X\sqsubseteq\star` use.
+- **Use capability:** matched birth authorizes variable-to-variable uses even
+  after decay; source-only birth authorizes source-variable-to-star uses. This
+  evidence should be carried by the type and term imprecision derivations
+  rather than reconstructed from the current mark.
+- **Occupancy and allocation ancestry:** a source-only cell initially has no
+  target occupant. Adding or aligning a target variable must record the target
+  allocation, the order-preserving embedding facts, and the related store
+  representations.
+- **Cast ancestry:** runtime alignment must record the matching generated
+  injection/projection path, or the residual path left after a matching pair
+  has cancelled.
+
+The intended state distinctions are therefore
+
+$$
+\begin{aligned}
+&\operatorname{matched}(X,Y;X\sqsubseteq X)
+  \longrightarrow
+  \operatorname{matched}(X,Y;X\sqsubseteq\star),
+\\
+&\operatorname{sourceOnly}(X,-;X\sqsubseteq\star)
+  \longrightarrow
+  \operatorname{runtimeAligned}(X,Y;X\sqsubseteq\star,\pi),
+\end{aligned}
+$$
+
+where the first transition is decay and preserves matched-use capability,
+while `\pi` in the second transition is the allocation and cast provenance
+that eventually yields `CatchupCast`. The two states on the right have the
+same current mark but must not support the same CTI constructors.
+
+This suggests the following rule changes.
+
+1. `\Lambda\sqsubseteq\Lambda` mints matched birth and matched-use evidence;
+   `\Lambda\sqsubseteq N'` mints source-only birth and star-use evidence, with
+   no target occupant.
+2. World decay changes only the current mark. It transports existing use
+   evidence and cannot manufacture star-use evidence for a matched binder.
+3. `RebaseAt` and smart alias merging may turn a source-only cell into a
+   runtime-aligned cell only when they also produce allocation-order,
+   store-representation, and cast-ancestry witnesses.
+4. `\mathrm{cast}\sqsubseteq\mathrm{cast}^{2}` must relate the consistency
+   derivations or their cast directions/shapes, not merely their source and
+   target types.
+5. `\sqsubseteq\mathrm{cast}^{2}` may add a target projection only from a
+   runtime-aligned witness showing a matching target injection, or from
+   recursive post-cancellation provenance. The symmetric
+   `\mathrm{cast}\sqsubseteq^{2}` rule needs the corresponding source-side
+   condition.
+6. A target cast column exposed by inversion must carry `CatchupColumn`; its
+   head projection then yields `CatchupCast` rather than requiring callers to
+   assume it independently.
+
+The required validation theorem has two stages. Compilation should map every
+source-term imprecision derivation to the strengthened CTI and mint all birth
+and use evidence. Related reduction should preserve that evidence while adding
+only justified runtime-alignment and cast-ancestry witnesses. Erasing the
+provenance fields may recover the present CTI, but the catch-up and simulation
+lemmas should consume the strengthened judgment.
 
 ## Conclusion and next theorem
 
@@ -222,9 +295,7 @@ This is evidence, not yet a general preservation theorem. The next sound step
 is to prove that source imprecision plus compilation and related reduction
 preserve a provenance-indexed CTI judgment. Its world component must remember
 whether a cell came from matched binders or from a one-sided binder followed by
-runtime alignment. At every target cast column used by catch-up, the judgment
-should provide `CatchupColumn`; its projection head should provide
-`CatchupCast`, including the matching-injection or recursive post-cancellation
-evidence. Proving that theorem would establish that the restriction is
-semantic provenance inherited from the source, rather than an ad hoc premise
-added only to close `ExtraCastRight`.
+runtime alignment, while its use evidence remains tied to the source
+derivation. Proving the compilation and reduction preservation stages above
+would establish that `CatchupCast` is semantic provenance inherited from the
+source, rather than an ad hoc premise added only to close `ExtraCastRight`.

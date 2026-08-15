@@ -182,6 +182,10 @@ probe-inner-source-rebase : RebaseAt probe-W₅ probe-W₅ X Y′
 probe-inner-source-rebase =
   CTI2.sameWorldRebaseAt refl probe-X-Y′-rep₅
 
+probe-inner-pair-rebase : RebaseAt probe-W₄ probe-W₄ X Y′
+probe-inner-pair-rebase =
+  CTI2.sameWorldRebaseAt refl probe-X-Y′-rep₄
+
 ------------------------------------------------------------------------
 -- Checkpoint 1: the interior tag-boundary input
 ------------------------------------------------------------------------
@@ -204,20 +208,14 @@ probe-base² =
   CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
 
-probe-source-seal² :
-  probe-W₅ ∣ [] ⊢² probe-V ⊑ probe-M₅ ∶ p₅
-probe-source-seal² =
-  CTI2.conceal⊑² (CTI2.seal-partner-ok
-    (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    (λ _ eq → eq) (CTI2.tag-rebase-varᴸ probe-inner-source-rebase)
-    CTI2.same-[] probe-X-seal-⊢ probe-base² p₅
-
 probe-inner-seal² :
   probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-M′ ∶ pTag
 probe-inner-seal² =
-  CTI2.⊑conceal² (λ _ eq → eq)
-    (CTI2.rebase-varᴿ probe-inner-target-rebase)
-    CTI2.same-[] probe-Y′-seal-⊢ probe-source-seal² pTag
+  CTI2.conceal⊑conceal²
+    (CTI2.matched-seal-star-partner
+      (CTI2.rep★-nonvar-tag nonvar-base))
+    (λ _ eq → eq) probe-inner-pair-rebase
+    CTI2.same-[] probe-X-seal-⊢ probe-Y′-seal-⊢ probe-base² pTag
 
 probe-tag² :
   probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-U ∶ p₄

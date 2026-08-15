@@ -832,7 +832,7 @@ seal-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.SealPartnerOK W X P R Xᴿ? M′
     ----------------------------------------
   → SealSourcePartnerView W X P R Xᴿ? M′
-seal-source-partner-view (CTI2.star-rep-target ok) =
+seal-source-partner-view (CTI2.star-rep-target _ ok) =
   seal-partner-rep★ ok
 seal-source-partner-view (CTI2.plain-target nt) =
   seal-partner-untagged nt
@@ -855,7 +855,7 @@ sealed-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
     -------------------------------------------------
   → SealedSourcePartnerView W γ M X R N B
 sealed-source-partner-view
-    (CTI2.seal-partner-ok (CTI2.star-rep-target ok))
+    (CTI2.seal-partner-ok (CTI2.star-rep-target _ ok))
     mono rb sc X∈ prem =
   sealed-source-rep★ ok mono rb sc X∈ prem
 sealed-source-partner-view

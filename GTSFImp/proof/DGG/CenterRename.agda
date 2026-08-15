@@ -687,14 +687,33 @@ renameRep★PartnerOK π (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
 renameRep★PartnerOK π (CTI2.rep★-round-trip ok) =
   CTI2.rep★-round-trip (renameRep★PartnerOK π ok)
 
+renameNoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.NoTargetOccupantAtSource W X
+  → CTI2.NoTargetOccupantAtSource (renameWorld π W) X
+renameNoTargetOccupantAtSource {W = W} {X = X} π no-target
+    (Y , eq) =
+  no-target (Y , target-eq)
+  where
+  target-eq :
+    toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ toRenameᵗ (CTI2.ηᴸʷ W) X
+  target-eq =
+    toRenameᵗ-injective π
+      (trans (sym (toRenameᵗ-∘ π (CTI2.ηᴿʷ W) Y))
+        (trans eq (toRenameᵗ-∘ π (CTI2.ηᴸʷ W) X)))
+
 renameSealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {P R Xᴿ? M′}
   → (π : Δ ↪ᵗ Δ′)
   → CTI2.SealPartnerOK W X P R Xᴿ? M′
   → CTI2.SealPartnerOK (renameWorld π W) X P R Xᴿ? M′
-renameSealPartnerOK π (CTI2.star-rep-target ok) =
-  CTI2.star-rep-target (renameRep★PartnerOK π ok)
+renameSealPartnerOK {W = W} {X = X} π
+    (CTI2.star-rep-target no-target ok) =
+  CTI2.star-rep-target
+    (renameNoTargetOccupantAtSource {W = W} {X = X} π no-target)
+    (renameRep★PartnerOK π ok)
 renameSealPartnerOK π (CTI2.plain-target nt) =
   CTI2.plain-target nt
 renameSealPartnerOK π CTI2.name-protected-target =

@@ -284,44 +284,9 @@ baseᵂ =
       (N.paired-widen-base-to★ N.ℕ!-shapeˢ N.ℕ!-shapeᵗ refl refl))
     (κ⊑κᵂ 0 ι⊑ι use-ι⊑ι)
 
-bad-inputᵂ :
-  N.W ∣ [] ⊢ᵂ N.source-sealed ⊑ N.base-target ∶ N.X⊑★W
-bad-inputᵂ =
-  conceal⊑ᵂ {Xᴿ? = just Fin.zero}
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    N.source-seal-typed baseᵂ N.X⊑★W
-    (use-X⊑★ probe-source-star-capability)
-
-source-taggedᵂ :
-  N.W ∣ [] ⊢ᵂ N.source-sealed ⟨ N.X! ⟩ ⊑ N.base-target ∶ ★⊑★
-source-taggedᵂ =
-  cast⊑ᵂ
-    (source-cast-world-ok
-      (use-X⊑★ probe-source-star-capability) use-★⊑★
-      (N.source-widen-var-to★ N.X!-shape refl refl refl))
-    bad-inputᵂ
-
-source-projectedᵂ :
-  N.W ∣ [] ⊢ᵂ N.source-sealed ⟨ N.X! ⟩ ⟨ N.X? ⟩
-    ⊑ N.base-target ∶ N.X⊑★W
-source-projectedᵂ =
-  cast⊑ᵂ
-    (source-cast-world-ok use-★⊑★
-      (use-X⊑★ probe-source-star-capability)
-      (N.source-narrow-★-to-var N.X?-shape refl refl refl))
-    source-taggedᵂ
-
--- C1-W negative test.  This is the supervisor's rerouted derivation:
--- first build the source X!/X? side back to `X ⊑ ★`, then use the same
--- one-sided target `Y?` rule instance as the good square.
-
-world-only-bad-square-still-derivableᵂ :
-  N.W ∣ [] ⊢ᵂ
-    N.source-sealed ⟨ N.X! ⟩ ⟨ N.X? ⟩
-    ⊑ N.base-target ⟨ N.Y? ⟩ ∶ N.qXY
-world-only-bad-square-still-derivableᵂ =
-  ⊑castᵂ target-project-Y?-OKᵂ source-projectedᵂ
+-- RESOLVED-BY-LG1: the world-only bad square depended on the live
+-- source-seal/bare-target see-through partner for `N.base-target`.  That
+-- direct partner is now closed by `N.aligned-live-bare-partner-empty`.
 
 matching-outputᵂ :
   N.W ∣ [] ⊢ᵂ N.source-sealed ⊑ N.target-sealed ∶ N.qXY
@@ -356,9 +321,7 @@ compile-paired-base-siteᵂ :
   N.W ∣ [] ⊢ᵂ N.base-source ⊑ N.base-target ∶ ★⊑★
 compile-paired-base-siteᵂ = baseᵂ
 
-compile-source-one-sided-siteᵂ :
-  N.W ∣ [] ⊢ᵂ N.source-sealed ⟨ N.X! ⟩ ⊑ N.base-target ∶ ★⊑★
-compile-source-one-sided-siteᵂ = source-taggedᵂ
+-- The source one-sided insertion into the bare target is closed by LG-1.
 
 compile-target-one-sided-siteᵂ :
   N.W ∣ [] ⊢ᵂ N.source-sealed ⊑ N.target-name-tagged ∶ N.X⊑★W

@@ -149,7 +149,7 @@ private
     → CTI2.Rep★PartnerOK Wᵖ Z V Xᴿ? U
     → CTI2.SealPartnerOK (SPT.dynWorld Wᵖ) Z V ★ Xᴿ? U
   dynPayloadSealPartnerOK vU prem (CTI2.rep★-untagged nt) =
-    CTI2.star-rep-target (CTI2.rep★-untagged nt)
+    CTI2.plain-target nt
   dynPayloadSealPartnerOK vU prem (CTI2.rep★-nonvar-tag Gnv) =
     CTI2.star-rep-target (CTI2.rep★-nonvar-tag Gnv)
   dynPayloadSealPartnerOK

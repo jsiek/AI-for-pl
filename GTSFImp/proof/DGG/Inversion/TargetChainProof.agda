@@ -152,13 +152,13 @@ target-source-star-at {V = V ↓ `∀↓ d₁} {S = ★}
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
     | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
       D₂@(CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.star-rep-target partner))
+        (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
     | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
       D₂@(CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.star-rep-target partner))
+        (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     with STC.source-star-cast-package-from-source
@@ -167,7 +167,7 @@ target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
 target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
     | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
       D₂@(CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.star-rep-target partner))
+        (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     | pkg , sourcePrem =

@@ -13,6 +13,7 @@ module proof.DGG.StarRepChainProbe where
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just; nothing)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 open import Relation.Nullary using (¬_)
 
@@ -161,6 +162,9 @@ X-no-target-at-b : ∀ (Y′ : TyVar 1)
   → toRenameᵗ (CTI2.ηᴿʷ W) Y′ ≢ toRenameᵗ (CTI2.ηᴸʷ W) X
 X-no-target-at-b Fin.zero ()
 
+X-no-target-occupant : CTI2.NoTargetOccupantAtSource W X
+X-no-target-occupant (Y′ , eq) = X-no-target-at-b Y′ eq
+
 X-star-rep : CTI2.resolveVar source-store X ⊑ᵂ⟨ W ⟩ ★
 X-star-rep = ★⊑★
 
@@ -181,7 +185,9 @@ inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
   CTI2.conceal⊑²
     (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
+      (CTI2.star-rep-target
+        X-no-target-occupant
+        (CTI2.rep★-nonvar-tag nonvar-base)))
     (λ Z eq → eq) inner-source-only-rebase CTI2.same-[]
     source-X-seal-⊢ base² inner-type
 

@@ -1155,6 +1155,7 @@ source-spine-strip-worker-cast-step-over-seal
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★) =
   source-spine-strip-worker-cast-step-over-seal-star
@@ -1343,6 +1344,7 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
@@ -1358,6 +1360,7 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
@@ -1379,6 +1382,7 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
@@ -1465,6 +1469,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     with SPT.var-consistency-view cVar
@@ -1477,6 +1482,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     | inj₁ refl =
@@ -1494,6 +1500,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     | inj₂ ()

@@ -309,20 +309,9 @@ baseᴾ =
     (paired-widen-base-to★ᴾ N.ℕ!-shapeˢ N.ℕ!-shapeᵗ refl refl)
     (κ⊑κᴾ 0 ι⊑ι)
 
-bad-inputᴾ :
-  N.W ∣ [] ⊢ᴾ N.source-sealed ⊑ N.base-target ∶ N.X⊑★W
-bad-inputᴾ =
-  conceal⊑ᴾ
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    (λ _ eq → eq)
-    (CTI2.tag-rebase-varᴸ N.X-Y-rebase)
-    CTI2.same-[] N.source-seal-typed baseᴾ N.X⊑★W
-
-source-taggedᴾ :
-  N.W ∣ [] ⊢ᴾ N.source-sealed ⟨ N.X! ⟩ ⊑ N.base-target ∶ ★⊑★
-source-taggedᴾ =
-  cast⊑ᴾ (N.source-widen-var-to★ N.X!-shape refl refl refl) bad-inputᴾ
+-- RESOLVED-BY-LG1: the provenance-only bad input depended on the live
+-- source-seal/bare-target see-through partner for `N.base-target`.  That
+-- direct partner is now closed by `N.aligned-live-bare-partner-empty`.
 
 matching-outputᴾ :
   N.W ∣ [] ⊢ᴾ N.source-sealed ⊑ N.target-sealed ∶ N.qXY
@@ -383,9 +372,7 @@ compile-paired-base-siteᴾ :
   N.W ∣ [] ⊢ᴾ N.base-source ⊑ N.base-target ∶ ★⊑★
 compile-paired-base-siteᴾ = baseᴾ
 
-compile-source-one-sided-siteᴾ :
-  N.W ∣ [] ⊢ᴾ N.source-sealed ⟨ N.X! ⟩ ⊑ N.base-target ∶ ★⊑★
-compile-source-one-sided-siteᴾ = source-taggedᴾ
+-- The source one-sided insertion into the bare target is closed by LG-1.
 
 compile-target-one-sided-siteᴾ :
   N.W ∣ [] ⊢ᴾ N.source-sealed ⊑ N.target-name-tagged ∶ N.X⊑★W

@@ -375,14 +375,26 @@ private
   decayRep★PartnerOK dec (CTI2.rep★-round-trip ok) =
     CTI2.rep★-round-trip (decayRep★PartnerOK dec ok)
 
+  decayNoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {X : TyVar Δᴸ}
+    → EnvDecay W Wᵈ
+    → CTI2.NoTargetOccupantAtSource W X
+    → CTI2.NoTargetOccupantAtSource Wᵈ X
+  decayNoTargetOccupantAtSource
+      (env-decay refl refl refl refl mono) no-target =
+    no-target
+
   decaySealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
       {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
       {X : TyVar Δᴸ} {P R Xᴿ? M′}
     → EnvDecay W Wᵈ
     → CTI2.SealPartnerOK W X P R Xᴿ? M′
     → CTI2.SealPartnerOK Wᵈ X P R Xᴿ? M′
-  decaySealPartnerOK dec (CTI2.star-rep-target ok) =
-    CTI2.star-rep-target (decayRep★PartnerOK dec ok)
+  decaySealPartnerOK dec (CTI2.star-rep-target no-target ok) =
+    CTI2.star-rep-target
+      (decayNoTargetOccupantAtSource dec no-target)
+      (decayRep★PartnerOK dec ok)
   decaySealPartnerOK dec (CTI2.plain-target nt) =
     CTI2.plain-target nt
   decaySealPartnerOK dec CTI2.name-protected-target =

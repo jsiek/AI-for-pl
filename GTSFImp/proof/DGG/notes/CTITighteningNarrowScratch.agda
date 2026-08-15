@@ -429,35 +429,30 @@ base-target-value = CT.$ (κℕ 0) CT.《 CT.inj 》
 target-sealed-value : CT.Value target-sealed
 target-sealed-value = base-target-value CT.↓ CT.seal
 
+aligned-live-no-target-empty :
+  CTI2.NoTargetOccupantAtSource W X → ⊥
+aligned-live-no-target-empty no-target = no-target (Y , refl)
+
+aligned-live-bare-partner-empty :
+  CTI2.SourceConcealPartnerOK W base-source (seal X ★) (just Y)
+    base-target
+  → ⊥
+aligned-live-bare-partner-empty
+    (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
+  aligned-live-no-target-empty no-target
+aligned-live-bare-partner-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+
 baseᴺ : W ∣ [] ⊢ᴺ base-source ⊑ base-target ∶ ★⊑★
 baseᴺ =
   cast⊑castᴺ
     (paired-widen-base-to★ ℕ!-shapeˢ ℕ!-shapeᵗ refl refl)
     (κ⊑κᴺ 0 ι⊑ι)
 
-bad-inputᴺ : W ∣ [] ⊢ᴺ source-sealed ⊑ base-target ∶ X⊑★W
-bad-inputᴺ =
-  conceal⊑ᴺ
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    (λ _ eq → eq)
-    (CTI2.tag-rebase-varᴸ X-Y-rebase)
-    CTI2.same-[] source-seal-typed baseᴺ X⊑★W
-
-source-taggedᴺ : W ∣ [] ⊢ᴺ source-sealed ⟨ X! ⟩ ⊑ base-target ∶ ★⊑★
-source-taggedᴺ =
-  cast⊑ᴺ (source-widen-var-to★ X!-shape refl refl refl) bad-inputᴺ
-
--- C1 negative attempt.  This should be impossible if S-NARROW fixed the
--- projection mismatch.  It is still derivable: the paired projections compose
--- through the intermediate `X ⊑ ★` witness.
-projection-mismatch-still-derivableᴺ :
-  W ∣ [] ⊢ᴺ source-sealed ⟨ X! ⟩ ⟨ X? ⟩
-    ⊑ base-target ⟨ Y? ⟩ ∶ qXY
-projection-mismatch-still-derivableᴺ =
-  cast⊑castᴺ
-    (paired-narrow-var-from★ X?-shape Y?-shape refl)
-    source-taggedᴺ
+-- RESOLVED-BY-LG1: the old S-NARROW calibration witness used live
+-- `star-rep-target` to relate the aligned source seal to a bare target tag.
+-- The live occupancy gate closes that partner shape before the narrowing
+-- cast route can be assembled.
 
 matching-outputᴺ : W ∣ [] ⊢ᴺ source-sealed ⊑ target-sealed ∶ qXY
 matching-outputᴺ =
@@ -492,11 +487,9 @@ record CastSiteOK : Set₁ where
 compile-paired-base-site : W ∣ [] ⊢ᴺ base-source ⊑ base-target ∶ ★⊑★
 compile-paired-base-site = baseᴺ
 
--- Representative one-sided source insertion used by source-side inst/gen
--- catch-up: the source `X!` changes `X ⊑ ★` to `★ ⊑ ★`.
-compile-source-one-sided-site :
-  W ∣ [] ⊢ᴺ source-sealed ⟨ X! ⟩ ⊑ base-target ∶ ★⊑★
-compile-source-one-sided-site = source-taggedᴺ
+-- The representative one-sided source insertion into the bare target is now
+-- closed by `aligned-live-bare-partner-empty`; matched/name-protected routes
+-- below remain constructive.
 
 -- Representative one-sided target insertion used by applications and
 -- generated-name catch-up: target `Y!` changes `X ⊑ Y` to `X ⊑ ★`.

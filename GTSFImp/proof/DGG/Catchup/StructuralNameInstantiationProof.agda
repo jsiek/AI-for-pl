@@ -60,7 +60,10 @@ open import proof.DGG.Catchup.StructuralValueInstantiationRankProof
      lambda-rank-decreases; reveal-rank-decreases;
      conceal-rank-decreases; cast-frame-rank-decreases;
      reveal-frame-value-rank-decreases;
-     conceal-frame-value-rank-decreases)
+     conceal-frame-value-rank-decreases;
+     reveal-frame-id-rank-decreases;
+     reveal-frame-conceal-rank-decreases;
+     conceal-frame-id-rank-decreases)
 open import proof.DGG.Catchup.StructuralValueInstantiationCastProof
 open import proof.DGG.Catchup.StructuralValueInstantiationAllCastMassProof
 open import proof.DGG.Catchup.StructuralValueInstantiationGenCastMassProof
@@ -68,6 +71,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationInstCastMassProof
 open import proof.DGG.Catchup.StructuralValueInstantiationPendingCastMassProof
 open import proof.DGG.Catchup.StructuralValueInstantiationSpineCastMassProof
 open import proof.DGG.Catchup.StructuralValueInstantiationValueCastMassProof
+open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof
 open import proof.DGG.Catchup.StructuralWorldSmartLiftProof
@@ -217,6 +221,19 @@ acc-transport : ∀ {A : Set} {R : A → A → Set} {x y}
 acc-transport refl accessible = accessible
 
 
+rel-⊑-unique : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {N : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p q : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ q
+rel-⊑-unique {W = W} {γ = γ} {p = p} {q = q} rel =
+  subst≡ (λ r → W CTI2.∣ γ ⊢² _ ⊑ _ ∶ r)
+    (PI.⊑-unique p q) rel
+
+
 RankTuple : Set
 RankTuple = ℕ × (ℕ × ℕ)
 
@@ -287,6 +304,40 @@ relation-all-value-view : ∀ {Δᴸ Δᴿ Δ}
 relation-all-value-view vV rel =
   all-view→all-value-view
     (Prog.canonical-∀ vV (CTI2T.target-typing² rel))
+
+
+target-empty-final-relation : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p q : A CTI2.⊑ᵂ⟨ W ⟩ B}
+  → Value V
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → (target : StructuralTargetInstantiationPackage W V ([]ⁱ {A = B}))
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+      ECR.mapCtxᴿ
+        (structural-world-extendᴿ
+          (StructuralTargetInstantiationPackage.structural-ext target))
+        γ
+      ⊢² M ⊑ StructuralTargetInstantiationPackage.final target ∶
+        ECR.transport⊑ᵂ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          q
+target-empty-final-relation {W = W} {γ = γ} vV rel target
+    with StructuralTargetInstantiationPackage.post-reduction target
+target-empty-final-relation {W = W} {γ = γ} vV rel target
+    | ↠-refl
+    with StructuralTargetInstantiationPackage.structural-ext target
+target-empty-final-relation {W = W} {γ = γ} vV rel target
+    | ↠-refl | structural-[] =
+  subst≡
+    (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+    (sym (ECR.mapCtxᴿ-same γ))
+    (rel-⊑-unique rel)
+target-empty-final-relation vV rel target | ↠-step step rest =
+  ⊥-elim (value-no-step vV step)
 
 
 mapCtx-target-insert-bind : ∀ {Δᴸ Δᴿ Δ Δ′}

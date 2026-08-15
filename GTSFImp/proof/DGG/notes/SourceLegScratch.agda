@@ -16,7 +16,8 @@ open import Types
 open import TermCtx using (Z; S)
 open import TyStore using (store-empty)
 open import Consistency using
-  (Env∼; idᶜ; instᵐ; genᵐ; _⊢_∼_; _∼_; id; _!; ？_; _↦_;
+  (Env∼; idᶜ; instᵐ; genᵐ; flipᵐ; _⊢_∼_; _∼_; id; _!;
+   ？_; _↦_;
    ∀ᶜ_; inst_; gen_; X∼★ᵍ; ★∼Xᵍ)
 import Imprecision as I
 import GradualTerms as G
@@ -70,11 +71,23 @@ inst-X! =
   _! ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ G∼★ = X∼★ᵍ refl ⦄
     (id (＇ Fin.zero)) ⦃ Ans = nonstar-X ⦄
 
+flip-inst-★?X : ∀ {Δ} {μ : Env∼ Δ}
+  → flipᵐ (instᵐ μ) ⊢ ★ ∼ ＇ Fin.zero
+flip-inst-★?X =
+  ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
+
 gen-★?X : ∀ {Δ} {μ : Env∼ Δ}
   → genᵐ μ ⊢ ★ ∼ ＇ Fin.zero
 gen-★?X =
   ？_ ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ ★∼G = ★∼Xᵍ refl ⦄
     (id (＇ Fin.zero)) ⦃ Bns = nonstar-X ⦄
+
+flip-gen-X! : ∀ {Δ} {μ : Env∼ Δ}
+  → flipᵐ (genᵐ μ) ⊢ ＇ Fin.zero ∼ ★
+flip-gen-X! =
+  _! ⦃ Gᵍ = ＇ Fin.zero ⦄ ⦃ G∼★ = X∼★ᵍ refl ⦄
+    (id (＇ Fin.zero)) ⦃ Ans = nonstar-X ⦄
 
 ∀X⇒X∼∀X⇒X : ∀ {Δ} → ∀X⇒X {Δ} ∼ ∀X⇒X {Δ}
 ∀X⇒X∼∀X⇒X = ∀ᶜ (id (＇ Fin.zero) ↦ id (＇ Fin.zero))
@@ -82,12 +95,12 @@ gen-★?X =
 ∀X⇒X∼★⇒★ : ∀ {Δ} → ∀X⇒X {Δ} ∼ ★⇒★ᵗ {Δ}
 ∀X⇒X∼★⇒★ =
   inst_ ⦃ Anv = nonvar-fun ⦄ ⦃ z∈A = X∈X⇒X ⦄
-    (inst-X! ↦ inst-X!) (λ ())
+    (flip-inst-★?X ↦ inst-X!) (λ ())
 
 ★⇒★∼∀X⇒X : ∀ {Δ} → ★⇒★ᵗ {Δ} ∼ ∀X⇒X {Δ}
 ★⇒★∼∀X⇒X =
   gen_ ⦃ Bnv = nonvar-fun ⦄ ⦃ z∈B = X∈X⇒X ⦄
-    (gen-★?X ↦ gen-★?X) (λ ())
+    (flip-gen-X! ↦ gen-★?X) (λ ())
 
 ------------------------------------------------------------------------
 -- Literal source syntax

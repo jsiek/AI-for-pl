@@ -74,6 +74,12 @@ target-env-proj _ = ★∼X
 Y? : target-env-proj ⊢ ★ ∼ ＇ Y
 Y? = ？ (idᵍ (＇ Y))
 
+X! : source-env-tag ⊢ ＇ X ∼ ★
+X! = id (＇ X) !
+
+X? : target-env-proj ⊢ ★ ∼ ＇ X
+X? = ？ (idᵍ (＇ X))
+
 source-X-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
 source-X-seal-typed = ⊢↓-sealˣ source-X∋
 
@@ -123,6 +129,26 @@ input-relation =
     source-X-seal-typed
     (CTI2.cast⊑cast² ℕ!ˢ ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★)
     probe-p
+
+-- The unrestricted paired-cast constructor accepts this square.  The left
+-- cast checks the abstract X tag, whereas the right cast checks the unrelated
+-- Y tag.  The result types are nevertheless related because X and Y share
+-- their center variable in probe-world.
+projection-mismatch² :
+  probe-world ∣ [] ⊢²
+    source-term ⟨ X! ⟩ ⟨ X? ⟩
+    ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
+projection-mismatch² =
+  CTI2.cast⊑cast² X? Y?
+    (CTI2.cast⊑² X! input-relation ★⊑★) probe-q
+
+source-projection-returns :
+  source-term ⟨ X! ⟩ ⟨ X? ⟩
+    —↠[ keep ∷ [] ] source-term
+source-projection-returns =
+  source-term ⟨ X! ⟩ ⟨ X? ⟩
+  —→[ keep ]⟨ pure-step (tag-untag source-value) ⟩
+  source-term ∎[]
 
 ℕ-type : Ty 1
 ℕ-type = ‵ `ℕ

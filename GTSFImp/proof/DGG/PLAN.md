@@ -756,3 +756,103 @@ installed Agda registration:
 Discipline remains statement-first; `.red` + stop on genuine resisters;
 no weakening of live statements; hygiene = FunExt only; commit and push
 every proof or planning chunk.
+
+## CTI unsoundness finding + tightening calibration (2026-08-15)
+
+FINDING (external, verified): the three CTI cast rules (cast⊑cast²,
+⊑cast², cast⊑²) relate endpoint TYPES only; the checked counterexample
+`projection-mismatch²` (notes/ProjectionMismatchStarRepScratch.agda,
+from peterthiemann:codex/gtsf-big-dgg d2cb44f) derives a term relation
+whose target blames on an unrelated generated-name projection while the
+source returns. Independently, codex/gtsf-cti-source-reachability
+(notes/SOURCE-CTI-REACHABILITY.md) provides EVIDENCE (not yet a
+theorem — one related pair traced end-to-end, one blame-forcing
+variant refuted; the dossier itself lists the general preservation
+theorem as future work) that the bad square is source-unreachable —
+pointing at a relation-tightening of the M3 species rather than a DGG
+threat. The general statement is exactly the LG-2 grounding
+obligation: compile mints the discipline and related reduction
+preserves it, closing the gap between evidence and theorem. PR #137
+was merged first (relation untouched there); NS-4 stage 2 stays
+paused pending the repair.
+
+CALIBRATION (branch agent/gtsf-cti-calibration, notes/
+CTI-TIGHTENING-CALIBRATION.md + three checked scratch mini-relations):
+
+| candidate | C1 sound | C2 compile² | C3 good runs | C5 LR | verdict |
+|---|---|---|---|---|---|
+| S-NARROW (GTSF-style direction/shape premises only) | CHECKED-FAIL (`projection-mismatch-still-derivableᴺ`) | — | ok | — | REFUTED |
+| S-WORLD (items 1-3 world/capability tightening only, type-level cast rules) | CHECKED-FAIL (`world-only-bad-square-still-derivableᵂ` — rerouted bad square consumes the IDENTICAL capability premise as the good square) | ok | ok | — | REFUTED |
+| S-PROV CORE (items 1-5: provenance cells + TERM-SHAPED generated-name projection clauses) | CHECKED-OK (emptiness) | CHECKED-OK (scoped: term-shaped clause applies to generated-name projections only; compile's dynamic-function projections at CompilePreservesImprecision2:556/:595 keep a separate allowance) | CHECKED-OK | CHECKED-OK | PASSES |
+
+Structural reason the first two fail: the good square (V⟨Y!⟩⟨Y?⟩,
+cancels) and the bad square (0⟨ℕ!⟩⟨Y?⟩, blames) coincide in world,
+premise witness (X⊑★), conclusion witness (X⊑X at the shared center),
+and cast (Y?) at the final rule application — only the target TERM
+shape and premise subderivation differ. Any type-level or world-level
+premise admits both or rejects both, and rejecting both is unavailable
+(the good square is the reachable runtime endpoint). Hence item 5
+(term-shaped same-tag clause + residual-after-cancellation clause) is
+the necessary blocking layer; items 1-3 are the enabling layer that
+makes its obligations dischargeable (and bad worlds unconstructible).
+
+Item 6 (delete CatchupCast/CatchupCast⁻/CatchupColumn in favor of
+CTI-internal inversion): audited, verdict DEFER — it reworks the M4
+extra-cast surfaces, the M6 fuel knot, and NS-4 stage-1 provenance
+threading; the tightening lands soundly while keeping those judgments,
+and their removal can be a later cleanup once the strengthened CTI's
+inversion demonstrably supplies the same evidence.
+
+DECISION PENDING (user): adopt S-PROV CORE (items 1-5, with the
+generated-name scoping from C2) as the live CastTermImprecision2
+tightening, migrated by the A3/tag-discipline playbook (pre-flight in
+scratch; riskiest consumers first: M3 Inversion stack, seal-transfer,
+Λ machinery, NS-4 equal helpers/absorption; full gates last).
+
+DECIDED (user, 2026-08-15): the CatchupCast/CatchupCast⁻/CatchupColumn
+predicate family MUST BE REMOVED regardless of candidate — item 6 is
+mandatory, overriding the calibration's earlier DEFER verdict.
+Rationale (user): the external predicate HID the CTI unsoundness for
+some time (the mismatch probe had flagged the same permissiveness in
+the M3 era), enlarging today's migration; invariants of this kind
+belong in the CTI2 relation itself and MUST be connected to gradual
+source-term imprecision by the compile-monotonicity proof — compile²
+is re-proven as the MINTING theorem (compilation derives all
+birth/use/ancestry evidence from the source derivation; related
+reduction preserves it). Without that connection the invariants are
+ungrounded ("an imaginary world").
+
+Consequences for the calibration: the mandated shape is S-PROV FULL
+(items 1-6 + the two-stage grounding theorem), with the generated-name
+scoping from C2. The in-flight S-OCC column is reinterpreted as a
+COMPONENT evaluation (does occupancy-gating belong in the partner
+predicate's design, and does the alignment skew window exist?), not as
+a standalone alternative — S-OCC as posed retains CatchupCast, which
+the decision forbids. Migration plan must include: ExtraCastRight and
+the M6 fuel knot reworked to CTI-inversion provenance; NS-4 stage-1's
+ResidualFrameProvenance/chain threading re-pointed at the strengthened
+constructors (the higher-order surfaces localize this).
+
+S-OCC ADOPTION PRE-FLIGHT: GO (2026-08-15). V1 — the projection case
+of catch-up is PROVEN BY PURE CTI INVERSION on the occupancy-gated
+mini-relation with no CatchupCast anywhere
+(`generated-Y-projection-catchupᴼ`, CTIOccInversionCatchupScratch;
+ground case `ground-ℕ-projection-catchupᴼ` needs no occupancy — tags
+are type-visible there). The supervisor's "item 5 required for item 6"
+objection is WITHDRAWN with this artifact. V2 — occupancy formulated
+live as ηᴿ-image membership; per-lemma transport table shows threading
+work but no genuine blocker; see-through is lost exactly at aligning
+inserts/alias-merges, where the partnered shape is re-derivable. V3 —
+compile-image worlds are fully occupied (identity embeddings) and
+compile² has no see-through sites; β-inst/β-gen right-only allocation
+creates the occupant in the allocating step.
+
+ADOPTED DESIGN (user, confirmed by pre-flight): S-OCC live — the
+see-through partner clauses gain a NoTargetOccupant premise — plus the
+mandatory CatchupCast/CatchupCast⁻/CatchupColumn removal with
+consumers (ExtraCastRight, M6 fuel knot, column proof) reworked to CTI
+inversion, plus the grounding theorems (compile mints — trivially
+occupancy-clean; reduction preserves — allocation atomicity). NO
+changes to the cast imprecision rules. The S-PROV column remains the
+recorded fallback if live migration uncovers an inversion gap the
+mini-relation missed.

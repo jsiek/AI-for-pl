@@ -35,3 +35,56 @@ needs a statement-level reroute at the partnered shape, or a proof that the
 top-tag residual branches cannot arise at the matched seal-transfer call site.
 
 No live CTI2 cast-imprecision rule was changed for this surface.
+
+2026-08-15 OPEN postscript after supervisor reroute attempt:
+
+The matched call site can supply the target-seal evidence:
+
+`SealTransferCore.agda:735-750`
+
+destructs
+
+`CTI2.conceal⊑conceal²
+  (CTI2.matched-seal-star-partner partner)
+  monoᵖ rbᵖ scᵖ source-seal target-seal prem .p`
+
+so `target-seal : targetStoreʷ W₁ ⊢↓[ just Y ] seal Y ★` is in
+scope.  This is enough to rebuild the paired square through the matched
+family:
+
+$$
+\begin{array}{ccc}
+P \downarrow \operatorname{seal} Z\,\star
+  & \sqsubseteq & U \downarrow \operatorname{seal} Y\,\star \\
+\downarrow^{0} & & \downarrow^{0} \\
+P \downarrow \operatorname{seal} Z\,\star
+  & \sqsubseteq & U \downarrow \operatorname{seal} Y\,\star
+\end{array}
+$$
+
+It is not enough to inhabit the old stripped `seal-transfer` result:
+
+$$
+\begin{array}{ccc}
+P \downarrow \operatorname{seal} Z\,\star
+  & \sqsubseteq & U \\
+\downarrow^{0} & & \downarrow^{0} \\
+P \downarrow \operatorname{seal} Z\,\star
+  & \sqsubseteq & U
+\end{array}
+$$
+
+For `partner = rep★-nonvar-tag ...`, that stripped conclusion would require
+a `SourceConcealPartnerOK ... (seal Z ★) ... U` whose only possible top-tag
+route is the gated `star-rep-target`.  The checked LG-1 negative witnesses
+`ChainRideProbe.probe-direct-premise-partner-empty` and
+`TerminusRebuildProbe.InstanceB.inner-source-partner-empty` refute exactly
+that source-seal/bare-top-tag shape at an occupied center.
+
+Therefore a restated `dynPayloadSealPartnerOK` cannot still return
+`SealPartnerOK (SPT.dynWorld Wᵖ) Z P ★ (just Y) U` for the non-variable
+top-tag branches.  The sound branch is a paired/matched result; finishing
+LG-1 needs a branch-sensitive `seal-transfer` output, or a further ruling
+that the public `seal-transfer` surface may be weakened so these top-tag
+branches return the paired target-seal square instead of the stripped
+payload square.

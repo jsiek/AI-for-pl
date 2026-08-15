@@ -79,6 +79,7 @@ open import proof.DGG.Catchup.StructuralTargetGenPeelProof
 open import proof.DGG.Catchup.StructuralTargetRevealPeelProof
 open import proof.DGG.Catchup.StructuralTargetConcealPeelProof
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
+open import proof.DGG.Catchup.StructuralInstantiationDescentProof
 open import proof.DGG.Catchup.StructuralSourceLambdaReplayProof
 open import proof.DGG.Catchup.StructuralSourceRebaseReplayProof
 open import proof.DGG.Catchup.StructuralAllDescentProof
@@ -738,3 +739,20 @@ structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank
       (structural-target-tag-rebase-left rb target))
+
+
+structural-value-instantiation : StructuralValueInstantiationᵀ
+structural-value-instantiation {fuel = fuel} {W = W} {γ = γ}
+    {A = A} {B = B} {R = R} {q = q}
+    name-worker fuel-step catchup⁻-embed inst-decrease plan
+    chain-plan rel vM vV view target =
+  erase-structural-name-root name-worker fuel-step catchup⁻-embed
+    inst-decrease plan chain-plan rel vM
+    (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
+    (SpineValueProof.rename-all-value-view wk↪ᵗ view)
+    []ⁱ
+    (root-value-instantiation-frame-chain
+      {W = W} {γ = γ} {A = A} {B = B} {R = R} {q = q})
+    (root-value-instantiation-spine-typed
+      {fuel = fuel} {W = W} {A = A} {B = B} {R = R})
+    target

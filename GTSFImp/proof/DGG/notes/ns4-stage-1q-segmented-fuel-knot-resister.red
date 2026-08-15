@@ -2,7 +2,8 @@
 
 Date: 2026-08-14
 
-Status: open.
+Status: resolved for the amended stop/discharge interface.  General worker
+assembly remains open under stage 1r.
 
 What landed in live Agda:
 
@@ -102,3 +103,43 @@ The target segment status is:
 
 No live relation was changed, and no postulate, hole, catch-all, or weakened
 statement was added.
+
+
+AMENDED RESOLUTION postscript, 2026-08-15
+-----------------------------------------
+
+The supervisor-amended stop interface is now live in:
+
+`GTSFImp/proof/DGG/Catchup/StructuralSpineTypingDef.agda`
+
+The residual stop carries both the strict fuel bound and a provenance family:
+
+```agda
+ResidualFrameProvenance c =
+  ∀ {χs W Aₛ p q} →
+    CatchupCast⁻ p (applyConsistencies χs c) q
+```
+
+```agda
+cast-residual :
+    suc (castSize c) < fuel
+  → ResidualFrameProvenance c
+  → CastFrameClass c
+```
+
+The discharge call requested in this note is checked in:
+
+`GTSFImp/proof/DGG/Catchup/StructuralInstantiationDescentProof.agda`
+
+as `residual-cast-stop-package`.  It calls:
+
+```agda
+FuelStepSurface.smaller-extra fuel-step residual<fuel
+  rel vM vV c (n<1+n (castSize c)) q
+  (catchup⁻-embed _ (prov {χs = []} {p = p} {q = q}))
+```
+
+This closes the original interface gap without changing M4's live Def
+surfaces.  The structural worker still cannot be assembled completely: the
+opened `∀` residual provenance site is tracked separately in
+`ns4-stage-1r-opened-all-provenance-resister.red`.

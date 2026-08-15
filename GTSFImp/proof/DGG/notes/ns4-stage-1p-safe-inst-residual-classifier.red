@@ -116,3 +116,21 @@ suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
 
 bound.  Store-change mapping preserves this residual bound by
 `castSize-renameEnvᶜ`.
+
+
+AMENDED postscript, 2026-08-15
+------------------------------
+
+Stage 1r tightened the stop marker further.  The live constructor is now:
+
+```agda
+cast-residual :
+    suc (castSize c) < fuel
+  → ResidualFrameProvenance c
+  → CastFrameClass c
+```
+
+The classifier obstruction remains resolved for its original purpose: the
+safe-inst residual is still neither claimed inert nor claimed `GenSafe`.
+The stop now also carries the `CatchupCast⁻` provenance family needed by the
+fuel-knot discharge path.

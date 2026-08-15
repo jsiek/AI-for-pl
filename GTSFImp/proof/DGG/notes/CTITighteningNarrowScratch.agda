@@ -188,6 +188,16 @@ data TargetCastOK {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ) :
       ------------------------------------
     → TargetCastOK W {p = p} {q = q} c
 
+  target-narrow-★-to-base : ∀ {μ ι}
+      {p : (‵ ι) ⊑ᵂ⟨ W ⟩ ★}
+      {q : (‵ ι) ⊑ᵂ⟨ W ⟩ (‵ ι)}
+      {c : μ ⊢ ★ ∼ ‵ ι}
+    → narrowing ⊢ᶜ c ⦂ tagˢ (‵ ι)
+    → p ≡ ι⊑★
+    → q ≡ ι⊑ι
+      ------------------------------------
+    → TargetCastOK W {p = p} {q = q} c
+
 data PairedCastOK {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ) :
     ∀ {C C′ A A′ μ μ′}
       {p : C ⊑ᵂ⟨ W ⟩ C′}

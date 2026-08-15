@@ -446,3 +446,172 @@ cast-rule repair; S-OCC is now a checked viable alternative with a smaller
 cast-consumer surface but a stronger burden on world occupancy and source-seal
 partner transport.  Defer item 6 under either viable route until after the
 chosen tightening is green.
+
+# S-OCC Adoption Pre-Flight
+
+Status: evaluation only.  No live CTI2 or proof files were edited.  Checked
+scratch files:
+
+- `CTIOccInversionCatchupScratch.agda`
+- `CTIOccLiveTransportScratch.agda`
+
+The user decision for this pre-flight is that the `CatchupCast`/
+`CatchupCast⁻`/`CatchupColumn` family is removed in the adoption candidate.
+The replacement invariant lives in CTI2 inversion plus compile/grounding
+theorems; no cast-imprecision rule is redesigned with term-shaped projection
+clauses.
+
+## V1. Inversion-Based Catch-Up
+
+Verdict: **CHECKED-OK for the calibrated generated-name projection case**.
+
+`CTIOccInversionCatchupScratch.agda` proves the projection case without a
+catch-up premise in the new theorem statements:
+
+- `generated-Y-projection-catchupᴼ` peels the final
+  `⊑castᴼ (target-narrow-★-to-var ...)`.
+- `aligned-Y-tag-input-inversionᴼ` peels the generated-name input
+  `⊑castᴼ (target-widen-var-to★ ...)`.
+- The residual CTI premise is retargeted by proof-irrelevance of type
+  imprecision and reused directly after `tag-untag`.
+- The source-see-through branch is eliminated by occupancy:
+  `star-rep-targetᴼ` has empty `NoTargetOccupant aligned-occ`;
+  `plain-targetᴼ` cannot match `target-name-tagged`; and the
+  `name-protected-targetᴼ` branch reduces to the checked empty premise
+  `base-source-to-target-name-tagged-emptyᴼ`.
+
+The ground-tag control also checks:
+
+- `target-narrow-★-to-base` was added to the notes-only S-NARROW shape model so
+  the mini-relation can express `ℕ?`.
+- `ground-ℕ-projection-catchupᴼ` proves the `ℕ!`/`ℕ?` cancellation route with
+  no occupancy premise, confirming this branch is type-level/cast-shape
+  inversion rather than source-seal occupancy.
+
+The mini replacement interface for the old extra-cast-right fuel knot
+elaborates as `ExtraCastRightProjectionInputᴼ`: a consumer receives the CTI
+premise, source/target values, and the checked projection result instead of a
+`Catchup⁻Embed`-style witness.
+
+No V1 constructor gap was found.
+
+## V2. Live Occupancy And Transport
+
+The scratch defines the intended live predicates:
+
+```agda
+Occupied W Z = Σ[ Y ∈ TyVar Δᴿ ] toRenameᵗ (ηᴿʷ W) Y ≡ Z
+NoTargetOccupant W Z = Occupied W Z → ⊥
+```
+
+For a source seal pivot `X`, the strengthened premise is
+`NoTargetOccupant W (toRenameᵗ (ηᴸʷ W) X)`.
+
+The live clause shape is:
+
+- `SealPartnerOK.star-rep-target` gains this `NoTargetOccupantAtSource`
+  premise.
+- `SourceConcealPartnerOK.seal-partner-ok` inherits it through the seal
+  partner.
+- `Rep★PartnerOK` can remain the syntactic target-shape classifier if the gate
+  lives at `star-rep-target`; if the gate is pushed lower, the
+  `rep★-round-trip` see-through path needs the same premise.
+- Matched source/target seals, including `matched-seal-star-partner`, are not
+  see-through and should not receive the no-target premise.
+
+Checked representative transport facts in `CTIOccLiveTransportScratch.agda`:
+
+- `initial-every-center-occupiedᴼ`: identity/compile-image worlds occupy every
+  center.
+- `initial-no-see-through-emptyᴼ`: therefore compile-image worlds cannot
+  satisfy the see-through no-target premise.
+- `liftWorldLeft-fresh-no-targetᴼ`: a fresh source-only lift has no target
+  occupant at the new source center.
+- `rightOnly-new-target-occupiedᴼ`: a right-only bind creates a target
+  occupant at the new center.
+- `rebase-no-target-forwardᴼ` and `tag-rebase-no-target-forwardᴼ`: rebases
+  preserve no-target facts because target embeddings are frozen.
+
+### V2 Transport Table
+
+| World evolution / lemma family | Occupancy behavior | Verdict |
+| --- | --- | --- |
+| `TargetInsert` | Transports old target occupants through `target-insert`; may create occupancy at centers outside the old target image. | **Needs threading/rederive**.  Old no-target facts transport only away from newly inserted centers. |
+| Right-only bind / `rightOnlyWorld` / `rightBindTargetInsert` | Creates a new target occupant at `Fin.zero`; old targets shift. | **Premise lost at the inserted center**.  Any see-through relation crossing this step must be rederived at the matched shape. |
+| `liftWorldLeft` | Fresh source center is not in the target image; old target image shifts. | **Premise available** for the fresh source-only cell; checked by `liftWorldLeft-fresh-no-targetᴼ`. |
+| `SmartCommaLiftᴸ` fresh-behind | Guard already has `fresh-not-target` and target-frozen/old-source-frozen fields. | **Premise available with threading**. |
+| `SmartCommaLiftᴸ` alias-merge | `pending-at-alias` makes the fresh source center equal an existing target center. | **See-through lost**; rederive via alias/matched facts, do not transport star-rep. |
+| `RebaseAt` | Target embedding is frozen by `ηᴿ-frozen`. | **Premise available**; checked by `rebase-no-target-forwardᴼ`. |
+| `RebaseAtᴸ` | `rebase-idᴸ` and `rebase-onlyᴸ` keep/freeze target side; `rebase-varᴸ` delegates to `RebaseAt`. | **Premise available**. |
+| `RebaseAtᴿ` | `rebase-varᴿ` delegates to `RebaseAt`; target side is still frozen. | **Premise available**. |
+| `TagRebaseAtᴸ` | Same target-freezing behavior as `RebaseAtᴸ`; source-only tag case keeps the world. | **Premise available**, checked by `tag-rebase-no-target-forwardᴼ`. |
+| `TermImpDecay` / `ImpEnvMono` | Decay changes only marks, not embeddings or target occupancy. | **Premise available with threading** through `decaySealPartnerOK`/`decaySourceConcealPartnerOK`. |
+| `CenterRename.renameSealPartnerOK` and `renameSourceConcealPartnerOK` | Center renaming maps target image and no-target facts along the center embedding. | **Needs threading**: add `renameNoTargetOccupant` and pass it through the `star-rep-target` branch. |
+| `TargetExtend.renameSealPartnerOK` and `renameSourceConcealPartnerOK` | Generic target extension can create occupancy. | **Needs threading/rederive**.  The `star-rep-target` branch cannot blindly survive insertion at the same center. |
+| `TargetBindLift.moveSealPartnerOK` and `moveSourceConcealPartnerOK` | Store movement preserves target embeddings. | **Premise available with threading**. |
+| `SealTransferCore.dynPayloadSealPartnerOK` | Constructs fresh `star-rep-target` evidence from only `Rep★PartnerOK` today. | **Needs threading**.  Add the no-target premise or choose a matched/name-protected branch. |
+| `InstInversionLambdaProof` post-prefix conceal helpers | Two target inserts can turn a source-only window into an occupied aligned window. | **Needs rederive** at the partnered shape after insertion; do not transport see-through into `W₂`. |
+
+No live lemma was found that genuinely requires transporting see-through into
+an aligned occupied world.  The risky sites are the generic transfer helpers
+above; each should split the `star-rep-target` branch so target insertion
+either preserves an old no-target fact or rebuilds the relation using the
+matched seal/tag facts produced by the allocation step.
+
+## V3. Grounding Pair
+
+### V3(a). Compile Mints Nothing Aligned
+
+Verdict: **CHECKED-OK as an audit**.
+
+`initialWorld` uses identity source and target embeddings.  The scratch
+checks the important consequence: every center is already occupied in a
+compile-image world, so the no-target see-through premise is empty there.
+This means compile monotonicity must not rely on see-through in the initial
+image.
+
+Read-only audit: `CompilePreservesImprecision2.agda` and `Compile.agda` have
+no direct occurrences of `star-rep-target`, `SealPartnerOK`,
+`SourceConcealPartnerOK`, `Rep★PartnerOK`, `conceal⊑²`,
+`conceal⊑conceal²`, or `packaged-seal-star²`.  The compile proof uses matched
+`Λ⊑Λ²`/`Λ⊑²` world constructors and ordinary cast rules, not source-seal
+see-through.  No compile² see-through site was found.
+
+### V3(b). Alignment Atomicity
+
+Verdict: **CHECKED-OK as a shape audit**.
+
+`Reduction.agda` has the relevant allocation steps:
+
+- `β-inst` allocates with `bind ★`.
+- `β-gen` allocates with `bind C`.
+
+The right-instantiation surfaces mirror these exact one-step shapes:
+`InstCastAllocPrefixᵀ` uses `bind ★ ∷ []`, and `TypeAppGenStepᵀ` uses
+`bind C ∷ []`.  The scratch checks the corresponding world effect with
+`β-inst-allocation-occupies-targetᴼ` and
+`β-gen-allocation-occupies-targetᴼ`: the step that creates the right-only
+world also creates a target occupant at the fresh center.
+
+The pre-alignment source-only case remains available only before that target
+bind, checked by `source-only-runtime-cell-remains-unoccupiedᴼ`.  After the
+right bind, see-through at the new center is lost and must be replaced by the
+matched seal/tag relation supplied by the alignment package.
+
+## Adoption Recommendation
+
+Recommendation: **GO for the S-OCC adoption candidate**, with explicit
+migration requirements:
+
+- Add the live `Occupied`/`NoTargetOccupant` premise to the see-through
+  `star-rep-target` path.
+- Remove `CatchupCast`, `CatchupCast⁻`, and `CatchupColumn`.
+- Rework extra-cast/M6/NS-4 consumers to take CTI inversion results plus
+  grounding/cancellation theorems, not catch-up-family witnesses.
+- Thread no-target premises through rename/decay/rebase/store-move helpers.
+- At target insert/right-bind transitions, do not transport see-through into
+  the newly occupied center; rederive the relation from the matched
+  seal/tag/allocation facts.
+
+No NO-GO gap was found in V1/V2/V3.  The remaining work is implementation
+cost, not a detected inconsistency in the adoption plan.

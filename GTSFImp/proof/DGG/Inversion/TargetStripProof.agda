@@ -736,7 +736,6 @@ seal-descent-current-star : ∀ {Δᴸ Δᴿ Δ}
   → targetStoreʷ W ∋ Y ⦂ ★
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y ★ ∶ r
   → TargetSealTerminusData W γ V (＇ X) U X Y ★
-{-# NON_COVERING #-}
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
     with STC.seal-transfer sv vU source∈ D
 seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
@@ -1109,7 +1108,6 @@ seal-descent-at-var-nonvar Snv Sns sv vU mono rb sc source∈
   ⊥-elim (seal-target-nonstar-⊥ source∈ rb target∈ Snv Sns)
 
 seal-descent-at-var : SealDescentAtVar
-{-# NON_COVERING #-}
 seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {U = U} {A = A} {S = ★}
     {Xᴸ = Xᴸ} {Y = Y} {r = r} sv vU mono rb sc source∈

@@ -393,7 +393,6 @@ private
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
     → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
         ⊑ U ↓ seal Y S ∶ q
-  {-# NON_COVERING #-}
   wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
       {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
       {c = c} {p₂ = p₂} {q = q}

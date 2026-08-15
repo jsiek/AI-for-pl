@@ -856,3 +856,13 @@ occupancy-clean; reduction preserves — allocation atomicity). NO
 changes to the cast imprecision rules. The S-PROV column remains the
 recorded fallback if live migration uncovers an inversion gap the
 mini-relation missed.
+
+## LG-1 IN FLIGHT (branch agent/gtsf-cti-lg1)
+
+Live S-OCC surgery per the adopted design (PR #140): occupancy
+definitions (ηᴿ-image), the NoTargetOccupantAtSource premise on
+star-rep-target, occupancy transport lemmas, consumer migration
+riskiest-first per the V2 table, live negative record replacing
+projection-mismatch². Cast rules untouched. LG-2 (grounding theorems)
+and LG-3 (CatchupCast-family removal, consumers to inversion) follow
+in separate gates on this branch or its successors.

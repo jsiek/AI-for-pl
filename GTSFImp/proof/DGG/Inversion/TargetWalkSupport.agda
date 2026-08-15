@@ -314,6 +314,40 @@ store-lookup-unique (S-lift∋ X∈ eq) (S-lift∋ X∈′ eq′) =
 store-lookup-unique (S-bind∋ X∈ eq) (S-bind∋ X∈′ eq′) =
   trans eq (trans (cong ⇑ᵗ (store-lookup-unique X∈ X∈′)) (sym eq′))
 
+store-lookup-resolve-star : ∀ {Δ} {Σ : TyStore Δ} {X}
+  → Σ ∋ X ⦂ ★
+  → CTI2.resolveVar Σ X ≡ ★
+store-lookup-resolve-star (Z∋ {A = ＇ X} ())
+store-lookup-resolve-star (Z∋ {A = ‵ ι} ())
+store-lookup-resolve-star (Z∋ {A = ★} refl) = refl
+store-lookup-resolve-star (Z∋ {A = A ⇒ B} ())
+store-lookup-resolve-star (Z∋ {A = `∀ A} ())
+store-lookup-resolve-star (S-lift∋ {A = ＇ X} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = ‵ ι} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = ★} X∈ refl) =
+  cong ⇑ᵗ (store-lookup-resolve-star X∈)
+store-lookup-resolve-star (S-lift∋ {A = A ⇒ B} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = `∀ A} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ＇ X} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ‵ ι} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ★} X∈ refl) =
+  cong ⇑ᵗ (store-lookup-resolve-star X∈)
+store-lookup-resolve-star (S-bind∋ {A = A ⇒ B} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = `∀ A} X∈ ())
+
+star-store-rep : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
+  → sourceStoreʷ W ∋ X ⦂ ★
+  → targetStoreʷ W ∋ Y ⦂ ★
+  → CTI2.StoreRepImp W X Y
+star-store-rep {W = W} {X = X} {Y = Y} X∈ Y∈ =
+  CTI2.store-rep-imp
+    (subst≡ (λ L → L ⊑ᵂ⟨ W ⟩ CTI2.resolveVar (targetStoreʷ W) Y)
+      (sym (store-lookup-resolve-star X∈))
+      (subst≡ (λ R → ★ ⊑ᵂ⟨ W ⟩ R)
+        (sym (store-lookup-resolve-star Y∈))
+        ★⊑★))
+
 data StoreChain {Δ} (Σ : TyStore Δ) :
     TyVar Δ → TyVar Δ → Set where
   chain-one : ∀ {X Y}

@@ -58,6 +58,26 @@ data TargetSourceStarAtResult {Δᴸ Δᴿ Δ}
         ⊑ U ↓ seal Y S ∶ q
     → TargetSourceStarAtResult W γ V U X Y S c q
 
+  target-source-star-residual : ∀ {P ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ ★
+    → RebaseAt W W X Y
+    → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y ★ ∶ q
+    → TargetSourceStarAtResult W γ V U X Y ★ c q
+
+  target-source-star-var-residual : ∀ {P Y′ ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y′)
+    → RebaseAt W W X Y
+    → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y (＇ Y′) ∶ q
+    → TargetSourceStarAtResult W γ V U X Y (＇ Y′) c q
+
   target-source-star-paired : ∀ {P Wᵖ γᵖ ν}
       {c : ν ⊢ (＇ X) ∼ ★}
       {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
@@ -74,7 +94,7 @@ data TargetSourceStarAtResult {Δᴸ Δᴿ Δ}
 
   target-source-star-payload : ∀ {P Wᵖ γᵖ ν}
       {c : ν ⊢ (＇ X) ∼ ★}
-      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {pᵖ : (＇ X) ⊑ᵂ⟨ Wᵖ ⟩ ★}
       {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → V ≡ P ↓ seal X ★
     → CTI2.ImpEnvMono W Wᵖ
@@ -82,7 +102,7 @@ data TargetSourceStarAtResult {Δᴸ Δᴿ Δ}
     → CTI2.SameCtx γ γᵖ
     → sourceStoreʷ W ∋ X ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ ★
-    → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
+    → Wᵖ ∣ γᵖ ⊢² P ↓ seal X ★ ⊑ U ∶ pᵖ
     → TargetSourceStarAtResult W γ V U X Y ★ c q
 
 TargetSourceStarAt : Set

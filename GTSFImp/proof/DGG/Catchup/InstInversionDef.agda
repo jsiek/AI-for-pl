@@ -13,7 +13,7 @@ module proof.DGG.Catchup.InstInversionDef where
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (Σ-syntax; _×_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
 open import Imprecision using (X⊑★; X⊑X)
@@ -35,6 +35,13 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
+open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
+  (name-type-app-frame; _▻ⁱ_; []ⁱ)
+open import proof.DGG.Catchup.StructuralTargetInstantiationDef using
+  (StructuralTargetInstantiationPackage)
+open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
+  (StructuralNameInstantiationᵀ; StructuralNamePostPlan;
+   StructuralNameChainPlan)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
@@ -317,6 +324,9 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
         ECR.transport⊑ᵂ ext p
 
 
+-- Stage-2 root callers own the catalog geometry: they supply the assembled
+-- name-instantiation worker, hereditary source/chain plans, and the completed
+-- root target package instead of relying on a target-only normalizer.
 StructuralValueInstantiationᵀ : Set₁
 StructuralValueInstantiationᵀ =
   ∀ {fuel Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
@@ -326,13 +336,21 @@ StructuralValueInstantiationᵀ =
     {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
     {q : A ⊑ᵂ⟨ W ⟩
       applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
+  → StructuralNameInstantiationᵀ
   → FuelStepSurface fuel
   → Catchup⁻Embedᵀ
   → inst-alloc-decreaseᵀ
+  → (plan : StructuralNamePostPlan W A
+      (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q)
+  → StructuralNameChainPlan {fuel = fuel} W γ A
+      (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q plan
   → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
   → Value M
   → Value V
   → AllValueView V
+  → StructuralTargetInstantiationPackage W (renameᵗᵐ wk↪ᵗ V)
+      (name-type-app-frame (applyBody (bind R) B) Fin.zero
+        refl refl ▻ⁱ []ⁱ)
   → InstSpineDescentPackage W γ M
       (renameᵗᵐ wk↪ᵗ V ⦂∀ applyBody (bind R) B [ ＇ Fin.zero ]) q
 

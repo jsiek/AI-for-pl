@@ -17,6 +17,33 @@ $$
 The left side is a value. The right side blames because the projection checks
 the unrelated tag `Y` against `\mathbb{N}`.
 
+The counterexample world also assumes that source `X` and target `Y` occupy
+the same center while that center is marked `X \sqsubseteq \star`. Source
+imprecision does not introduce such a cell at a pair of binders. The checked
+binder cases are
+
+$$
+\begin{array}{c|c|c}
+\text{source form} & \text{target form} & \text{fresh world cell} \\
+\hline
+\Lambda X & \Lambda Y & (X,Y;\;X\sqsubseteq X) \\
+\Lambda X & N'          & (X,-;\;X\sqsubseteq\star).
+\end{array}
+$$
+
+Thus a dynamic cell initially has no target occupant. If a later target-side
+generation is aligned with it, that runtime transition—not a matched
+`\Lambda`—must justify the alignment and preserve the generated cast wrappers.
+More importantly, under the matched-binder environment the judgment
+
+$$
+X \sqsubseteq \star
+$$
+
+is empty, whereas it is immediate under the source-only binder environment.
+So matched source and target type variables can be used only through
+variable-to-variable imprecision in the source derivation.
+
 ## A closed related source pair
 
 `SourceLegScratch.agda` defines the following pair, using named variables
@@ -149,15 +176,29 @@ needed to expose the mismatched projection.
 
 ## Invariant exposed by the failed construction
 
-The experiment supports two connected source invariants.
+The experiment supports three connected source invariants.
 
-1. **Value-flow provenance.** A generated projection `Y?` may inspect only a
+1. **Binder-match provenance.** Matched `\Lambda` binders create an
+   `X\sqsubseteq X` cell. An `X\sqsubseteq\star` cell is created only by a
+   source-only binder and initially has no target variable. The abstract bad
+   world has both an aligned target variable and the dynamic mark, so it
+   already represents a later runtime alignment whose origin has been erased.
+
+   The runtime development can *decay* a matched cell's current world mark from
+   `X\sqsubseteq X` to `X\sqsubseteq\star`. Decay transports the original
+   variable-to-variable derivations; it does not turn a matched source use into
+   a source-level `X\sqsubseteq\star` use. Because the CTI records only the
+   current mark, a later CTI constructor can incorrectly treat that decayed
+   mark as fresh permission to form a star matchup. The relation must retain
+   the pre-decay occurrence/binder provenance as well as the current mark.
+
+2. **Value-flow provenance.** A generated projection `Y?` may inspect only a
    value whose path through the related source terms supplies the matching
    `Y!`, or a residual projection justified after cancellation of such a
    matching pair. An unrelated `\mathbb{N}!` can be returned only by changing
    the target body in a way that breaks source-term imprecision.
 
-2. **Allocation-order provenance.** In the precise execution, the name whose
+3. **Allocation-order provenance.** In the precise execution, the name whose
    store representation is `\star` is the inner, source-only allocation. The
    source name aligned with target `Y` is the outer allocation and has that
    inner name as its representation. Relating the inner source name directly
@@ -179,9 +220,11 @@ the projection with a checked `CatchupCast` witness and both sides return.
 
 This is evidence, not yet a general preservation theorem. The next sound step
 is to prove that source imprecision plus compilation and related reduction
-preserve a provenance-indexed CTI judgment. At every target cast column used by
-catch-up, that judgment should provide `CatchupColumn`; its projection head
-should provide `CatchupCast`, including the matching-injection or recursive
-post-cancellation evidence. Proving that theorem would establish that the
-restriction is semantic provenance inherited from the source, rather than an
-ad hoc premise added only to close `ExtraCastRight`.
+preserve a provenance-indexed CTI judgment. Its world component must remember
+whether a cell came from matched binders or from a one-sided binder followed by
+runtime alignment. At every target cast column used by catch-up, the judgment
+should provide `CatchupColumn`; its projection head should provide
+`CatchupCast`, including the matching-injection or recursive post-cancellation
+evidence. Proving that theorem would establish that the restriction is
+semantic provenance inherited from the source, rather than an ad hoc premise
+added only to close `ExtraCastRight`.

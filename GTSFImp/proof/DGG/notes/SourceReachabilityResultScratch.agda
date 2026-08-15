@@ -11,7 +11,7 @@ module SourceReachabilityResultScratch where
 open import Data.Fin using (zero)
 open import Data.List using ([]; _∷_)
 open import Data.Product using (proj₁)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Relation.Nullary using (¬_)
 
 open import Types
@@ -33,11 +33,47 @@ open import Compile using (compile)
 import Conversion as Conv
 open Conv using (unseal)
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.StarRepChainProbe as Probe
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
 import InitialPairScratch as IP
 import SourceLegScratch as Source
+
+------------------------------------------------------------------------
+-- Binder matching fixes the fresh world cell
+------------------------------------------------------------------------
+
+matched-Λ-center : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldBoth I.X⊑X W)) zero
+    ≡ toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth I.X⊑X W)) zero
+matched-Λ-center = refl
+
+matched-Λ-mark : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.impEnvʷ (CTI2.liftWorldBoth I.X⊑X W)
+      (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldBoth I.X⊑X W)) zero)
+    ≡ I.X⊑X
+matched-Λ-mark = refl
+
+matched-Λ-use-not-star : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → ¬ (I.extendᵐ I.X⊑X μ I.⊢ ＇ zero ⊑ ★)
+matched-Λ-use-not-star (I.X⊑★ ())
+
+erased-Λ-mark : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
+      (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) zero)
+    ≡ I.X⊑★
+erased-Λ-mark = refl
+
+erased-Λ-use-star : ∀ {Δ} {μ : I.ImpEnv Δ}
+  → I.instᵐ μ I.⊢ ＇ zero ⊑ ★
+erased-Λ-use-star = I.X⊑★ refl
+
+erased-Λ-has-no-target : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+    (Y : TyVar Δᴿ)
+  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W)) Y
+    ≢ toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) zero
+erased-Λ-has-no-target Y ()
 
 ------------------------------------------------------------------------
 -- The literal closed source pair reaches InitialPairScratch

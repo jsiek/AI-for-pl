@@ -49,7 +49,6 @@ import CastTerms as CT
 open import CastTerms using
   (⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _⦂∀_[_]; _↑_; Λ_; ⇑ᵗᵐ;
    Value; RevealValue; _《_》; _↓_)
-open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
 open import proof.Reduction using (cast-↠)
@@ -510,30 +509,26 @@ target-left-lift-eq η B =
 
 Λ-fresh-mid-env-eq : ∀ {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ)
-  → CTI2.impEnvʷ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
-    ≡ CTI2.impEnvʷ (ΛPostMidWorld W)
-Λ-fresh-mid-env-eq W =
-  funext λ
-    { Fin.zero → refl
-    ; (Fin.suc Fin.zero) → refl
-    ; (Fin.suc (Fin.suc Fin.zero)) → refl
-    ; (Fin.suc (Fin.suc (Fin.suc Z))) → refl
-    }
+  → ∀ Z
+  → CTI2.impEnvʷ (TBL.ΛLiftToBindFreshWorld I.X⊑★ W) Z
+    ≡ CTI2.impEnvʷ (ΛPostMidWorld W) Z
+Λ-fresh-mid-env-eq W Fin.zero = refl
+Λ-fresh-mid-env-eq W (Fin.suc Fin.zero) = refl
+Λ-fresh-mid-env-eq W (Fin.suc (Fin.suc Fin.zero)) = refl
+Λ-fresh-mid-env-eq W (Fin.suc (Fin.suc (Fin.suc Z))) = refl
 
 
 Λ-mid-out-env-eq : ∀ {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ)
-  → CTI2.impEnvʷ (ΛPostMidWorld W)
+  → ∀ Z
+  → CTI2.impEnvʷ (ΛPostMidWorld W) Z
     ≡ CTI2.impEnvʷ
       (CTI2.liftWorldLeft I.X⊑★
-        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)))
-Λ-mid-out-env-eq W =
-  funext λ
-    { Fin.zero → refl
-    ; (Fin.suc Fin.zero) → refl
-    ; (Fin.suc (Fin.suc Fin.zero)) → refl
-    ; (Fin.suc (Fin.suc (Fin.suc Z))) → refl
-    }
+        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))) Z
+Λ-mid-out-env-eq W Fin.zero = refl
+Λ-mid-out-env-eq W (Fin.suc Fin.zero) = refl
+Λ-mid-out-env-eq W (Fin.suc (Fin.suc Fin.zero)) = refl
+Λ-mid-out-env-eq W (Fin.suc (Fin.suc (Fin.suc Z))) = refl
 
 
 Λ-fresh-mid-source-shift-eq : ∀ {Δᴸ Δᴿ Δ}
@@ -589,10 +584,8 @@ target-left-lift-eq η B =
       TBL.ΛLiftToBindFreshWorld I.X⊑★ W ⟩ B
   → (⇑ᵗ A) CTI2.⊑ᵂ⟨ ΛPostMidWorld W ⟩ B
 Λ-fresh-to-mid-shifted-⊑ᵂ {W = W} {A = A} {B = B} p =
-  subst≡
-    (λ μ → μ ⊢ CTI2.embedᴸ (ΛPostMidWorld W) (⇑ᵗ A)
-      ⊑ CTI2.embedᴿ (ΛPostMidWorld W) B)
-    (Λ-fresh-mid-env-eq W)
+  WD.⊑-env-mono
+    (λ Z dynamic → trans (sym (Λ-fresh-mid-env-eq W Z)) dynamic)
     (subst≡
       (λ R → CTI2.impEnvʷ
           (TBL.ΛLiftToBindFreshWorld I.X⊑★ W)
@@ -615,10 +608,8 @@ target-left-lift-eq η B =
         (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★) (＇ Fin.zero))
       ⟩ B
 Λ-mid-to-out-shifted-⊑ᵂ {W = W} {A = A} {B = B} p =
-  subst≡
-    (λ μ → μ ⊢ CTI2.embedᴸ Wout (⇑ᵗ A)
-      ⊑ CTI2.embedᴿ Wout B)
-    (Λ-mid-out-env-eq W)
+  WD.⊑-env-mono
+    (λ Z dynamic → trans (sym (Λ-mid-out-env-eq W Z)) dynamic)
     (subst≡
       (λ R → CTI2.impEnvʷ (ΛPostMidWorld W)
         ⊢ CTI2.embedᴸ Wout (⇑ᵗ A) ⊑ R)

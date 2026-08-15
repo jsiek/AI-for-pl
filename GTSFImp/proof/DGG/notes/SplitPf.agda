@@ -363,7 +363,7 @@ calibration-2₅
   calibration-2-inst-route₅ c
 calibration-2₅
     (inst₅ nonvar-fun (∈-fun-right (∉-var neq) var-∈) c B≢★) =
-  ⊥-elim (neq refl)
+  ⊥-elim (≢ᶠ→≢ neq refl)
 calibration-2₅
     (gen₅ nonvar-fun (∈-fun-left var-∈) c A≢★) =
   calibration-2-gen-route₅ c

@@ -192,12 +192,12 @@ Z∈target-body =
 
 Z∈source-body : ∀ {Δ} → Fin.zero ∈ᵗ source-body {Δ}
 Z∈source-body =
-  ∈-fun-right (∉-var (λ ()))
-    (∈-fun-right (∉-var (λ ())) (∈-fun-left var-∈))
+  ∈-fun-right (∉-var (≢→≢ᶠ (λ ())))
+    (∈-fun-right (∉-var (≢→≢ᶠ (λ ()))) (∈-fun-left var-∈))
 
 Y∈source-body : ∀ {Δ} → Fin.suc Fin.zero ∈ᵗ source-body {Δ}
 Y∈source-body =
-  ∈-fun-right (∉-var (λ ())) (∈-fun-left var-∈)
+  ∈-fun-right (∉-var (≢→≢ᶠ (λ ()))) (∈-fun-left var-∈)
 
 X∈source-∀Y∀Z : ∀ {Δ} → Fin.zero ∈ᵗ source-∀Y∀Z {Δ}
 X∈source-∀Y∀Z = ∈-all (∈-all (∈-fun-left var-∈))

@@ -48,7 +48,6 @@ import CastTerms as CT
 open import CastTerms using
   (⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _⦂∀_[_]; _↑_; Λ_; ⇑ᵗᵐ;
    Value; RevealValue; _《_》; _↓_)
-open import FunExt using (funext)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
 open import proof.Reduction using (cast-↠)
@@ -413,7 +412,7 @@ mutual
       with X ≟ Y
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | yes refl =
-    ⊥-elim (X≢Y refl)
+    ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
     CTI2.⊢↑-idˣ
@@ -469,7 +468,7 @@ mutual
       with X ≟ Y
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | yes refl =
-    ⊥-elim (X≢Y refl)
+    ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
     CTI2.⊢↓-idˣ

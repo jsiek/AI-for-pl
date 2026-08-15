@@ -47,7 +47,7 @@ occurs-absent-⊥ : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
     ---------
   → ⊥
-occurs-absent-⊥ var-∈ (∉-var X≢X) = X≢X refl
+occurs-absent-⊥ var-∈ (∉-var X≢X) = ≢ᶠ→≢ X≢X refl
 occurs-absent-⊥ (∈-fun-left X∈A) (∉-fun X∉A X∉B) =
   occurs-absent-⊥ X∈A X∉A
 occurs-absent-⊥ (∈-fun-right X∉A′ X∈B) (∉-fun X∉A X∉B) =
@@ -293,7 +293,8 @@ mutual
     → Y ∉ᵗ B
       -------
     → Y ∉ᵗ A
-  conv↑-absent-post (⊢↑-unsealˣ ∋X) Y≢X fresh Y∉R = ∉-var Y≢X
+  conv↑-absent-post (⊢↑-unsealˣ ∋X) Y≢X fresh Y∉R =
+    ∉-var (≢→≢ᶠ Y≢X)
   conv↑-absent-post (⊢↑-⇒ˣ join-both ⊢c ⊢d) Y≢X fresh
       (∉-fun Y∉A′ Y∉B′) =
     ∉-fun (conv↓-absent-pre ⊢c Y≢X fresh Y∉A′)
@@ -318,7 +319,8 @@ mutual
     → Y ∉ᵗ A
       -------
     → Y ∉ᵗ B
-  conv↓-absent-pre (⊢↓-sealˣ ∋X) Y≢X fresh Y∉R = ∉-var Y≢X
+  conv↓-absent-pre (⊢↓-sealˣ ∋X) Y≢X fresh Y∉R =
+    ∉-var (≢→≢ᶠ Y≢X)
   conv↓-absent-pre (⊢↓-⇒ˣ join-both ⊢c ⊢d) Y≢X fresh
       (∉-fun Y∉A Y∉B) =
     ∉-fun (conv↑-absent-post ⊢c Y≢X fresh Y∉A)

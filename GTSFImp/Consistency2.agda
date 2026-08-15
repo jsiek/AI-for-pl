@@ -85,7 +85,7 @@ dynamic-under-ext dynamic zero∉A zero X∈A =
     → X ∉ᵗ B
     → X ∈ᵗ B
     → ⊥
-  not-occurs (∉-var X≠Y) var-∈ = X≠Y refl
+  not-occurs (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
   not-occurs ∉-base ()
   not-occurs ∉-star ()
   not-occurs (∉-fun X∉B X∉C) (∈-fun-left X∈B) =
@@ -112,7 +112,7 @@ data AllChoice {Δ : TyCtx} : Ty (Nat.suc Δ) → Set where
 all-choice : ∀ {Δ} (A : Ty (Nat.suc Δ)) → AllChoice A
 all-choice (＇ zero) = bottom-choice
 all-choice (＇ (suc X)) =
-  structural-choice nonstar-X (∉-var (λ ()))
+  structural-choice nonstar-X (∉-var (≢→≢ᶠ (λ ())))
 all-choice (‵ ι) = structural-choice nonstar-ι ∉-base
 all-choice ★ = star-choice
 all-choice (A ⇒ B) with occurs? zero (A ⇒ B)

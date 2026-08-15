@@ -184,7 +184,7 @@ natFirstBody = ‵ `ℕ ⇒ ＇ 0 ⇒ ‵ `ℕ
 instance
   Y∈X⇒Y⇒X-instance : 0 ∈ᵗ X⇒Y⇒X
   Y∈X⇒Y⇒X-instance =
-    ∈-fun-right (∉-var (λ ())) (∈-fun-left var-∈)
+    ∈-fun-right (∉-var (≢→≢ᶠ (λ ()))) (∈-fun-left var-∈)
 
   X∈polyFirstBody-instance : 0 ∈ᵗ polyFirstBody
   X∈polyFirstBody-instance = ∈-all (∈-fun-left var-∈)

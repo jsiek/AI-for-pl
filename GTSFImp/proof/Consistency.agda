@@ -189,10 +189,26 @@ castSize-subst-right-∼-≤ : ∀ {Δ} {μ : Env∼ Δ}
 castSize-subst-right-∼-≤ refl c = ≤-refl
 
 castSize-transport-env∼ : ∀ {Δ} {μ ν : Env∼ Δ} {A B : Ty Δ}
-  → (eq : μ ≡ ν)
+  → (eq : Env∼Eq μ ν)
   → (c : μ ⊢ A ∼ B)
   → castSize (transport-env∼ eq c) ≡ castSize c
-castSize-transport-env∼ refl c = refl
+castSize-transport-env∼ eq (id a) = refl
+castSize-transport-env∼ eq (c ↦ d) =
+  cong₂ (λ m n → suc (m + n))
+    (castSize-transport-env∼ (flipEnv∼Eq eq) c)
+    (castSize-transport-env∼ eq d)
+castSize-transport-env∼ eq (∀ᶜ c) =
+  cong suc (castSize-transport-env∼ (extEnv∼Eq eq) c)
+castSize-transport-env∼ eq (_! c) =
+  cong suc (castSize-transport-env∼ eq c)
+castSize-transport-env∼ eq (？ c) =
+  cong suc (castSize-transport-env∼ eq c)
+castSize-transport-env∼ eq (inst_ c B≢★) =
+  cong suc (castSize-transport-env∼ (instEnv∼Eq eq) c)
+castSize-transport-env∼ eq (gen_ c A≢★) =
+  cong suc (castSize-transport-env∼ (genEnv∼Eq eq) c)
+castSize-transport-env∼ eq bot-elim = refl
+castSize-transport-env∼ eq bot-intro = refl
 
 castSize-sym∼ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
   → (c : μ ⊢ A ∼ B)

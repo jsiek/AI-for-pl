@@ -19,7 +19,6 @@ open import Relation.Nullary using (yes; no)
 
 open import Types renaming (`∀ to `∀ᵗ)
 open import Conversion using (replaceTy)
-open import FunExt using (funext)
 open import proof.ImprecisionConsistency using
   (shift-not-occurs; zero-absent-shift; subst-zero-occurs-exts)
 import proof.TypeSafety.Preservation as Preservation
@@ -157,15 +156,13 @@ in-entry-mode-eq {X = X} activation Y | no X≠Y =
 
 toEnv∼-out-activation : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ}
   → OutActivation {X = X} κ κ′
-  → toEnv∼ κ ≡ toEnv∼ κ′
-toEnv∼-out-activation activation =
-  funext (out-entry-mode-eq activation)
+  → C.Env∼Eq (toEnv∼ κ) (toEnv∼ κ′)
+toEnv∼-out-activation = out-entry-mode-eq
 
 toEnv∼-in-activation : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ}
   → InActivation {X = X} κ κ′
-  → toEnv∼ κ ≡ toEnv∼ κ′
-toEnv∼-in-activation activation =
-  funext (in-entry-mode-eq activation)
+  → C.Env∼Eq (toEnv∼ κ) (toEnv∼ κ′)
+toEnv∼-in-activation = in-entry-mode-eq
 
 ------------------------------------------------------------------------
 -- Type replacement and generic-ground support
@@ -175,7 +172,8 @@ replace-not-occurs : ∀ {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → replaceTy X ★ A ≡ A
 replace-not-occurs {X = X} (∉-var {Y = Y} X≠Y) with X ≟ Y
-replace-not-occurs (∉-var X≠X) | yes refl = ⊥-elim (X≠X refl)
+replace-not-occurs (∉-var X≠X) | yes refl =
+  ⊥-elim (≢ᶠ→≢ X≠X refl)
 replace-not-occurs (∉-var X≠Y) | no X≠Y′ = refl
 replace-not-occurs ∉-base = refl
 replace-not-occurs ∉-star = refl
@@ -292,7 +290,7 @@ generic-fresh-out : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
 generic-fresh-out activation generic-⇒ = ∉-fun ∉-star ∉-star
 generic-fresh-out activation generic-ι = ∉-base
 generic-fresh-out activation (generic-X ordinary-Y) =
-  ∉-var (ordinary-away-out activation ordinary-Y)
+  ∉-var (≢→≢ᶠ (ordinary-away-out activation ordinary-Y))
 generic-fresh-out activation generic-∀ = ∉-all ∉-star
 
 generic-fresh-in : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
@@ -302,7 +300,7 @@ generic-fresh-in : ∀ {X : TyVar Δ} {κ κ′ : CastCtx Δ} {G}
 generic-fresh-in activation generic-⇒ = ∉-fun ∉-star ∉-star
 generic-fresh-in activation generic-ι = ∉-base
 generic-fresh-in activation (generic-X ordinary-Y) =
-  ∉-var (ordinary-away-in activation ordinary-Y)
+  ∉-var (≢→≢ᶠ (ordinary-away-in activation ordinary-Y))
 generic-fresh-in activation generic-∀ = ∉-all ∉-star
 
 generic-not-star : ∀ {κ : CastCtx Δ} {G}
@@ -317,7 +315,7 @@ absent-present : ∀ {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → X ∈ᵗ A
   → ⊥
-absent-present (∉-var X≠Y) var-∈ = X≠Y refl
+absent-present (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
 absent-present ∉-base ()
 absent-present ∉-star ()
 absent-present (∉-fun X∉A X∉B) (∈-fun-left X∈A) =
@@ -353,32 +351,32 @@ activate-to-star-out : ∀ {X : TyVar Δ}
   → OutActivation {X = X} κ κ′
   → C._⊢_∼★ (toEnv∼ κ) G
   → C._⊢_∼★ (toEnv∼ κ′) G
-activate-to-star-out {G = G} activation =
-  subst (λ μ → C._⊢_∼★ μ G) (toEnv∼-out-activation activation)
+activate-to-star-out activation =
+  C.transport-∼★ (toEnv∼-out-activation activation)
 
 activate-to-star-in : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → InActivation {X = X} κ κ′
   → C._⊢_∼★ (toEnv∼ κ) G
   → C._⊢_∼★ (toEnv∼ κ′) G
-activate-to-star-in {G = G} activation =
-  subst (λ μ → C._⊢_∼★ μ G) (toEnv∼-in-activation activation)
+activate-to-star-in activation =
+  C.transport-∼★ (toEnv∼-in-activation activation)
 
 activate-from-star-out : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → OutActivation {X = X} κ κ′
   → C._⊢★∼_ (toEnv∼ κ) G
   → C._⊢★∼_ (toEnv∼ κ′) G
-activate-from-star-out {G = G} activation =
-  subst (λ μ → C._⊢★∼_ μ G) (toEnv∼-out-activation activation)
+activate-from-star-out activation =
+  C.transport-★∼ (toEnv∼-out-activation activation)
 
 activate-from-star-in : ∀ {X : TyVar Δ}
     {κ κ′ : CastCtx Δ} {G}
   → InActivation {X = X} κ κ′
   → C._⊢★∼_ (toEnv∼ κ) G
   → C._⊢★∼_ (toEnv∼ κ′) G
-activate-from-star-in {G = G} activation =
-  subst (λ μ → C._⊢★∼_ μ G) (toEnv∼-in-activation activation)
+activate-from-star-in activation =
+  C.transport-★∼ (toEnv∼-in-activation activation)
 
 nonvar-variable-impossible : ∀ {X : TyVar Δ} → NonVar (＇ X) → ⊥
 nonvar-variable-impossible ()

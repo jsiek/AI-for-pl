@@ -16,7 +16,6 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary using (no; yes)
 
 open import Types
-open import FunExt using (funext)
 
 private
   variable
@@ -67,6 +66,9 @@ flipVar∼-to-★∼X∼★ {★∼X∼★} refl = refl
 Env∼ : TyCtx → Set
 Env∼ Δ = TyVar Δ → Var∼
 
+Env∼Eq : ∀ {Δ} → Env∼ Δ → Env∼ Δ → Set
+Env∼Eq μ ν = ∀ X → μ X ≡ ν X
+
 idᶜ : ∀ {Δ} → Env∼ Δ
 idᶜ X = ★∼X∼★
 
@@ -85,8 +87,28 @@ genᵐ μ (suc X) = μ X
 flipᵐ : Env∼ Δ → Env∼ Δ
 flipᵐ μ X = flipVar∼ (μ X)
 
-flipᵐ-involutive : ∀ {Δ} {μ : Env∼ Δ} → flipᵐ (flipᵐ μ) ≡ μ
-flipᵐ-involutive = funext λ X → flipVar∼-involutive _
+flipEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
+  → Env∼Eq μ ν
+  → Env∼Eq (flipᵐ μ) (flipᵐ ν)
+flipEnv∼Eq eq X = cong flipVar∼ (eq X)
+
+extEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
+  → Env∼Eq μ ν
+  → Env∼Eq (extᵐ μ) (extᵐ ν)
+extEnv∼Eq eq zero = refl
+extEnv∼Eq eq (suc X) = eq X
+
+instEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
+  → Env∼Eq μ ν
+  → Env∼Eq (instᵐ μ) (instᵐ ν)
+instEnv∼Eq eq zero = refl
+instEnv∼Eq eq (suc X) = eq X
+
+genEnv∼Eq : ∀ {Δ} {μ ν : Env∼ Δ}
+  → Env∼Eq μ ν
+  → Env∼Eq (genᵐ μ) (genᵐ ν)
+genEnv∼Eq eq zero = refl
+genEnv∼Eq eq (suc X) = eq X
 
 ----------------------------------------------------------------------
 -- Consistency
@@ -306,28 +328,69 @@ flip-★∼ (★∼Xᵍ eq) = X∼★ᵍ (cong flipVar∼ eq)
 flip-★∼ (★∼Xᶜ eq) = X∼★ᶜ (cong flipVar∼ eq)
 flip-★∼ ★∼∀ = ∀∼★
 
+transport-∼★ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
+  → Env∼Eq μ ν
+  → μ ⊢ G ∼★
+  → ν ⊢ G ∼★
+transport-∼★ eq ⇒∼★ = ⇒∼★
+transport-∼★ eq ι∼★ = ι∼★
+transport-∼★ eq (X∼★ᵍ mode) = X∼★ᵍ (trans (sym (eq _)) mode)
+transport-∼★ eq (X∼★ᶜ mode) = X∼★ᶜ (trans (sym (eq _)) mode)
+transport-∼★ eq ∀∼★ = ∀∼★
+
+transport-★∼ : ∀ {Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
+  → Env∼Eq μ ν
+  → μ ⊢★∼ G
+  → ν ⊢★∼ G
+transport-★∼ eq ★∼⇒ = ★∼⇒
+transport-★∼ eq ★∼ι = ★∼ι
+transport-★∼ eq (★∼Xᵍ mode) = ★∼Xᵍ (trans (sym (eq _)) mode)
+transport-★∼ eq (★∼Xᶜ mode) = ★∼Xᶜ (trans (sym (eq _)) mode)
+transport-★∼ eq ★∼∀ = ★∼∀
+
 flip-extᵐ : ∀ {Δ} {μ : Env∼ Δ}
-  → flipᵐ (extᵐ μ) ≡ extᵐ (flipᵐ μ)
-flip-extᵐ = funext λ { zero → refl; (suc X) → refl }
+  → Env∼Eq (flipᵐ (extᵐ μ)) (extᵐ (flipᵐ μ))
+flip-extᵐ zero = refl
+flip-extᵐ (suc X) = refl
 
 flip-instᵐ : ∀ {Δ} {μ : Env∼ Δ}
-  → flipᵐ (instᵐ μ) ≡ genᵐ (flipᵐ μ)
-flip-instᵐ = funext λ { zero → refl; (suc X) → refl }
+  → Env∼Eq (flipᵐ (instᵐ μ)) (genᵐ (flipᵐ μ))
+flip-instᵐ zero = refl
+flip-instᵐ (suc X) = refl
 
 flip-genᵐ : ∀ {Δ} {μ : Env∼ Δ}
-  → flipᵐ (genᵐ μ) ≡ instᵐ (flipᵐ μ)
-flip-genᵐ = funext λ { zero → refl; (suc X) → refl }
+  → Env∼Eq (flipᵐ (genᵐ μ)) (instᵐ (flipᵐ μ))
+flip-genᵐ zero = refl
+flip-genᵐ (suc X) = refl
 
 private
 
-  flip-idᵐ : ∀ {Δ} → flipᵐ (idᶜ {Δ}) ≡ idᶜ
-  flip-idᵐ = refl
+  flip-idᵐ : ∀ {Δ} → Env∼Eq (flipᵐ (idᶜ {Δ})) idᶜ
+  flip-idᵐ X = refl
 
 transport-env∼ : ∀ {Δ} {μ ν : Env∼ Δ} {A B : Ty Δ}
-  → μ ≡ ν
+  → Env∼Eq μ ν
   → μ ⊢ A ∼ B
   → ν ⊢ A ∼ B
-transport-env∼ refl c = c
+transport-env∼ eq (id a) = id a
+transport-env∼ eq (c ↦ d) =
+  transport-env∼ (flipEnv∼Eq eq) c ↦ transport-env∼ eq d
+transport-env∼ eq (∀ᶜ c) =
+  ∀ᶜ (transport-env∼ (extEnv∼Eq eq) c)
+transport-env∼ eq (_! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
+  _! ⦃ Gᵍ ⦄ ⦃ transport-∼★ eq G∼★ ⦄
+    (transport-env∼ eq c) ⦃ Ans ⦄
+transport-env∼ eq (？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
+  ？_ ⦃ Gᵍ ⦄ ⦃ transport-★∼ eq ★∼G ⦄
+    (transport-env∼ eq c) ⦃ Bns ⦄
+transport-env∼ eq (inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄ c B≢★) =
+  inst_ ⦃ Anv ⦄ ⦃ zero∈A ⦄
+    (transport-env∼ (instEnv∼Eq eq) c) B≢★
+transport-env∼ eq (gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄ c A≢★) =
+  gen_ ⦃ Bnv ⦄ ⦃ zero∈B ⦄
+    (transport-env∼ (genEnv∼Eq eq) c) A≢★
+transport-env∼ eq bot-elim = bot-elim
+transport-env∼ eq bot-intro = bot-intro
 
 sym∼ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
   → μ ⊢ A ∼ B

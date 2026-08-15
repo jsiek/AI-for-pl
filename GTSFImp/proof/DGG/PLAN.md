@@ -756,3 +756,49 @@ installed Agda registration:
 Discipline remains statement-first; `.red` + stop on genuine resisters;
 no weakening of live statements; hygiene = FunExt only; commit and push
 every proof or planning chunk.
+
+## CTI unsoundness finding + tightening calibration (2026-08-15)
+
+FINDING (external, verified): the three CTI cast rules (cast⊑cast²,
+⊑cast², cast⊑²) relate endpoint TYPES only; the checked counterexample
+`projection-mismatch²` (notes/ProjectionMismatchStarRepScratch.agda,
+from peterthiemann:codex/gtsf-big-dgg d2cb44f) derives a term relation
+whose target blames on an unrelated generated-name projection while the
+source returns. Independently, codex/gtsf-cti-source-reachability
+(notes/SOURCE-CTI-REACHABILITY.md) proves the bad square is
+source-UNREACHABLE — relation-tightening of the M3 species, not a DGG
+threat. PR #137 was merged first (relation untouched there); NS-4
+stage 2 stays paused pending the repair.
+
+CALIBRATION (branch agent/gtsf-cti-calibration, notes/
+CTI-TIGHTENING-CALIBRATION.md + three checked scratch mini-relations):
+
+| candidate | C1 sound | C2 compile² | C3 good runs | C5 LR | verdict |
+|---|---|---|---|---|---|
+| S-NARROW (GTSF-style direction/shape premises only) | CHECKED-FAIL (`projection-mismatch-still-derivableᴺ`) | — | ok | — | REFUTED |
+| S-WORLD (items 1-3 world/capability tightening only, type-level cast rules) | CHECKED-FAIL (`world-only-bad-square-still-derivableᵂ` — rerouted bad square consumes the IDENTICAL capability premise as the good square) | ok | ok | — | REFUTED |
+| S-PROV CORE (items 1-5: provenance cells + TERM-SHAPED generated-name projection clauses) | CHECKED-OK (emptiness) | CHECKED-OK (scoped: term-shaped clause applies to generated-name projections only; compile's dynamic-function projections at CompilePreservesImprecision2:556/:595 keep a separate allowance) | CHECKED-OK | CHECKED-OK | PASSES |
+
+Structural reason the first two fail: the good square (V⟨Y!⟩⟨Y?⟩,
+cancels) and the bad square (0⟨ℕ!⟩⟨Y?⟩, blames) coincide in world,
+premise witness (X⊑★), conclusion witness (X⊑X at the shared center),
+and cast (Y?) at the final rule application — only the target TERM
+shape and premise subderivation differ. Any type-level or world-level
+premise admits both or rejects both, and rejecting both is unavailable
+(the good square is the reachable runtime endpoint). Hence item 5
+(term-shaped same-tag clause + residual-after-cancellation clause) is
+the necessary blocking layer; items 1-3 are the enabling layer that
+makes its obligations dischargeable (and bad worlds unconstructible).
+
+Item 6 (delete CatchupCast/CatchupCast⁻/CatchupColumn in favor of
+CTI-internal inversion): audited, verdict DEFER — it reworks the M4
+extra-cast surfaces, the M6 fuel knot, and NS-4 stage-1 provenance
+threading; the tightening lands soundly while keeping those judgments,
+and their removal can be a later cleanup once the strengthened CTI's
+inversion demonstrably supplies the same evidence.
+
+DECISION PENDING (user): adopt S-PROV CORE (items 1-5, with the
+generated-name scoping from C2) as the live CastTermImprecision2
+tightening, migrated by the A3/tag-discipline playbook (pre-flight in
+scratch; riskiest consumers first: M3 Inversion stack, seal-transfer,
+Λ machinery, NS-4 equal helpers/absorption; full gates last).

@@ -7,17 +7,22 @@ module proof.DGG.Catchup.StructuralSpineTypingDef where
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; _≢_; refl; sym; trans)
   renaming (subst to subst≡)
 
 open import Types using
-  (Ty; TyCtx; TyVar; NonVar; ★; ＇_; `∀; ⇑ᵗ; _[_]ᵗ;
+  (Ty; TyCtx; TyVar; NonVar; nonvar-base; nonvar-star;
+   nonvar-fun; nonvar-all; NonStar; nonstar-X; nonstar-ι;
+   nonstar-⇒; nonstar-∀; ★; ＇_; ‵_; `∀; ⇑ᵗ; _[_]ᵗ;
    _∈ᵗ_; var-∈; singleSubᵗ; substNonVar)
 open import TyStore using (TyStore; store-bind; Z∋)
 open import Imprecision using (X⊑★)
 open import Consistency using
-  (Env∼; X∼X; extᵐ; instᵐ; _⊢_∼_; ↑ᶜ_; close-instᶜ;
-   _[_]ᶜ; subst-∈ᵗ)
+  (Env∼; X∼X; extᵐ; instᵐ; id; _↦_; ∀ᶜ_; _!; ？_;
+   inst_; gen_; bot-elim; bot-intro; _⊢_∼_; ↑ᶜ_; close-instᶜ;
+   _[_]ᶜ; subst-∈ᵗ; renameNonStar; toRenameᵗ; wk↪ᵗ)
+import CastTerms as CT
 open import CastTerms using
   (Inert; GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
 open import Conversion using
@@ -36,7 +41,9 @@ import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (CatchupCast⁻; castSize)
+  (CatchupCast⁻; catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
+   catchup⁻-bot-elim; catchup⁻-bot-intro; castSize)
+open import proof.ImprecisionConsistency using (nonstar-from-≢★)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
 
@@ -71,12 +78,91 @@ residual-provenance-map-bind R prov {χs = χs} =
   prov {χs = bind R ∷ χs}
 
 
+applyTys-nonstar : ∀ {Δ Δ′} {A : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → NonStar A
+  → NonStar (applyTys χs A)
+applyTys-nonstar [] Ans = Ans
+applyTys-nonstar (keep ∷ χs) Ans = applyTys-nonstar χs Ans
+applyTys-nonstar (bind R ∷ χs) Ans =
+  applyTys-nonstar χs (renameNonStar Fin.suc Ans)
+
+
+catchup⁻-nonstar-local : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Aₛ : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
+    {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B′}
+  → NonStar B
+  → NonStar B′
+  → (c : ν ⊢ B ∼ B′)
+  → CatchupCast⁻ {W = W} {A = Aₛ} p c q
+catchup⁻-nonstar-local Bns B′ns (id ★) = catchup⁻-id ★
+catchup⁻-nonstar-local Bns B′ns (id (‵ ι)) = catchup⁻-id (‵ ι)
+catchup⁻-nonstar-local Bns B′ns (id (＇ X)) = catchup⁻-id (＇ X)
+catchup⁻-nonstar-local Bns B′ns (c ↦ d) =
+  catchup⁻-inert CT.fun
+catchup⁻-nonstar-local Bns B′ns (∀ᶜ c) =
+  catchup⁻-inert CT.all
+catchup⁻-nonstar-local Bns () (_! c)
+catchup⁻-nonstar-local () B′ns (？ c)
+catchup⁻-nonstar-local Bns B′ns (inst_ c B≢★) = catchup⁻-inst
+catchup⁻-nonstar-local Bns B′ns
+    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+  catchup⁻-inert (CT.genᵥ A≢★ (PC.gen-safe c A≢★ Bnv z∈B))
+catchup⁻-nonstar-local Bns B′ns bot-elim = catchup⁻-bot-elim
+catchup⁻-nonstar-local Bns B′ns bot-intro = catchup⁻-bot-intro
+
+
+inst-residual-source-nonstar-local : ∀ {Δ} {B : Ty (suc Δ)}
+  → NonVar B
+  → Fin.zero ∈ᵗ B
+  → NonStar (B [ ★ ]ᵗ)
+inst-residual-source-nonstar-local nonvar-base ()
+inst-residual-source-nonstar-local nonvar-star ()
+inst-residual-source-nonstar-local nonvar-fun zero∈B = nonstar-⇒
+inst-residual-source-nonstar-local nonvar-all zero∈B = nonstar-∀
+
+
+inst-frame-provenance : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
+    {A : Ty (suc Δ)} {B : Ty Δ}
+    {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+    ⦃ Anv : NonVar A ⦄ ⦃ z∈A : Fin.zero ∈ᵗ A ⦄
+  → (B≢★ : B ≢ ★)
+  → ResidualFrameProvenance ((inst c) B≢★)
+inst-frame-provenance {c = c} B≢★ {χs = χs} =
+  catchup⁻-nonstar-local
+    (applyTys-nonstar χs nonstar-∀)
+    (applyTys-nonstar χs (nonstar-from-≢★ B≢★))
+    (applyConsistencies χs ((inst c) B≢★))
+
+
+inst-residual-frame-provenance : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
+    {A : Ty (suc Δ)} {B : Ty Δ}
+    {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+    ⦃ Anv : NonVar A ⦄ ⦃ z∈A : Fin.zero ∈ᵗ A ⦄
+  → (B≢★ : B ≢ ★)
+  → ResidualFrameProvenance (↑ᶜ (close-instᶜ c))
+inst-residual-frame-provenance {A = A} {B = B} {c = c}
+    ⦃ Anv ⦄ ⦃ z∈A ⦄ B≢★ {χs = χs} =
+  catchup⁻-nonstar-local
+    (applyTys-nonstar χs
+      (renameNonStar (toRenameᵗ wk↪ᵗ)
+        (inst-residual-source-nonstar-local Anv z∈A)))
+    (applyTys-nonstar χs
+      (renameNonStar (toRenameᵗ wk↪ᵗ) (nonstar-from-≢★ B≢★)))
+    (applyConsistencies χs (↑ᶜ (close-instᶜ c)))
+
+
 data CastFrameClass {fuel : ℕ} {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
     (c : μ ⊢ A ∼ B) : Set where
 
   cast-inert : Inert c → CastFrameClass {fuel = fuel} c
 
-  cast-safe : GenSafe c → CastFrameClass {fuel = fuel} c
+  cast-safe :
+      GenSafe c
+    → castSize c < fuel
+    → ResidualFrameProvenance c
+    → CastFrameClass {fuel = fuel} c
 
   cast-residual :
       suc (castSize c) < fuel
@@ -91,8 +177,18 @@ cast-frame-class-map : ∀ {fuel Δ Δ′ μ A B}
 cast-frame-class-map {fuel = fuel} keep cls = cls
 cast-frame-class-map {fuel = fuel} (bind R) (cast-inert inert) =
   cast-inert {fuel = fuel} (applyStoreChange-Inert (bind R) inert)
-cast-frame-class-map {fuel = fuel} (bind R) (cast-safe safe) =
-  cast-safe {fuel = fuel} (PC.renameGenSafe Fin.suc (λ X → refl) safe)
+cast-frame-class-map {fuel = fuel} (bind R) {c = c}
+    (cast-safe safe c<fuel prov) =
+  cast-safe {fuel = fuel}
+    (PC.renameGenSafe Fin.suc (λ X → refl) safe)
+    (subst≡ (λ n → n < _)
+      (sym (PC.castSize-renameEnvᶜ Fin.suc (λ X → refl) _))
+      c<fuel)
+    (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+       {W = W} {Aₛ = Aₛ} {p = p} {q = q} →
+       prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+         {χs = bind R ∷ χs} {W = W} {Aₛ = Aₛ}
+         {p = p} {q = q})
 cast-frame-class-map {fuel = fuel} (bind R) {c = c}
     (cast-residual c<fuel prov) =
   cast-residual {fuel = fuel}
@@ -111,18 +207,26 @@ cast-frame-class-from-gen-safe-view : ∀ {fuel : ℕ} {Δ : TyCtx}
     {c : μ ⊢ A ∼ B}
   → (safe : GenSafe c)
   → PC.GenSafeView safe
+  → castSize c < fuel
+  → ResidualFrameProvenance c
   → CastFrameClass {fuel = fuel} c
-cast-frame-class-from-gen-safe-view safe-⇒ (PC.gen-safe-inert inert) =
+cast-frame-class-from-gen-safe-view safe-⇒ (PC.gen-safe-inert inert)
+    c<fuel prov =
   cast-inert inert
-cast-frame-class-from-gen-safe-view safe-∀ (PC.gen-safe-inert inert) =
+cast-frame-class-from-gen-safe-view safe-∀ (PC.gen-safe-inert inert)
+    c<fuel prov =
   cast-inert inert
 cast-frame-class-from-gen-safe-view (safe-inst B≢★)
-    (PC.gen-safe-inert ())
+    (PC.gen-safe-inert ()) c<fuel prov
 cast-frame-class-from-gen-safe-view (safe-inst B≢★)
-    (PC.gen-safe-inst _) =
-  cast-safe (safe-inst B≢★)
+    (PC.gen-safe-inst _) c<fuel prov =
+  cast-safe (safe-inst B≢★) c<fuel
+    (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+       {W = W} {Aₛ = Aₛ} {p = p} {q = q} →
+       prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+         {W = W} {Aₛ = Aₛ} {p = p} {q = q})
 cast-frame-class-from-gen-safe-view (safe-gen A≢★ safe)
-    (PC.gen-safe-inert inert) =
+    (PC.gen-safe-inert inert) c<fuel prov =
   cast-inert inert
 
 
@@ -132,9 +236,17 @@ opened-all-cast-frame-class : ∀ {fuel : ℕ} {Δ : TyCtx} {μ : Env∼ Δ}
   → μ X ≡ X∼X
   → NonVar C
   → Fin.zero ∈ᵗ C
+  → castSize (d [ ＇ X ]ᶜ) < fuel
+  → ResidualFrameProvenance (d [ ＇ X ]ᶜ)
   → CastFrameClass {fuel = fuel} (d [ ＇ X ]ᶜ)
-opened-all-cast-frame-class {C = C} {X = X} {d = d} strict Cnv zero∈C =
+opened-all-cast-frame-class {C = C} {X = X} {d = d} strict Cnv zero∈C
+    opened<fuel opened-prov =
   cast-frame-class-from-gen-safe-view safe (PC.gen-safe-view safe)
+    opened<fuel
+    (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+       {W = W} {Aₛ = Aₛ} {p = p} {q = q} →
+       opened-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+         {χs = χs} {W = W} {Aₛ = Aₛ} {p = p} {q = q})
   where
   opened-nonvar : NonVar (C [ ＇ X ]ᵗ)
   opened-nonvar = substNonVar (singleSubᵗ (＇ X)) Cnv
@@ -330,18 +442,25 @@ spine-typed-all-child : ∀ {fuel Δᴸ Δᴿ Δ}
   → μ X ≡ X∼X
   → NonVar C
   → Fin.zero ∈ᵗ C
+  → castSize (d [ ＇ X ]ᶜ) < fuel
+  → ResidualFrameProvenance (d [ ＇ X ]ᶜ)
   → SpineTypedʷ {fuel = fuel} W (mapInstantiationSpine keep spine)
   → SpineTypedʷ {fuel = fuel} W
       (name-type-app-frame B X refl refl ▻ⁱ
         cast-frame (d [ ＇ X ]ᶜ) ▻ⁱ
         mapInstantiationSpine keep spine)
 spine-typed-all-child {fuel = fuel} {Δᴿ = Δᴿ} {B = B} {C = C}
-    {X = X} {μ = μ} {d = d} geom strict Cnv zero∈C typed =
+    {X = X} {μ = μ} {d = d} geom strict Cnv zero∈C
+    opened<fuel opened-prov typed =
   st-name
     (st-cast
       (opened-all-cast-frame-class
         {fuel = fuel} {Δ = Δᴿ} {μ = μ} {B = B} {C = C}
-        {X = X} {d = d} strict Cnv zero∈C)
+        {X = X} {d = d} strict Cnv zero∈C opened<fuel
+        (λ {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ} {χs = χs}
+           {W = W′} {Aₛ = Aₛ} {p = p} {q = q} →
+           opened-prov {Δᴸ = Δᴸ} {Δ′ = Δ′} {Δᵂ = Δᵂ}
+             {χs = χs} {W = W′} {Aₛ = Aₛ} {p = p} {q = q}))
       typed)
 
 

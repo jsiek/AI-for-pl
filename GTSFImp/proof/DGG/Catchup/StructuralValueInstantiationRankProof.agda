@@ -104,6 +104,34 @@ frame-wrapper-potential-same w n p = solve 3
   refl w (3 ^ n) p
 
 
+frame-potential-decreases : ∀ w n p
+  → w * 3 ^ n + p < w * 3 ^ n + (3 ^ n + p)
+frame-potential-decreases w n p =
+  +-monoʳ-< (w * 3 ^ n) (m<n+m p (pow3-positive n))
+
+
+conceal-reveal-potential-normalize : ∀ w n p
+  → suc w * 3 ^ n + (3 ^ n + p) ≡
+      w * 3 ^ n + (3 ^ n + (3 ^ n + p))
+conceal-reveal-potential-normalize w n p = solve 3
+  (λ w a p →
+    ((con 1 :+ w) :* a :+ (a :+ p)) :=ᵉ
+    (w :* a :+ (a :+ (a :+ p))))
+  refl w (3 ^ n) p
+
+
+conceal-reveal-potential-decreases : ∀ w n p
+  → w * 3 ^ n + p < suc w * 3 ^ n + (3 ^ n + p)
+conceal-reveal-potential-decreases w n p =
+  subst≡
+    (λ q → w * 3 ^ n + p < q)
+    (sym (conceal-reveal-potential-normalize w n p))
+    (+-monoʳ-< (w * 3 ^ n)
+      (<-trans
+        (m<n+m p (pow3-positive n))
+        (m<n+m (3 ^ n + p) (pow3-positive n))))
+
+
 value-conversion-units-rename : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     {V : CT.Term Δ} (vV : CT.Value V)
   → valueConversionUnits (renameᵗᵐ-preserves-Value ρ vV) ≡
@@ -349,3 +377,49 @@ conceal-frame-value-rank-decreases vV cv spine =
       (nameFrames spine)
       (spineConversionPotential spine))
     (n<1+n (spineLength spine))
+
+
+reveal-frame-id-rank-decreases : ∀ {Δ A B E V}
+    {c : Conv↑ Δ A B}
+    (vV : CT.Value V) (spine : InstantiationSpine B E)
+  → pendingRank vV (mapInstantiationSpine keep spine) <ʳ
+      pendingRank vV (reveal-frame c ▻ⁱ spine)
+reveal-frame-id-rank-decreases vV spine
+    rewrite nameFrames-map keep spine
+          | spine-conversion-potential-map keep spine =
+  rank-exp< refl
+    (frame-potential-decreases
+      (valueConversionUnits vV)
+      (nameFrames spine)
+      (spineConversionPotential spine))
+
+
+reveal-frame-conceal-rank-decreases : ∀ {Δ A B C E V}
+    {c : Conv↑ Δ A B} {d : Conv↓ Δ C A}
+    (vV : CT.Value V) (cv : CT.ConcealValue d)
+    (spine : InstantiationSpine B E)
+  → pendingRank vV (mapInstantiationSpine keep spine) <ʳ
+      pendingRank (vV CT.↓ cv) (reveal-frame c ▻ⁱ spine)
+reveal-frame-conceal-rank-decreases vV cv spine
+    rewrite nameFrames-map keep spine
+          | spine-conversion-potential-map keep spine =
+  rank-exp< refl
+    (conceal-reveal-potential-decreases
+      (valueConversionUnits vV)
+      (nameFrames spine)
+      (spineConversionPotential spine))
+
+
+conceal-frame-id-rank-decreases : ∀ {Δ A B E V}
+    {c : Conv↓ Δ A B}
+    (vV : CT.Value V) (spine : InstantiationSpine B E)
+  → pendingRank vV (mapInstantiationSpine keep spine) <ʳ
+      pendingRank vV (conceal-frame c ▻ⁱ spine)
+conceal-frame-id-rank-decreases vV spine
+    rewrite nameFrames-map keep spine
+          | spine-conversion-potential-map keep spine =
+  rank-exp< refl
+    (frame-potential-decreases
+      (valueConversionUnits vV)
+      (nameFrames spine)
+      (spineConversionPotential spine))

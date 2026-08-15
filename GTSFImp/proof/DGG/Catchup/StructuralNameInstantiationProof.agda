@@ -8,9 +8,10 @@ module proof.DGG.Catchup.StructuralNameInstantiationProof where
 import Data.Fin as Fin
 import Data.List as List
 import Data.Nat.Induction as NatInduction
+open import Data.Empty using (⊥-elim)
 open import Data.Nat using (ℕ; suc; _<_; _+_)
 open import Data.Nat.Properties using (+-assoc; n<1+n)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
 import Data.Product.Relation.Binary.Lex.Strict as ProductLex
 open import Data.Sum.Base using (inj₁; inj₂)
 import Induction.WellFounded as WF
@@ -31,12 +32,16 @@ import CastTerms as CT
 open import CastTerms using
   (Term; Value; Inert; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩;
    _↑_; _↓_; _⦂∀_[_]; renameᵗᵐ; ⇑ᵗᵐ)
-open import Reduction using (StoreChanges; []; _∷_; bind; applyStores)
+open import Reduction using
+  (StoreChanges; []; _∷_; keep; bind; applyStores; applyTy;
+   _—→[_]_; _—↠[_]_; ↠-refl; ↠-step)
 open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import proof.TypeSafety.Progress as Prog
+import proof.Imprecision as PI
+import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
@@ -68,10 +73,14 @@ open import proof.DGG.Catchup.StructuralWorldEvidenceProof
 open import proof.DGG.Catchup.StructuralWorldSmartLiftProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationProof
+open import proof.DGG.Catchup.StructuralFrameOutcomeDef
+open import proof.DGG.Catchup.StructuralFrameOutcomeProof
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralTargetSourceTransportProof
 open import proof.DGG.Catchup.StructuralTargetFrameDecompositionProof
+open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
+  using (value-no-step)
 open import proof.DGG.Catchup.StructuralTargetInstPeelProof
 open import proof.DGG.Catchup.StructuralTargetLambdaPeelProof
 open import proof.DGG.Catchup.StructuralTargetAllPeelProof

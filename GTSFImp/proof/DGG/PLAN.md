@@ -72,7 +72,7 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); its relational continuations are the sole missing input to the live M6 knot. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; the source-left prefix and its one-level canonical smart-post specialization check without a split constructor. General smart-comma recursion must still thread a hereditary two-target-insertion plan and post geometry | M→L | **half landed; relational half re-scoped** | — |
+| M5 | The operational catalog, relational dispatcher, repaired descent consumer, and complete hereditary `Λ` package are live. The remaining four views share the fuel-free structural value-instantiation normalizer. Its source term is explicitly a value. Primary cast-mass descent is checked for `∀`, `gen`, and `safe-inst`; fixed-mass recursion is now checked to follow strict imprecision premises. The next chunk is the nested-accessibility worker, followed by the four package producers and factory assembly. | M→L | **Λ complete; structural descent in progress** | — |
 | M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
@@ -500,27 +500,248 @@ Revised work order:
         smart-alias/smart-fresh child transformer are live.  The transformer
         carries the post smart lift and transported contexts without assuming
         a canonical right-only child world.
-  NS-2c DONE up to the next resister: two-step reveal/rebase and
-        conceal/tag-rebase child-plan transformers are focused-green.  They
-        rebuild the two insertions, windows, route-one facts, post geometry,
-        monotonicity, and rebases.  RED-STOP: recursive evidence at the smart
-        child post world cannot yet supply the parent's top `p₂`, because
-        `SmartCommaLiftᴸ` exposes only forward type transport.  The exact
-        machine-checked mismatch and the narrower generalized-outer-
-        obligation route to try first are recorded in
-        `notes/m5-inst-inversion-hereditary-top-post-plan-blocked.red`.
-  NS-3  After the NS-2c top-obligation surface checks, close the source-strip
-        wrappers, assemble
-        `InstInversionPackage.Λ-package`, and wire the dispatcher; then
-        resume the four descent views and discharge the live M6 knot's M5
-        factory argument.
+  NS-2c DONE: two-step reveal/rebase and conceal/tag-rebase child-plan
+        transformers are live.  The top-post resister is also closed without
+        changing the relation: `ExactSmartFreshGuard` records the exact old
+        environment of the controlled front-fresh child, exactness survives
+        arbitrary target insertions, and `Λ-post-outer-obligation` now
+        consumes a `ΛTwoInsertPostPlan`.  Its one-sided recursive case uses
+        the exact reverse transport; its matched case uses the plan's final
+        body geometry.  The historical blocker note has a RESOLVED postscript.
+  NS-3a DONE: `Λ-post-prefix-hereditary` is exhaustive over the matched Λ,
+        plain Λ, smart Λ, inert source cast, reveal, and conceal value shapes.
+        It transforms the post plan at every recursive constructor and uses
+        the plan-indexed top obligation at each rewrap.  Focused and full
+        no-metas gates pass without a catch-all clause.
+  NS-3b DONE: `Λ-inst-inversion-package` composes the canonical two-insert
+        plan, hereditary prefix worker, residual-provenance package bridge,
+        and repaired root finalizer.  Its result has exactly the
+        `InstInversionPackage.Λ-package` field type, so the already-live
+        `inst-inversion→rel-surface` adapter supplies the Λ continuation.
+  NS-4 NEXT: implement the four non-Λ descent package producers (`∀`, `gen`,
+        reveal, and conceal), assemble `InstInversionPackage`, and discharge
+        the live M6 knot's M5 factory argument.
+
+Housekeeping (supervisor, 2026-08-14, `735430a`): the Λ mass was split out
+of the 7.4k-line `InstInversionProof.agda` monolith before NS-4 lands more
+code there — `InstInversionLambdaProof.agda` (6,532 lines, Λ-specific:
+route1 geometry, ΛPost*/two-insert plans, hereditary worker, the Λ package)
+now imports the 964-line shared base (package plumbing, provenance, generic
+transports). Pure code motion, verified by declaration-name diff; full
+gate green. NS-4 execution order: stage 1 = the `StructuralNameInstantiationᵀ`
+nested-accessibility worker; stage 2 = the four producers + assembly, each
+supervisor-reviewed before push.
+
+NS-4 stage-1 ledger (supervisor, 2026-08-14, stages 1a-1g):
+  1a/1b  Bare-q statement REFUTED (source-premise final witness not
+         derivable; finite counterexample). Calibration chose R1: the
+         hereditary `StructuralNamePostPlan` (per-premise child
+         obligations with per-wrapper world geometry); R2 existential
+         endpoint failed the root cell. Live in
+         StructuralInstantiationDescentDef.
+  1c     Four of five equal-mass source-wrapper helpers live (cast,
+         plain Λ, smart Λ, reveal). Conceal equal case blocked on
+         endpoint SourceConcealPartnerOK preservation → factored as the
+         higher-order argument `StructuralNameConcealEqualOKᵀ` (1f).
+  1d     Generic spine one-step inversion + all five strict-head peel
+         lemmas live (peel = inverse of structural-target-*-step; NOT
+         the refuted cross-pushout inversion — same-world trace
+         peeling).
+  1e     Supervisor's linear crossing-potential rank REFUTED by codex
+         (universal conversion wrapper expands into TWO frames past a
+         re-emitted inner name frame: child-parent = n-1).
+  1f     Exponential rank landed and fully calibrated:
+         pendingRank = (nameFrames, Σ 3^crossings, spineLength),
+         strictly below pendingCastMass; closes all same-mass heads
+         (3^(n+1) = 3·3^n > 2·3^n absorbs the duplication).
+         StructuralValueInstantiationRank{Def,Proof}.
+  1g     Assembly needs a GENERAL spine worker above the name-headed
+         one (peel children are not name-headed). Its statement needs a
+         per-frame premise chain: the relation's target-absorption
+         rules (⊑cast²/⊑reveal²/⊑conceal²) each demand an intermediate
+         witness (cast-frame square in the 1g .red) plus rebase
+         geometry for conversions. Next: TargetFrameAbsorptionChain
+         input, calibrated statement-first (stage 1h).
+
+NS-4 STAGE 1 COMPLETE (supervisor, 2026-08-15, stages 1h-1y; PAUSED
+here before stage 2 by user instruction):
+  `StructuralNameInstantiationᵀ` and `StructuralValueInstantiationᵀ`
+  are INHABITED (StructuralNameInstantiationProof.agda), gate green,
+  hygiene FunExt-only, no TERMINATING pragmas (explicit five-component
+  lexicographic measure; call-site table in
+  notes/ns4-stage-1y-termination-measure.md). The worker is
+  HIGHER-ORDER over: `StructuralStrictViewSurfaces` (Λ/∀-cast/gen/
+  reveal/conceal strict cells + conceal-equal-ok), the fuel-knot
+  arguments (FuelStepSurface, Catchup⁻Embedᵀ, inst-alloc-decreaseᵀ),
+  the hereditary `StructuralNamePostPlan` + `StructuralNameChainPlan`
+  (with target-bind and residual-tail children), the
+  `TargetFrameAbsorptionChain` (supplied premise-relation transports,
+  keep-reduct evidence), `SpineTypedʷ` (per-frame typing + fuel-indexed
+  `CastFrameClass` carrying bounds/provenance), and the caller's root
+  `StructuralTargetInstantiationPackage`.
+  Design findings that shaped the statements (all machine-checked,
+  .red chain under notes/ns4-stage-1*):
+    - inputs that cross source wrappers cannot be transported; they
+      are supplied hereditarily (post plan, chain plan, chains);
+    - same-mass strict heads terminate by the exponential
+      administration rank (3^crossings potential — duplication-proof);
+    - target traces are consumed as INPUT and peeled (same-world
+      first-step inversion; never inverted through smart-fresh
+      pushouts);
+    - opened endpoints come from the term derivation per view case,
+      never from the bare type witness (matched ∀⊑∀ vs right-only
+      binds refutation);
+    - non-inert residuals (safe-inst closure) are discharged via the
+      M4/M6 fuel knot with carried CatchupCast⁻ provenance — the
+      segmented builder/replay architecture.
+  STAGE 2 (not started): inhabit the five strict view surfaces (Λ cell
+  from the live Λ machinery in InstInversionLambdaProof; ∀-cast/gen/
+  reveal/conceal cells = the target-wrapper inversion producers) and
+  the conceal-equal argument; construct root plans/chains/packages at
+  the catalog call sites; assemble `InstInversionPackage`; discharge
+  the M6 knot's M5 factory argument.
+  Hygiene note (supervisor): the postulate-check does not catch
+  TERMINATING pragmas — one slipped into a checkpoint commit (removed
+  in `d569c56`). Recommend adding TERMINATING/NON_TERMINATING to the
+  hygiene grep.
+
+NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
+`M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
+outer inst cast, but its opened cast is a function consistency and therefore
+inert.  It needs no extra-cast call.  The live `strict-safe` theorem proves
+the general invariant: if `ν X = X∼X`, `d : ν ⊢ B₀ ∼ B₁`, `B₁` is
+non-variable, and `X` occurs in `B₁`, then `GenSafe d`; `ext-safe` is its
+fresh-binder specialization.  `GenSafeView` then classifies such a cast as
+inert or exactly `safe-inst`.  Thus the `∀ᶜ` view exposes a structural
+value-instantiation spine, not an arbitrary cast whose size must fit beneath
+the residual-column fuel.
+
+The remaining `safe-inst` case still needs a terminating structural
+normalizer over the target value and its pending administration spine.  The
+first single-number candidate was retracted after checking the complete
+administrative machine: it assigned zero to runtime-name applications and
+conversion frames, although those frames can later become value wrappers.
+Its isolated arithmetic lemmas were therefore removed from the live surface.
+
+The Cambridge26 intuition survives as the primary component.  Define cast
+mass as the consistency syntax retained in the target value plus the pending
+spine.  The concrete `∀` opening, `gen` allocation, and `safe-inst`
+allocation transitions all strictly decrease this mass; the last theorem
+uses the live strict decrease for `↑ᶜ (close-instᶜ c)`.  Renaming a value and
+mapping a spine through allocation preserve the mass.  A checked finite
+witness in `notes/M5SafeInstExposureScratch.agda` confirms why the
+`safe-inst` branch is real: `β-gen` can expose a cast which is neither inert
+nor a value.
+
+At equal cast mass, termination is structural recursion on the imprecision
+derivation.  `value-type-app-source-view` exhaustively identifies the five
+admissible outer rules, and `no-value-source-type-app` checks that every case
+recurses on a strict premise whose exposed source is still a `Value`.  This is
+the Cambridge26 proof shape, with the old `⊒⟨ν⟩` gap closed by the live
+relation's explicit value premises.  A second numeric component is therefore
+unnecessary.  Nested accessibility restarts only when `safe-inst` strictly
+decreases cast mass; it uses ordinary derivation recursion otherwise.
+
+The remaining statement-first boundary is
+`StructuralValueInstantiationᵀ`.  It is fuel-free, keeps the source `M`
+explicitly value-indexed, and starts with a weakened pre-allocation value
+instantiated at the fresh runtime name.  The earlier general spine statement
+was removed: its premise demanded a relation to a raw type application, which
+`no-value-source-type-app` refutes.
 
 The shared descent consumer is no longer part of the NS-3 uncertainty.
 Commit `7ca0ac1c` removes the contradictory immediate-post value field from
 `InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes
 `InstSpineDescentPackage`, transports the residual cast/provenance through
 the descent, and calls smaller-fuel catch-up only at the descended value.
-The four non-Λ view packages still need their descent producers.
+The package now also omits the stronger immediate-post relation.  The descent
+package owns the relation only after the administrative spine has reduced to
+a value.  Re-evaluation showed that a completed child trace cannot generally
+be inverted through fresh pushouts.  The target normalization trace must be
+known first and the imprecision derivation replayed against it.  The obsolete
+post-package target-cast and type-transport shims were therefore removed;
+target frames belong to normalization, while `structural-inert-cast-replay`
+rebuilds the source cast at the known endpoint.  The four non-Λ view packages
+still need their remaining descent cases and producers.
+`StructuralWorldExtendᴿ` now retains the `keep`/target-insert history needed
+to transform an unfinished descent through source `Λ`, reveal, and conceal
+wrappers, and erases to the existing public `WorldExtendᴿ`.
+`structural-rebase-atᴸ` now transforms an arbitrary such trace through a
+source-reveal rebase, returning both the premise trace and the final rebase.
+`structural-tag-rebase-atᴸ` provides the conceal-direction analogue and
+maps the target pivot across every bind in the trace.
+`structural-smart-liftᴸ` provides the source-Λ analogue.  It follows the
+same trace through either smart-alias or smart-fresh insertion, returning the
+post smart lift; its result exposes the transformed center because the fresh
+case computes that center by embedding pushout.  Thus all three source-wrapper
+geometries needed by the smart/rebase cases are structurally available.
+`structural-lift-left` separately handles ordinary source `Λ` by lifting every
+target insertion under the canonical left binder.  This closes the remaining
+source-wrapper trace geometry.
+The reveal/conceal transformers now also compute the induced endpoint
+`ImpEnvMono`.  Shared structural evidence transports `SameCtx`, ordinary and
+smart lift contexts, and source reveal/conceal typing; the older local
+`mapCtxᴿ-sameCtx` duplicate has been removed.  The replay step therefore has
+all wrapper evidence at the transformed endpoint except the conceal partner
+condition, which must be preserved with the target normalization result.
+The ordinary and smart source-Λ endpoint replays and the source reveal/conceal
+endpoint replays are now checked.  They consume a caller-supplied outer trace,
+transform it in the only sound direction, and rebuild the corresponding live
+relation rule at the final target value.
+`StructuralInstantiationDescentPackage` is now the internal worker result.  It
+contains a `StructuralTargetInstantiationPackage`, which owns only the target
+trace, reduction, and final value, plus the replayed endpoint relation.  The
+public erasure returns the existing `InstSpineDescentPackage`; both empty-spine
+constructors are checked.  The worker state therefore relates source and
+target values and separately carries the pending typed target spine, rather
+than asserting a relation to a raw type application.
+Generic `keep` and target-bind composition now prepend one operational step to
+a completed target package while preserving the structural trace.  The first
+concrete equal-mass transition, `structural-target-Λ-step`, is checked: it
+lifts `β-Λ` through the remaining spine, records the fresh runtime-name bind,
+and localizes the opened-type equality with `replace-zero-open`.
+The binding transitions are now complete: `structural-target-gen-step` and
+`structural-target-inst-step` expose exactly the already-proved strictly
+smaller cast-mass child spines, while `structural-target-{reveal,conceal}-step`
+record the universal conversion frames.  `structural-target-all-step` closes
+the final target constructor by lifting `β-∀` through an arbitrary spine.
+Its `keep` congruence normalizes identity-renamed reveal and conceal
+conversions at one raw-term boundary; no reduction or imprecision constructor
+changes.  The target transition inventory is complete.
+Completed target packages now also compose definitionally through one pending
+frame, and a root `keep` reduction can be lifted through the mapped tail in a
+single helper.  These are the two worker combinators needed for value-forming
+frames and identity/unseal conversion steps; neither adds a termination case.
+`StructuralFrameOutcome` now checks that every well-typed reveal or conceal
+frame over a value is either already a value or takes exactly one `keep` step
+to a value.  Its package eliminator selects the corresponding composition
+operation, making conversion administration finite and nonrecursive.
+The next worker is not target-only.  A typed pending cast may reduce to blame,
+so successful normalization depends on the related source `Value` and the
+final type-imprecision witness.  The checked internal statement
+`StructuralNameInstantiationᵀ` starts from related source and target values,
+one named type application, and a typed tail spine.  Its result retains the
+structural target trace plus the endpoint relation.  The public
+`StructuralValueInstantiationᵀ` is now a checked specialization at the fresh
+weakened runtime name.  Implement this relational worker by nested
+accessibility, using the completed target steps and source replay lemmas.
+The first strict cast-mass branch is now checked.  `structural-all-descent`
+composes the smaller opened-cast child with the target `β-∀` transition.  A
+canonical keep-prefixed world extension makes its transported context and
+endpoint imprecision definitionally the child's, so this branch adds no
+secondary termination measure.
+The corresponding allocating compositions are also checked.
+`structural-gen-descent` and `structural-inst-descent` consume their smaller
+child packages in the canonical right-only world and prepend `β-gen` and
+`β-inst`, respectively.  The common relational bind combinator composes both
+the transported context and endpoint imprecision, so the three primary-mass
+decreases now have exact worker-facing result constructors.
+Plan-first source recursion is now represented at the package level.
+Completed target packages transport through ordinary left lift, smart left
+lift, source rebase, and source tag rebase without changing their target
+reduction or final value.  The worker can therefore transform a caller-world
+trace into each strict source premise and use the existing endpoint replay
+lemmas; it never has to invert a child trace through a smart-fresh pushout.
 
 SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
 ends in a new machine-checked relation-expressibility obstruction that

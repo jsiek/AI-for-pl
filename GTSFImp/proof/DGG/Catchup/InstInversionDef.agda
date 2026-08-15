@@ -5,6 +5,7 @@ module proof.DGG.Catchup.InstInversionDef where
 --   * Packages the post-catalog relation, residual provenance, and
 --     target-spine descent output needed by the right-instantiation
 --     relational continuations.
+--   * States the fuel-free structural value-instantiation descent surface.
 --   * Contains no proof scripts and depends only on core syntax/reduction,
 --     the catch-up Def surfaces, and the stage-1 DGG world-extension
 --     interface.
@@ -12,17 +13,18 @@ module proof.DGG.Catchup.InstInversionDef where
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (Σ-syntax; _×_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
 open import Imprecision using (X⊑★; X⊑X)
 open import Consistency using
   (Env∼; _⊢_∼_; ∀ᶜ_; inst_; gen_; extᵐ; instᵐ; genᵐ;
    ↑ᶜ_; close-instᶜ; keep; toRenameᵗ; wk↪ᵗ)
-open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
+open import Conversion using
+  (Conv↑; Conv↓; `∀↑_; `∀↓_; 〖_,_↑_〗; rename↑)
 open import CastTerms using
   (Term; Value; GenSafe; ⟨_,_,_⟩; _⊢_⦂_; _⟨_⟩; _↑_;
-   _↓_; Λ_; renameᵗᵐ)
+   _↓_; Λ_; _⦂∀_[_]; renameᵗᵐ)
 open import Reduction using
   (StoreChanges; _—↠[_]_; applyTys; applyBody; bind; _∷_; [])
 
@@ -33,6 +35,15 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
    inst-alloc-decreaseᵀ; castSize)
+open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
+  (name-type-app-frame; _▻ⁱ_; []ⁱ)
+open import proof.DGG.Catchup.StructuralTargetInstantiationDef using
+  (StructuralTargetInstantiationPackage)
+open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
+  (StructuralNamePostPlan; StructuralNameChainPlan)
+open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
+  (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
+open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
    liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
@@ -314,6 +325,38 @@ record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
         ECR.transport⊑ᵂ ext p
 
 
+-- Stage-2 root callers own the catalog geometry: they supply the assembled
+-- name-instantiation worker, hereditary source/chain plans, and the completed
+-- root target package instead of relying on a target-only normalizer.
+StructuralValueInstantiationᵀ : Set₁
+StructuralValueInstantiationᵀ =
+  ∀ {fuel Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {R : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
+    {q : A ⊑ᵂ⟨ W ⟩
+      applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
+  → StructuralStrictViewSurfaces
+  → StructuralNameInstantiationᵀ
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
+  → (plan : StructuralNamePostPlan W A
+      (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q)
+  → StructuralNameChainPlan {fuel = fuel} W γ A
+      (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q plan
+  → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
+  → Value M
+  → Value V
+  → AllValueView V
+  → StructuralTargetInstantiationPackage W (renameᵗᵐ wk↪ᵗ V)
+      (name-type-app-frame (applyBody (bind R) B) Fin.zero
+        refl refl ▻ⁱ []ⁱ)
+  → InstSpineDescentPackage W γ M
+      (renameᵗᵐ wk↪ᵗ V ⦂∀ applyBody (bind R) B [ ＇ Fin.zero ]) q
+
+
 record InstPostCatalogPackageAt (fuel : ℕ)
     {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {W : World Δᴸ Δᴿ Δ}
@@ -337,8 +380,6 @@ record InstPostCatalogPackageAt (fuel : ℕ)
     at-B₂ : Ty Δᴿ₂
     at-post : Term Δᴿ₂
     at-p₂ : A ⊑ᵂ⟨ W₂ ⟩ at-B₂
-    at-post-relation :
-      W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ at-post ∶ at-p₂
     at-ν₂ : Env∼ Δᴿ₂
     at-residual-target : Ty Δᴿ₂
     at-residual-q : A ⊑ᵂ⟨ W₂ ⟩ at-residual-target
@@ -381,8 +422,6 @@ record InstPostCatalogPackage (fuel : ℕ)
     B₂ : Ty Δᴿ₂
     post : Term Δᴿ₂
     p₂ : A ⊑ᵂ⟨ W₂ ⟩ B₂
-    post-relation :
-      W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² M ⊑ post ∶ p₂
     ν₂ : Env∼ Δᴿ₂
     residual-target : Ty Δᴿ₂
     residual-q : A ⊑ᵂ⟨ W₂ ⟩ residual-target

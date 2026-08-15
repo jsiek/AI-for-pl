@@ -251,24 +251,70 @@ Revised gates:
         alias/fresh child transformer are live.  Generic smart-fresh windows
         are constructed by hereditary embedding pushouts; no split relation
         constructor was added.
-  NS-2c RED-STOP after green source-rebase support: reveal and conceal plans
-        now transport through two insertions, but the recursive worker cannot
-        yet construct the parent's top post relation from evidence at an
-        arbitrary smart child post world.  Smart lifts provide only forward
-        type transport.  See
-        `m5-inst-inversion-hereditary-top-post-plan-blocked.red`; its first
-        recommended retry is a plan-indexed outer obligation built from the
-        parent's original type relation, which may require only the controlled
-        front-fresh post bridge.
-  NS-3  After NS-2c, use the worker in the source-strip wrapper cases,
-        assemble `InstInversionPackage.Λ-package`, and wire the dispatcher.
-        Then resume the four descent views and discharge the M5 factory
-        argument of the already-live M6 fuel knot.
+  NS-2c DONE: reveal and conceal plans transport through two insertions.  The
+        recommended plan-indexed retry also succeeded.  Exact front-fresh
+        guards admit reverse type transport, exactness is preserved by target
+        insertion, and `Λ-post-outer-obligation` now derives the parent top
+        relation at an arbitrary plan post world.  No arbitrary smart-alias
+        inverse and no relation change were needed.
+  NS-3a DONE: the exhaustive hereditary prefix worker now handles the matched,
+        plain, smart, cast, reveal, and conceal source shapes with transformed
+        child plans and caller-world top obligations.
+  NS-3b DONE: `Λ-inst-inversion-package` composes the canonical two-insert
+        plan with the hereditary worker, residual-provenance bridge, and root
+        finalizer.  The existing relational-surface adapter consumes its
+        result directly.
+  NS-4 NEXT: implement the four non-Λ descent package producers, assemble the
+        complete inversion package, and discharge the M5 factory argument of
+        the already-live M6 fuel knot.
+
+NS-4's first statement-level red stop has been retracted.  The checked
+`allv-∀` example still shows that the stored universal body cast can be as
+large as the outer inst cast, but the same scratch now checks that its opened
+cast is inert.  More generally, live `strict-safe` classifies consistency at
+any strict name as `GenSafe`; `ext-safe` is the fresh-binder specialization.
+`GenSafeView` proves that the result is inert or exactly `safe-inst`.  The old
+arithmetic therefore does not imply a smaller-extra call.
+
+The next statement is a structural value-instantiation normalizer over
+related values.  Its `GenSafe` cases are already value-forming except for
+`safe-inst`, which continues with another administrative instantiation.  A
+checked finite instance now confirms that this branch is reachable and that
+the cast exposed by `β-gen` need not be a value.
+
+The first combined natural-number rank has been retracted.  The replacement
+uses cast mass only as a primary component.  Its concrete `∀`, `gen`, and
+`safe-inst` transitions strictly decrease, while value weakening and spine
+allocation preserve it.  At fixed mass, the checked
+`no-value-source-type-app` proof follows strict imprecision premises and
+retains the exposed source `Value`.  The next chunk implements that same case
+split inside nested accessibility; no secondary rank or target-wrapper fuel
+is planned.
+
+The first strict-mass branch is live.  `structural-all-descent` composes the
+opened-cast child package with the target `β-∀` step.  Prepending `keep` to the
+child's structural world extension preserves its context and endpoint
+imprecision definitionally; this branch therefore consumes only the strict
+cast-mass decrease already proved for universal opening.
+
+The checked public statement is `StructuralValueInstantiationᵀ` in
+`InstInversionDef.agda`.  It accepts the live M5 allocation shape: a weakened
+pre-allocation value instantiated at the fresh runtime name, and returns the
+existing `InstSpineDescentPackage`.  The over-general spine statement was
+removed because it assumed a relation to an intermediate raw type
+application.  The package records now likewise place the relation only in the
+descent result, after the target has reached a value.
+
+The internal `StructuralWorldExtendᴿ` trace now commutes through every
+source-only wrapper used by the fixed-mass recursion.  Reveal uses
+`structural-rebase-atᴸ`, conceal uses `structural-tag-rebase-atᴸ`, and source
+Λ uses `structural-smart-liftᴸ`.  The Λ transformer is exhaustive over smart
+alias and smart fresh; the latter returns its pushout-computed center
+existentially.  These are trace transformations, not new imprecision rules.
 
 Do not resume SP-1 merely because the old fixed-layout witness is unavailable.
-NS-2a and NS-2b closed without a relation change; NS-2c remains a proof-surface
-threading problem, so the split-rule design remains suspended.  Resume it
-only if a later step finds a new machine-checked
+NS-2a through NS-2c closed without a relation change, so the split-rule design
+remains suspended.  Resume it only if a later step finds a new machine-checked
 relation-expressibility obstruction that also excludes the checked
 derivation-tree interleaving at the recursive caller.
 

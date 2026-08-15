@@ -163,9 +163,9 @@ provenance head, transports and re-heads the tail, and recurses through
 
 M5 status, 2026-08-13: its common finalizer is now correctly descent-driven,
 so non-value `∀`/`gen`/reveal/conceal catalog posts fit the live package.
-The remaining factory blocker is upstream of M6: hereditary Λ-prefix
-production still needs the parent top post obligation across a transformed
-smart child plan.  M6's fuel knot and factory type require no change.
+The plan-indexed Λ top-post obligation and hereditary prefix worker are now
+live; the remaining factory work is Λ-package assembly and the four non-Λ
+descent producers.  M6's fuel knot and factory type require no change.
 
 ## Checked Wiring
 

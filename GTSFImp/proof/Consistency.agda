@@ -16,16 +16,18 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-refl; ≤-trans; +-mono-≤)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
 open import Relation.Nullary using (no; yes)
 
 open import Types
 open import Consistency
 open SubstEnv∼
+import CastTerms as CT
 open import CastTerms using (GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
-open import proof.Imprecision using (imprecise-star)
+open import proof.Imprecision using (imprecise-star; ∈ᵗ-unique)
 open import proof.ImprecisionConsistency
-  using (common-lower-consistent; refl⊑)
+  using (common-lower-consistent; refl⊑; nonstar-from-≢★;
+    consistency-target-occurs-source)
 
 ------------------------------------------------------------------------
 -- Renaming conveniences for proof code
@@ -749,6 +751,36 @@ castSize-close-inst-≤ {B = B} c
           close-inst-cross-to-★ close-inst-cross-from-★)
         close-inst-SubstEnvSize≤ c)
 
+castSize-open-fresh-≤ : ∀ {Δ} {μ : Env∼ Δ}
+    {A B : Ty (suc (suc Δ))}
+  → (c : extᵐ (renameEnv∼ wk↪ᵗ μ) ⊢ A ∼ B)
+  → castSize (c [ ＇ zero ]ᶜ) ≤ castSize c
+castSize-open-fresh-≤ c =
+  castSize-subst∼-≤ _
+    (subst-env-size≤
+      (λ { zero → ≤-refl ; (suc X) → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl })
+      (λ { zero () ; (suc X) eq → ≤-refl }))
+    c
+
+
+castSize-open-var-≤ : ∀ {Δ} {μ : Env∼ Δ}
+    {A B : Ty (suc Δ)}
+  → (c : extᵐ μ ⊢ A ∼ B)
+  → (X : TyVar Δ)
+  → castSize (c [ ＇ X ]ᶜ) ≤ castSize c
+castSize-open-var-≤ c X =
+  castSize-subst∼-≤ _
+    (subst-env-size≤
+      (λ { zero → ≤-refl ; (suc Y) → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl })
+      (λ { zero () ; (suc Y) eq → ≤-refl }))
+    c
+
 consistent-star : ∀ (A : Ty 0) → A ∼ ★
 consistent-star A = common-lower-consistent
   (A , refl⊑ A , imprecise-star A)
@@ -835,3 +867,126 @@ gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
   → Fin.zero ∈ᵗ B
   → GenSafe c
 gen-safe c A≢★ Bnv z∈B = gen-safe′ c refl A≢★ Bnv z∈B
+
+strict-safe : ∀ {Δ} {μ : Env∼ Δ} {X : TyVar Δ} {A B : Ty Δ}
+  → μ X ≡ X∼X
+  → (c : μ ⊢ A ∼ B)
+  → NonVar B
+  → X ∈ᵗ B
+  → GenSafe c
+strict-safe same (id (‵ ι)) nonvar-base ()
+strict-safe same (id ★) nonvar-star ()
+strict-safe same (id (＇ X)) () X∈B
+strict-safe same (c ↦ d) Bnv X∈B = safe-⇒
+strict-safe same (∀ᶜ c) Bnv X∈B = safe-∀
+strict-safe same (_! ⦃ g ⦄ c ⦃ Ans ⦄) Bnv ()
+strict-safe same c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv X∈B
+    with consistency-target-occurs-source same c X∈B
+strict-safe same c@(？_ ⦃ g ⦄ d ⦃ Bns ⦄) Bnv X∈B | ()
+strict-safe same (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) Bnv X∈B =
+  safe-inst B≢★
+strict-safe same (gen_ ⦃ Bnv′ ⦄ ⦃ z∈B′ ⦄ c A≢★) Bnv X∈B =
+  safe-gen A≢★ (gen-safe c A≢★ Bnv′ z∈B′)
+strict-safe same bot-elim Bnv (∈-all ())
+strict-safe same bot-intro Bnv (∈-all ())
+
+ext-safe : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
+  → (c : extᵐ μ ⊢ A ∼ B)
+  → NonVar B
+  → Fin.zero ∈ᵗ B
+  → GenSafe c
+ext-safe = strict-safe refl
+
+data GenSafeView {Δ : TyCtx} {μ : Env∼ Δ} :
+    ∀ {A B : Ty Δ} {c : μ ⊢ A ∼ B} → GenSafe c → Set where
+  gen-safe-inert : ∀ {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+      {safe : GenSafe c}
+    → CT.Inert c
+    → GenSafeView safe
+
+  gen-safe-inst : ∀ {A₀ : Ty (suc Δ)} {B₀ : Ty Δ}
+      {d : instᵐ μ ⊢ A₀ ∼ ⇑ᵗ B₀}
+      ⦃ A₀nv : NonVar A₀ ⦄ ⦃ z∈A₀ : Fin.zero ∈ᵗ A₀ ⦄
+    → (B₀≢★ : B₀ ≢ ★)
+    → GenSafeView {A = `∀ A₀} {B = B₀}
+        {c = (inst d) B₀≢★} (safe-inst B₀≢★)
+
+gen-safe-view : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (safe : GenSafe c)
+  → GenSafeView safe
+gen-safe-view safe-⇒ = gen-safe-inert CT.fun
+gen-safe-view safe-∀ = gen-safe-inert CT.all
+gen-safe-view (safe-inst B≢★) = gen-safe-inst B≢★
+gen-safe-view (safe-gen A≢★ safe) =
+  gen-safe-inert (CT.genᵥ A≢★ safe)
+
+rename-occursᶜ : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
+  → (rho : Δ ⇒ʳ Δ′)
+  → X ∈ᵗ A
+  → rho X ∈ᵗ renameᵗ rho A
+rename-occursᶜ rho var-∈ = var-∈
+rename-occursᶜ rho (∈-fun-left X∈A) =
+  ∈-fun-left (rename-occursᶜ rho X∈A)
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    with occurs? (rho X) (renameᵗ rho A)
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | present rhoX∈A = ∈-fun-left rhoX∈A
+rename-occursᶜ {X = X} {A = A ⇒ B} rho (∈-fun-right X∉A X∈B)
+    | absent rhoX∉A =
+  ∈-fun-right rhoX∉A (rename-occursᶜ rho X∈B)
+rename-occursᶜ rho (∈-all X∈A) =
+  ∈-all (rename-occursᶜ (extᵗ rho) X∈A)
+subst-left-gen-safe : ∀ {Δ} {μ : Env∼ Δ} {A A′ B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (eq : A ≡ A′)
+  → GenSafe c
+  → GenSafe (subst-left-∼ eq c)
+subst-left-gen-safe refl safe = safe
+renameGenSafe : ∀ {Δ Δ′} {μ : Env∼ Δ} {μ′ : Env∼ Δ′}
+    {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+  → (rho : Δ ⇒ʳ Δ′)
+  → (eq : ∀ X → μ′ (rho X) ≡ μ X)
+  → GenSafe c
+  → GenSafe (rename∼ {μ = μ} {μ′ = μ′} rho eq c)
+renameGenSafe rho eq safe-⇒ = safe-⇒
+renameGenSafe rho eq safe-∀ = safe-∀
+renameGenSafe {μ = μ} {μ′ = μ′} rho eq
+    (safe-inst {A = A} {B = B} {c = c}
+      ⦃ Anv ⦄ ⦃ z∈A ⦄ B≢★) =
+  subst
+    (λ z → GenSafe
+      (inst_ ⦃ renameNonVar (extᵗ rho) Anv ⦄
+        ⦃ z ⦄ c′ B′≢★))
+    (∈ᵗ-unique (rename-occursᶜ (extᵗ rho) z∈A) _)
+    (safe-inst
+      ⦃ renameNonVar (extᵗ rho) Anv ⦄
+      ⦃ rename-occursᶜ (extᵗ rho) z∈A ⦄
+      B′≢★)
+  where
+  c′ = subst-right-∼ (renameᵗ-shift rho B)
+    (rename∼ {μ = instᵐ μ} {μ′ = instᵐ μ′}
+      (extᵗ rho) (instᵐ-rename rho eq) c)
+  B′≢★ = nonStar≢★
+    (renameNonStar rho (nonstar-from-≢★ B≢★))
+renameGenSafe {μ = μ} {μ′ = μ′} rho eq
+    (safe-gen {A = A} {B = B} {c = c}
+      ⦃ Bnv ⦄ ⦃ z∈B ⦄ A≢★ safe) =
+  subst
+    (λ z → GenSafe
+      (gen_ ⦃ renameNonVar (extᵗ rho) Bnv ⦄
+        ⦃ z ⦄ c′ A′≢★))
+    (∈ᵗ-unique (rename-occursᶜ (extᵗ rho) z∈B) _)
+    (safe-gen
+      ⦃ renameNonVar (extᵗ rho) Bnv ⦄
+      ⦃ rename-occursᶜ (extᵗ rho) z∈B ⦄
+      A′≢★
+      (subst-left-gen-safe (renameᵗ-shift rho _)
+        (renameGenSafe {μ′ = genᵐ μ′} (extᵗ rho)
+          (genᵐ-rename rho eq) safe)))
+  where
+  c′ = subst-left-∼ (renameᵗ-shift rho A)
+    (rename∼ {μ = genᵐ μ} {μ′ = genᵐ μ′}
+      (extᵗ rho) (genᵐ-rename rho eq) c)
+  A′≢★ = nonStar≢★
+    (renameNonStar rho (nonstar-from-≢★ A≢★))

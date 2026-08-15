@@ -234,7 +234,8 @@ following provenance.
   representations.
 - **Cast ancestry:** runtime alignment must record the matching generated
   injection/projection path, or the residual path left after a matching pair
-  has cancelled.
+  has cancelled. This evidence belongs in the constructors of the CTI
+  derivation itself, not in a companion predicate.
 
 The intended state distinctions are therefore
 
@@ -252,8 +253,8 @@ $$
 
 where the first transition is decay and preserves matched-use capability,
 while `\pi` in the second transition is the allocation and cast provenance
-that eventually yields `CatchupCast`. The two states on the right have the
-same current mark but must not support the same CTI constructors.
+used directly by the CTI cast constructors. The two states on the right have
+the same current mark but must not support the same CTI constructors.
 
 This suggests the following rule changes.
 
@@ -269,27 +270,67 @@ This suggests the following rule changes.
    derivations or their cast directions/shapes, not merely their source and
    target types.
 5. `\sqsubseteq\mathrm{cast}^{2}` may add a target projection only from a
-   runtime-aligned witness showing a matching target injection, or from
-   recursive post-cancellation provenance. The symmetric
+   runtime-aligned CTI premise whose target term contains the matching target
+   injection, or from a recursive CTI premise representing the state after a
+   matching pair has cancelled. The symmetric
    `\mathrm{cast}\sqsubseteq^{2}` rule needs the corresponding source-side
-   condition.
-6. A target cast column exposed by inversion must carry `CatchupColumn`; its
-   head projection then yields `CatchupCast` rather than requiring callers to
-   assume it independently.
+   structure.
+6. Separate `GeneratedProjection`, `CatchupCast`, `CatchupCast⁻`,
+   `CatchupColumn`, and `CatchupColumn⁻` judgments should be removed. They
+   duplicate invariants that the strengthened CTI must expose by ordinary
+   inversion.
+
+In particular, the projection clauses should be term-shaped. If the target
+cast is `G?`, the same-tag clause should require the target input to have the
+form `V\langle G!\rangle` and should retain the CTI derivation relating the
+source to that injected value. An expanded projection should retain a
+recursive CTI derivation for the residual cast after the ground pair cancels.
+There should be no CTI constructor capable of deriving
+
+$$
+M \sqsubseteq V\langle H!\rangle\langle G?\rangle
+\qquad\text{when }G\ne H
+$$
+
+solely from endpoint type imprecision. Consequently, the abstract
+`\mathbb{N}!;Y?` counterexample becomes underivable in CTI itself.
+
+The proof interfaces should then consume whole CTI derivations, not a base CTI
+derivation plus an external cast-provenance premise. Schematically,
+`ExtraCastRight` should start from
+
+$$
+W\mid\gamma\vdash M\sqsubseteq M'\langle c'\rangle:q,
+$$
+
+along with the value hypotheses for `M` and `M'`. It should invert that CTI
+derivation to determine whether `c'` is inert, identity, a same-tag projection,
+an expanded projection, or an instantiation. The projection cases obtain the
+matching injection and residual derivation from the corresponding CTI
+constructor.
+
+Likewise, the multi-cast proof should start from a CTI derivation whose target
+is syntactically `M'` under the cast column. Induction may still follow the
+syntactic column, but at each layer it must invert the CTI derivation for that
+already-casted term. No separate proposition should certify the column or its
+head cast.
 
 The required validation theorem has two stages. Compilation should map every
 source-term imprecision derivation to the strengthened CTI and mint all birth
 and use evidence. Related reduction should preserve that evidence while adding
 only justified runtime-alignment and cast-ancestry witnesses. Erasing the
-provenance fields may recover the present CTI, but the catch-up and simulation
-lemmas should consume the strengthened judgment.
+provenance fields may recover the present CTI, but `ExtraCastRight`, the
+multi-cast proof, and the simulation lemmas should consume the strengthened
+judgment directly.
 
 ## Conclusion and next theorem
 
 No source-level counterexample was obtained. The strongest constructed target
 that really blames is well typed but provably not source-related to the
 returning precise program. The strongest genuinely source-related pair reaches
-the projection with a checked `CatchupCast` witness and both sides return.
+the projection with the matching injection structurally present, and both
+sides return. The current mechanization packages that fact as `CatchupCast`;
+the proposed CTI should make the same fact available by inversion.
 
 This is evidence, not yet a general preservation theorem. The next sound step
 is to prove that source imprecision plus compilation and related reduction
@@ -297,5 +338,5 @@ preserve a provenance-indexed CTI judgment. Its world component must remember
 whether a cell came from matched binders or from a one-sided binder followed by
 runtime alignment, while its use evidence remains tied to the source
 derivation. Proving the compilation and reduction preservation stages above
-would establish that `CatchupCast` is semantic provenance inherited from the
-source, rather than an ad hoc premise added only to close `ExtraCastRight`.
+would let `ExtraCastRight` and simulation use semantic provenance directly
+from CTI, with no catch-up provenance relations in the final development.

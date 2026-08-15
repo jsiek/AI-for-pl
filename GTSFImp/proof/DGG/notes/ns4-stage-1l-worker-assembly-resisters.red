@@ -177,3 +177,15 @@ and the relation to reveal/conceal keep reducts.  That narrower blocker is
 tracked in:
 
 `GTSFImp/proof/DGG/notes/ns4-stage-1t-assembly-missing-fields.red`
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The later stage-1t/1u/1v/1w work closes the remaining assembly chain named in
+this note.  The safe-inst target-bind source/chain continuation, reveal/conceal
+keep-reduct relations, residual-tail continuation, strict-view surface
+argument, and safe-inst residual bound/provenance data are all live.
+
+The assembled `StructuralNameInstantiationᵀ` worker is checked in
+`GTSFImp/proof/DGG/Catchup/StructuralNameInstantiationProof.agda`.

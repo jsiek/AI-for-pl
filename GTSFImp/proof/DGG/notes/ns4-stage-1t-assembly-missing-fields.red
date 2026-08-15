@@ -2,8 +2,7 @@
 
 Date: 2026-08-15
 
-Status: resolved for the original two contract gaps; superseded by
-`ns4-stage-1u-residual-tail-resister.red` for the next worker blocker.
+Status: resolved.
 
 Scope correction applied:
 
@@ -172,3 +171,16 @@ The strict-child record also now carries the child value proof needed by the
 recursive worker.  The remaining name-worker blocker is no longer either of
 the two stage-1t fields; it is the residual-cast-with-tail surface recorded in
 `ns4-stage-1u-residual-tail-resister.red`.
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The superseding blocker chain is closed.  Stage 1u added the residual-tail
+continuation surface, stage 1v threaded `StructuralStrictViewSurfaces` into
+the worker, and stage 1w/1x added the parent bound/provenance data needed by
+the safe-inst residual child.
+
+The original stage-1t continuation gaps and the later residual/safe-inst
+worker gaps are consumed by the checked `StructuralNameInstantiationᵀ`
+inhabitant in `StructuralNameInstantiationProof.agda`.

@@ -2,7 +2,7 @@
 
 Date: 2026-08-15
 
-Status: open.
+Status: resolved.
 
 The two stage-1t contract gaps were closed in live statements:
 
@@ -133,3 +133,14 @@ interface requested by this note.
 
 The name worker itself remains open on the separate strict-view delegate
 placement recorded in `ns4-stage-1v-strict-surface-signature-resister.red`.
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The later strict-surface and safe-inst residual blockers are now closed.  The
+worker receives `StructuralStrictViewSurfaces`, and `cast-safe` carries the
+parent bound/provenance needed to type the generated safe-inst residual child.
+
+The residual-tail field recorded here is used by the checked
+`StructuralNameInstantiationᵀ` worker.

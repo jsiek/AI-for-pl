@@ -2,7 +2,7 @@
 
 Date: 2026-08-15
 
-Status: open.
+Status: resolved.
 
 The strict-view surface threading requested for stage 1w is landed in the
 green commits on this branch: `StructuralNameInstantiationᵀ` and
@@ -86,3 +86,41 @@ No live term-imprecision relation, reduction relation, M4 Def surface,
 `InstSpineDescentPackage`, `CatchupCast⁻` constructor, or public value adapter
 was changed for this resister.  No postulate, hole, catch-all, or weakened
 statement was added.
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The safe-inst residual bound/provenance blocker is closed in live Agda.
+`CastFrameClass.cast-safe` now carries the parent frame bound
+
+```agda
+castSize c < fuel
+```
+
+and the parent `ResidualFrameProvenance c`, matching the provenance carried by
+`cast-residual`.
+
+The root generated-frame sites supply this data from the catalog bound and
+harvested provenance.  The opened `∀ᶜ` site threads the parent data through the
+generated frame entry before deriving the opened child frame.
+
+In the worker branch for
+
+```agda
+cast-safe (safe-inst B≢★)
+```
+
+`StructuralNameInstantiationProof.agda` derives the child residual data:
+
+```agda
+suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
+ResidualFrameProvenance (↑ᶜ (close-instᶜ c))
+```
+
+using `inst-alloc-decreaseᵀ` for the bound and
+`inst-residual-frame-provenance` for the generated residual provenance.  The
+branch then recurs on the typed safe-inst child spine.
+
+The full `StructuralNameInstantiationᵀ` worker is inhabited in the green
+implementation commit `6a9c199`.

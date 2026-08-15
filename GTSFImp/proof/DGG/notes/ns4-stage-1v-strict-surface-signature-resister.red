@@ -2,8 +2,7 @@
 
 Date: 2026-08-15
 
-Status: resolved for the missing strict-surface argument.  Worker assembly
-continues in `ns4-stage-1w-safe-inst-residual-bound-resister.red`.
+Status: resolved.
 
 The residual-tail continuation route requested for stage 1v is now landed as a
 live checked field on `StructuralNameChainPlan`:
@@ -114,3 +113,14 @@ The signature obstruction recorded here is closed in live Agda:
 The next open worker blocker is not the strict-view surface argument.  It is
 the non-name `safe-inst` residual stop data recorded in
 `ns4-stage-1w-safe-inst-residual-bound-resister.red`.
+
+
+FINAL RESOLVED postscript, 2026-08-15
+-------------------------------------
+
+The successor safe-inst residual blocker is closed.  The worker consumes the
+`cast-safe` parent bound/provenance data and constructs the typed safe-inst
+child with the generated residual `↑ᶜ (close-instᶜ c)`.
+
+`StructuralNameInstantiationᵀ` is now inhabited by the checked worker in
+`StructuralNameInstantiationProof.agda`.

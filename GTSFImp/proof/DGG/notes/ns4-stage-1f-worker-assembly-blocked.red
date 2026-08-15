@@ -98,3 +98,17 @@ The full `StructuralNameInstantiationᵀ` worker is still not assembled.  The
 remaining non-name child-continuation fields are tracked in:
 
 `GTSFImp/proof/DGG/notes/ns4-stage-1t-assembly-missing-fields.red`
+
+
+RESOLVED postscript, 2026-08-15
+-------------------------------
+
+The assembly blocker recorded here is closed.  The general
+value-spine accumulator now consumes neutral type transports, casts, and
+conversion frames until the next name frame is exposed, and the
+name-instantiation worker delegates the strict child cases through
+`StructuralStrictViewSurfaces`.
+
+`StructuralNameInstantiationᵀ` is inhabited in
+`GTSFImp/proof/DGG/Catchup/StructuralNameInstantiationProof.agda`, and the
+public value adapter remains checked through the assembled name worker.

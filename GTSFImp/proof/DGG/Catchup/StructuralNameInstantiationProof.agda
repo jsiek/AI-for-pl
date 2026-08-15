@@ -116,6 +116,9 @@ StructuralValueSpineInstantiationAccᵀ =
     {A : Ty Δᴸ} {C₀ E : Ty Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ C₀}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
@@ -148,6 +151,9 @@ StructuralNameInstantiationAccᵀ =
     {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
@@ -440,6 +446,9 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
       {E : Ty Δᴿ} {X : TyVar Δᴿ} {ν : Env∼ Δᴸ}
       {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
+    → FuelStepSurface fuel
+    → Catchup⁻Embedᵀ
+    → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A′ E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → (c : ν ⊢ A ∼ A′)
@@ -471,19 +480,20 @@ structural-name-cast-equal : StructuralNameInstantiationEqualᵀ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
 structural-name-cast-equal worker {B = B} {X = X}
-    plan chain-plan c inert prem vU vN view spine chain typed acc rank
-    target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan c inert
+    prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.cast-child plan c
        | StructuralNameChainPlan.cast-child chain-plan c chain typed
 structural-name-cast-equal worker {B = B} {X = X}
-    plan chain-plan c inert prem vU vN view spine chain typed acc rank
-    target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan c inert
+    prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan) =
   structural-inert-cast-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     c inert
-    (worker child-plan child-chain-plan prem vU vN
+    (worker fuel-step catchup⁻-embed inst-decrease
+      child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank target)
 
@@ -497,6 +507,9 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
       {E : Ty Δᴿ} {X : TyVar Δᴿ}
       {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ `∀ B}
       {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → FuelStepSurface fuel
+    → Catchup⁻Embedᵀ
+    → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W (`∀ A) E q)
     → StructuralNameChainPlan {fuel = fuel} W γ (`∀ A) E q plan
     → NonVar A
@@ -530,15 +543,15 @@ structural-name-plain-Λ-equal : StructuralNameInstantiationEqualᵀ
             q
 structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
     {B = B} {X = X}
-    plan chain-plan Anv z∈A liftγ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
+    liftγ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.plain-Λ-child plan refl
        | StructuralNameChainPlan.plain-Λ-child chain-plan refl liftγ
            chain typed
 structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
     {B = B} {X = X}
-    plan chain-plan Anv z∈A liftγ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
+    liftγ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan) =
   structural-Λ-replay
@@ -548,7 +561,8 @@ structural-name-plain-Λ-equal worker {γ = γ} {γᴸ = γᴸ}
   targetᴸ = structural-target-lift-left X⊑★ target
 
   child-rel =
-    worker child-plan child-chain-plan prem vU vN
+    worker fuel-step catchup⁻-embed inst-decrease
+      child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank targetᴸ
 
@@ -576,6 +590,9 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
       {E : Ty Δᴿ} {X : TyVar Δᴿ}
       {p : A CTI2.⊑ᵂ⟨ Wᵐ ⟩ `∀ B}
       {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
+    → FuelStepSurface fuel
+    → Catchup⁻Embedᵀ
+    → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W (`∀ A) E q)
     → StructuralNameChainPlan {fuel = fuel} W γ (`∀ A) E q plan
     → NonVar A
@@ -610,15 +627,15 @@ structural-name-smart-Λ-equal : StructuralNameInstantiationEqualᵀ
             q
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
-    plan chain-plan Anv z∈A liftW liftγ prem vU vN view spine chain
-    typed acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
+    liftW liftγ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.smart-Λ-child plan refl liftW
        | StructuralNameChainPlan.smart-Λ-child chain-plan refl liftW
            liftγ chain typed
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
-    plan chain-plan Anv z∈A liftW liftγ prem vU vN view spine chain
-    typed acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
+    liftW liftγ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan)
     with structural-smart-liftᴸ
@@ -626,8 +643,8 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
       liftW
 structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     {B = B} {X = X}
-    plan chain-plan Anv z∈A liftW liftγ prem vU vN view spine chain
-    typed acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan Anv z∈A
+    liftW liftγ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan)
     | record { premise-plan = planᵐ ; post-lift = liftW′ } =
@@ -652,7 +669,8 @@ structural-name-smart-Λ-equal worker {γ = γ} {γᵐ = γᵐ}
     }
 
   child-rel =
-    worker child-plan child-chain-plan prem vU vN
+    worker fuel-step catchup⁻-embed inst-decrease
+      child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank targetᵐ
 
@@ -684,6 +702,9 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
       {c : Conv↑ Δᴸ A A′}
       {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
+    → FuelStepSurface fuel
+    → Catchup⁻Embedᵀ
+    → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A′ E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → CTI2.ImpEnvMono W Wᵖ
@@ -717,20 +738,21 @@ structural-name-reveal-equal : StructuralNameInstantiationEqualᵀ
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
 structural-name-reveal-equal worker {B = B} {X = X} {c = c}
-    plan chain-plan mono rb sc c⊢ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan mono rb sc
+    c⊢ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.reveal-child plan {c = c} rb
        | StructuralNameChainPlan.reveal-child chain-plan {c = c} rb sc
            chain typed
 structural-name-reveal-equal worker {B = B} {X = X} {c = c}
-    plan chain-plan mono rb sc c⊢ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan mono rb sc
+    c⊢ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan) =
   structural-reveal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
-    (worker child-plan child-chain-plan prem vU vN
+    (worker fuel-step catchup⁻-embed inst-decrease
+      child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank
       (structural-target-rebase-left rb target))
@@ -748,6 +770,9 @@ structural-name-conceal-equal :
       {c : Conv↓ Δᴸ A A′}
       {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
       {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
+    → FuelStepSurface fuel
+    → Catchup⁻Embedᵀ
+    → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A′ E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? N
@@ -782,21 +807,22 @@ structural-name-conceal-equal :
               (StructuralTargetInstantiationPackage.structural-ext target))
             q
 structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
-    plan chain-plan ok mono rb sc c⊢ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan ok mono rb
+    sc c⊢ prem vU vN view spine chain typed acc rank target
     with StructuralNamePostPlan.conceal-child plan {c = c} rb
        | StructuralNameChainPlan.conceal-child chain-plan {c = c} rb sc
            chain typed
 structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
-    plan chain-plan ok mono rb sc c⊢ prem vU vN view spine chain typed
-    acc rank target
+    fuel-step catchup⁻-embed inst-decrease plan chain-plan ok mono rb
+    sc c⊢ prem vU vN view spine chain typed acc rank target
     | q₀ , child-plan
     | child-chain , (child-typed , child-chain-plan) =
   structural-conceal-replay
     (StructuralTargetInstantiationPackage.structural-ext target)
     mono rb sc c⊢
     (ok-equal rb ok spine target)
-    (worker child-plan child-chain-plan prem vU vN
+    (worker fuel-step catchup⁻-embed inst-decrease
+      child-plan child-chain-plan prem vU vN
       (name-type-app-frame B X refl refl ▻ⁱ spine)
       child-chain child-typed acc rank
       (structural-target-tag-rebase-left rb target))

@@ -826,3 +826,27 @@ the decision forbids. Migration plan must include: ExtraCastRight and
 the M6 fuel knot reworked to CTI-inversion provenance; NS-4 stage-1's
 ResidualFrameProvenance/chain threading re-pointed at the strengthened
 constructors (the higher-order surfaces localize this).
+
+S-OCC ADOPTION PRE-FLIGHT: GO (2026-08-15). V1 — the projection case
+of catch-up is PROVEN BY PURE CTI INVERSION on the occupancy-gated
+mini-relation with no CatchupCast anywhere
+(`generated-Y-projection-catchupᴼ`, CTIOccInversionCatchupScratch;
+ground case `ground-ℕ-projection-catchupᴼ` needs no occupancy — tags
+are type-visible there). The supervisor's "item 5 required for item 6"
+objection is WITHDRAWN with this artifact. V2 — occupancy formulated
+live as ηᴿ-image membership; per-lemma transport table shows threading
+work but no genuine blocker; see-through is lost exactly at aligning
+inserts/alias-merges, where the partnered shape is re-derivable. V3 —
+compile-image worlds are fully occupied (identity embeddings) and
+compile² has no see-through sites; β-inst/β-gen right-only allocation
+creates the occupant in the allocating step.
+
+ADOPTED DESIGN (user, confirmed by pre-flight): S-OCC live — the
+see-through partner clauses gain a NoTargetOccupant premise — plus the
+mandatory CatchupCast/CatchupCast⁻/CatchupColumn removal with
+consumers (ExtraCastRight, M6 fuel knot, column proof) reworked to CTI
+inversion, plus the grounding theorems (compile mints — trivially
+occupancy-clean; reduction preserves — allocation atomicity). NO
+changes to the cast imprecision rules. The S-PROV column remains the
+recorded fallback if live migration uncovers an inversion gap the
+mini-relation missed.

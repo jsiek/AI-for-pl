@@ -88,3 +88,22 @@ LG-1 needs a branch-sensitive `seal-transfer` output, or a further ruling
 that the public `seal-transfer` surface may be weakened so these top-tag
 branches return the paired target-seal square instead of the stripped
 payload square.
+
+2026-08-15 RESOLVED postscript after supervisor ruling:
+
+`SealTransferCore.seal-transfer` now returns the branch-sensitive
+`SealTransferResult` family.
+
+- `seal-transfer-stripped` preserves the old payload result:
+  `W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂`.
+- `seal-transfer-paired` exposes the matched paired-seal data:
+  `MatchedConcealPartnerOK Wᵖ P (seal Z ★) (just Y) U` and
+  `Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★`, with the source and target seal typings needed to
+  reconstruct
+  `W₁ ∣ γ₁ ⊢² P ↓ seal Z ★ ⊑ U ↓ seal Y ★ ∶ p`.
+
+The matched `conceal⊑conceal²` call site now classifies its payload target:
+plain targets and generated-name protected targets still route to the stripped
+constructor; non-variable top tags, matched-inner tags, and round-trip tails
+that remain top-tagged route to the paired constructor.  No CTI2 rule, cast
+rule, or occupancy gate was changed.

@@ -35,6 +35,10 @@ open import proof.DGG.Inversion.TargetWalkSupport using
    var-source-nonstar-⊥)
 open CTI2 using (_∣_⊢²_⊑_∶_; _⊑ᵂ⟨_⟩_)
 
+pattern st-stripped W₂ γ₂ link mono sc q D =
+  STC.seal-transfer-stripped {W₂ = W₂} {γ₂ = γ₂} {q₂ = q}
+    link mono sc D
+
 target-source-star-at : TargetSourceStarAt
 target-source-star-at {V = M ⦂∀ C [ A ]} ()
     inert vU X∈ Y∈ D
@@ -89,83 +93,83 @@ target-source-star-at {W = W} {X = X} {S = `∀ A}
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
     with STC.seal-transfer sv vU X∈ D
 target-source-star-at {V = ƛ N} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = ƛ N} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {V = Λ V} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = Λ V} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {V = $ (κℕ n)} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = $ (κℕ n)} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {V = $ (κ𝔹 b)} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = $ (κ𝔹 b)} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {V = V ⟨ c₁ ⟩} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = V ⟨ c₁ ⟩} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | ⊢⟨⟩ V⊢ .c₁
     with sv
 target-source-star-at {V = V ⟨ c₁ ⟩} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | ⊢⟨⟩ V⊢ .c₁ | sv-cast sv₀ ()
 target-source-star-at {V = V ↑ c₁} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with sv
 target-source-star-at {V = V ↑ c₁} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | sv-reveal-fun sv₀
     with CTI2T.source-typing² D₂
 target-source-star-at {V = V ↑ c₁} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | sv-reveal-fun sv₀ | ()
 target-source-star-at {V = V ↑ c₁} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | sv-reveal-all sv₀
     with CTI2T.source-typing² D₂
 target-source-star-at {V = V ↑ c₁} {S = ★} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | sv-reveal-all sv₀ | ()
 target-source-star-at {V = V ↓ (c₁ ↦↓ d₁)} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = V ↓ (c₁ ↦↓ d₁)} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {V = V ↓ `∀↓ d₁} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with CTI2T.source-typing² D₂
 target-source-star-at {V = V ↓ `∀↓ d₁} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ | ()
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ | ()
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     with STC.source-star-cast-package-from-source
       monoᵖ rbᵖ scᵖ (rebase-source-membership link X∈)
-      partner inert prem D₂
+      no-target partner inert prem D₂
 target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         (CTI2.seal-partner-ok (CTI2.star-rep-target no-target partner))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
@@ -175,22 +179,22 @@ target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
     (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
     pkg sourcePrem
 target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         ok@(CTI2.seal-partner-ok CTI2.name-protected-target)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         ok@(CTI2.seal-partner-ok CTI2.name-protected-target)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
-    with STC.source-star-cast-package-from-source-ok
+    with STC.source-star-cast-package-from-source-name
       monoᵖ rbᵖ scᵖ (rebase-source-membership link X∈)
-      ok inert prem D₂
+      inert prem D₂
 target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         ok@(CTI2.seal-partner-ok CTI2.name-protected-target)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
@@ -200,7 +204,7 @@ target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
     (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
     pkg sourcePrem
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²
         (CTI2.seal-partner-ok (CTI2.plain-target nt))
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂) =
@@ -212,7 +216,7 @@ target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
 target-source-star-at
     {U = U ⟨ _! ⦃ Gᵍ = ‵ ι ⦄ cᴿ ⟩} {S = ★} {c = c} {q = q}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   CTI2.conceal⊑conceal²
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-nonvar-tag nonvar-base))
@@ -222,7 +226,7 @@ target-source-star-at
 target-source-star-at
     {U = U ⟨ _! ⦃ Gᵍ = ★⇒★ ⦄ cᴿ ⟩} {S = ★} {c = c}
     {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   CTI2.conceal⊑conceal²
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-nonvar-tag nonvar-fun))
@@ -232,7 +236,7 @@ target-source-star-at
 target-source-star-at
     {U = U ⟨ _! ⦃ Gᵍ = ∀★ ⦄ cᴿ ⟩} {S = ★} {c = c}
     {q = q} sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   CTI2.conceal⊑conceal²
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-nonvar-tag nonvar-all))
@@ -241,15 +245,15 @@ target-source-star-at
     (CTI2.cast⊑² c D₂ ★⊑★) q
 target-source-star-at {U = U ⟨ id A ⟩} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     with vU
 target-source-star-at {U = U ⟨ id A ⟩} {S = ★}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂
     | vU₀ Value.《 () 》
 target-source-star-at {U = U ↑ cᴿ} {S = ★} {c = c} {q = q}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   CTI2.conceal⊑conceal²
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-untagged CTI2.not-↑))
@@ -260,14 +264,14 @@ target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
     {S = ★} {c = c} {q = q} (sv-seal sv₀) inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.⊑cast² {p = p₂} cᴿ! prem .q₂)
     with SPT.var-consistency-view (sym∼ cᴿ)
 target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
     {S = ★} {c = c} {q = q} (sv-seal sv₀) inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.⊑cast² {p = p₂} cᴿ! prem .q₂)
     | inj₁ refl
     with var-tag-value-sealed vU (CTI2T.target-typing² D₂)
@@ -275,7 +279,7 @@ target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
     {S = ★} {c = c} {q = q} (sv-seal sv₀) inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.⊑cast² {p = p₂} cᴿ! prem .q₂)
     | inj₁ refl
     | varv-seal {W = U₀} vU₀ Y₂∈ refl
@@ -284,7 +288,7 @@ target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
     {S = ★} {c = c} {q = q} (sv-seal sv₀) inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.⊑cast² {p = p₂} cᴿ! prem .q₂)
     | inj₁ refl
     | varv-seal {W = U₀} vU₀ Y₂∈ refl
@@ -304,12 +308,12 @@ target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = () ⦄ ⟩}
     {S = ★} {c = c} {q = q} (sv-seal sv₀) inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ ,
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.⊑cast² {p = p₂} cᴿ! prem .q₂)
     | inj₂ refl
 target-source-star-at {U = U ↓ cᴿ} {S = ★} {c = c} {q = q}
     sv inert vU X∈ Y∈ D
-    | W₂ , γ₂ , link , mono₂ , sc₂ , q₂ , D₂ =
+    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   CTI2.conceal⊑conceal²
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-untagged CTI2.not-↓))

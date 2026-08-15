@@ -139,39 +139,48 @@ private
   dynRep★PartnerOK (CTI2.rep★-round-trip ok) =
     CTI2.rep★-round-trip (dynRep★PartnerOK ok)
 
-  dynPayloadSealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
+  data DynPayloadTargetRoute {Δᴸ Δᴿ Δ}
+      (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
+      (Z : TyVar Δᴸ) (Y : TyVar Δᴿ) (U : Term Δᴿ) : Set where
+    dyn-target-stripped :
+      (∀ {P} → CTI2.SealPartnerOK
+        (SPT.dynWorld Wᵖ) Z P ★ (just Y) U)
+      → DynPayloadTargetRoute Wᵖ γᵖ Z Y U
+
+    dyn-target-paired :
+      DynPayloadTargetRoute Wᵖ γᵖ Z Y U
+
+  dynPayloadTargetRoute : ∀ {Δᴸ Δᴿ Δ}
       {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
-      {Z : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-      {V : Term Δᴸ} {U : Term Δᴿ}
-      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {Z : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      {P : Term Δᴸ} {U : Term Δᴿ}
     → Value U
-    → Wᵖ ∣ γᵖ ⊢² V ⊑ U ∶ p★
-    → CTI2.Rep★PartnerOK Wᵖ Z V Xᴿ? U
-    → CTI2.SealPartnerOK (SPT.dynWorld Wᵖ) Z V ★ Xᴿ? U
-  dynPayloadSealPartnerOK vU prem (CTI2.rep★-untagged nt) =
-    CTI2.plain-target nt
-  dynPayloadSealPartnerOK vU prem (CTI2.rep★-nonvar-tag Gnv) =
-    CTI2.star-rep-target (CTI2.rep★-nonvar-tag Gnv)
-  dynPayloadSealPartnerOK
-      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) prem
+    → ⟨ Δᴿ , CTI2.targetStoreʷ Wᵖ , CTI2.tgtCtxʷ γᵖ ⟩ ⊢ U ⦂ ★
+    → CTI2.Rep★PartnerOK Wᵖ Z P (just Y) U
+    → DynPayloadTargetRoute Wᵖ γᵖ Z Y U
+  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-untagged nt) =
+    dyn-target-stripped (λ {P} → CTI2.plain-target nt)
+  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-nonvar-tag Gnv) =
+    dyn-target-paired
+  dynPayloadTargetRoute
+      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) U⊢
       (CTI2.rep★-var-tag {Y∼★ = .Y∼★} {c = cY}
         {Ans = .Ans} aligned)
       with SVD.var-tag-value-sealed
         {Y∼★ = Y∼★} {cY = cY} {Ans = Ans}
         (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》)
-        (CTI2T.target-typing² prem)
-  dynPayloadSealPartnerOK
-      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) prem
+        U⊢
+  dynPayloadTargetRoute
+      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) U⊢
       (CTI2.rep★-var-tag {Y∼★ = .Y∼★} {c = cY}
         {Ans = .Ans} aligned)
       | SVD.varv-seal vU₀ Y∈ refl =
-    CTI2.name-protected-target
-  dynPayloadSealPartnerOK vU prem
+    dyn-target-stripped (λ {P} → CTI2.name-protected-target)
+  dynPayloadTargetRoute vU U⊢
       (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-    CTI2.star-rep-target (CTI2.rep★-matched-inner-tags X₂≢X aligned)
-  dynPayloadSealPartnerOK vU prem (CTI2.rep★-round-trip ok) =
-    CTI2.star-rep-target
-      (CTI2.rep★-round-trip (dynRep★PartnerOK ok))
+    dyn-target-paired
+  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-round-trip ok) =
+    dynPayloadTargetRoute vU U⊢ ok
 
 dyn-rep★-partner-ok : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
@@ -403,12 +412,13 @@ source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
     {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
   → CTI2.ImpEnvMono W Wᵖ
-  → CTI2.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ∋ X ⦂ ★
-  → CTI2.Rep★PartnerOK Wᵖ X P Xᴿ? U
-  → Inert c
-  → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
+    → CTI2.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
+    → CTI2.SameCtx γ γᵖ
+    → CTI2.sourceStoreʷ W ∋ X ⦂ ★
+    → CTI2.NoTargetOccupantAtSource W X
+    → CTI2.Rep★PartnerOK Wᵖ X P Xᴿ? U
+    → Inert c
+    → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ q
   → Σ[ pkg ∈ TaggedTransferOutput W γ
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) U X Xᴿ? ]
@@ -416,20 +426,21 @@ source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
 source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
-    {c = c}
-    {q = q} mono rb sc source∈ partner
-    (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
+      {c = c}
+      {q = q} mono rb sc source∈ no-target partner
+      (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
     (premise-partner-from-tag-rebase rb)
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-round-trip
         (transport-rep★-partner-ok-tag rb partner))) ,
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target
-        (CTI2.rep★-round-trip
-          (transport-rep★-partner-ok-tag rb partner))))
+    CTI2.conceal⊑²
+      (CTI2.seal-partner-ok
+        (CTI2.star-rep-target
+          no-target
+          (CTI2.rep★-round-trip
+            (transport-rep★-partner-ok-tag rb partner))))
     (impEnvMono-refl {W = W})
     (self-tag-rebase-from-tag-rebase rb)
     (sameCtx-refl {γ = γ})
@@ -437,7 +448,7 @@ source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
     (CTI2.cast⊑² c sealed ★⊑★)
     q
 
-source-star-cast-package-from-source-ok : ∀ {Δᴸ Δᴿ Δ}
+source-star-cast-package-from-source-plain : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
@@ -448,8 +459,7 @@ source-star-cast-package-from-source-ok : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
   → CTI2.SameCtx γ γᵖ
   → CTI2.sourceStoreʷ W ∋ X ⦂ ★
-  → CTI2.SourceConcealPartnerOK Wᵖ P
-      (Conversion.seal X ★) Xᴿ? U
+  → CTI2.NotTopTag U
   → Inert c
   → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ q
@@ -458,31 +468,49 @@ source-star-cast-package-from-source-ok : ∀ {Δᴸ Δᴿ Δ}
       (W ∣ γ ⊢²
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
-source-star-cast-package-from-source-ok mono rb sc source∈
-    (CTI2.seal-partner-ok (CTI2.star-rep-target partner))
-    inert prem sealed =
-  source-star-cast-package-from-source
-    mono rb sc source∈ partner inert prem sealed
-source-star-cast-package-from-source-ok {W = W} {γ = γ} {X = X}
+source-star-cast-package-from-source-plain {W = W} {γ = γ} {X = X}
     {c = c} {q = q} mono rb sc source∈
-    (CTI2.seal-partner-ok (CTI2.plain-target nt))
+    nt
     (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
     (premise-partner-from-tag-rebase rb)
     (CTI2.matched-seal-star-partner (CTI2.rep★-untagged nt)) ,
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-untagged nt)))
+    CTI2.conceal⊑²
+      (CTI2.seal-partner-ok
+        (CTI2.plain-target nt))
     (impEnvMono-refl {W = W})
     (self-tag-rebase-from-tag-rebase rb)
     (sameCtx-refl {γ = γ})
     (CTI2.⊢↓-sealˣ source∈)
     (CTI2.cast⊑² c sealed ★⊑★)
     q
-source-star-cast-package-from-source-ok {W = W} {γ = γ} {X = X}
+
+source-star-cast-package-from-source-name : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+    {P : Term Δᴸ} {M : Term Δᴿ}
+    {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {S : Ty Δᴿ}
+    {μ : Env∼ Δᴿ} {cY : μ ⊢ (＇ Y) ∼ ★}
+    {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
+    {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+    {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
+  → CTI2.ImpEnvMono W Wᵖ
+  → CTI2.TagRebaseAtᴸ Wᵖ W (just X) (just Y)
+  → CTI2.SameCtx γ γᵖ
+  → CTI2.sourceStoreʷ W ∋ X ⦂ ★
+  → Inert c
+  → Wᵖ ∣ γᵖ ⊢² P
+      ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p★
+  → W ∣ γ ⊢² P ↓ Conversion.seal X ★
+      ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ q
+  → Σ[ pkg ∈ TaggedTransferOutput W γ
+        ((P ↓ Conversion.seal X ★) ⟨ c ⟩)
+        ((M ↓ Conversion.seal Y S) ⟨ cY ⟩) X (just Y) ]
+      (W ∣ γ ⊢²
+        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
+        ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ q)
+source-star-cast-package-from-source-name {W = W} {γ = γ} {X = X}
     {c = c} {q = q} mono (CTI2.tag-rebase-varᴸ rb) sc source∈
-    (CTI2.seal-partner-ok CTI2.name-protected-target)
     (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
@@ -490,11 +518,9 @@ source-star-cast-package-from-source-ok {W = W} {γ = γ} {X = X}
     (CTI2.matched-seal-star-partner
       (protected-tag-partner-from-cast
         (CTI2.RebaseAt.pivotAligned rb))) ,
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target
-        (protected-tag-partner-from-cast
-          (CTI2.RebaseAt.pivotAligned rb))))
+    CTI2.conceal⊑²
+      (CTI2.seal-partner-ok
+        CTI2.name-protected-target)
     (impEnvMono-refl {W = W})
     (CTI2.tag-rebase-varᴸ
       (CTI2.sameWorldRebaseAt
@@ -602,6 +628,34 @@ private
 -- Seal transfer
 ------------------------------------------------------------------------
 
+data SealTransferResult {Δᴸ Δᴿ Δ}
+    (W₁ : World Δᴸ Δᴿ Δ) (γ₁ : CtxImp W₁)
+    (Z : TyVar Δᴸ) (Y : TyVar Δᴿ)
+    (p : (＇ Z) ⊑ᵂ⟨ W₁ ⟩ (＇ Y)) :
+    Term Δᴸ → Term Δᴿ → Set where
+  seal-transfer-stripped : ∀ {W₂ : World Δᴸ Δᴿ Δ}
+      {γ₂ : CtxImp W₂} {V : Term Δᴸ} {U : Term Δᴿ}
+      {q₂ : (＇ Z) ⊑ᵂ⟨ W₂ ⟩ ★}
+    → RebaseAt W₂ W₁ Z Y
+    → CTI2.ImpEnvMono W₁ W₂
+    → CTI2.SameCtx γ₁ γ₂
+    → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
+    → SealTransferResult W₁ γ₁ Z Y p V U
+
+  seal-transfer-paired : ∀ {Wᵖ : World Δᴸ Δᴿ Δ}
+      {γᵖ : CtxImp Wᵖ} {P : Term Δᴸ} {U : Term Δᴿ}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+    → CTI2.ImpEnvMono W₁ Wᵖ
+    → RebaseAt Wᵖ W₁ Z Y
+    → CTI2.SameCtx γ₁ γᵖ
+    → CTI2.sourceStoreʷ W₁ ⊢↓[ just Z ] Conversion.seal Z ★
+    → CTI2.targetStoreʷ W₁ ⊢↓[ just Y ] Conversion.seal Y ★
+    → CTI2.MatchedConcealPartnerOK Wᵖ P
+        (Conversion.seal Z ★) (just Y) U
+    → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
+    → SealTransferResult W₁ γ₁ Z Y p
+        (P ↓ Conversion.seal Z ★) U
+
 seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
     {γ₁ : CtxImp W₁} {V : Term Δᴸ} {U : Term Δᴿ}
     {Z : TyVar Δᴸ} {Y : TyVar Δᴿ}
@@ -610,12 +664,7 @@ seal-transfer : ∀ {Δᴸ Δᴿ Δ} {W₁ : World Δᴸ Δᴿ Δ}
   → Value U
   → CTI2.sourceStoreʷ W₁ ∋ Z ⦂ ★
   → W₁ ∣ γ₁ ⊢² V ⊑ (U ↓ Conversion.seal Y ★) ∶ p
-  → Σ[ W₂ ∈ World Δᴸ Δᴿ Δ ] Σ[ γ₂ ∈ CtxImp W₂ ]
-      ( RebaseAt W₂ W₁ Z Y
-      × CTI2.ImpEnvMono W₁ W₂
-      × CTI2.SameCtx γ₁ γ₂
-      × Σ[ q₂ ∈ (＇ Z) ⊑ᵂ⟨ W₂ ⟩ ★ ]
-          (W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂) )
+  → SealTransferResult W₁ γ₁ Z Y p V U
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-ƛ N) vU source★ D
     with CTI2T.source-typing² D
@@ -697,15 +746,13 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
         (CTI2.⊢↓-sealˣ Y∈) prem .p
     | ra₄ =
-  SPT.dynWorld W₄ ,
-  WD.decayCtx (SPT.dynWorld-decay W₄) γ₄ ,
-  TD.decayRebaseAt (SPT.dynWorld-decay W₄) WD.decay-refl ra₄ ,
-  impEnvMono-∘ {W₁ = W₁} {W₂ = W₄}
-    {W₃ = SPT.dynWorld W₄} mono₄ (dyn-decay-mono {W = W₄}) ,
-  SVD.decaySameCtxʳ (SPT.dynWorld-decay W₄) sc₄ ,
-  dyn-var-star {W = W₄} {X = Z} ,
-  TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem
-    (dyn-var-star {W = W₄} {X = Z})
+  seal-transfer-stripped
+    (TD.decayRebaseAt (SPT.dynWorld-decay W₄) WD.decay-refl ra₄)
+    (impEnvMono-∘ {W₁ = W₁} {W₂ = W₄}
+      {W₃ = SPT.dynWorld W₄} mono₄ (dyn-decay-mono {W = W₄}))
+    (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₄) sc₄)
+    (TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem
+      (dyn-var-star {W = W₄} {X = Z}))
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
@@ -727,33 +774,52 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {γᵖ = γᵖ}
         ok monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
         (CTI2.⊢↓-sealˣ Y∈) prem sourcePrem .p =
-  Wᵖ , γᵖ , rbᵖ , monoᵖ , scᵖ , _ , sourcePrem
+  seal-transfer-stripped rbᵖ monoᵖ scᵖ sourcePrem
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
-    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ}
+    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
         (CTI2.matched-seal-star-partner partner)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p =
-  SPT.dynWorld W₁ ,
-  WD.decayCtx (SPT.dynWorld-decay W₁) γ₁ ,
-  dynLink {W = W₁} {Z = Z} {Y = Y}
-    (SVD.variable-obligation-aligns {W = W₁} {X = Z} {Y = Y} p)
-    (CTI2.RebaseAt.storeRepresentations rbᵖ) ,
-  dyn-decay-mono {W = W₁} ,
-  SVD.decaySameCtxʳ (SPT.dynWorld-decay W₁)
-    (sameCtx-refl {γ = γ₁}) ,
-  dyn-var-star {W = W₁} {X = Z} ,
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (dynPayloadSealPartnerOK vU prem partner))
-    (dyn-mono {W = W₁} {W′ = Wᵖ})
-    (CTI2.tag-rebase-varᴸ
-      (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
-        (SPT.dynWorld-decay W₁) rbᵖ))
-    (WD.decaySameCtx (SPT.dynWorld-decay W₁)
-      (SPT.dynWorld-decay Wᵖ) scᵖ)
-    (CTI2.⊢↓-sealˣ Z∈′)
-    (TD.⊢²-decay (SPT.dynWorld-decay Wᵖ) prem)
-    (dyn-var-star {W = W₁} {X = Z})
+        (CTI2.⊢↓-sealˣ Y∈) prem .p
+    with dynPayloadTargetRoute vU (CTI2T.target-typing² prem) partner
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    (sv-seal sv) vU source★ D
+    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
+    | refl
+    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
+        (CTI2.matched-seal-star-partner partner)
+        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
+        (CTI2.⊢↓-sealˣ Y∈) prem .p
+    | dyn-target-stripped seal-ok =
+  seal-transfer-stripped
+    (dynLink {W = W₁} {Z = Z} {Y = Y}
+      (SVD.variable-obligation-aligns {W = W₁} {X = Z} {Y = Y} p)
+      (CTI2.RebaseAt.storeRepresentations rbᵖ))
+    (dyn-decay-mono {W = W₁})
+    (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₁)
+      (sameCtx-refl {γ = γ₁}))
+    (CTI2.conceal⊑²
+      (CTI2.seal-partner-ok (seal-ok {P = P}))
+      (dyn-mono {W = W₁} {W′ = Wᵖ})
+      (CTI2.tag-rebase-varᴸ
+        (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
+          (SPT.dynWorld-decay W₁) rbᵖ))
+      (WD.decaySameCtx (SPT.dynWorld-decay W₁)
+        (SPT.dynWorld-decay Wᵖ) scᵖ)
+      (CTI2.⊢↓-sealˣ Z∈′)
+      (TD.⊢²-decay (SPT.dynWorld-decay Wᵖ) prem)
+      (dyn-var-star {W = W₁} {X = Z}))
+seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
+    (sv-seal sv) vU source★ D
+    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
+    | refl
+    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
+        (CTI2.matched-seal-star-partner partner)
+        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
+        (CTI2.⊢↓-sealˣ Y∈) prem .p
+    | dyn-target-paired =
+  seal-transfer-paired monoᵖ rbᵖ scᵖ
+    (CTI2.⊢↓-sealˣ Z∈′) (CTI2.⊢↓-sealˣ Y∈)
+    (CTI2.matched-seal-star-partner partner) prem

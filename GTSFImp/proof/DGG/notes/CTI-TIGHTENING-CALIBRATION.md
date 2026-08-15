@@ -98,3 +98,232 @@ would ask for.  The missing invariant is not ordinary cast direction; it is
 runtime provenance that distinguishes a generated `Y?` facing its matching
 `Y!` from a paired `X?`/`Y?` constructor that manufactures the same boundary
 without that value-flow history.
+
+# CTI Tightening Calibration: S-PROV
+
+Status: evaluation only.  No live CTI2 or proof files were edited.  The checked
+scratch is `CTITighteningProvScratch.agda`.
+
+## Column Summary
+
+| Candidate | Scope | Verdict | Reason |
+| --- | --- | --- | --- |
+| S-NARROW | Direction/shape composition only | **Refuted** | C1 still derives the bad square because the bad and good projections have identical cast/world endpoints. |
+| S-PROV CORE | Items 1-5: provenance cells, decay capability, runtime alignment witnesses, cast-derivation relation, term-shaped projections | **Recommended** | C1 blocks the mismatch and keeps the matching and residual controls.  C2 is compatible when the term-shaped clause is scoped to generated/runtime-aligned projections. |
+| S-PROV item 6 | Remove `CatchupCast`, `CatchupCast⁻`, and `CatchupColumn` | **Defer** | It reworks the M4/M6/NS-4 fuel knot and is not needed for the CORE tightening. |
+
+## CORE Rule Forms
+
+World cells carry provenance in addition to the current imprecision mark:
+
+$$
+\mathsf{cell}
+  = (\mathsf{birth}, \mathsf{current}, \mathsf{capability},
+     \mathsf{occupancy}, \mathsf{allocation}, \mathsf{castAncestry})
+$$
+
+The constructors used by the scratch are the statement-level fragment needed
+for the calibration:
+
+- `matched-birth` with `matched-use` for `Λ⊑Λ²`/matched bindings.
+- `source-only-birth` with `source-star-use` for source-only `Λ⊑²`.
+- `matched-occupied`, `source-open`, and `runtime-aligned` occupancy.
+- `matched-generated-cast` and `residual-after-cancel` cast ancestry.
+
+Decay changes the current mark, but not use capability:
+
+$$
+\mathsf{decay}
+  (b, X{\sqsubseteq}X, u, o, a, c)
+  = (b, X{\sqsubseteq}\star, u, o, a, c)
+$$
+
+Runtime alignment of a source-only cell requires explicit witnesses, not just
+the endpoint mark:
+
+$$
+\mathsf{RuntimeAlignment}(W, X_L, X_R)
+  = \mathsf{cellProv}
+    \times \mathsf{StoreRepImp}(W, X_L, X_R)
+    \times \mathsf{RebaseAt}(W, W, X_L, X_R)
+    \times \mathsf{castAncestry}
+$$
+
+The cast rules split ordinary non-projection casts from generated projections:
+
+- `cast⊑cast²` carries related cast derivations and direction/shape data.  A
+  paired projection must expose either a matching injected target input or the
+  residual-after-cancellation derivation below.
+- `⊑cast²` non-projection clauses cover identity and widening insertions.
+- `⊑cast²` same-tag generated projection is term-shaped:
+
+$$
+\frac{
+  \pi : \mathsf{RuntimeAlignment}(W, X_L, X_R)
+  \qquad
+  D : W \mid \gamma \vdash M \sqsubseteq V\langle G! \rangle : A\sqsubseteq\star
+}{
+  W \mid \gamma \vdash
+  M \sqsubseteq V\langle G! \rangle\langle G? \rangle : A\sqsubseteq G
+}
+$$
+
+- The expanded/residual clause retains the injection derivation and a recursive
+  residual CTI derivation after the matching pair cancels:
+
+$$
+\frac{
+  D_{\mathsf{inj}} :
+    W \mid \gamma \vdash M \sqsubseteq V\langle G! \rangle : A\sqsubseteq\star
+  \qquad
+  D_{\mathsf{res}} :
+    W \mid \gamma \vdash M \sqsubseteq V\langle c \rangle : A\sqsubseteq B
+}{
+  W \mid \gamma \vdash
+  M \sqsubseteq V\langle G! \rangle\langle G?;c \rangle : A\sqsubseteq B
+}
+$$
+
+There is no projection constructor for
+`V⟨H!⟩⟨G?⟩` when the retained CTI derivation only reaches `V⟨H!⟩`.
+The source-side projection rule should be symmetric.
+
+## Matrix
+
+| Cell | S-PROV CORE verdict | Evidence |
+| --- | --- | --- |
+| C1 Soundness | **CHECKED-OK** | `bad-base-target-Y-project-clause-empty`, `bad-target-projection-underivable`, and `bad-paired-projection-underivable` typecheck.  The matching controls `matching-projectionᴾ` and `post-cancellation-residualᴾ` also typecheck. |
+| C2 Compile monotonicity | **CHECKED-OK** | For scoped CORE, the site audit below finds no compiler-emitted bare generated-name projection onto a value.  Non-projection representatives check as `compile-paired-base-siteᴾ`, `compile-source-one-sided-siteᴾ`, and `compile-target-one-sided-siteᴾ`.  If the term-shaped clause bans every projection, not just generated/runtime-aligned projections, sites `:556` and `:595` fail. |
+| C3 Good executions | **CHECKED-OK** | `good-generated-projection-siteᴾ`, `good-generated-catchupᴾ`, and `residual-after-cancellation-siteᴾ` typecheck.  These match the successful states in `SourceReachabilityResultScratch.agda` (`target-route`, `reached-catchup`) and the cast-heavy examples spot-checked below. |
+| C4 Migration inventory | **CHECKED-OK** | The needed premises are identifiable, but live migration has high cost: statement changes and new threading through world evolution, inversion, seal-transfer, Λ, NS-4, decay, rebase/smart-alias, rename/extend, and compile². |
+| C5 LR cell | **CHECKED-OK** | The LR reference cast phase needs same-tag projection evidence and residual recursion; CORE supplies both.  `CastComposition.agda` is parameterized by the cast-phase theorem and needs no extra CTI rule. |
+| C6 Item-6 cost | **CHECKED-OK** | Audit complete; recommendation is **DEFER**.  Removing catch-up judgments would replace the current term-independent tail embedding used by M4/M6/NS-4.  CORE does not yet provide that replacement. |
+
+## C2 Compile Audit
+
+`Compile.agda` emits casts only in ordinary application, dynamic application,
+and primitive arguments:
+
+- `Compile.agda:82-90`: ordinary argument cast and dynamic callee/argument
+  casts.
+- `Compile.agda:101-106`: primitive argument casts.
+- Variables, lambdas, type lambdas, type application, and constants emit no
+  ordinary casts directly.
+
+The direct CTI2 cast-emission sites in `CompilePreservesImprecision2.agda` are:
+
+| Site | Constructor | CORE premise |
+| --- | --- | --- |
+| `:506` | `cast⊑cast² (symᶜ A∼C) d′` | Paired non-projection shape/derivation relation. |
+| `:556` | `⊑cast² c′` for dynamic callee insertion | Needs a separate non-generated dynamic projection allowance if `c′ = dynamic-function-cast`; it is not a generated-name value projection. |
+| `:558` | `cast⊑cast² (symᶜ A∼C) d′` | Paired non-projection shape/derivation relation. |
+| `:595` | `cast⊑cast² dynamic-function-cast c′` | Same caveat as `:556`, now paired.  It cannot satisfy a rule that requires the callee input to be syntactically `V⟨G!⟩`. |
+| `:597` | `cast⊑cast² C∼★ d′` | Paired non-projection widening. |
+| `:749` | `cast⊑cast² A∼arg c′` | Paired primitive-argument cast. |
+| `:753` | `cast⊑cast² B∼arg d′` | Paired primitive-argument cast. |
+
+The compile-image worlds are compatible with the provenance discipline:
+`initialWorld` uses identity embeddings and equal source/target stores, so it
+mints no runtime-aligned cells.  The proof enters new cells only through the
+existing lift/bind machinery; CORE must make those binders mint
+`matched-birth`/`matched-use` for matched binds and
+`source-only-birth`/`source-star-use` for source-only binds.
+
+Conclusion for C2: compile is monotone for the scoped CORE rule.  A blanket
+"every projection must be term-shaped over `V⟨G!⟩`" version is too strong for
+compile because dynamic function casts are syntactic elaboration casts in
+callee position.
+
+## C3 Good-Execution Checks
+
+The mini-relation keeps the good states that S-NARROW was meant to preserve:
+
+- `matching-inputᴾ`: source sealed term relates to the generated target
+  injection `V⟨Y!⟩`.
+- `matching-projectionᴾ`: the matching `Y?` projection is derivable because the
+  target input is exactly `V⟨Y!⟩` and the CTI derivation to that input is
+  retained.
+- `post-cancellation-residualᴾ` and `residual-after-cancellation-siteᴾ`: the
+  post-cancellation target value remains related by the recursive residual
+  derivation.
+
+Spot checks against live notes/examples:
+
+- `SourceReachabilityResultScratch.agda`: `target-route` reduces through the
+  target-side unseal/catch-up path, and `reached-catchup` uses
+  `generated-project-same target-sealed-value`; this is exactly
+  `good-generated-catchupᴾ`.
+- `Examples2.agda`: `example12-initial-poly` uses two target-side `⊑cast²`
+  witnesses around polymorphic instantiation; these are compile/example casts,
+  not the bad generated-name mismatch.
+- `ReachabilityScreen.agda`: reachability checkpoints using generated
+  projection/catch-up follow the same `V⟨G!⟩`-then-`G?` shape as the scratch.
+
+## C4 Migration Inventory
+
+| Site family | Verdict | Migration note |
+| --- | --- | --- |
+| M3 inversion stack: `RightInjInversion2Proof`, `SourceStripWorkerProof`, `TargetStripProof`, `TargetChainProof`, `TargetWalkSupport` | Statement change needed | Inversion must expose the projection subderivation, runtime-alignment witness, and residual CTI derivation instead of rebuilding endpoint-only cast constructors. |
+| Seal-transfer/tag discipline: `SealTransferCore` and `Rep★PartnerOK` packages | New threading needed | The store/tag facts are already present, but partner packages must also carry birth/use/cast ancestry so generated projections can be justified after transfer. |
+| Λ machinery: `Λ⊑Λ²`, `Λ⊑²`, `TargetBindLift`, `InstInversionLambdaProof` | Statement change needed | Binder constructors must mint provenance cells; lift/inst inversion must transport the new fields through type-variable movement. |
+| NS-4 equal helpers and absorption chain: `StructuralTargetFrameAbsorptionDef`, `ExtraCastRightProof`, `ExtraCastRightAtProof`, `StructuralValueInstantiationCastProof`, `StructuralNameInstantiationProof` | New threading needed | `tfa-cast` and extra-cast packages must carry target/source cast provenance instead of only a cast term and endpoint witness. |
+| Decay: `WorldDecay`, `TermImpDecay` | Premises available with new lemmas | Decay already has `ImpEnvMono`; it needs the stronger lemma that capability and ancestry survive while the current mark weakens. |
+| Parked world and `ImpEnv`: `ParkedWorldDef`, `CastTermImprecision2` world/lift constructors | Statement change needed | `World` and parked-world evolution must store birth origin, use capability, occupancy/allocation ancestry, and cast ancestry. |
+| Rebase/smart-alias: `RebaseAt`, `RebaseAtᴸ`, `RebaseAtᴿ`, smart comma/alias guards | New threading needed | Alignment must be witnessed by allocation/store/cast ancestry rather than inferred from `X⊑★` marks alone. |
+| `CenterRename` | Premises available with transport lemmas | Structural rebuilds can keep the evidence, but rename lemmas are needed for cell provenance and retained projection derivations. |
+| `TargetExtend` and `TargetBindLift` | Premises available with transport lemmas | Target extension/lift must transport runtime-alignment witnesses and preserve the injected-input shape. |
+| `CompilePreservesImprecision2` | Premises available, with dynamic-projection caveat | Seven direct sites need reusable cast-shape/provenance lemmas.  Sites `:556` and `:595` require the scoped non-generated projection allowance. |
+
+Compared with the S-NARROW C4 inventory, S-PROV has strictly higher world-state
+cost: it changes `World`, parked-world evolution, decay, and rebase/smart-alias
+statements.  The cast-rebuild cost is shared with S-NARROW, because both
+candidates require new premises at every `cast⊑²`/`⊑cast²`/`cast⊑cast²`
+consumer.  The difference is that S-NARROW pays most of this cost and still
+fails C1, while S-PROV adds provenance threading and actually blocks the bad
+projection.
+
+## C5 LR Cell
+
+The read-only LR reference copies in `notes/lr-reference/` need exactly the
+information CORE records:
+
+- `Cast.agda` projection/projection cases use dynamic-payload and projection
+  step views, then need evidence that the target projection tag matches the
+  retained injection tag.
+- The residual branches need a recursive CTI derivation after the matching
+  injection/projection pair cancels.
+- `CastComposition.agda` composes the cast phase around the theorem returned by
+  `Cast.agda`; it does not require item 6.
+
+This audits as **CHECKED-OK** for CORE.
+
+## C6 Item-6 Cost
+
+The catch-up removal is separable from the tightening:
+
+- `ValueCatchupRightDef.agda` deliberately splits head `CatchupCast` from
+  projection-free tail `CatchupCast⁻`, then packages them as `CatchupColumn`.
+- `Catchup⁻Embedᵀ` can re-head a tail at an arbitrary target term.  The fuel
+  knot uses that term-independent embedding in `ValueCatchupRightProof` and
+  `FuelKnotProof`.
+- `InstInversionDef`, `ColumnSupportProof`, and
+  `StructuralNameInstantiationProof` thread `CatchupCast⁻` through NS-4
+  residual provenance and target-frame absorption.
+
+CTI-internal inversion may eventually replace this family, but CORE by itself
+does not supply the key operation: embedding a projection-free residual tail at
+an arbitrary new target value while preserving the provenance needed by the
+fuel knot.  Bundling item 6 would turn a focused CTI tightening into a larger
+M4/M6/NS-4 redesign.
+
+Verdict: **defer item 6**.  Keep the catch-up judgments while landing CORE,
+then remove them in a separate arc once CTI-internal inversion has the same
+term-independent tail embedding story.
+
+## Recommendation
+
+Land S-PROV CORE, not S-NARROW.  The CORE rule should be scoped so the
+term-shaped projection restriction governs generated/runtime-aligned
+projections, while ordinary compile-time dynamic projections keep a separate
+non-generated premise.  Defer item 6 until after the world-provenance and
+term-shaped projection migration is green.

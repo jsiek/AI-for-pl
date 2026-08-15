@@ -193,27 +193,6 @@ StructuralNameInstantiationStrictᵀ =
   StructuralValueSpineInstantiationAccᵀ
 
 
-StructuralNameConcealEqualOKᵀ : Set₁
-StructuralNameConcealEqualOKᵀ =
-  ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {U : Term Δᴸ} {V : Term Δᴿ}
-    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
-    {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
-    {c : Conv↓ Δᴸ A A′}
-  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
-  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-  → (target : StructuralTargetInstantiationPackage W V
-      (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → let child = structural-tag-rebase-atᴸ (StructuralTargetInstantiationPackage.structural-ext target) rb
-     in CTI2.SourceConcealPartnerOK
-          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
-          (mapPivotChanges
-            (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
-          (StructuralTargetInstantiationPackage.final target)
-
-
 acc-smaller : ∀ {A : Set} {R : A → A → Set} {x y}
   → Acc R y
   → R x y
@@ -831,9 +810,9 @@ structural-name-conceal-equal ok-equal worker {B = B} {X = X} {c = c}
 structural-value-instantiation : StructuralValueInstantiationᵀ
 structural-value-instantiation {fuel = fuel} {W = W} {γ = γ}
     {A = A} {B = B} {R = R} {q = q}
-    name-worker fuel-step catchup⁻-embed inst-decrease plan
+    surfaces name-worker fuel-step catchup⁻-embed inst-decrease plan
     chain-plan rel vM vV view target =
-  erase-structural-name-root name-worker fuel-step catchup⁻-embed
+  erase-structural-name-root surfaces name-worker fuel-step catchup⁻-embed
     inst-decrease plan chain-plan rel vM
     (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
     (SpineValueProof.rename-all-value-view wk↪ᵗ view)

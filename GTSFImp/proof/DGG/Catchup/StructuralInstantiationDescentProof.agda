@@ -29,6 +29,8 @@ open import proof.DGG.Catchup.StructuralTargetInstantiationProof
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
+open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
+  (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (FuelStepSurface; Catchup⁻Embedᵀ; castSize; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
@@ -194,7 +196,8 @@ residual-cast-stop-package {p = p} {q = q} {c = c}
 
 
 structural-name-package :
-  StructuralNameInstantiationᵀ
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
@@ -220,18 +223,19 @@ structural-name-package :
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package worker fuel-step catchup⁻-embed inst-decrease
-    plan chain-plan rel vM vV view spine chain typed target =
+structural-name-package surfaces worker fuel-step catchup⁻-embed
+    inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   record
     { target-descent = target
     ; final-relation =
-        worker fuel-step catchup⁻-embed inst-decrease plan chain-plan
+        worker surfaces fuel-step catchup⁻-embed inst-decrease plan chain-plan
           rel vM vV view spine chain typed target
     }
 
 
 erase-structural-name-root :
-  StructuralNameInstantiationᵀ
+  StructuralStrictViewSurfaces
+  → StructuralNameInstantiationᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
@@ -258,8 +262,8 @@ erase-structural-name-root :
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root worker fuel-step catchup⁻-embed inst-decrease
-    plan chain-plan rel vM vV view spine chain typed target =
+erase-structural-name-root surfaces worker fuel-step catchup⁻-embed
+    inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   erase-structural-descent
-    (structural-name-package worker fuel-step catchup⁻-embed
+    (structural-name-package surfaces worker fuel-step catchup⁻-embed
       inst-decrease plan chain-plan rel vM vV view spine chain typed target)

@@ -40,8 +40,9 @@ open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef using
   (StructuralTargetInstantiationPackage)
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
-  (StructuralNameInstantiationᵀ; StructuralNamePostPlan;
-   StructuralNameChainPlan)
+  (StructuralNamePostPlan; StructuralNameChainPlan)
+open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
+  (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using
   (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
@@ -336,6 +337,7 @@ StructuralValueInstantiationᵀ =
     {p : A ⊑ᵂ⟨ W ⟩ `∀ (applyBody (bind R) B)}
     {q : A ⊑ᵂ⟨ W ⟩
       applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
+  → StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
   → FuelStepSurface fuel
   → Catchup⁻Embedᵀ

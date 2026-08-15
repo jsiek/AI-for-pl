@@ -32,6 +32,33 @@ open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
+open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
+open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
+open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
+
+
+StructuralNameConcealEqualOKᵀ : Set₁
+StructuralNameConcealEqualOKᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {U : Term Δᴸ} {V : Term Δᴿ}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+    {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
+    {c : Conv↓ Δᴸ A A′}
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → let child = structural-tag-rebase-atᴸ
+          (StructuralTargetInstantiationPackage.structural-ext target) rb
+     in CTI2.SourceConcealPartnerOK
+          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
+          (mapPivotChanges
+            (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
+          (StructuralTargetInstantiationPackage.final target)
 
 
 record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
@@ -261,8 +288,47 @@ StructuralConcealStrictSurfaceᵀ =
 
 record StructuralStrictViewSurfaces : Set₁ where
   field
+    conceal-equal-ok : StructuralNameConcealEqualOKᵀ
     Λ-cell : StructuralΛStrictSurfaceᵀ
     ∀-cast-cell : StructuralAllCastStrictSurfaceᵀ
     gen-cell : StructuralGenStrictSurfaceᵀ
     reveal-cell : StructuralRevealStrictSurfaceᵀ
     conceal-cell : StructuralConcealStrictSurfaceᵀ
+
+
+StructuralNameInstantiationᵀ : Set₁
+StructuralNameInstantiationᵀ =
+  StructuralStrictViewSurfaces
+  → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+    {E : Ty Δᴿ} {X : TyVar Δᴿ}
+    {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
+  → FuelStepSurface fuel
+  → Catchup⁻Embedᵀ
+  → inst-alloc-decreaseᵀ
+  → (plan : StructuralNamePostPlan W A E q)
+  → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → Value M
+  → Value V
+  → AllValueView V
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → TargetFrameAbsorptionChain W γ A
+      (name-type-app-frame B X refl refl ▻ⁱ spine) q
+  → SpineTypedʷ {fuel = fuel} W
+      (name-type-app-frame B X refl refl ▻ⁱ spine)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+      ECR.mapCtxᴿ
+        (structural-world-extendᴿ
+          (StructuralTargetInstantiationPackage.structural-ext target))
+        γ
+      ⊢² M ⊑ StructuralTargetInstantiationPackage.final target ∶
+        ECR.transport⊑ᵂ
+          (structural-world-extendᴿ
+            (StructuralTargetInstantiationPackage.structural-ext target))
+          q

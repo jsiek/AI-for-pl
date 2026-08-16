@@ -83,3 +83,16 @@ transformer is required.
 
 This note remains open for the target-cast multi-step worker and factory
 assembly only.
+
+Postscript 2026-08-16, LG-3o target-cast endpoint field:
+
+The target-cast row-composition blocker recorded in
+`lg3-target-cast-multistep-worker-resister.red` is resolved by the new
+`StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast`
+field.  The checked target-cast and paired target-cast row combinators now
+derive their endpoint partners from the child and residual structural results,
+with no explicit `partner-endpoint` argument.
+
+This does not discharge the full `ExtraCastRightAt` theorem.  The remaining
+open item for this note is still the structural multi-step target-cast worker
+and the concrete factory assembly that consumes it.

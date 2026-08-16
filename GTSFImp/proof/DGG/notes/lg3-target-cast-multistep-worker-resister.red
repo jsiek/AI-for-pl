@@ -528,3 +528,64 @@ No relation or reduction surface was changed.  The concrete
 remain blocked at the target-cast row composition point.
 
 STOP.
+
+LG-3o postscript, 2026-08-16:
+
+The LG-3n named field blocker is resolved in commit
+`fe50e6cf Add target-cast endpoint partner field`.
+
+`StructuralCatchupRightResult` now carries:
+
+`source-conceal-endpoint-partner-target-cast`
+
+with the plan-polymorphic shape:
+
+```agda
+StructuralWorldExtendᴿ χs W₀ W₀′
+→ (c′ : ν ⊢ B₀ ∼ B)
+→ SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+→ SourceConcealPartnerOK W₀′ P c₀
+    (mapPivotChanges χs Xᴿ?)
+    (N′ ⟨ applyConsistencies χs c′ ⟩)
+```
+
+Threading status:
+
+- base rows carry the field directly;
+- keep-step rows take and replay both the unframed and target-cast-framed
+  partner transformer;
+- source-cast, source-reveal, source-conceal, and generic composition rows
+  forward the hereditary field from their premises;
+- target inert-cast and target/paired target-cast composition rows rebuild
+  the nested target-cast partner shape internally, including the hereditary
+  right-bind case;
+- target-id step inversion now has the framed partner helper needed by the
+  keep-step row.
+
+The explicit `partner-endpoint` arguments have been removed from
+`structural-catchup-compose-target-cast`,
+`structural-catchup-compose-paired-target-cast`,
+`structural-target-cast-row`, and `structural-paired-target-cast-row`.
+
+The named LG-3n field blocker is therefore closed.  The checked live state is
+still row-level plus factory adapters:
+
+- `StructuralExtraCastRightAt` has checked inert and identity base rows, but
+  no complete structural multi-step target-cast worker;
+- `StructuralValueCatchupRightAt` has checked target-cast and paired
+  target-cast row combinators, but no full derivation-recursive factory;
+- `build-structural-fuel-knot` remains a checked adapter from structural
+  factories to the public `FuelKnot`;
+- the LG-2 grounding residual is unchanged: `grounding-preservation-knot`
+  remains checked.
+
+Gate:
+
+`cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+
+Result:
+
+`postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`
+
+No CTI relation, live imprecision relation, reduction relation, or protected
+surface was changed.

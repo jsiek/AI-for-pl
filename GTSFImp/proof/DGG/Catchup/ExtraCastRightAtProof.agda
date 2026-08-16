@@ -21,7 +21,9 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef public using
    erase-structural-extra-cast-right-at; structural-catchup-refl;
    structural-catchup-keep-step)
 open import proof.DGG.Catchup.TargetCastStepInversionProof using
-  (source-conceal-partner-target-id-core; target-id-step-inversion)
+  (source-conceal-partner-target-id-core;
+   source-conceal-partner-target-id-framed-core;
+   target-id-step-inversion)
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
@@ -57,3 +59,4 @@ structural-id-extra-cast-right-at a c′<fuel rel vM vM′ =
   structural-catchup-keep-step vM′ (pure-step (β-id vM′))
     (target-id-step-inversion a vM vM′ rel)
     (source-conceal-partner-target-id-core a)
+    (source-conceal-partner-target-id-framed-core a)

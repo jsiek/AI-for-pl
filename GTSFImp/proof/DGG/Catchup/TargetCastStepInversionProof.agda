@@ -215,6 +215,71 @@ source-conceal-partner-target-id-core a CTI2.id-conceal-target =
   CTI2.id-conceal-target
 
 
+rep★-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {P : Term Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
+    {ν ν′ : Env∼ Δᴿ}
+  → (a : Atom A)
+  → (c′ : ν′ ⊢ B ∼ B′)
+  → CTI2.Rep★PartnerOK W X P Xᴿ?
+      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
+  → CTI2.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ c′ ⟩)
+rep★-target-id-framed-core a c′ (CTI2.rep★-untagged ())
+rep★-target-id-framed-core a c′ (CTI2.rep★-nonvar-tag Gnv) =
+  CTI2.rep★-nonvar-tag Gnv
+rep★-target-id-framed-core a c′ (CTI2.rep★-var-tag aligned) =
+  CTI2.rep★-var-tag aligned
+rep★-target-id-framed-core a c′
+    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+  CTI2.rep★-matched-inner-tags X₂≢X aligned
+rep★-target-id-framed-core a c′ (CTI2.rep★-round-trip ok) =
+  CTI2.rep★-round-trip (rep★-target-id-framed-core a c′ ok)
+
+
+seal-partner-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
+    {ν ν′ : Env∼ Δᴿ}
+  → (a : Atom A)
+  → (c′ : ν′ ⊢ B ∼ B′)
+  → CTI2.SealPartnerOK W X P R Xᴿ?
+      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
+  → CTI2.SealPartnerOK W X P R Xᴿ? (M′ ⟨ c′ ⟩)
+seal-partner-target-id-framed-core a c′
+    (CTI2.star-rep-target no-target ok) =
+  CTI2.star-rep-target no-target
+    (rep★-target-id-framed-core a c′ ok)
+seal-partner-target-id-framed-core a c′ (CTI2.plain-target ())
+
+
+source-conceal-partner-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A₀ A₁ : Ty Δᴸ} {c : Conv↓ Δᴸ A₀ A₁}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
+    {ν ν′ : Env∼ Δᴿ}
+  → (a : Atom A)
+  → (c′ : ν′ ⊢ B ∼ B′)
+  → CTI2.SourceConcealPartnerOK W P c Xᴿ?
+      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
+  → CTI2.SourceConcealPartnerOK W P c Xᴿ? (M′ ⟨ c′ ⟩)
+source-conceal-partner-target-id-framed-core a c′
+    (CTI2.seal-partner-ok ok) =
+  CTI2.seal-partner-ok
+    (seal-partner-target-id-framed-core a c′ ok)
+source-conceal-partner-target-id-framed-core a c′
+    CTI2.fun-conceal-target =
+  CTI2.fun-conceal-target
+source-conceal-partner-target-id-framed-core a c′
+    CTI2.all-conceal-target =
+  CTI2.all-conceal-target
+source-conceal-partner-target-id-framed-core a c′
+    CTI2.id-conceal-target =
+  CTI2.id-conceal-target
+
+
 target-id-step-inversion : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}

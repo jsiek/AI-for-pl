@@ -49,44 +49,10 @@ structural-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
   → (c′<fuel : castSize c′ < fuel)
   → (bound : TargetCastBound fuel rel)
-  → (let child = value-worker vM rel bound
-         plan = StructuralCatchupRightResult.structural-ext child
-         ext = structural-world-extendᴿ plan
-         χs = StructuralCatchupRightResult.χs child
-         cχ = applyConsistencies χs c′
-         cχ<fuel =
-           subst≡ (λ n → n < fuel)
-             (sym (castSize-applyConsistencies χs c′))
-             c′<fuel
-         residual =
-           extra-worker cχ cχ<fuel
-             (CTI2.⊑cast² cχ
-               (StructuralCatchupRightResult.final-relation child)
-               (ECR.transport⊑ᵂ ext q))
-             vM
-             (StructuralCatchupRightResult.final-value child)
-      in ∀ {Δ₀ Δ₀′}
-        {W₀ : World Δᴸ Δᴿ Δ₀}
-        {W₀′ : World Δᴸ
-          (StructuralCatchupRightResult.Δᴿ′ residual) Δ₀′}
-        → StructuralWorldExtendᴿ
-            (StructuralCatchupRightResult.χs child ++χ
-             StructuralCatchupRightResult.χs residual)
-            W₀ W₀′
-        → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
-            {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-        → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M′ ⟨ c′ ⟩)
-        → CTI2.SourceConcealPartnerOK
-            W₀′ P c₀
-            (mapPivotChanges
-              (StructuralCatchupRightResult.χs child ++χ
-               StructuralCatchupRightResult.χs residual)
-              Xᴿ?)
-            (StructuralCatchupRightResult.N′ residual))
   → StructuralCatchupRightResult W γ M (M′ ⟨ c′ ⟩) q
 structural-target-cast-row {fuel = fuel} {γ = γ} {q = q}
-    value-worker extra-worker c′ vM rel c′<fuel bound partner-endpoint =
-  structural-catchup-compose-target-cast c′ child residual partner-endpoint
+    value-worker extra-worker c′ vM rel c′<fuel bound =
+  structural-catchup-compose-target-cast c′ child residual
   where
   child = value-worker vM rel bound
   plan = StructuralCatchupRightResult.structural-ext child
@@ -121,47 +87,11 @@ structural-paired-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
   → (c′<fuel : castSize c′ < fuel)
   → (bound : TargetCastBound fuel rel)
-  → (let child = value-worker vM rel bound
-         plan = StructuralCatchupRightResult.structural-ext child
-         ext = structural-world-extendᴿ plan
-         χs = StructuralCatchupRightResult.χs child
-         cχ = applyConsistencies χs c′
-         cχ<fuel =
-           subst≡ (λ n → n < fuel)
-             (sym (castSize-applyConsistencies χs c′))
-             c′<fuel
-         residual =
-           extra-worker cχ cχ<fuel
-             (CTI2.cast⊑cast² c cχ
-               (StructuralCatchupRightResult.final-relation child)
-               (ECR.transport⊑ᵂ ext q))
-             (vM 《 inert 》)
-             (StructuralCatchupRightResult.final-value child)
-      in ∀ {Δ₀ Δ₀′}
-        {W₀ : World Δᴸ Δᴿ Δ₀}
-        {W₀′ : World Δᴸ
-          (StructuralCatchupRightResult.Δᴿ′ residual) Δ₀′}
-        → StructuralWorldExtendᴿ
-            (StructuralCatchupRightResult.χs child ++χ
-             StructuralCatchupRightResult.χs residual)
-            W₀ W₀′
-        → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
-            {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-        → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ?
-            (M′ ⟨ c′ ⟩)
-        → CTI2.SourceConcealPartnerOK
-            W₀′ P c₀
-            (mapPivotChanges
-              (StructuralCatchupRightResult.χs child ++χ
-               StructuralCatchupRightResult.χs residual)
-              Xᴿ?)
-            (StructuralCatchupRightResult.N′ residual))
   → StructuralCatchupRightResult W γ (M ⟨ c ⟩) (M′ ⟨ c′ ⟩) q
 structural-paired-target-cast-row {fuel = fuel} {γ = γ} {q = q}
-    value-worker extra-worker c c′ vM inert rel c′<fuel bound
-    partner-endpoint =
+    value-worker extra-worker c c′ vM inert rel c′<fuel bound =
   structural-catchup-compose-paired-target-cast
-    c c′ child residual partner-endpoint
+    c c′ child residual
   where
   child = value-worker vM rel bound
   plan = StructuralCatchupRightResult.structural-ext child

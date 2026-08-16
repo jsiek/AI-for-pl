@@ -354,6 +354,18 @@ applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
 applyTys-++ [] ψs A = refl
 applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs (applyTy χ A)
 
+cast-applyConsistencies-++ : ∀ {Δ₀ Δ₁ Δ₂} {μ : Env∼ Δ₀}
+    {A B : Ty Δ₀}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → (c : μ ⊢ A ∼ B)
+  → (M : Term Δ₂)
+  → M ⟨ applyConsistencies ψs (applyConsistencies χs c) ⟩
+      ≡ M ⟨ applyConsistencies (χs ++χ ψs) c ⟩
+cast-applyConsistencies-++ [] ψs c M = refl
+cast-applyConsistencies-++ (χ ∷ χs) ψs c M =
+  cast-applyConsistencies-++ χs ψs (applyConsistency χ c) M
+
 ------------------------------------------------------------------------
 -- Store-changing trace composition
 ------------------------------------------------------------------------

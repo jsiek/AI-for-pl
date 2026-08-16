@@ -63,7 +63,9 @@ open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
 open import proof.DGG.Inversion.TargetWalkDef using
-  (TargetTagSealWalk; TargetSourceStarChain)
+  (TargetTagSealWalk; TargetSourceStarChain;
+   target-source-star-chain-final; target-source-star-chain-residual;
+   target-source-star-chain-paired; target-source-star-chain-payload)
 open import proof.DGG.Inversion.TargetWalkSupport
 
 ------------------------------------------------------------------------
@@ -720,9 +722,65 @@ module _
         (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
       | ra′ | varv-seal {W = U} vU Y∈ refl
       | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
-      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂ =
-    target-source-star-chain sv₀ inert vU mono ra′ sc Xᴸ∈
-      (rebase-target-membership ra′ Y∈) prem₂
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      with inner-source-pivot-eq ra′ q p₂
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂ | refl
+      with target-source-star-chain sv₀ inert vU mono ra′ sc Xᴸ∈
+        (rebase-target-membership ra′ Y∈) prem₂
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-final chain =
+    chain
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-residual refl X∈ᵒ Y∈ᵒ
+          rbᵒ residual =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-paired refl X∈ᵒ Y∈ᵒ rbᵒ residual
+          monoᵒ rbᵒ′ scᵒ partner premᵒ =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-payload refl X∈ᵒ Y∈ᵒ rbᵒ residual
+          monoᵒ rbᵒ′ scᵒ sourcePremᵒ =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc

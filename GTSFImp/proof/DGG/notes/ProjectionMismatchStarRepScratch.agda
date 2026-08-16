@@ -8,13 +8,14 @@ import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans)
 
 open import Types
 open import TyStore using (TyStore; store-empty; store-bind; _∋_⦂_; Z∋)
 open import Consistency using
   (Env∼; X∼★; ★∼X; _⊢_∼_; _⊢★∼_; _↪ᵗ_; empty; keep;
-   id; idᵍ; _!; ？_)
+   toRenameᵗ; id; idᵍ; _!; ？_)
 open import Conversion using (seal)
 open import Imprecision
 open import CastTerms using
@@ -117,30 +118,115 @@ target-untagged-value = $ (κℕ 0)
 target-tagged-value : Value target-tagged
 target-tagged-value = target-untagged-value 《 inj 》
 
-input-relation :
-  probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ probe-p
-input-relation =
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    (λ _ eq → eq)
-    (CTI2.tag-rebase-varᴸ X-Y-rebase)
-    CTI2.same-[]
-    source-X-seal-typed
-    (CTI2.cast⊑cast² ℕ!ˢ ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★)
-    probe-p
+one-rename-zero : ∀ (ρ : 1 ↪ᵗ 1)
+  → toRenameᵗ ρ Fin.zero ≡ Fin.zero
+one-rename-zero (keep empty) = refl
 
--- The unrestricted paired-cast constructor accepts this square.  The left
--- cast checks the abstract X tag, whereas the right cast checks the unrelated
--- Y tag.  The result types are nevertheless related because X and Y share
--- their center variable in probe-world.
-projection-mismatch² :
+one-center-occupied : ∀ {W : World 1 1 1}
+  → CTI2.NoTargetOccupantAtSource W X
+  → ⊥
+one-center-occupied {W = W} no-target =
+  no-target
+    (Y , trans (one-rename-zero (CTI2.ηᴿʷ W))
+              (sym (one-rename-zero (CTI2.ηᴸʷ W))))
+
+target-tagged-partner-empty : ∀ {W : World 1 1 1} {P Xᴿ?}
+  → CTI2.SourceConcealPartnerOK W P (seal X ★) Xᴿ? target-tagged
+  → ⊥
+target-tagged-partner-empty {W = W}
+    (CTI2.seal-partner-ok {X = .X}
+      (CTI2.star-rep-target no-target _)) =
+  one-center-occupied {W = W} no-target
+target-tagged-partner-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+
+source-sealed-target-tagged-empty :
+  ∀ {p : ＇ X ⊑ᵂ⟨ probe-world ⟩ ★}
+  → probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ p
+  → ⊥
+source-sealed-target-tagged-empty
+    (CTI2.conceal⊑² ok _ _ _ _ _ _) =
+  target-tagged-partner-empty ok
+source-sealed-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    with p
+source-sealed-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    | ()
+
+source-tagged-target-tagged-empty :
+  probe-world ∣ [] ⊢² source-term ⟨ X! ⟩
+    ⊑ target-tagged ∶ ★⊑★
+  → ⊥
+source-tagged-target-tagged-empty
+    (CTI2.cast⊑cast² {p = p} _ _ _ _)
+    with p
+source-tagged-target-tagged-empty
+    (CTI2.cast⊑cast² {p = p} _ _ _ _)
+    | ()
+source-tagged-target-tagged-empty
+    (CTI2.cast⊑² _ D _) =
+  source-sealed-target-tagged-empty D
+source-tagged-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    with p
+source-tagged-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    | ()
+
+source-projected-target-tagged-empty :
+  probe-world ∣ [] ⊢² source-term ⟨ X! ⟩ ⟨ X? ⟩
+    ⊑ target-tagged ∶ probe-p
+  → ⊥
+source-projected-target-tagged-empty
+    (CTI2.cast⊑cast² {p = p} _ _ _ _)
+    with p
+source-projected-target-tagged-empty
+    (CTI2.cast⊑cast² {p = p} _ _ _ _)
+    | ()
+source-projected-target-tagged-empty
+    (CTI2.cast⊑² {p = p} _ D _)
+    with p
+source-projected-target-tagged-empty
+    (CTI2.cast⊑² {p = p} _ D _)
+    | ★⊑★ =
+  source-tagged-target-tagged-empty D
+source-projected-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    with p
+source-projected-target-tagged-empty
+    (CTI2.⊑cast² {p = p} _ _ _)
+    | ()
+
+-- RESOLVED-BY-LG1: the unrestricted paired-cast route used to derive this
+-- projection mismatch through source-seal see-through.  The live
+-- `star-rep-target` gate now makes the required source-seal/bare-target
+-- input empty in the one-cell probe world.
+projection-mismatch-empty :
   probe-world ∣ [] ⊢²
     source-term ⟨ X! ⟩ ⟨ X? ⟩
     ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
-projection-mismatch² =
-  CTI2.cast⊑cast² X? Y?
-    (CTI2.cast⊑² X! input-relation ★⊑★) probe-q
+  → ⊥
+projection-mismatch-empty
+    (CTI2.cast⊑cast² {p = p} _ _ D _)
+    with p
+projection-mismatch-empty
+    (CTI2.cast⊑cast² {p = p} _ _ D _)
+    | ★⊑★ =
+  source-tagged-target-tagged-empty D
+projection-mismatch-empty
+    (CTI2.cast⊑² {p = p} _ _ _)
+    with p
+projection-mismatch-empty
+    (CTI2.cast⊑² {p = p} _ _ _)
+    | ()
+projection-mismatch-empty
+    (CTI2.⊑cast² {p = p} _ D _)
+    with p
+projection-mismatch-empty
+    (CTI2.⊑cast² {p = p} _ D _)
+    | X⊑★ refl =
+  source-projected-target-tagged-empty D
 
 source-projection-returns :
   source-term ⟨ X! ⟩ ⟨ X? ⟩
@@ -248,12 +334,13 @@ projection-mismatch-violates-provenance :
 projection-mismatch-violates-provenance (catchup-projection ())
 
 extra-cast-right²-contradiction : ExtraCastRight²
+  → probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ probe-p
   → CatchupCast {W = probe-world} {A = ＇ X}
       probe-p target-tagged Y? probe-q
   → ⊥
-extra-cast-right²-contradiction ecr generated
-    with ecr input-relation source-value target-tagged-value
+extra-cast-right²-contradiction ecr input generated
+    with ecr input source-value target-tagged-value
       Y? probe-q generated
-extra-cast-right²-contradiction ecr generated
+extra-cast-right²-contradiction ecr input generated
     | Δᴿ′ , χs , Δ′ , W′ , ext , N′ , vN′ , M↠N′ , M⊑N′ =
   mismatch-no-value-reduct M↠N′ vN′

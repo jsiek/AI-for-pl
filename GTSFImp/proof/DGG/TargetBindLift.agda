@@ -268,14 +268,26 @@ private
   moveRep★PartnerOK mv (CTI2.rep★-round-trip ok) =
     CTI2.rep★-round-trip (moveRep★PartnerOK mv ok)
 
+  moveNoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵗ : World Δᴸ Δᴿ Δ}
+      {X : TyVar Δᴸ}
+    → TargetStoreMove W Wᵗ
+    → CTI2.NoTargetOccupantAtSource W X
+    → CTI2.NoTargetOccupantAtSource Wᵗ X
+  moveNoTargetOccupantAtSource
+      (target-store-move refl refl same refl hΣ resolve) no-target =
+    no-target
+
   moveSealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
       {W Wᵗ : World Δᴸ Δᴿ Δ}
       {X : TyVar Δᴸ} {P R Xᴿ? M′}
     → TargetStoreMove W Wᵗ
     → CTI2.SealPartnerOK W X P R Xᴿ? M′
     → CTI2.SealPartnerOK Wᵗ X P R Xᴿ? M′
-  moveSealPartnerOK mv (CTI2.star-rep-target ok) =
-    CTI2.star-rep-target (moveRep★PartnerOK mv ok)
+  moveSealPartnerOK mv (CTI2.star-rep-target no-target ok) =
+    CTI2.star-rep-target
+      (moveNoTargetOccupantAtSource mv no-target)
+      (moveRep★PartnerOK mv ok)
   moveSealPartnerOK mv (CTI2.plain-target nt) =
     CTI2.plain-target nt
   moveSealPartnerOK mv CTI2.name-protected-target =

@@ -37,7 +37,7 @@ module proof.DGG.CastTermImprecision2 where
 --     So don't add rules unless they are absolutely necessary!
 --     Avoid rules that are not syntax directed.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ)
@@ -498,6 +498,26 @@ CenterAligned : ∀ {Δᴸ Δᴿ Δ}
 CenterAligned W X Y =
   toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
 
+Occupied : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δ
+  → Set
+Occupied {Δᴿ = Δᴿ} W Z =
+  Σ[ Y ∈ TyVar Δᴿ ] toRenameᵗ (ηᴿʷ W) Y ≡ Z
+
+NoTargetOccupant : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δ
+  → Set
+NoTargetOccupant W Z = Occupied W Z → ⊥
+
+NoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δᴸ
+  → Set
+NoTargetOccupantAtSource W X =
+  NoTargetOccupant W (toRenameᵗ (ηᴸʷ W) X)
+
 data Rep★PartnerOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
@@ -554,6 +574,7 @@ data SealPartnerOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   star-rep-target : ∀ {P Xᴿ? M′}
+    → NoTargetOccupantAtSource W X
     → Rep★PartnerOK W X P Xᴿ? M′
       ------------------------------------
     → SealPartnerOK W X P ★ Xᴿ? M′

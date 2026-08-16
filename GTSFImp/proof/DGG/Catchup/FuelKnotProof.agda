@@ -21,18 +21,20 @@ open import proof.DGG.Catchup.ExtraCastRightAtProof using
   (extra-cast-right-at)
 open import proof.DGG.Catchup.ValueCatchupRightProof using
   (value-catchup-right-prov-at)
-open import proof.DGG.Inversion.RightInjInversion2Lemma using
-  (right-inj-inversion²)
+open import proof.DGG.Inversion.RightInjInversion2Def using
+  (RightInjInversion²)
 
 
 build-fuel-knot-acc :
-    (inst-factory : ∀ fuel
+    RightInjInversion²
+  → (inst-factory : ∀ fuel
       → FuelStepSurface fuel
       → InstCatchupRightAt fuel)
   → (fuel : ℕ)
   → Acc _<_ fuel
   → FuelKnot fuel
-build-fuel-knot-acc inst-factory fuel (acc smaller) =
+build-fuel-knot-acc right-inj-inversion² inst-factory fuel
+    (acc smaller) =
   record
     { extra-cast-at = current-extra
     ; inst-catchup-at = current-inst
@@ -44,13 +46,16 @@ build-fuel-knot-acc inst-factory fuel (acc smaller) =
   fuel-step = record
     { smaller-extra = λ {m} m<fuel →
         FuelKnot.extra-cast-at
-          (build-fuel-knot-acc inst-factory m (smaller m<fuel))
+          (build-fuel-knot-acc right-inj-inversion² inst-factory m
+            (smaller m<fuel))
     ; smaller-inst = λ {m} m<fuel →
         FuelKnot.inst-catchup-at
-          (build-fuel-knot-acc inst-factory m (smaller m<fuel))
+          (build-fuel-knot-acc right-inj-inversion² inst-factory m
+            (smaller m<fuel))
     ; smaller-value = λ {m} m<fuel →
         FuelKnot.value-catchup-at
-          (build-fuel-knot-acc inst-factory m (smaller m<fuel))
+          (build-fuel-knot-acc right-inj-inversion² inst-factory m
+            (smaller m<fuel))
     }
 
   current-inst : InstCatchupRightAt fuel
@@ -62,22 +67,26 @@ build-fuel-knot-acc inst-factory fuel (acc smaller) =
 
 
 build-fuel-knot :
-    (inst-factory : ∀ fuel
+    RightInjInversion²
+  → (inst-factory : ∀ fuel
       → FuelStepSurface fuel
       → InstCatchupRightAt fuel)
   → (fuel : ℕ)
   → FuelKnot fuel
-build-fuel-knot inst-factory fuel =
-  build-fuel-knot-acc inst-factory fuel
+build-fuel-knot right-inj-inversion² inst-factory fuel =
+  build-fuel-knot-acc right-inj-inversion² inst-factory fuel
     (NatInduction.<-wellFounded fuel)
 
 
 value-catchup-right-prov² :
-    (inst-factory : ∀ fuel
+    RightInjInversion²
+  → (inst-factory : ∀ fuel
       → FuelStepSurface fuel
       → InstCatchupRightAt fuel)
   → ValueCatchupRightProv²
-value-catchup-right-prov² inst-factory rel vM vM′ κ q provenance =
+value-catchup-right-prov² right-inj-inversion² inst-factory rel vM
+    vM′ κ q provenance =
   FuelKnot.value-catchup-at
-    (build-fuel-knot inst-factory (suc (columnSize κ)))
+    (build-fuel-knot right-inj-inversion² inst-factory
+      (suc (columnSize κ)))
     rel vM vM′ κ (n<1+n (columnSize κ)) q provenance

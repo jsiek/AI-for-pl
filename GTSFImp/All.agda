@@ -29,7 +29,6 @@ import proof.Reduction
 ------------------------------------------------------------------------
 
 import proof.DGG.CompilePreservesImprecision2
-import proof.DGG.Inversion.RightInjInversion2Lemma
 import proof.DGG.Inversion.SpineValueProof
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
@@ -139,6 +138,7 @@ import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename
+import proof.DGG.Occupancy
 import proof.DGG.WorldSupport
 import proof.DGG.TargetExtend
 import proof.DGG.TargetBindLift

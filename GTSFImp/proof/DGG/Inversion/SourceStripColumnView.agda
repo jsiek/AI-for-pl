@@ -71,6 +71,7 @@ source-column-seal-D-case
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
     | CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned))
     | CTI2.tag-rebase-varᴸ link
     with SPT.var-consistency-view cVar
@@ -80,6 +81,7 @@ source-column-seal-D-case
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
     | CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned))
     | CTI2.tag-rebase-varᴸ link
     | inj₁ refl =
@@ -90,6 +92,7 @@ source-column-seal-D-case
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
     | CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned))
     | CTI2.tag-rebase-varᴸ link
     | inj₂ ()

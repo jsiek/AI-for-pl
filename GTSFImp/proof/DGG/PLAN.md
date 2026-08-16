@@ -856,3 +856,59 @@ occupancy-clean; reduction preserves — allocation atomicity). NO
 changes to the cast imprecision rules. The S-PROV column remains the
 recorded fallback if live migration uncovers an inversion gap the
 mini-relation missed.
+
+## LG-1 IN FLIGHT (branch agent/gtsf-cti-lg1)
+
+Live S-OCC surgery per the adopted design (PR #140): occupancy
+definitions (ηᴿ-image), the NoTargetOccupantAtSource premise on
+star-rep-target, occupancy transport lemmas, consumer migration
+riskiest-first per the V2 table, live negative record replacing
+projection-mismatch². Cast rules untouched. LG-2 (grounding theorems)
+and LG-3 (CatchupCast-family removal, consumers to inversion) follow
+in separate gates on this branch or its successors.
+
+LG-1 COMPLETE (2026-08-15, branch agent/gtsf-cti-lg1, PR #141). The
+occupancy gate is live: Occupied/NoTargetOccupant(AtSource) in
+CastTermImprecision2 + the single premise on star-rep-target — the
+relation diff is exactly the calibrated change. Full gate green;
+notes regression suite green (projection-mismatch² is now a checked
+LIVE emptiness, projection-mismatch-empty). Migration findings: the
+unsound stripped square had been baked into THREE layers of M3
+machinery, each reshaped branch-sensitively (results carry more
+information, never less): SealTransferCore.seal-transfer →
+SealTransferResult; TargetDescentDef's TargetSealTerminal/Reemit
+(de-protected: single-consumer M3-internal); TargetWalkDef/
+TargetChainProof's target-source-star chain (terminus alternatives:
+residual/paired/payload with rebase+partner provenance).
+RightInjInversion2Def passed the producibility scan unchanged — the
+public M3 theorem survives on the strengthened relation. Two M2-era
+probes (ChainRide, TerminusRebuild) had hand-built the forbidden
+shape; both now carry checked emptiness records. Occupancy decision
+helpers live in proof/DGG/Occupancy.agda. NEXT: LG-2 (grounding:
+compile² minting audit-to-theorem, reduction preservation of the
+discipline), then LG-3 (CatchupCast-family removal, consumers to CTI
+inversion per the V1′ model). NS-4 stage 2 remains paused until the
+repair completes.
+
+LG-1 COMPLETE, take 2 (2026-08-16, post-review, rebased on FunExt-free
+main, PR #141). PR review caught LG-1g's three undisclosed
+NON_COVERING pragmas (falsely-green gate); removal exposed that the
+strip-layer statements also leaned on the refuted stripped square. The
+target-strip surfaces were reshaped branch-sensitively (both reviewer
+sites closed for real). The source-worker site (wrap-star-cast-final)
+is closed by USER-APPROVED OPTION A: final-only input view, non-final
+alternatives routed at the already-pragma'd legacy call sites
+(disclosed OPTION-A DEBT comments), consolidating ALL
+SourceStripWorkerProof debt into one scheduled repair (root TODO.md;
+worklist notes/lg1h-legacy-noncovering-inventory.md).
+BUILD RESTRUCTURE (user-designed): --safe is LIVE on All.agda; the
+quarantined closed-form chain (SourceStripColumnView,
+SourceStripWorkerProof, SourceStripLemma, TargetWalkProof,
+TargetWalkLemma, RightInjInversion2Proof, RightInjInversion2Lemma)
+checks under plain agda via LegacyAll.agda (make agda-legacy);
+FuelKnotProof is higher-order over RightInjInversion2Def (knot
+pattern), closed instantiation in the legacy chain; Makefile enforces
+exact NON_COVERING baselines (22/1, zero elsewhere) and the full
+pragma ban. Hygiene bar is now ZERO postulates (FunExt removed on
+main, PR #142). Gate + ten-file notes regression verified by the
+supervisor. NEXT: LG-2 grounding, LG-3 CatchupCast removal.

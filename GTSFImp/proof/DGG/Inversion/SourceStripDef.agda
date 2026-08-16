@@ -315,6 +315,12 @@ SourceColumnStrip =
        × SourceColumnStripBranch W γ V U Xᴸ Y S cY q
            Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
 
+SourceSpineStripWorker : Set
+SourceSpineStripWorker = SourceSpineStrip
+
+SourceColumnStripWorker : Set
+SourceColumnStripWorker = SourceColumnStrip
+
 SourceTagSealCore : Set
 SourceTagSealCore =
   ∀ {Δᴸ Δᴿ Δ}

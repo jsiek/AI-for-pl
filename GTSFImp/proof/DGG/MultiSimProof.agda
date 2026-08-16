@@ -43,23 +43,25 @@ transport-related-target : ∀ {Δᴸ Δᴿ Δ}
 transport-related-target refl related = related
 
 
-sim* : Simᵀ → Sim*ᵀ
-sim* sim parked related ↠-refl =
-  _ , [] , _ , _ , _ , _ , ↠-refl , evolve-refl , related
-sim* sim parked related (↠-step M→N N↠P)
-    with sim parked related M→N
-sim* sim parked related (↠-step M→N N↠P)
-  | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
-    with sim* sim (parked-world-closed parked evol₁) N⊑N′ N↠P
-sim* sim parked related (↠-step M→N N↠P)
-  | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
-  | _ , ψsᴿ , P′ , _ , W″ , q , N′↠P′ , evol₂ , P⊑P′
-    with transport-related-target
-      (applyTys-++ χsᴿ ψsᴿ _) (q , P⊑P′)
-sim* sim parked related (↠-step M→N N↠P)
-  | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
-  | _ , ψsᴿ , P′ , _ , W″ , q , N′↠P′ , evol₂ , P⊑P′
-  | q′ , P⊑P′′ =
-    _ , (χsᴿ ++χ ψsᴿ) , P′ , _ , W″ , q′ ,
-    composeReduction M′↠N′ N′↠P′ ,
-    compose-parked-evolve evol₁ evol₂ , P⊑P′′
+module _ (sim : Simᵀ) where
+
+  sim* : Sim*ᵀ
+  sim* parked related ↠-refl =
+    _ , [] , _ , _ , _ , _ , ↠-refl , evolve-refl , related
+  sim* parked related (↠-step M→N N↠P)
+      with sim parked related M→N
+  sim* parked related (↠-step M→N N↠P)
+    | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
+      with sim* (parked-world-closed parked evol₁) N⊑N′ N↠P
+  sim* parked related (↠-step M→N N↠P)
+    | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
+    | _ , ψsᴿ , P′ , _ , W″ , q , N′↠P′ , evol₂ , P⊑P′
+      with transport-related-target
+        (applyTys-++ χsᴿ ψsᴿ _) (q , P⊑P′)
+  sim* parked related (↠-step M→N N↠P)
+    | _ , χsᴿ , N′ , _ , W′ , _ , M′↠N′ , evol₁ , N⊑N′
+    | _ , ψsᴿ , P′ , _ , W″ , q , N′↠P′ , evol₂ , P⊑P′
+    | q′ , P⊑P′′ =
+      _ , (χsᴿ ++χ ψsᴿ) , P′ , _ , W″ , q′ ,
+      composeReduction M′↠N′ N′↠P′ ,
+      compose-parked-evolve evol₁ evol₂ , P⊑P′′

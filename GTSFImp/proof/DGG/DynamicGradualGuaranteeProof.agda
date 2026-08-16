@@ -11,6 +11,7 @@ module proof.DGG.DynamicGradualGuaranteeProof where
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
+open import Data.Maybe using (nothing)
 open import Data.Product using (_×_; _,_; proj₂; Σ-syntax; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 
@@ -47,7 +48,7 @@ open import proof.DGG.MultiSimBackDef using (SimBack*ᵀ)
 open import proof.DGG.CatchupToLessPreciseDef
   using (CatchupToLessPrecise)
 open import proof.DGG.CatchupToMorePreciseDef
-  using (CatchupToMorePrecise)
+  using (CatchupToMorePrecise; boundary-refl)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction.ValueIrreducibleDef
@@ -133,19 +134,22 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
       | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
         evol₁ , V⊑N′
       with catchup-to-more-precise
-        (parked-world-closed initial-parked evol₁) V⊑N′ vV
+        (parked-world-closed initial-parked evol₁)
+        boundary-refl V⊑N′ vV
   source-value {Δᴸ} V χsᴸ M↠V vV
       | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
         evol₁ , V⊑N′
-      | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , q₂ , N′↠V′ , vV′ ,
-        evol₂ , V⊑V′
+      | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , .W₂ , .nothing ,
+        boundary-refl , q₂ , pivot-map , N′↠V′ , vV′ , evol₂ ,
+        plan₂ , V⊑V′
       with transport-related-target
         (applyTys-++ χsᴿ₁ ψsᴿ _) (q₂ , V⊑V′)
   source-value {Δᴸ} V χsᴸ M↠V vV
       | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
         evol₁ , V⊑N′
-      | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , q₂ , N′↠V′ , vV′ ,
-        evol₂ , V⊑V′
+      | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , .W₂ , .nothing ,
+        boundary-refl , q₂ , pivot-map , N′↠V′ , vV′ , evol₂ ,
+        plan₂ , V⊑V′
       | q , V⊑V′′ =
     Δᴿ₂ , (χsᴿ₁ ++χ ψsᴿ) , V′ , Δ₂ , W₂ , q ,
     composeReduction M′↠N′ N′↠V′ , vV′ , V⊑V′′

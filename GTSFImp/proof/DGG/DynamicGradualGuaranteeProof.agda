@@ -44,7 +44,7 @@ open import proof.DGG.DynamicGradualGuaranteeDef
     )
 open import proof.DGG.SimDef using (Sim*ᵀ)
 open import proof.DGG.SimBackDef using (SimBack*ᵀ)
-open import proof.DGG.CatchupDef using (Catchupᵀ)
+open import proof.DGG.CatchupDef using (CatchupToLessPrecise)
 open import proof.DGG.ValueRightCatchupDef using (ValueRightCatchupᵀ)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
@@ -90,7 +90,7 @@ transport-related-target refl related = related
 dynamic-gradual-guarantee :
     Sim*ᵀ
   → SimBack*ᵀ
-  → Catchupᵀ
+  → CatchupToLessPrecise
   → ValueRightCatchupᵀ
   → TargetBlameCatchupᵀ
   → ValueIrreducible*ᵀ

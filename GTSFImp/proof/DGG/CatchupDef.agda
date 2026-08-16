@@ -20,8 +20,8 @@ open import proof.DGG.Parked.ParkedWorldDef
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
-Catchupᵀ : Set
-Catchupᵀ =
+CatchupToLessPrecise : Set
+CatchupToLessPrecise =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}

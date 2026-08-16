@@ -29,6 +29,7 @@ import proof.Reduction
 ------------------------------------------------------------------------
 
 import proof.DGG.CompilePreservesImprecision2
+import proof.DGG.GroundingMint
 import proof.DGG.Inversion.SpineValueProof
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma

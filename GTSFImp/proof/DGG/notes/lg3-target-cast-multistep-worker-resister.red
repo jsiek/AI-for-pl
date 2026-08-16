@@ -286,3 +286,49 @@ endpoint-partner repair did not require new occupancy-evolution lemmas; the
 existing occupancy helpers remain the available route for future rows that
 must reconstruct a `star-rep-target` branch rather than carry it
 hereditarily.
+
+LG-3k STOP postscript, 2026-08-16:
+
+Attempting the derivation-primary assembly exposes a source-reveal expression
+gap before the target-cast rows are reached.
+
+For the source reveal row:
+
+`CTI2.reveal⊑² mono rb sc c⊢ prem q`
+
+the recursive call on `prem` yields a child result whose carried endpoint
+partner field has the shape:
+
+`SourceConcealPartnerOK Wᵖ P c₀ Xᴿ? M′ →`
+`SourceConcealPartnerOK child.W′ P c₀ (mapPivotChanges child.χs Xᴿ?) child.N′`
+
+The checked `structural-catchup-source-reveal` row, after pulling the child
+trace back across `rb`, requires the assembly caller to supply instead:
+
+`SourceConcealPartnerOK W P c₀ Xᴿ? M′ →`
+`SourceConcealPartnerOK pull.W′ P c₀ (mapPivotChanges child.χs Xᴿ?) child.N′`
+
+The exact missing field is therefore a pre-rebase source-conceal partner
+transformer for source reveal:
+
+`SourceConcealPartnerOK W P c₀ Xᴿ? M′ →`
+`SourceConcealPartnerOK Wᵖ P c₀ Xᴿ? M′`
+
+or equivalently the direct pulled endpoint version above.
+
+This is not a missing proof of a listed target-cast row.  The source-reveal row
+combinator is checked, but its conditional `partner-endpoint` argument is not
+derivable from the current induction hypothesis.  The current
+`StructuralCatchupRightResult.source-conceal-endpoint-partner` field starts at
+the child premise world `Wᵖ`; it does not cover an arbitrary outer world `W`
+related by `RebaseAtᴸ W Wᵖ Xᴸ?`.
+
+Why this is a real field gap: in the `seal` / `star-rep-target` branch,
+`SourceConcealPartnerOK W ...` can depend on
+`NoTargetOccupantAtSource W X`.  A source rebase can move the premise source
+pivot to an aligned target center, so the corresponding
+`NoTargetOccupantAtSource Wᵖ X` is not available from the current row data.
+Thus the recursive result cannot be fed without an explicit rebase-aware
+partner transformer or a stronger carried invariant.
+
+STOP.

@@ -74,6 +74,53 @@ exposed-ground-step-inversion-⊑cast²
     ⦃ C.ground-nonstar Gᵍ ⦄
 
 
+target-expand-cast-witness : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {G B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (Gᵍ : Ground G)
+  → (Bns : NonStar B)
+  → (c : ν ⊢ G ∼ B)
+  → A ⊑ᵂ⟨ W ⟩ ★
+  → A ⊑ᵂ⟨ W ⟩ B
+  → A ⊑ᵂ⟨ W ⟩ G
+target-expand-cast-witness {W = W} Gᵍ Bns c p q =
+  PI.expand-cast-source⊑
+    (C.renameGround (toRenameᵗ (CTI2.ηᴿʷ W)) Gᵍ)
+    (C.renameNonStar (toRenameᵗ (CTI2.ηᴿʷ W)) Bns)
+    (C.renameᵐᶜ (CTI2.ηᴿʷ W) c)
+    p q
+
+
+exposed-expand-step-inversion-⊑cast² : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {G B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    {Gᵍ : Ground G} {★∼G : ν ⊢★∼ G}
+    {Bns : NonStar B}
+    {p : A ⊑ᵂ⟨ W ⟩ ★}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → (c : ν ⊢ G ∼ B)
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → W ∣ γ ⊢² M ⊑
+      M′ ⟨ ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ (idᵍ Gᵍ)
+            ⦃ C.ground-nonstar Gᵍ ⦄ ⟩
+        ⟨ c ⟩
+      ∶ q
+exposed-expand-step-inversion-⊑cast²
+    {W = W} {A = A} {G = G}
+    {Gᵍ = Gᵍ} {★∼G = ★∼G} {Bns = Bns} {p = p} {q = q}
+    c rel =
+  CTI2.⊑cast² c (CTI2.⊑cast² proj rel qG) q
+  where
+  qG : A ⊑ᵂ⟨ W ⟩ G
+  qG = target-expand-cast-witness {W = W} {A = A} {G = G}
+    Gᵍ Bns c p q
+
+  proj : _ ⊢ ★ ∼ _
+  proj = ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ (idᵍ Gᵍ)
+    ⦃ C.ground-nonstar Gᵍ ⦄
+
+
 exposed-id-step-inversion-⊑cast² : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}

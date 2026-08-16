@@ -67,9 +67,6 @@ open import proof.DGG.CatchupToMorePreciseDef
   using
     ( CatchupToMorePrecise
     ; boundary-refl
-    ; boundary-source-reveal
-    ; boundary-source-conceal
-    ; toTagRebaseAtᴸ
     )
 
 ------------------------------------------------------------------------
@@ -730,31 +727,12 @@ module _
 
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase)) M⊑M′ vM
+      step@(pure-step (id-reveal vM)) =
+    src↑ parked rel step
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
-  sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase)) M⊑M′
-        (vM ↓ ConcealValue.seal)
-  sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (conceal-reveal vM)) =
+    src↑ parked rel step
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q)
@@ -770,16 +748,8 @@ module _
 
   sim parked
       rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-conceal vM))
-      with catchup parked (boundary-source-conceal mono rebase) M⊑M′ vM
-  sim parked
-      rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-conceal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-conceal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (id-conceal vM)) =
+    src↓ parked rel step
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
@@ -795,33 +765,12 @@ module _
 
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      with catchup parked
-        (boundary-source-reveal mono
-          (toTagRebaseAtᴸ (rebase-varᴸ rebase))) M⊑M′ vM
+      step@(pure-step (id-reveal vM)) =
+    src↑ parked rel step
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
-  sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      with catchup parked
-        (boundary-source-reveal mono
-          (toTagRebaseAtᴸ (rebase-varᴸ rebase))) M⊑M′
-        (vM ↓ ConcealValue.seal)
-  sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (conceal-reveal vM)) =
+    src↑ parked rel step
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
@@ -837,18 +786,8 @@ module _
 
   sim parked
       rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) (pure-step (id-conceal vM))
-      with catchup parked
-        (boundary-source-conceal mono (tag-rebase-varᴸ rebase))
-        M⊑M′ vM
-  sim parked
-      rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) (pure-step (id-conceal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-conceal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+        M⊑M′ q) step@(pure-step (id-conceal vM)) =
+    src↓ parked rel step
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)

@@ -280,6 +280,60 @@ source-conceal-partner-target-id-framed-core a c′
   CTI2.id-conceal-target
 
 
+matched-conceal-partner-target-id-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (a : Atom B)
+  → CTI2.MatchedConcealPartnerOK W P c Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
+  → CTI2.MatchedConcealPartnerOK W P c Xᴿ? M′
+matched-conceal-partner-target-id-core a
+    (CTI2.matched-seal-star-partner ok) =
+  ⊥-elim (rep★-target-id-impossible a ok)
+matched-conceal-partner-target-id-core a
+    (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+matched-conceal-partner-target-id-core a
+    CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+matched-conceal-partner-target-id-core a
+    CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+matched-conceal-partner-target-id-core a
+    CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
+
+
+matched-conceal-partner-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A₀ A₁ : Ty Δᴸ} {c : Conv↓ Δᴸ A₀ A₁}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
+    {ν ν′ : Env∼ Δᴿ}
+  → (a : Atom A)
+  → (c′ : ν′ ⊢ B ∼ B′)
+  → CTI2.MatchedConcealPartnerOK W P c Xᴿ?
+      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
+  → CTI2.MatchedConcealPartnerOK W P c Xᴿ? (M′ ⟨ c′ ⟩)
+matched-conceal-partner-target-id-framed-core a c′
+    (CTI2.matched-seal-star-partner ok) =
+  CTI2.matched-seal-star-partner
+    (rep★-target-id-framed-core a c′ ok)
+matched-conceal-partner-target-id-framed-core a c′
+    (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+matched-conceal-partner-target-id-framed-core a c′
+    CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+matched-conceal-partner-target-id-framed-core a c′
+    CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+matched-conceal-partner-target-id-framed-core a c′
+    CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
+
+
 target-id-step-inversion : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}

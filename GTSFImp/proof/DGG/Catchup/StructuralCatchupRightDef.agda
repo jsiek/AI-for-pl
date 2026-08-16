@@ -94,6 +94,27 @@ record StructuralCatchupRightResult {Δᴸ Δᴿ Δ}
       → CTI2.SourceConcealPartnerOK W₀′ P c₀
           (mapPivotChanges χs Xᴿ?)
           (N′ ⟨ applyConsistencies χs c′ ⟩)
+    matched-conceal-endpoint-partner : ∀ {Δ₀ Δ₀′}
+        {W₀ : World Δᴸ Δᴿ Δ₀}
+        {W₀′ : World Δᴸ Δᴿ′ Δ₀′}
+      → StructuralWorldExtendᴿ χs W₀ W₀′
+      → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+          {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M″
+      → CTI2.MatchedConcealPartnerOK W₀′ P c
+          (mapPivotChanges χs Xᴿ?) N′
+    matched-conceal-endpoint-partner-target-cast : ∀ {Δ₀ Δ₀′}
+        {W₀ : World Δᴸ Δᴿ Δ₀}
+        {W₀′ : World Δᴸ Δᴿ′ Δ₀′}
+      → StructuralWorldExtendᴿ χs W₀ W₀′
+      → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+          {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+          {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      → (c′ : ν ⊢ B₀ ∼ B)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+      → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+          (mapPivotChanges χs Xᴿ?)
+          (N′ ⟨ applyConsistencies χs c′ ⟩)
 
 
 erase-structural-catchup-result : ∀ {Δᴸ Δᴿ Δ}
@@ -160,6 +181,33 @@ structural-partner-target-cast-refl : ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
 structural-partner-target-cast-refl structural-[] c′ ok = ok
 
 
+structural-matched-partner-refl : ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
+    {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ Δ₀′}
+    {M : Term Δᴿ}
+  → StructuralWorldExtendᴿ [] W₀ W₀′
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+  → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M
+  → CTI2.MatchedConcealPartnerOK W₀′ P c
+      (mapPivotChanges [] Xᴿ?) M
+structural-matched-partner-refl structural-[] ok = ok
+
+
+structural-matched-partner-target-cast-refl :
+    ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
+    {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ Δ₀′}
+    {M : Term Δᴿ}
+  → StructuralWorldExtendᴿ [] W₀ W₀′
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (c′ : ν ⊢ B₀ ∼ B)
+  → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M ⟨ c′ ⟩)
+  → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+      (mapPivotChanges [] Xᴿ?) (M ⟨ applyConsistencies [] c′ ⟩)
+structural-matched-partner-target-cast-refl structural-[] c′ ok = ok
+
+
 structural-partner-keep-step : ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
     {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ Δ₀′}
     {M N : Term Δᴿ}
@@ -198,6 +246,48 @@ structural-partner-keep-step-target-cast : ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
       (N ⟨ applyConsistencies (keep ∷ []) c′ ⟩)
 structural-partner-keep-step-target-cast partner-step-target-cast
     (structural-keep structural-[]) c′ ok =
+  partner-step-target-cast c′ ok
+
+
+structural-matched-partner-keep-step : ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
+    {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ Δ₀′}
+    {M N : Term Δᴿ}
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? N)
+  → (plan : StructuralWorldExtendᴿ (keep ∷ []) W₀ W₀′)
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+  → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M
+  → CTI2.MatchedConcealPartnerOK
+      W₀′ P c (mapPivotChanges (keep ∷ []) Xᴿ?) N
+structural-matched-partner-keep-step partner-step
+    (structural-keep structural-[]) ok =
+  partner-step ok
+
+
+structural-matched-partner-keep-step-target-cast :
+    ∀ {Δᴸ Δᴿ Δ₀ Δ₀′}
+    {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ Δ₀′}
+    {M N : Term Δᴿ}
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      → (c′ : ν ⊢ B₀ ∼ B)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M ⟨ c′ ⟩)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (N ⟨ c′ ⟩))
+  → (plan : StructuralWorldExtendᴿ (keep ∷ []) W₀ W₀′)
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (c′ : ν ⊢ B₀ ∼ B)
+  → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M ⟨ c′ ⟩)
+  → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+      (mapPivotChanges (keep ∷ []) Xᴿ?)
+      (N ⟨ applyConsistencies (keep ∷ []) c′ ⟩)
+structural-matched-partner-keep-step-target-cast
+    partner-step-target-cast (structural-keep structural-[]) c′ ok =
   partner-step-target-cast c′ ok
 
 
@@ -377,6 +467,39 @@ structural-source-partner-nested-target-cast plan d′ c′
   CTI2.id-conceal-target
 
 
+structural-matched-partner-nested-target-cast : ∀
+    {Δᴸ Δᴿ Δᴿ′ Δ₀ Δ₀′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W₀ : World Δᴸ Δᴿ Δ₀} {W₀′ : World Δᴸ Δᴿ′ Δ₀′}
+  → StructuralWorldExtendᴿ χs W₀ W₀′
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {M : Term Δᴿ} {N : Term Δᴿ′}
+      {B₀ B C₀ C : Ty Δᴿ} {ν₀ ν : Env∼ Δᴿ}
+  → (d′ : ν₀ ⊢ B₀ ∼ B)
+  → (c′ : ν ⊢ C₀ ∼ C)
+  → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ?
+      ((M ⟨ d′ ⟩) ⟨ c′ ⟩)
+  → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+      (mapPivotChanges χs Xᴿ?) (N ⟨ applyConsistencies χs c′ ⟩)
+structural-matched-partner-nested-target-cast plan d′ c′
+    (CTI2.matched-seal-star-partner ok) =
+  CTI2.matched-seal-star-partner
+    (structural-rep★-nested-target-cast plan d′ c′ ok)
+structural-matched-partner-nested-target-cast plan d′ c′
+    (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+structural-matched-partner-nested-target-cast plan d′ c′
+    CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+structural-matched-partner-nested-target-cast plan d′ c′
+    CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+structural-matched-partner-nested-target-cast plan d′ c′
+    CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
+
+
 structural-catchup-refl : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {N′ : Term Δᴿ}
@@ -402,6 +525,9 @@ structural-catchup-refl {Δᴿ = Δᴿ} {Δ = Δ} {W = W} {γ = γ}
     ; source-conceal-endpoint-partner = structural-partner-refl
     ; source-conceal-endpoint-partner-target-cast =
         structural-partner-target-cast-refl
+    ; matched-conceal-endpoint-partner = structural-matched-partner-refl
+    ; matched-conceal-endpoint-partner-target-cast =
+        structural-matched-partner-target-cast-refl
     }
 
 
@@ -425,10 +551,23 @@ structural-catchup-keep-step : ∀ {Δᴸ Δᴿ Δ}
       → (c′ : ν ⊢ B₀ ∼ B)
       → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
       → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ? (N′ ⟨ c′ ⟩))
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M″
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? N′)
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      → (c′ : ν ⊢ B₀ ∼ B)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (N′ ⟨ c′ ⟩))
   → StructuralCatchupRightResult W γ M M″ q
 structural-catchup-keep-step {Δᴿ = Δᴿ} {Δ = Δ} {W = W} {γ = γ}
     {M = M} {M″ = M″} {N′ = N′} {q = q}
-    vN′ step rel partner-step partner-step-target-cast =
+    vN′ step rel partner-step partner-step-target-cast
+    matched-step matched-step-target-cast =
   record
     { Δᴿ′ = Δᴿ
     ; χs = keep ∷ []
@@ -447,6 +586,11 @@ structural-catchup-keep-step {Δᴿ = Δᴿ} {Δ = Δ} {W = W} {γ = γ}
         structural-partner-keep-step partner-step
     ; source-conceal-endpoint-partner-target-cast =
         structural-partner-keep-step-target-cast partner-step-target-cast
+    ; matched-conceal-endpoint-partner =
+        structural-matched-partner-keep-step matched-step
+    ; matched-conceal-endpoint-partner-target-cast =
+        structural-matched-partner-keep-step-target-cast
+          matched-step-target-cast
     }
 
 
@@ -478,6 +622,11 @@ structural-catchup-source-cast {q = q} c result = record
       StructuralCatchupRightResult.source-conceal-endpoint-partner result
   ; source-conceal-endpoint-partner-target-cast =
       StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
+        result
+  ; matched-conceal-endpoint-partner =
+      StructuralCatchupRightResult.matched-conceal-endpoint-partner result
+  ; matched-conceal-endpoint-partner-target-cast =
+      StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
         result
   }
 
@@ -534,6 +683,13 @@ structural-catchup-target-inert-cast {q = q}
   ; source-conceal-endpoint-partner-target-cast =
       λ plan d′ ok →
         structural-source-partner-nested-target-cast plan c′ d′ ok
+  ; matched-conceal-endpoint-partner =
+      λ plan ok →
+        StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
+          result plan c′ ok
+  ; matched-conceal-endpoint-partner-target-cast =
+      λ plan d′ ok →
+        structural-matched-partner-nested-target-cast plan c′ d′ ok
   }
 
 
@@ -581,6 +737,11 @@ structural-catchup-source-reveal {γ = γ} {q = q}
         StructuralCatchupRightResult.source-conceal-endpoint-partner child
     ; source-conceal-endpoint-partner-target-cast =
         StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
+          child
+    ; matched-conceal-endpoint-partner =
+        StructuralCatchupRightResult.matched-conceal-endpoint-partner child
+    ; matched-conceal-endpoint-partner-target-cast =
+        StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
           child
     }
 
@@ -637,6 +798,11 @@ structural-catchup-source-conceal {γ = γ} {q = q}
     ; source-conceal-endpoint-partner-target-cast =
         StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
           child
+    ; matched-conceal-endpoint-partner =
+        StructuralCatchupRightResult.matched-conceal-endpoint-partner child
+    ; matched-conceal-endpoint-partner-target-cast =
+        StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
+          child
     }
 
 
@@ -687,6 +853,9 @@ structural-catchup-compose {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {γ = γ}
     ; source-conceal-endpoint-partner = partner-compose
     ; source-conceal-endpoint-partner-target-cast =
         partner-compose-target-cast
+    ; matched-conceal-endpoint-partner = matched-compose
+    ; matched-conceal-endpoint-partner-target-cast =
+        matched-compose-target-cast
     }
   where
   χs₁ = StructuralCatchupRightResult.χs result₁
@@ -759,6 +928,68 @@ structural-catchup-compose {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {γ = γ}
           (StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
             result₁ prefix c′ ok)))
 
+  matched-compose : ∀ {Δ₀ Δ₀′}
+      {W₀ : World Δᴸ Δᴿ Δ₀}
+      {W₀′ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ result₂) Δ₀′}
+    → StructuralWorldExtendᴿ (χs₁ ++χ χs₂) W₀ W₀′
+    → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+        {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+    → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M₀
+    → CTI2.MatchedConcealPartnerOK W₀′ P c
+        (mapPivotChanges (χs₁ ++χ χs₂) Xᴿ?)
+        (StructuralCatchupRightResult.N′ result₂)
+  matched-compose {W₀′ = W₀′} plan
+      {P = P} {c = c} {Xᴿ? = Xᴿ?} ok
+      with splitStructuralWorldExtendᴿ χs₁ plan
+  matched-compose {W₀′ = W₀′} plan
+      {P = P} {c = c} {Xᴿ? = Xᴿ?} ok
+      | record { prefix-plan = prefix ; suffix-plan = suffix } =
+    subst≡
+      (λ pivot → CTI2.MatchedConcealPartnerOK W₀′ P c pivot
+        (StructuralCatchupRightResult.N′ result₂))
+      (sym (mapPivotChanges-++ χs₁ χs₂ Xᴿ?))
+      (StructuralCatchupRightResult.matched-conceal-endpoint-partner
+        result₂ suffix
+        (StructuralCatchupRightResult.matched-conceal-endpoint-partner
+          result₁ prefix ok))
+
+  matched-compose-target-cast : ∀ {Δ₀ Δ₀′}
+      {W₀ : World Δᴸ Δᴿ Δ₀}
+      {W₀′ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ result₂) Δ₀′}
+    → StructuralWorldExtendᴿ (χs₁ ++χ χs₂) W₀ W₀′
+    → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+        {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+        {C₀ C : Ty Δᴿ} {ν : Env∼ Δᴿ}
+    → (c′ : ν ⊢ C₀ ∼ C)
+    → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M₀ ⟨ c′ ⟩)
+    → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+        (mapPivotChanges (χs₁ ++χ χs₂) Xᴿ?)
+        (StructuralCatchupRightResult.N′ result₂
+          ⟨ applyConsistencies (χs₁ ++χ χs₂) c′ ⟩)
+  matched-compose-target-cast {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} c′ ok
+      with splitStructuralWorldExtendᴿ χs₁ plan
+  matched-compose-target-cast {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} c′ ok
+      | record { prefix-plan = prefix ; suffix-plan = suffix } =
+    subst≡
+      (λ pivot → CTI2.MatchedConcealPartnerOK W₀′ P c₀ pivot
+        (StructuralCatchupRightResult.N′ result₂
+          ⟨ applyConsistencies (χs₁ ++χ χs₂) c′ ⟩))
+      (sym (mapPivotChanges-++ χs₁ χs₂ Xᴿ?))
+      (subst≡
+        (λ target → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+          (mapPivotChanges χs₂ (mapPivotChanges χs₁ Xᴿ?))
+          target)
+        (cast-applyConsistencies-++ χs₁ χs₂ c′
+          (StructuralCatchupRightResult.N′ result₂))
+        (StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
+          result₂ suffix (applyConsistencies χs₁ c′)
+          (StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
+            result₁ prefix c′ ok)))
+
 
 structural-catchup-compose-target-cast : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -811,6 +1042,10 @@ structural-catchup-compose-target-cast {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ; source-conceal-endpoint-partner-target-cast =
         λ plan d′ ok →
           structural-source-partner-nested-target-cast plan c′ d′ ok
+    ; matched-conceal-endpoint-partner = matched-endpoint
+    ; matched-conceal-endpoint-partner-target-cast =
+        λ plan d′ ok →
+          structural-matched-partner-nested-target-cast plan c′ d′ ok
     }
   where
   χs₁ = StructuralCatchupRightResult.χs child
@@ -845,6 +1080,32 @@ structural-catchup-compose-target-cast {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       (StructuralCatchupRightResult.source-conceal-endpoint-partner
         residual suffix
         (StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
+          child prefix c′ ok))
+
+  matched-endpoint : ∀ {Δ₀ Δ₀′}
+      {W₀ : World Δᴸ Δᴿ Δ₀}
+      {W₀′ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ residual) Δ₀′}
+    → StructuralWorldExtendᴿ (χs₁ ++χ χs₂) W₀ W₀′
+    → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+        {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+    → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M₀ ⟨ c′ ⟩)
+    → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+        (mapPivotChanges (χs₁ ++χ χs₂) Xᴿ?)
+        (StructuralCatchupRightResult.N′ residual)
+  matched-endpoint {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} ok
+      with splitStructuralWorldExtendᴿ χs₁ plan
+  matched-endpoint {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} ok
+      | record { prefix-plan = prefix ; suffix-plan = suffix } =
+    subst≡
+      (λ pivot → CTI2.MatchedConcealPartnerOK W₀′ P c₀ pivot
+        (StructuralCatchupRightResult.N′ residual))
+      (sym (mapPivotChanges-++ χs₁ χs₂ Xᴿ?))
+      (StructuralCatchupRightResult.matched-conceal-endpoint-partner
+        residual suffix
+        (StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
           child prefix c′ ok))
 
 
@@ -901,6 +1162,10 @@ structural-catchup-compose-paired-target-cast {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     ; source-conceal-endpoint-partner-target-cast =
         λ plan d′ ok →
           structural-source-partner-nested-target-cast plan c′ d′ ok
+    ; matched-conceal-endpoint-partner = matched-endpoint
+    ; matched-conceal-endpoint-partner-target-cast =
+        λ plan d′ ok →
+          structural-matched-partner-nested-target-cast plan c′ d′ ok
     }
   where
   χs₁ = StructuralCatchupRightResult.χs child
@@ -935,6 +1200,32 @@ structural-catchup-compose-paired-target-cast {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
       (StructuralCatchupRightResult.source-conceal-endpoint-partner
         residual suffix
         (StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast
+          child prefix c′ ok))
+
+  matched-endpoint : ∀ {Δ₀ Δ₀′}
+      {W₀ : World Δᴸ Δᴿ Δ₀}
+      {W₀′ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ residual) Δ₀′}
+    → StructuralWorldExtendᴿ (χs₁ ++χ χs₂) W₀ W₀′
+    → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+        {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+    → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M₀ ⟨ c′ ⟩)
+    → CTI2.MatchedConcealPartnerOK W₀′ P c₀
+        (mapPivotChanges (χs₁ ++χ χs₂) Xᴿ?)
+        (StructuralCatchupRightResult.N′ residual)
+  matched-endpoint {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} ok
+      with splitStructuralWorldExtendᴿ χs₁ plan
+  matched-endpoint {W₀′ = W₀′} plan
+      {P = P} {c₀ = c₀} {Xᴿ? = Xᴿ?} ok
+      | record { prefix-plan = prefix ; suffix-plan = suffix } =
+    subst≡
+      (λ pivot → CTI2.MatchedConcealPartnerOK W₀′ P c₀ pivot
+        (StructuralCatchupRightResult.N′ residual))
+      (sym (mapPivotChanges-++ χs₁ χs₂ Xᴿ?))
+      (StructuralCatchupRightResult.matched-conceal-endpoint-partner
+        residual suffix
+        (StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
           child prefix c′ ok))
 
 

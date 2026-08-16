@@ -5,39 +5,15 @@ module proof.DGG.Catchup.StructuralWorldTagRebaseDef where
 --   * Tracks the target pivot through every target-side store change.
 
 open import Data.Maybe using (Maybe)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (TyVar)
-open import Consistency using (toRenameᵗ; wk↪ᵗ)
 open import Reduction using
-  (StoreChanges; []; _∷_; keep; bind)
-open import proof.Reduction using (_++χ_)
+  (StoreChanges)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.TargetExtend as TE
-open import proof.DGG.Catchup.StructuralWorldExtendDef
-
-
-mapPivotChanges : ∀ {Δ Δ′}
-  → StoreChanges Δ Δ′
-  → Maybe (TyVar Δ)
-  → Maybe (TyVar Δ′)
-mapPivotChanges [] pivot = pivot
-mapPivotChanges (keep ∷ χs) pivot = mapPivotChanges χs pivot
-mapPivotChanges (bind A ∷ χs) pivot =
-  mapPivotChanges χs (TE.mapPivot (toRenameᵗ wk↪ᵗ) pivot)
-
-
-mapPivotChanges-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → (pivot : Maybe (TyVar Δ₀))
-  → mapPivotChanges (χs ++χ ψs) pivot
-      ≡ mapPivotChanges ψs (mapPivotChanges χs pivot)
-mapPivotChanges-++ [] ψs pivot = refl
-mapPivotChanges-++ (keep ∷ χs) ψs pivot =
-  mapPivotChanges-++ χs ψs pivot
-mapPivotChanges-++ (bind A ∷ χs) ψs pivot =
-  mapPivotChanges-++ χs ψs (TE.mapPivot (toRenameᵗ wk↪ᵗ) pivot)
+open import proof.DGG.Catchup.StructuralWorldExtendDef public using
+  (StructuralWorldExtendᴿ; mapPivotChanges; mapPivotChanges-++;
+   mapVarChanges)
 
 
 record StructuralTagRebaseAtᴸResult

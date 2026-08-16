@@ -1,52 +1,45 @@
-module proof.DGG.Catchup.ColumnSupportProof where
+module proof.DGG.Catchup.FuelSupportProof where
 
 -- File Charter:
---   * Proves the non-blocked M6 cast-column support lemmas stated in
+--   * Proves the non-column M6 fuel and store-change support lemmas stated in
 --     ValueCatchupRightDef.
---   * Keeps the support proofs independent of the higher-order M4/M5 proof
---     implementations.
---   * Depends on core consistency/reduction, the value-catch-up Def surface,
---     and stage-1 DGG world-extension interfaces.
+--   * Keeps strict cast-size decreases, consistency-size preservation under
+--     store changes, right-world extension composition, context transport
+--     composition, and store-changing reduction composition independent of
+--     the higher-order M4/M5 proof implementations.
+--   * Contains no CastColumn/applyColumn machinery.
 
 import Data.Fin as Fin
 import Data.List as List
-open import Data.Nat using (suc)
 open import Data.Nat.Properties using (n<1+n; ≤-<-trans)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong; cong₂; trans)
+  using (_≡_; refl; cong; cong₂; trans)
   renaming (subst to subst≡)
 
 open import Types
-open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
+open import Consistency using (Env∼; _⊢_∼_; _!)
 open import proof.Consistency using
   (castSize-renameEnvᶜ; castSize-close-inst-≤)
-open import proof.ImprecisionConsistency using
-  (fin-suc-injective; ext-injective; renameᵗ-injective; rename-occurs)
-open import proof.TypeInTermSubst using (rename-star-injective)
-open import proof.Reduction using (applyConsistencies-Inert)
 open import CastTerms using (Term)
 open import Reduction using
-  (StoreChange; StoreChanges; _—→[_]_; _—↠[_]_; keep; bind;
-   []; _∷_; ↠-refl; ↠-step; ξ-⟨⟩; applyConsistency;
-   applyStore; applyTy; applyStores; applyTys)
+  (StoreChange; StoreChanges; _—↠[_]_; keep; bind; []; _∷_;
+   ↠-refl; ↠-step; applyConsistency; applyStore; applyTy;
+   applyStores; applyTys)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
-import proof.Imprecision as PI
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
 open import proof.DGG.Catchup.ValueCatchupRightDef
   using
-    ( castSize; CastColumn; []ᶜ; _▻ᶜ_; columnSize; applyColumn
-    ; mapColumn₁; mapColumn; _++χ_
+    ( castSize; _++χ_
     ; ground-other-decreaseᵀ; project-expand-decreaseᵀ
     ; castSize-↑close-instᵀ; inst-alloc-decreaseᵀ
-    ; columnSize-mapᵀ
     ; composeWorldExtendᴿᵀ; mapCtxᴿ-composeᵀ
-    ; composeReductionᵀ; liftReductionThroughColumnᵀ
+    ; composeReductionᵀ
     )
 
 ------------------------------------------------------------------------
--- Strict-decrease one-step obligations that do not allocate
+-- Strict-decrease one-step obligations
 ------------------------------------------------------------------------
 
 ground-other-decrease : ground-other-decreaseᵀ
@@ -63,7 +56,7 @@ inst-alloc-decrease {c = c} B≢★ =
   ≤-<-trans (castSize-close-inst-≤ c) (n<1+n (castSize c))
 
 ------------------------------------------------------------------------
--- Cast-column size preservation under store changes
+-- Cast-size preservation under store changes
 ------------------------------------------------------------------------
 
 castSize-applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ}
@@ -85,20 +78,6 @@ castSize-applyConsistencies [] c = refl
 castSize-applyConsistencies (χ ∷ χs) c =
   trans (castSize-applyConsistencies χs (applyConsistency χ c))
     (castSize-applyConsistency χ c)
-
-
-columnSize-map₁ : ∀ {Δ Δ′} {A B : Ty Δ}
-  → (χ : StoreChange Δ Δ′)
-  → (κ : CastColumn A B)
-  → columnSize (mapColumn₁ χ κ) ≡ columnSize κ
-columnSize-map₁ χ []ᶜ = refl
-columnSize-map₁ χ (c ▻ᶜ κ)
-  rewrite castSize-applyConsistency χ c | columnSize-map₁ χ κ = refl
-
-columnSize-map : columnSize-mapᵀ
-columnSize-map [] κ = refl
-columnSize-map (χ ∷ χs) κ =
-  trans (columnSize-map χs (mapColumn₁ χ κ)) (columnSize-map₁ χ κ)
 
 ------------------------------------------------------------------------
 -- Store-change append algebra
@@ -157,25 +136,10 @@ mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
     (mapCtxᴿ-compose ext₁ ext₂ γ)
 
 ------------------------------------------------------------------------
--- Store-changing trace composition and column lifting
+-- Store-changing trace composition
 ------------------------------------------------------------------------
 
 composeReduction : composeReductionᵀ
 composeReduction ↠-refl N↠P = N↠P
 composeReduction (↠-step M→N N↠P) P↠Q =
   ↠-step M→N (composeReduction N↠P P↠Q)
-
-liftStepThroughColumn : ∀ {Δ Δ′} {A B : Ty Δ}
-    {χ : StoreChange Δ Δ′} {M : Term Δ} {N : Term Δ′}
-  → (κ : CastColumn A B)
-  → M —→[ χ ] N
-  → applyColumn M κ —→[ χ ] applyColumn N (mapColumn₁ χ κ)
-liftStepThroughColumn []ᶜ M→N = M→N
-liftStepThroughColumn (c ▻ᶜ κ) M→N =
-  liftStepThroughColumn κ (ξ-⟨⟩ M→N refl)
-
-liftReductionThroughColumn : liftReductionThroughColumnᵀ
-liftReductionThroughColumn κ ↠-refl = ↠-refl
-liftReductionThroughColumn κ (↠-step M→N N↠P) =
-  ↠-step (liftStepThroughColumn κ M→N)
-    (liftReductionThroughColumn (mapColumn₁ _ κ) N↠P)

@@ -2,28 +2,26 @@ module proof.DGG.Catchup.ValueCatchupRightDef where
 
 -- File Charter:
 --   * States the M6 value-catch-up foundation surface.
---   * Defines target cast columns, their structural cast measure, and
+--   * Defines the derivation-indexed target-cast fuel bound and the
 --     fuel-indexed worker interfaces for the eventual mutual driver.
---   * Provides Set-level statements for the column support lemmas proved
---     separately in ColumnSupportProof.
+--   * Provides Set-level statements for the non-column support lemmas proved
+--     separately in FuelSupportProof.
 --   * Depends only on core syntax/reduction, stage-1 DGG interfaces, and
 --     the shared target value-spine view.
 
 import Data.Fin as Fin
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_)
+open import Data.Nat using (ℕ; suc; _<_; _≤_)
 open import Data.Product using (Σ-syntax; _×_)
+open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types
 open import Consistency using
-  (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; _↦_; ∀ᶜ_;
-   _!; ？_; inst_; gen_; instᵐ; ↑ᶜ_; close-instᶜ;
-   bot-elim; bot-intro)
+  (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; _!; ？_; inst_; instᵐ;
+   ↑ᶜ_; close-instᶜ)
 open import proof.Consistency using (castSize) public
-open import CastTerms using (Term; Value; Inert; _⟨_⟩)
-open import Reduction using
-  (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;
-   applyTy; applyTys; applyConsistency)
+open import CastTerms using (Term; Value; _⟨_⟩)
+open import Reduction using (StoreChanges; _—↠[_]_; []; _∷_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -31,44 +29,64 @@ open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
--- Cast columns
+-- Derivation target-cast fuel bound
 ------------------------------------------------------------------------
 
-infixr 5 _▻ᶜ_
+-- `TargetCastBound fuel rel` is the columnless replacement for the old
+-- syntactic cast-column size premise: every target-side cast layer embedded in
+-- the CTI derivation `rel` has cast size strictly below `fuel`.  Structural
+-- CTI layers only replay the bound on their premises.
 
-data CastColumn {Δ : TyCtx} : Ty Δ → Ty Δ → Set where
-  []ᶜ : ∀ {A} → CastColumn A A
-  _▻ᶜ_ : ∀ {A B C} {μ : Env∼ Δ}
-    → μ ⊢ A ∼ B
-    → CastColumn B C
-    → CastColumn A C
-
-columnSize : ∀ {Δ} {A B : Ty Δ}
-  → CastColumn A B
+TargetCastBound : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
   → ℕ
-columnSize []ᶜ = zero
-columnSize (c ▻ᶜ κ) = castSize c + columnSize κ
-
-applyColumn : ∀ {Δ} {A B : Ty Δ}
-  → Term Δ
-  → CastColumn A B
-  → Term Δ
-applyColumn M []ᶜ = M
-applyColumn M (c ▻ᶜ κ) = applyColumn (M ⟨ c ⟩) κ
-
-mapColumn₁ : ∀ {Δ Δ′} {A B : Ty Δ}
-  → (χ : StoreChange Δ Δ′)
-  → CastColumn A B
-  → CastColumn (applyTy χ A) (applyTy χ B)
-mapColumn₁ χ []ᶜ = []ᶜ
-mapColumn₁ χ (c ▻ᶜ κ) = applyConsistency χ c ▻ᶜ mapColumn₁ χ κ
-
-mapColumn : ∀ {Δ Δ′} {A B : Ty Δ}
-  → (χs : StoreChanges Δ Δ′)
-  → CastColumn A B
-  → CastColumn (applyTys χs A) (applyTys χs B)
-mapColumn [] κ = κ
-mapColumn (χ ∷ χs) κ = mapColumn χs (mapColumn₁ χ κ)
+  → W ∣ γ ⊢² M ⊑ M′ ∶ q
+  → Set
+TargetCastBound fuel (CTI2.x⊑x² x∈) = ⊤
+TargetCastBound fuel (CTI2.ƛ⊑ƛ² rel) = TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.·⊑·² rel₁ rel₂) =
+  TargetCastBound fuel rel₁ × TargetCastBound fuel rel₂
+TargetCastBound fuel (CTI2.Λ⊑Λ² liftγ vV vV′ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.Λ⊑² Anv z∈A liftγ vV M⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel
+    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV M⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.•⊑•² p∀ rel q r) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.•⊑² p∀ rel q r) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.κ⊑κ² κ p) = ⊤
+TargetCastBound fuel (CTI2.cast⊑cast² c c′ rel q) =
+  castSize c′ < fuel × TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.⊑cast² c′ rel q) =
+  castSize c′ < fuel × TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.⊑reveal² mono rb sameγ c′⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.cast⊑² c rel q) = TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel
+    (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel
+    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel
+    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
+      rel pkg-rel q) =
+  TargetCastBound fuel rel × TargetCastBound fuel pkg-rel
+TargetCastBound fuel (CTI2.blame⊑² M′⊢ p) = ⊤
+TargetCastBound fuel (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
+  TargetCastBound fuel rel₁ × TargetCastBound fuel rel₂
 
 infixr 5 _++χ_
 
@@ -83,26 +101,24 @@ _++χ_ : ∀ {Δ Δ′ Δ″}
 -- Result and driver surfaces
 ------------------------------------------------------------------------
 
--- Value catch-up now consumes the CTI derivation for the full syntactic
--- target cast column.  The proof follows the column syntax and inverts this
--- derivation at each layer; no separate column or cast provenance is carried.
+-- Value catch-up now consumes the CTI derivation for the whole target term.
+-- The derivation itself carries every target-side `⊑cast²`/`cast⊑cast²`
+-- layer; fuel is tracked by `TargetCastBound`, not by a syntactic column.
 
 ValueCatchupRight² : Set
 ValueCatchupRight² = ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
+    {M : Term Δᴸ} {M″ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
   → Value M
-  → Value M′
-  → (κ : CastColumn B B′)
-  → (q : A ⊑ᵂ⟨ W ⟩ B′)
-  → W ∣ γ ⊢² M ⊑ applyColumn M′ κ ∶ q
+  → W ∣ γ ⊢² M ⊑ M″ ∶ q
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
-        × (applyColumn M′ κ —↠[ χs ] N′)
+        × (M″ —↠[ χs ] N′)
         × (W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
             ECR.transport⊑ᵂ ext q))
 
@@ -170,20 +186,18 @@ residual-cast-builderᵀ {q = q} c′ rel = CTI2.⊑cast² c′ rel q
 ValueCatchupRightAt : ℕ → Set
 ValueCatchupRightAt fuel = ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
+    {M : Term Δᴸ} {M″ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
   → Value M
-  → Value M′
-  → (κ : CastColumn B B′)
-  → columnSize κ < fuel
-  → (q : A ⊑ᵂ⟨ W ⟩ B′)
-  → W ∣ γ ⊢² M ⊑ applyColumn M′ κ ∶ q
+  → (rel : W ∣ γ ⊢² M ⊑ M″ ∶ q)
+  → TargetCastBound fuel rel
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
     Σ[ N′ ∈ Term Δᴿ′ ]
       (Value N′
-        × (applyColumn M′ κ —↠[ χs ] N′)
+        × (M″ —↠[ χs ] N′)
         × (W′ ∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
             ECR.transport⊑ᵂ ext q))
 
@@ -200,7 +214,7 @@ record FuelStepSurface (fuel : ℕ) : Set₁ where
     smaller-value : ∀ {m} → m < fuel → ValueCatchupRightAt m
 
 ------------------------------------------------------------------------
--- Strict-decrease and column-support statements
+-- Strict-decrease and support statements
 ------------------------------------------------------------------------
 
 ground-other-decreaseᵀ : Set
@@ -233,12 +247,6 @@ inst-alloc-decreaseᵀ = ∀ {Δ} {ν : Env∼ Δ}
   → (B≢★ : B ≢ ★)
   → castSize (↑ᶜ (close-instᶜ c)) < castSize ((inst c) B≢★)
 
-columnSize-mapᵀ : Set
-columnSize-mapᵀ = ∀ {Δ Δ′} {A B : Ty Δ}
-  → (χs : StoreChanges Δ Δ′)
-  → (κ : CastColumn A B)
-  → columnSize (mapColumn χs κ) ≡ columnSize κ
-
 composeWorldExtendᴿᵀ : Set
 composeWorldExtendᴿᵀ = ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
     {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
@@ -269,10 +277,3 @@ composeReductionᵀ = ∀ {Δ₀ Δ₁ Δ₂}
   → M —↠[ χs ] N
   → N —↠[ ψs ] P
   → M —↠[ χs ++χ ψs ] P
-
-liftReductionThroughColumnᵀ : Set
-liftReductionThroughColumnᵀ = ∀ {Δ Δ′} {A B : Ty Δ}
-    {χs : StoreChanges Δ Δ′} {M : Term Δ} {N : Term Δ′}
-  → (κ : CastColumn A B)
-  → M —↠[ χs ] N
-  → applyColumn M κ —↠[ χs ] applyColumn N (mapColumn χs κ)

@@ -17,7 +17,7 @@ open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
-open import proof.DGG.Catchup.ColumnSupportProof using
+open import proof.DGG.Catchup.FuelSupportProof using
   (composeWorldExtendᴿ)
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 

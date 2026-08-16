@@ -33,7 +33,7 @@ open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
   (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (FuelStepSurface; ResidualCastBuilderᵀ; castSize; inst-alloc-decreaseᵀ)
-open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
+open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 

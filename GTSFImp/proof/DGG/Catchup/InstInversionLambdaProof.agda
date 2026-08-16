@@ -86,7 +86,7 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
-open import proof.DGG.Catchup.ColumnSupportProof using
+open import proof.DGG.Catchup.FuelSupportProof using
   (castSize-applyConsistency; castSize-applyConsistencies)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
   (mapCtxᴿ-sameCtx)

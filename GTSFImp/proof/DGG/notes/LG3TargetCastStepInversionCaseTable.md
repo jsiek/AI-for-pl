@@ -56,9 +56,37 @@ wrapper back into the conclusion.
 | `⊑conceal²` | target conceal peel/replay and absorption |
 | target side under generated all/reveal/conceal spines | LG-1 target peel packages plus `StructuralTargetFrameAbsorptionDef` |
 
-Open cell to validate in Agda:
+## Generated-projection replacement
 
-`core exposed cast classification -> live replacement for generated projection
-provenance`.  The old proof used `GeneratedProjection`/`CatchupCast`.  LG-3
-must recover the same data from the CTI premise plus right-injection inversion
-and occupancy-gated partner inversion.
+The old proof used `GeneratedProjection`/`CatchupCast` to justify target
+projections.  LG-3 recovers the same information from the exposed CTI premise
+and right-injection inversion.
+
+Checked core replacement:
+`proof.DGG.Catchup.GeneratedProjectionReplacementProof`.
+
+For the matched projection step:
+
+`N ⟨ G ! idᵍ ⟩ ⟨ G ? idᵍ ⟩ —→ N`
+
+use `RightInjInversion²` on
+`W ∣ γ ⊢² M ⊑ N ⟨ G ! idᵍ ⟩ ∶ p★`, together with the source value spine, to
+produce `W ∣ γ ⊢² M ⊑ N ∶ qG`.
+
+For projection expansion:
+
+`N ⟨ G ! idᵍ ⟩ ⟨ G ? c ⟩ —→ N ⟨ G ! idᵍ ⟩ ⟨ G ? idᵍ ⟩ ⟨ c ⟩`
+
+first use `RightInjInversion²` to recover `W ∣ γ ⊢² M ⊑ N ∶ qG`.  Rebuild the
+expanded reduct by applying the target projection/tag CTI layers and the
+residual target cast `c`.  The fuel restart for the residual catch-up is
+justified by `project-expand-decreaseᵀ : castSize c < castSize (？ c)`.
+
+For generated target wrappers, the same replacement is used under the
+wrapper-specific peel/absorption surfaces.  Occupancy-gated partner inversion
+is still required only for conceal/seal wrapper replay where transport alone
+does not reconstitute the source-side partner obligation.
+
+Remaining Agda obligation: implement the wrapper-aware theorem that performs
+this recovery for every CTI head in the tables above.  The generated-projection
+provenance object itself is not reintroduced.

@@ -5,6 +5,12 @@ The new surfaces consume:
 
 `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`, `Value M`, and `Value M′`.
 
+2026-08-16 columnless redesign update: the value-catch-up statement now also
+uses `TargetCastBound fuel rel`, a derivation-indexed bound on target-side
+casts.  This removes the separate column peel blocker but does not discharge
+this note: `ExtraCastRightAt` and the target-cast case of value catch-up still
+need the inversion below.
+
 The old proof cannot be mechanically replayed because it used `CatchupCast`
 as a hand-written proof that the target cast redex reduces to a value still
 related to the same source.  For the inversion-based proof we need a live CTI

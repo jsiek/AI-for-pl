@@ -1,23 +1,21 @@
-LG-3 blocked surface: `ValueCatchupRightAt` / M6 fuel knot
+LG-3 column blocker: SUPERSEDED-BY-REDESIGN on 2026-08-16
 
-The CatchupColumn-family premises have been removed from the live statements.
-The new value-catch-up surface consumes:
+The old blocked surface was `ValueCatchupRightAt` / M6 fuel knot with a
+syntactic target `CastColumn`.
 
-`W ∣ γ ⊢² M ⊑ applyColumn M′ κ ∶ q`, `Value M`, `Value M′`, and the syntactic
-`CastColumn`.
+That plan is no longer live.  `CastColumn`, `applyColumn`, `columnSize`,
+`mapColumn`, and `ColumnSupportProof` have been removed from the checked
+surface.  The live value-catch-up surface now consumes a whole CTI derivation:
 
-The old recursion cannot be mechanically replayed because `CatchupColumn` and
-`CatchupColumn⁻` supplied, for every layer, the exact intermediate
-imprecision obligation and the residual-cast admissibility proof.  The
-inversion-based recursion needs a live column peel theorem:
+`Value M`, `rel : W ∣ γ ⊢² M ⊑ M″ ∶ q`, and
+`TargetCastBound fuel rel`.
 
-for `κ = c ▻ᶜ κ′`, invert
-`W ∣ γ ⊢² M ⊑ applyColumn (M′ ⟨ c ⟩) κ′ ∶ q`
-to obtain the head premise required by `ExtraCastRightAt` for `c`, then after
-the head target reduction transport the remaining syntactic column `κ′` and
-continue recursively.
+`TargetCastBound` is a structurally recursive predicate over the CTI
+derivation.  For `⊑cast² c′ rel q` and `cast⊑cast² c c′ rel q` it evaluates
+to `castSize c′ < fuel × TargetCastBound fuel rel`; structural CTI heads
+replay the premise bound; constants and source blame contribute `⊤`.
 
-The M5/NS-4 consumers no longer depend on the deleted column propositions;
-they build residual cast CTI premises directly with `⊑cast²`.  The executable
-M6 knot remains parked until the column peel theorem and the extra-cast proof
-above are available.
+The old column peel theorem is therefore obsolete.  The remaining M6 resister
+is not a column issue: it is the wrapper-aware target-cast-step inversion
+recorded in `lg3-extra-cast-right-blocked.red` and
+`LG3TargetCastStepInversionCaseTable.md`.

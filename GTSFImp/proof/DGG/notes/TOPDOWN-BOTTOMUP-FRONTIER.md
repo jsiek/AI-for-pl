@@ -73,3 +73,30 @@ reduction-theory obligations, likely easy).
   user before the bottom-up work targets the old shape (and vice
   versa: bottom-up statement reshapes — like the columnless redesign —
   should be checked against this list before landing).
+
+## Update 2026-08-16 (PRs #148-#150): the frontier moved substantially
+
+1. FIT TABLE STALE — CatchupToMorePrecise was RESHAPED (+128 lines):
+   it is now boundary-kind-indexed (`CatchupBoundaryKind`:
+   same/source-reveal/source-conceal/target-reveal/target-conceal
+   boundaries) and, notably, imports the NS-4 STRUCTURAL vocabulary
+   (`StructuralWorldExtendᴿ`, `mapPivotChanges`, targetPivot maps of
+   rebases). The top-down side is converging toward the bottom-up
+   structural forms — the meeting point is now much closer to
+   StructuralCatchupRightAt than the old fit assessment assumed.
+   RE-MAP after LG-3 lands.
+2. NEW ASSUMED SURFACES — SimProof (the one-step Simᵀ skeleton, 743
+   lines, PR #149-150) is parameterized over EIGHT closing interfaces:
+   SimPairedFunClosingᵀ, SimPairedAllClosingᵀ, SimSourceAllClosingᵀ,
+   TransportTermImprecisionᴾᵀ, SimSourceRevealᵀ, SimTargetRevealᵀ,
+   SimSourceConcealᵀ, SimTargetConcealᵀ — each a separate Def file,
+   each an independent bottom-up work item (strong parallelism
+   candidates; several look like thin wrappers over the LG-1/NS-4
+   strip/replay machinery).
+3. SimProof still carries 22 OPEN HOLES (committed to main; the file
+   is deliberately partial, not in All.agda) — the remaining sim
+   square cases; PR #150 closed the first six.
+4. PROCESS FLAG: main's `make postulate-check` is RED — the holes in
+   SimProof.agda fail the {! grep. The top-down PRs did not run the
+   gate. Needs a user decision: sanction a declared-WIP location the
+   hygiene check excludes, or require the gate on top-down PRs.

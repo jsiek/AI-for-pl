@@ -39,3 +39,19 @@ record StructuralTagRebaseAtᴸResult
     post-rebase : CTI2.TagRebaseAtᴸ Wᵖ′ W′ Xᴸ?
       (mapPivotChanges χs Xᴿ?)
     post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′
+
+
+record StructuralTagRebaseAtᴸPullbackResult
+    {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
+    {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+    (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?) : Set₁ where
+  field
+    W′ : CTI2.World Δᴸ Δᴿ′ Δ′
+    outer-plan : StructuralWorldExtendᴿ χs W W′
+    post-rebase : CTI2.TagRebaseAtᴸ Wᵖ′ W′ Xᴸ?
+      (mapPivotChanges χs Xᴿ?)
+    post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′

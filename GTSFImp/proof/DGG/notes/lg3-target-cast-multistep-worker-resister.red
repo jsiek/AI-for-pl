@@ -205,3 +205,50 @@ It passes:
 - `agda --safe -v0 All.agda`
 - `agda -v0 LegacyAll.agda`
 - `postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`
+
+LG-3i postscript, 2026-08-16:
+
+The structural pullback/lift blocker recorded above is resolved in the live
+proof modules.
+
+New checked target-insert pullbacks live in `proof/DGG/TargetExtend.agda`:
+
+- `pullbackRebaseAtᴸInsert`
+- `pullbackTagRebaseAtᴸInsert`
+- the underlying `pullbackRebaseAt` / `pullbackReverseRebaseAt` families and
+  their `TargetInsert` builders.
+
+New checked structural trace pullbacks live in:
+
+- `proof/DGG/Catchup/StructuralWorldRebaseProof.agda`:
+  `structural-rebase-atᴸ-pullback`;
+- `proof/DGG/Catchup/StructuralWorldTagRebaseProof.agda`:
+  `structural-tag-rebase-atᴸ-pullback`.
+
+They are proved by recursion over the completed premise trace.  The `keep`
+case preserves the pullback unchanged.  The target-insert cases commute with
+the rebase using the `TargetExtend` insert/rebase interaction lemmas.  In the
+`structural-bind` case the inserted target center is fresh, while the rebase
+pivots are old centers; the proof keeps the fresh bind to the right of the
+old pivot and uses the frozen-target discipline to transport the target store
+equality.
+
+The source reveal row is also checked in
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda` as
+`structural-catchup-source-reveal`: recurse at the premise world, pull the
+premise trace back to the outer world, and replay `CTI2.reveal⊑²` at the
+outer endpoint.
+
+The source conceal row can perform the same structural replay, and the checked
+combinator `structural-catchup-source-conceal` now exposes exactly that
+structure.  It remains conditional on the endpoint partner witness:
+
+`SourceConcealPartnerOK child.W′ M c (mapPivotChanges child.χs Xᴿ?) child.N′`
+
+That endpoint witness is not produced by `StructuralCatchupRightResult`.
+Existing helper families transport `SourceConcealPartnerOK` across world
+renaming/target insertion and peel the local id-cast case, but there is no
+general theorem preserving or rebuilding the seal-partner branch across an
+arbitrary catch-up reduction trace.  The source-conceal endpoint blocker is
+therefore separate from the structural rebase pullback solved above.  See
+`lg3i-source-conceal-endpoint-partner-resister.red`.

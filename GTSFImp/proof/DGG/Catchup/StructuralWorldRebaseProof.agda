@@ -61,3 +61,88 @@ structural-rebase-atᴸ (structural-bind {B = B} ins follows plan) rb
       (trans follows
         (cong (applyStores (bind B ∷ []))
           (sym (CTI2T.rebaseᴸ-target-store rb))))
+
+
+structural-rebase-atᴸ-pullback : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ?}
+  → (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
+  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → StructuralRebaseAtᴸPullbackResult planᵖ rb
+structural-rebase-atᴸ-pullback structural-[] rb = record
+  { W′ = _
+  ; outer-plan = structural-[]
+  ; post-rebase = rb
+  ; post-mono = λ mono → mono
+  }
+structural-rebase-atᴸ-pullback (structural-keep planᵖ) rb
+    with structural-rebase-atᴸ-pullback planᵖ rb
+structural-rebase-atᴸ-pullback (structural-keep planᵖ) rb
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { W′ = W′
+    ; outer-plan = structural-keep plan
+    ; post-rebase = rb′
+    ; post-mono = mono′
+    }
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ) CTI2.rebase-idᴸ
+    with structural-rebase-atᴸ-pullback planᵖ CTI2.rebase-idᴸ
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ) CTI2.rebase-idᴸ
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { W′ = W′
+    ; outer-plan = structural-bind insᵖ followsᵖ plan
+    ; post-rebase = rb′
+    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
+    }
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
+    (CTI2.rebase-varᴸ rb)
+    with structural-rebase-atᴸ-pullback planᵖ
+      (CTI2.rebase-varᴸ (TE.pullbackRebaseAt insᵖ rb))
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
+    (CTI2.rebase-varᴸ rb)
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { W′ = W′
+    ; outer-plan = structural-bind ins follows plan
+    ; post-rebase = rb′
+    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert ins insᵖ mono)
+    }
+  where
+  ins = TE.pullbackRebaseTargetInsert insᵖ rb
+
+  -- The bind center is fresh on the target side.  The source rebase can only
+  -- pivot at an old source/target center, so the pullback uses target
+  -- freezing to commute the old pivot under the fresh `wk` insertion.
+  follows =
+    trans followsᵖ
+      (cong (applyStores (bind B ∷ []))
+        (CTI2T.rebase-target-store rb))
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
+    (CTI2.rebase-onlyᴸ to-star disaligned represented)
+    with structural-rebase-atᴸ-pullback planᵖ
+      (CTI2.rebase-onlyᴸ
+        (TE.insert-to-starᴸ insᵖ to-star)
+        (TE.insert-disalignedᴸ insᵖ disaligned)
+        (TE.insert-represented★ᴸ insᵖ represented))
+structural-rebase-atᴸ-pullback
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
+    (CTI2.rebase-onlyᴸ to-star disaligned represented)
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { W′ = W′
+    ; outer-plan = structural-bind insᵖ followsᵖ plan
+    ; post-rebase = rb′
+    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
+    }

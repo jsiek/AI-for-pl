@@ -8,14 +8,18 @@ module proof.DGG.Catchup.StructuralCatchupRightDef where
 --   * Keeps structural traces internal; no public fuel statement is widened.
 
 import Data.Fin as Fin
+open import Data.Maybe using (Maybe)
 open import Data.Nat using (ℕ; suc; _<_)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyCtx; NonVar; _∈ᵗ_; ★; `∀; ⇑ᵗ)
+open import Types using
+  (Ty; TyCtx; TyVar; NonVar; _∈ᵗ_; ★; `∀; ⇑ᵗ)
 open import Consistency using (Env∼; _⊢_∼_; inst_; instᵐ)
-open import CastTerms using (Term; Value; Inert; _⟨_⟩; _《_》)
+open import Conversion using (Conv↑; Conv↓)
+open import CastTerms using
+  (Term; Value; Inert; _⟨_⟩; _《_》; _↑_; _↓_)
 open import Reduction using (StoreChanges; []; _∷_; keep; _—→[_]_;
   _—↠[_]_; _—→[_]⟨_⟩_; _∎[]; applyConsistencies)
 open import proof.Reduction using
@@ -28,6 +32,13 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
+open import proof.DGG.Catchup.StructuralWorldRebaseProof using
+  (structural-rebase-atᴸ-pullback)
+open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
+open import proof.DGG.Catchup.StructuralWorldTagRebaseProof using
+  (structural-tag-rebase-atᴸ-pullback)
+open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
+  (mapCtxᴿ-sameCtx; structural-source-reveal; structural-source-conceal)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (TargetCastBound; ValueCatchupRight²; ValueCatchupRightAt;
    ExtraCastRightAt; InstCatchupRightAt; castSize)
@@ -205,6 +216,97 @@ structural-catchup-target-inert-cast {q = q} c′ inert result = record
             (StructuralCatchupRightResult.structural-ext result))
           q)
   }
+
+
+structural-catchup-source-reveal : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {c : Conv↑ Δᴸ A A′}
+    {p : A ⊑ᵂ⟨ Wᵖ ⟩ B} {q : A′ ⊑ᵂ⟨ W ⟩ B}
+  → CTI2.ImpEnvMono W Wᵖ
+  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → CTI2.SameCtx γ γᵖ
+  → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+  → StructuralCatchupRightResult Wᵖ γᵖ M M′ p
+  → StructuralCatchupRightResult W γ (M ↑ c) M′ q
+structural-catchup-source-reveal {γ = γ} {q = q}
+    mono rb sc c⊢ child
+    with structural-rebase-atᴸ-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-source-reveal {γ = γ} {q = q}
+    mono rb sc c⊢ child
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { Δᴿ′ = StructuralCatchupRightResult.Δᴿ′ child
+    ; χs = StructuralCatchupRightResult.χs child
+    ; Δ′ = StructuralCatchupRightResult.Δ′ child
+    ; W′ = W′
+    ; structural-ext = plan
+    ; N′ = StructuralCatchupRightResult.N′ child
+    ; final-value = StructuralCatchupRightResult.final-value child
+    ; post-reduction = StructuralCatchupRightResult.post-reduction child
+    ; final-relation =
+        CTI2.reveal⊑² (mono′ mono) rb′
+          (mapCtxᴿ-sameCtx
+            (structural-world-extendᴿ plan)
+            (structural-world-extendᴿ
+              (StructuralCatchupRightResult.structural-ext child))
+            sc)
+          (structural-source-reveal plan c⊢)
+          (StructuralCatchupRightResult.final-relation child)
+          (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
+    }
+
+
+structural-catchup-source-conceal : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {c : Conv↓ Δᴸ A A′}
+    {p : A ⊑ᵂ⟨ Wᵖ ⟩ B} {q : A′ ⊑ᵂ⟨ W ⟩ B}
+  → CTI2.ImpEnvMono W Wᵖ
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → CTI2.SameCtx γ γᵖ
+  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
+  → CTI2.SourceConcealPartnerOK
+      (StructuralCatchupRightResult.W′ child) M c
+      (mapPivotChanges (StructuralCatchupRightResult.χs child) Xᴿ?)
+      (StructuralCatchupRightResult.N′ child)
+  → StructuralCatchupRightResult W γ (M ↓ c) M′ q
+structural-catchup-source-conceal {γ = γ} {q = q}
+    mono rb sc c⊢ child ok
+    with structural-tag-rebase-atᴸ-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-source-conceal {γ = γ} {q = q}
+    mono rb sc c⊢ child ok
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  record
+    { Δᴿ′ = StructuralCatchupRightResult.Δᴿ′ child
+    ; χs = StructuralCatchupRightResult.χs child
+    ; Δ′ = StructuralCatchupRightResult.Δ′ child
+    ; W′ = W′
+    ; structural-ext = plan
+    ; N′ = StructuralCatchupRightResult.N′ child
+    ; final-value = StructuralCatchupRightResult.final-value child
+    ; post-reduction = StructuralCatchupRightResult.post-reduction child
+    ; final-relation =
+        CTI2.conceal⊑² ok (mono′ mono) rb′
+          (mapCtxᴿ-sameCtx
+            (structural-world-extendᴿ plan)
+            (structural-world-extendᴿ
+              (StructuralCatchupRightResult.structural-ext child))
+            sc)
+          (structural-source-conceal plan c⊢)
+          (StructuralCatchupRightResult.final-relation child)
+          (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
+    }
 
 
 structural-catchup-compose : ∀ {Δᴸ Δᴿ Δ}

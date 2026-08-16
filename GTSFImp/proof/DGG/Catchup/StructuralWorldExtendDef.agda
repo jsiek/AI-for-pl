@@ -57,3 +57,16 @@ record StructuralRebaseAtᴸResult {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     premise-plan : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′
     post-rebase : CTI2.RebaseAtᴸ W′ Wᵖ′ Xᴸ?
     post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′
+
+
+record StructuralRebaseAtᴸPullbackResult {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {Wᵖ : World Δᴸ Δᴿ Δ} {Wᵖ′ : World Δᴸ Δᴿ′ Δ′}
+    (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
+    {W : World Δᴸ Δᴿ Δ} {Xᴸ? : Maybe (TyVar Δᴸ)}
+    (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?) : Set₁ where
+  field
+    W′ : World Δᴸ Δᴿ′ Δ′
+    outer-plan : StructuralWorldExtendᴿ χs W W′
+    post-rebase : CTI2.RebaseAtᴸ W′ Wᵖ′ Xᴸ?
+    post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′

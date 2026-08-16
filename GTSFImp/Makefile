@@ -12,14 +12,31 @@ agda-legacy:
 
 # Hygiene: postulates, holes, and termination pragmas are never allowed in
 # live code; notes/ and experimental/ hold scratch work and negative records.
+# DECLARED-WIP ALLOWLIST (user decision 2026-08-16): SimProof.agda is the
+# top-down Simᵀ skeleton, deliberately partial and kept OUT of All.agda;
+# its holes are capped at the baseline below — ratchet the cap DOWN as
+# sim square cases close, and remove the entry when the file has no holes.
 postulate-check:
 	@! grep -rnE 'postulate|\{!|TERMINATING|NON_TERMINATING|NO_POSITIVITY_CHECK|NO_UNIVERSE_CHECK' \
 		--include='*.agda' . \
 		| grep -v '/notes/' \
 		| grep -v '/experimental/' \
+		| grep -v 'proof/DGG/SimProof.agda' \
 		| grep -v '^[^:]*:[0-9]*: *--' \
 		| grep . \
 	|| { echo "postulate-check: FAILED (see matches above)"; exit 1; }
+	@! grep -nE 'postulate|TERMINATING|NON_TERMINATING|NO_POSITIVITY_CHECK|NO_UNIVERSE_CHECK|NON_COVERING' \
+		proof/DGG/SimProof.agda | grep -v '^[0-9]*: *--' | grep . \
+	|| { echo "postulate-check: FAILED (SimProof.agda may carry holes only — no postulates or pragmas)"; exit 1; }
+	@test "$$(grep -o '{!' proof/DGG/SimProof.agda | wc -l)" -le 22 \
+	|| { echo "postulate-check: FAILED (SimProof.agda hole count exceeds the declared-WIP baseline of 22)"; exit 1; }
+	@! grep -rnE '\bproof\.DGG\.SimProof\b' --include='*.agda' . \
+		| grep -v '/notes/' \
+		| grep -v '/experimental/' \
+		| grep -v '^\./proof/DGG/SimProof.agda' \
+		| grep -v '^[^:]*:[0-9]*: *--' \
+		| grep . \
+	|| { echo "postulate-check: FAILED (SimProof.agda is declared-WIP: no live module may import it while it has holes)"; exit 1; }
 	@! grep -rn 'NON_COVERING' --include='*.agda' . \
 		| grep -v '/notes/' \
 		| grep -v '/experimental/' \

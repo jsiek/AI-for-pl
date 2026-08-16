@@ -13,6 +13,7 @@ open import Types using (Ty)
 open import Consistency using (_↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTys)
+open import proof.Reduction using (_++χ_)
 open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -93,3 +94,18 @@ mapCtxᴿ-structural-keep plan γ =
       CTI2.ctx-imp A (applyTys χs B) (ECR.transport⊑ᵂ ext p)
         List.∷ γ′)
       (mapCtxᴿ-prepend-keep ext γ)
+
+
+composeStructuralWorldExtendᴿ : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
+    {W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ}
+    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+  → StructuralWorldExtendᴿ χs W₀ W₁
+  → StructuralWorldExtendᴿ ψs W₁ W₂
+  → StructuralWorldExtendᴿ (χs ++χ ψs) W₀ W₂
+composeStructuralWorldExtendᴿ structural-[] plan₂ = plan₂
+composeStructuralWorldExtendᴿ (structural-keep plan₁) plan₂ =
+  structural-keep (composeStructuralWorldExtendᴿ plan₁ plan₂)
+composeStructuralWorldExtendᴿ (structural-bind ins follows plan₁) plan₂ =
+  structural-bind ins follows (composeStructuralWorldExtendᴿ plan₁ plan₂)

@@ -63,10 +63,10 @@ record StructuralCatchupRightResult {Δᴸ Δᴿ Δ}
       W′ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ structural-ext) γ
         ⊢² M ⊑ N′ ∶
           ECR.transport⊑ᵂ (structural-world-extendᴿ structural-ext) q
-    source-conceal-endpoint-partner : ∀ {A₀ A₁ : Ty Δᴸ}
-        {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W M c Xᴿ? M″
-      → CTI2.SourceConcealPartnerOK W′ M c
+    source-conceal-endpoint-partner : ∀ {P : Term Δᴸ}
+        {A₀ A₁ : Ty Δᴸ} {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c Xᴿ? M″
+      → CTI2.SourceConcealPartnerOK W′ P c
           (mapPivotChanges χs Xᴿ?) N′
 
 
@@ -143,9 +143,10 @@ structural-catchup-keep-step : ∀ {Δᴸ Δᴿ Δ}
   → Value N′
   → M″ —→[ keep ] N′
   → W ∣ γ ⊢² M ⊑ N′ ∶ q
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W M c Xᴿ? M″
-      → CTI2.SourceConcealPartnerOK W M c Xᴿ? N′)
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c Xᴿ? M″
+      → CTI2.SourceConcealPartnerOK W P c Xᴿ? N′)
   → StructuralCatchupRightResult W γ M M″ q
 structural-catchup-keep-step {Δᴿ = Δᴿ} {Δ = Δ} {W = W} {γ = γ}
     {M = M} {M″ = M″} {N′ = N′} {q = q}
@@ -175,11 +176,12 @@ structural-catchup-source-cast : ∀ {Δᴸ Δᴿ Δ}
     {p : A ⊑ᵂ⟨ W ⟩ B} {q : A′ ⊑ᵂ⟨ W ⟩ B}
   → (c : ν ⊢ A ∼ A′)
   → (result : StructuralCatchupRightResult W γ M M″ p)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W (M ⟨ c ⟩) c₀ Xᴿ? M″
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? M″
       → CTI2.SourceConcealPartnerOK
           (StructuralCatchupRightResult.W′ result)
-          (M ⟨ c ⟩) c₀
+          P c₀
           (mapPivotChanges (StructuralCatchupRightResult.χs result) Xᴿ?)
           (StructuralCatchupRightResult.N′ result))
   → StructuralCatchupRightResult W γ (M ⟨ c ⟩) M″ q
@@ -211,11 +213,12 @@ structural-catchup-target-inert-cast : ∀ {Δᴸ Δᴿ Δ}
   → (c′ : ν ⊢ B ∼ B′)
   → Inert c′
   → (result : StructuralCatchupRightResult W γ M M″ p)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W M c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
       → CTI2.SourceConcealPartnerOK
           (StructuralCatchupRightResult.W′ result)
-          M c₀
+          P c₀
           (mapPivotChanges (StructuralCatchupRightResult.χs result) Xᴿ?)
           (StructuralCatchupRightResult.N′ result
             ⟨ applyConsistencies
@@ -260,13 +263,14 @@ structural-catchup-source-reveal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.SameCtx γ γᵖ
   → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
       → let pull = structural-rebase-atᴸ-pullback
               (StructuralCatchupRightResult.structural-ext child) rb
-         in CTI2.SourceConcealPartnerOK W (M ↑ c) c₀ Xᴿ? M′
+         in CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? M′
             → CTI2.SourceConcealPartnerOK
                 (StructuralRebaseAtᴸPullbackResult.W′ pull)
-                (M ↑ c) c₀
+                P c₀
                 (mapPivotChanges
                   (StructuralCatchupRightResult.χs child) Xᴿ?)
                 (StructuralCatchupRightResult.N′ child))
@@ -316,26 +320,25 @@ structural-catchup-source-conceal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → CTI2.SourceConcealPartnerOK
-      (StructuralCatchupRightResult.W′ child) M c
-      (mapPivotChanges (StructuralCatchupRightResult.χs child) Xᴿ?)
-      (StructuralCatchupRightResult.N′ child)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Yᴿ?}
+      Wᵖ M c Xᴿ? M′
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Yᴿ?}
       → let pull = structural-tag-rebase-atᴸ-pullback
               (StructuralCatchupRightResult.structural-ext child) rb
-         in CTI2.SourceConcealPartnerOK W (M ↓ c) c₀ Yᴿ? M′
+         in CTI2.SourceConcealPartnerOK W P c₀ Yᴿ? M′
             → CTI2.SourceConcealPartnerOK
                 (StructuralTagRebaseAtᴸPullbackResult.W′ pull)
-                (M ↓ c) c₀
+                P c₀
                 (mapPivotChanges
                   (StructuralCatchupRightResult.χs child) Yᴿ?)
                 (StructuralCatchupRightResult.N′ child))
   → StructuralCatchupRightResult W γ (M ↓ c) M′ q
 structural-catchup-source-conceal {γ = γ} {q = q}
-    mono rb sc c⊢ child ok partner-endpoint
+    mono rb sc c⊢ child partner partner-endpoint
     with structural-tag-rebase-atᴸ-pullback
       (StructuralCatchupRightResult.structural-ext child) rb
 structural-catchup-source-conceal {γ = γ} {q = q}
-    mono rb sc c⊢ child ok partner-endpoint
+    mono rb sc c⊢ child partner partner-endpoint
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -348,7 +351,10 @@ structural-catchup-source-conceal {γ = γ} {q = q}
     ; final-value = StructuralCatchupRightResult.final-value child
     ; post-reduction = StructuralCatchupRightResult.post-reduction child
     ; final-relation =
-        CTI2.conceal⊑² ok (mono′ mono) rb′
+        CTI2.conceal⊑²
+          (StructuralCatchupRightResult.source-conceal-endpoint-partner
+            child partner)
+          (mono′ mono) rb′
           (mapCtxᴿ-sameCtx
             (structural-world-extendᴿ plan)
             (structural-world-extendᴿ
@@ -405,10 +411,10 @@ structural-catchup-compose {γ = γ} {B = B} {q = q} result₁ result₂ =
                 (ECR.transport⊑ᵂ ext₁ q))
               (StructuralCatchupRightResult.final-relation result₂)))
     ; source-conceal-endpoint-partner =
-        λ {A₀ = A₀} {A₁ = A₁} {c = c} {Xᴿ? = Xᴿ?} ok →
+        λ {P = P} {A₀ = A₀} {A₁ = A₁} {c = c} {Xᴿ? = Xᴿ?} ok →
         subst≡
           (λ pivot → CTI2.SourceConcealPartnerOK
-            (StructuralCatchupRightResult.W′ result₂) _ c pivot
+            (StructuralCatchupRightResult.W′ result₂) P c pivot
             (StructuralCatchupRightResult.N′ result₂))
           (sym (mapPivotChanges-++ χs₁ χs₂ Xᴿ?))
           (StructuralCatchupRightResult.source-conceal-endpoint-partner
@@ -447,11 +453,12 @@ structural-catchup-compose-target-cast : ∀ {Δᴸ Δᴿ Δ}
         (structural-world-extendᴿ
           (StructuralCatchupRightResult.structural-ext child))
         q))
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W M c₀ Xᴿ? (M₀ ⟨ c′ ⟩)
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (M₀ ⟨ c′ ⟩)
       → CTI2.SourceConcealPartnerOK
           (StructuralCatchupRightResult.W′ residual)
-          M c₀
+          P c₀
           (mapPivotChanges
             (StructuralCatchupRightResult.χs child ++χ
              StructuralCatchupRightResult.χs residual)
@@ -518,12 +525,13 @@ structural-catchup-compose-paired-target-cast : ∀ {Δᴸ Δᴿ Δ}
         (structural-world-extendᴿ
           (StructuralCatchupRightResult.structural-ext child))
         q))
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
-      → CTI2.SourceConcealPartnerOK W (M ⟨ c ⟩) c₀ Xᴿ?
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
           (M₀ ⟨ c′ ⟩)
       → CTI2.SourceConcealPartnerOK
           (StructuralCatchupRightResult.W′ residual)
-          (M ⟨ c ⟩) c₀
+          P c₀
           (mapPivotChanges
             (StructuralCatchupRightResult.χs child ++χ
              StructuralCatchupRightResult.χs residual)

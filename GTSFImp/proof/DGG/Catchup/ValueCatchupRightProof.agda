@@ -47,7 +47,8 @@ structural-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
   → (c′<fuel : castSize c′ < fuel)
   → (bound : TargetCastBound fuel rel)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
       → let child = value-worker vM rel bound
             plan = StructuralCatchupRightResult.structural-ext child
             ext = structural-world-extendᴿ plan
@@ -64,9 +65,9 @@ structural-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
                   (ECR.transport⊑ᵂ ext q))
                 vM
                 (StructuralCatchupRightResult.final-value child)
-         in CTI2.SourceConcealPartnerOK W M c₀ Xᴿ? (M′ ⟨ c′ ⟩)
+         in CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ c′ ⟩)
             → CTI2.SourceConcealPartnerOK
-                (StructuralCatchupRightResult.W′ residual) M c₀
+                (StructuralCatchupRightResult.W′ residual) P c₀
                 (mapPivotChanges
                   (StructuralCatchupRightResult.χs child ++χ
                    StructuralCatchupRightResult.χs residual)
@@ -110,7 +111,8 @@ structural-paired-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
   → (c′<fuel : castSize c′ < fuel)
   → (bound : TargetCastBound fuel rel)
-  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+  → (∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
       → let child = value-worker vM rel bound
             plan = StructuralCatchupRightResult.structural-ext child
             ext = structural-world-extendᴿ plan
@@ -127,11 +129,11 @@ structural-paired-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
                   (ECR.transport⊑ᵂ ext q))
                 (vM 《 inert 》)
                 (StructuralCatchupRightResult.final-value child)
-         in CTI2.SourceConcealPartnerOK W (M ⟨ c ⟩) c₀ Xᴿ?
+         in CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
               (M′ ⟨ c′ ⟩)
             → CTI2.SourceConcealPartnerOK
                 (StructuralCatchupRightResult.W′ residual)
-                (M ⟨ c ⟩) c₀
+                P c₀
                 (mapPivotChanges
                   (StructuralCatchupRightResult.χs child ++χ
                    StructuralCatchupRightResult.χs residual)

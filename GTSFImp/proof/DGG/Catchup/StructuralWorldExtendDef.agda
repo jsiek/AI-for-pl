@@ -5,12 +5,12 @@ module proof.DGG.Catchup.StructuralWorldExtendDef where
 --   * Retains center insertion evidence needed by source-wrapper recursion.
 
 import Data.Fin as Fin
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Data.Maybe using (Maybe)
 
 open import Types using (Ty; TyVar)
-open import Consistency using (_↪ᵗ_; wk↪ᵗ; toRenameᵗ)
+open import Consistency using (_↪ᵗ_; keep; wk↪ᵗ; toRenameᵗ)
 open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTys)
@@ -101,6 +101,61 @@ data StructuralWorldExtendᴿ {Δᴸ} :
         applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
     → StructuralWorldExtendᴿ χs W₁ W′
     → StructuralWorldExtendᴿ (bind B ∷ χs) W W′
+
+
+data FrozenEmbedding : ℕ → ∀ {Δ Δ′} → Δ ↪ᵗ Δ′ → Set where
+  frozen-embedding-zero : ∀ {Δ Δ′} {π : Δ ↪ᵗ Δ′}
+    → FrozenEmbedding zero π
+
+  frozen-embedding-keep : ∀ {k Δ Δ′} {π : Δ ↪ᵗ Δ′}
+    → FrozenEmbedding k π
+    → FrozenEmbedding (suc k) (keep π)
+
+
+data FrozenStructuralTraceᴿ {Δᴸ} :
+    ∀ {Δᴿ Δᴿ′ Δ Δ′}
+    → {χs : StoreChanges Δᴿ Δᴿ′}
+    → {W : World Δᴸ Δᴿ Δ}
+    → {W′ : World Δᴸ Δᴿ′ Δ′}
+    → ℕ
+    → StructuralWorldExtendᴿ χs W W′
+    → Set₁ where
+
+  frozen-trace-[] : ∀ {k Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    → FrozenStructuralTraceᴿ k (structural-[] {W = W})
+
+  frozen-trace-keep : ∀ {k Δᴿ Δᴿ′ Δ Δ′}
+      {χs : StoreChanges Δᴿ Δᴿ′}
+      {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+      {plan : StructuralWorldExtendᴿ χs W W′}
+    → FrozenStructuralTraceᴿ k plan
+    → FrozenStructuralTraceᴿ k (structural-keep plan)
+
+  frozen-trace-bind : ∀ {k Δᴿ Δᴿ′ Δ Δ₁ Δ′}
+      {B : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+      {χs : StoreChanges (suc Δᴿ) Δᴿ′}
+      {W : World Δᴸ Δᴿ Δ}
+      {W₁ : World Δᴸ (suc Δᴿ) Δ₁}
+      {W′ : World Δᴸ Δᴿ′ Δ′}
+      {ins : TE.TargetInsert wk↪ᵗ π W W₁}
+      {follows : CTI2.targetStoreʷ W₁ ≡
+        applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)}
+      {plan : StructuralWorldExtendᴿ χs W₁ W′}
+    → FrozenEmbedding k π
+    → FrozenStructuralTraceᴿ k plan
+    → FrozenStructuralTraceᴿ k (structural-bind ins follows plan)
+
+
+frozen-trace-zero : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+  → (plan : StructuralWorldExtendᴿ χs W W′)
+  → FrozenStructuralTraceᴿ zero plan
+frozen-trace-zero structural-[] = frozen-trace-[]
+frozen-trace-zero (structural-keep plan) =
+  frozen-trace-keep (frozen-trace-zero plan)
+frozen-trace-zero (structural-bind ins follows plan) =
+  frozen-trace-bind frozen-embedding-zero (frozen-trace-zero plan)
 
 
 record StructuralRebaseAtᴸResult {Δᴸ Δᴿ Δᴿ′ Δ Δ′}

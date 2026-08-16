@@ -71,3 +71,11 @@ and `structural-smart-liftᴸ` generate.
 
 Per the F2 tripwire, this goal is stopped here.  F3 and F4 can continue
 independently.
+
+2026-08-16 LG-3r postscript:
+
+Option (b) was tested with a checked frozen-prefix predicate on structural
+traces.  The local generated-trace fact checks for `structural-lift-left`, but
+the generic `StructuralCatchupRightResult` still cannot carry a useful
+positive-depth invariant without a refined/generated trace or replay field.
+See `lg3r-frozen-trace-unlift-resister.red`.

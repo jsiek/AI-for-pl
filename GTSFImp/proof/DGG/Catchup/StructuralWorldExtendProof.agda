@@ -112,6 +112,24 @@ composeStructuralWorldExtendᴿ (structural-bind ins follows plan₁) plan₂ =
   structural-bind ins follows (composeStructuralWorldExtendᴿ plan₁ plan₂)
 
 
+frozen-trace-compose : ∀ {k Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
+    {W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ}
+    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+    {plan₁ : StructuralWorldExtendᴿ χs W₀ W₁}
+    {plan₂ : StructuralWorldExtendᴿ ψs W₁ W₂}
+  → FrozenStructuralTraceᴿ k plan₁
+  → FrozenStructuralTraceᴿ k plan₂
+  → FrozenStructuralTraceᴿ k
+      (composeStructuralWorldExtendᴿ plan₁ plan₂)
+frozen-trace-compose frozen-trace-[] frozen₂ = frozen₂
+frozen-trace-compose (frozen-trace-keep frozen₁) frozen₂ =
+  frozen-trace-keep (frozen-trace-compose frozen₁ frozen₂)
+frozen-trace-compose (frozen-trace-bind frozen-ins frozen₁) frozen₂ =
+  frozen-trace-bind frozen-ins (frozen-trace-compose frozen₁ frozen₂)
+
+
 record StructuralWorldExtendSplit {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₂ᵂ}
     {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
     {W₀ : CTI2.World Δᴸ Δ₀ Δ}

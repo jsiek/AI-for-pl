@@ -1,6 +1,6 @@
-LG-3i stop note: source-conceal replay needs endpoint partner preservation
+LG-3i resolved note: source-conceal replay endpoint partner preservation
 
-Status: open as of 2026-08-16.
+Status: resolved on 2026-08-16 by LG-3j.
 
 The supervisor-requested structural pullbacks through `RebaseAtᴸ` and
 `TagRebaseAtᴸ` are tractable and now checked.  No smart-fresh pushout
@@ -58,7 +58,7 @@ shape and occupancy facts.  The current `StructuralCatchupRightResult` records
 the final relation and target value, but it does not record a preservation
 principle turning the original `partner` into the endpoint partner.
 
-Required theorem shape:
+The required theorem shape was:
 
 `sourceConcealPartnerCatchupEndpoint :`
 
@@ -71,9 +71,37 @@ Required theorem shape:
 or an equivalent worker invariant that carries this endpoint witness whenever a
 source-conceal replay may need it.
 
-This is not the refuted smart-fresh pushout inversion.  It is an endpoint
-partner-preservation gap for the source-conceal side condition.  The structural
-pullback lemmas, the reveal row, and the conditional conceal replay combinator
-are checked; the full `StructuralValueCatchupRightAt` and
-`StructuralExtraCastRightAt` factory assembly should stop here until this
-endpoint partner invariant is supplied.
+This was not the refuted smart-fresh pushout inversion.  It was an endpoint
+partner-preservation gap for the source-conceal side condition.
+
+Resolution postscript, 2026-08-16:
+
+`StructuralCatchupRightResult` now carries the internal endpoint-partner
+invariant directly:
+
+`source-conceal-endpoint-partner :`
+`  SourceConcealPartnerOK W P c Xᴿ? M″ →`
+`  SourceConcealPartnerOK W′ P c`
+`    (mapPivotChanges χs Xᴿ?) N′`
+
+The field is source-polymorphic in `P`, so source wrappers can replay a
+premise-row partner for the original source term while unrelated callers pay
+only the conditional argument they actually use.
+
+The checked `structural-catchup-source-conceal` row now takes the original
+row's
+
+`partner : SourceConcealPartnerOK Wᵖ M c Xᴿ? M′`
+
+and replays the outer `CTI2.conceal⊑²` at the child endpoint by applying:
+
+`StructuralCatchupRightResult.source-conceal-endpoint-partner child partner`
+
+This closes the source-conceal replay obstruction recorded here.  No checked
+row exposed a partner-violating reachable endpoint, and no change to the live
+imprecision relation was made.
+
+The remaining LG-3 factory obstruction is separate: the full
+`StructuralValueCatchupRightAt`, `StructuralExtraCastRightAt`, and public fuel
+factory assembly still wait on the structural multi-step target-cast worker
+tracked in `lg3-target-cast-multistep-worker-resister.red`.

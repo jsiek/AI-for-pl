@@ -18,3 +18,10 @@ replay the premise bound; constants and source blame contribute `⊤`.
 The old column peel theorem is therefore obsolete.  The remaining M6 resister
 is not a column issue: it is the structural multi-step target-cast worker
 recorded in `lg3-target-cast-multistep-worker-resister.red`.
+
+Postscript 2026-08-16, LG-3j:
+
+The endpoint-partner field added to `StructuralCatchupRightResult` resolves the
+source-conceal replay side condition, not the old column design.  The remaining
+value catch-up blocker is still the structural multi-step target-cast worker;
+the column theorem remains superseded.

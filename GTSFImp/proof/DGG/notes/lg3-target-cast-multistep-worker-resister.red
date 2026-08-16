@@ -252,3 +252,37 @@ general theorem preserving or rebuilding the seal-partner branch across an
 arbitrary catch-up reduction trace.  The source-conceal endpoint blocker is
 therefore separate from the structural rebase pullback solved above.  See
 `lg3i-source-conceal-endpoint-partner-resister.red`.
+
+LG-3j postscript, 2026-08-16:
+
+The source-conceal endpoint blocker referenced in the LG-3i postscript is
+resolved in the live proof modules.
+
+`StructuralCatchupRightResult` now carries a source-polymorphic conditional
+endpoint-partner field:
+
+`SourceConcealPartnerOK W P c Xᴿ? M″ →`
+`SourceConcealPartnerOK W′ P c (mapPivotChanges χs Xᴿ?) N′`
+
+The source-conceal replay row consumes the original premise-row partner and
+threads it through the child result at the endpoint.  This follows the
+hereditary/carried-invariant pattern for recursive rows; non-seal conceal
+branches remain rebuildable, while seal branches are carried through the
+structural result instead of being reconstructed from an arbitrary target
+shape.  No tag-discipline tripwire was hit.
+
+The checked target-cast row combinators already compose a child structural
+catch-up with the residual extra-cast worker, but they remain higher-order over
+that residual worker.  The full derivation-primary
+`StructuralValueCatchupRightAt` worker and the complete
+`StructuralExtraCastRightAt` worker are therefore still not assembled.  The
+blocking proof obligation is still the structural multi-step target-cast worker
+described at the top of this note: it must normalize target casts through the
+checked exposed/paired cells and replay or absorb wrappers until the endpoint
+relation is directly inhabitable.
+
+LG-2 grounding residual: unchanged and complete for this chunk.  The LG-3j
+endpoint-partner repair did not require new occupancy-evolution lemmas; the
+existing occupancy helpers remain the available route for future rows that
+must reconstruct a `star-rep-target` branch rather than carry it
+hereditarily.

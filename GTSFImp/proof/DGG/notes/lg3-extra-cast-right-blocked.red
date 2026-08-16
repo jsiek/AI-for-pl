@@ -60,3 +60,14 @@ peel/absorption, and the paired ground/expand multi-step re-attachment
 restatement into `StructuralExtraCastRightAt` and
 `StructuralValueCatchupRightAt`, then erase to the public `ExtraCastRightAt`
 and `ValueCatchupRightAt`.
+
+Postscript 2026-08-16, LG-3j endpoint-partner invariant:
+
+The source-conceal endpoint partner side condition is no longer part of this
+blocked surface.  `StructuralCatchupRightResult` now carries the conditional
+endpoint transformer for `SourceConcealPartnerOK`, and the checked
+source-conceal row uses it to replay `CTI2.conceal⊑²` at the child endpoint.
+
+This note remains open only for the structural multi-step target-cast worker
+and the subsequent full assembly of `StructuralExtraCastRightAt`,
+`StructuralValueCatchupRightAt`, and the public erased factory surfaces.

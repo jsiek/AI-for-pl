@@ -932,10 +932,12 @@ All new proofs live in the --safe side of the build.
 
 LG-2 COMPLETE (2026-08-16, PR #143). Grounding is now theorem-level:
 G2-a `GroundingMint.agda` — initialWorld-occupied, the CompileImageWorld
-invariant, the thin minting theorem `compile-mints-cti²` (consumes
-compile-preserves-imprecision²: every gradual source-term imprecision
-derivation lands in the tightened CTI2 at initialWorld), and the
-see-through emptiness theorems for the compile image. G2-b
+invariant, and the see-through emptiness theorems for the compile
+image; the minting connection itself IS the canonical
+compile-preserves-imprecision² (every gradual source-term imprecision
+derivation lands in the tightened CTI2 at initialWorld) — PR #143
+review removed a duplicate-alias restatement of it, per the
+closed-world no-shims convention. G2-b
 `GroundingPreserve.agda` + completed `Occupancy.agda` evolution set —
 allocation atomicity over live β-inst/β-gen (`*-allocation-atomic`:
 the occupying step carries the fresh partnered seal), occupancy

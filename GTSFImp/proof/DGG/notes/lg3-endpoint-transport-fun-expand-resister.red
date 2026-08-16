@@ -1,6 +1,6 @@
 LG-3 endpoint transport resister: paired function source cast / target expand
 
-Status: open as of 2026-08-16.
+Status: RESOLVED-BY-RESTATEMENT as of 2026-08-16.
 
 This blocks supervisor option (a) at the stated generality.  The failing cell
 is the paired target expansion row:
@@ -85,3 +85,28 @@ So both closure routes fail for this cell:
 - the relevant paired CTI premise is inhabited.
 
 No CTI relation change has been made.
+
+RESOLVED-BY-RESTATEMENT postscript, 2026-08-16:
+
+The counterexample refutes the per-step endpoint-transport lemma, not
+catch-up.  The checked calibration in
+`LG3EndpointTransportCounterexampleScratch.agda` now runs the full target
+composite:
+
+`target-star-value ⟨ target-expand-cast ⟩`
+
+to
+
+`target-ground-core ⟨ target-residual ⟩`.
+
+The endpoint is a value, and the final paired relation is inhabited directly:
+
+`paired-expand-end-relation :
+  W ∣ [] ⊢² source-core ⟨ source-cast ⟩
+    ⊑ target-ground-core ⟨ target-residual ⟩ ∶ qB`
+
+The proof uses the paired premise after canceling the generated `G !` layer;
+it does not require an impossible `X ⊑ ★` premise.  The live inversion target
+therefore has to be multi-step/stuttering: ground and expand rows may run the
+target composite to the re-attachment point instead of relating the transient
+one-step midpoint.

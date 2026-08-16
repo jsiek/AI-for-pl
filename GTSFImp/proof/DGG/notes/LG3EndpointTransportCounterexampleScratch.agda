@@ -4,12 +4,14 @@ module LG3EndpointTransportCounterexampleScratch where
 --   * Notes-only LG-3 counterexample scratch.
 --   * Exhibits a non-empty paired `cast⊑cast²` / target `expand` cell where
 --     the requested post-source midpoint witness is not derivable.
+--   * Calibrates the supervisor multi-step ruling: the full target composite
+--     lands at a final inert-cast value that is related by the paired premise.
 --   * Does not edit the live CTI relation or any proof surface.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([]; _∷_)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import TyStore using (store-empty; store-bind)
@@ -21,7 +23,10 @@ open import Imprecision using
    ⇒⊑⇒; ⇒⊑★)
 open import CastTerms using (Term; Value; ƛ_; $; _⟨_⟩; _《_》; inj; fun)
 open import Primitives using (κℕ)
-open import Reduction using (_—→_; expand)
+import Reduction as R
+open import Reduction using
+  (_—→_; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[];
+   keep; pure-step; ξ-⟨⟩; expand; tag-untag)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
@@ -141,3 +146,29 @@ target-expand-step :
 target-expand-step =
   expand target-star-value-value
     (λ ())
+
+target-expand-composite :
+  target-star-value ⟨ target-expand-cast ⟩
+    —↠[ R.keep R.∷ R.keep R.∷ R.[] ]
+  target-ground-core ⟨ target-residual ⟩
+target-expand-composite =
+  target-star-value ⟨ target-expand-cast ⟩
+    —→[ keep ]⟨ pure-step target-expand-step ⟩
+  target-star-value ⟨ ？ (idᵍ ★⇒★) ⟩ ⟨ target-residual ⟩
+    —→[ keep ]⟨
+      ξ-⟨⟩
+        (pure-step
+          (tag-untag target-ground-core-value))
+        refl
+    ⟩
+  target-ground-core ⟨ target-residual ⟩ ∎[]
+
+target-end-value : Value (target-ground-core ⟨ target-residual ⟩)
+target-end-value = target-ground-core-value 《 fun 》
+
+paired-expand-end-relation : W ∣ [] ⊢²
+  source-core ⟨ source-cast ⟩
+  ⊑ target-ground-core ⟨ target-residual ⟩ ∶ qB
+paired-expand-end-relation =
+  CTI2.cast⊑cast² source-cast target-residual
+    source-to-ground-core qB

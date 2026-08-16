@@ -332,3 +332,64 @@ Thus the recursive result cannot be fed without an explicit rebase-aware
 partner transformer or a stronger carried invariant.
 
 STOP.
+
+LG-3l STOP postscript, 2026-08-16:
+
+The supervisor-requested rebase-aware source-conceal partner transformer is
+not total for the live `SourceConcealPartnerOK` surface:
+
+`SourceConcealPartnerOK W P c₀ Xᴿ? M′ →`
+`RebaseAtᴸ W Wᵖ Xᴸ? →`
+`SourceConcealPartnerOK Wᵖ P c₀ Xᴿ? M′`
+
+The obstruction occurs exactly in the sanctioned occupied subcase of
+`star-rep-target`.
+
+Take the input partner branch:
+
+`seal-partner-ok (star-rep-target no-target (rep★-nonvar-tag nonvar-base))`
+
+with source conceal conversion `c₀ = seal X ★` and target endpoint
+
+`M′ = ($ (κℕ 0)) ⟨ ℕ! ⟩`
+
+where `ℕ! : μ ⊢ (‵ `ℕ) ∼ ★`.
+
+Let the source rebase be the moving case
+
+`rebase-varᴸ rb : RebaseAtᴸ W Wᵖ (just X)`
+
+where `W` has no target occupant at the old source center for `X`, while
+`rb : RebaseAt W Wᵖ X Y` aligns the rebased source pivot with target `Y`.
+Then occupancy at the rebased world is decidable and lands occupied:
+
+`occupied-at-source? Wᵖ X = yes (Y , sym (RebaseAt.pivotAligned rb))`
+
+so the original `NoTargetOccupantAtSource W X` must not be transported and the
+`star-rep-target` branch at `Wᵖ` is unavailable.
+
+No other `SealPartnerOK Wᵖ X P ★ Xᴿ? M′` branch can rebuild this shape:
+
+- `plain-target` would require `NotTopTag (($ (κℕ 0)) ⟨ ℕ! ⟩)`, but
+  `NotTopTag` has no constructor for `_⟨_⟩`;
+- `name-protected-target` would require the target term to be a protected
+  target seal under the tag, `(M ↓ seal Y S) ⟨ cY ⟩`, but the chosen payload is
+  `$ (κℕ 0)` and the tag is the non-variable ground injection `ℕ!`.
+
+Thus the occupied subcase has a premise-inhabited partner shape but no
+inhabited output partner branch.  This is the tripwire described in the
+LG-3l task: the missing field cannot be repaired by a branchwise transformer
+without strengthening the live partner invariant or changing the relation.
+
+A second, independent transport hazard also exists in the unoccupied rebuild
+route: `rep★-matched-inner-tags X₂≢X aligned` only transports through a source
+rebase when the rebase pivot is not `X₂`.  The requested transformer is
+polymorphic in the source-conceal partner and receives no side condition
+excluding a surrounding source reveal from rebasing that inner source tag.
+This confirms that the obstruction is not just an artifact of the concrete
+non-variable ground tag above.
+
+No change to `GTSF/QuotientedTermImprecision.agda`, the live CTI relation, or
+the reduction relation has been made.
+
+STOP.

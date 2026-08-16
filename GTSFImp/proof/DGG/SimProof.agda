@@ -10,15 +10,27 @@ module proof.DGG.SimProof where
 
 open import Data.Product using (_,_; Σ-syntax)
 import Data.List as List
-open import Relation.Binary.PropositionalEquality using (refl; cong; trans)
+open import Relation.Binary.PropositionalEquality using
+  (refl; cong; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (_⇒_)
+open import Types using (_⇒_; _[_]ᵗ)
 open import CastTerms
 open import Reduction
 open import Imprecision using (⇒⊑⇒)
 open import proof.Reduction using
-  (applyTy-⇒; applyTys-⇒; appL-↠; appR-↠)
+  ( applyBodies
+  ; applyTy-⇒
+  ; applyTy-∀
+  ; applyTys-⇒
+  ; applyTys-∀
+  ; applyTys-★
+  ; applyTys-open
+  ; appL-↠
+  ; appR-↠
+  ; typeApp-↠
+  )
+open import proof.TypeSafety.Preservation using (apply-open)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.Imprecision as PI
@@ -33,15 +45,12 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
 open import proof.DGG.Catchup.ColumnSupportProof using
   (applyTys-++; composeReduction)
 open import proof.DGG.SimDef using (Simᵀ)
-open import proof.DGG.SimBetaDef using (SimBetaᵀ)
-open import proof.DGG.SimBetaCastDef using (SimBetaCastᵀ)
-open import proof.DGG.SimBetaRevealDef using (SimBetaRevealᵀ)
-open import proof.DGG.SimBetaConcealDef using (SimBetaConcealᵀ)
-open import proof.DGG.SimBetaAllCastDef using (SimBetaAllCastᵀ)
-open import proof.DGG.SimBetaLambdaDef using (SimBetaLambdaᵀ)
-open import proof.DGG.SimBetaGenDef using (SimBetaGenᵀ)
-open import proof.DGG.SimBetaRevealAllDef using (SimBetaRevealAllᵀ)
-open import proof.DGG.SimBetaConcealAllDef using (SimBetaConcealAllᵀ)
+open import proof.DGG.SimPairedAllClosingDef
+  using (SimPairedAllClosingᵀ)
+open import proof.DGG.SimPairedFunClosingDef
+  using (SimPairedFunClosingᵀ)
+open import proof.DGG.SimSourceAllClosingDef
+  using (SimSourceAllClosingᵀ)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
 open import proof.DGG.SimSourceRevealDef using (SimSourceRevealᵀ)
@@ -62,15 +71,9 @@ open import proof.DGG.CatchupToMorePreciseDef
 ------------------------------------------------------------------------
 
 module _
-    (sim-beta : SimBetaᵀ)
-    (sim-beta-cast : SimBetaCastᵀ)
-    (β↑ : SimBetaRevealᵀ)
-    (β↓ : SimBetaConcealᵀ)
-    (β∀ : SimBetaAllCastᵀ)
-    (βΛ : SimBetaLambdaᵀ)
-    (βgen : SimBetaGenᵀ)
-    (β↑∀ : SimBetaRevealAllᵀ)
-    (β↓∀ : SimBetaConcealAllᵀ)
+    (sim-paired-fun-closing : SimPairedFunClosingᵀ)
+    (sim-paired-all-closing : SimPairedAllClosingᵀ)
+    (sim-source-all-closing : SimSourceAllClosingᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
     (src↑ : SimSourceRevealᵀ)
     (tgt↑ : SimTargetRevealᵀ)
@@ -107,19 +110,23 @@ module _
 
   sim parked
       (·⊑·² L⊑L′ V⊑M′) (pure-step (β vV)) =
-    sim-beta parked L⊑L′ V⊑M′ vV
+    sim-paired-fun-closing parked L⊑L′ V⊑M′
+      (ƛ _) vV (pure-step (β vV))
 
   sim parked
       (·⊑·² L⊑L′ M⊑M′) (pure-step (β-⇒ vV vM)) =
-    sim-beta-cast parked L⊑L′ M⊑M′ vV vM
+    sim-paired-fun-closing parked L⊑L′ M⊑M′
+      (vV 《 fun 》) vM (pure-step (β-⇒ vV vM))
 
   sim parked
       (·⊑·² L⊑L′ M⊑M′) (pure-step (β-reveal-⇒ vV vM)) =
-    β↑ parked L⊑L′ M⊑M′ vV vM
+    sim-paired-fun-closing parked L⊑L′ M⊑M′
+      (vV ↑ fun) vM (pure-step (β-reveal-⇒ vV vM))
 
   sim parked
       (·⊑·² L⊑L′ M⊑M′) (pure-step (β-conceal-⇒ vV vM)) =
-    β↓ parked L⊑L′ M⊑M′ vV vM
+    sim-paired-fun-closing parked L⊑L′ M⊑M′
+      (vV ↓ fun) vM (pure-step (β-conceal-⇒ vV vM))
 
   sim
       {Δᴿ = Δᴿ} {W = W} {p = p} parked
@@ -265,7 +272,8 @@ module _
 
   sim parked
       (•⊑•² p∀ M⊑M′ q r) (pure-step (β-∀ vM eq)) =
-    β∀ parked M⊑M′ q r vM eq
+    sim-paired-all-closing parked M⊑M′ q r
+      (vM 《 all 》) (pure-step (β-∀ vM eq))
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(•⊑•² p∀ M⊑M′ q r) (pure-step blame-•) =
@@ -275,27 +283,96 @@ module _
     blame⊑² (CTI2T.target-typing² rel) r
   sim parked
       (•⊑•² p∀ M⊑M′ q r) (β-Λ vM) =
-    βΛ parked M⊑M′ q r vM
+    sim-paired-all-closing parked M⊑M′ q r
+      (Λ vM) (β-Λ vM)
   sim parked
       (•⊑•² p∀ M⊑M′ q r) (β-gen vM A≠★ safe) =
-    βgen parked M⊑M′ q r vM safe
+    sim-paired-all-closing parked M⊑M′ q r
+      (vM 《 genᵥ A≠★ safe 》) (β-gen vM A≠★ safe)
   sim parked
       (•⊑•² p∀ M⊑M′ q r) (β-reveal-∀ vM) =
-    β↑∀ parked M⊑M′ q r vM
+    sim-paired-all-closing parked M⊑M′ q r
+      (vM ↑ all) (β-reveal-∀ vM)
   sim parked
       (•⊑•² p∀ M⊑M′ q r) (β-conceal-∀ vM) =
-    β↓∀ parked M⊑M′ q r vM
+    sim-paired-all-closing parked M⊑M′ q r
+      (vM ↓ all) (β-conceal-∀ vM)
   sim parked
-      (•⊑•² p∀ M⊑M′ q r) (ξ-• M→N refl refl)
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
       with sim parked M⊑M′ M→N
   sim parked
-      (•⊑•² p∀ M⊑M′ q r) (ξ-• M→N refl refl)
-      | result =
-    {!!}
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      rewrite applyTy-∀ χ C
+            | applyTys-∀ χsᴿ C′
+      with p | N⊑N′
+  sim parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ (C′ [ A′ ]ᵗ) ]
+            W′ ∣ List.[] ⊢²
+              N ⦂∀ applyBody χ C [ applyTy χ A ] ⊑
+              N′ ⦂∀ applyBodies χsᴿ C′ [ applyTys χsᴿ A′ ]
+              ∶ s)
+        (sym (apply-open χ C A))
+        (subst≡
+          (λ T →
+            Σ[ s ∈
+                ((applyBody χ C) [ applyTy χ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                N ⦂∀ applyBody χ C [ applyTy χ A ] ⊑
+                N′ ⦂∀ applyBodies χsᴿ C′ [ applyTys χsᴿ A′ ]
+                ∶ s)
+          (sym (applyTys-open χsᴿ C′ A′))
+          ( subst≡
+              (λ T →
+                ((applyBody χ C) [ applyTy χ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩ T)
+              (applyTys-open χsᴿ C′ A′)
+              (subst≡
+                (λ S →
+                  S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ (C′ [ A′ ]ᵗ))
+                (apply-open χ C A) (transport⊑ᴾ evol r))
+          , •⊑•² p∀⁺ N⊑N′⁺
+              (transport⊑ᴾ evol q)
+              (subst≡
+                (λ T →
+                  ((applyBody χ C) [ applyTy χ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩ T)
+                (applyTys-open χsᴿ C′ A′)
+                (subst≡
+                  (λ S →
+                    S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ (C′ [ A′ ]ᵗ))
+                  (apply-open χ C A) (transport⊑ᴾ evol r)))
+          ))
+  sim parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      | r⁺ , whole-rel =
+    Δᴿ′ , χsᴿ ,
+    N′ ⦂∀ applyBodies χsᴿ C′ [ applyTys χsᴿ A′ ] ,
+    Δ′ , W′ , r⁺ ,
+    typeApp-↠ M′↠N′ ,
+    evol ,
+    whole-rel
 
   sim parked
       (•⊑² p∀ M⊑M′ q r) (pure-step (β-∀ vM eq)) =
-    {!!}
+    sim-source-all-closing parked M⊑M′ q r
+      (vM 《 all 》) (pure-step (β-∀ vM eq))
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(•⊑² p∀ M⊑M′ q r) (pure-step blame-•) =
@@ -305,23 +382,64 @@ module _
     blame⊑² (CTI2T.target-typing² rel) r
   sim parked
       (•⊑² p∀ M⊑M′ q r) (β-Λ vM) =
-    {!!}
+    sim-source-all-closing parked M⊑M′ q r (Λ vM) (β-Λ vM)
   sim parked
       (•⊑² p∀ M⊑M′ q r) (β-gen vM A≠★ safe) =
-    {!!}
+    sim-source-all-closing parked M⊑M′ q r
+      (vM 《 genᵥ A≠★ safe 》) (β-gen vM A≠★ safe)
   sim parked
       (•⊑² p∀ M⊑M′ q r) (β-reveal-∀ vM) =
-    {!!}
+    sim-source-all-closing parked M⊑M′ q r
+      (vM ↑ all) (β-reveal-∀ vM)
   sim parked
       (•⊑² p∀ M⊑M′ q r) (β-conceal-∀ vM) =
-    {!!}
+    sim-source-all-closing parked M⊑M′ q r
+      (vM ↓ all) (β-conceal-∀ vM)
   sim parked
-      (•⊑² p∀ M⊑M′ q r) (ξ-• M→N refl refl)
+      (•⊑² {C = C} {A = A} {B = B} p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
       with sim parked M⊑M′ M→N
   sim parked
-      (•⊑² p∀ M⊑M′ q r) (ξ-• M→N refl refl)
-      | result =
-    {!!}
+      (•⊑² {C = C} {A = A} {B = B} p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      rewrite applyTy-∀ χ C
+      with p | N⊑N′
+  sim parked
+      (•⊑² {C = C} {A = A} {B = B} p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
+            W′ ∣ List.[] ⊢²
+              N ⦂∀ applyBody χ C [ applyTy χ A ] ⊑ N′ ∶ s)
+        (sym (apply-open χ C A))
+        ( subst≡
+            (λ S → S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B)
+            (apply-open χ C A) (transport⊑ᴾ evol r)
+        , •⊑² p∀⁺ N⊑N′⁺
+            (subst≡
+              (λ T → applyTy χ A ⊑ᵂ⟨ W′ ⟩ T)
+              (applyTys-★ χsᴿ) (transport⊑ᴾ evol q))
+            (subst≡
+              (λ S → S ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B)
+              (apply-open χ C A) (transport⊑ᴾ evol r))
+        )
+  sim parked
+      (•⊑² {C = C} {A = A} {B = B} p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N} M→N refl refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      | r⁺ , whole-rel =
+    Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , r⁺ ,
+    M′↠N′ ,
+    evol ,
+    whole-rel
 
   ------------------------------------------------------------------------
   -- Cast squares

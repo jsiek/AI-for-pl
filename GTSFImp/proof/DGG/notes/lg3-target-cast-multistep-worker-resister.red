@@ -450,3 +450,81 @@ worker named at the top of this record: it must recover the old deleted
 the exposed target-cast cells, target wrapper absorption, and paired
 ground/expand re-attachment into a full `StructuralExtraCastRightAt` worker.
 LG-2 grounding residuals remain unchanged.
+
+LG-3n STOP postscript, 2026-08-16:
+
+Baseline gate is green:
+
+`cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+
+`postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`
+
+The current checked target-cast row combinators still stop at their explicit
+`partner-endpoint` arguments.  In the `CTI2.⊑cast²` and
+`CTI2.cast⊑cast²` cases, the derivation-primary worker can build:
+
+- `child : StructuralCatchupRightResult W γ M M₀ p`;
+- the transported cast `applyConsistencies child.χs c′`;
+- `residual`, by calling `StructuralExtraCastRightAt` at the re-attached
+  target cast.
+
+But composing the two traces needs a carried endpoint-partner transformer for
+the target-cast-framed start term:
+
+```agda
+source-conceal-endpoint-partner-target-cast :
+  ∀ {Δ₀ Δ₀′}
+    {W₀ : World Δᴸ Δᴿ Δ₀}
+    {W₀′ : World Δᴸ Δᴿ′ Δ₀′}
+  → StructuralWorldExtendᴿ χs W₀ W₀′
+  → ∀ {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (c′ : ν ⊢ B₀ ∼ B)
+  → SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+  → SourceConcealPartnerOK W₀′ P c₀
+      (mapPivotChanges χs Xᴿ?)
+      (N′ ⟨ applyConsistencies χs c′ ⟩)
+```
+
+The existing field
+`StructuralCatchupRightResult.source-conceal-endpoint-partner` has only the
+unframed start term:
+
+```agda
+SourceConcealPartnerOK W₀ P c₀ Xᴿ? M″
+  → SourceConcealPartnerOK W₀′ P c₀
+      (mapPivotChanges χs Xᴿ?) N′
+```
+
+That is enough for source reveal/conceal replay after LG-3m, but it does not
+feed `structural-catchup-compose-target-cast` or
+`structural-catchup-compose-paired-target-cast`, both of which require the
+endpoint partner for `(M₀ ⟨ c′ ⟩)` across the child trace before the residual
+worker can replay its own endpoint partner.
+
+This is not a branchwise reconstruction obligation.  The `seal` /
+`name-protected-target` case demonstrates the missing carried shape: a local
+attempt to rebuild the constructor at the child endpoint first needs the
+post-child pivot to be exposed as `just Y`, and then needs
+`child.N′` to still have a target-conceal head so that
+
+`child.N′ ⟨ applyConsistencies child.χs c′ ⟩`
+
+can match the constructor target
+
+`(N ↓ seal Y S) ⟨ cY ⟩`.
+
+Neither fact is exported by `StructuralCatchupRightResult`.  The current
+plan-polymorphic endpoint field carries partners for the exact child target;
+it does not carry partners through an added target cast frame.
+
+Exact missing field:
+
+`StructuralCatchupRightResult.source-conceal-endpoint-partner-target-cast`
+
+No relation or reduction surface was changed.  The concrete
+`StructuralExtraCastRightAt` and `StructuralValueCatchupRightAt` factories
+remain blocked at the target-cast row composition point.
+
+STOP.

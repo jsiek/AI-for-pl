@@ -8,13 +8,14 @@ module proof.DGG.SimProof where
 --   * Is currently a partial proof: square-shaped cases are left as holes
 --     until their helper interfaces and transports are fixed.
 
-open import Data.Product using (_,_; Σ-syntax)
+open import Data.Product using (_×_; _,_; Σ-syntax)
 import Data.List as List
 open import Relation.Binary.PropositionalEquality using
   (refl; cong; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (_⇒_; _[_]ᵗ)
+open import Types using (Ty; TyCtx; _⇒_; _[_]ᵗ)
+open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms
 open import Reduction
 open import Imprecision using (⇒⊑⇒)
@@ -28,6 +29,7 @@ open import proof.Reduction using
   ; applyTys-open
   ; appL-↠
   ; appR-↠
+  ; cast-↠
   ; typeApp-↠
   )
 open import proof.TypeSafety.Preservation using (apply-open)
@@ -36,7 +38,7 @@ import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.Imprecision as PI
 open CTI2
 open import proof.DGG.Parked.ParkedWorldDef
-  using (evolve-refl; evolve-keepᴸ)
+  using (ParkedWorld; ParkedEvolve; evolve-refl; evolve-keepᴸ)
 open import proof.DGG.Parked.ParkedWorldLemma using
   (parked-world-closed; transport⊑ᴾ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof using
@@ -47,10 +49,14 @@ open import proof.DGG.Catchup.ColumnSupportProof using
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.SimPairedAllClosingDef
   using (SimPairedAllClosingᵀ)
+open import proof.DGG.SimPairedCastValuesDef
+  using (SimPairedCastValuesᵀ)
 open import proof.DGG.SimPairedFunClosingDef
   using (SimPairedFunClosingᵀ)
 open import proof.DGG.SimSourceAllClosingDef
   using (SimSourceAllClosingᵀ)
+open import proof.DGG.SimSourceCastValuesDef
+  using (SimSourceCastValuesᵀ)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
 open import proof.DGG.SimSourceRevealDef using (SimSourceRevealᵀ)
@@ -73,7 +79,9 @@ open import proof.DGG.CatchupToMorePreciseDef
 module _
     (sim-paired-fun-closing : SimPairedFunClosingᵀ)
     (sim-paired-all-closing : SimPairedAllClosingᵀ)
+    (sim-paired-cast-values : SimPairedCastValuesᵀ)
     (sim-source-all-closing : SimSourceAllClosingᵀ)
+    (sim-source-cast-values : SimSourceCastValuesᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
     (src↑ : SimSourceRevealᵀ)
     (tgt↑ : SimTargetRevealᵀ)
@@ -81,6 +89,130 @@ module _
     (tgt↓ : SimTargetConcealᵀ)
     (catchup : CatchupToMorePrecise)
   where
+
+  ------------------------------------------------------------------------
+  -- Paired cast-root assembly
+  ------------------------------------------------------------------------
+
+  sim-paired-cast-root :
+    ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W : World Δᴸ Δᴿ Δ}
+      {χᴸ : StoreChange Δᴸ Δᴸ′}
+      {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
+      {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
+      {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
+      {c : μ ⊢ A ∼ B} {c′ : μ′ ⊢ A′ ∼ B′}
+      {p : A ⊑ᵂ⟨ W ⟩ A′}
+    → ParkedWorld W
+    → W ∣ List.[] ⊢² V ⊑ M′ ∶ p
+    → (q : B ⊑ᵂ⟨ W ⟩ B′)
+    → Value V
+    → V ⟨ c ⟩ —→[ χᴸ ] N
+    → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
+      Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
+      Σ[ r ∈ applyTy χᴸ B ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B′ ]
+        (M′ ⟨ c′ ⟩ —↠[ χsᴿ ] N′) ×
+        ParkedEvolve (χᴸ ∷ Reduction.[]) χsᴿ W W′ ×
+        (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ r)
+  sim-paired-cast-root parked V⊑M′ q vV Vc→N
+      with catchup parked boundary-refl V⊑M′ vV
+  sim-paired-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B} {B′ = B′} {c′ = c′}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      with sim-paired-cast-values
+        {c′ = applyConsistencies χsᴿ₁ c′}
+        (parked-world-closed parked evol₁)
+        V⊑V′ (transport⊑ᴾ evol₁ q) vV vV′ Vc→N
+  sim-paired-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B} {B′ = B′} {c′ = c′}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , r ,
+        V′c′↠N′ , evol₂ , N⊑N′
+      with subst≡
+        (λ T →
+          Σ[ s ∈ applyTy χᴸ B ⊑ᵂ⟨ W₂ ⟩ T ]
+            W₂ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+        (applyTys-++ χsᴿ₁ χsᴿ₂ B′)
+        (r , N⊑N′)
+  sim-paired-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B} {c′ = c′}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , r ,
+        V′c′↠N′ , evol₂ , N⊑N′
+      | r′ , N⊑N′′ =
+    Δᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ , N′ , Δ₂ , W₂ , r′ ,
+    composeReduction (cast-↠ c′ M′↠V′) V′c′↠N′ ,
+    compose-parked-evolve evol₁ evol₂ ,
+    N⊑N′′
+
+  ------------------------------------------------------------------------
+  -- Source-only cast-root assembly
+  ------------------------------------------------------------------------
+
+  sim-source-cast-root :
+    ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W : World Δᴸ Δᴿ Δ}
+      {χᴸ : StoreChange Δᴸ Δᴸ′}
+      {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
+      {A B : Ty Δᴸ} {C : Ty Δᴿ}
+      {μ : Env∼ Δᴸ} {c : μ ⊢ A ∼ B}
+      {p : A ⊑ᵂ⟨ W ⟩ C}
+    → ParkedWorld W
+    → W ∣ List.[] ⊢² V ⊑ M′ ∶ p
+    → (q : B ⊑ᵂ⟨ W ⟩ C)
+    → Value V
+    → V ⟨ c ⟩ —→[ χᴸ ] N
+    → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
+      Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
+      Σ[ r ∈ applyTy χᴸ B ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ C ]
+        (M′ —↠[ χsᴿ ] N′) ×
+        ParkedEvolve (χᴸ ∷ Reduction.[]) χsᴿ W W′ ×
+        (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ r)
+  sim-source-cast-root parked V⊑M′ q vV Vc→N
+      with catchup parked boundary-refl V⊑M′ vV
+  sim-source-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B} {C = C}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      with sim-source-cast-values
+        (parked-world-closed parked evol₁)
+        V⊑V′ (transport⊑ᴾ evol₁ q) vV vV′ Vc→N
+  sim-source-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B} {C = C}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      | Δ₂ , W₂ , r , evol₂ , N⊑V′
+      with subst≡
+        (λ T →
+          Σ[ s ∈ applyTy χᴸ B ⊑ᵂ⟨ W₂ ⟩ T ]
+            W₂ ∣ List.[] ⊢² N ⊑ V′ ∶ s)
+        (applyTys-++ χsᴿ₁ Reduction.[] C)
+        (r , N⊑V′)
+  sim-source-cast-root
+      {χᴸ = χᴸ} {N = N} {B = B}
+      parked V⊑M′ q vV Vc→N
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+      | Δ₂ , W₂ , r , evol₂ , N⊑V′
+      | r′ , N⊑V′′ =
+    Δᴿ₁ , χsᴿ₁ ++χ Reduction.[] , V′ , Δ₂ , W₂ , r′ ,
+    composeReduction M′↠V′ (V′ ∎[]) ,
+    compose-parked-evolve evol₁ evol₂ ,
+    N⊑V′′
 
   sim : Simᵀ
 
@@ -446,17 +578,25 @@ module _
   ------------------------------------------------------------------------
 
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (pure-step (β-id vM)) =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      root@(pure-step (β-id vM)) =
+    sim-paired-cast-root {c = c} {c′ = c′}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (pure-step (ground vM A≠G)) =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      root@(pure-step (ground vM A≠G)) =
+    sim-paired-cast-root {c = c} {c′ = c′}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (pure-step (expand vM G≠B)) =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      root@(pure-step (expand vM G≠B)) =
+    sim-paired-cast-root {c = c} {c′ = c′}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (pure-step (tag-untag vM)) =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      root@(pure-step (tag-untag vM)) =
+    sim-paired-cast-root {c = c} {c′ = c′}
+      parked M⊑M′ q (vM 《 inj 》) root
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(cast⊑cast² c c′ M⊑M′ q)
@@ -480,28 +620,46 @@ module _
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (β-inst vM B≠★) =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      root@(β-inst vM B≠★) =
+    sim-paired-cast-root {c = c} {c′ = c′}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (ξ-⟨⟩ M→N refl)
+      (cast⊑cast² c c′ M⊑M′ q)
+      (ξ-⟨⟩ {χ = χ} M→N refl)
       with sim parked M⊑M′ M→N
   sim parked
-      (cast⊑cast² c c′ M⊑M′ q) (ξ-⟨⟩ M→N refl)
-      | result =
-    {!!}
+      (cast⊑cast² c c′ M⊑M′ q)
+      (ξ-⟨⟩ {χ = χ} M→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′ =
+    Δᴿ′ , χsᴿ , N′ ⟨ applyConsistencies χsᴿ c′ ⟩ ,
+    Δ′ , W′ , transport⊑ᴾ evol q ,
+    cast-↠ c′ M′↠N′ ,
+    evol ,
+    cast⊑cast² (applyConsistency χ c)
+      (applyConsistencies χsᴿ c′) N⊑N′ (transport⊑ᴾ evol q)
 
   sim parked
-      (cast⊑² c M⊑M′ q) (pure-step (β-id vM)) =
-    {!!}
+      (cast⊑² c M⊑M′ q)
+      root@(pure-step (β-id vM)) =
+    sim-source-cast-root {c = c}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑² c M⊑M′ q) (pure-step (ground vM A≠G)) =
-    {!!}
+      (cast⊑² c M⊑M′ q)
+      root@(pure-step (ground vM A≠G)) =
+    sim-source-cast-root {c = c}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑² c M⊑M′ q) (pure-step (expand vM G≠B)) =
-    {!!}
+      (cast⊑² c M⊑M′ q)
+      root@(pure-step (expand vM G≠B)) =
+    sim-source-cast-root {c = c}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑² c M⊑M′ q) (pure-step (tag-untag vM)) =
-    {!!}
+      (cast⊑² c M⊑M′ q)
+      root@(pure-step (tag-untag vM)) =
+    sim-source-cast-root {c = c}
+      parked M⊑M′ q (vM 《 inj 》) root
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(cast⊑² c M⊑M′ q) (pure-step (tag-untag-bad vM G≠H)) =
@@ -524,15 +682,21 @@ module _
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      (cast⊑² c M⊑M′ q) (β-inst vM B≠★) =
-    {!!}
+      (cast⊑² c M⊑M′ q)
+      root@(β-inst vM B≠★) =
+    sim-source-cast-root {c = c}
+      parked M⊑M′ q vM root
   sim parked
-      (cast⊑² c M⊑M′ q) (ξ-⟨⟩ M→N refl)
+      (cast⊑² c M⊑M′ q) (ξ-⟨⟩ {χ = χ} M→N refl)
       with sim parked M⊑M′ M→N
   sim parked
-      (cast⊑² c M⊑M′ q) (ξ-⟨⟩ M→N refl)
-      | result =
-    {!!}
+      (cast⊑² c M⊑M′ q) (ξ-⟨⟩ {χ = χ} M→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′ =
+    Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , transport⊑ᴾ evol q ,
+    M′↠N′ ,
+    evol ,
+    cast⊑² (applyConsistency χ c) N⊑N′ (transport⊑ᴾ evol q)
 
   ------------------------------------------------------------------------
   -- Target-only wrappers: recurse on the source step
@@ -543,8 +707,14 @@ module _
       with sim parked M⊑M′ M→N
   sim parked
       (⊑cast² c′ M⊑M′ q) M→N
-      | result =
-    {!!}
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , p ,
+        M′↠N′ , evol , N⊑N′ =
+    Δᴿ′ , χsᴿ , N′ ⟨ applyConsistencies χsᴿ c′ ⟩ ,
+    Δ′ , W′ , transport⊑ᴾ evol q ,
+    cast-↠ c′ M′↠N′ ,
+    evol ,
+    ⊑cast² (applyConsistencies χsᴿ c′)
+      N⊑N′ (transport⊑ᴾ evol q)
 
   sim parked
       rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q) M→N =

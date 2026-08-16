@@ -5,7 +5,7 @@ module proof.DGG.GroundingPreserve where
 --   * Proves allocation atomicity for the live β-inst and β-gen reduction
 --     constructors: the right-only target bind and the fresh-name partner
 --     conversion are produced in the same step.
---   * Re-exports the occupancy-evolution lemmas used by the catch-up stack
+--   * Imports the allocation occupancy lemmas used by the atomicity surface
 --     and states the higher-order knot that LG-3/M7 must instantiate for the
 --     full related-reduction simulation.
 
@@ -13,7 +13,8 @@ open import Data.Empty using (⊥)
 open import Data.Fin using (zero)
 open import Data.Nat using (suc)
 open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≢_; refl)
+open import Data.Sum.Base using (_⊎_; inj₁; inj₂)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types using (TyCtx; Ty; TyVar; NonVar; _∈ᵗ_; ＇_; ★; ⇑ᵗ)
 open import Consistency using
@@ -25,64 +26,17 @@ open import Conversion using (〖_,_↑_〗)
 open import Reduction using
   (bind; applyBody; _—→[_]_; β-inst; β-gen)
 import proof.DGG.CastTermImprecision2 as CTI2
-open import proof.DGG.Occupancy public using
-  ( initial-every-center-occupiedᴼ
-  ; initial-no-see-through-emptyᴼ
-  ; liftWorldLeft-fresh-no-targetᴼ
-  ; liftWorldLeft-old-occupiedᴼ
-  ; liftWorldLeft-old-no-targetᴼ
-  ; liftWorldLeft-old-no-target-at-sourceᴼ
-  ; liftWorldBoth-fresh-occupiedᴼ
-  ; liftWorldBoth-old-occupiedᴼ
-  ; liftWorldBoth-old-no-targetᴼ
-  ; leftOnly-fresh-no-targetᴼ
-  ; leftOnly-old-occupiedᴼ
-  ; leftOnly-old-no-targetᴼ
-  ; rightOnly-new-target-occupiedᴼ
-  ; rightOnly-old-occupiedᴼ
-  ; rightOnly-old-no-targetᴼ
-  ; rightOnly-old-no-target-at-sourceᴼ
-  ; bothBind-new-target-occupiedᴼ
-  ; bothBind-old-occupiedᴼ
-  ; bothBind-old-no-targetᴼ
-  ; rebase-occupied-forwardᴼ
-  ; rebase-occupied-backwardᴼ
-  ; rebase-no-target-forwardᴼ
-  ; rebase-no-target-backwardᴼ
-  ; rebaseᴸ-no-target-forwardᴼ
-  ; rebaseᴿ-no-target-forwardᴼ
-  ; tag-rebase-no-target-forwardᴼ
-  ; decay-no-target-forwardᴼ
-  ; decay-occupied-forwardᴼ
-  ; decay-occupied-backwardᴼ
-  ; decay-no-target-at-source-forwardᴼ
-  ; target-insert-occupied-forwardᴼ
-  ; target-insert-no-target-forwardᴼ
-  ; target-insert-no-target-at-sourceᴼ
-  ; smartFreshBehind-fresh-no-targetᴼ
-  ; smartAliasMerge-fresh-occupiedᴼ
-  ; smartFreshBehind-old-no-target-at-sourceᴼ
-  ; smartAliasMerge-old-no-target-at-sourceᴼ
-  ; smartCommaLift-old-no-target-at-sourceᴼ
-  ; β-inst-allocation-occupies-targetᴼ
+open import proof.DGG.Occupancy using
+  ( β-inst-allocation-occupies-targetᴼ
   ; β-gen-allocation-occupies-targetᴼ
-  ; source-only-runtime-cell-remains-unoccupiedᴼ
   )
 
 ------------------------------------------------------------------------
 -- Fresh target partner created by allocation steps
 ------------------------------------------------------------------------
 
-data FreshPartnerAt0 {Δ : TyCtx}
-    (R B : Ty (suc Δ)) : Term (suc Δ) → Set where
-  partner-reveal : ∀ {M}
-      -----------------------------------------
-    → FreshPartnerAt0 R B (M ↑ 〖 zero , R ↑ B 〗)
-
-  partner-reveal-cast : ∀ {M ν C D}
-      {c : ν ⊢ C ∼ D}
-      -------------------------------------------------
-    → FreshPartnerAt0 R B ((M ↑ 〖 zero , R ↑ B 〗) ⟨ c ⟩)
+-- Allocation exposes either a reveal at the fresh target cell or that reveal
+-- followed by a top-level cast.
 
 β-inst-allocation-atomic : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -95,7 +49,15 @@ data FreshPartnerAt0 {Δ : TyCtx}
   → CTI2.Occupied (CTI2.rightOnlyWorld W ★) zero ×
     Σ[ N ∈ Term (suc Δᴿ) ]
       ((V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ] N)
-       × FreshPartnerAt0 ★ A N)
+       × ((Σ[ M ∈ Term (suc Δᴿ) ]
+              N ≡ M ↑ 〖 zero , ★ ↑ A 〗)
+          ⊎
+          (Σ[ M ∈ Term (suc Δᴿ) ]
+           Σ[ μ′ ∈ Env∼ (suc Δᴿ) ]
+           Σ[ S ∈ Ty (suc Δᴿ) ]
+           Σ[ T ∈ Ty (suc Δᴿ) ]
+           Σ[ c′ ∈ (μ′ ⊢ S ∼ T) ]
+              N ≡ (M ↑ 〖 zero , ★ ↑ A 〗) ⟨ c′ ⟩)))
 β-inst-allocation-atomic {W = W} {V = V} {A = A} {c = c}
     vV B≢★ =
   β-inst-allocation-occupies-targetᴼ {W = W} ,
@@ -103,7 +65,7 @@ data FreshPartnerAt0 {Δ : TyCtx}
       ↑ 〖 zero , ★ ↑ A 〗)
       ⟨ ↑ᶜ (close-instᶜ c) ⟩) ,
   β-inst vV B≢★ ,
-  partner-reveal-cast
+  inj₂ (_ , _ , _ , _ , _ , refl)
 
 β-gen-allocation-atomic : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -117,13 +79,21 @@ data FreshPartnerAt0 {Δ : TyCtx}
   → CTI2.Occupied (CTI2.rightOnlyWorld W C) zero ×
     Σ[ N ∈ Term (suc Δᴿ) ]
       (((V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ] N)
-       × FreshPartnerAt0 (⇑ᵗ C) B N)
+       × ((Σ[ M ∈ Term (suc Δᴿ) ]
+              N ≡ M ↑ 〖 zero , ⇑ᵗ C ↑ B 〗)
+          ⊎
+          (Σ[ M ∈ Term (suc Δᴿ) ]
+           Σ[ μ′ ∈ Env∼ (suc Δᴿ) ]
+           Σ[ S ∈ Ty (suc Δᴿ) ]
+           Σ[ T ∈ Ty (suc Δᴿ) ]
+           Σ[ c′ ∈ (μ′ ⊢ S ∼ T) ]
+              N ≡ (M ↑ 〖 zero , ⇑ᵗ C ↑ B 〗) ⟨ c′ ⟩)))
 β-gen-allocation-atomic {W = W} {V = V} {A = A} {C = C}
     {B = B} {c = c} vV A≢★ safe =
   β-gen-allocation-occupies-targetᴼ {W = W} C ,
   (⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 zero , ⇑ᵗ C ↑ B 〗) ,
   β-gen vV A≢★ safe ,
-  partner-reveal
+  inj₁ (_ , refl)
 
 ------------------------------------------------------------------------
 -- No see-through at occupied cells
@@ -163,7 +133,15 @@ record RelatedReductionGroundingKnot : Set₁ where
       → CTI2.Occupied (CTI2.rightOnlyWorld W ★) zero ×
         Σ[ N ∈ Term (suc Δᴿ) ]
           ((V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ] N)
-           × FreshPartnerAt0 ★ A N)
+           × ((Σ[ M ∈ Term (suc Δᴿ) ]
+                  N ≡ M ↑ 〖 zero , ★ ↑ A 〗)
+              ⊎
+              (Σ[ M ∈ Term (suc Δᴿ) ]
+               Σ[ μ′ ∈ Env∼ (suc Δᴿ) ]
+               Σ[ S ∈ Ty (suc Δᴿ) ]
+               Σ[ T ∈ Ty (suc Δᴿ) ]
+               Σ[ c′ ∈ (μ′ ⊢ S ∼ T) ]
+                  N ≡ (M ↑ 〖 zero , ★ ↑ A 〗) ⟨ c′ ⟩)))
 
     β-gen-new-cell-grounded :
       ∀ {Δᴸ Δᴿ Δ}
@@ -178,7 +156,15 @@ record RelatedReductionGroundingKnot : Set₁ where
       → CTI2.Occupied (CTI2.rightOnlyWorld W C) zero ×
         Σ[ N ∈ Term (suc Δᴿ) ]
           (((V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ] N)
-           × FreshPartnerAt0 (⇑ᵗ C) B N)
+           × ((Σ[ M ∈ Term (suc Δᴿ) ]
+                  N ≡ M ↑ 〖 zero , ⇑ᵗ C ↑ B 〗)
+              ⊎
+              (Σ[ M ∈ Term (suc Δᴿ) ]
+               Σ[ μ′ ∈ Env∼ (suc Δᴿ) ]
+               Σ[ S ∈ Ty (suc Δᴿ) ]
+               Σ[ T ∈ Ty (suc Δᴿ) ]
+               Σ[ c′ ∈ (μ′ ⊢ S ∼ T) ]
+                  N ≡ (M ↑ 〖 zero , ⇑ᵗ C ↑ B 〗) ⟨ c′ ⟩)))
 
 grounding-preservation-knot : RelatedReductionGroundingKnot
 grounding-preservation-knot = record

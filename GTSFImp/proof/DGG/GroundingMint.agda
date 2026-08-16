@@ -1,7 +1,7 @@
 module proof.DGG.GroundingMint where
 
 -- File Charter:
---   * States the LG-2 minting surface for compile-preserves-imprecision².
+--   * Documents the LG-2 minting surface for compile-preserves-imprecision².
 --   * Records which compile-recursion worlds are target-occupied: initial
 --     identity worlds occupy every center, matched type binders occupy the
 --     fresh center, and source-only binders leave only their dynamic fresh
@@ -11,18 +11,14 @@ module proof.DGG.GroundingMint where
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
-open import Data.Product using (Σ-syntax; _,_; proj₁)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import Types
 open import TyStore using (TyStore)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (ImpEnv; X⊑X; X⊑★)
-open import GradualTerms using (GTerm)
-import GradualTermImprecision as GTI
-open import Compile using (compile)
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 open import proof.TypeInTermSubst using (toRename-id-eq)
 
@@ -122,23 +118,10 @@ compile-image-precise-see-through-empty img X precise no-target =
   no-target (compile-image-precise-source-occupied img X precise)
 
 ------------------------------------------------------------------------
--- Minting theorem
+-- Canonical minting connection
 ------------------------------------------------------------------------
 
-compile-mints-cti² : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
-    {γ : GTI.CtxImp μ} {M M′ : GTerm Δ} {A B p}
-  → (M⊑M′ : μ GTI.∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p)
-  → CPI2.initialWorld μ Σ ∣ CPI2.initialCtx {Σ = Σ} γ ⊢²
-      proj₁ (compile {Σ = Σ}
-        (GTI.gradual-term-imprecision-source-typing M⊑M′))
-      ⊑ proj₁ (compile {Σ = Σ}
-        (GTI.gradual-term-imprecision-target-typing M⊑M′))
-      ∶ CPI2.initial-⊑ {Σ = Σ} p
-compile-mints-cti² =
-  CPI2.compile-preserves-imprecision²
-
-compile-minting-initial-image : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
-  → CompileImageWorld (CPI2.initialWorld μ Σ)
-compile-minting-initial-image = compile-image-initial
+-- The minting connection is the canonical
+-- CPI2.compile-preserves-imprecision² theorem. Its image-side occupancy facts
+-- are the theorems in this file: initialWorld-occupied, the CompileImageWorld
+-- invariant, and the see-through emptiness theorems above.

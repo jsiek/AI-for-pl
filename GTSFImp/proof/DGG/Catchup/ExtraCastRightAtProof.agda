@@ -10,22 +10,31 @@ module proof.DGG.Catchup.ExtraCastRightAtProof where
 --     `WorldExtendᴿ` boundary.
 
 open import Data.Nat using (_<_)
+open import Data.Fin using (zero)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Binary.PropositionalEquality using (_≢_; refl; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyVar; Atom; Ground; NonStar; ★; ＇_; ∀★)
+open import Types using (Ty; TyVar; Atom; Ground; NonStar; ★; ＇_; `∀; ∀★)
+import Imprecision as I
 import Consistency as C
 open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; idᵍ; _!; ？_;
-   ground-nonstar)
+   ground-nonstar; bot-elim; bot-intro)
 open import Conversion using (Conv↓)
-open import CastTerms using (Term; Value; Inert; inj; _⟨_⟩; _《_》)
+open import CastTerms using
+  (Term; Value; Inert; ⟨_,_,_⟩; _⊢_⦂_; ⊢⟨⟩; inj; _⟨_⟩; _《_》)
 open import Reduction using
   (pure-step; β-id; ground; expand; tag-untag; ξ-⟨⟩;
    applyConsistencies)
 open import proof.Reduction using
   (applyConsistencies-Inert; castSize-applyConsistencies)
+open import proof.TypeSafety.Progress using (no-bot-value)
+open import proof.Imprecision using
+  (imprecision-to-fresh; imprecision-no-star-to-bot)
+open import proof.ImprecisionConsistency using
+  (ext-injective; renameᵗ-injective; toRenameᵗ-injective)
+import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; ground-other-decreaseᵀ; project-expand-decreaseᵀ)
 open import proof.DGG.Catchup.StructuralCatchupRightDef public using
@@ -50,6 +59,57 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+
+
+source-value-target-bottom-impossible : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ}
+  → Value M
+  → ⟨ Δᴸ , CTI2.sourceStoreʷ W , CTI2.srcCtxʷ γ ⟩ ⊢ M ⦂ A
+  → A ⊑ᵂ⟨ W ⟩ `∀ (＇ zero)
+  → ⊥
+source-value-target-bottom-impossible {W = W} {γ = γ}
+    {M = M} {A = `∀ A} vM M⊢ (I.∀⊑∀ body) =
+  no-bot-value vM
+    (subst≡
+      (λ A′ → ⟨ _ , CTI2.sourceStoreʷ W , CTI2.srcCtxʷ γ ⟩
+        ⊢ M ⦂ `∀ A′)
+      body-eq M⊢)
+  where
+  body-eq : A ≡ (＇ zero)
+  body-eq =
+    renameᵗ-injective
+      (ext-injective (toRenameᵗ-injective (CTI2.ηᴸʷ W)))
+      (imprecision-to-fresh body)
+source-value-target-bottom-impossible {A = `∀ A} vM M⊢
+    (I.∀⊑ Anv z∈A body) =
+  imprecision-no-star-to-bot refl body z∈A
+
+
+target-bot-elim-refutation : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {ν : Env∼ Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ `∀ ★}
+  → Value M′
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ bot-elim {μ = ν} ⟩ ∶ q
+  → ⊥
+target-bot-elim-refutation vM′ rel
+    with CTI2T.target-typing² rel
+target-bot-elim-refutation vM′ rel | ⊢⟨⟩ M′⊢ bot-elim =
+  no-bot-value vM′ M′⊢
+
+
+target-bot-intro-refutation : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {ν : Env∼ Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ `∀ (＇ zero)}
+  → Value M
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ bot-intro {μ = ν} ⟩ ∶ q
+  → ⊥
+target-bot-intro-refutation {q = q} vM rel =
+  source-value-target-bottom-impossible vM (CTI2T.source-typing² rel) q
 
 
 variable-ground-other-impossible : ∀ {Δ} {μ : Env∼ Δ}
@@ -678,3 +738,31 @@ structural-project-expand-extra-cast-right-at {W = W} {γ = γ}
 
   combined =
     structural-catchup-compose-target-cast c child residual
+
+
+structural-bot-elim-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {ν : Env∼ Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ `∀ ★}
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ bot-elim {μ = ν} ⟩ ∶ q
+  → Value M
+  → Value M′
+  → StructuralCatchupRightResult W γ M
+      (M′ ⟨ bot-elim {μ = ν} ⟩) q
+structural-bot-elim-extra-cast-right-at rel vM vM′ =
+  ⊥-elim (target-bot-elim-refutation vM′ rel)
+
+
+structural-bot-intro-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {ν : Env∼ Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ `∀ (＇ zero)}
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ bot-intro {μ = ν} ⟩ ∶ q
+  → Value M
+  → Value M′
+  → StructuralCatchupRightResult W γ M
+      (M′ ⟨ bot-intro {μ = ν} ⟩) q
+structural-bot-intro-extra-cast-right-at rel vM vM′ =
+  ⊥-elim (target-bot-intro-refutation vM rel)

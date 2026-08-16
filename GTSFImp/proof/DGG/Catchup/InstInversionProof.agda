@@ -50,7 +50,9 @@ open import CastTerms using
    Value; RevealValue; _《_》; _↓_)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
-open import proof.Reduction using (cast-↠)
+open import proof.Reduction using
+  (cast-↠; _++χ_; applyStores-++; applyTys-++; composeReduction;
+   castSize-applyConsistency; castSize-applyConsistencies)
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
@@ -72,8 +74,7 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (castSize; _++χ_; FuelStepSurface; ResidualCastBuilderᵀ;
-   inst-alloc-decreaseᵀ)
+  (castSize; FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.InstInversionDef using
   (ResidualNonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualRelationᵀ;
@@ -85,8 +86,6 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
-open import proof.DGG.Catchup.FuelSupportProof using
-  (castSize-applyConsistency; castSize-applyConsistencies)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
   (mapCtxᴿ-sameCtx)
 
@@ -148,25 +147,6 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
     }
 
 
-applyStores-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ Σ
-  → applyStores ψs (applyStores χs Σ) ≡ applyStores (χs ++χ ψs) Σ
-applyStores-++ [] ψs Σ = refl
-applyStores-++ (χ ∷ χs) ψs Σ =
-  applyStores-++ χs ψs _
-
-
-applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ A
-  → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
-applyTys-++ [] ψs A = refl
-applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs _
-
-
 composeWorldExtendᴿ : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
     {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
     {W₀ : CTI2.World Δᴸ Δ₀ Δ}
@@ -220,17 +200,6 @@ mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
     (ctx-imp-transportᴿ {W = W₂} (applyTys-++ χs ψs B)
       (ECR.transport⊑ᵂ ext₂ (ECR.transport⊑ᵂ ext₁ p)))
     (mapCtxᴿ-compose ext₁ ext₂ γ)
-
-
-composeReduction : ∀ {Δ₀ Δ₁ Δ₂}
-    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
-    {M : CT.Term Δ₀} {N : CT.Term Δ₁} {P : CT.Term Δ₂}
-  → M —↠[ χs ] N
-  → N —↠[ ψs ] P
-  → M —↠[ χs ++χ ψs ] P
-composeReduction ↠-refl N↠P = N↠P
-composeReduction (↠-step M→N N↠P) P↠Q =
-  ↠-step M→N (composeReduction N↠P P↠Q)
 
 
 rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}

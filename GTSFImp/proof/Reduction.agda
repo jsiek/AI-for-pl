@@ -6,6 +6,9 @@ module proof.Reduction where
 --     store-change transport, application, primitive-operation, and
 --     type-application and conversion-frame congruence over multi-step
 --     reduction, and inert and value preservation under transport.
+--   * Also supplies store-change append algebra, multi-step trace
+--     composition, cast congruence over multi-step reduction, and cast-size
+--     preservation under store changes.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -27,7 +30,8 @@ open import CastTerms using
   )
 open import CastTerms using (_↑_; _↓_)
 open import Reduction
-open import proof.Consistency using (gen-safe)
+open import proof.Consistency using
+  (castSize; castSize-renameEnvᶜ; gen-safe)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using
   ( rename-star-injective
@@ -319,6 +323,76 @@ typeApp-↠ {L = L} {L′ = P} {C = C} {A = A}
     —↠[ χs ]⟨ typeApp-↠ N↠P ⟩
   P ⦂∀ applyBodies χs (applyBody χ C)
     [ applyTys χs (applyTy χ A) ] ∎[]
+
+------------------------------------------------------------------------
+-- Store-change append algebra
+------------------------------------------------------------------------
+
+infixr 5 _++χ_
+
+_++χ_ : ∀ {Δ Δ′ Δ″}
+  → StoreChanges Δ Δ′
+  → StoreChanges Δ′ Δ″
+  → StoreChanges Δ Δ″
+[] ++χ ψs = ψs
+(χ ∷ χs) ++χ ψs = χ ∷ (χs ++χ ψs)
+
+applyStores-++ : ∀ {Δ₀ Δ₁ Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → ∀ Σ
+  → applyStores ψs (applyStores χs Σ) ≡ applyStores (χs ++χ ψs) Σ
+applyStores-++ [] ψs Σ = refl
+applyStores-++ (χ ∷ χs) ψs Σ =
+  applyStores-++ χs ψs (applyStore χ Σ)
+
+applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → ∀ A
+  → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
+applyTys-++ [] ψs A = refl
+applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs (applyTy χ A)
+
+------------------------------------------------------------------------
+-- Store-changing trace composition
+------------------------------------------------------------------------
+
+composeReductionᵀ : Set
+composeReductionᵀ = ∀ {Δ₀ Δ₁ Δ₂}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {M : Term Δ₀} {N : Term Δ₁} {P : Term Δ₂}
+  → M —↠[ χs ] N
+  → N —↠[ ψs ] P
+  → M —↠[ χs ++χ ψs ] P
+
+composeReduction : composeReductionᵀ
+composeReduction ↠-refl N↠P = N↠P
+composeReduction (↠-step M→N N↠P) P↠Q =
+  ↠-step M→N (composeReduction N↠P P↠Q)
+
+------------------------------------------------------------------------
+-- Cast-size preservation under store changes
+------------------------------------------------------------------------
+
+castSize-applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χ : StoreChange Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (applyConsistency χ c) ≡ castSize c
+castSize-applyConsistency keep c = refl
+castSize-applyConsistency (bind A) c =
+  castSize-renameEnvᶜ Fin.suc (λ X → refl) c
+
+castSize-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (applyConsistencies χs c) ≡ castSize c
+castSize-applyConsistencies [] c = refl
+castSize-applyConsistencies (χ ∷ χs) c =
+  trans (castSize-applyConsistencies χs (applyConsistency χ c))
+    (castSize-applyConsistency χ c)
 
 cast-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
     {χs : StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}

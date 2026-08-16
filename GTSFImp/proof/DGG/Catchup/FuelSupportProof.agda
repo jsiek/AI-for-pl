@@ -3,13 +3,11 @@ module proof.DGG.Catchup.FuelSupportProof where
 -- File Charter:
 --   * Proves the non-column M6 fuel and store-change support lemmas stated in
 --     ValueCatchupRightDef.
---   * Keeps strict cast-size decreases, consistency-size preservation under
---     store changes, right-world extension composition, context transport
---     composition, and store-changing reduction composition independent of
---     the higher-order M4/M5 proof implementations.
+--   * Keeps strict cast-size decreases, right-world extension composition,
+--     and context transport composition independent of the higher-order M4/M5
+--     proof implementations.
 --   * Contains no CastColumn/applyColumn machinery.
 
-import Data.Fin as Fin
 import Data.List as List
 open import Data.Nat.Properties using (n<1+n; ≤-<-trans)
 open import Relation.Binary.PropositionalEquality
@@ -17,25 +15,20 @@ open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 
 open import Types
-open import Consistency using (Env∼; _⊢_∼_; _!)
-open import proof.Consistency using
-  (castSize-renameEnvᶜ; castSize-close-inst-≤)
-open import CastTerms using (Term)
-open import Reduction using
-  (StoreChange; StoreChanges; _—↠[_]_; keep; bind; []; _∷_;
-   ↠-refl; ↠-step; applyConsistency; applyStore; applyTy;
-   applyStores; applyTys)
+open import Consistency using (_!)
+open import proof.Consistency using (castSize-close-inst-≤)
+open import Reduction using (StoreChanges; applyStores; applyTys)
+open import proof.Reduction using (_++χ_; applyStores-++; applyTys-++)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
 open import proof.DGG.Catchup.ValueCatchupRightDef
   using
-    ( castSize; _++χ_
+    ( castSize
     ; ground-other-decreaseᵀ; project-expand-decreaseᵀ
     ; castSize-↑close-instᵀ; inst-alloc-decreaseᵀ
     ; composeWorldExtendᴿᵀ; mapCtxᴿ-composeᵀ
-    ; composeReductionᵀ
     )
 
 ------------------------------------------------------------------------
@@ -54,51 +47,6 @@ castSize-↑close-inst {c = c} = castSize-close-inst-≤ c
 inst-alloc-decrease : inst-alloc-decreaseᵀ
 inst-alloc-decrease {c = c} B≢★ =
   ≤-<-trans (castSize-close-inst-≤ c) (n<1+n (castSize c))
-
-------------------------------------------------------------------------
--- Cast-size preservation under store changes
-------------------------------------------------------------------------
-
-castSize-applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ}
-    {A B : Ty Δ}
-  → (χ : StoreChange Δ Δ′)
-  → (c : μ ⊢ A ∼ B)
-  → castSize (applyConsistency χ c) ≡ castSize c
-castSize-applyConsistency keep c = refl
-castSize-applyConsistency (bind A) c =
-  castSize-renameEnvᶜ Fin.suc (λ X → refl) c
-
-
-castSize-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ}
-    {A B : Ty Δ}
-  → (χs : StoreChanges Δ Δ′)
-  → (c : μ ⊢ A ∼ B)
-  → castSize (Reduction.applyConsistencies χs c) ≡ castSize c
-castSize-applyConsistencies [] c = refl
-castSize-applyConsistencies (χ ∷ χs) c =
-  trans (castSize-applyConsistencies χs (applyConsistency χ c))
-    (castSize-applyConsistency χ c)
-
-------------------------------------------------------------------------
--- Store-change append algebra
-------------------------------------------------------------------------
-
-applyStores-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ Σ
-  → applyStores ψs (applyStores χs Σ) ≡ applyStores (χs ++χ ψs) Σ
-applyStores-++ [] ψs Σ = refl
-applyStores-++ (χ ∷ χs) ψs Σ =
-  applyStores-++ χs ψs (applyStore χ Σ)
-
-applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ A
-  → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
-applyTys-++ [] ψs A = refl
-applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs (applyTy χ A)
 
 composeWorldExtendᴿ : composeWorldExtendᴿᵀ
 composeWorldExtendᴿ {χs = χs} {ψs = ψs} {W₀ = W₀} {W₂ = W₂}
@@ -134,12 +82,3 @@ mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
     (ctx-imp-transportᴿ {W = W₂} (applyTys-++ χs ψs B)
       (ECR.transport⊑ᵂ ext₂ (ECR.transport⊑ᵂ ext₁ p)))
     (mapCtxᴿ-compose ext₁ ext₂ γ)
-
-------------------------------------------------------------------------
--- Store-changing trace composition
-------------------------------------------------------------------------
-
-composeReduction : composeReductionᵀ
-composeReduction ↠-refl N↠P = N↠P
-composeReduction (↠-step M→N N↠P) P↠Q =
-  ↠-step M→N (composeReduction N↠P P↠Q)

@@ -51,7 +51,9 @@ open import CastTerms using
    Value; RevealValue; _《_》; _↓_)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
-open import proof.Reduction using (cast-↠)
+open import proof.Reduction using
+  (cast-↠; _++χ_; castSize-applyConsistency;
+   castSize-applyConsistencies)
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
@@ -73,8 +75,7 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (castSize; _++χ_; FuelStepSurface; ResidualCastBuilderᵀ;
-   inst-alloc-decreaseᵀ)
+  (castSize; FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.InstInversionDef using
   (ResidualNonStarᵀ; InstPostCatalogPackage;
    InstPostCatalogPackageAt; InstResidualRelationᵀ;
@@ -86,8 +87,6 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
-open import proof.DGG.Catchup.FuelSupportProof using
-  (castSize-applyConsistency; castSize-applyConsistencies)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
   (mapCtxᴿ-sameCtx)
 

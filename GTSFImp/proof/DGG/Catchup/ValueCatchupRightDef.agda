@@ -4,8 +4,8 @@ module proof.DGG.Catchup.ValueCatchupRightDef where
 --   * States the M6 value-catch-up foundation surface.
 --   * Defines the derivation-indexed target-cast fuel bound and the
 --     fuel-indexed worker interfaces for the eventual mutual driver.
---   * Provides Set-level statements for the non-column support lemmas proved
---     separately in FuelSupportProof.
+--   * Provides Set-level statements for the world/context support lemmas
+--     proved separately in FuelSupportProof.
 --   * Depends only on core syntax/reduction, stage-1 DGG interfaces, and
 --     the shared target value-spine view.
 
@@ -22,6 +22,7 @@ open import Consistency using
 open import proof.Consistency using (castSize) public
 open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using (StoreChanges; _—↠[_]_; []; _∷_)
+open import proof.Reduction using (_++χ_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -87,15 +88,6 @@ TargetCastBound fuel
 TargetCastBound fuel (CTI2.blame⊑² M′⊢ p) = ⊤
 TargetCastBound fuel (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
   TargetCastBound fuel rel₁ × TargetCastBound fuel rel₂
-
-infixr 5 _++χ_
-
-_++χ_ : ∀ {Δ Δ′ Δ″}
-  → StoreChanges Δ Δ′
-  → StoreChanges Δ′ Δ″
-  → StoreChanges Δ Δ″
-[] ++χ ψs = ψs
-(χ ∷ χs) ++χ ψs = χ ∷ (χs ++χ ψs)
 
 ------------------------------------------------------------------------
 -- Result and driver surfaces
@@ -269,11 +261,3 @@ mapCtxᴿ-composeᵀ composeWorldExtendᴿ =
     (γ : CtxImp W₀)
   → ECR.mapCtxᴿ ext₂ (ECR.mapCtxᴿ ext₁ γ) ≡
     ECR.mapCtxᴿ (composeWorldExtendᴿ ext₁ ext₂) γ
-
-composeReductionᵀ : Set
-composeReductionᵀ = ∀ {Δ₀ Δ₁ Δ₂}
-    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
-    {M : Term Δ₀} {N : Term Δ₁} {P : Term Δ₂}
-  → M —↠[ χs ] N
-  → N —↠[ ψs ] P
-  → M —↠[ χs ++χ ψs ] P

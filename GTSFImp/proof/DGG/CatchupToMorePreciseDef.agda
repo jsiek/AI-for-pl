@@ -1,4 +1,4 @@
-module proof.DGG.ValueRightCatchupDef where
+module proof.DGG.CatchupToMorePreciseDef where
 
 -- File Charter:
 --   * States closed target catch-up from a related more precise source value.
@@ -18,8 +18,8 @@ open import proof.DGG.Parked.ParkedWorldDef
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
-ValueRightCatchupᵀ : Set
-ValueRightCatchupᵀ =
+CatchupToMorePrecise : Set
+CatchupToMorePrecise =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {V : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}

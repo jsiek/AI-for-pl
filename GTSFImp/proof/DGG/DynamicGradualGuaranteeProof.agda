@@ -45,7 +45,8 @@ open import proof.DGG.DynamicGradualGuaranteeDef
 open import proof.DGG.SimDef using (Sim*ᵀ)
 open import proof.DGG.SimBackDef using (SimBack*ᵀ)
 open import proof.DGG.CatchupDef using (CatchupToLessPrecise)
-open import proof.DGG.ValueRightCatchupDef using (ValueRightCatchupᵀ)
+open import proof.DGG.CatchupToMorePreciseDef
+  using (CatchupToMorePrecise)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction.ValueIrreducibleDef
@@ -91,11 +92,11 @@ dynamic-gradual-guarantee :
     Sim*ᵀ
   → SimBack*ᵀ
   → CatchupToLessPrecise
-  → ValueRightCatchupᵀ
+  → CatchupToMorePrecise
   → TargetBlameCatchupᵀ
   → ValueIrreducible*ᵀ
   → GradualDGG
-dynamic-gradual-guarantee sim* sim-back* catchup value-right-catchup
+dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
     target-blame-catchup value-irreducible*
     {A = A} {B = B} {p = p} M⊑M′ =
   source-value , source-diverges , target-value , target-diverges
@@ -131,7 +132,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup value-right-catchup
       | Δᴿ₁ , χsᴿ₁ , N′ , .Δᴸ , .Reduction.[] , .V , Δ₁ ,
         W₁ , q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
       | value-trace-refl
-      with value-right-catchup
+      with catchup-to-more-precise
         (parked-world-closed initial-parked evol₁) N₂⊑N′ vV
   source-value {Δᴸ} V χsᴸ M↠V vV
       | Δᴿ₁ , χsᴿ₁ , N′ , .Δᴸ , .Reduction.[] , .V , Δ₁ ,

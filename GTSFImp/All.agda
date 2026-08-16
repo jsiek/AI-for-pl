@@ -137,6 +137,7 @@ import proof.DGG.TagBoundaryProbe
 import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
+import proof.DGG.DynamicGradualGuaranteeDef
 import proof.DGG.CenterRename
 import proof.DGG.Occupancy
 import proof.DGG.WorldSupport

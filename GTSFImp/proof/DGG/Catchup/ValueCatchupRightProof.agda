@@ -15,9 +15,10 @@ open import Relation.Binary.PropositionalEquality using (sym)
 
 open import Types using (Ty)
 open import Consistency using (Env∼; _⊢_∼_)
+open import Conversion using (Conv↓)
 open import CastTerms using (Term; Value; Inert; _⟨_⟩; _《_》)
 open import Reduction using (applyConsistencies)
-open import proof.Reduction using (castSize-applyConsistencies)
+open import proof.Reduction using (_++χ_; castSize-applyConsistencies)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
@@ -25,6 +26,8 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; TargetCastBound)
 open import proof.DGG.Catchup.StructuralWorldExtendProof using
   (structural-world-extendᴿ)
+open import proof.DGG.Catchup.StructuralWorldTagRebaseDef using
+  (mapPivotChanges)
 open import proof.DGG.Catchup.StructuralCatchupRightDef public using
   (StructuralCatchupRightResult; StructuralValueCatchupRightAt;
    StructuralExtraCastRightAt; erase-structural-value-catchup-right-at;
@@ -37,17 +40,42 @@ structural-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B} {q : A ⊑ᵂ⟨ W ⟩ B′}
-  → StructuralValueCatchupRightAt fuel
-  → StructuralExtraCastRightAt fuel
+  → (value-worker : StructuralValueCatchupRightAt fuel)
+  → (extra-worker : StructuralExtraCastRightAt fuel)
   → (c′ : ν ⊢ B ∼ B′)
-  → Value M
+  → (vM : Value M)
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
-  → castSize c′ < fuel
-  → TargetCastBound fuel rel
+  → (c′<fuel : castSize c′ < fuel)
+  → (bound : TargetCastBound fuel rel)
+  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → let child = value-worker vM rel bound
+            plan = StructuralCatchupRightResult.structural-ext child
+            ext = structural-world-extendᴿ plan
+            χs = StructuralCatchupRightResult.χs child
+            cχ = applyConsistencies χs c′
+            cχ<fuel =
+              subst≡ (λ n → n < fuel)
+                (sym (castSize-applyConsistencies χs c′))
+                c′<fuel
+            residual =
+              extra-worker cχ cχ<fuel
+                (CTI2.⊑cast² cχ
+                  (StructuralCatchupRightResult.final-relation child)
+                  (ECR.transport⊑ᵂ ext q))
+                vM
+                (StructuralCatchupRightResult.final-value child)
+         in CTI2.SourceConcealPartnerOK W M c₀ Xᴿ? (M′ ⟨ c′ ⟩)
+            → CTI2.SourceConcealPartnerOK
+                (StructuralCatchupRightResult.W′ residual) M c₀
+                (mapPivotChanges
+                  (StructuralCatchupRightResult.χs child ++χ
+                   StructuralCatchupRightResult.χs residual)
+                  Xᴿ?)
+                (StructuralCatchupRightResult.N′ residual))
   → StructuralCatchupRightResult W γ M (M′ ⟨ c′ ⟩) q
 structural-target-cast-row {fuel = fuel} {γ = γ} {q = q}
-    value-worker extra-worker c′ vM rel c′<fuel bound =
-  structural-catchup-compose-target-cast c′ child residual
+    value-worker extra-worker c′ vM rel c′<fuel bound partner-endpoint =
+  structural-catchup-compose-target-cast c′ child residual partner-endpoint
   where
   child = value-worker vM rel bound
   plan = StructuralCatchupRightResult.structural-ext child
@@ -73,19 +101,48 @@ structural-paired-target-cast-row : ∀ {fuel Δᴸ Δᴿ Δ}
     {C A : Ty Δᴸ} {C′ A′ : Ty Δᴿ}
     {ν : Env∼ Δᴸ} {ν′ : Env∼ Δᴿ}
     {p : C ⊑ᵂ⟨ W ⟩ C′} {q : A ⊑ᵂ⟨ W ⟩ A′}
-  → StructuralValueCatchupRightAt fuel
-  → StructuralExtraCastRightAt fuel
+  → (value-worker : StructuralValueCatchupRightAt fuel)
+  → (extra-worker : StructuralExtraCastRightAt fuel)
   → (c : ν ⊢ C ∼ A)
   → (c′ : ν′ ⊢ C′ ∼ A′)
   → (vM : Value M)
-  → Inert c
+  → (inert : Inert c)
   → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
-  → castSize c′ < fuel
-  → TargetCastBound fuel rel
+  → (c′<fuel : castSize c′ < fuel)
+  → (bound : TargetCastBound fuel rel)
+  → (∀ {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → let child = value-worker vM rel bound
+            plan = StructuralCatchupRightResult.structural-ext child
+            ext = structural-world-extendᴿ plan
+            χs = StructuralCatchupRightResult.χs child
+            cχ = applyConsistencies χs c′
+            cχ<fuel =
+              subst≡ (λ n → n < fuel)
+                (sym (castSize-applyConsistencies χs c′))
+                c′<fuel
+            residual =
+              extra-worker cχ cχ<fuel
+                (CTI2.cast⊑cast² c cχ
+                  (StructuralCatchupRightResult.final-relation child)
+                  (ECR.transport⊑ᵂ ext q))
+                (vM 《 inert 》)
+                (StructuralCatchupRightResult.final-value child)
+         in CTI2.SourceConcealPartnerOK W (M ⟨ c ⟩) c₀ Xᴿ?
+              (M′ ⟨ c′ ⟩)
+            → CTI2.SourceConcealPartnerOK
+                (StructuralCatchupRightResult.W′ residual)
+                (M ⟨ c ⟩) c₀
+                (mapPivotChanges
+                  (StructuralCatchupRightResult.χs child ++χ
+                   StructuralCatchupRightResult.χs residual)
+                  Xᴿ?)
+                (StructuralCatchupRightResult.N′ residual))
   → StructuralCatchupRightResult W γ (M ⟨ c ⟩) (M′ ⟨ c′ ⟩) q
 structural-paired-target-cast-row {fuel = fuel} {γ = γ} {q = q}
-    value-worker extra-worker c c′ vM inert rel c′<fuel bound =
-  structural-catchup-compose-paired-target-cast c c′ child residual
+    value-worker extra-worker c c′ vM inert rel c′<fuel bound
+    partner-endpoint =
+  structural-catchup-compose-paired-target-cast
+    c c′ child residual partner-endpoint
   where
   child = value-worker vM rel bound
   plan = StructuralCatchupRightResult.structural-ext child

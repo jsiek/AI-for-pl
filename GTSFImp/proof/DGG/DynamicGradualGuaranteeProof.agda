@@ -4,9 +4,9 @@ module proof.DGG.DynamicGradualGuaranteeProof where
 --   * Proves the closed GTSFImp dynamic gradual guarantee from the
 --     multi-step simulation and terminal catch-up interfaces.
 --   * Uses completed compilation, parked-world, reduction-composition, and
---     type-safety proofs directly.
+--     irreducibility and type-safety proofs directly.
 --   * Contains no induction; operational inductions remain confined to the
---     parameterized simulation, catch-up, and irreducibility lemmas.
+--     parameterized simulation and catch-up lemmas.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Empty using (⊥-elim)
@@ -51,9 +51,13 @@ open import proof.DGG.CatchupToMorePreciseDef
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction.ValueIrreducibleDef
-  using (ValueTraceRefl; value-trace-refl; ValueIrreducible*ᵀ)
+  using (ValueTraceRefl; value-trace-refl)
+open import proof.Reduction.ValueIrreducibleProof
+  using (value-irreducible*)
 open import proof.Reduction.BlameIrreducibleDef
-  using (BlameTraceRefl; blame-trace-refl; BlameIrreducible*ᵀ)
+  using (BlameTraceRefl; blame-trace-refl)
+open import proof.Reduction.BlameIrreducibleProof
+  using (blame-irreducible*)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; parked-initial)
 open import proof.DGG.Parked.ParkedWorldLemma
@@ -97,12 +101,9 @@ dynamic-gradual-guarantee :
   → CatchupToLessPrecise
   → CatchupToMorePrecise
   → TargetBlameCatchupᵀ
-  → ValueIrreducible*ᵀ
-  → BlameIrreducible*ᵀ
   → GradualDGG
 dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
-    target-blame-catchup value-irreducible* blame-irreducible*
-    {A = A} {B = B} {p = p} M⊑M′ =
+    target-blame-catchup {A = A} {B = B} {p = p} M⊑M′ =
   source-value , source-diverges , target-value , target-diverges
   where
   initial-parked : ParkedWorld

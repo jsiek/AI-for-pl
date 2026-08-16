@@ -5,6 +5,10 @@ module proof.DGG.Catchup.ValueCatchupRightProof where
 --     column recursion.
 --   * `ValueCatchupRightAt` now consumes the CTI derivation for the whole
 --     target term rather than a separate column witness.
---   * Rebuilding the recursion needs a wrapper-aware target-cast-step
---     inversion theorem over CTI derivations; see
---     `notes/lg3-value-catchup-column-blocked.red`.
+--   * The internal worker surface carries `StructuralWorldExtendᴿ`; the
+--     adapter in `StructuralCatchupRightDef` erases it to the public
+--     `WorldExtendᴿ` boundary.
+
+open import proof.DGG.Catchup.StructuralCatchupRightDef public using
+  (StructuralCatchupRightResult; StructuralValueCatchupRightAt;
+   erase-structural-value-catchup-right-at)

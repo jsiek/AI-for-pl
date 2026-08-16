@@ -16,6 +16,5 @@ to `castSize c′ < fuel × TargetCastBound fuel rel`; structural CTI heads
 replay the premise bound; constants and source blame contribute `⊤`.
 
 The old column peel theorem is therefore obsolete.  The remaining M6 resister
-is not a column issue: it is the wrapper-aware target-cast-step inversion
-recorded in `lg3-extra-cast-right-blocked.red` and
-`LG3TargetCastStepInversionCaseTable.md`.
+is not a column issue: it is the structural multi-step target-cast worker
+recorded in `lg3-target-cast-multistep-worker-resister.red`.

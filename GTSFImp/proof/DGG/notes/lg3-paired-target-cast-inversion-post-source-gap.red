@@ -1,6 +1,6 @@
 LG-3 paired target-cast inversion: post-source endpoint gap
 
-Status: open as of 2026-08-16.
+Status: SUPERSEDED-BY-MULTISTEP-RESTATEMENT as of 2026-08-16.
 
 The target-only exposed cells in
 `Catchup/TargetCastStepInversionProof.agda` now check for identity, ground
@@ -70,6 +70,15 @@ therefore needs either:
   hypotheses required by the legacy strip/target-chain machinery.
 
 No CTI relation change has been made.
+
+SUPERSEDED-BY-MULTISTEP-RESTATEMENT postscript, 2026-08-16:
+
+This note remains as the negative record for the one-step endpoint-transport
+route.  It is not the live LG-3 target anymore.  The supervisor restatement
+uses a structural multi-step / stuttering worker that may run the target side
+past the transient midpoint to the re-attachment point where the paired
+relation is directly inhabitable.  The live open item is now
+`lg3-target-cast-multistep-worker-resister.red`.
 
 Postscript 2026-08-16:
 

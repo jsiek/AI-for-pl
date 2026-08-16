@@ -70,6 +70,5 @@ The surviving support lemmas now live in
 ## Remaining Resister
 
 The column peel blocker is superseded.  The remaining proof blocker is the
-wrapper-aware target-cast-step inversion in
-`LG3TargetCastStepInversionCaseTable.md` and
-`lg3-extra-cast-right-blocked.red`.
+structural multi-step target-cast worker in
+`lg3-target-cast-multistep-worker-resister.red`.

@@ -45,3 +45,18 @@ itself.  The focused paired non-identity endpoint gap is recorded in
 `lg3-paired-target-cast-inversion-post-source-gap.red`.  The wrapper-aware
 theorem, `ExtraCastRightAt`, and `ValueCatchupRightAt` are still blocked on
 that gap plus source/target wrapper replay integration.
+
+Postscript 2026-08-16, structural boundary factoring:
+
+The source-wrapper replay surface mismatch is now superseded by
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`.  Internal LG-3 catch-up
+results carry `StructuralWorldExtendᴿ` and erase to public `WorldExtendᴿ` only
+at the value-catch-up / extra-cast boundary.
+
+The remaining open core is the structural multi-step worker recorded in
+`lg3-target-cast-multistep-worker-resister.red`: it must assemble the checked
+exposed cast cells, source-wrapper structural replay, target-wrapper
+peel/absorption, and the paired ground/expand multi-step re-attachment
+restatement into `StructuralExtraCastRightAt` and
+`StructuralValueCatchupRightAt`, then erase to the public `ExtraCastRightAt`
+and `ValueCatchupRightAt`.

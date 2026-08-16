@@ -1,6 +1,6 @@
 LG-3 resister: erased `WorldExtendᴿ` is too weak for source-wrapper replay
 
-Status: open as of 2026-08-16.
+Status: SUPERSEDED-BY-STRUCTURAL-SURFACE as of 2026-08-16.
 
 The supervisor restatement resolves the fun×expand endpoint counterexample,
 but rebuilding `ValueCatchupRightAt` against the live fuel interfaces exposes a
@@ -61,3 +61,39 @@ source-wrapper replay lemmas whose hypotheses explicitly include enough
 right-world history to reconstruct `RebaseAtᴸ`, `TagRebaseAtᴸ`, and endpoint
 partner evidence.  The CTI relation and reduction relation do not need to
 change.
+
+SUPERSEDED-BY-STRUCTURAL-SURFACE postscript, 2026-08-16:
+
+The NS-4 factoring has been installed at the LG-3 internal/boundary surface in
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`.
+
+Internal packages now carry:
+
+`StructuralWorldExtendᴿ χs W W′`
+
+at the worker result:
+
+- `StructuralCatchupRightResult`
+- `StructuralValueCatchupRight²`
+- `StructuralValueCatchupRightAt`
+- `StructuralExtraCastRightAt`
+- `StructuralInstCatchupRightAt`
+
+The only adapters to the public boundary are the erasure functions:
+
+- `erase-structural-catchup-result`
+- `erase-structural-value-catchup-right²`
+- `erase-structural-value-catchup-right-at`
+- `erase-structural-extra-cast-right-at`
+- `erase-structural-inst-catchup-right-at`
+
+Those adapters call the existing NS-4 erasure
+`structural-world-extendᴿ`.  The public fuel statements in
+`ValueCatchupRightDef.agda` are unchanged and still return public
+`WorldExtendᴿ`.
+
+This closes the erased-extension surface mismatch recorded above.  The
+remaining open blocker is no longer source-wrapper replay data: it is the
+missing structural multi-step target-cast worker that must produce such a
+structural package for the target `⊑cast²` / paired `cast⊑cast²` rows.  See
+`lg3-target-cast-multistep-worker-resister.red`.

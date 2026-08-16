@@ -1,10 +1,16 @@
 LG-3 target-cast-step inversion case table
 
-Target statement:
+Target statement (superseded shape):
 
 if `M′ ⟨ c′ ⟩ —→[ χ ] N′`, `Value M`, `Value M′`, and
 `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`, produce `W′`, `ext`, and
 `W′ ∣ mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶ transport⊑ᵂ ext q`.
+
+2026-08-16 structural restatement: the live theorem is no longer this erased
+one-step statement.  Internal LG-3 workers carry `StructuralWorldExtendᴿ` and
+the paired ground/expand rows may take multiple target steps to the
+re-attachment point.  The open live theorem is recorded in
+`lg3-target-cast-multistep-worker-resister.red`.
 
 ## `⊑cast² c′ premise q`
 
@@ -99,5 +105,7 @@ this recovery for every CTI head in the tables above.  The generated-projection
 provenance object itself is not reintroduced.
 
 2026-08-16 update: the generated-projection replacement and exposed target-only
-cells are checked; the remaining Agda obligation is the wrapper-aware theorem
-plus the paired non-identity endpoint transport described above.
+cells are checked.  The one-step paired endpoint-transport route is superseded
+by the structural multi-step restatement; the remaining Agda obligation is the
+worker/factory assembly recorded in
+`lg3-target-cast-multistep-worker-resister.red`.

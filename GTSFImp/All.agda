@@ -112,6 +112,12 @@ import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof
 
 ------------------------------------------------------------------------
+-- Current frontier (M8: higher-order DGG assembly)
+------------------------------------------------------------------------
+
+import proof.DGG.DynamicGradualGuaranteeProof
+
+------------------------------------------------------------------------
 -- Leaf gates: nothing imports these; listed so they stay checked
 ------------------------------------------------------------------------
 
@@ -139,7 +145,6 @@ import proof.DGG.TagBoundaryProbe
 import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
-import proof.DGG.DynamicGradualGuaranteeDef
 import proof.DGG.CenterRename
 import proof.DGG.Occupancy
 import proof.DGG.WorldSupport

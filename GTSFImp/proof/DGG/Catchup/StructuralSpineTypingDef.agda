@@ -24,7 +24,7 @@ open import Consistency using
    _[_]ᶜ; subst-∈ᵗ; renameNonStar; toRenameᵗ; wk↪ᵗ)
 import CastTerms as CT
 open import CastTerms using
-  (Inert; GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen)
+  (Inert; GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen; _⟨_⟩)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
 open import Reduction using
@@ -41,8 +41,7 @@ import proof.Consistency as PC
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (CatchupCast⁻; catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
-   catchup⁻-bot-elim; catchup⁻-bot-intro; castSize)
+  (castSize)
 open import proof.ImprecisionConsistency using (nonstar-from-≢★)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
@@ -57,8 +56,10 @@ ResidualFrameProvenance {Δ = Δ} {A = A} {B = B} c =
     {Aₛ : Ty Δᴸ}
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTys χs A}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ applyTys χs B}
-  → CatchupCast⁻ {W = W} {A = Aₛ} p
-      (applyConsistencies χs c) q
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V : CT.Term Δ′}
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ (V ⟨ applyConsistencies χs c ⟩) ∶ q
 
 
 residual-provenance-map-bind : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
@@ -80,29 +81,18 @@ applyTys-nonstar (bind R ∷ χs) Ans =
   applyTys-nonstar χs (renameNonStar Fin.suc Ans)
 
 
-catchup⁻-nonstar-local : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
+residual-frame-cast-local : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     {Aₛ : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B′}
+    {γ : CTI2.CtxImp W}
+    {M : CT.Term Δᴸ} {V : CT.Term Δᴿ}
   → NonStar B
   → NonStar B′
   → (c : ν ⊢ B ∼ B′)
-  → CatchupCast⁻ {W = W} {A = Aₛ} p c q
-catchup⁻-nonstar-local Bns B′ns (id ★) = catchup⁻-id ★
-catchup⁻-nonstar-local Bns B′ns (id (‵ ι)) = catchup⁻-id (‵ ι)
-catchup⁻-nonstar-local Bns B′ns (id (＇ X)) = catchup⁻-id (＇ X)
-catchup⁻-nonstar-local Bns B′ns (c ↦ d) =
-  catchup⁻-inert CT.fun
-catchup⁻-nonstar-local Bns B′ns (∀ᶜ c) =
-  catchup⁻-inert CT.all
-catchup⁻-nonstar-local Bns () (_! c)
-catchup⁻-nonstar-local () B′ns (？ c)
-catchup⁻-nonstar-local Bns B′ns (inst_ c B≢★) = catchup⁻-inst
-catchup⁻-nonstar-local Bns B′ns
-    (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
-  catchup⁻-inert (CT.genᵥ A≢★ (PC.gen-safe c A≢★ Bnv z∈B))
-catchup⁻-nonstar-local Bns B′ns bot-elim = catchup⁻-bot-elim
-catchup⁻-nonstar-local Bns B′ns bot-intro = catchup⁻-bot-intro
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ (V ⟨ c ⟩) ∶ q
+residual-frame-cast-local Bns B′ns c rel = CTI2.⊑cast² c rel _
 
 
 inst-residual-source-nonstar-local : ∀ {Δ} {B : Ty (suc Δ)}
@@ -122,7 +112,7 @@ inst-frame-provenance : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
   → (B≢★ : B ≢ ★)
   → ResidualFrameProvenance ((inst c) B≢★)
 inst-frame-provenance {c = c} B≢★ {χs = χs} =
-  catchup⁻-nonstar-local
+  residual-frame-cast-local
     (applyTys-nonstar χs nonstar-∀)
     (applyTys-nonstar χs (nonstar-from-≢★ B≢★))
     (applyConsistencies χs ((inst c) B≢★))
@@ -136,7 +126,7 @@ inst-residual-frame-provenance : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
   → ResidualFrameProvenance (↑ᶜ (close-instᶜ c))
 inst-residual-frame-provenance {A = A} {B = B} {c = c}
     ⦃ Anv ⦄ ⦃ z∈A ⦄ B≢★ {χs = χs} =
-  catchup⁻-nonstar-local
+  residual-frame-cast-local
     (applyTys-nonstar χs
       (renameNonStar (toRenameᵗ wk↪ᵗ)
         (inst-residual-source-nonstar-local Anv z∈A)))

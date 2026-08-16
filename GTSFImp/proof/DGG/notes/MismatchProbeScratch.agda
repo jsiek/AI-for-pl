@@ -24,8 +24,6 @@ open import CastTerms using
 open import Reduction
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-open import proof.DGG.ExtraCastRight2 using
-  (CatchupCast; catchup-projection)
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
    store-rep-imp; ⊢↓-sealˣ)
@@ -129,12 +127,6 @@ input-package-without-live-premise =
   Y? ,
   probe-q
 
-mismatch-violates-provenance :
-  CatchupCast {W = probe-world} {A = ＇ U}
-    probe-p target-tagged Y? probe-q
-  → ⊥
-mismatch-violates-provenance (catchup-projection ())
-
 ℕ-type : Ty 1
 ℕ-type = ‵ `ℕ
 
@@ -225,3 +217,10 @@ mismatch-no-value-reduct
 mismatch-no-value-reduct
     (↠-step (ξ-⟨⟩ step refl) rest) vN =
   inner-tag-no-step step
+
+mismatch-violates-provenance : ∀ {Δ′} {χs : StoreChanges 1 Δ′}
+    {N : Term Δ′}
+  → mismatch-term —↠[ χs ] N
+  → Value N
+  → ⊥
+mismatch-violates-provenance = mismatch-no-value-reduct

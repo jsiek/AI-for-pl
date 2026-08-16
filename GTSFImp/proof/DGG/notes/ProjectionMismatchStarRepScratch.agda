@@ -23,8 +23,7 @@ open import CastTerms using
 open import Reduction
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-open import proof.DGG.ExtraCastRight2 using
-  (ExtraCastRight²; CatchupCast; catchup-projection)
+open import proof.DGG.ExtraCastRight2 using (ExtraCastRight²)
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
    store-rep-imp; ⊢↓-sealˣ)
@@ -328,19 +327,18 @@ mismatch-no-value-reduct
   inner-tag-no-step step
 
 projection-mismatch-violates-provenance :
-  CatchupCast {W = probe-world} {A = ＇ X}
-    probe-p target-tagged Y? probe-q
+  probe-world ∣ [] ⊢²
+    source-term ⟨ X! ⟩ ⟨ X? ⟩
+    ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
   → ⊥
-projection-mismatch-violates-provenance (catchup-projection ())
+projection-mismatch-violates-provenance = projection-mismatch-empty
 
 extra-cast-right²-contradiction : ExtraCastRight²
-  → probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ probe-p
-  → CatchupCast {W = probe-world} {A = ＇ X}
-      probe-p target-tagged Y? probe-q
+  → probe-world ∣ [] ⊢² source-term
+      ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
   → ⊥
-extra-cast-right²-contradiction ecr input generated
-    with ecr input source-value target-tagged-value
-      Y? probe-q generated
-extra-cast-right²-contradiction ecr input generated
+extra-cast-right²-contradiction ecr input
+    with ecr Y? input source-value target-tagged-value
+extra-cast-right²-contradiction ecr input
     | Δᴿ′ , χs , Δ′ , W′ , ext , N′ , vN′ , M↠N′ , M⊑N′ =
   mismatch-no-value-reduct M↠N′ vN′

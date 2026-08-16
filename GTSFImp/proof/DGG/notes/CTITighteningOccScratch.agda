@@ -6,7 +6,8 @@ module CTITighteningOccScratch where
 --     runtime-aligned X/Y probe cell.
 --   * Gates the source-seal star-representation see-through partner by
 --     occupancy, while leaving ordinary cast witnesses, target projection
---     witnesses, matched seals, and CatchupCast unchanged.
+--     witnesses and matched seals unchanged; positive cast checkpoints now
+--     use CTI reachability directly.
 --   * Checks C1 emptiness/reroute closure and C2/C3 representative witnesses.
 --     No live CTI2 or proof file is edited.
 
@@ -30,7 +31,6 @@ open import CastTerms using (Term; Value; _⟨_⟩; _↓_; _↑_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
 import CTITighteningNarrowScratch as N
 import SourceReachabilityResultScratch as SR
 import InitialPairScratch as IP
@@ -313,12 +313,10 @@ matching-projectionᴼ =
   ⊑castᴼ (N.target-narrow-★-to-var N.Y?-shape refl refl)
     matching-inputᴼ
 
-good-generated-catchupᴼ :
-  ECR.CatchupCast {W = N.W} {A = ＇ Fin.zero}
-    N.X⊑★W N.target-name-tagged N.Y? N.qXY
-good-generated-catchupᴼ =
-  ECR.catchup-projection
-    (ECR.generated-project-same N.target-sealed-value)
+good-generated-catchupᴼ-live-replacement :
+  N.W ∣ [] ⊢ᴼ[ aligned-occ ]
+    N.source-sealed ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
+good-generated-catchupᴼ-live-replacement = matching-projectionᴼ
 
 post-alignment-input-is-taggedᴼ :
   IP.Q-generated-tagged-input ≡ SR.target-sealed ⟨ IP.Q-Y! ⟩

@@ -26,7 +26,7 @@ open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ; castSize)
+  (FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ; castSize)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 

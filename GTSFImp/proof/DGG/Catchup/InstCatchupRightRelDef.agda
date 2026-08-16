@@ -28,7 +28,7 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; InstCatchupRightAt; FuelStepSurface;
-   inst-alloc-decreaseᵀ; Catchup⁻Embedᵀ)
+   inst-alloc-decreaseᵀ; ResidualCastBuilderᵀ)
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
@@ -43,7 +43,7 @@ record InstRelContinuationSurface (fuel : ℕ) : Set₁ where
     inst-prefix : InstCastAllocPrefixᵀ
     all-value-step-catalog : AllValueViewStepCatalogᵀ
     inst-alloc-decrease : inst-alloc-decreaseᵀ
-    catchup⁻-embed : Catchup⁻Embedᵀ
+    residual-cast-builder : ResidualCastBuilderᵀ
 
     Λ-cont : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
         {γ : CtxImp W}

@@ -33,7 +33,7 @@ open import Imprecision using (VarImp; X⊑★; X⊑X)
 open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import TyStore using (store-lift; store-bind)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (CatchupCast⁻; castSize)
+  (castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.Catchup.InstCatchupRightProof as ICRP
@@ -94,8 +94,8 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
         InstPostCatalogPackageAt.at-residual-target-eq pkg
     ; residual-cast =
         InstPostCatalogPackageAt.at-residual-cast pkg
-    ; residual-provenance =
-        InstPostCatalogPackageAt.at-residual-provenance pkg
+    ; residual-relation =
+        InstPostCatalogPackageAt.at-residual-relation pkg
     ; spine-descent =
         InstPostCatalogPackageAt.at-spine-descent pkg
     ; finish = finish
@@ -460,8 +460,10 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
               ⊢² Mₒ ⊑ Λ⊑Λ²PostTerm V′ B ∶ outer-post-p ]
           Σ[ outer-residual-q ∈
               Aₒ ⊑ᵂ⟨ W₂ ⟩ residual-target ]
-            CatchupCast⁻ {W = W₂} {A = Aₒ}
-              outer-post-p residual-cast outer-residual-q
+            (∀ {γ₂ : CtxImp W₂} {V₂ : Term (suc (suc Δᴿ))}
+              → W₂ ∣ γ₂ ⊢² Mₒ ⊑ V₂ ∶ outer-post-p
+              → W₂ ∣ γ₂ ⊢² Mₒ ⊑ V₂ ⟨ residual-cast ⟩ ∶
+                  outer-residual-q)
 
 
 Λ-post-prefix-concrete-base-preflight : ∀ {Δᴸ Δᴿ Δ}
@@ -753,7 +755,8 @@ inst-inversion→rel-surface pkg = record
   ; all-value-step-catalog =
       InstInversionPackage.all-value-step-catalog pkg
   ; inst-alloc-decrease = InstInversionPackage.inst-alloc-decrease pkg
-  ; catchup⁻-embed = InstInversionPackage.catchup⁻-embed pkg
+  ; residual-cast-builder =
+      InstInversionPackage.residual-cast-builder pkg
   ; Λ-cont = λ rel vM vM′ vV′ eq c′ B′≢★ c<fuel q →
       InstPostCatalogPackage.finish
         (InstInversionPackage.Λ-package pkg

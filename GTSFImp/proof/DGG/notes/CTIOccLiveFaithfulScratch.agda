@@ -40,7 +40,6 @@ open import Primitives using (κℕ)
 
 import CTITighteningNarrowScratch as N
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
 import proof.Imprecision as PI
 
 open CTI2 using
@@ -312,12 +311,10 @@ matching-projectionᴼ² :
 matching-projectionᴼ² =
   ⊑castᴼ² N.Y? matching-inputᴼ² N.qXY
 
-good-generated-catchupᴼ² :
-  ECR.CatchupCast {W = N.W} {A = ＇ Fin.zero}
-    N.X⊑★W N.target-name-tagged N.Y? N.qXY
-good-generated-catchupᴼ² =
-  ECR.catchup-projection
-    (ECR.generated-project-same N.target-sealed-value)
+good-generated-catchupᴼ²-live-replacement :
+  N.W ∣ [] ⊢ᴼ²[ aligned-occ ]
+    N.source-sealed ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
+good-generated-catchupᴼ²-live-replacement = matching-projectionᴼ²
 
 ------------------------------------------------------------------------
 -- C1 emptiness and reroute closure in the aligned world

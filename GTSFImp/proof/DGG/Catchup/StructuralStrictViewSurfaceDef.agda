@@ -35,7 +35,7 @@ open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
+  (FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -307,7 +307,7 @@ StructuralNameInstantiationᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan

@@ -33,8 +33,8 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (CatchupCast⁻; Catchup⁻Embedᵀ; FuelStepSurface;
-   inst-alloc-decreaseᵀ; castSize)
+  (ResidualCastBuilderᵀ; FuelStepSurface; inst-alloc-decreaseᵀ;
+   castSize)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
   (name-type-app-frame; _▻ⁱ_; []ⁱ)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef using
@@ -278,30 +278,35 @@ data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
-Catchup⁻NonStarᵀ : Set
-Catchup⁻NonStarᵀ =
+ResidualNonStarᵀ : Set
+ResidualNonStarᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B} {q : A ⊑ᵂ⟨ W ⟩ B′}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V : Term Δᴿ}
   → NonStar B
   → NonStar B′
   → (c : ν ⊢ B ∼ B′)
-  → CatchupCast⁻ {W = W} {A = A} p c q
+  → W ∣ γ ⊢² M ⊑ V ∶ p
+  → W ∣ γ ⊢² M ⊑ (V ⟨ c ⟩) ∶ q
 
 
-InstResidualProvenanceᵀ : Set
-InstResidualProvenanceᵀ =
+InstResidualRelationᵀ : Set
+InstResidualRelationᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ (suc Δᴿ) Δ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
     {ν : Env∼ Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ renameᵗ (toRenameᵗ wk↪ᵗ) (B [ ★ ]ᵗ)}
     {q : A ⊑ᵂ⟨ W ⟩ renameᵗ (toRenameᵗ wk↪ᵗ) B′}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {V : Term (suc Δᴿ)}
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
-  → CatchupCast⁻ {W = W} {A = A} p
-      (↑ᶜ (close-instᶜ c′)) q
+  → W ∣ γ ⊢² M ⊑ V ∶ p
+  → W ∣ γ ⊢² M ⊑ (V ⟨ ↑ᶜ (close-instᶜ c′) ⟩) ∶ q
 
 
 record InstSpineDescentPackage {Δᴸ Δᴿ Δ}
@@ -340,7 +345,7 @@ StructuralValueInstantiationᵀ =
   → StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A
       (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q)
@@ -385,9 +390,11 @@ record InstPostCatalogPackageAt (fuel : ℕ)
     at-residual-q : A ⊑ᵂ⟨ W₂ ⟩ at-residual-target
     at-residual-target-eq : at-residual-target ≡ applyTys χs₂ B′
     at-residual-cast : at-ν₂ ⊢ at-B₂ ∼ at-residual-target
-    at-residual-provenance :
-      CatchupCast⁻ {W = W₂} {A = A} at-p₂ at-residual-cast
-        at-residual-q
+    at-residual-relation :
+      ∀ {γ₂ : CtxImp W₂} {V₂ : Term Δᴿ₂}
+      → W₂ ∣ γ₂ ⊢² M ⊑ V₂ ∶ at-p₂
+      → W₂ ∣ γ₂ ⊢² M ⊑ (V₂ ⟨ at-residual-cast ⟩) ∶
+          at-residual-q
     at-residual-fuel :
       suc (castSize at-residual-cast) < fuel
     at-prefix-reduction :
@@ -427,9 +434,10 @@ record InstPostCatalogPackage (fuel : ℕ)
     residual-q : A ⊑ᵂ⟨ W₂ ⟩ residual-target
     residual-target-eq : residual-target ≡ applyTys χs₂ B′
     residual-cast : ν₂ ⊢ B₂ ∼ residual-target
-    residual-provenance :
-      CatchupCast⁻ {W = W₂} {A = A} p₂ residual-cast
-        residual-q
+    residual-relation :
+      ∀ {γ₂ : CtxImp W₂} {V₂ : Term Δᴿ₂}
+      → W₂ ∣ γ₂ ⊢² M ⊑ V₂ ∶ p₂
+      → W₂ ∣ γ₂ ⊢² M ⊑ (V₂ ⟨ residual-cast ⟩) ∶ residual-q
     spine-descent :
       InstSpineDescentPackage W₂ (ECR.mapCtxᴿ ext₂ γ) M post p₂
     finish :
@@ -449,7 +457,7 @@ record InstInversionPackage (fuel : ℕ) : Set₁ where
     inst-prefix : InstCastAllocPrefixᵀ
     all-value-step-catalog : AllValueViewStepCatalogᵀ
     inst-alloc-decrease : inst-alloc-decreaseᵀ
-    catchup⁻-embed : Catchup⁻Embedᵀ
+    residual-cast-builder : ResidualCastBuilderᵀ
 
     Λ-package : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
         {γ : CtxImp W}

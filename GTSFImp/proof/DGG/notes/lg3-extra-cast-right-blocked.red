@@ -25,3 +25,23 @@ The inert/id direct cases are straightforward.  The blocked part is the deep
 wrapper-aware inversion needed when the whole CTI derivation is not headed by
 `⊑cast²`/`cast⊑cast²`, especially for projection/expansion and source-wrapper
 heads.  This is a genuine missing proof interface, not a stale import issue.
+
+Postscript 2026-08-16:
+
+Checked progress now lives in
+`proof/DGG/Catchup/TargetCastStepInversionProof.agda`.
+
+Closed cells:
+
+- exposed `⊑cast²` / `β-id`;
+- exposed `⊑cast²` / `ground`;
+- exposed `⊑cast²` / `expand`;
+- exposed generated-projection replacement aliases for matched projection and
+  projection expansion;
+- paired `cast⊑cast²` / `β-id`.
+
+The remaining open core is no longer the generated-projection replacement
+itself.  The focused paired non-identity endpoint gap is recorded in
+`lg3-paired-target-cast-inversion-post-source-gap.red`.  The wrapper-aware
+theorem, `ExtraCastRightAt`, and `ValueCatchupRightAt` are still blocked on
+that gap plus source/target wrapper replay integration.

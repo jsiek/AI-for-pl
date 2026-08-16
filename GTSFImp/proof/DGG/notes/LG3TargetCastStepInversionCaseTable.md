@@ -13,10 +13,10 @@ The derivation head exposes the exact target cast.  Classify `c′`.
 | target step shape | machinery |
 | --- | --- |
 | inert/no step selected | impossible for a reducing target cast; handled by extra-cast value case, not the one-step inversion |
-| `β-id` | direct: one `keep`, `id-extra-cast-right²`, uniqueness of `q` |
-| `ground` | recurse on the inner cast premise, then reapply mapped inert tag with `cast-↠` and `applyConsistencies-Inert` |
-| `expand` | invert the tag/projection pair using right-injection inversion for the matched-tag case; recurse for the expanded residual |
-| `tag-untag` | right-injection inversion on the matching tag, then `keep` |
+| `β-id` | **core cell checked**: direct retarget by uniqueness of `q` |
+| `ground` | **core cell checked**: recover the intermediate ground witness with `ground-cast-target⊑`; full extra-cast worker still needs recursive replay/mapped inert tag |
+| `expand` | **core cell checked**: recover the intermediate ground witness with `expand-cast-source⊑`; recursive residual catch-up still pending |
+| `tag-untag` | **core replacement checked** through `GeneratedProjectionReplacementProof`; full theorem still needs wrapper dispatch |
 | `tag-untag-bad` | impossible under CTI inversion when the source is a value related to the tagged target |
 | `β-inst` | delegate to current-fuel `InstCatchupRightAt`; allocation world from the M5/LG-2 surfaces |
 | `β-gen` | inert value case when `gen` is `GenSafe`; otherwise type-app/all-spine machinery is needed only when the generated cast sits under a type application |
@@ -27,6 +27,13 @@ The derivation head exposes the exact target cast.  Classify `c′`.
 
 The target cast is still exposed.  Use the same core cast classification as
 `⊑cast²`; the recursive premise is the inner `premise`.
+
+2026-08-16 update: the `β-id` paired cell is checked by replaying the source
+cast as `cast⊑²`.  The non-identity paired rows expose an additional
+post-source endpoint gap: generic reconstruction needs witnesses such as
+`A ⊑ G` or `A ⊑ ★` after the source cast, while the paired constructor gives
+the pre-source premise `C ⊑ ...` and the final endpoint.  See
+`lg3-paired-target-cast-inversion-post-source-gap.red`.
 
 ## source-wrapper heads
 
@@ -90,3 +97,7 @@ does not reconstitute the source-side partner obligation.
 Remaining Agda obligation: implement the wrapper-aware theorem that performs
 this recovery for every CTI head in the tables above.  The generated-projection
 provenance object itself is not reintroduced.
+
+2026-08-16 update: the generated-projection replacement and exposed target-only
+cells are checked; the remaining Agda obligation is the wrapper-aware theorem
+plus the paired non-identity endpoint transport described above.

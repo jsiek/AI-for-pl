@@ -1,4 +1,4 @@
-module proof.DGG.CatchupDef where
+module proof.DGG.CatchupToLessPreciseDef where
 
 -- File Charter:
 --   * States closed source catch-up when the less precise right term is

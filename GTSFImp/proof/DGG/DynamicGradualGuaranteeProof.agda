@@ -44,7 +44,8 @@ open import proof.DGG.DynamicGradualGuaranteeDef
     )
 open import proof.DGG.SimDef using (Sim*ᵀ)
 open import proof.DGG.SimBackDef using (SimBack*ᵀ)
-open import proof.DGG.CatchupDef using (CatchupToLessPrecise)
+open import proof.DGG.CatchupToLessPreciseDef
+  using (CatchupToLessPrecise)
 open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupToMorePrecise)
 open import proof.DGG.TargetBlameCatchupDef

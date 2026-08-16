@@ -1,0 +1,64 @@
+LG-3 target-cast-step inversion case table
+
+Target statement:
+
+if `M′ ⟨ c′ ⟩ —→[ χ ] N′`, `Value M`, `Value M′`, and
+`W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`, produce `W′`, `ext`, and
+`W′ ∣ mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶ transport⊑ᵂ ext q`.
+
+## `⊑cast² c′ premise q`
+
+The derivation head exposes the exact target cast.  Classify `c′`.
+
+| target step shape | machinery |
+| --- | --- |
+| inert/no step selected | impossible for a reducing target cast; handled by extra-cast value case, not the one-step inversion |
+| `β-id` | direct: one `keep`, `id-extra-cast-right²`, uniqueness of `q` |
+| `ground` | recurse on the inner cast premise, then reapply mapped inert tag with `cast-↠` and `applyConsistencies-Inert` |
+| `expand` | invert the tag/projection pair using right-injection inversion for the matched-tag case; recurse for the expanded residual |
+| `tag-untag` | right-injection inversion on the matching tag, then `keep` |
+| `tag-untag-bad` | impossible under CTI inversion when the source is a value related to the tagged target |
+| `β-inst` | delegate to current-fuel `InstCatchupRightAt`; allocation world from the M5/LG-2 surfaces |
+| `β-gen` | inert value case when `gen` is `GenSafe`; otherwise type-app/all-spine machinery is needed only when the generated cast sits under a type application |
+| `bot-elim` | impossible by target typing and `no-bot-value` |
+| `bot-intro` | impossible/refuted by source value typing plus type-imprecision inversion |
+
+## `cast⊑cast² c c′ premise q`
+
+The target cast is still exposed.  Use the same core cast classification as
+`⊑cast²`; the recursive premise is the inner `premise`.
+
+## source-wrapper heads
+
+These do not reduce on the target side.  Strip the source wrapper to its
+premise, run the target-cast-step inversion there, and replay the source
+wrapper over the transported premise.
+
+| derivation head | machinery |
+| --- | --- |
+| `cast⊑²` | source-wrapper strip and replay over a right world extension |
+| `reveal⊑²` | `StructuralSourceRebaseReplayProof` reveal replay |
+| `conceal⊑²` | `StructuralSourceRebaseReplayProof` conceal replay plus hereditary partner/supply where transport alone is insufficient |
+| `Λ⊑²` / `Λ⊑²-smart-comma` | source lambda replay surfaces; target side unchanged |
+| `Λ⊑Λ²` | equal-mass source/target wrapper case; replay after transporting both lifted premises |
+| `reveal⊑reveal²` / `conceal⊑conceal²` | paired wrapper replay; if the target wrapper is the reducing context, use target-strip surfaces below |
+
+## target-wrapper heads
+
+These place the selected cast under a target wrapper.  Use the target strip
+surfaces to expose the child cast premise, solve that child, then absorb the
+wrapper back into the conclusion.
+
+| derivation head | machinery |
+| --- | --- |
+| nested `⊑cast²` | target cast absorption through `⊑cast²`, using the mapped outer cast |
+| `⊑reveal²` | target reveal peel/replay and absorption |
+| `⊑conceal²` | target conceal peel/replay and absorption |
+| target side under generated all/reveal/conceal spines | LG-1 target peel packages plus `StructuralTargetFrameAbsorptionDef` |
+
+Open cell to validate in Agda:
+
+`core exposed cast classification -> live replacement for generated projection
+provenance`.  The old proof used `GeneratedProjection`/`CatchupCast`.  LG-3
+must recover the same data from the CTI premise plus right-injection inversion
+and occupancy-gated partner inversion.

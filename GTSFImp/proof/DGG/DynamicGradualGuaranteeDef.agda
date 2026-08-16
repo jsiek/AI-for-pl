@@ -4,8 +4,6 @@ module proof.DGG.DynamicGradualGuaranteeDef where
 --   * States the closed-program dynamic gradual guarantee for GTSFImp.
 --   * Compiles both sides of gradual-term imprecision and classifies their
 --     runs as related final values, source blame, or mutual divergence.
---   * Uses ParkedEvolve to connect the two store-change traces to the final
---     version-2 imprecision world.
 --   * This module contains only the checked statement surface; the simulation
 --     proof belongs in separate Proof and Lemma modules.
 
@@ -36,8 +34,6 @@ open import Reduction
     ; _—↠[_]_
     )
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.CompilePreservesImprecision2 as CPI2
-open import proof.DGG.Parked.ParkedWorldDef using (ParkedEvolve)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
@@ -100,7 +96,6 @@ GradualDGG =
         (Σ[ q ∈ applyTys χs A ⊑ᵂ⟨ W ⟩ applyTys χs′ B ]
           ((compiled-right M⊑M′ —↠[ χs′ ] V′) ×
            Value V′ ×
-           ParkedEvolve χs χs′ (CPI2.initialWorld idᵐ store-empty) W ×
            (W ∣ [] ⊢² V ⊑ V′ ∶ q))))))))
     -- Part 2: if the more precise side diverges, the less precise side
     -- diverges.
@@ -116,7 +111,6 @@ GradualDGG =
           (Σ[ q ∈ applyTys χs A ⊑ᵂ⟨ W ⟩ applyTys χs′ B ]
             ((compiled-left M⊑M′ —↠[ χs ] V) ×
              Value V ×
-             ParkedEvolve χs χs′ (CPI2.initialWorld idᵐ store-empty) W ×
              (W ∣ [] ⊢² V ⊑ V′ ∶ q))))))))
       ⊎ (∃[ Δᴸ ] (Σ[ χs ∈ StoreChanges 0 Δᴸ ]
           (compiled-left M⊑M′ —↠[ χs ] blame))))

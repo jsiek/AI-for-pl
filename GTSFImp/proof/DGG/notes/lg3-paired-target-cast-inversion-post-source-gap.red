@@ -70,3 +70,17 @@ therefore needs either:
   hypotheses required by the legacy strip/target-chain machinery.
 
 No CTI relation change has been made.
+
+Postscript 2026-08-16:
+
+Supervisor option (a), a checked endpoint-transport lemma family at the stated
+generality, is blocked by a concrete paired function-source / target-expand
+cell.  See `lg3-endpoint-transport-fun-expand-resister.red` and the checked
+scratch `LG3EndpointTransportCounterexampleScratch.agda`.
+
+The counterexample inhabits the paired `cast⊑cast²` premise and the target
+`expand` step, but refutes the requested post-source midpoint witness
+`X ⇒ ℕ ⊑ ★ ⇒ ★` in a precise one-variable center.  Thus the cell is neither
+derivable nor empty under the live relation.
+
+No CTI relation change has been made.

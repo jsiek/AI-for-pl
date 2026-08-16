@@ -889,3 +889,26 @@ compile² minting audit-to-theorem, reduction preservation of the
 discipline), then LG-3 (CatchupCast-family removal, consumers to CTI
 inversion per the V1′ model). NS-4 stage 2 remains paused until the
 repair completes.
+
+LG-1 COMPLETE, take 2 (2026-08-16, post-review, rebased on FunExt-free
+main, PR #141). PR review caught LG-1g's three undisclosed
+NON_COVERING pragmas (falsely-green gate); removal exposed that the
+strip-layer statements also leaned on the refuted stripped square. The
+target-strip surfaces were reshaped branch-sensitively (both reviewer
+sites closed for real). The source-worker site (wrap-star-cast-final)
+is closed by USER-APPROVED OPTION A: final-only input view, non-final
+alternatives routed at the already-pragma'd legacy call sites
+(disclosed OPTION-A DEBT comments), consolidating ALL
+SourceStripWorkerProof debt into one scheduled repair (root TODO.md;
+worklist notes/lg1h-legacy-noncovering-inventory.md).
+BUILD RESTRUCTURE (user-designed): --safe is LIVE on All.agda; the
+quarantined closed-form chain (SourceStripColumnView,
+SourceStripWorkerProof, SourceStripLemma, TargetWalkProof,
+TargetWalkLemma, RightInjInversion2Proof, RightInjInversion2Lemma)
+checks under plain agda via LegacyAll.agda (make agda-legacy);
+FuelKnotProof is higher-order over RightInjInversion2Def (knot
+pattern), closed instantiation in the legacy chain; Makefile enforces
+exact NON_COVERING baselines (22/1, zero elsewhere) and the full
+pragma ban. Hygiene bar is now ZERO postulates (FunExt removed on
+main, PR #142). Gate + ten-file notes regression verified by the
+supervisor. NEXT: LG-2 grounding, LG-3 CatchupCast removal.

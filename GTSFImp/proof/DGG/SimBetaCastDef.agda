@@ -27,21 +27,22 @@ open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 SimBetaCastᵀ : Set
 SimBetaCastᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {V X : Term Δᴸ} {F′ X′ : Term Δᴿ}
+  ∀ {Δᴸ Δᴿ Δ} {world : World Δᴸ Δᴿ Δ}
+    {V W : Term Δᴸ} {L′ M′ : Term Δᴿ}
     {μ : Env∼ Δᴸ} {A A′ B B′ A₀ B₀ : Ty Δᴸ}
     {C D : Ty Δᴿ}
     {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
-    {pA : A₀ ⊑ᵂ⟨ W ⟩ C} {pB : B₀ ⊑ᵂ⟨ W ⟩ D}
-  → ParkedWorld W
-  → W ∣ [] ⊢² V ⟨ c ↦ d ⟩ ⊑ F′ ∶ ⇒⊑⇒ pA pB
-  → W ∣ [] ⊢² X ⊑ X′ ∶ pA
+    {pA : A₀ ⊑ᵂ⟨ world ⟩ C}
+    {pB : B₀ ⊑ᵂ⟨ world ⟩ D}
+  → ParkedWorld world
+  → world ∣ [] ⊢² V ⟨ c ↦ d ⟩ ⊑ L′ ∶ ⇒⊑⇒ pA pB
+  → world ∣ [] ⊢² W ⊑ M′ ∶ pA
   → Value V
-  → Value X
+  → Value W
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ R′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ q ∈ B₀ ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ D ]
-      (F′ · X′ —↠[ χsᴿ ] R′) ×
-      ParkedEvolve (keep ∷ˢ []ˢ) χsᴿ W W′ ×
-      (W′ ∣ [] ⊢² (V · (X ⟨ c ⟩)) ⟨ d ⟩ ⊑ R′ ∶ q)
+    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
+    Σ[ world′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+    Σ[ q ∈ B₀ ⊑ᵂ⟨ world′ ⟩ applyTys χsᴿ D ]
+      (L′ · M′ —↠[ χsᴿ ] N′) ×
+      ParkedEvolve (keep ∷ˢ []ˢ) χsᴿ world world′ ×
+      (world′ ∣ [] ⊢² (V · (W ⟨ c ⟩)) ⟨ d ⟩ ⊑ N′ ∶ q)

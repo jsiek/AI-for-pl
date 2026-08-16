@@ -27,18 +27,18 @@ open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 SimBetaᵀ : Set
 SimBetaᵀ =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {N V : Term Δᴸ} {F′ V′ : Term Δᴿ}
+  ∀ {Δᴸ Δᴿ Δ} {world : World Δᴸ Δᴿ Δ}
+    {M V : Term Δᴸ} {L′ M′ : Term Δᴿ}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
-    {pA : A ⊑ᵂ⟨ W ⟩ A′} {pB : B ⊑ᵂ⟨ W ⟩ B′}
-  → ParkedWorld W
-  → W ∣ [] ⊢² ƛ N ⊑ F′ ∶ ⇒⊑⇒ pA pB
-  → W ∣ [] ⊢² V ⊑ V′ ∶ pA
+    {pA : A ⊑ᵂ⟨ world ⟩ A′} {pB : B ⊑ᵂ⟨ world ⟩ B′}
+  → ParkedWorld world
+  → world ∣ [] ⊢² ƛ M ⊑ L′ ∶ ⇒⊑⇒ pA pB
+  → world ∣ [] ⊢² V ⊑ M′ ∶ pA
   → Value V
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ R′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ q ∈ B ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B′ ]
-      (F′ · V′ —↠[ χsᴿ ] R′) ×
-      ParkedEvolve (keep ∷ˢ []ˢ) χsᴿ W W′ ×
-      (W′ ∣ [] ⊢² N [ V ] ⊑ R′ ∶ q)
+    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
+    Σ[ world′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+    Σ[ q ∈ B ⊑ᵂ⟨ world′ ⟩ applyTys χsᴿ B′ ]
+      (L′ · M′ —↠[ χsᴿ ] N′) ×
+      ParkedEvolve (keep ∷ˢ []ˢ) χsᴿ world world′ ×
+      (world′ ∣ [] ⊢² M [ V ] ⊑ N′ ∶ q)

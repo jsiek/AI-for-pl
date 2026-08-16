@@ -1,15 +1,14 @@
-.PHONY: check agda postulate-check clean
+.PHONY: check agda agda-legacy postulate-check clean
 
 AGDA ?= agda
 
-check: agda postulate-check
+check: agda agda-legacy postulate-check
 
-# TODO: switch to `$(AGDA) --safe -v0 All.agda` once the legacy
-# NON_COVERING pragmas are removed (--safe rejects NON_COVERING;
-# verified empirically 2026-08-15). Until then the postulate-check
-# below enforces the same pragma bans plus per-file legacy baselines.
 agda:
-	$(AGDA) -v0 All.agda
+	$(AGDA) --safe -v0 All.agda
+
+agda-legacy:
+	$(AGDA) -v0 LegacyAll.agda
 
 # Hygiene: postulates, holes, and termination pragmas are never allowed in
 # live code; notes/ and experimental/ hold scratch work and negative records.
@@ -28,10 +27,10 @@ postulate-check:
 		| grep -v 'proof/DGG/Inversion/SourceStripColumnView.agda' \
 		| grep . \
 	|| { echo "postulate-check: FAILED (NON_COVERING outside legacy files)"; exit 1; }
-	@test "$$(grep -c NON_COVERING proof/DGG/Inversion/SourceStripWorkerProof.agda)" -le 22 \
-	|| { echo "postulate-check: FAILED (NON_COVERING count in SourceStripWorkerProof exceeds the legacy baseline of 22)"; exit 1; }
-	@test "$$(grep -c NON_COVERING proof/DGG/Inversion/SourceStripColumnView.agda)" -le 1 \
-	|| { echo "postulate-check: FAILED (NON_COVERING count in SourceStripColumnView exceeds the legacy baseline of 1)"; exit 1; }
+	@test "$$(grep -c '{-# NON_COVERING #-}' proof/DGG/Inversion/SourceStripWorkerProof.agda)" -eq 22 \
+	|| { echo "postulate-check: FAILED (NON_COVERING pragma count in SourceStripWorkerProof differs from the legacy baseline of 22)"; exit 1; }
+	@test "$$(grep -c '{-# NON_COVERING #-}' proof/DGG/Inversion/SourceStripColumnView.agda)" -eq 1 \
+	|| { echo "postulate-check: FAILED (NON_COVERING pragma count in SourceStripColumnView differs from the legacy baseline of 1)"; exit 1; }
 	@echo "postulate-check: OK (no postulates; NON_COVERING at legacy baseline)"
 
 clean:

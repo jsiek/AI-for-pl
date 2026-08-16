@@ -85,3 +85,13 @@ worker pragmas or reintroducing the removed pragma would hide the mismatch
 rather than close it.  A real close needs a source-strip surface that carries
 the cast-restored residual to a consumer with the target cast, without changing
 the protected top-level theorem surface.
+
+OPTION-A postscript 2026-08-16: the user approved folding the source-worker
+half into the quarantined legacy repair debt.  `wrap-star-cast-final` now
+takes a final-only input view: the `target-source-star-final` and
+`target-source-star-chain-final` alternatives feed the old final record demand,
+while residual/paired/payload alternatives are routed at the already legacy
+`NON_COVERING` worker call sites in `SourceStripWorkerProof`.  This is a
+disclosed quarantine, not a proof repair.  The scheduled repair is tracked in
+the root `TODO.md` item for the GTSFImp legacy `NON_COVERING` debt and the
+worklist remains `proof/DGG/notes/lg1h-legacy-noncovering-inventory.md`.

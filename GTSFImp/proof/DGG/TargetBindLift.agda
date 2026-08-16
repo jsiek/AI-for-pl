@@ -275,7 +275,7 @@ private
     → CTI2.NoTargetOccupantAtSource W X
     → CTI2.NoTargetOccupantAtSource Wᵗ X
   moveNoTargetOccupantAtSource
-      (target-store-move refl refl refl refl hΣ resolve) no-target =
+      (target-store-move refl refl same refl hΣ resolve) no-target =
     no-target
 
   moveSealPartnerOK : ∀ {Δᴸ Δᴿ Δ}

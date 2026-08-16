@@ -1,9 +1,9 @@
 module proof.DGG.SimDef where
 
 -- File Charter:
---   * States closed multi-step simulation when the less precise right term
+--   * States closed multi-step simulation when the more precise left term
 --     reduces.
---   * Exposes the source catch-up trace, final related terms, and parked-world
+--   * Allows a residual left trace and records the accumulated parked-world
 --     evolution needed by later proof layers.
 --   * Contains no simulation proof.
 
@@ -16,22 +16,26 @@ open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
+open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
 Sim*ᵀ : Set
 Sim*ᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
+  ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χsᴿ : StoreChanges Δᴿ Δᴿ′}
+    {χsᴸ : StoreChanges Δᴸ Δᴸ′}
   → ParkedWorld W
   → W ∣ [] ⊢² M ⊑ M′ ∶ p
-  → M′ —↠[ χsᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ χsᴿ W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ q)
+  → M —↠[ χsᴸ ] N
+  → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δᴸ″ ∈ TyCtx ]
+    Σ[ ψsᴸ ∈ StoreChanges Δᴸ′ Δᴸ″ ] Σ[ N₂ ∈ Term Δᴸ″ ]
+    Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ″ Δᴿ′ Δ′ ]
+    Σ[ q ∈ applyTys ψsᴸ (applyTys χsᴸ A)
+        ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
+      (M′ —↠[ χsᴿ ] N′) ×
+      (N —↠[ ψsᴸ ] N₂) ×
+      ParkedEvolve (χsᴸ ++χ ψsᴸ) χsᴿ W W′ ×
+      (W′ ∣ [] ⊢² N₂ ⊑ N′ ∶ q)

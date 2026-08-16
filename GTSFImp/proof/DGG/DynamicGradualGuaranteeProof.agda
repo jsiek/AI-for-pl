@@ -122,7 +122,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup value-right-catchup
            Value V′ ×
            (W ∣ [] ⊢² V ⊑ V′ ∶ q)))))))
   source-value {Δᴸ} V χsᴸ M↠V vV
-      with sim-back* initial-parked initial-related M↠V
+      with sim* initial-parked initial-related M↠V
   source-value {Δᴸ} V χsᴸ M↠V vV
       | Δᴿ₁ , χsᴿ₁ , N′ , Δᴸ₂ , ψsᴸ , N₂ , Δ₁ , W₁ ,
         q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
@@ -164,7 +164,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup value-right-catchup
       ⊎ (∃[ Δᴸ ] (Σ[ χsᴸ ∈ StoreChanges 0 Δᴸ ]
           (compiled-left M⊑M′ —↠[ χsᴸ ] blame)))
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      with sim* initial-parked initial-related M′↠V′
+      with sim-back* initial-parked initial-related M′↠V′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
       | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
         N⊑V′
@@ -198,7 +198,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup value-right-catchup
     → ∃[ Δᴸ ] (Σ[ χsᴸ ∈ StoreChanges 0 Δᴸ ]
         (compiled-left M⊑M′ —↠[ χsᴸ ] blame))
   target-blame χsᴿ M′↠blame
-      with sim* initial-parked initial-related M′↠blame
+      with sim-back* initial-parked initial-related M′↠blame
   target-blame χsᴿ M′↠blame
       | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
         N⊑blame

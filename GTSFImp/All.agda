@@ -109,6 +109,7 @@ import proof.DGG.Catchup.StructuralNameInstantiationProof
 import proof.DGG.Catchup.ValueCatchupRightDef
 import proof.DGG.Catchup.FuelSupportProof
 import proof.DGG.Catchup.GeneratedProjectionReplacementProof
+import proof.DGG.Catchup.TargetCastStepInversionProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof

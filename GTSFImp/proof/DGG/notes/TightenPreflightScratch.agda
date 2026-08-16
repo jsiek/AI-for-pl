@@ -32,7 +32,7 @@ import proof.DGG.StarRepChainProbe as SRC
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.TagBoundaryProbe as TBP
 import proof.DGG.TerminusRebuildProbe as TRB
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 
 open CTI2 using
   (World; CtxImp; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;

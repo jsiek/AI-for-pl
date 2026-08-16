@@ -71,3 +71,15 @@ source-conceal row uses it to replay `CTI2.conceal⊑²` at the child endpoint.
 This note remains open only for the structural multi-step target-cast worker
 and the subsequent full assembly of `StructuralExtraCastRightAt`,
 `StructuralValueCatchupRightAt`, and the public erased factory surfaces.
+
+Postscript 2026-08-16, LG-3m source-row order:
+
+The source reveal/conceal rebase-crossing demand from LG-3k/LG-3l is resolved
+by reordering those rows: recurse at the premise world, pull the child
+structural trace back to the outer world, then replay the source wrapper at the
+outer endpoint.  The endpoint-partner field is now plan-polymorphic, so no
+non-total `SourceConcealPartnerOK W -> SourceConcealPartnerOK Wᵖ`
+transformer is required.
+
+This note remains open for the target-cast multi-step worker and factory
+assembly only.

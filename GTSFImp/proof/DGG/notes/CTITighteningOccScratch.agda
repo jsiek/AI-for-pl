@@ -33,7 +33,7 @@ open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
 import CTITighteningNarrowScratch as N
 import SourceReachabilityResultScratch as SR
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 
 open CTI2 using
   (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;

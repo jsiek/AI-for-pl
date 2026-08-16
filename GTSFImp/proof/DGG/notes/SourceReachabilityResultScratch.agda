@@ -37,7 +37,7 @@ open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.StarRepChainProbe as Probe
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 import SourceLegScratch as Source
 
 ------------------------------------------------------------------------

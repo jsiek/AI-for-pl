@@ -105,3 +105,15 @@ The remaining LG-3 factory obstruction is separate: the full
 `StructuralValueCatchupRightAt`, `StructuralExtraCastRightAt`, and public fuel
 factory assembly still wait on the structural multi-step target-cast worker
 tracked in `lg3-target-cast-multistep-worker-resister.red`.
+
+LG-3m update, 2026-08-16:
+
+The endpoint-partner invariant above is now plan-polymorphic.  Its live shape
+takes an explicit `StructuralWorldExtendᴿ χs W₀ W₀′`, so source reveal and
+source conceal can recurse at the premise world, pull the child trace back to
+the outer world, and forward the child's invariant without transporting a
+partner from the outer world through a source rebase.
+
+This supersedes the narrower LG-3j shape shown above; the source-wrapper
+endpoint issue remains resolved, and the LG-3l rebase-crossing transformer is
+not used.

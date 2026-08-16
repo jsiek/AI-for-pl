@@ -224,7 +224,8 @@ checklist enforced as hard rules.
 
 ## Parked (2026-08-09): single-source-pair pedigree for the probe instance
 
-The cast-level initial pair (InitialPairScratch, committed) is
+The cast-level initial pair (`proof/DGG/notes/InitialPairScratch.agda`,
+committed) is
 ⊢²-related and reaches both probe states. A SINGLE ⊑ᴳ source pair
 generating both is still open: the λg-factoring needed for Q's gen
 shape changes P's instantiation path (the compiled ⟨id ∀⟩ cast on the

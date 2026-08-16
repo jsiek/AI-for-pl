@@ -393,3 +393,60 @@ No change to `GTSF/QuotientedTermImprecision.agda`, the live CTI relation, or
 the reduction relation has been made.
 
 STOP.
+
+LG-3m postscript, 2026-08-16:
+
+The LG-3l tripwire is accepted as a non-total transformer, but the live source
+rows no longer demand that transformer.
+
+`StructuralCatchupRightResult.source-conceal-endpoint-partner` has been
+strengthened to be plan-polymorphic over any structural right-extension with
+the result trace:
+
+`  StructuralWorldExtendᴿ χs W₀ W₀′ →`
+`  SourceConcealPartnerOK W₀ P c Xᴿ? M″ →`
+`  SourceConcealPartnerOK W₀′ P c (mapPivotChanges χs Xᴿ?) N′`
+
+The source reveal row now follows the supervisor order:
+
+1. recurse under `CTI2.reveal⊑²` at the premise world `Wᵖ`;
+2. pull the child target-only trace back to the outer world with
+   `structural-rebase-atᴸ-pullback`;
+3. replay the source reveal at the pulled outer endpoint; and
+4. forward the child's plan-polymorphic endpoint-partner field.
+
+The source conceal row uses the analogous order through
+`structural-tag-rebase-atᴸ-pullback`.  For its own `CTI2.conceal⊑²` side
+condition it applies the child endpoint-partner field to the child's original
+premise-world structural plan, not to a pre-rebase partner transported from
+`W` to `Wᵖ`.
+
+Composed rows now split arbitrary combined structural plans with
+`splitStructuralWorldExtendᴿ`, so the endpoint-partner invariant composes
+without assuming the caller's start world is the original derivation world.
+
+Therefore the rebase-crossing demand recorded in LG-3k/LG-3l has dissolved:
+the proof never asks for
+
+`SourceConcealPartnerOK W ... M′ →`
+`SourceConcealPartnerOK Wᵖ ... M′`.
+
+No relation or reduction surface changed.
+
+Assembly status after LG-3m:
+
+- structural source reveal and source conceal rows are checked in the reordered
+  form;
+- structural base rows and target/paired target-cast row combinators still
+  check with the stronger endpoint-partner field;
+- `build-structural-fuel-knot` remains a checked adapter from structural
+  factories to the public `FuelKnot`;
+- the concrete `StructuralValueCatchupRightAt` and
+  `StructuralExtraCastRightAt` factories are still not discharged.
+
+The remaining blocker is the same CTI-only structural multi-step target-cast
+worker named at the top of this record: it must recover the old deleted
+`CatchupCast`/column provenance behavior from whole derivations and assemble
+the exposed target-cast cells, target wrapper absorption, and paired
+ground/expand re-attachment into a full `StructuralExtraCastRightAt` worker.
+LG-2 grounding residuals remain unchanged.

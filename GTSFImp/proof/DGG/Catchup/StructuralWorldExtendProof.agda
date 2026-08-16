@@ -10,7 +10,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (Ty)
+open import Types using (Ty; TyCtx)
 open import Consistency using (_↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTys)
@@ -110,6 +110,54 @@ composeStructuralWorldExtendᴿ (structural-keep plan₁) plan₂ =
   structural-keep (composeStructuralWorldExtendᴿ plan₁ plan₂)
 composeStructuralWorldExtendᴿ (structural-bind ins follows plan₁) plan₂ =
   structural-bind ins follows (composeStructuralWorldExtendᴿ plan₁ plan₂)
+
+
+record StructuralWorldExtendSplit {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₂ᵂ}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
+    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+    (plan : StructuralWorldExtendᴿ (χs ++χ ψs) W₀ W₂) : Set₁ where
+  field
+    Δ₁ᵂ : TyCtx
+    W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ
+    prefix-plan : StructuralWorldExtendᴿ χs W₀ W₁
+    suffix-plan : StructuralWorldExtendᴿ ψs W₁ W₂
+
+
+splitStructuralWorldExtendᴿ : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₂ᵂ}
+    (χs : StoreChanges Δ₀ Δ₁) {ψs : StoreChanges Δ₁ Δ₂}
+    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
+    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+  → (plan : StructuralWorldExtendᴿ (χs ++χ ψs) W₀ W₂)
+  → StructuralWorldExtendSplit {χs = χs} {ψs = ψs} plan
+splitStructuralWorldExtendᴿ [] plan = record
+  { Δ₁ᵂ = _
+  ; W₁ = _
+  ; prefix-plan = structural-[]
+  ; suffix-plan = plan
+  }
+splitStructuralWorldExtendᴿ (keep ∷ χs) (structural-keep plan)
+    with splitStructuralWorldExtendᴿ χs plan
+splitStructuralWorldExtendᴿ (keep ∷ χs) (structural-keep plan)
+    | record { Δ₁ᵂ = Δ₁ᵂ ; W₁ = W₁
+             ; prefix-plan = prefix ; suffix-plan = suffix } = record
+  { Δ₁ᵂ = Δ₁ᵂ
+  ; W₁ = W₁
+  ; prefix-plan = structural-keep prefix
+  ; suffix-plan = suffix
+  }
+splitStructuralWorldExtendᴿ (bind B ∷ χs)
+    (structural-bind ins follows plan)
+    with splitStructuralWorldExtendᴿ χs plan
+splitStructuralWorldExtendᴿ (bind B ∷ χs)
+    (structural-bind ins follows plan)
+    | record { Δ₁ᵂ = Δ₁ᵂ ; W₁ = W₁
+             ; prefix-plan = prefix ; suffix-plan = suffix } = record
+  { Δ₁ᵂ = Δ₁ᵂ
+  ; W₁ = W₁
+  ; prefix-plan = structural-bind ins follows prefix
+  ; suffix-plan = suffix
+  }
 
 
 mapCtxᴿ-structural-compose : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}

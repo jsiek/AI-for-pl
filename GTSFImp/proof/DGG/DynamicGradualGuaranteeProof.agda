@@ -51,6 +51,8 @@ open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction.ValueIrreducibleDef
   using (ValueTraceRefl; value-trace-refl; ValueIrreducible*ᵀ)
+open import proof.Reduction.BlameIrreducibleDef
+  using (BlameTraceRefl; blame-trace-refl; BlameIrreducible*ᵀ)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; parked-initial)
 open import proof.DGG.Parked.ParkedWorldLemma
@@ -95,9 +97,10 @@ dynamic-gradual-guarantee :
   → CatchupToMorePrecise
   → TargetBlameCatchupᵀ
   → ValueIrreducible*ᵀ
+  → BlameIrreducible*ᵀ
   → GradualDGG
 dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
-    target-blame-catchup value-irreducible*
+    target-blame-catchup value-irreducible* blame-irreducible*
     {A = A} {B = B} {p = p} M⊑M′ =
   source-value , source-diverges , target-value , target-diverges
   where
@@ -125,27 +128,20 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
   source-value {Δᴸ} V χsᴸ M↠V vV
       with sim* initial-parked initial-related M↠V
   source-value {Δᴸ} V χsᴸ M↠V vV
-      | Δᴿ₁ , χsᴿ₁ , N′ , Δᴸ₂ , ψsᴸ , N₂ , Δ₁ , W₁ ,
-        q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
-      with value-irreducible* vV V↠N₂
-  source-value {Δᴸ} V χsᴸ M↠V vV
-      | Δᴿ₁ , χsᴿ₁ , N′ , .Δᴸ , .Reduction.[] , .V , Δ₁ ,
-        W₁ , q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
-      | value-trace-refl
+      | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
+        evol₁ , V⊑N′
       with catchup-to-more-precise
-        (parked-world-closed initial-parked evol₁) N₂⊑N′ vV
+        (parked-world-closed initial-parked evol₁) V⊑N′ vV
   source-value {Δᴸ} V χsᴸ M↠V vV
-      | Δᴿ₁ , χsᴿ₁ , N′ , .Δᴸ , .Reduction.[] , .V , Δ₁ ,
-        W₁ , q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
-      | value-trace-refl
+      | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
+        evol₁ , V⊑N′
       | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , q₂ , N′↠V′ , vV′ ,
         evol₂ , V⊑V′
       with transport-related-target
         (applyTys-++ χsᴿ₁ ψsᴿ _) (q₂ , V⊑V′)
   source-value {Δᴸ} V χsᴸ M↠V vV
-      | Δᴿ₁ , χsᴿ₁ , N′ , .Δᴸ , .Reduction.[] , .V , Δ₁ ,
-        W₁ , q₁ , M′↠N′ , V↠N₂ , evol₁ , N₂⊑N′
-      | value-trace-refl
+      | Δᴿ₁ , χsᴿ₁ , N′ , Δ₁ , W₁ , q₁ , M′↠N′ ,
+        evol₁ , V⊑N′
       | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , q₂ , N′↠V′ , vV′ ,
         evol₂ , V⊑V′
       | q , V⊑V′′ =
@@ -167,19 +163,27 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
       with sim-back* initial-parked initial-related M′↠V′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑V′
-      with catchup (parked-world-closed initial-parked evol₁) N⊑V′ vV′
+      | Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
+        q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      with value-irreducible* vV′ V′↠N₂′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑V′
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | value-trace-refl
+      with catchup
+        (parked-world-closed initial-parked evol₁) N⊑N₂′ vV′
+  target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | value-trace-refl
       | inj₁ (Δᴸ₂ , ψsᴸ , V , Δ₂ , W₂ , q₂ , N↠V , vV ,
           evol₂ , V⊑V′)
       with transport-related-source
         (applyTys-++ χsᴸ₁ ψsᴸ _) (q₂ , V⊑V′)
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑V′
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | value-trace-refl
       | inj₁ (Δᴸ₂ , ψsᴸ , V , Δ₂ , W₂ , q₂ , N↠V , vV ,
           evol₂ , V⊑V′)
       | q , V⊑V′′ =
@@ -187,8 +191,9 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
       (Δᴸ₂ , (χsᴸ₁ ++χ ψsᴸ) , V , Δ₂ , W₂ , q ,
        composeReduction M↠N N↠V , vV , V⊑V′′)
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑V′
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | value-trace-refl
       | inj₂ (Δᴸ₂ , ψsᴸ , Δ₂ , W₂ , N↠blame , evol₂) =
     inj₂
       (Δᴸ₂ , (χsᴸ₁ ++χ ψsᴸ) ,
@@ -198,16 +203,22 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
     → compiled-right M⊑M′ —↠[ χsᴿ ] blame
     → ∃[ Δᴸ ] (Σ[ χsᴸ ∈ StoreChanges 0 Δᴸ ]
         (compiled-left M⊑M′ —↠[ χsᴸ ] blame))
-  target-blame χsᴿ M′↠blame
+  target-blame {Δᴿ} χsᴿ M′↠blame
       with sim-back* initial-parked initial-related M′↠blame
-  target-blame χsᴿ M′↠blame
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑blame
+  target-blame {Δᴿ} χsᴿ M′↠blame
+      | Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
+        q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      with blame-irreducible* blame↠N₂′
+  target-blame {Δᴿ} χsᴿ M′↠blame
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
+        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      | blame-trace-refl
       with target-blame-catchup
-        (parked-world-closed initial-parked evol₁) N⊑blame
-  target-blame χsᴿ M′↠blame
-      | Δᴸ₁ , χsᴸ₁ , N , Δ₁ , W₁ , q₁ , M↠N , evol₁ ,
-        N⊑blame
+        (parked-world-closed initial-parked evol₁) N⊑N₂′
+  target-blame {Δᴿ} χsᴿ M′↠blame
+      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
+        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      | blame-trace-refl
       | Δᴸ₂ , ψsᴸ , Δ₂ , W₂ , N↠blame , evol₂ =
     Δᴸ₂ , (χsᴸ₁ ++χ ψsᴸ) , composeReduction M↠N N↠blame
 

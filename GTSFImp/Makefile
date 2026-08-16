@@ -28,10 +28,15 @@ postulate-check:
 	@! grep -nE 'postulate|TERMINATING|NON_TERMINATING|NO_POSITIVITY_CHECK|NO_UNIVERSE_CHECK|NON_COVERING' \
 		proof/DGG/SimProof.agda | grep -v '^[0-9]*: *--' | grep . \
 	|| { echo "postulate-check: FAILED (SimProof.agda may carry holes only — no postulates or pragmas)"; exit 1; }
-	@test "$$(grep -c '{!' proof/DGG/SimProof.agda)" -le 22 \
+	@test "$$(grep -o '{!' proof/DGG/SimProof.agda | wc -l)" -le 22 \
 	|| { echo "postulate-check: FAILED (SimProof.agda hole count exceeds the declared-WIP baseline of 22)"; exit 1; }
-	@! grep -nE 'proof\.DGG\.SimProof$$' All.agda | grep . \
-	|| { echo "postulate-check: FAILED (SimProof.agda is declared-WIP and must stay out of All.agda while it has holes)"; exit 1; }
+	@! grep -rnE '\bproof\.DGG\.SimProof\b' --include='*.agda' . \
+		| grep -v '/notes/' \
+		| grep -v '/experimental/' \
+		| grep -v '^\./proof/DGG/SimProof.agda' \
+		| grep -v '^[^:]*:[0-9]*: *--' \
+		| grep . \
+	|| { echo "postulate-check: FAILED (SimProof.agda is declared-WIP: no live module may import it while it has holes)"; exit 1; }
 	@! grep -rn 'NON_COVERING' --include='*.agda' . \
 		| grep -v '/notes/' \
 		| grep -v '/experimental/' \

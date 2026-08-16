@@ -929,3 +929,18 @@ tightened CTI2 must be CONNECTED to gradual source-term imprecision
        at an occupied cell; plus occupancy-evolution invariants for
        the world moves the proofs use.
 All new proofs live in the --safe side of the build.
+
+LG-2 COMPLETE (2026-08-16, PR #143). Grounding is now theorem-level:
+G2-a `GroundingMint.agda` — initialWorld-occupied, the CompileImageWorld
+invariant, the thin minting theorem `compile-mints-cti²` (consumes
+compile-preserves-imprecision²: every gradual source-term imprecision
+derivation lands in the tightened CTI2 at initialWorld), and the
+see-through emptiness theorems for the compile image. G2-b
+`GroundingPreserve.agda` + completed `Occupancy.agda` evolution set —
+allocation atomicity over live β-inst/β-gen (`*-allocation-atomic`:
+the occupying step carries the fresh partnered seal), occupancy
+evolution for every world move, `occupied-see-through-empty`, and the
+related-reduction preservation stated as the higher-order
+`grounding-preservation-knot` (instantiation deferred to the LG-3/M7
+value catch-up driver by design — the knot pattern). All in the --safe
+aggregate; gate green; no resisters. NEXT: LG-3.

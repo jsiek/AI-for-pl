@@ -1,10 +1,10 @@
-module proof.DGG.SimDef where
+module proof.DGG.MultiSimDef where
 
 -- File Charter:
---   * States closed one-step simulation when the more precise left term
+--   * States closed multi-step simulation when the more precise left term
 --     reduces.
---   * Allows the less precise right term to take a store-changing trace and
---     records the resulting parked-world evolution.
+--   * Exposes the target catch-up trace, final related terms, and parked-world
+--     evolution needed by later proof layers.
 --   * Contains no simulation proof.
 
 open import Data.List using ([])
@@ -12,33 +12,26 @@ open import Data.Product using (_×_; Σ-syntax)
 
 open import Types using (Ty; TyCtx)
 open import CastTerms using (Term)
-open import Reduction using
-  ( StoreChange
-  ; StoreChanges
-  ; applyTy
-  ; applyTys
-  ; _—→[_]_
-  ; _—↠[_]_
-  ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
-Simᵀ : Set
-Simᵀ =
+Sim*ᵀ : Set
+Sim*ᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴸ : StoreChange Δᴸ Δᴸ′}
+    {χsᴸ : StoreChanges Δᴸ Δᴸ′}
   → ParkedWorld W
   → W ∣ [] ⊢² M ⊑ M′ ∶ p
-  → M —→[ χᴸ ] N
+  → M —↠[ χsᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTy χᴸ A ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
+    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
       (M′ —↠[ χsᴿ ] N′) ×
-      ParkedEvolve (χᴸ ∷ˢ []ˢ) χsᴿ W W′ ×
+      ParkedEvolve χsᴸ χsᴿ W W′ ×
       (W′ ∣ [] ⊢² N ⊑ N′ ∶ q)

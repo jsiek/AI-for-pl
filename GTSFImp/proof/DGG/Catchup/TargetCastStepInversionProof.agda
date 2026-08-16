@@ -2,8 +2,10 @@ module proof.DGG.Catchup.TargetCastStepInversionProof where
 
 -- File Charter:
 --   * Begins the LG-3 wrapper-aware target-cast-step inversion support.
---   * Proves the exposed `⊑cast²` ground-step cell by recovering the
---     intermediate ground imprecision witness from the CTI premise.
+--   * Proves exposed `⊑cast²` target-cast cells by recovering the
+--     intermediate ground imprecision witnesses from the CTI premise.
+--   * Proves the paired `cast⊑cast²` identity cell by replaying the
+--     source-only cast after the target identity step.
 --   * Re-exports the checked generated-projection replacement cells under the
 --     target-cast-step inversion naming convention.
 --   * Does not change the CTI relation or the reduction relation.
@@ -131,6 +133,19 @@ exposed-id-step-inversion-⊑cast² : ∀ {Δᴸ Δᴿ Δ}
 exposed-id-step-inversion-⊑cast²
     {W = W} {γ = γ} {M = M} {M′ = M′} {p = p} {q = q} rel =
   subst≡ (λ r → W ∣ γ ⊢² M ⊑ M′ ∶ r) (PImp.⊑-unique p q) rel
+
+
+exposed-id-step-inversion-cast⊑cast² : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A C : Ty Δᴸ} {B : Ty Δᴿ} {ν : Env∼ Δᴸ}
+    {p : C ⊑ᵂ⟨ W ⟩ B}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → (c : ν ⊢ C ∼ A)
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
+exposed-id-step-inversion-cast⊑cast² c rel =
+  CTI2.cast⊑² c rel _
 
 
 module _ (inversion : RightInjInversion²) where

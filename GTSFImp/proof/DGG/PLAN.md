@@ -912,3 +912,37 @@ exact NON_COVERING baselines (22/1, zero elsewhere) and the full
 pragma ban. Hygiene bar is now ZERO postulates (FunExt removed on
 main, PR #142). Gate + ten-file notes regression verified by the
 supervisor. NEXT: LG-2 grounding, LG-3 CatchupCast removal.
+
+## LG-2 IN FLIGHT (branch agent/gtsf-cti-lg2)
+
+Grounding theorems per the adopted design and the V3 pre-flight: the
+tightened CTI2 must be CONNECTED to gradual source-term imprecision
+(user requirement — no imaginary worlds). Two stages:
+  G2-a MINTING: make the compile-image occupancy facts explicit
+       theorems (initialWorld/compile-image cells are occupied;
+       compile² lands in the tightened relation with no see-through
+       uses) so compile-preserves-imprecision² IS the minting theorem.
+  G2-b PRESERVATION: allocation atomicity as theorems over the live
+       Reduction/catch-up machinery — every step that first occupies a
+       cell (β-gen/β-inst) produces the partnered seal on the target
+       value in the same step, so no reachable state needs see-through
+       at an occupied cell; plus occupancy-evolution invariants for
+       the world moves the proofs use.
+All new proofs live in the --safe side of the build.
+
+LG-2 COMPLETE (2026-08-16, PR #143). Grounding is now theorem-level:
+G2-a `GroundingMint.agda` — initialWorld-occupied, the CompileImageWorld
+invariant, and the see-through emptiness theorems for the compile
+image; the minting connection itself IS the canonical
+compile-preserves-imprecision² (every gradual source-term imprecision
+derivation lands in the tightened CTI2 at initialWorld) — PR #143
+review removed a duplicate-alias restatement of it, per the
+closed-world no-shims convention. G2-b
+`GroundingPreserve.agda` + completed `Occupancy.agda` evolution set —
+allocation atomicity over live β-inst/β-gen (`*-allocation-atomic`:
+the occupying step carries the fresh partnered seal), occupancy
+evolution for every world move, `occupied-see-through-empty`, and the
+related-reduction preservation stated as the higher-order
+`grounding-preservation-knot` (instantiation deferred to the LG-3/M7
+value catch-up driver by design — the knot pattern). All in the --safe
+aggregate; gate green; no resisters. NEXT: LG-3.

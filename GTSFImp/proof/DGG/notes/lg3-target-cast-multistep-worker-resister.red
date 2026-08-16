@@ -589,3 +589,108 @@ Result:
 
 No CTI relation, live imprecision relation, reduction relation, or protected
 surface was changed.
+
+LG-3p postscript, 2026-08-16:
+
+The holes-first diagnostic for the two worker definitions was run, then the
+diagnostic worker edits were reverted per the LG-3p stop rule.
+
+Phase-1 goal inventory:
+
+Extra-cast worker leaves:
+
+```agda
+?0 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ _! c ⟩) q
+?1 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ ？ c ⟩) q
+?2 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ inst c B′≢★ ⟩) q
+?3 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ gen c A≢★ ⟩) q
+?4 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ bot-elim ⟩) q
+?5 : StructuralCatchupRightResult W γ M
+       (M′ ⟨ bot-intro ⟩) q
+```
+
+Value-catchup worker leaves:
+
+```agda
+?0 : StructuralCatchupRightResult W γ (Λ V) M″ q
+     -- CTI2.Λ⊑²
+?1 : StructuralCatchupRightResult W γ (Λ V) M″ q
+     -- CTI2.Λ⊑²-smart-comma
+?2 : StructuralCatchupRightResult W γ M (M′ ↑ c′) q
+     -- CTI2.⊑reveal²
+?3 : StructuralCatchupRightResult W γ M (M′ ↓ c′) q
+     -- CTI2.⊑conceal²
+?4 : StructuralCatchupRightResult W γ (V ↑ c) (M′ ↑ c′) q
+     -- CTI2.reveal⊑reveal²
+?5 : StructuralCatchupRightResult W γ (V ↓ c) (M′ ↓ c′) q
+     -- CTI2.conceal⊑conceal²
+?6 : StructuralCatchupRightResult W γ
+       (V ↓ seal X ★) (M′ ↓ seal Xᴿ ★) q
+     -- CTI2.packaged-seal-star²
+```
+
+Checked fills found during the diagnostic:
+
+- `gen_` fills as an inert target cast using `CT.genᵥ` and
+  `proof.Consistency.gen-safe`.
+- The direct `inst_` / `CTI2.⊑cast²` row fills from the supplied
+  `StructuralInstCatchupRightAt` worker plus `relation-all-value-view`.
+- The paired source/target-cast `inst_` clause reduces to an unfilled
+  intermediate source-cast witness.
+- The value worker base rows, source-only wrappers, and target-cast
+  composition rows fill from the existing structural catchup combinators.
+
+Complete no-inventory blocker list:
+
+- Extra `?0`, `_! c`: the active ground step needs a checked structural
+  prepend/composite row that combines one `keep` step, the smaller extra-cast
+  worker on `c`, the inert ground tag, and the endpoint partner transformers.
+  The inventory has the ground witness/inversion and fuel decrease, but not the
+  structural active-cast prepend result.
+- Extra `?1`, `？ c`: the projection step has the same missing active-cast
+  prepend/composite row.  The right-injection and generated-projection
+  replacement inventory supplies relation-side cells, but not the completed
+  structural result that prefixes the target step and preserves endpoint
+  partners.
+- Extra `?2`, `inst c B′≢★`: the direct `⊑cast²` row fills, but the paired
+  `cast⊑cast²`/source-wrapper shapes need an intermediate source-cast
+  imprecision witness after peeling only the target instantiation cast.  No
+  checked cast-square/intermediate witness is exported for that obligation.
+- Extra `?4`, `bot-elim`: there is no checked row turning
+  `M′ ⟨ bot-elim ⟩` into a value, and no exported contradiction that refutes
+  the premise from the available value and CTI evidence.
+- Extra `?5`, `bot-intro`: the operational step goes to `blame`, which is not
+  a `Value`; no exported contradiction refutes the premise from the worker
+  inputs.
+- Value `?0`, `Λ⊑²`: `structural-Λ-replay` can replay against a known outer
+  structural plan, but the recursive child catchup returns a completed plan
+  under `liftWorldLeft`.  No checked unlift/pullback converts that child result
+  into the outer `StructuralCatchupRightResult`.
+- Value `?1`, `Λ⊑²-smart-comma`: same blocker for the smart-comma child
+  world; `structural-smart-Λ-replay` needs the outer plan rather than a
+  completed child result.
+- Value `?2`, `⊑reveal²`: the recursive child runs in the target-rebased
+  premise world.  Existing structural rebase pullbacks are for source-side
+  `RebaseAtᴸ`; no corresponding structural target-side `RebaseAtᴿ` pullback
+  is exported.
+- Value `?3`, `⊑conceal²`: same target-side `RebaseAtᴿ` blocker in the
+  reverse orientation.
+- Value `?4`, `reveal⊑reveal²`: needs both source replay and target
+  reveal-frame completion after a target-side rebase; the target-side structural
+  rebase/result transport is missing.
+- Value `?5`, `conceal⊑conceal²`: same missing target-side structural
+  rebase/result transport, plus matched conceal partner threading.
+- Value `?6`, `packaged-seal-star²`: same target-side structural rebase/result
+  transport and matched/package partner threading through the target seal frame.
+
+Stop-rule status:
+
+- The diagnostic worker edits were reverted.
+- No worker definition was committed.
+- No support, row, Def, CTI relation, live imprecision relation, reduction
+  relation, or protected surface was changed.

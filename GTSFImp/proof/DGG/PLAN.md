@@ -946,3 +946,17 @@ related-reduction preservation stated as the higher-order
 `grounding-preservation-knot` (instantiation deferred to the LG-3/M7
 value catch-up driver by design — the knot pattern). All in the --safe
 aggregate; gate green; no resisters. NEXT: LG-3.
+
+## LG-3 IN FLIGHT (branch agent/gtsf-cti-lg3)
+
+The CatchupCast-family removal (user decision, 2026-08-15): delete
+CatchupCast / CatchupCast⁻ / CatchupColumn(⁻); consumers classify by
+CTI INVERSION per the V1′ model (CTIOccInversionCatchupScratch's
+interface analogue + syntactic consistency views). Rework order:
+ExtraCastRight surfaces restated to consume whole derivations
+(⊢² M ⊑ M′⟨c′⟩ ∶ q + values), the column/multi-cast proof inverts CTI
+per layer (no separate column proposition), the M6 fuel knot and NS-4
+stage-1 provenance threading re-pointed, and the grounding knot from
+LG-2 instantiated where the driver machinery permits. Notes scratches
+referencing deleted judgments get minimal updates so the regression
+suite stays meaningful.

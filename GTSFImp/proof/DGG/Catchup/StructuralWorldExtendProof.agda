@@ -6,7 +6,8 @@ module proof.DGG.Catchup.StructuralWorldExtendProof where
 
 open import Data.Nat using (suc)
 import Data.List as List
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; cong; sym; trans)
   renaming (subst to subst≡)
 
 open import Types using (Ty)
@@ -19,7 +20,7 @@ import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.FuelSupportProof using
-  (composeWorldExtendᴿ)
+  (composeWorldExtendᴿ; mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 
 
@@ -109,3 +110,44 @@ composeStructuralWorldExtendᴿ (structural-keep plan₁) plan₂ =
   structural-keep (composeStructuralWorldExtendᴿ plan₁ plan₂)
 composeStructuralWorldExtendᴿ (structural-bind ins follows plan₁) plan₂ =
   structural-bind ins follows (composeStructuralWorldExtendᴿ plan₁ plan₂)
+
+
+mapCtxᴿ-structural-compose : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
+    {W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ}
+    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+  → (plan₁ : StructuralWorldExtendᴿ χs W₀ W₁)
+  → (plan₂ : StructuralWorldExtendᴿ ψs W₁ W₂)
+  → (γ : CTI2.CtxImp W₀)
+  → ECR.mapCtxᴿ (structural-world-extendᴿ plan₂)
+      (ECR.mapCtxᴿ (structural-world-extendᴿ plan₁) γ)
+      ≡ ECR.mapCtxᴿ
+          (structural-world-extendᴿ
+            (composeStructuralWorldExtendᴿ plan₁ plan₂))
+          γ
+mapCtxᴿ-structural-compose structural-[] plan₂ γ =
+  cong (ECR.mapCtxᴿ (structural-world-extendᴿ plan₂))
+    (ECR.mapCtxᴿ-same γ)
+mapCtxᴿ-structural-compose (structural-keep plan₁) plan₂ γ =
+  trans
+    (cong (ECR.mapCtxᴿ (structural-world-extendᴿ plan₂))
+      (mapCtxᴿ-structural-keep plan₁ γ))
+    (trans
+      (mapCtxᴿ-structural-compose plan₁ plan₂ γ)
+      (sym (mapCtxᴿ-structural-keep
+        (composeStructuralWorldExtendᴿ plan₁ plan₂) γ)))
+mapCtxᴿ-structural-compose
+    (structural-bind ins follows plan₁) plan₂ γ =
+  trans
+    (cong (ECR.mapCtxᴿ (structural-world-extendᴿ plan₂))
+      (sym (mapCtxᴿ-compose insert ext₁ γ)))
+    (trans
+      (mapCtxᴿ-structural-compose plan₁ plan₂
+        (ECR.mapCtxᴿ insert γ))
+      (mapCtxᴿ-compose insert ext₂ γ))
+  where
+  insert = target-insert-bind-world-extendᴿ ins follows
+  ext₁ = structural-world-extendᴿ plan₁
+  ext₂ = structural-world-extendᴿ
+    (composeStructuralWorldExtendᴿ plan₁ plan₂)

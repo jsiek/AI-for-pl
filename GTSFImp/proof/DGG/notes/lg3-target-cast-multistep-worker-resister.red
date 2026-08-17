@@ -783,3 +783,113 @@ postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 
 No CTI relation, live imprecision relation, reduction relation, or protected
 surface was changed.
+
+LG-3w STOP postscript, 2026-08-17:
+
+Supervisor ruling applied: the active-cast extractor should be the worker entry
+dispatch over the whole CTI premise.  The dispatch table is now narrower than
+the LG-3v note's "whole-premise extractor missing" diagnosis:
+
+- `⊑cast² (id a)`: checked.  `target-id-step-inversion` is the whole-premise
+  extractor and `structural-id-extra-cast-right-at` consumes it.
+- `cast⊑cast² c (id a)`: checked.  `target-id-step-inversion` replays the
+  source cast as `cast⊑² c prem q`, and the identity row consumes the result.
+- `⊑cast² (_! d)`: route present.  The constructor field is the peeled child
+  premise `prem : W ∣ γ ⊢² M ⊑ M′ ∶ p`; the active ground row consumes `prem`
+  directly after `target-ground-cast-witness` classifies the intermediate
+  ground endpoint.
+- `⊑cast² (？ d)`: route present for the value/injection subcase.  Once the
+  target value is inspected as `N ⟨ G! idᵍ ⟩`, the constructor field is the
+  peeled tag premise consumed by `structural-project-same-extra-cast-right-at`
+  or `structural-project-expand-extra-cast-right-at`, with
+  `RightInjInversion²` supplying the exposed tag replacement when given the
+  selected ground endpoint.
+- Source-wrapper heads (`cast⊑²`, the `Λ` family, `reveal⊑²`,
+  `conceal⊑²`) have the strip/replay surfaces landed:
+  `structural-catchup-source-cast`, the source reveal/conceal rows, and the
+  data-bearing `SourceΛReplayStack` machinery.  They can replay a solved
+  cast-headed core; if that core is one of the paired active heads below, they
+  inherit the same stop.
+- Target-wrapper heads (`⊑reveal²`, `⊑conceal²`) are handled at the general
+  value-worker layer by the target-strip paired surfaces plus target-frame
+  absorption.  They are not the first extra-cast obstruction.
+
+The first head that genuinely lacks a checked route is:
+
+```agda
+CTI2.cast⊑cast² c (_! d) prem q
+```
+
+where the whole premise has shape:
+
+```agda
+W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ⟨ _! d ⟩ ∶ q
+```
+
+The constructor fields expose:
+
+```agda
+prem : W ∣ γ ⊢² M ⊑ M′ ∶ p
+p    : C ⊑ᵂ⟨ W ⟩ B
+q    : A ⊑ᵂ⟨ W ⟩ ★
+c    : ν ⊢ C ∼ A
+d    : ν′ ⊢ B ∼ G
+```
+
+The checked target-only ground row can run on `prem` only if the child endpoint
+is already `C ⊑ᵂ⟨ W ⟩ ★`.  The paired constructor does not supply that
+endpoint.  Replaying the source cast first would need a child endpoint
+`A ⊑ᵂ⟨ W ⟩ B`, which is also not a constructor field.  Stepping the target
+ground cast first and rebuilding the reduct as
+
+```agda
+CTI2.cast⊑cast² c d prem qG
+```
+
+would instead require `qG : A ⊑ᵂ⟨ W ⟩ G`; the available
+`target-ground-cast-witness` derives a ground endpoint from `A ⊑ B` and
+`A ⊑ ★`, not from `C ⊑ B` and `A ⊑ ★`.
+
+The sibling active projection head has the same source-cast endpoint gap:
+
+```agda
+CTI2.cast⊑cast² c (？ d) prem q
+```
+
+To run the checked projection row on `prem` and replay the source cast, the
+child would need `C ⊑ᵂ⟨ W ⟩ B`; the constructor supplies `C ⊑ᵂ⟨ W ⟩ ★` and
+`A ⊑ᵂ⟨ W ⟩ B`.  `RightInjInversion²` is not an existential extractor for that
+missing endpoint; it removes a target injection only after the caller provides
+the desired ground endpoint.
+
+Worker/factory/FuelKnot status:
+
+- target-only active ground/project rows are still checked;
+- source-wrapper replay and target-wrapper strip/absorption surfaces remain
+  landed;
+- `StructuralExtraCastFactory`, `StructuralValueCatchupFactory`, the concrete
+  structural factory triple, `build-structural-fuel-knot -> FuelKnot`, and the
+  public LG-3 `FuelKnot` instantiation remain unassembled because the paired
+  active head above has no route;
+- the LG-2 grounding residual is unchanged: `grounding-preservation-knot`
+  remains the checked residual.
+
+This stop does not ask for a CTI relation change.  No CTI relation, live
+imprecision relation, reduction relation, proof module, protected surface, or
+`PLAN.md` file was edited for LG-3w.
+
+Gate/regression after the LG-3w note-only chunk:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+STOP.

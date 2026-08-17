@@ -113,3 +113,106 @@ Until that stack-over-bind theorem exists, the value `Λ⊑²` and
 `Λ⊑²-smart-comma` rows cannot synthesize their frame replay functions, so the
 full `StructuralValueCatchupRightAt` factory, the structural factories, and the
 public `FuelKnot` instantiation remain unassembled.
+
+## LG-3u stop postscript, 2026-08-17
+
+The one-bind geometry was isolated in a scratch module and reaches the expected
+frame cases:
+
+- base chooses the supplied root bind and rebuilds `source-Λ-stack-id`;
+- the plain frame computes the current endpoint with
+  `TE.liftLeftTargetInsert` and the lifted one-bind endpoint
+  `target-insert-bind-world-extendᴿ`;
+- the smart frame can use `structural-smart-liftᴸ` over the one-bind
+  structural plan, which delegates to the existing smart-alias and smart-fresh
+  insert families.
+
+The scratch was then deleted.  No live module was changed.
+
+The remaining obstruction is not the target insertion or smart guard data.  It
+is the replay closure required by the current `SourceΛReplayStack` constructors
+after the target context has been extended.
+
+For the plain frame, after recursively transporting the parent stack over a
+root bind, the constructor for the transported frame requires a new closure of
+this shape:
+
+```agda
+∀ {M″ : Term (suc Δᴿ)}
+→ StructuralCatchupRightPayload
+    (CTI2.liftWorldLeft X⊑★ W¹)
+    (ECR.mapCtxᴿ
+      (target-insert-bind-world-extendᴿ
+        (TE.liftLeftTargetInsert ins) follows)
+      γᴸ)
+    U M″
+    (ECR.transport⊑ᵂ
+      (target-insert-bind-world-extendᴿ
+        (TE.liftLeftTargetInsert ins) follows)
+      p)
+→ StructuralCatchupRightPayload
+    W¹
+    (ECR.mapCtxᴿ (target-insert-bind-world-extendᴿ ins follows) γ)
+    (Λ U) M″
+    (ECR.transport⊑ᵂ
+      (target-insert-bind-world-extendᴿ ins follows)
+      q)
+```
+
+The frame already stored on the old stack has the analogous closure only at the
+old target context:
+
+```agda
+∀ {M″ : Term Δᴿ}
+→ StructuralCatchupRightPayload
+    (CTI2.liftWorldLeft X⊑★ W) γᴸ U M″ p
+→ StructuralCatchupRightPayload W γ (Λ U) M″ q
+```
+
+`TargetBindLift` and `StructuralWorldEvidenceProof` supply the moved endpoint,
+target-store equality, context lift, and smart guard insertion data, but they do
+not synthesize this target-bind-parametric replay closure for arbitrary
+`M″ : Term (suc Δᴿ)` and arbitrary future
+`StructuralCatchupRightPayload` starting at the bound child world.
+
+The smart frame has the same missing datum with `SmartCommaLiftᴸ W¹ Wᵐ¹` and
+`SmartLiftCtxᴸ` at the bound endpoint:
+
+```agda
+∀ {M″ : Term (suc Δᴿ)}
+→ StructuralCatchupRightPayload Wᵐ¹ γᵐ¹ U M″ pᵐ¹
+→ StructuralCatchupRightPayload W¹ γ¹ (Λ U) M″ q¹
+```
+
+This is a surface gap in the finite stack certificate, not a relation defect.
+One of the following additional data shapes is needed before
+`source-Λ-stack-target-bind-child` can be total:
+
+- make source-Λ stack frames carry bind-parametric replay families, not only a
+  replay closure fixed to the current target context;
+- replace the closure field with frame data plus a plan-indexed unlift helper
+  that recurses over `StructuralWorldExtendᴿ` and handles target-bind rows by
+  transporting the stack before continuing; or
+- restrict the replay-closure domain from arbitrary
+  `StructuralCatchupRightPayload` to a generated stack-compatible payload
+  invariant that records every prior bind commute.
+
+Without one of those strengthened surfaces, the theorem can build the extended
+worlds and frame evidence but cannot fill the constructor's post-bind replay
+field.  Therefore F2, the stack-indexed value worker, the concrete structural
+factories, and the public `FuelKnot` assembly remain unassembled.
+
+Gate before and after this note-only stop:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+No CTI relation, live imprecision relation, reduction relation, or protected
+surface was changed.

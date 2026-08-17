@@ -138,3 +138,22 @@ stage 2 (agent/gtsf-ns4-stage2; forbidden from editing
 proof/DGG/Catchup/* to avoid colliding with T1's knot/factory items).
 The former "T4 meet-point closure" is renumbered T6, still staged
 behind T1.
+
+Update 2026-08-17 (evening, supervisor): the ask-generation sweep. All
+bottom-up tracks have reached the ⊢²-induction stratum; the frontier is
+now DECISION-SHAPED. Status of the five assumed surfaces + closings:
+- TargetBlameCatchupᵀ: PROVEN modulo D9's two surfaces (PR #162).
+- SimBackᵀ: green parameterized skeleton, structural rows closed
+  (PR #163); residual architecture = D10.
+- CatchupToLessPrecise: recon complete, four-part left stack proposed
+  (PR #164); = D11.
+- CatchupToMorePrecise: fuel discharge = D8b; embedding + boundary
+  adapters being drafted (T11, Fin.zero probe included).
+- Simᵀ closings: β-closings = D8a-c (PR #161); conversion frames =
+  D1(decided)+D6; left value family = D2a-c; NS-4 strict cells =
+  D4.1-3 (PR #160); Value/Blame irreducibility PROVEN (PR #159).
+Cross-cutting families needing ONE ruling each: wrapper-peel species
+(D2b/D4/D7 + left rows of D11), premise-world parkedness (D6/D9.2 +
+D10's frames). Calibration probes for both in flight (T10).
+Main is RED (PR #154 parse error); heal on PR #160/#159 = D5.
+Decision board: issue #157. Draft PRs: #155/#156/#158-#164.

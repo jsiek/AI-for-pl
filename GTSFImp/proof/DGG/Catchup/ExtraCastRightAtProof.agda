@@ -635,10 +635,6 @@ structural-id-extra-cast-right-at : ∀ {fuel Δᴸ Δᴿ Δ}
 structural-id-extra-cast-right-at a c′<fuel rel vM vM′ =
   structural-catchup-keep-step vM′ (pure-step (β-id vM′))
     (target-id-step-inversion a vM vM′ rel)
-    (source-conceal-partner-target-id-core a)
-    (source-conceal-partner-target-id-framed-core a)
-    (matched-conceal-partner-target-id-core a)
-    (matched-conceal-partner-target-id-framed-core a)
 
 
 structural-ground-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
@@ -664,10 +660,6 @@ structural-ground-extra-cast-right-at {W = W} {γ = γ}
   structural-catchup-prepend-keep
     (pure-step (ground ⦃ Gns = ground-nonstar Gᵍ ⦄ vM′ B≢G))
     reduct-rel
-    (source-conceal-partner-ground-step-core c B≢G)
-    (source-conceal-partner-ground-step-framed-core c)
-    (matched-conceal-partner-ground-step-core c B≢G)
-    (matched-conceal-partner-ground-step-framed-core c)
     combined
   where
   tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
@@ -746,10 +738,6 @@ structural-paired-ground-extra-cast-right-at {W = W} {γ = γ}
     cᴸ cᴿ smaller-extra ground-other-decrease B≢G vM vM′ inertᴸ rel =
   structural-catchup-prepend-keep-stutter
     (pure-step (ground ⦃ Gns = ground-nonstar Gᵍ ⦄ vM′ B≢G))
-    (source-conceal-partner-ground-step-core cᴿ B≢G)
-    (source-conceal-partner-ground-step-framed-core cᴿ)
-    (matched-conceal-partner-ground-step-core cᴿ B≢G)
-    (matched-conceal-partner-ground-step-framed-core cᴿ)
     after-ground
   where
   tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
@@ -819,10 +807,6 @@ structural-source-injection-ground-extra-cast-right-at
     cᴿ smaller-extra ground-other-decrease B≢G vM vM′ rel =
   structural-catchup-prepend-keep-stutter
     (pure-step (ground ⦃ Gns = ground-nonstar Gᵍ ⦄ vM′ B≢G))
-    (source-conceal-partner-ground-step-core cᴿ B≢G)
-    (source-conceal-partner-ground-step-framed-core cᴿ)
-    (matched-conceal-partner-ground-step-core cᴿ B≢G)
-    (matched-conceal-partner-ground-step-framed-core cᴿ)
     after-ground
   where
   Htag = _! ⦃ Hᵍ ⦄ ⦃ H∼★ ⦄ (idᵍ Hᵍ)
@@ -899,16 +883,6 @@ structural-project-same-extra-cast-right-at {W = W} {γ = γ}
       {A = A} {G = G} {μ = μ} {Gᵍ = Gᵍ}
       {G∼★ = G∼★} {p★ = p★}
       vM vN rel-tag qG)
-    (source-conceal-partner-projection-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (source-conceal-partner-projection-framed-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (matched-conceal-partner-projection-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (matched-conceal-partner-projection-framed-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-  where
-  proj = idᵍ {μ = ν} Gᵍ
 
 
 structural-paired-project-same-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
@@ -944,17 +918,7 @@ structural-paired-project-same-extra-cast-right-at {W = W} {γ = γ}
   structural-catchup-keep-step vN
     (pure-step (tag-untag ⦃ Gns = ground-nonstar Gᵍ ⦄ vN))
     (CTI2.cast⊑² cᴸ core q)
-    (source-conceal-partner-projection-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (source-conceal-partner-projection-framed-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (matched-conceal-partner-projection-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
-    (matched-conceal-partner-projection-framed-core
-      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
   where
-  proj = idᵍ Gᵍ
-
   core : W ∣ γ ⊢² M ⊑ N ∶ qG
   core =
     exposed-project-same-step-inversion-⊑cast²
@@ -997,10 +961,6 @@ structural-project-expand-extra-cast-right-at {W = W} {γ = γ}
     (pure-step (expand ⦃ Gns = ground-nonstar Gᵍ ⦄
       (vN 《 inj ⦃ Gns = ground-nonstar Gᵍ ⦄ 》) G≢B))
     reduct-rel
-    (source-conceal-partner-projection-core c)
-    (source-conceal-partner-projection-framed-core c)
-    (matched-conceal-partner-projection-core c)
-    (matched-conceal-partner-projection-framed-core c)
     combined
   where
   tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
@@ -1092,10 +1052,6 @@ structural-paired-project-expand-extra-cast-right-at {W = W} {γ = γ}
   structural-catchup-prepend-keep-stutter
     (pure-step (expand ⦃ Gns = ground-nonstar Gᵍ ⦄
       (vN 《 inj ⦃ Gns = ground-nonstar Gᵍ ⦄ 》) G≢B))
-    (source-conceal-partner-projection-core cᴿ)
-    (source-conceal-partner-projection-framed-core cᴿ)
-    (matched-conceal-partner-projection-core cᴿ)
-    (matched-conceal-partner-projection-framed-core cᴿ)
     after-expand
   where
   tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
@@ -1131,16 +1087,6 @@ structural-paired-project-expand-extra-cast-right-at {W = W} {γ = γ}
         (pure-step
           (tag-untag ⦃ Gns = ground-nonstar Gᵍ ⦄ vN))
         refl)
-      (source-conceal-partner-projection-framed-core
-        ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ)
-      (λ d →
-        source-conceal-partner-projection-double-framed-core
-          ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ d)
-      (matched-conceal-partner-projection-framed-core
-        ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ)
-      (λ d →
-        matched-conceal-partner-projection-double-framed-core
-          ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ d)
       residual
 
 

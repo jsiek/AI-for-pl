@@ -158,3 +158,19 @@ reduction relation itself was needed.  Gate:
 AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
+
+ITEM 2 STATUS (2026-08-17, T1):
+
+The internal structural result surface was iterated to the option-2 supplied
+endpoint shape.  `StructuralCatchupRightResult` no longer carries the four
+false broad endpoint-partner transport fields.  Source-conceal replay now
+consumes the exact endpoint partner evidence it needs at the child endpoint,
+and ordinary keep/prepend/compose/target-cast rows no longer manufacture
+arbitrary source/matched conceal partner transformers as result fields.
+
+Checked chunk:
+
+```text
+AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```

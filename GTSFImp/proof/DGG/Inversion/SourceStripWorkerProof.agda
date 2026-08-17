@@ -20,7 +20,7 @@ open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using
-  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; _⦂∀_[_]; _↓_; _⟨_⟩)
+  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; _⦂∀_[_]; _↓_; _⟨_⟩)
 open import Imprecision
 open import Primitives using (κℕ; κ𝔹)
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -1033,9 +1033,33 @@ source-spine-direct-cast {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
       mono (CTI2.tag-rebase-varᴸ rb) sc
       (CTI2.⊢↓-sealˣ source∈) prem q)
 
-source-spine-strip-worker-ƛ : SourceSpineStrip
-{-# NON_COVERING #-}
-source-spine-strip-worker-ƛ (sv-ƛ N) vU mono rb sc source∈
+source-spine-strip-worker-ƛ : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γ′ : CtxImp W′}
+    {U : Term Δᴿ}
+    {R : Ty Δᴸ} {S : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+    {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+    {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+  → (N : Term Δᴸ)
+  → Value U
+  → CTI2.ImpEnvMono W W′
+  → RebaseAt W′ W Xᴸ Y
+  → CTI2.SameCtx γ γ′
+  → sourceStoreʷ W ∋ Xᴸ ⦂ R
+  → targetStoreʷ W ∋ Y ⦂ S
+  → W′ ∣ γ′ ⊢² ƛ N ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceSpineStripBranch W γ (ƛ N) R U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+source-spine-strip-worker-ƛ N vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-ƛ N) vU mono rb sc source∈
     target∈ prem
@@ -2018,7 +2042,7 @@ source-spine-strip-worker : SourceSpineStripWorker
 {-# NON_COVERING #-}
 source-spine-strip-worker (sv-ƛ N) vU mono rb sc source∈
     target∈ D =
-  source-spine-strip-worker-ƛ (sv-ƛ N) vU mono rb sc source∈
+  source-spine-strip-worker-ƛ N vU mono rb sc source∈
     target∈ D
 source-spine-strip-worker (sv-Λ sv) vU mono rb sc source∈
     target∈ D =

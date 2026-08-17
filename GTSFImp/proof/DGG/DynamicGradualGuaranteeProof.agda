@@ -53,11 +53,11 @@ open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction.ValueIrreducibleDef
   using (ValueTraceRefl; value-trace-refl)
-open import proof.Reduction.ValueIrreducibleProof
+open import proof.DGG.ValueIrreducibleProof
   using (value-irreducible*)
 open import proof.Reduction.BlameIrreducibleDef
   using (BlameTraceRefl; blame-trace-refl)
-open import proof.Reduction.BlameIrreducibleProof
+open import proof.DGG.BlameIrreducibleProof
   using (blame-irreducible*)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; parked-initial)

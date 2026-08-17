@@ -977,3 +977,25 @@ only `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`.  See
 exact missing datum.  `build-structural-fuel-knot` remains a checked adapter;
 the concrete structural factory triple and public `FuelKnot` instantiation are
 not assembled.  `grounding-preservation-knot` remains checked.
+
+LG-3 SHIPPED (2026-08-17, PR #144, rebased over PRs #148-#153). The
+MANDATE is complete: the CatchupCast/CatchupCast⁻/CatchupColumn(⁻)
+family is deleted from live code (grep-verified), all consumers are
+restated in the inversion style (whole derivations + values; the
+columnless TargetCastBound value-catch-up), and the inversion
+machinery is live and checked — consistency views (all ground
+families), the eight-head tag-layer extraction fold, the COMPLETE
+row inventory (every family×step cell a checked row or refutation),
+structural pullbacks both sides, the SourceΛReplayStack certificate,
+supplied partner/chain/continuation fields, and two checked negative
+records that killed over-general statements. Gate green throughout.
+RECORDED RESIDUAL (follow-on work order, nine items in
+notes/lg3ah-supplied-continuation-assembly-resister.red): the final
+worker/factory assembly — one congruence support lemma (NOTE: main's
+PR #152/#153 added reveal-↠/conceal-↠, likely exactly it), the
+option-2 continuation threading, five conversion-head transformers,
+then the mechanical dispatcher/workers/factories/higher-order
+FuelKnot chain. The M6 knot remains, as always, higher-order over the
+M5 factory. NEXT: post-merge frontier re-map (the top-down side now
+builds on the NS-4 structural vocabulary; CatchupToMorePrecise is
+boundary-kind-indexed), then the parallel tracks.

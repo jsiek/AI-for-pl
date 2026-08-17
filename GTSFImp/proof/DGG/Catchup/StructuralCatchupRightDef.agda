@@ -22,10 +22,11 @@ open import Consistency using
 open import Conversion using (Conv↑; Conv↓)
 open import Imprecision using (X⊑★)
 open import CastTerms using
-  (Term; Value; Inert; Λ_; _⟨_⟩; _《_》; _↑_; _↓_; renameᵗᵐ)
+  (Term; Value; Inert; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩; _《_》; _↑_;
+   _↓_; renameᵗᵐ)
 open import Reduction using (StoreChanges; []; _∷_; keep; _—→[_]_;
-  _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]; bind; applyConsistency;
-  applyConsistencies)
+  _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]; bind;
+  applyConsistency; applyConsistencies; applyStores)
 open import proof.Reduction using
   (cast-↠; applyConsistencies-Inert; _++χ_; applyTys-++;
    cast-applyConsistencies-++; composeReduction)
@@ -48,11 +49,22 @@ open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof using
   (structural-tag-rebase-atᴸ-pullback)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
-  (mapCtxᴿ-sameCtx; structural-source-reveal; structural-source-conceal)
+  (mapCtxᴿ-sameCtx; mapCtxᴿ-liftCtxᴸ; mapCtxᴿ-smartLiftCtxᴸ;
+   liftCtxᴸ-target-ctx; smartCommaLift-target-store;
+   smartLiftCtxᴸ-target-ctx; structural-source-reveal;
+   structural-source-conceal)
+open import proof.DGG.Catchup.StructuralWorldLiftLeftProof using
+  (structural-lift-left)
+open import proof.DGG.Catchup.StructuralWorldSmartLiftDef
+open import proof.DGG.Catchup.StructuralWorldSmartLiftProof using
+  (structural-smart-liftᴸ)
+open import proof.DGG.Catchup.StructuralSourceLambdaReplayProof using
+  (structural-Λ-replay; structural-smart-Λ-replay)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (TargetCastBound; ValueCatchupRight²; ValueCatchupRightAt;
    ExtraCastRightAt; InstCatchupRightAt; castSize)
 open import proof.TypeInTermSubst using (toRename-wk-eq)
+import proof.DGG.CastTermImprecision2Typing as CTI2T
 open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 
@@ -157,10 +169,6 @@ data SourceΛReplayStack {Δᴸ₀ Δᴿ Δ₀}
     → Fin.zero ∈ᵗ A
     → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
     → Value U
-    → (∀ {M″ : Term Δᴿ}
-        → StructuralCatchupRightPayload
-            (CTI2.liftWorldLeft X⊑★ W) γᴸ U M″ p
-        → StructuralCatchupRightPayload W γ (Λ U) M″ q)
     → SourceΛReplayStack W₀ γ₀ M₀ q₀
         (CTI2.liftWorldLeft X⊑★ W) γᴸ U p
 
@@ -179,13 +187,10 @@ data SourceΛReplayStack {Δᴸ₀ Δᴿ Δ₀}
     → CTI2.SmartCommaLiftᴸ W Wᵐ
     → CTI2.SmartLiftCtxᴸ γ γᵐ
     → Value U
-    → (∀ {M″ : Term Δᴿ}
-        → StructuralCatchupRightPayload Wᵐ γᵐ U M″ p
-        → StructuralCatchupRightPayload W γ (Λ U) M″ q)
     → SourceΛReplayStack W₀ γ₀ M₀ q₀ Wᵐ γᵐ U p
 
 
-source-Λ-stack-unlift : ∀ {Δᴸ₀ Δᴿ Δ₀}
+source-Λ-stack-replay-here : ∀ {Δᴸ₀ Δᴿ Δ₀}
     {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
     {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
     {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
@@ -193,16 +198,198 @@ source-Λ-stack-unlift : ∀ {Δᴸ₀ Δᴿ Δ₀}
     {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A ⊑ᵂ⟨ W ⟩ B}
   → SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q
-  → ∀ {M″ : Term Δᴿ}
-  → StructuralCatchupRightPayload W γ M M″ q
-  → StructuralCatchupRightPayload W₀ γ₀ M₀ M″ q₀
-source-Λ-stack-unlift source-Λ-stack-id payload = payload
-source-Λ-stack-unlift
-    (source-Λ-stack-plain stack _ _ _ _ replay) payload =
-  source-Λ-stack-unlift stack (replay payload)
-source-Λ-stack-unlift
-    (source-Λ-stack-smart stack _ _ _ _ _ replay) payload =
-  source-Λ-stack-unlift stack (replay payload)
+  → ∀ {N : Term Δᴿ}
+  → W ∣ γ ⊢² M ⊑ N ∶ q
+  → W₀ ∣ γ₀ ⊢² M₀ ⊑ N ∶ q₀
+source-Λ-stack-replay-here source-Λ-stack-id rel = rel
+source-Λ-stack-replay-here
+    (source-Λ-stack-plain stack Anv z∈A liftγ vU) rel =
+  source-Λ-stack-replay-here stack
+    (subst≡ (λ γ′ → _ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (ECR.mapCtxᴿ-same _)
+      (structural-Λ-replay structural-[] Anv z∈A liftγ vU
+        target⊢ rel′))
+  where
+  rel′ =
+    subst≡ (λ γ′ → _ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (sym (ECR.mapCtxᴿ-same _))
+      rel
+
+  target⊢γ =
+    subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (liftCtxᴸ-target-ctx liftγ)
+      (CTI2T.target-typing² rel)
+
+  target⊢ =
+    subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (cong CTI2.tgtCtxʷ (ECR.mapCtxᴿ-same _)))
+      target⊢γ
+source-Λ-stack-replay-here
+    (source-Λ-stack-smart stack Anv z∈A liftW liftγ vU) rel =
+  source-Λ-stack-replay-here stack
+    (subst≡ (λ γ′ → _ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (ECR.mapCtxᴿ-same _)
+      (structural-smart-Λ-replay structural-[] Anv z∈A liftW liftγ vU
+        target⊢ rel′))
+  where
+  rel′ =
+    subst≡ (λ γ′ → _ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (sym (ECR.mapCtxᴿ-same _))
+      rel
+
+  target⊢γ =
+    subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (smartLiftCtxᴸ-target-ctx liftγ)
+      (subst≡ (λ Σ → ⟨ _ , Σ , _ ⟩ ⊢ _ ⦂ _)
+        (smartCommaLift-target-store liftW)
+        (CTI2T.target-typing² rel))
+
+  target⊢ =
+    subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (cong CTI2.tgtCtxʷ (ECR.mapCtxᴿ-same _)))
+      target⊢γ
+
+
+record SourceΛReplayStackTransport {Δᴸ₀ Δᴿ Δ₀}
+    {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
+    {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
+    {Δᴸ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+    (stack : SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q)
+    {Δᴿ′ Δ₀′} {χs : StoreChanges Δᴿ Δᴿ′}
+    {W₀′ : World Δᴸ₀ Δᴿ′ Δ₀′}
+    (plan₀ : StructuralWorldExtendᴿ χs W₀ W₀′) : Set₁ where
+  field
+    Δ′ : TyCtx
+    W′ : World Δᴸ Δᴿ′ Δ′
+    current-plan : StructuralWorldExtendᴿ χs W W′
+    stack′ :
+      SourceΛReplayStack
+        W₀′
+        (ECR.mapCtxᴿ (structural-world-extendᴿ plan₀) γ₀)
+        M₀
+        (ECR.transport⊑ᵂ (structural-world-extendᴿ plan₀) q₀)
+        W′
+        (ECR.mapCtxᴿ (structural-world-extendᴿ current-plan) γ)
+        M
+        (ECR.transport⊑ᵂ (structural-world-extendᴿ current-plan) q)
+
+
+source-Λ-stack-transport : ∀ {Δᴸ₀ Δᴿ Δ₀}
+    {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
+    {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
+    {Δᴸ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+    (stack : SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q)
+    {Δᴿ′ Δ₀′} {χs : StoreChanges Δᴿ Δᴿ′}
+    {W₀′ : World Δᴸ₀ Δᴿ′ Δ₀′}
+    (plan₀ : StructuralWorldExtendᴿ χs W₀ W₀′)
+  → SourceΛReplayStackTransport stack plan₀
+source-Λ-stack-transport source-Λ-stack-id plan₀ = record
+  { Δ′ = _
+  ; W′ = _
+  ; current-plan = plan₀
+  ; stack′ = source-Λ-stack-id
+  }
+source-Λ-stack-transport
+    (source-Λ-stack-plain stack Anv z∈A liftγ vU) plan₀
+    with source-Λ-stack-transport stack plan₀
+source-Λ-stack-transport
+    (source-Λ-stack-plain stack Anv z∈A liftγ vU) plan₀
+    | record { W′ = W′ ; current-plan = plan ; stack′ = stack′ } =
+  record
+    { Δ′ = _
+    ; W′ = CTI2.liftWorldLeft X⊑★ W′
+    ; current-plan = structural-lift-left plan X⊑★
+    ; stack′ =
+        source-Λ-stack-plain stack′ Anv z∈A
+          (mapCtxᴿ-liftCtxᴸ
+            (structural-world-extendᴿ plan)
+            (structural-world-extendᴿ
+              (structural-lift-left plan X⊑★))
+            liftγ)
+          vU
+    }
+source-Λ-stack-transport
+    (source-Λ-stack-smart stack Anv z∈A liftW liftγ vU) plan₀
+    with source-Λ-stack-transport stack plan₀
+source-Λ-stack-transport
+    (source-Λ-stack-smart stack Anv z∈A liftW liftγ vU) plan₀
+    | record { current-plan = plan ; stack′ = stack′ }
+    with structural-smart-liftᴸ plan liftW
+source-Λ-stack-transport
+    (source-Λ-stack-smart stack Anv z∈A liftW liftγ vU) plan₀
+    | record { current-plan = plan ; stack′ = stack′ }
+    | record { Wᵐ′ = Wᵐ′ ; premise-plan = planᵐ
+             ; post-lift = liftW′ } =
+  record
+    { Δ′ = _
+    ; W′ = Wᵐ′
+    ; current-plan = planᵐ
+    ; stack′ =
+        source-Λ-stack-smart stack′ Anv z∈A liftW′
+          (mapCtxᴿ-smartLiftCtxᴸ
+            (structural-world-extendᴿ plan)
+            (structural-world-extendᴿ planᵐ)
+            liftγ)
+          vU
+    }
+
+
+source-Λ-stack-target-bind-child : ∀ {Δᴸ₀ Δᴿ Δ₀}
+    {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
+    {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
+    {Δᴸ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+    (stack : SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q)
+    {R : Ty Δᴿ} {Δ₀¹} {π₀ : Δ₀ ↪ᵗ Δ₀¹}
+    {W₀¹ : World Δᴸ₀ (suc Δᴿ) Δ₀¹}
+  → (ins₀ : TE.TargetInsert wk↪ᵗ π₀ W₀ W₀¹)
+  → (follows₀ : CTI2.targetStoreʷ W₀¹ ≡
+      applyStores (bind R ∷ []) (CTI2.targetStoreʷ W₀))
+  → SourceΛReplayStackTransport stack
+      (structural-bind ins₀ follows₀ structural-[])
+source-Λ-stack-target-bind-child stack ins₀ follows₀ =
+  source-Λ-stack-transport stack
+    (structural-bind ins₀ follows₀ structural-[])
+
+
+source-Λ-stack-unlift-plan : ∀ {Δᴸ₀ Δᴿ Δ₀}
+    {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
+    {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
+    {Δᴸ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+    (stack : SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q)
+    {Δᴿ′ Δ₀′} {χs : StoreChanges Δᴿ Δᴿ′}
+    {W₀′ : World Δᴸ₀ Δᴿ′ Δ₀′}
+    (plan₀ : StructuralWorldExtendᴿ χs W₀ W₀′)
+    (transported : SourceΛReplayStackTransport stack plan₀)
+  → ∀ {N′ : Term Δᴿ′}
+  → SourceΛReplayStackTransport.W′ transported ∣
+      ECR.mapCtxᴿ
+        (structural-world-extendᴿ
+          (SourceΛReplayStackTransport.current-plan transported))
+        γ
+      ⊢² M ⊑ N′ ∶
+        ECR.transport⊑ᵂ
+          (structural-world-extendᴿ
+            (SourceΛReplayStackTransport.current-plan transported))
+          q
+  → W₀′ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan₀) γ₀
+      ⊢² M₀ ⊑ N′ ∶
+        ECR.transport⊑ᵂ (structural-world-extendᴿ plan₀) q₀
+source-Λ-stack-unlift-plan stack plan₀ transported rel =
+  source-Λ-stack-replay-here
+    (SourceΛReplayStackTransport.stack′ transported)
+    rel
 
 
 erase-structural-catchup-result : ∀ {Δᴸ Δᴿ Δ}

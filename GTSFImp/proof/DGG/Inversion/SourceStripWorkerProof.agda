@@ -21,10 +21,10 @@ open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using
-  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; Λ_; _⦂∀_[_];
+  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; Λ_; _⦂∀_[_]; $;
    _↓_; _⟨_⟩)
 open import Imprecision
-open import Primitives using (κℕ; κ𝔹)
+open import Primitives using (Const; κℕ; κ𝔹)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealPeelToolkit as SPT
@@ -1109,9 +1109,33 @@ source-spine-strip-worker-Λ sv vU mono rb sc source∈
     (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
       nonvar-all nonstar-∀ D)
 
-source-spine-strip-worker-$ : SourceSpineStrip
-{-# NON_COVERING #-}
-source-spine-strip-worker-$ (sv-$ κ) vU mono rb sc source∈
+source-spine-strip-worker-$ : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γ′ : CtxImp W′}
+    {U : Term Δᴿ}
+    {R : Ty Δᴸ} {S : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+    {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+    {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+  → (κ : Const)
+  → Value U
+  → CTI2.ImpEnvMono W W′
+  → RebaseAt W′ W Xᴸ Y
+  → CTI2.SameCtx γ γ′
+  → sourceStoreʷ W ∋ Xᴸ ⦂ R
+  → targetStoreʷ W ∋ Y ⦂ S
+  → W′ ∣ γ′ ⊢² $ κ ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceSpineStripBranch W γ ($ κ) R U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+source-spine-strip-worker-$ κ vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-$ κ) vU mono rb sc source∈
     target∈ prem
@@ -2083,7 +2107,7 @@ source-spine-strip-worker (sv-Λ sv) vU mono rb sc source∈
     target∈ D
 source-spine-strip-worker (sv-$ κ) vU mono rb sc source∈
     target∈ D =
-  source-spine-strip-worker-$ (sv-$ κ) vU mono rb sc source∈
+  source-spine-strip-worker-$ κ vU mono rb sc source∈
     target∈ D
 source-spine-strip-worker (sv-cast sv inert) vU mono rb sc
     source∈ target∈ D =

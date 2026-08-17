@@ -27,8 +27,8 @@ postulate-check:
 		| grep -v 'proof/DGG/Inversion/SourceStripColumnView.agda' \
 		| grep . \
 	|| { echo "postulate-check: FAILED (NON_COVERING outside legacy files)"; exit 1; }
-	@test "$$(grep -c '{-# NON_COVERING #-}' proof/DGG/Inversion/SourceStripWorkerProof.agda)" -eq 19 \
-	|| { echo "postulate-check: FAILED (NON_COVERING pragma count in SourceStripWorkerProof differs from the legacy baseline of 19)"; exit 1; }
+	@test "$$(grep -c '{-# NON_COVERING #-}' proof/DGG/Inversion/SourceStripWorkerProof.agda)" -eq 18 \
+	|| { echo "postulate-check: FAILED (NON_COVERING pragma count in SourceStripWorkerProof differs from the legacy baseline of 18)"; exit 1; }
 	@test "$$(grep -c '{-# NON_COVERING #-}' proof/DGG/Inversion/SourceStripColumnView.agda)" -eq 1 \
 	|| { echo "postulate-check: FAILED (NON_COVERING pragma count in SourceStripColumnView differs from the legacy baseline of 1)"; exit 1; }
 	@echo "postulate-check: OK (no postulates; NON_COVERING at legacy baseline)"

@@ -16,6 +16,7 @@ open import Data.Maybe using (Maybe)
 open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 import Consistency as C
+import Imprecision as I
 open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; idᵍ; _!; ？_;
    toRenameᵗ)
@@ -97,6 +98,33 @@ target-expand-cast-witness {W = W} Gᵍ Bns c p q =
     (C.renameNonStar (toRenameᵗ (CTI2.ηᴿʷ W)) Bns)
     (C.renameᵐᶜ (CTI2.ηᴿʷ W) c)
     p q
+
+
+source-ground-cast-witness : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+    {H : Ty Δᴸ} {B G : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (Hᵍ : Ground H)
+  → (Gᵍ : Ground G)
+  → (Bns : NonStar B)
+  → (c : ν ⊢ B ∼ G)
+  → H ⊑ᵂ⟨ W ⟩ B
+  → H ⊑ᵂ⟨ W ⟩ G
+source-ground-cast-witness {W = W} {H = H} {G = G}
+    Hᵍ Gᵍ Bns c p =
+  subst≡ (λ T → I._⊢_⊑_ (CTI2.impEnvʷ W) (CTI2.embedᴸ W H) T)
+    center-eq
+    (PI.refl⊑ (CTI2.embedᴸ W H))
+  where
+  center-eq : CTI2.embedᴸ W H ≡ CTI2.embedᴿ W G
+  center-eq =
+    PI.ground-cast-target-unique⊑
+      (C.renameGround (toRenameᵗ (CTI2.ηᴸʷ W)) Hᵍ)
+      (C.renameGround (toRenameᵗ (CTI2.ηᴸʷ W)) Hᵍ)
+      (C.renameGround (toRenameᵗ (CTI2.ηᴿʷ W)) Gᵍ)
+      (C.renameNonStar (toRenameᵗ (CTI2.ηᴿʷ W)) Bns)
+      (C.renameᵐᶜ (CTI2.ηᴿʷ W) c)
+      (PI.refl⊑ (CTI2.embedᴸ W H))
+      p
 
 
 exposed-expand-step-inversion-⊑cast² : ∀ {Δᴸ Δᴿ Δ}

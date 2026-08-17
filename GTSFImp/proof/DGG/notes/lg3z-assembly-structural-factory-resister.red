@@ -94,3 +94,82 @@ dispatcher can be total:
 No protected relation or surface was changed.  In particular,
 `GTSF/QuotientedTermImprecision.agda`, `CastTermImprecision2.agda`, and
 `PLAN.md` were not edited.
+
+LG-3aa postscript, 2026-08-17:
+
+The final assembly attempt used the required holes-first method on the
+concrete `structural-extra-cast-right-at` head dispatcher, then reverted the
+diagnostic worker edit to keep the live tree green.  The diagnostic reached the
+approved I1/I2 boundary and did not produce a complete inhabitant inventory.
+
+The direct paired-ground endpoint test was:
+
+```agda
+qG = target-ground-cast-witness {W = W} {G = G}
+       Gᵍ Ans c p ?
+```
+
+Agda reduces the remaining premise to the pre-source midpoint
+`C ⊑ᵂ⟨ W ⟩ ★`.  That is exactly the midpoint that I2 forbids using
+uniformly: the row must be split by the source inert family and call a row
+whose endpoint is derivable from the final `q`.
+
+Complete residual list from this attempt:
+
+1. I1, landed-tag premise extractor: not landed.  The paired projection rows
+   still need a checked extractor that takes the whole relation
+   `W ∣ γ ⊢² M ⊑ M′ ⟨ ？ c ⟩ ∶ q`, uses target typing plus `canonical-★` to
+   expose `M′ = N ⟨ _! (idᵍ Gᵍ) ⟩`, and threads the peeled premise/core
+   through the same `cast⊑²`, `Λ⊑²`, `Λ⊑²-smart-comma`, `reveal⊑²`, and
+   `conceal⊑²` source-wrapper cases as `target-id-step-inversion`.
+2. I2, paired ground row/dispatcher split: not landed.  The existing checked
+   row `structural-paired-ground-extra-cast-right-at` requires
+   `qG : C ⊑ᵂ⟨ W ⟩ G`; the obvious `target-ground-cast-witness` route asks for
+   `C ⊑ᵂ⟨ W ⟩ ★`.  The remaining implementation must add per-source-inert
+   rows/endpoints, using `⇒⊑★-inv`, `⇒⊑⇒-inv`, and the ground-family cast
+   views, rather than forcing that midpoint.
+3. Extra-cast head dispatcher: not landed.  After the inert/id/bot rows, the
+   remaining target-head cells are active ground, source-wrapper recursion for
+   active ground, projection same, projection expand, target `inst`, and target
+   `gen`.  `gen` should be an inert row once `gen-safe` is threaded; `inst`
+   should call the structural inst worker in the direct target-cast case, but
+   still needs the paired/source-wrapper dispatch.
+4. `StructuralValueCatchupRightAt`: not landed.  The row combinators for
+   target casts are checked, but the derivation-primary worker over
+   `TargetCastBound` is still absent.  The source-`Λ` rows must use the landed
+   `SourceΛReplayStack` plumbing rather than naive child-result unlift.
+5. Concrete structural factory pair: not landed.  `FuelKnotProof.agda` has the
+   structural fuel surface and `build-structural-fuel-knot`, but no concrete
+   `StructuralExtraCastFactory`/`StructuralValueCatchupFactory` pair because
+   the two workers above are not complete.
+6. Public `FuelKnot`: not landed in the requested higher-order form over the
+   M5 `InstCatchup` factory.  The final public form remains blocked on the
+   concrete structural factory pair; no M5 packages were chased in this
+   attempt.
+7. Grounding residual: unchanged.  The checked residual remains
+   `grounding-preservation-knot`; no new LG-3 grounding theorem was assembled.
+8. Notes cleanup: not performed.  Since assembly did not complete, the `lg3*`
+   resister postscripts were not marked resolved, the ten-file notes
+   regression was not run as a resolved-notes sweep, and stale scratch
+   supersessions were not edited.
+
+Stop-rule status:
+
+- The diagnostic worker holes were reverted.
+- No pragmas, postulates, protected relations, protected surfaces, or
+  `PLAN.md` edits were committed.
+- This postscript is the green residual record for LG-3aa.
+
+Gate after the LG-3aa residual record:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```

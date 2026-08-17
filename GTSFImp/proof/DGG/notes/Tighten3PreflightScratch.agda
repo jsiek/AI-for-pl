@@ -34,7 +34,7 @@ import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.Parked.ParkedD4CheckpointLemma as D4
 import proof.DGG.CompilePreservesImprecision2 as CPI2
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 open import proof.DGG.WorldDecay using (EnvDecay; env-decay)
 
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)

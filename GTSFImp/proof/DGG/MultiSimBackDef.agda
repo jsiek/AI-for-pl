@@ -16,7 +16,7 @@ open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
+open import proof.Reduction using (_++χ_)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 

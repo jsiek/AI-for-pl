@@ -35,7 +35,7 @@ import proof.DGG.ExampleTerms as Ex
 import proof.DGG.OneStep as Step
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 
 ------------------------------------------------------------------------
 -- Source types and consistencies

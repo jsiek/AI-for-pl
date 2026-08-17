@@ -31,7 +31,7 @@ import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
-open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
+open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-type-app; no-value-apply-spine; value-no-step)

@@ -1,16 +1,23 @@
 module proof.DGG.Catchup.StructuralWorldEvidenceProof where
 
 -- File Charter:
---   * Transports wrapper contexts and source conversion typing along traces.
+--   * Transports wrapper contexts and conversion typing along traces.
 --   * Supplies shared endpoint evidence for structural relation replay.
 
-open import Data.Maybe using (Maybe)
+import Data.Fin as Fin
+import Data.List as List
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (suc)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; cong)
+  renaming (subst to subst≡)
 
 open import Types using (Ty; TyVar)
-open import Conversion using (Conv↑; Conv↓)
+open import Consistency using (wk↪ᵗ; toRenameᵗ)
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import Imprecision using (X⊑★)
 open import Reduction using (StoreChanges)
+open import proof.TypeInTermSubst using
+  (StoreRename-suc-bind; toRename-wk-eq)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
@@ -69,6 +76,46 @@ mapCtxᴿ-smartLiftCtxᴸ ext extᵐ (CTI2.smart-lift-∷ liftγ) =
   CTI2.smart-lift-∷ (mapCtxᴿ-smartLiftCtxᴸ ext extᵐ liftγ)
 
 
+liftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ} {v}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {γ : CTI2.CtxImp W}
+    {γ′ : CTI2.CtxImp (CTI2.liftWorldLeft v W)}
+  → CTI2.LiftCtxᴸ v γ γ′
+  → CTI2.tgtCtxʷ γ′ ≡ CTI2.tgtCtxʷ γ
+liftCtxᴸ-target-ctx CTI2.liftᴸ-[] = refl
+liftCtxᴸ-target-ctx (CTI2.liftᴸ-∷ liftγ) =
+  cong (_ List.∷_) (liftCtxᴸ-target-ctx liftγ)
+
+
+smartCommaLift-target-store : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+  → CTI2.SmartCommaLiftᴸ W Wᵐ
+  → CTI2.targetStoreʷ Wᵐ ≡ CTI2.targetStoreʷ W
+smartCommaLift-target-store (CTI2.smart-fresh-behind guard) =
+  CTI2.SmartFreshBehindGuard.targetStore-same guard
+smartCommaLift-target-store (CTI2.smart-merge-alias guard) =
+  CTI2.SmartAliasMergeGuard.targetStore-same guard
+
+
+smartLiftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+  → CTI2.SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
+  → CTI2.tgtCtxʷ γᵐ ≡ CTI2.tgtCtxʷ γ
+smartLiftCtxᴸ-target-ctx CTI2.smart-lift-[] = refl
+smartLiftCtxᴸ-target-ctx (CTI2.smart-lift-∷ liftγ) =
+  cong (_ List.∷_) (smartLiftCtxᴸ-target-ctx liftγ)
+
+
+mapPivot-wk-eq : ∀ {Δ} (X? : Maybe (TyVar Δ))
+  → TE.mapPivot Fin.suc X?
+      ≡ TE.mapPivot (toRenameᵗ wk↪ᵗ) X?
+mapPivot-wk-eq nothing = refl
+mapPivot-wk-eq (just X) = cong just (sym (toRename-wk-eq X))
+
+
 structural-source-reveal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -99,3 +146,55 @@ structural-source-conceal (structural-keep plan) c⊢ =
   structural-source-conceal plan c⊢
 structural-source-conceal (structural-bind ins follows plan) c⊢ =
   structural-source-conceal plan (TE.source-conceal-insert ins c⊢)
+
+
+structural-target-reveal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {X? : Maybe (TyVar Δᴿ)} {A B : Ty Δᴿ}
+    {c : Conv↑ Δᴿ A B}
+  → StructuralWorldExtendᴿ χs W W′
+  → CTI2.targetStoreʷ W CTI2.⊢↑[ X? ] c
+  → CTI2.targetStoreʷ W′ CTI2.⊢↑[ mapPivotChanges χs X? ]
+      mapRevealChanges χs c
+structural-target-reveal structural-[] c⊢ = c⊢
+structural-target-reveal (structural-keep plan) c⊢ =
+  structural-target-reveal plan c⊢
+structural-target-reveal {X? = X?} {c = c}
+    (structural-bind {W₁ = W₁} ins follows plan) c⊢ =
+  structural-target-reveal plan
+    (subst≡
+      (λ pivot → CTI2.targetStoreʷ W₁ CTI2.⊢↑[ pivot ]
+        rename↑ Fin.suc c)
+      (mapPivot-wk-eq X?)
+      (subst≡
+        (λ Σ → Σ CTI2.⊢↑[ TE.mapPivot Fin.suc X? ] rename↑ Fin.suc c)
+        (sym follows)
+        (TE.reveal-renameˣ StoreRename-suc-bind c⊢)))
+
+
+structural-target-conceal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {X? : Maybe (TyVar Δᴿ)} {A B : Ty Δᴿ}
+    {c : Conv↓ Δᴿ A B}
+  → StructuralWorldExtendᴿ χs W W′
+  → CTI2.targetStoreʷ W CTI2.⊢↓[ X? ] c
+  → CTI2.targetStoreʷ W′ CTI2.⊢↓[ mapPivotChanges χs X? ]
+      mapConcealChanges χs c
+structural-target-conceal structural-[] c⊢ = c⊢
+structural-target-conceal (structural-keep plan) c⊢ =
+  structural-target-conceal plan c⊢
+structural-target-conceal {X? = X?} {c = c}
+    (structural-bind {W₁ = W₁} ins follows plan) c⊢ =
+  structural-target-conceal plan
+    (subst≡
+      (λ pivot → CTI2.targetStoreʷ W₁ CTI2.⊢↓[ pivot ]
+        rename↓ Fin.suc c)
+      (mapPivot-wk-eq X?)
+      (subst≡
+        (λ Σ → Σ CTI2.⊢↓[ TE.mapPivot Fin.suc X? ] rename↓ Fin.suc c)
+        (sym follows)
+        (TE.conceal-renameˣ StoreRename-suc-bind c⊢)))

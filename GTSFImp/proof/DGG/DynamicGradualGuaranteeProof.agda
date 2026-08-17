@@ -63,9 +63,7 @@ open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; parked-initial)
 open import proof.DGG.Parked.ParkedWorldLemma
   using (parked-world-closed)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof
-  using (applyTys-++; composeReduction)
+open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
 open import proof.TypeSafety.Progress using
   (Progress; done; step; crash; progress)
 open import proof.TypeSafety.Preservation using (multi-preservation)

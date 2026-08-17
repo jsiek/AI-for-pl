@@ -9,7 +9,7 @@ open import Types using (TyCtx)
 open import Reduction using (StoreChanges)
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef using (ParkedEvolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
+open import proof.Reduction using (_++χ_)
 open CTI2 using (World)
 
 

@@ -224,7 +224,8 @@ checklist enforced as hard rules.
 
 ## Parked (2026-08-09): single-source-pair pedigree for the probe instance
 
-The cast-level initial pair (InitialPairScratch, committed) is
+The cast-level initial pair (`proof/DGG/notes/InitialPairScratch.agda`,
+committed) is
 ⊢²-related and reaches both probe states. A SINGLE ⊑ᴳ source pair
 generating both is still open: the λg-factoring needed for Q's gen
 shape changes P's instantiation path (the compiled ⟨id ∀⟩ cast on the
@@ -946,3 +947,55 @@ related-reduction preservation stated as the higher-order
 `grounding-preservation-knot` (instantiation deferred to the LG-3/M7
 value catch-up driver by design — the knot pattern). All in the --safe
 aggregate; gate green; no resisters. NEXT: LG-3.
+
+## LG-3 IN FLIGHT (branch agent/gtsf-cti-lg3)
+
+The CatchupCast-family removal (user decision, 2026-08-15): delete
+CatchupCast / CatchupCast⁻ / CatchupColumn(⁻); consumers classify by
+CTI INVERSION per the V1′ model (CTIOccInversionCatchupScratch's
+interface analogue + syntactic consistency views). Rework order:
+ExtraCastRight surfaces restated to consume whole derivations
+(⊢² M ⊑ M′⟨c′⟩ ∶ q + values), the column/multi-cast proof inverts CTI
+per layer (no separate column proposition), the M6 fuel knot and NS-4
+stage-1 provenance threading re-pointed, and the grounding knot from
+LG-2 instantiated where the driver machinery permits. Notes scratches
+referencing deleted judgments get minimal updates so the regression
+suite stays meaningful.
+
+LG-3v update (2026-08-17): the LG-3u source-Λ replay-stack blocker is
+resolved in commit `77e559ea`.  `SourceΛReplayStack` frames are data-only, and
+the live support now transports pending frame data along a supplied
+`StructuralWorldExtendᴿ` plan with `source-Λ-stack-transport`,
+`source-Λ-stack-target-bind-child`, and `source-Λ-stack-unlift-plan`.  The
+closure-pinned `Term Δᴿ` anti-pattern is removed from that stack.
+
+Current assembly blocker: the concrete extra-cast factory still lacks a
+whole-premise active target-cast row/extractor for `_! c` and `？ c`.  Existing
+checked rows consume already-peeled child/tag premises; the factory input has
+only `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`.  See
+`notes/lg3-target-cast-multistep-worker-resister.red` LG-3v postscript for the
+exact missing datum.  `build-structural-fuel-knot` remains a checked adapter;
+the concrete structural factory triple and public `FuelKnot` instantiation are
+not assembled.  `grounding-preservation-knot` remains checked.
+
+LG-3 SHIPPED (2026-08-17, PR #144, rebased over PRs #148-#153). The
+MANDATE is complete: the CatchupCast/CatchupCast⁻/CatchupColumn(⁻)
+family is deleted from live code (grep-verified), all consumers are
+restated in the inversion style (whole derivations + values; the
+columnless TargetCastBound value-catch-up), and the inversion
+machinery is live and checked — consistency views (all ground
+families), the eight-head tag-layer extraction fold, the COMPLETE
+row inventory (every family×step cell a checked row or refutation),
+structural pullbacks both sides, the SourceΛReplayStack certificate,
+supplied partner/chain/continuation fields, and two checked negative
+records that killed over-general statements. Gate green throughout.
+RECORDED RESIDUAL (follow-on work order, nine items in
+notes/lg3ah-supplied-continuation-assembly-resister.red): the final
+worker/factory assembly — one congruence support lemma (NOTE: main's
+PR #152/#153 added reveal-↠/conceal-↠, likely exactly it), the
+option-2 continuation threading, five conversion-head transformers,
+then the mechanical dispatcher/workers/factories/higher-order
+FuelKnot chain. The M6 knot remains, as always, higher-order over the
+M5 factory. NEXT: post-merge frontier re-map (the top-down side now
+builds on the NS-4 structural vocabulary; CatchupToMorePrecise is
+boundary-kind-indexed), then the parallel tracks.

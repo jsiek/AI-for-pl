@@ -5,24 +5,15 @@ module proof.DGG.Catchup.StructuralWorldTagRebaseDef where
 --   * Tracks the target pivot through every target-side store change.
 
 open import Data.Maybe using (Maybe)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (TyVar)
-open import Consistency using (toRenameᵗ; wk↪ᵗ)
 open import Reduction using
-  (StoreChanges; []; _∷_; keep; bind)
+  (StoreChanges)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.TargetExtend as TE
-open import proof.DGG.Catchup.StructuralWorldExtendDef
-
-
-mapPivotChanges : ∀ {Δ Δ′}
-  → StoreChanges Δ Δ′
-  → Maybe (TyVar Δ)
-  → Maybe (TyVar Δ′)
-mapPivotChanges [] pivot = pivot
-mapPivotChanges (keep ∷ χs) pivot = mapPivotChanges χs pivot
-mapPivotChanges (bind A ∷ χs) pivot =
-  mapPivotChanges χs (TE.mapPivot (toRenameᵗ wk↪ᵗ) pivot)
+open import proof.DGG.Catchup.StructuralWorldExtendDef public using
+  (StructuralWorldExtendᴿ; mapPivotChanges; mapPivotChanges-++;
+   mapVarChanges)
 
 
 record StructuralTagRebaseAtᴸResult
@@ -36,6 +27,22 @@ record StructuralTagRebaseAtᴸResult
   field
     Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′
     premise-plan : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′
+    post-rebase : CTI2.TagRebaseAtᴸ Wᵖ′ W′ Xᴸ?
+      (mapPivotChanges χs Xᴿ?)
+    post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′
+
+
+record StructuralTagRebaseAtᴸPullbackResult
+    {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
+    {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+    (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?) : Set₁ where
+  field
+    W′ : CTI2.World Δᴸ Δᴿ′ Δ′
+    outer-plan : StructuralWorldExtendᴿ χs W W′
     post-rebase : CTI2.TagRebaseAtᴸ Wᵖ′ W′ Xᴸ?
       (mapPivotChanges χs Xᴿ?)
     post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′

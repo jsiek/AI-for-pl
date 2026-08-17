@@ -51,7 +51,9 @@ open import CastTerms using
    Value; RevealValue; _《_》; _↓_)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
-open import proof.Reduction using (cast-↠)
+open import proof.Reduction using
+  (cast-↠; _++χ_; castSize-applyConsistency;
+   castSize-applyConsistencies)
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
@@ -73,13 +75,10 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (castSize; _++χ_; FuelStepSurface; CatchupCast⁻; Catchup⁻Embedᵀ;
-   inst-alloc-decreaseᵀ;
-   catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
-   catchup⁻-ground-other; catchup⁻-bot-elim; catchup⁻-bot-intro)
+  (castSize; FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.InstInversionDef using
-  (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
-   InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
+  (ResidualNonStarᵀ; InstPostCatalogPackage;
+   InstPostCatalogPackageAt; InstResidualRelationᵀ;
    InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ;
    Λ⊑Λ²PostBodyTransportAtᵀ; Λ⊑²AtRewrapᵀ;
    Λ⊑Λ²BodyAfter★; Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂;
@@ -88,9 +87,6 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
-open import proof.DGG.Catchup.ColumnSupportProof using
-  (castSize-applyConsistency; castSize-applyConsistencies;
-   transportCatchup⁻)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
   (mapCtxᴿ-sameCtx)
 
@@ -105,7 +101,7 @@ open import proof.DGG.Catchup.InstInversionProof using
    smart-alias-bind-world-extendᴿ; mapCtxᴿ-smart-liftᴸ;
    right-bind-under-left-lift; mapCtxᴿ-liftᴸ;
    smart-alias-bind-under-left-liftᴿ; smart-fresh-bind-under-left-liftᴿ;
-   catchup⁻-nonstar; inst-residual-source-nonstar)
+   residual-nonstar; inst-residual-source-nonstar)
 
 Λ⊑Λ²-route1-entry-p : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -4808,54 +4804,6 @@ open ΛFrontChildPostPlan public
     ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄ q
 
 
-Λ⊑²-smart-fresh-catchup⁻ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {A : Ty (suc Δᴸ)} {B B′ : Ty (suc (suc Δᴿ))}
-    {ν : Env∼ (suc (suc Δᴿ))}
-    {p : A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B}
-    {c : ν ⊢ B ∼ B′}
-    {q : A CTI2.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B′}
-  → (Anv : NonVar A)
-  → (zero∈A : Fin.zero ∈ᵗ A)
-  → CatchupCast⁻ {W = Λ⊑²-smart-fresh-world W} {A = A} p c q
-  → CatchupCast⁻
-      {W = CTI2.rightOnlyWorld
-        (CTI2.rightOnlyWorld W ★) (＇ Fin.zero)}
-      {A = `∀ A}
-      (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p)
-      c
-      (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q)
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    (catchup⁻-inert i) =
-  catchup⁻-inert {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} i
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    (catchup⁻-id a) =
-  catchup⁻-id {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} a
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    (catchup⁻-ground-other B≢G r k) =
-  catchup⁻-ground-other
-    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q} B≢G
-    (Λ⊑²-smart-fresh-top {W = W} Anv zero∈A r)
-    (Λ⊑²-smart-fresh-catchup⁻ {W = W} Anv zero∈A k)
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    catchup⁻-inst =
-  catchup⁻-inst {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    catchup⁻-bot-elim =
-  catchup⁻-bot-elim
-    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
-Λ⊑²-smart-fresh-catchup⁻ {W = W} {p = p} {q = q} Anv zero∈A
-    catchup⁻-bot-intro =
-  catchup⁻-bot-intro
-    {p = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A p}
-    {q = Λ⊑²-smart-fresh-top {W = W} Anv zero∈A q}
-
-
 Λ⊑²-smart-fresh-target-frozen : ∀ {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ)
   → ∀ Xᴿ
@@ -5140,7 +5088,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
     {body-p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldBoth I.X⊑X W ⟩ B}
     {p : `∀ A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ
   → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vΛV : CT.Value (Λ V))
@@ -5165,7 +5113,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
       right-bind-right-bind-world-extendᴿ
 Λ⊑Λ²-base-package-at {fuel = fuel} {Δᴿ = Δᴿ} {W = W} {V′ = V′}
     {A = A} {B = B} {B′ = B′}
-    fuel-step catchup⁻-embed inst-decrease rel
+    fuel-step residual-cast-builder inst-decrease rel
     vΛV vΛV′ vV vV′ c′ B′≢★ c<fuel q liftγ Anv zero∈A
     bodyRel
     with Λ⊑Λ²-post-body-transport
@@ -5173,7 +5121,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
       liftγ vV vV′ bodyRel
 Λ⊑Λ²-base-package-at {fuel = fuel} {Δᴿ = Δᴿ} {W = W} {V′ = V′}
     {A = A} {B = B} {B′ = B′}
-    fuel-step catchup⁻-embed inst-decrease rel
+    fuel-step residual-cast-builder inst-decrease rel
     vΛV vΛV′ vV vV′ c′
     ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ c<fuel q liftγ Anv zero∈A
     bodyRel
@@ -5202,8 +5150,8 @@ mapCtxᴿ-smart-fresh-target-ctx (CTI2.liftᴸ-∷ liftγ) =
     ; at-residual-cast =
         applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
           (↑ᶜ (close-instᶜ c′))
-    ; at-residual-provenance =
-        catchup⁻-nonstar
+    ; at-residual-relation =
+        residual-nonstar
           (renameNonStar Fin.suc
             (renameNonStar (toRenameᵗ wk↪ᵗ)
               (inst-residual-source-nonstar Bnv zero∈B)))
@@ -5466,8 +5414,8 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     ; at-residual-cast =
         applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
           (↑ᶜ (close-instᶜ c′))
-    ; at-residual-provenance =
-        catchup⁻-nonstar
+    ; at-residual-relation =
+        residual-nonstar
           (renameNonStar Fin.suc
             (renameNonStar (toRenameᵗ wk↪ᵗ)
               (inst-residual-source-nonstar Bnv zero∈B)))
@@ -5534,8 +5482,8 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     ; at-residual-cast =
         applyConsistency (bind {Δ = suc Δᴿ} (＇ Fin.zero))
           (↑ᶜ (close-instᶜ c′))
-    ; at-residual-provenance =
-        catchup⁻-nonstar
+    ; at-residual-relation =
+        residual-nonstar
           (renameNonStar Fin.suc
             (renameNonStar (toRenameᵗ wk↪ᵗ)
               (inst-residual-source-nonstar Bnv zero∈B)))
@@ -6499,7 +6447,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
   → FuelStepSurface fuel
   → inst-alloc-decreaseᵀ
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
@@ -6513,8 +6461,8 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
   → InstPostCatalogPackage fuel rel vM vM′ c′ B′≢★ c<fuel q
 Λ-inst-inversion-package {W = W} fuel-step inst-decrease
-    catchup⁻-embed rel vM vM′ vV′ refl c′ B′≢★ c<fuel q =
-  inst-post-at→root-package fuel-step catchup⁻-embed rel vM vM′
+    residual-cast-builder rel vM vM′ vV′ refl c′ B′≢★ c<fuel q =
+  inst-post-at→root-package fuel-step residual-cast-builder rel vM vM′
     c′ B′≢★ c<fuel q (postExtend plan)
     (Λ-post-prefix-base→package-at inst-decrease rel vM vM′ c′
       B′≢★ c<fuel q (postExtend plan)

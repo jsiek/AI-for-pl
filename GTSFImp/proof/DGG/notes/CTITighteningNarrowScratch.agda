@@ -28,7 +28,6 @@ open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
 
 open CTI2 using
   (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;
@@ -503,12 +502,9 @@ good-generated-projection-site :
   W ∣ [] ⊢ᴺ source-sealed ⊑ target-name-tagged ⟨ Y? ⟩ ∶ qXY
 good-generated-projection-site = matching-projectionᴺ
 
-good-generated-catchup :
-  ECR.CatchupCast {W = W} {A = ＇ X}
-    X⊑★W target-name-tagged Y? qXY
-good-generated-catchup =
-  ECR.catchup-projection
-    (ECR.generated-project-same target-sealed-value)
+good-generated-catchup-live-replacement :
+  W ∣ [] ⊢ᴺ source-sealed ⊑ target-name-tagged ⟨ Y? ⟩ ∶ qXY
+good-generated-catchup-live-replacement = good-generated-projection-site
 
 bad-square-is-not-refuted : ⊥ → ⊥
 bad-square-is-not-refuted z = z

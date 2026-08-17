@@ -50,7 +50,9 @@ open import CastTerms using
    Value; RevealValue; _《_》; _↓_)
 open import proof.Consistency using
   (gen-safe; castSize-subst-left-∼; castSize-subst-right-∼)
-open import proof.Reduction using (cast-↠)
+open import proof.Reduction using
+  (cast-↠; _++χ_; applyStores-++; applyTys-++; composeReduction;
+   castSize-applyConsistency; castSize-applyConsistencies)
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
@@ -72,13 +74,10 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (castSize; _++χ_; FuelStepSurface; CatchupCast⁻; Catchup⁻Embedᵀ;
-   inst-alloc-decreaseᵀ;
-   catchup⁻-inert; catchup⁻-id; catchup⁻-inst;
-   catchup⁻-ground-other; catchup⁻-bot-elim; catchup⁻-bot-intro)
+  (castSize; FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Catchup.InstInversionDef using
-  (Catchup⁻NonStarᵀ; InstPostCatalogPackage;
-   InstPostCatalogPackageAt; InstResidualProvenanceᵀ;
+  (ResidualNonStarᵀ; InstPostCatalogPackage;
+   InstPostCatalogPackageAt; InstResidualRelationᵀ;
    InstSpineDescentPackage; Λ⊑Λ²PostBodyTransportᵀ;
    Λ⊑Λ²PostBodyTransportAtᵀ; Λ⊑²AtRewrapᵀ;
    Λ⊑Λ²BodyAfter★; Λ⊑Λ²PostTerm; Λ⊑Λ²TargetSplit₂;
@@ -87,9 +86,6 @@ open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.InstCatchupRightProof using
   (right-bind-right-bind-world-extendᴿ)
-open import proof.DGG.Catchup.ColumnSupportProof using
-  (castSize-applyConsistency; castSize-applyConsistencies;
-   transportCatchup⁻)
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
   (mapCtxᴿ-sameCtx)
 
@@ -143,31 +139,12 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
         InstPostCatalogPackageAt.at-residual-target-eq pkg
     ; residual-cast =
         InstPostCatalogPackageAt.at-residual-cast pkg
-    ; residual-provenance =
-        InstPostCatalogPackageAt.at-residual-provenance pkg
+    ; residual-relation =
+        InstPostCatalogPackageAt.at-residual-relation pkg
     ; spine-descent =
         InstPostCatalogPackageAt.at-spine-descent pkg
     ; finish = finish
     }
-
-
-applyStores-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ Σ
-  → applyStores ψs (applyStores χs Σ) ≡ applyStores (χs ++χ ψs) Σ
-applyStores-++ [] ψs Σ = refl
-applyStores-++ (χ ∷ χs) ψs Σ =
-  applyStores-++ χs ψs _
-
-
-applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
-  → (χs : StoreChanges Δ₀ Δ₁)
-  → (ψs : StoreChanges Δ₁ Δ₂)
-  → ∀ A
-  → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
-applyTys-++ [] ψs A = refl
-applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs _
 
 
 composeWorldExtendᴿ : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
@@ -223,17 +200,6 @@ mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
     (ctx-imp-transportᴿ {W = W₂} (applyTys-++ χs ψs B)
       (ECR.transport⊑ᵂ ext₂ (ECR.transport⊑ᵂ ext₁ p)))
     (mapCtxᴿ-compose ext₁ ext₂ γ)
-
-
-composeReduction : ∀ {Δ₀ Δ₁ Δ₂}
-    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
-    {M : CT.Term Δ₀} {N : CT.Term Δ₁} {P : CT.Term Δ₂}
-  → M —↠[ χs ] N
-  → N —↠[ ψs ] P
-  → M —↠[ χs ++χ ψs ] P
-composeReduction ↠-refl N↠P = N↠P
-composeReduction (↠-step M→N N↠P) P↠Q =
-  ↠-step M→N (composeReduction N↠P P↠Q)
 
 
 rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
@@ -540,7 +506,7 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
@@ -562,11 +528,11 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
           × (W′ CTI2.∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
               ECR.transport⊑ᵂ ext q))
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
-    fuel-step catchup⁻-embed rel vM vM′ c′
+    fuel-step residual-cast-builder rel vM vM′ c′
     B′≢★ c<fuel q ext₂ pkg
     with InstPostCatalogPackageAt.at-spine-descent pkg
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
-    fuel-step catchup⁻-embed rel vM vM′ c′
+    fuel-step residual-cast-builder rel vM vM′ c′
     B′≢★ c<fuel q ext₂ pkg
   | record { Δᴿ′ = Δᴿᵈ ; χs = δs ; Δ′ = Δᵈ ; W′ = Wᵈ
       ; ext = extᵈ ; final = final ; final-value = vFinal
@@ -575,18 +541,16 @@ inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
       (subst≡ (λ n → suc n < _)
         (sym (castSize-applyConsistencies δs residual-cast))
         (InstPostCatalogPackageAt.at-residual-fuel pkg))
-      relFinal vM vFinal
       (applyConsistencies δs residual-cast)
       (n<1+n (castSize (applyConsistencies δs residual-cast)))
-      (ECR.transport⊑ᵂ extᵈ
-        (InstPostCatalogPackageAt.at-residual-q pkg))
-      (catchup⁻-embed final
-        (transportCatchup⁻ extᵈ
-          (InstPostCatalogPackageAt.at-residual-provenance pkg)))
+      (CTI2.⊑cast² (applyConsistencies δs residual-cast) relFinal
+        (ECR.transport⊑ᵂ extᵈ
+          (InstPostCatalogPackageAt.at-residual-q pkg)))
+      vM vFinal
   where
   residual-cast = InstPostCatalogPackageAt.at-residual-cast pkg
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
-    fuel-step catchup⁻-embed rel vM vM′ c′
+    fuel-step residual-cast-builder rel vM vM′ c′
     B′≢★ c<fuel q ext₂ pkg
   | record { Δᴿ′ = Δᴿᵈ ; χs = δs ; Δ′ = Δᵈ ; W′ = Wᵈ
       ; ext = extᵈ ; final = final ; final-value = vFinal
@@ -666,7 +630,7 @@ inst-post-at→root-package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
@@ -680,10 +644,10 @@ inst-post-at→root-package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
   → InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
       c<fuel q χs₂ W₂ ext₂
   → InstPostCatalogPackage fuel rel vM vM′ c′ B′≢★ c<fuel q
-inst-post-at→root-package fuel-step catchup⁻-embed rel vM vM′
+inst-post-at→root-package fuel-step residual-cast-builder rel vM vM′
     c′ B′≢★ c<fuel q ext₂ pkg =
   inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
-    (inst-post-at-finish fuel-step catchup⁻-embed rel vM vM′
+    (inst-post-at-finish fuel-step residual-cast-builder rel vM vM′
       c′ B′≢★ c<fuel q ext₂ pkg)
     pkg
 
@@ -924,23 +888,26 @@ smart-fresh-bind-under-left-liftᴿ {W = W} {B = B} guard =
     (ECR.targetStore-follows
       (smart-fresh-bind-world-extendᴿ {W = W} {B = B} guard))
 
-catchup⁻-nonstar : Catchup⁻NonStarᵀ
-catchup⁻-nonstar Bns B′ns (id ★) = catchup⁻-id ★
-catchup⁻-nonstar Bns B′ns (id (‵ ι)) = catchup⁻-id (‵ ι)
-catchup⁻-nonstar Bns B′ns (id (＇ X)) = catchup⁻-id (＇ X)
-catchup⁻-nonstar Bns B′ns (c ↦ d) =
-  catchup⁻-inert CT.fun
-catchup⁻-nonstar Bns B′ns (∀ᶜ c) =
-  catchup⁻-inert CT.all
-catchup⁻-nonstar Bns () (_! c)
-catchup⁻-nonstar () B′ns (？ c)
-catchup⁻-nonstar Bns B′ns (inst_ c B≢★) =
-  catchup⁻-inst
-catchup⁻-nonstar Bns B′ns
+residual-nonstar : ResidualNonStarᵀ
+residual-nonstar Bns B′ns (id ★) rel = CTI2.⊑cast² (id ★) rel _
+residual-nonstar Bns B′ns (id (‵ ι)) rel =
+  CTI2.⊑cast² (id (‵ ι)) rel _
+residual-nonstar Bns B′ns (id (＇ X)) rel =
+  CTI2.⊑cast² (id (＇ X)) rel _
+residual-nonstar Bns B′ns (c ↦ d) rel =
+  CTI2.⊑cast² (c ↦ d) rel _
+residual-nonstar Bns B′ns (∀ᶜ c) rel =
+  CTI2.⊑cast² (∀ᶜ c) rel _
+residual-nonstar Bns () (_! c)
+residual-nonstar () B′ns (？ c)
+residual-nonstar Bns B′ns (inst_ c B≢★) =
+  λ rel → CTI2.⊑cast² ((inst c) B≢★) rel _
+residual-nonstar Bns B′ns
     (gen_ ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
-  catchup⁻-inert (CT.genᵥ A≢★ (gen-safe c A≢★ Bnv z∈B))
-catchup⁻-nonstar Bns B′ns bot-elim = catchup⁻-bot-elim
-catchup⁻-nonstar Bns B′ns bot-intro = catchup⁻-bot-intro
+  λ rel → CTI2.⊑cast² ((gen c) A≢★) rel _
+residual-nonstar Bns B′ns bot-elim rel = CTI2.⊑cast² bot-elim rel _
+residual-nonstar Bns B′ns bot-intro rel =
+  CTI2.⊑cast² bot-intro rel _
 
 
 inst-residual-source-nonstar : ∀ {Δ} {B : Ty (suc Δ)}
@@ -953,10 +920,10 @@ inst-residual-source-nonstar nonvar-fun zero∈B = nonstar-⇒
 inst-residual-source-nonstar nonvar-all zero∈B = nonstar-∀
 
 
-inst-residual-provenance : InstResidualProvenanceᵀ
-inst-residual-provenance {B = B} {B′ = B′} c′
+inst-residual-relation : InstResidualRelationᵀ
+inst-residual-relation {B = B} {B′ = B′} c′
     ⦃ Bnv ⦄ ⦃ zero∈B ⦄ B′≢★ =
-  catchup⁻-nonstar
+  residual-nonstar
     (renameNonStar (toRenameᵗ wk↪ᵗ)
       (inst-residual-source-nonstar Bnv zero∈B))
     (renameNonStar (toRenameᵗ wk↪ᵗ) (nonstar-from-≢★ B′≢★))

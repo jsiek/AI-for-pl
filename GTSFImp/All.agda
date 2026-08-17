@@ -31,6 +31,7 @@ import proof.Reduction
 import proof.DGG.CompilePreservesImprecision2
 import proof.DGG.GroundingMint
 import proof.DGG.GroundingPreserve
+import proof.DGG.CastConsistencyViews
 import proof.DGG.Inversion.SpineValueProof
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
@@ -39,7 +40,6 @@ import proof.DGG.Parked.ParkedD4CheckpointLemma
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
 ------------------------------------------------------------------------
 
-import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
 import proof.DGG.Catchup.InstCatchupRightRelProof
 import proof.DGG.Catchup.InstInversionDef
@@ -106,7 +106,10 @@ import proof.DGG.Catchup.StructuralNameInstantiationProof
 ------------------------------------------------------------------------
 
 import proof.DGG.Catchup.ValueCatchupRightDef
-import proof.DGG.Catchup.ColumnSupportProof
+import proof.DGG.Catchup.FuelSupportProof
+import proof.DGG.Catchup.GeneratedProjectionReplacementProof
+import proof.DGG.Catchup.TargetCastStepInversionProof
+import proof.DGG.Catchup.TagLayerExtractionProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof

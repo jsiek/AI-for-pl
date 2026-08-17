@@ -22,7 +22,6 @@ open import Imprecision
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
@@ -332,9 +331,7 @@ good-generated-projection-siteᵂ :
     ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
 good-generated-projection-siteᵂ = matching-projectionᵂ
 
-good-generated-catchupᵂ :
-  ECR.CatchupCast {W = N.W} {A = ＇ Fin.zero}
-    N.X⊑★W N.target-name-tagged N.Y? N.qXY
-good-generated-catchupᵂ =
-  ECR.catchup-projection
-    (ECR.generated-project-same N.target-sealed-value)
+good-generated-catchupᵂ-live-replacement :
+  N.W ∣ [] ⊢ᵂ N.source-sealed
+    ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
+good-generated-catchupᵂ-live-replacement = good-generated-projection-siteᵂ

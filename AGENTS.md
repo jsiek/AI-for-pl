@@ -308,6 +308,12 @@ transitive chain syntax, such as `_—↠⟨_⟩_` or `_—↠[_]⟨_⟩_`, and 
 with the relation's reflexive terminator. For store-changing chains in
 GTSFImp, that means writing the final term followed by `∎[]`.
 
+In reduction-chain proofs, do not use underscores to make the chain's
+arguments implicit: write out the intermediate and final terms (and the
+store-change indices, where the relation carries them) as explicit
+arguments. The point of the chain notation is that a reader can follow
+the terms in the code; an `_` defeats it.
+
 Prefer:
 
     twoᶜ · sucᶜ · `zero

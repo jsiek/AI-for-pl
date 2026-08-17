@@ -17,7 +17,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import CastTerms
-open import proof.TermInTermSubst using (subst-cong)
+open import proof.LR-narrow.TermSubstitution using (subst-cong)
 open import proof.TypeInTermSubst using (toRename-keep-eq)
 import Consistency
 import Imprecision as I

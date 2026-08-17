@@ -19,7 +19,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import Types
 open import CastTerms
-open import proof.TermInTermSubst using (subst-cong)
+open import proof.LR-narrow.TermSubstitution using (subst-cong)
 import Imprecision as I
 import proof.DGG.CastTermImprecision2 as CTI
 open CTI using (_∣_⊢²_⊑_∶_)

@@ -1,4 +1,4 @@
-module proof.TypeRenamingComposition where
+module proof.LR-narrow.TypeRenamingComposition where
 
 -- File Charter:
 --   * Composition laws for type-variable renaming of GTSFImp terms.
@@ -9,7 +9,7 @@ import Data.Fin as Fin
 import Data.Nat as Nat
 open import Data.Empty using (⊥; ⊥-elim)
 import Relation.Binary.HeterogeneousEquality as HE
-open import FunExt using (funext)
+open import proof.LR-narrow.FunExt using (funext)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 open import Relation.Binary.PropositionalEquality.WithK

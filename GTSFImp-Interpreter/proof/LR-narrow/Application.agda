@@ -20,7 +20,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TyStore
 open import CastTerms
-open import proof.TermInTermSubst using (subst-cong)
+open import proof.LR-narrow.TermSubstitution using (subst-cong)
 open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (Conv↑; Conv↓)
 open import Reduction

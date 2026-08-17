@@ -21,7 +21,7 @@ import TermCtx as T
 open import CastTerms
 import Consistency as C
 import Imprecision as I
-open import proof.TermInTermSubst using
+open import proof.LR-narrow.TermSubstitution using
   (SubstWf; typing-subst; subst-preserves-Value; subst-cong;
    subst-rename; subst-id; single-subst-exts; subst-renameᵗᵐ)
 open import proof.TypeInTermSubst using

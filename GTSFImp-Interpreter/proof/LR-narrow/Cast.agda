@@ -28,7 +28,7 @@ import Imprecision as I
 open import Reduction
 import Eval as E
 open import Interpreter
-open import proof.TermInTermSubst using (subst-closed)
+open import proof.LR-narrow.TermSubstitution using (subst-closed)
 open import proof.ImprecisionConsistency using
   (expand-cast-source⊑; ground-cast-target⊑;
    ground-target-nonvar-to-star⊑;

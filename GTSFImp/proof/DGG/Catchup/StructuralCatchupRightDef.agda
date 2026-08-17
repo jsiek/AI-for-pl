@@ -20,8 +20,9 @@ open import Types using
 open import Consistency using
   (Env∼; _↪ᵗ_; _⊢_∼_; inst_; instᵐ; wk↪ᵗ; toRenameᵗ)
 open import Conversion using (Conv↑; Conv↓)
+open import Imprecision using (X⊑★)
 open import CastTerms using
-  (Term; Value; Inert; _⟨_⟩; _《_》; _↑_; _↓_; renameᵗᵐ)
+  (Term; Value; Inert; Λ_; _⟨_⟩; _《_》; _↑_; _↓_; renameᵗᵐ)
 open import Reduction using (StoreChanges; []; _∷_; keep; _—→[_]_;
   _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]; bind; applyConsistency;
   applyConsistencies)
@@ -115,6 +116,93 @@ record StructuralCatchupRightResult {Δᴸ Δᴿ Δ}
       → CTI2.MatchedConcealPartnerOK W₀′ P c₀
           (mapPivotChanges χs Xᴿ?)
           (N′ ⟨ applyConsistencies χs c′ ⟩)
+
+
+StructuralCatchupRightPayload : ∀ {Δᴸ Δᴿ Δ}
+  → (W : World Δᴸ Δᴿ Δ)
+  → CtxImp W
+  → Term Δᴸ
+  → Term Δᴿ
+  → ∀ {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → A ⊑ᵂ⟨ W ⟩ B
+  → Set₁
+StructuralCatchupRightPayload = StructuralCatchupRightResult
+
+
+data SourceΛReplayStack {Δᴸ₀ Δᴿ Δ₀}
+    (W₀ : World Δᴸ₀ Δᴿ Δ₀) (γ₀ : CtxImp W₀)
+    (M₀ : Term Δᴸ₀) {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    (q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀)
+    : ∀ {Δᴸ Δ}
+      → (W : World Δᴸ Δᴿ Δ)
+      → CtxImp W
+      → Term Δᴸ
+      → ∀ {A : Ty Δᴸ} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ W ⟩ B
+      → Set₁ where
+  source-Λ-stack-id :
+    SourceΛReplayStack W₀ γ₀ M₀ q₀ W₀ γ₀ M₀ q₀
+
+  source-Λ-stack-plain :
+    ∀ {Δᴸ Δ}
+      {W : World Δᴸ Δᴿ Δ}
+      {γ : CtxImp W}
+      {γᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+      {U : Term (suc Δᴸ)}
+      {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ B}
+      {q : `∀ A ⊑ᵂ⟨ W ⟩ B}
+    → SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ (Λ U) q
+    → NonVar A
+    → Fin.zero ∈ᵗ A
+    → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
+    → Value U
+    → (∀ {M″ : Term Δᴿ}
+        → StructuralCatchupRightPayload
+            (CTI2.liftWorldLeft X⊑★ W) γᴸ U M″ p
+        → StructuralCatchupRightPayload W γ (Λ U) M″ q)
+    → SourceΛReplayStack W₀ γ₀ M₀ q₀
+        (CTI2.liftWorldLeft X⊑★ W) γᴸ U p
+
+  source-Λ-stack-smart :
+    ∀ {Δᴸ Δ Δᵐ}
+      {W : World Δᴸ Δᴿ Δ}
+      {Wᵐ : World (suc Δᴸ) Δᴿ Δᵐ}
+      {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
+      {U : Term (suc Δᴸ)}
+      {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
+      {p : A ⊑ᵂ⟨ Wᵐ ⟩ B}
+      {q : `∀ A ⊑ᵂ⟨ W ⟩ B}
+    → SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ (Λ U) q
+    → NonVar A
+    → Fin.zero ∈ᵗ A
+    → CTI2.SmartCommaLiftᴸ W Wᵐ
+    → CTI2.SmartLiftCtxᴸ γ γᵐ
+    → Value U
+    → (∀ {M″ : Term Δᴿ}
+        → StructuralCatchupRightPayload Wᵐ γᵐ U M″ p
+        → StructuralCatchupRightPayload W γ (Λ U) M″ q)
+    → SourceΛReplayStack W₀ γ₀ M₀ q₀ Wᵐ γᵐ U p
+
+
+source-Λ-stack-unlift : ∀ {Δᴸ₀ Δᴿ Δ₀}
+    {W₀ : World Δᴸ₀ Δᴿ Δ₀} {γ₀ : CtxImp W₀}
+    {M₀ : Term Δᴸ₀} {A₀ : Ty Δᴸ₀} {B₀ : Ty Δᴿ}
+    {q₀ : A₀ ⊑ᵂ⟨ W₀ ⟩ B₀}
+    {Δᴸ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → SourceΛReplayStack W₀ γ₀ M₀ q₀ W γ M q
+  → ∀ {M″ : Term Δᴿ}
+  → StructuralCatchupRightPayload W γ M M″ q
+  → StructuralCatchupRightPayload W₀ γ₀ M₀ M″ q₀
+source-Λ-stack-unlift source-Λ-stack-id payload = payload
+source-Λ-stack-unlift
+    (source-Λ-stack-plain stack _ _ _ _ replay) payload =
+  source-Λ-stack-unlift stack (replay payload)
+source-Λ-stack-unlift
+    (source-Λ-stack-smart stack _ _ _ _ _ replay) payload =
+  source-Λ-stack-unlift stack (replay payload)
 
 
 erase-structural-catchup-result : ∀ {Δᴸ Δᴿ Δ}

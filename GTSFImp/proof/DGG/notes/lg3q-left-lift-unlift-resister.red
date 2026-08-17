@@ -79,3 +79,15 @@ traces.  The local generated-trace fact checks for `structural-lift-left`, but
 the generic `StructuralCatchupRightResult` still cannot carry a useful
 positive-depth invariant without a refined/generated trace or replay field.
 See `lg3r-frozen-trace-unlift-resister.red`.
+
+2026-08-17 LG-3v postscript:
+
+This generic-unlift route is superseded by commit `77e559ea`.  The live support
+no longer tries to pull an arbitrary completed child trace back through
+`liftWorldLeft`.  Instead, `SourceΛReplayStack` frames carry source-Λ data only,
+`source-Λ-stack-transport` maps the pending stack along a supplied root
+`StructuralWorldExtendᴿ` plan, and source-Λ replay happens at the transported
+endpoint via `source-Λ-stack-unlift-plan`.
+
+The generic pullback obstruction described here remains a real limitation for
+arbitrary child traces, but it is no longer the LG-3 source-Λ assembly route.

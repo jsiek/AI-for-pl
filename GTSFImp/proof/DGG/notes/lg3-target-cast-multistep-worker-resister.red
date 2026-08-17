@@ -694,3 +694,92 @@ Stop-rule status:
 - No worker definition was committed.
 - No support, row, Def, CTI relation, live imprecision relation, reduction
   relation, or protected surface was changed.
+
+LG-3v postscript, 2026-08-17:
+
+The LG-3u source-Λ replay-stack blocker is resolved in commit `77e559ea` by
+replacing closure-bearing `SourceΛReplayStack` frames with data-bearing frames
+and adding `source-Λ-stack-transport`, `source-Λ-stack-target-bind-child`, and
+`source-Λ-stack-unlift-plan`.
+
+That closes the specific value `?0` / `?1` closure obstruction: source-Λ replay
+no longer asks a stored frame to produce a post-bind closure at
+`Term (suc Δᴿ)`.  The replay relation is derived from the transported frame
+data at the endpoint.
+
+The full worker/factory assembly is still blocked at the extra-cast factory,
+not at source-Λ replay.  The first missing datum is a whole-premise active
+extra-cast row/extractor.  The checked row inventory currently has
+`structural-ground-extra-cast-right-at` and
+`structural-project-expand-extra-cast-right-at`, but those rows require
+already-peeled premises.  The live factory input has only the whole CTI
+premise:
+
+```agda
+W ∣ γ ⊢² M ⊑ M′ ⟨ _! c ⟩ ∶ q
+```
+
+or:
+
+```agda
+W ∣ γ ⊢² M ⊑ M′ ⟨ ？ c ⟩ ∶ q
+```
+
+To assemble `StructuralExtraCastFactory`, the missing checked row must consume
+that whole premise directly, for example:
+
+```agda
+active-ground-extra-cast-right-at :
+  (c : ν ⊢ B ∼ G)
+  → StructuralExtraCastRightAt (castSize c)
+  → ground-other-decreaseᵀ
+  → B ≢ G
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ _! c ⟩ ∶ q
+  → Value M
+  → Value M′
+  → StructuralCatchupRightResult W γ M (M′ ⟨ _! c ⟩) q
+```
+
+and the projection analogue:
+
+```agda
+active-project-extra-cast-right-at :
+  RightInjInversion²
+  → (c : ν ⊢ G ∼ B)
+  → StructuralExtraCastRightAt (castSize c)
+  → project-expand-decreaseᵀ
+  → G ≢ B
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ ？ c ⟩ ∶ q
+  → Value M
+  → Value M′
+  → StructuralCatchupRightResult W γ M (M′ ⟨ ？ c ⟩) q
+```
+
+Equivalently, export CTI extractors that recover the peeled child/tag premise
+required by the existing checked rows from the whole target-cast premise and
+the target/source values.  The available ground/expand lemmas named
+`exposed-...-step-inversion-⊑cast²` rebuild the exposed stepped relation; they
+do not extract the child relation from the factory premise.  The identity
+target cast has such an extractor (`target-id-step-inversion`), which is why
+that row assembles.
+
+Until that active whole-premise row/extractor exists, `StructuralExtraCastAt`,
+the concrete `StructuralValueCatchupRightAt` factory, the structural factory
+triple, and the public `FuelKnot` instantiation remain unassembled.  The
+grounding residual is unchanged and still checked as
+`grounding-preservation-knot`.
+
+Gate after the landed source-Λ stack support:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+No CTI relation, live imprecision relation, reduction relation, or protected
+surface was changed.

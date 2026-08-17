@@ -200,3 +200,17 @@ evidence obtained by replaying the stack over the bind.
 No CTI relation, imprecision relation, or reduction rule needs to change.  The
 remaining blocker is this stack-polymorphic certificate and its per-row
 generators.
+
+2026-08-17 LG-3v postscript:
+
+Superseded by the data-frame stack route in commit `77e559ea`.  The failed
+frozen-prefix invariant was trying to recover an outer source-left/smart plan
+from an arbitrary child result.  The live code now passes the root
+`StructuralWorldExtendᴿ` plan into `source-Λ-stack-transport`, maps each
+pending frame forward along that plan, and uses the transported stack at the
+endpoint.  Target-bind rows are generated while transporting the stack rather
+than recovered from a child trace after the fact.
+
+The frozen-trace pullback obstruction therefore remains true for arbitrary
+completed traces, but the LG-3 source-Λ worker no longer depends on that
+operation.

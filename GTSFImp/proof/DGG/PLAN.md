@@ -961,3 +961,19 @@ stage-1 provenance threading re-pointed, and the grounding knot from
 LG-2 instantiated where the driver machinery permits. Notes scratches
 referencing deleted judgments get minimal updates so the regression
 suite stays meaningful.
+
+LG-3v update (2026-08-17): the LG-3u source-Λ replay-stack blocker is
+resolved in commit `77e559ea`.  `SourceΛReplayStack` frames are data-only, and
+the live support now transports pending frame data along a supplied
+`StructuralWorldExtendᴿ` plan with `source-Λ-stack-transport`,
+`source-Λ-stack-target-bind-child`, and `source-Λ-stack-unlift-plan`.  The
+closure-pinned `Term Δᴿ` anti-pattern is removed from that stack.
+
+Current assembly blocker: the concrete extra-cast factory still lacks a
+whole-premise active target-cast row/extractor for `_! c` and `？ c`.  Existing
+checked rows consume already-peeled child/tag premises; the factory input has
+only `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`.  See
+`notes/lg3-target-cast-multistep-worker-resister.red` LG-3v postscript for the
+exact missing datum.  `build-structural-fuel-knot` remains a checked adapter;
+the concrete structural factory triple and public `FuelKnot` instantiation are
+not assembled.  `grounding-preservation-knot` remains checked.

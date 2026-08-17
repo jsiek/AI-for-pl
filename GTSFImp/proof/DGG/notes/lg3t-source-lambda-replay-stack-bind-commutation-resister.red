@@ -216,3 +216,46 @@ postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 
 No CTI relation, live imprecision relation, reduction relation, or protected
 surface was changed.
+
+## RESOLVED postscript, 2026-08-17, LG-3v
+
+Resolved by commit `77e559ea`.
+
+`SourceΛReplayStack` frames now carry only data:
+
+- plain source-Λ frames store `NonVar A`, `zero ∈ᵗ A`, `LiftCtxᴸ`, and
+  `Value U`;
+- smart source-Λ frames store the same source-side data plus
+  `SmartCommaLiftᴸ` and `SmartLiftCtxᴸ`;
+- no constructor stores a replay closure over `Term Δᴿ`.
+
+The replacement surface is:
+
+- `source-Λ-stack-replay-here`, which folds a same-target endpoint relation by
+  applying `structural-Λ-replay` / `structural-smart-Λ-replay`;
+- `SourceΛReplayStackTransport` and `source-Λ-stack-transport`, which map a
+  stack along a supplied root `StructuralWorldExtendᴿ` trace;
+- `source-Λ-stack-target-bind-child`, the one-bind specialization.  The base
+  row uses the root bind, the plain row uses `structural-lift-left` and hence
+  `TE.liftLeftTargetInsert`, and the smart row uses
+  `structural-smart-liftᴸ`;
+- `source-Λ-stack-unlift-plan`, which consumes the transported stack endpoint
+  and replays it back to the transported root.
+
+The old missing post-bind replay closure is gone because replay is now derived
+from frame data at the use site.  The checked gate for the landed support
+chunk was:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+This resolves the closure-field resister recorded above.  Full LG-3 assembly
+is still stopped by the separate active extra-cast factory datum recorded in
+`lg3-target-cast-multistep-worker-resister.red`.

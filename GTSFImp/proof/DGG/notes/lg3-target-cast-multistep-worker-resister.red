@@ -992,3 +992,72 @@ postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 
 STOP for the extractor/factory assembly only.
+
+LG-3y postscript, 2026-08-17:
+
+The supervisor ruling changes the endpoint extraction obligation from the
+refuted midpoint route to witness/shape inversion:
+
+- active ground must use the given conclusion witness `q : A ⊑ᵂ ★`, the
+  inert source cast shape, and the target ground consistency view to recover
+  the row endpoint needed at the landed re-attachment state;
+- active projection must use the given `q : A ⊑ᵂ B`, the matched projection
+  shape, and the landed tag-layer premise to recover the peeled core endpoint;
+- the peeled tag-layer core is not a generated midpoint and must come from
+  the landed premise/inversion cell.
+
+Checked incremental change:
+
+- `proof/Imprecision.agda` now exposes the valid function-shape datatype
+  inversions:
+  - `⇒⊑★-inv : μ ⊢ A ⇒ B ⊑ ★ → μ ⊢ A ⊑ ★ × μ ⊢ B ⊑ ★`;
+  - `⇒⊑⇒-inv : μ ⊢ A ⇒ B ⊑ A′ ⇒ B′
+      → μ ⊢ A ⊑ A′ × μ ⊢ B ⊑ B′`.
+
+Important negative result from the same attempt:
+
+- a plain universal exact-shape inversion is not valid for this imprecision
+  relation.  Agda correctly reports the extra inhabitants
+  `∀⊑ ... : μ ⊢ `∀ A ⊑ `∀ B` and
+  `bot-elim : μ ⊢ `∀ (＇ zero) ⊑ `∀ ★`.  Any endpoint extractor for the
+  universal ground family must explicitly handle those clauses instead of
+  pretending that every `∀`/`∀` witness is `∀⊑∀`.
+
+Current genuine resisters:
+
+1. The live `CastConsistencyViews` module has only variable/base tag and
+   projection syntax views.  It does not yet expose the function/universal
+   ground-family views needed by the supervisor endpoint inversion.  In
+   particular, the paired projection endpoint required by the checked rows is
+   `C ⊑ᵂ G`, not the refuted post-source midpoint `A ⊑ᵂ G`; recovering it must
+   combine the source inert consistency view, the target projection view, and
+   the given conclusion witness `q` directly.
+
+2. The checked active rows in `ExtraCastRightAtProof.agda` recurse through a
+   smaller `StructuralExtraCastRightAt`, but `FuelKnotProof.agda`'s current
+   `StructuralExtraCastFactory` receives only the public `FuelStepSurface`.
+   That public surface erases smaller workers to `ExtraCastRightAt`, so it
+   cannot supply the structural child worker the active rows consume.  Assembly
+   needs a private structural fuel-step surface, or an equivalent factory
+   surface adjustment, before a concrete structural factory pair can be built.
+
+3. Consequently the extractor head dispatcher, concrete structural factory
+   pair, value worker, and public higher-order `FuelKnot` remain unassembled in
+   this chunk.  The LG-2 grounding residual is unchanged:
+   `grounding-preservation-knot` remains the checked residual.
+
+Gate/regression after the LG-3y checked resister chunk:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+STOP for the extractor/factory assembly on the genuine resisters above.

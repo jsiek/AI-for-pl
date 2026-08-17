@@ -119,6 +119,42 @@ Complete residual enumeration:
 9. Run the required full gate and focused regression, skipping only the
    recorded-stale `TagDisciplineScratch.agda`.
 
-No CTI relation, live term-imprecision relation, `Reduction.agda`, public
-`FuelStepSurface`/`FuelKnot` statement shape, `RightInjInversion2Def`,
-`SpineValueDef`, `PLAN.md`, postulate, pragma, or root scratch file was changed.
+Before this T1 continuation, no CTI relation, live term-imprecision relation,
+`Reduction.agda`, public `FuelStepSurface`/`FuelKnot` statement shape,
+`RightInjInversion2Def`, `SpineValueDef`, `PLAN.md`, postulate, pragma, or root
+scratch file was changed.
+
+ITEM 1 VERDICT (2026-08-17, T1 first act):
+
+Main's shipped `proof.Reduction` support discharges the reveal/conceal
+multi-step congruence blocker on the reduction side.  The checked endpoints are
+the newer normalized maps:
+
+```agda
+reveal-↠ :
+  (c : Conv↑ Δ A B)
+  → M —↠[ χs ] N
+  → M ↑ c —↠[ χs ] N ↑ applyReveals χs c
+
+conceal-↠ :
+  (c : Conv↓ Δ A B)
+  → M —↠[ χs ] N
+  → M ↓ c —↠[ χs ] N ↓ applyConceals χs c
+```
+
+`applyReveals` and `applyConceals` handle the old `keep` mismatch by threading
+`normalizeReveal`/`normalizeConceal`, with the endpoint transports discharged
+by `renamedReveal-term` and `renamedConceal-term`.
+
+The residual note's exact old endpoint shape with `mapRevealChanges` /
+`mapConcealChanges` is no longer the reduction endpoint.  T1 item 1 landed the
+small bridge by exporting `normalizeReveal-⊢↑` / `normalizeConceal-⊢↓` from
+`proof.Reduction` and retargeting
+`proof/DGG/Catchup/StructuralWorldEvidenceProof.agda` to produce indexed target
+conversion evidence for `applyReveals` / `applyConceals`.  No change to the
+reduction relation itself was needed.  Gate:
+
+```text
+AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```

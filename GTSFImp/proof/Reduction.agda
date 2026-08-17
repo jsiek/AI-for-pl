@@ -19,9 +19,10 @@ open import Relation.Binary.PropositionalEquality using
   renaming (subst to subst≡)
 
 open import Types
+open import TyStore using (TyStore)
 open import Consistency hiding (keep)
 import Consistency as C
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓; _⊢↑_; _⊢↓_)
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
@@ -39,6 +40,8 @@ open import proof.TypeInTermSubst using
   ; renameᵗ-pointwise-id
   ; renameᵗᵐ-preserves-Value
   ; rename-openᵗ
+  ; reveal-rename-id
+  ; conceal-rename-id
   )
 
 applyBodies : ∀ {Δ Δ′}
@@ -136,6 +139,40 @@ normalizeConceal {A = A} {B = B} c =
     (subst≡ (λ A′ → Conv↓ _ A′ _)
       (renameᵗ-pointwise-id _ A (λ X → refl))
       (rename↓ (λ X → X) c))
+
+normalizeReveal-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+    {c : Conv↑ Δ A B}
+  → Σ ⊢↑ c
+  → Σ ⊢↑ normalizeReveal c
+normalizeReveal-⊢↑ {A = A} {B = B} c⊢ =
+  reveal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) (reveal-rename-id c⊢)
+  where
+  reveal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → ∀ {d : Conv↑ _ A₀ B₀}
+    → Σ ⊢↑ d
+    → Σ ⊢↑ subst≡ (Conv↑ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
+  reveal-subst refl refl d⊢ = d⊢
+
+normalizeConceal-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+    {c : Conv↓ Δ A B}
+  → Σ ⊢↓ c
+  → Σ ⊢↓ normalizeConceal c
+normalizeConceal-⊢↓ {A = A} {B = B} c⊢ =
+  conceal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) (conceal-rename-id c⊢)
+  where
+  conceal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → ∀ {d : Conv↓ _ A₀ B₀}
+    → Σ ⊢↓ d
+    → Σ ⊢↓ subst≡ (Conv↓ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
+  conceal-subst refl refl d⊢ = d⊢
 
 applyReveals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
   → Conv↑ Δ A B

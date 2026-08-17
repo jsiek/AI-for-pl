@@ -5,8 +5,10 @@ module proof.DGG.SimProof where
 --   * Holds fixed helper interfaces as module parameters across recursion.
 --   * Recurses only on immediate term-imprecision premises; any other case
 --     analysis or induction belongs in separately compiled helper lemmas.
---   * Is currently a partial proof: square-shaped cases are left as holes
---     until their helper interfaces and transports are fixed.
+--   * Performs target catch-up before invoking value-level cast, reveal,
+--     conceal, and primitive-operation closing capabilities.
+--   * Contains the complete direct proof, delegating non-structural closing
+--     arguments to the parameterized simulation capabilities.
 
 open import Data.Product using (_×_; _,_; Σ-syntax)
 import Data.List as List
@@ -16,6 +18,7 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Types using (Ty; TyCtx; _⇒_; _[_]ᵗ)
 open import Consistency using (Env∼; _⊢_∼_)
+open import Primitives using (primArgTy; primResultTy)
 open import CastTerms
 open import Reduction
 open import Imprecision using (⇒⊑⇒)
@@ -26,10 +29,15 @@ open import proof.Reduction using
   ; applyTys-⇒
   ; applyTys-∀
   ; applyTys-★
+  ; applyTys-primArgTy
+  ; applyTys-primResultTy
   ; applyTys-open
   ; appL-↠
   ; appR-↠
+  ; applyTerms-preserves-Value
   ; cast-↠
+  ; primL-↠
+  ; primR-↠
   ; typeApp-↠
   )
 open import proof.TypeSafety.Preservation using (apply-open)
@@ -53,16 +61,24 @@ open import proof.DGG.SimPairedCastValuesDef
   using (SimPairedCastValuesᵀ)
 open import proof.DGG.SimPairedFunClosingDef
   using (SimPairedFunClosingᵀ)
+open import proof.DGG.SimPrimitiveValuesDef
+  using (SimPrimitiveValuesᵀ)
 open import proof.DGG.SimSourceAllClosingDef
   using (SimSourceAllClosingᵀ)
 open import proof.DGG.SimSourceCastValuesDef
   using (SimSourceCastValuesᵀ)
+open import proof.DGG.SimConversionFramesDef
+  using (SimConversionFramesᵀ)
+open import proof.DGG.SimSourceRevealValuesDef
+  using (SimSourceRevealValuesᵀ)
+open import proof.DGG.SimPairedRevealValuesDef
+  using (SimPairedRevealValuesᵀ)
+open import proof.DGG.SimSourceConcealValuesDef
+  using (SimSourceConcealValuesᵀ)
+open import proof.DGG.SimPairedConcealValuesDef
+  using (SimPairedConcealValuesᵀ)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
-open import proof.DGG.SimSourceRevealDef using (SimSourceRevealᵀ)
-open import proof.DGG.SimTargetRevealDef using (SimTargetRevealᵀ)
-open import proof.DGG.SimSourceConcealDef using (SimSourceConcealᵀ)
-open import proof.DGG.SimTargetConcealDef using (SimTargetConcealᵀ)
 open import proof.DGG.CatchupToMorePreciseDef
   using
     ( CatchupToMorePrecise
@@ -80,15 +96,19 @@ module _
     (sim-paired-fun-closing : SimPairedFunClosingᵀ)
     (sim-paired-all-closing : SimPairedAllClosingᵀ)
     (sim-paired-cast-values : SimPairedCastValuesᵀ)
+    (sim-primitive-values : SimPrimitiveValuesᵀ)
     (sim-source-all-closing : SimSourceAllClosingᵀ)
     (sim-source-cast-values : SimSourceCastValuesᵀ)
+    (sim-conversion-frames : SimConversionFramesᵀ)
+    (sim-source-reveal-values : SimSourceRevealValuesᵀ)
+    (sim-paired-reveal-values : SimPairedRevealValuesᵀ)
+    (sim-source-conceal-values : SimSourceConcealValuesᵀ)
+    (sim-paired-conceal-values : SimPairedConcealValuesᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
-    (src↑ : SimSourceRevealᵀ)
-    (tgt↑ : SimTargetRevealᵀ)
-    (src↓ : SimSourceConcealᵀ)
-    (tgt↓ : SimTargetConcealᵀ)
     (catchup : CatchupToMorePrecise)
   where
+
+  open SimConversionFramesᵀ sim-conversion-frames
 
   ------------------------------------------------------------------------
   -- Paired cast-root assembly
@@ -121,7 +141,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       with sim-paired-cast-values
         {c′ = applyConsistencies χsᴿ₁ c′}
         (parked-world-closed parked evol₁)
@@ -131,7 +151,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , r ,
         V′c′↠N′ , evol₂ , N⊑N′
       with subst≡
@@ -145,7 +165,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , r ,
         V′c′↠N′ , evol₂ , N⊑N′
       | r′ , N⊑N′′ =
@@ -184,7 +204,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       with sim-source-cast-values
         (parked-world-closed parked evol₁)
         V⊑V′ (transport⊑ᴾ evol₁ q) vV vV′ Vc→N
@@ -193,7 +213,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       | Δ₂ , W₂ , r , evol₂ , N⊑V′
       with subst≡
         (λ T →
@@ -206,7 +226,7 @@ module _
       parked V⊑M′ q vV Vc→N
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , p₁ , _ ,
-        M′↠V′ , vV′ , evol₁ , _ , V⊑V′
+        M′↠V′ , vV′ , evol₁ , _ , _ , V⊑V′
       | Δ₂ , W₂ , r , evol₂ , N⊑V′
       | r′ , N⊑V′′ =
     Δᴿ₁ , χsᴿ₁ ++χ Reduction.[] , V′ , Δ₂ , W₂ , r′ ,
@@ -324,7 +344,7 @@ module _
       (ξ-·₂ {χ = χ} {M′ = N} vL M→N refl)
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , q₁ , _ ,
-        L′↠V′ , vV′ , evol₁ , _ , L⊑V′
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
       with sim (parked-world-closed parked evol₁)
         (tr evol₁ M⊑M′) M→N
   sim parked
@@ -334,7 +354,7 @@ module _
       (ξ-·₂ {χ = χ} {M′ = N} vL M→N refl)
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , q₁ , _ ,
-        L′↠V′ , vV′ , evol₁ , _ , L⊑V′
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
       | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , qN ,
         M₁′↠N′ , evol₂ , N⊑N′
       with subst≡
@@ -361,7 +381,7 @@ module _
       (ξ-·₂ {χ = χ} {M′ = N} vL M→N refl)
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , q₁ , _ ,
-        L′↠V′ , vV′ , evol₁ , _ , L⊑V′
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
       | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , qN ,
         M₁′↠N′ , evol₂ , N⊑N′
       | (⇒⊑⇒ qA qB) , L₂⊑V₂′
@@ -384,7 +404,7 @@ module _
       (ξ-·₂ {χ = χ} {M′ = N} vL M→N refl)
       | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
         boundary-refl , q₁ , _ ,
-        L′↠V′ , vV′ , evol₁ , _ , L⊑V′
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
       | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , qN ,
         M₁′↠N′ , evol₂ , N⊑N′
       | (⇒⊑⇒ qA qB) , L₂⊑V₂′
@@ -718,11 +738,11 @@ module _
 
   sim parked
       rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q) M→N =
-    tgt↑ parked rel M→N
+    target-reveal-frame parked rel M→N
 
   sim parked
       rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q) M→N =
-    tgt↓ parked rel M→N
+    target-conceal-frame parked rel M→N
 
   ------------------------------------------------------------------------
   -- Reveal and conceal squares
@@ -730,31 +750,28 @@ module _
 
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
+      step@(pure-step (id-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase)) M⊑M′ vM
+        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase))
+        M⊑M′ vM
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (id-reveal vM))
+      | caught =
+    sim-source-reveal-values parked mono rebase c⊢ M⊑M′ q
+      vM step caught
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
+      step@(pure-step (conceal-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase)) M⊑M′
-        (vM ↓ ConcealValue.seal)
+        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase))
+        M⊑M′ (vM ↓ seal)
   sim parked
       rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (conceal-reveal vM))
+      | caught =
+    sim-source-reveal-values parked mono rebase c⊢ M⊑M′ q
+      (vM ↓ seal) step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q)
@@ -766,20 +783,19 @@ module _
   sim parked
       rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q)
       step@(ξ-reveal M→N refl) =
-    src↑ parked rel step
+    source-reveal-frame parked rel step
 
   sim parked
       rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-conceal vM))
-      with catchup parked (boundary-source-conceal mono rebase) M⊑M′ vM
+      step@(pure-step (id-conceal vM))
+      with catchup parked (boundary-source-conceal mono rebase)
+        M⊑M′ vM
   sim parked
       rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      (pure-step (id-conceal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-conceal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (id-conceal vM))
+      | caught =
+    sim-source-conceal-values parked partner mono rebase c⊢
+      M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
@@ -791,37 +807,32 @@ module _
   sim parked
       rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
       step@(ξ-conceal M→N refl) =
-    src↓ parked rel step
+    source-conceal-frame parked rel step
 
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
+      step@(pure-step (id-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono
-          (toTagRebaseAtᴸ (rebase-varᴸ rebase))) M⊑M′ vM
+        (boundary-source-reveal mono (tag-rebase-varᴸ rebase))
+        M⊑M′ vM
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (id-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (id-reveal vM))
+      | caught =
+    sim-paired-reveal-values parked mono rebase c⊢ c′⊢
+      M⊑M′ q vM step caught
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
+      step@(pure-step (conceal-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono
-          (toTagRebaseAtᴸ (rebase-varᴸ rebase))) M⊑M′
-        (vM ↓ ConcealValue.seal)
+        (boundary-source-reveal mono (tag-rebase-varᴸ rebase))
+        M⊑M′ (vM ↓ seal)
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      (pure-step (conceal-reveal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-reveal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+      step@(pure-step (conceal-reveal vM))
+      | caught =
+    sim-paired-reveal-values parked mono rebase c⊢ c′⊢
+      M⊑M′ q (vM ↓ seal) step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
@@ -833,22 +844,20 @@ module _
   sim parked
       rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-reveal M→N refl) =
-    src↑ parked rel step
+    source-reveal-frame parked rel step
 
   sim parked
       rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) (pure-step (id-conceal vM))
+        M⊑M′ q) step@(pure-step (id-conceal vM))
       with catchup parked
         (boundary-source-conceal mono (tag-rebase-varᴸ rebase))
         M⊑M′ vM
   sim parked
       rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) (pure-step (id-conceal vM))
-      | Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , Wᵖ′ , Xᴿ′? ,
-        boundary-source-conceal mono′ rebase′ , q′ , pivot-map ,
-        M′↠V′ , vV′ , evol , plan , V⊑V′
-        rewrite pivot-map =
-    {!!}
+        M⊑M′ q) step@(pure-step (id-conceal vM))
+      | caught =
+    sim-paired-conceal-values parked partner mono rebase c⊢ c′⊢
+      M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
@@ -860,7 +869,7 @@ module _
   sim parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢
         M⊑M′ q) step@(ξ-conceal M→N refl) =
-    src↓ parked rel step
+    source-conceal-frame parked rel step
 
   sim
       {Δᴿ = Δᴿ} {W = W} parked
@@ -874,15 +883,131 @@ module _
   sim parked
       rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
         M⊑M′ sealed q) step@(ξ-conceal M→N refl) =
-    src↓ parked rel step
+    source-conceal-frame parked rel step
 
   ------------------------------------------------------------------------
   -- Primitive-operation squares
   ------------------------------------------------------------------------
 
   sim parked
-      (⊕⊑⊕² op L⊑L′ M⊑M′ r) (pure-step (δ-⊕ δ)) =
-    {!!}
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      with catchup parked boundary-refl L⊑L′ ($ κ)
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      with catchup (parked-world-closed parked evol₁)
+        boundary-refl (tr evol₁ M⊑M′) ($ κ′)
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , U′ , Δ₂ , W₂ , _ , _ ,
+        boundary-refl , q₂ , _ ,
+        M₁′↠U′ , vU′ , evol₂ , _ , _ , M⊑U′
+      with subst≡
+        (λ T →
+          Σ[ s ∈ primArgTy op ⊑ᵂ⟨ W₂ ⟩ T ]
+            W₂ ∣ List.[] ⊢²
+              $ κ ⊑ applyTerms χsᴿ₂ V′ ∶ s)
+        (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
+          (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
+        (transport⊑ᴾ evol₂ p₁ , tr evol₂ L⊑V′)
+         | subst≡
+        (λ T →
+          Σ[ s ∈ primArgTy op ⊑ᵂ⟨ W₂ ⟩ T ]
+            W₂ ∣ List.[] ⊢² $ κ′ ⊑ U′ ∶ s)
+        (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
+          (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
+        (q₂ , M⊑U′)
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , U′ , Δ₂ , W₂ , _ , _ ,
+        boundary-refl , q₂ , _ ,
+        M₁′↠U′ , vU′ , evol₂ , _ , _ , M⊑U′
+      | p₂ , L⊑V₂′ | q₂′ , M⊑U′′
+      with subst≡
+        (λ T → primResultTy op ⊑ᵂ⟨ W₂ ⟩ T)
+        (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primResultTy op))
+          (applyTys-primResultTy (χsᴿ₁ ++χ χsᴿ₂) op))
+        (transport⊑ᴾ evol₂ (transport⊑ᴾ evol₁ r))
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , U′ , Δ₂ , W₂ , _ , _ ,
+        boundary-refl , q₂ , _ ,
+        M₁′↠U′ , vU′ , evol₂ , _ , _ , M⊑U′
+      | p₂ , L⊑V₂′ | q₂′ , M⊑U′′
+      | r₂
+      with sim-primitive-values
+        (parked-world-closed (parked-world-closed parked evol₁) evol₂)
+        L⊑V₂′ M⊑U′′ r₂
+        (applyTerms-preserves-Value χsᴿ₂ vV′) vU′ δ
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , U′ , Δ₂ , W₂ , _ , _ ,
+        boundary-refl , q₂ , _ ,
+        M₁′↠U′ , vU′ , evol₂ , _ , _ , M⊑U′
+      | p₂ , L⊑V₂′ | q₂′ , M⊑U′′
+      | r₂
+      | Δᴿ₃ , χsᴿ₃ , N′ , Δ₃ , W₃ , s ,
+        VU′↠N′ , evol₃ , result-rel
+      with subst≡
+        (λ T →
+          Σ[ s′ ∈ primResultTy op ⊑ᵂ⟨ W₃ ⟩ T ]
+            W₃ ∣ List.[] ⊢² $ κ″ ⊑ N′ ∶ s′)
+        (sym (applyTys-primResultTy
+          (χsᴿ₁ ++χ (χsᴿ₂ ++χ χsᴿ₃)) op))
+        (subst≡
+          (λ T →
+            Σ[ s′ ∈ primResultTy op ⊑ᵂ⟨ W₃ ⟩ T ]
+              W₃ ∣ List.[] ⊢² $ κ″ ⊑ N′ ∶ s′)
+          (applyTys-primResultTy χsᴿ₃ op)
+          (s , result-rel))
+  sim parked
+      (⊕⊑⊕² op L⊑L′ M⊑M′ r)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} δ))
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , p₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , U′ , Δ₂ , W₂ , _ , _ ,
+        boundary-refl , q₂ , _ ,
+        M₁′↠U′ , vU′ , evol₂ , _ , _ , M⊑U′
+      | p₂ , L⊑V₂′ | q₂′ , M⊑U′′
+      | r₂
+      | Δᴿ₃ , χsᴿ₃ , N′ , Δ₃ , W₃ , s ,
+        VU′↠N′ , evol₃ , result-rel
+      | s′ , result-rel′ =
+    Δᴿ₃ , χsᴿ₁ ++χ (χsᴿ₂ ++χ χsᴿ₃) ,
+    N′ , Δ₃ , W₃ , s′ ,
+    composeReduction (primL-↠ L′↠V′)
+      (composeReduction (primR-↠ vV′ M₁′↠U′) VU′↠N′) ,
+    compose-parked-evolve evol₁
+      (compose-parked-evolve evol₂ evol₃) ,
+    result-rel′
   sim
       {Δᴿ = Δᴿ} {W = W} parked
       rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r) (pure-step blame-⊕₁) =
@@ -898,16 +1023,199 @@ module _
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) r
   sim parked
-      (⊕⊑⊕² op L⊑L′ M⊑M′ r) (ξ-⊕₁ L→N refl)
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
       with sim parked L⊑L′ L→N
   sim parked
-      (⊕⊑⊕² op L⊑L′ M⊑M′ r) (ξ-⊕₁ L→N refl)
-      | result =
-    {!!}
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , q ,
+        L′↠N′ , evol , N⊑N′
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ primArgTy op ]
+            W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+        (applyTys-primArgTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T →
+            Σ[ s ∈ applyTy χ (primArgTy op) ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+          (applyTys-primArgTy χsᴿ op) (q , N⊑N′))
+         | subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ primArgTy op ]
+            W′ ∣ List.[] ⊢²
+              applyTerm χ M ⊑ applyTerms χsᴿ M′ ∶ s)
+        (applyTys-primArgTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T →
+            Σ[ s ∈ applyTy χ (primArgTy op) ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                applyTerm χ M ⊑ applyTerms χsᴿ M′ ∶ s)
+          (applyTys-primArgTy χsᴿ op)
+          (transport⊑ᴾ evol _ , tr evol M⊑M′))
   sim parked
-      (⊕⊑⊕² op L⊑L′ M⊑M′ r) (ξ-⊕₂ vL M→N refl)
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , q ,
+        L′↠N′ , evol , N⊑N′
+      | q′ , N⊑N′′ | q″ , M⁺⊑M′⁺
+      with transport⊑ᴾ evol r
+  sim parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , q ,
+        L′↠N′ , evol , N⊑N′
+      | q′ , N⊑N′′ | q″ , M⁺⊑M′⁺
+      | r′
+      with subst≡
+        (λ S → S ⊑ᵂ⟨ W′ ⟩ primResultTy op)
+        (applyTys-primResultTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T → applyTy χ (primResultTy op) ⊑ᵂ⟨ W′ ⟩ T)
+          (applyTys-primResultTy χsᴿ op) r′)
+  sim parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , q ,
+        L′↠N′ , evol , N⊑N′
+      | q′ , N⊑N′′ | q″ , M⁺⊑M′⁺
+      | r′ | r⁺
+      with subst≡
+        (λ S →
+            Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩
+              applyTys χsᴿ (primResultTy op) ]
+            W′ ∣ List.[] ⊢²
+              N ⊕[ op ] applyTerm χ M ⊑
+              N′ ⊕[ op ] applyTerms χsᴿ M′ ∶ s)
+        (sym (applyTys-primResultTy (χ ∷ Reduction.[]) op))
+        (subst≡
+          (λ T →
+            Σ[ s ∈ primResultTy op ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                N ⊕[ op ] applyTerm χ M ⊑
+                N′ ⊕[ op ] applyTerms χsᴿ M′ ∶ s)
+          (sym (applyTys-primResultTy χsᴿ op))
+          (r⁺ , ⊕⊑⊕² op N⊑N′′ M⁺⊑M′⁺ r⁺))
+  sim parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₁ {χ = χ} {L′ = N} L→N refl)
+      | Δᴿ′ , χsᴿ , N′ , Δ′ , W′ , q ,
+        L′↠N′ , evol , N⊑N′
+      | q′ , N⊑N′′ | q″ , M⁺⊑M′⁺
+      | r′ | r⁺
+      | r″ , whole-rel =
+    Δᴿ′ , χsᴿ , N′ ⊕[ op ] applyTerms χsᴿ M′ ,
+    Δ′ , W′ , r″ ,
+    primL-↠ L′↠N′ ,
+    evol ,
+    whole-rel
+  sim parked
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
       with catchup parked boundary-refl L⊑L′ vL
   sim parked
-      (⊕⊑⊕² op L⊑L′ M⊑M′ r) (ξ-⊕₂ vL M→N refl)
-      | caught-up =
-    {!!}
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , q₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      with sim (parked-world-closed parked evol₁)
+        (tr evol₁ M⊑M′) M→N
+  sim parked
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , q₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , q₂ ,
+        M₁′↠N′ , evol₂ , N⊑N′
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W₂ ⟩ primArgTy op ]
+            W₂ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+        (applyTys-primArgTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T →
+            Σ[ s ∈ applyTy χ (primArgTy op) ⊑ᵂ⟨ W₂ ⟩ T ]
+              W₂ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+          (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
+            (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
+          (q₂ , N⊑N′))
+         | subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W₂ ⟩ primArgTy op ]
+            W₂ ∣ List.[] ⊢²
+              applyTerm χ L ⊑ applyTerms χsᴿ₂ V′ ∶ s)
+        (applyTys-primArgTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T →
+            Σ[ s ∈ applyTy χ (primArgTy op) ⊑ᵂ⟨ W₂ ⟩ T ]
+              W₂ ∣ List.[] ⊢²
+                applyTerm χ L ⊑ applyTerms χsᴿ₂ V′ ∶ s)
+          (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
+            (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
+          (transport⊑ᴾ evol₂ q₁ , tr evol₂ L⊑V′))
+  sim parked
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , q₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , q₂ ,
+        M₁′↠N′ , evol₂ , N⊑N′
+      | qN , N⊑N′′ | qL , L⁺⊑V′⁺
+      with subst≡
+        (λ S → S ⊑ᵂ⟨ W₂ ⟩ primResultTy op)
+        (applyTys-primResultTy (χ ∷ Reduction.[]) op)
+        (subst≡
+          (λ T → applyTy χ (primResultTy op) ⊑ᵂ⟨ W₂ ⟩ T)
+          (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primResultTy op))
+            (applyTys-primResultTy (χsᴿ₁ ++χ χsᴿ₂) op))
+          (transport⊑ᴾ evol₂ (transport⊑ᴾ evol₁ r)))
+  sim parked
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , q₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , q₂ ,
+        M₁′↠N′ , evol₂ , N⊑N′
+      | qN , N⊑N′′ | qL , L⁺⊑V′⁺
+      | r₂
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W₂ ⟩
+              applyTys (χsᴿ₁ ++χ χsᴿ₂) (primResultTy op) ]
+            W₂ ∣ List.[] ⊢²
+              applyTerm χ L ⊕[ op ] N ⊑
+              applyTerms χsᴿ₂ V′ ⊕[ op ] N′ ∶ s)
+        (sym (applyTys-primResultTy (χ ∷ Reduction.[]) op))
+        (subst≡
+          (λ T →
+            Σ[ s ∈ primResultTy op ⊑ᵂ⟨ W₂ ⟩ T ]
+              W₂ ∣ List.[] ⊢²
+                applyTerm χ L ⊕[ op ] N ⊑
+                applyTerms χsᴿ₂ V′ ⊕[ op ] N′ ∶ s)
+          (sym
+            (applyTys-primResultTy (χsᴿ₁ ++χ χsᴿ₂) op))
+          (r₂ , ⊕⊑⊕² op L⁺⊑V′⁺ N⊑N′′ r₂))
+  sim parked
+      (⊕⊑⊕² op {L = L} {M′ = M′} L⊑L′ M⊑M′ r)
+      (ξ-⊕₂ {χ = χ} {M′ = N} vL M→N refl)
+      | Δᴿ₁ , χsᴿ₁ , V′ , Δ₁ , W₁ , _ , _ ,
+        boundary-refl , q₁ , _ ,
+        L′↠V′ , vV′ , evol₁ , _ , _ , L⊑V′
+      | Δᴿ₂ , χsᴿ₂ , N′ , Δ₂ , W₂ , q₂ ,
+        M₁′↠N′ , evol₂ , N⊑N′
+      | qN , N⊑N′′ | qL , L⁺⊑V′⁺
+      | r₂
+      | r′ , whole-rel =
+    Δᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ ,
+    applyTerms χsᴿ₂ V′ ⊕[ op ] N′ ,
+    Δ₂ , W₂ , r′ ,
+    composeReduction
+      (primL-↠ L′↠V′)
+      (primR-↠ vV′ M₁′↠N′) ,
+    compose-parked-evolve evol₁ evol₂ ,
+    whole-rel

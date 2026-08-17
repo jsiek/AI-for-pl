@@ -96,3 +96,20 @@ with no explicit `partner-endpoint` argument.
 This does not discharge the full `ExtraCastRightAt` theorem.  The remaining
 open item for this note is still the structural multi-step target-cast worker
 and the concrete factory assembly that consumes it.
+
+Postscript 2026-08-17, LG-3x paired active rows:
+
+The paired active target rows are no longer the open row-level blocker.  The
+sanctioned stuttering-composite rows now check in
+`proof/DGG/Catchup/ExtraCastRightAtProof.agda`:
+
+- `structural-paired-ground-extra-cast-right-at`;
+- `structural-paired-project-same-extra-cast-right-at`;
+- `structural-paired-project-expand-extra-cast-right-at`.
+
+The remaining blocker for this note is the whole-premise extractor/factory
+assembly recorded in `lg3-target-cast-multistep-worker-resister.red`: the
+factory must derive the re-attachment endpoint `C ⊑ᵂ⟨ W ⟩ G` and the peeled
+tag-layer core for the general `CTI2.cast⊑cast² cᴸ cᴿ prem q` input before it
+can call the checked rows.  This is not the refuted premise-first midpoint
+route.

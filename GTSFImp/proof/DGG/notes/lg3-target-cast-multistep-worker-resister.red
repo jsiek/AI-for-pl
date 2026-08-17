@@ -893,3 +893,102 @@ postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 
 STOP.
+
+LG-3x postscript, 2026-08-17:
+
+The LG-3w midpoint diagnosis above is superseded.  The premise-first route is
+the refuted LG-3e midpoint species and must not be retried.  The live
+row-level repair follows the calibrated stuttering composite from
+`LG3EndpointTransportCounterexampleScratch.agda`: run the active target
+administration to the re-attachment state, ignore the deliberately unrelated
+intermediates, re-attach at the end state, then recurse on the smaller residual
+cast.
+
+Checked live paired rows now in
+`proof/DGG/Catchup/ExtraCastRightAtProof.agda`:
+
+- active ground target `(_! d)`:
+  `structural-paired-ground-extra-cast-right-at`;
+- matched projection target `？ (idᵍ G)`:
+  `structural-paired-project-same-extra-cast-right-at`;
+- expand projection target `(？ d)` with `G ≢ B`:
+  `structural-paired-project-expand-extra-cast-right-at`.
+
+The shared support is
+`structural-catchup-prepend-keep-stutter` in
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`.  These rows do not require
+the refuted `C ⊑ ★` / `C ⊑ B` midpoint before source replay.
+
+The current stop is the whole-premise extractor/factory assembly, not the
+stuttering rows themselves.  The row combinators are intentionally peeled: they
+assume the tag-layer endpoint at the re-attachment state has already been
+produced.  A concrete `StructuralExtraCastRightAt` factory still needs a
+checked endpoint-producing dispatch for the general CTI input.
+
+Exact remaining extractor cells:
+
+```agda
+CTI2.cast⊑cast² cᴸ (_! cᴿ) prem q★
+
+prem : W ∣ γ ⊢² M ⊑ M′ ∶ p
+p    : C ⊑ᵂ⟨ W ⟩ B
+q★   : A ⊑ᵂ⟨ W ⟩ ★
+cᴸ   : νᴸ ⊢ C ∼ A
+cᴿ   : νᴿ ⊢ B ∼ G
+```
+
+The checked ground row needs the re-attachment endpoint
+`qG : C ⊑ᵂ⟨ W ⟩ G`.  This should be a paired endpoint lemma over the inert
+source cast and the target ground consistency, not a detour through
+`C ⊑ᵂ⟨ W ⟩ ★`.
+
+```agda
+CTI2.cast⊑cast² cᴸ (？ cᴿ) prem qB
+
+prem : W ∣ γ ⊢² M ⊑
+  N ⟨ _! (idᵍ Gᵍ) ⟩ ∶ p★
+p★   : C ⊑ᵂ⟨ W ⟩ ★
+qB   : A ⊑ᵂ⟨ W ⟩ B
+cᴸ   : νᴸ ⊢ C ∼ A
+cᴿ   : νᴿ ⊢ G ∼ B
+```
+
+The checked expand row likewise needs
+`qG : C ⊑ᵂ⟨ W ⟩ G` plus
+`core : W ∣ γ ⊢² M ⊑ N ∶ qG`.  `RightInjInversion²` can remove the tag once
+`qG` is supplied; it is not an existential endpoint extractor.
+
+For the matched projection subcase `cᴿ = idᵍ Gᵍ`, the same endpoint/core
+requirement remains with the final endpoint `q : A ⊑ᵂ⟨ W ⟩ G`.
+
+Worker/factory/FuelKnot status:
+
+- the live paired active rows are checked for all active target cast kinds;
+- `ValueCatchupRightProof.agda` still has row combinators, not a recursive
+  `StructuralValueCatchupRightAt` factory;
+- `FuelKnotProof.agda` still has factory adapters and
+  `build-structural-fuel-knot`, not a concrete structural factory triple or
+  public LG-3 `FuelKnot`;
+- public `FuelKnot` assembly is also blocked independently by the M5 package
+  surface: `InstInversionPackage` requires `Λ-package`, `∀-package`,
+  `gen-package`, `reveal-package`, and `conceal-package`, while the live code
+  only provides `Λ-inst-inversion-package`.
+
+The LG-2 grounding residual is unchanged: `grounding-preservation-knot`
+remains the checked residual.
+
+Gate after the paired-row chunk:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+STOP for the extractor/factory assembly only.

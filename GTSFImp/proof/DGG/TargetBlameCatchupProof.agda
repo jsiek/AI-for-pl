@@ -82,6 +82,27 @@ TargetValueBlameExclusionᵀ =
   → ⊥
 
 
+target-value-blame-exclusion : TargetValueBlameExclusionᵀ
+target-value-blame-exclusion (CastTerms.ƛ N) ()
+target-value-blame-exclusion (CastTerms.Λ vV)
+    (CTI2.Λ⊑² Anv zero∈A liftγ vV′ target⊢ prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (CastTerms.Λ vV)
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV′
+      target⊢ prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (CastTerms.$ k) ()
+target-value-blame-exclusion (vV CastTerms.《 inert 》)
+    (CTI2.cast⊑² c prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (vV CastTerms.↑ rv)
+    (CTI2.reveal⊑² mono rb same c⊢ prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (vV CastTerms.↓ cv)
+    (CTI2.conceal⊑² ok mono rb same c⊢ prem q) =
+  target-value-blame-exclusion vV prem
+
+
 TargetBlameCatchupUnderBoundaryᵀ : Set
 TargetBlameCatchupUnderBoundaryᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ}
@@ -234,9 +255,7 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-conceal-blame-catchup M↠blame evol
 
 
-target-blame-catchup :
-    TargetValueBlameExclusionᵀ
-  → TargetBlameCatchupᵀ
-target-blame-catchup target-value-blame-exclusion parked rel =
+target-blame-catchup : TargetBlameCatchupᵀ
+target-blame-catchup parked rel =
   target-blame-catchup-under-boundary target-value-blame-exclusion
     parked target-blame-boundary-refl rel

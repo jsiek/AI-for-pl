@@ -42,8 +42,7 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef public using
    erase-structural-extra-cast-right-at; structural-catchup-refl;
    structural-catchup-keep-step; structural-catchup-prepend-keep;
    structural-catchup-prepend-keep-stutter;
-   structural-catchup-compose-target-cast;
-   structural-catchup-compose-paired-target-cast)
+   structural-catchup-compose-target-cast)
 open import proof.DGG.Catchup.StructuralWorldExtendProof using
   (structural-world-extendᴿ)
 open import proof.DGG.Catchup.TargetCastStepInversionProof using
@@ -724,7 +723,7 @@ structural-paired-ground-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : νᴿ ⊢ G ∼★ ⦄
     ⦃ Bns : NonStar B ⦄
     {p : C ⊑ᵂ⟨ W ⟩ B}
-    {qG : C ⊑ᵂ⟨ W ⟩ G}
+    {qG : A ⊑ᵂ⟨ W ⟩ G}
     {q★ : A ⊑ᵂ⟨ W ⟩ ★}
   → (cᴸ : νᴸ ⊢ C ∼ A)
   → (cᴿ : νᴿ ⊢ B ∼ G)
@@ -754,10 +753,11 @@ structural-paired-ground-extra-cast-right-at {W = W} {γ = γ}
   tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
     ⦃ ground-nonstar Gᵍ ⦄
 
-  child : StructuralCatchupRightResult W γ M (M′ ⟨ cᴿ ⟩) qG
+  child : StructuralCatchupRightResult W γ
+      (M ⟨ cᴸ ⟩) (M′ ⟨ cᴿ ⟩) qG
   child =
     smaller-extra cᴿ (ground-other-decrease cᴿ)
-      (CTI2.⊑cast² cᴿ rel qG) vM vM′
+      (CTI2.cast⊑cast² cᴸ cᴿ rel qG) (vM 《 inertᴸ 》) vM′
 
   plan = StructuralCatchupRightResult.structural-ext child
   ext = structural-world-extendᴿ plan
@@ -775,15 +775,14 @@ structural-paired-ground-extra-cast-right-at {W = W} {γ = γ}
       (StructuralCatchupRightResult.final-value child
         《 applyConsistencies-Inert χs
           (inj ⦃ Gns = ground-nonstar Gᵍ ⦄) 》)
-      (CTI2.cast⊑cast² cᴸ tagχ
+      (CTI2.⊑cast² tagχ
         (StructuralCatchupRightResult.final-relation child)
         (ECR.transport⊑ᵂ ext q★))
 
   after-ground : StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
       ((M′ ⟨ cᴿ ⟩) ⟨ tag ⟩) q★
   after-ground =
-    structural-catchup-compose-paired-target-cast
-      cᴸ tag child residual
+    structural-catchup-compose-target-cast tag child residual
 
 
 structural-project-same-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}

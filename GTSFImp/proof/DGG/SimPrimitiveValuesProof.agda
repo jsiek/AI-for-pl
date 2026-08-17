@@ -6,6 +6,8 @@ module proof.DGG.SimPrimitiveValuesProof where
 --     target operands with their related source constants.
 --   * Performs the matching target delta step with synchronized keep changes.
 
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (refl)
 open import Primitives using (κℕ; κ𝔹; δ-add; δ-and)
 open import CastTerms using ($; _⊕[_]_)
 open import Reduction
@@ -47,9 +49,9 @@ sim-primitive-values parked L⊑V′ M⊑M′ r vV′ vM′ δ-add
     | nv-const refl | nv-const refl
     | CTI2.κ⊑κ² ._ p | CTI2.κ⊑κ² ._ q =
   _ , keep ∷ˢ []ˢ , _ , _ , _ , r ,
-  $ _ ⊕[ _ ] $ _
+  ($ _ ⊕[ _ ] $ _
     —→[ keep ]⟨ pure-step (δ-⊕ δ-add) ⟩
-  $ _ ∎[] ,
+  $ _ ∎[]) ,
   evolve-keepᴸ (evolve-keepᴿ evolve-refl) ,
   CTI2.κ⊑κ² _ r
 sim-primitive-values parked L⊑V′ M⊑M′ r vV′ vM′ δ-and
@@ -62,8 +64,8 @@ sim-primitive-values parked L⊑V′ M⊑M′ r vV′ vM′ δ-and
     | bv-const refl | bv-const refl
     | CTI2.κ⊑κ² ._ p | CTI2.κ⊑κ² ._ q =
   _ , keep ∷ˢ []ˢ , _ , _ , _ , r ,
-  $ _ ⊕[ _ ] $ _
+  ($ _ ⊕[ _ ] $ _
     —→[ keep ]⟨ pure-step (δ-⊕ δ-and) ⟩
-  $ _ ∎[] ,
+  $ _ ∎[]) ,
   evolve-keepᴸ (evolve-keepᴿ evolve-refl) ,
   CTI2.κ⊑κ² _ r

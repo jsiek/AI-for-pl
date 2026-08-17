@@ -40,7 +40,6 @@ import proof.DGG.Parked.ParkedD4CheckpointLemma
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
 ------------------------------------------------------------------------
 
-import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
 import proof.DGG.Catchup.InstCatchupRightRelProof
 import proof.DGG.Catchup.InstInversionDef

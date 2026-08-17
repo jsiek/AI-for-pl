@@ -125,3 +125,15 @@ The ★-source active-ground family is no longer part of this row-level blocker.
 This does not assemble `StructuralExtraCastRightAt`.  The remaining blocker is
 still the general whole-premise extractor/dispatcher and the value/fuel factory
 assembly recorded in `lg3-target-cast-multistep-worker-resister.red`.
+
+PR #144 review postscript, 2026-08-17: the parked implementation SITE
+(Catchup/ExtraCastRightProof.agda, a comment-only shell imported by
+All.agda) was flagged by review — an aggregate that "checks" an empty
+module misrepresents the theorem's status. The shell is DELETED per the
+closed-world convention. The restated statement lives in
+proof.DGG.ExtraCastRight2 / the Def surfaces; the checked row-level
+content (inert/id/bot/ground/projection/paired rows) lives in
+Catchup/ExtraCastRightAtProof.agda; the closed proof lands with the
+recorded nine-item assembly follow-on
+(lg3ah-supplied-continuation-assembly-resister.red), at which point the
+factory discharge — not a revived shell module — is its home.

@@ -145,3 +145,120 @@ Assembly status:
 
 No relation change is requested here.  No M5 package fields are involved in
 this LG-3af blocker.
+
+LG-3ag STOP postscript, 2026-08-17:
+
+The supervisor option-1 ruling was tested against the current broad
+`StructuralCatchupRightResult` endpoint-partner field.  The generic
+keep-discharge transformer is refuted by the checked notes-only scratch:
+
+```text
+proof/DGG/notes/LG3TargetConversionPartnerCounterexampleScratch.agda
+```
+
+The scratch instantiates the target reduct as an inert injection cast:
+
+```agda
+target-inert  = $ (κℕ 0) ⟨ id (‵ `ℕ) ! ⟩
+target-wrapper = target-inert ↑ id↑ ★
+```
+
+and checks the actual keep discharge:
+
+```agda
+target-wrapper —→[ keep ] target-inert
+```
+
+The wrapper has the caller-side partner witness required by the current broad
+field:
+
+```agda
+SourceConcealPartnerOK W P (seal X ℕ) Xᴿ? target-wrapper
+```
+
+by `seal-partner-ok (plain-target not-↑)`.  But the reduct partner is
+impossible:
+
+```agda
+SourceConcealPartnerOK W P (seal X ℕ) Xᴿ? target-inert → ⊥
+```
+
+because:
+
+- `star-rep-target` is ruled out by the non-star source representation `ℕ`;
+- `name-protected-target` is ruled out by the reduct shape
+  `$ (κℕ 0) ⟨ ... ⟩`, not `(M ↓ seal Y S) ⟨ ... ⟩`;
+- `plain-target` would require `NotTopTag target-inert`, but there is no
+  `NotTopTag` constructor for a top-level cast.
+
+The checked theorem
+`conversion-keep-source-partner-false` states that any local transformer from
+the wrapper partner to the reduct partner for this instantiated shape yields
+`⊥`.
+
+Therefore the option-1 family, at the live broad endpoint-partner surface, is
+not merely missing proof engineering; it is false.  The same loss of the
+syntactic `not-↑`/`not-↓` witness is what blocks the matched and packaged
+seal-star variants when their premise branch is the wrapper-derived untagged
+branch.
+
+The only sound fallback is option 2 from the original note: narrow the
+structural result surface so target-conversion keep discharges do not promise
+arbitrary partner transport from the wrapper to the reduct, and instead carry
+the hereditary continuations consumed by the reachable source/matched callers.
+That fallback is a protected structural surface edit, so it was not performed
+under the LG-3ag guard "protected surfaces + relations + PLAN.md untouched".
+
+Assembly status for LG-3ag:
+
+- `⊑reveal²`: still stopped on the false broad source endpoint-partner
+  transformer for `id↑` keep discharge.
+- `⊑conceal²`: still stopped on the false broad source endpoint-partner
+  transformer for `id↓` keep discharge.
+- `reveal⊑reveal²`: still stopped on the paired target-conversion result
+  surface for the same discharge.
+- `conceal⊑conceal²`: still stopped on the matched target-conversion result
+  surface for the same discharge.
+- `packaged-seal-star²`: still stopped on the packaged matched-seal-star
+  endpoint surface for the same discharge.
+
+No CTI relation, live term-imprecision relation, reduction relation,
+protected structural surface, public fuel surface, or `PLAN.md` was changed.
+
+Gate/regression after the LG-3ag STOP record:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+Focused regression also passed with the same `AGDA_DIR`, skipping the recorded
+stale `TagDisciplineScratch.agda`:
+
+```text
+proof/Imprecision.agda
+proof/ImprecisionConsistency.agda
+proof/DGG/CastConsistencyViews.agda
+proof/DGG/Catchup/TargetCastStepInversionProof.agda
+proof/DGG/Catchup/ExtraCastRightAtProof.agda
+proof/DGG/Catchup/ValueCatchupRightProof.agda
+proof/DGG/Catchup/FuelKnotProof.agda
+proof/DGG/Catchup/StructuralCatchupRightDef.agda
+proof/DGG/Catchup/StructuralSourceLambdaReplayProof.agda
+proof/DGG/Catchup/GeneratedProjectionReplacementProof.agda
+proof/DGG/Catchup/TagLayerExtractionProof.agda
+```
+
+The new counterexample scratch also checks separately with the notes include:
+
+```text
+agda -i . -i proof/DGG/notes -v0 \
+  proof/DGG/notes/LG3TargetConversionPartnerCounterexampleScratch.agda
+```

@@ -174,3 +174,33 @@ Checked chunk:
 AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
+
+ITEM 3 STATUS (2026-08-17, T1):
+
+The five target-conversion structural result transformers landed in
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`:
+
+```agda
+structural-catchup-target-reveal
+structural-catchup-target-conceal
+structural-catchup-paired-reveal
+structural-catchup-paired-conceal
+structural-catchup-packaged-seal-star
+```
+
+Each transformer uses the relevant F1 structural rebase pullback and the
+structural target/source conversion evidence at the pulled-back endpoint.  The
+target-frame endpoint is split by a supplied `StructuralFrameOutcome`: value
+branches build the result directly with `reveal-↠` / `conceal-↠`, while keep
+branches delegate to the caller-supplied continuation.  The packaged
+seal-star row additionally uses a narrow canonical seal-star replay
+(`conceal-seal-star-↠`) so the CTI constructor sees the mapped endpoint
+`seal (mapVarChanges χs Xᴿ) ★` rather than the normalized generic
+`applyConceals` endpoint.
+
+Checked chunk:
+
+```text
+AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```

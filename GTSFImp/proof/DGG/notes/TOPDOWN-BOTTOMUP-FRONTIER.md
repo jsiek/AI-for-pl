@@ -125,3 +125,16 @@ Parallel tracks live (2026-08-17): T1 assembly follow-on
 (agent/gtsf-sim-left-values), T3 legacy NON_COVERING repair
 (agent/gtsf-legacy-noncovering). T4 = meet-point closure, staged
 behind T1.
+
+Track update (2026-08-17, later): decision asks now live on GitHub
+issue #157 (D1 = SimConversionFrames continuations, D2 = left-side
+lemma family); scheduling aims for ~3 active tracks. Status: T1
+BLOCKED on D1 at the value dispatcher (items 1-3 of 9 done, PR #156
+draft); T2 BLOCKED on D1+D2 (PR #155 draft); T3 DONE-partial (PR #158
+draft, NON_COVERING 22→18, stopped at the wrap-star-cast-nonfinal
+obstruction). Newly launched: T4 = TransportTermImprecisionᴾ +
+Value/BlameIrreducible* (agent/gtsf-transport-irreducible), T5 = NS-4
+stage 2 (agent/gtsf-ns4-stage2; forbidden from editing
+proof/DGG/Catchup/* to avoid colliding with T1's knot/factory items).
+The former "T4 meet-point closure" is renumbered T6, still staged
+behind T1.

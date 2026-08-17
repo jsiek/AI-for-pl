@@ -113,6 +113,7 @@ import proof.DGG.Catchup.TagLayerExtractionProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof
+import proof.DGG.Catchup.FuelDischargeProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)

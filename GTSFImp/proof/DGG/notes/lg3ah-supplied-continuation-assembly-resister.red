@@ -204,3 +204,74 @@ Checked chunk:
 AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
+
+ITEM 4 STATUS (2026-08-17, T1):
+
+Stopped on the structural value-worker dispatcher before committing any worker
+definition.  The item-3 row transformers check, but the dispatcher cannot call
+the target-conversion rows without additional supplied relation continuations.
+
+The holes-first scratch
+`proof/DGG/notes/LG3T1ValueDispatcherScratch.agda` was created, checked, and
+deleted.  It exposed two focused residual goals:
+
+1. Target-conversion keep continuation.  Even after a recursive child catchup
+   and a `StructuralFrameOutcome`, the new
+   `structural-catchup-target-reveal` / `target-conceal` family requires a
+   caller-supplied continuation of the form:
+
+```agda
+∀ {N₁}
+  → (N′ ↑ applyReveals χs c′) —→[ keep ] N₁
+  → Value N₁
+  → StructuralCatchupRightResult W γ M (M′ ↑ c′) q
+```
+
+and analogously for target conceal, paired reveal, paired conceal, and packaged
+seal-star.  The plain `CTI2.⊑reveal²` / `CTI2.⊑conceal²` derivations do not
+carry a checked relation premise for the reduct `N₁`; the existing
+`TargetFrameAbsorptionChain` keep-rel support is available only in the
+instantiation-spine worker, not in the value dispatcher surface.
+
+2. Source-`Λ` child-result bridge.  A recursive call under
+   `CTI2.liftWorldLeft X⊑★ W` yields:
+
+```agda
+StructuralCatchupRightResult
+  (CTI2.liftWorldLeft X⊑★ W) γᴸ U M′ p
+```
+
+but the dispatcher needs:
+
+```agda
+StructuralCatchupRightResult W γ (Λ U) M′ q
+```
+
+The landed `SourceΛReplayStack` machinery can replay an endpoint relation
+through a caller-supplied outer structural plan, but no checked result-level
+pullback/unlift currently converts an arbitrary completed lifted child result
+into the outer `StructuralCatchupRightResult`.
+
+No worker code, scratch file, postulate, pragma, CTI relation, reduction
+relation, public fuel surface, protected structural definition, or `PLAN.md`
+edit was left in the tree.
+
+Complete residual enumeration from item 4:
+
+1. Add a checked value-dispatcher relation continuation for target reveal and
+   target conceal keep outcomes, or expose a CTI/worker surface that carries
+   the same `keep-rel` information currently present in
+   `TargetFrameAbsorptionChain`.
+2. Specialize that continuation for the paired reveal, paired conceal, and
+   packaged seal-star rows, including the exact matched/source endpoint
+   supplies already required by item 2.
+3. Add a result-level source-`Λ` unlift/pullback that consumes a completed
+   lifted/smart-comma child `StructuralCatchupRightResult` and rebuilds the
+   outer result without requiring a pre-known outer plan.
+4. Only after 1-3, assemble the derivation-recursive
+   `StructuralValueCatchupRightAt` dispatcher over base values, target casts,
+   source wrappers, source-`Λ`, and the five target-conversion rows.
+5. Items 5-9 remain blocked behind the value dispatcher: the extra-cast
+   worker cannot complete its mutual route, the concrete factory pair and
+   public knot cannot be specialized, grounding cannot be hooked to the
+   concrete knot, and resolved-note/regression cleanup cannot be soundly marked.

@@ -9,6 +9,7 @@ module proof.DGG.Inversion.SourceStripWorkerProof where
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Nat using (suc)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum.Base using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -20,7 +21,8 @@ open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using
-  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; _⦂∀_[_]; _↓_; _⟨_⟩)
+  (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; Λ_; _⦂∀_[_];
+   _↓_; _⟨_⟩)
 open import Imprecision
 open import Primitives using (κℕ; κ𝔹)
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -1064,14 +1066,45 @@ source-spine-strip-worker-ƛ N vU mono rb sc source∈
   source-spine-direct-cast (sv-ƛ N) vU mono rb sc source∈
     target∈ prem
 
-source-spine-strip-worker-Λ : SourceSpineStrip
-{-# NON_COVERING #-}
-source-spine-strip-worker-Λ (sv-Λ sv) vU mono rb sc source∈
+source-spine-strip-worker-Λ : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γ′ : CtxImp W′}
+    {V : Term (suc Δᴸ)} {U : Term Δᴿ}
+    {R : Ty Δᴸ} {S : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+    {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+    {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+  → SpineValue V
+  → Value U
+  → CTI2.ImpEnvMono W W′
+  → RebaseAt W′ W Xᴸ Y
+  → CTI2.SameCtx γ γ′
+  → sourceStoreʷ W ∋ Xᴸ ⦂ R
+  → targetStoreʷ W ∋ Y ⦂ S
+  → W′ ∣ γ′ ⊢² Λ V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceSpineStripBranch W γ (Λ V) R U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+source-spine-strip-worker-Λ sv vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-Λ sv) vU mono rb sc source∈
     target∈ prem
-source-spine-strip-worker-Λ (sv-Λ sv) vU mono rb sc source∈
+source-spine-strip-worker-Λ sv vU mono rb sc source∈
     target∈ D@(CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem p) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
+      nonvar-all nonstar-∀ D)
+source-spine-strip-worker-Λ sv vU mono rb sc source∈
+    target∈
+    D@(CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV
+      target⊢ prem p) =
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
       nonvar-all nonstar-∀ D)
@@ -2046,7 +2079,7 @@ source-spine-strip-worker (sv-ƛ N) vU mono rb sc source∈
     target∈ D
 source-spine-strip-worker (sv-Λ sv) vU mono rb sc source∈
     target∈ D =
-  source-spine-strip-worker-Λ (sv-Λ sv) vU mono rb sc source∈
+  source-spine-strip-worker-Λ sv vU mono rb sc source∈
     target∈ D
 source-spine-strip-worker (sv-$ κ) vU mono rb sc source∈
     target∈ D =

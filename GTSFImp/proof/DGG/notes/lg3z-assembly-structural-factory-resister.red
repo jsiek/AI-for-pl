@@ -173,3 +173,82 @@ agda --safe -v0 All.agda
 agda -v0 LegacyAll.agda
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
+
+LG-3ac fallback postscript, 2026-08-17:
+
+The LG-3ac holes-first pass did not land the dispatcher or factory assembly.
+The temporary diagnostic `StructuralExtraCastRightAt` head split was removed
+before this note, so the live proof tree is again hole-free.
+
+qG sourcing status by source result family:
+
+1. Function ground, target `G = ★ ⇒ ★`: derivable from the final
+   `q : A₁ ⇒ A₂ ⊑ᵂ⟨ W ⟩ ★` by `⇒⊑★-inv`, then
+   `⇒⊑⇒` over the two component `⊑ ★` facts.
+2. Base ground, target `G = ι`: derivable by the base tag/project view;
+   the final `ι⊑★` witness gives the shape and the endpoint is `ι⊑ι`.
+3. Name ground, target `G = ＇ X`: derivable only when the view pins the same
+   embedded name, yielding `X⊑X`.  The view is a syntax view, not a name
+   alignment theorem for unrelated source/target names.
+4. Universal ground, target `G = `∀ ★`: the valid cases are the live
+   imprecision cases, not a fake exact-∀ inversion: `∀★⊑★` maps to
+   `∀⊑∀ ★⊑★`, `∀⊑★ body` maps to `∀⊑∀ body`, and `bot⊑★` maps to
+   `bot-elim`.  The existing universal views correctly expose the additional
+   `inst`/`gen` alternatives that any total endpoint lemma must handle.
+5. Source injection is the blocking family for the current checked paired
+   active-ground row.  If `cᴸ` is the inert tag layer
+   `_! (idᵍ Hᵍ)`, the source result type is `★`; the final witness is
+   `q : ★ ⊑ᵂ⟨ W ⟩ ★`, and the row asks the dispatcher for
+   `qG : ★ ⊑ᵂ⟨ W ⟩ G`.  There is no such constructor for a non-star ground
+   `G`.  No premise in the current row signature rules this case out.
+
+This last item is the concrete residual that prevented qG sourcing from being
+landed as a dispatcher-only lemma.  It is different from the older refuted
+`C ⊑ᵂ⟨ W ⟩ ★` midpoint route: the obstruction is now the post-source
+injection endpoint required by the checked paired row itself.
+
+I1 surgery extractor status:
+
+- The available checked projection rows still require an exposed tag premise
+  of the form
+  `W ∣ γ ⊢² M ⊑ N ⟨ _! (idᵍ Gᵍ) ⟩ ∶ p★`.
+- `canonical-★` can expose a tag layer from the target value, but the extractor
+  must also transport the exact tag ground through `cast⊑²`, `Λ⊑²`,
+  `Λ⊑²-smart-comma`, `reveal⊑²`, and `conceal⊑²`, matching the recursive shape
+  of `target-id-step-inversion`.
+- That wrapper-aware extractor was not landed.  The existing
+  `GeneratedProjectionReplacementProof` cells remain exposed-tag consumers,
+  not whole-premise extractors.
+
+Assembly status after LG-3ac:
+
+- Extra-cast dispatcher: not landed.  Direct id/inert/bot rows are checked;
+  active ground/projection dispatch remains blocked by the qG/injection
+  endpoint and the I1 extractor.
+- Both workers: not landed.  `ValueCatchupRightProof.agda` still exposes row
+  combinators, not a derivation-primary `StructuralValueCatchupRightAt`.
+- Concrete structural factory pair: not landed.
+- Public `FuelKnot`: still only available through the higher-order factory
+  adapter in `Catchup/FuelKnotProof.agda`; no concrete LG-3 instantiation was
+  produced.
+- Grounding residual: unchanged; `grounding-preservation-knot` remains the
+  checked residual.
+- RESOLVED notes: not marked resolved because assembly did not complete.
+- `TagDisciplineScratch.agda:232` is stale/superseded by the live
+  `SourceConcealPartnerOK`/matched-partner surfaces.  The old scratch carries
+  only `SealTargetOK`; the apparent one-line constructor-argument repair is
+  insufficient, so it was not fixed in this chunk.  See
+  `SURGERY-PREFLIGHT.md` and `TAG-DISCIPLINE-DOSSIER.md` for the superseding
+  tag-discipline record.
+
+Commands run during LG-3ac:
+
+```text
+cd GTSFImp/proof/DGG/notes && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home agda -i ../../.. -v0 TagDisciplineScratch.agda
+```
+
+Result:
+
+```text
+pre-existing failure at TagDisciplineScratch.agda:232; stale scratch not fixed
+```

@@ -375,3 +375,188 @@ proof/DGG/Catchup/StructuralCatchupRightDef.agda
 proof/DGG/Catchup/StructuralSourceLambdaReplayProof.agda
 proof/DGG/Catchup/GeneratedProjectionReplacementProof.agda
 ```
+
+LG-3ae postscript, 2026-08-17:
+
+Item 1, the I1 tag-layer fold, is now landed in
+`proof/DGG/Catchup/TagLayerExtractionProof.agda` and imported from `All.agda`.
+The fold consumes the whole tagged-target premise, the source value, the target
+value, and the `canonical-★` view, then returns:
+
+- the peeled source/world/context indices;
+- the exposed ground tag layer and target payload value;
+- `qG`;
+- the core relation under the tag;
+- a replay function rebuilding the original tagged premise from the core.
+
+The fold handles the intended five source-wrapper heads:
+
+- `cast⊑²` by recurring on the premise and replaying `cast⊑²`;
+- `Λ⊑²` by recurring under the source `Λ` value and replaying `Λ⊑²`;
+- `Λ⊑²-smart-comma` by the same smart-comma replay;
+- `reveal⊑²` by recurring under the source reveal and replaying `reveal⊑²`;
+- `conceal⊑²` by recurring under the source conceal and replaying
+  `conceal⊑²`.
+
+It also includes the two cast-headed bases that Agda exposes for a tagged
+target value:
+
+- `⊑cast²`, the ordinary target tag base;
+- `cast⊑cast²`, the paired source-inert/target-tag base.
+
+Focused check and required gate passed before the standalone commit
+`85c932a2 LG-3 add tag-layer extraction fold`.
+
+Item 2 assembly fallback:
+
+The post-I1 holes-first audit does not yet produce a commit-safe dispatcher or
+factory pair.  The row inventory is complete at the row-combinator level, but
+the live public assembly still lacks two non-row surfaces needed to build the
+recursive workers without holes or new pragmas.
+
+Residual A: target conversion-frame catch-up result transformers.
+
+`ValueCatchupRightProof.agda` can dispatch the target-cast heads through the
+checked row combinators:
+
+- `⊑cast²` via `structural-target-cast-row`;
+- `cast⊑cast²` via `structural-paired-target-cast-row`.
+
+It can also recurse through the landed source-only wrappers:
+
+- `cast⊑²` via `structural-catchup-source-cast`;
+- `reveal⊑²` via `structural-catchup-source-reveal`;
+- `conceal⊑²` via `structural-catchup-source-conceal`;
+- source `Λ` heads via `structural-Λ-replay` /
+  `structural-smart-Λ-replay` after lifting the child structural trace.
+
+The first missing value-worker cases are the target conversion-frame heads:
+
+```agda
+CTI2.⊑reveal² ...
+CTI2.⊑conceal² ...
+CTI2.reveal⊑reveal² ...
+CTI2.conceal⊑conceal² ...
+CTI2.packaged-seal-star² ...
+```
+
+`StructuralCatchupRightDef.agda` currently has source reveal/conceal result
+rebuilders only:
+
+```agda
+structural-catchup-source-reveal
+structural-catchup-source-conceal
+```
+
+There is no corresponding
+
+```agda
+structural-catchup-target-reveal
+structural-catchup-target-conceal
+structural-catchup-compose-target-reveal
+structural-catchup-compose-target-conceal
+```
+
+surface carrying a `StructuralCatchupRightResult` through target `↑` / `↓`
+frames, including the endpoint-partner fields.  The existing
+`StructuralTarget*Peel*` and `TargetFrameAbsorptionChain` modules are
+instantiation-spine machinery; they do not return a direct
+`StructuralCatchupRightResult W γ M (M′ ↑ c) q` or
+`StructuralCatchupRightResult W γ M (M′ ↓ c) q`.
+
+Residual B: public M5 package breadth.
+
+The direct target-inst row would have to call the structural inst worker.  The
+relational adapter requires a full `InstInversionPackage fuel`, whose fields
+are:
+
+```agda
+Λ-package
+∀-package
+gen-package
+reveal-package
+conceal-package
+```
+
+The live proof tree still exposes only:
+
+```agda
+Λ-inst-inversion-package
+```
+
+in `InstInversionLambdaProof.agda`.  There is no checked package constructor
+for the `∀`, `gen`, `reveal`, or `conceal` target all-value views, so a public
+LG-3 `FuelKnot` higher-order only over M5 cannot be specialized to a concrete
+M5 factory yet.
+
+Complete residual enumeration by assembly component:
+
+1. `StructuralExtraCastRightAt` dispatcher:
+   checked rows exist for id, inert, active ground, paired active ground,
+   source-injection active ground, matched projection, paired matched
+   projection, projection expansion, paired projection expansion, and the
+   bot refutations.  A total dispatcher still depends on the value worker for
+   target-wrapper heads and on the structural M5 worker for `inst`.
+
+2. `StructuralValueCatchupRightAt` worker:
+   target-cast heads have checked row combinators, and source-only wrappers
+   have checked replay rows.  The unresolved cases are the target
+   reveal/conceal family listed in Residual A and the `inst` path listed in
+   Residual B.
+
+3. Concrete structural factory pair/triple:
+   `FuelKnotProof.agda` already has `StructuralFuelStepSurface`,
+   `StructuralFuelKnot`, and `build-structural-fuel-knot`, so the recursive
+   structural plumbing is present.  The concrete factories themselves remain
+   unavailable because items 1 and 2 above are not total workers.
+
+4. Public `FuelKnot` higher-order over M5:
+   `build-structural-fuel-knot` still abstracts over all three structural
+   factories.  The requested public knot depending only on the M5 surface needs
+   concrete structural extra/value factories first.
+
+5. Grounding residual:
+   unchanged.  `proof/DGG/GroundingPreserve.agda` continues to expose the
+   checked higher-order residual `grounding-preservation-knot`; no new LG-3
+   grounding instantiation was assembled.
+
+6. Notes sweep:
+   no lg3 `.red` blockers were marked `RESOLVED`, because the assembly did not
+   complete.  `TagDisciplineScratch.agda` remains the recorded stale scratch
+   and is still excluded from focused regression.
+
+No holes, postulates, pragmas, protected relation edits, protected surface
+edits, root scratch files, or `PLAN.md` edits were added for this LG-3ae
+fallback.
+
+Gate after the LG-3ae fallback note:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+Focused regression also passed with the same `AGDA_DIR`.  It reran the
+recorded ten-file set, skipped the stale `TagDisciplineScratch.agda`, and
+checked the new fold module separately:
+
+```text
+proof/Imprecision.agda
+proof/ImprecisionConsistency.agda
+proof/DGG/CastConsistencyViews.agda
+proof/DGG/Catchup/TargetCastStepInversionProof.agda
+proof/DGG/Catchup/ExtraCastRightAtProof.agda
+proof/DGG/Catchup/ValueCatchupRightProof.agda
+proof/DGG/Catchup/FuelKnotProof.agda
+proof/DGG/Catchup/StructuralCatchupRightDef.agda
+proof/DGG/Catchup/StructuralSourceLambdaReplayProof.agda
+proof/DGG/Catchup/GeneratedProjectionReplacementProof.agda
+proof/DGG/Catchup/TagLayerExtractionProof.agda
+```

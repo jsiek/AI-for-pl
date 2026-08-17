@@ -113,3 +113,15 @@ factory must derive the re-attachment endpoint `C ⊑ᵂ⟨ W ⟩ G` and the pee
 tag-layer core for the general `CTI2.cast⊑cast² cᴸ cᴿ prem q` input before it
 can call the checked rows.  This is not the refuted premise-first midpoint
 route.
+
+Postscript 2026-08-17, LG-3ad source-injection active-ground row:
+
+The ★-source active-ground family is no longer part of this row-level blocker.
+`structural-source-injection-ground-extra-cast-right-at` now checks.  It uses
+`source-ground-cast-witness` to recover `H ⊑ᵂ⟨ W ⟩ G` from the premise
+`H ⊑ᵂ⟨ W ⟩ B` and the active target ground consistency `B ∼ G`, recurses on
+`⊑cast² cᴿ prem qHG`, then re-attaches the paired tags `H!` and `G!`.
+
+This does not assemble `StructuralExtraCastRightAt`.  The remaining blocker is
+still the general whole-premise extractor/dispatcher and the value/fuel factory
+assembly recorded in `lg3-target-cast-multistep-worker-resister.red`.

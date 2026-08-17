@@ -252,3 +252,126 @@ Result:
 ```text
 pre-existing failure at TagDisciplineScratch.agda:232; stale scratch not fixed
 ```
+
+LG-3ad postscript, 2026-08-17:
+
+Checked source-injection active-ground row:
+
+- `proof/ImprecisionConsistency.agda` now exposes
+  `ground-cast-target-unique⊑`, plus the local variable/ground impossibility
+  used by that proof.
+- `proof/DGG/Catchup/TargetCastStepInversionProof.agda` now exposes
+  `source-ground-cast-witness`.  For
+  `Hᵍ : Ground H`, `Gᵍ : Ground G`, `c : B ∼ G`,
+  `Bns : NonStar B`, and `p : H ⊑ᵂ⟨ W ⟩ B`, it produces
+  `H ⊑ᵂ⟨ W ⟩ G` by the forced ground-family equality.
+- `proof/DGG/Catchup/ExtraCastRightAtProof.agda` now has
+  `structural-source-injection-ground-extra-cast-right-at`.  The row implements
+  the supervisor tag-pairing endpoint:
+
+```agda
+CTI2.cast⊑cast² Htag Gtagχ
+  (StructuralCatchupRightResult.final-relation child)
+  (ECR.transport⊑ᵂ ext q★)
+```
+
+where `child` recurses on:
+
+```agda
+CTI2.⊑cast² cᴿ rel qHG
+```
+
+and:
+
+```agda
+qHG : H ⊑ᵂ⟨ W ⟩ G
+qHG = source-ground-cast-witness Hᵍ Gᵍ Bns cᴿ p
+```
+
+This is the intended ★-source active-ground construction: it never asks for
+the impossible post-source endpoint `★ ⊑ᵂ⟨ W ⟩ G`; it absorbs `cᴿ` over the
+premise, then pairs `H!` and `G!` at the re-attachment state.
+
+Projection status for the same source-injection family:
+
+- A paired target projection with `cᴸ = H!` has source result type `★` and
+  target result type `B` with `NonStar B`.
+- Its final witness would have shape `★ ⊑ᵂ⟨ W ⟩ B`.
+- Under the live imprecision relation there is no non-star target constructor
+  from source `★`; only `★⊑★` exists at source `★`.
+
+So the analogous source-injection projection dispatcher cell is vacuous unless
+the statement is narrowed to a different endpoint.  No non-vacuous projection
+tag-pairing row was landed.
+
+I1 wrapper-fold status:
+
+- The named composable pieces exist for the five source-wrapper heads:
+  `structural-catchup-source-cast`, `SourceΛReplayStack` with
+  `source-Λ-stack-transport` / `source-Λ-stack-unlift-plan`,
+  `structural-catchup-source-reveal`, and
+  `structural-catchup-source-conceal`.
+- The fold theorem itself is still not assembled.  The current missing datum
+  is not source-wrapper replay data; it is the whole-premise
+  endpoint-producing extractor that starts from the factory input
+  `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`, exposes the landed target tag layer, and
+  returns the peeled core endpoint required by the checked paired projection
+  rows.
+
+Assembly residual after LG-3ad:
+
+1. Whole-premise extractor: not landed.  The checked projection rows still
+   consume an already exposed tag premise and an externally supplied
+   `C ⊑ᵂ⟨ W ⟩ G` endpoint.
+2. Extra-cast dispatcher: not landed.  The direct row table now includes id,
+   inert, bot, active ground, paired active ground, and source-injection
+   active ground, but there is still no total dispatcher from arbitrary
+   `StructuralExtraCastRightAt` input to those rows.
+3. `StructuralValueCatchupRightAt`: not landed.  The target-cast row
+   combinators are checked, but no derivation-primary worker over
+   `TargetCastBound` exists.
+4. Concrete structural factory pair: not landed.
+5. Public higher-order `FuelKnot` over the M5 instantiation surface: not
+   landed; `FuelKnotProof.agda` still provides adapters/builders only.
+6. Grounding residual: unchanged; `grounding-preservation-knot` remains the
+   checked residual.
+7. RESOLVED notes sweep: not performed because assembly did not complete.
+   `TagDisciplineScratch.agda` remains the recorded stale scratch and was not
+   rerun for this postscript.
+
+Checked commits:
+
+```text
+0458c6e0 LG-3 add source ground cast witness
+47618c1b LG-3 add source injection ground row
+```
+
+The required gate passed after both checked chunks:
+
+```text
+cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+```
+
+Result:
+
+```text
+agda --safe -v0 All.agda
+agda -v0 LegacyAll.agda
+postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
+```
+
+Focused ten-file regression for LG-3ad, skipping the recorded stale
+`TagDisciplineScratch.agda`, also passed with the same `AGDA_DIR`:
+
+```text
+proof/Imprecision.agda
+proof/ImprecisionConsistency.agda
+proof/DGG/CastConsistencyViews.agda
+proof/DGG/Catchup/TargetCastStepInversionProof.agda
+proof/DGG/Catchup/ExtraCastRightAtProof.agda
+proof/DGG/Catchup/ValueCatchupRightProof.agda
+proof/DGG/Catchup/FuelKnotProof.agda
+proof/DGG/Catchup/StructuralCatchupRightDef.agda
+proof/DGG/Catchup/StructuralSourceLambdaReplayProof.agda
+proof/DGG/Catchup/GeneratedProjectionReplacementProof.agda
+```

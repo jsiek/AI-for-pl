@@ -1061,3 +1061,28 @@ postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 
 STOP for the extractor/factory assembly on the genuine resisters above.
+
+LG-3ad postscript, 2026-08-17:
+
+The source-injection active-ground endpoint from LG-3ac is resolved by the
+checked row `structural-source-injection-ground-extra-cast-right-at` and the
+new witness `source-ground-cast-witness`.  That row avoids the impossible
+post-source endpoint `★ ⊑ᵂ⟨ W ⟩ G` by recursing before the source tag and then
+re-attaching the paired tag layer.
+
+The remaining worker/factory status is unchanged:
+
+- no whole-premise tag-layer extractor has been assembled;
+- no derivation-primary `StructuralExtraCastRightAt` dispatcher has been
+  assembled;
+- `ValueCatchupRightProof.agda` still contains row combinators only, not a
+  total `StructuralValueCatchupRightAt` worker;
+- `FuelKnotProof.agda` still contains the higher-order structural/public
+  builders, not a concrete LG-3 factory triple;
+- the M5 public instantiation package breadth remains a separate requirement
+  before a public LG-3 `FuelKnot` can be exported.
+
+The source-injection projection variant is not a live non-vacuous counterpart
+to the active-ground row: with source result type `★` and non-star projection
+result `B`, the conclusion would require `★ ⊑ᵂ⟨ W ⟩ B`, which has no
+constructor in the live imprecision relation.

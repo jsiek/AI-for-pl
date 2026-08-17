@@ -6,6 +6,8 @@ module proof.DGG.CatchupToMorePreciseDef where
 --     conceal boundary; catch-up evolves both worlds and replays the boundary.
 --   * Boundary indices preserve the source pivot and map the target pivot
 --     through the target store-change trace.
+--   * ValueCatchupResult exposes the related target value together with the
+--     structural histories for the enclosing and premise worlds.
 --   * The less precise target reaches a related value, with no blame case.
 --   * Contains no catch-up proof.
 
@@ -116,6 +118,32 @@ data CatchupBoundary {Δᴸ Δᴿ Δ} :
     → CatchupBoundary target-conceal-boundary Xᴸ? Xᴿ? W Wᵖ
 
 
+ValueCatchupResult : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {kind : CatchupBoundaryKind}
+    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {V : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → Set₁
+ValueCatchupResult {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {W = W} {Wᵖ = Wᵖ}
+    {kind = kind}
+    {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?} {V = V} {M′ = M′}
+    {A = A} {B = B} =
+  Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ V′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
+    Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+    Σ[ Wᵖ′ ∈ World Δᴸ Δᴿ′ Δ′ ]
+    Σ[ Xᴿ′? ∈ Maybe (TyVar Δᴿ′) ]
+    Σ[ boundary′ ∈ CatchupBoundary kind Xᴸ? Xᴿ′? W′ Wᵖ′ ]
+    Σ[ q ∈ A ⊑ᵂ⟨ Wᵖ′ ⟩ applyTys χsᴿ B ]
+      Xᴿ′? ≡ mapPivotChanges χsᴿ Xᴿ? ×
+      (M′ —↠[ χsᴿ ] V′) × Value V′ ×
+      ParkedEvolve Reduction.[] χsᴿ W W′ ×
+      StructuralWorldExtendᴿ χsᴿ W W′ ×
+      StructuralWorldExtendᴿ χsᴿ Wᵖ Wᵖ′ ×
+      (Wᵖ′ ∣ [] ⊢² V ⊑ V′ ∶ q)
+
+
 CatchupToMorePrecise : Set₁
 CatchupToMorePrecise =
   ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ}
@@ -127,15 +155,7 @@ CatchupToMorePrecise =
   → CatchupBoundary kind Xᴸ? Xᴿ? W Wᵖ
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → Value V
-  → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ V′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ Wᵖ′ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ Xᴿ′? ∈ Maybe (TyVar Δᴿ′) ]
-    Σ[ boundary′ ∈ CatchupBoundary kind Xᴸ? Xᴿ′? W′ Wᵖ′ ]
-    Σ[ q ∈ A ⊑ᵂ⟨ Wᵖ′ ⟩ applyTys χsᴿ B ]
-      Xᴿ′? ≡ mapPivotChanges χsᴿ Xᴿ? ×
-      (M′ —↠[ χsᴿ ] V′) × Value V′ ×
-      ParkedEvolve Reduction.[] χsᴿ W W′ ×
-      StructuralWorldExtendᴿ χsᴿ Wᵖ Wᵖ′ ×
-      (Wᵖ′ ∣ [] ⊢² V ⊑ V′ ∶ q)
+  → ValueCatchupResult
+      {W = W} {Wᵖ = Wᵖ} {kind = kind}
+      {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
+      {V = V} {M′ = M′} {A = A} {B = B}

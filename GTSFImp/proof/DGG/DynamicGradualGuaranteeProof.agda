@@ -141,7 +141,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
         evol₁ , V⊑N′
       | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , .W₂ , .nothing ,
         boundary-refl , q₂ , pivot-map , N′↠V′ , vV′ , evol₂ ,
-        plan₂ , V⊑V′
+        _ , plan₂ , V⊑V′
       with transport-related-target
         (applyTys-++ χsᴿ₁ ψsᴿ _) (q₂ , V⊑V′)
   source-value {Δᴸ} V χsᴸ M↠V vV
@@ -149,7 +149,7 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
         evol₁ , V⊑N′
       | Δᴿ₂ , ψsᴿ , V′ , Δ₂ , W₂ , .W₂ , .nothing ,
         boundary-refl , q₂ , pivot-map , N′↠V′ , vV′ , evol₂ ,
-        plan₂ , V⊑V′
+        _ , plan₂ , V⊑V′
       | q , V⊑V′′ =
     Δᴿ₂ , (χsᴿ₁ ++χ ψsᴿ) , V′ , Δ₂ , W₂ , q ,
     composeReduction M′↠N′ N′↠V′ , vV′ , V⊑V′′

@@ -4,8 +4,8 @@ module proof.Reduction where
 --   * Proof lemmas for the store-changing reduction relation.
 --   * Supplies arrow, universal-type, and dynamic-type preservation under
 --     store-change transport, application, primitive-operation, and
---     type-application congruence over multi-step reduction, and inert
---     and value preservation under transport.
+--     type-application and conversion-frame congruence over multi-step
+--     reduction, and inert and value preservation under transport.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -18,18 +18,21 @@ open import Relation.Binary.PropositionalEquality using
 open import Types
 open import Consistency hiding (keep)
 import Consistency as C
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
   ( Term; Value; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
   ; Inert; inj; fun; all; genᵥ
   )
+open import CastTerms using (_↑_; _↓_)
 open import Reduction
 open import proof.Consistency using (gen-safe)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using
   ( rename-star-injective
   ; rename-occurs
+  ; renameᵗ-pointwise-id
   ; renameᵗᵐ-preserves-Value
   ; rename-openᵗ
   )
@@ -111,6 +114,124 @@ applyTerms-preserves-Value (keep ∷ χs) vV =
 applyTerms-preserves-Value ((bind A) ∷ χs) vV =
   applyTerms-preserves-Value χs
     (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
+
+normalizeReveal : ∀ {Δ} {A B : Ty Δ}
+  → Conv↑ Δ A B
+  → Conv↑ Δ A B
+normalizeReveal {A = A} {B = B} c =
+  subst≡ (Conv↑ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst≡ (λ A′ → Conv↑ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↑ (λ X → X) c))
+
+normalizeConceal : ∀ {Δ} {A B : Ty Δ}
+  → Conv↓ Δ A B
+  → Conv↓ Δ A B
+normalizeConceal {A = A} {B = B} c =
+  subst≡ (Conv↓ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst≡ (λ A′ → Conv↓ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↓ (λ X → X) c))
+
+applyReveals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
+  → Conv↑ Δ A B
+  → Conv↑ Δ′ (applyTys χs A) (applyTys χs B)
+applyReveals [] c = c
+applyReveals (keep ∷ χs) c =
+  applyReveals χs (normalizeReveal c)
+applyReveals (bind A ∷ χs) c =
+  applyReveals χs (rename↑ Fin.suc c)
+
+applyConceals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
+  → Conv↓ Δ A B
+  → Conv↓ Δ′ (applyTys χs A) (applyTys χs B)
+applyConceals [] c = c
+applyConceals (keep ∷ χs) c =
+  applyConceals χs (normalizeConceal c)
+applyConceals (bind A ∷ χs) c =
+  applyConceals χs (rename↓ Fin.suc c)
+
+renamedReveal-term : ∀ {Δ} {A B : Ty Δ}
+    (M : Term Δ) (c : Conv↑ Δ A B)
+  → M ↑ rename↑ (λ X → X) c ≡ M ↑ normalizeReveal c
+renamedReveal-term {A = A} {B = B} M c =
+  reveal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) M
+    (rename↑ (λ X → X) c)
+  where
+  reveal-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → (M : Term _)
+    → (d : Conv↑ _ A₀ B₀)
+    → M ↑ d ≡ M ↑ subst≡ (Conv↑ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
+  reveal-subst refl refl M d = refl
+
+renamedConceal-term : ∀ {Δ} {A B : Ty Δ}
+    (M : Term Δ) (c : Conv↓ Δ A B)
+  → M ↓ rename↓ (λ X → X) c ≡ M ↓ normalizeConceal c
+renamedConceal-term {A = A} {B = B} M c =
+  conceal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) M
+    (rename↓ (λ X → X) c)
+  where
+  conceal-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → (M : Term _)
+    → (d : Conv↓ _ A₀ B₀)
+    → M ↓ d ≡ M ↓ subst≡ (Conv↓ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
+  conceal-subst refl refl M d = refl
+
+reveal-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↑ Δ A B)
+  → M —↠[ χs ] N
+  → M ↑ c —↠[ χs ] N ↑ applyReveals χs c
+reveal-↠ {M = M} c (_ ∎[]) = (M ↑ c) ∎[]
+reveal-↠ {M = M} {N = P} {χs = keep ∷ χs} c
+    (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  M ↑ c
+    —→[ keep ]⟨
+      subst≡ (λ P′ → M ↑ c —→[ keep ] P′)
+        (renamedReveal-term _ c) (ξ-reveal M→N refl) ⟩
+  _
+    —↠[ χs ]⟨
+      reveal-↠ (normalizeReveal c) N↠P ⟩
+  P ↑ applyReveals χs (normalizeReveal c) ∎[]
+reveal-↠ {M = M} {N = P} {χs = bind A ∷ χs} c
+    (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  M ↑ c
+    —→[ bind A ]⟨ ξ-reveal M→N refl ⟩
+  _
+    —↠[ χs ]⟨ reveal-↠ (rename↑ Fin.suc c) N↠P ⟩
+  P ↑ applyReveals χs (rename↑ Fin.suc c) ∎[]
+
+conceal-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↓ Δ A B)
+  → M —↠[ χs ] N
+  → M ↓ c —↠[ χs ] N ↓ applyConceals χs c
+conceal-↠ {M = M} c (_ ∎[]) = (M ↓ c) ∎[]
+conceal-↠ {M = M} {N = P} {χs = keep ∷ χs} c
+    (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  M ↓ c
+    —→[ keep ]⟨
+      subst≡ (λ P′ → M ↓ c —→[ keep ] P′)
+        (renamedConceal-term _ c) (ξ-conceal M→N refl) ⟩
+  _
+    —↠[ χs ]⟨
+      conceal-↠ (normalizeConceal c) N↠P ⟩
+  P ↓ applyConceals χs (normalizeConceal c) ∎[]
+conceal-↠ {M = M} {N = P} {χs = bind A ∷ χs} c
+    (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  M ↓ c
+    —→[ bind A ]⟨ ξ-conceal M→N refl ⟩
+  _
+    —↠[ χs ]⟨ conceal-↠ (rename↓ Fin.suc c) N↠P ⟩
+  P ↓ applyConceals χs (rename↓ Fin.suc c) ∎[]
 
 appL-↠ : ∀ {Δ Δ′} {L M : Term Δ} {L′ : Term Δ′}
     {χs : StoreChanges Δ Δ′}

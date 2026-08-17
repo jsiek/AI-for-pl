@@ -1136,7 +1136,19 @@ structural-catchup-target-reveal : ∀ {Δᴸ Δᴿ Δ}
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
         ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
-  → (∀ {N₁}
+  → (∀ {Δᵒ}
+      {Wᵒ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ child) Δᵒ}
+      {N₁}
+      → (plan : StructuralWorldExtendᴿ
+          (StructuralCatchupRightResult.χs child) W Wᵒ)
+      → Wᵒ ∣
+          ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+          ⊢² M ⊑
+            (StructuralCatchupRightResult.N′ child
+              ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
+            ∶ ECR.transport⊑ᵂ
+                (structural-world-extendᴿ plan) q
       → (StructuralCatchupRightResult.N′ child
            ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
           —→[ keep ] N₁
@@ -1175,9 +1187,26 @@ structural-catchup-target-reveal {γ = γ} {c′ = c′} {q = q}
     }
   where
   χs = StructuralCatchupRightResult.χs child
-structural-catchup-target-reveal
-    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont =
-  keep-cont step finalV
+structural-catchup-target-reveal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont
+    with structural-rebase-atᴿ-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-target-reveal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  keep-cont plan frame-rel step finalV
+  where
+  frame-rel =
+    CTI2.⊑reveal² (mono′ mono) rb′
+      (mapCtxᴿ-sameCtx
+        (structural-world-extendᴿ plan)
+        (structural-world-extendᴿ
+          (StructuralCatchupRightResult.structural-ext child))
+        sc)
+      (structural-target-reveal plan c′⊢)
+      (StructuralCatchupRightResult.final-relation child)
+      (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
 
 
 structural-catchup-target-conceal : ∀ {Δᴸ Δᴿ Δ}
@@ -1195,7 +1224,19 @@ structural-catchup-target-conceal : ∀ {Δᴸ Δᴿ Δ}
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
         ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
-  → (∀ {N₁}
+  → (∀ {Δᵒ}
+      {Wᵒ : World Δᴸ
+        (StructuralCatchupRightResult.Δᴿ′ child) Δᵒ}
+      {N₁}
+      → (plan : StructuralWorldExtendᴿ
+          (StructuralCatchupRightResult.χs child) W Wᵒ)
+      → Wᵒ ∣
+          ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+          ⊢² M ⊑
+            (StructuralCatchupRightResult.N′ child
+              ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
+            ∶ ECR.transport⊑ᵂ
+                (structural-world-extendᴿ plan) q
       → (StructuralCatchupRightResult.N′ child
            ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
           —→[ keep ] N₁
@@ -1234,9 +1275,26 @@ structural-catchup-target-conceal {γ = γ} {c′ = c′} {q = q}
     }
   where
   χs = StructuralCatchupRightResult.χs child
-structural-catchup-target-conceal
-    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont =
-  keep-cont step finalV
+structural-catchup-target-conceal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont
+    with structural-reverse-rebase-atᴿ-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-target-conceal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c′⊢ child (structural-frame-keep step finalV) keep-cont
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  keep-cont plan frame-rel step finalV
+  where
+  frame-rel =
+    CTI2.⊑conceal² (mono′ mono) rb′
+      (mapCtxᴿ-sameCtx
+        (structural-world-extendᴿ plan)
+        (structural-world-extendᴿ
+          (StructuralCatchupRightResult.structural-ext child))
+        sc)
+      (structural-target-conceal plan c′⊢)
+      (StructuralCatchupRightResult.final-relation child)
+      (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
 
 
 structural-catchup-paired-reveal : ∀ {Δᴸ Δᴿ Δ}
@@ -1257,6 +1315,17 @@ structural-catchup-paired-reveal : ∀ {Δᴸ Δᴿ Δ}
       (StructuralCatchupRightResult.N′ child
         ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
   → (∀ {N₁}
+      → ∀ {Δᵒ}
+      → {Wᵒ : World Δᴸ
+          (StructuralCatchupRightResult.Δᴿ′ child) Δᵒ}
+      → (plan : StructuralWorldExtendᴿ
+          (StructuralCatchupRightResult.χs child) W Wᵒ)
+      → Wᵒ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+          ⊢² M ↑ c ⊑
+            (StructuralCatchupRightResult.N′ child
+              ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
+            ∶ ECR.transport⊑ᵂ
+                (structural-world-extendᴿ plan) q
       → (StructuralCatchupRightResult.N′ child
            ↑ applyReveals (StructuralCatchupRightResult.χs child) c′)
           —→[ keep ] N₁
@@ -1296,9 +1365,27 @@ structural-catchup-paired-reveal {γ = γ} {c′ = c′} {q = q}
     }
   where
   χs = StructuralCatchupRightResult.χs child
-structural-catchup-paired-reveal
-    mono rb sc c⊢ c′⊢ child (structural-frame-keep step finalV) keep-cont =
-  keep-cont step finalV
+structural-catchup-paired-reveal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c⊢ c′⊢ child (structural-frame-keep step finalV) keep-cont
+    with structural-rebase-at-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-paired-reveal {γ = γ} {c′ = c′} {q = q}
+    mono rb sc c⊢ c′⊢ child (structural-frame-keep step finalV) keep-cont
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  keep-cont plan frame-rel step finalV
+  where
+  frame-rel =
+    CTI2.reveal⊑reveal² (mono′ mono) rb′
+      (mapCtxᴿ-sameCtx
+        (structural-world-extendᴿ plan)
+        (structural-world-extendᴿ
+          (StructuralCatchupRightResult.structural-ext child))
+        sc)
+      (structural-source-reveal plan c⊢)
+      (structural-target-reveal-just plan c′⊢)
+      (StructuralCatchupRightResult.final-relation child)
+      (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
 
 
 structural-catchup-paired-conceal : ∀ {Δᴸ Δᴿ Δ}
@@ -1323,6 +1410,17 @@ structural-catchup-paired-conceal : ∀ {Δᴸ Δᴿ Δ}
       (StructuralCatchupRightResult.N′ child
         ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
   → (∀ {N₁}
+      → ∀ {Δᵒ}
+      → {Wᵒ : World Δᴸ
+          (StructuralCatchupRightResult.Δᴿ′ child) Δᵒ}
+      → (plan : StructuralWorldExtendᴿ
+          (StructuralCatchupRightResult.χs child) W Wᵒ)
+      → Wᵒ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+          ⊢² M ↓ c ⊑
+            (StructuralCatchupRightResult.N′ child
+              ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
+            ∶ ECR.transport⊑ᵂ
+                (structural-world-extendᴿ plan) q
       → (StructuralCatchupRightResult.N′ child
            ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
           —→[ keep ] N₁
@@ -1364,10 +1462,29 @@ structural-catchup-paired-conceal {γ = γ} {c′ = c′} {q = q}
     }
   where
   χs = StructuralCatchupRightResult.χs child
-structural-catchup-paired-conceal
+structural-catchup-paired-conceal {γ = γ} {c′ = c′} {q = q}
     child endpoint-partner mono rb sc c⊢ c′⊢
-    (structural-frame-keep step finalV) keep-cont =
-  keep-cont step finalV
+    (structural-frame-keep step finalV) keep-cont
+    with structural-reverse-rebase-at-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-paired-conceal {γ = γ} {c′ = c′} {q = q}
+    child endpoint-partner mono rb sc c⊢ c′⊢
+    (structural-frame-keep step finalV) keep-cont
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  keep-cont plan frame-rel step finalV
+  where
+  frame-rel =
+    CTI2.conceal⊑conceal² endpoint-partner (mono′ mono) rb′
+      (mapCtxᴿ-sameCtx
+        (structural-world-extendᴿ plan)
+        (structural-world-extendᴿ
+          (StructuralCatchupRightResult.structural-ext child))
+        sc)
+      (structural-source-conceal plan c⊢)
+      (structural-target-conceal-just plan c′⊢)
+      (StructuralCatchupRightResult.final-relation child)
+      (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
 
 
 structural-catchup-packaged-seal-star : ∀ {Δᴸ Δᴿ Δ}
@@ -1405,6 +1522,20 @@ structural-catchup-packaged-seal-star : ∀ {Δᴸ Δᴿ Δ}
         ↓ seal
             (mapVarChanges (StructuralCatchupRightResult.χs child) Xᴿ) ★)
   → (∀ {N₁}
+      → ∀ {Δᵒ}
+      → {Wᵒ : World Δᴸ
+          (StructuralCatchupRightResult.Δᴿ′ child) Δᵒ}
+      → (plan : StructuralWorldExtendᴿ
+          (StructuralCatchupRightResult.χs child) W Wᵒ)
+      → Wᵒ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+          ⊢² M ↓ seal Xᴸ ★ ⊑
+            (StructuralCatchupRightResult.N′ child
+              ↓ seal
+                  (mapVarChanges
+                    (StructuralCatchupRightResult.χs child) Xᴿ)
+                  ★)
+            ∶ ECR.transport⊑ᵂ
+                (structural-world-extendᴿ plan) q
       → (StructuralCatchupRightResult.N′ child
            ↓ seal
                (mapVarChanges (StructuralCatchupRightResult.χs child) Xᴿ)
@@ -1495,9 +1626,72 @@ structural-catchup-packaged-seal-star
       (applyTys-var χs Xᴿ)
       (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
 structural-catchup-packaged-seal-star
-    child endpoint-partner endpoint-source-rel mono rb sc c⊢ c′⊢
-    (structural-frame-keep step finalV) keep-cont =
-  keep-cont step finalV
+    {γ = γ} {γᵖ = γᵖ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    {p★ = p★} {qᵖ = qᵖ} {q = q} child endpoint-partner
+    endpoint-source-rel mono rb sc c⊢ c′⊢
+    (structural-frame-keep step finalV) keep-cont
+    with structural-reverse-rebase-at-pullback
+      (StructuralCatchupRightResult.structural-ext child) rb
+structural-catchup-packaged-seal-star
+    {γ = γ} {γᵖ = γᵖ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    {p★ = p★} {qᵖ = qᵖ} {q = q} child endpoint-partner
+    endpoint-source-rel mono rb sc c⊢ c′⊢
+    (structural-frame-keep step finalV) keep-cont
+    | record { W′ = W′ ; outer-plan = plan
+             ; post-rebase = rb′ ; post-mono = mono′ } =
+  keep-cont plan frame-rel step finalV
+  where
+  χs = StructuralCatchupRightResult.χs child
+  child-ext =
+    structural-world-extendᴿ
+      (StructuralCatchupRightResult.structural-ext child)
+  p★-packaged : ★ ⊑ᵂ⟨ StructuralCatchupRightResult.W′ child ⟩ ★
+  p★-packaged =
+    subst≡
+      (λ B → ★ ⊑ᵂ⟨ StructuralCatchupRightResult.W′ child ⟩ B)
+      (applyTys-★ χs)
+      (ECR.transport⊑ᵂ child-ext p★)
+  qᵖ-packaged :
+    (＇ Xᴸ) ⊑ᵂ⟨ StructuralCatchupRightResult.W′ child ⟩ ★
+  qᵖ-packaged =
+    subst≡
+      (λ B → (＇ Xᴸ) ⊑ᵂ⟨ StructuralCatchupRightResult.W′ child ⟩ B)
+      (applyTys-★ χs)
+      (ECR.transport⊑ᵂ child-ext qᵖ)
+  q-packaged :
+    (＇ Xᴸ) ⊑ᵂ⟨ W′ ⟩ (＇ mapVarChanges χs Xᴿ)
+  q-packaged =
+    subst≡
+      (λ B → (＇ Xᴸ) ⊑ᵂ⟨ W′ ⟩ B)
+      (applyTys-var χs Xᴿ)
+      (ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q)
+  frame-rel =
+    TBL.⊢²-retarget
+      {q = ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q}
+      (rel-target-transportᴿ
+        (sym (applyTys-var χs Xᴿ))
+        q-packaged
+        (CTI2.packaged-seal-star²
+          {p★ = p★-packaged} {qᵖ = qᵖ-packaged}
+          endpoint-partner (mono′ mono) rb′
+          (mapCtxᴿ-sameCtx
+            (structural-world-extendᴿ plan)
+            (structural-world-extendᴿ
+              (StructuralCatchupRightResult.structural-ext child))
+            sc)
+          (structural-source-conceal plan c⊢)
+          (structural-target-seal-star plan c′⊢)
+          (TBL.⊢²-retarget {q = p★-packaged}
+            (rel-target-transportᴿ
+              (applyTys-★ χs)
+              (ECR.transport⊑ᵂ child-ext p★)
+              (StructuralCatchupRightResult.final-relation child)))
+          (TBL.⊢²-retarget {q = qᵖ-packaged}
+            (rel-target-transportᴿ
+              (applyTys-★ χs)
+              (ECR.transport⊑ᵂ child-ext qᵖ)
+              endpoint-source-rel))
+          q-packaged))
 
 
 structural-catchup-compose : ∀ {Δᴸ Δᴿ Δ}

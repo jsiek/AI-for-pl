@@ -275,3 +275,29 @@ Complete residual enumeration from item 4:
    worker cannot complete its mutual route, the concrete factory pair and
    public knot cannot be specialized, grounding cannot be hooked to the
    concrete knot, and resolved-note/regression cleanup cannot be soundly marked.
+
+ITEM 4 D1 FOLLOW-UP STATUS (2026-08-17):
+
+The D1 ruling was applied to the five structural target-conversion rows in
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`.  Their keep-outcome
+continuations now receive the checked post-child frame relation before the
+administrative keep step:
+
+```agda
+plan : StructuralWorldExtendᴿ χs W Wᵒ
+frame-rel :
+  Wᵒ ∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+    ⊢² source ⊑ target-frame ∶
+      ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
+```
+
+This discharges the row-level version of gap 1 without changing CTI, reduction,
+or public fuel surfaces.
+
+The total structural value dispatcher remains stopped before live worker code:
+plain `⊑reveal²` and `⊑conceal²` branches still need a source of reduct
+relations for the direct administrative target keep outcomes.  The required
+major relation-level statements were written to
+`proof/DGG/notes/t1-target-frame-keep-rel-proposal.red` instead of being
+implemented, per the standing rule against new unapproved inductions over
+`⊢²`.

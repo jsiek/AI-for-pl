@@ -125,6 +125,7 @@ import proof.DGG.Catchup.LeftValueCatchupProof
 ------------------------------------------------------------------------
 
 import proof.DGG.SimPrimitiveValuesProof
+import proof.DGG.SimCastLayerInversion
 import proof.DGG.SimSourceConcealValuesProof
 import proof.DGG.SimPairedConcealValuesProof
 import proof.DGG.TransportTermImprecisionProof

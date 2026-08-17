@@ -9,11 +9,15 @@ module proof.DGG.CastConsistencyViews where
 --     not change the cast-term imprecision relation.
 
 import Data.Fin as Fin
+import Data.Nat as Nat
+open import Data.Empty using (⊥-elim)
+open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
 open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; idᵍ; _!; ？_;
-   inst_; gen_)
+   _↦_; ∀ᶜ_; inst_; gen_; bot-elim; bot-intro;
+   flipᵐ; extᵐ; instᵐ; genᵐ)
 
 ------------------------------------------------------------------------
 -- Variable tags and projections
@@ -96,3 +100,137 @@ base-project-cast-view
   base-project-cast-syntax
 base-project-cast-view
     (？_ {G = `∀ ★} (inst_ ⦃ z∈A = () ⦄ _ _))
+
+------------------------------------------------------------------------
+-- Function-ground tags and projections
+------------------------------------------------------------------------
+
+data FunTagCastSyntax {Δ : TyCtx} (ν : Env∼ Δ) (A B : Ty Δ) :
+    ν ⊢ A ⇒ B ∼ ★ → Set where
+  fun-tag-cast-syntax :
+      ∀ {★∼A : flipᵐ ν ⊢ ★ ∼ A} {B∼★ : ν ⊢ B ∼ ★}
+        {⇒∼★ : ν ⊢ (★ ⇒ ★) ∼★} {Ans}
+    → FunTagCastSyntax ν A B
+        (_! ⦃ Gᵍ = ★⇒★ ⦄ ⦃ G∼★ = ⇒∼★ ⦄
+          (★∼A ↦ B∼★) ⦃ Ans = Ans ⦄)
+
+
+fun-tag-cast-view : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {A B : Ty Δ}
+  → (c : ν ⊢ A ⇒ B ∼ ★)
+  → FunTagCastSyntax ν A B c
+fun-tag-cast-view
+    (_! ⦃ Gᵍ = ★⇒★ ⦄ (_ ↦ _)) =
+  fun-tag-cast-syntax
+fun-tag-cast-view
+    (_! {G = `∀ ★} (gen_ ⦃ z∈B = () ⦄ _ _))
+
+
+data FunProjectCastSyntax {Δ : TyCtx} (ν : Env∼ Δ) (A B : Ty Δ) :
+    ν ⊢ ★ ∼ A ⇒ B → Set where
+  fun-project-cast-syntax :
+      ∀ {A∼★ : flipᵐ ν ⊢ A ∼ ★} {★∼B : ν ⊢ ★ ∼ B}
+        {★∼⇒ : ν ⊢★∼ (★ ⇒ ★)} {Bns}
+    → FunProjectCastSyntax ν A B
+        (？_ ⦃ Gᵍ = ★⇒★ ⦄ ⦃ ★∼G = ★∼⇒ ⦄
+          (A∼★ ↦ ★∼B) ⦃ Bns = Bns ⦄)
+
+
+fun-project-cast-view : ∀ {Δ : TyCtx} {ν : Env∼ Δ} {A B : Ty Δ}
+  → (c : ν ⊢ ★ ∼ A ⇒ B)
+  → FunProjectCastSyntax ν A B c
+fun-project-cast-view
+    (？_ ⦃ Gᵍ = ★⇒★ ⦄ (_ ↦ _)) =
+  fun-project-cast-syntax
+fun-project-cast-view
+    (？_ {G = `∀ ★} (inst_ ⦃ z∈A = () ⦄ _ _))
+
+------------------------------------------------------------------------
+-- Universal-ground tags and projections
+------------------------------------------------------------------------
+
+data AllTagCastSyntax {Δ : TyCtx} (ν : Env∼ Δ) :
+    (A : Ty (Nat.suc Δ)) → ν ⊢ `∀ A ∼ ★ → Set where
+  all-tag-cast-syntax :
+      ∀ {A : Ty (Nat.suc Δ)} {A∼★ : extᵐ ν ⊢ A ∼ ★}
+        {∀∼★ : ν ⊢ (`∀ ★) ∼★} {Ans}
+    → AllTagCastSyntax ν A
+        (_! ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = ∀∼★ ⦄
+          (∀ᶜ A∼★) ⦃ Ans = Ans ⦄)
+  all-tag-inst-syntax :
+      ∀ {A : Ty (Nat.suc Δ)}
+        {G : Ty Δ} {Gᵍ : Ground G} {G∼★ : ν ⊢ G ∼★}
+        {Anv} {z∈A} {A∼G : instᵐ ν ⊢ A ∼ ⇑ᵗ G}
+        {G≢★} {Ans}
+    → AllTagCastSyntax ν A
+        (_! ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+          ((inst_ ⦃ Anv = Anv ⦄ ⦃ z∈A = z∈A ⦄ A∼G) G≢★)
+          ⦃ Ans = Ans ⦄)
+  all-tag-bot-elim-syntax :
+      ∀ {∀∼★ : ν ⊢ (`∀ ★) ∼★} {Ans}
+    → AllTagCastSyntax ν (＇ Fin.zero)
+        (_! ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = ∀∼★ ⦄
+          bot-elim ⦃ Ans = Ans ⦄)
+
+
+all-tag-cast-view : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+    {A : Ty (Nat.suc Δ)}
+  → (c : ν ⊢ `∀ A ∼ ★)
+  → AllTagCastSyntax ν A c
+all-tag-cast-view
+    (_! ⦃ Gᵍ = ∀★ ⦄ (∀ᶜ _)) =
+  all-tag-cast-syntax
+all-tag-cast-view
+    (_! (inst_ _ _)) =
+  all-tag-inst-syntax
+all-tag-cast-view
+    (_! ⦃ Gᵍ = ∀★ ⦄ bot-elim) =
+  all-tag-bot-elim-syntax
+all-tag-cast-view
+    (_! {G = `∀ ★} (gen_ ⦃ z∈B = () ⦄ _ _))
+all-tag-cast-view
+    (inst_ _ ★≢★) =
+  ⊥-elim (★≢★ refl)
+
+
+data AllProjectCastSyntax {Δ : TyCtx} (ν : Env∼ Δ) :
+    (A : Ty (Nat.suc Δ)) → ν ⊢ ★ ∼ `∀ A → Set where
+  all-project-cast-syntax :
+      ∀ {A : Ty (Nat.suc Δ)} {★∼A : extᵐ ν ⊢ ★ ∼ A}
+        {★∼∀ : ν ⊢★∼ (`∀ ★)} {Bns}
+    → AllProjectCastSyntax ν A
+        (？_ ⦃ Gᵍ = ∀★ ⦄ ⦃ ★∼G = ★∼∀ ⦄
+          (∀ᶜ ★∼A) ⦃ Bns = Bns ⦄)
+  all-project-gen-syntax :
+      ∀ {A : Ty (Nat.suc Δ)}
+        {G : Ty Δ} {Gᵍ : Ground G} {★∼G : ν ⊢★∼ G}
+        {Bnv} {z∈A} {G∼A : genᵐ ν ⊢ ⇑ᵗ G ∼ A}
+        {G≢★} {Bns}
+    → AllProjectCastSyntax ν A
+        (？_ ⦃ Gᵍ = Gᵍ ⦄ ⦃ ★∼G = ★∼G ⦄
+          ((gen_ ⦃ Bnv = Bnv ⦄ ⦃ z∈B = z∈A ⦄ G∼A) G≢★)
+          ⦃ Bns = Bns ⦄)
+  all-project-bot-intro-syntax :
+      ∀ {★∼∀ : ν ⊢★∼ (`∀ ★)} {Bns}
+    → AllProjectCastSyntax ν (＇ Fin.zero)
+        (？_ ⦃ Gᵍ = ∀★ ⦄ ⦃ ★∼G = ★∼∀ ⦄
+          bot-intro ⦃ Bns = Bns ⦄)
+
+
+all-project-cast-view : ∀ {Δ : TyCtx} {ν : Env∼ Δ}
+    {A : Ty (Nat.suc Δ)}
+  → (c : ν ⊢ ★ ∼ `∀ A)
+  → AllProjectCastSyntax ν A c
+all-project-cast-view
+    (？_ ⦃ Gᵍ = ∀★ ⦄ (∀ᶜ _)) =
+  all-project-cast-syntax
+all-project-cast-view
+    (？_ (gen_ _ _)) =
+  all-project-gen-syntax
+all-project-cast-view
+    (？_ ⦃ Gᵍ = ∀★ ⦄ bot-intro) =
+  all-project-bot-intro-syntax
+all-project-cast-view
+    (？_ {G = `∀ ★} (inst_ ⦃ z∈A = () ⦄ _ _))
+all-project-cast-view
+    (gen_ _ ★≢★) =
+  ⊥-elim (★≢★ refl)

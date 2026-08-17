@@ -98,11 +98,61 @@ build-fuel-knot extra-factory value-factory inst-factory fuel =
   build-fuel-knot-acc extra-factory value-factory inst-factory fuel
     (NatInduction.<-wellFounded fuel)
 
+record StructuralFuelStepSurface (fuel : ℕ) : Set₁ where
+  field
+    smaller-structural-extra :
+      ∀ {m} → m < fuel → StructuralExtraCastRightAt m
+    smaller-inst :
+      ∀ {m} → m < fuel → StructuralInstCatchupRightAt m
+    smaller-structural-value :
+      ∀ {m} → m < fuel → StructuralValueCatchupRightAt m
+
+
+erase-structural-fuel-step : ∀ {fuel}
+  → StructuralFuelStepSurface fuel
+  → FuelStepSurface fuel
+erase-structural-fuel-step structural-step = record
+  { smaller-extra = λ m<fuel →
+      erase-structural-extra-cast-right-at
+        (StructuralFuelStepSurface.smaller-structural-extra
+          structural-step m<fuel)
+  ; smaller-inst = λ m<fuel →
+      erase-structural-inst-catchup-right-at
+        (StructuralFuelStepSurface.smaller-inst structural-step m<fuel)
+  ; smaller-value = λ m<fuel →
+      erase-structural-value-catchup-right-at
+        (StructuralFuelStepSurface.smaller-structural-value
+          structural-step m<fuel)
+  }
+
+
+record StructuralFuelKnot (fuel : ℕ) : Set₁ where
+  field
+    structural-extra-cast-at : StructuralExtraCastRightAt fuel
+    structural-inst-catchup-at : StructuralInstCatchupRightAt fuel
+    structural-value-catchup-at : StructuralValueCatchupRightAt fuel
+
+
+erase-structural-fuel-knot : ∀ {fuel}
+  → StructuralFuelKnot fuel
+  → FuelKnot fuel
+erase-structural-fuel-knot structural-knot = record
+  { extra-cast-at =
+      erase-structural-extra-cast-right-at
+        (StructuralFuelKnot.structural-extra-cast-at structural-knot)
+  ; inst-catchup-at =
+      erase-structural-inst-catchup-right-at
+        (StructuralFuelKnot.structural-inst-catchup-at structural-knot)
+  ; value-catchup-at =
+      erase-structural-value-catchup-right-at
+        (StructuralFuelKnot.structural-value-catchup-at structural-knot)
+  }
+
 
 StructuralExtraCastFactory : Set₁
 StructuralExtraCastFactory =
   ∀ fuel
-  → FuelStepSurface fuel
+  → StructuralFuelStepSurface fuel
   → StructuralInstCatchupRightAt fuel
   → StructuralExtraCastRightAt fuel
 
@@ -111,14 +161,14 @@ StructuralValueCatchupFactory : Set₁
 StructuralValueCatchupFactory =
   ∀ fuel
   → StructuralExtraCastRightAt fuel
-  → FuelStepSurface fuel
+  → StructuralFuelStepSurface fuel
   → StructuralValueCatchupRightAt fuel
 
 
 StructuralInstCatchupFactory : Set₁
 StructuralInstCatchupFactory =
   ∀ fuel
-  → FuelStepSurface fuel
+  → StructuralFuelStepSurface fuel
   → StructuralInstCatchupRightAt fuel
 
 
@@ -128,53 +178,41 @@ build-structural-fuel-knot-acc :
   → StructuralInstCatchupFactory
   → (fuel : ℕ)
   → Acc _<_ fuel
-  → FuelKnot fuel
+  → StructuralFuelKnot fuel
 build-structural-fuel-knot-acc extra-factory value-factory inst-factory
     fuel (acc smaller) =
   record
-    { extra-cast-at = current-extra
-    ; inst-catchup-at = current-inst
-    ; value-catchup-at = current-value
+    { structural-extra-cast-at = current-structural-extra
+    ; structural-inst-catchup-at = current-structural-inst
+    ; structural-value-catchup-at = current-structural-value
     }
   where
-  fuel-step : FuelStepSurface fuel
-  fuel-step = record
-    { smaller-extra = λ {m} m<fuel →
-        FuelKnot.extra-cast-at
+  structural-fuel-step : StructuralFuelStepSurface fuel
+  structural-fuel-step = record
+    { smaller-structural-extra = λ {m} m<fuel →
+        StructuralFuelKnot.structural-extra-cast-at
           (build-structural-fuel-knot-acc extra-factory value-factory
             inst-factory m (smaller m<fuel))
     ; smaller-inst = λ {m} m<fuel →
-        FuelKnot.inst-catchup-at
+        StructuralFuelKnot.structural-inst-catchup-at
           (build-structural-fuel-knot-acc extra-factory value-factory
             inst-factory m (smaller m<fuel))
-    ; smaller-value = λ {m} m<fuel →
-        FuelKnot.value-catchup-at
+    ; smaller-structural-value = λ {m} m<fuel →
+        StructuralFuelKnot.structural-value-catchup-at
           (build-structural-fuel-knot-acc extra-factory value-factory
             inst-factory m (smaller m<fuel))
     }
 
   current-structural-inst : StructuralInstCatchupRightAt fuel
-  current-structural-inst = inst-factory fuel fuel-step
-
-  current-inst : InstCatchupRightAt fuel
-  current-inst =
-    erase-structural-inst-catchup-right-at current-structural-inst
+  current-structural-inst = inst-factory fuel structural-fuel-step
 
   current-structural-extra : StructuralExtraCastRightAt fuel
   current-structural-extra =
-    extra-factory fuel fuel-step current-structural-inst
-
-  current-extra : ExtraCastRightAt fuel
-  current-extra =
-    erase-structural-extra-cast-right-at current-structural-extra
+    extra-factory fuel structural-fuel-step current-structural-inst
 
   current-structural-value : StructuralValueCatchupRightAt fuel
   current-structural-value =
-    value-factory fuel current-structural-extra fuel-step
-
-  current-value : ValueCatchupRightAt fuel
-  current-value =
-    erase-structural-value-catchup-right-at current-structural-value
+    value-factory fuel current-structural-extra structural-fuel-step
 
 
 build-structural-fuel-knot :
@@ -184,5 +222,6 @@ build-structural-fuel-knot :
   → (fuel : ℕ)
   → FuelKnot fuel
 build-structural-fuel-knot extra-factory value-factory inst-factory fuel =
-  build-structural-fuel-knot-acc extra-factory value-factory inst-factory
-    fuel (NatInduction.<-wellFounded fuel)
+  erase-structural-fuel-knot
+    (build-structural-fuel-knot-acc extra-factory value-factory inst-factory
+      fuel (NatInduction.<-wellFounded fuel))

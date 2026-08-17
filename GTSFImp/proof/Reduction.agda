@@ -3,8 +3,9 @@ module proof.Reduction where
 -- File Charter:
 --   * Proof lemmas for the store-changing reduction relation.
 --   * Supplies arrow, universal-type, and dynamic-type preservation under
---     store-change transport, application and type-application congruence
---     over multi-step reduction, and inert preservation under transport.
+--     store-change transport, application, primitive-operation, and
+--     type-application congruence over multi-step reduction, and inert
+--     and value preservation under transport.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -17,8 +18,12 @@ open import Relation.Binary.PropositionalEquality using
 open import Types
 open import Consistency hiding (keep)
 import Consistency as C
+open import Primitives using
+  (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
-  (Term; Value; _·_; _⦂∀_[_]; _⟨_⟩; Inert; inj; fun; all; genᵥ)
+  ( Term; Value; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
+  ; Inert; inj; fun; all; genᵥ
+  )
 open import Reduction
 open import proof.Consistency using (gen-safe)
 import proof.Imprecision as PI
@@ -68,6 +73,24 @@ applyTys-★ [] = refl
 applyTys-★ (keep ∷ χs) = applyTys-★ χs
 applyTys-★ ((bind C) ∷ χs) = applyTys-★ χs
 
+applyTys-primArgTy : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) (op : Prim)
+  → applyTys χs (primArgTy op) ≡ primArgTy op
+applyTys-primArgTy [] op = refl
+applyTys-primArgTy (keep ∷ χs) op = applyTys-primArgTy χs op
+applyTys-primArgTy ((bind C) ∷ χs) addℕ =
+  applyTys-primArgTy χs addℕ
+applyTys-primArgTy ((bind C) ∷ χs) and𝔹 =
+  applyTys-primArgTy χs and𝔹
+
+applyTys-primResultTy : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) (op : Prim)
+  → applyTys χs (primResultTy op) ≡ primResultTy op
+applyTys-primResultTy [] op = refl
+applyTys-primResultTy (keep ∷ χs) op = applyTys-primResultTy χs op
+applyTys-primResultTy ((bind C) ∷ χs) addℕ =
+  applyTys-primResultTy χs addℕ
+applyTys-primResultTy ((bind C) ∷ χs) and𝔹 =
+  applyTys-primResultTy χs and𝔹
+
 applyTys-open : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
     (B : Ty (Nat.suc Δ)) (A : Ty Δ)
   → applyTys χs (B [ A ]ᵗ) ≡
@@ -77,6 +100,17 @@ applyTys-open (keep ∷ χs) B A = applyTys-open χs B A
 applyTys-open ((bind C) ∷ χs) B A =
   trans (cong (applyTys χs) (rename-openᵗ Fin.suc B A))
     (applyTys-open χs (applyBody (bind C) B) (applyTy (bind C) A))
+
+applyTerms-preserves-Value : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
+    {V : Term Δ}
+  → Value V
+  → Value (applyTerms χs V)
+applyTerms-preserves-Value [] vV = vV
+applyTerms-preserves-Value (keep ∷ χs) vV =
+  applyTerms-preserves-Value χs vV
+applyTerms-preserves-Value ((bind A) ∷ χs) vV =
+  applyTerms-preserves-Value χs
+    (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
 
 appL-↠ : ∀ {Δ Δ′} {L M : Term Δ} {L′ : Term Δ′}
     {χs : StoreChanges Δ Δ′}
@@ -112,6 +146,41 @@ appR-↠ {V = V} {M = M} {M′ = P} {χs = bind A ∷ χs} vV
     —↠[ χs ]⟨
       appR-↠ (renameᵗᵐ-preserves-Value wk↪ᵗ vV) N↠P ⟩
   applyTerms χs (bind A ▷ᵀ V) · P ∎[]
+
+primL-↠ : ∀ {Δ Δ′} {L M : Term Δ} {L′ : Term Δ′} {op : Prim}
+    {χs : StoreChanges Δ Δ′}
+  → L —↠[ χs ] L′
+  → L ⊕[ op ] M —↠[ χs ] L′ ⊕[ op ] applyTerms χs M
+primL-↠ {L = L} {M = M} (_ ∎[]) = (L ⊕[ _ ] M) ∎[]
+primL-↠ {L = L} {M = M} {L′ = P} {op = op} {χs = χ ∷ χs}
+    (_ —→[ χ ]⟨ L→N ⟩ N↠P) =
+  L ⊕[ op ] M
+    —→[ χ ]⟨ ξ-⊕₁ L→N refl ⟩
+  _
+    —↠[ χs ]⟨ primL-↠ N↠P ⟩
+  P ⊕[ op ] applyTerms χs (χ ▷ᵀ M) ∎[]
+
+primR-↠ : ∀ {Δ Δ′} {V M : Term Δ} {M′ : Term Δ′} {op : Prim}
+    {χs : StoreChanges Δ Δ′}
+  → Value V
+  → M —↠[ χs ] M′
+  → V ⊕[ op ] M —↠[ χs ] applyTerms χs V ⊕[ op ] M′
+primR-↠ {V = V} {M = M} vV (_ ∎[]) = (V ⊕[ _ ] M) ∎[]
+primR-↠ {V = V} {M = M} {M′ = P} {op = op}
+    {χs = keep ∷ χs} vV (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  V ⊕[ op ] M
+    —→[ keep ]⟨ ξ-⊕₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨ primR-↠ vV N↠P ⟩
+  applyTerms χs V ⊕[ op ] P ∎[]
+primR-↠ {V = V} {M = M} {M′ = P} {op = op}
+    {χs = bind A ∷ χs} vV (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  V ⊕[ op ] M
+    —→[ bind A ]⟨ ξ-⊕₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨
+      primR-↠ (renameᵗᵐ-preserves-Value wk↪ᵗ vV) N↠P ⟩
+  applyTerms χs (bind A ▷ᵀ V) ⊕[ op ] P ∎[]
 
 typeApp-↠ : ∀ {Δ Δ′} {L : Term Δ} {L′ : Term Δ′}
     {C : Ty (Nat.suc Δ)} {A : Ty Δ}

@@ -115,6 +115,7 @@ import proof.DGG.Catchup.FuelKnotProof
 -- Current frontier (M8: higher-order DGG assembly)
 ------------------------------------------------------------------------
 
+import proof.DGG.SimProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.DynamicGradualGuaranteeProof

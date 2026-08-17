@@ -59,15 +59,11 @@ CTI2.LiftCtxᴸ X⊑★
   (ECR.mapCtxᴿ extᴸ γᴸ)
 ```
 
-so `structural-Λ-replay` can use:
-
-```agda
 Diagram:
 Λ U      ⊑      F
  |              |
  |              |
  U        ⊑     F
-```
 
 where the bottom row is at
 `CTI2.liftWorldLeft X⊑★ W¹` and the top row is at `W¹`.

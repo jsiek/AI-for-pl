@@ -90,7 +90,7 @@ _++χ_ : ∀ {Δ Δ′ Δ″}
 -- A provenance-FREE value catch-up surface over arbitrary columns is
 -- refuted: the projection-mismatch package feeds it a singleton
 -- projection column and the target blames (checked:
--- ValueCatchupProvenanceGapScratch.agda at the repo root; design:
+-- notes/ValueCatchupProvenanceGapScratch.agda; design:
 -- notes/M6-PROVENANCE-DESIGN.md). The driver therefore carries a
 -- column provenance: a full CatchupCast at the head (which faces the
 -- real current value) and the term-independent fragment CatchupCast⁻
@@ -315,7 +315,6 @@ record FuelStepSurface (fuel : ℕ) : Set₁ where
     smaller-extra : ∀ {m} → m < fuel → ExtraCastRightAt m
     smaller-inst : ∀ {m} → m < fuel → InstCatchupRightAt m
     smaller-value : ∀ {m} → m < fuel → ValueCatchupRightProvAt m
-    next-knot : FuelKnot (suc fuel)
 
 ------------------------------------------------------------------------
 -- Strict-decrease and column-support statements

@@ -28,6 +28,7 @@ import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealPeelToolkit as SPT
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCoreBranch;
+   SourceColumnStripWorker; SourceSpineStripWorker;
    SourceColumnStripBranch; SourcePairedBranch; SourceSpineStripBranch;
    column-paired;
    column-sealed; column-tagged; core-paired; core-sealed;
@@ -42,7 +43,12 @@ open import proof.DGG.Inversion.SpineValueDef using
    var-value-view; variable-obligation-aligns; seal-rebase-target)
 open import proof.DGG.Inversion.TargetChainLemma using
   (target-source-star-at; target-source-star-chain)
-open import proof.DGG.Inversion.TargetWalkDef using (TargetSourceStarAt)
+open import proof.DGG.Inversion.TargetWalkDef using
+  (TargetSourceStarAt; target-source-star-final;
+   target-source-star-residual; target-source-star-var-residual;
+   target-source-star-paired; target-source-star-payload;
+   target-source-star-chain-final; target-source-star-chain-residual;
+   target-source-star-chain-paired; target-source-star-chain-payload)
 open import proof.DGG.Inversion.TargetWalkSupport using
   (impEnvMono-∘; inner-source-pivot-eq; rebase-source-membership;
    rebase-source-membership-back; rebase-target-membership;
@@ -372,7 +378,85 @@ private
     target-source-star-at-opaque : TargetSourceStarAt
     target-source-star-at-opaque = target-source-star-at
 
-  wrap-star-cast-final : ∀ {Δᴸ Δᴿ Δ}
+  data WrapStarCastFinalInput {Δᴸ Δᴿ Δ}
+      (W W′ : World Δᴸ Δᴿ Δ)
+      (γ : CtxImp W) (γ′ : CtxImp W′)
+      (V : Term Δᴸ) (U : Term Δᴿ)
+      (Xᴸ X₂ : TyVar Δᴸ) (Y : TyVar Δᴿ) :
+      (S : Ty Δᴿ)
+      → {ν : Env∼ Δᴸ}
+      → (c : ν ⊢ (＇ X₂) ∼ ★)
+      → (p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y))
+      → (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y))
+      → Set where
+    wrap-final-at : ∀ {ν}
+        {c : ν ⊢ (＇ X₂) ∼ ★}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      →
+        X₂ ≡ Xᴸ
+      →
+        W′ ∣ γ′ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
+          ⊑ U ↓ seal Y ★ ∶ p₂
+      → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂ Y ★ c p₂ q
+
+    wrap-final-chain : ∀ {Y₂ ν}
+        {c : ν ⊢ (＇ X₂) ∼ ★}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
+          ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+      → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂
+          Y (＇ Y₂) c p₂ q
+
+    wrap-final-base : ∀ {ι ν}
+        {c : ν ⊢ (＇ X₂) ∼ ★}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂
+          Y (‵ ι) c p₂ q
+
+    wrap-final-fun : ∀ {A B ν}
+        {c : ν ⊢ (＇ X₂) ∼ ★}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂
+          Y (A ⇒ B) c p₂ q
+
+    wrap-final-all : ∀ {A ν}
+        {c : ν ⊢ (＇ X₂) ∼ ★}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂
+          Y (`∀ A) c p₂ q
+
+  data WrapStarCastFinalView {Δᴸ Δᴿ Δ}
+      (W W′ : World Δᴸ Δᴿ Δ)
+      (γ : CtxImp W) (γ′ : CtxImp W′)
+      (V : Term Δᴸ) (U : Term Δᴿ)
+      (Xᴸ X₂ : TyVar Δᴸ) (Y : TyVar Δᴿ) :
+      (S : Ty Δᴿ)
+      → {ν : Env∼ Δᴸ}
+      → (c : ν ⊢ (＇ X₂) ∼ ★)
+      → (p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y))
+      → (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y))
+      → Set where
+    wrap-star-cast-final-ready : ∀ {S ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      →
+      WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
+      → WrapStarCastFinalView W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
+
+    wrap-star-cast-nonfinal : ∀ {S ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      →
+      WrapStarCastFinalView W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
+
+  wrap-star-cast-final-view : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
       {γ : CtxImp W} {γ′ : CtxImp W′}
       {V : Term Δᴸ} {U : Term Δᴿ}
@@ -389,67 +473,112 @@ private
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
-    → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
-        ⊑ U ↓ seal Y S ∶ q
-  wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
-      {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
-      {c = c} {p₂ = p₂} {q = q}
+    → WrapStarCastFinalView W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
+  wrap-star-cast-final-view {W = W} {W′ = W′}
+      {γ = γ} {γ′ = γ′} {V = V} {U = U} {S = ★}
+      {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₂ = p₂} {q = q}
       sv inert vU mono rb sc source∈ target∈ final
       with inner-source-pivot-eq rb q p₂
-  wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
-      {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
-      {c = c} {p₂ = p₂} {q = q}
+  wrap-star-cast-final-view {W = W} {W′ = W′}
+      {γ = γ} {γ′ = γ′} {V = V} {U = U} {S = ★}
+      {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₂ = p₂} {q = q}
       sv inert vU mono rb sc source∈ target∈ final
-      | refl =
-    source-column-untagged-final mono rb sc target∈
-      (target-source-star-at-opaque
+      | refl
+      with target-source-star-at-opaque
         {W = W′} {γ = γ′} {V = V} {U = U}
         {X = Xᴸ} {Y = Y} {S = ★} {c = c} {q = p₂}
         sv inert vU
         (rebase-source-membership rb source∈)
         (rebase-target-membership-forward rb target∈)
-        final)
-  wrap-star-cast-final {S = ＇ Y₂}
+        final
+  wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
+      source∈ target∈ final | refl
+      | target-source-star-final sourcePrem =
+    wrap-star-cast-final-ready (wrap-final-at refl sourcePrem)
+  wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
+      source∈ target∈ final | refl
+      | target-source-star-residual _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
+      source∈ target∈ final | refl
+      | target-source-star-paired _ _ _ _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
+      source∈ target∈ final | refl
+      | target-source-star-payload _ _ _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
+      source∈ target∈ final
+      with target-source-star-chain sv inert vU mono rb sc source∈
+        target∈ final
+  wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
+      source∈ target∈ final
+      | target-source-star-chain-final chain =
+    wrap-star-cast-final-ready (wrap-final-chain chain)
+  wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
+      source∈ target∈ final
+      | target-source-star-chain-residual _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
+      source∈ target∈ final
+      | target-source-star-chain-paired _ _ _ _ _ _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
+      source∈ target∈ final
+      | target-source-star-chain-payload _ _ _ _ _ _ _ _ _ =
+    wrap-star-cast-nonfinal
+  wrap-star-cast-final-view {S = ‵ ι}
       sv inert vU mono rb sc source∈ target∈ final =
-    target-source-star-chain sv inert vU mono rb sc source∈
-      target∈ final
-  wrap-star-cast-final {S = ‵ ι}
+    wrap-star-cast-final-ready wrap-final-base
+  wrap-star-cast-final-view {S = A ⇒ B}
       sv inert vU mono rb sc source∈ target∈ final =
-    ⊥-elim
-      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-base nonstar-ι)
-  wrap-star-cast-final {S = A ⇒ B}
+    wrap-star-cast-final-ready wrap-final-fun
+  wrap-star-cast-final-view {S = `∀ A}
       sv inert vU mono rb sc source∈ target∈ final =
-    ⊥-elim
-      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-fun nonstar-⇒)
-  wrap-star-cast-final {S = `∀ A}
-      sv inert vU mono rb sc source∈ target∈ final =
-    ⊥-elim
-      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-all nonstar-∀)
+    wrap-star-cast-final-ready wrap-final-all
 
-  star-rep-cast-final : ∀ {Δᴸ Δᴿ Δ}
+  wrap-star-cast-final : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
       {γ : CtxImp W} {γ′ : CtxImp W′}
       {V : Term Δᴸ} {U : Term Δᴿ}
-      {S : Ty Δᴿ} {X X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ}
-      {Xᴿ? : Maybe (TyVar Δᴿ)}
+      {S : Ty Δᴿ} {Xᴸ X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ}
       {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X₂) ∼ ★}
       {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
-      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
     → CastTerms.Inert c
     → Value U
     → CTI2.ImpEnvMono W W′
-    → TagRebaseAtᴸ W′ W (just X) Xᴿ?
+    → RebaseAt W′ W Xᴸ Y
     → CTI2.SameCtx γ γ′
-    → sourceStoreʷ W ∋ X ⦂ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
-    → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
-    → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal X ★
+    → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
+    → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal Xᴸ ★
         ⊑ U ↓ seal Y S ∶ q
-  star-rep-cast-final {q = q} sv inert vU mono rb sc source∈
-      target∈ final =
-    wrap-star-cast-final sv inert vU mono
-      (tag-rebase-target rb q) sc source∈ target∈ final
+  wrap-star-cast-final {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}
+      {c = c} {p₂ = p₂} {q = q}
+      sv inert vU mono rb sc source∈ target∈
+      (wrap-final-at refl sourcePrem) =
+    source-column-untagged-final mono rb sc target∈
+      sourcePrem
+  wrap-star-cast-final {S = ＇ Y₂}
+      sv inert vU mono rb sc source∈ target∈
+      (wrap-final-chain chain) =
+    chain
+  wrap-star-cast-final {S = ‵ ι}
+      sv inert vU mono rb sc source∈ target∈ wrap-final-base =
+    ⊥-elim
+      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-base nonstar-ι)
+  wrap-star-cast-final {S = A ⇒ B}
+      sv inert vU mono rb sc source∈ target∈ wrap-final-fun =
+    ⊥-elim
+      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-fun nonstar-⇒)
+  wrap-star-cast-final {S = `∀ A}
+      sv inert vU mono rb sc source∈ target∈ wrap-final-all =
+    ⊥-elim
+      (seal-target-nonstar-⊥ source∈ rb target∈ nonvar-all nonstar-∀)
 
   abstract
     source-cast-seal-final : ∀ {Δᴸ Δᴿ Δ}
@@ -460,6 +589,7 @@ private
         {X Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
         {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
         {pᵢ : Rᵢ ⊑ᵂ⟨ Wᵢ ⟩ (＇ Y)}
+        {p₂ : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
         {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
       → SpineValue V
       → CastTerms.Inert c
@@ -474,25 +604,22 @@ private
       → CTI2.SameCtx γ′ γᵢ
       → sourceStoreʷ W′ ∋ X ⦂ Rᵢ
       → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
+      → WrapStarCastFinalInput W W′ γ γ′ (V ↓ seal X Rᵢ) U
+          Xᴸ X Y S c p₂ q
       → W ∣ γ ⊢² ((V ↓ seal X Rᵢ) ⟨ c ⟩) ↓ seal Xᴸ ★
           ⊑ U ↓ seal Y S ∶ q
     source-cast-seal-final {W = W} {W′ = W′} {γ = γ}
         {γ′ = γ′} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
-        {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵢ = pᵢ}
+        {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₂ = p₂}
         {q = q} sv inert vU mono rb sc source∈ target∈
-        monoᵢ link scᵢ X∈ prem =
+        monoᵢ link scᵢ X∈ prem finalInput =
       wrap-star-cast-final
         {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
         {V = V ↓ seal X Rᵢ} {U = U} {S = S}
         {Xᴸ = Xᴸ} {X₂ = X} {Y = Y} {c = c}
-        {p₂ = rebase-pivot-obligation link} {q = q}
+        {p₂ = p₂} {q = q}
         (sv-seal sv) inert vU mono rb sc source∈ target∈
-        (CTI2.conceal⊑²
-          {p = pᵢ}
-          (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
-          monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
-          (CTI2.⊢↓-sealˣ X∈) prem
-          (rebase-pivot-obligation link))
+        finalInput
 
   source-seal-cast-final : ∀ {Δᴸ Δᴿ Δ}
       {W W′ Wᵢ : World Δᴸ Δᴿ Δ}
@@ -515,13 +642,15 @@ private
     → CTI2.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ ★
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
+    → WrapStarCastFinalInput W′ Wᵢ γ′ γᵢ V U X X₂ Y S c pᵢ
+        (rebase-pivot-obligation link)
     → W ∣ γ ⊢² ((V ⟨ c ⟩) ↓ seal X ★) ↓ seal Xᴸ (＇ X)
         ⊑ U ↓ seal Y S ∶ q
   source-seal-cast-final {W = W} {W′ = W′} {Wᵢ = Wᵢ}
       {γ = γ} {γ′ = γ′} {V = V} {U = U} {S = S}
       {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
       {pᵢ = pᵢ} {q = q} sv inert vU mono rb sc source∈
-      target∈ monoᵢ link scᵢ X∈ prem =
+      target∈ monoᵢ link scᵢ X∈ prem finalInput =
     target-source-var-chain (sv-seal (sv-cast sv inert)) vU mono
       rb sc source∈ target∈
       (wrap-star-cast-final
@@ -529,7 +658,7 @@ private
         {S = S} {Xᴸ = X} {X₂ = X₂} {Y = Y} {c = c}
         {p₂ = pᵢ} {q = rebase-pivot-obligation link}
         sv inert vU monoᵢ link scᵢ X∈
-        (rebase-target-membership-forward rb target∈) prem)
+        (rebase-target-membership-forward rb target∈) finalInput)
 
   source-seal-final : ∀ {Δᴸ Δᴿ Δ}
       {W W′ Wᵢ : World Δᴸ Δᴿ Δ}
@@ -667,6 +796,7 @@ private
       {νᴸ : Env∼ Δᴸ} {c : νᴸ ⊢ (＇ X) ∼ ★}
       {νᴿ : Env∼ Δᴿ} {cY : νᴿ ⊢ (＇ Y) ∼ ★}
       {pᵢ : Rᵢ ⊑ᵂ⟨ Wᵢ ⟩ (＇ Y)}
+      {p₂ : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
       {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
     → CastTerms.Inert c
@@ -677,10 +807,12 @@ private
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → CTI2.ImpEnvMono W′ Wᵢ
-    → RebaseAt Wᵢ W′ X Y
+    → (link : RebaseAt Wᵢ W′ X Y)
     → CTI2.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ Rᵢ
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
+    → WrapStarCastFinalInput W W′ γ γ′ (V ↓ seal X Rᵢ) U
+        Xᴸ X Y S c p₂ q
     → Σ[ Core ∈ Term Δᴸ ]
       Σ[ CoreTy ∈ Ty Δᴸ ]
       Σ[ Xᵒ ∈ TyVar Δᴸ ]
@@ -694,16 +826,16 @@ private
       {γ = γ} {γ′ = γ′} {γᵢ = γᵢ}
       {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
       {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c}
-      {pᵢ = pᵢ} {q = q} sv inert vU mono rb sc source∈
-      target∈ monoᵢ link scᵢ X∈ prem =
+      {pᵢ = pᵢ} {p₂ = p₂} {q = q} sv inert vU mono rb sc
+      source∈ target∈ monoᵢ link scᵢ X∈ prem finalInput =
     self-spine-sealed rb target∈
       (sv-seal (sv-cast (sv-seal sv) inert))
       (source-cast-seal-final
         {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
         {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
         {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵢ = pᵢ}
-        {q = q} sv inert vU mono rb sc source∈ target∈
-        monoᵢ link scᵢ X∈ prem)
+        {p₂ = p₂} {q = q} sv inert vU mono rb sc source∈ target∈
+        monoᵢ link scᵢ X∈ prem finalInput)
 
   source-wrap-star-cast-branch : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
@@ -723,6 +855,7 @@ private
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
+    → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
     → Σ[ Core ∈ Term Δᴸ ]
       Σ[ CoreTy ∈ Ty Δᴸ ]
       Σ[ Xᵒ ∈ TyVar Δᴸ ]
@@ -733,17 +866,45 @@ private
          × SourceSpineStripBranch W γ (V ⟨ c ⟩) ★ U Xᴸ Y S cY
              q Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
   source-wrap-star-cast-branch {W = W} {W′ = W′}
+      {γ = γ} {γ′ = γ′} {V = V ↓ seal X Rᵢ}
+      {U = U} {S = S} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y}
+      {c = c} {p₂ = p₂} {q = q}
+      (sv-seal {V = V} {X = X} {R = Rᵢ} sv) inert vU
+      mono rb sc source∈ target∈
+      prem@(CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
+        ok monoᵢ rbᵢ scᵢ (CTI2.⊢↓-sealˣ X∈) premᵢ .p₂)
+      finalInput
+      with source-seal-pivot-eq (CTI2T.source-typing² prem)
+  source-wrap-star-cast-branch {W = W} {W′ = W′}
+      {γ = γ} {γ′ = γ′} {V = V ↓ seal .X₂ Rᵢ}
+      {U = U} {S = S} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y}
+      {c = c} {p₂ = p₂} {q = q}
+      (sv-seal {V = V} {X = .X₂} {R = Rᵢ} sv) inert vU
+      mono rb sc source∈ target∈
+      prem@(CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
+        ok monoᵢ rbᵢ scᵢ (CTI2.⊢↓-sealˣ X∈) premᵢ .p₂)
+      finalInput
+      | refl =
+    source-cast-seal-branch
+      {W = W} {W′ = W′} {Wᵢ = Wᵢ}
+      {γ = γ} {γ′ = γ′} {γᵢ = γᵢ}
+      {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
+      {X = X₂} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵢ = _}
+      {p₂ = p₂} {q = q} sv inert vU mono rb sc source∈ target∈
+      monoᵢ (tag-rebase-target rbᵢ p₂) scᵢ X∈ premᵢ
+      finalInput
+  source-wrap-star-cast-branch {W = W} {W′ = W′}
       {γ = γ} {γ′ = γ′} {V = V} {U = U} {S = S}
       {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
       {p₂ = p₂} {q = q} sv inert vU mono rb sc source∈
-      target∈ prem =
+      target∈ prem finalInput =
     self-spine-sealed rb target∈ (sv-seal (sv-cast sv inert))
       (wrap-star-cast-final
         {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
         {V = V} {U = U} {S = S}
         {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
         {p₂ = p₂} {q = q}
-        sv inert vU mono rb sc source∈ target∈ prem)
+        sv inert vU mono rb sc source∈ target∈ finalInput)
 
   source-seal-cast-branch : ∀ {Δᴸ Δᴿ Δ}
       {W W′ Wᵢ : World Δᴸ Δᴿ Δ}
@@ -763,10 +924,12 @@ private
     → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X)
     → targetStoreʷ W ∋ Y ⦂ S
     → CTI2.ImpEnvMono W′ Wᵢ
-    → RebaseAt Wᵢ W′ X Y
+    → (link : RebaseAt Wᵢ W′ X Y)
     → CTI2.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ ★
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
+    → WrapStarCastFinalInput W′ Wᵢ γ′ γᵢ V U X X₂ Y S c pᵢ
+        (rebase-pivot-obligation link)
     → Σ[ Core ∈ Term Δᴸ ]
       Σ[ CoreTy ∈ Ty Δᴸ ]
       Σ[ Xᵒ ∈ TyVar Δᴸ ]
@@ -781,7 +944,7 @@ private
       {V = V} {U = U} {S = S}
       {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
       {pᵢ = pᵢ} {q = q} sv inert vU mono rb sc source∈
-      target∈ monoᵢ link scᵢ X∈ prem =
+      target∈ monoᵢ link scᵢ X∈ prem finalInput =
     self-spine-sealed rb target∈
       (sv-seal (sv-seal (sv-cast sv inert)))
       (source-seal-cast-final
@@ -789,7 +952,7 @@ private
         {γᵢ = γᵢ} {V = V} {U = U} {S = S}
         {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
         {pᵢ = pᵢ} {q = q} sv inert vU mono rb sc source∈
-        target∈ monoᵢ link scᵢ X∈ prem)
+        target∈ monoᵢ link scᵢ X∈ prem finalInput)
 
   source-seal-branch : ∀ {Δᴸ Δᴿ Δ}
       {W W′ Wᵢ : World Δᴸ Δᴿ Δ}
@@ -913,12 +1076,30 @@ source-spine-strip-worker-cast-cast
     {Xᴸ = Xᴸ} {Y = Y} {q = q}
     (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj)
     vU mono rb sc source∈ target∈
-    (CTI2.cast⊑cast² .c cY prem p) =
+    (CTI2.cast⊑cast² .c cY prem p)
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c} {q = q}
+      sv inert vU mono rb sc source∈ target∈ prem
+source-spine-strip-worker-cast-cast
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = V ⟨ c ⟩} {U = U} {R = ★} {S = S}
+    {Xᴸ = Xᴸ} {Y = Y} {q = q}
+    (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj)
+    vU mono rb sc source∈ target∈
+    (CTI2.cast⊑cast² .c cY prem p)
+    | wrap-star-cast-final-ready finalInput =
   source-wrap-star-cast-branch
     {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = V} {U = U} {S = S}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
     {q = q} sv inert vU mono rb sc source∈ target∈ prem
+    finalInput
 source-spine-strip-worker-cast-cast (sv-cast sv inert@CastTerms.fun) vU
     mono rb sc source∈ target∈
     D@(CTI2.cast⊑cast² c cY prem p) =
@@ -1045,13 +1226,37 @@ source-spine-strip-worker-cast-step-over-seal-star
     {q = q}
     sv inert vU mono rb sc source∈ target∈
     monoᵢ link scᵢ X∈ prem
-    | inj₁ refl =
+    | inj₁ refl
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V ↓ seal X Rᵢ} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {X₂ = X} {Y = Y} {c = c}
+      {p₂ = rebase-pivot-obligation link} {q = q}
+      (sv-seal sv) inert vU mono rb sc source∈ target∈
+      (CTI2.conceal⊑²
+        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+        monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+        (CTI2.⊢↓-sealˣ X∈) prem
+        (rebase-pivot-obligation link))
+source-spine-strip-worker-cast-step-over-seal-star
+    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
+    {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
+    {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵤ = pᵤ}
+    {q = q}
+    sv inert vU mono rb sc source∈ target∈
+    monoᵢ link scᵢ X∈ prem
+    | inj₁ refl | wrap-star-cast-final-ready finalInput =
   source-cast-seal-branch
     {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
     {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
     {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵢ = pᵤ}
-    {q = q} sv inert vU mono rb sc source∈ target∈
-    monoᵢ link scᵢ X∈ prem
+    {p₂ = rebase-pivot-obligation link} {q = q}
+    sv inert vU mono rb sc source∈ target∈
+    monoᵢ link scᵢ X∈ prem finalInput
 source-spine-strip-worker-cast-step-over-seal-star
     {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
     {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
@@ -1101,13 +1306,37 @@ source-spine-strip-worker-cast-step-over-seal-name
     {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵤ = pᵤ}
     {q = q}
     sv inert vU mono rb sc source∈ target∈
-    monoᵢ link scᵢ X∈ prem =
+    monoᵢ link scᵢ X∈ prem
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V ↓ seal X Rᵢ} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {X₂ = X} {Y = Y} {c = c}
+      {p₂ = rebase-pivot-obligation link} {q = q}
+      (sv-seal sv) inert vU mono rb sc source∈ target∈
+      (CTI2.conceal⊑²
+        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+        monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+        (CTI2.⊢↓-sealˣ X∈) prem
+        (rebase-pivot-obligation link))
+source-spine-strip-worker-cast-step-over-seal-name
+    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
+    {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
+    {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵤ = pᵤ}
+    {q = q}
+    sv inert vU mono rb sc source∈ target∈
+    monoᵢ link scᵢ X∈ prem
+    | wrap-star-cast-final-ready finalInput =
   source-cast-seal-branch
     {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
     {γᵢ = γᵢ} {V = V} {U = U} {Rᵢ = Rᵢ} {S = S}
     {X = X} {Xᴸ = Xᴸ} {Y = Y} {c = c} {pᵢ = pᵤ}
-    {q = q} sv inert vU mono rb sc source∈ target∈
-    monoᵢ link scᵢ X∈ prem
+    {p₂ = rebase-pivot-obligation link} {q = q}
+    sv inert vU mono rb sc source∈ target∈
+    monoᵢ link scᵢ X∈ prem finalInput
 
 source-spine-strip-worker-cast-step-over-seal
   : ∀ {Δᴸ Δᴿ Δ}
@@ -1155,6 +1384,7 @@ source-spine-strip-worker-cast-step-over-seal
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★) =
   source-spine-strip-worker-cast-step-over-seal-star
@@ -1178,12 +1408,31 @@ source-spine-strip-worker-cast-step-wrap
     {Xᴸ = Xᴸ} {Y = Y} {q = q}
     (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj)
     vU mono rb sc source∈ target∈
-    (CTI2.cast⊑² .c (CTI2.⊑cast² cY prem p₂) p) =
+    (CTI2.cast⊑² .c (CTI2.⊑cast² {p = p₂} cY prem p★) p)
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
+      {p₂ = p₂} {q = q}
+      sv inert vU mono rb sc source∈ target∈ prem
+source-spine-strip-worker-cast-step-wrap
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = V ⟨ c ⟩} {U = U} {R = ★} {S = S}
+    {Xᴸ = Xᴸ} {Y = Y} {q = q}
+    (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj)
+    vU mono rb sc source∈ target∈
+    (CTI2.cast⊑² .c (CTI2.⊑cast² {p = p₂} cY prem p★) p)
+    | wrap-star-cast-final-ready finalInput =
   source-wrap-star-cast-branch
     {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = V} {U = U} {S = S}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
-    {q = q} sv inert vU mono rb sc source∈ target∈ prem
+    {p₂ = p₂} {q = q} sv inert vU mono rb sc source∈ target∈
+    prem finalInput
 
 source-spine-strip-worker-cast-step
   : ∀ {Δᴸ Δᴿ Δ}
@@ -1239,12 +1488,31 @@ source-spine-strip-worker-cast-step
     {Xᴸ = Xᴸ} {Y = Y} {c = c} {q = q}
     sv inert@CastTerms.inj
     vU mono rb sc source∈ target∈
-    (CTI2.⊑cast² cY prem p₂) =
+    (CTI2.⊑cast² {p = p₂} cY prem p★)
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
+      {p₂ = p₂} {q = q}
+      sv inert vU mono rb sc source∈ target∈ prem
+source-spine-strip-worker-cast-step
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = V} {U = U} {A = ＇ X₂} {B = ★} {S = S}
+    {Xᴸ = Xᴸ} {Y = Y} {c = c} {q = q}
+    sv inert@CastTerms.inj
+    vU mono rb sc source∈ target∈
+    (CTI2.⊑cast² {p = p₂} cY prem p★)
+    | wrap-star-cast-final-ready finalInput =
   source-wrap-star-cast-branch
     {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = V} {U = U} {S = S}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
-    {q = q} sv inert vU mono rb sc source∈ target∈ prem
+    {p₂ = p₂} {q = q} sv inert vU mono rb sc source∈ target∈
+    prem finalInput
 source-spine-strip-worker-cast-step {c = c} {p₀ = p₀}
     sv inert vU mono rb sc source∈ target∈ prem =
   source-spine-strip-worker-cast-step-nonvar (sv-cast sv inert)
@@ -1343,6 +1611,7 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
@@ -1358,17 +1627,23 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
       (CTI2.cast⊑cast² {p = pᵤ} .c cY prem pᵢ) p)
-    | inj₁ refl =
-  source-seal-cast-branch
-    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
-    {γᵢ = γᵢ} {V = V} {U = U} {S = S}
-    {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
-    {pᵢ = pᵤ} {q = q} sv inert vU mono rb sc source∈
-    target∈ monoᵢ link scᵢ X∈ prem
+    | inj₁ refl
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W′} {W′ = Wᵢ} {γ = γ′} {γ′ = γᵢ}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = X} {X₂ = X₂} {Y = Y} {c = c}
+      {p₂ = pᵤ} {q = rebase-pivot-obligation link}
+      sv inert vU monoᵢ link scᵢ X∈
+      (rebase-target-membership-forward rb target∈) prem
 source-spine-strip-worker-seal-cast
     {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = (V ⟨ c ⟩) ↓ seal X ★} {U = U} {R = ＇ X}
@@ -1379,6 +1654,29 @@ source-spine-strip-worker-seal-cast
     (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
       (CTI2.seal-partner-ok
         (CTI2.star-rep-target
+          _
+          (CTI2.rep★-var-tag {c = cVar} aligned)))
+      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.cast⊑cast² {p = pᵤ} .c cY prem pᵢ) p)
+    | inj₁ refl | wrap-star-cast-final-ready finalInput =
+  source-seal-cast-branch
+    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
+    {γᵢ = γᵢ} {V = V} {U = U} {S = S}
+    {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
+    {pᵢ = pᵤ} {q = q} sv inert vU mono rb sc source∈
+    target∈ monoᵢ link scᵢ X∈ prem finalInput
+source-spine-strip-worker-seal-cast
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = (V ⟨ c ⟩) ↓ seal X ★} {U = U} {R = ＇ X}
+    {S = S} {Xᴸ = Xᴸ} {Y = Y} {q = q}
+    (sv-seal {V = V ⟨ c ⟩} {X = X} {R = ★}
+      (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj))
+    vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
+      (CTI2.seal-partner-ok
+        (CTI2.star-rep-target
+          _
           (CTI2.rep★-var-tag {c = cVar} aligned)))
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
@@ -1395,13 +1693,18 @@ source-spine-strip-worker-seal-cast
       (CTI2.seal-partner-ok CTI2.name-protected-target)
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.cast⊑cast² {p = pᵤ} .c cY prem pᵢ) p) =
-  source-seal-cast-branch
-    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
-    {γᵢ = γᵢ} {V = V} {U = U} {S = S}
-    {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
-    {pᵢ = pᵤ} {q = q} sv inert vU mono rb sc source∈
-    target∈ monoᵢ link scᵢ X∈ prem
+      (CTI2.cast⊑cast² {p = pᵤ} .c cY prem pᵢ) p)
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W′} {W′ = Wᵢ} {γ = γ′} {γ′ = γᵢ}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = X} {X₂ = X₂} {Y = Y} {c = c}
+      {p₂ = pᵤ} {q = rebase-pivot-obligation link}
+      sv inert vU monoᵢ link scᵢ X∈
+      (rebase-target-membership-forward rb target∈) prem
 source-spine-strip-worker-seal-cast
     {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = (V ⟨ c ⟩) ↓ seal X ★} {U = U} {R = ＇ X}
@@ -1413,13 +1716,56 @@ source-spine-strip-worker-seal-cast
       (CTI2.seal-partner-ok CTI2.name-protected-target)
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
       (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.cast⊑² .c (CTI2.⊑cast² {p = pᵤ} cY prem pᵢ) p₀) p) =
+      (CTI2.cast⊑cast² {p = pᵤ} .c cY prem pᵢ) p)
+    | wrap-star-cast-final-ready finalInput =
   source-seal-cast-branch
     {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
     {γᵢ = γᵢ} {V = V} {U = U} {S = S}
     {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
     {pᵢ = pᵤ} {q = q} sv inert vU mono rb sc source∈
-    target∈ monoᵢ link scᵢ X∈ prem
+    target∈ monoᵢ link scᵢ X∈ prem finalInput
+source-spine-strip-worker-seal-cast
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = (V ⟨ c ⟩) ↓ seal X ★} {U = U} {R = ＇ X}
+    {S = S} {Xᴸ = Xᴸ} {Y = Y} {q = q}
+    (sv-seal {V = V ⟨ c ⟩} {X = X} {R = ★}
+      (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj))
+    vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
+      (CTI2.seal-partner-ok CTI2.name-protected-target)
+      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.cast⊑² .c (CTI2.⊑cast² {p = pᵤ} cY prem pᵢ) p₀) p)
+    -- OPTION-A DEBT (2026-08-16): non-final chain alternatives are
+    -- swallowed by this function's legacy NON_COVERING pragma; real
+    -- handling is part of the scheduled repair (see TODO.md and
+    -- notes/lg1h-legacy-noncovering-inventory.md).
+    with wrap-star-cast-final-view
+      {W = W′} {W′ = Wᵢ} {γ = γ′} {γ′ = γᵢ}
+      {V = V} {U = U} {S = S}
+      {Xᴸ = X} {X₂ = X₂} {Y = Y} {c = c}
+      {p₂ = pᵤ} {q = rebase-pivot-obligation link}
+      sv inert vU monoᵢ link scᵢ X∈
+      (rebase-target-membership-forward rb target∈) prem
+source-spine-strip-worker-seal-cast
+    {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+    {V = (V ⟨ c ⟩) ↓ seal X ★} {U = U} {R = ＇ X}
+    {S = S} {Xᴸ = Xᴸ} {Y = Y} {q = q}
+    (sv-seal {V = V ⟨ c ⟩} {X = X} {R = ★}
+      (sv-cast {V = V} {A = ＇ X₂} sv inert@CastTerms.inj))
+    vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑² {W′ = Wᵢ} {γ′ = γᵢ}
+      (CTI2.seal-partner-ok CTI2.name-protected-target)
+      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.cast⊑² .c (CTI2.⊑cast² {p = pᵤ} cY prem pᵢ) p₀) p)
+    | wrap-star-cast-final-ready finalInput =
+  source-seal-cast-branch
+    {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
+    {γᵢ = γᵢ} {V = V} {U = U} {S = S}
+    {X = X} {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c}
+    {pᵢ = pᵤ} {q = q} sv inert vU mono rb sc source∈
+    target∈ monoᵢ link scᵢ X∈ prem finalInput
 
 source-spine-strip-worker-seal-source
   : ∀ {Δᴸ Δᴿ Δ}
@@ -1465,6 +1811,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     with SPT.var-consistency-view cVar
@@ -1477,6 +1824,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     | inj₁ refl =
@@ -1494,6 +1842,7 @@ source-spine-strip-worker-seal-source
     monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ X∈
     (CTI2.seal-partner-ok
       (CTI2.star-rep-target
+        _
         (CTI2.rep★-var-tag {c = cVar} aligned)))
     (CTI2.⊑cast² {p = pᵤ} cY prem p★)
     | inj₂ ()
@@ -1641,7 +1990,7 @@ source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
       nonstar-∀ prem)
 
-source-spine-strip-worker : SourceSpineStrip
+source-spine-strip-worker : SourceSpineStripWorker
 {-# NON_COVERING #-}
 source-spine-strip-worker (sv-ƛ N) vU mono rb sc source∈
     target∈ D =
@@ -1831,6 +2180,6 @@ source-column-strip-worker-D {W = W} {W′ = W′} {γ = γ}
     D (sv-conceal-all sv) vU mono rb sc target∈
     | varv-seal vW X∈ ()
 
-source-column-strip-worker : SourceColumnStrip
+source-column-strip-worker : SourceColumnStripWorker
 source-column-strip-worker sv vU mono rb sc target∈ D =
   source-column-strip-worker-D D sv vU mono rb sc target∈

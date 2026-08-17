@@ -205,7 +205,7 @@ rename-not-occurs : ∀ {Δ Δ′} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → ρ X ∉ᵗ renameᵗ ρ A
 rename-not-occurs ρ injective (∉-var X≢Y) =
-  ∉-var (λ eq → X≢Y (injective eq))
+  ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ X≢Y (injective eq)))
 rename-not-occurs ρ injective ∉-base = ∉-base
 rename-not-occurs ρ injective ∉-star = ∉-star
 rename-not-occurs ρ injective (∉-fun X∉A X∉B) =
@@ -1671,7 +1671,7 @@ left-variable-env-not-star : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
   → ⊥
 left-variable-env-not-star safe eqR eqL with safe _ eqL eqR
 left-variable-env-not-star safe eqR eqL
-    | ∉-var X≢X , ∉-star = X≢X refl
+    | ∉-var X≢X , ∉-star = ≢ᶠ→≢ X≢X refl
 
 right-variable-env-not-star : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
     {X : TyVar Δ}
@@ -1681,7 +1681,7 @@ right-variable-env-not-star : ∀ {Δ} {φ ψ : I.ImpEnv Δ}
   → ⊥
 right-variable-env-not-star safe eqL eqR with safe _ eqL eqR
 right-variable-env-not-star safe eqL eqR
-    | ∉-star , ∉-var X≢X = X≢X refl
+    | ∉-star , ∉-var X≢X = ≢ᶠ→≢ X≢X refl
 
 close-shifted-consistency : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
   → extᵐ μ ⊢ ⇑ᵗ A ∼ ⇑ᵗ B

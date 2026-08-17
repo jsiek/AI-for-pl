@@ -1,7 +1,7 @@
 module M6DriverDesignScratch where
 
 -- File Charter:
---   * Root-level scratch for the M6 value-catch-up driver design.
+--   * Notes scratch for the M6 value-catch-up driver design.
 --   * States the cast-column measure and the ValueCatchupRight² surface.
 --   * Imports the M4/M5 Catchup modules read-only and checks that the
 --     driver can refer to their worker surfaces without editing them.
@@ -207,7 +207,6 @@ record FuelStepSurface (fuel : ℕ) : Set₁ where
       ∀ {m} → m < fuel → InstCatchupRightAt m
     smaller-value :
       ∀ {m} → m < fuel → ValueCatchupRightAt m
-    next-knot : FuelKnot (suc fuel)
 
 ------------------------------------------------------------------------
 -- Imported worker smoke tests

@@ -2,6 +2,16 @@
 
 ## TODO items
 
+[ ] Repair the legacy NON_COVERING debt in GTSFImp
+    proof/DGG/Inversion/{SourceStripWorkerProof,SourceStripColumnView}:
+    close the 23 pragma'd coverage sets AND the Option-A swallowed non-final
+    chain alternatives. Worklist:
+    GTSFImp/proof/DGG/notes/lg1h-legacy-noncovering-inventory.md.
+    The re-emission architecture must be rebuilt on the branch-sensitive
+    surfaces; expect the M3-endgame dispatch-restructuring technique. Then
+    fold GTSFImp/LegacyAll.agda back into --safe GTSFImp/All.agda and delete
+    the legacy target.
+
 [ ] In GTSF, prove compile-preserves-term-imprecision-typed
     in proof/CompileTermImprecision.agda
     You may need to prove some foundational lemmas about consistency and imprecision.

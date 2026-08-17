@@ -72,8 +72,8 @@ New modules live under `proof/DGG/Parked/`.
 | M2 | Asymmetric rebase redesign: `ηᴿ-frozen` replaces `ηᴿ-off-pivot`+`anchorᴿ` (deleted); Repark.agda deleted; left-path checkpoints rebuilt frozen; target-moving probes now negative design records. All gates passed (compile² unchanged; net −1501 lines) | L | **landed** | 1ce5afd |
 | M3 | **COMPLETE** (2026-08-10, `6d42b15`, merged in PR #124): `right-inj-inversion²` live in Inversion/RightInjInversion2Lemma, zero postulates in the stack, All.agda green. Closed via the tightening migration (premise-world partner predicates, partner-flow inversion, see-through round-trip clause, tied conceal indices — see the "M3 COMPLETE" section below and notes/). | L | **landed** | 6d42b15 |
 | M4 | COMPLETE as higher-order theorem: extra-cast-right² with CatchupCast provenance (q-hunt invariant), original value conclusion, mismatch excluded by construction. Inversion now live (M3) — stitch Lemma instantiation is unblocked and pending | M | **landed (higher-order)** | see log |
-| M5 | `InstCatchupRight²` operational half COMPLETE (Catchup/InstCatchupRight{Def,Proof}); relational continuations remain, sequenced with the M6 driver. SCOPE DISCOVERY (2026-08-11, five m5-relational-*.red notes): the per-view continuations do NOT compose as "one catalog step + extra-cast recursion" — post-step reducts contain pending type applications (∀/reveal/conceal) or possibly-non-inert casts (gen), so a relational TYPE-APPLICATION SPINE DESCENT is needed (well-founded on target wrapper depth), and the base Λ case needs a NEW target-instantiation relational inversion family (M3's SourceSpineStrip/TargetDescent are the starting infra), which is also where residual CatchupCast⁻ provenance is harvested. Dispatcher + InstRelContinuationSurface landed; inversion design pre-flight in flight | M→L | **half landed; relational half re-scoped** | — |
-| M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **foundation landed**: castSize measure (in proof/Consistency) + all six support lemmas proven; the provenance-free driver surface is REFUTED (ValueCatchupProvenanceGapScratch) and the provenance-carrying replacement (CatchupCast⁻/CatchupColumn/ValueCatchupRightProv², design in notes/M6-PROVENANCE-DESIGN.md) is LIVE in the Def with the fuel knot re-pointed at it and catchup⁻-embed proven; driver knot pending | — |
+| M5 | The operational catalog, relational dispatcher, repaired descent consumer, and complete hereditary `Λ` package are live. The remaining four views share the fuel-free structural value-instantiation normalizer. Its source term is explicitly a value. Primary cast-mass descent is checked for `∀`, `gen`, and `safe-inst`; fixed-mass recursion is now checked to follow strict imprecision premises. The next chunk is the nested-accessibility worker, followed by the four package producers and factory assembly. | M→L | **Λ complete; structural descent in progress** | — |
+| M6 | Value catch-up driver: ties the M4↔M5 MUTUAL knot (M5 continuations call back into ExtraCastRight²) by well-founded recursion on the target cast-column length; both Proofs stay higher-order over each other's Defs | M | **complete modulo M5 factory**: castSize support, provenance columns, tail transport, fuel-aware extra-cast, column recursion, and the `Acc _<_` `FuelKnot` are proven. `value-catchup-right-prov²` is exposed parameterized only by `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`; completing M5 discharges that final argument | — |
 | M7 | `sim-right²`: one-step simulation, per-case over the reduction relation, consuming M4–M6 | L | not started | — |
 | M8 | `dgg-simulation` top-level corollary; cleanup: dead-code removal, probe housekeeping (`SpineValue` extraction was pulled forward into M3, `309d8a3`) | M | not started | — |
 
@@ -89,11 +89,11 @@ M4–M6 Defs and can start its non-cast cases once M1 lands.
 | `inert-extra-cast-right²`, `id-extra-cast-right²` | proven |
 | `ExtraCastRight²` consuming cases | **proven** higher-order (M4, Catchup/ExtraCastRightProof) |
 | `InstCatchupRight²` statement | proven (stage 1) |
-| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); relational continuations pending M6 |
+| `InstCatchupRight²` allocating cases | **proven** operational half (M5, Catchup/InstCatchupRightProof); M5 relational continuations remain |
 | `right-inj-inversion²` (new, frozen setting) | **PROVEN AND LIVE** (2026-08-10): Inversion/RightInjInversion2Lemma, zero postulates |
 | `TargetDescent` (new) | **proven** (`ebd6f6a`) — terminal ★ + re-emission continuation |
 | `seal-transfer` | **unconditional** — H-multi deleted, collision refuted by frozen centers (`309d8a3`) |
-| Value catch-up (composed) | not stated (M6) |
+| Value catch-up (composed) | **PROVEN MODULO M5 FACTORY** (`Catchup/FuelKnotProof.agda`) |
 | `compile-preserves-imprecision²` (+ identity `initialWorld`) | **proven** (`CompilePreservesImprecision2.agda`) |
 
 ## Investigation artifacts (design records; keep)
@@ -296,9 +296,125 @@ premise-world pedigree on the rule surface (memo option B); tied
 conceal⊑² indices (pre-flight 9: no site needs the loose form);
 in-branch tagged-transfer packaging.
 
-Next: M5 relational continuations + M6 driver (designs validated),
-then M7 sim-right², M8 dgg-simulation. Parked: single-source-pair
-pedigree.
+Next: state and prove the M5 hereditary smart-post plan, close the M5
+dispatcher and relational continuations, and discharge the sole factory
+argument of the live M6 knot.  Then M7 sim-right² and M8 dgg-simulation.
+Parked: single-source-pair pedigree.
+
+## M5 depth-≥1 satisfiability finding (2026-08-12, ESCALATED)
+
+The Λ branch of the instantiation inversion is CLOSED at depth 0 (the
+Λ⊑Λ² base: PR #135 + branch). At recursion depth ≥1 (source values with
+NESTED one-sided type abstractions meeting an inst cast), the
+post-instantiation relation appears INEXPRESSIBLE in the current
+parked/rebase discipline — machine-checked two ways
+(notes/M5UnderLiftRevealScratch.agda): the pivot-moving reveal route needs a
+same-side source OPE reversal (impossible), and the non-moving
+sameWorldRebaseAt route leaves an empty post obligation (reduces to
+＇1 ⊑ ＇3 at a concrete finite body). Full resister chain in
+notes/m5-inst-inversion-*.red; verdict note:
+notes/m5-inst-inversion-lambda-under-lift-satisfiability.red.
+
+Screen verdict (2026-08-12, notes/M5-DEPTH-SCREEN.md): REACHED — the
+compile image produces the depth-2 geometry (use-dyn source-triple ⊑
+use-dyn target-one; Λ⊑ᴳ/Λ⊑ᴳ/Λ⊑Λᴳ argument stack; right inst cast in the
+initial compiled operand). Caveat: screening-grade evidence (source
+shape + inst site checked; the target ⊢² stack inferred from
+compile-preservation, not per-step). A simple program-reachability
+premise on InstCatchupRight² is therefore NOT viable.
+
+DECIDED (user, 2026-08-12): approach A3 — the SMART-COMMA rule variant
+(cambridge26 notes, Example 4 + "Smart comma" section). The pending
+source binder's Λ⊑² lift ALIGHTS ON THE EXISTING ALIAS CENTER (β := ＇α)
+with DYNAMIC (X⊑★-family) marks at both fresh centers — the mechanized
+`Γ ,, α:=★` with the id_★ mark arithmetic, two-clause (merge when the
+partner exists, plain extension otherwise). Selected by the calibration
+matrix (notes/M5-SMART-COMMA-CALIBRATION.md; scratch
+notes/M5SmartCommaCalibrationScratch.agda): A3 is the only approach with all
+cells CHECKED-OK on both E4 (depth-0, coexists with the live closure)
+and D1 (the depth-1 problem); A1 (precise X⊑X mark) dies at the reveal
+evidence because StoreRepImp canonicalizes the alias through the name
+to ★; A2 (merge at the name) dies at the variable leaf.
+
+## A3 smart-comma migration (M-1..M-3 done) — FRONTIER MARKER
+
+Migration gates (each gated on All.agda green; hygiene FunExt-only):
+  M-1  DONE: informal rule + exact constructor premises pre-flighted in
+       scratch, validated against BOTH calibration examples (E4 re-derived;
+       D1 package derived; Λ⊑Λ² undisturbed).
+  M-2  DONE (`85dfd28`): live rule in CastTermImprecision2 + stack
+       migration, riskiest consumers first (M3 Inversion stack, then
+       CenterRename, TargetExtend, M4 Catchup workers, decay/lift modules).
+  M-3  DONE (`da0541e`): BLOCKER-OVERCOME WITNESS
+       `proof.DGG.SmartCommaWitness.d1-top-smart-live` derives the report's
+       D1 instance (notes/M5-DEPTH1-RAW-REPORT.md §4 — Λ (Λ V) ⊑ post at
+       W₂) LIVE; RESOLVED postscripts added to the satisfiability .red notes.
+  M-4  RETURN TO FRONTIER. The frontier is: the k=1 Λ⊑² recursive case
+       of the M5 instantiation inversion (Catchup/InstInversionProof),
+       then the source-strip cases, then Λ-package assembly, then the
+       M5 dispatcher closes InstCatchupRightAt and discharges the already-live
+       M6 fuel knot's factory argument, then M7 sim-right².
+       NOTE for M-4: with the smart rule, retry the DIRECT route for
+       the recursive case first — the lift-outside/exchange saga
+       (center-map/CenterMapSupport layers) may be bypassable entirely,
+       since the smart Λ⊑² no longer forces a fresh front center.
+
+       M-4 checkpoint (`59c750f`): the direct recursive case now checks via
+       `Λ⊑²-smart-recursive-package-at`; no exchange layer was revived.  The
+       next resister is the source-strip recursion surface, not smart comma:
+       source-only wrappers need a post-prefix-only helper instead of the full
+       residual `InstPostCatalogPackageAt` recursive call.  See
+       `notes/m5-inst-inversion-source-strip-post-only-surface-blocked.red`.
+
+       M-4 continuation checkpoint (`post-prefix-only`): the surface was
+       stated in the design scratch and the live prefix support checks, but
+       the source-strip rebuild still lacks the outer post obligation
+       `A ⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B` for the wrapper source type.  Plain
+       transport of `A ⊑ᵂ⟨ W ⟩ `∀ B` lands at `applyTys χs₂ (`∀ B)`, not at
+       the reduced post body.  See
+       `notes/m5-inst-inversion-source-strip-post-obligation-blocked.red`.
+
+       M-4 continuation checkpoint (post-obligation pass after the root
+       sweep): the type-level post obligation now checks as
+       `Λ-post-outer-obligation`, with residual-source packaging by
+       `Λ-strip-prefix-p₂`; the old post-obligation `.red` has a RESOLVED
+       postscript.  The next resister is the original
+       `Λ⊑²-smart-comma` source case in the recursive prefix worker: the
+       fixed post-prefix package uses concrete `rightOnly (rightOnly Wᵐ)`,
+       but the existing smart target-transport stack produces a
+       pushout-indexed smart premise world.  See
+       `notes/m5-inst-inversion-smart-source-prefix-world-blocked.red`.
+
+       M-4 continuation checkpoint (parameterized prefix base): the
+       fixed-vs-parameterized prefix package mismatch is resolved by
+       `ΛPostPrefixPackageAtBase`, with concrete and smart instantiations
+       checked in the design scratch.  The source-strip wrapper rebuilds now
+       have parameterized prefix helpers.  The remaining resister is the
+       ordinary `Λ⊑Λ²` base transport at the pushout-indexed smart premise
+       post world; the live base transport is still concrete-only.  See
+       `notes/m5-inst-inversion-lambda-base-prefix-at-world-blocked.red`.
+
+       M-4 continuation checkpoint (base transport at smart post world):
+       the parameterized `Λ⊑Λ²PostBodyTransportAtᵀ` consumer and
+       `Λ⊑Λ²-base-prefix-at-base` wrapper check, with smart-premise
+       instantiation validated in the design scratch.  The remaining
+       concrete lock is lower: the reveal-window ingredients inside
+       `Λ⊑Λ²-post-body-transport` (`ΛPostMidWorld`, out-context,
+       `ImpEnvMono`, `RebaseAtᴿ`, final body obligation, and typing context)
+       are still hard-coded to `rightOnly (rightOnly W)`, while the smart
+       recursive premise needs the M-2 pushout-indexed smart post world.
+       See the same blocker note for the next required post-window geometry
+       surface.
+
+       M-4 continuation checkpoint (`92a7406`): the post-window geometry
+       surface landed as `ΛPostWindowGeometry`, with checked concrete instance
+       `Λ-concrete-post-window`; `Λ⊑Λ²-post-body-transport-at` now consumes
+       the package and `Λ⊑Λ²-base-prefix-at-base` is package-indexed.  The
+       concrete right-only lock is resolved.  The next resister is the smart
+       pushout instance: M-2 exposes the final target-inserted smart world but
+       not the route-one `freshWorld`, `midWorld`, or smart target-bind-lift
+       move needed for ordinary `Λ⊑Λ²` inside the smart premise.  See
+       `notes/m5-inst-inversion-smart-post-window-geometry-blocked.red`.
 
 ## Source-consistency interlude LANDED (2026-08-11, PR #128)
 
@@ -309,3 +425,524 @@ relation was NOT changed, so M5-M8 proceed on unchanged foundations.
 The rigid-gate route it replaced is refuted in
 notes/srcconsist-rigid-{lower-bound,ground-cast-helper}-blocked.red.
 Remaining sibling work (GTSF port) is tracked in TODO.md.
+
+## SPLIT-rule finding (2026-08-13, ESCALATED — the other half of Example 4)
+
+M-4 progress: the k=1 Λ⊑² recursive case is CLOSED; the smart-premise
+Λ⊑Λ² leaf is CLOSED (post-window geometry instantiated for both smart
+branches). The remaining Λ-package obstruction is the SOURCE-LEFT
+companion (plain Λ⊑² / strip wrappers under smart premises), and the
+born-in-place preflight isolated a live-relation expressibility gap
+(m5-inst-inversion-born-in-place-prefix-depth-blocked.red): Λ⊑Λ²'s
+premise carries ONE shared X⊑X center for the matched binders, and the
+post state needs that center SPLIT around a source-left prefix (source
+half before, target half born after). No transport can split a shared
+center — same species as the depth-1 finding, now for the two-sided
+core. The cambridge26 notes already carry the mechanism: Example 4's
+FIRST derivation uses the SPLIT rule (Γ, α:=☆ → separate entries with
+mark bookkeeping) — we mechanized the smart comma (the second
+derivation's device); this case needs split (the first's).
+
+Decision pending (user): mechanize the split rule with the same
+calibration-matrix method as A3 (Example 4 first derivation + the
+concrete source-left instance as the two calibration examples), or an
+alternative. Pausing proof dispatches on this surface meanwhile.
+
+DECIDED (user, 2026-08-13): S1 — a second syntax-directed Λ/Λ
+constructor `Λ⊑Λ²-split` (guarded premise world, split centers,
+dynamic window marks). Calibration matrix: S1/S2 both pass all cells;
+S3 refuted; S1 chosen for transparent two-case inversions over S2's
+hidden placement branch. Constructor definition + migration plan
+(gates SP-1..SP-4, A3 playbook) in notes/M5-SPLIT-CALIBRATION.md.
+Continuation handed to a successor agent; the plan section is the
+authoritative work order.
+
+## NO-SPLIT re-evaluation (2026-08-13, CHECKED — supersedes SP-1)
+
+The split decision above was based on an over-constrained post layout,
+not on an impossibility result for the live relation.  The successful
+S1/S2 type and term leaves in `M5SplitCalibrationScratch.agda` use the
+auxiliary `SplitTyRel` and `SplitTermVarLeaf`, not live `_⊑ᵂ_` and
+`_⊢²_⊑_∶_`.  The S3 refutations rule out re-parking a shared center into
+the same fixed split layout; they do not rule out a different output
+derivation tree.
+
+The no-constructor interleaving now checks on the live proof surface:
+
+- `Λ⊑²-plain-shared-prefix-at` consumes the actual plain `Λ⊑²` over
+  `Λ⊑Λ²` source-left shape and returns its complete concrete
+  `ΛPostPrefixPackageAt`.
+- `Λ⊑²-plain-shared-prefix-at-base` is the corresponding consumer at a
+  caller-supplied post world.  It takes the smart lift, transported
+  contexts, `ΛPostWindowGeometry`, and the outer post obligation
+  explicitly and returns `ΛPostPrefixPackageAtBase`.
+- The proof first constructs the shared inner `Λ⊑Λ²` post prefix with
+  the existing target-bind/reveal machinery.  It then rebuilds the
+  pending outer source wrapper with `Λ⊑²-smart-comma`.  No shared center
+  is split or moved through a source-only prefix.
+
+This is live at commit `98d3523c`; the relation in
+`CastTermImprecision2.agda` is unchanged.  The design preflight remains
+in `notes/M5SplitInterleavingScratch.agda`.
+
+Revised work order:
+
+  NS-1  DONE: live concrete source-left witness and generic post-world
+        consumer.  Focused `InstInversionProof.agda` and full
+        `GTSFImp/All.agda` gates pass.
+  NS-2a DONE: `Λ⊑²-plain-shared-smart-plan-prefix-at-base` instantiates
+        the generic consumer for the one-level plain-over-shared leaf with
+        the already-live canonical target-first witnesses.  The earlier
+        center-order diagnosis for this leaf was backwards; no new world
+        equality or relation constructor is required.
+  NS-2b DONE (`ffadb7c5`, `e7c1bf27`, `f80874d2`): the finite hereditary
+        `ΛTwoInsertPostPlan`, structural target-window transport, and exhaustive
+        smart-alias/smart-fresh child transformer are live.  The transformer
+        carries the post smart lift and transported contexts without assuming
+        a canonical right-only child world.
+  NS-2c DONE: two-step reveal/rebase and conceal/tag-rebase child-plan
+        transformers are live.  The top-post resister is also closed without
+        changing the relation: `ExactSmartFreshGuard` records the exact old
+        environment of the controlled front-fresh child, exactness survives
+        arbitrary target insertions, and `Λ-post-outer-obligation` now
+        consumes a `ΛTwoInsertPostPlan`.  Its one-sided recursive case uses
+        the exact reverse transport; its matched case uses the plan's final
+        body geometry.  The historical blocker note has a RESOLVED postscript.
+  NS-3a DONE: `Λ-post-prefix-hereditary` is exhaustive over the matched Λ,
+        plain Λ, smart Λ, inert source cast, reveal, and conceal value shapes.
+        It transforms the post plan at every recursive constructor and uses
+        the plan-indexed top obligation at each rewrap.  Focused and full
+        no-metas gates pass without a catch-all clause.
+  NS-3b DONE: `Λ-inst-inversion-package` composes the canonical two-insert
+        plan, hereditary prefix worker, residual-provenance package bridge,
+        and repaired root finalizer.  Its result has exactly the
+        `InstInversionPackage.Λ-package` field type, so the already-live
+        `inst-inversion→rel-surface` adapter supplies the Λ continuation.
+  NS-4 NEXT: implement the four non-Λ descent package producers (`∀`, `gen`,
+        reveal, and conceal), assemble `InstInversionPackage`, and discharge
+        the live M6 knot's M5 factory argument.
+
+Housekeeping (supervisor, 2026-08-14, `735430a`): the Λ mass was split out
+of the 7.4k-line `InstInversionProof.agda` monolith before NS-4 lands more
+code there — `InstInversionLambdaProof.agda` (6,532 lines, Λ-specific:
+route1 geometry, ΛPost*/two-insert plans, hereditary worker, the Λ package)
+now imports the 964-line shared base (package plumbing, provenance, generic
+transports). Pure code motion, verified by declaration-name diff; full
+gate green. NS-4 execution order: stage 1 = the `StructuralNameInstantiationᵀ`
+nested-accessibility worker; stage 2 = the four producers + assembly, each
+supervisor-reviewed before push.
+
+NS-4 stage-1 ledger (supervisor, 2026-08-14, stages 1a-1g):
+  1a/1b  Bare-q statement REFUTED (source-premise final witness not
+         derivable; finite counterexample). Calibration chose R1: the
+         hereditary `StructuralNamePostPlan` (per-premise child
+         obligations with per-wrapper world geometry); R2 existential
+         endpoint failed the root cell. Live in
+         StructuralInstantiationDescentDef.
+  1c     Four of five equal-mass source-wrapper helpers live (cast,
+         plain Λ, smart Λ, reveal). Conceal equal case blocked on
+         endpoint SourceConcealPartnerOK preservation → factored as the
+         higher-order argument `StructuralNameConcealEqualOKᵀ` (1f).
+  1d     Generic spine one-step inversion + all five strict-head peel
+         lemmas live (peel = inverse of structural-target-*-step; NOT
+         the refuted cross-pushout inversion — same-world trace
+         peeling).
+  1e     Supervisor's linear crossing-potential rank REFUTED by codex
+         (universal conversion wrapper expands into TWO frames past a
+         re-emitted inner name frame: child-parent = n-1).
+  1f     Exponential rank landed and fully calibrated:
+         pendingRank = (nameFrames, Σ 3^crossings, spineLength),
+         strictly below pendingCastMass; closes all same-mass heads
+         (3^(n+1) = 3·3^n > 2·3^n absorbs the duplication).
+         StructuralValueInstantiationRank{Def,Proof}.
+  1g     Assembly needs a GENERAL spine worker above the name-headed
+         one (peel children are not name-headed). Its statement needs a
+         per-frame premise chain: the relation's target-absorption
+         rules (⊑cast²/⊑reveal²/⊑conceal²) each demand an intermediate
+         witness (cast-frame square in the 1g .red) plus rebase
+         geometry for conversions. Next: TargetFrameAbsorptionChain
+         input, calibrated statement-first (stage 1h).
+
+NS-4 STAGE 1 COMPLETE (supervisor, 2026-08-15, stages 1h-1y; PAUSED
+here before stage 2 by user instruction):
+  `StructuralNameInstantiationᵀ` and `StructuralValueInstantiationᵀ`
+  are INHABITED (StructuralNameInstantiationProof.agda), gate green,
+  hygiene FunExt-only, no TERMINATING pragmas (explicit five-component
+  lexicographic measure; call-site table in
+  notes/ns4-stage-1y-termination-measure.md). The worker is
+  HIGHER-ORDER over: `StructuralStrictViewSurfaces` (Λ/∀-cast/gen/
+  reveal/conceal strict cells + conceal-equal-ok), the fuel-knot
+  arguments (FuelStepSurface, Catchup⁻Embedᵀ, inst-alloc-decreaseᵀ),
+  the hereditary `StructuralNamePostPlan` + `StructuralNameChainPlan`
+  (with target-bind and residual-tail children), the
+  `TargetFrameAbsorptionChain` (supplied premise-relation transports,
+  keep-reduct evidence), `SpineTypedʷ` (per-frame typing + fuel-indexed
+  `CastFrameClass` carrying bounds/provenance), and the caller's root
+  `StructuralTargetInstantiationPackage`.
+  Design findings that shaped the statements (all machine-checked,
+  .red chain under notes/ns4-stage-1*):
+    - inputs that cross source wrappers cannot be transported; they
+      are supplied hereditarily (post plan, chain plan, chains);
+    - same-mass strict heads terminate by the exponential
+      administration rank (3^crossings potential — duplication-proof);
+    - target traces are consumed as INPUT and peeled (same-world
+      first-step inversion; never inverted through smart-fresh
+      pushouts);
+    - opened endpoints come from the term derivation per view case,
+      never from the bare type witness (matched ∀⊑∀ vs right-only
+      binds refutation);
+    - non-inert residuals (safe-inst closure) are discharged via the
+      M4/M6 fuel knot with carried CatchupCast⁻ provenance — the
+      segmented builder/replay architecture.
+  STAGE 2 (not started): inhabit the five strict view surfaces (Λ cell
+  from the live Λ machinery in InstInversionLambdaProof; ∀-cast/gen/
+  reveal/conceal cells = the target-wrapper inversion producers) and
+  the conceal-equal argument; construct root plans/chains/packages at
+  the catalog call sites; assemble `InstInversionPackage`; discharge
+  the M6 knot's M5 factory argument.
+  Hygiene note (supervisor): the postulate-check does not catch
+  TERMINATING pragmas — one slipped into a checkpoint commit (removed
+  in `d569c56`). Recommend adding TERMINATING/NON_TERMINATING to the
+  hygiene grep.
+
+NS-4 RE-EVALUATED (2026-08-13): the first fuel diagnosis was too strong.
+`M5AllFuelBoundScratch.agda` proves the stored cast is not smaller than the
+outer inst cast, but its opened cast is a function consistency and therefore
+inert.  It needs no extra-cast call.  The live `strict-safe` theorem proves
+the general invariant: if `ν X = X∼X`, `d : ν ⊢ B₀ ∼ B₁`, `B₁` is
+non-variable, and `X` occurs in `B₁`, then `GenSafe d`; `ext-safe` is its
+fresh-binder specialization.  `GenSafeView` then classifies such a cast as
+inert or exactly `safe-inst`.  Thus the `∀ᶜ` view exposes a structural
+value-instantiation spine, not an arbitrary cast whose size must fit beneath
+the residual-column fuel.
+
+The remaining `safe-inst` case still needs a terminating structural
+normalizer over the target value and its pending administration spine.  The
+first single-number candidate was retracted after checking the complete
+administrative machine: it assigned zero to runtime-name applications and
+conversion frames, although those frames can later become value wrappers.
+Its isolated arithmetic lemmas were therefore removed from the live surface.
+
+The Cambridge26 intuition survives as the primary component.  Define cast
+mass as the consistency syntax retained in the target value plus the pending
+spine.  The concrete `∀` opening, `gen` allocation, and `safe-inst`
+allocation transitions all strictly decrease this mass; the last theorem
+uses the live strict decrease for `↑ᶜ (close-instᶜ c)`.  Renaming a value and
+mapping a spine through allocation preserve the mass.  A checked finite
+witness in `notes/M5SafeInstExposureScratch.agda` confirms why the
+`safe-inst` branch is real: `β-gen` can expose a cast which is neither inert
+nor a value.
+
+At equal cast mass, termination is structural recursion on the imprecision
+derivation.  `value-type-app-source-view` exhaustively identifies the five
+admissible outer rules, and `no-value-source-type-app` checks that every case
+recurses on a strict premise whose exposed source is still a `Value`.  This is
+the Cambridge26 proof shape, with the old `⊒⟨ν⟩` gap closed by the live
+relation's explicit value premises.  A second numeric component is therefore
+unnecessary.  Nested accessibility restarts only when `safe-inst` strictly
+decreases cast mass; it uses ordinary derivation recursion otherwise.
+
+The remaining statement-first boundary is
+`StructuralValueInstantiationᵀ`.  It is fuel-free, keeps the source `M`
+explicitly value-indexed, and starts with a weakened pre-allocation value
+instantiated at the fresh runtime name.  The earlier general spine statement
+was removed: its premise demanded a relation to a raw type application, which
+`no-value-source-type-app` refutes.
+
+The shared descent consumer is no longer part of the NS-3 uncertainty.
+Commit `7ca0ac1c` removes the contradictory immediate-post value field from
+`InstPostCatalogPackageAt`; `inst-post-at-finish` now consumes
+`InstSpineDescentPackage`, transports the residual cast/provenance through
+the descent, and calls smaller-fuel catch-up only at the descended value.
+The package now also omits the stronger immediate-post relation.  The descent
+package owns the relation only after the administrative spine has reduced to
+a value.  Re-evaluation showed that a completed child trace cannot generally
+be inverted through fresh pushouts.  The target normalization trace must be
+known first and the imprecision derivation replayed against it.  The obsolete
+post-package target-cast and type-transport shims were therefore removed;
+target frames belong to normalization, while `structural-inert-cast-replay`
+rebuilds the source cast at the known endpoint.  The four non-Λ view packages
+still need their remaining descent cases and producers.
+`StructuralWorldExtendᴿ` now retains the `keep`/target-insert history needed
+to transform an unfinished descent through source `Λ`, reveal, and conceal
+wrappers, and erases to the existing public `WorldExtendᴿ`.
+`structural-rebase-atᴸ` now transforms an arbitrary such trace through a
+source-reveal rebase, returning both the premise trace and the final rebase.
+`structural-tag-rebase-atᴸ` provides the conceal-direction analogue and
+maps the target pivot across every bind in the trace.
+`structural-smart-liftᴸ` provides the source-Λ analogue.  It follows the
+same trace through either smart-alias or smart-fresh insertion, returning the
+post smart lift; its result exposes the transformed center because the fresh
+case computes that center by embedding pushout.  Thus all three source-wrapper
+geometries needed by the smart/rebase cases are structurally available.
+`structural-lift-left` separately handles ordinary source `Λ` by lifting every
+target insertion under the canonical left binder.  This closes the remaining
+source-wrapper trace geometry.
+The reveal/conceal transformers now also compute the induced endpoint
+`ImpEnvMono`.  Shared structural evidence transports `SameCtx`, ordinary and
+smart lift contexts, and source reveal/conceal typing; the older local
+`mapCtxᴿ-sameCtx` duplicate has been removed.  The replay step therefore has
+all wrapper evidence at the transformed endpoint except the conceal partner
+condition, which must be preserved with the target normalization result.
+The ordinary and smart source-Λ endpoint replays and the source reveal/conceal
+endpoint replays are now checked.  They consume a caller-supplied outer trace,
+transform it in the only sound direction, and rebuild the corresponding live
+relation rule at the final target value.
+`StructuralInstantiationDescentPackage` is now the internal worker result.  It
+contains a `StructuralTargetInstantiationPackage`, which owns only the target
+trace, reduction, and final value, plus the replayed endpoint relation.  The
+public erasure returns the existing `InstSpineDescentPackage`; both empty-spine
+constructors are checked.  The worker state therefore relates source and
+target values and separately carries the pending typed target spine, rather
+than asserting a relation to a raw type application.
+Generic `keep` and target-bind composition now prepend one operational step to
+a completed target package while preserving the structural trace.  The first
+concrete equal-mass transition, `structural-target-Λ-step`, is checked: it
+lifts `β-Λ` through the remaining spine, records the fresh runtime-name bind,
+and localizes the opened-type equality with `replace-zero-open`.
+The binding transitions are now complete: `structural-target-gen-step` and
+`structural-target-inst-step` expose exactly the already-proved strictly
+smaller cast-mass child spines, while `structural-target-{reveal,conceal}-step`
+record the universal conversion frames.  `structural-target-all-step` closes
+the final target constructor by lifting `β-∀` through an arbitrary spine.
+Its `keep` congruence normalizes identity-renamed reveal and conceal
+conversions at one raw-term boundary; no reduction or imprecision constructor
+changes.  The target transition inventory is complete.
+Completed target packages now also compose definitionally through one pending
+frame, and a root `keep` reduction can be lifted through the mapped tail in a
+single helper.  These are the two worker combinators needed for value-forming
+frames and identity/unseal conversion steps; neither adds a termination case.
+`StructuralFrameOutcome` now checks that every well-typed reveal or conceal
+frame over a value is either already a value or takes exactly one `keep` step
+to a value.  Its package eliminator selects the corresponding composition
+operation, making conversion administration finite and nonrecursive.
+The next worker is not target-only.  A typed pending cast may reduce to blame,
+so successful normalization depends on the related source `Value` and the
+final type-imprecision witness.  The checked internal statement
+`StructuralNameInstantiationᵀ` starts from related source and target values,
+one named type application, and a typed tail spine.  Its result retains the
+structural target trace plus the endpoint relation.  The public
+`StructuralValueInstantiationᵀ` is now a checked specialization at the fresh
+weakened runtime name.  Implement this relational worker by nested
+accessibility, using the completed target steps and source replay lemmas.
+The first strict cast-mass branch is now checked.  `structural-all-descent`
+composes the smaller opened-cast child with the target `β-∀` transition.  A
+canonical keep-prefixed world extension makes its transported context and
+endpoint imprecision definitionally the child's, so this branch adds no
+secondary termination measure.
+The corresponding allocating compositions are also checked.
+`structural-gen-descent` and `structural-inst-descent` consume their smaller
+child packages in the canonical right-only world and prepend `β-gen` and
+`β-inst`, respectively.  The common relational bind combinator composes both
+the transported context and endpoint imprecision, so the three primary-mass
+decreases now have exact worker-facing result constructors.
+Plan-first source recursion is now represented at the package level.
+Completed target packages transport through ordinary left lift, smart left
+lift, source rebase, and source tag rebase without changing their target
+reduction or final value.  The worker can therefore transform a caller-world
+trace into each strict source premise and use the existing endpoint replay
+lemmas; it never has to invert a child trace through a smart-fresh pushout.
+
+SP-1 through SP-4 are SUSPENDED.  Do not add `Λ⊑Λ²-split` unless NS-2
+ends in a new machine-checked relation-expressibility obstruction that
+also rules out derivation-tree interleavings.
+
+The `/tmp/agda-work/agda-home` setting in the historical plan came from
+another computer.  On this Mac, remove that stale override and use the
+installed Agda registration:
+
+    env -u AGDA_DIR agda -i GTSFImp -v0 GTSFImp/All.agda
+
+Discipline remains statement-first; `.red` + stop on genuine resisters;
+no weakening of live statements; hygiene = FunExt only; commit and push
+every proof or planning chunk.
+
+## CTI unsoundness finding + tightening calibration (2026-08-15)
+
+FINDING (external, verified): the three CTI cast rules (cast⊑cast²,
+⊑cast², cast⊑²) relate endpoint TYPES only; the checked counterexample
+`projection-mismatch²` (notes/ProjectionMismatchStarRepScratch.agda,
+from peterthiemann:codex/gtsf-big-dgg d2cb44f) derives a term relation
+whose target blames on an unrelated generated-name projection while the
+source returns. Independently, codex/gtsf-cti-source-reachability
+(notes/SOURCE-CTI-REACHABILITY.md) provides EVIDENCE (not yet a
+theorem — one related pair traced end-to-end, one blame-forcing
+variant refuted; the dossier itself lists the general preservation
+theorem as future work) that the bad square is source-unreachable —
+pointing at a relation-tightening of the M3 species rather than a DGG
+threat. The general statement is exactly the LG-2 grounding
+obligation: compile mints the discipline and related reduction
+preserves it, closing the gap between evidence and theorem. PR #137
+was merged first (relation untouched there); NS-4 stage 2 stays
+paused pending the repair.
+
+CALIBRATION (branch agent/gtsf-cti-calibration, notes/
+CTI-TIGHTENING-CALIBRATION.md + three checked scratch mini-relations):
+
+| candidate | C1 sound | C2 compile² | C3 good runs | C5 LR | verdict |
+|---|---|---|---|---|---|
+| S-NARROW (GTSF-style direction/shape premises only) | CHECKED-FAIL (`projection-mismatch-still-derivableᴺ`) | — | ok | — | REFUTED |
+| S-WORLD (items 1-3 world/capability tightening only, type-level cast rules) | CHECKED-FAIL (`world-only-bad-square-still-derivableᵂ` — rerouted bad square consumes the IDENTICAL capability premise as the good square) | ok | ok | — | REFUTED |
+| S-PROV CORE (items 1-5: provenance cells + TERM-SHAPED generated-name projection clauses) | CHECKED-OK (emptiness) | CHECKED-OK (scoped: term-shaped clause applies to generated-name projections only; compile's dynamic-function projections at CompilePreservesImprecision2:556/:595 keep a separate allowance) | CHECKED-OK | CHECKED-OK | PASSES |
+
+Structural reason the first two fail: the good square (V⟨Y!⟩⟨Y?⟩,
+cancels) and the bad square (0⟨ℕ!⟩⟨Y?⟩, blames) coincide in world,
+premise witness (X⊑★), conclusion witness (X⊑X at the shared center),
+and cast (Y?) at the final rule application — only the target TERM
+shape and premise subderivation differ. Any type-level or world-level
+premise admits both or rejects both, and rejecting both is unavailable
+(the good square is the reachable runtime endpoint). Hence item 5
+(term-shaped same-tag clause + residual-after-cancellation clause) is
+the necessary blocking layer; items 1-3 are the enabling layer that
+makes its obligations dischargeable (and bad worlds unconstructible).
+
+Item 6 (delete CatchupCast/CatchupCast⁻/CatchupColumn in favor of
+CTI-internal inversion): audited, verdict DEFER — it reworks the M4
+extra-cast surfaces, the M6 fuel knot, and NS-4 stage-1 provenance
+threading; the tightening lands soundly while keeping those judgments,
+and their removal can be a later cleanup once the strengthened CTI's
+inversion demonstrably supplies the same evidence.
+
+DECISION PENDING (user): adopt S-PROV CORE (items 1-5, with the
+generated-name scoping from C2) as the live CastTermImprecision2
+tightening, migrated by the A3/tag-discipline playbook (pre-flight in
+scratch; riskiest consumers first: M3 Inversion stack, seal-transfer,
+Λ machinery, NS-4 equal helpers/absorption; full gates last).
+
+DECIDED (user, 2026-08-15): the CatchupCast/CatchupCast⁻/CatchupColumn
+predicate family MUST BE REMOVED regardless of candidate — item 6 is
+mandatory, overriding the calibration's earlier DEFER verdict.
+Rationale (user): the external predicate HID the CTI unsoundness for
+some time (the mismatch probe had flagged the same permissiveness in
+the M3 era), enlarging today's migration; invariants of this kind
+belong in the CTI2 relation itself and MUST be connected to gradual
+source-term imprecision by the compile-monotonicity proof — compile²
+is re-proven as the MINTING theorem (compilation derives all
+birth/use/ancestry evidence from the source derivation; related
+reduction preserves it). Without that connection the invariants are
+ungrounded ("an imaginary world").
+
+Consequences for the calibration: the mandated shape is S-PROV FULL
+(items 1-6 + the two-stage grounding theorem), with the generated-name
+scoping from C2. The in-flight S-OCC column is reinterpreted as a
+COMPONENT evaluation (does occupancy-gating belong in the partner
+predicate's design, and does the alignment skew window exist?), not as
+a standalone alternative — S-OCC as posed retains CatchupCast, which
+the decision forbids. Migration plan must include: ExtraCastRight and
+the M6 fuel knot reworked to CTI-inversion provenance; NS-4 stage-1's
+ResidualFrameProvenance/chain threading re-pointed at the strengthened
+constructors (the higher-order surfaces localize this).
+
+S-OCC ADOPTION PRE-FLIGHT: GO (2026-08-15). V1 — the projection case
+of catch-up is PROVEN BY PURE CTI INVERSION on the occupancy-gated
+mini-relation with no CatchupCast anywhere
+(`generated-Y-projection-catchupᴼ`, CTIOccInversionCatchupScratch;
+ground case `ground-ℕ-projection-catchupᴼ` needs no occupancy — tags
+are type-visible there). The supervisor's "item 5 required for item 6"
+objection is WITHDRAWN with this artifact. V2 — occupancy formulated
+live as ηᴿ-image membership; per-lemma transport table shows threading
+work but no genuine blocker; see-through is lost exactly at aligning
+inserts/alias-merges, where the partnered shape is re-derivable. V3 —
+compile-image worlds are fully occupied (identity embeddings) and
+compile² has no see-through sites; β-inst/β-gen right-only allocation
+creates the occupant in the allocating step.
+
+ADOPTED DESIGN (user, confirmed by pre-flight): S-OCC live — the
+see-through partner clauses gain a NoTargetOccupant premise — plus the
+mandatory CatchupCast/CatchupCast⁻/CatchupColumn removal with
+consumers (ExtraCastRight, M6 fuel knot, column proof) reworked to CTI
+inversion, plus the grounding theorems (compile mints — trivially
+occupancy-clean; reduction preserves — allocation atomicity). NO
+changes to the cast imprecision rules. The S-PROV column remains the
+recorded fallback if live migration uncovers an inversion gap the
+mini-relation missed.
+
+## LG-1 IN FLIGHT (branch agent/gtsf-cti-lg1)
+
+Live S-OCC surgery per the adopted design (PR #140): occupancy
+definitions (ηᴿ-image), the NoTargetOccupantAtSource premise on
+star-rep-target, occupancy transport lemmas, consumer migration
+riskiest-first per the V2 table, live negative record replacing
+projection-mismatch². Cast rules untouched. LG-2 (grounding theorems)
+and LG-3 (CatchupCast-family removal, consumers to inversion) follow
+in separate gates on this branch or its successors.
+
+LG-1 COMPLETE (2026-08-15, branch agent/gtsf-cti-lg1, PR #141). The
+occupancy gate is live: Occupied/NoTargetOccupant(AtSource) in
+CastTermImprecision2 + the single premise on star-rep-target — the
+relation diff is exactly the calibrated change. Full gate green;
+notes regression suite green (projection-mismatch² is now a checked
+LIVE emptiness, projection-mismatch-empty). Migration findings: the
+unsound stripped square had been baked into THREE layers of M3
+machinery, each reshaped branch-sensitively (results carry more
+information, never less): SealTransferCore.seal-transfer →
+SealTransferResult; TargetDescentDef's TargetSealTerminal/Reemit
+(de-protected: single-consumer M3-internal); TargetWalkDef/
+TargetChainProof's target-source-star chain (terminus alternatives:
+residual/paired/payload with rebase+partner provenance).
+RightInjInversion2Def passed the producibility scan unchanged — the
+public M3 theorem survives on the strengthened relation. Two M2-era
+probes (ChainRide, TerminusRebuild) had hand-built the forbidden
+shape; both now carry checked emptiness records. Occupancy decision
+helpers live in proof/DGG/Occupancy.agda. NEXT: LG-2 (grounding:
+compile² minting audit-to-theorem, reduction preservation of the
+discipline), then LG-3 (CatchupCast-family removal, consumers to CTI
+inversion per the V1′ model). NS-4 stage 2 remains paused until the
+repair completes.
+
+LG-1 COMPLETE, take 2 (2026-08-16, post-review, rebased on FunExt-free
+main, PR #141). PR review caught LG-1g's three undisclosed
+NON_COVERING pragmas (falsely-green gate); removal exposed that the
+strip-layer statements also leaned on the refuted stripped square. The
+target-strip surfaces were reshaped branch-sensitively (both reviewer
+sites closed for real). The source-worker site (wrap-star-cast-final)
+is closed by USER-APPROVED OPTION A: final-only input view, non-final
+alternatives routed at the already-pragma'd legacy call sites
+(disclosed OPTION-A DEBT comments), consolidating ALL
+SourceStripWorkerProof debt into one scheduled repair (root TODO.md;
+worklist notes/lg1h-legacy-noncovering-inventory.md).
+BUILD RESTRUCTURE (user-designed): --safe is LIVE on All.agda; the
+quarantined closed-form chain (SourceStripColumnView,
+SourceStripWorkerProof, SourceStripLemma, TargetWalkProof,
+TargetWalkLemma, RightInjInversion2Proof, RightInjInversion2Lemma)
+checks under plain agda via LegacyAll.agda (make agda-legacy);
+FuelKnotProof is higher-order over RightInjInversion2Def (knot
+pattern), closed instantiation in the legacy chain; Makefile enforces
+exact NON_COVERING baselines (22/1, zero elsewhere) and the full
+pragma ban. Hygiene bar is now ZERO postulates (FunExt removed on
+main, PR #142). Gate + ten-file notes regression verified by the
+supervisor. NEXT: LG-2 grounding, LG-3 CatchupCast removal.
+
+## LG-2 IN FLIGHT (branch agent/gtsf-cti-lg2)
+
+Grounding theorems per the adopted design and the V3 pre-flight: the
+tightened CTI2 must be CONNECTED to gradual source-term imprecision
+(user requirement — no imaginary worlds). Two stages:
+  G2-a MINTING: make the compile-image occupancy facts explicit
+       theorems (initialWorld/compile-image cells are occupied;
+       compile² lands in the tightened relation with no see-through
+       uses) so compile-preserves-imprecision² IS the minting theorem.
+  G2-b PRESERVATION: allocation atomicity as theorems over the live
+       Reduction/catch-up machinery — every step that first occupies a
+       cell (β-gen/β-inst) produces the partnered seal on the target
+       value in the same step, so no reachable state needs see-through
+       at an occupied cell; plus occupancy-evolution invariants for
+       the world moves the proofs use.
+All new proofs live in the --safe side of the build.
+
+LG-2 COMPLETE (2026-08-16, PR #143). Grounding is now theorem-level:
+G2-a `GroundingMint.agda` — initialWorld-occupied, the CompileImageWorld
+invariant, and the see-through emptiness theorems for the compile
+image; the minting connection itself IS the canonical
+compile-preserves-imprecision² (every gradual source-term imprecision
+derivation lands in the tightened CTI2 at initialWorld) — PR #143
+review removed a duplicate-alias restatement of it, per the
+closed-world no-shims convention. G2-b
+`GroundingPreserve.agda` + completed `Occupancy.agda` evolution set —
+allocation atomicity over live β-inst/β-gen (`*-allocation-atomic`:
+the occupying step carries the fresh partnered seal), occupancy
+evolution for every world move, `occupied-see-through-empty`, and the
+related-reduction preservation stated as the higher-order
+`grounding-preservation-knot` (instantiation deferred to the LG-3/M7
+value catch-up driver by design — the knot pattern). All in the --safe
+aggregate; gate green; no resisters. NEXT: LG-3.

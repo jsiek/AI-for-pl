@@ -198,9 +198,14 @@ probe-base² =
   CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
 
-probe-premise : W₂ ∣ [] ⊢² V ⊑ U ∶ q₂
-probe-premise =
-  CTI2.conceal⊑² (CTI2.seal-partner-ok
-    (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-base)))
-    (λ X eq → eq) (CTI2.tag-rebase-varᴸ probe-premise-rebase)
-    CTI2.same-[] probe-Z₃-seal-⊢ probe-base² q₂
+probe-occupied-Z₃ : CTI2.NoTargetOccupantAtSource W₂ Z₃ → ⊥
+probe-occupied-Z₃ no-target = no-target (Y , refl)
+
+probe-direct-premise-partner-empty :
+  CTI2.SourceConcealPartnerOK W₂ V₀ (seal Z₃ ★) (just Y) U
+  → ⊥
+probe-direct-premise-partner-empty
+    (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
+  probe-occupied-Z₃ no-target
+probe-direct-premise-partner-empty
+    (CTI2.seal-partner-ok (CTI2.plain-target ()))

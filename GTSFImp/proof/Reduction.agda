@@ -2,24 +2,323 @@ module proof.Reduction where
 
 -- File Charter:
 --   * Proof lemmas for the store-changing reduction relation.
---   * Supplies cast congruence over multi-step reduction and inert
---     preservation under store-change transport.
+--   * Supplies arrow, universal-type, and dynamic-type preservation under
+--     store-change transport, application, primitive-operation, and
+--     type-application and conversion-frame congruence over multi-step
+--     reduction, and inert and value preservation under transport.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (refl)
+import Data.Nat as Nat
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; cong; trans)
   renaming (subst to subst≡)
 
 open import Types
 open import Consistency hiding (keep)
 import Consistency as C
-open import CastTerms using (Term; _⟨_⟩; Inert; inj; fun; all; genᵥ)
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
+open import Primitives using
+  (Prim; addℕ; and𝔹; primArgTy; primResultTy)
+open import CastTerms using
+  ( Term; Value; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
+  ; Inert; inj; fun; all; genᵥ
+  )
+open import CastTerms using (_↑_; _↓_)
 open import Reduction
 open import proof.Consistency using (gen-safe)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using
-  (rename-star-injective; rename-occurs)
+  ( rename-star-injective
+  ; rename-occurs
+  ; renameᵗ-pointwise-id
+  ; renameᵗᵐ-preserves-Value
+  ; rename-openᵗ
+  )
+
+applyBodies : ∀ {Δ Δ′}
+  → StoreChanges Δ Δ′
+  → Ty (Nat.suc Δ)
+  → Ty (Nat.suc Δ′)
+applyBodies [] B = B
+applyBodies (χ ∷ χs) B = applyBodies χs (applyBody χ B)
+
+applyTy-⇒ : ∀ {Δ Δ′} (χ : StoreChange Δ Δ′) (A B : Ty Δ)
+  → applyTy χ (A ⇒ B) ≡ applyTy χ A ⇒ applyTy χ B
+applyTy-⇒ keep A B = refl
+applyTy-⇒ (bind C) A B = refl
+
+applyTy-∀ : ∀ {Δ Δ′} (χ : StoreChange Δ Δ′)
+    (B : Ty (Nat.suc Δ))
+  → applyTy χ (`∀ B) ≡ `∀ (applyBody χ B)
+applyTy-∀ keep B = refl
+applyTy-∀ (bind C) B = refl
+
+applyTys-⇒ : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) (A B : Ty Δ)
+  → applyTys χs (A ⇒ B) ≡ applyTys χs A ⇒ applyTys χs B
+applyTys-⇒ [] A B = refl
+applyTys-⇒ (keep ∷ χs) A B = applyTys-⇒ χs A B
+applyTys-⇒ ((bind C) ∷ χs) A B =
+  applyTys-⇒ χs (⇑ᵗ A) (⇑ᵗ B)
+
+applyTys-∀ : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
+    (B : Ty (Nat.suc Δ))
+  → applyTys χs (`∀ B) ≡ `∀ (applyBodies χs B)
+applyTys-∀ [] B = refl
+applyTys-∀ (keep ∷ χs) B = applyTys-∀ χs B
+applyTys-∀ ((bind C) ∷ χs) B =
+  applyTys-∀ χs (applyBody (bind C) B)
+
+applyTys-★ : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
+  → applyTys χs ★ ≡ ★
+applyTys-★ [] = refl
+applyTys-★ (keep ∷ χs) = applyTys-★ χs
+applyTys-★ ((bind C) ∷ χs) = applyTys-★ χs
+
+applyTys-primArgTy : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) (op : Prim)
+  → applyTys χs (primArgTy op) ≡ primArgTy op
+applyTys-primArgTy [] op = refl
+applyTys-primArgTy (keep ∷ χs) op = applyTys-primArgTy χs op
+applyTys-primArgTy ((bind C) ∷ χs) addℕ =
+  applyTys-primArgTy χs addℕ
+applyTys-primArgTy ((bind C) ∷ χs) and𝔹 =
+  applyTys-primArgTy χs and𝔹
+
+applyTys-primResultTy : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) (op : Prim)
+  → applyTys χs (primResultTy op) ≡ primResultTy op
+applyTys-primResultTy [] op = refl
+applyTys-primResultTy (keep ∷ χs) op = applyTys-primResultTy χs op
+applyTys-primResultTy ((bind C) ∷ χs) addℕ =
+  applyTys-primResultTy χs addℕ
+applyTys-primResultTy ((bind C) ∷ χs) and𝔹 =
+  applyTys-primResultTy χs and𝔹
+
+applyTys-open : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
+    (B : Ty (Nat.suc Δ)) (A : Ty Δ)
+  → applyTys χs (B [ A ]ᵗ) ≡
+    applyBodies χs B [ applyTys χs A ]ᵗ
+applyTys-open [] B A = refl
+applyTys-open (keep ∷ χs) B A = applyTys-open χs B A
+applyTys-open ((bind C) ∷ χs) B A =
+  trans (cong (applyTys χs) (rename-openᵗ Fin.suc B A))
+    (applyTys-open χs (applyBody (bind C) B) (applyTy (bind C) A))
+
+applyTerms-preserves-Value : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′)
+    {V : Term Δ}
+  → Value V
+  → Value (applyTerms χs V)
+applyTerms-preserves-Value [] vV = vV
+applyTerms-preserves-Value (keep ∷ χs) vV =
+  applyTerms-preserves-Value χs vV
+applyTerms-preserves-Value ((bind A) ∷ χs) vV =
+  applyTerms-preserves-Value χs
+    (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
+
+normalizeReveal : ∀ {Δ} {A B : Ty Δ}
+  → Conv↑ Δ A B
+  → Conv↑ Δ A B
+normalizeReveal {A = A} {B = B} c =
+  subst≡ (Conv↑ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst≡ (λ A′ → Conv↑ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↑ (λ X → X) c))
+
+normalizeConceal : ∀ {Δ} {A B : Ty Δ}
+  → Conv↓ Δ A B
+  → Conv↓ Δ A B
+normalizeConceal {A = A} {B = B} c =
+  subst≡ (Conv↓ _ A) (renameᵗ-pointwise-id _ B (λ X → refl))
+    (subst≡ (λ A′ → Conv↓ _ A′ _)
+      (renameᵗ-pointwise-id _ A (λ X → refl))
+      (rename↓ (λ X → X) c))
+
+applyReveals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
+  → Conv↑ Δ A B
+  → Conv↑ Δ′ (applyTys χs A) (applyTys χs B)
+applyReveals [] c = c
+applyReveals (keep ∷ χs) c =
+  applyReveals χs (normalizeReveal c)
+applyReveals (bind A ∷ χs) c =
+  applyReveals χs (rename↑ Fin.suc c)
+
+applyConceals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
+  → Conv↓ Δ A B
+  → Conv↓ Δ′ (applyTys χs A) (applyTys χs B)
+applyConceals [] c = c
+applyConceals (keep ∷ χs) c =
+  applyConceals χs (normalizeConceal c)
+applyConceals (bind A ∷ χs) c =
+  applyConceals χs (rename↓ Fin.suc c)
+
+renamedReveal-term : ∀ {Δ} {A B : Ty Δ}
+    (M : Term Δ) (c : Conv↑ Δ A B)
+  → M ↑ rename↑ (λ X → X) c ≡ M ↑ normalizeReveal c
+renamedReveal-term {A = A} {B = B} M c =
+  reveal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) M
+    (rename↑ (λ X → X) c)
+  where
+  reveal-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → (M : Term _)
+    → (d : Conv↑ _ A₀ B₀)
+    → M ↑ d ≡ M ↑ subst≡ (Conv↑ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
+  reveal-subst refl refl M d = refl
+
+renamedConceal-term : ∀ {Δ} {A B : Ty Δ}
+    (M : Term Δ) (c : Conv↓ Δ A B)
+  → M ↓ rename↓ (λ X → X) c ≡ M ↓ normalizeConceal c
+renamedConceal-term {A = A} {B = B} M c =
+  conceal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) M
+    (rename↓ (λ X → X) c)
+  where
+  conceal-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → (M : Term _)
+    → (d : Conv↓ _ A₀ B₀)
+    → M ↓ d ≡ M ↓ subst≡ (Conv↓ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
+  conceal-subst refl refl M d = refl
+
+reveal-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↑ Δ A B)
+  → M —↠[ χs ] N
+  → M ↑ c —↠[ χs ] N ↑ applyReveals χs c
+reveal-↠ {M = M} c (_ ∎[]) = (M ↑ c) ∎[]
+reveal-↠ {M = M} {N = P} {χs = keep ∷ χs} c
+    (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  M ↑ c
+    —→[ keep ]⟨
+      subst≡ (λ P′ → M ↑ c —→[ keep ] P′)
+        (renamedReveal-term _ c) (ξ-reveal M→N refl) ⟩
+  _
+    —↠[ χs ]⟨
+      reveal-↠ (normalizeReveal c) N↠P ⟩
+  P ↑ applyReveals χs (normalizeReveal c) ∎[]
+reveal-↠ {M = M} {N = P} {χs = bind A ∷ χs} c
+    (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  M ↑ c
+    —→[ bind A ]⟨ ξ-reveal M→N refl ⟩
+  _
+    —↠[ χs ]⟨ reveal-↠ (rename↑ Fin.suc c) N↠P ⟩
+  P ↑ applyReveals χs (rename↑ Fin.suc c) ∎[]
+
+conceal-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↓ Δ A B)
+  → M —↠[ χs ] N
+  → M ↓ c —↠[ χs ] N ↓ applyConceals χs c
+conceal-↠ {M = M} c (_ ∎[]) = (M ↓ c) ∎[]
+conceal-↠ {M = M} {N = P} {χs = keep ∷ χs} c
+    (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  M ↓ c
+    —→[ keep ]⟨
+      subst≡ (λ P′ → M ↓ c —→[ keep ] P′)
+        (renamedConceal-term _ c) (ξ-conceal M→N refl) ⟩
+  _
+    —↠[ χs ]⟨
+      conceal-↠ (normalizeConceal c) N↠P ⟩
+  P ↓ applyConceals χs (normalizeConceal c) ∎[]
+conceal-↠ {M = M} {N = P} {χs = bind A ∷ χs} c
+    (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  M ↓ c
+    —→[ bind A ]⟨ ξ-conceal M→N refl ⟩
+  _
+    —↠[ χs ]⟨ conceal-↠ (rename↓ Fin.suc c) N↠P ⟩
+  P ↓ applyConceals χs (rename↓ Fin.suc c) ∎[]
+
+appL-↠ : ∀ {Δ Δ′} {L M : Term Δ} {L′ : Term Δ′}
+    {χs : StoreChanges Δ Δ′}
+  → L —↠[ χs ] L′
+  → L · M —↠[ χs ] L′ · applyTerms χs M
+appL-↠ {L = L} {M = M} (_ ∎[]) = (L · M) ∎[]
+appL-↠ {L = L} {M = M} {L′ = P} {χs = χ ∷ χs}
+    (_ —→[ χ ]⟨ L→N ⟩ N↠P) =
+  L · M
+    —→[ χ ]⟨ ξ-·₁ L→N refl ⟩
+  _
+    —↠[ χs ]⟨ appL-↠ N↠P ⟩
+  P · applyTerms χs (χ ▷ᵀ M) ∎[]
+
+appR-↠ : ∀ {Δ Δ′} {V M : Term Δ} {M′ : Term Δ′}
+    {χs : StoreChanges Δ Δ′}
+  → Value V
+  → M —↠[ χs ] M′
+  → V · M —↠[ χs ] applyTerms χs V · M′
+appR-↠ {V = V} {M = M} vV (_ ∎[]) = (V · M) ∎[]
+appR-↠ {V = V} {M = M} {M′ = P} {χs = keep ∷ χs} vV
+    (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  V · M
+    —→[ keep ]⟨ ξ-·₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨ appR-↠ vV N↠P ⟩
+  applyTerms χs V · P ∎[]
+appR-↠ {V = V} {M = M} {M′ = P} {χs = bind A ∷ χs} vV
+    (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  V · M
+    —→[ bind A ]⟨ ξ-·₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨
+      appR-↠ (renameᵗᵐ-preserves-Value wk↪ᵗ vV) N↠P ⟩
+  applyTerms χs (bind A ▷ᵀ V) · P ∎[]
+
+primL-↠ : ∀ {Δ Δ′} {L M : Term Δ} {L′ : Term Δ′} {op : Prim}
+    {χs : StoreChanges Δ Δ′}
+  → L —↠[ χs ] L′
+  → L ⊕[ op ] M —↠[ χs ] L′ ⊕[ op ] applyTerms χs M
+primL-↠ {L = L} {M = M} (_ ∎[]) = (L ⊕[ _ ] M) ∎[]
+primL-↠ {L = L} {M = M} {L′ = P} {op = op} {χs = χ ∷ χs}
+    (_ —→[ χ ]⟨ L→N ⟩ N↠P) =
+  L ⊕[ op ] M
+    —→[ χ ]⟨ ξ-⊕₁ L→N refl ⟩
+  _
+    —↠[ χs ]⟨ primL-↠ N↠P ⟩
+  P ⊕[ op ] applyTerms χs (χ ▷ᵀ M) ∎[]
+
+primR-↠ : ∀ {Δ Δ′} {V M : Term Δ} {M′ : Term Δ′} {op : Prim}
+    {χs : StoreChanges Δ Δ′}
+  → Value V
+  → M —↠[ χs ] M′
+  → V ⊕[ op ] M —↠[ χs ] applyTerms χs V ⊕[ op ] M′
+primR-↠ {V = V} {M = M} vV (_ ∎[]) = (V ⊕[ _ ] M) ∎[]
+primR-↠ {V = V} {M = M} {M′ = P} {op = op}
+    {χs = keep ∷ χs} vV (_ —→[ keep ]⟨ M→N ⟩ N↠P) =
+  V ⊕[ op ] M
+    —→[ keep ]⟨ ξ-⊕₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨ primR-↠ vV N↠P ⟩
+  applyTerms χs V ⊕[ op ] P ∎[]
+primR-↠ {V = V} {M = M} {M′ = P} {op = op}
+    {χs = bind A ∷ χs} vV (_ —→[ bind A ]⟨ M→N ⟩ N↠P) =
+  V ⊕[ op ] M
+    —→[ bind A ]⟨ ξ-⊕₂ vV M→N refl ⟩
+  _
+    —↠[ χs ]⟨
+      primR-↠ (renameᵗᵐ-preserves-Value wk↪ᵗ vV) N↠P ⟩
+  applyTerms χs (bind A ▷ᵀ V) ⊕[ op ] P ∎[]
+
+typeApp-↠ : ∀ {Δ Δ′} {L : Term Δ} {L′ : Term Δ′}
+    {C : Ty (Nat.suc Δ)} {A : Ty Δ}
+    {χs : StoreChanges Δ Δ′}
+  → L —↠[ χs ] L′
+  → L ⦂∀ C [ A ] —↠[ χs ]
+      L′ ⦂∀ applyBodies χs C [ applyTys χs A ]
+typeApp-↠ {L = L} {C = C} {A = A} (_ ∎[]) =
+  (L ⦂∀ C [ A ]) ∎[]
+typeApp-↠ {L = L} {L′ = P} {C = C} {A = A}
+    {χs = χ ∷ χs} (_ —→[ χ ]⟨ L→N ⟩ N↠P) =
+  L ⦂∀ C [ A ]
+    —→[ χ ]⟨ ξ-• L→N refl refl ⟩
+  _
+    —↠[ χs ]⟨ typeApp-↠ N↠P ⟩
+  P ⦂∀ applyBodies χs (applyBody χ C)
+    [ applyTys χs (applyTy χ A) ] ∎[]
 
 cast-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
     {χs : StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}

@@ -1,6 +1,19 @@
 # M6 Driver Provenance Design
 
-Date: 2026-08-11. Status: design memo, pre-flight pending.
+Date: 2026-08-11. Status: option (A), driver, and fuel knot live; the closed
+theorem awaits only the M5 instantiation factory.
+
+Update, 2026-08-13: the pre-flight described below has landed in
+`Catchup/ValueCatchupRightDef.agda`.  `CatchupCast⁻`, `CatchupColumn⁻`,
+`CatchupColumn`, `ValueCatchupRightProv²`, the fuel-indexed `...At`
+interfaces, and `FuelKnot` are now the live M6 surface.  The decrease,
+column-size, world-extension, context-composition, reduction-composition,
+column-lifting, and `catchup⁻-embed` support is proved in
+`Catchup/ColumnSupportProof.agda`.  The fuel-aware extra-cast worker, column
+driver, and `Acc _<_` knot are live in `Catchup/ExtraCastRightAtProof.agda`,
+`Catchup/ValueCatchupRightProof.agda`, and `Catchup/FuelKnotProof.agda`.
+This memo remains the rationale for that surface, not a pending choice among
+(A), (B), and (C).
 
 ## The gap (checked)
 
@@ -11,8 +24,9 @@ The M6 design scratch's driver surface
 takes an arbitrary cast column with NO provenance premise. It is FALSE:
 instantiated at the singleton column `Y?` with the QHUNT
 projection-mismatch package, the target blames and never reaches a value.
-Machine-checked in `ValueCatchupProvenanceGapScratch.agda` (repo root,
-commit b886024), against the current post-#128 relation — the package's
+Machine-checked in
+`GTSFImp/proof/DGG/notes/ValueCatchupProvenanceGapScratch.agda`
+(commit b886024), against the current post-#128 relation — the package's
 `⊢²` derivation was re-validated after the see-through tightening
 (`rep★-nonvar-tag` admits the `ℕ!` top tag).
 
@@ -37,8 +51,8 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
 
 ## Candidate interfaces
 
-(A) **Head-full, tail-term-independent** (RECOMMENDED, pre-flight
-    first). Define the term-independent fragment `CatchupCast⁻`
+(A) **Head-full, tail-term-independent** (SELECTED AND LIVE). Define the
+    term-independent fragment `CatchupCast⁻`
     (constructors above minus the projection family; `ground-other`
     recursion also lands in the fragment). Column provenance:
 
@@ -88,16 +102,42 @@ about `cᵢ₊₁` cannot mention the term — unless it is term-independent.
     needed by any call shape known today; sketch kept as the fallback.
     Cross-reference: QHUNT-REPORT.md "Candidate Invariant Interface".
 
-## Sequencing
+## Current sequencing
 
-1. Pre-flight (A) in a root scratch: define `CatchupCast⁻`,
-   `CatchupColumn`, the provenance-carrying
-   `ValueCatchupRightProv²`; check the catalog column inhabits it and
-   that the three support lemmas are stateable. Validate the fuel-knot
-   surfaces (`...At`) with the provenance threaded.
-2. Only then let the driver implementation start; the M5 relational
-   continuations must mint the residual's `CatchupCast⁻` as part of
-   their conclusion (knot obligation, now explicit).
-3. The refuted surfaces in `ValueCatchupRightDef.agda` stay as
-   commented interface references until the Prov² statement replaces
-   them in the same file.
+1. DONE: select and pre-flight option (A); make the provenance-carrying
+   surfaces live in `ValueCatchupRightDef.agda`.
+2. IN PROGRESS: finish M5's `InstInversionPackage`.  The shared finalizer now
+   consumes `InstSpineDescentPackage` and transports residual provenance
+   before smaller-fuel catch-up.  The plan-indexed Λ top-post obligation is
+   live, as is the hereditary prefix worker; package assembly remains.  Each
+   non-Λ view must still mint the residual `CatchupCast⁻`; the Λ support
+   already constructs the non-star residual provenance.
+3. DONE (2026-08-13): `catchup-column⁻-transport` proves
+   `CatchupColumn⁻Transportᵀ`, transporting every tail link through the store
+   changes returned by a head catch-up.
+4. DONE (2026-08-13): `extra-cast-right-at` adapts M4 to the fuel-indexed
+   surface.  Its ground-other and project-expand cases call `smaller-extra`;
+   instantiation consumes the supplied same-fuel `InstCatchupRightAt`.
+5. DONE (2026-08-13): `value-catchup-right-prov-at` runs the head through
+   the current-fuel M4 worker, transports the tail, embeds its first
+   term-independent link at the resulting value, and recurses through
+   `smaller-value` on the strictly smaller mapped tail column.
+6. DONE modulo M5 (2026-08-13): `build-fuel-knot-acc` ties
+   `ExtraCastRightAt`, `InstCatchupRightAt`, and
+   `ValueCatchupRightProvAt` by `Acc _<_`.  The unindexed
+   `value-catchup-right-prov²` is live with one explicit argument:
+   `∀ fuel → FuelStepSurface fuel → InstCatchupRightAt fuel`.  Completing
+   M5 supplies that factory without changing M6.
+
+`FuelStepSurface.next-knot` was removed on 2026-08-13.  It was unused by M5
+or M6, and it pointed in the wrong well-founded direction: constructing the
+surface at `fuel` demanded a complete knot at `suc fuel`, so even the
+zero-fuel case generated an infinite upward obligation.  The live surface now
+contains only the three strictly smaller workers.  The knot is assembled by
+`Acc _<_ fuel`: recursive calls provide knots at `m < fuel`; their three
+fields populate `smaller-extra`, `smaller-inst`, and `smaller-value`; the
+current M5, M4, and column workers then populate `FuelKnot fuel`.
+
+The provenance-free surface remains only as a refuted design reference.  Do
+not revive it or admit projection casts in `CatchupCast⁻` without a new
+machine-checked call shape requiring option (C).

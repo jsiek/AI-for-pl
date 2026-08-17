@@ -63,7 +63,9 @@ open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
 open import proof.DGG.Inversion.TargetWalkDef using
-  (TargetTagSealWalk; TargetSourceStarChain)
+  (TargetTagSealWalk; TargetSourceStarChain;
+   target-source-star-chain-final; target-source-star-chain-residual;
+   target-source-star-chain-paired; target-source-star-chain-payload)
 open import proof.DGG.Inversion.TargetWalkSupport
 
 ------------------------------------------------------------------------
@@ -176,6 +178,15 @@ module _
       (right-inj-inversion² sv vN prem
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ＇ Y} body))
       (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ＇ Y} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv z∈A liftW
+        liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ＇ Y} body)))
+      (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ‵ ι} (sv-Λ sv)
       vN (CTI2.Λ⊑² {A = A₀} Anv z∈A liftγ vV
         (⊢⟨⟩ N⊢ _) prem q₀)
@@ -183,6 +194,15 @@ module _
     CTI2.Λ⊑² Anv z∈A liftγ vV N⊢
       (right-inj-inversion² sv vN prem
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ‵ ι} body))
+      (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ‵ ι} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv z∈A liftW
+        liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ‵ ι} body)))
       (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ★⇒★} (sv-Λ sv)
       vN (CTI2.Λ⊑² {A = A₀} Anv z∈A liftγ vV
@@ -192,12 +212,23 @@ module _
       (right-inj-inversion² sv vN prem
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ★ ⇒ ★} body))
       (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ★⇒★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv z∈A liftW
+        liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = ★ ⇒ ★} body)))
+      (∀⊑ Anv′ z∈A′ body)
 
   -- Type abstraction against the ∀★ ground.  The Λ⊑² occurrence premise
   -- exposes the body's head, which rules out bot-elim, refutes ∀⊑∀ by
   -- occurrence preservation, and leaves the ∀⊑ rebuild.
   right-inj-inversion² {gH = ∀★} (sv-Λ sv)
     vN (CTI2.Λ⊑² () var-∈ liftγ vV M′⊢ prem q₀) q
+  right-inj-inversion² {gH = ∀★} (sv-Λ sv)
+    vN (CTI2.Λ⊑²-smart-comma () var-∈ liftW liftγ vV M′⊢ prem q₀) q
   right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
       vN (CTI2.Λ⊑² {A = A₀} Anv (∈-fun-left z∈) liftγ vV
         (⊢⟨⟩ N⊢ _) prem q₀)
@@ -207,7 +238,25 @@ module _
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
       (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv
+        (∈-fun-left z∈) liftW liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv (∈-fun-left z∈) liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body)))
+      (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
       vN (CTI2.Λ⊑² Anv (∈-fun-left z∈) liftγ vV M′⊢ prem q₀)
+      (∀⊑∀ qbody)
+    with source-occurs-target refl qbody
+           (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
+             (ext-injective (toRenameᵗ-injective (ηᴸʷ W)))
+             (∈-fun-left z∈))
+  ... | ()
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma Anv (∈-fun-left z∈) liftW
+        liftγ vV M′⊢ prem q₀)
       (∀⊑∀ qbody)
     with source-occurs-target refl qbody
            (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
@@ -223,8 +272,28 @@ module _
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
       (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv
+        (∈-fun-right z∉ z∈) liftW liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv (∈-fun-right z∉ z∈)
+      liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body)))
+      (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
       vN
       (CTI2.Λ⊑² Anv (∈-fun-right z∉ z∈) liftγ vV M′⊢ prem q₀)
+      (∀⊑∀ qbody)
+    with source-occurs-target refl qbody
+           (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
+             (ext-injective (toRenameᵗ-injective (ηᴸʷ W)))
+             (∈-fun-right z∉ z∈))
+  ... | ()
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN
+      (CTI2.Λ⊑²-smart-comma Anv (∈-fun-right z∉ z∈)
+        liftW liftγ vV M′⊢ prem q₀)
       (∀⊑∀ qbody)
     with source-occurs-target refl qbody
            (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
@@ -240,7 +309,25 @@ module _
         (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body))
       (∀⊑ Anv′ z∈A′ body)
   right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma {A = A₀} Anv
+        (∈-all z∈) liftW liftγ vV (⊢⟨⟩ N⊢ _) prem q₀)
+      (∀⊑ Anv′ z∈A′ body) =
+    CTI2.Λ⊑²-smart-comma Anv (∈-all z∈) liftW liftγ vV N⊢
+      (right-inj-inversion² sv vN prem
+        (CTI2.smartCommaLift-transport⊑ᵂ liftW
+          (liftWorldLeft-⊑ᵂ {W = W} {A = A₀} {B = `∀ ★} body)))
+      (∀⊑ Anv′ z∈A′ body)
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
       vN (CTI2.Λ⊑² Anv (∈-all z∈) liftγ vV M′⊢ prem q₀)
+      (∀⊑∀ qbody)
+    with source-occurs-target refl qbody
+           (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
+             (ext-injective (toRenameᵗ-injective (ηᴸʷ W)))
+             (∈-all z∈))
+  ... | ()
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-Λ sv)
+      vN (CTI2.Λ⊑²-smart-comma Anv (∈-all z∈) liftW
+        liftγ vV M′⊢ prem q₀)
       (∀⊑∀ qbody)
     with source-occurs-target refl qbody
            (rename-occurs (extᵗ (toRenameᵗ (ηᴸʷ W)))
@@ -539,6 +626,17 @@ module _
       (rebase-target-membership ra′ Y∈)
       (CTI2.Λ⊑² Anv z∈A liftγ vV U!⊢ prem₂ p₀)
   right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = `∀ A} (sv-Λ sv₀)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl
+      | CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV U!⊢
+          prem₂ .p₀ =
+    target-tag-seal-walk (sv-Λ sv₀) vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈)
+      (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV U!⊢
+        prem₂ p₀)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = R} (sv-cast sv₀ inert)) vN
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
         (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
@@ -624,9 +722,65 @@ module _
         (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
       | ra′ | varv-seal {W = U} vU Y∈ refl
       | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
-      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂ =
-    target-source-star-chain sv₀ inert vU mono ra′ sc Xᴸ∈
-      (rebase-target-membership ra′ Y∈) prem₂
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      with inner-source-pivot-eq ra′ q p₂
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂ | refl
+      with target-source-star-chain sv₀ inert vU mono ra′ sc Xᴸ∈
+        (rebase-target-membership ra′ Y∈) prem₂
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-final chain =
+    chain
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-residual refl X∈ᵒ Y∈ᵒ
+          rbᵒ residual =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-paired refl X∈ᵒ Y∈ᵒ rbᵒ residual
+          monoᵒ rbᵒ′ scᵒ partner premᵒ =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} vU Y∈ refl
+      | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
+      | X₂ , refl , aligned | inj₂ refl | ＇ Y₂
+      | refl | target-source-star-chain-payload refl X∈ᵒ Y∈ᵒ rbᵒ residual
+          monoᵒ rbᵒ′ scᵒ sourcePremᵒ =
+    target-tag-seal-walk (sv-cast sv₀ inert) vU
+      (STC.impEnvMono-refl {W = W}) rbᵒ
+      STC.sameCtx-refl X∈ᵒ Y∈ᵒ
+      (CTI2.cast⊑cast² c c′ residual ★⊑★)
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} (sv-cast sv₀ inert)) vN
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc

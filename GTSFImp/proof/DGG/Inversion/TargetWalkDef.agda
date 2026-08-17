@@ -8,6 +8,9 @@ module proof.DGG.Inversion.TargetWalkDef where
 --   * Contains no proof scripts and depends only on the cast-imprecision
 --     and spine-value public surfaces.
 
+open import Data.Maybe using (just)
+open import Relation.Binary.PropositionalEquality using (_≡_)
+
 open import Types
 open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_)
@@ -41,6 +44,67 @@ TargetTagSealWalk =
   → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
   → W ∣ γ ⊢² V ↓ seal Xᴸ R ⊑ U ↓ seal Y S ∶ q
 
+data TargetSourceStarAtResult {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
+    (V : Term Δᴸ) (U : Term Δᴿ)
+    (X : TyVar Δᴸ) (Y : TyVar Δᴿ) :
+    (S : Ty Δᴿ) →
+    {ν : Env∼ Δᴸ} (c : ν ⊢ (＇ X) ∼ ★) →
+    (q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)) → Set where
+  target-source-star-final : ∀ {S ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal X ★
+        ⊑ U ↓ seal Y S ∶ q
+    → TargetSourceStarAtResult W γ V U X Y S c q
+
+  target-source-star-residual : ∀ {P ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ ★
+    → RebaseAt W W X Y
+    → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y ★ ∶ q
+    → TargetSourceStarAtResult W γ V U X Y ★ c q
+
+  target-source-star-var-residual : ∀ {P Y′ ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y′)
+    → RebaseAt W W X Y
+    → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y (＇ Y′) ∶ q
+    → TargetSourceStarAtResult W γ V U X Y (＇ Y′) c q
+
+  target-source-star-paired : ∀ {P Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W X Y
+    → CTI2.SameCtx γ γᵖ
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ ★
+    → CTI2.MatchedConcealPartnerOK Wᵖ P (seal X ★) (just Y) U
+    → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
+    → TargetSourceStarAtResult W γ V U X Y ★ c q
+
+  target-source-star-payload : ∀ {P Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X) ∼ ★}
+      {pᵖ : (＇ X) ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal X ★
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W X Y
+    → CTI2.SameCtx γ γᵖ
+    → sourceStoreʷ W ∋ X ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ ★
+    → Wᵖ ∣ γᵖ ⊢² P ↓ seal X ★ ⊑ U ∶ pᵖ
+    → TargetSourceStarAtResult W γ V U X Y ★ c q
+
 TargetSourceStarAt : Set
 TargetSourceStarAt =
   ∀ {Δᴸ Δᴿ Δ}
@@ -55,8 +119,65 @@ TargetSourceStarAt =
   → sourceStoreʷ W ∋ X ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ S
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y S ∶ q
-  → W ∣ γ ⊢² (V ⟨ c ⟩) ↓ seal X ★
-      ⊑ U ↓ seal Y S ∶ q
+  → TargetSourceStarAtResult W γ V U X Y S c q
+
+data TargetSourceStarChainResult {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
+    (V : Term Δᴸ) (U : Term Δᴿ)
+    (Xᴸ X₂ : TyVar Δᴸ) (Y Y₂ : TyVar Δᴿ) :
+    {ν : Env∼ Δᴸ} (c : ν ⊢ (＇ X₂) ∼ ★) →
+    (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)) → Set where
+  target-source-star-chain-final : ∀ {ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → W ∣ γ ⊢²
+        (V ⟨ c ⟩) ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-residual : ∀ {P ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-paired : ∀ {P Uᵖ Yᵖ Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Y
+    → CTI2.SameCtx γ γᵖ
+    → CTI2.MatchedConcealPartnerOK Wᵖ P (seal Xᴸ ★) (just Yᵖ) Uᵖ
+    → Wᵖ ∣ γᵖ ⊢² P ⊑ Uᵖ ∶ p★
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
+
+  target-source-star-chain-payload : ∀ {P Uᵖ Wᵖ γᵖ ν}
+      {c : ν ⊢ (＇ X₂) ∼ ★}
+      {pᵖ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → V ≡ P ↓ seal Xᴸ ★
+    → sourceStoreʷ W ∋ Xᴸ ⦂ ★
+    → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+    → RebaseAt W W Xᴸ Y
+    → W ∣ γ ⊢² P ↓ seal Xᴸ ★
+        ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+    → CTI2.ImpEnvMono W Wᵖ
+    → RebaseAt Wᵖ W Xᴸ Y
+    → CTI2.SameCtx γ γᵖ
+    → Wᵖ ∣ γᵖ ⊢² P ↓ seal Xᴸ ★ ⊑ Uᵖ ∶ pᵖ
+    → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
 
 TargetSourceStarChain : Set
 TargetSourceStarChain =
@@ -77,6 +198,4 @@ TargetSourceStarChain =
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y (＇ Y₂) ∶ p₂
-  → W ∣ γ ⊢²
-      (V ⟨ c ⟩) ↓ seal Xᴸ ★
-      ⊑ U ↓ seal Y (＇ Y₂) ∶ q
+  → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q

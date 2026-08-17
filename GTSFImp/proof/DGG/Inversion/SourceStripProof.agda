@@ -17,17 +17,17 @@ open import Conversion using (seal)
 open import CastTerms using (Term; Value; _↓_; _⟨_⟩)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore;
+   SourceColumnStripWorker; SourceSpineStripWorker;
    SourceTagSealCoreBranch; SourceCorePremise; core-sealed;
    core-terminus; core-tagged; core-terminus-nonstar; core-untagged)
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open import proof.DGG.Inversion.TargetStripDef using
-  (TargetStripAt★Data; target-strip★-data)
+  (TargetStripAt★Data; target-strip★-data; target-strip★-paired)
 open import proof.DGG.Inversion.TargetStripLemma using
   (target-strip-at★)
-open import proof.DGG.Inversion.SourceStripWorkerProof using
-  (source-column-strip-worker; source-spine-strip-worker)
 open CTI2 using
   (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
    sourceStoreʷ; targetStoreʷ)
@@ -75,16 +75,30 @@ private
             (CTI2.seal-partner-ok CTI2.name-protected-target)
             mono (CTI2.tag-rebase-varᴸ rb) sc
             (CTI2.⊢↓-sealˣ source∈) final qᵒ)
-  source-tag-seal-core-tagged (＇ X) sv vU mono rb sc source∈
-      target∈ D
+  source-tag-seal-core-tagged {Wᵒ = Wᵒ} {γᵒ = γᵒ}
+      (＇ X) sv vU mono rb sc source∈ target∈ D
       with target-strip-at★ sv vU mono rb sc source∈ target∈ D
-  source-tag-seal-core-tagged (＇ X) sv vU mono rb sc source∈
-      target∈ D
+  source-tag-seal-core-tagged {Wᵒ = Wᵒ} {γᵒ = γᵒ}
+      (＇ X) sv vU mono rb sc source∈ target∈ D
       | target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
           target∈★ q★ premise★ reemit =
     core-terminus-nonstar nonstar-X
       (U★ , Y★ , _ , refl , W★ , γ★ , mono★ , same★ ,
         boundary★ , target∈★ , q★ , premise★ , reemit)
+  source-tag-seal-core-tagged {Wᵒ = Wᵒ} {γᵒ = γᵒ}
+      (＇ X) sv vU mono rb sc source∈ target∈ D
+      | target-strip★-paired {qᵒ = qᵒ} source∈ᵒ target∈ᵒ
+          boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit =
+    core-sealed
+      (_ , _ , qᵒ ,
+        STC.impEnvMono-refl {W = Wᵒ} ,
+        STC.sameCtx-refl {γ = γᵒ} ,
+        CTI2.rebase-varᴸ
+          (CTI2.sameWorldRebaseAt
+            (CTI2.RebaseAt.pivotAligned boundaryᵒ)
+            (CTI2.RebaseAt.storeRepresentations boundaryᵒ)) ,
+        target∈ᵒ ,
+        residualᵒ)
   source-tag-seal-core-tagged (‵ ι) sv vU mono rb sc source∈
       target∈ D
       with target-strip-at★ sv vU mono rb sc source∈ target∈ D
@@ -116,11 +130,16 @@ private
       (U★ , Y★ , _ , refl , W★ , γ★ , mono★ , same★ ,
         boundary★ , target∈★ , q★ , premise★ , reemit)
 
-source-column-strip : SourceColumnStrip
-source-column-strip = source-column-strip-worker
+module SourceStripProofFrom
+    (source-column-strip-worker : SourceColumnStripWorker)
+    (source-spine-strip-worker : SourceSpineStripWorker)
+  where
 
-source-spine-strip : SourceSpineStrip
-source-spine-strip = source-spine-strip-worker
+  source-column-strip : SourceColumnStrip
+  source-column-strip = source-column-strip-worker
+
+  source-spine-strip : SourceSpineStrip
+  source-spine-strip = source-spine-strip-worker
 
 source-tag-seal-core : SourceTagSealCore
 source-tag-seal-core sv vU mono rb sc source∈ target∈

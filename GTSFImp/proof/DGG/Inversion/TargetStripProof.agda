@@ -41,9 +41,13 @@ open import proof.DGG.Inversion.TargetStripDef using
   (SealDescentAtVar; SealDescentAtVarᴸ; TagDispatchAt★;
    TagDispatchAt★ᴸ; TargetStripAt★; TargetStripAt★ᴸ;
    TargetSealTerminusData; target-seal-terminus-data;
+   target-seal-terminus-paired;
    TargetSealTerminusᴸData; target-seal-terminusᴸ-data;
+   target-seal-terminusᴸ-paired;
    TargetStripAt★Data; target-strip★-data;
+   target-strip★-paired;
    TargetStripAt★ᴸData; target-strip★ᴸ-data;
+   target-strip★ᴸ-paired;
    TagDispatchAt★Case; TagDispatchAt★ᴸCase;
    dispatch-tag; dispatch-source-fold; dispatch-nonvar-empty;
    dispatch-tagᴸ; dispatch-source-foldᴸ; dispatch-nonvar-emptyᴸ;
@@ -172,6 +176,11 @@ private
   sameCtx-liftᴸ (CTI2.same-∷ sc) (CTI2.liftᴸ-∷ lift₁)
       (CTI2.liftᴸ-∷ lift₂) =
     CTI2.same-∷ (sameCtx-liftᴸ sc lift₁ lift₂)
+
+  nonvar-var-⊥ : ∀ {Δ} {X : TyVar Δ}
+    → NonVar (＇ X)
+    → ⊥
+  nonvar-var-⊥ ()
 
   liftImpEnvMonoLeft : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
@@ -478,6 +487,14 @@ private
         tgtCtx-eq
         (CTI2T.target-typing² (TD.⊢²-decay-at dec premise★ᴸ body★))
 
+  source-binder-strengthen-terminus {γᵒᴸ = γᵒᴸ} {U = U}
+      {Xᴸ = Xᴸ} {Y = Y} {S = S} liftᵒ
+      (target-seal-terminus-paired {P = P} source∈ᵒ target∈ᵒ
+        boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ) =
+    target-seal-terminusᴸ-paired {P = P} {U = U} {Xᴸ = Xᴸ}
+      {Y = Y} {S = S} refl refl γᵒᴸ liftᵒ source∈ᵒ target∈ᵒ
+      boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ
+
   source-binder-strengthen-strip : ∀ {Δᴸ Δᴿ Δ}
       {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
       {γᵒ : CtxImp Wᵒ}
@@ -544,6 +561,14 @@ private
           (CTI2.liftWorldLeft X⊑★ Wᵖ) γᵇ
           V ((U ↓ seal Y S) ⟨ cY ⟩) p
     reemit★ _ = reemitᴸ premise★ᴸ
+
+  source-binder-strengthen-strip {γᵒᴸ = γᵒᴸ} {U = U} {S = S}
+      {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = p} liftᵒ
+      (target-strip★-paired {P = P} source∈ᵒ target∈ᵒ boundaryᵒ
+        residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit) =
+    target-strip★ᴸ-paired {P = P} {U = U} {Xᴸ = Xᴸ} {Y = Y}
+      {S = S} {cY = cY} {p = p} refl refl γᵒᴸ liftᵒ source∈ᵒ target∈ᵒ
+      boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit
 
   all-to-star-obligation : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {A : Ty (suc Δᴸ)}
@@ -736,12 +761,23 @@ seal-descent-current-star : ∀ {Δᴸ Δᴿ Δ}
   → targetStoreʷ W ∋ Y ⦂ ★
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y ★ ∶ r
   → TargetSealTerminusData W γ V (＇ X) U X Y ★
-seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
+seal-descent-current-star {U = U} {X = X} {Y = Y} {r = r}
+    sv vU source∈ target∈ D
     with STC.seal-transfer sv vU source∈ D
-seal-descent-current-star {U = U} {Y = Y} sv vU source∈ target∈ D
-    | W★ , γ★ , link , mono★ , same★ , q★ , premise★ =
+seal-descent-current-star {U = U} {X = X} {Y = Y} {r = r}
+    sv vU source∈ target∈ D
+    | STC.seal-transfer-stripped {W₂ = W★} {γ₂ = γ★} {q₂ = q★}
+        link mono★ same★ premise★ =
   target-seal-terminus-data U Y W★ γ★ mono★ same★ link
     (rebase-target-membership-forward link target∈) q★ premise★
+seal-descent-current-star {U = U} {X = X} {Y = Y} {r = r}
+    sv vU source∈ target∈ D
+    | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
+        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢ partner prem =
+  target-seal-terminus-paired source∈ target∈ rbᵖ
+    (CTI2.conceal⊑conceal² partner monoᵖ rbᵖ scᵖ source⊢
+      target⊢ prem r)
+    monoᵖ scᵖ partner prem
 
 seal-descent-current-var : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -808,6 +844,19 @@ seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
     source∈ target∈
     (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
       mono rbᴿ sc (CTI2.⊢↓-sealˣ target∈′) prem .r)
+    | link | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
+    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
+        boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+  target-seal-terminus-paired source∈ target∈
+    (composeOuterRebase link boundaryᵒ)
+    (CTI2.⊑conceal² mono rbᴿ sc (CTI2.⊢↓-sealˣ target∈)
+      residualᵒ r)
+    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = Wᵐ} mono monoᵐ)
+    (sameCtx-∘ sc sameᵐ) partnerᵐ premiseᵐ
+seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
+    source∈ target∈
+    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
+      mono rbᴿ sc (CTI2.⊢↓-sealˣ target∈′) prem .r)
     | link | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
     with seal-descent-current-var sv vU₀
       (rebase-source-membership link source∈) target′∈ prem
@@ -823,6 +872,19 @@ seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
     (sameCtx-∘ sc same★)
     (composeOuterRebase link boundary★)
     target∈★ q★ premise★
+seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
+    source∈ target∈
+    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
+      mono rbᴿ sc (CTI2.⊢↓-sealˣ target∈′) prem .r)
+    | link | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
+    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
+        boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+  target-seal-terminus-paired source∈ target∈
+    (composeOuterRebase link boundaryᵒ)
+    (CTI2.⊑conceal² mono rbᴿ sc (CTI2.⊢↓-sealˣ target∈)
+      residualᵒ r)
+    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = Wᵐ} mono monoᵐ)
+    (sameCtx-∘ sc sameᵐ) partnerᵐ premiseᵐ
 seal-descent-current-var {Y = Y} sv vU source∈ target∈
     (CTI2.⊑conceal² {p = pᵈ} mono rbᴿ sc
       (CTI2.⊢↓-sealˣ target∈′) prem r)
@@ -927,6 +989,14 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
     sc source∈ target∈
     (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem r)
     | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
+    sc source∈ target∈
+    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
+    sc source∈ target∈
+    (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem r)
+    | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
     mono rb sc source∈ target∈
     (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
@@ -1022,6 +1092,31 @@ seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
       mono₁ rbᴿ sc₁ (CTI2.⊢↓-sealˣ target∈′) prem .r)
     | .Xᴸ , refl , aligned | refl | link
+    | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
+    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
+        boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+  target-seal-terminus-paired source∈ target∈
+    (composeOuterRebase (composeSamePivotRebase rb link) boundaryᵒ)
+    (CTI2.⊑conceal²
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
+        mono mono₁)
+      (CTI2.rebase-varᴿ (composeSamePivotRebase rb link))
+      (sameCtx-∘ sc sc₁)
+      (CTI2.⊢↓-sealˣ target∈)
+      residualᵒ
+      (origin-var-obligation rb))
+    (impEnvMono-∘
+      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = Wᵐ}
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
+        mono mono₁)
+      monoᵐ)
+    (sameCtx-∘ (sameCtx-∘ sc sc₁) sameᵐ) partnerᵐ premiseᵐ
+seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
+    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
+    {r = r} sv vU mono rb sc source∈ target∈
+    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
+      mono₁ rbᴿ sc₁ (CTI2.⊢↓-sealˣ target∈′) prem .r)
+    | .Xᴸ , refl , aligned | refl | link
     | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
     with seal-descent-current-var sv vU₀
       (rebase-source-membership link
@@ -1045,6 +1140,31 @@ seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     (sameCtx-∘ (sameCtx-∘ sc sc₁) same★)
     (composeOuterRebase (composeSamePivotRebase rb link) boundary★)
     target∈★ q★ premise★
+seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
+    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
+    {r = r} sv vU mono rb sc source∈ target∈
+    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
+      mono₁ rbᴿ sc₁ (CTI2.⊢↓-sealˣ target∈′) prem .r)
+    | .Xᴸ , refl , aligned | refl | link
+    | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
+    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
+        boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+  target-seal-terminus-paired source∈ target∈
+    (composeOuterRebase (composeSamePivotRebase rb link) boundaryᵒ)
+    (CTI2.⊑conceal²
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
+        mono mono₁)
+      (CTI2.rebase-varᴿ (composeSamePivotRebase rb link))
+      (sameCtx-∘ sc sc₁)
+      (CTI2.⊢↓-sealˣ target∈)
+      residualᵒ
+      (origin-var-obligation rb))
+    (impEnvMono-∘
+      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = Wᵐ}
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
+        mono mono₁)
+      monoᵐ)
+    (sameCtx-∘ (sameCtx-∘ sc sc₁) sameᵐ) partnerᵐ premiseᵐ
 seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {Xᴸ = Xᴸ}
     {Y = Y} {Y′ = Y′} {r = r} sv vU mono rb sc source∈ target∈
     (CTI2.⊑conceal² {p = pᵈ} mono₁ rbᴿ sc₁
@@ -1119,9 +1239,10 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
       (rebase-source-membership rb source∈) D
 seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     {γʳ = γʳ} {V = V} {U = U} {S = ★}
-    {Xᴸ = Xᴸ} {Y = Y} sv vU mono rb sc source∈ target∈ D
+    {Xᴸ = Xᴸ} {Y = Y} {r = r} sv vU mono rb sc source∈ target∈ D
     | .Xᴸ , refl , aligned | refl
-    | W★ , γ★ , link , mono★ʳ , same★ʳ , q★ , premise★ =
+    | STC.seal-transfer-stripped {W₂ = W★} {γ₂ = γ★}
+        {q₂ = q★} link mono★ʳ same★ʳ premise★ =
   target-seal-terminus-data U Y W★ γ★
     (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = W★}
       mono mono★ʳ)
@@ -1130,6 +1251,24 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
     (rebase-target-membership-forward (composeSamePivotRebase rb link)
       target∈)
     q★ premise★
+seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
+    {γʳ = γʳ} {V = V} {U = U} {S = ★}
+    {Xᴸ = Xᴸ} {Y = Y} {r = r} sv vU mono rb sc source∈ target∈ D
+    | .Xᴸ , refl , aligned | refl
+    | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
+        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢ partner prem =
+  target-seal-terminus-paired source∈ target∈
+    (composeSamePivotRebase rb rbᵖ)
+    (CTI2.conceal⊑conceal² partner
+      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵖ} mono monoᵖ)
+      (composeSamePivotRebase rb rbᵖ)
+      (sameCtx-∘ sc scᵖ)
+      (CTI2.⊢↓-sealˣ source∈)
+      (CTI2.⊢↓-sealˣ target∈)
+      prem
+      (origin-var-obligation rb))
+    (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵖ} mono monoᵖ)
+    (sameCtx-∘ sc scᵖ) partner prem
 seal-descent-at-var {S = ＇ Y′} sv vU mono rb sc source∈
     target∈ D =
   seal-descent-at-var-＇ sv vU mono rb sc source∈ target∈ D
@@ -1203,6 +1342,12 @@ target-strip★-from-dispatch-case sv vU mono rb sc source∈ target∈ D
         target∈★ q★ premise★ =
   target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
     target∈★ q★ premise★ (λ _ → D)
+target-strip★-from-dispatch-case sv vU mono rb sc source∈ target∈ D
+    (dispatch-tag (tag-node★ r prem))
+    | target-seal-terminus-paired source∈ᵒ target∈ᵒ boundaryᵒ
+        residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+  target-strip★-paired source∈ᵒ target∈ᵒ boundaryᵒ residualᵒ
+    monoᵐ sameᵐ partnerᵐ premiseᵐ (λ _ → D)
 target-strip★-from-dispatch-case sv vU mono rb sc source∈ target∈ D
     (dispatch-source-fold resume) =
   resume refl vU target∈
@@ -1286,6 +1431,14 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
       q★ = all-to-star-obligation {W = W★} Anv z∈A body★
       premiseΛ =
         CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★
+    build
+      (target-strip★ᴸ-paired refl V≡ γᵒᴸ liftᵒ source∈ᵒ
+        target∈ᵒ boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ
+        premiseᵐ reemit) =
+      ⊥-elim (nonvar-var-⊥ Anv)
+tag-dispatch-at★ (sv-Λ sv) vN mono rb sc source∈
+    D@(CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vV target⊢ prem q) =
+  tagged-seal-source-fold-⊥ (sv-Λ sv) nonvar-all nonstar-∀ D
 tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     {γᵖ = γᵖ} {V = V ⟨ c ⟩} {N = N} {A = ★}
     {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = q}
@@ -1312,6 +1465,20 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
       target∈★ ★⊑★ (CTI2.cast⊑² c premise★ ★⊑★)
       (λ _ → CTI2.cast⊑² c (reemit premise★) q)
+  resume {U = U} {S = S} refl vU target∈
+      | branch
+      | target-strip★-paired source∈ᵒ target∈ᵒ boundaryᵒ
+          residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit
+      with target-star-terminal-entry source∈ rb
+  resume {U = U} {S = S} refl vU target∈
+      | branch
+      | target-strip★-paired source∈ᵒ target∈ᵒ boundaryᵒ
+          residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit
+      | Y★ , target∈★ =
+    target-strip★-data ((U ↓ seal Y S) ⟨ cY ⟩) Y★ Wᵖ γᵖ
+      mono sc rb target∈★ ★⊑★
+      (CTI2.cast⊑² c (reemit residualᵒ) ★⊑★)
+      (λ _ → CTI2.cast⊑² c (reemit residualᵒ) q)
 tag-dispatch-at★ (sv-cast sv fun) vN mono rb sc source∈
     D@(CTI2.cast⊑² c prem q) =
   tagged-seal-source-fold-⊥ (sv-cast sv fun) nonvar-fun nonstar-⇒ D
@@ -1342,6 +1509,24 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
           boundary★ target∈★ q★ premise★ =
     target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
       target∈★ ★⊑★ (CTI2.cast⊑² c premise★ ★⊑★)
+      (λ _ → CTI2.cast⊑cast² c cY′ prem q)
+  resume {U = U} {S = S} refl vU target∈
+      | target-seal-terminus-paired source∈ᵒ target∈ᵒ
+          boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ
+      with target-star-terminal-entry source∈ᵒ
+        (CTI2.sameWorldRebaseAt
+          (CTI2.RebaseAt.pivotAligned boundaryᵒ)
+          (CTI2.RebaseAt.storeRepresentations boundaryᵒ))
+  resume {U = U} {S = S} refl vU target∈
+      | target-seal-terminus-paired source∈ᵒ target∈ᵒ
+          boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ
+      | Y★ , target∈★ =
+    target-strip★-data ((U ↓ seal Y S) ⟨ cY′ ⟩) Y★ Wᵒ γᵒ
+      (STC.impEnvMono-refl {W = Wᵒ}) (STC.sameCtx-refl {γ = γᵒ})
+      (CTI2.sameWorldRebaseAt
+        (CTI2.RebaseAt.pivotAligned boundaryᵒ)
+        (CTI2.RebaseAt.storeRepresentations boundaryᵒ))
+      target∈★ ★⊑★ (CTI2.cast⊑cast² c cY′ residualᵒ ★⊑★)
       (λ _ → CTI2.cast⊑cast² c cY′ prem q)
 tag-dispatch-at★ (sv-cast sv fun) vN mono rb sc source∈
     D@(CTI2.cast⊑cast² c c′ prem q) =

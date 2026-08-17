@@ -20,6 +20,7 @@ import Data.Fin as Fin
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
@@ -391,29 +392,17 @@ module InstanceB where
         (CTI2.x⊑x² {p = ★⊑★} CTI2.Zʷ))
       ★⊑★
 
-  inner-source-seal² : Wᵖ ∣ [] ⊢² V ⊑ U₀ ∶ X⊑★-Wᵖ
-  inner-source-seal² =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok
-      (CTI2.star-rep-target (CTI2.rep★-nonvar-tag nonvar-fun)))
-      (mono-refl {W = Wᵖ}) (CTI2.tag-rebase-varᴸ rb-X-Y₂)
-      CTI2.same-[] source-seal-⊢ base² X⊑★-Wᵖ
+  inner-source-occupied : CTI2.NoTargetOccupantAtSource Wᵖ X → ⊥
+  inner-source-occupied no-target = no-target (Y₂ , refl)
 
-  payload² : Wᵖ ∣ [] ⊢² source-payload ⊑ U₀ ∶ ★⊑★
-  payload² = CTI2.cast⊑² X! inner-source-seal² ★⊑★
-
-  terminus-pair² : Wᵖ ∣ [] ⊢² source ⊑ U ∶ X⊑Y₂
-  terminus-pair² =
-    CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner {Xᴿ? = just Y₂}
-        (CTI2.rep★-nonvar-tag nonvar-fun))
-      (mono-refl {W = Wᵖ}) rb-X-Y₂
-      CTI2.same-[]
-      source-seal-⊢ target-Y₂-seal-⊢ payload² X⊑Y₂
-
-  output : W ∣ [] ⊢² source ⊑ target-chain ∶ X⊑Y
-  output =
-    CTI2.⊑conceal² mono-W-Wᵖ (CTI2.rebase-varᴿ rb-chain)
-      CTI2.same-[] target-Y-seal-⊢ terminus-pair² X⊑Y
+  inner-source-partner-empty :
+    CTI2.SourceConcealPartnerOK Wᵖ V₀ (seal X ★) (just Y₂) U₀
+    → ⊥
+  inner-source-partner-empty
+      (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
+    inner-source-occupied no-target
+  inner-source-partner-empty
+      (CTI2.seal-partner-ok (CTI2.plain-target ()))
 
   premise-chain² : W ∣ [] ⊢² V ⊑ target-chain ∶ X⊑Y
   premise-chain² =
@@ -434,8 +423,7 @@ module InstanceB where
 
   tagged-input : W ∣ [] ⊢² source ⊑ target-tagged ∶ X⊑★-W
   tagged-input =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok
-      (CTI2.star-rep-target
-        (CTI2.rep★-var-tag (CTI2.RebaseAt.pivotAligned rb-X-Y))))
+    CTI2.conceal⊑²
+      (CTI2.seal-partner-ok CTI2.name-protected-target)
       (mono-refl {W = W}) (CTI2.tag-rebase-varᴸ rb-X-Y)
       CTI2.same-[] source-seal-⊢ premise-casts² X⊑★-W

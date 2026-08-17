@@ -37,7 +37,7 @@ module proof.DGG.CastTermImprecision2 where
 --     So don't add rules unless they are absolutely necessary!
 --     Avoid rules that are not syntax directed.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ)
@@ -266,6 +266,119 @@ data LiftCtxᴸ {Δᴸ Δᴿ Δ} (v : VarImp) {W : World Δᴸ Δᴿ Δ} :
     → LiftCtxᴸ v (ctx-imp A B p ∷ γ)
         (ctx-imp (⇑ᵗ A) B p′ ∷ γ′)
 
+-- Smart-comma left lifts are the guarded non-front source-only premise
+-- worlds used by the M5 instantiation catch-up.  The alias case merges the
+-- pending source binder with an existing target alias center; the fresh-behind
+-- case keeps remaining source-only binders behind the generated target window.
+
+data SmartLiftCtxᴸ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ} :
+    CtxImp W → CtxImp Wᵐ → Set where
+  smart-lift-[] : SmartLiftCtxᴸ [] []
+
+  smart-lift-∷ : ∀ {γ γᵐ A B p pᵐ}
+    → SmartLiftCtxᴸ γ γᵐ
+      -------------------------------------------------------------
+    → SmartLiftCtxᴸ (ctx-imp A B p ∷ γ)
+        (ctx-imp (⇑ᵗ A) B pᵐ ∷ γᵐ)
+
+
+record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
+    (W : World Δᴸ Δᴿ Δ)
+    (Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ) : Set where
+  constructor smart-fresh-behind-guard
+  field
+    oldCenters : Δ ↪ᵗ Δᵐ
+    sourceStore-lifted :
+      sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
+    targetStore-same :
+      targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ oldCenters Z) ≡ X⊑★
+    target-frozen : ∀ Xᴿ
+      → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ
+        ≡ toRenameᵗ oldCenters (toRenameᵗ (ηᴿʷ W) Xᴿ)
+    old-source-frozen : ∀ Xᴸ
+      → toRenameᵗ (ηᴸʷ Wᵐ) (Fin.suc Xᴸ)
+        ≡ toRenameᵗ oldCenters (toRenameᵗ (ηᴸʷ W) Xᴸ)
+    fresh-not-target : ∀ Xᴿ
+      → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ
+        ≢ toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero
+    fresh-mark-dynamic :
+      impEnvʷ Wᵐ (toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero) ≡ X⊑★
+    target-mark-mono : ∀ Xᴿ
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
+
+
+record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ)
+    (Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ)
+    (β α : Fin.Fin Δᴿ) : Set where
+  constructor smart-alias-merge-guard
+  field
+    β:=＇α : targetStoreʷ W ∋ β ⦂ ＇ α
+    α:=★ : targetStoreʷ W ∋ α ⦂ ★
+    sourceStore-lifted :
+      sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
+    targetStore-same :
+      targetStoreʷ Wᵐ ≡ targetStoreʷ W
+    transport⊑ᵂ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+      → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+      → A ⊑ᵂ⟨ Wᵐ ⟩ B
+    old-mark-mono : ∀ Z
+      → impEnvʷ W Z ≡ X⊑★
+      → impEnvʷ Wᵐ Z ≡ X⊑★
+    target-frozen : ∀ Xᴿ
+      → toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ ≡ toRenameᵗ (ηᴿʷ W) Xᴿ
+    pending-at-alias :
+      toRenameᵗ (ηᴸʷ Wᵐ) Fin.zero ≡ toRenameᵗ (ηᴿʷ W) β
+    old-source-frozen : ∀ Xᴸ
+      → toRenameᵗ (ηᴸʷ Wᵐ) (Fin.suc Xᴸ)
+        ≡ toRenameᵗ (ηᴸʷ W) Xᴸ
+    no-old-source-at-alias : ∀ Xᴸ
+      → toRenameᵗ (ηᴸʷ W) Xᴸ ≢ toRenameᵗ (ηᴿʷ W) β
+    alias-mark-dynamic :
+      impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) β) ≡ X⊑★
+    name-mark-dynamic :
+      impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ W) α) ≡ X⊑★
+    target-mark-off-footprint : ∀ Xᴿ
+      → Xᴿ ≢ β
+      → Xᴿ ≢ α
+      → impEnvʷ W (toRenameᵗ (ηᴿʷ W) Xᴿ) ≡ X⊑★
+      → impEnvʷ Wᵐ (toRenameᵗ (ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
+
+
+data SmartCommaLiftᴸ {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    ∀ {Δᵐ} → World (Nat.suc Δᴸ) Δᴿ Δᵐ → Set where
+  smart-fresh-behind :
+    ∀ {Δᵐ} {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+    → SmartFreshBehindGuard W Wᵐ
+    → SmartCommaLiftᴸ W Wᵐ
+
+  smart-merge-alias :
+    ∀ {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+    → SmartAliasMergeGuard W Wᵐ β α
+    → SmartCommaLiftᴸ W Wᵐ
+
+smartCommaLift-transport⊑ᵂ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
+    {W : World Δᴸ Δᴿ Δ}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → SmartCommaLiftᴸ W Wᵐ
+  → ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+  → A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B
+  → A ⊑ᵂ⟨ Wᵐ ⟩ B
+smartCommaLift-transport⊑ᵂ (smart-fresh-behind guard) =
+  SmartFreshBehindGuard.transport⊑ᵂ guard
+smartCommaLift-transport⊑ᵂ (smart-merge-alias guard) =
+  SmartAliasMergeGuard.transport⊑ᵂ guard
+
 ------------------------------------------------------------------------
 -- Store representations and local rebasing
 ------------------------------------------------------------------------
@@ -385,6 +498,26 @@ CenterAligned : ∀ {Δᴸ Δᴿ Δ}
 CenterAligned W X Y =
   toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
 
+Occupied : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δ
+  → Set
+Occupied {Δᴿ = Δᴿ} W Z =
+  Σ[ Y ∈ TyVar Δᴿ ] toRenameᵗ (ηᴿʷ W) Y ≡ Z
+
+NoTargetOccupant : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δ
+  → Set
+NoTargetOccupant W Z = Occupied W Z → ⊥
+
+NoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ
+  → TyVar Δᴸ
+  → Set
+NoTargetOccupantAtSource W X =
+  NoTargetOccupant W (toRenameᵗ (ηᴸʷ W) X)
+
 data Rep★PartnerOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
@@ -441,6 +574,7 @@ data SealPartnerOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   star-rep-target : ∀ {P Xᴿ? M′}
+    → NoTargetOccupantAtSource W X
     → Rep★PartnerOK W X P Xᴿ? M′
       ------------------------------------
     → SealPartnerOK W X P ★ Xᴿ? M′
@@ -688,6 +822,24 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → Value V
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
     → liftWorldLeft X⊑★ W ∣ γ′ ⊢² V ⊑ M ∶ p
+    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
+      -------------------------------------------
+    → W ∣ γ ⊢² Λ V ⊑ M ∶ q
+
+  Λ⊑²-smart-comma :
+      ∀ {Δᵐ}
+      {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+      {γᵐ : CtxImp Wᵐ}
+      {V : Term (Nat.suc Δᴸ)} {M : Term Δᴿ}
+      {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
+      {p : A ⊑ᵂ⟨ Wᵐ ⟩ B}
+    → NonVar A
+    → Fin.zero ∈ᵗ A
+    → SmartCommaLiftᴸ W Wᵐ
+    → SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
+    → Value V
+    → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
+    → Wᵐ ∣ γᵐ ⊢² V ⊑ M ∶ p
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
       -------------------------------------------
     → W ∣ γ ⊢² Λ V ⊑ M ∶ q

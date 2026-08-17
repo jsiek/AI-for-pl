@@ -314,6 +314,40 @@ store-lookup-unique (S-lift∋ X∈ eq) (S-lift∋ X∈′ eq′) =
 store-lookup-unique (S-bind∋ X∈ eq) (S-bind∋ X∈′ eq′) =
   trans eq (trans (cong ⇑ᵗ (store-lookup-unique X∈ X∈′)) (sym eq′))
 
+store-lookup-resolve-star : ∀ {Δ} {Σ : TyStore Δ} {X}
+  → Σ ∋ X ⦂ ★
+  → CTI2.resolveVar Σ X ≡ ★
+store-lookup-resolve-star (Z∋ {A = ＇ X} ())
+store-lookup-resolve-star (Z∋ {A = ‵ ι} ())
+store-lookup-resolve-star (Z∋ {A = ★} refl) = refl
+store-lookup-resolve-star (Z∋ {A = A ⇒ B} ())
+store-lookup-resolve-star (Z∋ {A = `∀ A} ())
+store-lookup-resolve-star (S-lift∋ {A = ＇ X} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = ‵ ι} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = ★} X∈ refl) =
+  cong ⇑ᵗ (store-lookup-resolve-star X∈)
+store-lookup-resolve-star (S-lift∋ {A = A ⇒ B} X∈ ())
+store-lookup-resolve-star (S-lift∋ {A = `∀ A} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ＇ X} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ‵ ι} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = ★} X∈ refl) =
+  cong ⇑ᵗ (store-lookup-resolve-star X∈)
+store-lookup-resolve-star (S-bind∋ {A = A ⇒ B} X∈ ())
+store-lookup-resolve-star (S-bind∋ {A = `∀ A} X∈ ())
+
+star-store-rep : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
+  → sourceStoreʷ W ∋ X ⦂ ★
+  → targetStoreʷ W ∋ Y ⦂ ★
+  → CTI2.StoreRepImp W X Y
+star-store-rep {W = W} {X = X} {Y = Y} X∈ Y∈ =
+  CTI2.store-rep-imp
+    (subst≡ (λ L → L ⊑ᵂ⟨ W ⟩ CTI2.resolveVar (targetStoreʷ W) Y)
+      (sym (store-lookup-resolve-star X∈))
+      (subst≡ (λ R → ★ ⊑ᵂ⟨ W ⟩ R)
+        (sym (store-lookup-resolve-star Y∈))
+        ★⊑★))
+
 data StoreChain {Δ} (Σ : TyStore Δ) :
     TyVar Δ → TyVar Δ → Set where
   chain-one : ∀ {X Y}
@@ -832,7 +866,7 @@ seal-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.SealPartnerOK W X P R Xᴿ? M′
     ----------------------------------------
   → SealSourcePartnerView W X P R Xᴿ? M′
-seal-source-partner-view (CTI2.star-rep-target ok) =
+seal-source-partner-view (CTI2.star-rep-target _ ok) =
   seal-partner-rep★ ok
 seal-source-partner-view (CTI2.plain-target nt) =
   seal-partner-untagged nt
@@ -855,7 +889,7 @@ sealed-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
     -------------------------------------------------
   → SealedSourcePartnerView W γ M X R N B
 sealed-source-partner-view
-    (CTI2.seal-partner-ok (CTI2.star-rep-target ok))
+    (CTI2.seal-partner-ok (CTI2.star-rep-target _ ok))
     mono rb sc X∈ prem =
   sealed-source-rep★ ok mono rb sc X∈ prem
 sealed-source-partner-view
@@ -941,6 +975,10 @@ tagged-target-nonvar-nonstar-spine-⊥ {W = W} {Y = Y}
     | X₂ , refl , aligned | inj₂ refl | ()
 tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv₀) Anv Ans
     (CTI2.Λ⊑² Anv₀ z∈A liftγ vV target⊢ prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ Anv₀
+    (nonvar-occurs-nonstar Anv₀ z∈A) prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv₀) Anv Ans
+    (CTI2.Λ⊑²-smart-comma Anv₀ z∈A liftW liftγ vV target⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ Anv₀
     (nonvar-occurs-nonstar Anv₀ z∈A) prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-cast sv₀ inj)

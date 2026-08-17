@@ -301,3 +301,39 @@ major relation-level statements were written to
 `proof/DGG/notes/t1-target-frame-keep-rel-proposal.red` instead of being
 implemented, per the standing rule against new unapproved inductions over
 `⊢²`.
+
+ITEM 4 T12 FOLLOW-UP STATUS (2026-08-17):
+
+The approved T12 `RestatedDispatcherKeepOutcomesᵀ` surfaces were added to
+`proof/DGG/Catchup/StructuralCatchupRightDef.agda`:
+
+```agda
+TargetOpenedByConcealReveal
+PairedConcealRevealPeelᵀ
+SourceOnlyConcealRevealPeelᵀ
+TargetRevealKeepOutcomeContinuationsᵀ
+TargetConcealKeepOutcomeContinuationsᵀ
+RestatedDispatcherKeepOutcomesᵀ
+```
+
+The peel lemmas remain parameters/supplied fields; no implementation of
+`PairedConcealRevealPeelᵀ` or `SourceOnlyConcealRevealPeelᵀ` was added on this
+branch.
+
+After installing those fields, the total value dispatcher is still not
+commit-safe.  The approved fields discharge synchronized source/target wrapper
+outcomes, but the plain target-only CTI rows
+
+```agda
+CTI2.⊑reveal²  mono rb sc c′⊢ rel q
+CTI2.⊑conceal² mono rb sc c′⊢ rel q
+```
+
+still expose administrative target keep outcomes whose source term is a plain
+value, not one of the source wrapper shapes required by the T12 fields.  Adding
+the old broad `target-reveal/conceal-keep-rel` would violate the issue #157
+ruling, so no dispatcher code with such a hidden lemma was written.
+
+The narrower evidence-supplied residual is recorded in
+`proof/DGG/notes/t1-direct-target-frame-certificate-proposal.red`.  Items 5-9
+remain blocked behind this value-dispatcher stop.

@@ -42,12 +42,14 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef public using
    erase-structural-extra-cast-right-at; structural-catchup-refl;
    structural-catchup-keep-step; structural-catchup-prepend-keep;
    structural-catchup-prepend-keep-stutter;
-   structural-catchup-compose-target-cast)
+   structural-catchup-compose-target-cast;
+   structural-catchup-compose-paired-target-cast)
 open import proof.DGG.Catchup.StructuralWorldExtendProof using
   (structural-world-extendᴿ)
 open import proof.DGG.Catchup.TargetCastStepInversionProof using
   (exposed-ground-step-inversion-⊑cast²; target-ground-cast-witness;
    target-expand-cast-witness;
+   source-ground-cast-witness;
    exposed-project-same-step-inversion-⊑cast²;
    exposed-project-expand-step-inversion-⊑cast²;
    matched-conceal-partner-target-id-core;
@@ -783,6 +785,87 @@ structural-paired-ground-extra-cast-right-at {W = W} {γ = γ}
       ((M′ ⟨ cᴿ ⟩) ⟨ tag ⟩) q★
   after-ground =
     structural-catchup-compose-target-cast tag child residual
+
+
+structural-source-injection-ground-extra-cast-right-at :
+    ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {H : Ty Δᴸ} {B G : Ty Δᴿ}
+    {νᴸ : Env∼ Δᴸ} {νᴿ : Env∼ Δᴿ}
+    ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : νᴸ ⊢ H ∼★ ⦄
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : νᴿ ⊢ G ∼★ ⦄
+    ⦃ Bns : NonStar B ⦄
+    {p : H ⊑ᵂ⟨ W ⟩ B}
+    {q★ : ★ ⊑ᵂ⟨ W ⟩ ★}
+  → (cᴿ : νᴿ ⊢ B ∼ G)
+  → StructuralExtraCastRightAt (castSize (_! cᴿ))
+  → ground-other-decreaseᵀ
+  → B ≢ G
+  → Value M
+  → Value M′
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → StructuralCatchupRightResult W γ
+      (M ⟨ _! ⦃ Hᵍ ⦄ ⦃ H∼★ ⦄ (idᵍ Hᵍ)
+        ⦃ ground-nonstar Hᵍ ⦄ ⟩)
+      (M′ ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ cᴿ ⟩)
+      q★
+structural-source-injection-ground-extra-cast-right-at
+    {W = W} {γ = γ} {M = M} {M′ = M′} {H = H} {B = B}
+    {G = G} {νᴸ = νᴸ} {νᴿ = νᴿ}
+    ⦃ Hᵍ = Hᵍ ⦄ ⦃ H∼★ = H∼★ ⦄
+    ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+    ⦃ Bns = Bns ⦄ {p = p} {q★ = q★}
+    cᴿ smaller-extra ground-other-decrease B≢G vM vM′ rel =
+  structural-catchup-prepend-keep-stutter
+    (pure-step (ground ⦃ Gns = ground-nonstar Gᵍ ⦄ vM′ B≢G))
+    (source-conceal-partner-ground-step-core cᴿ B≢G)
+    (source-conceal-partner-ground-step-framed-core cᴿ)
+    (matched-conceal-partner-ground-step-core cᴿ B≢G)
+    (matched-conceal-partner-ground-step-framed-core cᴿ)
+    after-ground
+  where
+  Htag = _! ⦃ Hᵍ ⦄ ⦃ H∼★ ⦄ (idᵍ Hᵍ)
+    ⦃ ground-nonstar Hᵍ ⦄
+  Gtag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
+    ⦃ ground-nonstar Gᵍ ⦄
+
+  qHG : H ⊑ᵂ⟨ W ⟩ G
+  qHG = source-ground-cast-witness {W = W} {H = H} {B = B}
+    {G = G} {ν = νᴿ} Hᵍ Gᵍ Bns cᴿ p
+
+  child : StructuralCatchupRightResult W γ M (M′ ⟨ cᴿ ⟩) qHG
+  child =
+    smaller-extra cᴿ (ground-other-decrease cᴿ)
+      (CTI2.⊑cast² cᴿ rel qHG) vM vM′
+
+  plan = StructuralCatchupRightResult.structural-ext child
+  ext = structural-world-extendᴿ plan
+  χs = StructuralCatchupRightResult.χs child
+  Gtagχ = applyConsistencies χs Gtag
+
+  residual : StructuralCatchupRightResult
+      (StructuralCatchupRightResult.W′ child)
+      (ECR.mapCtxᴿ ext γ)
+      (M ⟨ Htag ⟩)
+      (StructuralCatchupRightResult.N′ child ⟨ Gtagχ ⟩)
+      (ECR.transport⊑ᵂ ext q★)
+  residual =
+    structural-catchup-refl
+      (StructuralCatchupRightResult.final-value child
+        《 applyConsistencies-Inert χs
+          (inj ⦃ Gns = ground-nonstar Gᵍ ⦄) 》)
+      (CTI2.cast⊑cast² Htag Gtagχ
+        (StructuralCatchupRightResult.final-relation child)
+        (ECR.transport⊑ᵂ ext q★))
+
+  after-ground : StructuralCatchupRightResult W γ
+      (M ⟨ Htag ⟩)
+      ((M′ ⟨ cᴿ ⟩) ⟨ Gtag ⟩)
+      q★
+  after-ground =
+    structural-catchup-compose-paired-target-cast Htag Gtag
+      child residual
 
 
 structural-project-same-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}

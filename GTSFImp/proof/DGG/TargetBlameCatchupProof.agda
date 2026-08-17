@@ -23,8 +23,9 @@ open import Reduction using
   ; keep
   ; _∷_
   ; _—↠[_]_
-  ; ↠-refl
-  ; ↠-step
+  ; _—↠[_]⟨_⟩_
+  ; _—→[_]⟨_⟩_
+  ; _∎[]
   ; pure-step
   ; blame-⟨⟩
   ; blame-reveal
@@ -41,7 +42,17 @@ open import proof.DGG.Parked.ParkedWorldDef
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
 open import proof.Reduction
-  using (_++χ_; cast-↠; composeReduction; conceal-↠; reveal-↠; typeApp-↠)
+  using
+    ( _++χ_
+    ; applyBodies
+    ; applyConceals
+    ; applyReveals
+    ; cast-↠
+    ; composeReduction
+    ; conceal-↠
+    ; reveal-↠
+    ; typeApp-↠
+    )
 open CTI2 using
   ( CtxImp
   ; ImpEnvMono
@@ -127,7 +138,7 @@ target-blame-catchup-source-blame : ∀ {Δᴸ Δᴿ Δ}
       (blame —↠[ χsᴸ ] blame) ×
       ParkedEvolve χsᴸ R.[] W W′
 target-blame-catchup-source-blame parked rel =
-  _ , R.[] , _ , _ , ↠-refl , evolve-refl
+  _ , R.[] , _ , _ , (blame ∎[]) , evolve-refl
 
 
 source-cast-blame-catchup : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
@@ -140,10 +151,16 @@ source-cast-blame-catchup : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
     Σ[ Δ″ ∈ TyCtx ] Σ[ W″ ∈ World Δᴸ″ Δᴿ Δ″ ]
       (M ⟨ c ⟩ —↠[ ψsᴸ ] blame) ×
       ParkedEvolve ψsᴸ R.[] W W″
-source-cast-blame-catchup {χsᴸ = χsᴸ} {c = c} M↠blame evol =
+source-cast-blame-catchup {M = M} {χsᴸ = χsᴸ} {c = c}
+    M↠blame evol =
   _ , χsᴸ ++χ (keep ∷ R.[]) , _ , _ ,
-  composeReduction (cast-↠ c M↠blame)
-    (↠-step (pure-step blame-⟨⟩) ↠-refl) ,
+  composeReduction
+    (M ⟨ c ⟩
+      —↠[ χsᴸ ]⟨ cast-↠ c M↠blame ⟩
+     blame ⟨ R.applyConsistencies χsᴸ c ⟩ ∎[])
+    (blame ⟨ R.applyConsistencies χsᴸ c ⟩
+      —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
+     blame ∎[]) ,
   compose-parked-evolve evol (evolve-keepᴸ evolve-refl)
 
 
@@ -157,10 +174,16 @@ source-reveal-blame-catchup : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
     Σ[ Δ″ ∈ TyCtx ] Σ[ W″ ∈ World Δᴸ″ Δᴿ Δ″ ]
       (M ↑ c —↠[ ψsᴸ ] blame) ×
       ParkedEvolve ψsᴸ R.[] W W″
-source-reveal-blame-catchup {χsᴸ = χsᴸ} {c = c} M↠blame evol =
+source-reveal-blame-catchup {M = M} {χsᴸ = χsᴸ} {c = c}
+    M↠blame evol =
   _ , χsᴸ ++χ (keep ∷ R.[]) , _ , _ ,
-  composeReduction (reveal-↠ c M↠blame)
-    (↠-step (pure-step blame-reveal) ↠-refl) ,
+  composeReduction
+    (M ↑ c
+      —↠[ χsᴸ ]⟨ reveal-↠ c M↠blame ⟩
+     blame ↑ applyReveals χsᴸ c ∎[])
+    (blame ↑ applyReveals χsᴸ c
+      —→[ keep ]⟨ pure-step blame-reveal ⟩
+     blame ∎[]) ,
   compose-parked-evolve evol (evolve-keepᴸ evolve-refl)
 
 
@@ -174,10 +197,16 @@ source-conceal-blame-catchup : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
     Σ[ Δ″ ∈ TyCtx ] Σ[ W″ ∈ World Δᴸ″ Δᴿ Δ″ ]
       (M ↓ c —↠[ ψsᴸ ] blame) ×
       ParkedEvolve ψsᴸ R.[] W W″
-source-conceal-blame-catchup {χsᴸ = χsᴸ} {c = c} M↠blame evol =
+source-conceal-blame-catchup {M = M} {χsᴸ = χsᴸ} {c = c}
+    M↠blame evol =
   _ , χsᴸ ++χ (keep ∷ R.[]) , _ , _ ,
-  composeReduction (conceal-↠ c M↠blame)
-    (↠-step (pure-step blame-conceal) ↠-refl) ,
+  composeReduction
+    (M ↓ c
+      —↠[ χsᴸ ]⟨ conceal-↠ c M↠blame ⟩
+     blame ↓ applyConceals χsᴸ c ∎[])
+    (blame ↓ applyConceals χsᴸ c
+      —→[ keep ]⟨ pure-step blame-conceal ⟩
+     blame ∎[]) ,
   compose-parked-evolve evol (evolve-keepᴸ evolve-refl)
 
 
@@ -191,10 +220,16 @@ source-type-app-blame-catchup : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
     Σ[ Δ″ ∈ TyCtx ] Σ[ W″ ∈ World Δᴸ″ Δᴿ Δ″ ]
       (M ⦂∀ C [ A ] —↠[ ψsᴸ ] blame) ×
       ParkedEvolve ψsᴸ R.[] W W″
-source-type-app-blame-catchup {χsᴸ = χsᴸ} M↠blame evol =
+source-type-app-blame-catchup {M = M} {χsᴸ = χsᴸ} {C = C}
+    {A = A} M↠blame evol =
   _ , χsᴸ ++χ (keep ∷ R.[]) , _ , _ ,
-  composeReduction (typeApp-↠ M↠blame)
-    (↠-step (pure-step blame-•) ↠-refl) ,
+  composeReduction
+    (M ⦂∀ C [ A ]
+      —↠[ χsᴸ ]⟨ typeApp-↠ M↠blame ⟩
+     blame ⦂∀ applyBodies χsᴸ C [ R.applyTys χsᴸ A ] ∎[])
+    (blame ⦂∀ applyBodies χsᴸ C [ R.applyTys χsᴸ A ]
+      —→[ keep ]⟨ pure-step blame-• ⟩
+     blame ∎[]) ,
   compose-parked-evolve evol (evolve-keepᴸ evolve-refl)
 
 
@@ -203,7 +238,7 @@ target-blame-catchup-under-boundary :
   → TargetBlameCatchupUnderBoundaryᵀ
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary rel@(CTI2.blame⊑² target⊢ p) =
-  _ , R.[] , _ , _ , ↠-refl , evolve-refl
+  _ , R.[] , _ , _ , (blame ∎[]) , evolve-refl
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary (CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ prem q) =
   ⊥-elim (target-value-blame-exclusion vV prem)

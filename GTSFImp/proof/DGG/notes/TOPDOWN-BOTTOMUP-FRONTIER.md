@@ -100,3 +100,28 @@ reduction-theory obligations, likely easy).
    SimProof.agda fail the {! grep. The top-down PRs did not run the
    gate. Needs a user decision: sanction a declared-WIP location the
    hygiene check excludes, or require the gate on top-down PRs.
+
+## Re-map 2026-08-17 (post-#144 merge; supervisor)
+
+The top-down SimProof has ZERO holes; its 13 assumed interfaces are
+the entire frontier. Fit classification:
+1. CatchupToMorePrecise (boundary-kind-indexed, built on the NS-4
+   structural vocabulary) = our ValueCatchupRightAt closed form +
+   three linking lemmas (fuel discharge, WorldExtendᴿ→ParkedEvolve,
+   boundary adapters). Staged behind the assembly residual (T1/T4).
+2. Left-side step family (SimSource/Paired{Cast,Reveal,Conceal}Values,
+   SimConversionFrames; SimPrimitiveValues landing separately by the
+   user) = the right-side rows mirrored; independent (T2).
+3. β-closings (SimPairedFun/AllClosing, SimSourceAllClosing) — the ∀
+   ones touch the M5 Λ machinery; queued.
+4. TransportTermImprecisionᴾ — transport repackaging; queued.
+5. SimBackᵀ, CatchupToLessPrecise, TargetBlameCatchupᵀ — unchanged;
+   queued.
+Confirmed meet-events: the top-down imports StructuralWorldExtendᴿ /
+mapPivotChanges; reveal-↠/conceal-↠ (main, #152/#153) is the likely
+discharge of assembly-residual item 1 (T1 confirms first).
+Parallel tracks live (2026-08-17): T1 assembly follow-on
+(agent/gtsf-lg3-assembly), T2 left-side family
+(agent/gtsf-sim-left-values), T3 legacy NON_COVERING repair
+(agent/gtsf-legacy-noncovering). T4 = meet-point closure, staged
+behind T1.

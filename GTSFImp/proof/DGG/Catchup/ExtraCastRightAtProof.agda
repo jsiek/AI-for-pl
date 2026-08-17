@@ -41,7 +41,9 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef public using
   (StructuralCatchupRightResult; StructuralExtraCastRightAt;
    erase-structural-extra-cast-right-at; structural-catchup-refl;
    structural-catchup-keep-step; structural-catchup-prepend-keep;
-   structural-catchup-compose-target-cast)
+   structural-catchup-prepend-keep-stutter;
+   structural-catchup-compose-target-cast;
+   structural-catchup-compose-paired-target-cast)
 open import proof.DGG.Catchup.StructuralWorldExtendProof using
   (structural-world-extendᴿ)
 open import proof.DGG.Catchup.TargetCastStepInversionProof using
@@ -495,6 +497,113 @@ matched-conceal-partner-projection-framed-core c d
   CTI2.matched-id-conceal-target
 
 
+rep★-projection-double-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {P : Term Δᴸ} {Xᴿ?}
+    {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
+    {ν μ ω : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+    ⦃ Bns : NonStar B ⦄
+  → (c : ν ⊢ G ∼ B)
+  → (d : μ ⊢ C ∼ D)
+  → (e : ω ⊢ E ∼ F)
+  → CTI2.Rep★PartnerOK W X P Xᴿ?
+      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
+  → CTI2.Rep★PartnerOK W X P Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+rep★-projection-double-framed-core c d e (CTI2.rep★-untagged ())
+rep★-projection-double-framed-core c d e (CTI2.rep★-nonvar-tag Gnv) =
+  CTI2.rep★-nonvar-tag Gnv
+rep★-projection-double-framed-core c d e (CTI2.rep★-var-tag aligned) =
+  CTI2.rep★-var-tag aligned
+rep★-projection-double-framed-core c d e
+    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+  CTI2.rep★-matched-inner-tags X₂≢X aligned
+rep★-projection-double-framed-core c d e (CTI2.rep★-round-trip ok) =
+  CTI2.rep★-round-trip
+    (rep★-projection-double-framed-core c d e ok)
+
+
+seal-partner-projection-double-framed-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ?}
+    {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
+    {ν μ ω : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+    ⦃ Bns : NonStar B ⦄
+  → (c : ν ⊢ G ∼ B)
+  → (d : μ ⊢ C ∼ D)
+  → (e : ω ⊢ E ∼ F)
+  → CTI2.SealPartnerOK W X P R Xᴿ?
+      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
+  → CTI2.SealPartnerOK W X P R Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+seal-partner-projection-double-framed-core c d e
+    (CTI2.star-rep-target no-target ok) =
+  CTI2.star-rep-target no-target
+    (rep★-projection-double-framed-core c d e ok)
+seal-partner-projection-double-framed-core c d e (CTI2.plain-target ())
+
+
+source-conceal-partner-projection-double-framed-core :
+    ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
+    {Xᴿ?} {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
+    {ν μ ω : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+    ⦃ Bns : NonStar B ⦄
+  → (c : ν ⊢ G ∼ B)
+  → (d : μ ⊢ C ∼ D)
+  → (e : ω ⊢ E ∼ F)
+  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
+      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
+  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+source-conceal-partner-projection-double-framed-core c d e
+    (CTI2.seal-partner-ok ok) =
+  CTI2.seal-partner-ok
+    (seal-partner-projection-double-framed-core c d e ok)
+source-conceal-partner-projection-double-framed-core c d e
+    CTI2.fun-conceal-target =
+  CTI2.fun-conceal-target
+source-conceal-partner-projection-double-framed-core c d e
+    CTI2.all-conceal-target =
+  CTI2.all-conceal-target
+source-conceal-partner-projection-double-framed-core c d e
+    CTI2.id-conceal-target =
+  CTI2.id-conceal-target
+
+
+matched-conceal-partner-projection-double-framed-core :
+    ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
+    {Xᴿ?} {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
+    {ν μ ω : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+    ⦃ Bns : NonStar B ⦄
+  → (c : ν ⊢ G ∼ B)
+  → (d : μ ⊢ C ∼ D)
+  → (e : ω ⊢ E ∼ F)
+  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
+  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+matched-conceal-partner-projection-double-framed-core c d e
+    (CTI2.matched-seal-star-partner ok) =
+  CTI2.matched-seal-star-partner
+    (rep★-projection-double-framed-core c d e ok)
+matched-conceal-partner-projection-double-framed-core c d e
+    (CTI2.matched-seal-nonstar Rns) =
+  CTI2.matched-seal-nonstar Rns
+matched-conceal-partner-projection-double-framed-core c d e
+    CTI2.matched-fun-conceal-target =
+  CTI2.matched-fun-conceal-target
+matched-conceal-partner-projection-double-framed-core c d e
+    CTI2.matched-all-conceal-target =
+  CTI2.matched-all-conceal-target
+matched-conceal-partner-projection-double-framed-core c d e
+    CTI2.matched-id-conceal-target =
+  CTI2.matched-id-conceal-target
+
+
 structural-inert-extra-cast-right-at : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -607,6 +716,76 @@ structural-ground-extra-cast-right-at {W = W} {γ = γ}
     structural-catchup-compose-target-cast tag child residual
 
 
+structural-paired-ground-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {C A : Ty Δᴸ} {B G : Ty Δᴿ}
+    {νᴸ : Env∼ Δᴸ} {νᴿ : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : νᴿ ⊢ G ∼★ ⦄
+    ⦃ Bns : NonStar B ⦄
+    {p : C ⊑ᵂ⟨ W ⟩ B}
+    {qG : C ⊑ᵂ⟨ W ⟩ G}
+    {q★ : A ⊑ᵂ⟨ W ⟩ ★}
+  → (cᴸ : νᴸ ⊢ C ∼ A)
+  → (cᴿ : νᴿ ⊢ B ∼ G)
+  → StructuralExtraCastRightAt (castSize (_! cᴿ))
+  → ground-other-decreaseᵀ
+  → B ≢ G
+  → Value M
+  → Value M′
+  → Inert cᴸ
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      (M′ ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ cᴿ ⟩)
+      q★
+structural-paired-ground-extra-cast-right-at {W = W} {γ = γ}
+    {M = M} {M′ = M′} {C = C} {A = A} {B = B} {G = G}
+    {νᴿ = νᴿ} ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
+    ⦃ Bns = Bns ⦄ {p = p} {qG = qG} {q★ = q★}
+    cᴸ cᴿ smaller-extra ground-other-decrease B≢G vM vM′ inertᴸ rel =
+  structural-catchup-prepend-keep-stutter
+    (pure-step (ground ⦃ Gns = ground-nonstar Gᵍ ⦄ vM′ B≢G))
+    (source-conceal-partner-ground-step-core cᴿ B≢G)
+    (source-conceal-partner-ground-step-framed-core cᴿ)
+    (matched-conceal-partner-ground-step-core cᴿ B≢G)
+    (matched-conceal-partner-ground-step-framed-core cᴿ)
+    after-ground
+  where
+  tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
+    ⦃ ground-nonstar Gᵍ ⦄
+
+  child : StructuralCatchupRightResult W γ M (M′ ⟨ cᴿ ⟩) qG
+  child =
+    smaller-extra cᴿ (ground-other-decrease cᴿ)
+      (CTI2.⊑cast² cᴿ rel qG) vM vM′
+
+  plan = StructuralCatchupRightResult.structural-ext child
+  ext = structural-world-extendᴿ plan
+  χs = StructuralCatchupRightResult.χs child
+  tagχ = applyConsistencies χs tag
+
+  residual : StructuralCatchupRightResult
+      (StructuralCatchupRightResult.W′ child)
+      (ECR.mapCtxᴿ ext γ)
+      (M ⟨ cᴸ ⟩)
+      (StructuralCatchupRightResult.N′ child ⟨ tagχ ⟩)
+      (ECR.transport⊑ᵂ ext q★)
+  residual =
+    structural-catchup-refl
+      (StructuralCatchupRightResult.final-value child
+        《 applyConsistencies-Inert χs
+          (inj ⦃ Gns = ground-nonstar Gᵍ ⦄) 》)
+      (CTI2.cast⊑cast² cᴸ tagχ
+        (StructuralCatchupRightResult.final-relation child)
+        (ECR.transport⊑ᵂ ext q★))
+
+  after-ground : StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      ((M′ ⟨ cᴿ ⟩) ⟨ tag ⟩) q★
+  after-ground =
+    structural-catchup-compose-paired-target-cast
+      cᴸ tag child residual
+
+
 structural-project-same-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {N : Term Δᴿ}
@@ -648,6 +827,59 @@ structural-project-same-extra-cast-right-at {W = W} {γ = γ}
       ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
   where
   proj = idᵍ {μ = ν} Gᵍ
+
+
+structural-paired-project-same-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {N : Term Δᴿ}
+    {C A : Ty Δᴸ} {G : Ty Δᴿ}
+    {νᴸ : Env∼ Δᴸ} {μ νᴿ : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    ⦃ ★∼G : νᴿ ⊢★∼ G ⦄
+    {p★ : C ⊑ᵂ⟨ W ⟩ ★}
+    {qG : C ⊑ᵂ⟨ W ⟩ G}
+    {q : A ⊑ᵂ⟨ W ⟩ G}
+  → RightInjInversion²
+  → (cᴸ : νᴸ ⊢ C ∼ A)
+  → Value M
+  → Value N
+  → Inert cᴸ
+  → W ∣ γ ⊢² M ⊑
+      N ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
+        ⦃ ground-nonstar Gᵍ ⦄ ⟩
+      ∶ p★
+  → StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      ((N ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
+          ⦃ ground-nonstar Gᵍ ⦄ ⟩)
+        ⟨ ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ (idᵍ {μ = νᴿ} Gᵍ)
+          ⦃ ground-nonstar Gᵍ ⦄ ⟩)
+      q
+structural-paired-project-same-extra-cast-right-at {W = W} {γ = γ}
+    {M = M} {N = N} {C = C} {G = G} {μ = μ}
+    ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ ⦃ ★∼G = ★∼G ⦄
+    {p★ = p★} {qG = qG} {q = q}
+    inversion cᴸ vM vN inertᴸ rel-tag =
+  structural-catchup-keep-step vN
+    (pure-step (tag-untag ⦃ Gns = ground-nonstar Gᵍ ⦄ vN))
+    (CTI2.cast⊑² cᴸ core q)
+    (source-conceal-partner-projection-core
+      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
+    (source-conceal-partner-projection-framed-core
+      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
+    (matched-conceal-partner-projection-core
+      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
+    (matched-conceal-partner-projection-framed-core
+      ⦃ Bns = ground-nonstar Gᵍ ⦄ proj)
+  where
+  proj = idᵍ Gᵍ
+
+  core : W ∣ γ ⊢² M ⊑ N ∶ qG
+  core =
+    exposed-project-same-step-inversion-⊑cast²
+      inversion {W = W} {γ = γ} {M = M} {N = N}
+      {A = C} {G = G} {μ = μ} {Gᵍ = Gᵍ}
+      {G∼★ = G∼★} {p★ = p★}
+      vM vN rel-tag qG
 
 
 structural-project-expand-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
@@ -738,6 +970,96 @@ structural-project-expand-extra-cast-right-at {W = W} {γ = γ}
 
   combined =
     structural-catchup-compose-target-cast c child residual
+
+
+structural-paired-project-expand-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {N : Term Δᴿ}
+    {C A : Ty Δᴸ} {G B : Ty Δᴿ}
+    {νᴸ : Env∼ Δᴸ} {μ νᴿ : Env∼ Δᴿ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    ⦃ ★∼G : νᴿ ⊢★∼ G ⦄ ⦃ Bns : NonStar B ⦄
+    {p★ : C ⊑ᵂ⟨ W ⟩ ★}
+    {qG : C ⊑ᵂ⟨ W ⟩ G}
+    {qB : A ⊑ᵂ⟨ W ⟩ B}
+  → RightInjInversion²
+  → (cᴸ : νᴸ ⊢ C ∼ A)
+  → (cᴿ : νᴿ ⊢ G ∼ B)
+  → StructuralExtraCastRightAt (castSize (？ cᴿ))
+  → project-expand-decreaseᵀ
+  → G ≢ B
+  → Value M
+  → Value N
+  → Inert cᴸ
+  → W ∣ γ ⊢² M ⊑
+      N ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
+        ⦃ ground-nonstar Gᵍ ⦄ ⟩
+      ∶ p★
+  → StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      ((N ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
+          ⦃ ground-nonstar Gᵍ ⦄ ⟩)
+        ⟨ ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ cᴿ ⟩)
+      qB
+structural-paired-project-expand-extra-cast-right-at {W = W} {γ = γ}
+    {M = M} {N = N} {C = C} {A = A} {G = G} {B = B}
+    {μ = μ} {νᴿ = νᴿ}
+    ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄ ⦃ ★∼G = ★∼G ⦄
+    ⦃ Bns = Bns ⦄ {p★ = p★} {qG = qG} {qB = qB}
+    inversion cᴸ cᴿ smaller-extra project-expand-decrease G≢B
+    vM vN inertᴸ rel-tag =
+  structural-catchup-prepend-keep-stutter
+    (pure-step (expand ⦃ Gns = ground-nonstar Gᵍ ⦄
+      (vN 《 inj ⦃ Gns = ground-nonstar Gᵍ ⦄ 》) G≢B))
+    (source-conceal-partner-projection-core cᴿ)
+    (source-conceal-partner-projection-framed-core cᴿ)
+    (matched-conceal-partner-projection-core cᴿ)
+    (matched-conceal-partner-projection-framed-core cᴿ)
+    after-expand
+  where
+  tag = _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ {μ = μ} Gᵍ)
+    ⦃ ground-nonstar Gᵍ ⦄
+  proj-core = idᵍ {μ = νᴿ} Gᵍ
+  proj = ？_ ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ proj-core
+    ⦃ ground-nonstar Gᵍ ⦄
+
+  core : W ∣ γ ⊢² M ⊑ N ∶ qG
+  core =
+    exposed-project-same-step-inversion-⊑cast²
+      inversion {W = W} {γ = γ} {M = M} {N = N}
+      {A = C} {G = G} {μ = μ} {Gᵍ = Gᵍ}
+      {G∼★ = G∼★} {p★ = p★}
+      vM vN rel-tag qG
+
+  cᴿ< =
+    project-expand-decrease cᴿ
+
+  residual : StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      (N ⟨ cᴿ ⟩) qB
+  residual =
+    smaller-extra cᴿ cᴿ<
+      (CTI2.cast⊑cast² cᴸ cᴿ core qB)
+      (vM 《 inertᴸ 》)
+      vN
+
+  after-expand : StructuralCatchupRightResult W γ (M ⟨ cᴸ ⟩)
+      ((N ⟨ tag ⟩) ⟨ proj ⟩ ⟨ cᴿ ⟩) qB
+  after-expand =
+    structural-catchup-prepend-keep-stutter
+      (ξ-⟨⟩
+        (pure-step
+          (tag-untag ⦃ Gns = ground-nonstar Gᵍ ⦄ vN))
+        refl)
+      (source-conceal-partner-projection-framed-core
+        ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ)
+      (λ d →
+        source-conceal-partner-projection-double-framed-core
+          ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ d)
+      (matched-conceal-partner-projection-framed-core
+        ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ)
+      (λ d →
+        matched-conceal-partner-projection-double-framed-core
+          ⦃ Bns = ground-nonstar Gᵍ ⦄ proj-core cᴿ d)
+      residual
 
 
 structural-bot-elim-extra-cast-right-at : ∀ {Δᴸ Δᴿ Δ}

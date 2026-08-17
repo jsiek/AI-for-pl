@@ -869,13 +869,12 @@ structural-catchup-keep-step {Δᴿ = Δᴿ} {Δ = Δ} {W = W} {γ = γ}
     }
 
 
-structural-catchup-prepend-keep : ∀ {Δᴸ Δᴿ Δ}
+structural-catchup-prepend-keep-stutter : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M″ M₁ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A ⊑ᵂ⟨ W ⟩ B}
   → M″ —→[ keep ] M₁
-  → W ∣ γ ⊢² M ⊑ M₁ ∶ q
   → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
       {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
       {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
@@ -902,9 +901,10 @@ structural-catchup-prepend-keep : ∀ {Δᴸ Δᴿ Δ}
       → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M₁ ⟨ c′ ⟩))
   → StructuralCatchupRightResult W γ M M₁ q
   → StructuralCatchupRightResult W γ M M″ q
-structural-catchup-prepend-keep {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {γ = γ}
+structural-catchup-prepend-keep-stutter
+    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {γ = γ}
     {M″ = M″} {M₁ = M₁} {q = q}
-    step rel₁ partner-step partner-step-target-cast
+    step partner-step partner-step-target-cast
     matched-step matched-step-target-cast result =
   record
     { Δᴿ′ = StructuralCatchupRightResult.Δᴿ′ result
@@ -1019,6 +1019,43 @@ structural-catchup-prepend-keep {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {γ = γ}
   matched-endpoint-target-cast (structural-keep plan) c′ ok =
     StructuralCatchupRightResult.matched-conceal-endpoint-partner-target-cast
       result plan c′ (matched-step-target-cast c′ ok)
+
+
+structural-catchup-prepend-keep : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {M : Term Δᴸ} {M″ M₁ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → M″ —→[ keep ] M₁
+  → W ∣ γ ⊢² M ⊑ M₁ ∶ q
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.SourceConcealPartnerOK W₀ P c Xᴿ? M″
+      → CTI2.SourceConcealPartnerOK W₀ P c Xᴿ? M₁)
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      → (c′ : ν ⊢ B₀ ∼ B)
+      → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+      → CTI2.SourceConcealPartnerOK W₀ P c₀ Xᴿ? (M₁ ⟨ c′ ⟩))
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M″
+      → CTI2.MatchedConcealPartnerOK W₀ P c Xᴿ? M₁)
+  → (∀ {Δ₀} {W₀ : World Δᴸ Δᴿ Δ₀}
+      {P : Term Δᴸ} {A₀ A₁ : Ty Δᴸ}
+      {c₀ : Conv↓ Δᴸ A₀ A₁} {Xᴿ?}
+      {B₀ B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+      → (c′ : ν ⊢ B₀ ∼ B)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M″ ⟨ c′ ⟩)
+      → CTI2.MatchedConcealPartnerOK W₀ P c₀ Xᴿ? (M₁ ⟨ c′ ⟩))
+  → StructuralCatchupRightResult W γ M M₁ q
+  → StructuralCatchupRightResult W γ M M″ q
+structural-catchup-prepend-keep step rel₁ =
+  structural-catchup-prepend-keep-stutter step
 
 
 structural-catchup-source-cast : ∀ {Δᴸ Δᴿ Δ}

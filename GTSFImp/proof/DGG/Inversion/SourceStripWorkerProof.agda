@@ -997,12 +997,36 @@ private
         {X = X} {Xᴸ = Xᴸ} {Y = Y} {pᵢ = pᵢ} {q = q}
         sv vU mono rb sc source∈ target∈ monoᵢ link scᵢ X∈ prem)
 
-source-spine-direct-cast : SourceSpineStrip
-{-# NON_COVERING #-}
+source-spine-direct-cast : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W} {γ′ : CtxImp W′}
+    {V : Term Δᴸ} {U : Term Δᴿ}
+    {R : Ty Δᴸ} {S : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+    {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+    {p : R ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+    {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+  → SpineValue V
+  → Value U
+  → CTI2.ImpEnvMono W W′
+  → RebaseAt W′ W Xᴸ Y
+  → CTI2.SameCtx γ γ′
+  → sourceStoreʷ W ∋ Xᴸ ⦂ R
+  → targetStoreʷ W ∋ Y ⦂ S
+  → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p
+  → Σ[ Core ∈ Term Δᴸ ]
+    Σ[ CoreTy ∈ Ty Δᴸ ]
+    Σ[ Xᵒ ∈ TyVar Δᴸ ]
+    Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+    Σ[ γᵒ ∈ CtxImp Wᵒ ]
+    Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+      (SpineValue Core
+       × SourceSpineStripBranch W γ V R U Xᴸ Y S cY q
+           Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
 source-spine-direct-cast {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = V} {U = U} {R = R} {S = S} {Xᴸ = Xᴸ} {Y = Y}
     {q = q} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑cast² cY prem p) =
+    prem =
   self-spine-sealed rb target∈ (sv-seal sv)
     (CTI2.conceal⊑²
       (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
@@ -1014,14 +1038,14 @@ source-spine-strip-worker-ƛ : SourceSpineStrip
 source-spine-strip-worker-ƛ (sv-ƛ N) vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-ƛ N) vU mono rb sc source∈
-    target∈ D
+    target∈ prem
 
 source-spine-strip-worker-Λ : SourceSpineStrip
 {-# NON_COVERING #-}
 source-spine-strip-worker-Λ (sv-Λ sv) vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-Λ sv) vU mono rb sc source∈
-    target∈ D
+    target∈ prem
 source-spine-strip-worker-Λ (sv-Λ sv) vU mono rb sc source∈
     target∈ D@(CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem p) =
   ⊥-elim
@@ -1033,7 +1057,7 @@ source-spine-strip-worker-$ : SourceSpineStrip
 source-spine-strip-worker-$ (sv-$ κ) vU mono rb sc source∈
     target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-$ κ) vU mono rb sc source∈
-    target∈ D
+    target∈ prem
 
 source-spine-strip-worker-cast-cast : SourceSpineStrip
 {-# NON_COVERING #-}
@@ -1523,7 +1547,7 @@ source-spine-strip-worker-cast : SourceSpineStrip
 source-spine-strip-worker-cast (sv-cast sv inert) vU mono rb sc
     source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-cast sv inert) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-cast (sv-cast sv inert) vU mono
     rb sc source∈ target∈
     D@(CTI2.cast⊑cast² c cY prem p) =
@@ -1893,7 +1917,7 @@ source-spine-strip-worker-seal-D
 source-spine-strip-worker-seal-D D@(CTI2.⊑cast² cY prem p)
     sv vU mono rb sc source∈ target∈ =
   source-spine-direct-cast (sv-seal sv) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-seal-D
     D@(CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ c⊢
       (CTI2.cast⊑cast² c cY prem pᵢ) p)
@@ -1943,7 +1967,7 @@ source-spine-strip-worker-reveal-fun : SourceSpineStrip
 source-spine-strip-worker-reveal-fun (sv-reveal-fun sv) vU mono
     rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-reveal-fun sv) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-reveal-fun (sv-reveal-fun sv) vU mono
     rb sc source∈ target∈
     (CTI2.reveal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
@@ -1956,7 +1980,7 @@ source-spine-strip-worker-conceal-fun : SourceSpineStrip
 source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
     rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-conceal-fun sv) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
     rb sc source∈ target∈
     (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
@@ -1969,7 +1993,7 @@ source-spine-strip-worker-reveal-all : SourceSpineStrip
 source-spine-strip-worker-reveal-all (sv-reveal-all sv) vU mono
     rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-reveal-all sv) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-reveal-all (sv-reveal-all sv) vU mono
     rb sc source∈ target∈
     (CTI2.reveal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
@@ -1982,7 +2006,7 @@ source-spine-strip-worker-conceal-all : SourceSpineStrip
 source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
     rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
   source-spine-direct-cast (sv-conceal-all sv) vU mono rb sc
-    source∈ target∈ D
+    source∈ target∈ prem
 source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
     rb sc source∈ target∈
     (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ c⊢ prem p) =

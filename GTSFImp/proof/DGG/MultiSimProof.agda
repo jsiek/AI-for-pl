@@ -28,9 +28,7 @@ open import proof.DGG.Parked.ParkedWorldLemma
   using (parked-world-closed)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof
-  using (applyTys-++; composeReduction)
+open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 

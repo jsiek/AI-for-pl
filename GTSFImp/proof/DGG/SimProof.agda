@@ -51,9 +51,8 @@ open import proof.DGG.Parked.ParkedWorldLemma using
   (parked-world-closed; transport⊑ᴾ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof using
   (compose-parked-evolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof using
-  (applyTys-++; composeReduction)
+open import proof.Reduction using
+  (_++χ_; applyTys-++; composeReduction)
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.SimPairedAllClosingDef
   using (SimPairedAllClosingᵀ)

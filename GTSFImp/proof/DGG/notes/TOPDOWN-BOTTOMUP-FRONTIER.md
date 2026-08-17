@@ -100,3 +100,60 @@ reduction-theory obligations, likely easy).
    SimProof.agda fail the {! grep. The top-down PRs did not run the
    gate. Needs a user decision: sanction a declared-WIP location the
    hygiene check excludes, or require the gate on top-down PRs.
+
+## Re-map 2026-08-17 (post-#144 merge; supervisor)
+
+The top-down SimProof has ZERO holes; its 13 assumed interfaces are
+the entire frontier. Fit classification:
+1. CatchupToMorePrecise (boundary-kind-indexed, built on the NS-4
+   structural vocabulary) = our ValueCatchupRightAt closed form +
+   three linking lemmas (fuel discharge, WorldExtendᴿ→ParkedEvolve,
+   boundary adapters). Staged behind the assembly residual (T1/T4).
+2. Left-side step family (SimSource/Paired{Cast,Reveal,Conceal}Values,
+   SimConversionFrames; SimPrimitiveValues landing separately by the
+   user) = the right-side rows mirrored; independent (T2).
+3. β-closings (SimPairedFun/AllClosing, SimSourceAllClosing) — the ∀
+   ones touch the M5 Λ machinery; queued.
+4. TransportTermImprecisionᴾ — transport repackaging; queued.
+5. SimBackᵀ, CatchupToLessPrecise, TargetBlameCatchupᵀ — unchanged;
+   queued.
+Confirmed meet-events: the top-down imports StructuralWorldExtendᴿ /
+mapPivotChanges; reveal-↠/conceal-↠ (main, #152/#153) is the likely
+discharge of assembly-residual item 1 (T1 confirms first).
+Parallel tracks live (2026-08-17): T1 assembly follow-on
+(agent/gtsf-lg3-assembly), T2 left-side family
+(agent/gtsf-sim-left-values), T3 legacy NON_COVERING repair
+(agent/gtsf-legacy-noncovering). T4 = meet-point closure, staged
+behind T1.
+
+Track update (2026-08-17, later): decision asks now live on GitHub
+issue #157 (D1 = SimConversionFrames continuations, D2 = left-side
+lemma family); scheduling aims for ~3 active tracks. Status: T1
+BLOCKED on D1 at the value dispatcher (items 1-3 of 9 done, PR #156
+draft); T2 BLOCKED on D1+D2 (PR #155 draft); T3 DONE-partial (PR #158
+draft, NON_COVERING 22→18, stopped at the wrap-star-cast-nonfinal
+obstruction). Newly launched: T4 = TransportTermImprecisionᴾ +
+Value/BlameIrreducible* (agent/gtsf-transport-irreducible), T5 = NS-4
+stage 2 (agent/gtsf-ns4-stage2; forbidden from editing
+proof/DGG/Catchup/* to avoid colliding with T1's knot/factory items).
+The former "T4 meet-point closure" is renumbered T6, still staged
+behind T1.
+
+Update 2026-08-17 (evening, supervisor): the ask-generation sweep. All
+bottom-up tracks have reached the ⊢²-induction stratum; the frontier is
+now DECISION-SHAPED. Status of the five assumed surfaces + closings:
+- TargetBlameCatchupᵀ: PROVEN modulo D9's two surfaces (PR #162).
+- SimBackᵀ: green parameterized skeleton, structural rows closed
+  (PR #163); residual architecture = D10.
+- CatchupToLessPrecise: recon complete, four-part left stack proposed
+  (PR #164); = D11.
+- CatchupToMorePrecise: fuel discharge = D8b; embedding + boundary
+  adapters being drafted (T11, Fin.zero probe included).
+- Simᵀ closings: β-closings = D8a-c (PR #161); conversion frames =
+  D1(decided)+D6; left value family = D2a-c; NS-4 strict cells =
+  D4.1-3 (PR #160); Value/Blame irreducibility PROVEN (PR #159).
+Cross-cutting families needing ONE ruling each: wrapper-peel species
+(D2b/D4/D7 + left rows of D11), premise-world parkedness (D6/D9.2 +
+D10's frames). Calibration probes for both in flight (T10).
+Main is RED (PR #154 parse error); heal on PR #160/#159 = D5.
+Decision board: issue #157. Draft PRs: #155/#156/#158-#164.

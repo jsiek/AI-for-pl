@@ -1,21 +1,22 @@
 module proof.DGG.TargetBlameCatchupProof where
 
 -- File Charter:
---   * Records the checked source-blame base case and wrapper replay pieces
---     for TargetBlameCatchupᵀ.
---   * Leaves the full CTI2 induction blocked on the proposed value-target
---     blame exclusion lemma in notes/t7-target-blame-catchup-proposal.red.
---   * Contains no postulates, holes, pragmas, or changes to the fixed
---     TargetBlameCatchupᵀ surface.
+--   * Proves target-blame catch-up under an explicit source-boundary stack.
+--   * Replays source wrappers after recursive catch-up and routes source-value
+--     Λ branches through a supplied value/blame exclusion parameter.
+--   * Exposes the fixed TargetBlameCatchupᵀ surface as a thin same-boundary
+--     adapter once the exclusion parameter is supplied.
 
 import Data.Nat as Nat
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
 open import Data.Product using (_×_; _,_; Σ-syntax)
 
 open import Types using (Ty; TyCtx)
 open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (Conv↑; Conv↓)
-open import CastTerms using (Term; blame; _⟨_⟩; _↑_; _↓_; _⦂∀_[_])
+open import CastTerms
+  using (Term; Value; blame; _⟨_⟩; _↑_; _↓_; _⦂∀_[_])
 import Reduction as R
 open import Reduction using
   ( StoreChanges
@@ -31,13 +32,68 @@ open import Reduction using
   ; blame-•
   )
 import proof.DGG.CastTermImprecision2 as CTI2
+open import proof.DGG.CatchupToMorePreciseDef
+  using (toTagRebaseAtᴸ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; ParkedWorld; evolve-keepᴸ; evolve-refl)
+open import proof.DGG.TargetBlameCatchupDef
+  using (TargetBlameCatchupᵀ)
 open import proof.Reduction
   using (_++χ_; cast-↠; composeReduction; conceal-↠; reveal-↠; typeApp-↠)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  ( CtxImp
+  ; ImpEnvMono
+  ; TagRebaseAtᴸ
+  ; World
+  ; _⊑ᵂ⟨_⟩_
+  ; _∣_⊢²_⊑_∶_
+  )
+
+
+data TargetBlameBoundary {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ) :
+    World Δᴸ Δᴿ Δ → Set where
+
+  target-blame-boundary-refl :
+    TargetBlameBoundary W W
+
+  target-blame-boundary-source-reveal : ∀ {W₀ W₁ Xᴸ? Xᴿ?}
+    → TargetBlameBoundary W W₀
+    → ImpEnvMono W₀ W₁
+    → TagRebaseAtᴸ W₀ W₁ Xᴸ? Xᴿ?
+    → TargetBlameBoundary W W₁
+
+  target-blame-boundary-source-conceal : ∀ {W₀ W₁ Xᴸ? Xᴿ?}
+    → TargetBlameBoundary W W₀
+    → ImpEnvMono W₀ W₁
+    → TagRebaseAtᴸ W₁ W₀ Xᴸ? Xᴿ?
+    → TargetBlameBoundary W W₁
+
+
+TargetValueBlameExclusionᵀ : Set
+TargetValueBlameExclusionᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {V : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ B}
+  → Value V
+  → W ∣ γ ⊢² V ⊑ blame ∶ p
+  → ⊥
+
+
+TargetBlameCatchupUnderBoundaryᵀ : Set
+TargetBlameCatchupUnderBoundaryᵀ =
+  ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
+  → ParkedWorld W
+  → TargetBlameBoundary W Wᵖ
+  → Wᵖ ∣ [] ⊢² M ⊑ blame ∶ p
+  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+    Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ′ Δᴿ Δ′ ]
+      (M —↠[ χsᴸ ] blame) ×
+      ParkedEvolve χsᴸ R.[] W W′
 
 
 target-blame-catchup-source-blame : ∀ {Δᴸ Δᴿ Δ}
@@ -119,3 +175,68 @@ source-type-app-blame-catchup {χsᴸ = χsᴸ} M↠blame evol =
   composeReduction (typeApp-↠ M↠blame)
     (↠-step (pure-step blame-•) ↠-refl) ,
   compose-parked-evolve evol (evolve-keepᴸ evolve-refl)
+
+
+target-blame-catchup-under-boundary :
+    TargetValueBlameExclusionᵀ
+  → TargetBlameCatchupUnderBoundaryᵀ
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary rel@(CTI2.blame⊑² target⊢ p) =
+  _ , R.[] , _ , _ , ↠-refl , evolve-refl
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary (CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ prem q) =
+  ⊥-elim (target-value-blame-exclusion vV prem)
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV
+      target⊢ prem q) =
+  ⊥-elim (target-value-blame-exclusion vV prem)
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary (CTI2.•⊑² p∀ prem q r)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked boundary prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary (CTI2.•⊑² p∀ prem q r)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-type-app-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary (CTI2.cast⊑² c prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked boundary prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary (CTI2.cast⊑² c prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-cast-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.reveal⊑² mono rb CTI2.same-[] c⊢ prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked
+      (target-blame-boundary-source-reveal boundary mono
+        (toTagRebaseAtᴸ rb))
+      prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.reveal⊑² mono rb CTI2.same-[] c⊢ prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-reveal-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑² ok mono rb CTI2.same-[] c⊢ prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked
+      (target-blame-boundary-source-conceal boundary mono rb)
+      prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑² ok mono rb CTI2.same-[] c⊢ prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-conceal-blame-catchup M↠blame evol
+
+
+target-blame-catchup :
+    TargetValueBlameExclusionᵀ
+  → TargetBlameCatchupᵀ
+target-blame-catchup target-value-blame-exclusion parked rel =
+  target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked target-blame-boundary-refl rel

@@ -584,7 +584,11 @@ star-rep-target :
 ```
 
 An occupancy-style redesign would split source-seal see-through from
-matched/generated target-shape cases:
+matched/generated target-shape cases.  The shape question here is settled by
+the checked
+`proof/DGG/notes/probes/SealStarOpenVarTagShapeProbe.agda`: in a no-occupant
+world, an unrelated variable-tag target cannot supply the `★⊑★` premise, so
+the shape-free open rule is justified.
 
 ```agda
 data SourceConcealOK W P c Xᴿ? M′ : Set where

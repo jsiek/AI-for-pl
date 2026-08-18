@@ -735,6 +735,27 @@ renameSourceConcealPartnerOK π CTI2.all-conceal-target =
 renameSourceConcealPartnerOK π CTI2.id-conceal-target =
   CTI2.id-conceal-target
 
+renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+  → (π : Δ ↪ᵗ Δ′)
+  → CTI2.SourceConcealOK W M c Xᴿ? M′
+  → CTI2.SourceConcealOK (renameWorld π W) M c Xᴿ? M′
+renameSourceConcealOK π
+    (CTI2.seal-nonstar-plain-ok Rns nt) =
+  CTI2.seal-nonstar-plain-ok Rns nt
+renameSourceConcealOK π
+    (CTI2.seal-nonstar-name-protected-ok Rns aligned) =
+  CTI2.seal-nonstar-name-protected-ok Rns
+    (rename-embedding-eq π aligned)
+renameSourceConcealOK π CTI2.fun-conceal-ok =
+  CTI2.fun-conceal-ok
+renameSourceConcealOK π CTI2.all-conceal-ok =
+  CTI2.all-conceal-ok
+renameSourceConcealOK π CTI2.id-conceal-ok =
+  CTI2.id-conceal-ok
+
 renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {A A′ : Ty Δᴸ}
@@ -1110,6 +1131,25 @@ renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
 ⊢²-rename-center {W = W} π
     (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q) p′ =
   CTI2.conceal⊑² (renameSourceConcealPartnerOK π ok)
+    (renameImpEnvMono {W = W} {W′ = W′} π mono)
+    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
+    (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
+    (⊢²-rename-center {W = W′} π M⊑N
+      (rename-⊑ᵂ {W = W′} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
+      no-target mono rb sc c⊢ M⊑N q) p′ =
+  CTI2.conceal⊑²-seal-star-open
+    (renameNoTargetOccupantAtSource {W = W′} π no-target)
+    (renameImpEnvMono {W = W} {W′ = W′} π mono)
+    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
+    (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
+    (⊢²-rename-center {W = W′} π M⊑N
+      (rename-⊑ᵂ {W = W′} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑N q) p′ =
+  CTI2.conceal⊑²-source-ok (renameSourceConcealOK π ok)
     (renameImpEnvMono {W = W} {W′ = W′} π mono)
     (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = W′} π sc) c⊢

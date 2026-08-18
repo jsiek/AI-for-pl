@@ -309,6 +309,25 @@ private
   moveSourceConcealPartnerOK mv CTI2.id-conceal-target =
     CTI2.id-conceal-target
 
+  moveSourceConcealOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵗ : World Δᴸ Δᴿ Δ}
+      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+    → TargetStoreMove W Wᵗ
+    → CTI2.SourceConcealOK W M c Xᴿ? M′
+    → CTI2.SourceConcealOK Wᵗ M c Xᴿ? M′
+  moveSourceConcealOK mv (CTI2.seal-nonstar-plain-ok Rns nt) =
+    CTI2.seal-nonstar-plain-ok Rns nt
+  moveSourceConcealOK (target-store-move refl refl same refl hΣ resolve)
+      (CTI2.seal-nonstar-name-protected-ok Rns aligned) =
+    CTI2.seal-nonstar-name-protected-ok Rns aligned
+  moveSourceConcealOK mv CTI2.fun-conceal-ok =
+    CTI2.fun-conceal-ok
+  moveSourceConcealOK mv CTI2.all-conceal-ok =
+    CTI2.all-conceal-ok
+  moveSourceConcealOK mv CTI2.id-conceal-ok =
+    CTI2.id-conceal-ok
+
   moveMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
       {W Wᵗ : World Δᴸ Δᴿ Δ}
       {M : Term Δᴸ} {A A′ : Ty Δᴸ}
@@ -1164,6 +1183,38 @@ source-conceal-move
     | W′ᵗ , mv′ , rb′ =
   CTI2.conceal⊑²
     (moveSourceConcealPartnerOK (baseMove mv′) ok)
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (source-conceal-move (baseMove mv) c⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
+      no-target mono rb sc c⊢ M⊑M′ q)
+    with moveTagRebaseAtᴸBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
+      no-target mono rb sc c⊢ M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.conceal⊑²-seal-star-open
+    (moveNoTargetOccupantAtSource (baseMove mv′) no-target)
+    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
+    rb′
+    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
+    (source-conceal-move (baseMove mv) c⊢)
+    (⊢²-target-bind-lift-move mv′ M⊑M′)
+    (move⊑ᵂ (baseMove mv) q)
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    with moveTagRebaseAtᴸBackwardBindLift mv mono rb
+⊢²-target-bind-lift-move mv
+    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    | W′ᵗ , mv′ , rb′ =
+  CTI2.conceal⊑²-source-ok
+    (moveSourceConcealOK (baseMove mv′) ok)
     (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
     rb′
     (moveSameCtx (baseMove mv) (baseMove mv′) sc)

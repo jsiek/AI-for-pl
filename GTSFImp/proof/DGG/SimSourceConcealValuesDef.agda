@@ -28,7 +28,7 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
 open CTI2 using
   ( World
-  ; SourceConcealPartnerOK
+  ; SourceConcealOK
   ; ImpEnvMono
   ; TagRebaseAtᴸ
   ; sourceStoreʷ
@@ -48,7 +48,7 @@ SimSourceConcealValuesᵀ =
     {c : Conv↓ Δᴸ A A′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
   → ParkedWorld W
-  → SourceConcealPartnerOK Wᵖ V c Xᴿ? M′
+  → SourceConcealOK Wᵖ V c Xᴿ? M′
   → (mono : ImpEnvMono W Wᵖ)
   → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
   → sourceStoreʷ W ⊢↓[ Xᴸ? ] c

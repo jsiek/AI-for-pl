@@ -2099,14 +2099,14 @@ left-path-argument₄-base =
     (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄-YZ}))
     left-path-ℕ⊑★₄-YZ
 
-left-path-argument₄-old-wrapper-empty : ∀ {P}
+left-path-argument₄-source-ok-empty : ∀ {P}
   →
-  CTI2.SourceConcealPartnerOK left-path-world₄-YZ
+  CTI2.SourceConcealOK left-path-world₄-YZ
     P example12-target-X-seal nothing
     (($ (κℕ 7)) ⟨ left-path-ℕ!₂ ⟩)
   → ⊥
-left-path-argument₄-old-wrapper-empty
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+left-path-argument₄-source-ok-empty
+    (CTI2.seal-nonstar-plain-ok _ ())
 
 left-path-argument₄ :
   left-path-world₄-YZ ∣ [] ⊢² $ (κℕ 7)

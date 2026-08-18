@@ -229,12 +229,12 @@ repaired-base² : pre-worldᵈ ∣ [] ⊢²
     $ (κℕ 0) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ι⊑★
 repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
-repaired-seal-partner-empty : ∀ {Wᵖ : World 2 1 2} {P Xᴿ?}
-  → CTI2.SourceConcealPartnerOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?
+repaired-seal-ok-empty : ∀ {Wᵖ : World 2 1 2} {P Xᴿ?}
+  → CTI2.SourceConcealOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?
     (($ (κℕ 0)) ⟨ ℕ! ⟩)
   → ⊥
-repaired-seal-partner-empty
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+repaired-seal-ok-empty
+    (CTI2.seal-nonstar-plain-ok Rns ())
 
 repaired-seal²-empty′ : ∀ {X}
   → (q : ＇ X ⊑ᵂ⟨ pre-worldᵈ ⟩ ★)
@@ -246,8 +246,12 @@ repaired-seal²-empty′ q₀
 repaired-seal²-empty′ (X⊑★ eq)
     (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
 repaired-seal²-empty′ q₀
-    (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
-  repaired-seal-partner-empty ok
+    (CTI2.conceal⊑²
+      (CTI2.seal-partner-ok (CTI2.plain-target ()))
+      mono rb sc c⊢ D .q₀)
+repaired-seal²-empty′ q₀
+    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
+  repaired-seal-ok-empty ok
 
 repaired-seal²-empty :
   pre-worldᵈ ∣ [] ⊢²

@@ -72,6 +72,12 @@ sourceCastBudget (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
 sourceCastBudget (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
   sourceCastBudget rel
 sourceCastBudget
+    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
+    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
     (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
   sourceCastBudget rel
 sourceCastBudget
@@ -137,6 +143,13 @@ source-cast-bound< (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) budget< =
   source-cast-bound< rel budget<
 source-cast-bound< (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q)
     budget< =
+  source-cast-bound< rel budget<
+source-cast-bound<
+    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q)
+    budget< =
+  source-cast-bound< rel budget<
+source-cast-bound<
+    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) budget< =
   source-cast-bound< rel budget<
 source-cast-bound<
     (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) budget< =
@@ -400,6 +413,13 @@ left-value-catchup-with-residuals residuals parked
   LeftValueCatchupResidualsAt.source-reveal-row residuals rel parked vV′ bound
 left-value-catchup-with-residuals residuals parked
     rel@(CTI2.conceal⊑² partner mono rb sameγ c⊢ prem q) vV′ bound =
+  LeftValueCatchupResidualsAt.source-conceal-row residuals rel parked vV′ bound
+left-value-catchup-with-residuals residuals parked
+    rel@(CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ prem q)
+    vV′ bound =
+  LeftValueCatchupResidualsAt.source-conceal-row residuals rel parked vV′ bound
+left-value-catchup-with-residuals residuals parked
+    rel@(CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ prem q) vV′ bound =
   LeftValueCatchupResidualsAt.source-conceal-row residuals rel parked vV′ bound
 left-value-catchup-with-residuals residuals parked
     rel@(CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ prem q) vV′ bound =

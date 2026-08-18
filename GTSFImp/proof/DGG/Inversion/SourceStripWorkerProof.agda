@@ -93,6 +93,15 @@ private
       (CTI2.SameRuntime.sourceStore-same
         (CTI2.RebaseAt.sameRuntime rb)) Z∈
 
+  right-var-obligation-nonstar : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ} {R : Ty Δᴸ} {Y : TyVar Δᴿ}
+    → R ⊑ᵂ⟨ W ⟩ (＇ Y)
+    → NonStar R
+  right-var-obligation-nonstar {W = W} {R = R} {Y = Y} p
+      with SPT.right-var-obligation-view {W = W} {R = R} {Y = Y} p
+  right-var-obligation-nonstar p | X₂ , refl , aligned =
+    nonstar-X
+
   composeOuterRebase : ∀ {Δᴸ Δᴿ Δ}
       {W W′ W₂ : World Δᴸ Δᴿ Δ}
       {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
@@ -251,13 +260,35 @@ private
       (CTI2.conceal⊑² {W′ = Wᵖ} {p = pᵖ}
         ok monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈) prem r)
       with composeTagRebaseTagOuter rb rbᵖ
-  source-column-untagged-final {W = W} {W′ = W′} {q = q}
+  source-column-untagged-final {W = W} {W′ = W′} {R = R}
+      {Y = Y} {q = q}
       mono rb sc target∈
       (CTI2.conceal⊑² {W′ = Wᵖ} {p = pᵖ}
         ok monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈) prem r)
       | Z? , rbᶠ =
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+    CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok
+        (right-var-obligation-nonstar {W = Wᵖ} {R = R} {Y = Y} pᵖ)
+        CTI2.not-↓)
+      (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
+        mono monoᵖ)
+      rbᶠ (sameCtx-∘ sc scᵖ)
+      (CTI2.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
+      prem q
+  source-column-untagged-final {W = W} {W′ = W′} {q = q}
+      mono rb sc target∈
+      (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
+        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTI2.⊢↓-sealˣ X∈) prem r)
+      with composeTagRebaseTagOuter rb rbᵖ
+  source-column-untagged-final {W = W} {W′ = W′} {q = q}
+      mono rb sc target∈
+      (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
+        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTI2.⊢↓-sealˣ X∈) prem r)
+      | Z? , rbᶠ =
+    CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok Rns CTI2.not-↓)
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
         mono monoᵖ)
       rbᶠ (sameCtx-∘ sc scᵖ)
@@ -684,12 +715,16 @@ private
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
     → W ∣ γ ⊢² (V ↓ seal X Rᵢ) ↓ seal Xᴸ (＇ X)
         ⊑ U ↓ seal Y S ∶ q
-  source-seal-final sv vU mono rb sc source∈ target∈
-      monoᵢ link scᵢ X∈ prem =
+  source-seal-final {Wᵢ = Wᵢ} {Rᵢ = Rᵢ} {Y = Y}
+      {pᵢ = pᵢ} sv vU mono rb sc source∈ target∈ monoᵢ link
+      scᵢ X∈ prem =
     target-source-var-chain (sv-seal sv) vU mono rb sc source∈
       target∈
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+      (CTI2.conceal⊑²-source-ok
+        (CTI2.seal-nonstar-plain-ok
+          (right-var-obligation-nonstar
+            {W = Wᵢ} {R = Rᵢ} {Y = Y} pᵢ)
+          CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
         (CTI2.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
@@ -712,11 +747,14 @@ private
     → sourceStoreʷ W′ ∋ X ⦂ R
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵤ
     → W ∣ γ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ q
-  source-column-seal-final mono rb sc target∈ monoᵢ link scᵢ
-      X∈ prem =
+  source-column-seal-final {Wᵢ = Wᵢ} {R = R} {Y = Y}
+      {pᵤ = pᵤ} mono rb sc target∈ monoᵢ link scᵢ X∈ prem =
     source-column-untagged-final mono rb sc target∈
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+      (CTI2.conceal⊑²-source-ok
+        (CTI2.seal-nonstar-plain-ok
+          (right-var-obligation-nonstar
+            {W = Wᵢ} {R = R} {Y = Y} pᵤ)
+          CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
         (CTI2.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
@@ -1027,11 +1065,13 @@ source-spine-direct-cast : ∀ {Δᴸ Δᴿ Δ}
            Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
 source-spine-direct-cast {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     {V = V} {U = U} {R = R} {S = S} {Xᴸ = Xᴸ} {Y = Y}
-    {q = q} sv vU mono rb sc source∈ target∈
+    {p = p₀} {q = q} sv vU mono rb sc source∈ target∈
     prem =
   self-spine-sealed rb target∈ (sv-seal sv)
-    (CTI2.conceal⊑²
-      (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+    (CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok
+        (right-var-obligation-nonstar {W = W′} {R = R} {Y = Y} p₀)
+        CTI2.not-↓)
       mono (CTI2.tag-rebase-varᴸ rb) sc
       (CTI2.⊢↓-sealˣ source∈) prem q)
 
@@ -1342,8 +1382,11 @@ source-spine-strip-worker-cast-step-over-seal-star
       {Xᴸ = Xᴸ} {X₂ = X} {Y = Y} {c = c}
       {p₂ = rebase-pivot-obligation link} {q = q}
       (sv-seal sv) inert vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+      (CTI2.conceal⊑²-source-ok
+        (CTI2.seal-nonstar-plain-ok
+          (right-var-obligation-nonstar
+            {W = Wᵢ} {R = Rᵢ} {Y = Y} pᵤ)
+          CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
         (CTI2.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
@@ -1422,8 +1465,11 @@ source-spine-strip-worker-cast-step-over-seal-name
       {Xᴸ = Xᴸ} {X₂ = X} {Y = Y} {c = c}
       {p₂ = rebase-pivot-obligation link} {q = q}
       (sv-seal sv) inert vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↓))
+      (CTI2.conceal⊑²-source-ok
+        (CTI2.seal-nonstar-plain-ok
+          (right-var-obligation-nonstar
+            {W = Wᵢ} {R = Rᵢ} {Y = Y} pᵤ)
+          CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
         (CTI2.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
@@ -1664,10 +1710,24 @@ source-spine-strip-worker-seal-nonvar
     (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
       nonvar-all nonstar-∀ D)
 source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-Λ sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      D@(CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
+      nonvar-all nonstar-∀ D)
+source-spine-strip-worker-seal-nonvar
     (sv-seal (sv-reveal-fun sv)) vU mono rb sc source∈ target∈
     (CTI2.conceal⊑²
       (CTI2.seal-partner-ok CTI2.name-protected-target)
       monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+      nonstar-⇒ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-reveal-fun sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
       (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
@@ -1682,10 +1742,41 @@ source-spine-strip-worker-seal-nonvar
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
       nonstar-⇒ prem)
 source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-fun sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²
+      (CTI2.seal-partner-ok CTI2.name-protected-target)
+      monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok ok monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+      nonstar-⇒ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-fun sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+      nonstar-⇒ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-fun sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok
+        okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+      nonstar-⇒ prem)
+source-spine-strip-worker-seal-nonvar
     (sv-seal (sv-reveal-all sv)) vU mono rb sc source∈ target∈
     (CTI2.conceal⊑²
       (CTI2.seal-partner-ok CTI2.name-protected-target)
       monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+      nonstar-∀ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-reveal-all sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
       (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
@@ -1696,6 +1787,30 @@ source-spine-strip-worker-seal-nonvar
       (CTI2.seal-partner-ok CTI2.name-protected-target)
       monoᵢ rbᵢ scᵢ c⊢
       (CTI2.conceal⊑² ok monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+      nonstar-∀ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-all sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²
+      (CTI2.seal-partner-ok CTI2.name-protected-target)
+      monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok ok monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+      nonstar-∀ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-all sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+      nonstar-∀ prem)
+source-spine-strip-worker-seal-nonvar
+    (sv-seal (sv-conceal-all sv)) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok
+        okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
       nonstar-∀ prem)
@@ -2030,12 +2145,52 @@ source-spine-strip-worker-seal-D
   source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
     source∈ target∈ D
 source-spine-strip-worker-seal-D
+    D@(CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok
+        okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
+    source∈ target∈ D
+source-spine-strip-worker-seal-D
+    D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem pᵢ) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
+    source∈ target∈ D
+source-spine-strip-worker-seal-D
+    D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
+    source∈ target∈ D
+source-spine-strip-worker-seal-D
+    D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
+    source∈ target∈ D
+source-spine-strip-worker-seal-D
+    D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑²-source-ok
+        okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
+    source∈ target∈ D
+source-spine-strip-worker-seal-D
     (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
       (CTI2.⊢↓-sealˣ X∈) prem p)
     sv vU mono rb sc source∈ target∈ =
   source-spine-strip-worker-seal-source sv vU mono
     rb sc source∈ target∈ monoᵢ rbᵢ scᵢ X∈ ok prem
-
+source-spine-strip-worker-seal-D
+    (CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-name-protected-ok Rns aligned)
+      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
+    sv vU mono rb sc source∈ target∈ =
+  source-seal-branch sv vU mono rb sc source∈ target∈
+    monoᵢ link scᵢ X∈ prem
 source-spine-strip-worker-seal : SourceSpineStrip
 {-# NON_COVERING #-}
 source-spine-strip-worker-seal (sv-seal sv) vU mono rb sc
@@ -2068,6 +2223,12 @@ source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
       nonstar-⇒ prem)
+source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
+    rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+      nonstar-⇒ prem)
 
 source-spine-strip-worker-reveal-all : SourceSpineStrip
 {-# NON_COVERING #-}
@@ -2091,6 +2252,12 @@ source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
 source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
     rb sc source∈ target∈
     (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
+  ⊥-elim
+    (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+      nonstar-∀ prem)
+source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
+    rb sc source∈ target∈
+    (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
   ⊥-elim
     (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
       nonstar-∀ prem)

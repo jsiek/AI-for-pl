@@ -324,30 +324,6 @@ transport-rep★-partner-ok-tag
       (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
       partner)
 
-protected-tag-partner-from-cast : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    {P : Term Δᴸ} {M : Term Δᴿ} {S : Ty Δᴿ} {μ : Env∼ Δᴿ}
-    {c : μ ⊢ (＇ Y) ∼ ★}
-  → CTI2.CenterAligned W X Y
-  → CTI2.Rep★PartnerOK W X P (just Y)
-      ((M ↓ Conversion.seal Y S) ⟨ c ⟩)
-protected-tag-partner-from-cast {Y = Y}
-    {c = _! {G = ＇ x} ⦃ Gᵍ = ＇ .x ⦄ cY} aligned
-    with cY
-protected-tag-partner-from-cast {Y = Y}
-    {c = _! {G = ＇ .Y} ⦃ Gᵍ = ＇ .Y ⦄ cY} aligned
-    | id (＇ .Y) =
-  CTI2.rep★-var-tag aligned
-protected-tag-partner-from-cast
-    {c = _! ⦃ Gᵍ = ‵ ι ⦄ cY} aligned =
-  CTI2.rep★-nonvar-tag nonvar-base
-protected-tag-partner-from-cast
-    {c = _! ⦃ Gᵍ = ★⇒★ ⦄ cY} aligned =
-  CTI2.rep★-nonvar-tag nonvar-fun
-protected-tag-partner-from-cast
-    {c = _! ⦃ Gᵍ = ∀★ ⦄ cY} aligned =
-  CTI2.rep★-nonvar-tag nonvar-all
-
 tagged-transfer-output-from-transport : ∀ {Δᴸ Δᴿ Δ}
     {Wᵖ W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {P : Term Δᴸ} {U : Term Δᴿ}
@@ -425,9 +401,15 @@ source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
       (W ∣ γ ⊢²
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
+source-star-cast-package-from-source {W = W} {X = X}
+      {Xᴿ? = just Y} mono (CTI2.tag-rebase-varᴸ rb) sc
+      source∈ no-target partner inert prem sealed =
+  ⊥-elim (no-target (Y , sym (CTI2.RebaseAt.pivotAligned rb)))
 source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
       {c = c}
-      {q = q} mono rb sc source∈ no-target partner
+      {q = q} mono rb@(CTI2.tag-rebase-onlyᴸ to-star disaligned
+        represented)
+      sc source∈ no-target partner
       (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
@@ -435,97 +417,10 @@ source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-round-trip
         (transport-rep★-partner-ok-tag rb partner))) ,
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok
-        (CTI2.star-rep-target
-          no-target
-          (CTI2.rep★-round-trip
-            (transport-rep★-partner-ok-tag rb partner))))
+    CTI2.conceal⊑²-seal-star-open
+      no-target
     (impEnvMono-refl {W = W})
     (self-tag-rebase-from-tag-rebase rb)
-    (sameCtx-refl {γ = γ})
-    (CTI2.⊢↓-sealˣ source∈)
-    (CTI2.cast⊑² c sealed ★⊑★)
-    q
-
-source-star-cast-package-from-source-plain : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
-    {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
-    {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W Wᵖ
-  → CTI2.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ∋ X ⦂ ★
-  → CTI2.NotTopTag U
-  → Inert c
-  → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
-  → W ∣ γ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ q
-  → Σ[ pkg ∈ TaggedTransferOutput W γ
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) U X Xᴿ? ]
-      (W ∣ γ ⊢²
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
-        ⊑ U ∶ q)
-source-star-cast-package-from-source-plain {W = W} {γ = γ} {X = X}
-    {c = c} {q = q} mono rb sc source∈
-    nt
-    (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
-  tagged-transfer-output
-    (CTI2.cast⊑² c sealed ★⊑★)
-    (premise-partner-from-tag-rebase rb)
-    (CTI2.matched-seal-star-partner (CTI2.rep★-untagged nt)) ,
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok
-        (CTI2.plain-target nt))
-    (impEnvMono-refl {W = W})
-    (self-tag-rebase-from-tag-rebase rb)
-    (sameCtx-refl {γ = γ})
-    (CTI2.⊢↓-sealˣ source∈)
-    (CTI2.cast⊑² c sealed ★⊑★)
-    q
-
-source-star-cast-package-from-source-name : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
-    {P : Term Δᴸ} {M : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {S : Ty Δᴿ}
-    {μ : Env∼ Δᴿ} {cY : μ ⊢ (＇ Y) ∼ ★}
-    {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
-    {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
-    {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W Wᵖ
-  → CTI2.TagRebaseAtᴸ Wᵖ W (just X) (just Y)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ∋ X ⦂ ★
-  → Inert c
-  → Wᵖ ∣ γᵖ ⊢² P
-      ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p★
-  → W ∣ γ ⊢² P ↓ Conversion.seal X ★
-      ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ q
-  → Σ[ pkg ∈ TaggedTransferOutput W γ
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩)
-        ((M ↓ Conversion.seal Y S) ⟨ cY ⟩) X (just Y) ]
-      (W ∣ γ ⊢²
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
-        ⊑ (M ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ q)
-source-star-cast-package-from-source-name {W = W} {γ = γ} {X = X}
-    {c = c} {q = q} mono (CTI2.tag-rebase-varᴸ rb) sc source∈
-    (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
-  tagged-transfer-output
-    (CTI2.cast⊑² c sealed ★⊑★)
-    (premise-partner-just (CTI2.RebaseAt.pivotAligned rb))
-    (CTI2.matched-seal-star-partner
-      (protected-tag-partner-from-cast
-        (CTI2.RebaseAt.pivotAligned rb))) ,
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok
-        CTI2.name-protected-target)
-    (impEnvMono-refl {W = W})
-    (CTI2.tag-rebase-varᴸ
-      (CTI2.sameWorldRebaseAt
-        (CTI2.RebaseAt.pivotAligned rb)
-        (CTI2.RebaseAt.storeRepresentations rb)))
     (sameCtx-refl {γ = γ})
     (CTI2.⊢↓-sealˣ source∈)
     (CTI2.cast⊑² c sealed ★⊑★)
@@ -782,44 +677,7 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
         (CTI2.matched-seal-star-partner partner)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    with dynPayloadTargetRoute vU (CTI2T.target-typing² prem) partner
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        (CTI2.matched-seal-star-partner partner)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    | dyn-target-stripped seal-ok =
-  seal-transfer-stripped
-    (dynLink {W = W₁} {Z = Z} {Y = Y}
-      (SVD.variable-obligation-aligns {W = W₁} {X = Z} {Y = Y} p)
-      (CTI2.RebaseAt.storeRepresentations rbᵖ))
-    (dyn-decay-mono {W = W₁})
-    (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₁)
-      (sameCtx-refl {γ = γ₁}))
-    (CTI2.conceal⊑²
-      (CTI2.seal-partner-ok (seal-ok {P = P}))
-      (dyn-mono {W = W₁} {W′ = Wᵖ})
-      (CTI2.tag-rebase-varᴸ
-        (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
-          (SPT.dynWorld-decay W₁) rbᵖ))
-      (WD.decaySameCtx (SPT.dynWorld-decay W₁)
-        (SPT.dynWorld-decay Wᵖ) scᵖ)
-      (CTI2.⊢↓-sealˣ Z∈′)
-      (TD.⊢²-decay (SPT.dynWorld-decay Wᵖ) prem)
-      (dyn-var-star {W = W₁} {X = Z}))
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        (CTI2.matched-seal-star-partner partner)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    | dyn-target-paired =
+        (CTI2.⊢↓-sealˣ Y∈) prem .p =
   seal-transfer-paired monoᵖ rbᵖ scᵖ
     (CTI2.⊢↓-sealˣ Z∈′) (CTI2.⊢↓-sealˣ Y∈)
     (CTI2.matched-seal-star-partner partner) prem

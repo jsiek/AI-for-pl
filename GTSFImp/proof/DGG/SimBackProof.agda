@@ -130,6 +130,8 @@ SourceConcealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
   → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
 SourceConcealRel (conceal⊑² _ _ _ _ _ _ _) = ⊤
+SourceConcealRel (conceal⊑²-seal-star-open _ _ _ _ _ _ _) = ⊤
+SourceConcealRel (conceal⊑²-source-ok _ _ _ _ _ _ _) = ⊤
 SourceConcealRel _ = ⊥
 
 PrimitiveRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -981,6 +983,13 @@ module _
 
   sim-back parked rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
       step =
+    sim-back-source-conceal-boundary parked rel tt step
+  sim-back parked
+      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
+      step =
+    sim-back-source-conceal-boundary parked rel tt step
+  sim-back parked
+      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q) step =
     sim-back-source-conceal-boundary parked rel tt step
 
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)

@@ -11,7 +11,8 @@ module proof.DGG.TerminusRebuildProbe where
 --   * Instance B is the S = ＇Y₂ chain template: the input has the
 --     source inert variable cast required by the blocked M3 branch, and
 --     the output pairs at the ★ terminus before re-emitting the outer
---     target-only seal.
+--     target-only seal.  The old occupied source-star/tagged-target
+--     direct witness is now tracked as a D15 migration residual.
 --   * This is the positive counterpart to the refuted tag-peel-first
 --     family documented in `RightInjInversion2Def`: the head is rebuilt
 --     at the target-chain terminus instead of against a right variable.
@@ -194,11 +195,11 @@ module InstanceA where
     CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
       CTI2.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
 
-  terminus-input-partner-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
-    → CTI2.SourceConcealPartnerOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
+  terminus-input-ok-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
+    → CTI2.SourceConcealOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
     → ⊥
-  terminus-input-partner-empty
-      (CTI2.seal-partner-ok (CTI2.plain-target ()))
+  terminus-input-ok-empty
+      (CTI2.seal-nonstar-plain-ok Rns ())
 
   terminus-input-empty′ : ∀ {X′}
     → (q : ＇ X′ ⊑ᵂ⟨ W ⟩ ★)
@@ -209,8 +210,12 @@ module InstanceA where
   terminus-input-empty′ (X⊑★ eq)
       (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
   terminus-input-empty′ q₀
-      (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
-    terminus-input-partner-empty ok
+      (CTI2.conceal⊑²
+        (CTI2.seal-partner-ok (CTI2.plain-target ()))
+        mono rb sc c⊢ D .q₀)
+  terminus-input-empty′ q₀
+      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
+    terminus-input-ok-empty ok
 
   terminus-input-empty : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W → ⊥
   terminus-input-empty =
@@ -392,18 +397,6 @@ module InstanceB where
         (CTI2.x⊑x² {p = ★⊑★} CTI2.Zʷ))
       ★⊑★
 
-  inner-source-occupied : CTI2.NoTargetOccupantAtSource Wᵖ X → ⊥
-  inner-source-occupied no-target = no-target (Y₂ , refl)
-
-  inner-source-partner-empty :
-    CTI2.SourceConcealPartnerOK Wᵖ V₀ (seal X ★) (just Y₂) U₀
-    → ⊥
-  inner-source-partner-empty
-      (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
-    inner-source-occupied no-target
-  inner-source-partner-empty
-      (CTI2.seal-partner-ok (CTI2.plain-target ()))
-
   premise-chain² : W ∣ [] ⊢² V ⊑ target-chain ∶ X⊑Y
   premise-chain² =
     CTI2.⊑conceal² mono-W-Wᵖ (CTI2.rebase-varᴿ rb-chain)
@@ -421,9 +414,7 @@ module InstanceB where
   premise-casts² =
     CTI2.cast⊑cast² X! Y! premise-chain² ★⊑★
 
-  tagged-input : W ∣ [] ⊢² source ⊑ target-tagged ∶ X⊑★-W
-  tagged-input =
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok CTI2.name-protected-target)
-      (mono-refl {W = W}) (CTI2.tag-rebase-varᴸ rb-X-Y)
-      CTI2.same-[] source-seal-⊢ premise-casts² X⊑★-W
+  -- D15 M1 residual: the old checked `tagged-input` used the removed
+  -- occupied source-star/name-protected source-only route.  The matched
+  -- chain pieces above remain checked; reassembling this tagged endpoint
+  -- needs the later source-star package migration.

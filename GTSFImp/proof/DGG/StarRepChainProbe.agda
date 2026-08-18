@@ -183,11 +183,8 @@ base² =
 
 inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
-  CTI2.conceal⊑²
-    (CTI2.seal-partner-ok
-      (CTI2.star-rep-target
-        X-no-target-occupant
-        (CTI2.rep★-nonvar-tag nonvar-base)))
+  CTI2.conceal⊑²-seal-star-open
+    X-no-target-occupant
     (λ Z eq → eq) inner-source-only-rebase CTI2.same-[]
     source-X-seal-⊢ base² inner-type
 

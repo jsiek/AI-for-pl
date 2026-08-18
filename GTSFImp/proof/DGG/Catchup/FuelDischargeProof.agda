@@ -107,6 +107,14 @@ target-cast-bound-mono
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
 target-cast-bound-mono
+    {rel = CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q}
+    fuel≤fuel′ bound =
+  target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
+target-cast-bound-mono
+    {rel = CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q}
+    fuel≤fuel′ bound =
+  target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
+target-cast-bound-mono
     {rel = CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q}
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
@@ -179,6 +187,12 @@ target-cast-bound-mono {rel = CTI2.⊕⊑⊕² op rel₁ rel₂ r}
 ⊢²-target-cast-bound (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
   ⊢²-target-cast-bound rel
 ⊢²-target-cast-bound (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
+  ⊢²-target-cast-bound rel
+⊢²-target-cast-bound
+    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
+  ⊢²-target-cast-bound rel
+⊢²-target-cast-bound
+    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
   ⊢²-target-cast-bound rel
 ⊢²-target-cast-bound
     (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =

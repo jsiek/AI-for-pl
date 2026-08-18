@@ -2956,6 +2956,30 @@ renameSourceConcealPartnerOK align no-target-map CTI2.all-conceal-target =
 renameSourceConcealPartnerOK align no-target-map CTI2.id-conceal-target =
   CTI2.id-conceal-target
 
+renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′}
+    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+  → (∀ {X₀ Y₀}
+      → CTI2.CenterAligned W X₀ Y₀
+      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
+  → CTI2.SourceConcealOK W M c Xᴿ? M′
+  → CTI2.SourceConcealOK W′ M c
+      (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
+renameSourceConcealOK align
+    (CTI2.seal-nonstar-plain-ok Rns nt) =
+  CTI2.seal-nonstar-plain-ok Rns (notTopTag-rename _ nt)
+renameSourceConcealOK align
+    (CTI2.seal-nonstar-name-protected-ok Rns aligned) =
+  CTI2.seal-nonstar-name-protected-ok Rns (align aligned)
+renameSourceConcealOK align CTI2.fun-conceal-ok =
+  CTI2.fun-conceal-ok
+renameSourceConcealOK align CTI2.all-conceal-ok =
+  CTI2.all-conceal-ok
+renameSourceConcealOK align CTI2.id-conceal-ok =
+  CTI2.id-conceal-ok
+
 renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′}
@@ -3540,6 +3564,38 @@ primResultTy-renameᵗ ρ and𝔹 = refl
   CTI2.conceal⊑²
     (renameSourceConcealPartnerOK
       (align-insert insᵖ) (targetInsertNoTargetAtSource insᵖ) ok)
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-conceal-insert ins c⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
+      no-target mono rb sc c⊢ M⊑M′ q)
+    with reverseTagRebaseAtᴸ ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
+      no-target mono rb sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.conceal⊑²-seal-star-open
+    (targetInsertNoTargetAtSource insᵖ no-target)
+    (impEnvMono-insert ins insᵖ mono)
+    rb⁺
+    (mapCtxᵀ-same ins insᵖ sc)
+    (source-conceal-insert ins c⊢)
+    (⊢²-target-insert insᵖ M⊑M′)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    with reverseTagRebaseAtᴸ ins rb
+⊢²-target-insert {ρ = ρ} ins
+    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
+      ok mono rb sc c⊢ M⊑M′ q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  CTI2.conceal⊑²-source-ok
+    (renameSourceConcealOK (align-insert insᵖ) ok)
     (impEnvMono-insert ins insᵖ mono)
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)

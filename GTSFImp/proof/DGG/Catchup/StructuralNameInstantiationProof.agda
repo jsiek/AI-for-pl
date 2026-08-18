@@ -180,6 +180,10 @@ derivSize (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑² ok mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
+derivSize (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢ rel q) =
+  suc (suc (derivSize rel))
+derivSize (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
+  suc (suc (derivSize rel))
 derivSize (CTI2.reveal⊑reveal² mono rb sc c⊢ c⊢′ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c⊢′ rel q) =
@@ -1718,6 +1722,59 @@ mutual
       (StructuralTargetInstantiationPackage.structural-ext target)
       mono rb sc c⊢
       (StructuralStrictViewSurfaces.conceal-equal-ok surfaces rb ok
+        spine target)
+      (structural-value-spine-instantiation-acc surfaces fuel-step
+        residual-cast-builder inst-decrease child-plan child-chain-plan
+        prem vU vN (name-type-app-frame B X refl refl ▻ⁱ spine)
+        child-chain child-typed
+        (smaller
+          (measure-source< (n<1+n (suc (derivSize prem)))))
+        (structural-target-tag-rebase-left rb target))
+  structural-name-instantiation-acc surfaces fuel-step residual-cast-builder
+      inst-decrease plan chain-plan
+      (CTI2.conceal⊑²-seal-star-open {X = Xᴸ} no-target mono rb sc
+        c⊢ prem q)
+      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
+      with StructuralNamePostPlan.conceal-child plan
+             {c = Conv.seal Xᴸ ★} rb
+         | StructuralNameChainPlan.conceal-child chain-plan
+             {c = Conv.seal Xᴸ ★} rb sc chain typed
+  structural-name-instantiation-acc surfaces {B = B} {X = X}
+      fuel-step residual-cast-builder inst-decrease plan chain-plan
+      (CTI2.conceal⊑²-seal-star-open {X = Xᴸ} no-target mono rb sc
+        c⊢ prem q)
+      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
+      | q₀ , child-plan
+      | child-chain , (child-typed , child-chain-plan) =
+    structural-conceal-seal-star-open-replay
+      (StructuralTargetInstantiationPackage.structural-ext target)
+      mono rb sc c⊢
+      (StructuralStrictViewSurfaces.conceal-equal-no-target surfaces
+        rb no-target spine target)
+      (structural-value-spine-instantiation-acc surfaces fuel-step
+        residual-cast-builder inst-decrease child-plan child-chain-plan
+        prem vU vN (name-type-app-frame B X refl refl ▻ⁱ spine)
+        child-chain child-typed
+        (smaller
+          (measure-source< (n<1+n (suc (derivSize prem)))))
+        (structural-target-tag-rebase-left rb target))
+  structural-name-instantiation-acc surfaces fuel-step residual-cast-builder
+      inst-decrease plan chain-plan
+      (CTI2.conceal⊑²-source-ok {c = c} ok mono rb sc c⊢ prem q)
+      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
+      with StructuralNamePostPlan.conceal-child plan {c = c} rb
+         | StructuralNameChainPlan.conceal-child chain-plan {c = c} rb sc
+             chain typed
+  structural-name-instantiation-acc surfaces {B = B} {X = X}
+      fuel-step residual-cast-builder inst-decrease plan chain-plan
+      (CTI2.conceal⊑²-source-ok {c = c} ok mono rb sc c⊢ prem q)
+      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
+      | q₀ , child-plan
+      | child-chain , (child-typed , child-chain-plan) =
+    structural-conceal-source-ok-replay
+      (StructuralTargetInstantiationPackage.structural-ext target)
+      mono rb sc c⊢
+      (StructuralStrictViewSurfaces.conceal-equal-source-ok surfaces rb ok
         spine target)
       (structural-value-spine-instantiation-acc surfaces fuel-step
         residual-cast-builder inst-decrease child-plan child-chain-plan

@@ -12,6 +12,7 @@ open import proof.DGG.Parked.ParkedWorldDef using
   ; evolve-left-bind
   ; evolve-refl
   ; evolve-right-bind
+  ; evolve-structural-right-bind
   )
 open import proof.DGG.Parked.ParkedEvolveCompositionDef
   using (ComposeParkedEvolveᵀ)
@@ -29,3 +30,7 @@ compose-parked-evolve (evolve-left-bind evol₁) evol₂ =
   evolve-left-bind (compose-parked-evolve evol₁ evol₂)
 compose-parked-evolve (evolve-right-bind evol₁) evol₂ =
   evolve-right-bind (compose-parked-evolve evol₁ evol₂)
+compose-parked-evolve
+    (evolve-structural-right-bind ins follows evol₁) evol₂ =
+  evolve-structural-right-bind ins follows
+    (compose-parked-evolve evol₁ evol₂)

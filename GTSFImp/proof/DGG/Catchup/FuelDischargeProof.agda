@@ -7,11 +7,14 @@ module proof.DGG.Catchup.FuelDischargeProof where
 --     the live CTI2 derivation.
 --   * Composes the builder with a fuel-indexed value-catch-up driver, and
 --     exports the FuelKnot factory-parametric `ValueCatchupRight²` adapter.
+--   * Assembles the structural knot, parked embedding, and boundary adapters
+--     into `CatchupToMorePrecise`, retaining only the structural factories.
 
 open import Data.Nat using (ℕ; suc; _<_; _≤_; _⊔_; z≤n; s≤s)
 open import Data.Nat.Properties using (≤-trans; m≤m⊔n; m≤n⊔m)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Unit using (tt)
+import Data.Nat.Induction as NatInduction
 
 open import Types using (Ty)
 open import CastTerms using (Term; Value)
@@ -22,7 +25,23 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
    FuelKnot)
 open import proof.DGG.Catchup.FuelKnotProof using
   (ExtraCastFactory; ValueCatchupFactory; InstCatchupFactory;
-   build-fuel-knot)
+   build-fuel-knot; StructuralFuelKnot; StructuralExtraCastFactory;
+   StructuralValueCatchupFactory; StructuralInstCatchupFactory;
+   build-structural-fuel-knot-acc)
+open import proof.DGG.Catchup.StructuralCatchupRightDef using
+  (StructuralValueCatchupRight²; StructuralValueCatchupRightAt)
+open import proof.DGG.Catchup.StructuralRightParkedEvolveProof using
+  (structural-right-parked-evolve)
+open import proof.DGG.Catchup.BoundaryValueAdaptersProof using
+  (same-boundary-value-adapter;
+   source-reveal-boundary-value-adapter;
+   source-conceal-boundary-value-adapter;
+   target-reveal-boundary-value-adapter;
+   target-conceal-boundary-value-adapter)
+open import proof.DGG.CatchupToMorePreciseDef using
+  (CatchupToMorePrecise; boundary-refl; boundary-source-reveal;
+   boundary-source-conceal; boundary-target-reveal;
+   boundary-target-conceal)
 
 
 ≤-step : ∀ {m n} → m ≤ n → m ≤ suc n
@@ -206,3 +225,72 @@ value-catchup-right²-from-fuel-knot-factories
   value-catchup-right²-from-at
     (λ fuel → FuelKnot.value-catchup-at
       (build-fuel-knot extra-factory value-factory inst-factory fuel))
+
+
+structural-value-catchup-right²-from-at :
+    (∀ fuel → StructuralValueCatchupRightAt fuel)
+  → StructuralValueCatchupRight²
+structural-value-catchup-right²-from-at value-at vM rel
+  with ⊢²-target-cast-bound rel
+structural-value-catchup-right²-from-at value-at vM rel
+  | fuel , bound = value-at fuel vM rel bound
+
+
+structural-value-catchup-right²-from-fuel-knot-factories :
+  StructuralExtraCastFactory
+  → StructuralValueCatchupFactory
+  → StructuralInstCatchupFactory
+  → StructuralValueCatchupRight²
+structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory =
+  structural-value-catchup-right²-from-at
+    (λ fuel → StructuralFuelKnot.structural-value-catchup-at
+      (build-structural-fuel-knot-acc
+        extra-factory value-factory inst-factory fuel
+        (NatInduction.<-wellFounded fuel)))
+
+
+catchup-to-more-precise-from-fuel-knot-factories :
+  StructuralExtraCastFactory
+  → StructuralValueCatchupFactory
+  → StructuralInstCatchupFactory
+  → CatchupToMorePrecise
+catchup-to-more-precise-from-fuel-knot-factories
+    extra-factory value-factory inst-factory parked boundary-refl rel vM =
+  same-boundary-value-adapter structural-right-parked-evolve parked
+    (worker vM rel)
+  where
+  worker = structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory
+catchup-to-more-precise-from-fuel-knot-factories
+    extra-factory value-factory inst-factory parked
+    (boundary-source-reveal mono rb) rel vM =
+  source-reveal-boundary-value-adapter structural-right-parked-evolve parked
+    mono rb (worker vM rel)
+  where
+  worker = structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory
+catchup-to-more-precise-from-fuel-knot-factories
+    extra-factory value-factory inst-factory parked
+    (boundary-source-conceal mono rb) rel vM =
+  source-conceal-boundary-value-adapter structural-right-parked-evolve parked
+    mono rb (worker vM rel)
+  where
+  worker = structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory
+catchup-to-more-precise-from-fuel-knot-factories
+    extra-factory value-factory inst-factory parked
+    (boundary-target-reveal mono rb) rel vM =
+  target-reveal-boundary-value-adapter structural-right-parked-evolve parked
+    mono rb (worker vM rel)
+  where
+  worker = structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory
+catchup-to-more-precise-from-fuel-knot-factories
+    extra-factory value-factory inst-factory parked
+    (boundary-target-conceal mono rb) rel vM =
+  target-conceal-boundary-value-adapter structural-right-parked-evolve parked
+    mono rb (worker vM rel)
+  where
+  worker = structural-value-catchup-right²-from-fuel-knot-factories
+    extra-factory value-factory inst-factory

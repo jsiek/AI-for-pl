@@ -68,6 +68,7 @@ import proof.DGG.Catchup.StructuralSpineTypingDef
 import proof.DGG.Catchup.StructuralStrictViewSurfaceDef
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
+import proof.DGG.Catchup.StructuralRightParkedEvolveProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof
 import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 import proof.DGG.Catchup.StructuralWorldTagRebaseProof

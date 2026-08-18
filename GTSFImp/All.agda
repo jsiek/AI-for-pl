@@ -124,6 +124,7 @@ import proof.DGG.SimSourceConcealValuesProof
 import proof.DGG.SimPairedConcealValuesProof
 import proof.DGG.TransportTermImprecisionProof
 import proof.DGG.SimProof
+import proof.DGG.SimBackProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof

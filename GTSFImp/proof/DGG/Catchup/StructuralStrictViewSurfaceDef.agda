@@ -8,6 +8,7 @@ module proof.DGG.Catchup.StructuralStrictViewSurfaceDef where
 --     and target-frame absorption chain needed by the structural worker.
 
 import Data.Fin as Fin
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
@@ -59,6 +60,46 @@ StructuralNameConcealEqualOKᵀ =
           (mapPivotChanges
             (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
           (StructuralTargetInstantiationPackage.final target)
+
+
+StructuralNameConcealEqualSourceOKᵀ : Set₁
+StructuralNameConcealEqualSourceOKᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {U : Term Δᴸ} {V : Term Δᴿ}
+    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
+    {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
+    {c : Conv↓ Δᴸ A A′}
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → CTI2.SourceConcealOK Wᵖ U c Xᴿ? V
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → let child = structural-tag-rebase-atᴸ
+          (StructuralTargetInstantiationPackage.structural-ext target) rb
+     in CTI2.SourceConcealOK
+          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
+          (mapPivotChanges
+            (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
+          (StructuralTargetInstantiationPackage.final target)
+
+
+StructuralNameConcealEqualNoTargetᵀ : Set₁
+StructuralNameConcealEqualNoTargetᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {V : Term Δᴿ}
+    {B : Ty (suc Δᴿ)} {E : Ty Δᴿ}
+    {X : TyVar Δᴿ} {Xᴸ : TyVar Δᴸ}
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W (just Xᴸ) nothing)
+  → CTI2.NoTargetOccupantAtSource Wᵖ Xᴸ
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → let child = structural-tag-rebase-atᴸ
+          (StructuralTargetInstantiationPackage.structural-ext target) rb
+     in CTI2.NoTargetOccupantAtSource
+          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) Xᴸ
 
 
 record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
@@ -289,6 +330,8 @@ StructuralConcealStrictSurfaceᵀ =
 record StructuralStrictViewSurfaces : Set₁ where
   field
     conceal-equal-ok : StructuralNameConcealEqualOKᵀ
+    conceal-equal-source-ok : StructuralNameConcealEqualSourceOKᵀ
+    conceal-equal-no-target : StructuralNameConcealEqualNoTargetᵀ
     Λ-cell : StructuralΛStrictSurfaceᵀ
     ∀-cast-cell : StructuralAllCastStrictSurfaceᵀ
     gen-cell : StructuralGenStrictSurfaceᵀ

@@ -1277,8 +1277,15 @@ left-path-target-ηᴿ-XZ = keep (skip (keep empty))
 
 left-path-imp-env-XZ : ImpEnv 3
 left-path-imp-env-XZ Fin.zero = X⊑★
-left-path-imp-env-XZ (Fin.suc Fin.zero) = X⊑X
+left-path-imp-env-XZ (Fin.suc Fin.zero) = X⊑★
 left-path-imp-env-XZ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
+
+-- The XZ checkpoints align source X and Z directly.  Their target fixture
+-- therefore exposes literal dynamic entries at both aligned cells instead of
+-- retaining the reduction trace's intermediate Y-to-Z alias.
+
+left-path-target-store-XZ : TyStore 2
+left-path-target-store-XZ = store-bind (store-bind store-empty ★) ★
 
 left-path-world₁ :
   World (Δ′ Ex.right-step₀) (Δ′ left-path-target-step₀)
@@ -1299,21 +1306,21 @@ left-path-world₃ :
     (Δ′ Ex.right-step₂)
 left-path-world₃ =
   world id↪ᵗ left-path-target-ηᴿ-XZ left-path-imp-env-XZ
-    Ex.right-store₃ left-path-target-store₃
+    Ex.right-store₃ left-path-target-store-XZ
 
 left-path-world₄ :
   World (Δ′ Ex.right-step₃) (Δ′ left-path-target-step₃)
     (Δ′ Ex.right-step₃)
 left-path-world₄ =
   world id↪ᵗ left-path-target-ηᴿ-XZ left-path-imp-env-XZ
-    Ex.right-store₄ left-path-target-store₄
+    Ex.right-store₄ left-path-target-store-XZ
 
 left-path-world₅ :
   World (Δ′ Ex.right-step₄) (Δ′ left-path-target-step₄)
     (Δ′ Ex.right-step₄)
 left-path-world₅ =
   world id↪ᵗ left-path-target-ηᴿ-XZ left-path-imp-env-XZ
-    Ex.right-store₅ left-path-target-store₅
+    Ex.right-store₅ left-path-target-store-XZ
 
 left-path-world₃-YZ :
   World (Δ′ Ex.right-step₂) (Δ′ left-path-target-step₂)

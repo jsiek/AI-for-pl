@@ -357,6 +357,124 @@ mk-bot-intro : ∀ {Δ} (mu : Env∼ Δ)
   → mu ⊢ (`∀ ★) ∼ (`∀ (＇ Fin.zero))
 mk-bot-intro mu = bot-intro
 
+ext-pointwise : ∀ {Δ Δ′} {rho tau : Δ ⇒ʳ Δ′}
+  → (∀ X → rho X ≡ tau X)
+  → ∀ X → extᵗ rho X ≡ extᵗ tau X
+ext-pointwise eq Fin.zero = refl
+ext-pointwise eq (Fin.suc X) = cong Fin.suc (eq X)
+
+rename∼-parallel≅ : ∀ {Δ Δ′}
+    {mu₀ : Env∼ Δ} {mu₁ mu₂ : Env∼ Δ′}
+    (rho tau : Δ ⇒ʳ Δ′)
+    (eq₁ : ∀ X → mu₁ (rho X) ≡ mu₀ X)
+    (eq₂ : ∀ X → mu₂ (tau X) ≡ mu₀ X)
+  → mu₁ ≡ mu₂
+  → (eq-rho : ∀ X → rho X ≡ tau X)
+  → ∀ {A B} (c : mu₀ ⊢ A ∼ B)
+  → HE._≅_ (rename∼ rho eq₁ c) (rename∼ tau eq₂ c)
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho (id ★) =
+  Hcong₁ mk-id-star (HE.≡-to-≅ eq-mu)
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho (id (‵ ι)) =
+  Hcong₂ mk-id-base (HE.≡-to-≅ eq-mu) HE.refl
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho (id (＇ X)) =
+  Hcong₂ mk-id-var (HE.≡-to-≅ eq-mu) (HE.≡-to-≅ (eq-rho X))
+rename∼-parallel≅ {mu₀ = mu₀} {mu₁ = mu₁} {mu₂ = mu₂}
+    rho tau eq₁ eq₂ eq-mu eq-rho
+    (_↦_ {A = A} {A′ = A′} {B = B} {B′ = B′} c d) =
+  Hcong₇ mk-arrow (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ (renameᵗ-cong A eq-rho))
+    (HE.≡-to-≅ (renameᵗ-cong A′ eq-rho))
+    (HE.≡-to-≅ (renameᵗ-cong B eq-rho))
+    (HE.≡-to-≅ (renameᵗ-cong B′ eq-rho))
+    (rename∼-parallel≅ {mu₀ = flipᵐ mu₀} {mu₁ = flipᵐ mu₁}
+      {mu₂ = flipᵐ mu₂} rho tau
+      (flip-rename-env {μ = mu₀} {μ′ = mu₁} rho eq₁)
+      (flip-rename-env {μ = mu₀} {μ′ = mu₂} tau eq₂)
+      (cong flipᵐ eq-mu) eq-rho c)
+    (rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho d)
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho
+    (∀ᶜ_ {A = A} {B = B} c) =
+  Hcong₄ mk-all (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ (renameᵗ-cong A (ext-pointwise eq-rho)))
+    (HE.≡-to-≅ (renameᵗ-cong B (ext-pointwise eq-rho)))
+    (rename∼-parallel≅ (extᵗ rho) (extᵗ tau)
+      (extᵐ-rename rho eq₁) (extᵐ-rename tau eq₂)
+      (cong extᵐ eq-mu) (ext-pointwise eq-rho) c)
+rename∼-parallel≅ {mu₀ = mu₀} {mu₁ = mu₁} {mu₂ = mu₂}
+    rho tau eq₁ eq₂ eq-mu eq-rho
+    (_! {A = A} {G = G} ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ c ⦃ Ans ⦄) =
+  Hcong₇ mk-bang (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ A-eq) (HE.≡-to-≅ G-eq)
+    (transport-unique≅ (cong Ground G-eq) _ _ ground-unique)
+    (transport-unique≅
+      (cong₂ (λ nu T → nu ⊢ T ∼★) eq-mu G-eq)
+      (rename∼★ rho eq₁ G∼★) (rename∼★ tau eq₂ G∼★) ∼★-unique)
+    (rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho c)
+    (transport-unique≅ (cong NonStar A-eq) _ _ nonStar-unique)
+  where
+  A-eq = renameᵗ-cong A eq-rho
+  G-eq = renameᵗ-cong G eq-rho
+rename∼-parallel≅ {mu₀ = mu₀} {mu₁ = mu₁} {mu₂ = mu₂}
+    rho tau eq₁ eq₂ eq-mu eq-rho
+    (？_ {G = G} {B = B} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ c ⦃ Bns ⦄) =
+  Hcong₇ mk-query (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ G-eq) (HE.≡-to-≅ B-eq)
+    (transport-unique≅ (cong Ground G-eq) _ _ ground-unique)
+    (transport-unique≅
+      (cong₂ (λ nu T → nu ⊢★∼ T) eq-mu G-eq)
+      (rename★∼ rho eq₁ ★∼G) (rename★∼ tau eq₂ ★∼G) ★∼-unique)
+    (rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho c)
+    (transport-unique≅ (cong NonStar B-eq) _ _ nonStar-unique)
+  where
+  G-eq = renameᵗ-cong G eq-rho
+  B-eq = renameᵗ-cong B eq-rho
+rename∼-parallel≅ {mu₀ = mu₀} {mu₁ = mu₁} {mu₂ = mu₂}
+    rho tau eq₁ eq₂ eq-mu eq-rho
+    (inst_ {A = A} {B = B} ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≢★) =
+  Hcong₇ mk-inst (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ A-eq) (HE.≡-to-≅ B-eq)
+    (transport-unique≅ (cong NonVar A-eq) _ _ nonVar-unique)
+    (transport-unique≅ (cong (Fin.zero ∈ᵗ_) A-eq) _ _ ∈ᵗ-unique)
+    premise-heq
+    (transport-unique≅ (cong (_≢ ★) B-eq) _ _ ¬-unique)
+  where
+  A-eq = renameᵗ-cong A (ext-pointwise eq-rho)
+  B-eq = renameᵗ-cong B eq-rho
+  left-inner = rename∼ (extᵗ rho) (instᵐ-rename rho eq₁) c
+  right-inner = rename∼ (extᵗ tau) (instᵐ-rename tau eq₂) c
+  left-to-raw = subst-right≅ (renameᵗ-shift rho B) left-inner
+  right-to-raw = subst-right≅ (renameᵗ-shift tau B) right-inner
+  raw-heq = rename∼-parallel≅ (extᵗ rho) (extᵗ tau)
+    (instᵐ-rename rho eq₁) (instᵐ-rename tau eq₂)
+    (cong instᵐ eq-mu) (ext-pointwise eq-rho) c
+  premise-heq = HE.trans left-to-raw
+    (HE.trans raw-heq (HE.sym right-to-raw))
+rename∼-parallel≅ {mu₀ = mu₀} {mu₁ = mu₁} {mu₂ = mu₂}
+    rho tau eq₁ eq₂ eq-mu eq-rho
+    (gen_ {A = A} {B = B} ⦃ Bnv ⦄ ⦃ z∈B ⦄ c A≢★) =
+  Hcong₇ mk-gen (HE.≡-to-≅ eq-mu)
+    (HE.≡-to-≅ A-eq) (HE.≡-to-≅ B-eq)
+    (transport-unique≅ (cong NonVar B-eq) _ _ nonVar-unique)
+    (transport-unique≅ (cong (Fin.zero ∈ᵗ_) B-eq) _ _ ∈ᵗ-unique)
+    premise-heq
+    (transport-unique≅ (cong (_≢ ★) A-eq) _ _ ¬-unique)
+  where
+  A-eq = renameᵗ-cong A eq-rho
+  B-eq = renameᵗ-cong B (ext-pointwise eq-rho)
+  left-inner = rename∼ (extᵗ rho) (genᵐ-rename rho eq₁) c
+  right-inner = rename∼ (extᵗ tau) (genᵐ-rename tau eq₂) c
+  left-to-raw = subst-left≅ (renameᵗ-shift rho A) left-inner
+  right-to-raw = subst-left≅ (renameᵗ-shift tau A) right-inner
+  raw-heq = rename∼-parallel≅ (extᵗ rho) (extᵗ tau)
+    (genᵐ-rename rho eq₁) (genᵐ-rename tau eq₂)
+    (cong genᵐ eq-mu) (ext-pointwise eq-rho) c
+  premise-heq = HE.trans left-to-raw
+    (HE.trans raw-heq (HE.sym right-to-raw))
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho bot-elim =
+  Hcong₁ mk-bot-elim (HE.≡-to-≅ eq-mu)
+rename∼-parallel≅ rho tau eq₁ eq₂ eq-mu eq-rho bot-intro =
+  Hcong₁ mk-bot-intro (HE.≡-to-≅ eq-mu)
+
 rename∼-square≅ : ∀ {Δ₀ Δ₁ Δ₂ Δ₃}
     {mu₀ : Env∼ Δ₀} {mu₁ : Env∼ Δ₁} {mu₂ : Env∼ Δ₂}
     {mu₃ mu₄ : Env∼ Δ₃}

@@ -15,6 +15,7 @@ open import Data.Maybe using (just; nothing)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (inj₁; inj₂)
 open import Data.Unit.Polymorphic.Base using (tt)
+import Relation.Binary.HeterogeneousEquality as HE
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂)
   renaming (subst to subst≡)
@@ -31,6 +32,8 @@ import Eval as E
 open import Interpreter
 open import proof.LR-narrow.TermSubstitution using (subst-closed)
 open import proof.TypeInTermSubst using (toRename-wk-eq)
+open import proof.LR-narrow.TypeRenamingComposition using
+  (Hcong₄; Hcong₅; mk-all; mk-cast-term; rename∼-parallel≅)
 open import proof.ImprecisionConsistency using
   (expand-cast-source⊑; ground-cast-target⊑;
    ground-target-nonvar-to-star⊑;
@@ -2190,6 +2193,43 @@ imprecise-consistency-future
 imprecise-consistency-future (future-precise W≼W′ fresh) c =
   imprecise-consistency-future W≼W′ c
 
+wk-renamed-env-preserves-suc : ∀ {Δ} (μ : C.Env∼ Δ) X
+  → C.renameEnv∼ C.wk↪ᵗ μ (Fin.suc X) ≡ μ X
+wk-renamed-env-preserves-suc μ X = trans
+  (cong (C.renameEnv∼ C.wk↪ᵗ μ) (sym (toRename-wk-eq X)))
+  (C.renameEnv∼-preserves C.wk↪ᵗ μ X)
+
+ext-toRename-wk-eq : ∀ {Δ} (X : Fin.Fin (suc Δ))
+  → extᵗ (C.toRenameᵗ C.wk↪ᵗ) X ≡ extᵗ Fin.suc X
+ext-toRename-wk-eq Fin.zero = refl
+ext-toRename-wk-eq (Fin.suc X) = cong Fin.suc (toRename-wk-eq X)
+
+rename-universal-cast-wk : ∀ {Δ} {μ : C.Env∼ Δ}
+    {A B : Ty (suc Δ)} (M : Term Δ) (c : C.extᵐ μ C.⊢ A ∼ B)
+  → renameᵗᵐ C.wk↪ᵗ (M ⟨ C.∀ᶜ c ⟩) ≡
+      renameᵗᵐ C.wk↪ᵗ M ⟨ C.∀ᶜ (C.rename∼
+        { μ = C.extᵐ μ }
+        { μ′ = C.extᵐ (C.renameEnv∼ C.wk↪ᵗ μ) }
+        (extᵗ Fin.suc)
+        (C.extᵐ-rename Fin.suc (wk-renamed-env-preserves-suc μ)) c) ⟩
+rename-universal-cast-wk {μ = μ} {A = A} {B = B} M c =
+  HE.≅-to-≡
+    (Hcong₅ mk-cast-term HE.refl
+      (HE.≡-to-≅ (cong `∀ (renameᵗ-cong A ext-toRename-wk-eq)))
+      (HE.≡-to-≅ (cong `∀ (renameᵗ-cong B ext-toRename-wk-eq)))
+      HE.refl
+      (Hcong₄ mk-all HE.refl
+        (HE.≡-to-≅ (renameᵗ-cong A ext-toRename-wk-eq))
+        (HE.≡-to-≅ (renameᵗ-cong B ext-toRename-wk-eq))
+        inner))
+  where
+  inner = rename∼-parallel≅
+    (extᵗ (C.toRenameᵗ C.wk↪ᵗ)) (extᵗ Fin.suc)
+    (C.extᵐ-rename (C.toRenameᵗ C.wk↪ᵗ)
+      (C.renameEnv∼-preserves C.wk↪ᵗ μ))
+    (C.extᵐ-rename Fin.suc (wk-renamed-env-preserves-suc μ))
+    refl ext-toRename-wk-eq c
+
 precise-universal-body-consistency-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2275,9 +2315,13 @@ lift-precise-universal-cast : ∀
         ⟨ C.∀ᶜ (precise-universal-body-consistency-future W≼W′ c) ⟩
 lift-precise-universal-cast future-refl M c = refl
 lift-precise-universal-cast (future-paired W≼W′ related fresh) M c
-    rewrite lift-precise-universal-cast W≼W′ M c = refl
+    rewrite lift-precise-universal-cast W≼W′ M c =
+  rename-universal-cast-wk (liftPreciseTerm W≼W′ M)
+    (precise-universal-body-consistency-future W≼W′ c)
 lift-precise-universal-cast (future-precise W≼W′ fresh) M c
-    rewrite lift-precise-universal-cast W≼W′ M c = refl
+    rewrite lift-precise-universal-cast W≼W′ M c =
+  rename-universal-cast-wk (liftPreciseTerm W≼W′ M)
+    (precise-universal-body-consistency-future W≼W′ c)
 
 lift-imprecise-universal-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2291,7 +2335,9 @@ lift-imprecise-universal-cast : ∀
 lift-imprecise-universal-cast future-refl M c = refl
 lift-imprecise-universal-cast
     (future-paired W≼W′ related fresh) M c
-    rewrite lift-imprecise-universal-cast W≼W′ M c = refl
+    rewrite lift-imprecise-universal-cast W≼W′ M c =
+  rename-universal-cast-wk (liftImpreciseTerm W≼W′ M)
+    (imprecise-universal-body-consistency-future W≼W′ c)
 lift-imprecise-universal-cast (future-precise W≼W′ fresh) M c =
   lift-imprecise-universal-cast W≼W′ M c
 
@@ -5044,22 +5090,22 @@ related-value-casts {W = W}
     {Cᴾ = `∀ Aᴾ₀} {Dᴾ = `∀ Aᴾ₁}
     {Cᴵ = `∀ Aᴵ₀} {Dᴵ = `∀ Aᴵ₁}
     (I.∀⊑∀ p) sourceᴾ sourceᴵ (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ)
-    q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    with reindex-center-imprecision (I.∀⊑∀ p)
-           (sym sourceᴾ) (sym sourceᴵ)
-       | reindex-center-imprecision q (sym targetᴾ) (sym targetᴵ)
-related-value-casts {W = W}
-    {Cᴾ = `∀ Aᴾ₀} {Dᴾ = `∀ Aᴾ₁}
-    {Cᴵ = `∀ Aᴵ₀} {Dᴵ = `∀ Aᴵ₁}
-    (I.∀⊑∀ p) sourceᴾ sourceᴵ (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ)
-    q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    | I.∀⊑∀ source-body | I.∀⊑∀ target-body =
-  ClosureProof.computations-related-reindex target-local q
+    (I.∀⊑∀ q) targetᴾ targetᴵ
+    {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  ClosureProof.computations-related-reindex target-local (I.∀⊑∀ q)
     targetᴾ targetᴵ refl refl
     (related-values-return
       (imprecise-value source-endpoints 《 all 》)
       (precise-value source-endpoints 《 all 》) at-every-index)
   where
+  source-body = reindex-center-imprecision p
+    (sym (ty-all-injective sourceᴾ))
+    (sym (ty-all-injective sourceᴵ))
+
+  target-body = reindex-center-imprecision q
+    (sym (ty-all-injective targetᴾ))
+    (sym (ty-all-injective targetᴵ))
+
   source-local = I.∀⊑∀ source-body
   target-local = I.∀⊑∀ target-body
 
@@ -5167,9 +5213,16 @@ related-value-casts {W = W}
       (I.∀⊑∀ source-body-local′)
       (liftCenterImprecision W≼W′ source-local)
       source-allᴾ-eq source-allᴵ-eq
-      (ClosureProof.value-imprecision-future W≼W′ related-at-suc)
+      (ClosureProof.value-imprecision-future
+        {W = W} {W′ = W′} {p = source-local} {k = suc j}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} W≼W′ related-at-suc)
 
-    source-s = openRelatedBodyImprecision source-body-local′ r
+    source-s : liftPreciseBody W≼W′ Aᴾ₀ [ Rᴾ ]ᵗ
+        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Aᴵ₀ [ Rᴵ ]ᵗ
+    source-s = openRelatedBodyImprecision
+      {W = W′} {Aᴾ = liftPreciseBody W≼W′ Aᴾ₀}
+      {Aᴵ = liftImpreciseBody W≼W′ Aᴵ₀}
+      {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} source-body-local′ r
 
     source-applied-at : (n : ℕ)
       → ValueImprecision W′ (I.∀⊑∀ source-body-local′) (suc n)
@@ -5189,8 +5242,18 @@ related-value-casts {W = W}
       {r = r} {s = source-s} {fresh = fresh}
       refl refl (s≤s z≤n)
       (value-imprecision-downward-to
+        {W = W′} {p = I.∀⊑∀ source-body-local′}
+        {j = suc j′} {k = suc (suc j′)}
+        {Vᴵ = liftImpreciseTerm W≼W′ Vᴵ}
+        {Vᴾ = liftPreciseTerm W≼W′ Vᴾ}
         (n≤1+n (suc j′)) related-at)
 
+    source-applied : ComputationsRelated W′
+        (PostBindValueRelation step source-s) j
+        (liftImpreciseTerm W≼W′ Vᴵ
+          ⦂∀ liftImpreciseBody W≼W′ Aᴵ₀ [ Rᴵ ])
+        (liftPreciseTerm W≼W′ Vᴾ
+          ⦂∀ liftPreciseBody W≼W′ Aᴾ₀ [ Rᴾ ])
     source-applied = source-applied-at j source-related′
 
     casted = cast-computations-related
@@ -5212,7 +5275,13 @@ related-value-casts {W = W}
             (liftCenterImprecision W′≼W″ s)
             targetᴾ″ targetᴵ″ related″)) source-applied
 
-    source-endpoints′ = value-imprecision-endpoints source-related′
+    source-endpoints′ : TypedEndpoints W′
+        (I.∀⊑∀ source-body-local′)
+        (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+    source-endpoints′ = value-imprecision-endpoints
+      {W = W′} {p = I.∀⊑∀ source-body-local′} {k = suc j}
+      {Vᴵ = liftImpreciseTerm W≼W′ Vᴵ}
+      {Vᴾ = liftPreciseTerm W≼W′ Vᴾ} source-related′
 
     expanded : ComputationsRelated W′
         (PostBindValueRelation step s) (suc j)

@@ -244,7 +244,6 @@ ConversionBoundaryStep (⊑reveal² _ _ _ _ _ _) step =
 ConversionBoundaryStep (⊑conceal² _ _ _ _ _ _) step =
   ConcealFrameStep step
 ConversionBoundaryStep (reveal⊑² _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (conceal⊑² _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (conceal⊑²-seal-star-open _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (conceal⊑²-source-ok _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (reveal⊑reveal² _ _ _ _ _ _ _) step =

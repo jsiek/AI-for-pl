@@ -48,8 +48,10 @@ open import proof.Reduction using
   ; applyTys-primResultTy
   ; appL-↠
   ; cast-↠
+  ; composeReduction
   ; primL-↠
   ; typeApp-↠
+  ; _++χ_
   )
 import proof.Imprecision as PI
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -59,11 +61,16 @@ open import proof.DGG.Parked.ParkedWorldDef
     ( ParkedWorld
     ; ParkedEvolve
     ; evolve-refl
+    ; evolve-keepᴸ
     ; evolve-keepᴿ
     ; evolve-right-bind
     )
+open import proof.DGG.Parked.ParkedEvolveCompositionProof
+  using (compose-parked-evolve)
 open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
 open import proof.DGG.SimBackDef using (SimBackᵀ)
+open import proof.DGG.TargetBlameCatchupProof
+  using (target-blame-catchup)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
 open import proof.TypeSafety.Preservation using (apply-open; preservation)
@@ -72,6 +79,33 @@ applyTy-★ : ∀ {Δ Δ′} (χ : StoreChange Δ Δ′)
   → applyTy χ ★ ≡ ★
 applyTy-★ keep = refl
 applyTy-★ (bind A) = refl
+
+finish-target-blame : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ Δ′}
+    {M : Term Δᴸ} {K : Term Δᴸ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {χsᴸ : StoreChanges Δᴸ Δᴸ′}
+  → (p : A ⊑ᵂ⟨ W ⟩ B)
+  → M —↠[ χsᴸ ] K
+  → K —→[ keep ] blame
+  → ParkedEvolve χsᴸ [] W W′
+  → Σ[ q ∈
+      applyTys (χsᴸ ++χ (keep ∷ [])) A ⊑ᵂ⟨ W′ ⟩ B ]
+      (M —↠[ χsᴸ ++χ (keep ∷ []) ] blame) ×
+      ParkedEvolve (χsᴸ ++χ (keep ∷ [])) (keep ∷ []) W W′ ×
+      (W′ ∣ List.[] ⊢² blame ⊑ blame ∶ q)
+finish-target-blame {K = K} p M↠K K→blame evol =
+  q′ ,
+  composeReduction M↠K
+    (K
+      —→[ keep ]⟨ K→blame ⟩
+     blame ∎[]) ,
+  evol′ ,
+  blame⊑² ⊢blame q′
+  where
+  evol′ = compose-parked-evolve evol
+    (evolve-keepᴸ (evolve-keepᴿ evolve-refl))
+  q′ = transport⊑ᴾ evol′ p
 
 ------------------------------------------------------------------------
 -- Narrow residual-family classifiers
@@ -84,7 +118,6 @@ ApplicationRootStep (pure-step (β _)) = ⊤
 ApplicationRootStep (pure-step (β-⇒ _ _)) = ⊤
 ApplicationRootStep (pure-step (β-reveal-⇒ _ _)) = ⊤
 ApplicationRootStep (pure-step (β-conceal-⇒ _ _)) = ⊤
-ApplicationRootStep (pure-step blame-·₁) = ⊤
 ApplicationRootStep (pure-step (blame-·₂ _)) = ⊤
 ApplicationRootStep _ = ⊥
 
@@ -98,7 +131,6 @@ TypeApplicationRootStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
 TypeApplicationRootStep (pure-step (β-∀ _ _)) = ⊤
-TypeApplicationRootStep (pure-step blame-•) = ⊤
 TypeApplicationRootStep (β-Λ _) = ⊤
 TypeApplicationRootStep (β-gen _ _ _) = ⊤
 TypeApplicationRootStep (β-reveal-∀ _) = ⊤
@@ -114,7 +146,6 @@ CastRootStep (pure-step (expand _ _)) = ⊤
 CastRootStep (pure-step (tag-untag _)) = ⊤
 CastRootStep (pure-step (tag-untag-bad _ _)) = ⊤
 CastRootStep (pure-step (blame-bot-intro _)) = ⊤
-CastRootStep (pure-step blame-⟨⟩) = ⊤
 CastRootStep (β-inst _ _) = ⊤
 CastRootStep _ = ⊥
 
@@ -149,7 +180,6 @@ PrimitiveRootStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
 PrimitiveRootStep (pure-step (δ-⊕ _)) = ⊤
-PrimitiveRootStep (pure-step blame-⊕₁) = ⊤
 PrimitiveRootStep (pure-step (blame-⊕₂ _)) = ⊤
 PrimitiveRootStep _ = ⊥
 
@@ -557,9 +587,22 @@ module _
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (β-conceal-⇒ vV vW)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step blame-·₁) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
+      (pure-step blame-·₁)
+      with target-blame-catchup parked L⊑blame
+  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
+      (pure-step blame-·₁)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
+      with finish-target-blame p
+        (appL-↠ {M = M} L↠blame) (pure-step blame-·₁) evol
+  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
+      (pure-step blame-·₁)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
+      | q , LM↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q ,
+    LM↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (blame-·₂ vV)) =
     sim-back-target-root parked rel step tt
@@ -570,9 +613,26 @@ module _
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(pure-step (β-∀ vV eq)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(pure-step blame-•) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = r} parked
+      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
+      (pure-step blame-•)
+      with target-blame-catchup parked M⊑blame
+  sim-back {p = r} parked
+      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
+      (pure-step blame-•)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      with finish-target-blame r
+        (typeApp-↠ {C = C} {A = A} M↠blame)
+        (pure-step blame-•) evol
+  sim-back {p = r} parked
+      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
+      (pure-step blame-•)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      | r′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , r′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-Λ vV) =
     sim-back-target-root parked rel step tt
@@ -728,9 +788,22 @@ module _
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (blame-bot-intro vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step blame-⟨⟩) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
+      (pure-step blame-⟨⟩)
+      with target-blame-catchup parked M⊑blame
+  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
+      (pure-step blame-⟨⟩)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      with finish-target-blame q
+        (cast-↠ c M↠blame) (pure-step blame-⟨⟩) evol
+  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
+      (pure-step blame-⟨⟩)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      | q′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(β-inst vV B≢★) =
     sim-back-target-root parked rel step tt
@@ -753,9 +826,17 @@ module _
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (blame-bot-intro vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step blame-⟨⟩) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked (⊑cast² c′ M⊑blame q)
+      (pure-step blame-⟨⟩)
+      with target-blame-catchup parked M⊑blame
+  sim-back {p = q} parked (⊑cast² c′ M⊑blame q)
+      (pure-step blame-⟨⟩)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+    Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
+    transport⊑ᴾ (evolve-keepᴿ evol) q ,
+    M↠blame ,
+    evolve-keepᴿ evol ,
+    blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q)
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(β-inst vV B≢★) =
     sim-back-target-root parked rel step tt
@@ -862,9 +943,26 @@ module _
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(pure-step (δ-⊕ δκ)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
-      step@(pure-step blame-⊕₁) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = r} parked
+      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
+      (pure-step blame-⊕₁)
+      with target-blame-catchup parked L⊑blame
+  sim-back {p = r} parked
+      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
+      (pure-step blame-⊕₁)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
+      with finish-target-blame r
+        (primL-↠ {M = M} {op = op} L↠blame)
+        (pure-step blame-⊕₁) evol
+  sim-back {p = r} parked
+      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
+      (pure-step blame-⊕₁)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
+      | r′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , r′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(pure-step (blame-⊕₂ vV)) =
     sim-back-target-root parked rel step tt

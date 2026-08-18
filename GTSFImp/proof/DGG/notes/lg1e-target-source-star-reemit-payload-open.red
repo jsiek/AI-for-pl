@@ -78,5 +78,5 @@ Regression evidence:
 - `GTSFImp/proof/DGG/Inversion/SourceStripProof.agda`: pass
 - `GTSFImp/proof/DGG/Inversion/RightInjInversion2Proof.agda`: pass
 - `GTSFImp/proof/DGG/Inversion/RightInjInversion2Lemma.agda`: pass
-- full gate `cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`:
+- full gate `cd GTSFImp && make check`:
   pass, `postulate-check: OK (FunExt-only)`.

@@ -6,7 +6,7 @@ Status: STOPPED on the target conversion-frame endpoint-partner discharge for
 Baseline gate before this note:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -228,7 +228,7 @@ protected structural surface, public fuel surface, or `PLAN.md` was changed.
 Gate/regression after the LG-3ag STOP record:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:

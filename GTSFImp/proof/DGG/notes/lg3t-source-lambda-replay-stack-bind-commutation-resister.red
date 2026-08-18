@@ -12,7 +12,7 @@ Status:
   `liftCtxᴸ-target-ctx`, `smartCommaLift-target-store`, and
   `smartLiftCtxᴸ-target-ctx`.
 - The required gate passed:
-  `cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+  `cd GTSFImp && make check`
   with `postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`.
 
 ## Remaining missing datum
@@ -205,7 +205,7 @@ factories, and the public `FuelKnot` assembly remain unassembled.
 Gate before and after this note-only stop:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -247,7 +247,7 @@ from frame data at the use site.  The checked gate for the landed support
 chunk was:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:

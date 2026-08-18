@@ -2,9 +2,7 @@ Round 15 blocked case: the exact source-star package theorem is too strong.
 
 Checked command:
 
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/\
-abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home \
-  agda -i GTSFImp -v0 SourceStarPackageCounterScratch.agda
+agda -i GTSFImp -v0 SourceStarPackageCounterScratch.agda
 
 The scratch file type-checks and instantiates the proposed theorem shape from
 `round14-target-chain-source-star-package.red` with all premises inhabited, but

@@ -3,15 +3,11 @@ source-star package still lacks a target-pedigree bridge.
 
 Checked commands:
 
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/\
-abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home \
-  agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealTransferCore.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealTransferCore.agda
 
 This is green after backing out the exploratory helper.
 
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/\
-abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home \
-  agda -i GTSFImp -v0 \
+agda -i GTSFImp -v0 \
   GTSFImp/proof/DGG/Inversion/TargetChainProof.agda
 
 Still red at TargetChainProof.agda:88, exactly as before:

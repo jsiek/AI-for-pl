@@ -5,7 +5,7 @@ Status: STOPPED before live proof edits.
 Baseline/cleanup gate:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 The pre-edit gate was green:
@@ -155,7 +155,7 @@ conversion evidence for `applyReveals` / `applyConceals`.  No change to the
 reduction relation itself was needed.  Gate:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 
@@ -171,7 +171,7 @@ arbitrary source/matched conceal partner transformers as result fields.
 Checked chunk:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 
@@ -201,7 +201,7 @@ seal-star row additionally uses a narrow canonical seal-star replay
 Checked chunk:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+make check
 postulate-check: OK (no postulates; NON_COVERING at legacy baseline)
 ```
 

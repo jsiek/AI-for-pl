@@ -23,7 +23,7 @@ Checked LG-3z chunk, 2026-08-17:
 Gate:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -163,7 +163,7 @@ Stop-rule status:
 Gate after the LG-3aa residual record:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -244,7 +244,7 @@ Assembly status after LG-3ac:
 Commands run during LG-3ac:
 
 ```text
-cd GTSFImp/proof/DGG/notes && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home agda -i ../../.. -v0 TagDisciplineScratch.agda
+cd GTSFImp/proof/DGG/notes && agda -i ../../.. -v0 TagDisciplineScratch.agda
 ```
 
 Result:
@@ -349,7 +349,7 @@ Checked commits:
 The required gate passed after both checked chunks:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -532,7 +532,7 @@ fallback.
 Gate after the LG-3ae fallback note:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:

@@ -7,11 +7,11 @@ Checked statement probe:
 
 `proof/DGG/notes/probes/T12TwoSidedPeelRestatementProbe.agda`
 
-Focused well-formedness command:
+Focused well-formedness command, with the standard-library `AGDA_DIR`
+configured:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
-  agda --safe -i GTSFImp -i GTSFImp/proof/DGG/notes/probes -v0 \
+agda --safe -i GTSFImp -i GTSFImp/proof/DGG/notes/probes -v0 \
   GTSFImp/proof/DGG/notes/probes/T12TwoSidedPeelRestatementProbe.agda
 ```
 

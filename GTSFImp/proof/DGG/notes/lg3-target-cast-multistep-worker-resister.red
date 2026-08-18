@@ -198,7 +198,7 @@ Factory status after LG-3h:
 Current gate for this resister record was run with the sanctioned supervisor
 stdlib path:
 
-`cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+`cd GTSFImp && make check`
 
 It passes:
 
@@ -455,7 +455,7 @@ LG-3n STOP postscript, 2026-08-16:
 
 Baseline gate is green:
 
-`cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+`cd GTSFImp && make check`
 
 `postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`
 
@@ -581,7 +581,7 @@ still row-level plus factory adapters:
 
 Gate:
 
-`cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check`
+`cd GTSFImp && make check`
 
 Result:
 
@@ -772,7 +772,7 @@ grounding residual is unchanged and still checked as
 Gate after the landed source-Λ stack support:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -881,7 +881,7 @@ imprecision relation, reduction relation, proof module, protected surface, or
 Gate/regression after the LG-3w note-only chunk:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -980,7 +980,7 @@ remains the checked residual.
 Gate after the paired-row chunk:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:
@@ -1049,7 +1049,7 @@ Current genuine resisters:
 Gate/regression after the LG-3y checked resister chunk:
 
 ```text
-cd GTSFImp && AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+cd GTSFImp && make check
 ```
 
 Result:

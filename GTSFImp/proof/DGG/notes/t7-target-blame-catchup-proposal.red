@@ -2,8 +2,7 @@ T7 TargetBlameCatchup proposal
 
 Current checked partial state:
 
-  AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
-    agda proof/DGG/TargetBlameCatchupProof.agda
+  agda proof/DGG/TargetBlameCatchupProof.agda
 
 checks.  The partial module exports:
 

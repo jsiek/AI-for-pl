@@ -999,3 +999,23 @@ FuelKnot chain. The M6 knot remains, as always, higher-order over the
 M5 factory. NEXT: post-merge frontier re-map (the top-down side now
 builds on the NS-4 structural vocabulary; CatchupToMorePrecise is
 boundary-kind-indexed), then the parallel tracks.
+
+D15 MIGRATION (LG-4 scale) GREEN-LIT (user, 2026-08-18). Design: the
+occupancy-gated conceal rules (conceal⊑²-seal-star-open gated by
+NoTargetOccupantAtSource; conceal⊑²-source-ok; matched behavior stays
+in conceal⊑conceal²/packaged-seal-star²) replace the
+SourceConcealPartnerOK/SealPartnerOK/MatchedConcealPartnerOK term-shape
+enumeration. Validated by: T14 recon memo (protection story =
+ProjectionMismatchStarRepScratch unearned pairing; alternatives
+analysis), the add-beside preflight (one consumer converted on
+occupancy transports, relocation table), and the shape-necessity probe
+(SealStarOpenVarTagShapeProbe: the ★⊑★ premise itself excludes
+unrelated var-tagged targets — shape-free open rule justified; PR #171
+review P1 closed). Motivation: five independent blockers root-caused
+to pivot-entangled evidence failing to cross rebases/lifts (D4.3,
+D4.4 strips, T5d wrapper-to-child, D8a.2 entangled column, T2
+variable-ground rows). Stages (worklist in t14-preflight-report.red):
+M1 core transports + low-level inversions; M2 target-chain/source-strip
++ catchup structural endpoints; M3 simulation surfaces + examples +
+DELETE the old constructors + full sweep. Branch: agent/gtsf-partner-
+redesign (PR #171); supervisor gates between stages.

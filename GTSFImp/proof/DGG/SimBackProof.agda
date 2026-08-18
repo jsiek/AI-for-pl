@@ -68,6 +68,11 @@ open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
 open import proof.TypeSafety.Preservation using (apply-open; preservation)
 
+applyTy-★ : ∀ {Δ Δ′} (χ : StoreChange Δ Δ′)
+  → applyTy χ ★ ≡ ★
+applyTy-★ keep = refl
+applyTy-★ (bind A) = refl
+
 ------------------------------------------------------------------------
 -- Narrow residual-family classifiers
 ------------------------------------------------------------------------
@@ -89,15 +94,6 @@ PairedTypeApplicationRel : ∀ {Δᴸ Δᴿ Δ}
       M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ p → Set
 PairedTypeApplicationRel (•⊑•² _ _ _ _) = ⊤
 PairedTypeApplicationRel _ = ⊥
-
-SourceTypeApplicationRel : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ}
-    {B : Ty Δᴿ} {p : C [ A ]ᵗ ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⦂∀ C [ A ] ⊑ M′ ∶ p → Set
-SourceTypeApplicationRel (•⊑² _ _ _ _) = ⊤
-SourceTypeApplicationRel _ = ⊥
 
 PairedCastRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -311,25 +307,6 @@ SimBackPairedTypeApplicationRootᵀ =
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
     Σ[ q ∈ applyTys χsᴸ (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩
         applyTy χᴿ (C′ [ A′ ]ᵗ) ]
-      (M ⦂∀ C [ A ] —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackSourceTypeApplicationᵀ : Set
-SimBackSourceTypeApplicationᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {p : C [ A ]ᵗ ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⦂∀ C [ A ] ⊑ M′ ∶ p)
-  → SourceTypeApplicationRel rel
-  → (step : M′ —→[ χᴿ ] N′)
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
       (M ⦂∀ C [ A ] —↠[ χsᴸ ] N) ×
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
@@ -566,7 +543,6 @@ module _
     (sim-back-application-right : SimBackApplicationRightᵀ)
     (sim-back-paired-type-application-root :
       SimBackPairedTypeApplicationRootᵀ)
-    (sim-back-source-type-application : SimBackSourceTypeApplicationᵀ)
     (sim-back-paired-cast-root : SimBackPairedCastRootᵀ)
     (sim-back-target-cast-root : SimBackTargetCastRootᵀ)
     (sim-back-target-reveal-root : SimBackTargetRevealRootᵀ)
@@ -930,8 +906,53 @@ module _
     evol ,
     whole-rel
 
-  sim-back parked rel@(•⊑² p∀ M⊑M′ q r) step =
-    sim-back-source-type-application parked rel tt step
+  sim-back {χᴿ = χ} parked
+      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      with sim-back parked M⊑M′ M′→N′
+  sim-back {χᴿ = χ} parked
+      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      rewrite applyTys-∀ χsᴸ C
+      with p | N⊑N′
+  sim-back {χᴿ = χ} parked
+      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ _ ]
+            W′ ∣ List.[] ⊢²
+              N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ]
+              ⊑ _ ∶ s)
+        (sym (applyTys-open χsᴸ C A))
+        ( subst≡
+            (λ S → S ⊑ᵂ⟨ W′ ⟩ _)
+            (applyTys-open χsᴸ C A)
+            (transport⊑ᴾ evol r)
+        , •⊑² p∀⁺ N⊑N′⁺
+            (subst≡
+              (λ T → applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ T)
+              (applyTy-★ χ)
+              (transport⊑ᴾ evol q))
+            (subst≡
+              (λ S → S ⊑ᵂ⟨ W′ ⟩ _)
+              (applyTys-open χsᴸ C A)
+              (transport⊑ᴾ evol r))
+        )
+  sim-back {χᴿ = χ} parked
+      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      | r⁺ , whole-rel =
+    Δᴸ′ , χsᴸ ,
+    N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ,
+    Δ′ , W′ , r⁺ ,
+    typeApp-↠ M↠N ,
+    evol ,
+    whole-rel
 
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (β-id vV)) =

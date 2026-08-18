@@ -189,8 +189,7 @@ target-cast-bound-mono {rel = CTI2.⊕⊑⊕² op rel₁ rel₂ r}
   target-cast-bound-mono {rel = rel₂} (m≤n⊔m fuel₁ fuel₂) bound₂
 
 
-value-catchup-right²-from-at :
-  (∀ fuel → ValueCatchupRightAt fuel)
+value-catchup-right²-from-at : (∀ fuel → ValueCatchupRightAt fuel)
   → ValueCatchupRight²
 value-catchup-right²-from-at value-at vM rel
   with ⊢²-target-cast-bound rel
@@ -198,8 +197,7 @@ value-catchup-right²-from-at value-at vM rel | fuel , bound =
   value-at fuel vM rel bound
 
 
-value-catchup-right²-from-fuel-knot-factories :
-  ExtraCastFactory
+value-catchup-right²-from-fuel-knot-factories : ExtraCastFactory
   → ValueCatchupFactory
   → InstCatchupFactory
   → ValueCatchupRight²

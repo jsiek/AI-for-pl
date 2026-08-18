@@ -121,8 +121,6 @@ import proof.DGG.Catchup.FuelKnotProof
 import proof.DGG.SimPrimitiveValuesProof
 import proof.DGG.SimSourceConcealValuesProof
 import proof.DGG.SimPairedConcealValuesProof
-import proof.DGG.ValueIrreducibleProof
-import proof.DGG.BlameIrreducibleProof
 import proof.DGG.TransportTermImprecisionProof
 import proof.DGG.SimProof
 import proof.DGG.MultiSimProof

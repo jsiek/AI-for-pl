@@ -117,6 +117,7 @@ import proof.DGG.Catchup.FuelDischargeProof
 import proof.DGG.Catchup.LeftBoundaryCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupDef
 import proof.DGG.Catchup.LeftSourceOperationsDef
+import proof.DGG.Catchup.LeftBlameLiftProof
 import proof.DGG.Catchup.LeftValueCatchupProof
 
 ------------------------------------------------------------------------

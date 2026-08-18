@@ -116,6 +116,7 @@ import proof.DGG.Catchup.FuelKnotProof
 import proof.DGG.Catchup.FuelDischargeProof
 import proof.DGG.Catchup.LeftBoundaryCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupDef
+import proof.DGG.Catchup.LeftSourceOperationsDef
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)
@@ -129,6 +130,7 @@ import proof.DGG.SimProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof
+import proof.DGG.SimConcealRevealPeel
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------

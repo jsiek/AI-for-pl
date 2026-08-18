@@ -73,8 +73,6 @@ TargetCastBound fuel (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) =
 TargetCastBound fuel (CTI2.cast⊑² c rel q) = TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
   TargetCastBound fuel rel
-TargetCastBound fuel (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
-  TargetCastBound fuel rel
 TargetCastBound fuel
     (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
   TargetCastBound fuel rel

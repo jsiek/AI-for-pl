@@ -787,118 +787,6 @@ composeOuterRebase {W = W} {W′ = W′} {W₂ = W₂}
   target-frozen Z =
     trans (CTI2.RebaseAt.ηᴿ-frozen rb₁ Z)
       (CTI2.RebaseAt.ηᴿ-frozen rb₂ Z)
--- Proven helpers used by the isolated target walk.
-
-data SealSourcePartnerView {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
-    Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  seal-partner-rep★ : ∀ {P Xᴿ? M′}
-    → CTI2.Rep★PartnerOK W X P Xᴿ? M′
-      -----------------------------------------
-    → SealSourcePartnerView W X P ★ Xᴿ? M′
-
-  seal-partner-untagged : ∀ {P R Xᴿ? M′}
-    → CTI2.NotTopTag M′
-      -----------------------------------------
-    → SealSourcePartnerView W X P R Xᴿ? M′
-
-  seal-partner-name-tagged : ∀ {P R Y S M μ}
-      {c : μ ⊢ (＇ Y) ∼ ★}
-      -------------------------------------------------------
-    → SealSourcePartnerView W X P R (just Y)
-        ((M ↓ Conversion.seal Y S) ⟨ c ⟩)
-
-data SealedSourcePartnerView {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
-    (M : Term Δᴸ) (X : TyVar Δᴸ) :
-    Ty Δᴸ → Term Δᴿ → Ty Δᴿ
-    → Set where
-  sealed-source-rep★ : ∀ {W′ γ′ N B Xᴿ?}
-      {p : ★ ⊑ᵂ⟨ W′ ⟩ B}
-    → CTI2.Rep★PartnerOK W X M Xᴿ? N
-    → CTI2.ImpEnvMono W W′
-    → CTI2.TagRebaseAtᴸ W′ W (just X) Xᴿ?
-    → CTI2.SameCtx γ γ′
-    → sourceStoreʷ W ∋ X ⦂ ★
-    → W′ ∣ γ′ ⊢² M ⊑ N ∶ p
-      -----------------------------------------------
-    → SealedSourcePartnerView W γ M X ★ N B
-
-  sealed-source-untagged : ∀ {W′ γ′ R N B Xᴿ?}
-      {p : R ⊑ᵂ⟨ W′ ⟩ B}
-    → CTI2.NotTopTag N
-    → CTI2.ImpEnvMono W W′
-    → CTI2.TagRebaseAtᴸ W′ W (just X) Xᴿ?
-    → CTI2.SameCtx γ γ′
-    → sourceStoreʷ W ∋ X ⦂ R
-    → W′ ∣ γ′ ⊢² M ⊑ N ∶ p
-      -----------------------------------------------
-    → SealedSourcePartnerView W γ M X R N B
-
-  sealed-source-name-tagged : ∀ {W′ γ′ R U Y S B μ}
-      {cY : μ ⊢ (＇ Y) ∼ ★}
-      {p : R ⊑ᵂ⟨ W′ ⟩ B}
-    → CTI2.ImpEnvMono W W′
-    → CTI2.TagRebaseAtᴸ W′ W (just X) (just Y)
-    → CTI2.SameCtx γ γ′
-    → sourceStoreʷ W ∋ X ⦂ R
-    → W′ ∣ γ′ ⊢² M ⊑ (U ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p
-      ------------------------------------------------------------
-    → SealedSourcePartnerView W γ M X R
-        ((U ↓ Conversion.seal Y S) ⟨ cY ⟩) B
-
-  sealed-source-matched-nonstar : ∀ {W′ γ′ R U Y S}
-      {p : R ⊑ᵂ⟨ W′ ⟩ S}
-    → CTI2.ImpEnvMono W W′
-    → CTI2.RebaseAt W′ W X Y
-    → CTI2.SameCtx γ γ′
-    → sourceStoreʷ W ∋ X ⦂ R
-    → targetStoreʷ W ∋ Y ⦂ S
-    → W′ ∣ γ′ ⊢² M ⊑ U ∶ p
-      -------------------------------------------------
-    → SealedSourcePartnerView W γ M X R
-        (U ↓ Conversion.seal Y S) (＇ Y)
-
-seal-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {R : Ty Δᴸ}
-    {Xᴿ? : Maybe (TyVar Δᴿ)} {M′ : Term Δᴿ}
-  → CTI2.SealPartnerOK W X P R Xᴿ? M′
-    ----------------------------------------
-  → SealSourcePartnerView W X P R Xᴿ? M′
-seal-source-partner-view (CTI2.star-rep-target _ ok) =
-  seal-partner-rep★ ok
-seal-source-partner-view (CTI2.plain-target nt) =
-  seal-partner-untagged nt
-seal-source-partner-view CTI2.name-protected-target =
-  seal-partner-name-tagged
-
-sealed-source-partner-view : ∀ {Δᴸ Δᴿ Δ}
-    {W W′ : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp W′}
-    {M : Term Δᴸ} {X : TyVar Δᴸ}
-    {R : Ty Δᴸ} {N : Term Δᴿ} {B : Ty Δᴿ}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {p : R ⊑ᵂ⟨ W′ ⟩ B}
-  → CTI2.SourceConcealPartnerOK W M (Conversion.seal X R) Xᴿ? N
-  → CTI2.ImpEnvMono W W′
-  → CTI2.TagRebaseAtᴸ W′ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γ′
-  → sourceStoreʷ W ∋ X ⦂ R
-  → W′ ∣ γ′ ⊢² M ⊑ N ∶ p
-    -------------------------------------------------
-  → SealedSourcePartnerView W γ M X R N B
-sealed-source-partner-view
-    (CTI2.seal-partner-ok (CTI2.star-rep-target _ ok))
-    mono rb sc X∈ prem =
-  sealed-source-rep★ ok mono rb sc X∈ prem
-sealed-source-partner-view
-    (CTI2.seal-partner-ok (CTI2.plain-target nt)) mono rb sc X∈ prem =
-  sealed-source-untagged nt mono rb sc X∈ prem
-sealed-source-partner-view
-    (CTI2.seal-partner-ok CTI2.name-protected-target) mono rb sc X∈ prem =
-  sealed-source-name-tagged mono rb sc X∈ prem
-
 target-source-var-chain : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W} {γ′ : CtxImp W′}
@@ -1026,14 +914,6 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
     Anv Ans (CTI2.reveal⊑² mono rb sc c⊢ prem q) =
-  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
-    nonstar-∀ prem
-tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
-    Anv Ans (CTI2.conceal⊑² ok mono rb sc c⊢ prem q) =
-  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
-    nonstar-⇒ prem
-tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
-    Anv Ans (CTI2.conceal⊑² ok mono rb sc c⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)

@@ -89,7 +89,7 @@ Z-Y-rebase-empty rb | ()
 Z-seal-typed : source-store ⊢↓[ just Z ] seal Z ★
 Z-seal-typed = ⊢↓-sealˣ source-Z∋
 
--- The three type obligations available at the conceal⊑² boundary of
+-- The three type obligations available at a source conceal boundary of
 -- the stale input.
 
 premise-to-star : ★ ⊑ᵂ⟨ pre-world ⟩ ★
@@ -245,10 +245,6 @@ repaired-seal²-empty′ q₀
     (CTI2.⊑cast² {p = p} c′ D .q₀) with p
 repaired-seal²-empty′ (X⊑★ eq)
     (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
-repaired-seal²-empty′ q₀
-    (CTI2.conceal⊑²
-      (CTI2.seal-partner-ok (CTI2.plain-target ()))
-      mono rb sc c⊢ D .q₀)
 repaired-seal²-empty′ q₀
     (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
   repaired-seal-ok-empty ok

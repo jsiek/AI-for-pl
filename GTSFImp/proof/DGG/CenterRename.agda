@@ -703,38 +703,6 @@ renameNoTargetOccupantAtSource {W = W} {X = X} π no-target
       (trans (sym (toRenameᵗ-∘ π (CTI2.ηᴿʷ W) Y))
         (trans eq (toRenameᵗ-∘ π (CTI2.ηᴸʷ W) X)))
 
-renameSealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {P R Xᴿ? M′}
-  → (π : Δ ↪ᵗ Δ′)
-  → CTI2.SealPartnerOK W X P R Xᴿ? M′
-  → CTI2.SealPartnerOK (renameWorld π W) X P R Xᴿ? M′
-renameSealPartnerOK {W = W} {X = X} π
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target
-    (renameNoTargetOccupantAtSource {W = W} {X = X} π no-target)
-    (renameRep★PartnerOK π ok)
-renameSealPartnerOK π (CTI2.plain-target nt) =
-  CTI2.plain-target nt
-renameSealPartnerOK π CTI2.name-protected-target =
-  CTI2.name-protected-target
-
-renameSourceConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-  → (π : Δ ↪ᵗ Δ′)
-  → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
-  → CTI2.SourceConcealPartnerOK (renameWorld π W) M c Xᴿ? M′
-renameSourceConcealPartnerOK π (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok (renameSealPartnerOK π ok)
-renameSourceConcealPartnerOK π CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-renameSourceConcealPartnerOK π CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-renameSourceConcealPartnerOK π CTI2.id-conceal-target =
-  CTI2.id-conceal-target
-
 renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {A A′ : Ty Δᴸ}
@@ -1125,14 +1093,6 @@ renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q) p′ =
   CTI2.reveal⊑² (renameImpEnvMono {W = W} {W′ = W′} π mono)
     (renameRebaseAtᴸ {W = W} {W′ = W′} π rb)
-    (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
-    (⊢²-rename-center {W = W′} π M⊑N
-      (rename-⊑ᵂ {W = W′} π p)) p′
-⊢²-rename-center {W = W} π
-    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢ M⊑N q) p′ =
-  CTI2.conceal⊑² (renameSourceConcealPartnerOK π ok)
-    (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = W′} π sc) c⊢
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′

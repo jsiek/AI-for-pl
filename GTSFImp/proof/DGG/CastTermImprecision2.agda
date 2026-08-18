@@ -570,52 +570,9 @@ data Rep★PartnerOK {Δᴸ Δᴿ Δ}
               ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
         Xᴿ? M′
 
-data SealPartnerOK {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
-    Term Δᴸ → Ty Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  star-rep-target : ∀ {P Xᴿ? M′}
-    → NoTargetOccupantAtSource W X
-    → Rep★PartnerOK W X P Xᴿ? M′
-      ------------------------------------
-    → SealPartnerOK W X P ★ Xᴿ? M′
-
-  plain-target : ∀ {P R Xᴿ? M′}
-    → NotTopTag M′
-      ------------------------------------
-    → SealPartnerOK W X P R Xᴿ? M′
-
-  name-protected-target : ∀ {P R Y S M μ}
-      {c : μ ⊢ (＇ Y) ∼ ★}
-      ----------------------------------------------------
-    → SealPartnerOK W X P R (just Y) ((M ↓ seal Y S) ⟨ c ⟩)
-
-data SourceConcealPartnerOK {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) :
-    Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
-    → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  seal-partner-ok : ∀ {P X R Xᴿ? M′}
-    → SealPartnerOK W X P R Xᴿ? M′
-      ----------------------------------------------------
-    → SourceConcealPartnerOK W P (seal X R) Xᴿ? M′
-
-  fun-conceal-target : ∀ {P A A′ B B′ Xᴿ? M′}
-      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
-      ----------------------------------------------------
-    → SourceConcealPartnerOK W P (c ↦↓ d) Xᴿ? M′
-
-  all-conceal-target : ∀ {P A B Xᴿ? M′}
-      {c : Conv↓ (Nat.suc Δᴸ) A B}
-      ----------------------------------------------------
-    → SourceConcealPartnerOK W P (`∀↓ c) Xᴿ? M′
-
-  id-conceal-target : ∀ {P A Xᴿ? M′}
-      ----------------------------------------------------
-    → SourceConcealPartnerOK W P (id↓ A) Xᴿ? M′
-
--- D15 preflight: the source-only `seal X ★` case is a direct
--- occupancy gate in the term rule below.  This slim classifier covers
--- only the non-`★` source-seal and non-seal source-conceal cases that
--- still need endpoint-shape side conditions beside the old rules.
+-- Source-only `seal X ★` is guarded directly by
+-- `NoTargetOccupantAtSource` in the term rule below.  This classifier covers
+-- only non-`★` source seals and non-seal source-conceal cases.
 
 data SourceConcealOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) :
@@ -963,23 +920,9 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
-      {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → SourceConcealPartnerOK W′ M c Xᴿ? M′
-    → ImpEnvMono W W′
-    → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
-    → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
-
-  -- D15 preflight rules: source-only `seal X ★` sees through only under
-  -- `NoTargetOccupantAtSource`; remaining non-`★`/non-seal cases use the
-  -- slim `SourceConcealOK` classifier above.  The old `conceal⊑²` rule is
-  -- deliberately left intact during the preflight.
+  -- Source-only `seal X ★` sees through only under
+  -- `NoTargetOccupantAtSource`; remaining non-`★`/non-seal cases use
+  -- `SourceConcealOK`.
   conceal⊑²-seal-star-open : ∀ {W′ : World Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ B X}
       {p : ★ ⊑ᵂ⟨ W′ ⟩ B}

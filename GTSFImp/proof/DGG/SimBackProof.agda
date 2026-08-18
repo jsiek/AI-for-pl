@@ -244,7 +244,6 @@ ConversionBoundaryStep (⊑reveal² _ _ _ _ _ _) step =
 ConversionBoundaryStep (⊑conceal² _ _ _ _ _ _) step =
   ConcealFrameStep step
 ConversionBoundaryStep (reveal⊑² _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (conceal⊑² _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (conceal⊑²-seal-star-open _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (conceal⊑²-source-ok _ _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (reveal⊑reveal² _ _ _ _ _ _ _) step =
@@ -902,9 +901,6 @@ module _
   sim-back parked rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q) step =
     sim-back-conversion-boundary parked rel step tt
 
-  sim-back parked rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
-      step =
-    sim-back-conversion-boundary parked rel step tt
   sim-back parked
       rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
       step =

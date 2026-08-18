@@ -114,6 +114,11 @@ import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof
 import proof.DGG.Catchup.FuelDischargeProof
+import proof.DGG.Catchup.LeftBoundaryCatchupDef
+import proof.DGG.Catchup.LeftValueCatchupDef
+import proof.DGG.Catchup.LeftSourceOperationsDef
+import proof.DGG.Catchup.LeftBlameLiftProof
+import proof.DGG.Catchup.LeftValueCatchupProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)
@@ -128,6 +133,8 @@ import proof.DGG.SimBackProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof
+import proof.DGG.SimConcealRevealPeel
+import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------

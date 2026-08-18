@@ -91,6 +91,23 @@ P \downarrow \mathsf{seal}\ X\ R
 \end{array}
 $$
 
+This is witnessed in the checked live-relation counterexample module
+`proof/DGG/ExtraCastRight2Counterexample.agda`:
+
+```agda
+repaired-source-seal-value
+repaired-target-tag-value
+repaired-seal-id-conceal²
+repaired-target-id-conceal-step
+repaired-seal²-empty
+```
+
+The source is a non-★ sealed value, the target identity conceal hides an inert
+top tag, and `repaired-seal²-empty` proves that the required post-step relation
+to that tag has no inhabitant.  Thus `migrated-nonstar-endpoint` is not merely
+missing infrastructure; it has no uniform implementation for the current
+relation.
+
 The same classifier loss occurs through a target identity reveal.  The probe
 names only the missing endpoint facts:
 

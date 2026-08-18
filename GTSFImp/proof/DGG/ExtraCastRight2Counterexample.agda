@@ -25,10 +25,12 @@ open import TyStore using
 open import Consistency using
   (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; _!; id)
 open import Imprecision
-open import Conversion using (seal)
+open import Conversion using (seal; id↓)
+import CastTerms as CT
 open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
+import Reduction as R
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
@@ -236,6 +238,33 @@ no-star-to-natᵈ ()
 repaired-base² : pre-worldᵈ ∣ [] ⊢²
     $ (κℕ 0) ⊑ $ (κℕ 0) ⟨ ℕ! ⟩ ∶ ι⊑★
 repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
+
+repaired-target-tag-value : Value ($ (κℕ 0) ⟨ ℕ! ⟩)
+repaired-target-tag-value = ($ (κℕ 0)) 《 inj 》
+
+repaired-source-seal-value : Value (($ (κℕ 0)) ↓ seal U (‵ `ℕ))
+repaired-source-seal-value = ($ (κℕ 0)) CT.↓ CT.seal
+
+repaired-target-id-conceal-step :
+  (($ (κℕ 0) ⟨ ℕ! ⟩) ↓ id↓ ★)
+    R.—→[ R.keep ] ($ (κℕ 0) ⟨ ℕ! ⟩)
+repaired-target-id-conceal-step =
+  R.pure-step (R.id-conceal repaired-target-tag-value)
+
+repaired-base-id-conceal² : pre-worldᵈ ∣ [] ⊢²
+    $ (κℕ 0) ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ id↓ ★ ∶ ι⊑★
+repaired-base-id-conceal² =
+  CTI2.⊑conceal² (λ _ eq → eq) CTX.rebase-idᴿ CTX.same-[]
+    Conv.⊢↓-idˣ repaired-base² ι⊑★
+
+repaired-seal-id-conceal² : pre-worldᵈ ∣ [] ⊢²
+    ($ (κℕ 0)) ↓ seal U (‵ `ℕ)
+    ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ id↓ ★ ∶ U-to-starᵈ
+repaired-seal-id-conceal² =
+  CTI2.conceal⊑²-source-ok
+    (CTX.seal-nonstar-plain-ok nonstar-ι CTX.not-↓)
+    (λ _ eq → eq) (CTX.tag-rebase-varᴸ U-Y-rebaseᵈ) CTX.same-[]
+    source-U-seal-typed repaired-base-id-conceal² U-to-starᵈ
 
 repaired-seal-ok-empty : ∀ {Wᵖ : World 2 1 2} {P Xᴿ?}
   → CTX.SourceConcealOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?

@@ -103,3 +103,10 @@ source-column-seal-D-case
     | CTI2.seal-partner-ok CTI2.name-protected-target
     | CTI2.tag-rebase-varᴸ link =
   column-seal-source-case monoᵢ link scᵢ X∈ prem
+source-column-seal-D-case
+    (CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-name-protected-ok Rns aligned)
+      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTI2.⊢↓-sealˣ X∈)
+      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p) =
+  column-seal-source-case monoᵢ link scᵢ X∈ prem

@@ -363,21 +363,8 @@ target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
       D₂@(CTI2.conceal⊑²
         ok@(CTI2.seal-partner-ok CTI2.name-protected-target)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
-    | refl
-    with STC.source-star-cast-package-from-source-name
-      monoᵖ rbᵖ scᵖ (rebase-source-membership link X∈)
-      inert prem D₂
-target-source-star-at {S = ★} {q = q} sv inert vU X∈ Y∈ D
-    | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
-      D₂@(CTI2.conceal⊑²
-        ok@(CTI2.seal-partner-ok CTI2.name-protected-target)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ X∈ᵖ) prem .q₂)
-    | refl
-    | pkg , sourcePrem =
-  target-source-star-final
-    (STC.emit-tagged-transfer mono₂ link sc₂
-      (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
-      pkg sourcePrem)
+    | refl =
+  target-source-star-payload refl mono₂ link sc₂ X∈ Y∈ D₂
 target-source-star-at {S = ★} {c = c} {q = q} sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²

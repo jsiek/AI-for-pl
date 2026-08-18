@@ -77,6 +77,15 @@ module _
     (target-source-star-chain : TargetSourceStarChain)
     where
 
+  right-var-obligation-nonstar : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ} {R : Ty Δᴸ} {Y : TyVar Δᴿ}
+    → R ⊑ᵂ⟨ W ⟩ (＇ Y)
+    → NonStar R
+  right-var-obligation-nonstar {W = W} {R = R} {Y = Y} p
+      with SPT.right-var-obligation-view {W = W} {R = R} {Y = Y} p
+  right-var-obligation-nonstar p | X₂ , refl , aligned =
+    nonstar-X
+
   right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
       {V : Term Δᴸ} {N : Term Δᴿ}
@@ -770,9 +779,11 @@ module _
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
         (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
       | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl
-      | CTI2.⊑cast² c′ prem₂ .p₀ =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok
-        (CTI2.plain-target CTI2.not-↓))
+      | CTI2.⊑cast² {p = p₂} c′ prem₂ .p₀ =
+    CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok
+        (right-var-obligation-nonstar {W = W′} {R = R} {Y = Y} p₂)
+        CTI2.not-↓)
       mono rb sc (CTI2.⊢↓-sealˣ Xᴸ∈) prem₂ q
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = `∀ A} (sv-Λ sv₀)) vN
@@ -863,8 +874,8 @@ module _
       | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl
       | CTI2.cast⊑cast² {p = p₂} c c′ prem₂ .p₀
       | X₂ , refl , aligned | inj₁ refl =
-    CTI2.conceal⊑² (CTI2.seal-partner-ok
-        (CTI2.plain-target CTI2.not-↓))
+    CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok nonstar-X CTI2.not-↓)
       mono rb sc (CTI2.⊢↓-sealˣ Xᴸ∈)
       (CTI2.cast⊑² c prem₂ p₂) q
   right-inj-inversion² {W = W} {gH = ＇ Y}

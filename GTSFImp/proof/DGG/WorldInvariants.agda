@@ -27,6 +27,7 @@ import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.CompilePreservesImprecision2 as CPI2
+import proof.DGG.Examples2 as Ex2
 import proof.DGG.Parked.ParkedWorldDef as PWD
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TargetBindLift as TBL
@@ -1024,3 +1025,142 @@ insertRebaseWorld-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
 insertRebaseWorld-invariants ins rb direct inv =
   targetInsert-invariants (TE.insertRebaseTargetInsert ins rb)
     (insertRebaseTargetInsert-direct ins rb direct) inv
+
+
+example12-left-path-world-X-invariants :
+  WorldInvariants CTI2.example12-left-path-world-X
+example12-left-path-world-X-invariants =
+  world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-X
+        (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar 1 ]
+        toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-X) Xᴿ
+          ≡ toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X) Xᴸ
+  precise Fin.zero ()
+  precise (Fin.suc Fin.zero) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) ()
+
+  reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 1}
+    → CenterAligned CTI2.example12-left-path-world-X Xᴸ Xᴿ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-X ⊢
+        renameᵗ (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X))
+          (lookupStore (CTI2.sourceStoreʷ CTI2.example12-left-path-world-X) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-X))
+          (lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-X) Xᴿ)
+  reps {Fin.zero} {Fin.zero} refl = ι⊑★
+  reps {Fin.suc Fin.zero} {Fin.zero} ()
+  reps {Fin.suc (Fin.suc Fin.zero)} {Fin.zero} ()
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ → CenterAligned CTI2.example12-left-path-world-X Xᴸ Xᴿ → ⊥)
+    → lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-X) Xᴿ ≡ ★
+  unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
+
+
+example12-left-path-world-Y-invariants :
+  WorldInvariants CTI2.example12-left-path-world-Y
+example12-left-path-world-Y-invariants =
+  world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-Y
+        (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Y) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar 1 ]
+        toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-Y) Xᴿ
+          ≡ toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Y) Xᴸ
+  precise Fin.zero ()
+  precise (Fin.suc Fin.zero) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) ()
+
+  reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 1}
+    → CenterAligned CTI2.example12-left-path-world-Y Xᴸ Xᴿ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-Y ⊢
+        renameᵗ (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Y))
+          (lookupStore (CTI2.sourceStoreʷ CTI2.example12-left-path-world-Y) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-Y))
+          (lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-Y) Xᴿ)
+  reps {Fin.zero} {Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.zero} refl = X⊑★ refl
+  reps {Fin.suc (Fin.suc Fin.zero)} {Fin.zero} ()
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ → CenterAligned CTI2.example12-left-path-world-Y Xᴸ Xᴿ → ⊥)
+    → lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-Y) Xᴿ ≡ ★
+  unmatched Fin.zero no-source =
+    ⊥-elim (no-source (Fin.suc Fin.zero) refl)
+
+
+example12-left-path-world-Z-invariants :
+  WorldInvariants CTI2.example12-left-path-world-Z
+example12-left-path-world-Z-invariants =
+  world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-Z
+        (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Z) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar 1 ]
+        toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-Z) Xᴿ
+          ≡ toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Z) Xᴸ
+  precise Fin.zero ()
+  precise (Fin.suc Fin.zero) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) ()
+
+  reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 1}
+    → CenterAligned CTI2.example12-left-path-world-Z Xᴸ Xᴿ
+    → CTI2.impEnvʷ CTI2.example12-left-path-world-Z ⊢
+        renameᵗ (toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-Z))
+          (lookupStore (CTI2.sourceStoreʷ CTI2.example12-left-path-world-Z) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-Z))
+          (lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-Z) Xᴿ)
+  reps {Fin.zero} {Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.zero} ()
+  reps {Fin.suc (Fin.suc Fin.zero)} {Fin.zero} refl = ★⊑★
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ → CenterAligned CTI2.example12-left-path-world-Z Xᴸ Xᴿ → ⊥)
+    → lookupStore (CTI2.targetStoreʷ CTI2.example12-left-path-world-Z) Xᴿ ≡ ★
+  unmatched Fin.zero no-source =
+    ⊥-elim (no-source (Fin.suc (Fin.suc Fin.zero)) refl)
+
+
+examples2-left-path-world₃-invariants : WorldInvariants Ex2.left-path-world₃
+examples2-left-path-world₃-invariants = world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CTI2.impEnvʷ Ex2.left-path-world₃
+        (toRenameᵗ (CTI2.ηᴸʷ Ex2.left-path-world₃) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar 2 ]
+        toRenameᵗ (CTI2.ηᴿʷ Ex2.left-path-world₃) Xᴿ
+          ≡ toRenameᵗ (CTI2.ηᴸʷ Ex2.left-path-world₃) Xᴸ
+  precise Fin.zero ()
+  precise (Fin.suc Fin.zero) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) ()
+
+  reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 2}
+    → CenterAligned Ex2.left-path-world₃ Xᴸ Xᴿ
+    → CTI2.impEnvʷ Ex2.left-path-world₃ ⊢
+        renameᵗ (toRenameᵗ (CTI2.ηᴸʷ Ex2.left-path-world₃))
+          (lookupStore (CTI2.sourceStoreʷ Ex2.left-path-world₃) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ Ex2.left-path-world₃))
+          (lookupStore (CTI2.targetStoreʷ Ex2.left-path-world₃) Xᴿ)
+  reps {Fin.zero} {Fin.zero} refl = ι⊑★
+  reps {Fin.zero} {Fin.suc Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.suc Fin.zero} ()
+  reps {Fin.suc (Fin.suc Fin.zero)} {Fin.zero} ()
+  reps {Fin.suc (Fin.suc Fin.zero)} {Fin.suc Fin.zero} refl = ★⊑★
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ → CenterAligned Ex2.left-path-world₃ Xᴸ Xᴿ → ⊥)
+    → lookupStore (CTI2.targetStoreʷ Ex2.left-path-world₃) Xᴿ ≡ ★
+  unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
+  unmatched (Fin.suc Fin.zero) no-source =
+    ⊥-elim (no-source (Fin.suc (Fin.suc Fin.zero)) refl)
+
+examples2-left-path-world₄-invariants : WorldInvariants Ex2.left-path-world₄
+examples2-left-path-world₄-invariants = examples2-left-path-world₃-invariants
+
+examples2-left-path-world₅-invariants : WorldInvariants Ex2.left-path-world₅
+examples2-left-path-world₅-invariants = examples2-left-path-world₃-invariants

@@ -273,24 +273,43 @@ index, compose returned store changes, and factor the returned worlds.  The
 returned-value analysis covers identities and most dynamic tag/projection
 squares.
 
-The remaining abstract-dynamic projection square exposes a definition
-boundary in the CTI cast rules.  `CTI.cast⊑cast²` currently relates arbitrary
-consistency witnesses using only imprecision of their source and target
-types.  This is insufficient at `★`, where different consistency derivations
-can inspect different runtime tags.  In particular, the LR admits an
-`X⊑★` atom whose precise injection projects successfully while an unrelated
-imprecise ground projection blames.  This violates `backward-return`; adding
-an obligation to `DynamicSemanticAtom` would only hide the bad CTI square.
+The former abstract-dynamic projection counterexample was caused by the
+source-seal see-through clause, not by `CTI.cast⊑cast²` itself.  CTI now gates
+`SealPartnerOK.star-rep-target` with `NoTargetOccupantAtSource`: once a source
+name is aligned with a target runtime name, the arbitrary `X⊑★` see-through
+route is unavailable.  `ProjectionMismatchStarRepScratch.agda` records the
+result as the checked emptiness theorem `projection-mismatch-empty`; the three
+CTI cast constructors remain unchanged.
 
-The stable relation in `GTSF/QuotientedTermImprecision.agda` avoids this
-problem by recording cast direction/shape and equations relating composition
-with the surrounding type imprecision.  The GTSFImp CTI cast constructors
-need an analogous restriction before their three compatibility lemmas can be
-completed soundly.  `ProjectionMismatchStarRepScratch.agda` records a checked
-CTI derivation of the bad square together with its precise-return and
-imprecise-blame traces.
+The LR now reflects the same distinction.  A `dynamic-entry` carries
+target non-occupancy and may relate an abstract precise value to an arbitrary
+imprecise dynamic value.  A `paired-entry` may also inhabit a center whose
+mark has decayed to `X⊑★`; in that occupied regime, the `X⊑★` value clause
+requires the imprecise payload to be protected by the matching runtime tag.
+Both alternatives are downward closed and transported through paired and
+precise-only future worlds.
 
-The cast proof remains a checked draft with explicit interaction holes at that
-boundary; it introduces no postulate.
+The present `Future` grammar only allocates fresh centers, so it cannot make
+an old unoccupied center occupied.  If a later LR extension adds CTI-style
+rebasing or alias insertion, that transition must replace the old
+`dynamic-entry` with a `paired-entry`; transporting the dynamic relation
+across that transition would reintroduce the forbidden see-through case.
+
+Consequently, the abstract-atom projection proof has two sound paths.  A
+matching direct projection contradicts the dynamic entry's non-occupancy;
+a mismatching direct projection blames on the precise side.  An expanded
+projection reduces to its inner tag check and the residual related cast.
+
+The matching-tag/one-sided residual now has an explicit ground-cast outcome
+split.  Ground identities are excluded by the expanded-projection premise,
+base and variable generalizations are impossible, and `bot-intro` is proved
+related because the precise side immediately blames.  The inert outcome is
+reduced to the value-level obligation
+`ValueImprecision q j Uᴵ (Uᴾ ⟨ cᴾ ⟩)` at every residual index; this is the
+remaining one-sided function/universal/generalization compatibility problem,
+with no evaluator-phase reasoning left in the hole.
+
+The cast proof remains a checked draft with explicit interaction holes in
+other constructor combinations; it introduces no postulate.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

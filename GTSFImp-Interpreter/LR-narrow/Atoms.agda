@@ -2,8 +2,9 @@ module LR-narrow.Atoms where
 
 -- File Charter:
 --   * Defines semantic slots indexed by their center-variable mode.
---   * Interprets X⊑X slots by paired atoms and X⊑★ slots by relations
---     an imprecise dynamic value to a precise abstract value.
+--   * Separates occupied paired slots from unoccupied dynamic slots;
+--     a paired slot may remain usable after its center mark decays to X⊑★.
+--   * Records target non-occupancy exactly on the dynamic see-through slot.
 --   * Reindexes atoms through paired and precise-only fresh store bindings.
 
 open import Data.List using ([])
@@ -20,6 +21,7 @@ open import Consistency using (toRenameᵗ; wk↪ᵗ)
 import Imprecision as I
 open import proof.TypeInTermSubst
   using (renameᵗᵐ-preserves-Value; typing-shiftᵗ-bind)
+open import proof.ImprecisionConsistency using (fin-suc-injective)
 open import LR-narrow.WorldCore
 
 StepIndexedRelation : TyCtx → TyCtx → Set₁
@@ -59,6 +61,9 @@ record DynamicSemanticAtom {Δᴾ Δᴵ Δᶜ}
     dynamicPreciseVariable : TyVar Δᴾ
     dynamicPreciseAligned :
       toRenameᵗ (preciseEmbedding W) dynamicPreciseVariable ≡ Z
+    dynamicNoTargetOccupant :
+      (Σ[ Y ∈ TyVar Δᴵ ]
+        toRenameᵗ (impreciseEmbedding W) Y ≡ Z) → ⊥
     dynamicRelation : StepIndexedRelation Δᴾ Δᴵ
     dynamicRelation-downward : DownwardClosed dynamicRelation
     dynamicRelation-valid : ∀ {k Vᴵ Vᴾ}
@@ -73,7 +78,9 @@ open DynamicSemanticAtom public
 
 data SemanticEntry {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
     (Z : TyVar Δᶜ) : I.VarImp → Set₁ where
-  paired-entry : SemanticAtom W Z → SemanticEntry W Z I.X⊑X
+  paired-entry : ∀ {mode}
+    → SemanticAtom W Z
+    → SemanticEntry W Z mode
   dynamic-entry : DynamicSemanticAtom W Z → SemanticEntry W Z I.X⊑★
 
 record AtomHolds {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
@@ -97,7 +104,7 @@ DynamicAtomHolds : ∀ {Δᴾ Δᴵ Δᶜ mode}
   → (entry : SemanticEntry W Z mode)
   → mode ≡ I.X⊑★
   → ℕ → Term Δᴵ → Term Δᴾ → Set
-DynamicAtomHolds (paired-entry a) () k Vᴵ Vᴾ
+DynamicAtomHolds (paired-entry a) eq k Vᴵ Vᴾ = ⊥
 DynamicAtomHolds (dynamic-entry a) refl k Vᴵ Vᴾ =
   dynamicRelation a k Vᴵ Vᴾ
 
@@ -115,7 +122,7 @@ dynamic-atom-downward : ∀ {Δᴾ Δᴵ Δᶜ mode}
     (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
   → DynamicAtomHolds entry eq (suc k) Vᴵ Vᴾ
   → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-dynamic-atom-downward (paired-entry a) () related
+dynamic-atom-downward (paired-entry a) eq ()
 dynamic-atom-downward (dynamic-entry a) refl related =
   dynamicRelation-downward a related
 
@@ -145,10 +152,20 @@ dynamic-atom-evidence : ∀ {Δᴾ Δᴵ Δᶜ mode}
           ⟨ Δᴵ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ★)
       × (Value Vᴾ ×
           ⟨ Δᴾ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ Xᴾ)
-dynamic-atom-evidence (paired-entry a) () related
+dynamic-atom-evidence (paired-entry a) eq ()
 dynamic-atom-evidence (dynamic-entry a) refl related =
   dynamicPreciseVariable a , dynamicPreciseAligned a ,
   dynamicRelation-valid a related
+
+dynamic-atom-no-target : ∀ {Δᴾ Δᴵ Δᶜ mode}
+    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
+    (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
+  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
+  → (Σ[ Y ∈ TyVar Δᴵ ]
+      toRenameᵗ (impreciseEmbedding W) Y ≡ Z) → ⊥
+dynamic-atom-no-target (paired-entry a) eq ()
+dynamic-atom-no-target (dynamic-entry a) refl related =
+  dynamicNoTargetOccupant a
 
 data LiftedRelation {Δᴾ Δᴵ} (R : StepIndexedRelation Δᴾ Δᴵ) :
     StepIndexedRelation (suc Δᴾ) (suc Δᴵ) where
@@ -233,12 +250,21 @@ weaken-dynamic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
   → (Aᴵ : Ty Δᴵ)
   → DynamicSemanticAtom W Z
   → DynamicSemanticAtom (pairedBindCore W Aᴾ Aᴵ) (Fin.suc Z)
-weaken-dynamic-atom Aᴾ Aᴵ a =
+weaken-dynamic-atom {W = W} {Z = Z} Aᴾ Aᴵ a =
   dynamic-semantic-atom (Fin.suc (dynamicPreciseVariable a))
     (cong Fin.suc (dynamicPreciseAligned a))
+    no-target
     (LiftedRelation (dynamicRelation a))
     (lifted-downward (dynamicRelation-downward a)) valid
   where
+  no-target :
+      (Σ[ Y ∈ TyVar _ ]
+        toRenameᵗ (impreciseEmbedding
+          (pairedBindCore W Aᴾ Aᴵ)) Y ≡ Fin.suc Z) → ⊥
+  no-target (Fin.zero , ())
+  no-target (Fin.suc Y , eq) =
+    dynamicNoTargetOccupant a (Y , fin-suc-injective eq)
+
   valid : ∀ {k Vᴵ Vᴾ}
     → LiftedRelation (dynamicRelation a) k Vᴵ Vᴾ
     → (Value Vᴵ ×
@@ -257,12 +283,20 @@ weaken-dynamic-atom-precise : ∀ {Δᴾ Δᴵ Δᶜ}
   → (Aᴾ : Ty Δᴾ)
   → DynamicSemanticAtom W Z
   → DynamicSemanticAtom (preciseBindCore W Aᴾ) (Fin.suc Z)
-weaken-dynamic-atom-precise {W = W} Aᴾ a =
+weaken-dynamic-atom-precise {W = W} {Z = Z} Aᴾ a =
   dynamic-semantic-atom (Fin.suc (dynamicPreciseVariable a))
     (cong Fin.suc (dynamicPreciseAligned a))
+    no-target
     (PreciseLiftedRelation (dynamicRelation a))
     (precise-lifted-downward (dynamicRelation-downward a)) valid
   where
+  no-target :
+      (Σ[ Y ∈ TyVar _ ]
+        toRenameᵗ (impreciseEmbedding
+          (preciseBindCore W Aᴾ)) Y ≡ Fin.suc Z) → ⊥
+  no-target (Y , eq) =
+    dynamicNoTargetOccupant a (Y , fin-suc-injective eq)
+
   valid : ∀ {k Vᴵ Vᴾ}
     → PreciseLiftedRelation (dynamicRelation a) k Vᴵ Vᴾ
     → (Value Vᴵ ×
@@ -324,7 +358,7 @@ dynamic-holds-weaken : ∀ {Δᴾ Δᴵ Δᶜ mode}
   → DynamicAtomHolds entry eq k Vᴵ Vᴾ
   → DynamicAtomHolds (weaken-entry Aᴾ Aᴵ entry) eq k
       (⇑ᵗᵐ Vᴵ) (⇑ᵗᵐ Vᴾ)
-dynamic-holds-weaken Aᴾ Aᴵ (paired-entry a) () related
+dynamic-holds-weaken Aᴾ Aᴵ (paired-entry a) eq ()
 dynamic-holds-weaken Aᴾ Aᴵ (dynamic-entry a) refl related =
   lift-related related
 
@@ -335,7 +369,7 @@ dynamic-holds-weaken-precise : ∀ {Δᴾ Δᴵ Δᶜ mode}
   → DynamicAtomHolds entry eq k Vᴵ Vᴾ
   → DynamicAtomHolds (weaken-entry-precise Aᴾ entry) eq k
       Vᴵ (⇑ᵗᵐ Vᴾ)
-dynamic-holds-weaken-precise Aᴾ (paired-entry a) () related
+dynamic-holds-weaken-precise Aᴾ (paired-entry a) eq ()
 dynamic-holds-weaken-precise Aᴾ (dynamic-entry a) refl related =
   precise-lift-related related
 
@@ -368,4 +402,5 @@ fresh-dynamic-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
             ⊢ Vᴾ ⦂ ＇ Fin.zero))
   → DynamicSemanticAtom (preciseBindCore W Aᴾ) Fin.zero
 fresh-dynamic-semantic-atom Aᴾ R down valid =
-  dynamic-semantic-atom Fin.zero refl R down valid
+  dynamic-semantic-atom Fin.zero refl
+    (λ { (Y , ()) }) R down valid

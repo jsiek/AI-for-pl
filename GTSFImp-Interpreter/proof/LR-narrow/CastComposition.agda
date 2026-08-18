@@ -40,11 +40,138 @@ sum-bound-from-split : ∀ {a b n k : ℕ}
   → a + b ≤ k
 sum-bound-from-split refl n≤k = n≤k
 
+map-paired-returns : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {R S : IndexedValueRelation W}
+    {k : ℕ} {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
+    {resultᴵ : E.EvalResult Mᴵ} {resultᴾ : E.EvalResult Mᴾ}
+  → (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′) {j Vᴵ Vᴾ}
+    → R W′ W≼W′ j Vᴵ Vᴾ
+    → S W′ W≼W′ j Vᴵ Vᴾ)
+  → PairedReturns W R k resultᴵ resultᴾ
+  → PairedReturns W S k resultᴵ resultᴾ
+map-paired-returns map-related
+    (paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ termsᴾ related) =
+  paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ termsᴾ
+    (map-related W′ W≼W′ related)
+
+map-computations-related : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {R S : IndexedValueRelation W}
+    {k : ℕ} {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
+  → (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′) {j Vᴵ Vᴾ}
+    → R W′ W≼W′ j Vᴵ Vᴾ
+    → S W′ W≼W′ j Vᴵ Vᴾ)
+  → ComputationsRelated W R k Mᴵ Mᴾ
+  → ComputationsRelated W S k Mᴵ Mᴾ
+map-computations-related {W = W} {S = S} {k = k}
+    {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} map-related related = record
+  { forward-return = forward
+  ; backward-return = backward
+  ; forward-blame = forward-blame related
+  }
+  where
+  forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
+    → n ≤ k
+    → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
+    → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
+          interpretFrom (preciseStore (core W)) m Mᴾ ≡ returned resultᴾ
+          × PairedReturns W S (k ∸ n) resultᴵ resultᴾ)
+      ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ)
+  forward n≤k result-eq with forward-return related n≤k result-eq
+  forward n≤k result-eq | inj₁ (m , resultᴾ , return-eq , paired) =
+    inj₁ (m , resultᴾ , return-eq ,
+      map-paired-returns map-related paired)
+  forward n≤k result-eq | inj₂ blaming = inj₂ blaming
+
+  backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
+    → n ≤ k
+    → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
+    → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
+        interpretFrom (impreciseStore (core W)) m Mᴵ ≡ returned resultᴵ
+        × PairedReturns W S (k ∸ n) resultᴵ resultᴾ
+  backward n≤k result-eq with backward-return related n≤k result-eq
+  backward n≤k result-eq | m , resultᴵ , return-eq , paired =
+    m , resultᴵ , return-eq , map-paired-returns map-related paired
+
+computations-related-future-compose : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁ Aᴾ Aᴵ}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    (W₀≼W₁ : Future W₀ W₁)
+    (q : impEnv (core W₀) I.⊢ Aᴾ ⊑ Aᴵ)
+    {k : ℕ} {Mᴵ : Term Δᴵ₁} {Mᴾ : Term Δᴾ₁}
+  → ComputationsRelated W₁
+      (FutureValueRelation (liftCenterImprecision W₀≼W₁ q)) k Mᴵ Mᴾ
+  → ComputationsRelated W₁
+      (λ W₂ W₁≼W₂ → FutureValueRelation q W₂
+        (future-trans W₀≼W₁ W₁≼W₂)) k Mᴵ Mᴾ
+computations-related-future-compose {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    W₀≼W₁ q =
+  map-computations-related (λ W₂ W₁≼W₂ related →
+    ClosureProof.value-imprecision-reindex
+      (liftCenterImprecision (future-trans W₀≼W₁ W₁≼W₂) q)
+      (liftCenterImprecision W₁≼W₂
+        (liftCenterImprecision W₀≼W₁ q))
+      (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴾ)
+      (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴵ) related)
+
+future-trans-assoc : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁
+     Δᴾ₂ Δᴵ₂ Δᶜ₂ Δᴾ₃ Δᴵ₃ Δᶜ₃}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    {W₂ : World Δᴾ₂ Δᴵ₂ Δᶜ₂}
+    {W₃ : World Δᴾ₃ Δᴵ₃ Δᶜ₃}
+    (W₀≼W₁ : Future W₀ W₁)
+    (W₁≼W₂ : Future W₁ W₂)
+    (W₂≼W₃ : Future W₂ W₃)
+  → future-trans W₀≼W₁ (future-trans W₁≼W₂ W₂≼W₃) ≡
+      future-trans (future-trans W₀≼W₁ W₁≼W₂) W₂≼W₃
+future-trans-assoc W₀≼W₁ W₁≼W₂ future-refl = refl
+future-trans-assoc W₀≼W₁ W₁≼W₂
+    (future-paired W₂≼W₃ related fresh) =
+  cong (λ W₀≼W₃ → future-paired W₀≼W₃ related fresh)
+    (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
+future-trans-assoc W₀≼W₁ W₁≼W₂
+    (future-precise W₂≼W₃ fresh) =
+  cong (λ W₀≼W₃ → future-precise W₀≼W₃ fresh)
+    (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
+
+computations-related-post-bind-compose : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾᵇ Δᴵᵇ Δᶜᵇ
+     Δᴾ₁ Δᴵ₁ Δᶜ₁ Aᴾ Aᴵ}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {bound : World Δᴾᵇ Δᴵᵇ Δᶜᵇ}
+    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
+    (W₀≼B : Future W₀ bound)
+    (W₀≼W₁ : Future W₀ W₁)
+    (B≼W₁ : Future bound W₁)
+  → future-trans W₀≼B B≼W₁ ≡ W₀≼W₁
+  → (q : impEnv (core W₀) I.⊢ Aᴾ ⊑ Aᴵ)
+  → {k : ℕ} {Mᴵ : Term Δᴵ₁} {Mᴾ : Term Δᴾ₁}
+  → ComputationsRelated W₁
+      (FutureValueRelation (liftCenterImprecision W₀≼W₁ q)) k Mᴵ Mᴾ
+  → ComputationsRelated W₁
+      (λ W₂ W₁≼W₂ → PostBindValueRelation W₀≼B q W₂
+        (future-trans W₀≼W₁ W₁≼W₂)) k Mᴵ Mᴾ
+computations-related-post-bind-compose {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    W₀≼B W₀≼W₁ B≼W₁ factor q =
+  map-computations-related (λ W₂ W₁≼W₂ related →
+    future-trans B≼W₁ W₁≼W₂ ,
+    trans (future-trans-assoc W₀≼B B≼W₁ W₁≼W₂)
+      (cong (λ W₀≼W₁′ → future-trans W₀≼W₁′ W₁≼W₂) factor) ,
+    ClosureProof.value-imprecision-reindex
+      (liftCenterImprecision (future-trans W₀≼W₁ W₁≼W₂) q)
+      (liftCenterImprecision W₁≼W₂
+        (liftCenterImprecision W₀≼W₁ q))
+      (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴾ)
+      (liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴵ) related)
+
 assemble-cast-pair : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᶜ₁ Δᶜ₂}
     {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
-    {Aᴾ Aᴵ : Ty Δᶜ₀}
-    {q : impEnv (core W₀) I.⊢ Aᴾ ⊑ Aᴵ}
+    {S : IndexedValueRelation W₀}
     {Cᴾ Dᴾ : Ty Δᴾ₀} {Cᴵ Dᴵ : Ty Δᴵ₀}
     {μᴾ : C.Env∼ Δᴾ₀} {cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ}
     {μᴵ : C.Env∼ Δᴵ₀} {cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ}
@@ -80,23 +207,21 @@ assemble-cast-pair : ∀
   → (∀ M → E.changes callResultᴾ ▶ᵀ M ≡
       liftPreciseTerm W₁≼W₂ M)
   → j ≡ k
-  → ValueImprecision W₂
-      (liftCenterImprecision W₁≼W₂
-        (liftCenterImprecision W₀≼W₁ q))
+  → S W₂ (future-trans W₀≼W₁ W₁≼W₂)
       j (E.term callResultᴵ) (E.term callResultᴾ)
-  → PairedReturns W₀ (FutureValueRelation q) k
+  → PairedReturns W₀ S k
       (sequence-cast-result operandResultᴵ callResultᴵ)
       (sequence-cast-result operandResultᴾ callResultᴾ)
-assemble-cast-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {q = q}
+assemble-cast-pair {W₀ = W₀}
     {operandResultᴾ = operandResultᴾ}
     {operandResultᴵ = operandResultᴵ}
     {callResultᴾ = callResultᴾ} {callResultᴵ = callResultᴵ}
     {W₁ = W₁} {W₂ = W₂}
     W₀≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-    W₁≼W₂ callStoreᴵ callStoreᴾ callTermsᴵ callTermsᴾ index-eq
+    W₁≼W₂ callStoreᴵ callStoreᴾ callTermsᴵ callTermsᴾ refl
     call-related =
   paired-returns W₂ W₀≼W₂ imprecise-store-eq precise-store-eq
-    imprecise-terms-eq precise-terms-eq final-related
+    imprecise-terms-eq precise-terms-eq call-related
   where
   W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
 
@@ -135,22 +260,10 @@ assemble-cast-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {q = q}
       (trans (callTermsᴾ (liftPreciseTerm W₀≼W₁ M))
         (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
 
-  composite-q = liftCenterImprecision W₀≼W₂ q
-  sequential-q = liftCenterImprecision W₁≼W₂
-    (liftCenterImprecision W₀≼W₁ q)
-
-  precise-q-eq = liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴾ
-  imprecise-q-eq = liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴵ
-
-  final-related = ClosureProof.value-imprecision-reindex
-    composite-q sequential-q precise-q-eq imprecise-q-eq
-    (value-index-reindex index-eq call-related)
-
 assemble-precise-cast-pair : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᶜ₁}
     {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
-    {Aᴾ Aᴵ : Ty Δᶜ₀}
-    {q : impEnv (core W₀) I.⊢ Aᴾ ⊑ Aᴵ}
+    {S : IndexedValueRelation W₀}
     {Cᴾ Dᴾ : Ty Δᴾ₀} {μᴾ : C.Env∼ Δᴾ₀}
     {cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ}
     {Mᴾ : Term Δᴾ₀} {Mᴵ : Term Δᴵ₀}
@@ -172,20 +285,19 @@ assemble-precise-cast-pair : ∀
   → (∀ M → E.changes operandResultᴾ ▶ᵀ M ≡
       liftPreciseTerm W₀≼W₁ M)
   → PairedReturns W₁
-      (FutureValueRelation (liftCenterImprecision W₀≼W₁ q)) j
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W₀≼W₁ W₁≼W₂)) j
       (E.result _ [] (E.term operandResultᴵ) ↠-refl
         (E.value operandResultᴵ)) callResultᴾ
   → j ≡ k
-  → PairedReturns W₀ (FutureValueRelation q) k operandResultᴵ
+  → PairedReturns W₀ S k operandResultᴵ
       (sequence-cast-result operandResultᴾ callResultᴾ)
-assemble-precise-cast-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {q = q} {operandResultᴾ = operandResultᴾ}
+assemble-precise-cast-pair {W₀ = W₀} {operandResultᴾ = operandResultᴾ}
     {operandResultᴵ = operandResultᴵ} {callResultᴾ = callResultᴾ}
     W₀≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
     (paired-returns W₂ W₁≼W₂ callStoreᴵ callStoreᴾ
-      callTermsᴵ callTermsᴾ callRelated) index-eq =
+      callTermsᴵ callTermsᴾ callRelated) refl =
   paired-returns W₂ W₀≼W₂ imprecise-store-eq precise-store-eq
-    imprecise-terms-eq precise-terms-eq final-related
+    imprecise-terms-eq precise-terms-eq callRelated
   where
   W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
 
@@ -217,19 +329,9 @@ assemble-precise-cast-pair {W₀ = W₀} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (callTermsᴾ (liftPreciseTerm W₀≼W₁ M))
         (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
 
-  composite-q = liftCenterImprecision W₀≼W₂ q
-  sequential-q = liftCenterImprecision W₁≼W₂
-    (liftCenterImprecision W₀≼W₁ q)
-
-  precise-q-eq = liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴾ
-  imprecise-q-eq = liftCenterTy-trans W₀≼W₁ W₁≼W₂ Aᴵ
-
-  final-related = ClosureProof.value-imprecision-reindex
-    composite-q sequential-q precise-q-eq imprecise-q-eq
-    (value-index-reindex index-eq callRelated)
-
 cast-computations-related : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {R S : IndexedValueRelation W}
     {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
     {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -244,23 +346,27 @@ cast-computations-related : ∀
   → (∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
-      {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ′}
-      (r : impEnv (core W′) I.⊢ Pᴾ ⊑ Pᴵ)
-      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡ Pᴾ)
-      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡ Pᴵ)
+      (W≼W′ : Future W W′)
+      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Aᴾ)
+      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Aᴵ)
       {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
       {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
-      (s : impEnv (core W′) I.⊢ Qᴾ ⊑ Qᴵ)
-      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡ Qᴾ)
-      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡ Qᴵ)
+      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡
+        liftCenterTy W≼W′ Bᴾ)
+      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡
+        liftCenterTy W≼W′ Bᴵ)
       {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
-    → ValueImprecision W′ r j Vᴵ Vᴾ
-    → ComputationsRelated W′ (FutureValueRelation s) j
+    → R W′ W≼W′ j Vᴵ Vᴾ
+    → ComputationsRelated W′
+        (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
         (Vᴵ ⟨ dᴵ ⟩) (Vᴾ ⟨ dᴾ ⟩))
-  → ComputationsRelated W (FutureValueRelation p) k Mᴵ Mᴾ
-  → ComputationsRelated W (FutureValueRelation q) k
+  → ComputationsRelated W R k Mᴵ Mᴾ
+  → ComputationsRelated W S k
       (Mᴵ ⟨ cᴵ ⟩) (Mᴾ ⟨ cᴾ ⟩)
-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+cast-computations-related {W = W} {S = S}
+    {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
     {Cᴵ = Cᴵ} {Dᴵ = Dᴵ}
     p sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
@@ -277,7 +383,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (Mᴾ ⟨ cᴾ ⟩) ]
           interpretFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩)
             ≡ returned resultᴾ
-          × PairedReturns W (FutureValueRelation q)
+          × PairedReturns W S
               (k ∸ n) resultᴵ resultᴾ)
        ⊎ (Σ[ m ∈ ℕ ]
           BlamesFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩))
@@ -358,7 +464,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (cong (liftCenterTy W≼W₁) targetᴵ))
 
     call-related : ComputationsRelated W₁
-      (FutureValueRelation (liftCenterImprecision W≼W₁ q))
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
       (k ∸ operandGas)
       (E.term operandResultᴵ
         ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
@@ -369,10 +475,11 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
       {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
-      (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      W≼W₁
+      sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
       (E.changes operandResultᴵ ▶ᶜ cᴵ)
-      (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
+      targetᴾ-at-W₁ targetᴵ-at-W₁
       {j = k ∸ operandGas}
       {Vᴵ = E.term operandResultᴵ}
       {Vᴾ = E.term operandResultᴾ}
@@ -432,7 +539,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (cong (k ∸_) gas-split)
 
     assembled = assemble-cast-pair
-      {q = q} {cᴾ = cᴾ} {cᴵ = cᴵ}
+      {S = S} {cᴾ = cᴾ} {cᴵ = cᴵ}
       {operandResultᴾ = operandResultᴾ}
       {operandResultᴵ = operandResultᴵ}
       {callResultᴾ = callResultᴾ} {callResultᴵ = callResultᴵ}
@@ -448,7 +555,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (Mᴵ ⟨ cᴵ ⟩) ]
         interpretFrom (impreciseStore (core W)) m (Mᴵ ⟨ cᴵ ⟩)
           ≡ returned resultᴵ
-        × PairedReturns W (FutureValueRelation q)
+        × PairedReturns W S
             (k ∸ n) resultᴵ resultᴾ
   backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
       with cast-return-phases {Σ = preciseStore (core W)} {gas = n}
@@ -513,7 +620,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (cong (liftCenterTy W≼W₁) targetᴵ))
 
     call-related : ComputationsRelated W₁
-      (FutureValueRelation (liftCenterImprecision W≼W₁ q))
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
       (k ∸ operandGas)
       (E.term operandResultᴵ
         ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
@@ -524,10 +631,11 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
       {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
-      (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      W≼W₁
+      sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
       (E.changes operandResultᴵ ▶ᶜ cᴵ)
-      (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
+      targetᴾ-at-W₁ targetᴵ-at-W₁
       {j = k ∸ operandGas}
       {Vᴵ = E.term operandResultᴵ}
       {Vᴾ = E.term operandResultᴾ}
@@ -565,7 +673,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (cong (k ∸_) gas-split)
 
     assembled = assemble-cast-pair
-      {q = q} {cᴾ = cᴾ} {cᴵ = cᴵ}
+      {S = S} {cᴾ = cᴾ} {cᴵ = cᴵ}
       {operandResultᴾ = operandResultᴾ}
       {operandResultᴵ = operandResultᴵ}
       {callResultᴾ = callResultᴾ} {callResultᴵ = callResultᴵ}
@@ -656,7 +764,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (cong (liftCenterTy W≼W₁) targetᴵ))
 
     call-related : ComputationsRelated W₁
-      (FutureValueRelation (liftCenterImprecision W≼W₁ q))
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
       (k ∸ operandGas)
       (E.term operandResultᴵ
         ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
@@ -667,10 +775,11 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
       {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
-      (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      W≼W₁
+      sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
       (E.changes operandResultᴵ ▶ᶜ cᴵ)
-      (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
+      targetᴾ-at-W₁ targetᴵ-at-W₁
       {j = k ∸ operandGas}
       {Vᴵ = E.term operandResultᴵ}
       {Vᴾ = E.term operandResultᴾ}
@@ -700,6 +809,7 @@ cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
 
 precise-cast-computations-related : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {R S : IndexedValueRelation W}
     {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
     {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ : Ty Δᴵ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -714,6 +824,7 @@ precise-cast-computations-related : ∀
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ : Ty Δᴵ′}
       {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ′}
+      (W≼W′ : Future W W′)
       (r : impEnv (core W′) I.⊢ Pᴾ ⊑ Pᴵ)
       (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡ Pᴾ)
       (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡ Pᴵ)
@@ -722,13 +833,15 @@ precise-cast-computations-related : ∀
       (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡ Qᴾ)
       (s-targetᴵ : embedImprecise (core W′) Eᴵ ≡ Qᴵ)
       {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
-    → ValueImprecision W′ r j Vᴵ Vᴾ
-    → ComputationsRelated W′ (FutureValueRelation s) j
+    → R W′ W≼W′ j Vᴵ Vᴾ
+    → ComputationsRelated W′
+        (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
         Vᴵ (Vᴾ ⟨ dᴾ ⟩))
-  → ComputationsRelated W (FutureValueRelation p) k Mᴵ Mᴾ
-  → ComputationsRelated W (FutureValueRelation q) k
+  → ComputationsRelated W R k Mᴵ Mᴾ
+  → ComputationsRelated W S k
       Mᴵ (Mᴾ ⟨ cᴾ ⟩)
-precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+precise-cast-computations-related {W = W} {S = S}
+    {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
     {Cᴵ = Cᴵ} p sourceᴾ sourceᴵ cᴾ q targetᴾ targetᴵ
     k Mᴵ Mᴾ cast-values operand-related = record
@@ -744,7 +857,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (Mᴾ ⟨ cᴾ ⟩) ]
           interpretFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩)
             ≡ returned resultᴾ
-          × PairedReturns W (FutureValueRelation q)
+          × PairedReturns W S
               (k ∸ n) resultᴵ resultᴾ)
        ⊎ (Σ[ m ∈ ℕ ]
           BlamesFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩))
@@ -789,7 +902,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (cong (liftCenterTy W≼W₁) targetᴵ))
 
     call-related : ComputationsRelated W₁
-      (FutureValueRelation (liftCenterImprecision W≼W₁ q))
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
       (k ∸ n) (E.term resultᴵ)
       (E.term operandResultᴾ
         ⟨ E.changes operandResultᴾ ▶ᶜ cᴾ ⟩)
@@ -797,6 +910,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       {Eᴾ = E.changes operandResultᴾ ▶ᵗ Cᴾ}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes resultᴵ ▶ᵗ Cᴵ}
+      W≼W₁
       (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
       (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
@@ -850,10 +964,10 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     inj₁ (wholeGas , sequence-cast-result operandResultᴾ callResultᴾ ,
       wholeReturn , assembled)
     where
-    assembled : PairedReturns W (FutureValueRelation q) (k ∸ n)
+    assembled : PairedReturns W S (k ∸ n)
       resultᴵ (sequence-cast-result operandResultᴾ callResultᴾ)
     assembled = assemble-precise-cast-pair
-      {Aᴾ = Bᴾ} {Aᴵ = Bᴵ} {q = q} {cᴾ = cᴾ}
+      {S = S} {cᴾ = cᴾ}
       {operandResultᴾ = operandResultᴾ}
       {operandResultᴵ = resultᴵ} {callResultᴾ = callResultᴾ}
       W≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
@@ -866,7 +980,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ
           ≡ returned resultᴵ
-        × PairedReturns W (FutureValueRelation q)
+        × PairedReturns W S
             (k ∸ n) resultᴵ resultᴾ
   backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
       with cast-return-phases {Σ = preciseStore (core W)} {gas = n}
@@ -928,7 +1042,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (cong (liftCenterTy W≼W₁) targetᴵ))
 
     call-related : ComputationsRelated W₁
-      (FutureValueRelation (liftCenterImprecision W≼W₁ q))
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
       (k ∸ operandGas) (E.term operandResultᴵ)
       (E.term operandResultᴾ
         ⟨ E.changes operandResultᴾ ▶ᶜ cᴾ ⟩)
@@ -936,6 +1050,7 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       {Eᴾ = E.changes operandResultᴾ ▶ᵗ Cᴾ}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
+      W≼W₁
       (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
       (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
@@ -966,10 +1081,10 @@ precise-cast-computations-related {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     indexEq = trans (subtract-phases k operandGas callGas)
       (cong (k ∸_) gas-split)
 
-    assembled : PairedReturns W (FutureValueRelation q) (k ∸ n)
+    assembled : PairedReturns W S (k ∸ n)
       operandResultᴵ (sequence-cast-result operandResultᴾ callResultᴾ)
     assembled = assemble-precise-cast-pair
-      {Aᴾ = Bᴾ} {Aᴵ = Bᴵ} {q = q} {cᴾ = cᴾ}
+      {S = S} {cᴾ = cᴾ}
       {operandResultᴾ = operandResultᴾ}
       {operandResultᴵ = operandResultᴵ} {callResultᴾ = callResultᴾ}
       W≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ

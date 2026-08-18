@@ -19,9 +19,10 @@ open import Consistency using
   (_↪ᵗ_; empty; keep; skip; wk↪ᵗ; toRenameᵗ)
 import Imprecision as I
 open import proof.ImprecisionConsistency
-  using (ext-injective; fin-suc-injective; rename-⊑; subst-⊑)
+  using (ext-injective; fin-suc-injective; rename-⊑; subst-⊑;
+         subst₂-⊑)
 open import proof.TypeInTermSubst using
-  (toRename-keep-eq; renameᵗᵐ-preserves-Value)
+  (toRename-keep-eq; rename-openᵗ; renameᵗᵐ-preserves-Value)
 open import LR-narrow.WorldCore public
 open import LR-narrow.Atoms public
 
@@ -511,6 +512,42 @@ openFreshImprecision : ∀ {Δᴾ Δᴵ Δᶜ}
       ⊑ Aᴵ [ ＇ Fin.zero ]ᵗ
 openFreshImprecision Aᴾ⊑Aᴵ =
   subst-⊑ (λ { Fin.zero () ; (Fin.suc X) eq → I.X⊑★ eq }) Aᴾ⊑Aᴵ
+
+openRelatedBodyImprecision : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty (suc Δᴵ)}
+    {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
+  → I.extᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W)))) Aᴾ
+      ⊑ renameᵗ (extᵗ (toRenameᵗ (impreciseEmbedding (core W)))) Aᴵ
+  → Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ
+  → Aᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Aᴵ [ Rᴵ ]ᵗ
+openRelatedBodyImprecision {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} body-related argument-related =
+  subst (λ L → impEnv (core W) I.⊢ L ⊑ right)
+    (sym (rename-openᵗ (toRenameᵗ (preciseEmbedding (core W))) Aᴾ Rᴾ))
+    (subst (λ R → impEnv (core W) I.⊢ opened-left ⊑ R)
+      (sym (rename-openᵗ
+        (toRenameᵗ (impreciseEmbedding (core W))) Aᴵ Rᴵ))
+      (subst₂-⊑ same star body-related))
+  where
+  opened-left = renameᵗ (extᵗ
+    (toRenameᵗ (preciseEmbedding (core W)))) Aᴾ
+    [ embedPrecise (core W) Rᴾ ]ᵗ
+
+  right = embedImprecise (core W) (Aᴵ [ Rᴵ ]ᵗ)
+
+  same : ∀ X → impEnv (core W) I.⊢
+      singleSubᵗ (embedPrecise (core W) Rᴾ) X
+      ⊑ singleSubᵗ (embedImprecise (core W) Rᴵ) X
+  same Fin.zero = argument-related
+  same (Fin.suc X) = I.X⊑X
+
+  star : ∀ X → I.extᵐ (impEnv (core W)) X ≡ I.X⊑★
+    → impEnv (core W) I.⊢
+        singleSubᵗ (embedPrecise (core W) Rᴾ) X ⊑ ★
+  star Fin.zero ()
+  star (Fin.suc X) eq = I.X⊑★ eq
 
 openFreshDynamicImprecision : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ (suc Δᶜ)} {Aᴾ Aᴵ : Ty (suc (suc Δᶜ))}

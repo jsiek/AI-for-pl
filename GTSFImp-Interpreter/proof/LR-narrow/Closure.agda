@@ -42,6 +42,16 @@ dynamic-atom-tag-downward {W = W}
     tag-shape
     (dynamic-atom-downward (semanticEntry W Z) mode related)
 
+aligned-dynamic-atom-downward : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
+  → AlignedDynamicAtomRelated W Z (suc k) Vᴵ Vᴾ
+  → AlignedDynamicAtomRelated W Z k Vᴵ Vᴾ
+aligned-dynamic-atom-downward {W = W} {Z = Z}
+    (aligned-dynamic-atom-related G g ground-center μ G∼★ U
+      tag-shape related) =
+  aligned-dynamic-atom-related G g ground-center μ G∼★ U
+    tag-shape (paired-atom-downward (semanticEntry W Z) related)
+
 value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
@@ -103,8 +113,12 @@ value-imprecision-downward {p = I.ι⊑★} {k = suc k}
     (endpoints , shape , payload) =
   endpoints , shape , value-imprecision-downward payload
 value-imprecision-downward {W = W} {p = I.X⊑★ {X = X} eq}
-    {k = suc k} (endpoints , related) =
-  endpoints , dynamic-atom-downward (semanticEntry W X) eq related
+    {k = suc k} (endpoints , inj₁ related) =
+  endpoints , inj₁
+    (dynamic-atom-downward (semanticEntry W X) eq related)
+value-imprecision-downward {p = I.X⊑★ eq} {k = suc k}
+    (endpoints , inj₂ related) =
+  endpoints , inj₂ (aligned-dynamic-atom-downward related)
 value-imprecision-downward {p = I.∀⊑ nonvar occurs p} {k = suc k}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
   endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , tail
@@ -166,7 +180,7 @@ dynamic-semantic-atom-value {W = W} {X = X} eq related =
   let Xᴾ , eqᴾ , (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) =
         dynamic-atom-evidence (semanticEntry W X) eq related
   in typed-endpoints ★ (＇ Xᴾ) refl
-       (cong (λ Y → ＇ Y) eqᴾ) vVᴵ vVᴾ Vᴵ⊢ Vᴾ⊢ , related
+       (cong (λ Y → ＇ Y) eqᴾ) vVᴵ vVᴾ Vᴵ⊢ Vᴾ⊢ , inj₁ related
 
 precise-value-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′} {V}
@@ -729,6 +743,46 @@ dynamic-atom-tag-future {W′ = W′} W≼W′ related =
       (atom-precise-ground-proof related)
       (atom-precise-ground-to-star related))
 
+aligned-dynamic-atom-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Z k Vᴵ Vᴾ} (W≼W′ : Future W W′)
+  → AlignedDynamicAtomRelated W Z k Vᴵ Vᴾ
+  → AlignedDynamicAtomRelated W′ (liftCenterVariable W≼W′ Z) k
+      (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+aligned-dynamic-atom-future {W′ = W′} W≼W′ related =
+  aligned-dynamic-atom-related
+    (imprecise-ground-type W≼W′ (aligned-imprecise-ground related))
+    (imprecise-ground-future W≼W′
+      (aligned-imprecise-ground-proof related))
+    ground-center′
+    (imprecise-consistency-env-future W≼W′
+      (aligned-imprecise-consistency-env related))
+    (imprecise-ground-to-star-future W≼W′
+      (aligned-imprecise-ground-to-star related))
+    (liftImpreciseTerm W≼W′ (aligned-imprecise-payload related))
+    tag-shape′
+    (paired-atom-holds-future W≼W′
+      (aligned-atom-relation-holds related))
+  where
+  ground-center′ = trans
+    (cong (embedImprecise (core W′))
+      (imprecise-ground-type-eq W≼W′
+        (aligned-imprecise-ground related)))
+    (trans (embedImprecise-lift W≼W′
+        (aligned-imprecise-ground related))
+      (trans (cong (liftCenterTy W≼W′)
+          (aligned-imprecise-ground-center related))
+        (liftCenterTy-variable W≼W′ _)))
+
+  tag-shape′ = trans
+    (cong (liftImpreciseTerm W≼W′)
+      (aligned-imprecise-tag-shape related))
+    (imprecise-injection-future W≼W′
+      (aligned-imprecise-payload related)
+      (aligned-imprecise-ground-proof related)
+      (aligned-imprecise-ground-to-star related))
+
 right-dynamic-payload-shape-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -996,9 +1050,15 @@ value-imprecision-paired W r fresh {p = I.ι⊑★} {k = suc k}
      right-dynamic-payload-future step shape
        (value-imprecision-paired W r fresh payload)
 value-imprecision-paired W r fresh {p = I.X⊑★ eq} {k = suc k}
-    (endpoints , related) =
+    (endpoints , inj₁ related) =
   typed-endpoints-future (paired-future W r fresh) endpoints ,
-  dynamic-atom-holds-future (paired-future W r fresh) eq related
+  inj₁ (dynamic-atom-holds-future
+    (paired-future W r fresh) eq related)
+value-imprecision-paired W r fresh {p = I.X⊑★ eq} {k = suc k}
+    (endpoints , inj₂ related) =
+  typed-endpoints-future (paired-future W r fresh) endpoints ,
+  inj₂ (aligned-dynamic-atom-future
+    (paired-future W r fresh) related)
 value-imprecision-paired W r fresh
     {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = suc k}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
@@ -1202,9 +1262,15 @@ value-imprecision-precise W fresh {p = I.ι⊑★} {k = suc k}
      right-dynamic-payload-future step shape
        (value-imprecision-precise W fresh payload)
 value-imprecision-precise W fresh {p = I.X⊑★ eq} {k = suc k}
-    (endpoints , related) =
+    (endpoints , inj₁ related) =
   typed-endpoints-future (precise-future W fresh) endpoints ,
-  dynamic-atom-holds-future (precise-future W fresh) eq related
+  inj₁ (dynamic-atom-holds-future
+    (precise-future W fresh) eq related)
+value-imprecision-precise W fresh {p = I.X⊑★ eq} {k = suc k}
+    (endpoints , inj₂ related) =
+  typed-endpoints-future (precise-future W fresh) endpoints ,
+  inj₂ (aligned-dynamic-atom-future
+    (precise-future W fresh) related)
 value-imprecision-precise W fresh
     {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = suc k}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}

@@ -24,21 +24,25 @@ open import Types
 open import TyStore
 open import CastTerms
 import Consistency as C
+open C using (_[_]ᶜ)
 import Imprecision as I
 open import Reduction
 import Eval as E
 open import Interpreter
 open import proof.LR-narrow.TermSubstitution using (subst-closed)
+open import proof.TypeInTermSubst using (toRename-wk-eq)
 open import proof.ImprecisionConsistency using
   (expand-cast-source⊑; ground-cast-target⊑;
    ground-target-nonvar-to-star⊑;
    ground-targets-unique⊑; nonvar-occurs-nonstar;
    consistency-target-occurs-source; source-occurs-target;
    target-occurs-source;
-   renameᵗ-injective; shift-ground; shift-injectiveᵗ;
-   toRenameᵗ-injective)
+   ext-injective; rename-occurs; renameᵗ-injective; shift-ground;
+   shift-injectiveᵗ; ty-all-injective;
+   toRenameᵗ-injective; ty-var-injective)
 import proof.TypeSafety.Progress as Progress
 open import proof.TypeSafety.Progress using (no-bot-value)
+open import proof.Consistency using (gen-safe)
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
@@ -61,16 +65,29 @@ open import proof.LR-narrow.Application using
   (prepend-result; prepend-return; value-return-exact; value-unique;
    paired-returns-reindex; application-semantic-bounded)
 open import proof.LR-narrow.CastComposition using
-  (cast-computations-related; precise-cast-computations-related)
+  (cast-computations-related; precise-cast-computations-related;
+   computations-related-future-compose;
+   computations-related-post-bind-compose)
 open import proof.LR-narrow.BindStepExpansion using
   (StepReturn; step-return; StepBlame; step-blame;
    step-return-invert; step-return-expand;
    step-blame-invert; step-blame-expand)
 open import proof.LR-narrow.CastPhases using
   (cast-operand-nonvalue; cast-operand-step-question)
+open import proof.LR-narrow.TypeApplication using
+  (positive-universal-application; precise-body-lift-eq;
+   imprecise-body-lift-eq)
 open import proof.LR-narrow.Closure using
   (value-imprecision-downward-to)
 import proof.LR-narrow.Closure as ClosureProof
+
+reindex-center-imprecision : ∀ {Δ} {μ : I.ImpEnv Δ}
+    {A B A′ B′ : Ty Δ}
+  → μ I.⊢ A ⊑ B
+  → A ≡ A′
+  → B ≡ B′
+  → μ I.⊢ A′ ⊑ B′
+reindex-center-imprecision p refl refl = p
 
 dynamic-atom-tag-endpoints : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
@@ -125,13 +142,34 @@ dynamic-atom-tag-value : ∀ {Δᴾ Δᴵ Δᶜ}
   → ValueImprecision W I.★⊑★ (suc k) Vᴵ
       (Vᴾ ⟨ groundInjection gᴾ Gᴾ∼★ ⟩)
 dynamic-atom-tag-value {W = W} {Z = Z} {mode = mode}
-    gᴾ ground-center Gᴾ∼★ (endpoints , related) =
+    gᴾ ground-center Gᴾ∼★ (endpoints , inj₁ related) =
   dynamic-atom-tag-endpoints gᴾ ground-center Gᴾ∼★ endpoints ,
   inj₂ atom-tag
   where
 
   atom-tag = dynamic-atom-tag mode gᴾ ground-center Gᴾ∼★
-    (dynamic-atom-downward (semanticEntry W Z) mode related)
+    related
+dynamic-atom-tag-value {W = W} {Z = Z} {mode = mode}
+    gᴾ ground-center Gᴾ∼★ (endpoints , inj₂ related) =
+  dynamic-atom-tag-endpoints gᴾ ground-center Gᴾ∼★ endpoints ,
+  inj₁ (shape , payload-related)
+  where
+  payload-q = reindex-center-imprecision I.X⊑X
+    (sym ground-center)
+    (sym (aligned-imprecise-ground-center related))
+
+  paired-related = ClosureProof.semantic-atom-value
+    (aligned-atom-relation-holds related)
+
+  payload-related = ClosureProof.value-imprecision-reindex
+    payload-q I.X⊑X ground-center
+    (aligned-imprecise-ground-center related)
+    (value-imprecision-downward-to (n≤1+n _) paired-related)
+
+  shape = dynamic-payload-shape _ _ gᴾ
+    (aligned-imprecise-ground-proof related) _ _ Gᴾ∼★
+    (aligned-imprecise-ground-to-star related) _ _
+    (aligned-imprecise-tag-shape related) refl payload-q
 
 dynamic-atom-tag-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} (j : ℕ) {Z : TyVar Δᶜ}
@@ -285,14 +323,6 @@ ground-identity-injection-eq (‵ ι) G∼★ ns (‵ .ι)
 ground-identity-injection-eq ★⇒★ G∼★ ns ()
 ground-identity-injection-eq ∀★ G∼★ ns ()
 
-reindex-center-imprecision : ∀ {Δ} {μ : I.ImpEnv Δ}
-    {A B A′ B′ : Ty Δ}
-  → μ I.⊢ A ⊑ B
-  → A ≡ A′
-  → B ≡ B′
-  → μ I.⊢ A′ ⊑ B′
-reindex-center-imprecision p refl refl = p
-
 precise-atom-not-arrow : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {C : Ty Δᴾ} {A B : Ty Δᶜ}
   → Atom C
@@ -310,6 +340,15 @@ imprecise-atom-not-arrow : ∀ {Δᴾ Δᴵ Δᶜ}
 imprecise-atom-not-arrow (＇ X) ()
 imprecise-atom-not-arrow (‵ ι) ()
 imprecise-atom-not-arrow ★ ()
+
+precise-atom-not-all : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {C : Ty Δᴾ} {A : Ty (suc Δᶜ)}
+  → Atom C
+  → embedPrecise (core W) C ≡ `∀ A
+  → ⊥
+precise-atom-not-all (＇ X) ()
+precise-atom-not-all (‵ ι) ()
+precise-atom-not-all ★ ()
 
 precise-source-star : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {A : Ty Δᴾ}
@@ -354,6 +393,77 @@ variable-left-nonstar-target : ∀ {Δ} {μ : I.ImpEnv Δ}
   → A ≡ ＇ X
 variable-left-nonstar-target I.X⊑X nonstar = refl
 variable-left-nonstar-target (I.X⊑★ mode) ()
+
+dynamic-atom-target-occupant : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
+    {Gᴾ : Ty Δᴾ} {Dᴵ : Ty Δᴵ} {Bᴾ Bᴵ : Ty Δᶜ}
+  → embedPrecise (core W) Gᴾ ≡ ＇ Z
+  → NonStar Dᴵ
+  → (q : impEnv (core W) I.⊢ Bᴾ ⊑ Bᴵ)
+  → embedPrecise (core W) Gᴾ ≡ Bᴾ
+  → embedImprecise (core W) Dᴵ ≡ Bᴵ
+  → Σ[ Y ∈ TyVar Δᴵ ]
+      C.toRenameᵗ (impreciseEmbedding (core W)) Y ≡ Z
+dynamic-atom-target-occupant {W = W} {Z = Z} {Dᴵ = ★}
+    ground-center () q targetᴾ targetᴵ
+dynamic-atom-target-occupant {W = W} {Z = Z} {Dᴵ = ‵ ι}
+    ground-center nonstar q targetᴾ targetᴵ
+    with center-target
+  where
+  center-q : impEnv (core W) I.⊢ ＇ Z
+      ⊑ embedImprecise (core W) (‵ ι)
+  center-q = reindex-center-imprecision q
+    (trans (sym targetᴾ) ground-center) (sym targetᴵ)
+
+  center-target : embedImprecise (core W) (‵ ι) ≡ ＇ Z
+  center-target = variable-left-nonstar-target center-q
+    (C.renameNonStar
+      (C.toRenameᵗ (impreciseEmbedding (core W))) nonstar)
+dynamic-atom-target-occupant {Dᴵ = ‵ ι}
+    ground-center nonstar q targetᴾ targetᴵ | ()
+dynamic-atom-target-occupant {W = W} {Z = Z} {Dᴵ = ＇ Y}
+    ground-center nonstar q targetᴾ targetᴵ =
+  Y , ty-var-injective center-target
+  where
+  center-q : impEnv (core W) I.⊢ ＇ Z
+      ⊑ embedImprecise (core W) (＇ Y)
+  center-q = reindex-center-imprecision q
+    (trans (sym targetᴾ) ground-center) (sym targetᴵ)
+
+  center-target : embedImprecise (core W) (＇ Y) ≡ ＇ Z
+  center-target = variable-left-nonstar-target center-q
+    (C.renameNonStar
+      (C.toRenameᵗ (impreciseEmbedding (core W))) nonstar)
+dynamic-atom-target-occupant {W = W} {Z = Z} {Dᴵ = A ⇒ B}
+    ground-center nonstar q targetᴾ targetᴵ
+    with center-target
+  where
+  center-q : impEnv (core W) I.⊢ ＇ Z
+      ⊑ embedImprecise (core W) (A ⇒ B)
+  center-q = reindex-center-imprecision q
+    (trans (sym targetᴾ) ground-center) (sym targetᴵ)
+
+  center-target : embedImprecise (core W) (A ⇒ B) ≡ ＇ Z
+  center-target = variable-left-nonstar-target center-q
+    (C.renameNonStar
+      (C.toRenameᵗ (impreciseEmbedding (core W))) nonstar)
+dynamic-atom-target-occupant {Dᴵ = A ⇒ B}
+    ground-center nonstar q targetᴾ targetᴵ | ()
+dynamic-atom-target-occupant {W = W} {Z = Z} {Dᴵ = `∀ A}
+    ground-center nonstar q targetᴾ targetᴵ
+    with center-target
+  where
+  center-q : impEnv (core W) I.⊢ ＇ Z
+      ⊑ embedImprecise (core W) (`∀ A)
+  center-q = reindex-center-imprecision q
+    (trans (sym targetᴾ) ground-center) (sym targetᴵ)
+
+  center-target : embedImprecise (core W) (`∀ A) ≡ ＇ Z
+  center-target = variable-left-nonstar-target center-q
+    (C.renameNonStar
+      (C.toRenameᵗ (impreciseEmbedding (core W))) nonstar)
+dynamic-atom-target-occupant {Dᴵ = `∀ A}
+    ground-center nonstar q targetᴾ targetᴵ | ()
 
 base-consistency-no-generated-variable : ∀ {Δ} {μ : C.Env∼ Δ}
     {ι : Base} {B : Ty Δ} {X : TyVar Δ}
@@ -1069,6 +1179,69 @@ identity-cast-redex-question (vV ↓ conceal)
 identity-cast-redex-question (vV ↓ conceal) | vV′ , value-eq
     rewrite value-eq = vV′ , refl
 
+bot-intro-redex-question : ∀ {Δ}
+    {V : Term Δ} {μ : C.Env∼ Δ}
+  → (vV : Value V)
+  → Σ[ vV′ ∈ Value V ]
+      E.cast-redex? V (C.bot-intro {μ = μ}) ≡
+        just (E.step-result keep blame
+          (pure-step (blame-bot-intro vV′)))
+bot-intro-redex-question (ƛ N) = (ƛ N) , refl
+bot-intro-redex-question (Λ vV)
+    with value-question-complete (Λ vV)
+bot-intro-redex-question (Λ vV) | vV′ , value-eq
+    rewrite value-eq = vV′ , refl
+bot-intro-redex-question ($ κ) = ($ κ) , refl
+bot-intro-redex-question (vV 《 inert 》)
+    with value-question-complete (vV 《 inert 》)
+bot-intro-redex-question (vV 《 inert 》) | vV′ , value-eq
+    rewrite value-eq = vV′ , refl
+bot-intro-redex-question (vV ↑ reveal)
+    with value-question-complete (vV ↑ reveal)
+bot-intro-redex-question (vV ↑ reveal) | vV′ , value-eq
+    rewrite value-eq = vV′ , refl
+bot-intro-redex-question (vV ↓ conceal)
+    with value-question-complete (vV ↓ conceal)
+bot-intro-redex-question (vV ↓ conceal) | vV′ , value-eq
+    rewrite value-eq = vV′ , refl
+
+bot-intro-step-question : ∀ {Δ} {Σ : TyStore Δ}
+    {V : Term Δ} {μ : C.Env∼ Δ}
+  → (vV : Value V)
+  → Σ[ vV′ ∈ Value V ]
+      E.step? Σ (V ⟨ C.bot-intro {μ = μ} ⟩) ≡
+        just (E.step-result keep blame
+          (pure-step (blame-bot-intro vV′)))
+bot-intro-step-question {Σ = Σ} {V = V} vV
+    with E.step? Σ V | value-step-none {Σ = Σ} vV
+       | bot-intro-redex-question vV
+bot-intro-step-question vV
+    | nothing | step-eq | vV′ , redex-eq = vV′ , redex-eq
+bot-intro-step-question vV
+    | just step | () | redex-complete
+
+bot-intro-cast-value-none : ∀ {Δ} {V : Term Δ}
+    {μ : C.Env∼ Δ}
+  → Value V
+  → E.value? (V ⟨ C.bot-intro {μ = μ} ⟩) ≡ nothing
+bot-intro-cast-value-none vV with value-question-complete vV
+bot-intro-cast-value-none vV | vV′ , value-eq
+    rewrite value-eq = refl
+
+related-precise-bot-intro : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W} {k : ℕ}
+    {Mᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ} {μᴾ : C.Env∼ Δᴾ}
+  → Value Vᴾ
+  → ComputationsRelated W R k Mᴵ
+      (Vᴾ ⟨ C.bot-intro {μ = μᴾ} ⟩)
+related-precise-bot-intro {W = W} vVᴾ
+    with bot-intro-step-question
+      {Σ = preciseStore (core W)} vVᴾ
+related-precise-bot-intro vVᴾ | vVᴾ′ , step-eq =
+  precise-pure-step-to-blame (λ ())
+    (bot-intro-cast-value-none vVᴾ)
+    (blame-bot-intro vVᴾ′) step-eq
+
 identity-cast-step-question : ∀ {Δ} {Σ : TyStore Δ}
     {V : Term Δ} {μ : C.Env∼ Δ} {A : Ty Δ} {a : Atom A}
   → (vV : Value V)
@@ -1136,7 +1309,7 @@ dynamic-atom-source-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
 dynamic-atom-source-value-at zero holds =
   dynamic-atom-source-endpoints holds
 dynamic-atom-source-value-at (suc k) holds =
-  dynamic-atom-source-endpoints holds , holds
+  dynamic-atom-source-endpoints holds , inj₁ holds
 
 transport-paired-atom-holds : ∀ {Δᴾ Δᴵ Δᶜ mode mode′}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ}
@@ -1147,26 +1320,6 @@ transport-paired-atom-holds : ∀ {Δᴾ Δᴵ Δᶜ mode mode′}
   → PairedAtomHolds
       (subst≡ (SemanticEntry W X) eq entry) k Vᴵ Vᴾ
 transport-paired-atom-holds refl related = related
-
-paired-atom-dynamic-impossible : ∀ {Δᴾ Δᴵ Δᶜ}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ}
-    {entry : SemanticEntry W X I.X⊑★} {k : ℕ}
-    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → ⊥
-paired-atom-dynamic-impossible {entry = dynamic-entry atom} related =
-  related
-
-paired-value-dynamic-impossible : ∀ {Δᴾ Δᴵ Δᶜ}
-    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ} {X : TyVar Δᶜ}
-    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → (mode : impEnv (core W) X ≡ I.X⊑★)
-  → ValueImprecision W (I.X⊑X {X = X}) (suc k) Vᴵ Vᴾ
-  → ⊥
-paired-value-dynamic-impossible {W = W} {X = X} mode
-    (endpoints , related) =
-  paired-atom-dynamic-impossible
-    (transport-paired-atom-holds mode related)
 
 right-dynamic-tag-endpoints : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
     {W : World Δᴾ Δᴵ Δᶜ} {Gᴵ : Ty Δᴵ}
@@ -1270,13 +1423,19 @@ right-dynamic-ground-tag-value-at zero ∀★ gᴵ Gᴵ∼★ payload-q
     (sym left-eq) refl
     (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.∀★⊑★ related)
 right-dynamic-ground-tag-value-at {W = W} (suc j) (＇ X)
-    gᴵ Gᴵ∼★ payload-q
+    {Gᴵ = Gᴵ} gᴵ Gᴵ∼★ payload-q
     output-q left-eq related
     with reindex-center-imprecision output-q (sym left-eq) refl
 right-dynamic-ground-tag-value-at {W = W} (suc j) (＇ X)
-    gᴵ Gᴵ∼★ payload-q
-    output-q left-eq related | I.X⊑★ mode
-  = ⊥-elim (paired-value-dynamic-impossible mode paired-related)
+    {Gᴵ = Gᴵ} gᴵ Gᴵ∼★ payload-q
+    output-q left-eq related | I.X⊑★ mode =
+  let paired-endpoints , paired-holds = paired-related
+  in ClosureProof.value-imprecision-reindex output-q (I.X⊑★ mode)
+       (sym left-eq) refl
+       (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q
+         (I.X⊑★ mode) related ,
+       inj₂ (aligned-dynamic-atom-related Gᴵ gᴵ target-eq _ Gᴵ∼★
+         _ refl paired-holds))
   where
   target-nonstar = C.renameNonStar
     (C.toRenameᵗ (impreciseEmbedding (core W)))
@@ -2031,6 +2190,111 @@ imprecise-consistency-future
 imprecise-consistency-future (future-precise W≼W′ fresh) c =
   imprecise-consistency-future W≼W′ c
 
+precise-universal-body-consistency-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {A B : Ty (suc Δᴾ)} {μ : C.Env∼ Δᴾ}
+  → (W≼W′ : Future W W′)
+  → C.extᵐ μ C.⊢ A ∼ B
+  → C.extᵐ (ClosureProof.precise-consistency-env-future W≼W′ μ) C.⊢
+      liftPreciseBody W≼W′ A ∼ liftPreciseBody W≼W′ B
+precise-universal-body-consistency-future future-refl c = c
+precise-universal-body-consistency-future {μ = μ}
+    (future-paired W≼W′ related fresh) c =
+  C.rename∼
+    {μ = C.extᵐ
+      (ClosureProof.precise-consistency-env-future W≼W′ μ)}
+    {μ′ = C.extᵐ
+      (C.renameEnv∼ C.wk↪ᵗ
+        (ClosureProof.precise-consistency-env-future W≼W′ μ))}
+    (extᵗ Fin.suc)
+    (C.extᵐ-rename Fin.suc
+      (λ X → trans
+        (cong (C.renameEnv∼ C.wk↪ᵗ
+          (ClosureProof.precise-consistency-env-future W≼W′ μ))
+          (sym (toRename-wk-eq X)))
+        (C.renameEnv∼-preserves C.wk↪ᵗ
+          (ClosureProof.precise-consistency-env-future W≼W′ μ) X)))
+    (precise-universal-body-consistency-future W≼W′ c)
+precise-universal-body-consistency-future {μ = μ}
+    (future-precise W≼W′ fresh) c =
+  C.rename∼
+    {μ = C.extᵐ
+      (ClosureProof.precise-consistency-env-future W≼W′ μ)}
+    {μ′ = C.extᵐ
+      (C.renameEnv∼ C.wk↪ᵗ
+        (ClosureProof.precise-consistency-env-future W≼W′ μ))}
+    (extᵗ Fin.suc)
+    (C.extᵐ-rename Fin.suc
+      (λ X → trans
+        (cong (C.renameEnv∼ C.wk↪ᵗ
+          (ClosureProof.precise-consistency-env-future W≼W′ μ))
+          (sym (toRename-wk-eq X)))
+        (C.renameEnv∼-preserves C.wk↪ᵗ
+          (ClosureProof.precise-consistency-env-future W≼W′ μ) X)))
+    (precise-universal-body-consistency-future W≼W′ c)
+
+imprecise-universal-body-consistency-future : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {A B : Ty (suc Δᴵ)} {μ : C.Env∼ Δᴵ}
+  → (W≼W′ : Future W W′)
+  → C.extᵐ μ C.⊢ A ∼ B
+  → C.extᵐ (ClosureProof.imprecise-consistency-env-future W≼W′ μ) C.⊢
+      liftImpreciseBody W≼W′ A ∼ liftImpreciseBody W≼W′ B
+imprecise-universal-body-consistency-future future-refl c = c
+imprecise-universal-body-consistency-future {μ = μ}
+    (future-paired W≼W′ related fresh) c =
+  C.rename∼
+    {μ = C.extᵐ
+      (ClosureProof.imprecise-consistency-env-future W≼W′ μ)}
+    {μ′ = C.extᵐ
+      (C.renameEnv∼ C.wk↪ᵗ
+        (ClosureProof.imprecise-consistency-env-future W≼W′ μ))}
+    (extᵗ Fin.suc)
+    (C.extᵐ-rename Fin.suc
+      (λ X → trans
+        (cong (C.renameEnv∼ C.wk↪ᵗ
+          (ClosureProof.imprecise-consistency-env-future W≼W′ μ))
+          (sym (toRename-wk-eq X)))
+        (C.renameEnv∼-preserves C.wk↪ᵗ
+          (ClosureProof.imprecise-consistency-env-future W≼W′ μ) X)))
+    (imprecise-universal-body-consistency-future W≼W′ c)
+imprecise-universal-body-consistency-future
+    (future-precise W≼W′ fresh) c =
+  imprecise-universal-body-consistency-future W≼W′ c
+
+lift-precise-universal-cast : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {μ : C.Env∼ Δᴾ}
+    {A B : Ty (suc Δᴾ)} (M : Term Δᴾ)
+    (c : C.extᵐ μ C.⊢ A ∼ B)
+  → liftPreciseTerm W≼W′ (M ⟨ C.∀ᶜ c ⟩) ≡
+      liftPreciseTerm W≼W′ M
+        ⟨ C.∀ᶜ (precise-universal-body-consistency-future W≼W′ c) ⟩
+lift-precise-universal-cast future-refl M c = refl
+lift-precise-universal-cast (future-paired W≼W′ related fresh) M c
+    rewrite lift-precise-universal-cast W≼W′ M c = refl
+lift-precise-universal-cast (future-precise W≼W′ fresh) M c
+    rewrite lift-precise-universal-cast W≼W′ M c = refl
+
+lift-imprecise-universal-cast : ∀
+    {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {μ : C.Env∼ Δᴵ}
+    {A B : Ty (suc Δᴵ)} (M : Term Δᴵ)
+    (c : C.extᵐ μ C.⊢ A ∼ B)
+  → liftImpreciseTerm W≼W′ (M ⟨ C.∀ᶜ c ⟩) ≡
+      liftImpreciseTerm W≼W′ M
+        ⟨ C.∀ᶜ (imprecise-universal-body-consistency-future W≼W′ c) ⟩
+lift-imprecise-universal-cast future-refl M c = refl
+lift-imprecise-universal-cast
+    (future-paired W≼W′ related fresh) M c
+    rewrite lift-imprecise-universal-cast W≼W′ M c = refl
+lift-imprecise-universal-cast (future-precise W≼W′ fresh) M c =
+  lift-imprecise-universal-cast W≼W′ M c
+
 precise-ground-type-arrow : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2345,6 +2609,17 @@ function-cast-redex-none (vV 《 inert 》) = refl
 function-cast-redex-none (vV ↑ reveal) = refl
 function-cast-redex-none (vV ↓ conceal) = refl
 
+universal-cast-redex-none : ∀ {Δ} {V : Term Δ} {μ : C.Env∼ Δ}
+    {A B : Ty (suc Δ)} {c : C.extᵐ μ C.⊢ A ∼ B}
+  → Value V
+  → E.cast-redex? V (C.∀ᶜ c) ≡ nothing
+universal-cast-redex-none (ƛ N) = refl
+universal-cast-redex-none (Λ vV) = refl
+universal-cast-redex-none ($ κ) = refl
+universal-cast-redex-none (vV 《 inert 》) = refl
+universal-cast-redex-none (vV ↑ reveal) = refl
+universal-cast-redex-none (vV ↓ conceal) = refl
+
 function-cast-step-none : ∀ {Δ} {Σ : TyStore Δ}
     {V : Term Δ} {μ : C.Env∼ Δ}
     {A A′ B B′ : Ty Δ}
@@ -2428,6 +2703,38 @@ function-cast-application-step-question vV vU
     | nothing | refl | nothing | refl | nothing | refl
     | vV′ , vU′ , final-eq =
   vV′ , vU′ , final-eq
+
+universal-cast-type-application-step-question : ∀
+    {Δ} {Σ : TyStore Δ} {V : Term Δ} {μ : C.Env∼ Δ}
+    {A B : Ty (suc Δ)} {R : Ty Δ} {c : C.extᵐ μ C.⊢ A ∼ B}
+  → Value V
+  → Σ[ vV′ ∈ Value V ]
+      E.step? Σ ((V ⟨ C.∀ᶜ c ⟩) ⦂∀ B [ R ]) ≡
+        just (E.step-result keep
+          ((V ⦂∀ A [ R ]) ⟨ c [ R ]ᶜ ⟩)
+          (pure-step (β-∀ vV′ refl)))
+universal-cast-type-application-step-question
+    {Σ = Σ} {V = V} {c = c} vV
+    with E.step? Σ V | value-step-none {Σ = Σ} vV
+universal-cast-type-application-step-question
+    {Σ = Σ} {V = V} {c = c} vV
+    | nothing | refl
+    with E.cast-redex? V (C.∀ᶜ c)
+       | universal-cast-redex-none {V = V} {c = c} vV
+universal-cast-type-application-step-question
+    {V = V} {B = B} {c = c} vV
+    | nothing | refl | nothing | refl
+    with E.value? V | value-question-complete vV | B ≟Ty B in type-eq
+universal-cast-type-application-step-question vV
+    | nothing | refl | nothing | refl
+    | just vV′ | .vV′ , refl | yes refl
+    rewrite type-eq = vV′ , refl
+universal-cast-type-application-step-question vV
+    | nothing | refl | nothing | refl
+    | just vV′ | .vV′ , refl | no B≢B = ⊥-elim (B≢B refl)
+universal-cast-type-application-step-question vV
+    | nothing | refl | nothing | refl
+    | nothing | vV′ , () | type-eq
 
 groundProjection : ∀ {Δ} {μ : C.Env∼ Δ} {G B : Ty Δ}
   → (g : Ground G)
@@ -2892,6 +3199,59 @@ tag-projection-step-view {Σ = Σ} {U = U} {H = H} {G = G}
       (vU′ 《 inj ⦃ Gᵍ = h ⦄ ⦃ G∼★ = H∼★ ⦄
         ⦃ Gns = C.ground-nonstar h ⦄ 》) redex-eq)
 
+data GroundExpandedCastView {Δ : TyCtx}
+    {V : Term Δ} {μ : C.Env∼ Δ} :
+    ∀ {G B : Ty Δ}
+    → Ground G
+    → μ C.⊢ G ∼ B
+    → NonStar B
+    → Value V
+    → Set where
+  ground-cast-value : ∀ {G B} {g : Ground G}
+      {c : μ C.⊢ G ∼ B} {Bns : NonStar B} {vV : Value V}
+    → Value (V ⟨ c ⟩)
+    → GroundExpandedCastView g c Bns vV
+  ground-cast-blame : ∀ {vV : Value V}
+      {bottom-nonstar : NonStar (`∀ (＇ Fin.zero))}
+    → GroundExpandedCastView ∀★ C.bot-intro bottom-nonstar vV
+
+ground-expanded-cast-view : ∀ {Δ} {Σ : TyStore Δ}
+    {V : Term Δ} {μ : C.Env∼ Δ} {G B : Ty Δ}
+    (g : Ground G) (c : μ C.⊢ G ∼ B) (Bns : NonStar B)
+    (vV : Value V)
+  → ⟨ Δ , Σ , [] ⟩ ⊢ V ⦂ G
+  → B ≢ G
+  → GroundExpandedCastView g c Bns vV
+ground-expanded-cast-view (＇ X) (C.id x) Bns vV V⊢ B≢G =
+  ⊥-elim (B≢G refl)
+ground-expanded-cast-view (＇ X)
+    ((C.gen_ ⦃ Bnv ⦄ ⦃ occurs ⦄ c) A≢★)
+    Bns vV V⊢ B≢G =
+  ⊥-elim
+    (variable-consistency-no-generated-variable (λ ()) c occurs)
+ground-expanded-cast-view (‵ ι) (C.id x) Bns vV V⊢ B≢G =
+  ⊥-elim (B≢G refl)
+ground-expanded-cast-view (‵ ι)
+    ((C.gen_ ⦃ Bnv ⦄ ⦃ occurs ⦄ c) A≢★)
+    Bns vV V⊢ B≢G =
+  ⊥-elim (base-generalization-impossible c Bnv occurs)
+ground-expanded-cast-view ★⇒★ (c C.↦ d) Bns vV V⊢ B≢G =
+  ground-cast-value (vV 《 fun 》)
+ground-expanded-cast-view ★⇒★
+    ((C.gen_ ⦃ Bnv ⦄ ⦃ occurs ⦄ c) A≢★)
+    Bns vV V⊢ B≢G =
+  ground-cast-value
+    (vV 《 genᵥ A≢★ (gen-safe c A≢★ Bnv occurs) 》)
+ground-expanded-cast-view ∀★ (C.∀ᶜ c) Bns vV V⊢ B≢G =
+  ground-cast-value (vV 《 all 》)
+ground-expanded-cast-view ∀★
+    ((C.gen_ ⦃ Bnv ⦄ ⦃ occurs ⦄ c) A≢★)
+    Bns vV V⊢ B≢G =
+  ground-cast-value
+    (vV 《 genᵥ A≢★ (gen-safe c A≢★ Bnv occurs) 》)
+ground-expanded-cast-view ∀★ C.bot-intro Bns vV V⊢ B≢G =
+  ground-cast-blame
+
 {-# TERMINATING #-}
 related-value-casts : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
@@ -3193,7 +3553,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -3227,10 +3587,10 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   where
   source-q = I.X⊑★ mode
   source-related = dynamic-atom-source-value-at
-    {W = W} k {Z = Z} {mode = mode}
+    {W = W} (suc k) {Z = Z} {mode = mode}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
   source-endpoints = dynamic-atom-source-endpoints
-    {W = W} {Z = Z} {mode = mode} {k = k}
+    {W = W} {Z = Z} {mode = mode} {k = suc k}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
 
   source-immediate : ComputationsRelated W
@@ -3238,7 +3598,8 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   source-immediate = related-values-return
     (imprecise-value source-endpoints)
     (precise-value source-endpoints)
-    (λ j j≤k → value-imprecision-downward-to j≤k source-related)
+    (λ j j≤k → value-imprecision-downward-to
+      (≤-trans j≤k (n≤1+n k)) source-related)
 
   precise-eq = trans (sym ground-center) targetᴾ
   imprecise-eq = trans (sym sourceᴵ) targetᴵ
@@ -3271,7 +3632,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -3357,6 +3718,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
       cᴾ ⦃ Bns = nsᴾ ⦄)
+    {μᴵ = μᴵ}
     (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
       cᴵ ⦃ Bns = nsᴵ ⦄)
     q targetᴾ targetᴵ {k = suc k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
@@ -3540,7 +3902,95 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
         Hᴾ∼★ Hᴵ∼★ Uᴾ Uᴵ refl refl payload-q
     | projection-expanded Bᴾ≠Gᴾ precise-step precise-step-eq
     | tag-matched Hᴾ≡Gᴾ inner-step inner-step-eq
-    | projection-same = ?
+    | projection-same
+    with tag-projection-step-view {Σ = impreciseStore (core W)}
+      hᴵ gᴵ Hᴵ∼★ ★∼Gᴵ
+      (imprecise-value (value-imprecision-endpoints payload-related))
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₁ (shape , payload-related))
+    | dynamic-payload-shape Hᴾ Hᴵ hᴾ hᴵ μᴾ′ μᴵ′
+        Hᴾ∼★ Hᴵ∼★ Uᴾ Uᴵ refl refl payload-q
+    | projection-expanded Bᴾ≠Gᴾ precise-step precise-step-eq
+    | tag-matched Hᴾ≡Gᴾ inner-step inner-step-eq
+    | projection-same
+    | tag-matched Hᴵ≡Gᴵ imprecise-step imprecise-step-eq =
+  related-pure-step-expand (λ ()) (λ ())
+    (projection-cast-value-none gᴵ ★∼Gᴵ (C.idᵍ gᴵ)
+      (C.ground-nonstar gᴵ) (imprecise-value endpoints))
+    (projection-cast-value-none gᴾ ★∼Gᴾ cᴾ nsᴾ
+      (precise-value endpoints))
+    imprecise-step precise-step imprecise-step-eq precise-step-eq
+    after-outer
+  where
+  precise-inner-value-eq = projection-cast-value-none
+    gᴾ ★∼Gᴾ (C.idᵍ gᴾ) (C.ground-nonstar gᴾ)
+    (precise-value endpoints)
+
+  payload-endpoints = value-imprecision-endpoints payload-related
+
+  precise-payload-type-eq : preciseType payload-endpoints ≡ Gᴾ
+  precise-payload-type-eq = renameᵗ-injective
+    (toRenameᵗ-injective (preciseEmbedding (core W)))
+    (trans (preciseEmbedded payload-endpoints)
+      (cong (embedPrecise (core W)) Hᴾ≡Gᴾ))
+
+  precise-payload-typed = subst≡
+    (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ Uᴾ ⦂ A)
+    precise-payload-type-eq (precise-typed payload-endpoints)
+
+  precise-source-eq = cong (embedPrecise (core W)) (sym Hᴾ≡Gᴾ)
+
+  imprecise-target-eq = trans
+    (cong (embedImprecise (core W)) Hᴵ≡Gᴵ) targetᴵ
+
+  residual : ComputationsRelated W (FutureValueRelation q) k
+      Uᴵ (Uᴾ ⟨ cᴾ ⟩)
+  residual with ground-expanded-cast-view
+    gᴾ cᴾ nsᴾ
+    (precise-value payload-endpoints) precise-payload-typed Bᴾ≠Gᴾ
+  residual | ground-cast-value precise-cast-value =
+    related-values-return (imprecise-value payload-endpoints)
+      precise-cast-value casted-at
+    where
+    casted-at : ∀ j → j ≤ k
+      → FutureValueRelation q W future-refl j Uᴵ (Uᴾ ⟨ cᴾ ⟩)
+    casted-at j j≤k = ?
+  residual | ground-cast-blame =
+    related-precise-bot-intro (precise-value payload-endpoints)
+
+  after-outer : ComputationsRelated W (FutureValueRelation q) k Uᴵ
+      (((Uᴾ ⟨ groundInjection hᴾ Hᴾ∼★ ⟩)
+        ⟨ groundProjection gᴾ ★∼Gᴾ (C.idᵍ gᴾ)
+          (C.ground-nonstar gᴾ) ⟩) ⟨ cᴾ ⟩)
+  after-outer = related-precise-keep-step-expand (λ ())
+    (cast-operand-nonvalue {c = cᴾ} precise-inner-value-eq)
+    (ξ-⟨⟩ (pure-step inner-step) refl)
+    (cast-operand-pure-step-question
+      {Σ = preciseStore (core W)} {c = cᴾ} inner-step-eq)
+    residual
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    {μᴵ = μᴵ}
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₁ (shape , payload-related))
+    | dynamic-payload-shape Hᴾ Hᴵ hᴾ hᴵ μᴾ′ μᴵ′
+        Hᴾ∼★ Hᴵ∼★ Uᴾ Uᴵ refl refl payload-q
+    | projection-expanded Bᴾ≠Gᴾ precise-step precise-step-eq
+    | tag-matched Hᴾ≡Gᴾ inner-step inner-step-eq
+    | projection-same
+    | tag-mismatched Hᴵ≢Gᴵ imprecise-step imprecise-step-eq =
+  ⊥-elim (Hᴵ≢Gᴵ (dynamic-payload-cast-tags-agree
+    {W = W} {μᴵ = μᴵ}
+    hᴵ gᴾ gᴵ Hᴾ≡Gᴾ payload-q cᴾ nsᴾ (C.idᵍ {μ = μᴵ} gᴵ)
+    (C.ground-nonstar gᴵ) q targetᴾ targetᴵ))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
       cᴾ ⦃ Bns = nsᴾ ⦄)
@@ -3679,10 +4129,159 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
       cᴵ ⦃ Bns = nsᴵ ⦄)
     q targetᴾ targetᴵ {k = suc k}
-    -- CTI.cast⊑cast² does not relate Gᴾ and Gᴵ.  For the atom-tag
-    -- alternative the precise projection can therefore return while the
-    -- imprecise projection checks an unrelated tag and blames.
-    (endpoints , inj₂ atom-related) = ?
+    (endpoints , inj₂ atom-related) with atom-related
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode Hᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    with projection-step-view {Σ = preciseStore (core W)}
+      gᴾ cᴾ ★∼Gᴾ nsᴾ (precise-value endpoints)
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode Hᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-same
+    with tag-projection-step-view {Σ = preciseStore (core W)}
+      hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
+      (precise-value (dynamic-atom-source-endpoints
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {Vᴾ = Uᴾ} holds))
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode .Gᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-same
+    | tag-matched refl precise-step precise-step-eq =
+  ⊥-elim (dynamic-atom-no-target (semanticEntry W Z) mode
+    holds
+    (dynamic-atom-target-occupant {W = W} {Z = Z} {Gᴾ = Gᴾ}
+      ground-center nsᴵ q targetᴾ targetᴵ))
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode Hᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-same
+    | tag-mismatched Hᴾ≢Gᴾ precise-step precise-step-eq =
+  precise-pure-step-to-blame (λ ())
+    (projection-cast-value-none gᴾ ★∼Gᴾ (C.idᵍ gᴾ)
+      (C.ground-nonstar gᴾ) (precise-value endpoints))
+    precise-step precise-step-eq
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode Hᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-expanded Bᴾ≢Gᴾ precise-step precise-step-eq
+    with tag-projection-step-view {Σ = preciseStore (core W)}
+      hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
+      (precise-value (dynamic-atom-source-endpoints
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {Vᴾ = Uᴾ} holds))
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k} {Vᴵ = Vᴵ}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode .Gᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-expanded Bᴾ≢Gᴾ precise-step precise-step-eq
+    | tag-matched refl inner-step inner-step-eq =
+  related-precise-keep-step-expand (λ ())
+    (projection-cast-value-none gᴾ ★∼Gᴾ cᴾ nsᴾ
+      (precise-value endpoints))
+    (pure-step precise-step) precise-step-eq after-inner
+  where
+  source-q = I.X⊑★ mode
+  source-related = dynamic-atom-source-value-at
+    {W = W} (suc k) {Z = Z} {mode = mode}
+    {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
+
+  inner-value-eq = projection-cast-value-none gᴾ ★∼Gᴾ
+    (C.idᵍ gᴾ) (C.ground-nonstar gᴾ)
+    (precise-value endpoints)
+
+  residual : ComputationsRelated W (FutureValueRelation q) (suc k)
+      (Vᴵ ⟨ groundProjection gᴵ ★∼Gᴵ cᴵ nsᴵ ⟩)
+      (Uᴾ ⟨ cᴾ ⟩)
+  residual = related-value-casts source-q ground-center refl cᴾ
+    (groundProjection gᴵ ★∼Gᴵ cᴵ nsᴵ)
+    q targetᴾ targetᴵ source-related
+
+  after-inner : ComputationsRelated W (FutureValueRelation q) (suc k)
+      (Vᴵ ⟨ groundProjection gᴵ ★∼Gᴵ cᴵ nsᴵ ⟩)
+      (((Uᴾ ⟨ groundInjection hᴾ Hᴾ∼★ ⟩)
+        ⟨ groundProjection gᴾ ★∼Gᴾ (C.idᵍ gᴾ)
+          (C.ground-nonstar gᴾ) ⟩) ⟨ cᴾ ⟩)
+  after-inner = related-precise-keep-step-expand (λ ())
+    (cast-operand-nonvalue {c = cᴾ} inner-value-eq)
+    (ξ-⟨⟩ (pure-step inner-step) refl)
+    (cast-operand-pure-step-question
+      {Σ = preciseStore (core W)} {c = cᴾ} inner-step-eq)
+    residual
+related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
+    (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
+      cᴾ ⦃ Bns = nsᴾ ⦄)
+    (C.？_ {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ ★∼G = ★∼Gᴵ ⦄
+      cᴵ ⦃ Bns = nsᴵ ⦄)
+    q targetᴾ targetᴵ {k = suc k} {Vᴵ = Vᴵ}
+    (endpoints , inj₂ atom-related)
+    | dynamic-atom-tag-related Z mode Hᴾ hᴾ ground-center μᴾ′
+        Hᴾ∼★ Uᴾ refl holds
+    | projection-expanded Bᴾ≢Gᴾ precise-step precise-step-eq
+    | tag-mismatched Hᴾ≢Gᴾ inner-step inner-step-eq =
+  related-precise-keep-step-expand (λ ())
+    (projection-cast-value-none gᴾ ★∼Gᴾ cᴾ nsᴾ
+      (precise-value endpoints))
+    (pure-step precise-step) precise-step-eq after-inner
+  where
+  inner-value-eq = projection-cast-value-none gᴾ ★∼Gᴾ
+    (C.idᵍ gᴾ) (C.ground-nonstar gᴾ)
+    (precise-value endpoints)
+
+  blame-tail : ComputationsRelated W (FutureValueRelation q) (suc k)
+      (Vᴵ ⟨ groundProjection gᴵ ★∼Gᴵ cᴵ nsᴵ ⟩)
+      (blame ⟨ cᴾ ⟩)
+  blame-tail = precise-pure-step-to-blame (λ ()) refl blame-⟨⟩
+    (blame-cast-step-question
+      {Σ = preciseStore (core W)} {c = cᴾ})
+
+  after-inner : ComputationsRelated W (FutureValueRelation q) (suc k)
+      (Vᴵ ⟨ groundProjection gᴵ ★∼Gᴵ cᴵ nsᴵ ⟩)
+      (((Uᴾ ⟨ groundInjection hᴾ Hᴾ∼★ ⟩)
+        ⟨ groundProjection gᴾ ★∼Gᴾ (C.idᵍ gᴾ)
+          (C.ground-nonstar gᴾ) ⟩) ⟨ cᴾ ⟩)
+  after-inner = related-precise-keep-step-expand (λ ())
+    (cast-operand-nonvalue {c = cᴾ} inner-value-eq)
+    (ξ-⟨⟩ (pure-step inner-step) refl)
+    (cast-operand-pure-step-question
+      {Σ = preciseStore (core W)} {c = cᴾ} inner-step-eq)
+    blame-tail
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
       cᴾ ⦃ Bns = nsᴾ ⦄)
@@ -3921,8 +4520,32 @@ related-value-casts {W = W} I.X⊑X sourceᴾ sourceᴵ (C.id aᴾ)
 related-value-casts {W = W} I.X⊑X sourceᴾ sourceᴵ (C.id aᴾ)
     (C._! {G = Gᴵ} ⦃ Gᵍ = gᴵ ⦄ ⦃ G∼★ = Gᴵ∼★ ⦄
       (C.id aᴵ) ⦃ Ans = nsᴵ ⦄)
-    q targetᴾ targetᴵ {k = suc k} related | I.X⊑★ mode =
-  ⊥-elim (paired-value-dynamic-impossible mode related)
+    q targetᴾ targetᴵ {k = suc k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , paired-holds)
+    | I.X⊑★ mode =
+  ClosureProof.computations-related-reindex (I.X⊑★ mode) q
+    (trans (sym sourceᴾ) targetᴾ) targetᴵ
+    (cong (λ c → Vᴵ ⟨ c ⟩) (sym injection-eq)) refl
+    (related-precise-identity tagged-related)
+  where
+  payload-q = subst≡
+    (λ A → impEnv (core W) I.⊢ _ ⊑ A)
+    (sym sourceᴵ) I.X⊑X
+
+  payload-related : ValueImprecision W payload-q (suc k) Vᴵ Vᴾ
+  payload-related = ClosureProof.value-imprecision-reindex
+    payload-q I.X⊑X refl sourceᴵ (endpoints , paired-holds)
+
+  tagged-related : ValueImprecision W (I.X⊑★ mode) (suc k)
+      (Vᴵ ⟨ groundInjection gᴵ Gᴵ∼★ ⟩) Vᴾ
+  tagged-related =
+    right-dynamic-tag-endpoints {W = W} gᴵ Gᴵ∼★
+      payload-q (I.X⊑★ mode) payload-related ,
+    inj₂ (aligned-dynamic-atom-related Gᴵ gᴵ sourceᴵ _ Gᴵ∼★
+      Vᴵ refl paired-holds)
+
+  injection-eq = ground-identity-injection-eq
+    gᴵ Gᴵ∼★ nsᴵ aᴵ
 related-value-casts {W = W} I.X⊑X sourceᴾ sourceᴵ (C.id aᴾ)
     (C._! ((C.gen_ ⦃ Bnvᴵ ⦄ ⦃ occursᴵ ⦄ cᴵ) Aᴵ≢★))
     q targetᴾ targetᴵ related =
@@ -4255,12 +4878,24 @@ related-value-casts {W = W}
       imprecise-close-eq precise-close-eq applied-raw
 
     casted = cast-computations-related
+      {R = FutureValueRelation source-codomain-local′}
+      {S = FutureValueRelation
+        (liftCenterImprecision W≼W′ target-codomain)}
       source-codomain-local′ refl refl c₂ᴾ′ c₂ᴵ′
       (liftCenterImprecision W≼W′ target-codomain)
       target-codomainᴾ′ target-codomainᴵ′ j
       (liftImpreciseTerm W≼W′ Vᴵ · (Uᴵ ⟨ c₁ᴵ′ ⟩))
       (liftPreciseTerm W≼W′ Vᴾ · (Uᴾ ⟨ c₁ᴾ′ ⟩))
-      related-value-casts applied
+      (λ W′≼W″ sourceᴾ″ sourceᴵ″ cᴾ″ cᴵ″ targetᴾ″ targetᴵ″
+          related″ →
+        computations-related-future-compose W′≼W″
+          (liftCenterImprecision W≼W′ target-codomain)
+          (related-value-casts
+            (liftCenterImprecision W′≼W″ source-codomain-local′)
+            sourceᴾ″ sourceᴵ″ cᴾ″ cᴵ″
+            (liftCenterImprecision W′≼W″
+              (liftCenterImprecision W≼W′ target-codomain))
+            targetᴾ″ targetᴵ″ related″)) applied
 
     expanded : ComputationsRelated W′
         (FutureValueRelation
@@ -4405,6 +5040,207 @@ related-value-casts (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ (cᴾ C.!) cᴵ r
     targetᴾ targetᴵ related = ?
 related-value-casts (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ ((C.gen cᴾ) Aᴾ≢★)
     cᴵ r targetᴾ targetᴵ related = ?
+related-value-casts {W = W}
+    {Cᴾ = `∀ Aᴾ₀} {Dᴾ = `∀ Aᴾ₁}
+    {Cᴵ = `∀ Aᴵ₀} {Dᴵ = `∀ Aᴵ₁}
+    (I.∀⊑∀ p) sourceᴾ sourceᴵ (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ)
+    q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    with reindex-center-imprecision (I.∀⊑∀ p)
+           (sym sourceᴾ) (sym sourceᴵ)
+       | reindex-center-imprecision q (sym targetᴾ) (sym targetᴵ)
+related-value-casts {W = W}
+    {Cᴾ = `∀ Aᴾ₀} {Dᴾ = `∀ Aᴾ₁}
+    {Cᴵ = `∀ Aᴵ₀} {Dᴵ = `∀ Aᴵ₁}
+    (I.∀⊑∀ p) sourceᴾ sourceᴵ (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ)
+    q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | I.∀⊑∀ source-body | I.∀⊑∀ target-body =
+  ClosureProof.computations-related-reindex target-local q
+    targetᴾ targetᴵ refl refl
+    (related-values-return
+      (imprecise-value source-endpoints 《 all 》)
+      (precise-value source-endpoints 《 all 》) at-every-index)
+  where
+  source-local = I.∀⊑∀ source-body
+  target-local = I.∀⊑∀ target-body
+
+  source-related : ValueImprecision W source-local k Vᴵ Vᴾ
+  source-related = ClosureProof.value-imprecision-reindex
+    source-local (I.∀⊑∀ p) sourceᴾ sourceᴵ related
+
+  source-endpoints : TypedEndpoints W source-local Vᴵ Vᴾ
+  source-endpoints = value-imprecision-endpoints source-related
+
+  universals-related : ∀ j
+    → ValueImprecision W source-local (suc j) Vᴵ Vᴾ
+    → UniversalsRelated W target-body Aᴾ₁ Aᴵ₁ (suc j)
+        (Vᴵ ⟨ C.∀ᶜ cᴵ ⟩) (Vᴾ ⟨ C.∀ᶜ cᴾ ⟩)
+
+  universal-head : ∀ j
+    → ValueImprecision W source-local (suc j) Vᴵ Vᴾ
+    → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+        (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
+        (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
+        (fresh : SemanticAtom
+          (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
+        (s : liftPreciseBody W≼W′ Aᴾ₁ [ Rᴾ ]ᵗ
+          ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Aᴵ₁ [ Rᴵ ]ᵗ)
+      → let step = future-paired (future-refl {W = W′}) r fresh
+        in ComputationsRelated W′ (PostBindValueRelation step s) (suc j)
+            (liftImpreciseTerm W≼W′ (Vᴵ ⟨ C.∀ᶜ cᴵ ⟩)
+              ⦂∀ liftImpreciseBody W≼W′ Aᴵ₁ [ Rᴵ ])
+            (liftPreciseTerm W≼W′ (Vᴾ ⟨ C.∀ᶜ cᴾ ⟩)
+              ⦂∀ liftPreciseBody W≼W′ Aᴾ₁ [ Rᴾ ])
+
+  at-every-index : ∀ j → j ≤ k
+    → FutureValueRelation target-local W future-refl j
+        (Vᴵ ⟨ C.∀ᶜ cᴵ ⟩) (Vᴾ ⟨ C.∀ᶜ cᴾ ⟩)
+  at-every-index zero j≤k = casted-value-endpoints
+    {W = W} {p = source-local} refl refl
+    (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ) {q = target-local} refl refl
+    {k = zero} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (value-imprecision-downward-to j≤k source-related)
+    (imprecise-value source-endpoints 《 all 》)
+    (precise-value source-endpoints 《 all 》)
+  at-every-index (suc j) sj≤k =
+    casted-value-endpoints
+      {W = W} {p = source-local} refl refl
+      (C.∀ᶜ cᴾ) (C.∀ᶜ cᴵ) {q = target-local} refl refl
+      {k = suc j} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} source-at-index
+      (imprecise-value source-endpoints 《 all 》)
+      (precise-value source-endpoints 《 all 》) ,
+    Aᴾ₁ , Aᴵ₁ , refl , refl , universals-related j source-at-index
+    where
+    source-at-index : ValueImprecision W source-local (suc j) Vᴵ Vᴾ
+    source-at-index = value-imprecision-downward-to sj≤k source-related
+
+  universals-related zero related-at-suc =
+    universal-head zero related-at-suc , tt
+  universals-related (suc j) related-at-suc =
+    universal-head (suc j) related-at-suc ,
+    universals-related j
+      (value-imprecision-downward-to
+        {W = W} {p = source-local}
+        {j = suc j} {k = suc (suc j)} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+        (n≤1+n (suc j)) related-at-suc)
+
+  universal-head j related-at-suc W′ W≼W′ Rᴾ Rᴵ r fresh s
+      = ClosureProof.computations-related-post-bind-reindex s s refl refl
+          imprecise-redex-eq precise-redex-eq expanded
+    where
+    step = future-paired (future-refl {W = W′}) r fresh
+
+    cᴾ′ = precise-universal-body-consistency-future W≼W′ cᴾ
+    cᴵ′ = imprecise-universal-body-consistency-future W≼W′ cᴵ
+
+    source-bodyᴾ-embedded = precise-body-lift-eq W≼W′ Aᴾ₀
+
+    source-bodyᴵ-embedded = imprecise-body-lift-eq W≼W′ Aᴵ₀
+
+    source-body-local′ = reindex-center-imprecision
+      (liftCenterBodyImprecision W≼W′ source-body)
+      (sym source-bodyᴾ-embedded) (sym source-bodyᴵ-embedded)
+
+    source-allᴾ-eq = trans
+      (cong (embedPrecise (core W′))
+        (sym (trans
+          (ClosureProof.precise-ground-type-eq W≼W′ (`∀ Aᴾ₀))
+          (liftPreciseTy-universal W≼W′ Aᴾ₀))))
+      (trans
+        (cong (embedPrecise (core W′))
+          (ClosureProof.precise-ground-type-eq W≼W′ (`∀ Aᴾ₀)))
+        (embedPrecise-lift W≼W′ (`∀ Aᴾ₀)))
+
+    source-allᴵ-eq = trans
+      (cong (embedImprecise (core W′))
+        (sym (trans
+          (ClosureProof.imprecise-ground-type-eq W≼W′ (`∀ Aᴵ₀))
+          (liftImpreciseTy-universal W≼W′ Aᴵ₀))))
+      (trans
+        (cong (embedImprecise (core W′))
+          (ClosureProof.imprecise-ground-type-eq W≼W′ (`∀ Aᴵ₀)))
+        (embedImprecise-lift W≼W′ (`∀ Aᴵ₀)))
+
+    source-related′ : ValueImprecision W′
+        (I.∀⊑∀ source-body-local′) (suc j)
+        (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+    source-related′ = ClosureProof.value-imprecision-reindex
+      (I.∀⊑∀ source-body-local′)
+      (liftCenterImprecision W≼W′ source-local)
+      source-allᴾ-eq source-allᴵ-eq
+      (ClosureProof.value-imprecision-future W≼W′ related-at-suc)
+
+    source-s = openRelatedBodyImprecision source-body-local′ r
+
+    source-applied-at : (n : ℕ)
+      → ValueImprecision W′ (I.∀⊑∀ source-body-local′) (suc n)
+          (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+      → ComputationsRelated W′ (PostBindValueRelation step source-s) n
+        (liftImpreciseTerm W≼W′ Vᴵ
+          ⦂∀ liftImpreciseBody W≼W′ Aᴵ₀ [ Rᴵ ])
+        (liftPreciseTerm W≼W′ Vᴾ
+          ⦂∀ liftPreciseBody W≼W′ Aᴾ₀ [ Rᴾ ])
+    source-applied-at zero related-at =
+      nonvalue-computations-zero (λ ()) (λ ()) refl refl
+    source-applied-at (suc j′) related-at =
+      positive-universal-application
+      {W = W′} {Cᴾ = liftPreciseBody W≼W′ Aᴾ₀}
+      {Cᴵ = liftImpreciseBody W≼W′ Aᴵ₀}
+      {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = source-body-local′}
+      {r = r} {s = source-s} {fresh = fresh}
+      refl refl (s≤s z≤n)
+      (value-imprecision-downward-to
+        (n≤1+n (suc j′)) related-at)
+
+    source-applied = source-applied-at j source-related′
+
+    casted = cast-computations-related
+      {R = PostBindValueRelation step source-s}
+      {S = PostBindValueRelation step s}
+      source-s refl refl (cᴾ′ [ Rᴾ ]ᶜ) (cᴵ′ [ Rᴵ ]ᶜ)
+      s refl refl j
+      (liftImpreciseTerm W≼W′ Vᴵ
+        ⦂∀ liftImpreciseBody W≼W′ Aᴵ₀ [ Rᴵ ])
+      (liftPreciseTerm W≼W′ Vᴾ
+        ⦂∀ liftPreciseBody W≼W′ Aᴾ₀ [ Rᴾ ])
+      (λ W′≼W″ sourceᴾ″ sourceᴵ″ dᴾ dᴵ targetᴾ″ targetᴵ″
+          (bound≼W″ , factor , related″) →
+        computations-related-post-bind-compose
+          step W′≼W″ bound≼W″ factor s
+          (related-value-casts
+            (liftCenterImprecision W′≼W″ source-s)
+            sourceᴾ″ sourceᴵ″ dᴾ dᴵ
+            (liftCenterImprecision W′≼W″ s)
+            targetᴾ″ targetᴵ″ related″)) source-applied
+
+    source-endpoints′ = value-imprecision-endpoints source-related′
+
+    expanded : ComputationsRelated W′
+        (PostBindValueRelation step s) (suc j)
+        ((liftImpreciseTerm W≼W′ Vᴵ ⟨ C.∀ᶜ cᴵ′ ⟩)
+          ⦂∀ liftImpreciseBody W≼W′ Aᴵ₁ [ Rᴵ ])
+        ((liftPreciseTerm W≼W′ Vᴾ ⟨ C.∀ᶜ cᴾ′ ⟩)
+          ⦂∀ liftPreciseBody W≼W′ Aᴾ₁ [ Rᴾ ])
+    expanded
+        with universal-cast-type-application-step-question
+          {Σ = impreciseStore (core W′)}
+          (imprecise-value source-endpoints′)
+    expanded | vVᴵ′ , imprecise-step-eq
+        with universal-cast-type-application-step-question
+          {Σ = preciseStore (core W′)}
+          (precise-value source-endpoints′)
+    expanded | vVᴵ′ , imprecise-step-eq
+      | vVᴾ′ , precise-step-eq =
+      related-pure-step-expand (λ ()) (λ ()) refl refl
+        (β-∀ vVᴵ′ refl) (β-∀ vVᴾ′ refl)
+        imprecise-step-eq precise-step-eq casted
+
+    imprecise-redex-eq = cong₂ (λ L B → L ⦂∀ B [ Rᴵ ])
+      (sym (lift-imprecise-universal-cast W≼W′ Vᴵ cᴵ))
+      refl
+
+    precise-redex-eq = cong₂ (λ L B → L ⦂∀ B [ Rᴾ ])
+      (sym (lift-precise-universal-cast W≼W′ Vᴾ cᴾ))
+      refl
 related-value-casts (I.∀⊑∀ p) sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related = ?
 related-value-casts (I.⇒⊑★ p q) sourceᴾ sourceᴵ cᴾ cᴵ r targetᴾ
@@ -4415,8 +5251,124 @@ related-value-casts (I.X⊑★ mode) sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related = ?
 related-value-casts (I.∀⊑ nonvar occurs p) sourceᴾ sourceᴵ cᴾ cᴵ q
     targetᴾ targetᴵ related = ?
-related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
-    targetᴵ related = ?
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ C.bot-intro cᴵ q
+    targetᴾ targetᴵ related =
+  related-precise-bot-intro
+    (precise-value (value-imprecision-endpoints related))
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    (C.inst_ ⦃ Anv ⦄ ⦃ occurs ⦄ cᴾ B≢★) cᴵ q
+    targetᴾ targetᴵ related = ⊥-elim impossible
+  where
+  embedded-occurs = rename-occurs
+    (extᵗ (C.toRenameᵗ (preciseEmbedding (core W))))
+    (ext-injective
+      (toRenameᵗ-injective (preciseEmbedding (core W)))) occurs
+
+  impossible : ⊥
+  impossible with subst≡ (Fin.zero ∈ᵗ_)
+    (ty-all-injective sourceᴾ) embedded-occurs
+  impossible | ()
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (C.id x) cᴵ q
+    targetᴾ targetᴵ related =
+  ⊥-elim (precise-atom-not-all {W = W} x sourceᴾ)
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ cᴾ
+    (C._! cᴵ ⦃ Ans = nsᴵ ⦄) q targetᴾ targetᴵ related =
+  ⊥-elim (imprecise-star-nonstar-impossible {W = W} sourceᴵ nsᴵ)
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ cᴾ
+    ((C.gen cᴵ) Aᴵ≢★) q targetᴾ targetᴵ related =
+  ⊥-elim (Aᴵ≢★ (imprecise-source-star {W = W} sourceᴵ))
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
+    (C.id x) q targetᴾ targetᴵ related = ?
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
+    (C.？ cᴵ) q targetᴾ targetᴵ related = ?
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    (C.id x₁ C.!) (C.id x) q targetᴾ targetᴵ related =
+  ⊥-elim (precise-atom-not-all {W = W} x₁ sourceᴾ)
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    ((C.inst_ ⦃ Anv ⦄ ⦃ occurs ⦄ cᴾ B≢★) C.!)
+    (C.id x) q targetᴾ targetᴵ related = ⊥-elim impossible
+  where
+  embedded-occurs = rename-occurs
+    (extᵗ (C.toRenameᵗ (preciseEmbedding (core W))))
+    (ext-injective
+      (toRenameᵗ-injective (preciseEmbedding (core W)))) occurs
+
+  impossible : ⊥
+  impossible with subst≡ (Fin.zero ∈ᵗ_)
+    (ty-all-injective sourceᴾ) embedded-occurs
+  impossible | ()
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ
+    (C._! {G = `∀ ★} ⦃ Gᵍ = ∀★ ⦄
+      ((C.gen_ ⦃ z∈B = () ⦄ cᴾ) x₁))
+    (C.id x) q targetᴾ targetᴵ related
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    (C._! {G = `∀ ★} ⦃ Gᵍ = ∀★ ⦄
+      (C.∀ᶜ (C._! cᴾ ⦃ Ans = nsᴾ ⦄)))
+    (C.id x) q targetᴾ targetᴵ related = ⊥-elim impossible
+  where
+  impossible = nonStar≢★
+    (C.renameNonStar
+      (extᵗ (C.toRenameᵗ (preciseEmbedding (core W)))) nsᴾ)
+    (ty-all-injective sourceᴾ)
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    (C._! {G = `∀ ★} ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = Gᴾ∼★ ⦄
+      (C.∀ᶜ (C.id ★)) ⦃ Ans = nsᴾ ⦄)
+    (C.id x) q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related with imprecise-source-star {W = W} sourceᴵ
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
+    (C._! {G = `∀ ★} ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = Gᴾ∼★ ⦄
+      (C.∀ᶜ (C.id ★)) ⦃ Ans = nsᴾ ⦄)
+    (C.id ★) q targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related | refl =
+  ClosureProof.computations-related-reindex I.★⊑★ q
+    targetᴾ targetᴵ refl
+    (cong (λ c → Vᴾ ⟨ c ⟩) (sym precise-injection-eq))
+    (related-imprecise-identity (tagged-at k ≤-refl))
+  where
+  precise-tag = groundInjection ∀★ Gᴾ∼★
+
+  precise-injection-eq : C._! ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = Gᴾ∼★ ⦄
+      (C.∀ᶜ (C.id ★)) ⦃ Ans = nsᴾ ⦄ ≡ precise-tag
+  precise-injection-eq
+    rewrite nonStar-unique nsᴾ (C.ground-nonstar ∀★) = refl
+
+  tagged-at : ∀ j → j ≤ k
+    → ValueImprecision W I.★⊑★ j Vᴵ (Vᴾ ⟨ precise-tag ⟩)
+  tagged-at zero j≤k = precise-casted-value-endpoints
+    {W = W} {p = I.∀★⊑★} sourceᴾ sourceᴵ precise-tag
+    {q = I.★⊑★} refl refl {k = zero} source-at
+    (imprecise-value source-endpoints)
+    (precise-value source-endpoints 《
+      inj ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = Gᴾ∼★ ⦄
+        ⦃ Gns = C.ground-nonstar ∀★ ⦄ 》)
+    where
+    source-at : ValueImprecision W I.∀★⊑★ zero Vᴵ Vᴾ
+    source-at = value-imprecision-downward-to j≤k related
+    source-endpoints : TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ
+    source-endpoints = value-imprecision-endpoints
+      {W = W} {p = I.∀★⊑★} {k = zero} source-at
+  tagged-at (suc j) sj≤k with
+      value-imprecision-downward-to sj≤k related
+  tagged-at (suc j) sj≤k
+      | endpoints ,
+        right-dynamic-payload-shape Gᴵ gᴵ μᴵ′ Gᴵ∼★ Uᴵ refl
+          payload-q , payload-related =
+    dynamic-base-tags-endpoints ∀★ gᴵ Gᴾ∼★ Gᴵ∼★
+      payload-q payload-related ,
+    inj₁ (tags-and-payload ∀★ gᴵ Gᴾ∼★ Gᴵ∼★
+      payload-q payload-related)
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (cᴾ C.!)
+    (C.？_ cᴵ ⦃ Bns = nsᴵ ⦄) q targetᴾ targetᴵ related =
+  ⊥-elim (star-left-nonstar-impossible local-q embedded-nonstar)
+  where
+  local-q = reindex-center-imprecision q (sym targetᴾ) (sym targetᴵ)
+
+  embedded-nonstar = C.renameNonStar
+    (C.toRenameᵗ (impreciseEmbedding (core W))) nsᴵ
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
+    (C.id x₁) q targetᴾ targetᴵ related = ?
+related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
+    (C.？ cᴵ) q targetᴾ targetᴵ related = ?
 related-value-casts (I.∀⊑★ nonstar p) sourceᴾ sourceᴵ cᴾ cᴵ q
     targetᴾ targetᴵ related = ?
 related-value-casts I.bot-elim sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ

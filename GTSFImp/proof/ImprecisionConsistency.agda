@@ -1055,6 +1055,93 @@ subst-⊑ {σ = σ} h (I.∀⊑★ {A = A} Ans A⊑★)
 subst-⊑ h I.bot-elim = I.bot-elim
 subst-⊑ h I.bot⊑★ = I.bot⊑★
 
+subst₂-star-map-exts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν I.⊢ σᴸ X ⊑ ★)
+  → ∀ X → I.extᵐ μ X ≡ I.X⊑★
+      → I.extᵐ ν I.⊢ extsᵗ σᴸ X ⊑ ★
+subst₂-star-map-exts star zero ()
+subst₂-star-map-exts star (suc X) eq =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
+
+subst₂-star-map-insts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
+  → (∀ X → μ X ≡ I.X⊑★ → ν I.⊢ σᴸ X ⊑ ★)
+  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
+      → I.instᵐ ν I.⊢ extsᵗ σᴸ X ⊑ ★
+subst₂-star-map-insts star zero eq = I.X⊑★ refl
+subst₂-star-map-insts star (suc X) eq =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
+
+subst₂-same-map-exts : ∀ {Δ Δ′}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
+  → (∀ X → ν I.⊢ σᴸ X ⊑ σᴿ X)
+  → ∀ X → I.extᵐ ν I.⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
+subst₂-same-map-exts same zero = I.X⊑X
+subst₂-same-map-exts same (suc X) =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (same X)
+
+subst₂-same-map-insts : ∀ {Δ Δ′}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
+  → (∀ X → ν I.⊢ σᴸ X ⊑ σᴿ X)
+  → ∀ X → I.instᵐ ν I.⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
+subst₂-same-map-insts same zero = I.X⊑X
+subst₂-same-map-insts same (suc X) =
+  rename-⊑ suc fin-suc-injective (λ Y eq′ → eq′) (same X)
+
+subst₂-⊑ : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
+    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′} {A B : Ty Δ}
+  → (∀ X → ν I.⊢ σᴸ X ⊑ σᴿ X)
+  → (∀ X → μ X ≡ I.X⊑★ → ν I.⊢ σᴸ X ⊑ ★)
+  → μ I.⊢ A ⊑ B
+  → ν I.⊢ substᵗ σᴸ A ⊑ substᵗ σᴿ B
+subst₂-⊑ same star I.★⊑★ = I.★⊑★
+subst₂-⊑ same star I.ι⊑ι = I.ι⊑ι
+subst₂-⊑ same star I.X⊑X = same _
+subst₂-⊑ same star (I.⇒⊑⇒ A⊑B C⊑D) =
+  I.⇒⊑⇒ (subst₂-⊑ same star A⊑B)
+    (subst₂-⊑ same star C⊑D)
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
+    (I.∀⊑∀ A⊑B) =
+  I.∀⊑∀
+    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
+      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+      (subst₂-same-map-exts same)
+      (subst₂-star-map-exts star) A⊑B)
+subst₂-⊑ same star (I.⇒⊑★ A⊑★ B⊑★) =
+  I.⇒⊑★ (subst₂-⊑ same star A⊑★)
+    (subst₂-⊑ same star B⊑★)
+subst₂-⊑ same star I.ι⊑★ = I.ι⊑★
+subst₂-⊑ same star (I.X⊑★ x⊑★) = star _ x⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
+    (I.∀⊑ {A = A} {B = B} nonvar occurs A⊑B) =
+  I.∀⊑ (substNonVar (extsᵗ σᴸ) nonvar)
+    (subst-zero-occurs-exts occurs)
+    (subst (λ T → I.instᵐ ν I.⊢ substᵗ (extsᵗ σᴸ) A ⊑ T)
+      (substᵗ-shift σᴿ B)
+      (subst₂-⊑ {μ = I.instᵐ μ} {ν = I.instᵐ ν}
+        {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+        (subst₂-same-map-insts same)
+        (subst₂-star-map-insts star) A⊑B))
+subst₂-⊑ same star I.∀★⊑★ = I.∀★⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} nonstar A⊑★)
+    with substᵗ (extsᵗ σᴸ) A ≟Ty ★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} nonstar A⊑★)
+    | yes Aσ≡★ =
+  subst (λ T → _ I.⊢ `∀ T ⊑ ★) (sym Aσ≡★) I.∀★⊑★
+subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
+    same star (I.∀⊑★ {A = A} nonstar A⊑★)
+    | no Aσ≢★ =
+  I.∀⊑★ (nonstar-from-≢★ Aσ≢★)
+    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
+      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
+      (subst₂-same-map-exts same)
+      (subst₂-star-map-exts star) A⊑★)
+subst₂-⊑ same star I.bot-elim = I.bot-elim
+subst₂-⊑ same star I.bot⊑★ = I.bot⊑★
+
 open-star-map : ∀ {Δ} {μ : I.ImpEnv Δ}
   → ∀ X → I.instᵐ μ X ≡ I.X⊑★
       → μ ⊢ singleSubᵗ ★ X ⊑ ★

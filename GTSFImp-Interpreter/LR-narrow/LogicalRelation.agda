@@ -3,7 +3,8 @@ module LR-narrow.LogicalRelation where
 -- File Charter:
 --   * Defines the draft step-indexed Kripke LR over center imprecision.
 --   * Keeps precise and imprecise values in distinct endpoint contexts.
---   * Interprets X⊑X and X⊑★ center variables through mode-indexed atoms.
+--   * Interprets X⊑★ through either an unoccupied dynamic atom or an
+--     occupied paired atom protected by the matching imprecise runtime tag.
 --   * Interprets paired and right-only universals through matching fresh
 --     world extensions.
 --   * Observes paired universal instantiation before allocation and records
@@ -148,6 +149,30 @@ record DynamicAtomTagRelated {Δᴾ Δᴵ Δᶜ}
 
 open DynamicAtomTagRelated public
 
+record AlignedDynamicAtomRelated {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) (k : ℕ)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  constructor aligned-dynamic-atom-related
+  field
+    aligned-imprecise-ground : Ty Δᴵ
+    aligned-imprecise-ground-proof : Ground aligned-imprecise-ground
+    aligned-imprecise-ground-center :
+      embedImprecise (core W) aligned-imprecise-ground ≡ ＇ Z
+    aligned-imprecise-consistency-env : Env∼ Δᴵ
+    aligned-imprecise-ground-to-star :
+      aligned-imprecise-consistency-env ⊢
+        aligned-imprecise-ground ∼★
+    aligned-imprecise-payload : Term Δᴵ
+    aligned-imprecise-tag-shape : Vᴵ ≡
+      aligned-imprecise-payload
+        ⟨ groundInjection aligned-imprecise-ground-proof
+          aligned-imprecise-ground-to-star ⟩
+    aligned-atom-relation-holds :
+      PairedAtomHolds (semanticEntry W Z) k
+        aligned-imprecise-payload Vᴾ
+
+open AlignedDynamicAtomRelated public
+
 ------------------------------------------------------------------------
 -- Step-indexed value relation
 ------------------------------------------------------------------------
@@ -176,7 +201,7 @@ mutual
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.★⊑★ Vᴵ Vᴾ ×
     (DynamicPayloadRelated W k Vᴵ Vᴾ ⊎
-      DynamicAtomTagRelated W k Vᴵ Vᴾ)
+      DynamicAtomTagRelated W (suc k) Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ =
     TypedEndpoints W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ ×
@@ -208,9 +233,10 @@ mutual
     TypedEndpoints W (I.ι⊑★ {ι = ι}) Vᴵ Vᴾ ×
     RightDynamicPayloadRelated W (‵ ι) k Vᴵ Vᴾ
 
-  ValueImprecisionᵏ (suc k) W (I.X⊑★ eq) Vᴵ Vᴾ =
+  ValueImprecisionᵏ (suc k) W (I.X⊑★ {X = X} eq) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ ×
-    DynamicAtomHolds (semanticEntry W _) eq (suc k) Vᴵ Vᴾ
+    (DynamicAtomHolds (semanticEntry W X) eq (suc k) Vᴵ Vᴾ ⊎
+      AlignedDynamicAtomRelated W X (suc k) Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W
       (I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p) Vᴵ Vᴾ =

@@ -55,7 +55,7 @@ import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
    source-nonvar-from-target; source-nonvar-target; source-occurs-target;
-   subst-⊑; subst-zero-occurs-exts; target-occurs-source;
+   subst-⊑; subst₂-⊑; subst-zero-occurs-exts; target-occurs-source;
    toRenameᵗ-injective)
 import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
@@ -272,101 +272,6 @@ unrenameNonVar {A = ‵ ι} ρ nonvar-base = nonvar-base
 unrenameNonVar {A = ★} ρ nonvar-star = nonvar-star
 unrenameNonVar {A = A ⇒ B} ρ nonvar-fun = nonvar-fun
 unrenameNonVar {A = `∀ A} ρ nonvar-all = nonvar-all
-
-
-subst₂-star-map-exts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
-    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
-  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
-  → ∀ X → I.extᵐ μ X ≡ I.X⊑★
-      → I.extᵐ ν ⊢ extsᵗ σᴸ X ⊑ ★
-subst₂-star-map-exts star Fin.zero ()
-subst₂-star-map-exts star (Fin.suc X) eq =
-  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
-
-
-subst₂-star-map-insts : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
-    {ν : I.ImpEnv Δ′} {σᴸ : Δ ⇒ˢ Δ′}
-  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
-  → ∀ X → I.instᵐ μ X ≡ I.X⊑★
-      → I.instᵐ ν ⊢ extsᵗ σᴸ X ⊑ ★
-subst₂-star-map-insts star Fin.zero eq = I.X⊑★ refl
-subst₂-star-map-insts star (Fin.suc X) eq =
-  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (star X eq)
-
-
-subst₂-same-map-exts : ∀ {Δ Δ′}
-    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
-  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
-  → ∀ X
-      → I.extᵐ ν ⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
-subst₂-same-map-exts same Fin.zero = I.X⊑X
-subst₂-same-map-exts same (Fin.suc X) =
-  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (same X)
-
-
-subst₂-same-map-insts : ∀ {Δ Δ′}
-    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
-  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
-  → ∀ X
-      → I.instᵐ ν ⊢ extsᵗ σᴸ X ⊑ extsᵗ σᴿ X
-subst₂-same-map-insts same Fin.zero = I.X⊑X
-subst₂-same-map-insts same (Fin.suc X) =
-  rename-⊑ Fin.suc fin-suc-injective (λ Y eq′ → eq′) (same X)
-
-
-subst₂-⊑ : ∀ {Δ Δ′} {μ : I.ImpEnv Δ}
-    {ν : I.ImpEnv Δ′} {σᴸ σᴿ : Δ ⇒ˢ Δ′}
-    {A B : Ty Δ}
-  → (∀ X → ν ⊢ σᴸ X ⊑ σᴿ X)
-  → (∀ X → μ X ≡ I.X⊑★ → ν ⊢ σᴸ X ⊑ ★)
-  → μ ⊢ A ⊑ B
-  → ν ⊢ substᵗ σᴸ A ⊑ substᵗ σᴿ B
-subst₂-⊑ same star I.★⊑★ = I.★⊑★
-subst₂-⊑ same star I.ι⊑ι = I.ι⊑ι
-subst₂-⊑ same star I.X⊑X = same _
-subst₂-⊑ same star (I.⇒⊑⇒ A⊑B C⊑D) =
-  I.⇒⊑⇒ (subst₂-⊑ same star A⊑B)
-    (subst₂-⊑ same star C⊑D)
-subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
-    (I.∀⊑∀ A⊑B) =
-  I.∀⊑∀
-    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
-      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
-      (subst₂-same-map-exts same)
-      (subst₂-star-map-exts star) A⊑B)
-subst₂-⊑ same star (I.⇒⊑★ A⊑★ B⊑★) =
-  I.⇒⊑★ (subst₂-⊑ same star A⊑★)
-    (subst₂-⊑ same star B⊑★)
-subst₂-⊑ same star I.ι⊑★ = I.ι⊑★
-subst₂-⊑ same star (I.X⊑★ x⊑★) = star _ x⊑★
-subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ} same star
-    (I.∀⊑ {A = A} {B = B} Anv zero∈A A⊑B) =
-  I.∀⊑ (substNonVar (extsᵗ σᴸ) Anv)
-    (subst-zero-occurs-exts zero∈A)
-    (subst≡ (λ T → I.instᵐ ν ⊢ substᵗ (extsᵗ σᴸ) A ⊑ T)
-      (substᵗ-shift σᴿ B)
-      (subst₂-⊑ {μ = I.instᵐ μ} {ν = I.instᵐ ν}
-        {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
-        (subst₂-same-map-insts same)
-        (subst₂-star-map-insts star) A⊑B))
-subst₂-⊑ same star I.∀★⊑★ = I.∀★⊑★
-subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
-    same star (I.∀⊑★ {A = A} Ans A⊑★)
-    with substᵗ (extsᵗ σᴸ) A ≟Ty ★
-subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
-    same star (I.∀⊑★ {A = A} Ans A⊑★)
-    | yes Aσ≡★ =
-  subst≡ (λ T → _ ⊢ `∀ T ⊑ ★) (sym Aσ≡★) I.∀★⊑★
-subst₂-⊑ {μ = μ} {ν = ν} {σᴸ = σᴸ} {σᴿ = σᴿ}
-    same star (I.∀⊑★ {A = A} Ans A⊑★)
-    | no Aσ≢★ =
-  I.∀⊑★ (nonstar-from-≢★ Aσ≢★)
-    (subst₂-⊑ {μ = I.extᵐ μ} {ν = I.extᵐ ν}
-      {σᴸ = extsᵗ σᴸ} {σᴿ = extsᵗ σᴿ}
-      (subst₂-same-map-exts same)
-      (subst₂-star-map-exts star) A⊑★)
-subst₂-⊑ same star I.bot-elim = I.bot-elim
-subst₂-⊑ same star I.bot⊑★ = I.bot⊑★
 
 
 mutual

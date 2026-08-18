@@ -4,8 +4,7 @@ mismatches.
 Command that exposes the target-strip cases:
 
   cd GTSFImp
-  AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
-    agda -i . -v0 proof/DGG/Inversion/TargetStripProof.agda
+  agda -i . -v0 proof/DGG/Inversion/TargetStripProof.agda
 
 Agda reports the two missing target-strip branches:
 

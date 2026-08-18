@@ -75,8 +75,7 @@ What was tried:
 
      Focused command:
 
-       AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
-         agda -i GTSFImp -v0 \
+       agda -i GTSFImp -v0 \
            GTSFImp/proof/DGG/notes/M5StructuralNameSourceCastCounterexampleScratch.agda
 
      The checked ingredients are:
@@ -136,8 +135,7 @@ RESOLVED-BY-DESIGN postscript, 2026-08-14:
 
   Checked command:
 
-    AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
-      agda -i GTSFImp -v0 \
+    agda -i GTSFImp -v0 \
         GTSFImp/proof/DGG/notes/M5StructuralNamePostPlanScratch.agda
 
   Matrix outcome:

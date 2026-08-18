@@ -3,9 +3,7 @@ Round 9 stopped red: TargetChainProof source-seal matched-inner head
 Command used for the live check:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/\
-abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home \
-  agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetChainProof.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetChainProof.agda
 ```
 
 Live red after removing the temporary probe:

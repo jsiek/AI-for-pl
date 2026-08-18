@@ -201,11 +201,8 @@ probe-base² =
 probe-occupied-Z₃ : CTI2.NoTargetOccupantAtSource W₂ Z₃ → ⊥
 probe-occupied-Z₃ no-target = no-target (Y , refl)
 
-probe-direct-premise-partner-empty :
-  CTI2.SourceConcealPartnerOK W₂ V₀ (seal Z₃ ★) (just Y) U
+probe-direct-premise-source-ok-empty :
+  CTI2.SourceConcealOK W₂ V₀ (seal Z₃ ★) (just Y) U
   → ⊥
-probe-direct-premise-partner-empty
-    (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
-  probe-occupied-Z₃ no-target
-probe-direct-premise-partner-empty
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+probe-direct-premise-source-ok-empty
+    (CTI2.seal-nonstar-plain-ok () _)

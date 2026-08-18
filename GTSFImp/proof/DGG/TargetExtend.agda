@@ -44,7 +44,7 @@ open import proof.TypeInTermSubst using
    toRename-keep-eq; toRename-wk-eq; typing-renameᵗ; rename-openᵗ)
 open import proof.ImprecisionConsistency using
   (fin-suc-injective; rename-⊑; subst-⊑; toRenameᵗ-injective)
-open import proof.DGG.Parked.ParkedWorldProof using (right-bind-⊑ᵂ)
+open import proof.DGG.Parked.ParkedBindImprecisionProof using (right-bind-⊑ᵂ)
 open import proof.DGG.CenterRename using
   (_∘↪_; toRenameᵗ-∘; sucMaybe; preimage?; sucMaybe-nothing;
    preimage?-image; EmbeddingPair; pair; embeddingPair; EmbeddingPushout;
@@ -74,7 +74,7 @@ record TargetInsert {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     (ρ : Δᴿ ↪ᵗ Δᴿ′)
     (π : Δ ↪ᵗ Δ′)
     (W : World Δᴸ Δᴿ Δ)
-    (W′ : World Δᴸ Δᴿ′ Δ′) : Set₁ where
+    (W′ : World Δᴸ Δᴿ′ Δ′) : Set where
   field
     sourceStore-kept : CTI2.sourceStoreʷ W′ ≡ CTI2.sourceStoreʷ W
 
@@ -2493,7 +2493,7 @@ pullbackReverseRebaseAt
   reps =
     storeRep-insert ins (CTI2.RebaseAt.storeRepresentations rb)
 
-TargetExtendOPEᵀ : Set₁
+TargetExtendOPEᵀ : Set
 TargetExtendOPEᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2508,7 +2508,7 @@ TargetExtendOPEᵀ =
   → W′ ∣ mapCtxᵀ ins γ
       ⊢² M ⊑ renameᵗᵐ ρ M′ ∶ transport⊑ᵂ ins p
 
-RebaseAtᴿInsertCommuteᵀ : Set₁
+RebaseAtᴿInsertCommuteᵀ : Set
 RebaseAtᴿInsertCommuteᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2522,7 +2522,7 @@ RebaseAtᴿInsertCommuteᵀ =
       CTI2.RebaseAtᴿ W⁺ Wᵖ⁺
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
-RebaseAtᴸInsertCommuteᵀ : Set₁
+RebaseAtᴸInsertCommuteᵀ : Set
 RebaseAtᴸInsertCommuteᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2535,7 +2535,7 @@ RebaseAtᴸInsertCommuteᵀ =
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
       CTI2.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
 
-TagRebaseAtᴸInsertCommuteᵀ : Set₁
+TagRebaseAtᴸInsertCommuteᵀ : Set
 TagRebaseAtᴸInsertCommuteᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2549,7 +2549,7 @@ TagRebaseAtᴸInsertCommuteᵀ =
       CTI2.TagRebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
-RebaseAtInsertCommuteᵀ : Set₁
+RebaseAtInsertCommuteᵀ : Set
 RebaseAtInsertCommuteᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2562,7 +2562,7 @@ RebaseAtInsertCommuteᵀ =
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
       CTI2.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
 
-ImpEnvMonoInsertCommuteᵀ : Set₁
+ImpEnvMonoInsertCommuteᵀ : Set
 ImpEnvMonoInsertCommuteᵀ =
   ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}

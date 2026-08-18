@@ -10,22 +10,26 @@ module T10Probe1ParkedWorldPreservation where
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Maybe using (just)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym; trans)
 
 open import Types using (TyVar; ★)
 open import TyStore using (store-empty; store-bind)
-open import Consistency using (empty; keep; skip; toRenameᵗ)
+open import Consistency using (empty; keep; toRenameᵗ)
 open import Imprecision using
   (ImpEnv; VarImp; X⊑X; X⊑★; extendᵐ; instᵐ; ★⊑★)
+open import proof.TypeInTermSubst using (toRename-wk-eq)
 
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
+import proof.DGG.TargetExtend as TE
 open import proof.DGG.Parked.ParkedWorldDef using
   ( ParkedWorld
   ; parked-initial
   ; parked-both-bind
   ; parked-left-bind
   ; parked-right-bind
+  ; parked-structural-right-insert
   )
 
 
@@ -43,6 +47,9 @@ W = CTI2.rightOnlyWorld W-paired ★
 
 parked-W : ParkedWorld W
 parked-W = parked-right-bind (parked-both-bind parked-initial)
+
+zero≢suc : ∀ {n} {Y : Fin.Fin n} → Fin.zero ≢ Fin.suc Y
+zero≢suc ()
 
 source-store : TyStore.TyStore 1
 source-store = store-bind store-empty ★
@@ -108,6 +115,17 @@ parked-head00-precise : ∀ {W′ : CTI2.World 1 2 2}
 parked-head00-precise (parked-both-bind pw) src-zero tgt-zero = refl
 parked-head00-precise (parked-left-bind pw) src-zero ()
 parked-head00-precise (parked-right-bind pw) () tgt-zero
+parked-head00-precise
+    (parked-structural-right-insert {W = W} pw ins follows)
+    src-zero tgt-zero
+    with TE.target-center-reflect ins
+      (trans tgt-zero
+        (trans (sym src-zero) (TE.source-insert ins Fin.zero)))
+parked-head00-precise
+    (parked-structural-right-insert {W = W} pw ins follows)
+    src-zero tgt-zero
+    | Y , zero-eq , target-eq =
+  ⊥-elim (zero≢suc (trans zero-eq (toRename-wk-eq Y)))
 
 not-parked-Wᵖ : ParkedWorld Wᵖ → ⊥
 not-parked-Wᵖ pw =

@@ -10,10 +10,11 @@ module proof.DGG.TransportTermImprecisionProof where
 open import Data.List using ([]; _∷_)
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong)
+  using (_≡_; refl; sym; cong; cong₂)
   renaming (subst to subst≡)
 
 open import CastTerms using (Term)
+import Consistency
 open import Imprecision using (X⊑X; X⊑★)
 import Reduction
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -28,10 +29,13 @@ open import proof.DGG.Parked.ParkedWorldDef
     ; evolve-left-bind
     ; evolve-right-bind
     ; evolve-both-bind
+    ; evolve-structural-right-bind
     )
 open import proof.DGG.Parked.ParkedWorldLemma
   using (mapCtxᴾ; right-only-parked→world-extendᴿ; transport⊑ᴾ)
 open import proof.DGG.TargetExtend using (⊢²-target-extend-bind)
+import proof.DGG.TargetExtend as TE
+open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
 open import proof.DGG.TransportTermImprecisionDef
   using
     ( BothBindTransport²ᵀ
@@ -122,6 +126,31 @@ mapCtxᴾ-right-bind evol (ctx-imp A B p ∷ γ) =
   cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-right-bind evol γ)
 
 
+mapCtxᴾ-structural-right-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ₁ Δ′}
+    {χsᴸ : Reduction.StoreChanges Δᴸ Δᴸ′}
+    {χsᴿ : Reduction.StoreChanges (Nat.suc Δᴿ) Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {W₁ : World Δᴸ (Nat.suc Δᴿ) Δ₁}
+    {W′ : World Δᴸ′ Δᴿ′ Δ′}
+    {B₀} {π}
+  → (ins : TE.TargetInsert Consistency.wk↪ᵗ π W W₁)
+  → (follows : CTI2.targetStoreʷ W₁ ≡
+      Reduction.applyStore (Reduction.bind B₀) (CTI2.targetStoreʷ W))
+  → (evol : ParkedEvolve χsᴸ χsᴿ W₁ W′)
+  → (γ : CtxImp W)
+  → mapCtxᴾ evol (TE.mapCtxᵀ ins γ)
+      ≡ mapCtxᴾ (evolve-structural-right-bind ins follows evol) γ
+mapCtxᴾ-structural-right-bind ins follows evol [] = refl
+mapCtxᴾ-structural-right-bind {χsᴿ = χsᴿ}
+    ins follows evol (ctx-imp A B p ∷ γ) =
+  cong₂ _∷_ entry-eq
+    (mapCtxᴾ-structural-right-bind ins follows evol γ)
+  where
+  entry-eq =
+    TE.ctx-imp-target-eq
+      (cong (Reduction.applyTys χsᴿ) (renameᵗ-wk-eq B))
+
+
 transport-term-imprecision-ctx :
   SourceBindTransport²ᵀ
   → BothBindTransport²ᵀ
@@ -168,6 +197,15 @@ transport-term-imprecision-ctx src both
         (right-only-parked→world-extendᴿ
           (evolve-right-bind {W = W} {B = B₀} evolve-refl))
         M⊑M′))
+transport-term-imprecision-ctx src both
+    {W′ = W′}
+    (evolve-structural-right-bind ins follows evol) M⊑M′ =
+  subst≡
+    (λ γ′ → W′ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
+    (mapCtxᴾ-structural-right-bind ins follows evol _)
+    (transport-term-imprecision-ctx src both evol
+      (TE.⊢²-retargetᴿ (renameᵗ-wk-eq _)
+        (TE.⊢²-target-insert ins M⊑M′)))
 transport-term-imprecision-ctx src both
     (evolve-both-bind {W′ = W′} {A = A₀} {B = B₀} evol) M⊑M′ =
   subst≡

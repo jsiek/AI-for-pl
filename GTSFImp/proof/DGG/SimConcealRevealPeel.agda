@@ -38,26 +38,24 @@ PairedConcealRevealPeelᵀ =
 
 
 record TargetOpenedByConcealReveal {Δᴿ : TyCtx}
-    (V′ : Term Δᴿ) (R′ : Ty Δᴿ) : Set where
+    (N : Term Δᴿ) (X : TyVar Δᴿ) (R′ : Ty Δᴿ)
+    (V′ : Term Δᴿ) : Set where
   field
-    opened-payload : Term Δᴿ
-    opened-pivot : TyVar Δᴿ
-    opened-value : Value opened-payload
+    opened-value : Value V′
     opened-step :
-      ((opened-payload ↓ seal opened-pivot R′)
-        ↑ unseal opened-pivot R′) —→[ keep ] V′
+      ((N ↓ seal X R′) ↑ unseal X R′) —→[ keep ] V′
 
 
 SourceOnlyConcealRevealPeelᵀ : Set
 SourceOnlyConcealRevealPeelᵀ =
   ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {V₀ : Term Δᴸ} {V₀′ : Term Δᴿ}
-    {Xᴸ : TyVar Δᴸ} {R : Ty Δᴸ} {R′ : Ty Δᴿ}
+    {V₀ : Term Δᴸ} {N′ V₀′ : Term Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {R : Ty Δᴸ} {R′ : Ty Δᴿ}
     {q : R ⊑ᵂ⟨ W ⟩ R′}
   → Value V₀
-  → Value V₀′
-  → TargetOpenedByConcealReveal V₀′ R′
+  → TargetOpenedByConcealReveal N′ Xᴿ R′ V₀′
   → W ∣ γ ⊢²
       ((V₀ ↓ seal Xᴸ R) ↑ unseal Xᴸ R)
       ⊑ V₀′ ∶ q

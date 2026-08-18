@@ -902,9 +902,6 @@ module _
   sim-back parked rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q) step =
     sim-back-conversion-boundary parked rel step tt
 
-  sim-back parked rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
-      step =
-    sim-back-conversion-boundary parked rel step tt
   sim-back parked
       rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
       step =

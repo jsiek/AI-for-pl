@@ -178,8 +178,6 @@ derivSize (CTI2.cast⊑² c rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.conceal⊑² ok mono rb sc c⊢ rel q) =
-  suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
@@ -1027,75 +1025,6 @@ structural-name-reveal-equal surfaces worker {B = B} {X = X} {c = c}
       (structural-target-rebase-left rb target))
 
 
-structural-name-conceal-equal :
-  StructuralStrictViewSurfaces
-  → StructuralNameInstantiationEqualᵀ
-  → ∀ {fuel Δᴸ Δᴿ Δ}
-      {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-      {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
-      {U : Term Δᴸ} {N : Term Δᴿ}
-      {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
-      {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
-      {c : Conv↓ Δᴸ A A′}
-      {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
-      {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
-    → FuelStepSurface fuel
-    → ResidualCastBuilderᵀ
-    → inst-alloc-decreaseᵀ
-    → (plan : StructuralNamePostPlan W A′ E q)
-    → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
-    → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? N
-    → CTI2.ImpEnvMono W Wᵖ
-    → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-    → CTI2.SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
-    → (prem : Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ N ∶ p)
-    → Value U
-    → (vN : Value N)
-    → AllValueView N
-    → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-    → (chain : TargetFrameAbsorptionChain W γ A′
-        (name-type-app-frame B X refl refl ▻ⁱ spine) q)
-    → (typed : SpineTypedʷ {fuel = fuel} W
-        (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → Acc _<ᵐ_ (terminationMeasure {phase = spine-phase} vN
-        (name-type-app-frame B X refl refl ▻ⁱ spine) prem)
-    → (target : StructuralTargetInstantiationPackage W N
-        (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
-        ECR.mapCtxᴿ
-          (structural-world-extendᴿ
-            (StructuralTargetInstantiationPackage.structural-ext target))
-          γ
-        ⊢² U ↓ c ⊑
-          StructuralTargetInstantiationPackage.final target ∶
-          ECR.transport⊑ᵂ
-            (structural-world-extendᴿ
-              (StructuralTargetInstantiationPackage.structural-ext target))
-            q
-structural-name-conceal-equal surfaces worker {B = B} {X = X} {c = c}
-    fuel-step residual-cast-builder inst-decrease plan chain-plan ok mono rb
-    sc c⊢ prem vU vN view spine chain typed access target
-    with StructuralNamePostPlan.conceal-child plan {c = c} rb
-       | StructuralNameChainPlan.conceal-child chain-plan {c = c} rb sc
-           chain typed
-structural-name-conceal-equal surfaces worker {B = B} {X = X} {c = c}
-    fuel-step residual-cast-builder inst-decrease plan chain-plan ok mono rb
-    sc c⊢ prem vU vN view spine chain typed access target
-    | q₀ , child-plan
-    | child-chain , (child-typed , child-chain-plan) =
-  structural-conceal-replay
-    (StructuralTargetInstantiationPackage.structural-ext target)
-    mono rb sc c⊢
-    (StructuralStrictViewSurfaces.conceal-equal-ok surfaces rb ok
-      spine target)
-    (worker surfaces fuel-step residual-cast-builder inst-decrease
-      child-plan child-chain-plan prem vU vN
-      (name-type-app-frame B X refl refl ▻ⁱ spine)
-      child-chain child-typed access
-      (structural-target-tag-rebase-left rb target))
-
-
 mutual
 
   structural-value-spine-instantiation-acc :
@@ -1705,31 +1634,6 @@ mutual
         (smaller
           (measure-source< (n<1+n (suc (derivSize prem)))))
         (structural-target-rebase-left rb target))
-  structural-name-instantiation-acc surfaces fuel-step residual-cast-builder
-      inst-decrease plan chain-plan
-      (CTI2.conceal⊑² {c = c} ok mono rb sc c⊢ prem q)
-      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
-      with StructuralNamePostPlan.conceal-child plan {c = c} rb
-         | StructuralNameChainPlan.conceal-child chain-plan {c = c} rb sc
-             chain typed
-  structural-name-instantiation-acc surfaces {B = B} {X = X}
-      fuel-step residual-cast-builder inst-decrease plan chain-plan
-      (CTI2.conceal⊑² {c = c} ok mono rb sc c⊢ prem q)
-      (vU CT.↓ cv) vN view spine chain typed (WF.acc smaller) target
-      | q₀ , child-plan
-      | child-chain , (child-typed , child-chain-plan) =
-    structural-conceal-replay
-      (StructuralTargetInstantiationPackage.structural-ext target)
-      mono rb sc c⊢
-      (StructuralStrictViewSurfaces.conceal-equal-ok surfaces rb ok
-        spine target)
-      (structural-value-spine-instantiation-acc surfaces fuel-step
-        residual-cast-builder inst-decrease child-plan child-chain-plan
-        prem vU vN (name-type-app-frame B X refl refl ▻ⁱ spine)
-        child-chain child-typed
-        (smaller
-          (measure-source< (n<1+n (suc (derivSize prem)))))
-        (structural-target-tag-rebase-left rb target))
   structural-name-instantiation-acc surfaces fuel-step residual-cast-builder
       inst-decrease plan chain-plan
       (CTI2.conceal⊑²-seal-star-open {X = Xᴸ} no-target mono rb sc

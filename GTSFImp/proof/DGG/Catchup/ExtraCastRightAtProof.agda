@@ -54,8 +54,6 @@ open import proof.DGG.Catchup.TargetCastStepInversionProof using
    exposed-project-expand-step-inversion-⊑cast²;
    matched-conceal-partner-target-id-core;
    matched-conceal-partner-target-id-framed-core;
-   source-conceal-partner-target-id-core;
-   source-conceal-partner-target-id-framed-core;
    target-id-step-inversion)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
@@ -115,18 +113,6 @@ target-bot-intro-refutation {q = q} vM rel =
   source-value-target-bottom-impossible vM (CTI2T.source-typing² rel) q
 
 
-variable-ground-other-impossible : ∀ {Δ} {μ : Env∼ Δ}
-    {X : TyVar Δ} {G : Ty Δ}
-  → Ground G
-  → (c : μ ⊢ ＇ X ∼ G)
-  → ＇ X ≢ G
-  → ⊥
-variable-ground-other-impossible (＇ X) (id (＇ .X)) X≢X =
-  X≢X refl
-variable-ground-other-impossible ∀★
-    ((C.gen_ ⦃ _ ⦄ ⦃ () ⦄ c) A≢★) X≢G
-
-
 rep★-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
     {P : Term Δᴸ} {Xᴿ?}
@@ -149,55 +135,6 @@ rep★-ground-step-core c
   CTI2.rep★-matched-inner-tags X₂≢X aligned
 rep★-ground-step-core c (CTI2.rep★-round-trip ok) =
   CTI2.rep★-round-trip (rep★-ground-step-core c ok)
-
-
-seal-partner-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ?}
-    {M′ : Term Δᴿ} {B G : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ B ∼ G)
-  → B ≢ G
-  → CTI2.SealPartnerOK W X P R Xᴿ? (M′ ⟨ _! c ⟩)
-  → CTI2.SealPartnerOK W X P R Xᴿ?
-      ((M′ ⟨ c ⟩)
-        ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
-          ⦃ ground-nonstar Gᵍ ⦄ ⟩)
-seal-partner-ground-step-core c B≢G
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target no-target (rep★-ground-step-core c ok)
-seal-partner-ground-step-core c B≢G (CTI2.plain-target ())
-seal-partner-ground-step-core ⦃ Gᵍ = Gᵍ ⦄ c B≢G
-    (CTI2.name-protected-target {Y = Y}) =
-  ⊥-elim (variable-ground-other-impossible Gᵍ c B≢G)
-
-
-source-conceal-partner-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ?} {M′ : Term Δᴿ} {B G : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ B ∼ G)
-  → B ≢ G
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ _! c ⟩)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
-      ((M′ ⟨ c ⟩)
-        ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
-          ⦃ ground-nonstar Gᵍ ⦄ ⟩)
-source-conceal-partner-ground-step-core c B≢G
-    (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok (seal-partner-ground-step-core c B≢G ok)
-source-conceal-partner-ground-step-core c B≢G
-    CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-source-conceal-partner-ground-step-core c B≢G
-    CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-source-conceal-partner-ground-step-core c B≢G
-    CTI2.id-conceal-target =
-  CTI2.id-conceal-target
 
 
 rep★-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
@@ -223,56 +160,6 @@ rep★-ground-step-framed-core c d
   CTI2.rep★-matched-inner-tags X₂≢X aligned
 rep★-ground-step-framed-core c d (CTI2.rep★-round-trip ok) =
   CTI2.rep★-round-trip (rep★-ground-step-framed-core c d ok)
-
-
-seal-partner-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ?}
-    {M′ : Term Δᴿ} {B G C D : Ty Δᴿ} {ν μ : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ B ∼ G)
-  → (d : μ ⊢ C ∼ D)
-  → CTI2.SealPartnerOK W X P R Xᴿ? ((M′ ⟨ _! c ⟩) ⟨ d ⟩)
-  → CTI2.SealPartnerOK W X P R Xᴿ?
-      (((M′ ⟨ c ⟩)
-        ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
-          ⦃ ground-nonstar Gᵍ ⦄ ⟩) ⟨ d ⟩)
-seal-partner-ground-step-framed-core c d
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target no-target
-    (rep★-ground-step-framed-core c d ok)
-seal-partner-ground-step-framed-core c d (CTI2.plain-target ())
-
-
-source-conceal-partner-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ?} {M′ : Term Δᴿ} {B G C D : Ty Δᴿ}
-    {ν μ : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ B ∼ G)
-  → (d : μ ⊢ C ∼ D)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
-      ((M′ ⟨ _! c ⟩) ⟨ d ⟩)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
-      (((M′ ⟨ c ⟩)
-        ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
-          ⦃ ground-nonstar Gᵍ ⦄ ⟩) ⟨ d ⟩)
-source-conceal-partner-ground-step-framed-core c d
-    (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok
-    (seal-partner-ground-step-framed-core c d ok)
-source-conceal-partner-ground-step-framed-core c d
-    CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-source-conceal-partner-ground-step-framed-core c d
-    CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-source-conceal-partner-ground-step-framed-core c d
-    CTI2.id-conceal-target =
-  CTI2.id-conceal-target
 
 
 matched-conceal-partner-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
@@ -352,28 +239,6 @@ rep★-projection-impossible c (CTI2.rep★-round-trip ok) =
   rep★-projection-impossible c ok
 
 
-source-conceal-partner-projection-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ?} {M′ N : Term Δᴿ} {G B : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ G ∼ B)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ ？ c ⟩)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? N
-source-conceal-partner-projection-core c
-    (CTI2.seal-partner-ok (CTI2.star-rep-target no-target ok)) =
-  ⊥-elim (rep★-projection-impossible c ok)
-source-conceal-partner-projection-core c
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
-source-conceal-partner-projection-core c CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-source-conceal-partner-projection-core c CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-source-conceal-partner-projection-core c CTI2.id-conceal-target =
-  CTI2.id-conceal-target
-
-
 rep★-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
     {P : Term Δᴸ} {Xᴿ?}
@@ -395,51 +260,6 @@ rep★-projection-framed-core c d
   CTI2.rep★-matched-inner-tags X₂≢X aligned
 rep★-projection-framed-core c d (CTI2.rep★-round-trip ok) =
   CTI2.rep★-round-trip (rep★-projection-framed-core c d ok)
-
-
-seal-partner-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ?}
-    {M′ N : Term Δᴿ} {G B C D : Ty Δᴿ}
-    {ν μ : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ G ∼ B)
-  → (d : μ ⊢ C ∼ D)
-  → CTI2.SealPartnerOK W X P R Xᴿ? ((M′ ⟨ ？ c ⟩) ⟨ d ⟩)
-  → CTI2.SealPartnerOK W X P R Xᴿ? (N ⟨ d ⟩)
-seal-partner-projection-framed-core c d
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target no-target
-    (rep★-projection-framed-core c d ok)
-seal-partner-projection-framed-core c d (CTI2.plain-target ())
-
-
-source-conceal-partner-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ?} {M′ N : Term Δᴿ} {G B C D : Ty Δᴿ}
-    {ν μ : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ G ∼ B)
-  → (d : μ ⊢ C ∼ D)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
-      ((M′ ⟨ ？ c ⟩) ⟨ d ⟩)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? (N ⟨ d ⟩)
-source-conceal-partner-projection-framed-core c d
-    (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok
-    (seal-partner-projection-framed-core c d ok)
-source-conceal-partner-projection-framed-core c d
-    CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-source-conceal-partner-projection-framed-core c d
-    CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-source-conceal-partner-projection-framed-core c d
-    CTI2.id-conceal-target =
-  CTI2.id-conceal-target
 
 
 matched-conceal-partner-projection-core : ∀ {Δᴸ Δᴿ Δ}
@@ -522,55 +342,6 @@ rep★-projection-double-framed-core c d e
 rep★-projection-double-framed-core c d e (CTI2.rep★-round-trip ok) =
   CTI2.rep★-round-trip
     (rep★-projection-double-framed-core c d e ok)
-
-
-seal-partner-projection-double-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {R : Ty Δᴸ} {Xᴿ?}
-    {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
-    {ν μ ω : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ G ∼ B)
-  → (d : μ ⊢ C ∼ D)
-  → (e : ω ⊢ E ∼ F)
-  → CTI2.SealPartnerOK W X P R Xᴿ?
-      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
-  → CTI2.SealPartnerOK W X P R Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
-seal-partner-projection-double-framed-core c d e
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target no-target
-    (rep★-projection-double-framed-core c d e ok)
-seal-partner-projection-double-framed-core c d e (CTI2.plain-target ())
-
-
-source-conceal-partner-projection-double-framed-core :
-    ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c₀ : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ?} {M′ N : Term Δᴿ} {G B C D E F : Ty Δᴿ}
-    {ν μ ω : Env∼ Δᴿ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Bns : NonStar B ⦄
-  → (c : ν ⊢ G ∼ B)
-  → (d : μ ⊢ C ∼ D)
-  → (e : ω ⊢ E ∼ F)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ?
-      (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
-  → CTI2.SourceConcealPartnerOK W P c₀ Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
-source-conceal-partner-projection-double-framed-core c d e
-    (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok
-    (seal-partner-projection-double-framed-core c d e ok)
-source-conceal-partner-projection-double-framed-core c d e
-    CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-source-conceal-partner-projection-double-framed-core c d e
-    CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-source-conceal-partner-projection-double-framed-core c d e
-    CTI2.id-conceal-target =
-  CTI2.id-conceal-target
 
 
 matched-conceal-partner-projection-double-framed-core :

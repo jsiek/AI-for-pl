@@ -238,6 +238,12 @@ qOut = X⊑X
 probe-no-output :
   ¬ (probe-W₁ ∣ [] ⊢² probe-V ⊑ probe-U ∶ qOut)
 probe-no-output
-    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) with p
+    (CTI2.conceal⊑²-seal-star-open {p = p}
+      no-target mono rb sc c⊢ prem q) with p
 probe-no-output
-    (CTI2.conceal⊑² {p = p} ok mono rb sc c⊢ prem q) | ()
+    (CTI2.conceal⊑²-seal-star-open {p = p}
+      no-target mono rb sc c⊢ prem q) | ()
+probe-no-output
+    (CTI2.conceal⊑²-source-ok {p = p} ok mono rb sc c⊢ prem q) with p
+probe-no-output
+    (CTI2.conceal⊑²-source-ok {p = p} ok mono rb sc c⊢ prem q) | ()

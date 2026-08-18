@@ -7,7 +7,6 @@ module proof.DGG.Inversion.SourceStripColumnView where
 --     branch-producing worker proof to avoid Agda compiled-clause pressure.
 --   * Exposes only the view and its constructor cases.
 
-open import Data.Sum.Base using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types
@@ -17,7 +16,6 @@ open import Conversion using (seal)
 open import CastTerms using (Term; _↓_; _⟨_⟩)
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.SealPeelToolkit as SPT
 
 open CTI2 using
   (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
@@ -60,49 +58,6 @@ source-column-seal-D-case : ∀ {Δᴸ Δᴿ Δ}
 {-# NON_COVERING #-}
 source-column-seal-D-case (CTI2.⊑cast² {p = pᵤ} cY′ prem p) =
   column-seal-target-cast-case prem
-source-column-seal-D-case
-    (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-    with ok | rbᵢ
-source-column-seal-D-case
-    (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-    | CTI2.seal-partner-ok
-        (CTI2.star-rep-target
-          _
-          (CTI2.rep★-var-tag {c = cVar} aligned))
-    | CTI2.tag-rebase-varᴸ link
-    with SPT.var-consistency-view cVar
-source-column-seal-D-case
-    (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-    | CTI2.seal-partner-ok
-        (CTI2.star-rep-target
-          _
-          (CTI2.rep★-var-tag {c = cVar} aligned))
-    | CTI2.tag-rebase-varᴸ link
-    | inj₁ refl =
-  column-seal-source-case monoᵢ link scᵢ X∈ prem
-source-column-seal-D-case
-    (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-    | CTI2.seal-partner-ok
-        (CTI2.star-rep-target
-          _
-          (CTI2.rep★-var-tag {c = cVar} aligned))
-    | CTI2.tag-rebase-varᴸ link
-    | inj₂ ()
-source-column-seal-D-case
-    (CTI2.conceal⊑² ok monoᵢ rbᵢ scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-    | CTI2.seal-partner-ok CTI2.name-protected-target
-    | CTI2.tag-rebase-varᴸ link =
-  column-seal-source-case monoᵢ link scᵢ X∈ prem
 source-column-seal-D-case
     (CTI2.conceal⊑²-source-ok
       (CTI2.seal-nonstar-name-protected-ok Rns aligned)

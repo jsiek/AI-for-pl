@@ -5293,22 +5293,6 @@ rightOnlyImpEnvMono mono Fin.zero eq = refl
 rightOnlyImpEnvMono mono (Fin.suc Z) eq = mono Z eq
 
 
-post-source-conceal-partner-ok : ∀ {Δᴸ Δᴿ Δ₂}
-    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
-    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
-    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {Xᴿ?}
-    {c : Conv↓ Δᴸ A A′}
-  → CTI2.SourceConcealPartnerOK W₂ M c Xᴿ?
-      (Λ⊑Λ²PostTerm V′ B)
-post-source-conceal-partner-ok {c = seal X R} =
-  CTI2.seal-partner-ok (CTI2.plain-target CTI2.not-↑)
-post-source-conceal-partner-ok {c = c ↦↓ d} =
-  CTI2.fun-conceal-target
-post-source-conceal-partner-ok {c = `∀↓ c} =
-  CTI2.all-conceal-target
-post-source-conceal-partner-ok {c = id↓ A} =
-  CTI2.id-conceal-target
-
 post-source-conceal-ok : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
@@ -6313,55 +6297,6 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     }
 
 
-Λ-post-prefix-conceal⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
-    {Wᵖ₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
-    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
-    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
-    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
-    {ν : Env∼ Δᴿ} {p₀ : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
-    {p : A′ CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-    {Xᴸ? Xᴿ?} {Xᴿ₂? : Maybe (Fin.Fin (suc (suc Δᴿ)))}
-    {c : Conv↓ Δᴸ A A′}
-    {ext₂ : ECR.WorldExtendᴿ
-      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
-    {extᵖ₂ : ECR.WorldExtendᴿ
-      (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵖ Wᵖ₂}
-    {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
-    {prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ Λ V′ ∶ p₀}
-  → (ok : CTI2.SourceConcealPartnerOK Wᵖ M c Xᴿ? (Λ V′))
-  → (mono : CTI2.ImpEnvMono W Wᵖ)
-  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → (sc : CTI2.SameCtx γ γᵖ)
-  → (c⊢ : CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c)
-  → ⦃ Bnv : NonVar B ⦄
-  → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
-  → (B′≢★ : B′ ≢ ★)
-  → CTI2.SourceConcealPartnerOK Wᵖ₂ M c Xᴿ₂?
-      (Λ⊑Λ²PostTerm V′ B)
-  → CTI2.ImpEnvMono W₂ Wᵖ₂
-  → CTI2.TagRebaseAtᴸ Wᵖ₂ W₂ Xᴸ? Xᴿ₂?
-  → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
-  → CTI2.sourceStoreʷ W₂ CTI2.⊢↓[ Xᴸ? ] c
-  → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
-  → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
-  → ΛPostPrefixPackageAtBase
-      (CTI2.conceal⊑² ok mono rb sc c⊢ prem p) ext₂ c′ B′≢★
-Λ-post-prefix-conceal⊑²-base ok mono rb sc c⊢ B′≢★ ok₂ mono₂
-    rb₂ sc₂ c⊢₂ top-p₂ prefix =
-  record
-    { prefix-p₂ = top-p₂
-    ; prefix-relation =
-        CTI2.conceal⊑² ok₂ mono₂ rb₂ sc₂ c⊢₂
-          (ΛPostPrefixPackageAtBase.prefix-relation prefix)
-          top-p₂
-    ; prefix-value = ΛPostPrefixPackageAtBase.prefix-value prefix
-    ; prefix-reduction =
-        ΛPostPrefixPackageAtBase.prefix-reduction prefix
-    }
-
 Λ-post-prefix-conceal⊑²-source-ok-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
@@ -6485,23 +6420,6 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
     (TE.source-reveal-insert (ins₂ plan)
       (TE.source-reveal-insert (ins₁ plan) c⊢))
-    (Λ-strip-prefix-p₂ plan q)
-    (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)
-Λ-post-prefix-hereditary plan
-    rel@(CTI2.conceal⊑² ok mono rb sc c⊢ prem q)
-    (vM ↓ conceal-value) target-value c′ B′≢★
-    with Λ-two-insert-tag-rebase-child plan rb
-Λ-post-prefix-hereditary plan
-    rel@(CTI2.conceal⊑² ok mono rb sc c⊢ prem q)
-    (vM ↓ conceal-value) target-value c′ B′≢★
-    | record
-        { childPlan = child ; sameΔ₂ = refl
-        ; postMono = post-mono ; postRebase = post-rb } =
-  Λ-post-prefix-conceal⊑²-base ok mono rb sc c⊢ B′≢★
-    post-source-conceal-partner-ok (post-mono mono) post-rb
-    (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
-    (TE.source-conceal-insert (ins₂ plan)
-      (TE.source-conceal-insert (ins₁ plan) c⊢))
     (Λ-strip-prefix-p₂ plan q)
     (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)
 Λ-post-prefix-hereditary plan

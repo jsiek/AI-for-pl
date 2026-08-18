@@ -40,28 +40,6 @@ open import proof.DGG.Catchup.ValueCatchupRightDef using
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
-StructuralNameConcealEqualOKᵀ : Set₁
-StructuralNameConcealEqualOKᵀ =
-  ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {U : Term Δᴸ} {V : Term Δᴿ}
-    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)}
-    {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
-    {c : Conv↓ Δᴸ A A′}
-  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
-  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-  → (target : StructuralTargetInstantiationPackage W V
-      (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → let child = structural-tag-rebase-atᴸ
-          (StructuralTargetInstantiationPackage.structural-ext target) rb
-     in CTI2.SourceConcealPartnerOK
-          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
-          (mapPivotChanges
-            (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
-          (StructuralTargetInstantiationPackage.final target)
-
-
 StructuralNameConcealEqualSourceOKᵀ : Set₁
 StructuralNameConcealEqualSourceOKᵀ =
   ∀ {Δᴸ Δᴿ Δ}
@@ -329,7 +307,6 @@ StructuralConcealStrictSurfaceᵀ =
 
 record StructuralStrictViewSurfaces : Set₁ where
   field
-    conceal-equal-ok : StructuralNameConcealEqualOKᵀ
     conceal-equal-source-ok : StructuralNameConcealEqualSourceOKᵀ
     conceal-equal-no-target : StructuralNameConcealEqualNoTargetᵀ
     Λ-cell : StructuralΛStrictSurfaceᵀ

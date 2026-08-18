@@ -278,37 +278,6 @@ private
       (target-store-move refl refl same refl hΣ resolve) no-target =
     no-target
 
-  moveSealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ} {P R Xᴿ? M′}
-    → TargetStoreMove W Wᵗ
-    → CTI2.SealPartnerOK W X P R Xᴿ? M′
-    → CTI2.SealPartnerOK Wᵗ X P R Xᴿ? M′
-  moveSealPartnerOK mv (CTI2.star-rep-target no-target ok) =
-    CTI2.star-rep-target
-      (moveNoTargetOccupantAtSource mv no-target)
-      (moveRep★PartnerOK mv ok)
-  moveSealPartnerOK mv (CTI2.plain-target nt) =
-    CTI2.plain-target nt
-  moveSealPartnerOK mv CTI2.name-protected-target =
-    CTI2.name-protected-target
-
-  moveSourceConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-    → TargetStoreMove W Wᵗ
-    → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
-    → CTI2.SourceConcealPartnerOK Wᵗ M c Xᴿ? M′
-  moveSourceConcealPartnerOK mv (CTI2.seal-partner-ok ok) =
-    CTI2.seal-partner-ok (moveSealPartnerOK mv ok)
-  moveSourceConcealPartnerOK mv CTI2.fun-conceal-target =
-    CTI2.fun-conceal-target
-  moveSourceConcealPartnerOK mv CTI2.all-conceal-target =
-    CTI2.all-conceal-target
-  moveSourceConcealPartnerOK mv CTI2.id-conceal-target =
-    CTI2.id-conceal-target
-
   moveSourceConcealOK : ∀ {Δᴸ Δᴿ Δ}
       {W Wᵗ : World Δᴸ Δᴿ Δ}
       {M : Term Δᴸ} {A A′ : Ty Δᴸ}
@@ -1171,22 +1140,6 @@ source-conceal-move
     rb′
     (moveSameCtx (baseMove mv) (baseMove mv′) sc)
     (source-reveal-move (baseMove mv) c⊢)
-    (⊢²-target-bind-lift-move mv′ M⊑M′)
-    (move⊑ᵂ (baseMove mv) q)
-⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢
-      M⊑M′ q)
-    with moveTagRebaseAtᴸBackwardBindLift mv mono rb
-⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑² {W′ = W′} {p = p} ok mono rb sc c⊢
-      M⊑M′ q)
-    | W′ᵗ , mv′ , rb′ =
-  CTI2.conceal⊑²
-    (moveSourceConcealPartnerOK (baseMove mv′) ok)
-    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
-    rb′
-    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
-    (source-conceal-move (baseMove mv) c⊢)
     (⊢²-target-bind-lift-move mv′ M⊑M′)
     (move⊑ᵂ (baseMove mv) q)
 ⊢²-target-bind-lift-move mv

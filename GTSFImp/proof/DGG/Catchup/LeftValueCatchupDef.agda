@@ -63,8 +63,6 @@ SourceCastBound fuel (CTI2.cast⊑² c rel q) =
   castSize c < fuel × SourceCastBound fuel rel
 SourceCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
   SourceCastBound fuel rel
-SourceCastBound fuel (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
-  SourceCastBound fuel rel
 SourceCastBound fuel
     (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
   SourceCastBound fuel rel

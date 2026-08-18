@@ -214,32 +214,6 @@ extract-tag-layer (CTI2.reveal⊑² mono rb sameγ c⊢ rel q)
       CTI2.reveal⊑² mono rb sameγ c⊢
         (TagLayerExtraction.replay-tag child rel′) q
   }
-extract-tag-layer (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q)
-    (vM ↓ cv) vM′ view
-    with extract-tag-layer rel vM vM′ view
-extract-tag-layer (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q)
-    (vM ↓ cv) vM′ view
-    | child = record
-  { Δᴸ₀ = TagLayerExtraction.Δᴸ₀ child
-  ; Δ₀ = TagLayerExtraction.Δ₀ child
-  ; W₀ = TagLayerExtraction.W₀ child
-  ; γ₀ = TagLayerExtraction.γ₀ child
-  ; M₀ = TagLayerExtraction.M₀ child
-  ; A₀ = TagLayerExtraction.A₀ child
-  ; G = TagLayerExtraction.G child
-  ; μ = TagLayerExtraction.μ child
-  ; Gᵍ = TagLayerExtraction.Gᵍ child
-  ; G∼★ = TagLayerExtraction.G∼★ child
-  ; Gns = TagLayerExtraction.Gns child
-  ; N = TagLayerExtraction.N child
-  ; N-value = TagLayerExtraction.N-value child
-  ; target-eq = TagLayerExtraction.target-eq child
-  ; qG = TagLayerExtraction.qG child
-  ; core-relation = TagLayerExtraction.core-relation child
-  ; replay-tag = λ rel′ →
-      CTI2.conceal⊑² partner mono rb sameγ c⊢
-        (TagLayerExtraction.replay-tag child rel′) q
-  }
 extract-tag-layer
     (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q)
     (vM ↓ cv) vM′ view

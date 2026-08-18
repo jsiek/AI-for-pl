@@ -2908,54 +2908,6 @@ targetInsertNoTargetAtSource {X = X} ins no-target (Y′ , eq)
     | Y , _ , target-eq =
   no-target (Y , target-eq)
 
-renameSealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
-    {ρ : Δᴿ ↪ᵗ Δᴿ′}
-    {X : TyVar Δᴸ} {P R Xᴿ? M′}
-  → (∀ {X₀ Y₀}
-      → CTI2.CenterAligned W X₀ Y₀
-      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
-  → (∀ {X₀}
-      → CTI2.NoTargetOccupantAtSource W X₀
-      → CTI2.NoTargetOccupantAtSource W′ X₀)
-  → CTI2.SealPartnerOK W X P R Xᴿ? M′
-  → CTI2.SealPartnerOK W′ X P R
-      (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
-renameSealPartnerOK align no-target-map
-    (CTI2.star-rep-target no-target ok) =
-  CTI2.star-rep-target
-    (no-target-map no-target)
-    (renameRep★PartnerOK align ok)
-renameSealPartnerOK align no-target-map (CTI2.plain-target nt) =
-  CTI2.plain-target (notTopTag-rename _ nt)
-renameSealPartnerOK align no-target-map CTI2.name-protected-target =
-  CTI2.name-protected-target
-
-renameSourceConcealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
-    {ρ : Δᴿ ↪ᵗ Δᴿ′}
-    {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-    {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-  → (∀ {X₀ Y₀}
-      → CTI2.CenterAligned W X₀ Y₀
-      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
-  → (∀ {X₀}
-      → CTI2.NoTargetOccupantAtSource W X₀
-      → CTI2.NoTargetOccupantAtSource W′ X₀)
-  → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
-  → CTI2.SourceConcealPartnerOK W′ M c
-      (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
-renameSourceConcealPartnerOK align no-target-map
-    (CTI2.seal-partner-ok ok) =
-  CTI2.seal-partner-ok
-    (renameSealPartnerOK align no-target-map ok)
-renameSourceConcealPartnerOK align no-target-map CTI2.fun-conceal-target =
-  CTI2.fun-conceal-target
-renameSourceConcealPartnerOK align no-target-map CTI2.all-conceal-target =
-  CTI2.all-conceal-target
-renameSourceConcealPartnerOK align no-target-map CTI2.id-conceal-target =
-  CTI2.id-conceal-target
-
 renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′}
@@ -3551,23 +3503,6 @@ primResultTy-renameᵗ ρ and𝔹 = refl
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)
     (source-reveal-insert ins c⊢)
-    (⊢²-target-insert insᵖ M⊑M′)
-    (transport⊑ᵂ ins q)
-⊢²-target-insert {ρ = ρ} ins
-    (CTI2.conceal⊑² {W′ = W′} {p = p}
-      ok mono rb sc c⊢ M⊑M′ q)
-    with reverseTagRebaseAtᴸ ins rb
-⊢²-target-insert {ρ = ρ} ins
-    (CTI2.conceal⊑² {W′ = W′} {p = p}
-      ok mono rb sc c⊢ M⊑M′ q)
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  CTI2.conceal⊑²
-    (renameSourceConcealPartnerOK
-      (align-insert insᵖ) (targetInsertNoTargetAtSource insᵖ) ok)
-    (impEnvMono-insert ins insᵖ mono)
-    rb⁺
-    (mapCtxᵀ-same ins insᵖ sc)
-    (source-conceal-insert ins c⊢)
     (⊢²-target-insert insᵖ M⊑M′)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} ins

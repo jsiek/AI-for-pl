@@ -139,49 +139,6 @@ private
   dynRep★PartnerOK (CTI2.rep★-round-trip ok) =
     CTI2.rep★-round-trip (dynRep★PartnerOK ok)
 
-  data DynPayloadTargetRoute {Δᴸ Δᴿ Δ}
-      (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
-      (Z : TyVar Δᴸ) (Y : TyVar Δᴿ) (U : Term Δᴿ) : Set where
-    dyn-target-stripped :
-      (∀ {P} → CTI2.SealPartnerOK
-        (SPT.dynWorld Wᵖ) Z P ★ (just Y) U)
-      → DynPayloadTargetRoute Wᵖ γᵖ Z Y U
-
-    dyn-target-paired :
-      DynPayloadTargetRoute Wᵖ γᵖ Z Y U
-
-  dynPayloadTargetRoute : ∀ {Δᴸ Δᴿ Δ}
-      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
-      {Z : TyVar Δᴸ} {Y : TyVar Δᴿ}
-      {P : Term Δᴸ} {U : Term Δᴿ}
-    → Value U
-    → ⟨ Δᴿ , CTI2.targetStoreʷ Wᵖ , CTI2.tgtCtxʷ γᵖ ⟩ ⊢ U ⦂ ★
-    → CTI2.Rep★PartnerOK Wᵖ Z P (just Y) U
-    → DynPayloadTargetRoute Wᵖ γᵖ Z Y U
-  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-untagged nt) =
-    dyn-target-stripped (λ {P} → CTI2.plain-target nt)
-  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-nonvar-tag Gnv) =
-    dyn-target-paired
-  dynPayloadTargetRoute
-      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) U⊢
-      (CTI2.rep★-var-tag {Y∼★ = .Y∼★} {c = cY}
-        {Ans = .Ans} aligned)
-      with SVD.var-tag-value-sealed
-        {Y∼★ = Y∼★} {cY = cY} {Ans = Ans}
-        (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》)
-        U⊢
-  dynPayloadTargetRoute
-      (vU Value.《 inj ⦃ G∼★ = Y∼★ ⦄ ⦃ Gns = Ans ⦄ 》) U⊢
-      (CTI2.rep★-var-tag {Y∼★ = .Y∼★} {c = cY}
-        {Ans = .Ans} aligned)
-      | SVD.varv-seal vU₀ Y∈ refl =
-    dyn-target-stripped (λ {P} → CTI2.name-protected-target)
-  dynPayloadTargetRoute vU U⊢
-      (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-    dyn-target-paired
-  dynPayloadTargetRoute vU U⊢ (CTI2.rep★-round-trip ok) =
-    dynPayloadTargetRoute vU U⊢ ok
-
 dyn-rep★-partner-ok : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
     {Z : TyVar Δᴸ} {V : Term Δᴸ} {Xᴿ? U}
@@ -648,20 +605,6 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₄) sc₄)
     (TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem
       (dyn-var-star {W = W₄} {X = Z}))
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
-        ok monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
-    with SPT.right-var-obligation-view {W = Wₗ} {R = ★} {Y = Y} pₗ
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑² {W′ = Wₗ} {γ′ = γₗ} {p = pₗ}
-        ok monoₗ rbₗ scₗ (CTI2.⊢↓-sealˣ Z∈′) prem .p
-    | ()
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢

@@ -210,10 +210,6 @@ module InstanceA where
   terminus-input-empty′ (X⊑★ eq)
       (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
   terminus-input-empty′ q₀
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok (CTI2.plain-target ()))
-        mono rb sc c⊢ D .q₀)
-  terminus-input-empty′ q₀
       (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
     terminus-input-ok-empty ok
 

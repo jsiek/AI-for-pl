@@ -8,8 +8,9 @@ module proof.DGG.WorldInvariants where
 --     builders without changing World or requiring it from consumers.
 --   * Derives variable-entry chain coherence from direct representations.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
+open import Data.Maybe using (just; nothing)
 import Data.Nat as Nat
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using
@@ -20,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-lift; store-bind; lookupStore)
 open import Consistency using
-  (_↪ᵗ_; empty; keep; skip; id↪ᵗ; toRenameᵗ)
+  (_↪ᵗ_; empty; keep; skip; id↪ᵗ; wk↪ᵗ; toRenameᵗ)
 open import Imprecision
 import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -28,12 +29,13 @@ import proof.DGG.CenterRename as CR
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.Parked.ParkedWorldDef as PWD
 import proof.DGG.SealPeelToolkit as SPT
+import proof.DGG.TargetBindLift as TBL
 import proof.DGG.TargetExtend as TE
 import proof.DGG.WorldDecay as WD
 open import proof.ImprecisionConsistency using
   (refl⊑; rename-⊑; toRenameᵗ-injective)
 open import proof.TypeInTermSubst using
-  (toRename-id-eq; toRename-keep-eq)
+  (renameᵗ-wk-eq; toRename-id-eq; toRename-keep-eq; toRename-wk-eq)
 
 
 record WorldInvariants {Δᴸ Δᴿ Δ}
@@ -497,14 +499,6 @@ parked-right-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants (CTI2.rightOnlyWorld W B)
 parked-right-bind-invariants {B = B} = rightOnlyWorld-invariants B
 
-parked-structural-right-insert-invariants : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → PWD.ParkedWorld W
-  → WorldInvariants W
-  → WorldInvariants W
-parked-structural-right-insert-invariants parked inv = inv
-
-
 parkedEvolve-end-invariants : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
     {χsᴸ : R.StoreChanges Δᴸ Δᴸ′}
     {χsᴿ : R.StoreChanges Δᴿ Δᴿ′}
@@ -632,3 +626,401 @@ dynWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (SPT.dynWorld W)
 dynWorld-invariants {W = W} = decay-invariants (SPT.dynWorld-decay W)
+
+
+targetStoreAs-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} (Σᴿ : TyStore Δᴿ)
+  → WorldInvariants W
+  → (∀ {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ ≡ toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
+      → CTI2.impEnvʷ W ⊢
+          renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W))
+            (lookupStore (CTI2.sourceStoreʷ W) Xᴸ)
+          ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W)) (lookupStore Σᴿ Xᴿ))
+  → (∀ (Xᴿ : TyVar Δᴿ)
+      → (∀ (Xᴸ : TyVar Δᴸ)
+          → toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ ≢ toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+      → lookupStore Σᴿ Xᴿ ≡ ★)
+  → WorldInvariants (TBL.targetStoreAs W Σᴿ)
+targetStoreAs-invariants Σᴿ inv reps unmatched =
+  world-invariants (preciseMarksAligned inv) reps unmatched
+
+
+record TargetInsertDirect {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    (ins : TE.TargetInsert ρ π W W′) : Set where
+  constructor target-insert-direct
+  field
+    targetLookup-insert : ∀ Xᴿ
+      → lookupStore (CTI2.targetStoreʷ W′) (toRenameᵗ ρ Xᴿ)
+        ≡ renameᵗ (toRenameᵗ ρ)
+            (lookupStore (CTI2.targetStoreʷ W) Xᴿ)
+
+    targetLookup-off : ∀ Xᴿ′
+      → CR.preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Xᴿ′) ≡ nothing
+      → lookupStore (CTI2.targetStoreʷ W′) Xᴿ′ ≡ ★
+
+open TargetInsertDirect public
+
+
+targetInsert-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → TargetInsertDirect ins
+  → WorldInvariants W
+  → WorldInvariants W′
+targetInsert-invariants {ρ = ρ} {π = π} {W = W} {W′ = W′} ins direct inv =
+  world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ′ ∈ TyVar _ ]
+        toRenameᵗ (CTI2.ηᴿʷ W′) Xᴿ′
+          ≡ toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
+  precise Xᴸ mark with preciseMarksAligned inv Xᴸ old-mark
+    where
+    old-mark :
+      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑X
+    old-mark = trans
+      (sym (TE.impEnv-insert ins (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)))
+      (subst≡ (λ Z → CTI2.impEnvʷ W′ Z ≡ X⊑X)
+        (TE.source-insert ins Xᴸ) mark)
+  precise Xᴸ mark | Xᴿ , aligned =
+    toRenameᵗ ρ Xᴿ , sym (TE.align-insert ins (sym aligned))
+
+  reps : ∀ {Xᴸ Xᴿ′}
+    → CTI2.CenterAligned W′ Xᴸ Xᴿ′
+    → CTI2.impEnvʷ W′ ⊢
+        renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W′))
+          (lookupStore (CTI2.sourceStoreʷ W′) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W′))
+          (lookupStore (CTI2.targetStoreʷ W′) Xᴿ′)
+  reps {Xᴸ} {Xᴿ′} aligned
+      with TE.target-source-reflect ins aligned
+  reps {Xᴸ} {Xᴿ′} aligned | Xᴿ , refl , old-aligned =
+    imprecision-cong source-eq target-eq
+      (TE.transport⊑ᵂ ins (representationsImprecise inv old-aligned))
+    where
+    source-eq :
+      renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W′))
+          (lookupStore (CTI2.sourceStoreʷ W) Xᴸ)
+        ≡ renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W′))
+          (lookupStore (CTI2.sourceStoreʷ W′) Xᴸ)
+    source-eq = cong (renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W′)))
+      (sym (cong (λ Σ → lookupStore Σ Xᴸ) (TE.sourceStore-kept ins)))
+
+    target-eq :
+      renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W′))
+          (renameᵗ (toRenameᵗ _) (lookupStore (CTI2.targetStoreʷ W) Xᴿ))
+        ≡ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W′))
+          (lookupStore (CTI2.targetStoreʷ W′) (toRenameᵗ _ Xᴿ))
+    target-eq = cong (renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W′)))
+      (sym (targetLookup-insert direct Xᴿ))
+
+  unmatched : ∀ Xᴿ′
+    → (∀ Xᴸ → CTI2.CenterAligned W′ Xᴸ Xᴿ′ → ⊥)
+    → lookupStore (CTI2.targetStoreʷ W′) Xᴿ′ ≡ ★
+  unmatched Xᴿ′ no-source
+      with CR.preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Xᴿ′) in pre
+  unmatched Xᴿ′ no-source | nothing =
+    targetLookup-off direct Xᴿ′ pre
+  unmatched Xᴿ′ no-source | just Z
+      with TE.target-center-reflect ins (CR.preimage?-sound π pre)
+  unmatched Xᴿ′ no-source | just Z
+      | Xᴿ , xᴿ′-eq , old-center =
+    subst≡ (λ Y → lookupStore (CTI2.targetStoreʷ W′) Y ≡ ★)
+      (sym xᴿ′-eq)
+      (trans (targetLookup-insert direct Xᴿ)
+        (cong (renameᵗ (toRenameᵗ ρ))
+          (unmatchedTargetsDynamic inv Xᴿ old-no-source)))
+    where
+    old-no-source : ∀ Xᴸ → CTI2.CenterAligned W Xᴸ Xᴿ → ⊥
+    old-no-source Xᴸ aligned = no-source Xᴸ
+      (subst≡ (CTI2.CenterAligned W′ Xᴸ) (sym xᴿ′-eq)
+        (TE.align-insert ins aligned))
+
+
+parked-structural-right-insert-invariants : ∀ {Δᴸ Δᴿ Δ Δ₁}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W₁ : CTI2.World Δᴸ (Nat.suc Δᴿ) Δ₁}
+    {B : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+  → PWD.ParkedWorld W
+  → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
+  → TargetInsertDirect ins
+  → CTI2.targetStoreʷ W₁ ≡ R.applyStore (R.bind B) (CTI2.targetStoreʷ W)
+  → WorldInvariants W
+  → WorldInvariants W₁
+parked-structural-right-insert-invariants parked ins direct follows inv =
+  targetInsert-invariants ins direct inv
+
+
+rightBindTargetInsert-direct : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → ⇑ᵗ B ≡ ★
+  → TargetInsertDirect (TE.rightBindTargetInsert {W = W} {B = B})
+rightBindTargetInsert-direct {W = W} {B = B} fresh-dynamic =
+  target-insert-direct old-entry fresh-entry
+  where
+  ins = TE.rightBindTargetInsert {W = W} {B = B}
+
+  old-entry : ∀ Xᴿ
+    → lookupStore (CTI2.targetStoreʷ (CTI2.rightOnlyWorld W B))
+        (toRenameᵗ wk↪ᵗ Xᴿ)
+      ≡ renameᵗ (toRenameᵗ wk↪ᵗ)
+          (lookupStore (CTI2.targetStoreʷ W) Xᴿ)
+  old-entry Xᴿ =
+    trans (cong (lookupStore (store-bind (CTI2.targetStoreʷ W) B))
+      (toRename-wk-eq Xᴿ))
+      (sym (renameᵗ-wk-eq (lookupStore (CTI2.targetStoreʷ W) Xᴿ)))
+
+  fresh-entry : ∀ Xᴿ′
+    → CR.preimage? wk↪ᵗ
+        (toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Xᴿ′)
+        ≡ nothing
+    → lookupStore (CTI2.targetStoreʷ (CTI2.rightOnlyWorld W B)) Xᴿ′
+        ≡ ★
+  fresh-entry Fin.zero off = fresh-dynamic
+  fresh-entry (Fin.suc Xᴿ) off = ⊥-elim (CR.just≢nothing impossible)
+    where
+    center-eq :
+      toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) (Fin.suc Xᴿ)
+        ≡ toRenameᵗ wk↪ᵗ (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+    center-eq = trans
+      (cong (toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)))
+        (sym (toRename-wk-eq Xᴿ)))
+      (TE.target-insert ins Xᴿ)
+
+    impossible : just (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ) ≡ nothing
+    impossible = trans
+      (sym (CR.preimage?-image wk↪ᵗ
+        (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)))
+      (trans (cong (CR.preimage? wk↪ᵗ) (sym center-eq)) off)
+
+
+liftBothTargetInsert-direct : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′} {v : VarImp}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → TargetInsertDirect ins
+  → TargetInsertDirect (TE.liftBothTargetInsert {v = v} ins)
+liftBothTargetInsert-direct {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {v = v} ins direct = target-insert-direct old-entry fresh-entry
+  where
+  old-entry : ∀ Xᴿ
+    → lookupStore
+        (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W′))
+        (toRenameᵗ (keep ρ) Xᴿ)
+      ≡ renameᵗ (toRenameᵗ (keep ρ))
+          (lookupStore (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W)) Xᴿ)
+  old-entry Fin.zero = refl
+  old-entry (Fin.suc Xᴿ) =
+    trans (cong ⇑ᵗ (targetLookup-insert direct Xᴿ))
+      (sym (renameᵗ-keep-shift ρ
+        (lookupStore (CTI2.targetStoreʷ W) Xᴿ)))
+
+  fresh-entry : ∀ Xᴿ′
+    → CR.preimage? (keep π)
+        (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W′)) Xᴿ′)
+        ≡ nothing
+    → lookupStore (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W′)) Xᴿ′
+        ≡ ★
+  fresh-entry Fin.zero ()
+  fresh-entry (Fin.suc Xᴿ′) off =
+    cong ⇑ᵗ (targetLookup-off direct Xᴿ′
+      (CR.sucMaybe-nothing _ off))
+
+
+liftLeftTargetInsert-direct : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′} {v : VarImp}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → TargetInsertDirect ins
+  → TargetInsertDirect (TE.liftLeftTargetInsert {v = v} ins)
+liftLeftTargetInsert-direct {π = π} {W′ = W′} {v = v} ins direct =
+  target-insert-direct (targetLookup-insert direct) fresh-entry
+  where
+  fresh-entry : ∀ Xᴿ′
+    → CR.preimage? (keep π)
+        (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′)) Xᴿ′)
+        ≡ nothing
+    → lookupStore (CTI2.targetStoreʷ (CTI2.liftWorldLeft v W′)) Xᴿ′
+        ≡ ★
+  fresh-entry Xᴿ′ off =
+    targetLookup-off direct Xᴿ′ (CR.sucMaybe-nothing _ off)
+
+
+smartAliasTargetInsert-direct : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : CTI2.World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → TargetInsertDirect ins
+  → TargetInsertDirect (TE.smartAliasTargetInsert ins guard)
+smartAliasTargetInsert-direct {ρ = ρ} {W = W} {Wᵐ = Wᵐ} ins guard direct =
+  target-insert-direct old-entry (targetLookup-off direct)
+  where
+  old-entry : ∀ Xᴿ
+    → lookupStore
+        (CTI2.targetStoreʷ (TE.smartAliasInsertWorld ins Wᵐ))
+        (toRenameᵗ ρ Xᴿ)
+      ≡ renameᵗ (toRenameᵗ ρ) (lookupStore (CTI2.targetStoreʷ Wᵐ) Xᴿ)
+  old-entry Xᴿ = trans (targetLookup-insert direct Xᴿ)
+    (cong (renameᵗ (toRenameᵗ ρ))
+      (sym (cong (λ Σ → lookupStore Σ Xᴿ)
+        (CTI2.SmartAliasMergeGuard.targetStore-same guard))))
+
+smartAliasInsertWorld-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : CTI2.World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → TargetInsertDirect ins
+  → WorldInvariants Wᵐ
+  → WorldInvariants (TE.smartAliasInsertWorld ins Wᵐ)
+smartAliasInsertWorld-invariants ins guard direct inv =
+  targetInsert-invariants (TE.smartAliasTargetInsert ins guard)
+    (smartAliasTargetInsert-direct ins guard direct) inv
+
+
+smartFreshTargetInsert-direct : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : CTI2.World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → TargetInsertDirect ins
+  → TargetInsertDirect (TE.smartFreshTargetInsert ins guard)
+smartFreshTargetInsert-direct {ρ = ρ} {π = π} {W = W} {W′ = W′}
+    {Wᵐ = Wᵐ} ins guard direct = target-insert-direct old-entry fresh-entry
+  where
+  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  po = CR.embeddingPushout π old
+  πᵐ = CR.EmbeddingPushout.premise po
+
+  old-entry : ∀ Xᴿ
+    → lookupStore
+        (CTI2.targetStoreʷ (TE.smartFreshInsertWorld ins guard))
+        (toRenameᵗ ρ Xᴿ)
+      ≡ renameᵗ (toRenameᵗ ρ) (lookupStore (CTI2.targetStoreʷ Wᵐ) Xᴿ)
+  old-entry Xᴿ = trans (targetLookup-insert direct Xᴿ)
+    (cong (renameᵗ (toRenameᵗ ρ))
+      (sym (cong (λ Σ → lookupStore Σ Xᴿ)
+        (CTI2.SmartFreshBehindGuard.targetStore-same guard))))
+
+  input-center-off : ∀ Xᴿ′
+    → CR.preimage? ρ Xᴿ′ ≡ nothing
+    → CR.preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Xᴿ′) ≡ nothing
+  input-center-off Xᴿ′ no-old
+      with CR.preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Xᴿ′) in preπ
+  input-center-off Xᴿ′ no-old | nothing = refl
+  input-center-off Xᴿ′ no-old | just Z
+      with TE.target-center-reflect ins (CR.preimage?-sound π preπ)
+  input-center-off Xᴿ′ no-old | just Z
+      | Xᴿ , xᴿ′-eq , old-center = ⊥-elim (CR.just≢nothing impossible)
+    where
+    impossible : just Xᴿ ≡ nothing
+    impossible = trans
+      (sym (CR.preimage?-image ρ Xᴿ))
+      (trans (cong (CR.preimage? ρ) (sym xᴿ′-eq)) no-old)
+
+  fresh-entry : ∀ Xᴿ′
+    → CR.preimage? πᵐ
+        (toRenameᵗ
+          (CTI2.ηᴿʷ (TE.smartFreshInsertWorld ins guard)) Xᴿ′)
+        ≡ nothing
+    → lookupStore (CTI2.targetStoreʷ W′) Xᴿ′ ≡ ★
+  fresh-entry Xᴿ′ off with CR.preimage? ρ Xᴿ′ in preρ
+  fresh-entry Xᴿ′ off | just Xᴿ = ⊥-elim (CR.just≢nothing impossible)
+    where
+    xᴿ′-eq : Xᴿ′ ≡ toRenameᵗ ρ Xᴿ
+    xᴿ′-eq = CR.preimage?-sound ρ preρ
+
+    center-eq :
+      toRenameᵗ (CTI2.ηᴿʷ (TE.smartFreshInsertWorld ins guard)) Xᴿ′
+        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Xᴿ)
+    center-eq = trans
+      (cong (toRenameᵗ
+        (CTI2.ηᴿʷ (TE.smartFreshInsertWorld ins guard))) xᴿ′-eq)
+      (TE.smartFresh-target-insert ins guard Xᴿ)
+
+    impossible :
+      just (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Xᴿ) ≡ nothing
+    impossible = trans
+      (sym (CR.preimage?-image πᵐ
+        (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Xᴿ)))
+      (trans (cong (CR.preimage? πᵐ) (sym center-eq)) off)
+  fresh-entry Xᴿ′ off | nothing =
+    targetLookup-off direct Xᴿ′ (input-center-off Xᴿ′ preρ)
+
+
+smartFreshInsertWorld-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : CTI2.World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → TargetInsertDirect ins
+  → WorldInvariants Wᵐ
+  → WorldInvariants (TE.smartFreshInsertWorld ins guard)
+smartFreshInsertWorld-invariants ins guard direct inv =
+  targetInsert-invariants (TE.smartFreshTargetInsert ins guard)
+    (smartFreshTargetInsert-direct ins guard direct) inv
+
+
+keepRightBindTargetInsert-direct : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {v : VarImp}
+  → ⇑ᵗ B ≡ ★
+  → TargetInsertDirect (TE.keepRightBindTargetInsert {W = W} {B = B} {v = v})
+keepRightBindTargetInsert-direct {W = W} {B = B} {v = v} fresh-dynamic =
+  liftBothTargetInsert-direct
+    (TE.rightBindTargetInsert {W = W} {B = B})
+    (rightBindTargetInsert-direct fresh-dynamic)
+
+
+insertRebaseTargetInsert-direct : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′} {Xᴸ Xᴿ}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → TargetInsertDirect ins
+  → TargetInsertDirect (TE.insertRebaseTargetInsert ins rb)
+insertRebaseTargetInsert-direct {ρ = ρ} {W = W} {Wᵖ = Wᵖ}
+    ins rb direct = target-insert-direct old-entry (targetLookup-off direct)
+  where
+  old-entry : ∀ Yᴿ
+    → lookupStore
+        (CTI2.targetStoreʷ (TE.insertRebaseWorld ins Wᵖ))
+        (toRenameᵗ ρ Yᴿ)
+      ≡ renameᵗ (toRenameᵗ ρ) (lookupStore (CTI2.targetStoreʷ Wᵖ) Yᴿ)
+  old-entry Yᴿ = trans (targetLookup-insert direct Yᴿ)
+    (cong (renameᵗ (toRenameᵗ ρ))
+      (sym (cong (λ Σ → lookupStore Σ Yᴿ)
+        (CTI2.SameRuntime.targetStore-same
+          (CTI2.RebaseAt.sameRuntime rb)))))
+
+
+insertRebaseWorld-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {W⁺ : CTI2.World Δᴸ Δᴿ′ Δ′} {Xᴸ Xᴿ}
+  → (ins : TE.TargetInsert ρ π W W⁺)
+  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → TargetInsertDirect ins
+  → WorldInvariants Wᵖ
+  → WorldInvariants (TE.insertRebaseWorld ins Wᵖ)
+insertRebaseWorld-invariants ins rb direct inv =
+  targetInsert-invariants (TE.insertRebaseTargetInsert ins rb)
+    (insertRebaseTargetInsert-direct ins rb direct) inv

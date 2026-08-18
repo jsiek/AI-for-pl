@@ -17,6 +17,7 @@ open import Reduction using (StoreChanges; keep) renaming (_∷_ to _∷ˢ_)
 import Reduction as R
 open import TyStore using (Z∋)
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
@@ -91,12 +92,12 @@ D4-checkpoint-proofᵀ =
       (CTI2.cast⊑cast² _ _
         (CTI2.reveal⊑reveal² (λ Z eq → eq)
           D4-callee-rebase₂ CTI2.same-[]
-          (CTI2.⊢↑-⇒ˣ CTI2.join-both
-            (CTI2.⊢↓-sealˣ (Z∋ refl))
-            (CTI2.⊢↑-unsealˣ (Z∋ refl)))
-          (CTI2.⊢↑-⇒ˣ CTI2.join-both
-            (CTI2.⊢↓-sealˣ (Z∋ refl))
-            (CTI2.⊢↑-unsealˣ (Z∋ refl)))
+          (Conv.⊢↑-⇒ˣ Conv.join-both
+            (Conv.⊢↓-sealˣ (Z∋ refl))
+            (Conv.⊢↑-unsealˣ (Z∋ refl)))
+          (Conv.⊢↑-⇒ˣ Conv.join-both
+            (Conv.⊢↓-sealˣ (Z∋ refl))
+            (Conv.⊢↑-unsealˣ (Z∋ refl)))
           (CTI2.ƛ⊑ƛ²
             {pA = I.X⊑X {X = zero}}
             {pB = I.X⊑X {X = zero}}

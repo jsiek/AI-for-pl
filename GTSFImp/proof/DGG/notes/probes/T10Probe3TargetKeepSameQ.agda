@@ -54,20 +54,20 @@ target-entry : CTI2.targetStoreʷ W ∋ Y ⦂ ℕ₁
 target-entry = Z∋ refl
 
 source-seal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] Conv.seal X ℕ₁
-source-seal-typed = CTI2.⊢↓-sealˣ source-entry
+  CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] Conv.seal X ℕ₁
+source-seal-typed = Conv.⊢↓-sealˣ source-entry
 
 target-seal-typed :
-  CTI2.targetStoreʷ W CTI2.⊢↓[ just Y ] Conv.seal Y ℕ₁
-target-seal-typed = CTI2.⊢↓-sealˣ target-entry
+  CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] Conv.seal Y ℕ₁
+target-seal-typed = Conv.⊢↓-sealˣ target-entry
 
 source-unseal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↑[ just X ] Conv.unseal X ℕ₁
-source-unseal-typed = CTI2.⊢↑-unsealˣ source-entry
+  CTI2.sourceStoreʷ W Conv.⊢↑[ just X ] Conv.unseal X ℕ₁
+source-unseal-typed = Conv.⊢↑-unsealˣ source-entry
 
 target-unseal-typed :
-  CTI2.targetStoreʷ W CTI2.⊢↑[ just Y ] Conv.unseal Y ℕ₁
-target-unseal-typed = CTI2.⊢↑-unsealˣ target-entry
+  CTI2.targetStoreʷ W Conv.⊢↑[ just Y ] Conv.unseal Y ℕ₁
+target-unseal-typed = Conv.⊢↑-unsealˣ target-entry
 
 q : ℕ₁ CTI2.⊑ᵂ⟨ W ⟩ ℕ₁
 q = ι⊑ι

@@ -32,6 +32,7 @@ open import Imprecision using (_⊢_⊑_)
 
 import M5InterleaveScratch as IL
 import M5UnderLiftRevealScratch as UL
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Catchup.InstInversionDef as IID
@@ -79,28 +80,28 @@ d1-target-name-body : Ty 2
 d1-target-name-body = ＇ target-α ⇒ ★
 
 e4-inner-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-β ]
+  target-store-βα Conv.⊢↑[ just target-β ]
     〖 target-β , ＇ target-α ↑ e4-target-alias-body 〗
 e4-inner-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present
     (∈-fun-left var-∈) target-β-entry
 
 e4-outer-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-α ]
+  target-store-βα Conv.⊢↑[ just target-α ]
     〖 target-α , ★ ↑ e4-target-name-body 〗
 e4-outer-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present
     (∈-fun-left var-∈) target-α-entry
 
 d1-inner-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-β ]
+  target-store-βα Conv.⊢↑[ just target-β ]
     〖 target-β , ＇ target-α ↑ d1-target-alias-body 〗
 d1-inner-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present
     (∈-fun-left var-∈) target-β-entry
 
 d1-outer-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-α ]
+  target-store-βα Conv.⊢↑[ just target-α ]
     〖 target-α , ★ ↑ d1-target-name-body 〗
 d1-outer-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present

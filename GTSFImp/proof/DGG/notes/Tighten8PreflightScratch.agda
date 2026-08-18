@@ -22,6 +22,7 @@ open import CastTerms using (Term; Inert; _⟨_⟩; _↓_)
 open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 open import Imprecision
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
@@ -31,7 +32,7 @@ open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 module B = TRP.InstanceB
 
 open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Premise-world partner index
@@ -125,8 +126,8 @@ record PairedSealEmission₈ {Δᴸ Δᴿ Δ}
     mono₈ : CTI2.ImpEnvMono W Wᵖ₈
     rebase₈ : RebaseAt Wᵖ₈ W X Y
     same₈ : CTI2.SameCtx γ γᵖ₈
-    source⊢₈ : CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-    target⊢₈ : CTI2.targetStoreʷ W ⊢↓[ just Y ] seal Y ★
+    source⊢₈ : CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+    target⊢₈ : CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
     package₈ : TaggedTransferOutput₈ Wᵖ₈ γᵖ₈ P U X Xᴿ?
 
 emit-tagged-transfer₈ : ∀ {Δᴸ Δᴿ Δ}
@@ -136,8 +137,8 @@ emit-tagged-transfer₈ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → RebaseAt Wᵖ W X Y
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W ⊢↓[ just Y ] seal Y ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
   → TaggedTransferOutput₈ Wᵖ γᵖ P U X Xᴿ?
   → PairedSealEmission₈ W γ P U X Y Xᴿ?
 emit-tagged-transfer₈ mono rb sc source⊢ target⊢ pkg =
@@ -201,8 +202,8 @@ emit-tagged-transfer-peel₈ : ∀ {Δᴸ Δᴿ Δ}
   → RebaseAt W₃ W₂ X Yᵖ
   → RebaseAt W₂ W₀ X Y
   → CTI2.SameCtx γ₀ γ₂
-  → CTI2.sourceStoreʷ W₀ ⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W₀ ⊢↓[ just Y ] seal Y ★
+  → CTI2.sourceStoreʷ W₀ Conv.⊢↓[ just X ] seal X ★
+  → CTI2.targetStoreʷ W₀ Conv.⊢↓[ just Y ] seal Y ★
   → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → PairedSealEmission₈ W₀ γ₀

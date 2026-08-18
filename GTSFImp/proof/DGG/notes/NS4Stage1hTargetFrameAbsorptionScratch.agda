@@ -21,6 +21,7 @@ open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using (keep; bind; applyTy; applyBody)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 
@@ -67,7 +68,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
     → CTI2.SameCtx γ γᵖ
-    → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c
+    → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c
     → A CTI2.⊑ᵂ⟨ W ⟩ C
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (reveal-frame c ▻ⁱ spine) q
@@ -80,7 +81,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
     → CTI2.SameCtx γ γᵖ
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c
     → A CTI2.⊑ᵂ⟨ W ⟩ C
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (conceal-frame c ▻ⁱ spine) q
@@ -142,12 +143,12 @@ allv-reveal-child-chain-cell : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ₁
   → CTI2.RebaseAtᴿ W Wᵖ₁ X₁?
   → CTI2.SameCtx γ γᵖ₁
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₁? ] c
+  → CTI2.targetStoreʷ W Conv.⊢↑[ X₁? ] c
   → Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
   → CTI2.ImpEnvMono W Wᵖ₂
   → CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
   → CTI2.SameCtx γ γᵖ₂
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+  → CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
   → Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
@@ -182,12 +183,12 @@ allv-conceal-child-chain-cell : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ₁
   → CTI2.RebaseAtᴿ Wᵖ₁ W X₁?
   → CTI2.SameCtx γ γᵖ₁
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ X₁? ] c
+  → CTI2.targetStoreʷ W Conv.⊢↓[ X₁? ] c
   → Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
   → CTI2.ImpEnvMono W Wᵖ₂
   → CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
   → CTI2.SameCtx γ γᵖ₂
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+  → CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
   → Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B

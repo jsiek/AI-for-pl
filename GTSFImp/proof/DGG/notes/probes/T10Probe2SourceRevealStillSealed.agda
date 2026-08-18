@@ -22,6 +22,7 @@ open import CastTerms using (Term; Value; $; _↓_; _↑_)
 open import Primitives using (κℕ)
 open import Reduction using (_—→_; conceal-reveal)
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 
@@ -60,16 +61,16 @@ target-entry : CTI2.targetStoreʷ W ∋ Y ⦂ ℕ₁
 target-entry = Z∋ refl
 
 source-seal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X ℕ₁
-source-seal-typed = CTI2.⊢↓-sealˣ source-entry
+  CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ℕ₁
+source-seal-typed = Conv.⊢↓-sealˣ source-entry
 
 source-unseal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↑[ just X ] unseal X ℕ₁
-source-unseal-typed = CTI2.⊢↑-unsealˣ source-entry
+  CTI2.sourceStoreʷ W Conv.⊢↑[ just X ] unseal X ℕ₁
+source-unseal-typed = Conv.⊢↑-unsealˣ source-entry
 
 target-seal-typed :
-  CTI2.targetStoreʷ W CTI2.⊢↓[ just Y ] seal Y ℕ₁
-target-seal-typed = CTI2.⊢↓-sealˣ target-entry
+  CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ℕ₁
+target-seal-typed = Conv.⊢↓-sealˣ target-entry
 
 partnered-representation : CTI2.StoreRepImp W X Y
 partnered-representation = CTI2.store-rep-imp ι⊑ι

@@ -21,10 +21,11 @@ open import Conversion using (seal)
 open import Imprecision
 open import CastTerms using (Term; Value; $; _⟨_⟩; _↓_; _《_》; inj)
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   TagRebaseAtᴸ; CtxImp; sourceStoreʷ; ⊢↓-sealˣ)
+   TagRebaseAtᴸ; CtxImp; sourceStoreʷ)
 
 private
   X : TyVar 1
@@ -91,8 +92,8 @@ private
   target-Y-tagged-value : Value target-Y-tagged
   target-Y-tagged-value = target-Y-sealed-value 《 inj 》
 
-  source-X-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
-  source-X-seal-typed = ⊢↓-sealˣ source-X∋
+  source-X-seal-typed : source-store Conv.⊢↓[ just X ] seal X ★
+  source-X-seal-typed = Conv.⊢↓-sealˣ source-X∋
 
   no-target-at-X : CTI2.NoTargetOccupantAtSource W X
   no-target-at-X (Fin.zero , ())

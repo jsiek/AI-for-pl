@@ -39,10 +39,10 @@ import proof.DGG.ExampleTerms as Ex
 import proof.DGG.OneStep as Step
 open Step
   using (Δ′; change; next; reduction)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; CtxImp; ctx-imp; _∣_⊢²_⊑_∶_;
-   _⊢↑[_]_; _⊢↓[_]_;
    _∋ʷ_⦂_; Zʷ; Sʷ; LiftCtx; lift-[]; lift-∷; liftWorldBoth;
    x⊑x²; ƛ⊑ƛ²; ·⊑·²; Λ⊑Λ²; •⊑•²; κ⊑κ²;
    cast⊑cast²; ⊑cast²; reveal⊑reveal²)
@@ -276,20 +276,20 @@ example12-target-Z-unseal =
   unseal (Fin.suc (Fin.suc Fin.zero)) ★
 
 example12-target-Y-reveal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     example12-target-Y-reveal
 example12-target-Y-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both
-    (CTI2.⊢↓-sealˣ CTI2.example12-target-Y∋)
-    (CTI2.⊢↑-unsealˣ CTI2.example12-target-Y∋)
+  Conv.⊢↑-⇒ˣ Conv.join-both
+    (Conv.⊢↓-sealˣ CTI2.example12-target-Y∋)
+    (Conv.⊢↑-unsealˣ CTI2.example12-target-Y∋)
 
 example12-target-Z-reveal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-reveal
 example12-target-Z-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both
-    (CTI2.⊢↓-sealˣ CTI2.example12-target-Z∋)
-    (CTI2.⊢↑-unsealˣ CTI2.example12-target-Z∋)
+  Conv.⊢↑-⇒ˣ Conv.join-both
+    (Conv.⊢↓-sealˣ CTI2.example12-target-Z∋)
+    (Conv.⊢↑-unsealˣ CTI2.example12-target-Z∋)
 
 example12-source-X-reveal-⊢ :
   CTI2.example12-source-store ⊢↑ example12-source-X-reveal
@@ -312,14 +312,14 @@ example12-target-X-seal-⊢ :
 example12-target-X-seal-⊢ = ⊢↓-seal CTI2.example12-target-X∋
 
 example12-source-X-seal-⊢ˣ :
-  CTI2.example12-source-store ⊢↓[ just Fin.zero ] example12-source-X-seal
+  CTI2.example12-source-store Conv.⊢↓[ just Fin.zero ] example12-source-X-seal
 example12-source-X-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-source-X∋
+  Conv.⊢↓-sealˣ CTI2.example12-source-X∋
 
 example12-target-X-seal-⊢ˣ :
-  CTI2.example12-target-store ⊢↓[ just Fin.zero ] example12-target-X-seal
+  CTI2.example12-target-store Conv.⊢↓[ just Fin.zero ] example12-target-X-seal
 example12-target-X-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-target-X∋
+  Conv.⊢↓-sealˣ CTI2.example12-target-X∋
 
 example12-source-X-unseal-⊢ :
   CTI2.example12-source-store ⊢↑ example12-source-X-unseal
@@ -330,50 +330,50 @@ example12-target-X-unseal-⊢ :
 example12-target-X-unseal-⊢ = ⊢↑-unseal CTI2.example12-target-X∋
 
 example12-source-X-unseal-⊢ˣ :
-  CTI2.example12-source-store ⊢↑[ just Fin.zero ] example12-source-X-unseal
+  CTI2.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-unseal
 example12-source-X-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-source-X∋
+  Conv.⊢↑-unsealˣ CTI2.example12-source-X∋
 
 example12-target-X-unseal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just Fin.zero ] example12-target-X-unseal
+  CTI2.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-unseal
 example12-target-X-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-target-X∋
+  Conv.⊢↑-unsealˣ CTI2.example12-target-X∋
 
 example12-source-X-reveal-⊢ˣ :
-  CTI2.example12-source-store ⊢↑[ just Fin.zero ] example12-source-X-reveal
+  CTI2.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-reveal
 example12-source-X-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both example12-source-X-seal-⊢ˣ
+  Conv.⊢↑-⇒ˣ Conv.join-both example12-source-X-seal-⊢ˣ
     example12-source-X-unseal-⊢ˣ
 
 example12-target-X-reveal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just Fin.zero ] example12-target-X-reveal
+  CTI2.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-reveal
 example12-target-X-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both example12-target-X-seal-⊢ˣ
+  Conv.⊢↑-⇒ˣ Conv.join-both example12-target-X-seal-⊢ˣ
     example12-target-X-unseal-⊢ˣ
 
 example12-target-Z-seal-⊢ˣ :
-  CTI2.example12-target-store ⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  CTI2.example12-target-store Conv.⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-seal
 example12-target-Z-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-target-Z∋
+  Conv.⊢↓-sealˣ CTI2.example12-target-Z∋
 
 example12-target-Y-seal-⊢ˣ :
-  CTI2.example12-target-store ⊢↓[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
     example12-target-Y-seal
 example12-target-Y-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-target-Y∋
+  Conv.⊢↓-sealˣ CTI2.example12-target-Y∋
 
 example12-target-Y-unseal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     example12-target-Y-unseal
 example12-target-Y-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-target-Y∋
+  Conv.⊢↑-unsealˣ CTI2.example12-target-Y∋
 
 example12-target-Z-unseal-⊢ˣ :
-  CTI2.example12-target-store ⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-unseal
 example12-target-Z-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-target-Z∋
+  Conv.⊢↑-unsealˣ CTI2.example12-target-Z∋
 
 example12-X-function-to-star :
   (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ CTI2.example12-world-X ⟩
@@ -868,10 +868,10 @@ nat-chain-source-X-seal-⊢ =
   ⊢↓-seal CTI2.example12-nat-chain-source-X∋
 
 nat-chain-source-X-seal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store ⊢↓[ just Fin.zero ]
+  CTI2.example12-nat-chain-source-store Conv.⊢↓[ just Fin.zero ]
     nat-chain-source-X-seal
 nat-chain-source-X-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-nat-chain-source-X∋
+  Conv.⊢↓-sealˣ CTI2.example12-nat-chain-source-X∋
 
 nat-chain-source-X-unseal-⊢ :
   CTI2.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-unseal
@@ -879,10 +879,10 @@ nat-chain-source-X-unseal-⊢ =
   ⊢↑-unseal CTI2.example12-nat-chain-source-X∋
 
 nat-chain-source-X-unseal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store ⊢↑[ just Fin.zero ]
+  CTI2.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-source-X-unseal
 nat-chain-source-X-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-nat-chain-source-X∋
+  Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-source-X∋
 
 nat-chain-source-X-reveal-⊢ :
   CTI2.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-reveal
@@ -890,10 +890,10 @@ nat-chain-source-X-reveal-⊢ =
   ⊢↑-⇒ nat-chain-source-X-seal-⊢ nat-chain-source-X-unseal-⊢
 
 nat-chain-source-X-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store ⊢↑[ just Fin.zero ]
+  CTI2.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-source-X-reveal
 nat-chain-source-X-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both nat-chain-source-X-seal-⊢ˣ
+  Conv.⊢↑-⇒ˣ Conv.join-both nat-chain-source-X-seal-⊢ˣ
     nat-chain-source-X-unseal-⊢ˣ
 
 nat-chain-target-X-seal-⊢ :
@@ -902,10 +902,10 @@ nat-chain-target-X-seal-⊢ =
   ⊢↓-seal CTI2.example12-nat-chain-target-X∋
 
 nat-chain-target-X-seal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store ⊢↓[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-nat-chain-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-seal
 nat-chain-target-X-seal-⊢ˣ =
-  CTI2.⊢↓-sealˣ CTI2.example12-nat-chain-target-X∋
+  Conv.⊢↓-sealˣ CTI2.example12-nat-chain-target-X∋
 
 nat-chain-target-X-unseal-⊢ :
   CTI2.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-unseal
@@ -913,10 +913,10 @@ nat-chain-target-X-unseal-⊢ =
   ⊢↑-unseal CTI2.example12-nat-chain-target-X∋
 
 nat-chain-target-X-unseal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store ⊢↑[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-unseal
 nat-chain-target-X-unseal-⊢ˣ =
-  CTI2.⊢↑-unsealˣ CTI2.example12-nat-chain-target-X∋
+  Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-target-X∋
 
 nat-chain-target-X-reveal-⊢ :
   CTI2.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-reveal
@@ -924,19 +924,19 @@ nat-chain-target-X-reveal-⊢ =
   ⊢↑-⇒ nat-chain-target-X-seal-⊢ nat-chain-target-X-unseal-⊢
 
 nat-chain-target-X-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store ⊢↑[ just (Fin.suc Fin.zero) ]
+  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-reveal
 nat-chain-target-X-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both nat-chain-target-X-seal-⊢ˣ
+  Conv.⊢↑-⇒ˣ Conv.join-both nat-chain-target-X-seal-⊢ˣ
     nat-chain-target-X-unseal-⊢ˣ
 
 nat-chain-target-Y-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store ⊢↑[ just Fin.zero ]
+  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-target-Y-reveal
 nat-chain-target-Y-reveal-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both
-    (CTI2.⊢↓-sealˣ CTI2.example12-nat-chain-target-Y∋)
-    (CTI2.⊢↑-unsealˣ CTI2.example12-nat-chain-target-Y∋)
+  Conv.⊢↑-⇒ˣ Conv.join-both
+    (Conv.⊢↓-sealˣ CTI2.example12-nat-chain-target-Y∋)
+    (Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-target-Y∋)
 
 nat-chain-X-var⊑ :
   ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-nat-chain-world-X ⟩
@@ -1013,7 +1013,7 @@ nat-chain-lambda-X-id :
       nat-chain-X-function-local
 nat-chain-lambda-X-id =
   CTI2.⊑reveal² (λ _ eq → eq) CTI2.rebase-idᴿ CTI2.same-[]
-    CTI2.⊢↑-idˣ nat-chain-lambda-X
+    Conv.⊢↑-idˣ nat-chain-lambda-X
     nat-chain-X-function-local
 
 nat-chain-function-checkpoint₁ :
@@ -1421,16 +1421,16 @@ left-path-reveal★₁-target-⊢ =
     (⊢↑-unseal left-path-target-U∋₁)
 
 left-path-reveal★₁-source-⊢ˣ :
-  Ex.right-store₁ ⊢↑[ just Fin.zero ] left-path-reveal★₁
+  Ex.right-store₁ Conv.⊢↑[ just Fin.zero ] left-path-reveal★₁
 left-path-reveal★₁-source-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-U∋₁)
-    (CTI2.⊢↑-unsealˣ left-path-source-U∋₁)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-U∋₁)
+    (Conv.⊢↑-unsealˣ left-path-source-U∋₁)
 
 left-path-reveal★₁-target-⊢ˣ :
-  left-path-target-store₁ ⊢↑[ just Fin.zero ] left-path-reveal★₁
+  left-path-target-store₁ Conv.⊢↑[ just Fin.zero ] left-path-reveal★₁
 left-path-reveal★₁-target-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-U∋₁)
-    (CTI2.⊢↑-unsealˣ left-path-target-U∋₁)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-U∋₁)
+    (Conv.⊢↑-unsealˣ left-path-target-U∋₁)
 
 left-path-Y-reveal₂ :
   Conv↑ 2 (＇ Fin.zero ⇒ ＇ Fin.zero)
@@ -1504,28 +1504,28 @@ left-path-Z-reveal₂-target-⊢ =
     (⊢↑-unseal left-path-target-Z∋₂)
 
 left-path-Y-reveal₂-source-⊢ˣ :
-  Ex.right-store₂ ⊢↑[ just Fin.zero ] left-path-Y-reveal₂
+  Ex.right-store₂ Conv.⊢↑[ just Fin.zero ] left-path-Y-reveal₂
 left-path-Y-reveal₂-source-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Y∋₂)
-    (CTI2.⊢↑-unsealˣ left-path-source-Y∋₂)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Y∋₂)
+    (Conv.⊢↑-unsealˣ left-path-source-Y∋₂)
 
 left-path-Y-reveal₂-target-⊢ˣ :
-  left-path-target-store₂ ⊢↑[ just Fin.zero ] left-path-Y-reveal₂
+  left-path-target-store₂ Conv.⊢↑[ just Fin.zero ] left-path-Y-reveal₂
 left-path-Y-reveal₂-target-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Y∋₂)
-    (CTI2.⊢↑-unsealˣ left-path-target-Y∋₂)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Y∋₂)
+    (Conv.⊢↑-unsealˣ left-path-target-Y∋₂)
 
 left-path-Z-reveal₂-source-⊢ˣ :
-  Ex.right-store₂ ⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
+  Ex.right-store₂ Conv.⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
 left-path-Z-reveal₂-source-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Z∋₂)
-    (CTI2.⊢↑-unsealˣ left-path-source-Z∋₂)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Z∋₂)
+    (Conv.⊢↑-unsealˣ left-path-source-Z∋₂)
 
 left-path-Z-reveal₂-target-⊢ˣ :
-  left-path-target-store₂ ⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
+  left-path-target-store₂ Conv.⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
 left-path-Z-reveal₂-target-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Z∋₂)
-    (CTI2.⊢↑-unsealˣ left-path-target-Z∋₂)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Z∋₂)
+    (Conv.⊢↑-unsealˣ left-path-target-Z∋₂)
 
 left-path-X⇒X⊑X⇒X₁ :
   (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ left-path-world₁ ⟩
@@ -1800,35 +1800,35 @@ left-path-target-Y-reveal₃-⊢ =
     (⊢↑-unseal left-path-target-Y∋₃)
 
 left-path-source-Y-reveal₃-⊢ˣ :
-  Ex.right-store₃ ⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-reveal
+  Ex.right-store₃ Conv.⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-reveal
 left-path-source-Y-reveal₃-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Y∋₃)
-    (CTI2.⊢↑-unsealˣ left-path-source-Y∋₃)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Y∋₃)
+    (Conv.⊢↑-unsealˣ left-path-source-Y∋₃)
 
 left-path-target-Y-reveal₃-⊢ˣ :
-  left-path-target-store₃ ⊢↑[ just Fin.zero ] left-path-Y-reveal₂
+  left-path-target-store₃ Conv.⊢↑[ just Fin.zero ] left-path-Y-reveal₂
 left-path-target-Y-reveal₃-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Y∋₃)
-    (CTI2.⊢↑-unsealˣ left-path-target-Y∋₃)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Y∋₃)
+    (Conv.⊢↑-unsealˣ left-path-target-Y∋₃)
 
 left-path-source-Z-reveal₃-⊢ˣ :
-  Ex.right-store₃ ⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex.right-store₃ Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-reveal
 left-path-source-Z-reveal₃-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Z∋₃)
-    (CTI2.⊢↑-unsealˣ left-path-source-Z∋₃)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Z∋₃)
+    (Conv.⊢↑-unsealˣ left-path-source-Z∋₃)
 
 left-path-target-Z-reveal₃-⊢ˣ :
-  left-path-target-store₃ ⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
+  left-path-target-store₃ Conv.⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
 left-path-target-Z-reveal₃-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Z∋₃)
-    (CTI2.⊢↑-unsealˣ left-path-target-Z∋₃)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Z∋₃)
+    (Conv.⊢↑-unsealˣ left-path-target-Z∋₃)
 
 left-path-source-X-reveal₃-⊢ˣ :
-  Ex.right-store₃ ⊢↑[ just Fin.zero ] example12-target-X-reveal
+  Ex.right-store₃ Conv.⊢↑[ just Fin.zero ] example12-target-X-reveal
 left-path-source-X-reveal₃-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-X∋₃)
-    (CTI2.⊢↑-unsealˣ left-path-source-X∋₃)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-X∋₃)
+    (Conv.⊢↑-unsealˣ left-path-source-X∋₃)
 
 left-path-Y-var⊑YZ₃ :
   ＇ (Fin.suc Fin.zero) ⊑ᵂ⟨ left-path-world₃-YZ ⟩ ＇ Fin.zero
@@ -2055,14 +2055,14 @@ left-path-rebase-XZ-X₄ =
   CTI2.sameWorldRebaseAt refl left-path-source-X-rep₄
 
 left-path-source-X-seal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↓[ just Fin.zero ] example12-target-X-seal
+  Ex.right-store₄ Conv.⊢↓[ just Fin.zero ] example12-target-X-seal
 left-path-source-X-seal₄-⊢ˣ =
-  CTI2.⊢↓-sealˣ left-path-source-X∋₄
+  Conv.⊢↓-sealˣ left-path-source-X∋₄
 
 left-path-source-X-unseal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↑[ just Fin.zero ] example12-target-X-unseal
+  Ex.right-store₄ Conv.⊢↑[ just Fin.zero ] example12-target-X-unseal
 left-path-source-X-unseal₄-⊢ˣ =
-  CTI2.⊢↑-unsealˣ left-path-source-X∋₄
+  Conv.⊢↑-unsealˣ left-path-source-X∋₄
 
 left-path-ℕ⊑★₄-YZ :
   (‵ `ℕ) ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ★
@@ -2416,29 +2416,29 @@ left-path-target-Y-reveal₄-⊢ =
     (⊢↑-unseal left-path-target-Y∋₄)
 
 left-path-source-Y-reveal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-reveal
+  Ex.right-store₄ Conv.⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-reveal
 left-path-source-Y-reveal₄-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Y∋₄)
-    (CTI2.⊢↑-unsealˣ left-path-source-Y∋₄)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Y∋₄)
+    (Conv.⊢↑-unsealˣ left-path-source-Y∋₄)
 
 left-path-target-Y-reveal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↑[ just Fin.zero ] left-path-Y-reveal₂
+  left-path-target-store₄ Conv.⊢↑[ just Fin.zero ] left-path-Y-reveal₂
 left-path-target-Y-reveal₄-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Y∋₄)
-    (CTI2.⊢↑-unsealˣ left-path-target-Y∋₄)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Y∋₄)
+    (Conv.⊢↑-unsealˣ left-path-target-Y∋₄)
 
 left-path-source-Z-reveal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex.right-store₄ Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-reveal
 left-path-source-Z-reveal₄-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-source-Z∋₄)
-    (CTI2.⊢↑-unsealˣ left-path-source-Z∋₄)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-source-Z∋₄)
+    (Conv.⊢↑-unsealˣ left-path-source-Z∋₄)
 
 left-path-target-Z-reveal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
+  left-path-target-store₄ Conv.⊢↑[ just (Fin.suc Fin.zero) ] left-path-Z-reveal₂
 left-path-target-Z-reveal₄-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both (CTI2.⊢↓-sealˣ left-path-target-Z∋₄)
-    (CTI2.⊢↑-unsealˣ left-path-target-Z∋₄)
+  Conv.⊢↑-⇒ˣ Conv.join-both (Conv.⊢↓-sealˣ left-path-target-Z∋₄)
+    (Conv.⊢↑-unsealˣ left-path-target-Z∋₄)
 
 left-path-target-Z-seal₂ : Conv↓ 2 ★ (＇ (Fin.suc Fin.zero))
 left-path-target-Z-seal₂ = seal (Fin.suc Fin.zero) ★
@@ -2457,10 +2457,10 @@ left-path-target-Y-unseal₂ =
   unseal Fin.zero (＇ (Fin.suc Fin.zero))
 
 left-path-source-Z-unseal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex.right-store₄ Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-unseal
 left-path-source-Z-unseal₄-⊢ˣ =
-  CTI2.⊢↑-unsealˣ left-path-source-Z∋₄
+  Conv.⊢↑-unsealˣ left-path-source-Z∋₄
 
 left-path-source-Z-unseal₄-⊢ :
   Ex.right-store₄ ⊢↑ example12-target-Z-unseal
@@ -2468,10 +2468,10 @@ left-path-source-Z-unseal₄-⊢ =
   ⊢↑-unseal left-path-source-Z∋₄
 
 left-path-target-Z-unseal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↑[ just (Fin.suc Fin.zero) ]
+  left-path-target-store₄ Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     left-path-target-Z-unseal₂
 left-path-target-Z-unseal₄-⊢ˣ =
-  CTI2.⊢↑-unsealˣ left-path-target-Z∋₄
+  Conv.⊢↑-unsealˣ left-path-target-Z∋₄
 
 left-path-target-Z-unseal₄-⊢ :
   left-path-target-store₄ ⊢↑ left-path-target-Z-unseal₂
@@ -2484,10 +2484,10 @@ left-path-source-Z-seal₄-⊢ =
   ⊢↓-seal left-path-source-Z∋₄
 
 left-path-source-Z-seal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex.right-store₄ Conv.⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-seal
 left-path-source-Z-seal₄-⊢ˣ =
-  CTI2.⊢↓-sealˣ left-path-source-Z∋₄
+  Conv.⊢↓-sealˣ left-path-source-Z∋₄
 
 left-path-target-Z-seal₄-⊢ :
   left-path-target-store₄ ⊢↓ left-path-target-Z-seal₂
@@ -2495,10 +2495,10 @@ left-path-target-Z-seal₄-⊢ =
   ⊢↓-seal left-path-target-Z∋₄
 
 left-path-target-Z-seal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↓[ just (Fin.suc Fin.zero) ]
+  left-path-target-store₄ Conv.⊢↓[ just (Fin.suc Fin.zero) ]
     left-path-target-Z-seal₂
 left-path-target-Z-seal₄-⊢ˣ =
-  CTI2.⊢↓-sealˣ left-path-target-Z∋₄
+  Conv.⊢↓-sealˣ left-path-target-Z∋₄
 
 left-path-source-Y-seal₄-⊢ :
   Ex.right-store₄ ⊢↓ example12-target-Y-seal
@@ -2506,9 +2506,9 @@ left-path-source-Y-seal₄-⊢ =
   ⊢↓-seal left-path-source-Y∋₄
 
 left-path-source-Y-seal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↓[ just (Fin.suc Fin.zero) ] example12-target-Y-seal
+  Ex.right-store₄ Conv.⊢↓[ just (Fin.suc Fin.zero) ] example12-target-Y-seal
 left-path-source-Y-seal₄-⊢ˣ =
-  CTI2.⊢↓-sealˣ left-path-source-Y∋₄
+  Conv.⊢↓-sealˣ left-path-source-Y∋₄
 
 left-path-target-Y-seal₄-⊢ :
   left-path-target-store₄ ⊢↓ left-path-target-Y-seal₂
@@ -2516,9 +2516,9 @@ left-path-target-Y-seal₄-⊢ =
   ⊢↓-seal left-path-target-Y∋₄
 
 left-path-target-Y-seal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↓[ just Fin.zero ] left-path-target-Y-seal₂
+  left-path-target-store₄ Conv.⊢↓[ just Fin.zero ] left-path-target-Y-seal₂
 left-path-target-Y-seal₄-⊢ˣ =
-  CTI2.⊢↓-sealˣ left-path-target-Y∋₄
+  Conv.⊢↓-sealˣ left-path-target-Y∋₄
 
 left-path-source-Y-unseal₄-⊢ :
   Ex.right-store₄ ⊢↑ example12-target-Y-unseal
@@ -2526,9 +2526,9 @@ left-path-source-Y-unseal₄-⊢ =
   ⊢↑-unseal left-path-source-Y∋₄
 
 left-path-source-Y-unseal₄-⊢ˣ :
-  Ex.right-store₄ ⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-unseal
+  Ex.right-store₄ Conv.⊢↑[ just (Fin.suc Fin.zero) ] example12-target-Y-unseal
 left-path-source-Y-unseal₄-⊢ˣ =
-  CTI2.⊢↑-unsealˣ left-path-source-Y∋₄
+  Conv.⊢↑-unsealˣ left-path-source-Y∋₄
 
 left-path-target-Y-unseal₄-⊢ :
   left-path-target-store₄ ⊢↑ left-path-target-Y-unseal₂
@@ -2536,9 +2536,9 @@ left-path-target-Y-unseal₄-⊢ =
   ⊢↑-unseal left-path-target-Y∋₄
 
 left-path-target-Y-unseal₄-⊢ˣ :
-  left-path-target-store₄ ⊢↑[ just Fin.zero ] left-path-target-Y-unseal₂
+  left-path-target-store₄ Conv.⊢↑[ just Fin.zero ] left-path-target-Y-unseal₂
 left-path-target-Y-unseal₄-⊢ˣ =
-  CTI2.⊢↑-unsealˣ left-path-target-Y∋₄
+  Conv.⊢↑-unsealˣ left-path-target-Y∋₄
 
 left-path-Y-var⊑YZ₄ :
   ＇ (Fin.suc Fin.zero) ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ＇ Fin.zero

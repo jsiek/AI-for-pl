@@ -979,7 +979,7 @@ structural-name-reveal-equal :
     → CTI2.ImpEnvMono W Wᵖ
     → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
     → CTI2.SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
     → (prem : Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ N ∶ p)
     → Value U
     → (vN : Value N)

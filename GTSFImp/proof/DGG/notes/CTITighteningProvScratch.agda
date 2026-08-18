@@ -26,12 +26,12 @@ open import Imprecision
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp; store-rep-imp;
-   ⊢↓-sealˣ)
+  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp; store-rep-imp)
 
 ------------------------------------------------------------------------
 -- Miniature provenance carried by world cells
@@ -275,7 +275,7 @@ mutual
       → CTI2.ImpEnvMono W W′
       → CTI2.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
       → CTI2.SameCtx γ γ′
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → W′ ∣ γ′ ⊢ᴾ M ⊑ M′ ∶ p
       → (q : A′ ⊑ᵂ⟨ W ⟩ B)
         -----------------------------
@@ -291,8 +291,8 @@ mutual
       → CTI2.ImpEnvMono W Wᵖ
       → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-      → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+      → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
       → Wᵖ ∣ γᵖ ⊢ᴾ M ⊑ M′ ∶ p
       → (q : B ⊑ᵂ⟨ W ⟩ B′)
         -------------------------------------

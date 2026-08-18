@@ -55,7 +55,9 @@ open import Consistency using
 open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
 open import Conversion using
   (unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓;
-   ⊢↑-∀; ⊢↑-id)
+   ⊢↑-∀; ⊢↑-id; PivotJoin; join-none; join-left; join-right; join-both;
+   _⊢↑[_]_; ⊢↑-unsealˣ; ⊢↑-⇒ˣ; ⊢↑-∀ˣ; ⊢↑-∀-idˣ; ⊢↑-idˣ;
+   _⊢↓[_]_; ⊢↓-sealˣ; ⊢↓-⇒ˣ; ⊢↓-∀ˣ; ⊢↓-∀-idˣ; ⊢↓-idˣ)
 open import Imprecision
 open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
 open import CastTerms
@@ -675,94 +677,6 @@ data RebaseAtᴿ {Δᴸ Δᴿ Δ} : World Δᴸ Δᴿ Δ → World Δᴸ Δᴿ �
     → RebaseAt W W′ Xᴸ Xᴿ
       ---------------------------
     → RebaseAtᴿ W W′ (just Xᴿ)
-
-------------------------------------------------------------------------
--- Conversion typing indexed by an optional converted variable
-------------------------------------------------------------------------
-
--- The pivot of a composite conversion is the join of the pivots of its
--- halves: an identity half contributes nothing, and two variable halves
--- must agree.  An all-identity conversion therefore has pivot nothing
--- and cannot be retyped at an arbitrary variable.
-
-data PivotJoin {Δ : TyCtx} :
-    Maybe (TyVar Δ) → Maybe (TyVar Δ) → Maybe (TyVar Δ) → Set where
-  join-none :
-      ----------------------------------
-      PivotJoin nothing nothing nothing
-
-  join-left : ∀ {X}
-      ------------------------------------
-    → PivotJoin (just X) nothing (just X)
-
-  join-right : ∀ {X}
-      ------------------------------------
-    → PivotJoin nothing (just X) (just X)
-
-  join-both : ∀ {X}
-      -------------------------------------
-    → PivotJoin (just X) (just X) (just X)
-
-infix 4 _⊢↑[_]_ _⊢↓[_]_
-
-mutual
-  data _⊢↑[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
-      Maybe (TyVar Δ) → ∀ {A B} → Conv↑ Δ A B → Set where
-    ⊢↑-unsealˣ : ∀ {X R}
-      → Σ ∋ X ⦂ R
-        ----------------------------
-      → Σ ⊢↑[ just X ] unseal X R
-
-    ⊢↑-⇒ˣ : ∀ {p q r A A′ B B′}
-        {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → PivotJoin p q r
-      → Σ ⊢↓[ p ] c
-      → Σ ⊢↑[ q ] d
-        -----------------
-      → Σ ⊢↑[ r ] c ↦↑ d
-
-    ⊢↑-∀ˣ : ∀ {X A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑[ just (Fin.suc X) ] c
-        -------------------------
-      → Σ ⊢↑[ just X ] `∀↑ c
-
-    ⊢↑-∀-idˣ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↑[ nothing ] c
-        -------------------------
-      → Σ ⊢↑[ nothing ] `∀↑ c
-
-    ⊢↑-idˣ : ∀ {A}
-        -----------------------
-      → Σ ⊢↑[ nothing ] id↑ A
-
-  data _⊢↓[_]_ {Δ : TyCtx} (Σ : TyStore Δ) :
-      Maybe (TyVar Δ) → ∀ {A B} → Conv↓ Δ A B → Set where
-    ⊢↓-sealˣ : ∀ {X R}
-      → Σ ∋ X ⦂ R
-        --------------------------
-      → Σ ⊢↓[ just X ] seal X R
-
-    ⊢↓-⇒ˣ : ∀ {p q r A A′ B B′}
-        {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → PivotJoin p q r
-      → Σ ⊢↑[ p ] c
-      → Σ ⊢↓[ q ] d
-        -----------------
-      → Σ ⊢↓[ r ] c ↦↓ d
-
-    ⊢↓-∀ˣ : ∀ {X A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓[ just (Fin.suc X) ] c
-        -------------------------
-      → Σ ⊢↓[ just X ] `∀↓ c
-
-    ⊢↓-∀-idˣ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → store-lift Σ ⊢↓[ nothing ] c
-        -------------------------
-      → Σ ⊢↓[ nothing ] `∀↓ c
-
-    ⊢↓-idˣ : ∀ {A}
-        -----------------------
-      → Σ ⊢↓[ nothing ] id↓ A
 
 ------------------------------------------------------------------------
 -- Typed cast-term imprecision with recursive worlds

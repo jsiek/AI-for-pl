@@ -24,12 +24,13 @@ open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 import Conversion
 open import Imprecision
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TermImpDecay as TD
 
 open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Orthogonalized rep-★ partner predicate model
@@ -397,8 +398,8 @@ target-chain-88-emits₅ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W₂
   → RebaseAt W₂ W X Y
   → CTI2.SameCtx γ γ₂
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W ⊢↓[ just Y ] seal Y ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
   → TaggedTransferOutput₅ W₂ γ₂ P U X Y
   → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y ★ ∶ q
 target-chain-88-emits₅ mono rb sc source⊢ target⊢ pkg =

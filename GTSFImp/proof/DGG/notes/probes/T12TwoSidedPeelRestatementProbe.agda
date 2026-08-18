@@ -23,6 +23,7 @@ open import Reduction using
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
@@ -108,7 +109,7 @@ record SimConversionFramesSuppliedParkedᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴸ W Wᵖ Xᴸ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ↑ c ⊑ M′ ∶ q
       → M ↑ c —→[ χᴸ ] N
@@ -135,7 +136,7 @@ record SimConversionFramesSuppliedParkedᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴿ W Wᵖ Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c′
+      → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ⊑ M′ ↑ c′ ∶ q
       → M —→[ χᴸ ] N
@@ -163,7 +164,7 @@ record SimConversionFramesSuppliedParkedᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ↓ c ⊑ M′ ∶ q
       → M ↓ c —→[ χᴸ ] N
@@ -190,7 +191,7 @@ record SimConversionFramesSuppliedParkedᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴿ Wᵖ W Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c′
+      → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ⊑ M′ ↓ c′ ∶ q
       → M —→[ χᴸ ] N
@@ -229,7 +230,7 @@ record SimConversionFramesBoundaryStackᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴸ W Wᵖ Xᴸ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ↑ c ⊑ M′ ∶ q
       → M ↑ c —→[ χᴸ ] N
@@ -255,7 +256,7 @@ record SimConversionFramesBoundaryStackᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴿ W Wᵖ Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c′
+      → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ⊑ M′ ↑ c′ ∶ q
       → M —→[ χᴸ ] N
@@ -282,7 +283,7 @@ record SimConversionFramesBoundaryStackᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ↓ c ⊑ M′ ∶ q
       → M ↓ c —→[ χᴸ ] N
@@ -308,7 +309,7 @@ record SimConversionFramesBoundaryStackᵀ : Set₁ where
       → ImpEnvMono W Wᵖ
       → RebaseAtᴿ Wᵖ W Xᴿ?
       → SameCtx {W = W} {W′ = Wᵖ} [] γᵖ
-      → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c′
+      → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
       → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
       → W ∣ [] ⊢² M ⊑ M′ ↓ c′ ∶ q
       → M —→[ χᴸ ] N

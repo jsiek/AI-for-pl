@@ -27,10 +27,11 @@ open import Conversion using (seal)
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Imprecision
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
   (World; world; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; store-rep-imp; ⊢↓-sealˣ)
+   RebaseAt; store-rep-imp)
 
 private
   Xᴸ : TyVar 2
@@ -88,14 +89,14 @@ Y∈ : target-store ∋ Y ⦂ ★
 Y∈ = Z∋ refl
 
 source-Xᴸ-seal-⊢ :
-  source-store CTI2.⊢↓[ just Xᴸ ] seal Xᴸ (＇ X)
-source-Xᴸ-seal-⊢ = ⊢↓-sealˣ Xᴸ∈
+  source-store Conv.⊢↓[ just Xᴸ ] seal Xᴸ (＇ X)
+source-Xᴸ-seal-⊢ = Conv.⊢↓-sealˣ Xᴸ∈
 
-source-X-seal-⊢ : source-store CTI2.⊢↓[ just X ] seal X ★
-source-X-seal-⊢ = ⊢↓-sealˣ X∈
+source-X-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ★
+source-X-seal-⊢ = Conv.⊢↓-sealˣ X∈
 
-target-Y-seal-⊢ : target-store CTI2.⊢↓[ just Y ] seal Y ★
-target-Y-seal-⊢ = ⊢↓-sealˣ Y∈
+target-Y-seal-⊢ : target-store Conv.⊢↓[ just Y ] seal Y ★
+target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
 private
   source-env : Env∼ 2

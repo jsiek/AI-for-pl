@@ -66,6 +66,7 @@ open import proof.TypeInTermSubst using
    StoreTransport-lift-bind; StoreRename-suc-bind; toRename-id-eq;
    toRename-keep-eq; renameᵗ-wk-eq;
    toRename-wk-eq)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.CenterRename as CR
@@ -2158,13 +2159,13 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
 
     innerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ applyBody (bind ★) B
-      → CTI2.targetStoreʷ midWorld CTI2.⊢↑[ just Fin.zero ]
+      → CTI2.targetStoreʷ midWorld Conv.⊢↑[ just Fin.zero ]
           〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗
 
     outerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
       → CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂)
-          CTI2.⊢↑[ just (Fin.suc Fin.zero) ]
+          Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
     innerBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
@@ -2864,13 +2865,13 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     innerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ applyBody (bind ★) B
       → CTI2.targetStoreʷ (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
-          CTI2.⊢↑[ just Fin.zero ]
+          Conv.⊢↑[ just Fin.zero ]
           〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗
 
     outerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
       → CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂)
-          CTI2.⊢↑[ just (Fin.suc Fin.zero) ]
+          Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
     innerBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
@@ -2990,12 +2991,12 @@ open ΛRouteOnePostWindowSupport public
   → (∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ applyBody (bind ★) B
       → CTI2.targetStoreʷ (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
-          CTI2.⊢↑[ just Fin.zero ]
+          Conv.⊢↑[ just Fin.zero ]
           〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗)
   → (∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
       → CTI2.targetStoreʷ (CTI2.liftWorldLeft I.X⊑★ W₂)
-          CTI2.⊢↑[ just (Fin.suc Fin.zero) ]
+          Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗))
   → ΛRouteOnePostWindowSupport {ext₂ = ext₂} facts
 Λ-route1-post-window-support-at {W = W} {W₂ = W₂}
@@ -3403,13 +3404,13 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   Bouter-zero∈ = rename-occurs Fin.suc zero∈B
 
   cInner⊢ :
-      CTI2.targetStoreʷ Wmid CTI2.⊢↑[ just Fin.zero ] cInner
+      CTI2.targetStoreʷ Wmid Conv.⊢↑[ just Fin.zero ] cInner
   cInner⊢ =
     ΛPostWindowGeometry.innerReveal⊢ geom Bpre-zero∈
 
   cOuter⊢ :
       CTI2.targetStoreʷ Wout
-        CTI2.⊢↑[ just (Fin.suc Fin.zero) ] cOuter
+        Conv.⊢↑[ just (Fin.suc Fin.zero) ] cOuter
   cOuter⊢ =
     ΛPostWindowGeometry.outerReveal⊢ geom zero∈B
 
@@ -3757,9 +3758,9 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
       (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
         (generated-reveal-⊢↑-present z first-entry)))
 Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
@@ -3826,9 +3827,9 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
       (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
         (generated-reveal-⊢↑-present z first-entry)))
 
@@ -6148,9 +6149,9 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
       (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
         (generated-reveal-⊢↑-present z first-entry)))
   child = record
@@ -6234,9 +6235,9 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     (λ Σ → Σ ∋ Fin.zero ⦂ ⇑ᵗ ★) (sym follows₁) (Z∋ refl)
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just Fin.zero ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
       (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
-    (λ z → subst≡ (λ Σ → Σ CTI2.⊢↑[ just (Fin.suc Fin.zero) ] _)
+    (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
         (generated-reveal-⊢↑-present z first-entry)))
   child = record
@@ -6271,14 +6272,14 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
   → (sc : CTI2.SameCtx γ γᵖ)
-  → (c⊢ : CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c)
+  → (c⊢ : CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
   → CTI2.ImpEnvMono W₂ Wᵖ₂
   → CTI2.RebaseAtᴸ W₂ Wᵖ₂ Xᴸ?
   → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
-  → CTI2.sourceStoreʷ W₂ CTI2.⊢↑[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W₂ Conv.⊢↑[ Xᴸ? ] c
   → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
   → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
   → ΛPostPrefixPackageAtBase
@@ -6319,7 +6320,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
   → (sc : CTI2.SameCtx γ γᵖ)
-  → (c⊢ : CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c)
+  → (c⊢ : CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
@@ -6328,7 +6329,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W₂ Wᵖ₂
   → CTI2.TagRebaseAtᴸ Wᵖ₂ W₂ Xᴸ? Xᴿ₂?
   → CTI2.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
-  → CTI2.sourceStoreʷ W₂ CTI2.⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W₂ Conv.⊢↓[ Xᴸ? ] c
   → (top-p₂ : A′ CTI2.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
   → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
   → ΛPostPrefixPackageAtBase

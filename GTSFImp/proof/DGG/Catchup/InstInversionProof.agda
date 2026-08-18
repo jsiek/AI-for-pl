@@ -65,6 +65,7 @@ open import proof.TypeInTermSubst using
    StoreTransport-lift-bind; StoreRename-suc-bind; toRename-id-eq;
    toRename-keep-eq; renameᵗ-wk-eq;
    toRename-wk-eq)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.CenterRename as CR
@@ -341,31 +342,31 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∈ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↑[ just X ] 〖 X , R ↑ B 〗
+    → Σ Conv.⊢↑[ just X ] 〖 X , R ↑ B 〗
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ with X ≟ X
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ | yes refl =
-    CTI2.⊢↑-unsealˣ X∈
+    Conv.⊢↑-unsealˣ X∈
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ | no X≢X =
     ⊥-elim (X≢X refl)
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ with occurs? X B
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | present X∈B =
-    CTI2.⊢↑-⇒ˣ CTI2.join-both
+    Conv.⊢↑-⇒ˣ Conv.join-both
       (generated-conceal-⊢↓-present X∈A X∈)
       (generated-reveal-⊢↑-present X∈B X∈)
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | absent X∉B =
-    CTI2.⊢↑-⇒ˣ CTI2.join-left
+    Conv.⊢↑-⇒ˣ Conv.join-left
       (generated-conceal-⊢↓-present X∈A X∈)
       (generated-reveal-⊢↑-absent X∉B X∈)
   generated-reveal-⊢↑-present
       (∈-fun-right X∉A X∈B) X∈ =
-    CTI2.⊢↑-⇒ˣ CTI2.join-right
+    Conv.⊢↑-⇒ˣ Conv.join-right
       (generated-conceal-⊢↓-absent X∉A X∈)
       (generated-reveal-⊢↑-present X∈B X∈)
   generated-reveal-⊢↑-present (∈-all X∈B) X∈ =
-    CTI2.⊢↑-∀ˣ
+    Conv.⊢↑-∀ˣ
       (generated-reveal-⊢↑-present X∈B (S-lift∋ X∈ refl))
 
   generated-reveal-⊢↑-absent :
@@ -373,7 +374,7 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∉ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↑[ nothing ] 〖 X , R ↑ B 〗
+    → Σ Conv.⊢↑[ nothing ] 〖 X , R ↑ B 〗
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       with X ≟ Y
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
@@ -381,15 +382,15 @@ mutual
     ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
-    CTI2.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-base X∈ = CTI2.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-star X∈ = CTI2.⊢↑-idˣ
+    Conv.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-base X∈ = Conv.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-star X∈ = Conv.⊢↑-idˣ
   generated-reveal-⊢↑-absent (∉-fun X∉A X∉B) X∈ =
-    CTI2.⊢↑-⇒ˣ CTI2.join-none
+    Conv.⊢↑-⇒ˣ Conv.join-none
       (generated-conceal-⊢↓-absent X∉A X∈)
       (generated-reveal-⊢↑-absent X∉B X∈)
   generated-reveal-⊢↑-absent (∉-all X∉B) X∈ =
-    CTI2.⊢↑-∀-idˣ
+    Conv.⊢↑-∀-idˣ
       (generated-reveal-⊢↑-absent X∉B (S-lift∋ X∈ refl))
 
   generated-conceal-⊢↓-present :
@@ -397,31 +398,31 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∈ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↓[ just X ] makeConceal X R B
+    → Σ Conv.⊢↓[ just X ] makeConceal X R B
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ with X ≟ X
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ | yes refl =
-    CTI2.⊢↓-sealˣ X∈
+    Conv.⊢↓-sealˣ X∈
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ | no X≢X =
     ⊥-elim (X≢X refl)
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ with occurs? X B
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | present X∈B =
-    CTI2.⊢↓-⇒ˣ CTI2.join-both
+    Conv.⊢↓-⇒ˣ Conv.join-both
       (generated-reveal-⊢↑-present X∈A X∈)
       (generated-conceal-⊢↓-present X∈B X∈)
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | absent X∉B =
-    CTI2.⊢↓-⇒ˣ CTI2.join-left
+    Conv.⊢↓-⇒ˣ Conv.join-left
       (generated-reveal-⊢↑-present X∈A X∈)
       (generated-conceal-⊢↓-absent X∉B X∈)
   generated-conceal-⊢↓-present
       (∈-fun-right X∉A X∈B) X∈ =
-    CTI2.⊢↓-⇒ˣ CTI2.join-right
+    Conv.⊢↓-⇒ˣ Conv.join-right
       (generated-reveal-⊢↑-absent X∉A X∈)
       (generated-conceal-⊢↓-present X∈B X∈)
   generated-conceal-⊢↓-present (∈-all X∈B) X∈ =
-    CTI2.⊢↓-∀ˣ
+    Conv.⊢↓-∀ˣ
       (generated-conceal-⊢↓-present X∈B (S-lift∋ X∈ refl))
 
   generated-conceal-⊢↓-absent :
@@ -429,7 +430,7 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∉ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↓[ nothing ] makeConceal X R B
+    → Σ Conv.⊢↓[ nothing ] makeConceal X R B
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       with X ≟ Y
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
@@ -437,15 +438,15 @@ mutual
     ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
-    CTI2.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-base X∈ = CTI2.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-star X∈ = CTI2.⊢↓-idˣ
+    Conv.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-base X∈ = Conv.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-star X∈ = Conv.⊢↓-idˣ
   generated-conceal-⊢↓-absent (∉-fun X∉A X∉B) X∈ =
-    CTI2.⊢↓-⇒ˣ CTI2.join-none
+    Conv.⊢↓-⇒ˣ Conv.join-none
       (generated-reveal-⊢↑-absent X∉A X∈)
       (generated-conceal-⊢↓-absent X∉B X∈)
   generated-conceal-⊢↓-absent (∉-all X∉B) X∈ =
-    CTI2.⊢↓-∀-idˣ
+    Conv.⊢↓-∀-idˣ
       (generated-conceal-⊢↓-absent X∉B (S-lift∋ X∈ refl))
 
 

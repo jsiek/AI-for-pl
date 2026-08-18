@@ -28,6 +28,7 @@ open import Conversion using (〖_,_↑_〗)
 open import CastTerms using (Term; Λ_; `_)
 import Imprecision as I
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Catchup.InstInversionDef as IID
@@ -191,10 +192,10 @@ record GeneratedReveals {Δᴸ Δ} (W : CTI2.World Δᴸ 2 Δ)
   constructor generated-reveals
   field
     inner-⊢↑ :
-      target-store-βα CTI2.⊢↑[ just target-β ]
+      target-store-βα Conv.⊢↑[ just target-β ]
         〖 target-β , ＇ target-α ↑ Bβ 〗
     outer-⊢↑ :
-      target-store-βα CTI2.⊢↑[ just target-α ]
+      target-store-βα Conv.⊢↑[ just target-α ]
         〖 target-α , ★ ↑ Bα 〗
     β-dynamic :
       CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) target-β) ≡ I.X⊑★

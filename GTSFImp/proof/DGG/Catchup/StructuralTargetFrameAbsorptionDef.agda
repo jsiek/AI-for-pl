@@ -21,6 +21,7 @@ open import CastTerms using (Term; Value; _⟨_⟩; _↑_; _↓_)
 open import Reduction using (keep; bind; applyTy; applyBody; _—→[_]_)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
@@ -68,7 +69,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
     → CTI2.SameCtx γ γᵖ
-    → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c
+    → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c
     → (∀ {M N} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
         → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B ]
@@ -91,7 +92,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
     → CTI2.SameCtx γ γᵖ
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c
     → (∀ {M N} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
         → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B ]

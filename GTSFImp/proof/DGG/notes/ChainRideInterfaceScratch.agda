@@ -18,6 +18,7 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 import CastTerms as CTerms
 open import Primitives using (κℕ)
 open import Imprecision
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.ChainRideProbe as CRP
@@ -104,7 +105,7 @@ H-Schain-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
 H-Schain-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
   CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-    (CTI2.⊢↓-sealˣ Y∈) Dᵒ _
+    (Conv.⊢↓-sealˣ Y∈) Dᵒ _
 
 H-absorb-from-chain : ChainRideInterface
   → ∀ {Δᴸ Δᴿ Δ}
@@ -141,7 +142,7 @@ H-absorb-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
     link mono₂ sc₂ D₂ moved
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
   CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-    (CTI2.⊢↓-sealˣ Y∈) Dᵒ _
+    (Conv.⊢↓-sealˣ Y∈) Dᵒ _
 
 H-multi-from-chain : ChainRideInterface
   → ∀ {Δᴸ Δᴿ Δ}

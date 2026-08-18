@@ -25,6 +25,7 @@ open import CastTerms using
    _↓_; _⟨_⟩)
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealPeelToolkit as SPT
@@ -258,64 +259,64 @@ private
       mono rb sc target∈
       (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
         (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
-        (CTI2.⊢↓-sealˣ X∈) prem r)
+        (Conv.⊢↓-sealˣ X∈) prem r)
       with composeTagRebaseTagOuter rb rbᵖ
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
         (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
-        (CTI2.⊢↓-sealˣ X∈) prem r)
+        (Conv.⊢↓-sealˣ X∈) prem r)
       | Z? , rbᶠ =
     CTI2.conceal⊑²-source-ok
       (CTI2.seal-nonstar-plain-ok Rns CTI2.not-↓)
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
         mono monoᵖ)
       rbᶠ (sameCtx-∘ sc scᵖ)
-      (CTI2.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
+      (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
       prem q
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = pᵖ}
         ok monoᵖ rbᵖ scᵖ
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ target∈′)
+        (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ target∈′)
         prem r) =
     CTI2.conceal⊑conceal²
       ok
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
         mono monoᵖ)
       (composeOuterRebase rb rbᵖ) (sameCtx-∘ sc scᵖ)
-      (CTI2.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
-      (CTI2.⊢↓-sealˣ target∈) prem q
+      (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
+      (Conv.⊢↓-sealˣ target∈) prem q
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.packaged-seal-star² {Wᵖ = Wᵖ}
         ok monoᵖ rbᵖ scᵖ
-        (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ target∈′)
+        (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ target∈′)
         prem sourcePrem r) =
     CTI2.packaged-seal-star²
       ok
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
         mono monoᵖ)
       (composeOuterRebase rb rbᵖ) (sameCtx-∘ sc scᵖ)
-      (CTI2.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
-      (CTI2.⊢↓-sealˣ target∈) prem sourcePrem q
+      (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
+      (Conv.⊢↓-sealˣ target∈) prem sourcePrem q
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.⊑conceal² {W′ = Wᵈ} {p = pᵈ}
         monoᵈ rbᴿ scᵈ
-        (CTI2.⊢↓-sealˣ target∈′) prem r)
+        (Conv.⊢↓-sealˣ target∈′) prem r)
       with target-seal-rebase-source rbᴿ r
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.⊑conceal² {W′ = Wᵈ} {p = pᵈ}
         monoᵈ rbᴿ scᵈ
-        (CTI2.⊢↓-sealˣ target∈′) prem r)
+        (Conv.⊢↓-sealˣ target∈′) prem r)
       | link =
     CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ}
         mono monoᵈ)
       (CTI2.rebase-varᴿ (composeOuterRebase rb link))
-      (sameCtx-∘ sc scᵈ) (CTI2.⊢↓-sealˣ target∈) prem q
+      (sameCtx-∘ sc scᵈ) (Conv.⊢↓-sealˣ target∈) prem q
 
   tag-rebase-from-left : ∀ {Δᴸ Δᴿ Δ}
       {W′ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
@@ -625,7 +626,7 @@ private
             {W = Wᵢ} {R = Rᵢ} {Y = Y} pᵢ)
           CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
-        (CTI2.⊢↓-sealˣ X∈) prem
+        (Conv.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
 
   source-column-seal-final : ∀ {Δᴸ Δᴿ Δ}
@@ -655,7 +656,7 @@ private
             {W = Wᵢ} {R = R} {Y = Y} pᵤ)
           CTI2.not-↓)
         monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
-        (CTI2.⊢↓-sealˣ X∈) prem
+        (Conv.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
 
   source-column-direct-branch : ∀ {Δᴸ Δᴿ Δ}
@@ -847,7 +848,7 @@ source-spine-direct-cast {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
         (right-var-obligation-nonstar {W = W′} {R = R} {Y = Y} p₀)
         CTI2.not-↓)
       mono (CTI2.tag-rebase-varᴸ rb) sc
-      (CTI2.⊢↓-sealˣ source∈) prem q)
+      (Conv.⊢↓-sealˣ source∈) prem q)
 
 source-spine-strip-worker-ƛ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
@@ -1327,7 +1328,7 @@ source-spine-strip-worker-seal-D
     (CTI2.conceal⊑²-source-ok
       (CTI2.seal-nonstar-name-protected-ok Rns aligned)
       monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
+      (Conv.⊢↓-sealˣ X∈)
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
     sv vU mono rb sc source∈ target∈ =
   source-seal-branch sv vU mono rb sc source∈ target∈

@@ -13,6 +13,7 @@ open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue; sv-seal; sv-$)
 open import proof.DGG.Inversion.TargetStripDef using
@@ -75,7 +76,7 @@ vU = $ (κℕ 0)
 D : W ∣ [] ⊢² V ⊑ U ↓ seal Y (‵ `ℕ) ∶ q
 D =
   CTI2.conceal⊑conceal² mono-refl rb CTI2.same-[]
-    (CTI2.⊢↓-sealˣ X∈ℕ) (CTI2.⊢↓-sealˣ Y∈ℕ)
+    (Conv.⊢↓-sealˣ X∈ℕ) (Conv.⊢↓-sealˣ Y∈ℕ)
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) q
 
 package :

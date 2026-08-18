@@ -20,13 +20,13 @@ open import Conversion using (Conv↑; rename↑)
 open import CastTerms using (Term; renameᵗᵐ; _↑_)
 open import proof.TypeInTermSubst using (StoreRename)
 open import proof.DGG.CenterRename using (preimage?)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 
 open CTI2 using
   ( World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_
   ; RebaseAt; RebaseAtᴿ; RebaseAtᴸ; TagRebaseAtᴸ
-  ; ImpEnvMono; SameCtx; _⊢↑[_]_
-  )
+  ; ImpEnvMono; SameCtx)
 
 mapPivot : ∀ {Δ Δ′}
   → (TyVar Δ → TyVar Δ′)
@@ -200,7 +200,7 @@ RevealRightWrapperᵀ target-extend commute =
   → ImpEnvMono W Wᵖ
   → RebaseAtᴿ W Wᵖ Xᴿ?
   → SameCtx γ γᵖ
-  → CTI2.targetStoreʷ W ⊢↑[ Xᴿ? ] c′
+  → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
   → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
   → W⁺ ∣ mapCtxᵀ ins γ
       ⊢² M ⊑ renameᵗᵐ ρ (M′ ↑ c′)

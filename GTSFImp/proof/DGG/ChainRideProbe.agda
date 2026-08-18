@@ -25,10 +25,11 @@ open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _⊢↓[_]_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp; ⊢↓-sealˣ)
+  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
+   RebaseAt; rebase-at; same-runtime; store-rep-imp)
 
 private
   Z : TyVar 2
@@ -106,11 +107,11 @@ probe-Z∋ = Z∋ refl
 probe-Z₃∋ : sourceStore ∋ Z₃ ⦂ ★
 probe-Z₃∋ = S-bind∋ (Z∋ refl) refl
 
-probe-Z-seal-⊢ : sourceStore ⊢↓[ just Z ] seal Z (＇ Z₃)
-probe-Z-seal-⊢ = ⊢↓-sealˣ probe-Z∋
+probe-Z-seal-⊢ : sourceStore Conv.⊢↓[ just Z ] seal Z (＇ Z₃)
+probe-Z-seal-⊢ = Conv.⊢↓-sealˣ probe-Z∋
 
-probe-Z₃-seal-⊢ : sourceStore ⊢↓[ just Z₃ ] seal Z₃ ★
-probe-Z₃-seal-⊢ = ⊢↓-sealˣ probe-Z₃∋
+probe-Z₃-seal-⊢ : sourceStore Conv.⊢↓[ just Z₃ ] seal Z₃ ★
+probe-Z₃-seal-⊢ = Conv.⊢↓-sealˣ probe-Z₃∋
 
 private
   probe-source-env : Env∼ 2

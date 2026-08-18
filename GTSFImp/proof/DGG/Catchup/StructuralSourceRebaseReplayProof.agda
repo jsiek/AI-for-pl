@@ -12,6 +12,7 @@ open import Types using (Ty; TyVar)
 open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; _↑_; _↓_)
 open import Reduction using (StoreChanges)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralWorldExtendDef
@@ -38,7 +39,7 @@ structural-reveal-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → let child = structural-rebase-atᴸ plan rb
         planᵖ = StructuralRebaseAtᴸResult.premise-plan child
      in StructuralRebaseAtᴸResult.Wᵖ′ child CTI2.∣
@@ -75,7 +76,7 @@ structural-conceal-source-ok-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → let child = structural-tag-rebase-atᴸ plan rb
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child
      in CTI2.SourceConcealOK
@@ -114,7 +115,7 @@ structural-conceal-seal-star-open-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W (Data.Maybe.just X) Data.Maybe.nothing)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Data.Maybe.just X ]
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ Data.Maybe.just X ]
       Conversion.seal X Types.★
   → let child = structural-tag-rebase-atᴸ plan rb
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child

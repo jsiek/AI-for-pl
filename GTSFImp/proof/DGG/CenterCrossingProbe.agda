@@ -29,6 +29,7 @@ open import CastTerms
 import CastTerms as CTerms
 open import Imprecision
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.Inversion.SpineValueDef as SVD
 open CTI2 using
@@ -211,13 +212,13 @@ inner² =
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-nonvar-tag nonvar-base))
     (λ Z eq → eq) rb-inner CTI2.same-[]
-    (CTI2.⊢↓-sealˣ X₁∈) (CTI2.⊢↓-sealˣ Y₁∈) base² p-inner
+    (Conv.⊢↓-sealˣ X₁∈) (Conv.⊢↓-sealˣ Y₁∈) base² p-inner
 
 input-target-seal-variable :
   W′ ∣ [] ⊢² V ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ p-input
 input-target-seal-variable =
   CTI2.⊑conceal² (λ Z eq → eq) (CTI2.rebase-varᴿ rb-target-input)
-    CTI2.same-[] (CTI2.⊢↓-sealˣ Y₀∈) inner² p-input
+    CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) inner² p-input
 
 source-spine : SVD.SpineValue V
 source-spine =

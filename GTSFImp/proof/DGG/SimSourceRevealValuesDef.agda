@@ -21,6 +21,7 @@ open import Reduction using
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
@@ -35,7 +36,6 @@ open CTI2 using
   ; ImpEnvMono
   ; RebaseAtᴸ
   ; sourceStoreʷ
-  ; _⊢↑[_]_
   ; _⊑ᵂ⟨_⟩_
   ; _∣_⊢²_⊑_∶_
   )
@@ -52,7 +52,7 @@ SimSourceRevealValuesᵀ =
   → ParkedWorld W
   → (mono : ImpEnvMono W Wᵖ)
   → (rebase : RebaseAtᴸ W Wᵖ Xᴸ?)
-  → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
+  → sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → Value V

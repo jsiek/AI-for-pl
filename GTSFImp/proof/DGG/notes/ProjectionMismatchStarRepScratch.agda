@@ -22,11 +22,12 @@ open import CastTerms using
   (Term; Value; $; _⟨_⟩; _↓_; blame; _《_》; inj)
 open import Reduction
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.ExtraCastRight2 using (ExtraCastRight²)
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
-   store-rep-imp; ⊢↓-sealˣ)
+   store-rep-imp)
 
 private
   X : TyVar 1
@@ -80,8 +81,8 @@ X! = id (＇ X) !
 X? : target-env-proj ⊢ ★ ∼ ＇ X
 X? = ？ (idᵍ (＇ X))
 
-source-X-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
-source-X-seal-typed = ⊢↓-sealˣ source-X∋
+source-X-seal-typed : source-store Conv.⊢↓[ just X ] seal X ★
+source-X-seal-typed = Conv.⊢↓-sealˣ source-X∋
 
 X-Y-representation : CTI2.StoreRepImp probe-world X Y
 X-Y-representation = store-rep-imp ★⊑★

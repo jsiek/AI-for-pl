@@ -30,6 +30,7 @@ open import Reduction using
   ; blame-reveal
   ; ξ-reveal
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-reveal-boundary)
@@ -42,7 +43,6 @@ open CTI2 using
   ; sourceStoreʷ
   ; targetStoreʷ
   ; same-[]
-  ; _⊢↑[_]_
   ; _⊑ᵂ⟨_⟩_
   ; _∣_⊢²_⊑_∶_
   )
@@ -85,8 +85,8 @@ record SimPairedRevealValuesResiduals : Set₁ where
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
+      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
       → PairedRevealRel rel
       → Value V
@@ -115,8 +115,8 @@ record SimPairedRevealValuesResiduals : Set₁ where
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
+      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
       → PairedRevealRel rel
       → Value V

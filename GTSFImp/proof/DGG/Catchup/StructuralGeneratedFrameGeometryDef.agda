@@ -16,6 +16,7 @@ open import Types using (Ty; TyVar; ＇_; ⇑ᵗ; _[_]ᵗ)
 open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
 open import CastTerms using (Term; Value; _↑_; _↓_)
 open import Reduction using (keep; _—→[_]_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 
 
@@ -42,7 +43,7 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₁ : CTI2.ImpEnvMono W Wᵖ₁
     rebase₁ : CTI2.RebaseAtᴿ W Wᵖ₁ X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
-    targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₁? ] c
+    targetConversion₁ : CTI2.targetStoreʷ W Conv.⊢↑[ X₁? ] c
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
@@ -62,7 +63,7 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₂ : CTI2.ImpEnvMono W Wᵖ₂
     rebase₂ : CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
     same₂ : CTI2.SameCtx γ γᵖ₂
-    targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+    targetConversion₂ : CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
@@ -94,7 +95,7 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₁ : CTI2.ImpEnvMono W Wᵖ₁
     rebase₁ : CTI2.RebaseAtᴿ Wᵖ₁ W X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
-    targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↓[ X₁? ] c
+    targetConversion₁ : CTI2.targetStoreʷ W Conv.⊢↓[ X₁? ] c
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
@@ -114,7 +115,7 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₂ : CTI2.ImpEnvMono W Wᵖ₂
     rebase₂ : CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
     same₂ : CTI2.SameCtx γ γᵖ₂
-    targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+    targetConversion₂ : CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}

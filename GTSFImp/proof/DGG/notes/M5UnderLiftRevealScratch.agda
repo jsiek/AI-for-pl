@@ -23,6 +23,7 @@ open import Reduction using (applyBody; bind)
 import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
 open import proof.ImprecisionConsistency using (fin-suc-injective)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.TargetBindLift as TBL
@@ -43,7 +44,7 @@ depth1-inner-sameWorld-rebaseᴿ W =
 depth1-inner-sameWorld-reveal-⊢↑ : ∀ {Δᴸ Δᴿ Δ}
     (W : CTI2.World Δᴸ Δᴿ Δ)
   → CTI2.targetStoreʷ (TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W)
-      CTI2.⊢↑[ just Fin.zero ]
+      Conv.⊢↑[ just Fin.zero ]
         〖 Fin.zero , ⇑ᵗ (＇ Fin.zero)
           ↑ applyBody (bind ★) (＇ Fin.zero ⇒ ★) 〗
 depth1-inner-sameWorld-reveal-⊢↑ W =

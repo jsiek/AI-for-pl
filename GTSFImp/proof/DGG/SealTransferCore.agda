@@ -25,6 +25,7 @@ open import CastTerms
 open import TyStore using (_∋_⦂_; Z∋; S-lift∋; S-bind∋)
 open import Consistency using (Env∼; _⊢_∼_; id; _!; toRenameᵗ)
 open import Primitives using (κℕ; κ𝔹)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.Inversion.SpineValueDef as SVD
@@ -34,7 +35,7 @@ import proof.DGG.WorldDecay as WD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTI2 using
   (World; CtxImp; RebaseAt; StoreRepImp; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; _⊢↓[_]_;
+   _∣_⊢²_⊑_∶_;
    same-runtime; rebase-at)
 open SVD using (SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal;
   sv-reveal-fun; sv-conceal-fun; sv-reveal-all; sv-conceal-all)
@@ -322,8 +323,8 @@ emit-tagged-transfer : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → RebaseAt Wᵖ W X Y
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] Conversion.seal X ★
-  → CTI2.targetStoreʷ W ⊢↓[ just Y ] Conversion.seal Y ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] Conversion.seal X ★
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] Conversion.seal Y ★
   → TaggedTransferOutput Wᵖ γᵖ P U X Xᴿ?
   → Wᵖ ∣ γᵖ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ qᵖ
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★
@@ -379,7 +380,7 @@ source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
     (impEnvMono-refl {W = W})
     (self-tag-rebase-from-tag-rebase rb)
     (sameCtx-refl {γ = γ})
-    (CTI2.⊢↓-sealˣ source∈)
+    (Conv.⊢↓-sealˣ source∈)
     (CTI2.cast⊑² c sealed ★⊑★)
     q
 
@@ -500,8 +501,8 @@ data SealTransferResult {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W₁ Wᵖ
     → RebaseAt Wᵖ W₁ Z Y
     → CTI2.SameCtx γ₁ γᵖ
-    → CTI2.sourceStoreʷ W₁ ⊢↓[ just Z ] Conversion.seal Z ★
-    → CTI2.targetStoreʷ W₁ ⊢↓[ just Y ] Conversion.seal Y ★
+    → CTI2.sourceStoreʷ W₁ Conv.⊢↓[ just Z ] Conversion.seal Z ★
+    → CTI2.targetStoreʷ W₁ Conv.⊢↓[ just Y ] Conversion.seal Y ★
     → CTI2.MatchedConcealPartnerOK Wᵖ P
         (Conversion.seal Z ★) (just Y) U
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
@@ -589,14 +590,14 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
     | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
+        (Conv.⊢↓-sealˣ Y∈) prem .p
     with target-seal-rebase-source rb₄ p
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
     | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
+        (Conv.⊢↓-sealˣ Y∈) prem .p
     | ra₄ =
   seal-transfer-stripped
     (TD.decayRebaseAt (SPT.dynWorld-decay W₄) WD.decay-refl ra₄)
@@ -610,8 +611,8 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
     | CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {γᵖ = γᵖ}
-        ok monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem sourcePrem .p =
+        ok monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ Z∈′)
+        (Conv.⊢↓-sealˣ Y∈) prem sourcePrem .p =
   seal-transfer-stripped rbᵖ monoᵖ scᵖ sourcePrem
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
@@ -619,8 +620,8 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | refl
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
         (CTI2.matched-seal-star-partner partner)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p =
+        monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ Z∈′)
+        (Conv.⊢↓-sealˣ Y∈) prem .p =
   seal-transfer-paired monoᵖ rbᵖ scᵖ
-    (CTI2.⊢↓-sealˣ Z∈′) (CTI2.⊢↓-sealˣ Y∈)
+    (Conv.⊢↓-sealˣ Z∈′) (Conv.⊢↓-sealˣ Y∈)
     (CTI2.matched-seal-star-partner partner) prem

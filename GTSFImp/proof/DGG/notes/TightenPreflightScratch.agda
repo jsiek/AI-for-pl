@@ -23,6 +23,7 @@ import Conversion
 open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 open import Imprecision
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
@@ -171,7 +172,7 @@ conceal⊑²ᵀ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
   → CTI2.SameCtx γ γ′
-  → sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q

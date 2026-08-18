@@ -29,6 +29,7 @@ import CastTerms as C
 open import Conversion using (〖_,_↑_〗)
 open import Reduction using (StoreChange; bind; keep)
 open import Eval using (step?)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
@@ -126,12 +127,12 @@ adversarial-source-chain-rebase₁ =
 
 adversarial-source-chain-reveal₁-⊢ˣ :
   CTI2.sourceStoreʷ adversarial-source-chain-world₁
-    CTI2.⊢↑[ just Fin.zero ]
+    Conv.⊢↑[ just Fin.zero ]
       〖 Fin.zero , ⇑ᵗ RC.ℕ₀ ↑ RC.X₀⇒X₀ 〗
 adversarial-source-chain-reveal₁-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-both
-    (CTI2.⊢↓-sealˣ (Z∋ refl))
-    (CTI2.⊢↑-unsealˣ (Z∋ refl))
+  Conv.⊢↑-⇒ˣ Conv.join-both
+    (Conv.⊢↓-sealˣ (Z∋ refl))
+    (Conv.⊢↑-unsealˣ (Z∋ refl))
 
 adversarial-source-chain-lambda₁ :
   adversarial-source-chain-world₁ ∣ [] ⊢²
@@ -467,12 +468,12 @@ star-inst-rebase₁ =
   CTI2.sameWorldRebaseAt refl star-inst-X-rep₁
 
 star-inst-reveal₁-⊢ˣ :
-  CTI2.sourceStoreʷ star-inst-world₁ CTI2.⊢↑[ just Fin.zero ]
+  CTI2.sourceStoreʷ star-inst-world₁ Conv.⊢↑[ just Fin.zero ]
     〖 Fin.zero , ★ ↑ RC.X₀⇒★ 〗
 star-inst-reveal₁-⊢ˣ =
-  CTI2.⊢↑-⇒ˣ CTI2.join-left
-    (CTI2.⊢↓-sealˣ (Z∋ refl))
-    CTI2.⊢↑-idˣ
+  Conv.⊢↑-⇒ˣ Conv.join-left
+    (Conv.⊢↓-sealˣ (Z∋ refl))
+    Conv.⊢↑-idˣ
 
 star-inst-lambda₁ :
   star-inst-world₁ ∣ [] ⊢²

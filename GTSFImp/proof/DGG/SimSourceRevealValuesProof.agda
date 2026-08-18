@@ -29,6 +29,7 @@ open import Reduction using
   ; blame-reveal
   ; ξ-reveal
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.CatchupToMorePreciseDef
   using
@@ -45,7 +46,6 @@ open CTI2 using
   ; RebaseAtᴸ
   ; sourceStoreʷ
   ; same-[]
-  ; _⊢↑[_]_
   ; _⊑ᵂ⟨_⟩_
   ; _∣_⊢²_⊑_∶_
   )
@@ -81,7 +81,7 @@ record SimSourceRevealValuesResiduals : Set₁ where
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAtᴸ W Wᵖ Xᴸ?)
-      → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
+      → sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ∶ q)
       → SourceRevealRel rel
       → Value V
@@ -103,7 +103,7 @@ record SimSourceRevealValuesResiduals : Set₁ where
 sim-source-reveal-values-with :
   SimSourceRevealValuesResiduals → SimSourceRevealValuesᵀ
 sim-source-reveal-values-with residuals _ _ CTI2.rebase-idᴸ
-    CTI2.⊢↑-idˣ _ _ vV (pure-step (id-reveal _))
+    Conv.⊢↑-idˣ _ _ vV (pure-step (id-reveal _))
     (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
       boundary-source-reveal _ CTI2.tag-rebase-idᴸ , q′ ,
       _ , M′↠V′ , _ , evol , _ , _ , rel′) =

@@ -9,6 +9,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.Product using (_,_)
 
 open import Reduction using (pure-step; id-conceal; blame-conceal; ξ-conceal)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.CatchupToMorePreciseDef
   using (boundary-source-conceal)
@@ -21,7 +22,7 @@ open import proof.Reduction.ValueIrreducibleProof
 
 
 sim-source-conceal-values : SimSourceConcealValuesᵀ
-sim-source-conceal-values _ _ _ CTI2.tag-rebase-idᴸ CTI2.⊢↓-idˣ _ _
+sim-source-conceal-values _ _ _ CTI2.tag-rebase-idᴸ Conv.⊢↓-idˣ _ _
     vV (pure-step (id-conceal _))
     (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
       boundary-source-conceal _ CTI2.tag-rebase-idᴸ , q′ ,

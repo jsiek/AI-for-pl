@@ -27,10 +27,11 @@ open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _⊢↓[_]_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp; ⊢↓-sealˣ)
+  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
+   RebaseAt; rebase-at; same-runtime; store-rep-imp)
 
 private
   X : TyVar 1
@@ -120,14 +121,14 @@ probe-tgt-Y∋ = Z∋ refl
 probe-tgt-Y′∋ : probe-tgt-store ∋ Y′ ⦂ ★
 probe-tgt-Y′∋ = S-bind∋ (Z∋ refl) refl
 
-probe-X-seal-⊢ : probe-src-store ⊢↓[ just X ] seal X ★
-probe-X-seal-⊢ = ⊢↓-sealˣ probe-src-X∋
+probe-X-seal-⊢ : probe-src-store Conv.⊢↓[ just X ] seal X ★
+probe-X-seal-⊢ = Conv.⊢↓-sealˣ probe-src-X∋
 
-probe-Y-seal-⊢ : probe-tgt-store ⊢↓[ just Y ] seal Y ★
-probe-Y-seal-⊢ = ⊢↓-sealˣ probe-tgt-Y∋
+probe-Y-seal-⊢ : probe-tgt-store Conv.⊢↓[ just Y ] seal Y ★
+probe-Y-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y∋
 
-probe-Y′-seal-⊢ : probe-tgt-store ⊢↓[ just Y′ ] seal Y′ ★
-probe-Y′-seal-⊢ = ⊢↓-sealˣ probe-tgt-Y′∋
+probe-Y′-seal-⊢ : probe-tgt-store Conv.⊢↓[ just Y′ ] seal Y′ ★
+probe-Y′-seal-⊢ = Conv.⊢↓-sealˣ probe-tgt-Y′∋
 
 private
   probe-src-env : Env∼ 1

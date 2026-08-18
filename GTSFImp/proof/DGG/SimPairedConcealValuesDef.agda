@@ -21,6 +21,7 @@ open import Reduction using
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
@@ -33,7 +34,6 @@ open CTI2 using
   ; RebaseAt
   ; sourceStoreʷ
   ; targetStoreʷ
-  ; _⊢↓[_]_
   ; _⊑ᵂ⟨_⟩_
   ; _∣_⊢²_⊑_∶_
   )
@@ -52,8 +52,8 @@ SimPairedConcealValuesᵀ =
   → MatchedConcealPartnerOK Wᵖ V c (just Xᴿ) M′
   → (mono : ImpEnvMono W Wᵖ)
   → (rebase : RebaseAt Wᵖ W Xᴸ Xᴿ)
-  → sourceStoreʷ W ⊢↓[ just Xᴸ ] c
-  → targetStoreʷ W ⊢↓[ just Xᴿ ] c′
+  → sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+  → targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : B ⊑ᵂ⟨ W ⟩ B′)
   → Value V

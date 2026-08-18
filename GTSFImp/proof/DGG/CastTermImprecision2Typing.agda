@@ -22,6 +22,7 @@ open import Conversion using
    ⊢↑-unseal; ⊢↑-⇒; ⊢↑-∀; ⊢↑-id;
    ⊢↓-seal; ⊢↓-⇒; ⊢↓-∀; ⊢↓-id)
 open import CastTerms
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
   (World; sourceStoreʷ; targetStoreʷ; CtxImp; ctx-imp; srcTyʷ; tgtTyʷ;
@@ -29,7 +30,7 @@ open CTI2 using
    LiftCtx; lift-[]; lift-∷; LiftCtxᴸ; liftᴸ-[]; liftᴸ-∷;
    SmartLiftCtxᴸ; smart-lift-[]; smart-lift-∷; SmartCommaLiftᴸ;
    smart-fresh-behind; smart-merge-alias;
-   RebaseAt; RebaseAtᴸ; RebaseAtᴿ; _⊢↑[_]_; _⊢↓[_]_; _∣_⊢²_⊑_∶_)
+   RebaseAt; RebaseAtᴸ; RebaseAtᴿ; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Context projections
@@ -110,24 +111,24 @@ smartLift-source-store (smart-merge-alias guard) =
 
 mutual
   erase-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↑ Δ A B}
-    → Σ ⊢↑[ X? ] c
+    → Σ Conv.⊢↑[ X? ] c
     → Σ ⊢↑ c
-  erase-⊢↑ (CTI2.⊢↑-unsealˣ X∈) = ⊢↑-unseal X∈
-  erase-⊢↑ (CTI2.⊢↑-⇒ˣ join ⊢c ⊢d) =
+  erase-⊢↑ (Conv.⊢↑-unsealˣ X∈) = ⊢↑-unseal X∈
+  erase-⊢↑ (Conv.⊢↑-⇒ˣ join ⊢c ⊢d) =
     ⊢↑-⇒ (erase-⊢↓ ⊢c) (erase-⊢↑ ⊢d)
-  erase-⊢↑ (CTI2.⊢↑-∀ˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ (CTI2.⊢↑-∀-idˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ CTI2.⊢↑-idˣ = ⊢↑-id
+  erase-⊢↑ (Conv.⊢↑-∀ˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
+  erase-⊢↑ (Conv.⊢↑-∀-idˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
+  erase-⊢↑ Conv.⊢↑-idˣ = ⊢↑-id
 
   erase-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↓ Δ A B}
-    → Σ ⊢↓[ X? ] c
+    → Σ Conv.⊢↓[ X? ] c
     → Σ ⊢↓ c
-  erase-⊢↓ (CTI2.⊢↓-sealˣ X∈) = ⊢↓-seal X∈
-  erase-⊢↓ (CTI2.⊢↓-⇒ˣ join ⊢c ⊢d) =
+  erase-⊢↓ (Conv.⊢↓-sealˣ X∈) = ⊢↓-seal X∈
+  erase-⊢↓ (Conv.⊢↓-⇒ˣ join ⊢c ⊢d) =
     ⊢↓-⇒ (erase-⊢↑ ⊢c) (erase-⊢↓ ⊢d)
-  erase-⊢↓ (CTI2.⊢↓-∀ˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ (CTI2.⊢↓-∀-idˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ CTI2.⊢↓-idˣ = ⊢↓-id
+  erase-⊢↓ (Conv.⊢↓-∀ˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
+  erase-⊢↓ (Conv.⊢↓-∀-idˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
+  erase-⊢↓ Conv.⊢↓-idˣ = ⊢↓-id
 
 ------------------------------------------------------------------------
 -- Runtime-store equalities carried by rebasing

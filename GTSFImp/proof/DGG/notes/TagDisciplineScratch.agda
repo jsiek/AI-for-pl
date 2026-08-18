@@ -23,6 +23,7 @@ open import CastTerms using
   (Term; `_ ; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_;
    blame)
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
@@ -33,8 +34,7 @@ import proof.DGG.CompileImageShape as CIS
 
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt; CtxImp;
-   ImpEnvMono; SameCtx; StoreRepImp; store-rep-imp; same-runtime;
-   ⊢↓-sealˣ; same-[])
+   ImpEnvMono; SameCtx; StoreRepImp; store-rep-imp; same-runtime; same-[])
 
 private
   Z : TyVar 2
@@ -80,11 +80,11 @@ target-env-tag _ = X∼★
 Y! : target-env-tag ⊢ ＇ Y ∼ ★
 Y! = id (＇ Y) !
 
-source-U-seal-typed : source-store CTI2.⊢↓[ just U ] seal U (‵ `ℕ)
-source-U-seal-typed = ⊢↓-sealˣ source-U∋
+source-U-seal-typed : source-store Conv.⊢↓[ just U ] seal U (‵ `ℕ)
+source-U-seal-typed = Conv.⊢↓-sealˣ source-U∋
 
-target-Y-seal-typed : target-store CTI2.⊢↓[ just Y ] seal Y ★
-target-Y-seal-typed = ⊢↓-sealˣ target-Y∋
+target-Y-seal-typed : target-store Conv.⊢↓[ just Y ] seal Y ★
+target-Y-seal-typed = Conv.⊢↓-sealˣ target-Y∋
 
 U-Y-representation : StoreRepImp probe-world U Y
 U-Y-representation = store-rep-imp ι⊑★
@@ -199,7 +199,7 @@ data _∣_⊢ᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢ᵗᵈ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -213,8 +213,8 @@ data _∣_⊢ᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢ᵗᵈ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------

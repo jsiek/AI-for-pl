@@ -26,6 +26,7 @@ open import CastTerms
 import CastTerms as CTerms
 open import Imprecision
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.Inversion.SpineValueDef as SVD
@@ -591,24 +592,24 @@ module Depth2TargetChain where
   V⊑U₂ : W₂ ∣ [] ⊢² V ⊑ U₂ ∶ q₂
   V⊑U₂ =
     CTI2.conceal⊑conceal² (mono-refl {W = W₂}) rb-X-Y₂
-      CTI2.same-[] (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊢↓-sealˣ Y₂∈) base² q₂
+      CTI2.same-[] (Conv.⊢↓-sealˣ X∈)
+      (Conv.⊢↓-sealˣ Y₂∈) base² q₂
 
   V⊑U₁ : W₁ ∣ [] ⊢² V ⊑ U₁ ∶ q₁
   V⊑U₁ =
     CTI2.⊑conceal² mono₁₂ (CTI2.rebase-varᴿ rb-Y₁)
-      CTI2.same-[] (CTI2.⊢↓-sealˣ Y₁∈) V⊑U₂ q₁
+      CTI2.same-[] (Conv.⊢↓-sealˣ Y₁∈) V⊑U₂ q₁
 
   chain-input : W₀ ∣ [] ⊢² V ⊑ target-chain ∶ q₀
   chain-input =
     CTI2.⊑conceal² mono₀₁ (CTI2.rebase-varᴿ rb-Y₀)
-      CTI2.same-[] (CTI2.⊢↓-sealˣ Y₀∈) V⊑U₁ q₀
+      CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) V⊑U₁ q₀
 
   inner-source-seal : W₂ ∣ [] ⊢² V ⊑ U₀ ∶ x-star₂
   inner-source-seal =
     CTI2.conceal⊑² (mono-refl {W = W₂})
       (CTI2.rebase-varᴸ rb-X-Y₂)
-      CTI2.same-[] (CTI2.⊢↓-sealˣ X∈) base² x-star₂
+      CTI2.same-[] (Conv.⊢↓-sealˣ X∈) base² x-star₂
 
   payload² : W₂ ∣ [] ⊢² source-payload ⊑ U₀ ∶ ★⊑★
   payload² = CTI2.cast⊑² X! inner-source-seal ★⊑★
@@ -616,18 +617,18 @@ module Depth2TargetChain where
   terminus-pair : W₂ ∣ [] ⊢² source-output ⊑ U₂ ∶ q₂
   terminus-pair =
     CTI2.conceal⊑conceal² (mono-refl {W = W₂}) rb-X-Y₂
-      CTI2.same-[] (CTI2.⊢↓-sealˣ X∈)
-      (CTI2.⊢↓-sealˣ Y₂∈) payload² q₂
+      CTI2.same-[] (Conv.⊢↓-sealˣ X∈)
+      (Conv.⊢↓-sealˣ Y₂∈) payload² q₂
 
   output-Y₁ : W₁ ∣ [] ⊢² source-output ⊑ U₁ ∶ q₁
   output-Y₁ =
     CTI2.⊑conceal² mono₁₂ (CTI2.rebase-varᴿ rb-Y₁)
-      CTI2.same-[] (CTI2.⊢↓-sealˣ Y₁∈) terminus-pair q₁
+      CTI2.same-[] (Conv.⊢↓-sealˣ Y₁∈) terminus-pair q₁
 
   chain-output : W₀ ∣ [] ⊢² source-output ⊑ target-chain ∶ q₀
   chain-output =
     CTI2.⊑conceal² mono₀₁ (CTI2.rebase-varᴿ rb-Y₀)
-      CTI2.same-[] (CTI2.⊢↓-sealˣ Y₀∈) output-Y₁ q₀
+      CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) output-Y₁ q₀
 
   source-star-chain-input-package :
     W₀ ∣ [] ⊢² V ⊑ U₁ ↓ seal Y₀ (＇ Y₁) ∶ q₀

@@ -16,6 +16,7 @@ open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
 open import Imprecision
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
@@ -74,7 +75,7 @@ data _∣_⊢ʳᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W W′
     → TD.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → CTI2.SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢ʳᵗᵈ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -88,8 +89,8 @@ data _∣_⊢ʳᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
     → CTI2.SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢ʳᵗᵈ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------

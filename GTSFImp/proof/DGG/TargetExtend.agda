@@ -36,6 +36,7 @@ open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; renameᵗᵐ)
 import Reduction
 open import Reduction using (bind; _∷_; [])
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.TypeInTermSubst using
@@ -56,7 +57,6 @@ import proof.Imprecision as PI
 
 open CTI2 using
   ( World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_
-  ; PivotJoin; _⊢↑[_]_; _⊢↓[_]_
   )
 
 ------------------------------------------------------------------------
@@ -2813,47 +2813,47 @@ impEnvMono-insert {π = π} ins insᵖ mono Z′ star =
 
 renamePivotJoin : ∀ {Δ Δ′} {p q r : Maybe (TyVar Δ)}
   → (ρ : TyVar Δ → TyVar Δ′)
-  → PivotJoin p q r
-  → PivotJoin (mapPivot ρ p) (mapPivot ρ q) (mapPivot ρ r)
-renamePivotJoin ρ CTI2.join-none = CTI2.join-none
-renamePivotJoin ρ CTI2.join-left = CTI2.join-left
-renamePivotJoin ρ CTI2.join-right = CTI2.join-right
-renamePivotJoin ρ CTI2.join-both = CTI2.join-both
+  → Conv.PivotJoin p q r
+  → Conv.PivotJoin (mapPivot ρ p) (mapPivot ρ q) (mapPivot ρ r)
+renamePivotJoin ρ Conv.join-none = Conv.join-none
+renamePivotJoin ρ Conv.join-left = Conv.join-left
+renamePivotJoin ρ Conv.join-right = Conv.join-right
+renamePivotJoin ρ Conv.join-both = Conv.join-both
 
 mutual
   reveal-renameˣ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
       {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X? A B}
       {c : Conversion.Conv↑ Δ A B}
     → StoreRename ρ Σ Σ′
-    → Σ ⊢↑[ X? ] c
-    → Σ′ ⊢↑[ mapPivot ρ X? ] rename↑ ρ c
-  reveal-renameˣ hΣ (CTI2.⊢↑-unsealˣ X∈) =
-    CTI2.⊢↑-unsealˣ (hΣ X∈)
-  reveal-renameˣ hΣ (CTI2.⊢↑-⇒ˣ join c⊢ d⊢) =
-    CTI2.⊢↑-⇒ˣ (renamePivotJoin _ join)
+    → Σ Conv.⊢↑[ X? ] c
+    → Σ′ Conv.⊢↑[ mapPivot ρ X? ] rename↑ ρ c
+  reveal-renameˣ hΣ (Conv.⊢↑-unsealˣ X∈) =
+    Conv.⊢↑-unsealˣ (hΣ X∈)
+  reveal-renameˣ hΣ (Conv.⊢↑-⇒ˣ join c⊢ d⊢) =
+    Conv.⊢↑-⇒ˣ (renamePivotJoin _ join)
       (conceal-renameˣ hΣ c⊢) (reveal-renameˣ hΣ d⊢)
-  reveal-renameˣ {ρ = ρ} hΣ (CTI2.⊢↑-∀ˣ c⊢) =
-    CTI2.⊢↑-∀ˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
-  reveal-renameˣ {ρ = ρ} hΣ (CTI2.⊢↑-∀-idˣ c⊢) =
-    CTI2.⊢↑-∀-idˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
-  reveal-renameˣ hΣ CTI2.⊢↑-idˣ = CTI2.⊢↑-idˣ
+  reveal-renameˣ {ρ = ρ} hΣ (Conv.⊢↑-∀ˣ c⊢) =
+    Conv.⊢↑-∀ˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
+  reveal-renameˣ {ρ = ρ} hΣ (Conv.⊢↑-∀-idˣ c⊢) =
+    Conv.⊢↑-∀-idˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
+  reveal-renameˣ hΣ Conv.⊢↑-idˣ = Conv.⊢↑-idˣ
 
   conceal-renameˣ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
       {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X? A B}
       {c : Conversion.Conv↓ Δ A B}
     → StoreRename ρ Σ Σ′
-    → Σ ⊢↓[ X? ] c
-    → Σ′ ⊢↓[ mapPivot ρ X? ] rename↓ ρ c
-  conceal-renameˣ hΣ (CTI2.⊢↓-sealˣ X∈) =
-    CTI2.⊢↓-sealˣ (hΣ X∈)
-  conceal-renameˣ hΣ (CTI2.⊢↓-⇒ˣ join c⊢ d⊢) =
-    CTI2.⊢↓-⇒ˣ (renamePivotJoin _ join)
+    → Σ Conv.⊢↓[ X? ] c
+    → Σ′ Conv.⊢↓[ mapPivot ρ X? ] rename↓ ρ c
+  conceal-renameˣ hΣ (Conv.⊢↓-sealˣ X∈) =
+    Conv.⊢↓-sealˣ (hΣ X∈)
+  conceal-renameˣ hΣ (Conv.⊢↓-⇒ˣ join c⊢ d⊢) =
+    Conv.⊢↓-⇒ˣ (renamePivotJoin _ join)
       (reveal-renameˣ hΣ c⊢) (conceal-renameˣ hΣ d⊢)
-  conceal-renameˣ {ρ = ρ} hΣ (CTI2.⊢↓-∀ˣ c⊢) =
-    CTI2.⊢↓-∀ˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
-  conceal-renameˣ {ρ = ρ} hΣ (CTI2.⊢↓-∀-idˣ c⊢) =
-    CTI2.⊢↓-∀-idˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
-  conceal-renameˣ hΣ CTI2.⊢↓-idˣ = CTI2.⊢↓-idˣ
+  conceal-renameˣ {ρ = ρ} hΣ (Conv.⊢↓-∀ˣ c⊢) =
+    Conv.⊢↓-∀ˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
+  conceal-renameˣ {ρ = ρ} hΣ (Conv.⊢↓-∀-idˣ c⊢) =
+    Conv.⊢↓-∀-idˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
+  conceal-renameˣ hΣ Conv.⊢↓-idˣ = Conv.⊢↓-idˣ
 
 ------------------------------------------------------------------------
 -- Target-term syntactic side conditions
@@ -3296,10 +3296,10 @@ source-reveal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↑ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.sourceStoreʷ W ⊢↑[ X? ] c
-  → CTI2.sourceStoreʷ W′ ⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W′ Conv.⊢↑[ X? ] c
 source-reveal-insert ins c⊢ =
-  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+  subst≡ (λ Σ → Σ Conv.⊢↑[ _ ] _) (sym (sourceStore-kept ins)) c⊢
 
 source-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -3307,10 +3307,10 @@ source-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↓ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.sourceStoreʷ W ⊢↓[ X? ] c
-  → CTI2.sourceStoreʷ W′ ⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W′ Conv.⊢↓[ X? ] c
 source-conceal-insert ins c⊢ =
-  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+  subst≡ (λ Σ → Σ Conv.⊢↓[ _ ] _) (sym (sourceStore-kept ins)) c⊢
 
 target-typing-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}

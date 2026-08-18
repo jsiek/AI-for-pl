@@ -21,6 +21,7 @@ open import CastTerms using
   (Term; Value; Inert; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩; _↑_; _↓_)
 open import Reduction using (StoreChanges; applyTys)
 open import Imprecision using (X⊑★)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstInversionDef using
@@ -228,7 +229,7 @@ postulate
       → CTI2.ImpEnvMono W Wᵖ
       → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
       → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
@@ -252,7 +253,7 @@ postulate
       → CTI2.ImpEnvMono W Wᵖ
       → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
       → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
@@ -382,7 +383,7 @@ postulate
       → CTI2.ImpEnvMono W Wᵖ
       → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
       → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
@@ -405,7 +406,7 @@ postulate
       → CTI2.ImpEnvMono W Wᵖ
       → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
       → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U

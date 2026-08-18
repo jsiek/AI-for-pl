@@ -18,6 +18,7 @@ open import CastTerms
 open import Primitives using (κℕ)
 import Conversion
 open import Imprecision
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.CenterCrossingProbe as CCP
@@ -27,7 +28,7 @@ import proof.DGG.Examples2 as Ex2
 import proof.DGG.WorldDecay as WD
 
 open CTI2 using
-  (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↑[_]_; _⊢↓[_]_)
+  (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Restricted rebase surface
@@ -107,7 +108,7 @@ forgetᴿ (rebase-varᴿᵣ rb) = CTI2.rebase-varᴿ (base rb)
   → CTI2.ImpEnvMono W W′
   → RebaseAtᴿᵣ W W′ Xᴿ?
   → CTI2.SameCtx γ γ′
-  → CTI2.targetStoreʷ W ⊢↑[ Xᴿ? ] c′
+  → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
   → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
@@ -124,8 +125,8 @@ reveal⊑reveal²ᵣ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → RebaseAtᵣ W Wᵖ Xᴸ Xᴿ
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-  → CTI2.targetStoreʷ W ⊢↑[ just Xᴿ ] c′
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+  → CTI2.targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
   → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : B CTI2.⊑ᵂ⟨ W ⟩ B′)
   → W ∣ γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
@@ -140,7 +141,7 @@ reveal⊑reveal²ᵣ mono rb sc c⊢ c′⊢ D q =
   → CTI2.ImpEnvMono W W′
   → RebaseAtᴿᵣ W′ W Xᴿ?
   → CTI2.SameCtx γ γ′
-  → CTI2.targetStoreʷ W ⊢↓[ Xᴿ? ] c′
+  → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
   → W ∣ γ ⊢² M ⊑ M′ ↓ c′ ∶ q
@@ -155,7 +156,7 @@ reveal⊑²ᵣ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → RebaseAtᴸᵣ W W′ Xᴸ?
   → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↑[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ CTI2.⊑ᵂ⟨ W ⟩ B)
   → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
@@ -170,7 +171,7 @@ conceal⊑²ᵣ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → RebaseAtᴸᵣ W′ W Xᴸ?
   → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ CTI2.⊑ᵂ⟨ W ⟩ B)
   → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
@@ -187,8 +188,8 @@ conceal⊑conceal²ᵣ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → RebaseAtᵣ Wᵖ W Xᴸ Xᴿ
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W ⊢↓[ just Xᴸ ] c
-  → CTI2.targetStoreʷ W ⊢↓[ just Xᴿ ] c′
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
   → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : B CTI2.⊑ᵂ⟨ W ⟩ B′)
   → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q

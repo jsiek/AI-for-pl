@@ -33,6 +33,7 @@ open import proof.Reduction using
    applyTys-★; cast-applyConsistencies-++; composeReduction; reveal-↠;
    conceal-↠; applyReveals; applyConceals)
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.TargetBindLift as TBL
 import proof.DGG.TargetExtend as TE
@@ -123,13 +124,13 @@ structural-target-reveal-just : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X : TyVar Δᴿ} {A B : Ty Δᴿ}
     {c : Conv↑ Δᴿ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ just X ] c
-  → CTI2.targetStoreʷ W′ CTI2.⊢↑[ just (mapVarChanges χs X) ]
+  → CTI2.targetStoreʷ W Conv.⊢↑[ just X ] c
+  → CTI2.targetStoreʷ W′ Conv.⊢↑[ just (mapVarChanges χs X) ]
       applyReveals χs c
 structural-target-reveal-just {χs = χs} {W′ = W′} {X = X} {c = c}
     plan c⊢ =
   subst≡
-    (λ pivot → CTI2.targetStoreʷ W′ CTI2.⊢↑[ pivot ]
+    (λ pivot → CTI2.targetStoreʷ W′ Conv.⊢↑[ pivot ]
       applyReveals χs c)
     (mapPivotChanges-just χs X)
     (structural-target-reveal plan c⊢)
@@ -142,13 +143,13 @@ structural-target-conceal-just : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X : TyVar Δᴿ} {A B : Ty Δᴿ}
     {c : Conv↓ Δᴿ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ just X ] c
-  → CTI2.targetStoreʷ W′ CTI2.⊢↓[ just (mapVarChanges χs X) ]
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just X ] c
+  → CTI2.targetStoreʷ W′ Conv.⊢↓[ just (mapVarChanges χs X) ]
       applyConceals χs c
 structural-target-conceal-just {χs = χs} {W′ = W′} {X = X} {c = c}
     plan c⊢ =
   subst≡
-    (λ pivot → CTI2.targetStoreʷ W′ CTI2.⊢↓[ pivot ]
+    (λ pivot → CTI2.targetStoreʷ W′ Conv.⊢↓[ pivot ]
       applyConceals χs c)
     (mapPivotChanges-just χs X)
     (structural-target-conceal plan c⊢)
@@ -160,16 +161,16 @@ structural-target-seal-star : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W′ : World Δᴸ Δᴿ′ Δ′}
     {X : TyVar Δᴿ}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W′ CTI2.⊢↓[ just (mapVarChanges χs X) ]
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTI2.targetStoreʷ W′ Conv.⊢↓[ just (mapVarChanges χs X) ]
       seal (mapVarChanges χs X) ★
 structural-target-seal-star structural-[] c⊢ = c⊢
 structural-target-seal-star (structural-keep plan) c⊢ =
   structural-target-seal-star plan c⊢
 structural-target-seal-star {X = X}
-    (structural-bind {W₁ = W₁} ins follows plan) (CTI2.⊢↓-sealˣ X∈) =
+    (structural-bind {W₁ = W₁} ins follows plan) (Conv.⊢↓-sealˣ X∈) =
   structural-target-seal-star plan
-    (CTI2.⊢↓-sealˣ (TE.targetStore-rename ins X∈))
+    (Conv.⊢↓-sealˣ (TE.targetStore-rename ins X∈))
 
 
 conceal-seal-star-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
@@ -932,7 +933,7 @@ structural-catchup-source-reveal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → StructuralCatchupRightResult W γ (M ↑ c) M′ q
 structural-catchup-source-reveal {γ = γ} {q = q}
@@ -974,7 +975,7 @@ structural-catchup-source-conceal-seal-star-open : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W (just X) nothing)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → CTI2.NoTargetOccupantAtSource
       (StructuralCatchupRightResult.W′ child) X
@@ -1028,7 +1029,7 @@ structural-catchup-source-conceal-source-ok : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → CTI2.SourceConcealOK
       (StructuralCatchupRightResult.W′ child) M c
@@ -1077,7 +1078,7 @@ structural-catchup-target-reveal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAtᴿ W Wᵖ Xᴿ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ Xᴿ? ] c′
+  → CTI2.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
@@ -1165,7 +1166,7 @@ structural-catchup-target-conceal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAtᴿ Wᵖ W Xᴿ?)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ Xᴿ? ] c′
+  → CTI2.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
@@ -1254,8 +1255,8 @@ structural-catchup-paired-reveal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ just Xᴸ ] c
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ just Xᴿ ] c′
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+  → CTI2.targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
   → (child : StructuralCatchupRightResult Wᵖ γᵖ M M′ p)
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
@@ -1350,8 +1351,8 @@ structural-catchup-paired-conceal : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
         ↓ applyConceals (StructuralCatchupRightResult.χs child) c′)
@@ -1461,8 +1462,8 @@ structural-catchup-packaged-seal-star : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W Wᵖ
   → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
   → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] seal Xᴸ ★
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] seal Xᴿ ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] seal Xᴸ ★
+  → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] seal Xᴿ ★
   → StructuralFrameOutcome
       (StructuralCatchupRightResult.N′ child
         ↓ seal

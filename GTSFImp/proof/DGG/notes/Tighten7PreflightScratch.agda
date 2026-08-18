@@ -32,7 +32,7 @@ import SourceStarPackageCounterScratch as SSC
 module B = TRP.InstanceB
 
 open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Anchored rep-★ partner predicate model

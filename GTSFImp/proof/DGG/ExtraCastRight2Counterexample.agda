@@ -28,10 +28,11 @@ open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _⊢↓[_]_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp; ⊢↓-sealˣ)
+  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
+   RebaseAt; rebase-at; same-runtime; store-rep-imp)
 
 private
   Z : TyVar 2
@@ -86,8 +87,8 @@ Z-Y-rebase-empty : RebaseAt pre-world post-world Z Y → ⊥
 Z-Y-rebase-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
 Z-Y-rebase-empty rb | ()
 
-Z-seal-typed : source-store ⊢↓[ just Z ] seal Z ★
-Z-seal-typed = ⊢↓-sealˣ source-Z∋
+Z-seal-typed : source-store Conv.⊢↓[ just Z ] seal Z ★
+Z-seal-typed = Conv.⊢↓-sealˣ source-Z∋
 
 -- The three type obligations available at a source conceal boundary of
 -- the stale input.
@@ -134,11 +135,11 @@ U-Y-representation = store-rep-imp ι⊑★
 U-Y-rebase : RebaseAt pre-world pre-world U Y
 U-Y-rebase = CTI2.sameWorldRebaseAt refl U-Y-representation
 
-source-U-seal-typed : source-store ⊢↓[ just U ] seal U (‵ `ℕ)
-source-U-seal-typed = ⊢↓-sealˣ source-U∋
+source-U-seal-typed : source-store Conv.⊢↓[ just U ] seal U (‵ `ℕ)
+source-U-seal-typed = Conv.⊢↓-sealˣ source-U∋
 
-target-Y-seal-typed : target-store ⊢↓[ just Y ] seal Y ★
-target-Y-seal-typed = ⊢↓-sealˣ target-Y∋
+target-Y-seal-typed : target-store Conv.⊢↓[ just Y ] seal Y ★
+target-Y-seal-typed = Conv.⊢↓-sealˣ target-Y∋
 
 private
   source-env : Env∼ 2

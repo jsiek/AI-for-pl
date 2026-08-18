@@ -34,6 +34,7 @@ open import Conversion using (seal; _⊢↓_; ⊢↓-seal)
 open import CastTerms
 open import Imprecision
 import CastTerms as CTerms
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
@@ -136,11 +137,11 @@ module InstanceA where
   rb-X-Y : RebaseAt W W X Y
   rb-X-Y = CTI2.sameWorldRebaseAt refl X-Y-rep
 
-  target-seal-⊢ : target-store CTI2.⊢↓[ just Y ] seal Y ★
-  target-seal-⊢ = CTI2.⊢↓-sealˣ Y∈
+  target-seal-⊢ : target-store Conv.⊢↓[ just Y ] seal Y ★
+  target-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
-  source-seal-⊢ : source-store CTI2.⊢↓[ just X ] seal X ∀X⇒X
-  source-seal-⊢ = CTI2.⊢↓-sealˣ X∈
+  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ∀X⇒X
+  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
 
   target-seal-⊢ᶜ : target-store ⊢↓ seal Y ★
   target-seal-⊢ᶜ = ⊢↓-seal Y∈
@@ -330,15 +331,15 @@ module InstanceB where
   mono-W-Wᵖ Fin.zero eq = eq
   mono-W-Wᵖ (Fin.suc Fin.zero) eq = eq
 
-  source-seal-⊢ : source-store CTI2.⊢↓[ just X ] seal X ★
-  source-seal-⊢ = CTI2.⊢↓-sealˣ X∈
+  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ★
+  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
 
   target-Y-seal-⊢ :
-    target-store CTI2.⊢↓[ just Y ] seal Y (＇ Y₂)
-  target-Y-seal-⊢ = CTI2.⊢↓-sealˣ Y∈
+    target-store Conv.⊢↓[ just Y ] seal Y (＇ Y₂)
+  target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
-  target-Y₂-seal-⊢ : target-store CTI2.⊢↓[ just Y₂ ] seal Y₂ ★
-  target-Y₂-seal-⊢ = CTI2.⊢↓-sealˣ Y₂∈
+  target-Y₂-seal-⊢ : target-store Conv.⊢↓[ just Y₂ ] seal Y₂ ★
+  target-Y₂-seal-⊢ = Conv.⊢↓-sealˣ Y₂∈
 
   source-seal-⊢ᶜ : source-store ⊢↓ seal X ★
   source-seal-⊢ᶜ = ⊢↓-seal X∈

@@ -19,6 +19,7 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 import CastTerms as CTerms
 open import Primitives using (κℕ)
 import SourceStarCounterScratch as SSC
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.ExtraCastRight2 as ECR
@@ -323,7 +324,7 @@ H-absorb-from-branch core {q = q} sv inert vU mono rb sc X∈ Y∈ D
     link mono₂ sc₂ D₂ moved
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
   CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-    (CTI2.⊢↓-sealˣ Y∈) Dᵒ q
+    (Conv.⊢↓-sealˣ Y∈) Dᵒ q
 
 H-multi-from-branch = source-chain-from-branch
 

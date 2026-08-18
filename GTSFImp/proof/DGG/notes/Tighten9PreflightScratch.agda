@@ -22,6 +22,7 @@ open import CastTerms using (Term; Inert; _⟨_⟩; _↓_)
 open import Conversion using (Conv↓; seal)
 open import Imprecision
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
@@ -30,7 +31,7 @@ import Tighten8PreflightScratch as T8
 
 open CTI2 using
   (World; CtxImp; RebaseAt; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+   _∣_⊢²_⊑_∶_)
 
 module B = TRP.InstanceB
 
@@ -49,7 +50,7 @@ conceal⊑²₉ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
   → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
     -----------------------------
@@ -67,7 +68,7 @@ source-star-premise₉ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W (just X) Xᴿ?
   → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
   → CTI2.Rep★PartnerOK W′ X V Xᴿ? U
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p
   → W ∣ γ ⊢² V ↓ seal X ★ ⊑ U ∶ q
@@ -101,7 +102,7 @@ round18-source-star-premise-package₉ : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.ImpEnvMono W W′
   → RebaseAt W′ W X Y
   → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
   → CTI2.Rep★PartnerOK W′ X V (just Y) U
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p
   → W ∣ γ ⊢² V ⊑ U ∶ ★⊑★

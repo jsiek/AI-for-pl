@@ -31,6 +31,7 @@ open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
 open import Primitives using (κℕ)
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.Inversion.SpineValueDef as SVD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
@@ -144,7 +145,7 @@ D =
     (CTI2.matched-seal-star-partner
       (CTI2.rep★-nonvar-tag nonvar-base))
     (λ Z eq → eq) link₁ CTI2.same-[]
-    (CTI2.⊢↓-sealˣ X₁∈) (CTI2.⊢↓-sealˣ Y₁∈) base² q₁
+    (Conv.⊢↓-sealˣ X₁∈) (Conv.⊢↓-sealˣ Y₁∈) base² q₁
 
 private
   X₁≢X₀ : X₁ ≢ X₀

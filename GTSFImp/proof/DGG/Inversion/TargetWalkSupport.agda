@@ -33,6 +33,7 @@ open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
 open import Reduction
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.Inversion.SpineValueDef as SVD
@@ -821,7 +822,7 @@ target-source-var-chain {Y = Y} {q = q} sv vU mono ra sc X∈ Y∈ D =
   CTI2.conceal⊑²-source-ok
     (CTI2.seal-nonstar-plain-ok nonstar-X CTI2.not-↓)
     mono (CTI2.tag-rebase-varᴸ ra) sc
-    (CTI2.⊢↓-sealˣ X∈) D q
+    (Conv.⊢↓-sealˣ X∈) D q
 
 tagged-target-nonvar-nonstar-spine-⊥ {W = W} {A = A} {Y = Y}
     sv Anv Ans (CTI2.⊑cast² {p = p} cY prem q)

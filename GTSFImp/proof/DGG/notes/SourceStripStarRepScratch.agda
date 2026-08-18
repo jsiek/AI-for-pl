@@ -15,6 +15,7 @@ open import Conversion using (seal)
 open import CastTerms using (Term; _↓_; _⟨_⟩)
 open import Imprecision
 import CastTerms
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open import proof.DGG.Inversion.SpineValueDef using
   (variable-obligation-aligns)
@@ -51,7 +52,7 @@ plain-star-rep-premise :
 plain-star-rep-premise mono rb sc X∈ prem =
   CTI2.conceal⊑²
     (CTI2.seal-partner-ok CTI2.star-rep-target)
-    mono rb sc (CTI2.⊢↓-sealˣ X∈) prem _
+    mono rb sc (Conv.⊢↓-sealˣ X∈) prem _
 
 injected-star-rep-premise :
   ∀ {Δᴸ Δᴿ Δ}

@@ -22,6 +22,7 @@ open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using (Term; Value; Inert; inj; _⟨_⟩; _↓_)
 open import Imprecision
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SpineValueDef using
@@ -216,5 +217,5 @@ target-seal＇-reemit mono rb sc Y∈ q q′ =
     λ where
       (reemit-stripped D) →
         CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
-          (CTI2.⊢↓-sealˣ Y∈) D q
+          (Conv.⊢↓-sealˣ Y∈) D q
       (reemit-paired D) → D

@@ -31,6 +31,7 @@ open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_)
 import TermCtx as T
 import proof.Imprecision as PI
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.SealPeelToolkit as SPT
@@ -41,8 +42,7 @@ open import proof.ImprecisionConsistency using
   (imp-env-weaken; toRenameᵗ-injective)
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; PivotJoin;
-   _⊢↑[_]_; _⊢↓[_]_)
+  (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Small center-renaming normalizers
@@ -103,70 +103,70 @@ mutual
   revealˣ-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {X? A B}
       {c : Conv↑ Δ A B}
     → StoreTransport Σ Σ′
-    → Σ CTI2.⊢↑[ X? ] c
-    → Σ′ CTI2.⊢↑[ X? ] c
-  revealˣ-store-transport hΣ (CTI2.⊢↑-unsealˣ X∈) =
-    CTI2.⊢↑-unsealˣ (hΣ X∈)
-  revealˣ-store-transport hΣ (CTI2.⊢↑-⇒ˣ join c⊢ d⊢) =
-    CTI2.⊢↑-⇒ˣ join (concealˣ-store-transport hΣ c⊢)
+    → Σ Conv.⊢↑[ X? ] c
+    → Σ′ Conv.⊢↑[ X? ] c
+  revealˣ-store-transport hΣ (Conv.⊢↑-unsealˣ X∈) =
+    Conv.⊢↑-unsealˣ (hΣ X∈)
+  revealˣ-store-transport hΣ (Conv.⊢↑-⇒ˣ join c⊢ d⊢) =
+    Conv.⊢↑-⇒ˣ join (concealˣ-store-transport hΣ c⊢)
       (revealˣ-store-transport hΣ d⊢)
-  revealˣ-store-transport hΣ (CTI2.⊢↑-∀ˣ c⊢) =
-    CTI2.⊢↑-∀ˣ
+  revealˣ-store-transport hΣ (Conv.⊢↑-∀ˣ c⊢) =
+    Conv.⊢↑-∀ˣ
       (revealˣ-store-transport (StoreTransport-lift hΣ) c⊢)
-  revealˣ-store-transport hΣ (CTI2.⊢↑-∀-idˣ c⊢) =
-    CTI2.⊢↑-∀-idˣ
+  revealˣ-store-transport hΣ (Conv.⊢↑-∀-idˣ c⊢) =
+    Conv.⊢↑-∀-idˣ
       (revealˣ-store-transport (StoreTransport-lift hΣ) c⊢)
-  revealˣ-store-transport hΣ CTI2.⊢↑-idˣ = CTI2.⊢↑-idˣ
+  revealˣ-store-transport hΣ Conv.⊢↑-idˣ = Conv.⊢↑-idˣ
 
   concealˣ-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {X? A B}
       {c : Conv↓ Δ A B}
     → StoreTransport Σ Σ′
-    → Σ CTI2.⊢↓[ X? ] c
-    → Σ′ CTI2.⊢↓[ X? ] c
-  concealˣ-store-transport hΣ (CTI2.⊢↓-sealˣ X∈) =
-    CTI2.⊢↓-sealˣ (hΣ X∈)
-  concealˣ-store-transport hΣ (CTI2.⊢↓-⇒ˣ join c⊢ d⊢) =
-    CTI2.⊢↓-⇒ˣ join (revealˣ-store-transport hΣ c⊢)
+    → Σ Conv.⊢↓[ X? ] c
+    → Σ′ Conv.⊢↓[ X? ] c
+  concealˣ-store-transport hΣ (Conv.⊢↓-sealˣ X∈) =
+    Conv.⊢↓-sealˣ (hΣ X∈)
+  concealˣ-store-transport hΣ (Conv.⊢↓-⇒ˣ join c⊢ d⊢) =
+    Conv.⊢↓-⇒ˣ join (revealˣ-store-transport hΣ c⊢)
       (concealˣ-store-transport hΣ d⊢)
-  concealˣ-store-transport hΣ (CTI2.⊢↓-∀ˣ c⊢) =
-    CTI2.⊢↓-∀ˣ
+  concealˣ-store-transport hΣ (Conv.⊢↓-∀ˣ c⊢) =
+    Conv.⊢↓-∀ˣ
       (concealˣ-store-transport (StoreTransport-lift hΣ) c⊢)
-  concealˣ-store-transport hΣ (CTI2.⊢↓-∀-idˣ c⊢) =
-    CTI2.⊢↓-∀-idˣ
+  concealˣ-store-transport hΣ (Conv.⊢↓-∀-idˣ c⊢) =
+    Conv.⊢↓-∀-idˣ
       (concealˣ-store-transport (StoreTransport-lift hΣ) c⊢)
-  concealˣ-store-transport hΣ CTI2.⊢↓-idˣ = CTI2.⊢↓-idˣ
+  concealˣ-store-transport hΣ Conv.⊢↓-idˣ = Conv.⊢↓-idˣ
 
 mutual
   revealˣ-pivot-store : ∀ {Δ} {Σ : TyStore Δ} {X A B}
       {c : Conv↑ Δ A B}
-    → Σ CTI2.⊢↑[ just X ] c
+    → Σ Conv.⊢↑[ just X ] c
     → Σ[ R ∈ Ty Δ ] Σ ∋ X ⦂ R
-  revealˣ-pivot-store (CTI2.⊢↑-unsealˣ {R = R} X∈) = R , X∈
-  revealˣ-pivot-store (CTI2.⊢↑-⇒ˣ CTI2.join-left c⊢ d⊢) =
+  revealˣ-pivot-store (Conv.⊢↑-unsealˣ {R = R} X∈) = R , X∈
+  revealˣ-pivot-store (Conv.⊢↑-⇒ˣ Conv.join-left c⊢ d⊢) =
     concealˣ-pivot-store c⊢
-  revealˣ-pivot-store (CTI2.⊢↑-⇒ˣ CTI2.join-right c⊢ d⊢) =
+  revealˣ-pivot-store (Conv.⊢↑-⇒ˣ Conv.join-right c⊢ d⊢) =
     revealˣ-pivot-store d⊢
-  revealˣ-pivot-store (CTI2.⊢↑-⇒ˣ CTI2.join-both c⊢ d⊢) =
+  revealˣ-pivot-store (Conv.⊢↑-⇒ˣ Conv.join-both c⊢ d⊢) =
     concealˣ-pivot-store c⊢
-  revealˣ-pivot-store (CTI2.⊢↑-∀ˣ c⊢)
+  revealˣ-pivot-store (Conv.⊢↑-∀ˣ c⊢)
       with revealˣ-pivot-store c⊢
-  revealˣ-pivot-store (CTI2.⊢↑-∀ˣ c⊢)
+  revealˣ-pivot-store (Conv.⊢↑-∀ˣ c⊢)
       | R , S-lift∋ {A = A} X∈ eq = A , X∈
 
   concealˣ-pivot-store : ∀ {Δ} {Σ : TyStore Δ} {X A B}
       {c : Conv↓ Δ A B}
-    → Σ CTI2.⊢↓[ just X ] c
+    → Σ Conv.⊢↓[ just X ] c
     → Σ[ R ∈ Ty Δ ] Σ ∋ X ⦂ R
-  concealˣ-pivot-store (CTI2.⊢↓-sealˣ {R = R} X∈) = R , X∈
-  concealˣ-pivot-store (CTI2.⊢↓-⇒ˣ CTI2.join-left c⊢ d⊢) =
+  concealˣ-pivot-store (Conv.⊢↓-sealˣ {R = R} X∈) = R , X∈
+  concealˣ-pivot-store (Conv.⊢↓-⇒ˣ Conv.join-left c⊢ d⊢) =
     revealˣ-pivot-store c⊢
-  concealˣ-pivot-store (CTI2.⊢↓-⇒ˣ CTI2.join-right c⊢ d⊢) =
+  concealˣ-pivot-store (Conv.⊢↓-⇒ˣ Conv.join-right c⊢ d⊢) =
     concealˣ-pivot-store d⊢
-  concealˣ-pivot-store (CTI2.⊢↓-⇒ˣ CTI2.join-both c⊢ d⊢) =
+  concealˣ-pivot-store (Conv.⊢↓-⇒ˣ Conv.join-both c⊢ d⊢) =
     revealˣ-pivot-store c⊢
-  concealˣ-pivot-store (CTI2.⊢↓-∀ˣ c⊢)
+  concealˣ-pivot-store (Conv.⊢↓-∀ˣ c⊢)
       with concealˣ-pivot-store c⊢
-  concealˣ-pivot-store (CTI2.⊢↓-∀ˣ c⊢)
+  concealˣ-pivot-store (Conv.⊢↓-∀ˣ c⊢)
       | R , S-lift∋ {A = A} X∈ eq = A , X∈
 
 ------------------------------------------------------------------------
@@ -1002,8 +1002,8 @@ source-reveal-move : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {X? A B}
     {c : Conv↑ Δᴸ A B}
   → (mv : TargetStoreMove W Wᵗ)
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ X? ] c
-  → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ Wᵗ Conv.⊢↑[ X? ] c
 source-reveal-move
     (target-store-move refl refl same refl hΣ resolve) c⊢ = c⊢
 
@@ -1011,8 +1011,8 @@ source-conceal-move : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵗ : World Δᴸ Δᴿ Δ} {X? A B}
     {c : Conv↓ Δᴸ A B}
   → (mv : TargetStoreMove W Wᵗ)
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ X? ] c
-  → CTI2.sourceStoreʷ Wᵗ CTI2.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ Wᵗ Conv.⊢↓[ X? ] c
 source-conceal-move
     (target-store-move refl refl same refl hΣ resolve) c⊢ = c⊢
 

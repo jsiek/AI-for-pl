@@ -32,6 +32,7 @@ open import CastTerms using
    ⊢`; ⊢ƛ; ⊢reveal; ⊢blame)
 import Imprecision as I
 
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CastTermImprecision2Typing as CTI2Typing
@@ -103,13 +104,13 @@ post : Term 2
 post = (d1-target-lam ↑ d1-inner-conv) ↑ d1-outer-conv
 
 d1-inner-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-β ] d1-inner-conv
+  target-store-βα Conv.⊢↑[ just target-β ] d1-inner-conv
 d1-inner-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present
     (∈-fun-left var-∈) target-β-entry
 
 d1-outer-reveal-⊢↑ :
-  target-store-βα CTI2.⊢↑[ just target-α ] d1-outer-conv
+  target-store-βα Conv.⊢↑[ just target-α ] d1-outer-conv
 d1-outer-reveal-⊢↑ =
   IIP.generated-reveal-⊢↑-present
     (∈-fun-left var-∈) target-α-entry

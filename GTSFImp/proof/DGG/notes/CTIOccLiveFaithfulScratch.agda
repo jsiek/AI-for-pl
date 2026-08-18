@@ -39,12 +39,13 @@ open import Reduction using
 open import Primitives using (κℕ)
 
 import CTITighteningNarrowScratch as N
+import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.Imprecision as PI
 
 open CTI2 using
   (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;
-   store-rep-imp; ⊢↓-sealˣ)
+   store-rep-imp)
 
 ------------------------------------------------------------------------
 -- Occupancy states and partner gates
@@ -156,7 +157,7 @@ data _∣_⊢ᴼ²[_]_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B Xᴸ? Xᴿ?}
       {p : A ⊑ᵂ⟨ W ⟩ B} {c : Conversion.Conv↓ Δᴸ A A′}
     → SourceConcealPartnerOKᴼ² W occ M c Xᴿ? M′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W ∣ γ ⊢ᴼ²[ occ ] M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -169,8 +170,8 @@ data _∣_⊢ᴼ²[_]_⊑_∶_ {Δᴸ Δᴿ Δ}
       {c′ : Conversion.Conv↓ Δᴿ A′ B′}
     → CTI2.MatchedConcealPartnerOK W M c (just Xᴿ) M′
     → RebaseAt W W Xᴸ Xᴿ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → W ∣ γ ⊢ᴼ²[ occ ] M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -218,8 +219,8 @@ X⊑★Wᵖ : ＇ Fin.zero ⊑ᵂ⟨ Wᵖ ⟩ ★
 X⊑★Wᵖ = X⊑★ refl
 
 source-seal-typedᵖ :
-  source-storeᵖ CTI2.⊢↓[ just Fin.zero ] seal Fin.zero ★
-source-seal-typedᵖ = ⊢↓-sealˣ source-X∋ᵖ
+  source-storeᵖ Conv.⊢↓[ just Fin.zero ] seal Fin.zero ★
+source-seal-typedᵖ = Conv.⊢↓-sealˣ source-X∋ᵖ
 
 target-env-tagᵖ : Env∼ 0
 target-env-tagᵖ ()

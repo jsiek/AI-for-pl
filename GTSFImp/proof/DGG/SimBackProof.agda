@@ -50,11 +50,18 @@ import proof.Imprecision as PI
 import proof.DGG.CastTermImprecision2 as CTI2
 open CTI2
 open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
+  using
+    ( ParkedWorld
+    ; ParkedEvolve
+    ; evolve-refl
+    ; evolve-keepᴿ
+    ; evolve-right-bind
+    )
 open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
 open import proof.DGG.SimBackDef using (SimBackᵀ)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
+open import proof.TypeSafety.Preservation using (preservation)
 
 ------------------------------------------------------------------------
 -- Narrow residual-family classifiers
@@ -141,13 +148,6 @@ PrimitiveRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → Set
 PrimitiveRel (⊕⊑⊕² _ _ _ _) = ⊤
 PrimitiveRel _ = ⊥
-
-BlameRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² blame ⊑ M′ ∶ p → Set
-BlameRel (blame⊑² _ _) = ⊤
-BlameRel _ = ⊥
 
 PlainSourceLambdaRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {V : Term (Nat.suc Δᴸ)} {M′ : Term Δᴿ}
@@ -548,24 +548,6 @@ SimBackPrimitiveRightᵀ =
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
 
-SimBackBlameTargetStepᵀ : Set
-SimBackBlameTargetStepᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² blame ⊑ M′ ∶ p)
-  → BlameRel rel
-  → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (blame —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
 SimBackPlainSourceLambdaᵀ : Set
 SimBackPlainSourceLambdaᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
@@ -621,7 +603,6 @@ module _
     (sim-back-source-conceal-boundary : SimBackSourceConcealBoundaryᵀ)
     (sim-back-primitive-root : SimBackPrimitiveRootᵀ)
     (sim-back-primitive-right : SimBackPrimitiveRightᵀ)
-    (sim-back-blame-target-step : SimBackBlameTargetStepᵀ)
     (sim-back-plain-source-lambda : SimBackPlainSourceLambdaᵀ)
     (sim-back-smart-source-lambda : SimBackSmartSourceLambdaᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
@@ -1029,8 +1010,22 @@ module _
       step@(ξ-conceal M′→N′ refl) =
     sim-back-target-conceal-frame parked rel tt step tt
 
-  sim-back parked rel@(blame⊑² M′⊢ q) step =
-    sim-back-blame-target-step parked rel tt step
+  sim-back {Δᴸ = Δᴸ} {W = W} {p = p} {χᴿ = keep}
+      parked (blame⊑² M′⊢ q) step =
+    Δᴸ , [] , blame , _ , W , p ,
+    (blame ∎[]) ,
+    evolve-keepᴿ evolve-refl ,
+    blame⊑² (preservation M′⊢ step) p
+  sim-back {Δᴸ = Δᴸ} {W = W} {p = p} {χᴿ = bind B₀}
+      parked (blame⊑² M′⊢ q) step =
+    Δᴸ , [] , blame , _ , CTI2.rightOnlyWorld W B₀ ,
+    transport⊑ᴾ
+      (evolve-right-bind {W = W} {B = B₀} evolve-refl) p ,
+    (blame ∎[]) ,
+    evolve-right-bind {W = W} {B = B₀} evolve-refl ,
+    blame⊑² (preservation M′⊢ step)
+      (transport⊑ᴾ
+        (evolve-right-bind {W = W} {B = B₀} evolve-refl) p)
 
   sim-back parked rel@(Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q)
       step =

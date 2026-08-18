@@ -1,132 +1,166 @@
-T1 D14(c) source-conceal leaf obstruction
-==========================================
+T1 D14(c)/(b) retry on the D15-migrated conceal heads
+=======================================================
 
-Status: option (c) stopped; fall back to option (b).
+Status: the hereditary routing glue checks for the migrated target-independent
+heads.  Both (c) and (b) remain conditional on three narrow endpoint rows.
 
-The attempted private dispatcher was indexed by the existing
-`SourceΛReplayStack`.  Its root call used `source-Λ-stack-id`, and the two
-source-`Λ` heads extended the stack with `source-Λ-stack-plain` or
-`source-Λ-stack-smart`.  This reaches a genuine uncovered leaf when the body
-value of a source `Λ` is itself a source conceal value.
+Checked companion:
+
+`proof/DGG/notes/probes/T1D14OptionsProbe.agda`
 
 
-Exact leaf
-----------
+Migrated (c) outcome
+--------------------
 
-After one or more `Λ` frames, let the current source be `U ↓ c`, with
-`Value U` and `ConcealValue c`.  The `conceal⊑²` head at a target identity
-conceal supplies:
+The probe now implements the `SourceΛReplayStack` descent rather than merely
+stating it.  The worker starts at `source-Λ-stack-id`, extends the stack through
+`Λ⊑²` and `Λ⊑²-smart-comma`, recursively handles source value wrappers with a
+fresh local stack, and closes each local result with
+`source-Λ-stack-replay-here`.
 
-```agda
-partner-before :
-  CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? (N ↓ id↓ B)
-
-prem :
-  Wᵖ ∣ γᵖ ⊢² U ⊑ N ↓ id↓ B ∶ p
-
-step :
-  (N ↓ id↓ B) —→[ keep ] N
-```
-
-The source is a value because `c` may be `seal X R`, a function conceal, or a
-universal conceal.  Therefore this leaf is admitted by both `Value` and the
-source-`Λ` constructors; it is not excluded by the value-dispatcher premise.
-
-Recursing on `prem` can produce the stripped body relation
+The checked inhabitants are:
 
 ```agda
-body-after : Wᵖ ∣ γᵖ ⊢² U ⊑ N ∶ p
+source-Λ-stack-target-reveal-keep :
+  SourceConcealTargetIdResidualsᵀ
+  → SourceΛStackTargetRevealKeepᵀ
+
+source-Λ-stack-target-conceal-keep :
+  SourceConcealTargetIdResidualsᵀ
+  → SourceΛStackTargetConcealKeepᵀ
 ```
 
-but replaying the source conceal requires the differently indexed premise
+The migrated source-star head is no longer blocked.  Given the recursively
+stripped body relation, the exact replay is checked as:
 
 ```agda
-partner-after :
-  CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? N
+CTI2.conceal⊑²-seal-star-open
+  no-target mono rb sc c⊢ body-after q
 ```
 
-The square is:
+`no-target : NoTargetOccupantAtSource Wᵖ X` is independent of the target term,
+so the target identity step does not change it.
+
+The target-insensitive `SourceConcealOK` constructors also replay directly:
+
+- `fun-conceal-ok`;
+- `all-conceal-ok`;
+- `id-conceal-ok`.
+
+This split is checked by `source-conceal-ok-target-id-view` and its reveal
+analogue.  The old target-term-indexed `SourceConcealPartnerOK` is therefore no
+longer the first migrated obstruction.
+
+
+Migrated non-★ seal residual
+----------------------------
+
+The remaining migrated constructor is:
+
+```agda
+CTI2.seal-nonstar-plain-ok :
+  NonStar R
+  → NotTopTag M′
+  → SourceConcealOK W P (seal X R) Xᴿ? M′
+```
+
+At a target identity-conceal keep step it supplies:
+
+```agda
+Rns : NonStar R
+before-not-top : NotTopTag (N ↓ id↓ B)
+```
+
+Replaying the source conceal after the recursive call requires:
+
+```agda
+after-not-top : NotTopTag N
+```
+
+`before-not-top` is always constructible with `CTI2.not-↓`, even when `N` is a
+top tag.  Therefore it cannot be transported to `after-not-top`.  The square
+is:
 
 $$
 \begin{array}{ccc}
-U \downarrow c & \sqsubseteq & N \downarrow \mathsf{id} \\
+P \downarrow \mathsf{seal}\ X\ R
+  & \sqsubseteq & N \downarrow \mathsf{id} \\
 \downarrow^{0} & & \downarrow^{1} \\
-U \downarrow c & \sqsubseteq & N
+P \downarrow \mathsf{seal}\ X\ R
+  & \sqsubseteq & N
 \end{array}
 $$
 
-For `c = seal X R`, `SourceConcealPartnerOK` contains `SealPartnerOK`, which
-examines the target's top-tag shape.  Thus `partner-before` cannot be retargeted
-definitionally.  In particular, its `plain-target` case is available for the
-outer identity-conceal term, while the reduct `N` may be top-tagged.
-
-
-Why the existing stack glue does not close the leaf
-----------------------------------------------------
-
-`SourceΛReplayStack` has frames only for `Λ⊑²` and
-`Λ⊑²-smart-comma`.  It has no source-conceal frame.  Consequently:
-
-- `source-Λ-stack-replay-here` can close `body-after` to the root only after
-  the local `U ↓ c ⊑ N` relation has been rebuilt;
-- `source-Λ-stack-unlift-plan` has the same prerequisite after a structural
-  target plan;
-- the proven non-`Λ` keep theorem applies only to bare term lambdas and
-  constants, not to `U ↓ c`;
-- the T12 identity-conceal continuations require a source `id↓` step and do
-  not apply to a source conceal value (`id↓` is not a `ConcealValue`).
-
-Adding a source-conceal frame to the replay stack or a general partner
-transport would be a new major surface beyond D14(c).  Therefore the existing
-hereditary `SourceΛReplayStack` strategy is insufficient at this reachable
-leaf, and the ordered strategy proceeds to the approved generalized recursive
-option (b).
-
-
-Fallback (b) result
--------------------
-
-The generalized recursive conceal proof reaches the same pinned clause during
-its full induction on the `⊢²` derivation:
+The same classifier loss occurs through a target identity reveal.  The probe
+names only the missing endpoint facts:
 
 ```agda
-recursive-source-value-target-conceal-keep vP vN
-    (CTI2.conceal⊑² partner-before mono rb sc c⊢ prem q)
-    (pure-step (id-conceal vN′)) finalV =
-  -- the recursive call on prem supplies body-after
-  -- rebuilding conceal⊑² requires partner-after
+migrated-nonstar-endpoint : ... → NotTopTag N
+migrated-nonstar-reveal-endpoint : ... → NotTopTag N
 ```
 
-The clause is recursive on the strict derivation premise `prem`, so termination
-is not the issue.  All non-seal source conceals can rebuild their endpoint
-predicate with `fun-conceal-target`, `all-conceal-target`, or
-`id-conceal-target`.  The `seal-partner-ok` case is blocked because its
-`SealPartnerOK` evidence is target-term indexed.
+No broad keep theorem or arbitrary partner transport is assumed.
 
-A temporary no-hole Agda 2.8 check tried the only possible definitional reuse:
+
+Legacy residual
+---------------
+
+The D15 migration retained `conceal⊑²` and `SourceConcealPartnerOK`.  A total
+theorem over `_⊢²_` must still cover that constructor even if a particular
+fresh construction path emits only the new heads.  Its seal case still asks
+for the old endpoint transport:
 
 ```agda
-source-conceal-id-partner-retarget partner = partner
+SealPartnerOK W X P R Xᴿ? (N ↓ id↓ B)
+  → SealPartnerOK W X P R Xᴿ? N
 ```
 
-at the exact type
+The conditional worker isolates this as `legacy-seal-endpoint`, plus the
+identity-reveal analogue `legacy-seal-reveal-endpoint`.  The legacy
+function/universal/identity conceal cases replay without a residual.
+
+
+Target `conceal-reveal` residual
+--------------------------------
+
+The target reveal worker additionally exposes the one remaining non-identity
+keep row as `target-conceal-reveal-endpoint`.  It is the exact stack-indexed
+obligation from
 
 ```agda
-CTI2.SourceConcealPartnerOK W U c Xᴿ? (N ↓ id↓ B)
-  → CTI2.SourceConcealPartnerOK W U c Xᴿ? N
+W ∣ γ ⊢² M ⊑ (N ↓ seal X R) ↑ unseal X R ∶ q
 ```
 
-Agda rejected it with:
+to the root relation ending at `N`.  It is deliberately not widened into a
+general target-step theorem.  The existing synchronized T12 continuation
+surface is a candidate implementation input for this row, but the total row
+has not been derived here.
 
-```text
-N ↓ id↓ B != N of type Term Δᴿ
-when checking that the expression partner has type
-CTI2.SourceConcealPartnerOK W U c Xᴿ? N
+
+Fallback (b) outcome
+--------------------
+
+The generalized keep theorem was retried after (c) reached the migrated
+non-★ classifier residual.  Its recursive proof has exactly the same endpoint
+requirements.  This is checked, rather than inferred, by instantiating the
+hereditary worker at `source-Λ-stack-id`:
+
+```agda
+recursive-source-value-target-reveal-keep-with-residuals :
+  SourceConcealTargetIdResidualsᵀ
+  → RecursiveSourceValueTargetRevealKeepᵀ
+
+recursive-source-value-target-conceal-keep-with-residuals :
+  SourceConcealTargetIdResidualsᵀ
+  → RecursiveSourceValueTargetConcealKeepᵀ
 ```
 
-The temporary failing probe was deleted after capturing this diagnostic.
-There is no current named theorem that supplies this transport.  Proving one
-for the `seal` case is the D15 partner-evidence work, not part of the decided
-D14(b) theorem.  Per the ordered strategy, fallback (b) stops here and option
-(a) is not attempted.  Items 4 and 5 remain downstream of the incomplete keep
-story and are not started.
+Thus (b) does not bypass the classifier loss.  Termination and Λ routing are
+both discharged; the residuals are logical endpoint obligations.
+
+
+Focused gate
+------------
+
+The companion checks under Agda 2.8 with `--safe`, with no postulates, holes,
+or pragmas.

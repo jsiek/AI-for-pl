@@ -1019,3 +1019,18 @@ M1 core transports + low-level inversions; M2 target-chain/source-strip
 + catchup structural endpoints; M3 simulation surfaces + examples +
 DELETE the old constructors + full sweep. Branch: agent/gtsf-partner-
 redesign (PR #171); supervisor gates between stages.
+
+D16 (user design directive, 2026-08-18/19): WORLD-RECORD REDESIGN.
+(1) compile's initialWorld gets EMPTY stores (stores are for runtime
+allocated type variables only). (2) WFWorld merges INTO the World
+record as a field. (3) NEW world invariant: center-aligned source/
+target pivots have imprecision-RELATED representation types
+(resolveRep across the two stores). (4) NEW world invariant (added):
+a target type variable NOT matched with a source type variable must
+have representation type ★. Recon/draft arc in flight (T15, branch
+agent/gtsf-world-invariants): drafted record (watch the ⊑ᵂ-in-field
+circularity → possibly RawWorld+invariants staging), minting/
+preservation inventory per construction site, kill-check against the
+D8a substitution counterexamples and T10 probe worlds, migration plan.
+Expected payoff: the groundedness that D8a.4 found missing; the
+representation premise T4c could not obtain.

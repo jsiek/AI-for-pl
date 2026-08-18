@@ -131,6 +131,7 @@ import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof
 import proof.DGG.SimConcealRevealPeel
+import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------

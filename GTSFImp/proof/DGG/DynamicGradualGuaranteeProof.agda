@@ -51,6 +51,8 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupToMorePrecise; boundary-refl)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
+open import proof.DGG.TargetBlameCatchupProof
+  using (target-blame-catchup)
 open import proof.Reduction.ValueIrreducibleDef
   using (ValueTraceRefl; value-trace-refl)
 open import proof.Reduction.ValueIrreducibleProof
@@ -94,14 +96,15 @@ transport-related-target refl related = related
 -- Dynamic gradual guarantee
 ------------------------------------------------------------------------
 
-dynamic-gradual-guarantee :
+dynamic-gradual-guarantee-with-target-blame :
     Sim*ᵀ
   → SimBack*ᵀ
   → CatchupToLessPrecise
   → CatchupToMorePrecise
   → TargetBlameCatchupᵀ
   → GradualDGG
-dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
+dynamic-gradual-guarantee-with-target-blame
+    sim* sim-back* catchup catchup-to-more-precise
     target-blame-catchup {A = A} {B = B} {p = p} M⊑M′ =
   source-value , source-diverges , target-value , target-diverges
   where
@@ -274,3 +277,14 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
   target-diverges M′⇑ N {χsᴸ} M↠N | done vN
       | Δᴿ , χsᴿ , V′ , Δ , W , q , M′↠V′ , vV′ , N⊑V′ =
     ⊥-elim (M′⇑ (Δᴿ , V′ , χsᴿ , M′↠V′ , inj₁ vV′))
+
+
+dynamic-gradual-guarantee :
+    Sim*ᵀ
+  → SimBack*ᵀ
+  → CatchupToLessPrecise
+  → CatchupToMorePrecise
+  → GradualDGG
+dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise =
+  dynamic-gradual-guarantee-with-target-blame
+    sim* sim-back* catchup catchup-to-more-precise target-blame-catchup

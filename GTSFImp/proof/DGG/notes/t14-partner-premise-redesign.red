@@ -520,7 +520,7 @@ data _⊑ᵂ⟨_⟩_ : Ty Δᴸ → World Δᴸ Δᴿ → Ty Δᴿ → Set where
     ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
 
   fun :
-    B₁ ⊑ᵂ⟨ W ⟩ A₁ →
+    A₁ ⊑ᵂ⟨ W ⟩ B₁ →
     A₂ ⊑ᵂ⟨ W ⟩ B₂ →
     A₁ ⇒ A₂ ⊑ᵂ⟨ W ⟩ B₁ ⇒ B₂
 
@@ -530,6 +530,10 @@ data _⊑ᵂ⟨_⟩_ : Ty Δᴸ → World Δᴸ Δᴿ → Ty Δᴿ → Set where
 
   ...
 ```
+
+PR #171 review P2 fixed this sketch to match the live
+`Imprecision.agda` rule: `⇒⊑⇒` is covariant in both the domain and
+codomain positions.
 
 Then `conceal⊑²` would get the needed source-open or paired fact from
 the type witness `q`/`p`, instead of a separate
@@ -629,6 +633,29 @@ disappears. It is that the source-only see-through case is governed by a
 negative world fact, while matched/generated target-shape facts are kept
 with the rules that actually introduce or inspect matched target
 protection.
+
+PR #171 review P1 asked whether this shape-free open branch accidentally
+admits an unrelated top-level target variable tag in a no-occupant world,
+because the S-OCC calibration retained `Rep★PartnerOK`. The checked probe
+`proof/DGG/notes/probes/SealStarOpenVarTagShapeProbe.agda` rules out that
+specific square. Its world maps source `X` and target `Y` to different
+centers, proves `NoTargetOccupantAtSource W X` and
+`CenterAligned W X Y → ⊥`, and then proves:
+
+```agda
+shape-free-var-tag-probe-verdict :
+  W ∣ [] ⊢² source-dyn-nat ⊑ target-Y-tagged ∶ ★⊑★ → ⊥
+```
+
+So the unrelated `Y!` target cannot supply the `p : ★ ⊑ᵂ⟨ W ⟩ B`
+premise that `conceal⊑²-seal-star-open` needs. This is an EXCLUDED
+verdict for the review candidate, not a new bad square. It is consistent
+with `CTI-TIGHTENING-CALIBRATION.md`: S-OCC still uses
+`Rep★PartnerOK` as the syntactic classifier for matched/generated target
+packages and for the old calibrated `star-rep-target` shape, but the D15
+source-only open rule does not need that classifier as an additional
+endpoint-shape premise once the `★⊑★` premise itself excludes the
+unrelated top-level variable-tag case.
 
 Transport story:
 

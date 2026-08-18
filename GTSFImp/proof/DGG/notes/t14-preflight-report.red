@@ -148,6 +148,35 @@ target-source-star-final
 | `all-conceal-target` | `conceal⊑²-source-ok all-conceal-ok`. |
 | `id-conceal-target` | `conceal⊑²-source-ok id-conceal-ok`. |
 
+## Review probe outcome
+
+P1 asked whether the shape-free `conceal⊑²-seal-star-open` branch needs
+to retain `Rep★PartnerOK`, because the S-OCC calibration kept that
+classifier and `rep★-var-tag` only admits a top-level target variable tag
+under `CenterAligned`.
+
+Checked artifact:
+
+```text
+proof/DGG/notes/probes/SealStarOpenVarTagShapeProbe.agda
+```
+
+Verdict: EXCLUDED. In the probe world, source `X` has no target occupant,
+target `Y` is at a different center, and `CenterAligned W X Y → ⊥`.
+The unrelated top-level `Y!` target cannot be supplied as the premise to
+the source-open rule:
+
+```agda
+shape-free-var-tag-probe-verdict :
+  W ∣ [] ⊢² source-dyn-nat ⊑ target-Y-tagged ∶ ★⊑★ → ⊥
+```
+
+Therefore the live source-open rule is left unchanged. `Rep★PartnerOK`
+remains the syntactic target-shape classifier for matched/generated
+endpoint packages and occupied behavior, but the no-occupant source-open
+branch does not need it as an extra endpoint-shape premise for this P1
+candidate.
+
 ## Surprises
 
 - Adding relation constructors required totality coverage in transport,
@@ -203,7 +232,16 @@ cd GTSFImp
 AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
 ```
 
-Final pre-commit result:
+Additional standalone review-probe check:
+
+```sh
+cd GTSFImp
+AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home \
+  agda --safe -v0 -i . -i proof/DGG/notes/probes \
+  proof/DGG/notes/probes/SealStarOpenVarTagShapeProbe.agda
+```
+
+Final review-update result:
 
 ```text
 agda --safe -v0 All.agda

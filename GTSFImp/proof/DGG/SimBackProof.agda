@@ -77,93 +77,6 @@ applyTy-★ (bind A) = refl
 -- Narrow residual-family classifiers
 ------------------------------------------------------------------------
 
-ApplicationRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² L · M ⊑ L′ · M′ ∶ p → Set
-ApplicationRel (·⊑·² _ _) = ⊤
-ApplicationRel _ = ⊥
-
-PairedTypeApplicationRel : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {C : Ty (Nat.suc Δᴸ)} {C′ : Ty (Nat.suc Δᴿ)}
-    {A : Ty Δᴸ} {A′ : Ty Δᴿ}
-    {p : C [ A ]ᵗ ⊑ᵂ⟨ W ⟩ C′ [ A′ ]ᵗ}
-  → W ∣ List.[] ⊢²
-      M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ p → Set
-PairedTypeApplicationRel (•⊑•² _ _ _ _) = ⊤
-PairedTypeApplicationRel _ = ⊥
-
-PairedCastRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-PairedCastRel (cast⊑cast² _ _ _ _) = ⊤
-PairedCastRel _ = ⊥
-
-TargetCastRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-TargetCastRel (⊑cast² _ _ _) = ⊤
-TargetCastRel _ = ⊥
-
-TargetRevealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-TargetRevealRel (⊑reveal² _ _ _ _ _ _) = ⊤
-TargetRevealRel (reveal⊑reveal² _ _ _ _ _ _ _) = ⊤
-TargetRevealRel _ = ⊥
-
-TargetConcealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-TargetConcealRel (⊑conceal² _ _ _ _ _ _) = ⊤
-TargetConcealRel (conceal⊑conceal² _ _ _ _ _ _ _ _) = ⊤
-TargetConcealRel (packaged-seal-star² _ _ _ _ _ _ _ _ _) = ⊤
-TargetConcealRel _ = ⊥
-
-SourceRevealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-SourceRevealRel (reveal⊑² _ _ _ _ _ _) = ⊤
-SourceRevealRel _ = ⊥
-
-SourceConcealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p → Set
-SourceConcealRel (conceal⊑² _ _ _ _ _ _ _) = ⊤
-SourceConcealRel (conceal⊑²-seal-star-open _ _ _ _ _ _ _) = ⊤
-SourceConcealRel (conceal⊑²-source-ok _ _ _ _ _ _ _) = ⊤
-SourceConcealRel _ = ⊥
-
-PrimitiveRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {op : Prim}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′ ∶ p
-  → Set
-PrimitiveRel (⊕⊑⊕² _ _ _ _) = ⊤
-PrimitiveRel _ = ⊥
-
-PlainSourceLambdaRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {V : Term (Nat.suc Δᴸ)} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² Λ V ⊑ M′ ∶ p → Set
-PlainSourceLambdaRel (Λ⊑² _ _ _ _ _ _ _) = ⊤
-PlainSourceLambdaRel _ = ⊥
-
-SmartSourceLambdaRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {V : Term (Nat.suc Δᴸ)} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ List.[] ⊢² Λ V ⊑ M′ ∶ p → Set
-SmartSourceLambdaRel (Λ⊑²-smart-comma _ _ _ _ _ _ _ _) = ⊤
-SmartSourceLambdaRel _ = ⊥
-
 ApplicationRootStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
@@ -246,82 +159,91 @@ PrimitiveRightStep : ∀ {Δ Δ′ : TyCtx}
 PrimitiveRightStep (ξ-⊕₂ _ _ _) = ⊤
 PrimitiveRightStep _ = ⊥
 
+TargetRootClosing : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {χᴿ : StoreChange Δᴿ Δᴿ′}
+  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
+  → M′ —→[ χᴿ ] N′
+  → Set
+TargetRootClosing (·⊑·² _ _) step = ApplicationRootStep step
+TargetRootClosing (•⊑•² _ _ _ _) step = TypeApplicationRootStep step
+TargetRootClosing (cast⊑cast² _ _ _ _) step = CastRootStep step
+TargetRootClosing (⊑cast² _ _ _) step = CastRootStep step
+TargetRootClosing (⊑reveal² _ _ _ _ _ _) step = RevealRootStep step
+TargetRootClosing (⊑conceal² _ _ _ _ _ _) step = ConcealRootStep step
+TargetRootClosing (reveal⊑reveal² _ _ _ _ _ _ _) step =
+  RevealRootStep step
+TargetRootClosing (conceal⊑conceal² _ _ _ _ _ _ _ _) step =
+  ConcealRootStep step
+TargetRootClosing (packaged-seal-star² _ _ _ _ _ _ _ _ _) step =
+  ConcealRootStep step
+TargetRootClosing (⊕⊑⊕² _ _ _ _) step = PrimitiveRootStep step
+TargetRootClosing _ step = ⊥
+
+StrictRightStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {χᴿ : StoreChange Δᴿ Δᴿ′}
+  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
+  → M′ —→[ χᴿ ] N′
+  → Set
+StrictRightStep (·⊑·² _ _) step = ApplicationRightStep step
+StrictRightStep (⊕⊑⊕² _ _ _ _) step = PrimitiveRightStep step
+StrictRightStep _ step = ⊥
+
+ConversionBoundaryStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {χᴿ : StoreChange Δᴿ Δᴿ′}
+  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
+  → M′ —→[ χᴿ ] N′
+  → Set
+ConversionBoundaryStep (⊑reveal² _ _ _ _ _ _) step =
+  RevealFrameStep step
+ConversionBoundaryStep (⊑conceal² _ _ _ _ _ _) step =
+  ConcealFrameStep step
+ConversionBoundaryStep (reveal⊑² _ _ _ _ _ _) step = ⊤
+ConversionBoundaryStep (conceal⊑² _ _ _ _ _ _ _) step = ⊤
+ConversionBoundaryStep (conceal⊑²-seal-star-open _ _ _ _ _ _ _) step = ⊤
+ConversionBoundaryStep (conceal⊑²-source-ok _ _ _ _ _ _ _) step = ⊤
+ConversionBoundaryStep (reveal⊑reveal² _ _ _ _ _ _ _) step =
+  RevealFrameStep step
+ConversionBoundaryStep (conceal⊑conceal² _ _ _ _ _ _ _ _) step =
+  ConcealFrameStep step
+ConversionBoundaryStep (packaged-seal-star² _ _ _ _ _ _ _ _ _) step =
+  ConcealFrameStep step
+ConversionBoundaryStep _ step = ⊥
+
+SourceLambdaStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {χᴿ : StoreChange Δᴿ Δᴿ′}
+  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
+  → M′ —→[ χᴿ ] N′
+  → Set
+SourceLambdaStep (Λ⊑² _ _ _ _ _ _ _) step = ⊤
+SourceLambdaStep (Λ⊑²-smart-comma _ _ _ _ _ _ _ _) step = ⊤
+SourceLambdaStep _ step = ⊥
+
 ------------------------------------------------------------------------
 -- Narrow residual-family surfaces
 ------------------------------------------------------------------------
 
-SimBackApplicationRootᵀ : Set
-SimBackApplicationRootᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² L · M ⊑ L′ · M′ ∶ p)
-  → ApplicationRel rel
-  → (step : L′ · M′ —→[ χᴿ ] N′)
-  → ApplicationRootStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (L · M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackApplicationRightᵀ : Set
-SimBackApplicationRightᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² L · M ⊑ L′ · M′ ∶ p)
-  → ApplicationRel rel
-  → (step : L′ · M′ —→[ χᴿ ] N′)
-  → ApplicationRightStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (L · M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPairedTypeApplicationRootᵀ : Set
-SimBackPairedTypeApplicationRootᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {C : Ty (Nat.suc Δᴸ)} {C′ : Ty (Nat.suc Δᴿ)}
-    {A : Ty Δᴸ} {A′ : Ty Δᴿ}
-    {p : C [ A ]ᵗ ⊑ᵂ⟨ W ⟩ C′ [ A′ ]ᵗ}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢²
-      M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ p)
-  → PairedTypeApplicationRel rel
-  → (step : M′ ⦂∀ C′ [ A′ ] —→[ χᴿ ] N′)
-  → TypeApplicationRootStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩
-        applyTy χᴿ (C′ [ A′ ]ᵗ) ]
-      (M ⦂∀ C [ A ] —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPairedCastRootᵀ : Set
-SimBackPairedCastRootᵀ =
+SimBackTargetRootᵀ : Set
+SimBackTargetRootᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
   → ParkedWorld W
   → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → PairedCastRel rel
   → (step : M′ —→[ χᴿ ] N′)
-  → CastRootStep step
+  → TargetRootClosing rel step
   → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
@@ -330,17 +252,16 @@ SimBackPairedCastRootᵀ =
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
 
-SimBackTargetCastRootᵀ : Set
-SimBackTargetCastRootᵀ =
+SimBackStrictRightᵀ : Set
+SimBackStrictRightᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
   → ParkedWorld W
   → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → TargetCastRel rel
   → (step : M′ —→[ χᴿ ] N′)
-  → CastRootStep step
+  → StrictRightStep rel step
   → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
@@ -349,17 +270,16 @@ SimBackTargetCastRootᵀ =
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
 
-SimBackTargetRevealRootᵀ : Set
-SimBackTargetRevealRootᵀ =
+SimBackConversionBoundaryᵀ : Set
+SimBackConversionBoundaryᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
   → ParkedWorld W
   → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → TargetRevealRel rel
   → (step : M′ —→[ χᴿ ] N′)
-  → RevealRootStep step
+  → ConversionBoundaryStep rel step
   → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
@@ -368,17 +288,16 @@ SimBackTargetRevealRootᵀ =
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
 
-SimBackTargetRevealFrameᵀ : Set
-SimBackTargetRevealFrameᵀ =
+SimBackSourceLambdaᵀ : Set
+SimBackSourceLambdaᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
   → ParkedWorld W
   → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → TargetRevealRel rel
   → (step : M′ —→[ χᴿ ] N′)
-  → RevealFrameStep step
+  → SourceLambdaStep rel step
   → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
@@ -386,175 +305,12 @@ SimBackTargetRevealFrameᵀ =
       (M —↠[ χsᴸ ] N) ×
       ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
       (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackTargetConcealRootᵀ : Set
-SimBackTargetConcealRootᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → TargetConcealRel rel
-  → (step : M′ —→[ χᴿ ] N′)
-  → ConcealRootStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackTargetConcealFrameᵀ : Set
-SimBackTargetConcealFrameᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → TargetConcealRel rel
-  → (step : M′ —→[ χᴿ ] N′)
-  → ConcealFrameStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackSourceRevealBoundaryᵀ : Set
-SimBackSourceRevealBoundaryᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → SourceRevealRel rel
-  → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackSourceConcealBoundaryᵀ : Set
-SimBackSourceConcealBoundaryᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → SourceConcealRel rel
-  → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPrimitiveRootᵀ : Set
-SimBackPrimitiveRootᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {op : Prim}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′ ∶ p)
-  → PrimitiveRel rel
-  → (step : L′ ⊕[ op ] M′ —→[ χᴿ ] N′)
-  → PrimitiveRootStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (L ⊕[ op ] M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPrimitiveRightᵀ : Set
-SimBackPrimitiveRightᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {op : Prim}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′ ∶ p)
-  → PrimitiveRel rel
-  → (step : L′ ⊕[ op ] M′ —→[ χᴿ ] N′)
-  → PrimitiveRightStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (L ⊕[ op ] M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPlainSourceLambdaᵀ : Set
-SimBackPlainSourceLambdaᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {V : Term (Nat.suc Δᴸ)} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² Λ V ⊑ M′ ∶ p)
-  → PlainSourceLambdaRel rel
-  → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (Λ V —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackSmartSourceLambdaᵀ : Set
-SimBackSmartSourceLambdaᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {V : Term (Nat.suc Δᴸ)} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² Λ V ⊑ M′ ∶ p)
-  → SmartSourceLambdaRel rel
-  → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (Λ V —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
 
 module _
-    (sim-back-application-root : SimBackApplicationRootᵀ)
-    (sim-back-application-right : SimBackApplicationRightᵀ)
-    (sim-back-paired-type-application-root :
-      SimBackPairedTypeApplicationRootᵀ)
-    (sim-back-paired-cast-root : SimBackPairedCastRootᵀ)
-    (sim-back-target-cast-root : SimBackTargetCastRootᵀ)
-    (sim-back-target-reveal-root : SimBackTargetRevealRootᵀ)
-    (sim-back-target-reveal-frame : SimBackTargetRevealFrameᵀ)
-    (sim-back-target-conceal-root : SimBackTargetConcealRootᵀ)
-    (sim-back-target-conceal-frame : SimBackTargetConcealFrameᵀ)
-    (sim-back-source-reveal-boundary : SimBackSourceRevealBoundaryᵀ)
-    (sim-back-source-conceal-boundary : SimBackSourceConcealBoundaryᵀ)
-    (sim-back-primitive-root : SimBackPrimitiveRootᵀ)
-    (sim-back-primitive-right : SimBackPrimitiveRightᵀ)
-    (sim-back-plain-source-lambda : SimBackPlainSourceLambdaᵀ)
-    (sim-back-smart-source-lambda : SimBackSmartSourceLambdaᵀ)
+    (sim-back-target-root : SimBackTargetRootᵀ)
+    (sim-back-strict-right : SimBackStrictRightᵀ)
+    (sim-back-conversion-boundary : SimBackConversionBoundaryᵀ)
+    (sim-back-source-lambda : SimBackSourceLambdaᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
   where
 
@@ -791,44 +547,44 @@ module _
 
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (β vV)) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (β-⇒ vV vW)) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (β-reveal-⇒ vV vW)) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (β-conceal-⇒ vV vW)) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step blame-·₁) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(pure-step (blame-·₂ vV)) =
-    sim-back-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
       step@(ξ-·₂ vV M′→N′ refl) =
-    sim-back-application-right parked rel tt step tt
+    sim-back-strict-right parked rel step tt
 
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(pure-step (β-∀ vV eq)) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(pure-step blame-•) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-Λ vV) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-gen vV A≢★ safe) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-reveal-∀ vV) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-conceal-∀ vV) =
-    sim-back-paired-type-application-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked
       (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
         p∀ M⊑M′ q r)
@@ -956,127 +712,127 @@ module _
 
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (β-id vV)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (ground vV A≢G)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (expand vV G≢B)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (tag-untag vV)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (tag-untag-bad vV G≢H)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step (blame-bot-intro vV)) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(pure-step blame-⟨⟩) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
       step@(β-inst vV B≢★) =
-    sim-back-paired-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
 
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (β-id vV)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (ground vV A≢G)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (expand vV G≢B)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (tag-untag vV)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (tag-untag-bad vV G≢H)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step (blame-bot-intro vV)) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(pure-step blame-⟨⟩) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑cast² c′ M⊑M′ q)
       step@(β-inst vV B≢★) =
-    sim-back-target-cast-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
 
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step (id-reveal vV)) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step (conceal-reveal vV)) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step blame-reveal) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(ξ-reveal M′→N′ refl) =
-    sim-back-target-reveal-frame parked rel tt step tt
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step (id-conceal vV)) =
-    sim-back-target-conceal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step blame-conceal) =
-    sim-back-target-conceal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
       step@(ξ-conceal M′→N′ refl) =
-    sim-back-target-conceal-frame parked rel tt step tt
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q) step =
-    sim-back-source-reveal-boundary parked rel tt step
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
       step =
-    sim-back-source-conceal-boundary parked rel tt step
+    sim-back-conversion-boundary parked rel step tt
   sim-back parked
       rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
       step =
-    sim-back-source-conceal-boundary parked rel tt step
+    sim-back-conversion-boundary parked rel step tt
   sim-back parked
       rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q) step =
-    sim-back-source-conceal-boundary parked rel tt step
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (id-reveal vV)) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (conceal-reveal vV)) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step blame-reveal) =
-    sim-back-target-reveal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-reveal M′→N′ refl) =
-    sim-back-target-reveal-frame parked rel tt step tt
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (id-conceal vV)) =
-    sim-back-target-conceal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step blame-conceal) =
-    sim-back-target-conceal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-conceal M′→N′ refl) =
-    sim-back-target-conceal-frame parked rel tt step tt
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back parked
       rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
         M⊑M′ sealed q)
       step@(pure-step blame-conceal) =
-    sim-back-target-conceal-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked
       rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
         M⊑M′ sealed q)
       step@(ξ-conceal M′→N′ refl) =
-    sim-back-target-conceal-frame parked rel tt step tt
+    sim-back-conversion-boundary parked rel step tt
 
   sim-back {Δᴸ = Δᴸ} {W = W} {p = p} {χᴿ = keep}
       parked (blame⊑² M′⊢ q) step =
@@ -1097,21 +853,21 @@ module _
 
   sim-back parked rel@(Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q)
       step =
-    sim-back-plain-source-lambda parked rel tt step
+    sim-back-source-lambda parked rel step tt
   sim-back parked
       rel@(Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M′⊢ V⊑M′ q)
       step =
-    sim-back-smart-source-lambda parked rel tt step
+    sim-back-source-lambda parked rel step tt
 
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(pure-step (δ-⊕ δκ)) =
-    sim-back-primitive-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(pure-step blame-⊕₁) =
-    sim-back-primitive-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(pure-step (blame-⊕₂ vV)) =
-    sim-back-primitive-root parked rel tt step tt
+    sim-back-target-root parked rel step tt
   sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
       step@(ξ-⊕₂ vV M′→N′ refl) =
-    sim-back-primitive-right parked rel tt step tt
+    sim-back-strict-right parked rel step tt

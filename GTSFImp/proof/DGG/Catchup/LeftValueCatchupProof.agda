@@ -8,9 +8,11 @@ module proof.DGG.Catchup.LeftValueCatchupProof where
 
 open import Data.List using ([])
 open import Data.Maybe using (nothing)
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; _+_; suc; _<_)
+open import Data.Nat.Properties using (m≤m+n; m≤n+m; n<1+n; ≤-<-trans)
 open import Data.Product using (_×_; _,_)
 open import Data.Sum using (inj₁; inj₂)
+open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types using (Ty; TyVar; ★; ＇_)
@@ -27,11 +29,148 @@ open import proof.DGG.Catchup.LeftBoundaryCatchupDef
 open import proof.DGG.Catchup.LeftValueCatchupDef
   using (LeftValueCatchupAt; SourceCastBound)
 import proof.DGG.Catchup.LeftSourceOperationsDef as LSO
+open import proof.Consistency using (castSize)
 open import proof.DGG.CatchupToMorePreciseDef
   using (boundary-refl; same-boundary)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; evolve-refl)
 open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+
+
+sourceCastBudget : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → W ∣ γ ⊢² M ⊑ M′ ∶ q
+  → ℕ
+sourceCastBudget (CTI2.x⊑x² x∈) = 0
+sourceCastBudget (CTI2.ƛ⊑ƛ² rel) = sourceCastBudget rel
+sourceCastBudget (CTI2.·⊑·² rel₁ rel₂) =
+  sourceCastBudget rel₁ + sourceCastBudget rel₂
+sourceCastBudget (CTI2.Λ⊑Λ² liftγ vV vV′ rel q) =
+  sourceCastBudget rel
+sourceCastBudget (CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV target⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget (CTI2.•⊑•² p∀ rel q r) = sourceCastBudget rel
+sourceCastBudget (CTI2.•⊑² p∀ rel q r) = sourceCastBudget rel
+sourceCastBudget (CTI2.κ⊑κ² κ p) = 0
+sourceCastBudget (CTI2.cast⊑cast² c c′ rel q) =
+  castSize c + sourceCastBudget rel
+sourceCastBudget (CTI2.⊑cast² c′ rel q) = sourceCastBudget rel
+sourceCastBudget (CTI2.⊑reveal² mono rb sameγ c′⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget (CTI2.cast⊑² c rel q) =
+  castSize c + sourceCastBudget rel
+sourceCastBudget (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
+    (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
+    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
+  sourceCastBudget rel
+sourceCastBudget
+    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
+      rel pkg-rel q) =
+  sourceCastBudget rel + sourceCastBudget pkg-rel
+sourceCastBudget (CTI2.blame⊑² target⊢ p) = 0
+sourceCastBudget (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
+  sourceCastBudget rel₁ + sourceCastBudget rel₂
+
+
+source-cast-bound< : ∀ {fuel Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ q)
+  → sourceCastBudget rel < fuel
+  → SourceCastBound fuel rel
+source-cast-bound< (CTI2.x⊑x² x∈) budget< = tt
+source-cast-bound< (CTI2.ƛ⊑ƛ² rel) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.·⊑·² rel₁ rel₂) budget< =
+  source-cast-bound< rel₁
+    (≤-<-trans (m≤m+n (sourceCastBudget rel₁) (sourceCastBudget rel₂))
+      budget<) ,
+  source-cast-bound< rel₂
+    (≤-<-trans (m≤n+m (sourceCastBudget rel₂) (sourceCastBudget rel₁))
+      budget<)
+source-cast-bound< (CTI2.Λ⊑Λ² liftγ vV vV′ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.Λ⊑² Anv zero∈A liftγ vV target⊢ rel q)
+    budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV
+    target⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.•⊑•² p∀ rel q r) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.•⊑² p∀ rel q r) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.κ⊑κ² κ p) budget< = tt
+source-cast-bound< (CTI2.cast⊑cast² c c′ rel q) budget< =
+  ≤-<-trans (m≤m+n (castSize c) (sourceCastBudget rel)) budget< ,
+  source-cast-bound< rel
+    (≤-<-trans (m≤n+m (sourceCastBudget rel) (castSize c))
+      budget<)
+source-cast-bound< (CTI2.⊑cast² c′ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.⊑reveal² mono rb sameγ c′⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.cast⊑² c rel q) budget< =
+  ≤-<-trans (m≤m+n (castSize c) (sourceCastBudget rel)) budget< ,
+  source-cast-bound< rel
+    (≤-<-trans (m≤n+m (sourceCastBudget rel) (castSize c))
+      budget<)
+source-cast-bound< (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound< (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q)
+    budget< =
+  source-cast-bound< rel budget<
+source-cast-bound<
+    (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound<
+    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) budget< =
+  source-cast-bound< rel budget<
+source-cast-bound<
+    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
+      rel pkg-rel q) budget< =
+  source-cast-bound< rel
+    (≤-<-trans (m≤m+n (sourceCastBudget rel) (sourceCastBudget pkg-rel))
+      budget<) ,
+  source-cast-bound< pkg-rel
+    (≤-<-trans (m≤n+m (sourceCastBudget pkg-rel) (sourceCastBudget rel))
+      budget<)
+source-cast-bound< (CTI2.blame⊑² target⊢ p) budget< = tt
+source-cast-bound< (CTI2.⊕⊑⊕² op rel₁ rel₂ r) budget< =
+  source-cast-bound< rel₁
+    (≤-<-trans (m≤m+n (sourceCastBudget rel₁) (sourceCastBudget rel₂))
+      budget<) ,
+  source-cast-bound< rel₂
+    (≤-<-trans (m≤n+m (sourceCastBudget rel₂) (sourceCastBudget rel₁))
+      budget<)
+
+
+source-cast-bound : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {q : A ⊑ᵂ⟨ W ⟩ B}
+  → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ q)
+  → SourceCastBound (suc (sourceCastBudget rel)) rel
+source-cast-bound rel = source-cast-bound< rel (n<1+n (sourceCastBudget rel))
 
 
 left-zero-value-result : ∀ {Δᴸ Δᴿ Δ}

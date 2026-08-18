@@ -793,7 +793,7 @@ module _
       rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
       step@(pure-step (id-conceal vM))
       | caught =
-    sim-source-conceal-values parked partner mono rebase c⊢
+    sim-source-conceal-values parked id-conceal-ok mono rebase c⊢
       M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
@@ -830,7 +830,7 @@ module _
       rel@(conceal⊑²-source-ok id-conceal-ok mono rebase same-[] c⊢
         M⊑M′ q) step@(pure-step (id-conceal vM))
       | caught =
-    sim-source-conceal-values parked id-conceal-target mono rebase c⊢
+    sim-source-conceal-values parked id-conceal-ok mono rebase c⊢
       M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked

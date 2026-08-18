@@ -212,15 +212,6 @@ probe-checkpoint₁ :
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
 
-probe-sealed-arg-partner-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
-    {P Xᴿ?}
-  → CTI2.SourceConcealPartnerOK W
-      P Ex2.example12-source-X-seal Xᴿ?
-      (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
-  → ⊥
-probe-sealed-arg-partner-empty
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
-
 probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
     {P Xᴿ?}
   → CTI2.SourceConcealOK W
@@ -240,8 +231,9 @@ probe-sealed-arg-empty′ q₀
 probe-sealed-arg-empty′ (X⊑★ eq)
     (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
 probe-sealed-arg-empty′ q₀
-    (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
-  probe-sealed-arg-partner-empty ok
+    (CTI2.conceal⊑²
+      (CTI2.seal-partner-ok (CTI2.plain-target ()))
+      mono rb sc c⊢ D .q₀)
 probe-sealed-arg-empty′ q₀
     (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
   probe-sealed-arg-ok-empty ok

@@ -930,8 +930,8 @@ tagged-target-nonvar-nonstar-spine-⊥ : ∀ {Δᴸ Δᴿ Δ}
   → ⊥
 
 target-source-var-chain {Y = Y} {q = q} sv vU mono ra sc X∈ Y∈ D =
-  CTI2.conceal⊑² (CTI2.seal-partner-ok
-      (CTI2.plain-target CTI2.not-↓))
+  CTI2.conceal⊑²-source-ok
+    (CTI2.seal-nonstar-plain-ok nonstar-X CTI2.not-↓)
     mono (CTI2.tag-rebase-varᴸ ra) sc
     (CTI2.⊢↓-sealˣ X∈) D q
 

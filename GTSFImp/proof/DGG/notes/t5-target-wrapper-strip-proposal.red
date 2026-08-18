@@ -81,6 +81,24 @@ handle:
 ⊑conceal² mono rb same c⊢ rel q
 ```
 
+and (per PR review) the PAIRED-wrapper heads, which can produce the same
+target wrappers while the source remains a value carrying its own
+wrapper — the paired case of `target-id-step-inversion` is the model:
+
+```agda
+cast⊑cast² c (∀ᶜ d) rel q        -- paired ∀ᶜ target
+cast⊑cast² c ((gen d) A≢★) rel q -- paired gen target
+reveal⊑reveal² mono rb same c⊢ c′⊢ rel q
+conceal⊑conceal² partner mono rb same c⊢ c′⊢ rel q
+packaged-seal-star² partner mono rb same c⊢ c′⊢ rel pkg-rel q
+```
+
+In the paired rows the strip keeps the source wrapper on the child
+relation (the source side takes zero steps), so the `StructuralStrictChild`
+endpoint is the paired child form rather than the bare source; the
+per-row conclusion shapes must be checked against the fixed
+`StructuralStrictChild` fields when implementing.
+
 and replay source-side heads such as:
 
 ```agda

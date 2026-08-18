@@ -1,17 +1,17 @@
 module T15WorldInvariantsDesignProbe where
 
 -- File Charter:
---   * Type-checks the D16 seven-field World record and empty-store
+--   * Type-checks the D16 eight-field World record and empty-store
 --     initialWorld draft without changing the live relation.
 --   * Reconstructs the D8a and T10 Probe 1 rebase worlds and checks whether
---     their representation pairs satisfy the drafted invariant.
+--     their representation pairs satisfy all three drafted additions.
 --   * Contains no implementation of the World migration.
 
-open import Data.Empty using (⊥)
+open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 import Data.Nat as Nat
 open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types using (TyCtx; Ty; TyVar; ★; ＇_; ‵_; `ℕ; renameᵗ)
 open import TyStore using (TyStore; store-empty; store-lift; store-bind)
@@ -49,6 +49,12 @@ record World (Δᴸ Δᴿ Δ : TyCtx) : Set where
             (resolveRep sourceStoreʷ (＇ Xᴸ))
           ⊑ renameᵗ (toRenameᵗ ηᴿʷ)
             (resolveRep targetStoreʷ (＇ Xᴿ))
+
+    unmatchedTargetsDynamicʷ :
+      ∀ (Xᴿ : TyVar Δᴿ)
+      → (∀ (Xᴸ : TyVar Δᴸ)
+          → toRenameᵗ ηᴸʷ Xᴸ ≢ toRenameᵗ ηᴿʷ Xᴿ)
+      → resolveRep targetStoreʷ (＇ Xᴿ) ≡ ★
 
 open World public
 
@@ -95,11 +101,18 @@ initialRepresentations {Xᴸ = Xᴸ} aligned
     with toRenameᵗ-injective id↪ᵗ aligned
 initialRepresentations {Xᴸ = Xᴸ} aligned | refl = refl⊑ _
 
+initialUnmatchedTargets : ∀ {Δ} (Xᴿ : TyVar Δ)
+  → (∀ (Xᴸ : TyVar Δ)
+      → toRenameᵗ id↪ᵗ Xᴸ ≢ toRenameᵗ id↪ᵗ Xᴿ)
+  → resolveRep (emptyStore Δ) (＇ Xᴿ) ≡ ★
+initialUnmatchedTargets Xᴿ unmatched =
+  ⊥-elim (unmatched Xᴿ refl)
+
 initialWorld : ∀ {Δ} → ImpEnv Δ → World Δ Δ Δ
 initialWorld {Δ} μ =
   world id↪ᵗ id↪ᵗ μ (emptyStore Δ) (emptyStore Δ)
     (λ Xᴸ precise → Xᴸ , refl)
-    initialRepresentations
+    initialRepresentations initialUnmatchedTargets
 
 initialWorld-source-empty : ∀ {Δ} (μ : ImpEnv Δ)
   → sourceStoreʷ (initialWorld μ) ≡ emptyStore Δ
@@ -114,7 +127,7 @@ emptyStore-under-binder : ∀ {Δ}
 emptyStore-under-binder = refl
 
 ------------------------------------------------------------------------
--- D8a reconstruction: both rebase endpoints satisfy the invariant
+-- D8a reconstruction: both rebase endpoints violate invariant (4)
 ------------------------------------------------------------------------
 
 empty-μ : ImpEnv 0
@@ -161,10 +174,21 @@ d8a-W-representations : ∀ {Xᴸ : TyVar 1} {Xᴿ : TyVar 2}
 d8a-W-representations {Fin.zero} {Fin.zero} ()
 d8a-W-representations {Fin.zero} {Fin.suc Fin.zero} refl = ι⊑ι
 
-d8a-W : World 1 2 2
-d8a-W =
-  world source-η-old target-η-id μ₂ d8a-source-store d8a-target-store
-    d8a-W-precise d8a-W-representations
+d8a-W-fresh-unmatched : ∀ (Xᴸ : TyVar 1)
+  → toRenameᵗ source-η-old Xᴸ
+      ≢ toRenameᵗ target-η-id Fin.zero
+d8a-W-fresh-unmatched Fin.zero ()
+
+d8a-W-violates-invariant4 :
+  (∀ (Xᴿ : TyVar 2)
+    → (∀ (Xᴸ : TyVar 1)
+        → toRenameᵗ source-η-old Xᴸ
+          ≢ toRenameᵗ target-η-id Xᴿ)
+    → resolveRep d8a-target-store (＇ Xᴿ) ≡ ★)
+  → ⊥
+d8a-W-violates-invariant4 invariant
+    with invariant Fin.zero d8a-W-fresh-unmatched
+d8a-W-violates-invariant4 invariant | ()
 
 d8a-Wᵖ-precise :
   ∀ (Xᴸ : TyVar 1)
@@ -183,16 +207,21 @@ d8a-Wᵖ-representations : ∀ {Xᴸ : TyVar 1} {Xᴿ : TyVar 2}
 d8a-Wᵖ-representations {Fin.zero} {Fin.zero} refl = ι⊑ι
 d8a-Wᵖ-representations {Fin.zero} {Fin.suc Fin.zero} ()
 
-d8a-Wᵖ : World 1 2 2
-d8a-Wᵖ =
-  world source-η-fresh target-η-id μ₂
-    d8a-source-store d8a-target-store
-    d8a-Wᵖ-precise d8a-Wᵖ-representations
+d8a-Wᵖ-old-unmatched : ∀ (Xᴸ : TyVar 1)
+  → toRenameᵗ source-η-fresh Xᴸ
+      ≢ toRenameᵗ target-η-id (Fin.suc Fin.zero)
+d8a-Wᵖ-old-unmatched Fin.zero ()
 
-d8a-refuting-worlds-satisfy :
-  RepresentationInvariant d8a-W × RepresentationInvariant d8a-Wᵖ
-d8a-refuting-worlds-satisfy =
-  representationInvariant d8a-W , representationInvariant d8a-Wᵖ
+d8a-Wᵖ-violates-invariant4 :
+  (∀ (Xᴿ : TyVar 2)
+    → (∀ (Xᴸ : TyVar 1)
+        → toRenameᵗ source-η-fresh Xᴸ
+          ≢ toRenameᵗ target-η-id Xᴿ)
+    → resolveRep d8a-target-store (＇ Xᴿ) ≡ ★)
+  → ⊥
+d8a-Wᵖ-violates-invariant4 invariant
+    with invariant (Fin.suc Fin.zero) d8a-Wᵖ-old-unmatched
+d8a-Wᵖ-violates-invariant4 invariant | ()
 
 ------------------------------------------------------------------------
 -- T10 Probe 1 reconstruction: the same geometry with ★ representations
@@ -214,10 +243,19 @@ t10-W-representations : ∀ {Xᴸ : TyVar 1} {Xᴿ : TyVar 2}
 t10-W-representations {Fin.zero} {Fin.zero} ()
 t10-W-representations {Fin.zero} {Fin.suc Fin.zero} refl = ★⊑★
 
+t10-W-unmatched-targets : ∀ (Xᴿ : TyVar 2)
+  → (∀ (Xᴸ : TyVar 1)
+      → toRenameᵗ source-η-old Xᴸ
+        ≢ toRenameᵗ target-η-id Xᴿ)
+  → resolveRep t10-target-store (＇ Xᴿ) ≡ ★
+t10-W-unmatched-targets Fin.zero unmatched = refl
+t10-W-unmatched-targets (Fin.suc Fin.zero) unmatched =
+  ⊥-elim (unmatched Fin.zero refl)
+
 t10-W : World 1 2 2
 t10-W =
   world source-η-old target-η-id μ₂ t10-source-store t10-target-store
-    d8a-W-precise t10-W-representations
+    d8a-W-precise t10-W-representations t10-W-unmatched-targets
 
 t10-Wᵖ-representations : ∀ {Xᴸ : TyVar 1} {Xᴿ : TyVar 2}
   → toRenameᵗ source-η-fresh Xᴸ ≡ toRenameᵗ target-η-id Xᴿ
@@ -229,14 +267,22 @@ t10-Wᵖ-representations : ∀ {Xᴸ : TyVar 1} {Xᴿ : TyVar 2}
 t10-Wᵖ-representations {Fin.zero} {Fin.zero} refl = ★⊑★
 t10-Wᵖ-representations {Fin.zero} {Fin.suc Fin.zero} ()
 
+t10-Wᵖ-unmatched-targets : ∀ (Xᴿ : TyVar 2)
+  → (∀ (Xᴸ : TyVar 1)
+      → toRenameᵗ source-η-fresh Xᴸ
+        ≢ toRenameᵗ target-η-id Xᴿ)
+  → resolveRep t10-target-store (＇ Xᴿ) ≡ ★
+t10-Wᵖ-unmatched-targets Fin.zero unmatched =
+  ⊥-elim (unmatched Fin.zero refl)
+t10-Wᵖ-unmatched-targets (Fin.suc Fin.zero) unmatched = refl
+
 t10-Wᵖ : World 1 2 2
 t10-Wᵖ =
   world source-η-fresh target-η-id μ₂
     t10-source-store t10-target-store
-    d8a-Wᵖ-precise t10-Wᵖ-representations
+    d8a-Wᵖ-precise t10-Wᵖ-representations t10-Wᵖ-unmatched-targets
 
 t10-probe1-worlds-satisfy :
   RepresentationInvariant t10-W × RepresentationInvariant t10-Wᵖ
 t10-probe1-worlds-satisfy =
   representationInvariant t10-W , representationInvariant t10-Wᵖ
-

@@ -1,12 +1,11 @@
 module proof.DGG.SimBackProof where
 
 -- File Charter:
---   * Gives a parameterized top-down case skeleton for SimBackᵀ.
---   * Proves structural backward simulation cases whose target step occurs in
---     an immediate premise under ordinary application, cast, or primitive
---     frames.
---   * Leaves value-closing, target-boundary, and other blocked case families
---     behind an explicit residual simulation parameter documented in notes.
+--   * Gives a top-down proof of SimBackᵀ modulo four narrow residual families.
+--   * Proves structural, type-application, source-blame, and target-blame
+--     cases, including blame catch-up through reveal/conceal boundaries.
+--   * Shares the remaining root-closing, strict-right, conversion-boundary,
+--     and source-lambda obligations through one parameter per proof idea.
 
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Empty using (⊥)

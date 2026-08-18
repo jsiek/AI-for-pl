@@ -2,7 +2,9 @@ T1 D14(c)/(b) retry on the D15-migrated conceal heads
 =======================================================
 
 Status: the hereditary routing glue checks for the migrated target-independent
-heads.  Both (c) and (b) remain conditional on three narrow endpoint rows.
+heads.  Both (c) and (b) remain conditional on five narrow endpoint facts in
+three row families.  The migrated non-★ seal fact is refuted by a checked
+counterexample.
 
 Checked companion:
 
@@ -174,6 +176,39 @@ recursive-source-value-target-conceal-keep-with-residuals :
 
 Thus (b) does not bypass the classifier loss.  Termination and Λ routing are
 both discharged; the residuals are logical endpoint obligations.
+
+
+Item 4/5 consequence
+--------------------
+
+The same example reaches the actual fuel-bounded structural dispatcher
+surface.  Its target-cast bound and the resulting emptiness theorem are
+checked as:
+
+```agda
+repaired-seal-id-bound :
+  TargetCastBound (suc (castSize ℕ!)) repaired-seal-id-conceal²
+
+repaired-structural-value-dispatcher-empty :
+  StructuralValueCatchupRightAt (suc (castSize ℕ!)) → ⊥
+```
+
+The target trace is forced to the single `id-conceal` keep step.  Value
+irreducibility forces the tail to be reflexive, and the corresponding
+`StructuralWorldExtendᴿ` plan is `structural-keep structural-[]`.  Hence the
+world, context, and type obligation are unchanged, and the dispatcher's final
+relation is exactly the relation eliminated by `repaired-seal²-empty`.
+
+Consequently item 4 cannot supply a total `StructuralValueCatchupRightAt` on
+the current migrated relation.  A `StructuralValueCatchupFactory` would be
+required to return this empty dispatcher surface whenever its dependencies are
+available; no factory assembly was attempted past the refuted row.  Item 5's
+`StructuralExtraCastFactory` assembly was not reached because the ordered
+strategy makes it conditional on item-4 success.
+
+This is not a request to change the live term-imprecision relation.  Any repair
+must first choose whether the non-★ seal classifier belongs before or after the
+target identity step; that design change is outside this retry.
 
 
 Focused gate

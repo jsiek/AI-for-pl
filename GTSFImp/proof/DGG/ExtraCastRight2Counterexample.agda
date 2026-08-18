@@ -7,15 +7,18 @@ module proof.DGG.ExtraCastRight2Counterexample where
 --   * M2 removes that target-moving rebase: both the stale and dynamized
 --     Z/Y outer rebases are empty by `ηᴿ-frozen`.
 --   * The source-seal/direct-target repair attempted below is now a
---     design record of a removed admission: the source seal has
---     representation ℕ and the target partner is the bare `ℕ!` tag, so
---     the source-conceal side condition makes the shape empty.
+--     checked obstruction at the live value-catch-up surface: an identity
+--     target conceal removes the target endpoint evidence required by the
+--     migrated non-star source-seal clause.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just; nothing)
+open import Data.Nat using (suc)
+open import Data.Nat.Properties using (n<1+n)
 open import Data.Product using (_,_)
+open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
 
@@ -32,7 +35,13 @@ open import Primitives using (κℕ)
 import Conversion as Conv
 import Reduction as R
 import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.Catchup.StructuralCatchupRightDef as SCR
+import proof.DGG.Catchup.StructuralWorldExtendDef as SWE
+open import proof.DGG.Catchup.ValueCatchupRightDef using
+  (TargetCastBound; castSize)
 import proof.DGG.CtxImp as CTX
+import proof.Reduction.ValueIrreducibleDef as VID
+import proof.Reduction.ValueIrreducibleProof as VIP
 open CTX using
   (World;
    world;
@@ -308,3 +317,47 @@ repaired-tag²-empty
     (CTI2.cast⊑² {A = ＇ .U} {A′ = ★} {B = ★} {p = p}
       c D .★⊑★) =
   repaired-seal²-empty′ {X = U} p D
+
+------------------------------------------------------------------------
+-- The migrated value dispatcher surface is uninhabited
+------------------------------------------------------------------------
+
+repaired-seal-id-bound :
+  TargetCastBound (suc (castSize ℕ!)) repaired-seal-id-conceal²
+repaired-seal-id-bound = n<1+n (castSize ℕ!) , tt
+
+
+repaired-structural-result-empty :
+  SCR.StructuralCatchupRightResult pre-worldᵈ []
+    (($ (κℕ 0)) ↓ seal U (‵ `ℕ))
+    (($ (κℕ 0) ⟨ ℕ! ⟩) ↓ id↓ ★) U-to-starᵈ
+  → ⊥
+repaired-structural-result-empty result
+    with SCR.StructuralCatchupRightResult.post-reduction result
+repaired-structural-result-empty result | R.↠-refl
+    with SCR.StructuralCatchupRightResult.final-value result
+repaired-structural-result-empty result | R.↠-refl | vV ↓ ()
+repaired-structural-result-empty result
+    | R.↠-step (R.pure-step (R.id-conceal vV)) rest
+    with VIP.value-irreducible* repaired-target-tag-value rest
+repaired-structural-result-empty result
+    | R.↠-step (R.pure-step (R.id-conceal vV)) rest
+    | VID.value-trace-refl
+    with SCR.StructuralCatchupRightResult.structural-ext result
+       | SCR.StructuralCatchupRightResult.final-relation result
+repaired-structural-result-empty _
+    | R.↠-step (R.pure-step (R.id-conceal vV)) rest
+    | VID.value-trace-refl
+    | SWE.structural-keep SWE.structural-[] | rel =
+  repaired-seal²-empty rel
+repaired-structural-result-empty result
+    | R.↠-step (R.ξ-conceal step refl) rest =
+  ⊥-elim (VIP.value-no-step repaired-target-tag-value step)
+
+
+repaired-structural-value-dispatcher-empty :
+  SCR.StructuralValueCatchupRightAt (suc (castSize ℕ!)) → ⊥
+repaired-structural-value-dispatcher-empty worker =
+  repaired-structural-result-empty
+    (worker repaired-source-seal-value repaired-seal-id-conceal²
+      repaired-seal-id-bound)

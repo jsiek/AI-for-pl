@@ -200,6 +200,12 @@ module InstanceA where
   terminus-input-partner-empty
       (CTI2.seal-partner-ok (CTI2.plain-target ()))
 
+  terminus-input-ok-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
+    → CTI2.SourceConcealOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
+    → ⊥
+  terminus-input-ok-empty
+      (CTI2.seal-nonstar-plain-ok Rns ())
+
   terminus-input-empty′ : ∀ {X′}
     → (q : ＇ X′ ⊑ᵂ⟨ W ⟩ ★)
     → W ∣ [] ⊢² source ⊑ U ∶ q
@@ -211,6 +217,9 @@ module InstanceA where
   terminus-input-empty′ q₀
       (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
     terminus-input-partner-empty ok
+  terminus-input-empty′ q₀
+      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
+    terminus-input-ok-empty ok
 
   terminus-input-empty : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W → ⊥
   terminus-input-empty =

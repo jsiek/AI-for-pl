@@ -1036,3 +1036,11 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
     Anv Ans (CTI2.conceal⊑² ok mono rb sc c⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
+    Anv Ans (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
+    nonstar-⇒ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
+    Anv Ans (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
+    nonstar-∀ prem

@@ -391,12 +391,25 @@ module _
     CTI2.conceal⊑² CTI2.fun-conceal-target mono
       (CTI2.tag-rebase-varᴸ rb) sc ⊢c
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB)) (⇒⊑⇒ qA qB)
+  right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
+      vN (CTI2.conceal⊑²-source-ok {p = ⇒⊑★ pA pB} ok mono
+        rb sc ⊢c prem q₀)
+      (⇒⊑⇒ qA qB) =
+    CTI2.conceal⊑²-source-ok CTI2.fun-conceal-ok mono rb sc ⊢c
+      (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
+      (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
     vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑²-source-ok _ _ _ _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
     vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑²-source-ok _ _ _ _ _ _ _) ()
   right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
     vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑²-source-ok _ _ _ _ _ _ _) ()
 
   -- Universal reveal: transport the requested tag obligation through the
   -- body conversion.  Variable rebases recurse in the honestified world.
@@ -573,6 +586,103 @@ module _
         (toRenameᵗ-injective (ηᴸʷ W′))
         (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
+  right-inj-inversion² {W = W} {H = H} (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono CTI2.tag-rebase-idᴸ sc
+        (CTI2.⊢↓-∀-idˣ c⊢) prem q₀) q =
+    CTI2.conceal⊑²-source-ok CTI2.all-conceal-ok mono
+      CTI2.tag-rebase-idᴸ sc (CTI2.⊢↓-∀-idˣ c⊢)
+      (right-inj-inversion² sv vN prem
+        (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
+          (sym (cong `∀ (pivot-id-endpoints↓ c⊢))) q))
+      q
+  right-inj-inversion² {W = W} {gH = ★⇒★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {p = p₀} ok mono
+        (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+        (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    CTI2.conceal⊑²-source-ok CTI2.all-conceal-ok mono
+      (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢)
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ∀★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {p = p₀} ok mono
+        (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+        (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    CTI2.conceal⊑²-source-ok CTI2.all-conceal-ok mono
+      (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+      (CTI2.⊢↓-∀ˣ c⊢)
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ‵ ι}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {p = p₀} ok mono
+        (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+        (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-ι-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ＇ Y} (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {p = p₀} ok mono
+        (CTI2.tag-rebase-onlyᴸ ts dis rep) sc
+        (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-var-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ★⇒★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p₀} ok mono
+        (CTI2.tag-rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    CTI2.conceal⊑²-source-ok CTI2.all-conceal-ok mono
+      (CTI2.tag-rebase-varᴸ rb) sc
+      (CTI2.⊢↓-∀ˣ c⊢)
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ∀★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p₀} ok mono
+        (CTI2.tag-rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    CTI2.conceal⊑²-source-ok CTI2.all-conceal-ok mono
+      (CTI2.tag-rebase-varᴸ rb) sc
+      (CTI2.⊢↓-∀ˣ c⊢)
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W′))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ‵ ι}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p₀} ok mono
+        (CTI2.tag-rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-ι-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W′))
+        (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ＇ Y} (sv-conceal-all sv) vN
+      (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p₀} ok mono
+        (CTI2.tag-rebase-varᴸ rb) sc (CTI2.⊢↓-∀ˣ c⊢) prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-var-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W′))
+        (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
 
   -- Bare source seal.  A variable tag forces the target value to expose
   -- the corresponding seal boundary and turns the one-sided rebase into
@@ -594,6 +704,54 @@ module _
       with q
   right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
       (CTI2.conceal⊑² ok mono rb sc (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      | ()
+  right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
+      with q
+  right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ X∈) prem q₀) q
       | ()
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = R} sv) vN
@@ -663,6 +821,26 @@ module _
     target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
       (rebase-target-membership ra′ Y∈)
       (CTI2.conceal⊑² ok₁ mono₁ rb₁ sc₁ c⊢ prem₂ p₀)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = R} sv) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl
+      | CTI2.conceal⊑²-seal-star-open no-target mono₁ rb₁ sc₁
+          c⊢ prem₂ .p₀ =
+    target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈)
+      (CTI2.conceal⊑²-seal-star-open no-target mono₁ rb₁ sc₁
+        c⊢ prem₂ p₀)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = R} sv) vN
+      (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl
+      | CTI2.conceal⊑²-source-ok ok₁ mono₁ rb₁ sc₁ c⊢ prem₂ .p₀ =
+    target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈)
+      (CTI2.conceal⊑²-source-ok ok₁ mono₁ rb₁ sc₁ c⊢ prem₂ p₀)
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = R} (sv-cast sv₀ inert)) vN
       (CTI2.conceal⊑² {W′ = W′} {p = p₀} ok mono rb sc
@@ -808,6 +986,32 @@ module _
       | X₂ , refl , aligned | inj₂ refl | `∀ A =
     ⊥-elim (seal-target-nonstar-⊥ Xᴸ∈ ra′
       (rebase-target-membership ra′ Y∈) nonvar-all nonstar-∀)
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = ★} sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      with seal-rebase-target (CTI2.forgetTagRebaseᴸ rb) q
+         | right-tag-variable-view vN prem
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = ★} sv) vN
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl =
+    target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈) prem
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = R} sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      with seal-rebase-target (CTI2.forgetTagRebaseᴸ rb) q
+         | right-tag-variable-view vN prem
+  right-inj-inversion² {W = W} {gH = ＇ Y}
+      (sv-seal {X = Xᴸ} {R = R} sv) vN
+      (CTI2.conceal⊑²-source-ok ok mono rb sc
+        (CTI2.⊢↓-sealˣ Xᴸ∈) prem q₀) q
+      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl =
+    target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
+      (rebase-target-membership ra′ Y∈) prem
 
   -- Type applications are not spine values.
   right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q

@@ -180,6 +180,10 @@ derivSize (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑² ok mono rb sc c⊢ rel q) =
   suc (suc (derivSize rel))
+derivSize (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢ rel q) =
+  suc (suc (derivSize rel))
+derivSize (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
+  suc (suc (derivSize rel))
 derivSize (CTI2.reveal⊑reveal² mono rb sc c⊢ c⊢′ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c⊢′ rel q) =

@@ -416,6 +416,26 @@ private
   decaySourceConcealPartnerOK dec CTI2.id-conceal-target =
     CTI2.id-conceal-target
 
+  decaySourceConcealOK : ∀ {Δᴸ Δᴿ Δ}
+      {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
+      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
+    → EnvDecay W Wᵈ
+    → CTI2.SourceConcealOK W M c Xᴿ? M′
+    → CTI2.SourceConcealOK Wᵈ M c Xᴿ? M′
+  decaySourceConcealOK dec
+      (CTI2.seal-nonstar-plain-ok Rns nt) =
+    CTI2.seal-nonstar-plain-ok Rns nt
+  decaySourceConcealOK (env-decay refl refl refl refl mono)
+      (CTI2.seal-nonstar-name-protected-ok Rns aligned) =
+    CTI2.seal-nonstar-name-protected-ok Rns aligned
+  decaySourceConcealOK dec CTI2.fun-conceal-ok =
+    CTI2.fun-conceal-ok
+  decaySourceConcealOK dec CTI2.all-conceal-ok =
+    CTI2.all-conceal-ok
+  decaySourceConcealOK dec CTI2.id-conceal-ok =
+    CTI2.id-conceal-ok
+
   decayMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
       {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
       {M : Term Δᴸ} {A A′ : Ty Δᴸ}
@@ -653,6 +673,61 @@ private
       (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
       sc c⊢ M⊑M′ q) =
   CTI2.conceal⊑² (decaySourceConcealPartnerOK dec ok)
+    (λ _ eq → eq)
+    (CTI2.tag-rebase-onlyᴸ (mono _ to-star) disaligned
+      (decay⊑ᵂ dec represented))
+    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.conceal⊑²-seal-star-open no-target rule-mono
+      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ M⊑M′ q) =
+  CTI2.conceal⊑²-seal-star-open
+    (decayNoTargetOccupantAtSource dec no-target)
+    (λ _ eq → eq)
+    (CTI2.tag-rebase-onlyᴸ (mono _ to-star) disaligned
+      (decay⊑ᵂ dec represented))
+    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.conceal⊑²-source-ok ok rule-mono CTI2.tag-rebase-idᴸ
+      sc c⊢ M⊑M′ q) =
+  CTI2.conceal⊑²-source-ok (decaySourceConcealOK dec ok)
+    (λ _ eq → eq) CTI2.tag-rebase-idᴸ
+    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.conceal⊑²-source-ok {W′ = W′} ok rule-mono
+      (CTI2.tag-rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
+  CTI2.conceal⊑²-source-ok
+    (decaySourceConcealOK
+      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) ok)
+    (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
+    (CTI2.tag-rebase-varᴸ
+      (decayRebaseAt
+        (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) dec rb))
+    (decaySameCtx dec
+      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
+    c⊢
+    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {W = CTI2.world ηL ηR μ ΣL ΣR}
+    {Wᵈ = Wᵈ@(CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
+    dec@(env-decay refl refl refl refl mono)
+    (CTI2.conceal⊑²-source-ok ok rule-mono
+      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ M⊑M′ q) =
+  CTI2.conceal⊑²-source-ok (decaySourceConcealOK dec ok)
     (λ _ eq → eq)
     (CTI2.tag-rebase-onlyᴸ (mono _ to-star) disaligned
       (decay⊑ᵂ dec represented))

@@ -243,6 +243,25 @@ source-conceal-partner-target-id-core a CTI2.id-conceal-target =
   CTI2.id-conceal-target
 
 
+source-conceal-ok-target-id-core : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
+    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
+    {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {M′ : Term Δᴿ} {B : Ty Δᴿ} {ν : Env∼ Δᴿ}
+  → (a : Atom B)
+  → CTI2.SourceConcealOK W P c Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
+  → CTI2.SourceConcealOK W P c Xᴿ? M′
+source-conceal-ok-target-id-core a
+    (CTI2.seal-nonstar-plain-ok Rns nt) =
+  ⊥-elim (not-top-id-cast-impossible a nt)
+source-conceal-ok-target-id-core a CTI2.fun-conceal-ok =
+  CTI2.fun-conceal-ok
+source-conceal-ok-target-id-core a CTI2.all-conceal-ok =
+  CTI2.all-conceal-ok
+source-conceal-ok-target-id-core a CTI2.id-conceal-ok =
+  CTI2.id-conceal-ok
+
+
 rep★-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
     {P : Term Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
@@ -397,6 +416,18 @@ target-id-step-inversion {M′ = M′} a (vM ↓ cv) vM′
     (CTI2.conceal⊑² partner mono rb sameγ c⊢ rel q) =
   CTI2.conceal⊑²
     (source-conceal-partner-target-id-core a partner)
+    mono rb sameγ c⊢
+    (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
+target-id-step-inversion {M′ = M′} a (vM ↓ cv) vM′
+    (CTI2.conceal⊑²-seal-star-open
+      no-target mono rb sameγ c⊢ rel q) =
+  CTI2.conceal⊑²-seal-star-open
+    no-target mono rb sameγ c⊢
+    (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
+target-id-step-inversion {M′ = M′} a (vM ↓ cv) vM′
+    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
+  CTI2.conceal⊑²-source-ok
+    (source-conceal-ok-target-id-core a ok)
     mono rb sameγ c⊢
     (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
 

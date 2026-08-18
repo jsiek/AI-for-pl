@@ -265,6 +265,25 @@ private
       prem q
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
+      (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
+        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTI2.⊢↓-sealˣ X∈) prem r)
+      with composeTagRebaseTagOuter rb rbᵖ
+  source-column-untagged-final {W = W} {W′ = W′} {q = q}
+      mono rb sc target∈
+      (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
+        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTI2.⊢↓-sealˣ X∈) prem r)
+      | Z? , rbᶠ =
+    CTI2.conceal⊑²-source-ok
+      (CTI2.seal-nonstar-plain-ok Rns CTI2.not-↓)
+      (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
+        mono monoᵖ)
+      rbᶠ (sameCtx-∘ sc scᵖ)
+      (CTI2.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
+      prem q
+  source-column-untagged-final {W = W} {W′ = W′} {q = q}
+      mono rb sc target∈
       (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = pᵖ}
         ok monoᵖ rbᵖ scᵖ
         (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ target∈′)

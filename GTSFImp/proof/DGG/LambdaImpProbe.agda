@@ -221,6 +221,14 @@ probe-sealed-arg-partner-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
 probe-sealed-arg-partner-empty
     (CTI2.seal-partner-ok (CTI2.plain-target ()))
 
+probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
+    {P Xᴿ?}
+  → CTI2.SourceConcealOK W
+      P Ex2.example12-source-X-seal Xᴿ?
+      (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+  → ⊥
+probe-sealed-arg-ok-empty (CTI2.seal-nonstar-plain-ok Rns ())
+
 probe-sealed-arg-empty′ : ∀ {X}
   → (q : ＇ X ⊑ᵂ⟨ probe-world₁ ⟩ ★)
   → probe-world₁ ∣ [] ⊢²
@@ -234,6 +242,9 @@ probe-sealed-arg-empty′ (X⊑★ eq)
 probe-sealed-arg-empty′ q₀
     (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
   probe-sealed-arg-partner-empty ok
+probe-sealed-arg-empty′ q₀
+    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
+  probe-sealed-arg-ok-empty ok
 
 probe-sealed-arg-empty :
   probe-world₁ ∣ [] ⊢²

@@ -39,12 +39,17 @@ open import Reduction
 open import Imprecision using (⇒⊑⇒)
 open import proof.Reduction using
   ( applyTy-⇒
+  ; applyTy-∀
+  ; applyBodies
   ; applyTys-⇒
+  ; applyTys-∀
+  ; applyTys-open
   ; applyTys-primArgTy
   ; applyTys-primResultTy
   ; appL-↠
   ; cast-↠
   ; primL-↠
+  ; typeApp-↠
   )
 import proof.Imprecision as PI
 import proof.DGG.CastTermImprecision2 as CTI2
@@ -61,7 +66,7 @@ open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
 open import proof.DGG.SimBackDef using (SimBackᵀ)
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
-open import proof.TypeSafety.Preservation using (preservation)
+open import proof.TypeSafety.Preservation using (apply-open; preservation)
 
 ------------------------------------------------------------------------
 -- Narrow residual-family classifiers
@@ -191,12 +196,6 @@ TypeApplicationRootStep (β-reveal-∀ _) = ⊤
 TypeApplicationRootStep (β-conceal-∀ _) = ⊤
 TypeApplicationRootStep _ = ⊥
 
-TypeApplicationFrameStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-TypeApplicationFrameStep (ξ-• _ _ _) = ⊤
-TypeApplicationFrameStep _ = ⊥
-
 CastRootStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
@@ -307,29 +306,6 @@ SimBackPairedTypeApplicationRootᵀ =
   → PairedTypeApplicationRel rel
   → (step : M′ ⦂∀ C′ [ A′ ] —→[ χᴿ ] N′)
   → TypeApplicationRootStep step
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ (C [ A ]ᵗ) ⊑ᵂ⟨ W′ ⟩
-        applyTy χᴿ (C′ [ A′ ]ᵗ) ]
-      (M ⦂∀ C [ A ] —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
-
-SimBackPairedTypeApplicationFrameᵀ : Set
-SimBackPairedTypeApplicationFrameᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {C : Ty (Nat.suc Δᴸ)} {C′ : Ty (Nat.suc Δᴿ)}
-    {A : Ty Δᴸ} {A′ : Ty Δᴿ}
-    {p : C [ A ]ᵗ ⊑ᵂ⟨ W ⟩ C′ [ A′ ]ᵗ}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢²
-      M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ p)
-  → PairedTypeApplicationRel rel
-  → (step : M′ ⦂∀ C′ [ A′ ] —→[ χᴿ ] N′)
-  → TypeApplicationFrameStep step
   → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
@@ -590,8 +566,6 @@ module _
     (sim-back-application-right : SimBackApplicationRightᵀ)
     (sim-back-paired-type-application-root :
       SimBackPairedTypeApplicationRootᵀ)
-    (sim-back-paired-type-application-frame :
-      SimBackPairedTypeApplicationFrameᵀ)
     (sim-back-source-type-application : SimBackSourceTypeApplicationᵀ)
     (sim-back-paired-cast-root : SimBackPairedCastRootᵀ)
     (sim-back-target-cast-root : SimBackTargetCastRootᵀ)
@@ -879,9 +853,82 @@ module _
   sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
       step@(β-conceal-∀ vV) =
     sim-back-paired-type-application-root parked rel tt step tt
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(ξ-• M′→N′ refl refl) =
-    sim-back-paired-type-application-frame parked rel tt step tt
+  sim-back parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+      with sim-back parked M⊑M′ M′→N′
+  sim-back parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      rewrite applyTys-∀ χsᴸ C
+            | applyTy-∀ χ C′
+      with p | N⊑N′
+  sim-back parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ) ]
+            W′ ∣ List.[] ⊢²
+              N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ⊑
+              N′ ⦂∀ applyBody χ C′ [ applyTy χ A′ ]
+              ∶ s)
+        (sym (applyTys-open χsᴸ C A))
+        (subst≡
+          (λ T →
+            Σ[ s ∈
+                (applyBodies χsᴸ C [ applyTys χsᴸ A ]ᵗ)
+                  ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ⊑
+                N′ ⦂∀ applyBody χ C′ [ applyTy χ A′ ]
+                ∶ s)
+          (sym (apply-open χ C′ A′))
+          ( subst≡
+              (λ T →
+                (applyBodies χsᴸ C [ applyTys χsᴸ A ]ᵗ)
+                  ⊑ᵂ⟨ W′ ⟩ T)
+              (apply-open χ C′ A′)
+              (subst≡
+                (λ S →
+                  S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
+                (applyTys-open χsᴸ C A)
+                (transport⊑ᴾ evol r))
+          , •⊑•² p∀⁺ N⊑N′⁺
+              (transport⊑ᴾ evol q)
+              (subst≡
+                (λ T →
+                  (applyBodies χsᴸ C [ applyTys χsᴸ A ]ᵗ)
+                    ⊑ᵂ⟨ W′ ⟩ T)
+                (apply-open χ C′ A′)
+                (subst≡
+                  (λ S →
+                    S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
+                  (applyTys-open χsᴸ C A)
+                  (transport⊑ᴾ evol r)))
+          ))
+  sim-back parked
+      (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
+        p∀ M⊑M′ q r)
+      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+      | Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evol , N⊑N′
+      | p∀⁺ | N⊑N′⁺
+      | r⁺ , whole-rel =
+    Δᴸ′ , χsᴸ ,
+    N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ,
+    Δ′ , W′ , r⁺ ,
+    typeApp-↠ M↠N ,
+    evol ,
+    whole-rel
 
   sim-back parked rel@(•⊑² p∀ M⊑M′ q r) step =
     sim-back-source-type-application parked rel tt step

@@ -223,13 +223,58 @@ The actual old-constructor grep also finds historical scratch notes
 under `proof/DGG/notes/`; those should be updated or retired only if the
 full migration includes note hygiene.
 
+### M3 final status
+
+1. Core projections and transports: **carried as deletion blockers**.  Their
+   new-rule coverage remains checked, but the old rename/decay/target-lift
+   builders still construct `SourceConcealPartnerOK` and `conceal⊑²`; see
+   `t14-m3-deletion-blockers.red`.
+2. Low-level inversion and probes: **converted** for the M3 examples/probes
+   tier.  `Examples2`, `ChainRideProbe`, and `StarRepChainProbe` now use the
+   D15 source-ok or source-star-open rules.  The intentionally occupied
+   `TerminusRebuildProbe.InstanceB.tagged-input` remains excluded as residual
+   R1.
+3. Target-chain and source-strip consumers: **converted**.  `SealTransferCore`
+   preserves the matched partner and premise in `seal-transfer-paired`;
+   `TargetChainProof` carries the richer source-star payload through recursive
+   target contexts; `SourceStripProof` no longer promises the obsolete
+   occupied source-only re-emitter.
+4. Catchup and structural endpoints: **simulation-facing surface converted**.
+   `StructuralStrictViewSurfaceDef`,
+   `StructuralSourceRebaseReplayProof`, and
+   `StructuralNameInstantiationProof` expose and consume separate source-ok
+   and source-star-open replay routes.  The isolated
+   `StructuralNameInstantiationProof` check completed successfully.  Broader
+   legacy endpoint transformers remain deletion blockers.
+5. Simulation surface: **converted**.  The source-conceal value interface uses
+   `SourceConcealOK`, and `SimProof` supplies `id-conceal-ok`; no simulation
+   construction site requires an old partner constructor.
+6. Examples and probes: **converted and checked** as described in item 2.
+
+Residual disposition:
+
+- R1: **carried as a negative regression**.  Its requested occupied
+  source-only `seal X ★` wrapper is deliberately not derivable under D15; its
+  matched inner chain remains checked.
+- R2: **discharged** by preserving the paired matched package in
+  `SealTransferCore`.
+- R3: **discharged** by the richer `TargetChainProof` source-star payload route.
+- R4: **discharged** by removing the obsolete source-strip core re-emitter
+  contract.
+- R5: **discharged** by the split structural replay surface; the isolated check
+  completed in approximately 106 seconds, below the five-minute timebox.
+
+Deletion result: **blocked**, with the exact live construction families and
+required redesign recorded in `t14-m3-deletion-blockers.red`.  The attempted
+definition removal was reverted; no half-deleted relation state remains.
+
 ## Gate
 
 Command:
 
 ```sh
 cd GTSFImp
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda-home make check
+PATH=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda28/bin:$PATH make check
 ```
 
 Additional standalone review-probe check:

@@ -69,12 +69,7 @@ private
           target∈★ q★ premise★ reemit =
     core-terminus refl
       (U★ , Y★ , _ , refl , W★ , γ★ , mono★ , same★ ,
-        boundary★ , target∈★ , q★ , premise★ , reemit ,
-        λ qᵒ q′ final →
-          CTI2.conceal⊑²
-            (CTI2.seal-partner-ok CTI2.name-protected-target)
-            mono (CTI2.tag-rebase-varᴸ rb) sc
-            (CTI2.⊢↓-sealˣ source∈) final qᵒ)
+        boundary★ , target∈★ , q★ , premise★ , reemit)
   source-tag-seal-core-tagged {Wᵒ = Wᵒ} {γᵒ = γᵒ}
       (＇ X) sv vU mono rb sc source∈ target∈ D
       with target-strip-at★ sv vU mono rb sc source∈ target∈ D

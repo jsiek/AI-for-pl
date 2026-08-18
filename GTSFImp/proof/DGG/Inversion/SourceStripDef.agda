@@ -64,13 +64,7 @@ data SourceTagSealCoreBranch {Δᴸ Δᴿ Δ}
        (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
         × (W★ ∣ γ★ ⊢² P ⊑ U★ ∶ q★
            → Wᵖ ∣ γᵖ ⊢² P
-               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)
-        × ((qᵒ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★)
-           → (q′ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★)
-           → Wᵖ ∣ γᵖ ⊢² P
-               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ q′
-           → Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᴸ ★
-               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ qᵒ)))))
+               ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ pᵖ)))))
     → SourceTagSealCoreBranch Wᵒ γᵒ P A U Xᴸ Y S cY
         Wᵖ γᵖ pᵖ
 

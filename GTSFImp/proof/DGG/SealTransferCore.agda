@@ -677,44 +677,7 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
         (CTI2.matched-seal-star-partner partner)
         monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    with dynPayloadTargetRoute vU (CTI2T.target-typing² prem) partner
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        (CTI2.matched-seal-star-partner partner)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    | dyn-target-stripped seal-ok =
-  seal-transfer-stripped
-    (dynLink {W = W₁} {Z = Z} {Y = Y}
-      (SVD.variable-obligation-aligns {W = W₁} {X = Z} {Y = Y} p)
-      (CTI2.RebaseAt.storeRepresentations rbᵖ))
-    (dyn-decay-mono {W = W₁})
-    (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₁)
-      (sameCtx-refl {γ = γ₁}))
-    (CTI2.conceal⊑²
-      (CTI2.seal-partner-ok (seal-ok {P = P}))
-      (dyn-mono {W = W₁} {W′ = Wᵖ})
-      (CTI2.tag-rebase-varᴸ
-        (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
-          (SPT.dynWorld-decay W₁) rbᵖ))
-      (WD.decaySameCtx (SPT.dynWorld-decay W₁)
-        (SPT.dynWorld-decay Wᵖ) scᵖ)
-      (CTI2.⊢↓-sealˣ Z∈′)
-      (TD.⊢²-decay (SPT.dynWorld-decay Wᵖ) prem)
-      (dyn-var-star {W = W₁} {X = Z}))
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        (CTI2.matched-seal-star-partner partner)
-        monoᵖ rbᵖ scᵖ (CTI2.⊢↓-sealˣ Z∈′)
-        (CTI2.⊢↓-sealˣ Y∈) prem .p
-    | dyn-target-paired =
+        (CTI2.⊢↓-sealˣ Y∈) prem .p =
   seal-transfer-paired monoᵖ rbᵖ scᵖ
     (CTI2.⊢↓-sealˣ Z∈′) (CTI2.⊢↓-sealˣ Y∈)
     (CTI2.matched-seal-star-partner partner) prem

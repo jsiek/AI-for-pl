@@ -491,23 +491,8 @@ target-source-star-at
     | varv-seal {W = U₀} vU₀ Y₂∈ refl
     | ._ , refl , aligned
     | target-source-star-residual refl X∈ᵒ Y₂∈ᵒ rbᵒ residualᵒ =
-  target-source-star-final
-    (STC.emit-tagged-transfer mono₂ link sc₂
-      (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
-      (STC.tagged-transfer-output
-        (CTI2.cast⊑² c D₂ ★⊑★)
-        (STC.premise-partner-just aligned)
-        (CTI2.matched-seal-star-partner
-          (CTI2.rep★-var-tag aligned)))
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok CTI2.name-protected-target)
-        (STC.impEnvMono-refl {W = W₂})
-        (CTI2.tag-rebase-varᴸ
-          rbᵒ)
-        (STC.sameCtx-refl {γ = γ₂})
-        (CTI2.⊢↓-sealˣ X∈ᵒ)
-        (CTI2.cast⊑cast² c cᴿ! residualᵒ ★⊑★)
-        q₂))
+  target-source-star-payload refl mono₂ link sc₂ X∈ Y∈
+    (CTI2.⊑cast² cᴿ! residualᵒ q₂)
 target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
@@ -518,22 +503,8 @@ target-source-star-at
     | varv-seal {W = U₀} vU₀ Y₂∈ refl
     | ._ , refl , aligned
     | target-source-star-var-residual refl X∈ᵒ Y₂∈ᵒ rbᵒ residualᵒ =
-  target-source-star-final
-    (STC.emit-tagged-transfer mono₂ link sc₂
-      (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
-      (STC.tagged-transfer-output
-        (CTI2.cast⊑² c D₂ ★⊑★)
-        (STC.premise-partner-just aligned)
-        (CTI2.matched-seal-star-partner
-          (CTI2.rep★-var-tag aligned)))
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok CTI2.name-protected-target)
-        (STC.impEnvMono-refl {W = W₂})
-        (CTI2.tag-rebase-varᴸ rbᵒ)
-        (STC.sameCtx-refl {γ = γ₂})
-        (CTI2.⊢↓-sealˣ X∈ᵒ)
-        (CTI2.cast⊑cast² c cᴿ! residualᵒ ★⊑★)
-        q₂))
+  target-source-star-payload refl mono₂ link sc₂ X∈ Y∈
+    (CTI2.⊑cast² cᴿ! residualᵒ q₂)
 target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
@@ -545,28 +516,12 @@ target-source-star-at
     | ._ , refl , aligned
     | target-source-star-paired refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         partnerᵒ premᵒ =
-  target-source-star-final
-    (STC.emit-tagged-transfer mono₂ link sc₂
-      (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
-      (STC.tagged-transfer-output
-        (CTI2.cast⊑² c D₂ ★⊑★)
-        (STC.premise-partner-just aligned)
-        (CTI2.matched-seal-star-partner
-          (CTI2.rep★-var-tag aligned)))
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok CTI2.name-protected-target)
-        (STC.impEnvMono-refl {W = W₂})
-        (CTI2.tag-rebase-varᴸ
-          (CTI2.sameWorldRebaseAt aligned
-            (CTI2.RebaseAt.storeRepresentations rbᵒ)))
-        (STC.sameCtx-refl {γ = γ₂})
-        (CTI2.⊢↓-sealˣ X∈ᵒ)
-        (CTI2.cast⊑cast² c cᴿ!
-          (CTI2.conceal⊑conceal² partnerᵒ monoᵒ rbᵒ scᵒ
-            (CTI2.⊢↓-sealˣ X∈ᵒ) (CTI2.⊢↓-sealˣ Y₂∈ᵒ)
-            premᵒ p₂)
-          ★⊑★)
-        q₂))
+  target-source-star-payload refl mono₂ link sc₂ X∈ Y∈
+    (CTI2.⊑cast² cᴿ!
+      (CTI2.conceal⊑conceal² partnerᵒ monoᵒ rbᵒ scᵒ
+        (CTI2.⊢↓-sealˣ X∈ᵒ) (CTI2.⊢↓-sealˣ Y₂∈ᵒ)
+        premᵒ p₂)
+      q₂)
 target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = Ansᴿ ⦄ ⟩}
@@ -578,27 +533,11 @@ target-source-star-at
     | ._ , refl , aligned
     | target-source-star-payload refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         sourcePremᵒ =
-  target-source-star-final
-    (STC.emit-tagged-transfer mono₂ link sc₂
-      (CTI2.⊢↓-sealˣ X∈) (CTI2.⊢↓-sealˣ Y∈)
-      (STC.tagged-transfer-output
-        (CTI2.cast⊑² c D₂ ★⊑★)
-        (STC.premise-partner-just aligned)
-        (CTI2.matched-seal-star-partner
-          (CTI2.rep★-var-tag aligned)))
-      (CTI2.conceal⊑²
-        (CTI2.seal-partner-ok CTI2.name-protected-target)
-        (STC.impEnvMono-refl {W = W₂})
-        (CTI2.tag-rebase-varᴸ
-          (CTI2.sameWorldRebaseAt aligned
-            (CTI2.RebaseAt.storeRepresentations rbᵒ)))
-        (STC.sameCtx-refl {γ = γ₂})
-        (CTI2.⊢↓-sealˣ X∈ᵒ)
-        (CTI2.cast⊑cast² c cᴿ!
-          (CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-            (CTI2.⊢↓-sealˣ Y₂∈ᵒ) sourcePremᵒ p₂)
-          ★⊑★)
-        q₂))
+  target-source-star-payload refl mono₂ link sc₂ X∈ Y∈
+    (CTI2.⊑cast² cᴿ!
+      (CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+        (CTI2.⊢↓-sealˣ Y₂∈ᵒ) sourcePremᵒ p₂)
+      q₂)
 target-source-star-at
     {V = V ↓ x}
     {U = U ⟨ _! ⦃ Gᵍ = ＇ Y₂ ⦄ cᴿ ⦃ Ans = () ⦄ ⟩}

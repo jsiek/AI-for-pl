@@ -49,7 +49,9 @@ open import proof.Reduction using
   ; appL-↠
   ; cast-↠
   ; composeReduction
+  ; conceal-↠
   ; primL-↠
+  ; reveal-↠
   ; typeApp-↠
   ; _++χ_
   )
@@ -69,8 +71,16 @@ open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
 open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
 open import proof.DGG.SimBackDef using (SimBackᵀ)
+open import proof.DGG.CatchupToMorePreciseDef using (toTagRebaseAtᴿ)
 open import proof.DGG.TargetBlameCatchupProof
-  using (target-blame-catchup)
+  using
+    ( target-blame-catchup
+    ; target-blame-boundary-refl
+    ; target-blame-boundary-source-reveal
+    ; target-blame-boundary-source-conceal
+    ; target-value-blame-exclusion
+    ; target-blame-catchup-under-boundary
+    )
 open import proof.DGG.TransportTermImprecisionDef
   using (TransportTermImprecisionᴾᵀ)
 open import proof.TypeSafety.Preservation using (apply-open; preservation)
@@ -154,7 +164,6 @@ RevealRootStep : ∀ {Δ Δ′ : TyCtx}
   → M —→[ χ ] N → Set
 RevealRootStep (pure-step (id-reveal _)) = ⊤
 RevealRootStep (pure-step (conceal-reveal _)) = ⊤
-RevealRootStep (pure-step blame-reveal) = ⊤
 RevealRootStep _ = ⊥
 
 RevealFrameStep : ∀ {Δ Δ′ : TyCtx}
@@ -167,7 +176,6 @@ ConcealRootStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
 ConcealRootStep (pure-step (id-conceal _)) = ⊤
-ConcealRootStep (pure-step blame-conceal) = ⊤
 ConcealRootStep _ = ⊥
 
 ConcealFrameStep : ∀ {Δ Δ′ : TyCtx}
@@ -847,9 +855,23 @@ module _
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step (conceal-reveal vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
-      step@(pure-step blame-reveal) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked
+      (⊑reveal² mono rebase same-[] c′⊢ M⊑blame q)
+      (pure-step blame-reveal)
+      with target-blame-catchup-under-boundary
+        target-value-blame-exclusion parked
+        (target-blame-boundary-source-reveal
+          target-blame-boundary-refl mono (toTagRebaseAtᴿ rebase))
+        M⊑blame
+  sim-back {p = q} parked
+      (⊑reveal² mono rebase same-[] c′⊢ M⊑blame q)
+      (pure-step blame-reveal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+    Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
+    transport⊑ᴾ (evolve-keepᴿ evol) q ,
+    M↠blame ,
+    evolve-keepᴿ evol ,
+    blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q)
   sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
       step@(ξ-reveal M′→N′ refl) =
     sim-back-conversion-boundary parked rel step tt
@@ -857,9 +879,23 @@ module _
   sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
       step@(pure-step (id-conceal vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
-      step@(pure-step blame-conceal) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked
+      (⊑conceal² mono rebase same-[] c′⊢ M⊑blame q)
+      (pure-step blame-conceal)
+      with target-blame-catchup-under-boundary
+        target-value-blame-exclusion parked
+        (target-blame-boundary-source-conceal
+          target-blame-boundary-refl mono (toTagRebaseAtᴿ rebase))
+        M⊑blame
+  sim-back {p = q} parked
+      (⊑conceal² mono rebase same-[] c′⊢ M⊑blame q)
+      (pure-step blame-conceal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+    Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
+    transport⊑ᴾ (evolve-keepᴿ evol) q ,
+    M↠blame ,
+    evolve-keepᴿ evol ,
+    blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q)
   sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
       step@(ξ-conceal M′→N′ refl) =
     sim-back-conversion-boundary parked rel step tt
@@ -884,9 +920,32 @@ module _
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (conceal-reveal vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step blame-reveal) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked
+      (reveal⊑reveal² {c = c} mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-reveal)
+      with target-blame-catchup-under-boundary
+        target-value-blame-exclusion parked
+        (target-blame-boundary-source-reveal
+          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
+        M⊑blame
+  sim-back {p = q} parked
+      (reveal⊑reveal² {c = c} mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-reveal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      with finish-target-blame q
+        (reveal-↠ c M↠blame) (pure-step blame-reveal) evol
+  sim-back {p = q} parked
+      (reveal⊑reveal² {c = c} mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-reveal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      | q′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-reveal M′→N′ refl) =
     sim-back-conversion-boundary parked rel step tt
@@ -895,20 +954,64 @@ module _
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (id-conceal vV)) =
     sim-back-target-root parked rel step tt
-  sim-back parked
-      rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step blame-conceal) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked
+      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-conceal)
+      with target-blame-catchup-under-boundary
+        target-value-blame-exclusion parked
+        (target-blame-boundary-source-conceal
+          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
+        M⊑blame
+  sim-back {p = q} parked
+      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-conceal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      with finish-target-blame q
+        (conceal-↠ c M↠blame) (pure-step blame-conceal) evol
+  sim-back {p = q} parked
+      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame q)
+      (pure-step blame-conceal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      | q′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked
       rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-conceal M′→N′ refl) =
     sim-back-conversion-boundary parked rel step tt
 
-  sim-back parked
-      rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
-        M⊑M′ sealed q)
-      step@(pure-step blame-conceal) =
-    sim-back-target-root parked rel step tt
+  sim-back {p = q} parked
+      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame sealed q)
+      (pure-step blame-conceal)
+      with target-blame-catchup-under-boundary
+        target-value-blame-exclusion parked
+        (target-blame-boundary-source-conceal
+          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
+        M⊑blame
+  sim-back {p = q} parked
+      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame sealed q)
+      (pure-step blame-conceal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      with finish-target-blame q
+        (conceal-↠ (Conversion.seal Xᴸ ★) M↠blame)
+        (pure-step blame-conceal) evol
+  sim-back {p = q} parked
+      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
+        c⊢ c′⊢ M⊑blame sealed q)
+      (pure-step blame-conceal)
+      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
+      | q′ , whole↠blame , evol′ , endpoint =
+    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
+    whole↠blame ,
+    evol′ ,
+    endpoint
   sim-back parked
       rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
         M⊑M′ sealed q)

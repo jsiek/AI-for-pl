@@ -22,7 +22,14 @@ open import TyStore using
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; id↪ᵗ; toRenameᵗ)
 open import Imprecision
+import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CenterRename as CR
+import proof.DGG.CompilePreservesImprecision2 as CPI2
+import proof.DGG.Parked.ParkedWorldDef as PWD
+import proof.DGG.SealPeelToolkit as SPT
+import proof.DGG.TargetExtend as TE
+import proof.DGG.WorldDecay as WD
 open import proof.ImprecisionConsistency using
   (refl⊑; rename-⊑; toRenameᵗ-injective)
 open import proof.TypeInTermSubst using
@@ -134,6 +141,29 @@ initialWorld-invariants μ = world-invariants precise reps unmatched
   unmatched : ∀ Xᴿ
     → (∀ Xᴸ → toRenameᵗ id↪ᵗ Xᴸ ≢ toRenameᵗ id↪ᵗ Xᴿ)
     → lookupStore (emptyStore _) Xᴿ ≡ ★
+  unmatched Xᴿ no-source = ⊥-elim (no-source Xᴿ refl)
+
+identityWorld-invariants : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
+  → WorldInvariants (CTI2.world id↪ᵗ id↪ᵗ μ Σ Σ)
+identityWorld-invariants μ Σ = world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → μ (toRenameᵗ id↪ᵗ Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar _ ]
+        toRenameᵗ id↪ᵗ Xᴿ ≡ toRenameᵗ id↪ᵗ Xᴸ
+  precise Xᴸ mark = Xᴸ , refl
+
+  reps : ∀ {Xᴸ Xᴿ}
+    → toRenameᵗ id↪ᵗ Xᴸ ≡ toRenameᵗ id↪ᵗ Xᴿ
+    → μ ⊢ renameᵗ (toRenameᵗ id↪ᵗ) (lookupStore Σ Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ id↪ᵗ) (lookupStore Σ Xᴿ)
+  reps {Xᴸ = Xᴸ} aligned
+      with toRenameᵗ-injective id↪ᵗ aligned
+  reps {Xᴸ = Xᴸ} aligned | refl = refl⊑ _
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ → toRenameᵗ id↪ᵗ Xᴸ ≢ toRenameᵗ id↪ᵗ Xᴿ)
+    → lookupStore Σ Xᴿ ≡ ★
   unmatched Xᴿ no-source = ⊥-elim (no-source Xᴿ refl)
 
 
@@ -439,3 +469,166 @@ bothBindWorld-invariants {W = W} v A B A⊑B inv =
         ≢ toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
     old-no-source Xᴸ aligned =
       no-source (Fin.suc Xᴸ) (cong Fin.suc aligned)
+
+
+parked-initial-invariants : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+  → WorldInvariants (CPI2.initialWorld μ Σ)
+parked-initial-invariants {μ = μ} {Σ = Σ} = identityWorld-invariants μ Σ
+
+parked-both-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → WorldInvariants W
+  → WorldInvariants (CTI2.bothBindWorld X⊑X W A B)
+parked-both-bind-invariants {A = A} {B = B} =
+  bothBindWorld-invariants X⊑X A B
+
+parked-left-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {A : Ty Δᴸ}
+  → WorldInvariants W
+  → WorldInvariants (CTI2.leftOnlyWorld X⊑★ W A)
+parked-left-bind-invariants {A = A} =
+  leftOnlyWorld-invariants X⊑★ A refl
+
+parked-right-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → ⇑ᵗ B ≡ ★
+  → WorldInvariants W
+  → WorldInvariants (CTI2.rightOnlyWorld W B)
+parked-right-bind-invariants {B = B} = rightOnlyWorld-invariants B
+
+parked-structural-right-insert-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → PWD.ParkedWorld W
+  → WorldInvariants W
+  → WorldInvariants W
+parked-structural-right-insert-invariants parked inv = inv
+
+
+parkedEvolve-end-invariants : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+    {χsᴸ : R.StoreChanges Δᴸ Δᴸ′}
+    {χsᴿ : R.StoreChanges Δᴿ Δᴿ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W′ : CTI2.World Δᴸ′ Δᴿ′ Δ′}
+  → PWD.ParkedEvolve χsᴸ χsᴿ W W′
+  → WorldInvariants W′
+  → WorldInvariants W′
+parkedEvolve-end-invariants PWD.evolve-refl inv = inv
+parkedEvolve-end-invariants (PWD.evolve-keepᴸ evol) inv = inv
+parkedEvolve-end-invariants (PWD.evolve-keepᴿ evol) inv = inv
+parkedEvolve-end-invariants (PWD.evolve-both-bind evol) inv = inv
+parkedEvolve-end-invariants (PWD.evolve-left-bind evol) inv = inv
+parkedEvolve-end-invariants (PWD.evolve-right-bind evol) inv = inv
+parkedEvolve-end-invariants
+    (PWD.evolve-structural-right-bind ins follows evol) inv = inv
+
+
+renameWorld-invariants : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ} (π : Δ ↪ᵗ Δ′)
+  → WorldInvariants W
+  → WorldInvariants (CR.renameWorld π W)
+renameWorld-invariants {W = W} π inv =
+  world-invariants precise reps unmatched
+  where
+  precise : ∀ Xᴸ
+    → CR.renameEnv π (CTI2.impEnvʷ W)
+        (toRenameᵗ (π CR.∘↪ CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar _ ]
+        toRenameᵗ (π CR.∘↪ CTI2.ηᴿʷ W) Xᴿ
+          ≡ toRenameᵗ (π CR.∘↪ CTI2.ηᴸʷ W) Xᴸ
+  precise Xᴸ mark with preciseMarksAligned inv Xᴸ old-mark
+    where
+    old-mark :
+      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑X
+    old-mark =
+      trans (sym (CR.renameEnv-image π (CTI2.impEnvʷ W)
+          (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)))
+        (trans (cong (CR.renameEnv π (CTI2.impEnvʷ W))
+          (sym (CR.toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ))) mark)
+  precise Xᴸ mark | Xᴿ , aligned =
+    Xᴿ , trans (CR.toRenameᵗ-∘ π (CTI2.ηᴿʷ W) Xᴿ)
+      (trans (cong (toRenameᵗ π) aligned)
+        (sym (CR.toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ)))
+
+  reps : ∀ {Xᴸ Xᴿ}
+    → toRenameᵗ (π CR.∘↪ CTI2.ηᴸʷ W) Xᴸ
+        ≡ toRenameᵗ (π CR.∘↪ CTI2.ηᴿʷ W) Xᴿ
+    → CR.renameEnv π (CTI2.impEnvʷ W) ⊢
+        renameᵗ (toRenameᵗ (π CR.∘↪ CTI2.ηᴸʷ W))
+          (lookupStore (CTI2.sourceStoreʷ W) Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ (π CR.∘↪ CTI2.ηᴿʷ W))
+          (lookupStore (CTI2.targetStoreʷ W) Xᴿ)
+  reps {Xᴸ} {Xᴿ} aligned =
+    CR.rename-⊑ᵂ {W = W}
+      {A = lookupStore (CTI2.sourceStoreʷ W) Xᴸ}
+      {B = lookupStore (CTI2.targetStoreʷ W) Xᴿ}
+      π (representationsImprecise inv old-aligned)
+    where
+    old-aligned : CenterAligned W Xᴸ Xᴿ
+    old-aligned = toRenameᵗ-injective π
+      (trans (sym (CR.toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ))
+        (trans aligned
+          (CR.toRenameᵗ-∘ π (CTI2.ηᴿʷ W) Xᴿ)))
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ
+        → toRenameᵗ (π CR.∘↪ CTI2.ηᴸʷ W) Xᴸ
+          ≢ toRenameᵗ (π CR.∘↪ CTI2.ηᴿʷ W) Xᴿ)
+    → lookupStore (CTI2.targetStoreʷ W) Xᴿ ≡ ★
+  unmatched Xᴿ no-source = unmatchedTargetsDynamic inv Xᴿ old-no-source
+    where
+    old-no-source : ∀ Xᴸ
+      → toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ
+        ≢ toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
+    old-no-source Xᴸ aligned = no-source Xᴸ
+      (trans (CR.toRenameᵗ-∘ π (CTI2.ηᴸʷ W) Xᴸ)
+        (trans (cong (toRenameᵗ π) aligned)
+          (sym (CR.toRenameᵗ-∘ π (CTI2.ηᴿʷ W) Xᴿ))))
+
+
+decay-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+  → WD.EnvDecay W Wᵈ
+  → WorldInvariants W
+  → WorldInvariants Wᵈ
+decay-invariants
+    {W = CTI2.world ηᴸ ηᴿ μ Σᴸ Σᴿ}
+    {Wᵈ = CTI2.world .ηᴸ .ηᴿ μᵈ .Σᴸ .Σᴿ}
+    (WD.env-decay refl refl refl refl mono) inv =
+  world-invariants precise reps (unmatchedTargetsDynamic inv)
+  where
+  precise : ∀ Xᴸ
+    → μᵈ (toRenameᵗ ηᴸ Xᴸ) ≡ X⊑X
+    → Σ[ Xᴿ ∈ TyVar _ ]
+        toRenameᵗ ηᴿ Xᴿ ≡ toRenameᵗ ηᴸ Xᴸ
+  precise Xᴸ preciseᵈ with μ (toRenameᵗ ηᴸ Xᴸ) in old-mark
+  precise Xᴸ preciseᵈ | X⊑X = preciseMarksAligned inv Xᴸ old-mark
+  precise Xᴸ preciseᵈ | X⊑★
+      with trans (sym (mono (toRenameᵗ ηᴸ Xᴸ) old-mark)) preciseᵈ
+  precise Xᴸ preciseᵈ | X⊑★ | ()
+
+  reps : ∀ {Xᴸ Xᴿ}
+    → toRenameᵗ ηᴸ Xᴸ ≡ toRenameᵗ ηᴿ Xᴿ
+    → μᵈ ⊢ renameᵗ (toRenameᵗ ηᴸ) (lookupStore Σᴸ Xᴸ)
+        ⊑ renameᵗ (toRenameᵗ ηᴿ) (lookupStore Σᴿ Xᴿ)
+  reps aligned = WD.⊑-env-mono mono (representationsImprecise inv aligned)
+
+
+blendWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W′ Wᵈ : CTI2.World Δᴸ Δᴿ Δ}
+  → WorldInvariants W′
+  → WorldInvariants (WD.blendWorld W′ Wᵈ)
+blendWorld-invariants {W′ = W′} {Wᵈ = Wᵈ} =
+  decay-invariants (WD.blend-decay {W′ = W′} {Wᵈ = Wᵈ})
+
+honestify-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → WorldInvariants W
+  → WorldInvariants (WD.honestify W)
+honestify-invariants {W = W} = decay-invariants (WD.honestify-decay {W = W})
+
+dynWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ}
+  → WorldInvariants W
+  → WorldInvariants (SPT.dynWorld W)
+dynWorld-invariants {W = W} = decay-invariants (SPT.dynWorld-decay W)

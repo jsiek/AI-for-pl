@@ -114,6 +114,7 @@ import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
 import proof.DGG.Catchup.FuelKnotProof
 import proof.DGG.Catchup.FuelDischargeProof
+import proof.DGG.Catchup.LeftBoundaryCatchupDef
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)

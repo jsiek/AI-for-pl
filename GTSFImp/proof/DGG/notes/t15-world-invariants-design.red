@@ -8,7 +8,24 @@ by `proof/DGG/notes/probes/T15WorldInvariantsDesignProbe.agda`.
 
 The invariant belongs directly in `World`.  It does not require a two-layer
 `RawWorld` definition because its conclusion can use the raw, environment-
-indexed type-imprecision relation.  The proposed record is:
+indexed type-imprecision relation.
+
+`TyStore` currently exposes the relational lookup `_∋_⦂_`, but that
+relation intentionally has no entry for `Fin.zero` under `store-lift`.  D16
+needs a total one-step view, including structural binders, so the probe drafts
+the following canonical `lookupStore` primitive:
+
+```agda
+lookupStore : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ
+lookupStore (store-lift Σ) Fin.zero = ＇ Fin.zero
+lookupStore (store-lift Σ) (Fin.suc X) = ⇑ᵗ (lookupStore Σ X)
+lookupStore (store-bind Σ A) Fin.zero = ⇑ᵗ A
+lookupStore (store-bind Σ A) (Fin.suc X) = ⇑ᵗ (lookupStore Σ X)
+```
+
+This returns exactly one direct store entry, lifted into the store's current
+scope; it never follows a variable entry.  The recommended record uses the
+chain-permissive form of invariant (4):
 
 ```agda
 record World (Δᴸ Δᴿ Δ : TyCtx) : Set where
@@ -31,15 +48,19 @@ record World (Δᴸ Δᴿ Δ : TyCtx) : Set where
       → toRenameᵗ ηᴸʷ Xᴸ ≡ toRenameᵗ ηᴿʷ Xᴿ
       → impEnvʷ ⊢
           renameᵗ (toRenameᵗ ηᴸʷ)
-            (resolveRep sourceStoreʷ (＇ Xᴸ))
+            (lookupStore sourceStoreʷ Xᴸ)
           ⊑ renameᵗ (toRenameᵗ ηᴿʷ)
-            (resolveRep targetStoreʷ (＇ Xᴿ))
+            (lookupStore targetStoreʷ Xᴿ)
 
     unmatchedTargetsDynamicʷ :
       ∀ (Xᴿ : TyVar Δᴿ)
       → (∀ (Xᴸ : TyVar Δᴸ)
           → toRenameᵗ ηᴸʷ Xᴸ ≢ toRenameᵗ ηᴿʷ Xᴿ)
-      → resolveRep targetStoreʷ (＇ Xᴿ) ≡ ★
+      → lookupStore targetStoreʷ Xᴿ ≡ ★
+        ⊎ Σ[ Yᴿ ∈ TyVar Δᴿ ]
+            (lookupStore targetStoreʷ Xᴿ ≡ ＇ Yᴿ)
+          × (∀ (Xᴸ : TyVar Δᴸ)
+              → toRenameᵗ ηᴸʷ Xᴸ ≢ toRenameᵗ ηᴿʷ Yᴿ)
 ```
 
 `preciseMarksAlignedʷ` is exactly the current `WFWorld` judgment, now a
@@ -48,26 +69,73 @@ center mark.  A `RebaseAt` pivot may be center-aligned at `X⊑★`, and its
 store representations still have to be related.  Conditioning the field on
 `X⊑X` would leave precisely that runtime alignment unchecked.
 
-`unmatchedTargetsDynamicʷ` says exactly that a target pivot with no
-center-aligned source pivot resolves to `★`.  Equality is the right conclusion,
-not a second representation-path predicate: `resolveRep` is already the
-canonical transitive path resolver.  This leaves matched pivots unrestricted;
-in particular, the checked paths ending at `ℕ` remain legal while their target
-pivot has a source partner.
+The direct field makes chain coherence derivable rather than primitive.  If
+aligned `Xᴸ` and `Xᴿ` have variable entries `＇ Yᴸ` and `＇ Yᴿ`, their direct
+entries are related.  The only imprecision derivation between two variables
+identifies their embedded heads, so `Yᴸ` and `Yᴿ` are center-aligned and the
+field applies again.  Induction on decreasing store age repeats this argument
+down the chain.  The probe checks the induction step with this statement:
+
+```agda
+variableEntryChainCoherence : ∀ {Δᴸ Δᴿ Δ}
+    (W : World Δᴸ Δᴿ Δ)
+    {Xᴸ Yᴸ : TyVar Δᴸ} {Xᴿ Yᴿ : TyVar Δᴿ}
+  → CenterAligned W Xᴸ Xᴿ
+  → lookupStore (sourceStoreʷ W) Xᴸ ≡ ＇ Yᴸ
+  → lookupStore (targetStoreʷ W) Xᴿ ≡ ＇ Yᴿ
+  → CenterAligned W Yᴸ Yᴿ
+    × (impEnvʷ W ⊢
+        renameᵗ (toRenameᵗ (ηᴸʷ W))
+          (lookupStore (sourceStoreʷ W) Yᴸ)
+        ⊑ renameᵗ (toRenameᵗ (ηᴿʷ W))
+          (lookupStore (targetStoreʷ W) Yᴿ))
+```
+
+### Design sub-question: strict or chain-permissive (4)?
+
+The two direct-entry candidates are:
+
+1. **STRICT**
+
+   ```agda
+   unmatchedTargetsDynamicʷ :
+     ∀ (Xᴿ : TyVar Δᴿ)
+     → (∀ (Xᴸ : TyVar Δᴸ)
+         → toRenameᵗ ηᴸʷ Xᴸ ≢ toRenameᵗ ηᴿʷ Xᴿ)
+     → lookupStore targetStoreʷ Xᴿ ≡ ★
+   ```
+
+2. **CHAIN-PERMISSIVE** (shown in the proposed record): the entry is literally
+   `★`, or it is `＇ Yᴿ` and `Yᴿ` is itself unmatched.  Since a bound variable
+   can mention only an older variable, repeated use terminates at literal `★`.
+
+**Recommendation: choose CHAIN-PERMISSIVE.**  The live `Λ⊑Λ²` catch-up route
+first right-binds `★` and then right-binds `＇ Fin.zero`.  Both fresh cells are
+unmatched at bind time: `rightOnlyWorld` skips every source center and keeps the
+fresh target center.  The second cell points to the first, still-unmatched `★`
+cell.  The strict form rejects this established safe route, while the permissive
+form accepts it and still derives `★` termination.  The probe constructs
+`alias-chain-world` under the permissive field and proves
+`alias-chain-rejects-strict`.
+
+The other structural `＇ X` bind sites are also fresh unmatched cells, not
+matched cells.  However, their arbitrary old head `X` may already be matched;
+none of their signatures says it is unmatched.  Therefore even the permissive
+form correctly leaves those generic sites unproved.
 
 The conclusion uses raw `_ ⊢_ ⊑_`, not `_ ⊑ᵂ⟨_⟩_`.  After the record
 exists it is definitionally the intended world relation:
 
 ```agda
-impEnvʷ W ⊢ embedᴸ W (resolveRep (sourceStoreʷ W) (＇ Xᴸ))
-          ⊑ embedᴿ W (resolveRep (targetStoreʷ W) (＇ Xᴿ))
+impEnvʷ W ⊢ embedᴸ W (lookupStore (sourceStoreʷ W) Xᴸ)
+          ⊑ embedᴿ W (lookupStore (targetStoreʷ W) Xᴿ)
 ```
 
 but spelling out the embeddings avoids a recursive dependency from `World` to
 a relation defined by projections from `World`.  In the live migration,
-`resolveVar` and `resolveRep` must be moved above `World`; they are currently
-declared later in `CastTermImprecision2.agda`.  This is declaration staging,
-not a change to type imprecision.
+`lookupStore` belongs in `TyStore`; no representation-chain resolver must be
+moved above `World`, and the live resolver remains available to consumers that
+actually need a transitive representative.
 
 ## Empty initial compilation world
 
@@ -109,82 +177,98 @@ lemma; it does not mean the eight-field constructor has been implemented.
 | `CompilePreservesImprecision2.initialWorld` | Identity precise alignment; reflexive representations in two empty stores; no unmatched target. | **In hand and checked.** Remove the arbitrary-store parameter from its public callers. |
 | `Examples2.reflWorld` | Identity alignment and reflexivity for the same store on both sides; no unmatched target. | **In hand.** |
 | `Occupancy.initialWorldᴼ` | Same as canonical `initialWorld`. | **In hand, but obsolete.** Delete this duplicate rather than preserve an alias. |
-| `liftWorldBoth v W` | Lift all old invariants; relate the fresh structural pair. | **In hand.** The fresh target is matched, and old unmatched targets remain unmatched with lifted `★` representations. |
+| `liftWorldBoth v W` | Lift all old invariants; relate the fresh structural pair. | **In hand.** The fresh target is matched.  Each old direct entry is merely shifted; a variable head and its unmatched proof shift pointwise. |
 | `liftWorldLeft v W` | Lift old pairs; a precise fresh source mark must have a target occupant. | **Not in hand for generic `v`.** Current compile use is `X⊑★`. Restrict it to a non-precise mark or add a premise ruling out `X⊑X`. |
 | `leftOnlyWorld v W A` | Transport old pairs through the source bind; handle the unpaired fresh source. | **Not in hand for generic `v`.** Live parked uses pass `X⊑★`; the signature should expose that requirement. |
-| `rightOnlyWorld W B` | Transport old pairs; prove the fresh unmatched target resolves to `★`. | **Not in hand for generic `B`.** Require `resolveRep (targetStoreʷ W) B ≡ ★`. It is definitional for `B = ★` and for `B = ＇ zero` immediately after binding `★`. |
-| `bothBindWorld v W A B` | Transport old pairs and relate the canonical representations of the fresh aligned `A` and `B` cells. | **Not in hand in the builder for representation imprecision.** Its fresh target is matched, so invariant (4) adds no obligation. |
-| `parked-initial`, `parked-both-bind`, `parked-left-bind`, and `parked-right-bind` | Classify worlds minted by the initial and three bind builders. | **In hand after the builders are strengthened.** `parked-right-bind` inherits the new resolved-`★` premise. |
+| `rightOnlyWorld W B` | Transport old pairs; classify the fresh unmatched direct entry `⇑ᵗ B`. | **Not in hand for generic `B`.** Under the recommended form, accept `B = ★`, or `B = ＇ X` when `X` is proved unmatched in `W`. Strict accepts only the first case. |
+| `bothBindWorld v W A B` | Transport old pairs and relate the direct entries of the fresh aligned `A` and `B` cells. | **Simplified and in hand when the allocation premise relates `A` and `B`.** Rename that premise through the fresh center; no chain-resolution bridge is needed.  Its fresh target is matched, so invariant (4) adds no obligation. |
+| `parked-initial`, `parked-both-bind`, `parked-left-bind`, and `parked-right-bind` | Classify worlds minted by the initial and three bind builders. | **In hand after the builders are strengthened.** `parked-right-bind` inherits the new direct-entry classification premise. |
 | `parked-structural-right-insert` | Classify a caller-supplied `TargetInsert` output as parked. | **In hand.** The result is already a valid `World`; the insert and store-following premises add no new field obligation. |
 | `evolve-refl`, `evolve-keepᴸ`, and `evolve-keepᴿ` | Reindex a trace without constructing a world. | **No new obligation.** The endpoint worlds already carry all three fields. |
-| `evolve-both-bind`, `evolve-left-bind`, and `evolve-right-bind` | Remove a leading allocation from an evolution whose starting world was produced by a bind builder. | `evolve-right-bind` must expose the same resolved-`★` premise as `rightOnlyWorld`; the other two add no invariant-(4) work. |
-| `evolve-structural-right-bind` | Remove a structural target allocation backed by `TargetInsert`. | **In hand at this consumer.** `W₁` is already a valid `World`; its projection proves the fresh target is `★`. The minting burden remains at the `TargetInsert` output builder. |
-| `BothBindTransport²ᵀ` and paired allocation callers | Supply the fresh canonical-representation relation to `bothBindWorld`. | **Partly in hand at callers.** Paired allocation has an `A₀⊑B₀` premise, but the current transport surface passes only the trivial fresh-variable witness `＇ zero ⊑ ＇ zero`. A lemma must turn the allocation premise plus the old invariant into the resolved-representation witness. |
-| `CenterRename.renameWorld` | Rename all invariant conclusions and preserve center equality. | **In hand.** Existing `rename-⊑`, `renameStoreRep`, and embedding injectivity provide the ingredients. |
+| `evolve-both-bind`, `evolve-left-bind`, and `evolve-right-bind` | Remove a leading allocation from an evolution whose starting world was produced by a bind builder. | `evolve-right-bind` must expose the same direct-entry classification premise as `rightOnlyWorld`; the other two add no invariant-(4) work. |
+| `evolve-structural-right-bind` | Remove a structural target allocation backed by `TargetInsert`. | **In hand at this consumer.** `W₁` is already a valid `World`; its projection classifies the fresh direct entry. The minting burden remains at the `TargetInsert` output builder. |
+| `BothBindTransport²ᵀ` and paired allocation callers | Supply the fresh direct-entry relation to `bothBindWorld`. | **Simplified.** The existing allocation premise `A₀⊑B₀` transports pointwise to the fresh entries.  The old resolved-representation bridge and its dependence on the old invariant disappear. |
+| `CenterRename.renameWorld` | Rename all invariant conclusions and preserve center equality. | **Simplified.** Prove one `lookupStore`/store-renaming commutation lemma and apply `rename-⊑` pointwise; no transitive representative transport is needed. |
 | `WorldDecay.blendWorld` | Use the geometry/stores of the premise world and weaken representation proofs to the blended environment. | **In hand.** An output `X⊑X` mark comes from the premise world; raw imprecision is monotone under the environment decay. Invariant (4) is unchanged because geometry and stores are unchanged. |
 | `WorldDecay.honestify` | Preserve all aligned store representations while changing only marks; establish precise alignment. | **In hand.** Existing alignment and mark-decay lemmas provide the first two fields; invariant (4) is unchanged because geometry and stores are unchanged. |
 | `SealPeelToolkit.dynWorld` | Preserve geometry/stores under the all-`X⊑★` environment. | **In hand.** Precise alignment is vacuous and representation proofs weaken to the all-dynamic environment; invariant (4) is inherited unchanged. |
-| `TargetBindLift.targetStoreAs W Σᴿ` | Prove the invariants after replacing the target store arbitrarily. | **Not in hand for the raw helper.** Besides pairwise representation evidence, movement must preserve `resolveRep ... (＇ Xᴿ) ≡ ★` for every unmatched target. Make the raw helper private or require the movement evidence. |
-| `TargetExtend.smartAliasInsertWorld` | Transport all invariants through alias insertion. | **In hand after the input insert is valid.** Old-source freezing reflects any unmatched output target back to the smart premise world. |
-| `TargetExtend.smartFreshInsertWorld` | Transport all invariants through fresh insertion. | **In hand after the input insert is valid.** Old-source freezing and target reflection provide the invariant-(4) transport. |
+| `TargetBindLift.targetStoreAs W Σᴿ` | Prove the invariants after replacing the target store arbitrarily. | **Not in hand for the raw helper, but the premise is simpler.** Require pointwise direct-entry imprecision plus preservation of the literal-`★`/unmatched-head classification; no path equality is needed. Make the raw helper private or require that evidence. |
+| `TargetExtend.smartAliasInsertWorld` | Transport all invariants through alias insertion. | **Simplified after the input insert is valid.** Lookup commutes pointwise with the insertion; old-source freezing reflects both an unmatched target and an unmatched variable head back to the premise world. |
+| `TargetExtend.smartFreshInsertWorld` | Transport all invariants through fresh insertion. | **Simplified after the input insert is valid.** Pointwise lookup transport plus old-source freezing and target reflection preserve both branches of invariant (4). |
 | `TargetExtend.insertRebaseWorld ins Wᵖ` | Mix `Wᵖ`'s source/environment/store with the inserted target of another world. | **Not in hand for arbitrary `Wᵖ`, and invariant (4) exposes the exact failure.** A repark can make a non-`★` old target newly unmatched. Require a checked rebase premise that rules this out. |
 | `liftBothTargetInsert` and `liftLeftTargetInsert` | Lift a `TargetInsert` across the corresponding world builders. | **In hand after those builders are valid.** These records relate already constructed endpoints. |
-| `smartAliasTargetInsert` and `smartFreshTargetInsert` | Package the two smart inserted worlds as `TargetInsert` results. | **In hand with their builders.** Their current geometry, resolve, and environment transport is exactly the preservation evidence. |
-| `rightBindTargetInsert` and `keepRightBindTargetInsert` | Package `rightOnlyWorld`, optionally under `liftWorldBoth`. | **Not in hand at the root for generic `B`.** Strengthen `rightBindTargetInsert` with the same resolved-`★` premise as `rightOnlyWorld`; `keepRightBindTargetInsert` then transports it. |
+| `smartAliasTargetInsert` and `smartFreshTargetInsert` | Package the two smart inserted worlds as `TargetInsert` results. | **In hand with their builders.** Their geometry and pointwise lookup transport provide the preservation evidence. |
+| `rightBindTargetInsert` and `keepRightBindTargetInsert` | Package `rightOnlyWorld`, optionally under `liftWorldBoth`. | **Not in hand at the root for generic `B`.** Strengthen `rightBindTargetInsert` with the same direct-entry classification premise as `rightOnlyWorld`; `keepRightBindTargetInsert` then shifts it. |
 | `insertRebaseTargetInsert`, its reverse and pullback variants, and their commuting result packages | Package `insertRebaseWorld` endpoints as `TargetInsert` results. | **Blocked exactly where `insertRebaseWorld` is blocked.** Once that builder requires rebase/frozen-target evidence, these functions already receive or derive it. |
-| Other `TargetInsert` results | Relate an input and an already constructed output world. | **No extra minting obligation.** Once outputs are valid `World`s, existing alignment and resolve transport explain preservation. |
-| `sameWorldRebaseAt`, rename/move/insert/right-bind `RebaseAt` transformers, and `RebaseAtᴸ`/`ᴿ`/tag wrappers | Relate already valid worlds and identify or transport a pivot. | **No global minting obligation.** `RebaseAt.storeRepresentations` becomes derivable from `representationsImpreciseʷ` and `pivotAligned`; keep it only during staged migration, then remove the redundancy. |
+| Other `TargetInsert` results | Relate an input and an already constructed output world. | **No extra minting obligation.** Once outputs are valid `World`s, the fields and pointwise lookup transport explain preservation. |
+| `sameWorldRebaseAt`, rename/move/insert/right-bind `RebaseAt` transformers, and `RebaseAtᴸ`/`ᴿ`/tag wrappers | Relate already valid worlds and identify or transport a pivot. | **No global minting obligation.** `RebaseAt.storeRepresentations` follows by the derived chain-coherence induction from `representationsImpreciseʷ` and `pivotAligned`; keep it only during staged migration, then remove it. |
 | `EnvDecay`, `decayRebaseAt`, `SameRuntime` | Transport relations between already valid worlds. | **In hand.** `decayRebaseAt` already transports the pivot representation proof. |
 | `TermImpDecay` world patterns | Destructure a `World` while transporting derivations. | **Mechanical blast only.** Constructor patterns must bind or ignore three more fields; no new world is minted there. |
 
 ### Invariant-(4) right-only minting inventory
 
 For `rightOnlyWorld W B`, the fresh target variable is `Fin.zero`.  No source
-variable maps to its fresh center, and its representation computes to
+variable maps to its fresh center, and its direct entry computes to
 
 ```agda
-resolveRep (store-bind (targetStoreʷ W) B) (＇ Fin.zero)
-  ≡ ⇑ᵗ (resolveRep (targetStoreʷ W) B).
+lookupStore (store-bind (targetStoreʷ W) B) Fin.zero ≡ ⇑ᵗ B
 ```
 
-Consequently the strengthened builder must receive
-`resolveRep (targetStoreʷ W) B ≡ ★` (or the immediately lifted equality).
-The current generic signature cannot prove it.
+Consequently strict requires `⇑ᵗ B ≡ ★`.  Chain-permissive requires that
+equality or `⇑ᵗ B ≡ ＇ Yᴿ` with `Yᴿ` unmatched in the new world.  For
+`B = ＇ X`, the latter reduces to the old pivot `X` being unmatched in `W`;
+the new head is `Fin.suc X`.  The current generic signature proves neither
+classification.
 
-| Catch-up minting path | What it binds | Is resolved `★` in hand? |
+| Catch-up minting path | What it binds | Is the direct obligation in hand? |
 | --- | --- | --- |
 | `structural-target-inst-step`; `inst-cast-alloc-prefix`; `GroundingPreserve.β-inst-*` | `★` | **Yes, definitionally.** |
-| Concrete `Λ⊑Λ²` two-bind route, including smart-alias, smart-fresh, and rebase transport | First `★`, then `＇ Fin.zero` pointing to that first cell | **Yes.** Both resolutions are definitional in the concrete route, and `ΛRouteOneWindowFacts.firstTargetZeroResolves` / `targetZeroResolves` already carry them for caller-supplied and transported plans. |
-| `AllValueViewStepCatalogᵀ` when coupled to the right-only world extension | `β-Λ`, `β-reveal-∀`, and `β-conceal-∀` bind arbitrary `A`; `β-gen` binds arbitrary `C`; `β-∀` is `keep` | **Not in hand for the allocating cases.** The reduction catalog alone gives no resolved-`★` proof; the catch-up world extension must obtain one from a narrowed structural case or an added premise. |
-| `StructuralTargetGenStepProof`, `StructuralTargetLambdaStepProof`, `StructuralTargetConversionStepProof`, `StructuralGenDescentProof`, and `spine-typed-Λ-child` | `＇ X` for an arbitrary old target pivot `X` | **VIOLATING SURFACE.** No premise says `resolveRep (targetStoreʷ W) (＇ X) ≡ ★`.  A matched `X` may legally resolve to `ℕ`, so invariant (4) rejects the newly minted alias. |
-| `GroundingPreserve.β-gen-*` | Arbitrary argument `C` | **VIOLATING SURFACE.** Occupancy/atomicity does not imply that `C` resolves to `★`. |
-| `RightBindWorldExtendᴿᵀ`, `RightBindKeepWorldExtendᴿᵀ`, `RightBindRightBindWorldExtendᴿᵀ`, `right-bind-under-left-lift`, and the smart alias/fresh bind helpers | Generic `B`/`C` | **VIOLATING AS GENERIC APIs.** Their safe concrete calls are the `★` then `＇ zero` route above; the signatures must nevertheless thread a resolved-`★` witness. |
-| `TransportTermImprecisionProof.mapCtxᴾ-right-bind`, its `evolve-right-bind` case, and other `B₀` callers | Generic `B₀` already named in `rightOnlyWorld W B₀` | **Not locally derivable.** Thread the strengthened builder's witness through these surfaces. |
-| `StructuralWorldExtendᴿ.structural-bind`, `StructuralNamePostPlan.target-bind-child`, `structural-target-bind-step`, peel/descent packages, `parked-structural-right-insert`, and `evolve-structural-right-bind` | A caller-supplied `TargetInsert` plus `targetStoreʷ W₁ ≡ store-bind ... B` | **In hand at the consumer, not at the mint.** `W₁ : World` supplies invariant (4) after migration.  Every constructor of that `W₁` must prove it; `TargetInsert` plus the store equation alone does not manufacture the fact. |
-| `rightBindTargetInsert`, `rightBindTargetWindowInsert`, `keepRightBindTargetInsert`, and right-bind rebase/insert wrappers | Whatever the underlying `rightOnlyWorld` binds | **Same flag as the underlying bind.** Strengthen the root `rightBindTargetInsert` with the resolved-`★` witness; wrappers only transport it. |
+| Concrete `Λ⊑Λ²` two-bind route, including smart-alias, smart-fresh, and rebase transport | First `★`, then `＇ Fin.zero` pointing to that first cell | **Yes only under CHAIN-PERMISSIVE.** The first cell is literal `★`; the second points to that still-unmatched first cell. Strict rejects the second bind. Existing resolver equalities can be replaced by direct entry equalities plus the unmatched-head proof. |
+| `AllValueViewStepCatalogᵀ` when coupled to the right-only world extension | `β-Λ`, `β-reveal-∀`, and `β-conceal-∀` bind arbitrary `A`; `β-gen` binds arbitrary `C`; `β-∀` is `keep` | **Not in hand for the allocating cases.** The catalog does not classify the direct entry; the catch-up extension needs a narrowed case or an added premise. |
+| `StructuralTargetGenStepProof`, `StructuralTargetLambdaStepProof`, `StructuralTargetConversionStepProof`, `StructuralGenDescentProof`, and `spine-typed-Λ-child` | `＇ X` for an arbitrary old target pivot `X` | **VIOLATING SURFACE under both choices.** The fresh alias cell is definitely unmatched because it is made by `rightOnlyWorld`; its head `Fin.suc X` is unmatched exactly when old `X` was unmatched. No premise supplies that fact, and `X` may be matched. |
+| `GroundingPreserve.β-gen-*` | Arbitrary argument `C` | **VIOLATING SURFACE.** Occupancy/atomicity does not classify `⇑ᵗ C` as literal `★` or an unmatched variable. |
+| `RightBindWorldExtendᴿᵀ`, `RightBindKeepWorldExtendᴿᵀ`, `RightBindRightBindWorldExtendᴿᵀ`, `right-bind-under-left-lift`, and the smart alias/fresh bind helpers | Generic `B`/`C` | **VIOLATING AS GENERIC APIs.** Thread the direct-entry classification.  The safe `★`-then-`＇ zero` calls use the two different permissive branches. |
+| `TransportTermImprecisionProof.mapCtxᴾ-right-bind`, its `evolve-right-bind` case, and other `B₀` callers | Generic `B₀` already named in `rightOnlyWorld W B₀` | **Not locally derivable.** Thread the strengthened builder's direct classification through these surfaces; this is pointwise and no longer mentions a resolved path. |
+| `StructuralWorldExtendᴿ.structural-bind`, `StructuralNamePostPlan.target-bind-child`, `structural-target-bind-step`, peel/descent packages, `parked-structural-right-insert`, and `evolve-structural-right-bind` | A caller-supplied `TargetInsert` plus `targetStoreʷ W₁ ≡ store-bind ... B` | **In hand at the consumer, not at the mint.** `W₁ : World` supplies the direct classification.  Every constructor of `W₁` must prove it; `TargetInsert` plus the store equation alone does not. |
+| `rightBindTargetInsert`, `rightBindTargetWindowInsert`, `keepRightBindTargetInsert`, and right-bind rebase/insert wrappers | Whatever the underlying `rightOnlyWorld` binds | **Same flag as the underlying bind.** Strengthen the root with the direct classification; wrappers transport it pointwise. |
 
 The structural `TargetInsert` consumers therefore need no redundant new
 premise once `World` contains the field.  The direct `rightOnlyWorld` and
 `rightBindTargetInsert` constructors do need the premise, and the variable-
-alias call sites above must either derive it from a genuine representation
-fact or stop using a right-only world for that allocation.
+alias call sites above must prove that the old head is unmatched or stop using
+a right-only world for that allocation.
 
 ### Direct worlds and fixtures
 
 Every direct `world` application must prove all three fields.  Fixtures whose
-target stores resolve only to `★` can prove invariant (4) by finite case
-analysis.  Non-`★` fixtures need an occupancy audit: every target pivot with
-that representation must be center-aligned with a source pivot in that exact
-world.
+unmatched target entries are literal `★` can prove invariant (4) immediately.
+Under the recommended form, an unmatched variable entry is also accepted only
+when its head is unmatched.  A non-variable, non-`★` direct entry must be
+center-aligned with a source pivot in that exact world.
 
-This audit newly rejects several `CastTermImprecision2` Example 12 fixtures.
-`example12-world-X` keeps its `ℕ` target matched and can satisfy invariant (4),
-but `example12-world-Y` and `example12-world-Z` leave that target unmatched.
-Both `example12-nat-chain-world-X` and `example12-nat-chain-world-Y` have two
-target pivots resolving to `ℕ` and only one source pivot, so each leaves one
-non-`★` target unmatched.  These are the same reparking shape exposed by the
-D8a probe and must be retired or redesigned.  The all-`★` finite probes remain
-locally supported.
+Directness sharpens the `CastTermImprecision2` Example 12 audit:
+
+* `example12-world-X` directly aligns `ℕ` with `ℕ`; its unmatched `Y`
+  points to unmatched `Z`, whose entry is `★`.  It satisfies both direct fields
+  under CHAIN-PERMISSIVE, but strict would reject the `Y` indirection.
+* `example12-world-Y` directly aligns source `ℕ` with target entry `＇ Z`, so
+  it already fails `representationsImpreciseʷ`; it also leaves direct `ℕ` at
+  `X` unmatched.
+* `example12-world-Z` directly aligns `ℕ ⊑ ★`, but leaves direct `ℕ` at
+  `X` unmatched.  Its unmatched `Y` also points to the now-matched `Z`, which
+  the permissive form deliberately rejects.
+* `example12-nat-chain-world-X` has valid direct `ℕ ⊑ ℕ` at `X`, but its
+  unmatched `Y` points to that matched `X`; invariant (4) rejects it.
+  `example12-nat-chain-world-Y` additionally tries to align direct `ℕ` with
+  `＇ X`, and leaves direct `ℕ` at `X` unmatched.
+* In the left-path family, direct entries validate the `X` and `Z` pairings,
+  while the `Y` pairing changes from a transitively valid `★ ⊑ ★` to an
+  invalid direct `＇ Z ⊑ ★` under its precise mark.  All three worlds still
+  fail the separate `preciseMarksAlignedʷ` audit described below.
+
+Thus direct lookup rejects chain-depth-skewed pairings instead of hiding the
+skew behind a terminal representative.  The all-literal-`★` finite probes
+remain locally supported.
 
 The remaining live direct constructors are the named builders in the table,
 `Examples2.reflWorld`, the two initial-world definitions, and the concrete
@@ -209,11 +293,13 @@ variant already have the required local facts.
 
 ### Pressure points
 
-1. `bothBindWorld` needs a fresh resolved-representation witness.  It cannot be
-   manufactured from its present parameters.
-2. `rightOnlyWorld` and `rightBindTargetInsert` need the bound type to resolve
-   to `★`.  Generic `B`/`B₀` catch-up surfaces and the `＇ X` structural
-   allocation sites do not currently carry that evidence.
+1. `bothBindWorld` now needs only the fresh direct-entry relation.  Existing
+   paired allocation premises can supply it pointwise; the old chain transport
+   surface should be deleted rather than adapted.
+2. `rightOnlyWorld` and `rightBindTargetInsert` need a direct classification of
+   the bound entry.  Generic `B`/`B₀` surfaces do not carry it.  The structural
+   `＇ X` sites specifically need `X` to be unmatched, which is not currently a
+   premise.
 3. Generic `liftWorldLeft v` and `leftOnlyWorld v` cannot preserve precise-mark
    alignment when `v = X⊑X`; their interfaces must exclude that case or gain a
    target occupant.
@@ -221,11 +307,12 @@ variant already have the required local facts.
    supplied premise world and the world being target-inserted; invariant (4)
    must remain true when a source pivot changes partners.
 5. `targetStoreAs` cannot accept an arbitrary replacement store; movement
-   evidence must preserve both pairwise representations and unmatched `★`
-   resolutions.
+   evidence must preserve direct pairwise entries and both branches of the
+   unmatched-target classification.
 6. The live Example 12 left-path and `Examples2` `XZ` worlds violate the
-   invariant being merged from `WFWorld`; the Example 12 `Y`/`Z` and
-   natural-number chain worlds additionally violate invariant (4).
+   invariant being merged from `WFWorld`.  Directness also rejects the
+   chain-depth-skewed Example 12 `Y` pairings; the unmatched direct-entry audit
+   rejects the `Y`/`Z` and natural-number chain worlds as detailed above.
 7. The public compile theorem and all parked/occupancy initial-world surfaces
    must drop their arbitrary initial store, even though the recursive compiler
    proof itself is compatible.
@@ -235,23 +322,23 @@ variant already have the required local facts.
 The D8a and T10 Probe 1 geometries were rechecked with invariant (4) as an
 actual field of the probe's eight-field `World`.
 
-| Configuration | Matched target | Unmatched target | Resolved unmatched representation | Verdict under (4) |
+| Configuration | Matched target | Unmatched target | Direct unmatched entry | Verdict under strict / permissive (4) |
 | --- | --- | --- | --- | --- |
 | D8a `W` | old target `Fin.suc Fin.zero` | fresh target `Fin.zero` | `ℕ` | **Rejected.** |
-| D8a `Wᵖ` | fresh target `Fin.zero` | old target `Fin.suc Fin.zero` | `ℕ` | **Rejected.** The old occupant loses its source partner and is non-`★`. |
+| D8a `Wᵖ` | fresh target `Fin.zero` | old target `Fin.suc Fin.zero` | `ℕ` | **Rejected.** The old occupant loses its source partner and its direct entry is neither `★` nor a variable. |
 | T10 Probe 1 `W` | old target `Fin.suc Fin.zero` | fresh target `Fin.zero` | `★` | **Accepted.** |
-| T10 Probe 1 `Wᵖ` | fresh target `Fin.zero` | old target `Fin.suc Fin.zero` | `★` | **Accepted.** The old occupant loses its partner but already resolves to `★`. |
+| T10 Probe 1 `Wᵖ` | fresh target `Fin.zero` | old target `Fin.suc Fin.zero` | `★` | **Accepted.** The old occupant loses its partner but its entry is literally `★`. |
 
-**INVARIANT (4) KILLS THE D8a COUNTEREXAMPLE.**  In particular, the reparked
-`Wᵖ` cannot be constructed because its old target occupant is unmatched and
-resolves to `ℕ`.  This resolves the D8a.4 groundedness question: a non-`★`
-old occupant cannot survive as an ungrounded leftover after the source pivot
-reparks.  The probe proves the stronger fact that D8a's other endpoint `W` is
-also invalid, because the then-fresh non-`★` occupant is unmatched there.
+**BOTH DIRECT FORMS OF INVARIANT (4) KILL BOTH D8a WORLDS.**  In `W`, the
+fresh unmatched occupant has direct entry `ℕ`; in `Wᵖ`, the old unmatched
+occupant also has direct entry `ℕ`.  Neither failure depends on following a
+chain.  The checked definitional equalities are `d8a-fresh-direct-entry` and
+`d8a-old-direct-entry`, and the negative witnesses use the weaker,
+chain-permissive field.  Therefore the strict field rejects them a fortiori.
 
-**Invariant (4) does not kill T10 Probe 1.**  Both unmatched occupants resolve
-to `★`, so both endpoint worlds satisfy all three added fields and the
-cross-world T10 failure remains.
+**Invariant (4) does not kill T10 Probe 1.**  Both unmatched occupants have
+literal `★` direct entries, so both endpoint worlds satisfy all three added
+fields and the cross-world T10 failure remains.
 
 The checked negative witnesses are `d8a-W-violates-invariant4` and
 `d8a-Wᵖ-violates-invariant4`; `t10-W` and `t10-Wᵖ` are checked full `World`
@@ -278,25 +365,27 @@ to the empty-store signature.
 
 A low-risk LG-1-style sequence is:
 
-1. Hoist `resolveVar`/`resolveRep`.  Against the existing five-field record,
-   introduce a temporary, non-public `WorldInvariants W` companion containing
-   exactly the three drafted fields.  Prove preservation for the core builders
-   and require the companion at theorem boundaries, so failures are visible.
-2. Strengthen `rightOnlyWorld` and `rightBindTargetInsert` with a resolved-`★`
-   premise.  Thread it through `evolve-right-bind`, the generic `B₀` transport
-   surfaces, parked constructors, and smart wrappers.  Keep the `★` then
-   `＇ zero` route; add real evidence or redesign the arbitrary `＇ X`, `C`,
-   and generic-`B` sites.
-3. Resolve the remaining pressure points: strengthen both-bind allocation,
-   restrict left-only minting, guard store replacement and insertion/rebase,
-   and repair or retire invalid fixture worlds.  Use invariant (4), rather
-   than a cross-world compatibility alias, to reject non-`★` repark outputs.
+1. Add the total one-step `lookupStore` to `TyStore`.  Against the existing
+   five-field record, introduce a temporary, non-public `WorldInvariants W`
+   companion containing exactly the three drafted fields.  Prove preservation
+   for the core builders and require the companion at theorem boundaries.
+2. Strengthen `rightOnlyWorld` and `rightBindTargetInsert` with the selected
+   direct-entry classification.  Thread it through `evolve-right-bind`, the
+   generic `B₀` surfaces, parked constructors, and smart wrappers.  Under the
+   recommended form, retain the `★`-then-`＇ zero` route; add unmatched-head
+   evidence or redesign the arbitrary `＇ X`, `C`, and generic-`B` sites.
+3. Replace resolved-representation transport with pointwise lookup transport:
+   use the allocation premise directly in both-bind, add lookup commutation for
+   center renaming/insertion, restrict left-only minting, guard store
+   replacement and insertion/rebase, and repair or retire invalid fixtures.
+   Use invariant (4) to reject non-`★` repark outputs.
 4. After D15 lands, merge the companion fields into `World` atomically, change
    constructor calls and patterns to the eight-field shape, replace `WFWorld`
    arguments by the projection, and delete both `WFWorld` and the temporary
    companion.  Do not retain a compatibility alias in this closed-world repo.
-5. Remove `RebaseAt.storeRepresentations` once all callers use the world field,
-   and consolidate `initialWorldᴼ` into the canonical empty-store constructor.
+5. Derive chain coherence by store-age induction, remove
+   `RebaseAt.storeRepresentations` once callers use that lemma, and consolidate
+   `initialWorldᴼ` into the canonical empty-store constructor.
 
 PR #171 (`agent/gtsf-partner-redesign`, fetched head `faec619c`) changes 43
 `GTSFImp` files and touches `CastTermImprecision2`, `TargetExtend`,

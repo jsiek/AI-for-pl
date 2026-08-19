@@ -522,6 +522,27 @@ and generic occupancy transport can remain if it has non-rule consumers.  The
 claim here is specifically that no target-absence fact needs to be threaded
 merely to reconstruct the see-through or D17(c) premise.
 
+### Invariant-(5) kill-check
+
+The recon probe imports the live-faithful S-OCC calibration worlds and
+reconstructs `ProjectionMismatchStarRepScratch.probe-world` exactly (the old
+scratch itself no longer passes coverage against the expanded live relation).
+It checks the first three Stage-1 fields separately from invariant (5).
+
+| World | Direct source entry / mark / occupancy | Verdict under (5) |
+| --- | --- | --- |
+| `ProjectionMismatchStarRepScratch.probe-world` | `★` / `X⊑★` / target `zero` center-aligned | **Illegal.** `projection-mismatch-stage1` checks that invariants (2)--(4) hold, while `projection-mismatch-rejects-invariant5` derives `⊥` from any extended validity. |
+| S-OCC aligned world `CTITighteningNarrowScratch.W` | `★` / `X⊑★` / target `zero` center-aligned | **Illegal.** `s-occ-aligned-stage1` checks the old fields and `s-occ-aligned-rejects-invariant5` checks the new rejection.  This is the concrete world underlying `aligned-occ`. |
+| S-OCC source-only world `CTIOccLiveFaithfulScratch.Wᵖ` | `★` / `X⊑★` / target context empty | **Legal.** `s-occ-prealignment-invariants` constructs the complete extended companion.  This is the concrete world underlying `pre-occ`. |
+
+The `CellOccupancy` values `aligned-occ` and `pre-occ` are calibration tags,
+not worlds; the verdicts above concern their actual `World` arguments.  The
+new invariant therefore kills the bad projection world, but it also removes
+the calibration's aligned world wholesale, including its good matched-seal
+examples.  The pre-alignment see-through world remains legal.  Stage 2 must
+account for that stronger semantic choice; it cannot claim that (5) isolates
+only the bad term derivation inside an otherwise valid aligned world.
+
 ## Validation
 
 The standalone probe is safe, has no postulates, holes, or option pragmas, and

@@ -38,6 +38,7 @@ import proof.DGG.ExampleTerms as Ex
 import proof.DGG.OneStep as Step
 open Step using (Δ′; change; next; reduction)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 open CTI2 using (_⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
 import proof.DGG.Examples2 as Ex2
 
@@ -54,14 +55,14 @@ probe-source : Term 0
 probe-source = Ex.example12-left
 
 probe-target : Term 0
-probe-target = (ƛ (` 0)) · (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+probe-target = (ƛ (` 0)) · (Ex.c ⟨ Ex12.example12-ℕ! ⟩)
 
 probe-target-lambda-⊢ : Ex.∅ ⊢ ƛ (` 0) ⦂ ★ ⇒ ★
 probe-target-lambda-⊢ = ⊢ƛ (⊢` Z)
 
 probe-target-⊢ : Ex.∅ ⊢ probe-target ⦂ ★
 probe-target-⊢ =
-  ⊢· probe-target-lambda-⊢ (⊢⟨⟩ Ex.c-⊢ CTI2.example12-ℕ!)
+  ⊢· probe-target-lambda-⊢ (⊢⟨⟩ Ex.c-⊢ Ex12.example12-ℕ!)
 
 ------------------------------------------------------------------------
 -- Reduction traces
@@ -200,10 +201,10 @@ probe-function₁ =
 
 probe-argument₁ :
   probe-world₁ ∣ [] ⊢²
-    $ (κℕ 7) ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶
+    $ (κℕ 7) ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶
       Ex2.ℕ⊑★² {W = probe-world₁}
 probe-argument₁ =
-  CTI2.⊑cast² CTI2.example12-ℕ!
+  CTI2.⊑cast² Ex12.example12-ℕ!
     (CTI2.κ⊑κ² (κℕ 7) (Ex2.ℕ⊑ℕ² {W = probe-world₁}))
     (Ex2.ℕ⊑★² {W = probe-world₁})
 
@@ -216,7 +217,7 @@ probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
     {P Xᴿ?}
   → CTI2.SourceConcealOK W
       P Ex2.example12-source-X-seal Xᴿ?
-      (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+      (Ex.c ⟨ Ex12.example12-ℕ! ⟩)
   → ⊥
 probe-sealed-arg-ok-empty (CTI2.seal-nonstar-plain-ok Rns ())
 
@@ -224,7 +225,7 @@ probe-sealed-arg-empty′ : ∀ {X}
   → (q : ＇ X ⊑ᵂ⟨ probe-world₁ ⟩ ★)
   → probe-world₁ ∣ [] ⊢²
       ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-      ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ q
+      ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ q
   → ⊥
 probe-sealed-arg-empty′ q₀
     (CTI2.⊑cast² {p = p} c′ D .q₀) with p
@@ -237,7 +238,7 @@ probe-sealed-arg-empty′ q₀
 probe-sealed-arg-empty :
   probe-world₁ ∣ [] ⊢²
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-    ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ probe-X⊑★₁
+    ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ probe-X⊑★₁
   → ⊥
 probe-sealed-arg-empty =
   probe-sealed-arg-empty′ {X = Fin.zero} probe-X⊑★₁
@@ -250,7 +251,7 @@ source-seal/bare-target-tag admission.  Their semantic payload survives as
 probe-app₂ :
   probe-world₁ ∣ [] ⊢²
     (ƛ (` 0)) · (($ (κℕ 7)) ↓ Ex2.example12-source-X-seal)
-    ⊑ (ƛ (` 0)) · (Ex.c ⟨ CTI2.example12-ℕ! ⟩) ∶ probe-X⊑★₁
+    ⊑ (ƛ (` 0)) · (Ex.c ⟨ Ex12.example12-ℕ! ⟩) ∶ probe-X⊑★₁
 probe-app₂ = CTI2.·⊑·² probe-lambda₁ probe-sealed-arg
 
 probe-checkpoint₂ :

@@ -150,6 +150,7 @@ import proof.DGG.DynamicGradualGuaranteeProof
 ------------------------------------------------------------------------
 
 -- Example suites and catalogs
+import proof.DGG.Example12Worlds
 import Example
 import GradualTypeCheckExamples
 import ConsistencyExamples

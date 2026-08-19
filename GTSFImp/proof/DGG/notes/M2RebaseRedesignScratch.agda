@@ -20,6 +20,7 @@ import Conversion
 open import Imprecision
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.CenterRename as CR
 import proof.DGG.CenterCrossingProbe as CCP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
@@ -225,25 +226,25 @@ targetFrozen-liftBoth frozen (Fin.suc Y) = cong Fin.suc (frozen Y)
 ------------------------------------------------------------------------
 
 example12-rebase-Z-to-Yᵣ :
-  RebaseAtᵣ CTI2.example12-world-Z CTI2.example12-world-Y
+  RebaseAtᵣ Ex12.example12-world-Z Ex12.example12-world-Y
     Fin.zero (Fin.suc Fin.zero)
 example12-rebase-Z-to-Yᵣ =
   rebase-atᵣ Ex2.example12-rebase-Z-to-Y (λ _ → refl)
 
 example12-rebase-X-to-Zᵣ :
-  RebaseAtᵣ CTI2.example12-world-X CTI2.example12-world-Z
+  RebaseAtᵣ Ex12.example12-world-X Ex12.example12-world-Z
     Fin.zero (Fin.suc (Fin.suc Fin.zero))
 example12-rebase-X-to-Zᵣ =
-  rebase-atᵣ CTI2.example12-rebase-X-to-Z (λ _ → refl)
+  rebase-atᵣ Ex12.example12-rebase-X-to-Z (λ _ → refl)
 
 example12-rebase-X-sameᵣ :
-  RebaseAtᵣ CTI2.example12-world-X CTI2.example12-world-X
+  RebaseAtᵣ Ex12.example12-world-X Ex12.example12-world-X
     Fin.zero Fin.zero
 example12-rebase-X-sameᵣ =
   rebase-atᵣ Ex2.example12-rebase-X-same (λ _ → refl)
 
 example12-lambda-Zᵣ :
-  CTI2.example12-world-Z ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-Z ∣ [] ⊢² ƛ (` 0)
     ⊑ (ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal ∶
       Ex2.example12-Z-function-local
 example12-lambda-Zᵣ =
@@ -253,7 +254,7 @@ example12-lambda-Zᵣ =
     Ex2.example12-Z-function-local
 
 example12-lambda-starᵣ :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ ((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
         ↑ Ex2.example12-target-Z-reveal ∶
       Ex2.example12-X-function-to-star
@@ -264,7 +265,7 @@ example12-lambda-starᵣ =
     Ex2.example12-X-function-to-star
 
 example12-lambda-star-idᵣ :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ (((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
         ↑ Ex2.example12-target-Z-reveal)
         ⟨ Ex2.example12-target-id★↦id★ ⟩ ∶
@@ -274,7 +275,7 @@ example12-lambda-star-idᵣ =
     example12-lambda-starᵣ Ex2.example12-X-function-to-star
 
 example12-lambda-Xᵣ :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ ((((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
         ↑ Ex2.example12-target-Z-reveal)
         ⟨ Ex2.example12-target-id★↦id★ ⟩)
@@ -285,7 +286,7 @@ example12-lambda-Xᵣ =
     example12-lambda-star-idᵣ Ex2.example12-X-function-local
 
 example12-function-checkpoint₁ᵣ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     (ƛ (` 0)) ↑ Ex2.example12-source-X-reveal
     ⊑ (((((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
         ↑ Ex2.example12-target-Z-reveal)

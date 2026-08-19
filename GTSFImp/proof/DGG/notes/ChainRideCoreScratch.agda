@@ -21,6 +21,7 @@ open import Primitives using (κℕ)
 import SourceStarCounterScratch as SSC
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.CenterRename as CR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.ChainRideProbe as CRP
@@ -405,18 +406,18 @@ source-star-counterexample-still-refuted =
   SSC.no-source-star-var-output
 
 example12-target-Z-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-X)
+  toRenameᵗ (CTI2.ηᴿʷ Ex12.example12-world-X)
     (Fin.suc (Fin.suc Fin.zero))
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-Z)
+  ≡ toRenameᵗ (CTI2.ηᴿʷ Ex12.example12-world-Z)
     (Fin.suc (Fin.suc Fin.zero))
 example12-target-Z-never-moves = refl
 
 example12-nat-chain-target-Y-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-Y) Fin.zero
+  toRenameᵗ (CTI2.ηᴿʷ Ex12.example12-nat-chain-world-X) Fin.zero
+  ≡ toRenameᵗ (CTI2.ηᴿʷ Ex12.example12-nat-chain-world-Y) Fin.zero
 example12-nat-chain-target-Y-never-moves = refl
 
 example12-left-path-first-park :
-  toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-X) Fin.zero
+  toRenameᵗ (CTI2.ηᴸʷ Ex12.example12-left-path-world-X) Fin.zero
+  ≡ toRenameᵗ (CTI2.ηᴿʷ Ex12.example12-left-path-world-X) Fin.zero
 example12-left-path-first-park = refl

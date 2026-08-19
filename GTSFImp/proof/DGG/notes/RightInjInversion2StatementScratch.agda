@@ -13,6 +13,7 @@ open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $; seal)
 import CastTerms as CTerms
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.CenterCrossingProbe as CCP
@@ -43,7 +44,7 @@ example12-target-value = CTerms.$ (κℕ 7) CTerms.↓ CTerms.seal
 
 example12-consumes-no-parked :
   RightInjInversion²Statement
-  → CTI2.example12-world-X ∣ [] ⊢²
+  → Ex12.example12-world-X ∣ [] ⊢²
       ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
       ⊑ ($ (κℕ 7)) ↓ Ex2.example12-target-X-seal ∶
         Ex2.example12-X-var⊑

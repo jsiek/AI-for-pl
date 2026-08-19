@@ -41,6 +41,7 @@ open Step
   using (Δ′; change; next; reduction)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 open CTI2 using
   (World; world; _⊑ᵂ⟨_⟩_; CtxImp; ctx-imp; _∣_⊢²_⊑_∶_;
    _∋ʷ_⦂_; Zʷ; Sʷ; LiftCtx; lift-[]; lift-∷; liftWorldBoth;
@@ -175,14 +176,14 @@ example12-ℕ⊑ℕ₀ :
 example12-ℕ⊑ℕ₀ = ℕ⊑ℕ² {W = reflWorld store-empty}
 
 example12-ℕ⊑ℕ-X :
-  (‵ `ℕ) ⊑ᵂ⟨ CTI2.example12-world-X ⟩ (‵ `ℕ)
-example12-ℕ⊑ℕ-X = ℕ⊑ℕ² {W = CTI2.example12-world-X}
+  (‵ `ℕ) ⊑ᵂ⟨ Ex12.example12-world-X ⟩ (‵ `ℕ)
+example12-ℕ⊑ℕ-X = ℕ⊑ℕ² {W = Ex12.example12-world-X}
 
 example12-ℕ⇒ℕ⊑ℕ⇒ℕ-X :
-  ((‵ `ℕ) ⇒ (‵ `ℕ)) ⊑ᵂ⟨ CTI2.example12-world-X ⟩
+  ((‵ `ℕ) ⇒ (‵ `ℕ)) ⊑ᵂ⟨ Ex12.example12-world-X ⟩
     ((‵ `ℕ) ⇒ (‵ `ℕ))
 example12-ℕ⇒ℕ⊑ℕ⇒ℕ-X =
-  ℕ⇒ℕ⊑ℕ⇒ℕ² {W = CTI2.example12-world-X}
+  ℕ⇒ℕ⊑ℕ⇒ℕ² {W = Ex12.example12-world-X}
 
 example12-initial-poly :
   reflWorld store-empty ∣ [] ⊢² Ex.polyId
@@ -202,18 +203,18 @@ example12-checkpoint₀ =
     (κ⊑κ² (κℕ 7) example12-ℕ⊑ℕ₀)
 
 example12-checkpoint₄ :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left-final ⊑ Ex.right-final ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left-final ⊑ Ex.right-final ∶
     example12-ℕ⊑ℕ-X
 example12-checkpoint₄ = κ⊑κ² (κℕ 7) example12-ℕ⊑ℕ-X
 
 example12-rebase-Z-to-Y :
-  CTI2.RebaseAt CTI2.example12-world-Z CTI2.example12-world-Y
+  CTI2.RebaseAt Ex12.example12-world-Z Ex12.example12-world-Y
     Fin.zero (Fin.suc Fin.zero)
 example12-rebase-Z-to-Y =
   CTI2.rebase-at (CTI2.same-runtime refl refl)
     (λ { {Fin.zero} Y≢ → ⊥-elim (Y≢ refl) })
     (λ _ → refl) refl
-    CTI2.example12-Y-representation
+    Ex12.example12-Y-representation
 
 example12-target-Y-reveal :
   Conv↑ 3
@@ -276,152 +277,152 @@ example12-target-Z-unseal =
   unseal (Fin.suc (Fin.suc Fin.zero)) ★
 
 example12-target-Y-reveal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     example12-target-Y-reveal
 example12-target-Y-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both
-    (Conv.⊢↓-sealˣ CTI2.example12-target-Y∋)
-    (Conv.⊢↑-unsealˣ CTI2.example12-target-Y∋)
+    (Conv.⊢↓-sealˣ Ex12.example12-target-Y∋)
+    (Conv.⊢↑-unsealˣ Ex12.example12-target-Y∋)
 
 example12-target-Z-reveal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex12.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-reveal
 example12-target-Z-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both
-    (Conv.⊢↓-sealˣ CTI2.example12-target-Z∋)
-    (Conv.⊢↑-unsealˣ CTI2.example12-target-Z∋)
+    (Conv.⊢↓-sealˣ Ex12.example12-target-Z∋)
+    (Conv.⊢↑-unsealˣ Ex12.example12-target-Z∋)
 
 example12-source-X-reveal-⊢ :
-  CTI2.example12-source-store ⊢↑ example12-source-X-reveal
+  Ex12.example12-source-store ⊢↑ example12-source-X-reveal
 example12-source-X-reveal-⊢ =
-  ⊢↑-⇒ (⊢↓-seal CTI2.example12-source-X∋)
-    (⊢↑-unseal CTI2.example12-source-X∋)
+  ⊢↑-⇒ (⊢↓-seal Ex12.example12-source-X∋)
+    (⊢↑-unseal Ex12.example12-source-X∋)
 
 example12-target-X-reveal-⊢ :
-  CTI2.example12-target-store ⊢↑ example12-target-X-reveal
+  Ex12.example12-target-store ⊢↑ example12-target-X-reveal
 example12-target-X-reveal-⊢ =
-  ⊢↑-⇒ (⊢↓-seal CTI2.example12-target-X∋)
-    (⊢↑-unseal CTI2.example12-target-X∋)
+  ⊢↑-⇒ (⊢↓-seal Ex12.example12-target-X∋)
+    (⊢↑-unseal Ex12.example12-target-X∋)
 
 example12-source-X-seal-⊢ :
-  CTI2.example12-source-store ⊢↓ example12-source-X-seal
-example12-source-X-seal-⊢ = ⊢↓-seal CTI2.example12-source-X∋
+  Ex12.example12-source-store ⊢↓ example12-source-X-seal
+example12-source-X-seal-⊢ = ⊢↓-seal Ex12.example12-source-X∋
 
 example12-target-X-seal-⊢ :
-  CTI2.example12-target-store ⊢↓ example12-target-X-seal
-example12-target-X-seal-⊢ = ⊢↓-seal CTI2.example12-target-X∋
+  Ex12.example12-target-store ⊢↓ example12-target-X-seal
+example12-target-X-seal-⊢ = ⊢↓-seal Ex12.example12-target-X∋
 
 example12-source-X-seal-⊢ˣ :
-  CTI2.example12-source-store Conv.⊢↓[ just Fin.zero ] example12-source-X-seal
+  Ex12.example12-source-store Conv.⊢↓[ just Fin.zero ] example12-source-X-seal
 example12-source-X-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-source-X∋
+  Conv.⊢↓-sealˣ Ex12.example12-source-X∋
 
 example12-target-X-seal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↓[ just Fin.zero ] example12-target-X-seal
+  Ex12.example12-target-store Conv.⊢↓[ just Fin.zero ] example12-target-X-seal
 example12-target-X-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-target-X∋
+  Conv.⊢↓-sealˣ Ex12.example12-target-X∋
 
 example12-source-X-unseal-⊢ :
-  CTI2.example12-source-store ⊢↑ example12-source-X-unseal
-example12-source-X-unseal-⊢ = ⊢↑-unseal CTI2.example12-source-X∋
+  Ex12.example12-source-store ⊢↑ example12-source-X-unseal
+example12-source-X-unseal-⊢ = ⊢↑-unseal Ex12.example12-source-X∋
 
 example12-target-X-unseal-⊢ :
-  CTI2.example12-target-store ⊢↑ example12-target-X-unseal
-example12-target-X-unseal-⊢ = ⊢↑-unseal CTI2.example12-target-X∋
+  Ex12.example12-target-store ⊢↑ example12-target-X-unseal
+example12-target-X-unseal-⊢ = ⊢↑-unseal Ex12.example12-target-X∋
 
 example12-source-X-unseal-⊢ˣ :
-  CTI2.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-unseal
+  Ex12.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-unseal
 example12-source-X-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-source-X∋
+  Conv.⊢↑-unsealˣ Ex12.example12-source-X∋
 
 example12-target-X-unseal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-unseal
+  Ex12.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-unseal
 example12-target-X-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-target-X∋
+  Conv.⊢↑-unsealˣ Ex12.example12-target-X∋
 
 example12-source-X-reveal-⊢ˣ :
-  CTI2.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-reveal
+  Ex12.example12-source-store Conv.⊢↑[ just Fin.zero ] example12-source-X-reveal
 example12-source-X-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both example12-source-X-seal-⊢ˣ
     example12-source-X-unseal-⊢ˣ
 
 example12-target-X-reveal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-reveal
+  Ex12.example12-target-store Conv.⊢↑[ just Fin.zero ] example12-target-X-reveal
 example12-target-X-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both example12-target-X-seal-⊢ˣ
     example12-target-X-unseal-⊢ˣ
 
 example12-target-Z-seal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex12.example12-target-store Conv.⊢↓[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-seal
 example12-target-Z-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-target-Z∋
+  Conv.⊢↓-sealˣ Ex12.example12-target-Z∋
 
 example12-target-Y-seal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
     example12-target-Y-seal
 example12-target-Y-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-target-Y∋
+  Conv.⊢↓-sealˣ Ex12.example12-target-Y∋
 
 example12-target-Y-unseal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     example12-target-Y-unseal
 example12-target-Y-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-target-Y∋
+  Conv.⊢↑-unsealˣ Ex12.example12-target-Y∋
 
 example12-target-Z-unseal-⊢ˣ :
-  CTI2.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
+  Ex12.example12-target-store Conv.⊢↑[ just (Fin.suc (Fin.suc Fin.zero)) ]
     example12-target-Z-unseal
 example12-target-Z-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-target-Z∋
+  Conv.⊢↑-unsealˣ Ex12.example12-target-Z∋
 
 example12-X-function-to-star :
-  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ CTI2.example12-world-X ⟩
+  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ Ex12.example12-world-X ⟩
     (★ ⇒ ★)
 example12-X-function-to-star = ⇒⊑⇒ (Imprecision.X⊑★ refl)
   (Imprecision.X⊑★ refl)
 
 example12-Y-var⊑ :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-world-Y ⟩ ＇ (Fin.suc Fin.zero)
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-world-Y ⟩ ＇ (Fin.suc Fin.zero)
 example12-Y-var⊑ = X⊑X
 
 example12-Y-function-local :
-  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ CTI2.example12-world-Y ⟩
+  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ Ex12.example12-world-Y ⟩
     (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
 example12-Y-function-local = ⇒⊑⇒ example12-Y-var⊑ example12-Y-var⊑
 
 example12-Z-var⊑ :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-world-Z ⟩
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-world-Z ⟩
     ＇ (Fin.suc (Fin.suc Fin.zero))
 example12-Z-var⊑ = X⊑X
 
 example12-Z-function-local :
-  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ CTI2.example12-world-Z ⟩
+  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ Ex12.example12-world-Z ⟩
     (＇ (Fin.suc (Fin.suc Fin.zero))
       ⇒ ＇ (Fin.suc (Fin.suc Fin.zero)))
 example12-Z-function-local = ⇒⊑⇒ example12-Z-var⊑ example12-Z-var⊑
 
 example12-X-var⊑ :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-world-X ⟩ ＇ Fin.zero
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-world-X ⟩ ＇ Fin.zero
 example12-X-var⊑ = X⊑X
 
 example12-X-var-to-star :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-world-X ⟩ ★
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-world-X ⟩ ★
 example12-X-var-to-star = Imprecision.X⊑★ refl
 
 example12-rebase-X-same :
-  CTI2.RebaseAt CTI2.example12-world-X CTI2.example12-world-X
+  CTI2.RebaseAt Ex12.example12-world-X Ex12.example12-world-X
     Fin.zero Fin.zero
 example12-rebase-X-same =
-  CTI2.sameWorldRebaseAt refl CTI2.example12-X-representation
+  CTI2.sameWorldRebaseAt refl Ex12.example12-X-representation
 
 example12-X-function-local :
-  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ CTI2.example12-world-X ⟩
+  (＇ Fin.zero ⇒ ＇ Fin.zero) ⊑ᵂ⟨ Ex12.example12-world-X ⟩
     (＇ Fin.zero ⇒ ＇ Fin.zero)
 example12-X-function-local = ⇒⊑⇒ example12-X-var⊑ example12-X-var⊑
 
 example12-lambda-Y :
-  CTI2.example12-world-Y ∣ [] ⊢² ƛ (` 0) ⊑ ƛ (` 0) ∶
+  Ex12.example12-world-Y ∣ [] ⊢² ƛ (` 0) ⊑ ƛ (` 0) ∶
     example12-Y-function-local
 example12-lambda-Y =
   ƛ⊑ƛ²
@@ -431,7 +432,7 @@ example12-lambda-Y =
     (x⊑x² {p = example12-Y-var⊑} Zʷ)
 
 example12-lambda-Z :
-  CTI2.example12-world-Z ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-Z ∣ [] ⊢² ƛ (` 0)
     ⊑ (ƛ (` 0)) ↑ example12-target-Y-reveal ∶
       example12-Z-function-local
 example12-lambda-Z =
@@ -440,12 +441,12 @@ example12-lambda-Z =
     example12-Z-function-local
 
 example12-lambda-star :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ ((ƛ (` 0)) ↑ example12-target-Y-reveal)
         ↑ example12-target-Z-reveal ∶
       example12-X-function-to-star
 example12-lambda-star =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ CTI2.example12-rebase-X-to-Z) CTI2.same-[]
+  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ Ex12.example12-rebase-X-to-Z) CTI2.same-[]
     example12-target-Z-reveal-⊢ˣ example12-lambda-Z
     example12-X-function-to-star
 
@@ -496,7 +497,7 @@ example12-target-★?X :
 example12-target-★?X = ？ (id (＇ Fin.zero))
 
 example12-lambda-star-id :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ (((ƛ (` 0)) ↑ example12-target-Y-reveal)
         ↑ example12-target-Z-reveal)
         ⟨ example12-target-id★↦id★ ⟩ ∶
@@ -506,7 +507,7 @@ example12-lambda-star-id =
     example12-X-function-to-star
 
 example12-lambda-X :
-  CTI2.example12-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ ((((ƛ (` 0)) ↑ example12-target-Y-reveal)
         ↑ example12-target-Z-reveal)
         ⟨ example12-target-id★↦id★ ⟩)
@@ -517,7 +518,7 @@ example12-lambda-X =
     example12-X-function-local
 
 example12-function-checkpoint₁ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     (ƛ (` 0)) ↑ example12-source-X-reveal
     ⊑ (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
         ↑ example12-target-Z-reveal)
@@ -532,14 +533,14 @@ example12-function-checkpoint₁ =
     example12-ℕ⇒ℕ⊑ℕ⇒ℕ-X
 
 example12-checkpoint₁ :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
     example12-ℕ⊑ℕ-X
 example12-checkpoint₁ =
   ·⊑·² example12-function-checkpoint₁
     (κ⊑κ² (κℕ 7) example12-ℕ⊑ℕ-X)
 
 example12-sealed-const :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ ($ (κℕ 7)) ↓ example12-target-X-seal ∶
       example12-X-var⊑
@@ -551,7 +552,7 @@ example12-sealed-const =
     (κ⊑κ² (κℕ 7) example12-ℕ⊑ℕ-X) example12-X-var⊑
 
 example12-application-checkpoint₂ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     (ƛ (` 0)) · (($ (κℕ 7)) ↓ example12-source-X-seal)
     ⊑ (((((ƛ (` 0)) ↑ example12-target-Y-reveal)
         ↑ example12-target-Z-reveal)
@@ -563,7 +564,7 @@ example12-application-checkpoint₂ =
   ·⊑·² example12-lambda-X example12-sealed-const
 
 example12-checkpoint₂ :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left₂ ⊑ Ex.right₄ ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left₂ ⊑ Ex.right₄ ∶
     example12-ℕ⊑ℕ-X
 example12-checkpoint₂ =
   reveal⊑reveal² (λ _ eq → eq) example12-rebase-X-same CTI2.same-[]
@@ -572,7 +573,7 @@ example12-checkpoint₂ =
     example12-ℕ⊑ℕ-X
 
 example12-target-X!-checkpoint₃ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ (($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩ ∶
@@ -582,19 +583,19 @@ example12-target-X!-checkpoint₃ =
     example12-X-var-to-star
 
 example12-target-Z-seal-checkpoint₃ :
-  CTI2.example12-world-Z ∣ [] ⊢²
+  Ex12.example12-world-Z ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ ((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
         ↓ example12-target-Z-seal ∶
       example12-Z-var⊑
 example12-target-Z-seal-checkpoint₃ =
-  CTI2.⊑conceal² (λ _ eq → eq) (CTI2.rebase-varᴿ CTI2.example12-rebase-X-to-Z) CTI2.same-[]
+  CTI2.⊑conceal² (λ _ eq → eq) (CTI2.rebase-varᴿ Ex12.example12-rebase-X-to-Z) CTI2.same-[]
     example12-target-Z-seal-⊢ˣ example12-target-X!-checkpoint₃
     example12-Z-var⊑
 
 example12-target-Y-seal-checkpoint₃ :
-  CTI2.example12-world-Y ∣ [] ⊢²
+  Ex12.example12-world-Y ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ (((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -607,7 +608,7 @@ example12-target-Y-seal-checkpoint₃ =
     example12-Y-var⊑
 
 example12-target-Y-unseal-checkpoint₃ :
-  CTI2.example12-world-Z ∣ [] ⊢²
+  Ex12.example12-world-Z ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ (((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -621,7 +622,7 @@ example12-target-Y-unseal-checkpoint₃ =
     example12-Z-var⊑
 
 example12-target-Z-unseal-checkpoint₃ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ (((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -631,12 +632,12 @@ example12-target-Z-unseal-checkpoint₃ :
         ↑ example12-target-Z-unseal ∶
       example12-X-var-to-star
 example12-target-Z-unseal-checkpoint₃ =
-  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ CTI2.example12-rebase-X-to-Z) CTI2.same-[]
+  CTI2.⊑reveal² (λ _ eq → eq) (CTI2.rebase-varᴿ Ex12.example12-rebase-X-to-Z) CTI2.same-[]
     example12-target-Z-unseal-⊢ˣ example12-target-Y-unseal-checkpoint₃
     example12-X-var-to-star
 
 example12-target-id★-checkpoint₃ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ (((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -651,7 +652,7 @@ example12-target-id★-checkpoint₃ =
     example12-X-var-to-star
 
 example12-target-★?X-checkpoint₃ :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ example12-source-X-seal
     ⊑ ((((((($ (κℕ 7)) ↓ example12-target-X-seal)
         ⟨ example12-target-X! ⟩)
@@ -667,7 +668,7 @@ example12-target-★?X-checkpoint₃ =
     example12-X-var⊑
 
 example12-checkpoint₃ :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left₃ ⊑ Ex.right₁₀ ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left₃ ⊑ Ex.right₁₀ ∶
     example12-ℕ⊑ℕ-X
 example12-checkpoint₃ =
   reveal⊑reveal² (λ _ eq → eq) example12-rebase-X-same CTI2.same-[]
@@ -680,10 +681,10 @@ example12-checkpoint₃ =
 ------------------------------------------------------------------------
 
 nat-chain-more-precise : Term 0
-nat-chain-more-precise = CTI2.example12-nat-chain-source
+nat-chain-more-precise = Ex12.example12-nat-chain-source
 
 nat-chain-more-imprecise : Term 0
-nat-chain-more-imprecise = CTI2.example12-nat-chain-target
+nat-chain-more-imprecise = Ex12.example12-nat-chain-target
 
 nat-chain-more-precise-reduction :
   nat-chain-more-precise —↠[ Ex.left-changes ] Ex.left-final
@@ -805,14 +806,14 @@ nat-chain-ℕ⊑ℕ₀ :
 nat-chain-ℕ⊑ℕ₀ = ℕ⊑ℕ² {W = reflWorld store-empty}
 
 nat-chain-ℕ⊑ℕ-X :
-  (‵ `ℕ) ⊑ᵂ⟨ CTI2.example12-nat-chain-world-X ⟩ (‵ `ℕ)
-nat-chain-ℕ⊑ℕ-X = ℕ⊑ℕ² {W = CTI2.example12-nat-chain-world-X}
+  (‵ `ℕ) ⊑ᵂ⟨ Ex12.example12-nat-chain-world-X ⟩ (‵ `ℕ)
+nat-chain-ℕ⊑ℕ-X = ℕ⊑ℕ² {W = Ex12.example12-nat-chain-world-X}
 
 nat-chain-ℕ⇒ℕ⊑ℕ⇒ℕ-X :
-  ((‵ `ℕ) ⇒ (‵ `ℕ)) ⊑ᵂ⟨ CTI2.example12-nat-chain-world-X ⟩
+  ((‵ `ℕ) ⇒ (‵ `ℕ)) ⊑ᵂ⟨ Ex12.example12-nat-chain-world-X ⟩
     ((‵ `ℕ) ⇒ (‵ `ℕ))
 nat-chain-ℕ⇒ℕ⊑ℕ⇒ℕ-X =
-  ℕ⇒ℕ⊑ℕ⇒ℕ² {W = CTI2.example12-nat-chain-world-X}
+  ℕ⇒ℕ⊑ℕ⇒ℕ² {W = Ex12.example12-nat-chain-world-X}
 
 nat-chain-source-X-seal : Conv↓ 1 (‵ `ℕ) (＇ Fin.zero)
 nat-chain-source-X-seal = seal Fin.zero (‵ `ℕ)
@@ -863,118 +864,118 @@ nat-chain-target-id-X-reveal =
   id↑ (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
 
 nat-chain-source-X-seal-⊢ :
-  CTI2.example12-nat-chain-source-store ⊢↓ nat-chain-source-X-seal
+  Ex12.example12-nat-chain-source-store ⊢↓ nat-chain-source-X-seal
 nat-chain-source-X-seal-⊢ =
-  ⊢↓-seal CTI2.example12-nat-chain-source-X∋
+  ⊢↓-seal Ex12.example12-nat-chain-source-X∋
 
 nat-chain-source-X-seal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store Conv.⊢↓[ just Fin.zero ]
+  Ex12.example12-nat-chain-source-store Conv.⊢↓[ just Fin.zero ]
     nat-chain-source-X-seal
 nat-chain-source-X-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-nat-chain-source-X∋
+  Conv.⊢↓-sealˣ Ex12.example12-nat-chain-source-X∋
 
 nat-chain-source-X-unseal-⊢ :
-  CTI2.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-unseal
+  Ex12.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-unseal
 nat-chain-source-X-unseal-⊢ =
-  ⊢↑-unseal CTI2.example12-nat-chain-source-X∋
+  ⊢↑-unseal Ex12.example12-nat-chain-source-X∋
 
 nat-chain-source-X-unseal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
+  Ex12.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-source-X-unseal
 nat-chain-source-X-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-source-X∋
+  Conv.⊢↑-unsealˣ Ex12.example12-nat-chain-source-X∋
 
 nat-chain-source-X-reveal-⊢ :
-  CTI2.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-reveal
+  Ex12.example12-nat-chain-source-store ⊢↑ nat-chain-source-X-reveal
 nat-chain-source-X-reveal-⊢ =
   ⊢↑-⇒ nat-chain-source-X-seal-⊢ nat-chain-source-X-unseal-⊢
 
 nat-chain-source-X-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
+  Ex12.example12-nat-chain-source-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-source-X-reveal
 nat-chain-source-X-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both nat-chain-source-X-seal-⊢ˣ
     nat-chain-source-X-unseal-⊢ˣ
 
 nat-chain-target-X-seal-⊢ :
-  CTI2.example12-nat-chain-target-store ⊢↓ nat-chain-target-X-seal
+  Ex12.example12-nat-chain-target-store ⊢↓ nat-chain-target-X-seal
 nat-chain-target-X-seal-⊢ =
-  ⊢↓-seal CTI2.example12-nat-chain-target-X∋
+  ⊢↓-seal Ex12.example12-nat-chain-target-X∋
 
 nat-chain-target-X-seal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-nat-chain-target-store Conv.⊢↓[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-seal
 nat-chain-target-X-seal-⊢ˣ =
-  Conv.⊢↓-sealˣ CTI2.example12-nat-chain-target-X∋
+  Conv.⊢↓-sealˣ Ex12.example12-nat-chain-target-X∋
 
 nat-chain-target-X-unseal-⊢ :
-  CTI2.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-unseal
+  Ex12.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-unseal
 nat-chain-target-X-unseal-⊢ =
-  ⊢↑-unseal CTI2.example12-nat-chain-target-X∋
+  ⊢↑-unseal Ex12.example12-nat-chain-target-X∋
 
 nat-chain-target-X-unseal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-unseal
 nat-chain-target-X-unseal-⊢ˣ =
-  Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-target-X∋
+  Conv.⊢↑-unsealˣ Ex12.example12-nat-chain-target-X∋
 
 nat-chain-target-X-reveal-⊢ :
-  CTI2.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-reveal
+  Ex12.example12-nat-chain-target-store ⊢↑ nat-chain-target-X-reveal
 nat-chain-target-X-reveal-⊢ =
   ⊢↑-⇒ nat-chain-target-X-seal-⊢ nat-chain-target-X-unseal-⊢
 
 nat-chain-target-X-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
+  Ex12.example12-nat-chain-target-store Conv.⊢↑[ just (Fin.suc Fin.zero) ]
     nat-chain-target-X-reveal
 nat-chain-target-X-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both nat-chain-target-X-seal-⊢ˣ
     nat-chain-target-X-unseal-⊢ˣ
 
 nat-chain-target-Y-reveal-⊢ˣ :
-  CTI2.example12-nat-chain-target-store Conv.⊢↑[ just Fin.zero ]
+  Ex12.example12-nat-chain-target-store Conv.⊢↑[ just Fin.zero ]
     nat-chain-target-Y-reveal
 nat-chain-target-Y-reveal-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-both
-    (Conv.⊢↓-sealˣ CTI2.example12-nat-chain-target-Y∋)
-    (Conv.⊢↑-unsealˣ CTI2.example12-nat-chain-target-Y∋)
+    (Conv.⊢↓-sealˣ Ex12.example12-nat-chain-target-Y∋)
+    (Conv.⊢↑-unsealˣ Ex12.example12-nat-chain-target-Y∋)
 
 nat-chain-X-var⊑ :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-nat-chain-world-X ⟩
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-nat-chain-world-X ⟩
     ＇ (Fin.suc Fin.zero)
 nat-chain-X-var⊑ = X⊑X
 
 nat-chain-rebase-X-same :
-  CTI2.RebaseAt CTI2.example12-nat-chain-world-X
-    CTI2.example12-nat-chain-world-X Fin.zero (Fin.suc Fin.zero)
+  CTI2.RebaseAt Ex12.example12-nat-chain-world-X
+    Ex12.example12-nat-chain-world-X Fin.zero (Fin.suc Fin.zero)
 nat-chain-rebase-X-same =
   CTI2.sameWorldRebaseAt refl
-    CTI2.example12-nat-chain-X-representation
+    Ex12.example12-nat-chain-X-representation
 
 nat-chain-Y-var⊑ :
-  ＇ Fin.zero ⊑ᵂ⟨ CTI2.example12-nat-chain-world-Y ⟩ ＇ Fin.zero
+  ＇ Fin.zero ⊑ᵂ⟨ Ex12.example12-nat-chain-world-Y ⟩ ＇ Fin.zero
 nat-chain-Y-var⊑ = X⊑X
 
 nat-chain-X-function-local :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
-    ⊑ᵂ⟨ CTI2.example12-nat-chain-world-X ⟩
+    ⊑ᵂ⟨ Ex12.example12-nat-chain-world-X ⟩
       (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero))
 nat-chain-X-function-local =
   ⇒⊑⇒ nat-chain-X-var⊑ nat-chain-X-var⊑
 
 nat-chain-Y-function-local :
   (＇ Fin.zero ⇒ ＇ Fin.zero)
-    ⊑ᵂ⟨ CTI2.example12-nat-chain-world-Y ⟩
+    ⊑ᵂ⟨ Ex12.example12-nat-chain-world-Y ⟩
       (＇ Fin.zero ⇒ ＇ Fin.zero)
 nat-chain-Y-function-local =
   ⇒⊑⇒ nat-chain-Y-var⊑ nat-chain-Y-var⊑
 
 nat-chain-polyId-target-reveal :
   reflWorld store-empty ∣ [] ⊢² Ex.polyId
-    ⊑ Ex.polyId ↑ CTI2.example12-nat-chain-reveal ∶
+    ⊑ Ex.polyId ↑ Ex12.example12-nat-chain-reveal ∶
       example12-∀⊑∀
 nat-chain-polyId-target-reveal =
   CTI2.⊑reveal² (λ _ eq → eq) CTI2.rebase-idᴿ CTI2.same-[]
-    CTI2.example12-nat-chain-reveal-⊢ˣ polyId-refl²
+    Ex12.example12-nat-chain-reveal-⊢ˣ polyId-refl²
     example12-∀⊑∀
 
 nat-chain-checkpoint₀ :
@@ -987,7 +988,7 @@ nat-chain-checkpoint₀ =
     (κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ₀)
 
 nat-chain-lambda-Y :
-  CTI2.example12-nat-chain-world-Y ∣ [] ⊢² ƛ (` 0) ⊑ ƛ (` 0) ∶
+  Ex12.example12-nat-chain-world-Y ∣ [] ⊢² ƛ (` 0) ⊑ ƛ (` 0) ∶
     nat-chain-Y-function-local
 nat-chain-lambda-Y =
   ƛ⊑ƛ²
@@ -997,17 +998,17 @@ nat-chain-lambda-Y =
     (x⊑x² {p = nat-chain-Y-var⊑} Zʷ)
 
 nat-chain-lambda-X :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ (ƛ (` 0)) ↑ nat-chain-target-Y-reveal ∶
       nat-chain-X-function-local
 nat-chain-lambda-X =
   CTI2.⊑reveal² (λ _ eq → eq)
-    (CTI2.rebase-varᴿ CTI2.example12-nat-chain-rebase-X-to-Y)
+    (CTI2.rebase-varᴿ Ex12.example12-nat-chain-rebase-X-to-Y)
     CTI2.same-[] nat-chain-target-Y-reveal-⊢ˣ nat-chain-lambda-Y
     nat-chain-X-function-local
 
 nat-chain-lambda-X-id :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² ƛ (` 0)
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² ƛ (` 0)
     ⊑ ((ƛ (` 0)) ↑ nat-chain-target-Y-reveal)
         ↑ nat-chain-target-id-X-reveal ∶
       nat-chain-X-function-local
@@ -1017,7 +1018,7 @@ nat-chain-lambda-X-id =
     nat-chain-X-function-local
 
 nat-chain-function-checkpoint₁ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢²
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢²
     (ƛ (` 0)) ↑ nat-chain-source-X-reveal
     ⊑ (((ƛ (` 0)) ↑ nat-chain-target-Y-reveal)
         ↑ nat-chain-target-id-X-reveal)
@@ -1030,14 +1031,14 @@ nat-chain-function-checkpoint₁ =
     nat-chain-ℕ⇒ℕ⊑ℕ⇒ℕ-X
 
 nat-chain-checkpoint₁ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₁
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₁
     ⊑ nat-target₂ ∶ nat-chain-ℕ⊑ℕ-X
 nat-chain-checkpoint₁ =
   ·⊑·² nat-chain-function-checkpoint₁
     (κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ-X)
 
 nat-chain-sealed-const-X :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢²
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ nat-chain-source-X-seal
     ⊑ ($ (κℕ 7)) ↓ nat-chain-target-X-seal ∶
       nat-chain-X-var⊑
@@ -1049,7 +1050,7 @@ nat-chain-sealed-const-X =
     (κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ-X) nat-chain-X-var⊑
 
 nat-chain-application-checkpoint₂ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢²
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢²
     (ƛ (` 0)) · (($ (κℕ 7)) ↓ nat-chain-source-X-seal)
     ⊑ ((ƛ (` 0)) ↑ nat-chain-target-Y-reveal)
         · (($ (κℕ 7)) ↓ nat-chain-target-X-seal) ∶
@@ -1058,7 +1059,7 @@ nat-chain-application-checkpoint₂ =
   ·⊑·² nat-chain-lambda-X nat-chain-sealed-const-X
 
 nat-chain-checkpoint₂ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₂
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₂
     ⊑ nat-target₄ ∶ nat-chain-ℕ⊑ℕ-X
 nat-chain-checkpoint₂ =
   reveal⊑reveal² (λ _ eq → eq) nat-chain-rebase-X-same CTI2.same-[]
@@ -1067,7 +1068,7 @@ nat-chain-checkpoint₂ =
     nat-chain-ℕ⊑ℕ-X
 
 nat-chain-checkpoint₃ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₃
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² Ex.left₃
     ⊑ nat-target₇ ∶ nat-chain-ℕ⊑ℕ-X
 nat-chain-checkpoint₃ =
   reveal⊑reveal² (λ _ eq → eq) nat-chain-rebase-X-same CTI2.same-[]
@@ -1076,7 +1077,7 @@ nat-chain-checkpoint₃ =
     nat-chain-ℕ⊑ℕ-X
 
 nat-chain-checkpoint₄ :
-  CTI2.example12-nat-chain-world-X ∣ [] ⊢² Ex.left-final
+  Ex12.example12-nat-chain-world-X ∣ [] ⊢² Ex.left-final
     ⊑ nat-target-final ∶ nat-chain-ℕ⊑ℕ-X
 nat-chain-checkpoint₄ = κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ-X
 
@@ -1085,10 +1086,10 @@ nat-chain-checkpoint₄ = κ⊑κ² (κℕ 7) nat-chain-ℕ⊑ℕ-X
 ------------------------------------------------------------------------
 
 left-path-more-precise : Term 0
-left-path-more-precise = CTI2.example12-left-path-source
+left-path-more-precise = Ex12.example12-left-path-source
 
 left-path-more-imprecise : Term 0
-left-path-more-imprecise = CTI2.example12-left-path-target
+left-path-more-imprecise = Ex12.example12-left-path-target
 
 left-path-more-precise-reduction :
   left-path-more-precise —↠[ Ex.right-changes ] Ex.right-final
@@ -1334,7 +1335,7 @@ left-path-ℕ⊑★₅ = ℕ⊑★² {W = left-path-world₅}
 
 left-path-ℕ!₁ :
   renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}) ⊢ (‵ `ℕ) ∼ ★
-left-path-ℕ!₁ = C.↑ᶜ CTI2.example12-ℕ!
+left-path-ℕ!₁ = C.↑ᶜ Ex12.example12-ℕ!
 
 left-path-ℕ!₂ :
   renameEnv∼ (skip id↪ᵗ) (renameEnv∼ wk↪ᵗ (idᶜ {Δ = 0}))
@@ -1581,9 +1582,9 @@ left-path-initial-function =
 
 left-path-argument₀ :
   reflWorld store-empty ∣ [] ⊢² $ (κℕ 7)
-    ⊑ $ (κℕ 7) ⟨ CTI2.example12-ℕ! ⟩ ∶ left-path-ℕ⊑★₀
+    ⊑ $ (κℕ 7) ⟨ Ex12.example12-ℕ! ⟩ ∶ left-path-ℕ⊑★₀
 left-path-argument₀ =
-  ⊑cast² CTI2.example12-ℕ!
+  ⊑cast² Ex12.example12-ℕ!
     (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = reflWorld store-empty}))
     left-path-ℕ⊑★₀
 

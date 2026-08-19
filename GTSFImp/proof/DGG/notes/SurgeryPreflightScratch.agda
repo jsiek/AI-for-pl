@@ -18,6 +18,7 @@ open import Primitives using (κℕ)
 open import Imprecision
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExampleTerms as Ex
@@ -361,12 +362,12 @@ left-path-argument₄-payload-survives =
 ------------------------------------------------------------------------
 
 example12-checkpoint₁-gate-refined :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
     Ex2.example12-ℕ⊑ℕ-X
 example12-checkpoint₁-gate-refined = TD.example12-checkpoint₁-gate
 
 example12-paired-seal-gate-refined :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
     ⊑ ($ (κℕ 7)) ↓ Ex2.example12-target-X-seal ∶
       Ex2.example12-X-var⊑

@@ -56,3 +56,10 @@ Conclusion: the recorded live minting site genuinely requires variable
 indirection.  D16 stage 1 must use the previously specified chain-permissive
 fallback for unmatched target entries: a direct `★`, or a direct variable
 whose target head is itself unmatched.
+
+This does not validate the unrestricted generic `rightOnlyWorld W (＇ X)`
+surface.  The fallback additionally requires old `X` to be unmatched, and
+`spine-typed-Λ-child` plus the structural target `Λ`/conversion/`gen` sites do
+not currently expose that fact.  Stage 1 therefore leaves the classification
+as an explicit builder premise; stage 2 must either supply it at each caller
+or redesign that generic allocation surface.

@@ -7,7 +7,7 @@ module TyStore where
 --   * Exposes direct total lookup and relates type variables to their
 --     representation types in a store.
 
-open import Agda.Builtin.Equality using (_≡_)
+open import Agda.Builtin.Equality using (_≡_; refl)
 open import Data.Nat using (zero; suc)
 open import Data.Fin using (zero; suc)
 
@@ -60,3 +60,10 @@ data _∋_⦂_ : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ → Set where
     → B ≡ ⇑ᵗ A
       ----------------------------------
     → store-bind Σ C ∋ suc X ⦂ B
+
+lookupStore-∋ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ} {A : Ty Δ}
+  → Σ ∋ X ⦂ A
+  → lookupStore Σ X ≡ A
+lookupStore-∋ (Z∋ refl) = refl
+lookupStore-∋ (S-lift∋ X∈ refl) rewrite lookupStore-∋ X∈ = refl
+lookupStore-∋ (S-bind∋ X∈ refl) rewrite lookupStore-∋ X∈ = refl

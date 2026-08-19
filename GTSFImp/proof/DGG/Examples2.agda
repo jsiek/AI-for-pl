@@ -1278,7 +1278,12 @@ left-path-target-ηᴿ-XZ = keep (skip (keep empty))
 left-path-imp-env-XZ : ImpEnv 3
 left-path-imp-env-XZ Fin.zero = X⊑★
 left-path-imp-env-XZ (Fin.suc Fin.zero) = X⊑★
-left-path-imp-env-XZ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
+left-path-imp-env-XZ (Fin.suc (Fin.suc Fin.zero)) = X⊑X
+
+left-path-imp-env-YZ : ImpEnv 3
+left-path-imp-env-YZ Fin.zero = X⊑★
+left-path-imp-env-YZ (Fin.suc Fin.zero) = X⊑★
+left-path-imp-env-YZ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 
 -- The XZ checkpoints align source X and Z directly.  Their target fixture
 -- therefore exposes literal dynamic entries at both aligned cells instead of
@@ -1326,14 +1331,14 @@ left-path-world₃-YZ :
   World (Δ′ Ex.right-step₂) (Δ′ left-path-target-step₂)
     (Δ′ Ex.right-step₂)
 left-path-world₃-YZ =
-  world id↪ᵗ left-path-target-ηᴿ-YZ left-path-imp-env-XZ
+  world id↪ᵗ left-path-target-ηᴿ-YZ left-path-imp-env-YZ
     Ex.right-store₃ left-path-target-store₃
 
 left-path-world₄-YZ :
   World (Δ′ Ex.right-step₃) (Δ′ left-path-target-step₃)
     (Δ′ Ex.right-step₃)
 left-path-world₄-YZ =
-  world id↪ᵗ left-path-target-ηᴿ-YZ left-path-imp-env-XZ
+  world id↪ᵗ left-path-target-ηᴿ-YZ left-path-imp-env-YZ
     Ex.right-store₄ left-path-target-store₄
 
 left-path-ℕ⊑★₀ :
@@ -1896,22 +1901,10 @@ left-path-Z⇒Z⊑Z⇒Z-YZ₃ :
 left-path-Z⇒Z⊑Z⇒Z-YZ₃ =
   ⇒⊑⇒ left-path-Z-var⊑YZ₃ left-path-Z-var⊑YZ₃
 
-left-path-Z-var⊑★-XZ₃ :
-  ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₃ ⟩ ★
-left-path-Z-var⊑★-XZ₃ =
-  Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
-
 left-path-Z-var⊑★-YZ₃ :
   ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₃-YZ ⟩ ★
 left-path-Z-var⊑★-YZ₃ =
   Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
-
-left-path-Z⇒Z⊑★⇒★-XZ₃ :
-  (＇ (Fin.suc (Fin.suc Fin.zero))
-    ⇒ ＇ (Fin.suc (Fin.suc Fin.zero)))
-    ⊑ᵂ⟨ left-path-world₃ ⟩ (★ ⇒ ★)
-left-path-Z⇒Z⊑★⇒★-XZ₃ =
-  ⇒⊑⇒ left-path-Z-var⊑★-XZ₃ left-path-Z-var⊑★-XZ₃
 
 left-path-Z⇒Z⊑★⇒★-YZ₃ :
   (＇ (Fin.suc (Fin.suc Fin.zero))
@@ -2583,11 +2576,6 @@ left-path-Z-var⊑YZ₄ :
     ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ＇ (Fin.suc Fin.zero)
 left-path-Z-var⊑YZ₄ =
   Imprecision.X⊑X {X = Fin.suc (Fin.suc Fin.zero)}
-
-left-path-Z-var⊑★-XZ₄ :
-  ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₄ ⟩ ★
-left-path-Z-var⊑★-XZ₄ =
-  Imprecision.X⊑★ {X = Fin.suc (Fin.suc Fin.zero)} refl
 
 left-path-Z-var⊑★-YZ₄ :
   ＇ (Fin.suc (Fin.suc Fin.zero)) ⊑ᵂ⟨ left-path-world₄-YZ ⟩ ★

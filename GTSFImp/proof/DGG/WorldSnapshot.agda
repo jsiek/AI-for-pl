@@ -4,6 +4,8 @@ module proof.DGG.WorldSnapshot where
 --   * Renders DGG worlds as canonical one-line snapshots for proof notes.
 --   * Shows each center variable's endpoint pivots, direct store entries, and
 --     imprecision mark in center order.
+--   * Reserves `♭`-prefixed names for generated type binders; supplied name
+--     functions must never produce `♭`-prefixed names.
 --   * Pins the format on representative Example12Worlds and Examples2 worlds.
 
 open import Data.List using (List; []; _∷_; map)
@@ -44,7 +46,7 @@ private
   showTyAt depth name (A ⇒ B) =
     "(" ++ showTyAt depth name A ++ " ⇒ " ++ showTyAt depth name B ++ ")"
   showTyAt depth name (`∀ A) =
-    "∀ " ++ showTyAt (suc depth) (extendName name ("b" ++ show depth)) A
+    "∀ " ++ showTyAt (suc depth) (extendName name ("♭" ++ show depth)) A
 
 showTy : ∀ {Δ} → (TyVar Δ → String) → Ty Δ → String
 showTy = showTyAt zero
@@ -150,5 +152,11 @@ nested-∀-store-entry-snapshot :
     (store-bind store-empty
       (`∀ (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero)))))
     (just Fin.zero) ≡
-      "x0↦∀ ∀ (＇b1 ⇒ ＇b0)"
+      "x0↦∀ ∀ (＇♭1 ⇒ ＇♭0)"
 nested-∀-store-entry-snapshot = refl
+
+outer-b0-reserved-binder-snapshot :
+  showTy {Δ = suc zero} (λ _ → "b0")
+    (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero))) ≡
+      "∀ (＇♭0 ⇒ ＇b0)"
+outer-b0-reserved-binder-snapshot = refl

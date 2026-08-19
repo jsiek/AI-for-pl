@@ -1,8 +1,16 @@
 # T15: D16 world invariants design
 
-Status: recon and checked declarations only.  No live definition or proof was
-changed.  The declarations and counterexample checks in this note are checked
-by `proof/DGG/notes/probes/T15WorldInvariantsDesignProbe.agda`.
+Migration status:
+
+- **LANDED:** the `WorldInvariants` companion module and its import from
+  `All.agda`, preservation proofs for the core world builders, the `TyStore`
+  extension, fixture repairs, and the Stage-2 additions.
+- **STILL PROPOSED:** the Stage-3 atomic merge of the companion fields into the
+  `World` record.  Until that merge, `World` remains the five-field record and
+  the invariants remain in the companion.
+
+The declarations and counterexample checks that motivated the migration are
+checked by `proof/DGG/notes/probes/T15WorldInvariantsDesignProbe.agda`.
 
 ## Decision
 

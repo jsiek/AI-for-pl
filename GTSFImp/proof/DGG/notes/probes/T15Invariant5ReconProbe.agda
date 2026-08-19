@@ -10,14 +10,16 @@ module T15Invariant5ReconProbe where
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+open import Data.Maybe using (just; nothing)
 import Data.Nat as Nat
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; sym; trans; cong)
 
 open import Types using (TyCtx; Ty; TyVar; ★; ＇_; ⇑ᵗ)
-open import TyStore using (lookupStore)
+open import TyStore using (lookupStore; lookupStore-∋)
 open import Consistency using (id↪ᵗ; toRenameᵗ)
+open import Conversion using (seal)
 open import Imprecision using (ImpEnv; X⊑★)
 import proof.DGG.CastTermImprecision2 as CTI2
 import proof.DGG.TargetExtend as TE
@@ -144,3 +146,38 @@ smartAlias-fresh-source-not-star guard entry =
       (sym (cong (λ Σ → lookupStore Σ Fin.zero)
         (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)))
       entry)
+
+------------------------------------------------------------------------
+-- Rule-premise payoff
+------------------------------------------------------------------------
+
+world-invariants-no-target-at-dynamic-star : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
+  → CTI2.NoTargetOccupantAtSource W X
+world-invariants-no-target-at-dynamic-star {X = X} inv mark entry
+    (Xᴿ , aligned) =
+  dynamicStarSourcesUnoccupied inv X mark entry Xᴿ aligned
+
+world-invariants-see-through-premise : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W′
+  → CTI2.TagRebaseAtᴸ W′ W (just X) nothing
+  → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X ★
+  → CTI2.NoTargetOccupantAtSource W′ X
+world-invariants-see-through-premise inv
+    (CTI2.tag-rebase-onlyᴸ mark disaligned represented)
+    (CTI2.⊢↓-sealˣ source∋) =
+  world-invariants-no-target-at-dynamic-star inv mark
+    (lookupStore-∋ source∋)
+
+world-invariants-d17c-occupancy : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W
+  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
+  → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X) → ⊥
+world-invariants-d17c-occupancy inv mark entry =
+  world-invariants-no-target-at-dynamic-star inv mark entry

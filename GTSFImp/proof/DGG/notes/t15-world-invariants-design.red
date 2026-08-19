@@ -246,7 +246,7 @@ Under the recommended form, an unmatched variable entry is also accepted only
 when its head is unmatched.  A non-variable, non-`★` direct entry must be
 center-aligned with a source pivot in that exact world.
 
-Directness sharpens the `CastTermImprecision2` Example 12 audit:
+Directness sharpens the `Example12Worlds` audit:
 
 * `example12-world-X` directly aligns `ℕ` with `ℕ`; its unmatched `Y`
   points to unmatched `Z`, whose entry is `★`.  It satisfies both direct fields
@@ -279,7 +279,7 @@ otherwise deleted under the repository's completed-arc policy.
 
 There are three deliberate failures of the merged `WFWorld` field:
 
-* The Example 12 left-path worlds in `CastTermImprecision2` mark source centers
+* The Example 12 left-path worlds in `Example12Worlds` mark source centers
   precise that are not occupied by their one-variable target embedding.
 * `Examples2`'s `left-path-world₃/₄/₅` with the `XZ` target omit the
   precise source center occupied only by the `YZ` variant.
@@ -346,7 +346,7 @@ values, with `t10-probe1-worlds-satisfy` retaining the representation proof.
 
 ## Migration and blast radius
 
-Direct record construction occurs in `CastTermImprecision2`,
+Direct record construction occurs in `CtxImp`,
 `CompilePreservesImprecision2`, `Occupancy`, `Examples2`, `CenterRename`,
 `WorldDecay`, `SealPeelToolkit`, `TargetBindLift`, `TargetExtend`, and the
 finite proof/probe worlds listed above.  Direct constructor pattern matching is
@@ -355,7 +355,7 @@ consumers largely survive the field addition, while every constructor call and
 constructor pattern changes arity.
 
 The current live users of external `WFWorld` are
-`CastTermImprecision2`, `ExtraCastRight2Counterexample`,
+`CastTermImprecision`, `ExtraCastRight2Counterexample`,
 `SmartCommaWitness`, `MovedLinkProbe`, `TagBoundaryProbe`,
 `SealPeelToolkit`, `WorldDecay`, and `SealPeelProbe`.  Their evidence becomes a
 projection or disappears.  Initial-world users in
@@ -389,9 +389,9 @@ A low-risk LG-1-style sequence is:
    `initialWorldᴼ` into the canonical empty-store constructor.
 
 PR #171 (`agent/gtsf-partner-redesign`, fetched head `faec619c`) changes 43
-`GTSFImp` files and touches `CastTermImprecision2`, `TargetExtend`,
+`GTSFImp` files and touches `CastTermImprecision`, `TargetExtend`,
 `CenterRename`, `TargetBindLift`, `TermImpDecay`, and many downstream inversion
-and catchup modules.  Its direct change to `CastTermImprecision2` is the D15
+and catchup modules.  Its direct change to `CastTermImprecision` is the D15
 partner/conceal surface rather than this record, but its semantic and arity
 blast overlaps almost every migration site.  Land D15 first, then rebase D16
 and perform step 4.  The temporary companion work can be prepared before that
@@ -408,11 +408,11 @@ ninth field of `World`.  The checked draft in
 ```agda
     dynamicStarSourcesUnoccupied :
       ∀ (Xᴸ : TyVar Δᴸ)
-      → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑★
-      → lookupStore (CTI2.sourceStoreʷ W) Xᴸ ≡ ★
+      → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+      → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
       → ∀ (Xᴿ : TyVar Δᴿ)
-      → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
-        ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ
+      → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+        ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
 ```
 
 This is deliberately a direct-source-entry condition.  It neither follows a
@@ -462,11 +462,11 @@ dynamic mark and direct source entry are known.  The checked general lemma is:
 
 ```agda
 world-invariants-no-target-at-dynamic-star : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
   → WorldInvariants W
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
-  → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
-  → CTI2.NoTargetOccupantAtSource W X
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTX.sourceStoreʷ W) X ≡ ★
+  → CTX.NoTargetOccupantAtSource W X
 ```
 
 For the source `seal X ★` see-through rule, no new rule input is needed.
@@ -478,11 +478,11 @@ The existing conversion typing supplies `sourceStoreʷ W ∋ X ⦂ ★`, and
 
 ```agda
 world-invariants-see-through-premise : ∀ {Δᴸ Δᴿ Δ}
-    {W W′ : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {W W′ : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
   → WorldInvariants W′
-  → CTI2.TagRebaseAtᴸ W′ W (just X) nothing
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X ★
-  → CTI2.NoTargetOccupantAtSource W′ X
+  → CTX.TagRebaseAtᴸ W′ W (just X) nothing
+  → CTX.sourceStoreʷ W Conversion.⊢↓[ just X ] seal X ★
+  → CTX.NoTargetOccupantAtSource W′ X
 ```
 
 D17(c)'s classifier occupancy premise is the same proposition written out as
@@ -491,11 +491,11 @@ dynamic mark and direct `★` source entry, world validity derives it:
 
 ```agda
 world-invariants-d17c-occupancy : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
   → WorldInvariants W
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
-  → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
-  → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X) → ⊥
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTX.sourceStoreʷ W) X ≡ ★
+  → CTX.Occupied W (toRenameᵗ (CTX.ηᴸʷ W) X) → ⊥
 ```
 
 At Stage 3, after validities and the local mark/direct-entry facts are

@@ -15,11 +15,18 @@ open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (seal)
 open import CastTerms using (Term; _↓_; _⟨_⟩)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.SealPeelToolkit as SPT
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
    sourceStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 data SourceColumnSealDCase {Δᴸ Δᴿ Δ}
     (W′ : World Δᴸ Δᴿ Δ) (γ′ : CtxImp W′)
@@ -37,9 +44,9 @@ data SourceColumnSealDCase {Δᴸ Δᴿ Δ}
       {Wᵢ : World Δᴸ Δᴿ Δ}
       {γᵢ : CtxImp Wᵢ}
       {pᵤ : R ⊑ᵂ⟨ Wᵢ ⟩ (＇ Y)}
-    → CTI2.ImpEnvMono W′ Wᵢ
+    → CTX.ImpEnvMono W′ Wᵢ
     → RebaseAt Wᵢ W′ Xᴸ Y
-    → CTI2.SameCtx γ′ γᵢ
+    → CTX.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ Xᴸ ⦂ R
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵤ
     → SourceColumnSealDCase W′ γ′ V U R S Xᴸ Y cY p
@@ -60,8 +67,8 @@ source-column-seal-D-case (CTI2.⊑cast² {p = pᵤ} cY′ prem p) =
   column-seal-target-cast-case prem
 source-column-seal-D-case
     (CTI2.conceal⊑²-source-ok
-      (CTI2.seal-nonstar-name-protected-ok Rns aligned)
-      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
-      (CTI2.⊢↓-sealˣ X∈)
+      (CTX.seal-nonstar-name-protected-ok Rns aligned)
+      monoᵢ (CTX.tag-rebase-varᴸ link) scᵢ
+      (Conv.⊢↓-sealˣ X∈)
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p) =
   column-seal-source-case monoᵢ link scᵢ X∈ prem

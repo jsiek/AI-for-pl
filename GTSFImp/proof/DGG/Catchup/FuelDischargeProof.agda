@@ -18,8 +18,13 @@ import Data.Nat.Induction as NatInduction
 
 open import Types using (Ty)
 open import CastTerms using (Term; Value)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; TargetCastBound; ValueCatchupRight²; ValueCatchupRightAt;
    FuelKnot)

@@ -17,7 +17,7 @@ open import CastTerms using (Term; Value; $; _⟨_⟩; _↑_; _《_》; inj)
 open import Primitives using (κℕ)
 open import Reduction using (keep; pure-step; id-reveal; _—→[_]_)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open CTI2 using (World)
 
 

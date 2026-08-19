@@ -21,10 +21,17 @@ open import Conversion using (seal)
 open import Imprecision
 open import CastTerms using (Term; Value; $; _⟨_⟩; _↓_; _《_》; inj)
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   TagRebaseAtᴸ; CtxImp; sourceStoreʷ; ⊢↓-sealˣ)
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   TagRebaseAtᴸ;
+   CtxImp;
+   sourceStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X : TyVar 1
@@ -91,20 +98,20 @@ private
   target-Y-tagged-value : Value target-Y-tagged
   target-Y-tagged-value = target-Y-sealed-value 《 inj 》
 
-  source-X-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
-  source-X-seal-typed = ⊢↓-sealˣ source-X∋
+  source-X-seal-typed : source-store Conv.⊢↓[ just X ] seal X ★
+  source-X-seal-typed = Conv.⊢↓-sealˣ source-X∋
 
-  no-target-at-X : CTI2.NoTargetOccupantAtSource W X
+  no-target-at-X : CTX.NoTargetOccupantAtSource W X
   no-target-at-X (Fin.zero , ())
 
-  not-center-aligned-X-Y : CTI2.CenterAligned W X Y → ⊥
+  not-center-aligned-X-Y : CTX.CenterAligned W X Y → ⊥
   not-center-aligned-X-Y ()
 
   no-target-rebase : TagRebaseAtᴸ W W (just X) nothing
   no-target-rebase =
-    CTI2.tag-rebase-onlyᴸ refl (λ { Fin.zero () }) ★⊑★
+    CTX.tag-rebase-onlyᴸ refl (λ { Fin.zero () }) ★⊑★
 
-  mono-refl : CTI2.ImpEnvMono W W
+  mono-refl : CTX.ImpEnvMono W W
   mono-refl Z eq = eq
 
   qX★ : ＇ X ⊑ᵂ⟨ W ⟩ ★

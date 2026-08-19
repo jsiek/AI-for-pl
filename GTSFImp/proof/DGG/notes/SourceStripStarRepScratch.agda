@@ -15,13 +15,19 @@ open import Conversion using (seal)
 open import CastTerms using (Term; _↓_; _⟨_⟩)
 open import Imprecision
 import CastTerms
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using
   (variable-obligation-aligns)
 
-open CTI2 using
-  (World; CtxImp; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
+open CTX using
+  (World;
+   CtxImp;
+   TagRebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_;
    sourceStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 rebase-only-star-rep-no-var-target :
   ∀ {Δᴸ Δᴿ Δ}
@@ -31,7 +37,7 @@ rebase-only-star-rep-no-var-target :
   → (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)
   → ⊥
 rebase-only-star-rep-no-var-target {W = W} {X = X} {Y = Y}
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) q =
+    (CTX.tag-rebase-onlyᴸ to-star disaligned represented) q =
   disaligned Y (sym (variable-obligation-aligns {W = W} {X = X} {Y = Y} q))
 
 plain-star-rep-premise :
@@ -42,16 +48,16 @@ plain-star-rep-premise :
     {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
     {p : ★ ⊑ᵂ⟨ W′ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ X ⦂ ★
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p
   → W ∣ γ ⊢² V ↓ seal X ★ ⊑ U ∶ q
 plain-star-rep-premise mono rb sc X∈ prem =
   CTI2.conceal⊑²
-    (CTI2.seal-partner-ok CTI2.star-rep-target)
-    mono rb sc (CTI2.⊢↓-sealˣ X∈) prem _
+    (CTX.seal-partner-ok CTX.star-rep-target)
+    mono rb sc (Conv.⊢↓-sealˣ X∈) prem _
 
 injected-star-rep-premise :
   ∀ {Δᴸ Δᴿ Δ}
@@ -62,9 +68,9 @@ injected-star-rep-premise :
     {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
     {p : ★ ⊑ᵂ⟨ W′ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ X ⦂ ★
   → CastTerms.Inert c
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p

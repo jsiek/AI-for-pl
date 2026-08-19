@@ -10,13 +10,13 @@ open import Types using (Ty; TyCtx; TyVar)
 open import Conversion using (seal; unseal)
 open import CastTerms using (Term; Value; _↑_; _↓_)
 open import Reduction using (keep; _—→[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2 using
-  ( World
-  ; CtxImp
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 
 PairedConcealRevealPeelᵀ : Set

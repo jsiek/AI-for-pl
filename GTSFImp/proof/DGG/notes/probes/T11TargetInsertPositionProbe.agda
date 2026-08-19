@@ -11,7 +11,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (X⊑★)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 
 
 direct-right-bind-fresh-target-center : ∀ {Δᴸ Δᴿ Δ}

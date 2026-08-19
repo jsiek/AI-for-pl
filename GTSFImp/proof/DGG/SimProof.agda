@@ -41,9 +41,11 @@ open import proof.Reduction using
   ; typeApp-↠
   )
 open import proof.TypeSafety.Preservation using (apply-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.Imprecision as PI
+open CTX
 open CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve; evolve-refl; evolve-keepᴸ)

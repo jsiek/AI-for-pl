@@ -12,7 +12,9 @@ open import Types using (Ty; TyVar)
 open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; _↑_; _↓_)
 open import Reduction using (StoreChanges)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
@@ -26,19 +28,19 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef using
 
 structural-reveal-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
-    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
-    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+    {W Wᵖ : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTX.CtxImp W} {γᵖ : CTX.CtxImp Wᵖ}
     {M : Term Δᴸ} {F : Term Δᴿ′}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ? : Maybe (TyVar Δᴸ)}
     {c : Conv↑ Δᴸ A A′}
-    {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B}
-    {q : A′ CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p : A CTX.⊑ᵂ⟨ Wᵖ ⟩ B}
+    {q : A′ CTX.⊑ᵂ⟨ W ⟩ B}
   → (plan : StructuralWorldExtendᴿ χs W W′)
-  → (mono : CTI2.ImpEnvMono W Wᵖ)
-  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ Xᴸ? ] c
+  → (mono : CTX.ImpEnvMono W Wᵖ)
+  → (rb : CTX.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → CTX.SameCtx γ γᵖ
+  → CTX.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → let child = structural-rebase-atᴸ plan rb
         planᵖ = StructuralRebaseAtᴸResult.premise-plan child
      in StructuralRebaseAtᴸResult.Wᵖ′ child CTI2.∣
@@ -63,22 +65,22 @@ structural-reveal-replay plan mono rb sc c⊢ rel
 
 structural-conceal-source-ok-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
-    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
-    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+    {W Wᵖ : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTX.CtxImp W} {γᵖ : CTX.CtxImp Wᵖ}
     {M : Term Δᴸ} {F : Term Δᴿ′}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ? Xᴿ?}
     {c : Conv↓ Δᴸ A A′}
-    {p : A CTI2.⊑ᵂ⟨ Wᵖ ⟩ B}
-    {q : A′ CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p : A CTX.⊑ᵂ⟨ Wᵖ ⟩ B}
+    {q : A′ CTX.⊑ᵂ⟨ W ⟩ B}
   → (plan : StructuralWorldExtendᴿ χs W W′)
-  → (mono : CTI2.ImpEnvMono W Wᵖ)
-  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → (mono : CTX.ImpEnvMono W Wᵖ)
+  → (rb : CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → CTX.SameCtx γ γᵖ
+  → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → let child = structural-tag-rebase-atᴸ plan rb
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child
-     in CTI2.SourceConcealOK
+     in CTX.SourceConcealOK
           (StructuralTagRebaseAtᴸResult.Wᵖ′ child) M c
           (mapPivotChanges χs Xᴿ?) F
         → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTI2.∣
@@ -103,22 +105,22 @@ structural-conceal-source-ok-replay plan mono rb sc c⊢ ok rel
 
 structural-conceal-seal-star-open-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
-    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
-    {γ : CTI2.CtxImp W} {γᵖ : CTI2.CtxImp Wᵖ}
+    {W Wᵖ : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTX.CtxImp W} {γᵖ : CTX.CtxImp Wᵖ}
     {M : Term Δᴸ} {F : Term Δᴿ′}
     {B : Ty Δᴿ} {X : TyVar Δᴸ}
-    {p : Types.★ CTI2.⊑ᵂ⟨ Wᵖ ⟩ B}
-    {q : Types.＇ X CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p : Types.★ CTX.⊑ᵂ⟨ Wᵖ ⟩ B}
+    {q : Types.＇ X CTX.⊑ᵂ⟨ W ⟩ B}
   → (plan : StructuralWorldExtendᴿ χs W W′)
-  → (mono : CTI2.ImpEnvMono W Wᵖ)
-  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W (Data.Maybe.just X) Data.Maybe.nothing)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ Data.Maybe.just X ]
+  → (mono : CTX.ImpEnvMono W Wᵖ)
+  → (rb : CTX.TagRebaseAtᴸ Wᵖ W (Data.Maybe.just X) Data.Maybe.nothing)
+  → CTX.SameCtx γ γᵖ
+  → CTX.sourceStoreʷ W Conv.⊢↓[ Data.Maybe.just X ]
       Conversion.seal X Types.★
   → let child = structural-tag-rebase-atᴸ plan rb
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child
-     in CTI2.NoTargetOccupantAtSource
+     in CTX.NoTargetOccupantAtSource
           (StructuralTagRebaseAtᴸResult.Wᵖ′ child) X
         → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTI2.∣
             ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
@@ -136,7 +138,7 @@ structural-conceal-seal-star-open-replay {χs = χs}
              ; post-mono = mono′ } =
   CTI2.conceal⊑²-seal-star-open no-target (mono′ mono)
     (subst≡
-      (λ Xᴿ? → CTI2.TagRebaseAtᴸ _ _ (Data.Maybe.just _) Xᴿ?)
+      (λ Xᴿ? → CTX.TagRebaseAtᴸ _ _ (Data.Maybe.just _) Xᴿ?)
       (mapPivotChanges-nothing χs) rb′)
     (mapCtxᴿ-sameCtx
       (structural-world-extendᴿ plan)

@@ -1,7 +1,7 @@
 module proof.DGG.SimCastLayerInversion where
 
 -- File Charter:
---   * Provides one-layer source ordinary-cast head-analysis views for CTI2.
+--   * Provides one-layer source ordinary-cast head-analysis views for CTX.
 --   * Exposes the layer's inner imprecision witness without performing
 --     recursive analysis of the premise.
 --   * Separates the two D2a heads, `cast⊑²` and `cast⊑cast²`, from
@@ -11,19 +11,18 @@ open import Types using (Ty)
 open import Conversion using (Conv↑; Conv↓)
 open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; _⟨_⟩; _↑_; _↓_)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  ( World
-  ; CtxImp
-  ; ImpEnvMono
-  ; RebaseAtᴿ
-  ; SameCtx
-  ; targetStoreʷ
-  ; _⊢↑[_]_
-  ; _⊢↓[_]_
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   CtxImp;
+   ImpEnvMono;
+   RebaseAtᴿ;
+   SameCtx;
+   targetStoreʷ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 data SourceCastLayerHeadView {Δᴸ Δᴿ Δ}
@@ -60,7 +59,7 @@ data SourceCastLayerHeadView {Δᴸ Δᴿ Δ}
     → ImpEnvMono W W′
     → RebaseAtᴿ W W′ Xᴿ?
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↑[ Xᴿ? ] c′
+    → targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
     → (p : B ⊑ᵂ⟨ W′ ⟩ C′)
     → W′ ∣ γ′ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
       ------------------------------------------------
@@ -72,7 +71,7 @@ data SourceCastLayerHeadView {Δᴸ Δᴿ Δ}
     → ImpEnvMono W W′
     → RebaseAtᴿ W′ W Xᴿ?
     → SameCtx γ γ′
-    → targetStoreʷ W ⊢↓[ Xᴿ? ] c′
+    → targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
     → (p : B ⊑ᵂ⟨ W′ ⟩ C′)
     → W′ ∣ γ′ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
       ------------------------------------------------

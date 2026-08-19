@@ -19,14 +19,18 @@ open import Types using (Ty; TyCtx; TyVar)
 open import CastTerms using (Term; Value; blame)
 open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
   using (mapPivotChanges)
 open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupBoundary; CatchupBoundaryKind)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; ParkedWorld)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 LeftCatchupResult : ∀ {Δᴸ Δᴿ Δ}

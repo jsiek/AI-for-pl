@@ -21,11 +21,16 @@ import Conversion
 open import Imprecision
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp)
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp)
 
 ------------------------------------------------------------------------
 -- World-side provenance and capability discipline
@@ -250,7 +255,7 @@ data _∣_⊢ᵂ_⊑_∶_ :
   conceal⊑ᵂ : ∀ {M M′ A A′ B Xᴿ?}
       {p : A ⊑ᵂ⟨ N.W ⟩ B} {c : Conversion.Conv↓ 1 A A′}
     → CTI2.SourceConcealPartnerOK N.W M c Xᴿ? M′
-    → CTI2.sourceStoreʷ N.W CTI2.⊢↓[ just Fin.zero ] c
+    → CTI2.sourceStoreʷ N.W Conv.⊢↓[ just Fin.zero ] c
     → N.W ∣ [] ⊢ᵂ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ N.W ⟩ B)
     → EndpointUseᵂ q
@@ -264,8 +269,8 @@ data _∣_⊢ᵂ_⊑_∶_ :
       {c′ : Conversion.Conv↓ 1 A′ B′}
     → CTI2.MatchedConcealPartnerOK N.W M c (just Fin.zero) M′
     → RebaseAt N.W N.W Fin.zero Fin.zero
-    → CTI2.sourceStoreʷ N.W CTI2.⊢↓[ just Fin.zero ] c
-    → CTI2.targetStoreʷ N.W CTI2.⊢↓[ just Fin.zero ] c′
+    → CTI2.sourceStoreʷ N.W Conv.⊢↓[ just Fin.zero ] c
+    → CTI2.targetStoreʷ N.W Conv.⊢↓[ just Fin.zero ] c′
     → N.W ∣ [] ⊢ᵂ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ N.W ⟩ B′)
     → EndpointUseᵂ q

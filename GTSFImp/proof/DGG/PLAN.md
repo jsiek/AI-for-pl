@@ -483,7 +483,7 @@ The no-constructor interleaving now checks on the live proof surface:
   is split or moved through a source-only prefix.
 
 This is live at commit `98d3523c`; the relation in
-`CastTermImprecision2.agda` is unchanged.  The design preflight remains
+`CastTermImprecision.agda` is unchanged.  The design preflight remains
 in `notes/M5SplitInterleavingScratch.agda`.
 
 Revised work order:

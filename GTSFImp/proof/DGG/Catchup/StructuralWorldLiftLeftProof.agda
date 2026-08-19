@@ -5,7 +5,7 @@ module proof.DGG.Catchup.StructuralWorldLiftLeftProof where
 --   * Uses the canonical lifted target insertion at every bind.
 
 import Data.Nat as Nat
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import Imprecision using (VarImp)
 open import Reduction using (StoreChanges)

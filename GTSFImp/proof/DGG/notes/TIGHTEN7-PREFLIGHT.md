@@ -75,7 +75,7 @@ available in this model.
 |---|---|---|
 | `Tighten7PreflightScratch.agda` | Pass | Candidate model and counterexamples check. |
 | `SourceStarPackageCounterScratch.agda` | Pass | Prior live negative instance still checks. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda` | Pass | Read-only gate. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/TermImpDecay.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/SealTransferCore.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda` | Pass | Read-only gate. |

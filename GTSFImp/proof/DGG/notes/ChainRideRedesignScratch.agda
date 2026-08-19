@@ -29,16 +29,25 @@ open import Primitives using (κℕ)
 
 import SourceStarCounterScratch as SSC
 import SourceStarRideCounterScratch as SSRC
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.CenterRename as CR
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.MovedLinkProbe as MLP
 import proof.DGG.SealTransfer as ST
 import proof.DGG.TagBoundaryProbe as TBP
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; sourceStoreʷ;
-   targetStoreʷ; ηᴸʷ; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   ηᴸʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open ECR using (SpineValue)
 
 ------------------------------------------------------------------------
@@ -53,8 +62,8 @@ data TargetSealRide {Δᴸ Δᴿ Δ}
   target-seal★ :
     Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W₀ Xᵒ Yᵒ
-      × CTI2.ImpEnvMono W₀ Wᵒ
-      × CTI2.SameCtx γ₀ γᵒ
+      × CTX.ImpEnvMono W₀ Wᵒ
+      × CTX.SameCtx γ₀ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᵒ ★ ⊑ U ∶ qᵒ) )
     → TargetSealRide Xᵒ Yᵒ ★
@@ -78,9 +87,9 @@ record ChainRideRedesign : Set where
         {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
       → SpineValue V
       → Value U
-      → CTI2.ImpEnvMono W W′
+      → CTX.ImpEnvMono W W′
       → RebaseAt W′ W Xᴸ Y
-      → CTI2.SameCtx γ γ′
+      → CTX.SameCtx γ γ′
       → sourceStoreʷ W ∋ Xᴸ ⦂ R
       → targetStoreʷ W ∋ Y ⦂ S
       → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
@@ -96,16 +105,16 @@ record ChainRideRedesign : Set where
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y
       → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
               (Wᵒ ∣ γᵒ ⊢²
                 V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -119,16 +128,16 @@ record ChainRideRedesign : Set where
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y
       → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W) X₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
               (Wᵒ ∣ γᵒ ⊢²
                 V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -145,16 +154,16 @@ record ChainRideRedesign : Set where
       → Value U
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ ★
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
               (Wᵒ ∣ γᵒ ⊢²
                 (V ⟨ c ⟩) ↓ seal Xᴸ ★ ⊑ U ∶ qᵒ) )
@@ -169,9 +178,9 @@ record ChainRideRedesign : Set where
       → SpineValue V
       → Inert c
       → Value U
-      → CTI2.ImpEnvMono W W′
+      → CTX.ImpEnvMono W W′
       → RebaseAt W′ W Xᴸ Y
-      → CTI2.SameCtx γ γ′
+      → CTX.SameCtx γ γ′
       → sourceStoreʷ W ∋ Xᴸ ⦂ ★
       → targetStoreʷ W ∋ Y ⦂ S
       → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
@@ -200,8 +209,8 @@ tag-transfer-from-redesign : ChainRideRedesign
   → W ∣ γ ⊢² V ⊑ U ↓ seal Y ★ ∶ p
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W X Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ X) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢² V ⊑ U ∶ qᵒ) )
 tag-transfer-from-redesign core =
@@ -219,9 +228,9 @@ H-Schain-from-redesign : ChainRideRedesign
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y (＇ Y₂) ∶ p₂
@@ -248,15 +257,15 @@ H-absorb-from-redesign : ChainRideRedesign
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → RebaseAt W₂ W′ X₂ Y
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ′ γ₂
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → W ∣ γ ⊢²
@@ -269,8 +278,8 @@ H-absorb-from-redesign core {q = q} sv inert vU mono rb sc X∈ Y∈ D
 H-absorb-from-redesign core {q = q} sv inert vU mono rb sc X∈ Y∈ D
     link mono₂ sc₂ D₂ moved
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
-  CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-    (CTI2.⊢↓-sealˣ Y∈) Dᵒ q
+  CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
+    (Conv.⊢↓-sealˣ Y∈) Dᵒ q
 
 H-multi-from-redesign : ChainRideRedesign
   → ∀ {Δᴸ Δᴿ Δ}
@@ -283,17 +292,17 @@ H-multi-from-redesign : ChainRideRedesign
   → Value U
   → RebaseAt W′ W Xᴸ Y
   → RebaseAt W₂ W′ X₂ Y
-  → CTI2.ImpEnvMono W W′
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W W′
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ γ′
+  → CTX.SameCtx γ′ γ₂
   → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W Xᴸ Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -316,8 +325,8 @@ open-strata-from-redesign core = record
 ChainRideProbe-from-redesign : ChainRideRedesign
   → Σ[ Wᵒ ∈ World 2 1 3 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ CRP.W₁ Fin.zero Fin.zero
-      × CTI2.ImpEnvMono CRP.W₁ Wᵒ
-      × CTI2.SameCtx {W = CRP.W₁} [] γᵒ
+      × CTX.ImpEnvMono CRP.W₁ Wᵒ
+      × CTX.SameCtx {W = CRP.W₁} [] γᵒ
       × Σ[ qᵒ ∈ (＇ Fin.zero) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             CRP.V ↓ seal Fin.zero (＇ Fin.suc Fin.zero)
@@ -356,8 +365,8 @@ TagBoundaryProbe-target-only-node = TBP.probe-inner-seal²
 TagBoundaryProbe-transfer-from-redesign : ChainRideRedesign
   → Σ[ Wᵒ ∈ World 1 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ TBP.probe-W₄ Fin.zero (Fin.suc Fin.zero)
-      × CTI2.ImpEnvMono TBP.probe-W₄ Wᵒ
-      × CTI2.SameCtx {W = TBP.probe-W₄} [] γᵒ
+      × CTX.ImpEnvMono TBP.probe-W₄ Wᵒ
+      × CTX.SameCtx {W = TBP.probe-W₄} [] γᵒ
       × Σ[ qᵒ ∈ (＇ Fin.zero) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             TBP.probe-V ⊑ TBP.probe-M₅ ∶ qᵒ) )
@@ -385,18 +394,18 @@ MovedLinkProbe-excluded :
 MovedLinkProbe-excluded = MLP.probe-link-ill-formed
 
 example12-target-Z-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-X)
+  toRenameᵗ (CTX.ηᴿʷ Ex12.example12-world-X)
     (Fin.suc (Fin.suc Fin.zero))
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-Z)
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-world-Z)
     (Fin.suc (Fin.suc Fin.zero))
 example12-target-Z-never-moves = refl
 
 example12-nat-chain-target-Y-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-Y) Fin.zero
+  toRenameᵗ (CTX.ηᴿʷ Ex12.example12-nat-chain-world-X) Fin.zero
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-nat-chain-world-Y) Fin.zero
 example12-nat-chain-target-Y-never-moves = refl
 
 example12-left-path-first-park :
-  toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-X) Fin.zero
+  toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-X) Fin.zero
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-left-path-world-X) Fin.zero
 example12-left-path-first-park = refl

@@ -16,7 +16,8 @@ open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!; toRenameᵗ)
 open import CastTerms using (Term; _⟨_⟩)
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.LambdaImpProbe as LIP
 import proof.DGG.StarRepChainProbe as SRC
@@ -27,7 +28,10 @@ import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.Parked.ParkedD4CheckpointLemma as D4
 
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Proposed source-payload-indexed rep-★ partner predicate

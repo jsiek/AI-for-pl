@@ -37,8 +37,11 @@ open import Eval using (step?; value?)
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.OneStep as Step
 open Step using (Δ′; change; next; reduction)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (_⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.Example12Worlds as Ex12
+open CTX using (_⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Examples2 as Ex2
 
 ------------------------------------------------------------------------
@@ -54,14 +57,14 @@ probe-source : Term 0
 probe-source = Ex.example12-left
 
 probe-target : Term 0
-probe-target = (ƛ (` 0)) · (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+probe-target = (ƛ (` 0)) · (Ex.c ⟨ Ex12.example12-ℕ! ⟩)
 
 probe-target-lambda-⊢ : Ex.∅ ⊢ ƛ (` 0) ⦂ ★ ⇒ ★
 probe-target-lambda-⊢ = ⊢ƛ (⊢` Z)
 
 probe-target-⊢ : Ex.∅ ⊢ probe-target ⦂ ★
 probe-target-⊢ =
-  ⊢· probe-target-lambda-⊢ (⊢⟨⟩ Ex.c-⊢ CTI2.example12-ℕ!)
+  ⊢· probe-target-lambda-⊢ (⊢⟨⟩ Ex.c-⊢ Ex12.example12-ℕ!)
 
 ------------------------------------------------------------------------
 -- Reduction traces
@@ -101,30 +104,30 @@ probe-target-reduction =
 -- Checkpoint 0: Λ⊑² with an unweakened target premise
 ------------------------------------------------------------------------
 
-probe-world₀ : CTI2.World 0 0 0
+probe-world₀ : CTX.World 0 0 0
 probe-world₀ = Ex2.reflWorld store-empty
 
 probe-∀⊑⇒★ : `∀ Ex.X⇒X ⊑ᵂ⟨ probe-world₀ ⟩ (★ ⇒ ★)
 probe-∀⊑⇒★ = Ex2.∀X⇒X⊑★⇒★² {W = probe-world₀}
 
 probe-body⊑ :
-  Ex.X⇒X ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ probe-world₀ ⟩ (★ ⇒ ★)
+  Ex.X⇒X ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ probe-world₀ ⟩ (★ ⇒ ★)
 probe-body⊑ = ⇒⊑⇒ (X⊑★ refl) (X⊑★ refl)
 
 probe-Λ-premise :
-  CTI2.liftWorldLeft X⊑★ probe-world₀ ∣ [] ⊢²
+  CTX.liftWorldLeft X⊑★ probe-world₀ ∣ [] ⊢²
     ƛ (` 0) ⊑ ƛ (` 0) ∶ probe-body⊑
 probe-Λ-premise =
   CTI2.ƛ⊑ƛ²
     {A = ＇ Fin.zero} {A′ = ★}
     {pA = X⊑★ refl} {pB = X⊑★ refl}
-    (CTI2.x⊑x² {p = X⊑★ refl} CTI2.Zʷ)
+    (CTI2.x⊑x² {p = X⊑★ refl} CTX.Zʷ)
 
 probe-Λ⊑ :
   probe-world₀ ∣ [] ⊢² Λ (ƛ (` 0)) ⊑ ƛ (` 0) ∶ probe-∀⊑⇒★
 probe-Λ⊑ =
   CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
-    CTI2.liftᴸ-[] (ƛ (` 0)) probe-target-lambda-⊢
+    CTX.liftᴸ-[] (ƛ (` 0)) probe-target-lambda-⊢
     probe-Λ-premise probe-∀⊑⇒★
 
 probe-function₀ :
@@ -151,9 +154,9 @@ probe-checkpoint₀ =
 -- With an empty target type context there is no pivot pair at all;
 -- this is the impossibility that motivates rebase-onlyᴸ.
 
-no-rebase-empty-target : ∀ {Δᴸ Δ} {W W′ : CTI2.World Δᴸ 0 Δ}
+no-rebase-empty-target : ∀ {Δᴸ Δ} {W W′ : CTX.World Δᴸ 0 Δ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar 0}
-  → ¬ CTI2.RebaseAt W W′ Xᴸ Xᴿ
+  → ¬ CTX.RebaseAt W W′ Xᴸ Xᴿ
 no-rebase-empty-target {Xᴿ = ()} _
 
 ------------------------------------------------------------------------
@@ -163,12 +166,12 @@ no-rebase-empty-target {Xᴿ = ()} _
 -- The source allocates Xᴸ ↦ ℕ, so the world evolves by leftOnlyWorld:
 -- the source store binds ℕ while the target side is untouched.
 
-probe-world₁ : CTI2.World 1 0 1
-probe-world₁ = CTI2.leftOnlyWorld X⊑★ probe-world₀ Ex.ℕᵗ
+probe-world₁ : CTX.World 1 0 1
+probe-world₁ = CTX.leftOnlyWorld X⊑★ probe-world₀ Ex.ℕᵗ
 
-probe-rebase-X : CTI2.RebaseAtᴸ probe-world₁ probe-world₁
+probe-rebase-X : CTX.RebaseAtᴸ probe-world₁ probe-world₁
     (just Fin.zero)
-probe-rebase-X = CTI2.rebase-onlyᴸ refl (λ ()) ι⊑★
+probe-rebase-X = CTX.rebase-onlyᴸ refl (λ ()) ι⊑★
 
 probe-X⊑★₁ : (＇ Fin.zero) ⊑ᵂ⟨ probe-world₁ ⟩ ★
 probe-X⊑★₁ = X⊑★ refl
@@ -187,23 +190,23 @@ probe-lambda₁ =
   CTI2.ƛ⊑ƛ²
     {A = ＇ Fin.zero} {A′ = ★}
     {pA = probe-X⊑★₁} {pB = probe-X⊑★₁}
-    (CTI2.x⊑x² {p = probe-X⊑★₁} CTI2.Zʷ)
+    (CTI2.x⊑x² {p = probe-X⊑★₁} CTX.Zʷ)
 
 probe-function₁ :
   probe-world₁ ∣ [] ⊢²
     (ƛ (` 0)) ↑ Ex2.example12-source-X-reveal ⊑ ƛ (` 0) ∶
       Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁}
 probe-function₁ =
-  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTX.same-[]
     Ex2.example12-source-X-reveal-⊢ˣ probe-lambda₁
     (Ex2.ℕ⇒ℕ⊑★⇒★² {W = probe-world₁})
 
 probe-argument₁ :
   probe-world₁ ∣ [] ⊢²
-    $ (κℕ 7) ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶
+    $ (κℕ 7) ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶
       Ex2.ℕ⊑★² {W = probe-world₁}
 probe-argument₁ =
-  CTI2.⊑cast² CTI2.example12-ℕ!
+  CTI2.⊑cast² Ex12.example12-ℕ!
     (CTI2.κ⊑κ² (κℕ 7) (Ex2.ℕ⊑ℕ² {W = probe-world₁}))
     (Ex2.ℕ⊑★² {W = probe-world₁})
 
@@ -212,19 +215,19 @@ probe-checkpoint₁ :
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
 
-probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTI2.World 1 0 Δ}
+probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTX.World 1 0 Δ}
     {P Xᴿ?}
-  → CTI2.SourceConcealOK W
+  → CTX.SourceConcealOK W
       P Ex2.example12-source-X-seal Xᴿ?
-      (Ex.c ⟨ CTI2.example12-ℕ! ⟩)
+      (Ex.c ⟨ Ex12.example12-ℕ! ⟩)
   → ⊥
-probe-sealed-arg-ok-empty (CTI2.seal-nonstar-plain-ok Rns ())
+probe-sealed-arg-ok-empty (CTX.seal-nonstar-plain-ok Rns ())
 
 probe-sealed-arg-empty′ : ∀ {X}
   → (q : ＇ X ⊑ᵂ⟨ probe-world₁ ⟩ ★)
   → probe-world₁ ∣ [] ⊢²
       ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-      ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ q
+      ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ q
   → ⊥
 probe-sealed-arg-empty′ q₀
     (CTI2.⊑cast² {p = p} c′ D .q₀) with p
@@ -237,7 +240,7 @@ probe-sealed-arg-empty′ q₀
 probe-sealed-arg-empty :
   probe-world₁ ∣ [] ⊢²
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-    ⊑ Ex.c ⟨ CTI2.example12-ℕ! ⟩ ∶ probe-X⊑★₁
+    ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ probe-X⊑★₁
   → ⊥
 probe-sealed-arg-empty =
   probe-sealed-arg-empty′ {X = Fin.zero} probe-X⊑★₁
@@ -250,14 +253,14 @@ source-seal/bare-target-tag admission.  Their semantic payload survives as
 probe-app₂ :
   probe-world₁ ∣ [] ⊢²
     (ƛ (` 0)) · (($ (κℕ 7)) ↓ Ex2.example12-source-X-seal)
-    ⊑ (ƛ (` 0)) · (Ex.c ⟨ CTI2.example12-ℕ! ⟩) ∶ probe-X⊑★₁
+    ⊑ (ƛ (` 0)) · (Ex.c ⟨ Ex12.example12-ℕ! ⟩) ∶ probe-X⊑★₁
 probe-app₂ = CTI2.·⊑·² probe-lambda₁ probe-sealed-arg
 
 probe-checkpoint₂ :
   probe-world₁ ∣ [] ⊢² Ex.left₂ ⊑ probe-target ∶
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₂ =
-  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTX.same-[]
     Ex2.example12-source-X-unseal-⊢ˣ probe-app₂
     (Ex2.ℕ⊑★² {W = probe-world₁})
 
@@ -268,7 +271,7 @@ probe-checkpoint₃ :
   probe-world₁ ∣ [] ⊢² Ex.left₃ ⊑ probe-target₁ ∶
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₃ =
-  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTI2.same-[]
+  CTI2.reveal⊑² (λ _ eq → eq) probe-rebase-X CTX.same-[]
     Ex2.example12-source-X-unseal-⊢ˣ probe-sealed-arg
     (Ex2.ℕ⊑★² {W = probe-world₁})
 -}

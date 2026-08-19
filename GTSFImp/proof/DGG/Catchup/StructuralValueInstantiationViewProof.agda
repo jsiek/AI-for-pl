@@ -10,9 +10,13 @@ open import Data.Empty using (⊥)
 open import Types using (Ty; _[_]ᵗ)
 import CastTerms
 open import CastTerms using (Term; Value; _⦂∀_[_])
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import
   proof.DGG.Catchup.StructuralValueInstantiationViewDef
 

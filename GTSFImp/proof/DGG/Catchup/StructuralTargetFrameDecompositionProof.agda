@@ -23,7 +23,8 @@ open import Reduction using
   (keep; bind; _—→[_]_; _—↠[_]_; ↠-refl; ↠-step;
    pure-step; id-reveal; id-conceal; conceal-reveal; blame-reveal;
    blame-conceal; ξ-reveal; ξ-conceal)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
@@ -134,7 +135,7 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
         (mapInstantiationSpine keep spine) ]
       (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
          {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
-       → StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+       → StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
            ECR.mapCtxᴿ
              (structural-world-extendᴿ
                (StructuralTargetInstantiationPackage.structural-ext
@@ -146,7 +147,7 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
                  (StructuralTargetInstantiationPackage.structural-ext
                    child-target))
                q
-       → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+       → StructuralTargetInstantiationPackage.W′ target CTIR.∣
            ECR.mapCtxᴿ
              (structural-world-extendᴿ
                (StructuralTargetInstantiationPackage.structural-ext target))
@@ -177,7 +178,7 @@ structural-target-reveal-frame-keep-peel vV spine head vV₁ target
   child-target ,
     (λ {γ = γ} child-rel →
       subst≡
-        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
         (sym (mapCtxᴿ-structural-keep child-ext γ))
         child-rel)
   where
@@ -226,7 +227,7 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
         (mapInstantiationSpine keep spine) ]
       (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
          {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
-       → StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+       → StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
            ECR.mapCtxᴿ
              (structural-world-extendᴿ
                (StructuralTargetInstantiationPackage.structural-ext
@@ -238,7 +239,7 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
                  (StructuralTargetInstantiationPackage.structural-ext
                    child-target))
                q
-       → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+       → StructuralTargetInstantiationPackage.W′ target CTIR.∣
            ECR.mapCtxᴿ
              (structural-world-extendᴿ
                (StructuralTargetInstantiationPackage.structural-ext target))
@@ -269,7 +270,7 @@ structural-target-conceal-frame-keep-peel vV spine head vV₁ target
   child-target ,
     (λ {γ = γ} child-rel →
       subst≡
-        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
         (sym (mapCtxᴿ-structural-keep child-ext γ))
         child-rel)
   where

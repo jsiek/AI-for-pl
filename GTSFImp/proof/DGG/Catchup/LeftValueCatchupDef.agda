@@ -17,14 +17,19 @@ open import Data.Unit using (⊤)
 open import Types using (Ty; TyVar)
 open import CastTerms using (Term; Value)
 open import proof.Consistency using (castSize)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)
 open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupBoundary; CatchupBoundaryKind; same-boundary)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 SourceCastBound : ∀ {Δᴸ Δᴿ Δ}

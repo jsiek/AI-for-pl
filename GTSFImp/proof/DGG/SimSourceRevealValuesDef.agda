@@ -21,7 +21,9 @@ open import Reduction using
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
@@ -30,15 +32,13 @@ open import proof.DGG.CatchupToMorePreciseDef
     ; source-reveal-boundary
     ; targetPivotᴸ
     )
-open CTI2 using
-  ( World
-  ; ImpEnvMono
-  ; RebaseAtᴸ
-  ; sourceStoreʷ
-  ; _⊢↑[_]_
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   ImpEnvMono;
+   RebaseAtᴸ;
+   sourceStoreʷ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 SimSourceRevealValuesᵀ : Set₁
@@ -52,7 +52,7 @@ SimSourceRevealValuesᵀ =
   → ParkedWorld W
   → (mono : ImpEnvMono W Wᵖ)
   → (rebase : RebaseAtᴸ W Wᵖ Xᴸ?)
-  → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
+  → sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → Value V

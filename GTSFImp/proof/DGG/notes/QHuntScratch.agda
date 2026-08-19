@@ -23,7 +23,7 @@ open import CastTerms using
 open import Reduction using
   (_—↠[_]_; ↠-refl; ↠-step; keep; []; _∷_)
 import Eval
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
 import ProjectionMismatchStarRepScratch as PMS

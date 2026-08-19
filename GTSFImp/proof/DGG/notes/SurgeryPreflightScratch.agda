@@ -16,7 +16,10 @@ open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExampleTerms as Ex
@@ -26,7 +29,11 @@ import proof.DGG.Inversion.TargetDescentDef as TDD
 import proof.DGG.Inversion.TargetDescentProof as TDP
 import TagDisciplineScratch as TD
 
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Refined source-seal partner discipline
@@ -71,10 +78,10 @@ data _∣_⊢ʳᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
       {γ′ : CtxImp W′} {M M′ R A′ B Xᴸ? Xᴿ?}
       {p : R ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ R A′}
     → SealPartnerOK R Xᴿ? M′
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → TD.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
-    → CTI2.SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTX.SameCtx γ γ′
+    → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢ʳᵗᵈ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -85,11 +92,11 @@ data _∣_⊢ʳᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
-    → CTI2.ImpEnvMono W Wᵖ
-    → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
-    → CTI2.SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTX.ImpEnvMono W Wᵖ
+    → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
+    → CTX.SameCtx γ γᵖ
+    → CTX.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTX.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢ʳᵗᵈ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -172,7 +179,7 @@ target-rep-tagʳᵗᵈ = ⊑castʳᵗᵈ TD.ℕ! baseʳᵗᵈ ι⊑★
 paired-name-sealʳᵗᵈ : TD.probe-world ∣ [] ⊢ʳᵗᵈ
     TD.source-term ⊑ TD.target-tagged ↓ seal Fin.zero ★ ∶ TD.probe-q
 paired-name-sealʳᵗᵈ =
-  conceal⊑concealʳᵗᵈ (λ _ eq → eq) TD.U-Y-rebase CTI2.same-[]
+  conceal⊑concealʳᵗᵈ (λ _ eq → eq) TD.U-Y-rebase CTX.same-[]
     TD.source-U-seal-typed TD.target-Y-seal-typed
     target-rep-tagʳᵗᵈ TD.probe-q
 
@@ -240,8 +247,8 @@ m3-cast⊑²-live :
       TRB.InstanceB.X⊑★-W
 m3-cast⊑²-live =
   CTI2.conceal⊑² (TRB.mono-refl {W = TRB.InstanceB.W})
-    (CTI2.rebase-varᴸ TRB.InstanceB.rb-X-Y)
-    CTI2.same-[] TRB.InstanceB.source-seal-⊢
+    (CTX.rebase-varᴸ TRB.InstanceB.rb-X-Y)
+    CTX.same-[] TRB.InstanceB.source-seal-⊢
     m3-cast⊑²-premise TRB.InstanceB.X⊑★-W
 
 m3-cast⊑²-input :
@@ -335,7 +342,7 @@ seal-descent-at-var-＇-reemit-instance :
     TRB.InstanceB.X⊑Y
 seal-descent-at-var-＇-reemit-instance =
   TDP.target-seal＇-reemit TRB.InstanceB.mono-W-Wᵖ
-    TRB.InstanceB.rb-chain CTI2.same-[] TRB.InstanceB.Y∈
+    TRB.InstanceB.rb-chain CTX.same-[] TRB.InstanceB.Y∈
     TRB.InstanceB.X⊑Y TRB.InstanceB.X⊑Y₂
 
 ------------------------------------------------------------------------
@@ -360,12 +367,12 @@ left-path-argument₄-payload-survives =
 ------------------------------------------------------------------------
 
 example12-checkpoint₁-gate-refined :
-  CTI2.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
+  Ex12.example12-world-X ∣ [] ⊢² Ex.left₁ ⊑ Ex.right₃ ∶
     Ex2.example12-ℕ⊑ℕ-X
 example12-checkpoint₁-gate-refined = TD.example12-checkpoint₁-gate
 
 example12-paired-seal-gate-refined :
-  CTI2.example12-world-X ∣ [] ⊢²
+  Ex12.example12-world-X ∣ [] ⊢²
     ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
     ⊑ ($ (κℕ 7)) ↓ Ex2.example12-target-X-seal ∶
       Ex2.example12-X-var⊑

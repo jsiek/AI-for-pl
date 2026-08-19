@@ -20,7 +20,8 @@ open import Reduction using (StoreChanges)
 open import proof.TypeInTermSubst using
   (StoreRename-id; StoreRename-suc-bind; renameᵗ-pointwise-id;
    toRename-wk-eq)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 import proof.Reduction as PR
@@ -130,8 +131,8 @@ revealˣ-subst : ∀ {Δ} {Σ : TyStore Δ} {X? : Maybe (TyVar Δ)}
   → (eqA : A₀ ≡ A₁)
   → (eqB : B₀ ≡ B₁)
   → ∀ {d : Conv↑ Δ A₀ B₀}
-  → Σ CTI2.⊢↑[ X? ] d
-  → Σ CTI2.⊢↑[ X? ]
+  → Σ Conv.⊢↑[ X? ] d
+  → Σ Conv.⊢↑[ X? ]
       subst≡ (Conv↑ _ A₁) eqB
         (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
 revealˣ-subst refl refl d⊢ = d⊢
@@ -142,8 +143,8 @@ concealˣ-subst : ∀ {Δ} {Σ : TyStore Δ} {X? : Maybe (TyVar Δ)}
   → (eqA : A₀ ≡ A₁)
   → (eqB : B₀ ≡ B₁)
   → ∀ {d : Conv↓ Δ A₀ B₀}
-  → Σ CTI2.⊢↓[ X? ] d
-  → Σ CTI2.⊢↓[ X? ]
+  → Σ Conv.⊢↓[ X? ] d
+  → Σ Conv.⊢↓[ X? ]
       subst≡ (Conv↓ _ A₁) eqB
         (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
 concealˣ-subst refl refl d⊢ = d⊢
@@ -151,23 +152,23 @@ concealˣ-subst refl refl d⊢ = d⊢
 
 normalizeRevealˣ : ∀ {Δ} {Σ : TyStore Δ} {X? : Maybe (TyVar Δ)}
     {A B : Ty Δ} {c : Conv↑ Δ A B}
-  → Σ CTI2.⊢↑[ X? ] c
-  → Σ CTI2.⊢↑[ X? ] PR.normalizeReveal c
+  → Σ Conv.⊢↑[ X? ] c
+  → Σ Conv.⊢↑[ X? ] PR.normalizeReveal c
 normalizeRevealˣ {Σ = Σ} {X? = X?} {A = A} {B = B} {c = c} c⊢ =
   revealˣ-subst (renameᵗ-pointwise-id _ A (λ X → refl))
     (renameᵗ-pointwise-id _ B (λ X → refl))
-    (subst≡ (λ pivot → Σ CTI2.⊢↑[ pivot ] rename↑ (λ X → X) c)
+    (subst≡ (λ pivot → Σ Conv.⊢↑[ pivot ] rename↑ (λ X → X) c)
       (mapPivot-id X?) (TE.reveal-renameˣ StoreRename-id c⊢))
 
 
 normalizeConcealˣ : ∀ {Δ} {Σ : TyStore Δ} {X? : Maybe (TyVar Δ)}
     {A B : Ty Δ} {c : Conv↓ Δ A B}
-  → Σ CTI2.⊢↓[ X? ] c
-  → Σ CTI2.⊢↓[ X? ] PR.normalizeConceal c
+  → Σ Conv.⊢↓[ X? ] c
+  → Σ Conv.⊢↓[ X? ] PR.normalizeConceal c
 normalizeConcealˣ {Σ = Σ} {X? = X?} {A = A} {B = B} {c = c} c⊢ =
   concealˣ-subst (renameᵗ-pointwise-id _ A (λ X → refl))
     (renameᵗ-pointwise-id _ B (λ X → refl))
-    (subst≡ (λ pivot → Σ CTI2.⊢↓[ pivot ] rename↓ (λ X → X) c)
+    (subst≡ (λ pivot → Σ Conv.⊢↓[ pivot ] rename↓ (λ X → X) c)
       (mapPivot-id X?) (TE.conceal-renameˣ StoreRename-id c⊢))
 
 
@@ -178,8 +179,8 @@ structural-source-reveal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↑ Δᴸ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.sourceStoreʷ W CTI2.⊢↑[ X? ] c
-  → CTI2.sourceStoreʷ W′ CTI2.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↑[ X? ] c
+  → CTI2.sourceStoreʷ W′ Conv.⊢↑[ X? ] c
 structural-source-reveal structural-[] c⊢ = c⊢
 structural-source-reveal (structural-keep plan) c⊢ =
   structural-source-reveal plan c⊢
@@ -194,8 +195,8 @@ structural-source-conceal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↓ Δᴸ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.sourceStoreʷ W CTI2.⊢↓[ X? ] c
-  → CTI2.sourceStoreʷ W′ CTI2.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W Conv.⊢↓[ X? ] c
+  → CTI2.sourceStoreʷ W′ Conv.⊢↓[ X? ] c
 structural-source-conceal structural-[] c⊢ = c⊢
 structural-source-conceal (structural-keep plan) c⊢ =
   structural-source-conceal plan c⊢
@@ -210,8 +211,8 @@ structural-target-reveal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴿ)} {A B : Ty Δᴿ}
     {c : Conv↑ Δᴿ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.targetStoreʷ W CTI2.⊢↑[ X? ] c
-  → CTI2.targetStoreʷ W′ CTI2.⊢↑[ mapPivotChanges χs X? ]
+  → CTI2.targetStoreʷ W Conv.⊢↑[ X? ] c
+  → CTI2.targetStoreʷ W′ Conv.⊢↑[ mapPivotChanges χs X? ]
       PR.applyReveals χs c
 structural-target-reveal structural-[] c⊢ = c⊢
 structural-target-reveal (structural-keep plan) c⊢ =
@@ -220,11 +221,11 @@ structural-target-reveal {X? = X?} {c = c}
     (structural-bind {W₁ = W₁} ins follows plan) c⊢ =
   structural-target-reveal plan
     (subst≡
-      (λ pivot → CTI2.targetStoreʷ W₁ CTI2.⊢↑[ pivot ]
+      (λ pivot → CTI2.targetStoreʷ W₁ Conv.⊢↑[ pivot ]
         rename↑ Fin.suc c)
       (mapPivot-wk-eq X?)
       (subst≡
-        (λ Σ → Σ CTI2.⊢↑[ TE.mapPivot Fin.suc X? ] rename↑ Fin.suc c)
+        (λ Σ → Σ Conv.⊢↑[ TE.mapPivot Fin.suc X? ] rename↑ Fin.suc c)
         (sym follows)
         (TE.reveal-renameˣ StoreRename-suc-bind c⊢)))
 
@@ -236,8 +237,8 @@ structural-target-conceal : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴿ)} {A B : Ty Δᴿ}
     {c : Conv↓ Δᴿ A B}
   → StructuralWorldExtendᴿ χs W W′
-  → CTI2.targetStoreʷ W CTI2.⊢↓[ X? ] c
-  → CTI2.targetStoreʷ W′ CTI2.⊢↓[ mapPivotChanges χs X? ]
+  → CTI2.targetStoreʷ W Conv.⊢↓[ X? ] c
+  → CTI2.targetStoreʷ W′ Conv.⊢↓[ mapPivotChanges χs X? ]
       PR.applyConceals χs c
 structural-target-conceal structural-[] c⊢ = c⊢
 structural-target-conceal (structural-keep plan) c⊢ =
@@ -246,10 +247,10 @@ structural-target-conceal {X? = X?} {c = c}
     (structural-bind {W₁ = W₁} ins follows plan) c⊢ =
   structural-target-conceal plan
     (subst≡
-      (λ pivot → CTI2.targetStoreʷ W₁ CTI2.⊢↓[ pivot ]
+      (λ pivot → CTI2.targetStoreʷ W₁ Conv.⊢↓[ pivot ]
         rename↓ Fin.suc c)
       (mapPivot-wk-eq X?)
       (subst≡
-        (λ Σ → Σ CTI2.⊢↓[ TE.mapPivot Fin.suc X? ] rename↓ Fin.suc c)
+        (λ Σ → Σ Conv.⊢↓[ TE.mapPivot Fin.suc X? ] rename↓ Fin.suc c)
         (sym follows)
         (TE.conceal-renameˣ StoreRename-suc-bind c⊢)))

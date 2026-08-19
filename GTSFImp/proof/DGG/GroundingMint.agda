@@ -18,7 +18,7 @@ open import Types
 open import TyStore using (TyStore)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (ImpEnv; X⊑X; X⊑★)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 open import proof.TypeInTermSubst using (toRename-id-eq)
 

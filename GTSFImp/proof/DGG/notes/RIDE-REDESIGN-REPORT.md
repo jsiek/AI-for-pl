@@ -188,7 +188,7 @@ Exit codes:
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/TagBoundaryProbe.agda`: 0
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/ChainRideProbe.agda`: 0
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/MovedLinkProbe.agda`: 0
-- `agda -i GTSFImp -v0 GTSFImp/proof/DGG/CastTermImprecision2.agda`: 0
+- `agda -i GTSFImp -v0 GTSFImp/proof/DGG/CastTermImprecision.agda`: 0
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealTransfer.agda`: 0
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/ExtraCastRight2.agda`: 0
 - `agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealChain.agda`: 0

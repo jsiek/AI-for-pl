@@ -23,7 +23,8 @@ open import Reduction using
   (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;
    applyTy; applyTys; applyConsistency; applyConsistencies)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.Catchup.InstCatchupRightDef as ICRD
 import proof.DGG.Catchup.InstCatchupRightProof as ICRP
@@ -31,7 +32,11 @@ open import proof.DGG.Inversion.RightInjInversion2Def
   using (RightInjInversion²)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 import proof.DGG.ReachabilityCatalog as RC
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Cast-column measure

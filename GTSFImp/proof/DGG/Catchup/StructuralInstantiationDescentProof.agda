@@ -16,7 +16,8 @@ open import Consistency using (Env∼; _⊢_∼_; _↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores;
    applyTy; _—→[_]_; ↠-refl)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.InstInversionDef using
@@ -42,12 +43,12 @@ structural-descent-zero : ∀ {Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {V : Term Δᴿ} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ B}
   → Value V
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ q
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ q
   → StructuralInstantiationDescentPackage W γ M V []ⁱ q
 structural-descent-zero {W = W} {γ = γ} vV rel = record
   { target-descent = structural-target-zero vV
   ; final-relation = subst≡
-      (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → W CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (sym (ECR.mapCtxᴿ-same γ)) rel
   }
 
@@ -87,7 +88,7 @@ structural-descent-keep-step : ∀ {Δᴸ Δᴿ Δ}
 structural-descent-keep-step {γ = γ} step child = record
   { target-descent = target
   ; final-relation = subst≡
-      (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (sym (mapCtxᴿ-structural-keep child-plan γ))
       (StructuralInstantiationDescentPackage.final-relation child)
   }
@@ -122,7 +123,7 @@ structural-descent-bind-step : ∀ {Δᴸ Δᴿ Δ Δ₁}
 structural-descent-bind-step {γ = γ} ins follows step child = record
   { target-descent = target
   ; final-relation = subst≡
-      (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (mapCtxᴿ-compose ext₁ child-ext γ)
       (StructuralInstantiationDescentPackage.final-relation child)
   }
@@ -169,7 +170,7 @@ residual-cast-stop-package : ∀ {fuel Δᴸ Δᴿ Δ}
     {c : μ ⊢ B ∼ C}
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → suc (castSize c) < fuel
@@ -210,7 +211,7 @@ structural-name-package :
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
     → AllValueView V
@@ -248,7 +249,7 @@ erase-structural-name-root :
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
     → AllValueView V

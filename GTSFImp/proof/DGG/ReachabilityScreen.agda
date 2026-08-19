@@ -28,10 +28,12 @@ open import Reduction
 open import Eval
 open import Imprecision using
   (X⊑X; X⊑★; ★⊑★; ⇒⊑⇒; ∀⊑; ∀⊑∀)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Examples2 as Ex2
 
-open CTI2 using (_⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using (_⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Closed program entries
@@ -282,17 +284,17 @@ tag-body-value = ƛ ((` 0) ⟨ tag-var! ⟩)
 
 tag-var⊑ :
   ＇ Fin.zero ⊑ᵂ⟨
-    CTI2.liftWorldBoth X⊑X (Ex2.reflWorld store-empty)
+    CTX.liftWorldBoth X⊑X (Ex2.reflWorld store-empty)
   ⟩ ＇ Fin.zero
 tag-var⊑ = X⊑X
 
 tag-lambda⊑ :
-  CTI2.liftWorldBoth X⊑X (Ex2.reflWorld store-empty) ∣ []
+  CTX.liftWorldBoth X⊑X (Ex2.reflWorld store-empty) ∣ []
     ⊢² tag-body ⊑ tag-body ∶ ⇒⊑⇒ tag-var⊑ ★⊑★
 tag-lambda⊑ =
   CTI2.ƛ⊑ƛ²
     (CTI2.cast⊑cast² tag-var! tag-var!
-      (CTI2.x⊑x² CTI2.Zʷ) ★⊑★)
+      (CTI2.x⊑x² CTX.Zʷ) ★⊑★)
 
 tag-poly-type⊑ :
   `∀ (＇ Fin.zero ⇒ ★) ⊑ᵂ⟨ Ex2.reflWorld store-empty ⟩
@@ -303,7 +305,7 @@ tag-poly⊑ :
   Ex2.reflWorld store-empty ∣ [] ⊢² tag-poly ⊑ tag-poly ∶
     tag-poly-type⊑
 tag-poly⊑ =
-  CTI2.Λ⊑Λ² CTI2.lift-[] tag-body-value tag-body-value
+  CTI2.Λ⊑Λ² CTX.lift-[] tag-body-value tag-body-value
     tag-lambda⊑ tag-poly-type⊑
 
 tag-chain-program : Term 0

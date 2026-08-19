@@ -20,7 +20,7 @@ open import Imprecision using
   (ImpEnv; VarImp; X⊑X; X⊑★; extendᵐ; instᵐ; ★⊑★)
 open import proof.TypeInTermSubst using (toRename-wk-eq)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Parked.ParkedWorldDef using

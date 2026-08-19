@@ -55,8 +55,10 @@ open import proof.Reduction using
   ; _++χ_
   )
 import proof.Imprecision as PI
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2
+open CTIR
 open import proof.DGG.Parked.ParkedWorldDef
   using
     ( ParkedWorld

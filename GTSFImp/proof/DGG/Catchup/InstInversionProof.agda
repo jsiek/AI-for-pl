@@ -65,7 +65,9 @@ open import proof.TypeInTermSubst using
    StoreTransport-lift-bind; StoreRename-suc-bind; toRename-id-eq;
    toRename-keep-eq; renameᵗ-wk-eq;
    toRename-wk-eq)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.CenterRename as CR
 import proof.DGG.TargetBindLift as TBL
@@ -91,12 +93,12 @@ open import proof.DGG.Catchup.StructuralWorldEvidenceProof using
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W₂ : CTI2.World Δᴸ Δᴿ₂ Δ₂}
-    {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W₂ : CTX.World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
-    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ν : Env∼ Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
@@ -106,10 +108,10 @@ inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
   → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-  → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (q : A CTX.⊑ᵂ⟨ W ⟩ B′)
   → (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂)
   → (Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
-      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ CTI2.World Δᴸ Δᴿ′ Δ′ ]
+      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ CTX.World Δᴸ Δᴿ′ Δ′ ]
       Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
       Σ[ N′ ∈ CT.Term Δᴿ′ ]
         (CT.Value N′
@@ -149,9 +151,9 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
 
 composeWorldExtendᴿ : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
     {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
-    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
-    {W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ}
-    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+    {W₀ : CTX.World Δᴸ Δ₀ Δ}
+    {W₁ : CTX.World Δᴸ Δ₁ Δ₁ᵂ}
+    {W₂ : CTX.World Δᴸ Δ₂ Δ₂ᵂ}
   → ECR.WorldExtendᴿ χs W₀ W₁
   → ECR.WorldExtendᴿ ψs W₁ W₂
   → ECR.WorldExtendᴿ (χs ++χ ψs) W₀ W₂
@@ -164,38 +166,38 @@ composeWorldExtendᴿ {χs = χs} {ψs = ψs} {W₀ = W₀} {W₂ = W₂}
         trans (ECR.targetStore-follows ext₂)
           (trans
             (cong (applyStores ψs) (ECR.targetStore-follows ext₁))
-            (applyStores-++ χs ψs (CTI2.targetStoreʷ W₀)))
+            (applyStores-++ χs ψs (CTX.targetStoreʷ W₀)))
     ; transport⊑ᵂ = λ {A = A} {C = C} p →
-        subst≡ (λ C′ → A CTI2.⊑ᵂ⟨ W₂ ⟩ C′)
+        subst≡ (λ C′ → A CTX.⊑ᵂ⟨ W₂ ⟩ C′)
           (applyTys-++ χs ψs C)
           (ECR.transport⊑ᵂ ext₂ (ECR.transport⊑ᵂ ext₁ p))
     }
 
 
 ctx-imp-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
   → (eq : B ≡ B′)
-  → (p : A CTI2.⊑ᵂ⟨ W ⟩ B)
-  → CTI2.ctx-imp {W = W} A B p ≡
-    CTI2.ctx-imp {W = W} A B′
-      (subst≡ (λ C → A CTI2.⊑ᵂ⟨ W ⟩ C) eq p)
+  → (p : A CTX.⊑ᵂ⟨ W ⟩ B)
+  → CTX.ctx-imp {W = W} A B p ≡
+    CTX.ctx-imp {W = W} A B′
+      (subst≡ (λ C → A CTX.⊑ᵂ⟨ W ⟩ C) eq p)
 ctx-imp-transportᴿ refl p = refl
 
 
 mapCtxᴿ-compose : ∀ {Δᴸ Δ₀ Δ₁ Δ₂ Δ Δ₁ᵂ Δ₂ᵂ}
     {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
-    {W₀ : CTI2.World Δᴸ Δ₀ Δ}
-    {W₁ : CTI2.World Δᴸ Δ₁ Δ₁ᵂ}
-    {W₂ : CTI2.World Δᴸ Δ₂ Δ₂ᵂ}
+    {W₀ : CTX.World Δᴸ Δ₀ Δ}
+    {W₁ : CTX.World Δᴸ Δ₁ Δ₁ᵂ}
+    {W₂ : CTX.World Δᴸ Δ₂ Δ₂ᵂ}
     (ext₁ : ECR.WorldExtendᴿ χs W₀ W₁)
     (ext₂ : ECR.WorldExtendᴿ ψs W₁ W₂)
-    (γ : CTI2.CtxImp W₀)
+    (γ : CTX.CtxImp W₀)
   → ECR.mapCtxᴿ ext₂ (ECR.mapCtxᴿ ext₁ γ) ≡
     ECR.mapCtxᴿ (composeWorldExtendᴿ ext₁ ext₂) γ
 mapCtxᴿ-compose ext₁ ext₂ List.[] = refl
 mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
-    (CTI2.ctx-imp A B p List.∷ γ) =
+    (CTX.ctx-imp A B p List.∷ γ) =
   cong₂ List._∷_
     (ctx-imp-transportᴿ {W = W₂} (applyTys-++ χs ψs B)
       (ECR.transport⊑ᵂ ext₂ (ECR.transport⊑ᵂ ext₁ p)))
@@ -203,14 +205,14 @@ mapCtxᴿ-compose {χs = χs} {ψs = ψs} {W₂ = W₂} ext₁ ext₂
 
 
 rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {N : CT.Term Δᴿ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
   → (eq : B ≡ B′)
-  → (p : A CTI2.⊑ᵂ⟨ W ⟩ B)
+  → (p : A CTX.⊑ᵂ⟨ W ⟩ B)
   → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
   → W CTI2.∣ γ ⊢² M ⊑ N ∶
-      subst≡ (λ C → A CTI2.⊑ᵂ⟨ W ⟩ C) eq p
+      subst≡ (λ C → A CTX.⊑ᵂ⟨ W ⟩ C) eq p
 rel-target-transportᴿ refl p rel = rel
 generated-reveal-value : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}
   → NonVar B
@@ -341,31 +343,31 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∈ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↑[ just X ] 〖 X , R ↑ B 〗
+    → Σ Conv.⊢↑[ just X ] 〖 X , R ↑ B 〗
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ with X ≟ X
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ | yes refl =
-    CTI2.⊢↑-unsealˣ X∈
+    Conv.⊢↑-unsealˣ X∈
   generated-reveal-⊢↑-present {X = X} var-∈ X∈ | no X≢X =
     ⊥-elim (X≢X refl)
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ with occurs? X B
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | present X∈B =
-    CTI2.⊢↑-⇒ˣ CTI2.join-both
+    Conv.⊢↑-⇒ˣ Conv.join-both
       (generated-conceal-⊢↓-present X∈A X∈)
       (generated-reveal-⊢↑-present X∈B X∈)
   generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | absent X∉B =
-    CTI2.⊢↑-⇒ˣ CTI2.join-left
+    Conv.⊢↑-⇒ˣ Conv.join-left
       (generated-conceal-⊢↓-present X∈A X∈)
       (generated-reveal-⊢↑-absent X∉B X∈)
   generated-reveal-⊢↑-present
       (∈-fun-right X∉A X∈B) X∈ =
-    CTI2.⊢↑-⇒ˣ CTI2.join-right
+    Conv.⊢↑-⇒ˣ Conv.join-right
       (generated-conceal-⊢↓-absent X∉A X∈)
       (generated-reveal-⊢↑-present X∈B X∈)
   generated-reveal-⊢↑-present (∈-all X∈B) X∈ =
-    CTI2.⊢↑-∀ˣ
+    Conv.⊢↑-∀ˣ
       (generated-reveal-⊢↑-present X∈B (S-lift∋ X∈ refl))
 
   generated-reveal-⊢↑-absent :
@@ -373,7 +375,7 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∉ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↑[ nothing ] 〖 X , R ↑ B 〗
+    → Σ Conv.⊢↑[ nothing ] 〖 X , R ↑ B 〗
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       with X ≟ Y
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
@@ -381,15 +383,15 @@ mutual
     ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
-    CTI2.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-base X∈ = CTI2.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-star X∈ = CTI2.⊢↑-idˣ
+    Conv.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-base X∈ = Conv.⊢↑-idˣ
+  generated-reveal-⊢↑-absent ∉-star X∈ = Conv.⊢↑-idˣ
   generated-reveal-⊢↑-absent (∉-fun X∉A X∉B) X∈ =
-    CTI2.⊢↑-⇒ˣ CTI2.join-none
+    Conv.⊢↑-⇒ˣ Conv.join-none
       (generated-conceal-⊢↓-absent X∉A X∈)
       (generated-reveal-⊢↑-absent X∉B X∈)
   generated-reveal-⊢↑-absent (∉-all X∉B) X∈ =
-    CTI2.⊢↑-∀-idˣ
+    Conv.⊢↑-∀-idˣ
       (generated-reveal-⊢↑-absent X∉B (S-lift∋ X∈ refl))
 
   generated-conceal-⊢↓-present :
@@ -397,31 +399,31 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∈ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↓[ just X ] makeConceal X R B
+    → Σ Conv.⊢↓[ just X ] makeConceal X R B
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ with X ≟ X
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ | yes refl =
-    CTI2.⊢↓-sealˣ X∈
+    Conv.⊢↓-sealˣ X∈
   generated-conceal-⊢↓-present {X = X} var-∈ X∈ | no X≢X =
     ⊥-elim (X≢X refl)
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ with occurs? X B
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | present X∈B =
-    CTI2.⊢↓-⇒ˣ CTI2.join-both
+    Conv.⊢↓-⇒ˣ Conv.join-both
       (generated-reveal-⊢↑-present X∈A X∈)
       (generated-conceal-⊢↓-present X∈B X∈)
   generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
       (∈-fun-left X∈A) X∈ | absent X∉B =
-    CTI2.⊢↓-⇒ˣ CTI2.join-left
+    Conv.⊢↓-⇒ˣ Conv.join-left
       (generated-reveal-⊢↑-present X∈A X∈)
       (generated-conceal-⊢↓-absent X∉B X∈)
   generated-conceal-⊢↓-present
       (∈-fun-right X∉A X∈B) X∈ =
-    CTI2.⊢↓-⇒ˣ CTI2.join-right
+    Conv.⊢↓-⇒ˣ Conv.join-right
       (generated-reveal-⊢↑-absent X∉A X∈)
       (generated-conceal-⊢↓-present X∈B X∈)
   generated-conceal-⊢↓-present (∈-all X∈B) X∈ =
-    CTI2.⊢↓-∀ˣ
+    Conv.⊢↓-∀ˣ
       (generated-conceal-⊢↓-present X∈B (S-lift∋ X∈ refl))
 
   generated-conceal-⊢↓-absent :
@@ -429,7 +431,7 @@ mutual
         {X : TyVar Δ} {R B : Ty Δ}
     → X ∉ᵗ B
     → Σ ∋ X ⦂ R
-    → Σ CTI2.⊢↓[ nothing ] makeConceal X R B
+    → Σ Conv.⊢↓[ nothing ] makeConceal X R B
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       with X ≟ Y
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
@@ -437,15 +439,15 @@ mutual
     ⊥-elim (≢ᶠ→≢ X≢Y refl)
   generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
       | no X≢Y′ =
-    CTI2.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-base X∈ = CTI2.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-star X∈ = CTI2.⊢↓-idˣ
+    Conv.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-base X∈ = Conv.⊢↓-idˣ
+  generated-conceal-⊢↓-absent ∉-star X∈ = Conv.⊢↓-idˣ
   generated-conceal-⊢↓-absent (∉-fun X∉A X∉B) X∈ =
-    CTI2.⊢↓-⇒ˣ CTI2.join-none
+    Conv.⊢↓-⇒ˣ Conv.join-none
       (generated-reveal-⊢↑-absent X∉A X∈)
       (generated-conceal-⊢↓-absent X∉B X∈)
   generated-conceal-⊢↓-absent (∉-all X∉B) X∈ =
-    CTI2.⊢↓-∀-idˣ
+    Conv.⊢↓-∀-idˣ
       (generated-conceal-⊢↓-absent X∉B (S-lift∋ X∈ refl))
 
 
@@ -498,12 +500,12 @@ replaceTy-subst X R (`∀ B) =
       (substᵗ-cong B (replaceEnv-ext X R)))
 
 inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W₂ : CTI2.World Δᴸ Δᴿ₂ Δ₂}
-    {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W₂ : CTX.World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
-    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ν : Env∼ Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
@@ -515,12 +517,12 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
   → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-  → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (q : A CTX.⊑ᵂ⟨ W ⟩ B′)
   → (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂)
   → (pkg : InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
       c<fuel q χs₂ W₂ ext₂)
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
-      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ CTI2.World Δᴸ Δᴿ′ Δ′ ]
+      Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ CTX.World Δᴸ Δᴿ′ Δ′ ]
       Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
       Σ[ N′ ∈ CT.Term Δᴿ′ ]
         (CT.Value N′
@@ -596,11 +598,11 @@ inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
 
 
 spine-descent-zero : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {post : CT.Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p : A CTX.⊑ᵂ⟨ W ⟩ B}
   → CT.Value post
   → W CTI2.∣ γ ⊢² M ⊑ post ∶ p
   → InstSpineDescentPackage W γ M post p
@@ -622,12 +624,12 @@ spine-descent-zero {W = W} {γ = γ} vPost rel = record
 
 
 inst-post-at→root-package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W₂ : CTI2.World Δᴸ Δᴿ₂ Δ₂}
-    {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W₂ : CTX.World Δᴸ Δᴿ₂ Δ₂}
+    {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {M′ : CT.Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
-    {ν : Env∼ Δᴿ} {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
+    {ν : Env∼ Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
@@ -639,7 +641,7 @@ inst-post-at→root-package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
   → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-  → (q : A CTI2.⊑ᵂ⟨ W ⟩ B′)
+  → (q : A CTX.⊑ᵂ⟨ W ⟩ B′)
   → (ext₂ : ECR.WorldExtendᴿ χs₂ W W₂)
   → InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
       c<fuel q χs₂ W₂ ext₂
@@ -696,26 +698,26 @@ left-right-star-map (Fin.suc X) eq = eq
 
 
 right-bind-under-left-lift-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ B
-  → A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★
-        (CTI2.rightOnlyWorld W B′) ⟩ ⇑ᵗ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★
+        (CTX.rightOnlyWorld W B′) ⟩ ⇑ᵗ B
 right-bind-under-left-lift-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p =
   subst≡
-    (λ L → CTI2.impEnvʷ
-      (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
-      ⊢ L ⊑ CTI2.embedᴿ
-        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
+    (λ L → CTX.impEnvʷ
+      (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W B′))
+      ⊢ L ⊑ CTX.embedᴿ
+        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W B′))
         (⇑ᵗ B))
-    (source-under-left-right (CTI2.ηᴸʷ W) A)
+    (source-under-left-right (CTX.ηᴸʷ W) A)
     (subst≡
-      (λ R → CTI2.impEnvʷ
-        (CTI2.liftWorldLeft I.X⊑★ (CTI2.rightOnlyWorld W B′))
+      (λ R → CTX.impEnvʷ
+        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W B′))
         ⊢ renameᵗ (extᵗ Fin.suc)
-            (CTI2.embedᴸ (CTI2.liftWorldLeft I.X⊑★ W) A)
+            (CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W) A)
           ⊑ R)
-      (target-under-left-right (CTI2.ηᴿʷ W) B)
+      (target-under-left-right (CTX.ηᴿʷ W) B)
       (rename-⊑ (extᵗ Fin.suc)
         (ext-injective fin-suc-injective)
         left-right-star-map p))
@@ -732,43 +734,43 @@ right-bind-under-left-lift {W = W} {B = B′} = record
 
 
 right-bind-right-bind-under-left-lift : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
   → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTI2.liftWorldLeft I.X⊑★ W)
-      (CTI2.liftWorldLeft I.X⊑★
-        (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W ★)
+      (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft I.X⊑★
+        (CTX.rightOnlyWorld (CTX.rightOnlyWorld W ★)
           (＇ Fin.zero)))
 right-bind-right-bind-under-left-lift {W = W} =
   composeWorldExtendᴿ
     (right-bind-under-left-lift {W = W} {B = ★})
     (right-bind-under-left-lift
-      {W = CTI2.rightOnlyWorld W ★} {B = ＇ Fin.zero})
+      {W = CTX.rightOnlyWorld W ★} {B = ＇ Fin.zero})
 
 
 target-insert-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ (suc Δᴿ) Δ′}
     {π : Δ ↪ᵗ Δ′} {B : Ty Δᴿ}
   → (ins : TE.TargetInsert wk↪ᵗ π W W′)
-  → CTI2.targetStoreʷ W′
-      ≡ applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
+  → CTX.targetStoreʷ W′
+      ≡ applyStores (bind B ∷ []) (CTX.targetStoreʷ W)
   → ECR.WorldExtendᴿ (bind B ∷ []) W W′
 target-insert-bind-world-extendᴿ {W′ = W′} {B = B} ins target-follows =
   record
     { sourceStore-kept = TE.sourceStore-kept ins
     ; targetStore-follows = target-follows
     ; transport⊑ᵂ = λ {A = A} {C = C} p →
-        subst≡ (λ C′ → A CTI2.⊑ᵂ⟨ W′ ⟩ C′)
+        subst≡ (λ C′ → A CTX.⊑ᵂ⟨ W′ ⟩ C′)
           (renameᵗ-wk-eq C)
           (TE.transport⊑ᵂ ins p)
     }
 
 
 smart-fresh-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
     {B : Ty Δᴿ}
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → ECR.WorldExtendᴿ (bind B ∷ []) Wᵐ
       (TE.smartFreshInsertWorld
         (TE.rightBindTargetInsert {W = W} {B = B}) guard)
@@ -776,15 +778,15 @@ smart-fresh-bind-world-extendᴿ {B = B} guard =
   target-insert-bind-world-extendᴿ
     (TE.smartFreshTargetInsert TE.rightBindTargetInsert guard)
     (cong (applyStores (bind B ∷ []))
-      (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard)))
+      (sym (CTX.SmartFreshBehindGuard.targetStore-same guard)))
 
 
 smart-alias-bind-world-extendᴿ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δ}
     {β α : Fin.Fin Δᴿ}
     {B : Ty Δᴿ}
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → ECR.WorldExtendᴿ (bind B ∷ []) Wᵐ
       (TE.smartAliasInsertWorld
         (TE.rightBindTargetInsert {W = W} {B = B}) Wᵐ)
@@ -792,60 +794,60 @@ smart-alias-bind-world-extendᴿ {B = B} guard =
   target-insert-bind-world-extendᴿ
     (TE.smartAliasTargetInsert TE.rightBindTargetInsert guard)
     (cong (applyStores (bind B ∷ []))
-      (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
+      (sym (CTX.SmartAliasMergeGuard.targetStore-same guard)))
 
 
 mapCtxᴿ-smart-liftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ Δ₂ Δᵐ₂}
     {χs : StoreChanges Δᴿ (suc (suc Δᴿ))}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
-    {W₂ : CTI2.World Δᴸ (suc (suc Δᴿ)) Δ₂}
-    {Wᵐ₂ : CTI2.World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
-    {γ : CTI2.CtxImp W} {γᵐ : CTI2.CtxImp Wᵐ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
+    {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {Wᵐ₂ : CTX.World (suc Δᴸ) (suc (suc Δᴿ)) Δᵐ₂}
+    {γ : CTX.CtxImp W} {γᵐ : CTX.CtxImp Wᵐ}
   → {ext₂ : ECR.WorldExtendᴿ χs W W₂}
   → {extᵐ₂ : ECR.WorldExtendᴿ χs Wᵐ Wᵐ₂}
-  → CTI2.SmartLiftCtxᴸ γ γᵐ
-  → CTI2.SmartLiftCtxᴸ
+  → CTX.SmartLiftCtxᴸ γ γᵐ
+  → CTX.SmartLiftCtxᴸ
       (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
-mapCtxᴿ-smart-liftᴸ CTI2.smart-lift-[] = CTI2.smart-lift-[]
-mapCtxᴿ-smart-liftᴸ (CTI2.smart-lift-∷ liftγ) =
-  CTI2.smart-lift-∷ (mapCtxᴿ-smart-liftᴸ liftγ)
+mapCtxᴿ-smart-liftᴸ CTX.smart-lift-[] = CTX.smart-lift-[]
+mapCtxᴿ-smart-liftᴸ (CTX.smart-lift-∷ liftγ) =
+  CTX.smart-lift-∷ (mapCtxᴿ-smart-liftᴸ liftγ)
 
 
 mapCtxᴿ-liftᴸ : MapCtxᴿLiftᴸᵀ right-bind-under-left-lift
-mapCtxᴿ-liftᴸ ext CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
-mapCtxᴿ-liftᴸ ext (CTI2.liftᴸ-∷ liftγ) =
-  CTI2.liftᴸ-∷ (mapCtxᴿ-liftᴸ ext liftγ)
+mapCtxᴿ-liftᴸ ext CTX.liftᴸ-[] = CTX.liftᴸ-[]
+mapCtxᴿ-liftᴸ ext (CTX.liftᴸ-∷ liftγ) =
+  CTX.liftᴸ-∷ (mapCtxᴿ-liftᴸ ext liftγ)
 
 
 mapCtxᴿ-liftᴸ-at : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ₂}
     {χs : StoreChanges Δᴿ Δᴿ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W₂ : CTI2.World Δᴸ Δᴿ′ Δ₂}
-    {γ : CTI2.CtxImp W}
-    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft I.X⊑★ W)}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W₂ : CTX.World Δᴸ Δᴿ′ Δ₂}
+    {γ : CTX.CtxImp W}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
     {ext₂ : ECR.WorldExtendᴿ χs W W₂}
     {extᴸ₂ : ECR.WorldExtendᴿ χs
-      (CTI2.liftWorldLeft I.X⊑★ W)
-      (CTI2.liftWorldLeft I.X⊑★ W₂)}
-  → CTI2.LiftCtxᴸ I.X⊑★ γ γᴸ
-  → CTI2.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
+      (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft I.X⊑★ W₂)}
+  → CTX.LiftCtxᴸ I.X⊑★ γ γᴸ
+  → CTX.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
       (ECR.mapCtxᴿ extᴸ₂ γᴸ)
-mapCtxᴿ-liftᴸ-at CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
-mapCtxᴿ-liftᴸ-at (CTI2.liftᴸ-∷ liftγ) =
-  CTI2.liftᴸ-∷ (mapCtxᴿ-liftᴸ-at liftγ)
+mapCtxᴿ-liftᴸ-at CTX.liftᴸ-[] = CTX.liftᴸ-[]
+mapCtxᴿ-liftᴸ-at (CTX.liftᴸ-∷ liftγ) =
+  CTX.liftᴸ-∷ (mapCtxᴿ-liftᴸ-at liftγ)
 
 
 target-insert-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ (suc Δᴿ) Δ′}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ (suc Δᴿ) Δ′}
     {π : Δ ↪ᵗ Δ′} {B : Ty Δᴿ}
   → (ins : TE.TargetInsert wk↪ᵗ π W W′)
-  → CTI2.targetStoreʷ W′
-      ≡ applyStores (bind B ∷ []) (CTI2.targetStoreʷ W)
+  → CTX.targetStoreʷ W′
+      ≡ applyStores (bind B ∷ []) (CTX.targetStoreʷ W)
   → ECR.WorldExtendᴿ (bind B ∷ [])
-      (CTI2.liftWorldLeft I.X⊑★ W)
-      (CTI2.liftWorldLeft I.X⊑★ W′)
+      (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft I.X⊑★ W′)
 target-insert-bind-under-left-liftᴿ ins target-follows =
   target-insert-bind-world-extendᴿ
     (TE.liftLeftTargetInsert {v = I.X⊑★} ins)
@@ -853,14 +855,14 @@ target-insert-bind-under-left-liftᴿ ins target-follows =
 
 
 smart-alias-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δ}
     {β α : Fin.Fin Δᴿ}
     {B : Ty Δᴿ}
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → ECR.WorldExtendᴿ (bind B ∷ [])
-      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
-      (CTI2.liftWorldLeft I.X⊑★
+      (CTX.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTX.liftWorldLeft I.X⊑★
         (TE.smartAliasInsertWorld
           (TE.rightBindTargetInsert {W = W} {B = B}) Wᵐ))
 smart-alias-bind-under-left-liftᴿ {W = W} {B = B} guard =
@@ -872,13 +874,13 @@ smart-alias-bind-under-left-liftᴿ {W = W} {B = B} guard =
 
 
 smart-fresh-bind-under-left-liftᴿ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
     {B : Ty Δᴿ}
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → ECR.WorldExtendᴿ (bind B ∷ [])
-      (CTI2.liftWorldLeft I.X⊑★ Wᵐ)
-      (CTI2.liftWorldLeft I.X⊑★
+      (CTX.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTX.liftWorldLeft I.X⊑★
         (TE.smartFreshInsertWorld
           (TE.rightBindTargetInsert {W = W} {B = B}) guard))
 smart-fresh-bind-under-left-liftᴿ {W = W} {B = B} guard =

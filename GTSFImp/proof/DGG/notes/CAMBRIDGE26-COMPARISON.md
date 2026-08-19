@@ -232,19 +232,19 @@ The v2 relation uses a `World` with:
 - a target embedding `ηᴿʷ`,
 - one shared center imprecision environment,
 - separate source and target stores
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:71-101`).
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:71-101`).
 
 Source and target types are compared only after embedding into the shared
 center context.  Store representations are canonicalized by `resolveVar` and
 `resolveRep`, which follow store representation chains
-(`GTSFImp/proof/DGG/CastTermImprecision2.agda:272-299`).
+(`GTSFImp/proof/DGG/CastTermImprecision.agda:272-299`).
 
 Local rebasing is frozen on the target side.  `RebaseAt` can move only the
 source pivot, keeps runtime stores fixed, freezes every old target variable,
 aligns the pivot pair, and checks canonical store representations
-(`GTSFImp/proof/DGG/CastTermImprecision2.agda:300-318`).  Optional-pivot
+(`GTSFImp/proof/DGG/CastTermImprecision.agda:300-318`).  Optional-pivot
 conversion typing distinguishes identity conversions from real seal/unseal
-pivots (`GTSFImp/proof/DGG/CastTermImprecision2.agda:381-458`).
+pivots (`GTSFImp/proof/DGG/CastTermImprecision.agda:381-458`).
 
 Parked reachability is then made structural:
 
@@ -382,35 +382,35 @@ store entries plus well-formedness (`GTSF/proof/Core/Properties/NarrowWidenStore
 ### Current `GTSFImp` Relation
 
 The current relation is `World ∣ CtxImp ⊢² M ⊑ M′ ∶ p`
-(`GTSFImp/proof/DGG/CastTermImprecision2.agda:466-469`).  It makes world
+(`GTSFImp/proof/DGG/CastTermImprecision.agda:466-469`).  It makes world
 geometry structural and leaves catch-up/reduction outside the relation.
 
 The core rule surface is:
 
 - variables, lambdas, applications, constants, primitives:
   `x⊑x²`, `ƛ⊑ƛ²`, `·⊑·²`, `κ⊑κ²`, `⊕⊑⊕²`
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:471-489`,
-  `GTSFImp/proof/DGG/CastTermImprecision2.agda:532-535`,
-  `GTSFImp/proof/DGG/CastTermImprecision2.agda:650-657`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:471-489`,
+  `GTSFImp/proof/DGG/CastTermImprecision.agda:532-535`,
+  `GTSFImp/proof/DGG/CastTermImprecision.agda:650-657`);
 - both-side universal abstraction:
   `Λ⊑Λ²`, which uses `liftWorldBoth X⊑X`
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:491-499`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:491-499`);
 - source-only universal abstraction:
   `Λ⊑²`, which uses `liftWorldLeft X⊑★` and keeps the target unweakened
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:501-514`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:501-514`);
 - type application:
   `•⊑•²` and source-only `•⊑²`
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:516-530`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:516-530`);
 - casts:
   paired `cast⊑cast²`, target-only `⊑cast²`, and source-only `cast⊑²`
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:537-552`,
-  `GTSFImp/proof/DGG/CastTermImprecision2.agda:578-584`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:537-552`,
+  `GTSFImp/proof/DGG/CastTermImprecision.agda:578-584`);
 - reveal/conceal wrappers:
   target-only, source-only, and paired variants
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:554-638`);
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:554-638`);
 - source blame below any well-typed target:
   `blame⊑²`
-  (`GTSFImp/proof/DGG/CastTermImprecision2.agda:640-648`).
+  (`GTSFImp/proof/DGG/CastTermImprecision.agda:640-648`).
 
 The current relation has no runtime `ν` term constructor.  Store allocation is
 handled by reduction rules and world evolution, and the relation observes the
@@ -420,7 +420,7 @@ resulting administrative reveal/conceal and consistency wrappers.
 
 | Cambridge26 / `TermNarrowing` | Current `GTSFImp` counterpart | Difference |
 | --- | --- | --- |
-| `γ`, `σ` relational environments with `α:=p`, `α:=A`, `α:=☆` (`GTSF/cambridge26.lagda.md:3506-3532`; `GTSF/NarrowWiden.agda:1295-1375`) | `World` plus `CtxImp` (`GTSFImp/proof/DGG/CastTermImprecision2.agda:71-101`, `203-213`) | Current stores are separate endpoint stores embedded into a shared center; store relation is not a single list of relational entries. |
+| `γ`, `σ` relational environments with `α:=p`, `α:=A`, `α:=☆` (`GTSF/cambridge26.lagda.md:3506-3532`; `GTSF/NarrowWiden.agda:1295-1375`) | `World` plus `CtxImp` (`GTSFImp/proof/DGG/CastTermImprecision.agda:71-101`, `203-213`) | Current stores are separate endpoint stores embedded into a shared center; store relation is not a single list of relational entries. |
 | `extend` / `split` (`GTSF/cambridge26.lagda.md:3614-3622`; `GTSF/TermNarrowing.agda:87-111`) | `ParkedWorld`/`ParkedEvolve` bind constructors and world transport (`GTSFImp/proof/DGG/Parked/ParkedWorldDef.agda:41-124`) | Current design does not rewrite old relational stores.  It evolves worlds with explicit bind traces. |
 | `x⊒x`, `λ⊒λ`, `·⊒·`, `κ⊒κ`, `⊕⊒⊕` (`GTSF/cambridge26.lagda.md:3624-3645`, `3683-3690`) | `x⊑x²`, `ƛ⊑ƛ²`, `·⊑·²`, `κ⊑κ²`, `⊕⊑⊕²` | Direct structural correspondence, modulo orientation. |
 | `Λ⊒Λ` (`GTSF/cambridge26.lagda.md:3642-3645`; `GTSF/TermNarrowing.agda:145-151`) | `Λ⊑Λ²` with `liftWorldBoth X⊑X` | Both introduce a precise shared binder; current rule records the center mark. |
@@ -473,10 +473,10 @@ resulting administrative reveal/conceal and consistency wrappers.
 
 | Sketch problem | Current resolution | Main references |
 | --- | --- | --- |
-| Fixed context association cannot handle a left name later needing a different right name. | Worlds use paired OPE embeddings into a shared center; local rebasing changes source pivots while old target centers stay frozen. | `GTSF/cambridge26.lagda.md:43-80`; `GTSFImp/proof/DGG/CastTermImprecision2.agda:71-101`, `300-318` |
+| Fixed context association cannot handle a left name later needing a different right name. | Worlds use paired OPE embeddings into a shared center; local rebasing changes source pivots while old target centers stay frozen. | `GTSF/cambridge26.lagda.md:43-80`; `GTSFImp/proof/DGG/CastTermImprecision.agda:71-101`, `300-318` |
 | `extend`/`split` are hard to use and interact badly with de Bruijn variables. | Parked reachability is an inductive world/evolution discipline with both/right/left binds. | `GTSF/cambridge26.lagda.md:43-80`, `3614-3622`; `GTSFImp/proof/DGG/Parked/ParkedWorldDef.agda:41-124` |
-| Missing left type-application rule causes stuck simulation. | Current DGG allows asymmetric catch-up: source-only type application/abstraction rules plus target inst catch-up and world evolution. | `GTSF/cambridge26.lagda.md:335-409`; `GTSFImp/proof/DGG/CastTermImprecision2.agda:501-530`; `GTSFImp/proof/DGG/Catchup/InstCatchupRightDef.agda:33-135` |
-| Extra `β:ι, α:β` binding blocks a complete store-by-store simulation. | Extra allocation is not collapsed; it is represented as parked world evolution and compared through embeddings and canonical store representations. | `GTSF/cambridge26.lagda.md:593-611`; `GTSFImp/proof/DGG/Parked/ParkedWorldDef.agda:41-124`; `GTSFImp/proof/DGG/CastTermImprecision2.agda:272-318` |
+| Missing left type-application rule causes stuck simulation. | Current DGG allows asymmetric catch-up: source-only type application/abstraction rules plus target inst catch-up and world evolution. | `GTSF/cambridge26.lagda.md:335-409`; `GTSFImp/proof/DGG/CastTermImprecision.agda:501-530`; `GTSFImp/proof/DGG/Catchup/InstCatchupRightDef.agda:33-135` |
+| Extra `β:ι, α:β` binding blocks a complete store-by-store simulation. | Extra allocation is not collapsed; it is represented as parked world evolution and compared through embeddings and canonical store representations. | `GTSF/cambridge26.lagda.md:593-611`; `GTSFImp/proof/DGG/Parked/ParkedWorldDef.agda:41-124`; `GTSFImp/proof/DGG/CastTermImprecision.agda:272-318` |
 | Single injection cannot satisfy Example 12 obligations `X⊑X`, `X⊑Y`, and `X⊑Z`. | Local rebase at reveal/conceal boundaries plus `resolveVar`; right-only variables are explicit. | `GTSFImp/Rationale.md:501-663` |
 | Old right-injection inversion allowed target crossing. | Frozen target centers and parked no-crossing rule out reachable crossing; target-chain terminus rebuild replaces tag-peel-first. | `GTSFImp/proof/DGG/PLAN.md:14-33`; `GTSFImp/proof/DGG/Inversion/RightInjInversion2Def.agda:9-20`; `GTSFImp/proof/DGG/Parked/ParkedWorldDef.agda:254-264` |
 | "Do we need the invariant?" appeared harmless because the bad example just blamed. | Mismatch probe shows blame falsifies `ExtraCastRight²`'s value conclusion; tag discipline is required. | `GTSF/cambridge26.lagda.md:2493-2515`; `MISMATCH-PROBE.md:44-77`; `TAG-DISCIPLINE-DOSSIER.md:203-213` |

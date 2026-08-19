@@ -49,7 +49,7 @@ as a `rep★-round-trip₅` witness.
 | Command target | Result | Note |
 |---|---|---|
 | `Tighten5PreflightScratch.agda` | Pass | Candidate model checks. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda` | Pass | Read-only gate. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/TermImpDecay.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/SealTransferCore.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda` | Pass | Read-only gate. |

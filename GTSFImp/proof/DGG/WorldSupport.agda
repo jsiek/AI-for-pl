@@ -17,9 +17,14 @@ open import CastTerms using
   (Term; `_ ; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_;
    blame)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open CTI2 using
-  (World; _⊑ᵂ⟨_⟩_; StoreRepImp; store-rep-imp; resolveVar; embedᴸ;
+  (World;
+   _⊑ᵂ⟨_⟩_;
+   StoreRepImp;
+   store-rep-imp;
+   resolveVar;
+   embedᴸ;
    embedᴿ)
 open import proof.DGG.WorldDecay using (⊑-env-mono)
 

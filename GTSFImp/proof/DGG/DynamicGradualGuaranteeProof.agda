@@ -32,7 +32,8 @@ open import Reduction using
   ; applyTys
   ; _—↠[_]_
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CompilePreservesImprecision2 as CompileMonotone
 open import proof.DGG.DynamicGradualGuaranteeDef
   using
@@ -69,7 +70,10 @@ open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
 open import proof.TypeSafety.Progress using
   (Progress; done; step; crash; progress)
 open import proof.TypeSafety.Preservation using (multi-preservation)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Equality transport for terminal related terms

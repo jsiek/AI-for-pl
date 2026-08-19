@@ -14,7 +14,8 @@ open import Types using (Ty)
 open import CastTerms using (Term)
 open import Reduction using (_—↠[_]_; ↠-refl; ↠-step)
   renaming ([] to []ˢ)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.SimBackDef using (SimBackᵀ)
 open import proof.DGG.MultiSimBackDef using (SimBack*ᵀ)
 open import proof.DGG.Parked.ParkedWorldDef using (evolve-refl)
@@ -23,7 +24,10 @@ open import proof.DGG.Parked.ParkedWorldLemma
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
 open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Equality transport for related terms

@@ -24,15 +24,20 @@ open import CastTerms using (Term; Inert; _⟨_⟩; _↓_)
 open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
 import SourceStarPackageCounterScratch as SSC
 
 module B = TRP.InstanceB
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Anchored rep-★ partner predicate model
@@ -42,7 +47,7 @@ data Rep★PartnerOK₇ {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   rep★-untagged₇ : ∀ {P Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       ------------------------------------
     → Rep★PartnerOK₇ W X P Xᴿ? M′
 
@@ -58,7 +63,7 @@ data Rep★PartnerOK₇ {Δᴸ Δᴿ Δ}
   rep★-var-tag₇ : ∀ {P M A Y μ}
       {Y∼★ : μ ⊢ (＇ Y) ∼★}
       {c : μ ⊢ A ∼ ＇ Y} {Ans : NonStar A}
-    → CTI2.CenterAligned W X Y
+    → CTX.CenterAligned W X Y
       ------------------------------------------------------------
     → Rep★PartnerOK₇ W X P (just Y)
         (M ⟨ _! {G = ＇ Y} ⦃ Gᵍ = ＇ Y ⦄
@@ -70,7 +75,7 @@ data Rep★PartnerOK₇ {Δᴸ Δᴿ Δ}
       {cX : μᴸ ⊢ Aᴸ ∼ ＇ X₂} {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂}
       {AnsX : NonStar Aᴸ} {AnsY : NonStar Aᴿ}
     → X₂ ≢ X
-    → CTI2.CenterAligned W X₂ Y₂
+    → CTX.CenterAligned W X₂ Y₂
       ------------------------------------------------------------
     → Rep★PartnerOK₇ W X
         (V₂ ⟨ _! {G = ＇ X₂} ⦃ Gᵍ = ＇ X₂ ⦄
@@ -82,7 +87,7 @@ data Rep★PartnerOK₇ {Δᴸ Δᴿ Δ}
   rep★-round-trip-just₇ : ∀ {P Y Yᵖ M′ A μ}
       {X∼★ : μ ⊢ (＇ X) ∼★}
       {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
-    → CTI2.CenterAligned W X Yᵖ
+    → CTX.CenterAligned W X Yᵖ
     → Rep★PartnerOK₇ W X P (just Yᵖ) M′
       ------------------------------------------------------------
     → Rep★PartnerOK₇ W X
@@ -111,7 +116,7 @@ data SealPartnerOK₇ {Δᴸ Δᴿ Δ}
     → SealPartnerOK₇ W X P ★ Xᴿ? M′
 
   plain-target₇ : ∀ {P R Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       ------------------------------------
     → SealPartnerOK₇ W X P R Xᴿ? M′
 
@@ -178,31 +183,31 @@ data MatchedConcealPartnerOK₇ {Δᴸ Δᴿ Δ}
 fromLiveRep★PartnerOK-just : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {P M′}
-  → CTI2.CenterAligned W X Y
-  → CTI2.Rep★PartnerOK W X P (just Y) M′
+  → CTX.CenterAligned W X Y
+  → CTX.Rep★PartnerOK W X P (just Y) M′
   → Rep★PartnerOK₇ W X P (just Y) M′
-fromLiveRep★PartnerOK-just aligned (CTI2.rep★-untagged nt) =
+fromLiveRep★PartnerOK-just aligned (CTX.rep★-untagged nt) =
   rep★-untagged₇ nt
-fromLiveRep★PartnerOK-just aligned (CTI2.rep★-nonvar-tag Gnv) =
+fromLiveRep★PartnerOK-just aligned (CTX.rep★-nonvar-tag Gnv) =
   rep★-nonvar-tag₇ Gnv
-fromLiveRep★PartnerOK-just aligned (CTI2.rep★-var-tag aligned′) =
+fromLiveRep★PartnerOK-just aligned (CTX.rep★-var-tag aligned′) =
   rep★-var-tag₇ aligned′
 fromLiveRep★PartnerOK-just aligned
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned′) =
+    (CTX.rep★-matched-inner-tags X₂≢X aligned′) =
   rep★-matched-inner-tags₇ X₂≢X aligned′
-fromLiveRep★PartnerOK-just aligned (CTI2.rep★-round-trip ok) =
+fromLiveRep★PartnerOK-just aligned (CTX.rep★-round-trip ok) =
   rep★-round-trip-just₇ aligned
     (fromLiveRep★PartnerOK-just aligned ok)
 
 fromLiveRep★PartnerOK-nothing : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {P M′}
-  → CTI2.Rep★PartnerOK W X P nothing M′
+  → CTX.Rep★PartnerOK W X P nothing M′
   → Rep★PartnerOK₇ W X P nothing M′
-fromLiveRep★PartnerOK-nothing (CTI2.rep★-untagged nt) =
+fromLiveRep★PartnerOK-nothing (CTX.rep★-untagged nt) =
   rep★-untagged₇ nt
-fromLiveRep★PartnerOK-nothing (CTI2.rep★-nonvar-tag Gnv) =
+fromLiveRep★PartnerOK-nothing (CTX.rep★-nonvar-tag Gnv) =
   rep★-nonvar-tag₇ Gnv
-fromLiveRep★PartnerOK-nothing (CTI2.rep★-round-trip ok) =
+fromLiveRep★PartnerOK-nothing (CTX.rep★-round-trip ok) =
   rep★-round-trip-nothing₇ (fromLiveRep★PartnerOK-nothing ok)
 
 transport-non-pivot-aligned₇ : ∀ {Δᴸ Δᴿ Δ}
@@ -210,11 +215,11 @@ transport-non-pivot-aligned₇ : ∀ {Δᴸ Δᴿ Δ}
     {X X₂ : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
   → RebaseAt Wᵖ W X Y
   → X₂ ≢ X
-  → CTI2.CenterAligned Wᵖ X₂ Y₂
-  → CTI2.CenterAligned W X₂ Y₂
+  → CTX.CenterAligned Wᵖ X₂ Y₂
+  → CTX.CenterAligned W X₂ Y₂
 transport-non-pivot-aligned₇ rb X₂≢X aligned =
-  trans (CTI2.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
-    (trans aligned (sym (CTI2.RebaseAt.ηᴿ-frozen rb _)))
+  trans (CTX.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
+    (trans aligned (sym (CTX.RebaseAt.ηᴿ-frozen rb _)))
 
 transportRep★PartnerOK-nothing₇ : ∀ {Δᴸ Δᴿ Δ}
     {Wᵖ W : World Δᴸ Δᴿ Δ}
@@ -236,7 +241,7 @@ source-round-trip-seal-star₇ : ∀ {Δᴸ Δᴿ Δ}
     {P M′ A μ}
     {X∼★ : μ ⊢ (＇ X) ∼★}
     {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
-  → CTI2.CenterAligned W X Yᵖ
+  → CTX.CenterAligned W X Yᵖ
   → Rep★PartnerOK₇ W X P (just Yᵖ) M′
   → SourceConcealPartnerOK₇ W
       ((P ↓ seal X ★)
@@ -267,7 +272,7 @@ matched-round-trip-seal-star₇ : ∀ {Δᴸ Δᴿ Δ}
     {P M′ A μ}
     {X∼★ : μ ⊢ (＇ X) ∼★}
     {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
-  → CTI2.CenterAligned W X Yᵖ
+  → CTX.CenterAligned W X Yᵖ
   → Rep★PartnerOK₇ W X P (just Yᵖ) M′
   → MatchedConcealPartnerOK₇ W
       ((P ↓ seal X ★)
@@ -285,7 +290,7 @@ round16-source-seal-subhead₇ : ∀ {Δᴸ Δᴿ Δ}
     {cX : μ ⊢ A ∼ ＇ X} {AnsX : NonStar A}
   → RebaseAt W₃ W₂ X Yᵖ
   → RebaseAt W₂ W₀ X Y
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → SourceConcealPartnerOK₇ W₂
       ((P ↓ seal X ★)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
@@ -294,9 +299,9 @@ round16-source-seal-subhead₇ : ∀ {Δᴸ Δᴿ Δ}
 round16-source-seal-subhead₇ rbᵖ link partner =
   seal-partner-ok₇
     (star-rep-target₇
-      (rep★-round-trip-just₇ (CTI2.RebaseAt.pivotAligned rbᵖ)
+      (rep★-round-trip-just₇ (CTX.RebaseAt.pivotAligned rbᵖ)
         (fromLiveRep★PartnerOK-just
-          (CTI2.RebaseAt.pivotAligned rbᵖ)
+          (CTX.RebaseAt.pivotAligned rbᵖ)
           (STC.transport-rep★-partner-ok rbᵖ partner))))
 
 ------------------------------------------------------------------------
@@ -322,7 +327,7 @@ bare-payload-var-tag-mismatch-empty₇ : ∀ {Δᴸ Δᴿ Δ}
         ((P₀ ↓ seal X ★)
           ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
               ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩))
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
   → Rep★PartnerOK₇ W X V (just Yᵒ)
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
@@ -352,8 +357,8 @@ different-name-round-trip-no-launder₇ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsZ : NonStar Aᶻ} {AnsY : NonStar Bᴿ}
   → Z ≢ X
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
-  → (CTI2.CenterAligned W Z Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W Z Y₂ → ⊥)
   → Rep★PartnerOK₇ W X
       ((P ↓ seal Z ★)
         ⟨ _! {G = ＇ Z} ⦃ Gᵍ = ＇ Z ⦄
@@ -387,7 +392,7 @@ non-rep★-round-trip-no-launder₇ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsX : NonStar Aˣ} {AnsY : NonStar Bᴿ}
   → NonStar R
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
   → Rep★PartnerOK₇ W X
       ((P ↓ seal X R)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
@@ -419,7 +424,7 @@ wrong-pedigree-round-trip-launder₇ : ∀ {Δᴸ Δᴿ Δ}
     {cX : μˣ ⊢ Aˣ ∼ ＇ X}
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Yᵢ}
     {AnsX : NonStar Aˣ} {AnsY : NonStar Aᴿ}
-  → CTI2.CenterAligned W X Yᵢ
+  → CTX.CenterAligned W X Yᵢ
   → Rep★PartnerOK₇ W X
       ((P ↓ seal X ★)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
@@ -473,7 +478,7 @@ wrong-pedigree-matched-conceal₇ : ∀ {Δᴸ Δᴿ Δ}
     {cX : μˣ ⊢ Aˣ ∼ ＇ X}
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Yᵢ}
     {AnsX : NonStar Aˣ} {AnsY : NonStar Aᴿ}
-  → CTI2.CenterAligned W X Yᵢ
+  → CTX.CenterAligned W X Yᵢ
   → MatchedConcealPartnerOK₇ W
       ((P ↓ seal X ★)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
@@ -518,5 +523,5 @@ round15-counterexample-package₇ =
     (CTI2.cast⊑² B.X! SSC.counter-premise ★⊑★)
     (matched-seal-star-partner₇
       (rep★-round-trip-just₇ {P = SSC.source-tag}
-        (CTI2.RebaseAt.pivotAligned B.rb-X-Y)
-        (rep★-var-tag₇ (CTI2.RebaseAt.pivotAligned B.rb-X-Y))))
+        (CTX.RebaseAt.pivotAligned B.rb-X-Y)
+        (rep★-var-tag₇ (CTX.RebaseAt.pivotAligned B.rb-X-Y))))

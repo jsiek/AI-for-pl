@@ -12,10 +12,14 @@ open import Data.Product using (_×_; Σ-syntax)
 open import Types using (Ty; TyCtx)
 open import CastTerms using (Term; blame)
 open import Reduction using (StoreChanges; _—↠[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 TargetBlameCatchupᵀ : Set

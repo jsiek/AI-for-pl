@@ -15,7 +15,8 @@ open import Imprecision using (X⊑★)
 open import Reduction using
   (StoreChanges; _—↠[_]_; bind; _∷_; []; applyTy; applyTys;
    applyStores)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
@@ -38,7 +39,7 @@ record StructuralInstantiationDescentPackage {Δᴸ Δᴿ Δ}
   field
     target-descent : StructuralTargetInstantiationPackage W V spine
     final-relation :
-      StructuralTargetInstantiationPackage.W′ target-descent CTI2.∣
+      StructuralTargetInstantiationPackage.W′ target-descent CTIR.∣
         ECR.mapCtxᴿ (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext
             target-descent)) γ
@@ -219,7 +220,7 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
         → (N : Term Δᴿ′)
         → (vN : Value N)
         → (V ⟨ c ⟩) —↠[ χs ] N
-        → W′ CTI2.∣ ECR.mapCtxᴿ ext γ ⊢²
+        → W′ CTIR.∣ ECR.mapCtxᴿ ext γ ⊢²
             M ⊑ N ∶ ECR.transport⊑ᵂ ext qC
         → (target : StructuralTargetInstantiationPackage W V
             (cast-frame c ▻ⁱ spine))
@@ -242,7 +243,7 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
             pendingCastMass vN child-spine <
               pendingCastMass vV (cast-frame c ▻ⁱ spine)
             ×
-            (StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+            (StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
               ECR.mapCtxᴿ
                 (structural-world-extendᴿ
                   (StructuralTargetInstantiationPackage.structural-ext
@@ -256,7 +257,7 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
                       child-target))
                   (ECR.transport⊑ᵂ ext q)
               →
-              StructuralTargetInstantiationPackage.W′ target CTI2.∣
+              StructuralTargetInstantiationPackage.W′ target CTIR.∣
                 ECR.mapCtxᴿ
                   (structural-world-extendᴿ
                     (StructuralTargetInstantiationPackage.structural-ext

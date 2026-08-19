@@ -17,7 +17,7 @@ open import Consistency using (wk↪ᵗ)
 open import Reduction using
   (StoreChanges; _∷_; keep; bind; applyStore)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE

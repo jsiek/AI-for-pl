@@ -30,14 +30,20 @@ open import Imprecision
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; _↑_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
 import CTITighteningNarrowScratch as N
 import SourceReachabilityResultScratch as SR
 import proof.DGG.notes.InitialPairScratch as IP
 
 open CTI2 using
-  (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;
-   store-rep-imp; ⊢↓-sealˣ)
+  (World;
+   world;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp;
+   store-rep-imp)
 
 ------------------------------------------------------------------------
 -- Occupancy states
@@ -153,7 +159,7 @@ data _∣_⊢ᴼ[_]_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B Xᴸ? Xᴿ?}
       {p : A ⊑ᵂ⟨ W ⟩ B} {c : Conversion.Conv↓ Δᴸ A A′}
     → SourceConcealPartnerOKᴼ W occ M c Xᴿ? M′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W ∣ γ ⊢ᴼ[ occ ] M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -166,8 +172,8 @@ data _∣_⊢ᴼ[_]_⊑_∶_ {Δᴸ Δᴿ Δ}
       {c′ : Conversion.Conv↓ Δᴿ A′ B′}
     → CTI2.MatchedConcealPartnerOK W M c (just Xᴿ) M′
     → RebaseAt W W Xᴸ Xᴿ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → W ∣ γ ⊢ᴼ[ occ ] M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -203,8 +209,8 @@ X⊑★Wᵖ : ＇ Fin.zero ⊑ᵂ⟨ Wᵖ ⟩ ★
 X⊑★Wᵖ = X⊑★ refl
 
 source-seal-typedᵖ :
-  source-storeᵖ CTI2.⊢↓[ just Fin.zero ] seal Fin.zero ★
-source-seal-typedᵖ = ⊢↓-sealˣ source-X∋ᵖ
+  source-storeᵖ Conv.⊢↓[ just Fin.zero ] seal Fin.zero ★
+source-seal-typedᵖ = Conv.⊢↓-sealˣ source-X∋ᵖ
 
 target-env-tagᵖ : Env∼ 0
 target-env-tagᵖ ()

@@ -22,7 +22,8 @@ open import CastTerms using (Term; Value; $; _↓_; _↑_)
 open import Primitives using (κℕ)
 import Reduction as R
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 
 
@@ -32,11 +33,11 @@ empty-μ ()
 ℕ₀ : Ty 0
 ℕ₀ = ‵ `ℕ
 
-W₀ : CTI2.World 0 0 0
+W₀ : CTX.World 0 0 0
 W₀ = CPI2.initialWorld empty-μ store-empty
 
-W : CTI2.World 1 1 1
-W = CTI2.bothBindWorld X⊑X W₀ ℕ₀ ℕ₀
+W : CTX.World 1 1 1
+W = CTX.bothBindWorld X⊑X W₀ ℕ₀ ℕ₀
 
 X : TyVar 1
 X = Fin.zero
@@ -47,41 +48,41 @@ Y = Fin.zero
 ℕ₁ : Ty 1
 ℕ₁ = ‵ `ℕ
 
-source-entry : CTI2.sourceStoreʷ W ∋ X ⦂ ℕ₁
+source-entry : CTX.sourceStoreʷ W ∋ X ⦂ ℕ₁
 source-entry = Z∋ refl
 
-target-entry : CTI2.targetStoreʷ W ∋ Y ⦂ ℕ₁
+target-entry : CTX.targetStoreʷ W ∋ Y ⦂ ℕ₁
 target-entry = Z∋ refl
 
 source-seal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] Conv.seal X ℕ₁
-source-seal-typed = CTI2.⊢↓-sealˣ source-entry
+  CTX.sourceStoreʷ W Conv.⊢↓[ just X ] Conv.seal X ℕ₁
+source-seal-typed = Conv.⊢↓-sealˣ source-entry
 
 target-seal-typed :
-  CTI2.targetStoreʷ W CTI2.⊢↓[ just Y ] Conv.seal Y ℕ₁
-target-seal-typed = CTI2.⊢↓-sealˣ target-entry
+  CTX.targetStoreʷ W Conv.⊢↓[ just Y ] Conv.seal Y ℕ₁
+target-seal-typed = Conv.⊢↓-sealˣ target-entry
 
 source-unseal-typed :
-  CTI2.sourceStoreʷ W CTI2.⊢↑[ just X ] Conv.unseal X ℕ₁
-source-unseal-typed = CTI2.⊢↑-unsealˣ source-entry
+  CTX.sourceStoreʷ W Conv.⊢↑[ just X ] Conv.unseal X ℕ₁
+source-unseal-typed = Conv.⊢↑-unsealˣ source-entry
 
 target-unseal-typed :
-  CTI2.targetStoreʷ W CTI2.⊢↑[ just Y ] Conv.unseal Y ℕ₁
-target-unseal-typed = CTI2.⊢↑-unsealˣ target-entry
+  CTX.targetStoreʷ W Conv.⊢↑[ just Y ] Conv.unseal Y ℕ₁
+target-unseal-typed = Conv.⊢↑-unsealˣ target-entry
 
-q : ℕ₁ CTI2.⊑ᵂ⟨ W ⟩ ℕ₁
+q : ℕ₁ CTX.⊑ᵂ⟨ W ⟩ ℕ₁
 q = ι⊑ι
 
-sealed-q : (＇ X) CTI2.⊑ᵂ⟨ W ⟩ (＇ Y)
+sealed-q : (＇ X) CTX.⊑ᵂ⟨ W ⟩ (＇ Y)
 sealed-q = X⊑X
 
-partnered-representation : CTI2.StoreRepImp W X Y
-partnered-representation = CTI2.store-rep-imp q
+partnered-representation : CTX.StoreRepImp W X Y
+partnered-representation = CTX.store-rep-imp q
 
-same-rebase : CTI2.RebaseAt W W X Y
-same-rebase = CTI2.sameWorldRebaseAt refl partnered-representation
+same-rebase : CTX.RebaseAt W W X Y
+same-rebase = CTX.sameWorldRebaseAt refl partnered-representation
 
-mono-refl : CTI2.ImpEnvMono W W
+mono-refl : CTX.ImpEnvMono W W
 mono-refl _ eq = eq
 
 source-value : Term 1
@@ -118,21 +119,21 @@ base-relation : W CTI2.∣ [] ⊢² source-value ⊑ target-value ∶ q
 base-relation = CTI2.κ⊑κ² (κℕ 0) q
 
 matched-conceal-partner :
-  CTI2.MatchedConcealPartnerOK W source-value
+  CTX.MatchedConcealPartnerOK W source-value
     (Conv.seal X ℕ₁) (just Y) target-value
-matched-conceal-partner = CTI2.matched-seal-nonstar nonstar-ι
+matched-conceal-partner = CTX.matched-seal-nonstar nonstar-ι
 
 sealed-relation :
   W CTI2.∣ [] ⊢² source-sealed ⊑ target-sealed ∶ sealed-q
 sealed-relation =
   CTI2.conceal⊑conceal² matched-conceal-partner mono-refl
-    same-rebase CTI2.same-[] source-seal-typed target-seal-typed
+    same-rebase CTX.same-[] source-seal-typed target-seal-typed
     base-relation sealed-q
 
 before-target-keep :
   W CTI2.∣ [] ⊢² source-revealed ⊑ target-revealed ∶ q
 before-target-keep =
-  CTI2.reveal⊑reveal² mono-refl same-rebase CTI2.same-[]
+  CTI2.reveal⊑reveal² mono-refl same-rebase CTX.same-[]
     source-unseal-typed target-unseal-typed sealed-relation q
 
 target-keep-step : target-revealed R.—→[ R.keep ] target-value
@@ -142,8 +143,8 @@ target-keep-value : Value target-value
 target-keep-value = target-value-value
 
 source-sealed-to-representation-empty :
-  ∀ {W′ : CTI2.World 1 1 1}
-  → (＇ X) CTI2.⊑ᵂ⟨ W′ ⟩ ℕ₁
+  ∀ {W′ : CTX.World 1 1 1}
+  → (＇ X) CTX.⊑ᵂ⟨ W′ ⟩ ℕ₁
   → ⊥
 source-sealed-to-representation-empty ()
 

@@ -2,7 +2,7 @@ module TargetStripScratch where
 
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetStripAt★; TargetStripAt★Data; target-strip★-data)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 
 target-strip-at★-scratch : TargetStripAt★
 target-strip-at★-scratch sv vU mono rb sc target∈ D with D

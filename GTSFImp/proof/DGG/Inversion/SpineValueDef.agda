@@ -28,12 +28,19 @@ open import Conversion using (Conv↑; Conv↓; _↦↑_; _↦↓_;
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.WorldDecay as WD
 open CTI2 using
-  (World; ηᴸʷ; ηᴿʷ; sourceStoreʷ; targetStoreʷ; CtxImp;
-   _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+  (World;
+   ηᴸʷ;
+   ηᴿʷ;
+   sourceStoreʷ;
+   targetStoreʷ;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 
 ------------------------------------------------------------------------

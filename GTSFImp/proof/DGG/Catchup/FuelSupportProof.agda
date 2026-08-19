@@ -20,9 +20,12 @@ open import proof.Consistency using (castSize-close-inst-≤)
 open import Reduction using (StoreChanges; applyStores; applyTys)
 open import proof.Reduction using (_++χ_; applyStores-++; applyTys-++)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
+open CTI2 using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
 open import proof.DGG.Catchup.ValueCatchupRightDef
   using
     ( castSize

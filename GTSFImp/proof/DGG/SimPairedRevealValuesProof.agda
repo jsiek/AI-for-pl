@@ -30,22 +30,22 @@ open import Reduction using
   ; blame-reveal
   ; ξ-reveal
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-reveal-boundary)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
-open CTI2 using
-  ( World
-  ; ImpEnvMono
-  ; RebaseAt
-  ; sourceStoreʷ
-  ; targetStoreʷ
-  ; same-[]
-  ; _⊢↑[_]_
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   ImpEnvMono;
+   RebaseAt;
+   sourceStoreʷ;
+   targetStoreʷ;
+   same-[];
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.SimPairedRevealValuesDef
   using (SimPairedRevealValuesᵀ)
 open import proof.Reduction.ValueIrreducibleProof
@@ -85,8 +85,8 @@ record SimPairedRevealValuesResiduals : Set₁ where
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
+      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
       → PairedRevealRel rel
       → Value V
@@ -115,8 +115,8 @@ record SimPairedRevealValuesResiduals : Set₁ where
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
+      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
+      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
       → PairedRevealRel rel
       → Value V

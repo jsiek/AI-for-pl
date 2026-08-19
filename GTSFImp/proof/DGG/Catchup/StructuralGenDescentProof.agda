@@ -16,7 +16,7 @@ open import CastTerms using
 open import Conversion using (〖_,_↑_〗)
 open import Reduction using (bind; β-gen)
 open import proof.TypeSafety.Preservation using (replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef

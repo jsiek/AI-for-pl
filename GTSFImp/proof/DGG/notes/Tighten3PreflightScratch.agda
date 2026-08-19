@@ -23,7 +23,8 @@ open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 import Conversion
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.LambdaImpProbe as LIP
 import proof.DGG.StarRepChainProbe as SRC
@@ -37,7 +38,10 @@ import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.notes.InitialPairScratch as IP
 open import proof.DGG.WorldDecay using (EnvDecay; env-decay)
 
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Premise-world partner predicate model

@@ -17,8 +17,14 @@ open import CastTerms using (Term)
 import Consistency
 open import Imprecision using (X⊑X; X⊑★)
 import Reduction
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; CtxImp; ctx-imp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
+open CTI2 using
+  (World;
+   CtxImp;
+   ctx-imp;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Parked.ParkedWorldDef
   using

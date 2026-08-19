@@ -19,9 +19,14 @@ open import Conversion using (Conv↓)
 open import CastTerms using (Term; Value; Inert; _⟨_⟩; _《_》)
 open import Reduction using (applyConsistencies)
 open import proof.Reduction using (_++χ_; castSize-applyConsistencies)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; TargetCastBound)
 open import proof.DGG.Catchup.StructuralWorldExtendDef using

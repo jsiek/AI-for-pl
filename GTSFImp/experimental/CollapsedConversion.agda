@@ -41,7 +41,7 @@ open Live using (Conv↑; Conv↓)
     ; ⊢↓-∀ to live⊢↓-∀
     ; ⊢↓-id to live⊢↓-id
     )
-import proof.DGG.CastTermImprecision2 as Live²
+import Conversion as Live²
 open Live² using ()
   renaming
     ( _⊢↑[_]_ to _live⊢↑[_]_

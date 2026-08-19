@@ -16,7 +16,9 @@ open import Types using (Ty; TyVar; ＇_; ⇑ᵗ; _[_]ᵗ)
 open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
 open import CastTerms using (Term; Value; _↑_; _↓_)
 open import Reduction using (keep; _—→[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 
 
 record StructuralAllGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
@@ -42,19 +44,19 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₁ : CTI2.ImpEnvMono W Wᵖ₁
     rebase₁ : CTI2.RebaseAtᴿ W Wᵖ₁ X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
-    targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₁? ] c
+    targetConversion₁ : CTI2.targetStoreʷ W Conv.⊢↑[ X₁? ] c
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
-          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₁ CTIR.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
     keep₁ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N ↑ c ∶ q₁
       → (N ↑ c) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -62,22 +64,22 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₂ : CTI2.ImpEnvMono W Wᵖ₂
     rebase₂ : CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
     same₂ : CTI2.SameCtx γ γᵖ₂
-    targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+    targetConversion₂ : CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
-          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₂ CTIR.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
     keep₂ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M
+      → W CTIR.∣ γ ⊢² M
           ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
       → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₂
 
 
 record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
@@ -94,19 +96,19 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₁ : CTI2.ImpEnvMono W Wᵖ₁
     rebase₁ : CTI2.RebaseAtᴿ Wᵖ₁ W X₁?
     same₁ : CTI2.SameCtx γ γᵖ₁
-    targetConversion₁ : CTI2.targetStoreʷ W CTI2.⊢↓[ X₁? ] c
+    targetConversion₁ : CTI2.targetStoreʷ W Conv.⊢↓[ X₁? ] c
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
-          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₁ CTIR.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
     keep₁ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N ↓ c ∶ q₁
       → (N ↓ c) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -114,19 +116,19 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     mono₂ : CTI2.ImpEnvMono W Wᵖ₂
     rebase₂ : CTI2.RebaseAtᴿ W Wᵖ₂ X₂?
     same₂ : CTI2.SameCtx γ γᵖ₂
-    targetConversion₂ : CTI2.targetStoreʷ W CTI2.⊢↑[ X₂? ]
+    targetConversion₂ : CTI2.targetStoreʷ W Conv.⊢↑[ X₂? ]
       〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
-          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₂ CTIR.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
     keep₂ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M
+      → W CTIR.∣ γ ⊢² M
           ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
       → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₂

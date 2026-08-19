@@ -439,7 +439,7 @@ operation.
 
 Current relation constructors:
 
-    GTSFImp/proof/DGG/CastTermImprecision2.agda
+    GTSFImp/proof/DGG/CastTermImprecision.agda
       Λ⊑Λ²
       Λ⊑²
       Λ⊑²-smart-comma

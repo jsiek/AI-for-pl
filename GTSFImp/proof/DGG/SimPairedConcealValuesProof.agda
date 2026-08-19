@@ -8,7 +8,7 @@ module proof.DGG.SimPairedConcealValuesProof where
 open import Data.Empty using (⊥-elim)
 
 open import Reduction using (pure-step; blame-conceal; ξ-conceal)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
 open import proof.DGG.SimPairedConcealValuesDef
   using (SimPairedConcealValuesᵀ)
 open import proof.Reduction.ValueIrreducibleProof
@@ -16,18 +16,18 @@ open import proof.Reduction.ValueIrreducibleProof
 
 
 sim-paired-conceal-values : SimPairedConcealValuesᵀ
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-sealˣ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-sealˣ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-⇒ˣ _ _ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-⇒ˣ _ _ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-∀ˣ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (CTI2.⊢↓-∀ˣ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)

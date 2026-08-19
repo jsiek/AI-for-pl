@@ -28,7 +28,8 @@ open import CastTerms using
 open import Reduction using
   (StoreChanges; _—↠[_]_; applyTys; applyBody; bind; _∷_; [])
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
@@ -44,10 +45,18 @@ open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
 open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
   (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
-open CTI2 using
-  (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
-   liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
-   _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   LiftCtx;
+   LiftCtxᴸ;
+   liftWorldBoth;
+   liftWorldLeft;
+   rightOnlyWorld;
+   targetStoreʷ;
+   tgtCtxʷ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 Λ⊑Λ²TargetSplit₂ : ∀ {Δ}

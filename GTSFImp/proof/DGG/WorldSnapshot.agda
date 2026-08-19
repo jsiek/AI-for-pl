@@ -8,7 +8,7 @@ module proof.DGG.WorldSnapshot where
 
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Nat using (zero; suc)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_)
 import Data.Fin as Fin
@@ -26,21 +26,28 @@ import proof.DGG.Examples2 as Ex2
 -- Types and direct store entries
 ------------------------------------------------------------------------
 
-extendName : ∀ {Δ}
-  → (TyVar Δ → String)
-  → TyVar (suc Δ)
-  → String
-extendName name Fin.zero = "x"
-extendName name (Fin.suc X) = name X
+private
+
+  extendName : ∀ {Δ}
+    → (TyVar Δ → String)
+    → String
+    → TyVar (suc Δ)
+    → String
+  extendName name binder Fin.zero = binder
+  extendName name binder (Fin.suc X) = name X
+
+  showTyAt : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
+  showTyAt depth name (＇ X) = "＇" ++ name X
+  showTyAt depth name (‵ `ℕ) = "ℕ"
+  showTyAt depth name (‵ `𝔹) = "𝔹"
+  showTyAt depth name ★ = "★"
+  showTyAt depth name (A ⇒ B) =
+    "(" ++ showTyAt depth name A ++ " ⇒ " ++ showTyAt depth name B ++ ")"
+  showTyAt depth name (`∀ A) =
+    "∀ " ++ showTyAt (suc depth) (extendName name ("b" ++ show depth)) A
 
 showTy : ∀ {Δ} → (TyVar Δ → String) → Ty Δ → String
-showTy name (＇ X) = "＇" ++ name X
-showTy name (‵ `ℕ) = "ℕ"
-showTy name (‵ `𝔹) = "𝔹"
-showTy name ★ = "★"
-showTy name (A ⇒ B) =
-  "(" ++ showTy name A ++ " ⇒ " ++ showTy name B ++ ")"
-showTy name (`∀ A) = "∀ " ++ showTy (extendName name) A
+showTy = showTyAt zero
 
 lookupStore : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ
 lookupStore store-empty ()
@@ -137,3 +144,11 @@ examples2-left-path-world₃-snapshot :
     "x1: x1↦＇x2 ⊑[X⊑X] ─ │ " ++
     "x2: x2↦★ ⊑[X⊑★] x1↦★⟩"
 examples2-left-path-world₃-snapshot = refl
+
+nested-∀-store-entry-snapshot :
+  showEntry defaultName
+    (store-bind store-empty
+      (`∀ (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero)))))
+    (just Fin.zero) ≡
+      "x0↦∀ ∀ (＇b1 ⇒ ＇b0)"
+nested-∀-store-entry-snapshot = refl

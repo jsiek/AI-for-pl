@@ -1,12 +1,13 @@
 module proof.DGG.WorldInvariants where
 
 -- File Charter:
---   * Defines the D16 Stage 1 companion invariants for five-field worlds.
+--   * Defines the D16 companion invariants for five-field worlds.
 --   * Uses direct store entries and the chain-permissive condition for
 --     unmatched targets after the recorded strict fallback test.
 --   * Establishes the companion for the empty initial world and core world
 --     builders without changing World or requiring it from consumers.
---   * Derives variable-entry chain coherence from direct representations.
+--   * Derives variable-entry chain coherence and target non-occupancy from
+--     the four fields.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -17,12 +18,15 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TyStore using
   (TyStore; store-empty; store-lift; store-bind; lookupStore; lookupStore-∋)
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; id↪ᵗ; wk↪ᵗ; toRenameᵗ)
+open import Conversion using (seal)
+import Conversion as Conv
 open import Imprecision
 import Reduction as R
 import proof.DGG.CenterRename as CR
@@ -74,6 +78,14 @@ record WorldInvariants {Δᴸ Δᴿ Δ}
               → toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
                 ≢ toRenameᵗ (CTX.ηᴿʷ W) Yᴿ)
 
+    dynamicStarSourcesUnoccupied :
+      ∀ (Xᴸ : TyVar Δᴸ)
+      → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+      → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+      → ∀ (Xᴿ : TyVar Δᴿ)
+      → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+        ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
+
 open WorldInvariants public
 
 
@@ -121,10 +133,51 @@ variableEntryChainCoherence {W = W} {Yᴸ = Yᴸ} {Yᴿ = Yᴿ}
       (cong (renameᵗ (toRenameᵗ (CTX.ηᴿʷ W))) target-entry)
       (representationsImprecise inv aligned))
 
+world-invariants-no-target-at-dynamic-star : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTX.sourceStoreʷ W) X ≡ ★
+  → CTX.NoTargetOccupantAtSource W X
+world-invariants-no-target-at-dynamic-star {X = X} inv mark entry
+    (Xᴿ , aligned) =
+  dynamicStarSourcesUnoccupied inv X mark entry Xᴿ aligned
+
+world-invariants-see-through-premise : ∀ {Δᴸ Δᴿ Δ}
+    {W W′ : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W′
+  → CTX.TagRebaseAtᴸ W′ W (just X) nothing
+  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTX.NoTargetOccupantAtSource W′ X
+world-invariants-see-through-premise inv
+    (CTX.tag-rebase-onlyᴸ mark disaligned represented)
+    (Conv.⊢↓-sealˣ source∋) =
+  world-invariants-no-target-at-dynamic-star inv mark
+    (lookupStore-∋ source∋)
+
+world-invariants-d17c-occupancy : ∀ {Δᴸ Δᴿ Δ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → WorldInvariants W
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → lookupStore (CTX.sourceStoreʷ W) X ≡ ★
+  → CTX.Occupied W (toRenameᵗ (CTX.ηᴸʷ W) X) → ⊥
+world-invariants-d17c-occupancy inv mark entry =
+  world-invariants-no-target-at-dynamic-star inv mark entry
+
 
 emptyStore : (Δ : TyCtx) → TyStore Δ
 emptyStore Nat.zero = store-empty
 emptyStore (Nat.suc Δ) = store-lift (emptyStore Δ)
+
+emptyStore-lookup-variable : ∀ {Δ} (X : TyVar Δ)
+  → lookupStore (emptyStore Δ) X ≡ ＇ X
+emptyStore-lookup-variable {Nat.suc Δ} Fin.zero = refl
+emptyStore-lookup-variable {Nat.suc Δ} (Fin.suc X) =
+  cong ⇑ᵗ (emptyStore-lookup-variable X)
+
+variable≢star : ∀ {Δ} {X : TyVar Δ}
+  → _≡_ {A = Ty Δ} (＇ X) ★ → ⊥
+variable≢star ()
 
 initialWorld : ∀ {Δ} → ImpEnv Δ → CTX.World Δ Δ Δ
 initialWorld {Δ} μ =
@@ -132,7 +185,8 @@ initialWorld {Δ} μ =
 
 initialWorld-invariants : ∀ {Δ} (μ : ImpEnv Δ)
   → WorldInvariants (initialWorld μ)
-initialWorld-invariants μ = world-invariants precise reps unmatched
+initialWorld-invariants {Δ = Δ} μ =
+  world-invariants precise reps unmatched no-dynamic-star-source
   where
   precise : ∀ Xᴸ
     → μ (toRenameᵗ id↪ᵗ Xᴸ) ≡ X⊑X
@@ -158,9 +212,24 @@ initialWorld-invariants μ = world-invariants precise reps unmatched
             → toRenameᵗ id↪ᵗ Xᴸ ≢ toRenameᵗ id↪ᵗ Yᴿ)
   unmatched Xᴿ no-source = ⊥-elim (no-source Xᴿ refl)
 
+  no-dynamic-star-source : ∀ Xᴸ
+    → μ (toRenameᵗ id↪ᵗ Xᴸ) ≡ X⊑★
+    → lookupStore (emptyStore Δ) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ id↪ᵗ Xᴿ ≢ toRenameᵗ id↪ᵗ Xᴸ
+  no-dynamic-star-source Xᴸ mark entry Xᴿ aligned =
+    variable≢star
+      (trans (sym (emptyStore-lookup-variable Xᴸ)) entry)
+
 identityWorld-invariants : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
+  → (∀ X
+      → μ (toRenameᵗ id↪ᵗ X) ≡ X⊑★
+      → lookupStore Σ X ≡ ★
+      → ∀ Y
+      → toRenameᵗ id↪ᵗ Y ≢ toRenameᵗ id↪ᵗ X)
   → WorldInvariants (CTX.world id↪ᵗ id↪ᵗ μ Σ Σ)
-identityWorld-invariants μ Σ = world-invariants precise reps unmatched
+identityWorld-invariants μ Σ no-dynamic-star-source =
+  world-invariants precise reps unmatched no-dynamic-star-source
   where
   precise : ∀ Xᴸ
     → μ (toRenameᵗ id↪ᵗ Xᴸ) ≡ X⊑X
@@ -222,13 +291,22 @@ private
     rename-⊑ Fin.suc fin-suc-injective
       (λ X eq → eq) A⊑B
 
+  unshift-star : ∀ {Δ} {A : Ty Δ}
+    → ⇑ᵗ A ≡ ★
+    → A ≡ ★
+  unshift-star {A = ＇ X} ()
+  unshift-star {A = ‵ ι} ()
+  unshift-star {A = ★} refl = refl
+  unshift-star {A = A ⇒ B} ()
+  unshift-star {A = `∀ A} ()
+
 
 liftWorldBoth-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} (v : VarImp)
   → WorldInvariants W
   → WorldInvariants (CTX.liftWorldBoth v W)
 liftWorldBoth-invariants {W = W} v inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → extendᵐ v (CTX.impEnvʷ W)
@@ -289,6 +367,19 @@ liftWorldBoth-invariants {W = W} v inv =
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
+  unoccupied : ∀ Xᴸ
+    → extendᵐ v (CTX.impEnvʷ W)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑★
+    → lookupStore (store-lift (CTX.sourceStoreʷ W)) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (keep (CTX.ηᴿʷ W)) Xᴿ
+      ≢ toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ
+  unoccupied Fin.zero mark entry Xᴿ aligned = variable≢star entry
+  unoccupied (Fin.suc Xᴸ) mark entry Fin.zero ()
+  unoccupied (Fin.suc Xᴸ) mark entry (Fin.suc Xᴿ) aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark (unshift-star entry) Xᴿ
+      (fin-suc-injective aligned)
+
 
 liftWorldLeft-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} (v : VarImp)
@@ -296,7 +387,7 @@ liftWorldLeft-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (CTX.liftWorldLeft v W)
 liftWorldLeft-invariants {W = W} .X⊑★ refl inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → instᵐ (CTX.impEnvʷ W)
@@ -352,6 +443,18 @@ liftWorldLeft-invariants {W = W} .X⊑★ refl inv =
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
+  unoccupied : ∀ Xᴸ
+    → instᵐ (CTX.impEnvʷ W)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑★
+    → lookupStore (store-lift (CTX.sourceStoreʷ W)) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (skip (CTX.ηᴿʷ W)) Xᴿ
+      ≢ toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ
+  unoccupied Fin.zero mark entry Xᴿ aligned = variable≢star entry
+  unoccupied (Fin.suc Xᴸ) mark entry Xᴿ aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark (unshift-star entry) Xᴿ
+      (fin-suc-injective aligned)
+
 
 leftOnlyWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} (v : VarImp) (A : Ty Δᴸ)
@@ -359,7 +462,7 @@ leftOnlyWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (CTX.leftOnlyWorld v W A)
 leftOnlyWorld-invariants {W = W} .X⊑★ A refl inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → instᵐ (CTX.impEnvʷ W)
@@ -415,6 +518,18 @@ leftOnlyWorld-invariants {W = W} .X⊑★ A refl inv =
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
+  unoccupied : ∀ Xᴸ
+    → instᵐ (CTX.impEnvʷ W)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑★
+    → lookupStore (store-bind (CTX.sourceStoreʷ W) A) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (skip (CTX.ηᴿʷ W)) Xᴿ
+      ≢ toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ
+  unoccupied Fin.zero mark entry Xᴿ ()
+  unoccupied (Fin.suc Xᴸ) mark entry Xᴿ aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark (unshift-star entry) Xᴿ
+      (fin-suc-injective aligned)
+
 
 rightOnlyWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} (B : Ty Δᴿ)
@@ -427,7 +542,7 @@ rightOnlyWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (CTX.rightOnlyWorld W B)
 rightOnlyWorld-invariants {W = W} B fresh-classification inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → instᵐ (CTX.impEnvʷ W)
@@ -484,6 +599,18 @@ rightOnlyWorld-invariants {W = W} B fresh-classification inv =
     lifted-head-no-source Xᴸ aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
+  unoccupied : ∀ Xᴸ
+    → instᵐ (CTX.impEnvʷ W)
+        (toRenameᵗ (skip (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑★
+    → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (keep (CTX.ηᴿʷ W)) Xᴿ
+      ≢ toRenameᵗ (skip (CTX.ηᴸʷ W)) Xᴸ
+  unoccupied Xᴸ mark entry Fin.zero ()
+  unoccupied Xᴸ mark entry (Fin.suc Xᴿ) aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark entry Xᴿ
+      (fin-suc-injective aligned)
+
 
 rightOnlyWorld-star-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
@@ -522,14 +649,15 @@ rightOnlyWorld-star-then-zero-invariants inv =
 bothBindWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} (v : VarImp)
     (A : Ty Δᴸ) (B : Ty Δᴿ)
+  → v ≡ X⊑X
   → A CTX.⊑ᵂ⟨ W ⟩ B
   → WorldInvariants W
   → WorldInvariants (CTX.bothBindWorld v W A B)
-bothBindWorld-invariants {W = W} v A B A⊑B inv =
-  world-invariants precise reps unmatched
+bothBindWorld-invariants {W = W} .X⊑X A B refl A⊑B inv =
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
-    → extendᵐ v (CTX.impEnvʷ W)
+    → extendᵐ X⊑X (CTX.impEnvʷ W)
         (toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
         toRenameᵗ (keep (CTX.ηᴿʷ W)) Xᴿ
@@ -542,7 +670,7 @@ bothBindWorld-invariants {W = W} v A B A⊑B inv =
   reps : ∀ {Xᴸ Xᴿ}
     → toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ
         ≡ toRenameᵗ (keep (CTX.ηᴿʷ W)) Xᴿ
-    → extendᵐ v (CTX.impEnvʷ W) ⊢
+    → extendᵐ X⊑X (CTX.impEnvʷ W) ⊢
         renameᵗ (toRenameᵗ (keep (CTX.ηᴸʷ W)))
           (lookupStore (store-bind (CTX.sourceStoreʷ W) A) Xᴸ)
         ⊑ renameᵗ (toRenameᵗ (keep (CTX.ηᴿʷ W)))
@@ -592,10 +720,29 @@ bothBindWorld-invariants {W = W} v A B A⊑B inv =
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
+  unoccupied : ∀ Xᴸ
+    → extendᵐ X⊑X (CTX.impEnvʷ W)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ) ≡ X⊑★
+    → lookupStore (store-bind (CTX.sourceStoreʷ W) A) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (keep (CTX.ηᴿʷ W)) Xᴿ
+      ≢ toRenameᵗ (keep (CTX.ηᴸʷ W)) Xᴸ
+  unoccupied Fin.zero () entry Xᴿ aligned
+  unoccupied (Fin.suc Xᴸ) mark entry Fin.zero ()
+  unoccupied (Fin.suc Xᴸ) mark entry (Fin.suc Xᴿ) aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark (unshift-star entry) Xᴿ
+      (fin-suc-injective aligned)
+
 
 parked-initial-invariants : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+  → (∀ X
+      → μ (toRenameᵗ id↪ᵗ X) ≡ X⊑★
+      → lookupStore Σ X ≡ ★
+      → ∀ Y
+      → toRenameᵗ id↪ᵗ Y ≢ toRenameᵗ id↪ᵗ X)
   → WorldInvariants (CPI2.initialWorld μ Σ)
-parked-initial-invariants {μ = μ} {Σ = Σ} = identityWorld-invariants μ Σ
+parked-initial-invariants {μ = μ} {Σ = Σ} =
+  identityWorld-invariants μ Σ
 
 parked-both-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} {A : Ty Δᴸ} {B : Ty Δᴿ}
@@ -603,7 +750,7 @@ parked-both-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (CTX.bothBindWorld X⊑X W A B)
 parked-both-bind-invariants {A = A} {B = B} =
-  bothBindWorld-invariants X⊑X A B
+  bothBindWorld-invariants X⊑X A B refl
 
 parked-left-bind-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} {A : Ty Δᴸ}
@@ -647,7 +794,7 @@ renameWorld-invariants : ∀ {Δᴸ Δᴿ Δ Δ′}
   → WorldInvariants W
   → WorldInvariants (CR.renameWorld π W)
 renameWorld-invariants {W = W} π inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CR.renameEnv π (CTX.impEnvʷ W)
@@ -719,17 +866,48 @@ renameWorld-invariants {W = W} π inv =
             (trans aligned
               (CR.toRenameᵗ-∘ π (CTX.ηᴿʷ W) Yᴿ))))
 
+  unoccupied : ∀ Xᴸ
+    → CR.renameEnv π (CTX.impEnvʷ W)
+        (toRenameᵗ (π CR.∘↪ CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (π CR.∘↪ CTX.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (π CR.∘↪ CTX.ηᴸʷ W) Xᴸ
+  unoccupied Xᴸ mark entry Xᴿ aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ old-mark entry Xᴿ
+      (sym old-aligned)
+    where
+    old-mark :
+      CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+    old-mark = trans
+      (sym (CR.renameEnv-image π (CTX.impEnvʷ W)
+        (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)))
+      (trans (cong (CR.renameEnv π (CTX.impEnvʷ W))
+        (sym (CR.toRenameᵗ-∘ π (CTX.ηᴸʷ W) Xᴸ))) mark)
+
+    old-aligned : CenterAligned W Xᴸ Xᴿ
+    old-aligned = toRenameᵗ-injective π
+      (trans (sym (CR.toRenameᵗ-∘ π (CTX.ηᴸʷ W) Xᴸ))
+        (trans (sym aligned)
+          (CR.toRenameᵗ-∘ π (CTX.ηᴿʷ W) Xᴿ)))
+
 
 decay-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
   → WD.EnvDecay W Wᵈ
   → WorldInvariants W
+  → (∀ Xᴸ
+      → CTX.impEnvʷ Wᵈ (toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ) ≡ X⊑★
+      → lookupStore (CTX.sourceStoreʷ Wᵈ) Xᴸ ≡ ★
+      → ∀ Xᴿ
+      → toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ
+        ≢ toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ)
   → WorldInvariants Wᵈ
 decay-invariants
     {W = CTX.world ηᴸ ηᴿ μ Σᴸ Σᴿ}
     {Wᵈ = CTX.world .ηᴸ .ηᴿ μᵈ .Σᴸ .Σᴿ}
-    (WD.env-decay refl refl refl refl mono) inv =
-  world-invariants precise reps (unmatchedTargetsDynamic inv)
+    (WD.env-decay refl refl refl refl mono) inv unoccupied =
+  world-invariants precise reps (unmatchedTargetsDynamic inv) unoccupied
   where
   precise : ∀ Xᴸ
     → μᵈ (toRenameᵗ ηᴸ Xᴸ) ≡ X⊑X
@@ -751,6 +929,13 @@ decay-invariants
 blendWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W′ Wᵈ : CTX.World Δᴸ Δᴿ Δ}
   → WorldInvariants W′
+  → (∀ Xᴸ
+      → CTX.impEnvʷ (WD.blendWorld W′ Wᵈ)
+          (toRenameᵗ (CTX.ηᴸʷ (WD.blendWorld W′ Wᵈ)) Xᴸ) ≡ X⊑★
+      → lookupStore (CTX.sourceStoreʷ (WD.blendWorld W′ Wᵈ)) Xᴸ ≡ ★
+      → ∀ Xᴿ
+      → toRenameᵗ (CTX.ηᴿʷ (WD.blendWorld W′ Wᵈ)) Xᴿ
+        ≢ toRenameᵗ (CTX.ηᴸʷ (WD.blendWorld W′ Wᵈ)) Xᴸ)
   → WorldInvariants (WD.blendWorld W′ Wᵈ)
 blendWorld-invariants {W′ = W′} {Wᵈ = Wᵈ} =
   decay-invariants (WD.blend-decay {W′ = W′} {Wᵈ = Wᵈ})
@@ -759,13 +944,35 @@ honestify-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → WorldInvariants W
   → WorldInvariants (WD.honestify W)
-honestify-invariants {W = W} = decay-invariants (WD.honestify-decay {W = W})
+honestify-invariants {W = W} inv =
+  decay-invariants (WD.honestify-decay {W = W}) inv unoccupied
+  where
+  unoccupied : ∀ Xᴸ
+    → WD.honestEnv (CTX.ηᴿʷ W) (CTX.impEnvʷ W)
+        (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
+  unoccupied Xᴸ mark entry Xᴿ aligned
+      with WD.alignedᴿ? (CTX.ηᴿʷ W)
+        (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
+  unoccupied Xᴸ mark entry Xᴿ aligned | yes (Yᴿ , occupied) =
+    dynamicStarSourcesUnoccupied inv Xᴸ mark entry Xᴿ aligned
+  unoccupied Xᴸ mark entry Xᴿ aligned | no no-target =
+    no-target (Xᴿ , aligned)
 
 dynWorld-invariants : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → WorldInvariants W
+  → (∀ Xᴸ
+      → lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+      → CTX.NoTargetOccupantAtSource W Xᴸ)
   → WorldInvariants (SPT.dynWorld W)
-dynWorld-invariants {W = W} = decay-invariants (SPT.dynWorld-decay W)
+dynWorld-invariants {W = W} inv no-dynamic-source =
+  decay-invariants (SPT.dynWorld-decay W) inv
+    (λ Xᴸ mark entry Xᴿ aligned →
+      no-dynamic-source Xᴸ entry (Xᴿ , aligned))
 
 
 targetStoreAs-invariants : ∀ {Δᴸ Δᴿ Δ}
@@ -791,6 +998,7 @@ targetStoreAs-invariants : ∀ {Δᴸ Δᴿ Δ}
   → WorldInvariants (TBL.targetStoreAs W Σᴿ)
 targetStoreAs-invariants Σᴿ inv reps unmatched =
   world-invariants (preciseMarksAligned inv) reps unmatched
+    (dynamicStarSourcesUnoccupied inv)
 
 
 record TargetInsertDirect {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -827,7 +1035,7 @@ targetInsert-invariants : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → WorldInvariants W′
 targetInsert-invariants
     {ρ = ρ} {π = π} {W = W} {W′ = W′} ins direct inv =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CTX.impEnvʷ W′ (toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ) ≡ X⊑X
@@ -929,6 +1137,31 @@ targetInsert-invariants
         head-no-source Xᴸ
           (subst≡ (CTX.CenterAligned W Xᴸ)
             (sym (toRenameᵗ-injective ρ mapped-eq)) old-aligned)
+
+  unoccupied : ∀ Xᴸ
+    → CTX.impEnvʷ W′ (toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ) ≡ X⊑★
+    → lookupStore (CTX.sourceStoreʷ W′) Xᴸ ≡ ★
+    → ∀ Xᴿ′
+    → toRenameᵗ (CTX.ηᴿʷ W′) Xᴿ′
+      ≢ toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ
+  unoccupied Xᴸ mark entry Xᴿ′ aligned
+      with TE.target-source-reflect ins (sym aligned)
+  unoccupied Xᴸ mark entry Xᴿ′ aligned
+      | Xᴿ , Xᴿ′-eq , old-aligned =
+    dynamicStarSourcesUnoccupied inv Xᴸ old-mark old-entry Xᴿ
+      (sym old-aligned)
+    where
+    old-mark :
+      CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+    old-mark = trans
+      (sym (TE.impEnv-insert ins (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)))
+      (trans
+        (cong (CTX.impEnvʷ W′) (sym (TE.source-insert ins Xᴸ))) mark)
+
+    old-entry : lookupStore (CTX.sourceStoreʷ W) Xᴸ ≡ ★
+    old-entry = trans
+      (sym (cong (λ Σ → lookupStore Σ Xᴸ) (TE.sourceStore-kept ins)))
+      entry
 
 
 parked-structural-right-insert-invariants : ∀ {Δᴸ Δᴿ Δ Δ₁}
@@ -1191,9 +1424,6 @@ smartAliasTargetInsert-direct {ρ = ρ} {π = π} {W = W} {Wᵐ = Wᵐ}
         (trans (cong (lookupStore (CTX.targetStoreʷ W)) β-equals-α)
           α-entry)
 
-    variable≢star : ＇ α ≢ ★
-    variable≢star ()
-
   fresh-entry : ∀ Xᴿ′
     → CR.preimage? π
         (toRenameᵗ
@@ -1452,7 +1682,7 @@ insertRebaseWorld-invariants ins rb direct off-entry inv =
 example12-left-path-world-X-invariants :
   WorldInvariants Ex12.example12-left-path-world-X
 example12-left-path-world-X-invariants =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CTX.impEnvʷ Ex12.example12-left-path-world-X
@@ -1495,11 +1725,24 @@ example12-left-path-world-X-invariants =
             → ⊥)
   unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
 
+  unoccupied : ∀ Xᴸ
+    → CTX.impEnvʷ Ex12.example12-left-path-world-X
+        (toRenameᵗ
+          (CTX.ηᴸʷ Ex12.example12-left-path-world-X) Xᴸ) ≡ X⊑★
+    → lookupStore
+        (CTX.sourceStoreʷ Ex12.example12-left-path-world-X) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Ex12.example12-left-path-world-X) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-X) Xᴸ
+  unoccupied Fin.zero mark () Xᴿ aligned
+  unoccupied (Fin.suc Fin.zero) mark () Xᴿ aligned
+  unoccupied (Fin.suc (Fin.suc Fin.zero)) mark entry Fin.zero ()
+
 
 example12-left-path-world-Y-invariants :
   WorldInvariants Ex12.example12-left-path-world-Y
 example12-left-path-world-Y-invariants =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CTX.impEnvʷ Ex12.example12-left-path-world-Y
@@ -1543,11 +1786,24 @@ example12-left-path-world-Y-invariants =
   unmatched Fin.zero no-source =
     ⊥-elim (no-source (Fin.suc Fin.zero) refl)
 
+  unoccupied : ∀ Xᴸ
+    → CTX.impEnvʷ Ex12.example12-left-path-world-Y
+        (toRenameᵗ
+          (CTX.ηᴸʷ Ex12.example12-left-path-world-Y) Xᴸ) ≡ X⊑★
+    → lookupStore
+        (CTX.sourceStoreʷ Ex12.example12-left-path-world-Y) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Ex12.example12-left-path-world-Y) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-Y) Xᴸ
+  unoccupied Fin.zero mark () Xᴿ aligned
+  unoccupied (Fin.suc Fin.zero) mark () Xᴿ aligned
+  unoccupied (Fin.suc (Fin.suc Fin.zero)) mark entry Fin.zero ()
+
 
 example12-left-path-world-Z-invariants :
   WorldInvariants Ex12.example12-left-path-world-Z
 example12-left-path-world-Z-invariants =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CTX.impEnvʷ Ex12.example12-left-path-world-Z
@@ -1559,7 +1815,7 @@ example12-left-path-world-Z-invariants =
           ≡ toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-Z) Xᴸ
   precise Fin.zero ()
   precise (Fin.suc Fin.zero) ()
-  precise (Fin.suc (Fin.suc Fin.zero)) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) mark = Fin.zero , refl
 
   reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 1}
     → CenterAligned Ex12.example12-left-path-world-Z Xᴸ Xᴿ
@@ -1591,10 +1847,23 @@ example12-left-path-world-Z-invariants =
   unmatched Fin.zero no-source =
     ⊥-elim (no-source (Fin.suc (Fin.suc Fin.zero)) refl)
 
+  unoccupied : ∀ Xᴸ
+    → CTX.impEnvʷ Ex12.example12-left-path-world-Z
+        (toRenameᵗ
+          (CTX.ηᴸʷ Ex12.example12-left-path-world-Z) Xᴸ) ≡ X⊑★
+    → lookupStore
+        (CTX.sourceStoreʷ Ex12.example12-left-path-world-Z) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Ex12.example12-left-path-world-Z) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-Z) Xᴸ
+  unoccupied Fin.zero mark () Xᴿ aligned
+  unoccupied (Fin.suc Fin.zero) mark () Xᴿ aligned
+  unoccupied (Fin.suc (Fin.suc Fin.zero)) () entry Xᴿ aligned
+
 
 examples2-left-path-world₃-invariants : WorldInvariants Ex2.left-path-world₃
 examples2-left-path-world₃-invariants =
-  world-invariants precise reps unmatched
+  world-invariants precise reps unmatched unoccupied
   where
   precise : ∀ Xᴸ
     → CTX.impEnvʷ Ex2.left-path-world₃
@@ -1604,7 +1873,8 @@ examples2-left-path-world₃-invariants =
           ≡ toRenameᵗ (CTX.ηᴸʷ Ex2.left-path-world₃) Xᴸ
   precise Fin.zero ()
   precise (Fin.suc Fin.zero) ()
-  precise (Fin.suc (Fin.suc Fin.zero)) ()
+  precise (Fin.suc (Fin.suc Fin.zero)) mark =
+    Fin.suc Fin.zero , refl
 
   reps : ∀ {Xᴸ : TyVar 3} {Xᴿ : TyVar 2}
     → CenterAligned Ex2.left-path-world₃ Xᴸ Xᴿ
@@ -1630,6 +1900,17 @@ examples2-left-path-world₃-invariants =
   unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
   unmatched (Fin.suc Fin.zero) no-source =
     ⊥-elim (no-source (Fin.suc (Fin.suc Fin.zero)) refl)
+
+  unoccupied : ∀ Xᴸ
+    → CTX.impEnvʷ Ex2.left-path-world₃
+        (toRenameᵗ (CTX.ηᴸʷ Ex2.left-path-world₃) Xᴸ) ≡ X⊑★
+    → lookupStore (CTX.sourceStoreʷ Ex2.left-path-world₃) Xᴸ ≡ ★
+    → ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Ex2.left-path-world₃) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ Ex2.left-path-world₃) Xᴸ
+  unoccupied Fin.zero mark () Xᴿ aligned
+  unoccupied (Fin.suc Fin.zero) mark () Xᴿ aligned
+  unoccupied (Fin.suc (Fin.suc Fin.zero)) () entry Xᴿ aligned
 
 examples2-left-path-world₄-invariants : WorldInvariants Ex2.left-path-world₄
 examples2-left-path-world₄-invariants =

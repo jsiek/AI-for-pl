@@ -394,8 +394,9 @@ private
     → CTX.SourceConcealOK W M c Xᴿ? M′
     → CTX.SourceConcealOK Wᵈ M c Xᴿ? M′
   decaySourceConcealOK dec
-      (CTX.seal-nonstar-plain-ok Rns nt) =
-    CTX.seal-nonstar-plain-ok Rns nt
+      (CTX.seal-nonstar-unmatched-ok {X = X} Rns no-target) =
+    CTX.seal-nonstar-unmatched-ok Rns
+      (decayNoTargetOccupantAtSource {X = X} dec no-target)
   decaySourceConcealOK (env-decay refl refl refl refl mono)
       (CTX.seal-nonstar-name-protected-ok Rns aligned) =
     CTX.seal-nonstar-name-protected-ok Rns aligned

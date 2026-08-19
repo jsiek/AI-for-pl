@@ -171,7 +171,6 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
-import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

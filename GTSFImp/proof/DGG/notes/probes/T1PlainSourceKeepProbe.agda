@@ -35,9 +35,10 @@ open import Reduction using
    blame-reveal; blame-conceal; ξ-reveal; ξ-conceal)
 
 import proof.Imprecision as PI
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; CtxImp; SameCtx; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using (World; CtxImp; SameCtx; _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof using
   (value-no-step)
 
@@ -99,17 +100,17 @@ imprecision-nonvar-to-var nonvar-all
 ctx-imp-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p p′ : A ⊑ᵂ⟨ W ⟩ B}
-  → CTI2.ctx-imp A B p ≡ CTI2.ctx-imp A B p′
+  → CTX.ctx-imp A B p ≡ CTX.ctx-imp A B p′
 ctx-imp-eq {W = W} {A = A} {B = B} {p = p} {p′ = p′} =
-  cong (λ r → CTI2.ctx-imp {W = W} A B r) (PI.⊑-unique p p′)
+  cong (λ r → CTX.ctx-imp {W = W} A B r) (PI.⊑-unique p p′)
 
 
 sameCtx-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ γ′ : CtxImp W}
   → SameCtx γ γ′
   → γ ≡ γ′
-sameCtx-eq CTI2.same-[] = refl
-sameCtx-eq (CTI2.same-∷ sc) =
+sameCtx-eq CTX.same-[] = refl
+sameCtx-eq (CTX.same-∷ sc) =
   cong₂ _∷_ ctx-imp-eq (sameCtx-eq sc)
 
 
@@ -183,7 +184,11 @@ plain-source-nonvarᴸ bare (CTI2.⊑conceal² mono rb sc c′⊢ rel q) =
   plain-source-nonvarᴸ bare rel
 plain-source-nonvarᴸ () (CTI2.cast⊑² c rel q)
 plain-source-nonvarᴸ () (CTI2.reveal⊑² mono rb sc c⊢ rel q)
-plain-source-nonvarᴸ () (CTI2.conceal⊑² partner mono rb sc c⊢ rel q)
+plain-source-nonvarᴸ ()
+    (CTI2.conceal⊑²-seal-star-open
+      no-target mono rb sc c⊢ rel q)
+plain-source-nonvarᴸ ()
+    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q)
 plain-source-nonvarᴸ ()
     (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
 plain-source-nonvarᴸ ()
@@ -204,7 +209,7 @@ plain-source-to-target-var-empty : ∀ {Δᴸ Δᴿ Δ}
   → ⊥
 plain-source-to-target-var-empty {W = W} {p = p} bare rel =
   imprecision-nonvar-to-var
-    (renameNonVar (toRenameᵗ (CTI2.ηᴸʷ W))
+    (renameNonVar (toRenameᵗ (CTX.ηᴸʷ W))
       (plain-source-nonvarᴸ bare rel))
     p
 
@@ -218,8 +223,8 @@ target-reveal-id-strip : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² P ⊑ N ↑ id↑ B ∶ q
   → W ∣ γ ⊢² P ⊑ N ∶ q
 target-reveal-id-strip bare
-    (CTI2.⊑reveal² {p = p} mono CTI2.rebase-idᴿ sc
-      CTI2.⊢↑-idˣ rel q) =
+    (CTI2.⊑reveal² {p = p} mono CTX.rebase-idᴿ sc
+      Conv.⊢↑-idˣ rel q) =
   ⊢²-retarget (sameCtx-transport sc rel)
 target-reveal-id-strip ()
     (CTI2.Λ⊑² Anv zero∈A liftγ vL target⊢ rel q)
@@ -239,8 +244,8 @@ target-conceal-id-strip : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² P ⊑ N ↓ id↓ B ∶ q
   → W ∣ γ ⊢² P ⊑ N ∶ q
 target-conceal-id-strip bare
-    (CTI2.⊑conceal² {p = p} mono CTI2.rebase-idᴿ sc
-      CTI2.⊢↓-idˣ rel q) =
+    (CTI2.⊑conceal² {p = p} mono CTX.rebase-idᴿ sc
+      Conv.⊢↓-idˣ rel q) =
   ⊢²-retarget (sameCtx-transport sc rel)
 target-conceal-id-strip ()
     (CTI2.Λ⊑² Anv zero∈A liftγ vL target⊢ rel q)
@@ -260,8 +265,8 @@ target-unseal-reveal-empty : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² P ⊑ (V ↓ seal X R) ↑ unseal X R ∶ q
   → ⊥
 target-unseal-reveal-empty bare
-    (CTI2.⊑reveal² mono (CTI2.rebase-varᴿ rb) sc
-      (CTI2.⊢↑-unsealˣ X∈) rel q) =
+    (CTI2.⊑reveal² mono (CTX.rebase-varᴿ rb) sc
+      (Conv.⊢↑-unsealˣ X∈) rel q) =
   plain-source-to-target-var-empty (nonΛ-bare->bare bare) rel
 target-unseal-reveal-empty ()
     (CTI2.Λ⊑² Anv zero∈A liftγ vL target⊢ rel q)

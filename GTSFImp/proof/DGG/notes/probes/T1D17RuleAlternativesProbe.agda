@@ -26,8 +26,10 @@ open import Conversion
 open import Imprecision
 open import CastTerms using (Term; Value; _⟨_⟩; _↑_; _↓_)
 
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
   (World; CtxImp; _⊑ᵂ⟨_⟩_; ImpEnvMono; TagRebaseAtᴸ; SameCtx;
    CenterAligned; NoTargetOccupantAtSource; NotTopTag)
 
@@ -87,7 +89,7 @@ module BeforeStep where
       → ImpEnvMono W W′
       → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
       → SameCtx γ γ′
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → W′ ∣ γ′ ⊢ᴬ M ⊑ M′ ∶ p
       → (q : A′ ⊑ᵂ⟨ W ⟩ B)
         -----------------------------
@@ -105,7 +107,7 @@ module BeforeStep where
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W (just X) Xᴿ?
     → SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X R
+    → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X R
     → W′ ∣ γ′ ⊢ᴬ P ⊑ N ∶ p
     → W ∣ γ ⊢ᴬ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} Rns Bns mono rb sc c⊢ prem =
@@ -200,7 +202,7 @@ module AfterStep where
       → ImpEnvMono W W′
       → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
       → SameCtx γ γ′
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → W′ ∣ γ′ ⊢ᴮ M ⊑ M′ ∶ p
       → (q : A′ ⊑ᵂ⟨ W ⟩ B)
         -----------------------------
@@ -219,7 +221,7 @@ module AfterStep where
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W (just X) Xᴿ?
     → SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X R
+    → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X R
     → W′ ∣ γ′ ⊢ᴮ P ⊑ N ∶ p
     → W ∣ γ ⊢ᴮ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} vN Rns not-top mono rb sc c⊢ prem =
@@ -283,7 +285,7 @@ module WorldLevel where
       → ImpEnvMono W W′
       → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
       → SameCtx γ γ′
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → W′ ∣ γ′ ⊢ᵂ M ⊑ M′ ∶ p
       → (q : A′ ⊑ᵂ⟨ W ⟩ B)
         -----------------------------
@@ -301,7 +303,7 @@ module WorldLevel where
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W (just X) Xᴿ?
     → SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just X ] seal X R
+    → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X R
     → W′ ∣ γ′ ⊢ᵂ P ⊑ N ∶ p
     → W ∣ γ ⊢ᵂ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} Rns no-target mono rb sc c⊢ prem =
@@ -333,31 +335,31 @@ record D16Companion {Δᴸ Δᴿ Δ}
   field
     preciseMarksAligned :
       ∀ (Xᴸ : TyVar Δᴸ)
-      → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑X
+      → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑X
       → Σ[ Xᴿ ∈ TyVar Δᴿ ]
-          toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ ≡
-            toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ
+          toRenameᵗ (CTX.ηᴿʷ W) Xᴿ ≡
+            toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
 
     representationsImprecise :
       ∀ {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       → CenterAligned W Xᴸ Xᴿ
-      → CTI2.impEnvʷ W ⊢
-          renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W))
-            (lookupStore (CTI2.sourceStoreʷ W) Xᴸ)
-          ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W))
-            (lookupStore (CTI2.targetStoreʷ W) Xᴿ)
+      → CTX.impEnvʷ W ⊢
+          renameᵗ (toRenameᵗ (CTX.ηᴸʷ W))
+            (lookupStore (CTX.sourceStoreʷ W) Xᴸ)
+          ⊑ renameᵗ (toRenameᵗ (CTX.ηᴿʷ W))
+            (lookupStore (CTX.targetStoreʷ W) Xᴿ)
 
     unmatchedTargetsDynamic :
       ∀ (Xᴿ : TyVar Δᴿ)
       → (∀ (Xᴸ : TyVar Δᴸ)
-          → toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ ≢
-            toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
-      → lookupStore (CTI2.targetStoreʷ W) Xᴿ ≡ ★
+          → toRenameᵗ (CTX.ηᴸʷ W) Xᴸ ≢
+            toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)
+      → lookupStore (CTX.targetStoreʷ W) Xᴿ ≡ ★
         ⊎ Σ[ Yᴿ ∈ TyVar Δᴿ ]
-            (lookupStore (CTI2.targetStoreʷ W) Xᴿ ≡ ＇ Yᴿ)
+            (lookupStore (CTX.targetStoreʷ W) Xᴿ ≡ ＇ Yᴿ)
           × (∀ (Xᴸ : TyVar Δᴸ)
-              → toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ ≢
-                toRenameᵗ (CTI2.ηᴿʷ W) Yᴿ)
+              → toRenameᵗ (CTX.ηᴸʷ W) Xᴸ ≢
+                toRenameᵗ (CTX.ηᴿʷ W) Yᴿ)
 
 open D16Companion public
 
@@ -365,12 +367,12 @@ no-target-mark-dynamic : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
   → D16Companion W
   → NoTargetOccupantAtSource W X
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑★
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
 no-target-mark-dynamic {W = W} {X = X} invariants no-target =
   not-precise-is-dynamic not-precise
   where
   not-precise :
-    CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≢ X⊑X
+    CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≢ X⊑X
   not-precise precise with preciseMarksAligned invariants X precise
   not-precise precise | Y , aligned = no-target (Y , aligned)
 
@@ -383,10 +385,10 @@ matched-pivot-representations : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → D16Companion W
   → CenterAligned W X Y
-  → CTI2.impEnvʷ W ⊢
-      renameᵗ (toRenameᵗ (CTI2.ηᴸʷ W))
-        (lookupStore (CTI2.sourceStoreʷ W) X)
-      ⊑ renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W))
-        (lookupStore (CTI2.targetStoreʷ W) Y)
+  → CTX.impEnvʷ W ⊢
+      renameᵗ (toRenameᵗ (CTX.ηᴸʷ W))
+        (lookupStore (CTX.sourceStoreʷ W) X)
+      ⊑ renameᵗ (toRenameᵗ (CTX.ηᴿʷ W))
+        (lookupStore (CTX.targetStoreʷ W) Y)
 matched-pivot-representations invariants aligned =
   representationsImprecise invariants aligned

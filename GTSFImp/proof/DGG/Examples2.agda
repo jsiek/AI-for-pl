@@ -2120,15 +2120,6 @@ left-path-argument₄-base =
     (κ⊑κ² (κℕ 7) (ℕ⊑ℕ² {W = left-path-world₄-YZ}))
     left-path-ℕ⊑★₄-YZ
 
-left-path-argument₄-source-ok-empty : ∀ {P}
-  →
-  CTX.SourceConcealOK left-path-world₄-YZ
-    P example12-target-X-seal nothing
-    (($ (κℕ 7)) ⟨ left-path-ℕ!₂ ⟩)
-  → ⊥
-left-path-argument₄-source-ok-empty
-    (CTX.seal-nonstar-plain-ok _ ())
-
 left-path-argument₄ :
   left-path-world₄-YZ ∣ [] ⊢² $ (κℕ 7)
     ⊑ $ (κℕ 7) ⟨ left-path-ℕ!₂ ⟩ ∶

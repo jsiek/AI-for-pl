@@ -203,27 +203,6 @@ module InstanceA where
     CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
       CTX.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
 
-  terminus-input-ok-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
-    → CTX.SourceConcealOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
-    → ⊥
-  terminus-input-ok-empty
-      (CTX.seal-nonstar-plain-ok Rns ())
-
-  terminus-input-empty′ : ∀ {X′}
-    → (q : ＇ X′ ⊑ᵂ⟨ W ⟩ ★)
-    → W ∣ [] ⊢² source ⊑ U ∶ q
-    → ⊥
-  terminus-input-empty′ q₀
-      (CTI2.⊑cast² {p = p} c′ D .q₀) with p
-  terminus-input-empty′ (X⊑★ eq)
-      (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
-  terminus-input-empty′ q₀
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
-    terminus-input-ok-empty ok
-
-  terminus-input-empty : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W → ⊥
-  terminus-input-empty =
-    terminus-input-empty′ {X′ = X} X⊑★-W
 
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =

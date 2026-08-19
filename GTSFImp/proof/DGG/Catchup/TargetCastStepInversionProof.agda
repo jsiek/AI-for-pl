@@ -224,8 +224,8 @@ source-conceal-ok-target-id-core : ∀ {Δᴸ Δᴿ Δ}
   → CTX.SourceConcealOK W P c Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
   → CTX.SourceConcealOK W P c Xᴿ? M′
 source-conceal-ok-target-id-core a
-    (CTX.seal-nonstar-plain-ok Rns nt) =
-  ⊥-elim (not-top-id-cast-impossible a nt)
+    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
+  CTX.seal-nonstar-unmatched-ok Rns no-target
 source-conceal-ok-target-id-core a CTX.fun-conceal-ok =
   CTX.fun-conceal-ok
 source-conceal-ok-target-id-core a CTX.all-conceal-ok =

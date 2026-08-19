@@ -55,3 +55,20 @@ companion at smart-alias consumers:
 3. remove the smart-alias branch in favor of the fresh-behind construction.
 
 No such change is part of D16 stage 1.
+
+## Stage 2 5b revisit
+
+The `X⊑X` discipline does not resolve this blocker.  The live alias guard is
+not merely missing a chosen mark: `SmartAliasMergeGuard.alias-mark-dynamic`
+requires the center shared by fresh source zero and target `β` to carry
+`X⊑★`.  Its `transport⊑ᵂ` field also transports from
+`liftWorldLeft X⊑★ W`; the live `SmartCommaWitness.d1-inner-smart-p` uses that
+transport for a fresh source variable related to target `★`.
+
+Changing that aligned center to `X⊑X` therefore rejects the live transport
+before it could repair `representationsImprecise`.  Leaving it at `X⊑★`
+preserves the original contradiction between the direct entries `＇ zero` and
+`＇ α` described above.  The smart-alias route still needs its own valid-input
+premise and a redesign capable of satisfying it; 5b supplies neither.  The
+checked `smartAliasInsertWorld-invariants` surface consequently retains its
+explicit `WorldInvariants Wᵐ` premise.

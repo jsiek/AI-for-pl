@@ -1,9 +1,10 @@
 module proof.DGG.Inversion.TargetWalkLemma where
 
 -- File Charter:
---   * Exposes the checked target tag/seal walk inhabitant.
---   * Stitches the closed source-strip and atom-core inhabitants into the
---     target-walk statement.
+--   * Exposes the target tag/seal walk factory conditional on the pinned
+--     occupied non-star source-seal residual.
+--   * Stitches the source-strip and atom-core factories into the target-walk
+--     statement.
 --   * Does not expose source-strip internals.
 
 open import Data.Product using (_,_)
@@ -13,20 +14,23 @@ open import proof.DGG.Inversion.SourceStripLemma using
 open import proof.DGG.Inversion.SourceStripDef using
   (core-tagged; spine-paired; spine-sealed; spine-tagged)
 open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
+open import proof.DGG.Inversion.TargetWalkSupport using
+  (OccupiedNonStarSourceSealResidual)
 
-target-tag-seal-walk : TargetTagSealWalk
-target-tag-seal-walk
+target-tag-seal-walk : OccupiedNonStarSourceSealResidual
+  → TargetTagSealWalk
+target-tag-seal-walk occupied
     {U = U} {S = S} {Y = Y} {ν = ν} {cY = cY}
     sv vU mono rb sc X∈ Y∈ D
-    with source-spine-strip {U = U} {S = S} {Y = Y}
+    with source-spine-strip occupied {U = U} {S = S} {Y = Y}
       {ν = ν} {cY = cY} sv vU mono rb sc X∈ Y∈ D
-target-tag-seal-walk
+target-tag-seal-walk occupied
     {U = U} {S = S} {Y = Y} {ν = ν} {cY = cY}
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
         spine-sealed Pᵖ Aᵖ spineᵖ sealed finish =
   finish sealed
-target-tag-seal-walk
+target-tag-seal-walk occupied
     {U = U} {S = S} {Y = Y} {ν = ν} {cY = cY}
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
@@ -41,7 +45,7 @@ target-tag-seal-walk
       {p = pᵖ} {q = qᵒ}
       spineᵖ vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
       (core-tagged premiseᶜ))
-target-tag-seal-walk
+target-tag-seal-walk occupied
     {U = U} {S = S} {Y = Y} {ν = ν} {cY = cY}
     sv vU mono rb sc X∈ Y∈ D
     | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,

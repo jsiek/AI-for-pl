@@ -157,3 +157,23 @@ Cross-cutting families needing ONE ruling each: wrapper-peel species
 D10's frames). Calibration probes for both in flight (T10).
 Main is RED (PR #154 parse error); heal on PR #160/#159 = D5.
 Decision board: issue #157. Draft PRs: #155/#156/#158-#164.
+
+Update 2026-08-17 (late, supervisor): implementation wave after the
+first ruling batch. MERGED: #155 (healed main), #156, #158. CLOSED
+SURFACE: TargetBlameCatchupᵀ fully proven, zero parameters (PR #162 —
+boundary stack per D6/D9 + value/blame exclusion). LANDED: D8b fuel
+discharge (⊢²-target-cast-bound proven; ValueCatchupRight² higher-order
+over the three FuelKnot factories, PR #168); D8c core surfaces + the
+three closings as residual-bound adapters (PR #161); D1/D7 restated
+keep-outcome family in the dispatcher (PR #169); plain-source keep
+theorem PROVEN for non-Λ sources (probe, PR #169); D3 transport driver
+(PR #159, single-bind transports gated on generalized source insertion
+= D3.2 pending drafting). CONVERGENCE FINDING: five independent
+blockers (D4.3, D4.4 gaps 3/4, T5d wrapper-to-child, D8a.2 entangled
+column, T2 variable-ground rows) are all "pivot-entangled evidence
+cannot cross rebases/lifts" — root-caused to conceal⊑²'s
+SourceConcealPartnerOK term-shape enumeration; redesign memo + D15 ask
+(occupancy-style gating, the S-OCC dual; PR #171) recommends the fix.
+Pending user reads: D15 (root), D14 (Λ-source keeps), D8a.2, D13,
+D10/D11, D12. PRs open: #159-#169 drafts, #170 (AGENTS.md rule),
+#171 (memo).

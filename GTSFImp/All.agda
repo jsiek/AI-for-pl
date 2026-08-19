@@ -114,6 +114,9 @@ import proof.DGG.Catchup.TargetCastStepInversionProof
 import proof.DGG.Catchup.TagLayerExtractionProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
+import proof.DGG.Catchup.StructuralValueKeepProof
+import proof.DGG.Catchup.StructuralValueDispatcherProof
+import proof.DGG.Catchup.StructuralExtraCastDispatcherProof
 import proof.DGG.Catchup.FuelKnotProof
 import proof.DGG.Catchup.FuelDischargeProof
 import proof.DGG.Catchup.LeftBoundaryCatchupDef
@@ -171,7 +174,6 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
-import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

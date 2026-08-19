@@ -22,6 +22,10 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef using
    erase-structural-extra-cast-right-at;
    erase-structural-inst-catchup-right-at;
    erase-structural-value-catchup-right-at)
+open import proof.DGG.Catchup.StructuralValueDispatcherProof using
+  (StructuralValueCatchupResiduals; structural-value-catchup-right-at)
+open import proof.DGG.Catchup.StructuralExtraCastDispatcherProof using
+  (StructuralExtraCastResiduals; structural-extra-cast-right-at)
 
 
 ExtraCastFactory : Set₁
@@ -170,6 +174,22 @@ StructuralInstCatchupFactory =
   ∀ fuel
   → StructuralFuelStepSurface fuel
   → StructuralInstCatchupRightAt fuel
+
+
+structural-value-catchup-factory-from :
+  (∀ fuel → StructuralValueCatchupResiduals fuel)
+  → StructuralValueCatchupFactory
+structural-value-catchup-factory-from residuals fuel extra-worker step =
+  structural-value-catchup-right-at (residuals fuel) extra-worker
+
+
+structural-extra-cast-factory-from :
+  (∀ fuel → StructuralExtraCastResiduals fuel)
+  → StructuralExtraCastFactory
+structural-extra-cast-factory-from residuals fuel step inst-worker =
+  structural-extra-cast-right-at (residuals fuel)
+    (StructuralFuelStepSurface.smaller-structural-extra step)
+    inst-worker
 
 
 build-structural-fuel-knot-acc :

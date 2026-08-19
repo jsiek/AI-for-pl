@@ -999,3 +999,44 @@ FuelKnot chain. The M6 knot remains, as always, higher-order over the
 M5 factory. NEXT: post-merge frontier re-map (the top-down side now
 builds on the NS-4 structural vocabulary; CatchupToMorePrecise is
 boundary-kind-indexed), then the parallel tracks.
+
+D15 MIGRATION (LG-4 scale) GREEN-LIT (user, 2026-08-18). Design: the
+occupancy-gated conceal rules (conceal⊑²-seal-star-open gated by
+NoTargetOccupantAtSource; conceal⊑²-source-ok; matched behavior stays
+in conceal⊑conceal²/packaged-seal-star²) replace the
+SourceConcealPartnerOK/SealPartnerOK/MatchedConcealPartnerOK term-shape
+enumeration. Validated by: T14 recon memo (protection story =
+ProjectionMismatchStarRepScratch unearned pairing; alternatives
+analysis), the add-beside preflight (one consumer converted on
+occupancy transports, relocation table), and the shape-necessity probe
+(SealStarOpenVarTagShapeProbe: the ★⊑★ premise itself excludes
+unrelated var-tagged targets — shape-free open rule justified; PR #171
+review P1 closed). Motivation: five independent blockers root-caused
+to pivot-entangled evidence failing to cross rebases/lifts (D4.3,
+D4.4 strips, T5d wrapper-to-child, D8a.2 entangled column, T2
+variable-ground rows). Stages (worklist in t14-preflight-report.red):
+M1 core transports + low-level inversions; M2 target-chain/source-strip
++ catchup structural endpoints; M3 simulation surfaces + examples +
+DELETE the old constructors + full sweep. Branch: agent/gtsf-partner-
+redesign (PR #171); supervisor gates between stages.
+
+D16 (user design directive, 2026-08-18/19): WORLD-RECORD REDESIGN.
+(1) compile's initialWorld gets EMPTY stores (stores are for runtime
+allocated type variables only). (2) WFWorld merges INTO the World
+record as a field. (3) NEW world invariant: center-aligned source/
+target pivots have imprecision-RELATED representation types
+(resolveRep across the two stores). (4) NEW world invariant (added):
+a target type variable NOT matched with a source type variable must
+have representation type ★. Recon/draft arc in flight (T15, branch
+agent/gtsf-world-invariants): drafted record (watch the ⊑ᵂ-in-field
+circularity → possibly RawWorld+invariants staging), minting/
+preservation inventory per construction site, kill-check against the
+D8a substitution counterexamples and T10 probe worlds, migration plan.
+Expected payoff: the groundedness that D8a.4 found missing; the
+representation premise T4c could not obtain.
+
+D16 invariant (5) (user, 2026-08-19): occupancy moves into the world —
+a runtime source name marked X⊑★ with (direct) representation ★ cannot
+have a center-aligned target occupant. Relocates LG-1's rule-premise
+gating (NoTargetOccupantAtSource) to world validity; rule premises
+become derivable. Recon addendum on PR #177's branch.

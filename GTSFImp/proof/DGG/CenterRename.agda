@@ -711,9 +711,10 @@ renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δ Δ′}
   → (π : Δ ↪ᵗ Δ′)
   → CTX.SourceConcealOK W M c Xᴿ? M′
   → CTX.SourceConcealOK (renameWorld π W) M c Xᴿ? M′
-renameSourceConcealOK π
-    (CTX.seal-nonstar-plain-ok Rns nt) =
-  CTX.seal-nonstar-plain-ok Rns nt
+renameSourceConcealOK {W = W} π
+    (CTX.seal-nonstar-unmatched-ok {X = X} Rns no-target) =
+  CTX.seal-nonstar-unmatched-ok Rns
+    (renameNoTargetOccupantAtSource {W = W} {X = X} π no-target)
 renameSourceConcealOK π
     (CTX.seal-nonstar-name-protected-ok Rns aligned) =
   CTX.seal-nonstar-name-protected-ok Rns

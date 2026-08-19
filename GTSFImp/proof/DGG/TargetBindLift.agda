@@ -289,8 +289,10 @@ private
     → TargetStoreMove W Wᵗ
     → CTX.SourceConcealOK W M c Xᴿ? M′
     → CTX.SourceConcealOK Wᵗ M c Xᴿ? M′
-  moveSourceConcealOK mv (CTX.seal-nonstar-plain-ok Rns nt) =
-    CTX.seal-nonstar-plain-ok Rns nt
+  moveSourceConcealOK mv
+      (CTX.seal-nonstar-unmatched-ok {X = X} Rns no-target) =
+    CTX.seal-nonstar-unmatched-ok Rns
+      (moveNoTargetOccupantAtSource {X = X} mv no-target)
   moveSourceConcealOK (target-store-move refl refl same refl hΣ resolve)
       (CTX.seal-nonstar-name-protected-ok Rns aligned) =
     CTX.seal-nonstar-name-protected-ok Rns aligned

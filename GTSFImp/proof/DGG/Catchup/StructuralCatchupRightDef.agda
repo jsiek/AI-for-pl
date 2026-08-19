@@ -19,7 +19,7 @@ open import Types using
   (Ty; TyCtx; TyVar; NonVar; _∈ᵗ_; ★; ＇_; `∀; ⇑ᵗ; renameNonVar)
 open import Consistency using
   (Env∼; _↪ᵗ_; _⊢_∼_; inst_; instᵐ; wk↪ᵗ; toRenameᵗ)
-open import Conversion using (Conv↑; Conv↓; seal)
+open import Conversion using (Conv↑; Conv↓; seal; unseal; id↓)
 open import Imprecision using (X⊑★)
 open import CastTerms using
   (Term; Value; Inert; ⟨_,_,_⟩; _⊢_⦂_; Λ_; _⟨_⟩; _《_》; _↑_;
@@ -234,6 +234,86 @@ StructuralCatchupRightPayload : ∀ {Δᴸ Δᴿ Δ}
   → A ⊑ᵂ⟨ W ⟩ B
   → Set₁
 StructuralCatchupRightPayload = StructuralCatchupRightResult
+
+
+PairedConcealRevealPeelᵀ : Set
+PairedConcealRevealPeelᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {V₀ : Term Δᴸ} {V₀′ : Term Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {R : Ty Δᴸ} {R′ : Ty Δᴿ}
+    {q : R ⊑ᵂ⟨ W ⟩ R′}
+  → Value V₀
+  → Value V₀′
+  → W ∣ γ ⊢²
+      ((V₀ ↓ seal Xᴸ R) ↑ unseal Xᴸ R)
+      ⊑ ((V₀′ ↓ seal Xᴿ R′) ↑ unseal Xᴿ R′) ∶ q
+  → ((V₀ ↓ seal Xᴸ R) ↑ unseal Xᴸ R) —→[ keep ] V₀
+  → ((V₀′ ↓ seal Xᴿ R′) ↑ unseal Xᴿ R′) —→[ keep ] V₀′
+  → W ∣ γ ⊢² V₀ ⊑ V₀′ ∶ q
+
+
+SourceOnlyConcealRevealPeelᵀ : Set
+SourceOnlyConcealRevealPeelᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    {V₀ : Term Δᴸ} {N′ V₀′ : Term Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {R : Ty Δᴸ} {R′ : Ty Δᴿ}
+    {q : R ⊑ᵂ⟨ W ⟩ R′}
+  → Value V₀
+  → Value V₀′
+  → ((N′ ↓ seal Xᴿ R′) ↑ unseal Xᴿ R′) —→[ keep ] V₀′
+  → W ∣ γ ⊢²
+      ((V₀ ↓ seal Xᴸ R) ↑ unseal Xᴸ R)
+      ⊑ V₀′ ∶ q
+  → ((V₀ ↓ seal Xᴸ R) ↑ unseal Xᴸ R) —→[ keep ] V₀
+  → W ∣ γ ⊢² V₀ ⊑ V₀′ ∶ q
+
+
+record TargetRevealKeepOutcomeContinuationsᵀ : Set₁ where
+  field
+    paired-conceal-reveal :
+      PairedConcealRevealPeelᵀ
+    source-opened-conceal-reveal :
+      SourceOnlyConcealRevealPeelᵀ
+
+
+record TargetConcealKeepOutcomeContinuationsᵀ : Set₁ where
+  field
+    paired-id-conceal :
+      ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+        {V₀ : Term Δᴸ} {V₀′ : Term Δᴿ}
+        {A : Ty Δᴸ} {B : Ty Δᴿ}
+        {q : A ⊑ᵂ⟨ W ⟩ B}
+      → Value V₀
+      → Value V₀′
+      → W ∣ γ ⊢²
+          (V₀ ↓ id↓ A)
+          ⊑ (V₀′ ↓ id↓ B) ∶ q
+      → (V₀ ↓ id↓ A) —→[ keep ] V₀
+      → (V₀′ ↓ id↓ B) —→[ keep ] V₀′
+      → W ∣ γ ⊢² V₀ ⊑ V₀′ ∶ q
+
+    source-opened-id-conceal :
+      ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+        {V₀ : Term Δᴸ} {V₀′ : Term Δᴿ}
+        {A : Ty Δᴸ} {B : Ty Δᴿ}
+        {q : A ⊑ᵂ⟨ W ⟩ B}
+      → Value V₀
+      → Value V₀′
+      → W ∣ γ ⊢² (V₀ ↓ id↓ A) ⊑ V₀′ ∶ q
+      → (V₀ ↓ id↓ A) —→[ keep ] V₀
+      → W ∣ γ ⊢² V₀ ⊑ V₀′ ∶ q
+
+
+record RestatedDispatcherKeepOutcomesᵀ : Set₁ where
+  field
+    target-reveal-outcomes : TargetRevealKeepOutcomeContinuationsᵀ
+    target-conceal-outcomes : TargetConcealKeepOutcomeContinuationsᵀ
 
 
 data SourceΛReplayStack {Δᴸ₀ Δᴿ Δ₀}

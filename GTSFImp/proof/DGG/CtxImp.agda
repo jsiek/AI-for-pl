@@ -552,9 +552,9 @@ data SourceConcealOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) :
     Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
     → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
-  seal-nonstar-plain-ok : ∀ {P X R Xᴿ? M′}
+  seal-nonstar-unmatched-ok : ∀ {P X R Xᴿ? M′}
     → NonStar R
-    → NotTopTag M′
+    → NoTargetOccupantAtSource W X
       ----------------------------------------------------
     → SourceConcealOK W P (seal X R) Xᴿ? M′
 

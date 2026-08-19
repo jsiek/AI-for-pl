@@ -5295,22 +5295,29 @@ rightOnlyImpEnvMono mono Fin.zero eq = refl
 rightOnlyImpEnvMono mono (Fin.suc Z) eq = mono Z eq
 
 
-post-source-conceal-ok : ∀ {Δᴸ Δᴿ Δ Δ₂}
+post-source-conceal-ok : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     {W : CTX.World Δᴸ Δᴿ Δ}
+    {W₁ : CTX.World Δᴸ (suc Δᴿ) Δ₁}
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
+    {π₁ : Δ ↪ᵗ Δ₁} {π₂ : Δ₁ ↪ᵗ Δ₂}
     {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
     {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {Xᴿ? Xᴿ₂?}
     {c : Conv↓ Δᴸ A A′}
+  → TE.TargetInsert wk↪ᵗ π₁ W W₁
+  → TE.TargetInsert wk↪ᵗ π₂ W₁ W₂
   → CTX.SourceConcealOK W M c Xᴿ? (Λ V′)
   → CTX.SourceConcealOK W₂ M c Xᴿ₂?
       (Λ⊑Λ²PostTerm V′ B)
-post-source-conceal-ok (CTX.seal-nonstar-plain-ok Rns nt) =
-  CTX.seal-nonstar-plain-ok Rns CTX.not-↑
-post-source-conceal-ok CTX.fun-conceal-ok =
+post-source-conceal-ok ins₁ ins₂
+    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
+  CTX.seal-nonstar-unmatched-ok Rns
+    (TE.targetInsertNoTargetAtSource ins₂
+      (TE.targetInsertNoTargetAtSource ins₁ no-target))
+post-source-conceal-ok ins₁ ins₂ CTX.fun-conceal-ok =
   CTX.fun-conceal-ok
-post-source-conceal-ok CTX.all-conceal-ok =
+post-source-conceal-ok ins₁ ins₂ CTX.all-conceal-ok =
   CTX.all-conceal-ok
-post-source-conceal-ok CTX.id-conceal-ok =
+post-source-conceal-ok ins₁ ins₂ CTX.id-conceal-ok =
   CTX.id-conceal-ok
 
 
@@ -6435,7 +6442,8 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
         { childPlan = child ; sameΔ₂ = refl
         ; postMono = post-mono ; postRebase = post-rb } =
   Λ-post-prefix-conceal⊑²-source-ok-base ok mono rb sc c⊢ B′≢★
-    (post-source-conceal-ok ok) (post-mono mono) post-rb
+    (post-source-conceal-ok (ins₁ child) (ins₂ child) ok)
+    (post-mono mono) post-rb
     (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
     (TE.source-conceal-insert (ins₂ plan)
       (TE.source-conceal-insert (ins₁ plan) c⊢))

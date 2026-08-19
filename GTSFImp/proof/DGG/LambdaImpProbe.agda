@@ -215,35 +215,6 @@ probe-checkpoint₁ :
     Ex2.ℕ⊑★² {W = probe-world₁}
 probe-checkpoint₁ = CTI2.·⊑·² probe-function₁ probe-argument₁
 
-probe-sealed-arg-ok-empty : ∀ {Δ} {W : CTX.World 1 0 Δ}
-    {P Xᴿ?}
-  → CTX.SourceConcealOK W
-      P Ex2.example12-source-X-seal Xᴿ?
-      (Ex.c ⟨ Ex12.example12-ℕ! ⟩)
-  → ⊥
-probe-sealed-arg-ok-empty (CTX.seal-nonstar-plain-ok Rns ())
-
-probe-sealed-arg-empty′ : ∀ {X}
-  → (q : ＇ X ⊑ᵂ⟨ probe-world₁ ⟩ ★)
-  → probe-world₁ ∣ [] ⊢²
-      ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-      ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ q
-  → ⊥
-probe-sealed-arg-empty′ q₀
-    (CTI2.⊑cast² {p = p} c′ D .q₀) with p
-probe-sealed-arg-empty′ (X⊑★ eq)
-    (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
-probe-sealed-arg-empty′ q₀
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ D .q₀) =
-  probe-sealed-arg-ok-empty ok
-
-probe-sealed-arg-empty :
-  probe-world₁ ∣ [] ⊢²
-    ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
-    ⊑ Ex.c ⟨ Ex12.example12-ℕ! ⟩ ∶ probe-X⊑★₁
-  → ⊥
-probe-sealed-arg-empty =
-  probe-sealed-arg-empty′ {X = Fin.zero} probe-X⊑★₁
 
 {-
 The following positive checkpoints used the removed direct

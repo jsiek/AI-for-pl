@@ -178,14 +178,14 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTX.seal-nonstar-plain-ok {R = R} Rns nt)
+        (CTX.seal-nonstar-unmatched-ok {R = R} Rns no-target)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTX.seal-nonstar-plain-ok {R = R} Rns nt)
+        (CTX.seal-nonstar-unmatched-ok {R = R} Rns no-target)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     with Rns
@@ -193,7 +193,7 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTX.seal-nonstar-plain-ok Rns nt)
+        (CTX.seal-nonstar-unmatched-ok Rns no-target)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     | ()

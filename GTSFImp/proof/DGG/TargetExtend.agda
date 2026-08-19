@@ -2916,23 +2916,23 @@ renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′}
     {M : Term Δᴸ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-  → (∀ {X₀ Y₀}
-      → CTX.CenterAligned W X₀ Y₀
-      → CTX.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
+    {π : Δ ↪ᵗ Δ′}
+  → TargetInsert ρ π W W′
   → CTX.SourceConcealOK W M c Xᴿ? M′
   → CTX.SourceConcealOK W′ M c
       (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
-renameSourceConcealOK align
-    (CTX.seal-nonstar-plain-ok Rns nt) =
-  CTX.seal-nonstar-plain-ok Rns (notTopTag-rename _ nt)
-renameSourceConcealOK align
+renameSourceConcealOK ins
+    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
+  CTX.seal-nonstar-unmatched-ok Rns
+    (targetInsertNoTargetAtSource ins no-target)
+renameSourceConcealOK ins
     (CTX.seal-nonstar-name-protected-ok Rns aligned) =
-  CTX.seal-nonstar-name-protected-ok Rns (align aligned)
-renameSourceConcealOK align CTX.fun-conceal-ok =
+  CTX.seal-nonstar-name-protected-ok Rns (align-insert ins aligned)
+renameSourceConcealOK ins CTX.fun-conceal-ok =
   CTX.fun-conceal-ok
-renameSourceConcealOK align CTX.all-conceal-ok =
+renameSourceConcealOK ins CTX.all-conceal-ok =
   CTX.all-conceal-ok
-renameSourceConcealOK align CTX.id-conceal-ok =
+renameSourceConcealOK ins CTX.id-conceal-ok =
   CTX.id-conceal-ok
 
 renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -3533,7 +3533,7 @@ primResultTy-renameᵗ ρ and𝔹 = refl
       ok mono rb sc c⊢ M⊑M′ q)
     | Wᵖ⁺ , insᵖ , rb⁺ =
   CTI2.conceal⊑²-source-ok
-    (renameSourceConcealOK (align-insert insᵖ) ok)
+    (renameSourceConcealOK insᵖ ok)
     (impEnvMono-insert ins insᵖ mono)
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)

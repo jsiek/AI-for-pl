@@ -213,4 +213,4 @@ probe-direct-premise-source-ok-empty :
   CTX.SourceConcealOK W₂ V₀ (seal Z₃ ★) (just Y) U
   → ⊥
 probe-direct-premise-source-ok-empty
-    (CTX.seal-nonstar-plain-ok () _)
+    (CTX.seal-nonstar-unmatched-ok () _)

@@ -1,7 +1,7 @@
 module LegacyAll where
 
 -- File Charter:
---   * Type-checks the quarantined legacy closed-form inversion chain.
+--   * Type-checks the quarantined legacy residualized inversion chain.
 --   * This aggregate is intentionally not checked with `--safe`, because
 --     it imports the legacy coverage-pragma source-strip workers.
 --   * Once the legacy coverage debt is repaired, these modules should move

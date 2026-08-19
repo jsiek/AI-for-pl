@@ -3,8 +3,9 @@ module proof.DGG.Inversion.TargetWalkSupport where
 -- File Charter:
 --   * Houses the proven store, alignment, and rebase helpers shared by the
 --     target walk, source-star chain, and higher-order right-injection proof.
---   * Contains only moved proof support from RightInjInversion2Proof.
---   * Exposes no inhabitant of the target walk itself.
+--   * Records the pinned occupied non-star source-seal row left invalid by
+--     D17(c); the legacy workers consume that residual explicitly.
+--   * Contains no inhabitant of the target walk itself.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
@@ -798,23 +799,26 @@ composeOuterRebase {W = W} {W′ = W′} {W₂ = W₂}
   target-frozen Z =
     trans (CTX.RebaseAt.ηᴿ-frozen rb₁ Z)
       (CTX.RebaseAt.ηᴿ-frozen rb₂ Z)
-target-source-var-chain : ∀ {Δᴸ Δᴿ Δ}
-    {W W′ : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp W′}
-    {V : Term Δᴸ} {U : Term Δᴿ}
-    {Xᴸ X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ} {S : Ty Δᴿ}
-    {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
-    {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-  → SpineValue V
-  → Value U
-  → CTX.ImpEnvMono W W′
-  → CTX.RebaseAt W′ W Xᴸ Y
-  → CTX.SameCtx γ γ′
-  → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
-  → targetStoreʷ W ∋ Y ⦂ S
-  → W′ ∣ γ′ ⊢² V ⊑ U ↓ Conversion.seal Y S ∶ p₂
-  → W ∣ γ ⊢² V ↓ Conversion.seal Xᴸ (＇ X₂)
-      ⊑ U ↓ Conversion.seal Y S ∶ q
+
+record OccupiedNonStarSourceSealResidual : Set₁ where
+  field
+    target-source-var-chain : ∀ {Δᴸ Δᴿ Δ}
+        {W W′ : World Δᴸ Δᴿ Δ}
+        {γ : CtxImp W} {γ′ : CtxImp W′}
+        {V : Term Δᴸ} {U : Term Δᴿ}
+        {Xᴸ X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ} {S : Ty Δᴿ}
+        {p₂ : (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
+        {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+      → SpineValue V
+      → Value U
+      → CTX.ImpEnvMono W W′
+      → CTX.RebaseAt W′ W Xᴸ Y
+      → CTX.SameCtx γ γ′
+      → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
+      → targetStoreʷ W ∋ Y ⦂ S
+      → W′ ∣ γ′ ⊢² V ⊑ U ↓ Conversion.seal Y S ∶ p₂
+      → W ∣ γ ⊢² V ↓ Conversion.seal Xᴸ (＇ X₂)
+        ⊑ U ↓ Conversion.seal Y S ∶ q
 
 tagged-target-nonvar-nonstar-spine-⊥ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -828,11 +832,7 @@ tagged-target-nonvar-nonstar-spine-⊥ : ∀ {Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² V ⊑ (U ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p
   → ⊥
 
-target-source-var-chain {Y = Y} {q = q} sv vU mono ra sc X∈ Y∈ D =
-  CTI2.conceal⊑²-source-ok
-    (CTX.seal-nonstar-plain-ok nonstar-X CTX.not-↓)
-    mono (CTX.tag-rebase-varᴸ ra) sc
-    (Conv.⊢↓-sealˣ X∈) D q
+open OccupiedNonStarSourceSealResidual public
 
 tagged-target-nonvar-nonstar-spine-⊥ {W = W} {A = A} {Y = Y}
     sv Anv Ans (CTI2.⊑cast² {p = p} cY prem q)

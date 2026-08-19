@@ -2,7 +2,7 @@ module proof.DGG.ConvImp where
 
 -- File Charter:
 --   * Occurrence transport along the pivot-indexed conversion typing
---     _⊢↑[_]_ / _⊢↓[_]_ of proof.DGG.CastTermImprecision2.
+--     _⊢↑[_]_ / _⊢↓[_]_ of proof.DGG.CastTermImprecision.
 --   * A conversion pivoted at just X only rewrites occurrences of X,
 --     so any other variable Y occurs in one endpoint iff it occurs in
 --     the other, provided Y avoids the store representation of the

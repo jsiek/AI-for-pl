@@ -19,7 +19,7 @@ open import Reduction
     ; _∎[]
     )
   renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Parked.ParkedWorldDef
   using

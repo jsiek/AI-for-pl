@@ -16,7 +16,7 @@ open import Reduction using
   (StoreChanges; _—↠[_]_; bind; _∷_; []; applyTy; applyTys;
    applyStores)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef

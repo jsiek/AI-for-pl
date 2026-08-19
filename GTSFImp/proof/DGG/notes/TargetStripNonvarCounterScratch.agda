@@ -14,7 +14,7 @@ open import CastTerms
 open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue; sv-seal; sv-$)
 open import proof.DGG.Inversion.TargetStripDef using

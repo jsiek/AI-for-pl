@@ -20,7 +20,7 @@ open import Reduction using
   ; ↠-refl
   ; ↠-step
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.MultiSimDef using (Sim*ᵀ)

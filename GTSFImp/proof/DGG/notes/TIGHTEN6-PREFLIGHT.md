@@ -63,7 +63,7 @@ and the prior round-15 negative instance.
 | `Tighten6PreflightScratch.agda` | Pass | Candidate model and counterexamples check. |
 | `SourceStarPackageCounterScratch.agda` | Pass | Prior negative live instance still checks. |
 | `Tighten5PreflightScratch.agda` | Fail | Stale against current live `CTI2.rep★-matched-inner-tags` arity at `Tighten5PreflightScratch.agda:174`. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda` | Pass | Read-only gate. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/TermImpDecay.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/SealTransferCore.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda` | Pass | Read-only gate. |

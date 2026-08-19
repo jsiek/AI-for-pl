@@ -24,7 +24,7 @@ open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using (StoreChanges; _—↠[_]_; []; _∷_)
 open import proof.Reduction using (_++χ_)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)

@@ -46,7 +46,7 @@ open import Compile using (compile)
 open import Eval using (step?)
 open import Reduction using (keep; bind)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2 using
   (World;
    _⊑ᵂ⟨_⟩_;

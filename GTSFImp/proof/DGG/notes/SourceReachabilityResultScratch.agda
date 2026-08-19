@@ -33,7 +33,7 @@ open import Compile using (compile)
 import Conversion as Conv
 open Conv using (unseal)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.StarRepChainProbe as Probe
 import proof.DGG.ReachabilityCatalog as RC

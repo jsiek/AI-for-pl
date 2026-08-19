@@ -32,7 +32,7 @@ open import Reduction using
   ; blame-conceal
   ; blame-•
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.CatchupToMorePreciseDef
   using (toTagRebaseAtᴸ)

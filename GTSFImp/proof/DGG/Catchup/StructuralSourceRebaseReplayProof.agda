@@ -13,7 +13,7 @@ open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; _↑_; _↓_)
 open import Reduction using (StoreChanges)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralWorldExtendDef
@@ -43,11 +43,11 @@ structural-reveal-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → CTX.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
   → let child = structural-rebase-atᴸ plan rb
         planᵖ = StructuralRebaseAtᴸResult.premise-plan child
-     in StructuralRebaseAtᴸResult.Wᵖ′ child CTX.∣
+     in StructuralRebaseAtᴸResult.Wᵖ′ child CTI2.∣
           ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
           ⊢² M ⊑ F ∶
             ECR.transport⊑ᵂ (structural-world-extendᴿ planᵖ) p
-  → W′ CTX.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+  → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
       ⊢² M ↑ c ⊑ F ∶
         ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
 structural-reveal-replay plan mono rb sc c⊢ rel
@@ -83,11 +83,11 @@ structural-conceal-source-ok-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
      in CTX.SourceConcealOK
           (StructuralTagRebaseAtᴸResult.Wᵖ′ child) M c
           (mapPivotChanges χs Xᴿ?) F
-        → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTX.∣
+        → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTI2.∣
             ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
             ⊢² M ⊑ F ∶
               ECR.transport⊑ᵂ (structural-world-extendᴿ planᵖ) p
-        → W′ CTX.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+        → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
             ⊢² M ↓ c ⊑ F ∶
               ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
 structural-conceal-source-ok-replay plan mono rb sc c⊢ ok rel
@@ -122,11 +122,11 @@ structural-conceal-seal-star-open-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child
      in CTX.NoTargetOccupantAtSource
           (StructuralTagRebaseAtᴸResult.Wᵖ′ child) X
-        → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTX.∣
+        → StructuralTagRebaseAtᴸResult.Wᵖ′ child CTI2.∣
             ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
             ⊢² M ⊑ F ∶
               ECR.transport⊑ᵂ (structural-world-extendᴿ planᵖ) p
-        → W′ CTX.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+        → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
             ⊢² M ↓ Conversion.seal X Types.★ ⊑ F ∶
               ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
 structural-conceal-seal-star-open-replay {χs = χs}

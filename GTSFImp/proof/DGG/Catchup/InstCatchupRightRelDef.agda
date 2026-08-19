@@ -22,7 +22,7 @@ open import CastTerms using
   (Term; Value; GenSafe; _⟨_⟩; _↑_; _↓_; Λ_)
 open import Reduction using (StoreChanges; _—↠[_]_)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstCatchupRightDef using

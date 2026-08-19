@@ -21,7 +21,7 @@ open import Conversion using (seal)
 open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 open import Imprecision
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using

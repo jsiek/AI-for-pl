@@ -26,7 +26,7 @@ open import CastTerms using
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealPeelToolkit as SPT

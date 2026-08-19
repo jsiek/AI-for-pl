@@ -14,7 +14,7 @@ open import Types using (Ty)
 open import CastTerms using (Term)
 open import Reduction using (_—↠[_]_; ↠-refl; ↠-step)
   renaming ([] to []ˢ)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.SimBackDef using (SimBackᵀ)
 open import proof.DGG.MultiSimBackDef using (SimBack*ᵀ)

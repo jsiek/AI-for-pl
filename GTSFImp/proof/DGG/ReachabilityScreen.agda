@@ -28,7 +28,7 @@ open import Reduction
 open import Eval
 open import Imprecision using
   (X⊑X; X⊑★; ★⊑★; ⇒⊑⇒; ∀⊑; ∀⊑∀)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Examples2 as Ex2
 

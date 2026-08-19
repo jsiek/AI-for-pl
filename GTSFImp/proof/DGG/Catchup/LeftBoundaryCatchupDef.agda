@@ -19,7 +19,7 @@ open import Types using (Ty; TyCtx; TyVar)
 open import CastTerms using (Term; Value; blame)
 open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
   using (mapPivotChanges)

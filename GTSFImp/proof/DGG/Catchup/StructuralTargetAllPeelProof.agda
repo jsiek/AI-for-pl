@@ -20,7 +20,7 @@ open import Reduction using
   (keep; bind; pure-step; β-∀; _—→[_]_; _—↠[_]_;
    ↠-refl; ↠-step; ξ-•)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef

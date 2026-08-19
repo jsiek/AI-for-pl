@@ -18,7 +18,7 @@ open import Consistency using (keep; skip; toRenameᵗ)
 open import Conversion using (Conv↓)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.SealPeelToolkit as SPT

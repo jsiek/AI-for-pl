@@ -16,7 +16,7 @@ open import Conversion using (Conv↓)
 open import CastTerms using
   (Term; Value; _⊢_⦂_; ⟨_,_,_⟩; _⟨_⟩; Λ_; _《_》; _↑_; _↓_)
 open import proof.TypeSafety.Progress using (StarView; sv-tag)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

@@ -32,7 +32,7 @@ open import Reduction using
   ; applyTys
   ; _—↠[_]_
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CompilePreservesImprecision2 as CompileMonotone
 open import proof.DGG.DynamicGradualGuaranteeDef

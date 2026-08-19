@@ -7,7 +7,7 @@ module proof.DGG.Parked.ParkedEvolveCompositionDef where
 
 open import Types using (TyCtx)
 open import Reduction using (StoreChanges)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef using (ParkedEvolve)
 open import proof.Reduction using (_++χ_)

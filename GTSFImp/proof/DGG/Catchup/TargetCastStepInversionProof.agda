@@ -27,7 +27,7 @@ open import CastTerms using
 
 import proof.ImprecisionConsistency as PI
 import proof.Imprecision as PImp
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

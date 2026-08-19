@@ -33,7 +33,7 @@ open import Reduction using
   ; ξ-⟨⟩
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Parked.ParkedWorldDef

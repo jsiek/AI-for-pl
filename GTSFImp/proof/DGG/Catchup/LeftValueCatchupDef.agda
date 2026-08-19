@@ -17,7 +17,7 @@ open import Data.Unit using (⊤)
 open import Types using (Ty; TyVar)
 open import CastTerms using (Term; Value)
 open import proof.Consistency using (castSize)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)

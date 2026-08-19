@@ -14,7 +14,7 @@ open import Induction.WellFounded using (Acc)
 open import Types using (Ty)
 open import CastTerms using (Term; Value)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import

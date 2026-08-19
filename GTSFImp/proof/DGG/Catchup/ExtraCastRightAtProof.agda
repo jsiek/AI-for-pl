@@ -55,7 +55,7 @@ open import proof.DGG.Catchup.TargetCastStepInversionProof using
    matched-conceal-partner-target-id-core;
    matched-conceal-partner-target-id-framed-core;
    target-id-step-inversion)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.RightInjInversion2Def using

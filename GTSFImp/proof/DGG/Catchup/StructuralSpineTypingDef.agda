@@ -38,7 +38,7 @@ open import proof.TypeInTermSubst using
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open; structural-reveal-typing)
 import proof.Consistency as PC
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.ValueCatchupRightDef using
@@ -59,8 +59,8 @@ ResidualFrameProvenance {Δ = Δ} {A = A} {B = B} c =
     {q : Aₛ CTX.⊑ᵂ⟨ W ⟩ applyTys χs B}
     {γ : CTX.CtxImp W}
     {M : CT.Term Δᴸ} {V : CT.Term Δ′}
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
-  → W CTX.∣ γ ⊢² M ⊑ (V ⟨ applyConsistencies χs c ⟩) ∶ q
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ (V ⟨ applyConsistencies χs c ⟩) ∶ q
 
 
 residual-provenance-map-bind : ∀ {Δ : TyCtx} {μ : Env∼ Δ}
@@ -91,8 +91,8 @@ residual-frame-cast-local : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
   → NonStar B
   → NonStar B′
   → (c : ν ⊢ B ∼ B′)
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
-  → W CTX.∣ γ ⊢² M ⊑ (V ⟨ c ⟩) ∶ q
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ (V ⟨ c ⟩) ∶ q
 residual-frame-cast-local Bns B′ns c rel = CTI2.⊑cast² c rel _
 
 

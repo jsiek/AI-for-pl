@@ -29,7 +29,7 @@ import CastTerms as CT
 open import CastTerms using (⟨_,_,_⟩; _⊢_⦂_; Λ_)
 open import Reduction using (bind; _∷_; [])
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.ExtraCastRight2 as ECR
@@ -166,7 +166,7 @@ plain-shared-smart-prefix : ∀ {Δᴸ Δᴿ Δ}
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
       CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
-        CTX.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
+        CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → IIP.ΛPostPrefixPackageAt
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
         (CTI2.Λ⊑Λ² liftγᴮ vV vV′ bodyRel inner-p) outer-p)
@@ -226,7 +226,7 @@ plain-shared-smart-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂ Δᶠ₂}
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
       CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
-        CTX.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
+        CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → CTX.SmartCommaLiftᴸ W₂ Wᶠ₂
   → CTX.SmartLiftCtxᴸ
       (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᶠ₂ γᴸ)

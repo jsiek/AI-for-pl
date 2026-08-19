@@ -26,7 +26,7 @@ open import Reduction using
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef

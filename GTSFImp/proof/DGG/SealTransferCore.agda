@@ -26,7 +26,7 @@ open import TyStore using (_∋_⦂_; Z∋; S-lift∋; S-bind∋)
 open import Consistency using (Env∼; _⊢_∼_; id; _!; toRenameᵗ)
 open import Primitives using (κℕ; κ𝔹)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.Inversion.SpineValueDef as SVD

@@ -18,7 +18,7 @@ import Data.Nat.Induction as NatInduction
 
 open import Types using (Ty)
 open import CastTerms using (Term; Value)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

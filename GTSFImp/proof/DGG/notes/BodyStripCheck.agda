@@ -17,7 +17,7 @@ open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceSpineStrip; SourceTagSealCore; SourceTagSealCoreBranch;

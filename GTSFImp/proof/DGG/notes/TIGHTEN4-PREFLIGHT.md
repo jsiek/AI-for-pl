@@ -70,7 +70,7 @@ see-through.
 | Command target | Result | Note |
 |---|---|---|
 | `Tighten4PreflightScratch.agda` | Pass | Candidate model checks. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda` | Pass | Read-only gate. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/TermImpDecay.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda` | Pass | Read-only gate. |
 | `GTSFImp/proof/DGG/StarRepChainProbe.agda` | Fail | Stale paired conceal application at `StarRepChainProbe.agda:190`. |

@@ -22,7 +22,7 @@ open import Reduction using (keep; bind; applyTy; applyBody; _—→[_]_)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
@@ -72,15 +72,15 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTX.SameCtx γ γᵖ
     → CTX.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c
     → (∀ {M N} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-        → W CTX.∣ γ ⊢² M ⊑ N ∶ p
+        → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTX.⊑ᵂ⟨ Wᵖ ⟩ B ]
-            Wᵖ CTX.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
+            Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
     → (qC : A CTX.⊑ᵂ⟨ W ⟩ C)
     → (∀ {M N N₁}
-        → W CTX.∣ γ ⊢² M ⊑ N ↑ c ∶ qC
+        → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ qC
         → (N ↑ c) —→[ keep ] N₁
         → Value N₁
-        → W CTX.∣ γ ⊢² M ⊑ N₁ ∶ qC)
+        → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ qC)
     → TargetFrameAbsorptionChain W γ A (mapInstantiationSpine keep spine) q
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (reveal-frame c ▻ⁱ spine) q
@@ -95,15 +95,15 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → CTX.SameCtx γ γᵖ
     → CTX.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c
     → (∀ {M N} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-        → W CTX.∣ γ ⊢² M ⊑ N ∶ p
+        → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
         → Σ[ pᵖ ∈ A CTX.⊑ᵂ⟨ Wᵖ ⟩ B ]
-            Wᵖ CTX.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
+            Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
     → (qC : A CTX.⊑ᵂ⟨ W ⟩ C)
     → (∀ {M N N₁}
-        → W CTX.∣ γ ⊢² M ⊑ N ↓ c ∶ qC
+        → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ qC
         → (N ↓ c) —→[ keep ] N₁
         → Value N₁
-        → W CTX.∣ γ ⊢² M ⊑ N₁ ∶ qC)
+        → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ qC)
     → TargetFrameAbsorptionChain W γ A (mapInstantiationSpine keep spine) q
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (conceal-frame c ▻ⁱ spine) q
@@ -117,9 +117,9 @@ target-frame-cast-absorption : ∀ {Δᴸ Δᴿ Δ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     {q : A CTX.⊑ᵂ⟨ W ⟩ E}
   → TargetFrameAbsorptionChain W γ A (cast-frame c ▻ⁱ spine) q
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
-      W CTX.∣ γ ⊢² M ⊑ V ⟨ c ⟩ ∶ qC
+      W CTI2.∣ γ ⊢² M ⊑ V ⟨ c ⟩ ∶ qC
 target-frame-cast-absorption (tfa-cast qC tail) rel =
   qC , CTI2.⊑cast² _ rel qC
 
@@ -132,9 +132,9 @@ target-frame-reveal-absorption : ∀ {Δᴸ Δᴿ Δ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     {q : A CTX.⊑ᵂ⟨ W ⟩ E}
   → TargetFrameAbsorptionChain W γ A (reveal-frame c ▻ⁱ spine) q
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
-      W CTX.∣ γ ⊢² M ⊑ (V ↑ c) ∶ qC
+      W CTI2.∣ γ ⊢² M ⊑ (V ↑ c) ∶ qC
 target-frame-reveal-absorption
     (tfa-reveal mono rb sc c⊢ transport qC keep-rel keep-chain tail) rel
     with transport rel
@@ -152,9 +152,9 @@ target-frame-conceal-absorption : ∀ {Δᴸ Δᴿ Δ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     {q : A CTX.⊑ᵂ⟨ W ⟩ E}
   → TargetFrameAbsorptionChain W γ A (conceal-frame c ▻ⁱ spine) q
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
-      W CTX.∣ γ ⊢² M ⊑ (V ↓ c) ∶ qC
+      W CTI2.∣ γ ⊢² M ⊑ (V ↓ c) ∶ qC
 target-frame-conceal-absorption
     (tfa-conceal mono rb sc c⊢ transport qC keep-rel keep-chain tail) rel
     with transport rel

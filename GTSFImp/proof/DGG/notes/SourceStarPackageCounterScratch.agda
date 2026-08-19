@@ -19,7 +19,7 @@ open import CastTerms using (_⟨_⟩; _↓_)
 import CastTerms as CTerms
 open import Conversion using (seal)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
 import proof.DGG.Inversion.SpineValueDef as SVD

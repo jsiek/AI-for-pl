@@ -14,7 +14,7 @@ open import CastTerms using
   (Term; Value; _↓_; _⊢_⦂_; ⟨_,_,_⟩; seal)
 open import Imprecision
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.SealPeelToolkit as SPT

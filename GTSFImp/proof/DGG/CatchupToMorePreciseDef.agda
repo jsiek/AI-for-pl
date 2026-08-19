@@ -19,7 +19,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types using (Ty; TyCtx; TyVar)
 open import CastTerms using (Term; Value)
 open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)

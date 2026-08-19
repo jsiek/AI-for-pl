@@ -34,7 +34,7 @@ open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
 open import Reduction
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.Inversion.SpineValueDef as SVD

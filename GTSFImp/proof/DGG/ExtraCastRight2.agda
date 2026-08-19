@@ -31,7 +31,7 @@ import Consistency as C
 open import Imprecision
 open import CastTerms
 open import Reduction
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTX using

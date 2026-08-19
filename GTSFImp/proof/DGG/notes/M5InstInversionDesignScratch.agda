@@ -34,7 +34,7 @@ open import Reduction using (StoreChanges; _—↠[_]_; bind; _∷_; [])
 open import TyStore using (store-lift; store-bind)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.Catchup.InstCatchupRightProof as ICRP

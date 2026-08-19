@@ -23,7 +23,7 @@ open import Reduction using
   (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;
    applyTy; applyTys; applyConsistency; applyConsistencies)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.Catchup.InstCatchupRightDef as ICRD

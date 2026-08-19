@@ -18,7 +18,7 @@ import Consistency
 open import Imprecision using (X⊑X; X⊑★)
 import Reduction
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2 using
   (World;
    CtxImp;

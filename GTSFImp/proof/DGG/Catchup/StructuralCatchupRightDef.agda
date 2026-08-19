@@ -34,7 +34,7 @@ open import proof.Reduction using
    conceal-↠; applyReveals; applyConceals)
 
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.TargetBindLift as TBL
 import proof.DGG.TargetExtend as TE

@@ -40,7 +40,7 @@ import proof.DGG.OneStep as Step
 open Step
   using (Δ′; change; next; reduction)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Example12Worlds as Ex12
 open CTX using

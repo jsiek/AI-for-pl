@@ -25,7 +25,7 @@ import Conversion
 open import Imprecision
 
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.Inversion.SpineValueDef as SVD
 open import proof.DGG.WorldDecay using (EnvDecay; env-decay)
 

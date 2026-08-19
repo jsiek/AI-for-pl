@@ -23,7 +23,7 @@ open import CastTerms using
 open import Reduction
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.ExtraCastRight2 using (ExtraCastRight²)
 open CTX using

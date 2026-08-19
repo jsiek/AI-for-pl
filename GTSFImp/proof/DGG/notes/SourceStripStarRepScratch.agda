@@ -16,7 +16,7 @@ open import CastTerms using (Term; _↓_; _⟨_⟩)
 open import Imprecision
 import CastTerms
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using
   (variable-obligation-aligns)

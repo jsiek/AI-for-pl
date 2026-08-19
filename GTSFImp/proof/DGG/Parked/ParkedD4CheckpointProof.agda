@@ -18,7 +18,7 @@ import Reduction as R
 open import TyStore using (Z∋)
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3

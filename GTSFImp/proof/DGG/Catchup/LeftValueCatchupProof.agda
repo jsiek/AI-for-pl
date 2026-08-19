@@ -23,7 +23,7 @@ open import CastTerms
   using (Term; Value; blame; _⟨_⟩; _↑_; _↓_)
 import Reduction as R
 open import Reduction using (_∎[])
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)

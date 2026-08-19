@@ -26,7 +26,7 @@ open import Reduction using (StoreChanges; _—↠[_]_)
 import Reduction as R
 open import proof.Consistency using (castSize)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)
 open import proof.DGG.Catchup.LeftValueCatchupDef

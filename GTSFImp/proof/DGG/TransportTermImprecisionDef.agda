@@ -16,7 +16,7 @@ open import Imprecision using (X⊑X; X⊑★)
 open import CastTerms using (Term)
 open import Reduction using (StoreChanges; bind; applyTerm; applyTerms)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; evolve-refl; evolve-left-bind; evolve-both-bind)
 open import proof.DGG.Parked.ParkedWorldLemma using (mapCtxᴾ; transport⊑ᴾ)

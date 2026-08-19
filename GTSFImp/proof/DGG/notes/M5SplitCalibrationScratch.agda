@@ -30,7 +30,7 @@ import Imprecision as I
 
 import Conversion as Conv
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Catchup.InstInversionDef as IID
 import proof.DGG.Catchup.InstInversionProof as IIP

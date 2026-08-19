@@ -22,7 +22,7 @@ module proof.DGG.Inversion.RightInjInversion2Def where
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTX using

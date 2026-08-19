@@ -45,7 +45,7 @@ open import proof.TypeSafety.Preservation using
 import proof.TypeSafety.Progress as Prog
 import proof.Imprecision as PI
 import proof.Consistency as PC
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
@@ -150,7 +150,7 @@ derivSize : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {N : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
   → ℕ
 derivSize (CTI2.x⊑x² x) = zero
 derivSize (CTI2.ƛ⊑ƛ² rel) = suc (suc (derivSize rel))
@@ -203,7 +203,7 @@ phaseDerivSize : ∀ {Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {N : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
   → WorkerPhase
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
   → ℕ
 phaseDerivSize spine-phase rel = suc (derivSize rel)
 phaseDerivSize name-phase rel = derivSize rel
@@ -226,7 +226,7 @@ terminationMeasure : ∀ {phase Δ}
     {Aᴸ : Ty Δᴸ} {p : Aᴸ CTX.⊑ᵂ⟨ W ⟩ A}
   → (vV : Value V)
   → (spine : InstantiationSpine A B)
-  → (rel : W CTX.∣ γ ⊢² M ⊑ V ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ V ∶ p)
   → TerminationMeasure
 terminationMeasure {phase = phase} vV spine rel =
   pendingCastMass vV spine ,
@@ -278,7 +278,7 @@ StructuralValueSpineInstantiationAccᵀ =
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → (rel : W CTX.∣ γ ⊢² M ⊑ V ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ V ∶ p)
   → Value M
   → (vV : Value V)
   → (spine : InstantiationSpine C₀ E)
@@ -286,7 +286,7 @@ StructuralValueSpineInstantiationAccᵀ =
   → SpineTypedʷ {fuel = fuel} W spine
   → Acc _<ᵐ_ (terminationMeasure {phase = spine-phase} vV spine rel)
   → (target : StructuralTargetInstantiationPackage W V spine)
-  → StructuralTargetInstantiationPackage.W′ target CTX.∣
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))
@@ -313,7 +313,7 @@ StructuralNameInstantiationAccᵀ =
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → (rel : W CTX.∣ γ ⊢² M ⊑ V ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ V ∶ p)
   → Value M
   → (vV : Value V)
   → AllValueView V
@@ -326,7 +326,7 @@ StructuralNameInstantiationAccᵀ =
       (name-type-app-frame B X refl refl ▻ⁱ spine) rel)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → StructuralTargetInstantiationPackage.W′ target CTX.∣
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))
@@ -354,10 +354,10 @@ rel-⊑-unique : ∀ {Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {N : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p q : A CTX.⊑ᵂ⟨ W ⟩ B}
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ p
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ q
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ q
 rel-⊑-unique {W = W} {γ = γ} {p = p} {q = q} rel =
-  subst≡ (λ r → W CTX.∣ γ ⊢² _ ⊑ _ ∶ r)
+  subst≡ (λ r → W CTI2.∣ γ ⊢² _ ⊑ _ ∶ r)
     (PI.⊑-unique p q) rel
 
 
@@ -368,8 +368,8 @@ rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
   → (eq : B ≡ B′)
   → {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ p
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ subst≡ (A CTX.⊑ᵂ⟨ W ⟩_) eq p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ subst≡ (A CTX.⊑ᵂ⟨ W ⟩_) eq p
 rel-target-transportᴿ refl rel = rel
 
 
@@ -606,7 +606,7 @@ relation-all-value-view : ∀ {Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
     {p : A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
   → Value V
-  → (rel : W CTX.∣ γ ⊢² M ⊑ V ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ V ∶ p)
   → AllValueView V
 relation-all-value-view vV rel =
   all-view→all-value-view
@@ -620,9 +620,9 @@ target-empty-final-relation : ∀ {Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p q : A CTX.⊑ᵂ⟨ W ⟩ B}
   → Value V
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → (target : StructuralTargetInstantiationPackage W V ([]ⁱ {A = B}))
-  → StructuralTargetInstantiationPackage.W′ target CTX.∣
+  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))
@@ -640,7 +640,7 @@ target-empty-final-relation {W = W} {γ = γ} vV rel target
 target-empty-final-relation {W = W} {γ = γ} vV rel target
     | ↠-refl | structural-[] =
   subst≡
-    (λ γ′ → W CTX.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+    (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
     (sym (ECR.mapCtxᴿ-same γ))
     (rel-⊑-unique rel)
 target-empty-final-relation vV rel target | ↠-step step rest =
@@ -688,15 +688,15 @@ target-insert-bind-relation : ∀ {Δᴸ Δᴿ Δ Δ′}
   → (ins : TE.TargetInsert wk↪ᵗ π W W′)
   → (follows : CTX.targetStoreʷ W′ ≡
       applyStores (bind R ∷ []) (CTX.targetStoreʷ W))
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
-  → W′ CTX.∣
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W′ CTI2.∣
       ECR.mapCtxᴿ (target-insert-bind-world-extendᴿ ins follows) γ
       ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶
         ECR.transport⊑ᵂ (target-insert-bind-world-extendᴿ ins follows) p
 target-insert-bind-relation {γ = γ} {B = B} {p = p}
     ins follows rel =
   subst≡
-    (λ γ′ → _ CTX.∣ γ′ ⊢² _ ⊑ _ ∶
+    (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶
       ECR.transport⊑ᵂ ext p)
     (sym (mapCtx-target-insert-bind ins follows γ))
     (TE.⊢²-retargetᴿ {q = ECR.transport⊑ᵂ ext p}
@@ -722,7 +722,7 @@ structural-name-cast-equal :
     → StructuralNameChainPlan {fuel = fuel} W γ A′ E q plan
     → (c : ν ⊢ A ∼ A′)
     → Inert c
-    → (prem : W CTX.∣ γ ⊢² U ⊑ N ∶ p)
+    → (prem : W CTI2.∣ γ ⊢² U ⊑ N ∶ p)
     → Value U
     → (vN : Value N)
     → AllValueView N
@@ -735,7 +735,7 @@ structural-name-cast-equal :
         (name-type-app-frame B X refl refl ▻ⁱ spine) prem)
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → StructuralTargetInstantiationPackage.W′ target CTX.∣
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
         ECR.mapCtxᴿ
           (structural-world-extendᴿ
             (StructuralTargetInstantiationPackage.structural-ext target))
@@ -784,7 +784,7 @@ structural-name-plain-Λ-equal :
     → NonVar A
     → Fin.zero ∈ᵗ A
     → CTX.LiftCtxᴸ X⊑★ γ γᴸ
-    → (prem : CTX.liftWorldLeft X⊑★ W CTX.∣ γᴸ
+    → (prem : CTX.liftWorldLeft X⊑★ W CTI2.∣ γᴸ
         ⊢² U ⊑ N ∶ p)
     → Value U
     → (vN : Value N)
@@ -798,7 +798,7 @@ structural-name-plain-Λ-equal :
         (name-type-app-frame B X refl refl ▻ⁱ spine) prem)
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → StructuralTargetInstantiationPackage.W′ target CTX.∣
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
         ECR.mapCtxᴿ
           (structural-world-extendᴿ
             (StructuralTargetInstantiationPackage.structural-ext target))
@@ -869,7 +869,7 @@ structural-name-smart-Λ-equal :
     → Fin.zero ∈ᵗ A
     → (liftW : CTX.SmartCommaLiftᴸ W Wᵐ)
     → CTX.SmartLiftCtxᴸ γ γᵐ
-    → (prem : Wᵐ CTX.∣ γᵐ ⊢² U ⊑ N ∶ p)
+    → (prem : Wᵐ CTI2.∣ γᵐ ⊢² U ⊑ N ∶ p)
     → Value U
     → (vN : Value N)
     → AllValueView N
@@ -882,7 +882,7 @@ structural-name-smart-Λ-equal :
         (name-type-app-frame B X refl refl ▻ⁱ spine) prem)
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → StructuralTargetInstantiationPackage.W′ target CTX.∣
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
         ECR.mapCtxᴿ
           (structural-world-extendᴿ
             (StructuralTargetInstantiationPackage.structural-ext target))
@@ -981,7 +981,7 @@ structural-name-reveal-equal :
     → (rb : CTX.RebaseAtᴸ W Wᵖ Xᴸ?)
     → CTX.SameCtx γ γᵖ
     → CTX.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
-    → (prem : Wᵖ CTX.∣ γᵖ ⊢² U ⊑ N ∶ p)
+    → (prem : Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ N ∶ p)
     → Value U
     → (vN : Value N)
     → AllValueView N
@@ -994,7 +994,7 @@ structural-name-reveal-equal :
         (name-type-app-frame B X refl refl ▻ⁱ spine) prem)
     → (target : StructuralTargetInstantiationPackage W N
         (name-type-app-frame B X refl refl ▻ⁱ spine))
-    → StructuralTargetInstantiationPackage.W′ target CTX.∣
+    → StructuralTargetInstantiationPackage.W′ target CTI2.∣
         ECR.mapCtxᴿ
           (structural-world-extendᴿ
             (StructuralTargetInstantiationPackage.structural-ext target))

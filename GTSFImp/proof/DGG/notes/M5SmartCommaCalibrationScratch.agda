@@ -33,7 +33,7 @@ open import Imprecision using (_⊢_⊑_)
 import M5InterleaveScratch as IL
 import M5UnderLiftRevealScratch as UL
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Catchup.InstInversionDef as IID

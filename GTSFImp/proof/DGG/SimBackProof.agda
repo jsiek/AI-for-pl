@@ -56,7 +56,7 @@ open import proof.Reduction using
   )
 import proof.Imprecision as PI
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2
 open CTIR
 open import proof.DGG.Parked.ParkedWorldDef

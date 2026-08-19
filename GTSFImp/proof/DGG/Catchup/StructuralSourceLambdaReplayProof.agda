@@ -11,7 +11,7 @@ open import Types using (Ty; NonVar; _∈ᵗ_; `∀)
 open import Imprecision using (X⊑★)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; Λ_)
 open import Reduction using (StoreChanges; applyTys)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralWorldExtendDef
@@ -41,14 +41,14 @@ structural-Λ-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
         CTX.tgtCtxʷ
           (ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ) ⟩
       ⊢ F ⦂ applyTys χs B
-  → CTX.liftWorldLeft X⊑★ W′ CTX.∣
+  → CTX.liftWorldLeft X⊑★ W′ CTI2.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ (structural-lift-left plan X⊑★)) γᴸ
       ⊢² U ⊑ F ∶
         ECR.transport⊑ᵂ
           (structural-world-extendᴿ
             (structural-lift-left plan X⊑★)) p
-  → W′ CTX.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+  → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
       ⊢² Λ U ⊑ F ∶
         ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
 structural-Λ-replay plan Anv z∈A liftγ vU F⊢ rel =
@@ -82,11 +82,11 @@ structural-smart-Λ-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
       ⊢ F ⦂ applyTys χs B
   → let child = structural-smart-liftᴸ plan liftW
         planᵐ = StructuralSmartLiftᴸResult.premise-plan child
-     in StructuralSmartLiftᴸResult.Wᵐ′ child CTX.∣
+     in StructuralSmartLiftᴸResult.Wᵐ′ child CTI2.∣
           ECR.mapCtxᴿ (structural-world-extendᴿ planᵐ) γᵐ
           ⊢² U ⊑ F ∶
             ECR.transport⊑ᵂ (structural-world-extendᴿ planᵐ) p
-  → W′ CTX.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
+  → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
       ⊢² Λ U ⊑ F ∶
         ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
 structural-smart-Λ-replay plan Anv z∈A liftW liftγ vU F⊢ rel

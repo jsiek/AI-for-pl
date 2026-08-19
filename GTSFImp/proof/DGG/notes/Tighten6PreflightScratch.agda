@@ -24,7 +24,7 @@ open import CastTerms using (Term; Inert; _⟨_⟩; _↓_)
 open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP

@@ -29,7 +29,7 @@ open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.WorldDecay as WD
 open CTI2 using

@@ -17,7 +17,7 @@ open import CastTerms using (Term; _⟨_⟩)
 open import Imprecision
 
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.LambdaImpProbe as LIP
 import proof.DGG.StarRepChainProbe as SRC

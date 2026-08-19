@@ -66,7 +66,7 @@ open import proof.TypeInTermSubst using
    toRename-keep-eq; renameᵗ-wk-eq;
    toRename-wk-eq)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.CenterRename as CR
@@ -100,7 +100,7 @@ inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
     {ν : Env∼ Δᴿ} {p : A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
-  → (rel : W CTX.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
@@ -116,7 +116,7 @@ inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
       Σ[ N′ ∈ CT.Term Δᴿ′ ]
         (CT.Value N′
           × (M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs ] N′)
-          × (W′ CTX.∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
+          × (W′ CTI2.∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
               ECR.transport⊑ᵂ ext q)))
   → InstPostCatalogPackageAt fuel rel vM vM′ c′ B′≢★
       c<fuel q χs₂ W₂ ext₂
@@ -210,8 +210,8 @@ rel-target-transportᴿ : ∀ {Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
   → (eq : B ≡ B′)
   → (p : A CTX.⊑ᵂ⟨ W ⟩ B)
-  → W CTX.∣ γ ⊢² M ⊑ N ∶ p
-  → W CTX.∣ γ ⊢² M ⊑ N ∶
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ N ∶
       subst≡ (λ C → A CTX.⊑ᵂ⟨ W ⟩ C) eq p
 rel-target-transportᴿ refl p rel = rel
 generated-reveal-value : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}
@@ -509,7 +509,7 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
-  → (rel : W CTX.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
@@ -527,7 +527,7 @@ inst-post-at-finish : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
       Σ[ N′ ∈ CT.Term Δᴿ′ ]
         (CT.Value N′
           × (M′ ⟨ (inst c′) B′≢★ ⟩ —↠[ χs ] N′)
-          × (W′ CTX.∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
+          × (W′ CTI2.∣ ECR.mapCtxᴿ ext γ ⊢² M ⊑ N′ ∶
               ECR.transport⊑ᵂ ext q))
 inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
     fuel-step residual-cast-builder rel vM vM′ c′
@@ -567,7 +567,7 @@ inst-post-at-finish {γ = γ} {B′ = B′} {χs₂ = χs₂}
       (cast-↠ residual-cast post↠Final))
     post↠N′ ,
   subst≡
-    (λ γ′ → W′ CTX.∣ γ′ ⊢² _ ⊑ _ ∶
+    (λ γ′ → W′ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶
       ECR.transport⊑ᵂ (composeWorldExtendᴿ ext₂ᵈ ext′) q)
     context-eq
     (rel-target-transportᴿ (applyTys-++ (χs₂ ++χ δs) ψs B′)
@@ -604,7 +604,7 @@ spine-descent-zero : ∀ {Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
   → CT.Value post
-  → W CTX.∣ γ ⊢² M ⊑ post ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ post ∶ p
   → InstSpineDescentPackage W γ M post p
 spine-descent-zero {W = W} {γ = γ} vPost rel = record
   { Δᴿ′ = _
@@ -617,7 +617,7 @@ spine-descent-zero {W = W} {γ = γ} vPost rel = record
   ; post-reduction = ↠-refl
   ; final-relation =
       subst≡
-        (λ γ′ → W CTX.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
         (sym (ECR.mapCtxᴿ-same γ))
         rel
   }
@@ -633,7 +633,7 @@ inst-post-at→root-package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
-  → (rel : W CTX.∣ γ ⊢² M ⊑ M′ ∶ p)
+  → (rel : W CTI2.∣ γ ⊢² M ⊑ M′ ∶ p)
   → (vM : CT.Value M)
   → (vM′ : CT.Value M′)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)

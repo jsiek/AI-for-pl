@@ -12,7 +12,7 @@ open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $; seal)
 import CastTerms as CTerms
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.Examples2 as Ex2

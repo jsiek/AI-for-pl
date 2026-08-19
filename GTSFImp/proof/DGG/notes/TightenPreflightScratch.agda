@@ -24,7 +24,7 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 open import Imprecision
 
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2

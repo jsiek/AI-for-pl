@@ -22,7 +22,7 @@ open import Reduction using (keep; bind; applyTy; applyBody)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 
@@ -98,9 +98,9 @@ cast-frame-absorption-cell : ∀ {Δᴸ Δᴿ Δ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     {q : A CTX.⊑ᵂ⟨ W ⟩ E}
   → TargetFrameAbsorptionChain W γ A (cast-frame c ▻ⁱ spine) q
-  → W CTX.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
-      W CTX.∣ γ ⊢² M ⊑ V ⟨ c ⟩ ∶ qC
+      W CTI2.∣ γ ⊢² M ⊑ V ⟨ c ⟩ ∶ qC
 cast-frame-absorption-cell (tfa-cast qC tail) rel =
   qC , CTI2.⊑cast² _ rel qC
 

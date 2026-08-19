@@ -22,7 +22,7 @@ open import CastTerms using
   (Term; Value; _↓_; _⟨_⟩; _⊢_⦂_; ⟨_,_,_⟩; seal)
 open import Imprecision
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using
   (World;

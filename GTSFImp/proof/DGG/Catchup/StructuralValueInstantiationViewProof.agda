@@ -10,7 +10,7 @@ open import Data.Empty using (⊥)
 open import Types using (Ty; _[_]ᵗ)
 import CastTerms
 open import CastTerms using (Term; Value; _⦂∀_[_])
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

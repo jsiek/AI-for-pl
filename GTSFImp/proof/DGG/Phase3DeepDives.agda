@@ -30,7 +30,7 @@ open import Conversion using (〖_,_↑_〗)
 open import Reduction using (StoreChange; bind; keep)
 open import Eval using (step?)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CompilePreservesImprecision2 as CPI2

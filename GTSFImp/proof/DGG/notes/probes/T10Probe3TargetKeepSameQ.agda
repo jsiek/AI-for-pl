@@ -22,7 +22,7 @@ open import CastTerms using (Term; Value; $; _↓_; _↑_)
 open import Primitives using (κℕ)
 import Reduction as R
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 
@@ -115,7 +115,7 @@ source-revealed = source-sealed ↑ Conv.unseal X ℕ₁
 target-revealed : Term 1
 target-revealed = target-sealed ↑ Conv.unseal Y ℕ₁
 
-base-relation : W CTX.∣ [] ⊢² source-value ⊑ target-value ∶ q
+base-relation : W CTI2.∣ [] ⊢² source-value ⊑ target-value ∶ q
 base-relation = CTI2.κ⊑κ² (κℕ 0) q
 
 matched-conceal-partner :
@@ -124,14 +124,14 @@ matched-conceal-partner :
 matched-conceal-partner = CTX.matched-seal-nonstar nonstar-ι
 
 sealed-relation :
-  W CTX.∣ [] ⊢² source-sealed ⊑ target-sealed ∶ sealed-q
+  W CTI2.∣ [] ⊢² source-sealed ⊑ target-sealed ∶ sealed-q
 sealed-relation =
   CTI2.conceal⊑conceal² matched-conceal-partner mono-refl
     same-rebase CTX.same-[] source-seal-typed target-seal-typed
     base-relation sealed-q
 
 before-target-keep :
-  W CTX.∣ [] ⊢² source-revealed ⊑ target-revealed ∶ q
+  W CTI2.∣ [] ⊢² source-revealed ⊑ target-revealed ∶ q
 before-target-keep =
   CTI2.reveal⊑reveal² mono-refl same-rebase CTX.same-[]
     source-unseal-typed target-unseal-typed sealed-relation q
@@ -149,11 +149,11 @@ source-sealed-to-representation-empty :
 source-sealed-to-representation-empty ()
 
 same-q-after-target-only-empty :
-  W CTX.∣ [] ⊢² source-revealed ⊑ target-value ∶ q → ⊥
+  W CTI2.∣ [] ⊢² source-revealed ⊑ target-value ∶ q → ⊥
 same-q-after-target-only-empty
     (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb same c⊢ rel q′) =
   source-sealed-to-representation-empty {W′ = W′} p
 
 after-both-peel-same-q :
-  W CTX.∣ [] ⊢² source-value ⊑ target-value ∶ q
+  W CTI2.∣ [] ⊢² source-value ⊑ target-value ∶ q
 after-both-peel-same-q = base-relation

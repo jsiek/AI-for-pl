@@ -28,7 +28,7 @@ open import Reduction using
   (_—→_; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[];
    keep; pure-step; ξ-⟨⟩; expand; tag-untag)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

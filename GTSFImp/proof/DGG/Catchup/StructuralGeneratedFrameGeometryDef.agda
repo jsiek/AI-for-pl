@@ -18,7 +18,7 @@ open import CastTerms using (Term; Value; _↑_; _↓_)
 open import Reduction using (keep; _—→[_]_)
 import Conversion as Conv
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 
 
 record StructuralAllGeneratedFrameGeometry {Δᴸ Δᴿ Δ}

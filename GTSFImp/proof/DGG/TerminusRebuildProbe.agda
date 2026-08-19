@@ -35,7 +35,7 @@ open import CastTerms
 open import Imprecision
 import CastTerms as CTerms
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

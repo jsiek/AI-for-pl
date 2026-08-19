@@ -211,7 +211,7 @@ produce on the target.
 ## Version-2 representation-directed wrappers
 
 The version-2 relation in
-[`proof/DGG/CastTermImprecision2.agda`](proof/DGG/CastTermImprecision2.agda)
+[`proof/DGG/CastTermImprecision.agda`](proof/DGG/CastTermImprecision.agda)
 keeps reveal and conceal wrappers syntax directed. The one-sided rules are
 
 ```agda

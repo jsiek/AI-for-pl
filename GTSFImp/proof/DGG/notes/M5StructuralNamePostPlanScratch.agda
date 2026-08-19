@@ -23,7 +23,7 @@ open import Reduction using (StoreChanges; applyTys)
 open import Imprecision using (X⊑★)
 import Conversion as Conv
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstInversionDef using
   (InstSpineDescentPackage)

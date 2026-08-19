@@ -1,4 +1,4 @@
-module proof.DGG.CastTermImprecision2 where
+module proof.DGG.CastTermImprecision where
 
 -- File Charter:
 --   * Experiments with the Issue 117 redesign of cast-term imprecision.

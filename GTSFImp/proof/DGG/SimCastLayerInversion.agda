@@ -12,7 +12,7 @@ open import Conversion using (Conv↑; Conv↓)
 open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; _⟨_⟩; _↑_; _↓_)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

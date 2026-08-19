@@ -22,7 +22,7 @@ open import Imprecision
 open import CastTerms using (Term; Value; $; _⟨_⟩; _↓_; _《_》; inj)
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;

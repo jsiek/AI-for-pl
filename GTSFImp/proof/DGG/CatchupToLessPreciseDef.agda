@@ -14,7 +14,7 @@ open import Data.Sum using (_⊎_)
 open import Types using (Ty; TyCtx)
 open import CastTerms using (Term; Value; blame)
 open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)

@@ -30,7 +30,7 @@ import CastTerms as CTerms
 open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Inversion.SpineValueDef as SVD
 open CTX using

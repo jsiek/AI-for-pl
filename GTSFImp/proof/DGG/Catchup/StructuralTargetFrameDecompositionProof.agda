@@ -24,7 +24,7 @@ open import Reduction using
    pure-step; id-reveal; id-conceal; conceal-reveal; blame-reveal;
    blame-conceal; ξ-reveal; ξ-conceal)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef

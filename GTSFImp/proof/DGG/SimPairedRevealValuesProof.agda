@@ -31,7 +31,7 @@ open import Reduction using
   ; ξ-reveal
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-reveal-boundary)

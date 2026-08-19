@@ -22,7 +22,7 @@ open import proof.TypeInTermSubst using (StoreRename)
 open import proof.DGG.CenterRename using (preimage?)
 import Conversion as Conv
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 
 open CTI2 using
   (World;

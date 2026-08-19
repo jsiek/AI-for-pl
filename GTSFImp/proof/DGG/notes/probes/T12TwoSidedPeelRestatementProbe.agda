@@ -25,7 +25,7 @@ open import Reduction using
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Conversion as Conv
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision2 as CTIR
+import proof.DGG.CastTermImprecision as CTIR
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef

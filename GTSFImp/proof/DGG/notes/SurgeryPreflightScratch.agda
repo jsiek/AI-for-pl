@@ -17,7 +17,7 @@ open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
 open import Imprecision
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.ChainRideProbe as CRP

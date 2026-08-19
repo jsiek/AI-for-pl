@@ -420,6 +420,40 @@ says exactly that the source center has no target occupant.  The probe also
 checks the field for the amended empty-store `initialWorld`: every direct
 entry in `emptyStore` is its structurally bound variable, never `★`.
 
+### Invariant-(5) minting and preservation deltas
+
+This table is the delta over the Stage-1 builder table above.  “Free” means no
+new premise beyond the premises already recorded for invariants (2)--(4).
+
+| Builder or transformation | Invariant-(5) verdict |
+| --- | --- |
+| Amended empty-store `initialWorld` | **Free and checked.** Its direct source entries are variables.  The old arbitrary-store `CompilePreservesImprecision2.initialWorld mu Sigma`, `Examples2.reflWorld Sigma`, and `Occupancy.initialWorldO` are **not** free: a shared `★` cell marked `X⊑★` is an immediate counterexample.  They must use the amended empty store or receive (5) as a premise. |
+| `liftWorldBoth v W` and `liftWorldLeft v W` | **Free.** The fresh direct source entry under `store-lift` is `＇ zero`, not `★`; old cells shift injectively. |
+| `leftOnlyWorld v W A` | **Free.** The fresh source center has no target image, while every old alignment reflects to `W`.  This is independent of `A` and of the separate precise-mark premise required by invariant (2). |
+| `rightOnlyWorld W B`, including `★` and alias routes | **Free and checked generically.** Its fresh target is at center zero while every source center is shifted; an old aligned target reflects injectively to `W`.  Thus invariant (5) adds no classification premise for `B`; invariant (4) still does. |
+| `bothBindWorld v W A B` | **Needs a premise in the generic API:** if `v = X⊑★` and `⇑ᵗ A = ★`, the fresh source is exactly the forbidden occupied cell.  The live parked/compile builder uses `v = X⊑X`, so that specialization is **free**. |
+| Parked initial/both/left/right builders and `ParkedEvolve` endpoints | Inherit the preceding verdicts.  The parked initial world must change to the empty-store constructor; parked both/left/right add no new premise at their live marks.  Evolution eliminators do not mint their endpoint. |
+| `CenterRename.renameWorld` | **Free.** Center renaming is injective and leaves both stores unchanged. |
+| Generic `EnvDecay W Wd` | **Needs a premise.** Decay may change an aligned, direct-source-`★` center from `X⊑X` to `X⊑★`.  Geometry-only occupancy transport does not establish validity. |
+| `blendWorld W' Wd` | **Needs the same no-new-forbidden-cell premise.** It can select an `X⊑★` mark from `Wd` at a center whose geometry and stores come from `W'`. |
+| `honestify W` | **Free.** It changes a mark to `X⊑★` only when that center is already outside the target image; aligned centers retain their old mark. |
+| `dynWorld W` | **Needs a premise for every direct source `★` entry**, because it changes every center mark to `X⊑★`. |
+| `targetStoreAs W SigmaR` and target-store moves with fixed geometry | **Free.** Invariant (5) mentions the source store, marks, and embeddings, but not target entries. |
+| A genuine `TargetInsert rho pi W W'` | **Free and checked.** `target-source-reflect` maps every output aligned occupant back to an input aligned occupant; `sourceStore-kept`, `source-insert`, and `impEnv-insert` reflect the other antecedents. |
+| `smartAliasInsertWorld`, `smartFreshInsertWorld`, and their `TargetInsert` packages | **Free at the output once the smart input world is valid.** They are genuine target inserts.  A guard alone does not validate an arbitrary `Wm`; the Stage-1 signatures correctly require `WorldInvariants Wm`. |
+| `insertRebaseWorld ins Wp`, forward/reverse/pullback variants | **Free at the insertion output once `WorldInvariants Wp` is supplied.** `insertRebaseTargetInsert` proves target-source reflection even at the rebase pivot.  The pressure is at reparking: a candidate `Wp` that newly aligns an `X⊑★`, direct-source-`★` pivot is illegal and cannot supply the input invariant.  Invariant (4)'s off-entry premise remains separate. |
+| `rightBindTargetInsert`, keep/lift wrappers, and the other insert packages | **No new invariant-(5) premise.** They inherit `rightOnlyWorld` or generic target-insert preservation; their existing invariant-(4) classification remains. |
+| Direct fixture worlds | Must prove the field case by case.  The checked kill-check below identifies the affected D16/S-OCC fixtures. |
+| `RebaseAt`, `SameRuntime`, `EnvDecay` evidence records, and constructor-pattern consumers | They do not themselves mint worlds.  Any separately constructed endpoint must be valid; generic decay is the non-free constructor listed above. |
+
+The smart-ALIAS Stage-2 blocker is **neither sharpened nor resolved**.  Its
+fresh source is aligned with target `beta`, but
+`sourceStore-lifted` makes its direct entry `＇ zero`, not `★`; the probe
+checks `smartAlias-fresh-source-not-star`.  Therefore (5) does not reject that
+fresh alignment.  The recorded contradiction still comes solely from
+`representationsImprecise`: it forces `beta = alpha`, conflicting with the
+guard's distinct direct entries `＇ alpha` and `★`.
+
 ## Validation
 
 The standalone probe is safe, has no postulates, holes, or option pragmas, and

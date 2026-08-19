@@ -367,8 +367,9 @@ A low-risk LG-1-style sequence is:
 
 1. Add the total one-step `lookupStore` to `TyStore`.  Against the existing
    five-field record, introduce a temporary, non-public `WorldInvariants W`
-   companion containing exactly the three drafted fields.  Prove preservation
-   for the core builders and require the companion at theorem boundaries.
+   companion containing the three original drafted fields plus addendum (5).
+   Prove preservation for the core builders and require the companion at
+   theorem boundaries.
 2. Strengthen `rightOnlyWorld` and `rightBindTargetInsert` with the selected
    direct-entry classification.  Thread it through `evolve-right-bind`, the
    generic `B₀` surfaces, parked constructors, and smart wrappers.  Under the
@@ -380,7 +381,7 @@ A low-risk LG-1-style sequence is:
    replacement and insertion/rebase, and repair or retire invalid fixtures.
    Use invariant (4) to reject non-`★` repark outputs.
 4. After D15 lands, merge the companion fields into `World` atomically, change
-   constructor calls and patterns to the eight-field shape, replace `WFWorld`
+   constructor calls and patterns to the nine-field shape, replace `WFWorld`
    arguments by the projection, and delete both `WFWorld` and the temporary
    companion.  Do not retain a compatibility alias in this closed-world repo.
 5. Derive chain coherence by store-age induction, remove
@@ -545,21 +546,27 @@ only the bad term derivation inside an otherwise valid aligned world.
 
 ## Validation
 
-The standalone probe is safe, has no postulates, holes, or option pragmas, and
-is checked with Agda 2.8 using:
+Both standalone probes are safe and have no postulates, holes, or option
+pragmas.  The original design probe is checked with Agda 2.8 using:
 
 ```text
 agda --safe -v0 -i . -i proof/DGG/notes/probes \
   proof/DGG/notes/probes/T15WorldInvariantsDesignProbe.agda
 ```
 
-This command exited 0.  The required repository gate was then run exactly as:
+This command exited 0.  The invariant-(5) addendum is checked with the
+additional notes include:
+
+```text
+agda --safe -v0 -i . -i proof/DGG/notes -i proof/DGG/notes/probes \
+  proof/DGG/notes/probes/T15Invariant5ReconProbe.agda
+```
+
+This command exited 0 after checking the field, builder deltas, derivability
+lemmas, and kill-checks.  After all commits, the repository gate is:
 
 ```text
 cd GTSFImp && \
   PATH=/tmp/claude-26597/-home-runner-AI-for-pl/47ee78a9-f010-4f54-9a3a-aed5287dbe12/scratchpad/agda28/bin:$PATH \
   make check
 ```
-
-It exited 0 after checking `All.agda`, `LegacyAll.agda`, and reporting
-`postulate-check: OK (no postulates; NON_COVERING at legacy baseline)`.

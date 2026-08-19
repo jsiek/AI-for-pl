@@ -1034,3 +1034,9 @@ preservation inventory per construction site, kill-check against the
 D8a substitution counterexamples and T10 probe worlds, migration plan.
 Expected payoff: the groundedness that D8a.4 found missing; the
 representation premise T4c could not obtain.
+
+D16 invariant (5) (user, 2026-08-19): occupancy moves into the world —
+a runtime source name marked X⊑★ with (direct) representation ★ cannot
+have a center-aligned target occupant. Relocates LG-1's rule-premise
+gating (NoTargetOccupantAtSource) to world validity; rule premises
+become derivable. Recon addendum on PR #177's branch.

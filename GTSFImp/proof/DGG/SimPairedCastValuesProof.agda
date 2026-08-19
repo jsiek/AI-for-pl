@@ -34,14 +34,14 @@ open import Reduction using
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Reduction as R
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve; evolve-refl; evolve-keepᴸ)
-open CTI2 using
-  ( World
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.SimPairedCastValuesDef
   using (SimPairedCastValuesᵀ)
 open import proof.Reduction.ValueIrreducibleProof

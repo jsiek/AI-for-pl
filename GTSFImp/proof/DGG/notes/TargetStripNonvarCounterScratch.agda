@@ -15,15 +15,21 @@ open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue; sv-seal; sv-$)
 open import proof.DGG.Inversion.TargetStripDef using
   (TargetSealTerminusData)
 open import proof.DGG.Inversion.TargetStripDef as TSD
 open import proof.DGG.Inversion.TargetStripProof using
   (seal-descent-at-var-nonvar)
-open CTI2 using
-  (World; world; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   sourceStoreʷ; store-rep-imp)
+open CTX using
+  (World;
+   world;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 X : TyVar 1
 X = Fin.zero
@@ -43,7 +49,7 @@ storeℕ = store-bind store-empty (‵ `ℕ)
 W : World 1 1 1
 W = world η η μ storeℕ storeℕ
 
-mono-refl : CTI2.ImpEnvMono W W
+mono-refl : CTX.ImpEnvMono W W
 mono-refl Z eq = eq
 
 X∈ℕ : storeℕ ∋ X ⦂ ‵ `ℕ
@@ -52,11 +58,11 @@ X∈ℕ = Z∋ refl
 Y∈ℕ : storeℕ ∋ Y ⦂ ‵ `ℕ
 Y∈ℕ = Z∋ refl
 
-X-Y-rep : CTI2.StoreRepImp W X Y
+X-Y-rep : CTX.StoreRepImp W X Y
 X-Y-rep = store-rep-imp ι⊑ι
 
 rb : RebaseAt W W X Y
-rb = CTI2.sameWorldRebaseAt refl X-Y-rep
+rb = CTX.sameWorldRebaseAt refl X-Y-rep
 
 q : ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
 q = X⊑X
@@ -75,7 +81,7 @@ vU = $ (κℕ 0)
 
 D : W ∣ [] ⊢² V ⊑ U ↓ seal Y (‵ `ℕ) ∶ q
 D =
-  CTI2.conceal⊑conceal² mono-refl rb CTI2.same-[]
+  CTI2.conceal⊑conceal² mono-refl rb CTX.same-[]
     (Conv.⊢↓-sealˣ X∈ℕ) (Conv.⊢↓-sealˣ Y∈ℕ)
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) q
 
@@ -84,7 +90,7 @@ package :
   TargetSealTerminusData W [] V (＇ X) U X Y (‵ `ℕ)
 package X∈★ =
   seal-descent-at-var-nonvar nonvar-base nonstar-ι
-    svV vU mono-refl rb CTI2.same-[] X∈★ Y∈ℕ D
+    svV vU mono-refl rb CTX.same-[] X∈★ Y∈ℕ D
 
 no-source-star : ∀ {Z : TyVar 1} → storeℕ ∋ Z ⦂ ★ → ⊥
 no-source-star {Fin.zero} (Z∋ ())
@@ -99,7 +105,7 @@ contradiction X∈★ =
   no-source-star {Z = TSD.TargetSealTerminusData.Y★ (package X∈★)}
     (subst≡
       (λ Σ → Σ ∋ TSD.TargetSealTerminusData.Y★ (package X∈★) ⦂ ★)
-      (sym (CTI2.SameRuntime.targetStore-same
-        (CTI2.RebaseAt.sameRuntime
+      (sym (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime
           (TSD.TargetSealTerminusData.boundary★ (package X∈★)))))
       (TSD.TargetSealTerminusData.target∈★ (package X∈★)))

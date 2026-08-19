@@ -29,8 +29,9 @@ open import CastTerms using (Term; Λ_; `_)
 import Imprecision as I
 
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Catchup.InstInversionDef as IID
 import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.SmartCommaWitness as SC

@@ -21,7 +21,7 @@ open import Reduction using
 open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef

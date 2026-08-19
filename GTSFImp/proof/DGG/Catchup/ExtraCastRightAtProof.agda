@@ -56,31 +56,36 @@ open import proof.DGG.Catchup.TargetCastStepInversionProof using
    matched-conceal-partner-target-id-framed-core;
    target-id-step-inversion)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 source-value-target-bottom-impossible : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {A : Ty Δᴸ}
   → Value M
-  → ⟨ Δᴸ , CTI2.sourceStoreʷ W , CTI2.srcCtxʷ γ ⟩ ⊢ M ⦂ A
+  → ⟨ Δᴸ , CTX.sourceStoreʷ W , CTX.srcCtxʷ γ ⟩ ⊢ M ⦂ A
   → A ⊑ᵂ⟨ W ⟩ `∀ (＇ zero)
   → ⊥
 source-value-target-bottom-impossible {W = W} {γ = γ}
     {M = M} {A = `∀ A} vM M⊢ (I.∀⊑∀ body) =
   no-bot-value vM
     (subst≡
-      (λ A′ → ⟨ _ , CTI2.sourceStoreʷ W , CTI2.srcCtxʷ γ ⟩
+      (λ A′ → ⟨ _ , CTX.sourceStoreʷ W , CTX.srcCtxʷ γ ⟩
         ⊢ M ⦂ `∀ A′)
       body-eq M⊢)
   where
   body-eq : A ≡ (＇ zero)
   body-eq =
     renameᵗ-injective
-      (ext-injective (toRenameᵗ-injective (CTI2.ηᴸʷ W)))
+      (ext-injective (toRenameᵗ-injective (CTX.ηᴸʷ W)))
       (imprecision-to-fresh body)
 source-value-target-bottom-impossible {A = `∀ A} vM M⊢
     (I.∀⊑ Anv z∈A body) =
@@ -120,21 +125,21 @@ rep★-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : ν ⊢ G ∼★ ⦄
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ B ∼ G)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ _! c ⟩)
-  → CTI2.Rep★PartnerOK W X P Xᴿ?
+  → CTX.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ _! c ⟩)
+  → CTX.Rep★PartnerOK W X P Xᴿ?
       ((M′ ⟨ c ⟩)
         ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
           ⦃ ground-nonstar Gᵍ ⦄ ⟩)
-rep★-ground-step-core c (CTI2.rep★-untagged ())
-rep★-ground-step-core c (CTI2.rep★-nonvar-tag Gnv) =
-  CTI2.rep★-nonvar-tag Gnv
-rep★-ground-step-core c (CTI2.rep★-var-tag aligned) =
-  CTI2.rep★-var-tag aligned
+rep★-ground-step-core c (CTX.rep★-untagged ())
+rep★-ground-step-core c (CTX.rep★-nonvar-tag Gnv) =
+  CTX.rep★-nonvar-tag Gnv
+rep★-ground-step-core c (CTX.rep★-var-tag aligned) =
+  CTX.rep★-var-tag aligned
 rep★-ground-step-core c
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags X₂≢X aligned
-rep★-ground-step-core c (CTI2.rep★-round-trip ok) =
-  CTI2.rep★-round-trip (rep★-ground-step-core c ok)
+    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
+  CTX.rep★-matched-inner-tags X₂≢X aligned
+rep★-ground-step-core c (CTX.rep★-round-trip ok) =
+  CTX.rep★-round-trip (rep★-ground-step-core c ok)
 
 
 rep★-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
@@ -145,21 +150,21 @@ rep★-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ B ∼ G)
   → (d : μ ⊢ C ∼ D)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? ((M′ ⟨ _! c ⟩) ⟨ d ⟩)
-  → CTI2.Rep★PartnerOK W X P Xᴿ?
+  → CTX.Rep★PartnerOK W X P Xᴿ? ((M′ ⟨ _! c ⟩) ⟨ d ⟩)
+  → CTX.Rep★PartnerOK W X P Xᴿ?
       (((M′ ⟨ c ⟩)
         ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
           ⦃ ground-nonstar Gᵍ ⦄ ⟩) ⟨ d ⟩)
-rep★-ground-step-framed-core c d (CTI2.rep★-untagged ())
-rep★-ground-step-framed-core c d (CTI2.rep★-nonvar-tag Gnv) =
-  CTI2.rep★-nonvar-tag Gnv
-rep★-ground-step-framed-core c d (CTI2.rep★-var-tag aligned) =
-  CTI2.rep★-var-tag aligned
+rep★-ground-step-framed-core c d (CTX.rep★-untagged ())
+rep★-ground-step-framed-core c d (CTX.rep★-nonvar-tag Gnv) =
+  CTX.rep★-nonvar-tag Gnv
+rep★-ground-step-framed-core c d (CTX.rep★-var-tag aligned) =
+  CTX.rep★-var-tag aligned
 rep★-ground-step-framed-core c d
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags X₂≢X aligned
-rep★-ground-step-framed-core c d (CTI2.rep★-round-trip ok) =
-  CTI2.rep★-round-trip (rep★-ground-step-framed-core c d ok)
+    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
+  CTX.rep★-matched-inner-tags X₂≢X aligned
+rep★-ground-step-framed-core c d (CTX.rep★-round-trip ok) =
+  CTX.rep★-round-trip (rep★-ground-step-framed-core c d ok)
 
 
 matched-conceal-partner-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
@@ -170,26 +175,26 @@ matched-conceal-partner-ground-step-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ B ∼ G)
   → B ≢ G
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ _! c ⟩)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ _! c ⟩)
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ?
       ((M′ ⟨ c ⟩)
         ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
           ⦃ ground-nonstar Gᵍ ⦄ ⟩)
 matched-conceal-partner-ground-step-core c B≢G
-    (CTI2.matched-seal-star-partner ok) =
-  CTI2.matched-seal-star-partner (rep★-ground-step-core c ok)
+    (CTX.matched-seal-star-partner ok) =
+  CTX.matched-seal-star-partner (rep★-ground-step-core c ok)
 matched-conceal-partner-ground-step-core c B≢G
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
 matched-conceal-partner-ground-step-core c B≢G
-    CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
+    CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
 matched-conceal-partner-ground-step-core c B≢G
-    CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
+    CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
 matched-conceal-partner-ground-step-core c B≢G
-    CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 
 matched-conceal-partner-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
@@ -201,28 +206,28 @@ matched-conceal-partner-ground-step-framed-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ B ∼ G)
   → (d : μ ⊢ C ∼ D)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ?
       ((M′ ⟨ _! c ⟩) ⟨ d ⟩)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ?
       (((M′ ⟨ c ⟩)
         ⟨ _! ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ (idᵍ Gᵍ)
           ⦃ ground-nonstar Gᵍ ⦄ ⟩) ⟨ d ⟩)
 matched-conceal-partner-ground-step-framed-core c d
-    (CTI2.matched-seal-star-partner ok) =
-  CTI2.matched-seal-star-partner
+    (CTX.matched-seal-star-partner ok) =
+  CTX.matched-seal-star-partner
     (rep★-ground-step-framed-core c d ok)
 matched-conceal-partner-ground-step-framed-core c d
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
 matched-conceal-partner-ground-step-framed-core c d
-    CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
+    CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
 matched-conceal-partner-ground-step-framed-core c d
-    CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
+    CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
 matched-conceal-partner-ground-step-framed-core c d
-    CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 
 rep★-projection-impossible : ∀ {Δᴸ Δᴿ Δ}
@@ -232,10 +237,10 @@ rep★-projection-impossible : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ G ∼ B)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ ？ c ⟩)
+  → CTX.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ ？ c ⟩)
   → ⊥
-rep★-projection-impossible c (CTI2.rep★-untagged ())
-rep★-projection-impossible c (CTI2.rep★-round-trip ok) =
+rep★-projection-impossible c (CTX.rep★-untagged ())
+rep★-projection-impossible c (CTX.rep★-round-trip ok) =
   rep★-projection-impossible c ok
 
 
@@ -248,18 +253,18 @@ rep★-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ G ∼ B)
   → (d : μ ⊢ C ∼ D)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? ((M′ ⟨ ？ c ⟩) ⟨ d ⟩)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? (N ⟨ d ⟩)
-rep★-projection-framed-core c d (CTI2.rep★-untagged ())
-rep★-projection-framed-core c d (CTI2.rep★-nonvar-tag Gnv) =
-  CTI2.rep★-nonvar-tag Gnv
-rep★-projection-framed-core c d (CTI2.rep★-var-tag aligned) =
-  CTI2.rep★-var-tag aligned
+  → CTX.Rep★PartnerOK W X P Xᴿ? ((M′ ⟨ ？ c ⟩) ⟨ d ⟩)
+  → CTX.Rep★PartnerOK W X P Xᴿ? (N ⟨ d ⟩)
+rep★-projection-framed-core c d (CTX.rep★-untagged ())
+rep★-projection-framed-core c d (CTX.rep★-nonvar-tag Gnv) =
+  CTX.rep★-nonvar-tag Gnv
+rep★-projection-framed-core c d (CTX.rep★-var-tag aligned) =
+  CTX.rep★-var-tag aligned
 rep★-projection-framed-core c d
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags X₂≢X aligned
-rep★-projection-framed-core c d (CTI2.rep★-round-trip ok) =
-  CTI2.rep★-round-trip (rep★-projection-framed-core c d ok)
+    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
+  CTX.rep★-matched-inner-tags X₂≢X aligned
+rep★-projection-framed-core c d (CTX.rep★-round-trip ok) =
+  CTX.rep★-round-trip (rep★-projection-framed-core c d ok)
 
 
 matched-conceal-partner-projection-core : ∀ {Δᴸ Δᴿ Δ}
@@ -269,23 +274,23 @@ matched-conceal-partner-projection-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ G ∼ B)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ ？ c ⟩)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? N
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ? (M′ ⟨ ？ c ⟩)
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ? N
 matched-conceal-partner-projection-core c
-    (CTI2.matched-seal-star-partner ok) =
+    (CTX.matched-seal-star-partner ok) =
   ⊥-elim (rep★-projection-impossible c ok)
 matched-conceal-partner-projection-core c
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
 matched-conceal-partner-projection-core c
-    CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
+    CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
 matched-conceal-partner-projection-core c
-    CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
+    CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
 matched-conceal-partner-projection-core c
-    CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 
 matched-conceal-partner-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
@@ -297,25 +302,25 @@ matched-conceal-partner-projection-framed-core : ∀ {Δᴸ Δᴿ Δ}
     ⦃ Bns : NonStar B ⦄
   → (c : ν ⊢ G ∼ B)
   → (d : μ ⊢ C ∼ D)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ?
       ((M′ ⟨ ？ c ⟩) ⟨ d ⟩)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? (N ⟨ d ⟩)
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ? (N ⟨ d ⟩)
 matched-conceal-partner-projection-framed-core c d
-    (CTI2.matched-seal-star-partner ok) =
-  CTI2.matched-seal-star-partner
+    (CTX.matched-seal-star-partner ok) =
+  CTX.matched-seal-star-partner
     (rep★-projection-framed-core c d ok)
 matched-conceal-partner-projection-framed-core c d
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
 matched-conceal-partner-projection-framed-core c d
-    CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
+    CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
 matched-conceal-partner-projection-framed-core c d
-    CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
+    CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
 matched-conceal-partner-projection-framed-core c d
-    CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 
 rep★-projection-double-framed-core : ∀ {Δᴸ Δᴿ Δ}
@@ -328,19 +333,19 @@ rep★-projection-double-framed-core : ∀ {Δᴸ Δᴿ Δ}
   → (c : ν ⊢ G ∼ B)
   → (d : μ ⊢ C ∼ D)
   → (e : ω ⊢ E ∼ F)
-  → CTI2.Rep★PartnerOK W X P Xᴿ?
+  → CTX.Rep★PartnerOK W X P Xᴿ?
       (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
-  → CTI2.Rep★PartnerOK W X P Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
-rep★-projection-double-framed-core c d e (CTI2.rep★-untagged ())
-rep★-projection-double-framed-core c d e (CTI2.rep★-nonvar-tag Gnv) =
-  CTI2.rep★-nonvar-tag Gnv
-rep★-projection-double-framed-core c d e (CTI2.rep★-var-tag aligned) =
-  CTI2.rep★-var-tag aligned
+  → CTX.Rep★PartnerOK W X P Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+rep★-projection-double-framed-core c d e (CTX.rep★-untagged ())
+rep★-projection-double-framed-core c d e (CTX.rep★-nonvar-tag Gnv) =
+  CTX.rep★-nonvar-tag Gnv
+rep★-projection-double-framed-core c d e (CTX.rep★-var-tag aligned) =
+  CTX.rep★-var-tag aligned
 rep★-projection-double-framed-core c d e
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags X₂≢X aligned
-rep★-projection-double-framed-core c d e (CTI2.rep★-round-trip ok) =
-  CTI2.rep★-round-trip
+    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
+  CTX.rep★-matched-inner-tags X₂≢X aligned
+rep★-projection-double-framed-core c d e (CTX.rep★-round-trip ok) =
+  CTX.rep★-round-trip
     (rep★-projection-double-framed-core c d e ok)
 
 
@@ -355,25 +360,25 @@ matched-conceal-partner-projection-double-framed-core :
   → (c : ν ⊢ G ∼ B)
   → (d : μ ⊢ C ∼ D)
   → (e : ω ⊢ E ∼ F)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ?
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ?
       (((M′ ⟨ ？ c ⟩) ⟨ d ⟩) ⟨ e ⟩)
-  → CTI2.MatchedConcealPartnerOK W P c₀ Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
+  → CTX.MatchedConcealPartnerOK W P c₀ Xᴿ? ((N ⟨ d ⟩) ⟨ e ⟩)
 matched-conceal-partner-projection-double-framed-core c d e
-    (CTI2.matched-seal-star-partner ok) =
-  CTI2.matched-seal-star-partner
+    (CTX.matched-seal-star-partner ok) =
+  CTX.matched-seal-star-partner
     (rep★-projection-double-framed-core c d e ok)
 matched-conceal-partner-projection-double-framed-core c d e
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
 matched-conceal-partner-projection-double-framed-core c d e
-    CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
+    CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
 matched-conceal-partner-projection-double-framed-core c d e
-    CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
+    CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
 matched-conceal-partner-projection-double-framed-core c d e
-    CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 
 structural-inert-extra-cast-right-at : ∀ {fuel Δᴸ Δᴿ Δ}

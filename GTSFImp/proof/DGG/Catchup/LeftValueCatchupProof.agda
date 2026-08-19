@@ -24,6 +24,7 @@ open import CastTerms
 import Reduction as R
 open import Reduction using (_∎[])
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)
 open import proof.DGG.Catchup.LeftValueCatchupDef
@@ -34,11 +35,14 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (boundary-refl; same-boundary)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; evolve-refl)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 sourceCastBudget : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A ⊑ᵂ⟨ W ⟩ B}
@@ -91,7 +95,7 @@ sourceCastBudget (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
 
 
 source-cast-bound< : ∀ {fuel Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A ⊑ᵂ⟨ W ⟩ B}
@@ -172,7 +176,7 @@ source-cast-bound< (CTI2.⊕⊑⊕² op rel₁ rel₂ r) budget< =
 
 
 source-cast-bound : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {γ : CTI2.CtxImp W}
+    {W : World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A ⊑ᵂ⟨ W ⟩ B}

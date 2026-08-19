@@ -38,6 +38,7 @@ import Reduction
 open import Reduction using (bind; _∷_; [])
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.TypeInTermSubst using
   (StoreRename; StoreRename-ext; StoreRename-keep; StoreRename-wk-bind;
@@ -55,9 +56,11 @@ open import proof.DGG.CenterRename using
    renameEnv-image; renameEnv-off)
 import proof.Imprecision as PI
 
-open CTI2 using
-  ( World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Optional target pivots and indexed conversion typing
@@ -76,54 +79,54 @@ record TargetInsert {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     (W : World Δᴸ Δᴿ Δ)
     (W′ : World Δᴸ Δᴿ′ Δ′) : Set where
   field
-    sourceStore-kept : CTI2.sourceStoreʷ W′ ≡ CTI2.sourceStoreʷ W
+    sourceStore-kept : CTX.sourceStoreʷ W′ ≡ CTX.sourceStoreʷ W
 
     transport⊑ᵂ : ∀ {A : Ty Δᴸ} {B : Ty Δᴿ}
       → A ⊑ᵂ⟨ W ⟩ B
       → A ⊑ᵂ⟨ W′ ⟩ renameᵗ (toRenameᵗ ρ) B
 
     targetStore-rename :
-      StoreRename (toRenameᵗ ρ) (CTI2.targetStoreʷ W)
-        (CTI2.targetStoreʷ W′)
+      StoreRename (toRenameᵗ ρ) (CTX.targetStoreʷ W)
+        (CTX.targetStoreʷ W′)
 
     source-resolve : ∀ Xᴸ
-      → CTI2.resolveVar (CTI2.sourceStoreʷ W′) Xᴸ
-          ≡ CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+      → CTX.resolveVar (CTX.sourceStoreʷ W′) Xᴸ
+          ≡ CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ
 
     target-resolve : ∀ Xᴿ
-      → CTI2.resolveVar (CTI2.targetStoreʷ W′) (toRenameᵗ ρ Xᴿ)
+      → CTX.resolveVar (CTX.targetStoreʷ W′) (toRenameᵗ ρ Xᴿ)
           ≡ renameᵗ (toRenameᵗ ρ)
-              (CTI2.resolveVar (CTI2.targetStoreʷ W) Xᴿ)
+              (CTX.resolveVar (CTX.targetStoreʷ W) Xᴿ)
 
     align-insert : ∀ {Xᴸ Xᴿ}
-      → CTI2.CenterAligned W Xᴸ Xᴿ
-      → CTI2.CenterAligned W′ Xᴸ (toRenameᵗ ρ Xᴿ)
+      → CTX.CenterAligned W Xᴸ Xᴿ
+      → CTX.CenterAligned W′ Xᴸ (toRenameᵗ ρ Xᴿ)
 
     source-insert : ∀ Xᴸ
-      → toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
-          ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+      → toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ
+          ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
 
     target-insert : ∀ Xᴿ
-      → toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ Xᴿ)
-          ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+      → toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ Xᴿ)
+          ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)
 
     impEnv-insert : ∀ Z
-      → CTI2.impEnvʷ W′ (toRenameᵗ π Z) ≡ CTI2.impEnvʷ W Z
+      → CTX.impEnvʷ W′ (toRenameᵗ π Z) ≡ CTX.impEnvʷ W Z
 
     impEnv-off-insert : ∀ {Z′}
       → preimage? π Z′ ≡ nothing
-      → CTI2.impEnvʷ W′ Z′ ≡ X⊑★
+      → CTX.impEnvʷ W′ Z′ ≡ X⊑★
 
     target-center-reflect : ∀ {Y′ Z}
-      → toRenameᵗ (CTI2.ηᴿʷ W′) Y′ ≡ toRenameᵗ π Z
+      → toRenameᵗ (CTX.ηᴿʷ W′) Y′ ≡ toRenameᵗ π Z
       → Σ[ Y ∈ TyVar Δᴿ ]
           Y′ ≡ toRenameᵗ ρ Y ×
-          toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+          toRenameᵗ (CTX.ηᴿʷ W) Y ≡ Z
 
     target-source-reflect : ∀ {Xᴸ Y′}
-      → CTI2.CenterAligned W′ Xᴸ Y′
+      → CTX.CenterAligned W′ Xᴸ Y′
       → Σ[ Y ∈ TyVar Δᴿ ]
-          Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
+          Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned W Xᴸ Y
 
 open TargetInsert public
 
@@ -137,7 +140,7 @@ record TargetWindowInsert {Δᴸ Δᴿ Δ Δ′}
   field
     windowEmbedding : EmbeddingWindow π κ
     window-zero :
-      toRenameᵗ (CTI2.ηᴿʷ W′) Fin.zero ≡ toRenameᵗ κ Fin.zero
+      toRenameᵗ (CTX.ηᴿʷ W′) Fin.zero ≡ toRenameᵗ κ Fin.zero
     window-old : ∀ Z
       → toRenameᵗ π Z ≡ toRenameᵗ κ (Fin.suc Z)
 
@@ -149,15 +152,15 @@ target-source-reflect-from-center : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ Y′}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.CenterAligned W′ Xᴸ Y′
+  → CTX.CenterAligned W′ Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
+      Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned W Xᴸ Y
 target-source-reflect-from-center {π = π} {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y′ = Y′} ins aligned
     with target-center-reflect ins target-image
   where
-  target-image : toRenameᵗ (CTI2.ηᴿʷ W′) Y′
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+  target-image : toRenameᵗ (CTX.ηᴿʷ W′) Y′
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
   target-image = trans (sym aligned) (source-insert ins Xᴸ)
 target-source-reflect-from-center ins aligned
     | Y , y′-eq , target-eq =
@@ -170,8 +173,8 @@ mapCtxᵀ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → CtxImp W
   → CtxImp W′
 mapCtxᵀ ins [] = []
-mapCtxᵀ {ρ = ρ} ins (CTI2.ctx-imp A B p ∷ γ) =
-  CTI2.ctx-imp A (renameᵗ (toRenameᵗ ρ) B) (transport⊑ᵂ ins p) ∷
+mapCtxᵀ {ρ = ρ} ins (CTX.ctx-imp A B p ∷ γ) =
+  CTX.ctx-imp A (renameᵗ (toRenameᵗ ρ) B) (transport⊑ᵂ ins p) ∷
     mapCtxᵀ ins γ
 
 mapCtxᵀ-∋ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -180,11 +183,11 @@ mapCtxᵀ-∋ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {γ : CtxImp W} {x A B}
     {p : A ⊑ᵂ⟨ W ⟩ B}
   → (ins : TargetInsert ρ π W W′)
-  → γ CTI2.∋ʷ x ⦂ CTI2.ctx-imp A B p
-  → mapCtxᵀ ins γ CTI2.∋ʷ x ⦂
-      CTI2.ctx-imp A (renameᵗ (toRenameᵗ ρ) B) (transport⊑ᵂ ins p)
-mapCtxᵀ-∋ ins CTI2.Zʷ = CTI2.Zʷ
-mapCtxᵀ-∋ ins (CTI2.Sʷ x∈) = CTI2.Sʷ (mapCtxᵀ-∋ ins x∈)
+  → γ CTX.∋ʷ x ⦂ CTX.ctx-imp A B p
+  → mapCtxᵀ ins γ CTX.∋ʷ x ⦂
+      CTX.ctx-imp A (renameᵗ (toRenameᵗ ρ) B) (transport⊑ᵂ ins p)
+mapCtxᵀ-∋ ins CTX.Zʷ = CTX.Zʷ
+mapCtxᵀ-∋ ins (CTX.Sʷ x∈) = CTX.Sʷ (mapCtxᵀ-∋ ins x∈)
 
 mapCtxᵀ-same : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -193,21 +196,21 @@ mapCtxᵀ-same : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
   → (ins : TargetInsert ρ π W W⁺)
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.SameCtx (mapCtxᵀ ins γ) (mapCtxᵀ insᵖ γᵖ)
-mapCtxᵀ-same ins insᵖ CTI2.same-[] = CTI2.same-[]
-mapCtxᵀ-same ins insᵖ (CTI2.same-∷ sc) =
-  CTI2.same-∷ (mapCtxᵀ-same ins insᵖ sc)
+  → CTX.SameCtx γ γᵖ
+  → CTX.SameCtx (mapCtxᵀ ins γ) (mapCtxᵀ insᵖ γᵖ)
+mapCtxᵀ-same ins insᵖ CTX.same-[] = CTX.same-[]
+mapCtxᵀ-same ins insᵖ (CTX.same-∷ sc) =
+  CTX.same-∷ (mapCtxᵀ-same ins insᵖ sc)
 
 mapCtxᵀ-tgt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W′)
   → (γ : CtxImp W)
-  → CTI2.tgtCtxʷ (mapCtxᵀ ins γ)
-      ≡ T.renameCtx (toRenameᵗ ρ) (CTI2.tgtCtxʷ γ)
+  → CTX.tgtCtxʷ (mapCtxᵀ ins γ)
+      ≡ T.renameCtx (toRenameᵗ ρ) (CTX.tgtCtxʷ γ)
 mapCtxᵀ-tgt ins [] = refl
-mapCtxᵀ-tgt ins (CTI2.ctx-imp A B p ∷ γ) =
+mapCtxᵀ-tgt ins (CTX.ctx-imp A B p ∷ γ) =
   cong (renameᵗ _ B ∷_) (mapCtxᵀ-tgt ins γ)
 
 source-embed-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -215,46 +218,46 @@ source-embed-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W′)
   → (A : Ty Δᴸ)
-  → CTI2.embedᴸ W′ A
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴸ W A)
+  → CTX.embedᴸ W′ A
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴸ W A)
 source-embed-insert {π = π} {W = W} ins A =
   trans (renameᵗ-cong A (source-insert ins))
-    (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ W)) (toRenameᵗ π) A))
+    (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴸʷ W)) (toRenameᵗ π) A))
 
 target-embed-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W′)
   → (B : Ty Δᴿ)
-  → CTI2.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) B)
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ W B)
+  → CTX.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) B)
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴿ W B)
 target-embed-insert {ρ = ρ} {π = π} {W = W} {W′ = W′} ins B =
-  trans (renameᵗ-comp (toRenameᵗ ρ) (toRenameᵗ (CTI2.ηᴿʷ W′)) B)
+  trans (renameᵗ-comp (toRenameᵗ ρ) (toRenameᵗ (CTX.ηᴿʷ W′)) B)
     (trans (renameᵗ-cong B (target-insert ins))
-      (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ W))
+      (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ W))
         (toRenameᵗ π) B)))
 
 transport⊑ᵂ-from-geometry : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-  → (∀ C → CTI2.embedᴸ W′ C
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴸ W C))
-  → (∀ C → CTI2.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) C)
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ W C))
-  → (∀ Z → CTI2.impEnvʷ W Z ≡ X⊑★
-      → CTI2.impEnvʷ W′ (toRenameᵗ π Z) ≡ X⊑★)
+  → (∀ C → CTX.embedᴸ W′ C
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴸ W C))
+  → (∀ C → CTX.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) C)
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴿ W C))
+  → (∀ Z → CTX.impEnvʷ W Z ≡ X⊑★
+      → CTX.impEnvʷ W′ (toRenameᵗ π Z) ≡ X⊑★)
   → A ⊑ᵂ⟨ W ⟩ B
   → A ⊑ᵂ⟨ W′ ⟩ renameᵗ (toRenameᵗ ρ) B
 transport⊑ᵂ-from-geometry {ρ = ρ} {π = π} {W = W} {W′ = W′}
     {A = A} {B = B} source-eq target-eq env-star p =
   subst≡
-    (λ L → CTI2.impEnvʷ W′ ⊢
-      L ⊑ CTI2.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) B))
+    (λ L → CTX.impEnvʷ W′ ⊢
+      L ⊑ CTX.embedᴿ W′ (renameᵗ (toRenameᵗ ρ) B))
     (sym (source-eq A))
     (subst≡
-      (λ R → CTI2.impEnvʷ W′ ⊢
-        renameᵗ (toRenameᵗ π) (CTI2.embedᴸ W A) ⊑ R)
+      (λ R → CTX.impEnvʷ W′ ⊢
+        renameᵗ (toRenameᵗ π) (CTX.embedᴸ W A) ⊑ R)
       (sym (target-eq B))
       (rename-⊑ (toRenameᵗ π) (toRenameᵗ-injective π)
         env-star p))
@@ -299,19 +302,19 @@ transport⊑ᵂ-by-subst : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W′ : World Δᴸ Δᴿ Δ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
   → (σ : Δ ⇒ˢ Δ′)
-  → (∀ Z → CTI2.impEnvʷ W Z ≡ X⊑★
-      → CTI2.impEnvʷ W′ ⊢ σ Z ⊑ ★)
-  → (∀ C → substᵗ σ (CTI2.embedᴸ W C) ≡ CTI2.embedᴸ W′ C)
-  → (∀ C → substᵗ σ (CTI2.embedᴿ W C) ≡ CTI2.embedᴿ W′ C)
+  → (∀ Z → CTX.impEnvʷ W Z ≡ X⊑★
+      → CTX.impEnvʷ W′ ⊢ σ Z ⊑ ★)
+  → (∀ C → substᵗ σ (CTX.embedᴸ W C) ≡ CTX.embedᴸ W′ C)
+  → (∀ C → substᵗ σ (CTX.embedᴿ W C) ≡ CTX.embedᴿ W′ C)
   → A ⊑ᵂ⟨ W ⟩ B
   → A ⊑ᵂ⟨ W′ ⟩ B
 transport⊑ᵂ-by-subst {W = W} {W′ = W′} {A = A} {B = B}
     σ star-map source-eq target-eq p =
   subst≡
-    (λ L → CTI2.impEnvʷ W′ ⊢ L ⊑ CTI2.embedᴿ W′ B)
+    (λ L → CTX.impEnvʷ W′ ⊢ L ⊑ CTX.embedᴿ W′ B)
     (source-eq A)
     (subst≡
-      (λ R → CTI2.impEnvʷ W′ ⊢ substᵗ σ (CTI2.embedᴸ W A) ⊑ R)
+      (λ R → CTX.impEnvʷ W′ ⊢ substᵗ σ (CTX.embedᴸ W A) ⊑ R)
       (target-eq B)
       (subst-⊑ star-map p))
 
@@ -320,18 +323,18 @@ storeRep-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.StoreRepImp W Xᴸ Xᴿ
-  → CTI2.StoreRepImp W′ Xᴸ (toRenameᵗ ρ Xᴿ)
+  → CTX.StoreRepImp W Xᴸ Xᴿ
+  → CTX.StoreRepImp W′ Xᴸ (toRenameᵗ ρ Xᴿ)
 storeRep-insert {ρ = ρ} {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} ins
-    (CTI2.store-rep-imp represented) =
-  CTI2.store-rep-imp
+    (CTX.store-rep-imp represented) =
+  CTX.store-rep-imp
     (subst≡
       (λ A → A ⊑ᵂ⟨ W′ ⟩
-        CTI2.resolveVar (CTI2.targetStoreʷ W′) (toRenameᵗ ρ Xᴿ))
+        CTX.resolveVar (CTX.targetStoreʷ W′) (toRenameᵗ ρ Xᴿ))
       (sym (source-resolve ins Xᴸ))
       (subst≡
-        (λ B → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+        (λ B → CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ
           ⊑ᵂ⟨ W′ ⟩ B)
         (sym (target-resolve ins Xᴿ))
         (transport⊑ᵂ ins represented)))
@@ -347,9 +350,9 @@ ctx-imp-target-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B} {q : A ⊑ᵂ⟨ W ⟩ B′}
   → B ≡ B′
-  → CTI2.ctx-imp {W = W} A B p ≡ CTI2.ctx-imp {W = W} A B′ q
+  → CTX.ctx-imp {W = W} A B p ≡ CTX.ctx-imp {W = W} A B′ q
 ctx-imp-target-eq {W = W} {A = A} {B = B} {p = p} {q = q} refl =
-  cong (λ r → CTI2.ctx-imp {W = W} A B r) (PI.⊑-unique p q)
+  cong (λ r → CTX.ctx-imp {W = W} A B r) (PI.⊑-unique p q)
 
 just≢nothing : ∀ {A : Set} {x : A} → just x ≢ nothing
 just≢nothing ()
@@ -454,10 +457,10 @@ target-insert-off-image-center : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Y′ : TyVar Δᴿ′}
   → (ins : TargetInsert ρ π W W′)
   → preimage? ρ Y′ ≡ nothing
-  → preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ nothing
+  → preimage? π (toRenameᵗ (CTX.ηᴿʷ W′) Y′) ≡ nothing
 target-insert-off-image-center {ρ = ρ} {π = π} {W′ = W′} {Y′ = Y′}
     ins off
-    with preimage? π (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) in pre
+    with preimage? π (toRenameᵗ (CTX.ηᴿʷ W′) Y′) in pre
 target-insert-off-image-center {ρ = ρ} {π = π} {Y′ = Y′} ins off
     | nothing = refl
 target-insert-off-image-center {ρ = ρ} {π = π} {Y′ = Y′} ins off
@@ -477,9 +480,9 @@ liftBoth-source-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldBoth v W′)) X
+  → toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldBoth v W′)) X
       ≡ toRenameᵗ (keep π)
-          (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldBoth v W)) X)
+          (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldBoth v W)) X)
 liftBoth-source-insert ins Fin.zero = refl
 liftBoth-source-insert ins (Fin.suc X) =
   cong Fin.suc (source-insert ins X)
@@ -490,10 +493,10 @@ liftBoth-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W′))
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W′))
       (toRenameᵗ (keep ρ) X)
       ≡ toRenameᵗ (keep π)
-          (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W)) X)
+          (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W)) X)
 liftBoth-target-insert ins Fin.zero = refl
 liftBoth-target-insert ins (Fin.suc X) =
   cong Fin.suc (target-insert ins X)
@@ -504,11 +507,11 @@ liftBoth-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Y′ : TyVar (Nat.suc Δᴿ′)}
     {Z : TyVar (Nat.suc Δ)}
   → (ins : TargetInsert ρ π W W′)
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W′)) Y′
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W′)) Y′
       ≡ toRenameᵗ (keep π) Z
   → Σ[ Y ∈ TyVar (Nat.suc Δᴿ) ]
       Y′ ≡ toRenameᵗ (keep ρ) Y ×
-      toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W)) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W)) Y ≡ Z
 liftBoth-target-center-reflect {Y′ = Fin.zero} {Z = Fin.zero}
     ins eq =
   Fin.zero , refl , refl
@@ -530,8 +533,8 @@ liftBoth-impEnv-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ Z
-  → CTI2.impEnvʷ (CTI2.liftWorldBoth v W′) (toRenameᵗ (keep π) Z)
-      ≡ CTI2.impEnvʷ (CTI2.liftWorldBoth v W) Z
+  → CTX.impEnvʷ (CTX.liftWorldBoth v W′) (toRenameᵗ (keep π) Z)
+      ≡ CTX.impEnvʷ (CTX.liftWorldBoth v W) Z
 liftBoth-impEnv-insert ins Fin.zero = refl
 liftBoth-impEnv-insert ins (Fin.suc Z) =
   impEnv-insert ins Z
@@ -542,7 +545,7 @@ liftBoth-impEnv-off-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Z′ : TyVar (Nat.suc Δ′)}
   → (ins : TargetInsert ρ π W W′)
   → preimage? (keep π) Z′ ≡ nothing
-  → CTI2.impEnvʷ (CTI2.liftWorldBoth v W′) Z′ ≡ X⊑★
+  → CTX.impEnvʷ (CTX.liftWorldBoth v W′) Z′ ≡ X⊑★
 liftBoth-impEnv-off-insert {Z′ = Fin.zero} ins ()
 liftBoth-impEnv-off-insert {π = π} {Z′ = Fin.suc Z′} ins eq =
   impEnv-off-insert ins (sucMaybe-nothing (preimage? π Z′) eq)
@@ -553,8 +556,8 @@ liftBoth-source-resolve : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → CTI2.resolveVar (CTI2.sourceStoreʷ (CTI2.liftWorldBoth v W′)) X
-      ≡ CTI2.resolveVar (CTI2.sourceStoreʷ (CTI2.liftWorldBoth v W)) X
+  → CTX.resolveVar (CTX.sourceStoreʷ (CTX.liftWorldBoth v W′)) X
+      ≡ CTX.resolveVar (CTX.sourceStoreʷ (CTX.liftWorldBoth v W)) X
 liftBoth-source-resolve ins Fin.zero = refl
 liftBoth-source-resolve ins (Fin.suc X) =
   cong ⇑ᵗ (source-resolve ins X)
@@ -565,16 +568,16 @@ liftBoth-target-resolve : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → CTI2.resolveVar (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W′))
+  → CTX.resolveVar (CTX.targetStoreʷ (CTX.liftWorldBoth v W′))
       (toRenameᵗ (keep ρ) X)
       ≡ renameᵗ (toRenameᵗ (keep ρ))
-          (CTI2.resolveVar
-            (CTI2.targetStoreʷ (CTI2.liftWorldBoth v W)) X)
+          (CTX.resolveVar
+            (CTX.targetStoreʷ (CTX.liftWorldBoth v W)) X)
 liftBoth-target-resolve ins Fin.zero = refl
 liftBoth-target-resolve {ρ = ρ} {W = W} ins (Fin.suc X) =
   trans (cong ⇑ᵗ (target-resolve ins X))
     (sym (renameᵗ-keep-shift ρ
-      (CTI2.resolveVar (CTI2.targetStoreʷ W) X)))
+      (CTX.resolveVar (CTX.targetStoreʷ W) X)))
 
 liftBoth-align-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -582,8 +585,8 @@ liftBoth-align-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Xᴸ : TyVar (Nat.suc Δᴸ)}
     {Xᴿ : TyVar (Nat.suc Δᴿ)}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.CenterAligned (CTI2.liftWorldBoth v W) Xᴸ Xᴿ
-  → CTI2.CenterAligned (CTI2.liftWorldBoth v W′) Xᴸ
+  → CTX.CenterAligned (CTX.liftWorldBoth v W) Xᴸ Xᴿ
+  → CTX.CenterAligned (CTX.liftWorldBoth v W′) Xᴸ
       (toRenameᵗ (keep ρ) Xᴿ)
 liftBoth-align-insert {Xᴸ = Fin.zero} {Xᴿ = Fin.zero} ins aligned =
   refl
@@ -598,10 +601,10 @@ liftBoth-target-source-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Xᴸ : TyVar (Nat.suc Δᴸ)}
     {Y′ : TyVar (Nat.suc Δᴿ′)}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.CenterAligned (CTI2.liftWorldBoth v W′) Xᴸ Y′
+  → CTX.CenterAligned (CTX.liftWorldBoth v W′) Xᴸ Y′
   → Σ[ Y ∈ TyVar (Nat.suc Δᴿ) ]
       Y′ ≡ toRenameᵗ (keep ρ) Y ×
-      CTI2.CenterAligned (CTI2.liftWorldBoth v W) Xᴸ Y
+      CTX.CenterAligned (CTX.liftWorldBoth v W) Xᴸ Y
 liftBoth-target-source-reflect {Xᴸ = Fin.zero} {Y′ = Fin.zero}
     ins aligned =
   Fin.zero , refl , refl
@@ -622,27 +625,27 @@ liftBothTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → TargetInsert ρ π W W′
   → TargetInsert (keep ρ) (keep π)
-      (CTI2.liftWorldBoth v W) (CTI2.liftWorldBoth v W′)
+      (CTX.liftWorldBoth v W) (CTX.liftWorldBoth v W′)
 liftBothTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′} {v = v} ins =
   record
     { sourceStore-kept = cong store-lift (sourceStore-kept ins)
     ; transport⊑ᵂ = λ {A = A} {B = B} p →
         transport⊑ᵂ-from-geometry {ρ = keep ρ} {π = keep π}
-          {W = CTI2.liftWorldBoth v W}
-          {W′ = CTI2.liftWorldBoth v W′}
+          {W = CTX.liftWorldBoth v W}
+          {W′ = CTX.liftWorldBoth v W′}
           {A = A} {B = B}
           (λ C → trans
             (renameᵗ-cong C (liftBoth-source-insert {v = v} ins))
             (sym (renameᵗ-comp
-              (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldBoth v W)))
+              (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldBoth v W)))
               (toRenameᵗ (keep π)) C)))
           (λ C → trans
             (renameᵗ-comp (toRenameᵗ (keep ρ))
-              (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W′))) C)
+              (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W′))) C)
             (trans
               (renameᵗ-cong C (liftBoth-target-insert {v = v} ins))
               (sym (renameᵗ-comp
-                (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldBoth v W)))
+                (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W)))
                 (toRenameᵗ (keep π)) C))))
           (λ Z eq → trans (liftBoth-impEnv-insert {v = v} ins Z) eq)
           p
@@ -667,9 +670,9 @@ liftLeft-source-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft v W′)) X
+  → toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft v W′)) X
       ≡ toRenameᵗ (keep π)
-          (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft v W)) X)
+          (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft v W)) X)
 liftLeft-source-insert ins Fin.zero = refl
 liftLeft-source-insert ins (Fin.suc X) =
   cong Fin.suc (source-insert ins X)
@@ -680,10 +683,10 @@ liftLeft-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′))
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W′))
       (toRenameᵗ ρ X)
       ≡ toRenameᵗ (keep π)
-      (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)) X)
+      (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W)) X)
 liftLeft-target-insert ins X = cong Fin.suc (target-insert ins X)
 
 liftLeft-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -691,11 +694,11 @@ liftLeft-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {v : VarImp} {Y′ : TyVar Δᴿ′} {Z : TyVar (Nat.suc Δ)}
   → (ins : TargetInsert ρ π W W′)
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′)) Y′
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W′)) Y′
       ≡ toRenameᵗ (keep π) Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W)) Y ≡ Z
 liftLeft-target-center-reflect {Z = Fin.zero} ins eq =
   ⊥-elim (suc≢zero eq)
 liftLeft-target-center-reflect {Z = Fin.suc Z} ins eq
@@ -710,8 +713,8 @@ liftLeft-impEnv-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ Z
-  → CTI2.impEnvʷ (CTI2.liftWorldLeft v W′) (toRenameᵗ (keep π) Z)
-      ≡ CTI2.impEnvʷ (CTI2.liftWorldLeft v W) Z
+  → CTX.impEnvʷ (CTX.liftWorldLeft v W′) (toRenameᵗ (keep π) Z)
+      ≡ CTX.impEnvʷ (CTX.liftWorldLeft v W) Z
 liftLeft-impEnv-insert ins Fin.zero = refl
 liftLeft-impEnv-insert ins (Fin.suc Z) =
   impEnv-insert ins Z
@@ -722,7 +725,7 @@ liftLeft-impEnv-off-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Z′ : TyVar (Nat.suc Δ′)}
   → (ins : TargetInsert ρ π W W′)
   → preimage? (keep π) Z′ ≡ nothing
-  → CTI2.impEnvʷ (CTI2.liftWorldLeft v W′) Z′ ≡ X⊑★
+  → CTX.impEnvʷ (CTX.liftWorldLeft v W′) Z′ ≡ X⊑★
 liftLeft-impEnv-off-insert {Z′ = Fin.zero} ins ()
 liftLeft-impEnv-off-insert {π = π} {Z′ = Fin.suc Z′} ins eq =
   impEnv-off-insert ins (sucMaybe-nothing (preimage? π Z′) eq)
@@ -733,8 +736,8 @@ liftLeft-source-resolve : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → (ins : TargetInsert ρ π W W′)
   → ∀ X
-  → CTI2.resolveVar (CTI2.sourceStoreʷ (CTI2.liftWorldLeft v W′)) X
-      ≡ CTI2.resolveVar (CTI2.sourceStoreʷ (CTI2.liftWorldLeft v W)) X
+  → CTX.resolveVar (CTX.sourceStoreʷ (CTX.liftWorldLeft v W′)) X
+      ≡ CTX.resolveVar (CTX.sourceStoreʷ (CTX.liftWorldLeft v W)) X
 liftLeft-source-resolve ins Fin.zero = refl
 liftLeft-source-resolve ins (Fin.suc X) =
   cong ⇑ᵗ (source-resolve ins X)
@@ -745,8 +748,8 @@ liftLeft-align-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Xᴸ : TyVar (Nat.suc Δᴸ)}
     {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.CenterAligned (CTI2.liftWorldLeft v W) Xᴸ Xᴿ
-  → CTI2.CenterAligned (CTI2.liftWorldLeft v W′) Xᴸ
+  → CTX.CenterAligned (CTX.liftWorldLeft v W) Xᴸ Xᴿ
+  → CTX.CenterAligned (CTX.liftWorldLeft v W′) Xᴸ
       (toRenameᵗ ρ Xᴿ)
 liftLeft-align-insert {Xᴸ = Fin.zero} ins ()
 liftLeft-align-insert {Xᴸ = Fin.suc Xᴸ} ins aligned =
@@ -758,10 +761,10 @@ liftLeft-target-source-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp} {Xᴸ : TyVar (Nat.suc Δᴸ)}
     {Y′ : TyVar Δᴿ′}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.CenterAligned (CTI2.liftWorldLeft v W′) Xᴸ Y′
+  → CTX.CenterAligned (CTX.liftWorldLeft v W′) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      CTI2.CenterAligned (CTI2.liftWorldLeft v W) Xᴸ Y
+      CTX.CenterAligned (CTX.liftWorldLeft v W) Xᴸ Y
 liftLeft-target-source-reflect {Xᴸ = Fin.zero} ins ()
 liftLeft-target-source-reflect {Xᴸ = Fin.suc Xᴸ} ins aligned
     with target-source-reflect ins (fin-suc-injective aligned)
@@ -775,27 +778,27 @@ liftLeftTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {v : VarImp}
   → TargetInsert ρ π W W′
   → TargetInsert ρ (keep π)
-      (CTI2.liftWorldLeft v W) (CTI2.liftWorldLeft v W′)
+      (CTX.liftWorldLeft v W) (CTX.liftWorldLeft v W′)
 liftLeftTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′} {v = v} ins =
   record
     { sourceStore-kept = cong store-lift (sourceStore-kept ins)
     ; transport⊑ᵂ = λ {A = A} {B = B} p →
         transport⊑ᵂ-from-geometry {ρ = ρ} {π = keep π}
-          {W = CTI2.liftWorldLeft v W}
-          {W′ = CTI2.liftWorldLeft v W′}
+          {W = CTX.liftWorldLeft v W}
+          {W′ = CTX.liftWorldLeft v W′}
           {A = A} {B = B}
           (λ C → trans
             (renameᵗ-cong C (liftLeft-source-insert {v = v} ins))
             (sym (renameᵗ-comp
-              (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft v W)))
+              (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft v W)))
               (toRenameᵗ (keep π)) C)))
           (λ C → trans
             (renameᵗ-comp (toRenameᵗ ρ)
-              (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W′))) C)
+              (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W′))) C)
             (trans
               (renameᵗ-cong C (liftLeft-target-insert {v = v} ins))
               (sym (renameᵗ-comp
-                (toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft v W)))
+                (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft v W)))
                 (toRenameᵗ (keep π)) C))))
           (λ Z eq → trans (liftLeft-impEnv-insert {v = v} ins Z) eq)
           p
@@ -818,21 +821,21 @@ targetLiftCtxBoth : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {v : VarImp} {γ : CtxImp W}
-    {γ′ : CtxImp (CTI2.liftWorldBoth v W)}
+    {γ′ : CtxImp (CTX.liftWorldBoth v W)}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.LiftCtx v γ γ′
-  → CTI2.LiftCtx v (mapCtxᵀ ins γ)
+  → CTX.LiftCtx v γ γ′
+  → CTX.LiftCtx v (mapCtxᵀ ins γ)
       (mapCtxᵀ (liftBothTargetInsert {v = v} ins) γ′)
-targetLiftCtxBoth ins CTI2.lift-[] = CTI2.lift-[]
+targetLiftCtxBoth ins CTX.lift-[] = CTX.lift-[]
 targetLiftCtxBoth {ρ = ρ} {W′ = W′} {v = v} ins
-    (CTI2.lift-∷ {γ = γ} {γ′ = γ′} {A = A} {B = B}
+    (CTX.lift-∷ {γ = γ} {γ′ = γ′} {A = A} {B = B}
       {p = p} {p′ = p′} liftγ) =
   subst≡
-    (λ e → CTI2.LiftCtx v
-      (mapCtxᵀ ins (CTI2.ctx-imp A B p ∷ γ))
+    (λ e → CTX.LiftCtx v
+      (mapCtxᵀ ins (CTX.ctx-imp A B p ∷ γ))
       (e ∷ mapCtxᵀ (liftBothTargetInsert {v = v} ins) γ′))
     entry-eq
-    (CTI2.lift-∷ (targetLiftCtxBoth ins liftγ))
+    (CTX.lift-∷ (targetLiftCtxBoth ins liftγ))
   where
   insBoth = liftBothTargetInsert {v = v} ins
 
@@ -842,19 +845,19 @@ targetLiftCtxBoth {ρ = ρ} {W′ = W′} {v = v} ins
   shift-eq = renameᵗ-keep-shift ρ B
 
   p-trans :
-      ⇑ᵗ A ⊑ᵂ⟨ CTI2.liftWorldBoth v W′ ⟩
+      ⇑ᵗ A ⊑ᵂ⟨ CTX.liftWorldBoth v W′ ⟩
         renameᵗ (toRenameᵗ (keep ρ)) (⇑ᵗ B)
   p-trans = transport⊑ᵂ insBoth p′
 
   p-shift :
-      ⇑ᵗ A ⊑ᵂ⟨ CTI2.liftWorldBoth v W′ ⟩
+      ⇑ᵗ A ⊑ᵂ⟨ CTX.liftWorldBoth v W′ ⟩
         ⇑ᵗ (renameᵗ (toRenameᵗ ρ) B)
   p-shift = subst≡
-    (λ T → ⇑ᵗ A ⊑ᵂ⟨ CTI2.liftWorldBoth v W′ ⟩ T)
+    (λ T → ⇑ᵗ A ⊑ᵂ⟨ CTX.liftWorldBoth v W′ ⟩ T)
     shift-eq p-trans
 
   entry-eq =
-    ctx-imp-target-eq {W = CTI2.liftWorldBoth v W′}
+    ctx-imp-target-eq {W = CTX.liftWorldBoth v W′}
       {A = ⇑ᵗ A} {B = ⇑ᵗ (renameᵗ (toRenameᵗ ρ) B)}
       {B′ = renameᵗ (toRenameᵗ (keep ρ)) (⇑ᵗ B)}
       {p = p-shift} {q = p-trans}
@@ -864,14 +867,14 @@ targetLiftCtxLeft : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {v : VarImp} {γ : CtxImp W}
-    {γ′ : CtxImp (CTI2.liftWorldLeft v W)}
+    {γ′ : CtxImp (CTX.liftWorldLeft v W)}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.LiftCtxᴸ v γ γ′
-  → CTI2.LiftCtxᴸ v (mapCtxᵀ ins γ)
+  → CTX.LiftCtxᴸ v γ γ′
+  → CTX.LiftCtxᴸ v (mapCtxᵀ ins γ)
       (mapCtxᵀ (liftLeftTargetInsert {v = v} ins) γ′)
-targetLiftCtxLeft ins CTI2.liftᴸ-[] = CTI2.liftᴸ-[]
-targetLiftCtxLeft ins (CTI2.liftᴸ-∷ liftγ) =
-  CTI2.liftᴸ-∷ (targetLiftCtxLeft ins liftγ)
+targetLiftCtxLeft ins CTX.liftᴸ-[] = CTX.liftᴸ-[]
+targetLiftCtxLeft ins (CTX.liftᴸ-∷ liftγ) =
+  CTX.liftᴸ-∷ (targetLiftCtxLeft ins liftγ)
 
 targetSmartLiftCtxLeft : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ Δᵐ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′} {πᵐ : Δᵐ ↪ᵗ Δᵐ′}
@@ -881,12 +884,12 @@ targetSmartLiftCtxLeft : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ Δᵐ′}
     {γ : CtxImp W} {γᵐ : CtxImp Wᵐ}
   → (ins : TargetInsert ρ π W W′)
   → (insᵐ : TargetInsert ρ πᵐ Wᵐ Wᵐ′)
-  → CTI2.SmartLiftCtxᴸ γ γᵐ
-  → CTI2.SmartLiftCtxᴸ (mapCtxᵀ ins γ) (mapCtxᵀ insᵐ γᵐ)
-targetSmartLiftCtxLeft ins insᵐ CTI2.smart-lift-[] =
-  CTI2.smart-lift-[]
-targetSmartLiftCtxLeft ins insᵐ (CTI2.smart-lift-∷ liftγ) =
-  CTI2.smart-lift-∷ (targetSmartLiftCtxLeft ins insᵐ liftγ)
+  → CTX.SmartLiftCtxᴸ γ γᵐ
+  → CTX.SmartLiftCtxᴸ (mapCtxᵀ ins γ) (mapCtxᵀ insᵐ γᵐ)
+targetSmartLiftCtxLeft ins insᵐ CTX.smart-lift-[] =
+  CTX.smart-lift-[]
+targetSmartLiftCtxLeft ins insᵐ (CTX.smart-lift-∷ liftγ) =
+  CTX.smart-lift-∷ (targetSmartLiftCtxLeft ins insᵐ liftγ)
 
 smartAliasInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -895,31 +898,31 @@ smartAliasInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → World (Nat.suc Δᴸ) Δᴿ Δ
   → World (Nat.suc Δᴸ) Δᴿ′ Δ′
 smartAliasInsertWorld {π = π} {W′ = W′} ins Wᵐ =
-  CTI2.world (π ∘↪ CTI2.ηᴸʷ Wᵐ) (CTI2.ηᴿʷ W′)
-    (renameEnv π (CTI2.impEnvʷ Wᵐ))
-    (CTI2.sourceStoreʷ Wᵐ) (CTI2.targetStoreʷ W′)
+  CTX.world (π ∘↪ CTX.ηᴸʷ Wᵐ) (CTX.ηᴿʷ W′)
+    (renameEnv π (CTX.impEnvʷ Wᵐ))
+    (CTX.sourceStoreʷ Wᵐ) (CTX.targetStoreʷ W′)
 
 smartAlias-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → ∀ Y
-  → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ))
+  → toRenameᵗ (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ))
       (toRenameᵗ ρ Y)
-    ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
 smartAlias-target-insert {π = π} {W = W} ins guard Y =
   trans (target-insert ins Y)
     (cong (toRenameᵗ π)
-      (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y)))
+      (sym (CTX.SmartAliasMergeGuard.target-frozen guard Y)))
 
 smartAliasTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → TargetInsert ρ π Wᵐ (smartAliasInsertWorld ins Wᵐ)
 smartAliasTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
     {Wᵐ = Wᵐ} ins guard =
@@ -930,75 +933,75 @@ smartAliasTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
           {W = Wᵐ} {W′ = smartAliasInsertWorld ins Wᵐ}
           {A = A} {B = B}
           (λ C → trans
-            (renameᵗ-cong C (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ)))
-            (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ Wᵐ))
+            (renameᵗ-cong C (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ)))
+            (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴸʷ Wᵐ))
               (toRenameᵗ π) C)))
           (λ C → trans
             (renameᵗ-comp (toRenameᵗ ρ)
-              (toRenameᵗ (CTI2.ηᴿʷ
+              (toRenameᵗ (CTX.ηᴿʷ
                 (smartAliasInsertWorld ins Wᵐ))) C)
             (trans
               (renameᵗ-cong C (smartAlias-target-insert ins guard))
-              (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵐ))
+              (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ Wᵐ))
                 (toRenameᵗ π) C))))
-          (λ Z eq → trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ) Z) eq)
+          (λ Z eq → trans (renameEnv-image π (CTX.impEnvʷ Wᵐ) Z) eq)
           p
     ; targetStore-rename =
         subst≡ (λ Σ → StoreRename (toRenameᵗ ρ) Σ
-          (CTI2.targetStoreʷ W′))
-          (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard))
+          (CTX.targetStoreʷ W′))
+          (sym (CTX.SmartAliasMergeGuard.targetStore-same guard))
           (targetStore-rename ins)
     ; source-resolve = λ X → refl
     ; target-resolve = λ X →
         trans (target-resolve ins X)
           (cong (λ Σ → renameᵗ (toRenameᵗ ρ)
-            (CTI2.resolveVar Σ X))
-            (sym (CTI2.SmartAliasMergeGuard.targetStore-same guard)))
+            (CTX.resolveVar Σ X))
+            (sym (CTX.SmartAliasMergeGuard.targetStore-same guard)))
     ; align-insert = align′
-    ; source-insert = toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ)
+    ; source-insert = toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ)
     ; target-insert = smartAlias-target-insert ins guard
-    ; impEnv-insert = renameEnv-image π (CTI2.impEnvʷ Wᵐ)
-    ; impEnv-off-insert = renameEnv-off π (CTI2.impEnvʷ Wᵐ)
+    ; impEnv-insert = renameEnv-image π (CTX.impEnvʷ Wᵐ)
+    ; impEnv-off-insert = renameEnv-off π (CTX.impEnvʷ Wᵐ)
     ; target-center-reflect = target-center-reflect′
     ; target-source-reflect = target-source-reflect′
     }
   where
   align′ : ∀ {Xᴸ Xᴿ}
-    → CTI2.CenterAligned Wᵐ Xᴸ Xᴿ
-    → CTI2.CenterAligned (smartAliasInsertWorld ins Wᵐ)
+    → CTX.CenterAligned Wᵐ Xᴸ Xᴿ
+    → CTX.CenterAligned (smartAliasInsertWorld ins Wᵐ)
         Xᴸ (toRenameᵗ ρ Xᴿ)
   align′ {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} aligned =
-    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+    trans (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ) Xᴸ)
       (trans (cong (toRenameᵗ π) aligned)
         (sym (smartAlias-target-insert ins guard Xᴿ)))
 
   target-center-reflect′ : ∀ {Y′ Z}
-    → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
+    → toRenameᵗ (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
         ≡ toRenameᵗ π Z
     → Σ[ Y ∈ TyVar _ ]
         Y′ ≡ toRenameᵗ ρ Y ×
-        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+        toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y ≡ Z
   target-center-reflect′ eq
       with target-center-reflect ins eq
   target-center-reflect′ eq | Y , y′-eq , target-eq =
     Y , y′-eq ,
-      trans (CTI2.SmartAliasMergeGuard.target-frozen guard Y) target-eq
+      trans (CTX.SmartAliasMergeGuard.target-frozen guard Y) target-eq
 
   target-source-reflect′ : ∀ {Xᴸ Y′}
-    → CTI2.CenterAligned (smartAliasInsertWorld ins Wᵐ) Xᴸ Y′
+    → CTX.CenterAligned (smartAliasInsertWorld ins Wᵐ) Xᴸ Y′
     → Σ[ Y ∈ TyVar _ ]
-        Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵐ Xᴸ Y
+        Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned Wᵐ Xᴸ Y
   target-source-reflect′ {Xᴸ = Xᴸ} {Y′ = Y′} aligned
       with target-center-reflect ins target-image
     where
-    target-image : toRenameᵗ (CTI2.ηᴿʷ W′) Y′
-        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+    target-image : toRenameᵗ (CTX.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Xᴸ)
     target-image =
-      trans (sym aligned) (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+      trans (sym aligned) (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ) Xᴸ)
   target-source-reflect′ aligned | Y , y′-eq , target-eq =
     Y , y′-eq ,
       trans (sym target-eq)
-        (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y))
+        (sym (CTX.SmartAliasMergeGuard.target-frozen guard Y))
 
 
 smartAliasTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
@@ -1007,7 +1010,7 @@ smartAliasTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
     {κ : Nat.suc Δ ↪ᵗ Δ′}
   → (ins : TargetInsert wk↪ᵗ π W W′)
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → TargetWindowInsert ins κ
   → TargetWindowInsert (smartAliasTargetInsert ins guard) κ
 smartAliasTargetWindowInsert ins guard win = record
@@ -1021,187 +1024,187 @@ smartAliasGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δ} {β α}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartAliasMergeGuard W Wᵐ β α)
-  → CTI2.SmartAliasMergeGuard W′ (smartAliasInsertWorld ins Wᵐ)
+  → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
+  → CTX.SmartAliasMergeGuard W′ (smartAliasInsertWorld ins Wᵐ)
       (toRenameᵗ ρ β) (toRenameᵗ ρ α)
 smartAliasGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     {ρ = ρ} {π = π} {W = W} {W′ = W′}
     {Wᵐ = Wᵐ} {β = β} {α = α} ins guard =
-  CTI2.smart-alias-merge-guard
+  CTX.smart-alias-merge-guard
     (targetStore-rename ins
-      (CTI2.SmartAliasMergeGuard.β:=＇α guard))
+      (CTX.SmartAliasMergeGuard.β:=＇α guard))
     (targetStore-rename ins
-      (CTI2.SmartAliasMergeGuard.α:=★ guard))
+      (CTX.SmartAliasMergeGuard.α:=★ guard))
     source-store target-store transport′ old-mark-mono′
     target-frozen′ pending-at-alias′ old-source-frozen′
     no-old-source-at-alias′ alias-mark′ name-mark′
     target-mark-off-footprint′
   where
-  source-store : CTI2.sourceStoreʷ (smartAliasInsertWorld ins Wᵐ)
-      ≡ store-lift (CTI2.sourceStoreʷ W′)
+  source-store : CTX.sourceStoreʷ (smartAliasInsertWorld ins Wᵐ)
+      ≡ store-lift (CTX.sourceStoreʷ W′)
   source-store =
-    trans (CTI2.SmartAliasMergeGuard.sourceStore-lifted guard)
+    trans (CTX.SmartAliasMergeGuard.sourceStore-lifted guard)
       (cong store-lift (sym (sourceStore-kept ins)))
 
-  target-store : CTI2.targetStoreʷ (smartAliasInsertWorld ins Wᵐ)
-      ≡ CTI2.targetStoreʷ W′
+  target-store : CTX.targetStoreʷ (smartAliasInsertWorld ins Wᵐ)
+      ≡ CTX.targetStoreʷ W′
   target-store = refl
 
   target-frozen′ : ∀ Y′
-    → toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
-      ≡ toRenameᵗ (CTI2.ηᴿʷ W′) Y′
+    → toRenameᵗ (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′
+      ≡ toRenameᵗ (CTX.ηᴿʷ W′) Y′
   target-frozen′ Y′ = refl
 
   smartSubst : Nat.suc Δ′ ⇒ˢ Δ′
   smartSubst Fin.zero =
-    ＇ (toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β))
+    ＇ (toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ β))
   smartSubst (Fin.suc Z) = ＇ Z
 
   pending-at-alias′ :
-    toRenameᵗ (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) Fin.zero
-      ≡ toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β)
+    toRenameᵗ (CTX.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) Fin.zero
+      ≡ toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ β)
   pending-at-alias′ =
-    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+    trans (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ) Fin.zero)
       (trans (cong (toRenameᵗ π)
-        (CTI2.SmartAliasMergeGuard.pending-at-alias guard))
+        (CTX.SmartAliasMergeGuard.pending-at-alias guard))
         (sym (target-insert ins β)))
 
   old-source-frozen′ : ∀ Xᴸ
     → toRenameᵗ
-        (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) (Fin.suc Xᴸ)
-      ≡ toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
+        (CTX.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ
   old-source-frozen′ Xᴸ =
-    trans (toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
+    trans (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
       (trans (cong (toRenameᵗ π)
-        (CTI2.SmartAliasMergeGuard.old-source-frozen guard Xᴸ))
+        (CTX.SmartAliasMergeGuard.old-source-frozen guard Xᴸ))
         (sym (source-insert ins Xᴸ)))
 
   old-mark-mono′ : ∀ Z′
-    → CTI2.impEnvʷ W′ Z′ ≡ X⊑★
-    → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ) Z′ ≡ X⊑★
+    → CTX.impEnvʷ W′ Z′ ≡ X⊑★
+    → CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ) Z′ ≡ X⊑★
   old-mark-mono′ Z′ star with preimage? π Z′ in pre
   old-mark-mono′ Z′ star | nothing =
-    renameEnv-off π (CTI2.impEnvʷ Wᵐ) pre
+    renameEnv-off π (CTX.impEnvʷ Wᵐ) pre
   old-mark-mono′ Z′ star | just Z =
     subst≡
-      (λ C → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ) C
+      (λ C → CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ) C
         ≡ X⊑★)
       (sym image-eq)
-      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ) Z)
-        (CTI2.SmartAliasMergeGuard.old-mark-mono guard Z old-star))
+      (trans (renameEnv-image π (CTX.impEnvʷ Wᵐ) Z)
+        (CTX.SmartAliasMergeGuard.old-mark-mono guard Z old-star))
     where
     image-eq : Z′ ≡ toRenameᵗ π Z
     image-eq = preimage?-sound π pre
 
-    old-star : CTI2.impEnvʷ W Z ≡ X⊑★
+    old-star : CTX.impEnvʷ W Z ≡ X⊑★
     old-star =
       trans (sym (impEnv-insert ins Z))
-        (subst≡ (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+        (subst≡ (λ C → CTX.impEnvʷ W′ C ≡ X⊑★)
           image-eq star)
 
   alias-mark′ :
-    CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
-      (toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β))
+    CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ β))
       ≡ X⊑★
   alias-mark′ =
-    trans (cong (renameEnv π (CTI2.impEnvʷ Wᵐ))
+    trans (cong (renameEnv π (CTX.impEnvʷ Wᵐ))
         (target-insert ins β))
-      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
-        (toRenameᵗ (CTI2.ηᴿʷ W) β))
-        (CTI2.SmartAliasMergeGuard.alias-mark-dynamic guard))
+      (trans (renameEnv-image π (CTX.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ W) β))
+        (CTX.SmartAliasMergeGuard.alias-mark-dynamic guard))
 
   smartStar : ∀ Z
-    → CTI2.impEnvʷ (CTI2.liftWorldLeft X⊑★ W′) Z ≡ X⊑★
-    → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+    → CTX.impEnvʷ (CTX.liftWorldLeft X⊑★ W′) Z ≡ X⊑★
+    → CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
         ⊢ smartSubst Z ⊑ ★
   smartStar Fin.zero star = X⊑★ alias-mark′
   smartStar (Fin.suc Z) star = X⊑★ (old-mark-mono′ Z star)
 
   source-point : ∀ X
-    → smartSubst (toRenameᵗ (keep (CTI2.ηᴸʷ W′)) X)
-      ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) X)
+    → smartSubst (toRenameᵗ (keep (CTX.ηᴸʷ W′)) X)
+      ≡ ＇ (toRenameᵗ (CTX.ηᴸʷ (smartAliasInsertWorld ins Wᵐ)) X)
   source-point Fin.zero = cong ＇_ (sym pending-at-alias′)
   source-point (Fin.suc X) = cong ＇_ (sym (old-source-frozen′ X))
 
   target-point : ∀ Y
-    → smartSubst (toRenameᵗ (skip (CTI2.ηᴿʷ W′)) Y)
-      ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y)
+    → smartSubst (toRenameᵗ (skip (CTX.ηᴿʷ W′)) Y)
+      ≡ ＇ (toRenameᵗ (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y)
   target-point Y = refl
 
   source-eq : ∀ C
     → substᵗ smartSubst
-        (CTI2.embedᴸ (CTI2.liftWorldLeft X⊑★ W′) C)
-      ≡ CTI2.embedᴸ (smartAliasInsertWorld ins Wᵐ) C
+        (CTX.embedᴸ (CTX.liftWorldLeft X⊑★ W′) C)
+      ≡ CTX.embedᴸ (smartAliasInsertWorld ins Wᵐ) C
   source-eq C =
     trans (substᵗ-rename smartSubst
-        (toRenameᵗ (keep (CTI2.ηᴸʷ W′))) C)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W′))) C)
       (trans (substᵗ-cong C source-point)
         (rename-as-subst
-          (toRenameᵗ (CTI2.ηᴸʷ (smartAliasInsertWorld ins Wᵐ))) C))
+          (toRenameᵗ (CTX.ηᴸʷ (smartAliasInsertWorld ins Wᵐ))) C))
 
   target-eq : ∀ C
     → substᵗ smartSubst
-        (CTI2.embedᴿ (CTI2.liftWorldLeft X⊑★ W′) C)
-      ≡ CTI2.embedᴿ (smartAliasInsertWorld ins Wᵐ) C
+        (CTX.embedᴿ (CTX.liftWorldLeft X⊑★ W′) C)
+      ≡ CTX.embedᴿ (smartAliasInsertWorld ins Wᵐ) C
   target-eq C =
     trans (substᵗ-rename smartSubst
-        (toRenameᵗ (skip (CTI2.ηᴿʷ W′))) C)
+        (toRenameᵗ (skip (CTX.ηᴿʷ W′))) C)
       (trans (substᵗ-cong C target-point)
         (rename-as-subst
-          (toRenameᵗ (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ))) C))
+          (toRenameᵗ (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ))) C))
 
   transport′ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ′}
-    → A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W′ ⟩ B
+    → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W′ ⟩ B
     → A ⊑ᵂ⟨ smartAliasInsertWorld ins Wᵐ ⟩ B
   transport′ =
     transport⊑ᵂ-by-subst
-      {W = CTI2.liftWorldLeft X⊑★ W′}
+      {W = CTX.liftWorldLeft X⊑★ W′}
       {W′ = smartAliasInsertWorld ins Wᵐ}
       smartSubst smartStar source-eq target-eq
 
   no-old-source-at-alias′ : ∀ Xᴸ
-    → toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ
-      ≢ toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ β)
+    → toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ
+      ≢ toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ β)
   no-old-source-at-alias′ Xᴸ eq =
-    CTI2.SmartAliasMergeGuard.no-old-source-at-alias guard Xᴸ
+    CTX.SmartAliasMergeGuard.no-old-source-at-alias guard Xᴸ
       (toRenameᵗ-injective π
         (trans (sym (source-insert ins Xᴸ))
           (trans eq (target-insert ins β))))
 
   name-mark′ :
-    CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
-      (toRenameᵗ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ α))
+    CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ W′) (toRenameᵗ ρ α))
       ≡ X⊑★
   name-mark′ =
-    trans (cong (renameEnv π (CTI2.impEnvʷ Wᵐ))
+    trans (cong (renameEnv π (CTX.impEnvʷ Wᵐ))
         (target-insert ins α))
-      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
-        (toRenameᵗ (CTI2.ηᴿʷ W) α))
-        (CTI2.SmartAliasMergeGuard.name-mark-dynamic guard))
+      (trans (renameEnv-image π (CTX.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ W) α))
+        (CTX.SmartAliasMergeGuard.name-mark-dynamic guard))
 
   target-mark-off-footprint′ : ∀ Y′
     → Y′ ≢ toRenameᵗ ρ β
     → Y′ ≢ toRenameᵗ ρ α
-    → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ X⊑★
-    → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
+    → CTX.impEnvʷ W′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′) ≡ X⊑★
+    → CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ)
         (toRenameᵗ
-          (CTI2.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′)
+          (CTX.ηᴿʷ (smartAliasInsertWorld ins Wᵐ)) Y′)
       ≡ X⊑★
   target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
       with preimage? ρ Y′ in pre
   target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
       | nothing =
-    renameEnv-off π (CTI2.impEnvʷ Wᵐ)
+    renameEnv-off π (CTX.impEnvʷ Wᵐ)
       (target-insert-off-image-center ins pre)
   target-mark-off-footprint′ Y′ Y′≢β Y′≢α star
       | just Y =
     subst≡
-      (λ C → CTI2.impEnvʷ (smartAliasInsertWorld ins Wᵐ) C
+      (λ C → CTX.impEnvʷ (smartAliasInsertWorld ins Wᵐ) C
         ≡ X⊑★)
       (sym smart-image-eq)
-      (trans (renameEnv-image π (CTI2.impEnvʷ Wᵐ)
-          (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y))
-        (CTI2.SmartAliasMergeGuard.target-mark-off-footprint guard
+      (trans (renameEnv-image π (CTX.impEnvʷ Wᵐ)
+          (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y))
+        (CTX.SmartAliasMergeGuard.target-mark-off-footprint guard
           Y Y≢β Y≢α old-star))
     where
     y′-eq : Y′ ≡ toRenameᵗ ρ Y
@@ -1214,70 +1217,70 @@ smartAliasGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     Y≢α eq = Y′≢α (trans y′-eq (cong (toRenameᵗ ρ) eq))
 
     old-center-eq :
-      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
-        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+      toRenameᵗ (CTX.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Y)
     old-center-eq =
-      trans (cong (toRenameᵗ (CTI2.ηᴿʷ W′)) y′-eq)
+      trans (cong (toRenameᵗ (CTX.ηᴿʷ W′)) y′-eq)
         (target-insert ins Y)
 
     old-star :
-      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
+      CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴿʷ W) Y) ≡ X⊑★
     old-star =
       trans (sym (impEnv-insert ins
-          (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+          (toRenameᵗ (CTX.ηᴿʷ W) Y)))
         (subst≡
-          (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+          (λ C → CTX.impEnvʷ W′ C ≡ X⊑★)
           old-center-eq star)
 
     smart-image-eq :
-      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
-        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+      toRenameᵗ (CTX.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
     smart-image-eq =
       trans old-center-eq
         (cong (toRenameᵗ π)
-          (sym (CTI2.SmartAliasMergeGuard.target-frozen guard Y)))
+          (sym (CTX.SmartAliasMergeGuard.target-frozen guard Y)))
 
 smartFreshInsertWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → World (Nat.suc Δᴸ) Δᴿ′
       (EmbeddingPushout.Δᵐ′
         (embeddingPushout π
-          (CTI2.SmartFreshBehindGuard.oldCenters guard)))
+          (CTX.SmartFreshBehindGuard.oldCenters guard)))
 smartFreshInsertWorld {π = π} {W′ = W′} {Wᵐ = Wᵐ} ins guard =
-  CTI2.world
-    (EmbeddingPushout.premise po ∘↪ CTI2.ηᴸʷ Wᵐ)
-    (EmbeddingPushout.old′ po ∘↪ CTI2.ηᴿʷ W′)
-    (renameEnv (EmbeddingPushout.premise po) (CTI2.impEnvʷ Wᵐ))
-    (CTI2.sourceStoreʷ Wᵐ) (CTI2.targetStoreʷ W′)
+  CTX.world
+    (EmbeddingPushout.premise po ∘↪ CTX.ηᴸʷ Wᵐ)
+    (EmbeddingPushout.old′ po ∘↪ CTX.ηᴿʷ W′)
+    (renameEnv (EmbeddingPushout.premise po) (CTX.impEnvʷ Wᵐ))
+    (CTX.sourceStoreʷ Wᵐ) (CTX.targetStoreʷ W′)
   where
-  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  po = embeddingPushout π (CTX.SmartFreshBehindGuard.oldCenters guard)
 
 smartFresh-target-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → ∀ Y
-  → toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard))
+  → toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard))
       (toRenameᵗ ρ Y)
     ≡ toRenameᵗ (EmbeddingPushout.premise
         (embeddingPushout π
-          (CTI2.SmartFreshBehindGuard.oldCenters guard)))
-        (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+          (CTX.SmartFreshBehindGuard.oldCenters guard)))
+        (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
 smartFresh-target-insert {ρ = ρ} {π = π} {W = W} {W′ = W′}
     {Wᵐ = Wᵐ} ins guard Y =
-  trans (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) (toRenameᵗ ρ Y))
+  trans (toRenameᵗ-∘ old′ (CTX.ηᴿʷ W′) (toRenameᵗ ρ Y))
     (trans (cong (toRenameᵗ old′) (target-insert ins Y))
-      (trans (sym (commutes (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+      (trans (sym (commutes (toRenameᵗ (CTX.ηᴿʷ W) Y)))
         (cong (toRenameᵗ πᵐ)
-          (sym (CTI2.SmartFreshBehindGuard.target-frozen guard Y)))))
+          (sym (CTX.SmartFreshBehindGuard.target-frozen guard Y)))))
   where
-  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  po = embeddingPushout π (CTX.SmartFreshBehindGuard.oldCenters guard)
   πᵐ = EmbeddingPushout.premise po
   old′ = EmbeddingPushout.old′ po
   commutes = EmbeddingPushout.commutes po
@@ -1287,10 +1290,10 @@ smartFreshTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → TargetInsert ρ (EmbeddingPushout.premise
       (embeddingPushout π
-        (CTI2.SmartFreshBehindGuard.oldCenters guard))) Wᵐ
+        (CTX.SmartFreshBehindGuard.oldCenters guard))) Wᵐ
       (smartFreshInsertWorld ins guard)
 smartFreshTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
     {Wᵐ = Wᵐ} ins guard =
@@ -1301,60 +1304,60 @@ smartFreshTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
           {W = Wᵐ} {W′ = smartFreshInsertWorld ins guard}
           {A = A} {B = B}
           (λ C → trans
-            (renameᵗ-cong C (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ)))
-            (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ Wᵐ))
+            (renameᵗ-cong C (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ)))
+            (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴸʷ Wᵐ))
               (toRenameᵗ πᵐ) C)))
           (λ C → trans
             (renameᵗ-comp (toRenameᵗ ρ)
-              (toRenameᵗ (CTI2.ηᴿʷ
+              (toRenameᵗ (CTX.ηᴿʷ
                 (smartFreshInsertWorld ins guard))) C)
             (trans
               (renameᵗ-cong C (smartFresh-target-insert ins guard))
-              (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵐ))
+              (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ Wᵐ))
                 (toRenameᵗ πᵐ) C))))
-          (λ Z eq → trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ) Z) eq)
+          (λ Z eq → trans (renameEnv-image πᵐ (CTX.impEnvʷ Wᵐ) Z) eq)
           p
     ; targetStore-rename =
         subst≡ (λ Σ → StoreRename (toRenameᵗ ρ) Σ
-          (CTI2.targetStoreʷ W′))
-          (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard))
+          (CTX.targetStoreʷ W′))
+          (sym (CTX.SmartFreshBehindGuard.targetStore-same guard))
           (targetStore-rename ins)
     ; source-resolve = λ X → refl
     ; target-resolve = λ X →
         trans (target-resolve ins X)
           (cong (λ Σ → renameᵗ (toRenameᵗ ρ)
-            (CTI2.resolveVar Σ X))
-            (sym (CTI2.SmartFreshBehindGuard.targetStore-same guard)))
+            (CTX.resolveVar Σ X))
+            (sym (CTX.SmartFreshBehindGuard.targetStore-same guard)))
     ; align-insert = align′
-    ; source-insert = toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ)
+    ; source-insert = toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ)
     ; target-insert = smartFresh-target-insert ins guard
-    ; impEnv-insert = renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
-    ; impEnv-off-insert = renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ)
+    ; impEnv-insert = renameEnv-image πᵐ (CTX.impEnvʷ Wᵐ)
+    ; impEnv-off-insert = renameEnv-off πᵐ (CTX.impEnvʷ Wᵐ)
     ; target-center-reflect = target-center-reflect′
     ; target-source-reflect = target-source-reflect′
     }
   where
-  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  po = embeddingPushout π (CTX.SmartFreshBehindGuard.oldCenters guard)
   πᵐ = EmbeddingPushout.premise po
-  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old = CTX.SmartFreshBehindGuard.oldCenters guard
   old′ = EmbeddingPushout.old′ po
   commutes = EmbeddingPushout.commutes po
 
   align′ : ∀ {Xᴸ Xᴿ}
-    → CTI2.CenterAligned Wᵐ Xᴸ Xᴿ
-    → CTI2.CenterAligned (smartFreshInsertWorld ins guard)
+    → CTX.CenterAligned Wᵐ Xᴸ Xᴿ
+    → CTX.CenterAligned (smartFreshInsertWorld ins guard)
         Xᴸ (toRenameᵗ ρ Xᴿ)
   align′ {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} aligned =
-    trans (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+    trans (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ) Xᴸ)
       (trans (cong (toRenameᵗ πᵐ) aligned)
         (sym (smartFresh-target-insert ins guard Xᴿ)))
 
   target-center-reflect′ : ∀ {Y′ Z}
-    → toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+    → toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
         ≡ toRenameᵗ πᵐ Z
     → Σ[ Y ∈ TyVar _ ]
         Y′ ≡ toRenameᵗ ρ Y ×
-        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+        toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y ≡ Z
   target-center-reflect′ {Y′ = Y′} {Z = Z} eq
       with preimage? ρ Y′ in pre
   target-center-reflect′ {Y′ = Y′} {Z = Z} eq
@@ -1362,10 +1365,10 @@ smartFreshTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
     ⊥-elim (pushout-off-image-disjoint π old
       (target-insert-off-image-center ins pre) nested-eq)
     where
-    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′)
       ≡ toRenameᵗ πᵐ Z
     nested-eq =
-      trans (sym (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Y′)) eq
+      trans (sym (toRenameᵗ-∘ old′ (CTX.ηᴿʷ W′) Y′)) eq
   target-center-reflect′ {Y′ = Y′} {Z = Z} eq
       | just Y =
     Y , preimage?-sound ρ pre ,
@@ -1374,33 +1377,33 @@ smartFreshTargetInsert {ρ = ρ} {π = π} {W = W} {W′ = W′}
     y′-eq : Y′ ≡ toRenameᵗ ρ Y
     y′-eq = preimage?-sound ρ pre
 
-    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
+    nested-eq : toRenameᵗ old′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′)
       ≡ toRenameᵗ πᵐ Z
     nested-eq =
-      trans (sym (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Y′)) eq
+      trans (sym (toRenameᵗ-∘ old′ (CTX.ηᴿʷ W′) Y′)) eq
 
-    left-image : toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
-      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+    left-image : toRenameᵗ old′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′)
+      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
     left-image =
       trans (cong (λ T →
-          toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) T)) y′-eq)
+          toRenameᵗ old′ (toRenameᵗ (CTX.ηᴿʷ W′) T)) y′-eq)
         (trans (cong (toRenameᵗ old′) (target-insert ins Y))
-          (trans (sym (commutes (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+          (trans (sym (commutes (toRenameᵗ (CTX.ηᴿʷ W) Y)))
             (cong (toRenameᵗ πᵐ)
-              (sym (CTI2.SmartFreshBehindGuard.target-frozen guard Y)))))
+              (sym (CTX.SmartFreshBehindGuard.target-frozen guard Y)))))
 
   target-source-reflect′ : ∀ {Xᴸ Y′}
-    → CTI2.CenterAligned (smartFreshInsertWorld ins guard) Xᴸ Y′
+    → CTX.CenterAligned (smartFreshInsertWorld ins guard) Xᴸ Y′
     → Σ[ Y ∈ TyVar _ ]
-        Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵐ Xᴸ Y
+        Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned Wᵐ Xᴸ Y
   target-source-reflect′ {Xᴸ = Xᴸ} {Y′ = Y′} aligned
       with target-center-reflect′ target-image
     where
     target-image :
-      toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
-        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+      toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Xᴸ)
     target-image =
-      trans (sym aligned) (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Xᴸ)
+      trans (sym aligned) (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ) Xᴸ)
   target-source-reflect′ aligned | Y , y′-eq , target-eq =
     Y , y′-eq , sym target-eq
 
@@ -1409,109 +1412,109 @@ smartFreshGuardInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
   → (ins : TargetInsert ρ π W W′)
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
-  → CTI2.SmartFreshBehindGuard W′ (smartFreshInsertWorld ins guard)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
+  → CTX.SmartFreshBehindGuard W′ (smartFreshInsertWorld ins guard)
 smartFreshGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     {ρ = ρ} {π = π} {W = W} {W′ = W′} {Wᵐ = Wᵐ}
     ins guard =
-  CTI2.smart-fresh-behind-guard old′
+  CTX.smart-fresh-behind-guard old′
     source-store target-store transport′ old-mark-mono′
     target-frozen′ old-source-frozen′ fresh-not-target′ fresh-mark′
     target-mark-mono′
   where
-  po = embeddingPushout π (CTI2.SmartFreshBehindGuard.oldCenters guard)
+  po = embeddingPushout π (CTX.SmartFreshBehindGuard.oldCenters guard)
   πᵐ = EmbeddingPushout.premise po
-  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old = CTX.SmartFreshBehindGuard.oldCenters guard
   old′ = EmbeddingPushout.old′ po
   commutes = EmbeddingPushout.commutes po
 
-  source-store : CTI2.sourceStoreʷ (smartFreshInsertWorld ins guard)
-      ≡ store-lift (CTI2.sourceStoreʷ W′)
+  source-store : CTX.sourceStoreʷ (smartFreshInsertWorld ins guard)
+      ≡ store-lift (CTX.sourceStoreʷ W′)
   source-store =
-    trans (CTI2.SmartFreshBehindGuard.sourceStore-lifted guard)
+    trans (CTX.SmartFreshBehindGuard.sourceStore-lifted guard)
       (cong store-lift (sym (sourceStore-kept ins)))
 
-  target-store : CTI2.targetStoreʷ (smartFreshInsertWorld ins guard)
-      ≡ CTI2.targetStoreʷ W′
+  target-store : CTX.targetStoreʷ (smartFreshInsertWorld ins guard)
+      ≡ CTX.targetStoreʷ W′
   target-store = refl
 
   target-frozen′ : ∀ Y′
     → toRenameᵗ
-        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
-      ≡ toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′)
-  target-frozen′ = toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′)
+        (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+      ≡ toRenameᵗ old′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′)
+  target-frozen′ = toRenameᵗ-∘ old′ (CTX.ηᴿʷ W′)
 
   smartSubst : Nat.suc Δ′ ⇒ˢ EmbeddingPushout.Δᵐ′ po
   smartSubst Fin.zero =
     ＇ (toRenameᵗ
-      (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero)
+      (CTX.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero)
   smartSubst (Fin.suc Z′) = ＇ (toRenameᵗ old′ Z′)
 
   old-source-frozen′ : ∀ Xᴸ
     → toRenameᵗ
-        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) (Fin.suc Xᴸ)
-      ≡ toRenameᵗ old′ (toRenameᵗ (CTI2.ηᴸʷ W′) Xᴸ)
+        (CTX.ηᴸʷ (smartFreshInsertWorld ins guard)) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ old′ (toRenameᵗ (CTX.ηᴸʷ W′) Xᴸ)
   old-source-frozen′ Xᴸ =
-    trans (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
+    trans (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ) (Fin.suc Xᴸ))
       (trans (cong (toRenameᵗ πᵐ)
-        (CTI2.SmartFreshBehindGuard.old-source-frozen guard Xᴸ))
-        (trans (commutes (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ))
+        (CTX.SmartFreshBehindGuard.old-source-frozen guard Xᴸ))
+        (trans (commutes (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ))
           (cong (toRenameᵗ old′) (sym (source-insert ins Xᴸ)))))
 
   fresh-not-target′ : ∀ Y′
     → toRenameᵗ
-        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
       ≢ toRenameᵗ
-        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero
+        (CTX.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero
   fresh-not-target′ Y′ eq
       with target-center-reflect
         (smartFreshTargetInsert ins guard) target-image
     where
     target-image :
       toRenameᵗ
-        (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
-      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+        (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+      ≡ toRenameᵗ πᵐ (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero)
     target-image =
-      trans eq (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Fin.zero)
+      trans eq (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ) Fin.zero)
   fresh-not-target′ Y′ eq | Y , y′-eq , target-eq =
-    CTI2.SmartFreshBehindGuard.fresh-not-target guard Y target-eq
+    CTX.SmartFreshBehindGuard.fresh-not-target guard Y target-eq
 
   fresh-mark′ :
-    CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+    CTX.impEnvʷ (smartFreshInsertWorld ins guard)
       (toRenameᵗ
-        (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero)
+        (CTX.ηᴸʷ (smartFreshInsertWorld ins guard)) Fin.zero)
       ≡ X⊑★
   fresh-mark′ =
-    trans (cong (renameEnv πᵐ (CTI2.impEnvʷ Wᵐ))
-        (toRenameᵗ-∘ πᵐ (CTI2.ηᴸʷ Wᵐ) Fin.zero))
-      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
-        (toRenameᵗ (CTI2.ηᴸʷ Wᵐ) Fin.zero))
-        (CTI2.SmartFreshBehindGuard.fresh-mark-dynamic guard))
+    trans (cong (renameEnv πᵐ (CTX.impEnvʷ Wᵐ))
+        (toRenameᵗ-∘ πᵐ (CTX.ηᴸʷ Wᵐ) Fin.zero))
+      (trans (renameEnv-image πᵐ (CTX.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero))
+        (CTX.SmartFreshBehindGuard.fresh-mark-dynamic guard))
 
   old-mark-mono′ : ∀ Z′
-    → CTI2.impEnvʷ W′ Z′ ≡ X⊑★
-    → CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+    → CTX.impEnvʷ W′ Z′ ≡ X⊑★
+    → CTX.impEnvʷ (smartFreshInsertWorld ins guard)
         (toRenameᵗ old′ Z′) ≡ X⊑★
   old-mark-mono′ Z′ star with preimage? π Z′ in pre
   old-mark-mono′ Z′ star | nothing =
-    renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ)
+    renameEnv-off πᵐ (CTX.impEnvʷ Wᵐ)
       (pushout-old-off-premise π old pre)
   old-mark-mono′ Z′ star | just Z =
     subst≡
-      (λ C → CTI2.impEnvʷ (smartFreshInsertWorld ins guard) C
+      (λ C → CTX.impEnvʷ (smartFreshInsertWorld ins guard) C
         ≡ X⊑★)
       (sym smart-image-eq)
-      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
+      (trans (renameEnv-image πᵐ (CTX.impEnvʷ Wᵐ)
           (toRenameᵗ old Z))
-        (CTI2.SmartFreshBehindGuard.old-mark-mono guard Z old-star))
+        (CTX.SmartFreshBehindGuard.old-mark-mono guard Z old-star))
     where
     image-eq : Z′ ≡ toRenameᵗ π Z
     image-eq = preimage?-sound π pre
 
-    old-star : CTI2.impEnvʷ W Z ≡ X⊑★
+    old-star : CTX.impEnvʷ W Z ≡ X⊑★
     old-star =
       trans (sym (impEnv-insert ins Z))
-        (subst≡ (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+        (subst≡ (λ C → CTX.impEnvʷ W′ C ≡ X⊑★)
           image-eq star)
 
     smart-image-eq :
@@ -1520,74 +1523,74 @@ smartFreshGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
       trans (cong (toRenameᵗ old′) image-eq) (sym (commutes Z))
 
   smartStar : ∀ Z
-    → CTI2.impEnvʷ (CTI2.liftWorldLeft X⊑★ W′) Z ≡ X⊑★
-    → CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+    → CTX.impEnvʷ (CTX.liftWorldLeft X⊑★ W′) Z ≡ X⊑★
+    → CTX.impEnvʷ (smartFreshInsertWorld ins guard)
         ⊢ smartSubst Z ⊑ ★
   smartStar Fin.zero star = X⊑★ fresh-mark′
   smartStar (Fin.suc Z) star = X⊑★ (old-mark-mono′ Z star)
 
   source-point : ∀ X
-    → smartSubst (toRenameᵗ (keep (CTI2.ηᴸʷ W′)) X)
-      ≡ ＇ (toRenameᵗ (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard)) X)
+    → smartSubst (toRenameᵗ (keep (CTX.ηᴸʷ W′)) X)
+      ≡ ＇ (toRenameᵗ (CTX.ηᴸʷ (smartFreshInsertWorld ins guard)) X)
   source-point Fin.zero = refl
   source-point (Fin.suc X) = cong ＇_ (sym (old-source-frozen′ X))
 
   target-point : ∀ Y
-    → smartSubst (toRenameᵗ (skip (CTI2.ηᴿʷ W′)) Y)
-      ≡ ＇ (toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y)
+    → smartSubst (toRenameᵗ (skip (CTX.ηᴿʷ W′)) Y)
+      ≡ ＇ (toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y)
   target-point Y = cong ＇_ (sym (target-frozen′ Y))
 
   source-eq : ∀ C
     → substᵗ smartSubst
-        (CTI2.embedᴸ (CTI2.liftWorldLeft X⊑★ W′) C)
-      ≡ CTI2.embedᴸ (smartFreshInsertWorld ins guard) C
+        (CTX.embedᴸ (CTX.liftWorldLeft X⊑★ W′) C)
+      ≡ CTX.embedᴸ (smartFreshInsertWorld ins guard) C
   source-eq C =
     trans (substᵗ-rename smartSubst
-        (toRenameᵗ (keep (CTI2.ηᴸʷ W′))) C)
+        (toRenameᵗ (keep (CTX.ηᴸʷ W′))) C)
       (trans (substᵗ-cong C source-point)
         (rename-as-subst
-          (toRenameᵗ (CTI2.ηᴸʷ (smartFreshInsertWorld ins guard))) C))
+          (toRenameᵗ (CTX.ηᴸʷ (smartFreshInsertWorld ins guard))) C))
 
   target-eq : ∀ C
     → substᵗ smartSubst
-        (CTI2.embedᴿ (CTI2.liftWorldLeft X⊑★ W′) C)
-      ≡ CTI2.embedᴿ (smartFreshInsertWorld ins guard) C
+        (CTX.embedᴿ (CTX.liftWorldLeft X⊑★ W′) C)
+      ≡ CTX.embedᴿ (smartFreshInsertWorld ins guard) C
   target-eq C =
     trans (substᵗ-rename smartSubst
-        (toRenameᵗ (skip (CTI2.ηᴿʷ W′))) C)
+        (toRenameᵗ (skip (CTX.ηᴿʷ W′))) C)
       (trans (substᵗ-cong C target-point)
         (rename-as-subst
-          (toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard))) C))
+          (toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard))) C))
 
   transport′ : ∀ {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ′}
-    → A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W′ ⟩ B
+    → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W′ ⟩ B
     → A ⊑ᵂ⟨ smartFreshInsertWorld ins guard ⟩ B
   transport′ =
     transport⊑ᵂ-by-subst
-      {W = CTI2.liftWorldLeft X⊑★ W′}
+      {W = CTX.liftWorldLeft X⊑★ W′}
       {W′ = smartFreshInsertWorld ins guard}
       smartSubst smartStar source-eq target-eq
 
   target-mark-mono′ : ∀ Y′
-    → CTI2.impEnvʷ W′ (toRenameᵗ (CTI2.ηᴿʷ W′) Y′) ≡ X⊑★
-    → CTI2.impEnvʷ (smartFreshInsertWorld ins guard)
+    → CTX.impEnvʷ W′ (toRenameᵗ (CTX.ηᴿʷ W′) Y′) ≡ X⊑★
+    → CTX.impEnvʷ (smartFreshInsertWorld ins guard)
         (toRenameᵗ
-          (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′)
+          (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′)
       ≡ X⊑★
   target-mark-mono′ Y′ star with preimage? ρ Y′ in pre
   target-mark-mono′ Y′ star | nothing
       with preimage? πᵐ
         (toRenameᵗ
-          (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′) in preᵐ
+          (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′) in preᵐ
   target-mark-mono′ Y′ star | nothing | nothing =
-    renameEnv-off πᵐ (CTI2.impEnvʷ Wᵐ) preᵐ
+    renameEnv-off πᵐ (CTX.impEnvʷ Wᵐ) preᵐ
   target-mark-mono′ Y′ star | nothing | just Z =
     ⊥-elim (just≢nothing just-eq)
     where
     reflected :
       Σ[ Y ∈ TyVar _ ]
         Y′ ≡ toRenameᵗ ρ Y ×
-        toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y ≡ Z
+        toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y ≡ Z
     reflected =
       target-center-reflect (smartFreshTargetInsert ins guard)
         (preimage?-sound πᵐ preᵐ)
@@ -1603,39 +1606,39 @@ smartFreshGuardInsert {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
         (trans (cong (preimage? ρ) (sym y′-eq)) pre)
   target-mark-mono′ Y′ star | just Y =
     subst≡
-      (λ C → CTI2.impEnvʷ (smartFreshInsertWorld ins guard) C
+      (λ C → CTX.impEnvʷ (smartFreshInsertWorld ins guard) C
         ≡ X⊑★)
       (sym smart-image-eq)
-      (trans (renameEnv-image πᵐ (CTI2.impEnvʷ Wᵐ)
-          (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y))
-        (CTI2.SmartFreshBehindGuard.target-mark-mono guard Y old-star))
+      (trans (renameEnv-image πᵐ (CTX.impEnvʷ Wᵐ)
+          (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y))
+        (CTX.SmartFreshBehindGuard.target-mark-mono guard Y old-star))
     where
     y′-eq : Y′ ≡ toRenameᵗ ρ Y
     y′-eq = preimage?-sound ρ pre
 
     old-center-eq :
-      toRenameᵗ (CTI2.ηᴿʷ W′) Y′
-        ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+      toRenameᵗ (CTX.ηᴿʷ W′) Y′
+        ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Y)
     old-center-eq =
-      trans (cong (toRenameᵗ (CTI2.ηᴿʷ W′)) y′-eq)
+      trans (cong (toRenameᵗ (CTX.ηᴿʷ W′)) y′-eq)
         (target-insert ins Y)
 
     old-star :
-      CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴿʷ W) Y) ≡ X⊑★
+      CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴿʷ W) Y) ≡ X⊑★
     old-star =
       trans (sym (impEnv-insert ins
-          (toRenameᵗ (CTI2.ηᴿʷ W) Y)))
+          (toRenameᵗ (CTX.ηᴿʷ W) Y)))
         (subst≡
-          (λ C → CTI2.impEnvʷ W′ C ≡ X⊑★)
+          (λ C → CTX.impEnvʷ W′ C ≡ X⊑★)
           old-center-eq star)
 
     smart-image-eq :
-      toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
-        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTI2.ηᴿʷ Wᵐ) Y)
+      toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+        ≡ toRenameᵗ πᵐ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
     smart-image-eq =
       trans
         (cong
-          (toRenameᵗ (CTI2.ηᴿʷ (smartFreshInsertWorld ins guard)))
+          (toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)))
           y′-eq)
         (smartFresh-target-insert ins guard Y)
 
@@ -1647,23 +1650,23 @@ smartFreshTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′ Δᵐ}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
     {κ : Nat.suc Δ ↪ᵗ Δ′}
   → (ins : TargetInsert wk↪ᵗ π W W′)
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → TargetWindowInsert ins κ
   → Σ[ κᵐ ∈ Nat.suc Δᵐ ↪ᵗ
       EmbeddingPushout.Δᵐ′
         (embeddingPushout π
-          (CTI2.SmartFreshBehindGuard.oldCenters guard)) ]
+          (CTX.SmartFreshBehindGuard.oldCenters guard)) ]
       TargetWindowInsert (smartFreshTargetInsert ins guard) κᵐ
 smartFreshTargetWindowInsert {π = π} {W′ = W′} ins guard win
     with embeddingPushoutWindow old (TargetWindowInsert.windowEmbedding win)
   where
-  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old = CTX.SmartFreshBehindGuard.oldCenters guard
 smartFreshTargetWindowInsert {π = π} {W′ = W′} ins guard win
     | pushout-window κᵐ window-ok zero-commutes old-commutes =
   κᵐ , record
     { windowEmbedding = window-ok
     ; window-zero =
-        trans (toRenameᵗ-∘ old′ (CTI2.ηᴿʷ W′) Fin.zero)
+        trans (toRenameᵗ-∘ old′ (CTX.ηᴿʷ W′) Fin.zero)
           (trans
             (cong (toRenameᵗ old′)
               (TargetWindowInsert.window-zero win))
@@ -1671,7 +1674,7 @@ smartFreshTargetWindowInsert {π = π} {W′ = W′} ins guard win
     ; window-old = old-commutes
     }
   where
-  old = CTI2.SmartFreshBehindGuard.oldCenters guard
+  old = CTX.SmartFreshBehindGuard.oldCenters guard
   old′ = EmbeddingPushout.old′ (embeddingPushout π old)
 
 
@@ -1689,9 +1692,9 @@ insertRebaseWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → World Δᴸ Δᴿ Δ
   → World Δᴸ Δᴿ′ Δ′
 insertRebaseWorld {π = π} {W⁺ = W⁺} ins Wᵖ =
-  CTI2.world (π ∘↪ CTI2.ηᴸʷ Wᵖ) (CTI2.ηᴿʷ W⁺)
-    (renameEnv π (CTI2.impEnvʷ Wᵖ))
-    (CTI2.sourceStoreʷ Wᵖ) (CTI2.targetStoreʷ W⁺)
+  CTX.world (π ∘↪ CTX.ηᴸʷ Wᵖ) (CTX.ηᴿʷ W⁺)
+    (renameEnv π (CTX.impEnvʷ Wᵖ))
+    (CTX.sourceStoreʷ Wᵖ) (CTX.targetStoreʷ W⁺)
 
 insertRebase-source : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1700,10 +1703,10 @@ insertRebase-source : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
   → (ins : TargetInsert ρ π W W⁺)
   → ∀ Xᴸ
   → toRenameᵗ
-      (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ Wᵖ) Xᴸ)
+      (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ Wᵖ) Xᴸ)
 insertRebase-source {π = π} {Wᵖ = Wᵖ} ins Xᴸ =
-  toRenameᵗ-∘ π (CTI2.ηᴸʷ Wᵖ) Xᴸ
+  toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵖ) Xᴸ
 
 insertRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1711,14 +1714,14 @@ insertRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → ∀ Y
   → toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) (toRenameᵗ ρ Y)
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y)
+      (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y)
 insertRebase-target {π = π} ins rb Y =
   trans (target-insert ins Y)
-    (cong (toRenameᵗ π) (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)))
+    (cong (toRenameᵗ π) (sym (CTX.RebaseAt.ηᴿ-frozen rb Y)))
 
 insertRebase-impEnv : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1726,10 +1729,10 @@ insertRebase-impEnv : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W⁺)
   → ∀ Z
-  → CTI2.impEnvʷ (insertRebaseWorld ins Wᵖ) (toRenameᵗ π Z)
-      ≡ CTI2.impEnvʷ Wᵖ Z
+  → CTX.impEnvʷ (insertRebaseWorld ins Wᵖ) (toRenameᵗ π Z)
+      ≡ CTX.impEnvʷ Wᵖ Z
 insertRebase-impEnv {π = π} {Wᵖ = Wᵖ} ins Z =
-  renameEnv-image π (CTI2.impEnvʷ Wᵖ) Z
+  renameEnv-image π (CTX.impEnvʷ Wᵖ) Z
 
 insertRebase-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1737,17 +1740,17 @@ insertRebase-target-center-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
       ≡ toRenameᵗ π Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y ≡ Z
 insertRebase-target-center-reflect ins rb eq
     with target-center-reflect ins eq
 insertRebase-target-center-reflect ins rb eq
     | Y , y′-eq , target-eq =
-  Y , y′-eq , trans (CTI2.RebaseAt.ηᴿ-frozen rb Y) target-eq
+  Y , y′-eq , trans (CTX.RebaseAt.ηᴿ-frozen rb Y) target-eq
 
 insertRebase-target-source-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1755,10 +1758,10 @@ insertRebase-target-source-reflect : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᵖ : TyVar Δᴸ} {Yᵖ : TyVar Δᴿ} {Xᴸ Y′}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᵖ Yᵖ)
-  → CTI2.CenterAligned (insertRebaseWorld ins Wᵖ) Xᴸ Y′
+  → (rb : CTX.RebaseAt W Wᵖ Xᵖ Yᵖ)
+  → CTX.CenterAligned (insertRebaseWorld ins Wᵖ) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵖ Xᴸ Y
+      Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned Wᵖ Xᴸ Y
 insertRebase-target-source-reflect {ρ = ρ} {π = π}
     {W = W} {Wᵖ = Wᵖ} {W⁺ = W⁺} {Xᵖ = Xᵖ} {Yᵖ = Yᵖ}
     {Xᴸ = Xᴸ} {Y′ = Y′} ins rb aligned
@@ -1766,20 +1769,20 @@ insertRebase-target-source-reflect {ρ = ρ} {π = π}
 insertRebase-target-source-reflect {ρ = ρ} {π = π}
     {Wᵖ = Wᵖ} {W⁺ = W⁺} {Xᵖ = Xᵖ} {Yᵖ = Yᵖ}
     {.Xᵖ} {Y′} ins rb aligned | yes refl =
-  Yᵖ , y′-eq , CTI2.RebaseAt.pivotAligned rb
+  Yᵖ , y′-eq , CTX.RebaseAt.pivotAligned rb
   where
   pivot-target : toRenameᵗ
-      (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᵖ
-      ≡ toRenameᵗ (CTI2.ηᴿʷ W⁺) (toRenameᵗ ρ Yᵖ)
+      (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᵖ
+      ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) (toRenameᵗ ρ Yᵖ)
   pivot-target =
     trans (insertRebase-source {Wᵖ = Wᵖ} ins Xᵖ)
-      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
-        (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴿ-frozen rb Yᵖ))
+      (trans (cong (toRenameᵗ π) (CTX.RebaseAt.pivotAligned rb))
+        (trans (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴿ-frozen rb Yᵖ))
           (sym (target-insert ins Yᵖ))))
 
   y′-eq : Y′ ≡ toRenameᵗ ρ Yᵖ
   y′-eq =
-    toRenameᵗ-injective (CTI2.ηᴿʷ W⁺)
+    toRenameᵗ-injective (CTX.ηᴿʷ W⁺)
       (trans (sym aligned) pivot-target)
 insertRebase-target-source-reflect {ρ = ρ} {π = π}
     {W = W} {Wᵖ = Wᵖ} {W⁺ = W⁺} {Xᵖ = Xᵖ}
@@ -1787,13 +1790,13 @@ insertRebase-target-source-reflect {ρ = ρ} {π = π}
     with target-source-reflect ins aligned⁺
   where
   source-shift : toRenameᵗ
-      (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+      (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
   source-shift =
     trans (insertRebase-source {Wᵖ = Wᵖ} ins Xᴸ)
-      (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Xᴸ≢Xᵖ))
+      (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴸ-off-pivot rb Xᴸ≢Xᵖ))
 
-  aligned⁺ : CTI2.CenterAligned W⁺ Xᴸ Y′
+  aligned⁺ : CTX.CenterAligned W⁺ Xᴸ Y′
   aligned⁺ =
     trans (source-insert ins Xᴸ) (trans (sym source-shift) aligned)
 insertRebase-target-source-reflect {Wᵖ = Wᵖ}
@@ -1801,10 +1804,10 @@ insertRebase-target-source-reflect {Wᵖ = Wᵖ}
     | Y , y′-eq , aligned₀ =
   Y , y′-eq , alignedᵖ
   where
-  alignedᵖ : CTI2.CenterAligned Wᵖ Xᴸ Y
+  alignedᵖ : CTX.CenterAligned Wᵖ Xᴸ Y
   alignedᵖ =
-    trans (CTI2.RebaseAt.ηᴸ-off-pivot rb Xᴸ≢Xᵖ)
-      (trans aligned₀ (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)))
+    trans (CTX.RebaseAt.ηᴸ-off-pivot rb Xᴸ≢Xᵖ)
+      (trans aligned₀ (sym (CTX.RebaseAt.ηᴿ-frozen rb Y)))
 
 insertRebase-source-embed : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1812,11 +1815,11 @@ insertRebase-source-embed : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W⁺)
   → (A : Ty Δᴸ)
-  → CTI2.embedᴸ (insertRebaseWorld ins Wᵖ) A
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴸ Wᵖ A)
+  → CTX.embedᴸ (insertRebaseWorld ins Wᵖ) A
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴸ Wᵖ A)
 insertRebase-source-embed {π = π} {Wᵖ = Wᵖ} ins A =
   trans (renameᵗ-cong A (insertRebase-source {Wᵖ = Wᵖ} ins))
-    (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴸʷ Wᵖ)) (toRenameᵗ π) A))
+    (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴸʷ Wᵖ)) (toRenameᵗ π) A))
 
 insertRebase-target-embed : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1824,17 +1827,17 @@ insertRebase-target-embed : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
   → (B : Ty Δᴿ)
-  → CTI2.embedᴿ (insertRebaseWorld ins Wᵖ)
+  → CTX.embedᴿ (insertRebaseWorld ins Wᵖ)
       (renameᵗ (toRenameᵗ ρ) B)
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ Wᵖ B)
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴿ Wᵖ B)
 insertRebase-target-embed {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb B =
   trans
     (renameᵗ-comp (toRenameᵗ ρ)
-      (toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ))) B)
+      (toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ))) B)
     (trans (renameᵗ-cong B (insertRebase-target ins rb))
-      (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵖ))
+      (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ Wᵖ))
         (toRenameᵗ π) B)))
 
 insertRebase-targetStore-rename : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -1843,14 +1846,14 @@ insertRebase-targetStore-rename : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → StoreRename (toRenameᵗ ρ) (CTI2.targetStoreʷ Wᵖ)
-      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → StoreRename (toRenameᵗ ρ) (CTX.targetStoreʷ Wᵖ)
+      (CTX.targetStoreʷ (insertRebaseWorld ins Wᵖ))
 insertRebase-targetStore-rename {ρ = ρ} {W⁺ = W⁺} ins rb =
   subst≡
-    (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTI2.targetStoreʷ W⁺))
-    (sym (CTI2.SameRuntime.targetStore-same
-      (CTI2.RebaseAt.sameRuntime rb)))
+    (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTX.targetStoreʷ W⁺))
+    (sym (CTX.SameRuntime.targetStore-same
+      (CTX.RebaseAt.sameRuntime rb)))
     (targetStore-rename ins)
 
 insertRebase-target-resolve : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -1859,23 +1862,23 @@ insertRebase-target-resolve : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
   → ∀ Y
-  → CTI2.resolveVar
-      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+  → CTX.resolveVar
+      (CTX.targetStoreʷ (insertRebaseWorld ins Wᵖ))
       (toRenameᵗ ρ Y)
       ≡ renameᵗ (toRenameᵗ ρ)
-          (CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y)
+          (CTX.resolveVar (CTX.targetStoreʷ Wᵖ) Y)
 insertRebase-target-resolve {ρ = ρ} {W = W} {Wᵖ = Wᵖ} ins rb Y =
   trans (target-resolve ins Y)
     (cong (renameᵗ (toRenameᵗ ρ)) (sym target-same))
   where
-  target-same : CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y
-      ≡ CTI2.resolveVar (CTI2.targetStoreʷ W) Y
+  target-same : CTX.resolveVar (CTX.targetStoreʷ Wᵖ) Y
+      ≡ CTX.resolveVar (CTX.targetStoreʷ W) Y
   target-same =
-    cong (λ Σ → CTI2.resolveVar Σ Y)
-      (CTI2.SameRuntime.targetStore-same
-        (CTI2.RebaseAt.sameRuntime rb))
+    cong (λ Σ → CTX.resolveVar Σ Y)
+      (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime rb))
 
 insertRebase-target-rev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -1883,14 +1886,14 @@ insertRebase-target-rev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
   → ∀ Y
   → toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) (toRenameᵗ ρ Y)
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y)
+      (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y)
 insertRebase-target-rev {π = π} ins rb Y =
   trans (target-insert ins Y)
-    (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴿ-frozen rb Y))
+    (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴿ-frozen rb Y))
 
 insertRebase-target-center-reflect-rev :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -1899,17 +1902,17 @@ insertRebase-target-center-reflect-rev :
       {W⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
-  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
       ≡ toRenameᵗ π Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ Wᵖ) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y ≡ Z
 insertRebase-target-center-reflect-rev ins rb eq
     with target-center-reflect ins eq
 insertRebase-target-center-reflect-rev ins rb eq
     | Y , y′-eq , target-eq =
-  Y , y′-eq , trans (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)) target-eq
+  Y , y′-eq , trans (sym (CTX.RebaseAt.ηᴿ-frozen rb Y)) target-eq
 
 insertRebase-target-source-reflect-rev :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -1918,17 +1921,17 @@ insertRebase-target-source-reflect-rev :
       {W⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᵖ : TyVar Δᴸ} {Yᵖ : TyVar Δᴿ} {Xᴸ Y′}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᵖ Yᵖ)
-  → CTI2.CenterAligned (insertRebaseWorld ins Wᵖ) Xᴸ Y′
+  → (rb : CTX.RebaseAt Wᵖ W Xᵖ Yᵖ)
+  → CTX.CenterAligned (insertRebaseWorld ins Wᵖ) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned Wᵖ Xᴸ Y
+      Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned Wᵖ Xᴸ Y
 insertRebase-target-source-reflect-rev {π = π} {Wᵖ = Wᵖ}
     {Xᴸ = Xᴸ} {Y′ = Y′} ins rb aligned
     with insertRebase-target-center-reflect-rev ins rb target-image
   where
   target-image : toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴸʷ Wᵖ) Xᴸ)
+      (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y′
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ Wᵖ) Xᴸ)
   target-image =
     trans (sym aligned) (insertRebase-source {Wᵖ = Wᵖ} ins Xᴸ)
 insertRebase-target-source-reflect-rev ins rb aligned
@@ -1941,17 +1944,17 @@ insertRebase-target-embed-rev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
   → (B : Ty Δᴿ)
-  → CTI2.embedᴿ (insertRebaseWorld ins Wᵖ)
+  → CTX.embedᴿ (insertRebaseWorld ins Wᵖ)
       (renameᵗ (toRenameᵗ ρ) B)
-      ≡ renameᵗ (toRenameᵗ π) (CTI2.embedᴿ Wᵖ B)
+      ≡ renameᵗ (toRenameᵗ π) (CTX.embedᴿ Wᵖ B)
 insertRebase-target-embed-rev {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb B =
   trans
     (renameᵗ-comp (toRenameᵗ ρ)
-      (toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ))) B)
+      (toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ))) B)
     (trans (renameᵗ-cong B (insertRebase-target-rev ins rb))
-      (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ Wᵖ))
+      (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ Wᵖ))
         (toRenameᵗ π) B)))
 
 insertRebase-targetStore-rename-rev :
@@ -1961,14 +1964,14 @@ insertRebase-targetStore-rename-rev :
       {W⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
-  → StoreRename (toRenameᵗ ρ) (CTI2.targetStoreʷ Wᵖ)
-      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → StoreRename (toRenameᵗ ρ) (CTX.targetStoreʷ Wᵖ)
+      (CTX.targetStoreʷ (insertRebaseWorld ins Wᵖ))
 insertRebase-targetStore-rename-rev {ρ = ρ} {W⁺ = W⁺} ins rb =
   subst≡
-    (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTI2.targetStoreʷ W⁺))
-    (CTI2.SameRuntime.targetStore-same
-      (CTI2.RebaseAt.sameRuntime rb))
+    (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTX.targetStoreʷ W⁺))
+    (CTX.SameRuntime.targetStore-same
+      (CTX.RebaseAt.sameRuntime rb))
     (targetStore-rename ins)
 
 insertRebase-target-resolve-rev :
@@ -1978,24 +1981,24 @@ insertRebase-target-resolve-rev :
       {W⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
   → ∀ Y
-  → CTI2.resolveVar
-      (CTI2.targetStoreʷ (insertRebaseWorld ins Wᵖ))
+  → CTX.resolveVar
+      (CTX.targetStoreʷ (insertRebaseWorld ins Wᵖ))
       (toRenameᵗ ρ Y)
       ≡ renameᵗ (toRenameᵗ ρ)
-          (CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y)
+          (CTX.resolveVar (CTX.targetStoreʷ Wᵖ) Y)
 insertRebase-target-resolve-rev {ρ = ρ} {W = W} {Wᵖ = Wᵖ}
     ins rb Y =
   trans (target-resolve ins Y)
     (cong (renameᵗ (toRenameᵗ ρ)) target-same)
   where
-  target-same : CTI2.resolveVar (CTI2.targetStoreʷ W) Y
-      ≡ CTI2.resolveVar (CTI2.targetStoreʷ Wᵖ) Y
+  target-same : CTX.resolveVar (CTX.targetStoreʷ W) Y
+      ≡ CTX.resolveVar (CTX.targetStoreʷ Wᵖ) Y
   target-same =
-    cong (λ Σ → CTI2.resolveVar Σ Y)
-      (CTI2.SameRuntime.targetStore-same
-        (CTI2.RebaseAt.sameRuntime rb))
+    cong (λ Σ → CTX.resolveVar Σ Y)
+      (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime rb))
 
 insertRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2003,7 +2006,7 @@ insertRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
   → TargetInsert ρ π Wᵖ (insertRebaseWorld ins Wᵖ)
 insertRebaseTargetInsert {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb = record
   { sourceStore-kept = refl
@@ -2025,7 +2028,7 @@ insertRebaseTargetInsert {ρ = ρ} {π = π} {Wᵖ = Wᵖ} ins rb = record
   ; target-insert = λ Y → insertRebase-target {Wᵖ = Wᵖ} ins rb Y
   ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = Wᵖ} ins Z
   ; impEnv-off-insert =
-      λ eq → renameEnv-off π (CTI2.impEnvʷ Wᵖ) eq
+      λ eq → renameEnv-off π (CTX.impEnvʷ Wᵖ) eq
   ; target-center-reflect = insertRebase-target-center-reflect ins rb
   ; target-source-reflect = insertRebase-target-source-reflect ins rb
   }
@@ -2036,7 +2039,7 @@ insertRebaseTargetInsertRev : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
   → TargetInsert ρ π Wᵖ (insertRebaseWorld ins Wᵖ)
 insertRebaseTargetInsertRev {ρ = ρ} {π = π} {Wᵖ = Wᵖ}
     ins rb = record
@@ -2059,7 +2062,7 @@ insertRebaseTargetInsertRev {ρ = ρ} {π = π} {Wᵖ = Wᵖ}
   ; target-insert = λ Y → insertRebase-target-rev {Wᵖ = Wᵖ} ins rb Y
   ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = Wᵖ} ins Z
   ; impEnv-off-insert =
-      λ eq → renameEnv-off π (CTI2.impEnvʷ Wᵖ) eq
+      λ eq → renameEnv-off π (CTX.impEnvʷ Wᵖ) eq
   ; target-center-reflect = insertRebase-target-center-reflect-rev ins rb
   ; target-source-reflect = insertRebase-target-source-reflect-rev ins rb
   }
@@ -2070,56 +2073,56 @@ insertRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+      CTX.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
 insertRebaseAt {ρ = ρ} {π = π} {Wᵖ = Wᵖ} {W⁺ = W⁺}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} ins rb =
   insertRebaseWorld ins Wᵖ , insᵖ ,
-    CTI2.rebase-at runtime off-left frozen-target aligned reps
+    CTX.rebase-at runtime off-left frozen-target aligned reps
   where
   insᵖ = insertRebaseTargetInsert ins rb
 
-  runtime : CTI2.SameRuntime W⁺ (insertRebaseWorld ins Wᵖ)
+  runtime : CTX.SameRuntime W⁺ (insertRebaseWorld ins Wᵖ)
   runtime =
-    CTI2.same-runtime
+    CTX.same-runtime
       (trans
-        (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb))
+        (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb))
         (sym (sourceStore-kept ins)))
       refl
 
   off-left : ∀ {Y} → Y ≢ Xᴸ
     → toRenameᵗ
-        (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Y
-      ≡ toRenameᵗ (CTI2.ηᴸʷ W⁺) Y
+        (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Y
+      ≡ toRenameᵗ (CTX.ηᴸʷ W⁺) Y
   off-left {Y} Y≢ =
     trans (insertRebase-source {Wᵖ = Wᵖ} ins Y)
       (trans
-        (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Y≢))
+        (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴸ-off-pivot rb Y≢))
         (sym (source-insert ins Y)))
 
   frozen-target : ∀ Y
     → toRenameᵗ
-        (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y
-      ≡ toRenameᵗ (CTI2.ηᴿʷ W⁺) Y
+        (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y
+      ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) Y
   frozen-target Y = refl
 
   aligned : toRenameᵗ
-      (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
-      ≡ toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ))
+      (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Xᴸ
+      ≡ toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ))
           (toRenameᵗ ρ Xᴿ)
   aligned =
     trans (insertRebase-source {Wᵖ = Wᵖ} ins Xᴸ)
-      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
-        (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴿ-frozen rb Xᴿ))
+      (trans (cong (toRenameᵗ π) (CTX.RebaseAt.pivotAligned rb))
+        (trans (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴿ-frozen rb Xᴿ))
           (sym (target-insert ins Xᴿ))))
 
-  reps : CTI2.StoreRepImp (insertRebaseWorld ins Wᵖ)
+  reps : CTX.StoreRepImp (insertRebaseWorld ins Wᵖ)
       Xᴸ (toRenameᵗ ρ Xᴿ)
   reps =
-    storeRep-insert insᵖ (CTI2.RebaseAt.storeRepresentations rb)
+    storeRep-insert insᵖ (CTX.RebaseAt.storeRepresentations rb)
 
 reverseRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2127,51 +2130,51 @@ reverseRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAt Wᵖ⁺ W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+      CTX.RebaseAt Wᵖ⁺ W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
 reverseRebaseAt {ρ = ρ} {π = π} {Wᵖ = Wᵖ} {W⁺ = W⁺}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} ins rb =
   insertRebaseWorld ins Wᵖ , insᵖ ,
-    CTI2.rebase-at runtime off-left frozen-target aligned reps
+    CTX.rebase-at runtime off-left frozen-target aligned reps
   where
   insᵖ = insertRebaseTargetInsertRev ins rb
 
-  runtime : CTI2.SameRuntime (insertRebaseWorld ins Wᵖ) W⁺
+  runtime : CTX.SameRuntime (insertRebaseWorld ins Wᵖ) W⁺
   runtime =
-    CTI2.same-runtime
+    CTX.same-runtime
       (trans (sourceStore-kept ins)
-        (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb)))
+        (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb)))
       refl
 
   off-left : ∀ {Y} → Y ≢ Xᴸ
-    → toRenameᵗ (CTI2.ηᴸʷ W⁺) Y
+    → toRenameᵗ (CTX.ηᴸʷ W⁺) Y
       ≡ toRenameᵗ
-          (CTI2.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Y
+          (CTX.ηᴸʷ (insertRebaseWorld ins Wᵖ)) Y
   off-left {Y} Y≢ =
     trans (source-insert ins Y)
       (trans
-        (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Y≢))
+        (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴸ-off-pivot rb Y≢))
         (sym (insertRebase-source {Wᵖ = Wᵖ} ins Y)))
 
   frozen-target : ∀ Y
-    → toRenameᵗ (CTI2.ηᴿʷ W⁺) Y
+    → toRenameᵗ (CTX.ηᴿʷ W⁺) Y
       ≡ toRenameᵗ
-          (CTI2.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y
+          (CTX.ηᴿʷ (insertRebaseWorld ins Wᵖ)) Y
   frozen-target Y = refl
 
-  aligned : toRenameᵗ (CTI2.ηᴸʷ W⁺) Xᴸ
-      ≡ toRenameᵗ (CTI2.ηᴿʷ W⁺) (toRenameᵗ ρ Xᴿ)
+  aligned : toRenameᵗ (CTX.ηᴸʷ W⁺) Xᴸ
+      ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) (toRenameᵗ ρ Xᴿ)
   aligned =
     trans (source-insert ins Xᴸ)
-      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
+      (trans (cong (toRenameᵗ π) (CTX.RebaseAt.pivotAligned rb))
         (sym (target-insert ins Xᴿ)))
 
-  reps : CTI2.StoreRepImp W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+  reps : CTX.StoreRepImp W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
   reps =
-    storeRep-insert ins (CTI2.RebaseAt.storeRepresentations rb)
+    storeRep-insert ins (CTX.RebaseAt.storeRepresentations rb)
 
 pullbackRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2179,14 +2182,14 @@ pullbackRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → ∀ Y
   → toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) (toRenameᵗ ρ Y)
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+      (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Y)
 pullbackRebase-target {π = π} insᵖ rb Y =
   trans (target-insert insᵖ Y)
-    (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴿ-frozen rb Y))
+    (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴿ-frozen rb Y))
 
 pullbackRebase-target-center-reflect :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -2195,17 +2198,17 @@ pullbackRebase-target-center-reflect :
       {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) Y′
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) Y′
       ≡ toRenameᵗ π Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ W) Y ≡ Z
 pullbackRebase-target-center-reflect insᵖ rb eq
     with target-center-reflect insᵖ eq
 pullbackRebase-target-center-reflect insᵖ rb eq
     | Y , y′-eq , target-eq =
-  Y , y′-eq , trans (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)) target-eq
+  Y , y′-eq , trans (sym (CTX.RebaseAt.ηᴿ-frozen rb Y)) target-eq
 
 pullbackRebase-target-source-reflect :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -2214,22 +2217,22 @@ pullbackRebase-target-source-reflect :
       {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᵖᴸ : TyVar Δᴸ} {Xᵖᴿ : TyVar Δᴿ} {Xᴸ Y′}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᵖᴸ Xᵖᴿ)
-  → CTI2.CenterAligned (insertRebaseWorld insᵖ W) Xᴸ Y′
+  → (rb : CTX.RebaseAt W Wᵖ Xᵖᴸ Xᵖᴿ)
+  → CTX.CenterAligned (insertRebaseWorld insᵖ W) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
+      Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned W Xᴸ Y
 pullbackRebase-target-source-reflect {W = W} insᵖ rb aligned
     with target-center-reflect insᵖ target-image
   where
   target-image : toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) _
-      ≡ toRenameᵗ _ (toRenameᵗ (CTI2.ηᴸʷ W) _)
+      (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) _
+      ≡ toRenameᵗ _ (toRenameᵗ (CTX.ηᴸʷ W) _)
   target-image =
     trans (sym aligned) (insertRebase-source {Wᵖ = W} insᵖ _)
 pullbackRebase-target-source-reflect insᵖ rb aligned
     | Y , y′-eq , target-eq =
   Y , y′-eq , trans (sym target-eq)
-    (CTI2.RebaseAt.ηᴿ-frozen rb Y)
+    (CTX.RebaseAt.ηᴿ-frozen rb Y)
 
 pullbackRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2237,7 +2240,7 @@ pullbackRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → TargetInsert ρ π W (insertRebaseWorld insᵖ W)
 pullbackRebaseTargetInsert {ρ = ρ} {π = π} {W = W} {Wᵖ⁺ = Wᵖ⁺}
     insᵖ rb = record
@@ -2248,26 +2251,26 @@ pullbackRebaseTargetInsert {ρ = ρ} {π = π} {W = W} {Wᵖ⁺ = Wᵖ⁺}
         (insertRebase-source-embed {Wᵖ = W} insᵖ)
         (λ B → trans
           (renameᵗ-comp (toRenameᵗ ρ)
-            (toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W))) B)
+            (toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W))) B)
           (trans (renameᵗ-cong B (pullbackRebase-target insᵖ rb))
-            (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ W))
+            (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ W))
               (toRenameᵗ π) B))))
         (λ Z eq → trans (insertRebase-impEnv {Wᵖ = W} insᵖ Z) eq)
         p
   ; targetStore-rename =
       subst≡
         (λ Σ → StoreRename (toRenameᵗ ρ) Σ
-          (CTI2.targetStoreʷ Wᵖ⁺))
-        (CTI2.SameRuntime.targetStore-same
-          (CTI2.RebaseAt.sameRuntime rb))
+          (CTX.targetStoreʷ Wᵖ⁺))
+        (CTX.SameRuntime.targetStore-same
+          (CTX.RebaseAt.sameRuntime rb))
         (targetStore-rename insᵖ)
   ; source-resolve = λ X → refl
   ; target-resolve = λ Y →
       trans (target-resolve insᵖ Y)
         (cong (renameᵗ (toRenameᵗ ρ))
-          (cong (λ Σ → CTI2.resolveVar Σ Y)
-            (CTI2.SameRuntime.targetStore-same
-              (CTI2.RebaseAt.sameRuntime rb))))
+          (cong (λ Σ → CTX.resolveVar Σ Y)
+            (CTX.SameRuntime.targetStore-same
+              (CTX.RebaseAt.sameRuntime rb))))
   ; align-insert = λ {Xᴸ} {Xᴿ} aligned →
       trans (insertRebase-source {Wᵖ = W} insᵖ Xᴸ)
         (trans (cong (toRenameᵗ π) aligned)
@@ -2276,7 +2279,7 @@ pullbackRebaseTargetInsert {ρ = ρ} {π = π} {W = W} {Wᵖ⁺ = Wᵖ⁺}
   ; target-insert = λ Y → pullbackRebase-target insᵖ rb Y
   ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = W} insᵖ Z
   ; impEnv-off-insert =
-      λ eq → renameEnv-off π (CTI2.impEnvʷ W) eq
+      λ eq → renameEnv-off π (CTX.impEnvʷ W) eq
   ; target-center-reflect = pullbackRebase-target-center-reflect insᵖ rb
   ; target-source-reflect = pullbackRebase-target-source-reflect insᵖ rb
   }
@@ -2287,45 +2290,45 @@ pullbackRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → CTI2.RebaseAt (insertRebaseWorld insᵖ W) Wᵖ⁺
+  → (rb : CTX.RebaseAt W Wᵖ Xᴸ Xᴿ)
+  → CTX.RebaseAt (insertRebaseWorld insᵖ W) Wᵖ⁺
       Xᴸ (toRenameᵗ ρ Xᴿ)
 pullbackRebaseAt {ρ = ρ} {π = π} {W = W} {Wᵖ = Wᵖ}
     {Wᵖ⁺ = Wᵖ⁺} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} insᵖ rb =
-  CTI2.rebase-at runtime off-left frozen-target aligned reps
+  CTX.rebase-at runtime off-left frozen-target aligned reps
   where
-  runtime : CTI2.SameRuntime (insertRebaseWorld insᵖ W) Wᵖ⁺
+  runtime : CTX.SameRuntime (insertRebaseWorld insᵖ W) Wᵖ⁺
   runtime =
-    CTI2.same-runtime
+    CTX.same-runtime
       (trans (sourceStore-kept insᵖ)
-        (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb)))
+        (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb)))
       refl
 
   off-left : ∀ {Y} → Y ≢ Xᴸ
-    → toRenameᵗ (CTI2.ηᴸʷ Wᵖ⁺) Y
-      ≡ toRenameᵗ (CTI2.ηᴸʷ (insertRebaseWorld insᵖ W)) Y
+    → toRenameᵗ (CTX.ηᴸʷ Wᵖ⁺) Y
+      ≡ toRenameᵗ (CTX.ηᴸʷ (insertRebaseWorld insᵖ W)) Y
   off-left {Y} Y≢ =
     trans (source-insert insᵖ Y)
       (trans
-        (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Y≢))
+        (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴸ-off-pivot rb Y≢))
         (sym (insertRebase-source {Wᵖ = W} insᵖ Y)))
 
   frozen-target : ∀ Y
-    → toRenameᵗ (CTI2.ηᴿʷ Wᵖ⁺) Y
-      ≡ toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) Y
+    → toRenameᵗ (CTX.ηᴿʷ Wᵖ⁺) Y
+      ≡ toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) Y
   frozen-target Y = refl
 
-  aligned : toRenameᵗ (CTI2.ηᴸʷ Wᵖ⁺) Xᴸ
-      ≡ toRenameᵗ (CTI2.ηᴿʷ Wᵖ⁺) (toRenameᵗ ρ Xᴿ)
+  aligned : toRenameᵗ (CTX.ηᴸʷ Wᵖ⁺) Xᴸ
+      ≡ toRenameᵗ (CTX.ηᴿʷ Wᵖ⁺) (toRenameᵗ ρ Xᴿ)
   aligned =
     trans (source-insert insᵖ Xᴸ)
-      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
+      (trans (cong (toRenameᵗ π) (CTX.RebaseAt.pivotAligned rb))
         (sym (target-insert insᵖ Xᴿ)))
 
-  reps : CTI2.StoreRepImp Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+  reps : CTX.StoreRepImp Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
   reps =
-    storeRep-insert insᵖ (CTI2.RebaseAt.storeRepresentations rb)
+    storeRep-insert insᵖ (CTX.RebaseAt.storeRepresentations rb)
 
 pullbackReverseRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2333,14 +2336,14 @@ pullbackReverseRebase-target : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
   → ∀ Y
   → toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) (toRenameᵗ ρ Y)
-      ≡ toRenameᵗ π (toRenameᵗ (CTI2.ηᴿʷ W) Y)
+      (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Y)
 pullbackReverseRebase-target {π = π} insᵖ rb Y =
   trans (target-insert insᵖ Y)
-    (cong (toRenameᵗ π) (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y)))
+    (cong (toRenameᵗ π) (sym (CTX.RebaseAt.ηᴿ-frozen rb Y)))
 
 pullbackReverseRebase-target-center-reflect :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -2349,17 +2352,17 @@ pullbackReverseRebase-target-center-reflect :
       {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Y′ Z}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
-  → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) Y′
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) Y′
       ≡ toRenameᵗ π Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ ρ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ W) Y ≡ Z
 pullbackReverseRebase-target-center-reflect insᵖ rb eq
     with target-center-reflect insᵖ eq
 pullbackReverseRebase-target-center-reflect insᵖ rb eq
     | Y , y′-eq , target-eq =
-  Y , y′-eq , trans (CTI2.RebaseAt.ηᴿ-frozen rb Y) target-eq
+  Y , y′-eq , trans (CTX.RebaseAt.ηᴿ-frozen rb Y) target-eq
 
 pullbackReverseRebase-target-source-reflect :
     ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -2368,22 +2371,22 @@ pullbackReverseRebase-target-source-reflect :
       {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
       {Xᵖᴸ : TyVar Δᴸ} {Xᵖᴿ : TyVar Δᴿ} {Xᴸ Y′}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᵖᴸ Xᵖᴿ)
-  → CTI2.CenterAligned (insertRebaseWorld insᵖ W) Xᴸ Y′
+  → (rb : CTX.RebaseAt Wᵖ W Xᵖᴸ Xᵖᴿ)
+  → CTX.CenterAligned (insertRebaseWorld insᵖ W) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ ρ Y × CTI2.CenterAligned W Xᴸ Y
+      Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned W Xᴸ Y
 pullbackReverseRebase-target-source-reflect {W = W} insᵖ rb aligned
     with target-center-reflect insᵖ target-image
   where
   target-image : toRenameᵗ
-      (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) _
-      ≡ toRenameᵗ _ (toRenameᵗ (CTI2.ηᴸʷ W) _)
+      (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) _
+      ≡ toRenameᵗ _ (toRenameᵗ (CTX.ηᴸʷ W) _)
   target-image =
     trans (sym aligned) (insertRebase-source {Wᵖ = W} insᵖ _)
 pullbackReverseRebase-target-source-reflect insᵖ rb aligned
     | Y , y′-eq , target-eq =
   Y , y′-eq , trans (sym target-eq)
-    (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y))
+    (sym (CTX.RebaseAt.ηᴿ-frozen rb Y))
 
 pullbackReverseRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2391,7 +2394,7 @@ pullbackReverseRebaseTargetInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
   → TargetInsert ρ π W (insertRebaseWorld insᵖ W)
 pullbackReverseRebaseTargetInsert
     {ρ = ρ} {π = π} {W = W} {Wᵖ⁺ = Wᵖ⁺} insᵖ rb =
@@ -2403,28 +2406,28 @@ pullbackReverseRebaseTargetInsert
           (insertRebase-source-embed {Wᵖ = W} insᵖ)
           (λ B → trans
             (renameᵗ-comp (toRenameᵗ ρ)
-              (toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W))) B)
+              (toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W))) B)
             (trans
               (renameᵗ-cong B
                 (pullbackReverseRebase-target insᵖ rb))
-              (sym (renameᵗ-comp (toRenameᵗ (CTI2.ηᴿʷ W))
+              (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ W))
                 (toRenameᵗ π) B))))
           (λ Z eq → trans (insertRebase-impEnv {Wᵖ = W} insᵖ Z) eq)
           p
     ; targetStore-rename =
         subst≡
           (λ Σ → StoreRename (toRenameᵗ ρ) Σ
-            (CTI2.targetStoreʷ Wᵖ⁺))
-          (sym (CTI2.SameRuntime.targetStore-same
-            (CTI2.RebaseAt.sameRuntime rb)))
+            (CTX.targetStoreʷ Wᵖ⁺))
+          (sym (CTX.SameRuntime.targetStore-same
+            (CTX.RebaseAt.sameRuntime rb)))
           (targetStore-rename insᵖ)
     ; source-resolve = λ X → refl
     ; target-resolve = λ Y →
         trans (target-resolve insᵖ Y)
           (cong (renameᵗ (toRenameᵗ ρ))
-            (cong (λ Σ → CTI2.resolveVar Σ Y)
-              (sym (CTI2.SameRuntime.targetStore-same
-                (CTI2.RebaseAt.sameRuntime rb)))))
+            (cong (λ Σ → CTX.resolveVar Σ Y)
+              (sym (CTX.SameRuntime.targetStore-same
+                (CTX.RebaseAt.sameRuntime rb)))))
     ; align-insert = λ {Xᴸ} {Xᴿ} aligned →
         trans (insertRebase-source {Wᵖ = W} insᵖ Xᴸ)
           (trans (cong (toRenameᵗ π) aligned)
@@ -2433,7 +2436,7 @@ pullbackReverseRebaseTargetInsert
     ; target-insert = λ Y → pullbackReverseRebase-target insᵖ rb Y
     ; impEnv-insert = λ Z → insertRebase-impEnv {Wᵖ = W} insᵖ Z
     ; impEnv-off-insert =
-        λ eq → renameEnv-off π (CTI2.impEnvʷ W) eq
+        λ eq → renameEnv-off π (CTX.impEnvʷ W) eq
     ; target-center-reflect =
         pullbackReverseRebase-target-center-reflect insᵖ rb
     ; target-source-reflect =
@@ -2446,52 +2449,52 @@ pullbackReverseRebaseAt : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → (rb : CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ)
-  → CTI2.RebaseAt Wᵖ⁺ (insertRebaseWorld insᵖ W)
+  → (rb : CTX.RebaseAt Wᵖ W Xᴸ Xᴿ)
+  → CTX.RebaseAt Wᵖ⁺ (insertRebaseWorld insᵖ W)
       Xᴸ (toRenameᵗ ρ Xᴿ)
 pullbackReverseRebaseAt
     {ρ = ρ} {π = π} {W = W} {Wᵖ = Wᵖ} {Wᵖ⁺ = Wᵖ⁺}
     {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} insᵖ rb =
-  CTI2.rebase-at runtime off-left frozen-target aligned reps
+  CTX.rebase-at runtime off-left frozen-target aligned reps
   where
   ins = pullbackReverseRebaseTargetInsert insᵖ rb
 
-  runtime : CTI2.SameRuntime Wᵖ⁺ (insertRebaseWorld insᵖ W)
+  runtime : CTX.SameRuntime Wᵖ⁺ (insertRebaseWorld insᵖ W)
   runtime =
-    CTI2.same-runtime
+    CTX.same-runtime
       (trans
-        (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb))
+        (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb))
         (sym (sourceStore-kept insᵖ)))
       refl
 
   off-left : ∀ {Y} → Y ≢ Xᴸ
-    → toRenameᵗ (CTI2.ηᴸʷ (insertRebaseWorld insᵖ W)) Y
-      ≡ toRenameᵗ (CTI2.ηᴸʷ Wᵖ⁺) Y
+    → toRenameᵗ (CTX.ηᴸʷ (insertRebaseWorld insᵖ W)) Y
+      ≡ toRenameᵗ (CTX.ηᴸʷ Wᵖ⁺) Y
   off-left {Y} Y≢ =
     trans (insertRebase-source {Wᵖ = W} insᵖ Y)
       (trans
-        (cong (toRenameᵗ π) (CTI2.RebaseAt.ηᴸ-off-pivot rb Y≢))
+        (cong (toRenameᵗ π) (CTX.RebaseAt.ηᴸ-off-pivot rb Y≢))
         (sym (source-insert insᵖ Y)))
 
   frozen-target : ∀ Y
-    → toRenameᵗ (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W)) Y
-      ≡ toRenameᵗ (CTI2.ηᴿʷ Wᵖ⁺) Y
+    → toRenameᵗ (CTX.ηᴿʷ (insertRebaseWorld insᵖ W)) Y
+      ≡ toRenameᵗ (CTX.ηᴿʷ Wᵖ⁺) Y
   frozen-target Y = refl
 
-  aligned : toRenameᵗ (CTI2.ηᴸʷ (insertRebaseWorld insᵖ W)) Xᴸ
+  aligned : toRenameᵗ (CTX.ηᴸʷ (insertRebaseWorld insᵖ W)) Xᴸ
       ≡ toRenameᵗ
-          (CTI2.ηᴿʷ (insertRebaseWorld insᵖ W))
+          (CTX.ηᴿʷ (insertRebaseWorld insᵖ W))
           (toRenameᵗ ρ Xᴿ)
   aligned =
     trans (insertRebase-source {Wᵖ = W} insᵖ Xᴸ)
-      (trans (cong (toRenameᵗ π) (CTI2.RebaseAt.pivotAligned rb))
+      (trans (cong (toRenameᵗ π) (CTX.RebaseAt.pivotAligned rb))
         (sym (pullbackReverseRebase-target insᵖ rb Xᴿ)))
 
-  reps : CTI2.StoreRepImp (insertRebaseWorld insᵖ W)
+  reps : CTX.StoreRepImp (insertRebaseWorld insᵖ W)
       Xᴸ (toRenameᵗ ρ Xᴿ)
   reps =
-    storeRep-insert ins (CTI2.RebaseAt.storeRepresentations rb)
+    storeRep-insert ins (CTX.RebaseAt.storeRepresentations rb)
 
 TargetExtendOPEᵀ : Set
 TargetExtendOPEᵀ =
@@ -2516,10 +2519,10 @@ RebaseAtᴿInsertCommuteᵀ =
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴿ? : Maybe (TyVar Δᴿ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
+  → CTX.RebaseAtᴿ W Wᵖ Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴿ W⁺ Wᵖ⁺
+      CTX.RebaseAtᴿ W⁺ Wᵖ⁺
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
 RebaseAtᴸInsertCommuteᵀ : Set
@@ -2530,10 +2533,10 @@ RebaseAtᴸInsertCommuteᵀ =
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → CTX.RebaseAtᴸ W Wᵖ Xᴸ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
+      CTX.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
 
 TagRebaseAtᴸInsertCommuteᵀ : Set
 TagRebaseAtᴸInsertCommuteᵀ =
@@ -2543,10 +2546,10 @@ TagRebaseAtᴸInsertCommuteᵀ =
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.TagRebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
+      CTX.TagRebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
 RebaseAtInsertCommuteᵀ : Set
@@ -2557,10 +2560,10 @@ RebaseAtInsertCommuteᵀ =
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
+      CTX.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
 
 ImpEnvMonoInsertCommuteᵀ : Set
 ImpEnvMonoInsertCommuteᵀ =
@@ -2570,19 +2573,19 @@ ImpEnvMonoInsertCommuteᵀ =
     {W⁺ Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
   → TargetInsert ρ π W W⁺
   → TargetInsert ρ π Wᵖ Wᵖ⁺
-  → CTI2.ImpEnvMono W Wᵖ
-  → CTI2.ImpEnvMono W⁺ Wᵖ⁺
+  → CTX.ImpEnvMono W Wᵖ
+  → CTX.ImpEnvMono W⁺ Wᵖ⁺
 
 insert-to-starᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑★
-  → CTI2.impEnvʷ W⁺ (toRenameᵗ (CTI2.ηᴸʷ W⁺) Xᴸ) ≡ X⊑★
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
+  → CTX.impEnvʷ W⁺ (toRenameᵗ (CTX.ηᴸʷ W⁺) Xᴸ) ≡ X⊑★
 insert-to-starᴸ {W = W} {W⁺ = W⁺} {Xᴸ = Xᴸ} ins to-star =
-  trans (cong (CTI2.impEnvʷ W⁺) (source-insert ins Xᴸ))
-    (trans (impEnv-insert ins (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ))
+  trans (cong (CTX.impEnvʷ W⁺) (source-insert ins Xᴸ))
+    (trans (impEnv-insert ins (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ))
       to-star)
 
 insert-disalignedᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -2590,10 +2593,10 @@ insert-disalignedᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ}
   → (ins : TargetInsert ρ π W W⁺)
-  → (∀ Xᴿ → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
-      ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
-  → ∀ Xᴿ′ → toRenameᵗ (CTI2.ηᴿʷ W⁺) Xᴿ′
-      ≢ toRenameᵗ (CTI2.ηᴸʷ W⁺) Xᴸ
+  → (∀ Xᴿ → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
+  → ∀ Xᴿ′ → toRenameᵗ (CTX.ηᴿʷ W⁺) Xᴿ′
+      ≢ toRenameᵗ (CTX.ηᴸʷ W⁺) Xᴸ
 insert-disalignedᴸ ins disaligned Xᴿ′ eq
     with target-source-reflect ins (sym eq)
 insert-disalignedᴸ ins disaligned Xᴿ′ eq
@@ -2605,52 +2608,52 @@ insert-represented★ᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ : TyVar Δᴸ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
-  → CTI2.resolveVar (CTI2.sourceStoreʷ W⁺) Xᴸ ⊑ᵂ⟨ W⁺ ⟩ ★
+  → CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
+  → CTX.resolveVar (CTX.sourceStoreʷ W⁺) Xᴸ ⊑ᵂ⟨ W⁺ ⟩ ★
 insert-represented★ᴸ {W⁺ = W⁺} {Xᴸ = Xᴸ} ins represented =
   subst≡ (λ A → A ⊑ᵂ⟨ W⁺ ⟩ ★)
     (sym (source-resolve ins Xᴸ))
     (transport⊑ᵂ ins represented)
 
 insertRebaseAtᴿ : RebaseAtᴿInsertCommuteᵀ
-insertRebaseAtᴿ ins CTI2.rebase-idᴿ =
-  _ , ins , CTI2.rebase-idᴿ
-insertRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+insertRebaseAtᴿ ins CTX.rebase-idᴿ =
+  _ , ins , CTX.rebase-idᴿ
+insertRebaseAtᴿ ins (CTX.rebase-varᴿ rb)
     with insertRebaseAt ins rb
-insertRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+insertRebaseAtᴿ ins (CTX.rebase-varᴿ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴿ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺
 
 insertRebaseAtᴸ : RebaseAtᴸInsertCommuteᵀ
-insertRebaseAtᴸ ins CTI2.rebase-idᴸ =
-  _ , ins , CTI2.rebase-idᴸ
-insertRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+insertRebaseAtᴸ ins CTX.rebase-idᴸ =
+  _ , ins , CTX.rebase-idᴸ
+insertRebaseAtᴸ ins (CTX.rebase-varᴸ rb)
     with insertRebaseAt ins rb
-insertRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+insertRebaseAtᴸ ins (CTX.rebase-varᴸ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴸ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺
 insertRebaseAtᴸ {W⁺ = W⁺} ins
-    (CTI2.rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   W⁺ , ins ,
-    CTI2.rebase-onlyᴸ
+    CTX.rebase-onlyᴸ
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
       (insert-represented★ᴸ ins represented)
 
 insertTagRebaseAtᴸ : TagRebaseAtᴸInsertCommuteᵀ
-insertTagRebaseAtᴸ ins CTI2.tag-rebase-idᴸ =
-  _ , ins , CTI2.tag-rebase-idᴸ
-insertTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+insertTagRebaseAtᴸ ins CTX.tag-rebase-idᴸ =
+  _ , ins , CTX.tag-rebase-idᴸ
+insertTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb)
     with insertRebaseAt ins rb
-insertTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+insertTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.tag-rebase-varᴸ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.tag-rebase-varᴸ rb⁺
 insertTagRebaseAtᴸ {W⁺ = W⁺} ins
-    (CTI2.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   W⁺ , ins ,
-    CTI2.tag-rebase-onlyᴸ
+    CTX.tag-rebase-onlyᴸ
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
       (insert-represented★ᴸ ins represented)
@@ -2661,21 +2664,21 @@ pullbackRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → CTX.RebaseAtᴸ W Wᵖ Xᴸ?
   → Σ[ W⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π W W⁺ ×
-      CTI2.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
-pullbackRebaseAtᴸInsert insᵖ CTI2.rebase-idᴸ =
-  _ , insᵖ , CTI2.rebase-idᴸ
-pullbackRebaseAtᴸInsert {W = W} insᵖ (CTI2.rebase-varᴸ rb) =
+      CTX.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
+pullbackRebaseAtᴸInsert insᵖ CTX.rebase-idᴸ =
+  _ , insᵖ , CTX.rebase-idᴸ
+pullbackRebaseAtᴸInsert {W = W} insᵖ (CTX.rebase-varᴸ rb) =
   insertRebaseWorld insᵖ W ,
   pullbackRebaseTargetInsert insᵖ rb ,
-  CTI2.rebase-varᴸ (pullbackRebaseAt insᵖ rb)
+  CTX.rebase-varᴸ (pullbackRebaseAt insᵖ rb)
 pullbackRebaseAtᴸInsert {Wᵖ⁺ = Wᵖ⁺} insᵖ
-    (CTI2.rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   Wᵖ⁺ , insᵖ ,
-    CTI2.rebase-onlyᴸ
+    CTX.rebase-onlyᴸ
       (insert-to-starᴸ insᵖ to-star)
       (insert-disalignedᴸ insᵖ disaligned)
       (insert-represented★ᴸ insᵖ represented)
@@ -2686,22 +2689,22 @@ pullbackTagRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
   → Σ[ W⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π W W⁺ ×
-      CTI2.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+      CTX.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
-pullbackTagRebaseAtᴸInsert insᵖ CTI2.tag-rebase-idᴸ =
-  _ , insᵖ , CTI2.tag-rebase-idᴸ
-pullbackTagRebaseAtᴸInsert {W = W} insᵖ (CTI2.tag-rebase-varᴸ rb) =
+pullbackTagRebaseAtᴸInsert insᵖ CTX.tag-rebase-idᴸ =
+  _ , insᵖ , CTX.tag-rebase-idᴸ
+pullbackTagRebaseAtᴸInsert {W = W} insᵖ (CTX.tag-rebase-varᴸ rb) =
   insertRebaseWorld insᵖ W ,
   pullbackReverseRebaseTargetInsert insᵖ rb ,
-  CTI2.tag-rebase-varᴸ (pullbackReverseRebaseAt insᵖ rb)
+  CTX.tag-rebase-varᴸ (pullbackReverseRebaseAt insᵖ rb)
 pullbackTagRebaseAtᴸInsert {Wᵖ⁺ = Wᵖ⁺} insᵖ
-    (CTI2.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   Wᵖ⁺ , insᵖ ,
-    CTI2.tag-rebase-onlyᴸ
+    CTX.tag-rebase-onlyᴸ
       (insert-to-starᴸ insᵖ to-star)
       (insert-disalignedᴸ insᵖ disaligned)
       (insert-represented★ᴸ insᵖ represented)
@@ -2712,17 +2715,17 @@ reverseRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴿ? : Maybe (TyVar Δᴿ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAtᴿ Wᵖ W Xᴿ?
+  → CTX.RebaseAtᴿ Wᵖ W Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴿ Wᵖ⁺ W⁺ (mapPivot (toRenameᵗ ρ) Xᴿ?)
-reverseRebaseAtᴿ ins CTI2.rebase-idᴿ =
-  _ , ins , CTI2.rebase-idᴿ
-reverseRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+      CTX.RebaseAtᴿ Wᵖ⁺ W⁺ (mapPivot (toRenameᵗ ρ) Xᴿ?)
+reverseRebaseAtᴿ ins CTX.rebase-idᴿ =
+  _ , ins , CTX.rebase-idᴿ
+reverseRebaseAtᴿ ins (CTX.rebase-varᴿ rb)
     with reverseRebaseAt ins rb
-reverseRebaseAtᴿ ins (CTI2.rebase-varᴿ rb)
+reverseRebaseAtᴿ ins (CTX.rebase-varᴿ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴿ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺
 
 reverseRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2730,22 +2733,22 @@ reverseRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.RebaseAtᴸ Wᵖ W Xᴸ?
+  → CTX.RebaseAtᴸ Wᵖ W Xᴸ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
-reverseRebaseAtᴸ ins CTI2.rebase-idᴸ =
-  _ , ins , CTI2.rebase-idᴸ
-reverseRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+      CTX.RebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+reverseRebaseAtᴸ ins CTX.rebase-idᴸ =
+  _ , ins , CTX.rebase-idᴸ
+reverseRebaseAtᴸ ins (CTX.rebase-varᴸ rb)
     with reverseRebaseAt ins rb
-reverseRebaseAtᴸ ins (CTI2.rebase-varᴸ rb)
+reverseRebaseAtᴸ ins (CTX.rebase-varᴸ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.rebase-varᴸ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺
 reverseRebaseAtᴸ {W⁺ = W⁺} ins
-    (CTI2.rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   W⁺ , ins ,
-    CTI2.rebase-onlyᴸ
+    CTX.rebase-onlyᴸ
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
       (insert-represented★ᴸ ins represented)
@@ -2756,23 +2759,23 @@ reverseTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ : World Δᴸ Δᴿ′ Δ′}
     {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
       TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTI2.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
+      CTX.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ?
         (mapPivot (toRenameᵗ ρ) Xᴿ?)
-reverseTagRebaseAtᴸ ins CTI2.tag-rebase-idᴸ =
-  _ , ins , CTI2.tag-rebase-idᴸ
-reverseTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+reverseTagRebaseAtᴸ ins CTX.tag-rebase-idᴸ =
+  _ , ins , CTX.tag-rebase-idᴸ
+reverseTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb)
     with reverseRebaseAt ins rb
-reverseTagRebaseAtᴸ ins (CTI2.tag-rebase-varᴸ rb)
+reverseTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb)
     | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTI2.tag-rebase-varᴸ rb⁺
+  Wᵖ⁺ , insᵖ , CTX.tag-rebase-varᴸ rb⁺
 reverseTagRebaseAtᴸ {W⁺ = W⁺} ins
-    (CTI2.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
+    (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
       to-star disaligned represented) =
   W⁺ , ins ,
-    CTI2.tag-rebase-onlyᴸ
+    CTX.tag-rebase-onlyᴸ
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
       (insert-represented★ᴸ ins represented)
@@ -2783,25 +2786,25 @@ impEnvMono-insert-pre : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W⁺ Wᵖ⁺ : World Δᴸ Δᴿ′ Δ′}
   → (ins : TargetInsert ρ π W W⁺)
   → (insᵖ : TargetInsert ρ π Wᵖ Wᵖ⁺)
-  → CTI2.ImpEnvMono W Wᵖ
+  → CTX.ImpEnvMono W Wᵖ
   → (Z′ : TyVar Δ′)
-  → CTI2.impEnvʷ W⁺ Z′ ≡ X⊑★
+  → CTX.impEnvʷ W⁺ Z′ ≡ X⊑★
   → (m : Maybe (TyVar Δ))
   → preimage? π Z′ ≡ m
-  → CTI2.impEnvʷ Wᵖ⁺ Z′ ≡ X⊑★
+  → CTX.impEnvʷ Wᵖ⁺ Z′ ≡ X⊑★
 impEnvMono-insert-pre {π = π} {W = W} {W⁺ = W⁺} {Wᵖ⁺ = Wᵖ⁺}
     ins insᵖ mono Z′ star (just Z) pre =
-  trans (cong (CTI2.impEnvʷ Wᵖ⁺) image-eq)
+  trans (cong (CTX.impEnvʷ Wᵖ⁺) image-eq)
     (trans (impEnv-insert insᵖ Z) (mono Z old-star))
   where
   image-eq : Z′ ≡ toRenameᵗ π Z
   image-eq = preimage?-sound π pre
 
-  image-star : CTI2.impEnvʷ W⁺ (toRenameᵗ π Z) ≡ X⊑★
+  image-star : CTX.impEnvʷ W⁺ (toRenameᵗ π Z) ≡ X⊑★
   image-star =
-    trans (sym (cong (CTI2.impEnvʷ W⁺) image-eq)) star
+    trans (sym (cong (CTX.impEnvʷ W⁺) image-eq)) star
 
-  old-star : CTI2.impEnvʷ W Z ≡ X⊑★
+  old-star : CTX.impEnvʷ W Z ≡ X⊑★
   old-star =
     trans (sym (impEnv-insert ins Z)) image-star
 impEnvMono-insert-pre ins insᵖ mono Z′ star nothing pre =
@@ -2860,48 +2863,48 @@ mutual
 ------------------------------------------------------------------------
 
 notTopTag-rename : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′) {M : Term Δ}
-  → CTI2.NotTopTag M
-  → CTI2.NotTopTag (renameᵗᵐ ρ M)
-notTopTag-rename ρ (CTI2.not-` x) = CTI2.not-` x
-notTopTag-rename ρ CTI2.not-ƛ = CTI2.not-ƛ
-notTopTag-rename ρ CTI2.not-· = CTI2.not-·
-notTopTag-rename ρ CTI2.not-Λ = CTI2.not-Λ
-notTopTag-rename ρ CTI2.not-⦂∀ = CTI2.not-⦂∀
-notTopTag-rename ρ (CTI2.not-$ κ) = CTI2.not-$ κ
-notTopTag-rename ρ (CTI2.not-⊕ op) = CTI2.not-⊕ op
-notTopTag-rename ρ CTI2.not-↑ = CTI2.not-↑
-notTopTag-rename ρ CTI2.not-↓ = CTI2.not-↓
-notTopTag-rename ρ CTI2.not-blame = CTI2.not-blame
+  → CTX.NotTopTag M
+  → CTX.NotTopTag (renameᵗᵐ ρ M)
+notTopTag-rename ρ (CTX.not-` x) = CTX.not-` x
+notTopTag-rename ρ CTX.not-ƛ = CTX.not-ƛ
+notTopTag-rename ρ CTX.not-· = CTX.not-·
+notTopTag-rename ρ CTX.not-Λ = CTX.not-Λ
+notTopTag-rename ρ CTX.not-⦂∀ = CTX.not-⦂∀
+notTopTag-rename ρ (CTX.not-$ κ) = CTX.not-$ κ
+notTopTag-rename ρ (CTX.not-⊕ op) = CTX.not-⊕ op
+notTopTag-rename ρ CTX.not-↑ = CTX.not-↑
+notTopTag-rename ρ CTX.not-↓ = CTX.not-↓
+notTopTag-rename ρ CTX.not-blame = CTX.not-blame
 
 renameRep★PartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′}
     {X : TyVar Δᴸ} {P Xᴿ? M′}
   → (∀ {X₀ Y₀}
-      → CTI2.CenterAligned W X₀ Y₀
-      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
-  → CTI2.Rep★PartnerOK W X P Xᴿ? M′
-  → CTI2.Rep★PartnerOK W′ X P
+      → CTX.CenterAligned W X₀ Y₀
+      → CTX.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
+  → CTX.Rep★PartnerOK W X P Xᴿ? M′
+  → CTX.Rep★PartnerOK W′ X P
       (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
-renameRep★PartnerOK align (CTI2.rep★-untagged nt) =
-  CTI2.rep★-untagged (notTopTag-rename _ nt)
-renameRep★PartnerOK align (CTI2.rep★-nonvar-tag Gnv) =
-  CTI2.rep★-nonvar-tag (renameNonVar _ Gnv)
-renameRep★PartnerOK align (CTI2.rep★-var-tag aligned) =
-  CTI2.rep★-var-tag (align aligned)
+renameRep★PartnerOK align (CTX.rep★-untagged nt) =
+  CTX.rep★-untagged (notTopTag-rename _ nt)
+renameRep★PartnerOK align (CTX.rep★-nonvar-tag Gnv) =
+  CTX.rep★-nonvar-tag (renameNonVar _ Gnv)
+renameRep★PartnerOK align (CTX.rep★-var-tag aligned) =
+  CTX.rep★-var-tag (align aligned)
 renameRep★PartnerOK align
-    (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags X₂≢X (align aligned)
-renameRep★PartnerOK align (CTI2.rep★-round-trip ok) =
-  CTI2.rep★-round-trip (renameRep★PartnerOK align ok)
+    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
+  CTX.rep★-matched-inner-tags X₂≢X (align aligned)
+renameRep★PartnerOK align (CTX.rep★-round-trip ok) =
+  CTX.rep★-round-trip (renameRep★PartnerOK align ok)
 
 targetInsertNoTargetAtSource : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {X : TyVar Δᴸ}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.NoTargetOccupantAtSource W X
-  → CTI2.NoTargetOccupantAtSource W′ X
+  → CTX.NoTargetOccupantAtSource W X
+  → CTX.NoTargetOccupantAtSource W′ X
 targetInsertNoTargetAtSource {X = X} ins no-target (Y′ , eq)
     with target-center-reflect ins (trans eq (source-insert ins X))
 targetInsertNoTargetAtSource {X = X} ins no-target (Y′ , eq)
@@ -2914,23 +2917,23 @@ renameSourceConcealOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {M : Term Δᴸ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
   → (∀ {X₀ Y₀}
-      → CTI2.CenterAligned W X₀ Y₀
-      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
-  → CTI2.SourceConcealOK W M c Xᴿ? M′
-  → CTI2.SourceConcealOK W′ M c
+      → CTX.CenterAligned W X₀ Y₀
+      → CTX.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
+  → CTX.SourceConcealOK W M c Xᴿ? M′
+  → CTX.SourceConcealOK W′ M c
       (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
 renameSourceConcealOK align
-    (CTI2.seal-nonstar-plain-ok Rns nt) =
-  CTI2.seal-nonstar-plain-ok Rns (notTopTag-rename _ nt)
+    (CTX.seal-nonstar-plain-ok Rns nt) =
+  CTX.seal-nonstar-plain-ok Rns (notTopTag-rename _ nt)
 renameSourceConcealOK align
-    (CTI2.seal-nonstar-name-protected-ok Rns aligned) =
-  CTI2.seal-nonstar-name-protected-ok Rns (align aligned)
-renameSourceConcealOK align CTI2.fun-conceal-ok =
-  CTI2.fun-conceal-ok
-renameSourceConcealOK align CTI2.all-conceal-ok =
-  CTI2.all-conceal-ok
-renameSourceConcealOK align CTI2.id-conceal-ok =
-  CTI2.id-conceal-ok
+    (CTX.seal-nonstar-name-protected-ok Rns aligned) =
+  CTX.seal-nonstar-name-protected-ok Rns (align aligned)
+renameSourceConcealOK align CTX.fun-conceal-ok =
+  CTX.fun-conceal-ok
+renameSourceConcealOK align CTX.all-conceal-ok =
+  CTX.all-conceal-ok
+renameSourceConcealOK align CTX.id-conceal-ok =
+  CTX.id-conceal-ok
 
 renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
@@ -2938,23 +2941,23 @@ renameMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {M : Term Δᴸ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
   → (∀ {X₀ Y₀}
-      → CTI2.CenterAligned W X₀ Y₀
-      → CTI2.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
-  → CTI2.MatchedConcealPartnerOK W M c Xᴿ? M′
-  → CTI2.MatchedConcealPartnerOK W′ M c
+      → CTX.CenterAligned W X₀ Y₀
+      → CTX.CenterAligned W′ X₀ (toRenameᵗ ρ Y₀))
+  → CTX.MatchedConcealPartnerOK W M c Xᴿ? M′
+  → CTX.MatchedConcealPartnerOK W′ M c
       (mapPivot (toRenameᵗ ρ) Xᴿ?) (renameᵗᵐ ρ M′)
 renameMatchedConcealPartnerOK align
-    (CTI2.matched-seal-star-partner ok) =
-  CTI2.matched-seal-star-partner (renameRep★PartnerOK align ok)
+    (CTX.matched-seal-star-partner ok) =
+  CTX.matched-seal-star-partner (renameRep★PartnerOK align ok)
 renameMatchedConcealPartnerOK align
-    (CTI2.matched-seal-nonstar Rns) =
-  CTI2.matched-seal-nonstar Rns
-renameMatchedConcealPartnerOK align CTI2.matched-fun-conceal-target =
-  CTI2.matched-fun-conceal-target
-renameMatchedConcealPartnerOK align CTI2.matched-all-conceal-target =
-  CTI2.matched-all-conceal-target
-renameMatchedConcealPartnerOK align CTI2.matched-id-conceal-target =
-  CTI2.matched-id-conceal-target
+    (CTX.matched-seal-nonstar Rns) =
+  CTX.matched-seal-nonstar Rns
+renameMatchedConcealPartnerOK align CTX.matched-fun-conceal-target =
+  CTX.matched-fun-conceal-target
+renameMatchedConcealPartnerOK align CTX.matched-all-conceal-target =
+  CTX.matched-all-conceal-target
+renameMatchedConcealPartnerOK align CTX.matched-id-conceal-target =
+  CTX.matched-id-conceal-target
 
 ------------------------------------------------------------------------
 -- Rebasing evidence across one root right bind
@@ -2971,45 +2974,45 @@ right-bind-transport⊑ᵂᵀ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
   → A ⊑ᵂ⟨ W ⟩ B
-  → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ ⟩
+  → A ⊑ᵂ⟨ CTX.rightOnlyWorld W B′ ⟩
       renameᵗ (toRenameᵗ wk↪ᵗ) B
 right-bind-transport⊑ᵂᵀ {W = W} {B′ = B′} {A = A} {B = B} p =
-  subst≡ (λ C → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ ⟩ C)
+  subst≡ (λ C → A ⊑ᵂ⟨ CTX.rightOnlyWorld W B′ ⟩ C)
     (sym (renameᵗ-wk-eq B))
     (right-bind-⊑ᵂ {W = W} {B′ = B′} p)
 
 right-bind-align : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Xᴿ}
-  → CTI2.CenterAligned W Xᴸ Xᴿ
-  → CTI2.CenterAligned (CTI2.rightOnlyWorld W B)
+  → CTX.CenterAligned W Xᴸ Xᴿ
+  → CTX.CenterAligned (CTX.rightOnlyWorld W B)
       Xᴸ (toRenameᵗ wk↪ᵗ Xᴿ)
 right-bind-align {W = W} {Xᴿ = Xᴿ} aligned =
   trans (cong Fin.suc aligned)
-    (sym (right-target-map (CTI2.ηᴿʷ W) Xᴿ))
+    (sym (right-target-map (CTX.ηᴿʷ W) Xᴿ))
 
 right-bind-source-insert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ∀ Xᴸ
-  → toRenameᵗ (CTI2.ηᴸʷ (CTI2.rightOnlyWorld W B)) Xᴸ
-      ≡ toRenameᵗ wk↪ᵗ (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+  → toRenameᵗ (CTX.ηᴸʷ (CTX.rightOnlyWorld W B)) Xᴸ
+      ≡ toRenameᵗ wk↪ᵗ (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
 right-bind-source-insert {W = W} Xᴸ =
-  sym (toRename-wk-eq (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ))
+  sym (toRename-wk-eq (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ))
 
 right-bind-target-insert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ∀ Xᴿ
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B))
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B))
       (toRenameᵗ wk↪ᵗ Xᴿ)
-      ≡ toRenameᵗ wk↪ᵗ (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)
+      ≡ toRenameᵗ wk↪ᵗ (toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)
 right-bind-target-insert {W = W} Xᴿ =
-  trans (right-target-map (CTI2.ηᴿʷ W) Xᴿ)
-    (sym (toRename-wk-eq (toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ)))
+  trans (right-target-map (CTX.ηᴿʷ W) Xᴿ)
+    (sym (toRename-wk-eq (toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)))
 
 right-bind-impEnv-insert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ∀ Z
-  → CTI2.impEnvʷ (CTI2.rightOnlyWorld W B) (toRenameᵗ wk↪ᵗ Z)
-      ≡ CTI2.impEnvʷ W Z
+  → CTX.impEnvʷ (CTX.rightOnlyWorld W B) (toRenameᵗ wk↪ᵗ Z)
+      ≡ CTX.impEnvʷ W Z
 right-bind-impEnv-insert Z
     rewrite toRename-wk-eq Z | toRename-id-eq Z =
   refl
@@ -3017,7 +3020,7 @@ right-bind-impEnv-insert Z
 right-bind-impEnv-off-insert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Z′ : TyVar (Nat.suc Δ)}
   → preimage? wk↪ᵗ Z′ ≡ nothing
-  → CTI2.impEnvʷ (CTI2.rightOnlyWorld W B) Z′ ≡ X⊑★
+  → CTX.impEnvʷ (CTX.rightOnlyWorld W B) Z′ ≡ X⊑★
 right-bind-impEnv-off-insert {Z′ = Fin.zero} eq = refl
 right-bind-impEnv-off-insert {Z′ = Fin.suc Z′} eq
     rewrite preimage-id↪ Z′ =
@@ -3025,11 +3028,11 @@ right-bind-impEnv-off-insert {Z′ = Fin.suc Z′} eq
 
 right-bind-target-center-reflect : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Y′ Z}
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Y′
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B)) Y′
       ≡ toRenameᵗ wk↪ᵗ Z
   → Σ[ Y ∈ TyVar Δᴿ ]
       Y′ ≡ toRenameᵗ wk↪ᵗ Y ×
-      toRenameᵗ (CTI2.ηᴿʷ W) Y ≡ Z
+      toRenameᵗ (CTX.ηᴿʷ W) Y ≡ Z
 right-bind-target-center-reflect {Y′ = Fin.zero} {Z = Z} eq =
   ⊥-elim (zero≢suc (trans eq (toRename-wk-eq Z)))
 right-bind-target-center-reflect {Y′ = Fin.suc Y} {Z = Z} eq =
@@ -3038,43 +3041,43 @@ right-bind-target-center-reflect {Y′ = Fin.suc Y} {Z = Z} eq =
 
 right-bind-target-source-reflect : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Y′}
-  → CTI2.CenterAligned (CTI2.rightOnlyWorld W B) Xᴸ Y′
+  → CTX.CenterAligned (CTX.rightOnlyWorld W B) Xᴸ Y′
   → Σ[ Y ∈ TyVar Δᴿ ]
-      Y′ ≡ toRenameᵗ wk↪ᵗ Y × CTI2.CenterAligned W Xᴸ Y
+      Y′ ≡ toRenameᵗ wk↪ᵗ Y × CTX.CenterAligned W Xᴸ Y
 right-bind-target-source-reflect {Y′ = Fin.zero} ()
 right-bind-target-source-reflect {Y′ = Fin.suc Y} aligned =
   Y , sym (toRename-wk-eq Y) , fin-suc-injective aligned
 
 right-resolveVar-map : ∀ {Δ} (Σ : TyStore Δ) (B : Ty Δ)
   → ∀ Y
-  → CTI2.resolveVar (TyStore.store-bind Σ B) (toRenameᵗ wk↪ᵗ Y)
-      ≡ ⇑ᵗ (CTI2.resolveVar Σ Y)
+  → CTX.resolveVar (TyStore.store-bind Σ B) (toRenameᵗ wk↪ᵗ Y)
+      ≡ ⇑ᵗ (CTX.resolveVar Σ Y)
 right-resolveVar-map Σ B Y =
-  cong (CTI2.resolveVar (TyStore.store-bind Σ B)) (toRename-wk-eq Y)
+  cong (CTX.resolveVar (TyStore.store-bind Σ B)) (toRename-wk-eq Y)
 
 right-bind-source-resolve : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ∀ Xᴸ
-  → CTI2.resolveVar
-      (CTI2.sourceStoreʷ (CTI2.rightOnlyWorld W B)) Xᴸ
-      ≡ CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ
+  → CTX.resolveVar
+      (CTX.sourceStoreʷ (CTX.rightOnlyWorld W B)) Xᴸ
+      ≡ CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ
 right-bind-source-resolve Xᴸ = refl
 
 right-bind-target-resolve : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → ∀ Xᴿ
-  → CTI2.resolveVar
-      (CTI2.targetStoreʷ (CTI2.rightOnlyWorld W B))
+  → CTX.resolveVar
+      (CTX.targetStoreʷ (CTX.rightOnlyWorld W B))
       (toRenameᵗ wk↪ᵗ Xᴿ)
       ≡ renameᵗ (toRenameᵗ wk↪ᵗ)
-          (CTI2.resolveVar (CTI2.targetStoreʷ W) Xᴿ)
+          (CTX.resolveVar (CTX.targetStoreʷ W) Xᴿ)
 right-bind-target-resolve {W = W} {B = B} Xᴿ =
-  trans (right-resolveVar-map (CTI2.targetStoreʷ W) B Xᴿ)
-    (sym (renameᵗ-wk-eq (CTI2.resolveVar (CTI2.targetStoreʷ W) Xᴿ)))
+  trans (right-resolveVar-map (CTX.targetStoreʷ W) B Xᴿ)
+    (sym (renameᵗ-wk-eq (CTX.resolveVar (CTX.targetStoreʷ W) Xᴿ)))
 
 rightBindTargetInsert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
-  → TargetInsert wk↪ᵗ wk↪ᵗ W (CTI2.rightOnlyWorld W B)
+  → TargetInsert wk↪ᵗ wk↪ᵗ W (CTX.rightOnlyWorld W B)
 rightBindTargetInsert {W = W} {B = B} = record
   { sourceStore-kept = refl
   ; transport⊑ᵂ = λ p →
@@ -3108,12 +3111,12 @@ smartFreshRightBindTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {W : World Δᴸ Δᴿ Δ}
     {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
     {B : Ty Δᴿ}
-  → (guard : CTI2.SmartFreshBehindGuard W Wᵐ)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → TargetWindowInsert
       (smartFreshTargetInsert
         (rightBindTargetInsert {W = W} {B = B}) guard)
       (rightPushoutWindow
-        (CTI2.SmartFreshBehindGuard.oldCenters guard))
+        (CTX.SmartFreshBehindGuard.oldCenters guard))
 smartFreshRightBindTargetWindowInsert guard =
   record
     { windowEmbedding = window-here
@@ -3124,138 +3127,138 @@ smartFreshRightBindTargetWindowInsert guard =
 keepRightBindTargetInsert : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {v : VarImp}
   → TargetInsert (keep wk↪ᵗ) (keep wk↪ᵗ)
-      (CTI2.liftWorldBoth v W)
-      (CTI2.liftWorldBoth v (CTI2.rightOnlyWorld W B))
+      (CTX.liftWorldBoth v W)
+      (CTX.liftWorldBoth v (CTX.rightOnlyWorld W B))
 keepRightBindTargetInsert {W = W} {B = B} {v = v} =
   liftBothTargetInsert {v = v} (rightBindTargetInsert {W = W} {B = B})
 
 right-storeRep : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Xᴿ}
-  → CTI2.StoreRepImp W Xᴸ Xᴿ
-  → CTI2.StoreRepImp (CTI2.rightOnlyWorld W B)
+  → CTX.StoreRepImp W Xᴸ Xᴿ
+  → CTX.StoreRepImp (CTX.rightOnlyWorld W B)
       Xᴸ (toRenameᵗ wk↪ᵗ Xᴿ)
 right-storeRep {W = W} {B = B} {Xᴿ = Xᴿ}
-    (CTI2.store-rep-imp represented) =
-  CTI2.store-rep-imp
+    (CTX.store-rep-imp represented) =
+  CTX.store-rep-imp
     (subst≡
-      (λ R → CTI2.resolveVar (CTI2.sourceStoreʷ W) _
-        ⊑ᵂ⟨ CTI2.rightOnlyWorld W B ⟩ R)
-      (sym (right-resolveVar-map (CTI2.targetStoreʷ W) B Xᴿ))
+      (λ R → CTX.resolveVar (CTX.sourceStoreʷ W) _
+        ⊑ᵂ⟨ CTX.rightOnlyWorld W B ⟩ R)
+      (sym (right-resolveVar-map (CTX.targetStoreʷ W) B Xᴿ))
       (right-bind-⊑ᵂ {W = W} {B′ = B} represented))
 
 rightRebaseAt : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Xᴿ}
-  → CTI2.RebaseAt W W′ Xᴸ Xᴿ
-  → CTI2.RebaseAt (CTI2.rightOnlyWorld W B)
-      (CTI2.rightOnlyWorld W′ B) Xᴸ (toRenameᵗ wk↪ᵗ Xᴿ)
+  → CTX.RebaseAt W W′ Xᴸ Xᴿ
+  → CTX.RebaseAt (CTX.rightOnlyWorld W B)
+      (CTX.rightOnlyWorld W′ B) Xᴸ (toRenameᵗ wk↪ᵗ Xᴿ)
 rightRebaseAt {W = W} {W′ = W′} {B = B} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
-    (CTI2.rebase-at
-      (CTI2.same-runtime source-eq target-eq)
+    (CTX.rebase-at
+      (CTX.same-runtime source-eq target-eq)
       offL frozenR aligned reps) =
-  CTI2.rebase-at
-    (CTI2.same-runtime source-eq
+  CTX.rebase-at
+    (CTX.same-runtime source-eq
       (cong (λ Σ → TyStore.store-bind Σ B) target-eq))
     (λ Y≢ → cong Fin.suc (offL Y≢))
     frozenR′
     (trans (cong Fin.suc aligned)
-      (sym (right-target-map (CTI2.ηᴿʷ W′) Xᴿ)))
+      (sym (right-target-map (CTX.ηᴿʷ W′) Xᴿ)))
     (right-storeRep reps)
   where
   frozenR′ : ∀ Y
-    → toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W′ B)) Y
-      ≡ toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Y
+    → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W′ B)) Y
+      ≡ toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B)) Y
   frozenR′ Fin.zero = refl
   frozenR′ (Fin.suc Y) = cong Fin.suc (frozenR Y)
 
 right-disaligned : ∀ {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) {B : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
-  → (∀ Xᴿ → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
-      ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
+  → (∀ Xᴿ → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
   → ∀ Xᴿ → toRenameᵗ
-      (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Xᴿ
+      (CTX.ηᴿʷ (CTX.rightOnlyWorld W B)) Xᴿ
         ≢ toRenameᵗ
-          (CTI2.ηᴸʷ (CTI2.rightOnlyWorld W B)) Xᴸ
+          (CTX.ηᴸʷ (CTX.rightOnlyWorld W B)) Xᴸ
 right-disaligned W disaligned Fin.zero ()
 right-disaligned W disaligned (Fin.suc Xᴿ) eq =
   disaligned Xᴿ (fin-suc-injective eq)
 
 rightRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ?}
-  → CTI2.RebaseAtᴸ W W′ Xᴸ?
-  → CTI2.RebaseAtᴸ (CTI2.rightOnlyWorld W B)
-      (CTI2.rightOnlyWorld W′ B) Xᴸ?
-rightRebaseAtᴸ CTI2.rebase-idᴸ = CTI2.rebase-idᴸ
-rightRebaseAtᴸ (CTI2.rebase-varᴸ rb) =
-  CTI2.rebase-varᴸ (rightRebaseAt rb)
+  → CTX.RebaseAtᴸ W W′ Xᴸ?
+  → CTX.RebaseAtᴸ (CTX.rightOnlyWorld W B)
+      (CTX.rightOnlyWorld W′ B) Xᴸ?
+rightRebaseAtᴸ CTX.rebase-idᴸ = CTX.rebase-idᴸ
+rightRebaseAtᴸ (CTX.rebase-varᴸ rb) =
+  CTX.rebase-varᴸ (rightRebaseAt rb)
 rightRebaseAtᴸ {W = W} {B = B}
-    (CTI2.rebase-onlyᴸ to-star disaligned represented) =
-  CTI2.rebase-onlyᴸ to-star (right-disaligned W {B = B} disaligned)
+    (CTX.rebase-onlyᴸ to-star disaligned represented) =
+  CTX.rebase-onlyᴸ to-star (right-disaligned W {B = B} disaligned)
     (right-bind-⊑ᵂ {W = W} {B′ = B} represented)
 
 rightTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ? Xᴿ?}
-  → CTI2.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
-  → CTI2.TagRebaseAtᴸ (CTI2.rightOnlyWorld W B)
-      (CTI2.rightOnlyWorld W′ B) Xᴸ?
+  → CTX.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ (CTX.rightOnlyWorld W B)
+      (CTX.rightOnlyWorld W′ B) Xᴸ?
       (mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?)
-rightTagRebaseAtᴸ CTI2.tag-rebase-idᴸ = CTI2.tag-rebase-idᴸ
-rightTagRebaseAtᴸ (CTI2.tag-rebase-varᴸ rb) =
-  CTI2.tag-rebase-varᴸ (rightRebaseAt rb)
+rightTagRebaseAtᴸ CTX.tag-rebase-idᴸ = CTX.tag-rebase-idᴸ
+rightTagRebaseAtᴸ (CTX.tag-rebase-varᴸ rb) =
+  CTX.tag-rebase-varᴸ (rightRebaseAt rb)
 rightTagRebaseAtᴸ {W = W} {B = B}
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
-  CTI2.tag-rebase-onlyᴸ to-star
+    (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
+  CTX.tag-rebase-onlyᴸ to-star
     (right-disaligned W {B = B} disaligned)
     (right-bind-⊑ᵂ {W = W} {B′ = B} represented)
 
 rightRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴿ?}
-  → CTI2.RebaseAtᴿ W W′ Xᴿ?
-  → CTI2.RebaseAtᴿ (CTI2.rightOnlyWorld W B)
-      (CTI2.rightOnlyWorld W′ B)
+  → CTX.RebaseAtᴿ W W′ Xᴿ?
+  → CTX.RebaseAtᴿ (CTX.rightOnlyWorld W B)
+      (CTX.rightOnlyWorld W′ B)
       (mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?)
-rightRebaseAtᴿ CTI2.rebase-idᴿ = CTI2.rebase-idᴿ
-rightRebaseAtᴿ (CTI2.rebase-varᴿ rb) =
-  CTI2.rebase-varᴿ (rightRebaseAt rb)
+rightRebaseAtᴿ CTX.rebase-idᴿ = CTX.rebase-idᴿ
+rightRebaseAtᴿ (CTX.rebase-varᴿ rb) =
+  CTX.rebase-varᴿ (rightRebaseAt rb)
 
 rightRebaseAtInsert : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ Xᴿ}
-  → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
   → Σ[ Wᵖ⁺ ∈ World Δᴸ (Nat.suc Δᴿ) (Nat.suc Δ) ]
       TargetInsert wk↪ᵗ wk↪ᵗ Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAt (CTI2.rightOnlyWorld W B) Wᵖ⁺
+      CTX.RebaseAt (CTX.rightOnlyWorld W B) Wᵖ⁺
         Xᴸ (toRenameᵗ wk↪ᵗ Xᴿ)
 rightRebaseAtInsert {Wᵖ = Wᵖ} {B = B} rb =
-  CTI2.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAt rb
+  CTX.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAt rb
 
 rightRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ?}
-  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
+  → CTX.RebaseAtᴸ W Wᵖ Xᴸ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ (Nat.suc Δᴿ) (Nat.suc Δ) ]
       TargetInsert wk↪ᵗ wk↪ᵗ Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴸ (CTI2.rightOnlyWorld W B) Wᵖ⁺ Xᴸ?
+      CTX.RebaseAtᴸ (CTX.rightOnlyWorld W B) Wᵖ⁺ Xᴸ?
 rightRebaseAtᴸInsert {Wᵖ = Wᵖ} {B = B} rb =
-  CTI2.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAtᴸ rb
+  CTX.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAtᴸ rb
 
 rightTagRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴸ? Xᴿ?}
-  → CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ (Nat.suc Δᴿ) (Nat.suc Δ) ]
       TargetInsert wk↪ᵗ wk↪ᵗ Wᵖ Wᵖ⁺ ×
-      CTI2.TagRebaseAtᴸ (CTI2.rightOnlyWorld W B) Wᵖ⁺ Xᴸ?
+      CTX.TagRebaseAtᴸ (CTX.rightOnlyWorld W B) Wᵖ⁺ Xᴸ?
         (mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?)
 rightTagRebaseAtᴸInsert {Wᵖ = Wᵖ} {B = B} rb =
-  CTI2.rightOnlyWorld Wᵖ B , rightBindTargetInsert ,
+  CTX.rightOnlyWorld Wᵖ B , rightBindTargetInsert ,
     rightTagRebaseAtᴸ rb
 
 rightRebaseAtᴿInsert : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ} {Xᴿ?}
-  → CTI2.RebaseAtᴿ W Wᵖ Xᴿ?
+  → CTX.RebaseAtᴿ W Wᵖ Xᴿ?
   → Σ[ Wᵖ⁺ ∈ World Δᴸ (Nat.suc Δᴿ) (Nat.suc Δ) ]
       TargetInsert wk↪ᵗ wk↪ᵗ Wᵖ Wᵖ⁺ ×
-      CTI2.RebaseAtᴿ (CTI2.rightOnlyWorld W B) Wᵖ⁺
+      CTX.RebaseAtᴿ (CTX.rightOnlyWorld W B) Wᵖ⁺
         (mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?)
 rightRebaseAtᴿInsert {Wᵖ = Wᵖ} {B = B} rb =
-  CTI2.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAtᴿ rb
+  CTX.rightOnlyWorld Wᵖ B , rightBindTargetInsert , rightRebaseAtᴿ rb
 
 ------------------------------------------------------------------------
 -- Retargeting derivations
@@ -3267,11 +3270,11 @@ mapCtxᴿ-∋ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {γ : CtxImp W} {x A B}
     {p : A ⊑ᵂ⟨ W ⟩ B}
   → (ext : ECR.WorldExtendᴿ χs W W′)
-  → γ CTI2.∋ʷ x ⦂ CTI2.ctx-imp A B p
-  → ECR.mapCtxᴿ ext γ CTI2.∋ʷ x ⦂
-      CTI2.ctx-imp A (χs Reduction.▶ᵗ B) (ECR.transport⊑ᵂ ext p)
-mapCtxᴿ-∋ ext CTI2.Zʷ = CTI2.Zʷ
-mapCtxᴿ-∋ ext (CTI2.Sʷ x∈) = CTI2.Sʷ (mapCtxᴿ-∋ ext x∈)
+  → γ CTX.∋ʷ x ⦂ CTX.ctx-imp A B p
+  → ECR.mapCtxᴿ ext γ CTX.∋ʷ x ⦂
+      CTX.ctx-imp A (χs Reduction.▶ᵗ B) (ECR.transport⊑ᵂ ext p)
+mapCtxᴿ-∋ ext CTX.Zʷ = CTX.Zʷ
+mapCtxᴿ-∋ ext (CTX.Sʷ x∈) = CTX.Sʷ (mapCtxᴿ-∋ ext x∈)
 
 ⊢²-retarget : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
@@ -3296,8 +3299,8 @@ source-reveal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↑ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.sourceStoreʷ W Conv.⊢↑[ X? ] c
-  → CTI2.sourceStoreʷ W′ Conv.⊢↑[ X? ] c
+  → CTX.sourceStoreʷ W Conv.⊢↑[ X? ] c
+  → CTX.sourceStoreʷ W′ Conv.⊢↑[ X? ] c
 source-reveal-insert ins c⊢ =
   subst≡ (λ Σ → Σ Conv.⊢↑[ _ ] _) (sym (sourceStore-kept ins)) c⊢
 
@@ -3307,8 +3310,8 @@ source-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
     {c : Conv↓ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTI2.sourceStoreʷ W Conv.⊢↓[ X? ] c
-  → CTI2.sourceStoreʷ W′ Conv.⊢↓[ X? ] c
+  → CTX.sourceStoreʷ W Conv.⊢↓[ X? ] c
+  → CTX.sourceStoreʷ W′ Conv.⊢↓[ X? ] c
 source-conceal-insert ins c⊢ =
   subst≡ (λ Σ → Σ Conv.⊢↓[ _ ] _) (sym (sourceStore-kept ins)) c⊢
 
@@ -3317,9 +3320,9 @@ target-typing-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
     {γ : CtxImp W} {M : Term Δᴿ} {B : Ty Δᴿ}
   → (ins : TargetInsert ρ π W W′)
-  → ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ γ ⟩ ⊢ M ⦂ B
-  → ⟨ Δᴿ′ , CTI2.targetStoreʷ W′ ,
-        CTI2.tgtCtxʷ (mapCtxᵀ ins γ) ⟩
+  → ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩ ⊢ M ⦂ B
+  → ⟨ Δᴿ′ , CTX.targetStoreʷ W′ ,
+        CTX.tgtCtxʷ (mapCtxᵀ ins γ) ⟩
       ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) B
 target-typing-insert {ρ = ρ} {γ = γ} ins M⊢ =
   subst≡
@@ -3386,20 +3389,20 @@ primResultTy-renameᵗ ρ and𝔹 = refl
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {W = W} {γ = γ} ins
     (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {p = p}
-      Anv zero∈A (CTI2.smart-merge-alias guard) liftγ vV M′⊢
+      Anv zero∈A (CTX.smart-merge-alias guard) liftγ vV M′⊢
       V⊑M′ q) =
   CTI2.Λ⊑²-smart-comma Anv zero∈A
-    (CTI2.smart-merge-alias (smartAliasGuardInsert ins guard))
+    (CTX.smart-merge-alias (smartAliasGuardInsert ins guard))
     (targetSmartLiftCtxLeft ins (smartAliasTargetInsert ins guard) liftγ)
     vV (target-typing-insert ins M′⊢)
     (⊢²-target-insert (smartAliasTargetInsert ins guard) V⊑M′)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {W = W} {γ = γ} ins
     (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} {p = p}
-      Anv zero∈A (CTI2.smart-fresh-behind guard) liftγ vV M′⊢
+      Anv zero∈A (CTX.smart-fresh-behind guard) liftγ vV M′⊢
       V⊑M′ q) =
   CTI2.Λ⊑²-smart-comma Anv zero∈A
-    (CTI2.smart-fresh-behind (smartFreshGuardInsert ins guard))
+    (CTX.smart-fresh-behind (smartFreshGuardInsert ins guard))
     (targetSmartLiftCtxLeft ins (smartFreshTargetInsert ins guard) liftγ)
     vV (target-typing-insert ins M′⊢)
     (⊢²-target-insert (smartFreshTargetInsert ins guard) V⊑M′)
@@ -3658,29 +3661,29 @@ TargetExtendBindᵀ =
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B}
   → (ext : ECR.WorldExtendᴿ (bind B′ ∷ []) W
-      (CTI2.rightOnlyWorld W B′))
+      (CTX.rightOnlyWorld W B′))
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
-  → CTI2.rightOnlyWorld W B′
+  → CTX.rightOnlyWorld W B′
       ∣ ECR.mapCtxᴿ ext γ
       ⊢² M ⊑ renameᵗᵐ wk↪ᵗ M′ ∶ ECR.transport⊑ᵂ ext p
 
 mapCtx-rightBind-ECR : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     (ext : ECR.WorldExtendᴿ (bind B′ ∷ []) W
-      (CTI2.rightOnlyWorld W B′))
+      (CTX.rightOnlyWorld W B′))
     (γ : CtxImp W)
   → ECR.mapCtxᴿ ext γ ≡ mapCtxᵀ rightBindTargetInsert γ
 mapCtx-rightBind-ECR ext [] = refl
 mapCtx-rightBind-ECR {W = W} {B′ = B′} ext
-    (CTI2.ctx-imp A B p ∷ γ) =
+    (CTX.ctx-imp A B p ∷ γ) =
   cong₂ _∷_ entry-eq (mapCtx-rightBind-ECR ext γ)
   where
   entry-eq :
-      CTI2.ctx-imp A (⇑ᵗ B) (ECR.transport⊑ᵂ ext p)
-      ≡ CTI2.ctx-imp A (renameᵗ (toRenameᵗ wk↪ᵗ) B)
+      CTX.ctx-imp A (⇑ᵗ B) (ECR.transport⊑ᵂ ext p)
+      ≡ CTX.ctx-imp A (renameᵗ (toRenameᵗ wk↪ᵗ) B)
           (transport⊑ᵂ (rightBindTargetInsert {W = W} {B = B′}) p)
   entry-eq =
-    ctx-imp-target-eq {W = CTI2.rightOnlyWorld W B′}
+    ctx-imp-target-eq {W = CTX.rightOnlyWorld W B′}
       {A = A} {B = ⇑ᵗ B}
       {B′ = renameᵗ (toRenameᵗ wk↪ᵗ) B}
       {p = ECR.transport⊑ᵂ ext p}
@@ -3691,7 +3694,7 @@ mapCtx-rightBind-ECR {W = W} {B′ = B′} ext
 ⊢²-target-extend-bind {W = W} {γ = γ} {M = M} {M′ = M′}
     {B = B} {B′ = B′} {p = p} ext M⊑M′ =
   subst≡
-    (λ γ′ → CTI2.rightOnlyWorld W B′ ∣ γ′
+    (λ γ′ → CTX.rightOnlyWorld W B′ ∣ γ′
       ⊢² M ⊑ renameᵗᵐ wk↪ᵗ M′ ∶ ECR.transport⊑ᵂ ext p)
     (sym (mapCtx-rightBind-ECR ext γ))
     (⊢²-retargetᴿ {q = ECR.transport⊑ᵂ ext p}

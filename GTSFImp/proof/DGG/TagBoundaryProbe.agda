@@ -27,9 +27,16 @@ open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X : TyVar 1
@@ -85,13 +92,13 @@ probe-W₅ : World 1 2 2
 probe-W₅ =
   world η-X-b η-YY′-ab probe-μ probe-src-store probe-tgt-store
 
-probe-W₁-WF : CTI2.WFWorld probe-W₁
+probe-W₁-WF : CTX.WFWorld probe-W₁
 probe-W₁-WF Fin.zero ()
 
-probe-W₄-WF : CTI2.WFWorld probe-W₄
+probe-W₄-WF : CTX.WFWorld probe-W₄
 probe-W₄-WF Fin.zero ()
 
-probe-W₅-WF : CTI2.WFWorld probe-W₅
+probe-W₅-WF : CTX.WFWorld probe-W₅
 probe-W₅-WF Fin.zero ()
 
 ------------------------------------------------------------------------
@@ -156,7 +163,7 @@ probe-U = probe-M′ ⟨ probe-Y′! ⟩
 -- Rebase witnesses
 ------------------------------------------------------------------------
 
-probe-X-Y-rep₁ : CTI2.StoreRepImp probe-W₁ X Y
+probe-X-Y-rep₁ : CTX.StoreRepImp probe-W₁ X Y
 probe-X-Y-rep₁ = store-rep-imp ★⊑★
 
 probe-outer-target-rebase : RebaseAt probe-W₄ probe-W₁ X Y
@@ -166,7 +173,7 @@ probe-outer-target-rebase =
     (λ _ → refl)
     refl probe-X-Y-rep₁
 
-probe-X-Y′-rep₄ : CTI2.StoreRepImp probe-W₄ X Y′
+probe-X-Y′-rep₄ : CTX.StoreRepImp probe-W₄ X Y′
 probe-X-Y′-rep₄ = store-rep-imp ★⊑★
 
 probe-inner-target-rebase : RebaseAt probe-W₅ probe-W₄ X Y′
@@ -176,16 +183,16 @@ probe-inner-target-rebase =
     (λ _ → refl)
     refl probe-X-Y′-rep₄
 
-probe-X-Y′-rep₅ : CTI2.StoreRepImp probe-W₅ X Y′
+probe-X-Y′-rep₅ : CTX.StoreRepImp probe-W₅ X Y′
 probe-X-Y′-rep₅ = store-rep-imp ★⊑★
 
 probe-inner-source-rebase : RebaseAt probe-W₅ probe-W₅ X Y′
 probe-inner-source-rebase =
-  CTI2.sameWorldRebaseAt refl probe-X-Y′-rep₅
+  CTX.sameWorldRebaseAt refl probe-X-Y′-rep₅
 
 probe-inner-pair-rebase : RebaseAt probe-W₄ probe-W₄ X Y′
 probe-inner-pair-rebase =
-  CTI2.sameWorldRebaseAt refl probe-X-Y′-rep₄
+  CTX.sameWorldRebaseAt refl probe-X-Y′-rep₄
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: the interior tag-boundary input
@@ -213,10 +220,10 @@ probe-inner-seal² :
   probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-M′ ∶ pTag
 probe-inner-seal² =
   CTI2.conceal⊑conceal²
-    (CTI2.matched-seal-star-partner
-      (CTI2.rep★-nonvar-tag nonvar-base))
+    (CTX.matched-seal-star-partner
+      (CTX.rep★-nonvar-tag nonvar-base))
     (λ _ eq → eq) probe-inner-pair-rebase
-    CTI2.same-[] probe-X-seal-⊢ probe-Y′-seal-⊢ probe-base² pTag
+    CTX.same-[] probe-X-seal-⊢ probe-Y′-seal-⊢ probe-base² pTag
 
 probe-tag² :
   probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-U ∶ p₄
@@ -226,8 +233,8 @@ probe-input :
   probe-W₁ ∣ [] ⊢² probe-V ⊑ (probe-U ↓ seal Y ★) ∶ pIn
 probe-input =
   CTI2.⊑conceal² (λ _ eq → eq)
-    (CTI2.rebase-varᴿ probe-outer-target-rebase)
-    CTI2.same-[] probe-Y-seal-⊢ probe-tag² pIn
+    (CTX.rebase-varᴿ probe-outer-target-rebase)
+    CTX.same-[] probe-Y-seal-⊢ probe-tag² pIn
 
 ------------------------------------------------------------------------
 -- Checkpoint 2: the outer-world output is empty

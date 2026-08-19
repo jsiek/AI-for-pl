@@ -29,8 +29,12 @@ open import Reduction using
    keep; pure-step; ξ-⟨⟩; expand; tag-untag)
 
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 X : Fin.Fin 1
@@ -119,7 +123,7 @@ target-star-value-value = target-ground-core-value 《 inj 》
 source-casted-value : Value (source-core ⟨ source-cast ⟩)
 source-casted-value = source-core-value 《 fun 》
 
-body-rel : W ∣ (CTI2.ctx-imp ★ ★ ★⊑★ ∷ []) ⊢²
+body-rel : W ∣ (CTX.ctx-imp ★ ★ ★⊑★ ∷ []) ⊢²
   $ (κℕ 0) ⊑ ($ (κℕ 0)) ⟨ ℕ! ⟩ ∶ ι⊑★
 body-rel =
   CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★

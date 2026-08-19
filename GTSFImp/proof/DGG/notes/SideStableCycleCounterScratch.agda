@@ -17,7 +17,7 @@ open import Types
 open import TyStore using (TyStore; store-empty; store-bind)
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 open import Imprecision using (ImpEnv; X⊑★; ★⊑★)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 
 
 scratch-source-store : TyStore 2

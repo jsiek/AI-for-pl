@@ -15,7 +15,7 @@ open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTys)
 open import proof.Reduction using (_++χ_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open CTI2 using (World)
 

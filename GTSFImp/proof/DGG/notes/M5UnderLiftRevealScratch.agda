@@ -24,7 +24,7 @@ import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
 open import proof.ImprecisionConsistency using (fin-suc-injective)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.TargetBindLift as TBL
 

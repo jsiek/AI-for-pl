@@ -22,12 +22,15 @@ open import Imprecision using (ImpEnv; X⊑X; X⊑★)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStore)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
+open CTI2 using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
 
 
 infixl 7 _▶ᵛ_

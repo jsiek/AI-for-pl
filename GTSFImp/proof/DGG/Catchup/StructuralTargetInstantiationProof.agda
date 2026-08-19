@@ -12,7 +12,7 @@ open import Consistency using (_↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores;
    _—→[_]_; ↠-refl; ↠-step)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import

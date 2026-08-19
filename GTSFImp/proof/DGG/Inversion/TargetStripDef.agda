@@ -21,11 +21,19 @@ open import Conversion using (seal)
 open import CastTerms using
   (Term; Value; _↓_; _⟨_⟩; _⊢_⦂_; ⟨_,_,_⟩; seal)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using
-  (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ; tgtCtxʷ)
+  (World;
+   CtxImp;
+   LiftCtxᴸ;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   tgtCtxʷ)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 data TargetSealTerminusData {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ) :

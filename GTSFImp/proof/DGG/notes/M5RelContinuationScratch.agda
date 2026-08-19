@@ -25,12 +25,17 @@ open import CastTerms using
 open import Reduction using (StoreChanges; _—↠[_]_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; InstCatchupRightAt; FuelStepSurface)
 open import proof.DGG.Inversion.SpineValueDef using
   (AllValueView; allv-Λ; allv-∀; allv-gen; allv-reveal; allv-conceal)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 record InstRelContinuationSurface (fuel : ℕ) : Set₁ where

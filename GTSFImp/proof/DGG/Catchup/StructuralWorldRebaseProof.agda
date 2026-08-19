@@ -9,7 +9,7 @@ open import Data.Product using (_,_)
 
 open import Reduction using
   (StoreChanges; []; _∷_; bind; applyStores)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralWorldExtendDef

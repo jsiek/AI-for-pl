@@ -25,7 +25,8 @@ open import CastTerms using (Term; Value; blame; _⟨_⟩; _↑_; _↓_; _⦂∀
 open import Reduction using (StoreChanges; _—↠[_]_)
 import Reduction as R
 open import proof.Consistency using (castSize)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open import proof.DGG.Catchup.LeftBoundaryCatchupDef
   using (LeftCatchupResult)
 open import proof.DGG.Catchup.LeftValueCatchupDef
@@ -36,7 +37,10 @@ open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; ParkedWorld)
 open import proof.DGG.SimConcealRevealPeel
   using (PairedConcealRevealPeelᵀ; SourceOnlyConcealRevealPeelᵀ)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 
 LeftExtraCastAt : ℕ → Set

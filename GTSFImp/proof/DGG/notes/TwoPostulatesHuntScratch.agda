@@ -28,12 +28,22 @@ open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.Inversion.SpineValueDef as SVD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
-open CTI2 using
-  (World; world; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   sourceStoreʷ; targetStoreʷ; ηᴸʷ; ηᴿʷ; store-rep-imp)
+open CTX using
+  (World;
+   world;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   ηᴸʷ;
+   ηᴿʷ;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Generic empty-shape checks used by several adversarial configurations
@@ -64,7 +74,7 @@ store-variable-distinct (S-bind∋ {A = `∀ A} X∈ ())
 source-pivot-forced : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
     {X X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → CTI2.RebaseAt W′ W X Y
+  → CTX.RebaseAt W′ W X Y
   → (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)
   → (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)
   → X₂ ≡ X
@@ -80,10 +90,10 @@ source-pivot-forced {W = W} {W′ = W′}
   same-center :
     toRenameᵗ (ηᴸʷ W) X₂ ≡ toRenameᵗ (ηᴸʷ W) X
   same-center =
-    trans (CTI2.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
+    trans (CTX.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
       (trans (SVD.variable-obligation-aligns
         {W = W′} {X = X₂} {Y = Y} p)
-        (trans (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y))
+        (trans (sym (CTX.RebaseAt.ηᴿ-frozen rb Y))
           (sym (SVD.variable-obligation-aligns
             {W = W} {X = X} {Y = Y} q))))
 
@@ -91,7 +101,7 @@ source-var-chain-blocked : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
     {X X₂ : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → sourceStoreʷ W ∋ X ⦂ (＇ X₂)
-  → CTI2.RebaseAt W′ W X Y
+  → CTX.RebaseAt W′ W X Y
   → (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)
   → (＇ X₂) ⊑ᵂ⟨ W′ ⟩ (＇ Y)
   → ⊥
@@ -115,7 +125,7 @@ source-star-nonstar-store-blocked : ∀ {Δᴸ Δᴿ Δ}
   → targetStoreʷ W ∋ Y ⦂ S
   → NonVar S
   → NonStar S
-  → CTI2.RebaseAt W′ W X Y
+  → CTX.RebaseAt W′ W X Y
   → ⊥
 source-star-nonstar-store-blocked {W = W} {Y = Y} {S = S}
     X∈ Y∈ Snv Sns rb =
@@ -123,10 +133,10 @@ source-star-nonstar-store-blocked {W = W} {Y = Y} {S = S}
     (subst≡ (λ T → ★ ⊑ᵂ⟨ W ⟩ T)
       (SPT.resolveVar-nonvar Y∈ Snv)
       (subst≡
-        (λ T → T ⊑ᵂ⟨ W ⟩ CTI2.resolveVar (targetStoreʷ W) Y)
+        (λ T → T ⊑ᵂ⟨ W ⟩ CTX.resolveVar (targetStoreʷ W) Y)
         (SPT.resolveVar-nonvar X∈ nonvar-star)
-        (CTI2.StoreRepImp.represented
-          (CTI2.RebaseAt.storeRepresentations rb))))
+        (CTX.StoreRepImp.represented
+          (CTX.RebaseAt.storeRepresentations rb))))
     Sns
 
 nonvar-right-var-obligation-empty : ∀ {Δᴸ Δᴿ Δ}
@@ -161,11 +171,11 @@ lifted-nonvar-right-var-empty : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A : Ty (suc Δᴸ)}
     {Y : TyVar Δᴿ}
   → NonVar A
-  → A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ (＇ Y)
+  → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ (＇ Y)
   → ⊥
 lifted-nonvar-right-var-empty {W = W} nv p =
   nonvar-right-var-obligation-empty
-    {W = CTI2.liftWorldLeft X⊑★ W} nv p
+    {W = CTX.liftWorldLeft X⊑★ W} nv p
 
 ------------------------------------------------------------------------
 -- Placement adversary: source re-parking would drag another source var
@@ -222,7 +232,7 @@ module SourceCrossingAttempt where
 
   repark-crossing-empty : RebaseAt W′ W X₀ Y → ⊥
   repark-crossing-empty rb
-      with CTI2.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀
+      with CTX.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀
   repark-crossing-empty rb | ()
 
 ------------------------------------------------------------------------
@@ -392,7 +402,7 @@ module NonVarHeadAttempt where
       {W = W} {A = `∀ ★} {Y = Y} nonvar-all
 
   lifted-fun-head-empty :
-    (★ ⇒ ★) ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ (＇ Y)
+    (★ ⇒ ★) ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ (＇ Y)
     → ⊥
   lifted-fun-head-empty =
     lifted-nonvar-right-var-empty
@@ -458,13 +468,13 @@ module Depth2TargetChain where
   W₂ = world ηᴸ-2 ηᴿ-id μ source-store target-store
 
   mono-refl : ∀ {W : World 1 3 3}
-    → CTI2.ImpEnvMono W W
+    → CTX.ImpEnvMono W W
   mono-refl Z eq = eq
 
-  mono₀₁ : CTI2.ImpEnvMono W₀ W₁
+  mono₀₁ : CTX.ImpEnvMono W₀ W₁
   mono₀₁ Z eq = eq
 
-  mono₁₂ : CTI2.ImpEnvMono W₁ W₂
+  mono₁₂ : CTX.ImpEnvMono W₁ W₂
   mono₁₂ Z eq = eq
 
   X∈ : source-store ∋ X ⦂ ★
@@ -557,32 +567,32 @@ module Depth2TargetChain where
   x-star₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★
   x-star₂ = X⊑★ refl
 
-  X-Y₀-rep : CTI2.StoreRepImp W₀ X Y₀
+  X-Y₀-rep : CTX.StoreRepImp W₀ X Y₀
   X-Y₀-rep = store-rep-imp ★⊑★
 
-  X-Y₁-rep : CTI2.StoreRepImp W₁ X Y₁
+  X-Y₁-rep : CTX.StoreRepImp W₁ X Y₁
   X-Y₁-rep = store-rep-imp ★⊑★
 
-  X-Y₂-rep : CTI2.StoreRepImp W₂ X Y₂
+  X-Y₂-rep : CTX.StoreRepImp W₂ X Y₂
   X-Y₂-rep = store-rep-imp ★⊑★
 
   rb-X-Y₀ : RebaseAt W₀ W₀ X Y₀
-  rb-X-Y₀ = CTI2.sameWorldRebaseAt refl X-Y₀-rep
+  rb-X-Y₀ = CTX.sameWorldRebaseAt refl X-Y₀-rep
 
   rb-Y₀ : RebaseAt W₁ W₀ X Y₀
   rb-Y₀ =
-    CTI2.rebase-at (CTI2.same-runtime refl refl)
+    CTX.rebase-at (CTX.same-runtime refl refl)
       (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
       (λ _ → refl) refl X-Y₀-rep
 
   rb-Y₁ : RebaseAt W₂ W₁ X Y₁
   rb-Y₁ =
-    CTI2.rebase-at (CTI2.same-runtime refl refl)
+    CTX.rebase-at (CTX.same-runtime refl refl)
       (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
       (λ _ → refl) refl X-Y₁-rep
 
   rb-X-Y₂ : RebaseAt W₂ W₂ X Y₂
-  rb-X-Y₂ = CTI2.sameWorldRebaseAt refl X-Y₂-rep
+  rb-X-Y₂ = CTX.sameWorldRebaseAt refl X-Y₂-rep
 
   base² : W₂ ∣ [] ⊢² V₀ ⊑ U₀ ∶ ★⊑★
   base² =
@@ -592,24 +602,24 @@ module Depth2TargetChain where
   V⊑U₂ : W₂ ∣ [] ⊢² V ⊑ U₂ ∶ q₂
   V⊑U₂ =
     CTI2.conceal⊑conceal² (mono-refl {W = W₂}) rb-X-Y₂
-      CTI2.same-[] (Conv.⊢↓-sealˣ X∈)
+      CTX.same-[] (Conv.⊢↓-sealˣ X∈)
       (Conv.⊢↓-sealˣ Y₂∈) base² q₂
 
   V⊑U₁ : W₁ ∣ [] ⊢² V ⊑ U₁ ∶ q₁
   V⊑U₁ =
-    CTI2.⊑conceal² mono₁₂ (CTI2.rebase-varᴿ rb-Y₁)
-      CTI2.same-[] (Conv.⊢↓-sealˣ Y₁∈) V⊑U₂ q₁
+    CTI2.⊑conceal² mono₁₂ (CTX.rebase-varᴿ rb-Y₁)
+      CTX.same-[] (Conv.⊢↓-sealˣ Y₁∈) V⊑U₂ q₁
 
   chain-input : W₀ ∣ [] ⊢² V ⊑ target-chain ∶ q₀
   chain-input =
-    CTI2.⊑conceal² mono₀₁ (CTI2.rebase-varᴿ rb-Y₀)
-      CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) V⊑U₁ q₀
+    CTI2.⊑conceal² mono₀₁ (CTX.rebase-varᴿ rb-Y₀)
+      CTX.same-[] (Conv.⊢↓-sealˣ Y₀∈) V⊑U₁ q₀
 
   inner-source-seal : W₂ ∣ [] ⊢² V ⊑ U₀ ∶ x-star₂
   inner-source-seal =
     CTI2.conceal⊑² (mono-refl {W = W₂})
-      (CTI2.rebase-varᴸ rb-X-Y₂)
-      CTI2.same-[] (Conv.⊢↓-sealˣ X∈) base² x-star₂
+      (CTX.rebase-varᴸ rb-X-Y₂)
+      CTX.same-[] (Conv.⊢↓-sealˣ X∈) base² x-star₂
 
   payload² : W₂ ∣ [] ⊢² source-payload ⊑ U₀ ∶ ★⊑★
   payload² = CTI2.cast⊑² X! inner-source-seal ★⊑★
@@ -617,18 +627,18 @@ module Depth2TargetChain where
   terminus-pair : W₂ ∣ [] ⊢² source-output ⊑ U₂ ∶ q₂
   terminus-pair =
     CTI2.conceal⊑conceal² (mono-refl {W = W₂}) rb-X-Y₂
-      CTI2.same-[] (Conv.⊢↓-sealˣ X∈)
+      CTX.same-[] (Conv.⊢↓-sealˣ X∈)
       (Conv.⊢↓-sealˣ Y₂∈) payload² q₂
 
   output-Y₁ : W₁ ∣ [] ⊢² source-output ⊑ U₁ ∶ q₁
   output-Y₁ =
-    CTI2.⊑conceal² mono₁₂ (CTI2.rebase-varᴿ rb-Y₁)
-      CTI2.same-[] (Conv.⊢↓-sealˣ Y₁∈) terminus-pair q₁
+    CTI2.⊑conceal² mono₁₂ (CTX.rebase-varᴿ rb-Y₁)
+      CTX.same-[] (Conv.⊢↓-sealˣ Y₁∈) terminus-pair q₁
 
   chain-output : W₀ ∣ [] ⊢² source-output ⊑ target-chain ∶ q₀
   chain-output =
-    CTI2.⊑conceal² mono₀₁ (CTI2.rebase-varᴿ rb-Y₀)
-      CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) output-Y₁ q₀
+    CTI2.⊑conceal² mono₀₁ (CTX.rebase-varᴿ rb-Y₀)
+      CTX.same-[] (Conv.⊢↓-sealˣ Y₀∈) output-Y₁ q₀
 
   source-star-chain-input-package :
     W₀ ∣ [] ⊢² V ⊑ U₁ ↓ seal Y₀ (＇ Y₁) ∶ q₀

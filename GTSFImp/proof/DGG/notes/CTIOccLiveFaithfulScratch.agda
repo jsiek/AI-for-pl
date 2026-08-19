@@ -40,11 +40,16 @@ open import Primitives using (κℕ)
 
 import CTITighteningNarrowScratch as N
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.Imprecision as PI
 
 open CTI2 using
-  (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;
+  (World;
+   world;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp;
    store-rep-imp)
 
 ------------------------------------------------------------------------

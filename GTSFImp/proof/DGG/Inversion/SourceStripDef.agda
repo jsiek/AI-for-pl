@@ -19,11 +19,18 @@ open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open CTI2 using
-  (World; CtxImp; RebaseAt; RebaseAtᴸ; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ)
+  (World;
+   CtxImp;
+   RebaseAt;
+   RebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 -- Core branch packages
 ------------------------------------------------------------------------

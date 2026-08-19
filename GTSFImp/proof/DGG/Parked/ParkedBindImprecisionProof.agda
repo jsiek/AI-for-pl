@@ -14,13 +14,17 @@ open import Types using
   (Ty; _⇒_; `∀; ★; ⇑ᵗ; renameᵗ; renameᵗ-comp; renameᵗ-cong; renameᵗ-shift)
 open import Consistency using (_↪ᵗ_; toRenameᵗ; keep; skip)
 open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.ImprecisionConsistency using
   (fin-suc-injective; rename-⊑)
 open import proof.TypeInTermSubst using (toRename-keep-eq)
 
 open CTI2 using
-  (World; embedᴸ; embedᴿ; impEnvʷ; _⊑ᵂ⟨_⟩_)
+  (World;
+   embedᴸ;
+   embedᴿ;
+   impEnvʷ;
+   _⊑ᵂ⟨_⟩_)
 
 
 renameᵗ-skip-eq : ∀ {Δᴿ Δ} (η : Δᴿ ↪ᵗ Δ) (B : Ty Δᴿ)

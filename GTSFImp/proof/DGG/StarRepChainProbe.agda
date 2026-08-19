@@ -29,9 +29,15 @@ open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; store-rep-imp)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   TagRebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   Xᴸ : TyVar 2
@@ -153,25 +159,25 @@ inner-type = X⊑★ refl
 no-inner-name-obligation : ¬ (＇ X ⊑ᵂ⟨ W ⟩ ＇ Y)
 no-inner-name-obligation ()
 
-Xᴸ-Y-rep : CTI2.StoreRepImp W Xᴸ Y
+Xᴸ-Y-rep : CTX.StoreRepImp W Xᴸ Y
 Xᴸ-Y-rep = store-rep-imp ★⊑★
 
 outer-rebase : RebaseAt W W Xᴸ Y
-outer-rebase = CTI2.sameWorldRebaseAt refl Xᴸ-Y-rep
+outer-rebase = CTX.sameWorldRebaseAt refl Xᴸ-Y-rep
 
 X-no-target-at-b : ∀ (Y′ : TyVar 1)
-  → toRenameᵗ (CTI2.ηᴿʷ W) Y′ ≢ toRenameᵗ (CTI2.ηᴸʷ W) X
+  → toRenameᵗ (CTX.ηᴿʷ W) Y′ ≢ toRenameᵗ (CTX.ηᴸʷ W) X
 X-no-target-at-b Fin.zero ()
 
-X-no-target-occupant : CTI2.NoTargetOccupantAtSource W X
+X-no-target-occupant : CTX.NoTargetOccupantAtSource W X
 X-no-target-occupant (Y′ , eq) = X-no-target-at-b Y′ eq
 
-X-star-rep : CTI2.resolveVar source-store X ⊑ᵂ⟨ W ⟩ ★
+X-star-rep : CTX.resolveVar source-store X ⊑ᵂ⟨ W ⟩ ★
 X-star-rep = ★⊑★
 
 inner-source-only-rebase : TagRebaseAtᴸ W W (just X) nothing
 inner-source-only-rebase =
-  CTI2.tag-rebase-onlyᴸ refl X-no-target-at-b X-star-rep
+  CTX.tag-rebase-onlyᴸ refl X-no-target-at-b X-star-rep
 
 ------------------------------------------------------------------------
 -- The concrete input and inversion output
@@ -186,14 +192,14 @@ inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
   CTI2.conceal⊑²-seal-star-open
     X-no-target-occupant
-    (λ Z eq → eq) inner-source-only-rebase CTI2.same-[]
+    (λ Z eq → eq) inner-source-only-rebase CTX.same-[]
     source-X-seal-⊢ base² inner-type
 
 output : W ∣ [] ⊢² M ⊑ target-sealed ∶ q
 output =
   CTI2.conceal⊑conceal²
-    (CTI2.matched-seal-nonstar nonstar-X)
-    (λ Z eq → eq) outer-rebase CTI2.same-[]
+    (CTX.matched-seal-nonstar nonstar-X)
+    (λ Z eq → eq) outer-rebase CTX.same-[]
     source-Xᴸ-seal-⊢ target-Y-seal-⊢ inner-source² q
 
 input : W ∣ [] ⊢² M ⊑ N ∶ input-type

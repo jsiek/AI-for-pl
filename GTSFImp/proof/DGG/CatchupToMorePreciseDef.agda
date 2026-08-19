@@ -20,29 +20,29 @@ open import Types using (Ty; TyCtx; TyVar)
 open import CastTerms using (Term; Value)
 open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.Catchup.StructuralWorldExtendDef
   using (StructuralWorldExtendᴿ)
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
   using (mapPivotChanges)
-open CTI2 using
-  ( World
-  ; ImpEnvMono
-  ; RebaseAtᴸ
-  ; RebaseAtᴿ
-  ; TagRebaseAtᴸ
-  ; rebase-idᴸ
-  ; rebase-varᴸ
-  ; rebase-onlyᴸ
-  ; rebase-idᴿ
-  ; rebase-varᴿ
-  ; tag-rebase-idᴸ
-  ; tag-rebase-varᴸ
-  ; tag-rebase-onlyᴸ
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   ImpEnvMono;
+   RebaseAtᴸ;
+   RebaseAtᴿ;
+   TagRebaseAtᴸ;
+   rebase-idᴸ;
+   rebase-varᴸ;
+   rebase-onlyᴸ;
+   rebase-idᴿ;
+   rebase-varᴿ;
+   tag-rebase-idᴸ;
+   tag-rebase-varᴸ;
+   tag-rebase-onlyᴸ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 data CatchupBoundaryKind : Set where

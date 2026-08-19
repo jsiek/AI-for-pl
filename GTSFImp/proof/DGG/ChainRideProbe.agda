@@ -27,9 +27,16 @@ open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   Z : TyVar 2
@@ -144,29 +151,29 @@ U = ($ (κℕ 0)) ⟨ probe-ℕ!ᴿ ⟩
 -- Rebase witnesses
 ------------------------------------------------------------------------
 
-probe-Z-Y-rep₁ : CTI2.StoreRepImp W₁ Z Y
+probe-Z-Y-rep₁ : CTX.StoreRepImp W₁ Z Y
 probe-Z-Y-rep₁ = store-rep-imp ★⊑★
 
 raₗ-empty : RebaseAt Wₗ W₁ Z Y → ⊥
-raₗ-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+raₗ-empty rb with CTX.RebaseAt.ηᴿ-frozen rb Y
 raₗ-empty rb | ()
 
-probe-Z₃-Y-repₗ : CTI2.StoreRepImp Wₗ Z₃ Y
+probe-Z₃-Y-repₗ : CTX.StoreRepImp Wₗ Z₃ Y
 probe-Z₃-Y-repₗ = store-rep-imp ★⊑★
 
 link₂-empty : RebaseAt W₂ Wₗ Z₃ Y → ⊥
-link₂-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+link₂-empty rb with CTX.RebaseAt.ηᴿ-frozen rb Y
 link₂-empty rb | ()
 
-probe-Z₃-Y-rep₂ : CTI2.StoreRepImp W₂ Z₃ Y
+probe-Z₃-Y-rep₂ : CTX.StoreRepImp W₂ Z₃ Y
 probe-Z₃-Y-rep₂ = store-rep-imp ★⊑★
 
 probe-premise-rebase : RebaseAt W₂ W₂ Z₃ Y
 probe-premise-rebase =
-  CTI2.sameWorldRebaseAt refl probe-Z₃-Y-rep₂
+  CTX.sameWorldRebaseAt refl probe-Z₃-Y-rep₂
 
 probe-output-link : RebaseAt W₁ W₁ Z Y
-probe-output-link = CTI2.sameWorldRebaseAt refl probe-Z-Y-rep₁
+probe-output-link = CTX.sameWorldRebaseAt refl probe-Z-Y-rep₁
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: the complete H-multi input data
@@ -176,20 +183,20 @@ p₁ : (＇ Z) ⊑ᵂ⟨ W₁ ⟩ (＇ Y)
 p₁ = X⊑X
 
 probe-moved :
-  toRenameᵗ (CTI2.ηᴸʷ W₂) Z₃ ≢ toRenameᵗ (CTI2.ηᴸʷ W₁) Z₃
+  toRenameᵗ (CTX.ηᴸʷ W₂) Z₃ ≢ toRenameᵗ (CTX.ηᴸʷ W₁) Z₃
 probe-moved ()
 
-probe-mono₁ₗ : CTI2.ImpEnvMono W₁ Wₗ
+probe-mono₁ₗ : CTX.ImpEnvMono W₁ Wₗ
 probe-mono₁ₗ X eq = eq
 
-probe-monoₗ₂ : CTI2.ImpEnvMono Wₗ W₂
+probe-monoₗ₂ : CTX.ImpEnvMono Wₗ W₂
 probe-monoₗ₂ X eq = eq
 
-probe-same₁ₗ : CTI2.SameCtx {W = W₁} {W′ = Wₗ} [] []
-probe-same₁ₗ = CTI2.same-[]
+probe-same₁ₗ : CTX.SameCtx {W = W₁} {W′ = Wₗ} [] []
+probe-same₁ₗ = CTX.same-[]
 
-probe-sameₗ₂ : CTI2.SameCtx {W = Wₗ} {W′ = W₂} [] []
-probe-sameₗ₂ = CTI2.same-[]
+probe-sameₗ₂ : CTX.SameCtx {W = Wₗ} {W′ = W₂} [] []
+probe-sameₗ₂ = CTX.same-[]
 
 q₂ : (＇ Z₃) ⊑ᵂ⟨ W₂ ⟩ ★
 q₂ = X⊑★ refl
@@ -199,11 +206,11 @@ probe-base² =
   CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
 
-probe-occupied-Z₃ : CTI2.NoTargetOccupantAtSource W₂ Z₃ → ⊥
+probe-occupied-Z₃ : CTX.NoTargetOccupantAtSource W₂ Z₃ → ⊥
 probe-occupied-Z₃ no-target = no-target (Y , refl)
 
 probe-direct-premise-source-ok-empty :
-  CTI2.SourceConcealOK W₂ V₀ (seal Z₃ ★) (just Y) U
+  CTX.SourceConcealOK W₂ V₀ (seal Z₃ ★) (just Y) U
   → ⊥
 probe-direct-premise-source-ok-empty
-    (CTI2.seal-nonstar-plain-ok () _)
+    (CTX.seal-nonstar-plain-ok () _)

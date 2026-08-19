@@ -28,7 +28,7 @@ open import Imprecision using
 open import CastTerms using
   (Term; _⊢_⦂_; _·_; _⦂∀_[_]; _⟨_⟩; _↑_;
    ⊢·; ⊢⟨⟩; ⊢•; ⊢reveal)
-open import proof.DGG.CastTermImprecision2 using
+open import proof.DGG.CtxImp using
   (World; world; _⊑ᵂ⟨_⟩_; StoreRepImp; store-rep-imp;
    RebaseAt; rebase-at; same-runtime)
 import proof.DGG.ExampleTerms as Ex

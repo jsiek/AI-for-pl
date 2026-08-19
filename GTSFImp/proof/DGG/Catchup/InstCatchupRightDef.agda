@@ -24,10 +24,13 @@ open import CastTerms using
 open import Reduction using
   (StoreChanges; _—↠[_]_; []; _∷_; bind; keep; applyBody)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
+open CTI2 using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
 
 
 RightBindWorldExtendᴿᵀ : Set

@@ -10,7 +10,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types using (TyVar)
 open import Reduction using
   (StoreChanges)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Catchup.StructuralWorldExtendDef public using
   (StructuralWorldExtendᴿ; mapPivotChanges; mapPivotChanges-++;
    mapVarChanges)

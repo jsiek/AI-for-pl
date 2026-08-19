@@ -25,7 +25,7 @@ open import CastTerms using
 open import Conversion using (〖_,_↑_〗)
 open import Reduction using
   (bind; applyBody; _—→[_]_; β-inst; β-gen)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Occupancy using
   ( β-inst-allocation-occupies-targetᴼ
   ; β-gen-allocation-occupies-targetᴼ

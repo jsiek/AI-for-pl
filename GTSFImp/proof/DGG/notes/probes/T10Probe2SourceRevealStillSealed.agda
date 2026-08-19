@@ -23,7 +23,7 @@ open import Primitives using (κℕ)
 open import Reduction using (_—→_; conceal-reveal)
 
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 
 

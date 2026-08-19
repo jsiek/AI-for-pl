@@ -22,11 +22,15 @@ open import Imprecision
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp)
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp)
 
 ------------------------------------------------------------------------
 -- World-side provenance and capability discipline

@@ -35,15 +35,25 @@ open import TyStore using (store-lift; store-bind)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.Catchup.InstCatchupRightProof as ICRP
 import proof.DGG.Catchup.InstInversionProof as IIP
 import proof.DGG.TargetExtend as TE
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
-open CTI2 using (World; CtxImp; LiftCtx; LiftCtxᴸ; liftWorldBoth;
-  liftWorldLeft; rightOnlyWorld; targetStoreʷ; tgtCtxʷ;
-  _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   LiftCtx;
+   LiftCtxᴸ;
+   liftWorldBoth;
+   liftWorldLeft;
+   rightOnlyWorld;
+   targetStoreʷ;
+   tgtCtxʷ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 inst-post-at→package : ∀ {fuel Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
@@ -107,12 +117,12 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
   → World Δᴸ Δᴿ Δ
   → World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
 ΛLiftToBindFreshWorld v W =
-  CTI2.world
-    (skip (keep (skip (CTI2.ηᴸʷ W))))
-    (skip (keep (keep (CTI2.ηᴿʷ W))))
-    (I.instᵐ (I.extendᵐ v (I.instᵐ (CTI2.impEnvʷ W))))
-    (store-lift (CTI2.sourceStoreʷ W))
-    (store-bind (store-bind (CTI2.targetStoreʷ W) ★) (＇ Fin.zero))
+  CTX.world
+    (skip (keep (skip (CTX.ηᴸʷ W))))
+    (skip (keep (keep (CTX.ηᴿʷ W))))
+    (I.instᵐ (I.extendᵐ v (I.instᵐ (CTX.impEnvʷ W))))
+    (store-lift (CTX.sourceStoreʷ W))
+    (store-bind (store-bind (CTX.targetStoreʷ W) ★) (＇ Fin.zero))
 
 
 ΛLiftToBindFreshTransportᵀ : Set
@@ -521,8 +531,8 @@ record ΛPostPrefixOnlySourceStripSurface : Set₁ where
   → (B′≢★ : B′ ≢ ★)
   → (Anv : NonVar A)
   → (zero∈A : Fin.zero ∈ᵗ A)
-  → CTI2.SmartCommaLiftᴸ W₂ Wᵐ₂
-  → CTI2.SmartLiftCtxᴸ
+  → CTX.SmartCommaLiftᴸ W₂ Wᵐ₂
+  → CTX.SmartLiftCtxᴸ
       (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵐ₂ γᵐ)
   → (bodyRel : Wᵐ ∣ γᵐ ⊢² V ⊑ Λ V′ ∶ body-p)
   → (top-p₂ : `∀ A ⊑ᵂ⟨ W₂ ⟩ IIP.ΛResidualSource₂ B)
@@ -602,12 +612,12 @@ record SmartRouteOnePostWindowPreflight : Set₁ where
         {κᵐ₂ : suc Δᵐ₁ ↪ᵗ Δᵐ₂}
         {extᵐ₂ : ECR.WorldExtendᴿ
           (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵐ Wᵐ₂}
-      → CTI2.SmartCommaLiftᴸ W Wᵐ
+      → CTX.SmartCommaLiftᴸ W Wᵐ
       → TE.TargetInsert wk↪ᵗ πᵐ₁ Wᵐ Wᵐ₁
       → TE.TargetInsert wk↪ᵗ πᵐ₂ Wᵐ₁ Wᵐ₂
       → (∀ Z → toRenameᵗ πᵐ₂ Z ≡ toRenameᵗ κᵐ₂ (Fin.suc Z))
-      → toRenameᵗ (CTI2.ηᴿʷ Wᵐ₂) Fin.zero ≡ toRenameᵗ κᵐ₂ Fin.zero
-      → CTI2.SmartCommaLiftᴸ
+      → toRenameᵗ (CTX.ηᴿʷ Wᵐ₂) Fin.zero ≡ toRenameᵗ κᵐ₂ Fin.zero
+      → CTX.SmartCommaLiftᴸ
           (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
           Wᵐ₂
       → IIP.ΛPostWindowGeometry Wᵐ Wᵐ₂ extᵐ₂

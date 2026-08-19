@@ -13,11 +13,16 @@ open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $; seal)
 import CastTerms as CTerms
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.CenterCrossingProbe as CCP
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 RightInjInversion²Statement : Set
 RightInjInversion²Statement =

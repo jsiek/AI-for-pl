@@ -21,7 +21,7 @@ open import proof.TypeInTermSubst using
   (StoreRename-id; StoreRename-suc-bind; renameᵗ-pointwise-id;
    toRename-wk-eq)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 import proof.Reduction as PR

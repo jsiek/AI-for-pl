@@ -21,6 +21,7 @@ open import Imprecision
 open import Primitives using (κℕ; κ𝔹)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.SealPeelToolkit as SPT
@@ -41,7 +42,8 @@ open import proof.DGG.Inversion.TargetWalkSupport using
    rebase-source-membership; sameCtx-∘; star-source-nonstar-⊥;
    star-store-rep; store-lookup-unique; target-seal-rebase-source;
    var-source-nonstar-⊥)
-open CTI2 using (_∣_⊢²_⊑_∶_; _⊑ᵂ⟨_⟩_)
+open CTX using (_⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 pattern st-stripped W₂ γ₂ link mono sc q D =
   STC.seal-transfer-stripped {W₂ = W₂} {γ₂ = γ₂} {q₂ = q}
@@ -176,14 +178,14 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-plain-ok {R = R} Rns nt)
+        (CTX.seal-nonstar-plain-ok {R = R} Rns nt)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-plain-ok {R = R} Rns nt)
+        (CTX.seal-nonstar-plain-ok {R = R} Rns nt)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     with Rns
@@ -191,7 +193,7 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-plain-ok Rns nt)
+        (CTX.seal-nonstar-plain-ok Rns nt)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     | ()
@@ -199,14 +201,14 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-name-protected-ok {R = R} Rns aligned)
+        (CTX.seal-nonstar-name-protected-ok {R = R} Rns aligned)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     with store-lookup-unique X∈ᵖ (rebase-source-membership link X∈)
 target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-name-protected-ok {R = R} Rns aligned)
+        (CTX.seal-nonstar-name-protected-ok {R = R} Rns aligned)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     with Rns
@@ -214,7 +216,7 @@ target-source-star-at {X = X} {S = ★} {q = q}
     sv inert vU X∈ Y∈ D
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂
       D₂@(CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-name-protected-ok Rns aligned)
+        (CTX.seal-nonstar-name-protected-ok Rns aligned)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ X∈ᵖ) prem .q₂)
     | refl
     | ()
@@ -224,8 +226,8 @@ target-source-star-at
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   target-source-star-final
     (CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-nonvar-tag nonvar-base))
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-nonvar-tag nonvar-base))
       mono₂ link sc₂
       (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ Y∈)
       (CTI2.cast⊑² c D₂ ★⊑★) q)
@@ -235,8 +237,8 @@ target-source-star-at
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   target-source-star-final
     (CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-nonvar-tag nonvar-fun))
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-nonvar-tag nonvar-fun))
       mono₂ link sc₂
       (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ Y∈)
       (CTI2.cast⊑² c D₂ ★⊑★) q)
@@ -246,8 +248,8 @@ target-source-star-at
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   target-source-star-final
     (CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-nonvar-tag nonvar-all))
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-nonvar-tag nonvar-all))
       mono₂ link sc₂
       (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ Y∈)
       (CTI2.cast⊑² c D₂ ★⊑★) q)
@@ -264,8 +266,8 @@ target-source-star-at {U = U ↑ cᴿ} {S = ★} {c = c} {q = q}
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   target-source-star-final
     (CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-untagged CTI2.not-↑))
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-untagged CTX.not-↑))
       mono₂ link sc₂
       (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ Y∈)
       (CTI2.cast⊑² c D₂ ★⊑★) q)
@@ -320,8 +322,8 @@ target-source-star-at
       (STC.tagged-transfer-output
         (CTI2.cast⊑² c D₂ ★⊑★)
         (STC.premise-partner-just aligned)
-        (CTI2.matched-seal-star-partner
-          (CTI2.rep★-var-tag aligned)))
+        (CTX.matched-seal-star-partner
+          (CTX.rep★-var-tag aligned)))
       (CTI2.⊑cast² cᴿ! sourcePrem q₂))
 target-source-star-at
     {V = V ↓ x}
@@ -377,7 +379,7 @@ target-source-star-at
         sourcePremᵒ =
   target-source-star-payload refl mono₂ link sc₂ X∈ Y∈
     (CTI2.⊑cast² cᴿ!
-      (CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+      (CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
         (Conv.⊢↓-sealˣ Y₂∈ᵒ) sourcePremᵒ p₂)
       q₂)
 target-source-star-at
@@ -392,8 +394,8 @@ target-source-star-at {U = U ↓ cᴿ} {S = ★} {c = c} {q = q}
     | st-stripped W₂ γ₂ link mono₂ sc₂ q₂ D₂ =
   target-source-star-final
     (CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-untagged CTI2.not-↓))
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-untagged CTX.not-↓))
       mono₂ link sc₂
       (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ Y∈)
       (CTI2.cast⊑² c D₂ ★⊑★) q)
@@ -431,8 +433,8 @@ target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
     | link | varv-seal {W = U₀} vU₀ Y₂∈ refl
     | target-source-star-residual refl X∈ᵒ Y₂∈ᵒ rbᵒ residualᵒ =
   target-source-star-var-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned link)
-      (CTI2.RebaseAt.storeRepresentations link))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned link)
+      (CTX.RebaseAt.storeRepresentations link))
     (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ Y∈)
       residualᵒ q)
 target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
@@ -442,8 +444,8 @@ target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
     | link | varv-seal {W = U₀} vU₀ Y₂∈ refl
     | target-source-star-var-residual refl X∈ᵒ Y₂∈ᵒ rbᵒ residualᵒ =
   target-source-star-var-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned link)
-      (CTI2.RebaseAt.storeRepresentations link))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned link)
+      (CTX.RebaseAt.storeRepresentations link))
     (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ Y∈)
       residualᵒ q)
 target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
@@ -454,8 +456,8 @@ target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
     | target-source-star-paired refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         partnerᵒ premᵒ =
   target-source-star-var-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned link)
-      (CTI2.RebaseAt.storeRepresentations link))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned link)
+      (CTX.RebaseAt.storeRepresentations link))
     (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ Y∈)
       (CTI2.conceal⊑conceal² partnerᵒ monoᵒ rbᵒ scᵒ
         (Conv.⊢↓-sealˣ X∈ᵒ) (Conv.⊢↓-sealˣ Y₂∈ᵒ)
@@ -469,10 +471,10 @@ target-source-star-at {W = W} {X = X} {Y = Y} {S = ＇ Y₂}
     | target-source-star-payload refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         sourcePremᵒ =
   target-source-star-var-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned link)
-      (CTI2.RebaseAt.storeRepresentations link))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned link)
+      (CTX.RebaseAt.storeRepresentations link))
     (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ Y∈)
-      (CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+      (CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
         (Conv.⊢↓-sealˣ Y₂∈ᵒ) sourcePremᵒ pᵈ)
       q)
 target-source-star-at {X = X} {S = ‵ ι} {q = q} sv inert vU X∈ Y∈
@@ -495,18 +497,18 @@ target-source-star-at {X = X} {S = `∀ A} {q = q} sv inert vU X∈ Y∈
       p nonvar-all nonstar-∀)
 
 target-source-star-chain-wrap-target : ∀ {Δᴸ Δᴿ Δ}
-    {W W′ : CTI2.World Δᴸ Δᴿ Δ}
-    {γ : CTI2.CtxImp W} {γ′ : CTI2.CtxImp W′}
+    {W W′ : CTX.World Δᴸ Δᴿ Δ}
+    {γ : CTX.CtxImp W} {γ′ : CTX.CtxImp W′}
     {V : Term Δᴸ} {U : Term Δᴿ}
     {Xᴸ X₂ : TyVar Δᴸ} {Y Y₂ Y₃ : TyVar Δᴿ}
     {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X₂) ∼ ★}
     {p : (＇ Xᴸ) ⊑ᵂ⟨ W′ ⟩ (＇ Y₂)}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-  → CTI2.ImpEnvMono W W′
-  → CTI2.RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ∋ Xᴸ ⦂ ★
-  → CTI2.targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
+  → CTX.ImpEnvMono W W′
+  → CTX.RebaseAt W′ W Xᴸ Y
+  → CTX.SameCtx γ γ′
+  → CTX.sourceStoreʷ W ∋ Xᴸ ⦂ ★
+  → CTX.targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → TargetSourceStarChainResult W′ γ′ V U Xᴸ X₂ Y₂ Y₃ c p
   → TargetSourceStarChainResult W γ V (U ↓ seal Y₂ (＇ Y₃))
       Xᴸ X₂ Y Y₂ c q
@@ -515,7 +517,7 @@ target-source-star-chain-wrap-target {W = W} {W′ = W′}
     {Y = Y} {Y₂ = Y₂} {Y₃ = Y₃} {q = q}
     mono rb sc X∈ Y∈ (target-source-star-chain-final final) =
   target-source-star-chain-final
-    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
       (Conv.⊢↓-sealˣ Y∈) final q)
 target-source-star-chain-wrap-target {W = W} {W′ = W′}
     {γ = γ} {γ′ = γ′} {V = V} {U = U} {Xᴸ = Xᴸ}
@@ -523,9 +525,9 @@ target-source-star-chain-wrap-target {W = W} {W′ = W′}
     mono rb sc X∈ Y∈
     (target-source-star-chain-residual refl X∈′ Y₂∈′ rb′ residual) =
   target-source-star-chain-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned rb)
-      (CTI2.RebaseAt.storeRepresentations rb))
-    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned rb)
+      (CTX.RebaseAt.storeRepresentations rb))
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
       (Conv.⊢↓-sealˣ Y∈) residual q)
 target-source-star-chain-wrap-target {W = W} {W′ = W′}
     {γ = γ} {γ′ = γ′} {V = V} {U = U} {Xᴸ = Xᴸ}
@@ -534,9 +536,9 @@ target-source-star-chain-wrap-target {W = W} {W′ = W′}
     (target-source-star-chain-paired {Wᵖ = Wᵖ} refl X∈′ Y₂∈′ rb′
       residual monoᵖ rbᵖ scᵖ partner prem) =
   target-source-star-chain-paired refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned rb)
-      (CTI2.RebaseAt.storeRepresentations rb))
-    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned rb)
+      (CTX.RebaseAt.storeRepresentations rb))
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
       (Conv.⊢↓-sealˣ Y∈) residual q)
     (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ} mono monoᵖ)
     (composeOuterRebase rb rbᵖ)
@@ -549,9 +551,9 @@ target-source-star-chain-wrap-target {W = W} {W′ = W′}
     (target-source-star-chain-payload {Wᵖ = Wᵖ} refl X∈′ Y₂∈′ rb′
       residual monoᵖ rbᵖ scᵖ sourcePrem) =
   target-source-star-chain-payload refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned rb)
-      (CTI2.RebaseAt.storeRepresentations rb))
-    (CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned rb)
+      (CTX.RebaseAt.storeRepresentations rb))
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
       (Conv.⊢↓-sealˣ Y∈) residual q)
     (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ} mono monoᵖ)
     (composeOuterRebase rb rbᵖ)
@@ -639,7 +641,7 @@ target-source-star-chain {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
   target-source-star-chain-final
     (CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ} mono mono₁)
-      (CTI2.rebase-varᴿ (composeSamePivotRebase ra link₁))
+      (CTX.rebase-varᴿ (composeSamePivotRebase ra link₁))
       (sameCtx-∘ sc sc₁)
       (Conv.⊢↓-sealˣ Y∈)
       sourcePrem q)
@@ -670,11 +672,11 @@ target-source-star-chain {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     | refl | link₁ | varv-seal {W = U₀} vU₀ Y₂∈ refl
     | target-source-star-residual refl X∈ᵒ Y₂∈ᵒ rbᵒ residualᵒ =
   target-source-star-chain-residual refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned ra)
-      (CTI2.RebaseAt.storeRepresentations ra))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned ra)
+      (CTX.RebaseAt.storeRepresentations ra))
     (CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ} mono mono₁)
-      (CTI2.rebase-varᴿ (composeSamePivotRebase ra link₁))
+      (CTX.rebase-varᴿ (composeSamePivotRebase ra link₁))
       (sameCtx-∘ sc sc₁)
       (Conv.⊢↓-sealˣ Y∈)
       residualᵒ q)
@@ -687,11 +689,11 @@ target-source-star-chain {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     | target-source-star-paired {Wᵖ = Wᵖ} refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         partnerᵒ premᵒ =
   target-source-star-chain-paired refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned ra)
-      (CTI2.RebaseAt.storeRepresentations ra))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned ra)
+      (CTX.RebaseAt.storeRepresentations ra))
     (CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ} mono mono₁)
-      (CTI2.rebase-varᴿ (composeSamePivotRebase ra link₁))
+      (CTX.rebase-varᴿ (composeSamePivotRebase ra link₁))
       (sameCtx-∘ sc sc₁)
       (Conv.⊢↓-sealˣ Y∈)
       (CTI2.conceal⊑conceal² partnerᵒ monoᵒ rbᵒ scᵒ
@@ -715,14 +717,14 @@ target-source-star-chain {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     | target-source-star-payload {Wᵖ = Wᵖ} refl monoᵒ rbᵒ scᵒ X∈ᵒ Y₂∈ᵒ
         sourcePremᵒ =
   target-source-star-chain-payload refl X∈ Y∈
-    (CTI2.sameWorldRebaseAt (CTI2.RebaseAt.pivotAligned ra)
-      (CTI2.RebaseAt.storeRepresentations ra))
+    (CTX.sameWorldRebaseAt (CTX.RebaseAt.pivotAligned ra)
+      (CTX.RebaseAt.storeRepresentations ra))
     (CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ} mono mono₁)
-      (CTI2.rebase-varᴿ (composeSamePivotRebase ra link₁))
+      (CTX.rebase-varᴿ (composeSamePivotRebase ra link₁))
       (sameCtx-∘ sc sc₁)
       (Conv.⊢↓-sealˣ Y∈)
-      (CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+      (CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
         (Conv.⊢↓-sealˣ Y₂∈ᵒ) sourcePremᵒ pᵈ)
       q)
     (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ}

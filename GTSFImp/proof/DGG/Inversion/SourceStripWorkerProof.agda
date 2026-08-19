@@ -27,6 +27,7 @@ open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealPeelToolkit as SPT
 open import proof.DGG.Inversion.SourceStripDef using
@@ -60,9 +61,16 @@ open import proof.DGG.Inversion.TargetWalkSupport using
    tagged-target-nonvar-nonstar-spine-⊥; seal-target-nonstar-⊥;
    target-source-var-chain; var-source-nonstar-⊥)
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; RebaseAtᴸ; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   RebaseAtᴸ;
+   TagRebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   source-seal-pivot-eq : ∀ {Γ} {M X Y R}
@@ -78,8 +86,8 @@ private
     → targetStoreʷ W′ ∋ Z ⦂ S
   rebase-target-membership-forward rb Z∈ =
     subst≡ (λ Σ → Σ ∋ _ ⦂ _)
-      (CTI2.SameRuntime.targetStore-same
-        (CTI2.RebaseAt.sameRuntime rb)) Z∈
+      (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime rb)) Z∈
 
   rebase-source-membership-forward : ∀ {Δᴸ Δᴿ Δ}
       {W′ W : World Δᴸ Δᴿ Δ}
@@ -89,8 +97,8 @@ private
     → sourceStoreʷ W′ ∋ Z ⦂ R
   rebase-source-membership-forward rb Z∈ =
     subst≡ (λ Σ → Σ ∋ _ ⦂ _)
-      (CTI2.SameRuntime.sourceStore-same
-        (CTI2.RebaseAt.sameRuntime rb)) Z∈
+      (CTX.SameRuntime.sourceStore-same
+        (CTX.RebaseAt.sameRuntime rb)) Z∈
 
   right-var-obligation-nonstar : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {R : Ty Δᴸ} {Y : TyVar Δᴿ}
@@ -109,32 +117,32 @@ private
     → RebaseAt W₂ W X Y
   composeOuterRebase {W = W} {W′ = W′} {W₂ = W₂}
       {X = X} {Y = Y} rb₁ rb₂ =
-    CTI2.rebase-at
-      (CTI2.same-runtime
-        (trans (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb₁))
-          (CTI2.SameRuntime.sourceStore-same
-            (CTI2.RebaseAt.sameRuntime rb₂)))
-        (trans (CTI2.SameRuntime.targetStore-same
-          (CTI2.RebaseAt.sameRuntime rb₁))
-          (CTI2.SameRuntime.targetStore-same
-            (CTI2.RebaseAt.sameRuntime rb₂))))
-      source-off target-frozen (CTI2.RebaseAt.pivotAligned rb₁)
-      (CTI2.RebaseAt.storeRepresentations rb₁)
+    CTX.rebase-at
+      (CTX.same-runtime
+        (trans (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb₁))
+          (CTX.SameRuntime.sourceStore-same
+            (CTX.RebaseAt.sameRuntime rb₂)))
+        (trans (CTX.SameRuntime.targetStore-same
+          (CTX.RebaseAt.sameRuntime rb₁))
+          (CTX.SameRuntime.targetStore-same
+            (CTX.RebaseAt.sameRuntime rb₂))))
+      source-off target-frozen (CTX.RebaseAt.pivotAligned rb₁)
+      (CTX.RebaseAt.storeRepresentations rb₁)
     where
     source-off : ∀ {Z} → Z ≢ X
-      → toRenameᵗ (CTI2.ηᴸʷ W) Z
-          ≡ toRenameᵗ (CTI2.ηᴸʷ W₂) Z
+      → toRenameᵗ (CTX.ηᴸʷ W) Z
+          ≡ toRenameᵗ (CTX.ηᴸʷ W₂) Z
     source-off Z≢X =
-      trans (CTI2.RebaseAt.ηᴸ-off-pivot rb₁ Z≢X)
-        (CTI2.RebaseAt.ηᴸ-off-pivot rb₂ Z≢X)
+      trans (CTX.RebaseAt.ηᴸ-off-pivot rb₁ Z≢X)
+        (CTX.RebaseAt.ηᴸ-off-pivot rb₂ Z≢X)
 
     target-frozen : ∀ Z
-      → toRenameᵗ (CTI2.ηᴿʷ W) Z
-          ≡ toRenameᵗ (CTI2.ηᴿʷ W₂) Z
+      → toRenameᵗ (CTX.ηᴿʷ W) Z
+          ≡ toRenameᵗ (CTX.ηᴿʷ W₂) Z
     target-frozen Z =
-      trans (CTI2.RebaseAt.ηᴿ-frozen rb₁ Z)
-        (CTI2.RebaseAt.ηᴿ-frozen rb₂ Z)
+      trans (CTX.RebaseAt.ηᴿ-frozen rb₁ Z)
+        (CTX.RebaseAt.ηᴿ-frozen rb₂ Z)
 
   composeTagRebaseOuter : ∀ {Δᴸ Δᴿ Δ}
       {W W′ W₂ : World Δᴸ Δᴿ Δ}
@@ -142,10 +150,10 @@ private
     → RebaseAt W′ W X Y
     → TagRebaseAtᴸ W₂ W′ (just X) Y′?
     → RebaseAt W₂ W X Y
-  composeTagRebaseOuter rb (CTI2.tag-rebase-varᴸ link) =
+  composeTagRebaseOuter rb (CTX.tag-rebase-varᴸ link) =
     composeOuterRebase rb link
   composeTagRebaseOuter rb
-      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
+      (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
     rb
 
   composeTagRebaseTagOuter : ∀ {Δᴸ Δᴿ Δ}
@@ -154,22 +162,22 @@ private
     → RebaseAt W′ W X Y
     → TagRebaseAtᴸ W₂ W′ (just X) Y′?
     → Σ[ Z? ∈ _ ] TagRebaseAtᴸ W₂ W (just X) Z?
-  composeTagRebaseTagOuter rb (CTI2.tag-rebase-varᴸ link) =
-    _ , CTI2.tag-rebase-varᴸ (composeOuterRebase rb link)
+  composeTagRebaseTagOuter rb (CTX.tag-rebase-varᴸ link) =
+    _ , CTX.tag-rebase-varᴸ (composeOuterRebase rb link)
   composeTagRebaseTagOuter rb
-      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) =
-    _ , CTI2.tag-rebase-varᴸ rb
+      (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
+    _ , CTX.tag-rebase-varᴸ rb
 
   impEnvMono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    → CTI2.ImpEnvMono W W
+    → CTX.ImpEnvMono W W
   impEnvMono-refl Z eq = eq
 
   sameCtx-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
       {γ : CtxImp W}
-    → CTI2.SameCtx γ γ
-  sameCtx-refl {γ = []} = CTI2.same-[]
-  sameCtx-refl {γ = CTI2.ctx-imp A B p ∷ γ} =
-    CTI2.same-∷ sameCtx-refl
+    → CTX.SameCtx γ γ
+  sameCtx-refl {γ = []} = CTX.same-[]
+  sameCtx-refl {γ = CTX.ctx-imp A B p ∷ γ} =
+    CTX.same-∷ sameCtx-refl
 
   self-column-sealed : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
@@ -198,10 +206,10 @@ private
         V (＇ X) sv
         (W , γ , q , impEnvMono-refl {W = W} ,
           sameCtx-refl {γ = γ} ,
-          CTI2.rebase-varᴸ
-            (CTI2.sameWorldRebaseAt
+          CTX.rebase-varᴸ
+            (CTX.sameWorldRebaseAt
               (variable-obligation-aligns {W = W} {X = X} {Y = Y} q)
-              (CTI2.RebaseAt.storeRepresentations rb)) ,
+              (CTX.RebaseAt.storeRepresentations rb)) ,
           target∈ , final)
         (λ _ → final)
 
@@ -234,10 +242,10 @@ private
           (V ↓ seal X R) (＇ X) sv
           (W , γ , q , impEnvMono-refl {W = W} ,
             sameCtx-refl {γ = γ} ,
-            CTI2.rebase-varᴸ
-              (CTI2.sameWorldRebaseAt
+            CTX.rebase-varᴸ
+              (CTX.sameWorldRebaseAt
                 (variable-obligation-aligns {W = W} {X = X} {Y = Y} q)
-                (CTI2.RebaseAt.storeRepresentations rb)) ,
+                (CTX.RebaseAt.storeRepresentations rb)) ,
             target∈ , final)
           (λ _ → final)
 
@@ -249,26 +257,26 @@ private
       {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
       {r : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
       {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W X Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ r
     → W ∣ γ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ q
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
-        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTX.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
         (Conv.⊢↓-sealˣ X∈) prem r)
       with composeTagRebaseTagOuter rb rbᵖ
   source-column-untagged-final {W = W} {W′ = W′} {q = q}
       mono rb sc target∈
       (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
-        (CTI2.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
+        (CTX.seal-nonstar-plain-ok Rns nt) monoᵖ rbᵖ scᵖ
         (Conv.⊢↓-sealˣ X∈) prem r)
       | Z? , rbᶠ =
     CTI2.conceal⊑²-source-ok
-      (CTI2.seal-nonstar-plain-ok Rns CTI2.not-↓)
+      (CTX.seal-nonstar-plain-ok Rns CTX.not-↓)
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
         mono monoᵖ)
       rbᶠ (sameCtx-∘ sc scᵖ)
@@ -315,18 +323,18 @@ private
     CTI2.⊑conceal²
       (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵈ}
         mono monoᵈ)
-      (CTI2.rebase-varᴿ (composeOuterRebase rb link))
+      (CTX.rebase-varᴿ (composeOuterRebase rb link))
       (sameCtx-∘ sc scᵈ) (Conv.⊢↓-sealˣ target∈) prem q
 
   tag-rebase-from-left : ∀ {Δᴸ Δᴿ Δ}
       {W′ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
     → RebaseAtᴸ W′ W (just X)
     → Σ[ Xᴿ? ∈ _ ] TagRebaseAtᴸ W′ W (just X) Xᴿ?
-  tag-rebase-from-left (CTI2.rebase-varᴸ rb) =
-    _ , CTI2.tag-rebase-varᴸ rb
+  tag-rebase-from-left (CTX.rebase-varᴸ rb) =
+    _ , CTX.tag-rebase-varᴸ rb
   tag-rebase-from-left
-      (CTI2.rebase-onlyᴸ to-star disaligned represented) =
-    nothing , CTI2.tag-rebase-onlyᴸ to-star disaligned represented
+      (CTX.rebase-onlyᴸ to-star disaligned represented) =
+    nothing , CTX.tag-rebase-onlyᴸ to-star disaligned represented
 
   spine-value→Value : ∀ {Δ} {V : Term Δ}
     → SpineValue V
@@ -372,7 +380,7 @@ private
     → (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)
     → ⊥
   rebase-only-star-rep-no-var-target {W = W} {X = X} {Y = Y}
-      (CTI2.tag-rebase-onlyᴸ to-star disaligned represented) q =
+      (CTX.tag-rebase-onlyᴸ to-star disaligned represented) q =
     disaligned Y
       (sym (variable-obligation-aligns {W = W} {X = X} {Y = Y} q))
 
@@ -382,9 +390,9 @@ private
     → TagRebaseAtᴸ W′ W (just X) Xᴿ?
     → (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)
     → RebaseAt W′ W X Y
-  tag-rebase-target (CTI2.tag-rebase-varᴸ rb) q =
-    seal-rebase-target (CTI2.rebase-varᴸ rb) q
-  tag-rebase-target rb@(CTI2.tag-rebase-onlyᴸ _ _ _) q =
+  tag-rebase-target (CTX.tag-rebase-varᴸ rb) q =
+    seal-rebase-target (CTX.rebase-varᴸ rb) q
+  tag-rebase-target rb@(CTX.tag-rebase-onlyᴸ _ _ _) q =
     ⊥-elim (rebase-only-star-rep-no-var-target rb q)
 
   abstract
@@ -480,9 +488,9 @@ private
     → SpineValue V
     → CastTerms.Inert c
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
@@ -561,9 +569,9 @@ private
     → SpineValue V
     → CastTerms.Inert c
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → WrapStarCastFinalInput W W′ γ γ′ V U Xᴸ X₂ Y S c p₂ q
@@ -603,14 +611,14 @@ private
       {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X)
     → targetStoreʷ W ∋ Y ⦂ S
-    → CTI2.ImpEnvMono W′ Wᵢ
+    → CTX.ImpEnvMono W′ Wᵢ
     → (link : RebaseAt Wᵢ W′ X Y)
-    → CTI2.SameCtx γ′ γᵢ
+    → CTX.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ Rᵢ
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
     → W ∣ γ ⊢² (V ↓ seal X Rᵢ) ↓ seal Xᴸ (＇ X)
@@ -621,11 +629,11 @@ private
     target-source-var-chain (sv-seal sv) vU mono rb sc source∈
       target∈
       (CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-plain-ok
+        (CTX.seal-nonstar-plain-ok
           (right-var-obligation-nonstar
             {W = Wᵢ} {R = Rᵢ} {Y = Y} pᵢ)
-          CTI2.not-↓)
-        monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+          CTX.not-↓)
+        monoᵢ (CTX.tag-rebase-varᴸ link) scᵢ
         (Conv.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
 
@@ -637,13 +645,13 @@ private
       {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
       {pᵤ : R ⊑ᵂ⟨ Wᵢ ⟩ (＇ Y)}
       {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W X Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → targetStoreʷ W ∋ Y ⦂ S
-    → CTI2.ImpEnvMono W′ Wᵢ
+    → CTX.ImpEnvMono W′ Wᵢ
     → (link : RebaseAt Wᵢ W′ X Y)
-    → CTI2.SameCtx γ′ γᵢ
+    → CTX.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ R
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵤ
     → W ∣ γ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ q
@@ -651,11 +659,11 @@ private
       {pᵤ = pᵤ} mono rb sc target∈ monoᵢ link scᵢ X∈ prem =
     source-column-untagged-final mono rb sc target∈
       (CTI2.conceal⊑²-source-ok
-        (CTI2.seal-nonstar-plain-ok
+        (CTX.seal-nonstar-plain-ok
           (right-var-obligation-nonstar
             {W = Wᵢ} {R = R} {Y = Y} pᵤ)
-          CTI2.not-↓)
-        monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+          CTX.not-↓)
+        monoᵢ (CTX.tag-rebase-varᴸ link) scᵢ
         (Conv.⊢↓-sealˣ X∈) prem
         (rebase-pivot-obligation link))
 
@@ -669,9 +677,9 @@ private
       {pᵤ : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
       {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W X Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ pᵤ
     → Σ[ Core ∈ Term Δᴸ ]
@@ -697,9 +705,9 @@ private
       {pᵤ : (＇ Xᴸ) ⊑ᵂ⟨ W′ ⟩ (＇ Y)}
       {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ pᵤ
     → Σ[ Core ∈ Term Δᴸ ]
@@ -739,9 +747,9 @@ private
     → SpineValue V
     → CastTerms.Inert c
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
@@ -780,14 +788,14 @@ private
       {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
     → SpineValue V
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X)
     → targetStoreʷ W ∋ Y ⦂ S
-    → CTI2.ImpEnvMono W′ Wᵢ
+    → CTX.ImpEnvMono W′ Wᵢ
     → RebaseAt Wᵢ W′ X Y
-    → CTI2.SameCtx γ′ γᵢ
+    → CTX.SameCtx γ′ γᵢ
     → sourceStoreʷ W′ ∋ X ⦂ Rᵢ
     → Wᵢ ∣ γᵢ ⊢² V ⊑ U ↓ seal Y S ∶ pᵢ
     → Σ[ Core ∈ Term Δᴸ ]
@@ -823,9 +831,9 @@ source-spine-direct-cast : ∀ {Δᴸ Δᴿ Δ}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
   → SpineValue V
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ R
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p
@@ -844,10 +852,10 @@ source-spine-direct-cast {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
     prem =
   self-spine-sealed rb target∈ (sv-seal sv)
     (CTI2.conceal⊑²-source-ok
-      (CTI2.seal-nonstar-plain-ok
+      (CTX.seal-nonstar-plain-ok
         (right-var-obligation-nonstar {W = W′} {R = R} {Y = Y} p₀)
-        CTI2.not-↓)
-      mono (CTI2.tag-rebase-varᴸ rb) sc
+        CTX.not-↓)
+      mono (CTX.tag-rebase-varᴸ rb) sc
       (Conv.⊢↓-sealˣ source∈) prem q)
 
 source-spine-strip-worker-ƛ : ∀ {Δᴸ Δᴿ Δ}
@@ -861,9 +869,9 @@ source-spine-strip-worker-ƛ : ∀ {Δᴸ Δᴿ Δ}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
   → (N : Term Δᴸ)
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ R
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² ƛ N ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
@@ -892,9 +900,9 @@ source-spine-strip-worker-Λ : ∀ {Δᴸ Δᴿ Δ}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
   → SpineValue V
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ R
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² Λ V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
@@ -935,9 +943,9 @@ source-spine-strip-worker-$ : ∀ {Δᴸ Δᴿ Δ}
     {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
   → (κ : Const)
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ R
   → targetStoreʷ W ∋ Y ⦂ S
   → W′ ∣ γ′ ⊢² $ κ ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
@@ -1146,9 +1154,9 @@ source-spine-strip-worker-cast-step
     → SpineValue V
     → CastTerms.Inert c
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ B
     → targetStoreʷ W ∋ Y ⦂ S
     → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₁
@@ -1286,9 +1294,9 @@ source-spine-strip-worker-seal-D
         ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
     → SpineValue V
     → Value U
-    → CTI2.ImpEnvMono W W′
+    → CTX.ImpEnvMono W W′
     → RebaseAt W′ W Xᴸ Y
-    → CTI2.SameCtx γ γ′
+    → CTX.SameCtx γ γ′
     → sourceStoreʷ W ∋ Xᴸ ⦂ R
     → targetStoreʷ W ∋ Y ⦂ S
     → Σ[ Core ∈ Term Δᴸ ]
@@ -1326,8 +1334,8 @@ source-spine-strip-worker-seal-D
     source∈ target∈ D
 source-spine-strip-worker-seal-D
     (CTI2.conceal⊑²-source-ok
-      (CTI2.seal-nonstar-name-protected-ok Rns aligned)
-      monoᵢ (CTI2.tag-rebase-varᴸ link) scᵢ
+      (CTX.seal-nonstar-name-protected-ok Rns aligned)
+      monoᵢ (CTX.tag-rebase-varᴸ link) scᵢ
       (Conv.⊢↓-sealˣ X∈)
       (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
     sv vU mono rb sc source∈ target∈ =
@@ -1442,9 +1450,9 @@ source-column-strip-worker-D : ∀ {Δᴸ Δᴿ Δ}
   → W′ ∣ γ′ ⊢² V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
   → SpineValue V
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → targetStoreʷ W ∋ Y ⦂ S
   → Σ[ Core ∈ Term Δᴸ ]
     Σ[ CoreTy ∈ Ty Δᴸ ]
@@ -1468,9 +1476,9 @@ source-column-strip-worker-seal-D : ∀ {Δᴸ Δᴿ Δ}
       ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
   → SpineValue V
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → targetStoreʷ W ∋ Y ⦂ S
   → Σ[ Core ∈ Term Δᴸ ]
     Σ[ CoreTy ∈ Ty Δᴸ ]

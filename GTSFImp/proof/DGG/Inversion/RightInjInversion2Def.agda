@@ -23,8 +23,13 @@ open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 RightInjInversion² : Set
 RightInjInversion² =

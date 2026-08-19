@@ -16,7 +16,8 @@ open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using (seal)
 open import CastTerms using (Term; Value; _↓_; _⟨_⟩)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore;
@@ -29,8 +30,13 @@ open import proof.DGG.Inversion.TargetStripDef using
 open import proof.DGG.Inversion.TargetStripLemma using
   (target-strip-at★)
 open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   sourceStoreʷ; targetStoreʷ)
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 private
   rebase-target-membership-forward : ∀ {Δᴸ Δᴿ Δ}

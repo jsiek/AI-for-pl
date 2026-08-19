@@ -24,6 +24,7 @@ open import CastTerms using (Term; Value; Inert; inj; _⟨_⟩; _↓_)
 open import Imprecision
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
 open import proof.DGG.Inversion.SpineValueDef using
   (SpineValue; variable-obligation-aligns)
@@ -35,26 +36,33 @@ open import proof.DGG.Inversion.TargetDescentDef using
    reemit-paired; reemit-stripped; target-reemit; target-terminal;
    target-seal★)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   ηᴸʷ; ηᴿʷ; sourceStoreʷ; targetStoreʷ)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   ηᴸʷ;
+   ηᴿʷ;
+   sourceStoreʷ;
+   targetStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 sameCtx-∘ : ∀ {Δᴸ Δᴿ Δ₁ Δ₂ Δ₃}
     {W₁ : World Δᴸ Δᴿ Δ₁} {W₂ : World Δᴸ Δᴿ Δ₂}
     {W₃ : World Δᴸ Δᴿ Δ₃}
     {γ₁ : CtxImp W₁} {γ₂ : CtxImp W₂} {γ₃ : CtxImp W₃}
-  → CTI2.SameCtx γ₁ γ₂
-  → CTI2.SameCtx γ₂ γ₃
-  → CTI2.SameCtx γ₁ γ₃
-sameCtx-∘ CTI2.same-[] CTI2.same-[] = CTI2.same-[]
-sameCtx-∘ (CTI2.same-∷ sc₁) (CTI2.same-∷ sc₂) =
-  CTI2.same-∷ (sameCtx-∘ sc₁ sc₂)
+  → CTX.SameCtx γ₁ γ₂
+  → CTX.SameCtx γ₂ γ₃
+  → CTX.SameCtx γ₁ γ₃
+sameCtx-∘ CTX.same-[] CTX.same-[] = CTX.same-[]
+sameCtx-∘ (CTX.same-∷ sc₁) (CTX.same-∷ sc₂) =
+  CTX.same-∷ (sameCtx-∘ sc₁ sc₂)
 
 impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ}
     {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
-  → CTI2.ImpEnvMono W₁ W₂
-  → CTI2.ImpEnvMono W₂ W₃
-  → CTI2.ImpEnvMono W₁ W₃
+  → CTX.ImpEnvMono W₁ W₂
+  → CTX.ImpEnvMono W₂ W₃
+  → CTX.ImpEnvMono W₁ W₃
 impEnvMono-∘ mono₁ mono₂ Z eq = mono₂ Z (mono₁ Z eq)
 
 inner-source-pivot-eqᴿ : ∀ {Δᴸ Δᴿ Δ}
@@ -75,10 +83,10 @@ inner-source-pivot-eqᴿ {W = W} {W′ = W′}
   same-center :
     toRenameᵗ (ηᴸʷ W) X₂ ≡ toRenameᵗ (ηᴸʷ W) Xᴸ
   same-center =
-    trans (CTI2.RebaseAt.ηᴸ-off-pivot rb X₂≢Xᴸ)
+    trans (CTX.RebaseAt.ηᴸ-off-pivot rb X₂≢Xᴸ)
       (trans (variable-obligation-aligns {W = W′} {X = X₂} {Y = Y} p)
-        (trans (sym (CTI2.RebaseAt.ηᴿ-frozen rb Y))
-          (sym (CTI2.RebaseAt.pivotAligned rb))))
+        (trans (sym (CTX.RebaseAt.ηᴿ-frozen rb Y))
+          (sym (CTX.RebaseAt.pivotAligned rb))))
 
 composeSamePivotRebase : ∀ {Δᴸ Δᴿ Δ}
     {W W′ W₂ : World Δᴸ Δᴿ Δ}
@@ -88,30 +96,30 @@ composeSamePivotRebase : ∀ {Δᴸ Δᴿ Δ}
   → RebaseAt W₂ W X Y
 composeSamePivotRebase {W = W} {W′ = W′} {W₂ = W₂}
     {X = X} {Y = Y} rb₁ rb₂ =
-  CTI2.rebase-at
-    (CTI2.same-runtime
-      (trans (CTI2.SameRuntime.sourceStore-same
-        (CTI2.RebaseAt.sameRuntime rb₁))
-        (CTI2.SameRuntime.sourceStore-same
-          (CTI2.RebaseAt.sameRuntime rb₂)))
-      (trans (CTI2.SameRuntime.targetStore-same
-        (CTI2.RebaseAt.sameRuntime rb₁))
-        (CTI2.SameRuntime.targetStore-same
-          (CTI2.RebaseAt.sameRuntime rb₂))))
-    source-off target-frozen (CTI2.RebaseAt.pivotAligned rb₁)
-    (CTI2.RebaseAt.storeRepresentations rb₁)
+  CTX.rebase-at
+    (CTX.same-runtime
+      (trans (CTX.SameRuntime.sourceStore-same
+        (CTX.RebaseAt.sameRuntime rb₁))
+        (CTX.SameRuntime.sourceStore-same
+          (CTX.RebaseAt.sameRuntime rb₂)))
+      (trans (CTX.SameRuntime.targetStore-same
+        (CTX.RebaseAt.sameRuntime rb₁))
+        (CTX.SameRuntime.targetStore-same
+          (CTX.RebaseAt.sameRuntime rb₂))))
+    source-off target-frozen (CTX.RebaseAt.pivotAligned rb₁)
+    (CTX.RebaseAt.storeRepresentations rb₁)
   where
   source-off : ∀ {Z} → Z ≢ X
     → toRenameᵗ (ηᴸʷ W) Z ≡ toRenameᵗ (ηᴸʷ W₂) Z
   source-off Z≢X =
-    trans (CTI2.RebaseAt.ηᴸ-off-pivot rb₁ Z≢X)
-      (CTI2.RebaseAt.ηᴸ-off-pivot rb₂ Z≢X)
+    trans (CTX.RebaseAt.ηᴸ-off-pivot rb₁ Z≢X)
+      (CTX.RebaseAt.ηᴸ-off-pivot rb₂ Z≢X)
 
   target-frozen : ∀ Z
     → toRenameᵗ (ηᴿʷ W) Z ≡ toRenameᵗ (ηᴿʷ W₂) Z
   target-frozen Z =
-    trans (CTI2.RebaseAt.ηᴿ-frozen rb₁ Z)
-      (CTI2.RebaseAt.ηᴿ-frozen rb₂ Z)
+    trans (CTX.RebaseAt.ηᴿ-frozen rb₁ Z)
+      (CTX.RebaseAt.ηᴿ-frozen rb₂ Z)
 
 target-seal★-descent : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
@@ -124,18 +132,18 @@ target-seal★-descent : ∀ {Δᴸ Δᴿ Δ}
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
   → (∀ {W₂ : World Δᴸ Δᴿ Δ} {γ₂ : CtxImp W₂}
       → RebaseAt W₂ W′ X₂ Y
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ′ γ₂
       → (q₂ : (＇ X₂) ⊑ᵂ⟨ W₂ ⟩ ★)
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
-      → CTI2.MatchedConcealPartnerOK W₂
+      → CTX.MatchedConcealPartnerOK W₂
           (V ⟨ c ⟩) (seal X₂ ★) (just Y) U)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → TargetSealDescentResult {W₀ = W} {γ₀ = γ} {P = V ⟨ c ⟩}
@@ -168,7 +176,7 @@ target-seal★-descent {W = W} {W′ = W′}
     | refl
     | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
         {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢
-        (CTI2.matched-seal-star-partner partner) prem
+        (CTX.matched-seal-star-partner partner) prem
     with inert
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y}
@@ -176,13 +184,13 @@ target-seal★-descent {W = W} {W′ = W′}
     | refl
     | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
         {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢
-        (CTI2.matched-seal-star-partner partner) prem
+        (CTX.matched-seal-star-partner partner) prem
     | inj ⦃ Gᵍ = ＇ .Xᴸ ⦄ =
   target-seal★
     (target-terminal W′ _ rb mono sc
       (terminal-paired refl D)
-      (CTI2.matched-seal-star-partner
-        (CTI2.rep★-round-trip
+      (CTX.matched-seal-star-partner
+        (CTX.rep★-round-trip
           (STC.transport-rep★-partner-ok rbᵖ partner))))
 
 target-seal★-extract : ∀ {Δᴸ Δᴿ Δ}
@@ -205,9 +213,9 @@ target-seal＇-reemit : ∀ {Δᴸ Δᴿ Δ}
     {γ : CtxImp W} {γ′ : CtxImp W′}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W X Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → targetStoreʷ W ∋ Y ⦂ (＇ Y′)
   → (q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y))
   → (q′ : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y′))
@@ -216,6 +224,6 @@ target-seal＇-reemit mono rb sc Y∈ q q′ =
   target-reemit _ _ q′
     λ where
       (reemit-stripped D) →
-        CTI2.⊑conceal² mono (CTI2.rebase-varᴿ rb) sc
+        CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
           (Conv.⊢↓-sealˣ Y∈) D q
       (reemit-paired D) → D

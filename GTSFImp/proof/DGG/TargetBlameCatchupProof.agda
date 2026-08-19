@@ -33,6 +33,7 @@ open import Reduction using
   ; blame-•
   )
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.CatchupToMorePreciseDef
   using (toTagRebaseAtᴸ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
@@ -53,14 +54,13 @@ open import proof.Reduction
     ; reveal-↠
     ; typeApp-↠
     )
-open CTI2 using
-  ( CtxImp
-  ; ImpEnvMono
-  ; TagRebaseAtᴸ
-  ; World
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (CtxImp;
+   ImpEnvMono;
+   TagRebaseAtᴸ;
+   World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 data TargetBlameBoundary {Δᴸ Δᴿ Δ}
@@ -268,7 +268,7 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-cast-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑² mono rb CTI2.same-[] c⊢ prem q)
+    (CTI2.reveal⊑² mono rb CTX.same-[] c⊢ prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked
       (target-blame-boundary-source-reveal boundary mono
@@ -276,12 +276,12 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
       prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑² mono rb CTI2.same-[] c⊢ prem q)
+    (CTI2.reveal⊑² mono rb CTX.same-[] c⊢ prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-reveal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTI2.same-[]
+    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTX.same-[]
       c⊢ prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked
@@ -289,20 +289,20 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
       prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTI2.same-[]
+    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTX.same-[]
       c⊢ prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-conceal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-source-ok ok mono rb CTI2.same-[] c⊢ prem q)
+    (CTI2.conceal⊑²-source-ok ok mono rb CTX.same-[] c⊢ prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked
       (target-blame-boundary-source-conceal boundary mono rb)
       prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-source-ok ok mono rb CTI2.same-[] c⊢ prem q)
+    (CTI2.conceal⊑²-source-ok ok mono rb CTX.same-[] c⊢ prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-conceal-blame-catchup M↠blame evol
 

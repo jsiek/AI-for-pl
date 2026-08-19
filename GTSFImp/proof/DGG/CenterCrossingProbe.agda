@@ -31,10 +31,20 @@ open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Inversion.SpineValueDef as SVD
-open CTI2 using
-  (World; world; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   rebase-at; same-runtime; store-rep-imp; ηᴸʷ; ηᴿʷ)
+open CTX using
+  (World;
+   world;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   rebase-at;
+   same-runtime;
+   store-rep-imp;
+   ηᴸʷ;
+   ηᴿʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X₀ : TyVar 2
@@ -156,23 +166,23 @@ U = U₀ ↓ seal Y₁ ★
 -- Rebase witnesses
 ------------------------------------------------------------------------
 
-X₀-Y₀-rep : CTI2.StoreRepImp W X₀ Y₀
+X₀-Y₀-rep : CTX.StoreRepImp W X₀ Y₀
 X₀-Y₀-rep = store-rep-imp ★⊑★
 
 no-center-crossing-target : ∀ {Xᴸ} → RebaseAt W′ W Xᴸ Y₀ → ⊥
 no-center-crossing-target rb
-    with CTI2.RebaseAt.ηᴿ-frozen rb Y₀
+    with CTX.RebaseAt.ηᴿ-frozen rb Y₀
 no-center-crossing-target rb | ()
 
 no-center-crossing-paired : RebaseAt W′ W X₀ Y₀ → ⊥
 no-center-crossing-paired = no-center-crossing-target
 
 no-center-crossing-outerᴿ :
-  CTI2.RebaseAtᴿ W′ W (just Y₀) → ⊥
-no-center-crossing-outerᴿ (CTI2.rebase-varᴿ rb) =
+  CTX.RebaseAtᴿ W′ W (just Y₀) → ⊥
+no-center-crossing-outerᴿ (CTX.rebase-varᴿ rb) =
   no-center-crossing-target rb
 
-X₁-Y₀-rep : CTI2.StoreRepImp W′ X₁ Y₀
+X₁-Y₀-rep : CTX.StoreRepImp W′ X₁ Y₀
 X₁-Y₀-rep = store-rep-imp ★⊑★
 
 rb-target-input : RebaseAt Wᵖ W′ X₁ Y₀
@@ -182,11 +192,11 @@ rb-target-input =
        ; {Fin.suc Fin.zero} X₁≢ → ⊥-elim (X₁≢ refl) })
     (λ _ → refl) refl X₁-Y₀-rep
 
-X₁-Y₁-rep : CTI2.StoreRepImp Wᵖ X₁ Y₁
+X₁-Y₁-rep : CTX.StoreRepImp Wᵖ X₁ Y₁
 X₁-Y₁-rep = store-rep-imp ★⊑★
 
 rb-inner : RebaseAt Wᵖ Wᵖ X₁ Y₁
-rb-inner = CTI2.sameWorldRebaseAt refl X₁-Y₁-rep
+rb-inner = CTX.sameWorldRebaseAt refl X₁-Y₁-rep
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: the target-seal call-site premise is derivable
@@ -209,16 +219,16 @@ base² =
 inner² : Wᵖ ∣ [] ⊢² V ⊑ U ∶ p-inner
 inner² =
   CTI2.conceal⊑conceal²
-    (CTI2.matched-seal-star-partner
-      (CTI2.rep★-nonvar-tag nonvar-base))
-    (λ Z eq → eq) rb-inner CTI2.same-[]
+    (CTX.matched-seal-star-partner
+      (CTX.rep★-nonvar-tag nonvar-base))
+    (λ Z eq → eq) rb-inner CTX.same-[]
     (Conv.⊢↓-sealˣ X₁∈) (Conv.⊢↓-sealˣ Y₁∈) base² p-inner
 
 input-target-seal-variable :
   W′ ∣ [] ⊢² V ⊑ U ↓ seal Y₀ (＇ Y₁) ∶ p-input
 input-target-seal-variable =
-  CTI2.⊑conceal² (λ Z eq → eq) (CTI2.rebase-varᴿ rb-target-input)
-    CTI2.same-[] (Conv.⊢↓-sealˣ Y₀∈) inner² p-input
+  CTI2.⊑conceal² (λ Z eq → eq) (CTX.rebase-varᴿ rb-target-input)
+    CTX.same-[] (Conv.⊢↓-sealˣ Y₀∈) inner² p-input
 
 source-spine : SVD.SpineValue V
 source-spine =

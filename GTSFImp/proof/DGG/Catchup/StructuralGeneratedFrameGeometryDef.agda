@@ -17,7 +17,8 @@ open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
 open import CastTerms using (Term; Value; _↑_; _↓_)
 open import Reduction using (keep; _—→[_]_)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 
 
 record StructuralAllGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
@@ -47,15 +48,15 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
-          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₁ CTIR.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
     keep₁ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N ↑ c ∶ q₁
       → (N ↑ c) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -68,17 +69,17 @@ record StructuralRevealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
-          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₂ CTIR.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
     keep₂ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M
+      → W CTIR.∣ γ ⊢² M
           ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
       → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₂
 
 
 record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
@@ -99,15 +100,15 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     transport₁ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ C}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₁ ⟩ C ]
-          Wᵖ₁ CTI2.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₁ CTIR.∣ γᵖ₁ ⊢² M ⊑ N ∶ pᵖ
     q₁ : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B
     keep₁ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N ↓ c ∶ q₁
       → (N ↓ c) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₁
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₁
 
     Wᵖ₂ : CTI2.World Δᴸ (suc Δᴿ) Δ
     γᵖ₂ : CTI2.CtxImp Wᵖ₂
@@ -120,14 +121,14 @@ record StructuralConcealGeneratedFrameGeometry {Δᴸ Δᴿ Δ}
     transport₂ :
       ∀ {M : Term Δᴸ} {N : Term (suc Δᴿ)}
         {p : Aₛ CTI2.⊑ᵂ⟨ W ⟩ B}
-      → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ N ∶ p
       → Σ[ pᵖ ∈ Aₛ CTI2.⊑ᵂ⟨ Wᵖ₂ ⟩ B ]
-          Wᵖ₂ CTI2.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
+          Wᵖ₂ CTIR.∣ γᵖ₂ ⊢² M ⊑ N ∶ pᵖ
     q₂ : Aₛ CTI2.⊑ᵂ⟨ W ⟩
       replaceTy Fin.zero (⇑ᵗ (＇ X)) B
     keep₂ : ∀ {M N N₁}
-      → W CTI2.∣ γ ⊢² M
+      → W CTIR.∣ γ ⊢² M
           ⊑ N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗 ∶ q₂
       → (N ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) —→[ keep ] N₁
       → Value N₁
-      → W CTI2.∣ γ ⊢² M ⊑ N₁ ∶ q₂
+      → W CTIR.∣ γ ⊢² M ⊑ N₁ ∶ q₂

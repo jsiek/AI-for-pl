@@ -26,10 +26,17 @@ open import Conversion using (seal)
 open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 private
   Xᴸ : TyVar 2

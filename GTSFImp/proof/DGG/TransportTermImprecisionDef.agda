@@ -15,11 +15,16 @@ open import Types using (Ty; ＇_)
 open import Imprecision using (X⊑X; X⊑★)
 open import CastTerms using (Term)
 open import Reduction using (StoreChanges; bind; applyTerm; applyTerms)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; evolve-refl; evolve-left-bind; evolve-both-bind)
 open import proof.DGG.Parked.ParkedWorldLemma using (mapCtxᴾ; transport⊑ᴾ)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTI2 using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 
 SourceBindTransport²ᵀ : Set

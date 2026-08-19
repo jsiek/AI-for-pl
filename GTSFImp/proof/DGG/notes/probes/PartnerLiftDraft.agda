@@ -16,7 +16,7 @@ open import Consistency using
 open import Conversion using (Conv↑; Conv↓; `∀↑_; `∀↓_; seal)
 open import CastTerms using (Term; ⇑ᵗᵐ; _⟨_⟩; _↑_; _↓_)
 open import Reduction using (bind; _∷_; [])
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralWorldExtendDef using
   (mapPivotChanges; StructuralWorldExtendᴿ; structural-bind; structural-[])

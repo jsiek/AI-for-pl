@@ -32,10 +32,16 @@ open import Imprecision
 open import CastTerms
 open import Reduction
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
-open CTI2 using
-  (World; sourceStoreʷ; targetStoreʷ; _⊑ᵂ⟨_⟩_;
-   CtxImp; ctx-imp; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   sourceStoreʷ;
+   targetStoreʷ;
+   _⊑ᵂ⟨_⟩_;
+   CtxImp;
+   ctx-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.Imprecision as PI
 
 ------------------------------------------------------------------------

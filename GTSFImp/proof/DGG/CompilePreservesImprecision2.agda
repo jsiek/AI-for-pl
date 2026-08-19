@@ -39,7 +39,11 @@ open C using (⟨_,_,_⟩; _⊢_⦂_)
             _⦂∀_[_] to _⦂∀ᵀ_[_]; $ to $ᵀ;
             _⊕[_]_ to _⊕ᵀ[_]_; _⟨_⟩ to _⟨ᵀ_⟩)
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; world; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Elab as CPI
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
@@ -54,54 +58,54 @@ initialWorld : ∀ {Δ} → ImpEnv Δ → TyStore Δ → World Δ Δ Δ
 initialWorld μ Σ = world id↪ᵗ id↪ᵗ μ Σ Σ
 
 initialWorld-ηᴸ : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
-  → CTI2.ηᴸʷ (initialWorld μ Σ) ≡ id↪ᵗ
+  → CTX.ηᴸʷ (initialWorld μ Σ) ≡ id↪ᵗ
 initialWorld-ηᴸ μ Σ = refl
 
 initialWorld-ηᴿ : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
-  → CTI2.ηᴿʷ (initialWorld μ Σ) ≡ id↪ᵗ
+  → CTX.ηᴿʷ (initialWorld μ Σ) ≡ id↪ᵗ
 initialWorld-ηᴿ μ Σ = refl
 
 initial-embedᴸ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
   → (A : Ty Δ)
-  → CTI2.embedᴸ (initialWorld μ Σ) A ≡ A
+  → CTX.embedᴸ (initialWorld μ Σ) A ≡ A
 initial-embedᴸ A =
   renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq
 
 initial-embedᴿ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
   → (A : Ty Δ)
-  → CTI2.embedᴿ (initialWorld μ Σ) A ≡ A
+  → CTX.embedᴿ (initialWorld μ Σ) A ≡ A
 initial-embedᴿ A =
   renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq
 
 initial-⊑ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ} {A B : Ty Δ}
   → μ ⊢ A ⊑ B
-  → A CTI2.⊑ᵂ⟨ initialWorld μ Σ ⟩ B
+  → A CTX.⊑ᵂ⟨ initialWorld μ Σ ⟩ B
 initial-⊑ {μ = μ} {Σ = Σ} {A = A} {B = B} p =
-  subst≡ (λ L → μ ⊢ L ⊑ CTI2.embedᴿ (initialWorld μ Σ) B)
+  subst≡ (λ L → μ ⊢ L ⊑ CTX.embedᴿ (initialWorld μ Σ) B)
     (sym (initial-embedᴸ {μ = μ} {Σ = Σ} A))
     (subst≡ (λ R → μ ⊢ A ⊑ R)
       (sym (initial-embedᴿ {μ = μ} {Σ = Σ} B)) p)
 
 initialCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
   → GTI.CtxImp μ
-  → CTI2.CtxImp (initialWorld μ Σ)
+  → CTX.CtxImp (initialWorld μ Σ)
 initialCtx [] = []
 initialCtx {Σ = Σ} (GTI.ctx-imp A B p ∷ γ) =
-  CTI2.ctx-imp A B (initial-⊑ {Σ = Σ} p) ∷
+  CTX.ctx-imp A B (initial-⊑ {Σ = Σ} p) ∷
     initialCtx {Σ = Σ} γ
 
 initial-∋ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
     {γ : GTI.CtxImp μ} {x A B p}
   → γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A B p
-  → initialCtx {Σ = Σ} γ CTI2.∋ʷ x ⦂
-      CTI2.ctx-imp A B (initial-⊑ {Σ = Σ} p)
-initial-∋ GTI.Zⁱ = CTI2.Zʷ
-initial-∋ (GTI.Sⁱ x∈) = CTI2.Sʷ (initial-∋ x∈)
+  → initialCtx {Σ = Σ} γ CTX.∋ʷ x ⦂
+      CTX.ctx-imp A B (initial-⊑ {Σ = Σ} p)
+initial-∋ GTI.Zⁱ = CTX.Zʷ
+initial-∋ (GTI.Sⁱ x∈) = CTX.Sʷ (initial-∋ x∈)
 
 ⊢²-retarget : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ : CTI2.CtxImp W} {M : C.Term Δᴸ} {M′ : C.Term Δᴿ}
+    {γ : CTX.CtxImp W} {M : C.Term Δᴸ} {M′ : C.Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {p q : A CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p q : A CTX.⊑ᵂ⟨ W ⟩ B}
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
   → W ∣ γ ⊢² M ⊑ M′ ∶ q
 ⊢²-retarget {W = W} {γ = γ} {M = M} {M′ = M′} {p = p} {q = q} d =
@@ -110,14 +114,14 @@ initial-∋ (GTI.Sⁱ x∈) = CTI2.Sʷ (initial-∋ x∈)
 initial-liftCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
     {γ : GTI.CtxImp μ} {γ′ : GTI.CtxImp (extᵐ μ)}
   → GTI.LiftCtxⁱ (extᵐ μ) γ γ′
-  → CTI2.LiftCtx X⊑X (initialCtx {Σ = Σ} γ)
+  → CTX.LiftCtx X⊑X (initialCtx {Σ = Σ} γ)
       (initialCtx {Σ = store-lift Σ} γ′)
-initial-liftCtx GTI.lift-[] = CTI2.lift-[]
+initial-liftCtx GTI.lift-[] = CTX.lift-[]
 initial-liftCtx (GTI.lift-∷ liftγ) =
-  CTI2.lift-∷ (initial-liftCtx liftγ)
+  CTX.lift-∷ (initial-liftCtx liftγ)
 
 SourceId : ∀ {Δᴿ Δ} → World Δ Δᴿ Δ → Set
-SourceId W = ∀ X → toRenameᵗ (CTI2.ηᴸʷ W) X ≡ X
+SourceId W = ∀ X → toRenameᵗ (CTX.ηᴸʷ W) X ≡ X
 
 sourceId-initial : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
   → SourceId (initialWorld μ Σ)
@@ -126,7 +130,7 @@ sourceId-initial = toRename-id-eq
 sourceId-liftBoth : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → SourceId W
-  → SourceId (CTI2.liftWorldBoth v W)
+  → SourceId (CTX.liftWorldBoth v W)
 sourceId-liftBoth v sid zero = refl
 sourceId-liftBoth v sid (Fin.suc X) =
   cong Fin.suc (sid X)
@@ -134,7 +138,7 @@ sourceId-liftBoth v sid (Fin.suc X) =
 sourceId-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → SourceId W
-  → SourceId (CTI2.liftWorldLeft v W)
+  → SourceId (CTX.liftWorldLeft v W)
 sourceId-liftLeft v sid zero = refl
 sourceId-liftLeft v sid (Fin.suc X) =
   cong Fin.suc (sid X)
@@ -142,25 +146,25 @@ sourceId-liftLeft v sid (Fin.suc X) =
 sourceId-embedᴸ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → SourceId W
   → (A : Ty Δ)
-  → CTI2.embedᴸ W A ≡ A
+  → CTX.embedᴸ W A ≡ A
 sourceId-embedᴸ {W = W} sid A =
-  renameᵗ-pointwise-id (toRenameᵗ (CTI2.ηᴸʷ W)) A sid
+  renameᵗ-pointwise-id (toRenameᵗ (CTX.ηᴸʷ W)) A sid
 
 sourceId-⊑ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {A : Ty Δ} {B : Ty Δᴿ}
   → (sid : SourceId W)
-  → CTI2.impEnvʷ W ⊢ A ⊑ CTI2.embedᴿ W B
-  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → CTX.impEnvʷ W ⊢ A ⊑ CTX.embedᴿ W B
+  → A CTX.⊑ᵂ⟨ W ⟩ B
 sourceId-⊑ {W = W} {A = A} {B = B} sid p =
-  subst≡ (λ L → CTI2.impEnvʷ W ⊢ L ⊑ CTI2.embedᴿ W B)
+  subst≡ (λ L → CTX.impEnvʷ W ⊢ L ⊑ CTX.embedᴿ W B)
     (sym (sourceId-embedᴸ {W = W} sid A)) p
 
 sourceId-⊑-eq : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {A : Ty Δ} {Bᶜ : Ty Δ} {B : Ty Δᴿ}
   → (sid : SourceId W)
-  → Bᶜ ≡ CTI2.embedᴿ W B
-  → CTI2.impEnvʷ W ⊢ A ⊑ Bᶜ
-  → A CTI2.⊑ᵂ⟨ W ⟩ B
+  → Bᶜ ≡ CTX.embedᴿ W B
+  → CTX.impEnvʷ W ⊢ A ⊑ Bᶜ
+  → A CTX.⊑ᵂ⟨ W ⟩ B
 sourceId-⊑-eq {W = W} sid refl p = sourceId-⊑ {W = W} sid p
 
 renameᵗ-id↪ᵗ : ∀ {Δ} (A : Ty Δ)
@@ -178,35 +182,35 @@ renameᵗ-skip-eq η B =
 embedᴿ-liftBoth-shift : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → (B : Ty Δᴿ)
-  → CTI2.embedᴿ (CTI2.liftWorldBoth v W) (⇑ᵗ B)
-      ≡ ⇑ᵗ (CTI2.embedᴿ W B)
+  → CTX.embedᴿ (CTX.liftWorldBoth v W) (⇑ᵗ B)
+      ≡ ⇑ᵗ (CTX.embedᴿ W B)
 embedᴿ-liftBoth-shift {W = W} v B =
-  trans (renameᵗ-cong (⇑ᵗ B) (toRename-keep-eq (CTI2.ηᴿʷ W)))
-    (renameᵗ-shift (toRenameᵗ (CTI2.ηᴿʷ W)) B)
+  trans (renameᵗ-cong (⇑ᵗ B) (toRename-keep-eq (CTX.ηᴿʷ W)))
+    (renameᵗ-shift (toRenameᵗ (CTX.ηᴿʷ W)) B)
 
 embedᴿ-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → (B : Ty Δᴿ)
-  → CTI2.embedᴿ (CTI2.liftWorldLeft v W) B
-      ≡ ⇑ᵗ (CTI2.embedᴿ W B)
+  → CTX.embedᴿ (CTX.liftWorldLeft v W) B
+      ≡ ⇑ᵗ (CTX.embedᴿ W B)
 embedᴿ-liftLeft {W = W} v B =
-  renameᵗ-skip-eq (CTI2.ηᴿʷ W) B
+  renameᵗ-skip-eq (CTX.ηᴿʷ W) B
 
 constTy-embedᴿ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (κ : Const)
-  → CTI2.embedᴿ W (constTy κ) ≡ constTy κ
+  → CTX.embedᴿ W (constTy κ) ≡ constTy κ
 constTy-embedᴿ {W = W} κ =
-  sym (constTy-renameᵗ (toRenameᵗ (CTI2.ηᴿʷ W)) κ)
+  sym (constTy-renameᵗ (toRenameᵗ (CTX.ηᴿʷ W)) κ)
 
 primArgTy-embedᴿ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (op : Prim)
-  → CTI2.embedᴿ W (primArgTy op) ≡ primArgTy op
+  → CTX.embedᴿ W (primArgTy op) ≡ primArgTy op
 primArgTy-embedᴿ addℕ = refl
 primArgTy-embedᴿ and𝔹 = refl
 
 primResultTy-embedᴿ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (op : Prim)
-  → CTI2.embedᴿ W (primResultTy op) ≡ primResultTy op
+  → CTX.embedᴿ W (primResultTy op) ≡ primResultTy op
 primResultTy-embedᴿ addℕ = refl
 primResultTy-embedᴿ and𝔹 = refl
 
@@ -268,25 +272,25 @@ Grenameᵐ-id (L G.⊕[ op at ℓ ] M) =
     (Grenameᵐ-id L) (Grenameᵐ-id M)
 
 data EmbeddedCtx {Δᴿ Δ} (W : World Δ Δᴿ Δ) (sid : SourceId W) :
-    GTI.CtxImp (CTI2.impEnvʷ W) → TermCtx Δᴿ →
-    CTI2.CtxImp W → Set where
+    GTI.CtxImp (CTX.impEnvʷ W) → TermCtx Δᴿ →
+    CTX.CtxImp W → Set where
 
   embedded-[] : EmbeddedCtx W sid [] [] []
 
   embedded-∷ : ∀ {γ Γ δ A Bᶜ B p q}
-    → (eqB : Bᶜ ≡ CTI2.embedᴿ W B)
+    → (eqB : Bᶜ ≡ CTX.embedᴿ W B)
     → q ≡ sourceId-⊑-eq {W = W} sid eqB p
     → EmbeddedCtx W sid γ Γ δ
       ---------------------------------------------------------------
     → EmbeddedCtx W sid
         (GTI.ctx-imp A Bᶜ p ∷ γ)
         (B ∷ Γ)
-        (CTI2.ctx-imp A B q ∷ δ)
+        (CTX.ctx-imp A B q ∷ δ)
 
 embeddedCtx-target : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ}
   → EmbeddedCtx W sid γ Γ δ
-  → GTI.tgtCtxⁱ γ ≡ T.renameCtx (toRenameᵗ (CTI2.ηᴿʷ W)) Γ
+  → GTI.tgtCtxⁱ γ ≡ T.renameCtx (toRenameᵗ (CTX.ηᴿʷ W)) Γ
 embeddedCtx-target embedded-[] = refl
 embeddedCtx-target (embedded-∷ eqB q-ok rel) =
   cong₂ _∷_ eqB (embeddedCtx-target rel)
@@ -294,7 +298,7 @@ embeddedCtx-target (embedded-∷ eqB q-ok rel) =
 embeddedCtx-targetʷ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ}
   → EmbeddedCtx W sid γ Γ δ
-  → CTI2.tgtCtxʷ δ ≡ Γ
+  → CTX.tgtCtxʷ δ ≡ Γ
 embeddedCtx-targetʷ embedded-[] = refl
 embeddedCtx-targetʷ (embedded-∷ eqB q-ok rel) =
   cong (_ ∷_) (embeddedCtx-targetʷ rel)
@@ -306,11 +310,11 @@ record EmbeddedLookup {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   constructor embedded-lookup
   field
     B : Ty Δᴿ
-    eqB : Bᶜ ≡ CTI2.embedᴿ W B
-    q : A CTI2.⊑ᵂ⟨ W ⟩ B
+    eqB : Bᶜ ≡ CTX.embedᴿ W B
+    q : A CTX.⊑ᵂ⟨ W ⟩ B
     q-ok : q ≡ sourceId-⊑-eq {W = W} sid eqB p
     Γ∋ : Γ T.∋ x ⦂ B
-    δ∋ : δ CTI2.∋ʷ x ⦂ CTI2.ctx-imp A B q
+    δ∋ : δ CTX.∋ʷ x ⦂ CTX.ctx-imp A B q
 
 embedded-lookup-at : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ x A Bᶜ p}
@@ -318,44 +322,44 @@ embedded-lookup-at : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (x∈ : γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A Bᶜ p)
   → EmbeddedLookup rel x∈
 embedded-lookup-at (embedded-∷ {B = B} {q = q} eqB q-ok rel) GTI.Zⁱ =
-  embedded-lookup B eqB q q-ok T.Z CTI2.Zʷ
+  embedded-lookup B eqB q q-ok T.Z CTX.Zʷ
 embedded-lookup-at (embedded-∷ eqB q-ok rel) (GTI.Sⁱ x∈)
     with embedded-lookup-at rel x∈
 embedded-lookup-at (embedded-∷ eqB q-ok rel) (GTI.Sⁱ x∈)
     | embedded-lookup B eqB′ q q-ok′ Γ∋ δ∋ =
-  embedded-lookup B eqB′ q q-ok′ (T.S Γ∋) (CTI2.Sʷ δ∋)
+  embedded-lookup B eqB′ q q-ok′ (T.S Γ∋) (CTX.Sʷ δ∋)
 
 record LiftBothPack {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ γ′}
     (rel : EmbeddedCtx W sid γ Γ δ)
-    (liftγ : GTI.LiftCtxⁱ (extᵐ (CTI2.impEnvʷ W)) γ γ′)
+    (liftγ : GTI.LiftCtxⁱ (extᵐ (CTX.impEnvʷ W)) γ γ′)
     : Set where
   constructor lift-both-pack
   field
-    δ′ : CTI2.CtxImp (CTI2.liftWorldBoth X⊑X W)
-    lift² : CTI2.LiftCtx X⊑X δ δ′
-    rel′ : EmbeddedCtx (CTI2.liftWorldBoth X⊑X W)
+    δ′ : CTX.CtxImp (CTX.liftWorldBoth X⊑X W)
+    lift² : CTX.LiftCtx X⊑X δ δ′
+    rel′ : EmbeddedCtx (CTX.liftWorldBoth X⊑X W)
       (sourceId-liftBoth {W = W} X⊑X sid) γ′ (⇑ᶜ Γ) δ′
 
 record LiftLeftPack {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ γ′}
     (rel : EmbeddedCtx W sid γ Γ δ)
-    (liftγ : GTI.LiftCtxⁱ (instᵐ (CTI2.impEnvʷ W)) γ γ′)
+    (liftγ : GTI.LiftCtxⁱ (instᵐ (CTX.impEnvʷ W)) γ γ′)
     : Set where
   constructor lift-left-pack
   field
-    δ′ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)
-    lift² : CTI2.LiftCtxᴸ X⊑★ δ δ′
-    rel′ : EmbeddedCtx (CTI2.liftWorldLeft X⊑★ W)
+    δ′ : CTX.CtxImp (CTX.liftWorldLeft X⊑★ W)
+    lift² : CTX.LiftCtxᴸ X⊑★ δ δ′
+    rel′ : EmbeddedCtx (CTX.liftWorldLeft X⊑★ W)
       (sourceId-liftLeft {W = W} X⊑★ sid) γ′ Γ δ′
 
 embedded-liftBoth : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ γ′}
   → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (liftγ : GTI.LiftCtxⁱ (extᵐ (CTI2.impEnvʷ W)) γ γ′)
+  → (liftγ : GTI.LiftCtxⁱ (extᵐ (CTX.impEnvʷ W)) γ γ′)
   → LiftBothPack rel liftγ
 embedded-liftBoth embedded-[] GTI.lift-[] =
-  record { δ′ = [] ; lift² = CTI2.lift-[] ; rel′ = embedded-[] }
+  record { δ′ = [] ; lift² = CTX.lift-[] ; rel′ = embedded-[] }
 embedded-liftBoth {W = W} {sid = sid}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
@@ -365,8 +369,8 @@ embedded-liftBoth {W = W} {sid = sid}
     (GTI.lift-∷ {p′ = p′} liftγ)
     | lift-both-pack δ′ lift² rel′ =
   record
-    { δ′ = CTI2.ctx-imp (⇑ᵗ A) (⇑ᵗ B) q′ ∷ δ′
-    ; lift² = CTI2.lift-∷ lift²
+    { δ′ = CTX.ctx-imp (⇑ᵗ A) (⇑ᵗ B) q′ ∷ δ′
+    ; lift² = CTX.lift-∷ lift²
     ; rel′ = embedded-∷ eqB′ refl rel′
     }
   where
@@ -375,17 +379,17 @@ embedded-liftBoth {W = W} {sid = sid}
       (sym (embedᴿ-liftBoth-shift {W = W} X⊑X B))
 
   q′ =
-    sourceId-⊑-eq {W = CTI2.liftWorldBoth X⊑X W}
+    sourceId-⊑-eq {W = CTX.liftWorldBoth X⊑X W}
       (sourceId-liftBoth {W = W} X⊑X sid)
       eqB′ p′
 
 embedded-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ γ′}
   → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (liftγ : GTI.LiftCtxⁱ (instᵐ (CTI2.impEnvʷ W)) γ γ′)
+  → (liftγ : GTI.LiftCtxⁱ (instᵐ (CTX.impEnvʷ W)) γ γ′)
   → LiftLeftPack rel liftγ
 embedded-liftLeft embedded-[] GTI.lift-[] =
-  record { δ′ = [] ; lift² = CTI2.liftᴸ-[] ; rel′ = embedded-[] }
+  record { δ′ = [] ; lift² = CTX.liftᴸ-[] ; rel′ = embedded-[] }
 embedded-liftLeft {W = W} {sid = sid}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
@@ -395,8 +399,8 @@ embedded-liftLeft {W = W} {sid = sid}
     (GTI.lift-∷ {p′ = p′} liftγ)
     | lift-left-pack δ′ lift² rel′ =
   record
-    { δ′ = CTI2.ctx-imp (⇑ᵗ A) B q′ ∷ δ′
-    ; lift² = CTI2.liftᴸ-∷ lift²
+    { δ′ = CTX.ctx-imp (⇑ᵗ A) B q′ ∷ δ′
+    ; lift² = CTX.liftᴸ-∷ lift²
     ; rel′ = embedded-∷ eqB′ refl rel′
     }
   where
@@ -405,49 +409,49 @@ embedded-liftLeft {W = W} {sid = sid}
       (sym (embedᴿ-liftLeft {W = W} X⊑★ B))
 
   q′ =
-    sourceId-⊑-eq {W = CTI2.liftWorldLeft X⊑★ W}
+    sourceId-⊑-eq {W = CTX.liftWorldLeft X⊑★ W}
       (sourceId-liftLeft {W = W} X⊑★ sid)
       eqB′ p′
 
 embedded-elab-gradual-typing : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ M′ Mᴿ Bᶜ B N}
   → (rel : EmbeddedCtx W sid γ Γ δ)
-  → M′ ≡ CPI.Grenameᵐ (CTI2.ηᴿʷ W) Mᴿ
-  → Bᶜ ≡ CTI2.embedᴿ W B
-  → CPI.Elab (CTI2.targetStoreʷ W) Γ Mᴿ N B
+  → M′ ≡ CPI.Grenameᵐ (CTX.ηᴿʷ W) Mᴿ
+  → Bᶜ ≡ CTX.embedᴿ W B
+  → CPI.Elab (CTX.targetStoreʷ W) Γ Mᴿ N B
   → Δ G.∣ GTI.tgtCtxⁱ γ ⊢ M′ ⦂ Bᶜ
 embedded-elab-gradual-typing {W = W} rel eqM eqB Mᴱ =
   subst≡ (λ T → _ G.∣ _ ⊢ _ ⦂ T) (sym eqB)
-    (subst≡ (λ M → _ G.∣ _ ⊢ M ⦂ CTI2.embedᴿ W _)
+    (subst≡ (λ M → _ G.∣ _ ⊢ M ⦂ CTX.embedᴿ W _)
       (sym eqM)
-      (subst≡ (λ Γ → _ G.∣ Γ ⊢ _ ⦂ CTI2.embedᴿ W _)
+      (subst≡ (λ Γ → _ G.∣ Γ ⊢ _ ⦂ CTX.embedᴿ W _)
         (sym (embeddedCtx-target rel))
         (CPI.elab-gradual-typing
-          (CPI.rename-elab {Σ′ = CTI2.sourceStoreʷ W}
-            (CTI2.ηᴿʷ W) Mᴱ))))
+          (CPI.rename-elab {Σ′ = CTX.sourceStoreʷ W}
+            (CTX.ηᴿʷ W) Mᴱ))))
 
 embedded-elab-cast-typing : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     {sid : SourceId W} {γ Γ δ Mᴿ N B}
   → (rel : EmbeddedCtx W sid γ Γ δ)
-  → CPI.Elab (CTI2.targetStoreʷ W) Γ Mᴿ N B
-  → ⟨ Δᴿ , CTI2.targetStoreʷ W , CTI2.tgtCtxʷ δ ⟩ ⊢ N ⦂ B
+  → CPI.Elab (CTX.targetStoreʷ W) Γ Mᴿ N B
+  → ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ δ ⟩ ⊢ N ⦂ B
 embedded-elab-cast-typing rel Mᴱ =
   subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
     (sym (embeddedCtx-targetʷ rel)) (CPI.elab-cast-typing Mᴱ)
 
 compile-preserves-embedded² : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     (sid : SourceId W)
-    {γ : GTI.CtxImp (CTI2.impEnvʷ W)} {Γ : TermCtx Δᴿ}
-    {δ : CTI2.CtxImp W} {M M′ : GTerm Δ} {Mᴿ : GTerm Δᴿ}
+    {γ : GTI.CtxImp (CTX.impEnvʷ W)} {Γ : TermCtx Δᴿ}
+    {δ : CTX.CtxImp W} {M M′ : GTerm Δ} {Mᴿ : GTerm Δᴿ}
     {A Bᶜ : Ty Δ} {B : Ty Δᴿ} {p} {N : C.Term Δᴿ}
   → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (M⊑M′ : CTI2.impEnvʷ W GTI.∣ γ ⊢ᴳ M ⊑ M′
+  → (M⊑M′ : CTX.impEnvʷ W GTI.∣ γ ⊢ᴳ M ⊑ M′
       ⦂ A ⊑ Bᶜ ∶ p)
-  → (eqM : M′ ≡ CPI.Grenameᵐ (CTI2.ηᴿʷ W) Mᴿ)
-  → (eqB : Bᶜ ≡ CTI2.embedᴿ W B)
-  → CPI.Elab (CTI2.targetStoreʷ W) Γ Mᴿ N B
+  → (eqM : M′ ≡ CPI.Grenameᵐ (CTX.ηᴿʷ W) Mᴿ)
+  → (eqB : Bᶜ ≡ CTX.embedᴿ W B)
+  → CPI.Elab (CTX.targetStoreʷ W) Γ Mᴿ N B
   → W ∣ δ ⊢²
-      proj₁ (compile {Σ = CTI2.sourceStoreʷ W}
+      proj₁ (compile {Σ = CTX.sourceStoreʷ W}
         (GTI.gradual-term-imprecision-source-typing M⊑M′))
       ⊑ N ∶ sourceId-⊑-eq {W = W} sid eqB p
 compile-preserves-embedded² sid rel (GTI.x⊑xᴳ x∈) refl eqB
@@ -463,7 +467,7 @@ compile-preserves-embedded² sid rel (GTI.x⊑xᴳ x∈) refl eqB
   ⊢²-retarget (CTI2.x⊑x² δ∋)
 compile-preserves-embedded² {W = W} sid rel
     (GTI.ƛ⊑ƛᴳ N⊑N′) refl refl (CPI.E-ƛ N′ᴱ)
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing N⊑N′)
        | compile-preserves-embedded² sid
       (embedded-∷ refl refl rel) N⊑N′ refl refl N′ᴱ
@@ -486,10 +490,10 @@ compile-preserves-embedded² {W = W} sid rel
       L⊑L′ M⊑M′ A∼C A′∼C′)
     refl refl (CPI.E-· L′ᴱ M′ᴱ A′∼D′ d′)
     | refl | refl
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing L⊑L′)
        | compile-preserves-embedded² sid rel L⊑L′ refl refl L′ᴱ
-       | compile {Σ = CTI2.sourceStoreʷ W}
+       | compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl refl M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -537,10 +541,10 @@ compile-preserves-embedded² {W = W} sid rel
       L⊑L′ M⊑M′ A∼C C′∼★)
     refl refl (CPI.E-·★ L′ᴱ M′ᴱ D′∼★ c′ d′)
     | refl
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing L⊑L′)
        | compile-preserves-embedded² sid rel L⊑L′ refl refl L′ᴱ
-       | compile {Σ = CTI2.sourceStoreʷ W}
+       | compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl refl M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -577,10 +581,10 @@ compile-preserves-embedded² {W = W} sid rel
     (GTI.·★⊑·★ᴳ L⊑L′ M⊑M′ C∼★ C′∼★)
     refl refl (CPI.E-·★ L′ᴱ M′ᴱ D′∼★ c′ d′)
     | refl
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing L⊑L′)
        | compile-preserves-embedded² sid rel L⊑L′ refl refl L′ᴱ
-       | compile {Σ = CTI2.sourceStoreʷ W}
+       | compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl refl M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -599,13 +603,13 @@ compile-preserves-embedded² {W = W} sid rel
 compile-preserves-embedded² {W = W} sid rel
     (GTI.Λ⊑Λᴳ {p = p} liftγ vV vV′ zero∈A zero∈B V⊑V′)
     refl eqB (CPI.E-Λ zero∈B′ vV′′ vN′ V′ᴱ)
-    rewrite CPI.compile-Λ-term {Σ = CTI2.sourceStoreʷ W}
+    rewrite CPI.compile-Λ-term {Σ = CTX.sourceStoreʷ W}
       {Γ = GTI.srcCtxⁱ _}
       {zero∈A = zero∈A} vV
       (subst≡ (λ Γ → _ G.∣ Γ ⊢ _ ⦂ _) (GTI.srcCtxⁱ-lift liftγ)
         (GTI.gradual-term-imprecision-source-typing V⊑V′))
       | CPI.compile-context-subst
-      {Σ = store-lift (CTI2.sourceStoreʷ W)}
+      {Σ = store-lift (CTX.sourceStoreʷ W)}
       (GTI.srcCtxⁱ-lift liftγ)
       (GTI.gradual-term-imprecision-source-typing V⊑V′)
     with embedded-liftBoth rel liftγ
@@ -615,7 +619,7 @@ compile-preserves-embedded² {W = W} sid rel
     | lift-both-pack δ′ lift² rel′ =
   ⊢²-retarget
     (CTI2.Λ⊑Λ² lift²
-      (compile-value {Σ = store-lift (CTI2.sourceStoreʷ W)} vV
+      (compile-value {Σ = store-lift (CTX.sourceStoreʷ W)} vV
         (GTI.gradual-term-imprecision-source-typing V⊑V′))
       vN′
       (compile-preserves-embedded²
@@ -625,17 +629,17 @@ compile-preserves-embedded² {W = W} sid rel
   where
   body-eq =
     trans (ty-all-injective eqB)
-      (sym (renameᵗ-cong _ (toRename-keep-eq (CTI2.ηᴿʷ W))))
+      (sym (renameᵗ-cong _ (toRename-keep-eq (CTX.ηᴿʷ W))))
 compile-preserves-embedded² {W = W} sid rel
     (GTI.Λ⊑ᴳ {p = p} Anv zero∈A liftγ vV N′⊢ V⊑N′)
     eqM eqB N′ᴱ
-    rewrite CPI.compile-Λ-term {Σ = CTI2.sourceStoreʷ W}
+    rewrite CPI.compile-Λ-term {Σ = CTX.sourceStoreʷ W}
       {Γ = GTI.srcCtxⁱ _}
       {zero∈A = zero∈A} vV
       (subst≡ (λ Γ → _ G.∣ Γ ⊢ _ ⦂ _) (GTI.srcCtxⁱ-lift liftγ)
         (GTI.gradual-term-imprecision-source-typing V⊑N′))
       | CPI.compile-context-subst
-      {Σ = store-lift (CTI2.sourceStoreʷ W)}
+      {Σ = store-lift (CTX.sourceStoreʷ W)}
       (GTI.srcCtxⁱ-lift liftγ)
       (GTI.gradual-term-imprecision-source-typing V⊑N′)
     with embedded-liftLeft rel liftγ
@@ -645,7 +649,7 @@ compile-preserves-embedded² {W = W} sid rel
     | lift-left-pack δ′ lift² rel′ =
   ⊢²-retarget
     (CTI2.Λ⊑² Anv zero∈A lift²
-      (compile-value {Σ = store-lift (CTI2.sourceStoreʷ W)} vV
+      (compile-value {Σ = store-lift (CTX.sourceStoreʷ W)} vV
         (GTI.gradual-term-imprecision-source-typing V⊑N′))
       (embedded-elab-cast-typing rel N′ᴱ)
       (compile-preserves-embedded²
@@ -655,7 +659,7 @@ compile-preserves-embedded² {W = W} sid rel
   where
   term-eq =
     trans (cong G.⇑ᵗᴳ eqM)
-      (Grenameᵐ-skip (CTI2.ηᴿʷ W) _)
+      (Grenameᵐ-skip (CTX.ηᴿʷ W) _)
 
   type-eq =
     trans (cong ⇑ᵗ eqB)
@@ -675,7 +679,7 @@ compile-preserves-embedded² {W = W} sid rel
     (GTI.[]⊑[]ᴳ {p = p} M⊑M′ q r)
     refl eqB (CPI.E-[] M′ᴱ eq)
     | body-eq | refl
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl body-eq M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -692,7 +696,7 @@ compile-preserves-embedded² {W = W} sid rel
     (GTI.[]⊑ᴳ {p = p} {Anv = Anv} {zero∈A = zero∈A}
       M⊑M′ q r)
     eqM eqB M′ᴱ
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ eqM eqB M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -712,7 +716,7 @@ compile-preserves-embedded² {W = W} sid rel
     (CTI2.κ⊑κ² κ
       (sourceId-⊑-eq {W = W} {B = constTy κ} sid
         (sym (constTy-embedᴿ {W = W} κ))
-        (GTI.constTy-⊑ (CTI2.impEnvʷ W) κ)))
+        (GTI.constTy-⊑ (CTX.impEnvʷ W) κ)))
 compile-preserves-embedded² {W = W} sid rel
     (GTI.⊕⊑⊕ᴳ op L⊑L′ A∼arg A′∼arg M⊑M′
       B∼arg B′∼arg)
@@ -730,10 +734,10 @@ compile-preserves-embedded² {W = W} sid rel
     refl eqB
     (CPI.E-⊕ .op L′ᴱ A′∼arg′ c′ M′ᴱ B′∼arg′ d′)
     | refl | refl
-    with compile {Σ = CTI2.sourceStoreʷ W}
+    with compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing L⊑L′)
        | compile-preserves-embedded² sid rel L⊑L′ refl refl L′ᴱ
-       | compile {Σ = CTI2.sourceStoreʷ W}
+       | compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl refl M′ᴱ
 compile-preserves-embedded² {W = W} sid rel
@@ -744,7 +748,7 @@ compile-preserves-embedded² {W = W} sid rel
     | refl | refl | L , L⊢ | L⊑L′² | M , M⊢ | M⊑M′² =
   ⊢²-retarget
     {q = sourceId-⊑-eq {W = W} sid eqB
-      (GTI.primResultTy-⊑ (CTI2.impEnvʷ W) op)}
+      (GTI.primResultTy-⊑ (CTX.impEnvʷ W) op)}
     (CTI2.⊕⊑⊕² op
       (CTI2.cast⊑cast² A∼arg c′ L⊑L′²
         (sourceId-⊑-eq {W = W} {B = primArgTy op} sid
@@ -756,7 +760,7 @@ compile-preserves-embedded² {W = W} sid rel
           (refl⊑ (primArgTy op))))
       (sourceId-⊑-eq {W = W} {B = primResultTy op} sid
         (sym (primResultTy-embedᴿ {W = W} op))
-        (GTI.primResultTy-⊑ (CTI2.impEnvʷ W) op)))
+        (GTI.primResultTy-⊑ (CTX.impEnvʷ W) op)))
 
 initialEmbeddedCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
   → (γ : GTI.CtxImp μ)

@@ -13,7 +13,8 @@ open import Conversion using (seal)
 open import CastTerms using
   (Term; Value; _↓_; _⊢_⦂_; ⟨_,_,_⟩; seal)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.SealPeelToolkit as SPT
@@ -27,8 +28,15 @@ open import proof.DGG.Inversion.TargetWalkSupport using
   (impEnvMono-∘; rebase-target-membership; sameCtx-∘)
 
 open CTI2 using
-  (World; CtxImp; RebaseAt; LiftCtxᴸ; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ; tgtCtxʷ)
+  (World;
+   CtxImp;
+   RebaseAt;
+   LiftCtxᴸ;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   tgtCtxʷ)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 rebase-target-membership-forward : ∀ {Δᴸ Δᴿ Δ}
     {W′ W : World Δᴸ Δᴿ Δ}

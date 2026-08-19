@@ -18,6 +18,7 @@ open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Inversion.SourceStripDef using
   (SourceSpineStrip; SourceTagSealCore; SourceTagSealCoreBranch;
    core-terminus; core-tagged; spine-paired; spine-sealed;
@@ -28,24 +29,31 @@ open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open import proof.TypeInTermSubst using (rename-occurs; toRename-keep-eq)
 
-open CTI2 using
-  (World; CtxImp; LiftCtxᴸ; RebaseAt; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; sourceStoreʷ; targetStoreʷ; tgtCtxʷ)
+open CTX using
+  (World;
+   CtxImp;
+   LiftCtxᴸ;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   tgtCtxʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   all-to-star-obligation : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {A : Ty (suc Δᴸ)}
     → NonVar A
     → Fin.zero ∈ᵗ A
-    → A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ ★
+    → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
     → `∀ A ⊑ᵂ⟨ W ⟩ ★
   all-to-star-obligation {W = W} {A = A} Anv z∈A body★ =
     ∀⊑
-      (renameNonVar (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) Anv)
-      (rename-occurs (extᵗ (toRenameᵗ (CTI2.ηᴸʷ W))) z∈A)
+      (renameNonVar (extᵗ (toRenameᵗ (CTX.ηᴸʷ W))) Anv)
+      (rename-occurs (extᵗ (toRenameᵗ (CTX.ηᴸʷ W))) z∈A)
       (subst≡
-        (λ T → instᵐ (CTI2.impEnvʷ W) ⊢ T ⊑ ★)
-        (renameᵗ-cong A (toRename-keep-eq (CTI2.ηᴸʷ W)))
+        (λ T → instᵐ (CTX.impEnvʷ W) ⊢ T ⊑ ★)
+        (renameᵗ-cong A (toRename-keep-eq (CTX.ηᴸʷ W)))
         body★)
 
 ------------------------------------------------------------------------
@@ -56,12 +64,12 @@ lambda-core-from-target-strip★ᴸ :
   ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-    {γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ)}
+    {γᵇ : CtxImp (CTX.liftWorldLeft X⊑★ Wᵖ)}
     {V : Term (suc Δᴸ)} {U : Term Δᴿ}
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-    {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+    {p : A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
     {q : `∀ A ⊑ᵂ⟨ Wᵖ ⟩ ★}
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -90,12 +98,12 @@ lambda-core-from-member :
   → ∀ {Δᴸ Δᴿ Δ}
       {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
       {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-      {γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ)}
+      {γᵇ : CtxImp (CTX.liftWorldLeft X⊑★ Wᵖ)}
       {V : Term (suc Δᴸ)} {U : Term Δᴿ}
       {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
       {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
       {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-      {bodyp : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+      {bodyp : A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
       {q : `∀ A ⊑ᵂ⟨ Wᵖ ⟩ ★}
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -103,14 +111,14 @@ lambda-core-from-member :
   → SpineValue V
   → Value V
   → Value U
-  → CTI2.ImpEnvMono Wᵒ Wᵖ
+  → CTX.ImpEnvMono Wᵒ Wᵖ
   → RebaseAt Wᵖ Wᵒ Xᴸ Y
-  → CTI2.SameCtx γᵒ γᵖ
+  → CTX.SameCtx γᵒ γᵖ
   → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → ⟨ Δᴿ , targetStoreʷ Wᵖ , tgtCtxʷ γᵖ ⟩ ⊢
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
-  → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+  → CTX.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
   → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
       cY Wᵖ γᵖ q

@@ -25,9 +25,14 @@ open import Reduction using (StoreChanges; _—↠[_]_; []; _∷_)
 open import proof.Reduction using (_++χ_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Derivation target-cast fuel bound

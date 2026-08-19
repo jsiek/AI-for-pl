@@ -22,9 +22,13 @@ open import Reduction using
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 open import Imprecision using (⇒⊑⇒)
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 SimPairedFunClosingᵀ : Set

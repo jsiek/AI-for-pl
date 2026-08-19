@@ -13,7 +13,8 @@ open import Induction.WellFounded using (Acc)
 
 open import Types using (Ty)
 open import CastTerms using (Term; Value)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import
@@ -35,14 +36,14 @@ StructuralValueSpineWorkerAccᵀ =
     {p₀ : A CTI2.⊑ᵂ⟨ W ⟩ C₀}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → StructuralNamePostPlan W A E q
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p₀
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p₀
   → Value M
   → (vV : Value V)
   → (spine : InstantiationSpine C₀ E)
   → Acc _<_ (pendingCastMass vV spine)
   → Acc _<ʳ_ (pendingRank vV spine)
   → (target : StructuralTargetInstantiationPackage W V spine)
-  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+  → StructuralTargetInstantiationPackage.W′ target CTIR.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))

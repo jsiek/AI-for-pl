@@ -35,7 +35,7 @@ open import Consistency using
 open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 open import Reduction using (StoreChanges)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Parked.ParkedBindImprecisionProof using
@@ -77,16 +77,15 @@ open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; toRename-id-eq; toRename-wk-eq)
 
 open CTI2 using
-  ( CtxImp
-  ; World
-  ; ctx-imp
-  ; embedᴸ
-  ; embedᴿ
-  ; impEnvʷ
-  ; sourceStoreʷ
-  ; targetStoreʷ
-  ; _⊑ᵂ⟨_⟩_
-  )
+  (CtxImp;
+   World;
+   ctx-imp;
+   embedᴸ;
+   embedᴿ;
+   impEnvʷ;
+   sourceStoreʷ;
+   targetStoreʷ;
+   _⊑ᵂ⟨_⟩_)
 
 
 ≤-step : ∀ {m n} → m ≤ n → m ≤ Nat.suc n

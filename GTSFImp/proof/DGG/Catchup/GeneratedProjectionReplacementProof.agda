@@ -15,7 +15,12 @@ open import CastTerms using
    _《_》; _↑_; _↓_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
 open import proof.DGG.Inversion.SpineValueDef using

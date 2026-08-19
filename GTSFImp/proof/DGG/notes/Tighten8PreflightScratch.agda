@@ -6,7 +6,7 @@ module Tighten8PreflightScratch where
 -- partner, while the conclusion target name stays only in RebaseAt.
 -- Primary exports: the premise-world package surface, round-16 package
 -- builders, laundering/emptiness refutations, and the InstanceB countercheck.
--- Key dependencies: the live propagated CTI2.Rep★PartnerOK discipline,
+-- Key dependencies: the live propagated CTX.Rep★PartnerOK discipline,
 -- SealTransferCore transport, and SourceStarPackageCounterScratch.
 
 open import Data.Empty using (⊥)
@@ -24,6 +24,7 @@ open import Imprecision
 
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
 import SourceStarPackageCounterScratch as SSC
@@ -31,8 +32,12 @@ open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 
 module B = TRP.InstanceB
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Premise-world partner index
@@ -40,28 +45,28 @@ open CTI2 using
 
 aligned-functional₈ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
-  → CTI2.CenterAligned W X Y
-  → CTI2.CenterAligned W X Y′
+  → CTX.CenterAligned W X Y
+  → CTX.CenterAligned W X Y′
   → Y ≡ Y′
 aligned-functional₈ {W = W} aligned aligned′ =
-  toRenameᵗ-injective (CTI2.ηᴿʷ W) (trans (sym aligned) aligned′)
+  toRenameᵗ-injective (CTX.ηᴿʷ W) (trans (sym aligned) aligned′)
 
 data PremisePartnerAt {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Maybe (TyVar Δᴿ) → Set where
   premise-partner-just : ∀ {Y}
-    → CTI2.CenterAligned W X Y
+    → CTX.CenterAligned W X Y
       -------------------------------
     → PremisePartnerAt W X (just Y)
 
   premise-partner-nothing :
-      (∀ Y → CTI2.CenterAligned W X Y → ⊥)
+      (∀ Y → CTX.CenterAligned W X Y → ⊥)
       ------------------------------------
     → PremisePartnerAt W X nothing
 
 premise-partner-wrong-just-empty₈ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
-  → CTI2.CenterAligned W X Y
+  → CTX.CenterAligned W X Y
   → Y₂ ≢ Y
   → PremisePartnerAt W X (just Y₂)
   → ⊥
@@ -81,7 +86,7 @@ data MatchedConcealPartnerOK₈ {Δᴸ Δᴿ Δ}
     Term Δᴸ → {A A′ : Ty Δᴸ} → Conv↓ Δᴸ A A′
     → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   matched-seal-star-partner₈ : ∀ {P X Xᴿ? M′}
-    → CTI2.Rep★PartnerOK W X P Xᴿ? M′
+    → CTX.Rep★PartnerOK W X P Xᴿ? M′
       ----------------------------------------------------
     → MatchedConcealPartnerOK₈ W P (seal X ★) Xᴿ? M′
 
@@ -123,22 +128,22 @@ record PairedSealEmission₈ {Δᴸ Δᴿ Δ}
   field
     Wᵖ₈ : World Δᴸ Δᴿ Δ
     γᵖ₈ : CtxImp Wᵖ₈
-    mono₈ : CTI2.ImpEnvMono W Wᵖ₈
+    mono₈ : CTX.ImpEnvMono W Wᵖ₈
     rebase₈ : RebaseAt Wᵖ₈ W X Y
-    same₈ : CTI2.SameCtx γ γᵖ₈
-    source⊢₈ : CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
-    target⊢₈ : CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
+    same₈ : CTX.SameCtx γ γᵖ₈
+    source⊢₈ : CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+    target⊢₈ : CTX.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
     package₈ : TaggedTransferOutput₈ Wᵖ₈ γᵖ₈ P U X Xᴿ?
 
 emit-tagged-transfer₈ : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-  → CTI2.ImpEnvMono W Wᵖ
+  → CTX.ImpEnvMono W Wᵖ
   → RebaseAt Wᵖ W X Y
-  → CTI2.SameCtx γ γᵖ
-  → CTI2.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
+  → CTX.SameCtx γ γᵖ
+  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTX.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
   → TaggedTransferOutput₈ Wᵖ γᵖ P U X Xᴿ?
   → PairedSealEmission₈ W γ P U X Y Xᴿ?
 emit-tagged-transfer₈ mono rb sc source⊢ target⊢ pkg =
@@ -149,12 +154,12 @@ tagged-transfer-output-from-transport₈ : ∀ {Δᴸ Δᴿ Δ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → RebaseAt Wᵖ W X Y
-  → CTI2.Rep★PartnerOK Wᵖ X P (just Y) U
+  → CTX.Rep★PartnerOK Wᵖ X P (just Y) U
   → W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
   → TaggedTransferOutput₈ W γ P U X (just Y)
 tagged-transfer-output-from-transport₈ rb ok prem =
   tagged-transfer-output₈ prem
-    (premise-partner-just (CTI2.RebaseAt.pivotAligned rb))
+    (premise-partner-just (CTX.RebaseAt.pivotAligned rb))
     (matched-seal-star-partner₈
       (STC.transport-rep★-partner-ok rb ok))
 
@@ -165,16 +170,16 @@ round16-cast-subhead-package₈ : ∀ {Δᴸ Δᴿ Δ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {q₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★}
   → RebaseAt W₃ W₂ X Yᵖ
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → TaggedTransferOutput₈ W₂ γ₂
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵖ)
 round16-cast-subhead-package₈ rbᵖ partner D₂ =
   tagged-transfer-output₈
     (CTI2.cast⊑² (id (＇ _) !) D₂ ★⊑★)
-    (premise-partner-just (CTI2.RebaseAt.pivotAligned rbᵖ))
+    (premise-partner-just (CTX.RebaseAt.pivotAligned rbᵖ))
     (matched-seal-star-partner₈
-      (CTI2.rep★-round-trip
+      (CTX.rep★-round-trip
         (STC.transport-rep★-partner-ok rbᵖ partner)))
 
 round16-source-seal-subhead₈ : ∀ {Δᴸ Δᴿ Δ}
@@ -185,7 +190,7 @@ round16-source-seal-subhead₈ : ∀ {Δᴸ Δᴿ Δ}
     {q₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★}
   → RebaseAt W₃ W₂ X Yᵖ
   → RebaseAt W₂ W₀ X Y
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → TaggedTransferOutput₈ W₂ γ₂
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵖ)
@@ -198,13 +203,13 @@ emit-tagged-transfer-peel₈ : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Yᵖ Y : TyVar Δᴿ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {q₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★}
-  → CTI2.ImpEnvMono W₀ W₂
+  → CTX.ImpEnvMono W₀ W₂
   → RebaseAt W₃ W₂ X Yᵖ
   → RebaseAt W₂ W₀ X Y
-  → CTI2.SameCtx γ₀ γ₂
-  → CTI2.sourceStoreʷ W₀ Conv.⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W₀ Conv.⊢↓[ just Y ] seal Y ★
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.SameCtx γ₀ γ₂
+  → CTX.sourceStoreʷ W₀ Conv.⊢↓[ just X ] seal X ★
+  → CTX.targetStoreʷ W₀ Conv.⊢↓[ just Y ] seal Y ★
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → PairedSealEmission₈ W₀ γ₀
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X Y (just Yᵖ)
@@ -220,7 +225,7 @@ wrong-pedigree-package-empty₈ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {X : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
     {P : Term Δᴸ} {U : Term Δᴿ}
-  → CTI2.CenterAligned W X Y
+  → CTX.CenterAligned W X Y
   → Y₂ ≢ Y
   → TaggedTransferOutput₈ W γ P U X (just Y₂)
   → ⊥
@@ -232,7 +237,7 @@ wrong-pedigree-round-trip-blocked₈ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {X : TyVar Δᴸ} {Yᵢ Yᵒ : TyVar Δᴿ}
     {P : Term Δᴸ} {U : Term Δᴿ}
-  → CTI2.CenterAligned W X Yᵢ
+  → CTX.CenterAligned W X Yᵢ
   → Yᵒ ≢ Yᵢ
   → TaggedTransferOutput₈ W γ
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵒ)
@@ -246,13 +251,13 @@ var-tag-no-target-empty₈ : ∀ {Δᴸ Δᴿ Δ}
     {Aᴿ : Ty Δᴿ} {Y₂ : TyVar Δᴿ} {μᴿ : Env∼ Δᴿ}
     {Y₂∼★ : μᴿ ⊢ (＇ Y₂) ∼★}
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂} {AnsY : NonStar Aᴿ}
-  → CTI2.Rep★PartnerOK W X P nothing
+  → CTX.Rep★PartnerOK W X P nothing
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
-var-tag-no-target-empty₈ (CTI2.rep★-untagged ())
-var-tag-no-target-empty₈ (CTI2.rep★-nonvar-tag ())
-var-tag-no-target-empty₈ (CTI2.rep★-round-trip ok) =
+var-tag-no-target-empty₈ (CTX.rep★-untagged ())
+var-tag-no-target-empty₈ (CTX.rep★-nonvar-tag ())
+var-tag-no-target-empty₈ (CTX.rep★-round-trip ok) =
   var-tag-no-target-empty₈ ok
 
 source-seal-var-tag-no-target-empty₈ : ∀ {Δᴸ Δᴿ Δ}
@@ -261,15 +266,15 @@ source-seal-var-tag-no-target-empty₈ : ∀ {Δᴸ Δᴿ Δ}
     {Aᴿ : Ty Δᴿ} {Y₂ : TyVar Δᴿ} {μᴿ : Env∼ Δᴿ}
     {Y₂∼★ : μᴿ ⊢ (＇ Y₂) ∼★}
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂} {AnsY : NonStar Aᴿ}
-  → CTI2.SourceConcealPartnerOK W P (seal X ★) nothing
+  → CTX.SourceConcealPartnerOK W P (seal X ★) nothing
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
 source-seal-var-tag-no-target-empty₈
-    (CTI2.seal-partner-ok (CTI2.star-rep-target ok)) =
+    (CTX.seal-partner-ok (CTX.star-rep-target ok)) =
   var-tag-no-target-empty₈ ok
 source-seal-var-tag-no-target-empty₈
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+    (CTX.seal-partner-ok (CTX.plain-target ()))
 
 worker-source-seal-var-tag-no-target-after-cast-empty₈ :
     ∀ {Δᴸ Δᴿ Δ}
@@ -280,7 +285,7 @@ worker-source-seal-var-tag-no-target-after-cast-empty₈ :
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂} {AnsY : NonStar Aᴿ}
     {ν : Env∼ Δᴸ} {cX : ν ⊢ (＇ X) ∼ ★}
   → Inert cX
-  → CTI2.SourceConcealPartnerOK W P (seal X ★) nothing
+  → CTX.SourceConcealPartnerOK W P (seal X ★) nothing
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
@@ -306,23 +311,23 @@ bare-payload-var-tag-mismatch-empty₈ : ∀ {Δᴸ Δᴿ Δ}
         ((P₀ ↓ seal X ★)
           ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
               ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩))
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
-  → CTI2.Rep★PartnerOK W X V (just Yᵒ)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
+  → CTX.Rep★PartnerOK W X V (just Yᵒ)
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
 bare-payload-var-tag-mismatch-empty₈ not-inner not-roundtrip
-    not-aligned (CTI2.rep★-untagged ())
+    not-aligned (CTX.rep★-untagged ())
 bare-payload-var-tag-mismatch-empty₈ not-inner not-roundtrip
-    not-aligned (CTI2.rep★-nonvar-tag ())
+    not-aligned (CTX.rep★-nonvar-tag ())
 bare-payload-var-tag-mismatch-empty₈ not-inner not-roundtrip
-    not-aligned (CTI2.rep★-var-tag aligned) =
+    not-aligned (CTX.rep★-var-tag aligned) =
   not-aligned aligned
 bare-payload-var-tag-mismatch-empty₈ not-inner not-roundtrip
-    not-aligned (CTI2.rep★-matched-inner-tags X₂≢X aligned) =
+    not-aligned (CTX.rep★-matched-inner-tags X₂≢X aligned) =
   not-inner refl
 bare-payload-var-tag-mismatch-empty₈ not-inner not-roundtrip
-    not-aligned (CTI2.rep★-round-trip ok) =
+    not-aligned (CTX.rep★-round-trip ok) =
   not-roundtrip refl
 
 different-name-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
@@ -336,9 +341,9 @@ different-name-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsZ : NonStar Aᶻ} {AnsY : NonStar Bᴿ}
   → Z ≢ X
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
-  → (CTI2.CenterAligned W Z Y₂ → ⊥)
-  → CTI2.Rep★PartnerOK W X
+  → (CTX.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W Z Y₂ → ⊥)
+  → CTX.Rep★PartnerOK W X
       ((P ↓ seal Z ★)
         ⟨ _! {G = ＇ Z} ⦃ Gᵍ = ＇ Z ⦄
             ⦃ G∼★ = Z∼★ ⦄ cZ ⦃ Ans = AnsZ ⦄ ⟩)
@@ -347,17 +352,17 @@ different-name-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
 different-name-round-trip-no-launder₈ Z≢X not-outer
-    not-wrapper (CTI2.rep★-untagged ())
+    not-wrapper (CTX.rep★-untagged ())
 different-name-round-trip-no-launder₈ Z≢X not-outer
-    not-wrapper (CTI2.rep★-nonvar-tag ())
+    not-wrapper (CTX.rep★-nonvar-tag ())
 different-name-round-trip-no-launder₈ Z≢X not-outer
-    not-wrapper (CTI2.rep★-var-tag aligned) =
+    not-wrapper (CTX.rep★-var-tag aligned) =
   not-outer aligned
 different-name-round-trip-no-launder₈ Z≢X not-outer
-    not-wrapper (CTI2.rep★-matched-inner-tags Z≢X′ aligned) =
+    not-wrapper (CTX.rep★-matched-inner-tags Z≢X′ aligned) =
   not-wrapper aligned
 different-name-round-trip-no-launder₈ Z≢X not-outer
-    not-wrapper (CTI2.rep★-round-trip ok) =
+    not-wrapper (CTX.rep★-round-trip ok) =
   Z≢X refl
 
 non-rep★-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
@@ -371,8 +376,8 @@ non-rep★-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsX : NonStar Aˣ} {AnsY : NonStar Bᴿ}
   → NonStar R
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
-  → CTI2.Rep★PartnerOK W X
+  → (CTX.CenterAligned W X Y₂ → ⊥)
+  → CTX.Rep★PartnerOK W X
       ((P ↓ seal X R)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
             ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
@@ -381,17 +386,17 @@ non-rep★-round-trip-no-launder₈ : ∀ {Δᴸ Δᴿ Δ}
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
 non-rep★-round-trip-no-launder₈ Rns not-aligned
-    (CTI2.rep★-untagged ())
+    (CTX.rep★-untagged ())
 non-rep★-round-trip-no-launder₈ Rns not-aligned
-    (CTI2.rep★-nonvar-tag ())
+    (CTX.rep★-nonvar-tag ())
 non-rep★-round-trip-no-launder₈ Rns not-aligned
-    (CTI2.rep★-var-tag aligned) =
+    (CTX.rep★-var-tag aligned) =
   not-aligned aligned
 non-rep★-round-trip-no-launder₈ Rns not-aligned
-    (CTI2.rep★-matched-inner-tags X≢X aligned) =
+    (CTX.rep★-matched-inner-tags X≢X aligned) =
   X≢X refl
 non-rep★-round-trip-no-launder₈ () not-aligned
-    (CTI2.rep★-round-trip ok)
+    (CTX.rep★-round-trip ok)
 
 ------------------------------------------------------------------------
 -- Concrete round-15/InstanceB package remains closed
@@ -403,12 +408,12 @@ round15-counterexample-stays-closed₈ :
   → ⊥
 round15-counterexample-stays-closed₈ pkg =
   wrong-pedigree-package-empty₈
-    (CTI2.RebaseAt.pivotAligned B.rb-X-Y)
+    (CTX.RebaseAt.pivotAligned B.rb-X-Y)
     (λ Y₂≡Y → SSC.Y≢Y₂ (sym Y₂≡Y))
     pkg
 
 round15-live-output-partner-still-empty₈ :
-  CTI2.Rep★PartnerOK B.W B.X SSC.source-output-tag
+  CTX.Rep★PartnerOK B.W B.X SSC.source-output-tag
     (just B.Y₂) SSC.target-tag
   → ⊥
 round15-live-output-partner-still-empty₈ =

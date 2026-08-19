@@ -24,7 +24,8 @@ open import Reduction using
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
@@ -37,16 +38,15 @@ open import proof.DGG.CatchupToMorePreciseDef
     ; target-conceal-boundary
     )
 open CTI2 using
-  ( World
-  ; CtxImp
-  ; ImpEnvMono
-  ; RebaseAtᴸ
-  ; RebaseAtᴿ
-  ; TagRebaseAtᴸ
-  ; SameCtx
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+  (World;
+   CtxImp;
+   ImpEnvMono;
+   RebaseAtᴸ;
+   RebaseAtᴿ;
+   TagRebaseAtᴸ;
+   SameCtx;
+   _⊑ᵂ⟨_⟩_)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 
 record TargetOpenedByConcealReveal {Δᴿ : TyCtx}

@@ -25,6 +25,7 @@ open import CastTerms using
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
@@ -33,9 +34,19 @@ import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.CompileImageShape as CIS
 
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt; CtxImp;
-   ImpEnvMono; SameCtx; StoreRepImp; store-rep-imp; same-runtime; same-[])
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   CtxImp;
+   ImpEnvMono;
+   SameCtx;
+   StoreRepImp;
+   store-rep-imp;
+   same-runtime;
+   same-[])
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   Z : TyVar 2
@@ -91,7 +102,7 @@ U-Y-representation : StoreRepImp probe-world U Y
 U-Y-representation = store-rep-imp ι⊑★
 
 U-Y-rebase : RebaseAt probe-world probe-world U Y
-U-Y-rebase = CTI2.sameWorldRebaseAt refl U-Y-representation
+U-Y-rebase = CTX.sameWorldRebaseAt refl U-Y-representation
 
 probe-p : ＇ U ⊑ᵂ⟨ probe-world ⟩ ★
 probe-p = X⊑★ refl
@@ -151,11 +162,11 @@ data TagRebaseAtᴸ {Δᴸ Δᴿ Δ}
     → TagRebaseAtᴸ W W′ (just Xᴸ) (just Xᴿ)
 
   tag-rebase-onlyᴸ : ∀ {W} {Xᴸ : TyVar Δᴸ}
-    → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑★
+    → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ) ≡ X⊑★
     → (∀ (Xᴿ : TyVar Δᴿ)
-        → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
-            ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
-    → CTI2.resolveVar (CTI2.sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
+        → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+            ≢ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
+    → CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
       ---------------------------------------------------
     → TagRebaseAtᴸ W W (just Xᴸ) nothing
 
@@ -163,11 +174,11 @@ forgetTagRebaseᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
   → TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
     --------------------------
-  → CTI2.RebaseAtᴸ W W′ Xᴸ?
-forgetTagRebaseᴸ tag-rebase-idᴸ = CTI2.rebase-idᴸ
-forgetTagRebaseᴸ (tag-rebase-varᴸ rb) = CTI2.rebase-varᴸ rb
+  → CTX.RebaseAtᴸ W W′ Xᴸ?
+forgetTagRebaseᴸ tag-rebase-idᴸ = CTX.rebase-idᴸ
+forgetTagRebaseᴸ (tag-rebase-varᴸ rb) = CTX.rebase-varᴸ rb
 forgetTagRebaseᴸ (tag-rebase-onlyᴸ to-star disaligned represented) =
-  CTI2.rebase-onlyᴸ to-star disaligned represented
+  CTX.rebase-onlyᴸ to-star disaligned represented
 
 ------------------------------------------------------------------------
 -- Restricted fragment used by the probe
@@ -200,7 +211,7 @@ data _∣_⊢ᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → ImpEnvMono W W′
     → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → SameCtx γ γ′
-    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
+    → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢ᵗᵈ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -214,8 +225,8 @@ data _∣_⊢ᵗᵈ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
+    → CTX.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTX.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢ᵗᵈ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------

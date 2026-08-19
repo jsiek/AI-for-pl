@@ -23,8 +23,13 @@ open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using (StoreChanges; _—↠[_]_)
 
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 open import ProjectionMismatchStarRepScratch using
   (Y?; probe-q; input-relation; source-value; target-tagged-value;

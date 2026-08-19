@@ -32,8 +32,9 @@ open import Primitives using (κℕ)
 open import Compile using (compile)
 import Conversion as Conv
 open Conv using (unseal)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.StarRepChainProbe as Probe
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS

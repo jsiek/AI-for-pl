@@ -10,7 +10,7 @@ open import Data.Product using (_,_)
 
 open import Reduction using (pure-step; id-conceal; blame-conceal; ξ-conceal)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.CatchupToMorePreciseDef
   using (boundary-source-conceal)
 open import proof.DGG.Parked.ParkedWorldDef

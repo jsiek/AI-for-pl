@@ -29,9 +29,16 @@ open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X : TyVar 1
@@ -96,16 +103,16 @@ probe-W₅ =
 probe-W₆ : World 1 2 3
 probe-W₆ = probe-W₅
 
-probe-W₁-WF : CTI2.WFWorld probe-W₁
+probe-W₁-WF : CTX.WFWorld probe-W₁
 probe-W₁-WF Fin.zero ()
 
-probe-W₄-WF : CTI2.WFWorld probe-W₄
+probe-W₄-WF : CTX.WFWorld probe-W₄
 probe-W₄-WF Fin.zero ()
 
-probe-W₅-WF : CTI2.WFWorld probe-W₅
+probe-W₅-WF : CTX.WFWorld probe-W₅
 probe-W₅-WF Fin.zero ()
 
-probe-W₆-WF : CTI2.WFWorld probe-W₆
+probe-W₆-WF : CTX.WFWorld probe-W₆
 probe-W₆-WF Fin.zero ()
 
 ------------------------------------------------------------------------
@@ -170,7 +177,7 @@ probe-U = probe-M′ ⟨ probe-Y′! ⟩
 -- Rebase witnesses
 ------------------------------------------------------------------------
 
-probe-X-Y-rep₁ : CTI2.StoreRepImp probe-W₁ X Y
+probe-X-Y-rep₁ : CTX.StoreRepImp probe-W₁ X Y
 probe-X-Y-rep₁ = store-rep-imp ★⊑★
 
 probe-outer-target-rebase : RebaseAt probe-W₄ probe-W₁ X Y
@@ -180,15 +187,15 @@ probe-outer-target-rebase =
     (λ _ → refl)
     refl probe-X-Y-rep₁
 
-probe-X-Y′-rep₄ : CTI2.StoreRepImp probe-W₄ X Y′
+probe-X-Y′-rep₄ : CTX.StoreRepImp probe-W₄ X Y′
 probe-X-Y′-rep₄ = store-rep-imp ★⊑★
 
-probe-X-Y-rep₅ : CTI2.StoreRepImp probe-W₅ X Y
+probe-X-Y-rep₅ : CTX.StoreRepImp probe-W₅ X Y
 probe-X-Y-rep₅ = store-rep-imp ★⊑★
 
 probe-inner-source-rebase : RebaseAt probe-W₆ probe-W₅ X Y
 probe-inner-source-rebase =
-  CTI2.sameWorldRebaseAt refl probe-X-Y-rep₅
+  CTX.sameWorldRebaseAt refl probe-X-Y-rep₅
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: moved-pivot anchoring excludes the inner link
@@ -197,7 +204,7 @@ probe-inner-source-rebase =
 probe-link-ill-formed :
   ¬ (RebaseAt probe-W₅ probe-W₄ X Y′)
 probe-link-ill-formed rb
-    with CTI2.RebaseAt.ηᴿ-frozen rb Y′
+    with CTX.RebaseAt.ηᴿ-frozen rb Y′
 probe-link-ill-formed rb | ()
 
 ------------------------------------------------------------------------

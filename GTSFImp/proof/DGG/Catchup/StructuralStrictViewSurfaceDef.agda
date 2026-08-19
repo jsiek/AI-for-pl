@@ -24,7 +24,8 @@ open import Reduction using
   (keep; bind; applyTy; applyBody; applyStores; _∷_; [])
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
@@ -95,7 +96,7 @@ record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
     child-plan : StructuralNamePostPlan W A E q
     child-chain-plan :
       StructuralNameChainPlan {fuel = fuel} W γ A E q child-plan
-    child-relation : W CTI2.∣ γ ⊢² M ⊑ V ∶ child-endpoint
+    child-relation : W CTIR.∣ γ ⊢² M ⊑ V ∶ child-endpoint
     child-chain : TargetFrameAbsorptionChain W γ A spine q
     child-typed : SpineTypedʷ {fuel = fuel} W spine
 
@@ -113,7 +114,7 @@ StructuralΛStrictSurfaceᵀ =
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ Λ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ Λ V ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -150,7 +151,7 @@ StructuralAllCastStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (C [ ＇ X ]ᵗ) E)
@@ -186,7 +187,7 @@ StructuralGenStrictSurfaceᵀ =
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → (A≢★ : A ≢ ★)
-  → W CTI2.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
   → Value M
   → Value V
   → GenSafe c
@@ -227,7 +228,7 @@ StructuralRevealStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -273,7 +274,7 @@ StructuralConcealStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -331,7 +332,7 @@ StructuralNameInstantiationᵀ =
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → AllValueView V
@@ -342,7 +343,7 @@ StructuralNameInstantiationᵀ =
       (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+  → StructuralTargetInstantiationPackage.W′ target CTIR.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))

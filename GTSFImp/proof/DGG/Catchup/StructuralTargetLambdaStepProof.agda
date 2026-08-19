@@ -14,7 +14,7 @@ open import CastTerms using (Term; Value; Λ_; _⦂∀_[_]; _↑_)
 open import Conversion using (〖_,_↑_〗)
 open import Reduction using (bind; β-Λ)
 open import proof.TypeSafety.Preservation using (replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import

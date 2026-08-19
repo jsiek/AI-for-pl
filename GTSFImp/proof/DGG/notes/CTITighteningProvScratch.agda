@@ -27,11 +27,16 @@ open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp; store-rep-imp)
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp;
+   store-rep-imp)
 
 ------------------------------------------------------------------------
 -- Miniature provenance carried by world cells

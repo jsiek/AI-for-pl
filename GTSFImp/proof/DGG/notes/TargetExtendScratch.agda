@@ -21,12 +21,20 @@ open import CastTerms using (Term; renameᵗᵐ; _↑_)
 open import proof.TypeInTermSubst using (StoreRename)
 open import proof.DGG.CenterRename using (preimage?)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 
 open CTI2 using
-  ( World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_
-  ; RebaseAt; RebaseAtᴿ; RebaseAtᴸ; TagRebaseAtᴸ
-  ; ImpEnvMono; SameCtx)
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   RebaseAtᴿ;
+   RebaseAtᴸ;
+   TagRebaseAtᴸ;
+   ImpEnvMono;
+   SameCtx)
+open CTIR using (_∣_⊢²_⊑_∶_)
 
 mapPivot : ∀ {Δ Δ′}
   → (TyVar Δ → TyVar Δ′)

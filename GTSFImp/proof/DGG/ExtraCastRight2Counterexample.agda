@@ -30,9 +30,16 @@ open import CastTerms
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   Z : TyVar 2
@@ -80,11 +87,11 @@ pre-world = world source-η target-η-U imp-env source-store target-store
 post-world : World 2 1 2
 post-world = world source-η target-η-Z imp-env source-store target-store
 
-Z-Y-representation : CTI2.StoreRepImp post-world Z Y
+Z-Y-representation : CTX.StoreRepImp post-world Z Y
 Z-Y-representation = store-rep-imp ★⊑★
 
 Z-Y-rebase-empty : RebaseAt pre-world post-world Z Y → ⊥
-Z-Y-rebase-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+Z-Y-rebase-empty rb with CTX.RebaseAt.ηᴿ-frozen rb Y
 Z-Y-rebase-empty rb | ()
 
 Z-seal-typed : source-store Conv.⊢↓[ just Z ] seal Z ★
@@ -117,11 +124,11 @@ no-U-to-star (X⊑★ ())
 -- The stale input world is not mark-honest: U's center is precise
 -- but no target variable embeds there.
 
-post-world-not-WF : CTI2.WFWorld post-world → ⊥
+post-world-not-WF : CTX.WFWorld post-world → ⊥
 post-world-not-WF wf with wf U refl
 post-world-not-WF wf | Fin.zero , ()
 
-pre-world-WF : CTI2.WFWorld pre-world
+pre-world-WF : CTX.WFWorld pre-world
 pre-world-WF Fin.zero ()
 pre-world-WF (Fin.suc Fin.zero) _ = Fin.zero , refl
 
@@ -129,11 +136,11 @@ pre-world-WF (Fin.suc Fin.zero) _ = Fin.zero , refl
 -- The stale input derivation
 ------------------------------------------------------------------------
 
-U-Y-representation : CTI2.StoreRepImp pre-world U Y
+U-Y-representation : CTX.StoreRepImp pre-world U Y
 U-Y-representation = store-rep-imp ι⊑★
 
 U-Y-rebase : RebaseAt pre-world pre-world U Y
-U-Y-rebase = CTI2.sameWorldRebaseAt refl U-Y-representation
+U-Y-rebase = CTX.sameWorldRebaseAt refl U-Y-representation
 
 source-U-seal-typed : source-store Conv.⊢↓[ just U ] seal U (‵ `ℕ)
 source-U-seal-typed = Conv.⊢↓-sealˣ source-U∋
@@ -169,8 +176,8 @@ inner-seals² : pre-world ∣ [] ⊢²
     ⊑ ($ (κℕ 0) ⟨ ℕ! ⟩) ↓ seal Y ★ ∶ X⊑X
 inner-seals² =
   CTI2.conceal⊑conceal²
-    (CTI2.matched-seal-nonstar nonstar-ι)
-    (λ _ eq → eq) U-Y-rebase CTI2.same-[]
+    (CTX.matched-seal-nonstar nonstar-ι)
+    (λ _ eq → eq) U-Y-rebase CTX.same-[]
     source-U-seal-typed target-Y-seal-typed inner-target-tag² X⊑X
 
 inner-paired-tags² : pre-world ∣ [] ⊢²
@@ -196,23 +203,23 @@ pre-worldᵈ : World 2 1 2
 pre-worldᵈ =
   world source-η target-η-U imp-env-dyn source-store target-store
 
-pre-worldᵈ-WF : CTI2.WFWorld pre-worldᵈ
+pre-worldᵈ-WF : CTX.WFWorld pre-worldᵈ
 pre-worldᵈ-WF Fin.zero ()
 pre-worldᵈ-WF (Fin.suc Fin.zero) ()
 
-dynamize : CTI2.ImpEnvMono post-world pre-worldᵈ
+dynamize : CTX.ImpEnvMono post-world pre-worldᵈ
 dynamize Fin.zero _ = refl
 dynamize (Fin.suc Fin.zero) _ = refl
 
 Z-Y-rebaseᵈ-empty : RebaseAt pre-worldᵈ post-world Z Y → ⊥
-Z-Y-rebaseᵈ-empty rb with CTI2.RebaseAt.ηᴿ-frozen rb Y
+Z-Y-rebaseᵈ-empty rb with CTX.RebaseAt.ηᴿ-frozen rb Y
 Z-Y-rebaseᵈ-empty rb | ()
 
-U-Y-representationᵈ : CTI2.StoreRepImp pre-worldᵈ U Y
+U-Y-representationᵈ : CTX.StoreRepImp pre-worldᵈ U Y
 U-Y-representationᵈ = store-rep-imp ι⊑★
 
 U-Y-rebaseᵈ : RebaseAt pre-worldᵈ pre-worldᵈ U Y
-U-Y-rebaseᵈ = CTI2.sameWorldRebaseAt refl U-Y-representationᵈ
+U-Y-rebaseᵈ = CTX.sameWorldRebaseAt refl U-Y-representationᵈ
 
 -- The obligation that was empty in the stale pre-world is inhabited
 -- in the dynamized one.
@@ -231,11 +238,11 @@ repaired-base² : pre-worldᵈ ∣ [] ⊢²
 repaired-base² = CTI2.⊑cast² ℕ! (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
 repaired-seal-ok-empty : ∀ {Wᵖ : World 2 1 2} {P Xᴿ?}
-  → CTI2.SourceConcealOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?
+  → CTX.SourceConcealOK Wᵖ P (seal U (‵ `ℕ)) Xᴿ?
     (($ (κℕ 0)) ⟨ ℕ! ⟩)
   → ⊥
 repaired-seal-ok-empty
-    (CTI2.seal-nonstar-plain-ok Rns ())
+    (CTX.seal-nonstar-plain-ok Rns ())
 
 repaired-seal²-empty′ : ∀ {X}
   → (q : ＇ X ⊑ᵂ⟨ pre-worldᵈ ⟩ ★)

@@ -20,11 +20,18 @@ open import Primitives using (κℕ)
 open import Imprecision
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.ChainRideProbe as CRP
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; sourceStoreʷ;
-   targetStoreʷ; ηᴸʷ; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   ηᴸʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open ECR using (SpineValue)
 
 record ChainRideInterface : Set where
@@ -39,16 +46,16 @@ record ChainRideInterface : Set where
       → SpineValue V
       → Inert c
       → Value U
-      → CTI2.ImpEnvMono W W′
+      → CTX.ImpEnvMono W W′
       → RebaseAt W′ W Xᴸ Y
-      → CTI2.SameCtx γ γ′
+      → CTX.SameCtx γ γ′
       → sourceStoreʷ W ∋ Xᴸ ⦂ ★
       → targetStoreʷ W ∋ Y ⦂ S
       → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ r ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ S ]
               (Wᵒ ∣ γᵒ ⊢²
                 (V ⟨ c ⟩) ↓ seal Xᴸ ★ ⊑ U ∶ r) )
@@ -63,17 +70,17 @@ record ChainRideInterface : Set where
       → Value U
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
       → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
               (Wᵒ ∣ γᵒ ⊢²
                 V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -90,9 +97,9 @@ H-Schain-from-chain : ChainRideInterface
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y (＇ Y₂) ∶ p₂
@@ -104,7 +111,7 @@ H-Schain-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
       sv inert vU mono rb sc X∈ Y∈ D
 H-Schain-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
-  CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+  CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
     (Conv.⊢↓-sealˣ Y∈) Dᵒ _
 
 H-absorb-from-chain : ChainRideInterface
@@ -120,15 +127,15 @@ H-absorb-from-chain : ChainRideInterface
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → RebaseAt W₂ W′ X₂ Y
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ′ γ₂
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → W ∣ γ ⊢²
@@ -141,7 +148,7 @@ H-absorb-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
 H-absorb-from-chain chain sv inert vU mono rb sc X∈ Y∈ D
     link mono₂ sc₂ D₂ moved
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
-  CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
+  CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
     (Conv.⊢↓-sealˣ Y∈) Dᵒ _
 
 H-multi-from-chain : ChainRideInterface
@@ -155,17 +162,17 @@ H-multi-from-chain : ChainRideInterface
   → Value U
   → RebaseAt W′ W Xᴸ Y
   → RebaseAt W₂ W′ X₂ Y₂
-  → CTI2.ImpEnvMono W W′
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W W′
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ γ′
+  → CTX.SameCtx γ′ γ₂
   → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W Xᴸ Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -176,8 +183,8 @@ H-multi-from-chain chain sv vU rb link mono mono₂ sc sc₂ X∈ D moved =
 ChainRideProbe-from-chain : ChainRideInterface
   → Σ[ Wᵒ ∈ World 2 1 3 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ CRP.W₁ Fin.zero Fin.zero
-      × CTI2.ImpEnvMono CRP.W₁ Wᵒ
-      × CTI2.SameCtx {W = CRP.W₁} [] γᵒ
+      × CTX.ImpEnvMono CRP.W₁ Wᵒ
+      × CTX.SameCtx {W = CRP.W₁} [] γᵒ
       × Σ[ qᵒ ∈ (＇ Fin.zero) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             CRP.V ↓ seal Fin.zero (＇ Fin.suc Fin.zero)

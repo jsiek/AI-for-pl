@@ -6,7 +6,7 @@ module proof.DGG.Catchup.StructuralRightParkedEvolveProof where
 --     at every structural bind.
 
 open import Reduction using (StoreChanges; []; _∷_; keep)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Parked.ParkedWorldDef using
   ( ParkedEvolve
   ; ParkedWorld

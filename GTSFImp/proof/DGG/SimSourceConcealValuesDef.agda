@@ -23,19 +23,19 @@ open import Reduction using
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
-open CTI2 using
-  ( World
-  ; SourceConcealOK
-  ; ImpEnvMono
-  ; TagRebaseAtᴸ
-  ; sourceStoreʷ
-  ; _⊑ᵂ⟨_⟩_
-  ; _∣_⊢²_⊑_∶_
-  )
+open CTX using
+  (World;
+   SourceConcealOK;
+   ImpEnvMono;
+   TagRebaseAtᴸ;
+   sourceStoreʷ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 SimSourceConcealValuesᵀ : Set₁

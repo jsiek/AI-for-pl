@@ -17,7 +17,12 @@ open import CastTerms using
   (Term; Value; _⊢_⦂_; ⟨_,_,_⟩; _⟨_⟩; Λ_; _《_》; _↑_; _↓_)
 open import proof.TypeSafety.Progress using (StarView; sv-tag)
 import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 record TagLayerExtraction {Δᴸ Δᴿ Δ}

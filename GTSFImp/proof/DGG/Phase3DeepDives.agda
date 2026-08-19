@@ -31,6 +31,7 @@ open import Reduction using (StoreChange; bind; keep)
 open import Eval using (step?)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExampleTerms as Ex
@@ -60,20 +61,20 @@ entry-initial² e =
   CPI2.compile-preserves-imprecision² (RC.SourceEntry.initial⊑ᴳ e)
 
 bothBind-freshᴸ-parked : ∀ {Δᴸ Δᴿ Δ v A B}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTI2.ηᴸʷ (CTI2.bothBindWorld v W A B)) Fin.zero
+    {W : CTX.World Δᴸ Δᴿ Δ}
+  → toRenameᵗ (CTX.ηᴸʷ (CTX.bothBindWorld v W A B)) Fin.zero
       ≡ Fin.zero
 bothBind-freshᴸ-parked = refl
 
 bothBind-freshᴿ-parked : ∀ {Δᴸ Δᴿ Δ v A B}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.bothBindWorld v W A B)) Fin.zero
+    {W : CTX.World Δᴸ Δᴿ Δ}
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.bothBindWorld v W A B)) Fin.zero
       ≡ Fin.zero
 bothBind-freshᴿ-parked = refl
 
 rightOnly-freshᴿ-parked : ∀ {Δᴸ Δᴿ Δ B}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.rightOnlyWorld W B)) Fin.zero
+    {W : CTX.World Δᴸ Δᴿ Δ}
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B)) Fin.zero
       ≡ Fin.zero
 rightOnly-freshᴿ-parked = refl
 
@@ -109,24 +110,24 @@ adversarial-source-chain-change₀ :
   change adversarial-source-chain-step₀ ≡ bind RC.ℕ₀
 adversarial-source-chain-change₀ = refl
 
-adversarial-source-chain-world₁ : CTI2.World 1 1 1
+adversarial-source-chain-world₁ : CTX.World 1 1 1
 adversarial-source-chain-world₁ =
-  CTI2.bothBindWorld I.X⊑X
+  CTX.bothBindWorld I.X⊑X
     (CPI2.initialWorld I.idᵐ store-empty) RC.ℕ₀ RC.ℕ₀
 
 adversarial-source-chain-X-rep₁ :
-  CTI2.StoreRepImp adversarial-source-chain-world₁ Fin.zero Fin.zero
+  CTX.StoreRepImp adversarial-source-chain-world₁ Fin.zero Fin.zero
 adversarial-source-chain-X-rep₁ =
-  CTI2.store-rep-imp (Ex2.ℕ⊑ℕ² {W = adversarial-source-chain-world₁})
+  CTX.store-rep-imp (Ex2.ℕ⊑ℕ² {W = adversarial-source-chain-world₁})
 
 adversarial-source-chain-rebase₁ :
-  CTI2.RebaseAt adversarial-source-chain-world₁
+  CTX.RebaseAt adversarial-source-chain-world₁
     adversarial-source-chain-world₁ Fin.zero Fin.zero
 adversarial-source-chain-rebase₁ =
-  CTI2.sameWorldRebaseAt refl adversarial-source-chain-X-rep₁
+  CTX.sameWorldRebaseAt refl adversarial-source-chain-X-rep₁
 
 adversarial-source-chain-reveal₁-⊢ˣ :
-  CTI2.sourceStoreʷ adversarial-source-chain-world₁
+  CTX.sourceStoreʷ adversarial-source-chain-world₁
     Conv.⊢↑[ just Fin.zero ]
       〖 Fin.zero , ⇑ᵗ RC.ℕ₀ ↑ RC.X₀⇒X₀ 〗
 adversarial-source-chain-reveal₁-⊢ˣ =
@@ -141,11 +142,11 @@ adversarial-source-chain-lambda₁ :
     ⊑ proj₁ (compile {Σ = store-bind store-empty RC.ℕ₀}
       (G.⊢ƛ (RC.idAtX³⊢ {Γ = []})))
     ∶ CPI2.initial-⊑ {Σ = store-bind store-empty RC.ℕ₀}
-      (RC.refl⊑ᵗ (CTI2.impEnvʷ adversarial-source-chain-world₁)
+      (RC.refl⊑ᵗ (CTX.impEnvʷ adversarial-source-chain-world₁)
         RC.X₀⇒X₀)
 adversarial-source-chain-lambda₁ =
   CPI2.compile-preserves-imprecision²
-    (RC.reflᴳ (CTI2.impEnvʷ adversarial-source-chain-world₁)
+    (RC.reflᴳ (CTX.impEnvʷ adversarial-source-chain-world₁)
       (G.⊢ƛ (RC.idAtX³⊢ {Γ = []})))
 
 adversarial-source-chain-function₁ :
@@ -159,7 +160,7 @@ adversarial-source-chain-function₁ :
     ∶ Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ² {W = adversarial-source-chain-world₁}
 adversarial-source-chain-function₁ =
   CTI2.reveal⊑reveal² (λ _ eq → eq)
-    adversarial-source-chain-rebase₁ CTI2.same-[]
+    adversarial-source-chain-rebase₁ CTX.same-[]
     adversarial-source-chain-reveal₁-⊢ˣ
     adversarial-source-chain-reveal₁-⊢ˣ
     adversarial-source-chain-lambda₁
@@ -356,50 +357,50 @@ adversarial-source-chain-screen-store₇ :
 adversarial-source-chain-screen-store₇ =
   Step.store-after adversarial-source-chain-screen-step₆
 
-adversarial-source-chain-world₂ : CTI2.World 2 2 2
+adversarial-source-chain-world₂ : CTX.World 2 2 2
 adversarial-source-chain-world₂ =
-  CTI2.bothBindWorld I.X⊑X adversarial-source-chain-world₁
+  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₁
     (＇ Fin.zero) (＇ Fin.zero)
 
-adversarial-source-chain-world₃ : CTI2.World 3 3 3
+adversarial-source-chain-world₃ : CTX.World 3 3 3
 adversarial-source-chain-world₃ =
-  CTI2.bothBindWorld I.X⊑X adversarial-source-chain-world₂
+  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₂
     (＇ (Fin.suc Fin.zero)) (＇ (Fin.suc Fin.zero))
 
-adversarial-source-chain-world₄ : CTI2.World 4 4 4
+adversarial-source-chain-world₄ : CTX.World 4 4 4
 adversarial-source-chain-world₄ =
-  CTI2.bothBindWorld I.X⊑X adversarial-source-chain-world₃
+  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₃
     (＇ (Fin.suc (Fin.suc Fin.zero)))
     (＇ (Fin.suc (Fin.suc Fin.zero)))
 
 adversarial-source-chain-store₇-parkedᴸ :
   adversarial-source-chain-screen-store₇
-    ≡ CTI2.sourceStoreʷ adversarial-source-chain-world₄
+    ≡ CTX.sourceStoreʷ adversarial-source-chain-world₄
 adversarial-source-chain-store₇-parkedᴸ = refl
 
 adversarial-source-chain-store₇-parkedᴿ :
   adversarial-source-chain-screen-store₇
-    ≡ CTI2.targetStoreʷ adversarial-source-chain-world₄
+    ≡ CTX.targetStoreʷ adversarial-source-chain-world₄
 adversarial-source-chain-store₇-parkedᴿ = refl
 
 adversarial-source-chain-fresh-pivotᴸ-parked :
-  toRenameᵗ (CTI2.ηᴸʷ adversarial-source-chain-world₄) Fin.zero
+  toRenameᵗ (CTX.ηᴸʷ adversarial-source-chain-world₄) Fin.zero
     ≡ Fin.zero
 adversarial-source-chain-fresh-pivotᴸ-parked = refl
 
 adversarial-source-chain-fresh-pivotᴿ-parked :
-  toRenameᵗ (CTI2.ηᴿʷ adversarial-source-chain-world₄) Fin.zero
+  toRenameᵗ (CTX.ηᴿʷ adversarial-source-chain-world₄) Fin.zero
     ≡ Fin.zero
 adversarial-source-chain-fresh-pivotᴿ-parked = refl
 
 adversarial-source-chain-original-pivotᴸ-parked :
-  toRenameᵗ (CTI2.ηᴸʷ adversarial-source-chain-world₄)
+  toRenameᵗ (CTX.ηᴸʷ adversarial-source-chain-world₄)
     (Fin.suc (Fin.suc (Fin.suc Fin.zero)))
     ≡ Fin.suc (Fin.suc (Fin.suc Fin.zero))
 adversarial-source-chain-original-pivotᴸ-parked = refl
 
 adversarial-source-chain-original-pivotᴿ-parked :
-  toRenameᵗ (CTI2.ηᴿʷ adversarial-source-chain-world₄)
+  toRenameᵗ (CTX.ηᴿʷ adversarial-source-chain-world₄)
     (Fin.suc (Fin.suc (Fin.suc Fin.zero)))
     ≡ Fin.suc (Fin.suc (Fin.suc Fin.zero))
 adversarial-source-chain-original-pivotᴿ-parked = refl
@@ -452,23 +453,23 @@ star-inst-step₀ =
 star-inst-change₀ : change star-inst-step₀ ≡ bind ★
 star-inst-change₀ = refl
 
-star-inst-world₁ : CTI2.World 1 1 1
+star-inst-world₁ : CTX.World 1 1 1
 star-inst-world₁ =
-  CTI2.bothBindWorld I.X⊑X
+  CTX.bothBindWorld I.X⊑X
     (CPI2.initialWorld I.idᵐ store-empty) ★ ★
 
 star-inst-X-rep₁ :
-  CTI2.StoreRepImp star-inst-world₁ Fin.zero Fin.zero
-star-inst-X-rep₁ = CTI2.store-rep-imp I.★⊑★
+  CTX.StoreRepImp star-inst-world₁ Fin.zero Fin.zero
+star-inst-X-rep₁ = CTX.store-rep-imp I.★⊑★
 
 star-inst-rebase₁ :
-  CTI2.RebaseAt star-inst-world₁ star-inst-world₁
+  CTX.RebaseAt star-inst-world₁ star-inst-world₁
     Fin.zero Fin.zero
 star-inst-rebase₁ =
-  CTI2.sameWorldRebaseAt refl star-inst-X-rep₁
+  CTX.sameWorldRebaseAt refl star-inst-X-rep₁
 
 star-inst-reveal₁-⊢ˣ :
-  CTI2.sourceStoreʷ star-inst-world₁ Conv.⊢↑[ just Fin.zero ]
+  CTX.sourceStoreʷ star-inst-world₁ Conv.⊢↑[ just Fin.zero ]
     〖 Fin.zero , ★ ↑ RC.X₀⇒★ 〗
 star-inst-reveal₁-⊢ˣ =
   Conv.⊢↑-⇒ˣ Conv.join-left
@@ -482,10 +483,10 @@ star-inst-lambda₁ :
     ⊑ proj₁ (compile {Σ = store-bind store-empty ★}
       (G.⊢ƛ (RC.starBody⊢ {Γ = []})))
     ∶ CPI2.initial-⊑ {Σ = store-bind store-empty ★}
-      (RC.refl⊑ᵗ (CTI2.impEnvʷ star-inst-world₁) RC.X₀⇒★)
+      (RC.refl⊑ᵗ (CTX.impEnvʷ star-inst-world₁) RC.X₀⇒★)
 star-inst-lambda₁ =
   CPI2.compile-preserves-imprecision²
-    (RC.reflᴳ (CTI2.impEnvʷ star-inst-world₁)
+    (RC.reflᴳ (CTX.impEnvʷ star-inst-world₁)
       (G.⊢ƛ (RC.starBody⊢ {Γ = []})))
 
 star-inst-function₁ :
@@ -499,7 +500,7 @@ star-inst-function₁ :
     ∶ Ex2.★⇒★⊑★⇒★² {W = star-inst-world₁}
 star-inst-function₁ =
   CTI2.reveal⊑reveal² (λ _ eq → eq)
-    star-inst-rebase₁ CTI2.same-[]
+    star-inst-rebase₁ CTX.same-[]
     star-inst-reveal₁-⊢ˣ star-inst-reveal₁-⊢ˣ
     star-inst-lambda₁
     (Ex2.★⇒★⊑★⇒★² {W = star-inst-world₁})
@@ -725,58 +726,58 @@ higher-order-shared-arg-change₉ = refl
 -- D4. parked-world shape at the located allocation
 ------------------------------------------------------------------------
 
-higher-order-shared-arg-world₀ : CTI2.World 0 0 0
+higher-order-shared-arg-world₀ : CTX.World 0 0 0
 higher-order-shared-arg-world₀ =
   CPI2.initialWorld I.idᵐ store-empty
 
-higher-order-shared-arg-world₁ : CTI2.World 1 1 1
+higher-order-shared-arg-world₁ : CTX.World 1 1 1
 higher-order-shared-arg-world₁ =
-  CTI2.bothBindWorld I.X⊑X higher-order-shared-arg-world₀
+  CTX.bothBindWorld I.X⊑X higher-order-shared-arg-world₀
     RC.∀X⇒X₀ RC.∀X⇒X₀
 
 higher-order-shared-arg-store₁-parkedᴸ :
   higher-order-shared-arg-store₁
-    ≡ CTI2.sourceStoreʷ higher-order-shared-arg-world₁
+    ≡ CTX.sourceStoreʷ higher-order-shared-arg-world₁
 higher-order-shared-arg-store₁-parkedᴸ = refl
 
 higher-order-shared-arg-store₁-parkedᴿ :
   higher-order-shared-arg-store₁
-    ≡ CTI2.targetStoreʷ higher-order-shared-arg-world₁
+    ≡ CTX.targetStoreʷ higher-order-shared-arg-world₁
 higher-order-shared-arg-store₁-parkedᴿ = refl
 
-higher-order-shared-arg-world₂ : CTI2.World 2 2 2
+higher-order-shared-arg-world₂ : CTX.World 2 2 2
 higher-order-shared-arg-world₂ =
-  CTI2.bothBindWorld I.X⊑X higher-order-shared-arg-world₁
+  CTX.bothBindWorld I.X⊑X higher-order-shared-arg-world₁
     (RC.ℕᵗ {Δ = 1}) (RC.ℕᵗ {Δ = 1})
 
 higher-order-shared-arg-store₈-parkedᴸ :
   higher-order-shared-arg-store₈
-    ≡ CTI2.sourceStoreʷ higher-order-shared-arg-world₂
+    ≡ CTX.sourceStoreʷ higher-order-shared-arg-world₂
 higher-order-shared-arg-store₈-parkedᴸ = refl
 
 higher-order-shared-arg-store₈-parkedᴿ :
   higher-order-shared-arg-store₈
-    ≡ CTI2.targetStoreʷ higher-order-shared-arg-world₂
+    ≡ CTX.targetStoreʷ higher-order-shared-arg-world₂
 higher-order-shared-arg-store₈-parkedᴿ = refl
 
 higher-order-shared-arg-callee-pivotᴸ-parked :
-  toRenameᵗ (CTI2.ηᴸʷ higher-order-shared-arg-world₂) Fin.zero
+  toRenameᵗ (CTX.ηᴸʷ higher-order-shared-arg-world₂) Fin.zero
     ≡ Fin.zero
 higher-order-shared-arg-callee-pivotᴸ-parked = refl
 
 higher-order-shared-arg-callee-pivotᴿ-parked :
-  toRenameᵗ (CTI2.ηᴿʷ higher-order-shared-arg-world₂) Fin.zero
+  toRenameᵗ (CTX.ηᴿʷ higher-order-shared-arg-world₂) Fin.zero
     ≡ Fin.zero
 higher-order-shared-arg-callee-pivotᴿ-parked = refl
 
 higher-order-shared-arg-shared-pivotᴸ-parked :
-  toRenameᵗ (CTI2.ηᴸʷ higher-order-shared-arg-world₂)
+  toRenameᵗ (CTX.ηᴸʷ higher-order-shared-arg-world₂)
     (Fin.suc Fin.zero)
     ≡ Fin.suc Fin.zero
 higher-order-shared-arg-shared-pivotᴸ-parked = refl
 
 higher-order-shared-arg-shared-pivotᴿ-parked :
-  toRenameᵗ (CTI2.ηᴿʷ higher-order-shared-arg-world₂)
+  toRenameᵗ (CTX.ηᴿʷ higher-order-shared-arg-world₂)
     (Fin.suc Fin.zero)
     ≡ Fin.suc Fin.zero
 higher-order-shared-arg-shared-pivotᴿ-parked = refl

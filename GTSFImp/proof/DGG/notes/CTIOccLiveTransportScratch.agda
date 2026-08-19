@@ -23,13 +23,23 @@ open import Imprecision using (ImpEnv; VarImp; X⊑★)
 open import CastTerms using (Term)
 open import Conversion using (Conv↓; seal)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.TypeInTermSubst using (toRename-id-eq)
 
 open CTI2 using
-  (World; world; ηᴿʷ; ηᴸʷ; sourceStoreʷ; targetStoreʷ;
-   liftWorldLeft; rightOnlyWorld; RebaseAt; TagRebaseAtᴸ;
-   Rep★PartnerOK; SealPartnerOK; SourceConcealPartnerOK)
+  (World;
+   world;
+   ηᴿʷ;
+   ηᴸʷ;
+   sourceStoreʷ;
+   targetStoreʷ;
+   liftWorldLeft;
+   rightOnlyWorld;
+   RebaseAt;
+   TagRebaseAtᴸ;
+   Rep★PartnerOK;
+   SealPartnerOK;
+   SourceConcealPartnerOK)
 
 ------------------------------------------------------------------------
 -- Live occupancy predicate

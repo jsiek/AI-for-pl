@@ -22,7 +22,8 @@ open import CastTerms using
 open import Reduction using (StoreChanges; applyTys)
 open import Imprecision using (X⊑★)
 import Conversion as Conv
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision2 as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstInversionDef using
   (InstSpineDescentPackage)
@@ -61,7 +62,7 @@ StructuralFinalRelation : ∀ {Δᴸ Δᴿ Δ}
     (target : StructuralTargetInstantiationPackage W V spine)
     (q : A CTI2.⊑ᵂ⟨ W ⟩ E) → Set
 StructuralFinalRelation γ M target q =
-  StructuralTargetInstantiationPackage.W′ target CTI2.∣
+  StructuralTargetInstantiationPackage.W′ target CTIR.∣
     ECR.mapCtxᴿ
       (structural-world-extendᴿ
         (StructuralTargetInstantiationPackage.structural-ext target))
@@ -119,7 +120,7 @@ StructuralNameInstantiationPlanᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → StructuralNamePostPlan W A E q
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → AllValueView V
@@ -139,7 +140,7 @@ postulate
         {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
         {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
       → StructuralNamePostPlan W A E q
-      → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
       → Value M
       → Value V
       → AllValueView V
@@ -160,7 +161,7 @@ postulate
       → (plan : StructuralNamePostPlan W A′ E q)
       → (c : ν ⊢ A ∼ A′)
       → Inert c
-      → W CTI2.∣ γ ⊢² U ⊑ V ∶ p
+      → W CTIR.∣ γ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -182,7 +183,7 @@ postulate
       → NonVar A
       → Fin.zero ∈ᵗ A
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
-      → CTI2.liftWorldLeft X⊑★ W CTI2.∣ γᴸ ⊢² U ⊑ V ∶ p
+      → CTI2.liftWorldLeft X⊑★ W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -206,7 +207,7 @@ postulate
       → Fin.zero ∈ᵗ A
       → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
       → CTI2.SmartLiftCtxᴸ γ γᵐ
-      → Wᵐ CTI2.∣ γᵐ ⊢² U ⊑ V ∶ p
+      → Wᵐ CTIR.∣ γᵐ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -230,7 +231,7 @@ postulate
       → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
       → CTI2.SameCtx γ γᵖ
       → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
-      → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
+      → Wᵖ CTIR.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -255,7 +256,7 @@ postulate
       → CTI2.SameCtx γ γᵖ
       → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
-      → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
+      → Wᵖ CTIR.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -273,7 +274,7 @@ StructuralNameInstantiationEndpointᵀ =
     {A : Ty Δᴸ} {B : Ty (suc Δᴿ)}
     {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → AllValueView V
@@ -294,7 +295,7 @@ EndpointRootContractᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → StructuralNameInstantiationEndpointᵀ
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → AllValueView V
@@ -317,7 +318,7 @@ postulate
         {q : A′ CTI2.⊑ᵂ⟨ W ⟩ E}
       → (c : ν ⊢ A ∼ A′)
       → Inert c
-      → W CTI2.∣ γ ⊢² U ⊑ V ∶ p
+      → W CTIR.∣ γ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -338,7 +339,7 @@ postulate
       → NonVar A
       → Fin.zero ∈ᵗ A
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
-      → CTI2.liftWorldLeft X⊑★ W CTI2.∣ γᴸ ⊢² U ⊑ V ∶ p
+      → CTI2.liftWorldLeft X⊑★ W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -361,7 +362,7 @@ postulate
       → Fin.zero ∈ᵗ A
       → (liftW : CTI2.SmartCommaLiftᴸ W Wᵐ)
       → CTI2.SmartLiftCtxᴸ γ γᵐ
-      → Wᵐ CTI2.∣ γᵐ ⊢² U ⊑ V ∶ p
+      → Wᵐ CTIR.∣ γᵐ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -384,7 +385,7 @@ postulate
       → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
       → CTI2.SameCtx γ γᵖ
       → CTI2.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
-      → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
+      → Wᵖ CTIR.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -408,7 +409,7 @@ postulate
       → CTI2.SameCtx γ γᵖ
       → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
-      → Wᵖ CTI2.∣ γᵖ ⊢² U ⊑ V ∶ p
+      → Wᵖ CTIR.∣ γᵖ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -426,7 +427,7 @@ postulate
         {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
         {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
       → StructuralNamePostPlan W A E q
-      → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+      → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
       → Value M
       → Value V
       → AllValueView V

@@ -33,11 +33,21 @@ open import Imprecision
 open import Primitives using (κℕ)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Inversion.SpineValueDef as SVD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
-open CTI2 using
-  (World; world; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   store-rep-imp; sourceStoreʷ; targetStoreʷ; ηᴸʷ; ηᴿʷ)
+open CTX using
+  (World;
+   world;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   store-rep-imp;
+   sourceStoreʷ;
+   targetStoreʷ;
+   ηᴸʷ;
+   ηᴿʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X₀ : TyVar 2
@@ -90,17 +100,17 @@ X₁∈ = S-bind∋ (Z∋ refl) refl
 Y₁∈ : target-store ∋ Y₁ ⦂ ★
 Y₁∈ = S-bind∋ (Z∋ refl) refl
 
-X₀-Y₀-rep : CTI2.StoreRepImp W₀ X₀ Y₀
+X₀-Y₀-rep : CTX.StoreRepImp W₀ X₀ Y₀
 X₀-Y₀-rep = store-rep-imp ★⊑★
 
-X₁-Y₁-rep : CTI2.StoreRepImp W₀ X₁ Y₁
+X₁-Y₁-rep : CTX.StoreRepImp W₀ X₁ Y₁
 X₁-Y₁-rep = store-rep-imp ★⊑★
 
 rb₀ : RebaseAt W₀ W₀ X₀ Y₀
-rb₀ = CTI2.sameWorldRebaseAt refl X₀-Y₀-rep
+rb₀ = CTX.sameWorldRebaseAt refl X₀-Y₀-rep
 
 link₁ : RebaseAt W₀ W₀ X₁ Y₁
-link₁ = CTI2.sameWorldRebaseAt refl X₁-Y₁-rep
+link₁ = CTX.sameWorldRebaseAt refl X₁-Y₁-rep
 
 source-env : Env∼ 2
 source-env Fin.zero = X∼★
@@ -142,9 +152,9 @@ q₁ = X⊑X
 D : W₀ ∣ [] ⊢² V ⊑ U ∶ q₁
 D =
   CTI2.conceal⊑conceal²
-    (CTI2.matched-seal-star-partner
-      (CTI2.rep★-nonvar-tag nonvar-base))
-    (λ Z eq → eq) link₁ CTI2.same-[]
+    (CTX.matched-seal-star-partner
+      (CTX.rep★-nonvar-tag nonvar-base))
+    (λ Z eq → eq) link₁ CTX.same-[]
     (Conv.⊢↓-sealˣ X₁∈) (Conv.⊢↓-sealˣ Y₁∈) base² q₁
 
 private
@@ -161,8 +171,8 @@ private
 no-source-star-var-output :
   ¬ (Σ[ Wᵒ ∈ World 2 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W₀ X₀ Y₀
-      × CTI2.ImpEnvMono W₀ Wᵒ
-      × CTI2.SameCtx {W = W₀} [] γᵒ
+      × CTX.ImpEnvMono W₀ Wᵒ
+      × CTX.SameCtx {W = W₀} [] γᵒ
       × Σ[ qᵒ ∈ ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₁ ]
           (Wᵒ ∣ γᵒ ⊢²
             (V ⟨ X₁! ⟩) ↓ seal X₀ ★ ⊑ U ∶ qᵒ) ))
@@ -172,11 +182,11 @@ no-source-star-var-output
   where
   target-off :
     toRenameᵗ (ηᴿʷ W₀) Y₁ ≡ toRenameᵗ (ηᴿʷ Wᵒ) Y₁
-  target-off = CTI2.RebaseAt.ηᴿ-frozen rb Y₁
+  target-off = CTX.RebaseAt.ηᴿ-frozen rb Y₁
 
   source-off :
     toRenameᵗ (ηᴸʷ W₀) X₁ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁
-  source-off = CTI2.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀
+  source-off = CTX.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀
 
   same-center :
     toRenameᵗ (ηᴸʷ Wᵒ) X₀ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁
@@ -205,8 +215,8 @@ no-source-star-var-output
 
 no-source-star-branch-output :
   ¬ (Σ[ Wᵒ ∈ World 2 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-      ( CTI2.ImpEnvMono W₀ Wᵒ
-      × CTI2.SameCtx {W = W₀} [] γᵒ
+      ( CTX.ImpEnvMono W₀ Wᵒ
+      × CTX.SameCtx {W = W₀} [] γᵒ
       × sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
       × targetStoreʷ Wᵒ ∋ Y₁ ⦂ ★
       × Σ[ qᵒ ∈ ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₁ ]

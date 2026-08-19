@@ -1,14 +1,22 @@
 T1 D14(c)/(b) retry on the D15-migrated conceal heads
 =======================================================
 
-Status: the hereditary routing glue checks for the migrated target-independent
-heads.  Both (c) and (b) remain conditional on five narrow endpoint facts in
-three row families.  The migrated non-★ seal fact is refuted by a checked
-counterexample.
+Status: superseded by D17(c).  This file records the obstruction that selected
+the replacement rule; it is not a report about the current relation.
 
-Checked companion:
+D17(c) replaced `seal-nonstar-plain-ok` with
+`seal-nonstar-unmatched-ok`, whose second premise is
+`NoTargetOccupantAtSource W X`.  That premise is independent of the target
+term and transports through both target identity rows.  The hereditary routing
+and the now-total non-★ seal row live in
+`proof/DGG/Catchup/StructuralValueKeepProof.agda`.
 
-`proof/DGG/notes/probes/T1D14OptionsProbe.agda`
+The obsolete checked companion
+`proof/DGG/notes/probes/T1D14OptionsProbe.agda` and the refutation module
+`proof/DGG/ExtraCastRight2Counterexample.agda` were deleted when D17(c) made
+their old occupied-see-through input uninhabitable.  The one current D14
+residual is the separately pinned target `conceal-reveal` endpoint described
+below.
 
 
 Migrated (c) outcome

@@ -396,6 +396,30 @@ blast overlaps almost every migration site.  Land D15 first, then rebase D16
 and perform step 4.  The temporary companion work can be prepared before that
 merge, but it must not become a second permanent world API.
 
+## Recon addendum: invariant (5)
+
+The user's additional runtime discipline is compatible with the direct-entry
+design above.  During Stage 1 it should be a fourth field of the temporary
+`WorldInvariants` companion; when the companion is merged, it becomes the
+ninth field of `World`.  The checked draft in
+`notes/probes/T15Invariant5ReconProbe.agda` is:
+
+```agda
+    dynamicStarSourcesUnoccupied :
+      ∀ (Xᴸ : TyVar Δᴸ)
+      → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ) ≡ X⊑★
+      → lookupStore (CTI2.sourceStoreʷ W) Xᴸ ≡ ★
+      → ∀ (Xᴿ : TyVar Δᴿ)
+      → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ
+        ≢ toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ
+```
+
+This is deliberately a direct-source-entry condition.  It neither follows a
+source representation chain nor inspects the target store.  The conclusion
+says exactly that the source center has no target occupant.  The probe also
+checks the field for the amended empty-store `initialWorld`: every direct
+entry in `emptyStore` is its structurally bound variable, never `★`.
+
 ## Validation
 
 The standalone probe is safe, has no postulates, holes, or option pragmas, and

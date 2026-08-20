@@ -1040,3 +1040,60 @@ a runtime source name marked X⊑★ with (direct) representation ★ cannot
 have a center-aligned target occupant. Relocates LG-1's rule-premise
 gating (NoTargetOccupantAtSource) to world validity; rule premises
 become derivable. Recon addendum on PR #177's branch.
+
+D19 (user decision, 2026-08-20): B′ — SIDE-SENSITIVE MINT, NO LATTICE
+EXTENSION. Root cause of the YZ paired-seal exception (5c): the ＇Z ⊑ ★
+forcing was a PARSE ARTIFACT of one-sided reveal rules (fossils of
+step-at-a-time derivation extension); D19PairedRevealReparseProbe
+(#177 branch) shows all seven YZ Z-sites PAIRED-OK at X⊑X, none
+async-forced, so the 5b X⊑X refutation also falls. Layer analysis:
+paired β-inst does NOT force X⊑★ (Consistency.instᵐ mints X∼★ =
+within-term castability, a different lattice); only ONE-SIDED inst
+forces X⊑★, via Imprecision.∀⊑/instᵐ. Decision: paired β-inst mints
+X⊑X, one-sided mints X⊑★; two-sided rules canonical whenever both
+sides carry the wrapper (extends D2b/D14). Fallback if B′ breaks:
+direction B (three-point lattice X⊑X < X⊑★ᵖ < X⊑★; green probe
+D19ThreePointLatticeProbe). Full trade-space: d16-5c-wide-exploration.red.
+
+D18 (user sign-off, 2026-08-20): FUNCTIONAL-ORIGIN REBASING GOES
+AHEAD, staged per d18-rebase-tightening-design.red. Stage 1–2
+pre-flight DONE on #180 (D18OriginSchedulePreflight.agda +
+d18-stage12-preflight.red): originAt = deterministic lookup over
+construction provenance, origin properties proven in sandbox;
+producer sweep mostly PROVEN-IN-SANDBOX; FLAG:chain = the ten
+strip/descent/walk/seal-transfer shortcuts + independent decay
+(become a proof-local chain relation, never rule-facing).
+CAUTION: the FLAG:D16-blocked kill-list cites invariant (5) in its
+pre-B′ reading — re-derive under B′ before deleting any fixture
+(paired direct-★ fixtures may become legal at X⊑X).
+
+HANDOFF — RECOMMENDED NEXT STEPS (2026-08-20 EOD, in order):
+1. CHECK-IN (Jeremy): the four async-window peel statements from the
+   B′ recon (d19-bprime-recon.red §3 / #177 comment):
+   PairedConcealRevealPeelᵀ and SourceOnlyConcealRevealPeelᵀ (already
+   stated live in SimConcealRevealPeel.agda, uninhabited) and the NEW
+   PairedIdConcealPeelᵀ and SourceOpenedIdConcealPeelᵀ. None refuted;
+   T10 counterexamples align with the sync-first shapes.
+2. Matched-preserving ImpEnvMono: refine the generic star-map used by
+   the eight ⊢² wrapper rules (and its parametric transports in
+   CenterRename/TargetBindLift/TargetExtend/Catchup, plus a blendWorld
+   guard) so a MATCHED X⊑X cannot decay to X⊑★ mid-derivation. This is
+   the single B′-NEEDS-CHANGE cluster from the recon; everything else
+   audited B′-SAFE (compile mint layer in GroundingMint is already
+   side-sensitive; honestify dynamizes unoccupied centers only;
+   smart-alias F2 dissolves — all live alias sites are one-sided).
+3. Inhabit the four peels, consuming D18's origin-unique.
+4. D16 stage 3 under B′: enforce invariants at every world
+   constructor; adopt the B′ mint (paired liftWorldBoth X⊑X /
+   one-sided liftWorldLeft X⊑★ — already the GroundingMint shape);
+   re-derive the D18 kill-list under B′; then READY #177.
+5. After #177 merges: D18 stages 3–6 live migration on #180
+   (transport laws → relation declarations → T12 peels → delete broad
+   machinery), then re-ready #180.
+6. Unblocked downstream (in dependency order): T12 peels → four keep
+   rows → value factory closes; strict-cells wave resumes (#175);
+   extra-cast injection/projection blockers; instantiation factory
+   (NS-4); plain target-only continuation gap.
+Probes/notes for all of the above live on #177's branch (world
+invariants) and #180's branch (dispatcher residuals); decision record
+is the D19/D18 comment threads on those PRs.

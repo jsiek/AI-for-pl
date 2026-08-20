@@ -18,19 +18,14 @@
   site. Add a named definition only when it is a genuine reusable concept, not
   just a shorthand for a proof obligation.
 - Changes to the live term-imprecision relation in
-  `GTSF/QuotientedTermImprecision.agda` require the user's explicit permission
-  before editing that file. The permission request must explain why the
-  relation itself needs to change and include the relevant imprecision and
-  reduction square in LaTeX-style notation, with imprecision horizontal and
-  reduction vertical, for example:
-
-  $$
-  \begin{array}{ccc}
-  M & \sqsubseteq & M' \\
-  \downarrow^{*} & & \downarrow^{*} \\
-  N & \sqsubseteq & N'
-  \end{array}
-  $$
+  `GTSFImp/proof/DGG/CastTermImprecision.agda` require 
+  the user's explicit permission
+  before editing that file. The permission request must show the entire
+  rule being changed with both the before and after the change.
+  The request must explain why the relation needs to change and include
+  the relevant imprecision and reduction square, which the terms fully
+  normalized and with variables as names instead of de Bruijn indices.
+  When displaying imprecision, use the Imp Ladder table format.
 
 ## Subagent launch notes
 

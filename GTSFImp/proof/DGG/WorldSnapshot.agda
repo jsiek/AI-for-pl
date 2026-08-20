@@ -4,15 +4,19 @@ module proof.DGG.WorldSnapshot where
 --   * Renders DGG worlds as canonical one-line snapshots for proof notes.
 --   * Shows each center variable's endpoint pivots, direct store entries, and
 --     imprecision mark in center order.
+--   * Exports `defaultName` for unprimed source/center type variables and
+--     `defaultNameᵗ` for primed target type variables.
 --   * Reserves `♭`-prefixed names for generated type binders; supplied name
 --     functions must never produce `♭`-prefixed names.
---   * Pins the format on representative Example12Worlds and Examples2 worlds.
+--   * Pins the naming sequence and the format on representative
+--     Example12Worlds and Examples2 worlds.
 
+open import Data.Char using (Char)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Show using (show)
-open import Data.String using (String; _++_)
+open import Data.String using (String; _++_; fromList; toList)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -121,30 +125,70 @@ worldSnapshot {Δ = Δ} nameᴸ nameᴿ nameᶜ W =
   joinCells (map (worldCell nameᴸ nameᴿ nameᶜ W) (centerVars Δ)) ++
   "⟩"
 
+private
+
+  subscriptDigit : Char → Char
+  subscriptDigit '0' = '₀'
+  subscriptDigit '1' = '₁'
+  subscriptDigit '2' = '₂'
+  subscriptDigit '3' = '₃'
+  subscriptDigit '4' = '₄'
+  subscriptDigit '5' = '₅'
+  subscriptDigit '6' = '₆'
+  subscriptDigit '7' = '₇'
+  subscriptDigit '8' = '₈'
+  subscriptDigit '9' = '₉'
+  subscriptDigit c = c
+
+  subscript : ℕ → String
+  subscript n = fromList (map subscriptDigit (toList (show n)))
+
+  defaultNameAt : ℕ → ℕ → String
+  defaultNameAt zero zero = "X"
+  defaultNameAt (suc group) zero = "X" ++ subscript (suc group)
+  defaultNameAt zero (suc zero) = "Y"
+  defaultNameAt (suc group) (suc zero) = "Y" ++ subscript (suc group)
+  defaultNameAt zero (suc (suc zero)) = "Z"
+  defaultNameAt (suc group) (suc (suc zero)) =
+    "Z" ++ subscript (suc group)
+  defaultNameAt group (suc (suc (suc index))) =
+    defaultNameAt (suc group) index
+
 defaultName : ∀ {Δ} → TyVar Δ → String
-defaultName X = "x" ++ show (Fin.toℕ X)
+defaultName X = defaultNameAt zero (Fin.toℕ X)
+
+defaultNameᵗ : ∀ {Δ} → TyVar Δ → String
+defaultNameᵗ X = defaultName X ++ "′"
 
 worldSnapshotDefault : ∀ {Δᴸ Δᴿ Δ}
   → CTX.World Δᴸ Δᴿ Δ
   → String
-worldSnapshotDefault = worldSnapshot defaultName defaultName defaultName
+worldSnapshotDefault = worldSnapshot defaultName defaultNameᵗ defaultName
 
 ------------------------------------------------------------------------
 -- Pinned fixture snapshots
 ------------------------------------------------------------------------
 
+default-name-groups-pinned :
+  defaultName (Fin.fromℕ 3) ++ " " ++
+  defaultName (Fin.fromℕ 4) ++ " " ++
+  defaultName (Fin.fromℕ 5) ++ " " ++
+  defaultName (Fin.fromℕ 6) ++ " " ++
+  defaultNameᵗ (Fin.fromℕ 30) ≡ "X₁ Y₁ Z₁ X₂ X₁₀′"
+default-name-groups-pinned = refl
+
 example12-world-X-snapshot :
   worldSnapshotDefault Ex12.example12-world-X ≡
-    "⟨x0: x0↦ℕ ⊑[X⊑★] x0↦ℕ │ " ++
-    "x1: ─ ⊑[X⊑★] x1↦＇x2 │ " ++
-    "x2: ─ ⊑[X⊑★] x2↦★⟩"
+    "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ " ++
+    "Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ " ++
+    "Z: ─ ⊑[X⊑★] Z′↦★⟩"
 example12-world-X-snapshot = refl
 
 examples2-left-path-world₃-snapshot :
   worldSnapshotDefault Ex2.left-path-world₃ ≡
-    "⟨x0: x0↦ℕ ⊑[X⊑★] x0↦＇x1 │ " ++
-    "x1: x1↦＇x2 ⊑[X⊑X] ─ │ " ++
-    "x2: x2↦★ ⊑[X⊑★] x1↦★⟩"
+    "⟨X: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ " ++
+    "Y: Y↦＇Z ⊑[X⊑X] ─ │ " ++
+    "Z: Z↦★ ⊑[X⊑★] Y′↦★⟩"
 examples2-left-path-world₃-snapshot = refl
 
 nested-∀-store-entry-snapshot :
@@ -152,7 +196,7 @@ nested-∀-store-entry-snapshot :
     (store-bind store-empty
       (`∀ (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero)))))
     (just Fin.zero) ≡
-      "x0↦∀ ∀ (＇♭1 ⇒ ＇♭0)"
+      "X↦∀ ∀ (＇♭1 ⇒ ＇♭0)"
 nested-∀-store-entry-snapshot = refl
 
 outer-b0-reserved-binder-snapshot :

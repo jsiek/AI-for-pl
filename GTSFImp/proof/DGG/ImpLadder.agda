@@ -10,6 +10,8 @@ module proof.DGG.ImpLadder where
 --     functions must never produce names in either reserved namespace.
 --   * Derives recursive type-name suppliers from the endpoint and center
 --     embeddings that change their scope sizes.
+--   * Uses WorldSnapshot's unprimed default type names for source/center
+--     supplies and its primed default type names for the target supply.
 --   * Pads columns by character count; the table's built-in alphabet has no
 --     two-column glyphs.  The unpadded WorldSnapshot line retains its own type
 --     syntax.
@@ -604,7 +606,7 @@ impLadderDefault : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
   → String
 impLadderDefault =
-  impLadder Snapshot.defaultName Snapshot.defaultName Snapshot.defaultName
+  impLadder Snapshot.defaultName Snapshot.defaultNameᵗ Snapshot.defaultName
     defaultTermName
 
 -- Examples2 comments out the rejected checkpoint-4-through-14 chain.  This
@@ -733,100 +735,100 @@ checkpoint₈-ladder = impLadderDefault
 -- Filled after the formatter is type-checked; these intentionally use refl so
 -- any presentation change must update an explicit expected ladder.
 small-lambda-ladder-pinned : small-lambda-ladder ≡
-  "⟨x0: x0↦＇x0 ⊑[X⊑X] x0↦＇x0⟩\n" ++
-  "source term  A          ηᴸA        ⊑ costs           ηᴿB        " ++
+  "⟨X: X↦＇X ⊑[X⊑X] X′↦＇X′⟩\n" ++
+  "source term  A        ηᴸA      ⊑ costs       ηᴿB      " ++
     "B          target term\n" ++
-  "───────────  ─────────  ─────────  ────────────────  " ++
-    "─────────  ─────────  ───────────\n" ++
-  "λ♯0. □       (x0 ⇒ x0)  (x0 ⇒ x0)  x0 ≈ x0, x0 ≈ x0  " ++
-    "(x0 ⇒ x0)  (x0 ⇒ x0)  λ♯0. □\n" ++
-  "♯0           x0         x0         x0 ≈ x0           " ++
-    "x0         x0         ♯0"
+  "───────────  ───────  ───────  ────────────  " ++
+    "───────  ─────────  ───────────\n" ++
+  "λ♯0. □       (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X  " ++
+    "(X ⇒ X)  (X′ ⇒ X′)  λ♯0. □\n" ++
+  "♯0           X        X        X ≈ X         " ++
+    "X        X′         ♯0"
 small-lambda-ladder-pinned = refl
 
 type-lambda-binder-identity-ladder-pinned :
   type-lambda-binder-identity-ladder ≡
-    "⟨x0: x0↦＇x0 ⊑[X⊑X] x0↦＇x0⟩\n" ++
-    "source term  A                          " ++
-      "ηᴸA                        " ++
-      "⊑ costs                                " ++
-      "ηᴿB                        " ++
+    "⟨X: X↦＇X ⊑[X⊑X] X′↦＇X′⟩\n" ++
+    "source term  A                        " ++
+      "ηᴸA                      " ++
+      "⊑ costs                            " ++
+      "ηᴿB                      " ++
       "B                          target term\n" ++
-    "───────────  ─────────────────────────  " ++
-      "─────────────────────────  " ++
-      "─────────────────────────────────────  " ++
-      "─────────────────────────  " ++
+    "───────────  ───────────────────────  " ++
+      "───────────────────────  " ++
+      "─────────────────────────────────  " ++
+      "───────────────────────  " ++
       "─────────────────────────  ───────────\n" ++
-    "Λ□           ∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
-      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
-      "∀(♭0 ≈ ♭0, x0 ≈ x0, ♭0 ≈ ♭0, x0 ≈ x0)  " ++
-      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
-      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  Λ□\n" ++
-    "λ♯0. □       ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
-      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
-      "♭0 ≈ ♭0, x0 ≈ x0, ♭0 ≈ ♭0, x0 ≈ x0     " ++
-      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
-      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    λ♯0. □\n" ++
-    "♯0           (♭0 ⇒ x0)                  " ++
-      "(♭0 ⇒ x0)                  " ++
-      "♭0 ≈ ♭0, x0 ≈ x0                       " ++
-      "(♭0 ⇒ x0)                  " ++
-      "(♭0 ⇒ x0)                  ♯0"
+    "Λ□           ∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
+      "∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
+      "∀(♭0 ≈ ♭0, X ≈ X, ♭0 ≈ ♭0, X ≈ X)  " ++
+      "∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
+      "∀ ((♭0 ⇒ X′) ⇒ (♭0 ⇒ X′))  Λ□\n" ++
+    "λ♯0. □       ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
+      "((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
+      "♭0 ≈ ♭0, X ≈ X, ♭0 ≈ ♭0, X ≈ X     " ++
+      "((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
+      "((♭0 ⇒ X′) ⇒ (♭0 ⇒ X′))    λ♯0. □\n" ++
+    "♯0           (♭0 ⇒ X)                 " ++
+      "(♭0 ⇒ X)                 " ++
+      "♭0 ≈ ♭0, X ≈ X                     " ++
+      "(♭0 ⇒ X)                 " ++
+      "(♭0 ⇒ X′)                  ♯0"
 type-lambda-binder-identity-ladder-pinned = refl
 
 d1-inner-smart-live-ladder-pinned : d1-inner-smart-live-ladder ≡
-  "⟨x0: ─ ⊑[X⊑★] x0↦＇x1 │ x1: ─ ⊑[X⊑★] x1↦★ │ " ++
-    "x2: x0↦＇x0 ⊑[X⊑★] ─⟩\n" ++
+  "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★ │ " ++
+    "Z: X↦＇X ⊑[X⊑★] ─⟩\n" ++
   "source term  A           ηᴸA         " ++
-    "⊑ costs                  ηᴿB       B         target term\n" ++
+    "⊑ costs                  ηᴿB      B         target term\n" ++
   "───────────  ──────────  ──────────  " ++
-    "───────────────────────  ────────  ────────  ───────────\n" ++
+    "───────────────────────  ───────  ────────  ───────────\n" ++
   "Λ□           ∀ (♭0 ⇒ ★)  ∀ (♭0 ⇒ ★)  " ++
-    "∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)   (★ ⇒ ★)   ─\n" ++
-  "─            (♭0 ⇒ ★)    (x0 ⇒ ★)    " ++
-    "mark X⊑★ at x0, ★⊑★      (★ ⇒ ★)   (★ ⇒ ★)   □ ↑ ⇒-rev\n" ++
-  "─            (♭0 ⇒ ★)    (x1 ⇒ ★)    " ++
-    "x1 ≈ x1, ★⊑★             (x1 ⇒ ★)  (x1 ⇒ ★)  □ ↑ ⇒-rev\n" ++
-  "λ♯0. □       (♭0 ⇒ ★)    (x0 ⇒ ★)    " ++
-    "x0 ≈ x0, ★⊑★             (x0 ⇒ ★)  (x0 ⇒ ★)  λ♯0. □\n" ++
+    "∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)  (★ ⇒ ★)   ─\n" ++
+  "─            (♭0 ⇒ ★)    (X ⇒ ★)     " ++
+    "mark X⊑★ at X, ★⊑★       (★ ⇒ ★)  (★ ⇒ ★)   □ ↑ ⇒-rev\n" ++
+  "─            (♭0 ⇒ ★)    (Y ⇒ ★)     " ++
+    "Y ≈ Y, ★⊑★               (Y ⇒ ★)  (Y′ ⇒ ★)  □ ↑ ⇒-rev\n" ++
+  "λ♯0. □       (♭0 ⇒ ★)    (X ⇒ ★)     " ++
+    "X ≈ X, ★⊑★               (X ⇒ ★)  (X′ ⇒ ★)  λ♯0. □\n" ++
   "blame        ★           ★           " ++
-    "★⊑★                      ★         ★         blame"
+    "★⊑★                      ★        ★         blame"
 d1-inner-smart-live-ladder-pinned = refl
 
 checkpoint₈-target-Z-fragment-ladder-pinned :
   checkpoint₈-target-Z-fragment-ladder ≡
-    "⟨x0: x0↦ℕ ⊑[X⊑★] ─ │ " ++
-      "x1: x1↦＇x2 ⊑[X⊑X] x0↦＇x1 │ " ++
-      "x2: x2↦★ ⊑[X⊑★] x1↦★⟩\n" ++
-    "source term            A          ηᴸA        " ++
-      "⊑ costs                           ηᴿB        B          " ++
+    "⟨X: X↦ℕ ⊑[X⊑★] ─ │ " ++
+      "Y: Y↦＇Z ⊑[X⊑X] X′↦＇Y′ │ " ++
+      "Z: Z↦★ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "source term           A        ηᴸA      " ++
+      "⊑ costs                         ηᴿB      B          " ++
       "target term\n" ++
-    "─────────────────────  ─────────  " ++
-      "─────────  ────────────────────────────────  " ++
-      "─────────  ─────────  " ++
+    "────────────────────  ───────  " ++
+      "───────  ──────────────────────────────  " ++
+      "───────  ─────────  " ++
       "───────────────────\n" ++
-    "─                      x2         x2         " ++
-      "mark X⊑★ at x2                    ★          ★          " ++
-      "□ ↑ unseal x1\n" ++
-    "□₁ · □₂                x2         x2         " ++
-      "x2 ≈ x2                           x2         x1         " ++
+    "─                     Z        Z        " ++
+      "mark X⊑★ at Z                   ★        ★          " ++
+      "□ ↑ unseal Y′\n" ++
+    "□₁ · □₂               Z        Z        " ++
+      "Z ≈ Z                           Z        Y′         " ++
       "□₁ · □₂\n" ++
-    "├ □ ↑ unseal x1 ⇒-rev  (x2 ⇒ x2)  (x2 ⇒ x2)  " ++
-      "x2 ≈ x2, x2 ≈ x2                  (x2 ⇒ x2)  " ++
-      "(x1 ⇒ x1)  □ ↑ unseal x0 ⇒-rev\n" ++
-    "│ λ♯0. □               (x1 ⇒ x1)  (x1 ⇒ x1)  " ++
-      "x1 ≈ x1, x1 ≈ x1                  (x1 ⇒ x1)  " ++
-      "(x0 ⇒ x0)  λ♯0. □\n" ++
-    "│ ♯0                   x1         x1         " ++
-      "x1 ≈ x1                           x1         x0         " ++
+    "├ □ ↑ unseal Y ⇒-rev  (Z ⇒ Z)  (Z ⇒ Z)  " ++
+      "Z ≈ Z, Z ≈ Z                    (Z ⇒ Z)  " ++
+      "(Y′ ⇒ Y′)  □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □              (Y ⇒ Y)  (Y ⇒ Y)  " ++
+      "Y ≈ Y, Y ≈ Y                    (Y ⇒ Y)  " ++
+      "(X′ ⇒ X′)  λ♯0. □\n" ++
+    "│ ♯0                  Y        Y        " ++
+      "Y ≈ Y                           Y        X′         " ++
       "♯0\n" ++
-    "└ □ ↓ seal x2          x2         x2         " ++
-      "x2 ≈ x2 + matched-seal-★-partner  x2         x1         " ++
-      "□ ↓ seal x1\n" ++
-    "  □ ⟨ ℕ↦★ ⟩            ★          ★          " ++
-      "★⊑★                               ★          ★          " ++
+    "└ □ ↓ seal Z          Z        Z        " ++
+      "Z ≈ Z + matched-seal-★-partner  Z        Y′         " ++
+      "□ ↓ seal Y′\n" ++
+    "  □ ⟨ ℕ↦★ ⟩           ★        ★        " ++
+      "★⊑★                             ★        ★          " ++
       "□ ⟨ ℕ↦★ ⟩\n" ++
-    "  7                    ℕ          ℕ          " ++
-      "ℕ⊑ℕ                               ℕ          ℕ          " ++
+    "  7                   ℕ        ℕ        " ++
+      "ℕ⊑ℕ                             ℕ        ℕ          " ++
       "7"
 checkpoint₈-target-Z-fragment-ladder-pinned = refl

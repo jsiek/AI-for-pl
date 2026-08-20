@@ -154,6 +154,7 @@ import proof.DGG.DynamicGradualGuaranteeProof
 
 -- Example suites and catalogs
 import proof.DGG.WorldSnapshot
+import proof.DGG.ImpLadder
 import proof.DGG.Example12Worlds
 import Example
 import GradualTypeCheckExamples

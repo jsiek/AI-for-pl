@@ -10,20 +10,20 @@ module proof.DGG.ImpLadder where
 --     functions must never produce names in either reserved namespace.
 --   * Uses polymorphic type-name suppliers because recursive derivation worlds
 --     can change endpoint and center scope sizes.
---   * Pads columns by terminal display width, including Unicode fullwidth
---     forms emitted by the type printer or supplied names.
+--   * Pads columns by character count; the table's built-in alphabet has no
+--     two-column glyphs.  The unpadded WorldSnapshot line retains its own type
+--     syntax.
 --   * Pins type- and term-lambda ladders plus a live, data-bearing
 --     reconstruction of Examples2's archived checkpoint-8 target-Z fragment;
 --     also exports the whole-checkpoint printer at its intended judgment type.
 
-open import Data.Bool using (Bool; false; true; if_then_else_; _∧_; _∨_)
-open import Data.Char using (Char; toℕ)
+open import Data.Bool using (false; true)
 open import Data.List using (List; []; _∷_; map)
 import Data.List as List
 open import Data.Maybe using (just)
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _⊔_; _≤ᵇ_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _⊔_)
 open import Data.Nat.Show using (show)
-open import Data.String using (String; _++_; toList)
+open import Data.String using (String; _++_; length)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -63,6 +63,28 @@ private
   extendTyNameSupply name binder {suc Δ} Fin.zero = binder
   extendTyNameSupply name binder {suc Δ} (Fin.suc X) = name X
 
+  extendTyName : ∀ {Δ}
+    → (TyVar Δ → String)
+    → String
+    → TyVar (suc Δ)
+    → String
+  extendTyName name binder Fin.zero = binder
+  extendTyName name binder (Fin.suc X) = name X
+
+  showTyAt : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
+  showTyAt depth name (＇ X) = name X
+  showTyAt depth name (‵ `ℕ) = "ℕ"
+  showTyAt depth name (‵ `𝔹) = "𝔹"
+  showTyAt depth name ★ = "★"
+  showTyAt depth name (A ⇒ B) =
+    "(" ++ showTyAt depth name A ++ " ⇒ " ++ showTyAt depth name B ++ ")"
+  showTyAt depth name (`∀ A) =
+    "∀ " ++ showTyAt (suc depth)
+      (extendTyName name ("♭" ++ show depth)) A
+
+  showTy : ∀ {Δ} → (TyVar Δ → String) → Ty Δ → String
+  showTy = showTyAt zero
+
 defaultTermName : Var → String
 defaultTermName x = "x" ++ show x
 
@@ -88,8 +110,7 @@ castLayer : ∀ {Δ μ A B}
   → μ ⊢ A ∼ B
   → String
 castLayer {A = A} {B = B} name c =
-  "⟨ " ++ Snapshot.showTy name A ++ "↦" ++
-  Snapshot.showTy name B ++ " ⟩"
+  "⟨ " ++ showTy name A ++ "↦" ++ showTy name B ++ " ⟩"
 
 revealLayer : ∀ {Δ A B}
   → (TyVar Δ → String)
@@ -134,7 +155,7 @@ showTerm termDepth tyDepth tyName xName (Λ M) =
     (extendTyNameSupply tyName binder) xName M
 showTerm termDepth tyDepth tyName xName (M ⦂∀ C [ A ]) =
   showTerm termDepth tyDepth tyName xName M ++ " [ " ++
-  Snapshot.showTy tyName A ++ " ]"
+  showTy tyName A ++ " ]"
 showTerm termDepth tyDepth tyName xName ($ κ) = showConst κ
 showTerm termDepth tyDepth tyName xName (L ⊕[ op ] M) =
   "(" ++ showTerm termDepth tyDepth tyName xName L ++ " " ++
@@ -153,14 +174,6 @@ showTerm termDepth tyDepth tyName xName blame = "blame"
 ------------------------------------------------------------------------
 
 private
-
-  extendTyName : ∀ {Δ}
-    → (TyVar Δ → String)
-    → String
-    → TyVar (suc Δ)
-    → String
-  extendTyName name binder Fin.zero = binder
-  extendTyName name binder (Fin.suc X) = name X
 
   showCostAt : ∀ {Δ : TyCtx} {μ : I.ImpEnv Δ} {A B : Ty Δ}
     → ℕ
@@ -259,11 +272,11 @@ makeRow : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
 makeRow {W = W} {A = A} {B = B}
     nameᴸ nameᴿ nameᶜ prefix source target p extra =
   row (prefix ++ source)
-    (Snapshot.showTy nameᴸ A)
-    (Snapshot.showTy nameᶜ (CTX.embedᴸ W A))
+    (showTy nameᴸ A)
+    (showTy nameᶜ (CTX.embedᴸ W A))
     (addCost (showCost nameᶜ p) extra)
-    (Snapshot.showTy nameᶜ (CTX.embedᴿ W B))
-    (Snapshot.showTy nameᴿ B)
+    (showTy nameᶜ (CTX.embedᴿ W B))
+    (showTy nameᴿ B)
     target
 
 record Widths : Set where
@@ -282,36 +295,16 @@ open Widths
 zeroWidths : Widths
 zeroWidths = widths 0 0 0 0 0 0 0
 
--- The printer's only built-in East Asian fullwidth glyph is `＇`.  Cover the
--- full Unicode fullwidth-form ranges as well so caller-supplied names retain
--- their terminal width; U+3000 is the fullwidth ideographic space.
-isFullwidth : Char → Bool
-isFullwidth c =
-  let n = toℕ c in
-  ((0xFF01 ≤ᵇ n) ∧ (n ≤ᵇ 0xFF60)) ∨
-  ((0xFFE0 ≤ᵇ n) ∧ (n ≤ᵇ 0xFFE6)) ∨
-  ((0x3000 ≤ᵇ n) ∧ (n ≤ᵇ 0x3000))
-
-charDisplayWidth : Char → ℕ
-charDisplayWidth c = if isFullwidth c then 2 else 1
-
-displayWidthChars : List Char → ℕ
-displayWidthChars [] = 0
-displayWidthChars (c ∷ cs) = charDisplayWidth c + displayWidthChars cs
-
-displayWidth : String → ℕ
-displayWidth value = displayWidthChars (toList value)
-
 includeRow : Row → Widths → Widths
 includeRow r w =
   widths
-    (displayWidth (source r) ⊔ sourceWidth w)
-    (displayWidth (sourceTy r) ⊔ sourceTyWidth w)
-    (displayWidth (sourceCenterTy r) ⊔ sourceCenterTyWidth w)
-    (displayWidth (costs r) ⊔ costsWidth w)
-    (displayWidth (targetCenterTy r) ⊔ targetCenterTyWidth w)
-    (displayWidth (targetTy r) ⊔ targetTyWidth w)
-    (displayWidth (target r) ⊔ targetWidth w)
+    (length (source r) ⊔ sourceWidth w)
+    (length (sourceTy r) ⊔ sourceTyWidth w)
+    (length (sourceCenterTy r) ⊔ sourceCenterTyWidth w)
+    (length (costs r) ⊔ costsWidth w)
+    (length (targetCenterTy r) ⊔ targetCenterTyWidth w)
+    (length (targetTy r) ⊔ targetTyWidth w)
+    (length (target r) ⊔ targetWidth w)
 
 tableWidths : List Row → Widths
 tableWidths [] = zeroWidths
@@ -326,7 +319,7 @@ dashes zero = ""
 dashes (suc n) = "─" ++ dashes n
 
 pad : ℕ → String → String
-pad width value = value ++ spaces (width ∸ displayWidth value)
+pad width value = value ++ spaces (width ∸ length value)
 
 renderRow : Widths → Row → String
 renderRow w r =
@@ -432,8 +425,8 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     (CTI2.•⊑•² {A = A} {A′ = A′} p∀ premise q r) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ prefix
-      ("□ [ " ++ Snapshot.showTy nameᴸ A ++ " ]")
-      ("□ [ " ++ Snapshot.showTy nameᴿ A′ ++ " ]") p "" ∷
+      ("□ [ " ++ showTy nameᴸ A ++ " ]")
+      ("□ [ " ++ showTy nameᴿ A′ ++ " ]") p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
@@ -441,7 +434,7 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     (CTI2.•⊑² {A = A} p∀ premise q r) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ prefix
-      ("□ [ " ++ Snapshot.showTy nameᴸ A ++ " ]") "─" p "" ∷
+      ("□ [ " ++ showTy nameᴸ A ++ " ]") "─" p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
@@ -715,46 +708,44 @@ checkpoint₈-ladder = impLadderDefault
 -- any presentation change must update an explicit expected ladder.
 small-lambda-ladder-pinned : small-lambda-ladder ≡
   "⟨x0: x0↦＇x0 ⊑[X⊑X] x0↦＇x0⟩\n" ++
-  "source term  A              ηᴸA            ⊑ costs           " ++
-    "ηᴿB            B              target term\n" ++
-  "───────────  ─────────────  " ++
-    "─────────────  ────────────────  " ++
-    "─────────────  ─────────────  ───────────\n" ++
-  "λ♯0. □       (＇x0 ⇒ ＇x0)  (＇x0 ⇒ ＇x0)  " ++
-    "x0 ≈ x0, x0 ≈ x0  (＇x0 ⇒ ＇x0)  " ++
-    "(＇x0 ⇒ ＇x0)  λ♯0. □\n" ++
-  "`♯0          ＇x0           ＇x0           x0 ≈ x0           " ++
-    "＇x0           ＇x0           `♯0"
+  "source term  A          ηᴸA        ⊑ costs           ηᴿB        " ++
+    "B          target term\n" ++
+  "───────────  ─────────  ─────────  ────────────────  " ++
+    "─────────  ─────────  ───────────\n" ++
+  "λ♯0. □       (x0 ⇒ x0)  (x0 ⇒ x0)  x0 ≈ x0, x0 ≈ x0  " ++
+    "(x0 ⇒ x0)  (x0 ⇒ x0)  λ♯0. □\n" ++
+  "`♯0          x0         x0         x0 ≈ x0           " ++
+    "x0         x0         `♯0"
 small-lambda-ladder-pinned = refl
 
 type-lambda-binder-identity-ladder-pinned :
   type-lambda-binder-identity-ladder ≡
     "⟨x0: x0↦＇x0 ⊑[X⊑X] x0↦＇x0⟩\n" ++
-    "source term  A                                  " ++
-      "ηᴸA                                " ++
+    "source term  A                          " ++
+      "ηᴸA                        " ++
       "⊑ costs                                " ++
-      "ηᴿB                                " ++
-      "B                                  target term\n" ++
-    "───────────  ─────────────────────────────────  " ++
-      "─────────────────────────────────  " ++
+      "ηᴿB                        " ++
+      "B                          target term\n" ++
+    "───────────  ─────────────────────────  " ++
+      "─────────────────────────  " ++
       "─────────────────────────────────────  " ++
-      "─────────────────────────────────  " ++
-      "─────────────────────────────────  ───────────\n" ++
-    "Λ□           ∀ ((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))  " ++
-      "∀ ((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))  " ++
+      "─────────────────────────  " ++
+      "─────────────────────────  ───────────\n" ++
+    "Λ□           ∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
+      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
       "∀(♭0 ≈ ♭0, x0 ≈ x0, ♭0 ≈ ♭0, x0 ≈ x0)  " ++
-      "∀ ((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))  " ++
-      "∀ ((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))  Λ□\n" ++
-    "λ♯0. □       ((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))    " ++
-      "((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))    " ++
+      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  " ++
+      "∀ ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))  Λ□\n" ++
+    "λ♯0. □       ((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
+      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
       "♭0 ≈ ♭0, x0 ≈ x0, ♭0 ≈ ♭0, x0 ≈ x0     " ++
-      "((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))    " ++
-      "((＇♭0 ⇒ ＇x0) ⇒ (＇♭0 ⇒ ＇x0))    λ♯0. □\n" ++
-    "`♯0          (＇♭0 ⇒ ＇x0)                      " ++
-      "(＇♭0 ⇒ ＇x0)                      " ++
+      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
+      "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    λ♯0. □\n" ++
+    "`♯0          (♭0 ⇒ x0)                  " ++
+      "(♭0 ⇒ x0)                  " ++
       "♭0 ≈ ♭0, x0 ≈ x0                       " ++
-      "(＇♭0 ⇒ ＇x0)                      " ++
-      "(＇♭0 ⇒ ＇x0)                      `♯0"
+      "(♭0 ⇒ x0)                  " ++
+      "(♭0 ⇒ x0)                  `♯0"
 type-lambda-binder-identity-ladder-pinned = refl
 
 checkpoint₈-target-Z-fragment-ladder-pinned :
@@ -762,37 +753,35 @@ checkpoint₈-target-Z-fragment-ladder-pinned :
     "⟨x0: x0↦ℕ ⊑[X⊑★] ─ │ " ++
       "x1: x1↦＇x2 ⊑[X⊑X] x0↦＇x1 │ " ++
       "x2: x2↦★ ⊑[X⊑★] x1↦★⟩\n" ++
-    "source term            A              ηᴸA            " ++
-      "⊑ costs                           ηᴿB            B              " ++
+    "source term            A          ηᴸA        " ++
+      "⊑ costs                           ηᴿB        B          " ++
       "target term\n" ++
-    "─────────────────────  ─────────────  " ++
-      "─────────────  ────────────────────────────────  " ++
-      "─────────────  ─────────────  " ++
+    "─────────────────────  ─────────  " ++
+      "─────────  ────────────────────────────────  " ++
+      "─────────  ─────────  " ++
       "───────────────────\n" ++
-    "─                      ＇x2           ＇x2           " ++
-      "mark X⊑★ at x2                    ★              ★              " ++
+    "─                      x2         x2         " ++
+      "mark X⊑★ at x2                    ★          ★          " ++
       "□ ↑ unseal x1\n" ++
-    "□₁ · □₂                ＇x2           ＇x2           " ++
-      "x2 ≈ x2                           ＇x2           ＇x1           " ++
+    "□₁ · □₂                x2         x2         " ++
+      "x2 ≈ x2                           x2         x1         " ++
       "□₁ · □₂\n" ++
-    "├ □ ↑ unseal x1 ⇒-rev  (＇x2 ⇒ ＇x2)  (＇x2 ⇒ ＇x2)  " ++
-      "x2 ≈ x2, x2 ≈ x2                  (＇x2 ⇒ ＇x2)  " ++
-      "(＇x1 ⇒ ＇x1)  □ ↑ unseal x0 ⇒-rev\n" ++
-    "│ λ♯0. □               (＇x1 ⇒ ＇x1)  (＇x1 ⇒ ＇x1)  " ++
-      "x1 ≈ x1, x1 ≈ x1                  (＇x1 ⇒ ＇x1)  " ++
-      "(＇x0 ⇒ ＇x0)  λ♯0. □\n" ++
-    "│ `♯0                  ＇x1           ＇x1           " ++
-      "x1 ≈ x1                           ＇x1           ＇x0           " ++
+    "├ □ ↑ unseal x1 ⇒-rev  (x2 ⇒ x2)  (x2 ⇒ x2)  " ++
+      "x2 ≈ x2, x2 ≈ x2                  (x2 ⇒ x2)  " ++
+      "(x1 ⇒ x1)  □ ↑ unseal x0 ⇒-rev\n" ++
+    "│ λ♯0. □               (x1 ⇒ x1)  (x1 ⇒ x1)  " ++
+      "x1 ≈ x1, x1 ≈ x1                  (x1 ⇒ x1)  " ++
+      "(x0 ⇒ x0)  λ♯0. □\n" ++
+    "│ `♯0                  x1         x1         " ++
+      "x1 ≈ x1                           x1         x0         " ++
       "`♯0\n" ++
-    "└ □ ↓ seal x2          ＇x2           ＇x2           " ++
-      "x2 ≈ x2 + matched-seal-★-partner  ＇x2           ＇x1           " ++
+    "└ □ ↓ seal x2          x2         x2         " ++
+      "x2 ≈ x2 + matched-seal-★-partner  x2         x1         " ++
       "□ ↓ seal x1\n" ++
-    "  □ ⟨ ℕ↦★ ⟩            ★              ★              " ++
-      "★⊑★                               " ++
-      "★              ★              " ++
+    "  □ ⟨ ℕ↦★ ⟩            ★          ★          " ++
+      "★⊑★                               ★          ★          " ++
       "□ ⟨ ℕ↦★ ⟩\n" ++
-    "  7                    ℕ              ℕ              " ++
-      "ℕ⊑ℕ                               " ++
-      "ℕ              ℕ              " ++
+    "  7                    ℕ          ℕ          " ++
+      "ℕ⊑ℕ                               ℕ          ℕ          " ++
       "7"
 checkpoint₈-target-Z-fragment-ladder-pinned = refl

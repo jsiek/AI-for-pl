@@ -8,19 +8,19 @@ module proof.DGG.ImpLadder where
 --   * Reserves `♯`-prefixed names for generated term binders, parallel to the
 --     `♭`-prefixed type-binder namespace used by WorldSnapshot; supplied name
 --     functions must never produce names in either reserved namespace.
---   * Uses polymorphic type-name suppliers because recursive derivation worlds
---     can change endpoint and center scope sizes.
+--   * Derives recursive type-name suppliers from the endpoint and center
+--     embeddings that change their scope sizes.
 --   * Pads columns by character count; the table's built-in alphabet has no
 --     two-column glyphs.  The unpadded WorldSnapshot line retains its own type
 --     syntax.
---   * Pins type- and term-lambda ladders plus a live, data-bearing
+--   * Pins smart-comma, type- and term-lambda ladders plus a live, data-bearing
 --     reconstruction of Examples2's archived checkpoint-8 target-Z fragment;
 --     also exports the whole-checkpoint printer at its intended judgment type.
 
 open import Data.Bool using (false; true)
 open import Data.List using (List; []; _∷_; map)
 import Data.List as List
-open import Data.Maybe using (just)
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _∸_; _⊔_)
 open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_; length)
@@ -45,8 +45,10 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 open CTX using (_⊑ᵂ⟨_⟩_)
+import proof.DGG.CenterRename as CR
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
+import proof.DGG.SmartCommaWitness as Smart
 import proof.DGG.WorldSnapshot as Snapshot
 
 ------------------------------------------------------------------------
@@ -58,11 +60,6 @@ TyNameSupply = ∀ {Δ} → TyVar Δ → String
 
 private
 
-  extendTyNameSupply : TyNameSupply → String → TyNameSupply
-  extendTyNameSupply name binder {zero} ()
-  extendTyNameSupply name binder {suc Δ} Fin.zero = binder
-  extendTyNameSupply name binder {suc Δ} (Fin.suc X) = name X
-
   extendTyName : ∀ {Δ}
     → (TyVar Δ → String)
     → String
@@ -70,6 +67,17 @@ private
     → String
   extendTyName name binder Fin.zero = binder
   extendTyName name binder (Fin.suc X) = name X
+
+  nameThroughEmbedding : ∀ {Δ Δ′}
+    → (TyVar Δ → String)
+    → String
+    → Δ C.↪ᵗ Δ′
+    → TyVar Δ′
+    → String
+  nameThroughEmbedding name fresh oldCenters X
+      with CR.preimage? oldCenters X
+  nameThroughEmbedding name fresh oldCenters X | just old = name old
+  nameThroughEmbedding name fresh oldCenters X | nothing = fresh
 
   showTyAt : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
   showTyAt depth name (＇ X) = name X
@@ -136,11 +144,11 @@ concealLayer name (id↓ A) = "↓ id"
 showTerm : ∀ {Δ}
   → ℕ
   → ℕ
-  → TyNameSupply
+  → (TyVar Δ → String)
   → (Var → String)
   → Term Δ
   → String
-showTerm termDepth tyDepth tyName xName (` x) = "`" ++ xName x
+showTerm termDepth tyDepth tyName xName (` x) = xName x
 showTerm termDepth tyDepth tyName xName (ƛ M) =
   let binder = "♯" ++ show termDepth in
   "λ" ++ binder ++ ". " ++
@@ -152,7 +160,7 @@ showTerm termDepth tyDepth tyName xName (L · M) =
 showTerm termDepth tyDepth tyName xName (Λ M) =
   let binder = "♭" ++ show tyDepth in
   "Λ" ++ showTerm termDepth (suc tyDepth)
-    (extendTyNameSupply tyName binder) xName M
+    (extendTyName tyName binder) xName M
 showTerm termDepth tyDepth tyName xName (M ⦂∀ C [ A ]) =
   showTerm termDepth tyDepth tyName xName M ++ " [ " ++
   showTy tyName A ++ " ]"
@@ -260,9 +268,9 @@ header = row "source term" "A" "ηᴸA" "⊑ costs" "ηᴿB" "B" "target term"
 
 makeRow : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-  → TyNameSupply
-  → TyNameSupply
-  → TyNameSupply
+  → (TyVar Δᴸ → String)
+  → (TyVar Δᴿ → String)
+  → (TyVar Δ → String)
   → String
   → String
   → String
@@ -357,9 +365,12 @@ renderTable rows = renderTableWith (tableWidths (header ∷ rows)) rows
 -- Outside-in derivation traversal
 ------------------------------------------------------------------------
 
-ladderRows : TyNameSupply → TyNameSupply → TyNameSupply
+ladderRows : ∀ {Δᴸ Δᴿ Δ}
+  → (TyVar Δᴸ → String)
+  → (TyVar Δᴿ → String)
+  → (TyVar Δ → String)
   → ℕ → ℕ → (Var → String) → String → String
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
+  → ∀ {W : CTX.World Δᴸ Δᴿ Δ}
       {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
       {p : A ⊑ᵂ⟨ W ⟩ B}
@@ -369,8 +380,7 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
     (CTI2.x⊑x² {x = x} lookup) =
   makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ prefix ("`" ++ xName x)
-    ("`" ++ xName x) p "" ∷ []
+    nameᴸ nameᴿ nameᶜ prefix (xName x) (xName x) p "" ∷ []
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
     (CTI2.ƛ⊑ƛ² premise) =
@@ -397,9 +407,9 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ prefix "Λ□" "Λ□" p "" ∷
-    ladderRows (extendTyNameSupply nameᴸ binder)
-      (extendTyNameSupply nameᴿ binder)
-      (extendTyNameSupply nameᶜ binder)
+    ladderRows (extendTyName nameᴸ binder)
+      (extendTyName nameᴿ binder)
+      (extendTyName nameᶜ binder)
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
@@ -407,18 +417,28 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ prefix "Λ□" "─" p "" ∷
-    ladderRows (extendTyNameSupply nameᴸ binder) nameᴿ
-      (extendTyNameSupply nameᶜ binder)
+    ladderRows (extendTyName nameᴸ binder) nameᴿ
+      (extendTyName nameᶜ binder)
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑²-smart-comma Anv occurs liftWorld liftCtx v targetTyping
-      premise q) =
+    (CTI2.Λ⊑²-smart-comma Anv occurs
+      (CTX.smart-merge-alias guard) liftCtx v targetTyping premise q) =
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ prefix "Λ□" "─" p "" ∷
-    ladderRows (extendTyNameSupply nameᴸ binder) nameᴿ
-      (extendTyNameSupply nameᶜ binder)
+    ladderRows (extendTyName nameᴸ binder) nameᴿ nameᶜ
+      termDepth (suc tyDepth) xName childPrefix childPrefix premise
+ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+    (CTI2.Λ⊑²-smart-comma Anv occurs
+      (CTX.smart-fresh-behind guard) liftCtx v targetTyping premise q) =
+  let binder = "♭" ++ show tyDepth in
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ prefix "Λ□" "─" p "" ∷
+    ladderRows (extendTyName nameᴸ binder) nameᴿ
+      (nameThroughEmbedding nameᶜ binder
+        (CTX.SmartFreshBehindGuard.oldCenters guard))
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
@@ -694,6 +714,12 @@ type-lambda-binder-identity-ladder : String
 type-lambda-binder-identity-ladder =
   impLadderDefault type-lambda-binder-identity-derivation
 
+d1-inner-smart-live-ladder : String
+d1-inner-smart-live-ladder = impLadderDefault Smart.d1-inner-smart-live
+
+-- Smart.d1-top-smart-live-at cannot be instantiated: its occurrence premise
+-- would require suc zero to occur in ＇ zero ⇒ ★.
+
 checkpoint₈-target-Z-fragment-ladder : String
 checkpoint₈-target-Z-fragment-ladder =
   impLadderDefault checkpoint₈-YZ-fragment
@@ -714,8 +740,8 @@ small-lambda-ladder-pinned : small-lambda-ladder ≡
     "─────────  ─────────  ───────────\n" ++
   "λ♯0. □       (x0 ⇒ x0)  (x0 ⇒ x0)  x0 ≈ x0, x0 ≈ x0  " ++
     "(x0 ⇒ x0)  (x0 ⇒ x0)  λ♯0. □\n" ++
-  "`♯0          x0         x0         x0 ≈ x0           " ++
-    "x0         x0         `♯0"
+  "♯0           x0         x0         x0 ≈ x0           " ++
+    "x0         x0         ♯0"
 small-lambda-ladder-pinned = refl
 
 type-lambda-binder-identity-ladder-pinned :
@@ -741,12 +767,31 @@ type-lambda-binder-identity-ladder-pinned :
       "♭0 ≈ ♭0, x0 ≈ x0, ♭0 ≈ ♭0, x0 ≈ x0     " ++
       "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    " ++
       "((♭0 ⇒ x0) ⇒ (♭0 ⇒ x0))    λ♯0. □\n" ++
-    "`♯0          (♭0 ⇒ x0)                  " ++
+    "♯0           (♭0 ⇒ x0)                  " ++
       "(♭0 ⇒ x0)                  " ++
       "♭0 ≈ ♭0, x0 ≈ x0                       " ++
       "(♭0 ⇒ x0)                  " ++
-      "(♭0 ⇒ x0)                  `♯0"
+      "(♭0 ⇒ x0)                  ♯0"
 type-lambda-binder-identity-ladder-pinned = refl
+
+d1-inner-smart-live-ladder-pinned : d1-inner-smart-live-ladder ≡
+  "⟨x0: ─ ⊑[X⊑★] x0↦＇x1 │ x1: ─ ⊑[X⊑★] x1↦★ │ " ++
+    "x2: x0↦＇x0 ⊑[X⊑★] ─⟩\n" ++
+  "source term  A           ηᴸA         " ++
+    "⊑ costs                  ηᴿB       B         target term\n" ++
+  "───────────  ──────────  ──────────  " ++
+    "───────────────────────  ────────  ────────  ───────────\n" ++
+  "Λ□           ∀ (♭0 ⇒ ★)  ∀ (♭0 ⇒ ★)  " ++
+    "∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)   (★ ⇒ ★)   ─\n" ++
+  "─            (♭0 ⇒ ★)    (x0 ⇒ ★)    " ++
+    "mark X⊑★ at x0, ★⊑★      (★ ⇒ ★)   (★ ⇒ ★)   □ ↑ ⇒-rev\n" ++
+  "─            (♭0 ⇒ ★)    (x1 ⇒ ★)    " ++
+    "x1 ≈ x1, ★⊑★             (x1 ⇒ ★)  (x1 ⇒ ★)  □ ↑ ⇒-rev\n" ++
+  "λ♯0. □       (♭0 ⇒ ★)    (x0 ⇒ ★)    " ++
+    "x0 ≈ x0, ★⊑★             (x0 ⇒ ★)  (x0 ⇒ ★)  λ♯0. □\n" ++
+  "blame        ★           ★           " ++
+    "★⊑★                      ★         ★         blame"
+d1-inner-smart-live-ladder-pinned = refl
 
 checkpoint₈-target-Z-fragment-ladder-pinned :
   checkpoint₈-target-Z-fragment-ladder ≡
@@ -772,9 +817,9 @@ checkpoint₈-target-Z-fragment-ladder-pinned :
     "│ λ♯0. □               (x1 ⇒ x1)  (x1 ⇒ x1)  " ++
       "x1 ≈ x1, x1 ≈ x1                  (x1 ⇒ x1)  " ++
       "(x0 ⇒ x0)  λ♯0. □\n" ++
-    "│ `♯0                  x1         x1         " ++
+    "│ ♯0                   x1         x1         " ++
       "x1 ≈ x1                           x1         x0         " ++
-      "`♯0\n" ++
+      "♯0\n" ++
     "└ □ ↓ seal x2          x2         x2         " ++
       "x2 ≈ x2 + matched-seal-★-partner  x2         x1         " ++
       "□ ↓ seal x1\n" ++

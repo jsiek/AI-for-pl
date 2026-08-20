@@ -26,6 +26,28 @@
   the relevant imprecision and reduction square, which the terms fully
   normalized and with variables as names instead of de Bruijn indices.
   When displaying imprecision, use the Imp Ladder table format.
+  Here's the ladder for checkpoint 8 of example 12.
+
+```
+#   source term            A:src     ηᴸA:ctr    ⊑ costs               ηᴿB:ctr    B:tgt      target term
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1   □ ↑ unseal X           ℕ         ℕ          ι⊑★                   ★          ★          ─
+2   □ ⟨ ★↦＇X ⟩            ＇X       ＇X        mark X⊑★ at X         ★          ★          ─
+3   □ ⟨ id★ ⟩              ★         ★          ★⊑★                   ★          ★          □ ⟨ id★ ⟩
+4   □ ↑ unseal Z           ★         ★          ★⊑★                   ★          ★          ─
+5   ─                      ＇Z       ＇Z        mark X⊑★ at Z  ⚡     ★          ★          □ ↑ unseal Zᴿ
+6   □₁ · □₂                ＇Z       ＇Z        Z ≈ Z  (X⊑X)          ＇Z        ＇Zᴿ       □₁ · □₂
+7   ├ □ ↑ unseal Y ⇒-rev   ＇Z⇒＇Z   ＇Z⇒＇Z    Z ≈ Z, twice          ＇Z⇒＇Z    ＇Zᴿ⇒＇Zᴿ  □ ↑ unseal Yᴿ ⇒-rev
+8   │  λx. □               ＇Y⇒＇Y   ＇Y⇒＇Y    Y ≈ Y, twice          ＇Y⇒＇Y    ＇Yᴿ⇒＇Yᴿ  λx. □
+9   │   x                  ＇Y       ＇Y        Y ≈ Y                 ＇Y        ＇Yᴿ       x
+10  └ □ ↓ seal Z           ＇Z       ＇Z        Z ≈ Z + matched-      ＇Z        ＇Zᴿ       □ ↓ seal Zᴿ
+                                                seal-★-partner
+11    □ ⟨ ＇X↦★ ⟩          ★         ★          ★⊑★                   ★          ★          ─
+12    □ ↓ seal X           ＇X       ＇X        mark X⊑★ at X +       ★          ★          ─
+                                                X unoccupied
+13    ─                    ℕ         ℕ          ι⊑★                   ★          ★          □ ⟨ ℕ! ⟩
+14    7                    ℕ         ℕ          ℕ⊑ℕ                   ℕ          ℕ          7
+```
 
 ## Subagent launch notes
 

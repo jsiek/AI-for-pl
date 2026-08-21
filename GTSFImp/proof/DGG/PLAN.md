@@ -1160,7 +1160,10 @@ the entire SourceStrip/TargetWalk/TargetChain island.  The ten dead modules and
 the non-safe `LegacyAll` lane are deleted under the repository's closed-world
 policy; their three fixtures are retained as safe direct RightInj and
 TargetStrip regressions.  There are now no live `NON_COVERING` pragmas, and the
-safe aggregate imports the closed RightInj proof.
+safe aggregate imports the closed RightInj proof.  The surviving
+`TargetWalkSupport` module was then pruned to its live RightInj,
+TargetStrip, and TargetDescent consumers; the orphaned `resolveVar` star,
+store-chain, pivot-pedigree, and occupied-residual helpers are deleted.
 
 Backward simulation no longer tries to fabricate a right-only world after the
 source has reached blame.  Its one-step and multi-step results instead return
@@ -1181,6 +1184,17 @@ lift/rebase operations, and it now supplies the relation-indexed provenance in
 the `β-inst` branch.  The obsolete raw `targetStoreAs` and invalid split-alias
 Λ world are not acceptable implementations.  No Λ-specific term-imprecision
 constructor has been adopted.
+
+The structural instantiation surface no longer accepts the universal
+`TargetInsertProvenanceᵀ` provider.  Its public name/value workers consume
+`StructuralTermProvenance` indexed by the actual target package and relation;
+source cast, plain/smart Λ, reveal, conceal, target keep, and safe-inst peels
+return the exact child certificate.  `StructuralStrictChild` is now indexed by
+its child target and requires producer-owned provenance in all five strict
+cells.  This contract is checked through structural name instantiation,
+descent, inst inversion, and inst catchup.  There is no remaining provenance
+oracle or missing certificate inside that path; the remaining frontier is
+constructing the five strict cells and the final root assembler.
 
 The current full `All.agda` check reaches its first remaining failure at the
 obsolete `TargetBindLift.targetStoreAs = CTX.world ...` definition.  This is

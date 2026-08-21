@@ -33,6 +33,7 @@ import proof.DGG.GroundingMint
 import proof.DGG.GroundingPreserve
 import proof.DGG.CastConsistencyViews
 import proof.DGG.Inversion.SpineValueProof
+import proof.DGG.Inversion.RightInjInversion2Lemma
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.WorldInvariants

@@ -1,14 +1,17 @@
+{-# OPTIONS --safe #-}
+
 module BodyStripCheck where
 
--- Scratch-only validation for the recut target-strip package.
--- Checks that the Λ core rebuild consumes the lifted strip result through
--- the reemit continuation rather than assuming the terminal target is the
--- original sealed target.
+-- File Charter:
+--   * Checks the lifted-Λ target-strip obligation without the retired
+--     SourceStrip or TargetWalk surfaces.
+--   * Reconstructs an ordinary target-strip result from the lifted body
+--     result, including its target re-emission continuation.
 
+open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Nat using (suc)
-open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
   renaming (subst to subst≡)
 
 open import Types
@@ -19,13 +22,9 @@ open import CastTerms
 open import Imprecision
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
-open import proof.DGG.Inversion.SourceStripDef using
-  (SourceSpineStrip; SourceTagSealCore; SourceTagSealCoreBranch;
-   core-terminus; core-tagged; spine-paired; spine-sealed;
-   spine-tagged)
 open import proof.DGG.Inversion.TargetStripDef using
-  (TargetStripAt★; TargetStripAt★ᴸ; TargetStripAt★ᴸData)
-open import proof.DGG.Inversion.TargetWalkDef using (TargetTagSealWalk)
+  (TargetStripAt★ᴸ; TargetStripAt★Data; TargetStripAt★ᴸData;
+   target-strip★-data; target-strip★ᴸ-data; target-strip★ᴸ-paired)
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
 open import proof.TypeInTermSubst using (rename-occurs; toRename-keep-eq)
 
@@ -56,12 +55,13 @@ private
         (renameᵗ-cong A (toRename-keep-eq (CTX.ηᴸʷ W)))
         body★)
 
-------------------------------------------------------------------------
--- Validation A: the Λ core branch goes through reemit
-------------------------------------------------------------------------
+  nonvar-var-⊥ : ∀ {Δ} {A : Ty Δ} {X : TyVar Δ}
+    → A ≡ ＇ X
+    → NonVar A
+    → ⊥
+  nonvar-var-⊥ refl ()
 
-lambda-core-from-target-strip★ᴸ :
-  ∀ {Δᴸ Δᴿ Δ}
+lambda-target-strip-from-lifted-data : ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
     {γᵇ : CtxImp (CTX.liftWorldLeft Wᵖ)}
@@ -69,7 +69,7 @@ lambda-core-from-target-strip★ᴸ :
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-    {p : A ⊑ᵂ⟨ CTX.liftWorldLeft Wᵖ ⟩ ★}
+    {bodyp : A ⊑ᵂ⟨ CTX.liftWorldLeft Wᵖ ⟩ ★}
     {q : `∀ A ⊑ᵂ⟨ Wᵖ ⟩ ★}
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -77,23 +77,28 @@ lambda-core-from-target-strip★ᴸ :
   → Value V
   → ⟨ Δᴿ , targetStoreʷ Wᵖ , tgtCtxʷ γᵖ ⟩ ⊢
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
-  → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ γᵇ p
-  → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
-      cY Wᵖ γᵖ q
-lambda-core-from-target-strip★ᴸ {Wᵖ = Wᵖ} {γᵖ = γᵖ}
-    {ν = ν} {cY = cY} {q = q}
-    Anv z∈A liftγ vV target⊢ d =
-  core-terminus
-    (U★ , Y★ , ★ , refl , W★ , γ★ , mono★ , same★ ,
-      boundary★ , target∈★ , q★ ,
-      CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★ ,
-      λ _ → CTI2.Λ⊑² Anv z∈A liftγ vV target⊢
-        (reemit premise★) q)
+  → CTX.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
+      V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
+  → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY
+      Wᵖ γᵖ γᵇ bodyp
+  → TargetStripAt★Data Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S cY
+      Wᵖ γᵖ q
+lambda-target-strip-from-lifted-data {γᵖ = γᵖ} {ν = ν}
+    {cY = cY} {q = q} Anv z∈A liftγ vV target⊢ bodyD
+    (target-strip★ᴸ-data U★ Y★ W★ γ★ γ★ᴸ lift★ mono★
+      same★ boundary★ target∈★ body★ U⊢★ premise★ reemit) =
+  target-strip★-data U★ Y★ W★ γ★ mono★ same★ boundary★
+    target∈★ q★ premiseΛ (λ _ →
+      CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ (reemit premise★) q)
   where
-  open TargetStripAt★ᴸData d
   q★ = all-to-star-obligation {W = W★} Anv z∈A body★
+  premiseΛ = CTI2.Λ⊑² Anv z∈A lift★ vV U⊢★ premise★ q★
+lambda-target-strip-from-lifted-data Anv z∈A liftγ vV target⊢ bodyD
+    (target-strip★ᴸ-paired A≡ V≡ γᵒᴸ liftᵒ source∈ᵒ
+      target∈ᵒ boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ reemit) =
+  ⊥-elim (nonvar-var-⊥ A≡ Anv)
 
-lambda-core-from-member :
+lambda-target-strip-from-member :
   TargetStripAt★ᴸ
   → ∀ {Δᴸ Δᴿ Δ}
       {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
@@ -120,44 +125,9 @@ lambda-core-from-member :
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
   → CTX.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
-  → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
-      cY Wᵖ γᵖ q
-lambda-core-from-member stripᴸ {q = q}
-    Anv z∈A liftγ sv vV vU mono rb sc
-    X∈★ Y∈ target⊢ bodyD =
-  lambda-core-from-target-strip★ᴸ {q = q}
-    Anv z∈A liftγ vV target⊢
-    (stripᴸ sv vU mono rb sc X∈★ Y∈ liftγ bodyD)
-
-------------------------------------------------------------------------
--- Validation B: walk-from-strip composition remains unchanged
-------------------------------------------------------------------------
-
-walk-from-strip-with-target-strip★ :
-  SourceSpineStrip
-  → TargetStripAt★
-  → TargetStripAt★ᴸ
-  → SourceTagSealCore
-  → TargetTagSealWalk
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
-    sv vU mono rb sc X∈ Y∈ D
-    with strip sv vU mono rb sc X∈ Y∈ D
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
-    sv vU mono rb sc X∈ Y∈ D
-    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-sealed Pᵖ Aᵖ spineᵖ sealed finish =
-  finish sealed
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
-    sv vU mono rb sc X∈ Y∈ D
-    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-tagged Pᵖ Aᵖ spineᵖ Wᵖ γᵖ pᵖ monoᵒᵖ sameᵒᵖ
-          boundaryᵖᵒ source∈ᵒ target∈ᵒ premiseᶜ finish =
-  finish
-    (core {Xᴸ = Xᵒ} {q = qᵒ}
-      spineᵖ vU monoᵒᵖ boundaryᵖᵒ sameᵒᵖ source∈ᵒ target∈ᵒ
-      (core-tagged premiseᶜ))
-walk-from-strip-with-target-strip★ strip strip★ strip★ᴸ core
-    sv vU mono rb sc X∈ Y∈ D
-    | P , A , Xᵒ , Wᵒ , γᵒ , qᵒ , spine ,
-        spine-paired Pᵖ Aᵖ spineᵖ paired finish =
-  finish paired
+  → TargetStripAt★Data Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S cY
+      Wᵖ γᵖ q
+lambda-target-strip-from-member stripᴸ Anv z∈A liftγ sv vV vU mono rb
+    sc source∈ target∈ target⊢ bodyD =
+  lambda-target-strip-from-lifted-data Anv z∈A liftγ vV target⊢ bodyD
+    (stripᴸ sv vU mono rb sc source∈ target∈ liftγ bodyD)

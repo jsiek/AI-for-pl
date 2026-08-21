@@ -1195,6 +1195,15 @@ Honestification is therefore observationally and definitionally the identity:
 delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ₀`,
 rather than introducing another transformation plan.
 
+`TwoCtxTargetExtendPlanProbe` checks structural target insertion from either a
+fresh direct `★` entry or an exact fresh alias.  It reconstructs skip-center,
+lift-both, lift-left, bind-left, and bind-right history and proves source and
+target embedding, mark, direct target-lookup, and invariant laws.  Paired and
+term heads expose the next exact obligation: transport their
+relation-indexed type-imprecision premise into the extended world and renamed
+target type.  Do not replace that theorem by freshness, invariant injection,
+or representation resolution.
+
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
 reworked fixtures check with `agda --safe --no-caching`.  The occupied

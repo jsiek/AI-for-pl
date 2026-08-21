@@ -252,7 +252,10 @@ producers or integrations:
    type-imprecision exactly where their history constructor requires them.
 2. Structural target extension/insertion and target-strip reconstruction.
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
-   three actual non-rename producer sites listed above.
+   three actual non-rename producer sites listed above.  The checked target
+   extension plan now handles fresh `★`, exact alias, skip, both lift heads,
+   left bind, and right bind.  Paired and term heads await structural transport
+   of their relation-indexed type-imprecision premise.
 3. Delete honestification.  The checked elimination theorem reuses the same
    raw world and its direct invariants; no decay rewrite remains.
 4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt

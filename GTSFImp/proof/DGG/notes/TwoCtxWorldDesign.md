@@ -50,6 +50,9 @@ term bindings, with exact endpoint lookup and variable leaves at any depth.
 `TwoCtxHonestifyEliminationProbe` proves directly that every target-unaligned
 center is already marked `X⊑★`; honestification is therefore the identity on
 the raw relation, not a world transformation.
+`TwoCtxTargetExtendPlanProbe` checks fresh `★` and direct-alias target
+insertion and reconstructs skipped, lifted, source-bound, and target-bound
+history while preserving direct lookup, embeddings, marks, and invariants.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -625,6 +628,12 @@ Before this becomes a live design, the remaining probes must establish:
   `TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
   center outside the target embedding already has mark `X⊑★`; the original
   world and its direct invariants are reused definitionally.
+- Checked target extension has explicit fresh `★` and direct-alias roots and
+  reconstructs skip, lift-both, lift-left, bind-left, and bind-right history.
+  Its first remaining head is paired binding: reconstruction requires a
+  structural theorem transporting `A ⊑ᵀ⟨ W ⟩ B` to the extended world and
+  renamed target type.  Freshness and global invariants do not imply that
+  relation-indexed proof.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI

@@ -685,22 +685,21 @@ mapCtx-target-insert-bind {W′ = W′} {R = R} ins follows
 target-insert-bind-relation : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {W′ : CTX.World Δᴸ (suc Δᴿ) Δ′}
-    {π : Δ ↪ᵗ Δ′} {R : Ty Δᴿ}
+    {π : Δ ↪ᵗ Δ′}
     {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {V : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-  → TargetInsertProvenanceᵀ
   → (ins : TE.TargetInsert wk↪ᵗ π W W′)
   → (follows : CTX.targetStoreʷ W′ ≡
-      applyStores (bind R ∷ []) (CTX.targetStoreʷ W))
+      applyStores (bind ★ ∷ []) (CTX.targetStoreʷ W))
   → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
   → W′ CTI2.∣
       ECR.mapCtxᴿ (target-insert-bind-world-extendᴿ ins follows) γ
       ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶
         ECR.transport⊑ᵂ (target-insert-bind-world-extendᴿ ins follows) p
 target-insert-bind-relation {W′ = W′} {γ = γ} {B = B} {p = p}
-    target-provenance ins follows rel =
+    ins follows rel =
   subst≡
     (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶
       ECR.transport⊑ᵂ ext p)
@@ -710,7 +709,8 @@ target-insert-bind-relation {W′ = W′} {γ = γ} {B = B} {p = p}
       (TE.⊢²-target-insert W′ ins rel provenance))
   where
   ext = target-insert-bind-world-extendᴿ ins follows
-  provenance = target-provenance W′ ins rel
+  provenance = TE.directStarOffTargetInsertProvenance ins
+    (TE.bindStarTargetInsertDirectStarOff ins follows) rel
 
 
 structural-name-cast-equal :
@@ -966,7 +966,11 @@ structural-name-smart-Λ-equal surfaces worker target-provenance {γ = γ} {γ�
   target⊢ =
     subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
       (smartLiftCtxᴸ-target-ctx liftγ′)
-      (subst≡ (λ Σ → ⟨ _ , Σ , _ ⟩ ⊢ _ ⦂ _)
+      (subst≡
+        (λ Σ → ⟨ _ , Σ ,
+          CTX.tgtCtxʷ
+            (ECR.mapCtxᴿ (structural-world-extendᴿ planᵐ) γᵐ) ⟩
+          ⊢ _ ⦂ _)
         (smartCommaLift-target-store liftW′)
         postTarget⊢)
 
@@ -1311,8 +1315,7 @@ mutual
                {p = p} {q = q})
           typed-tail)
 
-    child-rel =
-      target-insert-bind-relation target-provenance ins follows rel
+    child-rel = target-insert-bind-relation ins follows rel
 
     child-final =
       structural-value-spine-instantiation-acc surfaces target-provenance fuel-step
@@ -1567,7 +1570,8 @@ mutual
         (CTI2T.target-typing² child-rel)
   structural-name-instantiation-acc surfaces target-provenance fuel-step residual-cast-builder
       inst-decrease plan chain-plan
-      (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vU target⊢ prem q)
+      (CTI2.Λ⊑²-smart-comma {γᵐ = γᵐ}
+        Anv z∈A liftW liftγ vU target⊢ prem q)
       (CT.Λ vU′) vN view spine chain typed (WF.acc smaller) target
       with StructuralNamePostPlan.smart-Λ-child plan refl liftW
          | StructuralNameChainPlan.smart-Λ-child chain-plan refl liftW
@@ -1583,7 +1587,8 @@ mutual
         liftW
   structural-name-instantiation-acc surfaces target-provenance {γ = γ} {B = B} {X = X}
       fuel-step residual-cast-builder inst-decrease plan chain-plan
-      (CTI2.Λ⊑²-smart-comma Anv z∈A liftW liftγ vU target⊢ prem q)
+      (CTI2.Λ⊑²-smart-comma {γᵐ = γᵐ}
+        Anv z∈A liftW liftγ vU target⊢ prem q)
       (CT.Λ vU′) vN view spine chain typed (WF.acc smaller) target
       | q₀ , child-plan
       | child-chain , (child-typed , child-chain-plan)
@@ -1630,7 +1635,11 @@ mutual
     target⊢′ =
       subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
         (smartLiftCtxᴸ-target-ctx liftγ′)
-        (subst≡ (λ Σ → ⟨ _ , Σ , _ ⟩ ⊢ _ ⦂ _)
+        (subst≡
+          (λ Σ → ⟨ _ , Σ ,
+            CTX.tgtCtxʷ
+              (ECR.mapCtxᴿ (structural-world-extendᴿ planᵐ) γᵐ) ⟩
+            ⊢ _ ⦂ _)
           (smartCommaLift-target-store liftW′)
           postTarget⊢)
   structural-name-instantiation-acc surfaces target-provenance fuel-step residual-cast-builder

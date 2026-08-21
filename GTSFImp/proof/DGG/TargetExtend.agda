@@ -5,6 +5,8 @@ module proof.DGG.TargetExtend where
 --     right-only target store extension.
 --   * Provides the target-side weakening helpers for indexed conversions,
 --     partner predicates, and derivation-level target extension.
+--   * Derives relation-indexed insertion provenance when every target entry
+--     outside the old-center image has direct `★` representation.
 --   * The public theorem specializes to the parked single right bind used by
 --     the DGG instantiation cases; internal helpers keep target weakening
 --     separate from source-side structure.
@@ -1867,6 +1869,353 @@ record RebaseInsertOK {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
 
 open RebaseInsertOK public
 
+record TargetInsertDirectStarOff {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    (ins : TargetInsert ρ π W W⁺) : Set where
+  constructor target-insert-direct-star-off
+  field
+    targetDirectStarOff : ∀ Y′
+      → preimage? π (toRenameᵗ (CTX.ηᴿʷ W⁺) Y′) ≡ nothing
+      → lookupStore (CTX.targetStoreʷ W⁺) Y′ ≡ ★
+
+open TargetInsertDirectStarOff public
+
+bindStarTargetInsertDirectStarOff : ∀ {Δᴸ Δᴿ Δ Δ′}
+    {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ (Nat.suc Δᴿ) Δ′}
+  → (ins : TargetInsert wk↪ᵗ π W W⁺)
+  → CTX.targetStoreʷ W⁺ ≡
+      Reduction.applyStores (bind ★ ∷ []) (CTX.targetStoreʷ W)
+  → TargetInsertDirectStarOff ins
+bindStarTargetInsertDirectStarOff {π = π} {W = W} {W⁺ = W⁺}
+    ins follows = target-insert-direct-star-off dynamic
+  where
+  dynamic : ∀ Y′
+    → preimage? π (toRenameᵗ (CTX.ηᴿʷ W⁺) Y′) ≡ nothing
+    → lookupStore (CTX.targetStoreʷ W⁺) Y′ ≡ ★
+  dynamic Fin.zero off =
+    cong (λ Σ → lookupStore Σ Fin.zero) follows
+  dynamic (Fin.suc Y) off = ⊥-elim (just≢nothing impossible)
+    where
+    center-eq : toRenameᵗ (CTX.ηᴿʷ W⁺) (Fin.suc Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ W) Y)
+    center-eq = trans
+      (cong (toRenameᵗ (CTX.ηᴿʷ W⁺)) (sym (toRename-wk-eq Y)))
+      (target-insert ins Y)
+
+    impossible : just (toRenameᵗ (CTX.ηᴿʷ W) Y) ≡ nothing
+    impossible = trans
+      (sym (preimage?-image π (toRenameᵗ (CTX.ηᴿʷ W) Y)))
+      (trans (cong (preimage? π) (sym center-eq)) off)
+
+liftBothTargetInsertDirectStarOff : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {v : VarImp}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → TargetInsertDirectStarOff (liftBothTargetInsert {v = v} ins)
+liftBothTargetInsertDirectStarOff {π = π} {W⁺ = W⁺} {v = v} ins dynamic =
+  target-insert-direct-star-off lifted
+  where
+  lifted : ∀ Y′
+    → preimage? (keep π)
+        (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldBoth v W⁺)) Y′)
+        ≡ nothing
+    → lookupStore (CTX.targetStoreʷ (CTX.liftWorldBoth v W⁺)) Y′ ≡ ★
+  lifted Fin.zero ()
+  lifted (Fin.suc Y′) off =
+    cong ⇑ᵗ (targetDirectStarOff dynamic Y′
+      (sucMaybe-nothing
+        (preimage? π (toRenameᵗ (CTX.ηᴿʷ W⁺) Y′)) off))
+
+liftLeftTargetInsertDirectStarOff : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {v : VarImp}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → TargetInsertDirectStarOff (liftLeftTargetInsert {v = v} ins)
+liftLeftTargetInsertDirectStarOff {π = π} {W⁺ = W⁺} ins dynamic =
+  target-insert-direct-star-off λ Y′ off →
+    targetDirectStarOff dynamic Y′
+      (sucMaybe-nothing
+        (preimage? π (toRenameᵗ (CTX.ηᴿʷ W⁺) Y′)) off)
+
+smartFreshTargetDirectStarOff : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
+  → TargetInsertDirectStarOff ins
+  → ∀ Y′
+  → preimage? (EmbeddingPushout.premise
+      (embeddingPushout π
+        (CTX.SmartFreshBehindGuard.oldCenters guard)))
+      (toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′)
+      ≡ nothing
+  → lookupStore (CTX.targetStoreʷ (smartFreshInsertWorld ins guard)) Y′ ≡ ★
+smartFreshTargetDirectStarOff {ρ = ρ} {π = π} {W⁺ = W⁺}
+    ins guard dynamic Y′ off with preimage? ρ Y′ in pre
+smartFreshTargetDirectStarOff ins guard dynamic Y′ off | nothing =
+  targetDirectStarOff dynamic Y′ (target-insert-off-image-center ins pre)
+smartFreshTargetDirectStarOff {ρ = ρ} {π = π} {Wᵐ = Wᵐ}
+    ins guard dynamic Y′ off | just Y =
+  ⊥-elim (just≢nothing impossible)
+  where
+  πᵐ = EmbeddingPushout.premise
+    (embeddingPushout π (CTX.SmartFreshBehindGuard.oldCenters guard))
+
+  y′-eq : Y′ ≡ toRenameᵗ ρ Y
+  y′-eq = preimage?-sound ρ pre
+
+  center-eq : toRenameᵗ
+      (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)) Y′
+    ≡ toRenameᵗ πᵐ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
+  center-eq = trans
+    (cong (toRenameᵗ (CTX.ηᴿʷ (smartFreshInsertWorld ins guard)))
+      y′-eq)
+    (smartFresh-target-insert ins guard Y)
+
+  impossible : just (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y) ≡ nothing
+  impossible = trans
+    (sym (preimage?-image πᵐ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)))
+    (trans (cong (preimage? πᵐ) (sym center-eq)) off)
+
+smartFreshTargetInsertDirectStarOff : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′ Δᵐ}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
+  → TargetInsertDirectStarOff ins
+  → TargetInsertDirectStarOff (smartFreshTargetInsert ins guard)
+smartFreshTargetInsertDirectStarOff ins guard dynamic =
+  target-insert-direct-star-off
+    (smartFreshTargetDirectStarOff ins guard dynamic)
+
+directStarOffRebaseInsertOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ}
+    {W⁺ : World Δᴸ Δᴿ′ Δ′}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → CTX.targetStoreʷ Wᵖ ≡ CTX.targetStoreʷ W
+  → (∀ Y → toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y
+      ≡ toRenameᵗ (CTX.ηᴿʷ W) Y)
+  → RebaseInsertOK {Wᵖ = Wᵖ} ins
+directStarOffRebaseInsertOK {ρ = ρ} {π = π} {W = W} {Wᵖ = Wᵖ}
+    {W⁺ = W⁺} ins direct-star-off target-store-same target-frozen =
+  rebase-insert-ok record
+    { sourceStore-kept = refl
+    ; transport⊑ᵂ = transport
+    ; targetStore-rename = target-store-rename
+    ; source-resolve = λ X → refl
+    ; target-resolve = target-resolveᵖ
+    ; align-insert = align-insertᵖ
+    ; source-insert = toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵖ)
+    ; target-insert = target-point
+    ; impEnv-insert = renameEnv-image π (CTX.impEnvʷ Wᵖ)
+    ; impEnv-off-insert = renameEnv-off π (CTX.impEnvʷ Wᵖ)
+    ; target-center-reflect = target-center-reflectᵖ
+    ; target-source-reflect = target-source-reflectᵖ
+    ; targetLookup-insert = target-lookup-insertᵖ
+    ; targetLookup-off = target-lookup-offᵖ
+    }
+  where
+  source-eq : ∀ A
+    → renameᵗ (toRenameᵗ (π ∘↪ CTX.ηᴸʷ Wᵖ)) A
+      ≡ renameᵗ (toRenameᵗ π)
+          (renameᵗ (toRenameᵗ (CTX.ηᴸʷ Wᵖ)) A)
+  source-eq A = trans
+    (renameᵗ-cong A (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵖ)))
+    (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴸʷ Wᵖ))
+      (toRenameᵗ π) A))
+
+  target-point : ∀ Y
+    → toRenameᵗ (CTX.ηᴿʷ W⁺) (toRenameᵗ ρ Y)
+      ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y)
+  target-point Y = trans (target-insert ins Y)
+    (cong (toRenameᵗ π) (sym (target-frozen Y)))
+
+  target-eq : ∀ B
+    → renameᵗ (toRenameᵗ (CTX.ηᴿʷ W⁺))
+        (renameᵗ (toRenameᵗ ρ) B)
+      ≡ renameᵗ (toRenameᵗ π)
+          (renameᵗ (toRenameᵗ (CTX.ηᴿʷ Wᵖ)) B)
+  target-eq B = trans
+    (renameᵗ-comp (toRenameᵗ ρ) (toRenameᵗ (CTX.ηᴿʷ W⁺)) B)
+    (trans (renameᵗ-cong B target-point)
+      (sym (renameᵗ-comp (toRenameᵗ (CTX.ηᴿʷ Wᵖ))
+        (toRenameᵗ π) B)))
+
+  transport : ∀ {A : Ty _} {B : Ty _}
+    → A ⊑ᵂ⟨ Wᵖ ⟩ B
+    → renameEnv π (CTX.impEnvʷ Wᵖ) ⊢
+        renameᵗ (toRenameᵗ (π ∘↪ CTX.ηᴸʷ Wᵖ)) A
+          ⊑ renameᵗ (toRenameᵗ (CTX.ηᴿʷ W⁺))
+              (renameᵗ (toRenameᵗ ρ) B)
+  transport {A = A} {B = B} p =
+    CTX.imprecision-cong (sym (source-eq A)) (sym (target-eq B))
+      (rename-⊑ (toRenameᵗ π) (toRenameᵗ-injective π)
+        (λ Z eq → trans (renameEnv-image π (CTX.impEnvʷ Wᵖ) Z) eq) p)
+
+  target-store-rename : StoreRename (toRenameᵗ ρ)
+      (CTX.targetStoreʷ Wᵖ) (CTX.targetStoreʷ W⁺)
+  target-store-rename =
+    subst≡
+      (λ Σ → StoreRename (toRenameᵗ ρ) Σ (CTX.targetStoreʷ W⁺))
+      (sym target-store-same)
+      (targetStore-rename ins)
+
+  target-resolveᵖ : ∀ Y
+    → CTX.resolveVar (CTX.targetStoreʷ W⁺) (toRenameᵗ ρ Y)
+      ≡ renameᵗ (toRenameᵗ ρ)
+          (CTX.resolveVar (CTX.targetStoreʷ Wᵖ) Y)
+  target-resolveᵖ Y = trans (target-resolve ins Y)
+    (cong (renameᵗ (toRenameᵗ ρ))
+      (sym (cong (λ Σ → CTX.resolveVar Σ Y)
+        target-store-same)))
+
+  align-insertᵖ : ∀ {Yᴸ Yᴿ}
+    → CTX.CenterAligned Wᵖ Yᴸ Yᴿ
+    → toRenameᵗ (π ∘↪ CTX.ηᴸʷ Wᵖ) Yᴸ
+      ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) (toRenameᵗ ρ Yᴿ)
+  align-insertᵖ {Yᴸ} {Yᴿ} aligned =
+    trans (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵖ) Yᴸ)
+      (trans (cong (toRenameᵗ π) aligned)
+        (trans (cong (toRenameᵗ π) (target-frozen Yᴿ))
+          (sym (target-insert ins Yᴿ))))
+
+  target-center-reflectᵖ : ∀ {Y′ Z}
+    → toRenameᵗ (CTX.ηᴿʷ W⁺) Y′ ≡ toRenameᵗ π Z
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y × toRenameᵗ (CTX.ηᴿʷ Wᵖ) Y ≡ Z
+  target-center-reflectᵖ eq with target-center-reflect ins eq
+  target-center-reflectᵖ eq | Y , mapped , old =
+    Y , mapped , trans (target-frozen Y) old
+
+  target-source-reflectᵖ : ∀ {Yᴸ Y′}
+    → toRenameᵗ (π ∘↪ CTX.ηᴸʷ Wᵖ) Yᴸ
+      ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) Y′
+    → Σ[ Y ∈ TyVar _ ]
+        Y′ ≡ toRenameᵗ ρ Y × CTX.CenterAligned Wᵖ Yᴸ Y
+  target-source-reflectᵖ {Yᴸ} aligned
+      with target-center-reflect ins target-image
+    where
+    target-image : toRenameᵗ (CTX.ηᴿʷ W⁺) _
+        ≡ toRenameᵗ π (toRenameᵗ (CTX.ηᴸʷ Wᵖ) Yᴸ)
+    target-image = trans (sym aligned)
+      (toRenameᵗ-∘ π (CTX.ηᴸʷ Wᵖ) Yᴸ)
+  target-source-reflectᵖ aligned | Y , mapped , old =
+    Y , mapped , trans (sym old) (sym (target-frozen Y))
+
+  target-lookup-insertᵖ : ∀ Y
+    → lookupStore (CTX.targetStoreʷ W⁺) (toRenameᵗ ρ Y)
+      ≡ renameᵗ (toRenameᵗ ρ)
+          (lookupStore (CTX.targetStoreʷ Wᵖ) Y)
+  target-lookup-insertᵖ Y = trans (targetLookup-insert ins Y)
+    (cong (renameᵗ (toRenameᵗ ρ))
+      (sym (cong (λ Σ → lookupStore Σ Y)
+        target-store-same)))
+
+  target-lookup-offᵖ : ∀ Y′
+    → preimage? π (toRenameᵗ (CTX.ηᴿʷ W⁺) Y′) ≡ nothing
+    → lookupStore (CTX.targetStoreʷ W⁺) Y′ ≡ ★
+      ⊎ Σ[ Z′ ∈ TyVar _ ]
+          lookupStore (CTX.targetStoreʷ W⁺) Y′ ≡ ＇ Z′
+        × (∀ Zᴸ → toRenameᵗ (π ∘↪ CTX.ηᴸʷ Wᵖ) Zᴸ
+            ≡ toRenameᵗ (CTX.ηᴿʷ W⁺) Z′ → ⊥)
+  target-lookup-offᵖ Y′ off =
+    inj₁ (targetDirectStarOff direct-star-off Y′ off)
+
+directStarOffForwardInsertOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → CTX.RebaseAt W Wᵖ Xᴸ Xᴿ
+  → RebaseInsertOK {Wᵖ = Wᵖ} ins
+directStarOffForwardInsertOK ins dynamic rb =
+  directStarOffRebaseInsertOK ins dynamic
+    (CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb))
+    (CTX.RebaseAt.ηᴿ-frozen rb)
+
+directStarOffReverseInsertOK : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W Wᵖ : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → CTX.RebaseAt Wᵖ W Xᴸ Xᴿ
+  → RebaseInsertOK {Wᵖ = Wᵖ} ins
+directStarOffReverseInsertOK ins dynamic rb =
+  directStarOffRebaseInsertOK ins dynamic
+    (sym (CTX.SameRuntime.targetStore-same runtime))
+    (λ Y → sym (CTX.RebaseAt.ηᴿ-frozen rb Y))
+  where
+  runtime = CTX.RebaseAt.sameRuntime rb
+
+targetInsertDirectStarOffForward : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W₁ W₂ : World Δᴸ Δᴿ Δ}
+    {W₁⁺ W₂⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ′ : TyVar Δᴿ′}
+  → (ins₁ : TargetInsert ρ π W₁ W₁⁺)
+  → (ins₂ : TargetInsert ρ π W₂ W₂⁺)
+  → TargetInsertDirectStarOff ins₁
+  → CTX.RebaseAt W₁⁺ W₂⁺ Xᴸ Xᴿ′
+  → TargetInsertDirectStarOff ins₂
+targetInsertDirectStarOffForward {π = π} {W₁⁺ = W₁⁺} {W₂⁺ = W₂⁺}
+    ins₁ ins₂ dynamic rb = target-insert-direct-star-off transferred
+  where
+  runtime = CTX.RebaseAt.sameRuntime rb
+  target-store : CTX.targetStoreʷ W₂⁺ ≡ CTX.targetStoreʷ W₁⁺
+  target-store = CTX.SameRuntime.targetStore-same runtime
+
+  transferred : ∀ Y′
+    → preimage? π (toRenameᵗ (CTX.ηᴿʷ W₂⁺) Y′) ≡ nothing
+    → lookupStore (CTX.targetStoreʷ W₂⁺) Y′ ≡ ★
+  transferred Y′ off =
+    subst≡ (λ Σ → lookupStore Σ Y′ ≡ ★) (sym target-store)
+      (targetDirectStarOff dynamic Y′ old-off)
+    where
+    old-off : preimage? π (toRenameᵗ (CTX.ηᴿʷ W₁⁺) Y′) ≡ nothing
+    old-off = trans
+      (sym (cong (preimage? π) (CTX.RebaseAt.ηᴿ-frozen rb Y′))) off
+
+targetInsertDirectStarOffReverse : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W₁ W₂ : World Δᴸ Δᴿ Δ}
+    {W₁⁺ W₂⁺ : World Δᴸ Δᴿ′ Δ′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ′ : TyVar Δᴿ′}
+  → (ins₁ : TargetInsert ρ π W₁ W₁⁺)
+  → (ins₂ : TargetInsert ρ π W₂ W₂⁺)
+  → TargetInsertDirectStarOff ins₁
+  → CTX.RebaseAt W₂⁺ W₁⁺ Xᴸ Xᴿ′
+  → TargetInsertDirectStarOff ins₂
+targetInsertDirectStarOffReverse {π = π} {W₁⁺ = W₁⁺} {W₂⁺ = W₂⁺}
+    ins₁ ins₂ dynamic rb = target-insert-direct-star-off transferred
+  where
+  runtime = CTX.RebaseAt.sameRuntime rb
+  target-store : CTX.targetStoreʷ W₁⁺ ≡ CTX.targetStoreʷ W₂⁺
+  target-store = CTX.SameRuntime.targetStore-same runtime
+
+  transferred : ∀ Y′
+    → preimage? π (toRenameᵗ (CTX.ηᴿʷ W₂⁺) Y′) ≡ nothing
+    → lookupStore (CTX.targetStoreʷ W₂⁺) Y′ ≡ ★
+  transferred Y′ off =
+    subst≡ (λ Σ → lookupStore Σ Y′ ≡ ★) target-store
+      (targetDirectStarOff dynamic Y′ old-off)
+    where
+    old-off : preimage? π (toRenameᵗ (CTX.ηᴿʷ W₁⁺) Y′) ≡ nothing
+    old-off = trans
+      (cong (preimage? π) (CTX.RebaseAt.ηᴿ-frozen rb Y′)) off
+
 insertRebaseWorld : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ}
@@ -3133,6 +3482,142 @@ primResultTy-renameᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) op
   → primResultTy {Δ′} op ≡ renameᵗ ρ (primResultTy {Δ} op)
 primResultTy-renameᵗ ρ addℕ = refl
 primResultTy-renameᵗ ρ and𝔹 = refl
+
+directStarOffTargetInsertProvenance : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
+    {γ : CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+  → (ins : TargetInsert ρ π W W⁺)
+  → TargetInsertDirectStarOff ins
+  → (rel : W ∣ γ ⊢² M ⊑ M′ ∶ p)
+  → TargetInsertProvenance W⁺ ins rel
+directStarOffTargetInsertProvenance ins dynamic (CTI2.x⊑x² x∈) = tt
+directStarOffTargetInsertProvenance ins dynamic (CTI2.ƛ⊑ƛ² rel) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic (CTI2.·⊑·² rel₁ rel₂) =
+  directStarOffTargetInsertProvenance ins dynamic rel₁ ,
+  directStarOffTargetInsertProvenance ins dynamic rel₂
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.Λ⊑Λ² liftγ vV vV′ rel q) =
+  directStarOffTargetInsertProvenance
+    (liftBothTargetInsert {v = X⊑X} ins)
+    (liftBothTargetInsertDirectStarOff ins dynamic) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ rel q) =
+  directStarOffTargetInsertProvenance
+    (liftLeftTargetInsert {v = X⊑★} ins)
+    (liftLeftTargetInsertDirectStarOff {v = X⊑★} ins dynamic) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A
+      (CTX.smart-merge-alias guard) liftγ vV M′⊢ rel q) =
+  tt
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.Λ⊑²-smart-comma Anv zero∈A
+      (CTX.smart-fresh-behind guard) liftγ vV M′⊢ rel q) =
+  directStarOffTargetInsertProvenance
+    (smartFreshTargetInsert ins guard)
+    (smartFreshTargetInsertDirectStarOff ins guard dynamic) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.•⊑•² p∀ rel q r) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.•⊑² p∀ rel q r) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic (CTI2.κ⊑κ² κ p) = tt
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.cast⊑cast² c c′ rel q) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic (CTI2.⊑cast² c′ rel q) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑reveal² mono CTX.rebase-idᴿ sc c′⊢ rel q) =
+  _ , ins , CTX.rebase-idᴿ ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑reveal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
+    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑reveal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑conceal² mono CTX.rebase-idᴿ sc c′⊢ rel q) =
+  _ , ins , CTX.rebase-idᴿ ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
+    with reverseRebaseAt ins rb (directStarOffReverseInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffReverse ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.cast⊑² c rel q) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑² mono CTX.rebase-idᴸ sc c⊢ rel q) =
+  _ , ins , CTX.rebase-idᴸ ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑² mono (CTX.rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ rel q) =
+  _ , ins ,
+  CTX.rebase-onlyᴸ
+    (insert-to-starᴸ ins to-star)
+    (insert-disalignedᴸ ins disaligned)
+    (insert-represented★ᴸ ins represented) ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc c⊢ rel q)
+    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc c⊢ rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑² mono CTX.tag-rebase-idᴸ sc c⊢ rel q) =
+  _ , ins , CTX.tag-rebase-idᴸ ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑² mono
+      (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
+      sc c⊢ rel q) =
+  _ , ins ,
+  CTX.tag-rebase-onlyᴸ
+    (insert-to-starᴸ ins to-star)
+    (insert-disalignedᴸ ins disaligned)
+    (insert-represented★ᴸ ins represented) ,
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
+    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ rel q)
+    with reverseRebaseAt ins rb (directStarOffReverseInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffReverse ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic (CTI2.blame⊑² M′⊢ p) = tt
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
+  directStarOffTargetInsertProvenance ins dynamic rel₁ ,
+  directStarOffTargetInsertProvenance ins dynamic rel₂
 
 ⊢²-target-insert : TargetExtendOPEᵀ
 ⊢²-target-insert W′ ins (CTI2.x⊑x² x∈) provenance =

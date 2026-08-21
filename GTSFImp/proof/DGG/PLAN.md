@@ -1154,11 +1154,15 @@ obligation for arbitrary target binds such as `bind ℕ`.
 The structural replay boundary now consumes the exact
 `StructuralTermProvenance plan rel` certificate for reveal/conceal replay,
 instead of synthesizing it from the false universal
-`TargetInsertProvenanceᵀ`.  The next Λ obligation is narrower: prove local
-target-insertion provenance for the actual canonical `β-inst`/`bind ★` plan,
-including each companion rebase, or refute that statement with a checked
-counterexample.  The obsolete raw `targetStoreAs` and invalid split-alias Λ
-world are not acceptable implementations.  No Λ-specific term-imprecision
+`TargetInsertProvenanceᵀ`.  A peeled `β-inst`/`bind ★` package does not retain
+the canonical `rightBindTargetInsert` geometry: the checked
+`CanonicalStarInsertProbe` packages an otherwise valid insertion one unused
+center farther out.  The useful local fact is instead `TargetInsertDirectStarOff`:
+every target entry outside the old-center image has direct store entry `★`.
+The `bind ★` store equation establishes this fact, it survives the structural
+lift/rebase operations, and it now supplies the relation-indexed provenance in
+the `β-inst` branch.  The obsolete raw `targetStoreAs` and invalid split-alias
+Λ world are not acceptable implementations.  No Λ-specific term-imprecision
 constructor has been adopted.
 
 SMART-COMMA FIXTURE BLOCKER: there is no positive fixture with the original

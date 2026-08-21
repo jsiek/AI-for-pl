@@ -1146,6 +1146,11 @@ identity and moving base cases, and commutation through every raw skeleton
 constructor.  The plan remains explicit: the next producer obligation is to
 show which operational pivot moves supply one, not to make rebase an
 unrestricted world rewrite.
+The skeleton also checks `initialWorldᶜ₀` and `emptyCenterWorldᶜ₀` recursors
+with constructor-form endpoints and pointwise center, embedding, and mark laws.
+It does not restore homogeneous equations against `id↪ᵗ`: the hidden center is
+only propositionally equal to the endpoint type context, so those old equations
+would require an explicit transport boundary.
 
 Administrative aliases are now checked as a scoped mode stack.
 `TwoCtxAliasFocusModeProbe` leaves the stable direct-invariant world unchanged,

@@ -59,8 +59,8 @@ references.
 
 | Live operation | Checked replacement | Live breadth | Status |
 |---|---|---:|---|
-| `initialWorld` | recursion from `emptyᶜ₀` through `liftBothᶜ₀` | 7 / 38 | Structurally representable; the live-named two-`Ctx` producer and endpoint laws are not yet checked. |
-| `emptyCenterWorld` | recursion from `emptyᶜ₀` through `skip-centerᶜ₀` | 1 / 4 | Structurally representable; producer not yet checked. |
+| `initialWorld` | `initialWorldᶜ₀` recursion through `liftBothᶜ₀` | 7 / 38 | Checked with constructor-form endpoints, center, embedding-alignment, and mark laws. |
+| `emptyCenterWorld` | `emptyCenterWorldᶜ₀` recursion through `skip-centerᶜ₀` | 1 / 4 | Checked with center, embedding-alignment, and dynamic-mark laws. |
 | `liftWorldBoth` | `liftBothᶜ₀` | 14 / 345 | Checked. |
 | `liftWorldLeft` | `liftLeftᶜ₀` | 26 / 433 | Checked. |
 | `leftOnlyWorld` | `bindLeftᶜ₀` | 8 / 19 | Checked. |
@@ -233,28 +233,30 @@ boundary facts, not by moving the traversal behind a new name.
 
 ## Genuinely missing producers
 
-No core `_⊑ᶜ₀_` constructor is missing.  The checked surface still lacks these
-operational producers or integrations:
+No core `_⊑ᶜ₀_` constructor is missing.  The initial and empty-center recursors
+and their pointwise endpoint laws now check.  The old homogeneous equations
+against `id↪ᵗ` are deliberately not restored: the hidden center is only
+propositionally equal to the endpoint type context, so those equations would
+require transport.  The checked surface still lacks these operational
+producers or integrations:
 
-1. Checked `initialWorldᶜ` and `emptyCenterWorldᶜ` recursors and their endpoint
-   laws.
-2. A structural center-renaming graph over raw history.  This replaces
+1. A structural center-renaming graph over raw history.  This replaces
    `mix-renamed-targetʷ`; it must rebuild constructor premises rather than take
    `WorldInvariants` as an argument.
-3. Structural target extension/insertion and target-strip reconstruction.
+2. Structural target extension/insertion and target-strip reconstruction.
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
    three actual non-rename producer sites listed above.
-4. A structural honestification/decay function if the operational decay proof
+3. A structural honestification/decay function if the operational decay proof
    still needs it.  It is a history rewrite, not a world constructor.
-5. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
+4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
    freshness and type-imprecision premises from direct caller facts.
-6. A live boundary-focus layer: exact alias-allocation producers, stacked
+5. A live boundary-focus layer: exact alias-allocation producers, stacked
    `TargetMode` validity, universal-type lifting, and reveal/conceal integration.
    The probes check one and two direct alias edges, but do not yet connect them
    to the live DGG.
-7. A structural fresh-behind plan for the smart-comma source binder.  Alias
-   merge uses item 6 instead; it must not mutate the stable world.
-8. Endpoint-indexed world evolution for store-changing reduction.  Raw bind
+6. A structural fresh-behind plan for the smart-comma source binder.  Alias
+   merge uses item 5 instead; it must not mutate the stable world.
+7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind
    constructors express the resulting contexts, but the simulation producer
    relating a trusted reduction step to those constructors is not checked.
 

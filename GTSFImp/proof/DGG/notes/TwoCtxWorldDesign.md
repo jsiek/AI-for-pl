@@ -39,7 +39,9 @@ two-boundary `β := α`, `α := ★` reveal spine.
 indices to that surface.  `TwoCtxTermEntryProbe` checks real endpoint lookup,
 term binding, and a variable CTI leaf.  `TwoCtxScopedTermBoundaryProbe` then
 joins a concrete alias-boundary world, focused term binding, and real endpoint
-lookup.  All check under `--safe`; none follows a representation chain.
+lookup.  The skeleton now also checks `initialWorldᶜ₀` and
+`emptyCenterWorldᶜ₀` recursors with pointwise center, embedding, and mark laws.
+All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
 

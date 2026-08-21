@@ -13,7 +13,8 @@ open import Data.Nat using (suc; zero)
 open import Data.Product using (Σ-syntax; _×_)
 open import Data.Sum using (_⊎_)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; _≢_; refl; cong)
 
 open import Types using (Ty; TyCtx; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ)
 open import TyStore using
@@ -29,6 +30,10 @@ open import CastTerms using
 
 infix 4 _⊑ᶜ₀_
 infix 4 _⊑ᵀ₀⟨_⟩_
+
+emptyStoreᶜ₀ : (Delta : TyCtx) → TyStore Delta
+emptyStoreᶜ₀ zero = store-empty
+emptyStoreᶜ₀ (suc Delta) = store-lift (emptyStoreᶜ₀ Delta)
 
 mutual
   data _⊑ᶜ₀_ : Ctx → Ctx → Set where
@@ -236,3 +241,75 @@ bindBothStarᶜ₀ : ∀ {Cᴸ Cᴿ}
   → (Cᴸ ,ˢ A) ⊑ᶜ₀ (Cᴿ ,ˢ B)
 bindBothStarᶜ₀ W p A≢★ =
   bind-both-star-rawᶜ₀ W p A≢★ refl refl
+
+initialWorldᶜ₀ : ∀ {Delta}
+  → ImpEnv Delta
+  → ⟨ Delta , emptyStoreᶜ₀ Delta , [] ⟩ ⊑ᶜ₀
+    ⟨ Delta , emptyStoreᶜ₀ Delta , [] ⟩
+initialWorldᶜ₀ {zero} mu = emptyᶜ₀
+initialWorldᶜ₀ {suc Delta} mu =
+  liftBothᶜ₀ (mu Fin.zero)
+    (initialWorldᶜ₀ (λ X → mu (Fin.suc X)))
+
+initialWorld-centerᶜ₀ : ∀ {Delta} (mu : ImpEnv Delta)
+  → centerᶜ₀ (initialWorldᶜ₀ mu) ≡ Delta
+initialWorld-centerᶜ₀ {zero} mu = refl
+initialWorld-centerᶜ₀ {suc Delta} mu =
+  cong suc (initialWorld-centerᶜ₀ (λ X → mu (Fin.suc X)))
+
+-- The direct live-style equations eta-left = id and eta-right = id are not
+-- homogeneous here: their codomains are centerᶜ₀ W and Delta.  The center
+-- law above is propositional, so stating those equations would insert a
+-- transport shim.  Equality of the two actual endpoint embeddings is direct.
+
+initialWorld-embeddingsᶜ₀ : ∀ {Delta} (mu : ImpEnv Delta)
+  → ηᴸᶜ₀ (initialWorldᶜ₀ mu)
+    ≡ ηᴿᶜ₀ (initialWorldᶜ₀ mu)
+initialWorld-embeddingsᶜ₀ {zero} mu = refl
+initialWorld-embeddingsᶜ₀ {suc Delta} mu =
+  cong keep (initialWorld-embeddingsᶜ₀ (λ X → mu (Fin.suc X)))
+
+initialWorld-markᶜ₀ : ∀ {Delta} (mu : ImpEnv Delta) (X : TyVar Delta)
+  → marksᶜ₀ (initialWorldᶜ₀ mu)
+      (toRenameᵗ (ηᴸᶜ₀ (initialWorldᶜ₀ mu)) X)
+    ≡ mu X
+initialWorld-markᶜ₀ {suc Delta} mu Fin.zero = refl
+initialWorld-markᶜ₀ {suc Delta} mu (Fin.suc X) =
+  initialWorld-markᶜ₀ (λ Y → mu (Fin.suc Y)) X
+
+initialWorld-target-markᶜ₀ : ∀ {Delta}
+    (mu : ImpEnv Delta) (X : TyVar Delta)
+  → marksᶜ₀ (initialWorldᶜ₀ mu)
+      (toRenameᵗ (ηᴿᶜ₀ (initialWorldᶜ₀ mu)) X)
+    ≡ mu X
+initialWorld-target-markᶜ₀ {suc Delta} mu Fin.zero = refl
+initialWorld-target-markᶜ₀ {suc Delta} mu (Fin.suc X) =
+  initialWorld-target-markᶜ₀ (λ Y → mu (Fin.suc Y)) X
+
+emptyCenterWorldᶜ₀ : (Delta : TyCtx)
+  → ⟨ zero , store-empty , [] ⟩ ⊑ᶜ₀
+    ⟨ zero , store-empty , [] ⟩
+emptyCenterWorldᶜ₀ zero = emptyᶜ₀
+emptyCenterWorldᶜ₀ (suc Delta) =
+  skip-centerᶜ₀ (emptyCenterWorldᶜ₀ Delta)
+
+emptyCenterWorld-centerᶜ₀ : (Delta : TyCtx)
+  → centerᶜ₀ (emptyCenterWorldᶜ₀ Delta) ≡ Delta
+emptyCenterWorld-centerᶜ₀ zero = refl
+emptyCenterWorld-centerᶜ₀ (suc Delta) =
+  cong suc (emptyCenterWorld-centerᶜ₀ Delta)
+
+emptyCenterWorld-embeddingsᶜ₀ : (Delta : TyCtx)
+  → ηᴸᶜ₀ (emptyCenterWorldᶜ₀ Delta)
+    ≡ ηᴿᶜ₀ (emptyCenterWorldᶜ₀ Delta)
+emptyCenterWorld-embeddingsᶜ₀ zero = refl
+emptyCenterWorld-embeddingsᶜ₀ (suc Delta) =
+  cong skip (emptyCenterWorld-embeddingsᶜ₀ Delta)
+
+emptyCenterWorld-markᶜ₀ : (Delta : TyCtx)
+    (Z : TyVar (centerᶜ₀ (emptyCenterWorldᶜ₀ Delta)))
+  → marksᶜ₀ (emptyCenterWorldᶜ₀ Delta) Z ≡ X⊑★
+emptyCenterWorld-markᶜ₀ zero ()
+emptyCenterWorld-markᶜ₀ (suc Delta) Fin.zero = refl
+emptyCenterWorld-markᶜ₀ (suc Delta) (Fin.suc Z) =
+  emptyCenterWorld-markᶜ₀ Delta Z

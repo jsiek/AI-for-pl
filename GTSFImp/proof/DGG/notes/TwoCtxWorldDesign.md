@@ -53,6 +53,14 @@ the raw relation, not a world transformation.
 `TwoCtxTargetExtendPlanProbe` checks fresh `★` and direct-alias target
 insertion and reconstructs skipped, lifted, source-bound, and target-bound
 history while preserving direct lookup, embeddings, marks, and invariants.
+`TwoCtxTargetStripReconstructionProbe` checks that target stripping lowers the
+actual `SourceRebasePlanᶜ₀` through a left lift, rather than attempting to
+invert an extensional world witness.
+`TwoCtxScopedUniversalLiftProbe` isolates the failure of the old head-only
+alias boundary under lifting.  `TwoCtxLiftedExactBoundaryProbe` introduces the
+structural one-edge replacement, and `TwoCtxEdgeIndexedModeProbe` checks the
+resulting head and lifted modes, recursive term contexts, lookups, and variable
+leaves.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -629,17 +637,24 @@ Before this becomes a live design, the remaining probes must establish:
   center outside the target embedding already has mark `X⊑★`; the original
   world and its direct invariants are reused definitionally.
 - Checked target extension has explicit fresh `★` and direct-alias roots and
-  reconstructs skip, lift-both, lift-left, bind-left, and bind-right history.
-  Its first remaining head is paired binding: reconstruction requires a
-  structural theorem transporting `A ⊑ᵀ⟨ W ⟩ B` to the extended world and
-  renamed target type.  Freshness and global invariants do not imply that
-  relation-indexed proof.
+  reconstructs every raw history head.  Its type-imprecision transport theorem
+  renames the existing derivation using the checked embedding and mark laws;
+  this closes paired, dynamic-paired, and term-binding history without
+  invariants or representation resolution.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI
   without making pending names available to ordinary term constructors.  The
   generic boundary surface, arbitrary repeated term-context extension, and
-  concrete two-boundary fixture check.  Universal-type lifting and the full
-  live reveal/conceal constructor family remain open.
+  concrete two-boundary fixture check.  Universal lifting now works for one
+  structural exact alias edge beneath a binder prefix: the edge shifts rather
+  than being reallocated at the head, and the focused mode retains real term
+  entries and a variable leaf.  The full live reveal/conceal constructor family
+  remains open.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.
+- Target stripping must retain source-rebase provenance.  The checked lower
+  operation has exactly the identity and lifted-child cases, reconstructs the
+  lifted result definitionally, and derives invariants from raw history.
+  Extensional center/embedding/mark equalities alone cannot distinguish
+  commuting `lift-left` and `bind-term` histories.

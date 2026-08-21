@@ -1185,9 +1185,9 @@ term binding under the focused mode, and yields a genuine variable CTI leaf.
 `TwoCtxScopedTermClosureProbe` closes the same surface under arbitrary repeated
 term bindings and checks here/there/tail entry transport, both endpoint
 lookups, and a variable leaf at depth two.  No mutual-index workaround or
-parallel `CtxImp` is needed for ordinary term-context extension.  The remaining
-generic work is universal-type lifting and the complete live reveal/conceal
-constructor family.
+parallel `CtxImp` is needed for ordinary term-context extension.  Structural
+alias-edge lifting is checked below; the remaining generic work is the complete
+live reveal/conceal constructor family.
 
 `TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
 target-unaligned center in a raw two-`Ctx` world is already marked `X⊑★`.
@@ -1199,10 +1199,28 @@ rather than introducing another transformation plan.
 fresh direct `★` entry or an exact fresh alias.  It reconstructs skip-center,
 lift-both, lift-left, bind-left, and bind-right history and proves source and
 target embedding, mark, direct target-lookup, and invariant laws.  Paired and
-term heads expose the next exact obligation: transport their
-relation-indexed type-imprecision premise into the extended world and renamed
-target type.  Do not replace that theorem by freshness, invariant injection,
-or representation resolution.
+term heads require transport of their relation-indexed type-imprecision
+premise into the extended world and renamed target type.  That structural
+transport theorem now checks from the embedding and mark laws and closes
+bind-both, bind-both-star, and bind-term.  It uses neither global invariants nor
+representation resolution.
+
+`TwoCtxTargetStripReconstructionProbe` checks the replacement for the live
+`lower-leftʷ` producer.  It lowers the actual `SourceRebasePlanᶜ₀` through a
+left lift, with exactly identity and lifted-child cases, reconstructs the
+lifted output by `refl`, and derives direct invariants.  The live target-strip
+surface must therefore retain or recover that plan provenance; extensional
+world facts cannot determine a unique raw history.
+
+`TwoCtxScopedUniversalLiftProbe` checks why the old head-only alias boundary
+cannot survive universal lifting: the existing `β := α` edge shifts below a
+fresh self cell instead of becoming another head allocation.
+`TwoCtxLiftedExactBoundaryProbe` records that exact one-edge structure with a
+lift-prefix constructor.  `TwoCtxEdgeIndexedModeProbe` then indexes the focus
+mode by the structural edge and checks both head and lifted worlds, scoped type
+imprecision, arbitrary recursive term bindings, endpoint lookup, and a real
+variable leaf.  Universal lifting therefore preserves edge identity without
+mutating the stable world or following an alias chain.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

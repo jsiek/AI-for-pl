@@ -5,9 +5,10 @@
 This is a read-only audit of the live world surface in
 `proof/DGG/CtxImp.agda` against the checked `TwoCtxWorldSkeletonProbe`,
 `TwoCtxWorldInvariantsProbe`, `TwoCtxSourceRebasePlanProbe`,
-`TwoCtxAdministrativeAliasFocusProbe`, and `TwoCtxAliasFocusModeProbe`.
-`TwoCtxTypedAliasBoundaryProbe` additionally checks the type-indexed boundary
-surface.  The counts below are exact textual references in live `.agda` files
+`TwoCtxTargetExtendPlanProbe`, `TwoCtxTargetStripReconstructionProbe`, and the
+edge-indexed alias-mode probes.  The typed boundary and scoped-term probes
+additionally check the type and term-indexed surface.  The counts below are
+exact textual references in live `.agda` files
 outside `CtxImp.agda` and `proof/DGG/notes/`, measured on 2026-08-21.  A
 breadth such as `4 / 19` means four consumer modules and nineteen exact
 references.
@@ -254,8 +255,11 @@ producers or integrations:
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
    three actual non-rename producer sites listed above.  The checked target
    extension plan now handles fresh `★`, exact alias, skip, both lift heads,
-   left bind, and right bind.  Paired and term heads await structural transport
-   of their relation-indexed type-imprecision premise.
+   left bind, right bind, both paired heads, and term binding.  The checked
+   type-imprecision transport uses embedding/mark laws and structural renaming,
+   not invariants or resolution.  Target-strip reconstruction is checked by
+   lowering the retained `SourceRebasePlanᶜ₀` through `lift-left`; arbitrary
+   extensional world inversion is deliberately not used.
 3. Delete honestification.  The checked elimination theorem reuses the same
    raw world and its direct invariants; no decay rewrite remains.
 4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
@@ -263,8 +267,9 @@ producers or integrations:
 5. A live boundary-focus layer.  The probes now check exact alias allocation,
    stacked `TargetMode` validity, a generic stable/boundary world parameter,
    arbitrary repeated scoped term binding, exact endpoint lookup at depth, and
-   a real variable leaf.  Universal-type lifting and the complete
-   reveal/conceal family are not yet connected to the live DGG.
+   a real variable leaf.  The exact edge is closed under binder prefixes and
+   the lifted edge-indexed mode retains scoped entries and a variable leaf.
+   The complete reveal/conceal family is not yet connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.
 7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind

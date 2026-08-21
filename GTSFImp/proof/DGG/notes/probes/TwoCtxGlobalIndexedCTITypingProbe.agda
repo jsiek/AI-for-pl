@@ -20,7 +20,7 @@ import TermCtx as TC
 import Conversion as Conv
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; _∋ᵗ_⦂_; _⊢_⦂_;
-   ⊢`; ⊢ƛ; ⊢·; ⊢$; ⊢blame; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
+   ⊢`; ⊢ƛ; ⊢·; ⊢$; ⊢⟨⟩; ⊢blame; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
 open import proof.DGG.TwoCtxWorld using (_⊑ᶜ_)
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using
   (ExactAliasEdgeᵉ)
@@ -115,6 +115,19 @@ scoped-cti-endpoint-typingᵍ
   ⊢$ kappa , ⊢$ kappa
 scoped-cti-endpoint-typingᵍ (Global.blame⊑ᵍ target⊢ p) =
   ⊢blame , target⊢
+scoped-cti-endpoint-typingᵍ
+    (Global.cast⊑castᵍ c c′ relation) =
+  ⊢⟨⟩ (proj₁ endpoints) c , ⊢⟨⟩ (proj₂ endpoints) c′
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ (Global.cast⊑ᵍ c relation) =
+  ⊢⟨⟩ (proj₁ endpoints) c , proj₂ endpoints
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ (Global.⊑castᵍ c′ relation) =
+  proj₁ endpoints , ⊢⟨⟩ (proj₂ endpoints) c′
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
 scoped-cti-endpoint-typingᵍ
     (Global.all⊑allᵍ scope-lift vV vV′ relation) =
   ⊢Λ vV (proj₁ endpoints) , ⊢Λ vV′ (proj₂ endpoints)

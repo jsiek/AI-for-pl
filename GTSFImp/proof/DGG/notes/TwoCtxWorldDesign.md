@@ -19,15 +19,17 @@ fields of the two endpoint `Ctx` values.
 The core relation and projections now live in `proof/DGG/TwoCtxWorld.agda`.
 `proof/DGG/TwoCtxWorldInvariants.agda` proves that every raw constructor implies
 the four direct nominal invariants and checks a direct-store rebase graph plus
-its same-world case.  Both modules are imported by the safe aggregate.  The
-later rebase-plan probe checks the corresponding structural function over an
-explicit plan.  Operational consumers still use the old world, so producing
-and migrating those plans remains unfinished.  This note does not authorize a
-change to the live term-imprecision relation.
+its same-world case.  `proof/DGG/SourceRebasePlan.agda` gives the corresponding
+structural function over an explicit plan, and
+`proof/DGG/SourceRebaseRequest.agda` gives its direct-store operational request
+surface.  These modules are imported by the safe aggregate.  Operational
+consumers still use the old world, so migrating their producers remains
+unfinished.  This note does not authorize a change to the live
+term-imprecision relation.
 
-Later probes check the first nontrivial provenance layers.  The
-`TwoCtxSourceRebasePlanProbe` implements one local source/target allocation
-commutation and carries it through every later raw history constructor.  The
+The live `SourceRebasePlan` implements one local source/target allocation
+commutation and carries it through every later raw history constructor.  Later
+probes check the next nontrivial provenance layers.  The
 `TwoCtxAdministrativeAliasFocusProbe` keeps a stable world unchanged while a
 boundary-local view consumes exactly one fresh target edge `β := α`.
 `TwoCtxAliasFocusModeProbe` stacks those exact one-edge views and checks the
@@ -36,8 +38,8 @@ two-boundary `β := α`, `α := ★` reveal spine.
 indices to that surface.  `TwoCtxTermEntryProbe` checks real endpoint lookup,
 term binding, and a variable CTI leaf.  `TwoCtxScopedTermBoundaryProbe` then
 joins a concrete alias-boundary world, focused term binding, and real endpoint
-lookup.  The skeleton now also checks `initialWorldᶜ₀` and
-`emptyCenterWorldᶜ₀` recursors with pointwise center, embedding, and mark laws.
+lookup.  The live core now also checks `initialWorldᶜ` and
+`emptyCenterWorldᶜ` recursors with pointwise center, embedding, and mark laws.
 `TwoCtxCenterRenamePlanProbe` reconstructs every raw history head under a
 structural center embedding and derives the direct invariants of the result.
 `TwoCtxGenericScopedWorldProbe` abstracts the scoped boundary and one body
@@ -51,23 +53,23 @@ the raw relation, not a world transformation.
 insertion and reconstructs skipped, lifted, source-bound, and target-bound
 history while preserving direct lookup, embeddings, marks, and invariants.
 `TwoCtxTargetStripReconstructionProbe` checks that target stripping lowers the
-actual `SourceRebasePlanᶜ₀` through a left lift, rather than attempting to
+actual `SourceRebasePlan` through a left lift, rather than attempting to
 invert an extensional world witness.
 `TwoCtxScopedUniversalLiftProbe` isolates the failure of the old head-only
 alias boundary under lifting.  `TwoCtxLiftedExactBoundaryProbe` introduces the
 structural one-edge replacement, and `TwoCtxEdgeIndexedModeProbe` checks the
 resulting head and lifted modes, recursive term contexts, lookups, and variable
 leaves.
-`TwoCtxWorldEvolutionProbe` checks constructor-form endpoint evolution for
-trusted keep/bind store changes.  Executable store and term-context application
-appear only in projection theorems, never in world-evolution indices.
-`TwoCtxWorldEvolutionProducerProbe` records the exact relational allocation
-evidence that bare trusted store changes omit.
-`TwoCtxWorldEvolutionSequenceProbe` composes unilateral and paired steps with
+The live `TwoCtxWorldEvolution` module checks constructor-form endpoint
+evolution for trusted keep/bind store changes.  Executable store and
+term-context application appear only in projection theorems, never in
+world-evolution indices.  `TwoCtxWorldEvolutionProducer` records the exact
+relational allocation evidence that bare trusted store changes omit.
+`TwoCtxWorldEvolutionSequence` composes unilateral and paired steps with
 explicit intermediate worlds and checks trusted multi-store, term-context, and
 term projections without synthetic synchronization steps.
-`TwoCtxSourceRebaseProducerProbe` checks the three operational request cases:
-no pivot, an unmatched source pivot, and a paired structural move.
+The live `SourceRebaseRequest` checks the three operational request cases: no
+pivot, an unmatched source pivot, and a paired structural move.
 `TwoCtxFreshBehindPlanProbe` checks source lift behind a target-star prefix and
 keeps `β := α` in the boundary-scoped edge layer.
 `TwoCtxEdgeScopedCTIProbe` checks ordinary variable/lambda/application rules,
@@ -79,7 +81,7 @@ relation and the complete reveal-first spine in this setting: the composite
 `β` function reveal, term-preserving type transport, and mapped `α` reveal.
 `TwoCtxGlobalIndexedCTIProbe` makes the full world/focus/edge/mode state an
 index, checks recursive universal abstraction and type application under
-`liftBothᶜ₀`, and admits exact target boundaries with arbitrary trusted
+`liftBothᶜ`, and admits exact target boundaries with arbitrary trusted
 conversion typing, including the strict-`Λ` composite function conversion.
 Its structural prefix plan now transports the runtime state, modes, scoped
 types, heterogeneous term worlds, and term entries at arbitrary binder depth.
@@ -398,7 +400,7 @@ trusted reduction semantics.
 `SourceRebasePlan` describes local movement in the inductive history.  The
 checked skeleton probe has now chosen and exhausted its constructor cases.
 Because the center is hidden behind the world witness, its
-`rebaseSource-centerᶜ₀` theorem is proved structurally and the embedding laws
+`rebaseSource-center` theorem is proved structurally and the embedding laws
 perform the corresponding explicit `Fin` transports.  The displayed live
 interface remains schematic, but the function-and-graph alternative is no
 longer an untested design choice.
@@ -416,12 +418,12 @@ endpoint `Ctx` indices therefore requires a checked plan that commutes a source
 allocation through the later history.  Adding a function without such local
 commutations would merely hide the missing provenance.
 
-The checked `TwoCtxSourceRebasePlanProbe` now supplies the first such
-commutation.  In normalized form its local rewrite is
+The live `SourceRebasePlan` supplies the first such commutation.  In normalized
+form its local rewrite is
 
 ```agda
-bind-right-rawᶜ₀ (bind-left-rawᶜ₀ W A) B
-  ↦ bind-both-star-rawᶜ₀ (skip-centerᶜ₀ W) represented A≠★
+bind-right-rawᶜ (bind-left-rawᶜ W A) B
+  ↦ bind-both-star-rawᶜ (skip-centerᶜ W) represented A≠★
 ```
 
 The old source-only cell becomes vacant and the source/target pivots occupy a
@@ -436,7 +438,7 @@ center preservation, off-pivot source preservation, frozen target embeddings,
 pivot alignment, all four direct invariants, and the direct-store graph
 obligation.
 
-This makes `rebaseSourceᶜ₀` total over the checked plan and every constructor
+This makes `rebaseSource` total over the checked plan and every constructor
 of the raw skeleton.  It does not claim that an arbitrary world and arbitrary
 pivot pair admits a plan: identity requires existing direct alignment, while
 the moving base case requires the explicit adjacent source-only/target-only
@@ -700,7 +702,7 @@ establish:
   delete its older atomic lift premise.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.  The checked
-  `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,
+  `CtxChange`/`WorldEvolution` surface covers keep, left-only, right-only,
   paired-precise, and paired-dynamic allocation, derives direct invariants,
   and relates its endpoints to trusted `applyStore` only afterward.  The
   checked producer owns the facts bare `StoreChange` omits: right-only

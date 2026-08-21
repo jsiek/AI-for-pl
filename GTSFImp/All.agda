@@ -38,6 +38,8 @@ import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.WorldInvariants
 import proof.DGG.TwoCtxWorldInvariants
+import proof.DGG.TwoCtxWorldEvolutionSequence
+import proof.DGG.SourceRebaseRequest
 
 ------------------------------------------------------------------------
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
@@ -179,6 +181,8 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
+import proof.DGG.notes.probes.SourceRebaseRequestExamplesProbe
+import proof.DGG.notes.probes.TwoCtxSimulationResultProbe
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

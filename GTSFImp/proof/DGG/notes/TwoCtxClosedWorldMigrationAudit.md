@@ -4,7 +4,7 @@
 
 This is a read-only audit of the old world surface in
 `proof/DGG/CtxImp.agda` against the live `TwoCtxWorld`,
-`TwoCtxWorldInvariants`, and checked `TwoCtxSourceRebasePlanProbe`,
+`TwoCtxWorldInvariants`, `SourceRebasePlan`, and checked
 `TwoCtxTargetExtendPlanProbe`, `TwoCtxTargetStripReconstructionProbe`, and the
 edge-indexed alias-mode probes.  The typed boundary and scoped-term probes
 additionally check the type and term-indexed surface.  The counts below are
@@ -23,20 +23,20 @@ integrate the checked rebase and boundary-focus plans.
 
 | Live constructor | Checked two-`Ctx` form | Live breadth | Disposition |
 |---|---|---:|---|
-| `emptyʷ` | `emptyᶜ₀` | 9 / 31 | Direct. |
-| `skip-centerʷ` | `skip-centerᶜ₀` | 4 / 19 | Direct. |
-| `lift-bothʷ` | `lift-both-rawᶜ₀` | 2 / 14 | Direct; raw `Γ` equalities preserve constructor-form indices. |
-| `lift-leftʷ` | `lift-left-rawᶜ₀` | 1 / 11 | Direct. |
-| `bind-leftʷ` | `bind-left-rawᶜ₀` | 4 / 23 | Direct. |
-| `bind-rightʷ` | `bind-right-rawᶜ₀` | 4 / 21 | Direct, with `RightBindFreshᶜ₀`. |
-| `bind-bothʷ` | `bind-both-rawᶜ₀` | 3 / 18 | Direct, with an explicit type-imprecision premise. |
-| `bind-both-starʷ` | `bind-both-star-rawᶜ₀` | 7 / 30 | Direct, including `⇑ᵗ A ≢ ★`. |
+| `emptyʷ` | `emptyᶜ` | 9 / 31 | Direct. |
+| `skip-centerʷ` | `skip-centerᶜ` | 4 / 19 | Direct. |
+| `lift-bothʷ` | `lift-both-rawᶜ` | 2 / 14 | Direct; raw `Γ` equalities preserve constructor-form indices. |
+| `lift-leftʷ` | `lift-left-rawᶜ` | 1 / 11 | Direct. |
+| `bind-leftʷ` | `bind-left-rawᶜ` | 4 / 23 | Direct. |
+| `bind-rightʷ` | `bind-right-rawᶜ` | 4 / 21 | Direct, with `RightBindFreshᶜ`. |
+| `bind-bothʷ` | `bind-both-rawᶜ` | 3 / 18 | Direct, with an explicit type-imprecision premise. |
+| `bind-both-starʷ` | `bind-both-star-rawᶜ` | 7 / 30 | Direct, including `⇑ᵗ A ≢ ★`. |
 | `honestifyʷ` | no constructor | 2 / 15 | Delete outright; raw worlds are already honest. |
 | `lower-leftʷ` | no constructor | 2 / 15 | Delete; it accepts a separately assembled world and invariants. |
 | `mix-targetʷ` | no constructor | 2 / 15 | Delete; replace by a structural target-extension producer. |
 | `mix-renamed-targetʷ` | no constructor | 3 / 25 | Delete; checked `CenterRenamePlanᶜ₀` reconstructs structural history. |
 
-The checked relation also has `bind-termᶜ₀`, which absorbs the term-context
+The checked relation also has `bind-termᶜ`, which absorbs the term-context
 step that the live design stores separately in `CtxImp`.  This is a genuine
 constructor because both complete endpoint `Ctx` indices determine the term
 contexts; it is not another world escape.
@@ -60,14 +60,14 @@ references.
 
 | Live operation | Checked replacement | Live breadth | Status |
 |---|---|---:|---|
-| `initialWorld` | `initialWorldᶜ₀` recursion through `liftBothᶜ₀` | 7 / 38 | Checked with constructor-form endpoints, center, embedding-alignment, and mark laws. |
-| `emptyCenterWorld` | `emptyCenterWorldᶜ₀` recursion through `skip-centerᶜ₀` | 1 / 4 | Checked with center, embedding-alignment, and dynamic-mark laws. |
-| `liftWorldBoth` | `liftBothᶜ₀` | 14 / 345 | Checked. |
-| `liftWorldLeft` | `liftLeftᶜ₀` | 26 / 433 | Checked. |
-| `leftOnlyWorld` | `bindLeftᶜ₀` | 8 / 19 | Checked. |
-| `rightOnlyWorld` | `bindRightᶜ₀` | 20 / 287 | Checked. |
-| `bothBindWorld` | `bindBothᶜ₀` | 8 / 26 | Checked. |
-| direct `bind-both-starʷ` use | `bindBothStarᶜ₀` | included above | Checked smart function; the live layer has no corresponding smart wrapper. |
+| `initialWorld` | `initialWorldᶜ` recursion through `liftBothᶜ` | 7 / 38 | Checked with constructor-form endpoints, center, embedding-alignment, and mark laws. |
+| `emptyCenterWorld` | `emptyCenterWorldᶜ` recursion through `skip-centerᶜ` | 1 / 4 | Checked with center, embedding-alignment, and dynamic-mark laws. |
+| `liftWorldBoth` | `liftBothᶜ` | 14 / 345 | Checked. |
+| `liftWorldLeft` | `liftLeftᶜ` | 26 / 433 | Checked. |
+| `leftOnlyWorld` | `bindLeftᶜ` | 8 / 19 | Checked. |
+| `rightOnlyWorld` | `bindRightᶜ` | 20 / 287 | Checked. |
+| `bothBindWorld` | `bindBothᶜ` | 8 / 26 | Checked. |
+| direct `bind-both-starʷ` use | `bindBothStarᶜ` | included above | Checked smart function; the live layer has no corresponding smart wrapper. |
 
 The exact smart-constructor module sets are:
 
@@ -119,10 +119,10 @@ The projection migration is lossless:
 
 | Live projection | Two-`Ctx` expression | Live breadth |
 |---|---|---:|
-| center index `Δ` | `centerᶜ₀ W` | indexed live, so no textual projection count |
-| `ηᴸʷ` | `ηᴸᶜ₀` | 33 / 477 |
-| `ηᴿʷ` | `ηᴿᶜ₀` | 30 / 510 |
-| `impEnvʷ` | `marksᶜ₀` | 24 / 384 |
+| center index `Δ` | `centerᶜ W` | indexed live, so no textual projection count |
+| `ηᴸʷ` | `ηᴸᶜ` | 33 / 477 |
+| `ηᴿʷ` | `ηᴿᶜ` | 30 / 510 |
+| `impEnvʷ` | `marksᶜ` | 24 / 384 |
 | `sourceStoreʷ` | `Σᵉ Cᴸ` | 39 / 224 |
 | `targetStoreʷ` | `Σᵉ Cᴿ` | 57 / 494 |
 | `srcCtxʷ` | `Γᵉ Cᴸ` | 2 / 17 |
@@ -135,7 +135,7 @@ closed-world surface.
 The associated context scaffolding has substantial migration breadth:
 `CtxImpEntry` is 1 / 4, `CtxImp` is 146 / 867, `SameCtx` is 26 / 147,
 `LiftCtx` is 11 / 88, `LiftCtxᴸ` is 18 / 137, and `SmartLiftCtxᴸ` is
-13 / 45.  `bind-termᶜ₀` replaces the data representation; syntax-directed
+13 / 45.  `bind-termᶜ` replaces the data representation; syntax-directed
 lookup and lifting theorems still have to be rebuilt over endpoint `Γᵉ`.
 
 ## Escape and splice deletion order
@@ -200,8 +200,8 @@ an arbitrary post-world and a bundle of global facts.
 
 ## Rebase and direct representation
 
-`TwoCtxSourceRebasePlanProbe` now commutes source rebasing through every raw
-history head.  It explicitly asks for rebuilt `RightBindFreshᶜ₀` or
+The live `SourceRebasePlan` now commutes source rebasing through every raw
+history head.  It explicitly asks for rebuilt `RightBindFreshᶜ` or
 type-imprecision evidence exactly where reconstruction needs it.  Its result
 preserves both endpoint `Ctx` indices, the hidden center, off-pivot source
 embeddings, all target embeddings, pivot alignment, and the direct invariants.
@@ -222,7 +222,7 @@ surface:
 | Live surface | Live breadth | Replacement |
 |---|---:|---|
 | `SameRuntime` | 8 / 49 | definitional equality of endpoint `Ctx` indices |
-| `RebaseAt` | 34 / 366 | checked `RebaseSourceᶜ₀` graph plus a produced plan |
+| `RebaseAt` | 34 / 366 | checked `RebaseSourceᶜ` graph plus a produced plan |
 | `RebaseAtᴸ` | 32 / 185 | optional boundary plan |
 | `RebaseAtᴿ` | 18 / 81 | target wrapper view of the same produced alignment |
 | `TagRebaseAtᴸ` | 25 / 105 | explicit paired or source-only boundary plan |
@@ -249,7 +249,7 @@ producers or integrations:
 1. Operational producers for the checked `CenterRenamePlanᶜ₀` graph.  The
    interpreter covers every raw constructor, fixes endpoint `Ctx` indices,
    proves both embedding and mark laws, and derives direct invariants from the
-   rebuilt history.  Callers must supply rebuilt `RightBindFreshᶜ₀` and
+   rebuilt history.  Callers must supply rebuilt `RightBindFreshᶜ` and
    type-imprecision exactly where their history constructor requires them.
 2. Structural target extension/insertion and target-strip reconstruction.
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
@@ -258,11 +258,11 @@ producers or integrations:
    left bind, right bind, both paired heads, and term binding.  The checked
    type-imprecision transport uses embedding/mark laws and structural renaming,
    not invariants or resolution.  Target-strip reconstruction is checked by
-   lowering the retained `SourceRebasePlanᶜ₀` through `lift-left`; arbitrary
+   lowering the retained `SourceRebasePlan` through `lift-left`; arbitrary
    extensional world inversion is deliberately not used.
 3. Delete honestification.  The checked elimination theorem reuses the same
    raw world and its direct invariants; no decay rewrite remains.
-4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
+4. The operational producer for `SourceRebasePlan`, supplying rebuilt
    freshness and type-imprecision premises from direct caller facts.  The
    checked request now classifies no-pivot, unmatched-source, and paired-plan
    cases.  The live rebase boundary must replace resolved representation

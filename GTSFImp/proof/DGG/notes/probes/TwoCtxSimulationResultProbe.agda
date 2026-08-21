@@ -13,33 +13,18 @@ module proof.DGG.notes.probes.TwoCtxSimulationResultProbe where
 
 open import Data.List using ([])
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; subst)
+  using (_≡_; sym; subst)
 
 open import Types using (Ty)
 open import TyStore using (TyStore)
-import TermCtx as TC
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; Term; blame; _⊢_⦂_)
 import Reduction as R
 open import Reduction using (_—↠[_]_)
-  renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 import proof.TypeSafety.Preservation as Preservation
 open Preservation using (multi-preservation)
 open import proof.DGG.TwoCtxWorld
-open import proof.DGG.notes.probes.TwoCtxWorldEvolutionSequenceProbe
-
-
-preservation-term-context-agreesᶜ₀ : ∀ {Δ Δ′}
-    (changes : R.StoreChanges Δ Δ′) Γ
-  → Preservation.applyTermCtxs changes Γ ≡ applyTermCtxsᶜ₀ changes Γ
-preservation-term-context-agreesᶜ₀ []ˢ Γ =
-  sym (Preservation.applyTermCtxs-id Γ)
-preservation-term-context-agreesᶜ₀ (R.keep ∷ˢ changes) Γ =
-  trans (sym (Preservation.applyTermCtxs-step R.keep changes Γ))
-    (preservation-term-context-agreesᶜ₀ changes Γ)
-preservation-term-context-agreesᶜ₀ (R.bind A ∷ˢ changes) Γ =
-  trans (sym (Preservation.applyTermCtxs-step (R.bind A) changes Γ))
-    (preservation-term-context-agreesᶜ₀ changes (TC.⇑ᶜ Γ))
+open import proof.DGG.TwoCtxWorldEvolutionSequence
 
 
 source-endpoint-typingᶜ₀ : ∀
@@ -50,7 +35,7 @@ source-endpoint-typingᶜ₀ : ∀
     {χsᴸ : R.StoreChanges Δᴸ (Δᵉ Cᴸ′)}
     {χsᴿ : R.StoreChanges Δᴿ (Δᵉ Cᴿ′)}
     {M : Term Δᴸ} {N : Term (Δᵉ Cᴸ′)} {A : Ty Δᴸ}
-  → (evol : MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
   → ⟨ Δᴸ , Σᴸ , [] ⟩ ⊢ M ⦂ A
   → M —↠[ χsᴸ ] N
   → Cᴸ′ ⊢ N ⦂ R.applyTys χsᴸ A
@@ -58,13 +43,12 @@ source-endpoint-typingᶜ₀ {Cᴸ′ = Cᴸ′} {χsᴸ = χsᴸ} evol M⊢ M�
   subst
     (λ Γ → ⟨ Δᵉ Cᴸ′ , Σᵉ Cᴸ′ , Γ ⟩ ⊢
       _ ⦂ R.applyTys χsᴸ _)
-    (trans (preservation-term-context-agreesᶜ₀ χsᴸ [])
-      (sym (multi-source-term-ctxᶜ₀ evol)))
+    (sym (multi-source-term-ctx evol))
     (subst
       (λ Σ → ⟨ Δᵉ Cᴸ′ , Σ ,
         Preservation.applyTermCtxs χsᴸ [] ⟩ ⊢
         _ ⦂ R.applyTys χsᴸ _)
-      (sym (multi-source-storeᶜ₀ evol))
+      (sym (multi-source-store evol))
       (multi-preservation M⊢ M↠N))
 
 
@@ -76,7 +60,7 @@ target-endpoint-typingᶜ₀ : ∀
     {χsᴸ : R.StoreChanges Δᴸ (Δᵉ Cᴸ′)}
     {χsᴿ : R.StoreChanges Δᴿ (Δᵉ Cᴿ′)}
     {M′ : Term Δᴿ} {N′ : Term (Δᵉ Cᴿ′)} {B : Ty Δᴿ}
-  → (evol : MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
   → ⟨ Δᴿ , Σᴿ , [] ⟩ ⊢ M′ ⦂ B
   → M′ —↠[ χsᴿ ] N′
   → Cᴿ′ ⊢ N′ ⦂ R.applyTys χsᴿ B
@@ -84,13 +68,12 @@ target-endpoint-typingᶜ₀ {Cᴿ′ = Cᴿ′} {χsᴿ = χsᴿ} evol M⊢ M�
   subst
     (λ Γ → ⟨ Δᵉ Cᴿ′ , Σᵉ Cᴿ′ , Γ ⟩ ⊢
       _ ⦂ R.applyTys χsᴿ _)
-    (trans (preservation-term-context-agreesᶜ₀ χsᴿ [])
-      (sym (multi-target-term-ctxᶜ₀ evol)))
+    (sym (multi-target-term-ctx evol))
     (subst
       (λ Σ → ⟨ Δᵉ Cᴿ′ , Σ ,
         Preservation.applyTermCtxs χsᴿ [] ⟩ ⊢
         _ ⦂ R.applyTys χsᴿ _)
-      (sym (multi-target-storeᶜ₀ evol))
+      (sym (multi-target-store evol))
       (multi-preservation M⊢ M↠N))
 
 
@@ -110,7 +93,7 @@ module SimulationResultSurfaceᶜ₀
       (Cᴸ′ Cᴿ′ : Ctx) {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
       {χsᴸ : R.StoreChanges Δᴸ (Δᵉ Cᴸ′)}
       {χsᴿ : R.StoreChanges Δᴿ (Δᵉ Cᴿ′)}
-      (evol : MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ)
+      (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
       (N : Term (Δᵉ Cᴸ′)) (N′ : Term (Δᵉ Cᴿ′)) : Set
       where
     constructor simulation-resultᶜ₀
@@ -136,27 +119,27 @@ module SimulationResultSurfaceᶜ₀
 
     source-store-projection :
       Σᵉ Cᴸ′ ≡ R.applyStores χsᴸ Σᴸ
-    source-store-projection = multi-source-storeᶜ₀ evol
+    source-store-projection = multi-source-store evol
 
     target-store-projection :
       Σᵉ Cᴿ′ ≡ R.applyStores χsᴿ Σᴿ
-    target-store-projection = multi-target-storeᶜ₀ evol
+    target-store-projection = multi-target-store evol
 
     source-context-projection :
-      Γᵉ Cᴸ′ ≡ applyTermCtxsᶜ₀ χsᴸ []
-    source-context-projection = multi-source-term-ctxᶜ₀ evol
+      Γᵉ Cᴸ′ ≡ Preservation.applyTermCtxs χsᴸ []
+    source-context-projection = multi-source-term-ctx evol
 
     target-context-projection :
-      Γᵉ Cᴿ′ ≡ applyTermCtxsᶜ₀ χsᴿ []
-    target-context-projection = multi-target-term-ctxᶜ₀ evol
+      Γᵉ Cᴿ′ ≡ Preservation.applyTermCtxs χsᴿ []
+    target-context-projection = multi-target-term-ctx evol
 
     source-term-transport : ∀ (P : Term Δᴸ)
-      → multi-source-termᶜ₀ evol P ≡ R.applyTerms χsᴸ P
-    source-term-transport = multi-source-term-agreesᶜ₀ evol
+      → multi-source-term evol P ≡ R.applyTerms χsᴸ P
+    source-term-transport = multi-source-term-agrees evol
 
     target-term-transport : ∀ (P : Term Δᴿ)
-      → multi-target-termᶜ₀ evol P ≡ R.applyTerms χsᴿ P
-    target-term-transport = multi-target-term-agreesᶜ₀ evol
+      → multi-target-term evol P ≡ R.applyTerms χsᴿ P
+    target-term-transport = multi-target-term-agrees evol
 
 
   data SimulationOutcomeᶜ₀
@@ -171,7 +154,7 @@ module SimulationResultSurfaceᶜ₀
         {χsᴸ : R.StoreChanges Δᴸ (Δᵉ Cᴸ′)}
         {χsᴿ : R.StoreChanges Δᴿ (Δᵉ Cᴿ′)}
         {N : Term (Δᵉ Cᴸ′)} {N′ : Term (Δᵉ Cᴿ′)}
-      → (evol : MultiWorldEvolutionᶜ₀
+      → (evol : MultiWorldEvolution
           {W = W} {W′ = W′} χsᴸ χsᴿ)
       → SimulationResultᶜ₀ {W = W} {M = M} {M′ = M′}
           {A = A} {B = B} Cᴸ′ Cᴿ′ evol N N′

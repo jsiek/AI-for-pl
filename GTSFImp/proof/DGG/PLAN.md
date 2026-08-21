@@ -1141,12 +1141,12 @@ exhaustive plan interpreter, not just a constructor sketch.
 The live `TwoCtxWorldInvariants` module proves all four invariants for every raw
 constructor without `resolveVar`, invariant-accepting escape constructors,
 postulates, `NON_COVERING`, funext, or catch-alls.
-`TwoCtxSourceRebasePlanProbe` implements the direct-store rebase graph,
+The live `SourceRebasePlan` implements the direct-store rebase graph,
 identity and moving base cases, and commutation through every raw skeleton
 constructor.  The plan remains explicit: the next producer obligation is to
 show which operational pivot moves supply one, not to make rebase an
 unrestricted world rewrite.
-The skeleton also checks `initialWorldᶜ₀` and `emptyCenterWorldᶜ₀` recursors
+The live core also checks `initialWorldᶜ` and `emptyCenterWorldᶜ` recursors
 with constructor-form endpoints and pointwise center, embedding, and mark laws.
 It does not restore homogeneous equations against `id↪ᵗ`: the hidden center is
 only propositionally equal to the endpoint type context, so those old equations
@@ -1192,7 +1192,7 @@ live reveal/conceal constructor family.
 `TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
 target-unaligned center in a raw two-`Ctx` world is already marked `X⊑★`.
 Honestification is therefore observationally and definitionally the identity:
-delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ₀`,
+delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ`,
 rather than introducing another transformation plan.
 
 `TwoCtxTargetExtendPlanProbe` checks structural target insertion from either a
@@ -1206,7 +1206,7 @@ bind-both, bind-both-star, and bind-term.  It uses neither global invariants nor
 representation resolution.
 
 `TwoCtxTargetStripReconstructionProbe` checks the replacement for the live
-`lower-leftʷ` producer.  It lowers the actual `SourceRebasePlanᶜ₀` through a
+`lower-leftʷ` producer.  It lowers the actual `SourceRebasePlan` through a
 left lift, with exactly identity and lifted-child cases, reconstructs the
 lifted output by `refl`, and derives direct invariants.  The live target-strip
 surface must therefore retain or recover that plan provenance; extensional
@@ -1222,29 +1222,29 @@ imprecision, arbitrary recursive term bindings, endpoint lookup, and a real
 variable leaf.  Universal lifting therefore preserves edge identity without
 mutating the stable world or following an alias chain.
 
-`TwoCtxWorldEvolutionProbe` checks the endpoint-indexed store-evolution shape.
-`CtxChangeᶜ₀` uses only constructor-form complete `Ctx` endpoints, and
-`WorldEvolutionᶜ₀` covers keep, source-only bind, target-only fresh bind,
+The live `TwoCtxWorldEvolution` checks the endpoint-indexed store-evolution
+shape.  `CtxChange` uses only constructor-form complete `Ctx` endpoints, and
+`WorldEvolution` covers keep, source-only bind, target-only fresh bind,
 paired precise bind, and paired dynamic bind.  Trusted `applyStore` and the
 corresponding term-context action occur only in projection theorems.  The next
 operational obligation is to produce these checked cases from a pair of
 related trusted reduction steps.
 
-`TwoCtxWorldEvolutionProducerProbe` checks that producer boundary.  Bare
+The live `TwoCtxWorldEvolutionProducer` checks that producer boundary.  Bare
 trusted `StoreChange` indices determine only keep versus `bind A`; the
-constructor-form request additionally owns right-only `RightBindFreshᶜ₀`, the
+constructor-form request additionally owns right-only `RightBindFreshᶜ`, the
 paired direct type-imprecision derivation, and the precise/dynamic choice with
 its non-`★` source evidence.  From those exact facts it computes both endpoint
-contexts and the result world and returns the checked `WorldEvolutionᶜ₀`.
+contexts and the result world and returns the checked `WorldEvolution`.
 
-`TwoCtxWorldEvolutionSequenceProbe` checks the multi-step closure.  Source-only,
-target-only, and paired steps each retain their one-step world-evolution witness
+The live `TwoCtxWorldEvolutionSequence` checks the multi-step closure.
+Source-only, target-only, and paired steps each retain their one-step witness
 and explicit intermediate world, so unequal trace lengths need no synthetic
 `keep`.  Induction proves final source/target stores equal trusted
 `applyStores`, final terms equal `applyTerms`, and term contexts equal the
 corresponding structural repeated shift.
 
-`TwoCtxSourceRebaseProducerProbe` checks the operational rebase request.  It
+The live `SourceRebaseRequest` checks the operational rebase request.  It
 has exactly no-pivot, unmatched-source, and paired-plan constructors.  The
 unmatched case keeps the world and owns the dynamic mark, target disalignment,
 and direct source-entry relation to `★`; the paired case owns both the raw
@@ -1258,7 +1258,7 @@ fresh-behind smart-comma world.  It lifts the source once and commutes through
 an arbitrary target-star prefix, deriving the center permutation, embeddings,
 marks, type-imprecision transport, freshness, and direct invariants.  A
 following `β := α` is represented by the exact boundary edge; commuting a raw
-alias head would require an additional `RightBindFreshᶜ₀` noncollision fact and
+alias head would require an additional `RightBindFreshᶜ` noncollision fact and
 is not admitted.
 
 `TwoCtxEdgeScopedCTIProbe` checks the first compositional term-imprecision
@@ -1280,7 +1280,7 @@ constructors.
 `TwoCtxGlobalIndexedCTIProbe` checks that global surface.  Full endpoint world,
 focus, exact edge, mode validity, heterogeneous scoped world, and scoped type
 are indices; all of those states lift structurally.  Recursive `scoped-allᵍ`
-and `all⊑allᵍ` use `liftBothᶜ₀`, and type application checks with an explicit
+and `all⊑allᵍ` use `liftBothᶜ`, and type application checks with an explicit
 substituted-result relation.  Exact target boundaries accept arbitrary trusted
 conversion typing, including the composite strict-`Λ` function conversion.
 The structural prefix plan now inserts behind arbitrary existing type binders
@@ -1311,7 +1311,7 @@ do not fabricate an old `World` or reintroduce alias resolution.
 
 `TwoCtxSimulationResultProbe` checks the final multi-step result surface.  Its
 final world relates the actual endpoint `Ctx` values, retains both independent
-store-change sequences and `MultiWorldEvolutionᶜ₀`, derives both final endpoint
+store-change sequences and `MultiWorldEvolution`, derives both final endpoint
 typings, and exposes executable store/context/term projections.  The complete
 outcome is either that synchronized package or the existing source-blame
 alternative.  It needs no `SameRuntime` or `SameCtx`.  Trusted one-step and

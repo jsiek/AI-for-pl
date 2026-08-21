@@ -22,7 +22,7 @@ open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩)
 open import proof.DGG.TwoCtxWorld
 open import proof.DGG.TwoCtxWorldInvariants
-open import proof.DGG.notes.probes.TwoCtxSourceRebasePlanProbe
+open import proof.DGG.SourceRebasePlan
 
 
 private
@@ -43,13 +43,13 @@ lowerLiftSourceRebasePlanᶜ₀ :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
-  → SourceRebasePlanᶜ₀
+  → SourceRebasePlan
       (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
-  → SourceRebasePlanᶜ₀ W Xᴸ Xᴿ
-lowerLiftSourceRebasePlanᶜ₀ (source-rebase-idᶜ₀ aligned) =
-  source-rebase-idᶜ₀ (fin-suc-injective aligned)
+  → SourceRebasePlan W Xᴸ Xᴿ
+lowerLiftSourceRebasePlanᶜ₀ (source-rebase-id aligned) =
+  source-rebase-id (fin-suc-injective aligned)
 lowerLiftSourceRebasePlanᶜ₀
-    (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) = plan
+    (source-rebase-lift-left plan Γᴸ⁺≡) = plan
 
 
 lowerLiftSourceWorldᶜ₀ :
@@ -59,11 +59,11 @@ lowerLiftSourceWorldᶜ₀ :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
-  → SourceRebasePlanᶜ₀
+  → SourceRebasePlan
       (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
   → ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩
 lowerLiftSourceWorldᶜ₀ plan =
-  rebaseSourceᶜ₀ (lowerLiftSourceRebasePlanᶜ₀ plan)
+  rebaseSource (lowerLiftSourceRebasePlanᶜ₀ plan)
 
 
 lowerLiftSource-rebuildᶜ₀ :
@@ -73,13 +73,13 @@ lowerLiftSource-rebuildᶜ₀ :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
-      (plan : SourceRebasePlanᶜ₀
+      (plan : SourceRebasePlan
         (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
   → lift-left-rawᶜ (lowerLiftSourceWorldᶜ₀ plan) Γᴸ⁺≡
-      ≡ rebaseSourceᶜ₀ plan
-lowerLiftSource-rebuildᶜ₀ (source-rebase-idᶜ₀ aligned) = refl
+      ≡ rebaseSource plan
+lowerLiftSource-rebuildᶜ₀ (source-rebase-id aligned) = refl
 lowerLiftSource-rebuildᶜ₀
-    (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) = refl
+    (source-rebase-lift-left plan Γᴸ⁺≡) = refl
 
 
 lowerLiftSource-rebaseᶜ₀ :
@@ -89,11 +89,11 @@ lowerLiftSource-rebaseᶜ₀ :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
-      (plan : SourceRebasePlanᶜ₀
+      (plan : SourceRebasePlan
         (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
   → RebaseSourceᶜ W (lowerLiftSourceWorldᶜ₀ plan) Xᴸ Xᴿ
 lowerLiftSource-rebaseᶜ₀ plan =
-  sourceRebasePlan-soundᶜ₀ (lowerLiftSourceRebasePlanᶜ₀ plan)
+  sourceRebasePlan-sound (lowerLiftSourceRebasePlanᶜ₀ plan)
 
 
 lowerLiftSource-invariantsᶜ₀ :
@@ -103,7 +103,7 @@ lowerLiftSource-invariantsᶜ₀ :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
-      (plan : SourceRebasePlanᶜ₀
+      (plan : SourceRebasePlan
         (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
   → DirectWorldInvariantsᶜ (lowerLiftSourceWorldᶜ₀ plan)
 lowerLiftSource-invariantsᶜ₀ plan =

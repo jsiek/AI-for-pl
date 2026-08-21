@@ -24,7 +24,8 @@ open import Types using
 open import TyStore using
   (TyStore; lookupStore; store-lift; _∋_⦂_; Z∋; S-lift∋; S-bind∋)
 import TermCtx as TC
-open import Consistency using (_↪ᵗ_; keep; toRenameᵗ)
+open import Consistency using
+  (Env∼; _⊢_∼_; _↪ᵗ_; keep; toRenameᵗ)
 import Imprecision as I
 open import Conversion using
   (Conv↑; Conv↓; unseal; seal; _↦↑_; _⊢↑[_]_; _⊢↓[_]_; ⊢↑-unsealˣ;
@@ -32,7 +33,7 @@ open import Conversion using
 open import Primitives using (Const; constTy)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; Value; `_; ƛ_; Λ_;
-   _·_; $; _⦂∀_[_]; _↑_; _↓_; blame; ⇑ᵉᵗ; _⊢_⦂_)
+   _·_; $; _⟨_⟩; _⦂∀_[_]; _↑_; _↓_; blame; ⇑ᵉᵗ; _⊢_⦂_)
 open import proof.ImprecisionConsistency using (rename-⊑)
 open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.TwoCtxWorld
@@ -1007,6 +1008,55 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     → ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩ ⊢ M′ ⦂ B
     → (p : ScopedTypeᵍ W focus edge m A B)
     → ScopedCTIᵍ W focus edge m ok S blame M′ p
+
+  cast⊑castᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ A A′ B B′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m A A′}
+      {q : ScopedTypeᵍ W focus edge m B B′}
+      {ν : Env∼ (Δᵉ Cᴸ)} {ν′ : Env∼ (Δᵉ C⁺)}
+    → (c : ν ⊢ A ∼ B)
+    → (c′ : ν′ ⊢ A′ ∼ B′)
+    → ScopedCTIᵍ W focus edge m ok S M M′ p
+    → ScopedCTIᵍ W focus edge m ok S (M ⟨ c ⟩) (M′ ⟨ c′ ⟩) q
+
+  cast⊑ᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ A A′ B}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m A B}
+      {q : ScopedTypeᵍ W focus edge m A′ B}
+      {ν : Env∼ (Δᵉ Cᴸ)}
+    → (c : ν ⊢ A ∼ A′)
+    → ScopedCTIᵍ W focus edge m ok S M M′ p
+    → ScopedCTIᵍ W focus edge m ok S (M ⟨ c ⟩) M′ q
+
+  ⊑castᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ A B B′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m A B}
+      {q : ScopedTypeᵍ W focus edge m A B′}
+      {ν′ : Env∼ (Δᵉ C⁺)}
+    → (c′ : ν′ ⊢ B ∼ B′)
+    → ScopedCTIᵍ W focus edge m ok S M M′ p
+    → ScopedCTIᵍ W focus edge m ok S M (M′ ⟨ c′ ⟩) q
 
   all⊑allᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}

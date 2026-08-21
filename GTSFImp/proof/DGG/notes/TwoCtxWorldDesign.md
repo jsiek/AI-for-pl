@@ -360,16 +360,18 @@ The old source-only cell becomes vacant and the source/target pivots occupy a
 fresh dynamic paired cell.  The endpoint `Ctx` indices are identical on both
 sides of the rewrite.  The plan commutes recursively through a later
 `skip-centerᶜ₀`, `bind-right-rawᶜ₀`, `lift-both-rawᶜ₀`, or
-`lift-left-rawᶜ₀`.  The target-bind case deliberately requires a new
-freshness proof for the rebuilt history.  The probe proves center preservation,
-off-pivot source preservation, frozen target embeddings, pivot alignment, all
-four direct invariants, and the direct-store graph obligation.
+`lift-left-rawᶜ₀`, as well as through a later source allocation or term
+binding.  The target-bind case deliberately requires a new freshness proof for
+the rebuilt history.  The term-binding case similarly requires the term
+entry's type-imprecision proof in the rebuilt world instead of assuming it is
+transportable.  The probe proves center preservation, off-pivot source
+preservation, frozen target embeddings, pivot alignment, all four direct
+invariants, and the direct-store graph obligation.
 
 This is not yet a total rebase plan.  Local commutations remain to be defined
-for a later source allocation, both paired-bind constructors, and
-`bind-termᶜ₀`.  Those cases need their own constructor rewrites and, for a
-term bind, transported term-entry imprecision.  The checked probe enumerates
-them explicitly rather than using a catch-all.
+for both paired-bind constructors.  Those cases need their own constructor
+rewrites.  The checked probe enumerates them explicitly rather than using a
+catch-all.
 
 ## Boundary-scoped administrative alias focus
 
@@ -540,8 +542,8 @@ Before this becomes a live design, the remaining probes must establish:
 - Checked source rebase can be implemented as a function whose graph preserves
   the hidden center and freezes every target embedding.  The graph, same-world
   case, one source/target allocation commutation, and recursion through later
-  skipped, target-only, lift-both, and lift-left history check.  The other raw
-  history heads remain open.
+  skipped, target-only, lift-both, lift-left, source-allocation, and term-binding
+  history check.  Only the two paired-bind history heads remain open.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The boundary-local alias focus must be integrated into reveal/conceal CTI

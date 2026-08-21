@@ -89,7 +89,7 @@ private
   source-tag-seal-core-tagged {Wᵒ = Wᵒ} {γᵒ = γᵒ}
       (＇ X) sv vU mono rb sc source∈ target∈ D
       | target-strip★-paired {qᵒ = qᵒ} source∈ᵒ target∈ᵒ
-          boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ reemit =
+          boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ reemit =
     core-sealed
       (_ , _ , qᵒ ,
         STC.impEnvMono-refl {W = Wᵒ} ,

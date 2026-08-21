@@ -1,8 +1,7 @@
 module proof.DGG.Inversion.SourceStripLemma where
 
 -- File Charter:
---   * Exposes source-strip factories at the Def types, conditional on the
---     pinned occupied non-star source-seal residual.
+--   * Exposes source-strip factories at the Def types.
 --   * Stitches the parameterized source-strip proof to the quarantined legacy
 --     worker module.
 --   * Re-exports no target-walk or right-injection theorem.
@@ -12,23 +11,15 @@ open import proof.DGG.Inversion.SourceStripDef using
   (SourceColumnStrip; SourceSpineStrip; SourceTagSealCore)
 open import proof.DGG.Inversion.SourceStripWorkerProof using
   (source-column-strip-worker; source-spine-strip-worker)
-open import proof.DGG.Inversion.TargetWalkSupport using
-  (OccupiedNonStarSourceSealResidual)
-
-module ClosedSourceStrip (occupied : OccupiedNonStarSourceSealResidual) =
+module ClosedSourceStrip =
   Proof.SourceStripProofFrom
-    (source-column-strip-worker occupied)
-    (source-spine-strip-worker occupied)
+    source-column-strip-worker source-spine-strip-worker
 
-source-column-strip : OccupiedNonStarSourceSealResidual
-  → SourceColumnStrip
-source-column-strip occupied =
-  ClosedSourceStrip.source-column-strip occupied
+source-column-strip : SourceColumnStrip
+source-column-strip = ClosedSourceStrip.source-column-strip
 
-source-spine-strip : OccupiedNonStarSourceSealResidual
-  → SourceSpineStrip
-source-spine-strip occupied =
-  ClosedSourceStrip.source-spine-strip occupied
+source-spine-strip : SourceSpineStrip
+source-spine-strip = ClosedSourceStrip.source-spine-strip
 
 source-tag-seal-core : SourceTagSealCore
 source-tag-seal-core

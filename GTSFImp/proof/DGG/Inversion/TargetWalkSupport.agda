@@ -3,8 +3,8 @@ module proof.DGG.Inversion.TargetWalkSupport where
 -- File Charter:
 --   * Houses the proven store, alignment, and rebase helpers shared by the
 --     target walk, source-star chain, and higher-order right-injection proof.
---   * Records the pinned occupied non-star source-seal row left invalid by
---     D17(c); the legacy workers consume that residual explicitly.
+--   * States the occupied non-star source-seal residual closed by the
+--     source-strip worker's alias-cycle contradiction.
 --   * Contains no inhabitant of the target walk itself.
 
 open import Data.Empty using (⊥; ⊥-elim)

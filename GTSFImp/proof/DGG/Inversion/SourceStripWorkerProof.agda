@@ -1,8 +1,9 @@
 module proof.DGG.Inversion.SourceStripWorkerProof where
 
 -- File Charter:
---   * Provides the source-column and source-spine strip members conditional
---     on the pinned occupied non-star source-seal residual.
+--   * Provides the source-column and source-spine strip members.
+--   * Closes the occupied non-star source-seal residual by the source-column
+--     alias-cycle contradiction.
 --   * Keeps the public `SourceStripProof` module free of local proof scripts.
 --   * The two statements are exactly the frozen worker goals from
 --     `SourceStripDef`.
@@ -67,7 +68,7 @@ open CTX using
    sourceStoreʷ; targetStoreʷ)
 open CTI2 using (_∣_⊢²_⊑_∶_)
 
-module _ (occupied : OccupiedNonStarSourceSealResidual) where
+module _ where
 
   private
     source-seal-pivot-eq : ∀ {Γ} {M X Y R}
@@ -96,6 +97,16 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       subst≡ (λ Σ → Σ ∋ _ ⦂ _)
         (CTX.SameRuntime.sourceStore-same
           (CTX.RebaseAt.sameRuntime rb)) Z∈
+
+    occupied : OccupiedNonStarSourceSealResidual
+    occupied = record
+      { target-source-var-chain =
+          λ {Δᴸ} {Δᴿ} {Δ} {W} {W′} {γ} {γ′} {V} {U}
+            {Xᴸ} {X₂} {Y} {S} {p₂} {q}
+            sv vU mono rb sc source∈ target∈ prem →
+            ⊥-elim (source-column-alias-cycle-⊥ {q = q} rb
+              (rebase-source-membership-forward rb source∈) p₂)
+      }
 
     right-var-obligation-nonstar : ∀ {Δᴸ Δᴿ Δ}
         {W : World Δᴸ Δᴿ Δ} {R : Ty Δᴸ} {Y : TyVar Δᴿ}
@@ -1346,7 +1357,6 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
         nonstar-∀ prem)
 
   source-spine-strip-worker : SourceSpineStripWorker
-  {-# NON_COVERING #-}
   source-spine-strip-worker (sv-ƛ N) vU mono rb sc source∈
       target∈ D =
     source-spine-strip-worker-ƛ N vU mono rb sc source∈

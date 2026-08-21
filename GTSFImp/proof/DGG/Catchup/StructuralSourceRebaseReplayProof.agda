@@ -21,9 +21,7 @@ open import proof.DGG.Catchup.StructuralWorldRebaseProof
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 open import proof.DGG.Catchup.StructuralWorldEvidenceProof
-open import proof.DGG.TransportTermImprecisionDef using
-  (TargetInsertProvenanceᵀ)
-open import proof.DGG.Catchup.StructuralTermProvenanceProof
+open import proof.DGG.Catchup.StructuralTermProvenanceDef
 open import proof.DGG.Catchup.StructuralTermReplayProof
 
 mapPivotChanges-nothing-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
@@ -126,17 +124,16 @@ structural-reveal-replay-with-provenance : ∀
     {c : Conv↑ Δᴸ A A′}
     {p : A CTX.⊑ᵂ⟨ Wᵖ ⟩ B}
     {q : A′ CTX.⊑ᵂ⟨ W ⟩ B}
-  → (target-provenance : TargetInsertProvenanceᵀ)
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → (mono : CTX.ImpEnvMono W Wᵖ)
   → (rb : CTX.RebaseAtᴸ W Wᵖ Xᴸ?)
   → (sc : CTX.SameCtx γ γᵖ)
   → (c⊢ : CTX.sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c)
   → (prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ p)
+  → (provenance : StructuralTermProvenance plan
+      (CTI2.reveal⊑² mono rb sc c⊢ prem q))
   → let child = structural-rebase-atᴸ plan rb
-          (structural-reveal-replay-provenance plan
-            (structural-term-provenance target-provenance plan
-              (CTI2.reveal⊑² mono rb sc c⊢ prem q)))
+          (structural-reveal-replay-provenance plan provenance)
         planᵖ = StructuralRebaseAtᴸResult.premise-plan child
      in StructuralRebaseAtᴸResult.Wᵖ′ child CTI2.∣
           ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
@@ -145,13 +142,10 @@ structural-reveal-replay-with-provenance : ∀
   → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
       ⊢² M ↑ c ⊑ F ∶
         ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
-structural-reveal-replay-with-provenance target-provenance plan mono rb
-    sc c⊢ prem rel =
+structural-reveal-replay-with-provenance plan mono rb sc c⊢ prem
+    provenance rel =
   structural-reveal-replay plan mono rb replay sc c⊢ rel
   where
-  provenance = structural-term-provenance target-provenance plan
-    (CTI2.reveal⊑² mono rb sc c⊢ prem _)
-
   replay = structural-reveal-replay-provenance plan provenance
 
 
@@ -166,17 +160,16 @@ structural-conceal-replay-with-provenance : ∀
     {c : Conv↓ Δᴸ A A′}
     {p : A CTX.⊑ᵂ⟨ Wᵖ ⟩ B}
     {q : A′ CTX.⊑ᵂ⟨ W ⟩ B}
-  → (target-provenance : TargetInsertProvenanceᵀ)
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → (mono : CTX.ImpEnvMono W Wᵖ)
   → (rb : CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? nothing)
   → (sc : CTX.SameCtx γ γᵖ)
   → (c⊢ : CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c)
   → (prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ p)
+  → (provenance : StructuralTermProvenance plan
+      (CTI2.conceal⊑² mono rb sc c⊢ prem q))
   → let child = structural-tag-rebase-atᴸ plan rb
-          (structural-conceal-replay-provenance plan
-            (structural-term-provenance target-provenance plan
-              (CTI2.conceal⊑² mono rb sc c⊢ prem q)))
+          (structural-conceal-replay-provenance plan provenance)
         planᵖ = StructuralTagRebaseAtᴸResult.premise-plan child
      in StructuralTagRebaseAtᴸResult.Wᵖ′ child CTI2.∣
           ECR.mapCtxᴿ (structural-world-extendᴿ planᵖ) γᵖ
@@ -185,11 +178,8 @@ structural-conceal-replay-with-provenance : ∀
   → W′ CTI2.∣ ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ
       ⊢² M ↓ c ⊑ F ∶
         ECR.transport⊑ᵂ (structural-world-extendᴿ plan) q
-structural-conceal-replay-with-provenance target-provenance plan mono rb
-    sc c⊢ prem rel =
+structural-conceal-replay-with-provenance plan mono rb sc c⊢ prem
+    provenance rel =
   structural-conceal-replay plan mono rb replay sc c⊢ rel
   where
-  provenance = structural-term-provenance target-provenance plan
-    (CTI2.conceal⊑² mono rb sc c⊢ prem _)
-
   replay = structural-conceal-replay-provenance plan provenance

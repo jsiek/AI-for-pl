@@ -19,61 +19,61 @@ open import TermCtx using (Z; S)
 import Imprecision as I
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Γᵉ; Term; `_; _∋ᵗ_⦂_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 
 
 data TermEntryImprecisionᶜ₀ {Cᴸ Cᴿ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ Cᴿ) (x : ℕ) :
+    (W : Cᴸ ⊑ᶜ Cᴿ) (x : ℕ) :
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)} →
-    A ⊑ᵀ₀⟨ W ⟩ B → Set where
-  term-entryᶜ₀ : ∀ {A B} {p : A ⊑ᵀ₀⟨ W ⟩ B}
+    A ⊑ᵀ⟨ W ⟩ B → Set where
+  term-entryᶜ₀ : ∀ {A B} {p : A ⊑ᵀ⟨ W ⟩ B}
     → Cᴸ ∋ᵗ x ⦂ A
     → Cᴿ ∋ᵗ x ⦂ B
     → TermEntryImprecisionᶜ₀ W x p
 
 
-bindTermᶜ₀ : ∀ {Cᴸ Cᴿ} (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+bindTermᶜ₀ : ∀ {Cᴸ Cᴿ} (W : Cᴸ ⊑ᶜ Cᴿ)
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)}
-  → A ⊑ᵀ₀⟨ W ⟩ B
-  → ⟨ Δᵉ Cᴸ , CastTerms.Σᵉ Cᴸ , A ∷ Γᵉ Cᴸ ⟩ ⊑ᶜ₀
+  → A ⊑ᵀ⟨ W ⟩ B
+  → ⟨ Δᵉ Cᴸ , CastTerms.Σᵉ Cᴸ , A ∷ Γᵉ Cᴸ ⟩ ⊑ᶜ
       ⟨ Δᵉ Cᴿ , CastTerms.Σᵉ Cᴿ , B ∷ Γᵉ Cᴿ ⟩
-bindTermᶜ₀ W p = bind-termᶜ₀ W p
+bindTermᶜ₀ W p = bind-termᶜ W p
 
 
-term-entry-hereᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
+term-entry-hereᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)}
-    (p : A ⊑ᵀ₀⟨ W ⟩ B)
+    (p : A ⊑ᵀ⟨ W ⟩ B)
   → TermEntryImprecisionᶜ₀ (bindTermᶜ₀ W p) zero p
 term-entry-hereᶜ₀ p = term-entryᶜ₀ Z Z
 
 
-term-entry-thereᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {x A B} {p : A ⊑ᵀ₀⟨ W ⟩ B}
+term-entry-thereᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {x A B} {p : A ⊑ᵀ⟨ W ⟩ B}
     {A₀ : Ty (Δᵉ Cᴸ)} {B₀ : Ty (Δᵉ Cᴿ)}
-    (p₀ : A₀ ⊑ᵀ₀⟨ W ⟩ B₀)
+    (p₀ : A₀ ⊑ᵀ⟨ W ⟩ B₀)
   → TermEntryImprecisionᶜ₀ W x p
   → TermEntryImprecisionᶜ₀ (bindTermᶜ₀ W p₀) (suc x) p
 term-entry-thereᶜ₀ p₀ (term-entryᶜ₀ xᴸ xᴿ) =
   term-entryᶜ₀ (S xᴸ) (S xᴿ)
 
 
-term-entry-tailᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {x A B} {p : A ⊑ᵀ₀⟨ W ⟩ B}
+term-entry-tailᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {x A B} {p : A ⊑ᵀ⟨ W ⟩ B}
     {A₀ : Ty (Δᵉ Cᴸ)} {B₀ : Ty (Δᵉ Cᴿ)}
-    {p₀ : A₀ ⊑ᵀ₀⟨ W ⟩ B₀}
+    {p₀ : A₀ ⊑ᵀ⟨ W ⟩ B₀}
   → TermEntryImprecisionᶜ₀ (bindTermᶜ₀ W p₀) (suc x) p
   → TermEntryImprecisionᶜ₀ W x p
 term-entry-tailᶜ₀ (term-entryᶜ₀ (S xᴸ) (S xᴿ)) =
   term-entryᶜ₀ xᴸ xᴿ
 
 
-data VariableCTIᶜ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ₀ Cᴿ) :
+data VariableCTIᶜ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ Cᴿ) :
     Term (Δᵉ Cᴸ) → Term (Δᵉ Cᴿ) →
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)} →
-    A ⊑ᵀ₀⟨ W ⟩ B → Set where
-  var⊑varᶜ₀ : ∀ {x A B} {p : A ⊑ᵀ₀⟨ W ⟩ B}
+    A ⊑ᵀ⟨ W ⟩ B → Set where
+  var⊑varᶜ₀ : ∀ {x A B} {p : A ⊑ᵀ⟨ W ⟩ B}
     → TermEntryImprecisionᶜ₀ W x p
     → VariableCTIᶜ₀ W (` x) (` x) p
 
@@ -81,8 +81,8 @@ data VariableCTIᶜ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ₀ Cᴿ) :
 star-context : Ctx
 star-context = ⟨ zero , store-empty , ★ ∷ [] ⟩
 
-star-world : star-context ⊑ᶜ₀ star-context
-star-world = bindTermᶜ₀ emptyᶜ₀ I.★⊑★
+star-world : star-context ⊑ᶜ star-context
+star-world = bindTermᶜ₀ emptyᶜ I.★⊑★
 
 star-variableᶜ₀ : VariableCTIᶜ₀ star-world (` zero) (` zero) I.★⊑★
 star-variableᶜ₀ = var⊑varᶜ₀ (term-entry-hereᶜ₀ I.★⊑★)

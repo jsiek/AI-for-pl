@@ -21,7 +21,7 @@ import TermCtx as TC
 import Imprecision as I
 open import Consistency using (toRenameᵗ)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ⇑ᵉᵗ)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using
@@ -70,7 +70,7 @@ edge-beta-fresh (edge-lift edge) (suc Y) eq =
   suc-injective refl = refl
 
 
-module EdgeMode {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
+module EdgeMode {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : TargetNameFocusᶠ₀ W X alpha)
@@ -80,19 +80,19 @@ module EdgeMode {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
     stable focused : Mode
 
   data TargetVarView : Mode → TyVar (Δᵉ C⁺) →
-      TyVar (centerᶜ₀ W) → Set where
+      TyVar (centerᶜ W) → Set where
     stable-old : ∀ {Y Y⁺ Z}
       → edgeEmbed edge Y ≡ Y⁺
-      → toRenameᵗ (ηᴿᶜ₀ W) Y ≡ Z
+      → toRenameᵗ (ηᴿᶜ W) Y ≡ Z
       → TargetVarView stable Y⁺ Z
 
     focus-beta : ∀ {Z}
-      → toRenameᵗ (ηᴸᶜ₀ W) X ≡ Z
+      → toRenameᵗ (ηᴸᶜ W) X ≡ Z
       → TargetVarView focused beta Z
 
     focus-old : ∀ {Y Y⁺ Z}
       → edgeEmbed edge Y ≡ Y⁺
-      → toRenameᵗ (ηᴿᶜ₀ W) Y ≡ Z
+      → toRenameᵗ (ηᴿᶜ W) Y ≡ Z
       → TargetVarView focused Y⁺ Z
 
   stable-beta-unavailable : ∀ {Z}
@@ -101,7 +101,7 @@ module EdgeMode {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
     edge-beta-fresh edge Y edge-eq
 
   data TargetTypeView (m : Mode) :
-      Ty (Δᵉ C⁺) → Ty (centerᶜ₀ W) → Set where
+      Ty (Δᵉ C⁺) → Ty (centerᶜ W) → Set where
     view-var : ∀ {Y Z} → TargetVarView m Y Z
       → TargetTypeView m (＇ Y) (＇ Z)
     view-star : TargetTypeView m ★ ★
@@ -113,8 +113,8 @@ module EdgeMode {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
       Ty (Δᵉ Cᴸ) → Ty (Δᵉ C⁺) → Set where
     scoped-type : ∀ {A B Bᶜ}
       → TargetTypeView m B Bᶜ
-      → I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Bᶜ
+      → I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Bᶜ
       → ScopedType m A B
 
   beta-type : ScopedType focused (＇ X) (＇ beta)
@@ -178,15 +178,15 @@ head-edge = edge-head refl
 module HeadMode = EdgeMode strict-lambda-focus head-edge
 
 lifted-edge = edge-lift head-edge
-lifted-world = liftBothᶜ₀ I.X⊑X stable-world
+lifted-world = liftBothᶜ I.X⊑X stable-world
 
 lifted-focus : TargetNameFocusᶠ₀ lifted-world
   (suc source-X) (suc target-alpha)
 lifted-focus = target-name-focusᶠ₀ separated refl (I.X⊑★ refl)
   where
   separated :
-    toRenameᵗ (ηᴸᶜ₀ lifted-world) (suc source-X) ≢
-    toRenameᵗ (ηᴿᶜ₀ lifted-world) (suc target-alpha)
+    toRenameᵗ (ηᴸᶜ lifted-world) (suc source-X) ≢
+    toRenameᵗ (ηᴿᶜ lifted-world) (suc target-alpha)
   separated ()
 
 module LiftedMode = EdgeMode lifted-focus lifted-edge

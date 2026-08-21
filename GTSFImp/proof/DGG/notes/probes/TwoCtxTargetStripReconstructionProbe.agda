@@ -20,8 +20,8 @@ open import TyStore using (TyStore; store-lift)
 import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 open import proof.DGG.notes.probes.TwoCtxSourceRebasePlanProbe
 
 
@@ -34,17 +34,17 @@ private
 
 -- The live producer has a rebase of `liftWorldLeft W` at `suc X`.  With
 -- constructor provenance, only two plan heads can have those indices:
--- an already-aligned identity or the commutation through `lift-left-rawᶜ₀`.
+-- an already-aligned identity or the commutation through `lift-left-rawᶜ`.
 
 lowerLiftSourceRebasePlanᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
   → SourceRebasePlanᶜ₀
-      (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
+      (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
   → SourceRebasePlanᶜ₀ W Xᴸ Xᴿ
 lowerLiftSourceRebasePlanᶜ₀ (source-rebase-idᶜ₀ aligned) =
   source-rebase-idᶜ₀ (fin-suc-injective aligned)
@@ -56,12 +56,12 @@ lowerLiftSourceWorldᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
   → SourceRebasePlanᶜ₀
-      (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
-  → ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩
+      (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ
+  → ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩
 lowerLiftSourceWorldᶜ₀ plan =
   rebaseSourceᶜ₀ (lowerLiftSourceRebasePlanᶜ₀ plan)
 
@@ -70,12 +70,12 @@ lowerLiftSource-rebuildᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
       (plan : SourceRebasePlanᶜ₀
-        (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
-  → lift-left-rawᶜ₀ (lowerLiftSourceWorldᶜ₀ plan) Γᴸ⁺≡
+        (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
+  → lift-left-rawᶜ (lowerLiftSourceWorldᶜ₀ plan) Γᴸ⁺≡
       ≡ rebaseSourceᶜ₀ plan
 lowerLiftSource-rebuildᶜ₀ (source-rebase-idᶜ₀ aligned) = refl
 lowerLiftSource-rebuildᶜ₀
@@ -86,12 +86,12 @@ lowerLiftSource-rebaseᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
       (plan : SourceRebasePlanᶜ₀
-        (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
-  → RebaseSourceᶜ₀ W (lowerLiftSourceWorldᶜ₀ plan) Xᴸ Xᴿ
+        (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
+  → RebaseSourceᶜ W (lowerLiftSourceWorldᶜ₀ plan) Xᴸ Xᴿ
 lowerLiftSource-rebaseᶜ₀ plan =
   sourceRebasePlan-soundᶜ₀ (lowerLiftSourceRebasePlanᶜ₀ plan)
 
@@ -100,14 +100,14 @@ lowerLiftSource-invariantsᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
       {Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ}
       (plan : SourceRebasePlanᶜ₀
-        (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
-  → DirectWorldInvariantsᶜ₀ (lowerLiftSourceWorldᶜ₀ plan)
+        (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Xᴸ) Xᴿ)
+  → DirectWorldInvariantsᶜ (lowerLiftSourceWorldᶜ₀ plan)
 lowerLiftSource-invariantsᶜ₀ plan =
-  directInvariantsᶜ₀ (lowerLiftSourceWorldᶜ₀ plan)
+  directInvariantsᶜ (lowerLiftSourceWorldᶜ₀ plan)
 
 
 -- The plan premise above is essential producer provenance.  Endpoint and
@@ -119,35 +119,35 @@ lift-after-termᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-  → A ⊑ᵀ₀⟨ W ⟩ B
-  → ⟨ suc Δᴸ , store-lift Σᴸ , ⇑ᵗ A ∷ TC.⇑ᶜ Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → A ⊑ᵀ⟨ W ⟩ B
+  → ⟨ suc Δᴸ , store-lift Σᴸ , ⇑ᵗ A ∷ TC.⇑ᶜ Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , B ∷ Γᴿ ⟩
 lift-after-termᶜ₀ {W = W} represented =
-  lift-left-rawᶜ₀ (bind-termᶜ₀ W represented) refl
+  lift-left-rawᶜ (bind-termᶜ W represented) refl
 
 
 term-after-liftᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-  → ⇑ᵗ A ⊑ᵀ₀⟨ lift-left-rawᶜ₀ W refl ⟩ B
-  → ⟨ suc Δᴸ , store-lift Σᴸ , ⇑ᵗ A ∷ TC.⇑ᶜ Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → ⇑ᵗ A ⊑ᵀ⟨ lift-left-rawᶜ W refl ⟩ B
+  → ⟨ suc Δᴸ , store-lift Σᴸ , ⇑ᵗ A ∷ TC.⇑ᶜ Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , B ∷ Γᴿ ⟩
 term-after-liftᶜ₀ {W = W} represented′ =
-  bind-termᶜ₀ (lift-left-rawᶜ₀ W refl) represented′
+  bind-termᶜ (lift-left-rawᶜ W refl) represented′
 
 
 interleaved-center-sameᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
-      {represented′ : ⇑ᵗ A ⊑ᵀ₀⟨ lift-left-rawᶜ₀ W refl ⟩ B}
-  → centerᶜ₀ (lift-after-termᶜ₀ {W = W} represented)
-      ≡ centerᶜ₀ (term-after-liftᶜ₀ {W = W} represented′)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
+      {represented′ : ⇑ᵗ A ⊑ᵀ⟨ lift-left-rawᶜ W refl ⟩ B}
+  → centerᶜ (lift-after-termᶜ₀ {W = W} represented)
+      ≡ centerᶜ (term-after-liftᶜ₀ {W = W} represented′)
 interleaved-center-sameᶜ₀ = refl
 
 
@@ -155,11 +155,11 @@ interleaved-ηᴸ-sameᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
-      {represented′ : ⇑ᵗ A ⊑ᵀ₀⟨ lift-left-rawᶜ₀ W refl ⟩ B}
-  → ηᴸᶜ₀ (lift-after-termᶜ₀ {W = W} represented)
-      ≡ ηᴸᶜ₀ (term-after-liftᶜ₀ {W = W} represented′)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
+      {represented′ : ⇑ᵗ A ⊑ᵀ⟨ lift-left-rawᶜ W refl ⟩ B}
+  → ηᴸᶜ (lift-after-termᶜ₀ {W = W} represented)
+      ≡ ηᴸᶜ (term-after-liftᶜ₀ {W = W} represented′)
 interleaved-ηᴸ-sameᶜ₀ = refl
 
 
@@ -167,11 +167,11 @@ interleaved-ηᴿ-sameᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
-      {represented′ : ⇑ᵗ A ⊑ᵀ₀⟨ lift-left-rawᶜ₀ W refl ⟩ B}
-  → ηᴿᶜ₀ (lift-after-termᶜ₀ {W = W} represented)
-      ≡ ηᴿᶜ₀ (term-after-liftᶜ₀ {W = W} represented′)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
+      {represented′ : ⇑ᵗ A ⊑ᵀ⟨ lift-left-rawᶜ W refl ⟩ B}
+  → ηᴿᶜ (lift-after-termᶜ₀ {W = W} represented)
+      ≡ ηᴿᶜ (term-after-liftᶜ₀ {W = W} represented′)
 interleaved-ηᴿ-sameᶜ₀ = refl
 
 
@@ -179,9 +179,9 @@ interleaved-marks-sameᶜ₀ :
     ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
-      {represented′ : ⇑ᵗ A ⊑ᵀ₀⟨ lift-left-rawᶜ₀ W refl ⟩ B}
-  → marksᶜ₀ (lift-after-termᶜ₀ {W = W} represented)
-      ≡ marksᶜ₀ (term-after-liftᶜ₀ {W = W} represented′)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
+      {represented′ : ⇑ᵗ A ⊑ᵀ⟨ lift-left-rawᶜ W refl ⟩ B}
+  → marksᶜ (lift-after-termᶜ₀ {W = W} represented)
+      ≡ marksᶜ (term-after-liftᶜ₀ {W = W} represented′)
 interleaved-marks-sameᶜ₀ = refl

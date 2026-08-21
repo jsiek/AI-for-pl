@@ -18,24 +18,24 @@ open import TyStore using (TyStore)
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
 import Reduction as R
 open R using (StoreChange; StoreChanges; []; _∷_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import proof.DGG.notes.probes.TwoCtxWorldEvolutionProbe
 open import proof.DGG.notes.probes.TwoCtxWorldEvolutionProducerProbe
 
 
 data MultiWorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
   → StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)
   → StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)
   → Set where
 
-  evolutions-reflᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
+  evolutions-reflᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W} [] []
 
   evolutions-step-leftᶜ₀ : ∀
       {Cᴸ Cᴿ Cᴸ¹ Cᴸ′ Cᴿ′ : Ctx}
-      {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W¹ : Cᴸ¹ ⊑ᶜ₀ Cᴿ}
-      {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+      {W : Cᴸ ⊑ᶜ Cᴿ} {W¹ : Cᴸ¹ ⊑ᶜ Cᴿ}
+      {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
       {χᴸ : StoreChange (Δᵉ Cᴸ) (Δᵉ Cᴸ¹)}
       {χsᴸ : StoreChanges (Δᵉ Cᴸ¹) (Δᵉ Cᴸ′)}
       {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
@@ -48,8 +48,8 @@ data MultiWorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
 
   evolutions-step-rightᶜ₀ : ∀
       {Cᴸ Cᴿ Cᴿ¹ Cᴸ′ Cᴿ′ : Ctx}
-      {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W¹ : Cᴸ ⊑ᶜ₀ Cᴿ¹}
-      {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+      {W : Cᴸ ⊑ᶜ Cᴿ} {W¹ : Cᴸ ⊑ᶜ Cᴿ¹}
+      {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
       {χᴿ : StoreChange (Δᵉ Cᴿ) (Δᵉ Cᴿ¹)}
       {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
       {χsᴿ : StoreChanges (Δᵉ Cᴿ¹) (Δᵉ Cᴿ′)}
@@ -62,8 +62,8 @@ data MultiWorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
 
   evolutions-step-bothᶜ₀ : ∀
       {Cᴸ Cᴿ Cᴸ¹ Cᴿ¹ Cᴸ′ Cᴿ′ : Ctx}
-      {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W¹ : Cᴸ¹ ⊑ᶜ₀ Cᴿ¹}
-      {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+      {W : Cᴸ ⊑ᶜ Cᴿ} {W¹ : Cᴸ¹ ⊑ᶜ Cᴿ¹}
+      {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
       {χᴸ : StoreChange (Δᵉ Cᴸ) (Δᵉ Cᴸ¹)}
       {χᴿ : StoreChange (Δᵉ Cᴿ) (Δᵉ Cᴿ¹)}
       {χsᴸ : StoreChanges (Δᵉ Cᴸ¹) (Δᵉ Cᴸ′)}
@@ -81,7 +81,7 @@ data MultiWorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
 request-source-changeᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ¹ Δᴿ¹} {χᴸ : StoreChange Δᴸ Δᴸ¹}
     {χᴿ : StoreChange Δᴿ Δᴿ¹}
     (request : WorldEvolutionRequestᶜ₀ W χᴸ χᴿ)
@@ -99,7 +99,7 @@ request-source-changeᶜ₀
 request-target-changeᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ¹ Δᴿ¹} {χᴸ : StoreChange Δᴸ Δᴸ¹}
     {χᴿ : StoreChange Δᴿ Δᴿ¹}
     (request : WorldEvolutionRequestᶜ₀ W χᴸ χᴿ)
@@ -117,11 +117,11 @@ request-target-changeᶜ₀
 prepend-both-requestᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ¹ Δᴿ¹} {χᴸ : StoreChange Δᴸ Δᴸ¹}
     {χᴿ : StoreChange Δᴿ Δᴿ¹}
     (request : WorldEvolutionRequestᶜ₀ W χᴸ χᴿ)
-    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges Δᴸ¹ (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges Δᴿ¹ (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀
@@ -138,10 +138,10 @@ prepend-both-requestᶜ₀ request tail =
 prepend-left-requestᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ¹} {χᴸ : StoreChange Δᴸ Δᴸ¹}
     (request : WorldEvolutionRequestᶜ₀ W χᴸ R.keep)
-    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges Δᴸ¹ (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges Δᴿ (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀
@@ -157,10 +157,10 @@ prepend-left-requestᶜ₀ (evolution-request-leftᶜ₀ eqᴸ) tail =
 prepend-right-requestᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴿ¹} {χᴿ : StoreChange Δᴿ Δᴿ¹}
     (request : WorldEvolutionRequestᶜ₀ W R.keep χᴿ)
-    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {Cᴸ′ Cᴿ′ : Ctx} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges Δᴸ (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges Δᴿ¹ (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀
@@ -196,7 +196,7 @@ ctx-change-term-asᶜ₀ {C = C} {step = step} eq =
 
 
 multi-source-storeᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -218,7 +218,7 @@ multi-source-storeᶜ₀
 
 
 multi-target-storeᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -249,7 +249,7 @@ applyTermCtxsᶜ₀ (χ ∷ χs) Γ =
 
 
 multi-source-term-ctxᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -271,7 +271,7 @@ multi-source-term-ctxᶜ₀
 
 
 multi-target-term-ctxᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -311,7 +311,7 @@ ctx-change-term-value-asᶜ₀ {step = bind-ctxᶜ₀ eq} refl M = refl
 
 
 multi-source-termᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -331,7 +331,7 @@ multi-source-termᶜ₀
 
 
 multi-target-termᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ
@@ -351,7 +351,7 @@ multi-target-termᶜ₀
 
 
 multi-source-term-agreesᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
     (evol : MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ)
@@ -376,7 +376,7 @@ multi-source-term-agreesᶜ₀
 
 
 multi-target-term-agreesᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
     (evol : MultiWorldEvolutionᶜ₀ {W = W} {W′ = W′} χsᴸ χsᴿ)

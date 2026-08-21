@@ -20,7 +20,7 @@ import Imprecision as I
 open import Conversion using (unseal; seal)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Term; `_; ƛ_; _·_; _↑_; _↓_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe
@@ -28,7 +28,7 @@ open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe
 
 module TypedAliasBoundaryᶠ₂
     {Cᴸ : Ctx} {Δᴿ} {Σᴿ : TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar Δᴿ}
     (focus : TargetNameFocusᶠ₀ W X alpha)
     {Γᴿ⁺ : TC.TermCtx (suc Δᴿ)}
@@ -57,10 +57,10 @@ module TypedAliasBoundaryᶠ₂
         {m ok M M′ A A′ B B′ Aᶜ Bᶜ}
         {view-A : TargetTypeViewᶠ₁ m A′ Aᶜ}
         {view-B : TargetTypeViewᶠ₁ m B′ Bᶜ}
-        {pA : I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Aᶜ}
-        {pB : I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) B) Bᶜ}
+        {pA : I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Aᶜ}
+        {pB : I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) B) Bᶜ}
       → ScopedCastTermImprecisionᶠ₂ m ok M M′
           (scoped-type-imprecisionᶠ₁ view-B pB)
       → ScopedCastTermImprecisionᶠ₂ m ok (ƛ M) (ƛ M′)
@@ -71,10 +71,10 @@ module TypedAliasBoundaryᶠ₂
         {m ok L L′ M M′ A A′ B B′ Aᶜ Bᶜ}
         {view-A : TargetTypeViewᶠ₁ m A′ Aᶜ}
         {view-B : TargetTypeViewᶠ₁ m B′ Bᶜ}
-        {pA : I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Aᶜ}
-        {pB : I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) B) Bᶜ}
+        {pA : I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Aᶜ}
+        {pB : I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) B) Bᶜ}
       → ScopedCastTermImprecisionᶠ₂ m ok L L′
           (scoped-type-imprecisionᶠ₁
             (view-funᶠ₁ view-A view-B) (I.⇒⊑⇒ pA pB))

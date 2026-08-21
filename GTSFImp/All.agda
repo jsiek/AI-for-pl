@@ -37,6 +37,7 @@ import proof.DGG.Inversion.RightInjInversion2Lemma
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.WorldInvariants
+import proof.DGG.TwoCtxWorldInvariants
 
 ------------------------------------------------------------------------
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)

@@ -19,7 +19,7 @@ import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import proof.DGG.notes.probes.TwoCtxWorldEvolutionProbe
 
 
@@ -27,21 +27,21 @@ data WorldEvolutionRequestᶜ₀ :
     ∀ {Δᴸ Δᴿ}
       {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    → (W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    → (W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩)
     → ∀ {Δᴸ′ Δᴿ′}
     → R.StoreChange Δᴸ Δᴸ′
     → R.StoreChange Δᴿ Δᴿ′
     → Set where
 
-  evolution-request-keepᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
+  evolution-request-keepᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     → WorldEvolutionRequestᶜ₀ W R.keep R.keep
 
   evolution-request-leftᶜ₀ : ∀
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     → Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ
     → WorldEvolutionRequestᶜ₀ W (R.bind A) R.keep
@@ -50,9 +50,9 @@ data WorldEvolutionRequestᶜ₀ :
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴿ⁺ : TermCtx (suc Δᴿ)} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    → RightBindFreshᶜ₀ W B
+    → RightBindFreshᶜ W B
     → Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ
     → WorldEvolutionRequestᶜ₀ W R.keep (R.bind B)
 
@@ -61,9 +61,9 @@ data WorldEvolutionRequestᶜ₀ :
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {Γᴿ⁺ : TermCtx (suc Δᴿ)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    → A ⊑ᵀ₀⟨ W ⟩ B
+    → A ⊑ᵀ⟨ W ⟩ B
     → Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ
     → Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ
     → WorldEvolutionRequestᶜ₀ W (R.bind A) (R.bind B)
@@ -73,9 +73,9 @@ data WorldEvolutionRequestᶜ₀ :
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {Γᴿ⁺ : TermCtx (suc Δᴿ)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    → A ⊑ᵀ₀⟨ W ⟩ B
+    → A ⊑ᵀ⟨ W ⟩ B
     → ⇑ᵗ A ≢ ★
     → Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ
     → Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ
@@ -85,7 +85,7 @@ data WorldEvolutionRequestᶜ₀ :
 evolutionSourceStoreValueᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -108,7 +108,7 @@ evolutionSourceStoreValueᶜ₀ {Σᴸ = Σᴸ}
 evolutionSourceTermCtxValueᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -131,7 +131,7 @@ evolutionSourceTermCtxValueᶜ₀
 evolutionTargetStoreValueᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -155,7 +155,7 @@ evolutionTargetStoreValueᶜ₀ {Σᴿ = Σᴿ}
 evolutionTargetTermCtxValueᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -178,7 +178,7 @@ evolutionTargetTermCtxValueᶜ₀
 evolutionSourceCtxᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -192,7 +192,7 @@ evolutionSourceCtxᶜ₀ {Δᴸ′ = Δᴸ′} request =
 evolutionTargetCtxᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -206,7 +206,7 @@ evolutionTargetCtxᶜ₀ {Δᴿ′ = Δᴿ′} request =
 evolutionSourceTermᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -229,7 +229,7 @@ evolutionSourceTermᶜ₀
 evolutionTargetTermᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -252,31 +252,31 @@ evolutionTargetTermᶜ₀
 evolutionWorldᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
   → (request : WorldEvolutionRequestᶜ₀ W χᴸ χᴿ)
-  → evolutionSourceCtxᶜ₀ request ⊑ᶜ₀ evolutionTargetCtxᶜ₀ request
+  → evolutionSourceCtxᶜ₀ request ⊑ᶜ evolutionTargetCtxᶜ₀ request
 evolutionWorldᶜ₀ {W = W} evolution-request-keepᶜ₀ = W
 evolutionWorldᶜ₀ {W = W} (evolution-request-leftᶜ₀ {A = A} eqᴸ) =
-  bind-left-rawᶜ₀ W A eqᴸ
+  bind-left-rawᶜ W A eqᴸ
 evolutionWorldᶜ₀ {W = W}
     (evolution-request-rightᶜ₀ {B = B} fresh eqᴿ) =
-  bind-right-rawᶜ₀ W B fresh eqᴿ
+  bind-right-rawᶜ W B fresh eqᴿ
 evolutionWorldᶜ₀ {W = W}
     (evolution-request-both-preciseᶜ₀ represented eqᴸ eqᴿ) =
-  bind-both-rawᶜ₀ W represented eqᴸ eqᴿ
+  bind-both-rawᶜ W represented eqᴸ eqᴿ
 evolutionWorldᶜ₀ {W = W}
     (evolution-request-both-dynamicᶜ₀
       represented A≠★ eqᴸ eqᴿ) =
-  bind-both-star-rawᶜ₀ W represented A≠★ eqᴸ eqᴿ
+  bind-both-star-rawᶜ W represented A≠★ eqᴸ eqᴿ
 
 
 evolutionSourceStoreᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -296,7 +296,7 @@ evolutionSourceStoreᶜ₀
 evolutionTargetStoreᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -316,7 +316,7 @@ evolutionTargetStoreᶜ₀
 evolutionSourceTerm-agreesᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -338,7 +338,7 @@ evolutionSourceTerm-agreesᶜ₀
 evolutionTargetTerm-agreesᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -360,7 +360,7 @@ evolutionTargetTerm-agreesᶜ₀
 evolutionSourceTermCtxᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -381,7 +381,7 @@ evolutionSourceTermCtxᶜ₀
 evolutionTargetTermCtxᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -402,7 +402,7 @@ evolutionTargetTermCtxᶜ₀
 evolutionSourceChangeᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -426,7 +426,7 @@ evolutionSourceChangeᶜ₀
 evolutionTargetChangeᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -449,7 +449,7 @@ evolutionTargetChangeᶜ₀
 produceWorldEvolutionᶜ₀ : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀
+    {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
            ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Δᴸ′ Δᴿ′} {χᴸ : R.StoreChange Δᴸ Δᴸ′}
     {χᴿ : R.StoreChange Δᴿ Δᴿ′}
@@ -474,7 +474,7 @@ produceWorldEvolutionᶜ₀
 
 
 -- `StoreChange` exposes only `keep` or `bind A`.  It does not expose the
--- right-only freshness proof, the paired allocation's `A ⊑ᵀ₀⟨ W ⟩ B`, or
+-- right-only freshness proof, the paired allocation's `A ⊑ᵀ⟨ W ⟩ B`, or
 -- the precise/dynamic choice and its `⇑ᵗ A ≢ ★` evidence.  These are the
 -- exact extra facts the reduction/simulation producer must retain.  A bare
 -- reduction step also carries no term contexts; a typed producer must supply

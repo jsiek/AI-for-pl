@@ -7,8 +7,8 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe where
 --     checked global-indexed two-Ctx CTI fragment.
 --   * Projects term-variable membership directly from ScopedEntry and erases
 --     only the exact pivot index from conversion typing.
---   * Covers variables, Lambdas, universals, target reveal/conceal, and type
---     application.  It does not mention or construct the live DGG World.
+--   * Covers ordinary terms, Lambdas, universals, target reveal/conceal, and
+--     type application.  It does not mention or construct the live DGG World.
 
 open import Data.Maybe using (Maybe)
 open import Data.Nat using (ℕ)
@@ -20,8 +20,8 @@ import TermCtx as TC
 import Conversion as Conv
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; _∋ᵗ_⦂_; _⊢_⦂_;
-   ⊢`; ⊢ƛ; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe using (_⊑ᶜ₀_)
+   ⊢`; ⊢ƛ; ⊢·; ⊢$; ⊢blame; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
+open import proof.DGG.TwoCtxWorld using (_⊑ᶜ_)
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using
   (ExactAliasEdgeᵉ)
 import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe as Global
@@ -60,7 +60,7 @@ mutual
 
 
 scoped-entry-endpointsᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : Global.NameFocusᵍ W X alpha}
@@ -82,7 +82,7 @@ scoped-entry-endpointsᵍ (Global.entry-thereᵍ entry) =
 
 
 scoped-cti-endpoint-typingᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : Global.NameFocusᵍ W X alpha}
@@ -104,6 +104,17 @@ scoped-cti-endpoint-typingᵍ (Global.lambda⊑lambdaᵍ relation) =
   ⊢ƛ (proj₁ endpoints) , ⊢ƛ (proj₂ endpoints)
   where
   endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ (Global.app⊑appᵍ fun-rel arg-rel) =
+  ⊢· (proj₁ fun-endpoints) (proj₁ arg-endpoints) ,
+  ⊢· (proj₂ fun-endpoints) (proj₂ arg-endpoints)
+  where
+  fun-endpoints = scoped-cti-endpoint-typingᵍ fun-rel
+  arg-endpoints = scoped-cti-endpoint-typingᵍ arg-rel
+scoped-cti-endpoint-typingᵍ
+    (Global.constant⊑constantᵍ kappa p) =
+  ⊢$ kappa , ⊢$ kappa
+scoped-cti-endpoint-typingᵍ (Global.blame⊑ᵍ target⊢ p) =
+  ⊢blame , target⊢
 scoped-cti-endpoint-typingᵍ
     (Global.all⊑allᵍ scope-lift vV vV′ relation) =
   ⊢Λ vV (proj₁ endpoints) , ⊢Λ vV′ (proj₂ endpoints)

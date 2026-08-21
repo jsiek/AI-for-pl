@@ -20,7 +20,7 @@ import Imprecision as I
 import Consistency
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; ⇑ᵉᵗ)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using
@@ -54,15 +54,15 @@ lifted-strict-edge : ExactAliasEdgeᵉ
 lifted-strict-edge = alias-liftᵉ strict-edge
 
 
-lifted-stable-world = liftBothᶜ₀ I.X⊑X stable-world
+lifted-stable-world = liftBothᶜ I.X⊑X stable-world
 
 lifted-strict-focus : TargetNameFocusᶠ₀ lifted-stable-world
   (suc source-X) (suc target-alpha)
 lifted-strict-focus = target-name-focusᶠ₀ separated refl (I.X⊑★ refl)
   where
   separated :
-    Consistency.toRenameᵗ (ηᴸᶜ₀ lifted-stable-world) (suc source-X)
-      ≢ Consistency.toRenameᵗ (ηᴿᶜ₀ lifted-stable-world)
+    Consistency.toRenameᵗ (ηᴸᶜ lifted-stable-world) (suc source-X)
+      ≢ Consistency.toRenameᵗ (ηᴿᶜ lifted-stable-world)
           (suc target-alpha)
   separated ()
 

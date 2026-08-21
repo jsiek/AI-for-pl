@@ -20,8 +20,8 @@ import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 
 
 data CtxChangeᶜ₀ : Ctx → Ctx → Set where
@@ -64,32 +64,32 @@ ctx-change-termᶜ₀ (bind-ctxᶜ₀ eq) = eq
 
 
 data WorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
   → CtxChangeᶜ₀ Cᴸ Cᴸ′
   → CtxChangeᶜ₀ Cᴿ Cᴿ′
   → Set where
-  evolution-keepᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
+  evolution-keepᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     → WorldEvolutionᶜ₀ {W = W} {W′ = W} keep-ctxᶜ₀ keep-ctxᶜ₀
 
   evolution-bind-leftᶜ₀ : ∀
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
     → WorldEvolutionᶜ₀
-        {W = W} {W′ = bind-left-rawᶜ₀ W A eqᴸ}
+        {W = W} {W′ = bind-left-rawᶜ W A eqᴸ}
         (bind-ctxᶜ₀ eqᴸ) keep-ctxᶜ₀
 
   evolution-bind-rightᶜ₀ : ∀
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴿ⁺ : TermCtx (suc Δᴿ)} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      (fresh : RightBindFreshᶜ₀ W B)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      (fresh : RightBindFreshᶜ W B)
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolutionᶜ₀
-        {W = W} {W′ = bind-right-rawᶜ₀ W B fresh eqᴿ}
+        {W = W} {W′ = bind-right-rawᶜ W B fresh eqᴿ}
         keep-ctxᶜ₀ (bind-ctxᶜ₀ eqᴿ)
 
   evolution-bind-bothᶜ₀ : ∀
@@ -97,12 +97,12 @@ data WorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {Γᴿ⁺ : TermCtx (suc Δᴿ)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      (represented : A ⊑ᵀ₀⟨ W ⟩ B)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      (represented : A ⊑ᵀ⟨ W ⟩ B)
       (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolutionᶜ₀
-        {W = W} {W′ = bind-both-rawᶜ₀ W represented eqᴸ eqᴿ}
+        {W = W} {W′ = bind-both-rawᶜ W represented eqᴸ eqᴿ}
         (bind-ctxᶜ₀ eqᴸ) (bind-ctxᶜ₀ eqᴿ)
 
   evolution-bind-both-starᶜ₀ : ∀
@@ -110,35 +110,35 @@ data WorldEvolutionᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (suc Δᴸ)} {Γᴿ⁺ : TermCtx (suc Δᴿ)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      (represented : A ⊑ᵀ₀⟨ W ⟩ B)
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      (represented : A ⊑ᵀ⟨ W ⟩ B)
       (A≠★ : ⇑ᵗ A ≢ ★)
       (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolutionᶜ₀
         {W = W}
-        {W′ = bind-both-star-rawᶜ₀ W represented A≠★ eqᴸ eqᴿ}
+        {W′ = bind-both-star-rawᶜ W represented A≠★ eqᴸ eqᴿ}
         (bind-ctxᶜ₀ eqᴸ) (bind-ctxᶜ₀ eqᴿ)
 
 
 evolution-invariantsᶜ₀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ₀ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {stepᴸ : CtxChangeᶜ₀ Cᴸ Cᴸ′}
     {stepᴿ : CtxChangeᶜ₀ Cᴿ Cᴿ′}
   → WorldEvolutionᶜ₀ {W = W} {W′ = W′} stepᴸ stepᴿ
-  → DirectWorldInvariantsᶜ₀ W′
-evolution-invariantsᶜ₀ evolution-keepᶜ₀ = directInvariantsᶜ₀ _
+  → DirectWorldInvariantsᶜ W′
+evolution-invariantsᶜ₀ evolution-keepᶜ₀ = directInvariantsᶜ _
 evolution-invariantsᶜ₀ (evolution-bind-leftᶜ₀ eqᴸ) =
-  directInvariantsᶜ₀ _
+  directInvariantsᶜ _
 evolution-invariantsᶜ₀ (evolution-bind-rightᶜ₀ fresh eqᴿ) =
-  directInvariantsᶜ₀ _
+  directInvariantsᶜ _
 evolution-invariantsᶜ₀ (evolution-bind-bothᶜ₀ represented eqᴸ eqᴿ) =
-  directInvariantsᶜ₀ _
+  directInvariantsᶜ _
 evolution-invariantsᶜ₀
     (evolution-bind-both-starᶜ₀ represented A≠★ eqᴸ eqᴿ) =
-  directInvariantsᶜ₀ _
+  directInvariantsᶜ _
 
 
 empty-evolutionᶜ₀ : WorldEvolutionᶜ₀
-    {W = emptyᶜ₀} {W′ = emptyᶜ₀} keep-ctxᶜ₀ keep-ctxᶜ₀
+    {W = emptyᶜ} {W′ = emptyᶜ} keep-ctxᶜ₀ keep-ctxᶜ₀
 empty-evolutionᶜ₀ = evolution-keepᶜ₀

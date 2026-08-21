@@ -20,73 +20,73 @@ open import Types using (TyVar)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (X⊑★)
 open import CastTerms using (Ctx; Δᵉ)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 
 
 target-unaligned-markᶜ₀ : ∀ {Cᴸ Cᴿ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ Cᴿ) (Z : TyVar (centerᶜ₀ W))
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ₀ W) Xᴿ ≢ Z)
-  → marksᶜ₀ W Z ≡ X⊑★
-target-unaligned-markᶜ₀ emptyᶜ₀ () no-target
-target-unaligned-markᶜ₀ (skip-centerᶜ₀ W) Fin.zero no-target = refl
-target-unaligned-markᶜ₀ (skip-centerᶜ₀ W) (Fin.suc Z) no-target =
+    (W : Cᴸ ⊑ᶜ Cᴿ) (Z : TyVar (centerᶜ W))
+  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ Z)
+  → marksᶜ W Z ≡ X⊑★
+target-unaligned-markᶜ₀ emptyᶜ () no-target
+target-unaligned-markᶜ₀ (skip-centerᶜ W) Fin.zero no-target = refl
+target-unaligned-markᶜ₀ (skip-centerᶜ W) (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target Xᴿ (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (lift-both-rawᶜ₀ W v Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero no-target =
+    (lift-both-rawᶜ W v Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero no-target =
   ⊥-elim (no-target Fin.zero refl)
 target-unaligned-markᶜ₀
-    (lift-both-rawᶜ₀ W v Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc Z) no-target =
+    (lift-both-rawᶜ W v Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target (Fin.suc Xᴿ) (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (lift-left-rawᶜ₀ W Γᴸ⁺≡) Fin.zero no-target = refl
+    (lift-left-rawᶜ W Γᴸ⁺≡) Fin.zero no-target = refl
 target-unaligned-markᶜ₀
-    (lift-left-rawᶜ₀ W Γᴸ⁺≡) (Fin.suc Z) no-target =
+    (lift-left-rawᶜ W Γᴸ⁺≡) (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target Xᴿ (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (bind-left-rawᶜ₀ W A Γᴸ⁺≡) Fin.zero no-target = refl
+    (bind-left-rawᶜ W A Γᴸ⁺≡) Fin.zero no-target = refl
 target-unaligned-markᶜ₀
-    (bind-left-rawᶜ₀ W A Γᴸ⁺≡) (Fin.suc Z) no-target =
+    (bind-left-rawᶜ W A Γᴸ⁺≡) (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target Xᴿ (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (bind-right-rawᶜ₀ W B fresh Γᴿ⁺≡) Fin.zero no-target =
+    (bind-right-rawᶜ W B fresh Γᴿ⁺≡) Fin.zero no-target =
   ⊥-elim (no-target Fin.zero refl)
 target-unaligned-markᶜ₀
-    (bind-right-rawᶜ₀ W B fresh Γᴿ⁺≡) (Fin.suc Z) no-target =
+    (bind-right-rawᶜ W B fresh Γᴿ⁺≡) (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target (Fin.suc Xᴿ) (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (bind-both-rawᶜ₀ W represented Γᴸ⁺≡ Γᴿ⁺≡)
+    (bind-both-rawᶜ W represented Γᴸ⁺≡ Γᴿ⁺≡)
     Fin.zero no-target =
   ⊥-elim (no-target Fin.zero refl)
 target-unaligned-markᶜ₀
-    (bind-both-rawᶜ₀ W represented Γᴸ⁺≡ Γᴿ⁺≡)
+    (bind-both-rawᶜ W represented Γᴸ⁺≡ Γᴿ⁺≡)
     (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target (Fin.suc Xᴿ) (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (bind-both-star-rawᶜ₀ W represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
+    (bind-both-star-rawᶜ W represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
     Fin.zero no-target =
   ⊥-elim (no-target Fin.zero refl)
 target-unaligned-markᶜ₀
-    (bind-both-star-rawᶜ₀ W represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
+    (bind-both-star-rawᶜ W represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
     (Fin.suc Z) no-target =
   target-unaligned-markᶜ₀ W Z
     (λ Xᴿ eq → no-target (Fin.suc Xᴿ) (cong Fin.suc eq))
 target-unaligned-markᶜ₀
-    (bind-termᶜ₀ W represented) Z no-target =
+    (bind-termᶜ W represented) Z no-target =
   target-unaligned-markᶜ₀ W Z no-target
 
 
 honestification-eliminatedᶜ₀ : ∀ {Cᴸ Cᴿ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+    (W : Cᴸ ⊑ᶜ Cᴿ)
   → (∀ Z
-      → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ₀ W) Xᴿ ≢ Z)
-      → marksᶜ₀ W Z ≡ X⊑★)
-    × DirectWorldInvariantsᶜ₀ W
+      → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ Z)
+      → marksᶜ W Z ≡ X⊑★)
+    × DirectWorldInvariantsᶜ W
 honestification-eliminatedᶜ₀ W =
-  target-unaligned-markᶜ₀ W , directInvariantsᶜ₀ W
+  target-unaligned-markᶜ₀ W , directInvariantsᶜ W

@@ -16,17 +16,14 @@ The common center remains internal to a relation witness.  It is not a third
 index.  The source and target stores and term contexts are the `Σᵉ` and `Γᵉ`
 fields of the two endpoint `Ctx` values.
 
-Everything below is **schematic and unproved** as a replacement for the live
-world.  `notes/probes/TwoCtxWorldSkeletonProbe.agda` does check the mutual
-relation/projection pattern, the constructor-form allocation indices, and the
-displayed smart functions under `--safe`.
-`notes/probes/TwoCtxWorldInvariantsProbe.agda` checks that every raw
-constructor implies the four direct nominal world invariants and checks a
-direct-store rebase graph plus its same-world case.  The later rebase-plan
-probe checks the corresponding structural function over an explicit plan.  A
-general producer of such plans and all live preservation theorems remain
-unproved.  This note does not authorize a change to the live term-imprecision
-relation.
+The core relation and projections now live in `proof/DGG/TwoCtxWorld.agda`.
+`proof/DGG/TwoCtxWorldInvariants.agda` proves that every raw constructor implies
+the four direct nominal invariants and checks a direct-store rebase graph plus
+its same-world case.  Both modules are imported by the safe aggregate.  The
+later rebase-plan probe checks the corresponding structural function over an
+explicit plan.  Operational consumers still use the old world, so producing
+and migrating those plans remains unfinished.  This note does not authorize a
+change to the live term-imprecision relation.
 
 Later probes check the first nontrivial provenance layers.  The
 `TwoCtxSourceRebasePlanProbe` implements one local source/target allocation
@@ -94,7 +91,8 @@ provenance; it isolates the missing migration bridge rather than constructing
 an old `World`.
 `TwoCtxSimulationResultProbe` checks a final-endpoint simulation package over
 the multi-world evolution, deriving both endpoint typings and all executable
-store, context, and term projections without `SameRuntime` or `SameCtx`.
+store, context, and term projections without `SameRuntime` or `SameCtx`; its
+complete outcome is either that synchronized package or a source-blame trace.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -458,7 +456,7 @@ The stable world therefore leaves `X` and `α` at distinct center points.
 The checked probe adds a boundary-local focus:
 
 ```agda
-record TargetNameFocusᶠ₀ (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+record TargetNameFocusᶠ₀ (W : Cᴸ ⊑ᶜ Cᴿ)
     (X : TyVar (Δᵉ Cᴸ)) (α : TyVar (Δᵉ Cᴿ)) : Set where
   field
     stable-points-separated :
@@ -466,7 +464,7 @@ record TargetNameFocusᶠ₀ (W : Cᴸ ⊑ᶜ₀ Cᴿ)
     source-direct-self :
       lookupStore (Σᵉ Cᴸ) X ≡ ＇ X
     stable-direct-representations :
-      lookupStore (Σᵉ Cᴸ) X ⊑ᵀ₀⟨ W ⟩ lookupStore (Σᵉ Cᴿ) α
+      lookupStore (Σᵉ Cᴸ) X ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) α
 ```
 
 The last field is an explicit direct-entry proof; it is not derived by
@@ -651,9 +649,10 @@ target-strip proofs, and the instantiation catch-up and inversion family.
 
 ## Open proof obligations
 
-Before this becomes a live design, the remaining probes must establish:
+Before this replaces the old consumer indices, the remaining work must
+establish:
 
-- The checked `TwoCtxWorldInvariantsProbe` establishes that the inductive
+- The live `TwoCtxWorldInvariants` theorem establishes that the inductive
   constructors imply all four direct invariants without a general
   invariant-accepting escape constructor.
 - Checked source rebase is implemented as a function over an explicit plan.
@@ -713,9 +712,8 @@ Before this becomes a live design, the remaining probes must establish:
   A checked simulation-result surface indexes the final terms and relation by
   those evolved endpoint contexts, derives both endpoint typings, and exposes
   all executable projections without separate runtime/context equalities.
-  Trusted preservation is currently closed-context only; the checked
-  `OpenContextPreservationBoundaryProbe` shows that one open one-step theorem
-  suffices to derive open multi-step and both endpoint typing results.
+  Trusted one-step and multi-step preservation now support arbitrary term
+  contexts, so the same endpoint theorem applies to open simulation states.
 - Target stripping must retain source-rebase provenance.  The checked lower
   operation has exactly the identity and lifted-child cases, reconstructs the
   lifted result definitionally, and derives invariants from raw history.

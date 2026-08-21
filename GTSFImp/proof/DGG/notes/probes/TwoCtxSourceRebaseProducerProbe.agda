@@ -25,8 +25,8 @@ open import Consistency using (toRenameᵗ)
 import Imprecision as I
 open I using (X⊑X; X⊑★; extendᵐ)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; _,ˢ_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 open import proof.DGG.notes.probes.TwoCtxSourceRebasePlanProbe
 
 
@@ -42,12 +42,12 @@ private
 
 
 rebaseSource-marksᶜ₀ :
-    ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
+    ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ Xᴿ}
     (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
-    (Z : TyVar (centerᶜ₀ W))
-  → marksᶜ₀ (rebaseSourceᶜ₀ plan)
+    (Z : TyVar (centerᶜ W))
+  → marksᶜ (rebaseSourceᶜ₀ plan)
       (subst Fin.Fin (sym (rebaseSource-centerᶜ₀ plan)) Z)
-    ≡ marksᶜ₀ W Z
+    ≡ marksᶜ W Z
 rebaseSource-marksᶜ₀ (source-rebase-idᶜ₀ aligned) Z = refl
 rebaseSource-marksᶜ₀
     (source-to-targetᶜ₀ Γᴸ⁺≡ Γᴿ⁺≡ fresh represented A≠★) Z =
@@ -56,7 +56,7 @@ rebaseSource-marksᶜ₀ (source-rebase-skipᶜ₀ plan) Fin.zero
     rewrite subst-Fin-zero-sym (rebaseSource-centerᶜ₀ plan) = refl
 rebaseSource-marksᶜ₀ (source-rebase-skipᶜ₀ plan) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -65,7 +65,7 @@ rebaseSource-marksᶜ₀
 rebaseSource-marksᶜ₀
     (source-rebase-targetᶜ₀ plan fresh′ Γᴿ⁺≡) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -76,7 +76,7 @@ rebaseSource-marksᶜ₀
     (source-rebase-lift-bothᶜ₀ {v = v} plan Γᴸ⁺≡ Γᴿ⁺≡)
     (Fin.suc Z) =
   trans
-    (cong (extendᵐ v (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ v (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -85,7 +85,7 @@ rebaseSource-marksᶜ₀
 rebaseSource-marksᶜ₀
     (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -94,7 +94,7 @@ rebaseSource-marksᶜ₀
 rebaseSource-marksᶜ₀
     (source-rebase-bind-leftᶜ₀ plan Γᴸ⁺≡) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -108,7 +108,7 @@ rebaseSource-marksᶜ₀
     (source-rebase-bind-bothᶜ₀
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑X (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑X (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 rebaseSource-marksᶜ₀
@@ -119,37 +119,37 @@ rebaseSource-marksᶜ₀
     (source-rebase-bind-both-starᶜ₀
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (rebaseSourceᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (rebaseSourceᶜ₀ plan)))
       (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan) Z))
     (rebaseSource-marksᶜ₀ plan Z)
 
 
-data SourceRebaseRequestᶜ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ₀ Cᴿ) :
+data SourceRebaseRequestᶜ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ Cᴿ) :
     Maybe (TyVar (Δᵉ Cᴸ)) → Maybe (TyVar (Δᵉ Cᴿ)) → Set where
 
   source-request-idᶜ₀ :
       SourceRebaseRequestᶜ₀ W nothing nothing
 
   source-request-onlyᶜ₀ : ∀ {Xᴸ}
-    → marksᶜ₀ W (toRenameᵗ (ηᴸᶜ₀ W) Xᴸ) ≡ X⊑★
+    → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ X⊑★
     → (∀ Xᴿ
-        → toRenameᵗ (ηᴿᶜ₀ W) Xᴿ
-          ≢ toRenameᵗ (ηᴸᶜ₀ W) Xᴸ)
-    → lookupStore (Σᵉ Cᴸ) Xᴸ ⊑ᵀ₀⟨ W ⟩ ★
+        → toRenameᵗ (ηᴿᶜ W) Xᴿ
+          ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ)
+    → lookupStore (Σᵉ Cᴸ) Xᴸ ⊑ᵀ⟨ W ⟩ ★
     → SourceRebaseRequestᶜ₀ W (just Xᴸ) nothing
 
   source-request-pairedᶜ₀ : ∀ {Xᴸ Xᴿ}
     → (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
     → lookupStore (Σᵉ Cᴸ) Xᴸ
-        ⊑ᵀ₀⟨ rebaseSourceᶜ₀ plan ⟩
+        ⊑ᵀ⟨ rebaseSourceᶜ₀ plan ⟩
       lookupStore (Σᵉ Cᴿ) Xᴿ
     → SourceRebaseRequestᶜ₀ W (just Xᴸ) (just Xᴿ)
 
 
 sourceRebaseRequestWorldᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ? Xᴿ?}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ? Xᴿ?}
   → SourceRebaseRequestᶜ₀ W Xᴸ? Xᴿ?
-  → Cᴸ ⊑ᶜ₀ Cᴿ
+  → Cᴸ ⊑ᶜ Cᴿ
 sourceRebaseRequestWorldᶜ₀ {W = W} source-request-idᶜ₀ = W
 sourceRebaseRequestWorldᶜ₀ {W = W}
     (source-request-onlyᶜ₀ mark disaligned represented) = W
@@ -159,9 +159,9 @@ sourceRebaseRequestWorldᶜ₀
 
 
 sourceRebaseRequest-centerᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ? Xᴿ?}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ? Xᴿ?}
     (request : SourceRebaseRequestᶜ₀ W Xᴸ? Xᴿ?)
-  → centerᶜ₀ (sourceRebaseRequestWorldᶜ₀ request) ≡ centerᶜ₀ W
+  → centerᶜ (sourceRebaseRequestWorldᶜ₀ request) ≡ centerᶜ W
 sourceRebaseRequest-centerᶜ₀ source-request-idᶜ₀ = refl
 sourceRebaseRequest-centerᶜ₀
     (source-request-onlyᶜ₀ mark disaligned represented) = refl
@@ -171,12 +171,12 @@ sourceRebaseRequest-centerᶜ₀
 
 
 sourceRebaseRequest-marksᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ? Xᴿ?}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ? Xᴿ?}
     (request : SourceRebaseRequestᶜ₀ W Xᴸ? Xᴿ?)
-    (Z : TyVar (centerᶜ₀ W))
-  → marksᶜ₀ (sourceRebaseRequestWorldᶜ₀ request)
+    (Z : TyVar (centerᶜ W))
+  → marksᶜ (sourceRebaseRequestWorldᶜ₀ request)
       (subst Fin.Fin (sym (sourceRebaseRequest-centerᶜ₀ request)) Z)
-    ≡ marksᶜ₀ W Z
+    ≡ marksᶜ W Z
 sourceRebaseRequest-marksᶜ₀ source-request-idᶜ₀ Z = refl
 sourceRebaseRequest-marksᶜ₀
     (source-request-onlyᶜ₀ mark disaligned represented) Z = refl
@@ -186,7 +186,7 @@ sourceRebaseRequest-marksᶜ₀
 
 
 sourceRebaseRequestPlanᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ Xᴿ}
   → SourceRebaseRequestᶜ₀ W (just Xᴸ) (just Xᴿ)
   → SourceRebasePlanᶜ₀ W Xᴸ Xᴿ
 sourceRebaseRequestPlanᶜ₀
@@ -194,12 +194,12 @@ sourceRebaseRequestPlanᶜ₀
 
 
 sourceRebaseRequest-soundᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ Xᴿ}
     (request : SourceRebaseRequestᶜ₀ W (just Xᴸ) (just Xᴿ))
-  → RebaseSourceᶜ₀ W (sourceRebaseRequestWorldᶜ₀ request) Xᴸ Xᴿ
+  → RebaseSourceᶜ W (sourceRebaseRequestWorldᶜ₀ request) Xᴸ Xᴿ
 sourceRebaseRequest-soundᶜ₀
     (source-request-pairedᶜ₀ plan represented) =
-  rebase-sourceᶜ₀
+  rebase-sourceᶜ
     (rebaseSource-centerᶜ₀ plan)
     (rebaseSource-ηᴸ-offᶜ₀ plan)
     (rebaseSource-ηᴿ-frozenᶜ₀ plan)
@@ -213,12 +213,12 @@ empty-context : Ctx
 empty-context = ⟨ zero , store-empty , [] ⟩
 
 identity-request :
-    SourceRebaseRequestᶜ₀ emptyᶜ₀ nothing nothing
+    SourceRebaseRequestᶜ₀ emptyᶜ nothing nothing
 identity-request = source-request-idᶜ₀
 
 unmatched-source-world :
-    (empty-context ,ˢ (‵ `ℕ)) ⊑ᶜ₀ empty-context
-unmatched-source-world = bindLeftᶜ₀ emptyᶜ₀ (‵ `ℕ)
+    (empty-context ,ˢ (‵ `ℕ)) ⊑ᶜ empty-context
+unmatched-source-world = bindLeftᶜ emptyᶜ (‵ `ℕ)
 
 unmatched-source-request :
     SourceRebaseRequestᶜ₀ unmatched-source-world
@@ -227,9 +227,9 @@ unmatched-source-request =
   source-request-onlyᶜ₀ refl (λ ()) I.ι⊑★
 
 separated-pivots-world :
-    (empty-context ,ˢ (‵ `ℕ)) ⊑ᶜ₀ (empty-context ,ˢ ★)
+    (empty-context ,ˢ (‵ `ℕ)) ⊑ᶜ (empty-context ,ˢ ★)
 separated-pivots-world =
-  bindRightᶜ₀ unmatched-source-world ★ (inj₁ refl)
+  bindRightᶜ unmatched-source-world ★ (inj₁ refl)
 
 paired-move-plan :
     SourceRebasePlanᶜ₀ separated-pivots-world Fin.zero Fin.zero

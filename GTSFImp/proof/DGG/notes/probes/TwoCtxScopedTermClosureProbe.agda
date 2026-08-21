@@ -16,7 +16,7 @@ open import Types using (Ty; TyVar; ＇_)
 open import TyStore using (TyStore; store-bind)
 import TermCtx as TC
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Term; `_; _∋ᵗ_⦂_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe
@@ -26,13 +26,13 @@ open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using
 
 module ScopedTermClosure
     {Cᴸ : Ctx} {Δᴿ} {Σᴿ : TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {X : TyVar (CastTerms.Δᵉ Cᴸ)} {alpha : TyVar Δᴿ}
     (focus : TargetNameFocusᶠ₀ W X alpha)
     {Γᴿ⁺ : TC.TermCtx (suc Δᴿ)}
     (scope : TargetAliasBoundaryᶠ₀ focus
       ⟨ suc Δᴿ , store-bind Σᴿ (＇ alpha) , Γᴿ⁺ ⟩)
-    (W⁺ : Cᴸ ⊑ᶜ₀
+    (W⁺ : Cᴸ ⊑ᶜ
       ⟨ suc Δᴿ , store-bind Σᴿ (＇ alpha) , Γᴿ⁺ ⟩)
     where
 

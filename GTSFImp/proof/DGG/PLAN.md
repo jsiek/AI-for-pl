@@ -1138,7 +1138,7 @@ compiled empty world.
 
 The proposed two-`Ctx` redesign now has checked direct invariants and an
 exhaustive plan interpreter, not just a constructor sketch.
-`TwoCtxWorldInvariantsProbe` proves all four invariants for every raw
+The live `TwoCtxWorldInvariants` module proves all four invariants for every raw
 constructor without `resolveVar`, invariant-accepting escape constructors,
 postulates, `NON_COVERING`, funext, or catch-alls.
 `TwoCtxSourceRebasePlanProbe` implements the direct-store rebase graph,
@@ -1312,11 +1312,11 @@ do not fabricate an old `World` or reintroduce alias resolution.
 `TwoCtxSimulationResultProbe` checks the final multi-step result surface.  Its
 final world relates the actual endpoint `Ctx` values, retains both independent
 store-change sequences and `MultiWorldEvolutionᶜ₀`, derives both final endpoint
-typings, and exposes executable store/context/term projections.  It needs no
-`SameRuntime` or `SameCtx`.  Trusted preservation is currently closed-context
-only; `OpenContextPreservationBoundaryProbe` shows that a single open one-step
-preservation theorem would derive the generalized multi-step and both open
-endpoint typing theorems.
+typings, and exposes executable store/context/term projections.  The complete
+outcome is either that synchronized package or the existing source-blame
+alternative.  It needs no `SameRuntime` or `SameCtx`.  Trusted one-step and
+multi-step preservation now support arbitrary term contexts, and the endpoint
+theorem checks for open simulation states as well as closed programs.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

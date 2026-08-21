@@ -31,14 +31,14 @@ open import Primitives using (Const; constTy)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ƛ_; _·_; $; _⟨_⟩; _↑_;
    _↓_; blame; _⊢_⦂_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using
   (ExactAliasEdgeᵉ; edge-head; edgeEmbed; edge-beta-fresh)
 
 
-module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
+module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (name-focus : TargetNameFocusᶠ₀ W X alpha)
@@ -49,14 +49,14 @@ module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
     push-focus : Mode → TyVar (Δᵉ C⁺) → Mode
 
   data TargetVarView : Mode → TyVar (Δᵉ C⁺) →
-      TyVar (centerᶜ₀ W) → Set where
+      TyVar (centerᶜ W) → Set where
     stable-old : ∀ {Y Y⁺ Z}
       → edgeEmbed edge Y ≡ Y⁺
-      → toRenameᵗ (ηᴿᶜ₀ W) Y ≡ Z
+      → toRenameᵗ (ηᴿᶜ W) Y ≡ Z
       → TargetVarView stable Y⁺ Z
 
     focus-here : ∀ {m Y Z}
-      → toRenameᵗ (ηᴸᶜ₀ W) X ≡ Z
+      → toRenameᵗ (ηᴸᶜ W) X ≡ Z
       → TargetVarView (push-focus m Y) Y Z
 
     focus-there : ∀ {m Y Y′ Z}
@@ -71,7 +71,7 @@ module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
     edge-beta-fresh edge Y edge-eq
 
   data TargetTypeView (m : Mode) :
-      Ty (Δᵉ C⁺) → Ty (centerᶜ₀ W) → Set where
+      Ty (Δᵉ C⁺) → Ty (centerᶜ W) → Set where
     view-var : ∀ {Y Z}
       → TargetVarView m Y Z
       → TargetTypeView m (＇ Y) (＇ Z)
@@ -90,8 +90,8 @@ module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
       Ty (Δᵉ Cᴸ) → Ty (Δᵉ C⁺) → Set where
     scoped-type : ∀ {A B Bᶜ}
       → TargetTypeView m B Bᶜ
-      → I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Bᶜ
+      → I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Bᶜ
       → ScopedType m A B
 
   scoped-fun : ∀ {m A B A′ B′}
@@ -162,7 +162,7 @@ module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
   SourcePivotUnoccupied : Mode → TyVar (Δᵉ Cᴸ) → Set
   SourcePivotUnoccupied m Z = ∀ {Y Zᶜ}
     → TargetVarView m Y Zᶜ
-    → toRenameᵗ (ηᴸᶜ₀ W) Z ≢ Zᶜ
+    → toRenameᵗ (ηᴸᶜ W) Z ≢ Zᶜ
 
   data ScopedCTI :
       (m : Mode) → ValidMode m → ∀ {Gammaᴸ Gammaᴿ}

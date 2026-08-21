@@ -24,8 +24,8 @@ import Imprecision as I
 open import Conversion using (unseal; seal)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ƛ_; _·_; _↑_; _↓_)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 
@@ -38,7 +38,7 @@ open import
 
 module AliasFocusModeᶠ₁
     {Cᴸ : Ctx} {Δᴿ} {Σᴿ : TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar Δᴿ}
     (focus : TargetNameFocusᶠ₀ W X alpha)
     {Γᴿ⁺ : TC.TermCtx (suc Δᴿ)}
@@ -60,14 +60,14 @@ module AliasFocusModeᶠ₁
 
   data TargetVarViewᶠ₁ :
       TargetModeᶠ₁ → TyVar (suc Δᴿ)
-      → TyVar (centerᶜ₀ W) → Set where
+      → TyVar (centerᶜ W) → Set where
 
     stable-oldᶠ₁ : ∀ {Y Z}
-      → toRenameᵗ (ηᴿᶜ₀ W) Y ≡ Z
+      → toRenameᵗ (ηᴿᶜ W) Y ≡ Z
       → TargetVarViewᶠ₁ stable-modeᶠ₁ (Fin.suc Y) Z
 
     focus-hereᶠ₁ : ∀ {m Y Z}
-      → toRenameᵗ (ηᴸᶜ₀ W) X ≡ Z
+      → toRenameᵗ (ηᴸᶜ W) X ≡ Z
       → TargetVarViewᶠ₁ (push-focusᶠ₁ m Y) Y Z
 
     focus-thereᶠ₁ : ∀ {m Y Y′ Z}
@@ -85,7 +85,7 @@ module AliasFocusModeᶠ₁
   -- orthogonal binder operation is deliberately outside this small probe.
 
   data TargetTypeViewᶠ₁ (m : TargetModeᶠ₁) :
-      Ty (suc Δᴿ) → Ty (centerᶜ₀ W) → Set where
+      Ty (suc Δᴿ) → Ty (centerᶜ W) → Set where
 
     view-varᶠ₁ : ∀ {Y Z}
       → TargetVarViewᶠ₁ m Y Z
@@ -106,8 +106,8 @@ module AliasFocusModeᶠ₁
 
     scoped-type-imprecisionᶠ₁ : ∀ {A B Bᶜ}
       → TargetTypeViewᶠ₁ m B Bᶜ
-      → I._⊢_⊑_ (marksᶜ₀ W)
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Bᶜ
+      → I._⊢_⊑_ (marksᶜ W)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Bᶜ
       → ScopedTypeImprecisionᶠ₁ m A B
 
   -- An exact boundary names one source pivot, one target pivot, and their
@@ -197,7 +197,7 @@ alpha-validᶠ₁ = push-validᶠ₁ stable-validᶠ₁ alpha-boundaryᶠ₁
 
 alpha-viewᶠ₁ :
   TargetTypeViewᶠ₁ alpha-modeᶠ₁ (＇ target-alpha⁺)
-    (＇ toRenameᵗ (ηᴸᶜ₀ stable-world) source-X)
+    (＇ toRenameᵗ (ηᴸᶜ stable-world) source-X)
 alpha-viewᶠ₁ = view-varᶠ₁ (focus-hereᶠ₁ refl)
 
 alpha-X-alphaᶠ₁ :
@@ -220,7 +220,7 @@ beta-validᶠ₁ = push-validᶠ₁ alpha-validᶠ₁ beta-boundaryᶠ₁
 
 beta-viewᶠ₁ :
   TargetTypeViewᶠ₁ beta-modeᶠ₁ (＇ target-beta)
-    (＇ toRenameᵗ (ηᴸᶜ₀ stable-world) source-X)
+    (＇ toRenameᵗ (ηᴸᶜ stable-world) source-X)
 beta-viewᶠ₁ = view-varᶠ₁ (focus-hereᶠ₁ refl)
 
 beta-X-betaᶠ₁ :

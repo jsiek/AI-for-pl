@@ -2,9 +2,9 @@
 
 ## Scope and verdict
 
-This is a read-only audit of the live world surface in
-`proof/DGG/CtxImp.agda` against the checked `TwoCtxWorldSkeletonProbe`,
-`TwoCtxWorldInvariantsProbe`, `TwoCtxSourceRebasePlanProbe`,
+This is a read-only audit of the old world surface in
+`proof/DGG/CtxImp.agda` against the live `TwoCtxWorld`,
+`TwoCtxWorldInvariants`, and checked `TwoCtxSourceRebasePlanProbe`,
 `TwoCtxTargetExtendPlanProbe`, `TwoCtxTargetStripReconstructionProbe`, and the
 edge-indexed alias-mode probes.  The typed boundary and scoped-term probes
 additionally check the type and term-indexed surface.  The counts below are
@@ -239,7 +239,7 @@ boundary facts, not by moving the traversal behind a new name.
 
 ## Genuinely missing producers
 
-No core `_⊑ᶜ₀_` constructor is missing.  The initial and empty-center recursors
+No core `_⊑ᶜ_` constructor is missing.  The initial and empty-center recursors
 and their pointwise endpoint laws now check.  The old homogeneous equations
 against `id↪ᵗ` are deliberately not restored: the hidden center is only
 propositionally equal to the endpoint type context, so those equations would
@@ -298,9 +298,10 @@ producers or integrations:
    unilateral and paired steps directly, never by inventing `keep` steps.
    The checked final simulation package indexes its relation by the evolved
    endpoint contexts and derives both final typings plus store/context/term
-   projections without `SameRuntime` or `SameCtx`.  Trusted preservation is
-   closed-context only; one open one-step preservation theorem is the exact
-   additional premise needed for open endpoint contexts.
+   projections without `SameRuntime` or `SameCtx`; the full outcome adds the
+   existing source-blame alternative.  Trusted one-step and multi-step
+   preservation now support arbitrary term contexts, so the same endpoint
+   result covers open simulation states.
 
 These are theorem and operational-interface gaps.  Treating any of them as an
 arbitrary invariant-accepting constructor would recreate the live escape

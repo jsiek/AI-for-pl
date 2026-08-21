@@ -7,7 +7,7 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe where
 --     change every endpoint, world, focus, edge, mode, and term-context index.
 --   * Gives structural one-prefix lifts for focus modes, valid boundaries,
 --     scoped types, heterogeneous term worlds, and term entries.
---   * Checks genuine Lambda and type-application constructors without a
+--   * Checks ordinary terms, genuine Lambda, and type application without a
 --     compatibility wrapper around the earlier fixed-parameter probe.
 
 open import Data.Empty using (⊥)
@@ -29,12 +29,13 @@ import Imprecision as I
 open import Conversion using
   (Conv↑; Conv↓; unseal; seal; _↦↑_; _⊢↑[_]_; _⊢↓[_]_; ⊢↑-unsealˣ;
    ⊢↓-sealˣ; ⊢↑-⇒ˣ; join-both)
+open import Primitives using (Const; constTy)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; Value; `_; ƛ_; Λ_;
-   _⦂∀_[_]; _↑_; _↓_; ⇑ᵉᵗ)
+   _·_; $; _⦂∀_[_]; _↑_; _↓_; blame; ⇑ᵉᵗ; _⊢_⦂_)
 open import proof.ImprecisionConsistency using (rename-⊑)
 open import proof.TypeInTermSubst using (toRename-keep-eq)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe using
   (source-X-context; target-alpha-context; target-alpha-beta-context;
@@ -73,38 +74,38 @@ private
   lift-imprecision p = rename-⊑ suc fin-suc-injective (λ X eq → eq) p
 
 
-data NameFocusᵍ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ₀ Cᴿ) :
+data NameFocusᵍ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ Cᴿ) :
     TyVar (Δᵉ Cᴸ) → TyVar (Δᵉ Cᴿ) → Set where
   name-focusᵍ : ∀ {X alpha}
-    → toRenameᵗ (ηᴸᶜ₀ W) X ≢ toRenameᵗ (ηᴿᶜ₀ W) alpha
+    → toRenameᵗ (ηᴸᶜ W) X ≢ toRenameᵗ (ηᴿᶜ W) alpha
     → lookupStore (Σᵉ Cᴸ) X ≡ ＇ X
-    → lookupStore (Σᵉ Cᴸ) X ⊑ᵀ₀⟨ W ⟩
+    → lookupStore (Σᵉ Cᴸ) X ⊑ᵀ⟨ W ⟩
         lookupStore (Σᵉ Cᴿ) alpha
     → NameFocusᵍ W X alpha
 
 
-liftNameFocusᵍ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {X alpha}
+liftNameFocusᵍ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {X alpha}
   → NameFocusᵍ W X alpha
-  → NameFocusᵍ (liftBothᶜ₀ I.X⊑X W) (suc X) (suc alpha)
+  → NameFocusᵍ (liftBothᶜ I.X⊑X W) (suc X) (suc alpha)
 liftNameFocusᵍ {Cᴸ} {Cᴿ} {W} {X} {alpha}
     (name-focusᵍ separated self reps) =
   name-focusᵍ lifted-separated (cong ⇑ᵗ self) lifted-reps
   where
   lifted-separated :
-    toRenameᵗ (ηᴸᶜ₀ (liftBothᶜ₀ I.X⊑X W)) (suc X)
-      ≢ toRenameᵗ (ηᴿᶜ₀ (liftBothᶜ₀ I.X⊑X W))
+    toRenameᵗ (ηᴸᶜ (liftBothᶜ I.X⊑X W)) (suc X)
+      ≢ toRenameᵗ (ηᴿᶜ (liftBothᶜ I.X⊑X W))
           (suc alpha)
   lifted-separated eq = separated (fin-suc-injective eq)
 
   lifted-reps :
     lookupStore (Σᵉ (⇑ᵉᵗ Cᴸ)) (suc X)
-      ⊑ᵀ₀⟨ liftBothᶜ₀ I.X⊑X W ⟩
+      ⊑ᵀ⟨ liftBothᶜ I.X⊑X W ⟩
     lookupStore (Σᵉ (⇑ᵉᵗ Cᴿ)) (suc alpha)
   lifted-reps =
     imprecision-cong
-      (sym (rename-keep-shift (ηᴸᶜ₀ W)
+      (sym (rename-keep-shift (ηᴸᶜ W)
         (lookupStore (Σᵉ Cᴸ) X)))
-      (sym (rename-keep-shift (ηᴿᶜ₀ W)
+      (sym (rename-keep-shift (ηᴿᶜ W)
         (lookupStore (Σᵉ Cᴿ) alpha)))
       (lift-imprecision reps)
 
@@ -114,15 +115,6 @@ data Modeᵍ {C C⁺ : Ctx} {alpha : TyVar (Δᵉ C)}
     (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺) : Set where
   stableᵍ : Modeᵍ edge
   push-focusᵍ : Modeᵍ edge → TyVar (Δᵉ C⁺) → Modeᵍ edge
-
-
-liftModeᵍ : ∀ {C C⁺ alpha beta alpha⁺}
-    {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-  → Modeᵍ edge
-  → Modeᵍ (edge-lift edge)
-liftModeᵍ stableᵍ = stableᵍ
-liftModeᵍ (push-focusᵍ m Y) =
-  push-focusᵍ (liftModeᵍ m) (suc Y)
 
 
 data ModeLiftᵍ {C C⁺ alpha beta alpha⁺}
@@ -135,28 +127,20 @@ data ModeLiftᵍ {C C⁺ alpha beta alpha⁺}
         (push-focusᵍ m⁺ (suc Y))
 
 
-modeLiftᵍ : ∀ {C C⁺ alpha beta alpha⁺}
-    {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-    (m : Modeᵍ edge)
-  → ModeLiftᵍ m (liftModeᵍ m)
-modeLiftᵍ stableᵍ = lift-stableᵍ
-modeLiftᵍ (push-focusᵍ m Y) = lift-pushᵍ (modeLiftᵍ m)
-
-
-data LiftPrefixᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+data LiftPrefixᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
   → NameFocusᵍ W X alpha
   → ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺
   → Set where
-  prefix-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  prefix-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
       {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     → LiftPrefixᵍ focus edge
 
-  prefix-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  prefix-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -165,19 +149,19 @@ data LiftPrefixᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
     → LiftPrefixᵍ (liftNameFocusᵍ focus) (edge-lift edge)
 
 
-insertWorldᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertWorldᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
   → LiftPrefixᵍ focus edge
-  → ⇑ᵉᵗ Cᴸ ⊑ᶜ₀ ⇑ᵉᵗ C
-insertWorldᵍ {W = W} prefix-hereᵍ = liftBothᶜ₀ I.X⊑X W
+  → ⇑ᵉᵗ Cᴸ ⊑ᶜ ⇑ᵉᵗ C
+insertWorldᵍ {W = W} prefix-hereᵍ = liftBothᶜ I.X⊑X W
 insertWorldᵍ (prefix-underᵍ prefix) =
-  liftBothᶜ₀ I.X⊑X (insertWorldᵍ prefix)
+  liftBothᶜ I.X⊑X (insertWorldᵍ prefix)
 
 
-insertSourceᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertSourceᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -190,7 +174,7 @@ insertSourceᵍ (prefix-underᵍ prefix) (suc Y) =
   suc (insertSourceᵍ prefix Y)
 
 
-insertStableᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertStableᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -203,7 +187,7 @@ insertStableᵍ (prefix-underᵍ prefix) (suc Y) =
   suc (insertStableᵍ prefix Y)
 
 
-insertTargetᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertTargetᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -216,21 +200,21 @@ insertTargetᵍ (prefix-underᵍ prefix) (suc Y) =
   suc (insertTargetᵍ prefix Y)
 
 
-insertCenterᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertCenterᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     (prefix : LiftPrefixᵍ focus edge)
-  → TyVar (centerᶜ₀ W)
-  → TyVar (centerᶜ₀ (insertWorldᵍ prefix))
+  → TyVar (centerᶜ W)
+  → TyVar (centerᶜ (insertWorldᵍ prefix))
 insertCenterᵍ prefix-hereᵍ Y = suc Y
 insertCenterᵍ (prefix-underᵍ prefix) zero = zero
 insertCenterᵍ (prefix-underᵍ prefix) (suc Y) =
   suc (insertCenterᵍ prefix Y)
 
 
-insertFocusᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertFocusᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -244,7 +228,7 @@ insertFocusᵍ (prefix-underᵍ prefix) =
   liftNameFocusᵍ (insertFocusᵍ prefix)
 
 
-insertEdgeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertEdgeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -259,7 +243,7 @@ insertEdgeᵍ (prefix-underᵍ prefix) =
   edge-lift (insertEdgeᵍ prefix)
 
 
-insertModeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertModeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -271,7 +255,7 @@ insertModeᵍ prefix (push-focusᵍ m Y) =
   push-focusᵍ (insertModeᵍ prefix m) (insertTargetᵍ prefix Y)
 
 
-insertModeLiftᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertModeLiftᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -286,7 +270,7 @@ insertModeLiftᵍ prefix (lift-pushᵍ mode-lift) =
   lift-pushᵍ (insertModeLiftᵍ prefix mode-lift)
 
 
-prefix-here-mode-liftᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+prefix-here-mode-liftᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
@@ -300,7 +284,7 @@ prefix-here-mode-liftᵍ focus edge (push-focusᵍ m Y) =
 
 
 insertSource-injectiveᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -322,7 +306,7 @@ insertSource-injectiveᵍ (prefix-underᵍ prefix)
 
 
 insertTarget-injectiveᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -344,7 +328,7 @@ insertTarget-injectiveᵍ (prefix-underᵍ prefix)
 
 
 insertCenter-injectiveᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -365,37 +349,37 @@ insertCenter-injectiveᵍ (prefix-underᵍ prefix)
     (fin-suc-injective eq))
 
 
-insert-ηᴸᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insert-ηᴸᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     (prefix : LiftPrefixᵍ focus edge) (Y : TyVar (Δᵉ Cᴸ))
-  → toRenameᵗ (ηᴸᶜ₀ (insertWorldᵍ prefix))
+  → toRenameᵗ (ηᴸᶜ (insertWorldᵍ prefix))
       (insertSourceᵍ prefix Y)
-    ≡ insertCenterᵍ prefix (toRenameᵗ (ηᴸᶜ₀ W) Y)
+    ≡ insertCenterᵍ prefix (toRenameᵗ (ηᴸᶜ W) Y)
 insert-ηᴸᵍ prefix-hereᵍ Y = refl
 insert-ηᴸᵍ (prefix-underᵍ prefix) zero = refl
 insert-ηᴸᵍ (prefix-underᵍ prefix) (suc Y) =
   cong suc (insert-ηᴸᵍ prefix Y)
 
 
-insert-ηᴿᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insert-ηᴿᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     (prefix : LiftPrefixᵍ focus edge) (Y : TyVar (Δᵉ C))
-  → toRenameᵗ (ηᴿᶜ₀ (insertWorldᵍ prefix))
+  → toRenameᵗ (ηᴿᶜ (insertWorldᵍ prefix))
       (insertStableᵍ prefix Y)
-    ≡ insertCenterᵍ prefix (toRenameᵗ (ηᴿᶜ₀ W) Y)
+    ≡ insertCenterᵍ prefix (toRenameᵗ (ηᴿᶜ W) Y)
 insert-ηᴿᵍ prefix-hereᵍ Y = refl
 insert-ηᴿᵍ (prefix-underᵍ prefix) zero = refl
 insert-ηᴿᵍ (prefix-underᵍ prefix) (suc Y) =
   cong suc (insert-ηᴿᵍ prefix Y)
 
 
-insert-edge-embedᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insert-edge-embedᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -409,45 +393,45 @@ insert-edge-embedᵍ (prefix-underᵍ prefix) (suc Y) =
   cong suc (insert-edge-embedᵍ prefix Y)
 
 
-insert-marksᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insert-marksᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-    (prefix : LiftPrefixᵍ focus edge) (Y : TyVar (centerᶜ₀ W))
-  → marksᶜ₀ (insertWorldᵍ prefix) (insertCenterᵍ prefix Y)
-    ≡ marksᶜ₀ W Y
+    (prefix : LiftPrefixᵍ focus edge) (Y : TyVar (centerᶜ W))
+  → marksᶜ (insertWorldᵍ prefix) (insertCenterᵍ prefix Y)
+    ≡ marksᶜ W Y
 insert-marksᵍ prefix-hereᵍ Y = refl
 insert-marksᵍ (prefix-underᵍ prefix) zero = refl
 insert-marksᵍ (prefix-underᵍ prefix) (suc Y) =
   insert-marksᵍ prefix Y
 
 
-data TargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+data TargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
   → NameFocusᵍ W X alpha
   → (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
   → Modeᵍ edge
-  → TyVar (Δᵉ C⁺) → TyVar (centerᶜ₀ W) → Set where
-  stable-oldᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  → TyVar (Δᵉ C⁺) → TyVar (centerᶜ W) → Set where
+  stable-oldᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge}
       {Y Y⁺ Z}
     → edgeEmbed edge Y ≡ Y⁺
-    → toRenameᵗ (ηᴿᶜ₀ W) Y ≡ Z
+    → toRenameᵗ (ηᴿᶜ W) Y ≡ Z
     → TargetVarViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge stableᵍ Y⁺ Z
 
-  focus-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  focus-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge}
       {m Y Z}
-    → toRenameᵗ (ηᴸᶜ₀ W) X ≡ Z
+    → toRenameᵗ (ηᴸᶜ W) X ≡ Z
     → TargetVarViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge (push-focusᵍ m Y) Y Z
 
-  focus-thereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  focus-thereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge}
       {m Y Y′ Z}
@@ -458,54 +442,33 @@ data TargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
         {beta} {alpha⁺} focus edge (push-focusᵍ m Y) Y′ Z
 
 
-liftTargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
-    {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
-    {beta alpha⁺ : TyVar (Δᵉ C⁺)}
-    {focus : NameFocusᵍ W X alpha}
-    {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-    {m : Modeᵍ edge} {Y Z}
-  → TargetVarViewᵍ focus edge m Y Z
-  → TargetVarViewᵍ (liftNameFocusᵍ focus) (edge-lift edge)
-      (liftModeᵍ m) (suc Y) (suc Z)
-liftTargetVarViewᵍ (stable-oldᵍ {Y = Y} edge-eq center-eq) =
-  stable-oldᵍ {Y = suc Y}
-    (cong suc edge-eq) (cong suc center-eq)
-liftTargetVarViewᵍ (focus-hereᵍ center-eq) =
-  focus-hereᵍ (cong suc center-eq)
-liftTargetVarViewᵍ (focus-thereᵍ neq view) =
-  focus-thereᵍ (lifted-neq neq) (liftTargetVarViewᵍ view)
-  where
-  lifted-neq : ∀ {n} {Y Y′ : Fin n} → Y ≢ Y′ → suc Y ≢ suc Y′
-  lifted-neq neq refl = neq refl
-
-
-data TargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+data TargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
   → NameFocusᵍ W X alpha
   → (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
   → Modeᵍ edge
-  → Ty (Δᵉ C⁺) → Ty (centerᶜ₀ W) → Set where
-  view-varᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  → Ty (Δᵉ C⁺) → Ty (centerᶜ W) → Set where
+  view-varᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge m Y Z}
     → TargetVarViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge m Y Z
     → TargetTypeViewᵍ focus edge m (＇ Y) (＇ Z)
 
-  view-baseᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  view-baseᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge m ι}
     → TargetTypeViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge m (‵ ι) (‵ ι)
 
-  view-starᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  view-starᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge m}
     → TargetTypeViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge m ★ ★
 
-  view-funᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  view-funᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge m}
       {A B A′ B′}
@@ -515,25 +478,7 @@ data TargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
     → TargetTypeViewᵍ focus edge m (A ⇒ B) (A′ ⇒ B′)
 
 
-liftTargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
-    {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
-    {beta alpha⁺ : TyVar (Δᵉ C⁺)}
-    {focus : NameFocusᵍ W X alpha}
-    {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-    {m : Modeᵍ edge} {A B}
-  → TargetTypeViewᵍ focus edge m A B
-  → TargetTypeViewᵍ (liftNameFocusᵍ focus) (edge-lift edge)
-      (liftModeᵍ m) (⇑ᵗ A) (⇑ᵗ B)
-liftTargetTypeViewᵍ (view-varᵍ view) =
-  view-varᵍ (liftTargetVarViewᵍ view)
-liftTargetTypeViewᵍ view-baseᵍ = view-baseᵍ
-liftTargetTypeViewᵍ view-starᵍ = view-starᵍ
-liftTargetTypeViewᵍ (view-funᵍ view-A view-B) =
-  view-funᵍ (liftTargetTypeViewᵍ view-A)
-    (liftTargetTypeViewᵍ view-B)
-
-
-insertTargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertTargetVarViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -561,7 +506,7 @@ insertTargetVarViewᵍ prefix (focus-thereᵍ neq view) =
     (insertTargetVarViewᵍ prefix view)
 
 
-insertTargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertTargetTypeViewᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -583,44 +528,54 @@ insertTargetTypeViewᵍ prefix (view-funᵍ view-A view-B) =
 
 
 data ScopedTypeᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ C)
+    (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
     (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
     (m : Modeᵍ edge) → Ty (Δᵉ Cᴸ) → Ty (Δᵉ C⁺) → Set
     where
-  scoped-typeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  scoped-typeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)} {focus edge m}
       {A B Bᶜ}
     → TargetTypeViewᵍ {Cᴸ} {C} {C⁺} {W} {X} {alpha}
         {beta} {alpha⁺} focus edge m B Bᶜ
-    → I._⊢_⊑_ (marksᶜ₀ W)
-        (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) Bᶜ
+    → I._⊢_⊑_ (marksᶜ W)
+        (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) Bᶜ
     → ScopedTypeᵍ W focus edge m A B
 
-  scoped-allᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  scoped-allᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
       {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
       {m m⁺ A B}
     → ModeLiftᵍ {edge = edge} m m⁺
-    → ScopedTypeᵍ (liftBothᶜ₀ I.X⊑X W)
+    → ScopedTypeᵍ (liftBothᶜ I.X⊑X W)
         (liftNameFocusᵍ focus) (edge-lift edge) m⁺ A B
     → ScopedTypeᵍ W focus edge m (`∀ A) (`∀ B)
 
+  scoped-funᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m A A′ B B′}
+    → ScopedTypeᵍ W focus edge m A A′
+    → ScopedTypeᵍ W focus edge m B B′
+    → ScopedTypeᵍ W focus edge m (A ⇒ B) (A′ ⇒ B′)
 
-insert-imprecisionᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+
+insert-imprecisionᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
-    {A B : Ty (centerᶜ₀ W)}
+    {A B : Ty (centerᶜ W)}
     (prefix : LiftPrefixᵍ focus edge)
-  → I._⊢_⊑_ (marksᶜ₀ W) A B
-  → I._⊢_⊑_ (marksᶜ₀ (insertWorldᵍ prefix))
+  → I._⊢_⊑_ (marksᶜ W) A B
+  → I._⊢_⊑_ (marksᶜ (insertWorldᵍ prefix))
       (renameᵗ (insertCenterᵍ prefix) A)
       (renameᵗ (insertCenterᵍ prefix) B)
 insert-imprecisionᵍ prefix p =
@@ -629,27 +584,27 @@ insert-imprecisionᵍ prefix p =
     (λ Y eq → trans (insert-marksᵍ prefix Y) eq) p
 
 
-insert-left-renameᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insert-left-renameᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
     {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     (prefix : LiftPrefixᵍ focus edge) (A : Ty (Δᵉ Cᴸ))
-  → renameᵗ (toRenameᵗ (ηᴸᶜ₀ (insertWorldᵍ prefix)))
+  → renameᵗ (toRenameᵗ (ηᴸᶜ (insertWorldᵍ prefix)))
       (renameᵗ (insertSourceᵍ prefix) A)
     ≡ renameᵗ (insertCenterᵍ prefix)
-        (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A)
+        (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A)
 insert-left-renameᵍ {W = W} prefix A =
   trans
     (renameᵗ-comp (insertSourceᵍ prefix)
-      (toRenameᵗ (ηᴸᶜ₀ (insertWorldᵍ prefix))) A)
+      (toRenameᵗ (ηᴸᶜ (insertWorldᵍ prefix))) A)
     (trans
       (renameᵗ-cong A (insert-ηᴸᵍ prefix))
-      (sym (renameᵗ-comp (toRenameᵗ (ηᴸᶜ₀ W))
+      (sym (renameᵗ-comp (toRenameᵗ (ηᴸᶜ W))
         (insertCenterᵍ prefix) A)))
 
 
-insertSource-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertSource-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -661,7 +616,7 @@ insertSource-underᵍ prefix zero = refl
 insertSource-underᵍ prefix (suc Y) = refl
 
 
-insertTarget-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertTarget-underᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -673,7 +628,7 @@ insertTarget-underᵍ prefix zero = refl
 insertTarget-underᵍ prefix (suc Y) = refl
 
 
-scopedType-congᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+scopedType-congᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -686,7 +641,7 @@ scopedType-congᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
 scopedType-congᵍ refl refl p = p
 
 
-insertScopedTypeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertScopedTypeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -709,10 +664,13 @@ insertScopedTypeᵍ {A = `∀ A} {B = `∀ B} prefix
       (renameᵗ-cong A (insertSource-underᵍ prefix))
       (renameᵗ-cong B (insertTarget-underᵍ prefix))
       (insertScopedTypeᵍ (prefix-underᵍ prefix) p))
+insertScopedTypeᵍ prefix (scoped-funᵍ p q) =
+  scoped-funᵍ (insertScopedTypeᵍ prefix p)
+    (insertScopedTypeᵍ prefix q)
 
 
 data ExactTargetBoundaryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ C)
+    (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
@@ -720,35 +678,35 @@ data ExactTargetBoundaryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     (m : Modeᵍ edge) (Y : TyVar (Δᵉ C⁺))
     (R : Ty (Δᵉ C⁺))
   → ScopedTypeᵍ W focus edge m (＇ X) R → Set where
-  direct-targetᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  direct-targetᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
       {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
       {m Y R Rᶜ}
       {view : TargetTypeViewᵍ focus edge m R Rᶜ}
-      {p : I._⊢_⊑_ (marksᶜ₀ W)
-        (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) (＇ X)) Rᶜ}
+      {p : I._⊢_⊑_ (marksᶜ W)
+        (renameᵗ (toRenameᵗ (ηᴸᶜ W)) (＇ X)) Rᶜ}
     → Σᵉ C⁺ ∋ Y ⦂ R
     → ExactTargetBoundaryᵍ W focus edge m Y R
         (scoped-typeᵍ view p)
 
 
 data ValidModeᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ C)
+    (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
     (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
   → Modeᵍ edge → Set where
-  stable-validᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  stable-validᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
       {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     → ValidModeᵍ W focus edge stableᵍ
 
-  push-validᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  push-validᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -759,7 +717,7 @@ data ValidModeᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     → ValidModeᵍ W focus edge (push-focusᵍ m Y)
 
 
-insertStoreMemberᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertStoreMemberᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -778,7 +736,7 @@ insertStoreMemberᵍ (prefix-underᵍ prefix)
         (renameᵗ-shift (insertTargetᵍ prefix) A)))
 
 
-insertBoundaryᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertBoundaryᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -796,7 +754,7 @@ insertBoundaryᵍ {q = scoped-typeᵍ view p} prefix
   direct-targetᵍ (insertStoreMemberᵍ prefix member)
 
 
-insertValidModeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+insertValidModeᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -812,20 +770,20 @@ insertValidModeᵍ prefix (push-validᵍ ok boundary) =
 
 
 data ScopedWorldᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ C)
+    (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
     (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
   → Ctx → Ctx → Set where
-  scoped-rootᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  scoped-rootᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
       {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
     → ScopedWorldᵍ W focus edge Cᴸ C⁺
 
-  scoped-bindᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  scoped-bindᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -842,7 +800,7 @@ data ScopedWorldᵍ : ∀ {Cᴸ C C⁺ : Ctx}
 
 
 data ScopedWorldInsertᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -853,7 +811,7 @@ data ScopedWorldInsertᵍ : ∀ {Cᴸ C C⁺ : Ctx}
   → ScopedWorldᵍ (insertWorldᵍ prefix) (insertFocusᵍ prefix)
       (insertEdgeᵍ prefix) Eᴸ Eᴿ
   → Set where
-  insert-rootᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  insert-rootᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -861,7 +819,7 @@ data ScopedWorldInsertᵍ : ∀ {Cᴸ C C⁺ : Ctx}
       {prefix : LiftPrefixᵍ focus edge}
     → ScopedWorldInsertᵍ prefix scoped-rootᵍ scoped-rootᵍ
 
-  insert-bindᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  insert-bindᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -889,7 +847,7 @@ data ScopedWorldInsertᵍ : ∀ {Cᴸ C C⁺ : Ctx}
 
 
 data ScopedEntryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -902,7 +860,7 @@ data ScopedEntryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     (ok : ValidModeᵍ W focus edge m)
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ C⁺)}
     (p : ScopedTypeᵍ W focus edge m A B) → Set where
-  entry-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  entry-hereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -917,7 +875,7 @@ data ScopedEntryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         {beta} {alpha⁺} {focus} {edge}
         (scoped-bindᵍ {S = S} ok p) Nat.zero ok p
 
-  entry-thereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  entry-thereᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -937,7 +895,7 @@ data ScopedEntryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
 
 
 insertScopedEntryᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    {W : Cᴸ ⊑ᶜ₀ C}
+    {W : Cᴸ ⊑ᶜ C}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     {focus : NameFocusᵍ W X alpha}
@@ -969,7 +927,7 @@ insertScopedEntryᵍ (insert-bindᵍ world-insert)
 
 
 data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-    (W : Cᴸ ⊑ᶜ₀ C)
+    (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
     {beta alpha⁺ : TyVar (Δᵉ C⁺)}
     (focus : NameFocusᵍ W X alpha)
@@ -982,7 +940,7 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
   → Term (Δᵉ Cᴸ) → Term (Δᵉ C⁺)
   → {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ C⁺)}
   → ScopedTypeᵍ W focus edge m A B → Set where
-  var⊑varᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  var⊑varᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -992,7 +950,7 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         S x ok p
     → ScopedCTIᵍ W focus edge m ok S (` x) (` x) {A} {B} p
 
-  lambda⊑lambdaᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  lambda⊑lambdaᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -1003,12 +961,54 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
       {pA : ScopedTypeᵍ W focus edge m A A′}
       {pB : ScopedTypeᵍ W focus edge m B B′}
-      {pFun : ScopedTypeᵍ W focus edge m (A ⇒ B) (A′ ⇒ B′)}
     → ScopedCTIᵍ W focus edge m ok
         (scoped-bindᵍ {S = S} ok pA) M M′ pB
-    → ScopedCTIᵍ W focus edge m ok S (ƛ M) (ƛ M′) pFun
+    → ScopedCTIᵍ W focus edge m ok S (ƛ M) (ƛ M′)
+        (scoped-funᵍ pA pB)
 
-  all⊑allᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  app⊑appᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ L L′ M M′ A A′ B B′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {pA : ScopedTypeᵍ W focus edge m A A′}
+      {pB : ScopedTypeᵍ W focus edge m B B′}
+    → ScopedCTIᵍ W focus edge m ok S L L′ (scoped-funᵍ pA pB)
+    → ScopedCTIᵍ W focus edge m ok S M M′ pA
+    → ScopedCTIᵍ W focus edge m ok S (L · M) (L′ · M′) pB
+
+  constant⊑constantᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+    → (kappa : Const)
+    → (p : ScopedTypeᵍ W focus edge m
+        (constTy kappa) (constTy kappa))
+    → ScopedCTIᵍ W focus edge m ok S ($ kappa) ($ kappa) p
+
+  blame⊑ᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M′ A B}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+    → ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩ ⊢ M′ ⦂ B
+    → (p : ScopedTypeᵍ W focus edge m A B)
+    → ScopedCTIᵍ W focus edge m ok S blame M′ p
+
+  all⊑allᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -1018,7 +1018,7 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
       {S : ScopedWorldᵍ W focus edge
         ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
         ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
-      {S⁺ : ScopedWorldᵍ (liftBothᶜ₀ I.X⊑X W)
+      {S⁺ : ScopedWorldᵍ (liftBothᶜ I.X⊑X W)
         (liftNameFocusᵍ focus) (edge-lift edge)
         ⟨ Nat.suc (Δᵉ Cᴸ) , store-lift (Σᵉ Cᴸ) ,
           TC.⇑ᶜ Gammaᴸ ⟩
@@ -1028,20 +1028,20 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
       {V′ : Term (Nat.suc (Δᵉ C⁺))}
       {A : Ty (Nat.suc (Δᵉ Cᴸ))}
       {B : Ty (Nat.suc (Δᵉ C⁺))}
-      {p : ScopedTypeᵍ (liftBothᶜ₀ I.X⊑X W)
+      {p : ScopedTypeᵍ (liftBothᶜ I.X⊑X W)
         (liftNameFocusᵍ focus) (edge-lift edge)
         (insertModeᵍ prefix-hereᵍ m) A B}
     → ScopedWorldInsertᵍ prefix-hereᵍ S S⁺
     → Value V
     → Value V′
-    → ScopedCTIᵍ (liftBothᶜ₀ I.X⊑X W)
+    → ScopedCTIᵍ (liftBothᶜ I.X⊑X W)
         (liftNameFocusᵍ focus) (edge-lift edge)
         (insertModeᵍ prefix-hereᵍ m)
         (insertValidModeᵍ prefix-hereᵍ ok) S⁺ V V′ p
     → ScopedCTIᵍ W focus edge m ok S (Λ V) (Λ V′)
         (scoped-allᵍ (prefix-here-mode-liftᵍ focus edge m) p)
 
-  target-revealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  target-revealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -1059,7 +1059,7 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     → ScopedCTIᵍ W focus edge m ok S M (M′ ↑ c)
         {A = A} {B = B′} q
 
-  target-concealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ₀ C}
+  target-concealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -1079,7 +1079,7 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         {A = A} {B = B′} p
 
   type-app⊑type-appᵍ : ∀ {Cᴸ C C⁺ : Ctx}
-      {W : Cᴸ ⊑ᶜ₀ C}
+      {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
       {focus : NameFocusᵍ W X alpha}
@@ -1120,7 +1120,7 @@ concrete-rootᵍ = scoped-rootᵍ
 
 
 concrete-inner-rootᵍ : ScopedWorldᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   (⇑ᵉᵗ source-X-context) (⇑ᵉᵗ target-alpha-beta-context)
 concrete-inner-rootᵍ = scoped-rootᵍ
@@ -1132,7 +1132,7 @@ concrete-root-insertᵍ = insert-rootᵍ
 
 
 concrete-inner-atomᵍ : ScopedTypeᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   stableᵍ (＇ zero) (＇ zero)
 concrete-inner-atomᵍ =
@@ -1140,14 +1140,15 @@ concrete-inner-atomᵍ =
 
 
 concrete-inner-bodyᵍ : ScopedWorldᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   ⟨ Nat.suc (Δᵉ source-X-context) ,
     store-lift (Σᵉ source-X-context) , ＇ zero ∷ [] ⟩
   ⟨ Nat.suc (Δᵉ target-alpha-beta-context) ,
     store-lift (Σᵉ target-alpha-beta-context) , ＇ zero ∷ [] ⟩
 concrete-inner-bodyᵍ =
-  scoped-bindᵍ stable-validᵍ concrete-inner-atomᵍ
+  scoped-bindᵍ {S = concrete-inner-rootᵍ}
+    stable-validᵍ concrete-inner-atomᵍ
 
 
 concrete-inner-entryᵍ : ScopedEntryᵍ concrete-inner-bodyᵍ
@@ -1156,7 +1157,7 @@ concrete-inner-entryᵍ = entry-hereᵍ
 
 
 concrete-inner-varᵍ : ScopedCTIᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   stableᵍ stable-validᵍ concrete-inner-bodyᵍ
   (` Nat.zero) (` Nat.zero) concrete-inner-atomᵍ
@@ -1164,23 +1165,20 @@ concrete-inner-varᵍ = var⊑varᵍ concrete-inner-entryᵍ
 
 
 concrete-inner-funᵍ : ScopedTypeᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   stableᵍ (＇ zero ⇒ ＇ zero) (＇ zero ⇒ ＇ zero)
 concrete-inner-funᵍ =
-  scoped-typeᵍ
-    (view-funᵍ
-      (view-varᵍ (stable-oldᵍ refl refl))
-      (view-varᵍ (stable-oldᵍ refl refl)))
-    (I.⇒⊑⇒ I.X⊑X I.X⊑X)
+  scoped-funᵍ concrete-inner-atomᵍ concrete-inner-atomᵍ
 
 
 concrete-inner-lambdaᵍ : ScopedCTIᵍ
-  (liftBothᶜ₀ I.X⊑X stable-world)
+  (liftBothᶜ I.X⊑X stable-world)
   (liftNameFocusᵍ concrete-focusᵍ) (edge-lift concrete-edgeᵍ)
   stableᵍ stable-validᵍ concrete-inner-rootᵍ
   (ƛ (` Nat.zero)) (ƛ (` Nat.zero)) concrete-inner-funᵍ
-concrete-inner-lambdaᵍ = lambda⊑lambdaᵍ concrete-inner-varᵍ
+concrete-inner-lambdaᵍ =
+  lambda⊑lambdaᵍ {S = concrete-inner-rootᵍ} concrete-inner-varᵍ
 
 
 concrete-allᵍ : ScopedCTIᵍ stable-world concrete-focusᵍ
@@ -1202,8 +1200,7 @@ concrete-starᵍ = scoped-typeᵍ view-starᵍ I.★⊑★
 concrete-star-funᵍ : ScopedTypeᵍ stable-world concrete-focusᵍ
   concrete-edgeᵍ stableᵍ (★ ⇒ ★) (★ ⇒ ★)
 concrete-star-funᵍ =
-  scoped-typeᵍ (view-funᵍ view-starᵍ view-starᵍ)
-    (I.⇒⊑⇒ I.★⊑★ I.★⊑★)
+  scoped-funᵍ concrete-starᵍ concrete-starᵍ
 
 
 concrete-type-appᵍ : ScopedCTIᵍ stable-world concrete-focusᵍ

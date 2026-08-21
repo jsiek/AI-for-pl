@@ -35,8 +35,8 @@ open import proof.TypeInTermSubst using
   (toRename-id-eq; toRename-wk-eq; toRename-keep-eq; renameᵗ-wk-eq)
 open import proof.ImprecisionConsistency using
   (rename-⊑; toRenameᵗ-injective)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 
@@ -67,19 +67,19 @@ private
 
 mutual
   data TargetExtendPlanᶜ₀ : ∀ {Cᴸ Cᴿ : Ctx}
-      → (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+      → (W : Cᴸ ⊑ᶜ Cᴿ)
       → (Cᴿ⁺ : Ctx)
       → (rho : Δᵉ Cᴿ ↪ᵗ Δᵉ Cᴿ⁺)
-      → ∀ {Δ⁺} → centerᶜ₀ W ↪ᵗ Δ⁺ → Set where
+      → ∀ {Δ⁺} → centerᶜ W ↪ᵗ Δ⁺ → Set where
 
     target-extend-starᶜ₀ :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
         {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
         {Γᴿ⁺ : TermCtx (suc Δᴿ)}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
         {rho : Δᴿ ↪ᵗ suc Δᴿ}
-        {pi : centerᶜ₀ W ↪ᵗ suc (centerᶜ₀ W)}
-      → (fresh : RightBindFreshᶜ₀ W ★)
+        {pi : centerᶜ W ↪ᵗ suc (centerᶜ W)}
+      → (fresh : RightBindFreshᶜ W ★)
       → (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → rho ≡ skip id↪ᵗ
       → pi ≡ skip id↪ᵗ
@@ -90,10 +90,10 @@ mutual
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
         {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
         {Γᴿ⁺ : TermCtx (suc Δᴿ)} {Y : TyVar Δᴿ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
         {rho : Δᴿ ↪ᵗ suc Δᴿ}
-        {pi : centerᶜ₀ W ↪ᵗ suc (centerᶜ₀ W)}
-      → (fresh : RightBindFreshᶜ₀ W (＇ Y))
+        {pi : centerᶜ W ↪ᵗ suc (centerᶜ W)}
+      → (fresh : RightBindFreshᶜ W (＇ Y))
       → (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → rho ≡ skip id↪ᵗ
       → pi ≡ skip id↪ᵗ
@@ -101,10 +101,10 @@ mutual
           ⟨ suc Δᴿ , store-bind Σᴿ (＇ Y) , Γᴿ⁺ ⟩ rho pi
 
     target-extend-skipᶜ₀ : ∀ {Cᴸ Cᴿ Cᴿ⁺}
-        {W : Cᴸ ⊑ᶜ₀ Cᴿ} {rho : Δᵉ Cᴿ ↪ᵗ Δᵉ Cᴿ⁺}
-        {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+        {W : Cᴸ ⊑ᶜ Cᴿ} {rho : Δᵉ Cᴿ ↪ᵗ Δᵉ Cᴿ⁺}
+        {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
       → TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi
-      → TargetExtendPlanᶜ₀ (skip-centerᶜ₀ W) Cᴿ⁺ rho (keep pi)
+      → TargetExtendPlanᶜ₀ (skip-centerᶜ W) Cᴿ⁺ rho (keep pi)
 
     target-extend-lift-bothᶜ₀ :
       ∀ {Δᴸ Δᴿ Δᴿ⁺}
@@ -114,15 +114,15 @@ mutual
         {Γᴿ⁺ : TermCtx Δᴿ⁺}
         {Γᴸ¹ : TermCtx (suc Δᴸ)} {Γᴿ¹ : TermCtx (suc Δᴿ)}
         {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
         {v : VarImp}
       → TargetExtendPlanᶜ₀ W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi
       → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
       → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
       → TargetExtendPlanᶜ₀
-          (lift-both-rawᶜ₀ W v Γᴸ≡ Γᴿ≡)
+          (lift-both-rawᶜ W v Γᴸ≡ Γᴿ≡)
           ⟨ suc Δᴿ⁺ , store-lift Σᴿ⁺ , Γᴿ⁺¹ ⟩
           (keep rho) (keep pi)
 
@@ -130,25 +130,25 @@ mutual
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
         {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
         {Γᴸ¹ : TermCtx (suc Δᴸ)}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
         {Cᴿ⁺ : Ctx} {rho : Δᴿ ↪ᵗ Δᵉ Cᴿ⁺}
-        {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+        {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
       → TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi
       → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
       → TargetExtendPlanᶜ₀
-          (lift-left-rawᶜ₀ W Γᴸ≡) Cᴿ⁺ rho (keep pi)
+          (lift-left-rawᶜ W Γᴸ≡) Cᴿ⁺ rho (keep pi)
 
     target-extend-bind-leftᶜ₀ :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
         {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
         {Γᴸ¹ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
         {Cᴿ⁺ : Ctx} {rho : Δᴿ ↪ᵗ Δᵉ Cᴿ⁺}
-        {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+        {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
       → TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi
       → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
       → TargetExtendPlanᶜ₀
-          (bind-left-rawᶜ₀ W A Γᴸ≡) Cᴿ⁺ rho (keep pi)
+          (bind-left-rawᶜ W A Γᴸ≡) Cᴿ⁺ rho (keep pi)
 
     target-extend-bind-rightᶜ₀ :
       ∀ {Δᴸ Δᴿ Δᴿ⁺}
@@ -158,17 +158,17 @@ mutual
         {Γᴿ⁺ : TermCtx Δᴿ⁺}
         {Γᴿ¹ : TermCtx (suc Δᴿ)}
         {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)} {B : Ty Δᴿ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-        {fresh : RightBindFreshᶜ₀ W B}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+        {fresh : RightBindFreshᶜ W B}
       → (plan : TargetExtendPlanᶜ₀
           W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
-      → (fresh⁺ : RightBindFreshᶜ₀ (extendTargetᶜ₀ plan)
+      → (fresh⁺ : RightBindFreshᶜ (extendTargetᶜ₀ plan)
           (renameᵗ (toRenameᵗ rho) B))
       → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
       → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
       → TargetExtendPlanᶜ₀
-          (bind-right-rawᶜ₀ W B fresh Γᴿ≡)
+          (bind-right-rawᶜ W B fresh Γᴿ≡)
           ⟨ suc Δᴿ⁺ ,
             store-bind Σᴿ⁺ (renameᵗ (toRenameᵗ rho) B) ,
             Γᴿ⁺¹ ⟩
@@ -183,18 +183,18 @@ mutual
         {Γᴸ¹ : TermCtx (suc Δᴸ)} {Γᴿ¹ : TermCtx (suc Δᴿ)}
         {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)}
         {A : Ty Δᴸ} {B : Ty Δᴿ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-        {represented : A ⊑ᵀ₀⟨ W ⟩ B}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+        {represented : A ⊑ᵀ⟨ W ⟩ B}
       → (plan : TargetExtendPlanᶜ₀
           W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
-      → (represented⁺ : A ⊑ᵀ₀⟨ extendTargetᶜ₀ plan ⟩
+      → (represented⁺ : A ⊑ᵀ⟨ extendTargetᶜ₀ plan ⟩
           renameᵗ (toRenameᵗ rho) B)
       → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
       → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
       → TargetExtendPlanᶜ₀
-          (bind-both-rawᶜ₀ W represented Γᴸ≡ Γᴿ≡)
+          (bind-both-rawᶜ W represented Γᴸ≡ Γᴿ≡)
           ⟨ suc Δᴿ⁺ ,
             store-bind Σᴿ⁺ (renameᵗ (toRenameᵗ rho) B) ,
             Γᴿ⁺¹ ⟩
@@ -209,18 +209,18 @@ mutual
         {Γᴸ¹ : TermCtx (suc Δᴸ)} {Γᴿ¹ : TermCtx (suc Δᴿ)}
         {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)}
         {A : Ty Δᴸ} {B : Ty Δᴿ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-        {represented : A ⊑ᵀ₀⟨ W ⟩ B} {A≢★ : ⇑ᵗ A ≢ ★}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+        {represented : A ⊑ᵀ⟨ W ⟩ B} {A≢★ : ⇑ᵗ A ≢ ★}
       → (plan : TargetExtendPlanᶜ₀
           W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
-      → (represented⁺ : A ⊑ᵀ₀⟨ extendTargetᶜ₀ plan ⟩
+      → (represented⁺ : A ⊑ᵀ⟨ extendTargetᶜ₀ plan ⟩
           renameᵗ (toRenameᵗ rho) B)
       → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
       → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
       → TargetExtendPlanᶜ₀
-          (bind-both-star-rawᶜ₀ W represented A≢★ Γᴸ≡ Γᴿ≡)
+          (bind-both-star-rawᶜ W represented A≢★ Γᴸ≡ Γᴿ≡)
           ⟨ suc Δᴿ⁺ ,
             store-bind Σᴿ⁺ (renameᵗ (toRenameᵗ rho) B) ,
             Γᴿ⁺¹ ⟩
@@ -232,63 +232,63 @@ mutual
         {Σᴿ⁺ : TyStore Δᴿ⁺}
         {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
         {Γᴿ⁺ : TermCtx Δᴿ⁺} {A : Ty Δᴸ} {B : Ty Δᴿ}
-        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-        {represented : A ⊑ᵀ₀⟨ W ⟩ B}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+        {represented : A ⊑ᵀ⟨ W ⟩ B}
       → (plan : TargetExtendPlanᶜ₀
           W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
-      → (represented⁺ : A ⊑ᵀ₀⟨ extendTargetᶜ₀ plan ⟩
+      → (represented⁺ : A ⊑ᵀ⟨ extendTargetᶜ₀ plan ⟩
           renameᵗ (toRenameᵗ rho) B)
       → TargetExtendPlanᶜ₀
-          (bind-termᶜ₀ W represented)
+          (bind-termᶜ W represented)
           ⟨ Δᴿ⁺ , Σᴿ⁺ ,
             renameᵗ (toRenameᵗ rho) B ∷ Γᴿ⁺ ⟩
           rho pi
 
-  extendTargetᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-      {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+  extendTargetᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+      {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     → TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi
-    → Cᴸ ⊑ᶜ₀ Cᴿ⁺
+    → Cᴸ ⊑ᶜ Cᴿ⁺
   extendTargetᶜ₀ {W = W}
       (target-extend-starᶜ₀ fresh eqᴿ refl refl) =
-    bind-right-rawᶜ₀ W ★ fresh eqᴿ
+    bind-right-rawᶜ W ★ fresh eqᴿ
   extendTargetᶜ₀ {W = W}
       (target-extend-aliasᶜ₀ {Y = Y} fresh eqᴿ refl refl) =
-    bind-right-rawᶜ₀ W (＇ Y) fresh eqᴿ
+    bind-right-rawᶜ W (＇ Y) fresh eqᴿ
   extendTargetᶜ₀ (target-extend-skipᶜ₀ plan) =
-    skip-centerᶜ₀ (extendTargetᶜ₀ plan)
+    skip-centerᶜ (extendTargetᶜ₀ plan)
   extendTargetᶜ₀
       (target-extend-lift-bothᶜ₀ {v = v} plan Γᴸ≡ Γᴿ≡ Γᴿ⁺≡) =
-    lift-both-rawᶜ₀ (extendTargetᶜ₀ plan) v Γᴸ≡ Γᴿ⁺≡
+    lift-both-rawᶜ (extendTargetᶜ₀ plan) v Γᴸ≡ Γᴿ⁺≡
   extendTargetᶜ₀
       (target-extend-lift-leftᶜ₀ plan Γᴸ≡) =
-    lift-left-rawᶜ₀ (extendTargetᶜ₀ plan) Γᴸ≡
+    lift-left-rawᶜ (extendTargetᶜ₀ plan) Γᴸ≡
   extendTargetᶜ₀
       (target-extend-bind-leftᶜ₀ {A = A} plan Γᴸ≡) =
-    bind-left-rawᶜ₀ (extendTargetᶜ₀ plan) A Γᴸ≡
+    bind-left-rawᶜ (extendTargetᶜ₀ plan) A Γᴸ≡
   extendTargetᶜ₀
       (target-extend-bind-rightᶜ₀ {B = B}
         plan fresh⁺ Γᴿ≡ Γᴿ⁺≡) =
-    bind-right-rawᶜ₀ (extendTargetᶜ₀ plan)
+    bind-right-rawᶜ (extendTargetᶜ₀ plan)
       (renameᵗ (toRenameᵗ _) B) fresh⁺ Γᴿ⁺≡
   extendTargetᶜ₀
       (target-extend-bind-both-rawᶜ₀
         plan represented⁺ Γᴸ≡ Γᴿ≡ Γᴿ⁺≡) =
-    bind-both-rawᶜ₀ (extendTargetᶜ₀ plan) represented⁺ Γᴸ≡ Γᴿ⁺≡
+    bind-both-rawᶜ (extendTargetᶜ₀ plan) represented⁺ Γᴸ≡ Γᴿ⁺≡
   extendTargetᶜ₀
       (target-extend-bind-both-star-rawᶜ₀
         {A≢★ = A≢★} plan represented⁺ Γᴸ≡ Γᴿ≡ Γᴿ⁺≡) =
-    bind-both-star-rawᶜ₀ (extendTargetᶜ₀ plan) represented⁺ A≢★
+    bind-both-star-rawᶜ (extendTargetᶜ₀ plan) represented⁺ A≢★
       Γᴸ≡ Γᴿ⁺≡
   extendTargetᶜ₀
       (target-extend-bind-term-rawᶜ₀ plan represented⁺) =
-    bind-termᶜ₀ (extendTargetᶜ₀ plan) represented⁺
+    bind-termᶜ (extendTargetᶜ₀ plan) represented⁺
 
 
-extendTarget-centerᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-centerᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
-  → centerᶜ₀ (extendTargetᶜ₀ plan) ≡ Δ⁺
+  → centerᶜ (extendTargetᶜ₀ plan) ≡ Δ⁺
 extendTarget-centerᶜ₀ (target-extend-starᶜ₀ fresh eqᴿ refl refl) = refl
 extendTarget-centerᶜ₀ (target-extend-aliasᶜ₀ fresh eqᴿ refl refl) = refl
 extendTarget-centerᶜ₀ (target-extend-skipᶜ₀ plan) =
@@ -312,13 +312,13 @@ extendTarget-centerᶜ₀
   extendTarget-centerᶜ₀ plan
 
 
-extendTarget-ηᴸᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-ηᴸᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
     (X : TyVar (Δᵉ Cᴸ))
-  → toRenameᵗ (ηᴸᶜ₀ (extendTargetᶜ₀ plan)) X
+  → toRenameᵗ (ηᴸᶜ (extendTargetᶜ₀ plan)) X
     ≡ subst Fin.Fin (sym (extendTarget-centerᶜ₀ plan))
-        (toRenameᵗ pi (toRenameᵗ (ηᴸᶜ₀ W) X))
+        (toRenameᵗ pi (toRenameᵗ (ηᴸᶜ W) X))
 extendTarget-ηᴸᶜ₀
     (target-extend-starᶜ₀ fresh eqᴿ refl refl) X =
   cong Fin.suc (sym (toRename-id-eq (toRenameᵗ _ X)))
@@ -380,14 +380,14 @@ extendTarget-ηᴸᶜ₀
   extendTarget-ηᴸᶜ₀ plan X
 
 
-extendTarget-ηᴿᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-ηᴿᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
     (X : TyVar (Δᵉ Cᴿ))
-  → toRenameᵗ (ηᴿᶜ₀ (extendTargetᶜ₀ plan))
+  → toRenameᵗ (ηᴿᶜ (extendTargetᶜ₀ plan))
       (toRenameᵗ rho X)
     ≡ subst Fin.Fin (sym (extendTarget-centerᶜ₀ plan))
-        (toRenameᵗ pi (toRenameᵗ (ηᴿᶜ₀ W) X))
+        (toRenameᵗ pi (toRenameᵗ (ηᴿᶜ W) X))
 extendTarget-ηᴿᶜ₀
     (target-extend-starᶜ₀ fresh eqᴿ refl refl) X =
   cong Fin.suc
@@ -450,14 +450,14 @@ extendTarget-ηᴿᶜ₀
   extendTarget-ηᴿᶜ₀ plan X
 
 
-extendTarget-marksᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-marksᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
-    (Z : TyVar (centerᶜ₀ W))
-  → marksᶜ₀ (extendTargetᶜ₀ plan)
+    (Z : TyVar (centerᶜ W))
+  → marksᶜ (extendTargetᶜ₀ plan)
       (subst Fin.Fin (sym (extendTarget-centerᶜ₀ plan))
         (toRenameᵗ pi Z))
-    ≡ marksᶜ₀ W Z
+    ≡ marksᶜ W Z
 extendTarget-marksᶜ₀
     (target-extend-starᶜ₀ fresh eqᴿ refl refl) Z
     rewrite toRename-id-eq Z = refl
@@ -468,7 +468,7 @@ extendTarget-marksᶜ₀ (target-extend-skipᶜ₀ plan) Fin.zero
     rewrite subst-Fin-zero-sym (extendTarget-centerᶜ₀ plan) = refl
 extendTarget-marksᶜ₀ (target-extend-skipᶜ₀ plan) (Fin.suc Z)
     = trans
-        (cong (extendᵐ X⊑★ (marksᶜ₀ (extendTargetᶜ₀ plan)))
+        (cong (extendᵐ X⊑★ (marksᶜ (extendTargetᶜ₀ plan)))
           (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
             (toRenameᵗ _ Z)))
         (extendTarget-marksᶜ₀ plan Z)
@@ -478,7 +478,7 @@ extendTarget-marksᶜ₀
 extendTarget-marksᶜ₀
     (target-extend-lift-bothᶜ₀ {v = v} plan _ _ _) (Fin.suc Z)
     = trans
-        (cong (extendᵐ v (marksᶜ₀ (extendTargetᶜ₀ plan)))
+        (cong (extendᵐ v (marksᶜ (extendTargetᶜ₀ plan)))
           (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
             (toRenameᵗ _ Z)))
         (extendTarget-marksᶜ₀ plan Z)
@@ -488,7 +488,7 @@ extendTarget-marksᶜ₀
 extendTarget-marksᶜ₀
     (target-extend-lift-leftᶜ₀ plan _) (Fin.suc Z)
     = trans
-        (cong (extendᵐ X⊑★ (marksᶜ₀ (extendTargetᶜ₀ plan)))
+        (cong (extendᵐ X⊑★ (marksᶜ (extendTargetᶜ₀ plan)))
           (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
             (toRenameᵗ _ Z)))
         (extendTarget-marksᶜ₀ plan Z)
@@ -498,7 +498,7 @@ extendTarget-marksᶜ₀
 extendTarget-marksᶜ₀
     (target-extend-bind-leftᶜ₀ plan _) (Fin.suc Z)
     = trans
-        (cong (extendᵐ X⊑★ (marksᶜ₀ (extendTargetᶜ₀ plan)))
+        (cong (extendᵐ X⊑★ (marksᶜ (extendTargetᶜ₀ plan)))
           (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
             (toRenameᵗ _ Z)))
         (extendTarget-marksᶜ₀ plan Z)
@@ -508,7 +508,7 @@ extendTarget-marksᶜ₀
 extendTarget-marksᶜ₀
     (target-extend-bind-rightᶜ₀ plan _ _ _) (Fin.suc Z)
     = trans
-        (cong (extendᵐ X⊑★ (marksᶜ₀ (extendTargetᶜ₀ plan)))
+        (cong (extendᵐ X⊑★ (marksᶜ (extendTargetᶜ₀ plan)))
           (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
             (toRenameᵗ _ Z)))
         (extendTarget-marksᶜ₀ plan Z)
@@ -518,7 +518,7 @@ extendTarget-marksᶜ₀
 extendTarget-marksᶜ₀
     (target-extend-bind-both-rawᶜ₀ plan _ _ _ _) (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑X (marksᶜ₀ (extendTargetᶜ₀ plan)))
+    (cong (extendᵐ X⊑X (marksᶜ (extendTargetᶜ₀ plan)))
       (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
         (toRenameᵗ _ Z)))
     (extendTarget-marksᶜ₀ plan Z)
@@ -529,7 +529,7 @@ extendTarget-marksᶜ₀
     (target-extend-bind-both-star-rawᶜ₀ plan _ _ _ _)
     (Fin.suc Z) =
   trans
-    (cong (extendᵐ X⊑★ (marksᶜ₀ (extendTargetᶜ₀ plan)))
+    (cong (extendᵐ X⊑★ (marksᶜ (extendTargetᶜ₀ plan)))
       (subst-Fin-suc-sym (extendTarget-centerᶜ₀ plan)
         (toRenameᵗ _ Z)))
     (extendTarget-marksᶜ₀ plan Z)
@@ -539,8 +539,8 @@ extendTarget-marksᶜ₀
 
 
 extendTarget-targetLookupᶜ₀ : ∀ {Cᴸ Cᴿ}
-    {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Cᴿ⁺ rho Δ⁺}
-    {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {Cᴿ⁺ rho Δ⁺}
+    {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
     (X : TyVar (Δᵉ Cᴿ))
   → lookupStore (Σᵉ Cᴿ⁺) (toRenameᵗ rho X)
@@ -608,29 +608,29 @@ extendTarget-targetLookupᶜ₀
   extendTarget-targetLookupᶜ₀ plan X
 
 
-extendTarget-⊑ᵀ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-⊑ᵀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)}
     (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
-  → A ⊑ᵀ₀⟨ W ⟩ B
-  → A ⊑ᵀ₀⟨ extendTargetᶜ₀ plan ⟩
+  → A ⊑ᵀ⟨ W ⟩ B
+  → A ⊑ᵀ⟨ extendTargetᶜ₀ plan ⟩
       renameᵗ (toRenameᵗ rho) B
-extendTarget-⊑ᵀ₀ {W = W} {rho = rho} {pi = pi}
+extendTarget-⊑ᵀ {W = W} {rho = rho} {pi = pi}
     {A = A} {B = B} plan represented =
   subst
-    (λ L → marksᶜ₀ (extendTargetᶜ₀ plan) ⊢ L ⊑
-      renameᵗ (toRenameᵗ (ηᴿᶜ₀ (extendTargetᶜ₀ plan)))
+    (λ L → marksᶜ (extendTargetᶜ₀ plan) ⊢ L ⊑
+      renameᵗ (toRenameᵗ (ηᴿᶜ (extendTargetᶜ₀ plan)))
         (renameᵗ (toRenameᵗ rho) B))
     (sym source-eq)
     (subst
-      (λ R → marksᶜ₀ (extendTargetᶜ₀ plan) ⊢
+      (λ R → marksᶜ (extendTargetᶜ₀ plan) ⊢
         renameᵗ center-map
-          (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A) ⊑ R)
+          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ R)
       (sym target-eq)
       (rename-⊑ center-map center-map-injective star-map represented))
   where
-  center-map : TyVar (centerᶜ₀ W)
-    → TyVar (centerᶜ₀ (extendTargetᶜ₀ plan))
+  center-map : TyVar (centerᶜ W)
+    → TyVar (centerᶜ (extendTargetᶜ₀ plan))
   center-map Z =
     subst Fin.Fin (sym (extendTarget-centerᶜ₀ plan))
       (toRenameᵗ pi Z)
@@ -643,29 +643,29 @@ extendTarget-⊑ᵀ₀ {W = W} {rho = rho} {pi = pi}
       (subst-Fin-sym-injective (extendTarget-centerᶜ₀ plan) eq)
 
   star-map : ∀ Z
-    → marksᶜ₀ W Z ≡ X⊑★
-    → marksᶜ₀ (extendTargetᶜ₀ plan) (center-map Z) ≡ X⊑★
+    → marksᶜ W Z ≡ X⊑★
+    → marksᶜ (extendTargetᶜ₀ plan) (center-map Z) ≡ X⊑★
   star-map Z mark = trans (extendTarget-marksᶜ₀ plan Z) mark
 
   source-eq :
-      renameᵗ (toRenameᵗ (ηᴸᶜ₀ (extendTargetᶜ₀ plan))) A
+      renameᵗ (toRenameᵗ (ηᴸᶜ (extendTargetᶜ₀ plan))) A
     ≡ renameᵗ center-map
-        (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A)
+        (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A)
   source-eq =
     trans (renameᵗ-cong A (extendTarget-ηᴸᶜ₀ plan))
-      (sym (renameᵗ-comp (toRenameᵗ (ηᴸᶜ₀ W)) center-map A))
+      (sym (renameᵗ-comp (toRenameᵗ (ηᴸᶜ W)) center-map A))
 
   target-eq :
-      renameᵗ (toRenameᵗ (ηᴿᶜ₀ (extendTargetᶜ₀ plan)))
+      renameᵗ (toRenameᵗ (ηᴿᶜ (extendTargetᶜ₀ plan)))
         (renameᵗ (toRenameᵗ rho) B)
     ≡ renameᵗ center-map
-        (renameᵗ (toRenameᵗ (ηᴿᶜ₀ W)) B)
+        (renameᵗ (toRenameᵗ (ηᴿᶜ W)) B)
   target-eq =
     trans
       (renameᵗ-comp (toRenameᵗ rho)
-        (toRenameᵗ (ηᴿᶜ₀ (extendTargetᶜ₀ plan))) B)
+        (toRenameᵗ (ηᴿᶜ (extendTargetᶜ₀ plan))) B)
       (trans (renameᵗ-cong B (extendTarget-ηᴿᶜ₀ plan))
-        (sym (renameᵗ-comp (toRenameᵗ (ηᴿᶜ₀ W)) center-map B)))
+        (sym (renameᵗ-comp (toRenameᵗ (ηᴿᶜ W)) center-map B)))
 
 
 target-extend-bind-bothᶜ₀ :
@@ -677,23 +677,23 @@ target-extend-bind-bothᶜ₀ :
       {Γᴸ¹ : TermCtx (suc Δᴸ)} {Γᴿ¹ : TermCtx (suc Δᴿ)}
       {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
   → (plan : TargetExtendPlanᶜ₀
       W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
   → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
   → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
   → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
   → TargetExtendPlanᶜ₀
-      (bind-both-rawᶜ₀ W represented Γᴸ≡ Γᴿ≡)
+      (bind-both-rawᶜ W represented Γᴸ≡ Γᴿ≡)
       ⟨ suc Δᴿ⁺ ,
         store-bind Σᴿ⁺ (renameᵗ (toRenameᵗ rho) B) , Γᴿ⁺¹ ⟩
       (keep rho) (keep pi)
 target-extend-bind-bothᶜ₀ {represented = represented}
     plan Γᴸ≡ Γᴿ≡ Γᴿ⁺≡ =
   target-extend-bind-both-rawᶜ₀ plan
-    (extendTarget-⊑ᵀ₀ plan represented) Γᴸ≡ Γᴿ≡ Γᴿ⁺≡
+    (extendTarget-⊑ᵀ plan represented) Γᴸ≡ Γᴿ≡ Γᴿ⁺≡
 
 
 target-extend-bind-both-starᶜ₀ :
@@ -705,23 +705,23 @@ target-extend-bind-both-starᶜ₀ :
       {Γᴸ¹ : TermCtx (suc Δᴸ)} {Γᴿ¹ : TermCtx (suc Δᴿ)}
       {Γᴿ⁺¹ : TermCtx (suc Δᴿ⁺)}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B} {A≢★ : ⇑ᵗ A ≢ ★}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+      {represented : A ⊑ᵀ⟨ W ⟩ B} {A≢★ : ⇑ᵗ A ≢ ★}
   → (plan : TargetExtendPlanᶜ₀
       W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
   → (Γᴸ≡ : Γᴸ¹ ≡ TC.⇑ᶜ Γᴸ)
   → (Γᴿ≡ : Γᴿ¹ ≡ TC.⇑ᶜ Γᴿ)
   → (Γᴿ⁺≡ : Γᴿ⁺¹ ≡ TC.⇑ᶜ Γᴿ⁺)
   → TargetExtendPlanᶜ₀
-      (bind-both-star-rawᶜ₀ W represented A≢★ Γᴸ≡ Γᴿ≡)
+      (bind-both-star-rawᶜ W represented A≢★ Γᴸ≡ Γᴿ≡)
       ⟨ suc Δᴿ⁺ ,
         store-bind Σᴿ⁺ (renameᵗ (toRenameᵗ rho) B) , Γᴿ⁺¹ ⟩
       (keep rho) (keep pi)
 target-extend-bind-both-starᶜ₀ {represented = represented}
     plan Γᴸ≡ Γᴿ≡ Γᴿ⁺≡ =
   target-extend-bind-both-star-rawᶜ₀ plan
-    (extendTarget-⊑ᵀ₀ plan represented) Γᴸ≡ Γᴿ≡ Γᴿ⁺≡
+    (extendTarget-⊑ᵀ plan represented) Γᴸ≡ Γᴿ≡ Γᴿ⁺≡
 
 
 target-extend-bind-termᶜ₀ :
@@ -730,25 +730,25 @@ target-extend-bind-termᶜ₀ :
       {Σᴿ⁺ : TyStore Δᴿ⁺}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴿ⁺ : TermCtx Δᴿ⁺} {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
-      {represented : A ⊑ᵀ₀⟨ W ⟩ B}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {rho : Δᴿ ↪ᵗ Δᴿ⁺} {Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
+      {represented : A ⊑ᵀ⟨ W ⟩ B}
   → (plan : TargetExtendPlanᶜ₀
       W ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩ rho pi)
   → TargetExtendPlanᶜ₀
-      (bind-termᶜ₀ W represented)
+      (bind-termᶜ W represented)
       ⟨ Δᴿ⁺ , Σᴿ⁺ , renameᵗ (toRenameᵗ rho) B ∷ Γᴿ⁺ ⟩
       rho pi
 target-extend-bind-termᶜ₀ {represented = represented} plan =
   target-extend-bind-term-rawᶜ₀ plan
-    (extendTarget-⊑ᵀ₀ plan represented)
+    (extendTarget-⊑ᵀ plan represented)
 
 
-extendTarget-invariantsᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ}
-    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ₀ W ↪ᵗ Δ⁺}
+extendTarget-invariantsᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+    {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
   → (plan : TargetExtendPlanᶜ₀ W Cᴿ⁺ rho pi)
-  → DirectWorldInvariantsᶜ₀ (extendTargetᶜ₀ plan)
-extendTarget-invariantsᶜ₀ plan = directInvariantsᶜ₀ (extendTargetᶜ₀ plan)
+  → DirectWorldInvariantsᶜ (extendTargetᶜ₀ plan)
+extendTarget-invariantsᶜ₀ plan = directInvariantsᶜ (extendTargetᶜ₀ plan)
 
 
 star-root-planᶜ₀ : TargetExtendPlanᶜ₀ stable-world
@@ -765,7 +765,7 @@ alias-root-planᶜ₀ =
     refl refl refl
   where
   no-source : ∀ Xᴸ
-    → toRenameᵗ (skip (ηᴸᶜ₀ stable-world)) Xᴸ
-      ≢ toRenameᵗ (keep (ηᴿᶜ₀ stable-world))
+    → toRenameᵗ (skip (ηᴸᶜ stable-world)) Xᴸ
+      ≢ toRenameᵗ (keep (ηᴿᶜ stable-world))
           (Fin.suc target-alpha)
   no-source Fin.zero ()

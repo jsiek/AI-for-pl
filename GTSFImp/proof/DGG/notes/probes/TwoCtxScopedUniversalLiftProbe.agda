@@ -15,7 +15,7 @@ open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 open import Types using (＇_)
 open import Imprecision using (X⊑X)
 open import CastTerms using (Ctx; _,ˢ_; ⇑ᵉᵗ)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using
@@ -23,12 +23,12 @@ open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using
 
 
 lifted-stable-world :
-  ⇑ᵉᵗ source-X-context ⊑ᶜ₀ ⇑ᵉᵗ target-alpha-context
-lifted-stable-world = liftBothᶜ₀ X⊑X stable-world
+  ⇑ᵉᵗ source-X-context ⊑ᶜ ⇑ᵉᵗ target-alpha-context
+lifted-stable-world = liftBothᶜ X⊑X stable-world
 
 lifted-boundary-world :
-  ⇑ᵉᵗ source-X-context ⊑ᶜ₀ ⇑ᵉᵗ target-alpha-beta-context
-lifted-boundary-world = liftBothᶜ₀ X⊑X boundary-world
+  ⇑ᵉᵗ source-X-context ⊑ᶜ ⇑ᵉᵗ target-alpha-beta-context
+lifted-boundary-world = liftBothᶜ X⊑X boundary-world
 
 
 rebound-after-lift : Ctx

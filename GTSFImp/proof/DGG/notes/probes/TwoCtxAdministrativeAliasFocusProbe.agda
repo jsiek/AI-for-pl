@@ -30,8 +30,8 @@ import Imprecision as I
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; _,ˢ_; ⇑ᵉᵗ)
 open import Conversion using (Conv↑; unseal)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
-open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
+open import proof.DGG.TwoCtxWorld
+open import proof.DGG.TwoCtxWorldInvariants
 
 
 -- A focus is local authorization to read one old target name at the source
@@ -39,42 +39,42 @@ open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
 -- compares direct store entries in the stable world; it is not an alias-chain
 -- closure.
 
-record TargetNameFocusᶠ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+record TargetNameFocusᶠ₀ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ Cᴿ)
     (X : TyVar (Δᵉ Cᴸ)) (alpha : TyVar (Δᵉ Cᴿ)) : Set where
   constructor target-name-focusᶠ₀
   field
     stable-points-separated :
-      toRenameᵗ (ηᴸᶜ₀ W) X ≢ toRenameᵗ (ηᴿᶜ₀ W) alpha
+      toRenameᵗ (ηᴸᶜ W) X ≢ toRenameᵗ (ηᴿᶜ W) alpha
     source-direct-self : lookupStore (Σᵉ Cᴸ) X ≡ ＇ X
     stable-direct-representations :
-      lookupStore (Σᵉ Cᴸ) X ⊑ᵀ₀⟨ W ⟩ lookupStore (Σᵉ Cᴿ) alpha
+      lookupStore (Σᵉ Cᴸ) X ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) alpha
 
 open TargetNameFocusᶠ₀ public
 
 
-focusTargetVarᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {X alpha}
+focusTargetVarᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {X alpha}
   → TargetNameFocusᶠ₀ W X alpha
   → TyVar (Δᵉ Cᴿ)
-  → TyVar (centerᶜ₀ W)
+  → TyVar (centerᶜ W)
 focusTargetVarᶠ₀ {W = W} {X = X} {alpha = alpha} focus Y
     with alpha ≟ Y
 focusTargetVarᶠ₀ {W = W} {X = X} focus ._ | yes refl =
-  toRenameᵗ (ηᴸᶜ₀ W) X
+  toRenameᵗ (ηᴸᶜ W) X
 focusTargetVarᶠ₀ {W = W} focus Y | no alpha≢Y =
-  toRenameᵗ (ηᴿᶜ₀ W) Y
+  toRenameᵗ (ηᴿᶜ W) Y
 
 
-focusTargetTyᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {X alpha}
+focusTargetTyᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {X alpha}
   → TargetNameFocusᶠ₀ W X alpha
   → Ty (Δᵉ Cᴿ)
-  → Ty (centerᶜ₀ W)
+  → Ty (centerᶜ W)
 focusTargetTyᶠ₀ focus B =
   substᵗ (λ Y → ＇ focusTargetVarᶠ₀ focus Y) B
 
 
-focus-sees-referent : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {X alpha}
+focus-sees-referent : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {X alpha}
     (focus : TargetNameFocusᶠ₀ W X alpha)
-  → focusTargetVarᶠ₀ focus alpha ≡ toRenameᵗ (ηᴸᶜ₀ W) X
+  → focusTargetVarᶠ₀ focus alpha ≡ toRenameᵗ (ηᴸᶜ W) X
 focus-sees-referent {alpha = alpha} focus with alpha ≟ alpha
 focus-sees-referent focus | yes refl = refl
 focus-sees-referent focus | no alpha≢alpha = ⊥-elim (alpha≢alpha refl)
@@ -86,7 +86,7 @@ focus-sees-referent focus | no alpha≢alpha = ⊥-elim (alpha≢alpha refl)
 
 data TargetAliasBoundaryᶠ₀ {Cᴸ : Ctx}
     {Δᴿ} {Σᴿ : TyStore.TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar Δᴿ}
     (focus : TargetNameFocusᶠ₀ W X alpha) : Ctx → Set where
 
@@ -96,7 +96,7 @@ data TargetAliasBoundaryᶠ₀ {Cᴸ : Ctx}
         ⟨ suc Δᴿ , store-bind Σᴿ (＇ alpha) , Γᴿ⁺ ⟩
 
 
-targetAliasBoundaryᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {X alpha}
+targetAliasBoundaryᶠ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {X alpha}
     (focus : TargetNameFocusᶠ₀ W X alpha)
   → TargetAliasBoundaryᶠ₀ focus (Cᴿ ,ˢ ＇ alpha)
 targetAliasBoundaryᶠ₀ focus = target-alias-rawᶠ₀ refl
@@ -104,7 +104,7 @@ targetAliasBoundaryᶠ₀ focus = target-alias-rawᶠ₀ refl
 
 aliasBoundarySubᶠ₀ : ∀ {Cᴸ Δᴿ} {Σᴿ : TyStore.TyStore Δᴿ}
     {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
     {focus : TargetNameFocusᶠ₀ W X alpha} {Cᴿ⁺}
   → TargetAliasBoundaryᶠ₀ focus Cᴿ⁺
   → TyVar (Δᵉ Cᴿ⁺)
@@ -116,26 +116,26 @@ aliasBoundarySubᶠ₀ (target-alias-rawᶠ₀ eq) (Fin.suc Y) = ＇ Y
 
 boundaryTargetTyᶠ₀ : ∀ {Cᴸ Δᴿ} {Σᴿ : TyStore.TyStore Δᴿ}
     {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
     {focus : TargetNameFocusᶠ₀ W X alpha} {Cᴿ⁺}
   → (edge : TargetAliasBoundaryᶠ₀ focus Cᴿ⁺)
   → Ty (Δᵉ Cᴿ⁺)
-  → Ty (centerᶜ₀ W)
+  → Ty (centerᶜ W)
 boundaryTargetTyᶠ₀ {focus = focus} edge B =
   focusTargetTyᶠ₀ focus (substᵗ (aliasBoundarySubᶠ₀ edge) B)
 
 
 BoundaryTypeImprecisionᶠ₀ : ∀ {Cᴸ Δᴿ}
     {Σᴿ : TyStore.TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
     {focus : TargetNameFocusᶠ₀ W X alpha} {Cᴿ⁺}
   → TargetAliasBoundaryᶠ₀ focus Cᴿ⁺
   → Ty (Δᵉ Cᴸ)
   → Ty (Δᵉ Cᴿ⁺)
   → Set
 BoundaryTypeImprecisionᶠ₀ {W = W} edge A B =
-  I._⊢_⊑_ (marksᶜ₀ W)
-    (renameᵗ (toRenameᵗ (ηᴸᶜ₀ W)) A)
+  I._⊢_⊑_ (marksᶜ W)
+    (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A)
     (boundaryTargetTyᶠ₀ edge B)
 
 
@@ -147,7 +147,7 @@ BoundaryTypeImprecisionᶠ₀ {W = W} edge A B =
 
 data AliasRevealMoveIndexᶠ₀ {Cᴸ Δᴿ}
     {Σᴿ : TyStore.TyStore Δᴿ} {Γᴿ : TC.TermCtx Δᴿ}
-    {W : Cᴸ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
+    {W : Cᴸ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {X alpha}
     {focus : TargetNameFocusᶠ₀ W X alpha}
     {Γᴿ⁺ : TC.TermCtx (suc Δᴿ)}
     (edge : TargetAliasBoundaryᶠ₀ focus
@@ -182,11 +182,11 @@ target-alpha-context = empty-context ,ˢ ★
 source-X-context : Ctx
 source-X-context = ⇑ᵉᵗ empty-context
 
-target-alpha-world : empty-context ⊑ᶜ₀ target-alpha-context
-target-alpha-world = bindRightᶜ₀ emptyᶜ₀ ★ (inj₁ refl)
+target-alpha-world : empty-context ⊑ᶜ target-alpha-context
+target-alpha-world = bindRightᶜ emptyᶜ ★ (inj₁ refl)
 
-stable-world : source-X-context ⊑ᶜ₀ target-alpha-context
-stable-world = liftLeftᶜ₀ target-alpha-world
+stable-world : source-X-context ⊑ᶜ target-alpha-context
+stable-world = liftLeftᶜ target-alpha-world
 
 source-X : TyVar (Δᵉ source-X-context)
 source-X = Fin.zero
@@ -194,12 +194,12 @@ source-X = Fin.zero
 target-alpha : TyVar (Δᵉ target-alpha-context)
 target-alpha = Fin.zero
 
-stable-invariants : DirectWorldInvariantsᶜ₀ stable-world
-stable-invariants = directInvariantsᶜ₀ stable-world
+stable-invariants : DirectWorldInvariantsᶜ stable-world
+stable-invariants = directInvariantsᶜ stable-world
 
 stable-X-alpha-separated :
-  toRenameᵗ (ηᴸᶜ₀ stable-world) source-X
-    ≢ toRenameᵗ (ηᴿᶜ₀ stable-world) target-alpha
+  toRenameᵗ (ηᴸᶜ stable-world) source-X
+    ≢ toRenameᵗ (ηᴿᶜ stable-world) target-alpha
 stable-X-alpha-separated ()
 
 stable-X-self : lookupStore (Σᵉ source-X-context) source-X ≡ ＇ source-X
@@ -207,7 +207,7 @@ stable-X-self = refl
 
 stable-direct-representations-proof :
   lookupStore (Σᵉ source-X-context) source-X
-    ⊑ᵀ₀⟨ stable-world ⟩
+    ⊑ᵀ⟨ stable-world ⟩
   lookupStore (Σᵉ target-alpha-context) target-alpha
 stable-direct-representations-proof = I.X⊑★ refl
 

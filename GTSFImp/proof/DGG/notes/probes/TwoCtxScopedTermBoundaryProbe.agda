@@ -21,7 +21,7 @@ import Consistency as C
 import Imprecision as I
 open import CastTerms using (Ctx; _,ᶜ_; _∋ᵗ_⦂_; `_; Term; Δᵉ)
 open import TermCtx using (Z)
-open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
+open import proof.DGG.TwoCtxWorld
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe
@@ -29,20 +29,20 @@ open import proof.DGG.notes.probes.TwoCtxTypedAliasBoundaryProbe
 
 
 all-source-disaligned : ∀ Xᴸ
-  → C.toRenameᵗ (C.skip (ηᴸᶜ₀ stable-world)) Xᴸ
-    ≢ C.toRenameᵗ (C.keep (ηᴿᶜ₀ stable-world))
+  → C.toRenameᵗ (C.skip (ηᴸᶜ stable-world)) Xᴸ
+    ≢ C.toRenameᵗ (C.keep (ηᴿᶜ stable-world))
         (suc target-alpha)
 all-source-disaligned zero ()
 
-beta-fresh : RightBindFreshᶜ₀ stable-world (＇ target-alpha)
+beta-fresh : RightBindFreshᶜ stable-world (＇ target-alpha)
 beta-fresh = inj₂ (suc target-alpha , refl , all-source-disaligned)
 
-boundary-world : source-X-context ⊑ᶜ₀ target-alpha-beta-context
-boundary-world = bindRightᶜ₀ stable-world (＇ target-alpha) beta-fresh
+boundary-world : source-X-context ⊑ᶜ target-alpha-beta-context
+boundary-world = bindRightᶜ stable-world (＇ target-alpha) beta-fresh
 
 
 stable-X-beta-impossible :
-  (＇ source-X) ⊑ᵀ₀⟨ boundary-world ⟩ (＇ target-beta) → ⊥
+  (＇ source-X) ⊑ᵀ⟨ boundary-world ⟩ (＇ target-beta) → ⊥
 stable-X-beta-impossible ()
 
 
@@ -51,7 +51,7 @@ open Focused
 
 data ScopedWorldᶜ₀ : TargetModeᶠ₁ → Ctx → Ctx → Set where
   scoped-boundary :
-    source-X-context ⊑ᶜ₀ target-alpha-beta-context →
+    source-X-context ⊑ᶜ target-alpha-beta-context →
     ScopedWorldᶜ₀ beta-modeᶠ₁
       source-X-context target-alpha-beta-context
 

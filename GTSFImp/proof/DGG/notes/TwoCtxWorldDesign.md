@@ -36,8 +36,9 @@ boundary-local view consumes exactly one fresh target edge `β := α`.
 `TwoCtxAliasFocusModeProbe` stacks those exact one-edge views and checks the
 two-boundary `β := α`, `α := ★` reveal spine.
 `TwoCtxTypedAliasBoundaryProbe` adds explicit source/target term and type
-indices to that surface.  All check under `--safe`; none follows a
-representation chain.
+indices to that surface.  `TwoCtxTermEntryProbe` checks real endpoint lookup,
+term binding, and a variable CTI leaf.  All check under `--safe`; none follows
+a representation chain.
 
 ## Trusted endpoint structure
 
@@ -272,6 +273,11 @@ The new relation therefore owns the term-context correspondence.  The old
 `CtxImpEntry`, `CtxImp`, `srcCtxʷ`, `tgtCtxʷ`, and `_∋ʷ_⦂_` are not
 parallel inputs to CTI.
 
+The checked `TwoCtxTermEntryProbe` implements this relation, constructor-form
+term binding, `here`/`there`/tail lookup transport, and a real variable CTI
+rule.  Its positive fixture binds `★` in both endpoint term contexts.  Thus the
+replacement is not merely a proposed record shape.
+
 ## Direct-representation rebase
 
 Rebase must preserve the endpoint `Ctx` indices.  Consequently the stores and
@@ -460,10 +466,19 @@ nested target term
 returns to the stable mode without exposing either pending name to ordinary
 term rules.  The typed boundary probe checks the corresponding intermediate
 judgments explicitly: `X ⊑ β` at depth two, `X ⊑ α` after the inner reveal,
-and `X ⊑ ★` after the outer reveal.  Its atom, lambda, and application clauses
-preserve the identical mode and validity witness.  This is not yet a
-replacement for live CTI, but it shows that a stack is part of the
-compositional interface rather than Λ-specific proof geometry.
+and `X ⊑ ★` after the outer reveal.  Its syntax-directed clauses preserve the
+identical mode and validity witness.
+
+That probe does not yet establish a real variable CTI derivation for its
+concrete `x`.  The strict-Λ fixture has empty endpoint term contexts, and the
+administrative alias boundary changes the target `Ctx` without producing a
+new `_⊑ᶜ₀_` witness for that endpoint.  `TwoCtxTermEntryProbe` checks both
+empty-context contradictions.  Therefore the typed alias atom is an abstract
+syntax placeholder, while the type/boundary indices are the checked result.
+A complete integration needs a boundary world-extension producer and a
+reachable nonempty-context fixture.  This is still evidence that a stack is
+part of the compositional interface rather than Λ-specific proof geometry,
+but it is not yet a replacement for live CTI.
 
 ## CTI indexing consequence
 
@@ -580,6 +595,8 @@ Before this becomes a live design, the remaining probes must establish:
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI
-  without making pending names available to ordinary term constructors.
+  without making pending names available to ordinary term constructors.  Its
+  allocation boundary must produce a world witness at the extended target
+  `Ctx`, and the first end-to-end fixture must use real endpoint term lookup.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

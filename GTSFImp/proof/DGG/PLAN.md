@@ -1155,10 +1155,14 @@ an exact direct-store reveal/conceal boundary push a focus.  The
 mode, and returns the nested reveal term to stable mode.  Ordinary term rules
 preserve the mode.  `TwoCtxTypedAliasBoundaryProbe` further checks the explicit
 intermediate type judgments `X ⊑ β`, `X ⊑ α`, and `X ⊑ ★` and confirms that
-only exact reveal/conceal boundaries change mode.  This is the first
-compositional account of the problematic Λ alias geometry that neither weakens
-`representationsImprecise` nor uses `resolveVar`; live CTI integration remains
-a design step requiring explicit relation review.
+only exact reveal/conceal boundaries change mode.  Its concrete atom is not
+yet a real term-context leaf: the fixture contexts are empty, and the boundary
+does not yet produce a world witness over the extended target `Ctx`.
+`TwoCtxTermEntryProbe` separately checks the real world-indexed entry relation,
+term binding, lookup transport, and variable CTI rule and proves both fixture
+lookups empty.  The next integration theorem must join these pieces with a
+boundary world-extension producer and a reachable nonempty-context fixture.
+This account neither weakens `representationsImprecise` nor uses `resolveVar`.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

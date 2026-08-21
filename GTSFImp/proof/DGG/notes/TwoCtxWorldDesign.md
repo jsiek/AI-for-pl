@@ -45,6 +45,11 @@ lookup.  The skeleton now also checks `initialWorldᶜ₀` and
 structural center embedding and derives the direct invariants of the result.
 `TwoCtxGenericScopedWorldProbe` abstracts the scoped boundary and one body
 binding over an arbitrary stable world and exact right-bound alias extension.
+`TwoCtxScopedTermClosureProbe` closes that surface under arbitrary repeated
+term bindings, with exact endpoint lookup and variable leaves at any depth.
+`TwoCtxHonestifyEliminationProbe` proves directly that every target-unaligned
+center is already marked `X⊑★`; honestification is therefore the identity on
+the raw relation, not a world transformation.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -169,7 +174,9 @@ mutual
 The current `honestifyʷ`, `lower-leftʷ`, `mix-targetʷ`, and
 `mix-renamed-targetʷ` constructors are intentionally absent.  The last three
 accept already assembled global invariants and bypass the inductive history.
-Honestification, center renaming, and source rebasing should be checked
+The checked raw history is already honest: a center outside the target
+embedding is structurally marked `X⊑★`.  Hence `honestifyʷ` is deleted without
+a replacement function.  Center renaming and source rebasing remain checked
 functions or function graphs over the new structure, not extra constructors.
 
 ## Hidden-center projections and type imprecision
@@ -489,11 +496,13 @@ surface.  It is parameterized by an arbitrary stable full-`Ctx` world, its
 name focus and exact alias scope, and the resulting ordinary right-bound
 world.  It recovers stable mode, pushes one exact focus, owns a
 constructor-form term binding under the current mode, and derives a genuine
-variable CTI leaf.  This is not a parallel `CtxImp`: the scoped relation itself
-remains indexed by both complete endpoint `Ctx` values.  Repeated arbitrary
-term-context extension and universal-type lifting remain to be generalized;
-the single lambda-body binding needed by the checked fixture does not require
-a mutual-index workaround.
+variable CTI leaf.  `TwoCtxScopedTermClosureProbe` generalizes that binding to
+an arbitrary constructor-form term-context spine and checks `here`, `there`,
+inverse `tail`, both endpoint lookup projections, and a variable leaf at depth
+two.  This is not a parallel `CtxImp`: the scoped relation itself remains
+indexed by both complete endpoint `Ctx` values.  Universal-type lifting remains
+to be generalized; ordinary repeated term binding needs no mutual-index
+workaround.
 
 ## CTI indexing consequence
 
@@ -612,12 +621,16 @@ Before this becomes a live design, the remaining probes must establish:
   raw skeleton constructor while fixing endpoint `Ctx` indices and proving
   embedding/mark laws.  Operational callers must still produce its explicit
   rebuilt freshness and type-imprecision premises.
+- Honestification is eliminated rather than reconstructed.
+  `TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
+  center outside the target embedding already has mark `X⊑★`; the original
+  world and its direct invariants are reused definitionally.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI
   without making pending names available to ordinary term constructors.  The
-  generic single-boundary/single-body-bind surface and concrete two-boundary
-  fixture check.  Repeated term-context extension, universal-type lifting, and
-  the full live reveal/conceal constructor family remain open.
+  generic boundary surface, arbitrary repeated term-context extension, and
+  concrete two-boundary fixture check.  Universal-type lifting and the full
+  live reveal/conceal constructor family remain open.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

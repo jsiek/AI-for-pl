@@ -30,7 +30,7 @@ integrate the checked rebase and boundary-focus plans.
 | `bind-rightʷ` | `bind-right-rawᶜ₀` | 4 / 21 | Direct, with `RightBindFreshᶜ₀`. |
 | `bind-bothʷ` | `bind-both-rawᶜ₀` | 3 / 18 | Direct, with an explicit type-imprecision premise. |
 | `bind-both-starʷ` | `bind-both-star-rawᶜ₀` | 7 / 30 | Direct, including `⇑ᵗ A ≢ ★`. |
-| `honestifyʷ` | no constructor | 2 / 15 | Delete as a constructor; replace its one producer by a checked history transformation. |
+| `honestifyʷ` | no constructor | 2 / 15 | Delete outright; raw worlds are already honest. |
 | `lower-leftʷ` | no constructor | 2 / 15 | Delete; it accepts a separately assembled world and invariants. |
 | `mix-targetʷ` | no constructor | 2 / 15 | Delete; replace by a structural target-extension producer. |
 | `mix-renamed-targetʷ` | no constructor | 3 / 25 | Delete; checked `CenterRenamePlanᶜ₀` reconstructs structural history. |
@@ -152,9 +152,11 @@ sets despite the recursive pattern burden in `CenterRename`:
 These constructors should not survive as invariant-accepting compatibility
 paths.  The structural center-renaming interpreter now checks through every
 raw history head; its operational callers still need to produce explicit
-plans with rebuilt freshness and type-imprecision premises.  Deletion then
-requires target extension, target-strip reconstruction, and honestification
-over inductive histories.  Once those producers exist, the many
+plans with rebuilt freshness and type-imprecision premises.  Honestification
+needs no producer: direct induction proves that raw worlds already mark every
+target-unaligned center `X⊑★`.  Deletion of the remaining escapes then requires
+target extension and target-strip reconstruction.  Once those producers
+exist, the many
 `CenterRename` clauses for the four constructors disappear rather than being
 translated.
 
@@ -251,15 +253,15 @@ producers or integrations:
 2. Structural target extension/insertion and target-strip reconstruction.
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
    three actual non-rename producer sites listed above.
-3. A structural honestification/decay function if the operational decay proof
-   still needs it.  It is a history rewrite, not a world constructor.
+3. Delete honestification.  The checked elimination theorem reuses the same
+   raw world and its direct invariants; no decay rewrite remains.
 4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
    freshness and type-imprecision premises from direct caller facts.
 5. A live boundary-focus layer.  The probes now check exact alias allocation,
    stacked `TargetMode` validity, a generic stable/boundary world parameter,
-   one scoped term bind, and a real variable leaf.  Repeated term-context
-   extension, universal-type lifting, and the complete reveal/conceal family
-   are not yet connected to the live DGG.
+   arbitrary repeated scoped term binding, exact endpoint lookup at depth, and
+   a real variable leaf.  Universal-type lifting and the complete
+   reveal/conceal family are not yet connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.
 7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind

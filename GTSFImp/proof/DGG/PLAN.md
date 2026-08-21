@@ -1182,9 +1182,18 @@ weaken `representationsImprecise` nor use `resolveVar`.
 arbitrary stable full-`Ctx` world and exact right-bound alias extension.  It
 recovers stable mode, pushes one exact boundary, owns a constructor-form body
 term binding under the focused mode, and yields a genuine variable CTI leaf.
-No mutual-index workaround is needed for this one-body-binding surface.  The
-remaining generic work is repeated term-context extension, universal-type
-lifting, and the complete live reveal/conceal constructor family.
+`TwoCtxScopedTermClosureProbe` closes the same surface under arbitrary repeated
+term bindings and checks here/there/tail entry transport, both endpoint
+lookups, and a variable leaf at depth two.  No mutual-index workaround or
+parallel `CtxImp` is needed for ordinary term-context extension.  The remaining
+generic work is universal-type lifting and the complete live reveal/conceal
+constructor family.
+
+`TwoCtxHonestifyEliminationProbe` proves by exhaustive induction that every
+target-unaligned center in a raw two-`Ctx` world is already marked `X⊑★`.
+Honestification is therefore observationally and definitionally the identity:
+delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ₀`,
+rather than introducing another transformation plan.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

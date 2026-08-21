@@ -1201,52 +1201,6 @@ module _ where
       {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₀ = p} {q = q}
       sv inert vU mono rb sc source∈ target∈ prem
 
-  source-spine-strip-worker-seal-nonvar : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-seal-nonvar (sv-seal {V = M ⦂∀ C [ A ]} ())
-      vU mono rb sc source∈ target∈ D
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal
-        (sv-cast {V = M ⦂∀ C [ A ]} () CastTerms.inj))
-      vU mono rb sc source∈ target∈ D
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal (sv-Λ sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
-        D@(CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem p) q) =
-    ⊥-elim
-      (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
-        nonvar-all nonstar-∀ D)
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal (sv-reveal-fun sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
-    ⊥-elim
-      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
-        nonstar-⇒ prem)
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal (sv-conceal-fun sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
-    ⊥-elim
-      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
-        nonstar-⇒ prem)
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal (sv-reveal-all sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
-    ⊥-elim
-      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
-        nonstar-∀ prem)
-  source-spine-strip-worker-seal-nonvar
-      (sv-seal (sv-conceal-all sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
-    ⊥-elim
-      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
-        nonstar-∀ prem)
-
-
-
   source-spine-strip-worker-seal-D
     : ∀ {Δᴸ Δᴿ Δ}
         {W W′ : World Δᴸ Δᴿ Δ}
@@ -1281,23 +1235,41 @@ module _ where
     source-spine-direct-cast (sv-seal sv) vU mono rb sc
       source∈ target∈ prem
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem pᵢ) p)
-      sv vU mono rb sc source∈ target∈ =
-    source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
-      source∈ target∈ D
+      (sv-Λ sv) vU mono rb sc source∈ target∈ =
+    ⊥-elim
+      (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
+        nonvar-all nonstar-∀
+        (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem pᵢ))
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
-      sv vU mono rb sc source∈ target∈ =
-    source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
-      source∈ target∈ D
+      (sv-reveal-fun sv) vU mono rb sc source∈ target∈ =
+    ⊥-elim
+      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+        nonstar-⇒ prem)
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+        (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+      (sv-reveal-all sv) vU mono rb sc source∈ target∈ =
+    ⊥-elim
+      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+        nonstar-∀ prem)
+  source-spine-strip-worker-seal-D
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
-      sv vU mono rb sc source∈ target∈ =
-    source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
-      source∈ target∈ D
+      (sv-conceal-fun sv) vU mono rb sc source∈ target∈ =
+    ⊥-elim
+      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
+        nonstar-⇒ prem)
+  source-spine-strip-worker-seal-D
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+      (sv-conceal-all sv) vU mono rb sc source∈ target∈ =
+    ⊥-elim
+      (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
+        nonstar-∀ prem)
   source-spine-strip-worker-seal : SourceSpineStrip
   {-# NON_COVERING #-}
   source-spine-strip-worker-seal (sv-seal sv) vU mono rb sc

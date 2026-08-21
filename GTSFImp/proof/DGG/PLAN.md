@@ -1175,8 +1175,16 @@ source disalignment builds the right-bound alias world, stable `X ⊑ β` is
 refuted there, and a mode-scoped full-`Ctx` term bind yields a real `Z`/`Z`
 body-variable leaf.  General integration requires mode, scoped type
 imprecision, and scoped full-`Ctx` relation to be parameterized together over
-arbitrary endpoint worlds.  This is not a parallel `CtxImp`, and it neither
-weakens `representationsImprecise` nor uses `resolveVar`.
+arbitrary endpoint worlds; it is not a parallel `CtxImp` and must neither
+weaken `representationsImprecise` nor use `resolveVar`.
+
+`TwoCtxGenericScopedWorldProbe` now checks that bounded generalization over an
+arbitrary stable full-`Ctx` world and exact right-bound alias extension.  It
+recovers stable mode, pushes one exact boundary, owns a constructor-form body
+term binding under the focused mode, and yields a genuine variable CTI leaf.
+No mutual-index workaround is needed for this one-body-binding surface.  The
+remaining generic work is repeated term-context extension, universal-type
+lifting, and the complete live reveal/conceal constructor family.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

@@ -255,10 +255,11 @@ producers or integrations:
    still needs it.  It is a history rewrite, not a world constructor.
 4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
    freshness and type-imprecision premises from direct caller facts.
-5. A live boundary-focus layer: exact alias-allocation producers, stacked
-   `TargetMode` validity, universal-type lifting, and reveal/conceal integration.
-   The probes check one and two direct alias edges, but do not yet connect them
-   to the live DGG.
+5. A live boundary-focus layer.  The probes now check exact alias allocation,
+   stacked `TargetMode` validity, a generic stable/boundary world parameter,
+   one scoped term bind, and a real variable leaf.  Repeated term-context
+   extension, universal-type lifting, and the complete reveal/conceal family
+   are not yet connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.
 7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind

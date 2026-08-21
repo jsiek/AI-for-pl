@@ -43,6 +43,8 @@ lookup.  The skeleton now also checks `initialWorldᶜ₀` and
 `emptyCenterWorldᶜ₀` recursors with pointwise center, embedding, and mark laws.
 `TwoCtxCenterRenamePlanProbe` reconstructs every raw history head under a
 structural center embedding and derives the direct invariants of the result.
+`TwoCtxGenericScopedWorldProbe` abstracts the scoped boundary and one body
+binding over an arbitrary stable world and exact right-bound alias extension.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -482,13 +484,16 @@ ordinary stable precision `X ⊑ β` is then refuted in that world; finally a
 mode-scoped full-`Ctx` relation extends both term contexts with focused
 `X ⊑ β` and checks the body variable with real `Z`/`Z` endpoint memberships.
 
-The general surface must therefore parameterize boundary mode, scoped type
-imprecision, and scoped full-`Ctx` relation together over their endpoint
-worlds.  This is not a parallel `CtxImp`: the scoped relation itself remains
-indexed by both complete endpoint `Ctx` values and owns their term binding.
-The current checked construction is concrete because the earlier focus module
-was already specialized to the strict-Λ endpoints.  Generalizing those three
-families together is the remaining integration step.
+The checked `TwoCtxGenericScopedWorldProbe` supplies the bounded general
+surface.  It is parameterized by an arbitrary stable full-`Ctx` world, its
+name focus and exact alias scope, and the resulting ordinary right-bound
+world.  It recovers stable mode, pushes one exact focus, owns a
+constructor-form term binding under the current mode, and derives a genuine
+variable CTI leaf.  This is not a parallel `CtxImp`: the scoped relation itself
+remains indexed by both complete endpoint `Ctx` values.  Repeated arbitrary
+term-context extension and universal-type lifting remain to be generalized;
+the single lambda-body binding needed by the checked fixture does not require
+a mutual-index workaround.
 
 ## CTI indexing consequence
 
@@ -611,8 +616,8 @@ Before this becomes a live design, the remaining probes must establish:
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI
   without making pending names available to ordinary term constructors.  The
-  concrete alias world, scoped term bind, and variable lookup check; the mode,
-  scoped type relation, and scoped full-`Ctx` relation must now be generalized
-  together over arbitrary endpoint worlds.
+  generic single-boundary/single-body-bind surface and concrete two-boundary
+  fixture check.  Repeated term-context extension, universal-type lifting, and
+  the full live reveal/conceal constructor family remain open.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

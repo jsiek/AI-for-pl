@@ -16,10 +16,12 @@ The common center remains internal to a relation witness.  It is not a third
 index.  The source and target stores and term contexts are the `Σᵉ` and `Γᵉ`
 fields of the two endpoint `Ctx` values.
 
-Everything below is **schematic and unproved**.  In particular, the raw
-constructors have not been accepted by Agda, the smart functions have not been
-implemented, and no preservation theorem has been proved.  This note does not
-authorize a change to the live term-imprecision relation.
+Everything below is **schematic and unproved** as a replacement for the live
+world.  `notes/probes/TwoCtxWorldSkeletonProbe.agda` does check the mutual
+relation/projection pattern, the constructor-form allocation indices, and the
+displayed smart functions under `--safe`.  It does not include the four world
+invariants, rebase, or any preservation theorem.  This note does not authorize
+a change to the live term-imprecision relation.
 
 ## Trusted endpoint structure
 
@@ -423,11 +425,10 @@ source/target strip proofs, and the instantiation catch-up and inversion family.
 
 ## Open proof obligations
 
-Before this becomes a live design, probes must establish:
+Before this becomes a live design, the remaining probes must establish:
 
-- Agda accepts the mutual raw relation and hidden-center projections as
-  strictly positive and terminating.
-- Every smart operation computes to the expected `CastTerms.Ctx` endpoints.
+- Extend the checked mutual raw relation and smart operations from
+  `TwoCtxWorldSkeletonProbe` with the four direct world invariants.
 - The inductive constructors imply the four direct world invariants without a
   general invariant-accepting escape constructor.
 - Checked source rebase can be implemented as a function whose graph preserves

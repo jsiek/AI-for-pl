@@ -7,10 +7,11 @@ module proof.DGG.notes.probes.TwoCtxSourceRebasePlanProbe where
 --     two-Ctx world skeleton.
 --   * Supports an already aligned identity and one source-only pivot moving
 --     to a target-only allocation, then commutes either case through later
---     skipped centers and target-only allocations.
+--     skipped centers, target-only allocations, paired lifts, and left lifts.
 --   * Rebuilds only inductive worlds, so the four direct invariants follow
 --     from the existing total invariant proof.  Target-only commutation keeps
---     separate freshness evidence for the rebuilt history.
+--     separate freshness evidence for the rebuilt history.  The lift cases
+--     preserve both endpoint Ctx indices and their raw context equalities.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
@@ -23,6 +24,7 @@ open import TyStore using (TyStore)
 import TermCtx as TC
 open TC using (TermCtx)
 open import Consistency using (toRenameᵗ)
+open import Imprecision using (VarImp)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ)
 open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
 open import proof.DGG.notes.probes.TwoCtxWorldInvariantsProbe
@@ -86,6 +88,31 @@ mutual
           (bind-right-rawᶜ₀ W B fresh Γᴿ⁺≡)
           Xᴸ (Fin.suc Xᴿ)
 
+    source-rebase-lift-bothᶜ₀ :
+      ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+        {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+        {Γᴸ⁺ : TermCtx (suc Δᴸ)} {Γᴿ⁺ : TermCtx (suc Δᴿ)}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {v : VarImp}
+      → (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
+      → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
+      → (Γᴿ⁺≡ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
+      → SourceRebasePlanᶜ₀
+          (lift-both-rawᶜ₀ W v Γᴸ⁺≡ Γᴿ⁺≡)
+          (Fin.suc Xᴸ) (Fin.suc Xᴿ)
+
+    source-rebase-lift-leftᶜ₀ :
+      ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+        {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+        {Γᴸ⁺ : TermCtx (suc Δᴸ)}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
+      → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
+      → SourceRebasePlanᶜ₀
+          (lift-left-rawᶜ₀ W Γᴸ⁺≡)
+          (Fin.suc Xᴸ) Xᴿ
+
   rebaseSourceᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
     → SourceRebasePlanᶜ₀ W Xᴸ Xᴿ
     → Cᴸ ⊑ᶜ₀ Cᴿ
@@ -100,6 +127,12 @@ mutual
   rebaseSourceᶜ₀
       (source-rebase-targetᶜ₀ {B = B} plan fresh′ Γᴿ⁺≡) =
     bind-right-rawᶜ₀ (rebaseSourceᶜ₀ plan) B fresh′ Γᴿ⁺≡
+  rebaseSourceᶜ₀
+      (source-rebase-lift-bothᶜ₀ {v = v} plan Γᴸ⁺≡ Γᴿ⁺≡) =
+    lift-both-rawᶜ₀ (rebaseSourceᶜ₀ plan) v Γᴸ⁺≡ Γᴿ⁺≡
+  rebaseSourceᶜ₀
+      (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
+    lift-left-rawᶜ₀ (rebaseSourceᶜ₀ plan) Γᴸ⁺≡
 
 
 rebaseSource-centerᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
@@ -113,6 +146,12 @@ rebaseSource-centerᶜ₀ (source-rebase-skipᶜ₀ plan) =
   cong suc (rebaseSource-centerᶜ₀ plan)
 rebaseSource-centerᶜ₀
     (source-rebase-targetᶜ₀ plan fresh′ Γᴿ⁺≡) =
+  cong suc (rebaseSource-centerᶜ₀ plan)
+rebaseSource-centerᶜ₀
+    (source-rebase-lift-bothᶜ₀ plan Γᴸ⁺≡ Γᴿ⁺≡) =
+  cong suc (rebaseSource-centerᶜ₀ plan)
+rebaseSource-centerᶜ₀
+    (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
   cong suc (rebaseSource-centerᶜ₀ plan)
 
 
@@ -141,6 +180,28 @@ rebaseSource-ηᴸ-offᶜ₀
   trans (cong Fin.suc (rebaseSource-ηᴸ-offᶜ₀ plan Y≠X))
     (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
       (toRenameᵗ (ηᴸᶜ₀ W) _)))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.zero}
+    (source-rebase-lift-bothᶜ₀ plan Γᴸ⁺≡ Γᴿ⁺≡) Y≠X =
+  sym (subst-Fin-zero-sym (rebaseSource-centerᶜ₀ plan))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.suc Yᴸ}
+    (source-rebase-lift-bothᶜ₀ {W = W} plan Γᴸ⁺≡ Γᴿ⁺≡) Y≠X =
+  trans
+    (cong Fin.suc
+      (rebaseSource-ηᴸ-offᶜ₀ plan
+        (λ eq → Y≠X (cong Fin.suc eq))))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴸᶜ₀ W) Yᴸ)))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.zero}
+    (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) Y≠X =
+  sym (subst-Fin-zero-sym (rebaseSource-centerᶜ₀ plan))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.suc Yᴸ}
+    (source-rebase-lift-leftᶜ₀ {W = W} plan Γᴸ⁺≡) Y≠X =
+  trans
+    (cong Fin.suc
+      (rebaseSource-ηᴸ-offᶜ₀ plan
+        (λ eq → Y≠X (cong Fin.suc eq))))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴸᶜ₀ W) Yᴸ)))
 
 
 rebaseSource-ηᴿ-frozenᶜ₀ :
@@ -172,6 +233,20 @@ rebaseSource-ηᴿ-frozenᶜ₀
   trans (cong Fin.suc (rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ))
     (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
       (toRenameᵗ (ηᴿᶜ₀ W) Yᴿ)))
+rebaseSource-ηᴿ-frozenᶜ₀
+    (source-rebase-lift-bothᶜ₀ plan Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero =
+  sym (subst-Fin-zero-sym (rebaseSource-centerᶜ₀ plan))
+rebaseSource-ηᴿ-frozenᶜ₀
+    (source-rebase-lift-bothᶜ₀ {W = W} plan Γᴸ⁺≡ Γᴿ⁺≡)
+    (Fin.suc Yᴿ) =
+  trans (cong Fin.suc (rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴿᶜ₀ W) Yᴿ)))
+rebaseSource-ηᴿ-frozenᶜ₀
+    (source-rebase-lift-leftᶜ₀ {W = W} plan Γᴸ⁺≡) Yᴿ =
+  trans (cong Fin.suc (rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴿᶜ₀ W) Yᴿ)))
 
 
 rebaseSource-pivot-alignedᶜ₀ :
@@ -187,6 +262,12 @@ rebaseSource-pivot-alignedᶜ₀ (source-rebase-skipᶜ₀ plan) =
   cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
 rebaseSource-pivot-alignedᶜ₀
     (source-rebase-targetᶜ₀ plan fresh′ Γᴿ⁺≡) =
+  cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
+rebaseSource-pivot-alignedᶜ₀
+    (source-rebase-lift-bothᶜ₀ plan Γᴸ⁺≡ Γᴿ⁺≡) =
+  cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
+rebaseSource-pivot-alignedᶜ₀
+    (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
   cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
 
 
@@ -217,8 +298,6 @@ sourceRebasePlan-soundᶜ₀ {Cᴸ = Cᴸ} {Cᴿ = Cᴿ}
 -- commutation plan.  Supporting them needs a separate local rewrite (and, for
 -- term binding, transported term-entry imprecision), not another catch-all.
 data UnsupportedSourceRebaseHeadᶜ₀ : Set where
-  under-lift-bothᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
-  under-lift-leftᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
   under-source-allocationᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
   under-paired-bindᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
   under-dynamic-paired-bindᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀

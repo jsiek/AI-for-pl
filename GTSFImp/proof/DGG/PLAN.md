@@ -1196,6 +1196,42 @@ descent, inst inversion, and inst catchup.  There is no remaining provenance
 oracle or missing certificate inside that path; the remaining frontier is
 constructing the five strict cells and the final root assembler.
 
+The strict-cell audit has now shown that the current five abstract surfaces
+are not honest producer interfaces.  Their plan and chain-plan inputs are
+sufficient to assemble the bookkeeping half of `StructuralStrictChild`, but
+they discard the relation-side evidence needed for its semantic half.  The
+checked `StructuralStrictAllocationProducerProbe`,
+`StructuralStrictConversionProducerProbe`, and
+`StructuralStrictAllCastProducerProbe` isolate the exact missing outputs:
+the child endpoint, child relation, and child-target-indexed term provenance.
+The universal-cast cell additionally needs the generated intermediate
+imprecision endpoint, opened-cast classification/provenance, and keep-mapped
+tail chain.  These are producer facts, not consequences of the current
+surface arguments.
+
+For the four allocating/conversion heads, the target bind is `bind (＇ X)`.
+Its new cell is a direct nominal alias, so the direct-★-off-image theorem
+used for `β-inst` does not apply.  Commuting that insertion through an arbitrary
+source rebase is precisely the relation-indexed provenance obligation that
+the old surface erased.  For the Λ head there is a second, independent
+shape bug: the current peel chooses the immediate term
+`V ↑ 〖 zero , ⇑ᵗ (＇ X) ↑ B 〗` as a recursively processed value,
+but for `B = ★` the conversion is an identity reveal and no `Value`
+constructor exists.  The likely value-preserving normalization is to keep
+`V` as the child head and move the generated reveal into the child spine,
+mirroring the existing `structural-target-Λ-value-step`; otherwise the worker
+must expose a genuinely non-value recursive outcome.
+
+NEXT STRICT STEP: replace the five oracle-like cells by relation-side strict
+producers that consume the parent target package and its exact
+`StructuralTermProvenance`, and return a value-anchored child package together
+with the exact child relation/provenance and generated frame evidence.  Do not
+implement proof modules against the current surfaces and do not restore a
+universal insertion provider under a new name.  The Λ alias producer also
+depends on the boundary-scoped one-step alias focus from the two-`Ctx` world
+redesign; the current stable direct-invariant `World` deliberately cannot
+represent that focused name alignment as an ordinary world.
+
 The current full `All.agda` check reaches its first remaining failure at the
 obsolete `TargetBindLift.targetStoreAs = CTX.world ...` definition.  This is
 the already-proved-invalid split-world Λ route, not fallout from the conceal,

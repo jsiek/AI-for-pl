@@ -1,12 +1,11 @@
 module proof.DGG.Inversion.RightInjInversion2Proof where
 
 -- File Charter:
---   * Proves the v2 right-injection inversion statement relative to supplied
---     target-walk and source-star-chain inhabitants.
+--   * Proves the v2 right-injection inversion statement.
 --   * Carries no WFWorld, ParkedWorld, or OpenStrata premise; frozen target
 --     rebases make the remaining seal-chain obstruction impossible.
---   * Depends on the stable SpineValueDef surface, TargetWalkDef, and
---     TargetWalkSupport.
+--   * Depends on the stable SpineValueDef and TargetWalkSupport surfaces plus
+--     direct nominal world alignment.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
@@ -63,8 +62,7 @@ open CTI2 using (_∣_⊢²_⊑_∶_)
 open SVD using
   (SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal;
    sv-reveal-fun; sv-conceal-fun; sv-reveal-all; sv-conceal-all;
-   varv-seal; var-value-view; right-tag-variable-view;
-   variable-obligation-aligns; seal-rebase-target)
+   variable-obligation-aligns)
 open import proof.ImprecisionConsistency using
   (ground-cast-source⊑; source-occurs-target; rename-occurs;
    ext-injective; toRenameᵗ-injective; nonstar-from-≢★; rename-⊑;
@@ -73,20 +71,13 @@ import proof.Imprecision as PI
 open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
-open import proof.DGG.Inversion.TargetWalkDef using
-  (TargetTagSealWalk; TargetSourceStarChain;
-   target-source-star-chain-final; target-source-star-chain-residual;
-   target-source-star-chain-paired; target-source-star-chain-payload)
 open import proof.DGG.Inversion.TargetWalkSupport
 
 ------------------------------------------------------------------------
 -- Higher-order right-injection inversion for spine values
 ------------------------------------------------------------------------
 
-module _
-    (target-tag-seal-walk : TargetTagSealWalk)
-    (target-source-star-chain : TargetSourceStarChain)
-    where
+module _ where
 
   right-var-obligation-nonstar : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {R : Ty Δᴸ} {Y : TyVar Δᴿ}
@@ -547,17 +538,12 @@ module _
       | ()
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = R} sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ Xᴸ∈) prem q₀) q
-      with seal-rebase-target (CTX.forgetTagRebaseᴸ rb) q
-         | right-tag-variable-view vN prem
-  right-inj-inversion² {W = W} {gH = ＇ Y}
-      (sv-seal {X = Xᴸ} {R = R} sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ Xᴸ∈) prem q₀) q
-      | ra′ | varv-seal {W = U} {R = S} vU Y∈ refl =
-    target-tag-seal-walk sv vU mono ra′ sc Xᴸ∈
-      (rebase-target-membership ra′ Y∈) prem
+      (CTI2.conceal⊑² mono
+        (CTX.tag-rebase-onlyᴸ ts disaligned represented) sc
+        (Conv.⊢↓-sealˣ Xᴸ∈) prem q₀) q =
+    ⊥-elim
+      (disaligned Y
+        (sym (variable-obligation-aligns {W = W} {X = Xᴸ} {Y = Y} q)))
 
   -- Type applications are not spine values.
   right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q

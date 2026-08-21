@@ -1270,13 +1270,6 @@ module _ where
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
         nonstar-∀ prem)
-  source-spine-strip-worker-seal : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-seal (sv-seal sv) vU mono rb sc
-      source∈ target∈ D =
-    source-spine-strip-worker-seal-D D sv vU mono rb sc
-      source∈ target∈
-
   source-spine-strip-worker-reveal-fun : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
       {γ : CtxImp W} {γ′ : CtxImp W′}
@@ -1456,8 +1449,8 @@ module _ where
       source∈ target∈ D
   source-spine-strip-worker (sv-seal sv) vU mono rb sc source∈
       target∈ D =
-    source-spine-strip-worker-seal (sv-seal sv) vU mono rb sc source∈
-      target∈ D
+    source-spine-strip-worker-seal-D D sv vU mono rb sc source∈
+      target∈
   source-spine-strip-worker (sv-reveal-fun sv) vU mono rb sc
       source∈ target∈ D =
     source-spine-strip-worker-reveal-fun sv vU mono

@@ -64,13 +64,16 @@ leaves.
 `TwoCtxWorldEvolutionProbe` checks constructor-form endpoint evolution for
 trusted keep/bind store changes.  Executable store and term-context application
 appear only in projection theorems, never in world-evolution indices.
+`TwoCtxWorldEvolutionProducerProbe` records the exact relational allocation
+evidence that bare trusted store changes omit.
 `TwoCtxSourceRebaseProducerProbe` checks the three operational request cases:
 no pivot, an unmatched source pivot, and a paired structural move.
 `TwoCtxFreshBehindPlanProbe` checks source lift behind a target-star prefix and
 keeps `β := α` in the boundary-scoped edge layer.
 `TwoCtxEdgeScopedCTIProbe` checks ordinary variable/lambda/application rules,
 exact target mode transitions, current-mode-unoccupied source conceal, and
-term-independent paired reveal/conceal.
+term-independent paired reveal/conceal.  It also checks constants, source
+blame, all ordinary cast polarities, and structural function conversions.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -665,13 +668,19 @@ Before this becomes a live design, the remaining probes must establish:
   entries and a variable leaf.  The checked scoped CTI fragment has ordinary
   variable, lambda, and application rules, exact target reveal/conceal push and
   pop, source conceal guarded by current-mode pivot unoccupancy and direct
-  membership, and paired reveal/conceal with no term predicate.  Remaining
-  ordinary syntax and composite conversion forms must still be integrated.
+  membership, and paired reveal/conceal with no term predicate.  Constants,
+  source blame, all three ordinary cast polarities, and structural function
+  conversions also check.  Universal abstraction/application and universal
+  conversions require a global CTI family indexed by liftable
+  endpoint/focus/edge state, plus scoped-type substitution preservation.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.  The checked
   `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,
   paired-precise, and paired-dynamic allocation, derives direct invariants,
-  and relates its endpoints to trusted `applyStore` only afterward.
+  and relates its endpoints to trusted `applyStore` only afterward.  The
+  checked producer owns the facts bare `StoreChange` omits: right-only
+  freshness, paired direct type imprecision, and precise/dynamic allocation
+  classification with non-`★` source evidence.
 - Target stripping must retain source-rebase provenance.  The checked lower
   operation has exactly the identity and lifted-child cases, reconstructs the
   lifted result definitionally, and derives invariants from raw history.

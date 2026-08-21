@@ -273,8 +273,10 @@ producers or integrations:
    a real variable leaf.  The exact edge is closed under binder prefixes and
    the lifted edge-indexed mode retains scoped entries and a variable leaf.
    A scoped CTI fragment checks exact target reveal/conceal, current-mode-open
-   source conceal, and term-independent paired reveal/conceal.  The complete
-   syntax/conversion family is not yet connected to the live DGG.
+   source conceal, term-independent paired reveal/conceal, constants, blame,
+   ordinary casts, and structural function conversions.  Universal recursion
+   needs a globally indexed liftable family and scoped substitution; the
+   complete family is not yet connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.  The checked
    plan handles a source lift followed by any target-star prefix and derives
@@ -284,7 +286,9 @@ producers or integrations:
    constructors express the resulting contexts.  The checked one-step relation
    covers keep and every permitted left/right allocation combination without
    defined functions in indices; the remaining simulation obligation is to
-   produce those cases from paired trusted reduction steps.
+   produce those cases from paired trusted reduction steps.  The checked
+   producer request records right-only freshness, paired type imprecision, and
+   precise/dynamic allocation classification explicitly.
 
 These are theorem and operational-interface gaps.  Treating any of them as an
 arbitrary invariant-accepting constructor would recreate the live escape

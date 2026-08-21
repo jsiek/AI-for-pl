@@ -15,17 +15,22 @@ module proof.DGG.notes.probes.TwoCtxEdgeScopedCTIProbe where
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (just)
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types using (Ty; TyVar; ★; ＇_; ‵_; _⇒_; renameᵗ)
 open import TyStore using (_∋_⦂_; Z∋; S-bind∋)
-import TermCtx as TC
-open import Consistency using (toRenameᵗ)
+open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 import Imprecision as I
-open import Conversion using (unseal; seal)
+open import Conversion using
+  (Conv↑; Conv↓; unseal; seal; _↦↑_; _↦↓_;
+   _⊢↑[_]_; _⊢↓[_]_; ⊢↑-unsealˣ; ⊢↓-sealˣ; ⊢↑-⇒ˣ; ⊢↓-⇒ˣ;
+   join-both)
+open import Primitives using (Const; constTy)
 open import CastTerms using
-  (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ƛ_; _·_; _↑_; _↓_)
+  (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ƛ_; _·_; $; _⟨_⟩; _↑_;
+   _↓_; blame; _⊢_⦂_)
 open import proof.DGG.notes.probes.TwoCtxWorldSkeletonProbe
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
@@ -194,23 +199,77 @@ module EdgeScopedCTI {Cᴸ C C⁺} {W : Cᴸ ⊑ᶜ₀ C}
       → ScopedCTI m ok S M M′ pA
       → ScopedCTI m ok S (L · M) (L′ · M′) pB
 
-    target-reveal : ∀ {m ok Gammaᴸ Gammaᴿ M M′ Y R q}
+    constant⊑constant : ∀ {m ok Gammaᴸ Gammaᴿ}
         {S : ScopedWorld
           ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
           ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
-      → (boundary : ExactTargetBoundary m Y R q)
-      → ScopedCTI (push-focus m Y) (push-valid ok boundary)
-          S M M′ focused-var
-      → ScopedCTI m ok S M (M′ ↑ unseal Y R) q
+      → (kappa : Const)
+      → (p : ScopedType m (constTy kappa) (constTy kappa))
+      → ScopedCTI m ok S ($ kappa) ($ kappa) p
 
-    target-conceal : ∀ {m ok Gammaᴸ Gammaᴿ M M′ Y R q}
+    blame⊑ : ∀ {m ok Gammaᴸ Gammaᴿ M′ A B}
         {S : ScopedWorld
           ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
           ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
-      → (boundary : ExactTargetBoundary m Y R q)
-      → ScopedCTI m ok S M M′ q
+      → ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩ ⊢ M′ ⦂ B
+      → (p : ScopedType m A B)
+      → ScopedCTI m ok S blame M′ p
+
+    cast⊑cast : ∀
+        {m ok Gammaᴸ Gammaᴿ M M′ A A′ B B′}
+        {S : ScopedWorld
+          ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+          ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+        {p : ScopedType m A A′} {q : ScopedType m B B′}
+        {ν : Env∼ (Δᵉ Cᴸ)} {ν′ : Env∼ (Δᵉ C⁺)}
+      → (c : ν ⊢ A ∼ B)
+      → (c′ : ν′ ⊢ A′ ∼ B′)
+      → ScopedCTI m ok S M M′ p
+      → ScopedCTI m ok S (M ⟨ c ⟩) (M′ ⟨ c′ ⟩) q
+
+    cast⊑ : ∀ {m ok Gammaᴸ Gammaᴿ M M′ A A′ B}
+        {S : ScopedWorld
+          ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+          ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+        {p : ScopedType m A B} {q : ScopedType m A′ B}
+        {ν : Env∼ (Δᵉ Cᴸ)}
+      → (c : ν ⊢ A ∼ A′)
+      → ScopedCTI m ok S M M′ p
+      → ScopedCTI m ok S (M ⟨ c ⟩) M′ q
+
+    ⊑cast : ∀ {m ok Gammaᴸ Gammaᴿ M M′ A B B′}
+        {S : ScopedWorld
+          ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+          ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+        {p : ScopedType m A B} {q : ScopedType m A B′}
+        {ν′ : Env∼ (Δᵉ C⁺)}
+      → (c′ : ν′ ⊢ B ∼ B′)
+      → ScopedCTI m ok S M M′ p
+      → ScopedCTI m ok S M (M′ ⟨ c′ ⟩) q
+
+    target-reveal : ∀
+        {m ok Gammaᴸ Gammaᴿ M M′ Y R A B B′ edgeq p q}
+        {S : ScopedWorld
+          ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+          ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+        {c : Conv↑ (Δᵉ C⁺) B B′}
+      → (boundary : ExactTargetBoundary m Y R edgeq)
+      → Σᵉ C⁺ ⊢↑[ just Y ] c
       → ScopedCTI (push-focus m Y) (push-valid ok boundary)
-          S M (M′ ↓ seal Y R) focused-var
+          S M M′ {A = A} {B = B} p
+      → ScopedCTI m ok S M (M′ ↑ c) {A = A} {B = B′} q
+
+    target-conceal : ∀
+        {m ok Gammaᴸ Gammaᴿ M M′ Y R A B B′ edgeq p q}
+        {S : ScopedWorld
+          ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+          ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+        {c : Conv↓ (Δᵉ C⁺) B B′}
+      → (boundary : ExactTargetBoundary m Y R edgeq)
+      → Σᵉ C⁺ ⊢↓[ just Y ] c
+      → ScopedCTI m ok S M M′ {A = A} {B = B} q
+      → ScopedCTI (push-focus m Y) (push-valid ok boundary)
+          S M (M′ ↓ c) {A = A} {B = B′} p
 
     source-conceal : ∀
         {m ok Gammaᴸ Gammaᴿ M M′ Z R B}
@@ -314,14 +373,16 @@ beta-variable = var⊑var beta-entry
 beta-reveal : ScopedCTI alpha-mode alpha-valid beta-scope
   (` Nat.zero) ((` Nat.zero) ↑ unseal target-beta (＇ target-alpha⁺))
   alpha-type
-beta-reveal = target-reveal beta-boundary beta-variable
+beta-reveal = target-reveal beta-boundary
+  (⊢↑-unsealˣ target-beta-member) beta-variable
 
 beta-alpha-reveals : ScopedCTI stable stable-valid beta-scope
   (` Nat.zero)
   (((` Nat.zero) ↑ unseal target-beta (＇ target-alpha⁺))
     ↑ unseal target-alpha⁺ ★)
   stable-X-star
-beta-alpha-reveals = target-reveal alpha-boundary beta-reveal
+beta-alpha-reveals = target-reveal alpha-boundary
+  (⊢↑-unsealˣ target-alpha-member) beta-reveal
 
 alpha-conceal-after-reveals : ScopedCTI alpha-mode alpha-valid beta-scope
   (` Nat.zero)
@@ -329,7 +390,8 @@ alpha-conceal-after-reveals : ScopedCTI alpha-mode alpha-valid beta-scope
     ↑ unseal target-alpha⁺ ★) ↓ seal target-alpha⁺ ★)
   alpha-type
 alpha-conceal-after-reveals =
-  target-conceal alpha-boundary beta-alpha-reveals
+  target-conceal alpha-boundary
+    (⊢↓-sealˣ target-alpha-member) beta-alpha-reveals
 
 beta-lambda-body : ScopedCTI beta-mode beta-valid beta-scope
   (` Nat.zero) (` Nat.zero) beta-type
@@ -338,3 +400,57 @@ beta-lambda-body = var⊑var beta-entry
 beta-lambda : ScopedCTI beta-mode beta-valid scoped-root
   (ƛ (` Nat.zero)) (ƛ (` Nat.zero)) (scoped-fun beta-type beta-type)
 beta-lambda = lambda⊑lambda {S = scoped-root} beta-lambda-body
+
+beta-function-reveal-conversion : Conv↑ (Δᵉ target-alpha-beta-context)
+  ((＇ target-beta) ⇒ (＇ target-beta))
+  ((＇ target-alpha⁺) ⇒ (＇ target-alpha⁺))
+beta-function-reveal-conversion =
+  seal target-beta (＇ target-alpha⁺) ↦↑
+    unseal target-beta (＇ target-alpha⁺)
+
+beta-function-reveal-typed :
+  Σᵉ target-alpha-beta-context ⊢↑[ just target-beta ]
+    beta-function-reveal-conversion
+beta-function-reveal-typed = ⊢↑-⇒ˣ join-both
+  (⊢↓-sealˣ target-beta-member) (⊢↑-unsealˣ target-beta-member)
+
+beta-function-reveal : ScopedCTI alpha-mode alpha-valid scoped-root
+  (ƛ (` Nat.zero))
+  ((ƛ (` Nat.zero)) ↑ beta-function-reveal-conversion)
+  (scoped-fun alpha-type alpha-type)
+beta-function-reveal = target-reveal beta-boundary
+  beta-function-reveal-typed beta-lambda
+
+beta-function-conceal-conversion : Conv↓ (Δᵉ target-alpha-beta-context)
+  ((＇ target-alpha⁺) ⇒ (＇ target-alpha⁺))
+  ((＇ target-beta) ⇒ (＇ target-beta))
+beta-function-conceal-conversion =
+  unseal target-beta (＇ target-alpha⁺) ↦↓
+    seal target-beta (＇ target-alpha⁺)
+
+beta-function-conceal-typed :
+  Σᵉ target-alpha-beta-context ⊢↓[ just target-beta ]
+    beta-function-conceal-conversion
+beta-function-conceal-typed = ⊢↓-⇒ˣ join-both
+  (⊢↑-unsealˣ target-beta-member) (⊢↓-sealˣ target-beta-member)
+
+beta-function-reveal-conceal :
+  ScopedCTI beta-mode beta-valid scoped-root
+    (ƛ (` Nat.zero))
+    (((ƛ (` Nat.zero)) ↑ beta-function-reveal-conversion)
+      ↓ beta-function-conceal-conversion)
+    (scoped-fun beta-type beta-type)
+beta-function-reveal-conceal = target-conceal beta-boundary
+  beta-function-conceal-typed beta-function-reveal
+
+
+-- Checked stopping boundary: universal types and terms cannot be added to
+-- this fixed-parameter module without replacing recursive CTI by an oracle.
+-- A genuine universal child changes all of Cᴸ, C, C⁺, W, name-focus, edge,
+-- Mode, ValidMode, and ScopedWorld under one lift prefix.  Likewise, a
+-- universal target conversion needs TargetTypeView to recurse at those lifted
+-- indices.  The next compositional surface must therefore make W, focus, and
+-- edge indices of one global CTI family and define structural lift operations
+-- for modes, validity proofs, scoped types, and heterogeneous term bindings.
+-- Type application then additionally needs substitution preservation for that
+-- lifted scoped-type relation.  No hollow universal constructor is added here.

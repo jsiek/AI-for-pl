@@ -1230,6 +1230,13 @@ corresponding term-context action occur only in projection theorems.  The next
 operational obligation is to produce these checked cases from a pair of
 related trusted reduction steps.
 
+`TwoCtxWorldEvolutionProducerProbe` checks that producer boundary.  Bare
+trusted `StoreChange` indices determine only keep versus `bind A`; the
+constructor-form request additionally owns right-only `RightBindFreshᶜ₀`, the
+paired direct type-imprecision derivation, and the precise/dynamic choice with
+its non-`★` source evidence.  From those exact facts it computes both endpoint
+contexts and the result world and returns the checked `WorldEvolutionᶜ₀`.
+
 `TwoCtxSourceRebaseProducerProbe` checks the operational rebase request.  It
 has exactly no-pivot, unmatched-source, and paired-plan constructors.  The
 unmatched case keeps the world and owns the dynamic mark, target disalignment,
@@ -1254,6 +1261,14 @@ source conceal requires current-mode pivot unoccupancy and direct membership;
 paired reveal/conceal require only the two direct memberships and indexed type
 relations.  No rule inspects either child term.  The `β := α := ★` reveal trace
 and a real scoped `λx.x` derivation both check.
+The same probe now covers constants, source blame, paired/left/right ordinary
+casts, general pivot-typed target reveal/conceal, and structural function
+reveal/conceal.  Universal abstraction/application is the first genuine
+indexing boundary: recursive premises simultaneously lift both endpoints,
+stable world, focus, exact edge, mode validity, and heterogeneous bindings.
+The next surface must therefore be one global indexed CTI family, together
+with scoped-type substitution preservation, rather than hollow local universal
+constructors.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

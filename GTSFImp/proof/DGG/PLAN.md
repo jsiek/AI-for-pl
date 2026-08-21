@@ -1283,9 +1283,13 @@ are indices; all of those states lift structurally.  Recursive `scoped-allᵍ`
 and `all⊑allᵍ` use `liftBothᶜ₀`, and type application checks with an explicit
 substituted-result relation.  Exact target boundaries accept arbitrary trusted
 conversion typing, including the composite strict-`Λ` function conversion.
-The first remaining lift is an ambient binding whose type is already
-universal: inserting the new binder behind that existing body binder requires
-an arbitrary-depth prefix insertion/exchange operation, not a head shift.
+The structural prefix plan now inserts behind arbitrary existing type binders
+and transports the full runtime state, mode, central imprecision, recursively
+nested scoped types, heterogeneous term worlds, and deep entries.  The
+remaining local cleanup is to make `all⊑allᵍ` consume that general plan and
+delete the superseded atomic lift premise.  The checked
+`TwoCtxGlobalIndexedCTITypingProbe` proves both endpoint typings for every term
+constructor in the current global fragment.
 
 `TwoCtxStrictLambdaProducerProbe` checks the relation-side strict-`Λ` producer
 through its complete pending spine.  Exact `α := ★` and `β := α` memberships,
@@ -1296,6 +1300,23 @@ term `replace-zero-open` transport frame, and the mapped direct `α := ★`
 reveal, ending at `X⇒X ⊑ ★⇒★`.  The next substantive producer is the live
 strict-child package: endpoint evidence, child-target-indexed
 `StructuralTermProvenance`, `TargetFrameAbsorptionChain`, and `SpineTypedʷ`.
+
+`TwoCtxStrictLambdaPackagingProbe` checks that the latter bookkeeping is no
+longer a gap.  From the live child endpoint, child relation, and exact
+child-target-indexed provenance, it assembles the child value, post-plan,
+chain-plan, full frame-absorption chain, spine typing, and
+`StructuralStrictChild`.  The remaining missing producer is the structural
+correspondence from the two-`Ctx` relation endpoint into the live CTI index;
+do not fabricate an old `World` or reintroduce alias resolution.
+
+`TwoCtxSimulationResultProbe` checks the final multi-step result surface.  Its
+final world relates the actual endpoint `Ctx` values, retains both independent
+store-change sequences and `MultiWorldEvolutionᶜ₀`, derives both final endpoint
+typings, and exposes executable store/context/term projections.  It needs no
+`SameRuntime` or `SameCtx`.  Trusted preservation is currently closed-context
+only; `OpenContextPreservationBoundaryProbe` shows that a single open one-step
+preservation theorem would derive the generalized multi-step and both open
+endpoint typing theorems.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

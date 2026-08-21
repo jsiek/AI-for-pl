@@ -276,9 +276,12 @@ producers or integrations:
    source conceal, term-independent paired reveal/conceal, constants, blame,
    ordinary casts, and structural function conversions.  Universal recursion
    now checks in a globally indexed liftable family, including type application
-   with an explicit substituted-result relation.  Arbitrary-depth prefix
-   insertion for already-universal ambient bindings remains before the complete
-   family can be connected to the live DGG.
+   with an explicit substituted-result relation.  Its structural prefix plan
+   now transports runtime state, modes, central imprecision, recursively nested
+   scoped types, heterogeneous term worlds, and deep entries at arbitrary
+   binder depth.  Endpoint typing is checked directly for the current global
+   relation fragment.  Connection to the live DGG remains a migration step,
+   not a missing prefix operation.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.  The checked
    plan handles a source lift followed by any target-star prefix and derives
@@ -293,6 +296,11 @@ producers or integrations:
    precise/dynamic allocation classification explicitly.  Its checked
    multi-step closure permits unequal source/target trace lengths by composing
    unilateral and paired steps directly, never by inventing `keep` steps.
+   The checked final simulation package indexes its relation by the evolved
+   endpoint contexts and derives both final typings plus store/context/term
+   projections without `SameRuntime` or `SameCtx`.  Trusted preservation is
+   closed-context only; one open one-step preservation theorem is the exact
+   additional premise needed for open endpoint contexts.
 
 These are theorem and operational-interface gaps.  Treating any of them as an
 arbitrary invariant-accepting constructor would recreate the live escape

@@ -78,12 +78,23 @@ exact target mode transitions, current-mode-unoccupied source conceal, and
 term-independent paired reveal/conceal.  It also checks constants, source
 blame, all ordinary cast polarities, and structural function conversions.
 `TwoCtxStrictLambdaProducerProbe` constructs the value-ready strict-`Λ` body
-relation and exact reveal-first spine in this setting, then isolates the first
-missing composite target-boundary rule.
+relation and the complete reveal-first spine in this setting: the composite
+`β` function reveal, term-preserving type transport, and mapped `α` reveal.
 `TwoCtxGlobalIndexedCTIProbe` makes the full world/focus/edge/mode state an
 index, checks recursive universal abstraction and type application under
 `liftBothᶜ₀`, and admits exact target boundaries with arbitrary trusted
 conversion typing, including the strict-`Λ` composite function conversion.
+Its structural prefix plan now transports the runtime state, modes, scoped
+types, heterogeneous term worlds, and term entries at arbitrary binder depth.
+`TwoCtxGlobalIndexedCTITypingProbe` proves endpoint typing directly for the
+resulting term relation.
+`TwoCtxStrictLambdaPackagingProbe` assembles every bookkeeping field of the
+live strict child once supplied its endpoint, relation, and exact target-plan
+provenance; it isolates the missing migration bridge rather than constructing
+an old `World`.
+`TwoCtxSimulationResultProbe` checks a final-endpoint simulation package over
+the multi-world evolution, deriving both endpoint typings and all executable
+store, context, and term projections without `SameRuntime` or `SameCtx`.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -681,11 +692,13 @@ Before this becomes a live design, the remaining probes must establish:
   membership, and paired reveal/conceal with no term predicate.  Constants,
   source blame, all three ordinary cast polarities, and structural function
   conversions also check.  Universal abstraction/application and universal
-  conversions require a global CTI family indexed by liftable
-  endpoint/focus/edge state.  That global family now checks recursive
-  universal abstraction and type application with an explicit substituted
-  result relation.  Its next lift obligation is arbitrary-depth prefix
-  insertion for ambient bindings whose types already contain universal bodies.
+  conversions use a global CTI family indexed by liftable endpoint/focus/edge
+  state.  That family checks recursive universal abstraction and type
+  application with an explicit substituted result relation.  A structural
+  prefix plan transports central imprecision, modes, scoped types,
+  heterogeneous term worlds, and entries at arbitrary binder depth; the
+  remaining local cleanup is to use that plan in the universal constructor and
+  delete its older atomic lift premise.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.  The checked
   `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,
@@ -697,6 +710,12 @@ Before this becomes a live design, the remaining probes must establish:
   The checked multi-step closure schedules source, target, and paired steps
   separately, retaining each one-step witness and intermediate world.  Final
   store and term projections agree with trusted `applyStores` and `applyTerms`.
+  A checked simulation-result surface indexes the final terms and relation by
+  those evolved endpoint contexts, derives both endpoint typings, and exposes
+  all executable projections without separate runtime/context equalities.
+  Trusted preservation is currently closed-context only; the checked
+  `OpenContextPreservationBoundaryProbe` shows that one open one-step theorem
+  suffices to derive open multi-step and both endpoint typing results.
 - Target stripping must retain source-rebase provenance.  The checked lower
   operation has exactly the identity and lifted-child cases, reconstructs the
   lifted result definitionally, and derives invariants from raw history.
@@ -712,6 +731,9 @@ Before this becomes a live design, the remaining probes must establish:
   entry, and value witnesses.  The checked global boundary then consumes the
   generated composite `β` function reveal, the term-preserving
   `replace-zero-open` transport frame, and the mapped direct `α := ★` reveal.
-  The full relation spine ends at `X⇒X ⊑ ★⇒★`.  The next obligation is packaging
-  this result as the live strict child with endpoint evidence, exact term
-  provenance, frame absorption, and spine typing.
+  The full relation spine ends at `X⇒X ⊑ ★⇒★`.  Given a live child endpoint,
+  relation, and child-target-indexed provenance, the checked packaging theorem
+  constructs value, post-plan, chain-plan, frame absorption, spine typing, and
+  the complete live strict child.  The remaining obligation is the structural
+  migration bridge from the two-`Ctx` endpoint/relation to the live CTI index;
+  it must not fabricate an old `World` or resolve the alias.

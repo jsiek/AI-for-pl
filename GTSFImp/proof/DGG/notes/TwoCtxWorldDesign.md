@@ -64,6 +64,13 @@ leaves.
 `TwoCtxWorldEvolutionProbe` checks constructor-form endpoint evolution for
 trusted keep/bind store changes.  Executable store and term-context application
 appear only in projection theorems, never in world-evolution indices.
+`TwoCtxSourceRebaseProducerProbe` checks the three operational request cases:
+no pivot, an unmatched source pivot, and a paired structural move.
+`TwoCtxFreshBehindPlanProbe` checks source lift behind a target-star prefix and
+keeps `β := α` in the boundary-scoped edge layer.
+`TwoCtxEdgeScopedCTIProbe` checks ordinary variable/lambda/application rules,
+exact target mode transitions, current-mode-unoccupied source conceal, and
+term-independent paired reveal/conceal.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -628,8 +635,11 @@ Before this becomes a live design, the remaining probes must establish:
 - Checked source rebase is implemented as a function over an explicit plan.
   Its graph preserves the hidden center and freezes every target embedding.
   The identity and moving base cases and recursion through every raw skeleton
-  constructor check.  A separate producer theorem must still show when a
-  requested operational pivot move admits such a plan.
+  constructor check.  The checked operational request has exactly no-pivot,
+  unmatched-source, and paired-plan cases.  Its nontrivial cases require direct
+  lookup-entry imprecision; the live resolver-based rebase premise cannot
+  supply this.  Paired moves also retain the structural plan rather than trying
+  to reconstruct it from extensional equalities.
 - Checked center renaming is implemented over an explicit structural plan.
   It covers identity, skipped-center insertion, and recursion through every
   raw skeleton constructor while fixing endpoint `Ctx` indices and proving
@@ -652,8 +662,11 @@ Before this becomes a live design, the remaining probes must establish:
   concrete two-boundary fixture check.  Universal lifting now works for one
   structural exact alias edge beneath a binder prefix: the edge shifts rather
   than being reallocated at the head, and the focused mode retains real term
-  entries and a variable leaf.  The full live reveal/conceal constructor family
-  remains open.
+  entries and a variable leaf.  The checked scoped CTI fragment has ordinary
+  variable, lambda, and application rules, exact target reveal/conceal push and
+  pop, source conceal guarded by current-mode pivot unoccupancy and direct
+  membership, and paired reveal/conceal with no term predicate.  Remaining
+  ordinary syntax and composite conversion forms must still be integrated.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.  The checked
   `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,
@@ -664,3 +677,8 @@ Before this becomes a live design, the remaining probes must establish:
   lifted result definitionally, and derives invariants from raw history.
   Extensional center/embedding/mark equalities alone cannot distinguish
   commuting `lift-left` and `bind-term` histories.
+- Fresh-behind is a structural plan consisting of a source lift and recursion
+  through a target-star prefix.  Center permutation, embeddings, marks, type
+  imprecision, freshness, and invariants are checked.  A following alias is an
+  exact boundary edge, not another history commutation; allowing raw alias
+  heads would require additional noncollision provenance.

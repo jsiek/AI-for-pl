@@ -263,15 +263,23 @@ producers or integrations:
 3. Delete honestification.  The checked elimination theorem reuses the same
    raw world and its direct invariants; no decay rewrite remains.
 4. The operational producer for `SourceRebasePlanᶜ₀`, supplying rebuilt
-   freshness and type-imprecision premises from direct caller facts.
+   freshness and type-imprecision premises from direct caller facts.  The
+   checked request now classifies no-pivot, unmatched-source, and paired-plan
+   cases.  The live rebase boundary must replace resolved representation
+   evidence with direct lookup-entry imprecision and retain the plan.
 5. A live boundary-focus layer.  The probes now check exact alias allocation,
    stacked `TargetMode` validity, a generic stable/boundary world parameter,
    arbitrary repeated scoped term binding, exact endpoint lookup at depth, and
    a real variable leaf.  The exact edge is closed under binder prefixes and
    the lifted edge-indexed mode retains scoped entries and a variable leaf.
-   The complete reveal/conceal family is not yet connected to the live DGG.
+   A scoped CTI fragment checks exact target reveal/conceal, current-mode-open
+   source conceal, and term-independent paired reveal/conceal.  The complete
+   syntax/conversion family is not yet connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
-   merge uses item 5 instead; it must not mutate the stable world.
+   merge uses item 5 instead; it must not mutate the stable world.  The checked
+   plan handles a source lift followed by any target-star prefix and derives
+   all geometry, imprecision, freshness, and invariants.  Raw alias heads are
+   intentionally excluded because they require new noncollision provenance.
 7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind
    constructors express the resulting contexts.  The checked one-step relation
    covers keep and every permitted left/right allocation combination without

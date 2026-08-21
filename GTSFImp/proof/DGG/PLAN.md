@@ -1230,6 +1230,31 @@ corresponding term-context action occur only in projection theorems.  The next
 operational obligation is to produce these checked cases from a pair of
 related trusted reduction steps.
 
+`TwoCtxSourceRebaseProducerProbe` checks the operational rebase request.  It
+has exactly no-pivot, unmatched-source, and paired-plan constructors.  The
+unmatched case keeps the world and owns the dynamic mark, target disalignment,
+and direct source-entry relation to `★`; the paired case owns both the raw
+history plan and the direct final pivot-entry relation.  This exposes the live
+API defect precisely: `RebaseAt`/`TagRebaseAt` currently retain resolved
+representation evidence and extensional geometry, neither of which can
+recover the checked direct fact or structural plan.
+
+`TwoCtxFreshBehindPlanProbe` checks the structural replacement for the
+fresh-behind smart-comma world.  It lifts the source once and commutes through
+an arbitrary target-star prefix, deriving the center permutation, embeddings,
+marks, type-imprecision transport, freshness, and direct invariants.  A
+following `β := α` is represented by the exact boundary edge; commuting a raw
+alias head would require an additional `RightBindFreshᶜ₀` noncollision fact and
+is not admitted.
+
+`TwoCtxEdgeScopedCTIProbe` checks the first compositional term-imprecision
+surface over that edge-indexed mode.  Ordinary variable/lambda/application
+rules preserve the mode; exact target reveal/conceal push and pop it; one-sided
+source conceal requires current-mode pivot unoccupancy and direct membership;
+paired reveal/conceal require only the two direct memberships and indexed type
+relations.  No rule inspects either child term.  The `β := α := ★` reveal trace
+and a real scoped `λx.x` derivation both check.
+
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
 reworked fixtures check with `agda --safe --no-caching`.  The occupied

@@ -290,7 +290,9 @@ producers or integrations:
    defined functions in indices; the remaining simulation obligation is to
    produce those cases from paired trusted reduction steps.  The checked
    producer request records right-only freshness, paired type imprecision, and
-   precise/dynamic allocation classification explicitly.
+   precise/dynamic allocation classification explicitly.  Its checked
+   multi-step closure permits unequal source/target trace lengths by composing
+   unilateral and paired steps directly, never by inventing `keep` steps.
 
 These are theorem and operational-interface gaps.  Treating any of them as an
 arbitrary invariant-accepting constructor would recreate the live escape

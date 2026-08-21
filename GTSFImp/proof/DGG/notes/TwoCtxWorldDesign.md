@@ -66,6 +66,9 @@ trusted keep/bind store changes.  Executable store and term-context application
 appear only in projection theorems, never in world-evolution indices.
 `TwoCtxWorldEvolutionProducerProbe` records the exact relational allocation
 evidence that bare trusted store changes omit.
+`TwoCtxWorldEvolutionSequenceProbe` composes unilateral and paired steps with
+explicit intermediate worlds and checks trusted multi-store, term-context, and
+term projections without synthetic synchronization steps.
 `TwoCtxSourceRebaseProducerProbe` checks the three operational request cases:
 no pivot, an unmatched source pivot, and a paired structural move.
 `TwoCtxFreshBehindPlanProbe` checks source lift behind a target-star prefix and
@@ -691,6 +694,9 @@ Before this becomes a live design, the remaining probes must establish:
   checked producer owns the facts bare `StoreChange` omits: right-only
   freshness, paired direct type imprecision, and precise/dynamic allocation
   classification with non-`★` source evidence.
+  The checked multi-step closure schedules source, target, and paired steps
+  separately, retaining each one-step witness and intermediate world.  Final
+  store and term projections agree with trusted `applyStores` and `applyTerms`.
 - Target stripping must retain source-rebase provenance.  The checked lower
   operation has exactly the identity and lifted-child cases, reconstructs the
   lifted result definitionally, and derives invariants from raw history.

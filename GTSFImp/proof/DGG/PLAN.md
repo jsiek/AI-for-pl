@@ -1237,6 +1237,13 @@ paired direct type-imprecision derivation, and the precise/dynamic choice with
 its non-`★` source evidence.  From those exact facts it computes both endpoint
 contexts and the result world and returns the checked `WorldEvolutionᶜ₀`.
 
+`TwoCtxWorldEvolutionSequenceProbe` checks the multi-step closure.  Source-only,
+target-only, and paired steps each retain their one-step world-evolution witness
+and explicit intermediate world, so unequal trace lengths need no synthetic
+`keep`.  Induction proves final source/target stores equal trusted
+`applyStores`, final terms equal `applyTerms`, and term contexts equal the
+corresponding structural repeated shift.
+
 `TwoCtxSourceRebaseProducerProbe` checks the operational rebase request.  It
 has exactly no-pivot, unmatched-source, and paired-plan constructors.  The
 unmatched case keeps the world and owns the dynamic mark, target disalignment,

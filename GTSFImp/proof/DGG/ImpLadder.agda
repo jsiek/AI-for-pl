@@ -183,7 +183,7 @@ showTerm termDepth tyDepth tyName xName (M ↓ c) =
 showTerm termDepth tyDepth tyName xName blame = "blame"
 
 ------------------------------------------------------------------------
--- Center-comparison costs and occupancy premises
+-- Center-comparison costs
 ------------------------------------------------------------------------
 
 private
@@ -223,30 +223,6 @@ showCost : ∀ {Δ : TyCtx} {μ : I.ImpEnv Δ} {A B : Ty Δ}
   → μ I.⊢ A ⊑ B
   → String
 showCost = showCostAt
-
-sourceConcealCost : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTX.World Δᴸ Δᴿ Δ} {M A A′ c Xᴿ? M′}
-  → CTX.SourceConcealOK W M {A} {A′} c Xᴿ? M′
-  → String
-sourceConcealCost (CTX.seal-nonstar-unmatched-ok Ans no-target) =
-  "NoTargetOccupantAtSource"
-sourceConcealCost (CTX.seal-nonstar-name-protected-ok Ans aligned) =
-  "matched-seal-name-partner"
-sourceConcealCost CTX.fun-conceal-ok = ""
-sourceConcealCost CTX.all-conceal-ok = ""
-sourceConcealCost CTX.id-conceal-ok = ""
-
-matchedConcealCost : ∀ {Δᴸ Δᴿ Δ}
-    {W : CTX.World Δᴸ Δᴿ Δ} {M A A′ c Xᴿ? M′}
-  → CTX.MatchedConcealPartnerOK W M {A} {A′} c Xᴿ? M′
-  → String
-matchedConcealCost (CTX.matched-seal-star-partner ok) =
-  "matched-seal-★-partner"
-matchedConcealCost (CTX.matched-seal-nonstar Ans) =
-  "matched-seal-non★-partner"
-matchedConcealCost CTX.matched-fun-conceal-target = ""
-matchedConcealCost CTX.matched-all-conceal-target = ""
-matchedConcealCost CTX.matched-id-conceal-target = ""
 
 addCost : String → String → String
 addCost cost "" = cost
@@ -522,20 +498,10 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑²-seal-star-open {X = X} no-target mono rebase same typed
-      premise q) =
-  makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ tyDepth prefix
-      ("□ " ++ concealLayer nameᴸ (seal X ★)) "─"
-      p "NoTargetOccupantAtSource" ∷
-    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-      childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑²-source-ok {c = c} ok mono rebase same typed premise q) =
+    (CTI2.conceal⊑² {c = c} mono rebase same typed premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c) "─"
-      p (sourceConcealCost ok) ∷
+      p "target pivot = nothing" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
@@ -550,27 +516,12 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
     (CTI2.conceal⊑conceal² {c = c} {c′ = c′}
-      ok mono rebase same typed typed′ premise q) =
+      mono rebase same typed typed′ premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c)
-      ("□ " ++ concealLayer nameᴿ c′) p (matchedConcealCost ok) ∷
+      ("□ " ++ concealLayer nameᴿ c′) p "paired-conceal-wrapper" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.packaged-seal-star² {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
-      ok mono rebase same typed typed′ premise
-      sourcePrem q) =
-  makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ tyDepth prefix
-      ("□ " ++ concealLayer nameᴸ (seal Xᴸ ★))
-      ("□ " ++ concealLayer nameᴿ (seal Xᴿ ★))
-      p (matchedConcealCost ok) ∷
-    (ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-       (childPrefix ++ "├ ") (childPrefix ++ "│ ") premise
-     List.++
-     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-       (childPrefix ++ "└ ") (childPrefix ++ "  ") sourcePrem)
 ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {W = W}
     {M′ = M′} {A = outA} {B = outB} {p = p}
@@ -619,9 +570,9 @@ impLadderDefault =
 
 -- Examples2 comments out the rejected checkpoint-4-through-14 chain.  This
 -- fixture retains checkpoint 8's approved YZ subderivation shape: a
--- target-only Z reveal above an application whose argument is a paired
--- `seal Z ★` conceal.  Its valid literal/cast payload replaces the rejected
--- source-X-seal edge while using live Examples2 world and typing evidence.
+-- paired Z reveal above an application whose argument is a paired `seal Z ★`
+-- conceal.  Its valid literal/cast payload replaces the rejected source-X-seal
+-- edge while using live Examples2 world and typing evidence.
 
 checkpoint₈-source-ℕ!₃ :
   C.renameEnv∼ (C.skip Ex2.id↪ᵗ)
@@ -648,8 +599,7 @@ checkpoint₈-YZ-conceal :
         ↓ seal (Fin.suc Fin.zero) ★ ∶ Ex2.left-path-Z-var⊑YZ₃
 checkpoint₈-YZ-conceal =
   CTI2.conceal⊑conceal²
-    (CTX.matched-seal-star-partner (CTX.rep★-nonvar-tag nonvar-base))
-    (λ _ eq → eq) Ex2.left-path-rebase-Z-YZ₃ CTX.same-[]
+    CTX.impEnvMono-refl Ex2.left-path-rebase-Z-YZ₃ CTX.same-[]
     (Conv.⊢↓-sealˣ Ex2.left-path-source-Z∋₃)
     (Conv.⊢↓-sealˣ Ex2.left-path-target-Z∋₃)
     checkpoint₈-YZ-base Ex2.left-path-Z-var⊑YZ₃
@@ -668,18 +618,20 @@ checkpoint₈-YZ-application =
 
 checkpoint₈-YZ-fragment :
   Ex2.left-path-world₃-YZ ∣ [] ⊢²
-    ((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
+    (((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
       · (($ (κℕ 7) ⟨ checkpoint₈-source-ℕ!₃ ⟩)
-          ↓ seal (Fin.suc (Fin.suc Fin.zero)) ★)
+          ↓ seal (Fin.suc (Fin.suc Fin.zero)) ★))
+      ↑ unseal (Fin.suc (Fin.suc Fin.zero)) ★
     ⊑ ((Ex2.left-path-target-lambda₃ ↑ Ex2.left-path-Y-reveal₂)
       · (($ (κℕ 7) ⟨ Ex2.left-path-ℕ!₂ ⟩)
           ↓ seal (Fin.suc Fin.zero) ★))
-      ↑ unseal (Fin.suc Fin.zero) ★ ∶ Ex2.left-path-Z-var⊑★-YZ₃
+      ↑ unseal (Fin.suc Fin.zero) ★ ∶ I.★⊑★
 checkpoint₈-YZ-fragment =
-  CTI2.⊑reveal² (λ _ eq → eq)
-    (CTX.rebase-varᴿ Ex2.left-path-rebase-Z-YZ₃) CTX.same-[]
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
+    Ex2.left-path-rebase-Z-YZ₃ CTX.same-[]
+    (Conv.⊢↑-unsealˣ Ex2.left-path-source-Z∋₃)
     (Conv.⊢↑-unsealˣ Ex2.left-path-target-Z∋₃)
-    checkpoint₈-YZ-application Ex2.left-path-Z-var⊑★-YZ₃
+    checkpoint₈-YZ-application I.★⊑★
 
 small-lambda-derivation :
   CTX.liftWorldBoth I.X⊑X (Ex2.reflWorld store-empty) ∣ [] ⊢²
@@ -872,8 +824,8 @@ d1-inner-smart-live-ladder-pinned = refl
 checkpoint₈-target-Z-fragment-ladder-pinned :
   checkpoint₈-target-Z-fragment-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] ─ │ " ++
-      "Y: Y↦＇Z ⊑[X⊑X] X′↦＇Y′ │ " ++
-      "Z: Z↦★ ⊑[X⊑★] Y′↦★⟩\n" ++
+      "Y: Y↦＇Z ⊑[X⊑★] X′↦＇Y′ │ " ++
+      "Z: Z↦★ ⊑[X⊑X] Y′↦★⟩\n" ++
     "source term           A        ηᴸA      " ++
       "⊑ costs                         ηᴿB      B          " ++
       "target term\n" ++
@@ -881,8 +833,8 @@ checkpoint₈-target-Z-fragment-ladder-pinned :
       "───────  ──────────────────────────────  " ++
       "───────  ─────────  " ++
       "───────────────────\n" ++
-    "─                     Z        Z        " ++
-      "mark X⊑★ at Z                   ★        ★          " ++
+    "□ ↑ unseal Z          ★        ★        " ++
+      "★⊑★                             ★        ★          " ++
       "□ ↑ unseal Y′\n" ++
     "□₁ · □₂               Z        Z        " ++
       "Z ≈ Z                           Z        Y′         " ++
@@ -897,7 +849,7 @@ checkpoint₈-target-Z-fragment-ladder-pinned :
       "Y ≈ Y                           Y        X′         " ++
       "♯0\n" ++
     "└ □ ↓ seal Z          Z        Z        " ++
-      "Z ≈ Z + matched-seal-★-partner  Z        Y′         " ++
+      "Z ≈ Z + paired-conceal-wrapper  Z        Y′         " ++
       "□ ↓ seal Y′\n" ++
     "  □ ⟨ ℕ↦★ ⟩           ★        ★        " ++
       "★⊑★                             ★        ★          " ++

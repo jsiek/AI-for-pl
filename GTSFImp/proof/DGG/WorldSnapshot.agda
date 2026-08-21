@@ -186,9 +186,9 @@ example12-world-X-snapshot = refl
 
 examples2-left-path-world₃-snapshot :
   worldSnapshotDefault Ex2.left-path-world₃ ≡
-    "⟨X: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ " ++
-    "Y: Y↦＇Z ⊑[X⊑X] ─ │ " ++
-    "Z: Z↦★ ⊑[X⊑★] Y′↦★⟩"
+    "⟨X: X↦ℕ ⊑[X⊑★] X′↦★ │ " ++
+    "Y: Y↦＇Z ⊑[X⊑★] ─ │ " ++
+    "Z: Z↦★ ⊑[X⊑X] Y′↦★⟩"
 examples2-left-path-world₃-snapshot = refl
 
 nested-∀-store-entry-snapshot :

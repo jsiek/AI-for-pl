@@ -1153,10 +1153,12 @@ makes the pending fresh target name unavailable in stable mode, and lets only
 an exact direct-store reveal/conceal boundary push a focus.  The
 `β := α`, `α := ★` trace requires two pushes, checks each edge in its parent
 mode, and returns the nested reveal term to stable mode.  Ordinary term rules
-preserve the mode.  This is the first compositional account of the problematic
-Λ alias geometry that neither weakens `representationsImprecise` nor uses
-`resolveVar`; live CTI integration remains a design step requiring explicit
-relation review.
+preserve the mode.  `TwoCtxTypedAliasBoundaryProbe` further checks the explicit
+intermediate type judgments `X ⊑ β`, `X ⊑ α`, and `X ⊑ ★` and confirms that
+only exact reveal/conceal boundaries change mode.  This is the first
+compositional account of the problematic Λ alias geometry that neither weakens
+`representationsImprecise` nor uses `resolveVar`; live CTI integration remains
+a design step requiring explicit relation review.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

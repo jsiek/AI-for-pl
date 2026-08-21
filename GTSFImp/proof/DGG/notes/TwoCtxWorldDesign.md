@@ -34,8 +34,10 @@ commutation and carries it through every later raw history constructor.  The
 `TwoCtxAdministrativeAliasFocusProbe` keeps a stable world unchanged while a
 boundary-local view consumes exactly one fresh target edge `β := α`.
 `TwoCtxAliasFocusModeProbe` stacks those exact one-edge views and checks the
-two-boundary `β := α`, `α := ★` reveal spine.  All check under `--safe`;
-none follows a representation chain.
+two-boundary `β := α`, `α := ★` reveal spine.
+`TwoCtxTypedAliasBoundaryProbe` adds explicit source/target term and type
+indices to that surface.  All check under `--safe`; none follows a
+representation chain.
 
 ## Trusted endpoint structure
 
@@ -456,9 +458,12 @@ nested target term
 ```
 
 returns to the stable mode without exposing either pending name to ordinary
-term rules.  The probe is a skeletal integration check, not yet a replacement
-for live CTI, but it shows that a stack is part of the compositional interface
-rather than Λ-specific proof geometry.
+term rules.  The typed boundary probe checks the corresponding intermediate
+judgments explicitly: `X ⊑ β` at depth two, `X ⊑ α` after the inner reveal,
+and `X ⊑ ★` after the outer reveal.  Its atom, lambda, and application clauses
+preserve the identical mode and validity witness.  This is not yet a
+replacement for live CTI, but it shows that a stack is part of the
+compositional interface rather than Λ-specific proof geometry.
 
 ## CTI indexing consequence
 

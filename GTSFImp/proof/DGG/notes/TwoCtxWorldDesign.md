@@ -41,6 +41,8 @@ term binding, and a variable CTI leaf.  `TwoCtxScopedTermBoundaryProbe` then
 joins a concrete alias-boundary world, focused term binding, and real endpoint
 lookup.  The skeleton now also checks `initialWorldᶜ₀` and
 `emptyCenterWorldᶜ₀` recursors with pointwise center, embedding, and mark laws.
+`TwoCtxCenterRenamePlanProbe` reconstructs every raw history head under a
+structural center embedding and derives the direct invariants of the result.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -600,6 +602,11 @@ Before this becomes a live design, the remaining probes must establish:
   The identity and moving base cases and recursion through every raw skeleton
   constructor check.  A separate producer theorem must still show when a
   requested operational pivot move admits such a plan.
+- Checked center renaming is implemented over an explicit structural plan.
+  It covers identity, skipped-center insertion, and recursion through every
+  raw skeleton constructor while fixing endpoint `Ctx` indices and proving
+  embedding/mark laws.  Operational callers must still produce its explicit
+  rebuilt freshness and type-imprecision premises.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI

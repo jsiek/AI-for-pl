@@ -33,7 +33,7 @@ integrate the checked rebase and boundary-focus plans.
 | `honestifyʷ` | no constructor | 2 / 15 | Delete as a constructor; replace its one producer by a checked history transformation. |
 | `lower-leftʷ` | no constructor | 2 / 15 | Delete; it accepts a separately assembled world and invariants. |
 | `mix-targetʷ` | no constructor | 2 / 15 | Delete; replace by a structural target-extension producer. |
-| `mix-renamed-targetʷ` | no constructor | 3 / 25 | Delete; replace by structural center renaming/extension. |
+| `mix-renamed-targetʷ` | no constructor | 3 / 25 | Delete; checked `CenterRenamePlanᶜ₀` reconstructs structural history. |
 
 The checked relation also has `bind-termᶜ₀`, which absorbs the term-context
 step that the live design stores separately in `CtxImp`.  This is a genuine
@@ -150,10 +150,13 @@ sets despite the recursive pattern burden in `CenterRename`:
 | `mix-renamed-targetʷ` | `CenterRename` 22; `SmartCommaWitness` 2; `TargetExtend` 1 | smart-comma witnesses and target extension |
 
 These constructors should not survive as invariant-accepting compatibility
-paths.  Deletion requires, in order, structural center renaming, target
-extension, target-strip reconstruction, and honestification over inductive
-histories.  Once those producers exist, the many `CenterRename` clauses for
-the four constructors disappear rather than being translated.
+paths.  The structural center-renaming interpreter now checks through every
+raw history head; its operational callers still need to produce explicit
+plans with rebuilt freshness and type-imprecision premises.  Deletion then
+requires target extension, target-strip reconstruction, and honestification
+over inductive histories.  Once those producers exist, the many
+`CenterRename` clauses for the four constructors disappear rather than being
+translated.
 
 The live smart-comma surface is the same kind of splice at the relation level:
 
@@ -240,9 +243,11 @@ propositionally equal to the endpoint type context, so those equations would
 require transport.  The checked surface still lacks these operational
 producers or integrations:
 
-1. A structural center-renaming graph over raw history.  This replaces
-   `mix-renamed-targetʷ`; it must rebuild constructor premises rather than take
-   `WorldInvariants` as an argument.
+1. Operational producers for the checked `CenterRenamePlanᶜ₀` graph.  The
+   interpreter covers every raw constructor, fixes endpoint `Ctx` indices,
+   proves both embedding and mark laws, and derives direct invariants from the
+   rebuilt history.  Callers must supply rebuilt `RightBindFreshᶜ₀` and
+   type-imprecision exactly where their history constructor requires them.
 2. Structural target extension/insertion and target-strip reconstruction.
    These replace `mix-targetʷ`, `mix-renamed-targetʷ`, and `lower-leftʷ` at the
    three actual non-rename producer sites listed above.

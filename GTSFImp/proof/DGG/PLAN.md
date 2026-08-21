@@ -1151,6 +1151,12 @@ with constructor-form endpoints and pointwise center, embedding, and mark laws.
 It does not restore homogeneous equations against `id↪ᵗ`: the hidden center is
 only propositionally equal to the endpoint type context, so those old equations
 would require an explicit transport boundary.
+`TwoCtxCenterRenamePlanProbe` also reconstructs every raw history constructor
+under a structural center embedding, keeps both endpoint `Ctx` indices fixed,
+proves the embedding and pointwise mark laws, and derives invariants from the
+rebuilt history.  As with source rebase, the remaining obligation is an
+operational plan producer for the explicit rebuilt freshness/type-imprecision
+premises, not another invariant-accepting world constructor.
 
 Administrative aliases are now checked as a scoped mode stack.
 `TwoCtxAliasFocusModeProbe` leaves the stable direct-invariant world unchanged,

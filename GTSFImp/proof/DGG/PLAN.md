@@ -1160,3 +1160,16 @@ including each companion rebase, or refute that statement with a checked
 counterexample.  The obsolete raw `targetStoreAs` and invalid split-alias Λ
 world are not acceptable implementations.  No Λ-specific term-imprecision
 constructor has been adopted.
+
+SMART-COMMA FIXTURE BLOCKER: there is no positive fixture with the original
+depth-1 role under the current direct invariants and CTI.  The live theorem
+`smartAliasGuard-impossible` already refutes every `SmartAliasMergeGuard`.
+Trusted reduction fixes the target store at `β:=α, α:=★`, while the source
+Λ binder has the direct lifted representation `X:=X`.  Aligning `X` with β
+violates direct `representationsImprecise`; aligning it with α makes β an
+unmatched alias whose referent is occupied; leaving `X` unaligned cannot
+derive the reveal pivots or the variable leaf.  The required redesign must
+separate the surface pivot β, the representation alignment `X↔α`, and the
+one-step allocation edge `β:=α`.  The fixture remains present and blocked;
+weakening it to the positive outer fresh-behind subcase would remove its
+regression purpose.

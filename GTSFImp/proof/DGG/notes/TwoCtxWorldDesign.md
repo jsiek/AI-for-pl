@@ -37,8 +37,9 @@ boundary-local view consumes exactly one fresh target edge `β := α`.
 two-boundary `β := α`, `α := ★` reveal spine.
 `TwoCtxTypedAliasBoundaryProbe` adds explicit source/target term and type
 indices to that surface.  `TwoCtxTermEntryProbe` checks real endpoint lookup,
-term binding, and a variable CTI leaf.  All check under `--safe`; none follows
-a representation chain.
+term binding, and a variable CTI leaf.  `TwoCtxScopedTermBoundaryProbe` then
+joins a concrete alias-boundary world, focused term binding, and real endpoint
+lookup.  All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
 
@@ -469,16 +470,21 @@ judgments explicitly: `X ⊑ β` at depth two, `X ⊑ α` after the inner reveal
 and `X ⊑ ★` after the outer reveal.  Its syntax-directed clauses preserve the
 identical mode and validity witness.
 
-That probe does not yet establish a real variable CTI derivation for its
-concrete `x`.  The strict-Λ fixture has empty endpoint term contexts, and the
-administrative alias boundary changes the target `Ctx` without producing a
-new `_⊑ᶜ₀_` witness for that endpoint.  `TwoCtxTermEntryProbe` checks both
-empty-context contradictions.  Therefore the typed alias atom is an abstract
-syntax placeholder, while the type/boundary indices are the checked result.
-A complete integration needs a boundary world-extension producer and a
-reachable nonempty-context fixture.  This is still evidence that a stack is
-part of the compositional interface rather than Λ-specific proof geometry,
-but it is not yet a replacement for live CTI.
+The typed boundary probe alone does not establish a real variable CTI
+derivation for its concrete `x`: its endpoint term contexts are empty.
+`TwoCtxScopedTermBoundaryProbe` closes that concrete gap in three stages.  Full
+source disalignment at `α` constructs the ordinary right-bound alias world;
+ordinary stable precision `X ⊑ β` is then refuted in that world; finally a
+mode-scoped full-`Ctx` relation extends both term contexts with focused
+`X ⊑ β` and checks the body variable with real `Z`/`Z` endpoint memberships.
+
+The general surface must therefore parameterize boundary mode, scoped type
+imprecision, and scoped full-`Ctx` relation together over their endpoint
+worlds.  This is not a parallel `CtxImp`: the scoped relation itself remains
+indexed by both complete endpoint `Ctx` values and owns their term binding.
+The current checked construction is concrete because the earlier focus module
+was already specialized to the strict-Λ endpoints.  Generalizing those three
+families together is the remaining integration step.
 
 ## CTI indexing consequence
 
@@ -595,8 +601,9 @@ Before this becomes a live design, the remaining probes must establish:
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - The checked boundary-mode stack must be integrated into reveal/conceal CTI
-  without making pending names available to ordinary term constructors.  Its
-  allocation boundary must produce a world witness at the extended target
-  `Ctx`, and the first end-to-end fixture must use real endpoint term lookup.
+  without making pending names available to ordinary term constructors.  The
+  concrete alias world, scoped term bind, and variable lookup check; the mode,
+  scoped type relation, and scoped full-`Ctx` relation must now be generalized
+  together over arbitrary endpoint worlds.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

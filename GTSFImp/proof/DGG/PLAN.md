@@ -1156,13 +1156,16 @@ mode, and returns the nested reveal term to stable mode.  Ordinary term rules
 preserve the mode.  `TwoCtxTypedAliasBoundaryProbe` further checks the explicit
 intermediate type judgments `X ⊑ β`, `X ⊑ α`, and `X ⊑ ★` and confirms that
 only exact reveal/conceal boundaries change mode.  Its concrete atom is not
-yet a real term-context leaf: the fixture contexts are empty, and the boundary
-does not yet produce a world witness over the extended target `Ctx`.
+by itself a real term-context leaf: the fixture contexts are empty.
 `TwoCtxTermEntryProbe` separately checks the real world-indexed entry relation,
 term binding, lookup transport, and variable CTI rule and proves both fixture
-lookups empty.  The next integration theorem must join these pieces with a
-boundary world-extension producer and a reachable nonempty-context fixture.
-This account neither weakens `representationsImprecise` nor uses `resolveVar`.
+lookups empty.  `TwoCtxScopedTermBoundaryProbe` now joins them concretely: full
+source disalignment builds the right-bound alias world, stable `X ⊑ β` is
+refuted there, and a mode-scoped full-`Ctx` term bind yields a real `Z`/`Z`
+body-variable leaf.  General integration requires mode, scoped type
+imprecision, and scoped full-`Ctx` relation to be parameterized together over
+arbitrary endpoint worlds.  This is not a parallel `CtxImp`, and it neither
+weakens `representationsImprecise` nor uses `resolveVar`.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

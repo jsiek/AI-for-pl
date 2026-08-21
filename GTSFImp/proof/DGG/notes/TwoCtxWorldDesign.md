@@ -74,6 +74,9 @@ keeps `β := α` in the boundary-scoped edge layer.
 exact target mode transitions, current-mode-unoccupied source conceal, and
 term-independent paired reveal/conceal.  It also checks constants, source
 blame, all ordinary cast polarities, and structural function conversions.
+`TwoCtxStrictLambdaProducerProbe` constructs the value-ready strict-`Λ` body
+relation and exact reveal-first spine in this setting, then isolates the first
+missing composite target-boundary rule.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -691,3 +694,9 @@ Before this becomes a live design, the remaining probes must establish:
   imprecision, freshness, and invariants are checked.  A following alias is an
   exact boundary edge, not another history commutation; allowing raw alias
   heads would require additional noncollision provenance.
+- The strict-`Λ` relation producer now constructs the body relation and
+  reveal-first spine from exact `α := ★`, `β := α` memberships, a genuine body
+  entry, and value witnesses.  Its first remaining step is mode-changing target
+  reveal through the generated function conversion
+  `makeConceal β α β ↦↑ unseal β α`, transporting the function-shaped scoped
+  relation from the `β` focus to the `α` focus.

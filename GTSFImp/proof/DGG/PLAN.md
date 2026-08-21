@@ -1270,6 +1270,15 @@ The next surface must therefore be one global indexed CTI family, together
 with scoped-type substitution preservation, rather than hollow local universal
 constructors.
 
+`TwoCtxStrictLambdaProducerProbe` checks the relation-side strict-`Λ` producer
+up to the first pending frame.  Exact `α := ★` and `β := α` memberships, the
+edge-scoped parameter entry, body relation, both value witnesses, and the
+canonical reveal-first `lambda-ready-child-spine` all construct.  The first
+missing rule is now precise: a target boundary must push through the generated
+function conversion `makeConceal β α β ↦↑ unseal β α`, changing
+`X⇒X ⊑ β⇒β` into `X⇒X ⊑ α⇒α`.  Atomic unseal alone is insufficient; this is a
+structural mode-changing target-reveal rule, not a resolver or term predicate.
+
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
 reworked fixtures check with `agda --safe --no-caching`.  The occupied

@@ -386,7 +386,7 @@ W₀ = CPI2.initialWorld I.idᵐ store-empty
 ℕ⊑★² = I.ι⊑★
 
 X⊑★² : ∀ {Δᴸ Δᴿ Δ} {W : World (suc Δᴸ) Δᴿ (suc Δ)}
-  → ＇ Fin.zero ⊑ᵂ⟨ CTI2.liftWorldLeft I.X⊑★ W ⟩ ★
+  → ＇ Fin.zero ⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ ★
 X⊑★² = I.X⊑★ refl
 
 ★⊑★₀ : ★ ⊑ᵂ⟨ W₀ ⟩ ★
@@ -408,10 +408,10 @@ X⊑★² = I.X⊑★ refl
 
 private
   W₁ : World 1 0 1
-  W₁ = CTI2.liftWorldLeft I.X⊑★ W₀
+  W₁ = CTI2.liftWorldLeft W₀
 
   W₂ : World 2 0 2
-  W₂ = CTI2.liftWorldLeft I.X⊑★ W₁
+  W₂ = CTI2.liftWorldLeft W₁
 
   X⊑★₁ : ＇ Fin.zero ⊑ᵂ⟨ W₁ ⟩ ★
   X⊑★₁ = I.X⊑★ refl

@@ -24,6 +24,8 @@ open import Primitives
 open import CastTerms
 open import proof.Consistency using
   (gen-safe; renameGroundᵐ; rename∼★ᵐ; renameᵐᶜ-idᵍ!)
+open import proof.ImprecisionConsistency using
+  (ext-injective; fin-suc-injective; toRenameᵗ-injective)
 
 ------------------------------------------------------------------------
 -- Store lookup transport
@@ -163,69 +165,109 @@ StoreTransport-lift-bind (S-lift∋ X∈ eq) = S-bind∋ X∈ eq
 
 mutual
   reveal-renameᵗ : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
-      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {A B}
+      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X R A B}
       {c : Conv↑ Δ A B}
+    → (∀ {Y Z} → rho Y ≡ rho Z → Y ≡ Z)
     → StoreRename rho Σ Σ′
-    → Σ ⊢↑ c
-    → Σ′ ⊢↑ rename↑ rho c
-  reveal-renameᵗ hΣ (⊢↑-unseal X∈) = ⊢↑-unseal (hΣ X∈)
-  reveal-renameᵗ hΣ (⊢↑-⇒ c⊢ d⊢) =
-    ⊢↑-⇒ (conceal-renameᵗ hΣ c⊢) (reveal-renameᵗ hΣ d⊢)
-  reveal-renameᵗ {rho = rho} hΣ (⊢↑-∀ c⊢) =
-    ⊢↑-∀ (reveal-renameᵗ (StoreRename-ext hΣ) c⊢)
-  reveal-renameᵗ hΣ ⊢↑-id = ⊢↑-id
+    → Σ ⊢↑[ X ⦂ R ] c
+    → Σ′ ⊢↑[ rho X ⦂ renameᵗ rho R ] rename↑ rho c
+  reveal-renameᵗ injective hΣ (⊢↑-unseal X∈) =
+    ⊢↑-unseal (hΣ X∈)
+  reveal-renameᵗ injective hΣ (⊢↑-⇒ c⊢ d⊢) =
+    ⊢↑-⇒ (conceal-renameᵗ injective hΣ c⊢)
+      (reveal-renameᵗ injective hΣ d⊢)
+  reveal-renameᵗ {rho = rho} injective hΣ (⊢↑-∀ eq c⊢) =
+    ⊢↑-∀
+      (trans (cong (renameᵗ (extᵗ rho)) eq) (renameᵗ-shift rho _))
+      (reveal-renameᵗ (ext-injective injective)
+        (StoreRename-ext hΣ) c⊢)
+  reveal-renameᵗ injective hΣ (⊢↑-id-var X∈ X≢Y) =
+    ⊢↑-id-var (hΣ X∈) (λ eq → X≢Y (injective eq))
+  reveal-renameᵗ injective hΣ (⊢↑-id-base X∈) =
+    ⊢↑-id-base (hΣ X∈)
+  reveal-renameᵗ injective hΣ (⊢↑-id-star X∈) =
+    ⊢↑-id-star (hΣ X∈)
 
   conceal-renameᵗ : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
-      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {A B}
+      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X R A B}
       {c : Conv↓ Δ A B}
+    → (∀ {Y Z} → rho Y ≡ rho Z → Y ≡ Z)
     → StoreRename rho Σ Σ′
-    → Σ ⊢↓ c
-    → Σ′ ⊢↓ rename↓ rho c
-  conceal-renameᵗ hΣ (⊢↓-seal X∈) = ⊢↓-seal (hΣ X∈)
-  conceal-renameᵗ hΣ (⊢↓-⇒ c⊢ d⊢) =
-    ⊢↓-⇒ (reveal-renameᵗ hΣ c⊢) (conceal-renameᵗ hΣ d⊢)
-  conceal-renameᵗ {rho = rho} hΣ (⊢↓-∀ c⊢) =
-    ⊢↓-∀ (conceal-renameᵗ (StoreRename-ext hΣ) c⊢)
-  conceal-renameᵗ hΣ ⊢↓-id = ⊢↓-id
+    → Σ ⊢↓[ X ⦂ R ] c
+    → Σ′ ⊢↓[ rho X ⦂ renameᵗ rho R ] rename↓ rho c
+  conceal-renameᵗ injective hΣ (⊢↓-seal X∈) =
+    ⊢↓-seal (hΣ X∈)
+  conceal-renameᵗ injective hΣ (⊢↓-⇒ c⊢ d⊢) =
+    ⊢↓-⇒ (reveal-renameᵗ injective hΣ c⊢)
+      (conceal-renameᵗ injective hΣ d⊢)
+  conceal-renameᵗ {rho = rho} injective hΣ (⊢↓-∀ eq c⊢) =
+    ⊢↓-∀
+      (trans (cong (renameᵗ (extᵗ rho)) eq) (renameᵗ-shift rho _))
+      (conceal-renameᵗ (ext-injective injective)
+        (StoreRename-ext hΣ) c⊢)
+  conceal-renameᵗ injective hΣ (⊢↓-id-var X∈ X≢Y) =
+    ⊢↓-id-var (hΣ X∈) (λ eq → X≢Y (injective eq))
+  conceal-renameᵗ injective hΣ (⊢↓-id-base X∈) =
+    ⊢↓-id-base (hΣ X∈)
+  conceal-renameᵗ injective hΣ (⊢↓-id-star X∈) =
+    ⊢↓-id-star (hΣ X∈)
 
-reveal-rename-id : ∀ {Δ} {Σ : TyStore Δ} {A B}
+reveal-rename-id : ∀ {Δ} {Σ : TyStore Δ} {X R A B}
     {c : Conv↑ Δ A B}
-  → Σ ⊢↑ c
-  → Σ ⊢↑ rename↑ (λ X → X) c
-reveal-rename-id = reveal-renameᵗ StoreRename-id
+  → Σ ⊢↑[ X ⦂ R ] c
+  → Σ ⊢↑[ X ⦂ R ] rename↑ (λ Y → Y) c
+reveal-rename-id {Σ = Σ} {X = X} {R = R} {c = c} c⊢ =
+  subst≡
+    (λ R′ → Σ ⊢↑[ X ⦂ R′ ] rename↑ (λ Y → Y) c)
+    (renameᵗ-id R)
+    (reveal-renameᵗ (λ eq → eq) StoreRename-id c⊢)
 
-conceal-rename-id : ∀ {Δ} {Σ : TyStore Δ} {A B}
+conceal-rename-id : ∀ {Δ} {Σ : TyStore Δ} {X R A B}
     {c : Conv↓ Δ A B}
-  → Σ ⊢↓ c
-  → Σ ⊢↓ rename↓ (λ X → X) c
-conceal-rename-id = conceal-renameᵗ StoreRename-id
+  → Σ ⊢↓[ X ⦂ R ] c
+  → Σ ⊢↓[ X ⦂ R ] rename↓ (λ Y → Y) c
+conceal-rename-id {Σ = Σ} {X = X} {R = R} {c = c} c⊢ =
+  subst≡
+    (λ R′ → Σ ⊢↓[ X ⦂ R′ ] rename↓ (λ Y → Y) c)
+    (renameᵗ-id R)
+    (conceal-renameᵗ (λ eq → eq) StoreRename-id c⊢)
 
 mutual
-  reveal-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {A B}
+  reveal-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {X R A B}
       {c : Conv↑ Δ A B}
     → StoreTransport Σ Σ′
-    → Σ ⊢↑ c
-    → Σ′ ⊢↑ c
+    → Σ ⊢↑[ X ⦂ R ] c
+    → Σ′ ⊢↑[ X ⦂ R ] c
   reveal-store-transport hΣ (⊢↑-unseal X∈) = ⊢↑-unseal (hΣ X∈)
   reveal-store-transport hΣ (⊢↑-⇒ c⊢ d⊢) =
     ⊢↑-⇒ (conceal-store-transport hΣ c⊢)
       (reveal-store-transport hΣ d⊢)
-  reveal-store-transport hΣ (⊢↑-∀ c⊢) =
-    ⊢↑-∀ (reveal-store-transport (StoreTransport-lift hΣ) c⊢)
-  reveal-store-transport hΣ ⊢↑-id = ⊢↑-id
+  reveal-store-transport hΣ (⊢↑-∀ eq c⊢) =
+    ⊢↑-∀ eq (reveal-store-transport (StoreTransport-lift hΣ) c⊢)
+  reveal-store-transport hΣ (⊢↑-id-var X∈ X≢Y) =
+    ⊢↑-id-var (hΣ X∈) X≢Y
+  reveal-store-transport hΣ (⊢↑-id-base X∈) =
+    ⊢↑-id-base (hΣ X∈)
+  reveal-store-transport hΣ (⊢↑-id-star X∈) =
+    ⊢↑-id-star (hΣ X∈)
 
-  conceal-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {A B}
+  conceal-store-transport : ∀ {Δ} {Σ Σ′ : TyStore Δ} {X R A B}
       {c : Conv↓ Δ A B}
     → StoreTransport Σ Σ′
-    → Σ ⊢↓ c
-    → Σ′ ⊢↓ c
+    → Σ ⊢↓[ X ⦂ R ] c
+    → Σ′ ⊢↓[ X ⦂ R ] c
   conceal-store-transport hΣ (⊢↓-seal X∈) = ⊢↓-seal (hΣ X∈)
   conceal-store-transport hΣ (⊢↓-⇒ c⊢ d⊢) =
     ⊢↓-⇒ (reveal-store-transport hΣ c⊢)
       (conceal-store-transport hΣ d⊢)
-  conceal-store-transport hΣ (⊢↓-∀ c⊢) =
-    ⊢↓-∀ (conceal-store-transport (StoreTransport-lift hΣ) c⊢)
-  conceal-store-transport hΣ ⊢↓-id = ⊢↓-id
+  conceal-store-transport hΣ (⊢↓-∀ eq c⊢) =
+    ⊢↓-∀ eq (conceal-store-transport (StoreTransport-lift hΣ) c⊢)
+  conceal-store-transport hΣ (⊢↓-id-var X∈ X≢Y) =
+    ⊢↓-id-var (hΣ X∈) X≢Y
+  conceal-store-transport hΣ (⊢↓-id-base X∈) =
+    ⊢↓-id-base (hΣ X∈)
+  conceal-store-transport hΣ (⊢↓-id-star X∈) =
+    ⊢↓-id-star (hΣ X∈)
 
 ------------------------------------------------------------------------
 -- Renaming values and type application
@@ -389,10 +431,12 @@ typing-renameᵗ hΣ (⊢⊕ and𝔹 L⊢ M⊢) =
   ⊢⊕ and𝔹 (typing-renameᵗ hΣ L⊢) (typing-renameᵗ hΣ M⊢)
 typing-renameᵗ {rho = rho} hΣ (⊢⟨⟩ M⊢ c) =
   ⊢⟨⟩ (typing-renameᵗ hΣ M⊢) (renameᵐᶜ rho c)
-typing-renameᵗ hΣ (⊢reveal c⊢ M⊢) =
-  ⊢reveal (reveal-renameᵗ hΣ c⊢) (typing-renameᵗ hΣ M⊢)
-typing-renameᵗ hΣ (⊢conceal c⊢ M⊢) =
-  ⊢conceal (conceal-renameᵗ hΣ c⊢) (typing-renameᵗ hΣ M⊢)
+typing-renameᵗ {rho = rho} hΣ (⊢reveal c⊢ M⊢) =
+  ⊢reveal (reveal-renameᵗ (toRenameᵗ-injective rho) hΣ c⊢)
+    (typing-renameᵗ hΣ M⊢)
+typing-renameᵗ {rho = rho} hΣ (⊢conceal c⊢ M⊢) =
+  ⊢conceal (conceal-renameᵗ (toRenameᵗ-injective rho) hΣ c⊢)
+    (typing-renameᵗ hΣ M⊢)
 typing-renameᵗ hΣ ⊢blame = ⊢blame
 
 typing-shiftᵗ-lift : ∀ {Δ} {Σ : TyStore Δ} {Γ M A}

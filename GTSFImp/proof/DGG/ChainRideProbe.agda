@@ -5,13 +5,14 @@ module proof.DGG.ChainRideProbe where
 --   * The old construction moved one target pivot down a chain of old
 --     centers.  M2 removes that freedom by freezing every old target
 --     variable in `RebaseAt`.
---   * The concrete worlds and premise remain as a design record; the
---     moving links are now proved empty.
+--   * Rebuilds the concrete placements with the inductive world
+--     constructors.  The B′ mark discipline now rejects the old wrapper
+--     transitions and the final ＇Z₃ ⊑ ★ premise before a chain ride
+--     can start.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([])
-open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
@@ -20,7 +21,7 @@ open import Types
 open import TyStore using
   (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; _!; id)
+  (Env∼; X∼★; _⊢_∼_; toRenameᵗ; _!; id)
 open import Imprecision
 open import Conversion using (seal)
 open import CastTerms
@@ -30,7 +31,6 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world;
    _⊑ᵂ⟨_⟩_;
    RebaseAt;
    rebase-at;
@@ -57,8 +57,7 @@ private
   c : TyVar 3
   c = Fin.suc (Fin.suc Fin.zero)
 
-------------------------------------------------------------------------
--- Stores, embeddings, and worlds
+-- Stores and inductively generated worlds
 ------------------------------------------------------------------------
 
 sourceStore : TyStore 2
@@ -68,41 +67,40 @@ sourceStore =
 targetStore : TyStore 1
 targetStore = store-bind store-empty ★
 
-probe-μ : ImpEnv 3
-probe-μ Fin.zero = X⊑★
-probe-μ (Fin.suc Fin.zero) = X⊑★
-probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
-
-ηᴸ-ab : 2 ↪ᵗ 3
-ηᴸ-ab = keep (keep (skip empty))
-
-ηᴸ-ac : 2 ↪ᵗ 3
-ηᴸ-ac = keep (skip (keep empty))
-
-ηᴿ-a : 1 ↪ᵗ 3
-ηᴿ-a = keep (skip (skip empty))
-
-ηᴿ-b : 1 ↪ᵗ 3
-ηᴿ-b = skip (keep (skip empty))
-
-ηᴿ-c : 1 ↪ᵗ 3
-ηᴿ-c = skip (skip (keep empty))
-
 -- Placement table (a = 0, b = 1, c = 2):
 --
 --       Z   Z₃   Y
 --   W₁   a   b   a
 --   Wₗ   a   b   b
 --   W₂   a   c   c
+--
+-- B′ makes the matched cell precise in each snapshot.  Thus the marks
+-- move from a in W₁, to b in Wₗ, to c in W₂; that movement is exactly
+-- what `ImpEnvMono` now forbids inside one derivation.
+
+W∅¹ : World 0 0 1
+W∅¹ = CTX.skip-centerʷ CTX.emptyʷ
+
+W₁-base : World 1 0 2
+W₁-base = CTX.leftOnlyWorld W∅¹ ★
+
+W₁-bind : (＇ Fin.zero) ⊑ᵂ⟨ W₁-base ⟩ ★
+W₁-bind = X⊑★ refl
 
 W₁ : World 2 1 3
-W₁ = world ηᴸ-ab ηᴿ-a probe-μ sourceStore targetStore
+W₁ = CTX.bothBindWorld W₁-base (＇ Fin.zero) ★ W₁-bind
+
+Wₗ-base : World 1 1 2
+Wₗ-base = CTX.bothBindWorld W∅¹ ★ ★ ★⊑★
 
 Wₗ : World 2 1 3
-Wₗ = world ηᴸ-ab ηᴿ-b probe-μ sourceStore targetStore
+Wₗ = CTX.leftOnlyWorld Wₗ-base (＇ Fin.zero)
+
+W₂-base : World 1 1 1
+W₂-base = CTX.bothBindWorld CTX.emptyʷ ★ ★ ★⊑★
 
 W₂ : World 2 1 3
-W₂ = world ηᴸ-ac ηᴿ-c probe-μ sourceStore targetStore
+W₂ = CTX.leftOnlyWorld (CTX.skip-centerʷ W₂-base) (＇ Fin.zero)
 
 ------------------------------------------------------------------------
 -- Store membership and conversion typing
@@ -114,11 +112,11 @@ probe-Z∋ = Z∋ refl
 probe-Z₃∋ : sourceStore ∋ Z₃ ⦂ ★
 probe-Z₃∋ = S-bind∋ (Z∋ refl) refl
 
-probe-Z-seal-⊢ : sourceStore Conv.⊢↓[ just Z ] seal Z (＇ Z₃)
-probe-Z-seal-⊢ = Conv.⊢↓-sealˣ probe-Z∋
+probe-Z-seal-⊢ : sourceStore Conv.⊢↓[ Z ⦂ ＇ Z₃ ] seal Z (＇ Z₃)
+probe-Z-seal-⊢ = Conv.⊢↓-seal probe-Z∋
 
-probe-Z₃-seal-⊢ : sourceStore Conv.⊢↓[ just Z₃ ] seal Z₃ ★
-probe-Z₃-seal-⊢ = Conv.⊢↓-sealˣ probe-Z₃∋
+probe-Z₃-seal-⊢ : sourceStore Conv.⊢↓[ Z₃ ⦂ ★ ] seal Z₃ ★
+probe-Z₃-seal-⊢ = Conv.⊢↓-seal probe-Z₃∋
 
 private
   probe-source-env : Env∼ 2
@@ -186,31 +184,24 @@ probe-moved :
   toRenameᵗ (CTX.ηᴸʷ W₂) Z₃ ≢ toRenameᵗ (CTX.ηᴸʷ W₁) Z₃
 probe-moved ()
 
-probe-mono₁ₗ : CTX.ImpEnvMono W₁ Wₗ
-probe-mono₁ₗ X eq = eq
+probe-mono₁ₗ-empty : CTX.ImpEnvMono W₁ Wₗ → ⊥
+probe-mono₁ₗ-empty mono
+    with CTX.precise-preserved mono a refl
+probe-mono₁ₗ-empty mono | ()
 
-probe-monoₗ₂ : CTX.ImpEnvMono Wₗ W₂
-probe-monoₗ₂ X eq = eq
+probe-monoₗ₂-empty : CTX.ImpEnvMono Wₗ W₂ → ⊥
+probe-monoₗ₂-empty mono
+    with CTX.precise-preserved mono b refl
+probe-monoₗ₂-empty mono | ()
 
-probe-same₁ₗ : CTX.SameCtx {W = W₁} {W′ = Wₗ} [] []
-probe-same₁ₗ = CTX.same-[]
-
-probe-sameₗ₂ : CTX.SameCtx {W = Wₗ} {W′ = W₂} [] []
-probe-sameₗ₂ = CTX.same-[]
-
-q₂ : (＇ Z₃) ⊑ᵂ⟨ W₂ ⟩ ★
-q₂ = X⊑★ refl
+q₂-empty : (＇ Z₃) ⊑ᵂ⟨ W₂ ⟩ ★ → ⊥
+q₂-empty (X⊑★ ())
 
 probe-base² : W₂ ∣ [] ⊢² V₀ ⊑ U ∶ ★⊑★
 probe-base² =
   CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
     (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
 
-probe-occupied-Z₃ : CTX.NoTargetOccupantAtSource W₂ Z₃ → ⊥
-probe-occupied-Z₃ no-target = no-target (Y , refl)
-
-probe-direct-premise-source-ok-empty :
-  CTX.SourceConcealOK W₂ V₀ (seal Z₃ ★) (just Y) U
-  → ⊥
-probe-direct-premise-source-ok-empty
-    (CTX.seal-nonstar-unmatched-ok () _)
+probe-old-conceal-premise-empty :
+  (＇ Z₃) ⊑ᵂ⟨ W₂ ⟩ ★ → ⊥
+probe-old-conceal-premise-empty = q₂-empty

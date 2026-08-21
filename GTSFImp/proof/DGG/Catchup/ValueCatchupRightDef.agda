@@ -4,6 +4,8 @@ module proof.DGG.Catchup.ValueCatchupRightDef where
 --   * States the M6 value-catch-up foundation surface.
 --   * Defines the derivation-indexed target-cast fuel bound and the
 --     fuel-indexed worker interfaces for the eventual mutual driver.
+--   * Follows all nine live conversion-wrapper constructors directly:
+--     target-neutral, source-neutral/unmatched/matched, and paired cases.
 --   * Provides Set-level statements for the world/context support lemmas
 --     proved separately in FuelSupportProof.
 --   * Depends only on core syntax/reduction, stage-1 DGG interfaces, and
@@ -71,29 +73,36 @@ TargetCastBound fuel (CTI2.cast⊑cast² c c′ rel q) =
   castSize c′ < fuel × TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.⊑cast² c′ rel q) =
   castSize c′ < fuel × TargetCastBound fuel rel
-TargetCastBound fuel (CTI2.⊑reveal² mono rb sameγ c′⊢ rel q) =
+TargetCastBound fuel (CTI2.⊑reveal² c′⊢ position-empty rel q) =
   TargetCastBound fuel rel
-TargetCastBound fuel (CTI2.⊑conceal² mono rb sameγ c′⊢ rel q) =
+TargetCastBound fuel (CTI2.⊑conceal² c′⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.cast⊑² c rel q) = TargetCastBound fuel rel
-TargetCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
+TargetCastBound fuel (CTI2.reveal⊑-neutral² c⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
+    (CTI2.reveal⊑-only² c⊢ position-present mark-eq
+      target-unoccupied representation rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
+    (CTI2.reveal⊑² c⊢ position-present member representation mono rb
+      sameγ rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
+    (CTI2.conceal⊑-neutral² c⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
+    (CTI2.conceal⊑² c⊢ position-present mark-eq target-unoccupied
+      representation rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-      rel pkg-rel q) =
-  TargetCastBound fuel rel × TargetCastBound fuel pkg-rel
+    (CTI2.reveal⊑reveal² c⊢ c′⊢ position-eq position-present
+      representation mono rb sameγ rel q) =
+  TargetCastBound fuel rel
+TargetCastBound fuel
+    (CTI2.conceal⊑conceal² c⊢ c′⊢ position-eq position-present
+      representation mono rb sameγ rel q) =
+  TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.blame⊑² M′⊢ p) = ⊤
 TargetCastBound fuel (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
   TargetCastBound fuel rel₁ × TargetCastBound fuel rel₂

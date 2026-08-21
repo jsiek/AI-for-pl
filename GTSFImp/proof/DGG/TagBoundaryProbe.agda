@@ -12,6 +12,7 @@ open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Maybe using (just)
+open import Data.Sum using (inj₁)
 open import Relation.Binary.PropositionalEquality
   using (_≢_; refl)
 open import Relation.Nullary using (¬_)
@@ -30,7 +31,9 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world;
+   emptyʷ;
+   bind-rightʷ;
+   bind-both-starʷ;
    _⊑ᵂ⟨_⟩_;
    RebaseAt;
    rebase-at;
@@ -53,7 +56,7 @@ private
 ------------------------------------------------------------------------
 
 probe-src-store : TyStore 1
-probe-src-store = store-bind store-empty ★
+probe-src-store = store-bind store-empty (‵ `ℕ)
 
 probe-tgt-store : TyStore 2
 probe-tgt-store = store-bind (store-bind store-empty ★) ★
@@ -82,30 +85,39 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 
 probe-W₁ : World 1 2 2
 probe-W₁ =
-  world η-X-a η-YY′-ab probe-μ probe-src-store probe-tgt-store
+  bind-both-starʷ
+    (bind-rightʷ emptyʷ ★ (inj₁ refl))
+    (‵ `ℕ) ★ ι⊑★ (λ ())
 
 probe-W₄ : World 1 2 2
 probe-W₄ =
-  world η-X-b η-YY′-ab probe-μ probe-src-store probe-tgt-store
+  bind-rightʷ
+    (bind-both-starʷ emptyʷ (‵ `ℕ) ★ ι⊑★ (λ ()))
+    ★ (inj₁ refl)
 
 probe-W₅ : World 1 2 2
-probe-W₅ =
-  world η-X-b η-YY′-ab probe-μ probe-src-store probe-tgt-store
+probe-W₅ = probe-W₄
 
-probe-W₁-WF : CTX.WFWorld probe-W₁
-probe-W₁-WF Fin.zero ()
+probe-W₁-WF : CTX.WorldInvariants
+  (CTX.ηᴸʷ probe-W₁) (CTX.ηᴿʷ probe-W₁) (CTX.impEnvʷ probe-W₁)
+  (CTX.sourceStoreʷ probe-W₁) (CTX.targetStoreʷ probe-W₁)
+probe-W₁-WF = CTX.invariantsʷ probe-W₁
 
-probe-W₄-WF : CTX.WFWorld probe-W₄
-probe-W₄-WF Fin.zero ()
+probe-W₄-WF : CTX.WorldInvariants
+  (CTX.ηᴸʷ probe-W₄) (CTX.ηᴿʷ probe-W₄) (CTX.impEnvʷ probe-W₄)
+  (CTX.sourceStoreʷ probe-W₄) (CTX.targetStoreʷ probe-W₄)
+probe-W₄-WF = CTX.invariantsʷ probe-W₄
 
-probe-W₅-WF : CTX.WFWorld probe-W₅
-probe-W₅-WF Fin.zero ()
+probe-W₅-WF : CTX.WorldInvariants
+  (CTX.ηᴸʷ probe-W₅) (CTX.ηᴿʷ probe-W₅) (CTX.impEnvʷ probe-W₅)
+  (CTX.sourceStoreʷ probe-W₅) (CTX.targetStoreʷ probe-W₅)
+probe-W₅-WF = CTX.invariantsʷ probe-W₅
 
 ------------------------------------------------------------------------
 -- Store typing and casts
 ------------------------------------------------------------------------
 
-probe-src-X∋ : probe-src-store ∋ X ⦂ ★
+probe-src-X∋ : probe-src-store ∋ X ⦂ (‵ `ℕ)
 probe-src-X∋ = Z∋ refl
 
 probe-tgt-Y∋ : probe-tgt-store ∋ Y ⦂ ★
@@ -114,7 +126,7 @@ probe-tgt-Y∋ = Z∋ refl
 probe-tgt-Y′∋ : probe-tgt-store ∋ Y′ ⦂ ★
 probe-tgt-Y′∋ = S-bind∋ (Z∋ refl) refl
 
-probe-X-seal-⊢ : probe-src-store Conv.⊢↓[ just X ] seal X ★
+probe-X-seal-⊢ : probe-src-store Conv.⊢↓[ just X ] seal X (‵ `ℕ)
 probe-X-seal-⊢ = Conv.⊢↓-sealˣ probe-src-X∋
 
 probe-Y-seal-⊢ : probe-tgt-store Conv.⊢↓[ just Y ] seal Y ★
@@ -145,10 +157,10 @@ private
 ------------------------------------------------------------------------
 
 probe-V₀ : Term 1
-probe-V₀ = ($ (κℕ 0)) ⟨ probe-ℕ!ᴸ ⟩
+probe-V₀ = $ (κℕ 0)
 
 probe-V : Term 1
-probe-V = probe-V₀ ↓ seal X ★
+probe-V = probe-V₀ ↓ seal X (‵ `ℕ)
 
 probe-M₅ : Term 2
 probe-M₅ = ($ (κℕ 0)) ⟨ probe-ℕ!ᴿ ⟩
@@ -164,7 +176,7 @@ probe-U = probe-M′ ⟨ probe-Y′! ⟩
 ------------------------------------------------------------------------
 
 probe-X-Y-rep₁ : CTX.StoreRepImp probe-W₁ X Y
-probe-X-Y-rep₁ = store-rep-imp ★⊑★
+probe-X-Y-rep₁ = store-rep-imp ι⊑★
 
 probe-outer-target-rebase : RebaseAt probe-W₄ probe-W₁ X Y
 probe-outer-target-rebase =
@@ -174,7 +186,7 @@ probe-outer-target-rebase =
     refl probe-X-Y-rep₁
 
 probe-X-Y′-rep₄ : CTX.StoreRepImp probe-W₄ X Y′
-probe-X-Y′-rep₄ = store-rep-imp ★⊑★
+probe-X-Y′-rep₄ = store-rep-imp ι⊑★
 
 probe-inner-target-rebase : RebaseAt probe-W₅ probe-W₄ X Y′
 probe-inner-target-rebase =
@@ -184,7 +196,7 @@ probe-inner-target-rebase =
     refl probe-X-Y′-rep₄
 
 probe-X-Y′-rep₅ : CTX.StoreRepImp probe-W₅ X Y′
-probe-X-Y′-rep₅ = store-rep-imp ★⊑★
+probe-X-Y′-rep₅ = store-rep-imp ι⊑★
 
 probe-inner-source-rebase : RebaseAt probe-W₅ probe-W₅ X Y′
 probe-inner-source-rebase =
@@ -193,6 +205,10 @@ probe-inner-source-rebase =
 probe-inner-pair-rebase : RebaseAt probe-W₄ probe-W₄ X Y′
 probe-inner-pair-rebase =
   CTX.sameWorldRebaseAt refl probe-X-Y′-rep₄
+
+probe-mono-W₁-W₄ : CTX.ImpEnvMono probe-W₁ probe-W₄
+probe-mono-W₁-W₄ =
+  CTX.imp-env-mono (λ Z mark → mark) (λ Z mark → mark)
 
 ------------------------------------------------------------------------
 -- Checkpoint 1: the interior tag-boundary input
@@ -211,18 +227,16 @@ p₅ : ＇ X ⊑ᵂ⟨ probe-W₅ ⟩ ★
 p₅ = X⊑★ refl
 
 probe-base² :
-  probe-W₅ ∣ [] ⊢² probe-V₀ ⊑ probe-M₅ ∶ ★⊑★
+  probe-W₅ ∣ [] ⊢² probe-V₀ ⊑ probe-M₅ ∶ ι⊑★
 probe-base² =
-  CTI2.cast⊑cast² probe-ℕ!ᴸ probe-ℕ!ᴿ
-    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
+  CTI2.⊑cast² probe-ℕ!ᴿ
+    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ι⊑★
 
 probe-inner-seal² :
   probe-W₄ ∣ [] ⊢² probe-V ⊑ probe-M′ ∶ pTag
 probe-inner-seal² =
   CTI2.conceal⊑conceal²
-    (CTX.matched-seal-star-partner
-      (CTX.rep★-nonvar-tag nonvar-base))
-    (λ _ eq → eq) probe-inner-pair-rebase
+    CTX.impEnvMono-refl probe-inner-pair-rebase
     CTX.same-[] probe-X-seal-⊢ probe-Y′-seal-⊢ probe-base² pTag
 
 probe-tag² :
@@ -232,7 +246,7 @@ probe-tag² = CTI2.⊑cast² probe-Y′! probe-inner-seal² p₄
 probe-input :
   probe-W₁ ∣ [] ⊢² probe-V ⊑ (probe-U ↓ seal Y ★) ∶ pIn
 probe-input =
-  CTI2.⊑conceal² (λ _ eq → eq)
+  CTI2.⊑conceal² probe-mono-W₁-W₄
     (CTX.rebase-varᴿ probe-outer-target-rebase)
     CTX.same-[] probe-Y-seal-⊢ probe-tag² pIn
 
@@ -246,12 +260,6 @@ qOut = X⊑X
 probe-no-output :
   ¬ (probe-W₁ ∣ [] ⊢² probe-V ⊑ probe-U ∶ qOut)
 probe-no-output
-    (CTI2.conceal⊑²-seal-star-open {p = p}
-      no-target mono rb sc c⊢ prem q) with p
+    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) with p
 probe-no-output
-    (CTI2.conceal⊑²-seal-star-open {p = p}
-      no-target mono rb sc c⊢ prem q) | ()
-probe-no-output
-    (CTI2.conceal⊑²-source-ok {p = p} ok mono rb sc c⊢ prem q) with p
-probe-no-output
-    (CTI2.conceal⊑²-source-ok {p = p} ok mono rb sc c⊢ prem q) | ()
+    (CTI2.conceal⊑² {p = p} mono rb sc c⊢ prem q) | ()

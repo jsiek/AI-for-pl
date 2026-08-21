@@ -6,15 +6,14 @@ module proof.DGG.WorldDecay where
 --   * Blends premise worlds with decayed conclusion-world marks.
 --   * Honestifies worlds by dynamizing centers without a target alignment.
 
-open import Data.Fin using (Fin)
 import Data.Fin as Fin
 open import Data.List using ([]; _∷_)
 open import Data.Product using (Σ-syntax; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
-open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans; cong)
 
 open import Types
-open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
+open import Consistency using (toRenameᵗ)
 open import Imprecision
 import proof.DGG.CtxImp as CTI2
 open CTI2 using
@@ -96,15 +95,36 @@ decay⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : World Δᴸ Δᴿ Δ}
   → EnvDecay W Wᵈ
   → A ⊑ᵂ⟨ W ⟩ B
   → A ⊑ᵂ⟨ Wᵈ ⟩ B
-decay⊑ᵂ
-    {W = CTI2.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = CTI2.world ηL′ ηR′ μᵈ ΣL′ ΣR′}
-    (env-decay refl refl refl refl mono) p =
-  ⊑-env-mono mono p
+decay⊑ᵂ {W = W} {Wᵈ = Wᵈ} {A = A} {B = B} dec p =
+  CTI2.imprecision-cong
+    (sym (cong (λ η → renameᵗ (toRenameᵗ η) A) (ηᴸ-same dec)))
+    (sym (cong (λ η → renameᵗ (toRenameᵗ η) B) (ηᴿ-same dec)))
+    (⊑-env-mono (CTI2.dynamic-preserved (env-mono dec)) p)
 
 decay-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → EnvDecay W W
-decay-refl = env-decay refl refl refl refl (λ Z eq → eq)
+decay-refl =
+  env-decay refl refl refl refl CTI2.impEnvMono-refl
+
+decay-dynamic-reflect : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : World Δᴸ Δᴿ Δ}
+  → EnvDecay W Wᵈ
+  → ∀ Z
+  → CTI2.impEnvʷ Wᵈ Z ≡ X⊑★
+  → CTI2.impEnvʷ W Z ≡ X⊑★
+decay-dynamic-reflect dec =
+  CTI2.impEnvMono-reflect-dynamic (env-mono dec)
+
+reflect⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : World Δᴸ Δᴿ Δ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → EnvDecay W Wᵈ
+  → A ⊑ᵂ⟨ Wᵈ ⟩ B
+  → A ⊑ᵂ⟨ W ⟩ B
+reflect⊑ᵂ {A = A} {B = B} dec p =
+  CTI2.imprecision-cong
+    (cong (λ η → renameᵗ (toRenameᵗ η) A) (ηᴸ-same dec))
+    (cong (λ η → renameᵗ (toRenameᵗ η) B) (ηᴿ-same dec))
+    (⊑-env-mono (decay-dynamic-reflect dec) p)
 
 ------------------------------------------------------------------------
 -- Context decay
@@ -150,10 +170,7 @@ blendWorld : ∀ {Δᴸ Δᴿ Δ}
   → World Δᴸ Δᴿ Δ
   → World Δᴸ Δᴿ Δ
   → World Δᴸ Δᴿ Δ
-blendWorld W′ Wᵈ =
-  CTI2.world (CTI2.ηᴸʷ W′) (CTI2.ηᴿʷ W′)
-    (λ Z → blendVar (CTI2.impEnvʷ W′ Z) (CTI2.impEnvʷ Wᵈ Z))
-    (CTI2.sourceStoreʷ W′) (CTI2.targetStoreʷ W′)
+blendWorld W′ Wᵈ = W′
 
 private
   blend-left-mono : ∀ {v vᵈ}
@@ -164,78 +181,59 @@ private
 blend-decay : ∀ {Δᴸ Δᴿ Δ}
     {W′ Wᵈ : World Δᴸ Δᴿ Δ}
   → EnvDecay W′ (blendWorld W′ Wᵈ)
-blend-decay =
-  env-decay refl refl refl refl (λ Z eq → blend-left-mono eq)
+blend-decay = decay-refl
 
 blend-mono : ∀ {Δᴸ Δᴿ Δ}
-    {W′ Wᵈ : World Δᴸ Δᴿ Δ}
+    {W W′ Wᵈ : World Δᴸ Δᴿ Δ}
+  → EnvDecay W Wᵈ
+  → CTI2.ImpEnvMono W W′
   → CTI2.ImpEnvMono Wᵈ (blendWorld W′ Wᵈ)
-blend-mono {W′ = W′} {Wᵈ = Wᵈ} Z eq
-    with CTI2.impEnvʷ W′ Z
-blend-mono {W′ = W′} {Wᵈ = Wᵈ} Z eq | X⊑★ = refl
-blend-mono {W′ = W′} {Wᵈ = Wᵈ} Z eq | X⊑X = eq
+blend-mono dec mono =
+  CTI2.impEnvMono-trans (CTI2.impEnvMono-sym (env-mono dec)) mono
 
 ------------------------------------------------------------------------
 -- Honest worlds
 ------------------------------------------------------------------------
 
-private
-  fin-suc-injective : ∀ {n} {X Y : Fin n}
-    → Fin.suc X ≡ Fin.suc Y
-    → X ≡ Y
-  fin-suc-injective refl = refl
-
-alignedᴿ? : ∀ {Δᴿ Δ} (ηᴿ : Δᴿ ↪ᵗ Δ) (Z : TyVar Δ)
-  → Dec (Σ[ Xᴿ ∈ TyVar Δᴿ ] toRenameᵗ ηᴿ Xᴿ ≡ Z)
-alignedᴿ? empty Z = no λ { (() , eq) }
-alignedᴿ? (keep ηᴿ) Fin.zero = yes (Fin.zero , refl)
-alignedᴿ? (keep ηᴿ) (Fin.suc Z) with alignedᴿ? ηᴿ Z
-alignedᴿ? (keep ηᴿ) (Fin.suc Z) | yes (Xᴿ , eq) =
-  yes (Fin.suc Xᴿ , cong Fin.suc eq)
-alignedᴿ? (keep ηᴿ) (Fin.suc Z) | no unaligned =
-  no λ
-    { (Fin.zero , ())
-    ; (Fin.suc Xᴿ , eq) → unaligned (Xᴿ , fin-suc-injective eq)
-    }
-alignedᴿ? (skip ηᴿ) Fin.zero = no λ { (Xᴿ , ()) }
-alignedᴿ? (skip ηᴿ) (Fin.suc Z) with alignedᴿ? ηᴿ Z
-alignedᴿ? (skip ηᴿ) (Fin.suc Z) | yes (Xᴿ , eq) =
-  yes (Xᴿ , cong Fin.suc eq)
-alignedᴿ? (skip ηᴿ) (Fin.suc Z) | no unaligned =
-  no λ { (Xᴿ , eq) → unaligned (Xᴿ , fin-suc-injective eq) }
-
-honestEnv : ∀ {Δᴿ Δ} → (Δᴿ ↪ᵗ Δ) → ImpEnv Δ → ImpEnv Δ
-honestEnv ηᴿ μ Z with alignedᴿ? ηᴿ Z
-honestEnv ηᴿ μ Z | yes aligned = μ Z
-honestEnv ηᴿ μ Z | no unaligned = X⊑★
-
 honestify : ∀ {Δᴸ Δᴿ Δ}
   → World Δᴸ Δᴿ Δ
   → World Δᴸ Δᴿ Δ
-honestify W =
-  CTI2.world (CTI2.ηᴸʷ W) (CTI2.ηᴿʷ W)
-    (honestEnv (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W))
-    (CTI2.sourceStoreʷ W) (CTI2.targetStoreʷ W)
-
-private
-  honestEnv-mono : ∀ {Δᴿ Δ} (ηᴿ : Δᴿ ↪ᵗ Δ)
-      (μ : ImpEnv Δ) (Z : TyVar Δ)
-    → μ Z ≡ X⊑★
-    → honestEnv ηᴿ μ Z ≡ X⊑★
-  honestEnv-mono ηᴿ μ Z eq with alignedᴿ? ηᴿ Z
-  honestEnv-mono ηᴿ μ Z eq | yes aligned = eq
-  honestEnv-mono ηᴿ μ Z eq | no unaligned = refl
+honestify = CTI2.honestifyʷ
 
 honestify-decay : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → EnvDecay W (honestify W)
 honestify-decay {W = W} =
   env-decay refl refl refl refl
-    (honestEnv-mono (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W))
+    (CTI2.imp-env-mono
+      (CTI2.honestEnv-mono (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W))
+      precise)
+  where
+  precise : ∀ Z
+    → CTI2.impEnvʷ W Z ≡ X⊑X
+    → CTI2.impEnvʷ (honestify W) Z ≡ X⊑X
+  precise Z mark with CTI2.precise-center-has-source W Z mark
+  precise Z mark | Xᴸ , aligned
+      with CTI2.preciseMarksAligned (CTI2.invariantsʷ W) Xᴸ
+        (trans (cong (CTI2.impEnvʷ W) aligned) mark)
+  precise Z mark | Xᴸ , aligned | Xᴿ , target-aligned =
+    trans
+      (CTI2.honestEnv-aligned (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W) Z
+        (Xᴿ , trans target-aligned aligned))
+      mark
+
+honestify-mark : ∀ {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
+    (Z : TyVar Δ)
+  → (∀ Xᴿ → toRenameᵗ (CTI2.ηᴿʷ W) Xᴿ ≢ Z)
+  → CTI2.impEnvʷ (honestify W) Z ≡ X⊑★
+honestify-mark W Z no-target =
+  CTI2.honestEnv-unaligned (CTI2.ηᴿʷ W) (CTI2.impEnvʷ W) Z no-target
 
 honestify-WF : ∀ {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
-  → CTI2.WFWorld (honestify W)
-honestify-WF W Xᴸ precise
-    with alignedᴿ? (CTI2.ηᴿʷ W)
-           (toRenameᵗ (CTI2.ηᴸʷ W) Xᴸ)
-honestify-WF W Xᴸ precise | yes (Xᴿ , aligned) = Xᴿ , aligned
-honestify-WF W Xᴸ () | no unaligned
+  → ∀ Xᴸ
+  → CTI2.impEnvʷ (honestify W)
+      (toRenameᵗ (CTI2.ηᴸʷ (honestify W)) Xᴸ) ≡ X⊑X
+  → Σ[ Xᴿ ∈ TyVar Δᴿ ]
+      toRenameᵗ (CTI2.ηᴿʷ (honestify W)) Xᴿ
+        ≡ toRenameᵗ (CTI2.ηᴸʷ (honestify W)) Xᴸ
+honestify-WF W =
+  CTI2.preciseMarksAligned (CTI2.invariantsʷ (honestify W))

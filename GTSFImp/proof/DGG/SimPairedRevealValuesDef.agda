@@ -2,6 +2,7 @@ module proof.DGG.SimPairedRevealValuesDef where
 
 -- File Charter:
 --   * States paired reveal closing after both bodies are related values.
+--   * Exposes generator representations and structural-position agreement.
 --   * Takes the catchup result as evidence; it does not perform catchup.
 --   * Contains no paired-reveal value proof.
 
@@ -9,6 +10,7 @@ open import Data.Fin using (Fin)
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types using (Ty; TyCtx)
 open import Conversion using (Conv↑)
@@ -24,6 +26,8 @@ open import Reduction using
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; revealGeneratorPosition)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
@@ -45,13 +49,17 @@ SimPairedRevealValuesᵀ =
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
     {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
+    {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
     {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
   → ParkedWorld W
+  → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (c′⊢ : targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+  → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+  → revealGeneratorPosition c⊢ ≢ generator-absent
+  → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
   → (mono : ImpEnvMono W Wᵖ)
   → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-  → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
-  → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : B ⊑ᵂ⟨ W ⟩ B′)
   → Value V

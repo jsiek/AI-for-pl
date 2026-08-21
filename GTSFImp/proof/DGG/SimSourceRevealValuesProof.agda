@@ -39,6 +39,8 @@ open import proof.DGG.CatchupToMorePreciseDef
     ; source-reveal-boundary
     ; targetPivotᴸ
     )
+open import proof.DGG.ConversionPivotAlignment
+  using (generatorBoundaryPivot; revealGeneratorPosition)
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve; evolve-keepᴸ)
 open CTX using
@@ -55,13 +57,6 @@ open import proof.Reduction.ValueIrreducibleProof
   using (value-no-step)
 
 
-SourceRevealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ [] ⊢² M ⊑ M′ ∶ p → Set
-SourceRevealRel (CTI2.reveal⊑² _ _ _ _ _ _) = ⊤
-SourceRevealRel _ = Data.Empty.⊥
-
 ConcealRevealStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
   → M —→[ χ ] N → Set
@@ -75,21 +70,24 @@ record SimSourceRevealValuesResiduals : Set₁ where
         {W Wᵖ : World Δᴸ Δᴿ Δ}
         {χᴸ : StoreChange Δᴸ Δᴸ′}
         {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-        {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
-        {Xᴸ? : Maybe (TyVar Δᴸ)} {c : Conv↑ Δᴸ A A′}
+        {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ}
+        {Xᴸ : TyVar Δᴸ}
+        {c : Conv↑ Δᴸ A A′}
         {q : A′ ⊑ᵂ⟨ W ⟩ B}
       → ParkedWorld W
       → (mono : ImpEnvMono W Wᵖ)
-      → (rebase : RebaseAtᴸ W Wᵖ Xᴸ?)
-      → sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
-      → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ∶ q)
-      → SourceRevealRel rel
+      → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+      → (rebase : RebaseAtᴸ W Wᵖ
+          (generatorBoundaryPivot Xᴸ (revealGeneratorPosition c⊢)))
+      → W ∣ [] ⊢² V ↑ c ⊑ M′ ∶ q
       → Value V
       → (step : V ↑ c —→[ χᴸ ] N)
       → ConcealRevealStep step
       → ValueCatchupResult
           {W = W} {Wᵖ = Wᵖ} {kind = source-reveal-boundary}
-          {Xᴸ? = Xᴸ?} {Xᴿ? = targetPivotᴸ rebase}
+          {Xᴸ? = generatorBoundaryPivot Xᴸ
+            (revealGeneratorPosition c⊢)}
+          {Xᴿ? = targetPivotᴸ rebase}
           {V = V} {M′ = M′} {A = A} {B = B}
       → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
         Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
@@ -102,20 +100,33 @@ record SimSourceRevealValuesResiduals : Set₁ where
 
 sim-source-reveal-values-with :
   SimSourceRevealValuesResiduals → SimSourceRevealValuesᵀ
-sim-source-reveal-values-with residuals _ _ CTX.rebase-idᴸ
-    Conv.⊢↑-idˣ _ _ vV (pure-step (id-reveal _))
+sim-source-reveal-values-with residuals _ _ (Conv.⊢↑-id-var _ _)
+    CTX.rebase-idᴸ _ _ _ vV (pure-step (id-reveal _))
     (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
       boundary-source-reveal _ CTX.tag-rebase-idᴸ , q′ ,
       _ , M′↠V′ , _ , evol , _ , _ , rel′) =
   Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , q′ ,
   M′↠V′ , evolve-keepᴸ evol , rel′
-sim-source-reveal-values-with residuals parked mono rebase c⊢
-    rel q vV step@(pure-step (conceal-reveal _)) caught =
+sim-source-reveal-values-with residuals _ _ (Conv.⊢↑-id-base _)
+    CTX.rebase-idᴸ _ _ _ vV (pure-step (id-reveal _))
+    (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
+      boundary-source-reveal _ CTX.tag-rebase-idᴸ , q′ ,
+      _ , M′↠V′ , _ , evol , _ , _ , rel′) =
+  Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , q′ ,
+  M′↠V′ , evolve-keepᴸ evol , rel′
+sim-source-reveal-values-with residuals _ _ (Conv.⊢↑-id-star _)
+    CTX.rebase-idᴸ _ _ _ vV (pure-step (id-reveal _))
+    (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
+      boundary-source-reveal _ CTX.tag-rebase-idᴸ , q′ ,
+      _ , M′↠V′ , _ , evol , _ , _ , rel′) =
+  Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , q′ ,
+  M′↠V′ , evolve-keepᴸ evol , rel′
+sim-source-reveal-values-with residuals parked mono c⊢ rebase
+    rel q whole vV step@(pure-step (conceal-reveal _)) caught =
   SimSourceRevealValuesResiduals.source-conceal-reveal-row residuals
-    parked mono rebase c⊢
-    (CTI2.reveal⊑² mono rebase same-[] c⊢ rel q) tt
-    vV step tt caught
-sim-source-reveal-values-with residuals _ _ _ _ _ _ ()
+    parked mono c⊢ rebase whole vV step tt caught
+sim-source-reveal-values-with residuals _ _ _ _ _ _ _ ()
     (pure-step blame-reveal) _
-sim-source-reveal-values-with residuals _ _ _ _ _ _ vV (ξ-reveal step _) _ =
+sim-source-reveal-values-with residuals _ _ _ _ _ _ _ vV
+    (ξ-reveal step _) _ =
   ⊥-elim (value-no-step vV step)

@@ -11,6 +11,8 @@ open import Imprecision using (VarImp)
 open import CastTerms using (Term)
 import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
+open import proof.DGG.Catchup.StructuralWorldExtendDef using
+  (StructuralRebaseAtᴸReplay)
 open import proof.DGG.Catchup.StructuralWorldRebaseProof
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
@@ -25,13 +27,13 @@ structural-target-lift-left : ∀ {Δᴸ Δᴿ Δ}
     {B E : Ty Δᴿ} {spine : InstantiationSpine B E}
   → (v : VarImp)
   → StructuralTargetInstantiationPackage W V spine
-  → StructuralTargetInstantiationPackage (CTI2.liftWorldLeft v W)
+  → StructuralTargetInstantiationPackage (CTI2.liftWorldLeft W)
       V spine
 structural-target-lift-left v pkg = record
   { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ pkg
   ; χs = StructuralTargetInstantiationPackage.χs pkg
   ; Δ′ = suc (StructuralTargetInstantiationPackage.Δ′ pkg)
-  ; W′ = CTI2.liftWorldLeft v
+  ; W′ = CTI2.liftWorldLeft
       (StructuralTargetInstantiationPackage.W′ pkg)
   ; structural-ext = structural-lift-left
       (StructuralTargetInstantiationPackage.structural-ext pkg) v
@@ -71,13 +73,15 @@ structural-target-rebase-left : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
     {Xᴸ?} {V : Term Δᴿ} {B E : Ty Δᴿ}
     {spine : InstantiationSpine B E}
-  → CTI2.RebaseAtᴸ W Wᵖ Xᴸ?
-  → StructuralTargetInstantiationPackage W V spine
-  → StructuralTargetInstantiationPackage Wᵖ V spine
-structural-target-rebase-left rb pkg
-    with structural-rebase-atᴸ
+  → (rb : CTI2.RebaseAtᴸ W Wᵖ Xᴸ?)
+  → (pkg : StructuralTargetInstantiationPackage W V spine)
+  → StructuralRebaseAtᴸReplay
       (StructuralTargetInstantiationPackage.structural-ext pkg) rb
-structural-target-rebase-left rb pkg
+  → StructuralTargetInstantiationPackage Wᵖ V spine
+structural-target-rebase-left rb pkg replay
+    with structural-rebase-atᴸ
+      (StructuralTargetInstantiationPackage.structural-ext pkg) rb replay
+structural-target-rebase-left rb pkg replay
     | record { premise-plan = planᵖ } = record
   { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ pkg
   ; χs = StructuralTargetInstantiationPackage.χs pkg
@@ -95,13 +99,15 @@ structural-target-tag-rebase-left : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
     {Xᴸ? Xᴿ?} {V : Term Δᴿ} {B E : Ty Δᴿ}
     {spine : InstantiationSpine B E}
-  → CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
-  → StructuralTargetInstantiationPackage W V spine
-  → StructuralTargetInstantiationPackage Wᵖ V spine
-structural-target-tag-rebase-left rb pkg
-    with structural-tag-rebase-atᴸ
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → (pkg : StructuralTargetInstantiationPackage W V spine)
+  → StructuralTagRebaseAtᴸReplay
       (StructuralTargetInstantiationPackage.structural-ext pkg) rb
-structural-target-tag-rebase-left rb pkg
+  → StructuralTargetInstantiationPackage Wᵖ V spine
+structural-target-tag-rebase-left rb pkg replay
+    with structural-tag-rebase-atᴸ
+      (StructuralTargetInstantiationPackage.structural-ext pkg) rb replay
+structural-target-tag-rebase-left rb pkg replay
     | record { premise-plan = planᵖ } = record
   { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ pkg
   ; χs = StructuralTargetInstantiationPackage.χs pkg

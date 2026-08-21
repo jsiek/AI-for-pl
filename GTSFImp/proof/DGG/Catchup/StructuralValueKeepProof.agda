@@ -10,9 +10,7 @@ module proof.DGG.Catchup.StructuralValueKeepProof where
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (_∷_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; sym)
-  renaming (subst to subst≡)
+open import Relation.Binary.PropositionalEquality using (refl)
 
 open import Types using (Ty; TyVar)
 open import Conversion using (Conv↑; Conv↓; seal; unseal; id↑; id↓)
@@ -25,76 +23,14 @@ open import Reduction using
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
-open CTX using (World; CtxImp; SameCtx; _⊑ᵂ⟨_⟩_)
+open CTX using (World; CtxImp; _⊑ᵂ⟨_⟩_)
 open CTI2 using (_∣_⊢²_⊑_∶_)
-import proof.Imprecision as PI
 open import proof.DGG.Catchup.StructuralCatchupRightDef using
   (SourceΛReplayStack; source-Λ-stack-id; source-Λ-stack-plain;
    source-Λ-stack-smart; source-Λ-stack-replay-here)
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof using
   (value-no-step)
-open import proof.DGG.TargetBindLift using (⊢²-retarget)
-
-
-ctx-imp-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p p′ : A ⊑ᵂ⟨ W ⟩ B}
-  → CTX.ctx-imp A B p ≡ CTX.ctx-imp A B p′
-ctx-imp-eq {W = W} {A = A} {B = B} {p = p} {p′ = p′} =
-  cong (λ r → CTX.ctx-imp {W = W} A B r) (PI.⊑-unique p p′)
-
-
-sameCtx-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ γ′ : CtxImp W}
-  → SameCtx γ γ′
-  → γ ≡ γ′
-sameCtx-eq CTX.same-[] = refl
-sameCtx-eq (CTX.same-∷ sc) =
-  cong₂ _∷_ ctx-imp-eq (sameCtx-eq sc)
-
-
-sameCtx-transport : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ γ′ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → SameCtx γ γ′
-  → W ∣ γ′ ⊢² M ⊑ N ∶ p
-  → W ∣ γ ⊢² M ⊑ N ∶ p
-sameCtx-transport {W = W} {γ = γ} {M = M} {N = N} {p = p} sc rel =
-  subst≡ (λ γ₀ → W ∣ γ₀ ⊢² M ⊑ N ∶ p)
-    (sym (sameCtx-eq sc)) rel
-
-
-source-conceal-ok-target-id-reveal : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ?} {N : Term Δᴿ} {B : Ty Δᴿ}
-  → CTX.SourceConcealOK W P c Xᴿ? (N ↑ id↑ B)
-  → CTX.SourceConcealOK W P c Xᴿ? N
-source-conceal-ok-target-id-reveal
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns no-target
-source-conceal-ok-target-id-reveal CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-source-conceal-ok-target-id-reveal CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-source-conceal-ok-target-id-reveal CTX.id-conceal-ok =
-  CTX.id-conceal-ok
-
-
-source-conceal-ok-target-id-conceal : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ?} {N : Term Δᴿ} {B : Ty Δᴿ}
-  → CTX.SourceConcealOK W P c Xᴿ? (N ↓ id↓ B)
-  → CTX.SourceConcealOK W P c Xᴿ? N
-source-conceal-ok-target-id-conceal
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns no-target
-source-conceal-ok-target-id-conceal CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-source-conceal-ok-target-id-conceal CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-source-conceal-ok-target-id-conceal CTX.id-conceal-ok =
-  CTX.id-conceal-ok
+open import proof.DGG.TargetExtend using (⊢²-retarget)
 
 
 record StructuralValueKeepResiduals : Set₁ where
@@ -127,10 +63,15 @@ source-stack-target-id-reveal-strip : ∀ {Δᴸ₀ Δᴿ Δ₀}
   → W ∣ γ ⊢² M ⊑ N ↑ id↑ B ∶ q
   → W₀ ∣ γ₀ ⊢² M₀ ⊑ N ∶ q₀
 source-stack-target-id-reveal-strip stack vM vN
-    (CTI2.⊑reveal² {p = p} mono CTX.rebase-idᴿ sc
-      Conv.⊢↑-idˣ rel q) =
+    (CTI2.⊑reveal² {p = p} (Conv.⊢↑-id-var member X≠Y) refl rel q) =
+  source-Λ-stack-replay-here stack (⊢²-retarget rel)
+source-stack-target-id-reveal-strip stack vM vN
+    (CTI2.⊑reveal² {p = p} (Conv.⊢↑-id-base member) refl rel q) =
+  source-Λ-stack-replay-here stack (⊢²-retarget rel)
+source-stack-target-id-reveal-strip stack vM vN
+    (CTI2.⊑reveal² {p = p} (Conv.⊢↑-id-star member) refl rel q) =
   source-Λ-stack-replay-here stack
-    (⊢²-retarget (sameCtx-transport sc rel))
+    (⊢²-retarget rel)
 source-stack-target-id-reveal-strip stack (CT.Λ vM) vN
     (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ rel q) =
   source-stack-target-id-reveal-strip
@@ -146,25 +87,48 @@ source-stack-target-id-reveal-strip stack (vM CT.《 inert 》) vN
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
-    (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
+    (CTI2.reveal⊑-neutral² c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.reveal⊑² mono rb sc c⊢
+    (CTI2.reveal⊑-neutral² c⊢ position
+      (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
+      q)
+source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
+    (CTI2.reveal⊑-only² c⊢ position mark disaligned represented rel q) =
+  source-Λ-stack-replay-here stack
+    (CTI2.reveal⊑-only² c⊢ position mark disaligned represented
+      (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
+      q)
+source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
+    (CTI2.reveal⊑² c⊢ position target-member represented mono rb sc
+      rel q) =
+  source-Λ-stack-replay-here stack
+    (CTI2.reveal⊑² c⊢ position target-member represented mono rb sc
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-seal-star-open
-      no-target mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑-neutral² c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+    (CTI2.conceal⊑-neutral² c⊢ position
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑² c⊢ position mark disaligned represented rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-source-ok
-      (source-conceal-ok-target-id-reveal ok) mono rb sc c⊢
+    (CTI2.conceal⊑² c⊢ position mark disaligned represented
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
+source-stack-target-id-reveal-strip stack vM vN
+    (CTI2.reveal⊑reveal² c⊢ (Conv.⊢↑-id-var member X≠Y)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
+source-stack-target-id-reveal-strip stack vM vN
+    (CTI2.reveal⊑reveal² c⊢ (Conv.⊢↑-id-base member)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
+source-stack-target-id-reveal-strip stack vM vN
+    (CTI2.reveal⊑reveal² c⊢ (Conv.⊢↑-id-star member)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
 
 
 source-stack-target-id-conceal-strip : ∀ {Δᴸ₀ Δᴿ Δ₀}
@@ -180,10 +144,15 @@ source-stack-target-id-conceal-strip : ∀ {Δᴸ₀ Δᴿ Δ₀}
   → W ∣ γ ⊢² M ⊑ N ↓ id↓ B ∶ q
   → W₀ ∣ γ₀ ⊢² M₀ ⊑ N ∶ q₀
 source-stack-target-id-conceal-strip stack vM vN
-    (CTI2.⊑conceal² {p = p} mono CTX.rebase-idᴿ sc
-      Conv.⊢↓-idˣ rel q) =
+    (CTI2.⊑conceal² {p = p} (Conv.⊢↓-id-var member X≠Y) refl rel q) =
+  source-Λ-stack-replay-here stack (⊢²-retarget rel)
+source-stack-target-id-conceal-strip stack vM vN
+    (CTI2.⊑conceal² {p = p} (Conv.⊢↓-id-base member) refl rel q) =
+  source-Λ-stack-replay-here stack (⊢²-retarget rel)
+source-stack-target-id-conceal-strip stack vM vN
+    (CTI2.⊑conceal² {p = p} (Conv.⊢↓-id-star member) refl rel q) =
   source-Λ-stack-replay-here stack
-    (⊢²-retarget (sameCtx-transport sc rel))
+    (⊢²-retarget rel)
 source-stack-target-id-conceal-strip stack (CT.Λ vM) vN
     (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ rel q) =
   source-stack-target-id-conceal-strip
@@ -199,25 +168,48 @@ source-stack-target-id-conceal-strip stack (vM CT.《 inert 》) vN
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
-    (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
+    (CTI2.reveal⊑-neutral² c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.reveal⊑² mono rb sc c⊢
+    (CTI2.reveal⊑-neutral² c⊢ position
+      (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
+      q)
+source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
+    (CTI2.reveal⊑-only² c⊢ position mark disaligned represented rel q) =
+  source-Λ-stack-replay-here stack
+    (CTI2.reveal⊑-only² c⊢ position mark disaligned represented
+      (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
+      q)
+source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
+    (CTI2.reveal⊑² c⊢ position target-member represented mono rb sc
+      rel q) =
+  source-Λ-stack-replay-here stack
+    (CTI2.reveal⊑² c⊢ position target-member represented mono rb sc
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-seal-star-open
-      no-target mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑-neutral² c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+    (CTI2.conceal⊑-neutral² c⊢ position
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑² c⊢ position mark disaligned represented rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-source-ok
-      (source-conceal-ok-target-id-conceal ok) mono rb sc c⊢
+    (CTI2.conceal⊑² c⊢ position mark disaligned represented
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
+source-stack-target-id-conceal-strip stack vM vN
+    (CTI2.conceal⊑conceal² c⊢ (Conv.⊢↓-id-var member X≠Y)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
+source-stack-target-id-conceal-strip stack vM vN
+    (CTI2.conceal⊑conceal² c⊢ (Conv.⊢↓-id-base member)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
+source-stack-target-id-conceal-strip stack vM vN
+    (CTI2.conceal⊑conceal² c⊢ (Conv.⊢↓-id-star member)
+      positions position≢absent represented mono rb sc rel q) =
+  ⊥-elim (position≢absent positions)
 
 
 source-stack-target-reveal-keep :

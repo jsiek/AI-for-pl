@@ -44,32 +44,35 @@ import proof.DGG.Parked.ParkedWorldLemma as PWL
 
 
 right-bind-world-extendᴿ : RightBindWorldExtendᴿᵀ
-right-bind-world-extendᴿ =
+right-bind-world-extendᴿ fresh =
   PWL.right-only-parked→world-extendᴿ
-    (PWD.evolve-right-bind PWD.evolve-refl)
+    (PWD.evolve-right-bind {fresh = fresh} PWD.evolve-refl)
 
 
 right-bind-keep-world-extendᴿ : RightBindKeepWorldExtendᴿᵀ
-right-bind-keep-world-extendᴿ =
+right-bind-keep-world-extendᴿ fresh =
   PWL.right-only-parked→world-extendᴿ
-    (PWD.evolve-right-bind (PWD.evolve-keepᴿ PWD.evolve-refl))
+    (PWD.evolve-right-bind {fresh = fresh}
+      (PWD.evolve-keepᴿ PWD.evolve-refl))
 
 
 right-bind-right-bind-world-extendᴿ :
   RightBindRightBindWorldExtendᴿᵀ
-right-bind-right-bind-world-extendᴿ =
+right-bind-right-bind-world-extendᴿ freshB freshC =
   PWL.right-only-parked→world-extendᴿ
-    (PWD.evolve-right-bind (PWD.evolve-right-bind PWD.evolve-refl))
+    (PWD.evolve-right-bind {fresh = freshB}
+      (PWD.evolve-right-bind {fresh = freshC} PWD.evolve-refl))
 
 
 right-bind-transport⊑ᵂ : RightBindTransport⊑ᵂᵀ
-right-bind-transport⊑ᵂ {W = W} {B′ = B′} p =
-  ECR.transport⊑ᵂ (right-bind-world-extendᴿ {W = W} {B = B′}) p
+right-bind-transport⊑ᵂ {W = W} {B′ = B′} fresh p =
+  ECR.transport⊑ᵂ
+    (right-bind-world-extendᴿ {W = W} {B = B′} fresh) p
 
 
 right-bind-mapCtxᴿ : RightBindMapCtxᴿᵀ
-right-bind-mapCtxᴿ {W = W} {B = B} γ =
-  ECR.mapCtxᴿ (right-bind-world-extendᴿ {W = W} {B = B}) γ
+right-bind-mapCtxᴿ {W = W} {B = B} fresh γ =
+  ECR.mapCtxᴿ (right-bind-world-extendᴿ {W = W} {B = B} fresh) γ
 
 
 generated-reveal-value : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}

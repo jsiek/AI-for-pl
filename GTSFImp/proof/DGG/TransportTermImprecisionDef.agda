@@ -12,11 +12,13 @@ open import Data.List using ([])
 import Data.Fin as Fin
 
 open import Types using (Ty; ＇_)
+open import Consistency using (_↪ᵗ_)
 open import Imprecision using (X⊑X; X⊑★)
 open import CastTerms using (Term)
 open import Reduction using (StoreChanges; bind; applyTerm; applyTerms)
 import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision as CTIR
+import proof.DGG.TargetExtend as TE
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedEvolve; evolve-refl; evolve-left-bind; evolve-both-bind)
 open import proof.DGG.Parked.ParkedWorldLemma using (mapCtxᴾ; transport⊑ᴾ)
@@ -25,6 +27,21 @@ open CTI2 using
    CtxImp;
    _⊑ᵂ⟨_⟩_)
 open CTIR using (_∣_⊢²_⊑_∶_)
+
+
+TargetInsertProvenanceᵀ : Set
+TargetInsertProvenanceᵀ =
+  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ}
+    {γ : CtxImp W}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ B}
+  → (W′ : World Δᴸ Δᴿ′ Δ′)
+  → (ins : TE.TargetInsert ρ π W W′)
+  → (M⊑M′ : W ∣ γ ⊢² M ⊑ M′ ∶ p)
+  → TE.TargetInsertProvenance W′ ins M⊑M′
 
 
 SourceBindTransport²ᵀ : Set
@@ -36,7 +53,7 @@ SourceBindTransport²ᵀ =
     {A A₀ : Ty Δᴸ} {B : Ty Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B}
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
-  → CTI2.leftOnlyWorld X⊑★ W A₀
+  → CTI2.leftOnlyWorld W A₀
       ∣ mapCtxᴾ (evolve-left-bind {W = W} {A = A₀} evolve-refl) γ
       ⊢² applyTerm (bind A₀) M ⊑ M′
         ∶ transport⊑ᴾ
@@ -51,15 +68,16 @@ BothBindTransport²ᵀ =
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A A₀ : Ty Δᴸ} {B B₀ : Ty Δᴿ}
     {p : A ⊑ᵂ⟨ W ⟩ B}
-  → (＇ Fin.zero) ⊑ᵂ⟨ CTI2.bothBindWorld X⊑X W A₀ B₀ ⟩
-      (＇ Fin.zero)
+  → (bind-p : A₀ ⊑ᵂ⟨ W ⟩ B₀)
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
-  → CTI2.bothBindWorld X⊑X W A₀ B₀
+  → CTI2.bothBindWorld W A₀ B₀ bind-p
       ∣ mapCtxᴾ
-          (evolve-both-bind {W = W} {A = A₀} {B = B₀} evolve-refl) γ
+          (evolve-both-bind {W = W} {A = A₀} {B = B₀}
+            {p = bind-p} evolve-refl) γ
       ⊢² applyTerm (bind A₀) M ⊑ applyTerm (bind B₀) M′
       ∶ transport⊑ᴾ
-            (evolve-both-bind {W = W} {A = A₀} {B = B₀} evolve-refl) p
+            (evolve-both-bind {W = W} {A = A₀} {B = B₀}
+              {p = bind-p} evolve-refl) p
 
 
 TransportTermImprecisionCtxᴾᵀ : Set

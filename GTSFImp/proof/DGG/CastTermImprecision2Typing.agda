@@ -6,7 +6,8 @@ module proof.DGG.CastTermImprecision2Typing where
 --   * Provides the target projection needed by canonical-value inversion in
 --     ExtraCastRight2, transporting typing across SameCtx and pivot-local
 --     rebases whose runtime stores are unchanged.
---   * Erases optional-pivot conversion typing to ordinary store validity.
+--   * Reads generator-indexed conversion typing directly from each boundary
+--     constructor, including neutral, source-only, and paired conversions.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
@@ -15,14 +16,9 @@ open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 
 open import Types
-open import TyStore using (TyStore; store-lift)
+open import TyStore using (store-lift)
 import TermCtx as T
-open import Conversion using
-  (Conv↑; Conv↓; _⊢↑_; _⊢↓_;
-   ⊢↑-unseal; ⊢↑-⇒; ⊢↑-∀; ⊢↑-id;
-   ⊢↓-seal; ⊢↓-⇒; ⊢↓-∀; ⊢↓-id)
 open import CastTerms
-import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
@@ -107,7 +103,7 @@ liftCtx-target lift-[] = refl
 liftCtx-target (lift-∷ liftγ) = cong (_ ∷_) (liftCtx-target liftγ)
 
 liftCtxᴸ-source : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft v W)}
+    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft W)}
   → LiftCtxᴸ v γ γ′
   → srcCtxʷ γ′ ≡ T.⇑ᶜ (srcCtxʷ γ)
 liftCtxᴸ-source liftᴸ-[] = refl
@@ -130,31 +126,6 @@ smartLift-source-store (smart-fresh-behind guard) =
   CTX.SmartFreshBehindGuard.sourceStore-lifted guard
 smartLift-source-store (smart-merge-alias guard) =
   CTX.SmartAliasMergeGuard.sourceStore-lifted guard
-
-------------------------------------------------------------------------
--- Indexed conversion typing erases to ordinary validity
-------------------------------------------------------------------------
-
-mutual
-  erase-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↑ Δ A B}
-    → Σ Conv.⊢↑[ X? ] c
-    → Σ ⊢↑ c
-  erase-⊢↑ (Conv.⊢↑-unsealˣ X∈) = ⊢↑-unseal X∈
-  erase-⊢↑ (Conv.⊢↑-⇒ˣ join ⊢c ⊢d) =
-    ⊢↑-⇒ (erase-⊢↓ ⊢c) (erase-⊢↑ ⊢d)
-  erase-⊢↑ (Conv.⊢↑-∀ˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ (Conv.⊢↑-∀-idˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ Conv.⊢↑-idˣ = ⊢↑-id
-
-  erase-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↓ Δ A B}
-    → Σ Conv.⊢↓[ X? ] c
-    → Σ ⊢↓ c
-  erase-⊢↓ (Conv.⊢↓-sealˣ X∈) = ⊢↓-seal X∈
-  erase-⊢↓ (Conv.⊢↓-⇒ˣ join ⊢c ⊢d) =
-    ⊢↓-⇒ (erase-⊢↑ ⊢c) (erase-⊢↓ ⊢d)
-  erase-⊢↓ (Conv.⊢↓-∀ˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ (Conv.⊢↓-∀-idˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ Conv.⊢↓-idˣ = ⊢↓-id
 
 ------------------------------------------------------------------------
 -- Runtime-store equalities carried by rebasing
@@ -180,7 +151,8 @@ rebaseᴸ-source-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
   → sourceStoreʷ W′ ≡ sourceStoreʷ W
 rebaseᴸ-source-store CTX.rebase-idᴸ = refl
 rebaseᴸ-source-store (CTX.rebase-varᴸ rb) = rebase-source-store rb
-rebaseᴸ-source-store (CTX.rebase-onlyᴸ to-star disaligned represented) = refl
+rebaseᴸ-source-store
+    (CTX.rebase-onlyᴸ member to-star disaligned represented) = refl
 
 rebaseᴸ-target-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
@@ -188,7 +160,8 @@ rebaseᴸ-target-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
   → targetStoreʷ W′ ≡ targetStoreʷ W
 rebaseᴸ-target-store CTX.rebase-idᴸ = refl
 rebaseᴸ-target-store (CTX.rebase-varᴸ rb) = rebase-target-store rb
-rebaseᴸ-target-store (CTX.rebase-onlyᴸ to-star disaligned represented) = refl
+rebaseᴸ-target-store
+    (CTX.rebase-onlyᴸ member to-star disaligned represented) = refl
 
 rebaseᴿ-source-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
@@ -277,41 +250,39 @@ mutual
   source-typing² (CTI2.cast⊑cast² c c′ M⊑M′ q) =
     ⊢⟨⟩ (source-typing² M⊑M′) c
   source-typing² (CTI2.⊑cast² c′ M⊑M′ q) = source-typing² M⊑M′
-  source-typing² (CTI2.⊑reveal² mono rb sc c′⊢ M⊑M′ q) =
-    transport-source (rebaseᴿ-source-store rb) sc (source-typing² M⊑M′)
-  source-typing² (CTI2.⊑conceal² mono rb sc c′⊢ M⊑M′ q) =
-    transport-source (sym (rebaseᴿ-source-store rb)) sc
-      (source-typing² M⊑M′)
+  source-typing² (CTI2.⊑reveal² c′⊢ pos≡absent M⊑M′ q) =
+    source-typing² M⊑M′
+  source-typing² (CTI2.⊑conceal² c′⊢ pos≡absent M⊑M′ q) =
+    source-typing² M⊑M′
   source-typing² (CTI2.cast⊑² c M⊑M′ q) = ⊢⟨⟩ (source-typing² M⊑M′) c
-  source-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
-    ⊢reveal (erase-⊢↑ c⊢)
-      (transport-source (rebaseᴸ-source-store rb) sc (source-typing² M⊑M′))
+  source-typing² (CTI2.reveal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+    ⊢reveal c⊢ (source-typing² M⊑M′)
   source-typing²
-      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+      (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
         M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c⊢)
-      (transport-source (sym
-        (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
-        (source-typing² M⊑M′))
+    ⊢reveal c⊢ (source-typing² M⊑M′)
   source-typing²
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c⊢)
-      (transport-source (sym
-        (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
-        (source-typing² M⊑M′))
-  source-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
-    ⊢reveal (erase-⊢↑ c⊢)
+      (CTI2.reveal⊑² c⊢ pos≢absent Xᴿ∈ represented mono rb sc
+        M⊑M′ q) =
+    ⊢reveal c⊢
       (transport-source (rebase-source-store rb) sc (source-typing² M⊑M′))
   source-typing²
-      (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c⊢)
+      (CTI2.conceal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+    ⊢conceal c⊢ (source-typing² M⊑M′)
+  source-typing²
+      (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented M⊑M′ q) =
+    ⊢conceal c⊢ (source-typing² M⊑M′)
+  source-typing²
+      (CTI2.reveal⊑reveal² c⊢ c′⊢ aligned pos≢absent represented mono rb
+        sc M⊑M′ q) =
+    ⊢reveal c⊢
+      (transport-source (rebase-source-store rb) sc (source-typing² M⊑M′))
+  source-typing²
+      (CTI2.conceal⊑conceal² c⊢ c′⊢ aligned pos≢absent represented mono rb
+        sc M⊑M′ q) =
+    ⊢conceal c⊢
       (transport-source (sym (rebase-source-store rb)) sc
         (source-typing² M⊑M′))
-  source-typing²
-      (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢
-        M⊑M′ sourcePrem q) =
-    transport-source (sym (rebase-source-store rb)) sc
-      (source-typing² sourcePrem)
   source-typing² (CTI2.blame⊑² M′⊢ p) = ⊢blame
   source-typing² (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
     ⊢⊕ op (source-typing² L⊑L′) (source-typing² M⊑M′)
@@ -334,39 +305,36 @@ mutual
   target-typing² (CTI2.cast⊑cast² c c′ M⊑M′ q) =
     ⊢⟨⟩ (target-typing² M⊑M′) c′
   target-typing² (CTI2.⊑cast² c′ M⊑M′ q) = ⊢⟨⟩ (target-typing² M⊑M′) c′
-  target-typing² (CTI2.⊑reveal² mono rb sc c′⊢ M⊑M′ q) =
-    ⊢reveal (erase-⊢↑ c′⊢)
-      (transport-target (rebaseᴿ-target-store rb) sc (target-typing² M⊑M′))
-  target-typing² (CTI2.⊑conceal² mono rb sc c′⊢ M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c′⊢)
-      (transport-target (sym (rebaseᴿ-target-store rb)) sc
-        (target-typing² M⊑M′))
+  target-typing² (CTI2.⊑reveal² c′⊢ pos≡absent M⊑M′ q) =
+    ⊢reveal c′⊢ (target-typing² M⊑M′)
+  target-typing² (CTI2.⊑conceal² c′⊢ pos≡absent M⊑M′ q) =
+    ⊢conceal c′⊢ (target-typing² M⊑M′)
   target-typing² (CTI2.cast⊑² c M⊑M′ q) = target-typing² M⊑M′
-  target-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
-    transport-target (rebaseᴸ-target-store rb) sc (target-typing² M⊑M′)
+  target-typing² (CTI2.reveal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+    target-typing² M⊑M′
   target-typing²
-      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+      (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
         M⊑M′ q) =
-    transport-target (sym
-      (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
-      (target-typing² M⊑M′)
+    target-typing² M⊑M′
   target-typing²
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
-    transport-target (sym
-      (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
-      (target-typing² M⊑M′)
-  target-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
-    ⊢reveal (erase-⊢↑ c′⊢)
+      (CTI2.reveal⊑² c⊢ pos≢absent Xᴿ∈ represented mono rb sc
+        M⊑M′ q) =
+    transport-target (rebase-target-store rb) sc (target-typing² M⊑M′)
+  target-typing²
+      (CTI2.conceal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+    target-typing² M⊑M′
+  target-typing²
+      (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented M⊑M′ q) =
+    target-typing² M⊑M′
+  target-typing²
+      (CTI2.reveal⊑reveal² c⊢ c′⊢ aligned pos≢absent represented mono rb
+        sc M⊑M′ q) =
+    ⊢reveal c′⊢
       (transport-target (rebase-target-store rb) sc (target-typing² M⊑M′))
   target-typing²
-      (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c′⊢)
-      (transport-target (sym (rebase-target-store rb)) sc
-        (target-typing² M⊑M′))
-  target-typing²
-      (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢
-        M⊑M′ sourcePrem q) =
-    ⊢conceal (erase-⊢↓ c′⊢)
+      (CTI2.conceal⊑conceal² c⊢ c′⊢ aligned pos≢absent represented mono rb
+        sc M⊑M′ q) =
+    ⊢conceal c′⊢
       (transport-target (sym (rebase-target-store rb)) sc
         (target-typing² M⊑M′))
   target-typing² (CTI2.blame⊑² M′⊢ p) = M′⊢

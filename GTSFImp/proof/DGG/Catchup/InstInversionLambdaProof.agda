@@ -97,7 +97,7 @@ open import proof.DGG.Catchup.InstInversionProof using
   (inst-post-at→root-package; composeWorldExtendᴿ;
    ctx-imp-transportᴿ; rel-target-transportᴿ;
    generated-reveal-value; reveal-value-rename; unrenameNonVar;
-   subst₂-⊑; generated-reveal-⊢↑-present; rename-as-subst;
+   subst₂-⊑; generated-reveal-⊢↑; rename-as-subst;
    replaceEnv; replaceTy-subst; spine-descent-zero;
    target-insert-bind-world-extendᴿ; smart-fresh-bind-world-extendᴿ;
    smart-alias-bind-world-extendᴿ; mapCtxᴿ-smart-liftᴸ;
@@ -248,28 +248,28 @@ open import proof.DGG.Catchup.InstInversionProof using
     {W : CTX.World Δᴸ Δᴿ Δ}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
   → A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W) ⟩ B
+        (CTX.liftWorldLeft W) ⟩ B
   → A CTX.⊑ᵂ⟨ TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W ⟩
       renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
 Λ⊑Λ²-route1ᴸ-entry-p {W = W} p =
   TBL.move⊑ᵂ (TBL.baseMove mv)
     (CR.rename-⊑ᵂ
       {W = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       wk↪ᵗ
       (WD.decay⊑ᵂ
         {W = CTX.liftWorldBoth I.X⊑X
-          (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
         {Wᵈ = CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
         TD.liftBothBinderDecay
         (TE.transport⊑ᵂ ins₁ p)))
   where
   ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W))
+        (CTX.liftWorldLeft W))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★)))
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★)))
   ins₁ =
     TE.liftBothTargetInsert {v = I.X⊑X}
       (TE.liftLeftTargetInsert {v = I.X⊑★}
@@ -281,7 +281,7 @@ open import proof.DGG.Catchup.InstInversionProof using
 Λ⊑Λ²-route1ᴸ-ctx : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → CTX.CtxImp (CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W))
+      (CTX.liftWorldLeft W))
   → CTX.CtxImp (TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W)
 Λ⊑Λ²-route1ᴸ-ctx List.[] = List.[]
 Λ⊑Λ²-route1ᴸ-ctx {W = W}
@@ -294,7 +294,7 @@ open import proof.DGG.Catchup.InstInversionProof using
 Λ⊑Λ²-route1ᴸ-map-ctx : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → CTX.CtxImp (CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W))
+      (CTX.liftWorldLeft W))
   → CTX.CtxImp (TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W)
 Λ⊑Λ²-route1ᴸ-map-ctx {W = W} γᴮ =
   TBL.moveCtx (TBL.baseMove mv)
@@ -304,9 +304,9 @@ open import proof.DGG.Catchup.InstInversionProof using
   where
   ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W))
+        (CTX.liftWorldLeft W))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★)))
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★)))
   ins₁ =
     TE.liftBothTargetInsert {v = I.X⊑X}
       (TE.liftLeftTargetInsert {v = I.X⊑★}
@@ -318,7 +318,7 @@ open import proof.DGG.Catchup.InstInversionProof using
 Λ⊑Λ²-route1ᴸ-map-ctx-eq : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     (γᴮ : CTX.CtxImp (CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W)))
+      (CTX.liftWorldLeft W)))
   → Λ⊑Λ²-route1ᴸ-map-ctx γᴮ ≡ Λ⊑Λ²-route1ᴸ-ctx γᴮ
 Λ⊑Λ²-route1ᴸ-map-ctx-eq List.[] = refl
 Λ⊑Λ²-route1ᴸ-map-ctx-eq {W = W}
@@ -331,12 +331,12 @@ open import proof.DGG.Catchup.InstInversionProof using
 Λ⊑Λ²-route1ᴸ-prefix : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γᴮ : CTX.CtxImp (CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {body-p : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W) ⟩ B}
-  → CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft W) ⟩ B}
+  → CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
   → Σ[ pᵇ ∈ A CTX.⊑ᵂ⟨
         TBL.ΛLiftToBindFreshWorldᴸ I.X⊑★ W
@@ -355,62 +355,62 @@ open import proof.DGG.Catchup.InstInversionProof using
   where
   ins₁ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep wk↪ᵗ))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W))
+        (CTX.liftWorldLeft W))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★)))
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★)))
   ins₁ =
     TE.liftBothTargetInsert {v = I.X⊑X}
       (TE.liftLeftTargetInsert {v = I.X⊑★}
         (TE.rightBindTargetInsert {W = W} {B = ★}))
 
   p₁ : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X
-          (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))
         ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   p₁ = TE.transport⊑ᵂ ins₁ body-p
 
   rel₁ : CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))
       CTI2.∣ TE.mapCtxᵀ ins₁ γᴮ
       ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
   rel₁ = TE.⊢²-target-insert ins₁ rel
 
   pᵈ : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))
         ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   pᵈ =
     WD.decay⊑ᵂ
       {W = CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       {Wᵈ = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       TD.liftBothBinderDecay p₁
 
   relᵈ : CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))
       CTI2.∣ WD.decayCtx TD.liftBothBinderDecay
         (TE.mapCtxᵀ ins₁ γᴮ)
       ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
   relᵈ =
     TD.⊢²-decay
       {W = CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       {Wᵈ = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       TD.liftBothBinderDecay rel₁
 
   pʳ : A CTX.⊑ᵂ⟨ CR.renameWorld wk↪ᵗ
           (CTX.liftWorldBoth I.X⊑★
-            (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★)))
+            (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★)))
         ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   pʳ =
     CR.rename-⊑ᵂ
       {W = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★))}
+        (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))}
       wk↪ᵗ pᵈ
 
   relʳ : CR.renameWorld wk↪ᵗ
         (CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ (CTX.rightOnlyWorld W ★)))
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★)))
       CTI2.∣ CR.renameCtx wk↪ᵗ
         (WD.decayCtx TD.liftBothBinderDecay
           (TE.mapCtxᵀ ins₁ γᴮ))
@@ -486,7 +486,7 @@ target-left-lift-eq η B =
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
   → NonVar A
   → Fin.zero ∈ᵗ A
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
   → `∀ A CTX.⊑ᵂ⟨ W ⟩ B
 ∀⊑ᵂ-from-left-lift {W = W} {A = A} {B = B} Anv zero∈A body-p =
   subst≡
@@ -745,7 +745,7 @@ target-left-lift-eq η B =
 liftCtxᴸ-target : ∀ {Δᴸ Δᴿ Δ} {v}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γ′ : CTX.CtxImp (CTX.liftWorldLeft v W)}
+    {γ′ : CTX.CtxImp (CTX.liftWorldLeft W)}
   → CTX.LiftCtxᴸ v γ γ′
   → CTX.tgtCtxʷ γ′ ≡ CTX.tgtCtxʷ γ
 liftCtxᴸ-target CTX.liftᴸ-[] = refl
@@ -1049,7 +1049,7 @@ route1SplitTarget★ κ₁ κ₂ (Fin.suc Z) =
   TBL.targetStoreAs
     (CR.renameWorld (skip (keep κ₂))
       (CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ W₁)))
+        (CTX.liftWorldLeft W₁)))
     Σ₂
 
 
@@ -1063,8 +1063,8 @@ route1SplitTarget★ κ₁ κ₂ (Fin.suc Z) =
   CTX.world
     (skip (κ₂ CR.∘↪ skip (κ₁ CR.∘↪ keep (CTX.ηᴸʷ W))))
     (skip (CTX.ηᴿʷ W₂))
-    (CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂))
-    (CTX.sourceStoreʷ (CTX.liftWorldLeft I.X⊑★ W₂))
+    (CTX.impEnvʷ (CTX.liftWorldLeft W₂))
+    (CTX.sourceStoreʷ (CTX.liftWorldLeft W₂))
     (CTX.targetStoreʷ W₂)
 
 
@@ -1255,7 +1255,7 @@ route1-old-mark-out : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
   → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
   → ∀ Z
   → CTX.impEnvʷ W Z ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W₂)
       (route1OldCenter κ₁ κ₂ Z) ≡ I.X⊑★
 route1-old-mark-out {W₁ = W₁} {W₂ = W₂}
     {κ₁ = κ₁} {ins₁ = ins₁} {ins₂ = ins₂} facts Z old-star =
@@ -1299,7 +1299,7 @@ route1-mid-source-pivot-from-windows : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
 route1-mid-source-pivot-from-windows {W = W} {W₂ = W₂}
     {κ₁ = κ₁} {κ₂ = κ₂} {ins₁ = ins₁} {ins₂ = ins₂}
     win₁ win₂ =
-  subst≡ (λ C → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂) C
+  subst≡ (λ C → CTX.impEnvʷ (CTX.liftWorldLeft W₂) C
       ≡ I.X⊑★)
     (sym point-eq) star₂
   where
@@ -1328,7 +1328,7 @@ route1-split★-same : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
   → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
   → ∀ X
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W₂)
       ⊢ route1SplitSource κ₁ κ₂ X ⊑ route1SplitTarget★ κ₁ κ₂ X
 route1-split★-same facts Fin.zero = I.X⊑★ refl
 route1-split★-same facts (Fin.suc X) = I.X⊑X
@@ -1347,7 +1347,7 @@ route1-split★-star : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
   → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
   → ∀ X
   → CTX.impEnvʷ (CTX.liftWorldBoth I.X⊑X W) X ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W₂)
       ⊢ route1SplitSource κ₁ κ₂ X ⊑ ★
 route1-split★-star facts Fin.zero ()
 route1-split★-star facts (Fin.suc X) eq =
@@ -1388,20 +1388,20 @@ route1-source-split-eq : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
   → (A : Ty (suc Δᴸ))
   → substᵗ (route1SplitSource κ₁ κ₂)
       (CTX.embedᴸ (CTX.liftWorldBoth I.X⊑X W) A)
-    ≡ CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W₂) A
+    ≡ CTX.embedᴸ (CTX.liftWorldLeft W₂) A
 route1-source-split-eq {W = W} {W₂ = W₂}
     {κ₁ = κ₁} {κ₂ = κ₂} facts A =
   trans (substᵗ-rename (route1SplitSource κ₁ κ₂)
       (toRenameᵗ (keep (CTX.ηᴸʷ W))) A)
     (trans (substᵗ-cong A var-eq)
       (rename-as-subst
-        (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W₂))) A))
+        (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft W₂))) A))
   where
   var-eq : ∀ X
     → route1SplitSource κ₁ κ₂
         (toRenameᵗ (keep (CTX.ηᴸʷ W)) X)
       ≡ ＇ toRenameᵗ
-          (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W₂)) X
+          (CTX.ηᴸʷ (CTX.liftWorldLeft W₂)) X
   var-eq Fin.zero = refl
   var-eq (Fin.suc X) =
     cong ＇_ (cong Fin.suc (sym (route1-source₂ facts X)))
@@ -1421,7 +1421,7 @@ route1-target-split★-eq : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
   → (B : Ty (suc Δᴿ))
   → substᵗ (route1SplitTarget★ κ₁ κ₂)
       (CTX.embedᴿ (CTX.liftWorldBoth I.X⊑X W) B)
-    ≡ CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ W₂)
+    ≡ CTX.embedᴿ (CTX.liftWorldLeft W₂)
       (substᵗ Λ⊑Λ²TargetSplit₂ B)
 route1-target-split★-eq {W = W} {W₂ = W₂}
     {κ₁ = κ₁} {κ₂ = κ₂} facts B =
@@ -1429,14 +1429,14 @@ route1-target-split★-eq {W = W} {W₂ = W₂}
       (toRenameᵗ (keep (CTX.ηᴿʷ W))) B)
     (trans (substᵗ-cong B var-eq)
       (sym (renameᵗ-subst
-        (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W₂)))
+        (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft W₂)))
         Λ⊑Λ²TargetSplit₂ B)))
   where
   var-eq : ∀ X
     → route1SplitTarget★ κ₁ κ₂
         (toRenameᵗ (keep (CTX.ηᴿʷ W)) X)
       ≡ renameᵗ
-          (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W₂)))
+          (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft W₂)))
           (Λ⊑Λ²TargetSplit₂ X)
   var-eq Fin.zero = refl
   var-eq (Fin.suc X) =
@@ -1456,7 +1456,7 @@ route1-target-split★-eq {W = W} {W₂ = W₂}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
   → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
   → A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X W ⟩ B
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩
       substᵗ Λ⊑Λ²TargetSplit₂ B
 Λ-route1-final-body-⊑ᵂ {W = W} {W₂ = W₂}
     {κ₁ = κ₁} {κ₂ = κ₂} {A = A} {B = B} facts body-p =
@@ -1473,7 +1473,7 @@ route1-target-split★-eq {W = W} {W₂ = W₂}
       (subst₂-⊑ (route1-split★-same facts)
         (route1-split★-star facts) body-p))
   where
-  Wout = CTX.liftWorldLeft I.X⊑★ W₂
+  Wout = CTX.liftWorldLeft W₂
 
 
 route1-source-inner-point : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
@@ -1822,12 +1822,12 @@ route1-target-inner-eq {W = W} {W₂ = W₂}
   → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
   → (⇑ᵗ A) CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X W ⟩ (⇑ᵗ B)
   → (⇑ᵗ A) CTX.⊑ᵂ⟨
-        CTX.liftWorldLeft I.X⊑★ W₂
+        CTX.liftWorldLeft W₂
       ⟩ applyTys (bind ★ ∷ bind (＇ Fin.zero) ∷ []) B
 Λ-route1-out-entry-at {W₂ = W₂} {A = A} {B = B} facts p =
   subst≡
     (λ C → (⇑ᵗ A) CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W₂ ⟩ C)
+      CTX.liftWorldLeft W₂ ⟩ C)
     (Λ-route1-context-final-target-eq B)
     (Λ-route1-final-body-⊑ᵂ facts p)
 
@@ -1870,7 +1870,7 @@ route1-target-inner-eq {W = W} {W₂ = W₂}
     {γᴮ : CTX.CtxImp (CTX.liftWorldBoth I.X⊑X W)}
   → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
   → CTX.LiftCtx I.X⊑X γ γᴮ
-  → CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W₂)
+  → CTX.CtxImp (CTX.liftWorldLeft W₂)
 Λ-route1-out-ctx-at facts CTX.lift-[] = List.[]
 Λ-route1-out-ctx-at facts
     (CTX.lift-∷ {A = A} {B = B} {p′ = p′} liftγ) =
@@ -2121,7 +2121,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     outCtx : ∀ {γ : CTX.CtxImp W}
         {γᴮ : CTX.CtxImp (CTX.liftWorldBoth I.X⊑X W)}
       → CTX.LiftCtx I.X⊑X γ γᴮ
-      → CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W₂)
+      → CTX.CtxImp (CTX.liftWorldLeft W₂)
 
     midFreshMono :
       CTX.ImpEnvMono midWorld freshWorld
@@ -2141,10 +2141,10 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
           (proj₁ (route1Prefix liftγ bodyRel))
 
     outMidMono :
-      CTX.ImpEnvMono (CTX.liftWorldLeft I.X⊑★ W₂) midWorld
+      CTX.ImpEnvMono (CTX.liftWorldLeft W₂) midWorld
 
     outerRebaseᴿ :
-      CTX.RebaseAtᴿ (CTX.liftWorldLeft I.X⊑★ W₂) midWorld
+      CTX.RebaseAtᴿ (CTX.liftWorldLeft W₂) midWorld
         (just (Fin.suc Fin.zero))
 
     outMidSame : ∀ {γ : CTX.CtxImp W}
@@ -2165,7 +2165,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
 
     outerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
-      → CTX.targetStoreʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+      → CTX.targetStoreʷ (CTX.liftWorldLeft W₂)
           Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
@@ -2176,7 +2176,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
 
     finalBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
       → A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X W ⟩ B
-      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩
+      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩
           substᵗ Λ⊑Λ²TargetSplit₂ B
 
     outTargetCtx : ∀ {γ : CTX.CtxImp W}
@@ -2324,13 +2324,13 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
     {γᴮ : CTX.CtxImp
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W))}
+        (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {body-p : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X
-      (CTX.liftWorldLeft I.X⊑★ W) ⟩ B}
+      (CTX.liftWorldLeft W) ⟩ B}
   → ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂
-  → CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+  → CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
   → Σ[ γᶠ ∈ CTX.CtxImp
         (ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTX.targetStoreʷ W₂)) ]
@@ -2348,62 +2348,62 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
   where
   ins₁ᴮ : TE.TargetInsert (keep wk↪ᵗ) (keep (keep π₁))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W))
+        (CTX.liftWorldLeft W))
       (CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W₁))
+        (CTX.liftWorldLeft W₁))
   ins₁ᴮ =
     TE.liftBothTargetInsert {v = I.X⊑X}
       (TE.liftLeftTargetInsert {v = I.X⊑★} ins₁)
 
   p₁ : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X
-          (CTX.liftWorldLeft I.X⊑★ W₁)
+          (CTX.liftWorldLeft W₁)
         ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   p₁ = TE.transport⊑ᵂ ins₁ᴮ body-p
 
   rel₁ : CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W₁)
+        (CTX.liftWorldLeft W₁)
       CTI2.∣ TE.mapCtxᵀ ins₁ᴮ γᴮ
       ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ p₁
   rel₁ = TE.⊢²-target-insert ins₁ᴮ rel
 
   pᵈ : A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ W₁)
+          (CTX.liftWorldLeft W₁)
         ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   pᵈ =
     WD.decay⊑ᵂ
       {W = CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W₁)}
+        (CTX.liftWorldLeft W₁)}
       {Wᵈ = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ W₁)}
+        (CTX.liftWorldLeft W₁)}
       TD.liftBothBinderDecay p₁
 
   relᵈ : CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ W₁)
+        (CTX.liftWorldLeft W₁)
       CTI2.∣ WD.decayCtx TD.liftBothBinderDecay
         (TE.mapCtxᵀ ins₁ᴮ γᴮ)
       ⊢² V ⊑ CT.renameᵗᵐ (keep wk↪ᵗ) V′ ∶ pᵈ
   relᵈ =
     TD.⊢²-decay
       {W = CTX.liftWorldBoth I.X⊑X
-        (CTX.liftWorldLeft I.X⊑★ W₁)}
+        (CTX.liftWorldLeft W₁)}
       {Wᵈ = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ W₁)}
+        (CTX.liftWorldLeft W₁)}
       TD.liftBothBinderDecay rel₁
 
   pʳ : A CTX.⊑ᵂ⟨
         CR.renameWorld (skip (keep κ₂))
           (CTX.liftWorldBoth I.X⊑★
-            (CTX.liftWorldLeft I.X⊑★ W₁))
+            (CTX.liftWorldLeft W₁))
       ⟩ renameᵗ (toRenameᵗ (keep wk↪ᵗ)) B
   pʳ =
     CR.rename-⊑ᵂ
       {W = CTX.liftWorldBoth I.X⊑★
-        (CTX.liftWorldLeft I.X⊑★ W₁)}
+        (CTX.liftWorldLeft W₁)}
       (skip (keep κ₂)) pᵈ
 
   relʳ : CR.renameWorld (skip (keep κ₂))
         (CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ W₁))
+          (CTX.liftWorldLeft W₁))
       CTI2.∣ CR.renameCtx (skip (keep κ₂))
         (WD.decayCtx TD.liftBothBinderDecay
           (TE.mapCtxᵀ ins₁ᴮ γᴮ))
@@ -2413,7 +2413,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
   mv : TBL.TargetBindLiftMove
       (CR.renameWorld (skip (keep κ₂))
         (CTX.liftWorldBoth I.X⊑★
-          (CTX.liftWorldLeft I.X⊑★ W₁)))
+          (CTX.liftWorldLeft W₁)))
       (ΛRouteOneFreshWorldAtᴸ W₁ κ₂ (CTX.targetStoreʷ W₂))
       Fin.zero
   mv =
@@ -2689,7 +2689,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     {ins₂ : TE.TargetInsert wk↪ᵗ π₂ W₁ W₂}
   → (facts : ΛRouteOneWindowFacts κ₁ κ₂ ins₁ ins₂)
   → CTX.RebaseAtᴿ
-      (CTX.liftWorldLeft I.X⊑★ W₂)
+      (CTX.liftWorldLeft W₂)
       (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
       (just (Fin.suc Fin.zero))
 Λ-route1-outer-rebase-at {W = W} {W₁ = W₁} {W₂ = W₂}
@@ -2706,7 +2706,7 @@ record ΛPostWindowGeometry {Δᴸ Δᴿ Δ Δ₂}
     ΛRouteOneMidWorldAt W W₂ κ₁ κ₂
 
   Wout =
-    CTX.liftWorldLeft I.X⊑★ W₂
+    CTX.liftWorldLeft W₂
 
   runtime : CTX.SameRuntime Wout Wmid
   runtime = CTX.same-runtime refl refl
@@ -2830,7 +2830,7 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
     outCtx : ∀ {γ : CTX.CtxImp W}
         {γᴮ : CTX.CtxImp (CTX.liftWorldBoth I.X⊑X W)}
       → CTX.LiftCtx I.X⊑X γ γᴮ
-      → CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W₂)
+      → CTX.CtxImp (CTX.liftWorldLeft W₂)
 
     midFreshMono :
       CTX.ImpEnvMono
@@ -2849,7 +2849,7 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
           (proj₁ (Λ-route1-prefix-at facts bodyRel))
 
     outMidMono :
-      CTX.ImpEnvMono (CTX.liftWorldLeft I.X⊑★ W₂)
+      CTX.ImpEnvMono (CTX.liftWorldLeft W₂)
         (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
 
     outMidSame : ∀ {γ : CTX.CtxImp W}
@@ -2871,7 +2871,7 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
 
     outerReveal⊢ : ∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
-      → CTX.targetStoreʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+      → CTX.targetStoreʷ (CTX.liftWorldLeft W₂)
           Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
@@ -2882,7 +2882,7 @@ record ΛRouteOnePostWindowSupport {Δᴸ Δᴿ Δ Δ₁ Δ₂}
 
     finalBody⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
       → A CTX.⊑ᵂ⟨ CTX.liftWorldBoth I.X⊑X W ⟩ B
-      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩
+      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩
           substᵗ Λ⊑Λ²TargetSplit₂ B
 
     outTargetCtx : ∀ {γ : CTX.CtxImp W}
@@ -2899,7 +2899,7 @@ open ΛRouteOnePostWindowSupport public
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {κ₁ : suc Δ ↪ᵗ Δ₁}
     {κ₂ : suc Δ₁ ↪ᵗ Δ₂}
-  → CTX.ImpEnvMono (CTX.liftWorldLeft I.X⊑★ W₂)
+  → CTX.ImpEnvMono (CTX.liftWorldLeft W₂)
       (ΛRouteOneMidWorldAt W W₂ κ₁ κ₂)
 Λ-route1-out-mid-mono-at Z eq = eq
 
@@ -2996,7 +2996,7 @@ open ΛRouteOnePostWindowSupport public
           〖 Fin.zero , ⇑ᵗ (＇ Fin.zero) ↑ applyBody (bind ★) B 〗)
   → (∀ {B : Ty (suc Δᴿ)}
       → Fin.zero ∈ᵗ B
-      → CTX.targetStoreʷ (CTX.liftWorldLeft I.X⊑★ W₂)
+      → CTX.targetStoreʷ (CTX.liftWorldLeft W₂)
           Conv.⊢↑[ just (Fin.suc Fin.zero) ]
           rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗))
   → ΛRouteOnePostWindowSupport {ext₂ = ext₂} facts
@@ -3170,10 +3170,10 @@ open ΛRouteOnePostWindowSupport public
   ; outMidSame = Λ-route1-out-mid-same
   ; outLiftCtxᴸ = Λ-route1-out-liftCtxᴸ ext₂
   ; innerReveal⊢ = λ Bpre-zero∈ →
-      generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl)
+      generated-reveal-⊢↑ (Z∋ refl)
   ; outerReveal⊢ = λ zero∈B →
       TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present zero∈B (Z∋ refl))
+        (generated-reveal-⊢↑ (Z∋ refl))
   ; innerBody⊑ᵂ = λ {A} {B} body-p →
       Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p
   ; finalBody⊑ᵂ = λ {A} {B} body-p →
@@ -3296,8 +3296,8 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   → CT.Value V′
   → CTX.liftWorldBoth I.X⊑X W CTI2.∣ γᴮ
       ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W₂) ]
-    Σ[ body-p₂ ∈ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩
+  → Σ[ γ₂ᴸ ∈ CTX.CtxImp (CTX.liftWorldLeft W₂) ]
+    Σ[ body-p₂ ∈ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A CTX.⊑ᵂ⟨ W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
@@ -3307,7 +3307,7 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
           CTX.tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂
           substᵗ Λ⊑Λ²TargetSplit₂ B
-      × CTX.liftWorldLeft I.X⊑★ W₂ CTI2.∣ γ₂ᴸ
+      × CTX.liftWorldLeft W₂ CTI2.∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 Λ⊑Λ²-post-body-transport-at {Δᴿ = Δᴿ} {W = W} {W₂ = W₂}
     {γ = γ} {γᴮ = γᴮ}
@@ -3331,7 +3331,7 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     ΛPostWindowGeometry.midWorld geom
 
   Wout =
-    CTX.liftWorldLeft I.X⊑★ W₂
+    CTX.liftWorldLeft W₂
 
   γmid = ΛPostWindowGeometry.midCtx geom liftγ
   γout = ΛPostWindowGeometry.outCtx geom liftγ
@@ -3591,10 +3591,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (Λ-route1-post-window-support-at facts
       (Λ-route1-mid-fresh-mono-at facts)
       (λ Bpre-zero∈ →
-        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+        generated-reveal-⊢↑ (Z∋ refl))
       (λ zero∈B →
         TE.reveal-renameˣ StoreRename-suc-bind
-          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+          (generated-reveal-⊢↑ (Z∋ refl))))
   where
   facts = Λ-route1-smart-alias-facts guard
 
@@ -3691,10 +3691,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (Λ-route1-post-window-support-at facts
       (Λ-route1-mid-fresh-mono-at facts)
       (λ Bpre-zero∈ →
-        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+        generated-reveal-⊢↑ (Z∋ refl))
       (λ zero∈B →
         TE.reveal-renameˣ StoreRename-suc-bind
-          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+          (generated-reveal-⊢↑ (Z∋ refl))))
   where
   facts = Λ-route1-smart-fresh-facts guard
 
@@ -3760,10 +3760,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
 Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
     (CTX.smart-fresh-behind guard)
     with TE.smartFreshTargetWindowInsert (ins₁ plan) guard
@@ -3829,21 +3829,21 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
 
 
 Λ-front-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Z
   → CTX.impEnvʷ W Z ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (toRenameᵗ (skip id↪ᵗ) Z) ≡ I.X⊑★
 Λ-front-old-mark-mono W Z eq =
   subst≡
-    (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+    (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (Fin.suc Y) ≡ I.X⊑★)
     (sym (toRename-id-eq Z)) eq
 
@@ -3852,7 +3852,7 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Xᴿ
   → toRenameᵗ
-      (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W)) Xᴿ
+      (CTX.ηᴿʷ (CTX.liftWorldLeft W)) Xᴿ
     ≡ toRenameᵗ (skip id↪ᵗ)
         (toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)
 Λ-front-target-frozen W Xᴿ =
@@ -3864,7 +3864,7 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Xᴸ
   → toRenameᵗ
-      (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W)) (Fin.suc Xᴸ)
+      (CTX.ηᴸʷ (CTX.liftWorldLeft W)) (Fin.suc Xᴸ)
     ≡ toRenameᵗ (skip id↪ᵗ)
         (toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
 Λ-front-old-source-frozen W Xᴸ =
@@ -3876,16 +3876,16 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Xᴿ
   → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴿʷ W) Xᴿ) ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (toRenameᵗ
-        (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W)) Xᴿ) ≡ I.X⊑★
+        (CTX.ηᴿʷ (CTX.liftWorldLeft W)) Xᴿ) ≡ I.X⊑★
 Λ-front-target-mark-mono W Xᴿ eq = eq
 
 
 Λ-front-smart-guard : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → CTX.SmartFreshBehindGuard W
-      (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft W)
 Λ-front-smart-guard {W = W} =
   CTX.smart-fresh-behind-guard (skip id↪ᵗ) refl refl
     (λ p → p) (Λ-front-old-mark-mono W) (Λ-front-target-frozen W)
@@ -3912,7 +3912,7 @@ open ExactSmartFreshGuard public
 
 Λ-front-exact-smart-guard : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
-  → ExactSmartFreshGuard W (CTX.liftWorldLeft I.X⊑★ W)
+  → ExactSmartFreshGuard W (CTX.liftWorldLeft W)
 Λ-front-exact-smart-guard {W = W} = record
   { guard = Λ-front-smart-guard
   ; old-mark-exact = exact
@@ -3920,12 +3920,12 @@ open ExactSmartFreshGuard public
   }
   where
   exact : ∀ Z
-    → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+    → CTX.impEnvʷ (CTX.liftWorldLeft W)
         (toRenameᵗ (skip id↪ᵗ) Z)
       ≡ CTX.impEnvʷ W Z
   exact Z =
     subst≡
-      (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+      (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft W)
         (Fin.suc Y) ≡ CTX.impEnvʷ W Z)
       (sym (toRename-id-eq Z)) refl
 
@@ -3975,7 +3975,7 @@ exactSmartFreshSubst-source : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → ∀ X
   → exactSmartFreshSubst exact (toRenameᵗ (CTX.ηᴸʷ Wᵐ) X)
     ≡ ＇ (toRenameᵗ
-        (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W)) X)
+        (CTX.ηᴸʷ (CTX.liftWorldLeft W)) X)
 exactSmartFreshSubst-source exact Fin.zero =
   exactSmartFreshSubst-fresh exact
 exactSmartFreshSubst-source {W = W} exact (Fin.suc X) =
@@ -3994,7 +3994,7 @@ exactSmartFreshSubst-target : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → ∀ Y
   → exactSmartFreshSubst exact (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
     ≡ ＇ (toRenameᵗ
-        (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W)) Y)
+        (CTX.ηᴿʷ (CTX.liftWorldLeft W)) Y)
 exactSmartFreshSubst-target {W = W} exact Y =
   trans
     (cong (exactSmartFreshSubst exact)
@@ -4009,7 +4009,7 @@ exactSmartFreshSubst-star : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → (exact : ExactSmartFreshGuard W Wᵐ)
   → ∀ Zᵐ
   → CTX.impEnvʷ Wᵐ Zᵐ ≡ I.X⊑★
-  → I._⊢_⊑_ (CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W))
+  → I._⊢_⊑_ (CTX.impEnvʷ (CTX.liftWorldLeft W))
       (exactSmartFreshSubst exact Zᵐ) ★
 exactSmartFreshSubst-star {W = W} {Wᵐ = Wᵐ} exact Zᵐ star
     with CR.preimage?
@@ -4039,14 +4039,14 @@ exactSmartFreshSubst-source-eq : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → (exact : ExactSmartFreshGuard W Wᵐ)
   → ∀ A
   → substᵗ (exactSmartFreshSubst exact) (CTX.embedᴸ Wᵐ A)
-    ≡ CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W) A
+    ≡ CTX.embedᴸ (CTX.liftWorldLeft W) A
 exactSmartFreshSubst-source-eq {W = W} {Wᵐ = Wᵐ} exact A =
   trans
     (substᵗ-rename (exactSmartFreshSubst exact)
       (toRenameᵗ (CTX.ηᴸʷ Wᵐ)) A)
     (trans (substᵗ-cong A (exactSmartFreshSubst-source exact))
       (rename-as-subst
-        (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W))) A))
+        (toRenameᵗ (CTX.ηᴸʷ (CTX.liftWorldLeft W))) A))
 
 
 exactSmartFreshSubst-target-eq : ∀ {Δᴸ Δᴿ Δ Δᵐ}
@@ -4055,14 +4055,14 @@ exactSmartFreshSubst-target-eq : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → (exact : ExactSmartFreshGuard W Wᵐ)
   → ∀ B
   → substᵗ (exactSmartFreshSubst exact) (CTX.embedᴿ Wᵐ B)
-    ≡ CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ W) B
+    ≡ CTX.embedᴿ (CTX.liftWorldLeft W) B
 exactSmartFreshSubst-target-eq {W = W} {Wᵐ = Wᵐ} exact B =
   trans
     (substᵗ-rename (exactSmartFreshSubst exact)
       (toRenameᵗ (CTX.ηᴿʷ Wᵐ)) B)
     (trans (substᵗ-cong B (exactSmartFreshSubst-target exact))
       (rename-as-subst
-        (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W))) B))
+        (toRenameᵗ (CTX.ηᴿʷ (CTX.liftWorldLeft W))) B))
 
 
 exactSmartFresh-untransport : ∀ {Δᴸ Δᴿ Δ Δᵐ}
@@ -4071,15 +4071,15 @@ exactSmartFresh-untransport : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
   → (exact : ExactSmartFreshGuard W Wᵐ)
   → A CTX.⊑ᵂ⟨ Wᵐ ⟩ B
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
 exactSmartFresh-untransport {W = W} {Wᵐ = Wᵐ} {A = A} {B = B}
     exact p =
   subst≡
-    (λ L → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W) ⊢ L
-      ⊑ CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ W) B)
+    (λ L → CTX.impEnvʷ (CTX.liftWorldLeft W) ⊢ L
+      ⊑ CTX.embedᴿ (CTX.liftWorldLeft W) B)
     (exactSmartFreshSubst-source-eq exact A)
     (subst≡
-      (λ R → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+      (λ R → CTX.impEnvʷ (CTX.liftWorldLeft W)
         ⊢ substᵗ (exactSmartFreshSubst exact) (CTX.embedᴸ Wᵐ A)
         ⊑ R)
       (exactSmartFreshSubst-target-eq exact B)
@@ -4187,7 +4187,7 @@ exactSmartFreshGuardInsert {π = π} {W = W} {W′ = W′}
 Λ-front-smart-liftCtx : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
   → CTX.LiftCtxᴸ I.X⊑★ γ γᴸ
   → CTX.SmartLiftCtxᴸ γ γᴸ
 Λ-front-smart-liftCtx CTX.liftᴸ-[] = CTX.smart-lift-[]
@@ -4200,7 +4200,7 @@ record ΛFrontChildPostPlan {Δᴸ Δᴿ Δ}
     (plan : ΛTwoInsertPostPlan W) : Set₁ where
   field
     frontChildPlan :
-      ΛTwoInsertPostPlan (CTX.liftWorldLeft I.X⊑★ W)
+      ΛTwoInsertPostPlan (CTX.liftWorldLeft W)
     frontPostExact : ExactSmartFreshGuard
       (W₂ plan) (W₂ frontChildPlan)
     frontPostLift : CTX.SmartCommaLiftᴸ
@@ -4241,7 +4241,7 @@ open ΛFrontChildPostPlan public
   → CTX.World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
 Λ⊑²-smart-fresh-world W =
   CTX.rightOnlyWorld
-    (CTX.rightOnlyWorld (CTX.liftWorldLeft I.X⊑★ W) ★)
+    (CTX.rightOnlyWorld (CTX.liftWorldLeft W) ★)
     (＇ Fin.zero)
 
 
@@ -4606,7 +4606,7 @@ open ΛFrontChildPostPlan public
         ⦃ Bnv = Bnv ⦄ ⦃ zero∈B = zero∈B ⦄
         (subst≡
           (λ R → I.instᵐ (CTX.impEnvʷ W)
-            ⊢ CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W) A
+            ⊢ CTX.embedᴸ (CTX.liftWorldLeft W) A
               ⊑ R)
           (sym (target-left-lift-eq (CTX.ηᴿʷ W) (`∀ B)))
           body-source)))
@@ -4615,12 +4615,12 @@ open ΛFrontChildPostPlan public
 
   raw-source-eq :
       renameᵗ (extᵗ (toRenameᵗ (CTX.ηᴸʷ W))) A
-    ≡ CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W) A
+    ≡ CTX.embedᴸ (CTX.liftWorldLeft W) A
   raw-source-eq = sym (renameᵗ-cong A (toRename-keep-eq (CTX.ηᴸʷ W)))
 
   body-source :
       I.instᵐ (CTX.impEnvʷ W)
-        ⊢ CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W) A
+        ⊢ CTX.embedᴸ (CTX.liftWorldLeft W) A
         ⊑ ⇑ᵗ (CTX.embedᴿ W (`∀ B))
   body-source =
     subst≡
@@ -4905,7 +4905,7 @@ open ΛFrontChildPostPlan public
     {β α : Fin.Fin Δᴿ}
   → (guard : CTX.SmartAliasMergeGuard W Wᵐ β α)
   → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTX.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTX.liftWorldLeft Wᵐ)
       (CTX.liftWorldLeft I.X⊑★
         (TE.smartAliasInsertWorld
           (TE.rightBindTargetInsert
@@ -4928,7 +4928,7 @@ open ΛFrontChildPostPlan public
     {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
   → (guard : CTX.SmartFreshBehindGuard W Wᵐ)
   → ECR.WorldExtendᴿ (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTX.liftWorldLeft I.X⊑★ Wᵐ)
+      (CTX.liftWorldLeft Wᵐ)
       (CTX.liftWorldLeft I.X⊑★
         (TE.smartFreshInsertWorld
           (TE.rightBindTargetInsert
@@ -4949,7 +4949,7 @@ open ΛFrontChildPostPlan public
 mapCtxᴿ-smart-fresh-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
   → CTX.LiftCtxᴸ I.X⊑★ γ γᴸ
   → CTX.SmartLiftCtxᴸ
       {W = CTX.rightOnlyWorld
@@ -4961,7 +4961,7 @@ mapCtxᴿ-smart-fresh-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
         γ)
       (ECR.mapCtxᴿ
         (right-bind-right-bind-world-extendᴿ
-          {W = CTX.liftWorldLeft I.X⊑★ W}
+          {W = CTX.liftWorldLeft W}
           {B = ★} {C = ＇ Fin.zero})
         γᴸ)
 mapCtxᴿ-smart-fresh-liftᴸ CTX.liftᴸ-[] = CTX.smart-lift-[]
@@ -4972,12 +4972,12 @@ mapCtxᴿ-smart-fresh-liftᴸ (CTX.liftᴸ-∷ liftγ) =
 mapCtxᴿ-smart-fresh-target-ctx : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
   → CTX.LiftCtxᴸ I.X⊑★ γ γᴸ
   → CTX.tgtCtxʷ
       (ECR.mapCtxᴿ
         (right-bind-right-bind-world-extendᴿ
-          {W = CTX.liftWorldLeft I.X⊑★ W}
+          {W = CTX.liftWorldLeft W}
           {B = ★} {C = ＇ Fin.zero})
         γᴸ)
     ≡ CTX.tgtCtxʷ
@@ -5007,7 +5007,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTX.liftᴸ-∷ liftγ) =
 Λ⊑²-smart-fresh-at-rewrap : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {V : CT.Term (suc Δᴸ)} {post : CT.Term (suc (suc Δᴿ))}
     {A : Ty (suc Δᴸ)} {B : Ty (suc (suc Δᴿ))}
     {body-p : A CTX.⊑ᵂ⟨ Λ⊑²-smart-fresh-world W ⟩ B}
@@ -5022,7 +5022,7 @@ mapCtxᴿ-smart-fresh-target-ctx (CTX.liftᴸ-∷ liftγ) =
       CTI2.∣
       ECR.mapCtxᴿ
         (right-bind-right-bind-world-extendᴿ
-          {W = CTX.liftWorldLeft I.X⊑★ W}
+          {W = CTX.liftWorldLeft W}
           {B = ★} {C = ＇ Fin.zero})
         γᴸ
       ⊢² V ⊑ post ∶ body-p
@@ -5293,32 +5293,6 @@ rightOnlyImpEnvMono : ∀ {Δᴸ Δᴿ Δ}
       (CTX.rightOnlyWorld Wᵖ B)
 rightOnlyImpEnvMono mono Fin.zero eq = refl
 rightOnlyImpEnvMono mono (Fin.suc Z) eq = mono Z eq
-
-
-post-source-conceal-ok : ∀ {Δᴸ Δᴿ Δ Δ₁ Δ₂}
-    {W : CTX.World Δᴸ Δᴿ Δ}
-    {W₁ : CTX.World Δᴸ (suc Δᴿ) Δ₁}
-    {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
-    {π₁ : Δ ↪ᵗ Δ₁} {π₂ : Δ₁ ↪ᵗ Δ₂}
-    {M : CT.Term Δᴸ} {V′ : CT.Term (suc Δᴿ)}
-    {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {Xᴿ? Xᴿ₂?}
-    {c : Conv↓ Δᴸ A A′}
-  → TE.TargetInsert wk↪ᵗ π₁ W W₁
-  → TE.TargetInsert wk↪ᵗ π₂ W₁ W₂
-  → CTX.SourceConcealOK W M c Xᴿ? (Λ V′)
-  → CTX.SourceConcealOK W₂ M c Xᴿ₂?
-      (Λ⊑Λ²PostTerm V′ B)
-post-source-conceal-ok ins₁ ins₂
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns
-    (TE.targetInsertNoTargetAtSource ins₂
-      (TE.targetInsertNoTargetAtSource ins₁ no-target))
-post-source-conceal-ok ins₁ ins₂ CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-post-source-conceal-ok ins₁ ins₂ CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-post-source-conceal-ok ins₁ ins₂ CTX.id-conceal-ok =
-  CTX.id-conceal-ok
 
 
 Λ-strip-prefix-p₂ : ∀ {Δᴸ Δᴿ Δ}
@@ -5613,12 +5587,12 @@ right-bind-right-bind-tag-rebaseᴸ rb =
 Λ⊑²-smart-recursive-prefix-at : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+      CTX.liftWorldLeft W ⟩ `∀ B}
     {p : `∀ A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
   → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vV : CT.Value V)
@@ -5629,7 +5603,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
   → (liftγ : CTX.LiftCtxᴸ I.X⊑★ γ γᴸ)
   → (Anv : NonVar A)
   → (zero∈A : Fin.zero ∈ᵗ A)
-  → (bodyRel : CTX.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
+  → (bodyRel : CTX.liftWorldLeft W CTI2.∣ γᴸ
       ⊢² V ⊑ Λ V′ ∶ body-p)
   → ΛPostPrefixPackageAt bodyRel c′ B′≢★
   → ΛPostPrefixPackageAt rel c′ B′≢★
@@ -5652,17 +5626,17 @@ right-bind-right-bind-tag-rebaseᴸ rb =
 Λ⊑²-plain-shared-prefix-at : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {γᴮ : CTX.CtxImp
-      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       ⟩ B}
     {inner-p : `∀ A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+      CTX.liftWorldLeft W ⟩ `∀ B}
     {outer-p : `∀ (`∀ A) CTX.⊑ᵂ⟨ W ⟩ `∀ B}
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
@@ -5679,7 +5653,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
       ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
         CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → ΛPostPrefixPackageAt
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
@@ -5703,19 +5677,19 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     {W : CTX.World Δᴸ Δᴿ Δ}
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {V : CT.Term (suc Δᴸ)} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+      CTX.liftWorldLeft W ⟩ `∀ B}
     {p : `∀ A CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
     {extᴸ₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTX.liftWorldLeft I.X⊑★ W)
-      (CTX.liftWorldLeft I.X⊑★ W₂)}
+      (CTX.liftWorldLeft W)
+      (CTX.liftWorldLeft W₂)}
   → (rel : W CTI2.∣ γ ⊢² Λ V ⊑ Λ V′ ∶ p)
   → (vV : CT.Value V)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
@@ -5726,7 +5700,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
   → (zero∈A : Fin.zero ∈ᵗ A)
   → CTX.LiftCtxᴸ I.X⊑★ (ECR.mapCtxᴿ ext₂ γ)
       (ECR.mapCtxᴿ extᴸ₂ γᴸ)
-  → (bodyRel : CTX.liftWorldLeft I.X⊑★ W CTI2.∣ γᴸ
+  → (bodyRel : CTX.liftWorldLeft W CTI2.∣ γᴸ
       ⊢² V ⊑ Λ V′ ∶ body-p)
   → (top-p₂ : `∀ A CTX.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
   → ΛPostPrefixPackageAtBase bodyRel extᴸ₂ c′ B′≢★
@@ -5750,7 +5724,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
 
   postTarget⊢ᴸ :
       ⟨ suc (suc Δᴿ) ,
-        CTX.targetStoreʷ (CTX.liftWorldLeft I.X⊑★ W₂) ,
+        CTX.targetStoreʷ (CTX.liftWorldLeft W₂) ,
         CTX.tgtCtxʷ (ECR.mapCtxᴿ extᴸ₂ γᴸ) ⟩
       ⊢ Λ⊑Λ²PostTerm V′ B ⦂ ΛResidualSource₂ B
   postTarget⊢ᴸ = CTI2T.target-typing² postRel
@@ -5845,23 +5819,23 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {Wᶠ₂ : CTX.World (suc Δᴸ) (suc (suc Δᴿ)) Δᶠ₂}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {γᴮ : CTX.CtxImp
-      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       ⟩ B}
     {inner-p : `∀ A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+      CTX.liftWorldLeft W ⟩ `∀ B}
     {outer-p : `∀ (`∀ A) CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
     {extᶠ₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTX.liftWorldLeft I.X⊑★ W) Wᶠ₂}
+      (CTX.liftWorldLeft W) Wᶠ₂}
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
@@ -5877,13 +5851,13 @@ right-bind-right-bind-tag-rebaseᴸ rb =
       ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
         CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → CTX.SmartCommaLiftᴸ W₂ Wᶠ₂
   → CTX.SmartLiftCtxᴸ
       (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᶠ₂ γᴸ)
   → ΛPostWindowGeometry
-      (CTX.liftWorldLeft I.X⊑★ W) Wᶠ₂ extᶠ₂
+      (CTX.liftWorldLeft W) Wᶠ₂ extᶠ₂
   → (`∀ (`∀ A) CTX.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
   → ΛPostPrefixPackageAtBase
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
@@ -5906,17 +5880,17 @@ right-bind-right-bind-tag-rebaseᴸ rb =
 Λ⊑²-plain-shared-smart-plan-prefix-at-base : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {γᴮ : CTX.CtxImp
-      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       ⟩ B}
     {inner-p : `∀ A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+      CTX.liftWorldLeft W ⟩ `∀ B}
     {outer-p : `∀ (`∀ A) CTX.⊑ᵂ⟨ W ⟩ `∀ B}
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
@@ -5933,7 +5907,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
       ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
         CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → ΛPostPrefixPackageAtBase
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
@@ -5949,7 +5923,7 @@ right-bind-right-bind-tag-rebaseᴸ rb =
     (CTX.smart-fresh-behind (Λ⊑²-smart-fresh-guard {W = W}))
     (mapCtxᴿ-smart-fresh-liftᴸ liftγᴸ)
     (Λ-concrete-post-window
-      {W = CTX.liftWorldLeft I.X⊑★ W})
+      {W = CTX.liftWorldLeft W})
     (Λ-strip-prefix-p₂ {W = W} {A = `∀ (`∀ A)} {B = B}
       Λ-concrete-two-insert-post-plan outer-p)
 
@@ -5995,7 +5969,8 @@ rebaseAtᴸ-target-store : ∀ {Δᴸ Δᴿ Δ}
 rebaseAtᴸ-target-store CTX.rebase-idᴸ = refl
 rebaseAtᴸ-target-store (CTX.rebase-varᴸ rb) =
   CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb)
-rebaseAtᴸ-target-store (CTX.rebase-onlyᴸ to-star disaligned rep) =
+rebaseAtᴸ-target-store
+    (CTX.rebase-onlyᴸ member to-star disaligned rep) =
   refl
 
 
@@ -6007,7 +5982,8 @@ rebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
 rebaseAtᴸ-target-frozen CTX.rebase-idᴸ Y = refl
 rebaseAtᴸ-target-frozen (CTX.rebase-varᴸ rb) =
   CTX.RebaseAt.ηᴿ-frozen rb
-rebaseAtᴸ-target-frozen (CTX.rebase-onlyᴸ to-star disaligned rep) =
+rebaseAtᴸ-target-frozen
+    (CTX.rebase-onlyᴸ member to-star disaligned rep) =
   λ Y → refl
 
 
@@ -6019,7 +5995,7 @@ tagRebaseAtᴸ-target-store CTX.tag-rebase-idᴸ = refl
 tagRebaseAtᴸ-target-store (CTX.tag-rebase-varᴸ rb) =
   CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb)
 tagRebaseAtᴸ-target-store
-    (CTX.tag-rebase-onlyᴸ to-star disaligned rep) = refl
+    (CTX.tag-rebase-onlyᴸ member to-star disaligned rep) = refl
 
 
 tagRebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
@@ -6031,7 +6007,7 @@ tagRebaseAtᴸ-target-frozen CTX.tag-rebase-idᴸ Y = refl
 tagRebaseAtᴸ-target-frozen (CTX.tag-rebase-varᴸ rb) =
   CTX.RebaseAt.ηᴿ-frozen rb
 tagRebaseAtᴸ-target-frozen
-    (CTX.tag-rebase-onlyᴸ to-star disaligned rep) Y = refl
+    (CTX.tag-rebase-onlyᴸ member to-star disaligned rep) Y = refl
 
 
 rebaseTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
@@ -6070,8 +6046,7 @@ record ΛRebaseChildPostPlan {Δᴸ Δᴿ Δ}
 
 record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     {W Wᵖ : CTX.World Δᴸ Δᴿ Δ}
-    (plan : ΛTwoInsertPostPlan W)
-    (Xᴸ? : Maybe (Fin.Fin Δᴸ)) (Xᴿ? : Maybe (Fin.Fin Δᴿ))
+    (plan : ΛTwoInsertPostPlan W) (Xᴸ? : Maybe (Fin.Fin Δᴸ))
     : Set₁ where
   field
     childPlan : ΛTwoInsertPostPlan Wᵖ
@@ -6081,9 +6056,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
           (subst≡ (CTX.World _ _) sameΔ₂ (W₂ childPlan))
     postRebase : CTX.TagRebaseAtᴸ
       (subst≡ (CTX.World _ _) sameΔ₂ (W₂ childPlan))
-      (W₂ plan) Xᴸ?
-      (TE.mapPivot (toRenameᵗ wk↪ᵗ)
-        (TE.mapPivot (toRenameᵗ wk↪ᵗ) Xᴿ?))
+      (W₂ plan) Xᴸ? nothing
 
 
 Λ-two-insert-rebase-child : ∀ {Δᴸ Δᴿ Δ}
@@ -6158,10 +6131,10 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
   child = record
     { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
     ; π₁ = π₁ plan ; π₂ = π₂ plan
@@ -6174,10 +6147,10 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
 
 
 Λ-two-insert-tag-rebase-child : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : CTX.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+    {W Wᵖ : CTX.World Δᴸ Δᴿ Δ} {Xᴸ?}
   → (plan : ΛTwoInsertPostPlan W)
-  → CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
-  → ΛTagRebaseChildPostPlan plan Xᴸ? Xᴿ?
+  → CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? nothing
+  → ΛTagRebaseChildPostPlan plan Xᴸ?
 Λ-two-insert-tag-rebase-child plan rb
     with TE.reverseTagRebaseAtᴸ (ins₁ plan) rb
 Λ-two-insert-tag-rebase-child plan rb | Wᵖ₁ , insᵖ₁ , rb₁
@@ -6244,10 +6217,10 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
   child = record
     { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
     ; π₁ = π₁ plan ; π₂ = π₂ plan
@@ -6306,7 +6279,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     }
 
 
-Λ-post-prefix-conceal⊑²-source-ok-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
+Λ-post-prefix-conceal⊑²-base : ∀ {Δᴸ Δᴿ Δ Δ₂}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {Wᵖ : CTX.World Δᴸ Δᴿ Δ}
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
@@ -6316,7 +6289,7 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     {A A′ : Ty Δᴸ} {B : Ty (suc Δᴿ)} {B′ : Ty Δᴿ}
     {ν : Env∼ Δᴿ} {p₀ : A CTX.⊑ᵂ⟨ Wᵖ ⟩ `∀ B}
     {p : A′ CTX.⊑ᵂ⟨ W ⟩ `∀ B}
-    {Xᴸ? Xᴿ?} {Xᴿ₂? : Maybe (Fin.Fin (suc (suc Δᴿ)))}
+    {Xᴸ?}
     {c : Conv↓ Δᴸ A A′}
     {ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
@@ -6324,31 +6297,28 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) Wᵖ Wᵖ₂}
     {c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′}
     {prem : Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ Λ V′ ∶ p₀}
-  → (ok : CTX.SourceConcealOK Wᵖ M c Xᴿ? (Λ V′))
   → (mono : CTX.ImpEnvMono W Wᵖ)
-  → (rb : CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → (rb : CTX.TagRebaseAtᴸ Wᵖ W Xᴸ? nothing)
   → (sc : CTX.SameCtx γ γᵖ)
   → (c⊢ : CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c)
   → ⦃ Bnv : NonVar B ⦄
   → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
   → (B′≢★ : B′ ≢ ★)
-  → CTX.SourceConcealOK Wᵖ₂ M c Xᴿ₂?
-      (Λ⊑Λ²PostTerm V′ B)
   → CTX.ImpEnvMono W₂ Wᵖ₂
-  → CTX.TagRebaseAtᴸ Wᵖ₂ W₂ Xᴸ? Xᴿ₂?
+  → CTX.TagRebaseAtᴸ Wᵖ₂ W₂ Xᴸ? nothing
   → CTX.SameCtx (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᵖ₂ γᵖ)
   → CTX.sourceStoreʷ W₂ Conv.⊢↓[ Xᴸ? ] c
   → (top-p₂ : A′ CTX.⊑ᵂ⟨ W₂ ⟩ ΛResidualSource₂ B)
   → ΛPostPrefixPackageAtBase prem extᵖ₂ c′ B′≢★
   → ΛPostPrefixPackageAtBase
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem p)
+      (CTI2.conceal⊑² mono rb sc c⊢ prem p)
       ext₂ c′ B′≢★
-Λ-post-prefix-conceal⊑²-source-ok-base ok mono rb sc c⊢ B′≢★
-    ok₂ mono₂ rb₂ sc₂ c⊢₂ top-p₂ prefix =
+Λ-post-prefix-conceal⊑²-base mono rb sc c⊢ B′≢★
+    mono₂ rb₂ sc₂ c⊢₂ top-p₂ prefix =
   record
     { prefix-p₂ = top-p₂
     ; prefix-relation =
-        CTI2.conceal⊑²-source-ok ok₂ mono₂ rb₂ sc₂ c⊢₂
+        CTI2.conceal⊑² mono₂ rb₂ sc₂ c⊢₂
           (ΛPostPrefixPackageAtBase.prefix-relation prefix)
           top-p₂
     ; prefix-value = ΛPostPrefixPackageAtBase.prefix-value prefix
@@ -6432,17 +6402,16 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
     (Λ-strip-prefix-p₂ plan q)
     (Λ-post-prefix-hereditary child prem vM target-value c′ B′≢★)
 Λ-post-prefix-hereditary plan
-    rel@(CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q)
+    rel@(CTI2.conceal⊑² mono rb sc c⊢ prem q)
     (vM ↓ conceal-value) target-value c′ B′≢★
     with Λ-two-insert-tag-rebase-child plan rb
 Λ-post-prefix-hereditary plan
-    rel@(CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q)
+    rel@(CTI2.conceal⊑² mono rb sc c⊢ prem q)
     (vM ↓ conceal-value) target-value c′ B′≢★
     | record
         { childPlan = child ; sameΔ₂ = refl
         ; postMono = post-mono ; postRebase = post-rb } =
-  Λ-post-prefix-conceal⊑²-source-ok-base ok mono rb sc c⊢ B′≢★
-    (post-source-conceal-ok (ins₁ child) (ins₂ child) ok)
+  Λ-post-prefix-conceal⊑²-base mono rb sc c⊢ B′≢★
     (post-mono mono) post-rb
     (mapCtxᴿ-sameCtx (postExtend plan) (postExtend child) sc)
     (TE.source-conceal-insert (ins₂ plan)

@@ -55,7 +55,7 @@ D4-callee-rebase₂ =
 
 
 D4-parked-world₀-proofᵀ : D4-parked-world₀ᵀ
-D4-parked-world₀-proofᵀ = parked-initial
+D4-parked-world₀-proofᵀ = parked-initial {μ = I.idᵐ}
 
 
 D4-keep-both₁ :
@@ -83,7 +83,13 @@ D4-parked-evolve₀₈-proofᵀ =
 
 D4-parked-world₂-proofᵀ : D4-parked-world₂ᵀ
 D4-parked-world₂-proofᵀ =
-  parked-both-bind (parked-both-bind parked-initial)
+  parked-both-bind
+    (Ex2.ℕ⊑ℕ² {W = P3.higher-order-shared-arg-world₁})
+    (parked-both-bind
+      (P3.symmetric-refl⊑ᵂ
+        {W = P3.higher-order-shared-arg-world₀}
+        {A = RC.∀X⇒X₀} refl)
+      (parked-initial {μ = I.idᵐ}))
 
 
 D4-checkpoint-proofᵀ : D4-checkpointᵀ
@@ -91,14 +97,16 @@ D4-checkpoint-proofᵀ =
   CTI2.·⊑·²
     (CTI2.cast⊑cast² _ _
       (CTI2.cast⊑cast² _ _
-        (CTI2.reveal⊑reveal² (λ Z eq → eq)
-          D4-callee-rebase₂ CTX.same-[]
-          (Conv.⊢↑-⇒ˣ Conv.join-both
-            (Conv.⊢↓-sealˣ (Z∋ refl))
-            (Conv.⊢↑-unsealˣ (Z∋ refl)))
-          (Conv.⊢↑-⇒ˣ Conv.join-both
-            (Conv.⊢↓-sealˣ (Z∋ refl))
-            (Conv.⊢↑-unsealˣ (Z∋ refl)))
+        (CTI2.reveal⊑reveal²
+          (Conv.⊢↑-⇒
+            (Conv.⊢↓-seal (Z∋ refl))
+            (Conv.⊢↑-unseal (Z∋ refl)))
+          (Conv.⊢↑-⇒
+            (Conv.⊢↓-seal (Z∋ refl))
+            (Conv.⊢↑-unseal (Z∋ refl)))
+          refl (λ ())
+          (Ex2.ℕ⊑ℕ² {W = P3.higher-order-shared-arg-world₂})
+          CTX.impEnvMono-refl D4-callee-rebase₂ CTX.same-[]
           (CTI2.ƛ⊑ƛ²
             {pA = I.X⊑X {X = zero}}
             {pB = I.X⊑X {X = zero}}

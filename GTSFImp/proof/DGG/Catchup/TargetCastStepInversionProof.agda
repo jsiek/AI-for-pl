@@ -11,8 +11,6 @@ module proof.DGG.Catchup.TargetCastStepInversionProof where
 --   * Does not change the CTI relation or the reduction relation.
 
 open import Types
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Maybe using (Maybe)
 open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 import Consistency as C
@@ -20,7 +18,6 @@ import Imprecision as I
 open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; idᵍ; _!; ？_;
    toRenameᵗ)
-open import Conversion using (Conv↓)
 open import CastTerms using
   (Term; Value; _⊢_⦂_; ⟨_,_,_⟩; _⟨_⟩; Λ_; _《_》; _↑_; _↓_;
    ⊢⟨⟩)
@@ -194,122 +191,6 @@ typing-id-cast-core : ∀ {Δ} {Σ} {Γ} {M : Term Δ}
 typing-id-cast-core a (⊢⟨⟩ M⊢ (id a′)) = M⊢
 
 
-not-top-id-cast-impossible : ∀ {Δ} {M : Term Δ}
-    {A : Ty Δ} {ν : Env∼ Δ}
-  → (a : Atom A)
-  → CTX.NotTopTag (M ⟨ id {μ = ν} a ⟩)
-  → ⊥
-not-top-id-cast-impossible a ()
-
-
-rep★-target-id-impossible : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M′ : Term Δᴿ} {A : Ty Δᴿ} {ν : Env∼ Δᴿ}
-  → (a : Atom A)
-  → CTX.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
-  → ⊥
-rep★-target-id-impossible a (CTX.rep★-untagged nt) =
-  not-top-id-cast-impossible a nt
-rep★-target-id-impossible a (CTX.rep★-round-trip ok) =
-  rep★-target-id-impossible a ok
-
-
-source-conceal-ok-target-id-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M′ : Term Δᴿ} {B : Ty Δᴿ} {ν : Env∼ Δᴿ}
-  → (a : Atom B)
-  → CTX.SourceConcealOK W P c Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
-  → CTX.SourceConcealOK W P c Xᴿ? M′
-source-conceal-ok-target-id-core a
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns no-target
-source-conceal-ok-target-id-core a CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-source-conceal-ok-target-id-core a CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-source-conceal-ok-target-id-core a CTX.id-conceal-ok =
-  CTX.id-conceal-ok
-
-
-rep★-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
-    {P : Term Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
-    {ν ν′ : Env∼ Δᴿ}
-  → (a : Atom A)
-  → (c′ : ν′ ⊢ B ∼ B′)
-  → CTX.Rep★PartnerOK W X P Xᴿ?
-      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
-  → CTX.Rep★PartnerOK W X P Xᴿ? (M′ ⟨ c′ ⟩)
-rep★-target-id-framed-core a c′ (CTX.rep★-untagged ())
-rep★-target-id-framed-core a c′ (CTX.rep★-nonvar-tag Gnv) =
-  CTX.rep★-nonvar-tag Gnv
-rep★-target-id-framed-core a c′ (CTX.rep★-var-tag aligned) =
-  CTX.rep★-var-tag aligned
-rep★-target-id-framed-core a c′
-    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
-  CTX.rep★-matched-inner-tags X₂≢X aligned
-rep★-target-id-framed-core a c′ (CTX.rep★-round-trip ok) =
-  CTX.rep★-round-trip (rep★-target-id-framed-core a c′ ok)
-
-
-matched-conceal-partner-target-id-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M′ : Term Δᴿ} {B : Ty Δᴿ} {ν : Env∼ Δᴿ}
-  → (a : Atom B)
-  → CTX.MatchedConcealPartnerOK W P c Xᴿ? (M′ ⟨ id {μ = ν} a ⟩)
-  → CTX.MatchedConcealPartnerOK W P c Xᴿ? M′
-matched-conceal-partner-target-id-core a
-    (CTX.matched-seal-star-partner ok) =
-  ⊥-elim (rep★-target-id-impossible a ok)
-matched-conceal-partner-target-id-core a
-    (CTX.matched-seal-nonstar Rns) =
-  CTX.matched-seal-nonstar Rns
-matched-conceal-partner-target-id-core a
-    CTX.matched-fun-conceal-target =
-  CTX.matched-fun-conceal-target
-matched-conceal-partner-target-id-core a
-    CTX.matched-all-conceal-target =
-  CTX.matched-all-conceal-target
-matched-conceal-partner-target-id-core a
-    CTX.matched-id-conceal-target =
-  CTX.matched-id-conceal-target
-
-
-matched-conceal-partner-target-id-framed-core : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A₀ A₁ : Ty Δᴸ} {c : Conv↓ Δᴸ A₀ A₁}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {M′ : Term Δᴿ} {A B B′ : Ty Δᴿ}
-    {ν ν′ : Env∼ Δᴿ}
-  → (a : Atom A)
-  → (c′ : ν′ ⊢ B ∼ B′)
-  → CTX.MatchedConcealPartnerOK W P c Xᴿ?
-      ((M′ ⟨ id {μ = ν} a ⟩) ⟨ c′ ⟩)
-  → CTX.MatchedConcealPartnerOK W P c Xᴿ? (M′ ⟨ c′ ⟩)
-matched-conceal-partner-target-id-framed-core a c′
-    (CTX.matched-seal-star-partner ok) =
-  CTX.matched-seal-star-partner
-    (rep★-target-id-framed-core a c′ ok)
-matched-conceal-partner-target-id-framed-core a c′
-    (CTX.matched-seal-nonstar Rns) =
-  CTX.matched-seal-nonstar Rns
-matched-conceal-partner-target-id-framed-core a c′
-    CTX.matched-fun-conceal-target =
-  CTX.matched-fun-conceal-target
-matched-conceal-partner-target-id-framed-core a c′
-    CTX.matched-all-conceal-target =
-  CTX.matched-all-conceal-target
-matched-conceal-partner-target-id-framed-core a c′
-    CTX.matched-id-conceal-target =
-  CTX.matched-id-conceal-target
-
-
 target-id-step-inversion : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -342,15 +223,8 @@ target-id-step-inversion {M′ = M′} a (vM ↑ rv) vM′
   CTI2.reveal⊑² mono rb sameγ c⊢
     (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
 target-id-step-inversion {M′ = M′} a (vM ↓ cv) vM′
-    (CTI2.conceal⊑²-seal-star-open
-      no-target mono rb sameγ c⊢ rel q) =
-  CTI2.conceal⊑²-seal-star-open
-    no-target mono rb sameγ c⊢
-    (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
-target-id-step-inversion {M′ = M′} a (vM ↓ cv) vM′
-    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
-  CTI2.conceal⊑²-source-ok
-    (source-conceal-ok-target-id-core a ok)
+    (CTI2.conceal⊑² mono rb sameγ c⊢ rel q) =
+  CTI2.conceal⊑²
     mono rb sameγ c⊢
     (target-id-step-inversion {M′ = M′} a vM vM′ rel) q
 

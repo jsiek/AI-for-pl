@@ -20,6 +20,8 @@ import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
+open import proof.DGG.Catchup.StructuralTermProvenanceDef using
+  (StructuralTermProvenance)
 open import proof.DGG.Catchup.InstInversionDef using
   (InstSpineDescentPackage)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
@@ -211,7 +213,7 @@ structural-name-package :
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
+    → (rel : W CTIR.∣ γ ⊢² M ⊑ V ∶ p)
     → Value M
     → Value V
     → AllValueView V
@@ -222,15 +224,19 @@ structural-name-package :
         (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → StructuralTermProvenance
+        (StructuralTargetInstantiationPackage.structural-ext target) rel
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package surfaces worker fuel-step residual-cast-builder
-    inst-decrease plan chain-plan rel vM vV view spine chain typed target =
+structural-name-package surfaces worker fuel-step
+    residual-cast-builder
+    inst-decrease plan chain-plan rel vM vV view spine chain typed target
+    provenance =
   record
     { target-descent = target
     ; final-relation =
-        worker surfaces fuel-step residual-cast-builder inst-decrease plan chain-plan
-          rel vM vV view spine chain typed target
+        worker surfaces fuel-step residual-cast-builder inst-decrease plan
+          chain-plan rel vM vV view spine chain typed target provenance
     }
 
 
@@ -249,7 +255,7 @@ erase-structural-name-root :
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
+    → (rel : W CTIR.∣ γ ⊢² M ⊑ V ∶ p)
     → Value M
     → Value V
     → AllValueView V
@@ -260,11 +266,16 @@ erase-structural-name-root :
         (name-type-app-frame B X refl refl ▻ⁱ spine)
     → (target : StructuralTargetInstantiationPackage W V
         (name-type-app-frame B X refl refl ▻ⁱ spine))
+    → StructuralTermProvenance
+        (StructuralTargetInstantiationPackage.structural-ext target) rel
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root surfaces worker fuel-step residual-cast-builder
-    inst-decrease plan chain-plan rel vM vV view spine chain typed target =
+erase-structural-name-root surfaces worker fuel-step
+    residual-cast-builder
+    inst-decrease plan chain-plan rel vM vV view spine chain typed target
+    provenance =
   erase-structural-descent
-    (structural-name-package surfaces worker fuel-step residual-cast-builder
-      inst-decrease plan chain-plan rel vM vV view spine chain typed target)
+    (structural-name-package surfaces worker fuel-step
+      residual-cast-builder inst-decrease plan chain-plan rel vM vV view spine
+      chain typed target provenance)

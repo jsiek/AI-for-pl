@@ -43,6 +43,9 @@ open import proof.DGG.Catchup.BoundaryValueAdaptersProof using
    source-conceal-boundary-value-adapter;
    target-reveal-boundary-value-adapter;
    target-conceal-boundary-value-adapter)
+open import proof.DGG.Catchup.BoundaryValueAdaptersDef using
+  (StructuralForwardBoundaryReplayFactory;
+   StructuralBackwardBoundaryReplayFactory)
 open import proof.DGG.CatchupToMorePreciseDef using
   (CatchupToMorePrecise; boundary-refl; boundary-source-reveal;
    boundary-source-conceal; boundary-target-reveal;
@@ -108,11 +111,7 @@ target-cast-bound-mono {rel = CTI2.reveal⊑² mono rb sameγ c⊢ rel q}
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
 target-cast-bound-mono
-    {rel = CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q}
-    fuel≤fuel′ bound =
-  target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
-target-cast-bound-mono
-    {rel = CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q}
+    {rel = CTI2.conceal⊑² mono rb sameγ c⊢ rel q}
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
 target-cast-bound-mono
@@ -120,16 +119,9 @@ target-cast-bound-mono
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
 target-cast-bound-mono
-    {rel = CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q}
+    {rel = CTI2.conceal⊑conceal² mono rb sameγ c⊢ c′⊢ rel q}
     fuel≤fuel′ bound =
   target-cast-bound-mono {rel = rel} fuel≤fuel′ bound
-target-cast-bound-mono
-    {rel =
-      CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-        rel pkg-rel q}
-    fuel≤fuel′ (bound , pkg-bound) =
-  target-cast-bound-mono {rel = rel} fuel≤fuel′ bound ,
-  target-cast-bound-mono {rel = pkg-rel} fuel≤fuel′ pkg-bound
 target-cast-bound-mono {rel = CTI2.blame⊑² M′⊢ p} fuel≤fuel′ bound =
   tt
 target-cast-bound-mono {rel = CTI2.⊕⊑⊕² op rel₁ rel₂ r}
@@ -188,29 +180,14 @@ target-cast-bound-mono {rel = CTI2.⊕⊑⊕² op rel₁ rel₂ r}
 ⊢²-target-cast-bound (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
   ⊢²-target-cast-bound rel
 ⊢²-target-cast-bound
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
-  ⊢²-target-cast-bound rel
-⊢²-target-cast-bound
-    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
+    (CTI2.conceal⊑² mono rb sameγ c⊢ rel q) =
   ⊢²-target-cast-bound rel
 ⊢²-target-cast-bound
     (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
   ⊢²-target-cast-bound rel
 ⊢²-target-cast-bound
-    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
+    (CTI2.conceal⊑conceal² mono rb sameγ c⊢ c′⊢ rel q) =
   ⊢²-target-cast-bound rel
-⊢²-target-cast-bound
-    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-      rel pkg-rel q)
-  with ⊢²-target-cast-bound rel | ⊢²-target-cast-bound pkg-rel
-⊢²-target-cast-bound
-    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-      rel pkg-rel q)
-  | fuel , bound | pkg-fuel , pkg-bound =
-  fuel ⊔ pkg-fuel ,
-  target-cast-bound-mono {rel = rel} (m≤m⊔n fuel pkg-fuel) bound ,
-  target-cast-bound-mono {rel = pkg-rel}
-    (m≤n⊔m fuel pkg-fuel) pkg-bound
 ⊢²-target-cast-bound (CTI2.blame⊑² M′⊢ p) = 0 , tt
 ⊢²-target-cast-bound (CTI2.⊕⊑⊕² op rel₁ rel₂ r)
   with ⊢²-target-cast-bound rel₁ | ⊢²-target-cast-bound rel₂
@@ -264,46 +241,57 @@ structural-value-catchup-right²-from-fuel-knot-factories
 
 
 catchup-to-more-precise-from-fuel-knot-factories :
-  StructuralExtraCastFactory
+  StructuralForwardBoundaryReplayFactory
+  → StructuralBackwardBoundaryReplayFactory
+  → StructuralExtraCastFactory
   → StructuralValueCatchupFactory
   → StructuralInstCatchupFactory
   → CatchupToMorePrecise
 catchup-to-more-precise-from-fuel-knot-factories
-    extra-factory value-factory inst-factory parked boundary-refl rel vM =
+    forward-replay backward-replay extra-factory value-factory inst-factory
+    parked boundary-refl rel vM =
   same-boundary-value-adapter structural-right-parked-evolve parked
     (worker vM rel)
   where
   worker = structural-value-catchup-right²-from-fuel-knot-factories
     extra-factory value-factory inst-factory
 catchup-to-more-precise-from-fuel-knot-factories
-    extra-factory value-factory inst-factory parked
+    forward-replay backward-replay extra-factory value-factory inst-factory
+    parked
     (boundary-source-reveal mono rb) rel vM =
   source-reveal-boundary-value-adapter structural-right-parked-evolve parked
-    mono rb (worker vM rel)
+    mono rb child (forward-replay parked mono rb rel vM child)
   where
   worker = structural-value-catchup-right²-from-fuel-knot-factories
     extra-factory value-factory inst-factory
+  child = worker vM rel
 catchup-to-more-precise-from-fuel-knot-factories
-    extra-factory value-factory inst-factory parked
+    forward-replay backward-replay extra-factory value-factory inst-factory
+    parked
     (boundary-source-conceal mono rb) rel vM =
   source-conceal-boundary-value-adapter structural-right-parked-evolve parked
-    mono rb (worker vM rel)
+    mono rb child (backward-replay parked mono rb rel vM child)
   where
   worker = structural-value-catchup-right²-from-fuel-knot-factories
     extra-factory value-factory inst-factory
+  child = worker vM rel
 catchup-to-more-precise-from-fuel-knot-factories
-    extra-factory value-factory inst-factory parked
+    forward-replay backward-replay extra-factory value-factory inst-factory
+    parked
     (boundary-target-reveal mono rb) rel vM =
   target-reveal-boundary-value-adapter structural-right-parked-evolve parked
-    mono rb (worker vM rel)
+    mono rb child (forward-replay parked mono rb rel vM child)
   where
   worker = structural-value-catchup-right²-from-fuel-knot-factories
     extra-factory value-factory inst-factory
+  child = worker vM rel
 catchup-to-more-precise-from-fuel-knot-factories
-    extra-factory value-factory inst-factory parked
+    forward-replay backward-replay extra-factory value-factory inst-factory
+    parked
     (boundary-target-conceal mono rb) rel vM =
   target-conceal-boundary-value-adapter structural-right-parked-evolve parked
-    mono rb (worker vM rel)
+    mono rb child (backward-replay parked mono rb rel vM child)
   where
   worker = structural-value-catchup-right²-from-fuel-knot-factories
     extra-factory value-factory inst-factory
+  child = worker vM rel

@@ -10,7 +10,6 @@ module proof.DGG.Inversion.TargetStripDef where
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
-open import Data.Maybe using (just)
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -53,7 +52,7 @@ data TargetSealTerminusData {Δᴸ Δᴿ Δ}
     → W★ ∣ γ★ ⊢² V ⊑ U★ ∶ q★
     → TargetSealTerminusData Wᵒ γᵒ V A U Xᴸ Y S
 
-  target-seal-terminus-paired : ∀ {P U Uᵖ Xᴸ Y Yᵖ S W★ γ★}
+  target-seal-terminus-paired : ∀ {P U Uᵖ Xᴸ Y S W★ γ★}
       {p★ : ★ ⊑ᵂ⟨ W★ ⟩ ★}
       {qᵒ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)}
     → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
@@ -62,8 +61,6 @@ data TargetSealTerminusData {Δᴸ Δᴿ Δ}
     → Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᴸ ★ ⊑ U ↓ seal Y S ∶ qᵒ
     → CTI2.ImpEnvMono Wᵒ W★
     → CTI2.SameCtx γᵒ γ★
-    → CTI2.MatchedConcealPartnerOK W★ P
-        (Conversion.seal Xᴸ ★) (just Yᵖ) Uᵖ
     → W★ ∣ γ★ ⊢² P ⊑ Uᵖ ∶ p★
     → TargetSealTerminusData Wᵒ γᵒ
         (P ↓ Conversion.seal Xᴸ ★) (＇ Xᴸ) U Xᴸ Y S
@@ -78,37 +75,35 @@ data TargetSealTerminusᴸData {Δᴸ Δᴿ Δ}
     → (Y★ : TyVar Δᴿ)
     → (W★ : World Δᴸ Δᴿ Δ)
     → (γ★ : CtxImp W★)
-    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵒ))
-    → (γ★ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W★))
+    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft Wᵒ))
+    → (γ★ᴸ : CtxImp (CTI2.liftWorldLeft W★))
     → LiftCtxᴸ X⊑★ γᵒ γᵒᴸ
     → LiftCtxᴸ X⊑★ γ★ γ★ᴸ
     → CTI2.ImpEnvMono Wᵒ W★
     → CTI2.SameCtx γᵒ γ★
     → RebaseAt W★ Wᵒ Xᴸ Y
     → targetStoreʷ W★ ∋ Y★ ⦂ ★
-    → (body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★)
+    → (body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft W★ ⟩ ★)
     → ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
     → (
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+      CTI2.liftWorldLeft W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
       )
     → TargetSealTerminusᴸData Wᵒ γᵒ V A U Xᴸ Y S
 
-  target-seal-terminusᴸ-paired : ∀ {V A P U Uᵐ Xᴸ Z Y Yᵐ S Wᵐ γᵐ}
+  target-seal-terminusᴸ-paired : ∀ {V A P U Uᵐ Xᴸ Z Y S Wᵐ γᵐ}
       {pᵐ : ★ ⊑ᵂ⟨ Wᵐ ⟩ ★}
-      {qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵒ ⟩ (＇ Y)}
+      {qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵒ ⟩ (＇ Y)}
     → A ≡ ＇ Z
     → V ≡ P ↓ Conversion.seal Z ★
-    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵒ))
+    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft Wᵒ))
     → LiftCtxᴸ X⊑★ γᵒ γᵒᴸ
-    → sourceStoreʷ (CTI2.liftWorldLeft X⊑★ Wᵒ) ∋ Z ⦂ ★
+    → sourceStoreʷ (CTI2.liftWorldLeft Wᵒ) ∋ Z ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
-    → RebaseAt Wᵐ (CTI2.liftWorldLeft X⊑★ Wᵒ) Z Y
-    → CTI2.liftWorldLeft X⊑★ Wᵒ ∣ γᵒᴸ ⊢²
+    → RebaseAt Wᵐ (CTI2.liftWorldLeft Wᵒ) Z Y
+    → CTI2.liftWorldLeft Wᵒ ∣ γᵒᴸ ⊢²
         V ⊑ U ↓ Conversion.seal Y S ∶ qᵒ
-    → CTI2.ImpEnvMono (CTI2.liftWorldLeft X⊑★ Wᵒ) Wᵐ
+    → CTI2.ImpEnvMono (CTI2.liftWorldLeft Wᵒ) Wᵐ
     → CTI2.SameCtx γᵒᴸ γᵐ
-    → CTI2.MatchedConcealPartnerOK Wᵐ P
-        (Conversion.seal Z ★) (just Yᵐ) Uᵐ
     → Wᵐ ∣ γᵐ ⊢² P ⊑ Uᵐ ∶ pᵐ
     → TargetSealTerminusᴸData Wᵒ γᵒ V A U Xᴸ Y S
 
@@ -142,7 +137,7 @@ data TargetStripAt★Data {Δᴸ Δᴿ Δ}
   target-strip★-paired : ∀ {P U Xᴸ Y S ν}
       {cY : ν ⊢ (＇ Y) ∼ ★} {Wᵖ γᵖ}
       {p : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
-      {Uᵐ Yᵐ Wᵐ γᵐ}
+      {Uᵐ Wᵐ γᵐ}
       {pᵐ : ★ ⊑ᵂ⟨ Wᵐ ⟩ ★}
       {qᵒ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y)}
     → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
@@ -151,8 +146,6 @@ data TargetStripAt★Data {Δᴸ Δᴿ Δ}
     → Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᴸ ★ ⊑ U ↓ seal Y S ∶ qᵒ
     → CTI2.ImpEnvMono Wᵒ Wᵐ
     → CTI2.SameCtx γᵒ γᵐ
-    → CTI2.MatchedConcealPartnerOK Wᵐ P
-        (Conversion.seal Xᴸ ★) (just Yᵐ) Uᵐ
     → Wᵐ ∣ γᵐ ⊢² P ⊑ Uᵐ ∶ pᵐ
     → (Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᴸ ★ ⊑ U ↓ seal Y S ∶ qᵒ
        → Wᵖ ∣ γᵖ ⊢² P ↓ seal Xᴸ ★
@@ -167,30 +160,30 @@ data TargetStripAt★ᴸData {Δᴸ Δᴿ Δ}
     (S : Ty Δᴿ) → {ν : Env∼ Δᴿ} →
     (cY : ν ⊢ (＇ Y) ∼ ★) → (Wᵖ : World Δᴸ Δᴿ Δ) →
     (γᵖ : CtxImp Wᵖ) →
-    CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ) →
-    A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★ → Set where
+    CtxImp (CTI2.liftWorldLeft Wᵖ) →
+    A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★ → Set where
   target-strip★ᴸ-data : ∀ {V A U Xᴸ Y S ν}
       {cY : ν ⊢ (＇ Y) ∼ ★} {Wᵖ γᵖ γᵇ}
-      {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+      {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★}
     →
     (U★ : Term Δᴿ)
     → (Y★ : TyVar Δᴿ)
     → (W★ : World Δᴸ Δᴿ Δ)
     → (γ★ : CtxImp W★)
-    → (γ★ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W★))
+    → (γ★ᴸ : CtxImp (CTI2.liftWorldLeft W★))
     → LiftCtxᴸ X⊑★ γ★ γ★ᴸ
     → CTI2.ImpEnvMono Wᵒ W★
     → CTI2.SameCtx γᵒ γ★
     → RebaseAt W★ Wᵒ Xᴸ Y
     → targetStoreʷ W★ ∋ Y★ ⦂ ★
-    → (body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★)
+    → (body★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft W★ ⟩ ★)
     → ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
     → (
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+      CTI2.liftWorldLeft W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
       )
     → (
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
-      → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+      CTI2.liftWorldLeft W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ body★
+      → CTI2.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
           V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
       )
     → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY
@@ -198,27 +191,25 @@ data TargetStripAt★ᴸData {Δᴸ Δᴿ Δ}
 
   target-strip★ᴸ-paired : ∀ {V A P U Xᴸ Z Y S ν}
       {cY : ν ⊢ (＇ Y) ∼ ★} {Wᵖ γᵖ γᵇ}
-      {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
-      {Uᵐ Yᵐ Wᵐ γᵐ}
+      {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★}
+      {Uᵐ Wᵐ γᵐ}
       {pᵐ : ★ ⊑ᵂ⟨ Wᵐ ⟩ ★}
-      {qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵒ ⟩ (＇ Y)}
+      {qᵒ : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵒ ⟩ (＇ Y)}
     → A ≡ ＇ Z
     → V ≡ P ↓ Conversion.seal Z ★
-    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵒ))
+    → (γᵒᴸ : CtxImp (CTI2.liftWorldLeft Wᵒ))
     → LiftCtxᴸ X⊑★ γᵒ γᵒᴸ
-    → sourceStoreʷ (CTI2.liftWorldLeft X⊑★ Wᵒ) ∋ Z ⦂ ★
+    → sourceStoreʷ (CTI2.liftWorldLeft Wᵒ) ∋ Z ⦂ ★
     → targetStoreʷ Wᵒ ∋ Y ⦂ S
-    → RebaseAt Wᵐ (CTI2.liftWorldLeft X⊑★ Wᵒ) Z Y
-    → CTI2.liftWorldLeft X⊑★ Wᵒ ∣ γᵒᴸ ⊢²
+    → RebaseAt Wᵐ (CTI2.liftWorldLeft Wᵒ) Z Y
+    → CTI2.liftWorldLeft Wᵒ ∣ γᵒᴸ ⊢²
         V ⊑ U ↓ Conversion.seal Y S ∶ qᵒ
-    → CTI2.ImpEnvMono (CTI2.liftWorldLeft X⊑★ Wᵒ) Wᵐ
+    → CTI2.ImpEnvMono (CTI2.liftWorldLeft Wᵒ) Wᵐ
     → CTI2.SameCtx γᵒᴸ γᵐ
-    → CTI2.MatchedConcealPartnerOK Wᵐ P
-        (Conversion.seal Z ★) (just Yᵐ) Uᵐ
     → Wᵐ ∣ γᵐ ⊢² P ⊑ Uᵐ ∶ pᵐ
-    → (CTI2.liftWorldLeft X⊑★ Wᵒ ∣ γᵒᴸ ⊢²
+    → (CTI2.liftWorldLeft Wᵒ ∣ γᵒᴸ ⊢²
           V ⊑ U ↓ Conversion.seal Y S ∶ qᵒ
-       → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+       → CTI2.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
           V ⊑ (U ↓ Conversion.seal Y S) ⟨ cY ⟩ ∶ p)
     → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY
         Wᵖ γᵖ γᵇ p
@@ -251,11 +242,11 @@ SealDescentAtVarᴸ =
   ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wʳ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γʳ : CtxImp Wʳ}
-    {γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wʳ)}
+    {γᵇ : CtxImp (CTI2.liftWorldLeft Wʳ)}
     {V : Term (suc Δᴸ)} {U : Term Δᴿ}
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wʳ ⟩ ＇ Y}
+    {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wʳ ⟩ ＇ Y}
   → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wʳ
@@ -264,7 +255,7 @@ SealDescentAtVarᴸ =
   → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → LiftCtxᴸ X⊑★ γʳ γᵇ
-  → CTI2.liftWorldLeft X⊑★ Wʳ ∣ γᵇ ⊢²
+  → CTI2.liftWorldLeft Wʳ ∣ γᵇ ⊢²
       V ⊑ U ↓ seal Y S ∶ r
   → TargetSealTerminusᴸData Wᵒ γᵒ V A U Xᴸ Y S
 
@@ -283,14 +274,14 @@ record TagNodeAt★ {Δᴸ Δᴿ Δ}
 
 record TagNodeAt★ᴸ {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ)
-    (γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ W))
+    (γᵇ : CtxImp (CTI2.liftWorldLeft W))
     (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
     (N : Term Δᴿ) (Y : TyVar Δᴿ) : Set where
   constructor tag-node★ᴸ
   field
-    r★ᴸ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ ＇ Y
+    r★ᴸ : A ⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ ＇ Y
     premiseᵛᴸ :
-      CTI2.liftWorldLeft X⊑★ W ∣ γᵇ ⊢² V ⊑ N ∶ r★ᴸ
+      CTI2.liftWorldLeft W ∣ γᵇ ⊢² V ⊑ N ∶ r★ᴸ
 
 data TagDispatchAt★Case {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
@@ -319,11 +310,11 @@ data TagDispatchAt★Case {Δᴸ Δᴿ Δ}
 data TagDispatchAt★ᴸCase {Δᴸ Δᴿ Δ}
     (Wᵒ : World Δᴸ Δᴿ Δ) (γᵒ : CtxImp Wᵒ)
     (Wᵖ : World Δᴸ Δᴿ Δ) (γᵖ : CtxImp Wᵖ)
-    (γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ))
+    (γᵇ : CtxImp (CTI2.liftWorldLeft Wᵖ))
     (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
     (N : Term Δᴿ) (Xᴸ : TyVar Δᴸ) (Y : TyVar Δᴿ)
     {ν : Env∼ Δᴿ} (cY : ν ⊢ (＇ Y) ∼ ★)
-    (p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★) : Set where
+    (p : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★) : Set where
 
   dispatch-tagᴸ :
     TagNodeAt★ᴸ Wᵖ γᵇ V A N Y
@@ -365,12 +356,12 @@ TagDispatchAt★ᴸ =
   ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-    {γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ)}
+    {γᵇ : CtxImp (CTI2.liftWorldLeft Wᵖ)}
     {V : Term (suc Δᴸ)} {N : Term Δᴿ}
     {A : Ty (suc Δᴸ)} {Xᴸ : TyVar Δᴸ}
     {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
     {cY : ν ⊢ (＇ Y) ∼ ★}
-    {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+    {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★}
   → SpineValue V
   → Value N
   → CTI2.ImpEnvMono Wᵒ Wᵖ
@@ -378,7 +369,7 @@ TagDispatchAt★ᴸ =
   → CTI2.SameCtx γᵒ γᵖ
   → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
-  → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+  → CTI2.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
       V ⊑ N ⟨ cY ⟩ ∶ p
   → TagDispatchAt★ᴸCase Wᵒ γᵒ Wᵖ γᵖ γᵇ V A N Xᴸ Y cY p
 
@@ -406,12 +397,12 @@ TargetStripAt★ᴸ =
   ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-    {γᵇ : CtxImp (CTI2.liftWorldLeft X⊑★ Wᵖ)}
+    {γᵇ : CtxImp (CTI2.liftWorldLeft Wᵖ)}
     {V : Term (suc Δᴸ)} {U : Term Δᴿ}
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-    {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+    {p : A ⊑ᵂ⟨ CTI2.liftWorldLeft Wᵖ ⟩ ★}
   → SpineValue V
   → Value U
   → CTI2.ImpEnvMono Wᵒ Wᵖ
@@ -420,7 +411,7 @@ TargetStripAt★ᴸ =
   → sourceStoreʷ Wᵒ ∋ Xᴸ ⦂ ★
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → LiftCtxᴸ X⊑★ γᵖ γᵇ
-  → CTI2.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+  → CTI2.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p
   → TargetStripAt★ᴸData Wᵒ γᵒ V A U Xᴸ Y S cY Wᵖ γᵖ γᵇ p
 
@@ -446,9 +437,9 @@ target-strip★-from-slices seal-at-var tag-dispatch
     sv vU mono rb sc source∈ target∈ D
     | dispatch-tag (tag-node★ r prem)
     | target-seal-terminus-paired source∈ᵒ target∈ᵒ boundaryᵒ
-        residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ =
+        residualᵒ monoᵐ sameᵐ premiseᵐ =
   target-strip★-paired source∈ᵒ target∈ᵒ boundaryᵒ residualᵒ
-    monoᵐ sameᵐ partnerᵐ premiseᵐ (λ _ → D)
+    monoᵐ sameᵐ premiseᵐ (λ _ → D)
 target-strip★-from-slices seal-at-var tag-dispatch
     sv vU mono rb sc source∈ target∈ D
     | dispatch-source-fold resume =
@@ -489,11 +480,11 @@ target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
     | dispatch-tagᴸ (tag-node★ᴸ r prem)
     | target-seal-terminusᴸ-paired {P = P} A≡ V≡ γᵒᴸ liftᵒ
         source∈ᵒ target∈ᵒ boundaryᵒ residualᵒ monoᵐ sameᵐ
-        partnerᵐ premiseᵐ =
+        premiseᵐ =
   target-strip★ᴸ-paired {P = P} {U = U} {Xᴸ = Xᴸ} {Y = Y}
     {S = S} {cY = cY} {Wᵖ = Wᵖ} {γᵖ = γᵖ} {γᵇ = γᵇ}
     {p = p} A≡ V≡ γᵒᴸ liftᵒ source∈ᵒ target∈ᵒ
-    boundaryᵒ residualᵒ monoᵐ sameᵐ partnerᵐ premiseᵐ (λ _ → D)
+    boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ (λ _ → D)
 target-strip★ᴸ-from-slices seal-at-varᴸ tag-dispatchᴸ
     {Wᵖ = Wᵖ} {γᵖ = γᵖ} {γᵇ = γᵇ}
     {U = U} {S = S} {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = p}

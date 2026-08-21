@@ -12,7 +12,6 @@ module proof.DGG.StarRepChainProbe where
 
 import Data.Fin as Fin
 open import Data.List using ([])
-open import Data.Maybe using (just; nothing)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 open import Relation.Nullary using (¬_)
@@ -32,8 +31,10 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world;
-   TagRebaseAtᴸ;
+   emptyʷ;
+   skip-centerʷ;
+   bind-leftʷ;
+   bind-both-starʷ;
    _⊑ᵂ⟨_⟩_;
    RebaseAt;
    store-rep-imp)
@@ -79,7 +80,10 @@ probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 -- Center `b` has no target variable.  All three marks are `X⊑★`.
 
 W : World 2 1 3
-W = world ηᴸ-ab ηᴿ-a probe-μ source-store target-store
+W =
+  bind-both-starʷ
+    (bind-leftʷ (skip-centerʷ emptyʷ) ★)
+    (＇ Fin.zero) ★ (X⊑★ refl) (λ ())
 
 ------------------------------------------------------------------------
 -- Store typing and casts
@@ -95,14 +99,14 @@ Y∈ : target-store ∋ Y ⦂ ★
 Y∈ = Z∋ refl
 
 source-Xᴸ-seal-⊢ :
-  source-store Conv.⊢↓[ just Xᴸ ] seal Xᴸ (＇ X)
-source-Xᴸ-seal-⊢ = Conv.⊢↓-sealˣ Xᴸ∈
+  source-store Conv.⊢↓[ Xᴸ ⦂ ＇ X ] seal Xᴸ (＇ X)
+source-Xᴸ-seal-⊢ = Conv.⊢↓-seal Xᴸ∈
 
-source-X-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ★
-source-X-seal-⊢ = Conv.⊢↓-sealˣ X∈
+source-X-seal-⊢ : source-store Conv.⊢↓[ X ⦂ ★ ] seal X ★
+source-X-seal-⊢ = Conv.⊢↓-seal X∈
 
-target-Y-seal-⊢ : target-store Conv.⊢↓[ just Y ] seal Y ★
-target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
+target-Y-seal-⊢ : target-store Conv.⊢↓[ Y ⦂ ★ ] seal Y ★
+target-Y-seal-⊢ = Conv.⊢↓-seal Y∈
 
 private
   source-env : Env∼ 2
@@ -169,16 +173,6 @@ X-no-target-at-b : ∀ (Y′ : TyVar 1)
   → toRenameᵗ (CTX.ηᴿʷ W) Y′ ≢ toRenameᵗ (CTX.ηᴸʷ W) X
 X-no-target-at-b Fin.zero ()
 
-X-no-target-occupant : CTX.NoTargetOccupantAtSource W X
-X-no-target-occupant (Y′ , eq) = X-no-target-at-b Y′ eq
-
-X-star-rep : CTX.resolveVar source-store X ⊑ᵂ⟨ W ⟩ ★
-X-star-rep = ★⊑★
-
-inner-source-only-rebase : TagRebaseAtᴸ W W (just X) nothing
-inner-source-only-rebase =
-  CTX.tag-rebase-onlyᴸ refl X-no-target-at-b X-star-rep
-
 ------------------------------------------------------------------------
 -- The concrete input and inversion output
 ------------------------------------------------------------------------
@@ -190,17 +184,14 @@ base² =
 
 inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
-  CTI2.conceal⊑²-seal-star-open
-    X-no-target-occupant
-    (λ Z eq → eq) inner-source-only-rebase CTX.same-[]
-    source-X-seal-⊢ base² inner-type
+  CTI2.conceal⊑² source-X-seal-⊢ (λ ()) refl
+    X-no-target-at-b ★⊑★ base² inner-type
 
 output : W ∣ [] ⊢² M ⊑ target-sealed ∶ q
 output =
-  CTI2.conceal⊑conceal²
-    (CTX.matched-seal-nonstar nonstar-X)
-    (λ Z eq → eq) outer-rebase CTX.same-[]
-    source-Xᴸ-seal-⊢ target-Y-seal-⊢ inner-source² q
+  CTI2.conceal⊑conceal² source-Xᴸ-seal-⊢ target-Y-seal-⊢
+    refl (λ ()) inner-type CTX.impEnvMono-refl outer-rebase
+    CTX.same-[] inner-source² q
 
 input : W ∣ [] ⊢² M ⊑ N ∶ input-type
 input = CTI2.⊑cast² Y! output input-type

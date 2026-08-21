@@ -37,10 +37,11 @@ structural-gen-descent : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴿ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
     (vV : Value V) (A≠★ : A ≢ ★) (safe : GenSafe c)
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-  → let ins = TE.rightBindTargetInsert {W = W} {B = ＇ X}
+  → (fresh : CTI2.RightBindFresh W (＇ X))
+  → let ins = TE.rightBindTargetInsert fresh
         ext = target-insert-bind-world-extendᴿ ins refl
      in StructuralInstantiationDescentPackage
-          (CTI2.rightOnlyWorld W (＇ X))
+          (CTI2.rightOnlyWorld W (＇ X) fresh)
           (ECR.mapCtxᴿ ext γ) M (⇑ᵗᵐ V)
           (cast-frame c ▻ⁱ
             reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
@@ -50,8 +51,8 @@ structural-gen-descent : ∀ {Δᴸ Δᴿ Δ}
   → StructuralInstantiationDescentPackage W γ M
       (V ⟨ (gen c) A≠★ ⟩)
       (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-gen-descent {W = W} {X = X} vV A≠★ safe spine child =
+structural-gen-descent {W = W} {X = X} vV A≠★ safe spine fresh child =
   structural-descent-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
+    (TE.rightBindTargetInsert fresh) refl
     (lift-instantiation-spine-bind (β-gen vV A≠★ safe) spine)
     child

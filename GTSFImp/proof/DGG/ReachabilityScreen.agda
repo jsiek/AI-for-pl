@@ -5,7 +5,7 @@ module proof.DGG.ReachabilityScreen where
 --     version-2 DGG example pairs.
 --   * Extracts allocation order, store-reference edges, and variable-tag
 --     cast boundaries from Eval traces without per-step imprecision proofs.
---   * Calibrates the screen on the three Examples2 pairs plus one closed
+--   * Calibrates the screen on the two Examples2 pairs plus one closed
 --     adversarial allocation-chain program.
 
 open import Data.Bool using (Bool; false; true; _∧_; _∨_)
@@ -346,11 +346,6 @@ example12-entry =
   entry Ex2.example12-more-precise Ex2.example12-more-imprecise
     30 30
 
-nat-chain-entry : Entry
-nat-chain-entry =
-  entry Ex2.nat-chain-more-precise Ex2.nat-chain-more-imprecise
-    30 30
-
 left-path-entry : Entry
 left-path-entry =
   entry Ex2.left-path-more-precise Ex2.left-path-more-imprecise
@@ -366,9 +361,6 @@ adversarial-entry =
 
 example12-screens-clean : crossing-suspect example12-entry ≡ clean
 example12-screens-clean = refl
-
-nat-chain-screens-clean : crossing-suspect nat-chain-entry ≡ clean
-nat-chain-screens-clean = refl
 
 left-path-screens-clean : crossing-suspect left-path-entry ≡ clean
 left-path-screens-clean = refl

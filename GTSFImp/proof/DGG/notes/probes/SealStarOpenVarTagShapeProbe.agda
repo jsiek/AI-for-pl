@@ -3,7 +3,7 @@ module SealStarOpenVarTagShapeProbe where
 -- Probe for the T14/D15 source-only `seal X ★` open rule.  The world below
 -- has no target occupant at source `X`, while target `Y` is a visible
 -- top-level variable tag at a different center.  The checked result is that
--- the `★⊑★` premise needed by `conceal⊑²-seal-star-open` cannot be built for
+-- the `★⊑★` premise needed by `conceal⊑²` cannot be built for
 -- this unrelated target tag.
 
 open import Data.Empty using (⊥)

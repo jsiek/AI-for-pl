@@ -4,13 +4,12 @@ module proof.DGG.Inversion.TargetDescentProof where
 --   * Proves the checked terminal target-star descent used by M3.
 --   * Reuses SealTransferCore for the actual target-star peel and composes
 --     same-pivot rebases using the frozen target side.
---   * Leaves the variable-payload stack branch at the Def boundary for the
---     right-injection proof to consume directly.
+--   * Does not re-emit active target-only seals: the live CTI relation makes
+--     those branches impossible by generator position.
 
 import Data.Fin as Fin
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
-open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans)
@@ -22,7 +21,6 @@ open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using (seal)
 open import CastTerms using (Term; Value; Inert; inj; _⟨_⟩; _↓_)
 open import Imprecision
-import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
@@ -31,10 +29,8 @@ open import proof.DGG.Inversion.SpineValueDef using
 open import proof.DGG.Inversion.TargetWalkSupport using
   (rebase-source-membership)
 open import proof.DGG.Inversion.TargetDescentDef using
-  (TargetSealDescentResult; TargetSealReemit; TargetSealTerminal;
-   TargetSealTerminalPayload; terminal-paired; terminal-stripped;
-   reemit-paired; reemit-stripped; target-reemit; target-terminal;
-   target-seal★)
+  (TargetSealTerminal; TargetSealTerminalPayload; terminal-paired;
+   terminal-stripped; target-terminal)
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTX using
   (World;
@@ -63,7 +59,7 @@ impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ}
   → CTX.ImpEnvMono W₁ W₂
   → CTX.ImpEnvMono W₂ W₃
   → CTX.ImpEnvMono W₁ W₃
-impEnvMono-∘ mono₁ mono₂ Z eq = mono₂ Z (mono₁ Z eq)
+impEnvMono-∘ = CTX.impEnvMono-trans
 
 inner-source-pivot-eqᴿ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
@@ -137,61 +133,43 @@ target-seal★-descent : ∀ {Δᴸ Δᴿ Δ}
   → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
-  → (∀ {W₂ : World Δᴸ Δᴿ Δ} {γ₂ : CtxImp W₂}
-      → RebaseAt W₂ W′ X₂ Y
-      → CTX.ImpEnvMono W′ W₂
-      → CTX.SameCtx γ′ γ₂
-      → (q₂ : (＇ X₂) ⊑ᵂ⟨ W₂ ⟩ ★)
-      → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
-      → CTX.MatchedConcealPartnerOK W₂
-          (V ⟨ c ⟩) (seal X₂ ★) (just Y) U)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
-  → TargetSealDescentResult {W₀ = W} {γ₀ = γ} {P = V ⟨ c ⟩}
-      {U = U} Xᴸ Y q ★
+  → TargetSealTerminal W γ (V ⟨ c ⟩) U Xᴸ Y
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {X₂ = X₂} {Y = Y} {c = c} {p₂ = p₂}
-    sv inert vU mono rb sc X∈ Y∈ makePartner D
+    sv inert vU mono rb sc X∈ Y∈ D
     with inner-source-pivot-eqᴿ rb p₂
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {c = c}
-    sv inert vU mono rb sc X∈ Y∈ makePartner D
+    sv inert vU mono rb sc X∈ Y∈ D
     | refl
     with STC.seal-transfer sv vU (rebase-source-membership rb X∈) D
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {c = c}
-    sv inert vU mono rb sc X∈ Y∈ makePartner D
+    sv inert vU mono rb sc X∈ Y∈ D
     | refl
     | STC.seal-transfer-stripped {W₂ = W₂} {γ₂ = γ₂}
         {q₂ = q₂} link mono₂ sc₂ D₂ =
-  target-seal★
-    (target-terminal W₂ γ₂
-      (composeSamePivotRebase rb link)
-      (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = W₂} mono mono₂)
-      (sameCtx-∘ sc sc₂)
-      (terminal-stripped (CTI2.cast⊑² c D₂ ★⊑★))
-      (makePartner link mono₂ sc₂ q₂ D₂))
+  target-terminal W₂ γ₂
+    (composeSamePivotRebase rb link)
+    (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = W₂} mono mono₂)
+    (sameCtx-∘ sc sc₂)
+    (terminal-stripped (CTI2.cast⊑² c D₂ ★⊑★))
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y} {c = c}
-    sv inert vU mono rb sc X∈ Y∈ makePartner D
+    sv inert vU mono rb sc X∈ Y∈ D
     | refl
     | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
-        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢
-        (CTX.matched-seal-star-partner partner) prem
+        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢ prem
     with inert
 target-seal★-descent {W = W} {W′ = W′}
     {Xᴸ = Xᴸ} {Y = Y}
-    sv inert vU mono rb sc X∈ Y∈ makePartner D
+    sv inert vU mono rb sc X∈ Y∈ D
     | refl
     | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
-        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢
-        (CTX.matched-seal-star-partner partner) prem
+        {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢ prem
     | inj ⦃ Gᵍ = ＇ .Xᴸ ⦄ =
-  target-seal★
-    (target-terminal W′ _ rb mono sc
-      (terminal-paired refl D)
-      (CTX.matched-seal-star-partner
-        (CTX.rep★-round-trip
-          (STC.transport-rep★-partner-ok rbᵖ partner))))
+  target-terminal W′ _ rb mono sc (terminal-paired refl D)
 
 target-seal★-extract : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
@@ -204,26 +182,6 @@ target-seal★-extract : ∀ {Δᴸ Δᴿ Δ}
   → TargetSealTerminalPayload
       (TargetSealTerminal.Wᵒ t) (TargetSealTerminal.γᵒ t) P U X Y
 target-seal★-extract
-    (target-terminal Wᵒ γᵒ rb mono sc payload ok)
+    (target-terminal Wᵒ γᵒ rb mono sc payload)
     X∈ Y∈ q =
   payload
-
-target-seal＇-reemit : ∀ {Δᴸ Δᴿ Δ}
-    {W W′ : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp W′}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
-  → CTX.ImpEnvMono W W′
-  → RebaseAt W′ W X Y
-  → CTX.SameCtx γ γ′
-  → targetStoreʷ W ∋ Y ⦂ (＇ Y′)
-  → (q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y))
-  → (q′ : (＇ X) ⊑ᵂ⟨ W′ ⟩ (＇ Y′))
-  → TargetSealReemit W γ P U X Y Y′ q
-target-seal＇-reemit mono rb sc Y∈ q q′ =
-  target-reemit _ _ q′
-    λ where
-      (reemit-stripped D) →
-        CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc
-          (Conv.⊢↓-sealˣ Y∈) D q
-      (reemit-paired D) → D

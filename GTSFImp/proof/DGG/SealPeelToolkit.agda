@@ -5,9 +5,8 @@ module proof.DGG.SealPeelToolkit where
 --     peeling in the right-injection inversion.
 --   * Inverts right-variable obligations and source-variable consistency.
 --   * Relates non-variable store entries to their canonical representations.
---   * Decides target alignment and constructs fully dynamized worlds.
---   * Depends on CastTermImprecision2's worlds and resolution functions and
---     on WorldDecay's environment-decay relation.
+--   * Decides target alignment at source centers.
+--   * Depends on CtxImp's worlds and resolution functions.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (Fin)
@@ -27,7 +26,6 @@ open import Imprecision
 import proof.DGG.CtxImp as CTI2
 open CTI2 using
   (World;
-   world;
    _⊑ᵂ⟨_⟩_;
    ηᴸʷ;
    ηᴿʷ;
@@ -36,7 +34,6 @@ open CTI2 using
    targetStoreʷ;
    resolveVar;
    resolveRep)
-import proof.DGG.WorldDecay as WD
 
 ------------------------------------------------------------------------
 -- Right-variable obligations
@@ -162,31 +159,6 @@ alignedAtᴸ? W Xᴸ
 alignedAtᴸ? W Xᴸ | yes aligned = inj₁ aligned
 alignedAtᴸ? W Xᴸ | no unaligned =
   inj₂ λ Zᴿ eq → unaligned (Zᴿ , eq)
-
-------------------------------------------------------------------------
--- Fully dynamized worlds
-------------------------------------------------------------------------
-
-dynWorld : ∀ {Δᴸ Δᴿ Δ}
-  → World Δᴸ Δᴿ Δ
-  → World Δᴸ Δᴿ Δ
-dynWorld W =
-  world (ηᴸʷ W) (ηᴿʷ W) (λ Z → X⊑★)
-    (sourceStoreʷ W) (targetStoreʷ W)
-
-dynWorld-decay : ∀ {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
-  → WD.EnvDecay W (dynWorld W)
-dynWorld-decay W =
-  WD.env-decay refl refl refl refl (λ Z eq → refl)
-
-dynWorld-WF : ∀ {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
-  → CTI2.WFWorld (dynWorld W)
-dynWorld-WF W Xᴸ ()
-
-dynWorld-mark : ∀ {Δᴸ Δᴿ Δ} (W : World Δᴸ Δᴿ Δ)
-    (Z : TyVar Δ)
-  → impEnvʷ (dynWorld W) Z ≡ X⊑★
-dynWorld-mark W Z = refl
 
 ------------------------------------------------------------------------
 -- Consistency at a source variable

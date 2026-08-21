@@ -43,10 +43,10 @@ post-world =
   CTI2.rightOnlyWorld (CTI2.rightOnlyWorld base-world ★) (＇ Fin.zero)
 
 order-L-world : CTI2.World 1 2 3
-order-L-world = CTI2.liftWorldLeft I.X⊑★ post-world
+order-L-world = CTI2.liftWorldLeft post-world
 
 order-LL-world : CTI2.World 2 2 4
-order-LL-world = CTI2.liftWorldLeft I.X⊑★ order-L-world
+order-LL-world = CTI2.liftWorldLeft order-L-world
 
 target-β : Fin.Fin 2
 target-β = Fin.zero

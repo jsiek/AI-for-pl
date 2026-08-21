@@ -86,9 +86,9 @@ record StructuralNamePostPlan {Δᴸ Δᴿ Δ}
 
     plain-Λ-child : ∀ {A₀ : Ty (suc Δᴸ)}
       → A ≡ `∀ A₀
-      → Σ[ q₀ ∈ A₀ CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ E ]
+      → Σ[ q₀ ∈ A₀ CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ E ]
           StructuralNamePostPlan
-            (CTI2.liftWorldLeft X⊑★ W) A₀ E q₀
+            (CTI2.liftWorldLeft W) A₀ E q₀
 
     smart-Λ-child : ∀ {Δᵐ} {A₀ : Ty (suc Δᴸ)}
         {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
@@ -173,17 +173,17 @@ postulate
   plan-plain-Λ-cell : StructuralNameInstantiationPlanᵀ
     → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
         {γ : CTI2.CtxImp W}
-        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft W)}
         {U : Term (suc Δᴸ)} {V : Term Δᴿ}
         {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
         {E : Ty Δᴿ} {X : TyVar Δᴿ}
-        {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ `∀ B}
+        {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ `∀ B}
         {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
       → (plan : StructuralNamePostPlan W (`∀ A) E q)
       → NonVar A
       → Fin.zero ∈ᵗ A
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
-      → CTI2.liftWorldLeft X⊑★ W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
+      → CTI2.liftWorldLeft W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V
@@ -330,16 +330,16 @@ postulate
   endpoint-plain-Λ-cell : StructuralNameInstantiationEndpointᵀ
     → ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
         {γ : CTI2.CtxImp W}
-        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft W)}
         {U : Term (suc Δᴸ)} {V : Term Δᴿ}
         {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
         {E : Ty Δᴿ} {X : TyVar Δᴿ}
-        {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ `∀ B}
+        {p : A CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ `∀ B}
         {q : `∀ A CTI2.⊑ᵂ⟨ W ⟩ E}
       → NonVar A
       → Fin.zero ∈ᵗ A
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
-      → CTI2.liftWorldLeft X⊑★ W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
+      → CTI2.liftWorldLeft W CTIR.∣ γᴸ ⊢² U ⊑ V ∶ p
       → Value U
       → (vV : Value V)
       → AllValueView V

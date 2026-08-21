@@ -185,10 +185,10 @@ plain-source-nonvarᴸ bare (CTI2.⊑conceal² mono rb sc c′⊢ rel q) =
 plain-source-nonvarᴸ () (CTI2.cast⊑² c rel q)
 plain-source-nonvarᴸ () (CTI2.reveal⊑² mono rb sc c⊢ rel q)
 plain-source-nonvarᴸ ()
-    (CTI2.conceal⊑²-seal-star-open
+    (CTI2.conceal⊑²
       no-target mono rb sc c⊢ rel q)
 plain-source-nonvarᴸ ()
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q)
+    (CTI2.conceal⊑² mono rb sc c⊢ rel q)
 plain-source-nonvarᴸ ()
     (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
 plain-source-nonvarᴸ ()

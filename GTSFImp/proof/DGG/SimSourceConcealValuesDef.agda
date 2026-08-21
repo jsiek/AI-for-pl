@@ -7,7 +7,7 @@ module proof.DGG.SimSourceConcealValuesDef where
 --   * Contains no source-conceal value proof.
 
 open import Data.List using ([])
-open import Data.Maybe using (Maybe)
+open import Data.Maybe using (Maybe; nothing)
 open import Data.Product using (_×_; Σ-syntax)
 
 open import Types using (Ty; TyCtx; TyVar)
@@ -28,9 +28,10 @@ open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
+open import proof.DGG.ConversionPivotAlignment
+  using (concealGeneratorPosition; generatorBoundaryPivot)
 open CTX using
   (World;
-   SourceConcealOK;
    ImpEnvMono;
    TagRebaseAtᴸ;
    sourceStoreʷ;
@@ -43,22 +44,23 @@ SimSourceConcealValuesᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-    {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
-    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ}
     {c : Conv↓ Δᴸ A A′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
   → ParkedWorld W
-  → SourceConcealOK Wᵖ V c Xᴿ? M′
   → (mono : ImpEnvMono W Wᵖ)
-  → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
-  → sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
+  → (c⊢ : sourceStoreʷ W Conv.⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+  → TagRebaseAtᴸ Wᵖ W
+      (generatorBoundaryPivot Xᴸ (concealGeneratorPosition c⊢)) nothing
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → Value V
   → V ↓ c —→[ χᴸ ] N
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-conceal-boundary}
-      {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
+      {Xᴸ? = generatorBoundaryPivot Xᴸ
+        (concealGeneratorPosition c⊢)} {Xᴿ? = nothing}
       {V = V} {M′ = M′} {A = A} {B = B}
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]

@@ -125,7 +125,7 @@ initial-no-see-through-emptyᴼ {μ = μ} {Σ = Σ} Z no-target =
 liftWorldLeft-fresh-no-targetᴼ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
     (v : VarImp)
-  → NoTargetOccupant (liftWorldLeft v W) Fin.zero
+  → NoTargetOccupant (liftWorldLeft W) Fin.zero
 liftWorldLeft-fresh-no-targetᴼ v (Y , ())
 
 rightOnly-new-target-occupiedᴼ : ∀ {Δᴸ Δᴿ Δ}
@@ -182,6 +182,6 @@ tag-rebase-no-target-forwardᴼ
 
 source-only-runtime-cell-remains-unoccupiedᴼ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
-  → NoTargetOccupantAtSource (liftWorldLeft X⊑★ W) Fin.zero
+  → NoTargetOccupantAtSource (liftWorldLeft W) Fin.zero
 source-only-runtime-cell-remains-unoccupiedᴼ {W = W} =
   liftWorldLeft-fresh-no-targetᴼ {W = W} X⊑★

@@ -376,6 +376,60 @@ imprecision ladder:
 
 # Agda Development Notes
 
+## Metas versus proof parameters
+
+- Use an interaction meta only for a local proof branch that remains on the
+  to-do list.  The containing file must be named in that language's explicit
+  in-progress-proof manifest and checked with the corresponding permissive
+  target.
+- Use a proof parameter or interface only after identifying a lemma with a
+  clear semantic statement that needs its own induction argument, or whose
+  proof is large enough to deserve a separate module so routine Agda checking
+  remains within a few seconds.
+- Prefer placing shared proof dependencies in an enclosing parameterized
+  module.  Keep the lemmas defined inside that module at their direct semantic
+  types instead of repeating those dependencies as leading lemma arguments.
+- Use the `...Def` / `...Proof` / `...Lemma` convention to preserve this
+  separation.  `...Def` states the strict semantic interface.  A `...Proof`
+  file must be explicitly parameterized over one or more semantically
+  meaningful `...Def` interfaces; downstream modules import those `...Def`
+  files and parameterize over the interfaces rather than importing an
+  incomplete `...Proof` file.  If an implementation needs no such proof
+  parameters, put the completed implementation in `...Lemma`.  Thus `...Lemma`
+  files identify discharged proof obligations, while `...Proof` files identify
+  parameterized obligations that still need to be assembled or discharged.
+  Do not use `...Proof` as a generic suffix for an unparameterized proof.
+- Do not turn unhandled cases into classifier predicates, residual-family
+  parameters, or wrapper interfaces merely to make a partial proof check.
+  Leave those cases as metas in the direct theorem instead.
+- When developing a recursive proof with a large case split, first expose the
+  complete primary case analysis.  Before finishing any one case, make a
+  second pass over every recursive case and insert its recursive call so the
+  induction hypothesis is present in that branch.  Type-check this skeleton
+  with the remaining local obligations as metas.  This early pass tests
+  whether the theorem statement supports the required induction and ensures
+  each branch is structured around its induction hypothesis rather than an
+  unnecessarily complicated local argument.
+- Keep all clauses for one logical case contiguous, including repetitions of
+  the function header introduced by `with`.  Once that case is discharged,
+  insert a blank line before the first clause of the next logical case so the
+  case boundary remains visible in a long proof.
+- Once that recursive skeleton checks, compare both the pre-induction and
+  post-induction obligations across all branches before completing them one at
+  a time.  Pre-induction obligations include establishing the world, value,
+  typing, catchup, or transport facts needed to make the recursive call.
+  Post-induction obligations include replaying the returned evolution through
+  the enclosing syntax or across a scope boundary.  Repeated semantic moves
+  such as transporting a sibling relation, replaying a source or target frame,
+  or closing a propagated blame result are candidates for named lemmas.  State
+  such a lemma around the common semantic operation itself, not around a
+  collection of constructor names or a classifier introduced only to group
+  unfinished cases.
+- When all metas in a manifested file close, remove it from the in-progress
+  manifest and return it to the strict aggregate gate in the same change.  If
+  the completed implementation has no proof parameters, place it in the
+  corresponding `...Lemma` file as part of that transition.
+
 ## Agda reduction sequence proof style
 
 When writing Agda proofs of reduction sequences, use the local chain notation
@@ -476,6 +530,10 @@ accepted without `{-# TERMINATING #-}`.
 Avoid premature line breaks in simple applications. If a definition is a direct
 application with short arguments, keep it on one line, under the contraint of
 using at most 80 columns per line.
+
+Generated imprecision-ladder table pins are an explicit exception to the
+80-column limit.  Keep each rendered table row in one string literal on one
+source line so the seven columns remain visually aligned and reviewable.
 
 Prefer:
 

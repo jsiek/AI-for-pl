@@ -27,18 +27,19 @@ structural-target-Λ-step : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {X : TyVar Δᴿ} {B : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {V : Term (suc Δᴿ)}
+    (fresh : CTI2.RightBindFresh W (＇ X))
     (vV : Value V)
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W (＇ X))
+      (CTI2.rightOnlyWorld W (＇ X) fresh)
       (V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
       (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine)
   → StructuralTargetInstantiationPackage W (Λ V)
       (name-type-app-frame B X refl refl ▻ⁱ spine)
-structural-target-Λ-step {W = W} {X = X} vV spine child =
+structural-target-Λ-step {W = W} {X = X} fresh vV spine child =
   structural-target-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
+    (TE.rightBindTargetInsert {W = W} {B = ＇ X} fresh) refl
     (lift-instantiation-spine-bind (β-Λ vV) spine) child
 
 
@@ -46,16 +47,17 @@ structural-target-Λ-value-step : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {X : TyVar Δᴿ} {B : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {V : Term (suc Δᴿ)}
+    (fresh : CTI2.RightBindFresh W (＇ X))
     (vV : Value V)
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W (＇ X))
+      (CTI2.rightOnlyWorld W (＇ X) fresh)
       V
       (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine)
   → StructuralTargetInstantiationPackage W (Λ V)
       (name-type-app-frame B X refl refl ▻ⁱ spine)
-structural-target-Λ-value-step vV spine child =
-  structural-target-Λ-step vV spine
+structural-target-Λ-value-step fresh vV spine child =
+  structural-target-Λ-step fresh vV spine
     (structural-target-frame-peel child)

@@ -171,11 +171,11 @@ lifted-nonvar-right-var-empty : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A : Ty (suc Δᴸ)}
     {Y : TyVar Δᴿ}
   → NonVar A
-  → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ (＇ Y)
+  → A ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ (＇ Y)
   → ⊥
 lifted-nonvar-right-var-empty {W = W} nv p =
   nonvar-right-var-obligation-empty
-    {W = CTX.liftWorldLeft X⊑★ W} nv p
+    {W = CTX.liftWorldLeft W} nv p
 
 ------------------------------------------------------------------------
 -- Placement adversary: source re-parking would drag another source var
@@ -402,7 +402,7 @@ module NonVarHeadAttempt where
       {W = W} {A = `∀ ★} {Y = Y} nonvar-all
 
   lifted-fun-head-empty :
-    (★ ⇒ ★) ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ (＇ Y)
+    (★ ⇒ ★) ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ (＇ Y)
     → ⊥
   lifted-fun-head-empty =
     lifted-nonvar-right-var-empty

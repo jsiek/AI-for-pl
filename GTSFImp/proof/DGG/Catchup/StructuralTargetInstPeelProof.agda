@@ -11,10 +11,12 @@ import Data.Fin as Fin
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
 open import Data.Product using (Σ-syntax; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym; trans)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; _≢_; refl; sym; trans)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyCtx; NonVar; _∈ᵗ_; ＇_; ★; _[_]ᵗ; ⇑ᵗ)
+open import Types using
+  (Ty; TyCtx; NonVar; _∈ᵗ_; ★; ＇_; `∀; _[_]ᵗ; ⇑ᵗ)
 open import Consistency using
   (_↪ᵗ_; wk↪ᵗ; Env∼; _⊢_∼_; instᵐ; inst_; ↑ᶜ_; close-instᶜ)
 import CastTerms as CT
@@ -35,6 +37,8 @@ open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTermProvenanceDef
+  using (StructuralTermProvenance; term-provenance-bind)
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-apply-spine; value-no-step; no-value-blame)
 open import
@@ -99,12 +103,17 @@ structural-target-inst-peel : ∀ {Δᴸ Δᴿ Δ}
     {μ : Env∼ Δᴿ} {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
     ⦃ Anv : NonVar A ⦄ ⦃ z∈A : Fin.zero ∈ᵗ A ⦄
     {V : Term Δᴿ}
+    {γ : CTI2.CtxImp W} {M : Term Δᴸ} {L : Ty Δᴸ}
+    {p : L CTI2.⊑ᵂ⟨ W ⟩ `∀ A}
     (vV : Value V)
     (B≢★ : B ≢ ★)
     (spine : InstantiationSpine B E)
   → (target : StructuralTargetInstantiationPackage W V
       (cast-frame ((inst c) B≢★) ▻ⁱ spine)
     )
+  → (rel : W CTIR.∣ γ ⊢² M ⊑ V ∶ p)
+  → StructuralTermProvenance
+      (StructuralTargetInstantiationPackage.structural-ext target) rel
   → Σ[ Δ₁ ∈ TyCtx ]
     Σ[ π ∈ Δ ↪ᵗ Δ₁ ]
     Σ[ W₁ ∈ CTI2.World Δᴸ (suc Δᴿ) Δ₁ ]
@@ -124,6 +133,12 @@ structural-target-inst-peel : ∀ {Δᴸ Δᴿ Δ}
             cast-frame (↑ᶜ (close-instᶜ c)) ▻ⁱ
             type-transport-frame (renameᵗ-wk-eq B) ▻ⁱ
             mapInstantiationSpine (bind ★) spine) ]
+      Σ[ insertion-provenance ∈
+        TE.TargetInsertProvenance W₁ ins rel ]
+      Σ[ child-provenance ∈
+        StructuralTermProvenance
+          (StructuralTargetInstantiationPackage.structural-ext child-target)
+          (TE.⊢²-target-insert W₁ ins rel insertion-provenance) ]
         (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
            {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
          → let ext₁ = target-insert-bind-world-extendᴿ ins follows
@@ -150,30 +165,30 @@ structural-target-inst-peel : ∀ {Δᴸ Δᴿ Δ}
                    (StructuralTargetInstantiationPackage.structural-ext
                      target))
                  q)
-structural-target-inst-peel vV B≢★ spine target
+structural-target-inst-peel vV B≢★ spine target rel provenance
     with StructuralTargetInstantiationPackage.post-reduction target
-structural-target-inst-peel vV B≢★ spine target | ↠-refl =
+structural-target-inst-peel vV B≢★ spine target rel provenance | ↠-refl =
   ⊥-elim
     (no-value-apply-spine spine no-value-inst-cast
       (StructuralTargetInstantiationPackage.final-value target))
-structural-target-inst-peel vV B≢★ spine target
+structural-target-inst-peel vV B≢★ spine target rel provenance
     | ↠-step {N = N} {χ = keep} first rest
     with spine-keep-step-inversion spine (β-inst vV B≢★)
       no-value-inst-cast first
-structural-target-inst-peel vV B≢★ spine target
+structural-target-inst-peel vV B≢★ spine target rel provenance
     | ↠-step {N = N} {χ = keep} first rest
     | M₂ , (head-step , eq) =
   ⊥-elim (inst-head-keep-impossible vV head-step)
-structural-target-inst-peel vV B≢★ spine target
+structural-target-inst-peel vV B≢★ spine target rel provenance
     | ↠-step {N = N} {χ = bind R} {χs = χs} first rest
     with spine-bind-step-inversion spine no-value-inst-cast first
 structural-target-inst-peel {A = A} {B = B} {c = c} {V = V}
-    vV B≢★ spine target
+    vV B≢★ spine target rel provenance
     | ↠-step {N = N} {χ = bind R} {χs = χs} first rest
     | M₂ , (head-step , eq)
     with inst-head-bind-view vV head-step
 structural-target-inst-peel {A = A} {B = B} {V = V}
-    vV B≢★ spine target
+    vV B≢★ spine target rel provenance
     | ↠-step {N = N} {χ = bind .★} {χs = χs} first rest
     | .(((⇑ᵗᵐ V ⦂∀ applyBody (bind ★) A [ ＇ Fin.zero ])
         ↑ 〖 Fin.zero , ★ ↑ A 〗) ⟨ _ ⟩) ,
@@ -181,14 +196,25 @@ structural-target-inst-peel {A = A} {B = B} {V = V}
     | inst-bind-target
     with StructuralTargetInstantiationPackage.structural-ext target
 structural-target-inst-peel {A = A} {B = B} {V = V}
-    vV B≢★ spine target
+    vV B≢★ spine target rel provenance
     | ↠-step {χ = bind .★} {χs = χs} first rest
     | .(((⇑ᵗᵐ V ⦂∀ applyBody (bind ★) A [ ＇ Fin.zero ])
         ↑ 〖 Fin.zero , ★ ↑ A 〗) ⟨ _ ⟩) ,
       (head-step , eq)
     | inst-bind-target
-    | structural-bind {π = π} {W₁ = W₁} ins follows child-ext =
-  _ , π , W₁ , ins , follows , child-target ,
+    | structural-bind {π = π} {W₁ = W₁} ins follows child-ext
+    with provenance
+structural-target-inst-peel {A = A} {B = B} {V = V}
+    vV B≢★ spine target rel provenance
+    | ↠-step {χ = bind .★} {χs = χs} first rest
+    | .(((⇑ᵗᵐ V ⦂∀ applyBody (bind ★) A [ ＇ Fin.zero ])
+        ↑ 〖 Fin.zero , ★ ↑ A 〗) ⟨ _ ⟩) ,
+      (head-step , eq)
+    | inst-bind-target
+    | structural-bind {π = π} {W₁ = W₁} ins follows child-ext
+    | term-provenance-bind insertion-provenance child-provenance =
+  _ , π , W₁ , ins , follows , child-target , insertion-provenance ,
+    child-provenance ,
     (λ {γ = γ} child-rel →
       subst≡
         (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)

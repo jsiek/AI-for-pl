@@ -33,7 +33,7 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof using
 open import proof.DGG.Catchup.StructuralCatchupRightDef using
   (StructuralCatchupRightResult; StructuralExtraCastRightAt;
    StructuralValueCatchupRightAt; structural-catchup-refl;
-   structural-catchup-source-cast; structural-catchup-source-reveal;
+   structural-catchup-source-cast;
    structural-catchup-compose-target-cast;
    structural-catchup-compose-paired-target-cast)
 
@@ -80,6 +80,16 @@ record StructuralValueCatchupResiduals (fuel : ℕ) : Set₁ where
       → TargetCastBound fuel rel
       → StructuralCatchupRightResult W γ M (N ↓ c′) q
 
+    source-reveal : ∀ {Δᴸ Δᴿ Δ}
+        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+        {M : Term Δᴸ} {N : Term Δᴿ}
+        {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
+        {c : Conv↑ Δᴸ A A′} {q : A′ ⊑ᵂ⟨ W ⟩ B}
+      → Value (M ↑ c)
+      → (rel : W ∣ γ ⊢² M ↑ c ⊑ N ∶ q)
+      → TargetCastBound fuel rel
+      → StructuralCatchupRightResult W γ (M ↑ c) N q
+
     source-conceal : ∀ {Δᴸ Δᴿ Δ}
         {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
         {M : Term Δᴸ} {N : Term Δᴿ}
@@ -111,19 +121,6 @@ record StructuralValueCatchupResiduals (fuel : ℕ) : Set₁ where
       → (rel : W ∣ γ ⊢² M ↓ c ⊑ N ↓ c′ ∶ q)
       → TargetCastBound fuel rel
       → StructuralCatchupRightResult W γ (M ↓ c) (N ↓ c′) q
-
-    packaged-seal-star : ∀ {Δᴸ Δᴿ Δ}
-        {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-        {M : Term Δᴸ} {N : Term Δᴿ}
-        {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
-        {q : Types.＇ Xᴸ ⊑ᵂ⟨ W ⟩ Types.＇ Xᴿ}
-      → Value (M ↓ seal Xᴸ Types.★)
-      → (rel : W ∣ γ ⊢² M ↓ seal Xᴸ Types.★
-          ⊑ N ↓ seal Xᴿ Types.★ ∶ q)
-      → TargetCastBound fuel rel
-      → StructuralCatchupRightResult W γ
-          (M ↓ seal Xᴸ Types.★) (N ↓ seal Xᴿ Types.★) q
-
 
 structural-value-catchup-right-at : ∀ {fuel}
   → StructuralValueCatchupResiduals fuel
@@ -193,11 +190,8 @@ structural-value-catchup-right-at {fuel = fuel} residuals extra-worker
       (vM CT.《 inert 》)
       (StructuralCatchupRightResult.final-value child)
 structural-value-catchup-right-at residuals extra-worker
-    (vM CT.↑ rv)
-    (CTI2.reveal⊑² mono rb sc c⊢ rel q) bound =
-  structural-catchup-source-reveal mono rb sc c⊢
-    (structural-value-catchup-right-at residuals extra-worker
-      vM rel bound)
+    vM rel@(CTI2.reveal⊑² _ _ _ _ _ _) bound =
+  StructuralValueCatchupResiduals.source-reveal residuals vM rel bound
 structural-value-catchup-right-at residuals extra-worker
     vM rel@(CTI2.⊑reveal² _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.target-reveal residuals vM rel bound
@@ -205,18 +199,11 @@ structural-value-catchup-right-at residuals extra-worker
     vM rel@(CTI2.⊑conceal² _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.target-conceal residuals vM rel bound
 structural-value-catchup-right-at residuals extra-worker
-    vM rel@(CTI2.conceal⊑²-seal-star-open _ _ _ _ _ _ _) bound =
-  StructuralValueCatchupResiduals.source-conceal residuals vM rel bound
-structural-value-catchup-right-at residuals extra-worker
-    vM rel@(CTI2.conceal⊑²-source-ok _ _ _ _ _ _ _) bound =
+    vM rel@(CTI2.conceal⊑² _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.source-conceal residuals vM rel bound
 structural-value-catchup-right-at residuals extra-worker
     vM rel@(CTI2.reveal⊑reveal² _ _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.paired-reveal residuals vM rel bound
 structural-value-catchup-right-at residuals extra-worker
-    vM rel@(CTI2.conceal⊑conceal² _ _ _ _ _ _ _ _) bound =
+    vM rel@(CTI2.conceal⊑conceal² _ _ _ _ _ _ _) bound =
   StructuralValueCatchupResiduals.paired-conceal residuals vM rel bound
-structural-value-catchup-right-at residuals extra-worker
-    vM rel@(CTI2.packaged-seal-star² _ _ _ _ _ _ _ _ _) bound =
-  StructuralValueCatchupResiduals.packaged-seal-star
-    residuals vM rel bound

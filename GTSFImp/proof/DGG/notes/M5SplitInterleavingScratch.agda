@@ -46,11 +46,11 @@ front-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Z
   → CTX.impEnvʷ W Z ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (Consistency.toRenameᵗ (skip id↪ᵗ) Z) ≡ I.X⊑★
 front-old-mark-mono W Z eq =
   subst≡
-    (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+    (λ Y → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (Fin.suc Y) ≡ I.X⊑★)
     (sym (toRename-id-eq Z)) eq
 
@@ -59,7 +59,7 @@ front-target-frozen : ∀ {Δᴸ Δᴿ Δ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Xᴿ
   → Consistency.toRenameᵗ
-      (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W)) Xᴿ
+      (CTX.ηᴿʷ (CTX.liftWorldLeft W)) Xᴿ
     ≡ Consistency.toRenameᵗ (skip id↪ᵗ)
         (Consistency.toRenameᵗ (CTX.ηᴿʷ W) Xᴿ)
 front-target-frozen W Xᴿ =
@@ -72,7 +72,7 @@ front-old-source-frozen : ∀ {Δᴸ Δᴿ Δ}
     (W : CTX.World Δᴸ Δᴿ Δ)
   → ∀ Xᴸ
   → Consistency.toRenameᵗ
-      (CTX.ηᴸʷ (CTX.liftWorldLeft I.X⊑★ W)) (Fin.suc Xᴸ)
+      (CTX.ηᴸʷ (CTX.liftWorldLeft W)) (Fin.suc Xᴸ)
     ≡ Consistency.toRenameᵗ (skip id↪ᵗ)
         (Consistency.toRenameᵗ (CTX.ηᴸʷ W) Xᴸ)
 front-old-source-frozen W Xᴸ =
@@ -86,16 +86,16 @@ front-target-mark-mono : ∀ {Δᴸ Δᴿ Δ}
   → ∀ Xᴿ
   → CTX.impEnvʷ W
       (Consistency.toRenameᵗ (CTX.ηᴿʷ W) Xᴿ) ≡ I.X⊑★
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W)
+  → CTX.impEnvʷ (CTX.liftWorldLeft W)
       (Consistency.toRenameᵗ
-        (CTX.ηᴿʷ (CTX.liftWorldLeft I.X⊑★ W)) Xᴿ) ≡ I.X⊑★
+        (CTX.ηᴿʷ (CTX.liftWorldLeft W)) Xᴿ) ≡ I.X⊑★
 front-target-mark-mono W Xᴿ eq = eq
 
 
 front-smart-guard : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
   → CTX.SmartFreshBehindGuard W
-      (CTX.liftWorldLeft I.X⊑★ W)
+      (CTX.liftWorldLeft W)
 front-smart-guard {W = W} =
   CTX.smart-fresh-behind-guard (skip id↪ᵗ) refl refl
     (λ p → p) (front-old-mark-mono W) (front-target-frozen W)
@@ -139,16 +139,16 @@ front-smart-after-two-target-inserts ins₁ ins₂ =
 plain-shared-smart-prefix : ∀ {Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {γᴮ : CTX.CtxImp
-      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       ⟩ B}
-    {inner-p : `∀ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {inner-p : `∀ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ `∀ B}
     {outer-p : `∀ (`∀ A) CTX.⊑ᵂ⟨ W ⟩ `∀ B}
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
@@ -165,7 +165,7 @@ plain-shared-smart-prefix : ∀ {Δᴸ Δᴿ Δ}
       ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
         CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → IIP.ΛPostPrefixPackageAt
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢
@@ -194,22 +194,22 @@ plain-shared-smart-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂ Δᶠ₂}
     {W₂ : CTX.World Δᴸ (suc (suc Δᴿ)) Δ₂}
     {Wᶠ₂ : CTX.World (suc Δᴸ) (suc (suc Δᴿ)) Δᶠ₂}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft I.X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {γᴮ : CTX.CtxImp
-      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W))}
+      (CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W))}
     {V : CT.Term (suc (suc Δᴸ))} {V′ : CT.Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
     {body-p : A CTX.⊑ᵂ⟨
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
       ⟩ B}
-    {inner-p : `∀ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ `∀ B}
+    {inner-p : `∀ A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ `∀ B}
     {outer-p : `∀ (`∀ A) CTX.⊑ᵂ⟨ W ⟩ `∀ B}
     {ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
     {extᶠ₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (CTX.liftWorldLeft I.X⊑★ W) Wᶠ₂}
+      (CTX.liftWorldLeft W) Wᶠ₂}
   → (vV : CT.Value V)
   → (vV′ : CT.Value V′)
   → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
@@ -225,13 +225,13 @@ plain-shared-smart-prefix-at-base : ∀ {Δᴸ Δᴿ Δ Δ₂ Δᶠ₂}
       ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩
         ⊢ Λ V′ ⦂ `∀ B)
   → (bodyRel :
-      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft I.X⊑★ W)
+      CTX.liftWorldBoth I.X⊑X (CTX.liftWorldLeft W)
         CTI2.∣ γᴮ ⊢² V ⊑ V′ ∶ body-p)
   → CTX.SmartCommaLiftᴸ W₂ Wᶠ₂
   → CTX.SmartLiftCtxᴸ
       (ECR.mapCtxᴿ ext₂ γ) (ECR.mapCtxᴿ extᶠ₂ γᴸ)
   → IIP.ΛPostWindowGeometry
-      (CTX.liftWorldLeft I.X⊑★ W) Wᶠ₂ extᶠ₂
+      (CTX.liftWorldLeft W) Wᶠ₂ extᶠ₂
   → (`∀ (`∀ A) CTX.⊑ᵂ⟨ W₂ ⟩ IIP.ΛResidualSource₂ B)
   → IIP.ΛPostPrefixPackageAtBase
       (CTI2.Λ⊑² nonvar-all outer∈ liftγᴸ (CT.Λ vV) target⊢

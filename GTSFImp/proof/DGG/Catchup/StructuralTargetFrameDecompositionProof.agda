@@ -6,11 +6,12 @@ module
 --     frames.
 --   * Value-forming frames reuse the caller trace unchanged.
 --   * Reveal/conceal keep-step frames peel the caller's leading keep step
---     and return the tail package with the caller's final endpoint.
+--     and return the tail package, its exact provenance, and the caller's
+--     final endpoint.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
-open import Data.Product using (Σ-syntax; _,_)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong)
   renaming (subst to subst≡)
@@ -30,6 +31,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTermProvenanceDef
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-apply-spine; value-no-step; no-value-blame)
 open import
@@ -123,6 +125,9 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {V V₁ : Term Δᴿ} {A B E : Ty Δᴿ}
     {c : Conv↑ Δᴿ A B}
+    {γ : CTI2.CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
+    {L : Ty Δᴸ} {p : L CTI2.⊑ᵂ⟨ W ⟩ B}
+    {rel : W CTIR.∣ γ ⊢² M ⊑ N ∶ p}
     (vV : Value V)
     (spine : InstantiationSpine B E)
   → (head : (V ↑ c) —→[ keep ] V₁)
@@ -130,9 +135,15 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
   → (target : StructuralTargetInstantiationPackage W V
       (reveal-frame c ▻ⁱ spine)
     )
+  → StructuralTermProvenance
+      (StructuralTargetInstantiationPackage.structural-ext target) rel
   → Σ[ child-target ∈
       StructuralTargetInstantiationPackage W V₁
         (mapInstantiationSpine keep spine) ]
+      (StructuralTermProvenance
+        (StructuralTargetInstantiationPackage.structural-ext child-target)
+        rel
+      ×
       (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
          {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
        → StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
@@ -157,30 +168,37 @@ structural-target-reveal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
                (structural-world-extendᴿ
                  (StructuralTargetInstantiationPackage.structural-ext
                    target))
-               q)
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+               q))
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     with StructuralTargetInstantiationPackage.post-reduction target
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-refl =
   ⊥-elim
     (no-value-apply-spine spine
       (λ vF → value-no-step vF head)
       (StructuralTargetInstantiationPackage.final-value target))
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     with StructuralTargetInstantiationPackage.structural-ext target
+       | provenance
        | spine-step-inversion spine
            (λ vF → value-no-step vF head) first head
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     | structural-keep child-ext
+    | term-provenance-keep child-provenance
     | V₂ , (head′ , eq) =
   child-target ,
-    (λ {γ = γ} child-rel →
-      subst≡
-        (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
-        (sym (mapCtxᴿ-structural-keep child-ext γ))
-        child-rel)
+    (child-provenance ,
+      λ {γ = γ} child-rel →
+        subst≡
+          (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+          (sym (mapCtxᴿ-structural-keep child-ext γ))
+          child-rel)
   where
   child-target =
     record
@@ -201,11 +219,13 @@ structural-target-reveal-frame-keep-peel vV spine head vV₁ target
               (reveal-value-keep-unique vV head′ head)))
           rest
     }
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {χ = bind R} first rest
     with spine-bind-step-inversion spine
       (λ vF → value-no-step vF head) first
-structural-target-reveal-frame-keep-peel vV spine head vV₁ target
+structural-target-reveal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {χ = bind R} first rest
     | V₂ , (head′ , eq) =
   ⊥-elim (reveal-value-bind-impossible vV head′)
@@ -215,6 +235,9 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {V V₁ : Term Δᴿ} {A B E : Ty Δᴿ}
     {c : Conv↓ Δᴿ A B}
+    {γ : CTI2.CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
+    {L : Ty Δᴸ} {p : L CTI2.⊑ᵂ⟨ W ⟩ B}
+    {rel : W CTIR.∣ γ ⊢² M ⊑ N ∶ p}
     (vV : Value V)
     (spine : InstantiationSpine B E)
   → (head : (V ↓ c) —→[ keep ] V₁)
@@ -222,9 +245,15 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
   → (target : StructuralTargetInstantiationPackage W V
       (conceal-frame c ▻ⁱ spine)
     )
+  → StructuralTermProvenance
+      (StructuralTargetInstantiationPackage.structural-ext target) rel
   → Σ[ child-target ∈
       StructuralTargetInstantiationPackage W V₁
         (mapInstantiationSpine keep spine) ]
+      (StructuralTermProvenance
+        (StructuralTargetInstantiationPackage.structural-ext child-target)
+        rel
+      ×
       (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
          {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
        → StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
@@ -249,30 +278,37 @@ structural-target-conceal-frame-keep-peel : ∀ {Δᴸ Δᴿ Δ}
                (structural-world-extendᴿ
                  (StructuralTargetInstantiationPackage.structural-ext
                    target))
-               q)
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+               q))
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     with StructuralTargetInstantiationPackage.post-reduction target
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-refl =
   ⊥-elim
     (no-value-apply-spine spine
       (λ vF → value-no-step vF head)
       (StructuralTargetInstantiationPackage.final-value target))
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     with StructuralTargetInstantiationPackage.structural-ext target
+       | provenance
        | spine-step-inversion spine
            (λ vF → value-no-step vF head) first head
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {N = N} {χ = keep} {χs = χs} first rest
     | structural-keep child-ext
+    | term-provenance-keep child-provenance
     | V₂ , (head′ , eq) =
   child-target ,
-    (λ {γ = γ} child-rel →
-      subst≡
-        (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
-        (sym (mapCtxᴿ-structural-keep child-ext γ))
-        child-rel)
+    (child-provenance ,
+      λ {γ = γ} child-rel →
+        subst≡
+          (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+          (sym (mapCtxᴿ-structural-keep child-ext γ))
+          child-rel)
   where
   child-target =
     record
@@ -293,11 +329,13 @@ structural-target-conceal-frame-keep-peel vV spine head vV₁ target
               (conceal-value-keep-unique vV head′ head)))
           rest
     }
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {χ = bind R} first rest
     with spine-bind-step-inversion spine
       (λ vF → value-no-step vF head) first
-structural-target-conceal-frame-keep-peel vV spine head vV₁ target
+structural-target-conceal-frame-keep-peel
+    vV spine head vV₁ target provenance
     | ↠-step {χ = bind R} first rest
     | V₂ , (head′ , eq) =
   ⊥-elim (conceal-value-bind-impossible vV head′)

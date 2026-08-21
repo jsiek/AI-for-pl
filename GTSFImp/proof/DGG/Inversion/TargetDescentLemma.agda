@@ -7,5 +7,4 @@ module proof.DGG.Inversion.TargetDescentLemma where
 
 open import proof.DGG.Inversion.TargetDescentProof public using
   (composeSamePivotRebase; inner-source-pivot-eqᴿ;
-   target-seal★-descent; target-seal★-extract;
-   target-seal＇-reemit)
+   target-seal★-descent; target-seal★-extract)

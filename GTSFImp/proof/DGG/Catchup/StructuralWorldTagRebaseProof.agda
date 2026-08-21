@@ -22,16 +22,19 @@ structural-tag-rebase-atᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {Wᵖ : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → StructuralTagRebaseAtᴸReplay plan rb
   → StructuralTagRebaseAtᴸResult plan rb
-structural-tag-rebase-atᴸ structural-[] rb = record
+structural-tag-rebase-atᴸ structural-[] rb tag-rebase-[] = record
   { Wᵖ′ = _
   ; premise-plan = structural-[]
   ; post-rebase = rb
   ; post-mono = λ mono → mono
   }
 structural-tag-rebase-atᴸ (structural-keep plan) rb
-    with structural-tag-rebase-atᴸ plan rb
+    (tag-rebase-keep replay)
+    with structural-tag-rebase-atᴸ plan rb replay
 structural-tag-rebase-atᴸ (structural-keep plan) rb
+    (tag-rebase-keep replay)
     | record { Wᵖ′ = Wᵖ′ ; premise-plan = planᵖ
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -42,14 +45,11 @@ structural-tag-rebase-atᴸ (structural-keep plan) rb
     }
 structural-tag-rebase-atᴸ
     (structural-bind {B = B} ins follows plan) rb
-    with TE.reverseTagRebaseAtᴸ ins rb
+    (tag-rebase-bind insᵖ rb₁ replay)
+    with structural-tag-rebase-atᴸ plan rb₁ replay
 structural-tag-rebase-atᴸ
     (structural-bind {B = B} ins follows plan) rb
-    | Wᵖ₁ , insᵖ , rb₁
-    with structural-tag-rebase-atᴸ plan rb₁
-structural-tag-rebase-atᴸ
-    (structural-bind {B = B} ins follows plan) rb
-    | Wᵖ₁ , insᵖ , rb₁
+    (tag-rebase-bind insᵖ rb₁ replay)
     | record { Wᵖ′ = Wᵖ′ ; premise-plan = planᵖ
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -75,16 +75,19 @@ structural-tag-rebase-atᴸ-pullback : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
   → (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
+  → StructuralTagRebaseAtᴸPullbackReplay planᵖ rb
   → StructuralTagRebaseAtᴸPullbackResult planᵖ rb
-structural-tag-rebase-atᴸ-pullback structural-[] rb = record
+structural-tag-rebase-atᴸ-pullback structural-[] rb tag-pullback-[] = record
   { W′ = _
   ; outer-plan = structural-[]
   ; post-rebase = rb
   ; post-mono = λ mono → mono
   }
 structural-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
-    with structural-tag-rebase-atᴸ-pullback planᵖ rb
+    (tag-pullback-keep replay)
+    with structural-tag-rebase-atᴸ-pullback planᵖ rb replay
 structural-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
+    (tag-pullback-keep replay)
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -95,28 +98,11 @@ structural-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
     }
 structural-tag-rebase-atᴸ-pullback
     (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    CTI2.tag-rebase-idᴸ
-    with structural-tag-rebase-atᴸ-pullback
-      planᵖ CTI2.tag-rebase-idᴸ
+    rb (tag-pullback-bind ins rb₁ replay)
+    with structural-tag-rebase-atᴸ-pullback planᵖ rb₁ replay
 structural-tag-rebase-atᴸ-pullback
     (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    CTI2.tag-rebase-idᴸ
-    | record { W′ = W′ ; outer-plan = plan
-             ; post-rebase = rb′ ; post-mono = mono′ } =
-  record
-    { W′ = W′
-    ; outer-plan = structural-bind insᵖ followsᵖ plan
-    ; post-rebase = rb′
-    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
-    }
-structural-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-varᴸ rb)
-    with structural-tag-rebase-atᴸ-pullback planᵖ
-      (CTI2.tag-rebase-varᴸ (TE.pullbackReverseRebaseAt insᵖ rb))
-structural-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-varᴸ rb)
+    rb (tag-pullback-bind ins rb₁ replay)
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -126,31 +112,10 @@ structural-tag-rebase-atᴸ-pullback
     ; post-mono = λ mono → mono′ (TE.impEnvMono-insert ins insᵖ mono)
     }
   where
-  ins = TE.pullbackReverseRebaseTargetInsert insᵖ rb
-
-  -- The fresh target bind is to the right of every old pivot.  In the
-  -- source-conceal orientation, target freezing is used in reverse to leave
-  -- the premise pivot under `wk` and reconstruct the outer insert.
   follows =
-    trans followsᵖ
-      (cong (applyStores (bind B ∷ []))
-        (sym (CTI2T.rebase-target-store rb)))
-structural-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
-    with structural-tag-rebase-atᴸ-pullback planᵖ
-      (CTI2.tag-rebase-onlyᴸ
-        (TE.insert-to-starᴸ insᵖ to-star)
-        (TE.insert-disalignedᴸ insᵖ disaligned)
-        (TE.insert-represented★ᴸ insᵖ represented))
-structural-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
-    | record { W′ = W′ ; outer-plan = plan
-             ; post-rebase = rb′ ; post-mono = mono′ } =
-  record
-    { W′ = W′
-    ; outer-plan = structural-bind insᵖ followsᵖ plan
-    ; post-rebase = rb′
-    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
-    }
+    trans (CTI2T.rebaseᴸ-target-store
+      (CTI2.forgetTagRebaseᴸ rb₁))
+      (trans followsᵖ
+        (cong (applyStores (bind B ∷ []))
+          (sym (CTI2T.rebaseᴸ-target-store
+            (CTI2.forgetTagRebaseᴸ rb)))))

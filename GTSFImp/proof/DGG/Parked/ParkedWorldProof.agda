@@ -126,25 +126,27 @@ transport⊑ᴾ-proofᵀ (evolve-keepᴿ evol) p =
   transport⊑ᴾ-proofᵀ evol p
 transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = C} {B = D}
     (evolve-both-bind {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-      {W = W} {W′ = W′} {A = A} {B = B} evol) p =
+      {W = W} {W′ = W′} {A = A} {B = B} {p = A⊑B} evol) p =
   transport⊑ᴾ-proofᵀ {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-    {W = CTI2.bothBindWorld X⊑X W A B} {W′ = W′}
+    {W = CTI2.bothBindWorld W A B A⊑B} {W′ = W′}
     {A = ⇑ᵗ C} {B = ⇑ᵗ D} evol
-    (both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D} p)
+    (both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D}
+      p A⊑B)
 transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = C} {B = D}
     (evolve-left-bind {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
       {W = W} {W′ = W′} {A = A} evol) p =
   transport⊑ᴾ-proofᵀ {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-    {W = CTI2.leftOnlyWorld X⊑★ W A} {W′ = W′}
+    {W = CTI2.leftOnlyWorld W A} {W′ = W′}
     {A = ⇑ᵗ C} {B = D} evol
     (left-bind-⊑ᵂ {W = W} {A′ = A} {A = C} {B = D} p)
 transport⊑ᴾ-proofᵀ {W = W} {W′ = W′} {A = A} {B = B}
     (evolve-right-bind {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-      {W = W} {W′ = W′} {B = B′} evol) p =
+      {W = W} {W′ = W′} {B = B′} {fresh = fresh} evol) p =
   transport⊑ᴾ-proofᵀ {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-    {W = CTI2.rightOnlyWorld W B′} {W′ = W′}
+    {W = CTI2.rightOnlyWorld W B′ fresh} {W′ = W′}
     {A = A} {B = ⇑ᵗ B} evol
-    (right-bind-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p)
+    (right-bind-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B}
+      {fresh = fresh} p)
 transport⊑ᴾ-proofᵀ {A = A} {B = B}
     (evolve-structural-right-bind {W₁ = W₁} ins follows evol) p =
   transport⊑ᴾ-proofᵀ evol
@@ -166,12 +168,12 @@ parked-world-closed-proofᵀ pw (evolve-keepᴸ evol) =
   parked-world-closed-proofᵀ pw evol
 parked-world-closed-proofᵀ pw (evolve-keepᴿ evol) =
   parked-world-closed-proofᵀ pw evol
-parked-world-closed-proofᵀ pw (evolve-both-bind evol) =
-  parked-world-closed-proofᵀ (parked-both-bind pw) evol
+parked-world-closed-proofᵀ pw (evolve-both-bind {p = p} evol) =
+  parked-world-closed-proofᵀ (parked-both-bind p pw) evol
 parked-world-closed-proofᵀ pw (evolve-left-bind evol) =
   parked-world-closed-proofᵀ (parked-left-bind pw) evol
-parked-world-closed-proofᵀ pw (evolve-right-bind evol) =
-  parked-world-closed-proofᵀ (parked-right-bind pw) evol
+parked-world-closed-proofᵀ pw (evolve-right-bind {fresh = fresh} evol) =
+  parked-world-closed-proofᵀ (parked-right-bind fresh pw) evol
 parked-world-closed-proofᵀ pw
     (evolve-structural-right-bind ins follows evol) =
   parked-world-closed-proofᵀ
@@ -227,14 +229,17 @@ parked-source-stable
 
 
 parked-target-identity-proofᵀ : ParkedTargetIdentityᵀ
-parked-target-identity-proofᵀ parked-initial Y = toRename-id-eq Y
-parked-target-identity-proofᵀ (parked-both-bind pw) zero = refl
-parked-target-identity-proofᵀ (parked-both-bind pw) (Fin.suc Y) =
+parked-target-identity-proofᵀ (parked-initial {μ = μ}) Y =
+  trans (cong (λ η → toRenameᵗ η Y) (CTI2.initialWorld-ηᴿ μ))
+    (toRename-id-eq Y)
+parked-target-identity-proofᵀ (parked-both-bind p pw) zero = refl
+parked-target-identity-proofᵀ (parked-both-bind p pw) (Fin.suc Y) =
   cong Fin.suc (parked-target-identity-proofᵀ pw Y)
 parked-target-identity-proofᵀ (parked-left-bind {W = W} pw) Y =
   ⊥-elim (no-suc↪ᵗ (CTI2.ηᴿʷ W))
-parked-target-identity-proofᵀ (parked-right-bind pw) zero = refl
-parked-target-identity-proofᵀ (parked-right-bind pw) (Fin.suc Y) =
+parked-target-identity-proofᵀ (parked-right-bind fresh pw) zero = refl
+parked-target-identity-proofᵀ
+    (parked-right-bind fresh pw) (Fin.suc Y) =
   cong Fin.suc (parked-target-identity-proofᵀ pw Y)
 parked-target-identity-proofᵀ
     (parked-structural-right-insert {W₁ = W₁} pw ins follows) Y =

@@ -1139,9 +1139,24 @@ compiled empty world.
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
 reworked fixtures check with `agda --safe --no-caching`.  SourceStrip's small
-alias-cycle module also checks safe.  Remaining work is to replace the legacy
-SourceStrip `NON_COVERING` quarantine with exhaustive clauses, then continue
-the inductive-world gaps in TargetBindLift (obsolete raw `targetStoreAs`) and
-SimBack (missing `RightBindFresh`).  The invalid Λ intermediate remains a
-proof-scaffolding problem; no Λ-specific term-imprecision constructor has
-been adopted.
+alias-cycle module also checks safe.  The occupied non-star source-seal
+residual is now closed by that alias-cycle contradiction and no longer threads
+as an assumption through SourceStrip, TargetWalk, and RightInj.  One redundant
+SourceStrip `NON_COVERING` pragma is gone; the remaining pragmas still expose
+genuine missing constructor families.
+
+Backward simulation no longer tries to fabricate a right-only world after the
+source has reached blame.  Its one-step and multi-step results instead return
+either a synchronized world/term relation or a source-blame trace, which the
+DGG already accepts.  This removes the false generic `RightBindFresh`
+obligation for arbitrary target binds such as `bind ℕ`.
+
+The structural replay boundary now consumes the exact
+`StructuralTermProvenance plan rel` certificate for reveal/conceal replay,
+instead of synthesizing it from the false universal
+`TargetInsertProvenanceᵀ`.  The next Λ obligation is narrower: prove local
+target-insertion provenance for the actual canonical `β-inst`/`bind ★` plan,
+including each companion rebase, or refute that statement with a checked
+counterexample.  The obsolete raw `targetStoreAs` and invalid split-alias Λ
+world are not acceptable implementations.  No Λ-specific term-imprecision
+constructor has been adopted.

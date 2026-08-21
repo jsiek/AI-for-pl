@@ -703,7 +703,9 @@ Before this becomes a live design, the remaining probes must establish:
   heads would require additional noncollision provenance.
 - The strict-`Λ` relation producer now constructs the body relation and
   reveal-first spine from exact `α := ★`, `β := α` memberships, a genuine body
-  entry, and value witnesses.  Its first remaining step is mode-changing target
-  reveal through the generated function conversion
-  `makeConceal β α β ↦↑ unseal β α`, transporting the function-shaped scoped
-  relation from the `β` focus to the `α` focus.
+  entry, and value witnesses.  The checked global boundary then consumes the
+  generated composite `β` function reveal, the term-preserving
+  `replace-zero-open` transport frame, and the mapped direct `α := ★` reveal.
+  The full relation spine ends at `X⇒X ⊑ ★⇒★`.  The next obligation is packaging
+  this result as the live strict child with endpoint evidence, exact term
+  provenance, frame absorption, and spine typing.

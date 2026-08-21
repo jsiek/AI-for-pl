@@ -1281,13 +1281,14 @@ universal: inserting the new binder behind that existing body binder requires
 an arbitrary-depth prefix insertion/exchange operation, not a head shift.
 
 `TwoCtxStrictLambdaProducerProbe` checks the relation-side strict-`Λ` producer
-up to the first pending frame.  Exact `α := ★` and `β := α` memberships, the
-edge-scoped parameter entry, body relation, both value witnesses, and the
-canonical reveal-first `lambda-ready-child-spine` all construct.  The first
-missing rule is now precise: a target boundary must push through the generated
-function conversion `makeConceal β α β ↦↑ unseal β α`, changing
-`X⇒X ⊑ β⇒β` into `X⇒X ⊑ α⇒α`.  Atomic unseal alone is insufficient; this is a
-structural mode-changing target-reveal rule, not a resolver or term predicate.
+through its complete pending spine.  Exact `α := ★` and `β := α` memberships,
+the edge-scoped parameter entry, body relation, both value witnesses, and the
+canonical reveal-first `lambda-ready-child-spine` all construct.  The global
+boundary consumes the generated composite `β` function reveal, the unchanged-
+term `replace-zero-open` transport frame, and the mapped direct `α := ★`
+reveal, ending at `X⇒X ⊑ ★⇒★`.  The next substantive producer is the live
+strict-child package: endpoint evidence, child-target-indexed
+`StructuralTermProvenance`, `TargetFrameAbsorptionChain`, and `SpineTypedʷ`.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

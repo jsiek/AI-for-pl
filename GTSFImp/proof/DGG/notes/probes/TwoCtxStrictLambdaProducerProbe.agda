@@ -8,10 +8,11 @@ module proof.DGG.notes.probes.TwoCtxStrictLambdaProducerProbe where
 --   * Keeps alpha := star and beta := alpha as direct memberships, and keeps
 --     the lambda parameter's exact edge-scoped term entry.
 --   * Builds the canonical reveal-first instantiation spine and records the
---     exact first generated reveal.  The current edge-scoped CTI has no rule
---     that absorbs that composite conversion, so the probe stops there.
+--     exact first generated reveal.  The global-indexed target boundary
+--     absorbs that composite conversion without resolving either name.
 
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (just)
 open import Data.Nat using (suc; zero)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -19,7 +20,9 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Types using (Ty; TyVar; ★; ＇_; _⇒_; ⇑ᵗ; _[_]ᵗ)
 open import TyStore using (_∋_⦂_; Z∋; S-bind∋)
 import Imprecision as I
-open import Conversion using (Conv↑; _⊢↑_; 〖_,_↑_〗)
+open import Conversion using
+  (Conv↑; _⊢↑_; _⊢↑[_]_; 〖_,_↑_〗; ⊢↑-⇒ˣ; ⊢↓-sealˣ;
+   ⊢↑-unsealˣ; join-both; rename↑)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; ⇑ᵉᵗ; Term; Value; `_; ƛ_; _↑_)
 open import Reduction using (bind; applyTy)
@@ -29,9 +32,11 @@ open import proof.DGG.notes.probes.TwoCtxFreshBehindPlanProbe
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using
   (ExactAliasEdgeᵉ; edge-head)
 import proof.DGG.notes.probes.TwoCtxEdgeScopedCTIProbe as EdgeCTI
+import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe as Global
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
   (InstantiationSpine; []ⁱ; _▻ⁱ_; reveal-frame; type-transport-frame;
-   mapInstantiationSpine; lambda-ready-child-spine)
+   mapInstantiationSpine; lambda-ready-child-spine;
+   applyInstantiationFrame)
 
 
 producer-edge : ExactAliasEdgeᵉ
@@ -195,17 +200,162 @@ reveal-first-spine-shape : reveal-first-spine ≡
 reveal-first-spine-shape = refl
 
 
--- The next relation required by reveal-frame absorption is exactly:
---
---   ScopedCTI alpha-mode alpha-valid scoped-root
---     value-ready-source (value-ready-target ↑ beta-generated-reveal)
---     alpha-function-type
---
--- `target-reveal` only constructs a direct `unseal Y R` at source type
--- `＇ source-X`.  The required conversion is the generated function
--- conversion
---
---   makeConceal beta alpha (beta) ↦↑ unseal beta alpha
---
--- at source type `source-X ⇒ source-X`.  No current constructor produces
--- that relation from `value-ready-body-relation` and `beta-reveal-typed`.
+global-producer-focus : Global.NameFocusᵍ stable-worldᶠ source-Xᶠ
+  target-alphaᶠ
+global-producer-focus =
+  Global.name-focusᵍ source-alpha-separatedᶠ source-X-selfᶠ
+    source-alpha-representationsᶠ
+
+global-stable-X-star : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge Global.stableᵍ
+  (＇ source-Xᶠ) ★
+global-stable-X-star =
+  Global.scoped-typeᵍ Global.view-starᵍ (I.X⊑★ refl)
+
+global-alpha-boundary : Global.ExactTargetBoundaryᵍ stable-worldᶠ
+  global-producer-focus producer-edge Global.stableᵍ
+  target-alpha⁺ᶠ ★ global-stable-X-star
+global-alpha-boundary = Global.direct-targetᵍ alpha-direct
+
+global-alpha-mode : Global.Modeᵍ producer-edge
+global-alpha-mode = Global.push-focusᵍ Global.stableᵍ target-alpha⁺ᶠ
+
+global-alpha-valid : Global.ValidModeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode
+global-alpha-valid =
+  Global.push-validᵍ Global.stable-validᵍ global-alpha-boundary
+
+global-alpha-type : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode
+  (＇ source-Xᶠ) (＇ target-alpha⁺ᶠ)
+global-alpha-type = Global.scoped-typeᵍ
+  (Global.view-varᵍ (Global.focus-hereᵍ refl)) I.X⊑X
+
+global-beta-boundary : Global.ExactTargetBoundaryᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode
+  target-betaᶠ (＇ target-alpha⁺ᶠ) global-alpha-type
+global-beta-boundary = Global.direct-targetᵍ beta-direct
+
+global-beta-mode : Global.Modeᵍ producer-edge
+global-beta-mode = Global.push-focusᵍ global-alpha-mode target-betaᶠ
+
+global-beta-valid : Global.ValidModeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-beta-mode
+global-beta-valid =
+  Global.push-validᵍ global-alpha-valid global-beta-boundary
+
+global-beta-type : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-beta-mode
+  (＇ source-Xᶠ) (＇ target-betaᶠ)
+global-beta-type = Global.scoped-typeᵍ
+  (Global.view-varᵍ (Global.focus-hereᵍ refl)) I.X⊑X
+
+global-beta-function-type : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-beta-mode
+  ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ))
+  ((＇ target-betaᶠ) ⇒ (＇ target-betaᶠ))
+global-beta-function-type = Global.scoped-typeᵍ
+  (Global.view-funᵍ
+    (Global.view-varᵍ (Global.focus-hereᵍ refl))
+    (Global.view-varᵍ (Global.focus-hereᵍ refl)))
+  (I.⇒⊑⇒ I.X⊑X I.X⊑X)
+
+global-alpha-function-type : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode
+  ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ))
+  ((＇ target-alpha⁺ᶠ) ⇒ (＇ target-alpha⁺ᶠ))
+global-alpha-function-type = Global.scoped-typeᵍ
+  (Global.view-funᵍ
+    (Global.view-varᵍ (Global.focus-hereᵍ refl))
+    (Global.view-varᵍ (Global.focus-hereᵍ refl)))
+  (I.⇒⊑⇒ I.X⊑X I.X⊑X)
+
+global-parameter-scope : Global.ScopedWorldᵍ stable-worldᶠ
+  global-producer-focus producer-edge
+  ⟨ Δᵉ (⇑ᵉᵗ empty-contextᶠ) ,
+    Σᵉ (⇑ᵉᵗ empty-contextᶠ) , (＇ source-Xᶠ) ∷ [] ⟩
+  ⟨ Δᵉ target-alpha-beta-contextᶠ ,
+    Σᵉ target-alpha-beta-contextᶠ , (＇ target-betaᶠ) ∷ [] ⟩
+global-parameter-scope = Global.scoped-bindᵍ
+  {S = Global.scoped-rootᵍ} global-beta-valid global-beta-type
+
+global-parameter-entry : Global.ScopedEntryᵍ global-parameter-scope
+  zero global-beta-valid global-beta-type
+global-parameter-entry = Global.entry-hereᵍ {S = Global.scoped-rootᵍ}
+
+global-parameter-relation : Global.ScopedCTIᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-beta-mode global-beta-valid
+  global-parameter-scope (` zero) (` zero) global-beta-type
+global-parameter-relation = Global.var⊑varᵍ global-parameter-entry
+
+global-value-ready-body-relation : Global.ScopedCTIᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-beta-mode global-beta-valid
+  Global.scoped-rootᵍ value-ready-source value-ready-target
+  global-beta-function-type
+global-value-ready-body-relation =
+  Global.lambda⊑lambdaᵍ {S = Global.scoped-rootᵍ}
+    global-parameter-relation
+
+beta-reveal-typed-at-beta :
+  Σᵉ target-alpha-beta-contextᶠ ⊢↑[ just target-betaᶠ ]
+    beta-generated-reveal
+beta-reveal-typed-at-beta = ⊢↑-⇒ˣ join-both
+  (⊢↓-sealˣ beta-direct) (⊢↑-unsealˣ beta-direct)
+
+first-reveal-frame-relation : Global.ScopedCTIᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode global-alpha-valid
+  Global.scoped-rootᵍ value-ready-source
+  (value-ready-target ↑ beta-generated-reveal)
+  global-alpha-function-type
+first-reveal-frame-relation = Global.target-revealᵍ
+  global-beta-boundary beta-reveal-typed-at-beta
+  global-value-ready-body-relation
+
+
+transport-frame-relation : Global.ScopedCTIᵍ stable-worldᶠ
+  global-producer-focus producer-edge global-alpha-mode global-alpha-valid
+  Global.scoped-rootᵍ value-ready-source
+  (applyInstantiationFrame
+    (value-ready-target ↑ beta-generated-reveal)
+    (type-transport-frame
+      (replace-zero-open beta-body-type (＇ target-alphaᶠ))))
+  {A = (＇ source-Xᶠ) ⇒ (＇ source-Xᶠ)}
+  {B = ⇑ᵗ (beta-body-type [ ＇ target-alphaᶠ ]ᵗ)}
+  (Global.scoped-typeᵍ
+    (Global.view-funᵍ
+      (Global.view-varᵍ (Global.focus-hereᵍ refl))
+      (Global.view-varᵍ (Global.focus-hereᵍ refl)))
+    (I.⇒⊑⇒ I.X⊑X I.X⊑X))
+transport-frame-relation = first-reveal-frame-relation
+
+mapped-alpha-reveal-typed :
+  Σᵉ target-alpha-beta-contextᶠ
+    ⊢↑[ just target-alpha⁺ᶠ ] rename↑ Fin.suc alpha-generated-reveal
+mapped-alpha-reveal-typed = ⊢↑-⇒ˣ join-both
+  (⊢↓-sealˣ alpha-direct) (⊢↑-unsealˣ alpha-direct)
+
+global-stable-function-type : Global.ScopedTypeᵍ stable-worldᶠ
+  global-producer-focus producer-edge Global.stableᵍ
+  ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ)) (★ ⇒ ★)
+global-stable-function-type = Global.scoped-typeᵍ
+  (Global.view-funᵍ Global.view-starᵍ Global.view-starᵍ)
+  (I.⇒⊑⇒ (I.X⊑★ refl) (I.X⊑★ refl))
+
+mapped-alpha-reveal-relation : Global.ScopedCTIᵍ stable-worldᶠ
+  global-producer-focus producer-edge Global.stableᵍ
+  Global.stable-validᵍ Global.scoped-rootᵍ value-ready-source
+  ((value-ready-target ↑ beta-generated-reveal)
+    ↑ rename↑ Fin.suc alpha-generated-reveal)
+  global-stable-function-type
+mapped-alpha-reveal-relation = Global.target-revealᵍ
+  global-alpha-boundary mapped-alpha-reveal-typed
+  transport-frame-relation
+
+
+-- The concrete reveal-first spine is now exhausted: its beta reveal,
+-- term-preserving replace-zero-open transport, and mapped alpha reveal all
+-- have relation witnesses with their direct pivots.  The next substantive
+-- producer obligation is not another frame.  It is the bridge from this
+-- global two-Ctx relation to the live strict child package: a live-world
+-- endpoint plus child-target-indexed StructuralTermProvenance and the
+-- corresponding TargetFrameAbsorptionChain/SpineTyped witnesses.

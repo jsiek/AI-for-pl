@@ -22,16 +22,20 @@ relation/projection pattern, the constructor-form allocation indices, and the
 displayed smart functions under `--safe`.
 `notes/probes/TwoCtxWorldInvariantsProbe.agda` checks that every raw
 constructor implies the four direct nominal world invariants and checks a
-direct-store rebase graph plus its same-world case.  A general structural
-rebase function and all preservation theorems remain unproved.  This note does
-not authorize a change to the live term-imprecision relation.
+direct-store rebase graph plus its same-world case.  The later rebase-plan
+probe checks the corresponding structural function over an explicit plan.  A
+general producer of such plans and all live preservation theorems remain
+unproved.  This note does not authorize a change to the live term-imprecision
+relation.
 
-Two later probes check the first nontrivial provenance layers.  The
+Later probes check the first nontrivial provenance layers.  The
 `TwoCtxSourceRebasePlanProbe` implements one local source/target allocation
-commutation and carries it through later skipped centers and target-only
-allocations.  The `TwoCtxAdministrativeAliasFocusProbe` keeps a stable world
-unchanged while a boundary-local view consumes exactly one fresh target edge
-`β := α`.  Both check under `--safe`; neither follows a representation chain.
+commutation and carries it through every later raw history constructor.  The
+`TwoCtxAdministrativeAliasFocusProbe` keeps a stable world unchanged while a
+boundary-local view consumes exactly one fresh target edge `β := α`.
+`TwoCtxAliasFocusModeProbe` stacks those exact one-edge views and checks the
+two-boundary `β := α`, `α := ★` reveal spine.  All check under `--safe`;
+none follows a representation chain.
 
 ## Trusted endpoint structure
 
@@ -326,12 +330,13 @@ It must not use `resolveVar`, `resolveRep`, or a transitive representation-chain
 predicate.  Direct entries are the nominal representation choices made by the
 trusted reduction semantics.
 
-`SourceRebasePlan` must describe local movement in the inductive history; its
-constructors remain an open design question.  The crucial requirement is that
-`rebaseSource-center` close by `refl`.  A fallback record with an explicit
-`centerᶜ W ≡ centerᶜ W′` field is possible, but is expected to create
-unnecessary transport obligations.  Both alternatives are **schematic and
-unproved**; the function graph should be probed before choosing.
+`SourceRebasePlan` describes local movement in the inductive history.  The
+checked skeleton probe has now chosen and exhausted its constructor cases.
+Because the center is hidden behind the world witness, its
+`rebaseSource-centerᶜ₀` theorem is proved structurally and the embedding laws
+perform the corresponding explicit `Fin` transports.  The displayed live
+interface remains schematic, but the function-and-graph alternative is no
+longer an untested design choice.
 
 The checked invariant probe confirms that the fallback graph is well typed,
 but also makes its cost precise.  Since the center is hidden, two arbitrary
@@ -340,12 +345,10 @@ transport old embedding points along its explicit center equality before it
 can state the off-pivot and frozen-target equations.  The same-world case
 reduces by `refl` without extensionality.
 
-The raw world history does not yet support the preferred total function.
 Every raw allocation constructor fixes both an endpoint allocation and that
 variable's center placement.  Moving a source pivot while preserving the two
 endpoint `Ctx` indices therefore requires a checked plan that commutes a source
-allocation past target-only and skipped-center steps.  No such plan has been
-postulated in the probe.  Adding a function before defining those local
+allocation through the later history.  Adding a function without such local
 commutations would merely hide the missing provenance.
 
 The checked `TwoCtxSourceRebasePlanProbe` now supplies the first such
@@ -358,20 +361,22 @@ bind-right-rawᶜ₀ (bind-left-rawᶜ₀ W A) B
 
 The old source-only cell becomes vacant and the source/target pivots occupy a
 fresh dynamic paired cell.  The endpoint `Ctx` indices are identical on both
-sides of the rewrite.  The plan commutes recursively through a later
-`skip-centerᶜ₀`, `bind-right-rawᶜ₀`, `lift-both-rawᶜ₀`, or
-`lift-left-rawᶜ₀`, as well as through a later source allocation or term
-binding.  The target-bind case deliberately requires a new freshness proof for
-the rebuilt history.  The term-binding case similarly requires the term
-entry's type-imprecision proof in the rebuilt world instead of assuming it is
-transportable.  The probe proves center preservation, off-pivot source
-preservation, frozen target embeddings, pivot alignment, all four direct
-invariants, and the direct-store graph obligation.
+sides of the rewrite.  The plan commutes recursively through every raw history
+head: skipped centers, target-only and source-only allocations, both lift
+forms, both paired-bind forms, and term binding.  Target-only commutation
+deliberately requires a new freshness proof for the rebuilt history.  Term
+binding and both paired binds likewise require their type-imprecision proof in
+the rebuilt world instead of assuming it is transportable.  The probe proves
+center preservation, off-pivot source preservation, frozen target embeddings,
+pivot alignment, all four direct invariants, and the direct-store graph
+obligation.
 
-This is not yet a total rebase plan.  Local commutations remain to be defined
-for both paired-bind constructors.  Those cases need their own constructor
-rewrites.  The checked probe enumerates them explicitly rather than using a
-catch-all.
+This makes `rebaseSourceᶜ₀` total over the checked plan and every constructor
+of the raw skeleton.  It does not claim that an arbitrary world and arbitrary
+pivot pair admits a plan: identity requires existing direct alignment, while
+the moving base case requires the explicit adjacent source-only/target-only
+allocation geometry.  That distinction keeps the operational provenance in
+the plan rather than turning rebase into an unrestricted world rewrite.
 
 ## Boundary-scoped administrative alias focus
 
@@ -430,7 +435,30 @@ able to use it outside the matching boundary.  The eventual CTI redesign
 therefore needs a premise-only boundary judgment (or an equivalent pending
 boundary index) that is introduced and consumed by the exact reveal/conceal
 wrapper.  Nested aliases are repeated one-edge boundaries, never a transitive
-focus.
+focus.  The checked mode probe makes this repetition explicit:
+
+```agda
+data TargetModeᶠ₁ : Set where
+  stable-modeᶠ₁ : TargetModeᶠ₁
+  push-focusᶠ₁ : TargetModeᶠ₁ → TyVar Δᴿ → TargetModeᶠ₁
+```
+
+The stable mode cannot view the fresh pending `β`.  Crossing the `α := ★`
+boundary first pushes an `α` focus; crossing `β := α` then pushes a `β` focus
+whose direct representation is checked in the `α` parent mode.  The resulting
+mode has depth two and is provably not a single push.  Ordinary variable,
+lambda, and application clauses preserve their mode.  Only exact
+direct-store-certified target reveal/conceal clauses cross modes.  Thus the
+nested target term
+
+```text
+((x ↑ unseal β α) ↑ unseal α ★)
+```
+
+returns to the stable mode without exposing either pending name to ordinary
+term rules.  The probe is a skeletal integration check, not yet a replacement
+for live CTI, but it shows that a stack is part of the compositional interface
+rather than Λ-specific proof geometry.
 
 ## CTI indexing consequence
 
@@ -539,14 +567,14 @@ Before this becomes a live design, the remaining probes must establish:
 - The checked `TwoCtxWorldInvariantsProbe` establishes that the inductive
   constructors imply all four direct invariants without a general
   invariant-accepting escape constructor.
-- Checked source rebase can be implemented as a function whose graph preserves
-  the hidden center and freezes every target embedding.  The graph, same-world
-  case, one source/target allocation commutation, and recursion through later
-  skipped, target-only, lift-both, lift-left, source-allocation, and term-binding
-  history check.  Only the two paired-bind history heads remain open.
+- Checked source rebase is implemented as a function over an explicit plan.
+  Its graph preserves the hidden center and freezes every target embedding.
+  The identity and moving base cases and recursion through every raw skeleton
+  constructor check.  A separate producer theorem must still show when a
+  requested operational pivot move admits such a plan.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
-- The boundary-local alias focus must be integrated into reveal/conceal CTI
-  without making it available to ordinary term constructors.
+- The checked boundary-mode stack must be integrated into reveal/conceal CTI
+  without making pending names available to ordinary term constructors.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

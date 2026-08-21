@@ -1136,14 +1136,27 @@ regressions.  The SourceStar snapshot's two endpoint stores are individually
 operationally possible, but its cross-run alignment is not reachable from the
 compiled empty world.
 
-The proposed two-`Ctx` redesign now has checked direct invariants, not just a
-constructor sketch.  `TwoCtxWorldInvariantsProbe` proves all four invariants
-for every raw constructor without `resolveVar`, invariant-accepting escape
-constructors, postulates, `NON_COVERING`, funext, or catch-alls.  Its direct
-store-entry rebase graph and same-world case also check.  A total pivot-moving
-rebase function still requires explicit constructor commutations: allocation
-and center placement are coupled by the raw constructors, so that history must
-be supplied rather than hidden behind equality transport.
+The proposed two-`Ctx` redesign now has checked direct invariants and an
+exhaustive plan interpreter, not just a constructor sketch.
+`TwoCtxWorldInvariantsProbe` proves all four invariants for every raw
+constructor without `resolveVar`, invariant-accepting escape constructors,
+postulates, `NON_COVERING`, funext, or catch-alls.
+`TwoCtxSourceRebasePlanProbe` implements the direct-store rebase graph,
+identity and moving base cases, and commutation through every raw skeleton
+constructor.  The plan remains explicit: the next producer obligation is to
+show which operational pivot moves supply one, not to make rebase an
+unrestricted world rewrite.
+
+Administrative aliases are now checked as a scoped mode stack.
+`TwoCtxAliasFocusModeProbe` leaves the stable direct-invariant world unchanged,
+makes the pending fresh target name unavailable in stable mode, and lets only
+an exact direct-store reveal/conceal boundary push a focus.  The
+`β := α`, `α := ★` trace requires two pushes, checks each edge in its parent
+mode, and returns the nested reveal term to stable mode.  Ordinary term rules
+preserve the mode.  This is the first compositional account of the problematic
+Λ alias geometry that neither weakens `representationsImprecise` nor uses
+`resolveVar`; live CTI integration remains a design step requiring explicit
+relation review.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

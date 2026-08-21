@@ -4,14 +4,15 @@ module proof.DGG.SimBackDef where
 --   * States closed one-step backward simulation when the less precise right
 --     term reduces.
 --   * Allows the more precise left term to take a store-changing trace and
---     records the resulting parked-world evolution.
+--     either records the resulting parked-world evolution or reaches blame.
 --   * Contains no simulation proof.
 
 open import Data.List using ([])
-open import Data.Product using (_×_; Σ-syntax)
+open import Data.Product using (_×_; Σ-syntax; ∃-syntax)
+open import Data.Sum using (_⊎_)
 
 open import Types using (Ty; TyCtx)
-open import CastTerms using (Term)
+open import CastTerms using (Term; blame)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
@@ -39,10 +40,12 @@ SimBackᵀ =
   → ParkedWorld W
   → W ∣ [] ⊢² M ⊑ M′ ∶ p
   → M′ —→[ χᴿ ] N′
-  → Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
     Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
     Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
     Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
       (M —↠[ χsᴸ ] N) ×
       ParkedEvolve χsᴸ (χᴿ ∷ˢ []ˢ) W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ q)
+      (W′ ∣ [] ⊢² N ⊑ N′ ∶ q))
+    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+        (M —↠[ χsᴸ ] blame))

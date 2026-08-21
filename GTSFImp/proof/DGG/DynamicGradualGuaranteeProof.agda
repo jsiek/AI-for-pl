@@ -113,13 +113,13 @@ dynamic-gradual-guarantee-with-target-blame
   source-value , source-diverges , target-value , target-diverges
   where
   initial-parked : ParkedWorld
-      (CompileMonotone.initialWorld idᵐ store-empty)
-  initial-parked = parked-initial
+      (CTX.initialWorld (idᵐ {Δ = 0}))
+  initial-parked = parked-initial {Δ = 0} {μ = idᵐ}
 
   initial-related :
-    CompileMonotone.initialWorld idᵐ store-empty ∣ [] ⊢²
+    CTX.initialWorld (idᵐ {Δ = 0}) ∣ [] ⊢²
       compiled-left M⊑M′ ⊑ compiled-right M⊑M′
-        ∶ CompileMonotone.initial-⊑ {Σ = store-empty} p
+        ∶ CompileMonotone.initial-⊑ p
   initial-related =
     CompileMonotone.compile-preserves-imprecision² M⊑M′
 
@@ -174,26 +174,28 @@ dynamic-gradual-guarantee-with-target-blame
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
       with sim-back* initial-parked initial-related M′↠V′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
-        q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | inj₂ source-blame = inj₂ source-blame
+  target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
+        q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′)
       with value-irreducible* vV′ V′↠N₂′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
-        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′)
       | value-trace-refl
       with catchup
         (parked-world-closed initial-parked evol₁) N⊑N₂′ vV′
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
-        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′)
       | value-trace-refl
       | inj₁ (Δᴸ₂ , ψsᴸ , V , Δ₂ , W₂ , q₂ , N↠V , vV ,
           evol₂ , V⊑V′)
       with transport-related-source
         (applyTys-++ χsᴸ₁ ψsᴸ _) (q₂ , V⊑V′)
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
-        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′)
       | value-trace-refl
       | inj₁ (Δᴸ₂ , ψsᴸ , V , Δ₂ , W₂ , q₂ , N↠V , vV ,
           evol₂ , V⊑V′)
@@ -202,8 +204,8 @@ dynamic-gradual-guarantee-with-target-blame
       (Δᴸ₂ , (χsᴸ₁ ++χ ψsᴸ) , V , Δ₂ , W₂ , q ,
        composeReduction M↠N N↠V , vV , V⊑V′′)
   target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
-        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .V′ , Δ₁ ,
+        W₁ , q₁ , M↠N , V′↠N₂′ , evol₁ , N⊑N₂′)
       | value-trace-refl
       | inj₂ (Δᴸ₂ , ψsᴸ , Δ₂ , W₂ , N↠blame , evol₂) =
     inj₂
@@ -217,18 +219,20 @@ dynamic-gradual-guarantee-with-target-blame
   target-blame {Δᴿ} χsᴿ M′↠blame
       with sim-back* initial-parked initial-related M′↠blame
   target-blame {Δᴿ} χsᴿ M′↠blame
-      | Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
-        q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      | inj₂ source-blame = source-blame
+  target-blame {Δᴿ} χsᴿ M′↠blame
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , Δᴿ₂ , ψsᴿ , N₂′ , Δ₁ , W₁ ,
+        q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′)
       with blame-irreducible* blame↠N₂′
   target-blame {Δᴿ} χsᴿ M′↠blame
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
-        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
+        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′)
       | blame-trace-refl
       with target-blame-catchup
         (parked-world-closed initial-parked evol₁) N⊑N₂′
   target-blame {Δᴿ} χsᴿ M′↠blame
-      | Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
-        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′
+      | inj₁ (Δᴸ₁ , χsᴸ₁ , N , .Δᴿ , .Reduction.[] , .blame , Δ₁ ,
+        W₁ , q₁ , M↠N , blame↠N₂′ , evol₁ , N⊑N₂′)
       | blame-trace-refl
       | Δᴸ₂ , ψsᴸ , Δ₂ , W₂ , N↠blame , evol₂ =
     Δᴸ₂ , (χsᴸ₁ ++χ ψsᴸ) , composeReduction M↠N N↠blame

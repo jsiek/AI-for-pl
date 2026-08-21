@@ -24,6 +24,8 @@ open import proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTermProvenanceDef using
+  (StructuralTermProvenance)
 open import proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef
 open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.ValueCatchupRightDef using
@@ -220,8 +222,8 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
         → (N : Term Δᴿ′)
         → (vN : Value N)
         → (V ⟨ c ⟩) —↠[ χs ] N
-        → W′ CTIR.∣ ECR.mapCtxᴿ ext γ ⊢²
-            M ⊑ N ∶ ECR.transport⊑ᵂ ext qC
+        → (stop-rel : W′ CTIR.∣ ECR.mapCtxᴿ ext γ ⊢²
+            M ⊑ N ∶ ECR.transport⊑ᵂ ext qC)
         → (target : StructuralTargetInstantiationPackage W V
             (cast-frame c ▻ⁱ spine))
         → Σ[ child-spine ∈
@@ -240,6 +242,11 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
               SpineTypedʷ {fuel = fuel} W′ child-spine ]
           Σ[ child-target ∈
               StructuralTargetInstantiationPackage W′ N child-spine ]
+          Σ[ child-provenance ∈
+              StructuralTermProvenance
+                (StructuralTargetInstantiationPackage.structural-ext
+                  child-target)
+                stop-rel ]
             pendingCastMass vN child-spine <
               pendingCastMass vV (cast-frame c ▻ⁱ spine)
             ×

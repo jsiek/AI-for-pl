@@ -45,8 +45,8 @@ open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
   (StructuralNamePostPlan; StructuralNameChainPlan)
 open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
   (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
-open import proof.DGG.TransportTermImprecisionDef using
-  (TargetInsertProvenanceᵀ)
+open import proof.DGG.Catchup.StructuralTermProvenanceDef using
+  (StructuralTermProvenance)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTX using
   (World;
@@ -388,7 +388,6 @@ StructuralValueInstantiationᵀ =
       applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
   → StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
-  → TargetInsertProvenanceᵀ
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ
@@ -396,13 +395,15 @@ StructuralValueInstantiationᵀ =
       (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q)
   → StructuralNameChainPlan {fuel = fuel} W γ A
       (applyBody (bind R) B [ ＇ Fin.zero ]ᵗ) q plan
-  → W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p
+  → (rel : W ∣ γ ⊢² M ⊑ renameᵗᵐ wk↪ᵗ V ∶ p)
   → Value M
   → Value V
   → AllValueView V
-  → StructuralTargetInstantiationPackage W (renameᵗᵐ wk↪ᵗ V)
+  → (target : StructuralTargetInstantiationPackage W (renameᵗᵐ wk↪ᵗ V)
       (name-type-app-frame (applyBody (bind R) B) Fin.zero
-        refl refl ▻ⁱ []ⁱ)
+        refl refl ▻ⁱ []ⁱ))
+  → StructuralTermProvenance
+      (StructuralTargetInstantiationPackage.structural-ext target) rel
   → InstSpineDescentPackage W γ M
       (renameᵗᵐ wk↪ᵗ V ⦂∀ applyBody (bind R) B [ ＇ Fin.zero ]) q
 

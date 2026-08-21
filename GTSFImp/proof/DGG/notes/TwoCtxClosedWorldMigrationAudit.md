@@ -275,8 +275,10 @@ producers or integrations:
    A scoped CTI fragment checks exact target reveal/conceal, current-mode-open
    source conceal, term-independent paired reveal/conceal, constants, blame,
    ordinary casts, and structural function conversions.  Universal recursion
-   needs a globally indexed liftable family and scoped substitution; the
-   complete family is not yet connected to the live DGG.
+   now checks in a globally indexed liftable family, including type application
+   with an explicit substituted-result relation.  Arbitrary-depth prefix
+   insertion for already-universal ambient bindings remains before the complete
+   family can be connected to the live DGG.
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.  The checked
    plan handles a source lift followed by any target-star prefix and derives

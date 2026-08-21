@@ -1270,6 +1270,16 @@ The next surface must therefore be one global indexed CTI family, together
 with scoped-type substitution preservation, rather than hollow local universal
 constructors.
 
+`TwoCtxGlobalIndexedCTIProbe` checks that global surface.  Full endpoint world,
+focus, exact edge, mode validity, heterogeneous scoped world, and scoped type
+are indices; all of those states lift structurally.  Recursive `scoped-allᵍ`
+and `all⊑allᵍ` use `liftBothᶜ₀`, and type application checks with an explicit
+substituted-result relation.  Exact target boundaries accept arbitrary trusted
+conversion typing, including the composite strict-`Λ` function conversion.
+The first remaining lift is an ambient binding whose type is already
+universal: inserting the new binder behind that existing body binder requires
+an arbitrary-depth prefix insertion/exchange operation, not a head shift.
+
 `TwoCtxStrictLambdaProducerProbe` checks the relation-side strict-`Λ` producer
 up to the first pending frame.  Exact `α := ★` and `β := α` memberships, the
 edge-scoped parameter entry, body relation, both value witnesses, and the

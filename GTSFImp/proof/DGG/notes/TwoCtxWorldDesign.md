@@ -77,6 +77,10 @@ blame, all ordinary cast polarities, and structural function conversions.
 `TwoCtxStrictLambdaProducerProbe` constructs the value-ready strict-`Λ` body
 relation and exact reveal-first spine in this setting, then isolates the first
 missing composite target-boundary rule.
+`TwoCtxGlobalIndexedCTIProbe` makes the full world/focus/edge/mode state an
+index, checks recursive universal abstraction and type application under
+`liftBothᶜ₀`, and admits exact target boundaries with arbitrary trusted
+conversion typing, including the strict-`Λ` composite function conversion.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -675,7 +679,10 @@ Before this becomes a live design, the remaining probes must establish:
   source blame, all three ordinary cast polarities, and structural function
   conversions also check.  Universal abstraction/application and universal
   conversions require a global CTI family indexed by liftable
-  endpoint/focus/edge state, plus scoped-type substitution preservation.
+  endpoint/focus/edge state.  That global family now checks recursive
+  universal abstraction and type application with an explicit substituted
+  result relation.  Its next lift obligation is arbitrary-depth prefix
+  insertion for ambient bindings whose types already contain universal bodies.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.  The checked
   `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,

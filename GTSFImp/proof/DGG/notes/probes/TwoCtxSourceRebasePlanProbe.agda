@@ -10,8 +10,9 @@ module proof.DGG.notes.probes.TwoCtxSourceRebasePlanProbe where
 --     skipped centers, target-only allocations, paired lifts, and left lifts.
 --   * Rebuilds only inductive worlds, so the four direct invariants follow
 --     from the existing total invariant proof.  Target-only commutation keeps
---     separate freshness evidence for the rebuilt history.  The lift cases
---     preserve both endpoint Ctx indices and their raw context equalities.
+--     separate freshness evidence for the rebuilt history.  Term binding
+--     carries its rebuilt type-imprecision derivation explicitly.  Lift and
+--     source-allocation cases preserve the raw context equalities.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
@@ -113,6 +114,30 @@ mutual
           (lift-left-rawᶜ₀ W Γᴸ⁺≡)
           (Fin.suc Xᴸ) Xᴿ
 
+    source-rebase-bind-leftᶜ₀ :
+      ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+        {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+        {Γᴸ⁺ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      → (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
+      → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
+      → SourceRebasePlanᶜ₀
+          (bind-left-rawᶜ₀ W A Γᴸ⁺≡)
+          (Fin.suc Xᴸ) Xᴿ
+
+    source-rebase-bind-termᶜ₀ :
+      ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+        {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+        {A : Ty Δᴸ} {B : Ty Δᴿ}
+        {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ₀ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+        {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+        {represented : A ⊑ᵀ₀⟨ W ⟩ B}
+      → (plan : SourceRebasePlanᶜ₀ W Xᴸ Xᴿ)
+      → (represented′ : A ⊑ᵀ₀⟨ rebaseSourceᶜ₀ plan ⟩ B)
+      → SourceRebasePlanᶜ₀
+          (bind-termᶜ₀ W represented) Xᴸ Xᴿ
+
   rebaseSourceᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
     → SourceRebasePlanᶜ₀ W Xᴸ Xᴿ
     → Cᴸ ⊑ᶜ₀ Cᴿ
@@ -133,6 +158,12 @@ mutual
   rebaseSourceᶜ₀
       (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
     lift-left-rawᶜ₀ (rebaseSourceᶜ₀ plan) Γᴸ⁺≡
+  rebaseSourceᶜ₀
+      (source-rebase-bind-leftᶜ₀ {A = A} plan Γᴸ⁺≡) =
+    bind-left-rawᶜ₀ (rebaseSourceᶜ₀ plan) A Γᴸ⁺≡
+  rebaseSourceᶜ₀
+      (source-rebase-bind-termᶜ₀ plan represented′) =
+    bind-termᶜ₀ (rebaseSourceᶜ₀ plan) represented′
 
 
 rebaseSource-centerᶜ₀ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ₀ Cᴿ} {Xᴸ Xᴿ}
@@ -153,6 +184,12 @@ rebaseSource-centerᶜ₀
 rebaseSource-centerᶜ₀
     (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
   cong suc (rebaseSource-centerᶜ₀ plan)
+rebaseSource-centerᶜ₀
+    (source-rebase-bind-leftᶜ₀ plan Γᴸ⁺≡) =
+  cong suc (rebaseSource-centerᶜ₀ plan)
+rebaseSource-centerᶜ₀
+    (source-rebase-bind-termᶜ₀ plan represented′) =
+  rebaseSource-centerᶜ₀ plan
 
 
 rebaseSource-ηᴸ-offᶜ₀ :
@@ -202,6 +239,20 @@ rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.suc Yᴸ}
         (λ eq → Y≠X (cong Fin.suc eq))))
     (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
       (toRenameᵗ (ηᴸᶜ₀ W) Yᴸ)))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.zero}
+    (source-rebase-bind-leftᶜ₀ plan Γᴸ⁺≡) Y≠X =
+  sym (subst-Fin-zero-sym (rebaseSource-centerᶜ₀ plan))
+rebaseSource-ηᴸ-offᶜ₀ {Yᴸ = Fin.suc Yᴸ}
+    (source-rebase-bind-leftᶜ₀ {W = W} plan Γᴸ⁺≡) Y≠X =
+  trans
+    (cong Fin.suc
+      (rebaseSource-ηᴸ-offᶜ₀ plan
+        (λ eq → Y≠X (cong Fin.suc eq))))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴸᶜ₀ W) Yᴸ)))
+rebaseSource-ηᴸ-offᶜ₀
+    (source-rebase-bind-termᶜ₀ plan represented′) Y≠X =
+  rebaseSource-ηᴸ-offᶜ₀ plan Y≠X
 
 
 rebaseSource-ηᴿ-frozenᶜ₀ :
@@ -247,6 +298,14 @@ rebaseSource-ηᴿ-frozenᶜ₀
   trans (cong Fin.suc (rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ))
     (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
       (toRenameᵗ (ηᴿᶜ₀ W) Yᴿ)))
+rebaseSource-ηᴿ-frozenᶜ₀
+    (source-rebase-bind-leftᶜ₀ {W = W} plan Γᴸ⁺≡) Yᴿ =
+  trans (cong Fin.suc (rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ))
+    (sym (subst-Fin-suc-sym (rebaseSource-centerᶜ₀ plan)
+      (toRenameᵗ (ηᴿᶜ₀ W) Yᴿ)))
+rebaseSource-ηᴿ-frozenᶜ₀
+    (source-rebase-bind-termᶜ₀ plan represented′) Yᴿ =
+  rebaseSource-ηᴿ-frozenᶜ₀ plan Yᴿ
 
 
 rebaseSource-pivot-alignedᶜ₀ :
@@ -269,6 +328,12 @@ rebaseSource-pivot-alignedᶜ₀
 rebaseSource-pivot-alignedᶜ₀
     (source-rebase-lift-leftᶜ₀ plan Γᴸ⁺≡) =
   cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
+rebaseSource-pivot-alignedᶜ₀
+    (source-rebase-bind-leftᶜ₀ plan Γᴸ⁺≡) =
+  cong Fin.suc (rebaseSource-pivot-alignedᶜ₀ plan)
+rebaseSource-pivot-alignedᶜ₀
+    (source-rebase-bind-termᶜ₀ plan represented′) =
+  rebaseSource-pivot-alignedᶜ₀ plan
 
 
 rebaseSource-invariantsᶜ₀ :
@@ -295,10 +360,8 @@ sourceRebasePlan-soundᶜ₀ {Cᴸ = Cᴸ} {Cᴿ = Cᴿ}
 
 
 -- These are the exact raw history heads intentionally absent from the
--- commutation plan.  Supporting them needs a separate local rewrite (and, for
--- term binding, transported term-entry imprecision), not another catch-all.
+-- commutation plan.  Both simultaneously allocate store cells and carry a
+-- world-indexed representation premise that must be rebuilt explicitly.
 data UnsupportedSourceRebaseHeadᶜ₀ : Set where
-  under-source-allocationᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
   under-paired-bindᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
   under-dynamic-paired-bindᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀
-  under-term-bindᶜ₀ : UnsupportedSourceRebaseHeadᶜ₀

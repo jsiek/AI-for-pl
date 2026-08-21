@@ -273,8 +273,10 @@ producers or integrations:
 6. A structural fresh-behind plan for the smart-comma source binder.  Alias
    merge uses item 5 instead; it must not mutate the stable world.
 7. Endpoint-indexed world evolution for store-changing reduction.  Raw bind
-   constructors express the resulting contexts, but the simulation producer
-   relating a trusted reduction step to those constructors is not checked.
+   constructors express the resulting contexts.  The checked one-step relation
+   covers keep and every permitted left/right allocation combination without
+   defined functions in indices; the remaining simulation obligation is to
+   produce those cases from paired trusted reduction steps.
 
 These are theorem and operational-interface gaps.  Treating any of them as an
 arbitrary invariant-accepting constructor would recreate the live escape

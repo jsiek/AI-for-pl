@@ -61,6 +61,9 @@ alias boundary under lifting.  `TwoCtxLiftedExactBoundaryProbe` introduces the
 structural one-edge replacement, and `TwoCtxEdgeIndexedModeProbe` checks the
 resulting head and lifted modes, recursive term contexts, lookups, and variable
 leaves.
+`TwoCtxWorldEvolutionProbe` checks constructor-form endpoint evolution for
+trusted keep/bind store changes.  Executable store and term-context application
+appear only in projection theorems, never in world-evolution indices.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure
@@ -652,7 +655,10 @@ Before this becomes a live design, the remaining probes must establish:
   entries and a variable leaf.  The full live reveal/conceal constructor family
   remains open.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
-  placing `apply` functions in data-constructor indices.
+  placing `apply` functions in data-constructor indices.  The checked
+  `CtxChangeᶜ₀`/`WorldEvolutionᶜ₀` surface covers keep, left-only, right-only,
+  paired-precise, and paired-dynamic allocation, derives direct invariants,
+  and relates its endpoints to trusted `applyStore` only afterward.
 - Target stripping must retain source-rebase provenance.  The checked lower
   operation has exactly the identity and lifted-child cases, reconstructs the
   lifted result definitionally, and derives invariants from raw history.

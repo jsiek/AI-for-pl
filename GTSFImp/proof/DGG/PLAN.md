@@ -1222,6 +1222,14 @@ imprecision, arbitrary recursive term bindings, endpoint lookup, and a real
 variable leaf.  Universal lifting therefore preserves edge identity without
 mutating the stable world or following an alias chain.
 
+`TwoCtxWorldEvolutionProbe` checks the endpoint-indexed store-evolution shape.
+`CtxChangeᶜ₀` uses only constructor-form complete `Ctx` endpoints, and
+`WorldEvolutionᶜ₀` covers keep, source-only bind, target-only fresh bind,
+paired precise bind, and paired dynamic bind.  Trusted `applyStore` and the
+corresponding term-context action occur only in projection theorems.  The next
+operational obligation is to produce these checked cases from a pair of
+related trusted reduction steps.
+
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
 reworked fixtures check with `agda --safe --no-caching`.  The occupied

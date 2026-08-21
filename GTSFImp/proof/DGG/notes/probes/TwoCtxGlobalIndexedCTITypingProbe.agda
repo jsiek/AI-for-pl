@@ -8,7 +8,7 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe where
 --   * Projects term-variable membership directly from ScopedEntry and erases
 --     only the exact pivot index from conversion typing.
 --   * Covers ordinary terms, Lambdas, universals, target reveal/conceal, and
---     type application.  It does not mention or construct the live DGG World.
+--     source/paired seal forms.  It does not construct the live DGG World.
 
 open import Data.Maybe using (Maybe)
 open import Data.Nat using (ℕ)
@@ -143,6 +143,24 @@ scoped-cti-endpoint-typingᵍ
     (Global.target-concealᵍ boundary c⊢ relation) =
   proj₁ endpoints ,
   ⊢conceal (erase-conceal-pivotᵍ c⊢) (proj₂ endpoints)
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ
+    (Global.source-concealᵍ unoccupied member relation) =
+  ⊢conceal (Conv.⊢↓-seal member) (proj₁ endpoints) ,
+  proj₂ endpoints
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ
+    (Global.paired-revealᵍ member member′ relation) =
+  ⊢reveal (Conv.⊢↑-unseal member) (proj₁ endpoints) ,
+  ⊢reveal (Conv.⊢↑-unseal member′) (proj₂ endpoints)
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ
+    (Global.paired-concealᵍ member member′ relation) =
+  ⊢conceal (Conv.⊢↓-seal member) (proj₁ endpoints) ,
+  ⊢conceal (Conv.⊢↓-seal member′) (proj₂ endpoints)
   where
   endpoints = scoped-cti-endpoint-typingᵍ relation
 scoped-cti-endpoint-typingᵍ

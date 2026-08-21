@@ -1151,7 +1151,7 @@ with constructor-form endpoints and pointwise center, embedding, and mark laws.
 It does not restore homogeneous equations against `id↪ᵗ`: the hidden center is
 only propositionally equal to the endpoint type context, so those old equations
 would require an explicit transport boundary.
-`TwoCtxCenterRenamePlanProbe` also reconstructs every raw history constructor
+The live `CenterRenamePlan` also reconstructs every raw history constructor
 under a structural center embedding, keeps both endpoint `Ctx` indices fixed,
 proves the embedding and pointwise mark laws, and derives invariants from the
 rebuilt history.  As with source rebase, the remaining obligation is an
@@ -1195,7 +1195,7 @@ Honestification is therefore observationally and definitionally the identity:
 delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ`,
 rather than introducing another transformation plan.
 
-`TwoCtxTargetExtendPlanProbe` checks structural target insertion from either a
+The live `TargetExtendPlan` checks structural target insertion from either a
 fresh direct `★` entry or an exact fresh alias.  It reconstructs skip-center,
 lift-both, lift-left, bind-left, and bind-right history and proves source and
 target embedding, mark, direct target-lookup, and invariant laws.  Paired and
@@ -1285,9 +1285,10 @@ substituted-result relation.  Exact target boundaries accept arbitrary trusted
 conversion typing, including the composite strict-`Λ` function conversion.
 The structural prefix plan now inserts behind arbitrary existing type binders
 and transports the full runtime state, mode, central imprecision, recursively
-nested scoped types, heterogeneous term worlds, and deep entries.  The
-remaining local cleanup is to make `all⊑allᵍ` consume that general plan and
-delete the superseded atomic lift premise.  The checked
+nested scoped types, heterogeneous term worlds, and deep entries.  The global
+relation also covers paired/left/right ordinary casts, current-mode-unoccupied
+source conceal, and term-independent paired reveal/conceal using direct store
+memberships.  The checked
 `TwoCtxGlobalIndexedCTITypingProbe` proves both endpoint typings for every term
 constructor in the current global fragment.
 
@@ -1317,6 +1318,13 @@ outcome is either that synchronized package or the existing source-blame
 alternative.  It needs no `SameRuntime` or `SameCtx`.  Trusted one-step and
 multi-step preservation now support arbitrary term contexts, and the endpoint
 theorem checks for open simulation states as well as closed programs.
+
+`TwoCtxReductionEvolutionBridgeProbe` checks the exact next producer boundary.
+Trusted reductions determine only `keep` versus `bind`; right-only evolution
+also needs `RightBindFreshᶜ`, and paired evolution needs direct type
+imprecision plus the precise/dynamic mark choice.  These facts must be supplied
+where simulation relates the two typed steps, not recovered from reduction
+indices alone.
 
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six

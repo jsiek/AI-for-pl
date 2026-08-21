@@ -9,6 +9,8 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe where
 --     scoped types, heterogeneous term worlds, and term entries.
 --   * Checks ordinary terms, genuine Lambda, and type application without a
 --     compatibility wrapper around the earlier fixed-parameter probe.
+--   * Keeps source-only conceal unoccupied and paired seal rules independent
+--     of term shape.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (Fin; zero; suc)
@@ -927,6 +929,17 @@ insertScopedEntryᵍ (insert-bindᵍ world-insert)
   entry-thereᵍ (insertScopedEntryᵍ world-insert entry)
 
 
+SourcePivotUnoccupiedᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+    {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+    {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+    (focus : NameFocusᵍ W X alpha)
+    (edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺)
+    (m : Modeᵍ edge) (Z : TyVar (Δᵉ Cᴸ)) → Set
+SourcePivotUnoccupiedᵍ {W = W} focus edge m Z = ∀ {Y Zᶜ}
+  → TargetVarViewᵍ focus edge m Y Zᶜ
+  → toRenameᵗ (ηᴸᶜ W) Z ≢ Zᶜ
+
+
 data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     (W : Cᴸ ⊑ᶜ C)
     {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
@@ -1127,6 +1140,57 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
     → ScopedCTIᵍ W focus edge (push-focusᵍ m Y)
         (push-validᵍ ok boundary) S M (M′ ↓ c)
         {A = A} {B = B′} p
+
+  source-concealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ Z R B}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m (＇ Z) B}
+      {q : ScopedTypeᵍ W focus edge m R B}
+    → SourcePivotUnoccupiedᵍ focus edge m Z
+    → Σᵉ Cᴸ ∋ Z ⦂ R
+    → ScopedCTIᵍ W focus edge m ok S M M′ q
+    → ScopedCTIᵍ W focus edge m ok S
+        (M ↓ seal Z R) M′ p
+
+  paired-revealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ Z Y R R′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m (＇ Z) (＇ Y)}
+      {q : ScopedTypeᵍ W focus edge m R R′}
+    → Σᵉ Cᴸ ∋ Z ⦂ R
+    → Σᵉ C⁺ ∋ Y ⦂ R′
+    → ScopedCTIᵍ W focus edge m ok S M M′ p
+    → ScopedCTIᵍ W focus edge m ok S
+        (M ↑ unseal Z R) (M′ ↑ unseal Y R′) q
+
+  paired-concealᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ M M′ Z Y R R′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {p : ScopedTypeᵍ W focus edge m (＇ Z) (＇ Y)}
+      {q : ScopedTypeᵍ W focus edge m R R′}
+    → Σᵉ Cᴸ ∋ Z ⦂ R
+    → Σᵉ C⁺ ∋ Y ⦂ R′
+    → ScopedCTIᵍ W focus edge m ok S M M′ q
+    → ScopedCTIᵍ W focus edge m ok S
+        (M ↓ seal Z R) (M′ ↓ seal Y R′) p
 
   type-app⊑type-appᵍ : ∀ {Cᴸ C C⁺ : Ctx}
       {W : Cᴸ ⊑ᶜ C}

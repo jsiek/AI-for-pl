@@ -4,9 +4,9 @@
 
 This is a read-only audit of the old world surface in
 `proof/DGG/CtxImp.agda` against the live `TwoCtxWorld`,
-`TwoCtxWorldInvariants`, `SourceRebasePlan`, and checked
-`TwoCtxTargetExtendPlanProbe`, `TwoCtxTargetStripReconstructionProbe`, and the
-edge-indexed alias-mode probes.  The typed boundary and scoped-term probes
+`TwoCtxWorldInvariants`, `SourceRebasePlan`, `TargetExtendPlan`, the checked
+`TwoCtxTargetStripReconstructionProbe`, and the edge-indexed alias-mode probes.
+The typed boundary and scoped-term probes
 additionally check the type and term-indexed surface.  The counts below are
 exact textual references in live `.agda` files
 outside `CtxImp.agda` and `proof/DGG/notes/`, measured on 2026-08-21.  A

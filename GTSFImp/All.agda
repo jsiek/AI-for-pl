@@ -40,6 +40,8 @@ import proof.DGG.WorldInvariants
 import proof.DGG.TwoCtxWorldInvariants
 import proof.DGG.TwoCtxWorldEvolutionSequence
 import proof.DGG.SourceRebaseRequest
+import proof.DGG.CenterRenamePlan
+import proof.DGG.TargetExtendPlan
 
 ------------------------------------------------------------------------
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
@@ -182,6 +184,9 @@ import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
 import proof.DGG.notes.probes.SourceRebaseRequestExamplesProbe
+import proof.DGG.notes.probes.TargetExtendPlanExamplesProbe
+import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe
+import proof.DGG.notes.probes.TwoCtxReductionEvolutionBridgeProbe
 import proof.DGG.notes.probes.TwoCtxSimulationResultProbe
 
 -- Checked libraries currently without consumers (candidates for M7+)

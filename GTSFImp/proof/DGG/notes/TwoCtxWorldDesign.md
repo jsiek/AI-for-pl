@@ -40,7 +40,7 @@ term binding, and a variable CTI leaf.  `TwoCtxScopedTermBoundaryProbe` then
 joins a concrete alias-boundary world, focused term binding, and real endpoint
 lookup.  The live core now also checks `initialWorldᶜ` and
 `emptyCenterWorldᶜ` recursors with pointwise center, embedding, and mark laws.
-`TwoCtxCenterRenamePlanProbe` reconstructs every raw history head under a
+The live `CenterRenamePlan` reconstructs every raw history head under a
 structural center embedding and derives the direct invariants of the result.
 `TwoCtxGenericScopedWorldProbe` abstracts the scoped boundary and one body
 binding over an arbitrary stable world and exact right-bound alias extension.
@@ -49,7 +49,7 @@ term bindings, with exact endpoint lookup and variable leaves at any depth.
 `TwoCtxHonestifyEliminationProbe` proves directly that every target-unaligned
 center is already marked `X⊑★`; honestification is therefore the identity on
 the raw relation, not a world transformation.
-`TwoCtxTargetExtendPlanProbe` checks fresh `★` and direct-alias target
+The live `TargetExtendPlan` checks fresh `★` and direct-alias target
 insertion and reconstructs skipped, lifted, source-bound, and target-bound
 history while preserving direct lookup, embeddings, marks, and invariants.
 `TwoCtxTargetStripReconstructionProbe` checks that target stripping lowers the
@@ -85,6 +85,8 @@ index, checks recursive universal abstraction and type application under
 conversion typing, including the strict-`Λ` composite function conversion.
 Its structural prefix plan now transports the runtime state, modes, scoped
 types, heterogeneous term worlds, and term entries at arbitrary binder depth.
+It also checks all ordinary cast polarities, current-mode-unoccupied source
+conceal, and term-independent paired reveal/conceal with direct memberships.
 `TwoCtxGlobalIndexedCTITypingProbe` proves endpoint typing directly for the
 resulting term relation.
 `TwoCtxStrictLambdaPackagingProbe` assembles every bookkeeping field of the
@@ -95,6 +97,10 @@ an old `World`.
 the multi-world evolution, deriving both endpoint typings and all executable
 store, context, and term projections without `SameRuntime` or `SameCtx`; its
 complete outcome is either that synchronized package or a source-blame trace.
+`TwoCtxReductionEvolutionBridgeProbe` confirms that trusted reduction indices
+alone cannot produce this evolution: right-only allocation additionally needs
+direct freshness, while paired allocation needs direct type imprecision and
+the precise/dynamic mark choice owned by the relational simulation layer.
 All check under `--safe`; none follows a representation chain.
 
 ## Trusted endpoint structure

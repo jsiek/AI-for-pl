@@ -61,7 +61,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationRankDef
 open import proof.DGG.Catchup.StructuralValueInstantiationRankProof
   using
     (_<ʳ_; rank-name<; rank-exp<; rank-length<;
-     lambda-rank-decreases; reveal-rank-decreases;
+     lambda-ready-rank-decreases; reveal-rank-decreases;
      conceal-rank-decreases; cast-frame-rank-decreases;
      reveal-frame-value-rank-decreases;
      reveal-frame-value-rank-decreases-any;
@@ -503,17 +503,6 @@ safe-inst-child-spine {A = A} {B = B} {c = c} spine =
   mapInstantiationSpine (bind ★) spine
 
 
-lambda-child-spine : ∀ {Δ} {B : Ty (suc Δ)} {E : Ty Δ}
-    {X : TyVar Δ}
-  → InstantiationSpine (B [ ＇ X ]ᵗ) E
-  → InstantiationSpine
-      (replaceTy Fin.zero (⇑ᵗ (＇ X)) B)
-      (applyTy (bind (＇ X)) E)
-lambda-child-spine {B = B} {X = X} spine =
-  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-  mapInstantiationSpine (bind (＇ X)) spine
-
-
 all-cast-child-spine : ∀ {Δ} {μ : Env∼ Δ}
     {B C : Ty (suc Δ)} {E : Ty Δ} {X : TyVar Δ}
     {d : extᵐ μ ⊢ B ∼ C}
@@ -567,17 +556,16 @@ conceal-child-spine {B = B} {C = C} {X = X} {c = c} spine =
   mapInstantiationSpine (bind (＇ X)) spine
 
 
-lambda-child-mass-equal : ∀ {Δ} {B : Ty (suc Δ)}
+lambda-ready-mass-equal : ∀ {Δ} {B : Ty (suc Δ)}
     {E : Ty Δ} {V : Term (suc Δ)} {X : TyVar Δ}
     (vV : Value V)
-    (vChild : Value (V CT.↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗))
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
-  → pendingCastMass vChild (lambda-child-spine {B = B} {X = X} spine) ≡
+  → pendingCastMass vV
+      (lambda-ready-child-spine {B = B} {X = X} spine) ≡
       pendingCastMass (CT.Λ vV)
         (name-type-app-frame B X refl refl ▻ⁱ spine)
-lambda-child-mass-equal {X = X} vV (vW CT.↑ rv) spine
-    rewrite value-cast-mass-irrel vW vV
-          | spine-cast-mass-map (bind (＇ X)) spine =
+lambda-ready-mass-equal {X = X} vV spine
+    rewrite spine-cast-mass-map (bind (＇ X)) spine =
   refl
 
 
@@ -1500,21 +1488,21 @@ mutual
       | child =
     finish-target child-final
     where
-    child-value = StructuralStrictChild.child-value child
-
     child-final =
       structural-value-spine-instantiation-acc surfaces fuel-step
         residual-cast-builder inst-decrease
         (StructuralStrictChild.child-plan child)
         (StructuralStrictChild.child-chain-plan child)
-        (StructuralStrictChild.child-relation child) vM child-value
-        (lambda-child-spine {B = B} {X = X} spine)
+        (StructuralStrictChild.child-relation child) vM vV
+        (lambda-ready-child-spine {B = B} {X = X} spine)
         (StructuralStrictChild.child-chain child)
         (StructuralStrictChild.child-typed child)
         (smaller
-          (measure-rank< (lambda-child-mass-equal vV child-value spine)
+          (measure-rank<
+            (lambda-ready-mass-equal {B = B} {X = X} vV spine)
             (rank<→lex
-              (lambda-rank-decreases {X = X} vV child-value spine))))
+              (lambda-ready-rank-decreases
+                {B = B} {X = X} vV spine))))
         child-target
         (StructuralStrictChild.child-provenance child)
 

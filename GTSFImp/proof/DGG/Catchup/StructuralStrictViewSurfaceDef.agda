@@ -91,16 +91,12 @@ StructuralΛStrictSurfaceᵀ =
   → (ins : TE.TargetInsert wk↪ᵗ π W W₁)
   → (follows : CTI2.targetStoreʷ W₁ ≡
       applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W))
-  → (child-target : StructuralTargetInstantiationPackage W₁
-      (V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
-      (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-        mapInstantiationSpine (bind (＇ X)) spine))
+  → (child-target : StructuralTargetInstantiationPackage W₁ V
+      (lambda-ready-child-spine {B = B} {X = X} spine))
   → let ext₁ = target-insert-bind-world-extendᴿ ins follows
      in StructuralStrictChild {fuel = fuel} W₁ (ECR.mapCtxᴿ ext₁ γ) M
-          (V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
-          A _ (applyTy (bind (＇ X)) E)
-          (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-            mapInstantiationSpine (bind (＇ X)) spine)
+          V A B (applyTy (bind (＇ X)) E)
+          (lambda-ready-child-spine {B = B} {X = X} spine)
           (ECR.transport⊑ᵂ ext₁ q) child-target
 
 

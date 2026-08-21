@@ -1209,7 +1209,8 @@ its child target and requires producer-owned provenance in all five strict
 cells.  This contract is checked through structural name instantiation,
 descent, inst inversion, and inst catchup.  There is no remaining provenance
 oracle or missing certificate inside that path; the remaining frontier is
-constructing the five strict cells and the final root assembler.
+constructing relation-side producers for the five strict cells and the final
+root assembler.
 
 The strict-cell audit has now shown that the current five abstract surfaces
 are not honest producer interfaces.  Their plan and chain-plan inputs are
@@ -1228,23 +1229,25 @@ For the four allocating/conversion heads, the target bind is `bind (＇ X)`.
 Its new cell is a direct nominal alias, so the direct-★-off-image theorem
 used for `β-inst` does not apply.  Commuting that insertion through an arbitrary
 source rebase is precisely the relation-indexed provenance obligation that
-the old surface erased.  For the Λ head there is a second, independent
-shape bug: the current peel chooses the immediate term
-`V ↑ 〖 zero , ⇑ᵗ (＇ X) ↑ B 〗` as a recursively processed value,
-but for `B = ★` the conversion is an identity reveal and no `Value`
-constructor exists.  The likely value-preserving normalization is to keep
-`V` as the child head and move the generated reveal into the child spine,
-mirroring the existing `structural-target-Λ-value-step`; otherwise the worker
-must expose a genuinely non-value recursive outcome.
+the old surface erased.
 
-NEXT STRICT STEP: replace the five oracle-like cells by relation-side strict
-producers that consume the parent target package and its exact
-`StructuralTermProvenance`, and return a value-anchored child package together
-with the exact child relation/provenance and generated frame evidence.  Do not
-implement proof modules against the current surfaces and do not restore a
-universal insertion provider under a new name.  The Λ alias producer also
-depends on the boundary-scoped one-step alias focus from the two-`Ctx` world
-redesign; the current stable direct-invariant `World` deliberately cannot
+The independent Λ child-shape bug is now fixed live.  The target peel keeps
+`V` as the recursively processed value and returns the generated reveal at the
+front of `lambda-ready-child-spine`; the strict surface, spine typing, pending
+mass proof, and rank decrease use those same indices.  Recursion therefore
+uses the existing `vV : Value V` even when `B = ★`, rather than requiring an
+impossible value proof for an identity-reveal wrapper.  The exact structural
+name-instantiation worker and retained Λ-ready probe check under
+`--safe --no-caching`.
+
+NEXT STRICT STEP: implement the Λ relation-side producer against the corrected
+value-ready surface, then replace the other four oracle-like cells by producers
+that consume the parent target package and its exact
+`StructuralTermProvenance`.  Each must return a value-anchored child package
+together with the exact child relation/provenance and generated frame evidence.
+Do not restore a universal insertion provider under a new name.  The Λ alias
+producer also depends on the checked boundary-mode stack from the two-`Ctx`
+world redesign; the current stable direct-invariant `World` deliberately cannot
 represent that focused name alignment as an ordinary world.
 
 The current full `All.agda` check reaches its first remaining failure at the

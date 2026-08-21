@@ -45,16 +45,6 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof using
   (target-insert-bind-world-extendᴿ)
 
 
-lambda-ready-child-spine : ∀ {Δ} {B : Ty (suc Δ)} {E : Ty Δ}
-    {X : TyVar Δ}
-  → InstantiationSpine (B [ ＇ X ]ᵗ) E
-  → InstantiationSpine B (applyTy (bind (＇ X)) E)
-lambda-ready-child-spine {B = B} {X = X} spine =
-  reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
-  type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-  mapInstantiationSpine (bind (＇ X)) spine
-
-
 lambda-ready-mass-equal : ∀ {Δ} {B : Ty (suc Δ)}
     {E : Ty Δ} {V : Term (suc Δ)} {X : TyVar Δ}
     (vV : Value V)

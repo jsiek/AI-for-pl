@@ -2,22 +2,23 @@
 
 ## Status and scope
 
-This note audits the strict-worker boundary at a target `β-Λ` step.  The
-recommended repair is to keep `StructuralStrictChild.child-value` and the
-value-only recursive worker unchanged.  The child passed to that worker should
-be the body value `V`; the administrative reveal produced by `β-Λ` should be
-the first pending spine frame.
+This note audits the strict-worker boundary at a target `β-Λ` step.  The live
+repair keeps `StructuralStrictChild.child-value` and the value-only recursive
+worker unchanged.  The child passed to that worker is the body value `V`; the
+administrative reveal produced by `β-Λ` is the first pending spine frame.
 
 `notes/probes/StructuralStrictLambdaReadyProbe.agda` checks under `--safe`:
 
 - the exact reframing of the existing peeled target package;
-- assembly of the proposed `StructuralStrictChild` once its producer facts are
-  supplied;
+- assembly of the value-ready `StructuralStrictChild` once its producer facts
+  are supplied;
 - equality of the old and new pending cast mass; and
 - strict decrease of the administrative rank.
 
-The relation, chain, typing, and provenance producers remain **schematic and
-unproved**.  This note proposes no change to `CastTermImprecision` or `CtxImp`.
+The relation-side strict producer remains **schematic and unproved**.  The
+canonical spine, target peel, strict surface, spine typing, mass/rank proofs,
+and recursive worker are now live.  This work changes neither
+`CastTermImprecision` nor `CtxImp`.
 
 ## The obstruction is at the worker boundary
 
@@ -37,7 +38,7 @@ This is the `β-Λ` case in `Reduction` and is the shape inverted by
 `Catchup/StructuralTargetLambdaPeelProof.agda`.  It does not say that the
 immediate reduct is a value.
 
-The live `StructuralΛStrictSurfaceᵀ` instead returns a
+The former `StructuralΛStrictSurfaceᵀ` returned a
 `StructuralStrictChild` whose target term is
 
 ```agda
@@ -95,9 +96,9 @@ StructuralTargetInstantiationPackage W₁ (V ↑ cX) tail
 It preserves the package's world extension, final term, final value, and full
 reduction trace.  No reduction or relation transport is hidden here.
 
-## Proposed live `Λ` surface
+## Live `Λ` surface
 
-The canonical `structural-target-Λ-peel` result should expose the reframed
+The canonical `structural-target-Λ-peel` result exposes the reframed
 package directly:
 
 ```agda
@@ -105,11 +106,11 @@ child-target : StructuralTargetInstantiationPackage W₁ V
   (lambda-ready-child-spine {B = B} {X = X} spine)
 ```
 
-Internally, the peel can construct its current package and apply
+Internally, the peel constructs the raw package and applies
 `structural-target-frame` once.  The closed-world API should replace the old
 peeled shape rather than retain a second wrapper lemma.
 
-With that canonical peel result, the precise proposed strict surface is:
+With that canonical peel result, the live strict surface is:
 
 ```agda
 StructuralΛStrictSurfaceᵀ : Set₁
@@ -227,27 +228,18 @@ worker's frame classification and its `pendingCastMass`/`pendingRank` measures,
 both of which are indexed by a `Value`.  It is a much larger redesign with no
 semantic benefit here.
 
-## Consumer map and migration order
+## Completed migration and remaining producer
 
-1. In `StructuralValueInstantiationStateDef.agda`, add the canonical
-   `lambda-ready-child-spine` function.
-2. In `StructuralTargetLambdaPeelProof.agda`, make
-   `structural-target-Λ-peel` return the reframed package.  Delete the old
-   wrapped-term result shape; do not add a compatibility wrapper.
-3. In `StructuralStrictViewSurfaceDef.agda`, change only the `Λ` surface indices
-   shown above.  Keep `StructuralStrictChild` and every other strict surface.
-4. In the eventual `Λ-cell` producer, construct the body relation at
-   `child-endpoint : A ⊑ B` plus the reveal-first chain and typing.  This is the
-   remaining substantive, unproved obligation.
-5. In `StructuralNameInstantiationProof.agda`, recurse on `V`, `vV`, and
-   `lambda-ready-child-spine spine`.  Keep `finish-target`; package reframing
-   preserves the extension and final target it uses.
-6. Replace `lambda-child-mass-equal` and `lambda-rank-decreases` by the checked
-   value-ready statements.  The old versions and the old
-   `lambda-child-spine` then have no consumers and should be deleted.
-7. Rewrite `spine-typed-Λ-child` in `StructuralSpineTypingDef.agda` using the
-   canonical spine function.  Its current result already has exactly the
-   reveal-first shape.
+The canonical `lambda-ready-child-spine`, reframed target peel, strict-surface
+indices, recursive call on `V`/`vV`, value-ready mass and rank proofs, and
+spine typing are now live.  The old wrapped child shape and its helper lemmas
+have no compatibility aliases.
+
+The remaining `Λ-cell` producer must construct the body relation at
+`child-endpoint : A ⊑ B`, its exact child-target-indexed term provenance, and
+the reveal-first absorption chain.  This is the remaining substantive,
+unproved obligation; it is not derivable from the bookkeeping-only inputs of
+the current abstract strict cell.
 
 `StructuralStrictViewSurfaces`, `StructuralInstantiationDescentProof`, and
 `InstInversionDef` only carry the `Λ-cell` surface transitively.  They need no

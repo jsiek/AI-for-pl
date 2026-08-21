@@ -455,9 +455,7 @@ spine-typed-Λ-child : ∀ {fuel Δᴸ Δᴿ Δ}
   → (fresh : CTX.RightBindFresh W (＇ X))
   → SpineTypedʷ {fuel = fuel} W spine
   → SpineTypedʷ {fuel = fuel} (CTX.rightOnlyWorld W (＇ X) fresh)
-      (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
-        type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-        mapInstantiationSpine (bind (＇ X)) spine)
+      (lambda-ready-child-spine {B = B} {X = X} spine)
 spine-typed-Λ-child {W = W} {B = B} {X = X} fresh typed =
   st-reveal (structural-reveal-typing B (Z∋ refl))
     (st-type

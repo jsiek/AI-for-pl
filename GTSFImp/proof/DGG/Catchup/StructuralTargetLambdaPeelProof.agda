@@ -31,6 +31,8 @@ open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
 open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
+open import proof.DGG.Catchup.StructuralTargetInstantiationProof using
+  (structural-target-frame)
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-type-app; no-value-apply-spine; value-no-step)
 open import
@@ -82,10 +84,8 @@ structural-target-Λ-peel : ∀ {Δᴸ Δᴿ Δ}
     Σ[ follows ∈
       CTI2.targetStoreʷ W₁ ≡
         applyStores (bind (＇ X) ∷ []) (CTI2.targetStoreʷ W) ]
-      Σ[ child-target ∈ StructuralTargetInstantiationPackage W₁
-        (V ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
-        (type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
-          mapInstantiationSpine (bind (＇ X)) spine) ]
+      Σ[ child-target ∈ StructuralTargetInstantiationPackage W₁ V
+        (lambda-ready-child-spine {B = B} {X = X} spine) ]
         (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
            {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
          → let ext₁ = target-insert-bind-world-extendᴿ ins follows
@@ -151,7 +151,7 @@ structural-target-Λ-peel {B = B} {V = V} {X = X} vV spine target
         (mapCtxᴿ-compose ext₁ (structural-world-extendᴿ child-ext) γ)
         child-rel)
   where
-  child-target =
+  raw-child-target =
     record
       { Δᴿ′ = StructuralTargetInstantiationPackage.Δᴿ′ target
       ; χs = χs
@@ -166,5 +166,10 @@ structural-target-Λ-peel {B = B} {V = V} {X = X} vV spine target
             eq
             rest
       }
+
+  child-target =
+    structural-target-frame {V = V}
+      {frame = reveal-frame
+        (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)} raw-child-target
 
   ext₁ = target-insert-bind-world-extendᴿ ins follows

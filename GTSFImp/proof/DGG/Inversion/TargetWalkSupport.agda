@@ -28,8 +28,7 @@ open import Consistency using
    id; _!; ∀ᶜ_; gen_; inst_)
 import Consistency as C
 open import Conversion using
-  (Conv↑; Conv↓; _⊢↓_; `∀↑_; `∀↓_; _↦↑_; _↦↓_;
-   ⊢↓-seal)
+  (Conv↑; Conv↓; `∀↑_; `∀↓_; _↦↑_; _↦↓_)
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
@@ -44,8 +43,6 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.TagTransport as TT
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.SealTransferCore as STC
-open import proof.DGG.ConvImp using
-  (pivot-id-endpoints↑; pivot-id-endpoints↓)
 open CTX using
   (World;
    ηᴸʷ;
@@ -352,18 +349,58 @@ tagged-target-nonvar-nonstar-spine-⊥
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
-    Anv Ans (CTI2.reveal⊑² mono rb sc c⊢ prem q) =
+    Anv Ans
+    (CTI2.reveal⊑-neutral² c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
-    Anv Ans (CTI2.reveal⊑² mono rb sc c⊢ prem q) =
+    Anv Ans
+    (CTI2.reveal⊑-neutral² c⊢ position≡absent prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
+    nonstar-∀ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
+    Anv Ans
+    (CTI2.reveal⊑-only² c⊢ position≢absent dynamic no-target
+      represented prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
+    nonstar-⇒ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
+    Anv Ans
+    (CTI2.reveal⊑-only² c⊢ position≢absent dynamic no-target
+      represented prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
+    nonstar-∀ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
+    Anv Ans
+    (CTI2.reveal⊑² c⊢ position≢absent target-member represented
+      mono rb sc prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
+    nonstar-⇒ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
+    Anv Ans
+    (CTI2.reveal⊑² c⊢ position≢absent target-member represented
+      mono rb sc prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
-    Anv Ans (CTI2.conceal⊑² mono rb sc c⊢ prem q) =
+    Anv Ans
+    (CTI2.conceal⊑-neutral² c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
-    Anv Ans (CTI2.conceal⊑² mono rb sc c⊢ prem q) =
+    Anv Ans
+    (CTI2.conceal⊑-neutral² c⊢ position≡absent prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
+    nonstar-∀ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
+    Anv Ans
+    (CTI2.conceal⊑² c⊢ position≢absent dynamic no-target
+      represented prem q) =
+  tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
+    nonstar-⇒ prem
+tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
+    Anv Ans
+    (CTI2.conceal⊑² c⊢ position≢absent dynamic no-target
+      represented prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem

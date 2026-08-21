@@ -20,7 +20,7 @@ import Imprecision as I
 open import Conversion using (unseal; seal)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Term; `_; ƛ_; _·_; _↑_; _↓_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe

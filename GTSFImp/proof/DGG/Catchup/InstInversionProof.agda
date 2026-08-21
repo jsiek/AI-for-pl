@@ -339,117 +339,39 @@ subst₂-⊑ same star I.bot⊑★ = I.bot⊑★
 
 
 mutual
-  generated-reveal-⊢↑-present :
-      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
-        {X : TyVar Δ} {R B : Ty Δ}
-    → X ∈ᵗ B
+  generated-reveal-⊢↑ : ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+      {X : TyVar Δ} {R B : Ty Δ}
     → Σ ∋ X ⦂ R
-    → Σ Conv.⊢↑[ just X ] 〖 X , R ↑ B 〗
-  generated-reveal-⊢↑-present {X = X} var-∈ X∈ with X ≟ X
-  generated-reveal-⊢↑-present {X = X} var-∈ X∈ | yes refl =
-    Conv.⊢↑-unsealˣ X∈
-  generated-reveal-⊢↑-present {X = X} var-∈ X∈ | no X≢X =
-    ⊥-elim (X≢X refl)
-  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ with occurs? X B
-  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ | present X∈B =
-    Conv.⊢↑-⇒ˣ Conv.join-both
-      (generated-conceal-⊢↓-present X∈A X∈)
-      (generated-reveal-⊢↑-present X∈B X∈)
-  generated-reveal-⊢↑-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ | absent X∉B =
-    Conv.⊢↑-⇒ˣ Conv.join-left
-      (generated-conceal-⊢↓-present X∈A X∈)
-      (generated-reveal-⊢↑-absent X∉B X∈)
-  generated-reveal-⊢↑-present
-      (∈-fun-right X∉A X∈B) X∈ =
-    Conv.⊢↑-⇒ˣ Conv.join-right
-      (generated-conceal-⊢↓-absent X∉A X∈)
-      (generated-reveal-⊢↑-present X∈B X∈)
-  generated-reveal-⊢↑-present (∈-all X∈B) X∈ =
-    Conv.⊢↑-∀ˣ
-      (generated-reveal-⊢↑-present X∈B (S-lift∋ X∈ refl))
+    → Σ Conv.⊢↑[ X ⦂ R ] 〖 X , R ↑ B 〗
+  generated-reveal-⊢↑ {X = X} {B = ＇ Y} X∈ with X ≟ Y
+  generated-reveal-⊢↑ {X = X} {B = ＇ .X} X∈ | yes refl =
+    Conv.⊢↑-unseal X∈
+  generated-reveal-⊢↑ {X = X} {B = ＇ Y} X∈ | no X≢Y =
+    Conv.⊢↑-id-var X∈ X≢Y
+  generated-reveal-⊢↑ {B = ‵ ι} X∈ = Conv.⊢↑-id-base X∈
+  generated-reveal-⊢↑ {B = ★} X∈ = Conv.⊢↑-id-star X∈
+  generated-reveal-⊢↑ {B = A ⇒ B} X∈ =
+    Conv.⊢↑-⇒ (generated-conceal-⊢↓ X∈)
+      (generated-reveal-⊢↑ X∈)
+  generated-reveal-⊢↑ {R = R} {B = `∀ B} X∈ =
+    Conv.⊢↑-∀ refl (generated-reveal-⊢↑ (S-lift∋ X∈ refl))
 
-  generated-reveal-⊢↑-absent :
-      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
-        {X : TyVar Δ} {R B : Ty Δ}
-    → X ∉ᵗ B
+  generated-conceal-⊢↓ : ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
+      {X : TyVar Δ} {R B : Ty Δ}
     → Σ ∋ X ⦂ R
-    → Σ Conv.⊢↑[ nothing ] 〖 X , R ↑ B 〗
-  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      with X ≟ Y
-  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      | yes refl =
-    ⊥-elim (≢ᶠ→≢ X≢Y refl)
-  generated-reveal-⊢↑-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      | no X≢Y′ =
-    Conv.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-base X∈ = Conv.⊢↑-idˣ
-  generated-reveal-⊢↑-absent ∉-star X∈ = Conv.⊢↑-idˣ
-  generated-reveal-⊢↑-absent (∉-fun X∉A X∉B) X∈ =
-    Conv.⊢↑-⇒ˣ Conv.join-none
-      (generated-conceal-⊢↓-absent X∉A X∈)
-      (generated-reveal-⊢↑-absent X∉B X∈)
-  generated-reveal-⊢↑-absent (∉-all X∉B) X∈ =
-    Conv.⊢↑-∀-idˣ
-      (generated-reveal-⊢↑-absent X∉B (S-lift∋ X∈ refl))
-
-  generated-conceal-⊢↓-present :
-      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
-        {X : TyVar Δ} {R B : Ty Δ}
-    → X ∈ᵗ B
-    → Σ ∋ X ⦂ R
-    → Σ Conv.⊢↓[ just X ] makeConceal X R B
-  generated-conceal-⊢↓-present {X = X} var-∈ X∈ with X ≟ X
-  generated-conceal-⊢↓-present {X = X} var-∈ X∈ | yes refl =
-    Conv.⊢↓-sealˣ X∈
-  generated-conceal-⊢↓-present {X = X} var-∈ X∈ | no X≢X =
-    ⊥-elim (X≢X refl)
-  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ with occurs? X B
-  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ | present X∈B =
-    Conv.⊢↓-⇒ˣ Conv.join-both
-      (generated-reveal-⊢↑-present X∈A X∈)
-      (generated-conceal-⊢↓-present X∈B X∈)
-  generated-conceal-⊢↓-present {X = X} {R = R} {B = A ⇒ B}
-      (∈-fun-left X∈A) X∈ | absent X∉B =
-    Conv.⊢↓-⇒ˣ Conv.join-left
-      (generated-reveal-⊢↑-present X∈A X∈)
-      (generated-conceal-⊢↓-absent X∉B X∈)
-  generated-conceal-⊢↓-present
-      (∈-fun-right X∉A X∈B) X∈ =
-    Conv.⊢↓-⇒ˣ Conv.join-right
-      (generated-reveal-⊢↑-absent X∉A X∈)
-      (generated-conceal-⊢↓-present X∈B X∈)
-  generated-conceal-⊢↓-present (∈-all X∈B) X∈ =
-    Conv.⊢↓-∀ˣ
-      (generated-conceal-⊢↓-present X∈B (S-lift∋ X∈ refl))
-
-  generated-conceal-⊢↓-absent :
-      ∀ {Δ : TyCtx} {Σ : TyStore.TyStore Δ}
-        {X : TyVar Δ} {R B : Ty Δ}
-    → X ∉ᵗ B
-    → Σ ∋ X ⦂ R
-    → Σ Conv.⊢↓[ nothing ] makeConceal X R B
-  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      with X ≟ Y
-  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      | yes refl =
-    ⊥-elim (≢ᶠ→≢ X≢Y refl)
-  generated-conceal-⊢↓-absent {X = X} (∉-var {Y = Y} X≢Y) X∈
-      | no X≢Y′ =
-    Conv.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-base X∈ = Conv.⊢↓-idˣ
-  generated-conceal-⊢↓-absent ∉-star X∈ = Conv.⊢↓-idˣ
-  generated-conceal-⊢↓-absent (∉-fun X∉A X∉B) X∈ =
-    Conv.⊢↓-⇒ˣ Conv.join-none
-      (generated-reveal-⊢↑-absent X∉A X∈)
-      (generated-conceal-⊢↓-absent X∉B X∈)
-  generated-conceal-⊢↓-absent (∉-all X∉B) X∈ =
-    Conv.⊢↓-∀-idˣ
-      (generated-conceal-⊢↓-absent X∉B (S-lift∋ X∈ refl))
+    → Σ Conv.⊢↓[ X ⦂ R ] makeConceal X R B
+  generated-conceal-⊢↓ {X = X} {B = ＇ Y} X∈ with X ≟ Y
+  generated-conceal-⊢↓ {X = X} {B = ＇ .X} X∈ | yes refl =
+    Conv.⊢↓-seal X∈
+  generated-conceal-⊢↓ {X = X} {B = ＇ Y} X∈ | no X≢Y =
+    Conv.⊢↓-id-var X∈ X≢Y
+  generated-conceal-⊢↓ {B = ‵ ι} X∈ = Conv.⊢↓-id-base X∈
+  generated-conceal-⊢↓ {B = ★} X∈ = Conv.⊢↓-id-star X∈
+  generated-conceal-⊢↓ {B = A ⇒ B} X∈ =
+    Conv.⊢↓-⇒ (generated-reveal-⊢↑ X∈)
+      (generated-conceal-⊢↓ X∈)
+  generated-conceal-⊢↓ {R = R} {B = `∀ B} X∈ =
+    Conv.⊢↓-∀ refl (generated-conceal-⊢↓ (S-lift∋ X∈ refl))
 
 
 rename-as-subst : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) (A : Ty Δ)

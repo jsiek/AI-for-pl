@@ -35,8 +35,8 @@ open import proof.TypeInTermSubst using
   (toRename-id-eq; toRename-wk-eq; toRename-keep-eq; renameᵗ-wk-eq)
 open import proof.ImprecisionConsistency using
   (rename-⊑; toRenameᵗ-injective)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 private

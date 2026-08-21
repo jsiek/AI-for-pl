@@ -24,8 +24,8 @@ open import TyStore using (lookupStore)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (X⊑X; X⊑★; extendᵐ)
 open import CastTerms using (Ctx; Δᵉ; Σᵉ)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 open import proof.DGG.SourceRebasePlan
 
 

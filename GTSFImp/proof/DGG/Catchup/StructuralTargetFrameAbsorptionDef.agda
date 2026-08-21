@@ -3,28 +3,28 @@ module proof.DGG.Catchup.StructuralTargetFrameAbsorptionDef where
 -- File Charter:
 --   * Defines the target-frame absorption chain for structural value
 --     instantiation spines.
---   * Records the non-recursive premises needed by target cast, reveal, and
---     conceal absorption rules in CastTermImprecision2.
+--   * Records neutral target-only cast, reveal, and conceal premises.
 --   * Provides checked root and strict-child constructor cells used by the
 --     generalized structural worker.
 
 import Data.Fin as Fin
 open import Data.Nat using (suc)
-open import Data.Maybe using (Maybe)
-open import Data.Product using (Σ-syntax; _,_; proj₂)
+open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import Types using (Ty; TyVar; ＇_; `∀; ⇑ᵗ; _[_]ᵗ)
+open import Types using (Ty; TyVar; ＇_; `∀; _[_]ᵗ)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; _[_]ᶜ)
-open import Conversion using (Conv↑; Conv↓; replaceTy; 〖_,_↑_〗)
+open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; Value; _⟨_⟩; _↑_; _↓_)
 open import Reduction using
-  (StoreChanges; keep; bind; applyTy; applyBody; _—→[_]_)
+  (StoreChanges; keep; bind; applyBody; _—→[_]_)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef using
   (StructuralWorldExtendᴿ)
@@ -67,19 +67,11 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (cast-frame c ▻ⁱ spine) q
 
-  tfa-reveal : ∀ {B C E Xᴿ?}
+  tfa-reveal : ∀ {B C E Xᴿ Rᴿ}
       {c : Conv↑ Δᴿ B C} {spine : InstantiationSpine C E}
       {q : A CTX.⊑ᵂ⟨ W ⟩ E}
-      {Wᵖ : CTX.World Δᴸ Δᴿ Δ}
-      {γᵖ : CTX.CtxImp Wᵖ}
-    → (mono : CTX.ImpEnvMono W Wᵖ)
-    → (rb : CTX.RebaseAtᴿ W Wᵖ Xᴿ?)
-    → (sc : CTX.SameCtx γ γᵖ)
-    → (c⊢ : CTX.targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c)
-    → (transport : ∀ {M N} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-        → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
-        → Σ[ pᵖ ∈ A CTX.⊑ᵂ⟨ Wᵖ ⟩ B ]
-            Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
+    → (c⊢ : CTX.targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c)
+    → (position : revealGeneratorPosition c⊢ ≡ generator-absent)
     → (qC : A CTX.⊑ᵂ⟨ W ⟩ C)
     → (∀ {Δᴿ′ Δ′} {χs : StoreChanges Δᴿ Δᴿ′}
         {W′′ : CTX.World Δᴸ Δᴿ′ Δ′}
@@ -88,7 +80,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
       → (rel : W CTI2.∣ γ ⊢² M ⊑ N ∶ p)
       → StructuralTermProvenance plan rel
       → StructuralTermProvenance plan
-          (CTI2.⊑reveal² mono rb sc c⊢ (proj₂ (transport rel)) qC))
+          (CTI2.⊑reveal² c⊢ position rel qC))
     → (keep-rel : ∀ {M N N₁}
         → W CTI2.∣ γ ⊢² M ⊑ N ↑ c ∶ qC
         → (N ↑ c) —→[ keep ] N₁
@@ -105,19 +97,11 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
     → TargetFrameAbsorptionChain W γ A spine q
     → TargetFrameAbsorptionChain W γ A (reveal-frame c ▻ⁱ spine) q
 
-  tfa-conceal : ∀ {B C E Xᴿ?}
+  tfa-conceal : ∀ {B C E Xᴿ Rᴿ}
       {c : Conv↓ Δᴿ B C} {spine : InstantiationSpine C E}
       {q : A CTX.⊑ᵂ⟨ W ⟩ E}
-      {Wᵖ : CTX.World Δᴸ Δᴿ Δ}
-      {γᵖ : CTX.CtxImp Wᵖ}
-    → (mono : CTX.ImpEnvMono W Wᵖ)
-    → (rb : CTX.RebaseAtᴿ Wᵖ W Xᴿ?)
-    → (sc : CTX.SameCtx γ γᵖ)
-    → (c⊢ : CTX.targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c)
-    → (transport : ∀ {M N} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
-        → W CTI2.∣ γ ⊢² M ⊑ N ∶ p
-        → Σ[ pᵖ ∈ A CTX.⊑ᵂ⟨ Wᵖ ⟩ B ]
-            Wᵖ CTI2.∣ γᵖ ⊢² M ⊑ N ∶ pᵖ)
+    → (c⊢ : CTX.targetStoreʷ W Conv.⊢↓[ Xᴿ ⦂ Rᴿ ] c)
+    → (position : concealGeneratorPosition c⊢ ≡ generator-absent)
     → (qC : A CTX.⊑ᵂ⟨ W ⟩ C)
     → (∀ {Δᴿ′ Δ′} {χs : StoreChanges Δᴿ Δᴿ′}
         {W′′ : CTX.World Δᴸ Δᴿ′ Δ′}
@@ -126,7 +110,7 @@ data TargetFrameAbsorptionChain {Δᴸ Δᴿ Δ}
       → (rel : W CTI2.∣ γ ⊢² M ⊑ N ∶ p)
       → StructuralTermProvenance plan rel
       → StructuralTermProvenance plan
-          (CTI2.⊑conceal² mono rb sc c⊢ (proj₂ (transport rel)) qC))
+          (CTI2.⊑conceal² c⊢ position rel qC))
     → (keep-rel : ∀ {M N N₁}
         → W CTI2.∣ γ ⊢² M ⊑ N ↓ c ∶ qC
         → (N ↓ c) —→[ keep ] N₁
@@ -171,14 +155,9 @@ target-frame-reveal-absorption : ∀ {Δᴸ Δᴿ Δ}
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
       W CTI2.∣ γ ⊢² M ⊑ (V ↑ c) ∶ qC
 target-frame-reveal-absorption
-    (tfa-reveal mono rb sc c⊢ transport qC wrap-provenance keep-rel
-      keep-provenance keep-chain tail) rel
-    with transport rel
-target-frame-reveal-absorption
-    (tfa-reveal mono rb sc c⊢ transport qC wrap-provenance keep-rel
-      keep-provenance keep-chain tail) rel
-    | pᵖ , relᵖ =
-  qC , CTI2.⊑reveal² mono rb sc c⊢ relᵖ qC
+    (tfa-reveal c⊢ position qC wrap-provenance keep-rel
+      keep-provenance keep-chain tail) rel =
+  qC , CTI2.⊑reveal² c⊢ position rel qC
 
 
 target-frame-conceal-absorption : ∀ {Δᴸ Δᴿ Δ}
@@ -193,14 +172,9 @@ target-frame-conceal-absorption : ∀ {Δᴸ Δᴿ Δ}
   → Σ[ qC ∈ A CTX.⊑ᵂ⟨ W ⟩ C ]
       W CTI2.∣ γ ⊢² M ⊑ (V ↓ c) ∶ qC
 target-frame-conceal-absorption
-    (tfa-conceal mono rb sc c⊢ transport qC wrap-provenance keep-rel
-      keep-provenance keep-chain tail) rel
-    with transport rel
-target-frame-conceal-absorption
-    (tfa-conceal mono rb sc c⊢ transport qC wrap-provenance keep-rel
-      keep-provenance keep-chain tail) rel
-    | pᵖ , relᵖ =
-  qC , CTI2.⊑conceal² mono rb sc c⊢ relᵖ qC
+    (tfa-conceal c⊢ position qC wrap-provenance keep-rel
+      keep-provenance keep-chain tail) rel =
+  qC , CTI2.⊑conceal² c⊢ position rel qC
 
 
 allv-∀-child-frame-chain : ∀ {Δᴸ Δᴿ Δ}

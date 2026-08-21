@@ -25,8 +25,8 @@ open import Conversion using (〖_,_↑_〗)
 open import CastTerms using (Ctx; Δᵉ; Term; Λ_; _⦂∀_[_]; $; _↑_)
 open import Reduction using
   (keep; bind; _—→[_]_; β-Λ)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldEvolutionProducer
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionProducer
 
 
 request-keep-from-reductions : ∀ {Cᴸ Cᴿ : Ctx}

@@ -20,7 +20,7 @@ open import TyStore using (store-bind)
 import TermCtx as TC
 open import Consistency using (keep; skip; id↪ᵗ; toRenameᵗ)
 open import CastTerms using (⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import proof.DGG.TargetExtendPlan
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe

@@ -3,6 +3,7 @@ module proof.DGG.Catchup.StructuralWorldExtendDef where
 -- File Charter:
 --   * Records the keep/bind insertion history of a right-world extension.
 --   * Retains center insertion evidence needed by source-wrapper recursion.
+--   * Maps direct target generators through bind traces in constructor form.
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; zero; suc)
@@ -37,7 +38,7 @@ mapVarChanges : ∀ {Δ Δ′}
 mapVarChanges [] X = X
 mapVarChanges (keep ∷ χs) X = mapVarChanges χs X
 mapVarChanges (bind A ∷ χs) X =
-  mapVarChanges χs (toRenameᵗ wk↪ᵗ X)
+  mapVarChanges χs (Fin.suc X)
 
 
 mapRevealChanges : ∀ {Δ Δ′} {A B : Ty Δ}

@@ -20,7 +20,7 @@ import Imprecision as I
 import Consistency
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; ⇑ᵉᵗ)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using

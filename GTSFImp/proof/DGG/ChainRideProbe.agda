@@ -13,7 +13,6 @@ module proof.DGG.ChainRideProbe where
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.List using ([])
-open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
@@ -113,11 +112,11 @@ probe-Z∋ = Z∋ refl
 probe-Z₃∋ : sourceStore ∋ Z₃ ⦂ ★
 probe-Z₃∋ = S-bind∋ (Z∋ refl) refl
 
-probe-Z-seal-⊢ : sourceStore Conv.⊢↓[ just Z ] seal Z (＇ Z₃)
-probe-Z-seal-⊢ = Conv.⊢↓-sealˣ probe-Z∋
+probe-Z-seal-⊢ : sourceStore Conv.⊢↓[ Z ⦂ ＇ Z₃ ] seal Z (＇ Z₃)
+probe-Z-seal-⊢ = Conv.⊢↓-seal probe-Z∋
 
-probe-Z₃-seal-⊢ : sourceStore Conv.⊢↓[ just Z₃ ] seal Z₃ ★
-probe-Z₃-seal-⊢ = Conv.⊢↓-sealˣ probe-Z₃∋
+probe-Z₃-seal-⊢ : sourceStore Conv.⊢↓[ Z₃ ⦂ ★ ] seal Z₃ ★
+probe-Z₃-seal-⊢ = Conv.⊢↓-seal probe-Z₃∋
 
 private
   probe-source-env : Env∼ 2

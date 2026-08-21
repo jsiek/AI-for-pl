@@ -1,6 +1,6 @@
 {-# OPTIONS --safe #-}
 
-module proof.DGG.TwoCtxWorldEvolutionProducer where
+module proof.DGG.WorldEvolutionProducer where
 
 -- File Charter:
 --   * Defines the operational producer contract for one-step two-Ctx world
@@ -22,8 +22,8 @@ open TC using (TermCtx)
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
 open import proof.TypeSafety.Preservation using (applyTermCtx)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldEvolution
+open import proof.DGG.World
+open import proof.DGG.WorldEvolution
 
 
 data WorldEvolutionRequest :

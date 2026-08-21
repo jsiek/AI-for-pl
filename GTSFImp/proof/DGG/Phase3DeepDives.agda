@@ -11,7 +11,6 @@ module proof.DGG.Phase3DeepDives where
 --     the version-2 DGG relation.
 
 open import Data.Product using (_,_; proj₁; proj₂)
-open import Data.Maybe using (just)
 open import Data.List using ([])
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
@@ -136,14 +135,13 @@ adversarial-source-chain-rebase₁ :
 adversarial-source-chain-rebase₁ =
   CTX.sameWorldRebaseAt refl adversarial-source-chain-X-rep₁
 
-adversarial-source-chain-reveal₁-⊢ˣ :
+adversarial-source-chain-reveal₁-⊢ :
   CTX.sourceStoreʷ adversarial-source-chain-world₁
-    Conv.⊢↑[ just Fin.zero ]
+    Conv.⊢↑[ Fin.zero ⦂ ⇑ᵗ RC.ℕ₀ ]
       〖 Fin.zero , ⇑ᵗ RC.ℕ₀ ↑ RC.X₀⇒X₀ 〗
-adversarial-source-chain-reveal₁-⊢ˣ =
-  Conv.⊢↑-⇒ˣ Conv.join-both
-    (Conv.⊢↓-sealˣ (Z∋ refl))
-    (Conv.⊢↑-unsealˣ (Z∋ refl))
+adversarial-source-chain-reveal₁-⊢ =
+  Conv.⊢↑-⇒ (Conv.⊢↓-seal (Z∋ refl))
+    (Conv.⊢↑-unseal (Z∋ refl))
 
 adversarial-source-chain-lambda₁ :
   adversarial-source-chain-world₁ ∣ [] ⊢²
@@ -170,10 +168,10 @@ adversarial-source-chain-function₁ :
       C.↑ 〖 Fin.zero , ⇑ᵗ RC.ℕ₀ ↑ RC.X₀⇒X₀ 〗
     ∶ Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ² {W = adversarial-source-chain-world₁}
 adversarial-source-chain-function₁ =
-  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
-    adversarial-source-chain-rebase₁ CTX.same-[]
-    adversarial-source-chain-reveal₁-⊢ˣ
-    adversarial-source-chain-reveal₁-⊢ˣ
+  CTI2.reveal⊑reveal² adversarial-source-chain-reveal₁-⊢
+    adversarial-source-chain-reveal₁-⊢ refl (λ ())
+    (Ex2.ℕ⊑ℕ² {W = adversarial-source-chain-world₁})
+    CTX.impEnvMono-refl adversarial-source-chain-rebase₁ CTX.same-[]
     adversarial-source-chain-lambda₁
     (Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ² {W = adversarial-source-chain-world₁})
 
@@ -484,13 +482,12 @@ star-inst-rebase₁ :
 star-inst-rebase₁ =
   CTX.sameWorldRebaseAt refl star-inst-X-rep₁
 
-star-inst-reveal₁-⊢ˣ :
-  CTX.sourceStoreʷ star-inst-world₁ Conv.⊢↑[ just Fin.zero ]
+star-inst-reveal₁-⊢ :
+  CTX.sourceStoreʷ star-inst-world₁ Conv.⊢↑[ Fin.zero ⦂ ★ ]
     〖 Fin.zero , ★ ↑ RC.X₀⇒★ 〗
-star-inst-reveal₁-⊢ˣ =
-  Conv.⊢↑-⇒ˣ Conv.join-left
-    (Conv.⊢↓-sealˣ (Z∋ refl))
-    Conv.⊢↑-idˣ
+star-inst-reveal₁-⊢ =
+  Conv.⊢↑-⇒ (Conv.⊢↓-seal (Z∋ refl))
+    (Conv.⊢↑-id-star (Z∋ refl))
 
 star-inst-lambda₁ :
   star-inst-world₁ ∣ [] ⊢²
@@ -517,10 +514,9 @@ star-inst-function₁ :
       C.↑ 〖 Fin.zero , ★ ↑ RC.X₀⇒★ 〗
     ∶ Ex2.★⇒★⊑★⇒★² {W = star-inst-world₁}
 star-inst-function₁ =
-  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
-    star-inst-rebase₁ CTX.same-[]
-    star-inst-reveal₁-⊢ˣ star-inst-reveal₁-⊢ˣ
-    star-inst-lambda₁
+  CTI2.reveal⊑reveal² star-inst-reveal₁-⊢ star-inst-reveal₁-⊢
+    refl (λ ()) I.★⊑★ CTX.impEnvMono-refl star-inst-rebase₁
+    CTX.same-[] star-inst-lambda₁
     (Ex2.★⇒★⊑★⇒★² {W = star-inst-world₁})
 
 star-inst-arg-cast₁ :

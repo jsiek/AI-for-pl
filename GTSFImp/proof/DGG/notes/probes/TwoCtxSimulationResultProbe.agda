@@ -23,8 +23,8 @@ import Reduction as R
 open import Reduction using (_—↠[_]_)
 import proof.TypeSafety.Preservation as Preservation
 open Preservation using (multi-preservation)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldEvolutionSequence
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence
 
 
 source-endpoint-typingᶜ₀ : ∀

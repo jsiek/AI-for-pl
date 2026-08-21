@@ -15,7 +15,7 @@ open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 open import Types using (＇_)
 open import Imprecision using (X⊑X)
 open import CastTerms using (Ctx; _,ˢ_; ⇑ᵉᵗ)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using

@@ -7,8 +7,9 @@ module proof.Reduction where
 --     type-application and conversion-frame congruence over multi-step
 --     reduction, and inert and value preservation under transport.
 --   * Also supplies store-change append algebra, multi-step trace
---     composition, cast congruence over multi-step reduction, and cast-size
---     preservation under store changes.
+--     composition, readable concatenated multi-step chain notation (including
+--     the common multi-step-then-single-step case), cast congruence over
+--     multi-step reduction, and cast-size preservation under store changes.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -22,7 +23,8 @@ open import Types
 open import TyStore using (TyStore)
 open import Consistency hiding (keep)
 import Consistency as C
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓; _⊢↑_; _⊢↓_)
+open import Conversion using
+  (Conv↑; Conv↓; rename↑; rename↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
@@ -140,37 +142,41 @@ normalizeConceal {A = A} {B = B} c =
       (renameᵗ-pointwise-id _ A (λ X → refl))
       (rename↓ (λ X → X) c))
 
-normalizeReveal-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+normalizeReveal-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {R A B : Ty Δ}
     {c : Conv↑ Δ A B}
-  → Σ ⊢↑ c
-  → Σ ⊢↑ normalizeReveal c
+  → Σ ⊢↑[ X ⦂ R ] c
+  → Σ ⊢↑[ X ⦂ R ] normalizeReveal c
 normalizeReveal-⊢↑ {A = A} {B = B} c⊢ =
   reveal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
     (renameᵗ-pointwise-id _ B (λ X → refl)) (reveal-rename-id c⊢)
   where
-  reveal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+  reveal-subst : ∀ {Σ : TyStore _} {X : TyVar _}
+      {R A₀ A₁ B₀ B₁ : Ty _}
     → (eqA : A₀ ≡ A₁)
     → (eqB : B₀ ≡ B₁)
     → ∀ {d : Conv↑ _ A₀ B₀}
-    → Σ ⊢↑ d
-    → Σ ⊢↑ subst≡ (Conv↑ _ A₁) eqB
+    → Σ ⊢↑[ X ⦂ R ] d
+    → Σ ⊢↑[ X ⦂ R ] subst≡ (Conv↑ _ A₁) eqB
         (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
   reveal-subst refl refl d⊢ = d⊢
 
-normalizeConceal-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+normalizeConceal-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {X : TyVar Δ}
+    {R A B : Ty Δ}
     {c : Conv↓ Δ A B}
-  → Σ ⊢↓ c
-  → Σ ⊢↓ normalizeConceal c
+  → Σ ⊢↓[ X ⦂ R ] c
+  → Σ ⊢↓[ X ⦂ R ] normalizeConceal c
 normalizeConceal-⊢↓ {A = A} {B = B} c⊢ =
   conceal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
     (renameᵗ-pointwise-id _ B (λ X → refl)) (conceal-rename-id c⊢)
   where
-  conceal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+  conceal-subst : ∀ {Σ : TyStore _} {X : TyVar _}
+      {R A₀ A₁ B₀ B₁ : Ty _}
     → (eqA : A₀ ≡ A₁)
     → (eqB : B₀ ≡ B₁)
     → ∀ {d : Conv↓ _ A₀ B₀}
-    → Σ ⊢↓ d
-    → Σ ⊢↓ subst≡ (Conv↓ _ A₁) eqB
+    → Σ ⊢↓[ X ⦂ R ] d
+    → Σ ⊢↓[ X ⦂ R ] subst≡ (Conv↓ _ A₁) eqB
         (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
   conceal-subst refl refl d⊢ = d⊢
 
@@ -419,6 +425,17 @@ composeReduction : composeReductionᵀ
 composeReduction ↠-refl N↠P = N↠P
 composeReduction (↠-step M→N N↠P) P↠Q =
   ↠-step M→N (composeReduction N↠P P↠Q)
+
+infixr 2 _—↠+[_]⟨_⟩_
+
+_—↠+[_]⟨_⟩_ : ∀ {Δ₀ Δ₁ Δ₂}
+    (M : Term Δ₀) {N : Term Δ₁} {P : Term Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → M —↠[ χs ] N
+  → {ψs : StoreChanges Δ₁ Δ₂}
+  → N —↠[ ψs ] P
+  → M —↠[ χs ++χ ψs ] P
+M —↠+[ χs ]⟨ M↠N ⟩ N↠P = composeReduction M↠N N↠P
 
 ------------------------------------------------------------------------
 -- Cast-size preservation under store changes

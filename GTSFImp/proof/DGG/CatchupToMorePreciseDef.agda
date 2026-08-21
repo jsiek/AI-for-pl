@@ -58,7 +58,7 @@ targetPivotᴸ : ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ} {Xᴸ?}
   → Maybe (TyVar Δᴿ)
 targetPivotᴸ rebase-idᴸ = nothing
 targetPivotᴸ (rebase-varᴸ {Xᴿ = Xᴿ} rebase) = just Xᴿ
-targetPivotᴸ (rebase-onlyᴸ to-star disaligned represented) = nothing
+targetPivotᴸ (rebase-onlyᴸ member to-star disaligned represented) = nothing
 
 
 sourcePivotᴿ : ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ} {Xᴿ?}
@@ -73,8 +73,8 @@ toTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ} {Xᴸ?}
   → TagRebaseAtᴸ W Wᵖ Xᴸ? (targetPivotᴸ rebase)
 toTagRebaseAtᴸ rebase-idᴸ = tag-rebase-idᴸ
 toTagRebaseAtᴸ (rebase-varᴸ rebase) = tag-rebase-varᴸ rebase
-toTagRebaseAtᴸ (rebase-onlyᴸ to-star disaligned represented) =
-  tag-rebase-onlyᴸ to-star disaligned represented
+toTagRebaseAtᴸ (rebase-onlyᴸ member to-star disaligned represented) =
+  tag-rebase-onlyᴸ member to-star disaligned represented
 
 
 toTagRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ} {W Wᵖ : World Δᴸ Δᴿ Δ} {Xᴿ?}

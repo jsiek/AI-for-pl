@@ -15,43 +15,41 @@ module proof.DGG.ImpLadder where
 --   * Pads columns by character count; the table's built-in alphabet has no
 --     two-column glyphs.  The unpadded WorldSnapshot line retains its own type
 --     syntax.
---   * Pins smart-comma, type- and term-lambda ladders, a nested-∀ binder-depth
---     regression, plus a live, data-bearing reconstruction of Examples2's
---     archived checkpoint-8 target-Z fragment; also exports the whole-
---     checkpoint printer at its intended judgment type.
+--   * Provides a display-only obstruction row whose cost cell marks missing
+--     rule evidence with `?`; it is not a partial CTI judgment or action.
+--   * Traverses the current complete-context CTI directly and keeps no
+--     compatibility-world or archived-constructor rendering path.
 
 open import Data.Bool using (false; true)
 open import Data.List using (List; []; _∷_; map)
 import Data.List as List
-open import Data.Maybe using (just; nothing)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _∸_; _⊔_)
 open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_; length)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; cong; sym; trans)
 
 open import Types
-open import TyStore using (store-empty)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 import Consistency as C
 open import Conversion using
   (Conv↑; Conv↓; unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_;
    `∀↓_; id↓)
-import Conversion as Conv
 import Imprecision as I
 open import Primitives using
   (Const; Prim; κℕ; κ𝔹; addℕ; and𝔹)
 open import CastTerms using
-  (Term; Var; `_ ; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩;
+  (Ctx; Δᵉ; Term; Var; `_ ; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩;
    _↑_; _↓_; blame)
 import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open CTI2 using (_∣_⊢²_⊑_∶_)
-open CTX using (_⊑ᵂ⟨_⟩_)
-import proof.DGG.CenterRename as CR
-import proof.DGG.ExampleTerms as Ex
-import proof.DGG.Examples2 as Ex2
-import proof.DGG.SmartCommaWitness as Smart
+open CTI2 using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.SourceFreshBehindPlan using
+  (sourceFreshBehind-oldCenters)
+open import proof.DGG.SourceRebasePlan using
+  (rebaseSource-center)
 import proof.DGG.WorldSnapshot as Snapshot
 
 ------------------------------------------------------------------------
@@ -71,6 +69,18 @@ private
   extendTyName name binder Fin.zero = binder
   extendTyName name binder (Fin.suc X) = name X
 
+  preimage? : ∀ {Δ Δ′}
+    → Δ C.↪ᵗ Δ′
+    → TyVar Δ′
+    → Maybe (TyVar Δ)
+  preimage? C.empty Z = nothing
+  preimage? (C.keep π) Fin.zero = just Fin.zero
+  preimage? (C.keep π) (Fin.suc Z) with preimage? π Z
+  preimage? (C.keep π) (Fin.suc Z) | just X = just (Fin.suc X)
+  preimage? (C.keep π) (Fin.suc Z) | nothing = nothing
+  preimage? (C.skip π) Fin.zero = nothing
+  preimage? (C.skip π) (Fin.suc Z) = preimage? π Z
+
   nameThroughEmbedding : ∀ {Δ Δ′}
     → (TyVar Δ → String)
     → String
@@ -78,9 +88,16 @@ private
     → TyVar Δ′
     → String
   nameThroughEmbedding name fresh oldCenters X
-      with CR.preimage? oldCenters X
+      with preimage? oldCenters X
   nameThroughEmbedding name fresh oldCenters X | just old = name old
   nameThroughEmbedding name fresh oldCenters X | nothing = fresh
+
+  nameThroughCenterEq : ∀ {Δ Δ′}
+    → Δ′ ≡ Δ
+    → (TyVar Δ → String)
+    → TyVar Δ′
+    → String
+  nameThroughCenterEq refl name = name
 
   showTyAt : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
   showTyAt depth name (＇ X) = name X
@@ -248,25 +265,27 @@ open Row
 header : Row
 header = row "source term" "A" "ηᴸA" "⊑ costs" "ηᴿB" "B" "target term"
 
-makeRow : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-  → (TyVar Δᴸ → String)
-  → (TyVar Δᴿ → String)
-  → (TyVar Δ → String)
+makeRow : ∀ {Γᴸ Γᴿ : Ctx} {W : Γᴸ ⊑ᶜ Γᴿ}
+    {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+  → (TyVar (Δᵉ Γᴸ) → String)
+  → (TyVar (Δᵉ Γᴿ) → String)
+  → (TyVar (centerᶜ W) → String)
   → ℕ
   → String
   → String
   → String
-  → A ⊑ᵂ⟨ W ⟩ B
+  → A ⊑ᵀ⟨ W ⟩ B
   → String
   → Row
 makeRow {W = W} {A = A} {B = B}
     nameᴸ nameᴿ nameᶜ tyDepth prefix source target p extra =
   row (prefix ++ source)
     (showTy tyDepth nameᴸ A)
-    (showTy tyDepth nameᶜ (CTX.embedᴸ W A))
+    (showTy tyDepth nameᶜ
+      (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A))
     (addCost (showCost tyDepth nameᶜ p) extra)
-    (showTy tyDepth nameᶜ (CTX.embedᴿ W B))
+    (showTy tyDepth nameᶜ
+      (renameᵗ (toRenameᵗ (ηᴿᶜ W)) B))
     (showTy tyDepth nameᴿ B)
     target
 
@@ -344,28 +363,35 @@ renderTableWith w rows =
 renderTable : List Row → String
 renderTable rows = renderTableWith (tableWidths (header ∷ rows)) rows
 
+obstructionRow : String → String → String → String → String → String
+  → String → String → Row
+obstructionRow source sourceTy sourceCenterTy knownCost obstruction
+    targetCenterTy targetTy target =
+  row source sourceTy sourceCenterTy
+    (knownCost ++ " + ? " ++ obstruction)
+    targetCenterTy targetTy target
+
 ------------------------------------------------------------------------
 -- Outside-in derivation traversal
 ------------------------------------------------------------------------
 
-ladderRows : ∀ {Δᴸ Δᴿ Δ}
-  → (TyVar Δᴸ → String)
-  → (TyVar Δᴿ → String)
-  → (TyVar Δ → String)
+ladderRows : ∀ {Γᴸ Γᴿ : Ctx} {W : Γᴸ ⊑ᶜ Γᴿ}
+  → (TyVar (Δᵉ Γᴸ) → String)
+  → (TyVar (Δᵉ Γᴿ) → String)
+  → (TyVar (centerᶜ W) → String)
   → ℕ → ℕ → (Var → String) → String → String
-  → ∀ {W : CTX.World Δᴸ Δᴿ Δ}
-      {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
-      {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → ∀ {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+      {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+      {p : A ⊑ᵀ⟨ W ⟩ B}
+  → W ⊢² M ⊑ M′ ∶ p
   → List Row
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.x⊑x² {x = x} lookup) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.x⊑x² {x = x} sourceMember targetMember) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix (xName x) (xName x) p "" ∷ []
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.ƛ⊑ƛ² premise) =
   let binder = "♯" ++ show termDepth in
   makeRow {W = W} {A = outA} {B = outB}
@@ -373,8 +399,8 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       ("λ" ++ binder ++ ". □") p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ (suc termDepth) tyDepth
       (extendTermName xName binder) childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.·⊑·² function argument) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
@@ -384,9 +410,9 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
      List.++
      ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
        (childPrefix ++ "└ ") (childPrefix ++ "  ") argument)
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑Λ² lift v v′ premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.Λ⊑Λ² v v′ premise q) =
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "Λ□" p "" ∷
@@ -394,37 +420,18 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       (extendTyName nameᴿ binder)
       (extendTyName nameᶜ binder)
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑² Anv occurs lift v targetTyping premise q) =
-  let binder = "♭" ++ show tyDepth in
-  makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "─" p "" ∷
-    ladderRows (extendTyName nameᴸ binder) nameᴿ
-      (extendTyName nameᶜ binder)
-      termDepth (suc tyDepth) xName childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑²-smart-comma Anv occurs
-      (CTX.smart-merge-alias guard) liftCtx v targetTyping premise q) =
-  let binder = "♭" ++ show tyDepth in
-  makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "─" p "" ∷
-    ladderRows (extendTyName nameᴸ binder) nameᴿ nameᶜ
-      termDepth (suc tyDepth) xName childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑²-smart-comma Anv occurs
-      (CTX.smart-fresh-behind guard) liftCtx v targetTyping premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.Λ⊑² Anv occurs plan v targetTyping premise q) =
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "─" p "" ∷
     ladderRows (extendTyName nameᴸ binder) nameᴿ
       (nameThroughEmbedding nameᶜ binder
-        (CTX.SmartFreshBehindGuard.oldCenters guard))
+        (sourceFreshBehind-oldCenters plan))
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.•⊑•² {A = A} {A′ = A′} p∀ premise q r) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
@@ -432,21 +439,21 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       ("□ [ " ++ showTy tyDepth nameᴿ A′ ++ " ]") p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.•⊑² {A = A} p∀ premise q r) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
       ("□ [ " ++ showTy tyDepth nameᴸ A ++ " ]") "─" p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.κ⊑κ² κ q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix (showConst κ) (showConst κ) p "" ∷ []
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.cast⊑cast² c c′ premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
@@ -454,8 +461,8 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       ("□ " ++ castLayer tyDepth nameᴿ c′) p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊑cast² c′ premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
@@ -463,24 +470,24 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.⊑reveal² {c′ = c′} mono rebase same typed premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.⊑reveal² {c′ = c′} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─" ("□ " ++ revealLayer nameᴿ c′)
-      p "" ∷
+      p "generator absent" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.⊑conceal² {c′ = c′} mono rebase same typed premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.⊑conceal² {c′ = c′} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─" ("□ " ++ concealLayer nameᴿ c′)
-      p "" ∷
+      p "generator absent" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.cast⊑² c premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
@@ -488,49 +495,81 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       p "" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.reveal⊑² {c = c} mono rebase same typed premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.reveal⊑-neutral² {c = c} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c) "─"
-      p "" ∷
+      p "generator absent" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑² {c = c} mono rebase same typed premise q) =
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.reveal⊑-only² {c = c} typed pos≢absent mark disaligned
+      represented premise q) =
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c) "─"
+      p "target unoccupied" ∷
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.reveal⊑² {c = c} typed pos≢absent disaligned plan
+      represented premise q) =
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c) "─"
+      p "source-rebase" ∷
+    ladderRows nameᴸ nameᴿ
+      (nameThroughCenterEq (rebaseSource-center plan) nameᶜ)
+      termDepth tyDepth xName childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.conceal⊑-neutral² {c = c} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c) "─"
-      p "target pivot = nothing" ∷
+      p "generator absent" ∷
     ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.conceal⊑² {c = c} typed pos≢absent mark disaligned
+      represented premise q) =
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c) "─"
+      p "target unoccupied" ∷
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.reveal⊑reveal² {c = c} {c′ = c′}
-      mono rebase same typed typed′ premise q) =
+      plan typed typed′ aligned pos≢absent represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c)
-      ("□ " ++ revealLayer nameᴿ c′) p "" ∷
-    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-      childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑conceal² {c = c} {c′ = c′}
-      mono rebase same typed typed′ premise q) =
+      ("□ " ++ revealLayer nameᴿ c′) p "matched reveal partner" ∷
+    ladderRows nameᴸ nameᴿ
+      (nameThroughCenterEq (rebaseSource-center plan) nameᶜ)
+      termDepth tyDepth xName childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.conceal⊑conceal² {γᵖ = Wᵖ} {c = c} {c′ = c′}
+      plan rebased typed typed′ aligned pos≢absent represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c)
-      ("□ " ++ concealLayer nameᴿ c′) p "paired-conceal-wrapper" ∷
-    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-      childPrefix childPrefix premise
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W}
+      ("□ " ++ concealLayer nameᴿ c′) p "matched conceal partner" ∷
+    ladderRows nameᴸ nameᴿ
+      (nameThroughCenterEq
+        (trans (sym (rebaseSource-center plan)) (cong centerᶜ rebased))
+        nameᶜ)
+      termDepth tyDepth xName childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix
     {M′ = M′} {A = outA} {B = outB} {p = p}
     (CTI2.blame⊑² targetTyping q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "blame"
     (showTerm termDepth tyDepth nameᴿ xName M′) p "" ∷ []
-ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {W = W} {A = outA} {B = outB} {p = p}
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊕⊑⊕² op left right q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix
@@ -543,318 +582,27 @@ ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
        (childPrefix ++ "└ ") (childPrefix ++ "  ") right)
 
 ------------------------------------------------------------------------
--- Public printers and pinned fixtures
+-- Public printers
 ------------------------------------------------------------------------
 
 impLadder : TyNameSupply → TyNameSupply → TyNameSupply → (Var → String)
-  → ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
-      {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
-      {A : Ty Δᴸ} {B : Ty Δᴿ}
-      {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → ∀ {Γᴸ Γᴿ : Ctx} {W : Γᴸ ⊑ᶜ Γᴿ}
+      {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+      {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+      {p : A ⊑ᵀ⟨ W ⟩ B}
+  → W ⊢² M ⊑ M′ ∶ p
   → String
 impLadder nameᴸ nameᴿ nameᶜ xName {W = W} derivation =
-  Snapshot.worldSnapshot nameᴸ nameᴿ nameᶜ W ++ "\n" ++
+  Snapshot.worldSnapshot nameᴸ nameᴿ W nameᶜ ++ "\n" ++
   renderTable
     (ladderRows nameᴸ nameᴿ nameᶜ zero zero xName "" "" derivation)
 
-impLadderDefault : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
-    {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+impLadderDefault : ∀ {Γᴸ Γᴿ : Ctx} {W : Γᴸ ⊑ᶜ Γᴿ}
+    {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+    {p : A ⊑ᵀ⟨ W ⟩ B}
+  → W ⊢² M ⊑ M′ ∶ p
   → String
 impLadderDefault =
   impLadder Snapshot.defaultName Snapshot.defaultNameᵗ Snapshot.defaultName
     defaultTermName
-
--- Examples2 comments out the rejected checkpoint-4-through-14 chain.  This
--- fixture retains checkpoint 8's approved YZ subderivation shape: a
--- paired Z reveal above an application whose argument is a paired `seal Z ★`
--- conceal.  Its valid literal/cast payload replaces the rejected source-X-seal
--- edge while using live Examples2 world and typing evidence.
-
-checkpoint₈-source-ℕ!₃ :
-  C.renameEnv∼ (C.skip Ex2.id↪ᵗ)
-    (C.renameEnv∼ (C.skip Ex2.id↪ᵗ)
-      (C.renameEnv∼ C.wk↪ᵗ (C.idᶜ {Δ = 0})))
-    ⊢ (‵ `ℕ) ∼ ★
-checkpoint₈-source-ℕ!₃ =
-  C.renameᵐᶜ (C.skip Ex2.id↪ᵗ) Ex2.left-path-ℕ!₂
-
-checkpoint₈-YZ-base :
-  Ex2.left-path-world₃-YZ ∣ [] ⊢²
-    $ (κℕ 7) ⟨ checkpoint₈-source-ℕ!₃ ⟩
-    ⊑ $ (κℕ 7) ⟨ Ex2.left-path-ℕ!₂ ⟩ ∶ I.★⊑★
-checkpoint₈-YZ-base =
-  CTI2.cast⊑cast² checkpoint₈-source-ℕ!₃ Ex2.left-path-ℕ!₂
-    (CTI2.κ⊑κ² (κℕ 7) (Ex2.ℕ⊑ℕ² {W = Ex2.left-path-world₃-YZ}))
-    I.★⊑★
-
-checkpoint₈-YZ-conceal :
-  Ex2.left-path-world₃-YZ ∣ [] ⊢²
-    ($ (κℕ 7) ⟨ checkpoint₈-source-ℕ!₃ ⟩)
-      ↓ seal (Fin.suc (Fin.suc Fin.zero)) ★
-    ⊑ ($ (κℕ 7) ⟨ Ex2.left-path-ℕ!₂ ⟩)
-        ↓ seal (Fin.suc Fin.zero) ★ ∶ Ex2.left-path-Z-var⊑YZ₃
-checkpoint₈-YZ-conceal =
-  CTI2.conceal⊑conceal²
-    CTX.impEnvMono-refl Ex2.left-path-rebase-Z-YZ₃ CTX.same-[]
-    (Conv.⊢↓-sealˣ Ex2.left-path-source-Z∋₃)
-    (Conv.⊢↓-sealˣ Ex2.left-path-target-Z∋₃)
-    checkpoint₈-YZ-base Ex2.left-path-Z-var⊑YZ₃
-
-checkpoint₈-YZ-application :
-  Ex2.left-path-world₃-YZ ∣ [] ⊢²
-    ((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
-      · (($ (κℕ 7) ⟨ checkpoint₈-source-ℕ!₃ ⟩)
-          ↓ seal (Fin.suc (Fin.suc Fin.zero)) ★)
-    ⊑ (Ex2.left-path-target-lambda₃ ↑ Ex2.left-path-Y-reveal₂)
-      · (($ (κℕ 7) ⟨ Ex2.left-path-ℕ!₂ ⟩)
-          ↓ seal (Fin.suc Fin.zero) ★) ∶
-        Ex2.left-path-Z-var⊑YZ₃
-checkpoint₈-YZ-application =
-  CTI2.·⊑·² Ex2.left-path-Y-revealed₃-YZ checkpoint₈-YZ-conceal
-
-checkpoint₈-YZ-fragment :
-  Ex2.left-path-world₃-YZ ∣ [] ⊢²
-    (((ƛ (` 0)) ↑ Ex2.example12-target-Y-reveal)
-      · (($ (κℕ 7) ⟨ checkpoint₈-source-ℕ!₃ ⟩)
-          ↓ seal (Fin.suc (Fin.suc Fin.zero)) ★))
-      ↑ unseal (Fin.suc (Fin.suc Fin.zero)) ★
-    ⊑ ((Ex2.left-path-target-lambda₃ ↑ Ex2.left-path-Y-reveal₂)
-      · (($ (κℕ 7) ⟨ Ex2.left-path-ℕ!₂ ⟩)
-          ↓ seal (Fin.suc Fin.zero) ★))
-      ↑ unseal (Fin.suc Fin.zero) ★ ∶ I.★⊑★
-checkpoint₈-YZ-fragment =
-  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
-    Ex2.left-path-rebase-Z-YZ₃ CTX.same-[]
-    (Conv.⊢↑-unsealˣ Ex2.left-path-source-Z∋₃)
-    (Conv.⊢↑-unsealˣ Ex2.left-path-target-Z∋₃)
-    checkpoint₈-YZ-application I.★⊑★
-
-small-lambda-derivation :
-  CTX.liftWorldBoth I.X⊑X (Ex2.reflWorld store-empty) ∣ [] ⊢²
-    ƛ (` 0) ⊑ ƛ (` 0) ∶
-      I.⇒⊑⇒ Ex2.polyId-var⊑ Ex2.polyId-var⊑
-small-lambda-derivation =
-  CTI2.ƛ⊑ƛ²
-    {pA = Ex2.polyId-var⊑} {pB = Ex2.polyId-var⊑}
-    (CTI2.x⊑x² {p = Ex2.polyId-var⊑} CTX.Zʷ)
-
-type-lambda-binder-identity-derivation :
-  CTX.liftWorldBoth I.X⊑X (Ex2.reflWorld store-empty) ∣ [] ⊢²
-    Λ (ƛ (` 0)) ⊑ Λ (ƛ (` 0)) ∶
-      I.∀⊑∀
-        (I.⇒⊑⇒
-          (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-            (I.X⊑X {X = Fin.suc Fin.zero}))
-          (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-            (I.X⊑X {X = Fin.suc Fin.zero})))
-type-lambda-binder-identity-derivation =
-  CTI2.Λ⊑Λ² CTX.lift-[] (ƛ (` 0)) (ƛ (` 0))
-    (CTI2.ƛ⊑ƛ²
-      {pA = I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-        (I.X⊑X {X = Fin.suc Fin.zero})}
-      {pB = I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-        (I.X⊑X {X = Fin.suc Fin.zero})}
-      (CTI2.x⊑x²
-        {p = I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-          (I.X⊑X {X = Fin.suc Fin.zero})}
-        CTX.Zʷ))
-    (I.∀⊑∀
-      (I.⇒⊑⇒
-        (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-          (I.X⊑X {X = Fin.suc Fin.zero}))
-        (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-          (I.X⊑X {X = Fin.suc Fin.zero}))))
-
-nested-∀-under-Λ-derivation :
-  Ex2.reflWorld store-empty ∣ [] ⊢²
-    Λ (ƛ (` 0)) ⊑ Λ (ƛ (` 0)) ∶
-      I.∀⊑∀
-        (I.⇒⊑⇒
-          (I.∀⊑∀
-            (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-              (I.X⊑X {X = Fin.suc Fin.zero})))
-          (I.∀⊑∀
-            (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-              (I.X⊑X {X = Fin.suc Fin.zero}))))
-nested-∀-under-Λ-derivation =
-  CTI2.Λ⊑Λ² CTX.lift-[] (ƛ (` 0)) (ƛ (` 0))
-    (CTI2.ƛ⊑ƛ²
-      {pA = I.∀⊑∀
-        (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-          (I.X⊑X {X = Fin.suc Fin.zero}))}
-      {pB = I.∀⊑∀
-        (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-          (I.X⊑X {X = Fin.suc Fin.zero}))}
-      (CTI2.x⊑x²
-        {p = I.∀⊑∀
-          (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-            (I.X⊑X {X = Fin.suc Fin.zero}))}
-        CTX.Zʷ))
-    (I.∀⊑∀
-      (I.⇒⊑⇒
-        (I.∀⊑∀
-          (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-            (I.X⊑X {X = Fin.suc Fin.zero})))
-        (I.∀⊑∀
-          (I.⇒⊑⇒ (I.X⊑X {X = Fin.zero})
-            (I.X⊑X {X = Fin.suc Fin.zero})))))
-
-small-lambda-ladder : String
-small-lambda-ladder = impLadderDefault small-lambda-derivation
-
-type-lambda-binder-identity-ladder : String
-type-lambda-binder-identity-ladder =
-  impLadderDefault type-lambda-binder-identity-derivation
-
-nested-∀-under-Λ-ladder : String
-nested-∀-under-Λ-ladder = impLadderDefault nested-∀-under-Λ-derivation
-
-d1-inner-smart-live-ladder : String
-d1-inner-smart-live-ladder = impLadderDefault Smart.d1-inner-smart-live
-
--- Smart.d1-top-smart-live-at cannot be instantiated: its occurrence premise
--- would require suc zero to occur in ＇ zero ⇒ ★.
-
-checkpoint₈-target-Z-fragment-ladder : String
-checkpoint₈-target-Z-fragment-ladder =
-  impLadderDefault checkpoint₈-YZ-fragment
-
-checkpoint₈-ladder :
-  Ex2.left-path-world₄-YZ ∣ [] ⊢² Ex.right₈
-    ⊑ Ex2.left-path-target₅ ∶ Ex2.left-path-ℕ⊑★₄-YZ
-  → String
-checkpoint₈-ladder = impLadderDefault
-
--- Filled after the formatter is type-checked; these intentionally use refl so
--- any presentation change must update an explicit expected ladder.
-small-lambda-ladder-pinned : small-lambda-ladder ≡
-  "⟨X: X↦＇X ⊑[X⊑X] X′↦＇X′⟩\n" ++
-  "source term  A        ηᴸA      ⊑ costs       ηᴿB      " ++
-    "B          target term\n" ++
-  "───────────  ───────  ───────  ────────────  " ++
-    "───────  ─────────  ───────────\n" ++
-  "λ♯0. □       (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X  " ++
-    "(X ⇒ X)  (X′ ⇒ X′)  λ♯0. □\n" ++
-  "♯0           X        X        X ≈ X         " ++
-    "X        X′         ♯0"
-small-lambda-ladder-pinned = refl
-
-type-lambda-binder-identity-ladder-pinned :
-  type-lambda-binder-identity-ladder ≡
-    "⟨X: X↦＇X ⊑[X⊑X] X′↦＇X′⟩\n" ++
-    "source term  A                        " ++
-      "ηᴸA                      " ++
-      "⊑ costs                            " ++
-      "ηᴿB                      " ++
-      "B                          target term\n" ++
-    "───────────  ───────────────────────  " ++
-      "───────────────────────  " ++
-      "─────────────────────────────────  " ++
-      "───────────────────────  " ++
-      "─────────────────────────  ───────────\n" ++
-    "Λ□           ∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
-      "∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
-      "∀(♭0 ≈ ♭0, X ≈ X, ♭0 ≈ ♭0, X ≈ X)  " ++
-      "∀ ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))  " ++
-      "∀ ((♭0 ⇒ X′) ⇒ (♭0 ⇒ X′))  Λ□\n" ++
-    "λ♯0. □       ((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
-      "((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
-      "♭0 ≈ ♭0, X ≈ X, ♭0 ≈ ♭0, X ≈ X     " ++
-      "((♭0 ⇒ X) ⇒ (♭0 ⇒ X))    " ++
-      "((♭0 ⇒ X′) ⇒ (♭0 ⇒ X′))    λ♯0. □\n" ++
-    "♯0           (♭0 ⇒ X)                 " ++
-      "(♭0 ⇒ X)                 " ++
-      "♭0 ≈ ♭0, X ≈ X                     " ++
-      "(♭0 ⇒ X)                 " ++
-      "(♭0 ⇒ X′)                  ♯0"
-type-lambda-binder-identity-ladder-pinned = refl
-
-nested-∀-under-Λ-ladder-pinned : nested-∀-under-Λ-ladder ≡
-  "⟨⟩\n" ++
-  "source term  A                              " ++
-    "ηᴸA                            " ++
-    "⊑ costs                                      " ++
-    "ηᴿB                            " ++
-    "B                              target term\n" ++
-  "───────────  ─────────────────────────────  " ++
-    "─────────────────────────────  " ++
-    "───────────────────────────────────────────  " ++
-    "─────────────────────────────  " ++
-    "─────────────────────────────  ───────────\n" ++
-  "Λ□           ∀ (∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))  " ++
-    "∀ (∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))  " ++
-    "∀(∀(♭1 ≈ ♭1, ♭0 ≈ ♭0), ∀(♭1 ≈ ♭1, ♭0 ≈ ♭0))  " ++
-    "∀ (∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))  " ++
-    "∀ (∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))  Λ□\n" ++
-  "λ♯0. □       (∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))    " ++
-    "(∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))    " ++
-    "∀(♭1 ≈ ♭1, ♭0 ≈ ♭0), ∀(♭1 ≈ ♭1, ♭0 ≈ ♭0)     " ++
-    "(∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))    " ++
-    "(∀ (♭1 ⇒ ♭0) ⇒ ∀ (♭1 ⇒ ♭0))    λ♯0. □\n" ++
-  "♯0           ∀ (♭1 ⇒ ♭0)                    " ++
-    "∀ (♭1 ⇒ ♭0)                    " ++
-    "∀(♭1 ≈ ♭1, ♭0 ≈ ♭0)                          " ++
-    "∀ (♭1 ⇒ ♭0)                    " ++
-    "∀ (♭1 ⇒ ♭0)                    ♯0"
-nested-∀-under-Λ-ladder-pinned = refl
-
-d1-inner-smart-live-ladder-pinned : d1-inner-smart-live-ladder ≡
-  "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★ │ " ++
-    "Z: X↦＇X ⊑[X⊑★] ─⟩\n" ++
-  "source term  A           ηᴸA         " ++
-    "⊑ costs                  ηᴿB      B         target term\n" ++
-  "───────────  ──────────  ──────────  " ++
-    "───────────────────────  ───────  ────────  ───────────\n" ++
-  "Λ□           ∀ (♭0 ⇒ ★)  ∀ (♭0 ⇒ ★)  " ++
-    "∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)  (★ ⇒ ★)   ─\n" ++
-  "─            (♭0 ⇒ ★)    (X ⇒ ★)     " ++
-    "mark X⊑★ at X, ★⊑★       (★ ⇒ ★)  (★ ⇒ ★)   □ ↑ ⇒-rev\n" ++
-  "─            (♭0 ⇒ ★)    (Y ⇒ ★)     " ++
-    "Y ≈ Y, ★⊑★               (Y ⇒ ★)  (Y′ ⇒ ★)  □ ↑ ⇒-rev\n" ++
-  "λ♯0. □       (♭0 ⇒ ★)    (X ⇒ ★)     " ++
-    "X ≈ X, ★⊑★               (X ⇒ ★)  (X′ ⇒ ★)  λ♯0. □\n" ++
-  "blame        ★           ★           " ++
-    "★⊑★                      ★        ★         blame"
-d1-inner-smart-live-ladder-pinned = refl
-
-checkpoint₈-target-Z-fragment-ladder-pinned :
-  checkpoint₈-target-Z-fragment-ladder ≡
-    "⟨X: X↦ℕ ⊑[X⊑★] ─ │ " ++
-      "Y: Y↦＇Z ⊑[X⊑★] X′↦＇Y′ │ " ++
-      "Z: Z↦★ ⊑[X⊑X] Y′↦★⟩\n" ++
-    "source term           A        ηᴸA      " ++
-      "⊑ costs                         ηᴿB      B          " ++
-      "target term\n" ++
-    "────────────────────  ───────  " ++
-      "───────  ──────────────────────────────  " ++
-      "───────  ─────────  " ++
-      "───────────────────\n" ++
-    "□ ↑ unseal Z          ★        ★        " ++
-      "★⊑★                             ★        ★          " ++
-      "□ ↑ unseal Y′\n" ++
-    "□₁ · □₂               Z        Z        " ++
-      "Z ≈ Z                           Z        Y′         " ++
-      "□₁ · □₂\n" ++
-    "├ □ ↑ unseal Y ⇒-rev  (Z ⇒ Z)  (Z ⇒ Z)  " ++
-      "Z ≈ Z, Z ≈ Z                    (Z ⇒ Z)  " ++
-      "(Y′ ⇒ Y′)  □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □              (Y ⇒ Y)  (Y ⇒ Y)  " ++
-      "Y ≈ Y, Y ≈ Y                    (Y ⇒ Y)  " ++
-      "(X′ ⇒ X′)  λ♯0. □\n" ++
-    "│ ♯0                  Y        Y        " ++
-      "Y ≈ Y                           Y        X′         " ++
-      "♯0\n" ++
-    "└ □ ↓ seal Z          Z        Z        " ++
-      "Z ≈ Z + paired-conceal-wrapper  Z        Y′         " ++
-      "□ ↓ seal Y′\n" ++
-    "  □ ⟨ ℕ↦★ ⟩           ★        ★        " ++
-      "★⊑★                             ★        ★          " ++
-      "□ ⟨ ℕ↦★ ⟩\n" ++
-    "  7                   ℕ        ℕ        " ++
-      "ℕ⊑ℕ                             ℕ        ℕ          " ++
-      "7"
-checkpoint₈-target-Z-fragment-ladder-pinned = refl

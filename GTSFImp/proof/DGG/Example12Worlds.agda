@@ -7,11 +7,8 @@ module proof.DGG.Example12Worlds where
 --     store-representation witnesses.
 --   * Records a left-hand analogue of Example 12 where the source store, not
 --     the target store, has the representation path to ★.
---   * Records a variant where the target store has a representation path to
---     ℕ, showing that representation paths are not only a ★ phenomenon.
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Maybe using (nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 import Data.Fin as Fin
@@ -23,14 +20,10 @@ open import TyStore using
    _∋_⦂_; Z∋; S-bind∋)
 open import Consistency using
   (_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!)
-open import Conversion using
-  (Conv↑; _⊢↑_; `∀↑_; id↑; ⊢↑-∀; ⊢↑-id;
-   _⊢↑[_]_; ⊢↑-∀-idˣ; ⊢↑-idˣ)
 open import Imprecision using
   (ImpEnv; _⊢_⊑_; X⊑X; X⊑★; ★⊑★; ι⊑ι; ι⊑★; ⇒⊑⇒)
 open import CastTerms using
-  (Term; _⊢_⦂_; _·_; _⦂∀_[_]; _⟨_⟩; _↑_;
-   ⊢·; ⊢⟨⟩; ⊢•; ⊢reveal)
+  (Term; _⊢_⦂_; _·_; _⟨_⟩; ⊢·; ⊢⟨⟩)
 open import proof.DGG.CtxImp using
   (World; WorldInvariants; emptyʷ; bind-leftʷ; bind-rightʷ;
    bind-bothʷ; bind-both-starʷ; world-invariants;
@@ -243,135 +236,6 @@ example12-Z-function-to-star = ⇒⊑⇒ (X⊑★ refl) (X⊑★ refl)
 example12-Y-function-to-star : example12-imp-env ⊢
     (＇ (Fin.suc Fin.zero) ⇒ ＇ (Fin.suc Fin.zero)) ⊑ (★ ⇒ ★)
 example12-Y-function-to-star = ⇒⊑⇒ (X⊑★ refl) (X⊑★ refl)
-
-------------------------------------------------------------------------
--- β-reveal-∀ followed by β-Λ: a path to ℕ, not ★
-------------------------------------------------------------------------
-
--- The target wraps the polymorphic identity in an explicit universal reveal.
--- When applied at ℕ, β-reveal-∀ first allocates X ↦ ℕ.  The β-Λ exposed under
--- that reveal then instantiates at the fresh X and allocates Y ↦ X.  Comparing
--- the source's ordinary X ↦ ℕ cell against target Y therefore needs the
--- representation path Y ↦ X ↦ ℕ, not a path to ★.
-
-example12-nat-chain-source : Term 0
-example12-nat-chain-source = Ex.example12-left
-
-example12-nat-chain-source-⊢ :
-  Ex.∅ ⊢ example12-nat-chain-source ⦂ Ex.ℕᵗ
-example12-nat-chain-source-⊢ = Ex.example12-left-⊢
-
-example12-nat-chain-reveal :
-  Conv↑ 0 (`∀ Ex.X⇒X) (`∀ Ex.X⇒X)
-example12-nat-chain-reveal = `∀↑ (id↑ Ex.X⇒X)
-
-example12-nat-chain-reveal-⊢ :
-  store-empty ⊢↑ example12-nat-chain-reveal
-example12-nat-chain-reveal-⊢ = ⊢↑-∀ ⊢↑-id
-
-example12-nat-chain-reveal-⊢ˣ :
-  store-empty ⊢↑[ nothing ] example12-nat-chain-reveal
-example12-nat-chain-reveal-⊢ˣ = ⊢↑-∀-idˣ ⊢↑-idˣ
-
-example12-nat-chain-target : Term 0
-example12-nat-chain-target =
-  ((Ex.polyId ↑ example12-nat-chain-reveal)
-    ⦂∀ Ex.X⇒X [ Ex.ℕᵗ ]) · Ex.c
-
-example12-nat-chain-target-⊢ :
-  Ex.∅ ⊢ example12-nat-chain-target ⦂ Ex.ℕᵗ
-example12-nat-chain-target-⊢ =
-  ⊢· (⊢• (⊢reveal example12-nat-chain-reveal-⊢ Ex.polyId-⊢))
-    Ex.c-⊢
-
-example12-nat-chain-source-store : TyStore 1
-example12-nat-chain-source-store = store-bind store-empty (‵ `ℕ)
-
-example12-nat-chain-target-store : TyStore 2
-example12-nat-chain-target-store =
-  store-bind (store-bind store-empty (‵ `ℕ)) (＇ Fin.zero)
-
-example12-nat-chain-imp-env : ImpEnv 2
-example12-nat-chain-imp-env Fin.zero = X⊑X
-example12-nat-chain-imp-env (Fin.suc Fin.zero) = X⊑X
-
-example12-nat-chain-ηᴿ : 2 ↪ᵗ 2
-example12-nat-chain-ηᴿ = keep (keep empty)
-
-example12-nat-chain-ηᴸ-X : 1 ↪ᵗ 2
-example12-nat-chain-ηᴸ-X = skip (keep empty)
-
-example12-nat-chain-ηᴸ-Y : 1 ↪ᵗ 2
-example12-nat-chain-ηᴸ-Y = keep empty
-
-example12-nat-chain-world-X :
-  RejectedWorldFixture example12-nat-chain-ηᴸ-X
-    example12-nat-chain-ηᴿ example12-nat-chain-imp-env
-    example12-nat-chain-source-store example12-nat-chain-target-store
-example12-nat-chain-world-X = rejected-world-fixture rejected
-  where
-  rejected :
-    WorldInvariants example12-nat-chain-ηᴸ-X
-      example12-nat-chain-ηᴿ example12-nat-chain-imp-env
-      example12-nat-chain-source-store example12-nat-chain-target-store
-    → ⊥
-  rejected inv
-      with unmatchedTargetsDynamic inv Fin.zero (λ { Fin.zero () })
-  rejected inv | inj₁ ()
-  rejected inv | inj₂ (Fin.zero , () , head-unmatched)
-  rejected inv | inj₂ (Fin.suc Fin.zero , refl , head-unmatched) =
-    head-unmatched Fin.zero refl
-
-example12-nat-chain-world-Y :
-  RejectedWorldFixture example12-nat-chain-ηᴸ-Y
-    example12-nat-chain-ηᴿ example12-nat-chain-imp-env
-    example12-nat-chain-source-store example12-nat-chain-target-store
-example12-nat-chain-world-Y = rejected-world-fixture rejected
-  where
-  rejected :
-    WorldInvariants example12-nat-chain-ηᴸ-Y
-      example12-nat-chain-ηᴿ example12-nat-chain-imp-env
-      example12-nat-chain-source-store example12-nat-chain-target-store
-    → ⊥
-  rejected inv
-      with unmatchedTargetsDynamic inv (Fin.suc Fin.zero)
-        (λ { Fin.zero () })
-  rejected inv | inj₁ ()
-  rejected inv | inj₂ (Xᴿ , () , head-unmatched)
-
-example12-nat-chain-source-X∋ :
-  example12-nat-chain-source-store ∋ Fin.zero ⦂ ‵ `ℕ
-example12-nat-chain-source-X∋ = Z∋ refl
-
-example12-nat-chain-target-Y∋ :
-  example12-nat-chain-target-store ∋ Fin.zero ⦂ ＇ (Fin.suc Fin.zero)
-example12-nat-chain-target-Y∋ = Z∋ refl
-
-example12-nat-chain-target-X∋ :
-  example12-nat-chain-target-store ∋ Fin.suc Fin.zero ⦂ ‵ `ℕ
-example12-nat-chain-target-X∋ = S-bind∋ (Z∋ refl) refl
-
-example12-nat-chain-X-representation : example12-nat-chain-imp-env ⊢
-    renameᵗ (toRenameᵗ example12-nat-chain-ηᴸ-X)
-      (resolveVar example12-nat-chain-source-store Fin.zero)
-    ⊑ renameᵗ (toRenameᵗ example12-nat-chain-ηᴿ)
-      (resolveVar example12-nat-chain-target-store (Fin.suc Fin.zero))
-example12-nat-chain-X-representation = ι⊑ι
-
-example12-nat-chain-Y-representation : example12-nat-chain-imp-env ⊢
-    renameᵗ (toRenameᵗ example12-nat-chain-ηᴸ-Y)
-      (resolveVar example12-nat-chain-source-store Fin.zero)
-    ⊑ renameᵗ (toRenameᵗ example12-nat-chain-ηᴿ)
-      (resolveVar example12-nat-chain-target-store Fin.zero)
-example12-nat-chain-Y-representation = ι⊑ι
-
-example12-nat-chain-rebase-X-to-Y :
-  WorldInvariants example12-nat-chain-ηᴸ-Y
-    example12-nat-chain-ηᴿ example12-nat-chain-imp-env
-    example12-nat-chain-source-store example12-nat-chain-target-store
-  → ⊥
-example12-nat-chain-rebase-X-to-Y =
-  violates-invariants example12-nat-chain-world-Y
 
 ------------------------------------------------------------------------
 -- Example 12 variant with the representation path on the left

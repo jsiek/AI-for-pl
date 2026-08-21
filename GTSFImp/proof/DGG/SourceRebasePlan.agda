@@ -13,8 +13,8 @@ module proof.DGG.SourceRebasePlan where
 --     evidence for rebuilt history; term and paired bindings carry rebuilt
 --     type imprecision explicitly.
 --   * Primary exports are SourceRebasePlan, rebaseSource, and
---     sourceRebasePlan-sound; dependencies are TwoCtxWorld and its direct
---     invariants, with no bridge to the old World.
+--     sourceRebasePlan-sound; dependencies are World and its direct
+--     invariants, with no compatibility world.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (suc)
@@ -29,8 +29,8 @@ open TC using (TermCtx)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (VarImp)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 private

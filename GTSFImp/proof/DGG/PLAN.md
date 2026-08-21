@@ -1138,7 +1138,7 @@ compiled empty world.
 
 The proposed two-`Ctx` redesign now has checked direct invariants and an
 exhaustive plan interpreter, not just a constructor sketch.
-The live `TwoCtxWorldInvariants` module proves all four invariants for every raw
+The live `WorldInvariants` module proves all four invariants for every raw
 constructor without `resolveVar`, invariant-accepting escape constructors,
 postulates, `NON_COVERING`, funext, or catch-alls.
 The live `SourceRebasePlan` implements the direct-store rebase graph,
@@ -1222,7 +1222,7 @@ imprecision, arbitrary recursive term bindings, endpoint lookup, and a real
 variable leaf.  Universal lifting therefore preserves edge identity without
 mutating the stable world or following an alias chain.
 
-The live `TwoCtxWorldEvolution` checks the endpoint-indexed store-evolution
+The live `WorldEvolution` checks the endpoint-indexed store-evolution
 shape.  `CtxChange` uses only constructor-form complete `Ctx` endpoints, and
 `WorldEvolution` covers keep, source-only bind, target-only fresh bind,
 paired precise bind, and paired dynamic bind.  Trusted `applyStore` and the
@@ -1230,14 +1230,14 @@ corresponding term-context action occur only in projection theorems.  The next
 operational obligation is to produce these checked cases from a pair of
 related trusted reduction steps.
 
-The live `TwoCtxWorldEvolutionProducer` checks that producer boundary.  Bare
+The live `WorldEvolutionProducer` checks that producer boundary.  Bare
 trusted `StoreChange` indices determine only keep versus `bind A`; the
 constructor-form request additionally owns right-only `RightBindFreshᶜ`, the
 paired direct type-imprecision derivation, and the precise/dynamic choice with
 its non-`★` source evidence.  From those exact facts it computes both endpoint
 contexts and the result world and returns the checked `WorldEvolution`.
 
-The live `TwoCtxWorldEvolutionSequence` checks the multi-step closure.
+The live `WorldEvolutionSequence` checks the multi-step closure.
 Source-only, target-only, and paired steps each retain their one-step witness
 and explicit intermediate world, so unequal trace lengths need no synthetic
 `keep`.  Induction proves final source/target stores equal trusted
@@ -1260,6 +1260,10 @@ marks, type-imprecision transport, freshness, and direct invariants.  A
 following `β := α` is represented by the exact boundary edge; commuting a raw
 alias head would require an additional `RightBindFreshᶜ` noncollision fact and
 is not admitted.
+
+The CTI probes below are historical design experiments, not migrated
+definitions. Their indices and wrapper choices require review against the
+canonical `World` before any part is moved into `CastTermImprecision`.
 
 `TwoCtxEdgeScopedCTIProbe` checks the first compositional term-imprecision
 surface over that edge-indexed mode.  Ordinary variable/lambda/application

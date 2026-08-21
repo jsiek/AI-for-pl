@@ -27,7 +27,8 @@ import CastTerms as CT
 open import CastTerms using
   (Inert; GenSafe; safe-⇒; safe-∀; safe-inst; safe-gen; _⟨_⟩)
 open import Conversion using
-  (Conv↑; Conv↓; _⊢↑_; _⊢↓_; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
+  (Conv↑; Conv↓; replaceTy; rename↑; rename↓; 〖_,_↑_〗)
+import Conversion as Conv
 open import Reduction using
   (StoreChange; keep; bind; applyStores; applyTy; applyBody;
    applyTys; applyConsistency; applyConsistencies; StoreChanges;
@@ -44,7 +45,8 @@ import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize)
-open import proof.ImprecisionConsistency using (nonstar-from-≢★)
+open import proof.ImprecisionConsistency using
+  (fin-suc-injective; nonstar-from-≢★)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 import proof.DGG.Catchup.StructuralGeneratedFrameGeometryDef as GFG
 
@@ -270,15 +272,15 @@ data SpineTyped {fuel : ℕ} {Δ} (Σ : TyStore Δ) :
     → SpineTyped {fuel = fuel} Σ spine
     → SpineTyped {fuel = fuel} Σ (cast-frame c ▻ⁱ spine)
 
-  st-reveal : ∀ {A B E}
+  st-reveal : ∀ {A B E X R}
       {c : Conv↑ Δ A B} {spine : InstantiationSpine B E}
-    → Σ ⊢↑ c
+    → Σ Conv.⊢↑[ X ⦂ R ] c
     → SpineTyped {fuel = fuel} Σ spine
     → SpineTyped {fuel = fuel} Σ (reveal-frame c ▻ⁱ spine)
 
-  st-conceal : ∀ {A B E}
+  st-conceal : ∀ {A B E X R}
       {c : Conv↓ Δ A B} {spine : InstantiationSpine B E}
-    → Σ ⊢↓ c
+    → Σ Conv.⊢↓[ X ⦂ R ] c
     → SpineTyped {fuel = fuel} Σ spine
     → SpineTyped {fuel = fuel} Σ (conceal-frame c ▻ⁱ spine)
 
@@ -299,36 +301,36 @@ spine-typed-store-eq : ∀ {fuel Δ} {Σ Σ′ : TyStore Δ}
 spine-typed-store-eq refl typed = typed
 
 
-normalize-renamed↑-typed : ∀ {Δ} {Σ : TyStore Δ} {A B}
+normalize-renamed↑-typed : ∀ {Δ} {Σ : TyStore Δ} {A B X R}
     {c : Conv↑ Δ A B}
-  → Σ ⊢↑ c
-  → Σ ⊢↑ normalize-renamed↑ c
-normalize-renamed↑-typed {A = A} {B = B} {c = c} c⊢ =
+  → Σ Conv.⊢↑[ X ⦂ R ] c
+  → Σ Conv.⊢↑[ X ⦂ R ] normalize-renamed↑ c
+normalize-renamed↑-typed {A = A} {B = B} {X = X} {R = R} {c = c} c⊢ =
   reveal-typing-subst (renameᵗ-id A) (renameᵗ-id B)
     (reveal-rename-id c⊢)
   where
   reveal-typing-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
       {d : Conv↑ _ A₀ B₀}
     → (eqA : A₀ ≡ A₁) → (eqB : B₀ ≡ B₁)
-    → _ ⊢↑ d
-    → _ ⊢↑ subst≡ (Conv↑ _ A₁) eqB
+    → _ Conv.⊢↑[ X ⦂ R ] d
+    → _ Conv.⊢↑[ X ⦂ R ] subst≡ (Conv↑ _ A₁) eqB
         (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
   reveal-typing-subst refl refl d⊢ = d⊢
 
 
-normalize-renamed↓-typed : ∀ {Δ} {Σ : TyStore Δ} {A B}
+normalize-renamed↓-typed : ∀ {Δ} {Σ : TyStore Δ} {A B X R}
     {c : Conv↓ Δ A B}
-  → Σ ⊢↓ c
-  → Σ ⊢↓ normalize-renamed↓ c
-normalize-renamed↓-typed {A = A} {B = B} {c = c} c⊢ =
+  → Σ Conv.⊢↓[ X ⦂ R ] c
+  → Σ Conv.⊢↓[ X ⦂ R ] normalize-renamed↓ c
+normalize-renamed↓-typed {A = A} {B = B} {X = X} {R = R} {c = c} c⊢ =
   conceal-typing-subst (renameᵗ-id A) (renameᵗ-id B)
     (conceal-rename-id c⊢)
   where
   conceal-typing-subst : ∀ {A₀ A₁ B₀ B₁ : Ty _}
       {d : Conv↓ _ A₀ B₀}
     → (eqA : A₀ ≡ A₁) → (eqB : B₀ ≡ B₁)
-    → _ ⊢↓ d
-    → _ ⊢↓ subst≡ (Conv↓ _ A₁) eqB
+    → _ Conv.⊢↓[ X ⦂ R ] d
+    → _ Conv.⊢↓[ X ⦂ R ] subst≡ (Conv↓ _ A₁) eqB
         (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
   conceal-typing-subst refl refl d⊢ = d⊢
 
@@ -366,10 +368,10 @@ spine-typed-map-bind R (st-cast cls typed) =
   st-cast (cast-frame-class-map (bind R) cls)
     (spine-typed-map-bind R typed)
 spine-typed-map-bind R (st-reveal c⊢ typed) =
-  st-reveal (reveal-renameᵗ StoreRename-suc-bind c⊢)
+  st-reveal (reveal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
     (spine-typed-map-bind R typed)
 spine-typed-map-bind R (st-conceal c⊢ typed) =
-  st-conceal (conceal-renameᵗ StoreRename-suc-bind c⊢)
+  st-conceal (conceal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
     (spine-typed-map-bind R typed)
 
 
@@ -466,11 +468,10 @@ spine-typed-Λ-child {W = W} {B = B} {X = X} fresh typed =
 
 spine-typed-reveal-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ (suc Δᴿ) Δ}
-    {γ : CTX.CtxImp W}
-    {Aₛ : Ty Δᴸ} {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
+    {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {X : TyVar Δᴿ} {c : Conv↑ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
-  → GFG.StructuralRevealGeneratedFrameGeometry W γ Aₛ B C X c
+  → GFG.StructuralRevealGeneratedFrameGeometry W B C X c
   → SpineTypedʷ {fuel = fuel} W
       (mapInstantiationSpine (bind (＇ X)) spine)
   → SpineTypedʷ {fuel = fuel} W
@@ -483,8 +484,8 @@ spine-typed-reveal-child : ∀ {fuel Δᴸ Δᴿ Δ}
         mapInstantiationSpine (bind (＇ X)) spine)
 spine-typed-reveal-child geom typed =
   st-name (st-type
-    (st-reveal (CTI2T.erase-⊢↑ (RG.targetConversion₁ geom))
-      (st-reveal (CTI2T.erase-⊢↑ (RG.targetConversion₂ geom))
+    (st-reveal (RG.targetConversion₁ geom)
+      (st-reveal (RG.targetConversion₂ geom)
         (st-type typed))))
   where
   module RG = GFG.StructuralRevealGeneratedFrameGeometry
@@ -492,11 +493,10 @@ spine-typed-reveal-child geom typed =
 
 spine-typed-conceal-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ (suc Δᴿ) Δ}
-    {γ : CTX.CtxImp W}
-    {Aₛ : Ty Δᴸ} {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
+    {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {X : TyVar Δᴿ} {c : Conv↓ (suc Δᴿ) C B}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
-  → GFG.StructuralConcealGeneratedFrameGeometry W γ Aₛ B C X c
+  → GFG.StructuralConcealGeneratedFrameGeometry W B C X c
   → SpineTypedʷ {fuel = fuel} W
       (mapInstantiationSpine (bind (＇ X)) spine)
   → SpineTypedʷ {fuel = fuel} W
@@ -509,8 +509,8 @@ spine-typed-conceal-child : ∀ {fuel Δᴸ Δᴿ Δ}
         mapInstantiationSpine (bind (＇ X)) spine)
 spine-typed-conceal-child geom typed =
   st-name (st-type
-    (st-conceal (CTI2T.erase-⊢↓ (CG.targetConversion₁ geom))
-      (st-reveal (CTI2T.erase-⊢↑ (CG.targetConversion₂ geom))
+    (st-conceal (CG.targetConversion₁ geom)
+      (st-reveal (CG.targetConversion₂ geom)
         (st-type typed))))
   where
   module CG = GFG.StructuralConcealGeneratedFrameGeometry

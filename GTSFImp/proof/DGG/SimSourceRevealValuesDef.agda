@@ -32,6 +32,8 @@ open import proof.DGG.CatchupToMorePreciseDef
     ; source-reveal-boundary
     ; targetPivotᴸ
     )
+open import proof.DGG.ConversionPivotAlignment
+  using (generatorBoundaryPivot; revealGeneratorPosition)
 open CTX using
   (World;
    ImpEnvMono;
@@ -46,20 +48,25 @@ SimSourceRevealValuesᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-    {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
-    {Xᴸ? : Maybe (TyVar Δᴸ)} {c : Conv↑ Δᴸ A A′}
+    {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ}
+    {c : Conv↑ Δᴸ A A′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
   → ParkedWorld W
   → (mono : ImpEnvMono W Wᵖ)
-  → (rebase : RebaseAtᴸ W Wᵖ Xᴸ?)
-  → sourceStoreʷ W Conv.⊢↑[ Xᴸ? ] c
+  → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (rebase : RebaseAtᴸ W Wᵖ
+      (generatorBoundaryPivot Xᴸ (revealGeneratorPosition c⊢)))
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
+  → W ∣ [] ⊢² V ↑ c ⊑ M′ ∶ q
   → Value V
   → V ↑ c —→[ χᴸ ] N
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-reveal-boundary}
-      {Xᴸ? = Xᴸ?} {Xᴿ? = targetPivotᴸ rebase}
+      {Xᴸ? = generatorBoundaryPivot Xᴸ
+        (revealGeneratorPosition c⊢)}
+      {Xᴿ? = targetPivotᴸ rebase}
       {V = V} {M′ = M′} {A = A} {B = B}
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]

@@ -1,8 +1,8 @@
-# Two-`Ctx` world relation design
+# World relation design
 
 ## Status and scope
 
-This note proposes replacing the proof-layer family
+This note defines the replacement for the proof-layer family
 `World : TyCtx → TyCtx → TyCtx → Set` with a relation on the trusted
 runtime typing contexts from `CastTerms`:
 
@@ -16,16 +16,15 @@ The common center remains internal to a relation witness.  It is not a third
 index.  The source and target stores and term contexts are the `Σᵉ` and `Γᵉ`
 fields of the two endpoint `Ctx` values.
 
-The core relation and projections now live in `proof/DGG/TwoCtxWorld.agda`.
-`proof/DGG/TwoCtxWorldInvariants.agda` proves that every raw constructor implies
+The core relation and projections now live in `proof/DGG/World.agda`.
+`proof/DGG/WorldInvariants.agda` proves that every raw constructor implies
 the four direct nominal invariants and checks a direct-store rebase graph plus
 its same-world case.  `proof/DGG/SourceRebasePlan.agda` gives the corresponding
 structural function over an explicit plan, and
 `proof/DGG/SourceRebaseRequest.agda` gives its direct-store operational request
-surface.  These modules are imported by the safe aggregate.  Operational
-consumers still use the old world, so migrating their producers remains
-unfinished.  This note does not authorize a change to the live
-term-imprecision relation.
+surface. These modules are imported by the safe aggregate. Unmigrated
+operational consumers are intentionally red after removal of the old world.
+The live term-imprecision relation is the next canonical migration boundary.
 
 The live `SourceRebasePlan` implements one local source/target allocation
 commutation and carries it through every later raw history constructor.  Later
@@ -60,18 +59,24 @@ alias boundary under lifting.  `TwoCtxLiftedExactBoundaryProbe` introduces the
 structural one-edge replacement, and `TwoCtxEdgeIndexedModeProbe` checks the
 resulting head and lifted modes, recursive term contexts, lookups, and variable
 leaves.
-The live `TwoCtxWorldEvolution` module checks constructor-form endpoint
+The live `WorldEvolution` module checks constructor-form endpoint
 evolution for trusted keep/bind store changes.  Executable store and
 term-context application appear only in projection theorems, never in
-world-evolution indices.  `TwoCtxWorldEvolutionProducer` records the exact
+world-evolution indices.  `WorldEvolutionProducer` records the exact
 relational allocation evidence that bare trusted store changes omit.
-`TwoCtxWorldEvolutionSequence` composes unilateral and paired steps with
+`WorldEvolutionSequence` composes unilateral and paired steps with
 explicit intermediate worlds and checks trusted multi-store, term-context, and
 term projections without synthetic synchronization steps.
 The live `SourceRebaseRequest` checks the three operational request cases: no
 pivot, an unmatched source pivot, and a paired structural move.
 `TwoCtxFreshBehindPlanProbe` checks source lift behind a target-star prefix and
 keeps `β := α` in the boundary-scoped edge layer.
+
+The following CTI probes are historical design experiments, not migrated
+definitions. They are retained temporarily for the upcoming CTI review and
+must not be treated as the live relation. In particular, their wrapper and
+boundary-index choices have not been accepted.
+
 `TwoCtxEdgeScopedCTIProbe` checks ordinary variable/lambda/application rules,
 exact target mode transitions, current-mode-unoccupied source conceal, and
 term-independent paired reveal/conceal.  It also checks constants, source
@@ -612,6 +617,67 @@ term contexts follows from the endpoint indices.  Conversion typing reads
 These CTI clauses are **proposed statements only**.  Any live edit still
 requires the separate permission process for `CastTermImprecision.agda`.
 
+## Reveal and conceal value status
+
+Value status and generator position are independent dimensions of a
+conversion boundary.  Generator position determines which world or boundary
+configuration may relate the terms.  The outer conversion constructor and the
+payload determine whether the boundary term is a value and which reduction can
+expose it.
+
+The trusted value grammar gives the following classification.
+
+| Boundary | A value when its payload is a value? | Next boundary reduction |
+| --- | --- | --- |
+| `V ↑ id↑ A` | no | `id-reveal` |
+| `V ↑ unseal X R` | no | `conceal-reveal` after a matching seal |
+| `V ↑ (c ↓ ↦↑ d ↑)` | yes | `β-reveal-⇒` when applied |
+| ``V ↑ (`∀↑ c)`` | yes | `β-reveal-∀` when type-applied |
+| `V ↓ id↓ A` | no | `id-conceal` |
+| `V ↓ seal X R` | yes | waits for a matching unseal |
+| `V ↓ (c ↑ ↦↓ d ↓)` | yes | `β-conceal-⇒` when applied |
+| ``V ↓ (`∀↓ c)`` | yes | `β-conceal-∀` when type-applied |
+
+In particular, `generator-absent` does not mean that the boundary is an
+operational identity.  A generated arrow conversion can have identity leaves,
+have absent generator position, and still make `V ↑ (c ↓ ↦↑ d ↑)` a value.
+Application distributes that value boundary into an argument conceal and a
+result reveal before the identity leaves disappear.
+
+Conversely, one exact active boundary occurs with both value and non-value
+payloads during a single execution.  Before `β-reveal-⇒`, a structural arrow
+reveal around a lambda is a value.  After the step, its domain seal wraps the
+value argument, while its result unseal wraps an application and is not a
+value.  The dual `β-conceal-⇒` step starts with a structural conceal value and
+produces an outer conceal around a non-value application.  The Example 12
+`beta := alpha`, `alpha := ★` stack repeats this transition at both exact
+target boundaries.
+
+`TwoCtxValueSensitiveConversionAcceptanceProbe` checks these facts for:
+
+- an absent-generator structural arrow reveal;
+- a genuinely source-only active reveal and conceal;
+- matched active source and target conversions; and
+- the exact two-edge Example 12 target stack using `BoundaryState` and
+  `ExactTargetBoundary`.
+
+Therefore the general CTI reveal and conceal clauses must not require their
+payloads to be values, and they must not be split into value and non-value
+versions.  Value evidence belongs in derived inversion and ready-redex lemmas:
+from `Value (V ↑ c)` recover `Value V` and `RevealValue c`, and from
+`Value (V ↓ c)` recover `Value V` and `ConcealValue c`.  Simulation uses those
+facts when an application, type application, identity boundary, or matching
+seal/unseal is ready to reduce.  The core CTI remains syntax-directed and can
+also survive `ξ-reveal`, `ξ-conceal`, and the non-value results of boundary
+distribution.
+
+No current compiler or trusted reduction fixture requires a moving
+`SourceRebasePlan` as a primitive reveal clause of CTI.  Existing concrete
+uses are genuinely source-only, genuinely matched, or exact target-boundary
+cases.  Source rebasing remains a world/evolution producer operation; a CTI
+source-rebase clause should be added only if a concrete reachable reduction
+square cannot be represented by those three configurations.
+
 ## Intended deletions
 
 After the migration is complete, delete rather than alias:
@@ -652,7 +718,7 @@ the world, as the current SimBack result surface now permits.
 The highest-impact consumers are `CastTermImprecision.agda`,
 `CastTermImprecision2Typing.agda`, `CompilePreservesImprecision2.agda`,
 `CenterRename.agda`, `TargetExtend.agda`, `TargetBindLift.agda`,
-`Parked/ParkedWorldDef.agda`, `SimProof.agda`, `SimBackProof.agda`, the
+`Parked/ParkedWorldDef.agda`, `SimProof.agda`, `SimBackDef.agda`, the
 target-strip proofs, and the instantiation catch-up and inversion family.
 
 ## Open proof obligations
@@ -660,7 +726,7 @@ target-strip proofs, and the instantiation catch-up and inversion family.
 Before this replaces the old consumer indices, the remaining work must
 establish:
 
-- The live `TwoCtxWorldInvariants` theorem establishes that the inductive
+- The live `WorldInvariants` theorem establishes that the inductive
   constructors imply all four direct invariants without a general
   invariant-accepting escape constructor.
 - Checked source rebase is implemented as a function over an explicit plan.

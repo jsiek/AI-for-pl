@@ -4,7 +4,7 @@
 
 This is a read-only audit of the old world surface in
 `proof/DGG/CtxImp.agda` against the live `TwoCtxWorld`,
-`TwoCtxWorldInvariants`, `SourceRebasePlan`, `TargetExtendPlan`, the checked
+`WorldInvariants`, `SourceRebasePlan`, `TargetExtendPlan`, the checked
 `TwoCtxTargetStripReconstructionProbe`, and the edge-indexed alias-mode probes.
 The typed boundary and scoped-term probes
 additionally check the type and term-indexed surface.  The counts below are

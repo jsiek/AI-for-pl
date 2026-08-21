@@ -4,6 +4,7 @@ module proof.DGG.TargetBlameCatchupProof where
 --   * Proves target-blame catch-up under an explicit source-boundary stack.
 --   * Replays source wrappers after recursive catch-up and routes source-value
 --     Λ branches through a supplied value/blame exclusion parameter.
+--   * Distinguishes neutral, source-only, and rebased generator boundaries.
 --   * Exposes the fixed TargetBlameCatchupᵀ surface as a thin same-boundary
 --     adapter once the exclusion parameter is supplied.
 
@@ -34,8 +35,6 @@ open import Reduction using
   )
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
-open import proof.DGG.CatchupToMorePreciseDef
-  using (toTagRebaseAtᴸ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
 open import proof.DGG.Parked.ParkedWorldDef
@@ -107,10 +106,21 @@ target-value-blame-exclusion (vV CastTerms.《 inert 》)
     (CTI2.cast⊑² c prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↑ rv)
-    (CTI2.reveal⊑² mono rb same c⊢ prem q) =
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (vV CastTerms.↑ rv)
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (vV CastTerms.↑ rv)
+    (CTI2.reveal⊑² c⊢ pos≢absent Xᴿ∈ represented mono rb same
+      prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↓ cv)
-    (CTI2.conceal⊑² mono rb same c⊢ prem q) =
+    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q) =
+  target-value-blame-exclusion vV prem
+target-value-blame-exclusion (vV CastTerms.↓ cv)
+    (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q) =
   target-value-blame-exclusion vV prem
 
 
@@ -265,29 +275,59 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-cast-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑² mono rb CTX.same-[] c⊢ prem q)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q)
     with target-blame-catchup-under-boundary
-      target-value-blame-exclusion parked
-      (target-blame-boundary-source-reveal boundary mono
-        (toTagRebaseAtᴸ rb))
-      prem
+      target-value-blame-exclusion parked boundary prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑² mono rb CTX.same-[] c⊢ prem q)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-reveal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑² mono rb CTX.same-[]
-      c⊢ prem q)
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked boundary prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-reveal-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.reveal⊑² c⊢ pos≢absent Xᴿ∈ represented mono rb CTX.same-[]
+      prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked
-      (target-blame-boundary-source-conceal boundary mono rb)
+      (target-blame-boundary-source-reveal boundary mono
+        (CTX.tag-rebase-varᴸ rb))
       prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑² mono rb CTX.same-[]
-      c⊢ prem q)
+    (CTI2.reveal⊑² c⊢ pos≢absent Xᴿ∈ represented mono rb CTX.same-[]
+      prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-reveal-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked boundary prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q)
+    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
+  source-conceal-blame-catchup M↠blame evol
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q)
+    with target-blame-catchup-under-boundary
+      target-value-blame-exclusion parked boundary prem
+target-blame-catchup-under-boundary target-value-blame-exclusion
+    parked boundary
+    (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-conceal-blame-catchup M↠blame evol
 

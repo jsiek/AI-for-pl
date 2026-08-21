@@ -254,21 +254,15 @@ global-beta-function-type : Global.ScopedTypeᵍ stable-worldᶠ
   global-producer-focus producer-edge global-beta-mode
   ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ))
   ((＇ target-betaᶠ) ⇒ (＇ target-betaᶠ))
-global-beta-function-type = Global.scoped-typeᵍ
-  (Global.view-funᵍ
-    (Global.view-varᵍ (Global.focus-hereᵍ refl))
-    (Global.view-varᵍ (Global.focus-hereᵍ refl)))
-  (I.⇒⊑⇒ I.X⊑X I.X⊑X)
+global-beta-function-type = Global.scoped-funᵍ
+  global-beta-type global-beta-type
 
 global-alpha-function-type : Global.ScopedTypeᵍ stable-worldᶠ
   global-producer-focus producer-edge global-alpha-mode
   ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ))
   ((＇ target-alpha⁺ᶠ) ⇒ (＇ target-alpha⁺ᶠ))
-global-alpha-function-type = Global.scoped-typeᵍ
-  (Global.view-funᵍ
-    (Global.view-varᵍ (Global.focus-hereᵍ refl))
-    (Global.view-varᵍ (Global.focus-hereᵍ refl)))
-  (I.⇒⊑⇒ I.X⊑X I.X⊑X)
+global-alpha-function-type = Global.scoped-funᵍ
+  global-alpha-type global-alpha-type
 
 global-parameter-scope : Global.ScopedWorldᵍ stable-worldᶠ
   global-producer-focus producer-edge
@@ -321,11 +315,7 @@ transport-frame-relation : Global.ScopedCTIᵍ stable-worldᶠ
       (replace-zero-open beta-body-type (＇ target-alphaᶠ))))
   {A = (＇ source-Xᶠ) ⇒ (＇ source-Xᶠ)}
   {B = ⇑ᵗ (beta-body-type [ ＇ target-alphaᶠ ]ᵗ)}
-  (Global.scoped-typeᵍ
-    (Global.view-funᵍ
-      (Global.view-varᵍ (Global.focus-hereᵍ refl))
-      (Global.view-varᵍ (Global.focus-hereᵍ refl)))
-    (I.⇒⊑⇒ I.X⊑X I.X⊑X))
+  (Global.scoped-funᵍ global-alpha-type global-alpha-type)
 transport-frame-relation = first-reveal-frame-relation
 
 mapped-alpha-reveal-typed :
@@ -337,9 +327,8 @@ mapped-alpha-reveal-typed = ⊢↑-⇒ˣ join-both
 global-stable-function-type : Global.ScopedTypeᵍ stable-worldᶠ
   global-producer-focus producer-edge Global.stableᵍ
   ((＇ source-Xᶠ) ⇒ (＇ source-Xᶠ)) (★ ⇒ ★)
-global-stable-function-type = Global.scoped-typeᵍ
-  (Global.view-funᵍ Global.view-starᵍ Global.view-starᵍ)
-  (I.⇒⊑⇒ (I.X⊑★ refl) (I.X⊑★ refl))
+global-stable-function-type = Global.scoped-funᵍ
+  global-stable-X-star global-stable-X-star
 
 mapped-alpha-reveal-relation : Global.ScopedCTIᵍ stable-worldᶠ
   global-producer-focus producer-edge Global.stableᵍ

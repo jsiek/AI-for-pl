@@ -26,7 +26,8 @@ open import Relation.Binary.PropositionalEquality
   renaming (subst to subst≡)
 
 open import Types
-open import TyStore using (TyStore; store-lift; lookupStore; lookupStore-∋)
+open import TyStore using
+  (TyStore; store-lift; lookupStore; lookupStore-∋; _∋_⦂_)
 open import Imprecision
 open import Primitives using
   (Prim; addℕ; and𝔹; constTy; primArgTy; primResultTy;
@@ -35,8 +36,7 @@ import TermCtx as T
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ;
    renameᵐᶜ)
-import Conversion
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
+open import Conversion using (Conv↑; Conv↓)
 open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⊢_⦂_; renameᵗᵐ)
 import Reduction
 open import Reduction using (bind; _∷_; [])
@@ -47,9 +47,11 @@ import proof.DGG.ExtraCastRight2 as ECR
 open import proof.TypeInTermSubst using
   (StoreRename; StoreRename-ext; StoreRename-keep; StoreRename-wk-bind;
    renameᵗᵐ-preserves-Value; renameᵗ-wk-eq; toRename-id-eq;
-   toRename-keep-eq; toRename-wk-eq; typing-renameᵗ; rename-openᵗ)
+   toRename-keep-eq; toRename-wk-eq; typing-renameᵗ; rename-openᵗ;
+   reveal-renameᵗ; conceal-renameᵗ)
 open import proof.ImprecisionConsistency using
-  (fin-suc-injective; rename-⊑; subst-⊑; toRenameᵗ-injective)
+  (ext-injective; fin-suc-injective; rename-⊑; subst-⊑;
+   toRenameᵗ-injective)
 open import proof.DGG.Parked.ParkedBindImprecisionProof using (right-bind-⊑ᵂ)
 open import proof.DGG.CenterRename using
   (_∘↪_; toRenameᵗ-∘; sucMaybe; preimage?; sucMaybe-nothing;
@@ -60,6 +62,10 @@ open import proof.DGG.CenterRename using
    renameEnv-image; renameEnv-off)
 import proof.DGG.CenterRename as CR
 import proof.Imprecision as PI
+open import proof.DGG.ConversionPivotAlignment using
+  (GeneratorPosition; generator-absent; revealGeneratorPosition;
+   concealGeneratorPosition; revealGeneratorPosition-store-transport;
+   concealGeneratorPosition-store-transport)
 
 open CTX using
   (World;
@@ -68,7 +74,7 @@ open CTX using
 open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
--- Optional target pivots and indexed conversion typing
+-- Optional world-rebase pivots
 ------------------------------------------------------------------------
 
 mapPivot : ∀ {Δ Δ′}
@@ -2599,51 +2605,42 @@ TargetInsertProvenance W⁺ ins (CTI2.cast⊑cast² c c′ M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance W⁺ ins (CTI2.⊑cast² c′ M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
-TargetInsertProvenance
-    {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
-    {ρ = ρ} {π = π} W⁺ ins
-    (CTI2.⊑reveal² {W′ = Wᵖ} {Xᴿ? = Xᴿ?}
-      mono rb sc c′⊢ M⊑M′ q) =
-  Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
-      (CTX.RebaseAtᴿ W⁺ Wᵖ⁺
-        (mapPivot (toRenameᵗ ρ) Xᴿ?)
-      × TargetInsertProvenance Wᵖ⁺ insᵖ M⊑M′)
-TargetInsertProvenance
-    {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
-    {ρ = ρ} {π = π} W⁺ ins
-    (CTI2.⊑conceal² {W′ = Wᵖ} {Xᴿ? = Xᴿ?}
-      mono rb sc c′⊢ M⊑M′ q) =
-  Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
-      (CTX.RebaseAtᴿ Wᵖ⁺ W⁺
-        (mapPivot (toRenameᵗ ρ) Xᴿ?)
-      × TargetInsertProvenance Wᵖ⁺ insᵖ M⊑M′)
+TargetInsertProvenance W⁺ ins
+    (CTI2.⊑reveal² c′⊢ at-absent M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
+TargetInsertProvenance W⁺ ins
+    (CTI2.⊑conceal² c′⊢ at-absent M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance W⁺ ins (CTI2.cast⊑² c M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
+TargetInsertProvenance W⁺ ins
+    (CTI2.reveal⊑-neutral² c⊢ at-absent M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
+TargetInsertProvenance W⁺ ins
+    (CTI2.reveal⊑-only² c⊢ not-absent dynamic disaligned
+      represented M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance
     {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     {ρ = ρ} {π = π} W⁺ ins
-    (CTI2.reveal⊑² {W′ = Wᵖ} {Xᴸ? = Xᴸ?}
-      mono rb sc c⊢ M⊑M′ q) =
+    (CTI2.reveal⊑² {W′ = Wᵖ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+      c⊢ not-absent Xᴿ∈ represented mono rb sc M⊑M′ q) =
   Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
-      (CTX.RebaseAtᴸ W⁺ Wᵖ⁺ Xᴸ?
+      (CTX.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
       × TargetInsertProvenance Wᵖ⁺ insᵖ M⊑M′)
-TargetInsertProvenance
-    {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
-    {ρ = ρ} {π = π} W⁺ ins
-    (CTI2.conceal⊑² {W′ = Wᵖ} {Xᴸ? = Xᴸ?}
-      mono rb sc c⊢ M⊑M′ q) =
-  Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
-    Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
-      (CTX.TagRebaseAtᴸ Wᵖ⁺ W⁺ Xᴸ? nothing
-      × TargetInsertProvenance Wᵖ⁺ insᵖ M⊑M′)
+TargetInsertProvenance W⁺ ins
+    (CTI2.conceal⊑-neutral² c⊢ at-absent M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
+TargetInsertProvenance W⁺ ins
+    (CTI2.conceal⊑² c⊢ not-absent dynamic disaligned
+      represented M⊑M′ q) =
+  TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance
     {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     {ρ = ρ} {π = π} W⁺ ins
     (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
-      mono rb sc c⊢ c′⊢ M⊑M′ q) =
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑M′ q) =
   Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
       (CTX.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
@@ -2652,7 +2649,7 @@ TargetInsertProvenance
     {Δᴸ = Δᴸ} {Δᴿ′ = Δᴿ′} {Δ′ = Δ′}
     {ρ = ρ} {π = π} W⁺ ins
     (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
-      mono rb sc c⊢ c′⊢ M⊑M′ q) =
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑M′ q) =
   Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ insᵖ ∈ TargetInsert ρ π Wᵖ Wᵖ⁺ ]
       (CTX.RebaseAt Wᵖ⁺ W⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
@@ -2677,21 +2674,6 @@ TargetExtendOPEᵀ =
   → TargetInsertProvenance W′ ins M⊑M′
   → W′ ∣ mapCtxᵀ ins γ
       ⊢² M ⊑ renameᵗᵐ ρ M′ ∶ transport⊑ᵂ ins p
-
-RebaseAtᴿInsertCommuteᵀ : Set
-RebaseAtᴿInsertCommuteᵀ =
-  ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
-    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
-    {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {W⁺ : World Δᴸ Δᴿ′ Δ′}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-  → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTX.RebaseAtᴿ W Wᵖ Xᴿ?)
-  → RebaseInsertOK {Wᵖ = Wᵖ} ins
-  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
-      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTX.RebaseAtᴿ W⁺ Wᵖ⁺
-        (mapPivot (toRenameᵗ ρ) Xᴿ?)
 
 RebaseAtᴸInsertCommuteᵀ : Set
 RebaseAtᴸInsertCommuteᵀ =
@@ -2774,26 +2756,15 @@ insert-disalignedᴸ ins disaligned Xᴿ′ eq
     | Xᴿ , xᴿ′-eq , aligned =
   disaligned Xᴿ (sym aligned)
 
-insert-represented★ᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+insert-source-member : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W⁺ : World Δᴸ Δᴿ′ Δ′}
-    {Xᴸ : TyVar Δᴸ}
+    {Xᴸ : TyVar Δᴸ} {Rᴸ : Ty Δᴸ}
   → (ins : TargetInsert ρ π W W⁺)
-  → CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ ⊑ᵂ⟨ W ⟩ ★
-  → CTX.resolveVar (CTX.sourceStoreʷ W⁺) Xᴸ ⊑ᵂ⟨ W⁺ ⟩ ★
-insert-represented★ᴸ {W⁺ = W⁺} {Xᴸ = Xᴸ} ins represented =
-  subst≡ (λ A → A ⊑ᵂ⟨ W⁺ ⟩ ★)
-    (sym (source-resolve ins Xᴸ))
-    (transport⊑ᵂ ins represented)
-
-insertRebaseAtᴿ : RebaseAtᴿInsertCommuteᵀ
-insertRebaseAtᴿ ins CTX.rebase-idᴿ ok =
-  _ , ins , CTX.rebase-idᴿ
-insertRebaseAtᴿ ins (CTX.rebase-varᴿ rb) ok
-    with insertRebaseAt ins rb ok
-insertRebaseAtᴿ ins (CTX.rebase-varᴿ rb) ok
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺
+  → CTX.sourceStoreʷ W ∋ Xᴸ ⦂ Rᴸ
+  → CTX.sourceStoreʷ W⁺ ∋ Xᴸ ⦂ Rᴸ
+insert-source-member ins member =
+  subst≡ (λ Σ → Σ ∋ _ ⦂ _) (sym (sourceStore-kept ins)) member
 
 insertRebaseAtᴸ : RebaseAtᴸInsertCommuteᵀ
 insertRebaseAtᴸ ins CTX.rebase-idᴸ ok =
@@ -2805,12 +2776,13 @@ insertRebaseAtᴸ ins (CTX.rebase-varᴸ rb) ok
   Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺
 insertRebaseAtᴸ {W⁺ = W⁺} ins
     (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   W⁺ , ins ,
     CTX.rebase-onlyᴸ
+      (insert-source-member ins member)
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
-      (insert-represented★ᴸ ins represented)
+      (transport⊑ᵂ ins represented)
 
 insertTagRebaseAtᴸ : TagRebaseAtᴸInsertCommuteᵀ
 insertTagRebaseAtᴸ ins CTX.tag-rebase-idᴸ ok =
@@ -2822,12 +2794,13 @@ insertTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb) ok
   Wᵖ⁺ , insᵖ , CTX.tag-rebase-varᴸ rb⁺
 insertTagRebaseAtᴸ {W⁺ = W⁺} ins
     (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   W⁺ , ins ,
     CTX.tag-rebase-onlyᴸ
+      (insert-source-member ins member)
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
-      (insert-represented★ᴸ ins represented)
+      (transport⊑ᵂ ins represented)
 
 pullbackRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2848,12 +2821,13 @@ pullbackRebaseAtᴸInsert {W = W} insᵖ (CTX.rebase-varᴸ rb) ok =
   CTX.rebase-varᴸ (pullbackRebaseAt insᵖ rb ok)
 pullbackRebaseAtᴸInsert {Wᵖ⁺ = Wᵖ⁺} insᵖ
     (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   Wᵖ⁺ , insᵖ ,
     CTX.rebase-onlyᴸ
+      (insert-source-member insᵖ member)
       (insert-to-starᴸ insᵖ to-star)
       (insert-disalignedᴸ insᵖ disaligned)
-      (insert-represented★ᴸ insᵖ represented)
+      (transport⊑ᵂ insᵖ represented)
 
 pullbackTagRebaseAtᴸInsert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2876,31 +2850,13 @@ pullbackTagRebaseAtᴸInsert {W = W} insᵖ
   CTX.tag-rebase-varᴸ (pullbackReverseRebaseAt insᵖ rb ok)
 pullbackTagRebaseAtᴸInsert {Wᵖ⁺ = Wᵖ⁺} insᵖ
     (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   Wᵖ⁺ , insᵖ ,
     CTX.tag-rebase-onlyᴸ
+      (insert-source-member insᵖ member)
       (insert-to-starᴸ insᵖ to-star)
       (insert-disalignedᴸ insᵖ disaligned)
-      (insert-represented★ᴸ insᵖ represented)
-
-reverseRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
-    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
-    {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {W⁺ : World Δᴸ Δᴿ′ Δ′}
-    {Xᴿ? : Maybe (TyVar Δᴿ)}
-  → (ins : TargetInsert ρ π W W⁺)
-  → (rb : CTX.RebaseAtᴿ Wᵖ W Xᴿ?)
-  → RebaseInsertOK {Wᵖ = Wᵖ} ins
-  → Σ[ Wᵖ⁺ ∈ World Δᴸ Δᴿ′ Δ′ ]
-      TargetInsert ρ π Wᵖ Wᵖ⁺ ×
-      CTX.RebaseAtᴿ Wᵖ⁺ W⁺ (mapPivot (toRenameᵗ ρ) Xᴿ?)
-reverseRebaseAtᴿ ins CTX.rebase-idᴿ ok =
-  _ , ins , CTX.rebase-idᴿ
-reverseRebaseAtᴿ ins (CTX.rebase-varᴿ rb) ok
-    with reverseRebaseAt ins rb ok
-reverseRebaseAtᴿ ins (CTX.rebase-varᴿ rb) ok
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺
+      (transport⊑ᵂ insᵖ represented)
 
 reverseRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2922,12 +2878,13 @@ reverseRebaseAtᴸ ins (CTX.rebase-varᴸ rb) ok
   Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺
 reverseRebaseAtᴸ {W⁺ = W⁺} ins
     (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   W⁺ , ins ,
     CTX.rebase-onlyᴸ
+      (insert-source-member ins member)
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
-      (insert-represented★ᴸ ins represented)
+      (transport⊑ᵂ ins represented)
 
 reverseTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -2950,12 +2907,13 @@ reverseTagRebaseAtᴸ ins (CTX.tag-rebase-varᴸ rb) ok
   Wᵖ⁺ , insᵖ , CTX.tag-rebase-varᴸ rb⁺
 reverseTagRebaseAtᴸ {W⁺ = W⁺} ins
     (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ}
-      to-star disaligned represented) ok =
+      member to-star disaligned represented) ok =
   W⁺ , ins ,
     CTX.tag-rebase-onlyᴸ
+      (insert-source-member ins member)
       (insert-to-starᴸ ins to-star)
       (insert-disalignedᴸ ins disaligned)
-      (insert-represented★ᴸ ins represented)
+      (transport⊑ᵂ ins represented)
 
 impEnvMono-insert-pre : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -3030,54 +2988,6 @@ impEnvMono-insert {π = π} ins insᵖ mono =
     impEnvPrecise-insert-pre ins insᵖ mono Z′ mark
       (preimage? π Z′) refl
 
-renamePivotJoin : ∀ {Δ Δ′} {p q r : Maybe (TyVar Δ)}
-  → (ρ : TyVar Δ → TyVar Δ′)
-  → Conv.PivotJoin p q r
-  → Conv.PivotJoin (mapPivot ρ p) (mapPivot ρ q) (mapPivot ρ r)
-renamePivotJoin ρ Conv.join-none = Conv.join-none
-renamePivotJoin ρ Conv.join-left = Conv.join-left
-renamePivotJoin ρ Conv.join-right = Conv.join-right
-renamePivotJoin ρ Conv.join-both = Conv.join-both
-
-mutual
-  reveal-renameˣ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
-      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X? A B}
-      {c : Conversion.Conv↑ Δ A B}
-    → StoreRename ρ Σ Σ′
-    → Σ Conv.⊢↑[ X? ] c
-    → Σ′ Conv.⊢↑[ mapPivot ρ X? ] rename↑ ρ c
-  reveal-renameˣ hΣ (Conv.⊢↑-unsealˣ X∈) =
-    Conv.⊢↑-unsealˣ (hΣ X∈)
-  reveal-renameˣ hΣ (Conv.⊢↑-⇒ˣ join c⊢ d⊢) =
-    Conv.⊢↑-⇒ˣ (renamePivotJoin _ join)
-      (conceal-renameˣ hΣ c⊢) (reveal-renameˣ hΣ d⊢)
-  reveal-renameˣ {ρ = ρ} hΣ (Conv.⊢↑-∀ˣ c⊢) =
-    Conv.⊢↑-∀ˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
-  reveal-renameˣ {ρ = ρ} hΣ (Conv.⊢↑-∀-idˣ c⊢) =
-    Conv.⊢↑-∀-idˣ (reveal-renameˣ (StoreRename-ext hΣ) c⊢)
-  reveal-renameˣ hΣ Conv.⊢↑-idˣ = Conv.⊢↑-idˣ
-
-  conceal-renameˣ : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
-      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X? A B}
-      {c : Conversion.Conv↓ Δ A B}
-    → StoreRename ρ Σ Σ′
-    → Σ Conv.⊢↓[ X? ] c
-    → Σ′ Conv.⊢↓[ mapPivot ρ X? ] rename↓ ρ c
-  conceal-renameˣ hΣ (Conv.⊢↓-sealˣ X∈) =
-    Conv.⊢↓-sealˣ (hΣ X∈)
-  conceal-renameˣ hΣ (Conv.⊢↓-⇒ˣ join c⊢ d⊢) =
-    Conv.⊢↓-⇒ˣ (renamePivotJoin _ join)
-      (reveal-renameˣ hΣ c⊢) (conceal-renameˣ hΣ d⊢)
-  conceal-renameˣ {ρ = ρ} hΣ (Conv.⊢↓-∀ˣ c⊢) =
-    Conv.⊢↓-∀ˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
-  conceal-renameˣ {ρ = ρ} hΣ (Conv.⊢↓-∀-idˣ c⊢) =
-    Conv.⊢↓-∀-idˣ (conceal-renameˣ (StoreRename-ext hΣ) c⊢)
-  conceal-renameˣ hΣ Conv.⊢↓-idˣ = Conv.⊢↓-idˣ
-
-------------------------------------------------------------------------
--- Target-term syntactic side conditions
-------------------------------------------------------------------------
-
 ------------------------------------------------------------------------
 -- Rebasing evidence across one root right bind
 ------------------------------------------------------------------------
@@ -3143,7 +3053,7 @@ right-bind-impEnv-insert : ∀ {Δᴸ Δᴿ Δ}
       (toRenameᵗ wk↪ᵗ Z)
       ≡ CTX.impEnvʷ W Z
 right-bind-impEnv-insert Z
-    rewrite toRename-wk-eq Z | toRename-id-eq Z =
+    rewrite toRename-id-eq Z =
   refl
 
 right-bind-impEnv-off-insert : ∀ {Δᴸ Δᴿ Δ}
@@ -3428,24 +3338,153 @@ mapCtxᴿ-∋ ext (CTX.Sʷ x∈) = CTX.Sʷ (mapCtxᴿ-∋ ext x∈)
 source-reveal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
-    {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
+    {X : TyVar Δᴸ} {R A B : Ty Δᴸ}
     {c : Conv↑ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTX.sourceStoreʷ W Conv.⊢↑[ X? ] c
-  → CTX.sourceStoreʷ W′ Conv.⊢↑[ X? ] c
+  → CTX.sourceStoreʷ W Conv.⊢↑[ X ⦂ R ] c
+  → CTX.sourceStoreʷ W′ Conv.⊢↑[ X ⦂ R ] c
 source-reveal-insert ins c⊢ =
-  subst≡ (λ Σ → Σ Conv.⊢↑[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+  subst≡ (λ Σ → Σ Conv.⊢↑[ _ ⦂ _ ] _)
+    (sym (sourceStore-kept ins)) c⊢
 
 source-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
-    {X? : Maybe (TyVar Δᴸ)} {A B : Ty Δᴸ}
+    {X : TyVar Δᴸ} {R A B : Ty Δᴸ}
     {c : Conv↓ Δᴸ A B}
   → (ins : TargetInsert ρ π W W′)
-  → CTX.sourceStoreʷ W Conv.⊢↓[ X? ] c
-  → CTX.sourceStoreʷ W′ Conv.⊢↓[ X? ] c
+  → CTX.sourceStoreʷ W Conv.⊢↓[ X ⦂ R ] c
+  → CTX.sourceStoreʷ W′ Conv.⊢↓[ X ⦂ R ] c
 source-conceal-insert ins c⊢ =
-  subst≡ (λ Σ → Σ Conv.⊢↓[ _ ] _) (sym (sourceStore-kept ins)) c⊢
+  subst≡ (λ Σ → Σ Conv.⊢↓[ _ ⦂ _ ] _)
+    (sym (sourceStore-kept ins)) c⊢
+
+source-reveal-insert-position : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴸ} {R A B : Ty Δᴸ} {c : Conv↑ Δᴸ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → (c⊢ : CTX.sourceStoreʷ W Conv.⊢↑[ X ⦂ R ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (source-reveal-insert ins c⊢) ≡ P
+source-reveal-insert-position ins c⊢ P eq =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (sourceStore-kept ins)) c⊢)
+    eq
+
+source-conceal-insert-position : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴸ} {R A B : Ty Δᴸ} {c : Conv↓ Δᴸ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → (c⊢ : CTX.sourceStoreʷ W Conv.⊢↓[ X ⦂ R ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (source-conceal-insert ins c⊢) ≡ P
+source-conceal-insert-position ins c⊢ P eq =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (sourceStore-kept ins)) c⊢)
+    eq
+
+mutual
+  reveal-rename-position : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X R A B}
+      {c : Conv↑ Δ A B}
+    → (injective : ∀ {Y Z} → rho Y ≡ rho Z → Y ≡ Z)
+    → (hΣ : StoreRename rho Σ Σ′)
+    → (c⊢ : Σ Conv.⊢↑[ X ⦂ R ] c)
+    → revealGeneratorPosition (reveal-renameᵗ injective hΣ c⊢)
+      ≡ revealGeneratorPosition c⊢
+  reveal-rename-position injective hΣ (Conv.⊢↑-unseal X∈) = refl
+  reveal-rename-position injective hΣ (Conv.⊢↑-⇒ c⊢ d⊢)
+    rewrite conceal-rename-position injective hΣ c⊢
+      | reveal-rename-position injective hΣ d⊢ =
+    refl
+  reveal-rename-position injective hΣ (Conv.⊢↑-∀ eq c⊢)
+    rewrite reveal-rename-position (ext-injective injective)
+      (StoreRename-ext hΣ) c⊢ =
+    refl
+  reveal-rename-position injective hΣ (Conv.⊢↑-id-var X∈ X≢Y) = refl
+  reveal-rename-position injective hΣ (Conv.⊢↑-id-base X∈) = refl
+  reveal-rename-position injective hΣ (Conv.⊢↑-id-star X∈) = refl
+
+  conceal-rename-position : ∀ {Δ Δ′} {rho : Δ ⇒ʳ Δ′}
+      {Σ : TyStore Δ} {Σ′ : TyStore Δ′} {X R A B}
+      {c : Conv↓ Δ A B}
+    → (injective : ∀ {Y Z} → rho Y ≡ rho Z → Y ≡ Z)
+    → (hΣ : StoreRename rho Σ Σ′)
+    → (c⊢ : Σ Conv.⊢↓[ X ⦂ R ] c)
+    → concealGeneratorPosition (conceal-renameᵗ injective hΣ c⊢)
+      ≡ concealGeneratorPosition c⊢
+  conceal-rename-position injective hΣ (Conv.⊢↓-seal X∈) = refl
+  conceal-rename-position injective hΣ (Conv.⊢↓-⇒ c⊢ d⊢)
+    rewrite reveal-rename-position injective hΣ c⊢
+      | conceal-rename-position injective hΣ d⊢ =
+    refl
+  conceal-rename-position injective hΣ (Conv.⊢↓-∀ eq c⊢)
+    rewrite conceal-rename-position (ext-injective injective)
+      (StoreRename-ext hΣ) c⊢ =
+    refl
+  conceal-rename-position injective hΣ (Conv.⊢↓-id-var X∈ X≢Y) = refl
+  conceal-rename-position injective hΣ (Conv.⊢↓-id-base X∈) = refl
+  conceal-rename-position injective hΣ (Conv.⊢↓-id-star X∈) = refl
+
+target-reveal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴿ} {R A B : Ty Δᴿ} {c : Conv↑ Δᴿ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → CTX.targetStoreʷ W Conv.⊢↑[ X ⦂ R ] c
+  → CTX.targetStoreʷ W′ Conv.⊢↑[
+      toRenameᵗ ρ X ⦂ renameᵗ (toRenameᵗ ρ) R ]
+      Conv.rename↑ (toRenameᵗ ρ) c
+target-reveal-insert {ρ = ρ} ins c⊢ =
+  reveal-renameᵗ (toRenameᵗ-injective ρ) (targetStore-rename ins) c⊢
+
+target-conceal-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴿ} {R A B : Ty Δᴿ} {c : Conv↓ Δᴿ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → CTX.targetStoreʷ W Conv.⊢↓[ X ⦂ R ] c
+  → CTX.targetStoreʷ W′ Conv.⊢↓[
+      toRenameᵗ ρ X ⦂ renameᵗ (toRenameᵗ ρ) R ]
+      Conv.rename↓ (toRenameᵗ ρ) c
+target-conceal-insert {ρ = ρ} ins c⊢ =
+  conceal-renameᵗ (toRenameᵗ-injective ρ) (targetStore-rename ins) c⊢
+
+target-reveal-insert-position : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴿ} {R A B : Ty Δᴿ} {c : Conv↑ Δᴿ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → (c⊢ : CTX.targetStoreʷ W Conv.⊢↑[ X ⦂ R ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (target-reveal-insert ins c⊢) ≡ P
+target-reveal-insert-position {ρ = ρ} ins c⊢ P eq =
+  trans
+    (reveal-rename-position (toRenameᵗ-injective ρ)
+      (targetStore-rename ins) c⊢)
+    eq
+
+target-conceal-insert-position : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ Δᴿ′ Δ′}
+    {X : TyVar Δᴿ} {R A B : Ty Δᴿ} {c : Conv↓ Δᴿ A B}
+  → (ins : TargetInsert ρ π W W′)
+  → (c⊢ : CTX.targetStoreʷ W Conv.⊢↓[ X ⦂ R ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (target-conceal-insert ins c⊢) ≡ P
+target-conceal-insert-position {ρ = ρ} ins c⊢ P eq =
+  trans
+    (conceal-rename-position (toRenameᵗ-injective ρ)
+      (targetStore-rename ins) c⊢)
+    eq
 
 target-typing-insert : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {ρ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
@@ -3531,84 +3570,55 @@ directStarOffTargetInsertProvenance ins dynamic
 directStarOffTargetInsertProvenance ins dynamic (CTI2.⊑cast² c′ rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑reveal² mono CTX.rebase-idᴿ sc c′⊢ rel q) =
-  _ , ins , CTX.rebase-idᴿ ,
+    (CTI2.⊑reveal² c′⊢ at-absent rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑reveal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
-    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑reveal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺ ,
-  directStarOffTargetInsertProvenance insᵖ
-    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑conceal² mono CTX.rebase-idᴿ sc c′⊢ rel q) =
-  _ , ins , CTX.rebase-idᴿ ,
+    (CTI2.⊑conceal² c′⊢ at-absent rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
-    with reverseRebaseAt ins rb (directStarOffReverseInsertOK ins dynamic rb)
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.⊑conceal² mono (CTX.rebase-varᴿ rb) sc c′⊢ rel q)
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTX.rebase-varᴿ rb⁺ ,
-  directStarOffTargetInsertProvenance insᵖ
-    (targetInsertDirectStarOffReverse ins insᵖ dynamic rb⁺) rel
 directStarOffTargetInsertProvenance ins dynamic
     (CTI2.cast⊑² c rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑² mono CTX.rebase-idᴸ sc c⊢ rel q) =
-  _ , ins , CTX.rebase-idᴸ ,
+    (CTI2.reveal⊑-neutral² c⊢ at-absent rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑² mono (CTX.rebase-onlyᴸ to-star disaligned represented)
-      sc c⊢ rel q) =
-  _ , ins ,
-  CTX.rebase-onlyᴸ
-    (insert-to-starᴸ ins to-star)
-    (insert-disalignedᴸ ins disaligned)
-    (insert-represented★ᴸ ins represented) ,
+    (CTI2.reveal⊑-only² c⊢ not-absent to-star disaligned represented
+      rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc c⊢ rel q)
+    (CTI2.reveal⊑² c⊢ not-absent Xᴿ∈ represented mono rb sc rel q)
     with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc c⊢ rel q)
-    | Wᵖ⁺ , insᵖ , rb⁺ =
-  Wᵖ⁺ , insᵖ , CTX.rebase-varᴸ rb⁺ ,
-  directStarOffTargetInsertProvenance insᵖ
-    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.conceal⊑² mono CTX.tag-rebase-idᴸ sc c⊢ rel q) =
-  _ , ins , CTX.tag-rebase-idᴸ ,
-  directStarOffTargetInsertProvenance ins dynamic rel
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.conceal⊑² mono
-      (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-      sc c⊢ rel q) =
-  _ , ins ,
-  CTX.tag-rebase-onlyᴸ
-    (insert-to-starᴸ ins to-star)
-    (insert-disalignedᴸ ins disaligned)
-    (insert-represented★ᴸ ins represented) ,
-  directStarOffTargetInsertProvenance ins dynamic rel
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
-    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
-directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ rel q)
+    (CTI2.reveal⊑² c⊢ not-absent Xᴿ∈ represented mono rb sc rel q)
     | Wᵖ⁺ , insᵖ , rb⁺ =
   Wᵖ⁺ , insᵖ , rb⁺ ,
   directStarOffTargetInsertProvenance insᵖ
     (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ rel q)
+    (CTI2.conceal⊑-neutral² c⊢ at-absent rel q) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑² c⊢ not-absent to-star disaligned represented
+      rel q) =
+  directStarOffTargetInsertProvenance ins dynamic rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑reveal² c⊢ c′⊢ positions not-absent represented
+      mono rb sc rel q)
+    with insertRebaseAt ins rb (directStarOffForwardInsertOK ins dynamic rb)
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.reveal⊑reveal² c⊢ c′⊢ positions not-absent represented
+      mono rb sc rel q)
+    | Wᵖ⁺ , insᵖ , rb⁺ =
+  Wᵖ⁺ , insᵖ , rb⁺ ,
+  directStarOffTargetInsertProvenance insᵖ
+    (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
+directStarOffTargetInsertProvenance ins dynamic
+    (CTI2.conceal⊑conceal² c⊢ c′⊢ positions not-absent represented
+      mono rb sc rel q)
     with reverseRebaseAt ins rb (directStarOffReverseInsertOK ins dynamic rb)
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ rel q)
+    (CTI2.conceal⊑conceal² c⊢ c′⊢ positions not-absent represented
+      mono rb sc rel q)
     | Wᵖ⁺ , insᵖ , rb⁺ =
   Wᵖ⁺ , insᵖ , rb⁺ ,
   directStarOffTargetInsertProvenance insᵖ
@@ -3734,26 +3744,16 @@ directStarOffTargetInsertProvenance ins dynamic
     (⊢²-target-insert W′ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} W⁺ ins
-    (CTI2.⊑reveal² {W′ = W′} {p = p}
-      mono rb sc c′⊢ M⊑M′ q)
-    (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
-  CTI2.⊑reveal²
-    (impEnvMono-insert ins insᵖ mono)
-    rb⁺
-    (mapCtxᵀ-same ins insᵖ sc)
-    (reveal-renameˣ (targetStore-rename ins) c′⊢)
-    (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
+    (CTI2.⊑reveal² {p = p} c′⊢ at-absent M⊑M′ q) provenance =
+  CTI2.⊑reveal² (target-reveal-insert ins c′⊢)
+    (target-reveal-insert-position ins c′⊢ generator-absent at-absent)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} W⁺ ins
-    (CTI2.⊑conceal² {W′ = W′} {p = p}
-      mono rb sc c′⊢ M⊑M′ q)
-    (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
-  CTI2.⊑conceal²
-    (impEnvMono-insert ins insᵖ mono)
-    rb⁺
-    (mapCtxᵀ-same ins insᵖ sc)
-    (conceal-renameˣ (targetStore-rename ins) c′⊢)
-    (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
+    (CTI2.⊑conceal² {p = p} c′⊢ at-absent M⊑M′ q) provenance =
+  CTI2.⊑conceal² (target-conceal-insert ins c′⊢)
+    (target-conceal-insert-position ins c′⊢ generator-absent at-absent)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert W′ ins
     (CTI2.cast⊑² {p = p} c M⊑M′ q) provenance =
@@ -3761,49 +3761,103 @@ directStarOffTargetInsertProvenance ins dynamic
     (⊢²-target-insert W′ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert W⁺ ins
+    (CTI2.reveal⊑-neutral² {p = p} c⊢ at-absent M⊑M′ q)
+    provenance =
+  CTI2.reveal⊑-neutral² (source-reveal-insert ins c⊢)
+    (source-reveal-insert-position ins c⊢ generator-absent at-absent)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert W⁺ ins
+    (CTI2.reveal⊑-only² {p = p} c⊢ not-absent dynamic disaligned
+      represented M⊑M′ q) provenance =
+  CTI2.reveal⊑-only² (source-reveal-insert ins c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (source-reveal-insert-position ins c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (insert-to-starᴸ ins dynamic)
+    (insert-disalignedᴸ ins disaligned)
+    (transport⊑ᵂ ins represented)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert W⁺ ins
     (CTI2.reveal⊑² {W′ = W′} {p = p}
-      mono rb sc c⊢ M⊑M′ q)
+      c⊢ not-absent Xᴿ∈ represented mono rb sc M⊑M′ q)
     (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
-  CTI2.reveal⊑²
+  CTI2.reveal⊑² (source-reveal-insert ins c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (source-reveal-insert-position ins c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (targetStore-rename ins Xᴿ∈)
+    (transport⊑ᵂ insᵖ represented)
     (impEnvMono-insert ins insᵖ mono)
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)
-    (source-reveal-insert ins c⊢)
     (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
     (transport⊑ᵂ ins q)
-⊢²-target-insert {ρ = ρ} W⁺ ins
-    (CTI2.conceal⊑² {W′ = W′} {p = p}
-      mono rb sc c⊢ M⊑M′ q)
-    (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
-  CTI2.conceal⊑²
-    (impEnvMono-insert ins insᵖ mono)
-    rb⁺
-    (mapCtxᵀ-same ins insᵖ sc)
-    (source-conceal-insert ins c⊢)
-    (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
+⊢²-target-insert W⁺ ins
+    (CTI2.conceal⊑-neutral² {p = p} c⊢ at-absent M⊑M′ q)
+    provenance =
+  CTI2.conceal⊑-neutral² (source-conceal-insert ins c⊢)
+    (source-conceal-insert-position ins c⊢ generator-absent at-absent)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
+    (transport⊑ᵂ ins q)
+⊢²-target-insert W⁺ ins
+    (CTI2.conceal⊑² {p = p} c⊢ not-absent dynamic disaligned
+      represented M⊑M′ q) provenance =
+  CTI2.conceal⊑² (source-conceal-insert ins c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (source-conceal-insert-position ins c⊢
+          (concealGeneratorPosition c⊢) refl)) absent))
+    (insert-to-starᴸ ins dynamic)
+    (insert-disalignedᴸ ins disaligned)
+    (transport⊑ᵂ ins represented)
+    (⊢²-target-insert W⁺ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} W⁺ ins
     (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
-      mono rb sc c⊢ c′⊢ M⊑M′ q)
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑M′ q)
     (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
   CTI2.reveal⊑reveal²
+    (source-reveal-insert ins c⊢) (target-reveal-insert ins c′⊢)
+    (trans
+      (source-reveal-insert-position ins c⊢
+        (revealGeneratorPosition c⊢) refl)
+      (trans positions
+        (sym (target-reveal-insert-position ins c′⊢
+          (revealGeneratorPosition c′⊢) refl))))
+    (λ absent → not-absent
+      (trans
+        (sym (source-reveal-insert-position ins c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (transport⊑ᵂ insᵖ represented)
     (impEnvMono-insert ins insᵖ mono)
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)
-    (source-reveal-insert ins c⊢)
-    (reveal-renameˣ (targetStore-rename ins) c′⊢)
     (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {ρ = ρ} W⁺ ins
     (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
-      mono rb sc c⊢ c′⊢ M⊑M′ q)
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑M′ q)
     (Wᵖ⁺ , insᵖ , rb⁺ , provenance) =
   CTI2.conceal⊑conceal²
+    (source-conceal-insert ins c⊢) (target-conceal-insert ins c′⊢)
+    (trans
+      (source-conceal-insert-position ins c⊢
+        (concealGeneratorPosition c⊢) refl)
+      (trans positions
+        (sym (target-conceal-insert-position ins c′⊢
+          (concealGeneratorPosition c′⊢) refl))))
+    (λ absent → not-absent
+      (trans
+        (sym (source-conceal-insert-position ins c⊢
+          (concealGeneratorPosition c⊢) refl)) absent))
+    (transport⊑ᵂ insᵖ represented)
     (impEnvMono-insert ins insᵖ mono)
     rb⁺
     (mapCtxᵀ-same ins insᵖ sc)
-    (source-conceal-insert ins c⊢)
-    (conceal-renameˣ (targetStore-rename ins) c′⊢)
     (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert {W = W} {γ = γ} W′ ins

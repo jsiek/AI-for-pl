@@ -9,6 +9,8 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe where
 --     scoped types, heterogeneous term worlds, and term entries.
 --   * Checks ordinary terms, genuine Lambda, and type application without a
 --     compatibility wrapper around the earlier fixed-parameter probe.
+--   * Covers primitive application and both paired and source-only type
+--     application, matching the syntax-directed compiler surface.
 --   * Keeps source-only conceal unoccupied and paired seal rules independent
 --     of term shape.
 
@@ -32,13 +34,14 @@ import Imprecision as I
 open import Conversion using
   (Conv↑; Conv↓; unseal; seal; _↦↑_; _⊢↑[_]_; _⊢↓[_]_; ⊢↑-unsealˣ;
    ⊢↓-sealˣ; ⊢↑-⇒ˣ; join-both)
-open import Primitives using (Const; constTy)
+open import Primitives using
+  (Const; Prim; constTy; primArgTy; primResultTy)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; Value; `_; ƛ_; Λ_;
-   _·_; $; _⟨_⟩; _⦂∀_[_]; _↑_; _↓_; blame; ⇑ᵉᵗ; _⊢_⦂_)
+   _·_; $; _⊕[_]_; _⟨_⟩; _⦂∀_[_]; _↑_; _↓_; blame; ⇑ᵉᵗ; _⊢_⦂_)
 open import proof.ImprecisionConsistency using (rename-⊑)
 open import proof.TypeInTermSubst using (toRename-keep-eq)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe using
   (source-X-context; target-alpha-context; target-alpha-beta-context;
@@ -1009,6 +1012,25 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         (constTy kappa) (constTy kappa))
     → ScopedCTIᵍ W focus edge m ok S ($ kappa) ($ kappa) p
 
+  primitive⊑primitiveᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m ok Gammaᴸ Gammaᴿ L L′ M M′}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {op : Prim}
+      {p q : ScopedTypeᵍ W focus edge m
+        (primArgTy op) (primArgTy op)}
+    → ScopedCTIᵍ W focus edge m ok S L L′ p
+    → ScopedCTIᵍ W focus edge m ok S M M′ q
+    → (r : ScopedTypeᵍ W focus edge m
+        (primResultTy op) (primResultTy op))
+    → ScopedCTIᵍ W focus edge m ok S
+        (L ⊕[ op ] M) (L′ ⊕[ op ] M′) r
+
   blame⊑ᵍ : ∀ {Cᴸ C C⁺ : Ctx} {W : Cᴸ ⊑ᶜ C}
       {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
       {beta alpha⁺ : TyVar (Δᵉ C⁺)}
@@ -1214,6 +1236,26 @@ data ScopedCTIᵍ : ∀ {Cᴸ C C⁺ : Ctx}
         (D [ A ]ᵗ) (D′ [ A′ ]ᵗ))
     → ScopedCTIᵍ W focus edge m ok S
         (M ⦂∀ D [ A ]) (M′ ⦂∀ D′ [ A′ ]) r
+
+  type-app⊑ᵍ : ∀ {Cᴸ C C⁺ : Ctx}
+      {W : Cᴸ ⊑ᶜ C}
+      {X : TyVar (Δᵉ Cᴸ)} {alpha : TyVar (Δᵉ C)}
+      {beta alpha⁺ : TyVar (Δᵉ C⁺)}
+      {focus : NameFocusᵍ W X alpha}
+      {edge : ExactAliasEdgeᵉ C C⁺ alpha beta alpha⁺}
+      {m : Modeᵍ edge} {ok : ValidModeᵍ W focus edge m}
+      {Gammaᴸ Gammaᴿ}
+      {S : ScopedWorldᵍ W focus edge
+        ⟨ Δᵉ Cᴸ , Σᵉ Cᴸ , Gammaᴸ ⟩
+        ⟨ Δᵉ C⁺ , Σᵉ C⁺ , Gammaᴿ ⟩}
+      {M : Term (Δᵉ Cᴸ)} {M′ : Term (Δᵉ C⁺)}
+      {D : Ty (Nat.suc (Δᵉ Cᴸ))}
+      {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ C⁺)}
+      {p : ScopedTypeᵍ W focus edge m (`∀ D) B}
+    → ScopedCTIᵍ W focus edge m ok S M M′ p
+    → (q : ScopedTypeᵍ W focus edge m A ★)
+    → (r : ScopedTypeᵍ W focus edge m (D [ A ]ᵗ) B)
+    → ScopedCTIᵍ W focus edge m ok S (M ⦂∀ D [ A ]) M′ r
 
 
 concrete-focusᵍ : NameFocusᵍ stable-world source-X target-alpha

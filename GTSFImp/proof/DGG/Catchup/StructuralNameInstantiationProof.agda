@@ -182,19 +182,28 @@ derivSize (CTI2.cast⊑cast² c c′ rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.⊑cast² c′ rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.⊑reveal² mono rb sc c⊢ rel q) =
+derivSize (CTI2.⊑reveal² c⊢ position rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.⊑conceal² mono rb sc c⊢ rel q) =
+derivSize (CTI2.⊑conceal² c⊢ position rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.cast⊑² c rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.reveal⊑² mono rb sc c⊢ rel q) =
+derivSize (CTI2.reveal⊑-neutral² c⊢ position rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.conceal⊑² mono rb sc c⊢ rel q) =
+derivSize (CTI2.reveal⊑-only² c⊢ active aligned unoccupied R⊑★ rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.reveal⊑reveal² mono rb sc c⊢ c⊢′ rel q) =
+derivSize
+    (CTI2.reveal⊑² c⊢ active member R⊑R mono rb sc rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.conceal⊑conceal² mono rb sc c⊢ c⊢′ rel q) =
+derivSize (CTI2.conceal⊑-neutral² c⊢ position rel q) =
+  suc (suc (derivSize rel))
+derivSize (CTI2.conceal⊑² c⊢ active aligned unoccupied R⊑★ rel q) =
+  suc (suc (derivSize rel))
+derivSize
+    (CTI2.reveal⊑reveal² c⊢ c⊢′ position active R⊑R mono rb sc rel q) =
+  suc (suc (derivSize rel))
+derivSize
+    (CTI2.conceal⊑conceal² c⊢ c⊢′ position active R⊑R mono rb sc rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.blame⊑² target⊢ p) = zero
 derivSize (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
@@ -1053,24 +1062,24 @@ mutual
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (reveal-frame c ▻ⁱ spine)
-      chain@(tfa-reveal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-reveal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-reveal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      with transport rel
-         | structural-reveal-frame-outcome c⊢′ (CTI2T.target-typing² rel) vV
+      with structural-reveal-frame-outcome c⊢′
+             (CTI2T.target-typing² rel) vV
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (reveal-frame c ▻ⁱ spine)
-      chain@(tfa-reveal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-reveal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-reveal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ | structural-frame-value child-value =
+      | structural-frame-value child-value =
     child-rel
     where
     child-target = structural-target-frame-value-peel child-value target
 
     rel-reveal =
-      CTI2.⊑reveal² mono rb sc c⊢ (proj₂ (transport rel)) qC
+      CTI2.⊑reveal² c⊢ position rel qC
 
     child-rel =
       structural-value-spine-instantiation-acc surfaces fuel-step
@@ -1089,10 +1098,9 @@ mutual
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (reveal-frame c ▻ⁱ spine)
-      chain@(tfa-reveal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-reveal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-reveal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ
       | structural-frame-keep step@(pure-step (id-reveal vStep)) vN =
     finish-target child-rel
     where
@@ -1109,7 +1117,7 @@ mutual
     finish-target = proj₂ (proj₂ child-peel)
 
     rel-reveal =
-      CTI2.⊑reveal² mono rb sc c⊢ (proj₂ (transport rel)) qC
+      CTI2.⊑reveal² c⊢ position rel qC
 
     child-rel =
       structural-value-spine-instantiation-acc surfaces fuel-step
@@ -1130,10 +1138,9 @@ mutual
       residual-cast-builder inst-decrease plan chain-plan rel vM
       (vInner CT.↓ CT.seal {X = Xₛ} {R = Rₛ})
       (reveal-frame c ▻ⁱ spine)
-      chain@(tfa-reveal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-reveal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-reveal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ
       | structural-frame-keep step@(pure-step (conceal-reveal vStep)) vN =
     finish-target child-rel
     where
@@ -1151,7 +1158,7 @@ mutual
     finish-target = proj₂ (proj₂ child-peel)
 
     rel-reveal =
-      CTI2.⊑reveal² mono rb sc c⊢ (proj₂ (transport rel)) qC
+      CTI2.⊑reveal² c⊢ position rel qC
 
     child-rel =
       structural-value-spine-instantiation-acc surfaces fuel-step
@@ -1172,34 +1179,32 @@ mutual
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (reveal-frame c ▻ⁱ spine)
-      chain@(tfa-reveal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-reveal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-reveal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ
       | structural-frame-keep (ξ-reveal step eq) vN =
     ⊥-elim (value-no-step vV step)
 
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (conceal-frame c ▻ⁱ spine)
-      chain@(tfa-conceal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-conceal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-conceal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      with transport rel
-         | structural-conceal-frame-outcome c⊢′ vV
+      with structural-conceal-frame-outcome c⊢′ vV
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (conceal-frame c ▻ⁱ spine)
-      chain@(tfa-conceal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-conceal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-conceal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ | structural-frame-value child-value =
+      | structural-frame-value child-value =
     child-rel
     where
     child-target = structural-target-frame-value-peel child-value target
 
     rel-conceal =
-      CTI2.⊑conceal² mono rb sc c⊢ (proj₂ (transport rel)) qC
+      CTI2.⊑conceal² c⊢ position rel qC
 
     child-rel =
       structural-value-spine-instantiation-acc surfaces fuel-step
@@ -1218,10 +1223,9 @@ mutual
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (conceal-frame c ▻ⁱ spine)
-      chain@(tfa-conceal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-conceal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-conceal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ
       | structural-frame-keep step@(pure-step (id-conceal vStep)) vN =
     finish-target child-rel
     where
@@ -1238,7 +1242,7 @@ mutual
     finish-target = proj₂ (proj₂ child-peel)
 
     rel-conceal =
-      CTI2.⊑conceal² mono rb sc c⊢ (proj₂ (transport rel)) qC
+      CTI2.⊑conceal² c⊢ position rel qC
 
     child-rel =
       structural-value-spine-instantiation-acc surfaces fuel-step
@@ -1257,10 +1261,9 @@ mutual
   structural-value-spine-instantiation-acc surfaces fuel-step
       residual-cast-builder inst-decrease plan chain-plan rel vM vV
       (conceal-frame c ▻ⁱ spine)
-      chain@(tfa-conceal mono rb sc c⊢ transport qC wrap-provenance
+      chain@(tfa-conceal c⊢ position qC wrap-provenance
         keep-rel keep-provenance keep-chain tail)
       typed@(st-conceal c⊢′ typed-tail) (WF.acc smaller) target provenance
-      | pᵖ , relᵖ
       | structural-frame-keep (ξ-conceal step eq) vN =
     ⊥-elim (value-no-step vV step)
 

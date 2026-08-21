@@ -11,7 +11,6 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 import Data.Fin as Fin
-open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum.Base using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -29,7 +28,7 @@ open import Consistency using
 import Consistency as C
 import proof.Consistency as PC
 open import Conversion using
-  (Conv↑; Conv↓; _⊢↓_; `∀↑_; `∀↓_; _↦↑_; _↦↓_;
+  (Conv↑; Conv↓; `∀↑_; `∀↓_; _↦↑_; _↦↓_;
    ⊢↓-seal)
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
@@ -45,8 +44,6 @@ import proof.DGG.TermImpDecay as TD
 import proof.DGG.TagTransport as TT
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.SealTransferCore as STC
-open import proof.DGG.ConvImp using
-  (pivot-id-endpoints↑; pivot-id-endpoints↓)
 open CTX using
   (World;
    ηᴸʷ;
@@ -87,23 +84,6 @@ module _ where
       with SPT.right-var-obligation-view {W = W} {R = R} {Y = Y} p
   right-var-obligation-nonstar p | X₂ , refl , aligned =
     nonstar-X
-
-  right-inj-reveal-all-id² : ∀ {Δᴸ Δᴿ Δ}
-      {W : World Δᴸ Δᴿ Δ} {γ γ′ : CtxImp W}
-      {V : Term Δᴸ} {N : Term Δᴿ}
-      {A B : Ty (suc Δᴸ)} {H : Ty Δᴿ} {ν : Env∼ Δᴿ}
-      {c : Conv↑ (suc Δᴸ) A B}
-      {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
-      {cH : ν ⊢ H ∼ H} {p : `∀ A ⊑ᵂ⟨ W ⟩ ★}
-    → SpineValue V
-    → Value N
-    → CTX.SameCtx γ γ′
-    → store-lift (sourceStoreʷ W) Conv.⊢↑[ nothing ] c
-    → W ∣ γ′ ⊢² V
-        ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-    → (q : `∀ B ⊑ᵂ⟨ W ⟩ H)
-    → W ∣ γ ⊢² V ↑ `∀↑ c ⊑ N ∶ q
-
 
   right-inj-inversion² : RightInjInversion²
 
@@ -335,59 +315,83 @@ module _ where
   -- premise-level tag obligation, and by ⊑-unique it does not matter
   -- that this inhabitant differs from any other.
   right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
-      vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono CTX.rebase-idᴸ
-        sc ⊢c prem q₀)
+      vN (CTI2.reveal⊑-neutral² {p = ⇒⊑★ pA pB}
+        c⊢ position≡absent prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.reveal⊑² mono CTX.rebase-idᴸ sc ⊢c
+    CTI2.reveal⊑-neutral² c⊢ position≡absent
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
-      vN (CTI2.reveal⊑² {p = ⇒⊑★ pA pB} mono
-        (CTX.rebase-onlyᴸ ts dis rep) sc ⊢c prem q₀)
+      vN (CTI2.reveal⊑-only² {p = ⇒⊑★ pA pB}
+        c⊢ position≠absent dynamic no-target represented prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.reveal⊑² mono (CTX.rebase-onlyᴸ ts dis rep) sc ⊢c
+    CTI2.reveal⊑-only² c⊢ position≠absent dynamic no-target
+      represented
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {W = W} {gH = ★⇒★} (sv-reveal-fun sv)
-      vN (CTI2.reveal⊑² {W′ = W′} {p = ⇒⊑★ pA pB} mono
-        (CTX.rebase-varᴸ rb) sc ⊢c prem q₀)
+      vN (CTI2.reveal⊑² {W′ = W′} {p = ⇒⊑★ pA pB}
+        c⊢ position≠absent target-member represented mono rb sc prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc ⊢c
+    CTI2.reveal⊑² c⊢ position≠absent target-member represented
+      mono rb sc
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB)) (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
   right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
+  right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑-only² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑-only² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑-only² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² _ _ _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² _ _ _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
+    vN (CTI2.reveal⊑² _ _ _ _ _ _ _ _ _) ()
 
   -- Function-shaped conceal: same construction.
   right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
-      vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB} mono
-        rb sc ⊢c prem q₀)
+      vN (CTI2.conceal⊑-neutral² {p = ⇒⊑★ pA pB}
+        c⊢ position≡absent prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.conceal⊑² mono rb sc ⊢c
+    CTI2.conceal⊑-neutral² c⊢ position≡absent
+      (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
+      (⇒⊑⇒ qA qB)
+  right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
+      vN (CTI2.conceal⊑² {p = ⇒⊑★ pA pB}
+        c⊢ position≠absent dynamic no-target represented prem q₀)
+      (⇒⊑⇒ qA qB) =
+    CTI2.conceal⊑² c⊢ position≠absent dynamic no-target
+      represented
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
   right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑² _ _ _ _ _ _) ()
+    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
+  right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
+  right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
+    vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
 
   -- Universal reveal: transport the requested tag obligation through the
   -- body conversion.  Variable rebases recurse in the honestified world.
-  right-inj-inversion² (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² mono CTX.rebase-idᴸ sc (Conv.⊢↑-∀-idˣ c⊢)
-        prem q₀) q =
-    right-inj-reveal-all-id² sv vN sc c⊢ prem q
   right-inj-inversion² {W = W} {gH = ★⇒★}
       (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {p = p₀} mono (CTX.rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
-    CTI2.reveal⊑² mono (CTX.rebase-onlyᴸ ts dis rep) sc
-      (Conv.⊢↑-∀ˣ c⊢)
+      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≡absent prem q₀) q =
+    CTI2.reveal⊑-neutral² (Conv.⊢↑-∀ refl c⊢)
+      position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
           (toRenameᵗ-injective (ηᴸʷ W))
@@ -395,10 +399,10 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ∀★} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {p = p₀} mono (CTX.rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
-    CTI2.reveal⊑² mono (CTX.rebase-onlyᴸ ts dis rep) sc
-      (Conv.⊢↑-∀ˣ c⊢)
+      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≡absent prem q₀) q =
+    CTI2.reveal⊑-neutral² (Conv.⊢↑-∀ refl c⊢)
+      position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
           (toRenameᵗ-injective (ηᴸʷ W))
@@ -406,24 +410,63 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ‵ ι} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {p = p₀} mono (CTX.rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
+      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-ι-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ＇ Y} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {p = p₀} mono (CTX.rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
+      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-var-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ★⇒★}
       (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
-        (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
-    CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢)
+      (CTI2.reveal⊑-only² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    CTI2.reveal⊑-only² (Conv.⊢↑-∀ refl c⊢)
+      position≠absent dynamic no-target represented
+      (right-inj-inversion² sv vN prem
+        (TT.transport↑-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ∀★} (sv-reveal-all sv) vN
+      (CTI2.reveal⊑-only² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    CTI2.reveal⊑-only² (Conv.⊢↑-∀ refl c⊢)
+      position≠absent dynamic no-target represented
+      (right-inj-inversion² sv vN prem
+        (TT.transport↑-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ‵ ι} (sv-reveal-all sv) vN
+      (CTI2.reveal⊑-only² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    ⊥-elim
+      (TT.transport↑-∀-ι-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ＇ Y} (sv-reveal-all sv) vN
+      (CTI2.reveal⊑-only² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    ⊥-elim
+      (TT.transport↑-∀-var-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ★⇒★}
+      (sv-reveal-all sv) vN
+      (CTI2.reveal⊑² {W′ = W′} {p = p₀}
+        (Conv.⊢↑-∀ refl c⊢) position≠absent target-member represented
+        mono rb sc prem q₀) q =
+    CTI2.reveal⊑² (Conv.⊢↑-∀ refl c⊢) position≠absent
+      target-member represented mono rb sc
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
           (toRenameᵗ-injective (ηᴸʷ W′))
@@ -431,9 +474,11 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ∀★} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
-        (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
-    CTI2.reveal⊑² mono (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢)
+      (CTI2.reveal⊑² {W′ = W′} {p = p₀}
+        (Conv.⊢↑-∀ refl c⊢) position≠absent target-member represented
+        mono rb sc prem q₀) q =
+    CTI2.reveal⊑² (Conv.⊢↑-∀ refl c⊢) position≠absent
+      target-member represented mono rb sc
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
           (toRenameᵗ-injective (ηᴸʷ W′))
@@ -441,16 +486,18 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ‵ ι} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
-        (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
+      (CTI2.reveal⊑² {W′ = W′} {p = p₀}
+        (Conv.⊢↑-∀ refl c⊢) position≠absent target-member represented
+        mono rb sc prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-ι-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W′))
         (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ＇ Y} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑² {W′ = W′} {p = p₀} mono
-        (CTX.rebase-varᴸ rb) sc (Conv.⊢↑-∀ˣ c⊢) prem q₀) q =
+      (CTI2.reveal⊑² {W′ = W′} {p = p₀}
+        (Conv.⊢↑-∀ refl c⊢) position≠absent target-member represented
+        mono rb sc prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-var-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W′))
@@ -459,22 +506,12 @@ module _ where
 
   -- Universal conceal: the dual transport has the same obligations, while
   -- the variable-rebase decay uses conceal's opposite rebase orientation.
-  right-inj-inversion² {W = W} {H = H} (sv-conceal-all sv) vN
-      (CTI2.conceal⊑² mono CTX.tag-rebase-idᴸ sc
-        (Conv.⊢↓-∀-idˣ c⊢) prem q₀) q =
-    CTI2.conceal⊑² mono CTX.tag-rebase-idᴸ sc
-      (Conv.⊢↓-∀-idˣ c⊢)
-      (right-inj-inversion² sv vN prem
-        (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
-          (sym (cong `∀ (pivot-id-endpoints↓ c⊢))) q))
-      q
   right-inj-inversion² {W = W} {gH = ★⇒★}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑² {p = p₀} mono
-        (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↓-∀ˣ c⊢) prem q₀) q =
-    CTI2.conceal⊑² mono (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-      (Conv.⊢↓-∀ˣ c⊢)
+      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≡absent prem q₀) q =
+    CTI2.conceal⊑-neutral² (Conv.⊢↓-∀ refl c⊢)
+      position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-fun c⊢
           (toRenameᵗ-injective (ηᴸʷ W))
@@ -483,11 +520,10 @@ module _ where
       q
   right-inj-inversion² {W = W} {gH = ∀★}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑² {p = p₀} mono
-        (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↓-∀ˣ c⊢) prem q₀) q =
-    CTI2.conceal⊑² mono (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-      (Conv.⊢↓-∀ˣ c⊢)
+      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≡absent prem q₀) q =
+    CTI2.conceal⊑-neutral² (Conv.⊢↓-∀ refl c⊢)
+      position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-all c⊢
           (toRenameᵗ-injective (ηᴸʷ W))
@@ -496,72 +532,92 @@ module _ where
       q
   right-inj-inversion² {W = W} {gH = ‵ ι}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑² {p = p₀} mono
-        (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↓-∀ˣ c⊢) prem q₀) q =
+      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-ι-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ＇ Y} (sv-conceal-all sv) vN
-      (CTI2.conceal⊑² {p = p₀} mono
-        (CTX.tag-rebase-onlyᴸ ts dis rep) sc
-        (Conv.⊢↓-∀ˣ c⊢) prem q₀) q =
+      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≡absent prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-var-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ★⇒★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    CTI2.conceal⊑² (Conv.⊢↓-∀ refl c⊢) position≠absent
+      dynamic no-target represented
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-fun c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ∀★}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    CTI2.conceal⊑² (Conv.⊢↓-∀ refl c⊢) position≠absent
+      dynamic no-target represented
+      (right-inj-inversion² sv vN prem
+        (TT.transport↓-∀-all c⊢
+          (toRenameᵗ-injective (ηᴸʷ W))
+          (toRenameᵗ-injective (ηᴸʷ W))
+          p₀ q))
+      q
+  right-inj-inversion² {W = W} {gH = ‵ ι}
+      (sv-conceal-all sv) vN
+      (CTI2.conceal⊑² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
+    ⊥-elim
+      (TT.transport↓-∀-ι-⊥ c⊢
+        (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
+        p₀ q)
+  right-inj-inversion² {W = W} {gH = ＇ Y} (sv-conceal-all sv) vN
+      (CTI2.conceal⊑² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+        position≠absent dynamic no-target represented prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-var-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   -- Bare unmatched source seal.
   right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       with q
   right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       | ()
   right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       with q
   right-inj-inversion² {gH = ★⇒★} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       | ()
   right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       with q
   right-inj-inversion² {gH = ∀★} (sv-seal sv) vN
-      (CTI2.conceal⊑² mono rb sc
-        (Conv.⊢↓-sealˣ X∈) prem q₀) q
+      (CTI2.conceal⊑² (Conv.⊢↓-seal X∈) position≠absent
+        dynamic no-target represented prem q₀) q
       | ()
   right-inj-inversion² {W = W} {gH = ＇ Y}
       (sv-seal {X = Xᴸ} {R = R} sv) vN
-      (CTI2.conceal⊑² mono
-        (CTX.tag-rebase-onlyᴸ ts disaligned represented) sc
-        (Conv.⊢↓-sealˣ Xᴸ∈) prem q₀) q =
+      (CTI2.conceal⊑² (Conv.⊢↓-seal Xᴸ∈) position≠absent
+        dynamic disaligned represented prem q₀) q =
     ⊥-elim
       (disaligned Y
         (sym (variable-obligation-aligns {W = W} {X = Xᴸ} {Y = Y} q)))
+  right-inj-inversion² (sv-seal sv) vN
+      (CTI2.conceal⊑-neutral² (Conv.⊢↓-seal X∈) () prem q₀) q
 
   -- Type applications are not spine values.
   right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q
-
-  ------------------------------------------------------------------------
-  -- Identity-pivot universal wrappers
-  ------------------------------------------------------------------------
-
-  -- These are the complete nothing-pivot subcases of the two universal
-  -- wrapper branches.  Their body conversions have equal endpoints and the
-  -- wrapper world is definitionally unchanged, so ordinary index transport
-  -- exposes the recursive injection obligation.
-
-  right-inj-reveal-all-id² {W = W} {A = A} {B = B}
-      {H = H} {c = c} sv vN sc c⊢ prem q =
-    CTI2.reveal⊑² CTX.impEnvMono-refl CTX.rebase-idᴸ sc
-      (Conv.⊢↑-∀-idˣ c⊢)
-      (right-inj-inversion² sv vN prem
-        (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ H)
-          (sym (cong `∀ (pivot-id-endpoints↑ c⊢))) q))
-      q

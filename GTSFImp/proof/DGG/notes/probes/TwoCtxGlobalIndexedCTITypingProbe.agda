@@ -8,7 +8,8 @@ module proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe where
 --   * Projects term-variable membership directly from ScopedEntry and erases
 --     only the exact pivot index from conversion typing.
 --   * Covers ordinary terms, Lambdas, universals, target reveal/conceal, and
---     source/paired seal forms.  It does not construct the live DGG World.
+--     source/paired seal forms, primitives, and both type-application shapes.
+--     It does not construct the live DGG World.
 
 open import Data.Maybe using (Maybe)
 open import Data.Nat using (ℕ)
@@ -20,8 +21,8 @@ import TermCtx as TC
 import Conversion as Conv
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; _∋ᵗ_⦂_; _⊢_⦂_;
-   ⊢`; ⊢ƛ; ⊢·; ⊢$; ⊢⟨⟩; ⊢blame; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
-open import proof.DGG.TwoCtxWorld using (_⊑ᶜ_)
+   ⊢`; ⊢ƛ; ⊢·; ⊢$; ⊢⊕; ⊢⟨⟩; ⊢blame; ⊢Λ; ⊢•; ⊢reveal; ⊢conceal)
+open import proof.DGG.World using (_⊑ᶜ_)
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using
   (ExactAliasEdgeᵉ)
 import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTIProbe as Global
@@ -113,6 +114,13 @@ scoped-cti-endpoint-typingᵍ (Global.app⊑appᵍ fun-rel arg-rel) =
 scoped-cti-endpoint-typingᵍ
     (Global.constant⊑constantᵍ kappa p) =
   ⊢$ kappa , ⊢$ kappa
+scoped-cti-endpoint-typingᵍ
+    (Global.primitive⊑primitiveᵍ left-rel right-rel r) =
+  ⊢⊕ _ (proj₁ left-endpoints) (proj₁ right-endpoints) ,
+  ⊢⊕ _ (proj₂ left-endpoints) (proj₂ right-endpoints)
+  where
+  left-endpoints = scoped-cti-endpoint-typingᵍ left-rel
+  right-endpoints = scoped-cti-endpoint-typingᵍ right-rel
 scoped-cti-endpoint-typingᵍ (Global.blame⊑ᵍ target⊢ p) =
   ⊢blame , target⊢
 scoped-cti-endpoint-typingᵍ
@@ -166,5 +174,9 @@ scoped-cti-endpoint-typingᵍ
 scoped-cti-endpoint-typingᵍ
     (Global.type-app⊑type-appᵍ relation q r) =
   ⊢• (proj₁ endpoints) , ⊢• (proj₂ endpoints)
+  where
+  endpoints = scoped-cti-endpoint-typingᵍ relation
+scoped-cti-endpoint-typingᵍ (Global.type-app⊑ᵍ relation q r) =
+  ⊢• (proj₁ endpoints) , proj₂ endpoints
   where
   endpoints = scoped-cti-endpoint-typingᵍ relation

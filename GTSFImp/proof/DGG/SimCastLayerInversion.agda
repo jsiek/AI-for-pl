@@ -11,18 +11,18 @@ open import Types using (Ty)
 open import Conversion using (Conv↑; Conv↓)
 open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; _⟨_⟩; _↑_; _↓_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
    CtxImp;
-   ImpEnvMono;
-   RebaseAtᴿ;
-   SameCtx;
    targetStoreʷ;
    _⊑ᵂ⟨_⟩_)
 open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
 
 
 data SourceCastLayerHeadView {Δᴸ Δᴿ Δ}
@@ -54,26 +54,22 @@ data SourceCastLayerHeadView {Δᴸ Δᴿ Δ}
     → SourceCastLayerHeadView W γ M c (M′ ⟨ c′ ⟩) q
 
   target-reveal-layer-blocked :
-      ∀ {C C′ M′ W′ γ′ Xᴿ?}
+      ∀ {C C′ M′ Xᴿ Rᴿ}
         {c′ : Conv↑ Δᴿ C′ C} {q : B ⊑ᵂ⟨ W ⟩ C}
-    → ImpEnvMono W W′
-    → RebaseAtᴿ W W′ Xᴿ?
-    → SameCtx γ γ′
-    → targetStoreʷ W Conv.⊢↑[ Xᴿ? ] c′
-    → (p : B ⊑ᵂ⟨ W′ ⟩ C′)
-    → W′ ∣ γ′ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
+    → (c′⊢ : targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+    → revealGeneratorPosition c′⊢ ≡ generator-absent
+    → (p : B ⊑ᵂ⟨ W ⟩ C′)
+    → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
       ------------------------------------------------
     → SourceCastLayerHeadView W γ M c (M′ ↑ c′) q
 
   target-conceal-layer-blocked :
-      ∀ {C C′ M′ W′ γ′ Xᴿ?}
+      ∀ {C C′ M′ Xᴿ Rᴿ}
         {c′ : Conv↓ Δᴿ C′ C} {q : B ⊑ᵂ⟨ W ⟩ C}
-    → ImpEnvMono W W′
-    → RebaseAtᴿ W′ W Xᴿ?
-    → SameCtx γ γ′
-    → targetStoreʷ W Conv.⊢↓[ Xᴿ? ] c′
-    → (p : B ⊑ᵂ⟨ W′ ⟩ C′)
-    → W′ ∣ γ′ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
+    → (c′⊢ : targetStoreʷ W Conv.⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
+    → concealGeneratorPosition c′⊢ ≡ generator-absent
+    → (p : B ⊑ᵂ⟨ W ⟩ C′)
+    → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ p
       ------------------------------------------------
     → SourceCastLayerHeadView W γ M c (M′ ↓ c′) q
 
@@ -91,9 +87,11 @@ source-cast-layer-head-analysis (CTI2.cast⊑cast² c c′ rel q) =
   paired-source-cast-layer _ rel
 source-cast-layer-head-analysis (CTI2.⊑cast² c′ rel q) =
   target-cast-layer-blocked _ rel
-source-cast-layer-head-analysis (CTI2.⊑reveal² mono rb sc c′⊢ rel q) =
-  target-reveal-layer-blocked mono rb sc c′⊢ _ rel
-source-cast-layer-head-analysis (CTI2.⊑conceal² mono rb sc c′⊢ rel q) =
-  target-conceal-layer-blocked mono rb sc c′⊢ _ rel
+source-cast-layer-head-analysis
+    (CTI2.⊑reveal² c′⊢ position≡absent rel q) =
+  target-reveal-layer-blocked c′⊢ position≡absent _ rel
+source-cast-layer-head-analysis
+    (CTI2.⊑conceal² c′⊢ position≡absent rel q) =
+  target-conceal-layer-blocked c′⊢ position≡absent _ rel
 source-cast-layer-head-analysis (CTI2.cast⊑² c rel q) =
   source-cast-layer _ rel

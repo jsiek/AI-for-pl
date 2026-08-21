@@ -16,10 +16,14 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TyStore using (store-lift; _∋_⦂_)
 open import Consistency using (keep; skip; toRenameᵗ)
-open import Conversion using (Conv↑; Conv↓; _⊢↑[_]_; _⊢↓[_]_)
+open import Conversion using (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Imprecision
 import proof.DGG.CastTermImprecision as CTI2
+open import proof.DGG.ConversionPivotAlignment using
+  (GeneratorPosition; generator-absent; revealGeneratorPosition;
+   concealGeneratorPosition; revealGeneratorPosition-store-transport;
+   concealGeneratorPosition-store-transport)
 import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.SealPeelToolkit as SPT
@@ -391,36 +395,88 @@ decay-target-typing {W = W} {Wᵈ = Wᵈ} {γ = γ} dec M⊢ =
       (sym (decayCtx-tgt dec γ)) M⊢)
 
 decay-source-⊢↑ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-    {A B Xᴸ?} {c : Conv↑ Δᴸ A B}
+    {A B Rᴸ} {Xᴸ : TyVar Δᴸ} {c : Conv↑ Δᴸ A B}
   → EnvDecay W Wᵈ
-  → CTX.sourceStoreʷ W ⊢↑[ Xᴸ? ] c
-  → CTX.sourceStoreʷ Wᵈ ⊢↑[ Xᴸ? ] c
+  → CTX.sourceStoreʷ W ⊢↑[ Xᴸ ⦂ Rᴸ ] c
+  → CTX.sourceStoreʷ Wᵈ ⊢↑[ Xᴸ ⦂ Rᴸ ] c
 decay-source-⊢↑ dec c⊢ =
-  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (sourceStore-same dec)) c⊢
+  subst≡ (λ Σ → Σ ⊢↑[ _ ⦂ _ ] _) (sym (sourceStore-same dec)) c⊢
 
 decay-source-⊢↓ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-    {A B Xᴸ?} {c : Conv↓ Δᴸ A B}
+    {A B Rᴸ} {Xᴸ : TyVar Δᴸ} {c : Conv↓ Δᴸ A B}
   → EnvDecay W Wᵈ
-  → CTX.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
-  → CTX.sourceStoreʷ Wᵈ ⊢↓[ Xᴸ? ] c
+  → CTX.sourceStoreʷ W ⊢↓[ Xᴸ ⦂ Rᴸ ] c
+  → CTX.sourceStoreʷ Wᵈ ⊢↓[ Xᴸ ⦂ Rᴸ ] c
 decay-source-⊢↓ dec c⊢ =
-  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (sourceStore-same dec)) c⊢
+  subst≡ (λ Σ → Σ ⊢↓[ _ ⦂ _ ] _) (sym (sourceStore-same dec)) c⊢
 
 decay-target-⊢↑ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-    {A B Xᴿ?} {c : Conv↑ Δᴿ A B}
+    {A B Rᴿ} {Xᴿ : TyVar Δᴿ} {c : Conv↑ Δᴿ A B}
   → EnvDecay W Wᵈ
-  → CTX.targetStoreʷ W ⊢↑[ Xᴿ? ] c
-  → CTX.targetStoreʷ Wᵈ ⊢↑[ Xᴿ? ] c
+  → CTX.targetStoreʷ W ⊢↑[ Xᴿ ⦂ Rᴿ ] c
+  → CTX.targetStoreʷ Wᵈ ⊢↑[ Xᴿ ⦂ Rᴿ ] c
 decay-target-⊢↑ dec c⊢ =
-  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (targetStore-same dec)) c⊢
+  subst≡ (λ Σ → Σ ⊢↑[ _ ⦂ _ ] _) (sym (targetStore-same dec)) c⊢
 
 decay-target-⊢↓ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-    {A B Xᴿ?} {c : Conv↓ Δᴿ A B}
+    {A B Rᴿ} {Xᴿ : TyVar Δᴿ} {c : Conv↓ Δᴿ A B}
   → EnvDecay W Wᵈ
-  → CTX.targetStoreʷ W ⊢↓[ Xᴿ? ] c
-  → CTX.targetStoreʷ Wᵈ ⊢↓[ Xᴿ? ] c
+  → CTX.targetStoreʷ W ⊢↓[ Xᴿ ⦂ Rᴿ ] c
+  → CTX.targetStoreʷ Wᵈ ⊢↓[ Xᴿ ⦂ Rᴿ ] c
 decay-target-⊢↓ dec c⊢ =
-  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (targetStore-same dec)) c⊢
+  subst≡ (λ Σ → Σ ⊢↓[ _ ⦂ _ ] _) (sym (targetStore-same dec)) c⊢
+
+decay-source-reveal-position : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {A B Rᴸ}
+    {Xᴸ : TyVar Δᴸ} {c : Conv↑ Δᴸ A B}
+  → (dec : EnvDecay W Wᵈ)
+  → (c⊢ : CTX.sourceStoreʷ W ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (decay-source-⊢↑ dec c⊢) ≡ P
+decay-source-reveal-position dec c⊢ P eq =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (sourceStore-same dec)) c⊢) eq
+
+decay-source-conceal-position : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {A B Rᴸ}
+    {Xᴸ : TyVar Δᴸ} {c : Conv↓ Δᴸ A B}
+  → (dec : EnvDecay W Wᵈ)
+  → (c⊢ : CTX.sourceStoreʷ W ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (decay-source-⊢↓ dec c⊢) ≡ P
+decay-source-conceal-position dec c⊢ P eq =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (sourceStore-same dec)) c⊢) eq
+
+decay-target-reveal-position : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {A B Rᴿ}
+    {Xᴿ : TyVar Δᴿ} {c : Conv↑ Δᴿ A B}
+  → (dec : EnvDecay W Wᵈ)
+  → (c⊢ : CTX.targetStoreʷ W ⊢↑[ Xᴿ ⦂ Rᴿ ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (decay-target-⊢↑ dec c⊢) ≡ P
+decay-target-reveal-position dec c⊢ P eq =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (targetStore-same dec)) c⊢) eq
+
+decay-target-conceal-position : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {A B Rᴿ}
+    {Xᴿ : TyVar Δᴿ} {c : Conv↓ Δᴿ A B}
+  → (dec : EnvDecay W Wᵈ)
+  → (c⊢ : CTX.targetStoreʷ W ⊢↓[ Xᴿ ⦂ Rᴿ ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (decay-target-⊢↓ dec c⊢) ≡ P
+decay-target-conceal-position dec c⊢ P eq =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (targetStore-same dec)) c⊢) eq
 
 ------------------------------------------------------------------------
 -- Decay of pivot-local rebasing
@@ -622,132 +678,133 @@ decay-source-represented-star {W = W} {Wᵈ = Wᵈ} {X = X}
   CTI2.cast⊑² c (⊢²-decay dec M⊑M′) (decay⊑ᵂ dec q)
 ⊢²-decay
     dec
-    (CTI2.⊑reveal² rule-mono CTX.rebase-idᴿ sc
-      c′⊢ M⊑M′ q) =
-  CTI2.⊑reveal² CTX.impEnvMono-refl CTX.rebase-idᴿ
-    (decaySameCtx dec dec sc) (decay-target-⊢↑ dec c′⊢)
+    (CTI2.⊑reveal² c′⊢ position≡absent M⊑M′ q) =
+  CTI2.⊑reveal² (decay-target-⊢↑ dec c′⊢)
+    (decay-target-reveal-position dec c′⊢ generator-absent
+      position≡absent)
+    (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    dec
+    (CTI2.⊑conceal² c′⊢ position≡absent M⊑M′ q) =
+  CTI2.⊑conceal² (decay-target-⊢↓ dec c′⊢)
+    (decay-target-conceal-position dec c′⊢ generator-absent
+      position≡absent)
+    (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    dec
+    (CTI2.reveal⊑-neutral² c⊢ position≡absent M⊑M′ q) =
+  CTI2.reveal⊑-neutral² (decay-source-⊢↑ dec c⊢)
+    (decay-source-reveal-position dec c⊢ generator-absent
+      position≡absent)
     (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {Wᵈ = Wᵈ}
     dec
-    (CTI2.⊑reveal² {W′ = W′} rule-mono
-      (CTX.rebase-varᴿ rb) sc c′⊢ M⊑M′ q) =
-  CTI2.⊑reveal²
+    (CTI2.reveal⊑² {W′ = W′} c⊢ position≢absent Xᴿ∈ represented
+      rule-mono rb sc M⊑M′ q) =
+  CTI2.reveal⊑² (decay-source-⊢↑ dec c⊢)
+    (λ position≡absent → position≢absent
+      (trans
+        (sym (decay-source-reveal-position dec c⊢
+          (revealGeneratorPosition c⊢) refl)) position≡absent))
+    (subst≡ (λ Σ → Σ ∋ _ ⦂ _) (sym (targetStore-same dec)) Xᴿ∈)
+    (decay⊑ᵂ (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) represented)
     (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
-    (CTX.rebase-varᴿ
-      (decayRebaseAt dec
-        (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) rb))
+    (decayRebaseAt dec
+      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) rb)
     (decaySameCtx dec
       (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
+    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    dec
+    (CTI2.reveal⊑-only² c⊢ position≢absent dynamic no-target represented
+      M⊑M′ q) =
+  CTI2.reveal⊑-only² (decay-source-⊢↑ dec c⊢)
+    (λ position≡absent → position≢absent
+      (trans
+        (sym (decay-source-reveal-position dec c⊢
+          (revealGeneratorPosition c⊢) refl)) position≡absent))
+    (decay-source-dynamic dec dynamic)
+    (decay-source-no-target dec no-target)
+    (decay⊑ᵂ dec represented)
+    (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    dec
+    (CTI2.conceal⊑² c⊢ position≢absent dynamic no-target represented
+      M⊑M′ q) =
+  CTI2.conceal⊑² (decay-source-⊢↓ dec c⊢)
+    (λ position≡absent → position≢absent
+      (trans
+        (sym (decay-source-conceal-position dec c⊢
+          (concealGeneratorPosition c⊢) refl)) position≡absent))
+    (decay-source-dynamic dec dynamic)
+    (decay-source-no-target dec no-target)
+    (decay⊑ᵂ dec represented)
+    (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    dec
+    (CTI2.conceal⊑-neutral² c⊢ position≡absent M⊑M′ q) =
+  CTI2.conceal⊑-neutral² (decay-source-⊢↓ dec c⊢)
+    (decay-source-conceal-position dec c⊢ generator-absent
+      position≡absent)
+    (⊢²-decay dec M⊑M′)
+    (decay⊑ᵂ dec q)
+⊢²-decay
+    {Wᵈ = Wᵈ}
+    dec
+    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} c⊢ c′⊢ positions-equal
+      position≢absent
+      represented rule-mono rb sc M⊑M′ q) =
+  CTI2.reveal⊑reveal² (decay-source-⊢↑ dec c⊢)
     (decay-target-⊢↑ dec c′⊢)
-    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    dec
-    (CTI2.⊑conceal² rule-mono CTX.rebase-idᴿ sc
-      c′⊢ M⊑M′ q) =
-  CTI2.⊑conceal² CTX.impEnvMono-refl CTX.rebase-idᴿ
-    (decaySameCtx dec dec sc) (decay-target-⊢↓ dec c′⊢)
-    (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {Wᵈ = Wᵈ}
-    dec
-    (CTI2.⊑conceal² {W′ = W′} rule-mono
-      (CTX.rebase-varᴿ rb) sc c′⊢ M⊑M′ q) =
-  CTI2.⊑conceal²
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
-    (CTX.rebase-varᴿ
-      (decayRebaseAt
-        (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) dec rb))
-    (decaySameCtx dec
-      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    (decay-target-⊢↓ dec c′⊢)
-    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    dec
-    (CTI2.reveal⊑² rule-mono CTX.rebase-idᴸ sc
-      c⊢ M⊑M′ q) =
-  CTI2.reveal⊑² CTX.impEnvMono-refl CTX.rebase-idᴸ
-    (decaySameCtx dec dec sc) (decay-source-⊢↑ dec c⊢)
-    (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {Wᵈ = Wᵈ}
-    dec
-    (CTI2.reveal⊑² {W′ = W′} rule-mono
-      (CTX.rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
-  CTI2.reveal⊑²
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
-    (CTX.rebase-varᴸ
-      (decayRebaseAt dec
-        (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) rb))
-    (decaySameCtx dec
-      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    (decay-source-⊢↑ dec c⊢)
-    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    dec
-    (CTI2.reveal⊑² rule-mono
-      (CTX.rebase-onlyᴸ to-star disaligned represented)
-      sc c⊢ M⊑M′ q) =
-  CTI2.reveal⊑² CTX.impEnvMono-refl
-    (CTX.rebase-onlyᴸ (decay-source-dynamic dec to-star)
-      (decay-source-no-target dec disaligned)
-      (decay-source-represented-star dec represented))
-    (decaySameCtx dec dec sc) (decay-source-⊢↑ dec c⊢)
-    (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    dec
-    (CTI2.conceal⊑² rule-mono
-      (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-      sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑²
-    CTX.impEnvMono-refl
-    (CTX.tag-rebase-onlyᴸ (decay-source-dynamic dec to-star)
-      (decay-source-no-target dec disaligned)
-      (decay-source-represented-star dec represented))
-    (decaySameCtx dec dec sc) (decay-source-⊢↓ dec c⊢)
-    (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    dec
-    (CTI2.conceal⊑² rule-mono CTX.tag-rebase-idᴸ
-      sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑² CTX.impEnvMono-refl CTX.tag-rebase-idᴸ
-    (decaySameCtx dec dec sc) (decay-source-⊢↓ dec c⊢)
-    (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {Wᵈ = Wᵈ}
-    dec
-    (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} rule-mono rb sc
-      c⊢ c′⊢ M⊑M′ q) =
-  CTI2.reveal⊑reveal²
+    (trans
+      (decay-source-reveal-position dec c⊢
+        (revealGeneratorPosition c⊢) refl)
+      (trans positions-equal
+        (sym (decay-target-reveal-position dec c′⊢
+          (revealGeneratorPosition c′⊢) refl))))
+    (λ position≡absent → position≢absent
+      (trans
+        (sym (decay-source-reveal-position dec c⊢
+          (revealGeneratorPosition c⊢) refl)) position≡absent))
+    (decay⊑ᵂ (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) represented)
     (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ} dec rule-mono)
     (decayRebaseAt dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) rb)
     (decaySameCtx dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
-    (decay-source-⊢↑ dec c⊢) (decay-target-⊢↑ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
     {Wᵈ = Wᵈ}
     dec
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} rule-mono rb sc
-      c⊢ c′⊢ M⊑M′ q) =
-  CTI2.conceal⊑conceal²
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} c⊢ c′⊢ positions-equal
+      position≢absent
+      represented rule-mono rb sc M⊑M′ q) =
+  CTI2.conceal⊑conceal² (decay-source-⊢↓ dec c⊢)
+    (decay-target-⊢↓ dec c′⊢)
+    (trans
+      (decay-source-conceal-position dec c⊢
+        (concealGeneratorPosition c⊢) refl)
+      (trans positions-equal
+        (sym (decay-target-conceal-position dec c′⊢
+          (concealGeneratorPosition c′⊢) refl))))
+    (λ position≡absent → position≢absent
+      (trans
+        (sym (decay-source-conceal-position dec c⊢
+          (concealGeneratorPosition c⊢) refl)) position≡absent))
+    (decay⊑ᵂ (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) represented)
     (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ} dec rule-mono)
     (decayRebaseAt
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) dec rb)
     (decaySameCtx dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
-    (decay-source-⊢↓ dec c⊢) (decay-target-⊢↓ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay

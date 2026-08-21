@@ -5,6 +5,7 @@ module proof.DGG.SimPairedRevealValuesProof where
 --     simulation.
 --   * Names the paired conceal/reveal keep row separately from the paired
 --     id-reveal target-replay row.
+--   * Threads the paired constructor's generator evidence without a wrapper.
 --   * Refutes source frame steps from value irreducibility.
 
 open import Data.Empty using (⊥-elim)
@@ -13,6 +14,7 @@ open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_×_; Σ-syntax)
 open import Data.Unit.Base using (⊤; tt)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types using (Ty; TyCtx)
 open import Conversion using (Conv↑)
@@ -33,6 +35,8 @@ open import Reduction using
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; revealGeneratorPosition)
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-reveal-boundary)
 open import proof.DGG.Parked.ParkedWorldDef
@@ -51,13 +55,6 @@ open import proof.DGG.SimPairedRevealValuesDef
 open import proof.Reduction.ValueIrreducibleProof
   using (value-no-step)
 
-
-PairedRevealRel : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ [] ⊢² M ⊑ M′ ∶ p → Set
-PairedRevealRel (CTI2.reveal⊑reveal² _ _ _ _ _ _ _) = ⊤
-PairedRevealRel _ = Data.Empty.⊥
 
 IdRevealStep : ∀ {Δ Δ′ : TyCtx}
     {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
@@ -80,15 +77,18 @@ record SimPairedRevealValuesResiduals : Set₁ where
         {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
         {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
         {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
+        {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
         {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
         {q : B ⊑ᵂ⟨ W ⟩ B′}
       → ParkedWorld W
+      → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+      → (c′⊢ : targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+      → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+      → revealGeneratorPosition c⊢ ≢ generator-absent
+      → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
-      → PairedRevealRel rel
       → Value V
       → (step : V ↑ c —→[ χᴸ ] N)
       → IdRevealStep step
@@ -110,15 +110,18 @@ record SimPairedRevealValuesResiduals : Set₁ where
         {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
         {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
         {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
+        {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
         {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
         {q : B ⊑ᵂ⟨ W ⟩ B′}
       → ParkedWorld W
+      → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+      → (c′⊢ : targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+      → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+      → revealGeneratorPosition c⊢ ≢ generator-absent
+      → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
       → (mono : ImpEnvMono W Wᵖ)
       → (rebase : RebaseAt W Wᵖ Xᴸ Xᴿ)
-      → sourceStoreʷ W Conv.⊢↑[ just Xᴸ ] c
-      → targetStoreʷ W Conv.⊢↑[ just Xᴿ ] c′
       → (rel : W ∣ [] ⊢² V ↑ c ⊑ M′ ↑ c′ ∶ q)
-      → PairedRevealRel rel
       → Value V
       → (step : V ↑ c —→[ χᴸ ] N)
       → ConcealRevealStep step
@@ -137,20 +140,24 @@ record SimPairedRevealValuesResiduals : Set₁ where
 
 sim-paired-reveal-values-with :
   SimPairedRevealValuesResiduals → SimPairedRevealValuesᵀ
-sim-paired-reveal-values-with residuals parked mono rebase c⊢ c′⊢
+sim-paired-reveal-values-with residuals parked c⊢ c′⊢ aligned
+    nonabsent represented mono rebase
     rel q vV step@(pure-step (id-reveal _)) caught =
   SimPairedRevealValuesResiduals.paired-id-reveal-row residuals
-    parked mono rebase c⊢ c′⊢
-    (CTI2.reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ rel q) tt
+    parked c⊢ c′⊢ aligned nonabsent represented mono rebase
+    (CTI2.reveal⊑reveal² c⊢ c′⊢ aligned nonabsent represented mono
+      rebase same-[] rel q)
     vV step tt caught
-sim-paired-reveal-values-with residuals parked mono rebase c⊢ c′⊢
+sim-paired-reveal-values-with residuals parked c⊢ c′⊢ aligned
+    nonabsent represented mono rebase
     rel q vV step@(pure-step (conceal-reveal _)) caught =
   SimPairedRevealValuesResiduals.paired-conceal-reveal-row residuals
-    parked mono rebase c⊢ c′⊢
-    (CTI2.reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ rel q) tt
+    parked c⊢ c′⊢ aligned nonabsent represented mono rebase
+    (CTI2.reveal⊑reveal² c⊢ c′⊢ aligned nonabsent represented mono
+      rebase same-[] rel q)
     vV step tt caught
-sim-paired-reveal-values-with residuals _ _ _ _ _ _ _ ()
+sim-paired-reveal-values-with residuals _ _ _ _ _ _ _ _ _ _ ()
     (pure-step blame-reveal) _
-sim-paired-reveal-values-with residuals _ _ _ _ _ _ _ vV
+sim-paired-reveal-values-with residuals _ _ _ _ _ _ _ _ _ _ vV
     (ξ-reveal step _) _ =
   ⊥-elim (value-no-step vV step)

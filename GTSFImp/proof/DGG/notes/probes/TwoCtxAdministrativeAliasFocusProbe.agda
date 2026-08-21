@@ -30,8 +30,8 @@ import Imprecision as I
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; _,ˢ_; ⇑ᵉᵗ)
 open import Conversion using (Conv↑; unseal)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 -- A focus is local authorization to read one old target name at the source

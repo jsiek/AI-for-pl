@@ -1,280 +1,265 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.CastTermImprecision where
 
 -- File Charter:
---   * Experiments with the Issue 117 redesign of cast-term imprecision.
---   * Keeps type imprecision single-context, but makes each term-imprecision
---     premise carry its current local source/target embeddings into that
---     center context.
---   * Represents local rebasing explicitly, letting reveal/conceal wrappers
---     descend with a different alignment.
---   * Rebasing is asymmetric: a RebaseAt keeps the runtime stores and
---     the center context fixed, may move only the source pivot, and
---     freezes every old target variable's center.  Imprecision marks are
---     not pinned by the rebase; instead every wrapper rule carries
---     ImpEnvMono, letting marks decay toward X⊑★ from conclusion to
---     premise.  Every world carries alignment, direct-representation,
---     unmatched-target, and dynamic-source occupancy invariants.
---   * Store representations are canonical: a pivot variable is compared
---     through resolveVar, which follows the store's representation chain
---     to its end instead of stopping at an arbitrary intermediate type.
---   * Conversion typing is indexed by an optional pivot.  A conversion
---     built only from identity leaves has no pivot and its wrapper rule
---     keeps the world fixed; only a conversion that seals or unseals an
---     actual variable can rebase, and only at that variable.
---   * Source-only structure needs no target counterpart: Λ⊑² lifts the
---     world on the left only and compares the target term unweakened,
---     and a rebase-onlyᴸ pivot handles a source variable with no
---     aligned target variable, justified by the target seeing ★ there.
---     There is no right-only mirror because type imprecision has no
---     rule with a bare variable on the imprecise side.
---   * The more rules in this relation, the more cases to prove in the DGG.
---     So don't add rules unless they are absolutely necessary!
---     Avoid rules that are not syntax directed.
+--   * Defines cast-term imprecision directly over the canonical relation
+--     between two complete CastTerms contexts.
+--   * Uses the endpoint type stores and term contexts from the world indices;
+--     there is no separate context-imprecision list or compatibility world.
+--   * Uses structural plans for source-only universal binders and source
+--     rebasing.  These plans rebuild only constructor-form worlds.
+--   * Mechanically carries the current conversion-generator and occupancy
+--     premises into the canonical world.  The reveal and conceal rules remain
+--     subject to a separate semantic review against reduction and examples.
+--   * Keeps rules syntax directed and avoids packaged action wrappers.
 
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using (List; []; _∷_; map)
-open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Nat as Nat using (ℕ)
-open import Data.Product using (Σ-syntax; _,_)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types
-open import TyStore using
-  (TyStore; store-empty; store-lift; store-bind; _∋_⦂_; Z∋; S-bind∋)
-open import TermCtx using (TermCtx)
-open import Consistency using
-  (Env∼; _⊢_∼_; _⊢_∼★; _∼_; _↪ᵗ_; empty; keep; skip;
-   toRenameᵗ; id; _!)
-open import Conversion using (Conv↑; Conv↓; _⊢↑_; _⊢↓_)
+open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using
-  (unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_; `∀↓_; id↓;
-   ⊢↑-∀; ⊢↑-id; PivotJoin; join-none; join-left; join-right; join-both;
-   _⊢↑[_]_; ⊢↑-unsealˣ; ⊢↑-⇒ˣ; ⊢↑-∀ˣ; ⊢↑-∀-idˣ; ⊢↑-idˣ;
-   _⊢↓[_]_; ⊢↓-sealˣ; ⊢↓-⇒ˣ; ⊢↓-∀ˣ; ⊢↓-∀-idˣ; ⊢↓-idˣ)
+  (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Imprecision
-open import Primitives using (Const; Prim; constTy; primArgTy; primResultTy)
-open import CastTerms
-  using
-    (Term; Var; Value; Ctx; ⟨_,_,_⟩; _⊢_⦂_; `_ ; ƛ_; _·_; Λ_;
-     _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_; blame; ⇑ᵗᵐ;
-     ⊢·; ⊢⟨⟩; ⊢•; ⊢reveal)
+open import Primitives using
+  (Const; Prim; constTy; primArgTy; primResultTy)
+open import CastTerms using
+  (Ctx; Δᵉ; Σᵉ; Term; Value; _∋ᵗ_⦂_; _⊢_⦂_; `_; ƛ_; _·_; Λ_;
+   _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_; blame)
 
-open import proof.DGG.CtxImp
+open import proof.DGG.World
+open import proof.DGG.SourceRebasePlan using
+  (SourceRebasePlan; rebaseSource)
+open import proof.DGG.SourceFreshBehindPlan using
+  (SourceFreshBehindPlan; insertSourceFreshBehind)
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
+
 
 ------------------------------------------------------------------------
--- Typed cast-term imprecision with recursive worlds
+-- Typed cast-term imprecision over complete endpoint contexts
 ------------------------------------------------------------------------
 
-infix 4 _∣_⊢²_⊑_∶_
+infix 4 _⊢²_⊑_∶_
 
-data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W) :
-    Term Δᴸ → Term Δᴿ → {A : Ty Δᴸ} {B : Ty Δᴿ}
-    → A ⊑ᵂ⟨ W ⟩ B → Set where
+data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
+    Term (Δᵉ Γᴸ) → Term (Δᵉ Γᴿ)
+    → {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+    → A ⊑ᵀ⟨ γ ⟩ B → Set where
 
-  x⊑x² : ∀ {x A B p}
-    → γ ∋ʷ x ⦂ ctx-imp A B p
-      --------------------------------
-    → W ∣ γ ⊢² ` x ⊑ ` x ∶ p
+  x⊑x² : ∀ {x A B} {p : A ⊑ᵀ⟨ γ ⟩ B}
+    → Γᴸ ∋ᵗ x ⦂ A
+    → Γᴿ ∋ᵗ x ⦂ B
+      ------------------------
+    → γ ⊢² ` x ⊑ ` x ∶ p
 
   ƛ⊑ƛ² : ∀ {M M′ A A′ B B′}
-      {pA : A ⊑ᵂ⟨ W ⟩ A′}
-      {pB : B ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ ctx-imp A A′ pA ∷ γ ⊢² M ⊑ M′ ∶ pB
-      ---------------------------------------------------
-    → W ∣ γ ⊢² ƛ M ⊑ ƛ M′ ∶ ⇒⊑⇒ pA pB
+      {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
+    → bind-termᶜ γ pA ⊢² M ⊑ M′ ∶ pB
+      -----------------------------------
+    → γ ⊢² ƛ M ⊑ ƛ M′ ∶ ⇒⊑⇒ pA pB
 
   ·⊑·² : ∀ {L L′ M M′ A A′ B B′}
-      {pA : A ⊑ᵂ⟨ W ⟩ A′}
-      {pB : B ⊑ᵂ⟨ W ⟩ B′}
-    → W ∣ γ ⊢² L ⊑ L′ ∶ ⇒⊑⇒ pA pB
-    → W ∣ γ ⊢² M ⊑ M′ ∶ pA
-      ------------------------------------------------
-    → W ∣ γ ⊢² L · M ⊑ L′ · M′ ∶ pB
+      {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
+    → γ ⊢² L ⊑ L′ ∶ ⇒⊑⇒ pA pB
+    → γ ⊢² M ⊑ M′ ∶ pA
+      -----------------------------
+    → γ ⊢² L · M ⊑ L′ · M′ ∶ pB
 
-  Λ⊑Λ² : ∀ {γ′ V V′ A B}
-      {p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
-    → LiftCtx X⊑X γ γ′
+  Λ⊑Λ² : ∀ {V V′ A B}
+      {p : A ⊑ᵀ⟨ liftBothᶜ X⊑X γ ⟩ B}
     → Value V
     → Value V′
-    → liftWorldBoth X⊑X W ∣ γ′ ⊢² V ⊑ V′ ∶ p
-    → (q : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B)
-      -------------------------------------------------
-    → W ∣ γ ⊢² Λ V ⊑ Λ V′ ∶ q
+    → liftBothᶜ X⊑X γ ⊢² V ⊑ V′ ∶ p
+    → (q : (`∀ A) ⊑ᵀ⟨ γ ⟩ (`∀ B))
+      ---------------------------------
+    → γ ⊢² Λ V ⊑ Λ V′ ∶ q
 
-  -- The NonVar and occurrence premises mirror the ∀⊑ type rule; the
-  -- extra-cast-right inversion needs them to refute the ∀⊑∀ and
-  -- bot-elim views of q.
-  Λ⊑² : ∀ {γ′ V M A B}
-      {p : A ⊑ᵂ⟨ liftWorldLeft W ⟩ B}
+  Λ⊑² : ∀ {V M A B}
     → NonVar A
     → Fin.zero ∈ᵗ A
-    → LiftCtxᴸ X⊑★ γ γ′
+    → (plan : SourceFreshBehindPlan γ)
+    → {p : A ⊑ᵀ⟨ insertSourceFreshBehind plan ⟩ B}
     → Value V
-    → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
-    → liftWorldLeft W ∣ γ′ ⊢² V ⊑ M ∶ p
-    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
-      -------------------------------------------
-    → W ∣ γ ⊢² Λ V ⊑ M ∶ q
-
-  Λ⊑²-smart-comma :
-      ∀ {Δᵐ}
-      {Wᵐ : World (Nat.suc Δᴸ) Δᴿ Δᵐ}
-      {γᵐ : CtxImp Wᵐ}
-      {V : Term (Nat.suc Δᴸ)} {M : Term Δᴿ}
-      {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
-      {p : A ⊑ᵂ⟨ Wᵐ ⟩ B}
-    → NonVar A
-    → Fin.zero ∈ᵗ A
-    → SmartCommaLiftᴸ W Wᵐ
-    → SmartLiftCtxᴸ {W = W} {Wᵐ = Wᵐ} γ γᵐ
-    → Value V
-    → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
-    → Wᵐ ∣ γᵐ ⊢² V ⊑ M ∶ p
-    → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
-      -------------------------------------------
-    → W ∣ γ ⊢² Λ V ⊑ M ∶ q
+    → Γᴿ ⊢ M ⦂ B
+    → insertSourceFreshBehind plan ⊢² V ⊑ M ∶ p
+    → (q : (`∀ A) ⊑ᵀ⟨ γ ⟩ B)
+      -----------------------
+    → γ ⊢² Λ V ⊑ M ∶ q
 
   •⊑•² : ∀ {M M′ C C′ A A′}
-    → (p∀ : `∀ C ⊑ᵂ⟨ W ⟩ `∀ C′)
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p∀
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
-    → (r : (C [ A ]ᵗ) ⊑ᵂ⟨ W ⟩ (C′ [ A′ ]ᵗ))
-      --------------------------------------------------
-    → W ∣ γ ⊢² M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ r
+    → (p∀ : (`∀ C) ⊑ᵀ⟨ γ ⟩ (`∀ C′))
+    → γ ⊢² M ⊑ M′ ∶ p∀
+    → (q : A ⊑ᵀ⟨ γ ⟩ A′)
+    → (r : (C [ A ]ᵗ) ⊑ᵀ⟨ γ ⟩ (C′ [ A′ ]ᵗ))
+      -----------------------------------------
+    → γ ⊢² M ⦂∀ C [ A ] ⊑ M′ ⦂∀ C′ [ A′ ] ∶ r
 
   •⊑² : ∀ {M M′ C A B}
-    → (p∀ : `∀ C ⊑ᵂ⟨ W ⟩ B)
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p∀
-    → (q : A ⊑ᵂ⟨ W ⟩ ★)
-    → (r : (C [ A ]ᵗ) ⊑ᵂ⟨ W ⟩ B)
-      ----------------------------------------
-    → W ∣ γ ⊢² M ⦂∀ C [ A ] ⊑ M′ ∶ r
+    → (p∀ : (`∀ C) ⊑ᵀ⟨ γ ⟩ B)
+    → γ ⊢² M ⊑ M′ ∶ p∀
+    → (q : A ⊑ᵀ⟨ γ ⟩ ★)
+    → (r : (C [ A ]ᵗ) ⊑ᵀ⟨ γ ⟩ B)
+      ------------------------------
+    → γ ⊢² M ⦂∀ C [ A ] ⊑ M′ ∶ r
 
   κ⊑κ² : ∀ (κ : Const)
-    → (p : constTy κ ⊑ᵂ⟨ W ⟩ constTy κ)
-      ----------------------------------------------------
-    → W ∣ γ ⊢² $ κ ⊑ $ κ ∶ p
+    → (p : constTy κ ⊑ᵀ⟨ γ ⟩ constTy κ)
+      ----------------------------------
+    → γ ⊢² $ κ ⊑ $ κ ∶ p
 
   cast⊑cast² : ∀ {M M′ C C′ A A′}
-      {p : C ⊑ᵂ⟨ W ⟩ C′} {ν : Env∼ Δᴸ} {ν′ : Env∼ Δᴿ}
+      {p : C ⊑ᵀ⟨ γ ⟩ C′}
+      {ν : Env∼ (Δᵉ Γᴸ)} {ν′ : Env∼ (Δᵉ Γᴿ)}
     → (c : ν ⊢ C ∼ A)
     → (c′ : ν′ ⊢ C′ ∼ A′)
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ A′)
-      -------------------------------------
-    → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ∶ q
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨ γ ⟩ A′)
+      -----------------------------
+    → γ ⊢² M ⟨ c ⟩ ⊑ M′ ⟨ c′ ⟩ ∶ q
 
   ⊑cast² : ∀ {M M′ A B B′}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {ν : Env∼ Δᴿ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B} {ν : Env∼ (Δᵉ Γᴿ)}
     → (c′ : ν ⊢ B ∼ B′)
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨ γ ⟩ B′)
+      ---------------------
+    → γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
-  ⊑reveal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
-      {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↑ Δᴿ B B′}
-    → ImpEnvMono W W′
-    → RebaseAtᴿ W W′ Xᴿ?
-    → SameCtx γ γ′
-    → targetStoreʷ W ⊢↑[ Xᴿ? ] c′
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ↑ c′ ∶ q
+  ⊑reveal² : ∀ {M M′ A B B′ Xᴿ Rᴿ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c′ : Conv↑ (Δᵉ Γᴿ) B B′}
+    → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+    → revealGeneratorPosition c′⊢ ≡ generator-absent
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨ γ ⟩ B′)
+      ---------------------
+    → γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
-  ⊑conceal² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A B B′ Xᴿ?}
-      {p : A ⊑ᵂ⟨ W′ ⟩ B} {c′ : Conv↓ Δᴿ B B′}
-    → ImpEnvMono W W′
-    → RebaseAtᴿ W′ W Xᴿ?
-    → SameCtx γ γ′
-    → targetStoreʷ W ⊢↓[ Xᴿ? ] c′
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵂ⟨ W ⟩ B′)
-      -----------------------------
-    → W ∣ γ ⊢² M ⊑ M′ ↓ c′ ∶ q
+  ⊑conceal² : ∀ {M M′ A B B′ Xᴿ Rᴿ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c′ : Conv↓ (Δᵉ Γᴿ) B B′}
+    → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
+    → concealGeneratorPosition c′⊢ ≡ generator-absent
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨ γ ⟩ B′)
+      ---------------------
+    → γ ⊢² M ⊑ M′ ↓ c′ ∶ q
 
   cast⊑² : ∀ {M M′ A A′ B}
-      {p : A ⊑ᵂ⟨ W ⟩ B} {ν : Env∼ Δᴸ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B} {ν : Env∼ (Δᵉ Γᴸ)}
     → (c : ν ⊢ A ∼ A′)
-    → W ∣ γ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
-  reveal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
-      {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↑ Δᴸ A A′}
-    → ImpEnvMono W W′
-    → RebaseAtᴸ W W′ Xᴸ?
-    → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↑[ Xᴸ? ] c
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
+  reveal⊑-neutral² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c : Conv↑ (Δᵉ Γᴸ) A A′}
+    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+    → revealGeneratorPosition c⊢ ≡ generator-absent
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
-      {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → ImpEnvMono W W′
-    → TagRebaseAtᴸ W′ W Xᴸ? nothing
-    → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
+  reveal⊑-only² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c : Conv↑ (Δᵉ Γᴸ) A A′}
+    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+    → revealGeneratorPosition c⊢ ≢ generator-absent
+    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
+    → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
+        ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
+    → Rᴸ ⊑ᵀ⟨ γ ⟩ ★
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  reveal⊑reveal² : ∀
-      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
-      {M M′ A A′ B B′ Xᴸ Xᴿ}
-      {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
-      {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
-    → ImpEnvMono W Wᵖ
-    → RebaseAt W Wᵖ Xᴸ Xᴿ
-    → SameCtx γ γᵖ
-    → sourceStoreʷ W ⊢↑[ just Xᴸ ] c
-    → targetStoreʷ W ⊢↑[ just Xᴿ ] c′
-    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
-    → (q : B ⊑ᵂ⟨ W ⟩ B′)
-      -------------------------------------
-    → W ∣ γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
+  reveal⊑² : ∀ {M M′ A A′ B Xᴸ Xᴿ Rᴸ Rᴿ}
+      {c : Conv↑ (Δᵉ Γᴸ) A A′}
+    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+    → revealGeneratorPosition c⊢ ≢ generator-absent
+    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≢ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+    → (plan : SourceRebasePlan γ Xᴸ Xᴿ)
+    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
+    → {p : A ⊑ᵀ⟨ rebaseSource plan ⟩ B}
+    → rebaseSource plan ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ↑ c ⊑ M′ ∶ q
+
+  conceal⊑-neutral² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c : Conv↓ (Δᵉ Γᴸ) A A′}
+    → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+    → concealGeneratorPosition c⊢ ≡ generator-absent
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ↓ c ⊑ M′ ∶ q
+
+  conceal⊑² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+      {c : Conv↓ (Δᵉ Γᴸ) A A′}
+    → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+    → concealGeneratorPosition c⊢ ≢ generator-absent
+    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
+    → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
+        ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
+    → Rᴸ ⊑ᵀ⟨ γ ⟩ ★
+    → γ ⊢² M ⊑ M′ ∶ p
+    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
+      ---------------------
+    → γ ⊢² M ↓ c ⊑ M′ ∶ q
+
+  reveal⊑reveal² : ∀ {M M′ A A′ B B′ Xᴸ Xᴿ Rᴸ Rᴿ}
+      {c : Conv↑ (Δᵉ Γᴸ) A B}
+      {c′ : Conv↑ (Δᵉ Γᴿ) A′ B′}
+    → (plan : SourceRebasePlan γ Xᴸ Xᴿ)
+    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+    → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+    → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+    → revealGeneratorPosition c⊢ ≢ generator-absent
+    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
+    → {p : A ⊑ᵀ⟨ rebaseSource plan ⟩ A′}
+    → rebaseSource plan ⊢² M ⊑ M′ ∶ p
+    → (q : B ⊑ᵀ⟨ γ ⟩ B′)
+      ------------------------------
+    → γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
 
   conceal⊑conceal² : ∀
-      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
-      {M M′ A A′ B B′ Xᴸ Xᴿ}
-      {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
-      {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
-    → ImpEnvMono W Wᵖ
-    → RebaseAt Wᵖ W Xᴸ Xᴿ
-    → SameCtx γ γᵖ
-    → sourceStoreʷ W ⊢↓[ just Xᴸ ] c
-    → targetStoreʷ W ⊢↓[ just Xᴿ ] c′
-    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p
-    → (q : B ⊑ᵂ⟨ W ⟩ B′)
-      -------------------------------------
-    → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
-
-  -- Source blame is below any well-typed target term.  The left side
-  -- is the more static one (A ⊑ ★ for any closed type A, with ★ on
-  -- the right): once the more static side has blamed, imprecision
-  -- places no constraint on the more dynamic side.
-  blame⊑² : ∀ {M′ A B}
-    → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M′ ⦂ B
-    → (p : A ⊑ᵂ⟨ W ⟩ B)
+      {γᵖ : Γᴸ ⊑ᶜ Γᴿ}
+      {M M′ A A′ B B′ Xᴸ Xᴿ Rᴸ Rᴿ}
+      {p : A ⊑ᵀ⟨ γᵖ ⟩ A′}
+      {c : Conv↓ (Δᵉ Γᴸ) A B}
+      {c′ : Conv↓ (Δᵉ Γᴿ) A′ B′}
+    → (plan : SourceRebasePlan γᵖ Xᴸ Xᴿ)
+    → rebaseSource plan ≡ γ
+    → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+    → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
+    → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
+    → concealGeneratorPosition c⊢ ≢ generator-absent
+    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
+    → γᵖ ⊢² M ⊑ M′ ∶ p
+    → (q : B ⊑ᵀ⟨ γ ⟩ B′)
       ------------------------------
-    → W ∣ γ ⊢² blame ⊑ M′ ∶ p
+    → γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
+
+  blame⊑² : ∀ {M′ A B}
+    → Γᴿ ⊢ M′ ⦂ B
+    → (p : A ⊑ᵀ⟨ γ ⟩ B)
+      --------------------
+    → γ ⊢² blame ⊑ M′ ∶ p
 
   ⊕⊑⊕² : (op : Prim)
     → ∀ {L L′ M M′}
-      {p q : primArgTy op ⊑ᵂ⟨ W ⟩ primArgTy op}
-    → W ∣ γ ⊢² L ⊑ L′ ∶ p
-    → W ∣ γ ⊢² M ⊑ M′ ∶ q
-    → (r : primResultTy op ⊑ᵂ⟨ W ⟩ primResultTy op)
-      ------------------------------------------------
-    → W ∣ γ ⊢² L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′ ∶ r
+      {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
+    → γ ⊢² L ⊑ L′ ∶ p
+    → γ ⊢² M ⊑ M′ ∶ q
+    → (r : primResultTy op ⊑ᵀ⟨ γ ⟩ primResultTy op)
+      ---------------------------------------------
+    → γ ⊢² L ⊕[ op ] M ⊑ L′ ⊕[ op ] M′ ∶ r

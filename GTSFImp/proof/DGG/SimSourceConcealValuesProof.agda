@@ -22,7 +22,24 @@ open import proof.Reduction.ValueIrreducibleProof
 
 
 sim-source-conceal-values : SimSourceConcealValuesᵀ
-sim-source-conceal-values _ _ CTI2.tag-rebase-idᴸ Conv.⊢↓-idˣ _ _
+sim-source-conceal-values _ _ (Conv.⊢↓-id-var _ _)
+    CTI2.tag-rebase-idᴸ _ _
+    vV (pure-step (id-conceal _))
+    (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
+      boundary-source-conceal _ CTI2.tag-rebase-idᴸ , q′ ,
+      _ , M′↠V′ , _ , evol , _ , _ , rel′) =
+  Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , q′ ,
+  M′↠V′ , evolve-keepᴸ evol , rel′
+sim-source-conceal-values _ _ (Conv.⊢↓-id-base _)
+    CTI2.tag-rebase-idᴸ _ _
+    vV (pure-step (id-conceal _))
+    (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
+      boundary-source-conceal _ CTI2.tag-rebase-idᴸ , q′ ,
+      _ , M′↠V′ , _ , evol , _ , _ , rel′) =
+  Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , q′ ,
+  M′↠V′ , evolve-keepᴸ evol , rel′
+sim-source-conceal-values _ _ (Conv.⊢↓-id-star _)
+    CTI2.tag-rebase-idᴸ _ _
     vV (pure-step (id-conceal _))
     (Δᴿ′ , χsᴿ , V′ , Δ′ , W′ , .W′ , _ ,
       boundary-source-conceal _ CTI2.tag-rebase-idᴸ , q′ ,

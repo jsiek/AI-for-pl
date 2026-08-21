@@ -19,7 +19,7 @@ import TermCtx as TC
 open import TermCtx using (Z)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Term; `_; _,ᶜ_; _∋ᵗ_⦂_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe

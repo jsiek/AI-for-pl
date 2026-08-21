@@ -20,7 +20,6 @@ module proof.DGG.TerminusRebuildProbe where
 import Data.Fin as Fin
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
-open import Data.Maybe using (just)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (refl)
 open import Relation.Nullary using (¬_)
@@ -31,7 +30,7 @@ open import TyStore using
 open import TermCtx using (Z)
 open import Consistency using
   (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; id; _↦_; _!)
-open import Conversion using (seal; _⊢↓_; ⊢↓-seal)
+open import Conversion using (seal)
 open import CastTerms
 open import Imprecision
 import CastTerms as CTerms
@@ -152,14 +151,11 @@ module InstanceA where
   rb-X-Y : RebaseAt W W X Y
   rb-X-Y = CTX.sameWorldRebaseAt refl X-Y-rep
 
-  target-seal-⊢ : target-store Conv.⊢↓[ just Y ] seal Y ★
-  target-seal-⊢ = Conv.⊢↓-sealˣ Y∈
+  target-seal-⊢ : target-store Conv.⊢↓[ Y ⦂ ★ ] seal Y ★
+  target-seal-⊢ = Conv.⊢↓-seal Y∈
 
-  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ∀X⇒X
-  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
-
-  target-seal-⊢ᶜ : target-store ⊢↓ seal Y ★
-  target-seal-⊢ᶜ = ⊢↓-seal Y∈
+  source-seal-⊢ : source-store Conv.⊢↓[ X ⦂ ∀X⇒X ] seal X ∀X⇒X
+  source-seal-⊢ = Conv.⊢↓-seal X∈
 
   U : Term 1
   U = dyn-id
@@ -177,7 +173,7 @@ module InstanceA where
   U-⊢ = dyn-id!-⊢
 
   target-sealed-⊢ : ⟨ 1 , target-store , [] ⟩ ⊢ target-sealed ⦂ ＇ Y
-  target-sealed-⊢ = ⊢conceal target-seal-⊢ᶜ U-⊢
+  target-sealed-⊢ = ⊢conceal target-seal-⊢ U-⊢
 
   target-tagged-⊢ : ⟨ 1 , target-store , [] ⟩ ⊢ target-tagged ⦂ ★
   target-tagged-⊢ = ⊢⟨⟩ target-sealed-⊢ Y!
@@ -215,8 +211,8 @@ module InstanceA where
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =
     CTI2.conceal⊑conceal²
-      (mono-refl {W = W}) rb-X-Y CTX.same-[]
-      source-seal-⊢ target-seal-⊢ head-U² X⊑Y
+      source-seal-⊢ target-seal-⊢ refl (λ ()) source-∀⊑★
+      (mono-refl {W = W}) rb-X-Y CTX.same-[] head-U² X⊑Y
 
   -- The observable tagged premise is available, but the rebuild above
   -- deliberately avoids using this tag-peel-first derivation.

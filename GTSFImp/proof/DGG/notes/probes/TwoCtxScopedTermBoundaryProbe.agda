@@ -21,7 +21,7 @@ import Consistency as C
 import Imprecision as I
 open import CastTerms using (Ctx; _,ᶜ_; _∋ᵗ_⦂_; `_; Term; Δᵉ)
 open import TermCtx using (Z)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe

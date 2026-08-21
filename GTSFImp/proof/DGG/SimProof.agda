@@ -11,6 +11,7 @@ module proof.DGG.SimProof where
 --     arguments to the parameterized simulation capabilities.
 
 open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Data.Empty using (⊥-elim)
 import Data.List as List
 open import Relation.Binary.PropositionalEquality using
   (refl; cong; sym; trans)
@@ -18,6 +19,7 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Types using (Ty; TyCtx; _⇒_; _[_]ᵗ)
 open import Consistency using (Env∼; _⊢_∼_)
+import Conversion
 open import Primitives using (primArgTy; primResultTy)
 open import CastTerms
 open import Reduction
@@ -45,6 +47,8 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.Imprecision as PI
+open import proof.DGG.ConvImp using
+  (conv↑-generator∈; conv↓-generator∈)
 open CTX
 open CTI2
 open import proof.DGG.Parked.ParkedWorldDef
@@ -738,11 +742,11 @@ module _
       N⊑N′ (transport⊑ᴾ evol q)
 
   sim parked
-      rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q) M→N =
+      rel@(⊑reveal² c′⊢ position≡absent M⊑M′ q) M→N =
     target-reveal-frame parked rel M→N
 
   sim parked
-      rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q) M→N =
+      rel@(⊑conceal² c′⊢ position≡absent M⊑M′ q) M→N =
     target-conceal-frame parked rel M→N
 
   ------------------------------------------------------------------------
@@ -750,127 +754,315 @@ module _
   ------------------------------------------------------------------------
 
   sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-var _ _)
+        refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase))
+        (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-var _ _)
+        refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       | caught =
-    sim-source-reveal-values parked mono rebase c⊢ M⊑M′ q
-      vM step caught
+    sim-source-reveal-values parked impEnvMono-refl c⊢ rebase-idᴸ
+      M⊑M′ q rel vM step caught
   sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-base _)
+        refl M⊑M′ q)
+      step@(pure-step (id-reveal vM))
+      with catchup parked
+        (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
+        M⊑M′ vM
+  sim parked
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-base _)
+        refl M⊑M′ q)
+      step@(pure-step (id-reveal vM))
+      | caught =
+    sim-source-reveal-values parked impEnvMono-refl c⊢ rebase-idᴸ
+      M⊑M′ q rel vM step caught
+  sim parked
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-star _)
+        refl M⊑M′ q)
+      step@(pure-step (id-reveal vM))
+      with catchup parked
+        (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
+        M⊑M′ vM
+  sim parked
+      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-star _)
+        refl M⊑M′ q)
+      step@(pure-step (id-reveal vM))
+      | caught =
+    sim-source-reveal-values parked impEnvMono-refl c⊢ rebase-idᴸ
+      M⊑M′ q rel vM step caught
+  sim parked
+      (reveal⊑-only² (Conversion.⊢↑-id-var member X≠Y)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (reveal⊑-only² (Conversion.⊢↑-id-base member)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (reveal⊑-only² (Conversion.⊢↑-id-star member)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (reveal⊑² (Conversion.⊢↑-id-var member X≠Y)
+        position≢absent target∋ represented mono rebase same M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (reveal⊑² (Conversion.⊢↑-id-base member)
+        position≢absent target∋ represented mono rebase same M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (reveal⊑² (Conversion.⊢↑-id-star member)
+        position≢absent target∋ represented mono rebase same M⊑M′ q)
+      (pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      rel@(reveal⊑-only² c⊢@(Conversion.⊢↑-unseal _)
+        position≢absent mark disaligned
+        represented M⊑M′ q)
       step@(pure-step (conceal-reveal vM))
       with catchup parked
-        (boundary-source-reveal mono (toTagRebaseAtᴸ rebase))
+        (boundary-source-reveal impEnvMono-refl
+          (tag-rebase-onlyᴸ (conv↑-generator∈ c⊢)
+            mark disaligned represented))
         M⊑M′ (vM ↓ seal)
   sim parked
-      rel@(reveal⊑² mono rebase same-[] c⊢ M⊑M′ q)
+      rel@(reveal⊑-only² c⊢@(Conversion.⊢↑-unseal _)
+        position≢absent mark disaligned
+        represented M⊑M′ q)
       step@(pure-step (conceal-reveal vM))
       | caught =
-    sim-source-reveal-values parked mono rebase c⊢ M⊑M′ q
-      (vM ↓ seal) step caught
+    sim-source-reveal-values parked impEnvMono-refl c⊢
+      (rebase-onlyᴸ (conv↑-generator∈ c⊢) mark disaligned represented)
+      M⊑M′ q rel (vM ↓ seal) step caught
+  sim parked
+      rel@(reveal⊑² c⊢@(Conversion.⊢↑-unseal _)
+        position≢absent target∋ represented mono
+        rebase same-[] M⊑M′ q)
+      step@(pure-step (conceal-reveal vM))
+      with catchup parked
+        (boundary-source-reveal mono (tag-rebase-varᴸ rebase))
+        M⊑M′ (vM ↓ seal)
+  sim parked
+      rel@(reveal⊑² c⊢@(Conversion.⊢↑-unseal _)
+        position≢absent target∋ represented mono
+        rebase same-[] M⊑M′ q)
+      step@(pure-step (conceal-reveal vM))
+      | caught =
+    sim-source-reveal-values parked mono c⊢ (rebase-varᴸ rebase)
+      M⊑M′ q rel (vM ↓ seal) step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q)
+      rel@(reveal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      (pure-step blame-reveal) =
+    Δᴿ , [] , _ , _ , W , q ,
+    (_ ∎[]) ,
+    evolve-keepᴸ evolve-refl ,
+    blame⊑² (CTI2T.target-typing² rel) q
+  sim
+      {Δᴿ = Δᴿ} {W = W} parked
+      rel@(reveal⊑-only² c⊢ position≢absent mark disaligned
+        represented M⊑M′ q)
+      (pure-step blame-reveal) =
+    Δᴿ , [] , _ , _ , W , q ,
+    (_ ∎[]) ,
+    evolve-keepᴸ evolve-refl ,
+    blame⊑² (CTI2T.target-typing² rel) q
+  sim
+      {Δᴿ = Δᴿ} {W = W} parked
+      rel@(reveal⊑² c⊢ position≢absent target∋ represented mono
+        rebase same M⊑M′ q)
       (pure-step blame-reveal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q)
+      rel@(reveal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      step@(ξ-reveal M→N refl) =
+    source-reveal-frame parked rel step
+  sim parked
+      rel@(reveal⊑-only² c⊢ position≢absent mark disaligned represented
+        M⊑M′ q)
+      step@(ξ-reveal M→N refl) =
+    source-reveal-frame parked rel step
+  sim parked
+      rel@(reveal⊑² c⊢ position≢absent target∋ represented mono
+        rebase same M⊑M′ q)
       step@(ξ-reveal M→N refl) =
     source-reveal-frame parked rel step
 
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-var _ _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      with catchup parked
+        (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
+        M⊑M′ vM
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-var _ _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      | caught =
+    sim-source-conceal-values parked impEnvMono-refl c⊢
+      tag-rebase-idᴸ M⊑M′ q vM step caught
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-base _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      with catchup parked
+        (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
+        M⊑M′ vM
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-base _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      | caught =
+    sim-source-conceal-values parked impEnvMono-refl c⊢
+      tag-rebase-idᴸ M⊑M′ q vM step caught
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-star _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      with catchup parked
+        (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
+        M⊑M′ vM
+  sim parked
+      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-star _)
+        refl M⊑M′ q)
+      step@(pure-step (id-conceal vM))
+      | caught =
+    sim-source-conceal-values parked impEnvMono-refl c⊢
+      tag-rebase-idᴸ M⊑M′ q vM step caught
+  sim parked
+      (conceal⊑² (Conversion.⊢↓-id-var member X≠Y)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (conceal⊑² (Conversion.⊢↓-id-base member)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (conceal⊑² (Conversion.⊢↓-id-star member)
+        position≢absent mark disaligned represented M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      (pure-step blame-conceal) =
+    Δᴿ , [] , _ , _ , W , q ,
+    (_ ∎[]) ,
+    evolve-keepᴸ evolve-refl ,
+    blame⊑² (CTI2T.target-typing² rel) q
+  sim
+      {Δᴿ = Δᴿ} {W = W} parked
+      rel@(conceal⊑² c⊢ position≢absent mark disaligned represented
+        M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      step@(ξ-conceal M→N refl) =
+    source-conceal-frame parked rel step
+  sim parked
+      rel@(conceal⊑² c⊢ position≢absent mark disaligned represented
+        M⊑M′ q)
       step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
 
   sim parked
-      rel@(conceal⊑² mono rebase same-[] c⊢
-        M⊑M′ q) step@(pure-step (id-conceal vM))
-      with catchup parked (boundary-source-conceal mono rebase)
-        M⊑M′ vM
-  sim parked
-      rel@(conceal⊑² mono rebase same-[] c⊢
-        M⊑M′ q) step@(pure-step (id-conceal vM))
-      | caught =
-    sim-source-conceal-values parked mono rebase c⊢
-      M⊑M′ q vM step caught
-
-  sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
+      (reveal⊑reveal² (Conversion.⊢↑-id-var member X≠Y) c′⊢
+        positions position≢absent
+        represented mono rebase same-[] M⊑M′ q)
       step@(pure-step (id-reveal vM))
-      with catchup parked
-        (boundary-source-reveal mono (tag-rebase-varᴸ rebase))
-        M⊑M′ vM
+    = ⊥-elim (position≢absent refl)
   sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step (id-reveal vM))
-      | caught =
-    sim-paired-reveal-values parked mono rebase c⊢ c′⊢
-      M⊑M′ q vM step caught
+      (reveal⊑reveal² (Conversion.⊢↑-id-base member) c′⊢
+        positions position≢absent represented mono rebase same-[]
+        M⊑M′ q)
+      step@(pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
   sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
+      (reveal⊑reveal² (Conversion.⊢↑-id-star member) c′⊢
+        positions position≢absent represented mono rebase same-[]
+        M⊑M′ q)
+      step@(pure-step (id-reveal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      rel@(reveal⊑reveal² c⊢@(Conversion.⊢↑-unseal _) c′⊢
+        positions position≢absent
+        represented mono rebase same-[] M⊑M′ q)
       step@(pure-step (conceal-reveal vM))
       with catchup parked
         (boundary-source-reveal mono (tag-rebase-varᴸ rebase))
         M⊑M′ (vM ↓ seal)
   sim parked
-      rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
+      rel@(reveal⊑reveal² c⊢@(Conversion.⊢↑-unseal _) c′⊢
+        positions position≢absent
+        represented mono rebase same-[] M⊑M′ q)
       step@(pure-step (conceal-reveal vM))
       | caught =
-    sim-paired-reveal-values parked mono rebase c⊢ c′⊢
+    sim-paired-reveal-values parked c⊢ c′⊢ positions position≢absent
+      represented mono rebase
       M⊑M′ q (vM ↓ seal) step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
+      rel@(reveal⊑reveal² c⊢ c′⊢ positions position≢absent
+        represented mono rebase same M⊑M′ q)
       (pure-step blame-reveal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
+      rel@(reveal⊑reveal² c⊢ c′⊢ positions position≢absent
+        represented mono rebase same M⊑M′ q)
       step@(ξ-reveal M→N refl) =
     source-reveal-frame parked rel step
 
   sim parked
-      rel@(conceal⊑conceal² mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) step@(pure-step (id-conceal vM))
-      with catchup parked
-        (boundary-source-conceal mono (tag-rebase-varᴸ rebase))
-        M⊑M′ vM
+      (conceal⊑conceal² (Conversion.⊢↓-id-var member X≠Y) c′⊢
+        positions position≢absent represented mono rebase same M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
   sim parked
-      rel@(conceal⊑conceal² mono rebase same-[] c⊢ c′⊢
-        M⊑M′ q) step@(pure-step (id-conceal vM))
-      | caught =
-    sim-paired-conceal-values parked mono rebase c⊢ c′⊢
-      M⊑M′ q vM step caught
+      (conceal⊑conceal² (Conversion.⊢↓-id-base member) c′⊢
+        positions position≢absent represented mono rebase same M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
+  sim parked
+      (conceal⊑conceal² (Conversion.⊢↓-id-star member) c′⊢
+        positions position≢absent represented mono rebase same M⊑M′ q)
+      (pure-step (id-conceal vM)) =
+    ⊥-elim (position≢absent refl)
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
+      rel@(conceal⊑conceal² c⊢ c′⊢ positions position≢absent
+        represented mono rebase same M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢
-        M⊑M′ q) step@(ξ-conceal M→N refl) =
+      rel@(conceal⊑conceal² c⊢ c′⊢ positions position≢absent
+        represented mono rebase same M⊑M′ q)
+      step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
 
   ------------------------------------------------------------------------

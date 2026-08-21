@@ -10,10 +10,10 @@ cycles.
 
 The canonical live two-context foundation now consists of:
 
-- `TwoCtxWorld` and `TwoCtxWorldInvariants`;
+- `World` and `WorldInvariants`;
 - `SourceRebasePlan` and `SourceRebaseRequest`;
 - `CenterRenamePlan` and `TargetExtendPlan`;
-- `TwoCtxWorldEvolution`, its request producer, and its multi-step sequence;
+- `WorldEvolution`, its request producer, and its multi-step sequence;
 - trusted preservation over arbitrary term contexts.
 
 The globally indexed relation probe covers variables, functions, universals,

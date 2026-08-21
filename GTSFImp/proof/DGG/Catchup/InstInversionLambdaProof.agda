@@ -97,7 +97,7 @@ open import proof.DGG.Catchup.InstInversionProof using
   (inst-post-at→root-package; composeWorldExtendᴿ;
    ctx-imp-transportᴿ; rel-target-transportᴿ;
    generated-reveal-value; reveal-value-rename; unrenameNonVar;
-   subst₂-⊑; generated-reveal-⊢↑-present; rename-as-subst;
+   subst₂-⊑; generated-reveal-⊢↑; rename-as-subst;
    replaceEnv; replaceTy-subst; spine-descent-zero;
    target-insert-bind-world-extendᴿ; smart-fresh-bind-world-extendᴿ;
    smart-alias-bind-world-extendᴿ; mapCtxᴿ-smart-liftᴸ;
@@ -3170,10 +3170,10 @@ open ΛRouteOnePostWindowSupport public
   ; outMidSame = Λ-route1-out-mid-same
   ; outLiftCtxᴸ = Λ-route1-out-liftCtxᴸ ext₂
   ; innerReveal⊢ = λ Bpre-zero∈ →
-      generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl)
+      generated-reveal-⊢↑ (Z∋ refl)
   ; outerReveal⊢ = λ zero∈B →
       TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present zero∈B (Z∋ refl))
+        (generated-reveal-⊢↑ (Z∋ refl))
   ; innerBody⊑ᵂ = λ {A} {B} body-p →
       Λ-inner-body-⊑ᵂ-applyBody {W = W} {A = A} {B = B} body-p
   ; finalBody⊑ᵂ = λ {A} {B} body-p →
@@ -3591,10 +3591,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (Λ-route1-post-window-support-at facts
       (Λ-route1-mid-fresh-mono-at facts)
       (λ Bpre-zero∈ →
-        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+        generated-reveal-⊢↑ (Z∋ refl))
       (λ zero∈B →
         TE.reveal-renameˣ StoreRename-suc-bind
-          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+          (generated-reveal-⊢↑ (Z∋ refl))))
   where
   facts = Λ-route1-smart-alias-facts guard
 
@@ -3691,10 +3691,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
     (Λ-route1-post-window-support-at facts
       (Λ-route1-mid-fresh-mono-at facts)
       (λ Bpre-zero∈ →
-        generated-reveal-⊢↑-present Bpre-zero∈ (Z∋ refl))
+        generated-reveal-⊢↑ (Z∋ refl))
       (λ zero∈B →
         TE.reveal-renameˣ StoreRename-suc-bind
-          (generated-reveal-⊢↑-present zero∈B (Z∋ refl))))
+          (generated-reveal-⊢↑ (Z∋ refl))))
   where
   facts = Λ-route1-smart-fresh-facts guard
 
@@ -3760,10 +3760,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
 Λ-two-insert-smart-child {Wᵐ = Wᵐ} plan
     (CTX.smart-fresh-behind guard)
     with TE.smartFreshTargetWindowInsert (ins₁ plan) guard
@@ -3829,10 +3829,10 @@ record ΛSmartChildPostPlan {Δᴸ Δᴿ Δ Δᵐ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
 
 
 Λ-front-old-mark-mono : ∀ {Δᴸ Δᴿ Δ}
@@ -5969,7 +5969,8 @@ rebaseAtᴸ-target-store : ∀ {Δᴸ Δᴿ Δ}
 rebaseAtᴸ-target-store CTX.rebase-idᴸ = refl
 rebaseAtᴸ-target-store (CTX.rebase-varᴸ rb) =
   CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb)
-rebaseAtᴸ-target-store (CTX.rebase-onlyᴸ to-star disaligned rep) =
+rebaseAtᴸ-target-store
+    (CTX.rebase-onlyᴸ member to-star disaligned rep) =
   refl
 
 
@@ -5981,7 +5982,8 @@ rebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
 rebaseAtᴸ-target-frozen CTX.rebase-idᴸ Y = refl
 rebaseAtᴸ-target-frozen (CTX.rebase-varᴸ rb) =
   CTX.RebaseAt.ηᴿ-frozen rb
-rebaseAtᴸ-target-frozen (CTX.rebase-onlyᴸ to-star disaligned rep) =
+rebaseAtᴸ-target-frozen
+    (CTX.rebase-onlyᴸ member to-star disaligned rep) =
   λ Y → refl
 
 
@@ -5993,7 +5995,7 @@ tagRebaseAtᴸ-target-store CTX.tag-rebase-idᴸ = refl
 tagRebaseAtᴸ-target-store (CTX.tag-rebase-varᴸ rb) =
   CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb)
 tagRebaseAtᴸ-target-store
-    (CTX.tag-rebase-onlyᴸ to-star disaligned rep) = refl
+    (CTX.tag-rebase-onlyᴸ member to-star disaligned rep) = refl
 
 
 tagRebaseAtᴸ-target-frozen : ∀ {Δᴸ Δᴿ Δ}
@@ -6005,7 +6007,7 @@ tagRebaseAtᴸ-target-frozen CTX.tag-rebase-idᴸ Y = refl
 tagRebaseAtᴸ-target-frozen (CTX.tag-rebase-varᴸ rb) =
   CTX.RebaseAt.ηᴿ-frozen rb
 tagRebaseAtᴸ-target-frozen
-    (CTX.tag-rebase-onlyᴸ to-star disaligned rep) Y = refl
+    (CTX.tag-rebase-onlyᴸ member to-star disaligned rep) Y = refl
 
 
 rebaseTargetWindowInsert : ∀ {Δᴸ Δᴿ Δ Δ′}
@@ -6129,10 +6131,10 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
   child = record
     { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
     ; π₁ = π₁ plan ; π₂ = π₂ plan
@@ -6215,10 +6217,10 @@ record ΛTagRebaseChildPostPlan {Δᴸ Δᴿ Δ}
   support = Λ-route1-post-window-support-at facts
     (Λ-route1-mid-fresh-mono-at facts)
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just Fin.zero ] _)
-      (sym follows₂) (generated-reveal-⊢↑-present z (Z∋ refl)))
+      (sym follows₂) (generated-reveal-⊢↑ (Z∋ refl)))
     (λ z → subst≡ (λ Σ → Σ Conv.⊢↑[ just (Fin.suc Fin.zero) ] _)
       (sym follows₂) (TE.reveal-renameˣ StoreRename-suc-bind
-        (generated-reveal-⊢↑-present z first-entry)))
+        (generated-reveal-⊢↑ first-entry)))
   child = record
     { Δ₁ = Δ₁ plan ; Δ₂ = Δ₂ plan ; W₁ = Wᵖ₁ ; W₂ = Wᵖ₂
     ; π₁ = π₁ plan ; π₂ = π₂ plan

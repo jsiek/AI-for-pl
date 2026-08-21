@@ -465,6 +465,14 @@ polyIdℕ⊑dynId :
 polyIdℕ⊑dynId =
   []⊑ᴳ polyId⊑dynId I.ι⊑★ ℕ⇒ℕ⊑★⇒★₀
 
+polyIdℕ⊑polyId★ :
+  I.idᵐ ∣ [] ⊢ᴳ (polyId {Δ = Δ₀} `[ ℕ₀ ])
+    ⊑ (polyId {Δ = Δ₀} `[ ★ ])
+    ⦂ (ℕ₀ ⇒ ℕ₀) ⊑ ★⇒★₀ ∶ ℕ⇒ℕ⊑★⇒★₀
+polyIdℕ⊑polyId★ =
+  []⊑[]ᴳ (reflᴳ I.idᵐ (polyId⊢ {Δ = Δ₀} {Γ = []}))
+    I.ι⊑★ ℕ⇒ℕ⊑★⇒★₀
+
 polyId𝔹⊑dynId :
   I.idᵐ ∣ [] ⊢ᴳ (polyId {Δ = Δ₀} `[ 𝔹₀ ]) ⊑ dynId
     ⦂ (𝔹₀ ⇒ 𝔹₀) ⊑ ★⇒★₀ ∶ 𝔹⇒𝔹⊑★⇒★₀
@@ -593,24 +601,45 @@ polyId★App⊢ =
   ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 7) (？ (id (‵ `ℕ)))
 
 leftOnlyInstPathᴸ : GTerm Δ₀
-leftOnlyInstPathᴸ = (polyId {Δ = Δ₀} `[ ℕ₀ ]) ·[ 46 ] nat 5
+leftOnlyInstPathᴸ = (polyId {Δ = Δ₀} `[ ℕ₀ ]) ·[ 46 ] nat 42
 
 leftOnlyInstPathᴿ : GTerm Δ₀
-leftOnlyInstPathᴿ = dynId ·[ 46 ] nat 5
+leftOnlyInstPathᴿ = dynId ·[ 46 ] nat 42
 
 leftOnlyInstPathᴸ⊢ : Δ₀ ∣ [] ⊢ leftOnlyInstPathᴸ ⦂ ℕ₀
 leftOnlyInstPathᴸ⊢ =
-  ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 5) (id (‵ `ℕ))
+  ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 42) (id (‵ `ℕ))
 
 leftOnlyInstPathᴿ⊢ : Δ₀ ∣ [] ⊢ leftOnlyInstPathᴿ ⦂ ★
 leftOnlyInstPathᴿ⊢ =
-  ⊢· dynId⊢ (nat⊢ 5) (？ (id (‵ `ℕ)))
+  ⊢· dynId⊢ (nat⊢ 42) (？ (id (‵ `ℕ)))
 
 leftOnlyInstPath⊑ :
   I.idᵐ ∣ [] ⊢ᴳ leftOnlyInstPathᴸ ⊑ leftOnlyInstPathᴿ
     ⦂ ℕ₀ ⊑ ★ ∶ I.ι⊑★
 leftOnlyInstPath⊑ =
-  ·⊑·ᴳ polyIdℕ⊑dynId (κ⊑κᴳ (κℕ 5))
+  ·⊑·ᴳ polyIdℕ⊑dynId (κ⊑κᴳ (κℕ 42))
+    (id (‵ `ℕ)) (？ (id (‵ `ℕ)))
+
+matchedInstPathᴸ : GTerm Δ₀
+matchedInstPathᴸ = (polyId {Δ = Δ₀} `[ ℕ₀ ]) ·[ 47 ] nat 42
+
+matchedInstPathᴿ : GTerm Δ₀
+matchedInstPathᴿ = (polyId {Δ = Δ₀} `[ ★ ]) ·[ 47 ] nat 42
+
+matchedInstPathᴸ⊢ : Δ₀ ∣ [] ⊢ matchedInstPathᴸ ⦂ ℕ₀
+matchedInstPathᴸ⊢ =
+  ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 42) (id (‵ `ℕ))
+
+matchedInstPathᴿ⊢ : Δ₀ ∣ [] ⊢ matchedInstPathᴿ ⦂ ★
+matchedInstPathᴿ⊢ =
+  ⊢· (⊢• (polyId⊢ {Δ = Δ₀})) (nat⊢ 42) (？ (id (‵ `ℕ)))
+
+matchedInstPath⊑ :
+  I.idᵐ ∣ [] ⊢ᴳ matchedInstPathᴸ ⊑ matchedInstPathᴿ
+    ⦂ ℕ₀ ⊑ ★ ∶ I.ι⊑★
+matchedInstPath⊑ =
+  ·⊑·ᴳ polyIdℕ⊑polyId★ (κ⊑κᴳ (κℕ 42))
     (id (‵ `ℕ)) (？ (id (‵ `ℕ)))
 
 
@@ -794,7 +823,7 @@ baseline-poly-to-dyn =
     (·⊑·ᴳ polyIdℕ⊑dynId (κ⊑κᴳ (κℕ 7))
       (id (‵ `ℕ)) (？ (id (‵ `ℕ))))
 
--- queued: `(ΛX.λx:X.x)[ℕ] 5 ⊑ (λx:★.x) 5`; expected clean.
+-- `(ΛX.λx:X.x)[ℕ] 42 ⊑ (λx:★.x) 42`; expected clean.
 left-only-inst-path : SourceEntry
 left-only-inst-path =
   source-entry
@@ -804,6 +833,17 @@ left-only-inst-path =
     leftOnlyInstPathᴸ⊢
     leftOnlyInstPathᴿ⊢
     leftOnlyInstPath⊑
+
+-- `(ΛX.λx:X.x)[ℕ] 42 ⊑ (ΛX.λx:X.x)[★] 42`; expected clean.
+matched-inst-path : SourceEntry
+matched-inst-path =
+  source-entry
+    matchedInstPathᴸ
+    matchedInstPathᴿ
+    40 40 ℕ₀ ★ I.ι⊑★
+    matchedInstPathᴸ⊢
+    matchedInstPathᴿ⊢
+    matchedInstPath⊑
 
 -- a. Baseline: Bool variant of the polymorphic-to-dynamic run; clean.
 baseline-bool-to-dyn : SourceEntry
@@ -1018,6 +1058,9 @@ baseline-poly-to-dyn-skeleton-gate = refl
 left-only-inst-path-skeleton-gate : skeleton-gate left-only-inst-path
 left-only-inst-path-skeleton-gate = refl
 
+matched-inst-path-skeleton-gate : skeleton-gate matched-inst-path
+matched-inst-path-skeleton-gate = refl
+
 baseline-bool-to-dyn-skeleton-gate : skeleton-gate baseline-bool-to-dyn
 baseline-bool-to-dyn-skeleton-gate = refl
 
@@ -1125,6 +1168,66 @@ baseline-poly-to-dyn-screens-clean = refl
 left-only-inst-path-screens-clean :
   RS.crossing-suspect (compiled left-only-inst-path) ≡ RS.clean
 left-only-inst-path-screens-clean = refl
+
+matched-inst-path-screens-clean :
+  RS.crossing-suspect (compiled matched-inst-path) ≡ RS.clean
+matched-inst-path-screens-clean = refl
+
+matched-inst-path-left-returns :
+  RS.SideSummary.status
+    (RS.runSummary (RS.Entry.gasᴸ (compiled matched-inst-path))
+      (RS.Entry.more-precise (compiled matched-inst-path)))
+    ≡ RS.returned-value
+matched-inst-path-left-returns = refl
+
+matched-inst-path-right-returns :
+  RS.SideSummary.status
+    (RS.runSummary (RS.Entry.gasᴿ (compiled matched-inst-path))
+      (RS.Entry.more-imprecise (compiled matched-inst-path)))
+    ≡ RS.returned-value
+matched-inst-path-right-returns = refl
+
+left-only-inst-path-left-returns :
+  RS.SideSummary.status
+    (RS.runSummary (RS.Entry.gasᴸ (compiled left-only-inst-path))
+      (RS.Entry.more-precise (compiled left-only-inst-path)))
+    ≡ RS.returned-value
+left-only-inst-path-left-returns = refl
+
+left-only-inst-path-right-returns :
+  RS.SideSummary.status
+    (RS.runSummary (RS.Entry.gasᴿ (compiled left-only-inst-path))
+      (RS.Entry.more-imprecise (compiled left-only-inst-path)))
+    ≡ RS.returned-value
+left-only-inst-path-right-returns = refl
+
+matched-inst-path-left-allocation :
+  RS.SideSummary.allocations
+    (RS.runSummary (RS.Entry.gasᴸ (compiled matched-inst-path))
+      (RS.Entry.more-precise (compiled matched-inst-path)))
+    ≡ RS.alloc Nat.zero Nat.zero RS.entry-base [] ∷ []
+matched-inst-path-left-allocation = refl
+
+matched-inst-path-right-allocation :
+  RS.SideSummary.allocations
+    (RS.runSummary (RS.Entry.gasᴿ (compiled matched-inst-path))
+      (RS.Entry.more-imprecise (compiled matched-inst-path)))
+    ≡ RS.alloc Nat.zero Nat.zero RS.entry-star [] ∷ []
+matched-inst-path-right-allocation = refl
+
+left-only-inst-path-left-allocation :
+  RS.SideSummary.allocations
+    (RS.runSummary (RS.Entry.gasᴸ (compiled left-only-inst-path))
+      (RS.Entry.more-precise (compiled left-only-inst-path)))
+    ≡ RS.alloc Nat.zero Nat.zero RS.entry-base [] ∷ []
+left-only-inst-path-left-allocation = refl
+
+left-only-inst-path-right-allocation :
+  RS.SideSummary.allocations
+    (RS.runSummary (RS.Entry.gasᴿ (compiled left-only-inst-path))
+      (RS.Entry.more-imprecise (compiled left-only-inst-path)))
+    ≡ []
+left-only-inst-path-right-allocation = refl
 
 baseline-bool-to-dyn-screens-clean :
   RS.crossing-suspect (compiled baseline-bool-to-dyn) ≡ RS.clean

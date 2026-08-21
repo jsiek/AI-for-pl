@@ -16,7 +16,7 @@ open import Types using (Ty; TyVar; ＇_)
 open import TyStore using (TyStore; store-bind)
 import TermCtx as TC
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Term; `_; _∋ᵗ_⦂_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxAliasFocusModeProbe

@@ -81,6 +81,13 @@ open CTX using
 open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
+  sameCtx-refl : ∀ {Δᴸ Δᴿ Δ}
+      {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
+    → CTX.SameCtx γ γ
+  sameCtx-refl {γ = []} = CTX.same-[]
+  sameCtx-refl {γ = CTX.ctx-imp A B p ∷ γ} =
+    CTX.same-∷ sameCtx-refl
+
   rebase-target-membership-forward : ∀ {Δᴸ Δᴿ Δ}
       {W′ W : World Δᴸ Δᴿ Δ}
       {X : TyVar Δᴸ} {Y Z : TyVar Δᴿ} {S : Ty Δᴿ}
@@ -994,8 +1001,9 @@ seal-descent-current-star {U = U} {X = X} {Y = Y} {r = r}
     | STC.seal-transfer-paired {Wᵖ = Wᵖ} {γᵖ = γᵖ}
         {P = P} monoᵖ rbᵖ scᵖ source⊢ target⊢ prem =
   target-seal-terminus-paired source∈ target∈ rbᵖ
-    (CTI2.conceal⊑conceal² monoᵖ rbᵖ scᵖ source⊢
-      target⊢ prem r)
+    (CTI2.conceal⊑conceal²
+      (Conv.⊢↓-seal source∈) (Conv.⊢↓-seal target∈)
+      refl (λ ()) ★⊑★ monoᵖ rbᵖ scᵖ prem r)
     monoᵖ scᵖ prem
 
 seal-descent-current-var : ∀ {Δᴸ Δᴿ Δ}
@@ -1011,120 +1019,29 @@ seal-descent-current-var : ∀ {Δᴸ Δᴿ Δ}
   → TargetSealTerminusData W γ V (＇ X) U X Y (＇ Y′)
 seal-descent-current-var {Y = Y} (sv-cast sv₀ ()) vU
     source∈ target∈ (CTI2.cast⊑² c prem r)
-seal-descent-current-var {Y = Y} (sv-seal sv₀) vU
+seal-descent-current-var {W = W} {Y = Y} (sv-seal sv₀) vU
     source∈ target∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono rb sc
-      (Conv.⊢↓-sealˣ source∈′) prem r) =
+    (CTI2.conceal⊑² {p = p} (Conv.⊢↓-seal source∈′)
+      pos≢absent mark disaligned represented prem r) =
   ⊥-elim
-    (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y}
-      (subst≡ (λ T → T ⊑ᵂ⟨ Wᵖ ⟩ ＇ Y)
+    (star-source-nonstar-⊥ {W = W} {S = ＇ Y}
+      (subst≡ (λ T → T ⊑ᵂ⟨ W ⟩ ＇ Y)
         (store-lookup-unique source∈′ source∈) p)
       nonstar-X)
+seal-descent-current-var (sv-seal sv₀) vU source∈ target∈
+    (CTI2.conceal⊑-neutral² (Conv.⊢↓-seal source∈′) () prem r)
 seal-descent-current-var {Y′ = Y′} (sv-seal sv₀) vU
     source∈ target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono rb sc
-      (Conv.⊢↓-sealˣ source∈′) target⊢ prem r) =
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      (Conv.⊢↓-seal source∈′) target⊢ aligned pos≢absent
+      represented mono rb sc prem r) =
   ⊥-elim
     (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y′}
       (subst≡ (λ T → T ⊑ᵂ⟨ Wᵖ ⟩ ＇ Y′)
         (store-lookup-unique source∈′ source∈) p)
       nonstar-X)
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    with target-seal-rebase-source rbᴿ r
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link
-    with var-value-view vU (CTI2T.target-typing² prem)
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    with seal-descent-current-star sv vU₀
-      (rebase-source-membership link source∈) target′∈ prem
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★
-        boundary★ target∈★ q★ premise★ =
-  target-seal-terminus-data U★ Y★ W★ γ★
-    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = W★} mono mono★)
-    (sameCtx-∘ sc same★)
-    (composeOuterRebase link boundary★)
-    target∈★ q★ premise★
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
-        boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ =
-  target-seal-terminus-paired source∈ target∈
-    (composeOuterRebase link boundaryᵒ)
-    (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ target∈)
-      residualᵒ r)
-    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = Wᵐ} mono monoᵐ)
-    (sameCtx-∘ sc sameᵐ) premiseᵐ
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    with seal-descent-current-var sv vU₀
-      (rebase-source-membership link source∈) target′∈ prem
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★
-        boundary★ target∈★ q★ premise★ =
-  target-seal-terminus-data U★ Y★ W★ γ★
-    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = W★} mono mono★)
-    (sameCtx-∘ sc same★)
-    (composeOuterRebase link boundary★)
-    target∈★ q★ premise★
-seal-descent-current-var {W = W} {X = X} {Y = Y} {r = r} sv vU
-    source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono rbᴿ sc (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | link | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
-        boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ =
-  target-seal-terminus-paired source∈ target∈
-    (composeOuterRebase link boundaryᵒ)
-    (CTI2.⊑conceal² mono rbᴿ sc (Conv.⊢↓-sealˣ target∈)
-      residualᵒ r)
-    (impEnvMono-∘ {W₁ = W} {W₂ = Wᵈ} {W₃ = Wᵐ} mono monoᵐ)
-    (sameCtx-∘ sc sameᵐ) premiseᵐ
-seal-descent-current-var {Y = Y} sv vU source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono rbᴿ sc
-      (Conv.⊢↓-sealˣ target∈′) prem r)
-    | link | varv-seal {R = ‵ ι} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈ link target∈ target′∈
-      nonvar-base nonstar-ι)
-seal-descent-current-var {Y = Y} sv vU source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono rbᴿ sc
-      (Conv.⊢↓-sealˣ target∈′) prem r)
-    | link | varv-seal {R = A ⇒ B} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈ link target∈ target′∈
-      nonvar-fun nonstar-⇒)
-seal-descent-current-var {Y = Y} sv vU source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono rbᴿ sc
-      (Conv.⊢↓-sealˣ target∈′) prem r)
-    | link | varv-seal {R = `∀ A} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈ link target∈ target′∈
-      nonvar-all nonstar-∀)
+seal-descent-current-var sv vU source∈ target∈
+    (CTI2.⊑conceal² (Conv.⊢↓-seal target∈′) () prem r)
 
 seal-descent-at-var-＇ : ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wʳ : World Δᴸ Δᴿ Δ}
@@ -1153,45 +1070,50 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} {r = r}
     | X₂ , refl , aligned | sv-cast sv₀ ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {A = A} {Xᴸ = Xᴸ} {Y = Y}
     {r = r} (sv-seal sv₀) vU mono rb sc source∈ target∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono₁ rb₁
-      sc₁ (Conv.⊢↓-sealˣ source∈′) prem .r)
+    (CTI2.conceal⊑² {p = p} (Conv.⊢↓-seal source∈′)
+      pos≢absent mark disaligned represented prem .r)
     with SPT.right-var-obligation-view {W = Wʳ} {R = A} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {r = r} (sv-seal sv₀) vU mono rb sc source∈ target∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono₁ rb₁
-      sc₁ (Conv.⊢↓-sealˣ source∈′) prem .r)
+    (CTI2.conceal⊑² {p = p} (Conv.⊢↓-seal source∈′)
+      pos≢absent mark disaligned represented prem .r)
     | X₂ , refl , aligned
     with inner-source-pivot-eqᴿ rb r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {r = r} (sv-seal sv₀) vU mono rb sc source∈ target∈
-    (CTI2.conceal⊑² {W′ = Wᵖ} {p = p} mono₁ rb₁
-      sc₁ (Conv.⊢↓-sealˣ source∈′) prem .r)
+    (CTI2.conceal⊑² {p = p} (Conv.⊢↓-seal source∈′)
+      pos≢absent mark disaligned represented prem .r)
     | .Xᴸ , refl , aligned | refl =
   ⊥-elim
-    (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y}
-      (subst≡ (λ T → T ⊑ᵂ⟨ Wᵖ ⟩ ＇ Y)
+    (star-source-nonstar-⊥ {W = Wʳ} {S = ＇ Y}
+      (subst≡ (λ T → T ⊑ᵂ⟨ Wʳ ⟩ ＇ Y)
         (store-lookup-unique source∈′
           (rebase-source-membership rb source∈))
         p)
       nonstar-X)
+seal-descent-at-var-＇ (sv-seal sv₀) vU mono rb sc source∈ target∈
+    (CTI2.conceal⊑-neutral² (Conv.⊢↓-seal source∈′) () prem r)
 seal-descent-at-var-＇ {Wʳ = Wʳ} {A = A} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
-      (Conv.⊢↓-sealˣ source∈′) target⊢ prem .r)
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      (Conv.⊢↓-seal source∈′) target⊢ alignedᵖ pos≢absent
+      representedᵖ mono₁ rb₁ sc₁ prem .r)
     with SPT.right-var-obligation-view {W = Wʳ} {R = A} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
-      (Conv.⊢↓-sealˣ source∈′) target⊢ prem .r)
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      (Conv.⊢↓-seal source∈′) target⊢ alignedᵖ pos≢absent
+      representedᵖ mono₁ rb₁ sc₁ prem .r)
     | X₂ , refl , aligned
     with inner-source-pivot-eqᴿ rb r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Xᴸ = Xᴸ} {Y = Y}
     {Y′ = Y′} {r = r} (sv-seal sv₀) vU mono rb sc source∈
     target∈
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono₁ rb₁ sc₁
-      (Conv.⊢↓-sealˣ source∈′) target⊢ prem .r)
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
+      (Conv.⊢↓-seal source∈′) target⊢ alignedᵖ pos≢absent
+      representedᵖ mono₁ rb₁ sc₁ prem .r)
     | .Xᴸ , refl , aligned | refl =
   ⊥-elim
     (star-source-nonstar-⊥ {W = Wᵖ} {S = ＇ Y′}
@@ -1218,202 +1140,88 @@ seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-Λ sv₀) vU mono rb
     | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem r)
     with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem r)
+    | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem r)
+    | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-fun sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem r)
     | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem r)
     with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem r)
+    | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem r)
+    | ()
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-reveal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem r)
     | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem r)
     with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem r)
+    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem r)
     | ()
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑conceal² mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
+    (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem r)
     with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
 seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
     mono rb sc source∈ target∈
-    (CTI2.conceal⊑conceal² mono₁ rb₁ sc₁ c⊢ c′⊢ prem r)
+    (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem r)
     | ()
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {A = A} {Xᴸ = Xᴸ}
-    {Y = Y} {Y′ = Y′} {r = r} sv vU mono rb sc source∈
-    target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    with SPT.right-var-obligation-view {W = Wʳ} {R = A} {Y = Y} r
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | X₂ , refl , aligned
-    with inner-source-pivot-eqᴿ rb r
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl
-    with target-seal-rebase-source rbᴿ r
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    with var-value-view vU (CTI2T.target-typing² prem)
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    with seal-descent-current-star sv vU₀
-      (rebase-source-membership link
-        (rebase-source-membership rb source∈))
-      target′∈ prem
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★
-        boundary★ target∈★ q★ premise★ =
-  target-seal-terminus-data U★ Y★ W★ γ★
-    (impEnvMono-∘
-      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = W★}
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      mono★)
-    (sameCtx-∘ (sameCtx-∘ sc sc₁) same★)
-    (composeOuterRebase (composeSamePivotRebase rb link) boundary★)
-    target∈★ q★ premise★
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ★} vU₀ target′∈ refl
-    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
-        boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ =
-  target-seal-terminus-paired source∈ target∈
-    (composeOuterRebase (composeSamePivotRebase rb link) boundaryᵒ)
-    (CTI2.⊑conceal²
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      (CTX.rebase-varᴿ (composeSamePivotRebase rb link))
-      (sameCtx-∘ sc sc₁)
-      (Conv.⊢↓-sealˣ target∈)
-      residualᵒ
-      (origin-var-obligation rb))
-    (impEnvMono-∘
-      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = Wᵐ}
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      monoᵐ)
-    (sameCtx-∘ (sameCtx-∘ sc sc₁) sameᵐ) premiseᵐ
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    with seal-descent-current-var sv vU₀
-      (rebase-source-membership link
-        (rebase-source-membership rb source∈))
-      target′∈ prem
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    | target-seal-terminus-data U★ Y★ W★ γ★ mono★ same★
-        boundary★ target∈★ q★ premise★ =
-  target-seal-terminus-data U★ Y★ W★ γ★
-    (impEnvMono-∘
-      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = W★}
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      mono★)
-    (sameCtx-∘ (sameCtx-∘ sc sc₁) same★)
-    (composeOuterRebase (composeSamePivotRebase rb link) boundary★)
-    target∈★ q★ premise★
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
-    {γʳ = γʳ} {V = V} {Xᴸ = Xᴸ} {Y = Y} {Y′ = Y′}
-    {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {W′ = Wᵈ} {γ′ = γᵈ} {p = pᵈ}
-      mono₁ rbᴿ sc₁ (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {W = U₀} {R = ＇ Y₂} vU₀ target′∈ refl
-    | target-seal-terminus-paired {W★ = Wᵐ} source∈ᵒ target∈ᵒ
-        boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ =
-  target-seal-terminus-paired source∈ target∈
-    (composeOuterRebase (composeSamePivotRebase rb link) boundaryᵒ)
-    (CTI2.⊑conceal²
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      (CTX.rebase-varᴿ (composeSamePivotRebase rb link))
-      (sameCtx-∘ sc sc₁)
-      (Conv.⊢↓-sealˣ target∈)
-      residualᵒ
-      (origin-var-obligation rb))
-    (impEnvMono-∘
-      {W₁ = Wᵒ} {W₂ = Wᵈ} {W₃ = Wᵐ}
-      (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵈ}
-        mono mono₁)
-      monoᵐ)
-    (sameCtx-∘ (sameCtx-∘ sc sc₁) sameᵐ) premiseᵐ
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {Xᴸ = Xᴸ}
-    {Y = Y} {Y′ = Y′} {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono₁ rbᴿ sc₁
-      (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {R = ‵ ι} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈
-      (composeSamePivotRebase rb link) target∈ target′∈
-      nonvar-base nonstar-ι)
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {Xᴸ = Xᴸ}
-    {Y = Y} {Y′ = Y′} {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono₁ rbᴿ sc₁
-      (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {R = A ⇒ B} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈
-      (composeSamePivotRebase rb link) target∈ target′∈
-      nonvar-fun nonstar-⇒)
-seal-descent-at-var-＇ {Wᵒ = Wᵒ} {Wʳ = Wʳ} {Xᴸ = Xᴸ}
-    {Y = Y} {Y′ = Y′} {r = r} sv vU mono rb sc source∈ target∈
-    (CTI2.⊑conceal² {p = pᵈ} mono₁ rbᴿ sc₁
-      (Conv.⊢↓-sealˣ target∈′) prem .r)
-    | .Xᴸ , refl , aligned | refl | link
-    | varv-seal {R = `∀ A} vU₀ target′∈ refl =
-  ⊥-elim
-    (seal-target-var-nonstar-⊥ source∈
-      (composeSamePivotRebase rb link) target∈ target′∈
-      nonvar-all nonstar-∀)
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.conceal⊑conceal² c⊢ c′⊢ aligned pos≢absent represented
+      mono₁ rb₁ sc₁ prem r)
+    with SPT.right-var-obligation-view {W = Wʳ} {Y = Y} r
+seal-descent-at-var-＇ {Wʳ = Wʳ} {Y = Y} (sv-conceal-all sv₀) vU
+    mono rb sc source∈ target∈
+    (CTI2.conceal⊑conceal² c⊢ c′⊢ aligned pos≢absent represented
+      mono₁ rb₁ sc₁ prem r)
+    | ()
+seal-descent-at-var-＇ sv vU mono rb sc source∈ target∈
+    (CTI2.⊑conceal² (Conv.⊢↓-seal target∈′) () prem r)
 
 seal-descent-at-var-nonvar : ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wʳ : World Δᴸ Δᴿ Δ}
@@ -1479,11 +1287,14 @@ seal-descent-at-var {Wᵒ = Wᵒ} {Wʳ = Wʳ} {γᵒ = γᵒ}
   target-seal-terminus-paired source∈ target∈
     (composeSamePivotRebase rb rbᵖ)
     (CTI2.conceal⊑conceal²
+      (Conv.⊢↓-seal source∈)
+      (Conv.⊢↓-seal target∈)
+      refl
+      (λ ())
+      ★⊑★
       (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵖ} mono monoᵖ)
       (composeSamePivotRebase rb rbᵖ)
       (sameCtx-∘ sc scᵖ)
-      (Conv.⊢↓-sealˣ source∈)
-      (Conv.⊢↓-sealˣ target∈)
       prem
       (origin-var-obligation rb))
     (impEnvMono-∘ {W₁ = Wᵒ} {W₂ = Wʳ} {W₃ = Wᵖ} mono monoᵖ)
@@ -1741,7 +1552,7 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
           boundaryᵒ residualᵒ monoᵐ sameᵐ premiseᵐ
       | Y★ , target∈★ =
     target-strip★-data ((U ↓ seal Y S) ⟨ cY′ ⟩) Y★ Wᵒ γᵒ
-      (STC.impEnvMono-refl {W = Wᵒ}) (STC.sameCtx-refl {γ = γᵒ})
+      CTX.impEnvMono-refl sameCtx-refl
       (CTX.sameWorldRebaseAt
         (CTX.RebaseAt.pivotAligned boundaryᵒ)
         (CTX.RebaseAt.storeRepresentations boundaryᵒ))
@@ -1757,11 +1568,13 @@ tag-dispatch-at★ (sv-cast sv (genᵥ A≢★ safe)) vN mono rb sc source∈
     D@(CTI2.cast⊑cast² c c′ prem q) =
   tagged-seal-source-fold-⊥ (sv-cast sv (genᵥ A≢★ safe))
     nonvar-all nonstar-∀ D
+tag-dispatch-at★ (sv-seal sv) vN mono rb sc source∈
+    (CTI2.conceal⊑-neutral² (Conv.⊢↓-seal source∈′) () prem q)
 tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     {γᵖ = γᵖ} {V = V ↓ seal X ★} {N = N}
     {A = ＇ X} {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = q}
     (sv-seal sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢
+    D@(CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented
       prem .q) =
   dispatch-source-fold resume
   where
@@ -1780,7 +1593,8 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     {γᵖ = γᵖ} {V = V ↓ seal X R} {N = N}
     {A = ＇ X} {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {p = q}
     (sv-seal sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem .q) =
+    D@(CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented
+      prem .q) =
   dispatch-source-fold resume
   where
   resume : ∀ {U S}
@@ -1795,19 +1609,47 @@ tag-dispatch-at★ {Wᵒ = Wᵒ} {Wᵖ = Wᵖ} {γᵒ = γᵒ}
     target-strip★-data ((U ↓ seal Y S) ⟨ cY ⟩) Y★ Wᵖ γᵖ
       mono sc rb target∈★ q D (λ _ → D)
 tag-dispatch-at★ (sv-reveal-fun sv) vN mono rb sc source∈
-    D@(CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q) =
+  tagged-seal-source-fold-⊥ (sv-reveal-fun sv) nonvar-fun
+    nonstar-⇒ D
+tag-dispatch-at★ (sv-reveal-fun sv) vN mono rb sc source∈
+    D@(CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem q) =
+  tagged-seal-source-fold-⊥ (sv-reveal-fun sv) nonvar-fun
+    nonstar-⇒ D
+tag-dispatch-at★ (sv-reveal-fun sv) vN mono rb sc source∈
+    D@(CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem q) =
   tagged-seal-source-fold-⊥ (sv-reveal-fun sv) nonvar-fun
     nonstar-⇒ D
 tag-dispatch-at★ (sv-conceal-fun sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q) =
+  tagged-seal-source-fold-⊥ (sv-conceal-fun sv) nonvar-fun
+    nonstar-⇒ D
+tag-dispatch-at★ (sv-conceal-fun sv) vN mono rb sc source∈
+    D@(CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q) =
   tagged-seal-source-fold-⊥ (sv-conceal-fun sv) nonvar-fun
     nonstar-⇒ D
 tag-dispatch-at★ (sv-reveal-all sv) vN mono rb sc source∈
-    D@(CTI2.reveal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q) =
+  tagged-seal-source-fold-⊥ (sv-reveal-all sv) nonvar-all
+    nonstar-∀ D
+tag-dispatch-at★ (sv-reveal-all sv) vN mono rb sc source∈
+    D@(CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
+      prem q) =
+  tagged-seal-source-fold-⊥ (sv-reveal-all sv) nonvar-all
+    nonstar-∀ D
+tag-dispatch-at★ (sv-reveal-all sv) vN mono rb sc source∈
+    D@(CTI2.reveal⊑² c⊢ pos≢absent Y∈ represented mono₁ rb₁ sc₁
+      prem q) =
   tagged-seal-source-fold-⊥ (sv-reveal-all sv) nonvar-all
     nonstar-∀ D
 tag-dispatch-at★ (sv-conceal-all sv) vN mono rb sc source∈
-    D@(CTI2.conceal⊑² mono₁ rb₁ sc₁ c⊢ prem q) =
+    D@(CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q) =
+  tagged-seal-source-fold-⊥ (sv-conceal-all sv) nonvar-all
+    nonstar-∀ D
+tag-dispatch-at★ (sv-conceal-all sv) vN mono rb sc source∈
+    D@(CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q) =
   tagged-seal-source-fold-⊥ (sv-conceal-all sv) nonvar-all
     nonstar-∀ D
 

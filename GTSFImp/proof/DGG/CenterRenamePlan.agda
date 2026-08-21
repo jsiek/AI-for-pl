@@ -11,7 +11,7 @@ module proof.DGG.CenterRenamePlan where
 --     renaming laws pointwise.
 --   * Primary exports are CenterRenamePlan, renameCenter, and the center,
 --     endpoint-embedding, mark, and direct-invariant preservation laws.
---     Dependencies are TwoCtxWorld and its direct invariants; there is no
+--     Dependencies are World and its direct invariants; there is no
 --     bridge to the old World.
 
 open import Data.Nat using (suc)
@@ -29,8 +29,8 @@ open import Imprecision using
   (ImpEnv; VarImp; X⊑★; extendᵐ)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ)
 open import proof.TypeInTermSubst using (toRename-id-eq)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 renameMarks : ∀ {Δ Δ′}

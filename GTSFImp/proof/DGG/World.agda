@@ -1,13 +1,13 @@
 {-# OPTIONS --safe #-}
 
-module proof.DGG.TwoCtxWorld where
+module proof.DGG.World where
 
 -- File Charter:
---   * Defines the constructor-form relation on two complete CastTerms
---     contexts that is the candidate replacement for the proof-layer World.
+--   * Defines the constructor-form world relation on two complete CastTerms
+--     contexts.
 --   * Keeps the common center internal and derives its embeddings, marks,
 --     endpoint type imprecision, allocation guards, and smart constructors.
---   * Contains no bridge to the old World and no invariant-injection escape.
+--   * Contains no compatibility world or invariant-injection escape.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc; zero)

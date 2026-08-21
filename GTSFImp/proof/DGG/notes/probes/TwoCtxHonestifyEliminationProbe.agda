@@ -20,8 +20,8 @@ open import Types using (TyVar)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (X⊑★)
 open import CastTerms using (Ctx; Δᵉ)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 target-unaligned-markᶜ₀ : ∀ {Cᴸ Cᴿ : Ctx}

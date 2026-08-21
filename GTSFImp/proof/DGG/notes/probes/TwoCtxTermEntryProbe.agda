@@ -19,7 +19,7 @@ open import TermCtx using (Z; S)
 import Imprecision as I
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Γᵉ; Term; `_; _∋ᵗ_⦂_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 

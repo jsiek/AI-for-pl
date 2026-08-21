@@ -97,14 +97,16 @@ D4-checkpoint-proofᵀ =
   CTI2.·⊑·²
     (CTI2.cast⊑cast² _ _
       (CTI2.cast⊑cast² _ _
-        (CTI2.reveal⊑reveal² CTX.impEnvMono-refl
-          D4-callee-rebase₂ CTX.same-[]
-          (Conv.⊢↑-⇒ˣ Conv.join-both
-            (Conv.⊢↓-sealˣ (Z∋ refl))
-            (Conv.⊢↑-unsealˣ (Z∋ refl)))
-          (Conv.⊢↑-⇒ˣ Conv.join-both
-            (Conv.⊢↓-sealˣ (Z∋ refl))
-            (Conv.⊢↑-unsealˣ (Z∋ refl)))
+        (CTI2.reveal⊑reveal²
+          (Conv.⊢↑-⇒
+            (Conv.⊢↓-seal (Z∋ refl))
+            (Conv.⊢↑-unseal (Z∋ refl)))
+          (Conv.⊢↑-⇒
+            (Conv.⊢↓-seal (Z∋ refl))
+            (Conv.⊢↑-unseal (Z∋ refl)))
+          refl (λ ())
+          (Ex2.ℕ⊑ℕ² {W = P3.higher-order-shared-arg-world₂})
+          CTX.impEnvMono-refl D4-callee-rebase₂ CTX.same-[]
           (CTI2.ƛ⊑ƛ²
             {pA = I.X⊑X {X = zero}}
             {pB = I.X⊑X {X = zero}}

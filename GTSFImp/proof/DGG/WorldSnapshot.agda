@@ -8,8 +8,8 @@ module proof.DGG.WorldSnapshot where
 --     `defaultNameᵗ` for primed target type variables.
 --   * Reserves `♭`-prefixed names for generated type binders; supplied name
 --     functions must never produce `♭`-prefixed names.
---   * Pins the naming sequence and the format on representative
---     Example12Worlds and Examples2 worlds.
+--   * Renders the canonical complete-context World relation directly; there
+--     is no compatibility-world rendering path.
 
 open import Data.Char using (Char)
 open import Data.List using (List; []; _∷_; map)
@@ -24,9 +24,8 @@ open import Types
 open import TyStore using (TyStore; store-empty; store-lift; store-bind)
 open import Imprecision using (VarImp; X⊑X; X⊑★)
 open import Consistency using (_↪ᵗ_; empty; keep; skip)
-import proof.DGG.CtxImp as CTX
-import proof.DGG.Example12Worlds as Ex12
-import proof.DGG.Examples2 as Ex2
+open import CastTerms using (Ctx; Δᵉ; Σᵉ)
+open import proof.DGG.World
 
 ------------------------------------------------------------------------
 -- Types and direct store entries
@@ -95,18 +94,18 @@ showEntry name Σ nothing = "─"
 showEntry name Σ (just X) =
   name X ++ "↦" ++ showTy name (lookupStore Σ X)
 
-worldCell : ∀ {Δᴸ Δᴿ Δ}
-  → (TyVar Δᴸ → String)
-  → (TyVar Δᴿ → String)
-  → (TyVar Δ → String)
-  → CTX.World Δᴸ Δᴿ Δ
-  → TyVar Δ
+worldCell : ∀ {Γᴸ Γᴿ : Ctx}
+  → (TyVar (Δᵉ Γᴸ) → String)
+  → (TyVar (Δᵉ Γᴿ) → String)
+  → (W : Γᴸ ⊑ᶜ Γᴿ)
+  → (TyVar (centerᶜ W) → String)
+  → TyVar (centerᶜ W)
   → String
-worldCell nameᴸ nameᴿ nameᶜ W X =
+worldCell {Γᴸ} {Γᴿ} nameᴸ nameᴿ W nameᶜ X =
   nameᶜ X ++ ": " ++
-  showEntry nameᴸ (CTX.sourceStoreʷ W) (pivotAt (CTX.ηᴸʷ W) X) ++
-  " ⊑[" ++ showMark (CTX.impEnvʷ W X) ++ "] " ++
-  showEntry nameᴿ (CTX.targetStoreʷ W) (pivotAt (CTX.ηᴿʷ W) X)
+  showEntry nameᴸ (Σᵉ Γᴸ) (pivotAt (ηᴸᶜ W) X) ++
+  " ⊑[" ++ showMark (marksᶜ W X) ++ "] " ++
+  showEntry nameᴿ (Σᵉ Γᴿ) (pivotAt (ηᴿᶜ W) X)
 
 joinCells : List String → String
 joinCells [] = ""
@@ -114,15 +113,17 @@ joinCells (cell ∷ []) = cell
 joinCells (cell ∷ next ∷ cells) =
   cell ++ " │ " ++ joinCells (next ∷ cells)
 
-worldSnapshot : ∀ {Δᴸ Δᴿ Δ}
-  → (nameᴸ : TyVar Δᴸ → String)
-  → (nameᴿ : TyVar Δᴿ → String)
-  → (nameᶜ : TyVar Δ → String)
-  → CTX.World Δᴸ Δᴿ Δ
+worldSnapshot : ∀ {Γᴸ Γᴿ : Ctx}
+  → (nameᴸ : TyVar (Δᵉ Γᴸ) → String)
+  → (nameᴿ : TyVar (Δᵉ Γᴿ) → String)
+  → (W : Γᴸ ⊑ᶜ Γᴿ)
+  → (nameᶜ : TyVar (centerᶜ W) → String)
   → String
-worldSnapshot {Δ = Δ} nameᴸ nameᴿ nameᶜ W =
+worldSnapshot nameᴸ nameᴿ W nameᶜ =
   "⟨" ++
-  joinCells (map (worldCell nameᴸ nameᴿ nameᶜ W) (centerVars Δ)) ++
+  joinCells
+    (map (worldCell nameᴸ nameᴿ W nameᶜ)
+      (centerVars (centerᶜ W))) ++
   "⟩"
 
 private
@@ -160,10 +161,11 @@ defaultName X = defaultNameAt zero (Fin.toℕ X)
 defaultNameᵗ : ∀ {Δ} → TyVar Δ → String
 defaultNameᵗ X = defaultName X ++ "′"
 
-worldSnapshotDefault : ∀ {Δᴸ Δᴿ Δ}
-  → CTX.World Δᴸ Δᴿ Δ
+worldSnapshotDefault : ∀ {Γᴸ Γᴿ : Ctx}
+  → Γᴸ ⊑ᶜ Γᴿ
   → String
-worldSnapshotDefault = worldSnapshot defaultName defaultNameᵗ defaultName
+worldSnapshotDefault W =
+  worldSnapshot defaultName defaultNameᵗ W defaultName
 
 ------------------------------------------------------------------------
 -- Pinned fixture snapshots
@@ -177,19 +179,8 @@ default-name-groups-pinned :
   defaultNameᵗ (Fin.fromℕ 30) ≡ "X₁ Y₁ Z₁ X₂ X₁₀′"
 default-name-groups-pinned = refl
 
-example12-world-X-snapshot :
-  worldSnapshotDefault Ex12.example12-world-X ≡
-    "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ " ++
-    "Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ " ++
-    "Z: ─ ⊑[X⊑★] Z′↦★⟩"
-example12-world-X-snapshot = refl
-
-examples2-left-path-world₃-snapshot :
-  worldSnapshotDefault Ex2.left-path-world₃ ≡
-    "⟨X: X↦ℕ ⊑[X⊑★] X′↦★ │ " ++
-    "Y: Y↦＇Z ⊑[X⊑★] ─ │ " ++
-    "Z: Z↦★ ⊑[X⊑X] Y′↦★⟩"
-examples2-left-path-world₃-snapshot = refl
+empty-world-snapshot : worldSnapshotDefault emptyᶜ ≡ "⟨⟩"
+empty-world-snapshot = refl
 
 nested-∀-store-entry-snapshot :
   showEntry defaultName

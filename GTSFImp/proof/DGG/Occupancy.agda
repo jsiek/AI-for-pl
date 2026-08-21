@@ -283,7 +283,7 @@ rebaseᴸ-no-target-forwardᴼ CTI2.rebase-idᴸ no-target =
 rebaseᴸ-no-target-forwardᴼ (CTI2.rebase-varᴸ rb) no-target =
   rebase-no-target-forwardᴼ rb no-target
 rebaseᴸ-no-target-forwardᴼ
-    (CTI2.rebase-onlyᴸ _ _ _) no-target =
+    (CTI2.rebase-onlyᴸ _ _ _ _) no-target =
   no-target
 
 rebaseᴿ-no-target-forwardᴼ : ∀ {Δᴸ Δᴿ Δ}
@@ -306,7 +306,7 @@ tag-rebase-no-target-forwardᴼ CTI2.tag-rebase-idᴸ no-target =
 tag-rebase-no-target-forwardᴼ (CTI2.tag-rebase-varᴸ rb) no-target =
   rebase-no-target-forwardᴼ rb no-target
 tag-rebase-no-target-forwardᴼ
-    (CTI2.tag-rebase-onlyᴸ _ _ _) no-target =
+    (CTI2.tag-rebase-onlyᴸ _ _ _ _) no-target =
   no-target
 
 decay-no-target-forwardᴼ : ∀ {Δᴸ Δᴿ Δ}

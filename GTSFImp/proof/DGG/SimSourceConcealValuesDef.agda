@@ -28,6 +28,8 @@ open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve)
 open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
+open import proof.DGG.ConversionPivotAlignment
+  using (concealGeneratorPosition; generatorBoundaryPivot)
 open CTX using
   (World;
    ImpEnvMono;
@@ -42,21 +44,23 @@ SimSourceConcealValuesᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-    {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
-    {Xᴸ? : Maybe (TyVar Δᴸ)}
+    {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ}
     {c : Conv↓ Δᴸ A A′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
   → ParkedWorld W
   → (mono : ImpEnvMono W Wᵖ)
-  → TagRebaseAtᴸ Wᵖ W Xᴸ? nothing
-  → sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
+  → (c⊢ : sourceStoreʷ W Conv.⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+  → TagRebaseAtᴸ Wᵖ W
+      (generatorBoundaryPivot Xᴸ (concealGeneratorPosition c⊢)) nothing
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → Value V
   → V ↓ c —→[ χᴸ ] N
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-conceal-boundary}
-      {Xᴸ? = Xᴸ?} {Xᴿ? = nothing}
+      {Xᴸ? = generatorBoundaryPivot Xᴸ
+        (concealGeneratorPosition c⊢)} {Xᴿ? = nothing}
       {V = V} {M′ = M′} {A = A} {B = B}
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]

@@ -1,6 +1,6 @@
 {-# OPTIONS --safe #-}
 
-module proof.DGG.TwoCtxWorldEvolutionSequence where
+module proof.DGG.WorldEvolutionSequence where
 
 -- File Charter:
 --   * Composes one-step two-Ctx world evolutions while retaining each
@@ -23,9 +23,9 @@ import Reduction as R
 open R using (StoreChange; StoreChanges; []; _∷_)
 open import proof.TypeSafety.Preservation using
   (applyTermCtx; applyTermCtxs; applyTermCtxs-id; applyTermCtxs-step)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldEvolution
-open import proof.DGG.TwoCtxWorldEvolutionProducer
+open import proof.DGG.World
+open import proof.DGG.WorldEvolution
+open import proof.DGG.WorldEvolutionProducer
 
 
 data MultiWorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}

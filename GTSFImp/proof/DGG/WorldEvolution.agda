@@ -1,6 +1,6 @@
 {-# OPTIONS --safe #-}
 
-module proof.DGG.TwoCtxWorldEvolution where
+module proof.DGG.WorldEvolution where
 
 -- File Charter:
 --   * Defines endpoint-indexed one-step world evolution for trusted store
@@ -11,7 +11,7 @@ module proof.DGG.TwoCtxWorldEvolution where
 --   * Covers keep, left-only, right-only, paired-precise, and paired-dynamic
 --     allocation and derives direct invariants for every result.
 --   * Exports CtxChange, WorldEvolution, and their endpoint projections;
---     depends on TwoCtxWorld, its direct invariants, and the preservation
+--     depends on World, its direct invariants, and the preservation
 --     context action.
 
 open import Data.Nat using (suc)
@@ -24,8 +24,8 @@ open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
 open import proof.TypeSafety.Preservation using (applyTermCtx)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 
 
 data CtxChange : Ctx → Ctx → Set where

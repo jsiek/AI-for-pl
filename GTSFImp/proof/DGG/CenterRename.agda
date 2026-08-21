@@ -24,11 +24,16 @@ open import TyStore using
   (lookupStore; store-empty; store-lift; store-bind; _∋_⦂_)
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; toRenameᵗ; id↪ᵗ; wk↪ᵗ)
-open import Conversion using (Conv↑; Conv↓; _⊢↑[_]_; _⊢↓[_]_)
+open import Conversion using
+  (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Imprecision
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
+open import proof.DGG.ConversionPivotAlignment using
+  (GeneratorPosition; generator-absent; revealGeneratorPosition;
+   concealGeneratorPosition; revealGeneratorPosition-store-transport;
+   concealGeneratorPosition-store-transport)
 open CTX public using (_∘↪_; toRenameᵗ-∘; renameEnv; renameEnv-image)
 open CTI2 using (_∣_⊢²_⊑_∶_)
 open import proof.ImprecisionConsistency using
@@ -1073,37 +1078,93 @@ rename-target-typing {W = W} {γ = γ} {N = N} {B = B} π N⊢ =
       (λ Γ → ⟨ _ , CTX.targetStoreʷ W , Γ ⟩ ⊢ N ⦂ B)
       (sym (renameCtx-tgt π γ)) N⊢)
 
-rename-source-⊢↑ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ?}
+rename-source-⊢↑ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ Rᴸ}
     {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↑ Δᴸ A B}
   → (π : Δ ↪ᵗ Δ′)
-  → CTX.sourceStoreʷ W ⊢↑[ Xᴸ? ] c
-  → CTX.sourceStoreʷ (renameWorld π W) ⊢↑[ Xᴸ? ] c
+  → CTX.sourceStoreʷ W ⊢↑[ Xᴸ ⦂ Rᴸ ] c
+  → CTX.sourceStoreʷ (renameWorld π W) ⊢↑[ Xᴸ ⦂ Rᴸ ] c
 rename-source-⊢↑ {W = W} {c = c} π c⊢ =
-  subst≡ (λ Σ → Σ ⊢↑[ _ ] c) (sym (rename-source-store π W)) c⊢
+  subst≡ (λ Σ → Σ ⊢↑[ _ ⦂ _ ] c)
+    (sym (rename-source-store π W)) c⊢
 
-rename-source-⊢↓ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ?}
+rename-source-⊢↓ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ Rᴸ}
     {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↓ Δᴸ A B}
   → (π : Δ ↪ᵗ Δ′)
-  → CTX.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
-  → CTX.sourceStoreʷ (renameWorld π W) ⊢↓[ Xᴸ? ] c
+  → CTX.sourceStoreʷ W ⊢↓[ Xᴸ ⦂ Rᴸ ] c
+  → CTX.sourceStoreʷ (renameWorld π W) ⊢↓[ Xᴸ ⦂ Rᴸ ] c
 rename-source-⊢↓ {W = W} {c = c} π c⊢ =
-  subst≡ (λ Σ → Σ ⊢↓[ _ ] c) (sym (rename-source-store π W)) c⊢
+  subst≡ (λ Σ → Σ ⊢↓[ _ ⦂ _ ] c)
+    (sym (rename-source-store π W)) c⊢
 
-rename-target-⊢↑ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ?}
+rename-target-⊢↑ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ Rᴿ}
     {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↑ Δᴿ A B}
   → (π : Δ ↪ᵗ Δ′)
-  → CTX.targetStoreʷ W ⊢↑[ Xᴿ? ] c
-  → CTX.targetStoreʷ (renameWorld π W) ⊢↑[ Xᴿ? ] c
+  → CTX.targetStoreʷ W ⊢↑[ Xᴿ ⦂ Rᴿ ] c
+  → CTX.targetStoreʷ (renameWorld π W) ⊢↑[ Xᴿ ⦂ Rᴿ ] c
 rename-target-⊢↑ {W = W} {c = c} π c⊢ =
-  subst≡ (λ Σ → Σ ⊢↑[ _ ] c) (sym (rename-target-store π W)) c⊢
+  subst≡ (λ Σ → Σ ⊢↑[ _ ⦂ _ ] c)
+    (sym (rename-target-store π W)) c⊢
 
-rename-target-⊢↓ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ?}
+rename-target-⊢↓ : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ Rᴿ}
     {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↓ Δᴿ A B}
   → (π : Δ ↪ᵗ Δ′)
-  → CTX.targetStoreʷ W ⊢↓[ Xᴿ? ] c
-  → CTX.targetStoreʷ (renameWorld π W) ⊢↓[ Xᴿ? ] c
+  → CTX.targetStoreʷ W ⊢↓[ Xᴿ ⦂ Rᴿ ] c
+  → CTX.targetStoreʷ (renameWorld π W) ⊢↓[ Xᴿ ⦂ Rᴿ ] c
 rename-target-⊢↓ {W = W} {c = c} π c⊢ =
-  subst≡ (λ Σ → Σ ⊢↓[ _ ] c) (sym (rename-target-store π W)) c⊢
+  subst≡ (λ Σ → Σ ⊢↓[ _ ⦂ _ ] c)
+    (sym (rename-target-store π W)) c⊢
+
+rename-source-reveal-position : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ Rᴸ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↑ Δᴸ A B}
+  → (π : Δ ↪ᵗ Δ′)
+  → (c⊢ : CTX.sourceStoreʷ W ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (rename-source-⊢↑ π c⊢) ≡ P
+rename-source-reveal-position {W = W} π c⊢ P eq =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (rename-source-store π W)) c⊢)
+    eq
+
+rename-source-conceal-position : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴸ Rᴸ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↓ Δᴸ A B}
+  → (π : Δ ↪ᵗ Δ′)
+  → (c⊢ : CTX.sourceStoreʷ W ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (rename-source-⊢↓ π c⊢) ≡ P
+rename-source-conceal-position {W = W} π c⊢ P eq =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (rename-source-store π W)) c⊢)
+    eq
+
+rename-target-reveal-position : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ Rᴿ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↑ Δᴿ A B}
+  → (π : Δ ↪ᵗ Δ′)
+  → (c⊢ : CTX.targetStoreʷ W ⊢↑[ Xᴿ ⦂ Rᴿ ] c)
+  → (P : GeneratorPosition)
+  → revealGeneratorPosition c⊢ ≡ P
+  → revealGeneratorPosition (rename-target-⊢↑ π c⊢) ≡ P
+rename-target-reveal-position {W = W} π c⊢ P eq =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (rename-target-store π W)) c⊢)
+    eq
+
+rename-target-conceal-position : ∀ {Δᴸ Δᴿ Δ Δ′ A B Xᴿ Rᴿ}
+    {W : CTX.World Δᴸ Δᴿ Δ} {c : Conv↓ Δᴿ A B}
+  → (π : Δ ↪ᵗ Δ′)
+  → (c⊢ : CTX.targetStoreʷ W ⊢↓[ Xᴿ ⦂ Rᴿ ] c)
+  → (P : GeneratorPosition)
+  → concealGeneratorPosition c⊢ ≡ P
+  → concealGeneratorPosition (rename-target-⊢↓ π c⊢) ≡ P
+rename-target-conceal-position {W = W} π c⊢ P eq =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (rename-target-store π W)) c⊢)
+    eq
 
 renameSameRuntime : ∀ {Δᴸ Δᴿ Δ Δ′}
     {W W′ : CTX.World Δᴸ Δᴿ Δ}
@@ -1234,59 +1295,6 @@ rename-disaligned π W {Xᴸ} disaligned Xᴿ eq =
   disaligned Xᴿ (toRenameᵗ-injective π
     (trans (sym (rename-ηᴿ-image π W Xᴿ))
       (trans eq (rename-ηᴸ-image π W Xᴸ))))
-
-rename-source-rep-star : ∀ {Δᴸ Δᴿ Δ Δ′}
-    (π : Δ ↪ᵗ Δ′) (W : CTX.World Δᴸ Δᴿ Δ)
-    (Xᴸ : TyVar Δᴸ)
-  → CTX.resolveVar (CTX.sourceStoreʷ W) Xᴸ CTX.⊑ᵂ⟨ renameWorld π W ⟩ ★
-  → CTX.resolveVar (CTX.sourceStoreʷ (renameWorld π W)) Xᴸ
-      CTX.⊑ᵂ⟨ renameWorld π W ⟩ ★
-rename-source-rep-star π W Xᴸ represented =
-  subst≡
-    (λ A → A CTX.⊑ᵂ⟨ renameWorld π W ⟩ ★)
-    (sym (cong (λ Σ → CTX.resolveVar Σ Xᴸ)
-      (rename-source-store π W))) represented
-
-renameRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W W′ : CTX.World Δᴸ Δᴿ Δ} {Xᴸ?}
-  → (π : Δ ↪ᵗ Δ′)
-  → CTX.RebaseAtᴸ W W′ Xᴸ?
-  → CTX.RebaseAtᴸ (renameWorld π W) (renameWorld π W′) Xᴸ?
-renameRebaseAtᴸ π CTX.rebase-idᴸ = CTX.rebase-idᴸ
-renameRebaseAtᴸ π (CTX.rebase-varᴸ rb) =
-  CTX.rebase-varᴸ (renameRebaseAt π rb)
-renameRebaseAtᴸ {W = W} π
-    (CTX.rebase-onlyᴸ {Xᴸ = Xᴸ} to-star disaligned represented) =
-  CTX.rebase-onlyᴸ
-    (trans (rename-mark-image π W) to-star)
-    (rename-disaligned π W disaligned)
-    (rename-source-rep-star π W Xᴸ
-      (rename-⊑ᵂ {W = W} π represented))
-
-renameTagRebaseAtᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W W′ : CTX.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
-  → (π : Δ ↪ᵗ Δ′)
-  → CTX.TagRebaseAtᴸ W W′ Xᴸ? Xᴿ?
-  → CTX.TagRebaseAtᴸ (renameWorld π W) (renameWorld π W′) Xᴸ? Xᴿ?
-renameTagRebaseAtᴸ π CTX.tag-rebase-idᴸ = CTX.tag-rebase-idᴸ
-renameTagRebaseAtᴸ π (CTX.tag-rebase-varᴸ rb) =
-  CTX.tag-rebase-varᴸ (renameRebaseAt π rb)
-renameTagRebaseAtᴸ {W = W} π
-    (CTX.tag-rebase-onlyᴸ {Xᴸ = Xᴸ} to-star disaligned represented) =
-  CTX.tag-rebase-onlyᴸ
-    (trans (rename-mark-image π W) to-star)
-    (rename-disaligned π W disaligned)
-    (rename-source-rep-star π W Xᴸ
-      (rename-⊑ᵂ {W = W} π represented))
-
-renameRebaseAtᴿ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W W′ : CTX.World Δᴸ Δᴿ Δ} {Xᴿ?}
-  → (π : Δ ↪ᵗ Δ′)
-  → CTX.RebaseAtᴿ W W′ Xᴿ?
-  → CTX.RebaseAtᴿ (renameWorld π W) (renameWorld π W′) Xᴿ?
-renameRebaseAtᴿ π CTX.rebase-idᴿ = CTX.rebase-idᴿ
-renameRebaseAtᴿ π (CTX.rebase-varᴿ rb) =
-  CTX.rebase-varᴿ (renameRebaseAt π rb)
 
 renameEnvMono : ∀ {Δ Δ′} {μ ν : ImpEnv Δ}
   → (π : Δ ↪ᵗ Δ′)
@@ -1650,57 +1658,110 @@ renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     (⊢²-rename-center {W = W} π M⊑N
       (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.⊑reveal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q) p′ =
-  CTI2.⊑reveal² (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameRebaseAtᴿ {W = W} {W′ = W′} π rb)
-    (renameSameCtx {W = W} {W′ = W′} π sc)
-    (rename-target-⊢↑ π c′⊢)
-    (⊢²-rename-center {W = W′} π M⊑N
-      (rename-⊑ᵂ {W = W′} π p)) p′
+    (CTI2.⊑reveal² {p = p} c′⊢ at-absent M⊑N q) p′ =
+  CTI2.⊑reveal² (rename-target-⊢↑ π c′⊢)
+    (rename-target-reveal-position π c′⊢ generator-absent at-absent)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.⊑conceal² {W′ = W′} {p = p} mono rb sc c′⊢ M⊑N q) p′ =
-  CTI2.⊑conceal² (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameRebaseAtᴿ {W = W′} {W′ = W} π rb)
-    (renameSameCtx {W = W} {W′ = W′} π sc)
-    (rename-target-⊢↓ π c′⊢)
-    (⊢²-rename-center {W = W′} π M⊑N
-      (rename-⊑ᵂ {W = W′} π p)) p′
+    (CTI2.⊑conceal² {p = p} c′⊢ at-absent M⊑N q) p′ =
+  CTI2.⊑conceal² (rename-target-⊢↓ π c′⊢)
+    (rename-target-conceal-position π c′⊢ generator-absent at-absent)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.reveal⊑² {W′ = W′} {p = p} mono rb sc c⊢ M⊑N q) p′ =
-  CTI2.reveal⊑² (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameRebaseAtᴸ {W = W} {W′ = W′} π rb)
-    (renameSameCtx {W = W} {W′ = W′} π sc)
-    (rename-source-⊢↑ π c⊢)
-    (⊢²-rename-center {W = W′} π M⊑N
-      (rename-⊑ᵂ {W = W′} π p)) p′
+    (CTI2.reveal⊑-neutral² {p = p} c⊢ at-absent M⊑N q) p′ =
+  CTI2.reveal⊑-neutral² (rename-source-⊢↑ π c⊢)
+    (rename-source-reveal-position π c⊢ generator-absent at-absent)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.conceal⊑² {W′ = W′} {p = p}
-      mono rb sc c⊢ M⊑N q) p′ =
-  CTI2.conceal⊑²
+    (CTI2.reveal⊑-only² {p = p} c⊢ not-absent dynamic disaligned
+      represented M⊑N q) p′ =
+  CTI2.reveal⊑-only² (rename-source-⊢↑ π c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (rename-source-reveal-position π c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (trans (rename-mark-image π W) dynamic)
+    (rename-disaligned π W disaligned)
+    (rename-⊑ᵂ {W = W} π represented)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.reveal⊑² {W′ = W′} {p = p} c⊢ not-absent Xᴿ∈
+      represented mono rb sc M⊑N q) p′ =
+  CTI2.reveal⊑² (rename-source-⊢↑ π c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (rename-source-reveal-position π c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (subst≡ (λ Σ → Σ ∋ _ ⦂ _) (sym (rename-target-store π W)) Xᴿ∈)
+    (rename-⊑ᵂ {W = W′} π represented)
     (renameImpEnvMono {W = W} {W′ = W′} π mono)
-    (renameTagRebaseAtᴸ {W = W′} {W′ = W} π rb)
+    (renameRebaseAt {W = W} {W′ = W′} π rb)
     (renameSameCtx {W = W} {W′ = W′} π sc)
-    (rename-source-⊢↓ π c⊢)
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.conceal⊑-neutral² {p = p} c⊢ at-absent M⊑N q) p′ =
+  CTI2.conceal⊑-neutral² (rename-source-⊢↓ π c⊢)
+    (rename-source-conceal-position π c⊢ generator-absent at-absent)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
+⊢²-rename-center {W = W} π
+    (CTI2.conceal⊑² {p = p} c⊢ not-absent dynamic disaligned
+      represented M⊑N q) p′ =
+  CTI2.conceal⊑² (rename-source-⊢↓ π c⊢)
+    (λ absent → not-absent
+      (trans
+        (sym (rename-source-conceal-position π c⊢
+          (concealGeneratorPosition c⊢) refl)) absent))
+    (trans (rename-mark-image π W) dynamic)
+    (rename-disaligned π W disaligned)
+    (rename-⊑ᵂ {W = W} π represented)
+    (⊢²-rename-center {W = W} π M⊑N
+      (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
     (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} {p = p}
-      mono rb sc c⊢ c′⊢ M⊑N q) p′ =
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑N q) p′ =
   CTI2.reveal⊑reveal²
+    (rename-source-⊢↑ π c⊢) (rename-target-⊢↑ π c′⊢)
+    (trans
+      (rename-source-reveal-position π c⊢
+        (revealGeneratorPosition c⊢) refl)
+      (trans positions
+        (sym (rename-target-reveal-position π c′⊢
+          (revealGeneratorPosition c′⊢) refl))))
+    (λ absent → not-absent
+      (trans
+        (sym (rename-source-reveal-position π c⊢
+          (revealGeneratorPosition c⊢) refl)) absent))
+    (rename-⊑ᵂ {W = Wᵖ} π represented)
     (renameImpEnvMono {W = W} {W′ = Wᵖ} π mono)
     (renameRebaseAt {W = W} {W′ = Wᵖ} π rb)
     (renameSameCtx {W = W} {W′ = Wᵖ} π sc)
-    (rename-source-⊢↑ π c⊢) (rename-target-⊢↑ π c′⊢)
     (⊢²-rename-center {W = Wᵖ} π M⊑N
       (rename-⊑ᵂ {W = Wᵖ} π p)) p′
 ⊢²-rename-center {W = W} π
     (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p}
-      mono rb sc c⊢ c′⊢ M⊑N q) p′ =
+      c⊢ c′⊢ positions not-absent represented mono rb sc M⊑N q) p′ =
   CTI2.conceal⊑conceal²
+    (rename-source-⊢↓ π c⊢) (rename-target-⊢↓ π c′⊢)
+    (trans
+      (rename-source-conceal-position π c⊢
+        (concealGeneratorPosition c⊢) refl)
+      (trans positions
+        (sym (rename-target-conceal-position π c′⊢
+          (concealGeneratorPosition c′⊢) refl))))
+    (λ absent → not-absent
+      (trans
+        (sym (rename-source-conceal-position π c⊢
+          (concealGeneratorPosition c⊢) refl)) absent))
+    (rename-⊑ᵂ {W = Wᵖ} π represented)
     (renameImpEnvMono {W = W} {W′ = Wᵖ} π mono)
     (renameRebaseAt {W = Wᵖ} {W′ = W} π rb)
     (renameSameCtx {W = W} {W′ = Wᵖ} π sc)
-    (rename-source-⊢↓ π c⊢) (rename-target-⊢↓ π c′⊢)
     (⊢²-rename-center {W = Wᵖ} π M⊑N
       (rename-⊑ᵂ {W = Wᵖ} π p)) p′
 ⊢²-rename-center {W = W} {γ = γ} π (CTI2.blame⊑² M′⊢ p) p′ =

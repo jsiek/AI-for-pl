@@ -21,7 +21,7 @@ import TermCtx as TC
 import Imprecision as I
 open import Consistency using (toRenameᵗ)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ⇑ᵉᵗ)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxScopedTermBoundaryProbe using

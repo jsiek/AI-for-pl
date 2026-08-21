@@ -196,7 +196,7 @@ seal-rebase-target {W = W} {X = X} {Y = Y}
 seal-rebase-target (CTI2.rebase-varᴸ rb) q | refl = rb
 seal-rebase-target
     {W = W} {X = X} {Y = Y}
-    (CTI2.rebase-onlyᴸ to-star disaligned represented) q =
+    (CTI2.rebase-onlyᴸ member to-star disaligned represented) q =
   ⊥-elim
     (disaligned Y
       (sym (variable-obligation-aligns {W = W} {X = X} {Y = Y} q)))

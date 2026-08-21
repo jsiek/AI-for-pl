@@ -37,9 +37,13 @@ import proof.DGG.Inversion.RightInjInversion2Lemma
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.WorldInvariants
-import proof.DGG.TwoCtxWorldInvariants
-import proof.DGG.TwoCtxWorldEvolutionSequence
+import proof.DGG.WorldEvolutionSequence
 import proof.DGG.SourceRebaseRequest
+import proof.DGG.SourceFreshBehindPlan
+import proof.DGG.ConversionPivotAlignment
+import proof.DGG.TargetAliasEdge
+import proof.DGG.TargetBoundary
+import proof.DGG.BoundaryState
 import proof.DGG.CenterRenamePlan
 import proof.DGG.TargetExtendPlan
 
@@ -147,7 +151,6 @@ import proof.DGG.SimSourceConcealValuesProof
 import proof.DGG.SimPairedConcealValuesProof
 import proof.DGG.TransportTermImprecisionProof
 import proof.DGG.SimProof
-import proof.DGG.SimBackProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof
@@ -162,6 +165,8 @@ import proof.DGG.DynamicGradualGuaranteeProof
 -- Example suites and catalogs
 import proof.DGG.WorldSnapshot
 import proof.DGG.ImpLadder
+import proof.DGG.Examples.Example12
+import proof.DGG.Examples.MatchedInstantiation
 import proof.DGG.Example12Worlds
 import Example
 import GradualTypeCheckExamples
@@ -171,7 +176,6 @@ import proof.DGG.ReachabilityCatalog
 import proof.DGG.CompileImageShape
 import proof.DGG.Phase3DeepDives
 import proof.DGG.GroundCastTargetExamples
-import proof.DGG.SmartCommaWitness
 
 -- Probes and counterexample records (design decisions, kept checked)
 import proof.DGG.SourceStarProbe
@@ -185,6 +189,12 @@ import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
 import proof.DGG.notes.probes.SourceRebaseRequestExamplesProbe
 import proof.DGG.notes.probes.TargetExtendPlanExamplesProbe
+import proof.DGG.notes.probes.ConversionPivotAlignmentProbe
+import proof.DGG.notes.probes.TwoCtxBoundaryStateProbe
+import proof.DGG.notes.probes.TwoCtxValueSensitiveConversionAcceptanceProbe
+import proof.DGG.notes.probes.TwoCtxBasicExamplesReductionProbe
+import proof.DGG.notes.probes.TwoCtxDirectCTIAcceptanceProbe
+import proof.DGG.notes.probes.TwoCtxDirectCTITypingProbe
 import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe
 import proof.DGG.notes.probes.TwoCtxReductionEvolutionBridgeProbe
 import proof.DGG.notes.probes.TwoCtxSimulationResultProbe

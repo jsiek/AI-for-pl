@@ -6,13 +6,11 @@ module proof.DGG.SealTransferCore where
 --   * Transfers a target star-seal boundary to an existential output world.
 --   * Closes single-move interiors, including TagBoundaryProbe's case.
 --   * Refutes the residual H-multi shape with frozen target centers.
---   * Depends on SealPeelToolkit, SpineValueDef, and term decay.
+--   * Depends on SealPeelToolkit and SpineValueDef.
 
 import Data.Fin as Fin
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.List using ([]; _∷_)
-open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Empty using (⊥)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
@@ -31,8 +29,6 @@ import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.SealPeelToolkit as SPT
-import proof.DGG.TermImpDecay as TD
-import proof.DGG.WorldDecay as WD
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTX using
   (World;
@@ -94,158 +90,41 @@ composeSourceRebase {Δᴸ = Δᴸ} {W₁ = W₁} {Wₗ} {W₂}
     trans (CTX.RebaseAt.ηᴿ-frozen raₗ Yₒ)
       (CTX.RebaseAt.ηᴿ-frozen link₂ Yₒ)
 
-private
-  composeSameCtx : ∀ {Δᴸ Δᴿ Δ₁ Δ₂ Δ₃}
-      {W₁ : World Δᴸ Δᴿ Δ₁} {W₂ : World Δᴸ Δᴿ Δ₂}
-      {W₃ : World Δᴸ Δᴿ Δ₃}
-      {γ₁ : CtxImp W₁} {γ₂ : CtxImp W₂} {γ₃ : CtxImp W₃}
-    → CTX.SameCtx γ₁ γ₂
-    → CTX.SameCtx γ₂ γ₃
-    → CTX.SameCtx γ₁ γ₃
-  composeSameCtx CTX.same-[] CTX.same-[] = CTX.same-[]
-  composeSameCtx (CTX.same-∷ sc₁) (CTX.same-∷ sc₂) =
-    CTX.same-∷ (composeSameCtx sc₁ sc₂)
-
-  target-seal-rebase-source : ∀ {Δᴸ Δᴿ Δ}
-      {W₄ W₁ : World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    → CTX.RebaseAtᴿ W₄ W₁ (just Y)
-    → (＇ X) ⊑ᵂ⟨ W₁ ⟩ (＇ Y)
-    → RebaseAt W₄ W₁ X Y
-  target-seal-rebase-source {W₁ = W₁} {X = X} {Y = Y}
-      (CTX.rebase-varᴿ rb) q
-      with toRenameᵗ-injective (CTX.ηᴸʷ W₁)
-        (trans (CTX.RebaseAt.pivotAligned rb)
-          (sym (SVD.variable-obligation-aligns
-            {W = W₁} {X = X} {Y = Y} q)))
-  target-seal-rebase-source (CTX.rebase-varᴿ rb) q | refl = rb
-
-data PremisePartnerAt {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
-    Maybe (TyVar Δᴿ) → Set where
-  premise-partner-just : ∀ {Y}
-    → CTX.CenterAligned W X Y
-      -------------------------------
-    → PremisePartnerAt W X (just Y)
-
-  premise-partner-nothing :
-      (∀ Y → CTX.CenterAligned W X Y → ⊥)
-      ------------------------------------
-    → PremisePartnerAt W X nothing
-
-record TaggedTransferOutput {Δᴸ Δᴿ Δ}
-    (W : World Δᴸ Δᴿ Δ) (γ : CtxImp W)
-    (P : Term Δᴸ) (U : Term Δᴿ)
-    (X : TyVar Δᴸ) (Xᴿ? : Maybe (TyVar Δᴿ)) : Set where
-  constructor tagged-transfer-output
-  field
-    premise : W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
-    pedigree : PremisePartnerAt W X Xᴿ?
-
-sameCtx-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W}
-  → CTX.SameCtx γ γ
-sameCtx-refl {γ = []} = CTX.same-[]
-sameCtx-refl {γ = CTX.ctx-imp A B p ∷ γ} =
-  CTX.same-∷ sameCtx-refl
-
-impEnvMono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-  → CTX.ImpEnvMono W W
-impEnvMono-refl = CTX.impEnvMono-refl
-
-premise-partner-from-tag-rebase : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Xᴿ?}
-  → CTX.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
-  → PremisePartnerAt W X Xᴿ?
-premise-partner-from-tag-rebase (CTX.tag-rebase-varᴸ rb) =
-  premise-partner-just (CTX.RebaseAt.pivotAligned rb)
-premise-partner-from-tag-rebase
-    (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
-  premise-partner-nothing (λ Y aligned → disaligned Y (sym aligned))
-
-self-tag-rebase-from-tag-rebase : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Xᴿ?}
-  → CTX.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
-  → CTX.TagRebaseAtᴸ W W (just X) Xᴿ?
-self-tag-rebase-from-tag-rebase (CTX.tag-rebase-varᴸ rb) =
-  CTX.tag-rebase-varᴸ
-    (CTX.sameWorldRebaseAt
-      (CTX.RebaseAt.pivotAligned rb)
-      (CTX.RebaseAt.storeRepresentations rb))
-self-tag-rebase-from-tag-rebase
-    (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
-  CTX.tag-rebase-onlyᴸ to-star disaligned represented
-
-emit-tagged-transfer : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-  → CTX.ImpEnvMono W Wᵖ
-  → RebaseAt Wᵖ W X Y
-  → CTX.SameCtx γ γᵖ
-  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] Conversion.seal X ★
-  → CTX.targetStoreʷ W Conv.⊢↓[ just Y ] Conversion.seal Y ★
-  → TaggedTransferOutput Wᵖ γᵖ P U X Xᴿ?
-  → W ∣ γ ⊢² P ↓ Conversion.seal X ★
-      ⊑ U ↓ Conversion.seal Y ★ ∶ q
-emit-tagged-transfer {q = q} mono rb sc source⊢ target⊢
-    pkg =
-  CTI2.conceal⊑conceal² mono rb sc source⊢ target⊢
-    (TaggedTransferOutput.premise pkg) q
-
 source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
-    {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
+    {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ}
     {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
-    {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTX.ImpEnvMono W Wᵖ
-    → CTX.TagRebaseAtᴸ Wᵖ W (just X) nothing
-    → CTX.SameCtx γ γᵖ
-    → CTX.sourceStoreʷ W ∋ X ⦂ ★
-    → Inert c
-    → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
+  → CTX.sourceStoreʷ W ∋ X ⦂ ★
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → (∀ Y → toRenameᵗ (CTX.ηᴿʷ W) Y
+      ≢ toRenameᵗ (CTX.ηᴸʷ W) X)
+  → Inert c
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ q
-  → Σ[ pkg ∈ TaggedTransferOutput W γ
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) U X nothing ]
-      (W ∣ γ ⊢²
+  → (W ∣ γ ⊢² (P ↓ Conversion.seal X ★) ⟨ c ⟩
+        ⊑ U ∶ ★⊑★)
+    × (W ∣ γ ⊢²
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
 source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
-      {c = c} {q = q} mono
-      rb@(CTX.tag-rebase-onlyᴸ to-star disaligned
-        represented)
-      sc source∈
-      (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
-  tagged-transfer-output
-    (CTI2.cast⊑² c sealed ★⊑★)
-    (premise-partner-from-tag-rebase rb) ,
+      {c = c} {q = q} source∈ to-star disaligned
+      (inj ⦃ Gᵍ = ＇ .X ⦄) sealed =
+  CTI2.cast⊑² c sealed ★⊑★ ,
     CTI2.conceal⊑²
-      (impEnvMono-refl {W = W})
-      (self-tag-rebase-from-tag-rebase rb)
-      (sameCtx-refl {γ = γ})
-      (Conv.⊢↓-sealˣ source∈)
+      (Conv.⊢↓-seal source∈)
+      (λ ())
+      to-star
+      disaligned
+      ★⊑★
       (CTI2.cast⊑² c sealed ★⊑★)
       q
 
 ------------------------------------------------------------------------
--- Package helpers
+-- Seal-transfer helper facts
 ------------------------------------------------------------------------
 
 private
-  impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ}
-      {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
-    → CTX.ImpEnvMono W₁ W₂
-    → CTX.ImpEnvMono W₂ W₃
-    → CTX.ImpEnvMono W₁ W₃
-  impEnvMono-∘ = CTX.impEnvMono-trans
-
-  honestify-mono : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    → CTX.ImpEnvMono W (WD.honestify W)
-  honestify-mono {W = W} = WD.env-mono (WD.honestify-decay {W = W})
-
   store-variable-distinct : ∀ {Δ} {Σ : TyStore.TyStore Δ}
       {Z Z₃ : TyVar Δ}
     → Σ ∋ Z ⦂ (＇ Z₃)
@@ -324,8 +203,8 @@ data SealTransferResult {Δᴸ Δᴿ Δ}
     → CTX.ImpEnvMono W₁ Wᵖ
     → RebaseAt Wᵖ W₁ Z Y
     → CTX.SameCtx γ₁ γᵖ
-    → CTX.sourceStoreʷ W₁ Conv.⊢↓[ just Z ] Conversion.seal Z ★
-    → CTX.targetStoreʷ W₁ Conv.⊢↓[ just Y ] Conversion.seal Y ★
+    → CTX.sourceStoreʷ W₁ Conv.⊢↓[ Z ⦂ ★ ] Conversion.seal Z ★
+    → CTX.targetStoreʷ W₁ Conv.⊢↓[ Y ⦂ ★ ] Conversion.seal Y ★
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
     → SealTransferResult W₁ γ₁ Z Y p
         (P ↓ Conversion.seal Z ★) U
@@ -410,31 +289,13 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
-    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} {p = p₄}
-        mono₄ rb₄ sc₄
-        (Conv.⊢↓-sealˣ Y∈) prem .p
-    with target-seal-rebase-source rb₄ p
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} {p = p₄}
-        mono₄ rb₄ sc₄
-        (Conv.⊢↓-sealˣ Y∈) prem .p
-    | ra₄ =
-  seal-transfer-stripped
-    (TD.decayRebaseAt (WD.honestify-decay {W = W₄}) WD.decay-refl ra₄)
-    (impEnvMono-∘ {W₁ = W₁} {W₂ = W₄}
-      {W₃ = WD.honestify W₄} mono₄ (honestify-mono {W = W₄}))
-    (SVD.decaySameCtxʳ (WD.honestify-decay {W = W₄}) sc₄)
-    (TD.⊢²-decay-at (WD.honestify-decay {W = W₄}) prem
-      (WD.decay⊑ᵂ (WD.honestify-decay {W = W₄}) p₄))
+    | CTI2.⊑conceal² (Conv.⊢↓-seal Y∈) () prem .p
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ Z∈′)
-        (Conv.⊢↓-sealˣ Y∈) prem .p =
+        (Conv.⊢↓-seal Z∈′) (Conv.⊢↓-seal Y∈)
+        refl position represented monoᵖ rbᵖ scᵖ prem .p =
   seal-transfer-paired monoᵖ rbᵖ scᵖ
-    (Conv.⊢↓-sealˣ Z∈′) (Conv.⊢↓-sealˣ Y∈) prem
+    (Conv.⊢↓-seal Z∈′) (Conv.⊢↓-seal Y∈) prem

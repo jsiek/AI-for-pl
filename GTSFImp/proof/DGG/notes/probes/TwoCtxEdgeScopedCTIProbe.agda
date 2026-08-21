@@ -31,7 +31,7 @@ open import Primitives using (Const; constTy)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Term; `_; ƛ_; _·_; $; _⟨_⟩; _↑_;
    _↓_; blame; _⊢_⦂_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import
   proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
 open import proof.DGG.notes.probes.TwoCtxEdgeIndexedModeProbe using

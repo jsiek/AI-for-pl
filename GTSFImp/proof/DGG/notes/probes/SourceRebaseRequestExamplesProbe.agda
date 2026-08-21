@@ -19,7 +19,7 @@ open import Types using (★; ‵_; `ℕ)
 open import TyStore using (store-empty)
 import Imprecision as I
 open import CastTerms using (Ctx; ⟨_,_,_⟩; _,ˢ_)
-open import proof.DGG.TwoCtxWorld
+open import proof.DGG.World
 open import proof.DGG.SourceRebasePlan
 open import proof.DGG.SourceRebaseRequest
 

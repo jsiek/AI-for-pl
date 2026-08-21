@@ -20,8 +20,8 @@ open import TyStore using (TyStore; store-lift)
 import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩)
-open import proof.DGG.TwoCtxWorld
-open import proof.DGG.TwoCtxWorldInvariants
+open import proof.DGG.World
+open import proof.DGG.WorldInvariants
 open import proof.DGG.SourceRebasePlan
 
 

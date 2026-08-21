@@ -27,6 +27,7 @@ open import CastTerms
 open import Reduction
 open import proof.TypeInTermSubst
 open import proof.TermInTermSubst
+open import proof.ImprecisionConsistency using (fin-suc-injective)
 
 ------------------------------------------------------------------------
 -- Structural reveal and conceal typing
@@ -49,32 +50,34 @@ mutual
   structural-reveal-typing : ∀ {Δ} {Σ : TyStore Δ} {X R}
       (B : Ty Δ)
     → Σ ∋ X ⦂ R
-    → Σ ⊢↑ 〖 X , R ↑ B 〗
+    → Σ ⊢↑[ X ⦂ R ] 〖 X , R ↑ B 〗
   structural-reveal-typing {X = X} (＇ Y) X∈ with X ≟ Y
   structural-reveal-typing {X = X} (＇ .X) X∈ | yes refl = ⊢↑-unseal X∈
-  structural-reveal-typing {X = X} (＇ Y) X∈ | no X≠Y = ⊢↑-id
-  structural-reveal-typing (‵ ι) X∈ = ⊢↑-id
-  structural-reveal-typing ★ X∈ = ⊢↑-id
+  structural-reveal-typing {X = X} (＇ Y) X∈ | no X≠Y =
+    ⊢↑-id-var X∈ X≠Y
+  structural-reveal-typing (‵ ι) X∈ = ⊢↑-id-base X∈
+  structural-reveal-typing ★ X∈ = ⊢↑-id-star X∈
   structural-reveal-typing (A ⇒ B) X∈ =
     ⊢↑-⇒ (structural-conceal-typing A X∈)
       (structural-reveal-typing B X∈)
   structural-reveal-typing (`∀ B) X∈ =
-    ⊢↑-∀ (structural-reveal-typing B (S-lift∋ X∈ refl))
+    ⊢↑-∀ refl (structural-reveal-typing B (S-lift∋ X∈ refl))
 
   structural-conceal-typing : ∀ {Δ} {Σ : TyStore Δ} {X R}
       (B : Ty Δ)
     → Σ ∋ X ⦂ R
-    → Σ ⊢↓ makeConceal X R B
+    → Σ ⊢↓[ X ⦂ R ] makeConceal X R B
   structural-conceal-typing {X = X} (＇ Y) X∈ with X ≟ Y
   structural-conceal-typing {X = X} (＇ .X) X∈ | yes refl = ⊢↓-seal X∈
-  structural-conceal-typing {X = X} (＇ Y) X∈ | no X≠Y = ⊢↓-id
-  structural-conceal-typing (‵ ι) X∈ = ⊢↓-id
-  structural-conceal-typing ★ X∈ = ⊢↓-id
+  structural-conceal-typing {X = X} (＇ Y) X∈ | no X≠Y =
+    ⊢↓-id-var X∈ X≠Y
+  structural-conceal-typing (‵ ι) X∈ = ⊢↓-id-base X∈
+  structural-conceal-typing ★ X∈ = ⊢↓-id-star X∈
   structural-conceal-typing (A ⇒ B) X∈ =
     ⊢↓-⇒ (structural-reveal-typing A X∈)
       (structural-conceal-typing B X∈)
   structural-conceal-typing (`∀ B) X∈ =
-    ⊢↓-∀ (structural-conceal-typing B (S-lift∋ X∈ refl))
+    ⊢↓-∀ refl (structural-conceal-typing B (S-lift∋ X∈ refl))
 
 replaceTy-subst : ∀ {Δ} (X : TyVar Δ) (R B : Ty Δ)
   → replaceTy X R B ≡ substᵗ (replaceEnv X R) B
@@ -219,8 +222,18 @@ pure-preservation (⊢· (⊢reveal (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢)
 pure-preservation (⊢· (⊢conceal (⊢↓-⇒ c⊢ d⊢) V⊢) W⊢)
     (β-conceal-⇒ vV vW) =
   ⊢conceal d⊢ (⊢· V⊢ (⊢reveal c⊢ W⊢))
-pure-preservation (⊢reveal ⊢↑-id V⊢) (id-reveal vV) = V⊢
-pure-preservation (⊢conceal ⊢↓-id V⊢) (id-conceal vV) = V⊢
+pure-preservation (⊢reveal (⊢↑-id-var X∈ X≢Y) V⊢)
+    (id-reveal vV) = V⊢
+pure-preservation (⊢reveal (⊢↑-id-base X∈) V⊢)
+    (id-reveal vV) = V⊢
+pure-preservation (⊢reveal (⊢↑-id-star X∈) V⊢)
+    (id-reveal vV) = V⊢
+pure-preservation (⊢conceal (⊢↓-id-var X∈ X≢Y) V⊢)
+    (id-conceal vV) = V⊢
+pure-preservation (⊢conceal (⊢↓-id-base X∈) V⊢)
+    (id-conceal vV) = V⊢
+pure-preservation (⊢conceal (⊢↓-id-star X∈) V⊢)
+    (id-conceal vV) = V⊢
 pure-preservation
     (⊢reveal (⊢↑-unseal X∈)
       (⊢conceal (⊢↓-seal X∈′) V⊢))
@@ -279,7 +292,7 @@ preservation (⊢• (⊢⟨⟩ V⊢ ((gen c) A≢★)))
     (β-gen vV .A≢★ safe) =
   reveal-zero-typing _ _ (⊢⟨⟩ (typing-shiftᵗ-bind V⊢) c)
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
-    (⊢• (⊢reveal (⊢↑-∀ c⊢) V⊢))
+    (⊢• (⊢reveal (⊢↑-∀ eq c⊢) V⊢))
     (β-reveal-∀ {V = V} {A = A} {B = B} {C = C} vV) =
   reveal-zero-typing B A
     (⊢reveal (reveal-store-transport StoreTransport-lift-bind c⊢)
@@ -291,7 +304,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
         ⊢ ⇑ᵗᵐ V ⦂∀ (bind A ▷ᵇ C) [ ＇ Fin.zero ] ⦂ T)
       (applyBody-open-zero C) (⊢• (typing-shiftᵗ-bind V⊢))
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
-    (⊢• (⊢conceal (⊢↓-∀ c⊢) V⊢))
+    (⊢• (⊢conceal (⊢↓-∀ eq c⊢) V⊢))
     (β-conceal-∀ {V = V} {A = A} {B = B} {C = C} vV) =
   reveal-zero-typing B A
     (⊢conceal (conceal-store-transport StoreTransport-lift-bind c⊢)
@@ -331,7 +344,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
       (subst≡ (λ T → ⟨ Δ , Σ , Γ ⟩ ⊢ M′ ⦂ T)
         (sym (renameᵗ-id A)) (preservation M⊢ red)))
 preservation (⊢reveal c⊢ M⊢) (ξ-reveal {χ = bind C} red refl) =
-  ⊢reveal (reveal-renameᵗ StoreRename-suc-bind c⊢)
+  ⊢reveal (reveal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
     (preservation M⊢ red)
 preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
     (⊢conceal {A = A} {B = B} {c = c} c⊢ M⊢)
@@ -344,7 +357,7 @@ preservation {Δ = Δ} {Σ = Σ} {Γ = Γ}
       (subst≡ (λ T → ⟨ Δ , Σ , Γ ⟩ ⊢ M′ ⦂ T)
         (sym (renameᵗ-id A)) (preservation M⊢ red)))
 preservation (⊢conceal c⊢ M⊢) (ξ-conceal {χ = bind C} red refl) =
-  ⊢conceal (conceal-renameᵗ StoreRename-suc-bind c⊢)
+  ⊢conceal (conceal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
     (preservation M⊢ red)
 preservation (⊢⊕ op L⊢ M⊢) (ξ-⊕₁ {χ = keep} red refl) =
   ⊢⊕ op (preservation L⊢ red) M⊢

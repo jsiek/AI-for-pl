@@ -1,411 +1,165 @@
 module proof.DGG.SimBackProof where
 
 -- File Charter:
---   * Gives a top-down proof of SimBackᵀ modulo four narrow residual families.
---   * Proves structural, type-application, source-blame, and target-blame
---     cases, including blame catch-up through reveal/conceal boundaries.
---   * Shares the remaining root-closing, strict-right, conversion-boundary,
---     and source-lambda obligations through one parameter per proof idea.
+--   * Develops the direct one-step backward simulation proof by cases on
+--     cast-term imprecision and target reduction.
+--   * Keeps unfinished cases as explicit interaction metas while this file is
+--     listed in Makefile's IN_PROGRESS_PROOFS.
+--   * Exposes no classifier, residual-family assumption, wrapper theorem, or
+--     partial substitute for SimBackᵀ.
+--   * The completed proof is `sim-back`; once every meta is closed, this file
+--     moves from IN_PROGRESS_PROOFS into the strict All.agda gate.
 
-open import Data.Product using (_×_; _,_; Σ-syntax; ∃-syntax)
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Empty using (⊥)
-import Data.List as List
-import Data.Fin as Fin
-import Data.Nat as Nat
-open import Data.Unit.Base using (⊤; tt)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; _≢_; refl; sym)
+  (_≡_; refl; sym; cong; trans)
   renaming (subst to subst≡)
+open import Data.Product using (_,_; Σ-syntax)
+open import Data.Sum using (inj₁; inj₂)
+import Data.List as List
 
-open import Types using
-  (Ty; TyCtx; Atom; Ground; NonStar; NonVar; _⇒_; ★; `∀; _[_]ᵗ;
-   _∈ᵗ_; ⇑ᵗ; renameᵗ)
-open import Consistency using
-  ( Env∼
-  ; flipᵐ
-  ; extᵐ
-  ; instᵐ
-  ; genᵐ
-  ; _⊢_∼_
-  ; _⊢_∼★
-  ; _⊢★∼_
-  ; _[_]ᶜ
-  )
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
-open import Primitives using (Prim; primArgTy; primResultTy; δ)
-open import CastTerms
-open import Reduction
+open import Types using (★; _⇒_; _[_]ᵗ)
+open import Primitives using (primArgTy; primResultTy)
+open import CastTerms using
+  (blame; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩)
+open import proof.DGG.CastTermImprecision
+open import proof.DGG.CtxImp using
+  (_⊑ᵂ⟨_⟩_; liftᴸ-[]; smart-lift-[]; same-[])
 open import Imprecision using (⇒⊑⇒)
+open import Reduction using
+  ( pure-step
+  ; StoreChange
+  ; []
+  ; _∷_
+  ; _∎[]
+  ; _—↠[_]⟨_⟩_
+  ; _—→[_]⟨_⟩_
+  ; keep
+  ; bind
+  ; applyConsistency
+  ; applyConsistencies
+  ; applyBody
+  ; applyTerm
+  ; applyTy
+  ; applyTys
+  ; applyTerms
+  ; blame-·₁
+  ; blame-•
+  ; blame-⊕₁
+  ; blame-⟨⟩
+  ; β-Λ
+  ; β-inst
+  ; β-gen
+  ; β-reveal-∀
+  ; β-conceal-∀
+  ; ξ-·₁
+  ; ξ-·₂
+  ; ξ-•
+  ; ξ-⟨⟩
+  ; ξ-reveal
+  ; ξ-conceal
+  ; ξ-⊕₁
+  ; ξ-⊕₂
+  )
+open import proof.DGG.CatchupToLessPreciseDef using
+  (CatchupToLessPrecise)
+open import proof.DGG.Parked.ParkedWorldLemma using
+  (parked-world-closed)
+open import proof.DGG.Parked.ParkedEvolveCompositionProof using
+  (compose-parked-evolve)
+open import proof.DGG.SimBackDef using (SimBackᵀ)
+open import proof.DGG.SimBackRebasedConversionDef using
+  ( SimBackSourceRevealRebaseᵀ
+  ; SimBackPairedRevealFrameᵀ
+  ; SimBackPairedConcealFrameᵀ
+  )
+open import proof.DGG.SimBackSourceLambdaDef using
+  (SimBackSourceLambdaᵀ; SimBackSmartSourceLambdaᵀ)
+open import proof.DGG.TransportTermImprecisionDef using
+  (TransportTermImprecisionᴾᵀ)
+open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
+import proof.Imprecision as PI
 open import proof.Reduction using
-  ( applyTy-⇒
-  ; applyTy-∀
+  ( _++χ_
+  ; appL-↠
+  ; appR-↠
   ; applyBodies
+  ; applyTerms-preserves-Value
+  ; applyTy-⇒
+  ; applyTy-∀
   ; applyTys-⇒
   ; applyTys-∀
   ; applyTys-open
+  ; applyTys-++
   ; applyTys-primArgTy
   ; applyTys-primResultTy
-  ; appL-↠
   ; cast-↠
-  ; composeReduction
-  ; conceal-↠
   ; primL-↠
-  ; reveal-↠
+  ; primR-↠
   ; typeApp-↠
-  ; _++χ_
+  ; _—↠+[_]⟨_⟩_
   )
-import proof.Imprecision as PI
-import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision as CTIR
-open CTI2
-open CTIR
-open import proof.DGG.Parked.ParkedWorldDef
-  using
-    ( ParkedWorld
-    ; ParkedEvolve
-    ; evolve-refl
-    ; evolve-keepᴸ
-    ; evolve-keepᴿ
-    )
-open import proof.DGG.Parked.ParkedEvolveCompositionProof
-  using (compose-parked-evolve)
-open import proof.DGG.Parked.ParkedWorldLemma using (transport⊑ᴾ)
-open import proof.DGG.SimBackDef using (SimBackᵀ)
-open import proof.DGG.CatchupToMorePreciseDef using (toTagRebaseAtᴿ)
-open import proof.DGG.TargetBlameCatchupProof
-  using
-    ( target-blame-catchup
-    ; target-blame-boundary-refl
-    ; target-blame-boundary-source-reveal
-    ; target-blame-boundary-source-conceal
-    ; target-value-blame-exclusion
-    ; target-blame-catchup-under-boundary
-    )
-open import proof.DGG.TransportTermImprecisionDef
-  using (TransportTermImprecisionᴾᵀ)
 open import proof.TypeSafety.Preservation using (apply-open)
+
 
 applyTy-★ : ∀ {Δ Δ′} (χ : StoreChange Δ Δ′)
   → applyTy χ ★ ≡ ★
 applyTy-★ keep = refl
 applyTy-★ (bind A) = refl
 
-finish-target-blame : ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ Δ′}
-    {M : Term Δᴸ} {K : Term Δᴸ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ}
-    {χsᴸ : StoreChanges Δᴸ Δᴸ′}
-  → (p : A ⊑ᵂ⟨ W ⟩ B)
-  → M —↠[ χsᴸ ] K
-  → K —→[ keep ] blame
-  → ParkedEvolve χsᴸ [] W W′
-  → Σ[ q ∈
-      applyTys (χsᴸ ++χ (keep ∷ [])) A ⊑ᵂ⟨ W′ ⟩ B ]
-      (M —↠[ χsᴸ ++χ (keep ∷ []) ] blame) ×
-      ParkedEvolve (χsᴸ ++χ (keep ∷ [])) (keep ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² blame ⊑ blame ∶ q)
-finish-target-blame {K = K} p M↠K K→blame evol =
-  q′ ,
-  composeReduction M↠K
-    (K
-      —→[ keep ]⟨ K→blame ⟩
-     blame ∎[]) ,
-  evol′ ,
-  blame⊑² ⊢blame q′
-  where
-  evol′ = compose-parked-evolve evol
-    (evolve-keepᴸ (evolve-keepᴿ evolve-refl))
-  q′ = transport⊑ᴾ evol′ p
-
-------------------------------------------------------------------------
--- Narrow residual-family classifiers
-------------------------------------------------------------------------
-
-ApplicationRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-ApplicationRootStep (pure-step (β _)) = ⊤
-ApplicationRootStep (pure-step (β-⇒ _ _)) = ⊤
-ApplicationRootStep (pure-step (β-reveal-⇒ _ _)) = ⊤
-ApplicationRootStep (pure-step (β-conceal-⇒ _ _)) = ⊤
-ApplicationRootStep (pure-step (blame-·₂ _)) = ⊤
-ApplicationRootStep _ = ⊥
-
-ApplicationRightStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-ApplicationRightStep (ξ-·₂ _ _ _) = ⊤
-ApplicationRightStep _ = ⊥
-
-TypeApplicationRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-TypeApplicationRootStep (pure-step (β-∀ _ _)) = ⊤
-TypeApplicationRootStep (β-Λ _) = ⊤
-TypeApplicationRootStep (β-gen _ _ _) = ⊤
-TypeApplicationRootStep (β-reveal-∀ _) = ⊤
-TypeApplicationRootStep (β-conceal-∀ _) = ⊤
-TypeApplicationRootStep _ = ⊥
-
-CastRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-CastRootStep (pure-step (β-id _)) = ⊤
-CastRootStep (pure-step (ground _ _)) = ⊤
-CastRootStep (pure-step (expand _ _)) = ⊤
-CastRootStep (pure-step (tag-untag _)) = ⊤
-CastRootStep (pure-step (tag-untag-bad _ _)) = ⊤
-CastRootStep (pure-step (blame-bot-intro _)) = ⊤
-CastRootStep (β-inst _ _) = ⊤
-CastRootStep _ = ⊥
-
-RevealRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-RevealRootStep (pure-step (id-reveal _)) = ⊤
-RevealRootStep (pure-step (conceal-reveal _)) = ⊤
-RevealRootStep _ = ⊥
-
-RevealFrameStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-RevealFrameStep (ξ-reveal _ _) = ⊤
-RevealFrameStep _ = ⊥
-
-ConcealRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-ConcealRootStep (pure-step (id-conceal _)) = ⊤
-ConcealRootStep _ = ⊥
-
-ConcealFrameStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-ConcealFrameStep (ξ-conceal _ _) = ⊤
-ConcealFrameStep _ = ⊥
-
-PrimitiveRootStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-PrimitiveRootStep (pure-step (δ-⊕ _)) = ⊤
-PrimitiveRootStep (pure-step (blame-⊕₂ _)) = ⊤
-PrimitiveRootStep _ = ⊥
-
-PrimitiveRightStep : ∀ {Δ Δ′ : TyCtx}
-    {M : Term Δ} {χ : StoreChange Δ Δ′} {N : Term Δ′}
-  → M —→[ χ ] N → Set
-PrimitiveRightStep (ξ-⊕₂ _ _ _) = ⊤
-PrimitiveRightStep _ = ⊥
-
-TargetRootClosing : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
-  → M′ —→[ χᴿ ] N′
-  → Set
-TargetRootClosing (·⊑·² _ _) step = ApplicationRootStep step
-TargetRootClosing (•⊑•² _ _ _ _) step = TypeApplicationRootStep step
-TargetRootClosing (cast⊑cast² _ _ _ _) step = CastRootStep step
-TargetRootClosing (⊑cast² _ _ _) step = CastRootStep step
-TargetRootClosing (⊑reveal² _ _ _ _ _ _) step = RevealRootStep step
-TargetRootClosing (⊑conceal² _ _ _ _ _ _) step = ConcealRootStep step
-TargetRootClosing (reveal⊑reveal² _ _ _ _ _ _ _) step =
-  RevealRootStep step
-TargetRootClosing (conceal⊑conceal² _ _ _ _ _ _ _) step =
-  ConcealRootStep step
-TargetRootClosing (⊕⊑⊕² _ _ _ _) step = PrimitiveRootStep step
-TargetRootClosing _ step = ⊥
-
-StrictRightStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
-  → M′ —→[ χᴿ ] N′
-  → Set
-StrictRightStep (·⊑·² _ _) step = ApplicationRightStep step
-StrictRightStep (⊕⊑⊕² _ _ _ _) step = PrimitiveRightStep step
-StrictRightStep _ step = ⊥
-
-ConversionBoundaryStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
-  → M′ —→[ χᴿ ] N′
-  → Set
-ConversionBoundaryStep (⊑reveal² _ _ _ _ _ _) step =
-  RevealFrameStep step
-ConversionBoundaryStep (⊑conceal² _ _ _ _ _ _) step =
-  ConcealFrameStep step
-ConversionBoundaryStep (reveal⊑² _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (conceal⊑² _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (reveal⊑reveal² _ _ _ _ _ _ _) step =
-  RevealFrameStep step
-ConversionBoundaryStep (conceal⊑conceal² _ _ _ _ _ _ _) step =
-  ConcealFrameStep step
-ConversionBoundaryStep _ step = ⊥
-
-SourceLambdaStep : ∀ {Δᴸ Δᴿ Δ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → W ∣ List.[] ⊢² M ⊑ M′ ∶ p
-  → M′ —→[ χᴿ ] N′
-  → Set
-SourceLambdaStep (Λ⊑² _ _ _ _ _ _ _) step = ⊤
-SourceLambdaStep (Λ⊑²-smart-comma _ _ _ _ _ _ _ _) step = ⊤
-SourceLambdaStep _ step = ⊥
-
-------------------------------------------------------------------------
--- Narrow residual-family surfaces
-------------------------------------------------------------------------
-
-SimBackTargetRootᵀ : Set
-SimBackTargetRootᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → (step : M′ —→[ χᴿ ] N′)
-  → TargetRootClosing rel step
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M —↠[ χsᴸ ] blame))
-
-SimBackStrictRightᵀ : Set
-SimBackStrictRightᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → (step : M′ —→[ χᴿ ] N′)
-  → StrictRightStep rel step
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M —↠[ χsᴸ ] blame))
-
-SimBackConversionBoundaryᵀ : Set
-SimBackConversionBoundaryᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → (step : M′ —→[ χᴿ ] N′)
-  → ConversionBoundaryStep rel step
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M —↠[ χsᴸ ] blame))
-
-SimBackSourceLambdaᵀ : Set
-SimBackSourceLambdaᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (rel : W ∣ List.[] ⊢² M ⊑ M′ ∶ p)
-  → (step : M′ —→[ χᴿ ] N′)
-  → SourceLambdaStep rel step
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ []) W W′ ×
-      (W′ ∣ List.[] ⊢² N ⊑ N′ ∶ q))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M —↠[ χsᴸ ] blame))
 
 module _
-    (sim-back-target-root : SimBackTargetRootᵀ)
-    (sim-back-strict-right : SimBackStrictRightᵀ)
-    (sim-back-conversion-boundary : SimBackConversionBoundaryᵀ)
-    (sim-back-source-lambda : SimBackSourceLambdaᵀ)
     (tr : TransportTermImprecisionᴾᵀ)
+    (catchup : CatchupToLessPrecise)
+    (sim-back-source-lambda : SimBackSourceLambdaᵀ)
+    (sim-back-smart-source-lambda : SimBackSmartSourceLambdaᵀ)
+    (sim-back-source-reveal-rebase : SimBackSourceRevealRebaseᵀ)
+    (sim-back-paired-reveal-frame : SimBackPairedRevealFrameᵀ)
+    (sim-back-paired-conceal-frame : SimBackPairedConcealFrameᵀ)
   where
 
-  ------------------------------------------------------------------------
-  -- Direct backward simulation skeleton
-  ------------------------------------------------------------------------
-
   sim-back : SimBackᵀ
+  sim-back parked (x⊑x² x) (pure-step ())
 
-  ------------------------------------------------------------------------
-  -- Irreducible target forms
-  ------------------------------------------------------------------------
+  sim-back parked (ƛ⊑ƛ² rel) (pure-step ())
 
-  sim-back parked
-      (x⊑x² x) (pure-step ())
-  sim-back parked
-      (ƛ⊑ƛ² rel) (pure-step ())
-  sim-back parked
-      (Λ⊑Λ² lift vV vV′ rel q) (pure-step ())
-  sim-back parked
-      (κ⊑κ² κ p) (pure-step ())
-
-  ------------------------------------------------------------------------
-  -- Application squares: target operator step
-  ------------------------------------------------------------------------
-
+  sim-back parked (·⊑·² {L = L} {M = M} fun-rel arg-rel)
+      (pure-step (Reduction.β value)) = {! !}
+  sim-back parked (·⊑·² fun-rel arg-rel)
+      (pure-step (Reduction.β-⇒ value value′)) = {! !}
+  sim-back parked (·⊑·² fun-rel arg-rel)
+      (pure-step (Reduction.β-reveal-⇒ value value′)) = {! !}
+  sim-back parked (·⊑·² fun-rel arg-rel)
+      (pure-step (Reduction.β-conceal-⇒ value value′)) = {! !}
+  sim-back parked (·⊑·² fun-rel arg-rel)
+      (pure-step blame-·₁) = {! !}
+  sim-back parked (·⊑·² fun-rel arg-rel)
+      (pure-step (Reduction.blame-·₂ value)) = {! !}
   sim-back parked
       (·⊑·² {L = L} {M = M} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
-        L⊑L′ M⊑M′)
-      (ξ-·₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      with sim-back parked L⊑L′ L′→N′
+        fun-rel arg-rel)
+      (ξ-·₁ {χ = χ} {L′ = N′} fun-step refl)
+      with sim-back parked fun-rel fun-step
   sim-back parked
       (·⊑·² {L = L} {M = M} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
-        L⊑L′ M⊑M′)
-      (ξ-·₁ {χ = χ} {L′ = N′} L′→N′ refl)
+        fun-rel arg-rel)
+      (ξ-·₁ {χ = χ} {L′ = N′} fun-step refl)
       | inj₂ (Δᴸ′ , χsᴸ , L↠blame) =
     inj₂
       (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (L · M
-           —↠[ χsᴸ ]⟨ appL-↠ L↠blame ⟩
-          blame · applyTerms χsᴸ M ∎[])
-         (blame · applyTerms χsᴸ M
-           —→[ keep ]⟨ pure-step blame-·₁ ⟩
-          blame ∎[]))
+       (L · M
+         —↠+[ χsᴸ ]⟨ appL-↠ L↠blame ⟩
+       blame · applyTerms χsᴸ M
+         —→[ keep ]⟨ pure-step blame-·₁ ⟩
+       blame ∎[]))
   sim-back parked
       (·⊑·² {M = M} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
-        L⊑L′ M⊑M′)
-      (ξ-·₁ {χ = χ} {L′ = N′} L′→N′ refl)
+        fun-rel arg-rel)
+      (ξ-·₁ {χ = χ} {L′ = N′} fun-step refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , q ,
-        L↠N , evol , N⊑N′)
+        L↠N , evolution , N⊑N′)
       with subst≡
         (λ S →
           Σ[ r ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (A′ ⇒ B′) ]
@@ -415,346 +169,212 @@ module _
   sim-back parked
       (·⊑·² {M = M} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
-        L⊑L′ M⊑M′)
-      (ξ-·₁ {χ = χ} {L′ = N′} L′→N′ refl)
+        fun-rel arg-rel)
+      (ξ-·₁ {χ = χ} {L′ = N′} fun-step refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , q ,
-        L↠N , evol , N⊑N′)
+        L↠N , evolution , N⊑N′)
       | q′ , N⊑N′′
       with subst≡
         (λ T →
           Σ[ r ∈
-              (applyTys χsᴸ A ⇒ applyTys χsᴸ B) ⊑ᵂ⟨ W′ ⟩ T ]
+              (applyTys χsᴸ A ⇒ applyTys χsᴸ B)
+                ⊑ᵂ⟨ W′ ⟩ T ]
             W′ ∣ List.[] ⊢² N ⊑ N′ ∶ r)
         (applyTy-⇒ χ A′ B′)
         (q′ , N⊑N′′)
   sim-back parked
       (·⊑·² {M = M} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
-        L⊑L′ M⊑M′)
-      (ξ-·₁ {χ = χ} {L′ = N′} L′→N′ refl)
+        fun-rel arg-rel)
+      (ξ-·₁ {χ = χ} {L′ = N′} fun-step refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , q ,
-        L↠N , evol , N⊑N′)
+        L↠N , evolution , N⊑N′)
       | q′ , N⊑N′′
       | (⇒⊑⇒ qA qB) , N⊑N′⁺ =
     inj₁
       (Δᴸ′ , χsᴸ , N · applyTerms χsᴸ M , Δ′ , W′ , qB ,
        appL-↠ L↠N ,
-       evol ,
+       evolution ,
        ·⊑·² N⊑N′⁺
          (subst≡ (λ r → W′ ∣ List.[] ⊢² _ ⊑ _ ∶ r)
-           (PI.⊑-unique _ qA) (tr evol M⊑M′)))
+           (PI.⊑-unique _ qA) (tr evolution arg-rel)))
 
-  ------------------------------------------------------------------------
-  -- Cast squares: target body step
-  ------------------------------------------------------------------------
-
+  sim-back parked (·⊑·² {L = L} {M = M} fun-rel arg-rel)
+      (ξ-·₂ value arg-step refl)
+      with catchup parked fun-rel value
   sim-back parked
-      (cast⊑cast² {M = M} c c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      with sim-back parked M⊑M′ M′→N′
-  sim-back parked
-      (cast⊑cast² {M = M} c c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
+      (·⊑·² {L = L} {M = M} fun-rel arg-rel)
+      (ξ-·₂ value arg-step refl)
+      | inj₂ (Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evolution) =
     inj₂
       (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (M ⟨ c ⟩
-           —↠[ χsᴸ ]⟨ cast-↠ c M↠blame ⟩
-          blame ⟨ applyConsistencies χsᴸ c ⟩ ∎[])
-         (blame ⟨ applyConsistencies χsᴸ c ⟩
-           —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
-          blame ∎[]))
-  sim-back parked
-      (cast⊑cast² c c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′) =
-    inj₁
-      (Δᴸ′ , χsᴸ , N ⟨ applyConsistencies χsᴸ c ⟩ ,
-       Δ′ , W′ , transport⊑ᴾ evol q ,
-       cast-↠ c M↠N ,
-       evol ,
-       cast⊑cast² (applyConsistencies χsᴸ c)
-         (applyConsistency χ c′) N⊑N′ (transport⊑ᴾ evol q))
-
-  sim-back parked
-      (⊑cast² c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      with sim-back parked M⊑M′ M′→N′
-  sim-back parked
-      (⊑cast² c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      | inj₂ source-blame = inj₂ source-blame
-  sim-back parked
-      (⊑cast² c′ M⊑M′ q)
-      (ξ-⟨⟩ {χ = χ} M′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′) =
-    inj₁
-      (Δᴸ′ , χsᴸ , N , Δ′ , W′ , transport⊑ᴾ evol q ,
-       M↠N ,
-       evol ,
-       ⊑cast² (applyConsistency χ c′) N⊑N′ (transport⊑ᴾ evol q))
-
-  sim-back parked
-      (cast⊑² {M = M} c M⊑M′ q) M′→N′
-      with sim-back parked M⊑M′ M′→N′
-  sim-back parked
-      (cast⊑² {M = M} c M⊑M′ q) M′→N′
-      | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
+       (L · M
+         —↠+[ χsᴸ ]⟨ appL-↠ L↠blame ⟩
+       blame · applyTerms χsᴸ M
+         —→[ keep ]⟨ pure-step blame-·₁ ⟩
+       blame ∎[]))
+  sim-back parked (·⊑·² {L = L} {M = M} fun-rel arg-rel)
+      (ξ-·₂ value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+        with sim-back (parked-world-closed parked evolution₁)
+          (tr evolution₁ arg-rel) arg-step
+  sim-back parked (·⊑·² {L = L} {M = M} fun-rel arg-rel)
+      (ξ-·₂ value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+      | inj₂ (Δᴸ₂ , χsᴸ₂ , M₁↠blame) =
     inj₂
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (M ⟨ c ⟩
-           —↠[ χsᴸ ]⟨ cast-↠ c M↠blame ⟩
-          blame ⟨ applyConsistencies χsᴸ c ⟩ ∎[])
-         (blame ⟨ applyConsistencies χsᴸ c ⟩
-           —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
-          blame ∎[]))
+      (Δᴸ₂ , χsᴸ₁ ++χ (χsᴸ₂ ++χ (keep ∷ [])) ,
+       (L · M
+         —↠+[ χsᴸ₁ ]⟨ appL-↠ L↠V ⟩
+       V · applyTerms χsᴸ₁ M
+         —↠+[ χsᴸ₂ ]⟨ appR-↠ vV M₁↠blame ⟩
+       applyTerms χsᴸ₂ V · blame
+         —→[ keep ]⟨ pure-step
+           (Reduction.blame-·₂ (applyTerms-preserves-Value χsᴸ₂ vV)) ⟩
+       blame ∎[]))
   sim-back parked
-      (cast⊑² c M⊑M′ q) M′→N′
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′) =
-    inj₁
-      (Δᴸ′ , χsᴸ , N ⟨ applyConsistencies χsᴸ c ⟩ ,
-       Δ′ , W′ , transport⊑ᴾ evol q ,
-       cast-↠ c M↠N ,
-       evol ,
-       cast⊑² (applyConsistencies χsᴸ c)
-         N⊑N′ (transport⊑ᴾ evol q))
-
-  ------------------------------------------------------------------------
-  -- Primitive-operation squares: target left operand step
-  ------------------------------------------------------------------------
-
-  sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      with sim-back parked L⊑L′ L′→N′
-  sim-back parked
-      (⊕⊑⊕² op {L = L} {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₂ (Δᴸ′ , χsᴸ , L↠blame) =
-    inj₂
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (L ⊕[ op ] M
-           —↠[ χsᴸ ]⟨ primL-↠ L↠blame ⟩
-          blame ⊕[ op ] applyTerms χsᴸ M ∎[])
-         (blame ⊕[ op ] applyTerms χsᴸ M
-           —→[ keep ]⟨ pure-step blame-⊕₁ ⟩
-          blame ∎[]))
-  sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
+      (·⊑·² {L = L} {L′ = L′} {M = M} {M′ = M₀′}
+        {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
+      (ξ-·₂ {χ = χ} {M′ = N′} value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+      | inj₁ (Δᴸ₂ , χsᴸ₂ , N , Δ₂ , W₂ , qArg , M₁↠N , evolution₂ ,
+          arg-rel′)
       with subst≡
         (λ S →
-          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (primArgTy op) ]
-            W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
-        (applyTys-primArgTy χsᴸ op)
-        (p , N⊑N′)
+          Σ[ q ∈ S ⊑ᵂ⟨ W₂ ⟩ applyTy χ (A′ ⇒ B′) ]
+            W₂ ∣ List.[] ⊢²
+              applyTerms χsᴸ₂ V ⊑ applyTerm χ L′ ∶ q)
+        (trans (cong (applyTys χsᴸ₂) (applyTys-⇒ χsᴸ₁ A B))
+          (applyTys-⇒ χsᴸ₂ (applyTys χsᴸ₁ A) (applyTys χsᴸ₁ B)))
+        (transport⊑ᴾ evolution₂ qFun , tr evolution₂ fun-rel′)
   sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
-      | p′ , N⊑N′′
+      (·⊑·² {L = L} {L′ = L′} {M = M} {M′ = M₀′}
+        {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
+      (ξ-·₂ {χ = χ} {M′ = N′} value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+      | inj₁ (Δᴸ₂ , χsᴸ₂ , N , Δ₂ , W₂ , qArg , M₁↠N , evolution₂ ,
+          arg-rel′)
+      | qFun′ , fun-rel″
       with subst≡
         (λ T →
-          Σ[ s ∈ primArgTy op ⊑ᵂ⟨ W′ ⟩ T ]
-            W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
-        (applyTys-primArgTy (χ ∷ []) op)
-        (p′ , N⊑N′′)
+          Σ[ q ∈
+              (applyTys χsᴸ₂ (applyTys χsᴸ₁ A) ⇒
+               applyTys χsᴸ₂ (applyTys χsᴸ₁ B)) ⊑ᵂ⟨ W₂ ⟩ T ]
+            W₂ ∣ List.[] ⊢²
+              applyTerms χsᴸ₂ V ⊑ applyTerm χ L′ ∶ q)
+        (applyTy-⇒ χ A′ B′)
+        (qFun′ , fun-rel″)
   sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
-      | p′ , N⊑N′′
-      | qL , N⊑N′⁺
+      (·⊑·² {L = L} {L′ = L′} {M = M} {M′ = M₀′}
+        {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
+      (ξ-·₂ {χ = χ} {M′ = N′} value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+      | inj₁ (Δᴸ₂ , χsᴸ₂ , N , Δ₂ , W₂ , qArg , M₁↠N , evolution₂ ,
+          arg-rel′)
+      | qFun′ , fun-rel″
+      | (⇒⊑⇒ qA qB) , fun-rel⁺
       with subst≡
         (λ S →
-          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ primArgTy op ]
-            W′ ∣ List.[] ⊢²
-              applyTerms χsᴸ M ⊑ applyTerm χ M′ ∶ s)
-        (applyTys-primArgTy χsᴸ op)
-        (subst≡
-          (λ T →
-            Σ[ s ∈ applyTys χsᴸ (primArgTy op) ⊑ᵂ⟨ W′ ⟩ T ]
-              W′ ∣ List.[] ⊢²
-                applyTerms χsᴸ M ⊑ applyTerm χ M′ ∶ s)
-          (applyTys-primArgTy (χ ∷ []) op)
-          (transport⊑ᴾ evol _ , tr evol M⊑M′))
+          Σ[ q ∈ S ⊑ᵂ⟨ W₂ ⟩ applyTy χ B′ ]
+            W₂ ∣ List.[] ⊢²
+              applyTerms χsᴸ₂ V · N ⊑ applyTerm χ L′ · N′ ∶ q)
+        (applyTys-++ χsᴸ₁ χsᴸ₂ B)
+        (qB , ·⊑·² fun-rel⁺
+          (subst≡ (λ q → W₂ ∣ List.[] ⊢² N ⊑ N′ ∶ q)
+            (PI.⊑-unique qArg qA) arg-rel′))
   sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
-      | p′ , N⊑N′′
-      | qL , N⊑N′⁺
-      | qM , M⊑M′⁺
-      with subst≡
-        (λ S → S ⊑ᵂ⟨ W′ ⟩ primResultTy op)
-        (applyTys-primResultTy χsᴸ op)
-        (subst≡
-          (λ T → applyTys χsᴸ (primResultTy op) ⊑ᵂ⟨ W′ ⟩ T)
-          (applyTys-primResultTy (χ ∷ []) op)
-          (transport⊑ᴾ evol r))
-  sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
-      | p′ , N⊑N′′
-      | qL , N⊑N′⁺
-      | qM , M⊑M′⁺
-      | r′
-      with subst≡
-        (λ S →
-          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (primResultTy op) ]
-            W′ ∣ List.[] ⊢²
-              N ⊕[ op ] applyTerms χsᴸ M ⊑
-              N′ ⊕[ op ] applyTerm χ M′ ∶ s)
-        (sym (applyTys-primResultTy χsᴸ op))
-        (subst≡
-          (λ T →
-            Σ[ s ∈ primResultTy op ⊑ᵂ⟨ W′ ⟩ T ]
-              W′ ∣ List.[] ⊢²
-                N ⊕[ op ] applyTerms χsᴸ M ⊑
-                N′ ⊕[ op ] applyTerm χ M′ ∶ s)
-          (sym (applyTys-primResultTy (χ ∷ []) op))
-          (r′ , ⊕⊑⊕² op N⊑N′⁺ M⊑M′⁺ r′))
-  sim-back parked
-      (⊕⊑⊕² op {M = M} {M′ = M′} L⊑L′ M⊑M′ r)
-      (ξ-⊕₁ {χ = χ} {L′ = N′} L′→N′ refl)
-      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        L↠N , evol , N⊑N′)
-      | p′ , N⊑N′′
-      | qL , N⊑N′⁺
-      | qM , M⊑M′⁺
-      | r′
-      | r″ , whole-rel =
+      (·⊑·² {L = L} {L′ = L′} {M = M} {M′ = M₀′}
+        {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
+      (ξ-·₂ {χ = χ} {M′ = N′} value arg-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qFun , L↠V , vV , evolution₁ ,
+          fun-rel′)
+      | inj₁ (Δᴸ₂ , χsᴸ₂ , N , Δ₂ , W₂ , qArg , M₁↠N , evolution₂ ,
+          arg-rel′)
+      | qFun′ , fun-rel″
+      | (⇒⊑⇒ qA qB) , fun-rel⁺
+      | qResult , whole-rel =
     inj₁
-      (Δᴸ′ , χsᴸ , N ⊕[ op ] applyTerms χsᴸ M ,
-       Δ′ , W′ , r″ ,
-       primL-↠ L↠N ,
-       evol ,
+      (Δᴸ₂ , χsᴸ₁ ++χ χsᴸ₂ , applyTerms χsᴸ₂ V · N , Δ₂ , W₂ ,
+       qResult ,
+       (L · M
+         —↠+[ χsᴸ₁ ]⟨ appL-↠ L↠V ⟩
+       V · applyTerms χsᴸ₁ M
+         —↠[ χsᴸ₂ ]⟨ appR-↠ vV M₁↠N ⟩
+       applyTerms χsᴸ₂ V · N ∎[]) ,
+       compose-parked-evolve evolution₁ evolution₂ ,
        whole-rel)
 
-  ------------------------------------------------------------------------
-  -- Residual case families
-  ------------------------------------------------------------------------
+  sim-back parked (Λ⊑Λ² lift vV vV′ rel q) (pure-step ())
 
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step (β vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step (β-⇒ vV vW)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step (β-reveal-⇒ vV vW)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step (β-conceal-⇒ vV vW)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
-      (pure-step blame-·₁)
-      with target-blame-catchup parked L⊑blame
-  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
-      (pure-step blame-·₁)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
-      with finish-target-blame p
-        (appL-↠ {M = M} L↠blame) (pure-step blame-·₁) evol
-  sim-back {p = p} parked (·⊑·² {M = M} L⊑blame M⊑M′)
-      (pure-step blame-·₁)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
-      | q , LM↠blame , evol′ , endpoint =
-    inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q ,
-       LM↠blame ,
-       evol′ ,
-       endpoint)
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(pure-step (blame-·₂ vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(·⊑·² L⊑L′ M⊑M′)
-      step@(ξ-·₂ vV M′→N′ refl) =
-    sim-back-strict-right parked rel step tt
+  sim-back parked
+      (Λ⊑² nonvar occurs liftᴸ-[] vV target-typing rel q) step
+    = sim-back-source-lambda parked nonvar occurs vV target-typing rel q step
 
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(pure-step (β-∀ vV eq)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = r} parked
-      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
-      (pure-step blame-•)
-      with target-blame-catchup parked M⊑blame
-  sim-back {p = r} parked
-      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
-      (pure-step blame-•)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      with finish-target-blame r
-        (typeApp-↠ {C = C} {A = A} M↠blame)
-        (pure-step blame-•) evol
-  sim-back {p = r} parked
-      (•⊑•² {C = C} {A = A} p∀ M⊑blame q r)
-      (pure-step blame-•)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      | r′ , whole↠blame , evol′ , endpoint =
-    inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , r′ ,
-       whole↠blame ,
-       evol′ ,
-       endpoint)
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(β-Λ vV) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(β-gen vV A≢★ safe) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(β-reveal-∀ vV) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(•⊑•² p∀ M⊑M′ q r)
-      step@(β-conceal-∀ vV) =
-    sim-back-target-root parked rel step tt
+  sim-back parked
+      (Λ⊑²-smart-comma nonvar occurs lift-world smart-lift-[] vV
+        target-typing rel q)
+      step =
+    sim-back-smart-source-lambda parked nonvar occurs lift-world vV
+      target-typing rel q step
+
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (pure-step (Reduction.β-∀ value equality)) = {! !}
+
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (pure-step blame-•) = {! !}
+
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (β-Λ value) = {! !}
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (β-gen value not-star safe) = {! !}
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (β-reveal-∀ value) = {! !}
+  sim-back parked (•⊑•² all-rel rel type-rel result-rel)
+      (β-conceal-∀ value) = {! !}
   sim-back parked
       (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
-        p∀ M⊑M′ q r)
-      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
-      with sim-back parked M⊑M′ M′→N′
+        all-rel rel type-rel result-rel)
+      (ξ-• {χ = χ} {M′ = N′} body-step refl refl)
+      with sim-back parked rel body-step
   sim-back parked
       (•⊑•² {M = M} {C = C} {C′ = C′} {A = A} {A′ = A′}
-        p∀ M⊑M′ q r)
-      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+        all-rel rel type-rel result-rel)
+      (ξ-• {χ = χ} {M′ = N′} body-step refl refl)
       | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
     inj₂
       (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (M ⦂∀ C [ A ]
-           —↠[ χsᴸ ]⟨ typeApp-↠ M↠blame ⟩
-          blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ∎[])
-         (blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ]
-           —→[ keep ]⟨ pure-step blame-• ⟩
-          blame ∎[]))
+       (M ⦂∀ C [ A ]
+         —↠+[ χsᴸ ]⟨ typeApp-↠ M↠blame ⟩
+       blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ]
+         —→[ keep ]⟨ pure-step blame-• ⟩
+       blame ∎[]))
   sim-back parked
       (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
-        p∀ M⊑M′ q r)
-      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+        all-rel rel type-rel result-rel)
+      (ξ-• {χ = χ} {M′ = N′} body-step refl refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
+        M↠N , evolution , N⊑N′)
       rewrite applyTys-∀ χsᴸ C
             | applyTy-∀ χ C′
       with p | N⊑N′
   sim-back parked
       (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
-        p∀ M⊑M′ q r)
-      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+        all-rel rel type-rel result-rel)
+      (ξ-• {χ = χ} {M′ = N′} body-step refl refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
-      | p∀⁺ | N⊑N′⁺
+        M↠N , evolution , N⊑N′)
+      | all-rel⁺ | N⊑N′⁺
       with subst≡
         (λ S →
           Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ) ]
@@ -779,65 +399,62 @@ module _
                   ⊑ᵂ⟨ W′ ⟩ T)
               (apply-open χ C′ A′)
               (subst≡
-                (λ S →
-                  S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
+                (λ S → S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
                 (applyTys-open χsᴸ C A)
-                (transport⊑ᴾ evol r))
-          , •⊑•² p∀⁺ N⊑N′⁺
-              (transport⊑ᴾ evol q)
+                (transport⊑ᴾ evolution result-rel))
+          , •⊑•² all-rel⁺ N⊑N′⁺
+              (transport⊑ᴾ evolution type-rel)
               (subst≡
                 (λ T →
                   (applyBodies χsᴸ C [ applyTys χsᴸ A ]ᵗ)
                     ⊑ᵂ⟨ W′ ⟩ T)
                 (apply-open χ C′ A′)
                 (subst≡
-                  (λ S →
-                    S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
+                  (λ S → S ⊑ᵂ⟨ W′ ⟩ applyTy χ (C′ [ A′ ]ᵗ))
                   (applyTys-open χsᴸ C A)
-                  (transport⊑ᴾ evol r)))
+                  (transport⊑ᴾ evolution result-rel)))
           ))
   sim-back parked
       (•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
-        p∀ M⊑M′ q r)
-      (ξ-• {χ = χ} {M′ = N′} M′→N′ refl refl)
+        all-rel rel type-rel result-rel)
+      (ξ-• {χ = χ} {M′ = N′} body-step refl refl)
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
-      | p∀⁺ | N⊑N′⁺
-      | r⁺ , whole-rel =
+        M↠N , evolution , N⊑N′)
+      | all-rel⁺ | N⊑N′⁺
+      | result-rel⁺ , whole-rel =
     inj₁
       (Δᴸ′ , χsᴸ ,
        N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ,
-       Δ′ , W′ , r⁺ ,
+       Δ′ , W′ , result-rel⁺ ,
        typeApp-↠ M↠N ,
-       evol ,
+       evolution ,
        whole-rel)
 
   sim-back {χᴿ = χ} parked
-      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
-      with sim-back parked M⊑M′ M′→N′
+      (•⊑² {C = C} {A = A} all-rel rel type-rel result-rel) step
+      with sim-back parked rel step
   sim-back {χᴿ = χ} parked
-      (•⊑² {M = M} {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      (•⊑² {M = M} {C = C} {A = A}
+        all-rel rel type-rel result-rel) step
       | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
     inj₂
       (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
-       composeReduction
-         (M ⦂∀ C [ A ]
-           —↠[ χsᴸ ]⟨ typeApp-↠ M↠blame ⟩
-          blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ∎[])
-         (blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ]
-           —→[ keep ]⟨ pure-step blame-• ⟩
-          blame ∎[]))
+       (M ⦂∀ C [ A ]
+         —↠+[ χsᴸ ]⟨ typeApp-↠ M↠blame ⟩
+       blame ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ]
+         —→[ keep ]⟨ pure-step blame-• ⟩
+       blame ∎[]))
   sim-back {χᴿ = χ} parked
-      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      (•⊑² {C = C} {A = A} all-rel rel type-rel result-rel) step
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
+        M↠N , evolution , N⊑N′)
       rewrite applyTys-∀ χsᴸ C
       with p | N⊑N′
   sim-back {χᴿ = χ} parked
-      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      (•⊑² {C = C} {A = A} all-rel rel type-rel result-rel) step
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
-      | p∀⁺ | N⊑N′⁺
+        M↠N , evolution , N⊑N′)
+      | all-rel⁺ | N⊑N′⁺
       with subst≡
         (λ S →
           Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ _ ]
@@ -848,276 +465,427 @@ module _
         ( subst≡
             (λ S → S ⊑ᵂ⟨ W′ ⟩ _)
             (applyTys-open χsᴸ C A)
-            (transport⊑ᴾ evol r)
-        , •⊑² p∀⁺ N⊑N′⁺
+            (transport⊑ᴾ evolution result-rel)
+        , •⊑² all-rel⁺ N⊑N′⁺
             (subst≡
               (λ T → applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ T)
               (applyTy-★ χ)
-              (transport⊑ᴾ evol q))
+              (transport⊑ᴾ evolution type-rel))
             (subst≡
               (λ S → S ⊑ᵂ⟨ W′ ⟩ _)
               (applyTys-open χsᴸ C A)
-              (transport⊑ᴾ evol r))
+              (transport⊑ᴾ evolution result-rel))
         )
   sim-back {χᴿ = χ} parked
-      (•⊑² {C = C} {A = A} p∀ M⊑M′ q r) M′→N′
+      (•⊑² {C = C} {A = A} all-rel rel type-rel result-rel) step
       | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
-        M↠N , evol , N⊑N′)
-      | p∀⁺ | N⊑N′⁺
-      | r⁺ , whole-rel =
+        M↠N , evolution , N⊑N′)
+      | all-rel⁺ | N⊑N′⁺
+      | result-rel⁺ , whole-rel =
     inj₁
       (Δᴸ′ , χsᴸ ,
        N ⦂∀ applyBodies χsᴸ C [ applyTys χsᴸ A ] ,
-       Δ′ , W′ , r⁺ ,
+       Δ′ , W′ , result-rel⁺ ,
        typeApp-↠ M↠N ,
-       evol ,
+       evolution ,
        whole-rel)
 
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (β-id vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (ground vV A≢G)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (expand vV G≢B)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (tag-untag vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (tag-untag-bad vV G≢H)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(pure-step (blame-bot-intro vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
-      (pure-step blame-⟨⟩)
-      with target-blame-catchup parked M⊑blame
-  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
-      (pure-step blame-⟨⟩)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      with finish-target-blame q
-        (cast-↠ c M↠blame) (pure-step blame-⟨⟩) evol
-  sim-back {p = q} parked (cast⊑cast² c c′ M⊑blame q)
-      (pure-step blame-⟨⟩)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      | q′ , whole↠blame , evol′ , endpoint =
-    inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
-       whole↠blame ,
-       evol′ ,
-       endpoint)
-  sim-back parked rel@(cast⊑cast² c c′ M⊑M′ q)
-      step@(β-inst vV B≢★) =
-    sim-back-target-root parked rel step tt
-
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (β-id vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (ground vV A≢G)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (expand vV G≢B)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (tag-untag vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (tag-untag-bad vV G≢H)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(pure-step (blame-bot-intro vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked (⊑cast² c′ M⊑blame q)
-      (pure-step blame-⟨⟩)
-      with target-blame-catchup parked M⊑blame
-  sim-back {p = q} parked (⊑cast² c′ M⊑blame q)
-      (pure-step blame-⟨⟩)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
-    inj₁
-      (Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
-       transport⊑ᴾ (evolve-keepᴿ evol) q ,
-       M↠blame ,
-       evolve-keepᴿ evol ,
-       blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q))
-  sim-back parked rel@(⊑cast² c′ M⊑M′ q)
-      step@(β-inst vV B≢★) =
-    sim-back-target-root parked rel step tt
-
-  sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
-      step@(pure-step (id-reveal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
-      step@(pure-step (conceal-reveal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked
-      (⊑reveal² mono rebase same-[] c′⊢ M⊑blame q)
-      (pure-step blame-reveal)
-      with target-blame-catchup-under-boundary
-        target-value-blame-exclusion parked
-        (target-blame-boundary-source-reveal
-          target-blame-boundary-refl mono (toTagRebaseAtᴿ rebase))
-        M⊑blame
-  sim-back {p = q} parked
-      (⊑reveal² mono rebase same-[] c′⊢ M⊑blame q)
-      (pure-step blame-reveal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
-    inj₁
-      (Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
-       transport⊑ᴾ (evolve-keepᴿ evol) q ,
-       M↠blame ,
-       evolve-keepᴿ evol ,
-       blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q))
-  sim-back parked rel@(⊑reveal² mono rebase same c′⊢ M⊑M′ q)
-      step@(ξ-reveal M′→N′ refl) =
-    sim-back-conversion-boundary parked rel step tt
-
-  sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
-      step@(pure-step (id-conceal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked
-      (⊑conceal² mono rebase same-[] c′⊢ M⊑blame q)
-      (pure-step blame-conceal)
-      with target-blame-catchup-under-boundary
-        target-value-blame-exclusion parked
-        (target-blame-boundary-source-conceal
-          target-blame-boundary-refl mono (toTagRebaseAtᴿ rebase))
-        M⊑blame
-  sim-back {p = q} parked
-      (⊑conceal² mono rebase same-[] c′⊢ M⊑blame q)
-      (pure-step blame-conceal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
-    inj₁
-      (Δᴸ′ , χsᴸ , blame , Δ′ , W′ ,
-       transport⊑ᴾ (evolve-keepᴿ evol) q ,
-       M↠blame ,
-       evolve-keepᴿ evol ,
-       blame⊑² ⊢blame (transport⊑ᴾ (evolve-keepᴿ evol) q))
-  sim-back parked rel@(⊑conceal² mono rebase same c′⊢ M⊑M′ q)
-      step@(ξ-conceal M′→N′ refl) =
-    sim-back-conversion-boundary parked rel step tt
-
-  sim-back parked rel@(reveal⊑² mono rebase same c⊢ M⊑M′ q) step =
-    sim-back-conversion-boundary parked rel step tt
+  sim-back parked (κ⊑κ² constant type-rel) (pure-step ())
 
   sim-back parked
-      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.β-id value)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.ground value unequal)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.expand value unequal)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.tag-untag value)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.tag-untag-bad value unequal)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step (Reduction.blame-bot-intro value)) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (pure-step blame-⟨⟩) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (β-inst value not-star) = {! !}
+
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (ξ-⟨⟩ body-step refl)
+      with sim-back parked rel body-step
+  sim-back parked
+      (cast⊑cast² {M = M} source-cast target-cast rel type-rel)
+      (ξ-⟨⟩ body-step refl)
+      | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
+    inj₂
+      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
+       (M ⟨ source-cast ⟩
+         —↠+[ χsᴸ ]⟨ cast-↠ source-cast M↠blame ⟩
+       blame ⟨ applyConsistencies χsᴸ source-cast ⟩
+         —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
+       blame ∎[]))
+  sim-back parked
+      (cast⊑cast² source-cast target-cast rel type-rel)
+      (ξ-⟨⟩ {χ = χ} body-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evolution , N⊑N′) =
+    inj₁
+      (Δᴸ′ , χsᴸ , N ⟨ applyConsistencies χsᴸ source-cast ⟩ ,
+       Δ′ , W′ , transport⊑ᴾ evolution type-rel ,
+       cast-↠ source-cast M↠N ,
+       evolution ,
+       cast⊑cast² (applyConsistencies χsᴸ source-cast)
+         (applyConsistency χ target-cast) N⊑N′
+         (transport⊑ᴾ evolution type-rel))
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.β-id value)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.ground value unequal)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.expand value unequal)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.tag-untag value)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.tag-untag-bad value unequal)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step (Reduction.blame-bot-intro value)) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (pure-step blame-⟨⟩) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (β-inst value not-star) = {! !}
+
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (ξ-⟨⟩ body-step refl)
+      with sim-back parked rel body-step
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (ξ-⟨⟩ body-step refl)
+      | inj₂ source-blame = inj₂ source-blame
+  sim-back parked (⊑cast² target-cast rel type-rel)
+      (ξ-⟨⟩ {χ = χ} body-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evolution , N⊑N′) =
+    inj₁
+      (Δᴸ′ , χsᴸ , N , Δ′ , W′ ,
+       transport⊑ᴾ evolution type-rel ,
+       M↠N ,
+       evolution ,
+       ⊑cast² (applyConsistency χ target-cast)
+         N⊑N′ (transport⊑ᴾ evolution type-rel))
+
+  sim-back parked (⊑reveal² conversion position rel type-rel)
+      (pure-step (Reduction.id-reveal value)) = {! !}
+
+  sim-back parked (⊑reveal² conversion position rel type-rel)
+      (pure-step (Reduction.conceal-reveal value)) = {! !}
+
+  sim-back parked (⊑reveal² conversion position rel type-rel)
+      (pure-step Reduction.blame-reveal) = {! !}
+
+  sim-back parked (⊑reveal² conversion position rel type-rel)
+      (ξ-reveal body-step refl)
+      with sim-back parked rel body-step
+  ... | induction = {! !}
+
+  sim-back parked (⊑conceal² conversion position rel type-rel)
+      (pure-step (Reduction.id-conceal value)) = {! !}
+
+  sim-back parked (⊑conceal² conversion position rel type-rel)
+      (pure-step Reduction.blame-conceal) = {! !}
+
+  sim-back parked (⊑conceal² conversion position rel type-rel)
+      (ξ-conceal body-step refl)
+      with sim-back parked rel body-step
+  ... | induction = {! !}
+
+  sim-back parked
+      (cast⊑² {M = M} source-cast rel type-rel) step
+      with sim-back parked rel step
+  sim-back parked
+      (cast⊑² {M = M} source-cast rel type-rel) step
+      | inj₂ (Δᴸ′ , χsᴸ , M↠blame) =
+    inj₂
+      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
+       (M ⟨ source-cast ⟩
+         —↠+[ χsᴸ ]⟨ cast-↠ source-cast M↠blame ⟩
+       blame ⟨ applyConsistencies χsᴸ source-cast ⟩
+         —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
+       blame ∎[]))
+  sim-back parked
+      (cast⊑² source-cast rel type-rel) step
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        M↠N , evolution , N⊑N′) =
+    inj₁
+      (Δᴸ′ , χsᴸ , N ⟨ applyConsistencies χsᴸ source-cast ⟩ ,
+       Δ′ , W′ , transport⊑ᴾ evolution type-rel ,
+       cast-↠ source-cast M↠N ,
+       evolution ,
+       cast⊑² (applyConsistencies χsᴸ source-cast)
+         N⊑N′ (transport⊑ᴾ evolution type-rel))
+
+  sim-back parked
+      (reveal⊑-neutral² conversion position rel type-rel) step
+      with sim-back parked rel step
+  ... | induction = {! !}
+  sim-back parked
+      (reveal⊑-only² conversion position mark unoccupied represented rel
+        type-rel)
+      step
+      with sim-back parked rel step
+  ... | induction = {! !}
+  sim-back parked
+      (reveal⊑² conversion position target-member represented mono rebase
+        same-[] rel type-rel)
       step =
-    sim-back-conversion-boundary parked rel step tt
-
-  sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step (id-reveal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step (conceal-reveal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked
-      (reveal⊑reveal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-reveal)
-      with target-blame-catchup-under-boundary
-        target-value-blame-exclusion parked
-        (target-blame-boundary-source-reveal
-          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
-        M⊑blame
-  sim-back {p = q} parked
-      (reveal⊑reveal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-reveal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      with finish-target-blame q
-        (reveal-↠ c M↠blame) (pure-step blame-reveal) evol
-  sim-back {p = q} parked
-      (reveal⊑reveal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-reveal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      | q′ , whole↠blame , evol′ , endpoint =
-    inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
-       whole↠blame ,
-       evol′ ,
-       endpoint)
-  sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(ξ-reveal M′→N′ refl) =
-    sim-back-conversion-boundary parked rel step tt
+    sim-back-source-reveal-rebase parked conversion position target-member
+      represented mono rebase rel type-rel step
 
   sim-back parked
-      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(pure-step (id-conceal vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-conceal)
-      with target-blame-catchup-under-boundary
-        target-value-blame-exclusion parked
-        (target-blame-boundary-source-conceal
-          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
-        M⊑blame
-  sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-conceal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      with finish-target-blame q
-        (conceal-↠ c M↠blame) (pure-step blame-conceal) evol
-  sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} mono rebase same-[]
-        c⊢ c′⊢ M⊑blame q)
-      (pure-step blame-conceal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      | q′ , whole↠blame , evol′ , endpoint =
-    inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
-       whole↠blame ,
-       evol′ ,
-       endpoint)
+      (conceal⊑-neutral² conversion position rel type-rel) step
+      with sim-back parked rel step
+  ... | induction = {! !}
   sim-back parked
-      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(ξ-conceal M′→N′ refl) =
-    sim-back-conversion-boundary parked rel step tt
+      (conceal⊑² conversion position mark unoccupied represented rel type-rel)
+      step
+      with sim-back parked rel step
+  ... | induction = {! !}
+  sim-back parked
+      (reveal⊑reveal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (pure-step (Reduction.id-reveal value)) = {! !}
 
-  sim-back {Δᴸ = Δᴸ} parked (blame⊑² M′⊢ q) step =
+  sim-back parked
+      (reveal⊑reveal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (pure-step (Reduction.conceal-reveal value)) = {! !}
+
+  sim-back parked
+      (reveal⊑reveal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (pure-step Reduction.blame-reveal) = {! !}
+
+  sim-back parked
+      (reveal⊑reveal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (ξ-reveal body-step refl)
+    = sim-back-paired-reveal-frame parked source-conversion target-conversion
+        positions position represented mono rebase rel type-rel body-step
+
+  sim-back parked
+      (conceal⊑conceal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (pure-step (Reduction.id-conceal value)) = {! !}
+
+  sim-back parked
+      (conceal⊑conceal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (pure-step Reduction.blame-conceal) = {! !}
+
+  sim-back parked
+      (conceal⊑conceal² source-conversion target-conversion positions position
+        represented mono rebase same-[] rel type-rel)
+      (ξ-conceal body-step refl)
+    = sim-back-paired-conceal-frame parked source-conversion
+        target-conversion positions position represented mono rebase rel
+        type-rel body-step
+
+  sim-back {Δᴸ = Δᴸ} parked
+      (blame⊑² target-typing type-rel) step =
     inj₂ (Δᴸ , [] , (blame ∎[]))
 
-  sim-back parked rel@(Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q)
-      step =
-    sim-back-source-lambda parked rel step tt
   sim-back parked
-      rel@(Λ⊑²-smart-comma Anv zero∈A liftW liftγ vV M′⊢ V⊑M′ q)
-      step =
-    sim-back-source-lambda parked rel step tt
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (pure-step (Reduction.δ-⊕ delta)) = {! !}
 
-  sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
-      step@(pure-step (δ-⊕ δκ)) =
-    sim-back-target-root parked rel step tt
-  sim-back {p = r} parked
-      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
-      (pure-step blame-⊕₁)
-      with target-blame-catchup parked L⊑blame
-  sim-back {p = r} parked
-      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
-      (pure-step blame-⊕₁)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
-      with finish-target-blame r
-        (primL-↠ {M = M} {op = op} L↠blame)
-        (pure-step blame-⊕₁) evol
-  sim-back {p = r} parked
-      (⊕⊑⊕² op {M = M} L⊑blame M⊑M′ r)
-      (pure-step blame-⊕₁)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evol
-      | r′ , whole↠blame , evol′ , endpoint =
+  sim-back parked (⊕⊑⊕² op left-rel right-rel type-rel)
+      (pure-step blame-⊕₁) = {! !}
+
+  sim-back parked (⊕⊑⊕² op left-rel right-rel type-rel)
+      (pure-step (Reduction.blame-⊕₂ value)) = {! !}
+
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      with sim-back parked left-rel left-step
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} {M′ = M′}
+        left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₂ (Δᴸ′ , χsᴸ , L↠blame) =
+    inj₂
+      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
+       (L ⊕[ op ] M
+         —↠+[ χsᴸ ]⟨ primL-↠ L↠blame ⟩
+       blame ⊕[ op ] applyTerms χsᴸ M
+         —→[ keep ]⟨ pure-step blame-⊕₁ ⟩
+       blame ∎[]))
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (primArgTy op) ]
+            W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+        (applyTys-primArgTy χsᴸ op)
+        (p , N⊑N′)
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      | p′ , N⊑N′′
+      with subst≡
+        (λ T →
+          Σ[ s ∈ primArgTy op ⊑ᵂ⟨ W′ ⟩ T ]
+            W′ ∣ List.[] ⊢² N ⊑ N′ ∶ s)
+        (applyTys-primArgTy (χ ∷ []) op)
+        (p′ , N⊑N′′)
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      | p′ , N⊑N′′
+      | left-type-rel , N⊑N′⁺
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ primArgTy op ]
+            W′ ∣ List.[] ⊢²
+              applyTerms χsᴸ M ⊑ applyTerm χ M′ ∶ s)
+        (applyTys-primArgTy χsᴸ op)
+        (subst≡
+          (λ T →
+            Σ[ s ∈ applyTys χsᴸ (primArgTy op) ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                applyTerms χsᴸ M ⊑ applyTerm χ M′ ∶ s)
+          (applyTys-primArgTy (χ ∷ []) op)
+          (transport⊑ᴾ evolution _ , tr evolution right-rel))
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      | p′ , N⊑N′′
+      | left-type-rel , N⊑N′⁺
+      | right-type-rel , M⊑M′⁺
+      with subst≡
+        (λ S → S ⊑ᵂ⟨ W′ ⟩ primResultTy op)
+        (applyTys-primResultTy χsᴸ op)
+        (subst≡
+          (λ T → applyTys χsᴸ (primResultTy op) ⊑ᵂ⟨ W′ ⟩ T)
+          (applyTys-primResultTy (χ ∷ []) op)
+          (transport⊑ᴾ evolution type-rel))
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      | p′ , N⊑N′′
+      | left-type-rel , N⊑N′⁺
+      | right-type-rel , M⊑M′⁺
+      | result-type-rel
+      with subst≡
+        (λ S →
+          Σ[ s ∈ S ⊑ᵂ⟨ W′ ⟩ applyTy χ (primResultTy op) ]
+            W′ ∣ List.[] ⊢²
+              N ⊕[ op ] applyTerms χsᴸ M ⊑
+              N′ ⊕[ op ] applyTerm χ M′ ∶ s)
+        (sym (applyTys-primResultTy χsᴸ op))
+        (subst≡
+          (λ T →
+            Σ[ s ∈ primResultTy op ⊑ᵂ⟨ W′ ⟩ T ]
+              W′ ∣ List.[] ⊢²
+                N ⊕[ op ] applyTerms χsᴸ M ⊑
+                N′ ⊕[ op ] applyTerm χ M′ ∶ s)
+          (sym (applyTys-primResultTy (χ ∷ []) op))
+          (result-type-rel ,
+           ⊕⊑⊕² op N⊑N′⁺ M⊑M′⁺ result-type-rel))
+  sim-back parked
+      (⊕⊑⊕² op {M = M} {M′ = M′} left-rel right-rel type-rel)
+      (ξ-⊕₁ {χ = χ} {L′ = N′} left-step refl)
+      | inj₁ (Δᴸ′ , χsᴸ , N , Δ′ , W′ , p ,
+        L↠N , evolution , N⊑N′)
+      | p′ , N⊑N′′
+      | left-type-rel , N⊑N′⁺
+      | right-type-rel , M⊑M′⁺
+      | result-type-rel
+      | result-type-rel′ , whole-rel =
     inj₁
-      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , r′ ,
-       whole↠blame ,
-       evol′ ,
-       endpoint)
-  sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
-      step@(pure-step (blame-⊕₂ vV)) =
-    sim-back-target-root parked rel step tt
-  sim-back parked rel@(⊕⊑⊕² op L⊑L′ M⊑M′ r)
-      step@(ξ-⊕₂ vV M′→N′ refl) =
-    sim-back-strict-right parked rel step tt
+      (Δᴸ′ , χsᴸ , N ⊕[ op ] applyTerms χsᴸ M ,
+       Δ′ , W′ , result-type-rel′ ,
+       primL-↠ L↠N ,
+       evolution ,
+       whole-rel)
+
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (ξ-⊕₂ value right-step refl)
+      with catchup parked left-rel value
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (ξ-⊕₂ value right-step refl)
+      | inj₂ (Δᴸ′ , χsᴸ , Δ′ , W′ , L↠blame , evolution) =
+    inj₂
+      (Δᴸ′ , χsᴸ ++χ (keep ∷ []) ,
+       (L ⊕[ op ] M
+         —↠+[ χsᴸ ]⟨ primL-↠ L↠blame ⟩
+       blame ⊕[ op ] applyTerms χsᴸ M
+         —→[ keep ]⟨ pure-step blame-⊕₁ ⟩
+       blame ∎[]))
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (ξ-⊕₂ value right-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qLeft , L↠V , vV , evolution₁ ,
+          left-rel′)
+        with sim-back (parked-world-closed parked evolution₁)
+          (tr evolution₁ right-rel) right-step
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (ξ-⊕₂ value right-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qLeft , L↠V , vV , evolution₁ ,
+          left-rel′)
+      | inj₂ (Δᴸ₂ , χsᴸ₂ , M₁↠blame) =
+    inj₂
+      (Δᴸ₂ , χsᴸ₁ ++χ (χsᴸ₂ ++χ (keep ∷ [])) ,
+       (L ⊕[ op ] M
+         —↠+[ χsᴸ₁ ]⟨ primL-↠ L↠V ⟩
+       V ⊕[ op ] applyTerms χsᴸ₁ M
+         —↠+[ χsᴸ₂ ]⟨ primR-↠ vV M₁↠blame ⟩
+       applyTerms χsᴸ₂ V ⊕[ op ] blame
+         —→[ keep ]⟨ pure-step
+           (Reduction.blame-⊕₂ (applyTerms-preserves-Value χsᴸ₂ vV)) ⟩
+       blame ∎[]))
+  sim-back parked
+      (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
+      (ξ-⊕₂ value right-step refl)
+      | inj₁
+        (Δᴸ₁ , χsᴸ₁ , V , Δ₁ , W₁ , qLeft , L↠V , vV , evolution₁ ,
+          left-rel′)
+      | inj₁ (Δᴸ₂ , χsᴸ₂ , N , Δ₂ , W₂ , qRight , M₁↠N , evolution₂ ,
+          right-rel′) = {! !}

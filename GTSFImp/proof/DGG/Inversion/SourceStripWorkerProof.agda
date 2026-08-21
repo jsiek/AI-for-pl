@@ -21,10 +21,11 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 open import TyStore using (_∋_⦂_)
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
-open import Conversion using (seal)
+open import Conversion using
+  (seal; Conv↑; Conv↓; _↦↑_; _↦↓_; `∀↑_; `∀↓_)
 open import CastTerms using
   (Ctx; Term; Value; _⊢_⦂_; ⊢conceal; ƛ_; Λ_; _⦂∀_[_]; $;
-   _↓_; _⟨_⟩)
+   _↑_; _↓_; _⟨_⟩)
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 import Conversion as Conv
@@ -1304,52 +1305,160 @@ module _ where
     source-spine-strip-worker-seal-D D sv vU mono rb sc
       source∈ target∈
 
-  source-spine-strip-worker-reveal-fun : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-reveal-fun (sv-reveal-fun sv) vU mono
-      rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
-    source-spine-direct-cast (sv-reveal-fun sv) vU mono rb sc
-      source∈ target∈ prem
-  source-spine-strip-worker-reveal-fun (sv-reveal-fun sv) vU mono
+  source-spine-strip-worker-reveal-fun : ∀ {Δᴸ Δᴿ Δ}
+      {W W′ : World Δᴸ Δᴿ Δ}
+      {γ : CtxImp W} {γ′ : CtxImp W′}
+      {V : Term Δᴸ} {U : Term Δᴿ}
+      {A A′ B B′ R : Ty Δᴸ} {S : Ty Δᴿ}
+      {c : Conv↓ Δᴸ A′ A} {d : Conv↑ Δᴸ B B′}
+      {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+      {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → SpineValue V
+    → Value U
+    → CTX.ImpEnvMono W W′
+    → RebaseAt W′ W Xᴸ Y
+    → CTX.SameCtx γ γ′
+    → sourceStoreʷ W ∋ Xᴸ ⦂ R
+    → targetStoreʷ W ∋ Y ⦂ S
+    → W′ ∣ γ′ ⊢² (V ↑ (c ↦↑ d))
+        ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+    → Σ[ Core ∈ Term Δᴸ ]
+      Σ[ CoreTy ∈ Ty Δᴸ ]
+      Σ[ Xᵒ ∈ TyVar Δᴸ ]
+      Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+      Σ[ γᵒ ∈ CtxImp Wᵒ ]
+      Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+        (SpineValue Core
+         × SourceSpineStripBranch W γ (V ↑ (c ↦↑ d)) R U Xᴸ Y S cY q
+             Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+  source-spine-strip-worker-reveal-fun {V = V} {c = c} {d = d}
+      sv vU mono rb sc source∈ target∈
+      D@(CTI2.⊑cast² cY prem p) =
+    source-spine-direct-cast {V = V ↑ (c ↦↑ d)}
+      (sv-reveal-fun sv) vU mono rb sc source∈ target∈ prem
+  source-spine-strip-worker-reveal-fun sv vU mono
       rb sc source∈ target∈
       (CTI2.reveal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
         nonstar-⇒ prem)
 
-  source-spine-strip-worker-conceal-fun : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
+  source-spine-strip-worker-conceal-fun : ∀ {Δᴸ Δᴿ Δ}
+      {W W′ : World Δᴸ Δᴿ Δ}
+      {γ : CtxImp W} {γ′ : CtxImp W′}
+      {V : Term Δᴸ} {U : Term Δᴿ}
+      {A A′ B B′ R : Ty Δᴸ} {S : Ty Δᴿ}
+      {c : Conv↑ Δᴸ A′ A} {d : Conv↓ Δᴸ B B′}
+      {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+      {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → SpineValue V
+    → Value U
+    → CTX.ImpEnvMono W W′
+    → RebaseAt W′ W Xᴸ Y
+    → CTX.SameCtx γ γ′
+    → sourceStoreʷ W ∋ Xᴸ ⦂ R
+    → targetStoreʷ W ∋ Y ⦂ S
+    → W′ ∣ γ′ ⊢² (V ↓ (c ↦↓ d))
+        ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+    → Σ[ Core ∈ Term Δᴸ ]
+      Σ[ CoreTy ∈ Ty Δᴸ ]
+      Σ[ Xᵒ ∈ TyVar Δᴸ ]
+      Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+      Σ[ γᵒ ∈ CtxImp Wᵒ ]
+      Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+        (SpineValue Core
+         × SourceSpineStripBranch W γ (V ↓ (c ↦↓ d)) R U Xᴸ Y S cY q
+             Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+  source-spine-strip-worker-conceal-fun {V = V} {c = c} {d = d}
+      sv vU mono
       rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
-    source-spine-direct-cast (sv-conceal-fun sv) vU mono rb sc
-      source∈ target∈ prem
-  source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
+    source-spine-direct-cast {V = V ↓ (c ↦↓ d)}
+      (sv-conceal-fun sv) vU mono rb sc source∈ target∈ prem
+  source-spine-strip-worker-conceal-fun sv vU mono
       rb sc source∈ target∈
       (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
         nonstar-⇒ prem)
 
-  source-spine-strip-worker-reveal-all : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-reveal-all (sv-reveal-all sv) vU mono
+  source-spine-strip-worker-reveal-all : ∀ {Δᴸ Δᴿ Δ}
+      {W W′ : World Δᴸ Δᴿ Δ}
+      {γ : CtxImp W} {γ′ : CtxImp W′}
+      {V : Term Δᴸ} {U : Term Δᴿ}
+      {A B : Ty (suc Δᴸ)} {R : Ty Δᴸ} {S : Ty Δᴿ}
+      {c : Conv↑ (suc Δᴸ) A B}
+      {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+      {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → SpineValue V
+    → Value U
+    → CTX.ImpEnvMono W W′
+    → RebaseAt W′ W Xᴸ Y
+    → CTX.SameCtx γ γ′
+    → sourceStoreʷ W ∋ Xᴸ ⦂ R
+    → targetStoreʷ W ∋ Y ⦂ S
+    → W′ ∣ γ′ ⊢² (V ↑ `∀↑ c)
+        ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+    → Σ[ Core ∈ Term Δᴸ ]
+      Σ[ CoreTy ∈ Ty Δᴸ ]
+      Σ[ Xᵒ ∈ TyVar Δᴸ ]
+      Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+      Σ[ γᵒ ∈ CtxImp Wᵒ ]
+      Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+        (SpineValue Core
+         × SourceSpineStripBranch W γ (V ↑ `∀↑ c) R U Xᴸ Y S cY q
+             Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+  source-spine-strip-worker-reveal-all {V = V} {c = c}
+      sv vU mono
       rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
-    source-spine-direct-cast (sv-reveal-all sv) vU mono rb sc
-      source∈ target∈ prem
-  source-spine-strip-worker-reveal-all (sv-reveal-all sv) vU mono
+    source-spine-direct-cast {V = V ↑ `∀↑ c}
+      (sv-reveal-all sv) vU mono rb sc source∈ target∈ prem
+  source-spine-strip-worker-reveal-all sv vU mono
       rb sc source∈ target∈
       (CTI2.reveal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
         nonstar-∀ prem)
 
-  source-spine-strip-worker-conceal-all : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
+  source-spine-strip-worker-conceal-all : ∀ {Δᴸ Δᴿ Δ}
+      {W W′ : World Δᴸ Δᴿ Δ}
+      {γ : CtxImp W} {γ′ : CtxImp W′}
+      {V : Term Δᴸ} {U : Term Δᴿ}
+      {A B : Ty (suc Δᴸ)} {R : Ty Δᴸ} {S : Ty Δᴿ}
+      {c : Conv↓ (suc Δᴸ) A B}
+      {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
+      {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
+      {p₀ : R ⊑ᵂ⟨ W′ ⟩ ★}
+      {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
+    → SpineValue V
+    → Value U
+    → CTX.ImpEnvMono W W′
+    → RebaseAt W′ W Xᴸ Y
+    → CTX.SameCtx γ γ′
+    → sourceStoreʷ W ∋ Xᴸ ⦂ R
+    → targetStoreʷ W ∋ Y ⦂ S
+    → W′ ∣ γ′ ⊢² (V ↓ `∀↓ c)
+        ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ p₀
+    → Σ[ Core ∈ Term Δᴸ ]
+      Σ[ CoreTy ∈ Ty Δᴸ ]
+      Σ[ Xᵒ ∈ TyVar Δᴸ ]
+      Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ]
+      Σ[ γᵒ ∈ CtxImp Wᵒ ]
+      Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y) ]
+        (SpineValue Core
+         × SourceSpineStripBranch W γ (V ↓ `∀↓ c) R U Xᴸ Y S cY q
+             Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+  source-spine-strip-worker-conceal-all {V = V} {c = c}
+      sv vU mono
       rb sc source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
-    source-spine-direct-cast (sv-conceal-all sv) vU mono rb sc
-      source∈ target∈ prem
-  source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
+    source-spine-direct-cast {V = V ↓ `∀↓ c}
+      (sv-conceal-all sv) vU mono rb sc source∈ target∈ prem
+  source-spine-strip-worker-conceal-all sv vU mono
       rb sc source∈ target∈
       (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
@@ -1379,19 +1488,19 @@ module _ where
       target∈ D
   source-spine-strip-worker (sv-reveal-fun sv) vU mono rb sc
       source∈ target∈ D =
-    source-spine-strip-worker-reveal-fun (sv-reveal-fun sv) vU mono
+    source-spine-strip-worker-reveal-fun sv vU mono
       rb sc source∈ target∈ D
   source-spine-strip-worker (sv-conceal-fun sv) vU mono rb sc
       source∈ target∈ D =
-    source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
+    source-spine-strip-worker-conceal-fun sv vU mono
       rb sc source∈ target∈ D
   source-spine-strip-worker (sv-reveal-all sv) vU mono rb sc
       source∈ target∈ D =
-    source-spine-strip-worker-reveal-all (sv-reveal-all sv) vU mono
+    source-spine-strip-worker-reveal-all sv vU mono
       rb sc source∈ target∈ D
   source-spine-strip-worker (sv-conceal-all sv) vU mono rb sc
       source∈ target∈ D =
-    source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
+    source-spine-strip-worker-conceal-all sv vU mono
       rb sc source∈ target∈ D
 
   source-column-strip-worker-D : ∀ {Δᴸ Δᴿ Δ}

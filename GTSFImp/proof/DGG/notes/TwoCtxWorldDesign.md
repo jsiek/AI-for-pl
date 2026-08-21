@@ -26,6 +26,13 @@ direct-store rebase graph plus its same-world case.  A general structural
 rebase function and all preservation theorems remain unproved.  This note does
 not authorize a change to the live term-imprecision relation.
 
+Two later probes check the first nontrivial provenance layers.  The
+`TwoCtxSourceRebasePlanProbe` implements one local source/target allocation
+commutation and carries it through later skipped centers and target-only
+allocations.  The `TwoCtxAdministrativeAliasFocusProbe` keeps a stable world
+unchanged while a boundary-local view consumes exactly one fresh target edge
+`β := α`.  Both check under `--safe`; neither follows a representation chain.
+
 ## Trusted endpoint structure
 
 The proposal relies on the existing top-level definition:
@@ -341,6 +348,89 @@ allocation past target-only and skipped-center steps.  No such plan has been
 postulated in the probe.  Adding a function before defining those local
 commutations would merely hide the missing provenance.
 
+The checked `TwoCtxSourceRebasePlanProbe` now supplies the first such
+commutation.  In normalized form its local rewrite is
+
+```agda
+bind-right-rawᶜ₀ (bind-left-rawᶜ₀ W A) B
+  ↦ bind-both-star-rawᶜ₀ (skip-centerᶜ₀ W) represented A≠★
+```
+
+The old source-only cell becomes vacant and the source/target pivots occupy a
+fresh dynamic paired cell.  The endpoint `Ctx` indices are identical on both
+sides of the rewrite.  The plan commutes recursively through a later
+`skip-centerᶜ₀` or `bind-right-rawᶜ₀`; the target-bind case deliberately
+requires a new freshness proof for the rebuilt history.  The probe proves
+center preservation, off-pivot source preservation, frozen target embeddings,
+pivot alignment, all four direct invariants, and the direct-store graph
+obligation.
+
+This is not yet a total rebase plan.  Local commutations remain to be defined
+for `lift-both-rawᶜ₀`, `lift-left-rawᶜ₀`, a later source allocation,
+both paired-bind constructors, and `bind-termᶜ₀`.  Those cases need their
+own constructor rewrites and, for a term bind, transported term-entry
+imprecision.  The checked probe enumerates them explicitly rather than using
+a catch-all.
+
+## Boundary-scoped administrative alias focus
+
+The strict Λ trace must preserve three distinct facts:
+
+- the source runtime name `X`;
+- the old target name `α` and the fresh target name `β`;
+- the one-step target store edge `β := α`.
+
+It must not turn these facts into `X = β`, `β = α`, or `β = ★`.
+The stable world therefore leaves `X` and `α` at distinct center points.
+The checked probe adds a boundary-local focus:
+
+```agda
+record TargetNameFocusᶠ₀ (W : Cᴸ ⊑ᶜ₀ Cᴿ)
+    (X : TyVar (Δᵉ Cᴸ)) (α : TyVar (Δᵉ Cᴿ)) : Set where
+  field
+    stable-points-separated :
+      centerᴸ W X ≢ centerᴿ W α
+    source-direct-self :
+      lookupStore (Σᵉ Cᴸ) X ≡ ＇ X
+    stable-direct-representations :
+      lookupStore (Σᵉ Cᴸ) X ⊑ᵀ₀⟨ W ⟩ lookupStore (Σᵉ Cᴿ) α
+```
+
+The last field is an explicit direct-entry proof; it is not derived by
+aligning the stable points.  A constructor-form boundary then records only the
+fresh endpoint allocation:
+
+```agda
+data TargetAliasBoundaryᶠ₀ (focus : TargetNameFocusᶠ₀ W X α) :
+    Ctx → Set where
+  target-alias-rawᶠ₀ : ∀ {Γᴿ⁺}
+    → Γᴿ⁺ ≡ ⇑ᶜ Γᴿ
+    → TargetAliasBoundaryᶠ₀ focus
+        ⟨ suc Δᴿ , store-bind Σᴿ (＇ α) , Γᴿ⁺ ⟩
+```
+
+`aliasBoundarySubᶠ₀` maps the new target zero to the direct representation
+`＇ α` and maps every old target successor back to that old name.
+`BoundaryTypeImprecisionᶠ₀` applies this one substitution and then the
+single local focus at `α`.  There is no recursive store lookup.  In the checked
+concrete world, the endpoint store remains literally
+
+```text
+β ↦ α⁺, α⁺ ↦ ★
+```
+
+while both the surface name relation `X ⊑ β` and the direct boundary
+relation `X ⊑ α⁺` are derivable.  The probe packages the corresponding
+paired reveal indices with the exact source and target conversions.
+
+This focus is intentionally not another inhabitant of `_⊑ᶜ_`: it does not
+weaken `representationsImprecise`, and ordinary CTI constructors must not be
+able to use it outside the matching boundary.  The eventual CTI redesign
+therefore needs a premise-only boundary judgment (or an equivalent pending
+boundary index) that is introduced and consumed by the exact reveal/conceal
+wrapper.  Nested aliases are repeated one-edge boundaries, never a transitive
+focus.
+
 ## CTI indexing consequence
 
 The CTI judgment loses its separate `CtxImp` argument:
@@ -424,7 +514,7 @@ the world, as the current SimBack result surface now permits.
 2. Rework fixtures as direct proofs of the full-context relation.  Do not remove
    a fixture.
 3. Prove direct-entry invariants, type imprecision, center renaming, checked
-   rebase, and world evolution.
+   rebase, boundary-local alias focus, and world evolution.
 4. Add term-entry lookup and prove that relation endpoints supply ordinary
    source and target typing contexts.
 5. After explicit user permission, migrate the CTI judgment and its variable,
@@ -439,7 +529,7 @@ The highest-impact consumers are `CastTermImprecision.agda`,
 `CastTermImprecision2Typing.agda`, `CompilePreservesImprecision2.agda`,
 `CenterRename.agda`, `TargetExtend.agda`, `TargetBindLift.agda`,
 `Parked/ParkedWorldDef.agda`, `SimProof.agda`, `SimBackProof.agda`, the
-source/target strip proofs, and the instantiation catch-up and inversion family.
+target-strip proofs, and the instantiation catch-up and inversion family.
 
 ## Open proof obligations
 
@@ -449,10 +539,12 @@ Before this becomes a live design, the remaining probes must establish:
   constructors imply all four direct invariants without a general
   invariant-accepting escape constructor.
 - Checked source rebase can be implemented as a function whose graph preserves
-  the hidden center and freezes every target embedding.  The graph and its
-  same-world case check; the allocation-commutation plan for a general function
-  is still open.
+  the hidden center and freezes every target embedding.  The graph, same-world
+  case, one source/target allocation commutation, and recursion through later
+  skipped/target-only history check.  The other raw history heads remain open.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
+- The boundary-local alias focus must be integrated into reveal/conceal CTI
+  without making it available to ordinary term constructors.
 - Store-changing simulation can index evolved endpoint `Ctx` values without
   placing `apply` functions in data-constructor indices.

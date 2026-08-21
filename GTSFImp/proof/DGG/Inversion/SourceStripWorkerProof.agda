@@ -1178,29 +1178,6 @@ module _ where
     source-spine-strip-worker-cast-step-nonvar (sv-cast sv inert)
       vU mono rb sc source∈ target∈ (CTI2.cast⊑² c prem p₀)
 
-  source-spine-strip-worker-cast : SourceSpineStrip
-  {-# NON_COVERING #-}
-  source-spine-strip-worker-cast (sv-cast sv inert) vU mono rb sc
-      source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
-    source-spine-direct-cast (sv-cast sv inert) vU mono rb sc
-      source∈ target∈ prem
-  source-spine-strip-worker-cast (sv-cast sv inert) vU mono
-      rb sc source∈ target∈
-      D@(CTI2.cast⊑cast² c cY prem p) =
-    source-spine-strip-worker-cast-cast (sv-cast sv inert) vU
-      mono rb sc source∈ target∈ D
-  source-spine-strip-worker-cast
-      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
-      {V = V ⟨ c ⟩} {U = U} {R = R} {S = S}
-      {Xᴸ = Xᴸ} {Y = Y} {q = q}
-      (sv-cast {V = V} sv inert) vU mono rb sc source∈ target∈
-      (CTI2.cast⊑² .c prem p) =
-    source-spine-strip-worker-cast-step
-      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
-      {V = V} {U = U} {B = R} {S = S}
-      {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₀ = p} {q = q}
-      sv inert vU mono rb sc source∈ target∈ prem
-
   source-spine-strip-worker-seal-D
     : ∀ {Δᴸ Δᴿ Δ}
         {W W′ : World Δᴸ Δᴿ Δ}
@@ -1444,9 +1421,24 @@ module _ where
     source-spine-strip-worker-$ κ vU mono rb sc source∈
       target∈ D
   source-spine-strip-worker (sv-cast sv inert) vU mono rb sc
-      source∈ target∈ D =
-    source-spine-strip-worker-cast (sv-cast sv inert) vU mono rb sc
-      source∈ target∈ D
+      source∈ target∈ D@(CTI2.⊑cast² cY prem p) =
+    source-spine-direct-cast (sv-cast sv inert) vU mono rb sc
+      source∈ target∈ prem
+  source-spine-strip-worker (sv-cast sv inert) vU mono rb sc
+      source∈ target∈ D@(CTI2.cast⊑cast² c cY prem p) =
+    source-spine-strip-worker-cast-cast (sv-cast sv inert) vU
+      mono rb sc source∈ target∈ D
+  source-spine-strip-worker
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V ⟨ c ⟩} {U = U} {R = R} {S = S}
+      {Xᴸ = Xᴸ} {Y = Y} {q = q}
+      (sv-cast {V = V} sv inert) vU mono rb sc source∈ target∈
+      (CTI2.cast⊑² .c prem p) =
+    source-spine-strip-worker-cast-step
+      {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
+      {V = V} {U = U} {B = R} {S = S}
+      {Xᴸ = Xᴸ} {Y = Y} {c = c} {p₀ = p} {q = q}
+      sv inert vU mono rb sc source∈ target∈ prem
   source-spine-strip-worker (sv-seal sv) vU mono rb sc source∈
       target∈ D =
     source-spine-strip-worker-seal-D D sv vU mono rb sc source∈

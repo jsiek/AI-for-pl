@@ -1136,14 +1136,31 @@ regressions.  The SourceStar snapshot's two endpoint stores are individually
 operationally possible, but its cross-run alignment is not reachable from the
 compiled empty world.
 
+The proposed two-`Ctx` redesign now has checked direct invariants, not just a
+constructor sketch.  `TwoCtxWorldInvariantsProbe` proves all four invariants
+for every raw constructor without `resolveVar`, invariant-accepting escape
+constructors, postulates, `NON_COVERING`, funext, or catch-alls.  Its direct
+store-entry rebase graph and same-world case also check.  A total pivot-moving
+rebase function still requires explicit constructor commutations: allocation
+and center placement are coupled by the raw constructors, so that history must
+be supplied rather than hidden behind equality transport.
+
 CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
 the migrated simulation modules, the core transport modules, and all six
-reworked fixtures check with `agda --safe --no-caching`.  SourceStrip's small
-alias-cycle module also checks safe.  The occupied non-star source-seal
-residual is now closed by that alias-cycle contradiction and no longer threads
-as an assumption through SourceStrip, TargetWalk, and RightInj.  One redundant
-SourceStrip `NON_COVERING` pragma is gone; the remaining pragmas still expose
-genuine missing constructor families.
+reworked fixtures check with `agda --safe --no-caching`.  The occupied
+non-star source-seal residual was first closed by a direct alias-cycle
+contradiction and no longer threads as an assumption through inversion.
+
+The apparent DGG-facing SourceStrip call is itself impossible under the new
+one-sided-conceal index.  Its `tag-rebase-onlyᴸ` witness says the source pivot
+has no aligned target, while the requested `＇X ⊑ ＇Y` result says exactly that
+`X` and `Y` are aligned.  RightInj now closes that branch directly instead of
+turning the contradiction into an arbitrary positive rebase.  This disconnects
+the entire SourceStrip/TargetWalk/TargetChain island.  The ten dead modules and
+the non-safe `LegacyAll` lane are deleted under the repository's closed-world
+policy; their three fixtures are retained as safe direct RightInj and
+TargetStrip regressions.  There are now no live `NON_COVERING` pragmas, and the
+safe aggregate imports the closed RightInj proof.
 
 Backward simulation no longer tries to fabricate a right-only world after the
 source has reached blame.  Its one-step and multi-step results instead return
@@ -1164,6 +1181,13 @@ lift/rebase operations, and it now supplies the relation-indexed provenance in
 the `β-inst` branch.  The obsolete raw `targetStoreAs` and invalid split-alias
 Λ world are not acceptable implementations.  No Λ-specific term-imprecision
 constructor has been adopted.
+
+The current full `All.agda` check reaches its first remaining failure at the
+obsolete `TargetBindLift.targetStoreAs = CTX.world ...` definition.  This is
+the already-proved-invalid split-world Λ route, not fallout from the conceal,
+RightInj, fixture, or direct-star provenance migrations.  It must be retired in
+favor of the final-world structural instantiation assembler, not patched with
+a new raw-world escape hatch.
 
 SMART-COMMA FIXTURE BLOCKER: there is no positive fixture with the original
 depth-1 role under the current direct invariants and CTI.  The live theorem

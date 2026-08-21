@@ -19,9 +19,12 @@ fields of the two endpoint `Ctx` values.
 Everything below is **schematic and unproved** as a replacement for the live
 world.  `notes/probes/TwoCtxWorldSkeletonProbe.agda` does check the mutual
 relation/projection pattern, the constructor-form allocation indices, and the
-displayed smart functions under `--safe`.  It does not include the four world
-invariants, rebase, or any preservation theorem.  This note does not authorize
-a change to the live term-imprecision relation.
+displayed smart functions under `--safe`.
+`notes/probes/TwoCtxWorldInvariantsProbe.agda` checks that every raw
+constructor implies the four direct nominal world invariants and checks a
+direct-store rebase graph plus its same-world case.  A general structural
+rebase function and all preservation theorems remain unproved.  This note does
+not authorize a change to the live term-imprecision relation.
 
 ## Trusted endpoint structure
 
@@ -323,6 +326,21 @@ constructors remain an open design question.  The crucial requirement is that
 unnecessary transport obligations.  Both alternatives are **schematic and
 unproved**; the function graph should be probed before choosing.
 
+The checked invariant probe confirms that the fallback graph is well typed,
+but also makes its cost precise.  Since the center is hidden, two arbitrary
+witnesses do not have definitionally equal center indices.  The graph must
+transport old embedding points along its explicit center equality before it
+can state the off-pivot and frozen-target equations.  The same-world case
+reduces by `refl` without extensionality.
+
+The raw world history does not yet support the preferred total function.
+Every raw allocation constructor fixes both an endpoint allocation and that
+variable's center placement.  Moving a source pivot while preserving the two
+endpoint `Ctx` indices therefore requires a checked plan that commutes a source
+allocation past target-only and skipped-center steps.  No such plan has been
+postulated in the probe.  Adding a function before defining those local
+commutations would merely hide the missing provenance.
+
 ## CTI indexing consequence
 
 The CTI judgment loses its separate `CtxImp` argument:
@@ -427,12 +445,13 @@ source/target strip proofs, and the instantiation catch-up and inversion family.
 
 Before this becomes a live design, the remaining probes must establish:
 
-- Extend the checked mutual raw relation and smart operations from
-  `TwoCtxWorldSkeletonProbe` with the four direct world invariants.
-- The inductive constructors imply the four direct world invariants without a
-  general invariant-accepting escape constructor.
+- The checked `TwoCtxWorldInvariantsProbe` establishes that the inductive
+  constructors imply all four direct invariants without a general
+  invariant-accepting escape constructor.
 - Checked source rebase can be implemented as a function whose graph preserves
-  the hidden center and freezes every target embedding.
+  the hidden center and freezes every target embedding.  The graph and its
+  same-world case check; the allocation-commutation plan for a general function
+  is still open.
 - Direct store-entry imprecision is sufficient for every valid reveal and
   conceal square; no proof relies essentially on `resolveVar`.
 - Store-changing simulation can index evolved endpoint `Ctx` values without

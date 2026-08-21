@@ -1,53 +1,30 @@
 module proof.DGG.SourceStarProbe where
 
 -- File Charter:
---   * This probe merges the checked SourceStarCounterScratch and
---     SourceStarRideCounterScratch refutations into the in-repo DGG
---     probe set.
---   * Both checkpoints use the identity two-variable world, where
---     `X₀,Y₀` occupy center `0` and `X₁,Y₁` occupy center `1`.
---   * The old source-star variable-target package would need an output
---     relating the outer source pivot `X₀` to target `Y₁` while the
---     inner cast still fixes `X₁`; order preservation collapses the two
---     source centers and refutes the package.
---   * This justifies exposing only the `★` source-star package and handling
---     variable targets by paired-seal reconstruction instead.
+--   * Preserves the historical SourceStarCounterScratch snapshot as a
+--     negative regression fixture under the inductive World design.
+--   * The original snapshot aligned `X₀/Y₀` and `X₁/Y₁` in an identity
+--     two-variable world, with both source entries equal to `★` and the
+--     direct target entry for `Y₀` equal to `＇ Y₁`.
+--   * Such a snapshot cannot form a live World: its first alignment
+--     violates direct representation imprecision, and its second violates
+--     dynamic-star source vacancy.  Both contradictions are exposed below.
+--   * Its endpoint stores are each operationally possible, but compilation
+--     and reduction from the empty world cannot produce this identity-aligned
+--     relational snapshot.  It is adversarial interface evidence, not
+--     reachability evidence.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥)
 import Data.Fin as Fin
-open import Data.List using ([])
-open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans)
+open import Data.Product using (Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (refl)
 open import Relation.Nullary using (¬_)
 
 open import Types
-open import TyStore using
-  (TyStore; store-empty; store-bind; _∋_⦂_; Z∋; S-bind∋)
-open import Consistency using
-  (Env∼; X∼★; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ;
-   id; _!)
-open import Conversion using (seal)
-open import CastTerms
-open import Imprecision
-open import Primitives using (κℕ)
-import Conversion as Conv
-import proof.DGG.CastTermImprecision as CTI2
+open import TyStore using (TyStore; store-empty; store-bind)
+open import Consistency using (_↪ᵗ_; empty; keep)
+open import Imprecision using (ImpEnv; X⊑★)
 import proof.DGG.CtxImp as CTX
-import proof.DGG.Inversion.SpineValueDef as SVD
-open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
-open CTX using
-  (World;
-   world;
-   CtxImp;
-   RebaseAt;
-   _⊑ᵂ⟨_⟩_;
-   store-rep-imp;
-   sourceStoreʷ;
-   targetStoreʷ;
-   ηᴸʷ;
-   ηᴿʷ)
-open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X₀ : TyVar 2
@@ -63,7 +40,7 @@ private
   Y₁ = Fin.suc Fin.zero
 
 ------------------------------------------------------------------------
--- Stores, embeddings, and worlds
+-- The original raw snapshot
 ------------------------------------------------------------------------
 
 source-store : TyStore 2
@@ -82,159 +59,29 @@ probe-μ (Fin.suc Fin.zero) = X⊑★
 -- Placement table:
 --
 --             X₀  X₁  Y₀  Y₁
---   W₀         0   1   0   1
+--   original   0   1   0   1
 
-W₀ : World 2 2 2
-W₀ = world η-id η-id probe-μ source-store target-store
-
-------------------------------------------------------------------------
--- Store typing, casts, and the paired inner derivation
-------------------------------------------------------------------------
-
-X₀∈ : source-store ∋ X₀ ⦂ ★
-X₀∈ = Z∋ refl
-
-X₁∈ : source-store ∋ X₁ ⦂ ★
-X₁∈ = S-bind∋ (Z∋ refl) refl
-
-Y₁∈ : target-store ∋ Y₁ ⦂ ★
-Y₁∈ = S-bind∋ (Z∋ refl) refl
-
-X₀-Y₀-rep : CTX.StoreRepImp W₀ X₀ Y₀
-X₀-Y₀-rep = store-rep-imp ★⊑★
-
-X₁-Y₁-rep : CTX.StoreRepImp W₀ X₁ Y₁
-X₁-Y₁-rep = store-rep-imp ★⊑★
-
-rb₀ : RebaseAt W₀ W₀ X₀ Y₀
-rb₀ = CTX.sameWorldRebaseAt refl X₀-Y₀-rep
-
-link₁ : RebaseAt W₀ W₀ X₁ Y₁
-link₁ = CTX.sameWorldRebaseAt refl X₁-Y₁-rep
-
-source-env : Env∼ 2
-source-env Fin.zero = X∼★
-source-env (Fin.suc Fin.zero) = X∼★
-
-target-env : Env∼ 2
-target-env Fin.zero = X∼★
-target-env (Fin.suc Fin.zero) = X∼★
-
-X₁! : source-env ⊢ (＇ X₁) ∼ ★
-X₁! = id (＇ X₁) !
-
-ℕ!ᴸ : source-env ⊢ (‵ `ℕ) ∼ ★
-ℕ!ᴸ = id (‵ `ℕ) !
-
-ℕ!ᴿ : target-env ⊢ (‵ `ℕ) ∼ ★
-ℕ!ᴿ = id (‵ `ℕ) !
-
-V₀ : Term 2
-V₀ = ($ (κℕ 0)) ⟨ ℕ!ᴸ ⟩
-
-U₀ : Term 2
-U₀ = ($ (κℕ 0)) ⟨ ℕ!ᴿ ⟩
-
-V : Term 2
-V = V₀ ↓ seal X₁ ★
-
-U : Term 2
-U = U₀ ↓ seal Y₁ ★
-
-base² : W₀ ∣ [] ⊢² V₀ ⊑ U₀ ∶ ★⊑★
-base² =
-  CTI2.cast⊑cast² ℕ!ᴸ ℕ!ᴿ
-    (CTI2.κ⊑κ² (κℕ 0) ι⊑ι) ★⊑★
-
-q₁ : ＇ X₁ ⊑ᵂ⟨ W₀ ⟩ ＇ Y₁
-q₁ = X⊑X
-
-D : W₀ ∣ [] ⊢² V ⊑ U ∶ q₁
-D =
-  CTI2.conceal⊑conceal²
-    (CTX.matched-seal-star-partner
-      (CTX.rep★-nonvar-tag nonvar-base))
-    (λ Z eq → eq) link₁ CTX.same-[]
-    (Conv.⊢↓-sealˣ X₁∈) (Conv.⊢↓-sealˣ Y₁∈) base² q₁
-
-private
-  X₁≢X₀ : X₁ ≢ X₀
-  X₁≢X₀ ()
-
-  Y₁≢Y₀ : Y₁ ≢ Y₀
-  Y₁≢Y₀ ()
+OriginalWorldInvariants : Set
+OriginalWorldInvariants =
+  CTX.WorldInvariants η-id η-id probe-μ source-store target-store
 
 ------------------------------------------------------------------------
--- Checkpoint 1: the old outer-rebase source-star package is empty
+-- Independent invariant contradictions
 ------------------------------------------------------------------------
 
-no-source-star-var-output :
-  ¬ (Σ[ Wᵒ ∈ World 2 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-      ( RebaseAt Wᵒ W₀ X₀ Y₀
-      × CTX.ImpEnvMono W₀ Wᵒ
-      × CTX.SameCtx {W = W₀} [] γᵒ
-      × Σ[ qᵒ ∈ ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₁ ]
-          (Wᵒ ∣ γᵒ ⊢²
-            (V ⟨ X₁! ⟩) ↓ seal X₀ ★ ⊑ U ∶ qᵒ) ))
-no-source-star-var-output
-    (Wᵒ , γᵒ , rb , mono , sc , qᵒ , out) =
-  X₁≢X₀ (toRenameᵗ-injective (ηᴸʷ Wᵒ) (sym same-center))
-  where
-  target-off :
-    toRenameᵗ (ηᴿʷ W₀) Y₁ ≡ toRenameᵗ (ηᴿʷ Wᵒ) Y₁
-  target-off = CTX.RebaseAt.ηᴿ-frozen rb Y₁
+direct-representation-obstruction : OriginalWorldInvariants → ⊥
+direct-representation-obstruction inv
+    with CTX.representationsImprecise inv
+      {Xᴸ = X₀} {Xᴿ = Y₀} refl
+direct-representation-obstruction inv | ()
 
-  source-off :
-    toRenameᵗ (ηᴸʷ W₀) X₁ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁
-  source-off = CTX.RebaseAt.ηᴸ-off-pivot rb X₁≢X₀
+dynamic-star-vacancy-obstruction : OriginalWorldInvariants → ⊥
+dynamic-star-vacancy-obstruction inv =
+  CTX.dynamicStarSourcesUnoccupied inv X₁ refl refl Y₁ refl
 
-  same-center :
-    toRenameᵗ (ηᴸʷ Wᵒ) X₀ ≡ toRenameᵗ (ηᴸʷ Wᵒ) X₁
-  same-center =
-    trans (SVD.variable-obligation-aligns {W = Wᵒ} {X = X₀}
-      {Y = Y₁} qᵒ)
-      (trans (sym target-off) source-off)
+no-original-world-invariants : ¬ OriginalWorldInvariants
+no-original-world-invariants = direct-representation-obstruction
 
-------------------------------------------------------------------------
--- Checkpoint 2: the ride-style variable branch is empty
-------------------------------------------------------------------------
-
-η₂-zero : ∀ (η : 2 ↪ᵗ 2)
-  → toRenameᵗ η Fin.zero ≡ Fin.zero
-η₂-zero (keep (keep empty)) = refl
-η₂-zero (keep (skip ()))
-η₂-zero (skip (keep ()))
-η₂-zero (skip (skip ()))
-
-η₂-one : ∀ (η : 2 ↪ᵗ 2)
-  → toRenameᵗ η (Fin.suc Fin.zero) ≡ Fin.suc Fin.zero
-η₂-one (keep (keep empty)) = refl
-η₂-one (keep (skip ()))
-η₂-one (skip (keep ()))
-η₂-one (skip (skip ()))
-
-no-source-star-branch-output :
-  ¬ (Σ[ Wᵒ ∈ World 2 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-      ( CTX.ImpEnvMono W₀ Wᵒ
-      × CTX.SameCtx {W = W₀} [] γᵒ
-      × sourceStoreʷ Wᵒ ∋ X₀ ⦂ ★
-      × targetStoreʷ Wᵒ ∋ Y₁ ⦂ ★
-      × Σ[ qᵒ ∈ ＇ X₀ ⊑ᵂ⟨ Wᵒ ⟩ ＇ Y₁ ]
-          (Wᵒ ∣ γᵒ ⊢²
-            (V ⟨ X₁! ⟩) ↓ seal X₀ ★ ⊑ U ∶ qᵒ) ))
-no-source-star-branch-output
-    (Wᵒ , γᵒ , mono , sc , X∈ , Y∈ , qᵒ , out) =
-  zero≢one same-center
-  where
-  zero≢one : Fin.zero ≢ Fin.suc Fin.zero
-  zero≢one ()
-
-  same-center :
-    Fin.zero ≡ Fin.suc Fin.zero
-  same-center =
-    trans
-      (sym (η₂-zero (ηᴸʷ Wᵒ)))
-      (trans
-        (SVD.variable-obligation-aligns {W = Wᵒ} {X = X₀}
-          {Y = Y₁} qᵒ)
-        (η₂-one (ηᴿʷ Wᵒ)))
+-- The original positive derivation package depended on precisely this raw
+-- snapshot.  Keeping both contradictions checked prevents it from being
+-- silently reinstated through a future compatibility constructor.

@@ -45,7 +45,7 @@ private
       {W : World Δᴸ Δᴿ Δ} {A : Ty (suc Δᴸ)}
     → NonVar A
     → Fin.zero ∈ᵗ A
-    → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
+    → A ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ ★
     → `∀ A ⊑ᵂ⟨ W ⟩ ★
   all-to-star-obligation {W = W} {A = A} Anv z∈A body★ =
     ∀⊑
@@ -64,12 +64,12 @@ lambda-core-from-target-strip★ᴸ :
   ∀ {Δᴸ Δᴿ Δ}
     {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
     {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-    {γᵇ : CtxImp (CTX.liftWorldLeft X⊑★ Wᵖ)}
+    {γᵇ : CtxImp (CTX.liftWorldLeft Wᵖ)}
     {V : Term (suc Δᴸ)} {U : Term Δᴿ}
     {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-    {p : A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+    {p : A ⊑ᵂ⟨ CTX.liftWorldLeft Wᵖ ⟩ ★}
     {q : `∀ A ⊑ᵂ⟨ Wᵖ ⟩ ★}
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -98,12 +98,12 @@ lambda-core-from-member :
   → ∀ {Δᴸ Δᴿ Δ}
       {Wᵒ Wᵖ : World Δᴸ Δᴿ Δ}
       {γᵒ : CtxImp Wᵒ} {γᵖ : CtxImp Wᵖ}
-      {γᵇ : CtxImp (CTX.liftWorldLeft X⊑★ Wᵖ)}
+      {γᵇ : CtxImp (CTX.liftWorldLeft Wᵖ)}
       {V : Term (suc Δᴸ)} {U : Term Δᴿ}
       {A : Ty (suc Δᴸ)} {S : Ty Δᴿ}
       {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
       {ν : Env∼ Δᴿ} {cY : ν ⊢ (＇ Y) ∼ ★}
-      {bodyp : A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵖ ⟩ ★}
+      {bodyp : A ⊑ᵂ⟨ CTX.liftWorldLeft Wᵖ ⟩ ★}
       {q : `∀ A ⊑ᵂ⟨ Wᵖ ⟩ ★}
   → NonVar A
   → Fin.zero ∈ᵗ A
@@ -118,7 +118,7 @@ lambda-core-from-member :
   → targetStoreʷ Wᵒ ∋ Y ⦂ S
   → ⟨ Δᴿ , targetStoreʷ Wᵖ , tgtCtxʷ γᵖ ⟩ ⊢
       (U ↓ seal Y S) ⟨ cY ⟩ ⦂ ★
-  → CTX.liftWorldLeft X⊑★ Wᵖ ∣ γᵇ ⊢²
+  → CTX.liftWorldLeft Wᵖ ∣ γᵇ ⊢²
       V ⊑ (U ↓ seal Y S) ⟨ cY ⟩ ∶ bodyp
   → SourceTagSealCoreBranch Wᵒ γᵒ (Λ V) (`∀ A) U Xᴸ Y S
       cY Wᵖ γᵖ q

@@ -14,7 +14,7 @@ open import Data.Product using (_,_; proj₁; proj₂)
 open import Data.Maybe using (just)
 open import Data.List using ([])
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import Types
 open import TyStore using (TyStore; store-empty; store-bind; Z∋)
@@ -47,51 +47,61 @@ open Step using (Δ′; change; next; reduction)
 ------------------------------------------------------------------------
 
 entry-initial² : (e : RC.SourceEntry)
-  → CPI2.initialWorld I.idᵐ store-empty
-      ∣ CPI2.initialCtx {Σ = store-empty} []
+  → CTX.initialWorld I.idᵐ
+      ∣ CPI2.initialCtx {μ = I.idᵐ} []
       ⊢² proj₁ (compile {Σ = store-empty}
         (GTI.gradual-term-imprecision-source-typing
           (RC.SourceEntry.initial⊑ᴳ e)))
       ⊑ proj₁ (compile {Σ = store-empty}
         (GTI.gradual-term-imprecision-target-typing
           (RC.SourceEntry.initial⊑ᴳ e)))
-      ∶ CPI2.initial-⊑ {Σ = store-empty}
+      ∶ CPI2.initial-⊑ {μ = I.idᵐ}
         (RC.SourceEntry.type⊑ᴳ e)
 entry-initial² e =
   CPI2.compile-preserves-imprecision² (RC.SourceEntry.initial⊑ᴳ e)
 
-bothBind-freshᴸ-parked : ∀ {Δᴸ Δᴿ Δ v A B}
-    {W : CTX.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTX.ηᴸʷ (CTX.bothBindWorld v W A B)) Fin.zero
+bothBind-freshᴸ-parked : ∀ {Δᴸ Δᴿ Δ A B}
+    {W : CTX.World Δᴸ Δᴿ Δ} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
+  → toRenameᵗ (CTX.ηᴸʷ (CTX.bothBindWorld W A B p)) Fin.zero
       ≡ Fin.zero
 bothBind-freshᴸ-parked = refl
 
-bothBind-freshᴿ-parked : ∀ {Δᴸ Δᴿ Δ v A B}
-    {W : CTX.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTX.ηᴿʷ (CTX.bothBindWorld v W A B)) Fin.zero
+bothBind-freshᴿ-parked : ∀ {Δᴸ Δᴿ Δ A B}
+    {W : CTX.World Δᴸ Δᴿ Δ} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.bothBindWorld W A B p)) Fin.zero
       ≡ Fin.zero
 bothBind-freshᴿ-parked = refl
 
 rightOnly-freshᴿ-parked : ∀ {Δᴸ Δᴿ Δ B}
     {W : CTX.World Δᴸ Δᴿ Δ}
-  → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B)) Fin.zero
+    {fresh : CTX.RightBindFresh W B}
+  → toRenameᵗ (CTX.ηᴿʷ (CTX.rightOnlyWorld W B fresh)) Fin.zero
       ≡ Fin.zero
 rightOnly-freshᴿ-parked = refl
+
+symmetric-refl⊑ᵂ : ∀ {Δ₀ Δ}
+    {W : CTX.World Δ₀ Δ₀ Δ} {A : Ty Δ₀}
+  → CTX.ηᴸʷ W ≡ CTX.ηᴿʷ W
+  → A CTX.⊑ᵂ⟨ W ⟩ A
+symmetric-refl⊑ᵂ {W = W} {A = A} same-embedding =
+  CTX.imprecision-cong refl
+    (cong (λ η → renameᵗ (toRenameᵗ η) A) same-embedding)
+    (RC.refl⊑ᵗ (CTX.impEnvʷ W) (CTX.embedᴸ W A))
 
 ------------------------------------------------------------------------
 -- D2. adversarial-source-chain, first parked allocation checkpoint
 ------------------------------------------------------------------------
 
 adversarial-source-chain-initial² :
-  CPI2.initialWorld I.idᵐ store-empty
-    ∣ CPI2.initialCtx {Σ = store-empty} []
+  CTX.initialWorld I.idᵐ
+    ∣ CPI2.initialCtx {μ = I.idᵐ} []
     ⊢² proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing
         (RC.SourceEntry.initial⊑ᴳ RC.adversarial-source-chain)))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing
         (RC.SourceEntry.initial⊑ᴳ RC.adversarial-source-chain)))
-    ∶ CPI2.initial-⊑ {Σ = store-empty}
+    ∶ CPI2.initial-⊑ {μ = I.idᵐ}
       (RC.SourceEntry.type⊑ᴳ RC.adversarial-source-chain)
 adversarial-source-chain-initial² =
   entry-initial² RC.adversarial-source-chain
@@ -112,8 +122,8 @@ adversarial-source-chain-change₀ = refl
 
 adversarial-source-chain-world₁ : CTX.World 1 1 1
 adversarial-source-chain-world₁ =
-  CTX.bothBindWorld I.X⊑X
-    (CPI2.initialWorld I.idᵐ store-empty) RC.ℕ₀ RC.ℕ₀
+  CTX.bothBindWorld (CTX.initialWorld I.idᵐ) RC.ℕ₀ RC.ℕ₀
+    (Ex2.ℕ⊑ℕ² {W = CTX.initialWorld I.idᵐ})
 
 adversarial-source-chain-X-rep₁ :
   CTX.StoreRepImp adversarial-source-chain-world₁ Fin.zero Fin.zero
@@ -141,13 +151,14 @@ adversarial-source-chain-lambda₁ :
       (G.⊢ƛ (RC.idAtX³⊢ {Γ = []})))
     ⊑ proj₁ (compile {Σ = store-bind store-empty RC.ℕ₀}
       (G.⊢ƛ (RC.idAtX³⊢ {Γ = []})))
-    ∶ CPI2.initial-⊑ {Σ = store-bind store-empty RC.ℕ₀}
-      (RC.refl⊑ᵗ (CTX.impEnvʷ adversarial-source-chain-world₁)
-        RC.X₀⇒X₀)
+    ∶ symmetric-refl⊑ᵂ {W = adversarial-source-chain-world₁} refl
 adversarial-source-chain-lambda₁ =
-  CPI2.compile-preserves-imprecision²
-    (RC.reflᴳ (CTX.impEnvʷ adversarial-source-chain-world₁)
-      (G.⊢ƛ (RC.idAtX³⊢ {Γ = []})))
+  CPI2.⊢²-retarget
+    {q = symmetric-refl⊑ᵂ {W = adversarial-source-chain-world₁} refl}
+    (CPI2.compile-preserves-identity-world²
+      {W = adversarial-source-chain-world₁} refl refl (λ X → refl)
+      (RC.reflᴳ (CTX.impEnvʷ adversarial-source-chain-world₁)
+        (G.⊢ƛ (RC.idAtX³⊢ {Γ = []}))))
 
 adversarial-source-chain-function₁ :
   adversarial-source-chain-world₁ ∣ [] ⊢²
@@ -159,7 +170,7 @@ adversarial-source-chain-function₁ :
       C.↑ 〖 Fin.zero , ⇑ᵗ RC.ℕ₀ ↑ RC.X₀⇒X₀ 〗
     ∶ Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ² {W = adversarial-source-chain-world₁}
 adversarial-source-chain-function₁ =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     adversarial-source-chain-rebase₁ CTX.same-[]
     adversarial-source-chain-reveal₁-⊢ˣ
     adversarial-source-chain-reveal₁-⊢ˣ
@@ -359,19 +370,25 @@ adversarial-source-chain-screen-store₇ =
 
 adversarial-source-chain-world₂ : CTX.World 2 2 2
 adversarial-source-chain-world₂ =
-  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₁
+  CTX.bothBindWorld adversarial-source-chain-world₁
     (＇ Fin.zero) (＇ Fin.zero)
+    (symmetric-refl⊑ᵂ {W = adversarial-source-chain-world₁}
+      {A = ＇ Fin.zero} refl)
 
 adversarial-source-chain-world₃ : CTX.World 3 3 3
 adversarial-source-chain-world₃ =
-  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₂
+  CTX.bothBindWorld adversarial-source-chain-world₂
     (＇ (Fin.suc Fin.zero)) (＇ (Fin.suc Fin.zero))
+    (symmetric-refl⊑ᵂ {W = adversarial-source-chain-world₂}
+      {A = ＇ (Fin.suc Fin.zero)} refl)
 
 adversarial-source-chain-world₄ : CTX.World 4 4 4
 adversarial-source-chain-world₄ =
-  CTX.bothBindWorld I.X⊑X adversarial-source-chain-world₃
+  CTX.bothBindWorld adversarial-source-chain-world₃
     (＇ (Fin.suc (Fin.suc Fin.zero)))
     (＇ (Fin.suc (Fin.suc Fin.zero)))
+    (symmetric-refl⊑ᵂ {W = adversarial-source-chain-world₃}
+      {A = ＇ (Fin.suc (Fin.suc Fin.zero))} refl)
 
 adversarial-source-chain-store₇-parkedᴸ :
   adversarial-source-chain-screen-store₇
@@ -410,28 +427,28 @@ adversarial-source-chain-original-pivotᴿ-parked = refl
 ------------------------------------------------------------------------
 
 skew-star-inst-initial² :
-  CPI2.initialWorld I.idᵐ store-empty
-    ∣ CPI2.initialCtx {Σ = store-empty} []
+  CTX.initialWorld I.idᵐ
+    ∣ CPI2.initialCtx {μ = I.idᵐ} []
     ⊢² proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing
         (RC.SourceEntry.initial⊑ᴳ RC.skew-star-inst)))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing
         (RC.SourceEntry.initial⊑ᴳ RC.skew-star-inst)))
-    ∶ CPI2.initial-⊑ {Σ = store-empty}
+    ∶ CPI2.initial-⊑ {μ = I.idᵐ}
       (RC.SourceEntry.type⊑ᴳ RC.skew-star-inst)
 skew-star-inst-initial² = entry-initial² RC.skew-star-inst
 
 tag-boundary-star-inst-initial² :
-  CPI2.initialWorld I.idᵐ store-empty
-    ∣ CPI2.initialCtx {Σ = store-empty} []
+  CTX.initialWorld I.idᵐ
+    ∣ CPI2.initialCtx {μ = I.idᵐ} []
     ⊢² proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing
         (RC.SourceEntry.initial⊑ᴳ RC.tag-boundary-star-inst)))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing
         (RC.SourceEntry.initial⊑ᴳ RC.tag-boundary-star-inst)))
-    ∶ CPI2.initial-⊑ {Σ = store-empty}
+    ∶ CPI2.initial-⊑ {μ = I.idᵐ}
       (RC.SourceEntry.type⊑ᴳ RC.tag-boundary-star-inst)
 tag-boundary-star-inst-initial² =
   entry-initial² RC.tag-boundary-star-inst
@@ -455,8 +472,7 @@ star-inst-change₀ = refl
 
 star-inst-world₁ : CTX.World 1 1 1
 star-inst-world₁ =
-  CTX.bothBindWorld I.X⊑X
-    (CPI2.initialWorld I.idᵐ store-empty) ★ ★
+  CTX.bothBindWorld (CTX.initialWorld I.idᵐ) ★ ★ I.★⊑★
 
 star-inst-X-rep₁ :
   CTX.StoreRepImp star-inst-world₁ Fin.zero Fin.zero
@@ -482,12 +498,14 @@ star-inst-lambda₁ :
       (G.⊢ƛ (RC.starBody⊢ {Γ = []})))
     ⊑ proj₁ (compile {Σ = store-bind store-empty ★}
       (G.⊢ƛ (RC.starBody⊢ {Γ = []})))
-    ∶ CPI2.initial-⊑ {Σ = store-bind store-empty ★}
-      (RC.refl⊑ᵗ (CTX.impEnvʷ star-inst-world₁) RC.X₀⇒★)
+    ∶ symmetric-refl⊑ᵂ {W = star-inst-world₁} refl
 star-inst-lambda₁ =
-  CPI2.compile-preserves-imprecision²
-    (RC.reflᴳ (CTX.impEnvʷ star-inst-world₁)
-      (G.⊢ƛ (RC.starBody⊢ {Γ = []})))
+  CPI2.⊢²-retarget
+    {q = symmetric-refl⊑ᵂ {W = star-inst-world₁} refl}
+    (CPI2.compile-preserves-identity-world²
+      {W = star-inst-world₁} refl refl (λ X → refl)
+      (RC.reflᴳ (CTX.impEnvʷ star-inst-world₁)
+        (G.⊢ƛ (RC.starBody⊢ {Γ = []}))))
 
 star-inst-function₁ :
   star-inst-world₁ ∣ [] ⊢²
@@ -499,7 +517,7 @@ star-inst-function₁ :
       C.↑ 〖 Fin.zero , ★ ↑ RC.X₀⇒★ 〗
     ∶ Ex2.★⇒★⊑★⇒★² {W = star-inst-world₁}
 star-inst-function₁ =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     star-inst-rebase₁ CTX.same-[]
     star-inst-reveal₁-⊢ˣ star-inst-reveal₁-⊢ˣ
     star-inst-lambda₁
@@ -534,15 +552,15 @@ star-inst-checkpoint₁ =
 ------------------------------------------------------------------------
 
 higher-order-shared-arg-initial² :
-  CPI2.initialWorld I.idᵐ store-empty
-    ∣ CPI2.initialCtx {Σ = store-empty} []
+  CTX.initialWorld I.idᵐ
+    ∣ CPI2.initialCtx {μ = I.idᵐ} []
     ⊢² proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing
         (RC.SourceEntry.initial⊑ᴳ RC.higher-order-shared-arg)))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing
         (RC.SourceEntry.initial⊑ᴳ RC.higher-order-shared-arg)))
-    ∶ CPI2.initial-⊑ {Σ = store-empty}
+    ∶ CPI2.initial-⊑ {μ = I.idᵐ}
       (RC.SourceEntry.type⊑ᴳ RC.higher-order-shared-arg)
 higher-order-shared-arg-initial² =
   entry-initial² RC.higher-order-shared-arg
@@ -728,12 +746,14 @@ higher-order-shared-arg-change₉ = refl
 
 higher-order-shared-arg-world₀ : CTX.World 0 0 0
 higher-order-shared-arg-world₀ =
-  CPI2.initialWorld I.idᵐ store-empty
+  CTX.initialWorld I.idᵐ
 
 higher-order-shared-arg-world₁ : CTX.World 1 1 1
 higher-order-shared-arg-world₁ =
-  CTX.bothBindWorld I.X⊑X higher-order-shared-arg-world₀
+  CTX.bothBindWorld higher-order-shared-arg-world₀
     RC.∀X⇒X₀ RC.∀X⇒X₀
+    (symmetric-refl⊑ᵂ {W = higher-order-shared-arg-world₀}
+      {A = RC.∀X⇒X₀} refl)
 
 higher-order-shared-arg-store₁-parkedᴸ :
   higher-order-shared-arg-store₁
@@ -747,8 +767,9 @@ higher-order-shared-arg-store₁-parkedᴿ = refl
 
 higher-order-shared-arg-world₂ : CTX.World 2 2 2
 higher-order-shared-arg-world₂ =
-  CTX.bothBindWorld I.X⊑X higher-order-shared-arg-world₁
+  CTX.bothBindWorld higher-order-shared-arg-world₁
     (RC.ℕᵗ {Δ = 1}) (RC.ℕᵗ {Δ = 1})
+    (Ex2.ℕ⊑ℕ² {W = higher-order-shared-arg-world₁})
 
 higher-order-shared-arg-store₈-parkedᴸ :
   higher-order-shared-arg-store₈

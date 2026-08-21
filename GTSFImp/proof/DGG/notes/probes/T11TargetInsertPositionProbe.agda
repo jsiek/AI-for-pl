@@ -25,7 +25,7 @@ lift-left-around-right-bind-fresh-target-center : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → toRenameᵗ
       (CTI2.ηᴿʷ
-        (CTI2.liftWorldLeft X⊑★ (CTI2.rightOnlyWorld W B)))
+        (CTI2.liftWorldLeft (CTI2.rightOnlyWorld W B)))
       Fin.zero
       ≡ Fin.suc Fin.zero
 lift-left-around-right-bind-fresh-target-center = refl
@@ -35,7 +35,7 @@ parked-right-bind-after-lift-left-fresh-target-center : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
   → toRenameᵗ
       (CTI2.ηᴿʷ
-        (CTI2.rightOnlyWorld (CTI2.liftWorldLeft X⊑★ W) B))
+        (CTI2.rightOnlyWorld (CTI2.liftWorldLeft W) B))
       Fin.zero
       ≡ Fin.zero
 parked-right-bind-after-lift-left-fresh-target-center = refl

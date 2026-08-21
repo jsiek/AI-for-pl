@@ -107,7 +107,7 @@ liftCtx-target lift-[] = refl
 liftCtx-target (lift-∷ liftγ) = cong (_ ∷_) (liftCtx-target liftγ)
 
 liftCtxᴸ-source : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft v W)}
+    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft W)}
   → LiftCtxᴸ v γ γ′
   → srcCtxʷ γ′ ≡ T.⇑ᶜ (srcCtxʷ γ)
 liftCtxᴸ-source liftᴸ-[] = refl
@@ -287,14 +287,8 @@ mutual
     ⊢reveal (erase-⊢↑ c⊢)
       (transport-source (rebaseᴸ-source-store rb) sc (source-typing² M⊑M′))
   source-typing²
-      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+      (CTI2.conceal⊑² mono rb sc c⊢
         M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c⊢)
-      (transport-source (sym
-        (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
-        (source-typing² M⊑M′))
-  source-typing²
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym
         (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
@@ -303,15 +297,10 @@ mutual
     ⊢reveal (erase-⊢↑ c⊢)
       (transport-source (rebase-source-store rb) sc (source-typing² M⊑M′))
   source-typing²
-      (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q) =
+      (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym (rebase-source-store rb)) sc
         (source-typing² M⊑M′))
-  source-typing²
-      (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢
-        M⊑M′ sourcePrem q) =
-    transport-source (sym (rebase-source-store rb)) sc
-      (source-typing² sourcePrem)
   source-typing² (CTI2.blame⊑² M′⊢ p) = ⊢blame
   source-typing² (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
     ⊢⊕ op (source-typing² L⊑L′) (source-typing² M⊑M′)
@@ -345,13 +334,8 @@ mutual
   target-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
     transport-target (rebaseᴸ-target-store rb) sc (target-typing² M⊑M′)
   target-typing²
-      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+      (CTI2.conceal⊑² mono rb sc c⊢
         M⊑M′ q) =
-    transport-target (sym
-      (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
-      (target-typing² M⊑M′)
-  target-typing²
-      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
     transport-target (sym
       (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
       (target-typing² M⊑M′)
@@ -359,13 +343,7 @@ mutual
     ⊢reveal (erase-⊢↑ c′⊢)
       (transport-target (rebase-target-store rb) sc (target-typing² M⊑M′))
   target-typing²
-      (CTI2.conceal⊑conceal² ok mono rb sc c⊢ c′⊢ M⊑M′ q) =
-    ⊢conceal (erase-⊢↓ c′⊢)
-      (transport-target (sym (rebase-target-store rb)) sc
-        (target-typing² M⊑M′))
-  target-typing²
-      (CTI2.packaged-seal-star² ok mono rb sc c⊢ c′⊢
-        M⊑M′ sourcePrem q) =
+      (CTI2.conceal⊑conceal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c′⊢)
       (transport-target (sym (rebase-target-store rb)) sc
         (target-typing² M⊑M′))

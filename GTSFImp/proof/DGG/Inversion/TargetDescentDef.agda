@@ -10,7 +10,6 @@ module proof.DGG.Inversion.TargetDescentDef where
 --   * Keeps the statement independent of OpenStrata, ParkedWorld, and
 --     SealChain so M4 can reuse the same package directly.
 
-open import Data.Maybe using (just)
 open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
@@ -60,7 +59,6 @@ record TargetSealTerminal {Δᴸ Δᴿ Δ}
     monoᵒ : CTI2.ImpEnvMono W₀ Wᵒ
     sameᵒ : CTI2.SameCtx γ₀ γᵒ
     payloadᵒ : TargetSealTerminalPayload Wᵒ γᵒ P U Xᵒ Yᵒ
-    partnerᵒ : CTI2.MatchedConcealPartnerOK Wᵒ P (seal Xᵒ ★) (just Yᵒ) U
 
 data TargetSealReemitInput {Δᴸ Δᴿ Δ}
     (W₀ : World Δᴸ Δᴿ Δ) (γ₀ : CtxImp W₀)

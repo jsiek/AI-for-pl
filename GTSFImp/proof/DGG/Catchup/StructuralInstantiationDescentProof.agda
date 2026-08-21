@@ -20,6 +20,8 @@ import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
+open import proof.DGG.TransportTermImprecisionDef using
+  (TargetInsertProvenanceᵀ)
 open import proof.DGG.Catchup.InstInversionDef using
   (InstSpineDescentPackage)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
@@ -199,6 +201,7 @@ residual-cast-stop-package {p = p} {q = q} {c = c}
 structural-name-package :
   StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
+  → TargetInsertProvenanceᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
@@ -224,19 +227,21 @@ structural-name-package :
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package surfaces worker fuel-step residual-cast-builder
+structural-name-package surfaces worker target-provenance fuel-step
+    residual-cast-builder
     inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   record
     { target-descent = target
     ; final-relation =
-        worker surfaces fuel-step residual-cast-builder inst-decrease plan chain-plan
-          rel vM vV view spine chain typed target
+        worker surfaces target-provenance fuel-step residual-cast-builder
+          inst-decrease plan chain-plan rel vM vV view spine chain typed target
     }
 
 
 erase-structural-name-root :
   StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
+  → TargetInsertProvenanceᵀ
   → ∀ {fuel Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
       {γ : CTI2.CtxImp W}
       {M : Term Δᴸ} {V : Term Δᴿ}
@@ -263,8 +268,10 @@ erase-structural-name-root :
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root surfaces worker fuel-step residual-cast-builder
+erase-structural-name-root surfaces worker target-provenance fuel-step
+    residual-cast-builder
     inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   erase-structural-descent
-    (structural-name-package surfaces worker fuel-step residual-cast-builder
-      inst-decrease plan chain-plan rel vM vV view spine chain typed target)
+    (structural-name-package surfaces worker target-provenance fuel-step
+      residual-cast-builder inst-decrease plan chain-plan rel vM vV view spine
+      chain typed target)

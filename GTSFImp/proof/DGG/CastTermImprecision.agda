@@ -12,8 +12,8 @@ module proof.DGG.CastTermImprecision where
 --     freezes every old target variable's center.  Imprecision marks are
 --     not pinned by the rebase; instead every wrapper rule carries
 --     ImpEnvMono, letting marks decay toward X⊑★ from conclusion to
---     premise, and WFWorld names the worlds whose precise marks are
---     honestly aligned.
+--     premise.  Every world carries alignment, direct-representation,
+--     unmatched-target, and dynamic-source occupancy invariants.
 --   * Store representations are canonical: a pivot variable is compared
 --     through resolveVar, which follows the store's representation chain
 --     to its end instead of stopping at an arbitrary intermediate type.
@@ -107,13 +107,13 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
   -- extra-cast-right inversion needs them to refute the ∀⊑∀ and
   -- bot-elim views of q.
   Λ⊑² : ∀ {γ′ V M A B}
-      {p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B}
+      {p : A ⊑ᵂ⟨ liftWorldLeft W ⟩ B}
     → NonVar A
     → Fin.zero ∈ᵗ A
     → LiftCtxᴸ X⊑★ γ γ′
     → Value V
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M ⦂ B
-    → liftWorldLeft X⊑★ W ∣ γ′ ⊢² V ⊑ M ∶ p
+    → liftWorldLeft W ∣ γ′ ⊢² V ⊑ M ∶ p
     → (q : `∀ A ⊑ᵂ⟨ W ⟩ B)
       -------------------------------------------
     → W ∣ γ ⊢² Λ V ⊑ M ∶ q
@@ -218,28 +218,11 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       -----------------------------
     → W ∣ γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  -- Source-only `seal X ★` sees through only under
-  -- `NoTargetOccupantAtSource`; remaining non-`★`/non-seal cases use
-  -- `SourceConcealOK`.
-  conceal⊑²-seal-star-open : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ B X}
-      {p : ★ ⊑ᵂ⟨ W′ ⟩ B}
-    → NoTargetOccupantAtSource W′ X
-    → ImpEnvMono W W′
-    → TagRebaseAtᴸ W′ W (just X) nothing
-    → SameCtx γ γ′
-    → sourceStoreʷ W ⊢↓[ just X ] seal X ★
-    → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
-    → (q : (＇ X) ⊑ᵂ⟨ W ⟩ B)
-      -----------------------------
-    → W ∣ γ ⊢² M ↓ seal X ★ ⊑ M′ ∶ q
-
-  conceal⊑²-source-ok : ∀ {W′ : World Δᴸ Δᴿ Δ}
-      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
+  conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
+      {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ?}
       {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-    → SourceConcealOK W′ M c Xᴿ? M′
     → ImpEnvMono W W′
-    → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
+    → TagRebaseAtᴸ W′ W Xᴸ? nothing
     → SameCtx γ γ′
     → sourceStoreʷ W ⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
@@ -267,7 +250,6 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
       {M M′ A A′ B B′ Xᴸ Xᴿ}
       {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
       {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
-    → MatchedConcealPartnerOK Wᵖ M c (just Xᴿ) M′
     → ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Xᴿ
     → SameCtx γ γᵖ
@@ -277,23 +259,6 @@ data _∣_⊢²_⊑_∶_ {Δᴸ Δᴿ Δ}
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
     → W ∣ γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
-
-  packaged-seal-star² : ∀
-      {Wᵖ : World Δᴸ Δᴿ Δ} {γᵖ : CtxImp Wᵖ}
-      {M M′ Xᴸ Xᴿ Xᴿ?}
-      {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
-      {qᵖ : (＇ Xᴸ) ⊑ᵂ⟨ Wᵖ ⟩ ★}
-    → MatchedConcealPartnerOK Wᵖ M (seal Xᴸ ★) Xᴿ? M′
-    → ImpEnvMono W Wᵖ
-    → RebaseAt Wᵖ W Xᴸ Xᴿ
-    → SameCtx γ γᵖ
-    → sourceStoreʷ W ⊢↓[ just Xᴸ ] seal Xᴸ ★
-    → targetStoreʷ W ⊢↓[ just Xᴿ ] seal Xᴿ ★
-    → Wᵖ ∣ γᵖ ⊢² M ⊑ M′ ∶ p★
-    → Wᵖ ∣ γᵖ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ∶ qᵖ
-    → (q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Xᴿ))
-      --------------------------------------------------------
-    → W ∣ γ ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ↓ seal Xᴿ ★ ∶ q
 
   -- Source blame is below any well-typed target term.  The left side
   -- is the more static one (A ⊑ ★ for any closed type A, with ★ on

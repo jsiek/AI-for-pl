@@ -49,7 +49,7 @@ open import proof.DGG.Occupancy using
     ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
   → (vV : Value V)
   → (B≢★ : B ≢ ★)
-  → CTI2.Occupied (CTI2.rightOnlyWorld W ★) zero ×
+  → CTI2.Occupied (CTI2.rightOnlyWorld W ★ (inj₁ refl)) zero ×
     Σ[ N ∈ Term (suc Δᴿ) ]
       ((V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ] N)
        × ((Σ[ M ∈ Term (suc Δᴿ) ]
@@ -79,7 +79,8 @@ open import proof.DGG.Occupancy using
   → (vV : Value V)
   → (A≢★ : A ≢ ★)
   → (safe : GenSafe c)
-  → CTI2.Occupied (CTI2.rightOnlyWorld W C) zero ×
+  → (fresh : CTI2.RightBindFresh W C)
+  → CTI2.Occupied (CTI2.rightOnlyWorld W C fresh) zero ×
     Σ[ N ∈ Term (suc Δᴿ) ]
       (((V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ] N)
        × ((Σ[ M ∈ Term (suc Δᴿ) ]
@@ -92,8 +93,8 @@ open import proof.DGG.Occupancy using
            Σ[ c′ ∈ (μ′ ⊢ S ∼ T) ]
               N ≡ (M ↑ 〖 zero , ⇑ᵗ C ↑ B 〗) ⟨ c′ ⟩)))
 β-gen-allocation-atomic {W = W} {V = V} {A = A} {C = C}
-    {B = B} {c = c} vV A≢★ safe =
-  β-gen-allocation-occupies-targetᴼ {W = W} C ,
+    {B = B} {c = c} vV A≢★ safe fresh =
+  β-gen-allocation-occupies-targetᴼ {W = W} C fresh ,
   (⇑ᵗᵐ V ⟨ c ⟩ ↑ 〖 zero , ⇑ᵗ C ↑ B 〗) ,
   β-gen vV A≢★ safe ,
   inj₁ (_ , refl)
@@ -110,8 +111,9 @@ occupied-see-through-empty : ∀ {Δᴸ Δᴿ Δ}
   → lookupStore (CTI2.sourceStoreʷ W) X ≡ ★
   → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X)
   → ⊥
-occupied-see-through-empty X inv mark entry occupied =
-  WI.world-invariants-d17c-occupancy inv mark entry occupied
+occupied-see-through-empty {W = W} X inv mark entry occupied =
+  WI.world-invariants-d17c-occupancy {W = W} {X = X}
+    inv mark entry occupied
 
 record RelatedReductionGroundingKnot : Set₁ where
   field
@@ -137,7 +139,8 @@ record RelatedReductionGroundingKnot : Set₁ where
         ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
       → (vV : Value V)
       → (B≢★ : B ≢ ★)
-      → CTI2.Occupied (CTI2.rightOnlyWorld W ★) zero ×
+      → CTI2.Occupied
+          (CTI2.rightOnlyWorld W ★ (inj₁ refl)) zero ×
         Σ[ N ∈ Term (suc Δᴿ) ]
           ((V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ] N)
            × ((Σ[ M ∈ Term (suc Δᴿ) ]
@@ -160,7 +163,8 @@ record RelatedReductionGroundingKnot : Set₁ where
       → (vV : Value V)
       → (A≢★ : A ≢ ★)
       → (safe : GenSafe c)
-      → CTI2.Occupied (CTI2.rightOnlyWorld W C) zero ×
+      → (fresh : CTI2.RightBindFresh W C)
+      → CTI2.Occupied (CTI2.rightOnlyWorld W C fresh) zero ×
         Σ[ N ∈ Term (suc Δᴿ) ]
           (((V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ] N)
            × ((Σ[ M ∈ Term (suc Δᴿ) ]
@@ -176,8 +180,10 @@ record RelatedReductionGroundingKnot : Set₁ where
 grounding-preservation-knot : RelatedReductionGroundingKnot
 grounding-preservation-knot = record
   { preserves-old-occupied-see-through-empty =
-      λ occ-at-source-forward X occupied inv′ mark′ entry′ →
-        WI.world-invariants-d17c-occupancy inv′ mark′ entry′
+      λ {Δᴸ} {Δᴿ} {Δ} {W} {W′}
+          occ-at-source-forward X occupied inv′ mark′ entry′ →
+        WI.world-invariants-d17c-occupancy {W = W′} {X = X}
+          inv′ mark′ entry′
           (occ-at-source-forward X occupied)
   ; β-inst-new-cell-grounded =
       λ {Δᴸ} {Δᴿ} {Δ} {W} {V} {μ} {A} {B} {c}
@@ -187,8 +193,8 @@ grounding-preservation-knot = record
           ⦃ z∈A = z∈A ⦄ vV B≢★
   ; β-gen-new-cell-grounded =
       λ {Δᴸ} {Δᴿ} {Δ} {W} {V} {μ} {A} {C} {B} {c}
-          ⦃ Bnv ⦄ ⦃ z∈B ⦄ vV A≢★ safe →
+          ⦃ Bnv ⦄ ⦃ z∈B ⦄ vV A≢★ safe fresh →
         β-gen-allocation-atomic {W = W} {V = V} {μ = μ}
           {A = A} {C = C} {B = B} {c = c} ⦃ Bnv = Bnv ⦄
-          ⦃ z∈B = z∈B ⦄ vV A≢★ safe
+          ⦃ z∈B = z∈B ⦄ vV A≢★ safe fresh
   }

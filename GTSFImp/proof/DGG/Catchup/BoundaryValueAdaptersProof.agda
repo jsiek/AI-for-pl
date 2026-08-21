@@ -35,7 +35,7 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef using
   (StructuralCatchupRightResult)
 
 
-record StructuralForwardTagRebaseAtᴸPullbackResult
+record StructuralForwardTagRebaseAtᴸResult
     {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
     {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
@@ -51,24 +51,26 @@ record StructuralForwardTagRebaseAtᴸPullbackResult
     post-mono : CTI2.ImpEnvMono W Wᵖ → CTI2.ImpEnvMono W′ Wᵖ′
 
 
-structural-forward-tag-rebase-atᴸ-pullback :
-    ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
-      {χs : StoreChanges Δᴿ Δᴿ′}
-      {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
-      {Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′}
-      {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
+structural-forward-tag-rebase-atᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
+    {χs : StoreChanges Δᴿ Δᴿ′}
+    {Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {Wᵖ′ : CTI2.World Δᴸ Δᴿ′ Δ′}
+    {W : CTI2.World Δᴸ Δᴿ Δ} {Xᴸ? Xᴿ?}
   → (planᵖ : StructuralWorldExtendᴿ χs Wᵖ Wᵖ′)
   → (rb : CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?)
-  → StructuralForwardTagRebaseAtᴸPullbackResult planᵖ rb
-structural-forward-tag-rebase-atᴸ-pullback structural-[] rb = record
+  → StructuralTagRebaseAtᴸReplay planᵖ rb
+  → StructuralForwardTagRebaseAtᴸResult planᵖ rb
+structural-forward-tag-rebase-atᴸ structural-[] rb tag-rebase-[] = record
   { W′ = _
   ; outer-plan = structural-[]
   ; post-rebase = rb
   ; post-mono = λ mono → mono
   }
-structural-forward-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
-    with structural-forward-tag-rebase-atᴸ-pullback planᵖ rb
-structural-forward-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
+structural-forward-tag-rebase-atᴸ (structural-keep planᵖ) rb
+    (tag-rebase-keep replay)
+    with structural-forward-tag-rebase-atᴸ planᵖ rb replay
+structural-forward-tag-rebase-atᴸ (structural-keep planᵖ) rb
+    (tag-rebase-keep replay)
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -77,30 +79,13 @@ structural-forward-tag-rebase-atᴸ-pullback (structural-keep planᵖ) rb
     ; post-rebase = rb′
     ; post-mono = mono′
     }
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    CTI2.tag-rebase-idᴸ
-    with structural-forward-tag-rebase-atᴸ-pullback
-      planᵖ CTI2.tag-rebase-idᴸ
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    CTI2.tag-rebase-idᴸ
-    | record { W′ = W′ ; outer-plan = plan
-             ; post-rebase = rb′ ; post-mono = mono′ } =
-  record
-    { W′ = W′
-    ; outer-plan = structural-bind insᵖ followsᵖ plan
-    ; post-rebase = rb′
-    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
-    }
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-varᴸ rb)
-    with structural-forward-tag-rebase-atᴸ-pullback planᵖ
-      (CTI2.tag-rebase-varᴸ (TE.pullbackRebaseAt insᵖ rb))
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-varᴸ rb)
+structural-forward-tag-rebase-atᴸ
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ) rb
+    (tag-rebase-bind ins rb₁ replay)
+    with structural-forward-tag-rebase-atᴸ planᵖ rb₁ replay
+structural-forward-tag-rebase-atᴸ
+    (structural-bind {B = B} insᵖ followsᵖ planᵖ) rb
+    (tag-rebase-bind ins rb₁ replay)
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   record
@@ -110,30 +95,14 @@ structural-forward-tag-rebase-atᴸ-pullback
     ; post-mono = λ mono → mono′ (TE.impEnvMono-insert ins insᵖ mono)
     }
   where
-  ins = TE.pullbackRebaseTargetInsert insᵖ rb
-
   follows =
-    trans followsᵖ
-      (cong (applyStore (bind B)) (CTI2T.rebase-target-store rb))
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
-    with structural-forward-tag-rebase-atᴸ-pullback planᵖ
-      (CTI2.tag-rebase-onlyᴸ
-        (TE.insert-to-starᴸ insᵖ to-star)
-        (TE.insert-disalignedᴸ insᵖ disaligned)
-        (TE.insert-represented★ᴸ insᵖ represented))
-structural-forward-tag-rebase-atᴸ-pullback
-    (structural-bind {B = B} insᵖ followsᵖ planᵖ)
-    (CTI2.tag-rebase-onlyᴸ to-star disaligned represented)
-    | record { W′ = W′ ; outer-plan = plan
-             ; post-rebase = rb′ ; post-mono = mono′ } =
-  record
-    { W′ = W′
-    ; outer-plan = structural-bind insᵖ followsᵖ plan
-    ; post-rebase = rb′
-    ; post-mono = λ mono → mono′ (TE.impEnvMono-insert insᵖ insᵖ mono)
-    }
+    trans
+      (sym (CTI2T.rebaseᴸ-target-store
+        (CTI2.forgetTagRebaseᴸ rb₁)))
+      (trans followsᵖ
+        (cong (applyStore (bind B))
+          (CTI2T.rebaseᴸ-target-store
+            (CTI2.forgetTagRebaseᴸ rb))))
 
 
 mapPivotChanges-nothing : ∀ {Δ Δ′}
@@ -189,16 +158,18 @@ source-reveal-boundary-value-adapter : ∀ {Δᴸ Δᴿ Δ}
   → ParkedWorld W
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?)
-  → StructuralCatchupRightResult Wᵖ [] V M′ p
+  → (child : StructuralCatchupRightResult Wᵖ [] V M′ p)
+  → StructuralTagRebaseAtᴸReplay
+      (StructuralCatchupRightResult.structural-ext child) rb
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-reveal-boundary}
       {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
       {V = V} {M′ = M′} {A = A} {B = B}
-source-reveal-boundary-value-adapter embed parked mono rb child
-    with structural-forward-tag-rebase-atᴸ-pullback planᵖ rb
+source-reveal-boundary-value-adapter embed parked mono rb child replay
+    with structural-forward-tag-rebase-atᴸ planᵖ rb replay
   where
   planᵖ = StructuralCatchupRightResult.structural-ext child
-source-reveal-boundary-value-adapter embed parked mono rb child
+source-reveal-boundary-value-adapter embed parked mono rb child replay
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   StructuralCatchupRightResult.Δᴿ′ child ,
@@ -233,16 +204,18 @@ target-reveal-boundary-value-adapter : ∀ {Δᴸ Δᴿ Δ}
   → ParkedWorld W
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ W Wᵖ Xᴸ? Xᴿ?)
-  → StructuralCatchupRightResult Wᵖ [] V M′ p
+  → (child : StructuralCatchupRightResult Wᵖ [] V M′ p)
+  → StructuralTagRebaseAtᴸReplay
+      (StructuralCatchupRightResult.structural-ext child) rb
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = target-reveal-boundary}
       {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
       {V = V} {M′ = M′} {A = A} {B = B}
-target-reveal-boundary-value-adapter embed parked mono rb child
-    with structural-forward-tag-rebase-atᴸ-pullback planᵖ rb
+target-reveal-boundary-value-adapter embed parked mono rb child replay
+    with structural-forward-tag-rebase-atᴸ planᵖ rb replay
   where
   planᵖ = StructuralCatchupRightResult.structural-ext child
-target-reveal-boundary-value-adapter embed parked mono rb child
+target-reveal-boundary-value-adapter embed parked mono rb child replay
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   StructuralCatchupRightResult.Δᴿ′ child ,
@@ -277,16 +250,18 @@ source-conceal-boundary-value-adapter : ∀ {Δᴸ Δᴿ Δ}
   → ParkedWorld W
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → StructuralCatchupRightResult Wᵖ [] V M′ p
+  → (child : StructuralCatchupRightResult Wᵖ [] V M′ p)
+  → StructuralTagRebaseAtᴸPullbackReplay
+      (StructuralCatchupRightResult.structural-ext child) rb
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-conceal-boundary}
       {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
       {V = V} {M′ = M′} {A = A} {B = B}
-source-conceal-boundary-value-adapter embed parked mono rb child
-    with structural-tag-rebase-atᴸ-pullback planᵖ rb
+source-conceal-boundary-value-adapter embed parked mono rb child replay
+    with structural-tag-rebase-atᴸ-pullback planᵖ rb replay
   where
   planᵖ = StructuralCatchupRightResult.structural-ext child
-source-conceal-boundary-value-adapter embed parked mono rb child
+source-conceal-boundary-value-adapter embed parked mono rb child replay
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   StructuralCatchupRightResult.Δᴿ′ child ,
@@ -321,16 +296,18 @@ target-conceal-boundary-value-adapter : ∀ {Δᴸ Δᴿ Δ}
   → ParkedWorld W
   → (mono : CTI2.ImpEnvMono W Wᵖ)
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → StructuralCatchupRightResult Wᵖ [] V M′ p
+  → (child : StructuralCatchupRightResult Wᵖ [] V M′ p)
+  → StructuralTagRebaseAtᴸPullbackReplay
+      (StructuralCatchupRightResult.structural-ext child) rb
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = target-conceal-boundary}
       {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
       {V = V} {M′ = M′} {A = A} {B = B}
-target-conceal-boundary-value-adapter embed parked mono rb child
-    with structural-tag-rebase-atᴸ-pullback planᵖ rb
+target-conceal-boundary-value-adapter embed parked mono rb child replay
+    with structural-tag-rebase-atᴸ-pullback planᵖ rb replay
   where
   planᵖ = StructuralCatchupRightResult.structural-ext child
-target-conceal-boundary-value-adapter embed parked mono rb child
+target-conceal-boundary-value-adapter embed parked mono rb child replay
     | record { W′ = W′ ; outer-plan = plan
              ; post-rebase = rb′ ; post-mono = mono′ } =
   StructuralCatchupRightResult.Δᴿ′ child ,

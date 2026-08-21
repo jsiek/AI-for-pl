@@ -40,8 +40,7 @@ open import proof.DGG.Inversion.SourceStripDef using
    core-terminus; core-terminus-nonstar; spine-paired; spine-sealed;
    spine-tagged)
 open import proof.DGG.Inversion.SourceStripColumnView using
-  (SourceColumnSealDCase; column-seal-source-case;
-   column-seal-target-cast-case; source-column-seal-D-case)
+  (source-column-alias-cycle-⊥)
 open import proof.DGG.Inversion.SpineValueDef using
   (SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal; sv-reveal-fun;
    sv-conceal-fun; sv-reveal-all; sv-conceal-all; varv-seal;
@@ -142,33 +141,9 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
         trans (CTX.RebaseAt.ηᴿ-frozen rb₁ Z)
           (CTX.RebaseAt.ηᴿ-frozen rb₂ Z)
 
-    composeTagRebaseOuter : ∀ {Δᴸ Δᴿ Δ}
-        {W W′ W₂ : World Δᴸ Δᴿ Δ}
-        {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {Y′?}
-      → RebaseAt W′ W X Y
-      → TagRebaseAtᴸ W₂ W′ (just X) Y′?
-      → RebaseAt W₂ W X Y
-    composeTagRebaseOuter rb (CTX.tag-rebase-varᴸ link) =
-      composeOuterRebase rb link
-    composeTagRebaseOuter rb
-        (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
-      rb
-
-    composeTagRebaseTagOuter : ∀ {Δᴸ Δᴿ Δ}
-        {W W′ W₂ : World Δᴸ Δᴿ Δ}
-        {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {Y′?}
-      → RebaseAt W′ W X Y
-      → TagRebaseAtᴸ W₂ W′ (just X) Y′?
-      → Σ[ Z? ∈ _ ] TagRebaseAtᴸ W₂ W (just X) Z?
-    composeTagRebaseTagOuter rb (CTX.tag-rebase-varᴸ link) =
-      _ , CTX.tag-rebase-varᴸ (composeOuterRebase rb link)
-    composeTagRebaseTagOuter rb
-        (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
-      _ , CTX.tag-rebase-varᴸ rb
-
     impEnvMono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
       → CTX.ImpEnvMono W W
-    impEnvMono-refl Z eq = eq
+    impEnvMono-refl = CTX.impEnvMono-refl
 
     sameCtx-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
         {γ : CtxImp W}
@@ -261,51 +236,28 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       → targetStoreʷ W ∋ Y ⦂ S
       → W′ ∣ γ′ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ r
       → W ∣ γ ⊢² V ↓ seal X R ⊑ U ↓ seal Y S ∶ q
-    source-column-untagged-final {W = W} {W′ = W′} {q = q}
+    source-column-untagged-final {W = W} {W′ = W′} {Y = Y}
+        {q = q}
         mono rb sc target∈
-        (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
-          (CTX.seal-nonstar-unmatched-ok Rns no-target) monoᵖ rbᵖ scᵖ
-          (Conv.⊢↓-sealˣ X∈) prem r)
-        with composeTagRebaseTagOuter rb rbᵖ
-    source-column-untagged-final {W = W} {W′ = W′} {q = q}
-        mono rb sc target∈
-        (CTI2.conceal⊑²-source-ok {W′ = Wᵖ} {p = pᵖ}
-          (CTX.seal-nonstar-unmatched-ok Rns no-target) monoᵖ rbᵖ scᵖ
-          (Conv.⊢↓-sealˣ X∈) prem r)
-        | Z? , rbᶠ =
-      CTI2.conceal⊑²-source-ok
-        (CTX.seal-nonstar-unmatched-ok Rns no-target)
-        (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
-          mono monoᵖ)
-        rbᶠ (sameCtx-∘ sc scᵖ)
-        (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
-        prem q
+        (CTI2.conceal⊑² {W′ = Wᵖ} {p = pᵖ}
+          monoᵖ
+          (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
+          scᵖ (Conv.⊢↓-sealˣ X∈) prem r) =
+      ⊥-elim
+        (disaligned Y
+          (sym (variable-obligation-aligns {W = W′} r)))
     source-column-untagged-final {W = W} {W′ = W′} {q = q}
         mono rb sc target∈
         (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = pᵖ}
-          ok monoᵖ rbᵖ scᵖ
+          monoᵖ rbᵖ scᵖ
           (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ target∈′)
           prem r) =
       CTI2.conceal⊑conceal²
-        ok
         (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
           mono monoᵖ)
         (composeOuterRebase rb rbᵖ) (sameCtx-∘ sc scᵖ)
         (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
         (Conv.⊢↓-sealˣ target∈) prem q
-    source-column-untagged-final {W = W} {W′ = W′} {q = q}
-        mono rb sc target∈
-        (CTI2.packaged-seal-star² {Wᵖ = Wᵖ}
-          ok monoᵖ rbᵖ scᵖ
-          (Conv.⊢↓-sealˣ X∈) (Conv.⊢↓-sealˣ target∈′)
-          prem sourcePrem r) =
-      CTI2.packaged-seal-star²
-        ok
-        (impEnvMono-∘ {W₁ = W} {W₂ = W′} {W₃ = Wᵖ}
-          mono monoᵖ)
-        (composeOuterRebase rb rbᵖ) (sameCtx-∘ sc scᵖ)
-        (Conv.⊢↓-sealˣ (rebase-source-membership-back rb X∈))
-        (Conv.⊢↓-sealˣ target∈) prem sourcePrem q
     source-column-untagged-final {W = W} {W′ = W′} {q = q}
         mono rb sc target∈
         (CTI2.⊑conceal² {W′ = Wᵈ} {p = pᵈ}
@@ -520,7 +472,7 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       wrap-star-cast-nonfinal
     wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
         source∈ target∈ final | refl
-        | target-source-star-paired _ _ _ _ _ _ _ _ =
+        | target-source-star-paired _ _ _ _ _ _ _ =
       wrap-star-cast-nonfinal
     wrap-star-cast-final-view {S = ★} sv inert vU mono rb sc
         source∈ target∈ final | refl
@@ -540,7 +492,7 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       wrap-star-cast-nonfinal
     wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
         source∈ target∈ final
-        | target-source-star-chain-paired _ _ _ _ _ _ _ _ _ _ =
+        | target-source-star-chain-paired _ _ _ _ _ _ _ _ _ =
       wrap-star-cast-nonfinal
     wrap-star-cast-final-view {S = ＇ Y₂} sv inert vU mono rb sc
         source∈ target∈ final
@@ -1247,38 +1199,36 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       vU mono rb sc source∈ target∈ D
   source-spine-strip-worker-seal-nonvar
       (sv-seal (sv-Λ sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         D@(CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem p) q) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ (sv-Λ sv)
         nonvar-all nonstar-∀ D)
   source-spine-strip-worker-seal-nonvar
       (sv-seal (sv-reveal-fun sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
         nonstar-⇒ prem)
   source-spine-strip-worker-seal-nonvar
       (sv-seal (sv-conceal-fun sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.conceal⊑²-source-ok
-          okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
         nonstar-⇒ prem)
   source-spine-strip-worker-seal-nonvar
       (sv-seal (sv-reveal-all sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
         nonstar-∀ prem)
   source-spine-strip-worker-seal-nonvar
       (sv-seal (sv-conceal-all sv)) vU mono rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.conceal⊑²-source-ok
-          okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem p) q) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
         nonstar-∀ prem)
@@ -1319,33 +1269,23 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
     source-spine-direct-cast (sv-seal sv) vU mono rb sc
       source∈ target∈ prem
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.Λ⊑² Anv z∈A liftγ vV target⊢ prem pᵢ) p)
       sv vU mono rb sc source∈ target∈ =
     source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
       source∈ target∈ D
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
+      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
         (CTI2.reveal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
       sv vU mono rb sc source∈ target∈ =
     source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
       source∈ target∈ D
   source-spine-strip-worker-seal-D
-      D@(CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢
-        (CTI2.conceal⊑²-source-ok
-          okᵣ monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
+      D@(CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢
+        (CTI2.conceal⊑² monoᵣ rbᵣ scᵣ c⊢ᵣ prem pᵢ) p)
       sv vU mono rb sc source∈ target∈ =
     source-spine-strip-worker-seal-nonvar (sv-seal sv) vU mono rb sc
       source∈ target∈ D
-  source-spine-strip-worker-seal-D
-      (CTI2.conceal⊑²-source-ok
-        (CTX.seal-nonstar-name-protected-ok Rns aligned)
-        monoᵢ (CTX.tag-rebase-varᴸ link) scᵢ
-        (Conv.⊢↓-sealˣ X∈)
-        (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
-      sv vU mono rb sc source∈ target∈ =
-    source-seal-branch sv vU mono rb sc source∈ target∈
-      monoᵢ link scᵢ X∈ prem
   source-spine-strip-worker-seal : SourceSpineStrip
   {-# NON_COVERING #-}
   source-spine-strip-worker-seal (sv-seal sv) vU mono rb sc
@@ -1374,7 +1314,7 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       source∈ target∈ prem
   source-spine-strip-worker-conceal-fun (sv-conceal-fun sv) vU mono
       rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-fun
         nonstar-⇒ prem)
@@ -1400,7 +1340,7 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
       source∈ target∈ prem
   source-spine-strip-worker-conceal-all (sv-conceal-all sv) vU mono
       rb sc source∈ target∈
-      (CTI2.conceal⊑²-source-ok ok monoᵢ rbᵢ scᵢ c⊢ prem p) =
+      (CTI2.conceal⊑² monoᵢ rbᵢ scᵢ c⊢ prem p) =
     ⊥-elim
       (tagged-target-nonvar-nonstar-spine-⊥ sv nonvar-all
         nonstar-∀ prem)
@@ -1494,33 +1434,24 @@ module _ (occupied : OccupiedNonStarSourceSealResidual) where
         (SpineValue Core
          × SourceColumnStripBranch W γ (V ↓ seal Xᴸ R) U Xᴸ Y S cY q
              Core CoreTy Xᵒ Wᵒ γᵒ qᵒ)
+  {-# NON_COVERING #-}
   source-column-strip-worker-seal-D {W = W} {W′ = W′} {γ = γ}
       {γ′ = γ′} {V = V} {U = U} {R = R} {S = S}
       {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {q = q}
-      D sv vU mono rb sc target∈
-      with source-column-seal-D-case D
-  source-column-strip-worker-seal-D {W = W} {W′ = W′} {γ = γ}
-      {γ′ = γ′} {V = V} {U = U} {R = R} {S = S}
-      {Xᴸ = Xᴸ} {Y = Y} {cY = cY} {q = q}
-      D sv vU mono rb sc target∈
-      | column-seal-target-cast-case {pᵤ = pᵤ} prem =
+      (CTI2.⊑cast² {p = pᵤ} cY′ prem p)
+      sv vU mono rb sc target∈ =
     source-column-direct-branch
       {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
       {V = V} {U = U} {R = R} {S = S}
       {X = Xᴸ} {Y = Y} {cY = cY} {pᵤ = pᵤ} {q = q}
       sv mono rb sc target∈ prem
-  source-column-strip-worker-seal-D {W = W} {W′ = W′} {γ = γ}
-      {γ′ = γ′} {V = V} {U = U} {R = R} {S = S}
-      {Xᴸ = Xᴸ} {Y = Y} {q = q}
-      D sv vU mono rb sc target∈
-      | column-seal-source-case {Wᵢ = Wᵢ} {γᵢ = γᵢ}
-          {pᵤ = pᵤ} monoᵢ link scᵢ X∈ prem =
-    self-column-sealed rb target∈ (sv-seal sv)
-      (source-column-seal-final
-        {W = W} {W′ = W′} {Wᵢ = Wᵢ} {γ = γ} {γ′ = γ′}
-        {γᵢ = γᵢ} {V = V} {U = U} {R = R} {S = S}
-        {X = Xᴸ} {Y = Y} {pᵤ = pᵤ} {q = q}
-        sv vU mono rb sc target∈ monoᵢ link scᵢ X∈ prem)
+  source-column-strip-worker-seal-D {W′ = W′} {Y = Y} {q = q}
+      (CTI2.conceal⊑² monoᵢ
+        (CTX.tag-rebase-onlyᴸ to-star disaligned represented) scᵢ
+        (Conv.⊢↓-sealˣ X∈)
+        (CTI2.⊑cast² {p = pᵤ} cY prem p★) p)
+      sv vU mono rb sc target∈ =
+    ⊥-elim (source-column-alias-cycle-⊥ {q = q} rb X∈ pᵤ)
 
   source-column-strip-worker-D {W = W} {W′ = W′} {γ = γ}
       D (sv-ƛ N) vU mono rb sc target∈

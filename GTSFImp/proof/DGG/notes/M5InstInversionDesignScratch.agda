@@ -315,30 +315,30 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
       (bind ★ ∷ bind (＇ Fin.zero) ∷ []) W W₂}
     {extᴸ₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂)}
-    {γ : CtxImp (liftWorldLeft X⊑★ W)}
+      (liftWorldLeft W) (liftWorldLeft W₂)}
+    {γ : CtxImp (liftWorldLeft W)}
     {γᴮ : CtxImp
-      (liftWorldBoth X⊑X (liftWorldLeft X⊑★ W))}
+      (liftWorldBoth X⊑X (liftWorldLeft W))}
     {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {body-p : A ⊑ᵂ⟨
-      liftWorldBoth X⊑X (liftWorldLeft X⊑★ W) ⟩ B}
+      liftWorldBoth X⊑X (liftWorldLeft W) ⟩ B}
   → Λ⊑Λ²LeftTower W W₂ ext₂
   → (Anv : NonVar A)
   → (zero∈A : Fin.zero ∈ᵗ A)
   → (liftγ : LiftCtx X⊑X γ γᴮ)
   → (vV : Value V)
   → (vV′ : Value V′)
-  → liftWorldBoth X⊑X (liftWorldLeft X⊑★ W)
+  → liftWorldBoth X⊑X (liftWorldLeft W)
       ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
   → Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
     Σ[ post ∈ Term (suc (suc Δᴿ)) ]
-    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B₂ ]
+    Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨ liftWorldLeft W₂ ⟩ B₂ ]
       Value post
       × ⟨ suc (suc Δᴿ) ,
-          targetStoreʷ (liftWorldLeft X⊑★ W₂) ,
+          targetStoreʷ (liftWorldLeft W₂) ,
           tgtCtxʷ (ECR.mapCtxᴿ extᴸ₂ γ) ⟩ ⊢ post ⦂ B₂
-      × liftWorldLeft X⊑★ W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γ
+      × liftWorldLeft W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γ
           ⊢² Λ V ⊑ post ∶ p₂
 Λ⊑Λ²-one-lift-rewrap-preflight transport tower Anv zero∈A liftγ
     vV vV′ bodyRel =
@@ -351,41 +351,41 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
   Λ⊑Λ²PostBodyTransportᵀ
   → ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γ : CtxImp (liftWorldLeft W)}
     {γᴮ : CtxImp
-      (liftWorldBoth X⊑X (liftWorldLeft X⊑★ W))}
+      (liftWorldBoth X⊑X (liftWorldLeft W))}
     {V : Term (suc (suc Δᴸ))} {V′ : Term (suc Δᴿ)}
     {A : Ty (suc (suc Δᴸ))} {B : Ty (suc Δᴿ)}
     {body-p : A ⊑ᵂ⟨
-      liftWorldBoth X⊑X (liftWorldLeft X⊑★ W) ⟩ B}
+      liftWorldBoth X⊑X (liftWorldLeft W) ⟩ B}
   → (ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      (liftWorldLeft X⊑★ W)
+      (liftWorldLeft W)
       (rightOnlyWorld
-        (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+        (rightOnlyWorld (liftWorldLeft W) ★)
         (＇ Fin.zero)))
   → (Anv : NonVar A)
   → (zero∈A : Fin.zero ∈ᵗ A)
   → (liftγ : LiftCtx X⊑X γ γᴮ)
   → (vV : Value V)
   → (vV′ : Value V′)
-  → liftWorldBoth X⊑X (liftWorldLeft X⊑★ W)
+  → liftWorldBoth X⊑X (liftWorldLeft W)
       ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
   → Σ[ B₂ ∈ Ty (suc (suc Δᴿ)) ]
     Σ[ post ∈ Term (suc (suc Δᴿ)) ]
     Σ[ p₂ ∈ `∀ A ⊑ᵂ⟨
       rightOnlyWorld
-        (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+        (rightOnlyWorld (liftWorldLeft W) ★)
         (＇ Fin.zero) ⟩ B₂ ]
       Value post
       × ⟨ suc (suc Δᴿ) ,
           targetStoreʷ
             (rightOnlyWorld
-              (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+              (rightOnlyWorld (liftWorldLeft W) ★)
               (＇ Fin.zero)) ,
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩ ⊢ post ⦂ B₂
       × rightOnlyWorld
-          (rightOnlyWorld (liftWorldLeft X⊑★ W) ★)
+          (rightOnlyWorld (liftWorldLeft W) ★)
           (＇ Fin.zero) ∣ ECR.mapCtxᴿ ext₂ γ
           ⊢² Λ V ⊑ post ∶ p₂
 Λ⊑Λ²-one-lift-born-rewrap-preflight transport ext₂ Anv zero∈A
@@ -412,8 +412,8 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
   → Value V
   → Value V′
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
-    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft W₂) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
@@ -423,7 +423,7 @@ inst-post-at→package rel vM vM′ c′ B′≢★ c<fuel q ext₂
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂
           substᵗ Λ⊑Λ²TargetSplit₂ B
-      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
+      × liftWorldLeft W₂ ∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
@@ -665,11 +665,11 @@ record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
 
     Λ⊑²-rewrap : ∀ {Δᴸ Δᴿ Δ}
         {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-        {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+        {γᴸ : CtxImp (liftWorldLeft W)}
         {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
         {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
         {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
-        {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ `∀ B}
+        {body-p : A ⊑ᵂ⟨ liftWorldLeft W ⟩ `∀ B}
         {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
       → (Anv : NonVar A)
       → (zero∈A : Fin.zero ∈ᵗ A)
@@ -680,14 +680,14 @@ record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
       → (target⊢ :
           ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩
             ⊢ (Λ V′) ⦂ `∀ B)
-      → (rel : liftWorldLeft X⊑★ W ∣ γᴸ ⊢² V ⊑ Λ V′ ∶
+      → (rel : liftWorldLeft W ∣ γᴸ ⊢² V ⊑ Λ V′ ∶
           body-p)
       → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
       → ⦃ Bnv : NonVar B ⦄
       → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
       → (B′≢★ : B′ ≢ ★)
       → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-      → (body-q : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B′)
+      → (body-q : A ⊑ᵂ⟨ liftWorldLeft W ⟩ B′)
       → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
       → InstPostCatalogPackage fuel rel vV vΛV′ c′ B′≢★
           c<fuel body-q
@@ -698,16 +698,16 @@ record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
 
     Λ⊑²-recursive-at-rewrap : ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
         {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
-        {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+        {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft W)}
         {V : Term (suc Δᴸ)} {V′ : Term (suc Δᴿ)}
         {A : Ty (suc Δᴸ)} {B : Ty (suc Δᴿ)}
         {B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
-        {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ `∀ B}
+        {body-p : A ⊑ᵂ⟨ liftWorldLeft W ⟩ `∀ B}
         {p : `∀ A ⊑ᵂ⟨ W ⟩ `∀ B}
         {χs₂ : StoreChanges Δᴿ Δᴿ₂}
         {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
         {extᴸ₂ : ECR.WorldExtendᴿ χs₂
-          (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂)}
+          (liftWorldLeft W) (liftWorldLeft W₂)}
       → (Anv : NonVar A)
       → (zero∈A : Fin.zero ∈ᵗ A)
       → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
@@ -717,17 +717,17 @@ record RecursiveΛInversionPreflight (fuel : ℕ) : Set₁ where
       → (target⊢ :
           ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩
             ⊢ (Λ V′) ⦂ `∀ B)
-      → (rel : liftWorldLeft X⊑★ W ∣ γᴸ ⊢² V ⊑ Λ V′ ∶
+      → (rel : liftWorldLeft W ∣ γᴸ ⊢² V ⊑ Λ V′ ∶
           body-p)
       → (c′ : instᵐ ν ⊢ B ∼ ⇑ᵗ B′)
       → ⦃ Bnv : NonVar B ⦄
       → ⦃ zero∈B : Fin.zero ∈ᵗ B ⦄
       → (B′≢★ : B′ ≢ ★)
       → (c<fuel : castSize ((inst c′) B′≢★) < fuel)
-      → (body-q : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W ⟩ B′)
+      → (body-q : A ⊑ᵂ⟨ liftWorldLeft W ⟩ B′)
       → (q : `∀ A ⊑ᵂ⟨ W ⟩ B′)
       → InstPostCatalogPackageAt fuel rel vV vΛV′ c′ B′≢★
-          c<fuel body-q χs₂ (liftWorldLeft X⊑★ W₂) extᴸ₂
+          c<fuel body-q χs₂ (liftWorldLeft W₂) extᴸ₂
       → InstPostCatalogPackageAt fuel
           (CTI2.Λ⊑² Anv zero∈A liftγ vV
             target⊢ rel p)

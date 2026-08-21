@@ -214,9 +214,7 @@ TargetRootClosing (⊑reveal² _ _ _ _ _ _) step = RevealRootStep step
 TargetRootClosing (⊑conceal² _ _ _ _ _ _) step = ConcealRootStep step
 TargetRootClosing (reveal⊑reveal² _ _ _ _ _ _ _) step =
   RevealRootStep step
-TargetRootClosing (conceal⊑conceal² _ _ _ _ _ _ _ _) step =
-  ConcealRootStep step
-TargetRootClosing (packaged-seal-star² _ _ _ _ _ _ _ _ _) step =
+TargetRootClosing (conceal⊑conceal² _ _ _ _ _ _ _) step =
   ConcealRootStep step
 TargetRootClosing (⊕⊑⊕² _ _ _ _) step = PrimitiveRootStep step
 TargetRootClosing _ step = ⊥
@@ -246,13 +244,10 @@ ConversionBoundaryStep (⊑reveal² _ _ _ _ _ _) step =
 ConversionBoundaryStep (⊑conceal² _ _ _ _ _ _) step =
   ConcealFrameStep step
 ConversionBoundaryStep (reveal⊑² _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (conceal⊑²-seal-star-open _ _ _ _ _ _ _) step = ⊤
-ConversionBoundaryStep (conceal⊑²-source-ok _ _ _ _ _ _ _) step = ⊤
+ConversionBoundaryStep (conceal⊑² _ _ _ _ _ _) step = ⊤
 ConversionBoundaryStep (reveal⊑reveal² _ _ _ _ _ _ _) step =
   RevealFrameStep step
-ConversionBoundaryStep (conceal⊑conceal² _ _ _ _ _ _ _ _) step =
-  ConcealFrameStep step
-ConversionBoundaryStep (packaged-seal-star² _ _ _ _ _ _ _ _ _) step =
+ConversionBoundaryStep (conceal⊑conceal² _ _ _ _ _ _ _) step =
   ConcealFrameStep step
 ConversionBoundaryStep _ step = ⊥
 
@@ -904,11 +899,8 @@ module _
     sim-back-conversion-boundary parked rel step tt
 
   sim-back parked
-      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
       step =
-    sim-back-conversion-boundary parked rel step tt
-  sim-back parked
-      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q) step =
     sim-back-conversion-boundary parked rel step tt
 
   sim-back parked rel@(reveal⊑reveal² mono rebase same c⊢ c′⊢ M⊑M′ q)
@@ -948,11 +940,11 @@ module _
     sim-back-conversion-boundary parked rel step tt
 
   sim-back parked
-      rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
+      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(pure-step (id-conceal vV)) =
     sim-back-target-root parked rel step tt
   sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+      (conceal⊑conceal² {c = c} mono rebase same-[]
         c⊢ c′⊢ M⊑blame q)
       (pure-step blame-conceal)
       with target-blame-catchup-under-boundary
@@ -961,14 +953,14 @@ module _
           target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
         M⊑blame
   sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+      (conceal⊑conceal² {c = c} mono rebase same-[]
         c⊢ c′⊢ M⊑blame q)
       (pure-step blame-conceal)
       | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
       with finish-target-blame q
         (conceal-↠ c M↠blame) (pure-step blame-conceal) evol
   sim-back {p = q} parked
-      (conceal⊑conceal² {c = c} partner mono rebase same-[]
+      (conceal⊑conceal² {c = c} mono rebase same-[]
         c⊢ c′⊢ M⊑blame q)
       (pure-step blame-conceal)
       | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
@@ -978,40 +970,7 @@ module _
     evol′ ,
     endpoint
   sim-back parked
-      rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
-      step@(ξ-conceal M′→N′ refl) =
-    sim-back-conversion-boundary parked rel step tt
-
-  sim-back {p = q} parked
-      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
-        c⊢ c′⊢ M⊑blame sealed q)
-      (pure-step blame-conceal)
-      with target-blame-catchup-under-boundary
-        target-value-blame-exclusion parked
-        (target-blame-boundary-source-conceal
-          target-blame-boundary-refl mono (tag-rebase-varᴸ rebase))
-        M⊑blame
-  sim-back {p = q} parked
-      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
-        c⊢ c′⊢ M⊑blame sealed q)
-      (pure-step blame-conceal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      with finish-target-blame q
-        (conceal-↠ (Conversion.seal Xᴸ ★) M↠blame)
-        (pure-step blame-conceal) evol
-  sim-back {p = q} parked
-      (packaged-seal-star² {Xᴸ = Xᴸ} partner mono rebase same-[]
-        c⊢ c′⊢ M⊑blame sealed q)
-      (pure-step blame-conceal)
-      | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol
-      | q′ , whole↠blame , evol′ , endpoint =
-    Δᴸ′ , χsᴸ ++χ (keep ∷ []) , blame , Δ′ , W′ , q′ ,
-    whole↠blame ,
-    evol′ ,
-    endpoint
-  sim-back parked
-      rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
-        M⊑M′ sealed q)
+      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       step@(ξ-conceal M′→N′ refl) =
     sim-back-conversion-boundary parked rel step tt
 

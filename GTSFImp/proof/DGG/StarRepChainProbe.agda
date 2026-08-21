@@ -32,7 +32,10 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world;
+   emptyʷ;
+   skip-centerʷ;
+   bind-leftʷ;
+   bind-both-starʷ;
    TagRebaseAtᴸ;
    _⊑ᵂ⟨_⟩_;
    RebaseAt;
@@ -79,7 +82,10 @@ probe-μ (Fin.suc (Fin.suc Fin.zero)) = X⊑★
 -- Center `b` has no target variable.  All three marks are `X⊑★`.
 
 W : World 2 1 3
-W = world ηᴸ-ab ηᴿ-a probe-μ source-store target-store
+W =
+  bind-both-starʷ
+    (bind-leftʷ (skip-centerʷ emptyʷ) ★)
+    (＇ Fin.zero) ★ (X⊑★ refl) (λ ())
 
 ------------------------------------------------------------------------
 -- Store typing and casts
@@ -190,16 +196,14 @@ base² =
 
 inner-source² : W ∣ [] ⊢² source-inner ⊑ target-core ∶ inner-type
 inner-source² =
-  CTI2.conceal⊑²-seal-star-open
-    X-no-target-occupant
-    (λ Z eq → eq) inner-source-only-rebase CTX.same-[]
+  CTI2.conceal⊑²
+    CTX.impEnvMono-refl inner-source-only-rebase CTX.same-[]
     source-X-seal-⊢ base² inner-type
 
 output : W ∣ [] ⊢² M ⊑ target-sealed ∶ q
 output =
   CTI2.conceal⊑conceal²
-    (CTX.matched-seal-nonstar nonstar-X)
-    (λ Z eq → eq) outer-rebase CTX.same-[]
+    CTX.impEnvMono-refl outer-rebase CTX.same-[]
     source-Xᴸ-seal-⊢ target-Y-seal-⊢ inner-source² q
 
 input : W ∣ [] ⊢² M ⊑ N ∶ input-type

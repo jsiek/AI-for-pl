@@ -155,14 +155,14 @@ left-path-Y-revealed₃-precise-Z :
     ⊑ Ex2.left-path-target-lambda₃ ↑ Ex2.left-path-Y-reveal₂ ∶
       left-path-Z⇒Z⊑Z⇒Z-YZ₃-precise-Z
 left-path-Y-revealed₃-precise-Z =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     left-path-rebase-Y-YZ₃-precise-Z CTX.same-[]
     Ex2.left-path-source-Y-reveal₃-⊢ˣ
     Ex2.left-path-target-Y-reveal₃-⊢ˣ
     left-path-lambda₃-precise-Z left-path-Z⇒Z⊑Z⇒Z-YZ₃-precise-Z
 
 -- Paired-Z derivation head (checkpoint 3):
---   CTI2.reveal⊑reveal² (λ _ eq → eq)
+--   CTI2.reveal⊑reveal² CTX.impEnvMono-refl
 --     left-path-rebase-Z-YZ₃-precise-Z CTX.same-[]
 left-path-both-Z-revealed₃-precise-Z :
   left-path-world₃-precise-Z ∣ [] ⊢²
@@ -172,7 +172,7 @@ left-path-both-Z-revealed₃-precise-Z :
         ↑ Ex2.left-path-Z-reveal₂ ∶
       Ex2.★⇒★⊑★⇒★² {W = left-path-world₃-precise-Z}
 left-path-both-Z-revealed₃-precise-Z =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     left-path-rebase-Z-YZ₃-precise-Z CTX.same-[]
     Ex2.left-path-source-Z-reveal₃-⊢ˣ
     Ex2.left-path-target-Z-reveal₃-⊢ˣ
@@ -216,7 +216,7 @@ left-path-function₃-precise-Z :
         ↑ Ex2.left-path-Z-reveal₂ ∶
       Ex2.ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃-precise-Z}
 left-path-function₃-precise-Z =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₃-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-reveal₃-⊢ˣ left-path-source-X?₃-precise-Z
     (Ex2.ℕ⇒ℕ⊑★⇒★² {W = left-path-world₃-precise-Z})
@@ -341,14 +341,14 @@ left-path-Y-revealed₄-precise-Z :
     ⊑ Ex2.left-path-target-lambda₃ ↑ Ex2.left-path-Y-reveal₂ ∶
       left-path-Z⇒Z⊑Z⇒Z-YZ₄-precise-Z
 left-path-Y-revealed₄-precise-Z =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     left-path-rebase-Y-YZ₄-precise-Z CTX.same-[]
     Ex2.left-path-source-Y-reveal₃-⊢ˣ
     Ex2.left-path-target-Y-reveal₃-⊢ˣ
     left-path-lambda₄-precise-Z left-path-Z⇒Z⊑Z⇒Z-YZ₄-precise-Z
 
 -- Paired-Z derivation head (checkpoints 5--7):
---   CTI2.reveal⊑reveal² (λ _ eq → eq)
+--   CTI2.reveal⊑reveal² CTX.impEnvMono-refl
 --     left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
 left-path-both-Z-revealed₄-precise-Z :
   left-path-world₄-precise-Z ∣ [] ⊢²
@@ -358,7 +358,7 @@ left-path-both-Z-revealed₄-precise-Z :
         ↑ Ex2.left-path-Z-reveal₂ ∶
       Ex2.★⇒★⊑★⇒★² {W = left-path-world₄-precise-Z}
 left-path-both-Z-revealed₄-precise-Z =
-  CTI2.reveal⊑reveal² (λ _ eq → eq)
+  CTI2.reveal⊑reveal² CTX.impEnvMono-refl
     left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
     Ex2.left-path-source-Z-reveal₃-⊢ˣ
     Ex2.left-path-target-Z-reveal₃-⊢ˣ
@@ -414,7 +414,7 @@ left-path-X-sealed-vs-tagged-empty
   left-path-X-to-ℕ-precise-empty
     {W = left-path-world₄-precise-Z} p
 left-path-X-sealed-vs-tagged-empty
-    (CTI2.conceal⊑²-source-ok {W′ = W′}
+    (CTI2.conceal⊑² {W′ = W′}
       ok mono rb sc c⊢ D q) =
   left-path-X-seal-source-ok-empty-precise-Z {W = W′} ok
 
@@ -463,7 +463,7 @@ left-path-checkpoint₄-from-X-seal-core :
   → left-path-world₄-precise-Z ∣ [] ⊢² Ex.right₄
       ⊑ Ex2.left-path-target₄ ∶ left-path-ℕ⊑★₄-precise-Z
 left-path-checkpoint₄-from-X-seal-core D =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₄-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-unseal₄-⊢ˣ
     (CTI2.⊑cast² Ex2.left-path-target-result-id★₃
@@ -485,7 +485,7 @@ left-path-checkpoint₅-from-X-core :
   → left-path-world₄-precise-Z ∣ [] ⊢² Ex.right₅
       ⊑ Ex2.left-path-target₄ ∶ left-path-ℕ⊑★₄-precise-Z
 left-path-checkpoint₅-from-X-core D =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₄-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-unseal₄-⊢ˣ
     (CTI2.cast⊑² Ex2.example12-target-★?X
@@ -507,7 +507,7 @@ left-path-checkpoint₆-from-X-core :
   → left-path-world₄-precise-Z ∣ [] ⊢² Ex.right₆
       ⊑ Ex2.left-path-target₄ ∶ left-path-ℕ⊑★₄-precise-Z
 left-path-checkpoint₆-from-X-core D =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₄-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-unseal₄-⊢ˣ
     (CTI2.cast⊑² Ex2.example12-target-★?X
@@ -527,7 +527,7 @@ left-path-checkpoint₇-from-X-core :
   → left-path-world₄-precise-Z ∣ [] ⊢² Ex.right₇
       ⊑ Ex2.left-path-target₄ ∶ left-path-ℕ⊑★₄-precise-Z
 left-path-checkpoint₇-from-X-core D =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₄-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-unseal₄-⊢ˣ
     (CTI2.cast⊑² Ex2.example12-target-★?X
@@ -605,12 +605,12 @@ left-path-argument-Z₈-from-X-core D =
   CTI2.conceal⊑conceal²
     (CTX.matched-seal-star-partner
       (CTX.rep★-nonvar-tag nonvar-base))
-    (λ _ eq → eq) left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
+    CTX.impEnvMono-refl left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
     left-path-source-Z-seal₄-⊢ˣ left-path-target-Z-seal₄-⊢ˣ D
     left-path-Z-var⊑YZ₄-precise-Z
 
 -- Paired-Z derivation head (checkpoint 8 result unseals):
---   CTI2.reveal⊑reveal² (λ _ eq → eq)
+--   CTI2.reveal⊑reveal² CTX.impEnvMono-refl
 --     left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
 left-path-checkpoint₈-from-X-core :
   left-path-world₄-precise-Z ∣ [] ⊢²
@@ -620,13 +620,13 @@ left-path-checkpoint₈-from-X-core :
   → left-path-world₄-precise-Z ∣ [] ⊢² Ex.right₈
       ⊑ Ex2.left-path-target₅ ∶ left-path-ℕ⊑★₄-precise-Z
 left-path-checkpoint₈-from-X-core D =
-  CTI2.reveal⊑² (λ _ eq → eq)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
     left-path-rebase-X-YZ₄-precise-Zᴸ CTX.same-[]
     Ex2.left-path-source-X-unseal₄-⊢ˣ
     (CTI2.cast⊑² Ex2.example12-target-★?X
       (CTI2.cast⊑cast² left-path-source-result-id★₆
         Ex2.left-path-target-result-id★₃
-        (CTI2.reveal⊑reveal² (λ _ eq → eq)
+        (CTI2.reveal⊑reveal² CTX.impEnvMono-refl
           left-path-rebase-Z-YZ₄-precise-Z CTX.same-[]
           left-path-source-Z-unseal₄-⊢ˣ
           left-path-target-Z-unseal₄-⊢ˣ
@@ -654,7 +654,7 @@ left-path-argument-Y₉-from-X-core :
 left-path-argument-Y₉-from-X-core D =
   CTI2.conceal⊑conceal²
     (CTX.matched-seal-nonstar nonstar-X)
-    (λ _ eq → eq) left-path-rebase-Y-YZ₄-precise-Z CTX.same-[]
+    CTX.impEnvMono-refl left-path-rebase-Y-YZ₄-precise-Z CTX.same-[]
     left-path-source-Y-seal₄-⊢ˣ left-path-target-Y-seal₄-⊢ˣ
     (left-path-argument-Z₈-from-X-core D)
     left-path-Y-var⊑YZ₄-precise-Z

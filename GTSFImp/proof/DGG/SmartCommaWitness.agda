@@ -13,6 +13,8 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 open import Data.Nat using (suc)
+open import Data.Product using (_,_)
+open import Data.Sum using (inj₁; inj₂)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; trans; cong)
@@ -49,12 +51,14 @@ empty-imp : I.ImpEnv 0
 empty-imp ()
 
 base-world : CTX.World 0 0 0
-base-world =
-  CTX.world empty empty empty-imp store-empty store-empty
+base-world = CTX.emptyʷ
 
 W₂ : CTX.World 0 2 2
 W₂ =
-  CTX.rightOnlyWorld (CTX.rightOnlyWorld base-world ★) (＇ Fin.zero)
+  CTX.rightOnlyWorld
+    (CTX.rightOnlyWorld base-world ★ (inj₁ refl))
+    (＇ Fin.zero)
+    (inj₂ (Fin.suc Fin.zero , refl , (λ ())))
 
 γ₂ : CTX.CtxImp W₂
 γ₂ = []
@@ -145,15 +149,92 @@ d1-source-store = store-lift (store-lift store-empty)
 η-tgt-βα-3 : 2 ↪ᵗ 3
 η-tgt-βα-3 = keep (keep (skip empty))
 
+d1-source-one-world : CTX.World 1 1 1
+d1-source-one-world = CTX.initialWorld (λ _ → I.X⊑★)
+
+d1-source-two-world : CTX.World 2 2 2
+d1-source-two-world = CTX.initialWorld (λ _ → I.X⊑★)
+
+d1-outer-invariants :
+  CTX.WorldInvariants
+    (skip (skip (keep empty))) η-tgt-βα-3 all-star₃
+    (store-lift store-empty) target-store-βα
+d1-outer-invariants =
+  CTX.world-invariants precise reps unmatched unoccupied
+  where
+  precise : ∀ Xᴸ
+    → all-star₃ (toRenameᵗ (skip (skip (keep empty))) Xᴸ)
+        ≡ I.X⊑X
+    → _
+  precise Fin.zero ()
+
+  reps : ∀ {Xᴸ Xᴿ}
+    → toRenameᵗ (skip (skip (keep empty))) Xᴸ
+        ≡ toRenameᵗ η-tgt-βα-3 Xᴿ
+    → _
+  reps {Fin.zero} {Fin.zero} ()
+  reps {Fin.zero} {Fin.suc Fin.zero} ()
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ
+        → toRenameᵗ (skip (skip (keep empty))) Xᴸ
+          ≢ toRenameᵗ η-tgt-βα-3 Xᴿ)
+    → _
+  unmatched Fin.zero no-source =
+    inj₂ (Fin.suc Fin.zero , refl , (λ { Fin.zero → λ () }))
+  unmatched (Fin.suc Fin.zero) no-source = inj₁ refl
+
+  unoccupied : ∀ Xᴸ
+    → all-star₃ (toRenameᵗ (skip (skip (keep empty))) Xᴸ)
+        ≡ I.X⊑★
+    → _
+  unoccupied Fin.zero mark ()
+
 d1-outer-smart-world : CTX.World 1 2 3
 d1-outer-smart-world =
-  CTX.world (skip (skip (keep empty))) η-tgt-βα-3 all-star₃
-    (store-lift store-empty) target-store-βα
+  CTX.mix-renamed-targetʷ
+    (skip (skip (keep empty))) η-tgt-βα-3
+    d1-source-one-world W₂ d1-outer-invariants
+
+d1-alias-invariants :
+  CTX.WorldInvariants η-src-βℓ-2 η-tgt-βα-3 all-star₃
+    d1-source-store target-store-βα
+d1-alias-invariants =
+  CTX.world-invariants precise reps unmatched unoccupied
+  where
+  precise : ∀ Xᴸ
+    → all-star₃ (toRenameᵗ η-src-βℓ-2 Xᴸ) ≡ I.X⊑X
+    → _
+  precise Fin.zero ()
+  precise (Fin.suc Fin.zero) ()
+
+  reps : ∀ {Xᴸ Xᴿ}
+    → toRenameᵗ η-src-βℓ-2 Xᴸ ≡ toRenameᵗ η-tgt-βα-3 Xᴿ
+    → _
+  reps {Fin.zero} {Fin.zero} refl = I.X⊑★ refl
+  reps {Fin.zero} {Fin.suc Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.zero} ()
+  reps {Fin.suc Fin.zero} {Fin.suc Fin.zero} ()
+
+  unmatched : ∀ Xᴿ
+    → (∀ Xᴸ
+        → toRenameᵗ η-src-βℓ-2 Xᴸ
+          ≢ toRenameᵗ η-tgt-βα-3 Xᴿ)
+    → _
+  unmatched Fin.zero no-source =
+    ⊥-elim (no-source Fin.zero refl)
+  unmatched (Fin.suc Fin.zero) no-source = inj₁ refl
+
+  unoccupied : ∀ Xᴸ
+    → all-star₃ (toRenameᵗ η-src-βℓ-2 Xᴸ) ≡ I.X⊑★
+    → _
+  unoccupied Fin.zero mark ()
+  unoccupied (Fin.suc Fin.zero) mark ()
 
 a3-d1-alias-world : CTX.World 2 2 3
 a3-d1-alias-world =
-  CTX.world η-src-βℓ-2 η-tgt-βα-3 all-star₃
-    d1-source-store target-store-βα
+  CTX.mix-renamed-targetʷ η-src-βℓ-2 η-tgt-βα-3
+    d1-source-two-world W₂ d1-alias-invariants
 
 a3-d1-name-world : CTX.World 2 2 3
 a3-d1-name-world =
@@ -266,7 +347,7 @@ d1-fresh-subst (Fin.suc Fin.zero) = ＇ Fin.zero
 d1-fresh-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
 
 d1-fresh-star : ∀ Z
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ W₂) Z ≡ I.X⊑★
+  → CTX.impEnvʷ (CTX.liftWorldLeft W₂) Z ≡ I.X⊑★
   → I._⊢_⊑_ (CTX.impEnvʷ d1-outer-smart-world)
       (d1-fresh-subst Z) ★
 d1-fresh-star Fin.zero star = I.X⊑★ refl
@@ -286,7 +367,7 @@ d1-fresh-target-point (Fin.suc Fin.zero) = refl
 
 d1-fresh-source-eq : ∀ C
   → substᵗ d1-fresh-subst
-      (CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ W₂) C)
+      (CTX.embedᴸ (CTX.liftWorldLeft W₂) C)
     ≡ CTX.embedᴸ d1-outer-smart-world C
 d1-fresh-source-eq C =
   trans (substᵗ-rename d1-fresh-subst
@@ -296,7 +377,7 @@ d1-fresh-source-eq C =
 
 d1-fresh-target-eq : ∀ C
   → substᵗ d1-fresh-subst
-      (CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ W₂) C)
+      (CTX.embedᴿ (CTX.liftWorldLeft W₂) C)
     ≡ CTX.embedᴿ d1-outer-smart-world C
 d1-fresh-target-eq C =
   trans (substᵗ-rename d1-fresh-subst
@@ -305,11 +386,11 @@ d1-fresh-target-eq C =
       (rename-as-subst (toRenameᵗ (CTX.ηᴿʷ d1-outer-smart-world)) C))
 
 d1-fresh-transport : ∀ {A : Ty 1} {B : Ty 2}
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩ B
   → A CTX.⊑ᵂ⟨ d1-outer-smart-world ⟩ B
 d1-fresh-transport =
   transport⊑ᵂ-by-subst
-    {W = CTX.liftWorldLeft I.X⊑★ W₂}
+    {W = CTX.liftWorldLeft W₂}
     {W′ = d1-outer-smart-world}
     d1-fresh-subst d1-fresh-star d1-fresh-source-eq
     d1-fresh-target-eq
@@ -323,7 +404,7 @@ d1-merge-subst (Fin.suc (Fin.suc (Fin.suc Fin.zero))) =
 
 d1-merge-star : ∀ Z
   → CTX.impEnvʷ
-      (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) Z
+      (CTX.liftWorldLeft d1-outer-smart-world) Z
     ≡ I.X⊑★
   → I._⊢_⊑_ (CTX.impEnvʷ a3-d1-alias-world)
       (d1-merge-subst Z) ★
@@ -350,7 +431,7 @@ d1-merge-target-point (Fin.suc Fin.zero) = refl
 d1-merge-source-eq : ∀ C
   → substᵗ d1-merge-subst
       (CTX.embedᴸ
-        (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+        (CTX.liftWorldLeft d1-outer-smart-world) C)
     ≡ CTX.embedᴸ a3-d1-alias-world C
 d1-merge-source-eq C =
   trans (substᵗ-rename d1-merge-subst
@@ -362,7 +443,7 @@ d1-merge-source-eq C =
 d1-merge-target-eq : ∀ C
   → substᵗ d1-merge-subst
       (CTX.embedᴿ
-        (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+        (CTX.liftWorldLeft d1-outer-smart-world) C)
     ≡ CTX.embedᴿ a3-d1-alias-world C
 d1-merge-target-eq C =
   trans (substᵗ-rename d1-merge-subst
@@ -373,12 +454,12 @@ d1-merge-target-eq C =
 
 d1-merge-transport : ∀ {A : Ty 2} {B : Ty 2}
   → A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world
+      CTX.liftWorldLeft d1-outer-smart-world
     ⟩ B
   → A CTX.⊑ᵂ⟨ a3-d1-alias-world ⟩ B
 d1-merge-transport =
   transport⊑ᵂ-by-subst
-    {W = CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world}
+    {W = CTX.liftWorldLeft d1-outer-smart-world}
     {W′ = a3-d1-alias-world}
     d1-merge-subst d1-merge-star d1-merge-source-eq
     d1-merge-target-eq
@@ -494,7 +575,7 @@ d1-inner-smart-live =
     d1-inner-smart-p
 
 p₂-front-premise :
-  `∀ d1-source-body CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W₂ ⟩ ★⇒★
+  `∀ d1-source-body CTX.⊑ᵂ⟨ CTX.liftWorldLeft W₂ ⟩ ★⇒★
 p₂-front-premise =
   I.∀⊑ nonvar-fun (∈-fun-left var-∈)
     (I.⇒⊑⇒ (I.X⊑★ refl) I.★⊑★)

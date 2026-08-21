@@ -8,11 +8,11 @@ module proof.DGG.TerminusRebuildProbe where
 --     `dyn-id` input is recorded negatively because `dyn-id` is a
 --     top-level function-to-★ tag and the source seal representation is
 --     not literally ★.
---   * Instance B is the S = ＇Y₂ chain template: the input has the
---     source inert variable cast required by the blocked M3 branch, and
---     the output pairs at the ★ terminus before re-emitting the outer
---     target-only seal.  The old occupied source-star/tagged-target
---     direct witness is now tracked as a D15 migration residual.
+--   * Instance B preserves the old S = ＇Y₂ chain snapshot negatively.
+--     Its endpoint stores are independently operationally possible, but its
+--     direct-representation and occupied dynamic-star alignments violate the
+--     live World invariants and are not reachable from a related empty-world
+--     execution.
 --   * This is the positive counterpart to the refuted tag-peel-first
 --     family documented in `RightInjInversion2Def`: the head is rebuilt
 --     at the target-chain terminus instead of against a right variable.
@@ -23,6 +23,7 @@ open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Nullary using (¬_)
 
 open import Types
 open import TyStore using
@@ -39,7 +40,8 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world;
+   emptyʷ;
+   bind-both-starʷ;
    _⊑ᵂ⟨_⟩_;
    RebaseAt;
    rebase-at;
@@ -73,7 +75,7 @@ dyn-id-value = (CTerms.ƛ (` 0)) CTerms.《 CTerms.inj 》
 
 mono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → CTX.ImpEnvMono W W
-mono-refl _ eq = eq
+mono-refl = CTX.impEnvMono-refl
 
 ------------------------------------------------------------------------
 -- Instance A: the S = ★ terminus
@@ -112,8 +114,14 @@ module InstanceA where
   --             X   Y
   --   W         0   0
 
+  source-∀⊑★-empty : ∀X⇒X₀ ⊑ᵂ⟨ emptyʷ ⟩ ★
+  source-∀⊑★-empty =
+    ∀⊑ nonvar-fun (∈-fun-left var-∈)
+      (⇒⊑★ (X⊑★ refl) (X⊑★ refl))
+
   W : World 1 1 1
-  W = world η-id η-id env source-store target-store
+  W =
+    bind-both-starʷ emptyʷ ∀X⇒X₀ ★ source-∀⊑★-empty (λ ())
 
   X∈ : source-store ∋ X ⦂ ∀X⇒X
   X∈ = Z∋ refl
@@ -174,18 +182,18 @@ module InstanceA where
   target-tagged-⊢ : ⟨ 1 , target-store , [] ⟩ ⊢ target-tagged ⦂ ★
   target-tagged-⊢ = ⊢⟨⟩ target-sealed-⊢ Y!
 
-  body-X⊑★ : ＇ Fin.zero ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
+  body-X⊑★ : ＇ Fin.zero ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ ★
   body-X⊑★ = X⊑★ refl
 
-  body⊑★ : body ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
+  body⊑★ : body ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ ★
   body⊑★ = ⇒⊑★ body-X⊑★ body-X⊑★
 
   body⊑★⇒★ :
-    body ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★ ⇒ ★
+    body ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ ★ ⇒ ★
   body⊑★⇒★ = ⇒⊑⇒ body-X⊑★ body-X⊑★
 
   body-fun² :
-    CTX.liftWorldLeft X⊑★ W ∣ [] ⊢²
+    CTX.liftWorldLeft W ∣ [] ⊢²
       ƛ (` 0) ⊑ ƛ (` 0) ∶ body⊑★⇒★
   body-fun² =
     CTI2.ƛ⊑ƛ²
@@ -194,7 +202,7 @@ module InstanceA where
       (CTI2.x⊑x² {p = body-X⊑★} CTX.Zʷ)
 
   body-U² :
-    CTX.liftWorldLeft X⊑★ W ∣ [] ⊢²
+    CTX.liftWorldLeft W ∣ [] ⊢²
       ƛ (` 0) ⊑ U ∶ body⊑★
   body-U² = CTI2.⊑cast² fun! body-fun² body⊑★
 
@@ -207,7 +215,6 @@ module InstanceA where
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =
     CTI2.conceal⊑conceal²
-      (CTX.matched-seal-nonstar {Xᴿ? = just Y} nonstar-∀)
       (mono-refl {W = W}) rb-X-Y CTX.same-[]
       source-seal-⊢ target-seal-⊢ head-U² X⊑Y
 
@@ -255,149 +262,33 @@ module InstanceB where
   --   W         0   0   1
   --   Wᵖ        1   0   1
 
-  W : World 1 2 2
-  W = world η-X-Y η-target env source-store target-store
+  OriginalWInvariants : Set
+  OriginalWInvariants =
+    CTX.WorldInvariants
+      η-X-Y η-target env source-store target-store
 
-  Wᵖ : World 1 2 2
-  Wᵖ = world η-X-Y₂ η-target env source-store target-store
+  OriginalWᵖInvariants : Set
+  OriginalWᵖInvariants =
+    CTX.WorldInvariants
+      η-X-Y₂ η-target env source-store target-store
 
-  X∈ : source-store ∋ X ⦂ ★
-  X∈ = Z∋ refl
+  W-direct-representation-obstruction : OriginalWInvariants → ⊥
+  W-direct-representation-obstruction inv
+      with CTX.representationsImprecise inv
+        {Xᴸ = X} {Xᴿ = Y} refl
+  W-direct-representation-obstruction inv | ()
 
-  Y∈ : target-store ∋ Y ⦂ ＇ Y₂
-  Y∈ = Z∋ refl
+  Wᵖ-dynamic-star-vacancy-obstruction : OriginalWᵖInvariants → ⊥
+  Wᵖ-dynamic-star-vacancy-obstruction inv =
+    CTX.dynamicStarSourcesUnoccupied inv X refl refl Y₂ refl
 
-  Y₂∈ : target-store ∋ Y₂ ⦂ ★
-  Y₂∈ = S-bind∋ (Z∋ refl) refl
+  no-original-W-invariants : ¬ OriginalWInvariants
+  no-original-W-invariants = W-direct-representation-obstruction
 
-  source-env : Env∼ 1
-  source-env Fin.zero = X∼★
+  no-original-Wᵖ-invariants : ¬ OriginalWᵖInvariants
+  no-original-Wᵖ-invariants = Wᵖ-dynamic-star-vacancy-obstruction
 
-  target-env : Env∼ 2
-  target-env Fin.zero = X∼★
-  target-env (Fin.suc Fin.zero) = X∼★
-
-  X! : source-env ⊢ ＇ X ∼ ★
-  X! = id (＇ X) !
-
-  Y! : target-env ⊢ ＇ Y ∼ ★
-  Y! = id (＇ Y) !
-
-  X⊑★-W : ＇ X ⊑ᵂ⟨ W ⟩ ★
-  X⊑★-W = X⊑★ refl
-
-  X⊑★-Wᵖ : ＇ X ⊑ᵂ⟨ Wᵖ ⟩ ★
-  X⊑★-Wᵖ = X⊑★ refl
-
-  X⊑Y : ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
-  X⊑Y = X⊑X
-
-  X⊑Y₂ : ＇ X ⊑ᵂ⟨ Wᵖ ⟩ ＇ Y₂
-  X⊑Y₂ = X⊑X
-
-  X-Y-rep : CTX.StoreRepImp W X Y
-  X-Y-rep = store-rep-imp ★⊑★
-
-  X-Y₂-rep : CTX.StoreRepImp Wᵖ X Y₂
-  X-Y₂-rep = store-rep-imp ★⊑★
-
-  rb-X-Y : RebaseAt W W X Y
-  rb-X-Y = CTX.sameWorldRebaseAt refl X-Y-rep
-
-  rb-X-Y₂ : RebaseAt Wᵖ Wᵖ X Y₂
-  rb-X-Y₂ = CTX.sameWorldRebaseAt refl X-Y₂-rep
-
-  rb-chain : RebaseAt Wᵖ W X Y
-  rb-chain =
-    rebase-at (same-runtime refl refl)
-      (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
-      (λ _ → refl) refl X-Y-rep
-
-  mono-W-Wᵖ : CTX.ImpEnvMono W Wᵖ
-  mono-W-Wᵖ Fin.zero eq = eq
-  mono-W-Wᵖ (Fin.suc Fin.zero) eq = eq
-
-  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ★
-  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
-
-  target-Y-seal-⊢ :
-    target-store Conv.⊢↓[ just Y ] seal Y (＇ Y₂)
-  target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
-
-  target-Y₂-seal-⊢ : target-store Conv.⊢↓[ just Y₂ ] seal Y₂ ★
-  target-Y₂-seal-⊢ = Conv.⊢↓-sealˣ Y₂∈
-
-  source-seal-⊢ᶜ : source-store ⊢↓ seal X ★
-  source-seal-⊢ᶜ = ⊢↓-seal X∈
-
-  target-Y-seal-⊢ᶜ : target-store ⊢↓ seal Y (＇ Y₂)
-  target-Y-seal-⊢ᶜ = ⊢↓-seal Y∈
-
-  target-Y₂-seal-⊢ᶜ : target-store ⊢↓ seal Y₂ ★
-  target-Y₂-seal-⊢ᶜ = ⊢↓-seal Y₂∈
-
-  V₀ : Term 1
-  V₀ = dyn-id
-
-  V : Term 1
-  V = V₀ ↓ seal X ★
-
-  source-payload : Term 1
-  source-payload = V ⟨ X! ⟩
-
-  source : Term 1
-  source = source-payload ↓ seal X ★
-
-  U₀ : Term 2
-  U₀ = dyn-id
-
-  U : Term 2
-  U = U₀ ↓ seal Y₂ ★
-
-  target-chain : Term 2
-  target-chain = U ↓ seal Y (＇ Y₂)
-
-  target-tagged : Term 2
-  target-tagged = target-chain ⟨ Y! ⟩
-
-  U₀-⊢ : ⟨ 2 , target-store , [] ⟩ ⊢ U₀ ⦂ ★
-  U₀-⊢ = dyn-id!-⊢
-
-  U-⊢ : ⟨ 2 , target-store , [] ⟩ ⊢ U ⦂ ＇ Y₂
-  U-⊢ = ⊢conceal target-Y₂-seal-⊢ᶜ U₀-⊢
-
-  target-chain-⊢ : ⟨ 2 , target-store , [] ⟩ ⊢ target-chain ⦂ ＇ Y
-  target-chain-⊢ = ⊢conceal target-Y-seal-⊢ᶜ U-⊢
-
-  target-tagged-⊢ : ⟨ 2 , target-store , [] ⟩ ⊢ target-tagged ⦂ ★
-  target-tagged-⊢ = ⊢⟨⟩ target-chain-⊢ Y!
-
-  base² : Wᵖ ∣ [] ⊢² V₀ ⊑ U₀ ∶ ★⊑★
-  base² =
-    CTI2.cast⊑cast² fun! fun!
-      (CTI2.ƛ⊑ƛ²
-        {A = ★} {A′ = ★} {pA = ★⊑★} {pB = ★⊑★}
-        (CTI2.x⊑x² {p = ★⊑★} CTX.Zʷ))
-      ★⊑★
-
-  premise-chain² : W ∣ [] ⊢² V ⊑ target-chain ∶ X⊑Y
-  premise-chain² =
-    CTI2.⊑conceal² mono-W-Wᵖ (CTX.rebase-varᴿ rb-chain)
-      CTX.same-[] target-Y-seal-⊢
-      (CTI2.conceal⊑conceal²
-        (CTX.matched-seal-star-partner {Xᴿ? = just Y₂}
-          (CTX.rep★-nonvar-tag nonvar-fun))
-        (mono-refl {W = Wᵖ}) rb-X-Y₂
-        CTX.same-[]
-        source-seal-⊢ target-Y₂-seal-⊢ base² X⊑Y₂)
-      X⊑Y
-
-  premise-casts² :
-    W ∣ [] ⊢² source-payload ⊑ target-tagged ∶ ★⊑★
-  premise-casts² =
-    CTI2.cast⊑cast² X! Y! premise-chain² ★⊑★
-
-  -- D15 M1 residual: the old checked `tagged-input` used the removed
-  -- occupied source-star/name-protected source-only route.  The matched
-  -- chain pieces above remain checked; reassembling this tagged endpoint
-  -- needs the later source-star package migration.
+  -- Both endpoint stores are independently operationally possible, but the
+  -- raw alignments above cannot arise from a related empty-world execution.
+  -- The old D15 chain is therefore retained as an invariant refutation, not
+  -- as a positive source-star package premise.

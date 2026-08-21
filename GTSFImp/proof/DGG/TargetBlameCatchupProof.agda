@@ -110,10 +110,7 @@ target-value-blame-exclusion (vV CastTerms.↑ rv)
     (CTI2.reveal⊑² mono rb same c⊢ prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↓ cv)
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb same c⊢ prem q) =
-  target-value-blame-exclusion vV prem
-target-value-blame-exclusion (vV CastTerms.↓ cv)
-    (CTI2.conceal⊑²-source-ok ok mono rb same c⊢ prem q) =
+    (CTI2.conceal⊑² mono rb same c⊢ prem q) =
   target-value-blame-exclusion vV prem
 
 
@@ -281,7 +278,7 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-reveal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTX.same-[]
+    (CTI2.conceal⊑² mono rb CTX.same-[]
       c⊢ prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked
@@ -289,20 +286,8 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
       prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb CTX.same-[]
+    (CTI2.conceal⊑² mono rb CTX.same-[]
       c⊢ prem q)
-    | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
-  source-conceal-blame-catchup M↠blame evol
-target-blame-catchup-under-boundary target-value-blame-exclusion
-    parked boundary
-    (CTI2.conceal⊑²-source-ok ok mono rb CTX.same-[] c⊢ prem q)
-    with target-blame-catchup-under-boundary
-      target-value-blame-exclusion parked
-      (target-blame-boundary-source-conceal boundary mono rb)
-      prem
-target-blame-catchup-under-boundary target-value-blame-exclusion
-    parked boundary
-    (CTI2.conceal⊑²-source-ok ok mono rb CTX.same-[] c⊢ prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-conceal-blame-catchup M↠blame evol
 

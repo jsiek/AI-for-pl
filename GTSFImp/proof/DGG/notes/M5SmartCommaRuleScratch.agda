@@ -67,7 +67,7 @@ record SmartFreshBehindGuard {Δᴸ Δᴿ Δ Δᵐ}
     targetStore-same :
       CTX.targetStoreʷ Wᵐ ≡ CTX.targetStoreʷ W
     transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ B
+      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
       → A CTX.⊑ᵂ⟨ Wᵐ ⟩ B
     old-mark-mono : ∀ Z
       → CTX.impEnvʷ W Z ≡ I.X⊑★
@@ -99,7 +99,7 @@ record SmartAliasMergeGuard {Δᴸ Δᴿ Δ}
     targetStore-same :
       CTX.targetStoreʷ Wᵐ ≡ CTX.targetStoreʷ W
     transport⊑ᵂ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ W ⟩ B
+      → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
       → A CTX.⊑ᵂ⟨ Wᵐ ⟩ B
     old-mark-mono : ∀ Z
       → CTX.impEnvʷ W Z ≡ I.X⊑★
@@ -289,7 +289,7 @@ e4-merge-subst (Fin.suc Fin.zero) = ＇ Fin.zero
 e4-merge-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
 
 e4-merge-star : ∀ Z
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ IL.post-world) Z
+  → CTX.impEnvʷ (CTX.liftWorldLeft IL.post-world) Z
     ≡ I.X⊑★
   → I._⊢_⊑_ (CTX.impEnvʷ Cal.a3-e4-alias-world)
       (e4-merge-subst Z) ★
@@ -312,7 +312,7 @@ e4-merge-target-point (Fin.suc Fin.zero) = refl
 
 e4-merge-source-eq : ∀ C
   → substᵗ e4-merge-subst
-      (CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ IL.post-world) C)
+      (CTX.embedᴸ (CTX.liftWorldLeft IL.post-world) C)
     ≡ CTX.embedᴸ Cal.a3-e4-alias-world C
 e4-merge-source-eq C =
   trans (substᵗ-rename e4-merge-subst
@@ -323,7 +323,7 @@ e4-merge-source-eq C =
 
 e4-merge-target-eq : ∀ C
   → substᵗ e4-merge-subst
-      (CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ IL.post-world) C)
+      (CTX.embedᴿ (CTX.liftWorldLeft IL.post-world) C)
     ≡ CTX.embedᴿ Cal.a3-e4-alias-world C
 e4-merge-target-eq C =
   trans (substᵗ-rename e4-merge-subst
@@ -333,11 +333,11 @@ e4-merge-target-eq C =
         (toRenameᵗ (CTX.ηᴿʷ Cal.a3-e4-alias-world)) C))
 
 e4-merge-transport : ∀ {A : Ty 1} {B : Ty 2}
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ IL.post-world ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft IL.post-world ⟩ B
   → A CTX.⊑ᵂ⟨ Cal.a3-e4-alias-world ⟩ B
 e4-merge-transport =
   transport⊑ᵂ-by-subst
-    {W = CTX.liftWorldLeft I.X⊑★ IL.post-world}
+    {W = CTX.liftWorldLeft IL.post-world}
     {W′ = Cal.a3-e4-alias-world}
     e4-merge-subst e4-merge-star e4-merge-source-eq
     e4-merge-target-eq
@@ -348,7 +348,7 @@ d1-fresh-subst (Fin.suc Fin.zero) = ＇ Fin.zero
 d1-fresh-subst (Fin.suc (Fin.suc Fin.zero)) = ＇ (Fin.suc Fin.zero)
 
 d1-fresh-star : ∀ Z
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ IL.post-world) Z
+  → CTX.impEnvʷ (CTX.liftWorldLeft IL.post-world) Z
     ≡ I.X⊑★
   → I._⊢_⊑_ (CTX.impEnvʷ d1-outer-smart-world)
       (d1-fresh-subst Z) ★
@@ -371,7 +371,7 @@ d1-fresh-target-point (Fin.suc Fin.zero) = refl
 
 d1-fresh-source-eq : ∀ C
   → substᵗ d1-fresh-subst
-      (CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ IL.post-world) C)
+      (CTX.embedᴸ (CTX.liftWorldLeft IL.post-world) C)
     ≡ CTX.embedᴸ d1-outer-smart-world C
 d1-fresh-source-eq C =
   trans (substᵗ-rename d1-fresh-subst
@@ -381,7 +381,7 @@ d1-fresh-source-eq C =
 
 d1-fresh-target-eq : ∀ C
   → substᵗ d1-fresh-subst
-      (CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ IL.post-world) C)
+      (CTX.embedᴿ (CTX.liftWorldLeft IL.post-world) C)
     ≡ CTX.embedᴿ d1-outer-smart-world C
 d1-fresh-target-eq C =
   trans (substᵗ-rename d1-fresh-subst
@@ -390,11 +390,11 @@ d1-fresh-target-eq C =
       (rename-as-subst (toRenameᵗ (CTX.ηᴿʷ d1-outer-smart-world)) C))
 
 d1-fresh-transport : ∀ {A : Ty 1} {B : Ty 2}
-  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft I.X⊑★ IL.post-world ⟩ B
+  → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft IL.post-world ⟩ B
   → A CTX.⊑ᵂ⟨ d1-outer-smart-world ⟩ B
 d1-fresh-transport =
   transport⊑ᵂ-by-subst
-    {W = CTX.liftWorldLeft I.X⊑★ IL.post-world}
+    {W = CTX.liftWorldLeft IL.post-world}
     {W′ = d1-outer-smart-world}
     d1-fresh-subst d1-fresh-star d1-fresh-source-eq
     d1-fresh-target-eq
@@ -407,7 +407,7 @@ d1-merge-subst (Fin.suc (Fin.suc (Fin.suc Fin.zero))) =
   ＇ (Fin.suc (Fin.suc Fin.zero))
 
 d1-merge-star : ∀ Z
-  → CTX.impEnvʷ (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) Z
+  → CTX.impEnvʷ (CTX.liftWorldLeft d1-outer-smart-world) Z
     ≡ I.X⊑★
   → I._⊢_⊑_ (CTX.impEnvʷ Cal.a3-d1-alias-world)
       (d1-merge-subst Z) ★
@@ -433,7 +433,7 @@ d1-merge-target-point (Fin.suc Fin.zero) = refl
 
 d1-merge-source-eq : ∀ C
   → substᵗ d1-merge-subst
-      (CTX.embedᴸ (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+      (CTX.embedᴸ (CTX.liftWorldLeft d1-outer-smart-world) C)
     ≡ CTX.embedᴸ Cal.a3-d1-alias-world C
 d1-merge-source-eq C =
   trans (substᵗ-rename d1-merge-subst
@@ -444,7 +444,7 @@ d1-merge-source-eq C =
 
 d1-merge-target-eq : ∀ C
   → substᵗ d1-merge-subst
-      (CTX.embedᴿ (CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world) C)
+      (CTX.embedᴿ (CTX.liftWorldLeft d1-outer-smart-world) C)
     ≡ CTX.embedᴿ Cal.a3-d1-alias-world C
 d1-merge-target-eq C =
   trans (substᵗ-rename d1-merge-subst
@@ -455,12 +455,12 @@ d1-merge-target-eq C =
 
 d1-merge-transport : ∀ {A : Ty 2} {B : Ty 2}
   → A CTX.⊑ᵂ⟨
-      CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world
+      CTX.liftWorldLeft d1-outer-smart-world
     ⟩ B
   → A CTX.⊑ᵂ⟨ Cal.a3-d1-alias-world ⟩ B
 d1-merge-transport =
   transport⊑ᵂ-by-subst
-    {W = CTX.liftWorldLeft I.X⊑★ d1-outer-smart-world}
+    {W = CTX.liftWorldLeft d1-outer-smart-world}
     {W′ = Cal.a3-d1-alias-world}
     d1-merge-subst d1-merge-star d1-merge-source-eq
     d1-merge-target-eq

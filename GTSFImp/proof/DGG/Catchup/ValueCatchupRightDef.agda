@@ -79,21 +79,14 @@ TargetCastBound fuel (CTI2.cast⊑² c rel q) = TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.reveal⊑² mono rb sameγ c⊢ rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sameγ c⊢ rel q) =
-  TargetCastBound fuel rel
-TargetCastBound fuel
-    (CTI2.conceal⊑²-source-ok ok mono rb sameγ c⊢ rel q) =
+    (CTI2.conceal⊑² mono rb sameγ c⊢ rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
     (CTI2.reveal⊑reveal² mono rb sameγ c⊢ c′⊢ rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑conceal² partner mono rb sameγ c⊢ c′⊢ rel q) =
+    (CTI2.conceal⊑conceal² mono rb sameγ c⊢ c′⊢ rel q) =
   TargetCastBound fuel rel
-TargetCastBound fuel
-    (CTI2.packaged-seal-star² partner mono rb sameγ c⊢ c′⊢
-      rel pkg-rel q) =
-  TargetCastBound fuel rel × TargetCastBound fuel pkg-rel
 TargetCastBound fuel (CTI2.blame⊑² M′⊢ p) = ⊤
 TargetCastBound fuel (CTI2.⊕⊑⊕² op rel₁ rel₂ r) =
   TargetCastBound fuel rel₁ × TargetCastBound fuel rel₂

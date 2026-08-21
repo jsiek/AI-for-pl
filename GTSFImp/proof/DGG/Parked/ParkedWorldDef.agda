@@ -12,18 +12,18 @@ open import Data.Empty using (⊥)
 open import Data.Fin using (zero)
 import Data.Fin as Fin
 import Data.Nat as Nat
-open import Data.Product using (_×_)
+open import Data.Product using (Σ-syntax; _×_)
+open import Data.Sum using (_⊎_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
-open import Types using (Ty; TyCtx; TyVar)
+open import Types using (Ty; TyCtx; TyVar; ★; ⇑ᵗ; ＇_)
 open import TyStore using (TyStore)
-open import Consistency using (_↪ᵗ_; toRenameᵗ; wk↪ᵗ)
+open import Consistency using (_↪ᵗ_; keep; skip; toRenameᵗ; wk↪ᵗ)
 open import Imprecision using (ImpEnv; X⊑X; X⊑★)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStore)
 import Reduction as R
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 
@@ -47,27 +47,34 @@ data ParkedWorld : ∀ {Δᴸ Δᴿ Δ}
     → World Δᴸ Δᴿ Δ
     → Set where
 
-  parked-initial : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+  parked-initial : ∀ {Δ} {μ : ImpEnv Δ}
       -----------------------------------
-    → ParkedWorld (CPI2.initialWorld μ Σ)
+    → ParkedWorld (CTI2.initialWorld μ)
 
   parked-both-bind : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {A : Ty Δᴸ} {B : Ty Δᴿ}
+    → (p : A ⊑ᵂ⟨ W ⟩ B)
     → ParkedWorld W
       ----------------------------------------------------------
-    → ParkedWorld (CTI2.bothBindWorld X⊑X W A B)
+    → ParkedWorld (CTI2.bothBindWorld W A B p)
 
   parked-left-bind : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {A : Ty Δᴸ}
     → ParkedWorld W
       ------------------------------------------------
-    → ParkedWorld (CTI2.leftOnlyWorld X⊑★ W A)
+    → ParkedWorld (CTI2.leftOnlyWorld W A)
 
   parked-right-bind : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+    → (fresh : ⇑ᵗ B ≡ ★
+      ⊎ Σ[ Yᴿ ∈ TyVar _ ]
+          (⇑ᵗ B ≡ ＇ Yᴿ)
+        × (∀ Xᴸ
+            → toRenameᵗ (skip (CTI2.ηᴸʷ W)) Xᴸ
+              ≢ toRenameᵗ (keep (CTI2.ηᴿʷ W)) Yᴿ))
     → ParkedWorld W
       -----------------------------------------------
-    → ParkedWorld (CTI2.rightOnlyWorld W B)
+    → ParkedWorld (CTI2.rightOnlyWorld W B fresh)
 
   parked-structural-right-insert : ∀ {Δᴸ Δᴿ Δ Δ₁}
       {W : World Δᴸ Δᴿ Δ}
@@ -113,8 +120,9 @@ data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       {W : World Δᴸ Δᴿ Δ}
       {W′ : World Δᴸ′ Δᴿ′ Δ′}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
+      {p : A ⊑ᵂ⟨ W ⟩ B}
     → ParkedEvolve χsᴸ χsᴿ
-        (CTI2.bothBindWorld X⊑X W A B) W′
+        (CTI2.bothBindWorld W A B p) W′
       ---------------------------------------------------
     → ParkedEvolve (bind A ∷ χsᴸ) (bind B ∷ χsᴿ) W W′
 
@@ -124,7 +132,7 @@ data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       {W : World Δᴸ Δᴿ Δ}
       {W′ : World Δᴸ′ Δᴿ′ Δ′}
       {A : Ty Δᴸ}
-    → ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld X⊑★ W A) W′
+    → ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld W A) W′
       ---------------------------------------------
     → ParkedEvolve (bind A ∷ χsᴸ) χsᴿ W W′
 
@@ -134,7 +142,14 @@ data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       {W : World Δᴸ Δᴿ Δ}
       {W′ : World Δᴸ′ Δᴿ′ Δ′}
       {B : Ty Δᴿ}
-    → ParkedEvolve χsᴸ χsᴿ (CTI2.rightOnlyWorld W B) W′
+      {fresh : ⇑ᵗ B ≡ ★
+        ⊎ Σ[ Yᴿ ∈ TyVar _ ]
+            (⇑ᵗ B ≡ ＇ Yᴿ)
+          × (∀ Xᴸ
+              → toRenameᵗ (skip (CTI2.ηᴸʷ W)) Xᴸ
+                ≢ toRenameᵗ (keep (CTI2.ηᴿʷ W)) Yᴿ)}
+    → ParkedEvolve χsᴸ χsᴿ
+        (CTI2.rightOnlyWorld W B fresh) W′
       ---------------------------------------------
     → ParkedEvolve χsᴸ (bind B ∷ χsᴿ) W W′
 
@@ -230,8 +245,9 @@ ParkedFreshBothᴸᵀ =
     {χsᴿ : StoreChanges (Nat.suc Δᴿ) Δᴿ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ B}
   → (evol : ParkedEvolve χsᴸ χsᴿ
-      (CTI2.bothBindWorld X⊑X W A B) W′
+      (CTI2.bothBindWorld W A B p) W′
     )
   → toRenameᵗ (CTI2.ηᴸʷ W′) (χsᴸ ▶ᵛ zero)
       ≡ centerVarᴾ evol zero
@@ -244,8 +260,9 @@ ParkedFreshBothᴿᵀ =
     {χsᴿ : StoreChanges (Nat.suc Δᴿ) Δᴿ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {p : A ⊑ᵂ⟨ W ⟩ B}
   → (evol : ParkedEvolve χsᴸ χsᴿ
-      (CTI2.bothBindWorld X⊑X W A B) W′
+      (CTI2.bothBindWorld W A B p) W′
     )
   → toRenameᵗ (CTI2.ηᴿʷ W′) (χsᴿ ▶ᵛ zero)
       ≡ centerVarᴾ evol zero
@@ -257,8 +274,9 @@ ParkedFreshRightᴿᵀ =
     {χsᴸ : StoreChanges Δᴸ Δᴸ′}
     {χsᴿ : StoreChanges (Nat.suc Δᴿ) Δᴿ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-    {B : Ty Δᴿ}
-  → (evol : ParkedEvolve χsᴸ χsᴿ (CTI2.rightOnlyWorld W B) W′)
+    {B : Ty Δᴿ} {fresh : CTI2.RightBindFresh W B}
+  → (evol : ParkedEvolve χsᴸ χsᴿ
+      (CTI2.rightOnlyWorld W B fresh) W′)
   → toRenameᵗ (CTI2.ηᴿʷ W′) (χsᴿ ▶ᵛ zero)
       ≡ centerVarᴾ evol zero
 
@@ -270,7 +288,7 @@ ParkedFreshLeftᴸᵀ =
     {χsᴿ : StoreChanges Δᴿ Δᴿ′}
     {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
     {A : Ty Δᴸ}
-  → (evol : ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld X⊑★ W A) W′)
+  → (evol : ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld W A) W′)
   → toRenameᵗ (CTI2.ηᴸʷ W′) (χsᴸ ▶ᵛ zero)
       ≡ centerVarᴾ evol zero
 

@@ -10,12 +10,13 @@ open import Data.List using ([]; _∷_)
 import Data.Fin as Fin
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong)
+  using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
 open import Types
+open import TyStore using (store-lift; _∋_⦂_)
 open import Consistency using (keep; skip; toRenameᵗ)
-open import Conversion using (Conv↓)
+open import Conversion using (Conv↑; Conv↓; _⊢↑[_]_; _⊢↓[_]_)
 open import CastTerms using (Term; ⟨_,_,_⟩; _⊢_⦂_)
 open import Imprecision
 import proof.DGG.CastTermImprecision as CTI2
@@ -23,6 +24,7 @@ import proof.DGG.CtxImp as CTX
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.SealPeelToolkit as SPT
 open import proof.DGG.WorldDecay
+import proof.DGG.WorldDecay as WD
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using (subst-⊑)
 
@@ -34,48 +36,53 @@ liftDecayBoth : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → EnvDecay W Wᵈ
   → EnvDecay (CTX.liftWorldBoth v W) (CTX.liftWorldBoth v Wᵈ)
-liftDecayBoth
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′}
-    v
-    (env-decay refl refl refl refl mono) =
-  env-decay refl refl refl refl lift-mono
+liftDecayBoth {W = W} {Wᵈ = Wᵈ} v dec =
+  env-decay
+    (cong keep (ηᴸ-same dec))
+    (cong keep (ηᴿ-same dec))
+    (cong store-lift (sourceStore-same dec))
+    (cong store-lift (targetStore-same dec))
+    (CTX.imp-env-mono lift-dynamic lift-precise)
   where
-  lift-mono : ∀ Z
-    → extendᵐ v μ Z ≡ X⊑★
-    → extendᵐ v μᵈ Z ≡ X⊑★
-  lift-mono Fin.zero eq = eq
-  lift-mono (Fin.suc Z) eq = mono Z eq
+  lift-dynamic : ∀ Z
+    → CTX.impEnvʷ (CTX.liftWorldBoth v W) Z ≡ X⊑★
+    → CTX.impEnvʷ (CTX.liftWorldBoth v Wᵈ) Z ≡ X⊑★
+  lift-dynamic Fin.zero eq = eq
+  lift-dynamic (Fin.suc Z) eq =
+    CTX.dynamic-preserved (env-mono dec) Z eq
 
-liftBothBinderDecay : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
-  → EnvDecay
-      (CTX.liftWorldBoth X⊑X W)
-      (CTX.liftWorldBoth X⊑★ W)
-liftBothBinderDecay = env-decay refl refl refl refl lift-mono
-  where
-  lift-mono : ∀ {Δ} {μ : ImpEnv Δ}
-    → (Z : Fin.Fin (suc Δ))
-    → extendᵐ X⊑X μ Z ≡ X⊑★
-    → extendᵐ X⊑★ μ Z ≡ X⊑★
-  lift-mono Fin.zero eq = refl
-  lift-mono (Fin.suc Z) eq = eq
+  lift-precise : ∀ Z
+    → CTX.impEnvʷ (CTX.liftWorldBoth v W) Z ≡ X⊑X
+    → CTX.impEnvʷ (CTX.liftWorldBoth v Wᵈ) Z ≡ X⊑X
+  lift-precise Fin.zero eq = eq
+  lift-precise (Fin.suc Z) eq =
+    CTX.precise-preserved (env-mono dec) Z eq
 
 liftDecayLeft : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → EnvDecay W Wᵈ
-  → EnvDecay (CTX.liftWorldLeft v W) (CTX.liftWorldLeft v Wᵈ)
-liftDecayLeft
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′}
-    v
-    (env-decay refl refl refl refl mono) =
-  env-decay refl refl refl refl lift-mono
+  → EnvDecay (CTX.liftWorldLeft W) (CTX.liftWorldLeft Wᵈ)
+liftDecayLeft {W = W} {Wᵈ = Wᵈ} v dec =
+  env-decay
+    (cong keep (ηᴸ-same dec))
+    (cong skip (ηᴿ-same dec))
+    (cong store-lift (sourceStore-same dec))
+    (targetStore-same dec)
+    (CTX.imp-env-mono lift-dynamic lift-precise)
   where
-  lift-mono : ∀ Z
-    → extendᵐ v μ Z ≡ X⊑★
-    → extendᵐ v μᵈ Z ≡ X⊑★
-  lift-mono Fin.zero eq = eq
-  lift-mono (Fin.suc Z) eq = mono Z eq
+  lift-dynamic : ∀ Z
+    → CTX.impEnvʷ (CTX.liftWorldLeft W) Z ≡ X⊑★
+    → CTX.impEnvʷ (CTX.liftWorldLeft Wᵈ) Z ≡ X⊑★
+  lift-dynamic Fin.zero eq = eq
+  lift-dynamic (Fin.suc Z) eq =
+    CTX.dynamic-preserved (env-mono dec) Z eq
+
+  lift-precise : ∀ Z
+    → CTX.impEnvʷ (CTX.liftWorldLeft W) Z ≡ X⊑X
+    → CTX.impEnvʷ (CTX.liftWorldLeft Wᵈ) Z ≡ X⊑X
+  lift-precise Fin.zero ()
+  lift-precise (Fin.suc Z) eq =
+    CTX.precise-preserved (env-mono dec) Z eq
 
 decayLiftCtx : ∀ {Δᴸ Δᴿ Δ} {v} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
@@ -90,7 +97,7 @@ decayLiftCtx dec (CTX.lift-∷ liftγ) =
 
 decayLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ} {v} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W}
-    {γ′ : CTX.CtxImp (CTX.liftWorldLeft v W)}
+    {γ′ : CTX.CtxImp (CTX.liftWorldLeft W)}
   → (dec : EnvDecay W Wᵈ)
   → CTX.LiftCtxᴸ v γ γ′
   → CTX.LiftCtxᴸ v (decayCtx dec γ)
@@ -157,77 +164,84 @@ decaySmartFreshBehindGuard : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
   → (dec : EnvDecay W Wᵈ)
   → CTX.SmartFreshBehindGuard W Wᵐ
-  → CTX.SmartFreshBehindGuard Wᵈ (SPT.dynWorld Wᵐ)
+  → CTX.SmartFreshBehindGuard Wᵈ (WD.honestify Wᵐ)
 decaySmartFreshBehindGuard
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {Δ = Δ} {Δᵐ = Δᵐ}
     {W = W} {Wᵈ = Wᵈ} {Wᵐ = Wᵐ}
-    (env-decay refl refl refl refl mono) guard =
+    dec guard =
   CTX.smart-fresh-behind-guard
-    (CTX.SmartFreshBehindGuard.oldCenters guard)
-    (CTX.SmartFreshBehindGuard.sourceStore-lifted guard)
-    (CTX.SmartFreshBehindGuard.targetStore-same guard)
-    transport′
-    (λ Z star → refl)
-    (CTX.SmartFreshBehindGuard.target-frozen guard)
-    (CTX.SmartFreshBehindGuard.old-source-frozen guard)
+    old
+    (trans (CTX.SmartFreshBehindGuard.sourceStore-lifted guard)
+      (cong store-lift (sym (sourceStore-same dec))))
+    (trans (CTX.SmartFreshBehindGuard.targetStore-same guard)
+      (sym (targetStore-same dec)))
+    transport
+    old-mark
+    target-frozen
+    old-source-frozen
     (CTX.SmartFreshBehindGuard.fresh-not-target guard)
-    refl
-    (λ Xᴿ star → refl)
+    fresh-mark
+    target-mark
   where
   old = CTX.SmartFreshBehindGuard.oldCenters guard
 
-  smartSubst : suc Δ ⇒ˢ Δᵐ
-  smartSubst Fin.zero =
-    ＇ (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero)
-  smartSubst (Fin.suc Z) = ＇ (toRenameᵗ old Z)
+  old-mark : ∀ Z
+    → CTX.impEnvʷ Wᵈ Z ≡ X⊑★
+    → CTX.impEnvʷ (WD.honestify Wᵐ)
+        (toRenameᵗ old Z) ≡ X⊑★
+  old-mark Z star =
+    CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ)
+      (toRenameᵗ old Z)
+      (CTX.SmartFreshBehindGuard.old-mark-mono guard Z
+        (WD.decay-dynamic-reflect dec Z star))
 
-  smartStar : ∀ Z
-    → CTX.impEnvʷ (CTX.liftWorldLeft X⊑★ Wᵈ) Z ≡ X⊑★
-    → CTX.impEnvʷ (SPT.dynWorld Wᵐ) ⊢ smartSubst Z ⊑ ★
-  smartStar Fin.zero star = X⊑★ refl
-  smartStar (Fin.suc Z) star = X⊑★ refl
+  target-image : ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ ≡ toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+  target-image Xᴿ =
+    cong (λ η → toRenameᵗ η Xᴿ) (ηᴿ-same dec)
 
-  source-point : ∀ X
-    → smartSubst (toRenameᵗ (keep (CTX.ηᴸʷ W)) X)
-      ≡ ＇ (toRenameᵗ (CTX.ηᴸʷ Wᵐ) X)
-  source-point Fin.zero = refl
-  source-point (Fin.suc X) =
-    cong ＇_ (sym (CTX.SmartFreshBehindGuard.old-source-frozen guard X))
+  source-image : ∀ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ ≡ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
+  source-image Xᴸ =
+    cong (λ η → toRenameᵗ η Xᴸ) (ηᴸ-same dec)
 
-  target-point : ∀ Y
-    → smartSubst (toRenameᵗ (skip (CTX.ηᴿʷ W)) Y)
-      ≡ ＇ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
-  target-point Y =
-    cong ＇_ (sym (CTX.SmartFreshBehindGuard.target-frozen guard Y))
+  target-frozen : ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ
+      ≡ toRenameᵗ old (toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ)
+  target-frozen Xᴿ =
+    trans (CTX.SmartFreshBehindGuard.target-frozen guard Xᴿ)
+      (cong (toRenameᵗ old) (sym (target-image Xᴿ)))
 
-  source-eq : ∀ C
-    → substᵗ smartSubst
-        (CTX.embedᴸ (CTX.liftWorldLeft X⊑★ Wᵈ) C)
-      ≡ CTX.embedᴸ (SPT.dynWorld Wᵐ) C
-  source-eq C =
-    trans (substᵗ-rename smartSubst
-        (toRenameᵗ (keep (CTX.ηᴸʷ W))) C)
-      (trans (substᵗ-cong C source-point)
-        (rename-as-subst (toRenameᵗ (CTX.ηᴸʷ Wᵐ)) C))
+  old-source-frozen : ∀ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ Wᵐ) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ old (toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ)
+  old-source-frozen Xᴸ =
+    trans (CTX.SmartFreshBehindGuard.old-source-frozen guard Xᴸ)
+      (cong (toRenameᵗ old) (sym (source-image Xᴸ)))
 
-  target-eq : ∀ C
-    → substᵗ smartSubst
-        (CTX.embedᴿ (CTX.liftWorldLeft X⊑★ Wᵈ) C)
-      ≡ CTX.embedᴿ (SPT.dynWorld Wᵐ) C
-  target-eq C =
-    trans (substᵗ-rename smartSubst
-        (toRenameᵗ (skip (CTX.ηᴿʷ W))) C)
-      (trans (substᵗ-cong C target-point)
-        (rename-as-subst (toRenameᵗ (CTX.ηᴿʷ Wᵐ)) C))
+  fresh-mark : CTX.impEnvʷ (WD.honestify Wᵐ)
+      (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero) ≡ X⊑★
+  fresh-mark = WD.honestify-mark Wᵐ
+    (toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero)
+    (CTX.SmartFreshBehindGuard.fresh-not-target guard)
 
-  transport′ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-    → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵈ ⟩ B
-    → A CTX.⊑ᵂ⟨ SPT.dynWorld Wᵐ ⟩ B
-  transport′ =
-    transport⊑ᵂ-by-subst
-      {W = CTX.liftWorldLeft X⊑★ Wᵈ}
-      {W′ = SPT.dynWorld Wᵐ}
-      smartSubst smartStar source-eq target-eq
+  target-mark : ∀ Xᴿ
+    → CTX.impEnvʷ Wᵈ (toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ) ≡ X⊑★
+    → CTX.impEnvʷ (WD.honestify Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
+  target-mark Xᴿ star =
+    CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ)
+      (CTX.SmartFreshBehindGuard.target-mark-mono guard Xᴿ
+        (trans (sym (cong (CTX.impEnvʷ W) (target-image Xᴿ)))
+          (WD.decay-dynamic-reflect dec
+            (toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ) star)))
+
+  transport : ∀ {A B}
+    → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft Wᵈ ⟩ B
+    → A CTX.⊑ᵂ⟨ WD.honestify Wᵐ ⟩ B
+  transport p = WD.decay⊑ᵂ (WD.honestify-decay {W = Wᵐ})
+    (CTX.SmartFreshBehindGuard.transport⊑ᵂ guard
+      (WD.reflect⊑ᵂ (liftDecayLeft X⊑★ dec) p))
 
 decaySmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
@@ -235,85 +249,120 @@ decaySmartAliasMergeGuard : ∀ {Δᴸ Δᴿ Δ}
     {β α : TyVar Δᴿ}
   → (dec : EnvDecay W Wᵈ)
   → CTX.SmartAliasMergeGuard W Wᵐ β α
-  → CTX.SmartAliasMergeGuard Wᵈ (SPT.dynWorld Wᵐ) β α
+  → CTX.SmartAliasMergeGuard Wᵈ (WD.honestify Wᵐ) β α
 decaySmartAliasMergeGuard
-    {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} {Δ = Δ}
-    {W = W} {Wᵈ = Wᵈ} {Wᵐ = Wᵐ} {β = β}
-    (env-decay refl refl refl refl mono) guard =
+    {W = W} {Wᵈ = Wᵈ} {Wᵐ = Wᵐ} {β = β} {α = α}
+    dec guard =
   CTX.smart-alias-merge-guard
-    (CTX.SmartAliasMergeGuard.β:=＇α guard)
-    (CTX.SmartAliasMergeGuard.α:=★ guard)
-    (CTX.SmartAliasMergeGuard.sourceStore-lifted guard)
-    (CTX.SmartAliasMergeGuard.targetStore-same guard)
-    transport′
-    (λ Z star → refl)
-    (CTX.SmartAliasMergeGuard.target-frozen guard)
-    (CTX.SmartAliasMergeGuard.pending-at-alias guard)
-    (CTX.SmartAliasMergeGuard.old-source-frozen guard)
-    (CTX.SmartAliasMergeGuard.no-old-source-at-alias guard)
-    refl
-    refl
-    (λ Xᴿ Xᴿ≢β Xᴿ≢α star → refl)
+    (subst≡ (λ Σ → Σ ∋ β ⦂ ＇ α) (sym (targetStore-same dec))
+      (CTX.SmartAliasMergeGuard.β:=＇α guard))
+    (subst≡ (λ Σ → Σ ∋ α ⦂ ★) (sym (targetStore-same dec))
+      (CTX.SmartAliasMergeGuard.α:=★ guard))
+    (trans (CTX.SmartAliasMergeGuard.sourceStore-lifted guard)
+      (cong store-lift (sym (sourceStore-same dec))))
+    (trans (CTX.SmartAliasMergeGuard.targetStore-same guard)
+      (sym (targetStore-same dec)))
+    transport
+    old-mark
+    target-frozen
+    pending-at-alias
+    old-source-frozen
+    no-old-source-at-alias
+    alias-mark
+    name-mark
+    target-mark
   where
-  smartSubst : suc Δ ⇒ˢ Δ
-  smartSubst Fin.zero = ＇ (toRenameᵗ (CTX.ηᴿʷ W) β)
-  smartSubst (Fin.suc Z) = ＇ Z
+  old-mark : ∀ Z
+    → CTX.impEnvʷ Wᵈ Z ≡ X⊑★
+    → CTX.impEnvʷ (WD.honestify Wᵐ) Z ≡ X⊑★
+  old-mark Z star =
+    CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ) Z
+      (CTX.SmartAliasMergeGuard.old-mark-mono guard Z
+        (WD.decay-dynamic-reflect dec Z star))
 
-  smartStar : ∀ Z
-    → CTX.impEnvʷ (CTX.liftWorldLeft X⊑★ Wᵈ) Z ≡ X⊑★
-    → CTX.impEnvʷ (SPT.dynWorld Wᵐ) ⊢ smartSubst Z ⊑ ★
-  smartStar Fin.zero star = X⊑★ refl
-  smartStar (Fin.suc Z) star = X⊑★ refl
+  target-image : ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ ≡ toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+  target-image Xᴿ =
+    cong (λ η → toRenameᵗ η Xᴿ) (ηᴿ-same dec)
 
-  source-point : ∀ X
-    → smartSubst (toRenameᵗ (keep (CTX.ηᴸʷ W)) X)
-      ≡ ＇ (toRenameᵗ (CTX.ηᴸʷ Wᵐ) X)
-  source-point Fin.zero =
-    cong ＇_ (sym (CTX.SmartAliasMergeGuard.pending-at-alias guard))
-  source-point (Fin.suc X) =
-    cong ＇_ (sym (CTX.SmartAliasMergeGuard.old-source-frozen guard X))
+  source-image : ∀ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ ≡ toRenameᵗ (CTX.ηᴸʷ W) Xᴸ
+  source-image Xᴸ =
+    cong (λ η → toRenameᵗ η Xᴸ) (ηᴸ-same dec)
 
-  target-point : ∀ Y
-    → smartSubst (toRenameᵗ (skip (CTX.ηᴿʷ W)) Y)
-      ≡ ＇ (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Y)
-  target-point Y =
-    cong ＇_ (sym (CTX.SmartAliasMergeGuard.target-frozen guard Y))
+  target-frozen : ∀ Xᴿ
+    → toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ
+      ≡ toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ
+  target-frozen Xᴿ =
+    trans (CTX.SmartAliasMergeGuard.target-frozen guard Xᴿ)
+      (sym (target-image Xᴿ))
 
-  source-eq : ∀ C
-    → substᵗ smartSubst
-        (CTX.embedᴸ (CTX.liftWorldLeft X⊑★ Wᵈ) C)
-      ≡ CTX.embedᴸ (SPT.dynWorld Wᵐ) C
-  source-eq C =
-    trans (substᵗ-rename smartSubst
-        (toRenameᵗ (keep (CTX.ηᴸʷ W))) C)
-      (trans (substᵗ-cong C source-point)
-        (rename-as-subst (toRenameᵗ (CTX.ηᴸʷ Wᵐ)) C))
+  pending-at-alias :
+    toRenameᵗ (CTX.ηᴸʷ Wᵐ) Fin.zero
+      ≡ toRenameᵗ (CTX.ηᴿʷ Wᵈ) β
+  pending-at-alias =
+    trans (CTX.SmartAliasMergeGuard.pending-at-alias guard)
+      (sym (target-image β))
 
-  target-eq : ∀ C
-    → substᵗ smartSubst
-        (CTX.embedᴿ (CTX.liftWorldLeft X⊑★ Wᵈ) C)
-      ≡ CTX.embedᴿ (SPT.dynWorld Wᵐ) C
-  target-eq C =
-    trans (substᵗ-rename smartSubst
-        (toRenameᵗ (skip (CTX.ηᴿʷ W))) C)
-      (trans (substᵗ-cong C target-point)
-        (rename-as-subst (toRenameᵗ (CTX.ηᴿʷ Wᵐ)) C))
+  old-source-frozen : ∀ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ Wᵐ) (Fin.suc Xᴸ)
+      ≡ toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ
+  old-source-frozen Xᴸ =
+    trans (CTX.SmartAliasMergeGuard.old-source-frozen guard Xᴸ)
+      (sym (source-image Xᴸ))
 
-  transport′ : ∀ {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-    → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ Wᵈ ⟩ B
-    → A CTX.⊑ᵂ⟨ SPT.dynWorld Wᵐ ⟩ B
-  transport′ =
-    transport⊑ᵂ-by-subst
-      {W = CTX.liftWorldLeft X⊑★ Wᵈ}
-      {W′ = SPT.dynWorld Wᵐ}
-      smartSubst smartStar source-eq target-eq
+  no-old-source-at-alias : ∀ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ Wᵈ) Xᴸ
+      ≢ toRenameᵗ (CTX.ηᴿʷ Wᵈ) β
+  no-old-source-at-alias Xᴸ aligned =
+    CTX.SmartAliasMergeGuard.no-old-source-at-alias guard Xᴸ
+      (trans (sym (source-image Xᴸ))
+        (trans aligned (target-image β)))
+
+  alias-mark : CTX.impEnvʷ (WD.honestify Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ Wᵈ) β) ≡ X⊑★
+  alias-mark =
+    trans (cong (CTX.impEnvʷ (WD.honestify Wᵐ)) (target-image β))
+      (CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ W) β)
+        (CTX.SmartAliasMergeGuard.alias-mark-dynamic guard))
+
+  name-mark : CTX.impEnvʷ (WD.honestify Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ Wᵈ) α) ≡ X⊑★
+  name-mark =
+    trans (cong (CTX.impEnvʷ (WD.honestify Wᵐ)) (target-image α))
+      (CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ W) α)
+        (CTX.SmartAliasMergeGuard.name-mark-dynamic guard))
+
+  target-mark : ∀ Xᴿ
+    → Xᴿ ≢ β
+    → Xᴿ ≢ α
+    → CTX.impEnvʷ Wᵈ (toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ) ≡ X⊑★
+    → CTX.impEnvʷ (WD.honestify Wᵐ)
+        (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ) ≡ X⊑★
+  target-mark Xᴿ Xᴿ≢β Xᴿ≢α star =
+    CTX.honestEnv-mono (CTX.ηᴿʷ Wᵐ) (CTX.impEnvʷ Wᵐ)
+      (toRenameᵗ (CTX.ηᴿʷ Wᵐ) Xᴿ)
+      (CTX.SmartAliasMergeGuard.target-mark-off-footprint guard Xᴿ
+        Xᴿ≢β Xᴿ≢α
+        (trans (sym (cong (CTX.impEnvʷ W) (target-image Xᴿ)))
+          (WD.decay-dynamic-reflect dec
+            (toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ) star)))
+
+  transport : ∀ {A B}
+    → A CTX.⊑ᵂ⟨ CTX.liftWorldLeft Wᵈ ⟩ B
+    → A CTX.⊑ᵂ⟨ WD.honestify Wᵐ ⟩ B
+  transport p = WD.decay⊑ᵂ (WD.honestify-decay {W = Wᵐ})
+    (CTX.SmartAliasMergeGuard.transport⊑ᵂ guard
+      (WD.reflect⊑ᵂ (liftDecayLeft X⊑★ dec) p))
 
 decaySmartCommaLiftᴸ : ∀ {Δᴸ Δᴿ Δ Δᵐ}
     {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
     {Wᵐ : CTX.World (suc Δᴸ) Δᴿ Δᵐ}
   → (dec : EnvDecay W Wᵈ)
   → CTX.SmartCommaLiftᴸ W Wᵐ
-  → CTX.SmartCommaLiftᴸ Wᵈ (SPT.dynWorld Wᵐ)
+  → CTX.SmartCommaLiftᴸ Wᵈ (WD.honestify Wᵐ)
 decaySmartCommaLiftᴸ dec (CTX.smart-fresh-behind guard) =
   CTX.smart-fresh-behind (decaySmartFreshBehindGuard dec guard)
 decaySmartCommaLiftᴸ dec (CTX.smart-merge-alias guard) =
@@ -327,6 +376,52 @@ decayCtx-tgt dec [] = refl
 decayCtx-tgt dec (CTX.ctx-imp A B p ∷ γ) =
   cong (_ ∷_) (decayCtx-tgt dec γ)
 
+decay-target-typing : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {γ : CTX.CtxImp W}
+    {M : Term Δᴿ} {B : Ty Δᴿ}
+  → (dec : EnvDecay W Wᵈ)
+  → ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ γ ⟩ ⊢ M ⦂ B
+  → ⟨ Δᴿ , CTX.targetStoreʷ Wᵈ ,
+      CTX.tgtCtxʷ (decayCtx dec γ) ⟩ ⊢ M ⦂ B
+decay-target-typing {W = W} {Wᵈ = Wᵈ} {γ = γ} dec M⊢ =
+  subst≡
+    (λ Σ → ⟨ _ , Σ , CTX.tgtCtxʷ (decayCtx dec γ) ⟩ ⊢ _ ⦂ _)
+    (sym (targetStore-same dec))
+    (subst≡ (λ Γ → ⟨ _ , CTX.targetStoreʷ W , Γ ⟩ ⊢ _ ⦂ _)
+      (sym (decayCtx-tgt dec γ)) M⊢)
+
+decay-source-⊢↑ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
+    {A B Xᴸ?} {c : Conv↑ Δᴸ A B}
+  → EnvDecay W Wᵈ
+  → CTX.sourceStoreʷ W ⊢↑[ Xᴸ? ] c
+  → CTX.sourceStoreʷ Wᵈ ⊢↑[ Xᴸ? ] c
+decay-source-⊢↑ dec c⊢ =
+  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (sourceStore-same dec)) c⊢
+
+decay-source-⊢↓ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
+    {A B Xᴸ?} {c : Conv↓ Δᴸ A B}
+  → EnvDecay W Wᵈ
+  → CTX.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
+  → CTX.sourceStoreʷ Wᵈ ⊢↓[ Xᴸ? ] c
+decay-source-⊢↓ dec c⊢ =
+  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (sourceStore-same dec)) c⊢
+
+decay-target-⊢↑ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
+    {A B Xᴿ?} {c : Conv↑ Δᴿ A B}
+  → EnvDecay W Wᵈ
+  → CTX.targetStoreʷ W ⊢↑[ Xᴿ? ] c
+  → CTX.targetStoreʷ Wᵈ ⊢↑[ Xᴿ? ] c
+decay-target-⊢↑ dec c⊢ =
+  subst≡ (λ Σ → Σ ⊢↑[ _ ] _) (sym (targetStore-same dec)) c⊢
+
+decay-target-⊢↓ : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
+    {A B Xᴿ?} {c : Conv↓ Δᴿ A B}
+  → EnvDecay W Wᵈ
+  → CTX.targetStoreʷ W ⊢↓[ Xᴿ? ] c
+  → CTX.targetStoreʷ Wᵈ ⊢↓[ Xᴿ? ] c
+decay-target-⊢↓ dec c⊢ =
+  subst≡ (λ Σ → Σ ⊢↓[ _ ] _) (sym (targetStore-same dec)) c⊢
+
 ------------------------------------------------------------------------
 -- Decay of pivot-local rebasing
 ------------------------------------------------------------------------
@@ -338,93 +433,118 @@ decayRebaseAt : ∀ {Δᴸ Δᴿ Δ}
   → CTX.RebaseAt W₁ W₂ Xᴸ Xᴿ
   → CTX.RebaseAt W₁ᵈ W₂ᵈ Xᴸ Xᴿ
 decayRebaseAt
-    {W₁ = CTX.world ηL₁ ηR₁ μ₁ ΣL₁ ΣR₁}
-    {W₁ᵈ = CTX.world ηL₁′ ηR₁′ μ₁ᵈ ΣL₁′ ΣR₁′}
-    {W₂ = CTX.world ηL₂ ηR₂ μ₂ ΣL₂ ΣR₂}
-    {W₂ᵈ = CTX.world ηL₂′ ηR₂′ μ₂ᵈ ΣL₂′ ΣR₂′}
-    (env-decay refl refl refl refl mono₁)
-    dec₂@(env-decay refl refl refl refl mono₂)
+    {W₁ = W₁} {W₁ᵈ = W₁ᵈ} {W₂ = W₂} {W₂ᵈ = W₂ᵈ}
+    {Xᴸ = Xᴸ} {Xᴿ = Xᴿ} dec₁ dec₂
     (CTX.rebase-at (CTX.same-runtime source-eq target-eq)
       offL frozenR aligned (CTX.store-rep-imp represented)) =
-  CTX.rebase-at (CTX.same-runtime source-eq target-eq)
-    offL frozenR aligned
-    (CTX.store-rep-imp (decay⊑ᵂ dec₂ represented))
+  CTX.rebase-at (CTX.same-runtime source-eqᵈ target-eqᵈ)
+    offLᵈ frozenRᵈ alignedᵈ
+    (CTX.store-rep-imp
+      (subst≡
+        (λ A → A CTX.⊑ᵂ⟨ W₂ᵈ ⟩
+          CTX.resolveVar (CTX.targetStoreʷ W₂ᵈ) Xᴿ)
+        (sym source-rep-eq)
+        (subst≡
+          (λ B → CTX.resolveVar (CTX.sourceStoreʷ W₂) Xᴸ
+            CTX.⊑ᵂ⟨ W₂ᵈ ⟩ B)
+          (sym target-rep-eq)
+          (decay⊑ᵂ dec₂ represented))))
+  where
+  source-rep-eq : CTX.resolveVar (CTX.sourceStoreʷ W₂ᵈ) Xᴸ
+    ≡ CTX.resolveVar (CTX.sourceStoreʷ W₂) Xᴸ
+  source-rep-eq = cong (λ Σ → CTX.resolveVar Σ Xᴸ)
+    (sourceStore-same dec₂)
+
+  target-rep-eq : CTX.resolveVar (CTX.targetStoreʷ W₂ᵈ) Xᴿ
+    ≡ CTX.resolveVar (CTX.targetStoreʷ W₂) Xᴿ
+  target-rep-eq = cong (λ Σ → CTX.resolveVar Σ Xᴿ)
+    (targetStore-same dec₂)
+
+  source-eqᵈ = trans (sourceStore-same dec₂)
+    (trans source-eq (sym (sourceStore-same dec₁)))
+
+  target-eqᵈ = trans (targetStore-same dec₂)
+    (trans target-eq (sym (targetStore-same dec₁)))
+
+  source-image₁ : ∀ Y
+    → toRenameᵗ (CTX.ηᴸʷ W₁ᵈ) Y ≡ toRenameᵗ (CTX.ηᴸʷ W₁) Y
+  source-image₁ Y = cong (λ η → toRenameᵗ η Y) (ηᴸ-same dec₁)
+
+  source-image₂ : ∀ Y
+    → toRenameᵗ (CTX.ηᴸʷ W₂ᵈ) Y ≡ toRenameᵗ (CTX.ηᴸʷ W₂) Y
+  source-image₂ Y = cong (λ η → toRenameᵗ η Y) (ηᴸ-same dec₂)
+
+  target-image₁ : ∀ Y
+    → toRenameᵗ (CTX.ηᴿʷ W₁ᵈ) Y ≡ toRenameᵗ (CTX.ηᴿʷ W₁) Y
+  target-image₁ Y = cong (λ η → toRenameᵗ η Y) (ηᴿ-same dec₁)
+
+  target-image₂ : ∀ Y
+    → toRenameᵗ (CTX.ηᴿʷ W₂ᵈ) Y ≡ toRenameᵗ (CTX.ηᴿʷ W₂) Y
+  target-image₂ Y = cong (λ η → toRenameᵗ η Y) (ηᴿ-same dec₂)
+
+  offLᵈ : ∀ {Y} → Y ≢ Xᴸ
+    → toRenameᵗ (CTX.ηᴸʷ W₂ᵈ) Y ≡ toRenameᵗ (CTX.ηᴸʷ W₁ᵈ) Y
+  offLᵈ {Y} Y≢X = trans (source-image₂ Y)
+    (trans (offL Y≢X) (sym (source-image₁ Y)))
+
+  frozenRᵈ : ∀ Y
+    → toRenameᵗ (CTX.ηᴿʷ W₂ᵈ) Y ≡ toRenameᵗ (CTX.ηᴿʷ W₁ᵈ) Y
+  frozenRᵈ Y = trans (target-image₂ Y)
+    (trans (frozenR Y) (sym (target-image₁ Y)))
+
+  alignedᵈ : toRenameᵗ (CTX.ηᴸʷ W₂ᵈ) Xᴸ
+    ≡ toRenameᵗ (CTX.ηᴿʷ W₂ᵈ) Xᴿ
+  alignedᵈ = trans (source-image₂ Xᴸ)
+    (trans aligned (sym (target-image₂ Xᴿ)))
 
 ------------------------------------------------------------------------
 -- Term-imprecision decay
 ------------------------------------------------------------------------
 
-private
-  decayRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ} {P Xᴿ? M′}
-    → EnvDecay W Wᵈ
-    → CTX.Rep★PartnerOK W X P Xᴿ? M′
-    → CTX.Rep★PartnerOK Wᵈ X P Xᴿ? M′
-  decayRep★PartnerOK (env-decay refl refl refl refl mono)
-      (CTX.rep★-untagged nt) =
-    CTX.rep★-untagged nt
-  decayRep★PartnerOK (env-decay refl refl refl refl mono)
-      (CTX.rep★-nonvar-tag Gnv) =
-    CTX.rep★-nonvar-tag Gnv
-  decayRep★PartnerOK (env-decay refl refl refl refl mono)
-      (CTX.rep★-var-tag aligned) =
-    CTX.rep★-var-tag aligned
-  decayRep★PartnerOK (env-decay refl refl refl refl mono)
-      (CTX.rep★-matched-inner-tags X₂≢X aligned) =
-    CTX.rep★-matched-inner-tags X₂≢X aligned
-  decayRep★PartnerOK dec (CTX.rep★-round-trip ok) =
-    CTX.rep★-round-trip (decayRep★PartnerOK dec ok)
+reindex-⊢² : ∀ {Δᴸ Δᴿ Δ} {W : CTX.World Δᴸ Δᴿ Δ}
+    {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p q : A CTX.⊑ᵂ⟨ W ⟩ B}
+  → W ∣ γ ⊢² M ⊑ M′ ∶ p
+  → W ∣ γ ⊢² M ⊑ M′ ∶ q
+reindex-⊢² {W = W} {γ = γ} {M = M} {M′ = M′} {p = p} {q = q} rel =
+  subst≡ (λ r → W ∣ γ ⊢² M ⊑ M′ ∶ r) (PI.⊑-unique p q) rel
 
-  decayNoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ}
-    → EnvDecay W Wᵈ
-    → CTX.NoTargetOccupantAtSource W X
-    → CTX.NoTargetOccupantAtSource Wᵈ X
-  decayNoTargetOccupantAtSource
-      (env-decay refl refl refl refl mono) no-target =
-    no-target
+decay-source-dynamic : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTX.impEnvʷ W (toRenameᵗ (CTX.ηᴸʷ W) X) ≡ X⊑★
+  → CTX.impEnvʷ Wᵈ (toRenameᵗ (CTX.ηᴸʷ Wᵈ) X) ≡ X⊑★
+decay-source-dynamic {Wᵈ = Wᵈ} {X = X} dec dynamic =
+  trans (cong (CTX.impEnvʷ Wᵈ)
+      (cong (λ η → toRenameᵗ η X) (ηᴸ-same dec)))
+    (CTX.dynamic-preserved (env-mono dec) _ dynamic)
 
-  decaySourceConcealOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-    → EnvDecay W Wᵈ
-    → CTX.SourceConcealOK W M c Xᴿ? M′
-    → CTX.SourceConcealOK Wᵈ M c Xᴿ? M′
-  decaySourceConcealOK dec
-      (CTX.seal-nonstar-unmatched-ok {X = X} Rns no-target) =
-    CTX.seal-nonstar-unmatched-ok Rns
-      (decayNoTargetOccupantAtSource {X = X} dec no-target)
-  decaySourceConcealOK (env-decay refl refl refl refl mono)
-      (CTX.seal-nonstar-name-protected-ok Rns aligned) =
-    CTX.seal-nonstar-name-protected-ok Rns aligned
-  decaySourceConcealOK dec CTX.fun-conceal-ok =
-    CTX.fun-conceal-ok
-  decaySourceConcealOK dec CTX.all-conceal-ok =
-    CTX.all-conceal-ok
-  decaySourceConcealOK dec CTX.id-conceal-ok =
-    CTX.id-conceal-ok
+decay-source-no-target : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → (dec : EnvDecay W Wᵈ)
+  → (∀ Xᴿ → toRenameᵗ (CTX.ηᴿʷ W) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ W) X)
+  → ∀ Xᴿ → toRenameᵗ (CTX.ηᴿʷ Wᵈ) Xᴿ
+      ≢ toRenameᵗ (CTX.ηᴸʷ Wᵈ) X
+decay-source-no-target {X = X} dec no-target Xᴿ aligned =
+  no-target Xᴿ
+    (trans (sym (cong (λ η → toRenameᵗ η Xᴿ) (ηᴿ-same dec)))
+      (trans aligned
+        (cong (λ η → toRenameᵗ η X) (ηᴸ-same dec))))
 
-  decayMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
-      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-      {c : Conv↓ Δᴸ A A′} {Y M′}
-    → EnvDecay W Wᵈ
-    → CTX.MatchedConcealPartnerOK W M c Y M′
-    → CTX.MatchedConcealPartnerOK Wᵈ M c Y M′
-  decayMatchedConcealPartnerOK dec
-      (CTX.matched-seal-star-partner ok) =
-    CTX.matched-seal-star-partner (decayRep★PartnerOK dec ok)
-  decayMatchedConcealPartnerOK dec (CTX.matched-seal-nonstar Rns) =
-    CTX.matched-seal-nonstar Rns
-  decayMatchedConcealPartnerOK dec CTX.matched-fun-conceal-target =
-    CTX.matched-fun-conceal-target
-  decayMatchedConcealPartnerOK dec CTX.matched-all-conceal-target =
-    CTX.matched-all-conceal-target
-  decayMatchedConcealPartnerOK dec CTX.matched-id-conceal-target =
-    CTX.matched-id-conceal-target
+decay-source-represented-star : ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵈ : CTX.World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ}
+  → (dec : EnvDecay W Wᵈ)
+  → CTX.resolveVar (CTX.sourceStoreʷ W) X CTX.⊑ᵂ⟨ W ⟩ ★
+  → CTX.resolveVar (CTX.sourceStoreʷ Wᵈ) X CTX.⊑ᵂ⟨ Wᵈ ⟩ ★
+decay-source-represented-star {W = W} {Wᵈ = Wᵈ} {X = X}
+    dec represented =
+  subst≡ (λ R → R CTX.⊑ᵂ⟨ Wᵈ ⟩ ★) (sym rep-eq)
+    (decay⊑ᵂ dec represented)
+  where
+  rep-eq : CTX.resolveVar (CTX.sourceStoreʷ Wᵈ) X
+    ≡ CTX.resolveVar (CTX.sourceStoreʷ W) X
+  rep-eq = cong (λ Σ → CTX.resolveVar Σ X) (sourceStore-same dec)
 
 ⊢²-decay : ∀ {Δᴸ Δᴿ Δ} {W Wᵈ : CTX.World Δᴸ Δᴿ Δ}
     {γ : CTX.CtxImp W} {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -433,299 +553,211 @@ private
   → W ∣ γ ⊢² M ⊑ M′ ∶ p
   → Wᵈ ∣ decayCtx dec γ ⊢² M ⊑ M′ ∶ decay⊑ᵂ dec p
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.x⊑x² x∈) =
   CTI2.x⊑x² (decay∋ʷ dec x∈)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.ƛ⊑ƛ² M⊑M′) =
-  CTI2.ƛ⊑ƛ² (⊢²-decay dec M⊑M′)
+  reindex-⊢² (CTI2.ƛ⊑ƛ² (⊢²-decay dec M⊑M′))
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.·⊑·² L⊑L′ M⊑M′) =
-  CTI2.·⊑·² (⊢²-decay dec L⊑L′) (⊢²-decay dec M⊑M′)
+    dec
+    (CTI2.·⊑·² {pA = pA} {pB = pB} L⊑L′ M⊑M′) =
+  reindex-⊢²
+    (CTI2.·⊑·²
+      (reindex-⊢²
+        {q = ⇒⊑⇒ (decay⊑ᵂ dec pA) (decay⊑ᵂ dec pB)}
+        (⊢²-decay dec L⊑L′))
+      (⊢²-decay dec M⊑M′))
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.Λ⊑Λ² liftγ vV vV′ V⊑V′ q) =
   CTI2.Λ⊑Λ² (decayLiftCtx dec liftγ) vV vV′
     (⊢²-decay (liftDecayBoth X⊑X dec) V⊑V′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     {γ = γ}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.Λ⊑² Anv zero∈A liftγ vV M′⊢ V⊑M′ q) =
   CTI2.Λ⊑² Anv zero∈A (decayLiftCtxᴸ dec liftγ) vV
-    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
-      (sym (decayCtx-tgt dec γ)) M′⊢)
+    (decay-target-typing dec M′⊢)
     (⊢²-decay (liftDecayLeft X⊑★ dec) V⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
     {γ = γ}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.Λ⊑²-smart-comma {Wᵐ = Wᵐ} Anv zero∈A liftW
       liftγ vV M′⊢ V⊑M′ q) =
   CTI2.Λ⊑²-smart-comma Anv zero∈A
     (decaySmartCommaLiftᴸ dec liftW)
-    (decaySmartLiftCtxᴸ dec (SPT.dynWorld-decay Wᵐ) liftγ) vV
-    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
-      (sym (decayCtx-tgt dec γ)) M′⊢)
-    (⊢²-decay (SPT.dynWorld-decay Wᵐ) V⊑M′)
+    (decaySmartLiftCtxᴸ dec (WD.honestify-decay {W = Wᵐ}) liftγ) vV
+    (decay-target-typing dec M′⊢)
+    (⊢²-decay (WD.honestify-decay {W = Wᵐ}) V⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.•⊑•² p∀ M⊑M′ q r) =
   CTI2.•⊑•² (decay⊑ᵂ dec p∀) (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q) (decay⊑ᵂ dec r)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.•⊑² p∀ M⊑M′ q r) =
   CTI2.•⊑² (decay⊑ᵂ dec p∀) (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q) (decay⊑ᵂ dec r)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.κ⊑κ² κ p) =
   CTI2.κ⊑κ² κ (decay⊑ᵂ dec p)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.cast⊑cast² c c′ M⊑M′ q) =
   CTI2.cast⊑cast² c c′ (⊢²-decay dec M⊑M′) (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.⊑cast² c′ M⊑M′ q) =
   CTI2.⊑cast² c′ (⊢²-decay dec M⊑M′) (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.cast⊑² c M⊑M′ q) =
   CTI2.cast⊑² c (⊢²-decay dec M⊑M′) (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.⊑reveal² rule-mono CTX.rebase-idᴿ sc
       c′⊢ M⊑M′ q) =
-  CTI2.⊑reveal² (λ _ eq → eq) CTX.rebase-idᴿ
-    (decaySameCtx dec dec sc) c′⊢ (⊢²-decay dec M⊑M′)
+  CTI2.⊑reveal² CTX.impEnvMono-refl CTX.rebase-idᴿ
+    (decaySameCtx dec dec sc) (decay-target-⊢↑ dec c′⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    {Wᵈ = Wᵈ}
+    dec
     (CTI2.⊑reveal² {W′ = W′} rule-mono
       (CTX.rebase-varᴿ rb) sc c′⊢ M⊑M′ q) =
   CTI2.⊑reveal²
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
+    (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
     (CTX.rebase-varᴿ
       (decayRebaseAt dec
         (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) rb))
     (decaySameCtx dec
       (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    c′⊢
+    (decay-target-⊢↑ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.⊑conceal² rule-mono CTX.rebase-idᴿ sc
       c′⊢ M⊑M′ q) =
-  CTI2.⊑conceal² (λ _ eq → eq) CTX.rebase-idᴿ
-    (decaySameCtx dec dec sc) c′⊢ (⊢²-decay dec M⊑M′)
+  CTI2.⊑conceal² CTX.impEnvMono-refl CTX.rebase-idᴿ
+    (decaySameCtx dec dec sc) (decay-target-⊢↓ dec c′⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    {Wᵈ = Wᵈ}
+    dec
     (CTI2.⊑conceal² {W′ = W′} rule-mono
       (CTX.rebase-varᴿ rb) sc c′⊢ M⊑M′ q) =
   CTI2.⊑conceal²
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
+    (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
     (CTX.rebase-varᴿ
       (decayRebaseAt
         (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) dec rb))
     (decaySameCtx dec
       (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    c′⊢
+    (decay-target-⊢↓ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.reveal⊑² rule-mono CTX.rebase-idᴸ sc
       c⊢ M⊑M′ q) =
-  CTI2.reveal⊑² (λ _ eq → eq) CTX.rebase-idᴸ
-    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+  CTI2.reveal⊑² CTX.impEnvMono-refl CTX.rebase-idᴸ
+    (decaySameCtx dec dec sc) (decay-source-⊢↑ dec c⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    {Wᵈ = Wᵈ}
+    dec
     (CTI2.reveal⊑² {W′ = W′} rule-mono
       (CTX.rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
   CTI2.reveal⊑²
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
+    (blend-mono {W′ = W′} {Wᵈ = Wᵈ} dec rule-mono)
     (CTX.rebase-varᴸ
       (decayRebaseAt dec
         (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) rb))
     (decaySameCtx dec
       (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    c⊢
+    (decay-source-⊢↑ dec c⊢)
     (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.reveal⊑² rule-mono
       (CTX.rebase-onlyᴸ to-star disaligned represented)
       sc c⊢ M⊑M′ q) =
-  CTI2.reveal⊑² (λ _ eq → eq)
-    (CTX.rebase-onlyᴸ (mono _ to-star) disaligned
-      (decay⊑ᵂ dec represented))
-    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+  CTI2.reveal⊑² CTX.impEnvMono-refl
+    (CTX.rebase-onlyᴸ (decay-source-dynamic dec to-star)
+      (decay-source-no-target dec disaligned)
+      (decay-source-represented-star dec represented))
+    (decaySameCtx dec dec sc) (decay-source-⊢↑ dec c⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑²-seal-star-open no-target rule-mono
+    dec
+    (CTI2.conceal⊑² rule-mono
       (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
       sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑²-seal-star-open
-    (decayNoTargetOccupantAtSource dec no-target)
-    (λ _ eq → eq)
-    (CTX.tag-rebase-onlyᴸ (mono _ to-star) disaligned
-      (decay⊑ᵂ dec represented))
-    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+  CTI2.conceal⊑²
+    CTX.impEnvMono-refl
+    (CTX.tag-rebase-onlyᴸ (decay-source-dynamic dec to-star)
+      (decay-source-no-target dec disaligned)
+      (decay-source-represented-star dec represented))
+    (decaySameCtx dec dec sc) (decay-source-⊢↓ dec c⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑²-source-ok ok rule-mono CTX.tag-rebase-idᴸ
+    dec
+    (CTI2.conceal⊑² rule-mono CTX.tag-rebase-idᴸ
       sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑²-source-ok (decaySourceConcealOK dec ok)
-    (λ _ eq → eq) CTX.tag-rebase-idᴸ
-    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
+  CTI2.conceal⊑² CTX.impEnvMono-refl CTX.tag-rebase-idᴸ
+    (decaySameCtx dec dec sc) (decay-source-⊢↓ dec c⊢)
+    (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑²-source-ok {W′ = W′} ok rule-mono
-      (CTX.tag-rebase-varᴸ rb) sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑²-source-ok
-    (decaySourceConcealOK
-      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) ok)
-    (blend-mono {W′ = W′} {Wᵈ = Wᵈ})
-    (CTX.tag-rebase-varᴸ
-      (decayRebaseAt
-        (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) dec rb))
-    (decaySameCtx dec
-      (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) sc)
-    c⊢
-    (⊢²-decay (blend-decay {W′ = W′} {Wᵈ = Wᵈ}) M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑²-source-ok ok rule-mono
-      (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-      sc c⊢ M⊑M′ q) =
-  CTI2.conceal⊑²-source-ok (decaySourceConcealOK dec ok)
-    (λ _ eq → eq)
-    (CTX.tag-rebase-onlyᴸ (mono _ to-star) disaligned
-      (decay⊑ᵂ dec represented))
-    (decaySameCtx dec dec sc) c⊢ (⊢²-decay dec M⊑M′)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    {Wᵈ = Wᵈ}
+    dec
     (CTI2.reveal⊑reveal² {Wᵖ = Wᵖ} rule-mono rb sc
       c⊢ c′⊢ M⊑M′ q) =
   CTI2.reveal⊑reveal²
-    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ})
+    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ} dec rule-mono)
     (decayRebaseAt dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) rb)
     (decaySameCtx dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
-    c⊢ c′⊢
+    (decay-source-⊢↑ dec c⊢) (decay-target-⊢↑ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} ok rule-mono rb sc
+    {Wᵈ = Wᵈ}
+    dec
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} rule-mono rb sc
       c⊢ c′⊢ M⊑M′ q) =
   CTI2.conceal⊑conceal²
-    (decayMatchedConcealPartnerOK
-      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) ok)
-    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ})
+    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ} dec rule-mono)
     (decayRebaseAt
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) dec rb)
     (decaySameCtx dec
       (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
-    c⊢ c′⊢
+    (decay-source-⊢↓ dec c⊢) (decay-target-⊢↓ dec c′⊢)
     (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
     (decay⊑ᵂ dec q)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
-    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} ok rule-mono rb sc
-      c⊢ c′⊢ M⊑M′ sourcePrem q) =
-  CTI2.packaged-seal-star²
-    (decayMatchedConcealPartnerOK
-      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) ok)
-    (blend-mono {W′ = Wᵖ} {Wᵈ = Wᵈ})
-    (decayRebaseAt
-      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) dec rb)
-    (decaySameCtx dec
-      (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sc)
-    c⊢ c′⊢
-    (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) M⊑M′)
-    (⊢²-decay (blend-decay {W′ = Wᵖ} {Wᵈ = Wᵈ}) sourcePrem)
-    (decay⊑ᵂ dec q)
-⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.blame⊑² M′⊢ p) =
   CTI2.blame⊑²
-    (subst≡ (λ Γ → ⟨ _ , _ , Γ ⟩ ⊢ _ ⦂ _)
-      (sym (decayCtx-tgt dec _)) M′⊢)
+    (decay-target-typing dec M′⊢)
     (decay⊑ᵂ dec p)
 ⊢²-decay
-    {W = CTX.world ηL ηR μ ΣL ΣR}
-    {Wᵈ = Wᵈ@(CTX.world ηL′ ηR′ μᵈ ΣL′ ΣR′)}
-    dec@(env-decay refl refl refl refl mono)
+    dec
     (CTI2.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
   CTI2.⊕⊑⊕² op (⊢²-decay dec L⊑L′) (⊢²-decay dec M⊑M′)
     (decay⊑ᵂ dec r)

@@ -7,7 +7,7 @@ module proof.DGG.SimSourceConcealValuesDef where
 --   * Contains no source-conceal value proof.
 
 open import Data.List using ([])
-open import Data.Maybe using (Maybe)
+open import Data.Maybe using (Maybe; nothing)
 open import Data.Product using (_×_; Σ-syntax)
 
 open import Types using (Ty; TyCtx; TyVar)
@@ -30,7 +30,6 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
 open CTX using
   (World;
-   SourceConcealOK;
    ImpEnvMono;
    TagRebaseAtᴸ;
    sourceStoreʷ;
@@ -44,13 +43,12 @@ SimSourceConcealValuesᵀ =
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
-    {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {Xᴸ? : Maybe (TyVar Δᴸ)}
     {c : Conv↓ Δᴸ A A′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
   → ParkedWorld W
-  → SourceConcealOK Wᵖ V c Xᴿ? M′
   → (mono : ImpEnvMono W Wᵖ)
-  → TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?
+  → TagRebaseAtᴸ Wᵖ W Xᴸ? nothing
   → sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → Wᵖ ∣ [] ⊢² V ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
@@ -58,7 +56,7 @@ SimSourceConcealValuesᵀ =
   → V ↓ c —→[ χᴸ ] N
   → ValueCatchupResult
       {W = W} {Wᵖ = Wᵖ} {kind = source-conceal-boundary}
-      {Xᴸ? = Xᴸ?} {Xᴿ? = Xᴿ?}
+      {Xᴸ? = Xᴸ?} {Xᴿ? = nothing}
       {V = V} {M′ = M′} {A = A} {B = B}
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]

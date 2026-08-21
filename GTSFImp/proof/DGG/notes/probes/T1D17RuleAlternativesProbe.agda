@@ -82,7 +82,7 @@ module BeforeStep where
         --------------------------------
       → W ∣ γ ⊢ᴬ M ⊑ M′ ∶ p
 
-    conceal⊑²-source-ok : ∀ {W′ : World Δᴸ Δᴿ Δ}
+    conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
         {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
         {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
       → SourceConcealOK W′ M c Xᴿ? M′ B
@@ -111,7 +111,7 @@ module BeforeStep where
     → W′ ∣ γ′ ⊢ᴬ P ⊑ N ∶ p
     → W ∣ γ ⊢ᴬ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} Rns Bns mono rb sc c⊢ prem =
-    conceal⊑²-source-ok
+    conceal⊑²
       (seal-nonstar-plain-ok Rns Bns) mono rb sc c⊢ prem q
 
   dynamic-target-type-rejected : ∀ {Δᴸ Δᴿ Δ}
@@ -194,7 +194,7 @@ module AfterStep where
         --------------------------------
       → W ∣ γ ⊢ᴮ M ⊑ M′ ∶ p
 
-    conceal⊑²-source-ok : ∀ {W′ : World Δᴸ Δᴿ Δ}
+    conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
         {γ′ : CtxImp W′} {M M′ V′ A A′ B Xᴸ? Xᴿ?}
         {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
       → TargetValueBeneath M′ V′
@@ -225,7 +225,7 @@ module AfterStep where
     → W′ ∣ γ′ ⊢ᴮ P ⊑ N ∶ p
     → W ∣ γ ⊢ᴮ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} vN Rns not-top mono rb sc c⊢ prem =
-    conceal⊑²-source-ok
+    conceal⊑²
       (target-value-here vN) (seal-nonstar-plain-ok Rns not-top)
       mono rb sc c⊢ prem q
 
@@ -278,7 +278,7 @@ module WorldLevel where
         --------------------------------
       → W ∣ γ ⊢ᵂ M ⊑ M′ ∶ p
 
-    conceal⊑²-source-ok : ∀ {W′ : World Δᴸ Δᴿ Δ}
+    conceal⊑² : ∀ {W′ : World Δᴸ Δᴿ Δ}
         {γ′ : CtxImp W′} {M M′ A A′ B Xᴸ? Xᴿ?}
         {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
       → SourceConcealOK W′ M c Xᴿ? M′
@@ -307,7 +307,7 @@ module WorldLevel where
     → W′ ∣ γ′ ⊢ᵂ P ⊑ N ∶ p
     → W ∣ γ ⊢ᵂ P ↓ seal X R ⊑ N ∶ q
   seal-target-id-conceal-replay {q = q} Rns no-target mono rb sc c⊢ prem =
-    conceal⊑²-source-ok
+    conceal⊑²
       (seal-nonstar-unmatched-ok Rns no-target)
       mono rb sc c⊢ prem q
 

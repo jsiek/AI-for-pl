@@ -29,6 +29,7 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TermImpDecay as TD
+import proof.DGG.WorldDecay as WD
 
 open CTX using
   (World;
@@ -262,12 +263,12 @@ transportRep★PartnerOK-dyn₅ : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {P : Term Δᴸ} {M′ : Term Δᴿ}
   → RebaseAt Wᵖ W X Y
-  → Rep★PartnerOK₅ (SPT.dynWorld Wᵖ) X P (just Y) M′
-  → Rep★PartnerOK₅ (SPT.dynWorld W) X P (just Y) M′
+  → Rep★PartnerOK₅ (WD.honestify Wᵖ) X P (just Y) M′
+  → Rep★PartnerOK₅ (WD.honestify W) X P (just Y) M′
 transportRep★PartnerOK-dyn₅ {Wᵖ = Wᵖ} {W = W} rb ok =
   transportRep★PartnerOK₅
-    (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
-      (SPT.dynWorld-decay W) rb)
+    (TD.decayRebaseAt (WD.honestify-decay Wᵖ)
+      (WD.honestify-decay W) rb)
     ok
 
 source-round-trip-seal-star₅ : ∀ {Δᴸ Δᴿ Δ}
@@ -383,13 +384,13 @@ tagged-transfer-output-from-transport₅ rb ok prem =
 
 tagged-transfer-output-dyn₅ : ∀ {Δᴸ Δᴿ Δ}
     {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp (SPT.dynWorld W)}
+    {γ : CtxImp (WD.honestify W)}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → RebaseAt Wᵖ W X Y
-  → Rep★PartnerOK₅ (SPT.dynWorld Wᵖ) X P (just Y) U
-  → SPT.dynWorld W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
-  → TaggedTransferOutput₅ (SPT.dynWorld W) γ P U X Y
+  → Rep★PartnerOK₅ (WD.honestify Wᵖ) X P (just Y) U
+  → WD.honestify W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
+  → TaggedTransferOutput₅ (WD.honestify W) γ P U X Y
 tagged-transfer-output-dyn₅ rb ok prem =
   tagged-transfer-output₅ prem
     (matched-seal-star-partner₅

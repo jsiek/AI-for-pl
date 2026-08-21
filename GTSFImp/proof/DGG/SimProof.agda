@@ -788,40 +788,28 @@ module _
 
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑² mono rebase same c⊢ M⊑M′ q)
       step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
 
   sim parked
-      rel@(conceal⊑²-source-ok id-conceal-ok mono rebase same-[] c⊢
+      rel@(conceal⊑² mono rebase same-[] c⊢
         M⊑M′ q) step@(pure-step (id-conceal vM))
       with catchup parked (boundary-source-conceal mono rebase)
         M⊑M′ vM
   sim parked
-      rel@(conceal⊑²-source-ok id-conceal-ok mono rebase same-[] c⊢
+      rel@(conceal⊑² mono rebase same-[] c⊢
         M⊑M′ q) step@(pure-step (id-conceal vM))
       | caught =
-    sim-source-conceal-values parked id-conceal-ok mono rebase c⊢
+    sim-source-conceal-values parked mono rebase c⊢
       M⊑M′ q vM step caught
-  sim
-      {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q)
-      (pure-step blame-conceal) =
-    Δᴿ , [] , _ , _ , W , q ,
-    (_ ∎[]) ,
-    evolve-keepᴸ evolve-refl ,
-    blame⊑² (CTI2T.target-typing² rel) q
-  sim parked
-      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q)
-      step@(ξ-conceal M→N refl) =
-    source-conceal-frame parked rel step
 
   sim parked
       rel@(reveal⊑reveal² mono rebase same-[] c⊢ c′⊢ M⊑M′ q)
@@ -861,42 +849,28 @@ module _
     source-reveal-frame parked rel step
 
   sim parked
-      rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
+      rel@(conceal⊑conceal² mono rebase same-[] c⊢ c′⊢
         M⊑M′ q) step@(pure-step (id-conceal vM))
       with catchup parked
         (boundary-source-conceal mono (tag-rebase-varᴸ rebase))
         M⊑M′ vM
   sim parked
-      rel@(conceal⊑conceal² partner mono rebase same-[] c⊢ c′⊢
+      rel@(conceal⊑conceal² mono rebase same-[] c⊢ c′⊢
         M⊑M′ q) step@(pure-step (id-conceal vM))
       | caught =
-    sim-paired-conceal-values parked partner mono rebase c⊢ c′⊢
+    sim-paired-conceal-values parked mono rebase c⊢ c′⊢
       M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢ M⊑M′ q)
+      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢ M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑conceal² partner mono rebase same c⊢ c′⊢
+      rel@(conceal⊑conceal² mono rebase same c⊢ c′⊢
         M⊑M′ q) step@(ξ-conceal M→N refl) =
-    source-conceal-frame parked rel step
-
-  sim
-      {Δᴿ = Δᴿ} {W = W} parked
-      rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
-        M⊑M′ sealed q)
-      (pure-step blame-conceal) =
-    Δᴿ , [] , _ , _ , W , q ,
-    (_ ∎[]) ,
-    evolve-keepᴸ evolve-refl ,
-    blame⊑² (CTI2T.target-typing² rel) q
-  sim parked
-      rel@(packaged-seal-star² partner mono rebase same c⊢ c′⊢
-        M⊑M′ sealed q) step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
 
   ------------------------------------------------------------------------

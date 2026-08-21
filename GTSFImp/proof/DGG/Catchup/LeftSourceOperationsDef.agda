@@ -141,28 +141,6 @@ LeftSourceConcealCatchupAt fuel =
       {M = M ↓ c} {V′ = V′} {A = A′} {B = B}
 
 
-LeftPackagedSealStarRoute2At : ℕ → Set
-LeftPackagedSealStarRoute2At fuel =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ}
-    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ} {Xᴿ?}
-    {p★ : ★ ⊑ᵂ⟨ W ⟩ ★}
-    {qᵖ : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.MatchedConcealPartnerOK W M (seal Xᴸ ★) Xᴿ? M′
-  → ParkedWorld W
-  → (rel : W ∣ [] ⊢² M ⊑ M′ ∶ p★)
-  → (pkg-rel : W ∣ [] ⊢² M ↓ seal Xᴸ ★ ⊑ M′ ∶ qᵖ)
-  → Value (M′ ↓ seal Xᴿ ★)
-  → SourceCastBound fuel rel
-  → SourceCastBound fuel pkg-rel
-  → LeftCatchupResult
-      {W = W} {Wᵖ = W}
-      {kind = same-boundary}
-      {Xᴸ? = nothing} {Xᴿ? = nothing}
-      {M = M ↓ seal Xᴸ ★} {V′ = M′ ↓ seal Xᴿ ★}
-      {A = ＇ Xᴸ} {B = ＇ Xᴿ}
-
-
 LeftBlameCastLiftAt : Set
 LeftBlameCastLiftAt =
   ∀ {Δᴸ Δᴸ′ Δᴿ Δ Δ′}
@@ -221,7 +199,6 @@ record LeftSourceOperationsAt (fuel : ℕ) : Set₁ where
     left-source-type-app-catchup-at : LeftSourceTypeAppCatchupAt fuel
     left-source-reveal-catchup-at : LeftSourceRevealCatchupAt fuel
     left-source-conceal-catchup-at : LeftSourceConcealCatchupAt fuel
-    left-packaged-seal-star-route2-at : LeftPackagedSealStarRoute2At fuel
     left-blame-cast-lift-at : LeftBlameCastLiftAt
     left-blame-reveal-lift-at : LeftBlameRevealLiftAt
     left-blame-conceal-lift-at : LeftBlameConcealLiftAt

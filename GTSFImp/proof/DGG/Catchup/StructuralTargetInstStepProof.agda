@@ -6,6 +6,7 @@ module proof.DGG.Catchup.StructuralTargetInstStepProof where
 
 import Data.Fin as Fin
 open import Data.Nat using (suc)
+open import Data.Sum using (inj₁)
 open import Relation.Binary.PropositionalEquality using
   (_≢_; refl; sym; trans)
 
@@ -37,7 +38,7 @@ structural-target-inst-step : ∀ {Δᴸ Δᴿ Δ}
     {V : Term Δᴿ} (vV : Value V) (B≠★ : B ≢ ★)
     (spine : InstantiationSpine B E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W ★) (⇑ᵗᵐ V)
+      (CTI2.rightOnlyWorld W ★ (inj₁ refl)) (⇑ᵗᵐ V)
       (name-type-app-frame (applyBody (bind ★) A) Fin.zero
           refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero A) ▻ⁱ
@@ -52,6 +53,6 @@ structural-target-inst-step : ∀ {Δᴸ Δᴿ Δ}
       (cast-frame ((inst c) B≠★) ▻ⁱ spine)
 structural-target-inst-step {W = W} vV B≠★ spine child =
   structural-target-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ★}) refl
+    (TE.rightBindTargetInsert {W = W} {B = ★} (inj₁ refl)) refl
     (lift-instantiation-spine-bind (β-inst vV B≠★) spine)
     child

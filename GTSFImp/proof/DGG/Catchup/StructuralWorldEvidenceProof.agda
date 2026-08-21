@@ -49,11 +49,11 @@ mapCtxᴿ-liftCtxᴸ : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
     {γ : CTI2.CtxImp W}
-    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+    {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft W)}
   → (ext : ECR.WorldExtendᴿ χs W W′)
   → (extᴸ : ECR.WorldExtendᴿ χs
-      (CTI2.liftWorldLeft X⊑★ W)
-      (CTI2.liftWorldLeft X⊑★ W′))
+      (CTI2.liftWorldLeft W)
+      (CTI2.liftWorldLeft W′))
   → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
   → CTI2.LiftCtxᴸ X⊑★
       (ECR.mapCtxᴿ ext γ) (ECR.mapCtxᴿ extᴸ γᴸ)
@@ -83,7 +83,7 @@ mapCtxᴿ-smartLiftCtxᴸ ext extᵐ (CTI2.smart-lift-∷ liftγ) =
 liftCtxᴸ-target-ctx : ∀ {Δᴸ Δᴿ Δ} {v}
     {W : CTI2.World Δᴸ Δᴿ Δ}
     {γ : CTI2.CtxImp W}
-    {γ′ : CTI2.CtxImp (CTI2.liftWorldLeft v W)}
+    {γ′ : CTI2.CtxImp (CTI2.liftWorldLeft W)}
   → CTI2.LiftCtxᴸ v γ γ′
   → CTI2.tgtCtxʷ γ′ ≡ CTI2.tgtCtxʷ γ
 liftCtxᴸ-target-ctx CTI2.liftᴸ-[] = refl

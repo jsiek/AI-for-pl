@@ -14,6 +14,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Empty using (⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Sum using (inj₁; inj₂)
 import Data.Fin as Fin
 import Data.Fin.Properties as FinP
 open import Data.Nat using (zero; suc)
@@ -77,12 +78,11 @@ renameEnv-id {suc Δ} μ (Fin.suc X) =
   → World Δᴸ Δᴿ Δ
   → World (suc Δᴸ) (suc (suc Δᴿ)) (suc (suc (suc Δ)))
 ΛLiftToBindFreshWorld v W =
-  CTX.world
-    (skip (keep (skip (CTX.ηᴸʷ W))))
-    (skip (keep (keep (CTX.ηᴿʷ W))))
-    (instᵐ (extendᵐ v (instᵐ (CTX.impEnvʷ W))))
-    (store-lift (CTX.sourceStoreʷ W))
-    (store-bind (store-bind (CTX.targetStoreʷ W) ★) (＇ Fin.zero))
+  CTX.liftWorldLeft
+    (CTX.rightOnlyWorld
+      (CTX.rightOnlyWorld W ★ (inj₁ refl))
+      (＇ Fin.zero)
+      (inj₂ (Fin.suc Fin.zero , refl , (λ Xᴸ ()))))
 
 
 ΛLiftToBindFreshWorldᴸ : ∀ {Δᴸ Δᴿ Δ}
@@ -91,13 +91,12 @@ renameEnv-id {suc Δ} μ (Fin.suc X) =
   → World (suc (suc Δᴸ)) (suc (suc Δᴿ))
       (suc (suc (suc (suc Δ))))
 ΛLiftToBindFreshWorldᴸ v W =
-  CTX.world
-    (skip (keep (keep (skip (CTX.ηᴸʷ W)))))
-    (skip (keep (skip (keep (CTX.ηᴿʷ W)))))
-    (instᵐ (extendᵐ v (extendᵐ X⊑★
-      (instᵐ (CTX.impEnvʷ W)))))
-    (store-lift (store-lift (CTX.sourceStoreʷ W)))
-    (store-bind (store-bind (CTX.targetStoreʷ W) ★) (＇ Fin.zero))
+  CTX.liftWorldLeft
+    (CTX.liftWorldLeft
+      (CTX.rightOnlyWorld
+        (CTX.rightOnlyWorld W ★ (inj₁ refl))
+        (＇ Fin.zero)
+        (inj₂ (Fin.suc Fin.zero , refl , (λ Xᴸ ())))))
 
 ------------------------------------------------------------------------
 -- Indexed conversion typing under store transport
@@ -247,80 +246,14 @@ moveImpEnvMono : ∀ {Δᴸ Δᴿ Δ}
 moveImpEnvMono
     (target-store-move refl refl same₁ refl hΣ₁ resolve₁)
     (target-store-move refl refl same₂ refl hΣ₂ resolve₂)
-    mono X dynamic =
-  trans (same₂ X) (mono X (trans (sym (same₁ X)) dynamic))
-
-private
-  moveRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ} {P Xᴿ? M′}
-    → TargetStoreMove W Wᵗ
-    → CTX.Rep★PartnerOK W X P Xᴿ? M′
-    → CTX.Rep★PartnerOK Wᵗ X P Xᴿ? M′
-  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
-      (CTX.rep★-untagged nt) =
-    CTX.rep★-untagged nt
-  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
-      (CTX.rep★-nonvar-tag Gnv) =
-    CTX.rep★-nonvar-tag Gnv
-  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
-      (CTX.rep★-var-tag aligned) =
-    CTX.rep★-var-tag aligned
-  moveRep★PartnerOK (target-store-move refl refl same refl hΣ resolve)
-      (CTX.rep★-matched-inner-tags X₂≢X aligned) =
-    CTX.rep★-matched-inner-tags X₂≢X aligned
-  moveRep★PartnerOK mv (CTX.rep★-round-trip ok) =
-    CTX.rep★-round-trip (moveRep★PartnerOK mv ok)
-
-  moveNoTargetOccupantAtSource : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ}
-    → TargetStoreMove W Wᵗ
-    → CTX.NoTargetOccupantAtSource W X
-    → CTX.NoTargetOccupantAtSource Wᵗ X
-  moveNoTargetOccupantAtSource
-      (target-store-move refl refl same refl hΣ resolve) no-target =
-    no-target
-
-  moveSourceConcealOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-      {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
-    → TargetStoreMove W Wᵗ
-    → CTX.SourceConcealOK W M c Xᴿ? M′
-    → CTX.SourceConcealOK Wᵗ M c Xᴿ? M′
-  moveSourceConcealOK mv
-      (CTX.seal-nonstar-unmatched-ok {X = X} Rns no-target) =
-    CTX.seal-nonstar-unmatched-ok Rns
-      (moveNoTargetOccupantAtSource {X = X} mv no-target)
-  moveSourceConcealOK (target-store-move refl refl same refl hΣ resolve)
-      (CTX.seal-nonstar-name-protected-ok Rns aligned) =
-    CTX.seal-nonstar-name-protected-ok Rns aligned
-  moveSourceConcealOK mv CTX.fun-conceal-ok =
-    CTX.fun-conceal-ok
-  moveSourceConcealOK mv CTX.all-conceal-ok =
-    CTX.all-conceal-ok
-  moveSourceConcealOK mv CTX.id-conceal-ok =
-    CTX.id-conceal-ok
-
-  moveMatchedConcealPartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W Wᵗ : World Δᴸ Δᴿ Δ}
-      {M : Term Δᴸ} {A A′ : Ty Δᴸ}
-      {c : Conv↓ Δᴸ A A′} {Y M′}
-    → TargetStoreMove W Wᵗ
-    → CTX.MatchedConcealPartnerOK W M c Y M′
-    → CTX.MatchedConcealPartnerOK Wᵗ M c Y M′
-  moveMatchedConcealPartnerOK mv
-      (CTX.matched-seal-star-partner ok) =
-    CTX.matched-seal-star-partner (moveRep★PartnerOK mv ok)
-  moveMatchedConcealPartnerOK mv (CTX.matched-seal-nonstar Rns) =
-    CTX.matched-seal-nonstar Rns
-  moveMatchedConcealPartnerOK mv CTX.matched-fun-conceal-target =
-    CTX.matched-fun-conceal-target
-  moveMatchedConcealPartnerOK mv CTX.matched-all-conceal-target =
-    CTX.matched-all-conceal-target
-  moveMatchedConcealPartnerOK mv CTX.matched-id-conceal-target =
-    CTX.matched-id-conceal-target
+    mono =
+  CTX.imp-env-mono
+    (λ X dynamic → trans (same₂ X)
+      (CTX.dynamic-preserved mono X
+        (trans (sym (same₁ X)) dynamic)))
+    (λ X precise → trans (same₂ X)
+      (CTX.precise-preserved mono X
+        (trans (sym (same₁ X)) precise)))
 
 liftMoveBoth : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → (v : VarImp)
@@ -342,7 +275,7 @@ liftMoveBoth v (target-store-move refl refl same refl hΣ resolve) =
 liftMoveLeft : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → TargetStoreMove W Wᵗ
-  → TargetStoreMove (CTX.liftWorldLeft v W) (CTX.liftWorldLeft v Wᵗ)
+  → TargetStoreMove (CTX.liftWorldLeft W) (CTX.liftWorldLeft Wᵗ)
 liftMoveLeft v (target-store-move refl refl same refl hΣ resolve) =
   target-store-move refl refl same′ refl hΣ resolve
   where
@@ -411,7 +344,7 @@ moveLiftCtx mv (CTX.lift-∷ liftγ) =
   CTX.lift-∷ (moveLiftCtx mv liftγ)
 
 moveLiftCtxᴸ : ∀ {Δᴸ Δᴿ Δ} {W Wᵗ : World Δᴸ Δᴿ Δ}
-    {v} {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft v W)}
+    {v} {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft W)}
   → (mv : TargetStoreMove W Wᵗ)
   → CTX.LiftCtxᴸ v γ γ′
   → CTX.LiftCtxᴸ v (moveCtx mv γ)
@@ -447,8 +380,8 @@ liftTargetBindMoveLeft : ∀ {Δᴸ Δᴿ Δ}
   → (v : VarImp)
   → TargetBindLiftMove W Wᵗ Y
   → TargetBindLiftMove
-      (CTX.liftWorldLeft v W)
-      (CTX.liftWorldLeft v Wᵗ)
+      (CTX.liftWorldLeft W)
+      (CTX.liftWorldLeft Wᵗ)
       Y
 liftTargetBindMoveLeft v
     (target-bind-lift-move mv pivot-star old-pivot pivot-res other) =
@@ -532,7 +465,7 @@ premiseTargetBindMove
   pivot-star′ =
     subst≡ (λ Z → CTX.impEnvʷ W′ Z ≡ X⊑★)
       (sym frozenY)
-      (mono (toRenameᵗ (CTX.ηᴿʷ W) Y)
+      (CTX.dynamic-preserved mono (toRenameᵗ (CTX.ηᴿʷ W) Y)
         (trans (sym (same _)) pivot-star))
 
   old-pivot′ : CTX.resolveVar (CTX.targetStoreʷ W′) Y ≡ ＇ Y
@@ -1149,31 +1082,14 @@ source-conceal-move
     (⊢²-target-bind-lift-move mv′ M⊑M′)
     (move⊑ᵂ (baseMove mv) q)
 ⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
-      no-target mono rb sc c⊢ M⊑M′ q)
+    (CTI2.conceal⊑² {W′ = W′} {p = p}
+      mono rb sc c⊢ M⊑M′ q)
     with moveTagRebaseAtᴸBackwardBindLift mv mono rb
 ⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑²-seal-star-open {W′ = W′} {p = p}
-      no-target mono rb sc c⊢ M⊑M′ q)
+    (CTI2.conceal⊑² {W′ = W′} {p = p}
+      mono rb sc c⊢ M⊑M′ q)
     | W′ᵗ , mv′ , rb′ =
-  CTI2.conceal⊑²-seal-star-open
-    (moveNoTargetOccupantAtSource (baseMove mv′) no-target)
-    (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
-    rb′
-    (moveSameCtx (baseMove mv) (baseMove mv′) sc)
-    (source-conceal-move (baseMove mv) c⊢)
-    (⊢²-target-bind-lift-move mv′ M⊑M′)
-    (move⊑ᵂ (baseMove mv) q)
-⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
-      ok mono rb sc c⊢ M⊑M′ q)
-    with moveTagRebaseAtᴸBackwardBindLift mv mono rb
-⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑²-source-ok {W′ = W′} {p = p}
-      ok mono rb sc c⊢ M⊑M′ q)
-    | W′ᵗ , mv′ , rb′ =
-  CTI2.conceal⊑²-source-ok
-    (moveSourceConcealOK (baseMove mv′) ok)
+  CTI2.conceal⊑²
     (moveImpEnvMono (baseMove mv) (baseMove mv′) mono)
     rb′
     (moveSameCtx (baseMove mv) (baseMove mv′) sc)
@@ -1197,39 +1113,20 @@ source-conceal-move
     (⊢²-target-bind-lift-move mvᵖ M⊑M′)
     (move⊑ᵂ (baseMove mv) q)
 ⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono rb
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono rb
       sc c⊢ c′⊢ M⊑M′ q)
     with moveRebaseAtBackwardBindLift mv mono rb
 ⊢²-target-bind-lift-move mv
-    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} ok mono rb
+    (CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {p = p} mono rb
       sc c⊢ c′⊢ M⊑M′ q)
     | Wᵖᵗ , mvᵖ , rbᵖ =
   CTI2.conceal⊑conceal²
-    (moveMatchedConcealPartnerOK (baseMove mvᵖ) ok)
     (moveImpEnvMono (baseMove mv) (baseMove mvᵖ) mono)
     rbᵖ
     (moveSameCtx (baseMove mv) (baseMove mvᵖ) sc)
     (source-conceal-move (baseMove mv) c⊢)
     (concealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
     (⊢²-target-bind-lift-move mvᵖ M⊑M′)
-    (move⊑ᵂ (baseMove mv) q)
-⊢²-target-bind-lift-move mv
-    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
-      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
-    with moveRebaseAtBackwardBindLift mv mono rb
-⊢²-target-bind-lift-move mv
-    (CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {p★ = p★}
-      {qᵖ = qᵖ} ok mono rb sc c⊢ c′⊢ M⊑M′ sourcePrem q)
-    | Wᵖᵗ , mvᵖ , rbᵖ =
-  CTI2.packaged-seal-star²
-    (moveMatchedConcealPartnerOK (baseMove mvᵖ) ok)
-    (moveImpEnvMono (baseMove mv) (baseMove mvᵖ) mono)
-    rbᵖ
-    (moveSameCtx (baseMove mv) (baseMove mvᵖ) sc)
-    (source-conceal-move (baseMove mv) c⊢)
-    (concealˣ-store-transport (targetStore-transport (baseMove mv)) c′⊢)
-    (⊢²-target-bind-lift-move mvᵖ M⊑M′)
-    (⊢²-target-bind-lift-move mvᵖ sourcePrem)
     (move⊑ᵂ (baseMove mv) q)
 ⊢²-target-bind-lift-move mv (CTI2.blame⊑² M′⊢ p) =
   CTI2.blame⊑² (target-typing-move (baseMove mv) M′⊢)
@@ -1363,12 +1260,12 @@ freshLiftToBindTargetMoveAtκᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
   → CTX.impEnvʷ
       (CR.renameWorld κ
         (CTX.liftWorldBoth X⊑★
-          (CTX.liftWorldLeft X⊑★ W)))
+          (CTX.liftWorldLeft W)))
       (toRenameᵗ
         (CTX.ηᴿʷ
           (CR.renameWorld κ
             (CTX.liftWorldBoth X⊑★
-              (CTX.liftWorldLeft X⊑★ W))))
+              (CTX.liftWorldLeft W))))
         Fin.zero)
       ≡ X⊑★
   → StoreTransport (store-lift (CTX.targetStoreʷ W)) Σ₂
@@ -1379,11 +1276,11 @@ freshLiftToBindTargetMoveAtκᴸ : ∀ {Δᴸ Δᴿ Δ Δ′}
   → TargetBindLiftMove
       (CR.renameWorld κ
         (CTX.liftWorldBoth X⊑★
-          (CTX.liftWorldLeft X⊑★ W)))
+          (CTX.liftWorldLeft W)))
       (targetStoreAs
         (CR.renameWorld κ
           (CTX.liftWorldBoth X⊑★
-            (CTX.liftWorldLeft X⊑★ W)))
+            (CTX.liftWorldLeft W)))
         Σ₂)
       Fin.zero
 freshLiftToBindTargetMoveAtκᴸ {W = W} κ {Σ₂ = Σ₂}
@@ -1403,7 +1300,7 @@ freshLiftToBindMoveᴸ : ∀ {Δᴸ Δᴿ Δ}
   → TargetStoreMove
       (CR.renameWorld wk↪ᵗ
         (CTX.liftWorldBoth v
-          (CTX.liftWorldLeft X⊑★ (CTX.rightOnlyWorld W ★))))
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))))
       (ΛLiftToBindFreshWorldᴸ v W)
 freshLiftToBindMoveᴸ {W = W} {v = v} =
   target-store-move
@@ -1440,7 +1337,7 @@ freshLiftToBindTargetMove★ᴸ : ∀ {Δᴸ Δᴿ Δ}
   → TargetBindLiftMove
       (CR.renameWorld wk↪ᵗ
         (CTX.liftWorldBoth X⊑★
-          (CTX.liftWorldLeft X⊑★ (CTX.rightOnlyWorld W ★))))
+          (CTX.liftWorldLeft (CTX.rightOnlyWorld W ★))))
       (ΛLiftToBindFreshWorldᴸ X⊑★ W)
       Fin.zero
 freshLiftToBindTargetMove★ᴸ {W = W} =

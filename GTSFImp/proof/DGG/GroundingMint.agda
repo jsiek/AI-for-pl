@@ -12,35 +12,35 @@ module proof.DGG.GroundingMint where
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
 open import Data.Product using (_,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; trans; cong)
 
 open import Types
-open import TyStore using (TyStore)
 open import Consistency using (toRenameᵗ)
 open import Imprecision using (ImpEnv; X⊑X; X⊑★)
 import proof.DGG.CtxImp as CTI2
-import proof.DGG.CompilePreservesImprecision2 as CPI2
 open import proof.TypeInTermSubst using (toRename-id-eq)
 
 ------------------------------------------------------------------------
 -- Initial compile world occupancy
 ------------------------------------------------------------------------
 
-initialWorld-occupied : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initialWorld-occupied : ∀ {Δ} {μ : ImpEnv Δ}
   → (Z : TyVar Δ)
-  → CTI2.Occupied (CPI2.initialWorld μ Σ) Z
-initialWorld-occupied Z = Z , toRename-id-eq Z
+  → CTI2.Occupied (CTI2.initialWorld μ) Z
+initialWorld-occupied {μ = μ} Z =
+  Z , trans
+    (cong (λ η → toRenameᵗ η Z) (CTI2.initialWorld-ηᴿ μ))
+    (toRename-id-eq Z)
 
-initialWorld-no-see-through-empty : ∀ {Δ}
-    {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initialWorld-no-see-through-empty : ∀ {Δ} {μ : ImpEnv Δ}
   → (X : TyVar Δ)
-  → CTI2.NoTargetOccupantAtSource (CPI2.initialWorld μ Σ) X
+  → CTI2.NoTargetOccupantAtSource (CTI2.initialWorld μ) X
   → ⊥
-initialWorld-no-see-through-empty {μ = μ} {Σ = Σ} X no-target =
+initialWorld-no-see-through-empty {μ = μ} X no-target =
   no-target
-    (initialWorld-occupied {μ = μ} {Σ = Σ}
-      (toRenameᵗ (CTI2.ηᴸʷ (CPI2.initialWorld μ Σ)) X))
+    (initialWorld-occupied {μ = μ}
+      (toRenameᵗ (CTI2.ηᴸʷ (CTI2.initialWorld μ)) X))
 
 ------------------------------------------------------------------------
 -- Compile-recursion world image
@@ -50,9 +50,9 @@ data CompileImageWorld : ∀ {Δᴸ Δᴿ Δ}
     → CTI2.World Δᴸ Δᴿ Δ
     → Set where
   compile-image-initial : ∀ {Δ}
-      {μ : ImpEnv Δ} {Σ : TyStore Δ}
+      {μ : ImpEnv Δ}
       -------------------------------------------------
-    → CompileImageWorld (CPI2.initialWorld μ Σ)
+    → CompileImageWorld (CTI2.initialWorld μ)
 
   compile-image-liftBoth : ∀ {Δᴸ Δᴿ Δ}
       {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -64,7 +64,7 @@ data CompileImageWorld : ∀ {Δᴸ Δᴿ Δ}
       {W : CTI2.World Δᴸ Δᴿ Δ}
     → CompileImageWorld W
       ---------------------------------------------------------
-    → CompileImageWorld (CTI2.liftWorldLeft X⊑★ W)
+    → CompileImageWorld (CTI2.liftWorldLeft W)
 
 compile-image-target-occupied : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
@@ -80,9 +80,9 @@ compile-image-precise-source-occupied : ∀ {Δᴸ Δᴿ Δ}
   → CTI2.impEnvʷ W (toRenameᵗ (CTI2.ηᴸʷ W) X) ≡ X⊑X
   → CTI2.Occupied W (toRenameᵗ (CTI2.ηᴸʷ W) X)
 compile-image-precise-source-occupied
-    (compile-image-initial {μ = μ} {Σ = Σ}) X precise =
-  initialWorld-occupied {μ = μ} {Σ = Σ}
-    (toRenameᵗ (CTI2.ηᴸʷ (CPI2.initialWorld μ Σ)) X)
+    (compile-image-initial {μ = μ}) X precise =
+  initialWorld-occupied {μ = μ}
+    (toRenameᵗ (CTI2.ηᴸʷ (CTI2.initialWorld μ)) X)
 compile-image-precise-source-occupied (compile-image-liftBoth img)
     zero precise =
   zero , refl
@@ -104,7 +104,7 @@ compile-image-precise-source-occupied (compile-image-liftLeft img)
 compile-image-source-only-fresh-no-target : ∀ {Δᴸ Δᴿ Δ}
     {W : CTI2.World Δᴸ Δᴿ Δ}
   → CompileImageWorld W
-  → CTI2.NoTargetOccupantAtSource (CTI2.liftWorldLeft X⊑★ W) zero
+  → CTI2.NoTargetOccupantAtSource (CTI2.liftWorldLeft W) zero
 compile-image-source-only-fresh-no-target img (Y , ())
 
 compile-image-precise-see-through-empty : ∀ {Δᴸ Δᴿ Δ}

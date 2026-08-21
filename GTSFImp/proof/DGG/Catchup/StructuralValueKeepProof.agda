@@ -33,7 +33,7 @@ open import proof.DGG.Catchup.StructuralCatchupRightDef using
    source-Λ-stack-smart; source-Λ-stack-replay-here)
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof using
   (value-no-step)
-open import proof.DGG.TargetBindLift using (⊢²-retarget)
+open import proof.DGG.TargetExtend using (⊢²-retarget)
 
 
 ctx-imp-eq : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
@@ -61,40 +61,6 @@ sameCtx-transport : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
 sameCtx-transport {W = W} {γ = γ} {M = M} {N = N} {p = p} sc rel =
   subst≡ (λ γ₀ → W ∣ γ₀ ⊢² M ⊑ N ∶ p)
     (sym (sameCtx-eq sc)) rel
-
-
-source-conceal-ok-target-id-reveal : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ?} {N : Term Δᴿ} {B : Ty Δᴿ}
-  → CTX.SourceConcealOK W P c Xᴿ? (N ↑ id↑ B)
-  → CTX.SourceConcealOK W P c Xᴿ? N
-source-conceal-ok-target-id-reveal
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns no-target
-source-conceal-ok-target-id-reveal CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-source-conceal-ok-target-id-reveal CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-source-conceal-ok-target-id-reveal CTX.id-conceal-ok =
-  CTX.id-conceal-ok
-
-
-source-conceal-ok-target-id-conceal : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {P : Term Δᴸ}
-    {A A′ : Ty Δᴸ} {c : Conv↓ Δᴸ A A′}
-    {Xᴿ?} {N : Term Δᴿ} {B : Ty Δᴿ}
-  → CTX.SourceConcealOK W P c Xᴿ? (N ↓ id↓ B)
-  → CTX.SourceConcealOK W P c Xᴿ? N
-source-conceal-ok-target-id-conceal
-    (CTX.seal-nonstar-unmatched-ok Rns no-target) =
-  CTX.seal-nonstar-unmatched-ok Rns no-target
-source-conceal-ok-target-id-conceal CTX.fun-conceal-ok =
-  CTX.fun-conceal-ok
-source-conceal-ok-target-id-conceal CTX.all-conceal-ok =
-  CTX.all-conceal-ok
-source-conceal-ok-target-id-conceal CTX.id-conceal-ok =
-  CTX.id-conceal-ok
 
 
 record StructuralValueKeepResiduals : Set₁ where
@@ -152,17 +118,9 @@ source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-seal-star-open
-      no-target mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑² mono rb sc c⊢ rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
-      (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
-      q)
-source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
-  source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-source-ok
-      (source-conceal-ok-target-id-reveal ok) mono rb sc c⊢
+    (CTI2.conceal⊑² mono rb sc c⊢
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 
@@ -205,17 +163,9 @@ source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-seal-star-open
-      no-target mono rb sc c⊢ rel q) =
+    (CTI2.conceal⊑² mono rb sc c⊢ rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
-      (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
-      q)
-source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ rel q) =
-  source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑²-source-ok
-      (source-conceal-ok-target-id-conceal ok) mono rb sc c⊢
+    (CTI2.conceal⊑² mono rb sc c⊢
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 

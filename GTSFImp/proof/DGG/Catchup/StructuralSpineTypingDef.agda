@@ -7,6 +7,7 @@ module proof.DGG.Catchup.StructuralSpineTypingDef where
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
+open import Data.Sum using (inj₁)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; sym; trans)
   renaming (subst to subst≡)
@@ -411,7 +412,7 @@ spine-typed-lift-left : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {A B : Ty Δᴿ} {spine : InstantiationSpine A B}
   → SpineTypedʷ {fuel = fuel} W spine
-  → SpineTypedʷ {fuel = fuel} (CTX.liftWorldLeft X⊑★ W) spine
+  → SpineTypedʷ {fuel = fuel} (CTX.liftWorldLeft W) spine
 spine-typed-lift-left typed = typed
 
 
@@ -451,16 +452,17 @@ spine-typed-Λ-child : ∀ {fuel Δᴸ Δᴿ Δ}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {B : Ty (suc Δᴿ)} {E : Ty Δᴿ} {X : TyVar Δᴿ}
     {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+  → (fresh : CTX.RightBindFresh W (＇ X))
   → SpineTypedʷ {fuel = fuel} W spine
-  → SpineTypedʷ {fuel = fuel} (CTX.rightOnlyWorld W (＇ X))
+  → SpineTypedʷ {fuel = fuel} (CTX.rightOnlyWorld W (＇ X) fresh)
       (reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
         type-transport-frame (replace-zero-open B (＇ X)) ▻ⁱ
         mapInstantiationSpine (bind (＇ X)) spine)
-spine-typed-Λ-child {W = W} {B = B} {X = X} typed =
+spine-typed-Λ-child {W = W} {B = B} {X = X} fresh typed =
   st-reveal (structural-reveal-typing B (Z∋ refl))
     (st-type
       (spine-typed-map-bindʷ
-        {W = W} {W₁ = CTX.rightOnlyWorld W (＇ X)}
+        {W = W} {W₁ = CTX.rightOnlyWorld W (＇ X) fresh}
         (＇ X) refl typed))
 
 
@@ -524,7 +526,8 @@ spine-typed-inst-child : ∀ {fuel Δᴸ Δᴿ Δ}
   → suc (castSize (↑ᶜ (close-instᶜ c))) < fuel
   → ResidualFrameProvenance (↑ᶜ (close-instᶜ c))
   → SpineTypedʷ {fuel = fuel} W spine
-  → SpineTypedʷ {fuel = fuel} (CTX.rightOnlyWorld W ★)
+  → SpineTypedʷ {fuel = fuel}
+      (CTX.rightOnlyWorld W ★ (inj₁ refl))
       (name-type-app-frame (applyBody (bind ★) A) Fin.zero
           refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero A) ▻ⁱ
@@ -548,7 +551,7 @@ spine-typed-inst-child {W = W} {A = A} {B = B} {c = c}
                {p = p} {q = q}))
           (st-type
             (spine-typed-map-bindʷ
-              {W = W} {W₁ = CTX.rightOnlyWorld W ★}
+              {W = W} {W₁ = CTX.rightOnlyWorld W ★ (inj₁ refl)}
               ★ refl typed))))))
 
 

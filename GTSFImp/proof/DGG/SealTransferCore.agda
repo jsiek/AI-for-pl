@@ -23,7 +23,6 @@ open import Imprecision
 open import Conversion using (⊢↓-seal)
 open import CastTerms
 open import TyStore using (_∋_⦂_; Z∋; S-lift∋; S-bind∋)
-open import TyStore using (lookupStore-∋)
 open import Consistency using (Env∼; _⊢_∼_; id; _!; toRenameᵗ)
 open import Primitives using (κℕ; κ𝔹)
 import Conversion as Conv
@@ -34,7 +33,6 @@ import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TermImpDecay as TD
 import proof.DGG.WorldDecay as WD
-import proof.DGG.WorldInvariants as WI
 open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
 open CTX using
   (World;
@@ -97,16 +95,6 @@ composeSourceRebase {Δᴸ = Δᴸ} {W₁ = W₁} {Wₗ} {W₂}
       (CTX.RebaseAt.ηᴿ-frozen link₂ Yₒ)
 
 private
-  dyn-var-star : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-      {X : TyVar Δᴸ}
-    → (＇ X) ⊑ᵂ⟨ SPT.dynWorld W ⟩ ★
-  dyn-var-star {W = W} {X = X} =
-    X⊑★ (SPT.dynWorld-mark W (toRenameᵗ (CTX.ηᴸʷ W) X))
-
-  dyn-mono : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
-    → CTX.ImpEnvMono (SPT.dynWorld W) (SPT.dynWorld W′)
-  dyn-mono Z eq = refl
-
   composeSameCtx : ∀ {Δᴸ Δᴿ Δ₁ Δ₂ Δ₃}
       {W₁ : World Δᴸ Δᴿ Δ₁} {W₂ : World Δᴸ Δᴿ Δ₂}
       {W₃ : World Δᴸ Δᴿ Δ₃}
@@ -132,81 +120,6 @@ private
             {W = W₁} {X = X} {Y = Y} q)))
   target-seal-rebase-source (CTX.rebase-varᴿ rb) q | refl = rb
 
-  dynRep★PartnerOK : ∀ {Δᴸ Δᴿ Δ}
-      {W : World Δᴸ Δᴿ Δ}
-      {Z : TyVar Δᴸ} {V : Term Δᴸ} {Xᴿ? U}
-    → CTX.Rep★PartnerOK W Z V Xᴿ? U
-    → CTX.Rep★PartnerOK (SPT.dynWorld W) Z V Xᴿ? U
-  dynRep★PartnerOK (CTX.rep★-untagged nt) =
-    CTX.rep★-untagged nt
-  dynRep★PartnerOK (CTX.rep★-nonvar-tag Gnv) =
-    CTX.rep★-nonvar-tag Gnv
-  dynRep★PartnerOK (CTX.rep★-var-tag aligned) =
-    CTX.rep★-var-tag aligned
-  dynRep★PartnerOK (CTX.rep★-matched-inner-tags X₂≢X aligned) =
-    CTX.rep★-matched-inner-tags X₂≢X aligned
-  dynRep★PartnerOK (CTX.rep★-round-trip ok) =
-    CTX.rep★-round-trip (dynRep★PartnerOK ok)
-
-dyn-rep★-partner-ok : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ}
-    {Z : TyVar Δᴸ} {V : Term Δᴸ} {Xᴿ? U}
-  → CTX.Rep★PartnerOK W Z V Xᴿ? U
-  → CTX.Rep★PartnerOK (SPT.dynWorld W) Z V Xᴿ? U
-dyn-rep★-partner-ok = dynRep★PartnerOK
-
-transport-non-pivot-aligned : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X X₂ : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
-  → RebaseAt Wᵖ W X Y
-  → X₂ ≢ X
-  → CTX.CenterAligned Wᵖ X₂ Y₂
-  → CTX.CenterAligned W X₂ Y₂
-transport-non-pivot-aligned rb X₂≢X aligned =
-  trans (CTX.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
-    (trans aligned (sym (CTX.RebaseAt.ηᴿ-frozen rb _)))
-
-transport-rep★-partner-ok : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-  → RebaseAt Wᵖ W X Y
-  → CTX.Rep★PartnerOK Wᵖ X P (just Y) U
-  → CTX.Rep★PartnerOK W X P (just Y) U
-transport-rep★-partner-ok rb (CTX.rep★-untagged nt) =
-  CTX.rep★-untagged nt
-transport-rep★-partner-ok rb (CTX.rep★-nonvar-tag Gnv) =
-  CTX.rep★-nonvar-tag Gnv
-transport-rep★-partner-ok rb (CTX.rep★-var-tag aligned) =
-  CTX.rep★-var-tag (CTX.RebaseAt.pivotAligned rb)
-transport-rep★-partner-ok rb
-    (CTX.rep★-matched-inner-tags X₂≢X aligned) =
-  CTX.rep★-matched-inner-tags X₂≢X
-    (transport-non-pivot-aligned rb X₂≢X aligned)
-transport-rep★-partner-ok rb (CTX.rep★-round-trip ok) =
-  CTX.rep★-round-trip (transport-rep★-partner-ok rb ok)
-
-transport-rep★-partner-ok-dyn : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-  → RebaseAt Wᵖ W X Y
-  → CTX.Rep★PartnerOK (SPT.dynWorld Wᵖ) X P (just Y) U
-  → CTX.Rep★PartnerOK (SPT.dynWorld W) X P (just Y) U
-transport-rep★-partner-ok-dyn {Wᵖ = Wᵖ} {W = W} rb ok =
-  transport-rep★-partner-ok
-    (TD.decayRebaseAt (SPT.dynWorld-decay Wᵖ)
-      (SPT.dynWorld-decay W) rb)
-    ok
-
-aligned-functional : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y Y′ : TyVar Δᴿ}
-  → CTX.CenterAligned W X Y
-  → CTX.CenterAligned W X Y′
-  → Y ≡ Y′
-aligned-functional {W = W} aligned aligned′ =
-  toRenameᵗ-injective (CTX.ηᴿʷ W) (trans (sym aligned) aligned′)
-
 data PremisePartnerAt {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Maybe (TyVar Δᴿ) → Set where
@@ -228,8 +141,6 @@ record TaggedTransferOutput {Δᴸ Δᴿ Δ}
   field
     premise : W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
     pedigree : PremisePartnerAt W X Xᴿ?
-    partner : CTX.MatchedConcealPartnerOK
-      W P (Conversion.seal X ★) Xᴿ? U
 
 sameCtx-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
@@ -240,7 +151,7 @@ sameCtx-refl {γ = CTX.ctx-imp A B p ∷ γ} =
 
 impEnvMono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → CTX.ImpEnvMono W W
-impEnvMono-refl Z eq = eq
+impEnvMono-refl = CTX.impEnvMono-refl
 
 premise-partner-from-tag-rebase : ∀ {Δᴸ Δᴿ Δ}
     {Wᵖ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Xᴿ?}
@@ -265,68 +176,10 @@ self-tag-rebase-from-tag-rebase
     (CTX.tag-rebase-onlyᴸ to-star disaligned represented) =
   CTX.tag-rebase-onlyᴸ to-star disaligned represented
 
-transport-rep★-partner-ok-tag : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-  → CTX.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
-  → CTX.Rep★PartnerOK Wᵖ X P Xᴿ? U
-  → CTX.Rep★PartnerOK W X P Xᴿ? U
-transport-rep★-partner-ok-tag (CTX.tag-rebase-varᴸ rb) partner =
-  transport-rep★-partner-ok rb partner
-transport-rep★-partner-ok-tag
-    (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-    (CTX.rep★-untagged nt) =
-  CTX.rep★-untagged nt
-transport-rep★-partner-ok-tag
-    (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-    (CTX.rep★-nonvar-tag Gnv) =
-  CTX.rep★-nonvar-tag Gnv
-transport-rep★-partner-ok-tag
-    (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-    (CTX.rep★-round-trip partner) =
-  CTX.rep★-round-trip
-    (transport-rep★-partner-ok-tag
-      (CTX.tag-rebase-onlyᴸ to-star disaligned represented)
-      partner)
-
-tagged-transfer-output-from-transport : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → RebaseAt Wᵖ W X Y
-  → CTX.Rep★PartnerOK Wᵖ X P (just Y) U
-  → W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
-  → TaggedTransferOutput W γ P U X (just Y)
-tagged-transfer-output-from-transport rb ok prem =
-  tagged-transfer-output prem
-    (premise-partner-just (CTX.RebaseAt.pivotAligned rb))
-    (CTX.matched-seal-star-partner
-      (transport-rep★-partner-ok rb ok))
-
-tagged-transfer-output-dyn : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp (SPT.dynWorld W)}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → RebaseAt Wᵖ W X Y
-  → CTX.Rep★PartnerOK (SPT.dynWorld Wᵖ) X P (just Y) U
-  → SPT.dynWorld W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
-  → TaggedTransferOutput (SPT.dynWorld W) γ P U X (just Y)
-tagged-transfer-output-dyn rb ok prem =
-  tagged-transfer-output prem
-    (premise-partner-just
-      (CTX.RebaseAt.pivotAligned
-        (TD.decayRebaseAt (SPT.dynWorld-decay _)
-          (SPT.dynWorld-decay _) rb)))
-    (CTX.matched-seal-star-partner
-      (transport-rep★-partner-ok-dyn rb ok))
-
 emit-tagged-transfer : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {Xᴿ? : Maybe (TyVar Δᴿ)}
-    {qᵖ : (＇ X) ⊑ᵂ⟨ Wᵖ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
   → CTX.ImpEnvMono W Wᵖ
   → RebaseAt Wᵖ W X Y
@@ -334,80 +187,48 @@ emit-tagged-transfer : ∀ {Δᴸ Δᴿ Δ}
   → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] Conversion.seal X ★
   → CTX.targetStoreʷ W Conv.⊢↓[ just Y ] Conversion.seal Y ★
   → TaggedTransferOutput Wᵖ γᵖ P U X Xᴿ?
-  → Wᵖ ∣ γᵖ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ qᵖ
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★
       ⊑ U ↓ Conversion.seal Y ★ ∶ q
 emit-tagged-transfer {q = q} mono rb sc source⊢ target⊢
-    pkg sourcePrem =
-  CTI2.packaged-seal-star²
-    (TaggedTransferOutput.partner pkg)
-    mono rb sc source⊢ target⊢
-    (TaggedTransferOutput.premise pkg)
-    sourcePrem
-    q
+    pkg =
+  CTI2.conceal⊑conceal² mono rb sc source⊢ target⊢
+    (TaggedTransferOutput.premise pkg) q
 
 source-star-cast-package-from-source : ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : World Δᴸ Δᴿ Δ} {γ : CtxImp W} {γᵖ : CtxImp Wᵖ}
     {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
+    {X : TyVar Δᴸ}
     {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
     {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
   → CTX.ImpEnvMono W Wᵖ
-    → CTX.TagRebaseAtᴸ Wᵖ W (just X) Xᴿ?
+    → CTX.TagRebaseAtᴸ Wᵖ W (just X) nothing
     → CTX.SameCtx γ γᵖ
     → CTX.sourceStoreʷ W ∋ X ⦂ ★
-    → WI.WorldInvariants W
-    → CTX.Rep★PartnerOK Wᵖ X P Xᴿ? U
     → Inert c
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
   → W ∣ γ ⊢² P ↓ Conversion.seal X ★ ⊑ U ∶ q
   → Σ[ pkg ∈ TaggedTransferOutput W γ
-        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) U X Xᴿ? ]
+        ((P ↓ Conversion.seal X ★) ⟨ c ⟩) U X nothing ]
       (W ∣ γ ⊢²
         ((P ↓ Conversion.seal X ★) ⟨ c ⟩) ↓ Conversion.seal X ★
         ⊑ U ∶ q)
-source-star-cast-package-from-source {W = W} {X = X}
-      {Xᴿ? = just Y} {q = X⊑★ mark} mono
-      (CTX.tag-rebase-varᴸ rb) sc source∈ inv partner inert prem sealed =
-  ⊥-elim
-    (WI.world-invariants-no-target-at-dynamic-star inv mark
-      (lookupStore-∋ source∈)
-      (Y , sym (CTX.RebaseAt.pivotAligned rb)))
 source-star-cast-package-from-source {W = W} {γ = γ} {X = X}
       {c = c} {q = q} mono
       rb@(CTX.tag-rebase-onlyᴸ to-star disaligned
         represented)
-      sc source∈ inv partner
+      sc source∈
       (inj ⦃ Gᵍ = ＇ .X ⦄) prem sealed =
   tagged-transfer-output
     (CTI2.cast⊑² c sealed ★⊑★)
-    (premise-partner-from-tag-rebase rb)
-    (CTX.matched-seal-star-partner
-      (CTX.rep★-round-trip
-        (transport-rep★-partner-ok-tag rb partner))) ,
-    CTI2.conceal⊑²-seal-star-open
-      (WI.world-invariants-see-through-premise inv rb
-        (Conv.⊢↓-sealˣ source∈))
-    (impEnvMono-refl {W = W})
-    (self-tag-rebase-from-tag-rebase rb)
-    (sameCtx-refl {γ = γ})
-    (Conv.⊢↓-sealˣ source∈)
-    (CTI2.cast⊑² c sealed ★⊑★)
-    q
-
-decay-rep★-round-trip : ∀ {Δᴸ Δᴿ Δ}
-    {W : World Δᴸ Δᴿ Δ}
-    {P : Term Δᴸ} {U : Term Δᴿ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    {ν : Env∼ Δᴸ} {c : ν ⊢ (＇ X) ∼ ★}
-  → Inert c
-  → CTX.Rep★PartnerOK W X P (just Y) U
-  → CTX.Rep★PartnerOK (SPT.dynWorld W) X
-      ((P ↓ Conversion.seal X ★) ⟨ c ⟩) (just Y) U
-decay-rep★-round-trip {X = X} (inj ⦃ Gᵍ = ＇ .X ⦄) partner =
-  CTX.rep★-round-trip {cX = id (＇ X)}
-    (dynRep★PartnerOK partner)
+    (premise-partner-from-tag-rebase rb) ,
+    CTI2.conceal⊑²
+      (impEnvMono-refl {W = W})
+      (self-tag-rebase-from-tag-rebase rb)
+      (sameCtx-refl {γ = γ})
+      (Conv.⊢↓-sealˣ source∈)
+      (CTI2.cast⊑² c sealed ★⊑★)
+      q
 
 ------------------------------------------------------------------------
 -- Package helpers
@@ -419,21 +240,11 @@ private
     → CTX.ImpEnvMono W₁ W₂
     → CTX.ImpEnvMono W₂ W₃
     → CTX.ImpEnvMono W₁ W₃
-  impEnvMono-∘ mono₁ mono₂ Z eq = mono₂ Z (mono₁ Z eq)
+  impEnvMono-∘ = CTX.impEnvMono-trans
 
-  dyn-decay-mono : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    → CTX.ImpEnvMono W (SPT.dynWorld W)
-  dyn-decay-mono Z eq = refl
-
-  dynLink : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-      {Z : TyVar Δᴸ} {Y : TyVar Δᴿ}
-    → toRenameᵗ (CTX.ηᴸʷ W) Z
-        ≡ toRenameᵗ (CTX.ηᴿʷ W) Y
-    → StoreRepImp W Z Y
-    → RebaseAt (SPT.dynWorld W) W Z Y
-  dynLink {W = W} aligned represented =
-    TD.decayRebaseAt (SPT.dynWorld-decay W)
-      WD.decay-refl (CTX.sameWorldRebaseAt aligned represented)
+  honestify-mono : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+    → CTX.ImpEnvMono W (WD.honestify W)
+  honestify-mono {W = W} = WD.env-mono (WD.honestify-decay {W = W})
 
   store-variable-distinct : ∀ {Δ} {Σ : TyStore.TyStore Δ}
       {Z Z₃ : TyVar Δ}
@@ -515,8 +326,6 @@ data SealTransferResult {Δᴸ Δᴿ Δ}
     → CTX.SameCtx γ₁ γᵖ
     → CTX.sourceStoreʷ W₁ Conv.⊢↓[ just Z ] Conversion.seal Z ★
     → CTX.targetStoreʷ W₁ Conv.⊢↓[ just Y ] Conversion.seal Y ★
-    → CTX.MatchedConcealPartnerOK Wᵖ P
-        (Conversion.seal Z ★) (just Y) U
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
     → SealTransferResult W₁ γ₁ Z Y p
         (P ↓ Conversion.seal Z ★) U
@@ -601,39 +410,31 @@ seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
-    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} {p = p₄}
+        mono₄ rb₄ sc₄
         (Conv.⊢↓-sealˣ Y∈) prem .p
     with target-seal-rebase-source rb₄ p
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
-    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} mono₄ rb₄ sc₄
+    | CTI2.⊑conceal² {W′ = W₄} {γ′ = γ₄} {p = p₄}
+        mono₄ rb₄ sc₄
         (Conv.⊢↓-sealˣ Y∈) prem .p
     | ra₄ =
   seal-transfer-stripped
-    (TD.decayRebaseAt (SPT.dynWorld-decay W₄) WD.decay-refl ra₄)
+    (TD.decayRebaseAt (WD.honestify-decay {W = W₄}) WD.decay-refl ra₄)
     (impEnvMono-∘ {W₁ = W₁} {W₂ = W₄}
-      {W₃ = SPT.dynWorld W₄} mono₄ (dyn-decay-mono {W = W₄}))
-    (SVD.decaySameCtxʳ (SPT.dynWorld-decay W₄) sc₄)
-    (TD.⊢²-decay-at (SPT.dynWorld-decay W₄) prem
-      (dyn-var-star {W = W₄} {X = Z}))
-seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
-    (sv-seal sv) vU source★ D
-    | ⊢conceal (⊢↓-seal Z∈) V₀⊢
-    | refl
-    | CTI2.packaged-seal-star² {Wᵖ = Wᵖ} {γᵖ = γᵖ}
-        ok monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ Z∈′)
-        (Conv.⊢↓-sealˣ Y∈) prem sourcePrem .p =
-  seal-transfer-stripped rbᵖ monoᵖ scᵖ sourcePrem
+      {W₃ = WD.honestify W₄} mono₄ (honestify-mono {W = W₄}))
+    (SVD.decaySameCtxʳ (WD.honestify-decay {W = W₄}) sc₄)
+    (TD.⊢²-decay-at (WD.honestify-decay {W = W₄}) prem
+      (WD.decay⊑ᵂ (WD.honestify-decay {W = W₄}) p₄))
 seal-transfer {W₁ = W₁} {γ₁ = γ₁} {Z = Z} {Y = Y} {p = p}
     (sv-seal sv) vU source★ D
     | ⊢conceal (⊢↓-seal Z∈) V₀⊢
     | refl
     | CTI2.conceal⊑conceal² {Wᵖ = Wᵖ} {γᵖ = γᵖ} {M = P}
-        (CTX.matched-seal-star-partner partner)
         monoᵖ rbᵖ scᵖ (Conv.⊢↓-sealˣ Z∈′)
         (Conv.⊢↓-sealˣ Y∈) prem .p =
   seal-transfer-paired monoᵖ rbᵖ scᵖ
-    (Conv.⊢↓-sealˣ Z∈′) (Conv.⊢↓-sealˣ Y∈)
-    (CTX.matched-seal-star-partner partner) prem
+    (Conv.⊢↓-sealˣ Z∈′) (Conv.⊢↓-sealˣ Y∈) prem

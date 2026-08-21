@@ -30,7 +30,6 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (ValueCatchupResult; source-conceal-boundary)
 open CTX using
   (World;
-   MatchedConcealPartnerOK;
    ImpEnvMono;
    RebaseAt;
    sourceStoreʷ;
@@ -49,7 +48,6 @@ SimPairedConcealValuesᵀ =
     {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
     {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′}
   → ParkedWorld W
-  → MatchedConcealPartnerOK Wᵖ V c (just Xᴿ) M′
   → (mono : ImpEnvMono W Wᵖ)
   → (rebase : RebaseAt Wᵖ W Xᴸ Xᴿ)
   → sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c

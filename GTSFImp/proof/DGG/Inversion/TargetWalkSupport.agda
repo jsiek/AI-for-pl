@@ -90,7 +90,7 @@ liftWorldLeft-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
   → instᵐ (impEnvʷ W)
       ⊢ renameᵗ (extᵗ (toRenameᵗ (ηᴸʷ W))) A
         ⊑ ⇑ᵗ (embedᴿ W B)
-  → A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ B
+  → A ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
 liftWorldLeft-⊑ᵂ {W = W} {A = A} {B = B} body =
   subst≡
     (λ T → extendᵐ X⊑★ (impEnvʷ W) ⊢
@@ -104,7 +104,7 @@ liftWorldLeft-⊑ᵂ {W = W} {A = A} {B = B} body =
 
 lowerWorldLeft-shift-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-  → ⇑ᵗ A ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ B
+  → ⇑ᵗ A ⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B
   → A ⊑ᵂ⟨ W ⟩ B
 lowerWorldLeft-shift-⊑ᵂ {W = W} {A = A} {B = B} p =
   unshift-⊑
@@ -248,7 +248,7 @@ impEnvMono-∘ : ∀ {Δᴸ Δᴿ Δ} {W₁ W₂ W₃ : World Δᴸ Δᴿ Δ}
   → CTX.ImpEnvMono W₁ W₂
   → CTX.ImpEnvMono W₂ W₃
   → CTX.ImpEnvMono W₁ W₃
-impEnvMono-∘ m₁ m₂ Z eq = m₂ Z (m₁ Z eq)
+impEnvMono-∘ = CTX.impEnvMono-trans
 
 sameCtx-∘ : ∀ {Δᴸ Δᴿ Δ₁ Δ₂ Δ₃}
     {W₁ : World Δᴸ Δᴿ Δ₁} {W₂ : World Δᴸ Δᴿ Δ₂}
@@ -928,10 +928,10 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
-    Anv Ans (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q) =
+    Anv Ans (CTI2.conceal⊑² mono rb sc c⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
-    Anv Ans (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q) =
+    Anv Ans (CTI2.conceal⊑² mono rb sc c⊢ prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem

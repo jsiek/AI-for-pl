@@ -31,9 +31,10 @@ structural-target-reveal-step : ∀ {Δᴸ Δᴿ Δ}
     {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {c : Conv↑ (suc Δᴿ) C B}
     {V : Term Δᴿ} {X : TyVar Δᴿ}
+    (fresh : CTI2.RightBindFresh W (＇ X))
     (vV : Value V) (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W (＇ X)) (⇑ᵗᵐ V)
+      (CTI2.rightOnlyWorld W (＇ X) fresh) (⇑ᵗᵐ V)
       (name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
           refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero C) ▻ⁱ
@@ -43,9 +44,10 @@ structural-target-reveal-step : ∀ {Δᴸ Δᴿ Δ}
         mapInstantiationSpine (bind (＇ X)) spine)
   → StructuralTargetInstantiationPackage W (V ↑ `∀↑ c)
       (name-type-app-frame B X refl refl ▻ⁱ spine)
-structural-target-reveal-step {W = W} {X = X} vV spine child =
+structural-target-reveal-step {W = W} {X = X}
+    fresh vV spine child =
   structural-target-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
+    (TE.rightBindTargetInsert {W = W} {B = ＇ X} fresh) refl
     (lift-instantiation-spine-bind (β-reveal-∀ vV) spine) child
 
 
@@ -54,9 +56,10 @@ structural-target-conceal-step : ∀ {Δᴸ Δᴿ Δ}
     {B C : Ty (suc Δᴿ)} {E : Ty Δᴿ}
     {c : Conv↓ (suc Δᴿ) C B}
     {V : Term Δᴿ} {X : TyVar Δᴿ}
+    (fresh : CTI2.RightBindFresh W (＇ X))
     (vV : Value V) (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W (＇ X)) (⇑ᵗᵐ V)
+      (CTI2.rightOnlyWorld W (＇ X) fresh) (⇑ᵗᵐ V)
       (name-type-app-frame (applyBody (bind (＇ X)) C) Fin.zero
           refl refl ▻ⁱ
         type-transport-frame (applyBody-open-zero C) ▻ⁱ
@@ -66,7 +69,8 @@ structural-target-conceal-step : ∀ {Δᴸ Δᴿ Δ}
         mapInstantiationSpine (bind (＇ X)) spine)
   → StructuralTargetInstantiationPackage W (V ↓ `∀↓ c)
       (name-type-app-frame B X refl refl ▻ⁱ spine)
-structural-target-conceal-step {W = W} {X = X} vV spine child =
+structural-target-conceal-step {W = W} {X = X}
+    fresh vV spine child =
   structural-target-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
+    (TE.rightBindTargetInsert {W = W} {B = ＇ X} fresh) refl
     (lift-instantiation-spine-bind (β-conceal-∀ vV) spine) child

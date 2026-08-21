@@ -1097,3 +1097,51 @@ HANDOFF — RECOMMENDED NEXT STEPS (2026-08-20 EOD, in order):
 Probes/notes for all of the above live on #177's branch (world
 invariants) and #180's branch (dispatcher residuals); decision record
 is the D19/D18 comment threads on those PRs.
+
+## D20 WORLD PROVENANCE + CONCEAL MIGRATION (2026-08-20, in flight)
+
+The continuation branch now carries the PR #177 invariants in the live,
+inductively generated `World`.  World construction records allocation/rebase
+provenance rather than accepting raw record snapshots.  The migration keeps
+direct store entries nominal: `α:=★, β:=α` is two ordered representation
+boundaries, not the equation `β=★`.  `resolveVar` is therefore not an
+acceptable replacement for the direct representation invariant or for
+boundary authorization.  The longer-term redesign still planned is a world
+relation indexed by the two endpoint `Ctx`s, with stable direct-representation
+alignment separated from a boundary-scoped one-edge name focus; that surface
+is not live yet.
+
+USER-APPROVED CONCEAL DESIGN: a one-sided source conceal has no occupied
+target pivot.  The live `conceal⊑²` consequently requires
+`TagRebaseAtᴸ W′ W Xᴸ? nothing`.  An occupied boundary is represented by the
+paired conceal rule, which carries both conversions and their rebase.  The
+term-shaped `MatchedConcealPartnerOK`/`Rep★PartnerOK` predicates and the
+`packaged-seal-star²` constructor are deleted; paired simulation uses the
+child relation and explicit boundaries instead.  This retains non-★
+one-sided conceal at genuinely unoccupied pivots, including the compiled
+polymorphic-identity-at-ℕ trace.
+
+The apparent SourceStrip mixed case is closed compositionally under the full
+column boundary.  If the inner target cast exposes
+`R ⊑[W′] ＇Y`, direct inversion gives `R = ＇X₂` with `X₂` aligned to `Y`.
+The outer `RebaseAt W′ W X Y` then forces `X₂ = X`, while direct source-store
+membership for the conceal forbids the self-alias `X:=X`.  The checked
+`source-column-alias-cycle-⊥` proof uses direct membership, store acyclicity,
+and embedding geometry only—no target-term classifier and no `resolveVar`.
+
+Fixture status: every fixture is retained.  Positive fixtures were rebuilt
+with inductive provenance; invalid raw snapshots (SourceStar,
+CenterCrossing, and Terminus instance B) are checked negative invariant
+regressions.  The SourceStar snapshot's two endpoint stores are individually
+operationally possible, but its cross-run alignment is not reachable from the
+compiled empty world.
+
+CURRENT CHECKPOINT: `CtxImp`, `CastTermImprecision`, the typing theorem,
+the migrated simulation modules, the core transport modules, and all six
+reworked fixtures check with `agda --safe --no-caching`.  SourceStrip's small
+alias-cycle module also checks safe.  Remaining work is to replace the legacy
+SourceStrip `NON_COVERING` quarantine with exhaustive clauses, then continue
+the inductive-world gaps in TargetBindLift (obsolete raw `targetStoreAs`) and
+SimBack (missing `RightBindFresh`).  The invalid Λ intermediate remains a
+proof-scaffolding problem; no Λ-specific term-imprecision constructor has
+been adopted.

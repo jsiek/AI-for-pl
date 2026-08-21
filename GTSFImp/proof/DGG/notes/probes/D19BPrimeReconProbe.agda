@@ -79,7 +79,7 @@ blend-decays-matched :
 blend-decays-matched = refl
 
 dyn-world-decays-matched :
-  CTX.impEnvʷ (SPT.dynWorld precise-world) Fin.zero ≡ X⊑★
+  CTX.impEnvʷ (WD.honestify precise-world) Fin.zero ≡ X⊑★
 dyn-world-decays-matched = refl
 
 honestify-keeps-matched :
@@ -120,14 +120,14 @@ lift-both-head-matched :
 lift-both-head-matched = refl
 
 lift-left-dynamic-head :
-  CTX.impEnvʷ (CTX.liftWorldLeft X⊑★ precise-world) Fin.zero ≡ X⊑★
+  CTX.impEnvʷ (CTX.liftWorldLeft precise-world) Fin.zero ≡ X⊑★
 lift-left-dynamic-head = refl
 
 lift-left-head-not-target : ∀ Y
   → C.toRenameᵗ
-      (CTX.ηᴿʷ (CTX.liftWorldLeft X⊑★ precise-world)) Y
+      (CTX.ηᴿʷ (CTX.liftWorldLeft precise-world)) Y
     ≢ C.toRenameᵗ
-      (CTX.ηᴸʷ (CTX.liftWorldLeft X⊑★ precise-world)) Fin.zero
+      (CTX.ηᴸʷ (CTX.liftWorldLeft precise-world)) Fin.zero
 lift-left-head-not-target Fin.zero ()
 
 right-only-dynamic-head :

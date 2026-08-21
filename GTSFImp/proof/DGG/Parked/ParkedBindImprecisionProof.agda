@@ -7,11 +7,15 @@ module proof.DGG.Parked.ParkedBindImprecisionProof where
 --     those modules can share the bind facts without an import cycle.
 
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans)
   renaming (subst to subst≡)
 
 open import Types using
-  (Ty; _⇒_; `∀; ★; ⇑ᵗ; renameᵗ; renameᵗ-comp; renameᵗ-cong; renameᵗ-shift)
+  (Ty; TyVar; _⇒_; `∀; ★; ⇑ᵗ; ＇_; renameᵗ; renameᵗ-comp;
+   renameᵗ-cong; renameᵗ-shift)
+open import Data.Product using (Σ-syntax; _×_)
+open import Data.Sum using (_⊎_)
 open import Consistency using (_↪ᵗ_; toRenameᵗ; keep; skip)
 open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 import proof.DGG.CtxImp as CTI2
@@ -47,14 +51,15 @@ both-bind-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {C : Ty Δᴸ} {D : Ty Δᴿ}
   → C ⊑ᵂ⟨ W ⟩ D
-  → ⇑ᵗ C ⊑ᵂ⟨ CTI2.bothBindWorld X⊑X W A B ⟩ ⇑ᵗ D
-both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D} p =
+  → (bind : A ⊑ᵂ⟨ W ⟩ B)
+  → ⇑ᵗ C ⊑ᵂ⟨ CTI2.bothBindWorld W A B bind ⟩ ⇑ᵗ D
+both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D} p bind =
   subst≡
-    (λ L → impEnvʷ (CTI2.bothBindWorld X⊑X W A B) ⊢ L ⊑
-      embedᴿ (CTI2.bothBindWorld X⊑X W A B) (⇑ᵗ D))
+    (λ L → impEnvʷ (CTI2.bothBindWorld W A B bind) ⊢ L ⊑
+      embedᴿ (CTI2.bothBindWorld W A B bind) (⇑ᵗ D))
     (sym (embed-keep-shift (CTI2.ηᴸʷ W) C))
     (subst≡
-      (λ R → impEnvʷ (CTI2.bothBindWorld X⊑X W A B) ⊢
+      (λ R → impEnvʷ (CTI2.bothBindWorld W A B bind) ⊢
         ⇑ᵗ (embedᴸ W C) ⊑ R)
       (sym (embed-keep-shift (CTI2.ηᴿʷ W) D))
       (rename-⊑ Fin.suc fin-suc-injective (λ X eq → eq) p))
@@ -63,15 +68,22 @@ both-bind-⊑ᵂ {W = W} {A = A} {B = B} {C = C} {D = D} p =
 right-bind-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B′ : Ty Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
+    {fresh : ⇑ᵗ B′ ≡ ★
+      ⊎ Σ[ Yᴿ ∈ TyVar _ ]
+          (⇑ᵗ B′ ≡ ＇ Yᴿ)
+        × (∀ Xᴸ
+            → toRenameᵗ (skip (CTI2.ηᴸʷ W)) Xᴸ
+              ≢ toRenameᵗ (keep (CTI2.ηᴿʷ W)) Yᴿ)}
   → A ⊑ᵂ⟨ W ⟩ B
-  → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ ⟩ ⇑ᵗ B
-right-bind-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B} p =
+  → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ fresh ⟩ ⇑ᵗ B
+right-bind-⊑ᵂ {W = W} {B′ = B′} {A = A} {B = B}
+    {fresh = fresh} p =
   subst≡
-    (λ L → impEnvʷ (CTI2.rightOnlyWorld W B′) ⊢ L ⊑
-      embedᴿ (CTI2.rightOnlyWorld W B′) (⇑ᵗ B))
+    (λ L → impEnvʷ (CTI2.rightOnlyWorld W B′ fresh) ⊢ L ⊑
+      embedᴿ (CTI2.rightOnlyWorld W B′ fresh) (⇑ᵗ B))
     (sym (renameᵗ-skip-eq (CTI2.ηᴸʷ W) A))
     (subst≡
-      (λ R → impEnvʷ (CTI2.rightOnlyWorld W B′) ⊢
+      (λ R → impEnvʷ (CTI2.rightOnlyWorld W B′ fresh) ⊢
         ⇑ᵗ (embedᴸ W A) ⊑ R)
       (sym (embed-keep-shift (CTI2.ηᴿʷ W) B))
       (rename-⊑ Fin.suc fin-suc-injective (λ X eq → eq) p))
@@ -81,14 +93,14 @@ left-bind-⊑ᵂ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A′ : Ty Δᴸ}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
   → A ⊑ᵂ⟨ W ⟩ B
-  → ⇑ᵗ A ⊑ᵂ⟨ CTI2.leftOnlyWorld X⊑★ W A′ ⟩ B
+  → ⇑ᵗ A ⊑ᵂ⟨ CTI2.leftOnlyWorld W A′ ⟩ B
 left-bind-⊑ᵂ {W = W} {A′ = A′} {A = A} {B = B} p =
   subst≡
-    (λ L → impEnvʷ (CTI2.leftOnlyWorld X⊑★ W A′) ⊢ L ⊑
-      embedᴿ (CTI2.leftOnlyWorld X⊑★ W A′) B)
+    (λ L → impEnvʷ (CTI2.leftOnlyWorld W A′) ⊢ L ⊑
+      embedᴿ (CTI2.leftOnlyWorld W A′) B)
     (sym (embed-keep-shift (CTI2.ηᴸʷ W) A))
     (subst≡
-      (λ R → impEnvʷ (CTI2.leftOnlyWorld X⊑★ W A′) ⊢
+      (λ R → impEnvʷ (CTI2.leftOnlyWorld W A′) ⊢
         ⇑ᵗ (embedᴸ W A) ⊑ R)
       (sym (renameᵗ-skip-eq (CTI2.ηᴿʷ W) B))
       (rename-⊑ Fin.suc fin-suc-injective (λ X eq → eq) p))

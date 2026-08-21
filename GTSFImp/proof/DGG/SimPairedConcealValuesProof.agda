@@ -16,18 +16,18 @@ open import proof.Reduction.ValueIrreducibleProof
 
 
 sim-paired-conceal-values : SimPairedConcealValuesᵀ
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-sealˣ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-⇒ˣ _ _ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ ()
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ ()
     (pure-step blame-conceal) _
-sim-paired-conceal-values _ _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ vV
+sim-paired-conceal-values _ _ _ (Conv.⊢↓-∀ˣ _) _ _ _ vV
     (ξ-conceal step _) _ =
   ⊥-elim (value-no-step vV step)

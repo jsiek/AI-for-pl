@@ -51,7 +51,7 @@ rebase-target-membership-forward rb Z∈ =
 
 record LoweredLiftSealTerminal {Δᴸ Δᴿ Δ}
     (W₁ : World Δᴸ Δᴿ Δ) (γ₁ : CtxImp W₁)
-    (γ₁ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W₁))
+    (γ₁ᴸ : CtxImp (CTI2.liftWorldLeft W₁))
     (V : Term (suc Δᴸ)) (A : Ty (suc Δᴸ))
     (U : Term Δᴿ) (X : TyVar Δᴸ) (Y : TyVar Δᴿ) : Set where
   constructor lowered-lift-seal-terminal
@@ -60,29 +60,29 @@ record LoweredLiftSealTerminal {Δᴸ Δᴿ Δ}
     Y★ : TyVar Δᴿ
     W★ : World Δᴸ Δᴿ Δ
     γ★ : CtxImp W★
-    γ★ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W★)
+    γ★ᴸ : CtxImp (CTI2.liftWorldLeft W★)
     lift★ : LiftCtxᴸ X⊑★ γ★ γ★ᴸ
     mono★ : CTI2.ImpEnvMono W₁ W★
     same★ : CTI2.SameCtx γ₁ γ★
     boundary★ : RebaseAt W★ W₁ X Y
     target∈★ : targetStoreʷ W★ ∋ Y★ ⦂ ★
-    q★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W★ ⟩ ★
+    q★ : A ⊑ᵂ⟨ CTI2.liftWorldLeft W★ ⟩ ★
     U⊢★ : ⟨ Δᴿ , targetStoreʷ W★ , tgtCtxʷ γ★ ⟩ ⊢ U★ ⦂ ★
     premise★ :
-      CTI2.liftWorldLeft X⊑★ W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ q★
+      CTI2.liftWorldLeft W★ ∣ γ★ᴸ ⊢² V ⊑ U★ ∶ q★
 
 postulate
   liftCtxᴸ-canonical : ∀ {Δᴸ Δᴿ Δ}
       {W : World Δᴸ Δᴿ Δ}
     → (γ : CtxImp W)
-    → Σ[ γᴸ ∈ CtxImp (CTI2.liftWorldLeft X⊑★ W) ]
+    → Σ[ γᴸ ∈ CtxImp (CTI2.liftWorldLeft W) ]
         LiftCtxᴸ X⊑★ γ γᴸ
 
   sameCtx-liftᴸ : ∀ {Δᴸ Δᴿ Δ}
       {W₁ W₂ : World Δᴸ Δᴿ Δ}
       {γ₁ : CtxImp W₁} {γ₂ : CtxImp W₂}
-      {γ₁ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W₁)}
-      {γ₂ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W₂)}
+      {γ₁ᴸ : CtxImp (CTI2.liftWorldLeft W₁)}
+      {γ₂ᴸ : CtxImp (CTI2.liftWorldLeft W₂)}
     → CTI2.SameCtx γ₁ γ₂
     → LiftCtxᴸ X⊑★ γ₁ γ₁ᴸ
     → LiftCtxᴸ X⊑★ γ₂ γ₂ᴸ
@@ -92,30 +92,30 @@ postulate
       {W W′ : World Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W W′
     → CTI2.ImpEnvMono
-        (CTI2.liftWorldLeft X⊑★ W)
-        (CTI2.liftWorldLeft X⊑★ W′)
+        (CTI2.liftWorldLeft W)
+        (CTI2.liftWorldLeft W′)
 
   liftRebaseAtLeft : ∀ {Δᴸ Δᴿ Δ}
       {W W′ : World Δᴸ Δᴿ Δ}
       {Xᴸ : TyVar Δᴸ} {Y : TyVar Δᴿ}
     → RebaseAt W W′ Xᴸ Y
     → RebaseAt
-        (CTI2.liftWorldLeft X⊑★ W)
-        (CTI2.liftWorldLeft X⊑★ W′)
+        (CTI2.liftWorldLeft W)
+        (CTI2.liftWorldLeft W′)
         (Fin.suc Xᴸ) Y
 
   source-binder-strengthen-seal-transfer : ∀ {Δᴸ Δᴿ Δ}
       {W₁ : World Δᴸ Δᴿ Δ}
       {γ₁ : CtxImp W₁}
-      {γ₁ᴸ : CtxImp (CTI2.liftWorldLeft X⊑★ W₁)}
+      {γ₁ᴸ : CtxImp (CTI2.liftWorldLeft W₁)}
       {V : Term (suc Δᴸ)} {U : Term Δᴿ}
       {A : Ty (suc Δᴸ)}
       {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-      {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W₁ ⟩ ＇ Y}
+      {r : A ⊑ᵂ⟨ CTI2.liftWorldLeft W₁ ⟩ ＇ Y}
     → LiftCtxᴸ X⊑★ γ₁ γ₁ᴸ
     → SpineValue V
     → Value U
-    → CTI2.liftWorldLeft X⊑★ W₁ ∣ γ₁ᴸ ⊢²
+    → CTI2.liftWorldLeft W₁ ∣ γ₁ᴸ ⊢²
         V ⊑ U ↓ seal Y ★ ∶ r
     → LoweredLiftSealTerminal W₁ γ₁ γ₁ᴸ V A U X Y
 
@@ -133,7 +133,7 @@ seal-descent-at-varᴸ-scratch {Wᵒ = Wᵒ} {Wʳ = Wʳ}
     {r = r} sv vU mono rb sc source∈ target∈ liftγ D
     | γᵒᴸ , liftᵒ
     with SPT.right-var-obligation-view
-      {W = CTI2.liftWorldLeft X⊑★ Wʳ} {R = A} {Y = Y} r
+      {W = CTI2.liftWorldLeft Wʳ} {R = A} {Y = Y} r
 seal-descent-at-varᴸ-scratch {Wᵒ = Wᵒ} {Wʳ = Wʳ}
     {γᵒ = γᵒ} {γʳ = γʳ} {γᵇ = γᵇ} {V = V}
     {U = U} {S = ★} {Xᴸ = Xᴸ} {Y = Y}

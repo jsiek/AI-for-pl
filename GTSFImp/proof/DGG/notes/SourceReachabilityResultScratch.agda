@@ -61,8 +61,8 @@ matched-Λ-use-not-star : ∀ {Δ} {μ : I.ImpEnv Δ}
 matched-Λ-use-not-star (I.X⊑★ ())
 
 erased-Λ-mark : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
-  → CTI2.impEnvʷ (CTI2.liftWorldLeft I.X⊑★ W)
-      (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) zero)
+  → CTI2.impEnvʷ (CTI2.liftWorldLeft W)
+      (toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft W)) zero)
     ≡ I.X⊑★
 erased-Λ-mark = refl
 
@@ -72,8 +72,8 @@ erased-Λ-use-star = I.X⊑★ refl
 
 erased-Λ-has-no-target : ∀ {Δᴸ Δᴿ Δ} {W : CTI2.World Δᴸ Δᴿ Δ}
     (Y : TyVar Δᴿ)
-  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft I.X⊑★ W)) Y
-    ≢ toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft I.X⊑★ W)) zero
+  → toRenameᵗ (CTI2.ηᴿʷ (CTI2.liftWorldLeft W)) Y
+    ≢ toRenameᵗ (CTI2.ηᴸʷ (CTI2.liftWorldLeft W)) zero
 erased-Λ-has-no-target Y ()
 
 ------------------------------------------------------------------------

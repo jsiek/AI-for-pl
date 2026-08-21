@@ -42,63 +42,67 @@ import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.CtxImp as CTX
 open CTX using
   (World;
-   world)
+   initialWorld;
+   initialWorld-ηᴸ;
+   initialWorld-ηᴿ;
+   initialWorld-sourceStore;
+   initialWorld-targetStore;
+   initialWorld-env)
 open CTI2 using (_∣_⊢²_⊑_∶_)
 import proof.DGG.Elab as CPI
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.Imprecision as PI
 open import proof.ImprecisionConsistency
-  using (refl⊑; ty-all-injective)
+  using (refl⊑; rename-⊑; toRenameᵗ-injective; ty-all-injective)
 open import proof.TypeInTermSubst using
   (renameᵗ-pointwise-id; toRename-id-eq; toRename-keep-eq;
    rename-openᵗ; rename-occurs)
 
-initialWorld : ∀ {Δ} → ImpEnv Δ → TyStore Δ → World Δ Δ Δ
-initialWorld μ Σ = world id↪ᵗ id↪ᵗ μ Σ Σ
-
-initialWorld-ηᴸ : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
-  → CTX.ηᴸʷ (initialWorld μ Σ) ≡ id↪ᵗ
-initialWorld-ηᴸ μ Σ = refl
-
-initialWorld-ηᴿ : ∀ {Δ} (μ : ImpEnv Δ) (Σ : TyStore Δ)
-  → CTX.ηᴿʷ (initialWorld μ Σ) ≡ id↪ᵗ
-initialWorld-ηᴿ μ Σ = refl
-
-initial-embedᴸ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initial-embedᴸ : ∀ {Δ} {μ : ImpEnv Δ}
   → (A : Ty Δ)
-  → CTX.embedᴸ (initialWorld μ Σ) A ≡ A
-initial-embedᴸ A =
-  renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq
+  → CTX.embedᴸ (initialWorld μ) A ≡ A
+initial-embedᴸ {μ = μ} A =
+  trans (cong (λ η → renameᵗ (toRenameᵗ η) A) (initialWorld-ηᴸ μ))
+    (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq)
 
-initial-embedᴿ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initial-embedᴿ : ∀ {Δ} {μ : ImpEnv Δ}
   → (A : Ty Δ)
-  → CTX.embedᴿ (initialWorld μ Σ) A ≡ A
-initial-embedᴿ A =
-  renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq
+  → CTX.embedᴿ (initialWorld μ) A ≡ A
+initial-embedᴿ {μ = μ} A =
+  trans (cong (λ η → renameᵗ (toRenameᵗ η) A) (initialWorld-ηᴿ μ))
+    (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq)
 
-initial-⊑ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+initial-⊑ : ∀ {Δ} {μ : ImpEnv Δ} {A B : Ty Δ}
   → μ ⊢ A ⊑ B
-  → A CTX.⊑ᵂ⟨ initialWorld μ Σ ⟩ B
-initial-⊑ {μ = μ} {Σ = Σ} {A = A} {B = B} p =
-  subst≡ (λ L → μ ⊢ L ⊑ CTX.embedᴿ (initialWorld μ Σ) B)
-    (sym (initial-embedᴸ {μ = μ} {Σ = Σ} A))
-    (subst≡ (λ R → μ ⊢ A ⊑ R)
-      (sym (initial-embedᴿ {μ = μ} {Σ = Σ} B)) p)
+  → A CTX.⊑ᵂ⟨ initialWorld μ ⟩ B
+initial-⊑ {μ = μ} {A = A} {B = B} p =
+  CTX.imprecision-cong
+    (trans
+      (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq)
+      (sym (initial-embedᴸ {μ = μ} A)))
+    (trans
+      (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) B toRename-id-eq)
+      (sym (initial-embedᴿ {μ = μ} B)))
+    (rename-⊑ (toRenameᵗ id↪ᵗ) (toRenameᵗ-injective id↪ᵗ)
+      (λ X eq →
+        trans
+          (cong (CTX.impEnvʷ (initialWorld μ)) (toRename-id-eq X))
+          (trans (initialWorld-env μ X) eq)) p)
 
-initialCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initialCtx : ∀ {Δ} {μ : ImpEnv Δ}
   → GTI.CtxImp μ
-  → CTX.CtxImp (initialWorld μ Σ)
+  → CTX.CtxImp (initialWorld μ)
 initialCtx [] = []
-initialCtx {Σ = Σ} (GTI.ctx-imp A B p ∷ γ) =
-  CTX.ctx-imp A B (initial-⊑ {Σ = Σ} p) ∷
-    initialCtx {Σ = Σ} γ
+initialCtx (GTI.ctx-imp A B p ∷ γ) =
+  CTX.ctx-imp A B (initial-⊑ p) ∷
+    initialCtx γ
 
-initial-∋ : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+initial-∋ : ∀ {Δ} {μ : ImpEnv Δ}
     {γ : GTI.CtxImp μ} {x A B p}
   → γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A B p
-  → initialCtx {Σ = Σ} γ CTX.∋ʷ x ⦂
-      CTX.ctx-imp A B (initial-⊑ {Σ = Σ} p)
+  → initialCtx γ CTX.∋ʷ x ⦂
+      CTX.ctx-imp A B (initial-⊑ p)
 initial-∋ GTI.Zⁱ = CTX.Zʷ
 initial-∋ (GTI.Sⁱ x∈) = CTX.Sʷ (initial-∋ x∈)
 
@@ -111,21 +115,36 @@ initial-∋ (GTI.Sⁱ x∈) = CTX.Sʷ (initial-∋ x∈)
 ⊢²-retarget {W = W} {γ = γ} {M = M} {M′ = M′} {p = p} {q = q} d =
   subst≡ (λ r → W ∣ γ ⊢² M ⊑ M′ ∶ r) (PI.⊑-unique p q) d
 
-initial-liftCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
-    {γ : GTI.CtxImp μ} {γ′ : GTI.CtxImp (extᵐ μ)}
-  → GTI.LiftCtxⁱ (extᵐ μ) γ γ′
-  → CTX.LiftCtx X⊑X (initialCtx {Σ = Σ} γ)
-      (initialCtx {Σ = store-lift Σ} γ′)
-initial-liftCtx GTI.lift-[] = CTX.lift-[]
-initial-liftCtx (GTI.lift-∷ liftγ) =
-  CTX.lift-∷ (initial-liftCtx liftγ)
-
 SourceId : ∀ {Δᴿ Δ} → World Δ Δᴿ Δ → Set
 SourceId W = ∀ X → toRenameᵗ (CTX.ηᴸʷ W) X ≡ X
 
-sourceId-initial : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
-  → SourceId (initialWorld μ Σ)
-sourceId-initial = toRename-id-eq
+EnvMatches : ∀ {Δᴸ Δᴿ Δ}
+  → World Δᴸ Δᴿ Δ → ImpEnv Δ → Set
+EnvMatches W μ = ∀ X → CTX.impEnvʷ W X ≡ μ X
+
+matches-initial : ∀ {Δ} {μ : ImpEnv Δ}
+  → EnvMatches (initialWorld μ) μ
+matches-initial {μ = μ} = initialWorld-env μ
+
+matches-liftBoth : ∀ {Δᴿ Δ} {μ : ImpEnv Δ}
+    {W : World Δ Δᴿ Δ}
+  → EnvMatches W μ
+  → EnvMatches (CTX.liftWorldBoth X⊑X W) (extᵐ μ)
+matches-liftBoth {W = W} matches Fin.zero = refl
+matches-liftBoth {W = W} matches (Fin.suc X) = matches X
+
+matches-liftLeft : ∀ {Δᴿ Δ} {μ : ImpEnv Δ}
+    {W : World Δ Δᴿ Δ}
+  → EnvMatches W μ
+  → EnvMatches (CTX.liftWorldLeft W) (instᵐ μ)
+matches-liftLeft {W = W} matches Fin.zero = refl
+matches-liftLeft {W = W} matches (Fin.suc X) = matches X
+
+sourceId-initial : ∀ {Δ} {μ : ImpEnv Δ}
+  → SourceId (initialWorld μ)
+sourceId-initial {μ = μ} X =
+  trans (cong (λ η → toRenameᵗ η X) (initialWorld-ηᴸ μ))
+    (toRename-id-eq X)
 
 sourceId-liftBoth : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
@@ -138,7 +157,7 @@ sourceId-liftBoth v sid (Fin.suc X) =
 sourceId-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → SourceId W
-  → SourceId (CTX.liftWorldLeft v W)
+  → SourceId (CTX.liftWorldLeft W)
 sourceId-liftLeft v sid zero = refl
 sourceId-liftLeft v sid (Fin.suc X) =
   cong Fin.suc (sid X)
@@ -159,13 +178,31 @@ sourceId-⊑ {W = W} {A = A} {B = B} sid p =
   subst≡ (λ L → CTX.impEnvʷ W ⊢ L ⊑ CTX.embedᴿ W B)
     (sym (sourceId-embedᴸ {W = W} sid A)) p
 
+matched-⊑ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
+    {μ : ImpEnv Δ} {A B : Ty Δ}
+  → EnvMatches W μ
+  → μ ⊢ A ⊑ B
+  → CTX.impEnvʷ W ⊢ A ⊑ B
+matched-⊑ {W = W} {μ = μ} {A = A} {B = B} matches p =
+  CTX.imprecision-cong
+    (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) A toRename-id-eq)
+    (renameᵗ-pointwise-id (toRenameᵗ id↪ᵗ) B toRename-id-eq)
+    (rename-⊑ (toRenameᵗ id↪ᵗ) (toRenameᵗ-injective id↪ᵗ)
+      (λ X eq →
+        trans
+          (cong (CTX.impEnvʷ W) (toRename-id-eq X))
+          (trans (matches X) eq)) p)
+
 sourceId-⊑-eq : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
+    {μ : ImpEnv Δ}
     {A : Ty Δ} {Bᶜ : Ty Δ} {B : Ty Δᴿ}
   → (sid : SourceId W)
   → Bᶜ ≡ CTX.embedᴿ W B
-  → CTX.impEnvʷ W ⊢ A ⊑ Bᶜ
+  → μ ⊢ A ⊑ Bᶜ
+  → EnvMatches W μ
   → A CTX.⊑ᵂ⟨ W ⟩ B
-sourceId-⊑-eq {W = W} sid refl p = sourceId-⊑ {W = W} sid p
+sourceId-⊑-eq {W = W} {μ = μ} sid refl p matches =
+  sourceId-⊑ {W = W} sid (matched-⊑ {W = W} {μ = μ} matches p)
 
 renameᵗ-id↪ᵗ : ∀ {Δ} (A : Ty Δ)
   → renameᵗ (toRenameᵗ id↪ᵗ) A ≡ A
@@ -191,7 +228,7 @@ embedᴿ-liftBoth-shift {W = W} v B =
 embedᴿ-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → (v : VarImp)
   → (B : Ty Δᴿ)
-  → CTX.embedᴿ (CTX.liftWorldLeft v W) B
+  → CTX.embedᴿ (CTX.liftWorldLeft W) B
       ≡ ⇑ᵗ (CTX.embedᴿ W B)
 embedᴿ-liftLeft {W = W} v B =
   renameᵗ-skip-eq (CTX.ηᴿʷ W) B
@@ -271,54 +308,77 @@ Grenameᵐ-id (L G.⊕[ op at ℓ ] M) =
   cong₂ (λ L′ M′ → L′ G.⊕[ op at ℓ ] M′)
     (Grenameᵐ-id L) (Grenameᵐ-id M)
 
-data EmbeddedCtx {Δᴿ Δ} (W : World Δ Δᴿ Δ) (sid : SourceId W) :
-    GTI.CtxImp (CTX.impEnvʷ W) → TermCtx Δᴿ →
+data EmbeddedCtx {Δᴿ Δ} (W : World Δ Δᴿ Δ) (sid : SourceId W)
+    {μ : ImpEnv Δ} (matches : EnvMatches W μ) :
+    GTI.CtxImp μ → TermCtx Δᴿ →
     CTX.CtxImp W → Set where
 
-  embedded-[] : EmbeddedCtx W sid [] [] []
+  embedded-[] : EmbeddedCtx W sid matches [] [] []
 
   embedded-∷ : ∀ {γ Γ δ A Bᶜ B p q}
     → (eqB : Bᶜ ≡ CTX.embedᴿ W B)
-    → q ≡ sourceId-⊑-eq {W = W} sid eqB p
-    → EmbeddedCtx W sid γ Γ δ
+    → q ≡ sourceId-⊑-eq {W = W} sid eqB p matches
+    → EmbeddedCtx W sid matches γ Γ δ
       ---------------------------------------------------------------
-    → EmbeddedCtx W sid
+    → EmbeddedCtx W sid matches
         (GTI.ctx-imp A Bᶜ p ∷ γ)
         (B ∷ Γ)
         (CTX.ctx-imp A B q ∷ δ)
 
+embeddedMatches : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ}
+  → EmbeddedCtx W sid matches γ Γ δ
+  → EnvMatches W μ
+embeddedMatches {matches = matches} rel = matches
+
+embedded-sourceId-⊑-eq : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ A Bᶜ B}
+  → EmbeddedCtx W sid matches γ Γ δ
+  → Bᶜ ≡ CTX.embedᴿ W B
+  → μ ⊢ A ⊑ Bᶜ
+  → A CTX.⊑ᵂ⟨ W ⟩ B
+embedded-sourceId-⊑-eq {W = W} {sid = sid} {matches = matches}
+    rel eqB p =
+  sourceId-⊑-eq {W = W} sid eqB p matches
+
 embeddedCtx-target : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ}
-  → EmbeddedCtx W sid γ Γ δ
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ}
+  → EmbeddedCtx W sid matches γ Γ δ
   → GTI.tgtCtxⁱ γ ≡ T.renameCtx (toRenameᵗ (CTX.ηᴿʷ W)) Γ
 embeddedCtx-target embedded-[] = refl
 embeddedCtx-target (embedded-∷ eqB q-ok rel) =
   cong₂ _∷_ eqB (embeddedCtx-target rel)
 
 embeddedCtx-targetʷ : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ}
-  → EmbeddedCtx W sid γ Γ δ
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ}
+  → EmbeddedCtx W sid matches γ Γ δ
   → CTX.tgtCtxʷ δ ≡ Γ
 embeddedCtx-targetʷ embedded-[] = refl
 embeddedCtx-targetʷ (embedded-∷ eqB q-ok rel) =
   cong (_ ∷_) (embeddedCtx-targetʷ rel)
 
 record EmbeddedLookup {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ x A Bᶜ p}
-    (rel : EmbeddedCtx W sid γ Γ δ)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ x A Bᶜ p}
+    (rel : EmbeddedCtx W sid matches γ Γ δ)
     (x∈ : γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A Bᶜ p) : Set where
   constructor embedded-lookup
   field
     B : Ty Δᴿ
     eqB : Bᶜ ≡ CTX.embedᴿ W B
     q : A CTX.⊑ᵂ⟨ W ⟩ B
-    q-ok : q ≡ sourceId-⊑-eq {W = W} sid eqB p
+    q-ok : q ≡ sourceId-⊑-eq {W = W} sid eqB p matches
     Γ∋ : Γ T.∋ x ⦂ B
     δ∋ : δ CTX.∋ʷ x ⦂ CTX.ctx-imp A B q
 
 embedded-lookup-at : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ x A Bᶜ p}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ x A Bᶜ p}
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
   → (x∈ : γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A Bᶜ p)
   → EmbeddedLookup rel x∈
 embedded-lookup-at (embedded-∷ {B = B} {q = q} eqB q-ok rel) GTI.Zⁱ =
@@ -330,48 +390,54 @@ embedded-lookup-at (embedded-∷ eqB q-ok rel) (GTI.Sⁱ x∈)
   embedded-lookup B eqB′ q q-ok′ (T.S Γ∋) (CTX.Sʷ δ∋)
 
 record LiftBothPack {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ γ′}
-    (rel : EmbeddedCtx W sid γ Γ δ)
-    (liftγ : GTI.LiftCtxⁱ (extᵐ (CTX.impEnvʷ W)) γ γ′)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ γ′}
+    (rel : EmbeddedCtx W sid matches γ Γ δ)
+    (liftγ : GTI.LiftCtxⁱ (extᵐ μ) γ γ′)
     : Set where
   constructor lift-both-pack
   field
     δ′ : CTX.CtxImp (CTX.liftWorldBoth X⊑X W)
     lift² : CTX.LiftCtx X⊑X δ δ′
     rel′ : EmbeddedCtx (CTX.liftWorldBoth X⊑X W)
-      (sourceId-liftBoth {W = W} X⊑X sid) γ′ (⇑ᶜ Γ) δ′
+      (sourceId-liftBoth {W = W} X⊑X sid)
+      (matches-liftBoth {W = W} matches) γ′ (⇑ᶜ Γ) δ′
 
 record LiftLeftPack {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ γ′}
-    (rel : EmbeddedCtx W sid γ Γ δ)
-    (liftγ : GTI.LiftCtxⁱ (instᵐ (CTX.impEnvʷ W)) γ γ′)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ γ′}
+    (rel : EmbeddedCtx W sid matches γ Γ δ)
+    (liftγ : GTI.LiftCtxⁱ (instᵐ μ) γ γ′)
     : Set where
   constructor lift-left-pack
   field
-    δ′ : CTX.CtxImp (CTX.liftWorldLeft X⊑★ W)
+    δ′ : CTX.CtxImp (CTX.liftWorldLeft W)
     lift² : CTX.LiftCtxᴸ X⊑★ δ δ′
-    rel′ : EmbeddedCtx (CTX.liftWorldLeft X⊑★ W)
-      (sourceId-liftLeft {W = W} X⊑★ sid) γ′ Γ δ′
+    rel′ : EmbeddedCtx (CTX.liftWorldLeft W)
+      (sourceId-liftLeft {W = W} X⊑★ sid)
+      (matches-liftLeft {W = W} matches) γ′ Γ δ′
 
 embedded-liftBoth : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ γ′}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (liftγ : GTI.LiftCtxⁱ (extᵐ (CTX.impEnvʷ W)) γ γ′)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ γ′}
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
+  → (liftγ : GTI.LiftCtxⁱ (extᵐ μ) γ γ′)
   → LiftBothPack rel liftγ
 embedded-liftBoth embedded-[] GTI.lift-[] =
   record { δ′ = [] ; lift² = CTX.lift-[] ; rel′ = embedded-[] }
-embedded-liftBoth {W = W} {sid = sid}
+embedded-liftBoth {W = W} {sid = sid} {matches = matches}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
     with embedded-liftBoth rel liftγ
-embedded-liftBoth {W = W} {sid = sid}
+embedded-liftBoth {W = W} {sid = sid} {matches = matches}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
     | lift-both-pack δ′ lift² rel′ =
   record
     { δ′ = CTX.ctx-imp (⇑ᵗ A) (⇑ᵗ B) q′ ∷ δ′
     ; lift² = CTX.lift-∷ lift²
-    ; rel′ = embedded-∷ eqB′ refl rel′
+    ; rel′ = embedded-∷ {W = CTX.liftWorldBoth X⊑X W}
+        eqB′ refl rel′
     }
   where
   eqB′ =
@@ -381,27 +447,29 @@ embedded-liftBoth {W = W} {sid = sid}
   q′ =
     sourceId-⊑-eq {W = CTX.liftWorldBoth X⊑X W}
       (sourceId-liftBoth {W = W} X⊑X sid)
-      eqB′ p′
+      eqB′ p′ (matches-liftBoth {W = W} matches)
 
 embedded-liftLeft : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ γ′}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (liftγ : GTI.LiftCtxⁱ (instᵐ (CTX.impEnvʷ W)) γ γ′)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ γ′}
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
+  → (liftγ : GTI.LiftCtxⁱ (instᵐ μ) γ γ′)
   → LiftLeftPack rel liftγ
 embedded-liftLeft embedded-[] GTI.lift-[] =
   record { δ′ = [] ; lift² = CTX.liftᴸ-[] ; rel′ = embedded-[] }
-embedded-liftLeft {W = W} {sid = sid}
+embedded-liftLeft {W = W} {sid = sid} {matches = matches}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
     with embedded-liftLeft rel liftγ
-embedded-liftLeft {W = W} {sid = sid}
+embedded-liftLeft {W = W} {sid = sid} {matches = matches}
     (embedded-∷ {A = A} {B = B} eqB q-ok rel)
     (GTI.lift-∷ {p′ = p′} liftγ)
     | lift-left-pack δ′ lift² rel′ =
   record
     { δ′ = CTX.ctx-imp (⇑ᵗ A) B q′ ∷ δ′
     ; lift² = CTX.liftᴸ-∷ lift²
-    ; rel′ = embedded-∷ eqB′ refl rel′
+    ; rel′ = embedded-∷ {W = CTX.liftWorldLeft W}
+        eqB′ refl rel′
     }
   where
   eqB′ =
@@ -409,13 +477,14 @@ embedded-liftLeft {W = W} {sid = sid}
       (sym (embedᴿ-liftLeft {W = W} X⊑★ B))
 
   q′ =
-    sourceId-⊑-eq {W = CTX.liftWorldLeft X⊑★ W}
+    sourceId-⊑-eq {W = CTX.liftWorldLeft W}
       (sourceId-liftLeft {W = W} X⊑★ sid)
-      eqB′ p′
+      eqB′ p′ (matches-liftLeft {W = W} matches)
 
 embedded-elab-gradual-typing : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ M′ Mᴿ Bᶜ B N}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ M′ Mᴿ Bᶜ B N}
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
   → M′ ≡ CPI.Grenameᵐ (CTX.ηᴿʷ W) Mᴿ
   → Bᶜ ≡ CTX.embedᴿ W B
   → CPI.Elab (CTX.targetStoreʷ W) Γ Mᴿ N B
@@ -431,8 +500,9 @@ embedded-elab-gradual-typing {W = W} rel eqM eqB Mᴱ =
             (CTX.ηᴿʷ W) Mᴱ))))
 
 embedded-elab-cast-typing : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
-    {sid : SourceId W} {γ Γ δ Mᴿ N B}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
+    {μ : ImpEnv Δ} {sid : SourceId W} {matches : EnvMatches W μ}
+    {γ Γ δ Mᴿ N B}
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
   → CPI.Elab (CTX.targetStoreʷ W) Γ Mᴿ N B
   → ⟨ Δᴿ , CTX.targetStoreʷ W , CTX.tgtCtxʷ δ ⟩ ⊢ N ⦂ B
 embedded-elab-cast-typing rel Mᴱ =
@@ -441,11 +511,12 @@ embedded-elab-cast-typing rel Mᴱ =
 
 compile-preserves-embedded² : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
     (sid : SourceId W)
-    {γ : GTI.CtxImp (CTX.impEnvʷ W)} {Γ : TermCtx Δᴿ}
+    {μ : ImpEnv Δ} {matches : EnvMatches W μ}
+    {γ : GTI.CtxImp μ} {Γ : TermCtx Δᴿ}
     {δ : CTX.CtxImp W} {M M′ : GTerm Δ} {Mᴿ : GTerm Δᴿ}
     {A Bᶜ : Ty Δ} {B : Ty Δᴿ} {p} {N : C.Term Δᴿ}
-  → (rel : EmbeddedCtx W sid γ Γ δ)
-  → (M⊑M′ : CTX.impEnvʷ W GTI.∣ γ ⊢ᴳ M ⊑ M′
+  → (rel : EmbeddedCtx W sid matches γ Γ δ)
+  → (M⊑M′ : μ GTI.∣ γ ⊢ᴳ M ⊑ M′
       ⦂ A ⊑ Bᶜ ∶ p)
   → (eqM : M′ ≡ CPI.Grenameᵐ (CTX.ηᴿʷ W) Mᴿ)
   → (eqB : Bᶜ ≡ CTX.embedᴿ W B)
@@ -453,7 +524,7 @@ compile-preserves-embedded² : ∀ {Δᴿ Δ} {W : World Δ Δᴿ Δ}
   → W ∣ δ ⊢²
       proj₁ (compile {Σ = CTX.sourceStoreʷ W}
         (GTI.gradual-term-imprecision-source-typing M⊑M′))
-      ⊑ N ∶ sourceId-⊑-eq {W = W} sid eqB p
+      ⊑ N ∶ sourceId-⊑-eq {W = W} sid eqB p matches
 compile-preserves-embedded² sid rel (GTI.x⊑xᴳ x∈) refl eqB
     (CPI.E-` x∈′)
     with embedded-lookup-at rel x∈
@@ -504,11 +575,11 @@ compile-preserves-embedded² {W = W} sid rel
   ⊢²-retarget
     (CTI2.·⊑·²
       (⊢²-retarget
-        {q = ⇒⊑⇒ (sourceId-⊑-eq {W = W} sid refl pA)
-                  (sourceId-⊑-eq {W = W} sid refl pB)}
+        {q = ⇒⊑⇒ (embedded-sourceId-⊑-eq rel refl pA)
+                  (embedded-sourceId-⊑-eq rel refl pB)}
         L⊑L′²)
       (CTI2.cast⊑cast² (symᶜ A∼C) d′ M⊑M′²
-        (sourceId-⊑-eq {W = W} sid refl pA)))
+        (embedded-sourceId-⊑-eq rel refl pA)))
 compile-preserves-embedded² sid rel
     (GTI.·⊑·ᴳ L⊑L′ M⊑M′ A∼C A′∼C′)
     refl eqB (CPI.E-·★ L′ᴱ M′ᴱ D′∼★ c′ d′)
@@ -555,12 +626,12 @@ compile-preserves-embedded² {W = W} sid rel
   ⊢²-retarget
     (CTI2.·⊑·²
       (⊢²-retarget
-        {q = ⇒⊑⇒ (sourceId-⊑-eq {W = W} sid refl pA)
-                  (sourceId-⊑-eq {W = W} sid refl pB)}
+        {q = ⇒⊑⇒ (embedded-sourceId-⊑-eq rel refl pA)
+                  (embedded-sourceId-⊑-eq rel refl pB)}
         (CTI2.⊑cast² c′ L⊑L′²
-          (sourceId-⊑-eq {W = W} sid refl (⇒⊑⇒ pA pB))))
+          (embedded-sourceId-⊑-eq rel refl (⇒⊑⇒ pA pB))))
       (CTI2.cast⊑cast² (symᶜ A∼C) d′ M⊑M′²
-        (sourceId-⊑-eq {W = W} sid refl pA)))
+        (embedded-sourceId-⊑-eq rel refl pA)))
 compile-preserves-embedded² sid rel
     (GTI.·★⊑·★ᴳ L⊑L′ M⊑M′ C∼★ C′∼★)
     refl eqB (CPI.E-· L′ᴱ M′ᴱ A′∼D′ d′)
@@ -594,13 +665,13 @@ compile-preserves-embedded² {W = W} sid rel
   ⊢²-retarget
     (CTI2.·⊑·²
       (⊢²-retarget
-        {q = ⇒⊑⇒ (sourceId-⊑-eq {W = W} sid refl ★⊑★)
-                  (sourceId-⊑-eq {W = W} sid refl ★⊑★)}
+        {q = ⇒⊑⇒ (embedded-sourceId-⊑-eq rel refl ★⊑★)
+                  (embedded-sourceId-⊑-eq rel refl ★⊑★)}
         (CTI2.cast⊑cast² CPI.dynamic-function-cast c′ L⊑L′²
-          (sourceId-⊑-eq {W = W} sid refl (⇒⊑⇒ ★⊑★ ★⊑★))))
+          (embedded-sourceId-⊑-eq rel refl (⇒⊑⇒ ★⊑★ ★⊑★))))
       (CTI2.cast⊑cast² C∼★ d′ M⊑M′²
-        (sourceId-⊑-eq {W = W} sid refl ★⊑★)))
-compile-preserves-embedded² {W = W} sid rel
+        (embedded-sourceId-⊑-eq rel refl ★⊑★)))
+compile-preserves-embedded² {W = W} sid {matches = matches} rel
     (GTI.Λ⊑Λᴳ {p = p} liftγ vV vV′ zero∈A zero∈B V⊑V′)
     refl eqB (CPI.E-Λ zero∈B′ vV′′ vN′ V′ᴱ)
     rewrite CPI.compile-Λ-term {Σ = CTX.sourceStoreʷ W}
@@ -613,7 +684,7 @@ compile-preserves-embedded² {W = W} sid rel
       (GTI.srcCtxⁱ-lift liftγ)
       (GTI.gradual-term-imprecision-source-typing V⊑V′)
     with embedded-liftBoth rel liftγ
-compile-preserves-embedded² {W = W} sid rel
+compile-preserves-embedded² {W = W} sid {matches = matches} rel
     (GTI.Λ⊑Λᴳ {p = p} liftγ vV vV′ zero∈A zero∈B V⊑V′)
     refl eqB (CPI.E-Λ zero∈B′ vV′′ vN′ V′ᴱ)
     | lift-both-pack δ′ lift² rel′ =
@@ -624,13 +695,14 @@ compile-preserves-embedded² {W = W} sid rel
       vN′
       (compile-preserves-embedded²
         (sourceId-liftBoth {W = W} X⊑X sid)
+        {matches = matches-liftBoth {W = W} matches}
         rel′ V⊑V′ refl body-eq V′ᴱ)
-      (sourceId-⊑-eq {W = W} sid eqB (∀⊑∀ p)))
+      (embedded-sourceId-⊑-eq rel eqB (∀⊑∀ p)))
   where
   body-eq =
     trans (ty-all-injective eqB)
       (sym (renameᵗ-cong _ (toRename-keep-eq (CTX.ηᴿʷ W))))
-compile-preserves-embedded² {W = W} sid rel
+compile-preserves-embedded² {W = W} sid {matches = matches} rel
     (GTI.Λ⊑ᴳ {p = p} Anv zero∈A liftγ vV N′⊢ V⊑N′)
     eqM eqB N′ᴱ
     rewrite CPI.compile-Λ-term {Σ = CTX.sourceStoreʷ W}
@@ -643,7 +715,7 @@ compile-preserves-embedded² {W = W} sid rel
       (GTI.srcCtxⁱ-lift liftγ)
       (GTI.gradual-term-imprecision-source-typing V⊑N′)
     with embedded-liftLeft rel liftγ
-compile-preserves-embedded² {W = W} sid rel
+compile-preserves-embedded² {W = W} sid {matches = matches} rel
     (GTI.Λ⊑ᴳ {p = p} Anv zero∈A liftγ vV N′⊢ V⊑N′)
     eqM eqB N′ᴱ
     | lift-left-pack δ′ lift² rel′ =
@@ -654,8 +726,9 @@ compile-preserves-embedded² {W = W} sid rel
       (embedded-elab-cast-typing rel N′ᴱ)
       (compile-preserves-embedded²
         (sourceId-liftLeft {W = W} X⊑★ sid)
+        {matches = matches-liftLeft {W = W} matches}
         rel′ V⊑N′ term-eq type-eq N′ᴱ)
-      (sourceId-⊑-eq {W = W} sid eqB (∀⊑ Anv zero∈A p)))
+      (embedded-sourceId-⊑-eq rel eqB (∀⊑ Anv zero∈A p)))
   where
   term-eq =
     trans (cong G.⇑ᵗᴳ eqM)
@@ -688,10 +761,10 @@ compile-preserves-embedded² {W = W} sid rel
     | body-eq | refl | M , M⊢ | M⊑M′² =
   ⊢²-retarget
     (CTI2.•⊑•²
-      (sourceId-⊑-eq {W = W} sid body-eq (∀⊑∀ p))
+      (embedded-sourceId-⊑-eq rel body-eq (∀⊑∀ p))
       M⊑M′²
-      (sourceId-⊑-eq {W = W} sid refl q)
-      (sourceId-⊑-eq {W = W} sid eqB r))
+      (embedded-sourceId-⊑-eq rel refl q)
+      (embedded-sourceId-⊑-eq rel eqB r))
 compile-preserves-embedded² {W = W} sid rel
     (GTI.[]⊑ᴳ {p = p} {Anv = Anv} {zero∈A = zero∈A}
       M⊑M′ q r)
@@ -706,18 +779,18 @@ compile-preserves-embedded² {W = W} sid rel
     | M , M⊢ | M⊑M′² =
   ⊢²-retarget
     (CTI2.•⊑²
-      (sourceId-⊑-eq {W = W} sid eqB (∀⊑ Anv zero∈A p))
+      (embedded-sourceId-⊑-eq rel eqB (∀⊑ Anv zero∈A p))
       M⊑M′²
-      (sourceId-⊑-eq {W = W} sid refl q)
-      (sourceId-⊑-eq {W = W} sid eqB r))
-compile-preserves-embedded² {W = W} sid rel
+      (embedded-sourceId-⊑-eq rel refl q)
+      (embedded-sourceId-⊑-eq rel eqB r))
+compile-preserves-embedded² {W = W} sid {μ = μ} rel
     (GTI.κ⊑κᴳ κ) refl eqB (CPI.E-$ .κ) =
   ⊢²-retarget
     (CTI2.κ⊑κ² κ
-      (sourceId-⊑-eq {W = W} {B = constTy κ} sid
+      (embedded-sourceId-⊑-eq {B = constTy κ} rel
         (sym (constTy-embedᴿ {W = W} κ))
-        (GTI.constTy-⊑ (CTX.impEnvʷ W) κ)))
-compile-preserves-embedded² {W = W} sid rel
+        (GTI.constTy-⊑ μ κ)))
+compile-preserves-embedded² {W = W} sid {μ = μ} rel
     (GTI.⊕⊑⊕ᴳ op L⊑L′ A∼arg A′∼arg M⊑M′
       B∼arg B′∼arg)
     refl eqB
@@ -728,7 +801,7 @@ compile-preserves-embedded² {W = W} sid rel
        | CPI.typing-uniqueᴳ
       (embedded-elab-gradual-typing rel refl refl M′ᴱ)
       (GTI.gradual-term-imprecision-target-typing M⊑M′)
-compile-preserves-embedded² {W = W} sid rel
+compile-preserves-embedded² {W = W} sid {μ = μ} rel
     (GTI.⊕⊑⊕ᴳ op L⊑L′ A∼arg A′∼arg M⊑M′
       B∼arg B′∼arg)
     refl eqB
@@ -740,70 +813,126 @@ compile-preserves-embedded² {W = W} sid rel
        | compile {Σ = CTX.sourceStoreʷ W}
       (GTI.gradual-term-imprecision-source-typing M⊑M′)
        | compile-preserves-embedded² sid rel M⊑M′ refl refl M′ᴱ
-compile-preserves-embedded² {W = W} sid rel
+compile-preserves-embedded² {W = W} sid {μ = μ} rel
     (GTI.⊕⊑⊕ᴳ op L⊑L′ A∼arg A′∼arg M⊑M′
       B∼arg B′∼arg)
     refl eqB
     (CPI.E-⊕ .op L′ᴱ A′∼arg′ c′ M′ᴱ B′∼arg′ d′)
     | refl | refl | L , L⊢ | L⊑L′² | M , M⊢ | M⊑M′² =
   ⊢²-retarget
-    {q = sourceId-⊑-eq {W = W} sid eqB
-      (GTI.primResultTy-⊑ (CTX.impEnvʷ W) op)}
+    {q = embedded-sourceId-⊑-eq rel eqB
+      (GTI.primResultTy-⊑ μ op)}
     (CTI2.⊕⊑⊕² op
       (CTI2.cast⊑cast² A∼arg c′ L⊑L′²
-        (sourceId-⊑-eq {W = W} {B = primArgTy op} sid
+        (embedded-sourceId-⊑-eq {B = primArgTy op} rel
           (sym (primArgTy-embedᴿ {W = W} op))
           (refl⊑ (primArgTy op))))
       (CTI2.cast⊑cast² B∼arg d′ M⊑M′²
-        (sourceId-⊑-eq {W = W} {B = primArgTy op} sid
+        (embedded-sourceId-⊑-eq {B = primArgTy op} rel
           (sym (primArgTy-embedᴿ {W = W} op))
           (refl⊑ (primArgTy op))))
-      (sourceId-⊑-eq {W = W} {B = primResultTy op} sid
+      (embedded-sourceId-⊑-eq {B = primResultTy op} rel
         (sym (primResultTy-embedᴿ {W = W} op))
-        (GTI.primResultTy-⊑ (CTX.impEnvʷ W) op)))
+        (GTI.primResultTy-⊑ μ op)))
 
-initialEmbeddedCtx : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+compile-preserves-identity-world² : ∀ {Δ}
+    {W : World Δ Δ Δ} {μ : ImpEnv Δ}
+    {M M′ : GTerm Δ} {A B p}
+  → (source-id : CTX.ηᴸʷ W ≡ id↪ᵗ)
+  → (target-id : CTX.ηᴿʷ W ≡ id↪ᵗ)
+  → (matches : EnvMatches W μ)
+  → (M⊑M′ : μ GTI.∣ [] ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p)
+  → W ∣ [] ⊢²
+      proj₁ (compile {Σ = CTX.sourceStoreʷ W}
+        (GTI.gradual-term-imprecision-source-typing M⊑M′))
+      ⊑ proj₁ (compile {Σ = CTX.targetStoreʷ W}
+        (GTI.gradual-term-imprecision-target-typing M⊑M′))
+      ∶ sourceId-⊑-eq {W = W} {μ = μ} {A = A} {Bᶜ = B} {B = B}
+          (λ X → trans (cong (λ η → toRenameᵗ η X) source-id)
+            (toRename-id-eq X))
+          (trans (sym (renameᵗ-id↪ᵗ B))
+            (sym (cong
+              (λ η → renameᵗ (toRenameᵗ η) B) target-id)))
+          p matches
+compile-preserves-identity-world² {W = W} {μ = μ} {M′ = M′} {B = B}
+    source-id target-id matches M⊑M′ =
+  compile-preserves-embedded² {W = W} sid {μ = μ} {matches = matches}
+    (embedded-[] {W = W} {sid = sid} {matches = matches}) M⊑M′
+    target-term-id target-type-id
+    (CPI.compile-elab
+      (GTI.gradual-term-imprecision-target-typing M⊑M′))
+  where
+  sid : SourceId W
+  sid X = trans (cong (λ η → toRenameᵗ η X) source-id)
+    (toRename-id-eq X)
+
+  target-term-id : M′ ≡ CPI.Grenameᵐ (CTX.ηᴿʷ W) M′
+  target-term-id =
+    trans (sym (Grenameᵐ-id M′))
+      (sym (cong (λ η → CPI.Grenameᵐ η M′) target-id))
+
+  target-type-id : B ≡ CTX.embedᴿ W B
+  target-type-id =
+    trans (sym (renameᵗ-id↪ᵗ B))
+      (sym (cong (λ η → renameᵗ (toRenameᵗ η) B) target-id))
+
+initialEmbeddedCtx : ∀ {Δ} {μ : ImpEnv Δ}
   → (γ : GTI.CtxImp μ)
-  → EmbeddedCtx (initialWorld μ Σ) (sourceId-initial {μ = μ} {Σ = Σ}) γ
-      (GTI.tgtCtxⁱ γ) (initialCtx {Σ = Σ} γ)
+  → EmbeddedCtx (initialWorld μ) (sourceId-initial {μ = μ})
+      (matches-initial {μ = μ}) γ
+      (GTI.tgtCtxⁱ γ) (initialCtx γ)
 initialEmbeddedCtx [] = embedded-[]
-initialEmbeddedCtx {μ = μ} {Σ = Σ} (GTI.ctx-imp A B p ∷ γ) =
-  embedded-∷ (sym (initial-embedᴿ {μ = μ} {Σ = Σ} B))
-    (PI.⊑-unique (initial-⊑ {Σ = Σ} p)
-      (sourceId-⊑-eq {W = initialWorld μ Σ}
-        (sourceId-initial {μ = μ} {Σ = Σ})
-        (sym (initial-embedᴿ {μ = μ} {Σ = Σ} B)) p))
-    (initialEmbeddedCtx {Σ = Σ} γ)
+initialEmbeddedCtx {μ = μ} (GTI.ctx-imp A B p ∷ γ) =
+  embedded-∷ (sym (initial-embedᴿ {μ = μ} B))
+    (PI.⊑-unique (initial-⊑ p)
+      (sourceId-⊑-eq {W = initialWorld μ}
+        (sourceId-initial {μ = μ})
+        (sym (initial-embedᴿ {μ = μ} B)) p
+        (matches-initial {μ = μ})))
+    (initialEmbeddedCtx γ)
 
-compile-preserves-elab² : ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+compile-preserves-elab² : ∀ {Δ} {μ : ImpEnv Δ}
     {γ : GTI.CtxImp μ} {M M′ : GTerm Δ} {A B p}
     {N : C.Term Δ}
   → (M⊑M′ : μ GTI.∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p)
-  → CPI.Elab Σ (GTI.tgtCtxⁱ γ) M′ N B
-  → initialWorld μ Σ ∣ initialCtx {Σ = Σ} γ ⊢²
-      proj₁ (compile {Σ = Σ}
+  → CPI.Elab (CTX.emptyStore Δ) (GTI.tgtCtxⁱ γ) M′ N B
+  → initialWorld μ ∣ initialCtx γ ⊢²
+      proj₁ (compile {Σ = CTX.emptyStore Δ}
         (GTI.gradual-term-imprecision-source-typing M⊑M′))
-      ⊑ N ∶ initial-⊑ {Σ = Σ} p
-compile-preserves-elab² {μ = μ} {Σ = Σ} {γ = γ} {M′ = M′}
-    {B = B}
+      ⊑ N ∶ initial-⊑ p
+compile-preserves-elab² {μ = μ} {γ = γ} {M′ = M′}
+    {B = B} {p = p} {N = N}
     M⊑M′ M′ᴱ =
-  ⊢²-retarget
-    (compile-preserves-embedded² {W = initialWorld μ Σ}
-      (sourceId-initial {μ = μ} {Σ = Σ})
-      (initialEmbeddedCtx {Σ = Σ} γ) M⊑M′ (sym (Grenameᵐ-id M′))
-      (sym (initial-embedᴿ {μ = μ} {Σ = Σ} B)) M′ᴱ)
+  subst≡
+    (λ L → initialWorld μ ∣ initialCtx γ ⊢²
+      L ⊑ N ∶ initial-⊑ p)
+    (cong
+      (λ Σ → proj₁ (compile {Σ = Σ}
+        (GTI.gradual-term-imprecision-source-typing M⊑M′)))
+      (initialWorld-sourceStore μ))
+    (⊢²-retarget
+      (compile-preserves-embedded² {W = initialWorld μ}
+        (sourceId-initial {μ = μ})
+        (initialEmbeddedCtx γ) M⊑M′
+        (trans (sym (Grenameᵐ-id M′))
+          (sym (cong (λ η → CPI.Grenameᵐ η M′)
+            (initialWorld-ηᴿ μ))))
+        (sym (initial-embedᴿ {μ = μ} B))
+        (subst≡
+          (λ Σ → CPI.Elab Σ (GTI.tgtCtxⁱ γ) M′ N B)
+          (sym (initialWorld-targetStore μ)) M′ᴱ)))
 
 compile-preserves-imprecision²-statement : Set
 compile-preserves-imprecision²-statement =
-  ∀ {Δ} {μ : ImpEnv Δ} {Σ : TyStore Δ}
+  ∀ {Δ} {μ : ImpEnv Δ}
     {γ : GTI.CtxImp μ} {M M′ : GTerm Δ} {A B p}
   → (M⊑M′ : μ GTI.∣ γ ⊢ᴳ M ⊑ M′ ⦂ A ⊑ B ∶ p)
-  → initialWorld μ Σ ∣ initialCtx {Σ = Σ} γ ⊢²
-      proj₁ (compile {Σ = Σ}
+  → initialWorld μ ∣ initialCtx γ ⊢²
+      proj₁ (compile {Σ = CTX.emptyStore Δ}
         (GTI.gradual-term-imprecision-source-typing M⊑M′))
-      ⊑ proj₁ (compile {Σ = Σ}
+      ⊑ proj₁ (compile {Σ = CTX.emptyStore Δ}
         (GTI.gradual-term-imprecision-target-typing M⊑M′))
-      ∶ initial-⊑ {Σ = Σ} p
+      ∶ initial-⊑ p
 
 compile-preserves-imprecision² :
   compile-preserves-imprecision²-statement
@@ -825,29 +954,29 @@ polyId⊑polyIdᴳ =
     (GTI.ƛ⊑ƛᴳ (GTI.x⊑xᴳ GTI.Zⁱ))
 
 polyId-validation :
-  initialWorld idᵐ store-empty
-    ∣ initialCtx {Σ = store-empty} [] ⊢²
+  initialWorld (idᵐ {Δ = 0})
+    ∣ initialCtx {μ = idᵐ {Δ = 0}} [] ⊢²
     proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing polyId⊑polyIdᴳ))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing polyId⊑polyIdᴳ))
-    ∶ initial-⊑ {Σ = store-empty} (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X))
+    ∶ initial-⊑ {μ = idᵐ {Δ = 0}} (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X))
 polyId-validation =
   subst≡
-    (λ q → initialWorld idᵐ store-empty ∣ [] ⊢² Ex.polyId
+    (λ q → initialWorld (idᵐ {Δ = 0}) ∣ [] ⊢² Ex.polyId
       ⊑ Ex.polyId ∶ q)
     (PI.⊑-unique Ex2.example12-∀⊑∀
-      (initial-⊑ {Σ = store-empty}
+      (initial-⊑ {μ = idᵐ {Δ = 0}}
         (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X))))
-    Ex2.polyId-refl²
+    (Ex2.polyId-refl²ʷ {W = initialWorld (idᵐ {Δ = 0})})
 
 polyId-validation-from-theorem :
-  initialWorld idᵐ store-empty
-    ∣ initialCtx {Σ = store-empty} [] ⊢²
+  initialWorld (idᵐ {Δ = 0})
+    ∣ initialCtx {μ = idᵐ {Δ = 0}} [] ⊢²
     proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-source-typing polyId⊑polyIdᴳ))
     ⊑ proj₁ (compile {Σ = store-empty}
       (GTI.gradual-term-imprecision-target-typing polyId⊑polyIdᴳ))
-    ∶ initial-⊑ {Σ = store-empty} (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X))
+    ∶ initial-⊑ {μ = idᵐ {Δ = 0}} (∀⊑∀ (⇒⊑⇒ X⊑X X⊑X))
 polyId-validation-from-theorem =
   compile-preserves-imprecision² polyId⊑polyIdᴳ

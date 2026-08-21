@@ -27,10 +27,10 @@ structural-Λ-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {W : CTX.World Δᴸ Δᴿ Δ}
     {W′ : CTX.World Δᴸ Δᴿ′ Δ′}
     {γ : CTX.CtxImp W}
-    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft X⊑★ W)}
+    {γᴸ : CTX.CtxImp (CTX.liftWorldLeft W)}
     {U : Term (suc Δᴸ)} {F : Term Δᴿ′}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
-    {p : A CTX.⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ B}
+    {p : A CTX.⊑ᵂ⟨ CTX.liftWorldLeft W ⟩ B}
     {q : `∀ A CTX.⊑ᵂ⟨ W ⟩ B}
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → NonVar A
@@ -41,7 +41,7 @@ structural-Λ-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
         CTX.tgtCtxʷ
           (ECR.mapCtxᴿ (structural-world-extendᴿ plan) γ) ⟩
       ⊢ F ⦂ applyTys χs B
-  → CTX.liftWorldLeft X⊑★ W′ CTI2.∣
+  → CTX.liftWorldLeft W′ CTI2.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ (structural-lift-left plan X⊑★)) γᴸ
       ⊢² U ⊑ F ∶

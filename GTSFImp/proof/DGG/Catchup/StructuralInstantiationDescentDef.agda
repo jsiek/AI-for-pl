@@ -63,9 +63,9 @@ record StructuralNamePostPlan {Δᴸ Δᴿ Δ}
 
     plain-Λ-child : ∀ {A₀ : Ty (suc Δᴸ)}
       → A ≡ `∀ A₀
-      → Σ[ q₀ ∈ A₀ CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ E ]
+      → Σ[ q₀ ∈ A₀ CTI2.⊑ᵂ⟨ CTI2.liftWorldLeft W ⟩ E ]
           StructuralNamePostPlan
-            (CTI2.liftWorldLeft X⊑★ W) A₀ E q₀
+            (CTI2.liftWorldLeft W) A₀ E q₀
 
     smart-Λ-child : ∀ {Δᵐ} {A₀ : Ty (suc Δᴸ)}
         {Wᵐ : CTI2.World (suc Δᴸ) Δᴿ Δᵐ}
@@ -116,7 +116,7 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
               (proj₂ child)
 
     plain-Λ-child : ∀ {A₀ : Ty (suc Δᴸ)}
-        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft X⊑★ W)}
+        {γᴸ : CTI2.CtxImp (CTI2.liftWorldLeft W)}
         {B : Ty Δᴿ} {spine : InstantiationSpine B E}
       → (eq : A ≡ `∀ A₀)
       → CTI2.LiftCtxᴸ X⊑★ γ γᴸ
@@ -125,13 +125,13 @@ record StructuralNameChainPlan {fuel : ℕ} {Δᴸ Δᴿ Δ}
       → let child = StructuralNamePostPlan.plain-Λ-child plan eq in
           Σ[ child-chain ∈
             TargetFrameAbsorptionChain
-              (CTI2.liftWorldLeft X⊑★ W) γᴸ A₀ spine
+              (CTI2.liftWorldLeft W) γᴸ A₀ spine
               (proj₁ child) ]
           Σ[ child-typed ∈
             SpineTypedʷ {fuel = fuel}
-              (CTI2.liftWorldLeft X⊑★ W) spine ]
+              (CTI2.liftWorldLeft W) spine ]
             StructuralNameChainPlan {fuel = fuel}
-              (CTI2.liftWorldLeft X⊑★ W)
+              (CTI2.liftWorldLeft W)
               γᴸ A₀ E (proj₁ child) (proj₂ child)
 
     smart-Λ-child : ∀ {Δᵐ} {A₀ : Ty (suc Δᴸ)}

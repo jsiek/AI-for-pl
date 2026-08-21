@@ -42,11 +42,7 @@ value-type-app-source-view (CTI2.reveal⊑² mono rb sc c⊢ prem q)
     (vV′ CastTerms.↑ rv) =
   type-app-source-reveal vV′ rv
 value-type-app-source-view
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢ prem q)
-    (vV′ CastTerms.↓ cv) =
-  type-app-source-conceal vV′ cv
-value-type-app-source-view
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q)
+    (CTI2.conceal⊑² mono rb sc c⊢ prem q)
     (vV′ CastTerms.↓ cv) =
   type-app-source-conceal vV′ cv
 
@@ -72,10 +68,6 @@ no-value-source-type-app (CTI2.reveal⊑² mono rb sc c⊢ prem q)
     (vV CastTerms.↑ rv) =
   no-value-source-type-app prem vV
 no-value-source-type-app
-    (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢ prem q)
-    (vV CastTerms.↓ cv) =
-  no-value-source-type-app prem vV
-no-value-source-type-app
-    (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ prem q)
+    (CTI2.conceal⊑² mono rb sc c⊢ prem q)
     (vV CastTerms.↓ cv) =
   no-value-source-type-app prem vV

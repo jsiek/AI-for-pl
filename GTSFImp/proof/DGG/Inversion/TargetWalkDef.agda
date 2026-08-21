@@ -8,7 +8,6 @@ module proof.DGG.Inversion.TargetWalkDef where
 --   * Contains no proof scripts and depends only on the cast-imprecision
 --     and spine-value public surfaces.
 
-open import Data.Maybe using (just)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -94,7 +93,6 @@ data TargetSourceStarAtResult {Δᴸ Δᴿ Δ}
     → CTI2.SameCtx γ γᵖ
     → sourceStoreʷ W ∋ X ⦂ ★
     → targetStoreʷ W ∋ Y ⦂ ★
-    → CTI2.MatchedConcealPartnerOK Wᵖ P (seal X ★) (just Y) U
     → Wᵖ ∣ γᵖ ⊢² P ⊑ U ∶ p★
     → TargetSourceStarAtResult W γ V U X Y ★ c q
 
@@ -152,7 +150,7 @@ data TargetSourceStarChainResult {Δᴸ Δᴿ Δ}
         ⊑ U ↓ seal Y (＇ Y₂) ∶ q
     → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
 
-  target-source-star-chain-paired : ∀ {P Uᵖ Yᵖ Wᵖ γᵖ ν}
+  target-source-star-chain-paired : ∀ {P Uᵖ Wᵖ γᵖ ν}
       {c : ν ⊢ (＇ X₂) ∼ ★}
       {p★ : ★ ⊑ᵂ⟨ Wᵖ ⟩ ★}
       {q : (＇ Xᴸ) ⊑ᵂ⟨ W ⟩ (＇ Y)}
@@ -165,7 +163,6 @@ data TargetSourceStarChainResult {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → RebaseAt Wᵖ W Xᴸ Y
     → CTI2.SameCtx γ γᵖ
-    → CTI2.MatchedConcealPartnerOK Wᵖ P (seal Xᴸ ★) (just Yᵖ) Uᵖ
     → Wᵖ ∣ γᵖ ⊢² P ⊑ Uᵖ ∶ p★
     → TargetSourceStarChainResult W γ V U Xᴸ X₂ Y Y₂ c q
 

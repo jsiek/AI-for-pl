@@ -33,10 +33,11 @@ structural-target-gen-step : ∀ {Δᴸ Δᴿ Δ}
     {μ : Env∼ Δᴿ} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
     ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : Fin.zero ∈ᵗ B ⦄
     {V : Term Δᴿ} {X : TyVar Δᴿ}
+    (fresh : CTI2.RightBindFresh W (＇ X))
     (vV : Value V) (A≠★ : A ≢ ★) (safe : GenSafe c)
     (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → StructuralTargetInstantiationPackage
-      (CTI2.rightOnlyWorld W (＇ X))
+      (CTI2.rightOnlyWorld W (＇ X) fresh)
       (⇑ᵗᵐ V)
       (cast-frame c ▻ⁱ
         reveal-frame (〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗) ▻ⁱ
@@ -46,8 +47,8 @@ structural-target-gen-step : ∀ {Δᴸ Δᴿ Δ}
       (V ⟨ (gen c) A≠★ ⟩)
       (name-type-app-frame B X refl refl ▻ⁱ spine)
 structural-target-gen-step {W = W} {X = X}
-    vV A≠★ safe spine child =
+    fresh vV A≠★ safe spine child =
   structural-target-bind-step
-    (TE.rightBindTargetInsert {W = W} {B = ＇ X}) refl
+    (TE.rightBindTargetInsert {W = W} {B = ＇ X} fresh) refl
     (lift-instantiation-spine-bind (β-gen vV A≠★ safe) spine)
     child

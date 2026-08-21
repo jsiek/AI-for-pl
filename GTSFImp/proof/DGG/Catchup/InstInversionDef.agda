@@ -12,7 +12,8 @@ module proof.DGG.Catchup.InstInversionDef where
 
 import Data.Fin as Fin
 open import Data.Nat using (ℕ; suc; _<_)
-open import Data.Product using (Σ-syntax; _×_)
+open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Data.Sum using (inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
@@ -44,6 +45,8 @@ open import proof.DGG.Catchup.StructuralInstantiationDescentDef using
   (StructuralNamePostPlan; StructuralNameChainPlan)
 open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
   (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
+open import proof.DGG.TransportTermImprecisionDef using
+  (TargetInsertProvenanceᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 open CTX using
   (World;
@@ -80,25 +83,40 @@ open CTI2 using (_∣_⊢²_⊑_∶_)
   ↑ rename↑ Fin.suc (〖 Fin.zero , ★ ↑ B 〗)
 
 
+right-star-fresh : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
+  → CTX.RightBindFresh W ★
+right-star-fresh = inj₁ refl
+
+
+right-zero-after-star-fresh : ∀ {Δᴸ Δᴿ Δ}
+    {W : World Δᴸ Δᴿ Δ}
+  → CTX.RightBindFresh
+      (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+right-zero-after-star-fresh =
+  inj₂ (Fin.suc Fin.zero , refl , (λ Xᴸ ()))
+
+
 RightBindUnderLeftLiftᵀ : Set
 RightBindUnderLeftLiftᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → (fresh : CTX.RightBindFresh W B)
   → ECR.WorldExtendᴿ (bind B ∷ [])
-      (liftWorldLeft X⊑★ W)
-      (liftWorldLeft X⊑★ (rightOnlyWorld W B))
+      (liftWorldLeft W)
+      (liftWorldLeft (rightOnlyWorld W B fresh))
 
 
 MapCtxᴿLiftᴸᵀ : RightBindUnderLeftLiftᵀ → Set
 MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
-    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft W)}
+  → (fresh : CTX.RightBindFresh W B)
   → (ext : ECR.WorldExtendᴿ (bind B ∷ []) W
-      (rightOnlyWorld W B))
+      (rightOnlyWorld W B fresh))
   → LiftCtxᴸ X⊑★ γ γᴸ
   → LiftCtxᴸ X⊑★
       (ECR.mapCtxᴿ ext γ)
-      (ECR.mapCtxᴿ right-bind-under-left-lift γᴸ)
+      (ECR.mapCtxᴿ (right-bind-under-left-lift fresh) γᴸ)
 
 
 Λ⊑²CPSRewrapᵀ :
@@ -107,24 +125,25 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   → Set
 Λ⊑²CPSRewrapᵀ right-bind-under-left-lift mapCtxᴿ-liftᴸ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft W)}
     {V : Term (suc Δᴸ)} {post : Term (suc Δᴿ)}
     {A : Ty (suc Δᴸ)} {Balloc : Ty Δᴿ} {C : Ty (suc Δᴿ)}
-    {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★
-      (rightOnlyWorld W Balloc) ⟩ C}
-    {p₂ : `∀ A ⊑ᵂ⟨ rightOnlyWorld W Balloc ⟩ C}
+    {fresh : CTX.RightBindFresh W Balloc}
+    {body-p : A ⊑ᵂ⟨ liftWorldLeft
+      (rightOnlyWorld W Balloc fresh) ⟩ C}
+    {p₂ : `∀ A ⊑ᵂ⟨ rightOnlyWorld W Balloc fresh ⟩ C}
   → (ext : ECR.WorldExtendᴿ (bind Balloc ∷ []) W
-      (rightOnlyWorld W Balloc))
+      (rightOnlyWorld W Balloc fresh))
   → NonVar A
   → Fin.zero ∈ᵗ A
   → (liftγ : LiftCtxᴸ X⊑★ γ γᴸ)
   → (vV : Value V)
-  → ⟨ suc Δᴿ , targetStoreʷ (rightOnlyWorld W Balloc) ,
+  → ⟨ suc Δᴿ , targetStoreʷ (rightOnlyWorld W Balloc fresh) ,
       tgtCtxʷ (ECR.mapCtxᴿ ext γ) ⟩ ⊢ post ⦂ C
-  → liftWorldLeft X⊑★ (rightOnlyWorld W Balloc)
-      ∣ ECR.mapCtxᴿ right-bind-under-left-lift γᴸ
+  → liftWorldLeft (rightOnlyWorld W Balloc fresh)
+      ∣ ECR.mapCtxᴿ (right-bind-under-left-lift fresh) γᴸ
       ⊢² V ⊑ post ∶ body-p
-  → rightOnlyWorld W Balloc
+  → rightOnlyWorld W Balloc fresh
       ∣ ECR.mapCtxᴿ ext γ
       ⊢² Λ V ⊑ post ∶ p₂
 
@@ -133,15 +152,15 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
 Λ⊑²AtRewrapᵀ =
   ∀ {Δᴸ Δᴿ Δ Δᴿ₂ Δ₂}
     {W : World Δᴸ Δᴿ Δ} {W₂ : World Δᴸ Δᴿ₂ Δ₂}
-    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft X⊑★ W)}
+    {γ : CtxImp W} {γᴸ : CtxImp (liftWorldLeft W)}
     {V : Term (suc Δᴸ)} {post : Term Δᴿ₂}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ₂}
-    {body-p : A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩ B}
+    {body-p : A ⊑ᵂ⟨ liftWorldLeft W₂ ⟩ B}
     {p₂ : `∀ A ⊑ᵂ⟨ W₂ ⟩ B}
     {χs₂ : StoreChanges Δᴿ Δᴿ₂}
     {ext₂ : ECR.WorldExtendᴿ χs₂ W W₂}
     {extᴸ₂ : ECR.WorldExtendᴿ χs₂
-      (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂)}
+      (liftWorldLeft W) (liftWorldLeft W₂)}
   → NonVar A
   → Fin.zero ∈ᵗ A
   → LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ)
@@ -149,7 +168,7 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   → Value V
   → ⟨ Δᴿ₂ , targetStoreʷ W₂ , tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
       ⊢ post ⦂ B
-  → liftWorldLeft X⊑★ W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γᴸ
+  → liftWorldLeft W₂ ∣ ECR.mapCtxᴿ extᴸ₂ γᴸ
       ⊢² V ⊑ post ∶ body-p
   → W₂ ∣ ECR.mapCtxᴿ ext₂ γ ⊢² Λ V ⊑ post ∶ p₂
 
@@ -165,31 +184,43 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
     {body-p : A ⊑ᵂ⟨ liftWorldBoth X⊑X W ⟩ B}
   → (ext₂ : ECR.WorldExtendᴿ
       (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-      W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
+      W (rightOnlyWorld
+        (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+        (right-zero-after-star-fresh {W = W})))
   → NonVar A
   → Fin.zero ∈ᵗ A
   → LiftCtx X⊑X γ γᴮ
   → Value V
   → Value V′
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★
-        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))) ]
-    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★
-        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ⟩
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft
+        (rightOnlyWorld
+          (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+          (right-zero-after-star-fresh {W = W}))) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft
+        (rightOnlyWorld
+          (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+          (right-zero-after-star-fresh {W = W})) ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨
-        rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero) ⟩
+        rightOnlyWorld
+          (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+          (right-zero-after-star-fresh {W = W}) ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
       LiftCtxᴸ X⊑★ (ECR.mapCtxᴿ ext₂ γ) γ₂ᴸ
       × Value (Λ⊑Λ²PostTerm V′ B)
       × ⟨ suc (suc Δᴿ) ,
           targetStoreʷ
-            (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ,
+            (rightOnlyWorld
+              (rightOnlyWorld W ★ (right-star-fresh {W = W}))
+              (＇ Fin.zero) (right-zero-after-star-fresh {W = W})) ,
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂
           substᵗ Λ⊑Λ²TargetSplit₂ B
-      × liftWorldLeft X⊑★
-          (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero))
+      × liftWorldLeft
+          (rightOnlyWorld
+            (rightOnlyWorld W ★ (right-star-fresh {W = W}))
+            (＇ Fin.zero) (right-zero-after-star-fresh {W = W}))
           ∣ γ₂ᴸ ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
@@ -211,8 +242,8 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
   → Value V
   → Value V′
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
-    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft W₂) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
@@ -222,7 +253,7 @@ MapCtxᴿLiftᴸᵀ right-bind-under-left-lift =
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂
           substᵗ Λ⊑Λ²TargetSplit₂ B
-      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
+      × liftWorldLeft W₂ ∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
@@ -236,9 +267,13 @@ data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
       {W : World Δᴸ Δᴿ Δ}
     → (ext₂ : ECR.WorldExtendᴿ
         (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-        W (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)))
+        W (rightOnlyWorld
+          (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+          (right-zero-after-star-fresh {W = W})))
     → Λ⊑Λ²LeftTower W
-        (rightOnlyWorld (rightOnlyWorld W ★) (＇ Fin.zero)) ext₂
+        (rightOnlyWorld
+          (rightOnlyWorld W ★ (right-star-fresh {W = W})) (＇ Fin.zero)
+          (right-zero-after-star-fresh {W = W})) ext₂
 
   left-tower-suc : ∀ {Δᴸ Δᴿ Δ Δ₂}
       {W : World Δᴸ Δᴿ Δ}
@@ -248,9 +283,9 @@ data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
     → Λ⊑Λ²LeftTower W W₂ ext₂
     → (extᴸ₂ : ECR.WorldExtendᴿ
         (bind ★ ∷ bind (＇ Fin.zero) ∷ [])
-        (liftWorldLeft X⊑★ W) (liftWorldLeft X⊑★ W₂))
-    → Λ⊑Λ²LeftTower (liftWorldLeft X⊑★ W)
-        (liftWorldLeft X⊑★ W₂) extᴸ₂
+        (liftWorldLeft W) (liftWorldLeft W₂))
+    → Λ⊑Λ²LeftTower (liftWorldLeft W)
+        (liftWorldLeft W₂) extᴸ₂
 
 
 Λ⊑Λ²PostBodyTransportᴸᵀ : Set₁
@@ -272,8 +307,8 @@ data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
   → Value V
   → Value V′
   → liftWorldBoth X⊑X W ∣ γᴮ ⊢² V ⊑ V′ ∶ body-p
-  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft X⊑★ W₂) ]
-    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft X⊑★ W₂ ⟩
+  → Σ[ γ₂ᴸ ∈ CtxImp (liftWorldLeft W₂) ]
+    Σ[ body-p₂ ∈ A ⊑ᵂ⟨ liftWorldLeft W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
     Σ[ top-p₂ ∈ `∀ A ⊑ᵂ⟨ W₂ ⟩
         substᵗ Λ⊑Λ²TargetSplit₂ B ]
@@ -283,7 +318,7 @@ data Λ⊑Λ²LeftTower : ∀ {Δᴸ Δᴿ Δ Δ₂}
           tgtCtxʷ (ECR.mapCtxᴿ ext₂ γ) ⟩
           ⊢ Λ⊑Λ²PostTerm V′ B ⦂
           substᵗ Λ⊑Λ²TargetSplit₂ B
-      × liftWorldLeft X⊑★ W₂ ∣ γ₂ᴸ
+      × liftWorldLeft W₂ ∣ γ₂ᴸ
           ⊢² V ⊑ Λ⊑Λ²PostTerm V′ B ∶ body-p₂
 
 
@@ -353,6 +388,7 @@ StructuralValueInstantiationᵀ =
       applyBody (bind R) B [ ＇ Fin.zero ]ᵗ}
   → StructuralStrictViewSurfaces
   → StructuralNameInstantiationᵀ
+  → TargetInsertProvenanceᵀ
   → FuelStepSurface fuel
   → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ

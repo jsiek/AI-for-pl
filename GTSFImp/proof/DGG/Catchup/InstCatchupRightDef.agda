@@ -36,37 +36,46 @@ open CTI2 using
 RightBindWorldExtendᴿᵀ : Set
 RightBindWorldExtendᴿᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
-  → ECR.WorldExtendᴿ (bind B ∷ []) W (CTI2.rightOnlyWorld W B)
+  → (fresh : CTI2.RightBindFresh W B)
+  → ECR.WorldExtendᴿ (bind B ∷ []) W
+      (CTI2.rightOnlyWorld W B fresh)
 
 
 RightBindKeepWorldExtendᴿᵀ : Set
 RightBindKeepWorldExtendᴿᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → (fresh : CTI2.RightBindFresh W B)
   → ECR.WorldExtendᴿ
-      (bind B ∷ keep ∷ []) W (CTI2.rightOnlyWorld W B)
+      (bind B ∷ keep ∷ []) W (CTI2.rightOnlyWorld W B fresh)
 
 
 RightBindRightBindWorldExtendᴿᵀ : Set
 RightBindRightBindWorldExtendᴿᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {B : Ty Δᴿ} {C : Ty (suc Δᴿ)}
+  → (freshB : CTI2.RightBindFresh W B)
+  → (freshC : CTI2.RightBindFresh
+      (CTI2.rightOnlyWorld W B freshB) C)
   → ECR.WorldExtendᴿ (bind B ∷ bind C ∷ []) W
-      (CTI2.rightOnlyWorld (CTI2.rightOnlyWorld W B) C)
+      (CTI2.rightOnlyWorld
+        (CTI2.rightOnlyWorld W B freshB) C freshC)
 
 
 RightBindTransport⊑ᵂᵀ : Set
 RightBindTransport⊑ᵂᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
+  → (fresh : CTI2.RightBindFresh W B′)
   → A ⊑ᵂ⟨ W ⟩ B
-  → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ ⟩ ⇑ᵗ B
+  → A ⊑ᵂ⟨ CTI2.rightOnlyWorld W B′ fresh ⟩ ⇑ᵗ B
 
 
 RightBindMapCtxᴿᵀ : Set
 RightBindMapCtxᴿᵀ =
   ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {B : Ty Δᴿ}
+  → (fresh : CTI2.RightBindFresh W B)
   → CtxImp W
-  → CtxImp (CTI2.rightOnlyWorld W B)
+  → CtxImp (CTI2.rightOnlyWorld W B fresh)
 
 
 InstCastAllocPrefixᵀ : Set

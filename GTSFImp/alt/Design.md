@@ -109,24 +109,32 @@ unconditionally and emit identities only at atomic leaves. Consequences:
 - "mentions the pivot" is a plain syntactic property of the leaf set;
 - inversion never faces an identity of arbitrary shape.
 
-## Delimiters persist; `id-reveal` is restricted
+## Delimiters persist; `id-reveal` drops at base types only
 
 The live rules `id-reveal`/`id-conceal` discard identity wrappers
 unconditionally. In this design an identity-conversion reveal anchored
-at `α` is the closing delimiter of its region and must not be discarded
-while `X`-mentioning syntax lives beneath it. The rules become:
+at `α` is the closing delimiter of its region, and the drop rule is
+restricted to base atoms, where the canonical inhabitants are constants
+and a constant inhabits every context:
 
 ```agda
-id-reveal : Value V
-  → V ≡ insertᵗᵐ X V₀            -- pivot does not occur in the value
-    ------------------------------
-  → V ↑ id↑ a ⟨α⟩ —→ V₀
+id-reveal : ($ κ) ↑ id↑ (‵ ι) ⟨α⟩ —→ $ κ
 ```
 
-and dually for `id-conceal`. At base atoms the premise is always
-satisfiable (the value inside is a constant), so delimiters never pile
-up on first-order data. At `★` the delimiter is a value when the premise
-fails; the projection then commutes into the region to meet the tag:
+No premise, no strengthening operation. (An earlier draft guarded the
+drop with a "pivot does not occur in the value" strengthening premise
+at every atom; that makes value-hood at `★` undecidable by pattern —
+a delimited `★`-value would be a value or a redex depending on a
+term-level occurrence check — and the drop rule would overlap with the
+projection-merge rule below. Base-only drop keeps `Value`, progress,
+and determinism syntax-directed.)
+
+At `★` and at foreign variables `＇Y` a delimiter is always a value;
+delimiter spines on `★`-values are consumed by elimination, never by
+garbage collection. An `id`-conceal never drops at any type — its
+subterm lives in the smaller context — and is consumed only by
+`conceal-reveal` cancellation at its matching reveal. When a projection
+meets a `★`-delimiter, it commutes into the region to meet the tag:
 
 ```agda
 (V ↑ id↑ ★ ⟨α⟩) ⟨ ？ H ⟩ —→ (V ⟨ ？ H ⟩′) ↑ id↑ … ⟨α⟩
@@ -218,7 +226,12 @@ design motivation needs revisiting before the new calculus is built.
   preserved under store extension (`Σ ⊆ Σ′`) — a lookup lemma, not a
   term traversal.
 - **`GenSafe` and value forms.** `RevealValue`/`ConcealValue` gain the
-  atomic-delimiter cases; `GenSafe`'s interaction with anchored
+  atomic-delimiter cases (`★` and `＇Y` delimiters are always values;
+  base delimiters never are); `GenSafe`'s interaction with anchored
   suspended casts needs restating.
+- **Delimiters at foreign variables.** A reveal delimiter at `＇Y` is
+  eliminated by commuting past `Y`'s consuming unseal — a node-local
+  reveal-past-reveal swap that renumbers the two slot positions; the
+  exact rule shape is to be settled in Agda.
 - **Blame.** `tag-untag-bad` compares anchors; blame across regions of
   distinct allocations must still be derivable through the merge rule.

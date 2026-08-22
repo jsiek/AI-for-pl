@@ -50,21 +50,38 @@ checked against.
 
 ## Reveal is a binder, conceal is an anti-binder
 
-The crossing constructors change the term's context index:
+The term grammar replaces the live same-context conversion forms
+`M ↑ c` and `M ↓ c` with anchored crossing forms:
 
-```agda
-_↑_ : Term (suc Δ) → Conv↑ (suc Δ) A B → Term Δ      -- binder
-_↓_ : Term Δ → Conv↓ (suc Δ) A B → Term (suc Δ)      -- anti-binder
+```text
+M, N ::= …                        -- all other forms as in CastTerms.agda
+       | M ↑⟨ X ≔ α ⟩ c           -- reveal: binds slot X, anchored at α
+       | M ↓⟨ X ≔ α ⟩ c           -- conceal: anti-binds slot X, anchored at α
 ```
 
+Beside its conversion, a node carries two pieces of data: the **slot
+position** `X` — the de Bruijn position being removed from (reveal) or
+inserted into (conceal) scope; a genuine binder position, since an
+all-identity delimiter conversion does not determine it — and the
+**anchor** `α`, the store name the slot is connected to. Store names are
+drawn from the append-only store; the typing rule's lookup premise is
+their only well-formedness check. In the intrinsic syntax the
+constructors cross the context index:
+
+```agda
+_↑⟨_≔_⟩_ : Term (suc Δ) → (X : TyVar (suc Δ)) → (α : Name)
+  → Conv↑ (suc Δ) A (wkᵗ X B) → Term Δ                    -- binder
+_↓⟨_≔_⟩_ : Term Δ → (X : TyVar (suc Δ)) → (α : Name)
+  → Conv↓ (suc Δ) (wkᵗ X A) B → Term (suc Δ)              -- anti-binder
+```
+
+with `wkᵗ X = renameᵗ (punchIn X)` the type-level slot insertion and
+`wkᶜ X` the same on term contexts; shift-by-1 is the slot `X = 0`.
 A reveal *binds* its scoped variable over its subterm: inside, `X` is in
 scope; outside, the node's type is `X`-free. A conceal is the dual hole:
 its subterm lives *outside* the scope of `X` even though the node sits
-inside it. (The rules below are written with the slot at position `0`
-for readability; the mechanization takes an arbitrary slot position
-`X : TyVar (suc Δ)`, with `wkᵗ X = renameᵗ (punchIn X)` the induced
-type-level slot insertion, `wkᶜ X` the same on term contexts, and the
-node's typing quantifying over the position. Shift-by-1 is `X = 0`.)
+inside it. Displays later in this document abbreviate `↑⟨ X ≔ α ⟩ c` to
+`↑ c ⟨α⟩` when the slot is `0` or clear from context.
 
 Typing, with `α ⦂ R ∈ Σ` the anchor's store entry and the context
 recording the connection `X ≔ α`:
@@ -74,15 +91,15 @@ recording the connection `X ≔ α`:
   → α ⦂ R ∈ Σ
   → c pivot-strict at X, representations at R
   → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A                     -- M unshifted, X-free
-    -----------------------------------------------------
-  → ⟨ suc Δ [X ≔ α] , Σ , wkᶜ X Γ ⟩ ⊢ M ↓ c ⦂ B
+    -----------------------------------------------------------
+  → ⟨ suc Δ [X ≔ α] , Σ , wkᶜ X Γ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
 
 ⊢reveal : {c : Conv↑ (suc Δ) A (wkᵗ X B)}
   → α ⦂ R ∈ Σ
   → c pivot-strict at X, representations at R
   → ⟨ suc Δ [X ≔ α] , Σ , wkᶜ X Γ ⟩ ⊢ M ⦂ A
-    -----------------------------------------------------
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑ c ⦂ B                 -- result leaves X's scope
+    -----------------------------------------------------------
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑⟨ X ≔ α ⟩ c ⦂ B        -- result leaves X's scope
 ```
 
 **Pivot strictness.** The conversion under a crossing node mentions at

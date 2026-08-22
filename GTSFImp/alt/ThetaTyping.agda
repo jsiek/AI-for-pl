@@ -201,44 +201,53 @@ data _⊢_⦂_ : (Γ : Ctx)
     → Term (Θᵉ Γ) (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
   ⊢` : ∀ {Γ x A}
     → Γ ∋ᵗ x ⦂ A
+      ---------------
     → Γ ⊢ (` x) ⦂ A
 
   ⊢ƛ : ∀ {Γ A B M}
     → Γ ,ᶜ A ⊢ M ⦂ B
+      -------------------------
     → Γ ⊢ (ƛ A ˙ M) ⦂ (A ⇒ B)
 
   ⊢· : ∀ {Γ A B L M}
     → Γ ⊢ L ⦂ (A ⇒ B)
     → Γ ⊢ M ⦂ A
+      ------------------------------
     → Γ ⊢ (L · M) ⦂ B
 
   -- DEFERRED: value restriction
   ⊢Λ : ∀ {Γ A M}
     → ∀-ctx Γ ⊢ M ⦂ A
+      --------------------
     → Γ ⊢ (Λ M) ⦂ (`∀ A)
 
   ⊢⦂∀ : ∀ {Γ C A L}
     → Γ ⊢ L ⦂ `∀ C
+      -----------------------------
     → Γ ⊢ L ⦂∀ C [ A ] ⦂ C [ A ]ᵗ
 
   ⊢$ : ∀ {Γ} (κ : Const)
+      -----------------------
     → Γ ⊢ ($ κ) ⦂ constTy κ
 
   ⊢⊕ : ∀ {Γ L M}
     → (op : Prim)
     → Γ ⊢ L ⦂ primArgTy op
     → Γ ⊢ M ⦂ primArgTy op
+      -------------------------------------
     → Γ ⊢ (L ⊕[ op ] M) ⦂ primResultTy op
 
   ⊢⟨⟩ : ∀ {Γ M A B μ}
     → Γ ⊢ M ⦂ A
     → (c : μ ⊢ A ∼ B)
+      -----------------
     → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
   ⊢ν : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
       {Γ : TermCtx Δ} {R : Ty Θ} {M B}
     → ⟨ suc Θ , tele-bind Ξ R , Δ , weakenClassifier κ , [] ⟩
         ⊢ M ⦂ B
+      --------------------------------------
     → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ ν[ R ] M ⦂ B
 
   ⊢wk : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
@@ -247,6 +256,7 @@ data _⊢_⦂_ : (Γ : Ctx)
     → InsertTele α Ξ Ξ′
     → InsertClassifier α κ κ′
     → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
+      ----------------------------------------------
     → ⟨ suc Θ , Ξ′ , Δ , κ′ , Γ′ ⟩ ⊢ wk[ α ] M ⦂ A
 
   ⊢reveal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
@@ -255,6 +265,7 @@ data _⊢_⦂_ : (Γ : Ctx)
     → Spell (insertSlot Y α κ) R′ R
     → ⊢↑[ Y ⦂ R′ ] c ⦂ A ↝ wkᵗ Y B
     → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , [] ⟩ ⊢ M ⦂ A
+      --------------------------------------------
     → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
   ⊢conceal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
@@ -263,8 +274,10 @@ data _⊢_⦂_ : (Γ : Ctx)
     → Spell (insertSlot Y α κ) R′ R
     → ⊢↓[ Y ⦂ R′ ] c ⦂ wkᵗ Y A ↝ B
     → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
+      -------------------------------------------
     → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , Γ′ ⟩
         ⊢ M ↓[ Y ≔ α ] c ⦂ B
 
   ⊢blame : ∀ {Γ A}
+      ---------------
     → Γ ⊢ blame ⦂ A

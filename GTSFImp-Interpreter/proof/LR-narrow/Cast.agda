@@ -3299,6 +3299,64 @@ ground-expanded-cast-view ∀★ C.bot-intro Bns vV V⊢ B≢G =
   ground-cast-blame
 
 {-# TERMINATING #-}
+related-value-precise-cast : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
+    {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ : Ty Δᴵ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+    (sourceᴾ : embedPrecise (core W) Cᴾ ≡ Aᴾ)
+    (sourceᴵ : embedImprecise (core W) Cᴵ ≡ Aᴵ)
+    {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
+    (q : impEnv (core W) I.⊢ Bᴾ ⊑ Bᴵ)
+    (targetᴾ : embedPrecise (core W) Dᴾ ≡ Bᴾ)
+    (targetᴵ : embedImprecise (core W) Cᴵ ≡ Bᴵ)
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation q) k
+      Vᴵ (Vᴾ ⟨ cᴾ ⟩)
+related-value-precise-cast {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ cᴾ q
+    targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  precise-cast-computations-related p sourceᴾ sourceᴵ cᴾ q
+    targetᴾ targetᴵ k Vᴵ Vᴾ cast-values immediate
+  where
+  endpoints = value-imprecision-endpoints related
+
+  immediate : ComputationsRelated W (FutureValueRelation p) k Vᴵ Vᴾ
+  immediate = related-values-return
+    (imprecise-value endpoints) (precise-value endpoints)
+    (λ j j≤k → value-imprecision-downward-to j≤k related)
+
+  cast-values : ∀
+      {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ : Ty Δᴵ′}
+      (W≼W′ : Future W W′)
+      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Aᴾ)
+      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Aᴵ)
+      {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
+      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡
+        liftCenterTy W≼W′ Bᴾ)
+      (s-targetᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Bᴵ)
+      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
+    → FutureValueRelation p W′ W≼W′ j Uᴵ Uᴾ
+    → ComputationsRelated W′
+        (λ W″ W′≼W″ → FutureValueRelation q W″
+          (future-trans W≼W′ W′≼W″)) j
+        Uᴵ (Uᴾ ⟨ dᴾ ⟩)
+  cast-values W≼W′ r-sourceᴾ r-sourceᴵ dᴾ
+      s-targetᴾ s-targetᴵ related′ =
+    computations-related-future-compose W≼W′ q
+      (related-value-precise-cast (liftCenterImprecision W≼W′ p)
+        r-sourceᴾ r-sourceᴵ dᴾ
+        (liftCenterImprecision W≼W′ q)
+        s-targetᴾ s-targetᴵ related′)
+
+{-# TERMINATING #-}
 related-value-casts : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -5346,8 +5404,20 @@ related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ cᴾ
 related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ cᴾ
     ((C.gen cᴵ) Aᴵ≢★) q targetᴾ targetᴵ related =
   ⊥-elim (Aᴵ≢★ (imprecise-source-star {W = W} sourceᴵ))
-related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
-    (C.id x) q targetᴾ targetᴵ related = ?
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
+    (C.id x) q targetᴾ targetᴵ {Vᴵ = Vᴵ} related
+    with identity-cast-step-question
+      {Σ = impreciseStore (core W)}
+      (imprecise-value (value-imprecision-endpoints related))
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
+    (C.id x) q targetᴾ targetᴵ {Vᴵ = Vᴵ} related
+    | vVᴵ , step-eq =
+  related-imprecise-keep-step-expand (λ ())
+    (identity-cast-value-none x
+      (imprecise-value (value-imprecision-endpoints related)))
+    (pure-step (β-id vVᴵ)) step-eq
+    (related-value-precise-cast I.∀★⊑★ sourceᴾ sourceᴵ
+      (C.∀ᶜ cᴾ) q targetᴾ targetᴵ related)
 related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
     (C.？ cᴵ) q targetᴾ targetᴵ related = ?
 related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ

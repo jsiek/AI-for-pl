@@ -823,15 +823,16 @@ precise-cast-computations-related : ∀
   → (∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ : Ty Δᴵ′}
-      {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ′}
       (W≼W′ : Future W W′)
-      (r : impEnv (core W′) I.⊢ Pᴾ ⊑ Pᴵ)
-      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡ Pᴾ)
-      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡ Pᴵ)
+      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Aᴾ)
+      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Aᴵ)
       {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
-      (s : impEnv (core W′) I.⊢ Qᴾ ⊑ Qᴵ)
-      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡ Qᴾ)
-      (s-targetᴵ : embedImprecise (core W′) Eᴵ ≡ Qᴵ)
+      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡
+        liftCenterTy W≼W′ Bᴾ)
+      (s-targetᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Bᴵ)
       {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
     → R W′ W≼W′ j Vᴵ Vᴾ
     → ComputationsRelated W′
@@ -911,9 +912,9 @@ precise-cast-computations-related {W = W} {S = S}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes resultᴵ ▶ᵗ Cᴵ}
       W≼W₁
-      (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
-      (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
+      targetᴾ-at-W₁ targetᴵ-at-W₁
       {j = k ∸ n} {Vᴵ = E.term resultᴵ}
       {Vᴾ = E.term operandResultᴾ} operandValueRelated
 
@@ -1051,9 +1052,9 @@ precise-cast-computations-related {W = W} {S = S}
       {Fᴾ = E.changes operandResultᴾ ▶ᵗ Dᴾ}
       {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
       W≼W₁
-      (liftCenterImprecision W≼W₁ p) sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      sourceᴾ-at-W₁ sourceᴵ-at-W₁
       (E.changes operandResultᴾ ▶ᶜ cᴾ)
-      (liftCenterImprecision W≼W₁ q) targetᴾ-at-W₁ targetᴵ-at-W₁
+      targetᴾ-at-W₁ targetᴵ-at-W₁
       {j = k ∸ operandGas} {Vᴵ = E.term operandResultᴵ}
       {Vᴾ = E.term operandResultᴾ} operandValueRelated
   backward {n = n} n≤k result-eq

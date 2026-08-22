@@ -577,3 +577,16 @@ Prefer exhaustive case splits.
 Never add a postulate whose type (the logical formula) is the same as
 another theorem or postulate. This can lead to wasting time on
 circular reasoning during proof development.
+
+## Use the Agda MCP server for the inner loop (from 2026-08-22)
+
+An `agda` MCP server is configured for codex in this container
+(agda-mcp, `--dynamic-workspaces`). Use it for the edit-recheck inner
+loop instead of batch `agda` invocations: warm rechecks of an edited
+file are 1–2 orders of magnitude faster than a cold batch run, and the
+server also answers goal, context, refine, and case-split queries. Big
+loads return async jobs — await them with `agda_job_await`; the full
+result (including the workspace handle) is in `structuredContent`, not
+the compact text. Batch `make check` (or a direct `agda --safe -v0`)
+remains the FINAL gate before committing — the MCP server is for
+iteration, not for the gate.

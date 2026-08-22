@@ -23,7 +23,7 @@ open import Types
 open import TyStore using (TyStore)
 open import Consistency using (_↪ᵗ_; id↪ᵗ; toRenameᵗ)
 open import Imprecision using (ImpEnv; VarImp; X⊑★)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CenterRename as CR
 import proof.DGG.TargetExtend as TE
 import proof.DGG.WorldDecay as WD

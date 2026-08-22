@@ -27,12 +27,17 @@ open import Imprecision
 open import CastTerms using (Term; _⟨_⟩; _↓_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
 
 open CTI2 using
-  (World; world; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp;
-   store-rep-imp; ⊢↓-sealˣ)
+  (World;
+   world;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp;
+   store-rep-imp)
 
 ------------------------------------------------------------------------
 -- CTI2-oriented cast shapes
@@ -281,7 +286,7 @@ data _∣_⊢ᴺ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W W′
     → CTI2.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
     → CTI2.SameCtx γ γ′
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
     → W′ ∣ γ′ ⊢ᴺ M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵂ⟨ W ⟩ B)
       -----------------------------
@@ -297,8 +302,8 @@ data _∣_⊢ᴺ_⊑_∶_ {Δᴸ Δᴿ Δ}
     → CTI2.ImpEnvMono W Wᵖ
     → CTI2.RebaseAt Wᵖ W Xᴸ Xᴿ
     → CTI2.SameCtx γ γᵖ
-    → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-    → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+    → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+    → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
     → Wᵖ ∣ γᵖ ⊢ᴺ M ⊑ M′ ∶ p
     → (q : B ⊑ᵂ⟨ W ⟩ B′)
       -------------------------------------
@@ -393,11 +398,11 @@ qXY = X⊑X
 X⊑★W : ＇ X ⊑ᵂ⟨ W ⟩ ★
 X⊑★W = X⊑★ refl
 
-source-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
-source-seal-typed = ⊢↓-sealˣ source-X∋
+source-seal-typed : source-store Conv.⊢↓[ just X ] seal X ★
+source-seal-typed = Conv.⊢↓-sealˣ source-X∋
 
-target-seal-typed : target-store CTI2.⊢↓[ just Y ] seal Y ★
-target-seal-typed = ⊢↓-sealˣ target-Y∋
+target-seal-typed : target-store Conv.⊢↓[ just Y ] seal Y ★
+target-seal-typed = Conv.⊢↓-sealˣ target-Y∋
 
 X-Y-representation : StoreRepImp W X Y
 X-Y-representation = store-rep-imp ★⊑★
@@ -503,12 +508,9 @@ good-generated-projection-site :
   W ∣ [] ⊢ᴺ source-sealed ⊑ target-name-tagged ⟨ Y? ⟩ ∶ qXY
 good-generated-projection-site = matching-projectionᴺ
 
-good-generated-catchup :
-  ECR.CatchupCast {W = W} {A = ＇ X}
-    X⊑★W target-name-tagged Y? qXY
-good-generated-catchup =
-  ECR.catchup-projection
-    (ECR.generated-project-same target-sealed-value)
+good-generated-catchup-live-replacement :
+  W ∣ [] ⊢ᴺ source-sealed ⊑ target-name-tagged ⟨ Y? ⟩ ∶ qXY
+good-generated-catchup-live-replacement = good-generated-projection-site
 
 bad-square-is-not-refuted : ⊥ → ⊥
 bad-square-is-not-refuted z = z

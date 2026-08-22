@@ -31,6 +31,7 @@ import proof.Reduction
 import proof.DGG.CompilePreservesImprecision2
 import proof.DGG.GroundingMint
 import proof.DGG.GroundingPreserve
+import proof.DGG.CastConsistencyViews
 import proof.DGG.Inversion.SpineValueProof
 import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
@@ -39,7 +40,6 @@ import proof.DGG.Parked.ParkedD4CheckpointLemma
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
 ------------------------------------------------------------------------
 
-import proof.DGG.Catchup.ExtraCastRightProof
 import proof.DGG.Catchup.InstCatchupRightProof
 import proof.DGG.Catchup.InstCatchupRightRelProof
 import proof.DGG.Catchup.InstInversionDef
@@ -68,6 +68,8 @@ import proof.DGG.Catchup.StructuralSpineTypingDef
 import proof.DGG.Catchup.StructuralStrictViewSurfaceDef
 import proof.DGG.Catchup.StructuralWorldExtendDef
 import proof.DGG.Catchup.StructuralWorldExtendProof
+import proof.DGG.Catchup.StructuralRightParkedEvolveProof
+import proof.DGG.Catchup.BoundaryValueAdaptersProof
 import proof.DGG.Catchup.StructuralWorldRebaseProof
 import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 import proof.DGG.Catchup.StructuralWorldTagRebaseProof
@@ -106,18 +108,44 @@ import proof.DGG.Catchup.StructuralNameInstantiationProof
 ------------------------------------------------------------------------
 
 import proof.DGG.Catchup.ValueCatchupRightDef
-import proof.DGG.Catchup.ColumnSupportProof
+import proof.DGG.Catchup.FuelSupportProof
+import proof.DGG.Catchup.GeneratedProjectionReplacementProof
+import proof.DGG.Catchup.TargetCastStepInversionProof
+import proof.DGG.Catchup.TagLayerExtractionProof
 import proof.DGG.Catchup.ExtraCastRightAtProof
 import proof.DGG.Catchup.ValueCatchupRightProof
+import proof.DGG.Catchup.StructuralValueKeepProof
+import proof.DGG.Catchup.StructuralValueDispatcherProof
+import proof.DGG.Catchup.StructuralExtraCastDispatcherProof
 import proof.DGG.Catchup.FuelKnotProof
+import proof.DGG.Catchup.FuelDischargeProof
+import proof.DGG.Catchup.LeftBoundaryCatchupDef
+import proof.DGG.Catchup.LeftValueCatchupDef
+import proof.DGG.Catchup.LeftSourceOperationsDef
+import proof.DGG.Catchup.LeftBlameLiftProof
+import proof.DGG.Catchup.LeftValueCatchupProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)
 ------------------------------------------------------------------------
 
+import proof.DGG.SimPrimitiveValuesProof
+import proof.DGG.SimCastLayerInversion
+import proof.DGG.SimSourceCastValuesProof
+import proof.DGG.SimPairedCastValuesProof
+import proof.DGG.SimConcealRevealPeel
+import proof.DGG.SimSourceRevealValuesProof
+import proof.DGG.SimPairedRevealValuesProof
+import proof.DGG.SimSourceConcealValuesProof
+import proof.DGG.SimPairedConcealValuesProof
+import proof.DGG.TransportTermImprecisionProof
 import proof.DGG.SimProof
+import proof.DGG.SimBackProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
+import proof.DGG.TargetBlameCatchupProof
+import proof.DGG.SimConcealRevealPeel
+import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------
@@ -125,6 +153,9 @@ import proof.DGG.DynamicGradualGuaranteeProof
 ------------------------------------------------------------------------
 
 -- Example suites and catalogs
+import proof.DGG.WorldSnapshot
+import proof.DGG.ImpLadder
+import proof.DGG.Example12Worlds
 import Example
 import GradualTypeCheckExamples
 import ConsistencyExamples
@@ -145,7 +176,6 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
-import proof.DGG.ExtraCastRight2Counterexample
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename

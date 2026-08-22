@@ -141,7 +141,7 @@ respect.
 ## S1 DECIDED (user, 2026-08-13) — the proposed live constructor
 
 The mechanized split is a second syntax-directed `Λ/Λ` constructor in
-`proof/DGG/CastTermImprecision2.agda`, alongside the untouched `Λ⊑Λ²`,
+`proof/DGG/CastTermImprecision.agda`, alongside the untouched `Λ⊑Λ²`,
 following the guarded-premise-world pattern of `Λ⊑²-smart-comma`
 (guard record parameter, NOT a new world former):
 

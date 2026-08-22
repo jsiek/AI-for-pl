@@ -17,15 +17,20 @@ open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import Types using (Ty; TyCtx; TyVar)
 open import TyStore using (TyStore)
-open import Consistency using (toRenameᵗ)
+open import Consistency using (_↪ᵗ_; toRenameᵗ; wk↪ᵗ)
 open import Imprecision using (ImpEnv; X⊑X; X⊑★)
-open import Reduction using (StoreChanges; []; _∷_; keep; bind)
+open import Reduction using
+  (StoreChanges; []; _∷_; keep; bind; applyStore)
 import Reduction as R
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExtraCastRight2 as ECR
+import proof.DGG.TargetExtend as TE
 
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_)
+open CTI2 using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
 
 
 infixl 7 _▶ᵛ_
@@ -63,6 +68,16 @@ data ParkedWorld : ∀ {Δᴸ Δᴿ Δ}
     → ParkedWorld W
       -----------------------------------------------
     → ParkedWorld (CTI2.rightOnlyWorld W B)
+
+  parked-structural-right-insert : ∀ {Δᴸ Δᴿ Δ Δ₁}
+      {W : World Δᴸ Δᴿ Δ}
+      {W₁ : World Δᴸ (Nat.suc Δᴿ) Δ₁}
+      {B : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+    → ParkedWorld W
+    → TE.TargetInsert wk↪ᵗ π W W₁
+    → CTI2.targetStoreʷ W₁ ≡
+        applyStore (bind B) (CTI2.targetStoreʷ W)
+    → ParkedWorld W₁
 
 
 data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
@@ -123,6 +138,19 @@ data ParkedEvolve : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
       ---------------------------------------------
     → ParkedEvolve χsᴸ (bind B ∷ χsᴿ) W W′
 
+  evolve-structural-right-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ₁ Δ′}
+      {χsᴸ : StoreChanges Δᴸ Δᴸ′}
+      {χsᴿ : StoreChanges (Nat.suc Δᴿ) Δᴿ′}
+      {W : World Δᴸ Δᴿ Δ}
+      {W₁ : World Δᴸ (Nat.suc Δᴿ) Δ₁}
+      {W′ : World Δᴸ′ Δᴿ′ Δ′}
+      {B : Ty Δᴿ} {π : Δ ↪ᵗ Δ₁}
+    → TE.TargetInsert wk↪ᵗ π W W₁
+    → CTI2.targetStoreʷ W₁ ≡
+        applyStore (bind B) (CTI2.targetStoreʷ W)
+    → ParkedEvolve χsᴸ χsᴿ W₁ W′
+    → ParkedEvolve χsᴸ (bind B ∷ χsᴿ) W W′
+
 
 centerVarᴾ : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
     {χsᴸ : StoreChanges Δᴸ Δᴸ′}
@@ -137,6 +165,8 @@ centerVarᴾ (evolve-keepᴿ evol) Z = centerVarᴾ evol Z
 centerVarᴾ (evolve-both-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
 centerVarᴾ (evolve-left-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
 centerVarᴾ (evolve-right-bind evol) Z = centerVarᴾ evol (Fin.suc Z)
+centerVarᴾ (evolve-structural-right-bind {π = π} ins follows evol) Z =
+  centerVarᴾ evol (toRenameᵗ π Z)
 
 
 ParkedWorldClosedᵀ : Set

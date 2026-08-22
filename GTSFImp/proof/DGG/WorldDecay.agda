@@ -16,10 +16,18 @@ open import Relation.Nullary using (Dec; yes; no)
 open import Types
 open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open CTI2 using
-  (World; _⊑ᵂ⟨_⟩_; CtxImp; ctx-imp; _∋ʷ_⦂_; Zʷ; Sʷ;
-   SameCtx; same-[]; same-∷)
+  (World;
+   _⊑ᵂ⟨_⟩_;
+   CtxImp;
+   ctx-imp;
+   _∋ʷ_⦂_;
+   Zʷ;
+   Sʷ;
+   SameCtx;
+   same-[];
+   same-∷)
 
 ------------------------------------------------------------------------
 -- Type-level environment monotonicity

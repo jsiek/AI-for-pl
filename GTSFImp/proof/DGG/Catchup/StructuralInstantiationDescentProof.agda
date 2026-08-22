@@ -16,7 +16,8 @@ open import Consistency using (Env∼; _⊢_∼_; _↪ᵗ_; wk↪ᵗ)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores;
    applyTy; _—→[_]_; ↠-refl)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.InstInversionDef using
@@ -32,8 +33,8 @@ open import proof.DGG.Catchup.StructuralInstantiationDescentDef
 open import proof.DGG.Catchup.StructuralStrictViewSurfaceDef using
   (StructuralStrictViewSurfaces; StructuralNameInstantiationᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; castSize; inst-alloc-decreaseᵀ)
-open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
+  (FuelStepSurface; ResidualCastBuilderᵀ; castSize; inst-alloc-decreaseᵀ)
+open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
@@ -42,12 +43,12 @@ structural-descent-zero : ∀ {Δᴸ Δᴿ Δ}
     {M : Term Δᴸ} {V : Term Δᴿ} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ B}
   → Value V
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ q
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ q
   → StructuralInstantiationDescentPackage W γ M V []ⁱ q
 structural-descent-zero {W = W} {γ = γ} vV rel = record
   { target-descent = structural-target-zero vV
   ; final-relation = subst≡
-      (λ γ′ → W CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → W CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (sym (ECR.mapCtxᴿ-same γ)) rel
   }
 
@@ -87,7 +88,7 @@ structural-descent-keep-step : ∀ {Δᴸ Δᴿ Δ}
 structural-descent-keep-step {γ = γ} step child = record
   { target-descent = target
   ; final-relation = subst≡
-      (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (sym (mapCtxᴿ-structural-keep child-plan γ))
       (StructuralInstantiationDescentPackage.final-relation child)
   }
@@ -122,7 +123,7 @@ structural-descent-bind-step : ∀ {Δᴸ Δᴿ Δ Δ₁}
 structural-descent-bind-step {γ = γ} ins follows step child = record
   { target-descent = target
   ; final-relation = subst≡
-      (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+      (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
       (mapCtxᴿ-compose ext₁ child-ext γ)
       (StructuralInstantiationDescentPackage.final-relation child)
   }
@@ -168,18 +169,18 @@ residual-cast-stop-package : ∀ {fuel Δᴸ Δᴿ Δ}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ C}
     {c : μ ⊢ B ∼ C}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → ResidualCastBuilderᵀ
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → suc (castSize c) < fuel
   → ResidualFrameProvenance c
   → InstSpineDescentPackage W γ M (V ⟨ c ⟩) q
 residual-cast-stop-package {p = p} {q = q} {c = c}
-    fuel-step catchup⁻-embed rel vM vV residual<fuel prov
+    fuel-step residual-cast-builder rel vM vV residual<fuel prov
     with FuelStepSurface.smaller-extra fuel-step residual<fuel
-      rel vM vV c (n<1+n (castSize c)) q
-      (catchup⁻-embed _ (prov {χs = []} {p = p} {q = q}))
+      c (n<1+n (castSize c)) (prov {χs = []} {p = p} {q = q} rel)
+      vM vV
 ... | Δᴿ′ , χs , Δ′ , W′ , ext , N′ ,
     (vN′ , post↠N′ , rel′) =
   record
@@ -206,11 +207,11 @@ structural-name-package :
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
     → FuelStepSurface fuel
-    → Catchup⁻Embedᵀ
+    → ResidualCastBuilderᵀ
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
     → AllValueView V
@@ -223,12 +224,12 @@ structural-name-package :
         (name-type-app-frame B X refl refl ▻ⁱ spine))
     → StructuralInstantiationDescentPackage W γ M V
         (name-type-app-frame B X refl refl ▻ⁱ spine) q
-structural-name-package surfaces worker fuel-step catchup⁻-embed
+structural-name-package surfaces worker fuel-step residual-cast-builder
     inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   record
     { target-descent = target
     ; final-relation =
-        worker surfaces fuel-step catchup⁻-embed inst-decrease plan chain-plan
+        worker surfaces fuel-step residual-cast-builder inst-decrease plan chain-plan
           rel vM vV view spine chain typed target
     }
 
@@ -244,11 +245,11 @@ erase-structural-name-root :
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
     → FuelStepSurface fuel
-    → Catchup⁻Embedᵀ
+    → ResidualCastBuilderᵀ
     → inst-alloc-decreaseᵀ
     → (plan : StructuralNamePostPlan W A E q)
     → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-    → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+    → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
     → Value M
     → Value V
     → AllValueView V
@@ -262,8 +263,8 @@ erase-structural-name-root :
     → InstSpineDescentPackage W γ M
         (applyInstantiationSpine V
           (name-type-app-frame B X refl refl ▻ⁱ spine)) q
-erase-structural-name-root surfaces worker fuel-step catchup⁻-embed
+erase-structural-name-root surfaces worker fuel-step residual-cast-builder
     inst-decrease plan chain-plan rel vM vV view spine chain typed target =
   erase-structural-descent
-    (structural-name-package surfaces worker fuel-step catchup⁻-embed
+    (structural-name-package surfaces worker fuel-step residual-cast-builder
       inst-decrease plan chain-plan rel vM vV view spine chain typed target)

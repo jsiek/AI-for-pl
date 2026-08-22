@@ -22,14 +22,19 @@ open import CastTerms using
   (Term; Value; GenSafe; _⟨_⟩; _↑_; _↓_; Λ_)
 open import Reduction using (StoreChanges; _—↠[_]_)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.InstCatchupRightDef using
   (InstCastAllocPrefixᵀ; AllValueViewStepCatalogᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
   (castSize; InstCatchupRightAt; FuelStepSurface;
-   inst-alloc-decreaseᵀ; Catchup⁻Embedᵀ)
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+   inst-alloc-decreaseᵀ; ResidualCastBuilderᵀ)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 -- These fields are deliberately not aliases for theorem conclusions:
@@ -43,7 +48,7 @@ record InstRelContinuationSurface (fuel : ℕ) : Set₁ where
     inst-prefix : InstCastAllocPrefixᵀ
     all-value-step-catalog : AllValueViewStepCatalogᵀ
     inst-alloc-decrease : inst-alloc-decreaseᵀ
-    catchup⁻-embed : Catchup⁻Embedᵀ
+    residual-cast-builder : ResidualCastBuilderᵀ
 
     Λ-cont : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
         {γ : CtxImp W}

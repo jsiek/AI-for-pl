@@ -9,6 +9,7 @@ module proof.Imprecision where
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
+open import Data.Product using (_×_; _,_)
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
@@ -521,6 +522,26 @@ private
 
 imprecise-star : ∀ (A : Ty 0) → I._⊑_ A ★
 imprecise-star A = imprecise-star-shape (shape A) (\ ())
+
+------------------------------------------------------------------------
+-- Plain type-imprecision inversion
+------------------------------------------------------------------------
+
+⇒⊑★-inv : ∀ {Δ} {μ : I.ImpEnv Δ} {A B : Ty Δ}
+  → I._⊢_⊑_ μ (A ⇒ B) ★
+  → I._⊢_⊑_ μ A ★ × I._⊢_⊑_ μ B ★
+⇒⊑★-inv (I.⇒⊑★ A⊑★ B⊑★) = A⊑★ , B⊑★
+
+⇒⊑⇒-inv : ∀ {Δ} {μ : I.ImpEnv Δ}
+    {A A′ B B′ : Ty Δ}
+  → I._⊢_⊑_ μ (A ⇒ B) (A′ ⇒ B′)
+  → I._⊢_⊑_ μ A A′ × I._⊢_⊑_ μ B B′
+⇒⊑⇒-inv (I.⇒⊑⇒ A⊑A′ B⊑B′) = A⊑A′ , B⊑B′
+
+★⊑-inv : ∀ {Δ} {μ : I.ImpEnv Δ} {A : Ty Δ}
+  → I._⊢_⊑_ μ ★ A
+  → A ≡ ★
+★⊑-inv I.★⊑★ = refl
 
 ------------------------------------------------------------------------
 -- Fresh type-variable consequences

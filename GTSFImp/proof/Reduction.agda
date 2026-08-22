@@ -6,6 +6,9 @@ module proof.Reduction where
 --     store-change transport, application, primitive-operation, and
 --     type-application and conversion-frame congruence over multi-step
 --     reduction, and inert and value preservation under transport.
+--   * Also supplies store-change append algebra, multi-step trace
+--     composition, cast congruence over multi-step reduction, and cast-size
+--     preservation under store changes.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -16,9 +19,10 @@ open import Relation.Binary.PropositionalEquality using
   renaming (subst to subst≡)
 
 open import Types
+open import TyStore using (TyStore)
 open import Consistency hiding (keep)
 import Consistency as C
-open import Conversion using (Conv↑; Conv↓; rename↑; rename↓)
+open import Conversion using (Conv↑; Conv↓; rename↑; rename↓; _⊢↑_; _⊢↓_)
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
@@ -27,7 +31,8 @@ open import CastTerms using
   )
 open import CastTerms using (_↑_; _↓_)
 open import Reduction
-open import proof.Consistency using (gen-safe)
+open import proof.Consistency using
+  (castSize; castSize-renameEnvᶜ; gen-safe)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using
   ( rename-star-injective
@@ -35,6 +40,8 @@ open import proof.TypeInTermSubst using
   ; renameᵗ-pointwise-id
   ; renameᵗᵐ-preserves-Value
   ; rename-openᵗ
+  ; reveal-rename-id
+  ; conceal-rename-id
   )
 
 applyBodies : ∀ {Δ Δ′}
@@ -132,6 +139,40 @@ normalizeConceal {A = A} {B = B} c =
     (subst≡ (λ A′ → Conv↓ _ A′ _)
       (renameᵗ-pointwise-id _ A (λ X → refl))
       (rename↓ (λ X → X) c))
+
+normalizeReveal-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+    {c : Conv↑ Δ A B}
+  → Σ ⊢↑ c
+  → Σ ⊢↑ normalizeReveal c
+normalizeReveal-⊢↑ {A = A} {B = B} c⊢ =
+  reveal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) (reveal-rename-id c⊢)
+  where
+  reveal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → ∀ {d : Conv↑ _ A₀ B₀}
+    → Σ ⊢↑ d
+    → Σ ⊢↑ subst≡ (Conv↑ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↑ _ A′ B₀) eqA d)
+  reveal-subst refl refl d⊢ = d⊢
+
+normalizeConceal-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {A B : Ty Δ}
+    {c : Conv↓ Δ A B}
+  → Σ ⊢↓ c
+  → Σ ⊢↓ normalizeConceal c
+normalizeConceal-⊢↓ {A = A} {B = B} c⊢ =
+  conceal-subst (renameᵗ-pointwise-id _ A (λ X → refl))
+    (renameᵗ-pointwise-id _ B (λ X → refl)) (conceal-rename-id c⊢)
+  where
+  conceal-subst : ∀ {Σ : TyStore _} {A₀ A₁ B₀ B₁ : Ty _}
+    → (eqA : A₀ ≡ A₁)
+    → (eqB : B₀ ≡ B₁)
+    → ∀ {d : Conv↓ _ A₀ B₀}
+    → Σ ⊢↓ d
+    → Σ ⊢↓ subst≡ (Conv↓ _ A₁) eqB
+        (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
+  conceal-subst refl refl d⊢ = d⊢
 
 applyReveals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
   → Conv↑ Δ A B
@@ -319,6 +360,88 @@ typeApp-↠ {L = L} {L′ = P} {C = C} {A = A}
     —↠[ χs ]⟨ typeApp-↠ N↠P ⟩
   P ⦂∀ applyBodies χs (applyBody χ C)
     [ applyTys χs (applyTy χ A) ] ∎[]
+
+------------------------------------------------------------------------
+-- Store-change append algebra
+------------------------------------------------------------------------
+
+infixr 5 _++χ_
+
+_++χ_ : ∀ {Δ Δ′ Δ″}
+  → StoreChanges Δ Δ′
+  → StoreChanges Δ′ Δ″
+  → StoreChanges Δ Δ″
+[] ++χ ψs = ψs
+(χ ∷ χs) ++χ ψs = χ ∷ (χs ++χ ψs)
+
+applyStores-++ : ∀ {Δ₀ Δ₁ Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → ∀ Σ
+  → applyStores ψs (applyStores χs Σ) ≡ applyStores (χs ++χ ψs) Σ
+applyStores-++ [] ψs Σ = refl
+applyStores-++ (χ ∷ χs) ψs Σ =
+  applyStores-++ χs ψs (applyStore χ Σ)
+
+applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → ∀ A
+  → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
+applyTys-++ [] ψs A = refl
+applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs (applyTy χ A)
+
+cast-applyConsistencies-++ : ∀ {Δ₀ Δ₁ Δ₂} {μ : Env∼ Δ₀}
+    {A B : Ty Δ₀}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → (c : μ ⊢ A ∼ B)
+  → (M : Term Δ₂)
+  → M ⟨ applyConsistencies ψs (applyConsistencies χs c) ⟩
+      ≡ M ⟨ applyConsistencies (χs ++χ ψs) c ⟩
+cast-applyConsistencies-++ [] ψs c M = refl
+cast-applyConsistencies-++ (χ ∷ χs) ψs c M =
+  cast-applyConsistencies-++ χs ψs (applyConsistency χ c) M
+
+------------------------------------------------------------------------
+-- Store-changing trace composition
+------------------------------------------------------------------------
+
+composeReductionᵀ : Set
+composeReductionᵀ = ∀ {Δ₀ Δ₁ Δ₂}
+    {χs : StoreChanges Δ₀ Δ₁} {ψs : StoreChanges Δ₁ Δ₂}
+    {M : Term Δ₀} {N : Term Δ₁} {P : Term Δ₂}
+  → M —↠[ χs ] N
+  → N —↠[ ψs ] P
+  → M —↠[ χs ++χ ψs ] P
+
+composeReduction : composeReductionᵀ
+composeReduction ↠-refl N↠P = N↠P
+composeReduction (↠-step M→N N↠P) P↠Q =
+  ↠-step M→N (composeReduction N↠P P↠Q)
+
+------------------------------------------------------------------------
+-- Cast-size preservation under store changes
+------------------------------------------------------------------------
+
+castSize-applyConsistency : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χ : StoreChange Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (applyConsistency χ c) ≡ castSize c
+castSize-applyConsistency keep c = refl
+castSize-applyConsistency (bind A) c =
+  castSize-renameEnvᶜ Fin.suc (λ X → refl) c
+
+castSize-applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ}
+    {A B : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → (c : μ ⊢ A ∼ B)
+  → castSize (applyConsistencies χs c) ≡ castSize c
+castSize-applyConsistencies [] c = refl
+castSize-applyConsistencies (χ ∷ χs) c =
+  trans (castSize-applyConsistencies χs (applyConsistency χ c))
+    (castSize-applyConsistency χ c)
 
 cast-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
     {χs : StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}

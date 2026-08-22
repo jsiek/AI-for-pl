@@ -8,6 +8,7 @@ module proof.DGG.Catchup.StructuralStrictViewSurfaceDef where
 --     and target-frame absorption chain needed by the structural worker.
 
 import Data.Fin as Fin
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; suc)
 open import Data.Product using (Σ-syntax; _×_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; _≢_)
@@ -23,7 +24,8 @@ open import Reduction using
   (keep; bind; applyTy; applyBody; applyStores; _∷_; [])
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
@@ -35,12 +37,12 @@ open import proof.DGG.Catchup.StructuralSpineTypingDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef
 open import proof.DGG.Catchup.StructuralWorldTagRebaseProof
 open import proof.DGG.Catchup.ValueCatchupRightDef using
-  (FuelStepSurface; Catchup⁻Embedᵀ; inst-alloc-decreaseᵀ)
+  (FuelStepSurface; ResidualCastBuilderᵀ; inst-alloc-decreaseᵀ)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 
 
-StructuralNameConcealEqualOKᵀ : Set₁
-StructuralNameConcealEqualOKᵀ =
+StructuralNameConcealEqualSourceOKᵀ : Set₁
+StructuralNameConcealEqualSourceOKᵀ =
   ∀ {Δᴸ Δᴿ Δ}
     {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
     {U : Term Δᴸ} {V : Term Δᴿ}
@@ -48,17 +50,35 @@ StructuralNameConcealEqualOKᵀ =
     {E : Ty Δᴿ} {X : TyVar Δᴿ} {Xᴸ? Xᴿ?}
     {c : Conv↓ Δᴸ A A′}
   → (rb : CTI2.TagRebaseAtᴸ Wᵖ W Xᴸ? Xᴿ?)
-  → CTI2.SourceConcealPartnerOK Wᵖ U c Xᴿ? V
+  → CTI2.SourceConcealOK Wᵖ U c Xᴿ? V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
   → let child = structural-tag-rebase-atᴸ
           (StructuralTargetInstantiationPackage.structural-ext target) rb
-     in CTI2.SourceConcealPartnerOK
+     in CTI2.SourceConcealOK
           (StructuralTagRebaseAtᴸResult.Wᵖ′ child) U c
           (mapPivotChanges
             (StructuralTargetInstantiationPackage.χs target) Xᴿ?)
           (StructuralTargetInstantiationPackage.final target)
+
+
+StructuralNameConcealEqualNoTargetᵀ : Set₁
+StructuralNameConcealEqualNoTargetᵀ =
+  ∀ {Δᴸ Δᴿ Δ}
+    {W Wᵖ : CTI2.World Δᴸ Δᴿ Δ}
+    {V : Term Δᴿ}
+    {B : Ty (suc Δᴿ)} {E : Ty Δᴿ}
+    {X : TyVar Δᴿ} {Xᴸ : TyVar Δᴸ}
+  → (rb : CTI2.TagRebaseAtᴸ Wᵖ W (just Xᴸ) nothing)
+  → CTI2.NoTargetOccupantAtSource Wᵖ Xᴸ
+  → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+  → (target : StructuralTargetInstantiationPackage W V
+      (name-type-app-frame B X refl refl ▻ⁱ spine))
+  → let child = structural-tag-rebase-atᴸ
+          (StructuralTargetInstantiationPackage.structural-ext target) rb
+     in CTI2.NoTargetOccupantAtSource
+          (StructuralTagRebaseAtᴸResult.Wᵖ′ child) Xᴸ
 
 
 record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
@@ -76,7 +96,7 @@ record StructuralStrictChild {fuel : ℕ} {Δᴸ Δᴿ Δ}
     child-plan : StructuralNamePostPlan W A E q
     child-chain-plan :
       StructuralNameChainPlan {fuel = fuel} W γ A E q child-plan
-    child-relation : W CTI2.∣ γ ⊢² M ⊑ V ∶ child-endpoint
+    child-relation : W CTIR.∣ γ ⊢² M ⊑ V ∶ child-endpoint
     child-chain : TargetFrameAbsorptionChain W γ A spine q
     child-typed : SpineTypedʷ {fuel = fuel} W spine
 
@@ -94,7 +114,7 @@ StructuralΛStrictSurfaceᵀ =
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ Λ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ Λ V ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -131,7 +151,7 @@ StructuralAllCastStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ⟨ ∀ᶜ d ⟩ ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (C [ ＇ X ]ᵗ) E)
@@ -167,7 +187,7 @@ StructuralGenStrictSurfaceᵀ =
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
   → (A≢★ : A ≢ ★)
-  → W CTI2.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ⟨ (gen c) A≢★ ⟩ ∶ p
   → Value M
   → Value V
   → GenSafe c
@@ -208,7 +228,7 @@ StructuralRevealStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ↑ `∀↑ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -254,7 +274,7 @@ StructuralConcealStrictSurfaceᵀ =
     {q : Aₛ CTI2.⊑ᵂ⟨ W ⟩ E}
   → (plan : StructuralNamePostPlan W Aₛ E q)
   → StructuralNameChainPlan {fuel = fuel} W γ Aₛ E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ↓ `∀↓ c ∶ p
   → Value M
   → Value V
   → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
@@ -288,7 +308,8 @@ StructuralConcealStrictSurfaceᵀ =
 
 record StructuralStrictViewSurfaces : Set₁ where
   field
-    conceal-equal-ok : StructuralNameConcealEqualOKᵀ
+    conceal-equal-source-ok : StructuralNameConcealEqualSourceOKᵀ
+    conceal-equal-no-target : StructuralNameConcealEqualNoTargetᵀ
     Λ-cell : StructuralΛStrictSurfaceᵀ
     ∀-cast-cell : StructuralAllCastStrictSurfaceᵀ
     gen-cell : StructuralGenStrictSurfaceᵀ
@@ -307,11 +328,11 @@ StructuralNameInstantiationᵀ =
     {p : A CTI2.⊑ᵂ⟨ W ⟩ `∀ B}
     {q : A CTI2.⊑ᵂ⟨ W ⟩ E}
   → FuelStepSurface fuel
-  → Catchup⁻Embedᵀ
+  → ResidualCastBuilderᵀ
   → inst-alloc-decreaseᵀ
   → (plan : StructuralNamePostPlan W A E q)
   → StructuralNameChainPlan {fuel = fuel} W γ A E q plan
-  → W CTI2.∣ γ ⊢² M ⊑ V ∶ p
+  → W CTIR.∣ γ ⊢² M ⊑ V ∶ p
   → Value M
   → Value V
   → AllValueView V
@@ -322,7 +343,7 @@ StructuralNameInstantiationᵀ =
       (name-type-app-frame B X refl refl ▻ⁱ spine)
   → (target : StructuralTargetInstantiationPackage W V
       (name-type-app-frame B X refl refl ▻ⁱ spine))
-  → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+  → StructuralTargetInstantiationPackage.W′ target CTIR.∣
       ECR.mapCtxᴿ
         (structural-world-extendᴿ
           (StructuralTargetInstantiationPackage.structural-ext target))

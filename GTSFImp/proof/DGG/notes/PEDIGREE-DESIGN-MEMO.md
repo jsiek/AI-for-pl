@@ -92,7 +92,7 @@ tagged transfer, and all landed green work.
 Pre-flight 8 validated option B against a transfer branch model where
 conceal⊑²'s partner pedigree and tag-rebase pivot were implicitly
 tied; the live rule quantifies them independently (Xᴿᵖ? vs Xᴿ?,
-CastTermImprecision2.agda:778-789). The in-branch packaging therefore
+CastTermImprecision.agda:778-789). The in-branch packaging therefore
 faces two incompatible candidate indices (round18 .red): the partner
 holds the premise-side pedigree, the rebase provides the
 conclusion-side one, and rep★-var-tag couples pedigree to the target

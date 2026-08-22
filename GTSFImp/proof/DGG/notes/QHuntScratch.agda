@@ -8,6 +8,7 @@ module QHuntScratch where
 open import Data.Bool using (Bool; false; true; _∨_)
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
+import Data.List as List
 open import Data.Maybe using (Maybe; just; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (yes; no)
@@ -22,10 +23,11 @@ open import CastTerms using
 open import Reduction using
   (_—↠[_]_; ↠-refl; ↠-step; keep; []; _∷_)
 import Eval
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
-import proof.DGG.ExtraCastRight2 as ECR
 import ProjectionMismatchStarRepScratch as PMS
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- A trace scanner for the bad projected-name signature
@@ -184,8 +186,9 @@ abstract-rep★-mismatch-blames :
 abstract-rep★-mismatch-blames = PMS.mismatch-steps-to-blame
 
 abstract-rep★-violates-provenance :
-  ECR.CatchupCast {W = PMS.probe-world} {A = ＇ Fin.zero}
-    PMS.probe-p PMS.target-tagged PMS.Y? PMS.probe-q
+  PMS.probe-world ∣ List.[] ⊢²
+    PMS.source-term ⟨ PMS.X! ⟩ ⟨ PMS.X? ⟩
+    ⊑ PMS.target-tagged ⟨ PMS.Y? ⟩ ∶ PMS.probe-q
   → ⊥
 abstract-rep★-violates-provenance =
   PMS.projection-mismatch-violates-provenance

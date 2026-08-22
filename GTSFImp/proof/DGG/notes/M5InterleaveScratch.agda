@@ -25,7 +25,7 @@ open import Consistency using (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 import Imprecision as I
 open import Imprecision using (_⊢_⊑_)
 open import proof.ImprecisionConsistency using (fin-suc-injective)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 
 ------------------------------------------------------------------------
 -- Shared finite instance: no old names, target α then target β.

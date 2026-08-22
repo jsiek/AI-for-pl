@@ -17,7 +17,7 @@ open import Reduction using
   (bind; applyBody; β-reveal-∀; β-conceal-∀)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import

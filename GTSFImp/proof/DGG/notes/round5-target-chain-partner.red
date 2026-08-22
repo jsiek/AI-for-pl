@@ -14,12 +14,12 @@ Landed and checked locally:
 Green checks:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/CastTermImprecision2.agda
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/TermImpDecay.agda
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealTransferCore.agda
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetDescentProof.agda
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/RightInjInversion2Proof.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/CastTermImprecision2.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/TermImpDecay.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/SealTransferCore.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetWalkSupport.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/TargetDescentProof.agda
+agda -i GTSFImp -v0 GTSFImp/proof/DGG/Inversion/RightInjInversion2Proof.agda
 ```
 
 Remaining blocker:

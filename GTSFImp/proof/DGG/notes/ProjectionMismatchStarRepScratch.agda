@@ -22,12 +22,17 @@ open import CastTerms using
   (Term; Value; $; _⟨_⟩; _↓_; blame; _《_》; inj)
 open import Reduction
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
-open import proof.DGG.ExtraCastRight2 using
-  (ExtraCastRight²; CatchupCast; catchup-projection)
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
-   store-rep-imp; ⊢↓-sealˣ)
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open import proof.DGG.ExtraCastRight2 using (ExtraCastRight²)
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   X : TyVar 1
@@ -81,14 +86,14 @@ X! = id (＇ X) !
 X? : target-env-proj ⊢ ★ ∼ ＇ X
 X? = ？ (idᵍ (＇ X))
 
-source-X-seal-typed : source-store CTI2.⊢↓[ just X ] seal X ★
-source-X-seal-typed = ⊢↓-sealˣ source-X∋
+source-X-seal-typed : source-store Conv.⊢↓[ just X ] seal X ★
+source-X-seal-typed = Conv.⊢↓-sealˣ source-X∋
 
-X-Y-representation : CTI2.StoreRepImp probe-world X Y
+X-Y-representation : CTX.StoreRepImp probe-world X Y
 X-Y-representation = store-rep-imp ★⊑★
 
 X-Y-rebase : RebaseAt probe-world probe-world X Y
-X-Y-rebase = CTI2.sameWorldRebaseAt refl X-Y-representation
+X-Y-rebase = CTX.sameWorldRebaseAt refl X-Y-representation
 
 probe-p : ＇ X ⊑ᵂ⟨ probe-world ⟩ ★
 probe-p = X⊑★ refl
@@ -123,22 +128,22 @@ one-rename-zero : ∀ (ρ : 1 ↪ᵗ 1)
 one-rename-zero (keep empty) = refl
 
 one-center-occupied : ∀ {W : World 1 1 1}
-  → CTI2.NoTargetOccupantAtSource W X
+  → CTX.NoTargetOccupantAtSource W X
   → ⊥
 one-center-occupied {W = W} no-target =
   no-target
-    (Y , trans (one-rename-zero (CTI2.ηᴿʷ W))
-              (sym (one-rename-zero (CTI2.ηᴸʷ W))))
+    (Y , trans (one-rename-zero (CTX.ηᴿʷ W))
+              (sym (one-rename-zero (CTX.ηᴸʷ W))))
 
 target-tagged-partner-empty : ∀ {W : World 1 1 1} {P Xᴿ?}
-  → CTI2.SourceConcealPartnerOK W P (seal X ★) Xᴿ? target-tagged
+  → CTX.SourceConcealPartnerOK W P (seal X ★) Xᴿ? target-tagged
   → ⊥
 target-tagged-partner-empty {W = W}
-    (CTI2.seal-partner-ok {X = .X}
-      (CTI2.star-rep-target no-target _)) =
+    (CTX.seal-partner-ok {X = .X}
+      (CTX.star-rep-target no-target _)) =
   one-center-occupied {W = W} no-target
 target-tagged-partner-empty
-    (CTI2.seal-partner-ok (CTI2.plain-target ()))
+    (CTX.seal-partner-ok (CTX.plain-target ()))
 
 source-sealed-target-tagged-empty :
   ∀ {p : ＇ X ⊑ᵂ⟨ probe-world ⟩ ★}
@@ -328,19 +333,18 @@ mismatch-no-value-reduct
   inner-tag-no-step step
 
 projection-mismatch-violates-provenance :
-  CatchupCast {W = probe-world} {A = ＇ X}
-    probe-p target-tagged Y? probe-q
+  probe-world ∣ [] ⊢²
+    source-term ⟨ X! ⟩ ⟨ X? ⟩
+    ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
   → ⊥
-projection-mismatch-violates-provenance (catchup-projection ())
+projection-mismatch-violates-provenance = projection-mismatch-empty
 
 extra-cast-right²-contradiction : ExtraCastRight²
-  → probe-world ∣ [] ⊢² source-term ⊑ target-tagged ∶ probe-p
-  → CatchupCast {W = probe-world} {A = ＇ X}
-      probe-p target-tagged Y? probe-q
+  → probe-world ∣ [] ⊢² source-term
+      ⊑ target-tagged ⟨ Y? ⟩ ∶ probe-q
   → ⊥
-extra-cast-right²-contradiction ecr input generated
-    with ecr input source-value target-tagged-value
-      Y? probe-q generated
-extra-cast-right²-contradiction ecr input generated
+extra-cast-right²-contradiction ecr input
+    with ecr Y? input source-value target-tagged-value
+extra-cast-right²-contradiction ecr input
     | Δᴿ′ , χs , Δ′ , W′ , ext , N′ , vN′ , M↠N′ , M⊑N′ =
   mismatch-no-value-reduct M↠N′ vN′

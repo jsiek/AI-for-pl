@@ -26,13 +26,17 @@ open import Imprecision
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $)
 import CastTerms as CT
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
-import proof.DGG.ExtraCastRight2 as ECR
+import Conversion as Conv
+import proof.DGG.CtxImp as CTI2
 import CTITighteningNarrowScratch as N
 
 open CTI2 using
-  (World; CtxImp; _⊑ᵂ⟨_⟩_; RebaseAt; StoreRepImp; store-rep-imp;
-   ⊢↓-sealˣ)
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   StoreRepImp;
+   store-rep-imp)
 
 ------------------------------------------------------------------------
 -- Miniature provenance carried by world cells
@@ -276,7 +280,7 @@ mutual
       → CTI2.ImpEnvMono W W′
       → CTI2.TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
       → CTI2.SameCtx γ γ′
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
       → W′ ∣ γ′ ⊢ᴾ M ⊑ M′ ∶ p
       → (q : A′ ⊑ᵂ⟨ W ⟩ B)
         -----------------------------
@@ -292,8 +296,8 @@ mutual
       → CTI2.ImpEnvMono W Wᵖ
       → CTI2.RebaseAt W Wᵖ Xᴸ Xᴿ
       → CTI2.SameCtx γ γᵖ
-      → CTI2.sourceStoreʷ W CTI2.⊢↓[ just Xᴸ ] c
-      → CTI2.targetStoreʷ W CTI2.⊢↓[ just Xᴿ ] c′
+      → CTI2.sourceStoreʷ W Conv.⊢↓[ just Xᴸ ] c
+      → CTI2.targetStoreʷ W Conv.⊢↓[ just Xᴿ ] c′
       → Wᵖ ∣ γᵖ ⊢ᴾ M ⊑ M′ ∶ p
       → (q : B ⊑ᵂ⟨ W ⟩ B′)
         -------------------------------------
@@ -385,12 +389,10 @@ good-generated-projection-siteᴾ :
     ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
 good-generated-projection-siteᴾ = matching-projectionᴾ
 
-good-generated-catchupᴾ :
-  ECR.CatchupCast {W = N.W} {A = ＇ Fin.zero}
-    N.X⊑★W N.target-name-tagged N.Y? N.qXY
-good-generated-catchupᴾ =
-  ECR.catchup-projection
-    (ECR.generated-project-same N.target-sealed-value)
+good-generated-catchupᴾ-live-replacement :
+  N.W ∣ [] ⊢ᴾ N.source-sealed
+    ⊑ N.target-name-tagged ⟨ N.Y? ⟩ ∶ N.qXY
+good-generated-catchupᴾ-live-replacement = good-generated-projection-siteᴾ
 
 residual-after-cancellation-siteᴾ :
   N.W ∣ [] ⊢ᴾ N.source-sealed ⊑ N.target-sealed ∶ N.qXY

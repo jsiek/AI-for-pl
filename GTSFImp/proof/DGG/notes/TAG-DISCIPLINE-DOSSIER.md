@@ -201,7 +201,7 @@ AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c
 
 ## Migration Plan
 
-1. `GTSFImp/proof/DGG/CastTermImprecision2.agda`
+1. `GTSFImp/proof/DGG/CastTermImprecision.agda`
    - Add a public source-seal partner predicate keyed by the source seal
      representation.
    - Refine `RebaseAtᴸ` or add a sibling source-seal rebase witness that keeps
@@ -235,7 +235,7 @@ AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c
      name-tagged positive variant should replace it.
 
 5. Gates
-   - Re-run `CastTermImprecision2.agda`, `Examples2.agda`,
+   - Re-run `CastTermImprecision.agda`, `Examples2.agda`,
      `CompilePreservesImprecision2.agda`, `CompileImageShape.agda`,
      `Phase3DeepDives.agda`, and the M3 inversion files after the live relation
      is patched.

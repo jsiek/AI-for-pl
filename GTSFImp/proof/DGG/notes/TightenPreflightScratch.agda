@@ -23,7 +23,9 @@ import Conversion
 open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
@@ -32,11 +34,16 @@ import proof.DGG.StarRepChainProbe as SRC
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.TagBoundaryProbe as TBP
 import proof.DGG.TerminusRebuildProbe as TRB
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 
-open CTI2 using
-  (World; CtxImp; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   sourceStoreʷ; targetStoreʷ)
+open CTX using
+  (World;
+   CtxImp;
+   TagRebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Tightened source-seal partner predicate
@@ -48,14 +55,14 @@ CenterAligned : ∀ {Δᴸ Δᴿ Δ}
   → TyVar Δᴿ
   → Set
 CenterAligned W X Y =
-  toRenameᵗ (CTI2.ηᴸʷ W) X ≡ toRenameᵗ (CTI2.ηᴿʷ W) Y
+  toRenameᵗ (CTX.ηᴸʷ W) X ≡ toRenameᵗ (CTX.ηᴿʷ W) Y
 
 aligned-from-tag-rebase : ∀ {Δᴸ Δᴿ Δ}
     {W′ W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → TagRebaseAtᴸ W′ W (just X) (just Y)
   → CenterAligned W X Y
-aligned-from-tag-rebase (CTI2.tag-rebase-varᴸ rb) =
-  CTI2.RebaseAt.pivotAligned rb
+aligned-from-tag-rebase (CTX.tag-rebase-varᴸ rb) =
+  CTX.RebaseAt.pivotAligned rb
 
 -- The stricter rep-★ condition.  Top-level untagged partners are accepted.
 -- Top-level non-variable-ground injections are accepted.  Variable-ground
@@ -64,7 +71,7 @@ data Rep★PartnerOK {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   rep★-untagged : ∀ {Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       --------------------------------
     → Rep★PartnerOK W X Xᴿ? M′
 
@@ -95,7 +102,7 @@ data SealPartnerOKᵀ {Δᴸ Δᴿ Δ}
     → SealPartnerOKᵀ W X ★ Xᴿ? M′
 
   plain-targetᵀ : ∀ {R Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       --------------------------------
     → SealPartnerOKᵀ W X R Xᴿ? M′
 
@@ -130,35 +137,35 @@ data SourceConcealPartnerOKᵀ {Δᴸ Δᴿ Δ}
 forgetRep★ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {Xᴿ? M′}
   → Rep★PartnerOK W X Xᴿ? M′
-  → CTI2.SealPartnerOK {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} ★ Xᴿ? M′
+  → CTX.SealPartnerOK {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} ★ Xᴿ? M′
 forgetRep★ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} _ =
-  CTI2.star-rep-target {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
+  CTX.star-rep-target {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
 
 forgetSealPartnerOKᵀ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {R Xᴿ? M′}
   → SealPartnerOKᵀ W X R Xᴿ? M′
-  → CTI2.SealPartnerOK {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} R Xᴿ? M′
+  → CTX.SealPartnerOK {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} R Xᴿ? M′
 forgetSealPartnerOKᵀ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     (star-rep-targetᵀ ok) =
   forgetRep★ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} ok
 forgetSealPartnerOKᵀ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} (plain-targetᵀ nt) =
-  CTI2.plain-target {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} nt
+  CTX.plain-target {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} nt
 forgetSealPartnerOKᵀ {Δᴸ = Δᴸ} {Δᴿ = Δᴿ} name-protected-targetᵀ =
-  CTI2.name-protected-target
+  CTX.name-protected-target
 
 forgetSourceConcealPartnerOKᵀ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
   → SourceConcealPartnerOKᵀ W c Xᴿ? M′
-  → CTI2.SourceConcealPartnerOK c Xᴿ? M′
+  → CTX.SourceConcealPartnerOK c Xᴿ? M′
 forgetSourceConcealPartnerOKᵀ (seal-partner-okᵀ ok) =
-  CTI2.seal-partner-ok (forgetSealPartnerOKᵀ ok)
+  CTX.seal-partner-ok (forgetSealPartnerOKᵀ ok)
 forgetSourceConcealPartnerOKᵀ fun-conceal-targetᵀ =
-  CTI2.fun-conceal-target
+  CTX.fun-conceal-target
 forgetSourceConcealPartnerOKᵀ all-conceal-targetᵀ =
-  CTI2.all-conceal-target
+  CTX.all-conceal-target
 forgetSourceConcealPartnerOKᵀ id-conceal-targetᵀ =
-  CTI2.id-conceal-target
+  CTX.id-conceal-target
 
 conceal⊑²ᵀ : ∀ {Δᴸ Δᴿ Δ}
     {W W′ : World Δᴸ Δᴿ Δ}
@@ -168,10 +175,10 @@ conceal⊑²ᵀ : ∀ {Δᴸ Δᴿ Δ}
     {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
     {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
   → SourceConcealPartnerOKᵀ W c Xᴿ? M′
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
-  → CTI2.SameCtx γ γ′
-  → sourceStoreʷ W CTI2.⊢↓[ Xᴸ? ] c
+  → CTX.SameCtx γ γ′
+  → sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
   → W ∣ γ ⊢² M ↓ c ⊑ M′ ∶ q
@@ -198,8 +205,8 @@ terminus-B-inner-source-seal²ᵀ :
 terminus-B-inner-source-seal²ᵀ =
   conceal⊑²ᵀ terminus-B-inner-okᵀ
     (TRB.mono-refl {W = TRB.InstanceB.Wᵖ})
-    (CTI2.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y₂)
-    CTI2.same-[] TRB.InstanceB.source-seal-⊢
+    (CTX.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y₂)
+    CTX.same-[] TRB.InstanceB.source-seal-⊢
     TRB.InstanceB.base² TRB.InstanceB.X⊑★-Wᵖ
 
 terminus-B-payload²ᵀ :
@@ -215,7 +222,7 @@ terminus-B-terminus-pair²ᵀ :
       TRB.InstanceB.X⊑Y₂
 terminus-B-terminus-pair²ᵀ =
   CTI2.conceal⊑conceal² (TRB.mono-refl {W = TRB.InstanceB.Wᵖ})
-    TRB.InstanceB.rb-X-Y₂ CTI2.same-[]
+    TRB.InstanceB.rb-X-Y₂ CTX.same-[]
     TRB.InstanceB.source-seal-⊢ TRB.InstanceB.target-Y₂-seal-⊢
     terminus-B-payload²ᵀ TRB.InstanceB.X⊑Y₂
 
@@ -225,7 +232,7 @@ terminus-B-outputᵀ :
       TRB.InstanceB.X⊑Y
 terminus-B-outputᵀ =
   CTI2.⊑conceal² TRB.InstanceB.mono-W-Wᵖ
-    (CTI2.rebase-varᴿ TRB.InstanceB.rb-chain) CTI2.same-[]
+    (CTX.rebase-varᴿ TRB.InstanceB.rb-chain) CTX.same-[]
     TRB.InstanceB.target-Y-seal-⊢
     terminus-B-terminus-pair²ᵀ TRB.InstanceB.X⊑Y
 
@@ -235,10 +242,10 @@ terminus-B-premise-chain²ᵀ :
       TRB.InstanceB.X⊑Y
 terminus-B-premise-chain²ᵀ =
   CTI2.⊑conceal² TRB.InstanceB.mono-W-Wᵖ
-    (CTI2.rebase-varᴿ TRB.InstanceB.rb-chain) CTI2.same-[]
+    (CTX.rebase-varᴿ TRB.InstanceB.rb-chain) CTX.same-[]
     TRB.InstanceB.target-Y-seal-⊢
     (CTI2.conceal⊑conceal² (TRB.mono-refl {W = TRB.InstanceB.Wᵖ})
-      TRB.InstanceB.rb-X-Y₂ CTI2.same-[]
+      TRB.InstanceB.rb-X-Y₂ CTX.same-[]
       TRB.InstanceB.source-seal-⊢ TRB.InstanceB.target-Y₂-seal-⊢
       TRB.InstanceB.base² TRB.InstanceB.X⊑Y₂)
     TRB.InstanceB.X⊑Y
@@ -254,7 +261,7 @@ terminus-B-X/Y-aligned :
   CenterAligned TRB.InstanceB.W TRB.InstanceB.X TRB.InstanceB.Y
 terminus-B-X/Y-aligned =
   aligned-from-tag-rebase
-    (CTI2.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y)
+    (CTX.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y)
 
 terminus-B-tagged-okᵀ :
   SourceConcealPartnerOKᵀ TRB.InstanceB.W
@@ -271,8 +278,8 @@ terminus-B-tagged-inputᵀ :
 terminus-B-tagged-inputᵀ =
   conceal⊑²ᵀ terminus-B-tagged-okᵀ
     (TRB.mono-refl {W = TRB.InstanceB.W})
-    (CTI2.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y)
-    CTI2.same-[] TRB.InstanceB.source-seal-⊢
+    (CTX.tag-rebase-varᴸ TRB.InstanceB.rb-X-Y)
+    CTX.same-[] TRB.InstanceB.source-seal-⊢
     terminus-B-premise-casts²ᵀ TRB.InstanceB.X⊑★-W
 
 terminus-A-output-gate = TRB.InstanceA.output
@@ -298,14 +305,14 @@ star-rep-chain-inner-source²ᵀ :
   SRC.W ∣ [] ⊢² SRC.source-inner ⊑ SRC.target-core ∶ SRC.inner-type
 star-rep-chain-inner-source²ᵀ =
   conceal⊑²ᵀ star-rep-chain-inner-okᵀ
-    (λ Z eq → eq) SRC.inner-source-only-rebase CTI2.same-[]
+    (λ Z eq → eq) SRC.inner-source-only-rebase CTX.same-[]
     SRC.source-X-seal-⊢ SRC.base² SRC.inner-type
 
 star-rep-chain-outputᵀ :
   SRC.W ∣ [] ⊢² SRC.M ⊑ SRC.target-sealed ∶ SRC.q
 star-rep-chain-outputᵀ =
   CTI2.conceal⊑conceal² (λ Z eq → eq) SRC.outer-rebase
-    CTI2.same-[] SRC.source-Xᴸ-seal-⊢ SRC.target-Y-seal-⊢
+    CTX.same-[] SRC.source-Xᴸ-seal-⊢ SRC.target-Y-seal-⊢
     star-rep-chain-inner-source²ᵀ SRC.q
 
 CRP-Z₃ : TyVar 2
@@ -325,8 +332,8 @@ chain-ride-premiseᵀ :
   CRP.W₂ ∣ [] ⊢² CRP.V ⊑ CRP.U ∶ CRP.q₂
 chain-ride-premiseᵀ =
   conceal⊑²ᵀ chain-ride-premise-okᵀ
-    (λ X eq → eq) (CTI2.tag-rebase-varᴸ CRP.probe-premise-rebase)
-    CTI2.same-[] CRP.probe-Z₃-seal-⊢ CRP.probe-base² CRP.q₂
+    (λ X eq → eq) (CTX.tag-rebase-varᴸ CRP.probe-premise-rebase)
+    CTX.same-[] CRP.probe-Z₃-seal-⊢ CRP.probe-base² CRP.q₂
 
 TBP-X : TyVar 1
 TBP-X = Fin.zero
@@ -345,8 +352,8 @@ tag-boundary-source-seal²ᵀ :
   TBP.probe-W₅ ∣ [] ⊢² TBP.probe-V ⊑ TBP.probe-M₅ ∶ TBP.p₅
 tag-boundary-source-seal²ᵀ =
   conceal⊑²ᵀ tag-boundary-source-okᵀ
-    (λ _ eq → eq) (CTI2.tag-rebase-varᴸ TBP.probe-inner-source-rebase)
-    CTI2.same-[] TBP.probe-X-seal-⊢ TBP.probe-base² TBP.p₅
+    (λ _ eq → eq) (CTX.tag-rebase-varᴸ TBP.probe-inner-source-rebase)
+    CTX.same-[] TBP.probe-X-seal-⊢ TBP.probe-base² TBP.p₅
 
 ------------------------------------------------------------------------
 -- Examples2 and catalog/import gates

@@ -22,15 +22,21 @@ open import CastTerms using (Term; Inert; _⟨_⟩; _↓_)
 open import Conversion using (Conv↓; seal)
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealTransferCore as STC
 import proof.DGG.TerminusRebuildProbe as TRP
 import SourceStarPackageCounterScratch as SSC
 import Tighten8PreflightScratch as T8
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; TagRebaseAtᴸ; _⊑ᵂ⟨_⟩_;
-   _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   TagRebaseAtᴸ;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 module B = TRP.InstanceB
 
@@ -45,11 +51,11 @@ conceal⊑²₉ : ∀ {Δᴸ Δᴿ Δ}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
     {Xᴸ? : Maybe (TyVar Δᴸ)} {Xᴿ? : Maybe (TyVar Δᴿ)}
     {p : A ⊑ᵂ⟨ W′ ⟩ B} {c : Conv↓ Δᴸ A A′}
-  → CTI2.SourceConcealPartnerOK W′ M c Xᴿ? M′
-  → CTI2.ImpEnvMono W W′
+  → CTX.SourceConcealPartnerOK W′ M c Xᴿ? M′
+  → CTX.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W Xᴸ? Xᴿ?
-  → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ Xᴸ? ] c
+  → CTX.SameCtx γ γ′
+  → CTX.sourceStoreʷ W Conv.⊢↓[ Xᴸ? ] c
   → W′ ∣ γ′ ⊢² M ⊑ M′ ∶ p
   → (q : A′ ⊑ᵂ⟨ W ⟩ B)
     -----------------------------
@@ -64,16 +70,16 @@ source-star-premise₉ : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Xᴿ? : Maybe (TyVar Δᴿ)}
     {p : ★ ⊑ᵂ⟨ W′ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → TagRebaseAtᴸ W′ W (just X) Xᴿ?
-  → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-  → CTI2.Rep★PartnerOK W′ X V Xᴿ? U
+  → CTX.SameCtx γ γ′
+  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTX.Rep★PartnerOK W′ X V Xᴿ? U
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p
   → W ∣ γ ⊢² V ↓ seal X ★ ⊑ U ∶ q
 source-star-premise₉ mono rb sc source⊢ partner prem =
   conceal⊑²₉
-    (CTI2.seal-partner-ok (CTI2.star-rep-target partner))
+    (CTX.seal-partner-ok (CTX.star-rep-target partner))
     mono rb sc source⊢ prem _
 
 ------------------------------------------------------------------------
@@ -85,7 +91,7 @@ round18-source-conceal-package₉ : ∀ {Δᴸ Δᴿ Δ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
   → RebaseAt Wᵖ W X Y
-  → CTI2.Rep★PartnerOK Wᵖ X P (just Y) U
+  → CTX.Rep★PartnerOK Wᵖ X P (just Y) U
   → W ∣ γ ⊢² P ⊑ U ∶ ★⊑★
   → STC.TaggedTransferOutput W γ P U X (just Y)
 round18-source-conceal-package₉ =
@@ -98,17 +104,17 @@ round18-source-star-premise-package₉ : ∀ {Δᴸ Δᴿ Δ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {p : ★ ⊑ᵂ⟨ W′ ⟩ ★}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W X Y
-  → CTI2.SameCtx γ γ′
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-  → CTI2.Rep★PartnerOK W′ X V (just Y) U
+  → CTX.SameCtx γ γ′
+  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTX.Rep★PartnerOK W′ X V (just Y) U
   → W′ ∣ γ′ ⊢² V ⊑ U ∶ p
   → W ∣ γ ⊢² V ⊑ U ∶ ★⊑★
   → W ∣ γ ⊢² V ↓ seal X ★ ⊑ U ∶ q
     × STC.TaggedTransferOutput W γ V U X (just Y)
 round18-source-star-premise-package₉ mono rb sc source⊢ partner prem pkgPrem =
-  source-star-premise₉ mono (CTI2.tag-rebase-varᴸ rb) sc source⊢
+  source-star-premise₉ mono (CTX.tag-rebase-varᴸ rb) sc source⊢
     partner prem ,
   round18-source-conceal-package₉ rb partner pkgPrem
 
@@ -124,7 +130,7 @@ round16-cast-subhead-package₉ :
     {P : Term Δᴸ} {U : Term Δᴿ}
     {q₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★}
   → RebaseAt W₃ W₂ X Yᵖ
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → T8.TaggedTransferOutput₈ W₂ γ₂
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵖ)
@@ -140,7 +146,7 @@ round16-source-seal-subhead₉ :
     {q₂ : (＇ X) ⊑ᵂ⟨ W₂ ⟩ ★}
   → RebaseAt W₃ W₂ X Yᵖ
   → RebaseAt W₂ W₀ X Y
-  → CTI2.Rep★PartnerOK W₃ X P (just Yᵖ) U
+  → CTX.Rep★PartnerOK W₃ X P (just Yᵖ) U
   → W₂ ∣ γ₂ ⊢² P ↓ seal X ★ ⊑ U ∶ q₂
   → T8.TaggedTransferOutput₈ W₂ γ₂
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵖ)
@@ -156,7 +162,7 @@ worker-source-seal-var-tag-no-target-after-cast-empty₉ :
     {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂} {AnsY : NonStar Aᴿ}
     {ν : Env∼ Δᴸ} {cX : ν ⊢ (＇ X) ∼ ★}
   → Inert cX
-  → CTI2.SourceConcealPartnerOK W P (seal X ★) nothing
+  → CTX.SourceConcealPartnerOK W P (seal X ★) nothing
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
   → ⊥
@@ -168,7 +174,7 @@ wrong-pedigree-package-empty₉ :
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {X : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
     {P : Term Δᴸ} {U : Term Δᴿ}
-  → CTI2.CenterAligned W X Y
+  → CTX.CenterAligned W X Y
   → Y₂ ≢ Y
   → T8.TaggedTransferOutput₈ W γ P U X (just Y₂)
   → ⊥
@@ -180,7 +186,7 @@ wrong-pedigree-round-trip-blocked₉ :
     {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
     {X : TyVar Δᴸ} {Yᵢ Yᵒ : TyVar Δᴿ}
     {P : Term Δᴸ} {U : Term Δᴿ}
-  → CTI2.CenterAligned W X Yᵢ
+  → CTX.CenterAligned W X Yᵢ
   → Yᵒ ≢ Yᵢ
   → T8.TaggedTransferOutput₈ W γ
       ((P ↓ seal X ★) ⟨ id (＇ X) ! ⟩) U X (just Yᵒ)
@@ -202,7 +208,7 @@ round15-counterexample-stays-closed₉ =
   T8.round15-counterexample-stays-closed₈
 
 round15-live-output-partner-still-empty₉ :
-  CTI2.Rep★PartnerOK B.W B.X SSC.source-output-tag
+  CTX.Rep★PartnerOK B.W B.X SSC.source-output-tag
     (just B.Y₂) SSC.target-tag
   → ⊥
 round15-live-output-partner-still-empty₉ =

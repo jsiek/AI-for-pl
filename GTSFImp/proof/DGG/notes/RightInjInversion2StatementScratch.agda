@@ -12,11 +12,17 @@ open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
 open import CastTerms using (Term; Value; _⟨_⟩; _↓_; $; seal)
 import CastTerms as CTerms
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Inversion.SpineValueDef as SVD
 import proof.DGG.CenterCrossingProbe as CCP
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 RightInjInversion²Statement : Set
 RightInjInversion²Statement =
@@ -43,7 +49,7 @@ example12-target-value = CTerms.$ (κℕ 7) CTerms.↓ CTerms.seal
 
 example12-consumes-no-parked :
   RightInjInversion²Statement
-  → CTI2.example12-world-X ∣ [] ⊢²
+  → Ex12.example12-world-X ∣ [] ⊢²
       ($ (κℕ 7)) ↓ Ex2.example12-source-X-seal
       ⊑ ($ (κℕ 7)) ↓ Ex2.example12-target-X-seal ∶
         Ex2.example12-X-var⊑

@@ -20,7 +20,8 @@ open import Reduction using
   ; ↠-refl
   ; ↠-step
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.MultiSimDef using (Sim*ᵀ)
 open import proof.DGG.Parked.ParkedWorldDef using (evolve-refl)
@@ -28,10 +29,11 @@ open import proof.DGG.Parked.ParkedWorldLemma
   using (parked-world-closed)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof
   using (compose-parked-evolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof
-  using (applyTys-++; composeReduction)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 
 transport-related-target : ∀ {Δᴸ Δᴿ Δ}

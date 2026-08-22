@@ -23,16 +23,20 @@ open import Reduction using
   (StoreChange; StoreChanges; _—↠[_]_; []; _∷_;
    applyTy; applyTys; applyConsistency; applyConsistencies)
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
-import proof.DGG.Catchup.ExtraCastRightProof as ECRP
 import proof.DGG.Catchup.InstCatchupRightDef as ICRD
 import proof.DGG.Catchup.InstCatchupRightProof as ICRP
 open import proof.DGG.Inversion.RightInjInversion2Def
   using (RightInjInversion²)
 open import proof.DGG.Inversion.SpineValueDef using (AllValueView)
 import proof.DGG.ReachabilityCatalog as RC
-open CTI2 using (World; CtxImp; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Cast-column measure
@@ -130,14 +134,12 @@ ExtraCastRightAt fuel = ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
     {γ : CtxImp W}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν : Env∼ Δᴿ}
-    {p : A ⊑ᵂ⟨ W ⟩ B}
-  → W ∣ γ ⊢² M ⊑ M′ ∶ p
-  → Value M
-  → Value M′
+    {q : A ⊑ᵂ⟨ W ⟩ B′}
   → (c′ : ν ⊢ B ∼ B′)
   → castSize c′ < fuel
-  → (q : A ⊑ᵂ⟨ W ⟩ B′)
-  → ECR.CatchupCast {W = W} {A = A} p M′ c′ q
+  → W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
+  → Value M
+  → Value M′
   → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χs ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ Δ′ ∈ TyCtx ] Σ[ W′ ∈ World Δᴸ Δᴿ′ Δ′ ]
     Σ[ ext ∈ ECR.WorldExtendᴿ χs W W′ ]
@@ -212,21 +214,9 @@ record FuelStepSurface (fuel : ℕ) : Set₁ where
 -- Imported worker smoke tests
 ------------------------------------------------------------------------
 
-module ImportedM4Smoke
-    (inversion : RightInjInversion²)
-    (inst-catchup : ECR.InstCatchupRight²)
-  where
-  ground-other-worker =
-    ECRP.extra-cast-right-ground-other² inversion inst-catchup
-
-  project-expand-worker =
-    ECRP.extra-cast-right-project-expand² inversion inst-catchup
-
-  inst-worker =
-    ECRP.extra-cast-right-inst² inversion inst-catchup
-
-  inst-canonical-worker =
-    ECRP.extra-cast-right-inst-canonical² inversion inst-catchup
+-- M4 worker exports are parked during LG-3 until target-cast CTI inversion
+-- is rebuilt.  This scratch now checks only the fuel-indexed surface above
+-- plus the M5 catalog import below.
 
 m5-step-catalog : ICRD.AllValueViewStepCatalogᵀ
 m5-step-catalog = ICRP.all-value-view-step-catalog

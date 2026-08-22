@@ -25,7 +25,7 @@ inst-inversion→rel-surface pkg = record
   ; all-value-step-catalog =
       InstInversionPackage.all-value-step-catalog pkg
   ; inst-alloc-decrease = InstInversionPackage.inst-alloc-decrease pkg
-  ; catchup⁻-embed = InstInversionPackage.catchup⁻-embed pkg
+  ; residual-cast-builder = InstInversionPackage.residual-cast-builder pkg
   ; Λ-cont = λ rel vM vM′ vV′ eq c′ B′≢★ c<fuel q →
       InstPostCatalogPackage.finish
         (InstInversionPackage.Λ-package pkg

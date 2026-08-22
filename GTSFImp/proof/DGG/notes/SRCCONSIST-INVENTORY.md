@@ -92,8 +92,8 @@ This was exactly the old gate block for `★ ∼ ＇0` under `idᶜ`, where
 | `GTSFImp/proof/DGG/SealPeelToolkit.agda:62-81` | `right-var-obligation-view`. | c | Inverts imprecision `R ⊑ᵂ ＇Y`; non-variable and `★` left sides are impossible independently of consistency gates. |
 | `GTSFImp/proof/DGG/SealPeelToolkit.agda:201-209` | `var-consistency-view`. | a | For `ν ⊢ ＇Z ∼ R`, `id` gives `R = ＇Z`; any `_!` gives `R = ★`. It does not inspect the gate evidence inside `_!`. |
 | `GTSFImp/proof/DGG/Inversion/SpineValueDef.agda:145-154` | `var-tag-value-sealed`. | a | Matches only on `Value (N ⟨ _! ... ⟩)` being `vN 《 inj 》`, then uses typing; no gate case split. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda:388-438` | `Rep★PartnerOK` var-tag, matched-inner-tags, round-trip clauses. | a | Variable tag evidence is stored opaquely; clauses require alignment or nonvar evidence, not mode equality. |
-| `GTSFImp/proof/DGG/CastTermImprecision2.agda:509-538` | `TagRebaseAtᴸ` and forgetting. | c | `tag-rebase-onlyᴸ` has `Xᴿ? = nothing`; var-tag/matched-inner partner cases with `just Y` cannot inhabit that index. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda:388-438` | `Rep★PartnerOK` var-tag, matched-inner-tags, round-trip clauses. | a | Variable tag evidence is stored opaquely; clauses require alignment or nonvar evidence, not mode equality. |
+| `GTSFImp/proof/DGG/CastTermImprecision.agda:509-538` | `TagRebaseAtᴸ` and forgetting. | c | `tag-rebase-onlyᴸ` has `Xᴿ? = nothing`; var-tag/matched-inner partner cases with `just Y` cannot inhabit that index. |
 | `GTSFImp/proof/DGG/CenterRename.agda:336-349,360-375` | Renames tag-rebases and `Rep★PartnerOK`. | a | Var-tag/matched-inner clauses only rename alignment facts. |
 | `GTSFImp/proof/DGG/TermImpDecay.agda:120-139,360-397` | Decays partner predicates and tag-rebases. | a | Var-tag/matched-inner clauses are structural; `tag-rebase-onlyᴸ` only transports imprecision environment facts. |
 | `GTSFImp/proof/DGG/ExtraCastRight2.agda:117-142,166-176` | Generated projection/catchup cases carry tag/projection gates. | a | `G∼★`/`★∼G` are parameters and are not inspected. |
@@ -151,11 +151,11 @@ This was exactly the old gate block for `★ ∼ ＇0` under `idᶜ`, where
 - `var-tag-value-sealed` (`proof/DGG/Inversion/SpineValueDef.agda:145-154`)
   does not case on the gate. It only observes that a value of tagged form is
   `vN 《 inj 》`, then uses the inner typing of `N`.
-- `Rep★PartnerOK` (`proof/DGG/CastTermImprecision2.agda:388-438`) stores
+- `Rep★PartnerOK` (`proof/DGG/CastTermImprecision.agda:388-438`) stores
   variable-tag gate evidence opaquely. The var-tag and matched-inner clauses
   inspect only `CenterAligned` and, for matched-inner tags, `X₂ ≢ X`.
 - `SealPartnerOK` and `MatchedConcealPartnerOK`
-  (`CastTermImprecision2.agda:440-490`) lift those partner predicates; they do
+  (`CastTermImprecision.agda:440-490`) lift those partner predicates; they do
   not inspect `μ X`.
 - A rigid-gated variable tag would flow into rep-star seal-partner positions
   whenever the alignment/index premises select the var-tag path. Under

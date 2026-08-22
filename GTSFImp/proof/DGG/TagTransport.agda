@@ -16,11 +16,9 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types
 open import TyStore using (TyStore; store-lift; S-lift∋)
+import Conversion as Conv
 open import Conversion using (Conv↑; Conv↓)
 open import Imprecision
-open import proof.DGG.CastTermImprecision2 using
-  (_⊢↑[_]_; _⊢↓[_]_; ⊢↑-unsealˣ; ⊢↑-⇒ˣ; ⊢↑-∀ˣ;
-   ⊢↓-sealˣ; ⊢↓-⇒ˣ; ⊢↓-∀ˣ)
 open import proof.DGG.ConvImp using
   (occurs-absent-⊥; conv↑-zero-pre; conv↑-zero-post;
    conv↓-zero-pre; conv↓-zero-post)
@@ -60,45 +58,45 @@ open import proof.ImprecisionConsistency using
 transport↑-∀-fun : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ} {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↑ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
-  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ (★ ⇒ ★)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ (★ ⇒ ★)
 transport↑-∀-fun
-    (⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
+    (Conv.⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
     (∀⊑★ Ans pb) (∀⊑ Anv z∈′ qb) =
   ⊥-elim
     (occurs-absent-⊥
       (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)
       (zero-absent-shift _))
 transport↑-∀-fun
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ (⇒⊑⇒ qA qB)) =
   ∀⊑ nonvar-fun
     (rename-occurs (extᵗ _) (ext-injective inj′)
-      (conv↑-zero-post (⊢↑-⇒ˣ pj ⊢a ⊢b)
+      (conv↑-zero-post (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b)
         (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
     (⇒⊑⇒ (⊑-extᵐ-instᵐ pA) (⊑-extᵐ-instᵐ pB))
 transport↑-∀-fun
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ (⇒⊑⇒ qA qB)) =
   ∀⊑ nonvar-fun z∈p (⇒⊑⇒ pA pB)
 transport↑-∀-fun
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↑-zero-post (⊢↑-∀ˣ ⊢c₂)
+        (conv↑-zero-post (Conv.⊢↑-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↑-∀-fun
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↑-∀-fun
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   ∀⊑ nonvar-all z∈p
     (transport↑-∀-fun ⊢c₂ (ext-injective inj′)
@@ -107,48 +105,48 @@ transport↑-∀-fun
 transport↑-∀-all : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ} {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↑ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
-  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ `∀ ★
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ `∀ ★
 transport↑-∀-all
-    (⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
+    (Conv.⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
     (∀⊑★ Ans pb) q =
   ∀⊑∀ pb
 transport↑-∀-all
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans pb) q =
   ∀⊑∀ pb
 transport↑-∀-all
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑∀ qb)
     with source-occurs-target refl qb
       (rename-occurs (extᵗ _) (ext-injective inj)
-        (conv↑-zero-pre (⊢↑-⇒ˣ pj ⊢a ⊢b)
+        (conv↑-zero-pre (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b)
           (unrename-occurs (extᵗ _) (ext-injective inj′) z∈p)))
 transport↑-∀-all
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑∀ qb) | ()
 transport↑-∀-all
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑ Anv z∈′ ())
 transport↑-∀-all
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb) q =
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb) q =
   ∀⊑∀ pb
 transport↑-∀-all
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑∀ qb)
     with source-occurs-target refl qb
       (rename-occurs (extᵗ _) (ext-injective inj)
-        (conv↑-zero-pre (⊢↑-∀ˣ ⊢c₂)
+        (conv↑-zero-pre (Conv.⊢↑-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj′) z∈p)))
 transport↑-∀-all
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑∀ qb) | ()
 transport↑-∀-all
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   ∀⊑ nonvar-all z∈p
     (transport↑-∀-all ⊢c₂ (ext-injective inj′)
@@ -158,38 +156,38 @@ transport↑-∀-ι-⊥ : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ}
     {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↑ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc} {ι : Base}
-  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ ‵ ι
   → ⊥
 transport↑-∀-ι-⊥
-    (⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
+    (Conv.⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
     (∀⊑★ Ans pb) (∀⊑ Anv z∈′ qb) =
   ⊥-elim
     (occurs-absent-⊥
       (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)
       (zero-absent-shift _))
 transport↑-∀-ι-⊥
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB)) (∀⊑ Anv z∈′ ())
 transport↑-∀-ι-⊥
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ ())
 transport↑-∀-ι-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↑-zero-post (⊢↑-∀ˣ ⊢c₂)
+        (conv↑-zero-post (Conv.⊢↑-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↑-∀-ι-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↑-∀-ι-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   transport↑-∀-ι-⊥ ⊢c₂ (ext-injective inj′)
     (ext-injective inj) pb qb
@@ -199,38 +197,38 @@ transport↑-∀-var-⊥ : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↑ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
     {Z : TyVar Δc}
-  → store-lift Σ ⊢↑[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↑[ just (Fin.suc X) ] c₁
   → (∀ {Y Y′} → ρ′ Y ≡ ρ′ Y′ → Y ≡ Y′)
   → (∀ {Y Y′} → ρ Y ≡ ρ Y′ → Y ≡ Y′)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ ＇ Z
   → ⊥
 transport↑-∀-var-⊥
-    (⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
+    (Conv.⊢↑-unsealˣ (S-lift∋ ∋X refl)) inj′ inj
     (∀⊑★ Ans pb) (∀⊑ Anv z∈′ qb) =
   ⊥-elim
     (occurs-absent-⊥
       (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)
       (zero-absent-shift _))
 transport↑-∀-var-⊥
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB)) (∀⊑ Anv z∈′ ())
 transport↑-∀-var-⊥
-    (⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↑-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ ())
 transport↑-∀-var-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↑-zero-post (⊢↑-∀ˣ ⊢c₂)
+        (conv↑-zero-post (Conv.⊢↑-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↑-∀-var-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↑-∀-var-⊥
-    (⊢↑-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↑-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   transport↑-∀-var-⊥ ⊢c₂ (ext-injective inj′)
     (ext-injective inj) pb qb
@@ -242,41 +240,41 @@ transport↑-∀-var-⊥
 transport↓-∀-fun : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ} {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↓ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
-  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ (★ ⇒ ★)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ (★ ⇒ ★)
 transport↓-∀-fun
-    (⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
+    (Conv.⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
     (∀⊑ () z∈′ qb)
 transport↓-∀-fun
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ (⇒⊑⇒ qA qB)) =
   ∀⊑ nonvar-fun
     (rename-occurs (extᵗ _) (ext-injective inj′)
-      (conv↓-zero-post (⊢↓-⇒ˣ pj ⊢a ⊢b)
+      (conv↓-zero-post (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b)
         (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
     (⇒⊑⇒ (⊑-extᵐ-instᵐ pA) (⊑-extᵐ-instᵐ pB))
 transport↓-∀-fun
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ (⇒⊑⇒ qA qB)) =
   ∀⊑ nonvar-fun z∈p (⇒⊑⇒ pA pB)
 transport↓-∀-fun
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↓-zero-post (⊢↓-∀ˣ ⊢c₂)
+        (conv↓-zero-post (Conv.⊢↓-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↓-∀-fun
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↓-∀-fun
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   ∀⊑ nonvar-all z∈p
     (transport↓-∀-fun ⊢c₂ (ext-injective inj′)
@@ -285,50 +283,50 @@ transport↓-∀-fun
 transport↓-∀-all : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ} {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↓ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
-  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ `∀ ★
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ `∀ ★
 transport↓-∀-all
-    (⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀ (∀⊑∀ qb) =
+    (Conv.⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀ (∀⊑∀ qb) =
   ∀⊑∀
     (∀⊑★-body-no0 p₀
       (rename-not-occurs (extᵗ _) (ext-injective inj′)
         (zero-absent-shift _)))
 transport↓-∀-all
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans pb) q =
   ∀⊑∀ pb
 transport↓-∀-all
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑∀ qb)
     with source-occurs-target refl qb
       (rename-occurs (extᵗ _) (ext-injective inj)
-        (conv↓-zero-pre (⊢↓-⇒ˣ pj ⊢a ⊢b)
+        (conv↓-zero-pre (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b)
           (unrename-occurs (extᵗ _) (ext-injective inj′) z∈p)))
 transport↓-∀-all
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑∀ qb) | ()
 transport↓-∀-all
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p pb) (∀⊑ Anv z∈′ ())
 transport↓-∀-all
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb) q =
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb) q =
   ∀⊑∀ pb
 transport↓-∀-all
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑∀ qb)
     with source-occurs-target refl qb
       (rename-occurs (extᵗ _) (ext-injective inj)
-        (conv↓-zero-pre (⊢↓-∀ˣ ⊢c₂)
+        (conv↓-zero-pre (Conv.⊢↓-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj′) z∈p)))
 transport↓-∀-all
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑∀ qb) | ()
 transport↓-∀-all
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   ∀⊑ nonvar-all z∈p
     (transport↓-∀-all ⊢c₂ (ext-injective inj′)
@@ -338,34 +336,34 @@ transport↓-∀-ι-⊥ : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ}
     {X : TyVar Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↓ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc} {ι : Base}
-  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c₁
   → (∀ {Y Z} → ρ′ Y ≡ ρ′ Z → Y ≡ Z)
   → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ ‵ ι
   → ⊥
 transport↓-∀-ι-⊥
-    (⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
+    (Conv.⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
     (∀⊑ () z∈′ qb)
 transport↓-∀-ι-⊥
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB)) (∀⊑ Anv z∈′ ())
 transport↓-∀-ι-⊥
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ ())
 transport↓-∀-ι-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↓-zero-post (⊢↓-∀ˣ ⊢c₂)
+        (conv↓-zero-post (Conv.⊢↓-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↓-∀-ι-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↓-∀-ι-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   transport↓-∀-ι-⊥ ⊢c₂ (ext-injective inj′)
     (ext-injective inj) pb qb
@@ -375,34 +373,34 @@ transport↓-∀-var-⊥ : ∀ {Δᴸ Δc} {Σ : TyStore Δᴸ}
     {A₁ B₁ : Ty (Nat.suc Δᴸ)} {c₁ : Conv↓ (Nat.suc Δᴸ) A₁ B₁}
     {ρ′ ρ : Δᴸ ⇒ʳ Δc} {μ′ μ : ImpEnv Δc}
     {Z : TyVar Δc}
-  → store-lift Σ ⊢↓[ just (Fin.suc X) ] c₁
+  → store-lift Σ Conv.⊢↓[ just (Fin.suc X) ] c₁
   → (∀ {Y Y′} → ρ′ Y ≡ ρ′ Y′ → Y ≡ Y′)
   → (∀ {Y Y′} → ρ Y ≡ ρ Y′ → Y ≡ Y′)
   → μ′ ⊢ renameᵗ ρ′ (`∀ A₁) ⊑ ★
   → μ ⊢ renameᵗ ρ (`∀ B₁) ⊑ ＇ Z
   → ⊥
 transport↓-∀-var-⊥
-    (⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
+    (Conv.⊢↓-sealˣ (S-lift∋ ∋X refl)) inj′ inj p₀
     (∀⊑ () z∈′ qb)
 transport↓-∀-var-⊥
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑★ Ans (⇒⊑★ pA pB)) (∀⊑ Anv z∈′ ())
 transport↓-∀-var-⊥
-    (⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
+    (Conv.⊢↓-⇒ˣ pj ⊢a ⊢b) inj′ inj
     (∀⊑ nonvar-fun z∈p (⇒⊑★ pA pB))
     (∀⊑ Anv z∈′ ())
 transport↓-∀-var-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb)
     with source-occurs-target refl pb
       (rename-occurs (extᵗ _) (ext-injective inj′)
-        (conv↓-zero-post (⊢↓-∀ˣ ⊢c₂)
+        (conv↓-zero-post (Conv.⊢↓-∀ˣ ⊢c₂)
           (unrename-occurs (extᵗ _) (ext-injective inj) z∈′)))
 transport↓-∀-var-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj (∀⊑★ Ans pb)
     (∀⊑ Anv z∈′ qb) | ()
 transport↓-∀-var-⊥
-    (⊢↓-∀ˣ ⊢c₂) inj′ inj
+    (Conv.⊢↓-∀ˣ ⊢c₂) inj′ inj
     (∀⊑ nonvar-all z∈p pb) (∀⊑ Anv z∈′ qb) =
   transport↓-∀-var-⊥ ⊢c₂ (ext-injective inj′)
     (ext-injective inj) pb qb

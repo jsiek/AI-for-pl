@@ -9,7 +9,7 @@ module proof.DGG.Parked.ParkedD4CheckpointDef where
 import Data.List as List
 
 open import Reduction using (StoreChanges; []; _∷_; keep; bind)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.ReachabilityCatalog as RC

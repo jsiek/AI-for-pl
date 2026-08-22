@@ -4,7 +4,7 @@ module SourceReachabilityResultScratch where
 --   * Connects the target of the closed gradual source pair in
 --     SourceLegScratch to the runtime checkpoints in InitialPairScratch.
 --   * Checks that the target projection reached by compilation carries the
---     matching generated-name injection required by CatchupCast.
+--     matching generated-name injection required by CTI inversion.
 --   * Records the exact target cancellation route and the companion route
 --     for InitialPairScratch's simplified precise CTI checkpoint.
 
@@ -32,12 +32,13 @@ open import Primitives using (κℕ)
 open import Compile using (compile)
 import Conversion as Conv
 open Conv using (unseal)
-import proof.DGG.ExtraCastRight2 as ECR
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.StarRepChainProbe as Probe
 import proof.DGG.ReachabilityCatalog as RC
 import proof.DGG.ReachabilityScreen as RS
-import InitialPairScratch as IP
+import proof.DGG.notes.InitialPairScratch as IP
 import SourceLegScratch as Source
 
 ------------------------------------------------------------------------
@@ -112,13 +113,9 @@ target-input-gate :
   IP.Q-generated-tagged-input ≡ target-sealed ⟨ IP.Q-Y! ⟩
 target-input-gate = refl
 
-reached-catchup :
-  ECR.CatchupCast {W = Probe.W} {A = ＇ zero}
-    Probe.input-type IP.Q-generated-tagged-input
-    (IP.X? {μ = idᶜ}) Probe.q
-reached-catchup =
-  ECR.catchup-projection
-    (ECR.generated-project-same target-sealed-value)
+reached-catchup-live-replacement :
+  Probe.W ∣ [] ⊢² Probe.M ⊑ Probe.N ∶ Probe.input-type
+reached-catchup-live-replacement = IP.mid-input
 
 target-route :
   IP.Q₆ —↠[ keep ∷ keep ∷ [] ] target-core

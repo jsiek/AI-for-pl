@@ -24,10 +24,18 @@ open import TyStore using
 open import Consistency using
   (Env∼; _⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; id; _!; gen_)
 open import Imprecision
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; ηᴸʷ; ηᴿʷ; impEnvʷ; sourceStoreʷ;
-   targetStoreʷ; resolveVar; resolveRep)
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   ηᴸʷ;
+   ηᴿʷ;
+   impEnvʷ;
+   sourceStoreʷ;
+   targetStoreʷ;
+   resolveVar;
+   resolveRep)
 import proof.DGG.WorldDecay as WD
 
 ------------------------------------------------------------------------

@@ -4,7 +4,7 @@ module AgdaInternalErrorRepro where
 -- checking this old dispatcher shape hits
 -- __IMPOSSIBLE__ at CompiledClause/Compile.hs:170.
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
 open import proof.DGG.Inversion.SourceStripDef using (SourceSpineStrip)
 open import proof.DGG.Inversion.SpineValueDef using
   (sv-Λ; sv-cast; sv-conceal-all; sv-conceal-fun; sv-reveal-all;

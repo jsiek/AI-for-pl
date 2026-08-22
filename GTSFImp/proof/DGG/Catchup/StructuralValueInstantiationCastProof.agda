@@ -9,7 +9,8 @@ open import Types using (Ty)
 open import Consistency using (Env∼; _⊢_∼_)
 open import CastTerms using (Term; Inert; _⟨_⟩)
 open import Reduction using (StoreChanges)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.ExtraCastRight2 as ECR
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
@@ -17,13 +18,13 @@ open import proof.DGG.Catchup.StructuralWorldExtendProof
 
 structural-inert-cast-replay : ∀ {Δᴸ Δᴿ Δᴿ′ Δ Δ′}
     {χs : StoreChanges Δᴿ Δᴿ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ Δᴿ′ Δ′}
-    {γ : CTI2.CtxImp W}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ Δᴿ′ Δ′}
+    {γ : CTX.CtxImp W}
     {M : Term Δᴸ} {F : Term Δᴿ′}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {ν : Env∼ Δᴸ}
-    {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
-    {q : A′ CTI2.⊑ᵂ⟨ W ⟩ B}
+    {p : A CTX.⊑ᵂ⟨ W ⟩ B}
+    {q : A′ CTX.⊑ᵂ⟨ W ⟩ B}
   → (plan : StructuralWorldExtendᴿ χs W W′)
   → (c : ν ⊢ A ∼ A′)
   → Inert c

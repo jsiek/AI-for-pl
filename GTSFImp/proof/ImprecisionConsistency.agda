@@ -1522,6 +1522,51 @@ ground-targets-unique⊑ gG gH I.bot-elim
   ⊥-elim (nonVar-zero⊥ Anv)
 ground-targets-unique⊑ ∀★ ∀★ I.bot-elim I.bot-elim = refl
 
+variable-ground-other-impossible : ∀ {Δ} {ν : Env∼ Δ}
+    {X : TyVar Δ} {G : Ty Δ}
+  → Ground G
+  → ν ⊢ ＇ X ∼ G
+  → ＇ X ≢ G
+  → ⊥
+variable-ground-other-impossible (＇ X) (id (＇ .X)) X≢X =
+  X≢X refl
+variable-ground-other-impossible ∀★
+    ((C.gen_ ⦃ _ ⦄ ⦃ () ⦄ c) A≢★) X≢G
+
+ground-cast-target-unique⊑ : ∀ {Δ} {μ : I.ImpEnv Δ}
+    {ν : Env∼ Δ} {A B H G : Ty Δ}
+  → Ground A
+  → Ground H
+  → Ground G
+  → NonStar B
+  → ν ⊢ B ∼ G
+  → μ ⊢ A ⊑ H
+  → μ ⊢ A ⊑ B
+  → H ≡ G
+ground-cast-target-unique⊑ {G = G}
+    (＇ X) h g Bns c I.X⊑X I.X⊑X
+    with G ≟Ty ＇ X
+ground-cast-target-unique⊑ {G = G}
+    (＇ X) h g Bns c I.X⊑X I.X⊑X
+    | yes G≡X = sym G≡X
+ground-cast-target-unique⊑ {G = G}
+    (＇ X) h g Bns c I.X⊑X I.X⊑X
+    | no G≢X =
+  ⊥-elim (variable-ground-other-impossible g c
+    (λ X≡G → G≢X (sym X≡G)))
+ground-cast-target-unique⊑ (‵ ι) h g Bns c p q =
+  ground-targets-unique⊑ h g p
+    (ground-cast-target⊑ g Bns c q
+      (ground-target-nonvar-to-star⊑ h nonvar-base p))
+ground-cast-target-unique⊑ ★⇒★ h g Bns c p q =
+  ground-targets-unique⊑ h g p
+    (ground-cast-target⊑ g Bns c q
+      (ground-target-nonvar-to-star⊑ h nonvar-fun p))
+ground-cast-target-unique⊑ ∀★ h g Bns c p q =
+  ground-targets-unique⊑ h g p
+    (ground-cast-target⊑ g Bns c q
+      (ground-target-nonvar-to-star⊑ h nonvar-all p))
+
 shift-not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
   → X ∉ᵗ A
   → suc X ∉ᵗ ⇑ᵗ A

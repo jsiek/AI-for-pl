@@ -1,6 +1,6 @@
-module InitialPairScratch where
+module proof.DGG.notes.InitialPairScratch where
 
--- Root-only scratch for the initial closed CastTerm pair used by the
+-- Checked scratch for the initial closed CastTerm pair used by the
 -- problematic extra-cast-right inversion.  The file constructs the right
 -- GEN-cast partner of PPrimeTraceScratch.P′ᶜ, proves the closed initial
 -- version-2 imprecision relation, and records evaluator-backed checkpoints.
@@ -45,11 +45,27 @@ open import CastTerms
 open import Compile using (compile)
 open import Eval using (step?)
 open import Reduction using (keep; bind)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 open CTI2 using
-  (World; _∣_⊢²_⊑_∶_; _⊑ᵂ⟨_⟩_; ctx-imp; lift-[];
-   lift-∷; liftᴸ-[]; liftᴸ-∷; x⊑x²; ƛ⊑ƛ²; ·⊑·²;
-   Λ⊑²; •⊑•²; •⊑²; κ⊑κ²; cast⊑cast²; ⊑cast²)
+  (World;
+   _⊑ᵂ⟨_⟩_;
+   ctx-imp;
+   lift-[];
+   lift-∷;
+   liftᴸ-[];
+   liftᴸ-∷)
+open CTIR using
+  (_∣_⊢²_⊑_∶_;
+   x⊑x²;
+   ƛ⊑ƛ²;
+   ·⊑·²;
+   Λ⊑²;
+   •⊑•²;
+   •⊑²;
+   κ⊑κ²;
+   cast⊑cast²;
+   ⊑cast²)
 import proof.DGG.CompilePreservesImprecision2 as CPI2
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.OneStep as Step

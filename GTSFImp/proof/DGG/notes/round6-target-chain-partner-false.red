@@ -20,8 +20,7 @@ This is not derivable under the current live `Rep★PartnerOK` predicate.  I
 checked a temporary scratch module, then deleted it, with:
 
 ```text
-AGDA_DIR=/tmp/claude-26597/-home-runner-AI-for-pl/abaf167a-fb69-4f9e-bdf7-5f069c5047b5/scratchpad/agda-home \
-  agda -i GTSFImp -v0 TargetChainPartnerCounterScratch.agda
+agda -i GTSFImp -v0 TargetChainPartnerCounterScratch.agda
 ```
 
 The scratch module checked.

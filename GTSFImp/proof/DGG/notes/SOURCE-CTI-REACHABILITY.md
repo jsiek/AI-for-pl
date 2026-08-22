@@ -113,7 +113,7 @@ the inner `\mathbb{N}!` tag for its input tag.
 
 The executable compiled mirror for `P` contains an additional inert universal
 identity cast, so it is not definitionally the simplified precise checkpoint
-in `InitialPairScratch.agda`. Its complete evaluator trace nevertheless returns
+in `GTSFImp/proof/DGG/notes/InitialPairScratch.agda`. Its complete evaluator trace nevertheless returns
 a value. In the simplified CTI checkpoint, the corresponding nested seals
 cancel in allocation order:
 

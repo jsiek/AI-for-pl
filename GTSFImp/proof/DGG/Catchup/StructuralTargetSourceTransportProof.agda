@@ -9,7 +9,7 @@ open import Data.Nat using (suc)
 open import Types using (Ty)
 open import Imprecision using (VarImp)
 open import CastTerms using (Term)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldRebaseProof
 open import proof.DGG.Catchup.StructuralWorldTagRebaseDef

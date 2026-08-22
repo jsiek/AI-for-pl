@@ -25,13 +25,14 @@ open import Reduction using
    _—→[_]_; _—↠[_]_; ↠-refl; ↠-step)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldExtendProof
-open import proof.DGG.Catchup.ColumnSupportProof using (mapCtxᴿ-compose)
+open import proof.DGG.Catchup.FuelSupportProof using (mapCtxᴿ-compose)
 open import proof.DGG.Catchup.StructuralTargetInstantiationDef
 open import proof.DGG.Catchup.StructuralTargetPeelSupportProof
   using (no-value-type-app; no-value-apply-spine; value-no-step)
@@ -101,7 +102,7 @@ structural-target-conceal-peel : ∀ {Δᴸ Δᴿ Δ}
         (∀ {γ : CTI2.CtxImp W} {M : Term Δᴸ}
            {L : Ty Δᴸ} {q : L CTI2.⊑ᵂ⟨ W ⟩ E}
          → let ext₁ = target-insert-bind-world-extendᴿ ins follows
-            in StructuralTargetInstantiationPackage.W′ child-target CTI2.∣
+            in StructuralTargetInstantiationPackage.W′ child-target CTIR.∣
               ECR.mapCtxᴿ
                 (structural-world-extendᴿ
                   (StructuralTargetInstantiationPackage.structural-ext
@@ -113,7 +114,7 @@ structural-target-conceal-peel : ∀ {Δᴸ Δᴿ Δ}
                     (StructuralTargetInstantiationPackage.structural-ext
                       child-target))
                   (ECR.transport⊑ᵂ ext₁ q)
-         → StructuralTargetInstantiationPackage.W′ target CTI2.∣
+         → StructuralTargetInstantiationPackage.W′ target CTIR.∣
              ECR.mapCtxᴿ
                (structural-world-extendᴿ
                  (StructuralTargetInstantiationPackage.structural-ext target))
@@ -165,7 +166,7 @@ structural-target-conceal-peel {B = B} {C = C} {V = V} {X = X}
   _ , π , W₁ , ins , follows , child-target ,
     (λ {γ = γ} child-rel →
       subst≡
-        (λ γ′ → _ CTI2.∣ γ′ ⊢² _ ⊑ _ ∶ _)
+        (λ γ′ → _ CTIR.∣ γ′ ⊢² _ ⊑ _ ∶ _)
         (mapCtxᴿ-compose ext₁ (structural-world-extendᴿ child-ext) γ)
         child-rel)
   where

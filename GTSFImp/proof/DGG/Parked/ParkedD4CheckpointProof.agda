@@ -17,7 +17,9 @@ open import Reduction using (StoreChanges; keep) renaming (_∷_ to _∷ˢ_)
 import Reduction as R
 open import TyStore using (Z∋)
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.Examples2 as Ex2
 import proof.DGG.Phase3DeepDives as P3
 import proof.DGG.ReachabilityCatalog as RC
@@ -39,17 +41,17 @@ open import proof.DGG.Parked.ParkedWorldDef using
 
 
 D4-callee-rep₂ :
-  CTI2.StoreRepImp P3.higher-order-shared-arg-world₂ zero zero
+  CTX.StoreRepImp P3.higher-order-shared-arg-world₂ zero zero
 D4-callee-rep₂ =
-  CTI2.store-rep-imp
+  CTX.store-rep-imp
     (Ex2.ℕ⊑ℕ² {W = P3.higher-order-shared-arg-world₂})
 
 
 D4-callee-rebase₂ :
-  CTI2.RebaseAt P3.higher-order-shared-arg-world₂
+  CTX.RebaseAt P3.higher-order-shared-arg-world₂
     P3.higher-order-shared-arg-world₂ zero zero
 D4-callee-rebase₂ =
-  CTI2.sameWorldRebaseAt refl D4-callee-rep₂
+  CTX.sameWorldRebaseAt refl D4-callee-rep₂
 
 
 D4-parked-world₀-proofᵀ : D4-parked-world₀ᵀ
@@ -60,8 +62,8 @@ D4-keep-both₁ :
   ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
     {χsᴸ : StoreChanges Δᴸ Δᴸ′}
     {χsᴿ : StoreChanges Δᴿ Δᴿ′}
-    {W : CTI2.World Δᴸ Δᴿ Δ}
-    {W′ : CTI2.World Δᴸ′ Δᴿ′ Δ′}
+    {W : CTX.World Δᴸ Δᴿ Δ}
+    {W′ : CTX.World Δᴸ′ Δᴿ′ Δ′}
   → ParkedEvolve χsᴸ χsᴿ W W′
   → ParkedEvolve (keep ∷ˢ χsᴸ) (keep ∷ˢ χsᴿ) W W′
 D4-keep-both₁ evol = evolve-keepᴸ (evolve-keepᴿ evol)
@@ -90,17 +92,17 @@ D4-checkpoint-proofᵀ =
     (CTI2.cast⊑cast² _ _
       (CTI2.cast⊑cast² _ _
         (CTI2.reveal⊑reveal² (λ Z eq → eq)
-          D4-callee-rebase₂ CTI2.same-[]
-          (CTI2.⊢↑-⇒ˣ CTI2.join-both
-            (CTI2.⊢↓-sealˣ (Z∋ refl))
-            (CTI2.⊢↑-unsealˣ (Z∋ refl)))
-          (CTI2.⊢↑-⇒ˣ CTI2.join-both
-            (CTI2.⊢↓-sealˣ (Z∋ refl))
-            (CTI2.⊢↑-unsealˣ (Z∋ refl)))
+          D4-callee-rebase₂ CTX.same-[]
+          (Conv.⊢↑-⇒ˣ Conv.join-both
+            (Conv.⊢↓-sealˣ (Z∋ refl))
+            (Conv.⊢↑-unsealˣ (Z∋ refl)))
+          (Conv.⊢↑-⇒ˣ Conv.join-both
+            (Conv.⊢↓-sealˣ (Z∋ refl))
+            (Conv.⊢↑-unsealˣ (Z∋ refl)))
           (CTI2.ƛ⊑ƛ²
             {pA = I.X⊑X {X = zero}}
             {pB = I.X⊑X {X = zero}}
-            (CTI2.x⊑x² {p = I.X⊑X {X = zero}} CTI2.Zʷ))
+            (CTI2.x⊑x² {p = I.X⊑X {X = zero}} CTX.Zʷ))
           (Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ²
             {W = P3.higher-order-shared-arg-world₂}))
         (Ex2.ℕ⇒ℕ⊑ℕ⇒ℕ²

@@ -21,7 +21,7 @@ open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-open import proof.DGG.Catchup.ColumnSupportProof using
+open import proof.DGG.Catchup.FuelSupportProof using
   (inst-alloc-decrease)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import

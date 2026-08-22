@@ -7,7 +7,7 @@ module proof.DGG.Catchup.StructuralTargetInstantiationDef where
 open import Types using (Ty; TyCtx)
 open import CastTerms using (Term; Value)
 open import Reduction using (StoreChanges; _—↠[_]_)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 

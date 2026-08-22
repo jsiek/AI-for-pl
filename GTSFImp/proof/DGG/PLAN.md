@@ -224,7 +224,8 @@ checklist enforced as hard rules.
 
 ## Parked (2026-08-09): single-source-pair pedigree for the probe instance
 
-The cast-level initial pair (InitialPairScratch, committed) is
+The cast-level initial pair (`proof/DGG/notes/InitialPairScratch.agda`,
+committed) is
 ⊢²-related and reaches both probe states. A SINGLE ⊑ᴳ source pair
 generating both is still open: the λg-factoring needed for Q's gen
 shape changes P's instantiation path (the compiled ⟨id ∀⟩ cast on the
@@ -482,7 +483,7 @@ The no-constructor interleaving now checks on the live proof surface:
   is split or moved through a source-only prefix.
 
 This is live at commit `98d3523c`; the relation in
-`CastTermImprecision2.agda` is unchanged.  The design preflight remains
+`CastTermImprecision.agda` is unchanged.  The design preflight remains
 in `notes/M5SplitInterleavingScratch.agda`.
 
 Revised work order:
@@ -946,3 +947,153 @@ related-reduction preservation stated as the higher-order
 `grounding-preservation-knot` (instantiation deferred to the LG-3/M7
 value catch-up driver by design — the knot pattern). All in the --safe
 aggregate; gate green; no resisters. NEXT: LG-3.
+
+## LG-3 IN FLIGHT (branch agent/gtsf-cti-lg3)
+
+The CatchupCast-family removal (user decision, 2026-08-15): delete
+CatchupCast / CatchupCast⁻ / CatchupColumn(⁻); consumers classify by
+CTI INVERSION per the V1′ model (CTIOccInversionCatchupScratch's
+interface analogue + syntactic consistency views). Rework order:
+ExtraCastRight surfaces restated to consume whole derivations
+(⊢² M ⊑ M′⟨c′⟩ ∶ q + values), the column/multi-cast proof inverts CTI
+per layer (no separate column proposition), the M6 fuel knot and NS-4
+stage-1 provenance threading re-pointed, and the grounding knot from
+LG-2 instantiated where the driver machinery permits. Notes scratches
+referencing deleted judgments get minimal updates so the regression
+suite stays meaningful.
+
+LG-3v update (2026-08-17): the LG-3u source-Λ replay-stack blocker is
+resolved in commit `77e559ea`.  `SourceΛReplayStack` frames are data-only, and
+the live support now transports pending frame data along a supplied
+`StructuralWorldExtendᴿ` plan with `source-Λ-stack-transport`,
+`source-Λ-stack-target-bind-child`, and `source-Λ-stack-unlift-plan`.  The
+closure-pinned `Term Δᴿ` anti-pattern is removed from that stack.
+
+Current assembly blocker: the concrete extra-cast factory still lacks a
+whole-premise active target-cast row/extractor for `_! c` and `？ c`.  Existing
+checked rows consume already-peeled child/tag premises; the factory input has
+only `W ∣ γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q`.  See
+`notes/lg3-target-cast-multistep-worker-resister.red` LG-3v postscript for the
+exact missing datum.  `build-structural-fuel-knot` remains a checked adapter;
+the concrete structural factory triple and public `FuelKnot` instantiation are
+not assembled.  `grounding-preservation-knot` remains checked.
+
+LG-3 SHIPPED (2026-08-17, PR #144, rebased over PRs #148-#153). The
+MANDATE is complete: the CatchupCast/CatchupCast⁻/CatchupColumn(⁻)
+family is deleted from live code (grep-verified), all consumers are
+restated in the inversion style (whole derivations + values; the
+columnless TargetCastBound value-catch-up), and the inversion
+machinery is live and checked — consistency views (all ground
+families), the eight-head tag-layer extraction fold, the COMPLETE
+row inventory (every family×step cell a checked row or refutation),
+structural pullbacks both sides, the SourceΛReplayStack certificate,
+supplied partner/chain/continuation fields, and two checked negative
+records that killed over-general statements. Gate green throughout.
+RECORDED RESIDUAL (follow-on work order, nine items in
+notes/lg3ah-supplied-continuation-assembly-resister.red): the final
+worker/factory assembly — one congruence support lemma (NOTE: main's
+PR #152/#153 added reveal-↠/conceal-↠, likely exactly it), the
+option-2 continuation threading, five conversion-head transformers,
+then the mechanical dispatcher/workers/factories/higher-order
+FuelKnot chain. The M6 knot remains, as always, higher-order over the
+M5 factory. NEXT: post-merge frontier re-map (the top-down side now
+builds on the NS-4 structural vocabulary; CatchupToMorePrecise is
+boundary-kind-indexed), then the parallel tracks.
+
+D15 MIGRATION (LG-4 scale) GREEN-LIT (user, 2026-08-18). Design: the
+occupancy-gated conceal rules (conceal⊑²-seal-star-open gated by
+NoTargetOccupantAtSource; conceal⊑²-source-ok; matched behavior stays
+in conceal⊑conceal²/packaged-seal-star²) replace the
+SourceConcealPartnerOK/SealPartnerOK/MatchedConcealPartnerOK term-shape
+enumeration. Validated by: T14 recon memo (protection story =
+ProjectionMismatchStarRepScratch unearned pairing; alternatives
+analysis), the add-beside preflight (one consumer converted on
+occupancy transports, relocation table), and the shape-necessity probe
+(SealStarOpenVarTagShapeProbe: the ★⊑★ premise itself excludes
+unrelated var-tagged targets — shape-free open rule justified; PR #171
+review P1 closed). Motivation: five independent blockers root-caused
+to pivot-entangled evidence failing to cross rebases/lifts (D4.3,
+D4.4 strips, T5d wrapper-to-child, D8a.2 entangled column, T2
+variable-ground rows). Stages (worklist in t14-preflight-report.red):
+M1 core transports + low-level inversions; M2 target-chain/source-strip
++ catchup structural endpoints; M3 simulation surfaces + examples +
+DELETE the old constructors + full sweep. Branch: agent/gtsf-partner-
+redesign (PR #171); supervisor gates between stages.
+
+D16 (user design directive, 2026-08-18/19): WORLD-RECORD REDESIGN.
+(1) compile's initialWorld gets EMPTY stores (stores are for runtime
+allocated type variables only). (2) WFWorld merges INTO the World
+record as a field. (3) NEW world invariant: center-aligned source/
+target pivots have imprecision-RELATED representation types
+(resolveRep across the two stores). (4) NEW world invariant (added):
+a target type variable NOT matched with a source type variable must
+have representation type ★. Recon/draft arc in flight (T15, branch
+agent/gtsf-world-invariants): drafted record (watch the ⊑ᵂ-in-field
+circularity → possibly RawWorld+invariants staging), minting/
+preservation inventory per construction site, kill-check against the
+D8a substitution counterexamples and T10 probe worlds, migration plan.
+Expected payoff: the groundedness that D8a.4 found missing; the
+representation premise T4c could not obtain.
+
+D16 invariant (5) (user, 2026-08-19): occupancy moves into the world —
+a runtime source name marked X⊑★ with (direct) representation ★ cannot
+have a center-aligned target occupant. Relocates LG-1's rule-premise
+gating (NoTargetOccupantAtSource) to world validity; rule premises
+become derivable. Recon addendum on PR #177's branch.
+
+D19 (user decision, 2026-08-20): B′ — SIDE-SENSITIVE MINT, NO LATTICE
+EXTENSION. Root cause of the YZ paired-seal exception (5c): the ＇Z ⊑ ★
+forcing was a PARSE ARTIFACT of one-sided reveal rules (fossils of
+step-at-a-time derivation extension); D19PairedRevealReparseProbe
+(#177 branch) shows all seven YZ Z-sites PAIRED-OK at X⊑X, none
+async-forced, so the 5b X⊑X refutation also falls. Layer analysis:
+paired β-inst does NOT force X⊑★ (Consistency.instᵐ mints X∼★ =
+within-term castability, a different lattice); only ONE-SIDED inst
+forces X⊑★, via Imprecision.∀⊑/instᵐ. Decision: paired β-inst mints
+X⊑X, one-sided mints X⊑★; two-sided rules canonical whenever both
+sides carry the wrapper (extends D2b/D14). Fallback if B′ breaks:
+direction B (three-point lattice X⊑X < X⊑★ᵖ < X⊑★; green probe
+D19ThreePointLatticeProbe). Full trade-space: d16-5c-wide-exploration.red.
+
+D18 (user sign-off, 2026-08-20): FUNCTIONAL-ORIGIN REBASING GOES
+AHEAD, staged per d18-rebase-tightening-design.red. Stage 1–2
+pre-flight DONE on #180 (D18OriginSchedulePreflight.agda +
+d18-stage12-preflight.red): originAt = deterministic lookup over
+construction provenance, origin properties proven in sandbox;
+producer sweep mostly PROVEN-IN-SANDBOX; FLAG:chain = the ten
+strip/descent/walk/seal-transfer shortcuts + independent decay
+(become a proof-local chain relation, never rule-facing).
+CAUTION: the FLAG:D16-blocked kill-list cites invariant (5) in its
+pre-B′ reading — re-derive under B′ before deleting any fixture
+(paired direct-★ fixtures may become legal at X⊑X).
+
+HANDOFF — RECOMMENDED NEXT STEPS (2026-08-20 EOD, in order):
+1. CHECK-IN (Jeremy): the four async-window peel statements from the
+   B′ recon (d19-bprime-recon.red §3 / #177 comment):
+   PairedConcealRevealPeelᵀ and SourceOnlyConcealRevealPeelᵀ (already
+   stated live in SimConcealRevealPeel.agda, uninhabited) and the NEW
+   PairedIdConcealPeelᵀ and SourceOpenedIdConcealPeelᵀ. None refuted;
+   T10 counterexamples align with the sync-first shapes.
+2. Matched-preserving ImpEnvMono: refine the generic star-map used by
+   the eight ⊢² wrapper rules (and its parametric transports in
+   CenterRename/TargetBindLift/TargetExtend/Catchup, plus a blendWorld
+   guard) so a MATCHED X⊑X cannot decay to X⊑★ mid-derivation. This is
+   the single B′-NEEDS-CHANGE cluster from the recon; everything else
+   audited B′-SAFE (compile mint layer in GroundingMint is already
+   side-sensitive; honestify dynamizes unoccupied centers only;
+   smart-alias F2 dissolves — all live alias sites are one-sided).
+3. Inhabit the four peels, consuming D18's origin-unique.
+4. D16 stage 3 under B′: enforce invariants at every world
+   constructor; adopt the B′ mint (paired liftWorldBoth X⊑X /
+   one-sided liftWorldLeft X⊑★ — already the GroundingMint shape);
+   re-derive the D18 kill-list under B′; then READY #177.
+5. After #177 merges: D18 stages 3–6 live migration on #180
+   (transport laws → relation declarations → T12 peels → delete broad
+   machinery), then re-ready #180.
+6. Unblocked downstream (in dependency order): T12 peels → four keep
+   rows → value factory closes; strict-cells wave resumes (#175);
+   extra-cast injection/projection blockers; instantiation factory
+   (NS-4); plain target-only continuation gap.
+Probes/notes for all of the above live on #177's branch (world
+invariants) and #180's branch (dispatcher residuals); decision record
+is the D19/D18 comment threads on those PRs.

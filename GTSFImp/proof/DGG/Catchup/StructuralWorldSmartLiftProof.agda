@@ -8,7 +8,7 @@ open import Relation.Binary.PropositionalEquality using (cong; sym; trans)
 open import Data.Nat using (suc)
 
 open import Reduction using ([]; _∷_; bind; applyStores)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 import proof.DGG.TargetExtend as TE
 open import proof.DGG.Catchup.StructuralWorldExtendDef
 open import proof.DGG.Catchup.StructuralWorldSmartLiftDef

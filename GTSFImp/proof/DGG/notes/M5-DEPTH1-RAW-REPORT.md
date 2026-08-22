@@ -217,7 +217,7 @@ into the World representation:
 - `notes/m5-inst-inversion-*.red`: the full resister chain, each with
   its RESOLVED or blocking status; the depth-0 closure is live in
   `Catchup/InstInversionProof.agda` (`Λ⊑Λ²-post-body-transport`).
-- The Λ⊑²/Λ⊑Λ² rules quoted in §2: CastTermImprecision2.agda:668-693.
+- The Λ⊑²/Λ⊑Λ² rules quoted in §2: CastTermImprecision.agda:668-693.
 - β-inst / β-Λ quoted in §3: Reduction.agda:311-326.
 
 ## 7. Resolution by A3 smart comma

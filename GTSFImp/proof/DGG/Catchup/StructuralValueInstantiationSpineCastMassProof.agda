@@ -9,8 +9,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types using (Ty)
 open import Reduction using (StoreChange; keep; bind)
-open import proof.DGG.Catchup.ColumnSupportProof using
-  (castSize-applyConsistency)
+open import proof.Reduction using (castSize-applyConsistency)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import
   proof.DGG.Catchup.StructuralValueInstantiationCastMassDef

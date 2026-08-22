@@ -22,14 +22,41 @@ open import Conversion using
    ⊢↑-unseal; ⊢↑-⇒; ⊢↑-∀; ⊢↑-id;
    ⊢↓-seal; ⊢↓-⇒; ⊢↓-∀; ⊢↓-id)
 open import CastTerms
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; sourceStoreʷ; targetStoreʷ; CtxImp; ctx-imp; srcTyʷ; tgtTyʷ;
-   srcCtxʷ; tgtCtxʷ; _∋ʷ_⦂_; Zʷ; Sʷ; SameCtx; same-[]; same-∷;
-   LiftCtx; lift-[]; lift-∷; LiftCtxᴸ; liftᴸ-[]; liftᴸ-∷;
-   SmartLiftCtxᴸ; smart-lift-[]; smart-lift-∷; SmartCommaLiftᴸ;
-   smart-fresh-behind; smart-merge-alias;
-   RebaseAt; RebaseAtᴸ; RebaseAtᴿ; _⊢↑[_]_; _⊢↓[_]_; _∣_⊢²_⊑_∶_)
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   sourceStoreʷ;
+   targetStoreʷ;
+   CtxImp;
+   ctx-imp;
+   srcTyʷ;
+   tgtTyʷ;
+   srcCtxʷ;
+   tgtCtxʷ;
+   _∋ʷ_⦂_;
+   Zʷ;
+   Sʷ;
+   SameCtx;
+   same-[];
+   same-∷;
+   LiftCtx;
+   lift-[];
+   lift-∷;
+   LiftCtxᴸ;
+   liftᴸ-[];
+   liftᴸ-∷;
+   SmartLiftCtxᴸ;
+   smart-lift-[];
+   smart-lift-∷;
+   SmartCommaLiftᴸ;
+   smart-fresh-behind;
+   smart-merge-alias;
+   RebaseAt;
+   RebaseAtᴸ;
+   RebaseAtᴿ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Context projections
@@ -66,21 +93,21 @@ sameCtx-target same-[] = refl
 sameCtx-target (same-∷ sc) = cong (_ ∷_) (sameCtx-target sc)
 
 liftCtx-source : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp (CTI2.liftWorldBoth v W)}
+    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldBoth v W)}
   → LiftCtx v γ γ′
   → srcCtxʷ γ′ ≡ T.⇑ᶜ (srcCtxʷ γ)
 liftCtx-source lift-[] = refl
 liftCtx-source (lift-∷ liftγ) = cong (_ ∷_) (liftCtx-source liftγ)
 
 liftCtx-target : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp (CTI2.liftWorldBoth v W)}
+    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldBoth v W)}
   → LiftCtx v γ γ′
   → tgtCtxʷ γ′ ≡ T.⇑ᶜ (tgtCtxʷ γ)
 liftCtx-target lift-[] = refl
 liftCtx-target (lift-∷ liftγ) = cong (_ ∷_) (liftCtx-target liftγ)
 
 liftCtxᴸ-source : ∀ {Δᴸ Δᴿ Δ} {v} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {γ′ : CtxImp (CTI2.liftWorldLeft v W)}
+    {γ : CtxImp W} {γ′ : CtxImp (CTX.liftWorldLeft v W)}
   → LiftCtxᴸ v γ γ′
   → srcCtxʷ γ′ ≡ T.⇑ᶜ (srcCtxʷ γ)
 liftCtxᴸ-source liftᴸ-[] = refl
@@ -100,9 +127,9 @@ smartLift-source-store : ∀ {Δᴸ Δᴿ Δ Δᵐ}
   → SmartCommaLiftᴸ W Wᵐ
   → sourceStoreʷ Wᵐ ≡ store-lift (sourceStoreʷ W)
 smartLift-source-store (smart-fresh-behind guard) =
-  CTI2.SmartFreshBehindGuard.sourceStore-lifted guard
+  CTX.SmartFreshBehindGuard.sourceStore-lifted guard
 smartLift-source-store (smart-merge-alias guard) =
-  CTI2.SmartAliasMergeGuard.sourceStore-lifted guard
+  CTX.SmartAliasMergeGuard.sourceStore-lifted guard
 
 ------------------------------------------------------------------------
 -- Indexed conversion typing erases to ordinary validity
@@ -110,24 +137,24 @@ smartLift-source-store (smart-merge-alias guard) =
 
 mutual
   erase-⊢↑ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↑ Δ A B}
-    → Σ ⊢↑[ X? ] c
+    → Σ Conv.⊢↑[ X? ] c
     → Σ ⊢↑ c
-  erase-⊢↑ (CTI2.⊢↑-unsealˣ X∈) = ⊢↑-unseal X∈
-  erase-⊢↑ (CTI2.⊢↑-⇒ˣ join ⊢c ⊢d) =
+  erase-⊢↑ (Conv.⊢↑-unsealˣ X∈) = ⊢↑-unseal X∈
+  erase-⊢↑ (Conv.⊢↑-⇒ˣ join ⊢c ⊢d) =
     ⊢↑-⇒ (erase-⊢↓ ⊢c) (erase-⊢↑ ⊢d)
-  erase-⊢↑ (CTI2.⊢↑-∀ˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ (CTI2.⊢↑-∀-idˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
-  erase-⊢↑ CTI2.⊢↑-idˣ = ⊢↑-id
+  erase-⊢↑ (Conv.⊢↑-∀ˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
+  erase-⊢↑ (Conv.⊢↑-∀-idˣ ⊢c) = ⊢↑-∀ (erase-⊢↑ ⊢c)
+  erase-⊢↑ Conv.⊢↑-idˣ = ⊢↑-id
 
   erase-⊢↓ : ∀ {Δ} {Σ : TyStore Δ} {X? A B} {c : Conv↓ Δ A B}
-    → Σ ⊢↓[ X? ] c
+    → Σ Conv.⊢↓[ X? ] c
     → Σ ⊢↓ c
-  erase-⊢↓ (CTI2.⊢↓-sealˣ X∈) = ⊢↓-seal X∈
-  erase-⊢↓ (CTI2.⊢↓-⇒ˣ join ⊢c ⊢d) =
+  erase-⊢↓ (Conv.⊢↓-sealˣ X∈) = ⊢↓-seal X∈
+  erase-⊢↓ (Conv.⊢↓-⇒ˣ join ⊢c ⊢d) =
     ⊢↓-⇒ (erase-⊢↑ ⊢c) (erase-⊢↓ ⊢d)
-  erase-⊢↓ (CTI2.⊢↓-∀ˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ (CTI2.⊢↓-∀-idˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
-  erase-⊢↓ CTI2.⊢↓-idˣ = ⊢↓-id
+  erase-⊢↓ (Conv.⊢↓-∀ˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
+  erase-⊢↓ (Conv.⊢↓-∀-idˣ ⊢c) = ⊢↓-∀ (erase-⊢↓ ⊢c)
+  erase-⊢↓ Conv.⊢↓-idˣ = ⊢↓-id
 
 ------------------------------------------------------------------------
 -- Runtime-store equalities carried by rebasing
@@ -138,44 +165,44 @@ rebase-source-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
   → RebaseAt W W′ Xᴸ Xᴿ
   → sourceStoreʷ W′ ≡ sourceStoreʷ W
 rebase-source-store rb =
-  CTI2.SameRuntime.sourceStore-same (CTI2.RebaseAt.sameRuntime rb)
+  CTX.SameRuntime.sourceStore-same (CTX.RebaseAt.sameRuntime rb)
 
 rebase-target-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {Xᴸ Xᴿ}
   → RebaseAt W W′ Xᴸ Xᴿ
   → targetStoreʷ W′ ≡ targetStoreʷ W
 rebase-target-store rb =
-  CTI2.SameRuntime.targetStore-same (CTI2.RebaseAt.sameRuntime rb)
+  CTX.SameRuntime.targetStore-same (CTX.RebaseAt.sameRuntime rb)
 
 rebaseᴸ-source-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
   → RebaseAtᴸ W W′ X?
   → sourceStoreʷ W′ ≡ sourceStoreʷ W
-rebaseᴸ-source-store CTI2.rebase-idᴸ = refl
-rebaseᴸ-source-store (CTI2.rebase-varᴸ rb) = rebase-source-store rb
-rebaseᴸ-source-store (CTI2.rebase-onlyᴸ to-star disaligned represented) = refl
+rebaseᴸ-source-store CTX.rebase-idᴸ = refl
+rebaseᴸ-source-store (CTX.rebase-varᴸ rb) = rebase-source-store rb
+rebaseᴸ-source-store (CTX.rebase-onlyᴸ to-star disaligned represented) = refl
 
 rebaseᴸ-target-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
   → RebaseAtᴸ W W′ X?
   → targetStoreʷ W′ ≡ targetStoreʷ W
-rebaseᴸ-target-store CTI2.rebase-idᴸ = refl
-rebaseᴸ-target-store (CTI2.rebase-varᴸ rb) = rebase-target-store rb
-rebaseᴸ-target-store (CTI2.rebase-onlyᴸ to-star disaligned represented) = refl
+rebaseᴸ-target-store CTX.rebase-idᴸ = refl
+rebaseᴸ-target-store (CTX.rebase-varᴸ rb) = rebase-target-store rb
+rebaseᴸ-target-store (CTX.rebase-onlyᴸ to-star disaligned represented) = refl
 
 rebaseᴿ-source-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
   → RebaseAtᴿ W W′ X?
   → sourceStoreʷ W′ ≡ sourceStoreʷ W
-rebaseᴿ-source-store CTI2.rebase-idᴿ = refl
-rebaseᴿ-source-store (CTI2.rebase-varᴿ rb) = rebase-source-store rb
+rebaseᴿ-source-store CTX.rebase-idᴿ = refl
+rebaseᴿ-source-store (CTX.rebase-varᴿ rb) = rebase-source-store rb
 
 rebaseᴿ-target-store : ∀ {Δᴸ Δᴿ Δ} {W W′ : World Δᴸ Δᴿ Δ}
     {X?}
   → RebaseAtᴿ W W′ X?
   → targetStoreʷ W′ ≡ targetStoreʷ W
-rebaseᴿ-target-store CTI2.rebase-idᴿ = refl
-rebaseᴿ-target-store (CTI2.rebase-varᴿ rb) = rebase-target-store rb
+rebaseᴿ-target-store CTX.rebase-idᴿ = refl
+rebaseᴿ-target-store (CTX.rebase-varᴿ rb) = rebase-target-store rb
 
 ------------------------------------------------------------------------
 -- Typing transport at a wrapper boundary
@@ -215,12 +242,12 @@ transport-target {Δᴿ = Δᴿ} {W = W} {W′ = W′} {γ = γ} {γ′ = γ′}
 
 mutual
   source-typing² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-      {γ : CtxImp W} {M M′ A B} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+      {γ : CtxImp W} {M M′ A B} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     → W ∣ γ ⊢² M ⊑ M′ ∶ p
     → ⟨ Δᴸ , sourceStoreʷ W , srcCtxʷ γ ⟩ ⊢ M ⦂ A
 
   target-typing² : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-      {γ : CtxImp W} {M M′ A B} {p : A CTI2.⊑ᵂ⟨ W ⟩ B}
+      {γ : CtxImp W} {M M′ A B} {p : A CTX.⊑ᵂ⟨ W ⟩ B}
     → W ∣ γ ⊢² M ⊑ M′ ∶ p
     → ⟨ Δᴿ , targetStoreʷ W , tgtCtxʷ γ ⟩ ⊢ M′ ⦂ B
 
@@ -259,10 +286,18 @@ mutual
   source-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c⊢)
       (transport-source (rebaseᴸ-source-store rb) sc (source-typing² M⊑M′))
-  source-typing² (CTI2.conceal⊑² ok mono rb sc c⊢ M⊑M′ q) =
+  source-typing²
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+        M⊑M′ q) =
     ⊢conceal (erase-⊢↓ c⊢)
       (transport-source (sym
-        (rebaseᴸ-source-store (CTI2.forgetTagRebaseᴸ rb))) sc
+        (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
+        (source-typing² M⊑M′))
+  source-typing²
+      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
+    ⊢conceal (erase-⊢↓ c⊢)
+      (transport-source (sym
+        (rebaseᴸ-source-store (CTX.forgetTagRebaseᴸ rb))) sc
         (source-typing² M⊑M′))
   source-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c⊢)
@@ -309,9 +344,16 @@ mutual
   target-typing² (CTI2.cast⊑² c M⊑M′ q) = target-typing² M⊑M′
   target-typing² (CTI2.reveal⊑² mono rb sc c⊢ M⊑M′ q) =
     transport-target (rebaseᴸ-target-store rb) sc (target-typing² M⊑M′)
-  target-typing² (CTI2.conceal⊑² ok mono rb sc c⊢ M⊑M′ q) =
+  target-typing²
+      (CTI2.conceal⊑²-seal-star-open no-target mono rb sc c⊢
+        M⊑M′ q) =
     transport-target (sym
-      (rebaseᴸ-target-store (CTI2.forgetTagRebaseᴸ rb))) sc
+      (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
+      (target-typing² M⊑M′)
+  target-typing²
+      (CTI2.conceal⊑²-source-ok ok mono rb sc c⊢ M⊑M′ q) =
+    transport-target (sym
+      (rebaseᴸ-target-store (CTX.forgetTagRebaseᴸ rb))) sc
       (target-typing² M⊑M′)
   target-typing² (CTI2.reveal⊑reveal² mono rb sc c⊢ c′⊢ M⊑M′ q) =
     ⊢reveal (erase-⊢↑ c′⊢)

@@ -24,12 +24,18 @@ open import Conversion using (Conv↑; Conv↓; seal; _↦↓_; `∀↓_; id↓)
 import Conversion
 open import Imprecision
 
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.SealPeelToolkit as SPT
 import proof.DGG.TermImpDecay as TD
 
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; _⊢↓[_]_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Orthogonalized rep-★ partner predicate model
@@ -39,7 +45,7 @@ data Rep★PartnerOK₅ {Δᴸ Δᴿ Δ}
     (W : World Δᴸ Δᴿ Δ) (X : TyVar Δᴸ) :
     Term Δᴸ → Maybe (TyVar Δᴿ) → Term Δᴿ → Set where
   rep★-untagged₅ : ∀ {P Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       ------------------------------------
     → Rep★PartnerOK₅ W X P Xᴿ? M′
 
@@ -55,7 +61,7 @@ data Rep★PartnerOK₅ {Δᴸ Δᴿ Δ}
   rep★-var-tag₅ : ∀ {P M A Y μ}
       {Y∼★ : μ ⊢ (＇ Y) ∼★}
       {c : μ ⊢ A ∼ ＇ Y} {Ans : NonStar A}
-    → CTI2.CenterAligned W X Y
+    → CTX.CenterAligned W X Y
       ------------------------------------------------------------
     → Rep★PartnerOK₅ W X P (just Y)
         (M ⟨ _! {G = ＇ Y} ⦃ Gᵍ = ＇ Y ⦄
@@ -67,7 +73,7 @@ data Rep★PartnerOK₅ {Δᴸ Δᴿ Δ}
       {cX : μᴸ ⊢ Aᴸ ∼ ＇ X₂} {cY : μᴿ ⊢ Aᴿ ∼ ＇ Y₂}
       {AnsX : NonStar Aᴸ} {AnsY : NonStar Aᴿ}
     → X₂ ≢ X
-    → CTI2.CenterAligned W X₂ Y₂
+    → CTX.CenterAligned W X₂ Y₂
       ------------------------------------------------------------
     → Rep★PartnerOK₅ W X
         (V₂ ⟨ _! {G = ＇ X₂} ⦃ Gᵍ = ＇ X₂ ⦄
@@ -96,7 +102,7 @@ data SealPartnerOK₅ {Δᴸ Δᴿ Δ}
     → SealPartnerOK₅ W X P ★ Xᴿ? M′
 
   plain-target₅ : ∀ {P R Xᴿ? M′}
-    → CTI2.NotTopTag M′
+    → CTX.NotTopTag M′
       ------------------------------------
     → SealPartnerOK₅ W X P R Xᴿ? M′
 
@@ -163,58 +169,58 @@ data MatchedConcealPartnerOK₅ {Δᴸ Δᴿ Δ}
 eraseRep★PartnerOK₅ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {P Xᴿ? M′}
   → Rep★PartnerOK₅ W X P Xᴿ? M′
-  → CTI2.Rep★PartnerOK W X P Xᴿ? M′
+  → CTX.Rep★PartnerOK W X P Xᴿ? M′
 eraseRep★PartnerOK₅ (rep★-untagged₅ nt) =
-  CTI2.rep★-untagged nt
+  CTX.rep★-untagged nt
 eraseRep★PartnerOK₅ (rep★-nonvar-tag₅ Gnv) =
-  CTI2.rep★-nonvar-tag Gnv
+  CTX.rep★-nonvar-tag Gnv
 eraseRep★PartnerOK₅ (rep★-var-tag₅ aligned) =
-  CTI2.rep★-var-tag aligned
+  CTX.rep★-var-tag aligned
 eraseRep★PartnerOK₅ (rep★-matched-inner-tags₅ X₂≢X aligned) =
-  CTI2.rep★-matched-inner-tags aligned
+  CTX.rep★-matched-inner-tags aligned
 eraseRep★PartnerOK₅ (rep★-round-trip₅ ok) =
-  CTI2.rep★-round-trip (eraseRep★PartnerOK₅ ok)
+  CTX.rep★-round-trip (eraseRep★PartnerOK₅ ok)
 
 eraseSealPartnerOK₅ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {X : TyVar Δᴸ} {P R Xᴿ? M′}
   → SealPartnerOK₅ W X P R Xᴿ? M′
-  → CTI2.SealPartnerOK W X P R Xᴿ? M′
+  → CTX.SealPartnerOK W X P R Xᴿ? M′
 eraseSealPartnerOK₅ (star-rep-target₅ ok) =
-  CTI2.star-rep-target (eraseRep★PartnerOK₅ ok)
+  CTX.star-rep-target (eraseRep★PartnerOK₅ ok)
 eraseSealPartnerOK₅ (plain-target₅ nt) =
-  CTI2.plain-target nt
+  CTX.plain-target nt
 eraseSealPartnerOK₅ name-protected-target₅ =
-  CTI2.name-protected-target
+  CTX.name-protected-target
 
 eraseSourceConcealPartnerOK₅ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {M : Term Δᴸ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Xᴿ? M′}
   → SourceConcealPartnerOK₅ W M c Xᴿ? M′
-  → CTI2.SourceConcealPartnerOK W M c Xᴿ? M′
+  → CTX.SourceConcealPartnerOK W M c Xᴿ? M′
 eraseSourceConcealPartnerOK₅ (seal-partner-ok₅ ok) =
-  CTI2.seal-partner-ok (eraseSealPartnerOK₅ ok)
+  CTX.seal-partner-ok (eraseSealPartnerOK₅ ok)
 eraseSourceConcealPartnerOK₅ fun-conceal-target₅ =
-  CTI2.fun-conceal-target
+  CTX.fun-conceal-target
 eraseSourceConcealPartnerOK₅ all-conceal-target₅ =
-  CTI2.all-conceal-target
+  CTX.all-conceal-target
 eraseSourceConcealPartnerOK₅ id-conceal-target₅ =
-  CTI2.id-conceal-target
+  CTX.id-conceal-target
 
 eraseMatchedConcealPartnerOK₅ : ∀ {Δᴸ Δᴿ Δ}
     {W : World Δᴸ Δᴿ Δ} {M : Term Δᴸ} {A A′ : Ty Δᴸ}
     {c : Conv↓ Δᴸ A A′} {Y M′}
   → MatchedConcealPartnerOK₅ W M c Y M′
-  → CTI2.MatchedConcealPartnerOK W M c Y M′
+  → CTX.MatchedConcealPartnerOK W M c Y M′
 eraseMatchedConcealPartnerOK₅ (matched-seal-star-partner₅ ok) =
-  CTI2.matched-seal-star-partner (eraseRep★PartnerOK₅ ok)
+  CTX.matched-seal-star-partner (eraseRep★PartnerOK₅ ok)
 eraseMatchedConcealPartnerOK₅ (matched-seal-nonstar₅ Rns) =
-  CTI2.matched-seal-nonstar Rns
+  CTX.matched-seal-nonstar Rns
 eraseMatchedConcealPartnerOK₅ matched-fun-conceal-target₅ =
-  CTI2.matched-fun-conceal-target
+  CTX.matched-fun-conceal-target
 eraseMatchedConcealPartnerOK₅ matched-all-conceal-target₅ =
-  CTI2.matched-all-conceal-target
+  CTX.matched-all-conceal-target
 eraseMatchedConcealPartnerOK₅ matched-id-conceal-target₅ =
-  CTI2.matched-id-conceal-target
+  CTX.matched-id-conceal-target
 
 ------------------------------------------------------------------------
 -- Source-pivot transport
@@ -225,11 +231,11 @@ transport-non-pivot-aligned₅ : ∀ {Δᴸ Δᴿ Δ}
     {X X₂ : TyVar Δᴸ} {Y Y₂ : TyVar Δᴿ}
   → RebaseAt Wᵖ W X Y
   → X₂ ≢ X
-  → CTI2.CenterAligned Wᵖ X₂ Y₂
-  → CTI2.CenterAligned W X₂ Y₂
+  → CTX.CenterAligned Wᵖ X₂ Y₂
+  → CTX.CenterAligned W X₂ Y₂
 transport-non-pivot-aligned₅ rb X₂≢X aligned =
-  trans (CTI2.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
-    (trans aligned (sym (CTI2.RebaseAt.ηᴿ-frozen rb _)))
+  trans (CTX.RebaseAt.ηᴸ-off-pivot rb X₂≢X)
+    (trans aligned (sym (CTX.RebaseAt.ηᴿ-frozen rb _)))
 
 transportRep★PartnerOK₅ : ∀ {Δᴸ Δᴿ Δ}
     {Wᵖ W : World Δᴸ Δᴿ Δ}
@@ -243,7 +249,7 @@ transportRep★PartnerOK₅ rb (rep★-untagged₅ nt) =
 transportRep★PartnerOK₅ rb (rep★-nonvar-tag₅ Gnv) =
   rep★-nonvar-tag₅ Gnv
 transportRep★PartnerOK₅ rb (rep★-var-tag₅ aligned) =
-  rep★-var-tag₅ (CTI2.RebaseAt.pivotAligned rb)
+  rep★-var-tag₅ (CTX.RebaseAt.pivotAligned rb)
 transportRep★PartnerOK₅ rb
     (rep★-matched-inner-tags₅ X₂≢X aligned) =
   rep★-matched-inner-tags₅ X₂≢X
@@ -338,7 +344,7 @@ round13-non-pivot-matched-conceal₅ : ∀ {Δᴸ Δᴿ Δ}
     {AnsX : NonStar Aᴸ} {AnsY : NonStar Aᴿ}
   → RebaseAt Wᵖ W X Y
   → X₂ ≢ X
-  → CTI2.CenterAligned Wᵖ X₂ Y₂
+  → CTX.CenterAligned Wᵖ X₂ Y₂
   → MatchedConcealPartnerOK₅ W
       (V₂ ⟨ _! {G = ＇ X₂} ⦃ Gᵍ = ＇ X₂ ⦄
             ⦃ G∼★ = X₂∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩)
@@ -394,11 +400,11 @@ target-chain-88-emits₅ : ∀ {Δᴸ Δᴿ Δ}
     {P : Term Δᴸ} {U : Term Δᴿ}
     {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
     {q : (＇ X) ⊑ᵂ⟨ W ⟩ (＇ Y)}
-  → CTI2.ImpEnvMono W W₂
+  → CTX.ImpEnvMono W W₂
   → RebaseAt W₂ W X Y
-  → CTI2.SameCtx γ γ₂
-  → CTI2.sourceStoreʷ W ⊢↓[ just X ] seal X ★
-  → CTI2.targetStoreʷ W ⊢↓[ just Y ] seal Y ★
+  → CTX.SameCtx γ γ₂
+  → CTX.sourceStoreʷ W Conv.⊢↓[ just X ] seal X ★
+  → CTX.targetStoreʷ W Conv.⊢↓[ just Y ] seal Y ★
   → TaggedTransferOutput₅ W₂ γ₂ P U X Y
   → W ∣ γ ⊢² P ↓ seal X ★ ⊑ U ↓ seal Y ★ ∶ q
 target-chain-88-emits₅ mono rb sc source⊢ target⊢ pkg =
@@ -499,7 +505,7 @@ bare-payload-var-tag-mismatch-empty₅ : ∀ {Δᴸ Δᴿ Δ}
         ((P₀ ↓ seal X ★)
           ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄
               ⦃ G∼★ = X∼★ ⦄ cX ⦃ Ans = AnsX ⦄ ⟩))
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
   → Rep★PartnerOK₅ W X V (just Yᵒ)
       (U₂ ⟨ _! {G = ＇ Y₂} ⦃ Gᵍ = ＇ Y₂ ⦄
             ⦃ G∼★ = Y₂∼★ ⦄ cY ⦃ Ans = AnsY ⦄ ⟩)
@@ -529,8 +535,8 @@ different-name-round-trip-no-launder₅ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsZ : NonStar Aᶻ} {AnsY : NonStar Bᴿ}
   → Z ≢ X
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
-  → (CTI2.CenterAligned W Z Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W Z Y₂ → ⊥)
   → Rep★PartnerOK₅ W X
       ((P ↓ seal Z ★)
         ⟨ _! {G = ＇ Z} ⦃ Gᵍ = ＇ Z ⦄
@@ -564,7 +570,7 @@ non-rep★-round-trip-no-launder₅ : ∀ {Δᴸ Δᴿ Δ}
     {cY : μᴿ ⊢ Bᴿ ∼ ＇ Y₂}
     {AnsX : NonStar Aˣ} {AnsY : NonStar Bᴿ}
   → NonStar R
-  → (CTI2.CenterAligned W X Y₂ → ⊥)
+  → (CTX.CenterAligned W X Y₂ → ⊥)
   → Rep★PartnerOK₅ W X
       ((P ↓ seal X R)
         ⟨ _! {G = ＇ X} ⦃ Gᵍ = ＇ X ⦄

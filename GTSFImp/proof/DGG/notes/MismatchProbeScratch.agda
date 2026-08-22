@@ -23,12 +23,16 @@ open import CastTerms using
   (Term; Value; $; _⟨_⟩; _↓_; blame; _《_》; inj; seal)
 open import Reduction
 open import Primitives using (κℕ)
-import proof.DGG.CastTermImprecision2 as CTI2
-open import proof.DGG.ExtraCastRight2 using
-  (CatchupCast; catchup-projection)
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_; RebaseAt;
-   store-rep-imp; ⊢↓-sealˣ)
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 private
   Z : TyVar 2
@@ -74,14 +78,14 @@ target-env-proj _ = ★∼X
 Y? : target-env-proj ⊢ ★ ∼ ＇ Y
 Y? = ？ (idᵍ (＇ Y))
 
-source-U-seal-typed : source-store CTI2.⊢↓[ just U ] seal U (‵ `ℕ)
-source-U-seal-typed = ⊢↓-sealˣ source-U∋
+source-U-seal-typed : source-store Conv.⊢↓[ just U ] seal U (‵ `ℕ)
+source-U-seal-typed = Conv.⊢↓-sealˣ source-U∋
 
-U-Y-representation : CTI2.StoreRepImp probe-world U Y
+U-Y-representation : CTX.StoreRepImp probe-world U Y
 U-Y-representation = store-rep-imp ι⊑★
 
 U-Y-rebase : RebaseAt probe-world probe-world U Y
-U-Y-rebase = CTI2.sameWorldRebaseAt refl U-Y-representation
+U-Y-rebase = CTX.sameWorldRebaseAt refl U-Y-representation
 
 probe-p : ＇ U ⊑ᵂ⟨ probe-world ⟩ ★
 probe-p = X⊑★ refl
@@ -128,12 +132,6 @@ input-package-without-live-premise =
   target-tagged-value ,
   Y? ,
   probe-q
-
-mismatch-violates-provenance :
-  CatchupCast {W = probe-world} {A = ＇ U}
-    probe-p target-tagged Y? probe-q
-  → ⊥
-mismatch-violates-provenance (catchup-projection ())
 
 ℕ-type : Ty 1
 ℕ-type = ‵ `ℕ
@@ -225,3 +223,10 @@ mismatch-no-value-reduct
 mismatch-no-value-reduct
     (↠-step (ξ-⟨⟩ step refl) rest) vN =
   inner-tag-no-step step
+
+mismatch-violates-provenance : ∀ {Δ′} {χs : StoreChanges 1 Δ′}
+    {N : Term Δ′}
+  → mismatch-term —↠[ χs ] N
+  → Value N
+  → ⊥
+mismatch-violates-provenance = mismatch-no-value-reduct

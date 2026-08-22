@@ -41,9 +41,11 @@ open import proof.Reduction using
   ; typeApp-↠
   )
 open import proof.TypeSafety.Preservation using (apply-open)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.Imprecision as PI
+open CTX
 open CTI2
 open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; ParkedEvolve; evolve-refl; evolve-keepᴸ)
@@ -51,9 +53,8 @@ open import proof.DGG.Parked.ParkedWorldLemma using
   (parked-world-closed; transport⊑ᴾ)
 open import proof.DGG.Parked.ParkedEvolveCompositionProof using
   (compose-parked-evolve)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof using
-  (applyTys-++; composeReduction)
+open import proof.Reduction using
+  (_++χ_; applyTys-++; composeReduction)
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.SimPairedAllClosingDef
   using (SimPairedAllClosingᵀ)
@@ -785,27 +786,40 @@ module _
       step@(ξ-reveal M→N refl) =
     source-reveal-frame parked rel step
 
-  sim parked
-      rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      step@(pure-step (id-conceal vM))
-      with catchup parked (boundary-source-conceal mono rebase)
-        M⊑M′ vM
-  sim parked
-      rel@(conceal⊑² partner mono rebase same-[] c⊢ M⊑M′ q)
-      step@(pure-step (id-conceal vM))
-      | caught =
-    sim-source-conceal-values parked partner mono rebase c⊢
-      M⊑M′ q vM step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑² partner mono rebase same c⊢ M⊑M′ q)
+      rel@(conceal⊑²-seal-star-open no-target mono rebase same c⊢ M⊑M′ q)
+      step@(ξ-conceal M→N refl) =
+    source-conceal-frame parked rel step
+
+  sim parked
+      rel@(conceal⊑²-source-ok id-conceal-ok mono rebase same-[] c⊢
+        M⊑M′ q) step@(pure-step (id-conceal vM))
+      with catchup parked (boundary-source-conceal mono rebase)
+        M⊑M′ vM
+  sim parked
+      rel@(conceal⊑²-source-ok id-conceal-ok mono rebase same-[] c⊢
+        M⊑M′ q) step@(pure-step (id-conceal vM))
+      | caught =
+    sim-source-conceal-values parked id-conceal-ok mono rebase c⊢
+      M⊑M′ q vM step caught
+  sim
+      {Δᴿ = Δᴿ} {W = W} parked
+      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q)
+      (pure-step blame-conceal) =
+    Δᴿ , [] , _ , _ , W , q ,
+    (_ ∎[]) ,
+    evolve-keepᴸ evolve-refl ,
+    blame⊑² (CTI2T.target-typing² rel) q
+  sim parked
+      rel@(conceal⊑²-source-ok ok mono rebase same c⊢ M⊑M′ q)
       step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
 

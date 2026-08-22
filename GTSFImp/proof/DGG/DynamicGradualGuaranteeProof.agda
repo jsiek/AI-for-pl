@@ -32,7 +32,8 @@ open import Reduction using
   ; applyTys
   ; _—↠[_]_
   )
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
 import proof.DGG.CompilePreservesImprecision2 as CompileMonotone
 open import proof.DGG.DynamicGradualGuaranteeDef
   using
@@ -51,6 +52,8 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupToMorePrecise; boundary-refl)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
+open import proof.DGG.TargetBlameCatchupProof
+  using (target-blame-catchup)
 open import proof.Reduction.ValueIrreducibleDef
   using (ValueTraceRefl; value-trace-refl)
 open import proof.Reduction.ValueIrreducibleProof
@@ -63,13 +66,14 @@ open import proof.DGG.Parked.ParkedWorldDef
   using (ParkedWorld; parked-initial)
 open import proof.DGG.Parked.ParkedWorldLemma
   using (parked-world-closed)
-open import proof.DGG.Catchup.ValueCatchupRightDef using (_++χ_)
-open import proof.DGG.Catchup.ColumnSupportProof
-  using (applyTys-++; composeReduction)
+open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
 open import proof.TypeSafety.Progress using
   (Progress; done; step; crash; progress)
 open import proof.TypeSafety.Preservation using (multi-preservation)
-open CTI2 using (World; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   _⊑ᵂ⟨_⟩_)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Equality transport for terminal related terms
@@ -96,14 +100,15 @@ transport-related-target refl related = related
 -- Dynamic gradual guarantee
 ------------------------------------------------------------------------
 
-dynamic-gradual-guarantee :
+dynamic-gradual-guarantee-with-target-blame :
     Sim*ᵀ
   → SimBack*ᵀ
   → CatchupToLessPrecise
   → CatchupToMorePrecise
   → TargetBlameCatchupᵀ
   → GradualDGG
-dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
+dynamic-gradual-guarantee-with-target-blame
+    sim* sim-back* catchup catchup-to-more-precise
     target-blame-catchup {A = A} {B = B} {p = p} M⊑M′ =
   source-value , source-diverges , target-value , target-diverges
   where
@@ -276,3 +281,14 @@ dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise
   target-diverges M′⇑ N {χsᴸ} M↠N | done vN
       | Δᴿ , χsᴿ , V′ , Δ , W , q , M′↠V′ , vV′ , N⊑V′ =
     ⊥-elim (M′⇑ (Δᴿ , V′ , χsᴿ , M′↠V′ , inj₁ vV′))
+
+
+dynamic-gradual-guarantee :
+    Sim*ᵀ
+  → SimBack*ᵀ
+  → CatchupToLessPrecise
+  → CatchupToMorePrecise
+  → GradualDGG
+dynamic-gradual-guarantee sim* sim-back* catchup catchup-to-more-precise =
+  dynamic-gradual-guarantee-with-target-blame
+    sim* sim-back* catchup catchup-to-more-precise target-blame-catchup

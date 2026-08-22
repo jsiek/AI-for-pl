@@ -15,8 +15,12 @@ open import GradualTerms using (GTerm)
 import GradualTerms as G
 import GradualTermImprecision as GTI
 open import Compile using (compile)
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using (World; world; _∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI2
+import proof.DGG.CastTermImprecision as CTIR
+open CTI2 using
+  (World;
+   world)
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.ExampleTerms as Ex
 import proof.DGG.Examples2 as Ex2
 import proof.Imprecision as PI

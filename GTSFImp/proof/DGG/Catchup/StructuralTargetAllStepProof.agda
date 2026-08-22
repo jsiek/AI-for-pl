@@ -11,7 +11,7 @@ open import Types using (Ty; TyVar; ＇_; _[_]ᵗ)
 open import Consistency using (Env∼; extᵐ; _⊢_∼_; ∀ᶜ_; _[_]ᶜ)
 open import CastTerms using (Term; Value; _⟨_⟩)
 open import Reduction using (keep; pure-step; β-∀)
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import
   proof.DGG.Catchup.StructuralValueInstantiationReductionProof

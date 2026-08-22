@@ -11,7 +11,8 @@ module proof.DGG.TerminusRebuildProbe where
 --   * Instance B is the S = ＇Y₂ chain template: the input has the
 --     source inert variable cast required by the blocked M3 branch, and
 --     the output pairs at the ★ terminus before re-emitting the outer
---     target-only seal.
+--     target-only seal.  The old occupied source-star/tagged-target
+--     direct witness is now tracked as a D15 migration residual.
 --   * This is the positive counterpart to the refuted tag-peel-first
 --     family documented in `RightInjInversion2Def`: the head is rebuilt
 --     at the target-chain terminus instead of against a right variable.
@@ -33,10 +34,18 @@ open import Conversion using (seal; _⊢↓_; ⊢↓-seal)
 open import CastTerms
 open import Imprecision
 import CastTerms as CTerms
-import proof.DGG.CastTermImprecision2 as CTI2
-open CTI2 using
-  (World; world; _⊑ᵂ⟨_⟩_; _∣_⊢²_⊑_∶_;
-   RebaseAt; rebase-at; same-runtime; store-rep-imp)
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+open CTX using
+  (World;
+   world;
+   _⊑ᵂ⟨_⟩_;
+   RebaseAt;
+   rebase-at;
+   same-runtime;
+   store-rep-imp)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Shared tiny values
@@ -63,7 +72,7 @@ dyn-id-value : ∀ {Δ} → Value (dyn-id {Δ})
 dyn-id-value = (CTerms.ƛ (` 0)) CTerms.《 CTerms.inj 》
 
 mono-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-  → CTI2.ImpEnvMono W W
+  → CTX.ImpEnvMono W W
 mono-refl _ eq = eq
 
 ------------------------------------------------------------------------
@@ -129,17 +138,17 @@ module InstanceA where
   X⊑★-W : ＇ X ⊑ᵂ⟨ W ⟩ ★
   X⊑★-W = X⊑★ refl
 
-  X-Y-rep : CTI2.StoreRepImp W X Y
+  X-Y-rep : CTX.StoreRepImp W X Y
   X-Y-rep = store-rep-imp source-∀⊑★
 
   rb-X-Y : RebaseAt W W X Y
-  rb-X-Y = CTI2.sameWorldRebaseAt refl X-Y-rep
+  rb-X-Y = CTX.sameWorldRebaseAt refl X-Y-rep
 
-  target-seal-⊢ : target-store CTI2.⊢↓[ just Y ] seal Y ★
-  target-seal-⊢ = CTI2.⊢↓-sealˣ Y∈
+  target-seal-⊢ : target-store Conv.⊢↓[ just Y ] seal Y ★
+  target-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
-  source-seal-⊢ : source-store CTI2.⊢↓[ just X ] seal X ∀X⇒X
-  source-seal-⊢ = CTI2.⊢↓-sealˣ X∈
+  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ∀X⇒X
+  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
 
   target-seal-⊢ᶜ : target-store ⊢↓ seal Y ★
   target-seal-⊢ᶜ = ⊢↓-seal Y∈
@@ -165,62 +174,41 @@ module InstanceA where
   target-tagged-⊢ : ⟨ 1 , target-store , [] ⟩ ⊢ target-tagged ⦂ ★
   target-tagged-⊢ = ⊢⟨⟩ target-sealed-⊢ Y!
 
-  body-X⊑★ : ＇ Fin.zero ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ ★
+  body-X⊑★ : ＇ Fin.zero ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
   body-X⊑★ = X⊑★ refl
 
-  body⊑★ : body ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ ★
+  body⊑★ : body ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★
   body⊑★ = ⇒⊑★ body-X⊑★ body-X⊑★
 
   body⊑★⇒★ :
-    body ⊑ᵂ⟨ CTI2.liftWorldLeft X⊑★ W ⟩ ★ ⇒ ★
+    body ⊑ᵂ⟨ CTX.liftWorldLeft X⊑★ W ⟩ ★ ⇒ ★
   body⊑★⇒★ = ⇒⊑⇒ body-X⊑★ body-X⊑★
 
   body-fun² :
-    CTI2.liftWorldLeft X⊑★ W ∣ [] ⊢²
+    CTX.liftWorldLeft X⊑★ W ∣ [] ⊢²
       ƛ (` 0) ⊑ ƛ (` 0) ∶ body⊑★⇒★
   body-fun² =
     CTI2.ƛ⊑ƛ²
       {A = ＇ Fin.zero} {A′ = ★}
       {pA = body-X⊑★} {pB = body-X⊑★}
-      (CTI2.x⊑x² {p = body-X⊑★} CTI2.Zʷ)
+      (CTI2.x⊑x² {p = body-X⊑★} CTX.Zʷ)
 
   body-U² :
-    CTI2.liftWorldLeft X⊑★ W ∣ [] ⊢²
+    CTX.liftWorldLeft X⊑★ W ∣ [] ⊢²
       ƛ (` 0) ⊑ U ∶ body⊑★
   body-U² = CTI2.⊑cast² fun! body-fun² body⊑★
 
   head-U² : W ∣ [] ⊢² Λ (ƛ (` 0)) ⊑ U ∶ source-∀⊑★
   head-U² =
     CTI2.Λ⊑² nonvar-fun (∈-fun-left var-∈)
-      CTI2.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
+      CTX.liftᴸ-[] (ƛ (` 0)) U-⊢ body-U² source-∀⊑★
 
-  terminus-input-partner-empty : ∀ {Wᵖ : World 1 1 1} {P Xᴿ?}
-    → CTI2.SourceConcealPartnerOK Wᵖ P (seal X ∀X⇒X) Xᴿ? U
-    → ⊥
-  terminus-input-partner-empty
-      (CTI2.seal-partner-ok (CTI2.plain-target ()))
-
-  terminus-input-empty′ : ∀ {X′}
-    → (q : ＇ X′ ⊑ᵂ⟨ W ⟩ ★)
-    → W ∣ [] ⊢² source ⊑ U ∶ q
-    → ⊥
-  terminus-input-empty′ q₀
-      (CTI2.⊑cast² {p = p} c′ D .q₀) with p
-  terminus-input-empty′ (X⊑★ eq)
-      (CTI2.⊑cast² {p = p} c′ D .(X⊑★ eq)) | ()
-  terminus-input-empty′ q₀
-      (CTI2.conceal⊑² ok mono rb sc c⊢ D .q₀) =
-    terminus-input-partner-empty ok
-
-  terminus-input-empty : W ∣ [] ⊢² source ⊑ U ∶ X⊑★-W → ⊥
-  terminus-input-empty =
-    terminus-input-empty′ {X′ = X} X⊑★-W
 
   output : W ∣ [] ⊢² source ⊑ target-sealed ∶ X⊑Y
   output =
     CTI2.conceal⊑conceal²
-      (CTI2.matched-seal-nonstar {Xᴿ? = just Y} nonstar-∀)
-      (mono-refl {W = W}) rb-X-Y CTI2.same-[]
+      (CTX.matched-seal-nonstar {Xᴿ? = just Y} nonstar-∀)
+      (mono-refl {W = W}) rb-X-Y CTX.same-[]
       source-seal-⊢ target-seal-⊢ head-U² X⊑Y
 
   -- The observable tagged premise is available, but the rebuild above
@@ -307,17 +295,17 @@ module InstanceB where
   X⊑Y₂ : ＇ X ⊑ᵂ⟨ Wᵖ ⟩ ＇ Y₂
   X⊑Y₂ = X⊑X
 
-  X-Y-rep : CTI2.StoreRepImp W X Y
+  X-Y-rep : CTX.StoreRepImp W X Y
   X-Y-rep = store-rep-imp ★⊑★
 
-  X-Y₂-rep : CTI2.StoreRepImp Wᵖ X Y₂
+  X-Y₂-rep : CTX.StoreRepImp Wᵖ X Y₂
   X-Y₂-rep = store-rep-imp ★⊑★
 
   rb-X-Y : RebaseAt W W X Y
-  rb-X-Y = CTI2.sameWorldRebaseAt refl X-Y-rep
+  rb-X-Y = CTX.sameWorldRebaseAt refl X-Y-rep
 
   rb-X-Y₂ : RebaseAt Wᵖ Wᵖ X Y₂
-  rb-X-Y₂ = CTI2.sameWorldRebaseAt refl X-Y₂-rep
+  rb-X-Y₂ = CTX.sameWorldRebaseAt refl X-Y₂-rep
 
   rb-chain : RebaseAt Wᵖ W X Y
   rb-chain =
@@ -325,19 +313,19 @@ module InstanceB where
       (λ { {Fin.zero} X≢ → ⊥-elim (X≢ refl) })
       (λ _ → refl) refl X-Y-rep
 
-  mono-W-Wᵖ : CTI2.ImpEnvMono W Wᵖ
+  mono-W-Wᵖ : CTX.ImpEnvMono W Wᵖ
   mono-W-Wᵖ Fin.zero eq = eq
   mono-W-Wᵖ (Fin.suc Fin.zero) eq = eq
 
-  source-seal-⊢ : source-store CTI2.⊢↓[ just X ] seal X ★
-  source-seal-⊢ = CTI2.⊢↓-sealˣ X∈
+  source-seal-⊢ : source-store Conv.⊢↓[ just X ] seal X ★
+  source-seal-⊢ = Conv.⊢↓-sealˣ X∈
 
   target-Y-seal-⊢ :
-    target-store CTI2.⊢↓[ just Y ] seal Y (＇ Y₂)
-  target-Y-seal-⊢ = CTI2.⊢↓-sealˣ Y∈
+    target-store Conv.⊢↓[ just Y ] seal Y (＇ Y₂)
+  target-Y-seal-⊢ = Conv.⊢↓-sealˣ Y∈
 
-  target-Y₂-seal-⊢ : target-store CTI2.⊢↓[ just Y₂ ] seal Y₂ ★
-  target-Y₂-seal-⊢ = CTI2.⊢↓-sealˣ Y₂∈
+  target-Y₂-seal-⊢ : target-store Conv.⊢↓[ just Y₂ ] seal Y₂ ★
+  target-Y₂-seal-⊢ = Conv.⊢↓-sealˣ Y₂∈
 
   source-seal-⊢ᶜ : source-store ⊢↓ seal X ★
   source-seal-⊢ᶜ = ⊢↓-seal X∈
@@ -389,30 +377,18 @@ module InstanceB where
     CTI2.cast⊑cast² fun! fun!
       (CTI2.ƛ⊑ƛ²
         {A = ★} {A′ = ★} {pA = ★⊑★} {pB = ★⊑★}
-        (CTI2.x⊑x² {p = ★⊑★} CTI2.Zʷ))
+        (CTI2.x⊑x² {p = ★⊑★} CTX.Zʷ))
       ★⊑★
-
-  inner-source-occupied : CTI2.NoTargetOccupantAtSource Wᵖ X → ⊥
-  inner-source-occupied no-target = no-target (Y₂ , refl)
-
-  inner-source-partner-empty :
-    CTI2.SourceConcealPartnerOK Wᵖ V₀ (seal X ★) (just Y₂) U₀
-    → ⊥
-  inner-source-partner-empty
-      (CTI2.seal-partner-ok (CTI2.star-rep-target no-target _)) =
-    inner-source-occupied no-target
-  inner-source-partner-empty
-      (CTI2.seal-partner-ok (CTI2.plain-target ()))
 
   premise-chain² : W ∣ [] ⊢² V ⊑ target-chain ∶ X⊑Y
   premise-chain² =
-    CTI2.⊑conceal² mono-W-Wᵖ (CTI2.rebase-varᴿ rb-chain)
-      CTI2.same-[] target-Y-seal-⊢
+    CTI2.⊑conceal² mono-W-Wᵖ (CTX.rebase-varᴿ rb-chain)
+      CTX.same-[] target-Y-seal-⊢
       (CTI2.conceal⊑conceal²
-        (CTI2.matched-seal-star-partner {Xᴿ? = just Y₂}
-          (CTI2.rep★-nonvar-tag nonvar-fun))
+        (CTX.matched-seal-star-partner {Xᴿ? = just Y₂}
+          (CTX.rep★-nonvar-tag nonvar-fun))
         (mono-refl {W = Wᵖ}) rb-X-Y₂
-        CTI2.same-[]
+        CTX.same-[]
         source-seal-⊢ target-Y₂-seal-⊢ base² X⊑Y₂)
       X⊑Y
 
@@ -421,9 +397,7 @@ module InstanceB where
   premise-casts² =
     CTI2.cast⊑cast² X! Y! premise-chain² ★⊑★
 
-  tagged-input : W ∣ [] ⊢² source ⊑ target-tagged ∶ X⊑★-W
-  tagged-input =
-    CTI2.conceal⊑²
-      (CTI2.seal-partner-ok CTI2.name-protected-target)
-      (mono-refl {W = W}) (CTI2.tag-rebase-varᴸ rb-X-Y)
-      CTI2.same-[] source-seal-⊢ premise-casts² X⊑★-W
+  -- D15 M1 residual: the old checked `tagged-input` used the removed
+  -- occupied source-star/name-protected source-only route.  The matched
+  -- chain pieces above remain checked; reassembling this tagged endpoint
+  -- needs the later source-star package migration.

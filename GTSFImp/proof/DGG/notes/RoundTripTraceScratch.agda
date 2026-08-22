@@ -25,7 +25,7 @@ open import Reduction
 open import Eval
 open import Primitives using (κℕ)
 import proof.Consistency2 as C2
-open import proof.DGG.CastTermImprecision2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_∣_⊢²_⊑_∶_)
 import proof.DGG.ReachabilityScreen as RS
 import proof.DGG.StarRepChainProbe as Probe
 

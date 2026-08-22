@@ -19,16 +19,25 @@ open import CastTerms using (Term; Value; Inert; _⟨_⟩; _↓_)
 import CastTerms as CTerms
 open import Primitives using (κℕ)
 import SourceStarCounterScratch as SSC
-import proof.DGG.CastTermImprecision2 as CTI2
+import Conversion as Conv
+import proof.DGG.CastTermImprecision as CTI2
+import proof.DGG.CtxImp as CTX
+import proof.DGG.Example12Worlds as Ex12
 import proof.DGG.CenterRename as CR
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.ChainRideProbe as CRP
 import proof.DGG.MovedLinkProbe as MLP
 import proof.DGG.SealChainView as SCV
 import proof.DGG.TagBoundaryProbe as TBP
-open CTI2 using
-  (World; CtxImp; RebaseAt; _⊑ᵂ⟨_⟩_; sourceStoreʷ;
-   targetStoreʷ; ηᴸʷ; _∣_⊢²_⊑_∶_)
+open CTX using
+  (World;
+   CtxImp;
+   RebaseAt;
+   _⊑ᵂ⟨_⟩_;
+   sourceStoreʷ;
+   targetStoreʷ;
+   ηᴸʷ)
+open CTI2 using (_∣_⊢²_⊑_∶_)
 open ECR using (SpineValue)
 
 ------------------------------------------------------------------------
@@ -59,8 +68,8 @@ data SourceStarRide {Δᴸ Δᴿ Δ}
   source-star★ :
     Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W₀ Xᵒ Yᵒ
-      × CTI2.ImpEnvMono W₀ Wᵒ
-      × CTI2.SameCtx γ₀ γᵒ
+      × CTX.ImpEnvMono W₀ Wᵒ
+      × CTX.SameCtx γ₀ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᵒ ★ ⊑ U ∶ qᵒ) )
     → SourceStarRide Xᵒ Yᵒ ★
@@ -69,8 +78,8 @@ data SourceStarRide {Δᴸ Δᴿ Δ}
     → U ≡ U₀ ↓ seal Y′ S′
     → Value U₀
     → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-        ( CTI2.ImpEnvMono W₀ Wᵒ
-        × CTI2.SameCtx γ₀ γᵒ
+        ( CTX.ImpEnvMono W₀ Wᵒ
+        × CTX.SameCtx γ₀ γᵒ
         × sourceStoreʷ Wᵒ ∋ Xᵒ ⦂ ★
         × targetStoreʷ Wᵒ ∋ Y′ ⦂ S′
         × Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ (＇ Y′) ]
@@ -86,8 +95,8 @@ data TargetSealRide {Δᴸ Δᴿ Δ}
   target-seal★ :
     Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W₀ Xᵒ Yᵒ
-      × CTI2.ImpEnvMono W₀ Wᵒ
-      × CTI2.SameCtx γ₀ γᵒ
+      × CTX.ImpEnvMono W₀ Wᵒ
+      × CTX.SameCtx γ₀ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᵒ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢² P ↓ seal Xᵒ ★ ⊑ U ∶ qᵒ) )
     → TargetSealRide Xᵒ Yᵒ ★
@@ -110,17 +119,17 @@ record ChainRideBranchInterface : Set where
       → Value U
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
       → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
       → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
           ( RebaseAt Wᵒ W Xᴸ Y
-          × CTI2.ImpEnvMono W Wᵒ
-          × CTI2.SameCtx γ γᵒ
+          × CTX.ImpEnvMono W Wᵒ
+          × CTX.SameCtx γ γᵒ
           × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
               (Wᵒ ∣ γᵒ ⊢²
                 V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -138,10 +147,10 @@ record ChainRideBranchInterface : Set where
       → Value U
       → RebaseAt W′ W Xᴸ Y
       → RebaseAt W₂ W′ X₂ Y₂
-      → CTI2.ImpEnvMono W W′
-      → CTI2.ImpEnvMono W′ W₂
-      → CTI2.SameCtx γ γ′
-      → CTI2.SameCtx γ′ γ₂
+      → CTX.ImpEnvMono W W′
+      → CTX.ImpEnvMono W′ W₂
+      → CTX.SameCtx γ γ′
+      → CTX.SameCtx γ′ γ₂
       → sourceStoreʷ W ∋ Xᴸ ⦂ ★
       → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ p₂
       → SourceStarRide {W₀ = W} {γ₀ = γ} {P = V ⟨ c ⟩} {U}
@@ -157,9 +166,9 @@ record ChainRideBranchInterface : Set where
       → SpineValue V
       → Inert c
       → Value U
-      → CTI2.ImpEnvMono W W′
+      → CTX.ImpEnvMono W W′
       → RebaseAt W′ W Xᴸ Y
-      → CTI2.SameCtx γ γ′
+      → CTX.SameCtx γ γ′
       → sourceStoreʷ W ∋ Xᴸ ⦂ ★
       → targetStoreʷ W ∋ Y ⦂ S
       → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y S ∶ p₂
@@ -177,17 +186,17 @@ source-chain-from-branch : ChainRideBranchInterface
   → Value U
   → RebaseAt W′ W Xᴸ Y
   → RebaseAt W₂ W′ X₂ Y₂
-  → CTI2.ImpEnvMono W W′
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W W′
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ γ′
+  → CTX.SameCtx γ′ γ₂
   → sourceStoreʷ W ∋ Xᴸ ⦂ (＇ X₂)
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W Xᴸ Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             V ↓ seal Xᴸ (＇ X₂) ⊑ U ∶ qᵒ) )
@@ -207,16 +216,16 @@ source-star★-from-branch : ChainRideBranchInterface
   → Value U
   → RebaseAt W′ W Xᴸ Y
   → RebaseAt W₂ W′ X₂ Y₂
-  → CTI2.ImpEnvMono W W′
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W W′
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ γ′
+  → CTX.SameCtx γ′ γ₂
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W Xᴸ Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             (V ⟨ c ⟩) ↓ seal Xᴸ ★ ⊑ U ∶ qᵒ) )
@@ -240,16 +249,16 @@ target-seal★-from-branch : ChainRideBranchInterface
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → Σ[ Wᵒ ∈ World Δᴸ Δᴿ Δ ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ W Xᴸ Y
-      × CTI2.ImpEnvMono W Wᵒ
-      × CTI2.SameCtx γ γᵒ
+      × CTX.ImpEnvMono W Wᵒ
+      × CTX.SameCtx γ γᵒ
       × Σ[ qᵒ ∈ (＇ Xᴸ) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             (V ⟨ c ⟩) ↓ seal Xᴸ ★ ⊑ U ∶ qᵒ) )
@@ -272,9 +281,9 @@ H-Schain-from-branch : ChainRideBranchInterface
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ (＇ Y₂)
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y (＇ Y₂) ∶ p₂
@@ -301,15 +310,15 @@ H-absorb-from-branch : ChainRideBranchInterface
   → SpineValue V
   → Inert c
   → Value U
-  → CTI2.ImpEnvMono W W′
+  → CTX.ImpEnvMono W W′
   → RebaseAt W′ W Xᴸ Y
-  → CTI2.SameCtx γ γ′
+  → CTX.SameCtx γ γ′
   → sourceStoreʷ W ∋ Xᴸ ⦂ ★
   → targetStoreʷ W ∋ Y ⦂ ★
   → W′ ∣ γ′ ⊢² V ⊑ U ↓ seal Y ★ ∶ p₂
   → RebaseAt W₂ W′ X₂ Y
-  → CTI2.ImpEnvMono W′ W₂
-  → CTI2.SameCtx γ′ γ₂
+  → CTX.ImpEnvMono W′ W₂
+  → CTX.SameCtx γ′ γ₂
   → W₂ ∣ γ₂ ⊢² V ⊑ U ∶ q₂
   → toRenameᵗ (ηᴸʷ W₂) X₂ ≢ toRenameᵗ (ηᴸʷ W′) X₂
   → W ∣ γ ⊢²
@@ -322,8 +331,8 @@ H-absorb-from-branch core {q = q} sv inert vU mono rb sc X∈ Y∈ D
 H-absorb-from-branch core {q = q} sv inert vU mono rb sc X∈ Y∈ D
     link mono₂ sc₂ D₂ moved
     | Wᵒ , γᵒ , rbᵒ , monoᵒ , scᵒ , rᵒ , Dᵒ =
-  CTI2.⊑conceal² monoᵒ (CTI2.rebase-varᴿ rbᵒ) scᵒ
-    (CTI2.⊢↓-sealˣ Y∈) Dᵒ q
+  CTI2.⊑conceal² monoᵒ (CTX.rebase-varᴿ rbᵒ) scᵒ
+    (Conv.⊢↓-sealˣ Y∈) Dᵒ q
 
 H-multi-from-branch = source-chain-from-branch
 
@@ -334,8 +343,8 @@ H-multi-from-branch = source-chain-from-branch
 ChainRideProbe-from-branch : ChainRideBranchInterface
   → Σ[ Wᵒ ∈ World 2 1 3 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
       ( RebaseAt Wᵒ CRP.W₁ Fin.zero Fin.zero
-      × CTI2.ImpEnvMono CRP.W₁ Wᵒ
-      × CTI2.SameCtx {W = CRP.W₁} [] γᵒ
+      × CTX.ImpEnvMono CRP.W₁ Wᵒ
+      × CTX.SameCtx {W = CRP.W₁} [] γᵒ
       × Σ[ qᵒ ∈ (＇ Fin.zero) ⊑ᵂ⟨ Wᵒ ⟩ ★ ]
           (Wᵒ ∣ γᵒ ⊢²
             CRP.V ↓ seal Fin.zero (＇ Fin.suc Fin.zero)
@@ -366,18 +375,18 @@ private
 
   tag-id-rebase : RebaseAt TBP.probe-W₁ TBP.probe-W₁ Fin.zero Fin.zero
   tag-id-rebase =
-    CTI2.sameWorldRebaseAt refl TBP.probe-X-Y-rep₁
+    CTX.sameWorldRebaseAt refl TBP.probe-X-Y-rep₁
 
-  tag-id-mono : CTI2.ImpEnvMono TBP.probe-W₁ TBP.probe-W₁
+  tag-id-mono : CTX.ImpEnvMono TBP.probe-W₁ TBP.probe-W₁
   tag-id-mono Z eq = eq
 
-  tag-outer-mono : CTI2.ImpEnvMono TBP.probe-W₁ TBP.probe-W₄
+  tag-outer-mono : CTX.ImpEnvMono TBP.probe-W₁ TBP.probe-W₄
   tag-outer-mono Z eq = eq
 
 TagBoundaryProbe-from-branch : ChainRideBranchInterface
   → Σ[ Wᵒ ∈ World 1 2 2 ] Σ[ γᵒ ∈ CtxImp Wᵒ ]
-      ( CTI2.ImpEnvMono TBP.probe-W₁ Wᵒ
-      × CTI2.SameCtx {W = TBP.probe-W₁} [] γᵒ
+      ( CTX.ImpEnvMono TBP.probe-W₁ Wᵒ
+      × CTX.SameCtx {W = TBP.probe-W₁} [] γᵒ
       × sourceStoreʷ Wᵒ ∋ Fin.zero ⦂ ★
       × targetStoreʷ Wᵒ ∋ Fin.suc Fin.zero ⦂ ★
       × Σ[ qᵒ ∈
@@ -390,7 +399,7 @@ TagBoundaryProbe-from-branch core
       {ν = tag-source-env} {c = tag-X!}
       tag-source-value CTerms.inj tag-target-value
       tag-id-rebase TBP.probe-outer-target-rebase
-      tag-id-mono tag-outer-mono CTI2.same-[] CTI2.same-[]
+      tag-id-mono tag-outer-mono CTX.same-[] CTX.same-[]
       TBP.probe-src-X∋ TBP.probe-inner-seal²
 TagBoundaryProbe-from-branch core
     | source-star＇ refl vU₀ out =
@@ -404,18 +413,18 @@ source-star-counterexample-still-refuted =
   SSC.no-source-star-var-output
 
 example12-target-Z-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-X)
+  toRenameᵗ (CTX.ηᴿʷ Ex12.example12-world-X)
     (Fin.suc (Fin.suc Fin.zero))
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-world-Z)
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-world-Z)
     (Fin.suc (Fin.suc Fin.zero))
 example12-target-Z-never-moves = refl
 
 example12-nat-chain-target-Y-never-moves :
-  toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-nat-chain-world-Y) Fin.zero
+  toRenameᵗ (CTX.ηᴿʷ Ex12.example12-nat-chain-world-X) Fin.zero
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-nat-chain-world-Y) Fin.zero
 example12-nat-chain-target-Y-never-moves = refl
 
 example12-left-path-first-park :
-  toRenameᵗ (CTI2.ηᴸʷ CTI2.example12-left-path-world-X) Fin.zero
-  ≡ toRenameᵗ (CTI2.ηᴿʷ CTI2.example12-left-path-world-X) Fin.zero
+  toRenameᵗ (CTX.ηᴸʷ Ex12.example12-left-path-world-X) Fin.zero
+  ≡ toRenameᵗ (CTX.ηᴿʷ Ex12.example12-left-path-world-X) Fin.zero
 example12-left-path-first-park = refl

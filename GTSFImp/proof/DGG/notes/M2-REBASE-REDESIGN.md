@@ -160,7 +160,7 @@ analogue; those are exactly the shapes refuted in scratch.
 
 ## Implementation migration plan
 
-1. Edit `CastTermImprecision2.agda`.
+1. Edit `CastTermImprecision.agda`.
    Replace `ηᴿ-off-pivot` and `anchorᴿ` with `ηᴿ-frozen`.
    Update `sameWorldRebaseAt` and all local `rebase-at` witnesses.
    Expected breakage: constructor arity and field-name errors.
@@ -213,7 +213,7 @@ analogue; those are exactly the shapes refuted in scratch.
 
 Gate list:
 
-- `GTSFImp/proof/DGG/CastTermImprecision2.agda`
+- `GTSFImp/proof/DGG/CastTermImprecision.agda`
 - `GTSFImp/proof/DGG/Examples2.agda`
 - `GTSFImp/proof/DGG/CompilePreservesImprecision2.agda`
 - `GTSFImp/proof/DGG/ReachabilityCatalog.agda`

@@ -28,7 +28,7 @@ open import Primitives using (κℕ)
 
 import CTITighteningNarrowScratch as N
 open import CTITighteningOccScratch
-import proof.DGG.CastTermImprecision2 as CTI2
+import proof.DGG.CtxImp as CTI2
 open CTI2 using (_⊑ᵂ⟨_⟩_)
 import proof.Imprecision as PI
 

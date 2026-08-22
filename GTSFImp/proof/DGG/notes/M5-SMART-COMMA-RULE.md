@@ -265,7 +265,7 @@ Riskiest-first migration estimate:
 | `Inversion/SourceStripColumnView.agda` | 11 | M. View datatype may need a smart-Λ column. |
 | `Inversion/RightInjInversion2Def.agda` | 2 | S. Definitions only unless view indices change. |
 | `SealTransferCore.agda` | 17 | M. Rebase helpers may need no-op smart cases if guard evidence is transported through seals. |
-| `CastTermImprecision2.agda` | 21 | M. Live constructor plus helper definitions; this is the only relation edit in M-2. |
+| `CastTermImprecision.agda` | 21 | M. Live constructor plus helper definitions; this is the only relation edit in M-2. |
 | `Examples2.agda` | 141 | S/M. Mostly construction examples; add one smart example, fix imports if constructor exports shift. |
 | `ReachabilityScreen.agda` | 6 | S. Screen likely construction-only. |
 | `Phase3DeepDives.agda` | 8 | S. Probe/example adjustments. |

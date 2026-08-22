@@ -50,33 +50,6 @@ data _∋ν_⦂_ : ∀ {Θ} → Tele Θ → TyVar Θ → Ty Θ → Set where
     → tele-bind Ξ A ∋ν suc α ⦂ S
 
 ------------------------------------------------------------------------
--- Regular-variable classifier
-------------------------------------------------------------------------
-
-data Binding (Θ : AnchorCtx) : Set where
-  ∀-bound : Binding Θ
-  slot≔ : TyVar Θ → Binding Θ
-
-infixr 5 _∷_
-
-data Classifier (Θ : AnchorCtx) : TyCtx → Set where
-  [] : Classifier Θ zero
-  _∷_ : ∀ {Δ} → Binding Θ → Classifier Θ Δ
-    → Classifier Θ (suc Δ)
-
-lookupClassifier : Classifier Θ Δ → TyVar Δ → Binding Θ
-lookupClassifier (b ∷ κ) zero = b
-lookupClassifier (b ∷ κ) (suc X) = lookupClassifier κ X
-
-insert∀ : Classifier Θ Δ → Classifier Θ (suc Δ)
-insert∀ κ = ∀-bound ∷ κ
-
-insertSlot : TyVar (suc Δ) → TyVar Θ
-  → Classifier Θ Δ → Classifier Θ (suc Δ)
-insertSlot zero α κ = slot≔ α ∷ κ
-insertSlot (suc X) α (b ∷ κ) = b ∷ insertSlot X α κ
-
-------------------------------------------------------------------------
 -- Terms
 ------------------------------------------------------------------------
 

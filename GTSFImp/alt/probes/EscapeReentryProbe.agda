@@ -6,7 +6,7 @@ module alt.probes.EscapeReentryProbe where
 --   * Records the generated consistency evidence, typing, evaluation traces,
 --     and the escaped sealed-and-tagged value.
 
--- BLOCKED:
+-- SPEC DEVIATION (not a blocker):
 -- The two requested trace types with index `bind (‵ `ℕ) ∷ []` are not
 -- derivable using the live `Reduction._—↠[_]_`.  Its `↠-step` constructor
 -- records one `StoreChange` per reduction step, while `pure-step` embeds a

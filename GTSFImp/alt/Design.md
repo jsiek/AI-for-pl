@@ -252,3 +252,138 @@ design motivation needs revisiting before the new calculus is built.
   exact rule shape is to be settled in Agda.
 - **Blame.** `tag-untag-bad` compares anchors; blame across regions of
   distinct allocations must still be derivable through the merge rule.
+
+## Mechanization notes
+
+The following are the statement-level resolutions and deviations in the first
+`alt.*` core.  They are recorded here as revised statements so later work does
+not accidentally rely on the prose sketch where the checked Agda interface is
+different.
+
+### The store length is explicit in typing contexts
+
+The checked context record is
+
+```agda
+⟨ Δ , n , κ , Σ , Γ ⟩
+```
+
+where `Σ : Store n` and `κ : TyVar Δ → Binding n`.  The extra displayed `n`
+is the index needed by Agda to make the existential store length available to
+the dependent projections `κᵉ` and `Σᵉ`; it adds no semantic component.
+
+`Binding n` contains either `∀-bound` or `anchored α` with `α : Fin n`.
+The raw stable name carried by terms is a natural number.  A premise
+`α ⦂ R ∈ Σ` resolves that raw name to the corresponding `Fin n` used in the
+classifier.
+
+### Reduction carries the scoped-variable classifier
+
+The checked one-step judgment is
+
+```agda
+Σ ∣ κ ⊢ M —→[ χ ] M′
+```
+
+with `M M′ : Term Δ`, `Σ : Store n`,
+`κ : TyVar Δ → Binding n`, and `χ : StoreΔ n n′`.  This refines the sketched
+`Σ ∣ M —→ Σ′ ∣ M′`: reduction needs `κ` both to translate an allocating type
+argument to a name-scoped store representation and to compare variable tags by
+anchor.  If `χ = bind R`, the next multi-step premise uses the pointwise
+weakening of `κ` from `Fin n` to `Fin (suc n)`; terms are unchanged.
+
+### Representation transport is relational
+
+The checked crossing premises are, for the lookup `p : α ⦂ R ∈ Σ`,
+
+```agda
+Reps↑ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
+Reps↓ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
+```
+
+respectively.  `Transport` is structural on types.  An anchored scoped
+variable transports to its anchor name, a type-local `∀` variable transports
+to the corresponding type-local variable, and a `∀-bound` entry in `κ` has no
+transport constructor.  Under a conversion `∀`, both the variable relation
+and `R` are weakened once.  Thus every `seal` or `unseal` representation is
+checked against the current weakened store entry without defining a partial
+transport function.
+
+### Ordinary lambda beta is omitted
+
+There is currently no constructor with the old statement
+
+```agda
+(ƛ N) · V —→ N [ V ]
+```
+
+The old context-free substitution cannot be defined at a conceal node
+`M ↓⟨ X ≔ α ⟩ c`: `M` lives in `Term Δ`, but a substitution supplied for the
+surrounding `Term (suc Δ)` produces replacement terms in the larger scope and
+those terms may mention `X`.  Erasing that slot is not total, and wrapping the
+replacement in a reveal requires its typing derivation and type, neither of
+which is present in the extrinsic `Term` syntax.  The settled grammar has no
+explicit-substitution form that could defer this operation.  Consequently the
+rule is omitted rather than given an unsound partial or nondeterministic
+substitution.
+
+### `β-Λ` and `β-gen` take an endpoint-correct exit conversion
+
+The checked allocation rules are
+
+```agda
+β-Λ :
+  Value V → Transport (BindingRel κ) A R →
+  Σ ∣ κ ⊢ (Λ V) ⦂∀ B [ A ] —→[ bind R ]
+    V ↑⟨ 0 ≔ n ⟩ d
+```
+
+where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ A ]ᵗ))`, and
+
+```agda
+β-gen :
+  Value V → (A ≢ ★) → GenSafe c →
+  Transport (BindingRel κ) C R →
+  Σ ∣ κ ⊢ (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind R ]
+    (((V ↓⟨ 0 ≔ n ⟩ delimiter↓ (⇑ᵗ A)) ⟨ c ⟩)
+      ↑⟨ 0 ≔ n ⟩ d)
+```
+
+where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ C ]ᵗ))`.  This makes the entry
+anti-binder and exit reveal explicit and performs no term renaming.  The
+literal generator `〖 0 , ⇑ᵗ C ↑ B 〗` computes the extensionally equal target
+`replaceTy 0 (⇑ᵗ C) B`; that target is not definitionally equal to
+`wkᵗ 0 (B [ C ]ᵗ)`, especially under nested `∀`.  A future endpoint theorem
+can replace the supplied `d` by the literal generator without changing the
+term or store behavior.
+
+### Three allocation rules remain omitted
+
+There are currently no `β-inst`, `β-reveal-∀`, or `β-conceal-∀`
+constructors.  In `β-inst`, the body of the source `∀` uses slot `0` for its
+type binder, while the freshly entered region also uses crossing slot `0`.
+After the entry anti-binder, these are two distinct slots and the body must be
+transported across their exchange before it can be type-applied at the region
+variable.  The same exchange appears when type application crosses a
+structural `∀` reveal or conceal.  Neither `Types` nor the settled term syntax
+provides this typed exchange, and choosing an order silently changes the
+displayed rule.  The three rules are therefore omitted pending an explicit
+exchange statement.
+
+### Tag cancellation uses an explicit anchor relation
+
+The checked tag rules replace syntactic ground equality and inequality by
+
+```agda
+TagMatch κ G H
+TagMismatch κ G H
+```
+
+For variable grounds, `TagMatch` requires both classifier entries to be
+`anchored α` for the same `α`; `TagMismatch` requires distinct anchors.  Base,
+function, and universal ground tags retain their structural comparison.  This
+is the statement needed for two distinct scoped names anchored at one
+allocation to cancel.
+
+The projection-into-`★`-delimiter merge rule remains deferred exactly as
+allowed in the task; its intended location is marked in `alt.Reduction`.

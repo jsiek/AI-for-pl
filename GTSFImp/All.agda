@@ -23,6 +23,15 @@ import CastTerms
 import Reduction
 
 ------------------------------------------------------------------------
+-- Alternative shift-free core (exploration)
+------------------------------------------------------------------------
+
+import alt.Store
+import alt.Conversion
+import alt.Terms
+import alt.Reduction
+
+------------------------------------------------------------------------
 -- Source language and compilation
 ------------------------------------------------------------------------
 

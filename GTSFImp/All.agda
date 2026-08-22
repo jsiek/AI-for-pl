@@ -31,6 +31,7 @@ import alt.Conversion
 import alt.Terms
 import alt.Reduction
 import alt.GeneratorEndpoint
+import alt.Exchange
 
 ------------------------------------------------------------------------
 -- Source language and compilation

@@ -369,7 +369,7 @@ allocation-cross-ctx-exchange-typing ext
 mutual
   delimiter-reps↑ : ∀ {Δ n} (ρ : VarRel Δ n) (S : Ty n)
       (A : Ty Δ)
-    → Reps↑ ρ S (delimiter↑ A)
+    → Reps↑ ρ S (δ↑ A)
   delimiter-reps↑ ρ S (＇ X) = reps-id↑
   delimiter-reps↑ ρ S (‵ ι) = reps-id↑
   delimiter-reps↑ ρ S ★ = reps-id↑
@@ -380,7 +380,7 @@ mutual
 
   delimiter-reps↓ : ∀ {Δ n} (ρ : VarRel Δ n) (S : Ty n)
       (A : Ty Δ)
-    → Reps↓ ρ S (delimiter↓ A)
+    → Reps↓ ρ S (δ↓ A)
   delimiter-reps↓ ρ S (＇ X) = reps-id↓
   delimiter-reps↓ ρ S (‵ ι) = reps-id↓
   delimiter-reps↓ ρ S ★ = reps-id↓
@@ -392,7 +392,7 @@ mutual
 ∀-entry-application : ∀ {Δ} → Name → Term Δ → Ty (suc Δ)
   → Term (suc Δ)
 ∀-entry-application α V A =
-  (V ↓⟨ zero ≔ α ⟩ delimiter↓ (wkᵗ zero (`∀ A)))
+  (V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A)))
     ⦂∀ swapᵗ (⇑ᵗ A) [ ＇ zero ]
 
 ∀-entry-application-typed : ∀ {Γ} {V : Term (Δᵉ Γ)}
@@ -406,21 +406,21 @@ mutual
     (swap-shift-open-zero A) (⊢• exchanged⊢)
   where
   entered⊢ : cross-ctx Γ zero p ⊢
-      V ↓⟨ zero ≔ α ⟩ delimiter↓ (wkᵗ zero (`∀ A))
+      V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A))
       ⦂ wkᵗ zero (`∀ A)
   entered⊢ =
-    ⊢conceal p (delimiter-strict↓ zero (wkᵗ zero (`∀ A)))
+    ⊢conceal p (δ-strict↓ zero (wkᵗ zero (`∀ A)))
       (delimiter-reps↓
         (BindingRel (κᵉ (cross-ctx Γ zero p))) R
         (wkᵗ zero (`∀ A))) V⊢
 
   exchanged⊢ : cross-ctx Γ zero p ⊢
-      V ↓⟨ zero ≔ α ⟩ delimiter↓ (wkᵗ zero (`∀ A))
+      V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A))
       ⦂ `∀ (swapᵗ (⇑ᵗ A))
   exchanged⊢ =
     subst
       (λ T → cross-ctx Γ zero p ⊢
-        V ↓⟨ zero ≔ α ⟩ delimiter↓ (wkᵗ zero (`∀ A)) ⦂ T)
+        V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A)) ⦂ T)
       (wk-zero-∀-swap A) entered⊢
 
 ------------------------------------------------------------------------

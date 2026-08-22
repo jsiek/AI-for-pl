@@ -117,19 +117,19 @@ mutual
 ------------------------------------------------------------------------
 
 mutual
-  delimiter↑ : (A : Ty Δ) → Conv↑ Δ A A
-  delimiter↑ (＇ X) = id↑ (＇ X)
-  delimiter↑ (‵ ι) = id↑ (‵ ι)
-  delimiter↑ ★ = id↑ ★
-  delimiter↑ (A ⇒ B) = delimiter↓ A ↦↑ delimiter↑ B
-  delimiter↑ (`∀ A) = `∀↑ delimiter↑ A
+  δ↑ : (A : Ty Δ) → Conv↑ Δ A A
+  δ↑ (＇ X) = id↑ (＇ X)
+  δ↑ (‵ ι) = id↑ (‵ ι)
+  δ↑ ★ = id↑ ★
+  δ↑ (A ⇒ B) = δ↓ A ↦↑ δ↑ B
+  δ↑ (`∀ A) = `∀↑ δ↑ A
 
-  delimiter↓ : (A : Ty Δ) → Conv↓ Δ A A
-  delimiter↓ (＇ X) = id↓ (＇ X)
-  delimiter↓ (‵ ι) = id↓ (‵ ι)
-  delimiter↓ ★ = id↓ ★
-  delimiter↓ (A ⇒ B) = delimiter↑ A ↦↓ delimiter↓ B
-  delimiter↓ (`∀ A) = `∀↓ delimiter↓ A
+  δ↓ : (A : Ty Δ) → Conv↓ Δ A A
+  δ↓ (＇ X) = id↓ (＇ X)
+  δ↓ (‵ ι) = id↓ (‵ ι)
+  δ↓ ★ = id↓ ★
+  δ↓ (A ⇒ B) = δ↑ A ↦↓ δ↓ B
+  δ↓ (`∀ A) = `∀↓ δ↓ A
 
 ------------------------------------------------------------------------
 -- Type-variable renaming
@@ -201,20 +201,20 @@ mutual
       → PivotStrict↓ X (id↓ a)
 
 mutual
-  delimiter-strict↑ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
-    → PivotStrict↑ X (delimiter↑ A)
-  delimiter-strict↑ X (＇ Y) = strict-id↑
-  delimiter-strict↑ X (‵ ι) = strict-id↑
-  delimiter-strict↑ X ★ = strict-id↑
-  delimiter-strict↑ X (A ⇒ B) =
-    strict-↑⇒ (delimiter-strict↓ X A) (delimiter-strict↑ X B)
-  delimiter-strict↑ X (`∀ A) = strict-↑∀ (delimiter-strict↑ (suc X) A)
+  δ-strict↑ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
+    → PivotStrict↑ X (δ↑ A)
+  δ-strict↑ X (＇ Y) = strict-id↑
+  δ-strict↑ X (‵ ι) = strict-id↑
+  δ-strict↑ X ★ = strict-id↑
+  δ-strict↑ X (A ⇒ B) =
+    strict-↑⇒ (δ-strict↓ X A) (δ-strict↑ X B)
+  δ-strict↑ X (`∀ A) = strict-↑∀ (δ-strict↑ (suc X) A)
 
-  delimiter-strict↓ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
-    → PivotStrict↓ X (delimiter↓ A)
-  delimiter-strict↓ X (＇ Y) = strict-id↓
-  delimiter-strict↓ X (‵ ι) = strict-id↓
-  delimiter-strict↓ X ★ = strict-id↓
-  delimiter-strict↓ X (A ⇒ B) =
-    strict-↓⇒ (delimiter-strict↑ X A) (delimiter-strict↓ X B)
-  delimiter-strict↓ X (`∀ A) = strict-↓∀ (delimiter-strict↓ (suc X) A)
+  δ-strict↓ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
+    → PivotStrict↓ X (δ↓ A)
+  δ-strict↓ X (＇ Y) = strict-id↓
+  δ-strict↓ X (‵ ι) = strict-id↓
+  δ-strict↓ X ★ = strict-id↓
+  δ-strict↓ X (A ⇒ B) =
+    strict-↓⇒ (δ-strict↑ X A) (δ-strict↓ X B)
+  δ-strict↓ X (`∀ A) = strict-↓∀ (δ-strict↓ (suc X) A)

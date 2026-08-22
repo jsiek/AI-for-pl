@@ -55,9 +55,14 @@ The term grammar replaces the live same-context conversion forms
 
 ```text
 M, N ::= …                        -- all other forms as in CastTerms.agda
+       | ƛ A ˙ N                    -- lambda, annotated by its domain
        | M ↑⟨ X ≔ α ⟩ c           -- reveal: binds slot X, anchored at α
        | M ↓⟨ X ≔ α ⟩ c           -- conceal: anti-binds slot X, anchored at α
 ```
+
+The dot in `ƛ A ˙ N` distinguishes the domain annotation from the body;
+the annotation is syntax and the `⊢ƛ` rule requires it to be the domain of the
+resulting arrow type.
 
 Beside its conversion, a node carries two pieces of data: the **slot
 position** `X` — the de Bruijn position being removed from (reveal) or
@@ -309,23 +314,45 @@ and `R` are weakened once.  Thus every `seal` or `unseal` representation is
 checked against the current weakened store entry without defining a partial
 transport function.
 
-### Ordinary lambda beta is omitted
+### Ordinary lambda beta uses type-directed substitution
 
-There is currently no constructor with the old statement
+Lambdas carry their domain type, and the checked single substitution is
 
 ```agda
-(ƛ N) · V —→ N [ V ]
+_[_⦂_] : Term Δ → Term Δ → Ty Δ → Term Δ
+β : Value V → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ⦂ A ]
 ```
 
-The old context-free substitution cannot be defined at a conceal node
-`M ↓⟨ X ≔ α ⟩ c`: `M` lives in `Term Δ`, but a substitution supplied for the
-surrounding `Term (suc Δ)` produces replacement terms in the larger scope and
-those terms may mention `X`.  Erasing that slot is not total, and wrapping the
-replacement in a reveal requires its typing derivation and type, neither of
-which is present in the extrinsic `Term` syntax.  The settled grammar has no
-explicit-substitution form that could defer this operation.  Consequently the
-rule is omitted rather than given an unsound partial or nondeterministic
-substitution.
+The implementation generalizes internally to substitution at an arbitrary
+term index.  Under `ƛ`, that index is incremented and `V` is weakened only by
+the term-variable renaming `rename suc`.  Under `Λ`, the replacement is
+weakened across that existing lexical type binder; this is unrelated to store
+allocation, and no allocation or evaluation-frame rule traverses a term.
+
+At a reveal, substitution carries the replacement into the larger scoped-type
+context through a conceal delimiter:
+
+```agda
+(M ↑⟨ X ≔ α ⟩ c) [ V ⦂ A ] =
+  (M [ V ↓⟨ X ≔ α ⟩ δ↓ (wkᵗ X A) ⦂ wkᵗ X A ]) ↑⟨ X ≔ α ⟩ c
+```
+
+At a conceal, `strengthenAt X` inspects only the tracked type.  When it returns
+`A = wkᵗ X B`, substitution carries the replacement into the smaller context
+through a reveal delimiter:
+
+```agda
+(M ↓⟨ X ≔ α ⟩ c) [ V ⦂ wkᵗ X B ] =
+  (M [ V ↑⟨ X ≔ α ⟩ δ↑ (wkᵗ X B) ⦂ B ]) ↓⟨ X ≔ α ⟩ c
+```
+
+The type view is total.  On raw syntax where strengthening fails, `dropAt`
+still decrements variables above the removed term binder but leaves the target
+occurrences under that conceal unsubstituted.  This branch cannot contain such
+an occurrence in a well-typed redex: the `⊢conceal` premise types its subterm in
+the unweakened term context, so the corresponding tracked entry outside the
+subterm is necessarily a `wkᵗ X` image.  Constants and `blame` are unchanged;
+all other same-context constructors are traversed structurally.
 
 ### `β-Λ` and `β-gen` take an endpoint-correct exit conversion
 
@@ -345,7 +372,7 @@ where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ A ]ᵗ))`, and
   Value V → (A ≢ ★) → GenSafe c →
   Transport (BindingRel κ) C R →
   Σ ∣ κ ⊢ (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind R ]
-    (((V ↓⟨ 0 ≔ n ⟩ delimiter↓ (⇑ᵗ A)) ⟨ c ⟩)
+    (((V ↓⟨ 0 ≔ n ⟩ δ↓ (⇑ᵗ A)) ⟨ c ⟩)
       ↑⟨ 0 ≔ n ⟩ d)
 ```
 

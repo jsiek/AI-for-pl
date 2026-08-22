@@ -5,12 +5,16 @@ module alt.Terms where
 --     conceal anti-binders.
 --   * Defines values, scoped-variable classifications, representation
 --     transport, and typing against the global append-only store.
+--   * Provides annotated lambdas and type-directed single substitution.
 --   * Keeps forall-bound scoped variables out of store representations.
 
 open import Data.Fin using (Fin; zero; suc)
 open import Data.List using (_∷_)
-open import Data.Nat using (ℕ; suc)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Data.Nat using (ℕ; zero; suc)
+import Data.Nat.Properties as Nat
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; cong; subst; sym; trans)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TermCtx
@@ -23,7 +27,7 @@ open import alt.Conversion
 -- Terms
 ------------------------------------------------------------------------
 
-infix  5 ƛ_
+infix  5 ƛ_˙_
 infixl 7 _·_
 infix  5 Λ_
 infixl 7 _⦂∀_[_]
@@ -41,7 +45,7 @@ private
 
 data Term : TyCtx → Set where
   `_      : Var → Term Δ
-  ƛ_      : Term Δ → Term Δ
+  ƛ_˙_    : Ty Δ → Term Δ → Term Δ
   _·_     : Term Δ → Term Δ → Term Δ
   Λ_      : Term (suc Δ) → Term Δ
   _⦂∀_[_] : Term Δ → Ty (suc Δ) → Ty Δ → Term Δ
@@ -65,6 +69,259 @@ data Term : TyCtx → Set where
     → Term (suc Δ)
 
   blame   : Term Δ
+
+------------------------------------------------------------------------
+-- Term-variable renaming
+------------------------------------------------------------------------
+
+Rename : Set
+Rename = Var → Var
+
+ext : Rename → Rename
+ext ρ zero = zero
+ext ρ (suc x) = suc (ρ x)
+
+rename : Rename → Term Δ → Term Δ
+rename ρ (` x) = ` (ρ x)
+rename ρ (ƛ A ˙ M) = ƛ A ˙ rename (ext ρ) M
+rename ρ (L · M) = rename ρ L · rename ρ M
+rename ρ (Λ M) = Λ (rename ρ M)
+rename ρ (L ⦂∀ C [ A ]) = rename ρ L ⦂∀ C [ A ]
+rename ρ ($ κ) = $ κ
+rename ρ (L ⊕[ op ] M) = rename ρ L ⊕[ op ] rename ρ M
+rename ρ (M ⟨ c ⟩) = rename ρ M ⟨ c ⟩
+rename ρ (M ↑⟨ X ≔ α ⟩ c) = rename ρ M ↑⟨ X ≔ α ⟩ c
+rename ρ (M ↓⟨ X ≔ α ⟩ c) = rename ρ M ↓⟨ X ≔ α ⟩ c
+rename ρ blame = blame
+
+------------------------------------------------------------------------
+-- Removing one scoped-variable slot from a tracked type
+------------------------------------------------------------------------
+
+data Unpunch {n : ℕ} (X : Fin (suc n)) : Fin (suc n) → Set where
+  pivot : Unpunch X X
+  image : (Y : Fin n) → Unpunch X (punchIn X Y)
+
+unpunch : ∀ {n} (X Y : Fin (suc n)) → Unpunch X Y
+unpunch zero zero = pivot
+unpunch zero (suc Y) = image Y
+unpunch {n = suc n} (suc X) zero = image zero
+unpunch {n = suc n} (suc X) (suc Y) with unpunch X Y
+unpunch {n = suc n} (suc X) (suc .X) | pivot = pivot
+unpunch {n = suc n} (suc X) (suc .(punchIn X Y)) | image Y =
+  image (suc Y)
+
+data StrengthenedAt {n : ℕ} (X : TyVar (suc n)) :
+    Ty (suc n) → Set where
+  strengthened : (A : Ty n) → StrengthenedAt X (wkᵗ X A)
+  blocked : ∀ {A} → StrengthenedAt X A
+
+wkᵗ-all : ∀ {n} (X : TyVar (suc n)) (A : Ty (suc n))
+  → wkᵗ X (`∀ A) ≡ `∀ (wkᵗ (suc X) A)
+wkᵗ-all X A = cong `∀ (renameᵗ-cong A pointwise)
+  where
+  pointwise : ∀ Y → extᵗ (punchIn X) Y ≡ punchIn (suc X) Y
+  pointwise zero = refl
+  pointwise (suc Y) = refl
+
+strengthenAt : ∀ {n} (X : TyVar (suc n)) (A : Ty (suc n))
+  → StrengthenedAt X A
+strengthenAt X (＇ Y) with unpunch X Y
+strengthenAt X (＇ .X) | pivot = blocked
+strengthenAt X (＇ .(punchIn X Y)) | image Y = strengthened (＇ Y)
+strengthenAt X (‵ ι) = strengthened (‵ ι)
+strengthenAt X ★ = strengthened ★
+strengthenAt X (A ⇒ B) with strengthenAt X A | strengthenAt X B
+strengthenAt X (.(wkᵗ X A) ⇒ .(wkᵗ X B))
+  | strengthened A | strengthened B = strengthened (A ⇒ B)
+strengthenAt X (.(wkᵗ X A) ⇒ B) | strengthened A | blocked = blocked
+strengthenAt X (A ⇒ .(wkᵗ X B)) | blocked | strengthened B = blocked
+strengthenAt X (A ⇒ B) | blocked | blocked = blocked
+strengthenAt X (`∀ A) with strengthenAt (suc X) A
+strengthenAt X (`∀ .(wkᵗ (suc X) A)) | strengthened A =
+  subst (StrengthenedAt X) (wkᵗ-all X A) (strengthened (`∀ A))
+strengthenAt X (`∀ A) | blocked = blocked
+
+------------------------------------------------------------------------
+-- Type-context weakening used only beneath an existing `Λ`
+------------------------------------------------------------------------
+
+insertEnv : ∀ {n} → TyVar (suc n) → Env∼ n → Env∼ (suc n)
+insertEnv zero μ zero = X∼X
+insertEnv zero μ (suc Y) = μ Y
+insertEnv {n = suc n} (suc X) μ zero = μ zero
+insertEnv {n = suc n} (suc X) μ (suc Y) =
+  insertEnv X (λ Z → μ (suc Z)) Y
+
+insertEnv-punchIn : ∀ {n} (X : TyVar (suc n)) (μ : Env∼ n) Y
+  → insertEnv X μ (punchIn X Y) ≡ μ Y
+insertEnv-punchIn zero μ Y = refl
+insertEnv-punchIn {n = suc n} (suc X) μ zero = refl
+insertEnv-punchIn {n = suc n} (suc X) μ (suc Y) =
+  insertEnv-punchIn X (λ Z → μ (suc Z)) Y
+
+weakenConsistency : ∀ {n} {μ : Env∼ n} {A B : Ty n}
+  → (X : TyVar (suc n))
+  → μ ⊢ A ∼ B
+  → insertEnv X μ ⊢ wkᵗ X A ∼ wkᵗ X B
+weakenConsistency {μ = μ} X c =
+  rename∼ (punchIn X) (insertEnv-punchIn X μ) c
+
+-- Commuting an ambient insertion inward across a reveal.  At equal slots,
+-- the reveal's own slot comes first.
+underReveal : ∀ {n} → Fin (suc n) → Fin (suc n) → Fin (suc (suc n))
+underReveal zero zero = suc zero
+underReveal zero (suc Y) = zero
+underReveal (suc X) zero = suc (suc X)
+underReveal {n = suc n} (suc X) (suc Y) = suc (underReveal X Y)
+
+weakenRevealSlot : ∀ {n}
+  → Fin (suc n) → Fin (suc n) → Fin (suc (suc n))
+weakenRevealSlot zero zero = zero
+weakenRevealSlot zero (suc Y) = suc (suc Y)
+weakenRevealSlot (suc X) zero = zero
+weakenRevealSlot {n = suc n} (suc X) (suc Y) =
+  suc (weakenRevealSlot X Y)
+
+reveal-punch-square : ∀ {n} (X Y : Fin (suc n)) (z : Fin n)
+  → punchIn (underReveal X Y) (punchIn Y z)
+    ≡ punchIn (weakenRevealSlot X Y) (punchIn X z)
+reveal-punch-square zero zero z = refl
+reveal-punch-square {n = suc n} zero (suc Y) zero = refl
+reveal-punch-square {n = suc n} zero (suc Y) (suc z) = refl
+reveal-punch-square {n = suc n} (suc X) zero zero = refl
+reveal-punch-square {n = suc n} (suc X) zero (suc z) = refl
+reveal-punch-square {n = suc n} (suc X) (suc Y) zero = refl
+reveal-punch-square {n = suc n} (suc X) (suc Y) (suc z) =
+  cong suc (reveal-punch-square X Y z)
+
+wkᵗ-reveal-square : ∀ {n} (X Y : Fin (suc n)) (A : Ty n)
+  → wkᵗ (underReveal X Y) (wkᵗ Y A)
+    ≡ wkᵗ (weakenRevealSlot X Y) (wkᵗ X A)
+wkᵗ-reveal-square X Y A =
+  trans (renameᵗ-comp (punchIn Y) (punchIn (underReveal X Y)) A)
+    (trans (renameᵗ-cong A (reveal-punch-square X Y))
+      (sym (renameᵗ-comp (punchIn X)
+        (punchIn (weakenRevealSlot X Y)) A)))
+
+-- Commuting an insertion outward across a conceal.  The inserted slot is
+-- placed before the conceal slot when they meet at the same outer gap.
+outsideConceal : ∀ {n}
+  → Fin (suc (suc n)) → Fin (suc n) → Fin (suc n)
+outsideConceal zero Y = zero
+outsideConceal (suc X) zero = X
+outsideConceal {n = suc n} (suc X) (suc Y) = suc (outsideConceal X Y)
+
+weakenConcealSlot : ∀ {n}
+  → Fin (suc (suc n)) → Fin (suc n) → Fin (suc (suc n))
+weakenConcealSlot zero Y = suc Y
+weakenConcealSlot (suc X) zero = zero
+weakenConcealSlot {n = suc n} (suc X) (suc Y) =
+  suc (weakenConcealSlot X Y)
+
+conceal-punch-square : ∀ {n} (X : Fin (suc (suc n)))
+    (Y : Fin (suc n)) (z : Fin n)
+  → punchIn X (punchIn Y z)
+    ≡ punchIn (weakenConcealSlot X Y) (punchIn (outsideConceal X Y) z)
+conceal-punch-square {n = suc n} zero zero zero = refl
+conceal-punch-square {n = suc n} zero zero (suc z) = refl
+conceal-punch-square {n = suc n} zero (suc Y) zero = refl
+conceal-punch-square {n = suc n} zero (suc Y) (suc z) = refl
+conceal-punch-square {n = suc n} (suc X) zero zero = refl
+conceal-punch-square {n = suc n} (suc X) zero (suc z) = refl
+conceal-punch-square {n = suc n} (suc X) (suc Y) zero = refl
+conceal-punch-square {n = suc n} (suc X) (suc Y) (suc z) =
+  cong suc (conceal-punch-square X Y z)
+
+wkᵗ-conceal-square : ∀ {n} (X : Fin (suc (suc n)))
+    (Y : Fin (suc n)) (A : Ty n)
+  → wkᵗ X (wkᵗ Y A)
+    ≡ wkᵗ (weakenConcealSlot X Y) (wkᵗ (outsideConceal X Y) A)
+wkᵗ-conceal-square X Y A =
+  trans (renameᵗ-comp (punchIn Y) (punchIn X) A)
+    (trans (renameᵗ-cong A (conceal-punch-square X Y))
+      (sym (renameᵗ-comp (punchIn (outsideConceal X Y))
+        (punchIn (weakenConcealSlot X Y)) A)))
+
+weakenᵗᵐ : ∀ {n} (X : TyVar (suc n)) → Term n → Term (suc n)
+weakenᵗᵐ X (` x) = ` x
+weakenᵗᵐ X (ƛ A ˙ M) = ƛ wkᵗ X A ˙ weakenᵗᵐ X M
+weakenᵗᵐ X (L · M) = weakenᵗᵐ X L · weakenᵗᵐ X M
+weakenᵗᵐ X (Λ M) = Λ (weakenᵗᵐ (suc X) M)
+weakenᵗᵐ X (L ⦂∀ C [ A ]) =
+  weakenᵗᵐ X L ⦂∀ wkᵗ (suc X) C [ wkᵗ X A ]
+weakenᵗᵐ X ($ κ) = $ κ
+weakenᵗᵐ X (L ⊕[ op ] M) = weakenᵗᵐ X L ⊕[ op ] weakenᵗᵐ X M
+weakenᵗᵐ X (M ⟨ c ⟩) = weakenᵗᵐ X M ⟨ weakenConsistency X c ⟩
+weakenᵗᵐ X (M ↑⟨ Y ≔ α ⟩ c) =
+  weakenᵗᵐ (underReveal X Y) M ↑⟨ weakenRevealSlot X Y ≔ α ⟩
+    subst (Conv↑ _ _) (wkᵗ-reveal-square X Y _) (rename↑ _ c)
+weakenᵗᵐ X (M ↓⟨ Y ≔ α ⟩ c) =
+  weakenᵗᵐ (outsideConceal X Y) M ↓⟨ weakenConcealSlot X Y ≔ α ⟩
+    subst (λ A → Conv↓ _ A _) (wkᵗ-conceal-square X Y _) (rename↓ _ c)
+weakenᵗᵐ X blame = blame
+
+------------------------------------------------------------------------
+-- Term-variable deletion when a replacement cannot cross a conceal
+------------------------------------------------------------------------
+
+removeVar : Var → Var → Var
+removeVar zero zero = zero
+removeVar zero (suc y) = y
+removeVar (suc x) zero = zero
+removeVar (suc x) (suc y) = suc (removeVar x y)
+
+dropAt : Var → Term Δ → Term Δ
+dropAt x (` y) with Nat._≟_ x y
+dropAt x (` .x) | yes refl = ` x
+dropAt x (` y) | no x≠y = ` removeVar x y
+dropAt x (ƛ A ˙ M) = ƛ A ˙ dropAt (suc x) M
+dropAt x (L · M) = dropAt x L · dropAt x M
+dropAt x (Λ M) = Λ (dropAt x M)
+dropAt x (L ⦂∀ C [ A ]) = dropAt x L ⦂∀ C [ A ]
+dropAt x ($ κ) = $ κ
+dropAt x (L ⊕[ op ] M) = dropAt x L ⊕[ op ] dropAt x M
+dropAt x (M ⟨ c ⟩) = dropAt x M ⟨ c ⟩
+dropAt x (M ↑⟨ X ≔ α ⟩ c) = dropAt x M ↑⟨ X ≔ α ⟩ c
+dropAt x (M ↓⟨ X ≔ α ⟩ c) = dropAt x M ↓⟨ X ≔ α ⟩ c
+dropAt x blame = blame
+
+------------------------------------------------------------------------
+-- Type-directed single substitution
+------------------------------------------------------------------------
+
+substAt : Var → Term Δ → Ty Δ → Term Δ → Term Δ
+substAt x V A (` y) with Nat._≟_ x y
+substAt x V A (` .x) | yes refl = V
+substAt x V A (` y) | no x≠y = ` removeVar x y
+substAt x V A (ƛ B ˙ M) =
+  ƛ B ˙ substAt (suc x) (rename suc V) A M
+substAt x V A (L · M) = substAt x V A L · substAt x V A M
+substAt x V A (Λ M) = Λ (substAt x (weakenᵗᵐ zero V) (⇑ᵗ A) M)
+substAt x V A (L ⦂∀ C [ B ]) = substAt x V A L ⦂∀ C [ B ]
+substAt x V A ($ κ) = $ κ
+substAt x V A (L ⊕[ op ] M) =
+  substAt x V A L ⊕[ op ] substAt x V A M
+substAt x V A (M ⟨ c ⟩) = substAt x V A M ⟨ c ⟩
+substAt x V A (M ↑⟨ X ≔ α ⟩ c) =
+  substAt x (V ↓⟨ X ≔ α ⟩ δ↓ (wkᵗ X A)) (wkᵗ X A) M
+    ↑⟨ X ≔ α ⟩ c
+substAt x V A (M ↓⟨ X ≔ α ⟩ c) with strengthenAt X A
+substAt x V .(wkᵗ X B) (M ↓⟨ X ≔ α ⟩ c) | strengthened B =
+  substAt x (V ↑⟨ X ≔ α ⟩ δ↑ (wkᵗ X B)) B M
+    ↓⟨ X ≔ α ⟩ c
+-- In a well-typed redex the substituted context entry beneath a conceal is
+-- typed in the unweakened context, so its tracked type at the node is
+-- necessarily `wkᵗ X B`.  If raw, ill-typed syntax violates that invariant,
+-- leave just its target occurrences in place; `dropAt` still adjusts every
+-- other de Bruijn index for the binder removed by substitution.
+substAt x V A (M ↓⟨ X ≔ α ⟩ c) | blocked =
+  dropAt x M ↓⟨ X ≔ α ⟩ c
+substAt x V A blame = blame
+
+infixl 8 _[_⦂_]
+_[_⦂_] : Term Δ → Term Δ → Ty Δ → Term Δ
+M [ V ⦂ A ] = substAt zero V A M
 
 ------------------------------------------------------------------------
 -- Values
@@ -147,7 +404,7 @@ data ConcealValue : ∀ {Δ A B} → Conv↓ Δ A B → Set where
     → ConcealValue (id↓ (★ {Δ}))
 
 data Value : ∀ {Δ : TyCtx} → Term Δ → Set where
-  ƛ_ : ∀ {Δ} (N : Term Δ) → Value (ƛ N)
+  ƛ_˙_ : ∀ {Δ} (A : Ty Δ) (N : Term Δ) → Value (ƛ A ˙ N)
   Λ_ : ∀ {Δ} {V : Term (suc Δ)} → Value V → Value (Λ V)
   $ : ∀ {Δ} (κ : Const) → Value {Δ = Δ} ($ κ)
 
@@ -328,7 +585,7 @@ data _⊢_⦂_ : (Γ : Ctx) → Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
 
   ⊢ƛ : ∀ {Γ A B M}
     → Γ ,ᶜ A ⊢ M ⦂ B
-    → Γ ⊢ (ƛ M) ⦂ (A ⇒ B)
+    → Γ ⊢ (ƛ A ˙ M) ⦂ (A ⇒ B)
 
   ⊢· : ∀ {Γ A B L M}
     → Γ ⊢ L ⦂ (A ⇒ B)

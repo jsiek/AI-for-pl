@@ -4,6 +4,7 @@ module alt.Reduction where
 --   * Defines shift-free call-by-value reduction for alt.Terms.
 --   * Store allocation changes only the global store; the term type context
 --     is fixed by every step and evaluation frames leave siblings untouched.
+--   * Restores ordinary beta with annotated, type-directed substitution.
 --   * Provides store-indexed multi-step traces and anchored tag comparison.
 
 open import Data.Fin using (inject₁; zero)
@@ -133,10 +134,10 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → δ op κ₁ κ₂ κ₃
     → Σ ∣ κ ⊢ $ κ₁ ⊕[ op ] $ κ₂ —→[ keep ] $ κ₃
 
-  -- DEVIATION: the ordinary lambda beta rule is omitted.  The old untyped
-  -- substitution cannot cross a conceal anti-binder: its replacement term
-  -- lives in the larger scope and need not be removable at the concealed
-  -- slot.  See "Mechanization notes" in alt/Design.md.
+  β : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
+      {V N : Term Δ} {A : Ty Δ}
+    → Value V
+    → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ⦂ A ]
 
   β-id : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V : Term Δ} {μ : Env∼ Δ} {A : Ty Δ} {a : Atom A}
@@ -300,7 +301,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Transport (BindingRel κ) C R
     → Σ ∣ κ ⊢ (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ]
         —→[ bind R ]
-        ((V ↓⟨ zero ≔ n ⟩ delimiter↓ (⇑ᵗ A)) ⟨ c ⟩)
+        ((V ↓⟨ zero ≔ n ⟩ δ↓ (⇑ᵗ A)) ⟨ c ⟩)
           ↑⟨ zero ≔ n ⟩ d
 
   -- DEVIATION: β-inst, β-reveal-∀, and β-conceal-∀ are omitted.  Their

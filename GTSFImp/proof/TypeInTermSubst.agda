@@ -22,7 +22,8 @@ open import Consistency
 open import Conversion
 open import Primitives
 open import CastTerms
-open import proof.TypeSafety.Progress using (gen-safe)
+open import proof.Consistency using
+  (gen-safe; renameGroundᵐ; rename∼★ᵐ; renameᵐᶜ-idᵍ!)
 
 ------------------------------------------------------------------------
 -- Store lookup transport

@@ -7,11 +7,10 @@ module proof.Imprecision where
 --   * Proves uniqueness for occurrence and type-imprecision evidence.
 --   * Depends only on Types and Imprecision.
 
-open import Axiom.Extensionality.Propositional using (Extensionality)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
+open import Data.Product using (_×_; _,_)
 import Data.Nat as Nat
-open import Level using (0ℓ)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 
@@ -20,17 +19,11 @@ import Imprecision as I
 
 private
 
-  postulate
-    funext : Extensionality 0ℓ 0ℓ
-
-  ¬-unique : ∀ {A : Set} (p q : A → ⊥) → p ≡ q
-  ¬-unique p q = funext (λ x → ⊥-elim (p x))
-
   not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
     → X ∉ᵗ A
     → X ∈ᵗ A
     → ⊥
-  not-occurs (∉-var X≠Y) var-∈ = X≠Y refl
+  not-occurs (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
   not-occurs ∉-base ()
   not-occurs ∉-star ()
   not-occurs (∉-fun X∉A X∉B) (∈-fun-left X∈A) =
@@ -110,7 +103,7 @@ private
     → X ∉ᵗ A
     → ρ X ∉ᵗ renameᵗ ρ A
   rename-fresh inj (∉-var X≢Y) =
-    ∉-var (λ eq → X≢Y (inj eq))
+    ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ X≢Y (inj eq)))
   rename-fresh inj ∉-base = ∉-base
   rename-fresh inj ∉-star = ∉-star
   rename-fresh inj (∉-fun X∉A X∉B) =
@@ -132,7 +125,7 @@ private
 
   insert-fresh : ∀ {Δ} (X : TyVar (Nat.suc Δ))
     → ∀ (A : Ty Δ) → X ∉ᵗ renameᵗ (insertʳ X) A
-  insert-fresh X (＇ Y) = ∉-var (insertʳ-fresh-var X Y)
+  insert-fresh X (＇ Y) = ∉-var (≢→≢ᶠ (insertʳ-fresh-var X Y))
   insert-fresh X (‵ ι) = ∉-base
   insert-fresh X ★ = ∉-star
   insert-fresh X (A ⇒ B) =
@@ -487,7 +480,8 @@ private
 
   all-choice : ∀ {Δ} (A : Ty (Nat.suc Δ)) → AllChoice A
   all-choice (＇ zero) = bottom-choice
-  all-choice (＇ (suc X)) = structural-choice nonstar-X (∉-var (λ ()))
+  all-choice (＇ (suc X)) =
+    structural-choice nonstar-X (∉-var (≢→≢ᶠ (λ ())))
   all-choice (‵ ι) = structural-choice nonstar-ι ∉-base
   all-choice ★ = star-choice
   all-choice (A ⇒ B) with occurs? zero (A ⇒ B)
@@ -528,6 +522,26 @@ private
 
 imprecise-star : ∀ (A : Ty 0) → I._⊑_ A ★
 imprecise-star A = imprecise-star-shape (shape A) (\ ())
+
+------------------------------------------------------------------------
+-- Plain type-imprecision inversion
+------------------------------------------------------------------------
+
+⇒⊑★-inv : ∀ {Δ} {μ : I.ImpEnv Δ} {A B : Ty Δ}
+  → I._⊢_⊑_ μ (A ⇒ B) ★
+  → I._⊢_⊑_ μ A ★ × I._⊢_⊑_ μ B ★
+⇒⊑★-inv (I.⇒⊑★ A⊑★ B⊑★) = A⊑★ , B⊑★
+
+⇒⊑⇒-inv : ∀ {Δ} {μ : I.ImpEnv Δ}
+    {A A′ B B′ : Ty Δ}
+  → I._⊢_⊑_ μ (A ⇒ B) (A′ ⇒ B′)
+  → I._⊢_⊑_ μ A A′ × I._⊢_⊑_ μ B B′
+⇒⊑⇒-inv (I.⇒⊑⇒ A⊑A′ B⊑B′) = A⊑A′ , B⊑B′
+
+★⊑-inv : ∀ {Δ} {μ : I.ImpEnv Δ} {A : Ty Δ}
+  → I._⊢_⊑_ μ ★ A
+  → A ≡ ★
+★⊑-inv I.★⊑★ = refl
 
 ------------------------------------------------------------------------
 -- Fresh type-variable consequences
@@ -575,7 +589,7 @@ imprecision-no-star-to-bot {Y = Y} Y★
   → (p q : X ∉ᵗ A)
   → p ≡ q
 ∉ᵗ-unique (∉-var X≢Y) (∉-var X≢Y′) =
-  cong ∉-var (¬-unique X≢Y X≢Y′)
+  cong ∉-var (≢ᶠ-unique X≢Y X≢Y′)
 ∉ᵗ-unique ∉-base ∉-base = refl
 ∉ᵗ-unique ∉-star ∉-star = refl
 ∉ᵗ-unique (∉-fun X∉A X∉B) (∉-fun X∉A′ X∉B′)

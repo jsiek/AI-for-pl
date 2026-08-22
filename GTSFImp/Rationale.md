@@ -13,6 +13,11 @@ and [`Reduction.agda`](Reduction.agda).
 - [Instantiation closes consistency at star](#instantiation-closes)
 - [One-sided administrative wrappers in cast-term
   imprecision](#cast-term-imprecision-wrappers)
+- [Version-2 representation-directed wrappers](#cast-term-imprecision-v2)
+- [Identity reveals in version-2 cast-term
+  imprecision](#identity-reveals-v2)
+- [Example 12 store alignment and right-only
+  variables](#example12-store-alignment)
 - [Generalization uses fresh-name tags](#generalization-tags)
 
 <a id="side-effect-free-instantiation"></a>
@@ -202,6 +207,461 @@ target rules makes the cast-term imprecision relation closed under the
 administrative conversion wrappers that type-application reductions can
 produce on the target.
 
+<a id="cast-term-imprecision-v2"></a>
+## Version-2 representation-directed wrappers
+
+The version-2 relation in
+[`proof/DGG/CastTermImprecision.agda`](proof/DGG/CastTermImprecision.agda)
+keeps reveal and conceal wrappers syntax directed. The one-sided rules are
+
+```agda
+⊑reveal²
+⊑conceal²
+reveal⊑²
+conceal⊑²
+```
+
+and the paired rules are
+
+```agda
+reveal⊑reveal²
+conceal⊑conceal²
+```
+
+All six rules are representation directed: each rule carries a rebasing
+premise and indexed conversion typing evidence such as `Σ ⊢↑[ just X ] c`
+or `Σ ⊢↓[ just X ] c`. This records which abstract variable the
+conversion is about and which source/target store representations are
+being compared. The pivot index is optional: an identity-shaped
+conversion has pivot `nothing`, and the one-sided rules take a
+`RebaseAtᴸ`/`RebaseAtᴿ` premise whose `nothing` case forces the premise
+world to equal the conclusion world.
+
+A source pivot does not need an aligned target variable. When the more
+imprecise side never allocates — the probe in
+[`proof/DGG/LambdaImpProbe.agda`](proof/DGG/LambdaImpProbe.agda) pairs
+Example 12's direct program with a monomorphic `(ƛ x) · (7 ⟨ ℕ! ⟩)` —
+the source's `β-Λ` produces reveal and conceal wrappers at a variable
+the target simply does not have, and with only two-sided pivots the
+simulation was provably impossible in every world. The `rebase-onlyᴸ`
+case of `RebaseAtᴸ` covers this: the pivot's center is classified
+`X⊑★`, its canonical source representation sits below `★`, and the
+world stays fixed because there is no alignment to change. A third
+condition records the disalignment directly: no target variable embeds
+at the pivot's center, so a pivot with no target partner is disaligned
+by construction rather than merely unaligned by accident. There is no
+right-only mirror, because type imprecision has no rule with a bare
+variable on the imprecise side: a target variable can only appear in an
+obligation opposite an aligned source variable.
+
+For the same reason, `Λ⊑²` lifts the world on the left only. Its
+premise compares the type abstraction's body against the target term
+*unweakened*, in `liftWorldLeft X⊑★ W`, which keeps the target context,
+store, and embedding fixed. An earlier version weakened the target with
+`⇑ᵗᵐ` under `liftWorldBoth` — a carryover from the version-1 relation,
+which renamed terms into a shared context. That premise was unusable as
+an induction hypothesis: after `β-Λ` the machine's target store still
+has its old type context, `SameRuntime` pins checkpoint worlds to it,
+and a `liftWorldBoth` world differs from every such world already in
+its `World` indices. With the left-only lift, the premise world differs
+from the post-allocation `leftOnlyWorld` only in binding the fresh
+source variable (`store-lift` versus `store-bind`), which is the
+ordinary world evolution at an allocation step.
+
+`RebaseAt W W′ Xᴸ Xᴿ` is deliberately pivot-local. Reduction introduces
+one reveal or conceal wrapper per fresh type variable, so descending
+through one wrapper is only allowed to change the alignment of the pivot
+pair. Concretely, the record requires that the two runtime stores and
+the center type context are unchanged, that `ηᴸ` agrees with the old
+world at every variable other than `Xᴸ` and `ηᴿ` agrees at every
+variable other than `Xᴿ`, that the pivots are aligned in the new world,
+and that their store representations are related there. Store
+representations are canonical: `resolveVar` follows a variable's
+representation chain to its end (a non-variable type or a store-lift
+variable), instead of letting the derivation stop the chase at an
+arbitrary intermediate type. Chains terminate because a store-bind
+entry mentions only strictly older variables. This keeps rebasing
+deterministic enough for inversion: given the old world and the pivot
+pair, the new world is fixed up to which side of the pivot moved and up
+to mark decay, described next.
+
+Imprecision marks are not pinned by the rebase. An earlier design
+required the premise and conclusion worlds to agree on every mark, but
+the checked configuration in
+[`proof/DGG/ExtraCastRight2Counterexample.agda`](proof/DGG/ExtraCastRight2Counterexample.agda)
+refuted extra-cast-right under that regime: a rebase that displaces a
+target variable leaves its old partner precise but unaligned, and the
+stale `X⊑X` mark — provably preserved by mark equality — makes the
+relation required after target-tag cancellation empty. Instead, every
+wrapper rule now carries an `ImpEnvMono` premise from its conclusion
+world to its premise world: centers marked `X⊑★` stay `X⊑★`, and
+precise marks may decay to `X⊑★`. Mark decay never removes
+derivability, because no imprecision rule requires a precise mark. The
+companion invariant `WFWorld` says a world is mark-honest: every source
+variable whose center is marked precise has an aligned target variable.
+The counterexample's input world fails it exactly at the displaced
+variable; descending into a dynamized, mark-honest premise world is
+what makes the previously-empty output derivable. There is no mirror
+condition for target variables because type imprecision has no rule
+with a bare variable on the imprecise side.
+
+Conversely, what a rebase may change is exactly the placement of its
+pivot pair, plus mark decay. An alignment is the world's hypothesis
+that a source variable and a target variable name the same runtime
+seal; each wrapper boundary is the one place where that hypothesis may
+be revised, and only for the boundary's own pivot. Since every
+non-pivot embedding is pinned and the record's `pivotAligned` field
+forces the pivots to share a center in `W′`, the degrees of freedom
+reduce to the choice of that shared center.
+
+Recall what a center is: a world carries a shared center type context
+`Δ` alongside the source and target contexts, and its two embeddings
+`ηᴸ : Δᴸ ↪ᵗ Δ` and `ηᴿ : Δᴿ ↪ᵗ Δ` send every source and target
+variable to a variable of `Δ` — its center. A source variable is
+aligned with a target variable exactly when the embeddings send them
+to the same center. In the diagram below the center context has three
+type variables `X, Y, Z`, drawn as columns; the pivot pair is the
+source variable `Xᴸ` and the target variable `Yᴿ`. Each row records
+where the embeddings send the two pivots, so two names in one column
+mean the pivots are aligned there. With the pivots apart in `W`
+(`Xᴸ` at center `X`, `Yᴿ` at center `Y`), the three possible shapes
+for `W′` are:
+
+```text
+              Center Context
+              X      Y      Z
+  W    ηᴸ:    Xᴸ
+       ηᴿ:           Yᴿ           (pivots apart in W)
+
+  W′   (a)   Xᴸ,Yᴿ                Yᴿ moves to X, where Xᴸ already sits
+       (b)          Xᴸ,Yᴿ         Xᴸ moves to Y, where Yᴿ already sits
+       (c)                 Xᴸ,Yᴿ  both move to Z, previously unoccupied
+```
+
+Alongside any of these, `ImpEnvMono` lets marks decay `X⊑X → X⊑★` at
+any center, and the pivots' canonical store representations must be
+related in `W′` — the moved hypothesis has to be consistent with what
+the stores actually hold. One practical constraint is not visible in
+the record: embeddings are order-preserving `keep`/`skip` injections,
+so a pivot can only re-park at a center that respects the relative
+order of the untouched variables. When no such center is free, parking
+space comes from extending the center context (see the world-support
+section below).
+
+The diagram is oriented like the record: `RebaseAt W W′ Xᴸ Xᴿ` aligns
+the pivots in its second index, and the wrapper rules read the same
+record in both directions (reveal descends along it, conceal ascends —
+see the direction paragraph below). Representative instances of each
+move:
+
+- *(a) target joins source* — the outer boundary of
+  [`proof/DGG/SealPeelProbe.agda`](proof/DGG/SealPeelProbe.agda):
+  its record `RebaseAt probe-W′ probe-W Xᴸ Y` starts with the pair
+  apart in `probe-W′` (`Y` sits at `X₂`'s center) and has `Y` joining
+  `Xᴸ`'s center in `probe-W`, revising which source representation the
+  target seal is identified with. Example 12's chains are stacks of
+  such moves, one per wrapper.
+- *(b) source joins target* — the mirror, typical when the source side
+  allocated its seal later than the target; the boundary at the source
+  seal re-aligns the source pivot onto the already-placed target pivot.
+- *(c) both re-park* — no reduction step needs this, but rebuild
+  proofs use the latitude when choosing premise worlds: the seal-peel
+  analysis constructs an intermediate world with both pivots at a
+  center neither occupied before, and the same probe's
+  `probe-Wᵖ` exercises the one-variable version, parking `Y` at a
+  fresh center so that a deeper `rebase-onlyᴸ` disalignment premise
+  holds at the center it vacated.
+- *degenerate* — `rebase-onlyᴸ` and the `nothing`-pivot cases move
+  nothing: `W′ = W`. A pivot with no target partner has no alignment
+  to revise, so the only latitude left is mark decay.
+
+Reveal and conceal use opposite `RebaseAt` directions. A reveal checks the
+premise in the pre-reveal world and produces the result in the post-reveal
+world, so its rebasing premise has the same direction as the one-sided
+reveal rules. A conceal wraps a term after the represented value has already
+been checked, so its rebasing premise points from the premise world to the
+concealed-result world.
+
+The paired rules subsume the old same-world paired reveal/conceal rules by
+using `sameWorldRebaseAt`. Keeping only the rebased versions avoids a
+non-syntax-directed choice between ordinary and rebased wrapper rules.
+
+The relation deliberately does not include an application-specific split
+rule. In the left-representation-path example, the tempting application
+comparison is
+
+```text
+((λ y. y) ↑ reveal Y) · (((7 ↓ seal X) ⟨ X! ⟩) ↓ seal Z)
+  ⊑
+((λ y. y) ↑ reveal Y′) · ((7 ⟨ ℕ! ⟩) ↓ seal Z′)
+```
+
+The function premise naturally lives in the `Y/Z` alignment, while the
+inner argument before the outer `Z` seal naturally lives in the `X/Z`
+alignment. The two alignments differ only in where target `Y` embeds,
+so under pivot-local rebasing the world may change only at a boundary
+whose pivot is the `Y` pair. Rather than split application, the proof
+keeps the whole application node in the `X/Z` alignment — the `Z`
+conceal boundary uses a same-world rebase because `Z/Z′` are already
+aligned there — and performs the `X/Z` to `Y/Z` change at the paired
+`Y` reveal on the function side:
+
+```text
+ƛ y. y
+  ⊑
+ƛ y. y
+  in the Y/Z alignment
+
+↑ reveal Y / Y′ with RebaseAt XZ YZ Y Y′
+
+(ƛ y. y) ↑ reveal Y
+  ⊑
+(ƛ y. y) ↑ reveal Y′
+  in the X/Z alignment
+```
+
+After that boundary step, both the function and argument premises are in
+the `X/Z` alignment and ordinary application imprecision applies. When
+the argument is later concealed at `Y` (checkpoint 9 of the example),
+the same `RebaseAt XZ YZ Y Y′` witness carries the argument from the
+`X/Z` premise world into the `Y/Z` conclusion world, again at a
+boundary whose pivot is the moved pair.
+
+<a id="identity-reveals-v2"></a>
+## Identity reveals in version-2 cast-term imprecision
+
+The `β-reveal-∀` / `β-Λ` example in
+[`proof/DGG/Examples2.agda`](proof/DGG/Examples2.agda) needs to relate a
+term to the same target term wrapped in an administrative identity
+reveal:
+
+```agda
+Ex.polyId
+  ⊑ Ex.polyId ↑ `∀↑ (id↑ Ex.X⇒X)
+```
+
+at target type context size `0`. There is no `Xᴿ : TyVar 0`, so a
+reveal rule that demands a pivot variable and a store representation
+cannot even be instantiated here — and semantically there is nothing to
+chase, because the conversion is an identity.
+
+An early prototype handled this with a separate primitive rule,
+`⊑id-reveal²`, guarded by an `IdentityReveal` predicate. That design had
+a loophole in the other direction: the indexed conversion typing had
+`Σ ⊢↑[ X ] id↑ A` for **every** `X`, so the rebasing reveal rule could
+be applied to an identity conversion at an arbitrary pivot and change
+the world under a conversion that mentions no variable at all.
+
+The current design closes the loophole and removes the extra rule at
+the same time by making the pivot index optional:
+
+```agda
+Σ ⊢↑[ nothing ] id↑ A
+Σ ⊢↑[ just X ] unseal X R
+```
+
+A composite conversion joins the pivots of its halves with `PivotJoin`:
+identity halves contribute `nothing`, variable halves must agree, so a
+conversion has pivot `just X` exactly when some leaf seals or unseals
+`X` and no leaf mentions another variable. An all-identity conversion
+has pivot `nothing` and no other typing.
+
+The one-sided wrapper rules take a `RebaseAtᴸ` or `RebaseAtᴿ` premise
+indexed by the optional pivot. Its `rebase-var` case wraps an ordinary
+pivot-local `RebaseAt`; its `rebase-id` case is only available at pivot
+`nothing` and forces the premise world to equal the conclusion world.
+Identity reveals are therefore the `nothing` instance of the ordinary
+`⊑reveal²` rule: they never rebase, and rebasing reveals always name
+the variable they reveal. The paired reveal/conceal rules require
+`just` pivots on both sides; a pairing of an identity conversion with a
+variable conversion decomposes into two one-sided steps.
+
+<a id="example12-store-alignment"></a>
+## Example 12 store alignment and right-only variables
+
+Cambridge26 Example 12 is useful as a stress test for the indexed renamings
+in cast-term imprecision. In GTSFImp orientation, the source term on the left
+is more precise and the target term on the right is less precise.
+
+The direct program is
+
+```text
+((Λ (ƛ x)) ⦂∀ (X ⇒ X) [ ℕ ]) 7
+```
+
+and the less precise program first casts the polymorphic identity up to
+`★ ⇒ ★`, casts it back down to `∀ X. X ⇒ X`, then instantiates at `ℕ`:
+
+```text
+((((Λ (ƛ x)) ⟨ inst ((X !) ↦ (X !)) ⟩)
+              ⟨ gen ((? X) ↦ (? X)) ⟩)
+              ⦂∀ (X ⇒ X) [ ℕ ]) 7
+```
+
+The first plausible weak-simulation comparison is not lock-step. The left
+program takes one allocation step, while the right program takes three
+allocation/catch-up steps.
+
+Diagram:
+
+    ((Λ (ƛ x)) ⦂∀ (X ⇒ X) [ ℕ ]) 7
+      ⊑
+    ((((Λ (ƛ x)) ⟨ inst ((X !) ↦ (X !)) ⟩)
+                 ⟨ gen ((? X) ↦ (? X)) ⟩)
+                 ⦂∀ (X ⇒ X) [ ℕ ]) 7
+
+      │ bind ℕ                         │ bind ★; bind Zᴿ; bind ℕ
+      │ one step                       │ three steps
+      ▼                                ▼
+
+    ((ƛ x)                                  -- Xᴸ ⇒ Xᴸ
+       ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)) 7      -- ℕ ⇒ ℕ   then ℕ
+      ⊑
+    ((((((ƛ x)                              -- Yᴿ ⇒ Yᴿ
+       ↑ (seal Yᴿ Zᴿ ↦↑ unseal Yᴿ Zᴿ))       -- Zᴿ ⇒ Zᴿ
+       ↑ (seal Zᴿ ★ ↦↑ unseal Zᴿ ★))        -- ★ ⇒ ★
+       ⟨ id ★ ↦ id ★ ⟩)                    -- ★ ⇒ ★
+       ⟨ (? Xᴿ) ↦ (? Xᴿ) ⟩)                 -- Xᴿ ⇒ Xᴿ
+       ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)) 7      -- ℕ ⇒ ℕ  then ℕ
+
+Here `Xᴸ` is the single type variable in the left type context, and `Xᴿ`,
+`Yᴿ`, and `Zᴿ` are the three type variables in the right type context. The
+center type context has variables `X`, `Y`, and `Z`, with no superscripts.
+The intended injective renamings are
+
+```text
+ηᴸ(Xᴸ) = X
+
+ηᴿ(Xᴿ) = X
+ηᴿ(Yᴿ) = Y
+ηᴿ(Zᴿ) = Z
+```
+
+The corresponding relational store shape is
+
+```text
+source store: X ↦ ℕ, with Y and Z lifted/abstract
+target store: X ↦ ℕ, Y ↦ Z, Z ↦ ★
+```
+
+Thus the outer `ℕ` cell is shared, while `Y` and `Z` are right-only. The
+store categories can classify `X` as `both` and `Y`, `Z` as `right-only`.
+For the catch-up proof attempt it is useful for the imprecision environment
+to classify the shared variable as `X⊑★`; the store category remains `both`,
+but the type imprecision relation can also derive `X ⊑ ★` when the right
+side temporarily passes through `★ ⇒ ★`.
+
+This store alignment can be built without the `extend` and `split` rules
+from the Cambridge26 notes. The obstruction is lower down, in the subterm
+typing derivations needed by the term-imprecision rules.
+
+The left function subterm has the typing shape
+
+```text
+ƛ x : Xᴸ ⇒ Xᴸ
+
+seal Xᴸ ℕ   : Conv↓ ℕ Xᴸ
+unseal Xᴸ ℕ : Conv↑ Xᴸ ℕ
+
+seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ
+  : Conv↑ (Xᴸ ⇒ Xᴸ) (ℕ ⇒ ℕ)
+
+(ƛ x) ↑ (seal Xᴸ ℕ ↦↑ unseal Xᴸ ℕ)
+  : ℕ ⇒ ℕ
+```
+
+The outer right reveal has the same shape after renaming `Xᴿ` to central
+`X`:
+
+```text
+K : Xᴿ ⇒ Xᴿ
+
+seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ
+  : Conv↑ (Xᴿ ⇒ Xᴿ) (ℕ ⇒ ℕ)
+
+K ↑ (seal Xᴿ ℕ ↦↑ unseal Xᴿ ℕ)
+  : ℕ ⇒ ℕ
+```
+
+So the outer reveal forces the successful match
+
+```text
+ηᴸ(Xᴸ) = X
+ηᴿ(Xᴿ) = X
+```
+
+The next right-side layer is the cast
+
+```text
+(? X) ↦ (? X) : (★ ⇒ ★) ∼ (X ⇒ X)
+```
+
+Relating the left function to this right-side cast with `⊑castᶜ` requires
+the premise
+
+```text
+X ⇒ X ⊑ ★ ⇒ ★
+```
+
+which is available if the shared central variable has `X⊑★` in the
+imprecision environment.
+
+The problem appears at the two target-only reveals beneath that cast. The
+right subterm
+
+```text
+((ƛ x) ↑ (seal Y Z ↦↑ unseal Y Z))
+       ↑ (seal Z ★ ↦↑ unseal Z ★)
+```
+
+has, more explicitly,
+
+```text
+seal Z ★ ↦↑ unseal Z ★
+  : Conv↑ (Z ⇒ Z) (★ ⇒ ★)
+```
+
+so before applying `⊑revealᶜ` to the `Z` reveal, the premise would need
+
+```text
+ƛ x ⊑ (ƛ x) ↑ (seal Y Z ↦↑ unseal Y Z)
+  : X ⇒ X ⊑ Z ⇒ Z
+```
+
+and therefore would need `X ⊑ Z`.
+
+For the innermost reveal,
+
+```text
+seal Y Z ↦↑ unseal Y Z
+  : Conv↑ (Y ⇒ Y) (Z ⇒ Z)
+```
+
+the raw right lambda has type `Y ⇒ Y`. Relating the raw lambdas would need
+
+```text
+ƛ x ⊑ ƛ x : X ⇒ X ⊑ Y ⇒ Y
+```
+
+and therefore would need `X ⊑ Y`.
+
+These are the precise failures:
+
+```text
+X ⊑ Y
+X ⊑ Z
+```
+
+The indexed renamings cannot solve this by choosing a different injection.
+The left side has only one type variable, and the outer reveal already needs
+that variable to map to central `X`. The same injective renaming cannot also
+map it to central `Y` or `Z`. Thus Example 12 shows that the store alignment
+itself can be expressed with the current two-renaming setup, but the
+conversion-wrapper rules need local rebasing. The version-2 rules handle the
+extra right-only conversion layers by rebasing at the reveal/conceal
+boundary for the converted variable and comparing the pivots' canonical
+store representations computed by `resolveVar`.
+
 <a id="generalization-tags"></a>
 ## Generalization uses fresh-name tags
 
@@ -233,3 +693,90 @@ are never compared.
 This distinction is binder directed: `inst` removes its fresh variable from
 consistency and uses conversions, whereas `gen` retains its fresh variable as
 a tag. There are consequently no general `β-tag-X` or `β-untag-X` rules.
+
+## Seal peeling and world support
+
+The last case of the right-injection inversion is the bare seal: from
+
+```
+W ⊢² (V ↓ seal Xᴸ R) ⊑ N ⟨ ＇Y ! ⟩ ∶ ＇Xᴸ ⊑ ★        q : ＇Xᴸ ⊑ᵂ⟨W⟩ ＇Y
+```
+
+produce `W ⊢² V ↓ seal Xᴸ R ⊑ N ∶ q`.  For non-variable tags `q` is
+uninhabited, and `seal-tag-boundary-view²` already forces
+`N ≡ U ↓ seal Y S` with a paired rebase `RebaseAt W′ W Xᴸ Y`.  The
+remaining work is to relate `V` to `U` and reassemble the two seals.
+Analysis of the reassembly produced two structural findings.
+
+**One rebase link per wrapper node.**  A derivation of the input nests
+one premise world per wrapper rule: the source seal contributes
+`W → W′` pivoted at `(Xᴸ, Y)`, a target seal stripped inside contributes
+`W′ → W″` pivoted at some `(X₂, Y)`, and deeper seals in the spine of
+`V` contribute further links.  No single `RebaseAt` can absorb two
+source-side moves, so any rebuild that composes two links into one
+wrapper node fails: pivot-locality is per node, and that is fine,
+because the output term has exactly as many seal nodes as the premise
+tower has links.  Chained representations (`R = ＇X₂` with `X₂` aligned
+to `Y` one world in) are witnessed by a deeper seal in the spine of `V`
+— canonical forms at variable type — and that deeper node carries the
+extra link.  The rebuild is therefore link-by-link, never composing.
+
+**Interior worlds must be renormalized, not transported.**  The input
+derivation may place interior worlds badly: a premise world may move a
+variable that the rebuilt tower needs kept still (concretely, `W₄` may
+park `X₂` and `Y` at a center the output tower cannot reproduce, since
+the output's node pivots are forced by the seal typings).  Such
+derivations are honest — a checked configuration derives one with all
+marks `X⊑★` and `WFWorld` trivially satisfied — so no invariant excludes
+them.  The resolution is that the peel must not transport interior
+sub-derivations between worlds; it must recursively rebuild them at
+worlds of its own choosing, bottoming out at world-agnostic leaves
+(`κ⊑κ²`, `cast⊑cast²`, `x⊑x²` up to `SameCtx`).  The general tool this
+needs is a world-support lemma: a derivation depends only on the
+embeddings and marks of the type variables occurring in its terms,
+types, and store entries, so it can be moved to any world that agrees
+on that support.  The same lemma is what the eventual simulation needs
+to leave a `liftWorldLeft` premise world, so it is shared
+infrastructure, not a detour.
+
+The concrete configuration that forced both findings: source store
+`Xᴸ ⦂ ★, X₂ ⦂ ★`, target store `Y ⦂ ★`, all marks `X⊑★`,
+`V = (V₀₀ ↓ seal X₂ ★) ⟨ ＇X₂ ! ⟩`, `N = (U ↓ seal Y ★) ⟨ ＇Y ! ⟩`,
+with `Y` aligned to `Xᴸ` in `W` and to `X₂` in `W′`.  The input is
+derivable with an interior world moving `X₂` off its `W`-center, and the
+required output is derivable only by rebuilding: the paired
+`conceal⊑conceal²` at `(Xᴸ, Y)` over a premise world that parks `Y` at
+a third center (so the deeper seal's `rebase-onlyᴸ` disalignment
+holds), with the leaf relation reconstructed from scratch.
+
+Two constraints shape the world-support lemma itself.  First,
+embeddings are order-preserving injections built from `keep`/`skip`,
+not pointwise functions, so "move one variable's center" is not a local
+record update: relocating a pivot can collide with the centers of
+variables in the support, and the lemma's agreement hypothesis must
+carry the injectivity bookkeeping explicitly.  Second, terms mention
+store variables without an enclosing wrapper node (a bare `＇X₂` tag
+deep inside a lambda body), so a sub-derivation's support can include
+the very pivot the rebuild wants to move; when no unused center exists
+for re-parking, the peel must extend the center context first, using
+the existing world-extension machinery, and transport along the
+extension.  Parking space is therefore obtained by extension, never
+assumed.
+
+Re-parking is pure: the transported derivation must not re-align the
+re-parked variable anywhere.  A first design tried to stop at interior
+rebases that capture the variable as their target pivot and transport
+the sub-derivation by plain renaming, but the conceal-direction rules
+refute it: their rebase aligns the pivots in the world being
+re-parked, so vacating the variable contradicts the node's own
+`pivotAligned` field.  Converting such nodes to `rebase-onlyᴸ` fails
+too — the to-star premise would need "the right of an obligation can
+be dynamized to `★`", which is false for universal types
+(`∀(＇0 ⇒ ι) ⊑ ★` is underivable because `extᵐ` pins the bound
+variable's mark precise) — and a capture boundary that also moves its
+source pivot has no expressible counterpart at all once its partner is
+gone.  So `⊢²-repark` requires, as part of its derivation predicate,
+that the re-parked variable is no rebase's target pivot; callers that
+need to move a variable across its own alignment boundaries must
+re-emit those boundary nodes themselves, which is exactly what the
+seal-peel rebuild does.

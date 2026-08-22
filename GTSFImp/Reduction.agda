@@ -118,6 +118,24 @@ syntax applyTerms χs M = χs ▶ᵀ M
 applyTerms [] M = M
 applyTerms (χ ∷ χs) M = χs ▶ᵀ (χ ▷ᵀ M)
 
+applyEnvs : ∀ {Δ Δ′}
+  → StoreChanges Δ Δ′
+  → Env∼ Δ
+  → Env∼ Δ′
+syntax applyEnvs χs μ = χs ▶ᵉ μ
+
+applyEnvs [] μ = μ
+applyEnvs (χ ∷ χs) μ = χs ▶ᵉ (χ ▷ᵉ μ)
+
+applyConsistencies : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
+  → (χs : StoreChanges Δ Δ′)
+  → μ ⊢ A ∼ B
+  → χs ▶ᵉ μ ⊢ χs ▶ᵗ A ∼ χs ▶ᵗ B
+syntax applyConsistencies χs c = χs ▶ᶜ c
+
+applyConsistencies [] c = c
+applyConsistencies (χ ∷ χs) c = χs ▶ᶜ (χ ▷ᶜ c)
+
 ------------------------------------------------------------------------
 -- Pure one-step reduction
 ------------------------------------------------------------------------
@@ -142,13 +160,12 @@ data _—→_ {Δ : TyCtx} : Term Δ → Term Δ → Set where
     → V ⟨ id {μ = μ} a ⟩ —→ V
 
   β-⇒ : ∀ {V W : Term Δ} {μ : Env∼ Δ}
-      {A A′ B B′ : Ty Δ} {c : μ ⊢ A ∼ A′}
-      {c′ : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+      {A A′ B B′ : Ty Δ}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
     → Value V
     → Value W
-    → c′ ≡ sym∼ c
       --------------------------------------------
-    → (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c′ ⟩)) ⟨ d ⟩
+    → (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c ⟩)) ⟨ d ⟩
 
   β-∀ : ∀ {V : Term Δ} {μ : Env∼ Δ}
       {A B : Ty (Nat.suc Δ)} {C : Ty Δ}
@@ -435,3 +452,11 @@ pattern _∎[] M = ↠-refl {M = M}
 infixr 2 _—→[_]⟨_⟩_
 pattern _—→[_]⟨_⟩_ L χ L—→M M—↠N =
   ↠-step {M = L} {χ = χ} L—→M M—↠N
+
+infixr 2 _—↠[_]⟨_⟩_
+_—↠[_]⟨_⟩_ : ∀ {Δ Δ′} (M : Term Δ) {N : Term Δ′}
+  → (χs : StoreChanges Δ Δ′)
+  → M —↠[ χs ] N
+  → N —↠[ [] ] N
+  → M —↠[ χs ] N
+M —↠[ χs ]⟨ M↠N ⟩ (_ ∎[]) = M↠N

@@ -31,10 +31,12 @@ counter of small-step transitions.
 Only `Interpreter.agda` and the broad experimental `InterpreterAll.agda`
 remain at the directory root. Public support modules are grouped by topic:
 `Core`, `Runtime`, `Typing`, `Narrowing`, `Simulation`, `DGG`, `Examples`, and
-`Milestones`. The `Simulation` namespace is split further by operational
-feature and proof style. Small-step comparison remains isolated under
-`InterpreterAdequacy`, while private proof implementations remain under
-`proof`.
+`Milestones`. The `LR` namespace contains the new step-indexed Kripke
+logical-relation investigation. `Pretty` is the general syntax-rendering
+utility shared by literate examples. The `Simulation` namespace is split
+further by operational feature and proof style. Small-step comparison remains
+isolated under `InterpreterAdequacy`, while private proof implementations
+remain under `proof`.
 
 See [MODULE_LAYOUT.md](MODULE_LAYOUT.md) for the namespace map, ownership
 boundaries, and canonical checks. The former flat module names are not kept as
@@ -319,9 +321,58 @@ for clients, but it is not needed as the primary proof interface. A reasonable
 proof organization is to establish the direct properties first and derive the
 observation-based statements by unfolding their definitions.
 
-## Double-headed interpreter draft
+## Logical-relation investigation
 
-`DGG/DoubleInterpreter.agda` explores a more proof-directed execution strategy.
+`LR/` replaces the double-headed interpreter as the active DGG investigation.
+`LR-narrow/` is a comparison design that indexes the value relation directly
+by the live derivation `p : Φ ∣ Δᴾ ⊢ Aᴾ ⊑ Aᴵ ⊣ Δᴵ`. The proof retains the
+syntactic source-to-target order, while the semantic arguments use the
+displayed imprecise-left/precise-right order `ValueNarrowing p I k Vᴵ Vᴾ`.
+Its inhabitants are closed, typed interpreter values related according to
+the constructor of `p`. The active `id★` clause compares dynamic tags and
+guardedly related payloads; `tag` and `tag ⇛` remain explicitly provisional.
+Its atom environment has exactly the shape of `Φ`. Both designs quantify over
+future worlds in their function and universal clauses and observe only bounded
+interpreter fuel. See `LR/README.md`, `LR-narrow/README.md`, and
+`LR-narrow/Design.md` for the formal comparison, the intended fundamental
+graduality theorem, and the treatment of divergence.
+
+The object language's impredicative `∀` does not require an impredicative Agda
+universe: the relation quantifies over syntactic semantic types and small
+relations on interpreter values. The existing
+`PolyUpDown/agda/extrinsic-inst/LogicalRelationIndexed.agda` module is a checked
+repository precedent for this encoding.
+
+The imprecision-indexed design is currently the better candidate for a
+fundamental theorem, because induction proceeds directly on `p` and no bridge
+from a separate relational type code is required. The remaining gradual tag
+clauses and the reveal conversion in the precise-right `ν` case remain
+explicit design obligations; it is not yet a finished replacement for `LR/`.
+
+The first compatibility cases are checked in `LR-narrow/Context/`, with one
+term-imprecision rule lemma per module. `Variable.agda` handles `x⊑xᴳ` by
+related-environment lookup, and `Constant.agda` handles `κ⊑κᴳ` by a
+direct same-base-value witness. Neither case uses a provisional clause.
+
+`LR-narrow/Examples/Cambridge26/Rendition.lagda.md` gives a literate catalogue
+of every checked Cambridge26 endpoint. Its typed endpoint terms and narrowing
+judgments are rendered by the general `Pretty/` utility, including explicit
+binder annotations, precedence-aware parentheses, and distinct names for
+nested `ν` allocations. The reduction states copied from the Cambridge notes
+are expository only. Each final LR membership line remains visibly an
+obligation rather than an assumed proof.
+
+The sibling `Cambridge26/K/` suite adds 20 checked K-combinator examples. It
+makes the two polymorphic binders gradual independently, so the catalogue
+contains both partially dynamic vertices and both cast orders through the
+fully dynamic vertex.
+
+## Double-headed interpreter draft (experimental dead end)
+
+`DGG/DoubleInterpreter.agda` records an earlier proof-directed execution
+strategy. It remains checked as an experiment, but it is not the active route
+to DGG: its synchronization invariant merely relocates the missing semantic
+simulation argument into the join and catch-up premises.
 Its core entry point is:
 
 `doubleInterpretCompiled :

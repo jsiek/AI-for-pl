@@ -1,6 +1,8 @@
 module DGG.DoubleInterpreterCatchUp where
 
 -- File Charter:
+--   * EXPERIMENTAL DEAD END: proves conditional facts about the abandoned
+--     double-interpreter route, not an unconditional DGG catch-up theorem.
 --   * Proves that the single-sided loops in `DGG.DoubleInterpreter` find every
 --     synchronized return (or permitted left blame) described by a finite
 --     sequence of larger-index interpreter observations.

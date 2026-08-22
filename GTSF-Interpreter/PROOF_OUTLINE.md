@@ -1573,6 +1573,127 @@ Neither direction defines divergence through failure to converge.
   modules use the paths in `MODULE_LAYOUT.md`. No compatibility re-export
   modules preserve the former flat names.
 
+The double-headed interpreter is now an explicitly marked experimental dead
+end. Its conditional catch-up theorems are correct, but the synchronization
+premises contain the semantic work needed for DGG rather than deriving it.
+The active investigation is the step-indexed Kripke relation in `LR/`.
+
+- [x] Define downward-closed semantic atoms with two endpoint types.
+- [x] Define paired typed worlds, persistent seal atoms, and future-world
+  extension.
+- [x] Define the step-indexed value and bounded interpreter-computation
+  relations for bases, variables, nominals, functions, and universals.
+- [x] Confirm by type-checking the existing `PolyUpDown` precedent that
+  syntactic System-F impredicativity can be encoded predicatively in Agda.
+- [ ] Prove downward closure and Kripke monotonicity of `LR.LogicalRelation.𝒱`.
+- [ ] Construct arbitrary fresh atom extensions of LR worlds.
+- [ ] Relate the semantic type code to live type-imprecision derivations and
+  discharge the gradual boundary atom.
+- [ ] Define logical relations for interpreter environments.
+- [ ] Prove the compatibility lemmas and the closed fundamental theorem.
+- [ ] Derive all four direct DGG statements without a small-step dependency.
+
+### 2026-08-07
+
+`LR-narrow/` now records the comparison design in which the live
+type-imprecision derivation is the index of the value relation.
+
+- [x] Define `AtomEnvironment Φ`, with atoms indexed by the assumptions in
+  the live imprecision context.
+- [x] Define Kripke worlds with persistent paired and precise-right seal
+  bindings.
+- [x] Interpret `Φ`, precise `Δᴾ`, and imprecise `Δᴵ` using aligned atom and
+  runtime type environments.
+- [x] Require related values to be closed with respect to captured term
+  environments and well typed at the endpoints selected by `p`.
+- [x] Define `ValueNarrowing p I k Vᴵ Vᴾ` by recursion on `p`, including
+  Kripke function, paired-universal, and precise-right universal clauses.
+- [x] Define the reduction-free bounded computation closure and enforce its
+  dependency boundary with `make check-lr-narrow`.
+- [x] Strengthen `id★` to compare the runtime tags and recursively related
+  payloads of dynamic values.
+  - [x] Define the guarded clause in `LR-narrow/LogicalRelation.agda`.
+  - [x] Relate untagged payloads at the decremented logical index.
+  - [x] Prove downward closure and future-world monotonicity.
+  - [x] Prove paired-seal functionality and injectivity.
+  - [x] Prove forward and backward coherence of interpreter tag equality.
+  - [x] Require and construct fresh paired world extensions for arbitrary
+    type-respecting atoms.
+  - [x] Prove the base, function, and paired-variable constructors for
+    `DynamicPayloadRelated`.
+  - [ ] Replace the localized termination pragma by an explicit
+    well-founded lexicographic recursion proof.
+- [ ] Strengthen `tag` and `tag ⇛` to expose the imprecise-left dynamic tag and
+  relate its payload at the ground imprecision derivation.
+- [x] Preserve imprecise-left blame on the precise right. Thus precise-right
+  divergence rules out imprecise-left blame, while precise-right blame remains
+  permitted when the imprecise-left computation diverges.
+- [ ] Reconcile the precise-right `ν` clause with the compiler's post-allocation
+  reveal/generalization conversion.
+- [x] Prove downward closure and Kripke monotonicity of
+  `LR-narrow.LogicalRelation.ValueNarrowing`.
+- [x] Define related interpreter term environments, retaining value evidence
+  at all indices up to the current bound.
+- [x] Prove related-environment lookup in a separate module.
+- [x] Prove the `x⊑xᴳ` variable context lemma in its own module.
+- [x] Prove the `κ⊑κᴳ` natural-constant context lemma in its own
+  module.
+- [x] Prove the ordinary `ƛ⊑ƛᵀ` semantic context lemma in its own module.
+  Its premise makes the unary closed, typed closure certificate explicit;
+  the body compatibility premise supplies the recursive logical relation.
+- [x] Prove separately that closure application shifts body compatibility by
+  exactly one interpreter-fuel unit.
+- [x] Align related term environments and the variable context lemma with the
+  live `QuotientedTermImprecision` context relation rather than the nominally
+  distinct legacy context-imprecision type.
+- [x] Prove downward closure and future-world monotonicity before attempting
+  closure-producing context lemmas. Each theorem and its reusable support
+  theorem has a separate module under `LR-narrow/Context/`.
+- [ ] Prove sequential computation compatibility and residual-fuel lemmas
+  before attempting application and primitive-operation context lemmas.
+- [ ] Prove the remaining non-provisional context lemmas: ordinary
+  application, paired type abstraction/application, and primitive operation.
+- [ ] Revisit the dynamic-application and precise-right universal context lemmas
+  only after their provisional value-relation clauses are settled.
+- [ ] Prove the closed fundamental theorem by induction on live compiled term
+  imprecision, then derive the four direct DGG statements.
+
+The primary theorem is now named **fundamental graduality**. Parametricity is
+an intended corollary obtained by specializing reflexive universal
+imprecision to an arbitrary relation installed behind a fresh seal pair.
+`LR-narrow/Design.md` records the theorem hierarchy.
+
+Divergence remains outside the finite LR. Timeout is not a terminal
+observation, and matching it at equal fuel would reject programs with
+different interpreter costs. Instead, the reduction-free divergence
+corollaries use positive all-index timeout evidence, type soundness, terminal
+stability, and the finite return/blame clauses. The backward theorem should
+retain its constructive pointwise form; the global disjunction between
+divergence and eventual blame would require an additional omniscience
+principle.
+
+### 2026-08-10
+
+- [x] Align the LR semantic orientation with the Cambridge display:
+  imprecise values, worlds, environments, and terms are stored on the left;
+  precise endpoints are stored on the right.
+- [x] Retain `p : Aᴾ ⊑ Aᴵ` only as the unavoidable source-to-target index of
+  `ImprecisionWf`; document this boundary explicitly.
+- [x] Swap the `id★` tag/payload proposal, one-sided seal allocation, checked
+  Cambridge records, and computation observations to the same orientation.
+
+### 2026-08-11
+
+- [x] Make paired binder extensions generative by recording left and right
+  freshness and constructing them by allocation in both runtime worlds.
+- [x] Prove the base, function, and paired-variable introduction lemmas for
+  `DynamicPayloadRelated`.
+- [x] Integrate the guarded `id★` tag/payload clause into `ValueNarrowing`,
+  including downward closure, future-world monotonicity, and tag-check
+  coherence; retire the duplicate proposal namespace.
+- [ ] Replace the localized termination pragma for the semantic
+  lexicographic recursion with an explicit well-founded recursor.
+
 ## Definition of done
 
 The interpreter DGG is complete when:

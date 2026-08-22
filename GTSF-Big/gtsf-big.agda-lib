@@ -1,0 +1,5 @@
+name: gtsf-big
+depend: standard-library
+include:
+  .
+  ../GTSF

@@ -31,6 +31,9 @@ Agda namespace agree. For example,
 | `Milestones/` | Checked aggregate modules for the proof milestones |
 | `SmallStepInterface/` | Term-shape and alignment boundary with GTSF syntax |
 | `InterpreterAdequacy/` | The isolated comparison with small-step semantics |
+| `LR/` | Step-indexed Kripke logical-relation investigation for DGG |
+| `LR-narrow/` | Imprecision-indexed LR and one-rule-per-module context lemmas |
+| `Pretty/` | General pretty printers for types, coercions, and Nu terms |
 | `proof/` | Private proof implementations behind the public modules |
 
 The old root-level module names are not retained as forwarding wrappers. This
@@ -43,5 +46,8 @@ directly.
   accidentally and that module names agree with their paths.
 - `make check-type-soundness` checks the reduction-free unary soundness cone.
 - `make check-adequacy` checks the isolated small-step adequacy development.
+- `make check-lr` checks the logical-relation definitions.
+- `make check-lr-narrow` checks the imprecision-indexed comparison relation.
+- `make check-pretty` checks the general syntax-rendering utility.
 - `make check-milestone-N` checks a reduction-free DGG milestone when its
   current static dependencies are available.

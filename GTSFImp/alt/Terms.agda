@@ -56,10 +56,10 @@ data Term : TyCtx → Set where
     → μ ⊢ A ∼ B → Term Δ
 
   _↑[_≔_]_ : Term (suc Δ)
-    → TyVar (suc Δ) → Name → Conv↑ → Term Δ
+    → TyVar (suc Δ) → Name → Reveal → Term Δ
 
   _↓[_≔_]_ : Term Δ
-    → TyVar (suc Δ) → Name → Conv↓ → Term (suc Δ)
+    → TyVar (suc Δ) → Name → Conceal → Term (suc Δ)
 
   blame   : Term Δ
 
@@ -237,7 +237,7 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → Inert ((gen c) A≢★)
 
 mutual
-  data RevealValue {Δ : TyCtx} (V : Term Δ) : Conv↑ → Set where
+  data RevealValue {Δ : TyCtx} (V : Term Δ) : Reveal → Set where
     fun : ∀ {c d}
       → RevealValue V (c ↦↑ d)
 
@@ -247,7 +247,7 @@ mutual
     delimiter : CanonicalInterior V
       → RevealValue V id↑
 
-  data ConcealValue {Δ : TyCtx} (V : Term Δ) : Conv↓ → Set where
+  data ConcealValue {Δ : TyCtx} (V : Term Δ) : Conceal → Set where
     seal : ConcealValue V alt.Conversion.seal
 
     fun : ∀ {c d}
@@ -274,7 +274,7 @@ mutual
       → Value V
       → (X : TyVar (suc Δ))
       → (α : Name)
-      → {c : Conv↑}
+      → {c : Reveal}
       → RevealValue V c
       → Value (V ↑[ X ≔ α ] c)
 
@@ -282,7 +282,7 @@ mutual
       → Value V
       → (X : TyVar (suc Δ))
       → (α : Name)
-      → {c : Conv↓}
+      → {c : Conceal}
       → ConcealValue V c
       → Value (V ↓[ X ≔ α ] c)
 

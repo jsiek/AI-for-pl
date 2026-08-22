@@ -152,7 +152,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
   β-reveal-⇒ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V : Term (suc Δ)} {W : Term Δ}
       {X : TyVar (suc Δ)} {α : Name}
-      {c : Conv↓} {d : Conv↑}
+      {c : Conceal} {d : Reveal}
     → Value V
     → Value W
     → Σ ∣ κ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→[ keep ]
@@ -162,7 +162,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
       {κ : Bindings (suc Δ) n}
       {V : Term Δ} {W : Term (suc Δ)}
       {X : TyVar (suc Δ)} {α : Name}
-      {c : Conv↑} {d : Conv↓}
+      {c : Reveal} {d : Conceal}
     → Value V
     → Value W
     → Σ ∣ κ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→[ keep ]
@@ -210,11 +210,11 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Σ ∣ κ ⊢ blame ⟨ c ⟩ —→[ keep ] blame
 
   blame-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {X : TyVar (suc Δ)} {α : Name} {c : Conv↑}
+      {X : TyVar (suc Δ)} {α : Name} {c : Reveal}
     → Σ ∣ κ ⊢ blame ↑[ X ≔ α ] c —→[ keep ] blame
 
   blame-conceal : ∀ {n Δ} {Σ : Store n} {κ : Bindings (suc Δ) n}
-      {X : TyVar (suc Δ)} {α : Name} {c : Conv↓}
+      {X : TyVar (suc Δ)} {α : Name} {c : Conceal}
     → Σ ∣ κ ⊢ blame ↓[ X ≔ α ] c —→[ keep ] blame
 
   blame-⊕₁ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
@@ -275,7 +275,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
 
   ξ-reveal : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {M M′ : Term (suc Δ)}
-      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Conv↑}
+      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Reveal}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ
         ⊢ M —→[ χ ] M′
@@ -284,7 +284,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
 
   ξ-conceal : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {M M′ : Term Δ}
-      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Conv↓}
+      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Conceal}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ κ ⊢ M —→[ χ ] M′
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ

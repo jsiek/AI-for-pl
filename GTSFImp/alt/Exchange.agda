@@ -397,7 +397,7 @@ allocation-cross-ctx-exchange-typing ext
 ------------------------------------------------------------------------
 
 open-∀↑-typed : ∀ {Δ} {X : Fin (suc Δ)} {R C}
-    {B : Ty (suc Δ)} {c : Conv↑}
+    {B : Ty (suc Δ)} {c : Reveal}
   → ⊢↑[ suc X ⦂ R ] c ⦂ C ↝ renameᵗ (extᵗ (punchIn X)) B
   → ⊢↑[ suc X ⦂ R ] c ⦂ C ↝ wkᵗ (suc X) B
 open-∀↑-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
@@ -405,7 +405,7 @@ open-∀↑-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
     (wk-under-∀ X B) c⊢
 
 open-∀↓-typed : ∀ {Δ} {X : Fin (suc Δ)} {R C}
-    {B : Ty (suc Δ)} {c : Conv↓}
+    {B : Ty (suc Δ)} {c : Conceal}
   → ⊢↓[ suc X ⦂ R ] c ⦂ renameᵗ (extᵗ (punchIn X)) B ↝ C
   → ⊢↓[ suc X ⦂ R ] c ⦂ wkᵗ (suc X) B ↝ C
 open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
@@ -420,7 +420,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
   → Name
   → Term (suc Δ)
   → (X : Fin (suc Δ))
-  → Conv↑
+  → Reveal
   → Ty Δ
   → Term Δ
 β-reveal-∀-redex {B = B} α V X c A =
@@ -431,7 +431,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
   → Name
   → (X : Fin (suc Δ))
   → Term (suc Δ)
-  → Conv↑
+  → Reveal
   → Term Δ
 β-reveal-∀-result {A = A} {B = B} {C = C} fresh α X V c =
   (((∀-entry-application fresh V C)
@@ -442,7 +442,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
     {B : Ty (suc (Δᵉ Γ))} {C : Ty (suc (suc (Δᵉ Γ)))}
     {V : Term (suc (Δᵉ Γ))} {X : Fin (suc (Δᵉ Γ))}
     {α : Name} {R : Ty (sizeᵉ Γ)} {R′ : Ty (suc (Δᵉ Γ))}
-    {c : Conv↑}
+    {c : Reveal}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
   → ⊢↑[ suc X ⦂ ⇑ᵗ R′ ] c ⦂ C
@@ -456,7 +456,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
     {B : Ty (suc (Δᵉ Γ))} {C : Ty (suc (suc (Δᵉ Γ)))}
     {V : Term (suc (Δᵉ Γ))} {X : Fin (suc (Δᵉ Γ))}
     {α : Name} {R S : Ty (sizeᵉ Γ)} {R′ : Ty (suc (Δᵉ Γ))}
-    {Q : Ty (suc (suc (Δᵉ Γ)))} {c : Conv↑}
+    {Q : Ty (suc (suc (Δᵉ Γ)))} {c : Reveal}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → BindingsExtensionality
   → cross-ctx (allocCtx Γ S) X (weaken-lookup p) ⊢ V ⦂ `∀ C
@@ -518,7 +518,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
   → Name
   → Term Δ
   → (X : Fin (suc Δ))
-  → Conv↓
+  → Conceal
   → Ty (suc Δ)
   → Term (suc Δ)
 β-conceal-∀-redex {B = B} α V X c A =
@@ -530,7 +530,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
   → Name
   → (X : Fin (suc Δ))
   → Term Δ
-  → Conv↓
+  → Conceal
   → Term (suc Δ)
 β-conceal-∀-result {A = A} {B = B} {C = C} fresh α X V c =
   (((∀-entry-application fresh V C)
@@ -541,7 +541,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
     {C : Ty (suc (Δᵉ Γ))} {V : Term (Δᵉ Γ)}
     {X : Fin (suc (Δᵉ Γ))} {α : Name} {R : Ty (sizeᵉ Γ)}
-    {R′ : Ty (suc (Δᵉ Γ))} {c : Conv↓}
+    {R′ : Ty (suc (Δᵉ Γ))} {c : Conceal}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
   → ⊢↓[ suc X ⦂ ⇑ᵗ R′ ] c
@@ -556,7 +556,7 @@ open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
     {C : Ty (suc (Δᵉ Γ))} {V : Term (Δᵉ Γ)}
     {X : Fin (suc (Δᵉ Γ))} {α : Name} {R S : Ty (sizeᵉ Γ)}
-    {R′ Q : Ty (suc (Δᵉ Γ))} {c : Conv↓}
+    {R′ Q : Ty (suc (Δᵉ Γ))} {c : Conceal}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → BindingsExtensionality
   → ⟨ Δᵉ Γ , suc (sizeᵉ Γ) , weakenBindings (κᵉ Γ) ,

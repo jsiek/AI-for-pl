@@ -50,17 +50,17 @@ replaceTy X R (`∀ A) = `∀ (replaceTy (suc X) (⇑ᵗ R) A)
 infixr 7 _↦↑_ _↦↓_
 
 mutual
-  data Conv↑ : Set where
-    unseal : Conv↑
-    _↦↑_ : Conv↓ → Conv↑ → Conv↑
-    `∀↑_ : Conv↑ → Conv↑
-    id↑ : Conv↑
+  data Reveal : Set where
+    unseal : Reveal
+    _↦↑_ : Conceal → Reveal → Reveal
+    `∀↑_ : Reveal → Reveal
+    id↑ : Reveal
 
-  data Conv↓ : Set where
-    seal : Conv↓
-    _↦↓_ : Conv↑ → Conv↓ → Conv↓
-    `∀↓_ : Conv↓ → Conv↓
-    id↓ : Conv↓
+  data Conceal : Set where
+    seal : Conceal
+    _↦↓_ : Reveal → Conceal → Conceal
+    `∀↓_ : Conceal → Conceal
+    id↓ : Conceal
 
 ------------------------------------------------------------------------
 -- Scoped conversion typing
@@ -75,7 +75,7 @@ infix 4 ⊢↑[_⦂_]_⦂_↝_ ⊢↓[_⦂_]_⦂_↝_
 
 mutual
   data ⊢↑[_⦂_]_⦂_↝_ {Δ : TyCtx} :
-      TyVar Δ → Ty Δ → Conv↑ → Ty Δ → Ty Δ → Set where
+      TyVar Δ → Ty Δ → Reveal → Ty Δ → Ty Δ → Set where
     ⊢unseal : ∀ {X R}
       → ⊢↑[ X ⦂ R ] unseal ⦂ ＇ X ↝ R
 
@@ -93,7 +93,7 @@ mutual
       → ⊢↑[ X ⦂ R ] id↑ ⦂ A ↝ A
 
   data ⊢↓[_⦂_]_⦂_↝_ {Δ : TyCtx} :
-      TyVar Δ → Ty Δ → Conv↓ → Ty Δ → Ty Δ → Set where
+      TyVar Δ → Ty Δ → Conceal → Ty Δ → Ty Δ → Set where
     ⊢seal : ∀ {X R}
       → ⊢↓[ X ⦂ R ] seal ⦂ R ↝ ＇ X
 
@@ -115,7 +115,7 @@ mutual
 ------------------------------------------------------------------------
 
 mutual
-  〖_,_↑_〗 : TyVar Δ → Ty Δ → Ty Δ → Conv↑
+  〖_,_↑_〗 : TyVar Δ → Ty Δ → Ty Δ → Reveal
   〖 X , R ↑ (＇ Y) 〗 with X ≟ Y
   〖 X , R ↑ (＇ .X) 〗 | yes refl = unseal
   〖 X , R ↑ (＇ Y) 〗 | no X≠Y = id↑
@@ -125,7 +125,7 @@ mutual
     makeConceal X R A ↦↑ 〖 X , R ↑ B 〗
   〖 X , R ↑ (`∀ A) 〗 = `∀↑ 〖 suc X , ⇑ᵗ R ↑ A 〗
 
-  makeConceal : TyVar Δ → Ty Δ → Ty Δ → Conv↓
+  makeConceal : TyVar Δ → Ty Δ → Ty Δ → Conceal
   makeConceal X R (＇ Y) with X ≟ Y
   makeConceal X R (＇ .X) | yes refl = seal
   makeConceal X R (＇ Y) | no X≠Y = id↓
@@ -166,14 +166,14 @@ mutual
 ------------------------------------------------------------------------
 
 mutual
-  δ↑ : Ty Δ → Conv↑
+  δ↑ : Ty Δ → Reveal
   δ↑ (＇ X) = id↑
   δ↑ (‵ ι) = id↑
   δ↑ ★ = id↑
   δ↑ (A ⇒ B) = δ↓ A ↦↑ δ↑ B
   δ↑ (`∀ A) = `∀↑ δ↑ A
 
-  δ↓ : Ty Δ → Conv↓
+  δ↓ : Ty Δ → Conceal
   δ↓ (＇ X) = id↓
   δ↓ (‵ ι) = id↓
   δ↓ ★ = id↓

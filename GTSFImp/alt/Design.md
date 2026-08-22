@@ -45,17 +45,17 @@ context, endpoint, pivot, representation, store name, or leaf data.
 
 ```agda
 mutual
-  data Conv↑ : Set where
-    unseal : Conv↑
-    _↦↑_   : Conv↓ → Conv↑ → Conv↑
-    `∀↑_   : Conv↑ → Conv↑
-    id↑    : Conv↑
+  data Reveal : Set where
+    unseal : Reveal
+    _↦↑_   : Conceal → Reveal → Reveal
+    `∀↑_   : Reveal → Reveal
+    id↑    : Reveal
 
-  data Conv↓ : Set where
-    seal  : Conv↓
-    _↦↓_  : Conv↑ → Conv↓ → Conv↓
-    `∀↓_  : Conv↓ → Conv↓
-    id↓   : Conv↓
+  data Conceal : Set where
+    seal  : Conceal
+    _↦↓_  : Reveal → Conceal → Conceal
+    `∀↓_  : Conceal → Conceal
+    id↓   : Conceal
 ```
 
 Endpoints and the old `PivotStrict` and `Reps` obligations are subsumed by
@@ -108,8 +108,8 @@ shape. If the deferred merge rule eventually needs mixed aliases, that is the
 point at which to revisit the restriction.
 
 The generators are ordinary shape functions. For example,
-`〖 X , R′ ↑ B 〗 : Conv↑` recursively emits `unseal` exactly at `＇ X`, and
-`makeConceal X R′ B : Conv↓` is dual. Their endpoint facts are proofs:
+`〖 X , R′ ↑ B 〗 : Reveal` recursively emits `unseal` exactly at `＇ X`, and
+`makeConceal X R′ B : Conceal` is dual. Their endpoint facts are proofs:
 
 ```agda
 generator-typed↑ :
@@ -128,8 +128,8 @@ The delimiters `δ↑ A` and `δ↓ A` likewise return shapes, with separate
 The term grammar contains anchored crossings with raw conversions:
 
 ```agda
-_↑[_≔_]_ : Term (suc Δ) → TyVar (suc Δ) → Name → Conv↑ → Term Δ
-_↓[_≔_]_ : Term Δ → TyVar (suc Δ) → Name → Conv↓ → Term (suc Δ)
+_↑[_≔_]_ : Term (suc Δ) → TyVar (suc Δ) → Name → Reveal → Term Δ
+_↓[_≔_]_ : Term Δ → TyVar (suc Δ) → Name → Conceal → Term (suc Δ)
 ```
 
 A reveal binds slot `X` over its interior and removes that slot outside. A

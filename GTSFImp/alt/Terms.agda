@@ -33,7 +33,7 @@ infixl 7 _·_
 infix  5 Λ_
 infixl 7 _⦂∀_[_]
 infixl 7 _⟨_⟩
-infixl 7 _↑⟨_≔_⟩_ _↓⟨_≔_⟩_
+infixl 7 _↑[_≔_]_ _↓[_≔_]_
 infixl 6 _⊕[_]_
 infix  9 `_
 
@@ -55,14 +55,14 @@ data Term : TyCtx → Set where
   _⟨_⟩    : Term Δ → {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Term Δ
 
-  _↑⟨_≔_⟩_ : ∀ {A : Ty (suc Δ)} {B : Ty Δ}
+  _↑[_≔_]_ : ∀ {A : Ty (suc Δ)} {B : Ty Δ}
     → Term (suc Δ)
     → (X : TyVar (suc Δ))
     → Name
     → Conv↑ (suc Δ) A (wkᵗ X B)
     → Term Δ
 
-  _↓⟨_≔_⟩_ : ∀ {A : Ty Δ} {B : Ty (suc Δ)}
+  _↓[_≔_]_ : ∀ {A : Ty Δ} {B : Ty (suc Δ)}
     → Term Δ
     → (X : TyVar (suc Δ))
     → Name
@@ -91,8 +91,8 @@ rename ρ (L ⦂∀ C [ A ]) = rename ρ L ⦂∀ C [ A ]
 rename ρ ($ κ) = $ κ
 rename ρ (L ⊕[ op ] M) = rename ρ L ⊕[ op ] rename ρ M
 rename ρ (M ⟨ c ⟩) = rename ρ M ⟨ c ⟩
-rename ρ (M ↑⟨ X ≔ α ⟩ c) = rename ρ M ↑⟨ X ≔ α ⟩ c
-rename ρ (M ↓⟨ X ≔ α ⟩ c) = rename ρ M ↓⟨ X ≔ α ⟩ c
+rename ρ (M ↑[ X ≔ α ] c) = rename ρ M ↑[ X ≔ α ] c
+rename ρ (M ↓[ X ≔ α ] c) = rename ρ M ↓[ X ≔ α ] c
 rename ρ blame = blame
 
 -- Type-context weakening used only beneath an existing `Λ`
@@ -205,11 +205,11 @@ weakenᵗᵐ X (L ⦂∀ C [ A ]) =
 weakenᵗᵐ X ($ κ) = $ κ
 weakenᵗᵐ X (L ⊕[ op ] M) = weakenᵗᵐ X L ⊕[ op ] weakenᵗᵐ X M
 weakenᵗᵐ X (M ⟨ c ⟩) = weakenᵗᵐ X M ⟨ weakenConsistency X c ⟩
-weakenᵗᵐ X (M ↑⟨ Y ≔ α ⟩ c) =
-  weakenᵗᵐ (underReveal X Y) M ↑⟨ weakenRevealSlot X Y ≔ α ⟩
+weakenᵗᵐ X (M ↑[ Y ≔ α ] c) =
+  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealSlot X Y ≔ α ]
     subst (Conv↑ _ _) (wkᵗ-reveal-square X Y _) (rename↑ _ c)
-weakenᵗᵐ X (M ↓⟨ Y ≔ α ⟩ c) =
-  weakenᵗᵐ (outsideConceal X Y) M ↓⟨ weakenConcealSlot X Y ≔ α ⟩
+weakenᵗᵐ X (M ↓[ Y ≔ α ] c) =
+  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealSlot X Y ≔ α ]
     subst (λ A → Conv↓ _ A _) (wkᵗ-conceal-square X Y _) (rename↓ _ c)
 weakenᵗᵐ X blame = blame
 
@@ -234,8 +234,8 @@ substAt x V (L ⦂∀ C [ A ]) = substAt x V L ⦂∀ C [ A ]
 substAt x V ($ κ) = $ κ
 substAt x V (L ⊕[ op ] M) = substAt x V L ⊕[ op ] substAt x V M
 substAt x V (M ⟨ c ⟩) = substAt x V M ⟨ c ⟩
-substAt x V (M ↑⟨ X ≔ α ⟩ c) = M ↑⟨ X ≔ α ⟩ c
-substAt x V (M ↓⟨ X ≔ α ⟩ c) = M ↓⟨ X ≔ α ⟩ c
+substAt x V (M ↑[ X ≔ α ] c) = M ↑[ X ≔ α ] c
+substAt x V (M ↓[ X ≔ α ] c) = M ↓[ X ≔ α ] c
 substAt x V blame = blame
 
 infixl 8 _[_]
@@ -333,23 +333,23 @@ data Value : ∀ {Δ : TyCtx} → Term Δ → Set where
     → Inert c
     → Value (V ⟨ c ⟩)
 
-  _↑⟨_≔_⟩_ : ∀ {Δ} {V : Term (suc Δ)} {A : Ty (suc Δ)}
+  _↑[_≔_]_ : ∀ {Δ} {V : Term (suc Δ)} {A : Ty (suc Δ)}
       {B : Ty Δ}
     → Value V
     → (X : TyVar (suc Δ))
     → (α : Name)
     → {c : Conv↑ (suc Δ) A (wkᵗ X B)}
     → RevealValue c
-    → Value (V ↑⟨ X ≔ α ⟩ c)
+    → Value (V ↑[ X ≔ α ] c)
 
-  _↓⟨_≔_⟩_ : ∀ {Δ′ : TyCtx} {V : Term Δ′} {A : Ty Δ′}
+  _↓[_≔_]_ : ∀ {Δ′ : TyCtx} {V : Term Δ′} {A : Ty Δ′}
       {B : Ty (suc Δ′)}
     → Value V
     → (X : TyVar (suc Δ′))
     → (α : Name)
     → {c : Conv↓ (suc Δ′) (wkᵗ X A) B}
     → ConcealValue c
-    → Value (V ↓⟨ X ≔ α ⟩ c)
+    → Value (V ↓[ X ≔ α ] c)
 
 ------------------------------------------------------------------------
 -- Scoped-variable classifications and contexts
@@ -542,7 +542,7 @@ data _⊢_⦂_ : (Γ : Ctx) → Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
     → PivotStrict↑ X c
     → Reps↑ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
     → cross-ctx Γ X p ⊢ M ⦂ A
-    → Γ ⊢ M ↑⟨ X ≔ α ⟩ c ⦂ B
+    → Γ ⊢ M ↑[ X ≔ α ] c ⦂ B
 
   ⊢conceal : ∀ {Γ} {Γ′ : TermCtx (suc (Δᵉ Γ))}
       {M A B X α R}
@@ -552,7 +552,7 @@ data _⊢_⦂_ : (Γ : Ctx) → Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
     → Reps↓ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
     → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ M ⦂ A
     → ⟨ suc (Δᵉ Γ) , sizeᵉ Γ , κᵉ (cross-ctx Γ X p) ,
-        Σᵉ Γ , Γ′ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
+        Σᵉ Γ , Γ′ ⟩ ⊢ M ↓[ X ≔ α ] c ⦂ B
 
   ⊢blame : ∀ {Γ A}
     → Γ ⊢ blame ⦂ A

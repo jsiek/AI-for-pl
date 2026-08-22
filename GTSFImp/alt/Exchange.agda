@@ -380,7 +380,7 @@ mutual
 ∀-entry-application : ∀ {Δ} → Name → Term Δ → Ty (suc Δ)
   → Term (suc Δ)
 ∀-entry-application α V A =
-  (V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A)))
+  (V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A)))
     ⦂∀ swapᵗ (⇑ᵗ A) [ ＇ zero ]
 
 ∀-entry-application-typed : ∀ {Γ} {V : Term (Δᵉ Γ)}
@@ -394,7 +394,7 @@ mutual
     (swap-shift-open-zero A) (⊢• exchanged⊢)
   where
   entered⊢ : cross-ctx Γ zero p ⊢
-      V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A))
+      V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A))
       ⦂ wkᵗ zero (`∀ A)
   entered⊢ =
     ⊢conceal {Γ = Γ} {Γ′ = []} p
@@ -404,12 +404,12 @@ mutual
         (wkᵗ zero (`∀ A))) V⊢
 
   exchanged⊢ : cross-ctx Γ zero p ⊢
-      V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A))
+      V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A))
       ⦂ `∀ (swapᵗ (⇑ᵗ A))
   exchanged⊢ =
     subst
       (λ T → cross-ctx Γ zero p ⊢
-        V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A)) ⦂ T)
+        V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A)) ⦂ T)
       (wk-zero-∀-swap A) entered⊢
 
 ------------------------------------------------------------------------
@@ -431,7 +431,7 @@ mutual
   → Conv↑ (suc Δ) A (wkᵗ zero (A [ ★ ]ᵗ))
   → Term Δ
 β-inst-result {A = A} α V c d =
-  ((∀-entry-application α V A) ↑⟨ zero ≔ α ⟩ d)
+  ((∀-entry-application α V A) ↑[ zero ≔ α ] d)
   ⟨ c [ ★/0 ]ᶜ ⟩
 
 β-inst-redex-typed : ∀ {Γ} {μ : Env∼ (Δᵉ Γ)}
@@ -468,7 +468,7 @@ mutual
 
   revealed⊢ : Γ⁺ ⊢
       (∀-entry-application (sizeᵉ Γ) V A)
-        ↑⟨ zero ≔ sizeᵉ Γ ⟩ d
+        ↑[ zero ≔ sizeᵉ Γ ] d
       ⦂ A [ ★ ]ᵗ
   revealed⊢ = ⊢reveal p d-strict d-reps applied⊢
 
@@ -534,7 +534,7 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Ty Δ
   → Term Δ
 β-reveal-∀-redex {B = B} α V X c A =
-  (V ↑⟨ X ≔ α ⟩ `∀↑ c) ⦂∀ B [ A ]
+  (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ]
 
 β-reveal-∀-result : ∀ {Δ} {A : Ty Δ} {B : Ty (suc Δ)} {C}
   → Name
@@ -547,8 +547,8 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Term Δ
 β-reveal-∀-result {C = C} fresh α X V c d =
   (((∀-entry-application fresh V C)
-      ↑⟨ suc X ≔ α ⟩ open-∀↑ c)
-  ↑⟨ zero ≔ fresh ⟩ d)
+      ↑[ suc X ≔ α ] open-∀↑ c)
+  ↑[ zero ≔ fresh ] d)
 
 β-reveal-∀-redex-typed : ∀ {Γ} {A : Ty (Δᵉ Γ)}
     {B : Ty (suc (Δᵉ Γ))} {C : Ty (suc (suc (Δᵉ Γ)))}
@@ -611,7 +611,7 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   old-revealed⊢ : freshΓ ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↑⟨ suc X ≔ α ⟩ open-∀↑ c
+        ↑[ suc X ≔ α ] open-∀↑ c
       ⦂ B
   old-revealed⊢ =
     ⊢reveal old
@@ -632,7 +632,7 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Ty (suc Δ)
   → Term (suc Δ)
 β-conceal-∀-redex {B = B} α V X c A =
-  (V ↓⟨ X ≔ α ⟩ `∀↓ c) ⦂∀ B [ A ]
+  (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ]
 
 β-conceal-∀-result : ∀ {Δ} {A : Ty (suc Δ)}
     {B : Ty (suc (suc Δ))} {C : Ty (suc Δ)}
@@ -646,8 +646,8 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Term (suc Δ)
 β-conceal-∀-result {C = C} fresh α X V c d =
   (((∀-entry-application fresh V C)
-    ↓⟨ suc X ≔ α ⟩ open-∀↓ c)
-  ↑⟨ zero ≔ fresh ⟩ d)
+    ↓[ suc X ≔ α ] open-∀↓ c)
+  ↑[ zero ≔ fresh ] d)
 
 β-conceal-∀-redex-typed : ∀ {Γ}
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
@@ -712,7 +712,7 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   concealed-right⊢ : cross-ctx freshΓ (suc X) old ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↓⟨ suc X ≔ α ⟩ open-∀↓ c
+        ↓[ suc X ≔ α ] open-∀↓ c
       ⦂ B
   concealed-right⊢ =
     ⊢conceal {Γ = freshΓ} {Γ′ = []} old
@@ -722,7 +722,7 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   concealed-left⊢ : cross-ctx oldΓ⁺ zero fresh-final ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↓⟨ suc X ≔ α ⟩ open-∀↓ c
+        ↓[ suc X ≔ α ] open-∀↓ c
       ⦂ B
   concealed-left⊢ =
     allocation-cross-ctx-exchange-typing ext {Γ = Γ} p concealed-right⊢

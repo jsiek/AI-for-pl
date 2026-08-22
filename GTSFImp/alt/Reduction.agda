@@ -211,8 +211,8 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
       {d : Conv↑ (suc Δ) B (wkᵗ X B₀)}
     → Value V
     → Value W
-    → Σ ∣ κ ⊢ (V ↑⟨ X ≔ α ⟩ (c ↦↑ d)) · W —→[ keep ]
-        (V · (W ↓⟨ X ≔ α ⟩ c)) ↑⟨ X ≔ α ⟩ d
+    → Σ ∣ κ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→[ keep ]
+        (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d
 
   β-conceal-⇒ : ∀ {n Δ} {Σ : Store n}
       {κ : Bindings (suc Δ) n}
@@ -223,20 +223,20 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
       {d : Conv↓ (suc Δ) (wkᵗ X B₀) B′}
     → Value V
     → Value W
-    → Σ ∣ κ ⊢ (V ↓⟨ X ≔ α ⟩ (c ↦↓ d)) · W —→[ keep ]
-        (V · (W ↑⟨ X ≔ α ⟩ c)) ↓⟨ X ≔ α ⟩ d
+    → Σ ∣ κ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→[ keep ]
+        (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
   id-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {X : TyVar (suc Δ)} {α : Name} {ι κ₀}
-    → Σ ∣ κ ⊢ ($ κ₀) ↑⟨ X ≔ α ⟩ id↑ (‵ ι)
+    → Σ ∣ κ ⊢ ($ κ₀) ↑[ X ≔ α ] id↑ (‵ ι)
         —→[ keep ] $ κ₀
 
   conceal-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V : Term Δ} {A : Ty Δ} {X : TyVar (suc Δ)} {α : Name}
     → Value V
     → Σ ∣ κ ⊢
-        (V ↓⟨ X ≔ α ⟩ alt.Conversion.seal X (wkᵗ X A))
-          ↑⟨ X ≔ α ⟩ unseal X (wkᵗ X A)
+        (V ↓[ X ≔ α ] alt.Conversion.seal X (wkᵗ X A))
+          ↑[ X ≔ α ] unseal X (wkᵗ X A)
         —→[ keep ] V
 
   blame-·₁ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
@@ -259,12 +259,12 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
   blame-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {A : Ty (suc Δ)} {B : Ty Δ} {X : TyVar (suc Δ)}
       {α : Name} {c : Conv↑ (suc Δ) A (wkᵗ X B)}
-    → Σ ∣ κ ⊢ blame ↑⟨ X ≔ α ⟩ c —→[ keep ] blame
+    → Σ ∣ κ ⊢ blame ↑[ X ≔ α ] c —→[ keep ] blame
 
   blame-conceal : ∀ {n Δ} {Σ : Store n} {κ : Bindings (suc Δ) n}
       {A : Ty Δ} {B : Ty (suc Δ)} {X : TyVar (suc Δ)}
       {α : Name} {c : Conv↓ (suc Δ) (wkᵗ X A) B}
-    → Σ ∣ κ ⊢ blame ↓⟨ X ≔ α ⟩ c —→[ keep ] blame
+    → Σ ∣ κ ⊢ blame ↓[ X ≔ α ] c —→[ keep ] blame
 
   blame-⊕₁ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {M : Term Δ} {op : Prim}
@@ -285,7 +285,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Value V
     → Transport (BindingRel κ) A R
     → Σ ∣ κ ⊢ (Λ V) ⦂∀ B [ A ] —→[ bind R ]
-        V ↑⟨ zero ≔ n ⟩ d
+        V ↑[ zero ≔ n ] d
 
   -- DEVIATION: as for β-Λ, β-gen takes the endpoint-correct exit
   -- conversion as data.  Its entry delimiter is explicit and no term is
@@ -301,8 +301,8 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Transport (BindingRel κ) C R
     → Σ ∣ κ ⊢ (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ]
         —→[ bind R ]
-        ((V ↓⟨ zero ≔ n ⟩ δ↓ (⇑ᵗ A)) ⟨ c ⟩)
-          ↑⟨ zero ≔ n ⟩ d
+        ((V ↓[ zero ≔ n ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
+          ↑[ zero ≔ n ] d
 
   -- DEVIATION: β-inst, β-reveal-∀, and β-conceal-∀ are omitted.  Their
   -- source forall slot and crossing slot require a typed exchange operation
@@ -338,8 +338,8 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ
         ⊢ M —→[ χ ] M′
-    → Σ ∣ κ ⊢ M ↑⟨ X ≔ α ⟩ c
-        —→[ χ ] M′ ↑⟨ X ≔ α ⟩ c
+    → Σ ∣ κ ⊢ M ↑[ X ≔ α ] c
+        —→[ χ ] M′ ↑[ X ≔ α ] c
 
   ξ-conceal : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {M M′ : Term Δ}
@@ -348,7 +348,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ κ ⊢ M —→[ χ ] M′
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ
-        ⊢ M ↓⟨ X ≔ α ⟩ c —→[ χ ] M′ ↓⟨ X ≔ α ⟩ c
+        ⊢ M ↓[ X ≔ α ] c —→[ χ ] M′ ↓[ X ≔ α ] c
 
   ξ-⊕₁ : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {L L′ M : Term Δ} {op : Prim}

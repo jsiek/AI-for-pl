@@ -56,8 +56,8 @@ The term grammar replaces the live same-context conversion forms
 ```text
 M, N ::= …                        -- all other forms as in CastTerms.agda
        | ƛ A ˙ N                    -- lambda, annotated by its domain
-       | M ↑⟨ X ≔ α ⟩ c           -- reveal: binds slot X, anchored at α
-       | M ↓⟨ X ≔ α ⟩ c           -- conceal: anti-binds slot X, anchored at α
+       | M ↑[ X ≔ α ] c           -- reveal: binds slot X, anchored at α
+       | M ↓[ X ≔ α ] c           -- conceal: anti-binds slot X, anchored at α
 ```
 
 The dot in `ƛ A ˙ N` distinguishes the domain annotation from the body;
@@ -74,9 +74,9 @@ their only well-formedness check. In the intrinsic syntax the
 constructors cross the context index:
 
 ```agda
-_↑⟨_≔_⟩_ : Term (suc Δ) → (X : TyVar (suc Δ)) → (α : Name)
+_↑[_≔_]_ : Term (suc Δ) → (X : TyVar (suc Δ)) → (α : Name)
   → Conv↑ (suc Δ) A (wkᵗ X B) → Term Δ                    -- binder
-_↓⟨_≔_⟩_ : Term Δ → (X : TyVar (suc Δ)) → (α : Name)
+_↓[_≔_]_ : Term Δ → (X : TyVar (suc Δ)) → (α : Name)
   → Conv↓ (suc Δ) (wkᵗ X A) B → Term (suc Δ)              -- anti-binder
 ```
 
@@ -85,7 +85,7 @@ shift-by-1 is the slot `X = 0`. A reveal *binds* its scoped variable over
 its subterm: inside, `X` is in scope; outside, the node's type is `X`-free.
 A conceal is the dual hole: its subterm lives *outside* the scope of `X`
 even though the node sits inside it. Both interiors are term-closed. Displays
-later in this document abbreviate `↑⟨ X ≔ α ⟩ c` to `↑ c ⟨α⟩` when the slot
+later in this document abbreviate `↑[ X ≔ α ] c` to `↑ c ⟨α⟩` when the slot
 is `0` or clear from context.
 
 Typing, with `α ⦂ R ∈ Σ` the anchor's store entry and the context
@@ -97,14 +97,14 @@ recording the connection `X ≔ α`:
   → c pivot-strict at X, representations at R
   → ⟨ Δ , Σ , ∅ ⟩ ⊢ M ⦂ A                     -- closed and X-free
     -----------------------------------------------------------
-  → ⟨ suc Δ [X ≔ α] , Σ , Γ′ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
+  → ⟨ suc Δ [X ≔ α] , Σ , Γ′ ⟩ ⊢ M ↓[ X ≔ α ] c ⦂ B
 
 ⊢reveal : {c : Conv↑ (suc Δ) A (wkᵗ X B)}
   → α ⦂ R ∈ Σ
   → c pivot-strict at X, representations at R
   → ⟨ suc Δ [X ≔ α] , Σ , ∅ ⟩ ⊢ M ⦂ A
     -----------------------------------------------------------
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑⟨ X ≔ α ⟩ c ⦂ B        -- result leaves X's scope
+  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑[ X ≔ α ] c ⦂ B        -- result leaves X's scope
 ```
 
 Here `Γ` and `Γ′` are arbitrary. The crossing changes the scoped-type context
@@ -355,8 +355,8 @@ allocation, and no allocation or evaluation-frame rule traverses a term.
 Substitution stops at both crossing nodes:
 
 ```agda
-(M ↑⟨ X ≔ α ⟩ c) [ V ] = M ↑⟨ X ≔ α ⟩ c
-(M ↓⟨ X ≔ α ⟩ c) [ V ] = M ↓⟨ X ≔ α ⟩ c
+(M ↑[ X ≔ α ] c) [ V ] = M ↑[ X ≔ α ] c
+(M ↓[ X ≔ α ] c) [ V ] = M ↓[ X ≔ α ] c
 ```
 
 This is sound directly from the closed-interior premises of `⊢reveal` and
@@ -374,7 +374,7 @@ The checked allocation rules are
 β-Λ :
   Value V → Transport (BindingRel κ) A R →
   Σ ∣ κ ⊢ (Λ V) ⦂∀ B [ A ] —→[ bind R ]
-    V ↑⟨ 0 ≔ n ⟩ d
+    V ↑[ 0 ≔ n ] d
 ```
 
 where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ A ]ᵗ))`, and
@@ -384,8 +384,8 @@ where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ A ]ᵗ))`, and
   Value V → (A ≢ ★) → GenSafe c →
   Transport (BindingRel κ) C R →
   Σ ∣ κ ⊢ (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind R ]
-    (((V ↓⟨ 0 ≔ n ⟩ δ↓ (⇑ᵗ A)) ⟨ c ⟩)
-      ↑⟨ 0 ≔ n ⟩ d)
+    (((V ↓[ 0 ≔ n ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
+      ↑[ 0 ≔ n ] d)
 ```
 
 where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ C ]ᵗ))`.  This makes the entry

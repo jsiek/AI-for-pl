@@ -10,7 +10,7 @@ module alt.ThetaTyping where
 --   * Enforces closed interiors for ν, wk, reveal, and conceal.
 
 open import Data.Fin using (zero; suc)
-import Data.List as List
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
@@ -128,7 +128,7 @@ infixl 5 _,ᶜ_
 
 _,ᶜ_ : (Γ : Ctx) → Ty (Δᵉ Γ) → Ctx
 ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ,ᶜ A =
-  ⟨ Θ , Ξ , Δ , κ , List._∷_ A Γ ⟩
+  ⟨ Θ , Ξ , Δ , κ , A ∷ Γ ⟩
 
 ∀-ctx : Ctx → Ctx
 ∀-ctx ⟨ Θ , Ξ , Δ , κ , Γ ⟩ =
@@ -237,7 +237,7 @@ data _⊢_⦂_ : (Γ : Ctx)
 
   ⊢ν : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
       {Γ : TermCtx Δ} {R : Ty Θ} {M B}
-    → ⟨ suc Θ , tele-bind Ξ R , Δ , weakenClassifier κ , List.[] ⟩
+    → ⟨ suc Θ , tele-bind Ξ R , Δ , weakenClassifier κ , [] ⟩
         ⊢ M ⦂ B
     → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ ν[ R ] M ⦂ B
 
@@ -246,7 +246,7 @@ data _⊢_⦂_ : (Γ : Ctx)
       {κ′ : Classifier (suc Θ) Δ} {Γ′ : TermCtx Δ}
     → InsertTele α Ξ Ξ′
     → InsertClassifier α κ κ′
-    → ⟨ Θ , Ξ , Δ , κ , List.[] ⟩ ⊢ M ⦂ A
+    → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
     → ⟨ suc Θ , Ξ′ , Δ , κ′ , Γ′ ⟩ ⊢ wk[ α ] M ⦂ A
 
   ⊢reveal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
@@ -254,7 +254,7 @@ data _⊢_⦂_ : (Γ : Ctx)
     → Ξ ∋ν α ⦂ R
     → Spell (insertSlot Y α κ) R′ R
     → ⊢↑[ Y ⦂ R′ ] c ⦂ A ↝ wkᵗ Y B
-    → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , List.[] ⟩ ⊢ M ⦂ A
+    → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , [] ⟩ ⊢ M ⦂ A
     → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
   ⊢conceal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
@@ -262,7 +262,7 @@ data _⊢_⦂_ : (Γ : Ctx)
     → Ξ ∋ν α ⦂ R
     → Spell (insertSlot Y α κ) R′ R
     → ⊢↓[ Y ⦂ R′ ] c ⦂ wkᵗ Y A ↝ B
-    → ⟨ Θ , Ξ , Δ , κ , List.[] ⟩ ⊢ M ⦂ A
+    → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
     → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , Γ′ ⟩
         ⊢ M ↓[ Y ≔ α ] c ⦂ B
 

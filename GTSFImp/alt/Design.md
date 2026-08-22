@@ -1,127 +1,171 @@
 # GTSFImp Alternative Semantics — Shift-Free Reduction
 
-This document records the design settled in discussion on the PR (2026-08-21/22).
-It replaces the earlier candidate menu. The checked `alt.*` core and its
-statement-level bookkeeping revisions are recorded below. Notation follows the
-live development
-([`Types.agda`](../Types.agda), [`Conversion.agda`](../Conversion.agda),
-[`CastTerms.agda`](../CastTerms.agda), [`Reduction.agda`](../Reduction.agda)).
+This document records the checked alternative core settled in discussion on
+the PR (2026-08-21/22). Notation follows the live development where the
+alternative does not deliberately differ.
 
 ## Goal
 
 Remove all shifting of terms during reduction. In the live calculus every
-allocation step renames terms:
+allocation step renames terms, every allocating ξ-frame shifts its untouched
+sibling, and consistency and conversion evidence must move with the term.
+Those traversals exist because allocation adds a de Bruijn type slot to the
+ambient context.
 
-- `β-inst`, `β-gen`, `β-reveal-∀`, `β-conceal-∀` shift the exposed value
-  (`⇑ᵗᵐ V`, an O(|V|) traversal);
-- every ξ-frame rule shifts the untouched sibling (`M′ ≡ χ ▷ᵀ M`);
-- consistency evidence in frames is transported (`c′ ≡ χ ▷ᶜ c`), and
-  `β-inst` shifts its closed evidence (`↑ᶜ (c [ ★ /0 ]ᶜ)`).
-
-All of these exist because the fresh type variable is bound at de Bruijn
-index `0` of the ambient context, so `bind` re-indexes everything.
-Shifting up by 1 is the special case of inserting a slot at position `0`;
-the design generalizes to inserting or removing a slot at an arbitrary
-position, and then arranges that the *ambient* context never needs a slot
-inserted at all.
+The alternative separates runtime store names from lexically scoped type
+variables. Allocation extends only an append-only store, while reveal and
+conceal nodes manage scoped slots locally. The ambient type context of a
+reduction step therefore stays fixed.
 
 ## Two classes of type variable
 
-**Store names** `α` live in a global, append-only type store
-`Σ : StoreCtx → Set`-style, mapping each name to its representation type.
-Allocation (`bind`) extends this store and nothing else. Because the store
-is append-only and store names are not de Bruijn indices of terms or
-types, allocation re-indexes nothing.
+**Store names** `α` live in a global append-only `Store n`. A store entry is a
+representation type scoped by earlier store names. Allocation extends this
+store and nothing else, so it reindexes no term or scoped type.
 
-**Scoped variables** `X` are the de Bruijn indices of `Ty Δ` and
-`Term Δ`, introduced only by binders: `∀`/`Λ` as before, and now the
-reveal/conceal nodes. Scoped variables are term-local; which scoped
-variables exist at a subterm is controlled entirely by the binders above
-it, never by allocation.
+**Scoped variables** `X` are the de Bruijn indices of `Ty Δ` and `Term Δ`.
+They are introduced by `∀`/`Λ` and by reveal/conceal crossings. A crossing
+carries an anchor `α`, connecting its scoped pivot to a store entry. Several
+crossings may use one anchor.
 
-A reveal/conceal node carries an **anchor**: the store name `α` its
-scoped variable is connected to. One store name may anchor many
-reveal/conceal nodes — `β-reveal-⇒` splits one boundary into two, and
-disconnected regions of the same allocation arise when values escape
-(see the escape example below). The typing context therefore tracks, for
-each in-scope crossing variable, its anchor; the store lookup at the
-anchor supplies the representation type that the node's conversion is
-checked against.
+The checked typing context is
+
+```agda
+⟨ Δ , n , κ , Σ , Γ ⟩
+```
+
+where `Σ : Store n` and `κ : TyVar Δ → Binding n`. A binding is either
+`∀-bound` or `anchored α`. The explicit `n` lets Agda expose the indices of
+`κ` and `Σ`; it adds no semantic component.
+
+## Raw conversion shapes
+
+Conversions carry only their structural direction. They contain no type
+context, endpoint, pivot, representation, store name, or leaf data.
+
+```agda
+mutual
+  data Conv↑ : Set where
+    unseal : Conv↑
+    _↦↑_   : Conv↓ → Conv↑ → Conv↑
+    `∀↑_   : Conv↑ → Conv↑
+    id↑    : Conv↑
+
+  data Conv↓ : Set where
+    seal  : Conv↓
+    _↦↓_  : Conv↑ → Conv↓ → Conv↓
+    `∀↓_  : Conv↓ → Conv↓
+    id↓   : Conv↓
+```
+
+Endpoints and the old `PivotStrict` and `Reps` obligations are subsumed by
+one self-contained typing judgment per direction:
+
+```agda
+⊢↑[ X ⦂ R′ ] c ⦂ A ↝ B
+⊢↓[ X ⦂ R′ ] c ⦂ A ↝ B
+```
+
+Here `X : TyVar Δ` and `R′ A B : Ty Δ`. The representation `R′` is scoped in
+the same context as the conversion endpoints. These judgments mention no
+store, anchor, classifier, or transport relation.
+
+Their rules are:
+
+```agda
+⊢unseal : ⊢↑[ X ⦂ R′ ] unseal ⦂ ＇ X ↝ R′
+⊢seal   : ⊢↓[ X ⦂ R′ ] seal ⦂ R′ ↝ ＇ X
+
+⊢↑-⇒ : ⊢↓[ X ⦂ R′ ] c ⦂ A′ ↝ A
+      → ⊢↑[ X ⦂ R′ ] d ⦂ B ↝ B′
+      → ⊢↑[ X ⦂ R′ ] c ↦↑ d ⦂ A ⇒ B ↝ A′ ⇒ B′
+
+⊢↓-⇒ : ⊢↑[ X ⦂ R′ ] c ⦂ A′ ↝ A
+      → ⊢↓[ X ⦂ R′ ] d ⦂ B ↝ B′
+      → ⊢↓[ X ⦂ R′ ] c ↦↓ d ⦂ A ⇒ B ↝ A′ ⇒ B′
+
+⊢↑-∀ : ⊢↑[ suc X ⦂ ⇑ᵗ R′ ] c ⦂ A ↝ B
+      → ⊢↑[ X ⦂ R′ ] `∀↑ c ⦂ `∀ A ↝ `∀ B
+
+⊢↓-∀ : ⊢↓[ suc X ⦂ ⇑ᵗ R′ ] c ⦂ A ↝ B
+      → ⊢↓[ X ⦂ R′ ] `∀↓ c ⦂ `∀ A ↝ `∀ B
+
+⊢id↑ : Atom A → ⊢↑[ X ⦂ R′ ] id↑ ⦂ A ↝ A
+⊢id↓ : Atom A → ⊢↓[ X ⦂ R′ ] id↓ ⦂ A ↝ A
+```
+
+Thus `seal` and `unseal` are the only rules that can touch a variable, and
+they can touch only the supplied pivot. Pivot strictness and representation
+agreement are structural consequences of a conversion-typing derivation,
+not separate predicates. Identities are restricted to atoms by their typing
+rules rather than by syntax.
+
+One passed-down `R′` also means that every `seal` or `unseal` leaf in one
+conversion uses the same scoped representation, modulo weakening beneath
+`∀`. A mixed-alias conversion, whose leaves use different scoped aliases of
+one allocation, is deliberately untypeable. No reduction rule mints such a
+shape. If the deferred merge rule eventually needs mixed aliases, that is the
+point at which to revisit the restriction.
+
+The generators are ordinary shape functions. For example,
+`〖 X , R′ ↑ B 〗 : Conv↑` recursively emits `unseal` exactly at `＇ X`, and
+`makeConceal X R′ B : Conv↓` is dual. Their endpoint facts are proofs:
+
+```agda
+generator-typed↑ :
+  ⊢↑[ X ⦂ R′ ] 〖 X , R′ ↑ B 〗 ⦂ B ↝ replaceTy X R′ B
+
+generator-typed↓ :
+  ⊢↓[ X ⦂ R′ ] makeConceal X R′ B
+    ⦂ replaceTy X R′ B ↝ B
+```
+
+The delimiters `δ↑ A` and `δ↓ A` likewise return shapes, with separate
+`delimiter-typed↑` and `delimiter-typed↓` proofs.
 
 ## Reveal is a binder, conceal is an anti-binder
 
-The term grammar replaces the live same-context conversion forms
-`M ↑ c` and `M ↓ c` with anchored crossing forms:
-
-```text
-M, N ::= …                        -- all other forms as in CastTerms.agda
-       | ƛ A ˙ N                    -- lambda, annotated by its domain
-       | M ↑[ X ≔ α ] c           -- reveal: binds slot X, anchored at α
-       | M ↓[ X ≔ α ] c           -- conceal: anti-binds slot X, anchored at α
-```
-
-The dot in `ƛ A ˙ N` distinguishes the domain annotation from the body;
-the annotation is syntax and the `⊢ƛ` rule requires it to be the domain of the
-resulting arrow type.
-
-Beside its conversion, a node carries two pieces of data: the **slot
-position** `X` — the de Bruijn position being removed from (reveal) or
-inserted into (conceal) scope; a genuine binder position, since an
-all-identity delimiter conversion does not determine it — and the
-**anchor** `α`, the store name the slot is connected to. Store names are
-drawn from the append-only store; the typing rule's lookup premise is
-their only well-formedness check. In the intrinsic syntax the
-constructors cross the context index:
+The term grammar contains anchored crossings with raw conversions:
 
 ```agda
-_↑[_≔_]_ : Term (suc Δ) → (X : TyVar (suc Δ)) → (α : Name)
-  → Conv↑ (suc Δ) A (wkᵗ X B) → Term Δ                    -- binder
-_↓[_≔_]_ : Term Δ → (X : TyVar (suc Δ)) → (α : Name)
-  → Conv↓ (suc Δ) (wkᵗ X A) B → Term (suc Δ)              -- anti-binder
+_↑[_≔_]_ : Term (suc Δ) → TyVar (suc Δ) → Name → Conv↑ → Term Δ
+_↓[_≔_]_ : Term Δ → TyVar (suc Δ) → Name → Conv↓ → Term (suc Δ)
 ```
 
-with `wkᵗ X = renameᵗ (punchIn X)` the type-level slot insertion;
-shift-by-1 is the slot `X = 0`. A reveal *binds* its scoped variable over
-its subterm: inside, `X` is in scope; outside, the node's type is `X`-free.
-A conceal is the dual hole: its subterm lives *outside* the scope of `X`
-even though the node sits inside it. Both interiors are term-closed. Displays
-later in this document abbreviate `↑[ X ≔ α ] c` to `↑ c ⟨α⟩` when the slot
-is `0` or clear from context.
+A reveal binds slot `X` over its interior and removes that slot outside. A
+conceal is the dual hole: its interior is outside the scope of `X`, while the
+whole node is inside. Both interiors are closed in the term-variable context.
+The explicit slot remains necessary because an all-identity delimiter does
+not determine a pivot.
 
-Typing, with `α ⦂ R ∈ Σ` the anchor's store entry and the context
-recording the connection `X ≔ α`:
+Let `p : α ⦂ R ∈ Σ` be the anchor lookup. The checked rules have exactly one
+node-level transport premise and one conversion-typing premise:
 
 ```agda
-⊢conceal : {c : Conv↓ (suc Δ) (wkᵗ X A) B}
-  → α ⦂ R ∈ Σ
-  → c pivot-strict at X, representations at R
-  → ⟨ Δ , Σ , ∅ ⟩ ⊢ M ⦂ A                     -- closed and X-free
-    -----------------------------------------------------------
-  → ⟨ suc Δ [X ≔ α] , Σ , Γ′ ⟩ ⊢ M ↓[ X ≔ α ] c ⦂ B
+⊢reveal :
+  (p : α ⦂ R ∈ Σ)
+  → Transport (BindingRel (κ (cross-ctx Γ X p))) R′ R
+  → ⊢↑[ X ⦂ R′ ] c ⦂ A ↝ wkᵗ X B
+  → cross-ctx Γ X p ⊢ M ⦂ A
+  → Γ ⊢ M ↑[ X ≔ α ] c ⦂ B
 
-⊢reveal : {c : Conv↑ (suc Δ) A (wkᵗ X B)}
-  → α ⦂ R ∈ Σ
-  → c pivot-strict at X, representations at R
-  → ⟨ suc Δ [X ≔ α] , Σ , ∅ ⟩ ⊢ M ⦂ A
-    -----------------------------------------------------------
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑[ X ≔ α ] c ⦂ B        -- result leaves X's scope
+⊢conceal :
+  (p : α ⦂ R ∈ Σ)
+  → Transport (BindingRel (κ (cross-ctx Γ X p))) R′ R
+  → ⊢↓[ X ⦂ R′ ] c ⦂ wkᵗ X A ↝ B
+  → ⟨ Δ , n , κ , Σ , [] ⟩ ⊢ M ⦂ A
+  → ⟨ suc Δ , n , κ (cross-ctx Γ X p) , Σ , Γ′ ⟩
+      ⊢ M ↓[ X ≔ α ] c ⦂ B
 ```
 
-Here `Γ` and `Γ′` are arbitrary. The crossing changes the scoped-type context
-and classifier but does not transport a surrounding term context into its
-interior.
+The displays abbreviate the record projections used in Agda. `κ` occurs only
+in the node-level `BindingRel` transport (and in allocation-rule transport),
+never in conversion typing.
 
-**Pivot strictness.** The conversion under a crossing node mentions at
-most one scoped variable — the node's own `X` — at `seal X`/`unseal X`
-leaves; every other leaf is an identity. This is what makes the rules
-well-formed: it forces the outer endpoint to be an image of `wkᵗ X`, so
-the term on the far side can live in the context without `X`. There is
-no `Maybe` pivot and no `PivotJoin`: the anchor is node data, so a
-conversion whose leaves are all identities (a pure *delimiter*) still
-names its variable. This closes, in the syntax itself, the
-retype-an-identity-at-any-pivot loophole that the DGG's version-2
-imprecision rules had to close externally
-([`Rationale.md`](../Rationale.md), "Identity reveals").
+`Transport` is relational and structural on types. An anchored scoped
+variable maps to its anchor name, a type-local `∀` variable maps to the
+corresponding store-local variable through `LiftRel`, and a `∀-bound` entry in
+`κ` has no `BindingRel` constructor.
 
 ## Reachability invariant: crossing interiors are closed
 
@@ -134,178 +178,111 @@ The reachability argument is an induction on evaluation. In the base case,
 compilation emits no crossing nodes. For the step case, reduction mints a
 crossing only at an evaluation position; evaluation positions in a closed
 program are term-closed because evaluation never descends beneath a term
-binder. Ordinary call-by-value substitution deposits only closed values beneath
-binders, so it cannot introduce a free term variable into an existing crossing
-interior. Finally, reduction never grows the ambient scoped-type context: a
-closed source program and every program reachable from it remain `Term 0`.
-Runtime packages created by crossings are therefore term-closed. Packages that
-escape a local crossing have ambient types in `Ty 0` and are type-closed; their
-representation types are type-closed through the global store as well.
+binder. Ordinary call-by-value substitution deposits only closed values
+beneath binders, so it cannot introduce a free term variable into an existing
+crossing interior. Finally, reduction never grows the ambient scoped-type
+context: a closed source program and every program reachable from it remain
+`Term 0`. Runtime packages created by crossings are therefore term-closed.
+Packages that escape a local crossing have ambient types in `Ty 0` and are
+type-closed; their representation types are type-closed through the global
+store as well.
 
-**Identities are atomic.** `id↑`/`id↓` are restricted to `Atom` types
-(`＇Y`, `‵ι`, `★`), matching the consistency layer's `id : Atom A → …`.
-Conversions are then structural down to atoms. The generators
-`〖_,_↑_〗`/`makeConceal` already conform — they recurse through `⇒`/`∀`
-unconditionally and emit identities only at atomic leaves. Consequences:
+Term substitution consequently stops at both crossing nodes. Type-context
+weakening still renumbers the explicit crossing slots, but leaves each raw
+conversion shape unchanged.
 
-- a delimiter at `A ⇒ B` is necessarily `id↓ A ↦↑ id↑ B`, which the
-  existing `β-reveal-⇒` splits at application — no new commuting rules
-  for composite delimiters;
-- "mentions the pivot" is a plain syntactic property of the leaf set;
-- inversion never faces an identity of arbitrary shape.
+## Canonical interiors and delimiter values
 
-## Delimiters persist; `id-reveal` drops at base types only
+Raw identity shapes do not record the atom at which they are used. Valuehood
+therefore follows the interior's positive syntax rather than a negative type
+or occurrence test.
 
-The live rules `id-reveal`/`id-conceal` discard identity wrappers
-unconditionally. In this design an identity-conversion reveal anchored
-at `α` is the closing delimiter of its region, and the drop rule is
-restricted to base atoms, where the canonical inhabitants are constants
-and a constant inhabits every context:
+`CanonicalInterior V` has three shapes:
+
+- a tagged value `W ⟨ (idᵍ G) ! ⟩`;
+- a sealed value `W ↓[ X ≔ α ] seal`;
+- an identity reveal delimiter `W ↑[ X ≔ α ] id↑` whose own interior is
+  canonical.
+
+Each base case carries the needed `Value W` evidence. Consequently it also
+entails `Value V`. On well-typed terms, these are exactly the canonical
+interiors at `★` and at scoped variables; constants at base types are absent.
+
+The mutually defined `RevealValue` and `ConcealValue` gates are:
+
+- arrow and `∀` reveal/conceal shapes preserve an interior value;
+- `seal` concealments preserve an interior value;
+- an `id↓` concealment is a value only around a `CanonicalInterior`;
+- an `id↑` reveal is a value only around a `CanonicalInterior`;
+- `unseal` reveals are never values.
+
+Typing turns the positive syntax check into the intended atom distinction. An
+identity concealment at `★` or a foreign variable is a value whenever its
+interior is a value; an identity concealment around a base constant is not.
+An identity reveal delimiter is a value exactly around a tag, a seal, or a
+further valid delimiter, and never around a base constant or an identity
+concealment. Hence none of the following redexes is also a value.
+
+## Delimiter and cancellation rules
+
+The base drops are symmetric and raw:
 
 ```agda
-id-reveal : ($ κ) ↑ id↑ (‵ ι) ⟨α⟩ —→ $ κ
+id-reveal  : ($ κ₀) ↑[ X ≔ α ] id↑ —→[ keep ] $ κ₀
+id-conceal : ($ κ₀) ↓[ X ≔ α ] id↓ —→[ keep ] $ κ₀
 ```
 
-No premise, no strengthening operation. (An earlier draft guarded the
-drop with a "pivot does not occur in the value" strengthening premise
-at every atom; that makes value-hood at `★` undecidable by pattern —
-a delimited `★`-value would be a value or a redex depending on a
-term-level occurrence check — and the drop rule would overlap with the
-projection-merge rule below. Base-only drop keeps `Value`, progress,
-and determinism syntax-directed.)
-
-At `★` and at foreign variables `＇Y` a delimiter is always a value;
-delimiter spines on `★`-values are consumed by elimination, never by
-garbage collection. An `id`-conceal never drops at any type — its
-subterm lives in the smaller context — and is consumed only by
-`conceal-reveal` cancellation at its matching reveal. When a projection
-meets a `★`-delimiter, it commutes into the region to meet the tag:
+Non-base identity cancellation is deliberately loose in node data:
 
 ```agda
-(V ↑ id↑ ★ ⟨α⟩) ⟨ ？ H ⟩ —→ (V ⟨ ？ H ⟩′) ↑ id↑ … ⟨α⟩
+id-cancel :
+  CanonicalInterior V
+  → (V ↓[ X ≔ α ] id↓) ↑[ Y ≔ β ] id↑ —→[ keep ] V
 ```
 
-with tag comparison by **anchor equality**: two regions anchored at the
-same `α` may have different scoped names for the same allocation, and
-the tag/untag rules compare anchors, not scoped indices. This is the
-same-anchor *merge* — the one genuinely new rule family.
+Using the positive `CanonicalInterior` refinement of `Value V` makes
+`id-cancel` disjoint from both constant drop rules without putting types back
+into raw syntax. Typed instances are precisely the non-base atomic cases.
+
+Seal/unseal cancellation is also loose:
+
+```agda
+conceal-reveal :
+  Value V
+  → (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→[ keep ] V
+```
+
+Typing inversion forces `X = Y` and `α = β`: the conceal produces `＇ X`,
+the reveal consumes `＇ Y` in the same scoped context, and classifier
+agreement at that slot identifies the anchors. Preservation may extract those
+equalities; reduction does not carry them.
+
+The loose `id-cancel` formulation is intentionally open for review if
+`Bindings` becomes a first-order `Vec`. In that representation,
+mismatched-insertion classifier coincidences may make loose mismatched nodes
+typeable at `★` or foreign atoms. This task does not choose the future rule.
+
+## Syntactic tag comparison
+
+Tag cancellation follows the live calculus and compares ground types
+syntactically. There are no `TagMatch` or `TagMismatch` relations and the
+classifier does not appear in either rule:
+
+```agda
+tag-untag :
+  Value V
+  → V ⟨ (idᵍ G) ! ⟩ ⟨ ？ (idᵍ G) ⟩ —→[ keep ] V
+
+tag-untag-bad :
+  Value V
+  → G ≢ H
+  → V ⟨ (idᵍ G) ! ⟩ ⟨ ？ (idᵍ H) ⟩ —→[ keep ] blame
+```
+
+Cross-region behavior that cannot be expressed by syntactic tag equality
+belongs to the still-deferred merge rule, not to tag comparison.
 
 ## Reduction never shifts
-
-The reduction judgment becomes
-
-```text
-Σ ∣ M —→ Σ′ ∣ M′        M, M′ : Term Δ,  Σ′ = Σ or Σ, α ⦂ R
-```
-
-with the ambient `Δ` fixed across every step. What dissolves from
-[`Reduction.agda`](../Reduction.agda): `StoreChange`'s action on terms
-and evidence (`applyTerm`/`▷ᵀ`, `applyConsistency`/`▷ᶜ`,
-`applyBody`/`▷ᵇ`, and their `▶` iterations), all ξ-frame shift premises,
-every `⇑ᵗᵐ`, and the `↑ᶜ` on `β-inst`'s closed evidence — its endpoints
-are `X`-free, so it sits outside the reveal at ambient `Δ` unchanged.
-
-Sketch of `β-inst` (slot at `0`, anchors written `⟨α⟩`):
-
-```text
-Σ ∣ V ⟨ (inst c) B≢★ ⟩ —→ Σ, α ⦂ ★ ∣
-  ((V ↓ δ∀ ⟨α⟩) ⦂∀ … [ ＇ 0 ]) ↑ 〖 0 , ★ ↑ A 〗⟨α⟩ ⟨ c [ ★ /0 ]ᶜ ⟩
-```
-
-`V` enters the region through an anti-binder delimiter `δ∀` (structural,
-all-atomic-identity, anchored at `α`), is type-applied at the scoped
-variable, revealed through the generated conversion (binder, closing the
-region), and cast by the *unshifted* closed evidence. The composition
-properties hold on the existing rules: `β-reveal-⇒` sends
-`(V ↑ (c ↦↑ d)⟨α⟩) · W` to `(V · (W ↓ c ⟨α⟩)) ↑ d ⟨α⟩`, which pairs the
-binder with a fresh anti-binder so all context indices line up, and
-`conceal-reveal` cancellation `(V ↓ seal ⟨α⟩) ↑ unseal ⟨α⟩ —→ V` has both
-sides at ambient `Δ`.
-
-## Why escapees must stay live: the re-entry example
-
-Sealed-and-tagged values escape their region through positive-`★`
-channels: with `B = ＇X ⇒ ★`, applying the generalized dynamic identity
-yields the free-floating package `(7 ↓ seal ⟨α⟩) ⟨ tag ⟨α⟩ ⟩ ⦂ ★` after
-the region's delimiter would (in the live calculus) be erased by
-`id-reveal` — the delimiter restriction exists precisely to keep the
-package closed.
-
-Such packages are not dead. With
-
-```text
-B = ＇X ⇒ ((★ ⇒ ★) ⇒ ＇X)          W = ƛx. ƛj. j · x
-
-(ƛh. h · 9 · (ƛu. (ƛw. u) · (h · 5 · (ƛv. u)))) · ((W ⟨ gen c ⟩) ⦂∀ B [ ℕ ])
-```
-
-the instantiation fires `β-gen` once (CBV argument), so both uses of `h`
-share one allocation. The outer call leaks its tagged argument `t₉` to
-user code through the identity-conversion `(★ ⇒ ★)` channel; the inner
-sibling call `h · 5 · (ƛv. u)` routes the captured `t₉` to its own
-positive-`＇X` exit, where the projection meets the tag — same
-allocation, tags match, unseal returns `9`. The whole program reduces to
-`$ 9` with no blame: an escaped package was consumed by a *different*
-region of the same allocation. Hence: escapees keep their anchors, the
-merge rule is by anchor equality, and no design may neuter or eagerly
-blame an escaped package. (When the generalized type has no positive
-occurrence of the bound variable, no projection site exists and packages
-are inert forever — ordinary uninspected `★` values.)
-
-A mechanized `—↠` derivation of this program in the *live* calculus is
-queued as a baseline probe; if the trace does not hold as claimed, the
-design motivation needs revisiting before the new calculus is built.
-
-## Open bookkeeping (expected mechanization friction)
-
-- **`β-inst` binder/slot exchange.** Reusing the `inst` body `A`
-  verbatim inside the region relies on the pun between the consistency
-  binder and the slot position; the exact de Bruijn exchange between the
-  `∀`-binder and the inserted slot inside `δ∀` needs to be worked out in
-  Agda, and slot positions other than `0` appear as soon as regions
-  nest.
-- **Conceal orientation cases.** The anti-binder form covers values
-  entering a region; whether any rule still needs a same-context conceal
-  (or reveal) is to be discovered by the mechanization, not assumed.
-- **Store monotonicity.** The one new lemma obligation: typing is
-  preserved under store extension (`Σ ⊆ Σ′`) — a lookup lemma, not a
-  term traversal.
-- **`GenSafe` and value forms.** `RevealValue`/`ConcealValue` gain the
-  atomic-delimiter cases (`★` and `＇Y` delimiters are always values;
-  base delimiters never are); `GenSafe`'s interaction with anchored
-  suspended casts needs restating.
-- **Delimiters at foreign variables.** A reveal delimiter at `＇Y` is
-  eliminated by commuting past `Y`'s consuming unseal — a node-local
-  reveal-past-reveal swap that renumbers the two slot positions; the
-  exact rule shape is to be settled in Agda.
-- **Blame.** `tag-untag-bad` compares anchors; blame across regions of
-  distinct allocations must still be derivable through the merge rule.
-
-## Mechanization notes
-
-The following are the statement-level resolutions and deviations in the first
-`alt.*` core.  They are recorded here as revised statements so later work does
-not accidentally rely on the prose sketch where the checked Agda interface is
-different.
-
-### The store length is explicit in typing contexts
-
-The checked context record is
-
-```agda
-⟨ Δ , n , κ , Σ , Γ ⟩
-```
-
-where `Σ : Store n` and `κ : TyVar Δ → Binding n`.  The extra displayed `n`
-is the index needed by Agda to make the existential store length available to
-the dependent projections `κᵉ` and `Σᵉ`; it adds no semantic component.
-
-`Binding n` contains either `∀-bound` or `anchored α` with `α : Fin n`.
-The raw stable name carried by terms is a natural number.  A premise
-`α ⦂ R ∈ Σ` resolves that raw name to the corresponding `Fin n` used in the
-classifier.
-
-### Reduction carries the scoped-variable classifier
 
 The checked one-step judgment is
 
@@ -313,116 +290,79 @@ The checked one-step judgment is
 Σ ∣ κ ⊢ M —→[ χ ] M′
 ```
 
-with `M M′ : Term Δ`, `Σ : Store n`,
-`κ : TyVar Δ → Binding n`, and `χ : StoreΔ n n′`.  This refines the sketched
-`Σ ∣ M —→ Σ′ ∣ M′`: reduction needs `κ` both to translate an allocating type
-argument to a name-scoped store representation and to compare variable tags by
-anchor.  If `χ = bind R`, the next multi-step premise uses the pointwise
-weakening of `κ` from `Fin n` to `Fin (suc n)`; terms are unchanged.
+where `χ` is `keep` or `bind R`. If a step allocates, the next multi-step
+premise weakens only `κ` and the store; `M` and `M′` remain in the same scoped
+type context. Evaluation frames never traverse an untouched sibling.
 
-### Representation transport is relational
-
-The checked crossing premises are, for the lookup `p : α ⦂ R ∈ Σ`,
-
-```agda
-Reps↑ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
-Reps↓ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
-```
-
-respectively.  `Transport` is structural on types.  An anchored scoped
-variable transports to its anchor name, a type-local `∀` variable transports
-to the corresponding type-local variable, and a `∀-bound` entry in `κ` has no
-transport constructor.  Under a conversion `∀`, both the variable relation
-and `R` are weakened once.  Thus every `seal` or `unseal` representation is
-checked against the current weakened store entry without defining a partial
-transport function.
-
-### Ordinary lambda beta uses substitution that stops at crossings
-
-Lambdas carry their domain type, and the checked single substitution is
-
-```agda
-_[_] : Term Δ → Term Δ → Term Δ
-β : Value V → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ]
-```
-
-The implementation generalizes internally to substitution at an arbitrary
-term index.  Under `ƛ`, that index is incremented and `V` is weakened only by
-the term-variable renaming `rename suc`.  Under `Λ`, the replacement is
-weakened across that existing lexical type binder; this is unrelated to store
-allocation, and no allocation or evaluation-frame rule traverses a term.
-
-Substitution stops at both crossing nodes:
-
-```agda
-(M ↑[ X ≔ α ] c) [ V ] = M ↑[ X ≔ α ] c
-(M ↓[ X ≔ α ] c) [ V ] = M ↓[ X ≔ α ] c
-```
-
-This is sound directly from the closed-interior premises of `⊢reveal` and
-`⊢conceal`: a variable supplied by an enclosing lambda cannot occur free below
-either node. Constants and `blame` are unchanged, and every other constructor
-is traversed structurally. The lambda domain annotation is retained by design
-because it remains useful for typing inversion, not because substitution needs
-to track the type.
-
-### `β-Λ` and `β-gen` take an endpoint-correct exit conversion
-
-The checked allocation rules are
+Allocation rules now carry literal raw generator shapes. In particular,
 
 ```agda
 β-Λ :
-  Value V → Transport (BindingRel κ) A R →
-  Σ ∣ κ ⊢ (Λ V) ⦂∀ B [ A ] —→[ bind R ]
-    V ↑[ 0 ≔ n ] d
-```
+  Value V
+  → Transport (BindingRel κ) A R
+  → (Λ V) ⦂∀ B [ A ] —→[ bind R ]
+      V ↑[ 0 ≔ n ] 〖 0 , ⇑ᵗ A ↑ B 〗
 
-where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ A ]ᵗ))`, and
-
-```agda
 β-gen :
-  Value V → (A ≢ ★) → GenSafe c →
-  Transport (BindingRel κ) C R →
-  Σ ∣ κ ⊢ (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind R ]
-    (((V ↓[ 0 ≔ n ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
-      ↑[ 0 ≔ n ] d)
+  Value V
+  → A ≢ ★
+  → GenSafe c
+  → Transport (BindingRel κ) C R
+  → (V ⟨ gen c ⟩) ⦂∀ B [ C ] —→[ bind R ]
+      ((V ↓[ 0 ≔ n ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
+        ↑[ 0 ≔ n ] 〖 0 , ⇑ᵗ C ↑ B 〗
 ```
 
-where `d : Conv↑ (suc Δ) B (wkᵗ 0 (B [ C ]ᵗ))`.  This makes the entry
-anti-binder and exit reveal explicit and performs no term renaming.  The
-literal generator `〖 0 , ⇑ᵗ C ↑ B 〗` computes the extensionally equal target
-`replaceTy 0 (⇑ᵗ C) B`; that target is not definitionally equal to
-`wkᵗ 0 (B [ C ]ᵗ)`, especially under nested `∀`.  A future endpoint theorem
-can replace the supplied `d` by the literal generator without changing the
-term or store behavior.
-
-### Three allocation rules remain omitted
-
-There are currently no `β-inst`, `β-reveal-∀`, or `β-conceal-∀`
-constructors.  In `β-inst`, the body of the source `∀` uses slot `0` for its
-type binder, while the freshly entered region also uses crossing slot `0`.
-After the entry anti-binder, these are two distinct slots and the body must be
-transported across their exchange before it can be type-applied at the region
-variable.  The same exchange appears when type application crosses a
-structural `∀` reveal or conceal.  Neither `Types` nor the settled term syntax
-provides this typed exchange, and choosing an order silently changes the
-displayed rule.  The three rules are therefore omitted pending an explicit
-exchange statement.
-
-### Tag cancellation uses an explicit anchor relation
-
-The checked tag rules replace syntactic ground equality and inequality by
+There is no endpoint-correct conversion parameter to choose, so the earlier
+nondeterministic deviation has dissolved. `alt.GeneratorEndpoint` retains the
+pure type theorem
 
 ```agda
-TagMatch κ G H
-TagMismatch κ G H
+replaceTy 0 (⇑ᵗ C) B ≡ ⇑ᵗ (B [ C ]ᵗ)
 ```
 
-For variable grounds, `TagMatch` requires both classifier entries to be
-`anchored α` for the same `α`; `TagMismatch` requires distinct anchors.  Base,
-function, and universal ground tags retain their structural comparison.  This
-is the statement needed for two distinct scoped names anchored at one
-allocation to cancel.
+and uses it to transport `generator-typed↑` to the endpoint required by
+preservation. This evidence is proof infrastructure, not rule data.
 
-The projection-into-`★`-delimiter merge rule remains deferred exactly as
-allowed in the task; its intended location is marked in `alt.Reduction`.
+## Deferred forall allocation rules and exchange
+
+`β-inst`, `β-reveal-∀`, and `β-conceal-∀` are still absent from
+`_—→[_]_`. Their proposed raw redexes and contracta, plus typing validations,
+live in `alt.Exchange` pending user sign-off.
+
+The two newest scoped slots are exchanged only in types and classifiers. Raw
+conversion shapes mention no variables, so conversion-level `swap↑`/`swap↓`
+functions have vanished. Opening a structural `∀` transports only the
+conversion-typing endpoint proof; the shape is unchanged. All three proposed
+contracta use literal generator shapes.
+
+The two nested-crossing validations still take `BindingsExtensionality`
+explicitly. Inserting the fresh crossing before the old crossing and inserting
+the old crossing after the fresh one are pointwise equal functions, but Agda
+needs this restricted extensionality principle to turn that fact into context
+equality. No postulate is introduced.
+
+The validations also expose the node-level `Transport` evidence needed after
+store weakening and crossing exchange. General transport-weakening lemmas are
+not yet part of the alt core; preservation may later derive these premises
+from the allocating rule's original transport proof.
+
+## Mechanization notes
+
+- `Binding`, `Bindings`, `BindingRel`, `LiftRel`, and `Transport` remain in
+  `alt.Terms`. `alt.Conversion` imports only `Types`.
+- Conversion renaming, endpoint indices, `PivotStrict↑/↓`, and `Reps↑/↓` have
+  been deleted. Type-context weakening changes crossing slots but reuses the
+  raw shape verbatim.
+- Ordinary lambda beta uses structural single substitution. Substitution
+  stops at crossings because their interiors are typed in the empty term
+  context.
+- `RevealValue`, `ConcealValue`, `Value`, and `CanonicalInterior` are mutually
+  defined so the progress gates are positive and syntax-directed.
+- Reduction still carries `κ` to step under anchored crossings and to state
+  allocation `Transport` premises. Tag rules do not inspect it.
+- The projection-into-`★`-delimiter merge rule remains deferred. Its intended
+  location is marked in `alt.Reduction`.
+- Refactoring `Bindings` to `Vec` remains a separate pending decision.
+- No `β-inst`, `β-reveal-∀`, or `β-conceal-∀` constructor has been added to
+  reduction; only their checked statements remain in `alt.Exchange`.

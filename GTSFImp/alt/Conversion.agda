@@ -1,24 +1,22 @@
 module alt.Conversion where
 
 -- File Charter:
---   * Defines intrinsically endpoint-typed shift-free conversions.
---   * Identity leaves are restricted to atoms.
---   * Pivot strictness states that every seal or unseal leaf uses one
---     supplied scoped variable; an all-identity delimiter is permitted.
+--   * Defines raw, endpoint-free reveal and conceal conversion shapes.
+--   * Defines the self-contained scoped conversion-typing judgments.
+--   * Provides type-directed shape generators and their typing proofs.
+--   * Depends only on Types: stores, anchors, and classifiers are node data.
 
-import Data.Fin as Fin
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
-open import Data.Nat using (ℕ)
 import Data.Nat as Nat
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (refl)
 open import Relation.Nullary using (yes; no)
 
 open import Types
 
 private
   variable
-    Δ Δ′ : TyCtx
+    Δ : TyCtx
 
 ------------------------------------------------------------------------
 -- Inserting one scoped-variable slot
@@ -46,175 +44,159 @@ replaceTy X R (A ⇒ B) = replaceTy X R A ⇒ replaceTy X R B
 replaceTy X R (`∀ A) = `∀ (replaceTy (suc X) (⇑ᵗ R) A)
 
 ------------------------------------------------------------------------
--- Intrinsically endpoint-typed conversions
+-- Raw conversion shapes
 ------------------------------------------------------------------------
 
 infixr 7 _↦↑_ _↦↓_
 
 mutual
-  data Conv↑ (Δ : TyCtx) : Ty Δ → Ty Δ → Set where
-    unseal : (X : TyVar Δ) (R : Ty Δ) → Conv↑ Δ (＇ X) R
+  data Conv↑ : Set where
+    unseal : Conv↑
+    _↦↑_ : Conv↓ → Conv↑ → Conv↑
+    `∀↑_ : Conv↑ → Conv↑
+    id↑ : Conv↑
 
-    _↦↑_ : ∀ {A A′ B B′}
-      → Conv↓ Δ A′ A
-      → Conv↑ Δ B B′
-      → Conv↑ Δ (A ⇒ B) (A′ ⇒ B′)
+  data Conv↓ : Set where
+    seal : Conv↓
+    _↦↓_ : Conv↑ → Conv↓ → Conv↓
+    `∀↓_ : Conv↓ → Conv↓
+    id↓ : Conv↓
 
-    `∀↑_ : ∀ {A B}
-      → Conv↑ (Nat.suc Δ) A B
-      → Conv↑ Δ (`∀ A) (`∀ B)
+------------------------------------------------------------------------
+-- Scoped conversion typing
+------------------------------------------------------------------------
 
-    id↑ : ∀ {A}
+-- Read `⊢↑[ X ⦂ R ] c ⦂ A ↝ B` as: at pivot X, whose scoped
+-- representation is R, the raw reveal shape c converts A to B.  The
+-- conceal judgment is dual.  Neither judgment mentions a store, anchor,
+-- or scoped-variable classifier.
+
+infix 4 ⊢↑[_⦂_]_⦂_↝_ ⊢↓[_⦂_]_⦂_↝_
+
+mutual
+  data ⊢↑[_⦂_]_⦂_↝_ {Δ : TyCtx} :
+      TyVar Δ → Ty Δ → Conv↑ → Ty Δ → Ty Δ → Set where
+    ⊢unseal : ∀ {X R}
+      → ⊢↑[ X ⦂ R ] unseal ⦂ ＇ X ↝ R
+
+    ⊢↑-⇒ : ∀ {X R c d A A′ B B′}
+      → ⊢↓[ X ⦂ R ] c ⦂ A′ ↝ A
+      → ⊢↑[ X ⦂ R ] d ⦂ B ↝ B′
+      → ⊢↑[ X ⦂ R ] c ↦↑ d ⦂ A ⇒ B ↝ A′ ⇒ B′
+
+    ⊢↑-∀ : ∀ {X R c A B}
+      → ⊢↑[ suc X ⦂ ⇑ᵗ R ] c ⦂ A ↝ B
+      → ⊢↑[ X ⦂ R ] `∀↑ c ⦂ `∀ A ↝ `∀ B
+
+    ⊢id↑ : ∀ {X R A}
       → Atom A
-      → Conv↑ Δ A A
+      → ⊢↑[ X ⦂ R ] id↑ ⦂ A ↝ A
 
-  data Conv↓ (Δ : TyCtx) : Ty Δ → Ty Δ → Set where
-    seal : (X : TyVar Δ) (R : Ty Δ) → Conv↓ Δ R (＇ X)
+  data ⊢↓[_⦂_]_⦂_↝_ {Δ : TyCtx} :
+      TyVar Δ → Ty Δ → Conv↓ → Ty Δ → Ty Δ → Set where
+    ⊢seal : ∀ {X R}
+      → ⊢↓[ X ⦂ R ] seal ⦂ R ↝ ＇ X
 
-    _↦↓_ : ∀ {A A′ B B′}
-      → Conv↑ Δ A′ A
-      → Conv↓ Δ B B′
-      → Conv↓ Δ (A ⇒ B) (A′ ⇒ B′)
+    ⊢↓-⇒ : ∀ {X R c d A A′ B B′}
+      → ⊢↑[ X ⦂ R ] c ⦂ A′ ↝ A
+      → ⊢↓[ X ⦂ R ] d ⦂ B ↝ B′
+      → ⊢↓[ X ⦂ R ] c ↦↓ d ⦂ A ⇒ B ↝ A′ ⇒ B′
 
-    `∀↓_ : ∀ {A B}
-      → Conv↓ (Nat.suc Δ) A B
-      → Conv↓ Δ (`∀ A) (`∀ B)
+    ⊢↓-∀ : ∀ {X R c A B}
+      → ⊢↓[ suc X ⦂ ⇑ᵗ R ] c ⦂ A ↝ B
+      → ⊢↓[ X ⦂ R ] `∀↓ c ⦂ `∀ A ↝ `∀ B
 
-    id↓ : ∀ {A}
+    ⊢id↓ : ∀ {X R A}
       → Atom A
-      → Conv↓ Δ A A
+      → ⊢↓[ X ⦂ R ] id↓ ⦂ A ↝ A
 
 ------------------------------------------------------------------------
 -- Structural conversion generation
 ------------------------------------------------------------------------
 
 mutual
-  〖_,_↑_〗 : (X : TyVar Δ) (R B : Ty Δ)
-    → Conv↑ Δ B (replaceTy X R B)
+  〖_,_↑_〗 : TyVar Δ → Ty Δ → Ty Δ → Conv↑
   〖 X , R ↑ (＇ Y) 〗 with X ≟ Y
-  〖 X , R ↑ (＇ .X) 〗 | yes refl = unseal X R
-  〖 X , R ↑ (＇ Y) 〗 | no X≠Y = id↑ (＇ Y)
-  〖 X , R ↑ (‵ ι) 〗 = id↑ (‵ ι)
-  〖 X , R ↑ ★ 〗 = id↑ ★
+  〖 X , R ↑ (＇ .X) 〗 | yes refl = unseal
+  〖 X , R ↑ (＇ Y) 〗 | no X≠Y = id↑
+  〖 X , R ↑ (‵ ι) 〗 = id↑
+  〖 X , R ↑ ★ 〗 = id↑
   〖 X , R ↑ (A ⇒ B) 〗 =
     makeConceal X R A ↦↑ 〖 X , R ↑ B 〗
   〖 X , R ↑ (`∀ A) 〗 = `∀↑ 〖 suc X , ⇑ᵗ R ↑ A 〗
 
-  makeConceal : (X : TyVar Δ) (R B : Ty Δ)
-    → Conv↓ Δ (replaceTy X R B) B
+  makeConceal : TyVar Δ → Ty Δ → Ty Δ → Conv↓
   makeConceal X R (＇ Y) with X ≟ Y
-  makeConceal X R (＇ .X) | yes refl = seal X R
-  makeConceal X R (＇ Y) | no X≠Y = id↓ (＇ Y)
-  makeConceal X R (‵ ι) = id↓ (‵ ι)
-  makeConceal X R ★ = id↓ ★
+  makeConceal X R (＇ .X) | yes refl = seal
+  makeConceal X R (＇ Y) | no X≠Y = id↓
+  makeConceal X R (‵ ι) = id↓
+  makeConceal X R ★ = id↓
   makeConceal X R (A ⇒ B) =
     〖 X , R ↑ A 〗 ↦↓ makeConceal X R B
   makeConceal X R (`∀ A) =
-    `∀↓ (makeConceal (suc X) (⇑ᵗ R) A)
+    `∀↓ makeConceal (suc X) (⇑ᵗ R) A
+
+mutual
+  generator-typed↑ : (X : TyVar Δ) (R B : Ty Δ)
+    → ⊢↑[ X ⦂ R ] 〖 X , R ↑ B 〗 ⦂ B ↝ replaceTy X R B
+  generator-typed↑ X R (＇ Y) with X ≟ Y
+  generator-typed↑ X R (＇ .X) | yes refl = ⊢unseal
+  generator-typed↑ X R (＇ Y) | no X≠Y = ⊢id↑ (＇ Y)
+  generator-typed↑ X R (‵ ι) = ⊢id↑ (‵ ι)
+  generator-typed↑ X R ★ = ⊢id↑ ★
+  generator-typed↑ X R (A ⇒ B) =
+    ⊢↑-⇒ (generator-typed↓ X R A) (generator-typed↑ X R B)
+  generator-typed↑ X R (`∀ B) =
+    ⊢↑-∀ (generator-typed↑ (suc X) (⇑ᵗ R) B)
+
+  generator-typed↓ : (X : TyVar Δ) (R B : Ty Δ)
+    → ⊢↓[ X ⦂ R ] makeConceal X R B ⦂ replaceTy X R B ↝ B
+  generator-typed↓ X R (＇ Y) with X ≟ Y
+  generator-typed↓ X R (＇ .X) | yes refl = ⊢seal
+  generator-typed↓ X R (＇ Y) | no X≠Y = ⊢id↓ (＇ Y)
+  generator-typed↓ X R (‵ ι) = ⊢id↓ (‵ ι)
+  generator-typed↓ X R ★ = ⊢id↓ ★
+  generator-typed↓ X R (A ⇒ B) =
+    ⊢↓-⇒ (generator-typed↑ X R A) (generator-typed↓ X R B)
+  generator-typed↓ X R (`∀ B) =
+    ⊢↓-∀ (generator-typed↓ (suc X) (⇑ᵗ R) B)
 
 ------------------------------------------------------------------------
 -- Structural delimiters
 ------------------------------------------------------------------------
 
 mutual
-  δ↑ : (A : Ty Δ) → Conv↑ Δ A A
-  δ↑ (＇ X) = id↑ (＇ X)
-  δ↑ (‵ ι) = id↑ (‵ ι)
-  δ↑ ★ = id↑ ★
+  δ↑ : Ty Δ → Conv↑
+  δ↑ (＇ X) = id↑
+  δ↑ (‵ ι) = id↑
+  δ↑ ★ = id↑
   δ↑ (A ⇒ B) = δ↓ A ↦↑ δ↑ B
   δ↑ (`∀ A) = `∀↑ δ↑ A
 
-  δ↓ : (A : Ty Δ) → Conv↓ Δ A A
-  δ↓ (＇ X) = id↓ (＇ X)
-  δ↓ (‵ ι) = id↓ (‵ ι)
-  δ↓ ★ = id↓ ★
+  δ↓ : Ty Δ → Conv↓
+  δ↓ (＇ X) = id↓
+  δ↓ (‵ ι) = id↓
+  δ↓ ★ = id↓
   δ↓ (A ⇒ B) = δ↑ A ↦↓ δ↓ B
   δ↓ (`∀ A) = `∀↓ δ↓ A
 
-------------------------------------------------------------------------
--- Type-variable renaming
-------------------------------------------------------------------------
-
 mutual
-  rename↑ : ∀ (ρ : Δ ⇒ʳ Δ′) {A B}
-    → Conv↑ Δ A B
-    → Conv↑ Δ′ (renameᵗ ρ A) (renameᵗ ρ B)
-  rename↑ ρ (unseal X R) = unseal (ρ X) (renameᵗ ρ R)
-  rename↑ ρ (c ↦↑ d) = rename↓ ρ c ↦↑ rename↑ ρ d
-  rename↑ ρ (`∀↑ c) = `∀↑ (rename↑ (extᵗ ρ) c)
-  rename↑ ρ (id↑ a) = id↑ (renameAtom ρ a)
+  delimiter-typed↑ : (X : TyVar Δ) (R A : Ty Δ)
+    → ⊢↑[ X ⦂ R ] δ↑ A ⦂ A ↝ A
+  delimiter-typed↑ X R (＇ Y) = ⊢id↑ (＇ Y)
+  delimiter-typed↑ X R (‵ ι) = ⊢id↑ (‵ ι)
+  delimiter-typed↑ X R ★ = ⊢id↑ ★
+  delimiter-typed↑ X R (A ⇒ B) =
+    ⊢↑-⇒ (delimiter-typed↓ X R A) (delimiter-typed↑ X R B)
+  delimiter-typed↑ X R (`∀ A) =
+    ⊢↑-∀ (delimiter-typed↑ (suc X) (⇑ᵗ R) A)
 
-  rename↓ : ∀ (ρ : Δ ⇒ʳ Δ′) {A B}
-    → Conv↓ Δ A B
-    → Conv↓ Δ′ (renameᵗ ρ A) (renameᵗ ρ B)
-  rename↓ ρ (seal X R) = seal (ρ X) (renameᵗ ρ R)
-  rename↓ ρ (c ↦↓ d) = rename↑ ρ c ↦↓ rename↓ ρ d
-  rename↓ ρ (`∀↓ c) = `∀↓ (rename↓ (extᵗ ρ) c)
-  rename↓ ρ (id↓ a) = id↓ (renameAtom ρ a)
-
-  renameAtom : ∀ (ρ : Δ ⇒ʳ Δ′) {A}
-    → Atom A
-    → Atom (renameᵗ ρ A)
-  renameAtom ρ (＇ X) = ＇ (ρ X)
-  renameAtom ρ (‵ ι) = ‵ ι
-  renameAtom ρ ★ = ★
-
-------------------------------------------------------------------------
--- Pivot strictness
-------------------------------------------------------------------------
-
-mutual
-  data PivotStrict↑ {Δ : TyCtx} (X : TyVar Δ) :
-      ∀ {A B} → Conv↑ Δ A B → Set where
-    strict-unseal : ∀ {R}
-      → PivotStrict↑ X (unseal X R)
-
-    strict-↑⇒ : ∀ {A A′ B B′}
-        {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → PivotStrict↓ X c
-      → PivotStrict↑ X d
-      → PivotStrict↑ X (c ↦↑ d)
-
-    strict-↑∀ : ∀ {A B} {c : Conv↑ (Nat.suc Δ) A B}
-      → PivotStrict↑ (suc X) c
-      → PivotStrict↑ X (`∀↑ c)
-
-    strict-id↑ : ∀ {A} {a : Atom A}
-      → PivotStrict↑ X (id↑ a)
-
-  data PivotStrict↓ {Δ : TyCtx} (X : TyVar Δ) :
-      ∀ {A B} → Conv↓ Δ A B → Set where
-    strict-seal : ∀ {R}
-      → PivotStrict↓ X (seal X R)
-
-    strict-↓⇒ : ∀ {A A′ B B′}
-        {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → PivotStrict↑ X c
-      → PivotStrict↓ X d
-      → PivotStrict↓ X (c ↦↓ d)
-
-    strict-↓∀ : ∀ {A B} {c : Conv↓ (Nat.suc Δ) A B}
-      → PivotStrict↓ (suc X) c
-      → PivotStrict↓ X (`∀↓ c)
-
-    strict-id↓ : ∀ {A} {a : Atom A}
-      → PivotStrict↓ X (id↓ a)
-
-mutual
-  δ-strict↑ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
-    → PivotStrict↑ X (δ↑ A)
-  δ-strict↑ X (＇ Y) = strict-id↑
-  δ-strict↑ X (‵ ι) = strict-id↑
-  δ-strict↑ X ★ = strict-id↑
-  δ-strict↑ X (A ⇒ B) =
-    strict-↑⇒ (δ-strict↓ X A) (δ-strict↑ X B)
-  δ-strict↑ X (`∀ A) = strict-↑∀ (δ-strict↑ (suc X) A)
-
-  δ-strict↓ : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ)
-    → PivotStrict↓ X (δ↓ A)
-  δ-strict↓ X (＇ Y) = strict-id↓
-  δ-strict↓ X (‵ ι) = strict-id↓
-  δ-strict↓ X ★ = strict-id↓
-  δ-strict↓ X (A ⇒ B) =
-    strict-↓⇒ (δ-strict↑ X A) (δ-strict↓ X B)
-  δ-strict↓ X (`∀ A) = strict-↓∀ (δ-strict↓ (suc X) A)
+  delimiter-typed↓ : (X : TyVar Δ) (R A : Ty Δ)
+    → ⊢↓[ X ⦂ R ] δ↓ A ⦂ A ↝ A
+  delimiter-typed↓ X R (＇ Y) = ⊢id↓ (＇ Y)
+  delimiter-typed↓ X R (‵ ι) = ⊢id↓ (‵ ι)
+  delimiter-typed↓ X R ★ = ⊢id↓ ★
+  delimiter-typed↓ X R (A ⇒ B) =
+    ⊢↓-⇒ (delimiter-typed↑ X R A) (delimiter-typed↓ X R B)
+  delimiter-typed↓ X R (`∀ A) =
+    ⊢↓-∀ (delimiter-typed↓ (suc X) (⇑ᵗ R) A)

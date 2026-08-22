@@ -3,9 +3,7 @@ module alt.GeneratorEndpoint where
 -- File Charter:
 --   * Proves that the structural generator at the newest type slot has the
 --     weakened open-type endpoint required by allocating reduction rules.
---   * Defines the canonical endpoint-correct exit conversion.
---   * Proves that structural generators, and hence the canonical exit, are
---     pivot-strict.
+--   * Reindexes the raw generator's typing proof to that endpoint.
 --   * Depends only on Types and alt.Conversion.
 
 import Data.Fin as Fin
@@ -55,7 +53,7 @@ replaceTy-subst X R (`∀ B) =
       (substᵗ-cong B (replaceEnv-ext X R)))
 
 ------------------------------------------------------------------------
--- Endpoint-correct structural exit
+-- Endpoint-correct structural-exit typing
 ------------------------------------------------------------------------
 
 generator-endpoint : (B : Ty (Nat.suc Δ)) (C : Ty Δ)
@@ -71,52 +69,12 @@ generator-endpoint B C =
   env-eq Fin.zero = refl
   env-eq (Fin.suc X) = refl
 
--- Unfolding d-canonical exposes exactly one endpoint transport around the
--- literal generator.  Also, wkᵗ Fin.zero computes to ⇑ᵗ, so no separate
--- weakening equality is hidden in this definition.
-d-canonical : (B : Ty (Nat.suc Δ)) (C : Ty Δ)
-  → Conv↑ (Nat.suc Δ) B (wkᵗ Fin.zero (B [ C ]ᵗ))
-d-canonical {Δ = Δ} B C =
-  subst≡ (Conv↑ (Nat.suc Δ) B) (generator-endpoint B C)
-    〖 Fin.zero , ⇑ᵗ C ↑ B 〗
-
-------------------------------------------------------------------------
--- Pivot strictness
-------------------------------------------------------------------------
-
-mutual
-  generator-strict↑ : (X : TyVar Δ) (R B : Ty Δ)
-    → PivotStrict↑ X 〖 X , R ↑ B 〗
-  generator-strict↑ X R (＇ Y) with X ≟ Y
-  generator-strict↑ X R (＇ .X) | yes refl = strict-unseal
-  generator-strict↑ X R (＇ Y) | no X≠Y = strict-id↑
-  generator-strict↑ X R (‵ ι) = strict-id↑
-  generator-strict↑ X R ★ = strict-id↑
-  generator-strict↑ X R (A ⇒ B) =
-    strict-↑⇒ (generator-strict↓ X R A) (generator-strict↑ X R B)
-  generator-strict↑ X R (`∀ B) =
-    strict-↑∀ (generator-strict↑ (Fin.suc X) (⇑ᵗ R) B)
-
-  generator-strict↓ : (X : TyVar Δ) (R B : Ty Δ)
-    → PivotStrict↓ X (makeConceal X R B)
-  generator-strict↓ X R (＇ Y) with X ≟ Y
-  generator-strict↓ X R (＇ .X) | yes refl = strict-seal
-  generator-strict↓ X R (＇ Y) | no X≠Y = strict-id↓
-  generator-strict↓ X R (‵ ι) = strict-id↓
-  generator-strict↓ X R ★ = strict-id↓
-  generator-strict↓ X R (A ⇒ B) =
-    strict-↓⇒ (generator-strict↑ X R A) (generator-strict↓ X R B)
-  generator-strict↓ X R (`∀ B) =
-    strict-↓∀ (generator-strict↓ (Fin.suc X) (⇑ᵗ R) B)
-
-subst-strict↑ : ∀ {X : TyVar Δ} {A B B′ : Ty Δ}
-    {c : Conv↑ Δ A B} (eq : B ≡ B′)
-  → PivotStrict↑ X c
-  → PivotStrict↑ X (subst≡ (Conv↑ Δ A) eq c)
-subst-strict↑ refl strict = strict
-
-d-canonical-strict : (B : Ty (Nat.suc Δ)) (C : Ty Δ)
-  → PivotStrict↑ Fin.zero (d-canonical B C)
-d-canonical-strict B C =
-  subst-strict↑ (generator-endpoint B C)
-    (generator-strict↑ Fin.zero (⇑ᵗ C) B)
+generator-typed : (B : Ty (Nat.suc Δ)) (C : Ty Δ)
+  → ⊢↑[ Fin.zero ⦂ ⇑ᵗ C ] 〖 Fin.zero , ⇑ᵗ C ↑ B 〗
+      ⦂ B ↝ wkᵗ Fin.zero (B [ C ]ᵗ)
+generator-typed B C =
+  subst≡
+    (λ T → ⊢↑[ Fin.zero ⦂ ⇑ᵗ C ] 〖 Fin.zero , ⇑ᵗ C ↑ B 〗
+      ⦂ B ↝ T)
+    (generator-endpoint B C)
+    (generator-typed↑ Fin.zero (⇑ᵗ C) B)

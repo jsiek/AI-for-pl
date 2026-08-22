@@ -5,7 +5,7 @@ module alt.Reduction where
 --   * Store allocation changes only the global store; the term type context
 --     is fixed by every step and evaluation frames leave siblings untouched.
 --   * Restores ordinary beta with annotated, structural substitution.
---   * Provides store-indexed multi-step traces and anchored tag comparison.
+--   * Provides store-indexed multi-step traces and syntactic tag comparison.
 
 open import Data.Fin using (inject₁; zero)
 open import Data.Nat using (ℕ; suc)
@@ -61,59 +61,6 @@ applyBindingss : ∀ {n n′ Δ}
   → Bindings Δ n′
 applyBindingss [] κ = κ
 applyBindingss (χ ∷ χs) κ = applyBindingss χs (applyBindings χ κ)
-
-------------------------------------------------------------------------
--- Ground-tag comparison through anchors
-------------------------------------------------------------------------
-
-data TagMatch {Δ n} (κ : Bindings Δ n) : Ty Δ → Ty Δ → Set where
-  match-var : ∀ {X Y α}
-    → κ X ≡ anchored α
-    → κ Y ≡ anchored α
-    → TagMatch κ (＇ X) (＇ Y)
-
-  match-base : ∀ {ι}
-    → TagMatch κ (‵ ι) (‵ ι)
-
-  match-fun : TagMatch κ (★ ⇒ ★) (★ ⇒ ★)
-
-  match-all : TagMatch κ (`∀ ★) (`∀ ★)
-
-data TagMismatch {Δ n} (κ : Bindings Δ n) : Ty Δ → Ty Δ → Set where
-  mismatch-var : ∀ {X Y α β}
-    → κ X ≡ anchored α
-    → κ Y ≡ anchored β
-    → α ≢ β
-    → TagMismatch κ (＇ X) (＇ Y)
-
-  mismatch-var-base : ∀ {X ι}
-    → TagMismatch κ (＇ X) (‵ ι)
-  mismatch-var-fun : ∀ {X}
-    → TagMismatch κ (＇ X) (★ ⇒ ★)
-  mismatch-var-all : ∀ {X}
-    → TagMismatch κ (＇ X) (`∀ ★)
-
-  mismatch-base-var : ∀ {ι X}
-    → TagMismatch κ (‵ ι) (＇ X)
-  mismatch-base : ∀ {ι ι′}
-    → ι ≢ ι′
-    → TagMismatch κ (‵ ι) (‵ ι′)
-  mismatch-base-fun : ∀ {ι}
-    → TagMismatch κ (‵ ι) (★ ⇒ ★)
-  mismatch-base-all : ∀ {ι}
-    → TagMismatch κ (‵ ι) (`∀ ★)
-
-  mismatch-fun-var : ∀ {X}
-    → TagMismatch κ (★ ⇒ ★) (＇ X)
-  mismatch-fun-base : ∀ {ι}
-    → TagMismatch κ (★ ⇒ ★) (‵ ι)
-  mismatch-fun-all : TagMismatch κ (★ ⇒ ★) (`∀ ★)
-
-  mismatch-all-var : ∀ {X}
-    → TagMismatch κ (`∀ ★) (＇ X)
-  mismatch-all-base : ∀ {ι}
-    → TagMismatch κ (`∀ ★) (‵ ι)
-  mismatch-all-fun : TagMismatch κ (`∀ ★) (★ ⇒ ★)
 
 ------------------------------------------------------------------------
 -- One-step reduction
@@ -179,13 +126,12 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
         V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
 
   tag-untag : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {V : Term Δ} {μ ν : Env∼ Δ} {G H : Ty Δ}
-      ⦃ Gᵍ : Ground G ⦄ ⦃ Hᵍ : Ground H ⦄
-      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼H : ν ⊢★∼ H ⦄
-      ⦃ Gns : NonStar G ⦄ ⦃ Hns : NonStar H ⦄
+      {V : Term Δ} {μ ν : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+      ⦃ Gns : NonStar G ⦄
     → Value V
-    → TagMatch κ G H
-    → Σ ∣ κ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Hᵍ) ⟩
+    → Σ ∣ κ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩
         —→[ keep ] V
 
   tag-untag-bad : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
@@ -194,7 +140,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
       ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼H : ν ⊢★∼ H ⦄
       ⦃ Gns : NonStar G ⦄ ⦃ Hns : NonStar H ⦄
     → Value V
-    → TagMismatch κ G H
+    → G ≢ H
     → Σ ∣ κ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Hᵍ) ⟩
         —→[ keep ] blame
 
@@ -204,11 +150,9 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Σ ∣ κ ⊢ V ⟨ bot-intro {μ = μ} ⟩ —→[ keep ] blame
 
   β-reveal-⇒ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {V : Term (suc Δ)} {W : Term Δ} {A₀ B₀ : Ty Δ}
-      {A B : Ty (suc Δ)}
+      {V : Term (suc Δ)} {W : Term Δ}
       {X : TyVar (suc Δ)} {α : Name}
-      {c : Conv↓ (suc Δ) (wkᵗ X A₀) A}
-      {d : Conv↑ (suc Δ) B (wkᵗ X B₀)}
+      {c : Conv↓} {d : Conv↑}
     → Value V
     → Value W
     → Σ ∣ κ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→[ keep ]
@@ -216,27 +160,36 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
 
   β-conceal-⇒ : ∀ {n Δ} {Σ : Store n}
       {κ : Bindings (suc Δ) n}
-      {V : Term Δ} {W : Term (suc Δ)} {A₀ B₀ : Ty Δ}
-      {A′ B′ : Ty (suc Δ)}
+      {V : Term Δ} {W : Term (suc Δ)}
       {X : TyVar (suc Δ)} {α : Name}
-      {c : Conv↑ (suc Δ) A′ (wkᵗ X A₀)}
-      {d : Conv↓ (suc Δ) (wkᵗ X B₀) B′}
+      {c : Conv↑} {d : Conv↓}
     → Value V
     → Value W
     → Σ ∣ κ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→[ keep ]
         (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
   id-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {X : TyVar (suc Δ)} {α : Name} {ι κ₀}
-    → Σ ∣ κ ⊢ ($ κ₀) ↑[ X ≔ α ] id↑ (‵ ι)
+      {X : TyVar (suc Δ)} {α : Name} {κ₀}
+    → Σ ∣ κ ⊢ ($ κ₀) ↑[ X ≔ α ] id↑
         —→[ keep ] $ κ₀
 
+  id-conceal : ∀ {n Δ} {Σ : Store n}
+      {κ : Bindings (suc Δ) n}
+      {X : TyVar (suc Δ)} {α : Name} {κ₀}
+    → Σ ∣ κ ⊢ ($ κ₀) ↓[ X ≔ α ] id↓
+        —→[ keep ] $ κ₀
+
+  id-cancel : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
+      {V : Term Δ} {X Y : TyVar (suc Δ)} {α β : Name}
+    → CanonicalInterior V
+    → Σ ∣ κ ⊢ (V ↓[ X ≔ α ] id↓) ↑[ Y ≔ β ] id↑
+        —→[ keep ] V
+
   conceal-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {V : Term Δ} {A : Ty Δ} {X : TyVar (suc Δ)} {α : Name}
+      {V : Term Δ} {X Y : TyVar (suc Δ)} {α β : Name}
     → Value V
     → Σ ∣ κ ⊢
-        (V ↓[ X ≔ α ] alt.Conversion.seal X (wkᵗ X A))
-          ↑[ X ≔ α ] unseal X (wkᵗ X A)
+        (V ↓[ X ≔ α ] alt.Conversion.seal) ↑[ Y ≔ β ] unseal
         —→[ keep ] V
 
   blame-·₁ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
@@ -257,13 +210,11 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Σ ∣ κ ⊢ blame ⟨ c ⟩ —→[ keep ] blame
 
   blame-reveal : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
-      {A : Ty (suc Δ)} {B : Ty Δ} {X : TyVar (suc Δ)}
-      {α : Name} {c : Conv↑ (suc Δ) A (wkᵗ X B)}
+      {X : TyVar (suc Δ)} {α : Name} {c : Conv↑}
     → Σ ∣ κ ⊢ blame ↑[ X ≔ α ] c —→[ keep ] blame
 
   blame-conceal : ∀ {n Δ} {Σ : Store n} {κ : Bindings (suc Δ) n}
-      {A : Ty Δ} {B : Ty (suc Δ)} {X : TyVar (suc Δ)}
-      {α : Name} {c : Conv↓ (suc Δ) (wkᵗ X A) B}
+      {X : TyVar (suc Δ)} {α : Name} {c : Conv↓}
     → Σ ∣ κ ⊢ blame ↓[ X ≔ α ] c —→[ keep ] blame
 
   blame-⊕₁ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
@@ -275,25 +226,17 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Value V
     → Σ ∣ κ ⊢ V ⊕[ op ] blame —→[ keep ] blame
 
-  -- DEVIATION: β-Λ accepts the already endpoint-correct crossing
-  -- conversion as data.  The literal generator has an extensionally equal
-  -- endpoint whose equality to wkᵗ zero (B [ A ]ᵗ) is not definitional.
   β-Λ : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {A : Ty Δ} {B : Ty (suc Δ)} {R : Ty n}
       {V : Term (suc Δ)}
-      {d : Conv↑ (suc Δ) B (wkᵗ zero (B [ A ]ᵗ))}
     → Value V
     → Transport (BindingRel κ) A R
     → Σ ∣ κ ⊢ (Λ V) ⦂∀ B [ A ] —→[ bind R ]
-        V ↑[ zero ≔ n ] d
+        V ↑[ zero ≔ n ] 〖 zero , ⇑ᵗ A ↑ B 〗
 
-  -- DEVIATION: as for β-Λ, β-gen takes the endpoint-correct exit
-  -- conversion as data.  Its entry delimiter is explicit and no term is
-  -- renamed when the store grows.
   β-gen : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V : Term Δ} {μ : Env∼ Δ} {A C : Ty Δ} {B : Ty (suc Δ)}
       {R : Ty n} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
-      {d : Conv↑ (suc Δ) B (wkᵗ zero (B [ C ]ᵗ))}
       ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
     → Value V
     → (A≢★ : A ≢ ★)
@@ -302,11 +245,10 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
     → Σ ∣ κ ⊢ (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ]
         —→[ bind R ]
         ((V ↓[ zero ≔ n ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
-          ↑[ zero ≔ n ] d
+          ↑[ zero ≔ n ] 〖 zero , ⇑ᵗ C ↑ B 〗
 
-  -- DEVIATION: β-inst, β-reveal-∀, and β-conceal-∀ are omitted.  Their
-  -- source forall slot and crossing slot require a typed exchange operation
-  -- not present in the settled syntax.  See alt/Design.md.
+  -- DEFERRED: β-inst, β-reveal-∀, and β-conceal-∀ are validated in
+  -- alt.Exchange but remain absent here pending user sign-off.
 
   ξ-·₁ : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {L L′ M : Term Δ}
@@ -333,8 +275,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
 
   ξ-reveal : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {M M′ : Term (suc Δ)}
-      {A : Ty (suc Δ)} {B : Ty Δ} {X : TyVar (suc Δ)}
-      {α : Name} {R : Ty n} {c : Conv↑ (suc Δ) A (wkᵗ X B)}
+      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Conv↑}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ
         ⊢ M —→[ χ ] M′
@@ -343,8 +284,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
 
   ξ-conceal : ∀ {n n′ Δ} {Σ : Store n} {κ : Bindings Δ n}
       {χ : StoreΔ n n′} {M M′ : Term Δ}
-      {A : Ty Δ} {B : Ty (suc Δ)} {X : TyVar (suc Δ)}
-      {α : Name} {R : Ty n} {c : Conv↓ (suc Δ) (wkᵗ X A) B}
+      {X : TyVar (suc Δ)} {α : Name} {R : Ty n} {c : Conv↓}
     → (p : α ⦂ R ∈ Σ)
     → Σ ∣ κ ⊢ M —→[ χ ] M′
     → Σ ∣ insertBinding X (anchored (lookup-name p)) κ

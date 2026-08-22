@@ -1,19 +1,16 @@
 module alt.Exchange where
 
 -- File Charter:
---   * Defines the exchange of the two newest scoped-type slots and lifts it
---     to reveal and conceal conversions, including pivot strictness.
+--   * Defines the exchange of the two newest scoped-type slots.
 --   * States the omitted β-inst, β-reveal-∀, and β-conceal-∀ redexes and
---     shift-free contracta, then validates the contracta against explicit
---     typing components.
+--     raw-shape contracta, then validates both sides against explicit
+--     node-level transport and conversion-typing components.
 --   * The exchange is deliberately the top-two transposition, rather than a
 --     general adjacent transposition: all three rules allocate their fresh
 --     crossing at slot zero, immediately below a source `∀` binder.  Nested
 --     pre-existing crossings move from X to suc X by ordinary `punchIn`.
---   * Compared with the Design.md sketch, endpoint-correct entry and exit
---     conversions are explicit parameters when propositional endpoint
---     equality is not definitional, following the checked β-Λ/β-gen rules.
---     For β-reveal-∀ and β-conceal-∀ the validation takes the restricted
+--   * Raw conversion shapes are unchanged by exchange.  For β-reveal-∀ and
+--     β-conceal-∀ the validation takes the restricted
 --     `BindingsExtensionality` principle explicitly.  Inserting the fresh
 --     crossing before an existing crossing and inserting the existing
 --     crossing after the fresh one give pointwise equal `Bindings`; this
@@ -32,6 +29,7 @@ open import Consistency
 open import alt.Store
 open import alt.Conversion
 open import alt.Terms
+open import alt.GeneratorEndpoint
 
 ------------------------------------------------------------------------
 -- Exchange of the two newest scoped slots
@@ -153,56 +151,7 @@ wk-zero-∀-swap : ∀ {Δ} (A : Ty (suc Δ))
 wk-zero-∀-swap A = cong `∀ (sym (swap-shift A))
 
 ------------------------------------------------------------------------
--- Exchange lifted to conversions and pivot strictness
-------------------------------------------------------------------------
-
-swap↑ : ∀ {Δ} {A B : Ty (suc (suc Δ))}
-  → Conv↑ (suc (suc Δ)) A B
-  → Conv↑ (suc (suc Δ)) (swapᵗ A) (swapᵗ B)
-swap↑ = rename↑ swap
-
-swap↓ : ∀ {Δ} {A B : Ty (suc (suc Δ))}
-  → Conv↓ (suc (suc Δ)) A B
-  → Conv↓ (suc (suc Δ)) (swapᵗ A) (swapᵗ B)
-swap↓ = rename↓ swap
-
-mutual
-  rename-strict↑ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {X A B}
-      {c : Conv↑ Δ A B}
-    → PivotStrict↑ X c
-    → PivotStrict↑ (ρ X) (rename↑ ρ c)
-  rename-strict↑ ρ strict-unseal = strict-unseal
-  rename-strict↑ ρ (strict-↑⇒ c-strict d-strict) =
-    strict-↑⇒ (rename-strict↓ ρ c-strict) (rename-strict↑ ρ d-strict)
-  rename-strict↑ ρ (strict-↑∀ c-strict) =
-    strict-↑∀ (rename-strict↑ (extᵗ ρ) c-strict)
-  rename-strict↑ ρ strict-id↑ = strict-id↑
-
-  rename-strict↓ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {X A B}
-      {c : Conv↓ Δ A B}
-    → PivotStrict↓ X c
-    → PivotStrict↓ (ρ X) (rename↓ ρ c)
-  rename-strict↓ ρ strict-seal = strict-seal
-  rename-strict↓ ρ (strict-↓⇒ c-strict d-strict) =
-    strict-↓⇒ (rename-strict↑ ρ c-strict) (rename-strict↓ ρ d-strict)
-  rename-strict↓ ρ (strict-↓∀ c-strict) =
-    strict-↓∀ (rename-strict↓ (extᵗ ρ) c-strict)
-  rename-strict↓ ρ strict-id↓ = strict-id↓
-
-swap-strict↑ : ∀ {Δ} {X : Fin (suc (suc Δ))} {A B}
-    {c : Conv↑ (suc (suc Δ)) A B}
-  → PivotStrict↑ X c
-  → PivotStrict↑ (swap X) (swap↑ c)
-swap-strict↑ = rename-strict↑ swap
-
-swap-strict↓ : ∀ {Δ} {X : Fin (suc (suc Δ))} {A B}
-    {c : Conv↓ (suc (suc Δ)) A B}
-  → PivotStrict↓ X c
-  → PivotStrict↓ (swap X) (swap↓ c)
-swap-strict↓ = rename-strict↓ swap
-
-------------------------------------------------------------------------
--- Allocation contexts and structural-delimiter representation evidence
+-- Allocation contexts and classifier exchange
 ------------------------------------------------------------------------
 
 weakenBinding : ∀ {n} → Binding n → Binding (suc n)
@@ -354,29 +303,6 @@ allocation-cross-ctx-exchange-typing ext
         (anchored (lookup-name p)) κ =
   M⊢
 
-mutual
-  delimiter-reps↑ : ∀ {Δ n} (ρ : VarRel Δ n) (S : Ty n)
-      (A : Ty Δ)
-    → Reps↑ ρ S (δ↑ A)
-  delimiter-reps↑ ρ S (＇ X) = reps-id↑
-  delimiter-reps↑ ρ S (‵ ι) = reps-id↑
-  delimiter-reps↑ ρ S ★ = reps-id↑
-  delimiter-reps↑ ρ S (A ⇒ B) =
-    reps-↑⇒ (delimiter-reps↓ ρ S A) (delimiter-reps↑ ρ S B)
-  delimiter-reps↑ ρ S (`∀ A) =
-    reps-↑∀ (delimiter-reps↑ (LiftRel ρ) (⇑ᵗ S) A)
-
-  delimiter-reps↓ : ∀ {Δ n} (ρ : VarRel Δ n) (S : Ty n)
-      (A : Ty Δ)
-    → Reps↓ ρ S (δ↓ A)
-  delimiter-reps↓ ρ S (＇ X) = reps-id↓
-  delimiter-reps↓ ρ S (‵ ι) = reps-id↓
-  delimiter-reps↓ ρ S ★ = reps-id↓
-  delimiter-reps↓ ρ S (A ⇒ B) =
-    reps-↓⇒ (delimiter-reps↑ ρ S A) (delimiter-reps↓ ρ S B)
-  delimiter-reps↓ ρ S (`∀ A) =
-    reps-↓∀ (delimiter-reps↓ (LiftRel ρ) (⇑ᵗ S) A)
-
 ∀-entry-application : ∀ {Δ} → Name → Term Δ → Ty (suc Δ)
   → Term (suc Δ)
 ∀-entry-application α V A =
@@ -385,10 +311,13 @@ mutual
 
 ∀-entry-application-typed : ∀ {Γ} {V : Term (Δᵉ Γ)}
     {A : Ty (suc (Δᵉ Γ))} {α : Name} {R : Ty (sizeᵉ Γ)}
+    {R′ : Ty (suc (Δᵉ Γ))}
   → (p : α ⦂ R ∈ Σᵉ Γ)
+  → Transport (BindingRel (κᵉ (cross-ctx Γ zero p))) R′ R
   → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ V ⦂ `∀ A
   → cross-ctx Γ zero p ⊢ ∀-entry-application α V A ⦂ A
-∀-entry-application-typed {Γ} {V = V} {A = A} {α = α} {R = R} p V⊢ =
+∀-entry-application-typed {Γ} {V = V} {A = A} {α = α}
+    {R′ = R′} p R′↝R V⊢ =
   subst
     (λ T → cross-ctx Γ zero p ⊢ ∀-entry-application α V A ⦂ T)
     (swap-shift-open-zero A) (⊢• exchanged⊢)
@@ -397,11 +326,8 @@ mutual
       V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A))
       ⦂ wkᵗ zero (`∀ A)
   entered⊢ =
-    ⊢conceal {Γ = Γ} {Γ′ = []} p
-      (δ-strict↓ zero (wkᵗ zero (`∀ A)))
-      (delimiter-reps↓
-        (BindingRel (κᵉ (cross-ctx Γ zero p))) R
-        (wkᵗ zero (`∀ A))) V⊢
+    ⊢conceal {Γ = Γ} {Γ′ = []} p R′↝R
+      (delimiter-typed↓ zero R′ (wkᵗ zero (`∀ A))) V⊢
 
   exchanged⊢ : cross-ctx Γ zero p ⊢
       V ↓[ zero ≔ α ] δ↓ (wkᵗ zero (`∀ A))
@@ -428,10 +354,10 @@ mutual
   → Name
   → Term Δ
   → (c : instᵐ μ ⊢ A ∼ ⇑ᵗ B)
-  → Conv↑ (suc Δ) A (wkᵗ zero (A [ ★ ]ᵗ))
   → Term Δ
-β-inst-result {A = A} α V c d =
-  ((∀-entry-application α V A) ↑[ zero ≔ α ] d)
+β-inst-result {A = A} α V c =
+  ((∀-entry-application α V A)
+    ↑[ zero ≔ α ] 〖 zero , ⇑ᵗ ★ ↑ A 〗)
   ⟨ c [ ★/0 ]ᶜ ⟩
 
 β-inst-redex-typed : ∀ {Γ} {μ : Env∼ (Δᵉ Γ)}
@@ -446,17 +372,10 @@ mutual
 β-inst-result-typed : ∀ {Γ} {μ : Env∼ (Δᵉ Γ)}
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (Δᵉ Γ)} {V : Term (Δᵉ Γ)}
     {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
-    {d : Conv↑ (suc (Δᵉ Γ)) A (wkᵗ zero (A [ ★ ]ᵗ))}
   → ⟨ Δᵉ Γ , suc (sizeᵉ Γ) , weakenBindings (κᵉ Γ) ,
       bind (Σᵉ Γ) ★ , [] ⟩ ⊢ V ⦂ `∀ A
-  → PivotStrict↑ zero d
-  → Reps↑
-      (BindingRel
-        (κᵉ (cross-ctx (allocCtx Γ ★) zero fresh-lookup)))
-      (⇑ᵗ ★) d
-  → allocCtx Γ ★ ⊢ β-inst-result (sizeᵉ Γ) V c d ⦂ B
-β-inst-result-typed {Γ} {A = A} {V = V} {c = c} {d = d}
-    V⊢ d-strict d-reps =
+  → allocCtx Γ ★ ⊢ β-inst-result (sizeᵉ Γ) V c ⦂ B
+β-inst-result-typed {Γ} {A = A} {V = V} {c = c} V⊢ =
   ⊢⟨⟩ revealed⊢ (c [ ★/0 ]ᶜ)
   where
   Γ⁺ = allocCtx Γ ★
@@ -464,73 +383,44 @@ mutual
 
   applied⊢ : cross-ctx Γ⁺ zero p ⊢
       ∀-entry-application (sizeᵉ Γ) V A ⦂ A
-  applied⊢ = ∀-entry-application-typed {Γ = Γ⁺} p V⊢
+  applied⊢ =
+    ∀-entry-application-typed {Γ = Γ⁺} p transport-star V⊢
 
   revealed⊢ : Γ⁺ ⊢
       (∀-entry-application (sizeᵉ Γ) V A)
-        ↑[ zero ≔ sizeᵉ Γ ] d
+        ↑[ zero ≔ sizeᵉ Γ ] 〖 zero , ⇑ᵗ ★ ↑ A 〗
       ⦂ A [ ★ ]ᵗ
-  revealed⊢ = ⊢reveal p d-strict d-reps applied⊢
+  revealed⊢ = ⊢reveal p transport-star (generator-typed A ★) applied⊢
 
 ------------------------------------------------------------------------
 -- Endpoint transport for opening a structural `∀` crossing
 ------------------------------------------------------------------------
 
-cast↑-target : ∀ {Δ} {A B B′ : Ty Δ}
-  → B ≡ B′
-  → Conv↑ Δ A B
-  → Conv↑ Δ A B′
-cast↑-target refl c = c
+open-∀↑-typed : ∀ {Δ} {X : Fin (suc Δ)} {R C}
+    {B : Ty (suc Δ)} {c : Conv↑}
+  → ⊢↑[ suc X ⦂ R ] c ⦂ C ↝ renameᵗ (extᵗ (punchIn X)) B
+  → ⊢↑[ suc X ⦂ R ] c ⦂ C ↝ wkᵗ (suc X) B
+open-∀↑-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
+  subst (λ T → ⊢↑[ suc X ⦂ R ] c ⦂ C ↝ T)
+    (wk-under-∀ X B) c⊢
 
-cast↓-source : ∀ {Δ} {A A′ B : Ty Δ}
-  → A ≡ A′
-  → Conv↓ Δ A B
-  → Conv↓ Δ A′ B
-cast↓-source refl c = c
-
-cast↑-target-strict : ∀ {Δ} {A B B′ : Ty Δ} {X}
-    (eq : B ≡ B′) {c : Conv↑ Δ A B}
-  → PivotStrict↑ X c
-  → PivotStrict↑ X (cast↑-target eq c)
-cast↑-target-strict refl c-strict = c-strict
-
-cast↓-source-strict : ∀ {Δ} {A A′ B : Ty Δ} {X}
-    (eq : A ≡ A′) {c : Conv↓ Δ A B}
-  → PivotStrict↓ X c
-  → PivotStrict↓ X (cast↓-source eq c)
-cast↓-source-strict refl c-strict = c-strict
-
-cast↑-target-reps : ∀ {Δ n} {ρ : VarRel Δ n} {S : Ty n}
-    {A B B′ : Ty Δ} (eq : B ≡ B′) {c : Conv↑ Δ A B}
-  → Reps↑ ρ S c
-  → Reps↑ ρ S (cast↑-target eq c)
-cast↑-target-reps refl c-reps = c-reps
-
-cast↓-source-reps : ∀ {Δ n} {ρ : VarRel Δ n} {S : Ty n}
-    {A A′ B : Ty Δ} (eq : A ≡ A′) {c : Conv↓ Δ A B}
-  → Reps↓ ρ S c
-  → Reps↓ ρ S (cast↓-source eq c)
-cast↓-source-reps refl c-reps = c-reps
-
-open-∀↑ : ∀ {Δ} {X : Fin (suc Δ)} {B : Ty (suc Δ)} {C}
-  → Conv↑ (suc (suc Δ)) C (renameᵗ (extᵗ (punchIn X)) B)
-  → Conv↑ (suc (suc Δ)) C (wkᵗ (suc X) B)
-open-∀↑ {X = X} {B} = cast↑-target (wk-under-∀ X B)
-
-open-∀↓ : ∀ {Δ} {X : Fin (suc Δ)} {B : Ty (suc Δ)} {C}
-  → Conv↓ (suc (suc Δ)) (renameᵗ (extᵗ (punchIn X)) B) C
-  → Conv↓ (suc (suc Δ)) (wkᵗ (suc X) B) C
-open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
+open-∀↓-typed : ∀ {Δ} {X : Fin (suc Δ)} {R C}
+    {B : Ty (suc Δ)} {c : Conv↓}
+  → ⊢↓[ suc X ⦂ R ] c ⦂ renameᵗ (extᵗ (punchIn X)) B ↝ C
+  → ⊢↓[ suc X ⦂ R ] c ⦂ wkᵗ (suc X) B ↝ C
+open-∀↓-typed {X = X} {R = R} {C = C} {B = B} {c = c} c⊢ =
+  subst (λ T → ⊢↓[ suc X ⦂ R ] c ⦂ T ↝ C)
+    (wk-under-∀ X B) c⊢
 
 ------------------------------------------------------------------------
 -- β-reveal-∀: redex, exchanged contractum, and typing validation
 ------------------------------------------------------------------------
 
-β-reveal-∀-redex : ∀ {Δ} {B : Ty (suc Δ)} {C}
+β-reveal-∀-redex : ∀ {Δ} {B : Ty (suc Δ)}
   → Name
   → Term (suc Δ)
   → (X : Fin (suc Δ))
-  → Conv↑ (suc (suc Δ)) C (renameᵗ (extᵗ (punchIn X)) B)
+  → Conv↑
   → Ty Δ
   → Term Δ
 β-reveal-∀-redex {B = B} α V X c A =
@@ -541,58 +431,61 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Name
   → (X : Fin (suc Δ))
   → Term (suc Δ)
-  → (c : Conv↑ (suc (suc Δ)) C
-          (renameᵗ (extᵗ (punchIn X)) B))
-  → Conv↑ (suc Δ) B (wkᵗ zero (B [ A ]ᵗ))
+  → Conv↑
   → Term Δ
-β-reveal-∀-result {C = C} fresh α X V c d =
+β-reveal-∀-result {A = A} {B = B} {C = C} fresh α X V c =
   (((∀-entry-application fresh V C)
-      ↑[ suc X ≔ α ] open-∀↑ c)
-  ↑[ zero ≔ fresh ] d)
+      ↑[ suc X ≔ α ] c)
+  ↑[ zero ≔ fresh ] 〖 zero , ⇑ᵗ A ↑ B 〗)
 
 β-reveal-∀-redex-typed : ∀ {Γ} {A : Ty (Δᵉ Γ)}
     {B : Ty (suc (Δᵉ Γ))} {C : Ty (suc (suc (Δᵉ Γ)))}
     {V : Term (suc (Δᵉ Γ))} {X : Fin (suc (Δᵉ Γ))}
-    {α : Name} {R : Ty (sizeᵉ Γ)}
-    {c : Conv↑ (suc (suc (Δᵉ Γ))) C
-           (renameᵗ (extᵗ (punchIn X)) B)}
+    {α : Name} {R : Ty (sizeᵉ Γ)} {R′ : Ty (suc (Δᵉ Γ))}
+    {c : Conv↑}
   → (p : α ⦂ R ∈ Σᵉ Γ)
-  → PivotStrict↑ (suc X) c
-  → Reps↑ (LiftRel (BindingRel (κᵉ (cross-ctx Γ X p))))
-      (⇑ᵗ R) c
+  → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
+  → ⊢↑[ suc X ⦂ ⇑ᵗ R′ ] c ⦂ C
+      ↝ renameᵗ (extᵗ (punchIn X)) B
   → cross-ctx Γ X p ⊢ V ⦂ `∀ C
-  → Γ ⊢ β-reveal-∀-redex α V X c A ⦂ B [ A ]ᵗ
-β-reveal-∀-redex-typed {B = B} {X = X} p c-strict c-reps V⊢ =
-  ⊢• (⊢reveal p (strict-↑∀ c-strict) (reps-↑∀ c-reps) V⊢)
+  → Γ ⊢ β-reveal-∀-redex {B = B} α V X c A ⦂ B [ A ]ᵗ
+β-reveal-∀-redex-typed {B = B} {X = X} p R′↝R c⊢ V⊢ =
+  ⊢• (⊢reveal p R′↝R (⊢↑-∀ c⊢) V⊢)
 
 β-reveal-∀-result-typed : ∀ {Γ} {A : Ty (Δᵉ Γ)}
     {B : Ty (suc (Δᵉ Γ))} {C : Ty (suc (suc (Δᵉ Γ)))}
     {V : Term (suc (Δᵉ Γ))} {X : Fin (suc (Δᵉ Γ))}
-    {α : Name} {R S : Ty (sizeᵉ Γ)}
-    {c : Conv↑ (suc (suc (Δᵉ Γ))) C
-           (renameᵗ (extᵗ (punchIn X)) B)}
-    {d : Conv↑ (suc (Δᵉ Γ)) B (wkᵗ zero (B [ A ]ᵗ))}
+    {α : Name} {R S : Ty (sizeᵉ Γ)} {R′ : Ty (suc (Δᵉ Γ))}
+    {Q : Ty (suc (suc (Δᵉ Γ)))} {c : Conv↑}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → BindingsExtensionality
   → cross-ctx (allocCtx Γ S) X (weaken-lookup p) ⊢ V ⦂ `∀ C
-  → Reps↑
+  → Transport
       (BindingRel
-        (κᵉ
-          (cross-ctx (cross-ctx (allocCtx Γ S) zero fresh-lookup)
-            (suc X) (weaken-lookup p))))
-      (⇑ᵗ R) c
-  → PivotStrict↑ (suc X) c
-  → Reps↑
+        (κᵉ (cross-ctx
+          (cross-ctx (allocCtx Γ S) X (weaken-lookup p))
+          zero fresh-lookup)))
+      Q (⇑ᵗ S)
+  → Transport
+      (BindingRel
+        (κᵉ (cross-ctx
+          (cross-ctx (allocCtx Γ S) zero fresh-lookup)
+          (suc X) (weaken-lookup p))))
+      (⇑ᵗ R′) (⇑ᵗ R)
+  → Transport
       (BindingRel
         (κᵉ (cross-ctx (allocCtx Γ S) zero fresh-lookup)))
-      (⇑ᵗ S) d
-  → PivotStrict↑ zero d
+      (⇑ᵗ A) (⇑ᵗ S)
+  → ⊢↑[ suc X ⦂ ⇑ᵗ R′ ] c ⦂ C
+      ↝ renameᵗ (extᵗ (punchIn X)) B
   → allocCtx Γ S ⊢
-      β-reveal-∀-result (sizeᵉ Γ) α X V c d ⦂ B [ A ]ᵗ
-β-reveal-∀-result-typed {Γ} {B = B} {C = C} {V = V} {X = X}
-    {α = α} {S = S} {c = c} {d = d}
-    p ext V⊢ c-reps c-strict d-reps d-strict =
-  ⊢reveal fresh d-strict d-reps old-revealed⊢
+      β-reveal-∀-result {A = A} {B = B} {C = C}
+        (sizeᵉ Γ) α X V c ⦂ B [ A ]ᵗ
+β-reveal-∀-result-typed {Γ} {A = A} {B = B} {C = C}
+    {V = V} {X = X}
+    {α = α} {S = S} {R′ = R′} {c = c}
+    p ext V⊢ entry-transport old-transport fresh-transport c⊢ =
+  ⊢reveal fresh fresh-transport (generator-typed B A) old-revealed⊢
   where
   Γ⁺ = allocCtx Γ S
   fresh = fresh-lookup {Σ = Σᵉ Γ} {R = S}
@@ -602,7 +495,8 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   inner-left⊢ : cross-ctx oldΓ zero fresh ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
-  inner-left⊢ = ∀-entry-application-typed {Γ = oldΓ} fresh V⊢
+  inner-left⊢ =
+    ∀-entry-application-typed {Γ = oldΓ} fresh entry-transport V⊢
 
   inner-right⊢ : cross-ctx freshΓ (suc X) old ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
@@ -611,24 +505,20 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   old-revealed⊢ : freshΓ ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↑[ suc X ≔ α ] open-∀↑ c
+        ↑[ suc X ≔ α ] c
       ⦂ B
   old-revealed⊢ =
-    ⊢reveal old
-      (cast↑-target-strict (wk-under-∀ X B) c-strict)
-      (cast↑-target-reps (wk-under-∀ X B) c-reps)
-      inner-right⊢
+    ⊢reveal old old-transport (open-∀↑-typed c⊢) inner-right⊢
 
 ------------------------------------------------------------------------
 -- β-conceal-∀: redex, exchanged contractum, and typing validation
 ------------------------------------------------------------------------
 
 β-conceal-∀-redex : ∀ {Δ} {B : Ty (suc (suc Δ))}
-    {C : Ty (suc Δ)}
   → Name
   → Term Δ
   → (X : Fin (suc Δ))
-  → Conv↓ (suc (suc Δ)) (renameᵗ (extᵗ (punchIn X)) C) B
+  → Conv↓
   → Ty (suc Δ)
   → Term (suc Δ)
 β-conceal-∀-redex {B = B} α V X c A =
@@ -640,63 +530,63 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → Name
   → (X : Fin (suc Δ))
   → Term Δ
-  → (c : Conv↓ (suc (suc Δ))
-          (renameᵗ (extᵗ (punchIn X)) C) B)
-  → Conv↑ (suc (suc Δ)) B (wkᵗ zero (B [ A ]ᵗ))
+  → Conv↓
   → Term (suc Δ)
-β-conceal-∀-result {C = C} fresh α X V c d =
+β-conceal-∀-result {A = A} {B = B} {C = C} fresh α X V c =
   (((∀-entry-application fresh V C)
-    ↓[ suc X ≔ α ] open-∀↓ c)
-  ↑[ zero ≔ fresh ] d)
+    ↓[ suc X ≔ α ] c)
+  ↑[ zero ≔ fresh ] 〖 zero , ⇑ᵗ A ↑ B 〗)
 
 β-conceal-∀-redex-typed : ∀ {Γ}
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
     {C : Ty (suc (Δᵉ Γ))} {V : Term (Δᵉ Γ)}
     {X : Fin (suc (Δᵉ Γ))} {α : Name} {R : Ty (sizeᵉ Γ)}
-    {c : Conv↓ (suc (suc (Δᵉ Γ)))
-           (renameᵗ (extᵗ (punchIn X)) C) B}
+    {R′ : Ty (suc (Δᵉ Γ))} {c : Conv↓}
   → (p : α ⦂ R ∈ Σᵉ Γ)
-  → PivotStrict↓ (suc X) c
-  → Reps↓ (LiftRel (BindingRel (κᵉ (cross-ctx Γ X p))))
-      (⇑ᵗ R) c
+  → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
+  → ⊢↓[ suc X ⦂ ⇑ᵗ R′ ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
   → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ V ⦂ `∀ C
   → cross-ctx Γ X p ⊢
-      β-conceal-∀-redex α V X c A ⦂ B [ A ]ᵗ
-β-conceal-∀-redex-typed {Γ} p c-strict c-reps V⊢ =
-  ⊢• (⊢conceal {Γ = Γ} {Γ′ = []} p (strict-↓∀ c-strict)
-    (reps-↓∀ c-reps) V⊢)
+      β-conceal-∀-redex {B = B} α V X c A ⦂ B [ A ]ᵗ
+β-conceal-∀-redex-typed {Γ} p R′↝R c⊢ V⊢ =
+  ⊢• (⊢conceal {Γ = Γ} {Γ′ = []} p R′↝R (⊢↓-∀ c⊢) V⊢)
 
 β-conceal-∀-result-typed : ∀ {Γ}
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
     {C : Ty (suc (Δᵉ Γ))} {V : Term (Δᵉ Γ)}
     {X : Fin (suc (Δᵉ Γ))} {α : Name} {R S : Ty (sizeᵉ Γ)}
-    {c : Conv↓ (suc (suc (Δᵉ Γ)))
-           (renameᵗ (extᵗ (punchIn X)) C) B}
-    {d : Conv↑ (suc (suc (Δᵉ Γ))) B
-           (wkᵗ zero (B [ A ]ᵗ))}
+    {R′ Q : Ty (suc (Δᵉ Γ))} {c : Conv↓}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → BindingsExtensionality
   → ⟨ Δᵉ Γ , suc (sizeᵉ Γ) , weakenBindings (κᵉ Γ) ,
       bind (Σᵉ Γ) S , [] ⟩ ⊢ V ⦂ `∀ C
-  → Reps↓
+  → Transport
       (BindingRel
-        (κᵉ
-          (cross-ctx (cross-ctx (allocCtx Γ S) zero fresh-lookup)
-            (suc X) (weaken-lookup p))))
-      (⇑ᵗ R) c
-  → PivotStrict↓ (suc X) c
-  → Reps↑
+        (κᵉ (cross-ctx (allocCtx Γ S) zero fresh-lookup)))
+      Q (⇑ᵗ S)
+  → Transport
       (BindingRel
-        (κᵉ
-          (cross-ctx (allocCtx (cross-ctx Γ X p) S) zero fresh-lookup)))
-      (⇑ᵗ S) d
-  → PivotStrict↑ zero d
+        (κᵉ (cross-ctx
+          (cross-ctx (allocCtx Γ S) zero fresh-lookup)
+          (suc X) (weaken-lookup p))))
+      (⇑ᵗ R′) (⇑ᵗ R)
+  → Transport
+      (BindingRel
+        (κᵉ (cross-ctx
+          (allocCtx (cross-ctx Γ X p) S) zero fresh-lookup)))
+      (⇑ᵗ A) (⇑ᵗ S)
+  → ⊢↓[ suc X ⦂ ⇑ᵗ R′ ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
   → allocCtx (cross-ctx Γ X p) S ⊢
-      β-conceal-∀-result (sizeᵉ Γ) α X V c d ⦂ B [ A ]ᵗ
-β-conceal-∀-result-typed {Γ} {B = B} {C = C} {V = V} {X = X}
-    {α = α} {S = S} {c = c} {d = d}
-    p ext V⊢ c-reps c-strict d-reps d-strict =
-  ⊢reveal fresh-final d-strict d-reps concealed-left⊢
+      β-conceal-∀-result {A = A} {B = B} {C = C}
+        (sizeᵉ Γ) α X V c ⦂ B [ A ]ᵗ
+β-conceal-∀-result-typed {Γ} {A = A} {B = B} {C = C}
+    {V = V} {X = X}
+    {α = α} {S = S} {R′ = R′} {c = c}
+    p ext V⊢ entry-transport old-transport fresh-transport c⊢ =
+  ⊢reveal fresh-final fresh-transport (generator-typed B A)
+    concealed-left⊢
   where
   Γ⁺ = allocCtx Γ S
   fresh = fresh-lookup {Σ = Σᵉ Γ} {R = S}
@@ -708,21 +598,20 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   applied⊢ : freshΓ ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
-  applied⊢ = ∀-entry-application-typed {Γ = Γ⁺} fresh V⊢
+  applied⊢ =
+    ∀-entry-application-typed {Γ = Γ⁺} fresh entry-transport V⊢
 
   concealed-right⊢ : cross-ctx freshΓ (suc X) old ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↓[ suc X ≔ α ] open-∀↓ c
+        ↓[ suc X ≔ α ] c
       ⦂ B
   concealed-right⊢ =
-    ⊢conceal {Γ = freshΓ} {Γ′ = []} old
-      (cast↓-source-strict (wk-under-∀ X C) c-strict)
-      (cast↓-source-reps (wk-under-∀ X C) c-reps)
-      applied⊢
+    ⊢conceal {Γ = freshΓ} {Γ′ = []} old old-transport
+      (open-∀↓-typed c⊢) applied⊢
 
   concealed-left⊢ : cross-ctx oldΓ⁺ zero fresh-final ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
-        ↓[ suc X ≔ α ] open-∀↓ c
+        ↓[ suc X ≔ α ] c
       ⦂ B
   concealed-left⊢ =
     allocation-cross-ctx-exchange-typing ext {Γ = Γ} p concealed-right⊢

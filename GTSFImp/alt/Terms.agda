@@ -14,7 +14,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
 import Data.Nat.Properties as Nat
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; subst; sym; trans)
+  using (_≡_; _≢_; refl)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -55,19 +55,11 @@ data Term : TyCtx → Set where
   _⟨_⟩    : Term Δ → {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Term Δ
 
-  _↑[_≔_]_ : ∀ {A : Ty (suc Δ)} {B : Ty Δ}
-    → Term (suc Δ)
-    → (X : TyVar (suc Δ))
-    → Name
-    → Conv↑ (suc Δ) A (wkᵗ X B)
-    → Term Δ
+  _↑[_≔_]_ : Term (suc Δ)
+    → TyVar (suc Δ) → Name → Conv↑ → Term Δ
 
-  _↓[_≔_]_ : ∀ {A : Ty Δ} {B : Ty (suc Δ)}
-    → Term Δ
-    → (X : TyVar (suc Δ))
-    → Name
-    → Conv↓ (suc Δ) (wkᵗ X A) B
-    → Term (suc Δ)
+  _↓[_≔_]_ : Term Δ
+    → TyVar (suc Δ) → Name → Conv↓ → Term (suc Δ)
 
   blame   : Term Δ
 
@@ -135,27 +127,6 @@ weakenRevealSlot (suc X) zero = zero
 weakenRevealSlot {n = suc n} (suc X) (suc Y) =
   suc (weakenRevealSlot X Y)
 
-reveal-punch-square : ∀ {n} (X Y : Fin (suc n)) (z : Fin n)
-  → punchIn (underReveal X Y) (punchIn Y z)
-    ≡ punchIn (weakenRevealSlot X Y) (punchIn X z)
-reveal-punch-square zero zero z = refl
-reveal-punch-square {n = suc n} zero (suc Y) zero = refl
-reveal-punch-square {n = suc n} zero (suc Y) (suc z) = refl
-reveal-punch-square {n = suc n} (suc X) zero zero = refl
-reveal-punch-square {n = suc n} (suc X) zero (suc z) = refl
-reveal-punch-square {n = suc n} (suc X) (suc Y) zero = refl
-reveal-punch-square {n = suc n} (suc X) (suc Y) (suc z) =
-  cong suc (reveal-punch-square X Y z)
-
-wkᵗ-reveal-square : ∀ {n} (X Y : Fin (suc n)) (A : Ty n)
-  → wkᵗ (underReveal X Y) (wkᵗ Y A)
-    ≡ wkᵗ (weakenRevealSlot X Y) (wkᵗ X A)
-wkᵗ-reveal-square X Y A =
-  trans (renameᵗ-comp (punchIn Y) (punchIn (underReveal X Y)) A)
-    (trans (renameᵗ-cong A (reveal-punch-square X Y))
-      (sym (renameᵗ-comp (punchIn X)
-        (punchIn (weakenRevealSlot X Y)) A)))
-
 -- Commuting an insertion outward across a conceal.  The inserted slot is
 -- placed before the conceal slot when they meet at the same outer gap.
 outsideConceal : ∀ {n}
@@ -171,30 +142,6 @@ weakenConcealSlot (suc X) zero = zero
 weakenConcealSlot {n = suc n} (suc X) (suc Y) =
   suc (weakenConcealSlot X Y)
 
-conceal-punch-square : ∀ {n} (X : Fin (suc (suc n)))
-    (Y : Fin (suc n)) (z : Fin n)
-  → punchIn X (punchIn Y z)
-    ≡ punchIn (weakenConcealSlot X Y) (punchIn (outsideConceal X Y) z)
-conceal-punch-square {n = suc n} zero zero zero = refl
-conceal-punch-square {n = suc n} zero zero (suc z) = refl
-conceal-punch-square {n = suc n} zero (suc Y) zero = refl
-conceal-punch-square {n = suc n} zero (suc Y) (suc z) = refl
-conceal-punch-square {n = suc n} (suc X) zero zero = refl
-conceal-punch-square {n = suc n} (suc X) zero (suc z) = refl
-conceal-punch-square {n = suc n} (suc X) (suc Y) zero = refl
-conceal-punch-square {n = suc n} (suc X) (suc Y) (suc z) =
-  cong suc (conceal-punch-square X Y z)
-
-wkᵗ-conceal-square : ∀ {n} (X : Fin (suc (suc n)))
-    (Y : Fin (suc n)) (A : Ty n)
-  → wkᵗ X (wkᵗ Y A)
-    ≡ wkᵗ (weakenConcealSlot X Y) (wkᵗ (outsideConceal X Y) A)
-wkᵗ-conceal-square X Y A =
-  trans (renameᵗ-comp (punchIn Y) (punchIn X) A)
-    (trans (renameᵗ-cong A (conceal-punch-square X Y))
-      (sym (renameᵗ-comp (punchIn (outsideConceal X Y))
-        (punchIn (weakenConcealSlot X Y)) A)))
-
 weakenᵗᵐ : ∀ {n} (X : TyVar (suc n)) → Term n → Term (suc n)
 weakenᵗᵐ X (` x) = ` x
 weakenᵗᵐ X (ƛ A ˙ M) = ƛ wkᵗ X A ˙ weakenᵗᵐ X M
@@ -206,11 +153,9 @@ weakenᵗᵐ X ($ κ) = $ κ
 weakenᵗᵐ X (L ⊕[ op ] M) = weakenᵗᵐ X L ⊕[ op ] weakenᵗᵐ X M
 weakenᵗᵐ X (M ⟨ c ⟩) = weakenᵗᵐ X M ⟨ weakenConsistency X c ⟩
 weakenᵗᵐ X (M ↑[ Y ≔ α ] c) =
-  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealSlot X Y ≔ α ]
-    subst (Conv↑ _ _) (wkᵗ-reveal-square X Y _) (rename↑ _ c)
+  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealSlot X Y ≔ α ] c
 weakenᵗᵐ X (M ↓[ Y ≔ α ] c) =
-  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealSlot X Y ≔ α ]
-    subst (λ A → Conv↓ _ A _) (wkᵗ-conceal-square X Y _) (rename↓ _ c)
+  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealSlot X Y ≔ α ] c
 weakenᵗᵐ X blame = blame
 
 removeVar : Var → Var → Var
@@ -291,65 +236,83 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → GenSafe c
     → Inert ((gen c) A≢★)
 
-data RevealValue : ∀ {Δ A B} → Conv↑ Δ A B → Set where
-  fun : ∀ {Δ A A′ B B′}
-      {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-    → RevealValue (c ↦↑ d)
+mutual
+  data RevealValue {Δ : TyCtx} (V : Term Δ) : Conv↑ → Set where
+    fun : ∀ {c d}
+      → RevealValue V (c ↦↑ d)
 
-  all : ∀ {Δ A B} {c : Conv↑ (suc Δ) A B}
-    → RevealValue (`∀↑ c)
+    all : ∀ {c}
+      → RevealValue V (`∀↑ c)
 
-  delimiter-var : ∀ {Δ} {X : TyVar Δ}
-    → RevealValue (id↑ (＇ X))
+    delimiter : CanonicalInterior V
+      → RevealValue V id↑
 
-  delimiter-star : ∀ {Δ}
-    → RevealValue (id↑ (★ {Δ}))
+  data ConcealValue {Δ : TyCtx} (V : Term Δ) : Conv↓ → Set where
+    seal : ConcealValue V alt.Conversion.seal
 
-data ConcealValue : ∀ {Δ A B} → Conv↓ Δ A B → Set where
-  seal : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
-    → ConcealValue (alt.Conversion.seal X R)
+    fun : ∀ {c d}
+      → ConcealValue V (c ↦↓ d)
 
-  fun : ∀ {Δ A A′ B B′}
-      {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-    → ConcealValue (c ↦↓ d)
+    all : ∀ {c}
+      → ConcealValue V (`∀↓ c)
 
-  all : ∀ {Δ A B} {c : Conv↓ (suc Δ) A B}
-    → ConcealValue (`∀↓ c)
+    delimiter : CanonicalInterior V
+      → ConcealValue V id↓
 
-  delimiter-var : ∀ {Δ} {X : TyVar Δ}
-    → ConcealValue (id↓ (＇ X))
+  data Value : ∀ {Δ : TyCtx} → Term Δ → Set where
+    ƛ_˙_ : ∀ {Δ} (A : Ty Δ) (N : Term Δ) → Value (ƛ A ˙ N)
+    Λ_ : ∀ {Δ} {V : Term (suc Δ)} → Value V → Value (Λ V)
+    $ : ∀ {Δ} (κ : Const) → Value {Δ = Δ} ($ κ)
 
-  delimiter-star : ∀ {Δ}
-    → ConcealValue (id↓ (★ {Δ}))
+    _《_》 : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+        {c : μ ⊢ A ∼ B}
+      → Value V
+      → Inert c
+      → Value (V ⟨ c ⟩)
 
-data Value : ∀ {Δ : TyCtx} → Term Δ → Set where
-  ƛ_˙_ : ∀ {Δ} (A : Ty Δ) (N : Term Δ) → Value (ƛ A ˙ N)
-  Λ_ : ∀ {Δ} {V : Term (suc Δ)} → Value V → Value (Λ V)
-  $ : ∀ {Δ} (κ : Const) → Value {Δ = Δ} ($ κ)
+    _↑[_≔_]_ : ∀ {Δ} {V : Term (suc Δ)}
+      → Value V
+      → (X : TyVar (suc Δ))
+      → (α : Name)
+      → {c : Conv↑}
+      → RevealValue V c
+      → Value (V ↑[ X ≔ α ] c)
 
-  _《_》 : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-      {c : μ ⊢ A ∼ B}
-    → Value V
-    → Inert c
-    → Value (V ⟨ c ⟩)
+    _↓[_≔_]_ : ∀ {Δ} {V : Term Δ}
+      → Value V
+      → (X : TyVar (suc Δ))
+      → (α : Name)
+      → {c : Conv↓}
+      → ConcealValue V c
+      → Value (V ↓[ X ≔ α ] c)
 
-  _↑[_≔_]_ : ∀ {Δ} {V : Term (suc Δ)} {A : Ty (suc Δ)}
-      {B : Ty Δ}
-    → Value V
-    → (X : TyVar (suc Δ))
-    → (α : Name)
-    → {c : Conv↑ (suc Δ) A (wkᵗ X B)}
-    → RevealValue c
-    → Value (V ↑[ X ≔ α ] c)
+  -- These are precisely the syntactic value shapes that can inhabit a
+  -- non-base atomic region interior: a tag at ★, a seal at a scoped
+  -- variable, or another identity reveal delimiter around either shape.
+  data CanonicalInterior : ∀ {Δ : TyCtx} → Term Δ → Set where
+    tagged : ∀ {Δ} {V : Term Δ} {μ : Env∼ Δ} {G : Ty Δ}
+        ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+        ⦃ Gns : NonStar G ⦄
+      → Value V
+      → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
 
-  _↓[_≔_]_ : ∀ {Δ′ : TyCtx} {V : Term Δ′} {A : Ty Δ′}
-      {B : Ty (suc Δ′)}
-    → Value V
-    → (X : TyVar (suc Δ′))
-    → (α : Name)
-    → {c : Conv↓ (suc Δ′) (wkᵗ X A) B}
-    → ConcealValue c
-    → Value (V ↓[ X ≔ α ] c)
+    sealed : ∀ {Δ} {V : Term Δ}
+      → Value V
+      → (X : TyVar (suc Δ))
+      → (α : Name)
+      → CanonicalInterior (V ↓[ X ≔ α ] alt.Conversion.seal)
+
+    delimited : ∀ {Δ} {V : Term (suc Δ)}
+      → CanonicalInterior V
+      → (X : TyVar (suc Δ))
+      → (α : Name)
+      → CanonicalInterior (V ↑[ X ≔ α ] id↑)
+
+canonical-value : ∀ {Δ} {V : Term Δ} → CanonicalInterior V → Value V
+canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
+canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] seal
+canonical-value (delimited Vᶜ X α) =
+  canonical-value Vᶜ ↑[ X ≔ α ] delimiter Vᶜ
 
 ------------------------------------------------------------------------
 -- Scoped-variable classifications and contexts
@@ -414,49 +377,6 @@ data Transport {Δ n} (ρ : VarRel Δ n) : Ty Δ → Ty n → Set where
   transport-all : ∀ {A B}
     → Transport (LiftRel ρ) A B
     → Transport ρ (`∀ A) (`∀ B)
-
-------------------------------------------------------------------------
--- Every recorded representation denotes the anchor's store entry
-------------------------------------------------------------------------
-
-mutual
-  data Reps↑ {Δ n} (ρ : VarRel Δ n) (S : Ty n) :
-      ∀ {A B} → Conv↑ Δ A B → Set where
-    reps-unseal : ∀ {X R}
-      → Transport ρ R S
-      → Reps↑ ρ S (unseal X R)
-
-    reps-↑⇒ : ∀ {A A′ B B′}
-        {c : Conv↓ Δ A′ A} {d : Conv↑ Δ B B′}
-      → Reps↓ ρ S c
-      → Reps↑ ρ S d
-      → Reps↑ ρ S (c ↦↑ d)
-
-    reps-↑∀ : ∀ {A B} {c : Conv↑ (suc Δ) A B}
-      → Reps↑ (LiftRel ρ) (⇑ᵗ S) c
-      → Reps↑ ρ S (`∀↑ c)
-
-    reps-id↑ : ∀ {A} {a : Atom A}
-      → Reps↑ ρ S (id↑ a)
-
-  data Reps↓ {Δ n} (ρ : VarRel Δ n) (S : Ty n) :
-      ∀ {A B} → Conv↓ Δ A B → Set where
-    reps-seal : ∀ {X R}
-      → Transport ρ R S
-      → Reps↓ ρ S (alt.Conversion.seal X R)
-
-    reps-↓⇒ : ∀ {A A′ B B′}
-        {c : Conv↑ Δ A′ A} {d : Conv↓ Δ B B′}
-      → Reps↑ ρ S c
-      → Reps↓ ρ S d
-      → Reps↓ ρ S (c ↦↓ d)
-
-    reps-↓∀ : ∀ {A B} {c : Conv↓ (suc Δ) A B}
-      → Reps↓ (LiftRel ρ) (⇑ᵗ S) c
-      → Reps↓ ρ S (`∀↓ c)
-
-    reps-id↓ : ∀ {A} {a : Atom A}
-      → Reps↓ ρ S (id↓ a)
 
 ------------------------------------------------------------------------
 -- Typing
@@ -536,20 +456,18 @@ data _⊢_⦂_ : (Γ : Ctx) → Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
     → (c : μ ⊢ A ∼ B)
     → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
-  ⊢reveal : ∀ {Γ M A B X α R}
-      {c : Conv↑ (suc (Δᵉ Γ)) A (wkᵗ X B)}
+  ⊢reveal : ∀ {Γ M A B X α R R′ c}
     → (p : α ⦂ R ∈ Σᵉ Γ)
-    → PivotStrict↑ X c
-    → Reps↑ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
+    → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
+    → ⊢↑[ X ⦂ R′ ] c ⦂ A ↝ wkᵗ X B
     → cross-ctx Γ X p ⊢ M ⦂ A
     → Γ ⊢ M ↑[ X ≔ α ] c ⦂ B
 
   ⊢conceal : ∀ {Γ} {Γ′ : TermCtx (suc (Δᵉ Γ))}
-      {M A B X α R}
-      {c : Conv↓ (suc (Δᵉ Γ)) (wkᵗ X A) B}
+      {M A B X α R R′ c}
     → (p : α ⦂ R ∈ Σᵉ Γ)
-    → PivotStrict↓ X c
-    → Reps↓ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
+    → Transport (BindingRel (κᵉ (cross-ctx Γ X p))) R′ R
+    → ⊢↓[ X ⦂ R′ ] c ⦂ wkᵗ X A ↝ B
     → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ M ⦂ A
     → ⟨ suc (Δᵉ Γ) , sizeᵉ Γ , κᵉ (cross-ctx Γ X p) ,
         Σᵉ Γ , Γ′ ⟩ ⊢ M ↓[ X ≔ α ] c ⦂ B

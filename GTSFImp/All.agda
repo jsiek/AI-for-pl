@@ -30,6 +30,7 @@ import alt.Store
 import alt.Conversion
 import alt.Terms
 import alt.Reduction
+import alt.GeneratorEndpoint
 
 ------------------------------------------------------------------------
 -- Source language and compilation

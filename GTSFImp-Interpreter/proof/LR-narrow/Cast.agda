@@ -5418,8 +5418,24 @@ related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
     (pure-step (β-id vVᴵ)) step-eq
     (related-value-precise-cast I.∀★⊑★ sourceᴾ sourceᴵ
       (C.∀ᶜ cᴾ) q targetᴾ targetᴵ related)
-related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
-    (C.？ cᴵ) q targetᴾ targetᴵ related = ?
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (C.∀ᶜ cᴾ)
+    (C.？ cᴵ) q targetᴾ targetᴵ
+    {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  cast-computations-related I.∀★⊑★ sourceᴾ sourceᴵ
+    (C.∀ᶜ cᴾ) (C.？ cᴵ) q targetᴾ targetᴵ k Vᴵ Vᴾ
+    (λ W≼W′ sourceᴾ′ sourceᴵ′ dᴾ dᴵ targetᴾ′ targetᴵ′
+        related′ →
+      computations-related-future-compose W≼W′ q
+        (related-value-casts
+          (liftCenterImprecision W≼W′ I.∀★⊑★)
+          sourceᴾ′ sourceᴵ′ dᴾ dᴵ
+          (liftCenterImprecision W≼W′ q)
+          targetᴾ′ targetᴵ′ related′))
+    (related-values-return
+      (imprecise-value endpoints) (precise-value endpoints)
+      (λ j j≤k → value-imprecision-downward-to j≤k related))
+  where
+  endpoints = value-imprecision-endpoints related
 related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ
     (C.id x₁ C.!) (C.id x) q targetᴾ targetᴵ related =
   ⊥-elim (precise-atom-not-all {W = W} x₁ sourceᴾ)

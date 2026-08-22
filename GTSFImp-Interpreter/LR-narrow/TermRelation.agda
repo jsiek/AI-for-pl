@@ -18,7 +18,8 @@ open import Conversion using (〖_,_↑_〗)
 open import CastTerms using (Term; _↑_)
 import TermCtx as T
 import Imprecision as I
-import proof.DGG.CastTermImprecision2 as CTI
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation

@@ -10,8 +10,9 @@ open import Data.Nat using (ℕ)
 open import Types
 open import CastTerms
 import Imprecision as I
-import proof.DGG.CastTermImprecision2 as CTI
-open CTI using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
 import proof.LR-narrow.Application as Proof

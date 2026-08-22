@@ -22,8 +22,9 @@ open import proof.TypeInTermSubst using (toRename-keep-eq)
 import Consistency
 import Imprecision as I
 import proof.Imprecision as PI
-import proof.DGG.CastTermImprecision2 as CTI
-open CTI using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CastTermImprecision2Typing as CTIT
 open import LR-narrow.World
 open import LR-narrow.Computation
@@ -332,7 +333,7 @@ universal-compatible {W = W} {k = k} {Γ = Γ}
   p-body = universal-body-imprecision {W = W} p
 
   universal-imprecision =
-    CTI.Λ⊑Λ² liftΓ vVᴾ vVᴵ body q
+    CTIR.Λ⊑Λ² liftΓ vVᴾ vVᴵ body q
 
   precise-universal-typing = precise-open-typing-future W≼W′
     (CTIT.source-typing² universal-imprecision)

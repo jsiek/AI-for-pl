@@ -58,7 +58,7 @@ import proof.Imprecision as PI
 open import proof.ImprecisionConsistency using
   (ext-injective; fin-suc-injective; nonstar-from-≢★; rename-⊑;
    source-nonvar-from-target; source-nonvar-target; source-occurs-target;
-   subst-⊑; subst-zero-occurs-exts; target-occurs-source;
+   subst-⊑; subst₂-⊑; subst-zero-occurs-exts; target-occurs-source;
    toRenameᵗ-injective)
 import proof.ImprecisionConsistency as PIC
 open import proof.TypeInTermSubst using
@@ -97,7 +97,7 @@ open import proof.DGG.Catchup.InstInversionProof using
   (inst-post-at→root-package; composeWorldExtendᴿ;
    ctx-imp-transportᴿ; rel-target-transportᴿ;
    generated-reveal-value; reveal-value-rename; unrenameNonVar;
-   subst₂-⊑; generated-reveal-⊢↑-present; rename-as-subst;
+   generated-reveal-⊢↑-present; rename-as-subst;
    replaceEnv; replaceTy-subst; spine-descent-zero;
    target-insert-bind-world-extendᴿ; smart-fresh-bind-world-extendᴿ;
    smart-alias-bind-world-extendᴿ; mapCtxᴿ-smart-liftᴸ;

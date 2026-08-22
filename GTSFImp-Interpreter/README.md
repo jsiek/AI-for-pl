@@ -166,7 +166,7 @@ by a center-indexed related argument, and can be normalized from two
 successive future lifts to their composite future.
 
 `CompiledTermRelation` translates the term-imprecision context used by
-`proof.DGG.CastTermImprecision2` into this semantic context and quantifies over
+`proof.DGG.CastTermImprecision` into this semantic context and quantifies over
 all future worlds and all related closing substitutions in the lifted
 context. The variable case is therefore a direct use of related lookup.
 Constants construct the base-value clause at every step index. Both cases use

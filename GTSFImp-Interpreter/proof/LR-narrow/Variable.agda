@@ -10,7 +10,8 @@ open import Data.Nat.Properties using (≤-refl)
 
 open import Types
 open import CastTerms
-import proof.DGG.CastTermImprecision2 as CTI
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
 open import LR-narrow.World
 open import LR-narrow.LogicalRelation
 open import LR-narrow.Closure

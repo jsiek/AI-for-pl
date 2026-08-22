@@ -21,8 +21,9 @@ open import Types
 open import CastTerms
 open import proof.LR-narrow.TermSubstitution using (subst-cong)
 import Imprecision as I
-import proof.DGG.CastTermImprecision2 as CTI
-open CTI using (_∣_⊢²_⊑_∶_)
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 import proof.DGG.CastTermImprecision2Typing as CTIT
 open import LR-narrow.World
 open import LR-narrow.Computation
@@ -328,7 +329,7 @@ lambda-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
   precise-γ = preciseClosingSubstitution γ
   imprecise-γ = impreciseClosingSubstitution γ
 
-  lambda-imprecision = CTI.ƛ⊑ƛ² body
+  lambda-imprecision = CTIR.ƛ⊑ƛ² body
 
   precise-lambda-typing = precise-open-typing-future W≼W′
     (CTIT.source-typing² lambda-imprecision)

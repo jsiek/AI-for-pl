@@ -35,3 +35,4 @@ import Compile
 ------------------------------------------------------------------------
 
 import ConsistencyExamples
+import alt.probes.EscapeReentryProbe

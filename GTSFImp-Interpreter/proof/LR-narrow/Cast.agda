@@ -5520,8 +5520,20 @@ related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ (cᴾ C.!)
 
   embedded-nonstar = C.renameNonStar
     (C.toRenameᵗ (impreciseEmbedding (core W))) nsᴵ
-related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
-    (C.id x₁) q targetᴾ targetᴵ related = ?
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
+    (C.id x₁) q targetᴾ targetᴵ {Vᴵ = Vᴵ} related
+    with identity-cast-step-question
+      {Σ = impreciseStore (core W)}
+      (imprecise-value (value-imprecision-endpoints related))
+related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
+    (C.id x₁) q targetᴾ targetᴵ {Vᴵ = Vᴵ} related
+    | vVᴵ , step-eq =
+  related-imprecise-keep-step-expand (λ ())
+    (identity-cast-value-none x₁
+      (imprecise-value (value-imprecision-endpoints related)))
+    (pure-step (β-id vVᴵ)) step-eq
+    (related-value-precise-cast I.∀★⊑★ sourceᴾ sourceᴵ
+      ((C.gen cᴾ) x) q targetᴾ targetᴵ related)
 related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
     (C.？ cᴵ) q targetᴾ targetᴵ related = ?
 related-value-casts (I.∀⊑★ nonstar p) sourceᴾ sourceᴵ cᴾ cᴵ q

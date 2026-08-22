@@ -4,7 +4,7 @@ module alt.Reduction where
 --   * Defines shift-free call-by-value reduction for alt.Terms.
 --   * Store allocation changes only the global store; the term type context
 --     is fixed by every step and evaluation frames leave siblings untouched.
---   * Restores ordinary beta with annotated, type-directed substitution.
+--   * Restores ordinary beta with annotated, structural substitution.
 --   * Provides store-indexed multi-step traces and anchored tag comparison.
 
 open import Data.Fin using (inject₁; zero)
@@ -137,7 +137,7 @@ data _∣_⊢_—→[_]_ : ∀ {n Δ n′}
   β : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V N : Term Δ} {A : Ty Δ}
     → Value V
-    → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ⦂ A ]
+    → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ]
 
   β-id : ∀ {n Δ} {Σ : Store n} {κ : Bindings Δ n}
       {V : Term Δ} {μ : Env∼ Δ} {A : Ty Δ} {a : Atom A}

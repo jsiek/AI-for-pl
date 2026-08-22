@@ -19,16 +19,15 @@ module alt.Exchange where
 --     crossing after the fresh one give pointwise equal `Bindings`; this
 --     assumption turns that finite pointwise proof into function equality.
 --     No postulate is introduced, and all exchanged inner typing is derived
---     below.
+--     below; crossing term-context components are definitionally empty.
 
 open import Data.Fin using (Fin; fromℕ; inject₁; zero; suc)
-open import Data.List using ([]; _∷_)
+open import Data.List using ([])
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; sym; trans; subst)
 
 open import Types
-open import TermCtx using (TermCtx)
 open import Consistency
 open import alt.Store
 open import alt.Conversion
@@ -234,13 +233,6 @@ weakenBindings-insert {Δ = suc Δ} (suc X) b κ zero = refl
 weakenBindings-insert {Δ = suc Δ} (suc X) b κ (suc Y) =
   weakenBindings-insert X b (λ Z → κ (suc Z)) Y
 
-wkᶜ-exchange : ∀ {Δ} (X : Fin (suc Δ)) (Γ : TermCtx Δ)
-  → wkᶜ zero (wkᶜ X Γ) ≡ wkᶜ (suc X) (wkᶜ zero Γ)
-wkᶜ-exchange X [] = refl
-wkᶜ-exchange X (A ∷ Γ)
-    rewrite wk-exchange X A | wkᶜ-exchange X Γ =
-  refl
-
 BindingsExtensionality : Set
 BindingsExtensionality = ∀ {n Δ} {κ κ′ : Bindings Δ n}
   → (∀ X → κ X ≡ κ′ X)
@@ -293,8 +285,7 @@ cross-ctx-exchange ext {Γ = ⟨ Δ , n , κ , Σ , Γ ⟩}
     {S = S} {X = X} p
     rewrite
       cross-bindings-exchange ext X (anchored (fromℕ n))
-        (anchored (inject₁ (lookup-name p))) (weakenBindings κ)
-    | wkᶜ-exchange X Γ =
+        (anchored (inject₁ (lookup-name p))) (weakenBindings κ) =
   refl
 
 allocation-cross-ctx : BindingsExtensionality
@@ -321,8 +312,7 @@ allocation-cross-ctx-exchange ext
     {Γ = ⟨ Δ , n , κ , Σ , Γ ⟩} {S = S} {X = X} p
     rewrite
       allocation-cross-bindings-exchange ext X (anchored (fromℕ n))
-        (anchored (lookup-name p)) κ
-    | wkᶜ-exchange X Γ =
+        (anchored (lookup-name p)) κ =
   refl
 
 cross-ctx-exchange-typing : BindingsExtensionality
@@ -342,8 +332,7 @@ cross-ctx-exchange-typing ext
     {Γ = ⟨ Δ , n , κ , Σ , Γ ⟩} {S = S} {X = X} p M⊢
     rewrite
       cross-bindings-exchange ext X (anchored (fromℕ n))
-        (anchored (inject₁ (lookup-name p))) (weakenBindings κ)
-    | wkᶜ-exchange X Γ =
+        (anchored (inject₁ (lookup-name p))) (weakenBindings κ) =
   M⊢
 
 allocation-cross-ctx-exchange-typing : BindingsExtensionality
@@ -362,8 +351,7 @@ allocation-cross-ctx-exchange-typing ext
     {Γ = ⟨ Δ , n , κ , Σ , Γ ⟩} {S = S} {X = X} p M⊢
     rewrite
       allocation-cross-bindings-exchange ext X (anchored (fromℕ n))
-        (anchored (lookup-name p)) κ
-    | wkᶜ-exchange X Γ =
+        (anchored (lookup-name p)) κ =
   M⊢
 
 mutual
@@ -398,7 +386,7 @@ mutual
 ∀-entry-application-typed : ∀ {Γ} {V : Term (Δᵉ Γ)}
     {A : Ty (suc (Δᵉ Γ))} {α : Name} {R : Ty (sizeᵉ Γ)}
   → (p : α ⦂ R ∈ Σᵉ Γ)
-  → Γ ⊢ V ⦂ `∀ A
+  → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ V ⦂ `∀ A
   → cross-ctx Γ zero p ⊢ ∀-entry-application α V A ⦂ A
 ∀-entry-application-typed {Γ} {V = V} {A = A} {α = α} {R = R} p V⊢ =
   subst
@@ -409,7 +397,8 @@ mutual
       V ↓⟨ zero ≔ α ⟩ δ↓ (wkᵗ zero (`∀ A))
       ⦂ wkᵗ zero (`∀ A)
   entered⊢ =
-    ⊢conceal p (δ-strict↓ zero (wkᵗ zero (`∀ A)))
+    ⊢conceal {Γ = Γ} {Γ′ = []} p
+      (δ-strict↓ zero (wkᵗ zero (`∀ A)))
       (delimiter-reps↓
         (BindingRel (κᵉ (cross-ctx Γ zero p))) R
         (wkᵗ zero (`∀ A))) V⊢
@@ -458,7 +447,8 @@ mutual
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (Δᵉ Γ)} {V : Term (Δᵉ Γ)}
     {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
     {d : Conv↑ (suc (Δᵉ Γ)) A (wkᵗ zero (A [ ★ ]ᵗ))}
-  → allocCtx Γ ★ ⊢ V ⦂ `∀ A
+  → ⟨ Δᵉ Γ , suc (sizeᵉ Γ) , weakenBindings (κᵉ Γ) ,
+      bind (Σᵉ Γ) ★ , [] ⟩ ⊢ V ⦂ `∀ A
   → PivotStrict↑ zero d
   → Reps↑
       (BindingRel
@@ -474,7 +464,7 @@ mutual
 
   applied⊢ : cross-ctx Γ⁺ zero p ⊢
       ∀-entry-application (sizeᵉ Γ) V A ⦂ A
-  applied⊢ = ∀-entry-application-typed p V⊢
+  applied⊢ = ∀-entry-application-typed {Γ = Γ⁺} p V⊢
 
   revealed⊢ : Γ⁺ ⊢
       (∀-entry-application (sizeᵉ Γ) V A)
@@ -612,11 +602,12 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   inner-left⊢ : cross-ctx oldΓ zero fresh ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
-  inner-left⊢ = ∀-entry-application-typed fresh V⊢
+  inner-left⊢ = ∀-entry-application-typed {Γ = oldΓ} fresh V⊢
 
   inner-right⊢ : cross-ctx freshΓ (suc X) old ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
-  inner-right⊢ = cross-ctx-exchange-typing ext p inner-left⊢
+  inner-right⊢ =
+    cross-ctx-exchange-typing ext {Γ = Γ} p inner-left⊢
 
   old-revealed⊢ : freshΓ ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
@@ -668,11 +659,12 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
   → PivotStrict↓ (suc X) c
   → Reps↓ (LiftRel (BindingRel (κᵉ (cross-ctx Γ X p))))
       (⇑ᵗ R) c
-  → Γ ⊢ V ⦂ `∀ C
+  → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ V ⦂ `∀ C
   → cross-ctx Γ X p ⊢
       β-conceal-∀-redex α V X c A ⦂ B [ A ]ᵗ
-β-conceal-∀-redex-typed p c-strict c-reps V⊢ =
-  ⊢• (⊢conceal p (strict-↓∀ c-strict) (reps-↓∀ c-reps) V⊢)
+β-conceal-∀-redex-typed {Γ} p c-strict c-reps V⊢ =
+  ⊢• (⊢conceal {Γ = Γ} {Γ′ = []} p (strict-↓∀ c-strict)
+    (reps-↓∀ c-reps) V⊢)
 
 β-conceal-∀-result-typed : ∀ {Γ}
     {A : Ty (suc (Δᵉ Γ))} {B : Ty (suc (suc (Δᵉ Γ)))}
@@ -684,7 +676,8 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
            (wkᵗ zero (B [ A ]ᵗ))}
   → (p : α ⦂ R ∈ Σᵉ Γ)
   → BindingsExtensionality
-  → allocCtx Γ S ⊢ V ⦂ `∀ C
+  → ⟨ Δᵉ Γ , suc (sizeᵉ Γ) , weakenBindings (κᵉ Γ) ,
+      bind (Σᵉ Γ) S , [] ⟩ ⊢ V ⦂ `∀ C
   → Reps↓
       (BindingRel
         (κᵉ
@@ -715,14 +708,14 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
 
   applied⊢ : freshΓ ⊢
       ∀-entry-application (sizeᵉ Γ) V C ⦂ C
-  applied⊢ = ∀-entry-application-typed fresh V⊢
+  applied⊢ = ∀-entry-application-typed {Γ = Γ⁺} fresh V⊢
 
   concealed-right⊢ : cross-ctx freshΓ (suc X) old ⊢
       (∀-entry-application (sizeᵉ Γ) V C)
         ↓⟨ suc X ≔ α ⟩ open-∀↓ c
       ⦂ B
   concealed-right⊢ =
-    ⊢conceal old
+    ⊢conceal {Γ = freshΓ} {Γ′ = []} old
       (cast↓-source-strict (wk-under-∀ X C) c-strict)
       (cast↓-source-reps (wk-under-∀ X C) c-reps)
       applied⊢
@@ -732,4 +725,4 @@ open-∀↓ {X = X} {B} = cast↓-source (wk-under-∀ X B)
         ↓⟨ suc X ≔ α ⟩ open-∀↓ c
       ⦂ B
   concealed-left⊢ =
-    allocation-cross-ctx-exchange-typing ext p concealed-right⊢
+    allocation-cross-ctx-exchange-typing ext {Γ = Γ} p concealed-right⊢

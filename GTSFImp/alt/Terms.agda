@@ -5,11 +5,12 @@ module alt.Terms where
 --     conceal anti-binders.
 --   * Defines values, scoped-variable classifications, representation
 --     transport, and typing against the global append-only store.
---   * Provides annotated lambdas and type-directed single substitution.
+--   * Provides annotated lambdas and structural single substitution that
+--     stops at closed crossing interiors.
 --   * Keeps forall-bound scoped variables out of store representations.
 
 open import Data.Fin using (Fin; zero; suc)
-open import Data.List using (_∷_)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
 import Data.Nat.Properties as Nat
 open import Relation.Binary.PropositionalEquality
@@ -94,55 +95,6 @@ rename ρ (M ↑⟨ X ≔ α ⟩ c) = rename ρ M ↑⟨ X ≔ α ⟩ c
 rename ρ (M ↓⟨ X ≔ α ⟩ c) = rename ρ M ↓⟨ X ≔ α ⟩ c
 rename ρ blame = blame
 
-------------------------------------------------------------------------
--- Removing one scoped-variable slot from a tracked type
-------------------------------------------------------------------------
-
-data Unpunch {n : ℕ} (X : Fin (suc n)) : Fin (suc n) → Set where
-  pivot : Unpunch X X
-  image : (Y : Fin n) → Unpunch X (punchIn X Y)
-
-unpunch : ∀ {n} (X Y : Fin (suc n)) → Unpunch X Y
-unpunch zero zero = pivot
-unpunch zero (suc Y) = image Y
-unpunch {n = suc n} (suc X) zero = image zero
-unpunch {n = suc n} (suc X) (suc Y) with unpunch X Y
-unpunch {n = suc n} (suc X) (suc .X) | pivot = pivot
-unpunch {n = suc n} (suc X) (suc .(punchIn X Y)) | image Y =
-  image (suc Y)
-
-data StrengthenedAt {n : ℕ} (X : TyVar (suc n)) :
-    Ty (suc n) → Set where
-  strengthened : (A : Ty n) → StrengthenedAt X (wkᵗ X A)
-  blocked : ∀ {A} → StrengthenedAt X A
-
-wkᵗ-all : ∀ {n} (X : TyVar (suc n)) (A : Ty (suc n))
-  → wkᵗ X (`∀ A) ≡ `∀ (wkᵗ (suc X) A)
-wkᵗ-all X A = cong `∀ (renameᵗ-cong A pointwise)
-  where
-  pointwise : ∀ Y → extᵗ (punchIn X) Y ≡ punchIn (suc X) Y
-  pointwise zero = refl
-  pointwise (suc Y) = refl
-
-strengthenAt : ∀ {n} (X : TyVar (suc n)) (A : Ty (suc n))
-  → StrengthenedAt X A
-strengthenAt X (＇ Y) with unpunch X Y
-strengthenAt X (＇ .X) | pivot = blocked
-strengthenAt X (＇ .(punchIn X Y)) | image Y = strengthened (＇ Y)
-strengthenAt X (‵ ι) = strengthened (‵ ι)
-strengthenAt X ★ = strengthened ★
-strengthenAt X (A ⇒ B) with strengthenAt X A | strengthenAt X B
-strengthenAt X (.(wkᵗ X A) ⇒ .(wkᵗ X B))
-  | strengthened A | strengthened B = strengthened (A ⇒ B)
-strengthenAt X (.(wkᵗ X A) ⇒ B) | strengthened A | blocked = blocked
-strengthenAt X (A ⇒ .(wkᵗ X B)) | blocked | strengthened B = blocked
-strengthenAt X (A ⇒ B) | blocked | blocked = blocked
-strengthenAt X (`∀ A) with strengthenAt (suc X) A
-strengthenAt X (`∀ .(wkᵗ (suc X) A)) | strengthened A =
-  subst (StrengthenedAt X) (wkᵗ-all X A) (strengthened (`∀ A))
-strengthenAt X (`∀ A) | blocked = blocked
-
-------------------------------------------------------------------------
 -- Type-context weakening used only beneath an existing `Λ`
 ------------------------------------------------------------------------
 
@@ -261,67 +213,34 @@ weakenᵗᵐ X (M ↓⟨ Y ≔ α ⟩ c) =
     subst (λ A → Conv↓ _ A _) (wkᵗ-conceal-square X Y _) (rename↓ _ c)
 weakenᵗᵐ X blame = blame
 
-------------------------------------------------------------------------
--- Term-variable deletion when a replacement cannot cross a conceal
-------------------------------------------------------------------------
-
 removeVar : Var → Var → Var
 removeVar zero zero = zero
 removeVar zero (suc y) = y
 removeVar (suc x) zero = zero
 removeVar (suc x) (suc y) = suc (removeVar x y)
 
-dropAt : Var → Term Δ → Term Δ
-dropAt x (` y) with Nat._≟_ x y
-dropAt x (` .x) | yes refl = ` x
-dropAt x (` y) | no x≠y = ` removeVar x y
-dropAt x (ƛ A ˙ M) = ƛ A ˙ dropAt (suc x) M
-dropAt x (L · M) = dropAt x L · dropAt x M
-dropAt x (Λ M) = Λ (dropAt x M)
-dropAt x (L ⦂∀ C [ A ]) = dropAt x L ⦂∀ C [ A ]
-dropAt x ($ κ) = $ κ
-dropAt x (L ⊕[ op ] M) = dropAt x L ⊕[ op ] dropAt x M
-dropAt x (M ⟨ c ⟩) = dropAt x M ⟨ c ⟩
-dropAt x (M ↑⟨ X ≔ α ⟩ c) = dropAt x M ↑⟨ X ≔ α ⟩ c
-dropAt x (M ↓⟨ X ≔ α ⟩ c) = dropAt x M ↓⟨ X ≔ α ⟩ c
-dropAt x blame = blame
-
 ------------------------------------------------------------------------
--- Type-directed single substitution
+-- Structural single substitution
 ------------------------------------------------------------------------
 
-substAt : Var → Term Δ → Ty Δ → Term Δ → Term Δ
-substAt x V A (` y) with Nat._≟_ x y
-substAt x V A (` .x) | yes refl = V
-substAt x V A (` y) | no x≠y = ` removeVar x y
-substAt x V A (ƛ B ˙ M) =
-  ƛ B ˙ substAt (suc x) (rename suc V) A M
-substAt x V A (L · M) = substAt x V A L · substAt x V A M
-substAt x V A (Λ M) = Λ (substAt x (weakenᵗᵐ zero V) (⇑ᵗ A) M)
-substAt x V A (L ⦂∀ C [ B ]) = substAt x V A L ⦂∀ C [ B ]
-substAt x V A ($ κ) = $ κ
-substAt x V A (L ⊕[ op ] M) =
-  substAt x V A L ⊕[ op ] substAt x V A M
-substAt x V A (M ⟨ c ⟩) = substAt x V A M ⟨ c ⟩
-substAt x V A (M ↑⟨ X ≔ α ⟩ c) =
-  substAt x (V ↓⟨ X ≔ α ⟩ δ↓ (wkᵗ X A)) (wkᵗ X A) M
-    ↑⟨ X ≔ α ⟩ c
-substAt x V A (M ↓⟨ X ≔ α ⟩ c) with strengthenAt X A
-substAt x V .(wkᵗ X B) (M ↓⟨ X ≔ α ⟩ c) | strengthened B =
-  substAt x (V ↑⟨ X ≔ α ⟩ δ↑ (wkᵗ X B)) B M
-    ↓⟨ X ≔ α ⟩ c
--- In a well-typed redex the substituted context entry beneath a conceal is
--- typed in the unweakened context, so its tracked type at the node is
--- necessarily `wkᵗ X B`.  If raw, ill-typed syntax violates that invariant,
--- leave just its target occurrences in place; `dropAt` still adjusts every
--- other de Bruijn index for the binder removed by substitution.
-substAt x V A (M ↓⟨ X ≔ α ⟩ c) | blocked =
-  dropAt x M ↓⟨ X ≔ α ⟩ c
-substAt x V A blame = blame
+substAt : Var → Term Δ → Term Δ → Term Δ
+substAt x V (` y) with Nat._≟_ x y
+substAt x V (` .x) | yes refl = V
+substAt x V (` y) | no x≠y = ` removeVar x y
+substAt x V (ƛ A ˙ M) = ƛ A ˙ substAt (suc x) (rename suc V) M
+substAt x V (L · M) = substAt x V L · substAt x V M
+substAt x V (Λ M) = Λ (substAt x (weakenᵗᵐ zero V) M)
+substAt x V (L ⦂∀ C [ A ]) = substAt x V L ⦂∀ C [ A ]
+substAt x V ($ κ) = $ κ
+substAt x V (L ⊕[ op ] M) = substAt x V L ⊕[ op ] substAt x V M
+substAt x V (M ⟨ c ⟩) = substAt x V M ⟨ c ⟩
+substAt x V (M ↑⟨ X ≔ α ⟩ c) = M ↑⟨ X ≔ α ⟩ c
+substAt x V (M ↓⟨ X ≔ α ⟩ c) = M ↓⟨ X ≔ α ⟩ c
+substAt x V blame = blame
 
-infixl 8 _[_⦂_]
-_[_⦂_] : Term Δ → Term Δ → Ty Δ → Term Δ
-M [ V ⦂ A ] = substAt zero V A M
+infixl 8 _[_]
+_[_] : Term Δ → Term Δ → Term Δ
+M [ V ] = substAt zero V M
 
 ------------------------------------------------------------------------
 -- Values
@@ -564,13 +483,15 @@ _,ᶜ_ : (Γ : Ctx) → Ty (Δᵉ Γ) → Ctx
 ∀-ctx ⟨ Δ , n , κ , Σ , Γ ⟩ =
   ⟨ suc Δ , n , insertBinding zero ∀-bound κ , Σ , wkᶜ zero Γ ⟩
 
+-- The classifier and store are extended beneath a crossing, but its interior
+-- is always closed in the term context.
 cross-ctx : (Γ : Ctx) (X : TyVar (suc (Δᵉ Γ))) {α : Name}
     {R : Ty (sizeᵉ Γ)}
   → α ⦂ R ∈ Σᵉ Γ
   → Ctx
 cross-ctx ⟨ Δ , n , κ , Σ , Γ ⟩ X p =
   ⟨ suc Δ , n , insertBinding X (anchored (lookup-name p)) κ ,
-    Σ , wkᶜ X Γ ⟩
+    Σ , [] ⟩
 
 infix 4 _∋ᵗ_⦂_
 infix 4 _⊢_⦂_
@@ -623,13 +544,15 @@ data _⊢_⦂_ : (Γ : Ctx) → Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
     → cross-ctx Γ X p ⊢ M ⦂ A
     → Γ ⊢ M ↑⟨ X ≔ α ⟩ c ⦂ B
 
-  ⊢conceal : ∀ {Γ M A B X α R}
+  ⊢conceal : ∀ {Γ} {Γ′ : TermCtx (suc (Δᵉ Γ))}
+      {M A B X α R}
       {c : Conv↓ (suc (Δᵉ Γ)) (wkᵗ X A) B}
     → (p : α ⦂ R ∈ Σᵉ Γ)
     → PivotStrict↓ X c
     → Reps↓ (BindingRel (κᵉ (cross-ctx Γ X p))) R c
-    → Γ ⊢ M ⦂ A
-    → cross-ctx Γ X p ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
+    → ⟨ Δᵉ Γ , sizeᵉ Γ , κᵉ Γ , Σᵉ Γ , [] ⟩ ⊢ M ⦂ A
+    → ⟨ suc (Δᵉ Γ) , sizeᵉ Γ , κᵉ (cross-ctx Γ X p) ,
+        Σᵉ Γ , Γ′ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
 
   ⊢blame : ∀ {Γ A}
     → Γ ⊢ blame ⦂ A

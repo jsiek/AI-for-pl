@@ -1,9 +1,9 @@
 # GTSFImp Alternative Semantics — Shift-Free Reduction
 
 This document records the design settled in discussion on the PR (2026-08-21/22).
-It replaces the earlier candidate menu. Status: design statements agreed,
-mechanization not yet started; expect bookkeeping revisions once Agda pushes
-back. Notation follows the live development
+It replaces the earlier candidate menu. The checked `alt.*` core and its
+statement-level bookkeeping revisions are recorded below. Notation follows the
+live development
 ([`Types.agda`](../Types.agda), [`Conversion.agda`](../Conversion.agda),
 [`CastTerms.agda`](../CastTerms.agda), [`Reduction.agda`](../Reduction.agda)).
 
@@ -80,13 +80,13 @@ _↓⟨_≔_⟩_ : Term Δ → (X : TyVar (suc Δ)) → (α : Name)
   → Conv↓ (suc Δ) (wkᵗ X A) B → Term (suc Δ)              -- anti-binder
 ```
 
-with `wkᵗ X = renameᵗ (punchIn X)` the type-level slot insertion and
-`wkᶜ X` the same on term contexts; shift-by-1 is the slot `X = 0`.
-A reveal *binds* its scoped variable over its subterm: inside, `X` is in
-scope; outside, the node's type is `X`-free. A conceal is the dual hole:
-its subterm lives *outside* the scope of `X` even though the node sits
-inside it. Displays later in this document abbreviate `↑⟨ X ≔ α ⟩ c` to
-`↑ c ⟨α⟩` when the slot is `0` or clear from context.
+with `wkᵗ X = renameᵗ (punchIn X)` the type-level slot insertion;
+shift-by-1 is the slot `X = 0`. A reveal *binds* its scoped variable over
+its subterm: inside, `X` is in scope; outside, the node's type is `X`-free.
+A conceal is the dual hole: its subterm lives *outside* the scope of `X`
+even though the node sits inside it. Both interiors are term-closed. Displays
+later in this document abbreviate `↑⟨ X ≔ α ⟩ c` to `↑ c ⟨α⟩` when the slot
+is `0` or clear from context.
 
 Typing, with `α ⦂ R ∈ Σ` the anchor's store entry and the context
 recording the connection `X ≔ α`:
@@ -95,17 +95,21 @@ recording the connection `X ≔ α`:
 ⊢conceal : {c : Conv↓ (suc Δ) (wkᵗ X A) B}
   → α ⦂ R ∈ Σ
   → c pivot-strict at X, representations at R
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ M ⦂ A                     -- M unshifted, X-free
+  → ⟨ Δ , Σ , ∅ ⟩ ⊢ M ⦂ A                     -- closed and X-free
     -----------------------------------------------------------
-  → ⟨ suc Δ [X ≔ α] , Σ , wkᶜ X Γ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
+  → ⟨ suc Δ [X ≔ α] , Σ , Γ′ ⟩ ⊢ M ↓⟨ X ≔ α ⟩ c ⦂ B
 
 ⊢reveal : {c : Conv↑ (suc Δ) A (wkᵗ X B)}
   → α ⦂ R ∈ Σ
   → c pivot-strict at X, representations at R
-  → ⟨ suc Δ [X ≔ α] , Σ , wkᶜ X Γ ⟩ ⊢ M ⦂ A
+  → ⟨ suc Δ [X ≔ α] , Σ , ∅ ⟩ ⊢ M ⦂ A
     -----------------------------------------------------------
   → ⟨ Δ , Σ , Γ ⟩ ⊢ M ↑⟨ X ≔ α ⟩ c ⦂ B        -- result leaves X's scope
 ```
+
+Here `Γ` and `Γ′` are arbitrary. The crossing changes the scoped-type context
+and classifier but does not transport a surrounding term context into its
+interior.
 
 **Pivot strictness.** The conversion under a crossing node mentions at
 most one scoped variable — the node's own `X` — at `seal X`/`unseal X`
@@ -118,6 +122,25 @@ names its variable. This closes, in the syntax itself, the
 retype-an-identity-at-any-pivot loophole that the DGG's version-2
 imprecision rules had to close externally
 ([`Rationale.md`](../Rationale.md), "Identity reveals").
+
+## Reachability invariant: crossing interiors are closed
+
+Every reveal or conceal interior reachable from a closed compiled program is
+typed in the empty term context. The typing rules above bake this invariant
+into all well-typed syntax, rather than asking substitution and preservation
+to recover it after the fact.
+
+The reachability argument is an induction on evaluation. In the base case,
+compilation emits no crossing nodes. For the step case, reduction mints a
+crossing only at an evaluation position; evaluation positions in a closed
+program are term-closed because evaluation never descends beneath a term
+binder. Ordinary call-by-value substitution deposits only closed values beneath
+binders, so it cannot introduce a free term variable into an existing crossing
+interior. Finally, reduction never grows the ambient scoped-type context: a
+closed source program and every program reachable from it remain `Term 0`.
+Runtime packages created by crossings are therefore term-closed. Packages that
+escape a local crossing have ambient types in `Ty 0` and are type-closed; their
+representation types are type-closed through the global store as well.
 
 **Identities are atomic.** `id↑`/`id↓` are restricted to `Atom` types
 (`＇Y`, `‵ι`, `★`), matching the consistency layer's `id : Atom A → …`.
@@ -314,13 +337,13 @@ and `R` are weakened once.  Thus every `seal` or `unseal` representation is
 checked against the current weakened store entry without defining a partial
 transport function.
 
-### Ordinary lambda beta uses type-directed substitution
+### Ordinary lambda beta uses substitution that stops at crossings
 
 Lambdas carry their domain type, and the checked single substitution is
 
 ```agda
-_[_⦂_] : Term Δ → Term Δ → Ty Δ → Term Δ
-β : Value V → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ⦂ A ]
+_[_] : Term Δ → Term Δ → Term Δ
+β : Value V → Σ ∣ κ ⊢ (ƛ A ˙ N) · V —→[ keep ] N [ V ]
 ```
 
 The implementation generalizes internally to substitution at an arbitrary
@@ -329,30 +352,19 @@ the term-variable renaming `rename suc`.  Under `Λ`, the replacement is
 weakened across that existing lexical type binder; this is unrelated to store
 allocation, and no allocation or evaluation-frame rule traverses a term.
 
-At a reveal, substitution carries the replacement into the larger scoped-type
-context through a conceal delimiter:
+Substitution stops at both crossing nodes:
 
 ```agda
-(M ↑⟨ X ≔ α ⟩ c) [ V ⦂ A ] =
-  (M [ V ↓⟨ X ≔ α ⟩ δ↓ (wkᵗ X A) ⦂ wkᵗ X A ]) ↑⟨ X ≔ α ⟩ c
+(M ↑⟨ X ≔ α ⟩ c) [ V ] = M ↑⟨ X ≔ α ⟩ c
+(M ↓⟨ X ≔ α ⟩ c) [ V ] = M ↓⟨ X ≔ α ⟩ c
 ```
 
-At a conceal, `strengthenAt X` inspects only the tracked type.  When it returns
-`A = wkᵗ X B`, substitution carries the replacement into the smaller context
-through a reveal delimiter:
-
-```agda
-(M ↓⟨ X ≔ α ⟩ c) [ V ⦂ wkᵗ X B ] =
-  (M [ V ↑⟨ X ≔ α ⟩ δ↑ (wkᵗ X B) ⦂ B ]) ↓⟨ X ≔ α ⟩ c
-```
-
-The type view is total.  On raw syntax where strengthening fails, `dropAt`
-still decrements variables above the removed term binder but leaves the target
-occurrences under that conceal unsubstituted.  This branch cannot contain such
-an occurrence in a well-typed redex: the `⊢conceal` premise types its subterm in
-the unweakened term context, so the corresponding tracked entry outside the
-subterm is necessarily a `wkᵗ X` image.  Constants and `blame` are unchanged;
-all other same-context constructors are traversed structurally.
+This is sound directly from the closed-interior premises of `⊢reveal` and
+`⊢conceal`: a variable supplied by an enclosing lambda cannot occur free below
+either node. Constants and `blame` are unchanged, and every other constructor
+is traversed structurally. The lambda domain annotation is retained by design
+because it remains useful for typing inversion, not because substitution needs
+to track the type.
 
 ### `β-Λ` and `β-gen` take an endpoint-correct exit conversion
 

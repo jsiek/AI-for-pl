@@ -254,6 +254,70 @@ separate things keep `RevealSafe` small; the earlier "two allocations /
 re-instantiation" formulation of this finding was imprecise and is
 superseded by what follows.
 
+Universal cases status (2026-08-23). The four open forms are not four
+independent tasks; they interlock, and two of them need machinery that
+does not exist yet. What is checked so far
+(`proof/LR-narrow/UniversalReveal.agda`): the evaluator's step at a
+revealed or concealed universal value (`reveal-type-app-step-question`,
+`conceal-type-app-step-question`), the fresh paired slot a type
+application allocates (`fresh-slot`), the body-level lifting laws for
+`replaceTy` (`liftPreciseBody-replace`, `liftImpreciseBody-replace`),
+head extraction from a `UniversalsRelated` chain (`universals-head`),
+and the weakening of a post-bind relation to a plain future relation
+(`post-bind-weaken`). The `∀⊑∀` head's *statement*, its redex
+equalities, and its paired bind-step expansion also check; that
+scaffold is parked in `notes/universal-head-scaffold.agda.txt` (it is
+not in the build because its body is still a hole).
+
+Analysis of each form:
+
+* `∀⊑∀` (paired). Feasible, and the largest single piece. After the
+  paired `bind S` step, the source universal must be instantiated *at
+  the freshly allocated name* — which the LR's clause supports, since it
+  quantifies over arbitrary representation types and `＇ 0` is one; the
+  price is one extra alias slot in the result world, which the
+  `PostBindValueRelation` factorization tolerates. Remaining: an
+  instantiation lemma for imprecision derivations (`subst-⊑` with the
+  substitution `singleSubᵗ (＇ 0)`; the side condition is vacuous at the
+  paired mode), the `＇ 0 ⊑ᵂ ＇ 0` witness, and two nested reveal
+  compositions (old slot inside the body, then the fresh slot) with
+  `PostBindValueRelation` on both sides — the generic frame composition
+  already supports arbitrary `R`/`S`, and
+  `computations-related-post-bind-compose` repackages the results.
+
+* `∀⊑` (right universal). The precise endpoint does a *precise-only*
+  allocation at a dynamic slot, which the LR can express
+  (`preciseBindWorld`, `future-precise`), and the alias it then
+  allocates is also dynamic, so it is expressible too. Missing: a
+  generic precise-only bind-step expansion (only the `Λ`-specific
+  `related-precise-type-beta-expand` exists), and a one-sided reveal at
+  a *dynamic* slot — a development comparable to
+  `proof/LR-narrow/PreciseReveal.agda`, but where the slot's variable
+  does occur and the `X⊑★` clauses (`DynamicAtomHolds`,
+  `AlignedDynamicAtomRelated`) drive the seal handling.
+
+* `∀⊑★`, `∀★⊑★`. These reduce, through the tag clause
+  (`RightDynamicPayloadRelated` at the ground `∀ ★`), to the *one-sided*
+  reveal at a universal type — the case `NoUniversal` currently excludes
+  from `proof/LR-narrow/PreciseReveal.agda`. There the imprecise
+  endpoint carries no conversion, so only the precise endpoint takes the
+  `bind S` step, and a precise-only allocation bound to a *paired*
+  representation is not expressible: `future-precise` demands the slot
+  be dynamic (`Rᴾ ⊑ ★`), while the fresh paired slot's centre has mode
+  `X⊑X`. The way out is to step the imprecise endpoint as well — it is a
+  type application of a value, so it is a redex — which needs canonical
+  forms for imprecise universal values, plus a treatment of the `β-∀`
+  case where the imprecise step is a `keep` step (a cast-wrapped
+  universal peels one `∀ᶜ` per step, so the index does not decrease and a
+  nested induction on the imprecise value is required).
+
+Consequence: the safety fragment (`RevealSafe`) and the `NoUniversal`
+restriction cannot be dropped one form at a time. The universal reveal
+needs the induction hypothesis at *arbitrary* imprecision forms (the
+body of a universal is arbitrary, and the fresh slot's representation
+imprecision is the observer's choice), so all four forms must land
+together, and the `∀⊑★`/`∀★⊑★` obstruction above is the gate.
+
 C1 status (2026-08-23): `⇒⊑★` is closed. The one-sided ("identity
 wrapper") reveal and conceal are proved for universal-free precise types
 in `proof/LR-narrow/PreciseReveal.agda` by a lexicographic recursion on

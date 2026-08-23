@@ -29,3 +29,7 @@ open import LR-narrow.UniversalInstantiation public
 open import LR-narrow.TypeApplication public
 open import LR-narrow.Cast public
 open import LR-narrow.Fundamental public
+
+-- Assembly skeleton of the total theorem, parameterized by its remaining
+-- obligations; imported so the aggregate check covers it.
+import proof.LR-narrow.FundamentalAssembly

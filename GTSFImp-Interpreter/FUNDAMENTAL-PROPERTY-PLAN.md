@@ -254,6 +254,19 @@ separate things keep `RevealSafe` small; the earlier "two allocations /
 re-instantiation" formulation of this finding was imprecise and is
 superseded by what follows.
 
+C1 status (2026-08-23): `⇒⊑★` is closed. The one-sided ("identity
+wrapper") reveal and conceal are proved for universal-free precise types
+in `proof/LR-narrow/PreciseReveal.agda` by a lexicographic recursion on
+(type size, step index); `proof/LR-narrow/StarNoOccurrence.agda` shows a
+paired slot's center variable cannot occur in a type imprecise below `★`,
+so the precise wrapper contains no unseal and `replaceTy` is the
+identity; `proof/LR-narrow/SlotLifting.agda` holds the slot and frame
+lifting laws now shared by the paired and one-sided developments. The
+fragment `RevealSafe` therefore has a `safe-⇒⊑★` constructor carrying
+`NoUniversal` for both components. Remaining: `∀⊑∀`, `∀⊑★`, `∀★⊑★`,
+`∀⊑`, and lifting the `NoUniversal` restriction (which is exactly what
+the universal cases would buy).
+
 C1. The ★-target forms are asymmetric, not blocked. For `A ⊑ ★` the
 imprecise structural conversion degenerates: `〖 X , R ↑ ★ 〗 = id↑ ★`
 and `makeConceal X R ★ = id↓ ★`, so the imprecise side takes an identity

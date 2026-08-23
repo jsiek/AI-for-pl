@@ -249,10 +249,12 @@ liftPreciseTy-replace : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
 liftPreciseTy-replace future-refl X R B = refl
 liftPreciseTy-replace (future-paired W≼W′ r) X R B
     rewrite liftPreciseTy-replace W≼W′ X R B =
-  shift-replace (liftPreciseVariable W≼W′ X) (liftPreciseTy W≼W′ R) (liftPreciseTy W≼W′ B)
+  shift-replace (liftPreciseVariable W≼W′ X) (liftPreciseTy W≼W′ R)
+    (liftPreciseTy W≼W′ B)
 liftPreciseTy-replace (future-precise W≼W′ r) X R B
     rewrite liftPreciseTy-replace W≼W′ X R B =
-  shift-replace (liftPreciseVariable W≼W′ X) (liftPreciseTy W≼W′ R) (liftPreciseTy W≼W′ B)
+  shift-replace (liftPreciseVariable W≼W′ X) (liftPreciseTy W≼W′ R)
+    (liftPreciseTy W≼W′ B)
 liftPreciseTy-replace (future-imprecise W≼W′) X R B =
   liftPreciseTy-replace W≼W′ X R B
 
@@ -265,12 +267,14 @@ liftImpreciseTy-replace : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
 liftImpreciseTy-replace future-refl X R B = refl
 liftImpreciseTy-replace (future-paired W≼W′ r) X R B
     rewrite liftImpreciseTy-replace W≼W′ X R B =
-  shift-replace (liftImpreciseVariable W≼W′ X) (liftImpreciseTy W≼W′ R) (liftImpreciseTy W≼W′ B)
+  shift-replace (liftImpreciseVariable W≼W′ X) (liftImpreciseTy W≼W′ R)
+    (liftImpreciseTy W≼W′ B)
 liftImpreciseTy-replace (future-precise W≼W′ r) X R B =
   liftImpreciseTy-replace W≼W′ X R B
 liftImpreciseTy-replace (future-imprecise W≼W′) X R B
     rewrite liftImpreciseTy-replace W≼W′ X R B =
-  shift-replace (liftImpreciseVariable W≼W′ X) (liftImpreciseTy W≼W′ R) (liftImpreciseTy W≼W′ B)
+  shift-replace (liftImpreciseVariable W≼W′ X) (liftImpreciseTy W≼W′ R)
+    (liftImpreciseTy W≼W′ B)
 
 ------------------------------------------------------------------------
 -- Paired slots and their transport along futures

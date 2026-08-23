@@ -76,6 +76,12 @@ open import proof.LR-narrow.PreciseReveal using
    precise-reveal; precise-conceal)
 open import proof.LR-narrow.KeepStepExpansion using
   (related-imprecise-keep-step-expand)
+open import proof.LR-narrow.BindStepExpansion using
+  (paired-bind-step; related-paired-bind-step-expand)
+open import proof.LR-narrow.UniversalReveal using
+  (reveal-type-app-step-question; conceal-type-app-step-question;
+   fresh-slot; liftPreciseBody-replace; liftImpreciseBody-replace;
+   universals-head; post-bind-weaken)
 import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 open RA using
@@ -1186,3 +1192,4 @@ reveal-structural {k = k} = proj₁ (reveal-conceal-all k)
 
 conceal-structural : ∀ {k} → ConcealAt k
 conceal-structural {k = k} = proj₂ (reveal-conceal-all k)
+

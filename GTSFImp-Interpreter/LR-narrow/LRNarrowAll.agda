@@ -53,3 +53,4 @@ import proof.LR-narrow.StarNoOccurrence
 import proof.LR-narrow.KeepStepExpansion
 import proof.LR-narrow.ValueExtraction
 import proof.LR-narrow.PreciseReveal
+import proof.LR-narrow.UniversalReveal

@@ -46,8 +46,8 @@ open import LR-narrow.Lambda using (lambda-compatible-from-body)
 open import LR-narrow.Application using (application-compatible)
 open import LR-narrow.TypeApplication using
   (type-application-compatible; right-type-application-compatible)
-open import LR-narrow.Cast using
-  (cast-cast-compatible; right-cast-compatible; left-cast-compatible)
+open import LR-narrow.CastObligations using (CastValueObligations)
+import LR-narrow.Cast as Cast
 
 ------------------------------------------------------------------------
 -- Views on the operator imprecision of a type application
@@ -136,6 +136,10 @@ rightView I.bot⊑★ = right-nonstructural I.bot⊑★ tt
 
 record RemainingObligations : Set₂ where
   field
+
+    -- Value-level cast compatibilities reopened after the circular
+    -- proofs were removed; see LR-narrow.CastObligations.
+    cast-values : CastValueObligations
 
     -- Milestone 1.7: symmetric universal introduction.
     universal-intro : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
@@ -450,6 +454,8 @@ primitive-case op refl refl refl refl refl refl p q r =
 
 module Assembly (obligations : RemainingObligations) where
   open RemainingObligations obligations
+  open Cast cast-values using
+    (cast-cast-compatible; right-cast-compatible; left-cast-compatible)
 
   fundamental : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
       {Wᶜ : CTI.World Δᴾ Δᴵ Δᶜ}

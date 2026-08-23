@@ -69,9 +69,13 @@ The port currently contains:
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
   application, including operator/call phase decomposition and returned-world
   factorization through the paired allocation.
-- `LR-narrow/Cast.agda`: value-level compatibility for paired and one-sided
-  identity casts, together with the precise `X` injection versus imprecise
-  `id★` boundary.
+- `LR-narrow/CastObligations.agda`: the value-level cast compatibilities
+  that remain open, as an explicit record: the one-sided cast-on-value
+  lemmas and the paired cases enumerated by `OpenPairedCastCase`.
+- `LR-narrow/Cast.agda`: value-level and open-term cast compatibility,
+  parameterized by `CastValueObligations`; the paired cases outside
+  `OpenPairedCastCase` are proven, together with the precise `X` injection
+  versus imprecise `id★` boundary.
 
 ## Three-context worlds
 

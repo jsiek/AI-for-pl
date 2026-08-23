@@ -27,7 +27,8 @@ open import LR-narrow.TypeBetaExpansion public
 open import LR-narrow.Universal public
 open import LR-narrow.UniversalInstantiation public
 open import LR-narrow.TypeApplication public
-open import LR-narrow.Cast public
+open import LR-narrow.CastObligations public
+import LR-narrow.Cast
 open import LR-narrow.Fundamental public
 open import LR-narrow.Insertion public
 open import LR-narrow.FutureInsertion public

@@ -1,4 +1,12 @@
-module proof.LR-narrow.Cast where
+open import LR-narrow.CastObligations using
+  (CastValueObligations; OpenPairedCastCase; precise-cast-values;
+   imprecise-cast-values; paired-cast-values; open-function-injection;
+   open-function-precise-injection;
+   open-function-precise-generalization; open-universals;
+   open-function-dynamic; open-base-dynamic; open-variable-dynamic;
+   open-right-universal; open-universal-dynamic)
+
+module proof.LR-narrow.Cast (ob : CastValueObligations) where
 
 -- File Charter:
 --   * Proves compatibility of the symmetric and one-sided CTI casts.
@@ -3334,7 +3342,9 @@ ground-expanded-cast-view ∀★
 ground-expanded-cast-view ∀★ C.bot-intro Bns vV V⊢ B≢G =
   ground-cast-blame
 
-{-# TERMINATING #-}
+-- The one-sided cast-on-value lemmas are open obligations; see
+-- LR-narrow.CastObligations.
+
 related-value-precise-cast : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -3351,48 +3361,8 @@ related-value-precise-cast : ∀
   → ValueImprecision W p k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation q) k
       Vᴵ (Vᴾ ⟨ cᴾ ⟩)
-related-value-precise-cast {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ cᴾ q
-    targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
-  precise-cast-computations-related p sourceᴾ sourceᴵ cᴾ q
-    targetᴾ targetᴵ k Vᴵ Vᴾ cast-values immediate
-  where
-  endpoints = value-imprecision-endpoints related
+related-value-precise-cast = precise-cast-values ob
 
-  immediate : ComputationsRelated W (FutureValueRelation p) k Vᴵ Vᴾ
-  immediate = related-values-return
-    (imprecise-value endpoints) (precise-value endpoints)
-    (λ j j≤k → value-imprecision-downward-to j≤k related)
-
-  cast-values : ∀
-      {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-      {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ : Ty Δᴵ′}
-      (W≼W′ : Future W W′)
-      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
-        liftCenterTy W≼W′ Aᴾ)
-      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
-        liftCenterTy W≼W′ Aᴵ)
-      {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
-      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡
-        liftCenterTy W≼W′ Bᴾ)
-      (s-targetᴵ : embedImprecise (core W′) Eᴵ ≡
-        liftCenterTy W≼W′ Bᴵ)
-      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
-    → FutureValueRelation p W′ W≼W′ j Uᴵ Uᴾ
-    → ComputationsRelated W′
-        (λ W″ W′≼W″ → FutureValueRelation q W″
-          (future-trans W≼W′ W′≼W″)) j
-        Uᴵ (Uᴾ ⟨ dᴾ ⟩)
-  cast-values W≼W′ r-sourceᴾ r-sourceᴵ dᴾ
-      s-targetᴾ s-targetᴵ related′ =
-    computations-related-future-compose W≼W′ q
-      (related-value-precise-cast (liftCenterImprecision W≼W′ p)
-        r-sourceᴾ r-sourceᴵ dᴾ
-        (liftCenterImprecision W≼W′ q)
-        s-targetᴾ s-targetᴵ related′)
-
-{-# TERMINATING #-}
 related-value-imprecise-cast : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -3409,124 +3379,13 @@ related-value-imprecise-cast : ∀
   → ValueImprecision W p k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation q) k
       (Vᴵ ⟨ cᴵ ⟩) Vᴾ
-related-value-imprecise-cast {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ cᴵ q
-    targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
-  imprecise-cast-computations-related p sourceᴾ sourceᴵ cᴵ q
-    targetᴾ targetᴵ k Vᴵ Vᴾ cast-values immediate
-  where
-  endpoints = value-imprecision-endpoints related
+related-value-imprecise-cast = imprecise-cast-values ob
 
-  immediate : ComputationsRelated W (FutureValueRelation p) k Vᴵ Vᴾ
-  immediate = related-values-return
-    (imprecise-value endpoints) (precise-value endpoints)
-    (λ j j≤k → value-imprecision-downward-to j≤k related)
-
-  cast-values : ∀
-      {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-      {Eᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
-      (W≼W′ : Future W W′)
-      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
-        liftCenterTy W≼W′ Aᴾ)
-      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
-        liftCenterTy W≼W′ Aᴵ)
-      {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
-      (s-targetᴾ : embedPrecise (core W′) Eᴾ ≡
-        liftCenterTy W≼W′ Bᴾ)
-      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡
-        liftCenterTy W≼W′ Bᴵ)
-      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
-    → FutureValueRelation p W′ W≼W′ j Uᴵ Uᴾ
-    → ComputationsRelated W′
-        (λ W″ W′≼W″ → FutureValueRelation q W″
-          (future-trans W≼W′ W′≼W″)) j
-        (Uᴵ ⟨ dᴵ ⟩) Uᴾ
-  cast-values W≼W′ r-sourceᴾ r-sourceᴵ dᴵ
-      s-targetᴾ s-targetᴵ related′ =
-    computations-related-future-compose W≼W′ q
-      (related-value-imprecise-cast
-        (liftCenterImprecision W≼W′ p)
-        r-sourceᴾ r-sourceᴵ dᴵ
-        (liftCenterImprecision W≼W′ q)
-        s-targetᴾ s-targetᴵ related′)
-
-related-value-casts-composed : ∀
-    {Δᴾ Δᴵ Δᶜ : TyCtx}
-    {W : World Δᴾ Δᴵ Δᶜ}
-    {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
-    {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
-    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    (sourceᴾ : embedPrecise (core W) Cᴾ ≡ Aᴾ)
-    (sourceᴵ : embedImprecise (core W) Cᴵ ≡ Aᴵ)
-    {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
-    {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
-    (q : impEnv (core W) I.⊢ Bᴾ ⊑ Bᴵ)
-    (targetᴾ : embedPrecise (core W) Dᴾ ≡ Bᴾ)
-    (targetᴵ : embedImprecise (core W) Dᴵ ≡ Bᴵ)
-  → (∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-      {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
-      {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ′}
-      (r : impEnv (core W′) I.⊢ Pᴾ ⊑ Pᴵ)
-      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡ Pᴾ)
-      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡ Pᴵ)
-      {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
-      {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
-      (s : impEnv (core W′) I.⊢ Qᴾ ⊑ Qᴵ)
-      (s-targetᴾ : embedPrecise (core W′) Fᴾ ≡ Qᴾ)
-      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡ Qᴵ)
-      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
-    → ValueImprecision W′ r j Uᴵ Uᴾ
-    → ComputationsRelated W′ (FutureValueRelation s) j
-        (Uᴵ ⟨ dᴵ ⟩) (Uᴾ ⟨ dᴾ ⟩))
-  → {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
-  → ComputationsRelated W (FutureValueRelation q) k
-      (Vᴵ ⟨ cᴵ ⟩) (Vᴾ ⟨ cᴾ ⟩)
-related-value-casts-composed {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ cᴾ cᴵ q
-    targetᴾ targetᴵ cast-values
-    {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
-  cast-computations-related p sourceᴾ sourceᴵ cᴾ cᴵ q
-    targetᴾ targetᴵ k Vᴵ Vᴾ residual-casts immediate
-  where
-  endpoints = value-imprecision-endpoints related
-
-  immediate : ComputationsRelated W (FutureValueRelation p) k Vᴵ Vᴾ
-  immediate = related-values-return
-    (imprecise-value endpoints) (precise-value endpoints)
-    (λ j j≤k → value-imprecision-downward-to j≤k related)
-
-  residual-casts : ∀
-      {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
-      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-      {Eᴾ Fᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
-      (W≼W′ : Future W W′)
-      (sourceᴾ′ : embedPrecise (core W′) Eᴾ ≡
-        liftCenterTy W≼W′ Aᴾ)
-      (sourceᴵ′ : embedImprecise (core W′) Eᴵ ≡
-        liftCenterTy W≼W′ Aᴵ)
-      {νᴾ : C.Env∼ Δᴾ′} (dᴾ : νᴾ C.⊢ Eᴾ ∼ Fᴾ)
-      {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
-      (targetᴾ′ : embedPrecise (core W′) Fᴾ ≡
-        liftCenterTy W≼W′ Bᴾ)
-      (targetᴵ′ : embedImprecise (core W′) Fᴵ ≡
-        liftCenterTy W≼W′ Bᴵ)
-      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
-    → FutureValueRelation p W′ W≼W′ j Uᴵ Uᴾ
-    → ComputationsRelated W′
-        (λ W″ W′≼W″ → FutureValueRelation q W″
-          (future-trans W≼W′ W′≼W″)) j
-        (Uᴵ ⟨ dᴵ ⟩) (Uᴾ ⟨ dᴾ ⟩)
-  residual-casts W≼W′ sourceᴾ′ sourceᴵ′ dᴾ dᴵ
-      targetᴾ′ targetᴵ′ related′ =
-    computations-related-future-compose W≼W′ q
-      (cast-values (liftCenterImprecision W≼W′ p)
-        sourceᴾ′ sourceᴵ′ dᴾ dᴵ
-        (liftCenterImprecision W≼W′ q)
-        targetᴾ′ targetᴵ′ related′)
-
+-- The recursion is well founded lexicographically by the step index and
+-- then by the consistency derivations: the function and universal cases
+-- recurse on sub-casts at the same index and on arbitrary casts only
+-- through a continuation consulted at a strictly smaller index.  Agda
+-- cannot see the index through the composition continuation.
 {-# TERMINATING #-}
 related-value-casts : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
@@ -5252,12 +5111,12 @@ related-value-casts {W = W}
     | I.⇒⊑⇒ source-domain source-codomain
     | I.⇒⊑★ target-domain target-codomain
     | injection-same =
-  related-value-casts-composed (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ
+  paired-cast-values ob (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ
     (c₁ᴾ C.↦ c₂ᴾ)
     (C._! {G = ★ ⇒ ★} ⦃ Gᵍ = ★⇒★ ⦄
       ⦃ G∼★ = C.⇒∼★ ⦄ (C.id ★ C.↦ C.id ★)
       ⦃ Ans = nsᴵ ⦄)
-    r targetᴾ targetᴵ related-value-casts related
+    open-function-injection r targetᴾ targetᴵ related
 related-value-casts {W = W}
     {Cᴾ = Aᴾ₀ ⇒ Bᴾ₀} {Dᴾ = Aᴾ₁ ⇒ Bᴾ₁}
     {Cᴵ = Aᴵ₀ ⇒ Bᴵ₀}
@@ -5332,14 +5191,14 @@ related-value-casts (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ
   impossible | ()
 related-value-casts (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ (cᴾ C.!) cᴵ r
     targetᴾ targetᴵ related =
-  related-value-casts-composed (I.⇒⊑⇒ p q)
-    sourceᴾ sourceᴵ (cᴾ C.!) cᴵ r targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.⇒⊑⇒ p q)
+    sourceᴾ sourceᴵ (cᴾ C.!) cᴵ open-function-precise-injection
+    r targetᴾ targetᴵ related
 related-value-casts (I.⇒⊑⇒ p q) sourceᴾ sourceᴵ ((C.gen cᴾ) Aᴾ≢★)
     cᴵ r targetᴾ targetᴵ related =
-  related-value-casts-composed (I.⇒⊑⇒ p q)
-    sourceᴾ sourceᴵ ((C.gen cᴾ) Aᴾ≢★) cᴵ r targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.⇒⊑⇒ p q)
+    sourceᴾ sourceᴵ ((C.gen cᴾ) Aᴾ≢★) cᴵ
+    open-function-precise-generalization r targetᴾ targetᴵ related
 related-value-casts {W = W}
     {Cᴾ = `∀ Aᴾ₀} {Dᴾ = `∀ Aᴾ₁}
     {Cᴵ = `∀ Aᴵ₀} {Dᴵ = `∀ Aᴵ₁}
@@ -5564,29 +5423,27 @@ related-value-casts {W = W}
       refl
 related-value-casts (I.∀⊑∀ p) sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related =
-  related-value-casts-composed (I.∀⊑∀ p)
-    sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.∀⊑∀ p)
+    sourceᴾ sourceᴵ cᴾ cᴵ open-universals q targetᴾ targetᴵ related
 related-value-casts (I.⇒⊑★ p q) sourceᴾ sourceᴵ cᴾ cᴵ r targetᴾ
     targetᴵ related =
-  related-value-casts-composed (I.⇒⊑★ p q)
-    sourceᴾ sourceᴵ cᴾ cᴵ r targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.⇒⊑★ p q)
+    sourceᴾ sourceᴵ cᴾ cᴵ open-function-dynamic r targetᴾ targetᴵ
+    related
 related-value-casts I.ι⊑★ sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related =
-  related-value-casts-composed I.ι⊑★
-    sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob I.ι⊑★
+    sourceᴾ sourceᴵ cᴾ cᴵ open-base-dynamic q targetᴾ targetᴵ related
 related-value-casts (I.X⊑★ mode) sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related =
-  related-value-casts-composed (I.X⊑★ mode)
-    sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.X⊑★ mode)
+    sourceᴾ sourceᴵ cᴾ cᴵ open-variable-dynamic q targetᴾ targetᴵ
+    related
 related-value-casts (I.∀⊑ nonvar occurs p) sourceᴾ sourceᴵ cᴾ cᴵ q
     targetᴾ targetᴵ related =
-  related-value-casts-composed (I.∀⊑ nonvar occurs p)
-    sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.∀⊑ nonvar occurs p)
+    sourceᴾ sourceᴵ cᴾ cᴵ open-right-universal q targetᴾ targetᴵ
+    related
 related-value-casts I.∀★⊑★ sourceᴾ sourceᴵ C.bot-intro cᴵ q
     targetᴾ targetᴵ related =
   related-precise-bot-intro
@@ -5763,9 +5620,9 @@ related-value-casts {W = W} I.∀★⊑★ sourceᴾ sourceᴵ ((C.gen cᴾ) x)
   endpoints = value-imprecision-endpoints related
 related-value-casts (I.∀⊑★ nonstar p) sourceᴾ sourceᴵ cᴾ cᴵ q
     targetᴾ targetᴵ related =
-  related-value-casts-composed (I.∀⊑★ nonstar p)
-    sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ targetᴵ
-    related-value-casts related
+  paired-cast-values ob (I.∀⊑★ nonstar p)
+    sourceᴾ sourceᴵ cᴾ cᴵ open-universal-dynamic q targetᴾ targetᴵ
+    related
 related-value-casts I.bot-elim sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related = ⊥-elim (no-precise-bottom-value related)
 related-value-casts I.bot⊑★ sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ

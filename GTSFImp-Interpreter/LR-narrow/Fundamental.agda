@@ -22,6 +22,7 @@ open import LR-narrow.World
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal using
   (universal-body-imprecision; right-universal-body-imprecision)
+open import LR-narrow.CastObligations using (CastValueObligations)
 import proof.LR-narrow.Fundamental as Proof
 
 universal-body-fundamental-from-relation : ∀
@@ -94,6 +95,7 @@ right-universal-target-cast-body-fundamental : ∀
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
     {μᴵ : Consistency.Env∼ Δᴵ}
+    (ob : CastValueObligations)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)

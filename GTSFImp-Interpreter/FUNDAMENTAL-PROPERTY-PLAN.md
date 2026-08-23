@@ -54,7 +54,8 @@ Constructor coverage (25 CTI constructors):
 
 | status | constructors |
 |---|---|
-| closed by checked lemma | `x⊑x²`, `κ⊑κ²`, `blame⊑²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`, `cast⊑cast²`, `⊑cast²`, `cast⊑²`, `•⊑•²` at `∀⊑∀`, `•⊑²` at `∀⊑` |
+| closed by checked lemma | `x⊑x²`, `κ⊑κ²`, `blame⊑²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`, `•⊑•²` at `∀⊑∀`, `•⊑²` at `∀⊑` |
+| closed relative to `CastValueObligations` (Finding B) | `cast⊑cast²`, `⊑cast²`, `cast⊑²` |
 | open (M1, steps 6–8) | `Λ⊑Λ²`, `Λ⊑²`, `Λ⊑²-smart-comma` |
 | open (M2) | `⊑reveal²`, `⊑conceal²`, `reveal⊑²`, `conceal⊑²-seal-star-open`, `conceal⊑²-source-ok`, `reveal⊑reveal²`, `conceal⊑conceal²`, `packaged-seal-star²` |
 | open (M3) | `•⊑•²` at `∀⊑`, `bot-elim`; `•⊑²` at `∀⊑∀`, `∀★⊑★`, `∀⊑★`, `bot-elim`, `bot⊑★` |
@@ -187,6 +188,8 @@ one index lower). No well-founded measure was found (the ∀⊑-count of the
 derivation fails because `∀⊑` also derives `∀ A ⊑ ★`, so substituting a
 representation for a dynamic slot can re-create `∀⊑` nodes). Two ways
 out:
+  Resolution (2026-08-23): (a) adopted and checked (commit "Index the
+  computation relation by strictly available steps"); `make check` passes.
   (a) Recommended: change `ComputationsRelated` to quantify over `n < k`
       (index = number of imprecise steps strictly available). Then
       returned pairs always sit at index ≥ 1, `ValueImprecisionᵏ zero`
@@ -216,11 +219,19 @@ the same gas, so evaluating `forward-return` would loop. `related-value-
 casts` does the same through `related-value-casts-composed` for the cases
 `∀⊑∀`, `⇒⊑★`, `ι⊑★`, `X⊑★`, `∀⊑`, `∀⊑★`, and for `⇒⊑⇒` with `!`/`gen`
 casts (introduced in commit 73f1da81 in place of holes). These cases are
-therefore not proven; the cast compatibility lemma is closed only for the
-remaining cases. Genuine proofs need the cast to be decomposed by the
-cast reduction rules (ground/expand/tag-untag/β-⇒/β-∀/inst/gen) with a
+therefore not proven. Resolution (2026-08-23): the circular proofs were
+removed; the open statements are the record `CastValueObligations` in
+`LR-narrow/CastObligations.agda` (`precise-cast-values`,
+`imprecise-cast-values`, and `paired-cast-values` restricted to the
+enumerated `OpenPairedCastCase`), `proof/LR-narrow/Cast.agda` is
+parameterized by it, and `RemainingObligations.cast-values` carries it into
+the assembly. Genuine proofs need the cast to be decomposed by the cast
+reduction rules (ground/expand/tag-untag/β-⇒/β-∀/inst/gen) with a
 recursion on the consistency derivation, much as the `★⊑★` cases already
-do. Under (a) above these proofs also become simpler (no index-0 content).
+do. The remaining `TERMINATING` pragma on `related-value-casts` covers a
+recursion that is well founded by (index, derivation) but passes through
+the composition continuation; converting it into a checked well-founded
+recursion is follow-up work.
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

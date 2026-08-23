@@ -40,3 +40,6 @@ import proof.LR-narrow.FundamentalAssembly
 -- imprecision forms.
 import proof.LR-narrow.RevealSteps
 import proof.LR-narrow.RevealAtomic
+import proof.LR-narrow.FramePhases
+import proof.LR-narrow.FrameComposition
+import proof.LR-narrow.RevealFrames

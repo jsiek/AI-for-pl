@@ -2,6 +2,7 @@ module proof.LR-narrow.Fundamental where
 
 -- File Charter:
 --   * Constructs derivation-indexed fundamental-property evidence.
+--   * Packages and consumes symmetric universal body motives.
 --   * Handles the ordinary and smart one-sided universal constructors.
 --   * Packages compatible universal terms as target-first body motives.
 --   * Commutes target casts outward through right-universal body motives.
@@ -21,6 +22,49 @@ open import LR-narrow.World
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal
 open import LR-narrow.Cast using (right-cast-compatible)
+
+universal-body-fundamental-from-relation : ∀
+    {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Γᵇ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+    (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+  → (∀ k → CompiledUniversalBodyRelation
+      {W = W} (universal-body-imprecision {W = W} p)
+      Aᴾ Aᴵ k Γ Vᴾ Vᴵ)
+  → UniversalBodyFundamentalProperty {W = W} {Γ = Γ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
+      (universal-body-imprecision {W = W} p) body
+universal-body-fundamental-from-relation body related =
+  universal-body-proof related
+
+universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Γᵇ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+    (liftΓ : CTI.LiftCtx I.X⊑X Γ Γᵇ)
+    (vVᴾ : Value Vᴾ)
+    (vVᴵ : Value Vᴵ)
+    (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ `∀ Aᴵ)
+  → UniversalBodyFundamentalProperty {W = W} {Γ = Γ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
+      (universal-body-imprecision {W = W} p) body
+  → FundamentalProperty (CTIR.Λ⊑Λ² liftΓ vVᴾ vVᴵ body q)
+universal-fundamental liftΓ vVᴾ vVᴵ body q body-fundamental =
+  fundamental-proof λ k →
+    universal-compatible-from-body liftΓ vVᴾ vVᴵ body q
+      (λ i _ → universal-body-relation body-fundamental i)
 
 right-universal-body-fundamental-from-relation : ∀
     {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}

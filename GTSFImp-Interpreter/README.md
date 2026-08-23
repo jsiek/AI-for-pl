@@ -306,11 +306,24 @@ complete open-term relation.  The constructor-facing
 `CTI.Λ⊑²-smart-comma`, respectively.
 
 `FundamentalProperty` now indexes the ordinary open LR theorem by its exact
-CTI derivation.  `RightUniversalBodyFundamentalProperty` is the distinct
+CTI derivation.  `UniversalBodyFundamentalProperty` packages the paired,
+bind-first motive required immediately below `CTI.Λ⊑Λ²`, and
+`universal-fundamental` consumes it to prove the symmetric universal
+constructor.  `RightUniversalBodyFundamentalProperty` is the distinct
 target-first motive for a derivation immediately below either one-sided
 universal constructor.  `right-universal-fundamental` and
 `right-universal-smart-fundamental` consume that motive and construct the
 ordinary fundamental property of their conclusions.
+
+Constructing the paired motive by structural induction is not yet justified
+by the generic CTI transport driver.  Its `SourceBindTransport²ᵀ` and
+`BothBindTransport²ᵀ` cases are explicit parameters, not proved exports.
+Under a nested `Λ`, allocating the LR test binder and descending through the
+syntactic binder put the two fresh centers in opposite orders.  An OPE cannot
+swap them.  The missing prerequisite is the source-side insertion theorem
+identified in `GTSFImp/proof/DGG/notes/t4-d3-source-both-transport-gap.red`;
+the paired case can then combine source and target insertion.  The new body
+motive makes this boundary explicit and does not assume either transport.
 
 For a value target, the phase motive is now constructed rather than assumed.
 `related-target-value-phase` evaluates the closed target value immediately,

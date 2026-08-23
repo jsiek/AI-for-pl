@@ -239,6 +239,27 @@ record FundamentalProperty {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
 
 open FundamentalProperty public
 
+record UniversalBodyFundamentalProperty
+    {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Γᵇ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Cᴾ Cᴵ : Ty (suc Δᶜ)}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+    (pᵇ : I.extᵐ (impEnv (core W)) I.⊢ Cᴾ ⊑ Cᴵ)
+    (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p) : Set₁ where
+  constructor universal-body-proof
+  field
+    universal-body-relation : ∀ k
+      → CompiledUniversalBodyRelation {W = W}
+          pᵇ Aᴾ Aᴵ k Γ Vᴾ Vᴵ
+
+open UniversalBodyFundamentalProperty public
+
 record RightUniversalBodyFundamentalProperty
     {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}

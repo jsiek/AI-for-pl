@@ -2,6 +2,7 @@ module LR-narrow.Fundamental where
 
 -- File Charter:
 --   * Exposes derivation-indexed one-sided universal fundamental cases.
+--   * Exposes the symmetric universal body motive and constructor case.
 --   * Uses the phase-aware body motive from LR-narrow.TermRelation.
 --   * Packages ordinary universal relations as target-first body motives.
 --   * Commutes target casts outward through right-universal body motives.
@@ -19,8 +20,49 @@ import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
-open import LR-narrow.Universal using (right-universal-body-imprecision)
+open import LR-narrow.Universal using
+  (universal-body-imprecision; right-universal-body-imprecision)
 import proof.LR-narrow.Fundamental as Proof
+
+universal-body-fundamental-from-relation : ∀
+    {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Γᵇ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+    (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+  → (∀ k → CompiledUniversalBodyRelation
+      {W = W} (universal-body-imprecision {W = W} p)
+      Aᴾ Aᴵ k Γ Vᴾ Vᴵ)
+  → UniversalBodyFundamentalProperty {W = W} {Γ = Γ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
+      (universal-body-imprecision {W = W} p) body
+universal-body-fundamental-from-relation =
+  Proof.universal-body-fundamental-from-relation
+
+universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Γᵇ : CTI.CtxImp
+      (CTI.liftWorldBoth I.X⊑X (forgetWorld W))}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldBoth I.X⊑X (forgetWorld W) ⟩ Aᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
+    (liftΓ : CTI.LiftCtx I.X⊑X Γ Γᵇ)
+    (vVᴾ : Value Vᴾ)
+    (vVᴵ : Value Vᴵ)
+    (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ `∀ Aᴵ)
+  → UniversalBodyFundamentalProperty {W = W} {Γ = Γ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
+      (universal-body-imprecision {W = W} p) body
+  → FundamentalProperty (CTIR.Λ⊑Λ² liftΓ vVᴾ vVᴵ body q)
+universal-fundamental = Proof.universal-fundamental
 
 right-universal-body-fundamental-from-relation : ∀
     {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}

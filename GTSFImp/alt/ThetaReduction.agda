@@ -3,9 +3,10 @@ module alt.ThetaReduction where
 -- File Charter:
 --   * Defines values, results, term-variable substitution, and telescope-
 --     indexed one-step reduction for the Θ-indexed alternative syntax.
---   * Regular-type weakening descends through every term form, including ν
---     and crossing interiors; term substitution stops at those boundaries
---     because their typing requires literal closed term contexts `[]`.
+--   * Regular-type renaming uses the repository's context injections.  At a
+--     crossing it inserts or deletes the distinguished slot canonically;
+--     weakening is the derived skip-at-position instance.  Term substitution
+--     stops at closed crossing and ν interiors.
 --   * Evaluation descends beneath ν.  A ν-headed result floats through every
 --     demanded frame; siblings shift eagerly in the anchor context.
 --   * The binder telescope is otherwise an inert step index: `float-reveal`
@@ -34,7 +35,7 @@ open import alt.ThetaTyping
 private
   variable
     Θ Θ′ : AnchorCtx
-    Δ : TyCtx
+    Δ Δ′ : TyCtx
 
 ------------------------------------------------------------------------
 -- Term-variable renaming
@@ -64,85 +65,69 @@ rename ρ (ν[ A ] M) = ν[ A ] M
 rename ρ blame = blame
 
 ------------------------------------------------------------------------
--- Regular-type weakening of terms
+-- Type-variable renaming
 ------------------------------------------------------------------------
 
--- This is the insertion instance of regular-type renaming needed beneath Λ.
--- Types and evidence follow the live renamings, slots follow the insertion,
--- and anchors and raw conversion shapes are unchanged.
+-- Insert one matched source/target slot into an injection.  The new slot is
+-- placed at Y in the source and at the corresponding canonical position in
+-- the target.  Skipped target slots remain in their original order.
 
-insertEnv : ∀ {n} → TyVar (suc n) → Env∼ n → Env∼ (suc n)
-insertEnv zero μ zero = X∼X
-insertEnv zero μ (suc Y) = μ Y
-insertEnv {n = suc n} (suc X) μ zero = μ zero
-insertEnv {n = suc n} (suc X) μ (suc Y) =
-  insertEnv X (λ Z → μ (suc Z)) Y
+insert↪ᵗ : ∀ {Δ Δ′}
+  → Δ ↪ᵗ Δ′
+  → TyVar (suc Δ)
+  → suc Δ ↪ᵗ suc Δ′
+insert↪ᵗ ρ zero = keep ρ
+insert↪ᵗ (keep ρ) (suc Y) = keep (insert↪ᵗ ρ Y)
+insert↪ᵗ (skip ρ) (suc Y) = skip (insert↪ᵗ ρ (suc Y))
 
-insertEnv-punchIn : ∀ {n} (X : TyVar (suc n)) (μ : Env∼ n) Y
-  → insertEnv X μ (punchIn X Y) ≡ μ Y
-insertEnv-punchIn zero μ Y = refl
-insertEnv-punchIn {n = suc n} (suc X) μ zero = refl
-insertEnv-punchIn {n = suc n} (suc X) μ (suc Y) =
-  insertEnv-punchIn X (λ Z → μ (suc Z)) Y
+-- Delete one source slot and its image.  This is the factor of an injection
+-- used for the interior of a conceal node, whose conclusion binds that slot.
 
-weakenConsistency : ∀ {n} {μ : Env∼ n} {A B : Ty n}
-  → (X : TyVar (suc n))
-  → μ ⊢ A ∼ B
-  → insertEnv X μ ⊢ wkᵗ X A ∼ wkᵗ X B
-weakenConsistency {μ = μ} X c =
-  rename∼ (punchIn X) (insertEnv-punchIn X μ) c
+delete↪ᵗ : ∀ {Δ Δ′}
+  → suc Δ ↪ᵗ suc Δ′
+  → TyVar (suc Δ)
+  → Δ ↪ᵗ Δ′
+delete↪ᵗ (keep ρ) zero = ρ
+delete↪ᵗ {Δ = suc Δ} {Δ′ = zero} (keep ()) (suc Y)
+delete↪ᵗ {Δ = suc Δ} {Δ′ = suc Δ′} (keep ρ) (suc Y) =
+  keep (delete↪ᵗ ρ Y)
+delete↪ᵗ {Δ′ = zero} (skip ()) Y
+delete↪ᵗ {Δ′ = suc Δ′} (skip ρ) Y = skip (delete↪ᵗ ρ Y)
 
-underReveal : ∀ {n} → Fin (suc n) → Fin (suc n) → Fin (suc (suc n))
-underReveal zero zero = suc zero
-underReveal zero (suc Y) = zero
-underReveal (suc X) zero = suc (suc X)
-underReveal {n = suc n} (suc X) (suc Y) = suc (underReveal X Y)
+renameᵗᵐ : Δ ↪ᵗ Δ′ → Term Θ Δ → Term Θ Δ′
+renameᵗᵐ ρ (` x) = ` x
+renameᵗᵐ ρ (ƛ A ˙ M) =
+  ƛ renameᵗ (toRenameᵗ ρ) A ˙ renameᵗᵐ ρ M
+renameᵗᵐ ρ (L · M) = renameᵗᵐ ρ L · renameᵗᵐ ρ M
+renameᵗᵐ ρ (Λ M) = Λ (renameᵗᵐ (keep ρ) M)
+renameᵗᵐ ρ (L ⦂∀ C [ A ]) =
+  renameᵗᵐ ρ L ⦂∀ renameᵗ (toRenameᵗ (keep ρ)) C
+    [ renameᵗ (toRenameᵗ ρ) A ]
+renameᵗᵐ ρ ($ κ) = $ κ
+renameᵗᵐ ρ (L ⊕[ op ] M) =
+  renameᵗᵐ ρ L ⊕[ op ] renameᵗᵐ ρ M
+renameᵗᵐ ρ (M ⟨ c ⟩) = renameᵗᵐ ρ M ⟨ renameᵐᶜ ρ c ⟩
+renameᵗᵐ ρ (M ↑[ Y ≔ α ] c) =
+  renameᵗᵐ (insert↪ᵗ ρ Y) M
+    ↑[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ] c
+renameᵗᵐ (keep ρ) (M ↓[ Y ≔ α ] c) =
+  renameᵗᵐ (delete↪ᵗ (keep ρ) Y) M
+    ↓[ toRenameᵗ (keep ρ) Y ≔ α ] c
+renameᵗᵐ (skip ρ) (M ↓[ Y ≔ α ] c) =
+  renameᵗᵐ (delete↪ᵗ (skip ρ) Y) M
+    ↓[ toRenameᵗ (skip ρ) Y ≔ α ] c
+renameᵗᵐ ρ (ν[ A ] M) =
+  ν[ renameᵗ (toRenameᵗ ρ) A ] renameᵗᵐ ρ M
+renameᵗᵐ ρ blame = blame
 
-weakenRevealSlot : ∀ {n}
-  → Fin (suc n)
-  → Fin (suc n)
-  → Fin (suc (suc n))
-weakenRevealSlot zero zero = zero
-weakenRevealSlot zero (suc Y) = suc (suc Y)
-weakenRevealSlot (suc X) zero = zero
-weakenRevealSlot {n = suc n} (suc X) (suc Y) =
-  suc (weakenRevealSlot X Y)
+skipAt↪ᵗ : ∀ {Δ} → TyVar (suc Δ) → Δ ↪ᵗ suc Δ
+skipAt↪ᵗ zero = skip id↪ᵗ
+skipAt↪ᵗ {Δ = suc Δ} (suc X) = keep (skipAt↪ᵗ X)
 
-outsideConceal : ∀ {n}
-  → Fin (suc (suc n))
-  → Fin (suc n)
-  → Fin (suc n)
-outsideConceal zero Y = zero
-outsideConceal (suc X) zero = X
-outsideConceal {n = suc n} (suc X) (suc Y) =
-  suc (outsideConceal X Y)
-
-weakenConcealSlot : ∀ {n}
-  → Fin (suc (suc n))
-  → Fin (suc n)
-  → Fin (suc (suc n))
-weakenConcealSlot zero Y = suc Y
-weakenConcealSlot (suc X) zero = zero
-weakenConcealSlot {n = suc n} (suc X) (suc Y) =
-  suc (weakenConcealSlot X Y)
-
-weakenᵗᵐ : ∀ {Θ n} (X : TyVar (suc n)) → Term Θ n → Term Θ (suc n)
-weakenᵗᵐ X (` x) = ` x
-weakenᵗᵐ X (ƛ A ˙ M) = ƛ wkᵗ X A ˙ weakenᵗᵐ X M
-weakenᵗᵐ X (L · M) = weakenᵗᵐ X L · weakenᵗᵐ X M
-weakenᵗᵐ X (Λ M) = Λ weakenᵗᵐ (suc X) M
-weakenᵗᵐ X (L ⦂∀ C [ A ]) =
-  weakenᵗᵐ X L ⦂∀ wkᵗ (suc X) C [ wkᵗ X A ]
-weakenᵗᵐ X ($ κ) = $ κ
-weakenᵗᵐ X (L ⊕[ op ] M) =
-  weakenᵗᵐ X L ⊕[ op ] weakenᵗᵐ X M
-weakenᵗᵐ X (M ⟨ c ⟩) = weakenᵗᵐ X M ⟨ weakenConsistency X c ⟩
-weakenᵗᵐ X (M ↑[ Y ≔ α ] c) =
-  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealSlot X Y ≔ α ] c
-weakenᵗᵐ X (M ↓[ Y ≔ α ] c) =
-  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealSlot X Y ≔ α ] c
-weakenᵗᵐ X (ν[ A ] M) = ν[ wkᵗ X A ] weakenᵗᵐ X M
-weakenᵗᵐ X blame = blame
+weakenᵗᵐ : ∀ {Θ Δ} (X : TyVar (suc Δ))
+  → Term Θ Δ
+  → Term Θ (suc Δ)
+weakenᵗᵐ X = renameᵗᵐ (skipAt↪ᵗ X)
 
 ------------------------------------------------------------------------
 -- Term-variable substitution

@@ -85,6 +85,21 @@ open PreciseComposition concealFrame using () renaming
 -- Universal-free types
 ------------------------------------------------------------------------
 
+-- Non-occurrence is reflected by renaming.
+
+renameᵗ-reflects-∉ᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {X : TyVar Δ} (A : Ty Δ)
+  → ρ X ∉ᵗ renameᵗ ρ A → X ∉ᵗ A
+renameᵗ-reflects-∉ᵗ ρ (＇ Y) (∉-var ρX≢ρY) =
+  ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ ρX≢ρY (cong ρ eq)))
+renameᵗ-reflects-∉ᵗ ρ (‵ ι) no-occur = ∉-base
+renameᵗ-reflects-∉ᵗ ρ ★ no-occur = ∉-star
+renameᵗ-reflects-∉ᵗ ρ (A ⇒ B) (∉-fun absentA absentB) =
+  ∉-fun (renameᵗ-reflects-∉ᵗ ρ A absentA)
+    (renameᵗ-reflects-∉ᵗ ρ B absentB)
+renameᵗ-reflects-∉ᵗ ρ (`∀ A) (∉-all absentA) =
+  ∉-all (renameᵗ-reflects-∉ᵗ (extᵗ ρ) A absentA)
+
+
 data NoUniversal {Δ : TyCtx} : Ty Δ → Set where
   nu-var : ∀ {X} → NoUniversal (＇ X)
   nu-base : ∀ {ι} → NoUniversal (‵ ι)

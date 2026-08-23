@@ -68,6 +68,14 @@ open import proof.LR-narrow.SlotLifting
 open import proof.LR-narrow.RevealLifting
 open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
+open import proof.LR-narrow.StarNoOccurrence using
+  (star-no-occurrence; replaceTy-absent)
+open import proof.LR-narrow.PreciseReveal using
+  (NoUniversal; nu-fun; renameᵗ-NoUniversal;
+   renameᵗ-reflects-NoUniversal; renameᵗ-reflects-∉ᵗ;
+   precise-reveal; precise-conceal)
+open import proof.LR-narrow.KeepStepExpansion using
+  (related-imprecise-keep-step-expand)
 import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 open RA using
@@ -89,6 +97,9 @@ data RevealSafe {Δ} {μ : I.ImpEnv Δ} :
     → AtomicReveal p → RevealSafe p
   safe-⇒⊑⇒ : ∀ {A A′ B B′} {p : μ I.⊢ A ⊑ A′} {q : μ I.⊢ B ⊑ B′}
     → RevealSafe p → RevealSafe q → RevealSafe (I.⇒⊑⇒ p q)
+  safe-⇒⊑★ : ∀ {A B} {p : μ I.⊢ A ⊑ ★} {q : μ I.⊢ B ⊑ ★}
+    → NoUniversal A → NoUniversal B
+    → RevealSafe (I.⇒⊑★ p q)
   safe-bot-elim : RevealSafe I.bot-elim
   safe-bot⊑★ : RevealSafe I.bot⊑★
 ------------------------------------------------------------------------
@@ -121,6 +132,8 @@ safe-rename μ μ′ ρ injective h (safe-atomic a) =
 safe-rename μ μ′ ρ injective h (safe-⇒⊑⇒ sp sq) =
   safe-⇒⊑⇒ (safe-rename μ μ′ ρ injective h sp)
     (safe-rename μ μ′ ρ injective h sq)
+safe-rename μ μ′ ρ injective h (safe-⇒⊑★ nuA nuB) =
+  safe-⇒⊑★ (renameᵗ-NoUniversal ρ nuA) (renameᵗ-NoUniversal ρ nuB)
 safe-rename μ μ′ ρ injective h safe-bot-elim = safe-bot-elim
 safe-rename μ μ′ ρ injective h safe-bot⊑★ = safe-bot⊑★
 
@@ -1022,6 +1035,52 @@ reveal-conceal-step k below = reveal-at , conceal-at
     reveal-function W s p₁ p₂ safe₁ safe₂
       sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
       refl refl refl refl below related
+  reveal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂)
+      (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      with rename-star-injective _ sourceᴵ
+  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
+      with reveal-id-step-question {Σ = impreciseStore (core W)} ★
+             (imprecise-value
+               (ClosureProof.value-imprecision-endpoints related))
+  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
+      | vVᴵ , step-eqᴵ =
+    related-imprecise-keep-step-expand (λ ())
+      (reveal-id-value-none ★ vVᴵ) (pure-step (id-reveal vVᴵ)) step-eqᴵ
+      (ClosureProof.computations-related-reindex
+        (I.⇒⊑★ p₁ p₂) q (trans (sym sourceᴾ) precise-target)
+        (trans (sym sourceᴵ) targetᴵ) refl refl
+        (precise-reveal W s (I.⇒⊑★ p₁ p₂) endpoint-nu endpoint-absent
+          sourceᴾ related))
+    where
+    slot-absent : slotXᴾ s ∉ᵗ Bᴾ
+    slot-absent = renameᵗ-reflects-∉ᵗ
+      (toRenameᵗ (preciseEmbedding (core W))) Bᴾ
+      (subst≡ (_∉ᵗ embedPrecise (core W) Bᴾ)
+        (sym (preciseAligned (atom s)))
+        (star-no-occurrence (center s) (mode-eq s)
+          (subst≡ (λ A → impEnv (core W) I.⊢ A ⊑ ★) (sym sourceᴾ)
+            (I.⇒⊑★ p₁ p₂))))
+
+    endpoint-absent : slotXᴾ s ∉ᵗ Bᴾ
+    endpoint-absent = slot-absent
+
+    endpoint-nu : NoUniversal Bᴾ
+    endpoint-nu = renameᵗ-reflects-NoUniversal
+      (toRenameᵗ (preciseEmbedding (core W))) Bᴾ
+      (subst≡ NoUniversal (sym sourceᴾ) (nu-fun-center nuAc nuBc))
+      where
+      nu-fun-center : ∀ {A B : Ty _} → NoUniversal A → NoUniversal B
+        → NoUniversal (A ⇒ B)
+      nu-fun-center = nu-fun
+
+    precise-target : embedPrecise (core W) Bᴾ ≡ _
+    precise-target = trans
+      (cong (embedPrecise (core W))
+        (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
+      targetᴾ
   reveal-at W s I.bot-elim safe-bot-elim sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (no-precise-bottom-value related)
@@ -1058,6 +1117,49 @@ reveal-conceal-step k below = reveal-at , conceal-at
     conceal-function W s p₁ p₂ safe₁ safe₂
       sourceᴾ₁ sourceᴵ₁ sourceᴵ₂′ sourceᴵ₂ q₁ q₂
       refl refl refl refl below related
+  conceal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂)
+      (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      with rename-star-injective _ sourceᴵ
+  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
+      with conceal-id-step-question {Σ = impreciseStore (core W)} ★
+             (imprecise-value
+               (ClosureProof.value-imprecision-endpoints related))
+  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) (safe-⇒⊑★ nuAc nuBc)
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
+      | vVᴵ , step-eqᴵ =
+    related-imprecise-keep-step-expand (λ ())
+      (conceal-id-value-none ★ vVᴵ) (pure-step (id-conceal vVᴵ))
+      step-eqᴵ
+      (precise-conceal W s (I.⇒⊑★ p₁ p₂) endpoint-nu endpoint-absent
+        sourceᴾ
+        (ClosureProof.value-imprecision-reindex
+          (I.⇒⊑★ p₁ p₂) q (trans (sym sourceᴾ) precise-target)
+          (trans (sym sourceᴵ) targetᴵ) related))
+    where
+    slot-absent : slotXᴾ s ∉ᵗ Bᴾ
+    slot-absent = renameᵗ-reflects-∉ᵗ
+      (toRenameᵗ (preciseEmbedding (core W))) Bᴾ
+      (subst≡ (_∉ᵗ embedPrecise (core W) Bᴾ)
+        (sym (preciseAligned (atom s)))
+        (star-no-occurrence (center s) (mode-eq s)
+          (subst≡ (λ A → impEnv (core W) I.⊢ A ⊑ ★) (sym sourceᴾ)
+            (I.⇒⊑★ p₁ p₂))))
+
+    endpoint-absent : slotXᴾ s ∉ᵗ Bᴾ
+    endpoint-absent = slot-absent
+
+    endpoint-nu : NoUniversal Bᴾ
+    endpoint-nu = renameᵗ-reflects-NoUniversal
+      (toRenameᵗ (preciseEmbedding (core W))) Bᴾ
+      (subst≡ NoUniversal (sym sourceᴾ) (nu-fun nuAc nuBc))
+
+    precise-target : embedPrecise (core W) Bᴾ ≡ _
+    precise-target = trans
+      (cong (embedPrecise (core W))
+        (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
+      targetᴾ
   conceal-at W s I.bot-elim safe-bot-elim sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (bottom-conceal-impossible W s sourceᴾ q targetᴾ related)

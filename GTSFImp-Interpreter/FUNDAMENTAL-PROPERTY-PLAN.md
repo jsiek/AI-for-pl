@@ -106,7 +106,26 @@ lifting of insertions, not derivation-level transport.
    The alternative is to change the LR's universal clauses to test only
    the canonical atom; that touches the LR definition, its recursion
    structure, `Closure.agda`, and every universal lemma, and forfeits
-   parametricity. Decision pending.
+   parametricity. Decision (2026-08-23): keep parametricity; pursue a–c.
+   Blocking finding (2026-08-23), found while designing 6a: semantic atoms
+   are lifted to future worlds by `Atoms.weaken-semantic-atom`, whose
+   relation is `LiftedRelation`, relating only *weakenings* of values from
+   the allocation world. Hence in any future world a value of the fresh
+   type `＇0` that mentions a later-allocated name is never atom-related,
+   for every atom, canonical or not. The reveal at a negative occurrence
+   of `＇0` seals arguments obtained in future worlds (rule
+   `(V ↑ (c ↦↑ d)) · W —→ (V · (W ↓ c)) ↑ d`), so the body's function
+   relation cannot be applied to them. Concrete non-derivable instance:
+   the Church numeral `Λ λg λx. g x` at `∀ ((＇0 ⇒ ＇0) ⇒ ＇0 ⇒ ＇0)`
+   instantiated at `★`, where `g` may return a `★` value carrying a name
+   allocated during its own evaluation. The universal clause is
+   semantically true for it but not derivable from the body relation.
+   Required LR repair: make atom relations Kripke (indexed by the
+   extension of the allocation world, e.g. by the endpoint OPEs or by a
+   core insertion), with monotonicity in place of `LiftedRelation`;
+   `weaken-semantic-atom` then precomposes the extension. This touches
+   `Atoms.agda`, `World.agda`, `Closure.agda`, and the paired/dynamic atom
+   constructions in `TypeApplication.agda`. Decision pending.
 7. Close `Λ⊑Λ²`: lift the insertion under the binder
    (`WorldInsert.liftBoth-insert`, checked), instantiate the hypothesis at
    the canonical-atom test world, apply 6b, transfer by 6c to the

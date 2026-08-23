@@ -75,3 +75,23 @@ non-binder cases are wrappers; `ƛ` needs the context-extension case of
 
 The rebase constructors (Milestone 2) keep their obligations, now stated
 under an insertion; rebase × insertion commutation is needed on any route.
+
+## Atom lifting (finding of 2026-08-23)
+
+The insertion motive makes the universal introduction hypothesis available
+at every semantic world, including any world whose entry at the fresh
+center is chosen freely. That is still insufficient with the present
+`Atoms.agda`: every atom is lifted to future worlds by `LiftedRelation`,
+which relates only weakenings of allocation-world values, so sealed values
+built from later arguments are never related at the fresh center.
+
+```text
+      W_bind (atom a)  ≼  K (atom: LiftedRelation a)  ≼  J (LiftedRelation²)
+sealed arg a ↓ seal 0 R at K:  related at ＇0 only if a = ⇑ᵗᵐ a₀
+```
+
+The fix is a Kripke atom: the relation is a family over extensions of the
+allocation world, monotone along further extensions, and
+`weaken-semantic-atom` precomposes the extension instead of wrapping the
+relation. A canonical atom for `r : R ⊑ᵂ R′` is then definable as
+"sealed payloads related at the lifted `r` in the current extension".

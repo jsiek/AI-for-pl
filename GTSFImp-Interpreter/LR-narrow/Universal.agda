@@ -99,6 +99,18 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
 right-universals-related-from-body {W = W} {p = p} =
   Proof.right-universals-related-from-body {W = W} {p = p}
 
+right-universal-phase-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → Value Vᴾ
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+right-universal-phase-compatible =
+  Proof.right-universal-phase-compatible
+
 right-universal-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     {Γ : CTI.CtxImp (forgetWorld W)}
@@ -121,6 +133,28 @@ right-universal-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
   → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
 right-universal-compatible-from-body =
   Proof.right-universal-compatible-from-body
+
+right-universal-smart-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ Δᵐ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Wᵐ : CTI.World (suc Δᴾ) Δᴵ Δᵐ}
+    {Γᵐ : CTI.CtxImp Wᵐ}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨ Wᵐ ⟩ Bᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (smart : CTI.SmartCommaLiftᴸ (forgetWorld W) Wᵐ)
+  → (liftΓ : CTI.SmartLiftCtxᴸ Γ Γᵐ)
+  → (vVᴾ : Value Vᴾ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Mᴵ ⦂ Bᴵ
+  → Wᵐ ∣ Γᵐ ⊢² Vᴾ ⊑ Mᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+right-universal-smart-compatible-from-body =
+  Proof.right-universal-smart-compatible-from-body
 
 right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

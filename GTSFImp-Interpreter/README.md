@@ -293,15 +293,23 @@ first.  `TargetComputationPhase` records a target return, relates every
 observed returned value in a world whose path realizes exactly its store
 changes, and excludes target blame.  Its returned `FutureValueRelation`
 therefore chooses every precise-only universal test after the target program's
-allocations.  `right-universal-compatible-from-body` converts this phase to
-the complete open-term compatibility theorem for general `CTI.Λ⊑²`.
+allocations.  `right-universal-phase-compatible` converts this phase to the
+complete open-term relation.  The constructor-facing
+`right-universal-compatible-from-body` and
+`right-universal-smart-compatible-from-body` specialize it to `CTI.Λ⊑²` and
+`CTI.Λ⊑²-smart-comma`, respectively.
 
 The remaining fundamental-property obligation is to construct that
 phase-aware body premise from the recursive CTI premise.  The old
 bind-first relation remains named `CompiledRightUniversalTestRelation` so the
 already checked value-target proof and its test construction stay explicit.
-The subsequent one-sided universal case is `CTI.Λ⊑²-smart-comma`, whose
-smart source-world lift additionally requires the corresponding LR transport.
+The smart-comma compatibility case is therefore complete at the same
+phase-aware induction-hypothesis interface.  Its structural guard alone does
+not construct that premise: `SmartCommaLiftᴸ` transports CTI imprecision and
+marks, but carries neither the semantic entries of an LR world nor a semantic
+relation for an alias-merged center.  A fundamental-property traversal must
+carry the phase-aware premise as its induction hypothesis; it cannot derive it
+by reinterpreting the arbitrary guarded CTI premise world after the fact.
 
 Structural universal elimination now handles `CTI.•⊑•²`. Evaluation is
 split into the operator and pre-allocation application phases, the universal

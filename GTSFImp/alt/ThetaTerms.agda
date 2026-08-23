@@ -27,7 +27,7 @@ open import Consistency
 open import alt.Conversion
 
 ------------------------------------------------------------------------
--- Anchor telescopes
+-- Anchor Contexts
 ------------------------------------------------------------------------
 
 AnchorCtx : Set
@@ -37,25 +37,6 @@ private
   variable
     Θ Θ′ : AnchorCtx
     Δ : TyCtx
-
--- Indexed by the type context its entries generate: the entry added by
--- tele-bind is a type over the context of the rest of the telescope.
-data Tele : TyCtx → Set where
-  tele-empty : Tele zero
-  tele-bind : ∀ {Δᵀ} → Tele Δᵀ → Ty Δᵀ → Tele (suc Δᵀ)
-
-infix 4 _∋ν_⦂_
-
-data _∋ν_⦂_ : ∀ {Δᵀ} → Tele Δᵀ → TyVar Δᵀ → Ty Δᵀ → Set where
-  Zν : ∀ {Δᵀ} {Ξ : Tele Δᵀ} {R : Ty Δᵀ} {S : Ty (suc Δᵀ)}
-    → S ≡ ⇑ᵗ R
-    → tele-bind Ξ R ∋ν zero ⦂ S
-
-  Sν : ∀ {Δᵀ} {Ξ : Tele Δᵀ} {α : TyVar Δᵀ} {R A : Ty Δᵀ}
-      {S : Ty (suc Δᵀ)}
-    → Ξ ∋ν α ⦂ R
-    → S ≡ ⇑ᵗ R
-    → tele-bind Ξ A ∋ν suc α ⦂ S
 
 ------------------------------------------------------------------------
 -- Terms

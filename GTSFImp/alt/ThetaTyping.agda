@@ -11,225 +11,169 @@ module alt.ThetaTyping where
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (zero; suc)
+open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
-open import TermCtx
 open import Primitives
 open import Consistency
 open import alt.ThetaTerms
 open import alt.Conversion
 
 ------------------------------------------------------------------------
--- Regular-variable classifier
+-- Anchor telescopes
 ------------------------------------------------------------------------
 
 private
   variable
-    Θ : AnchorCtx
+    Θ Θ′ : AnchorCtx
     Δ : TyCtx
-
-data Binding (Θ : AnchorCtx) : Set where
-  ∀-bound : Binding Θ
-  slot≔ : TyVar Θ → Binding Θ
-
-infixr 5 _∷_
-
-data Classifier (Θ : AnchorCtx) : TyCtx → Set where
-  [] : Classifier Θ zero
-  _∷_ : ∀ {Δ} → Binding Θ → Classifier Θ Δ
-    → Classifier Θ (suc Δ)
-
-lookupClassifier : Classifier Θ Δ → TyVar Δ → Binding Θ
-lookupClassifier (b ∷ κ) zero = b
-lookupClassifier (b ∷ κ) (suc Y) = lookupClassifier κ Y
-
-insert∀ : Classifier Θ Δ → Classifier Θ (suc Δ)
-insert∀ κ = ∀-bound ∷ κ
-
-insertSlot : TyVar (suc Δ) → TyVar Θ
-  → Classifier Θ Δ → Classifier Θ (suc Δ)
-insertSlot zero α κ = slot≔ α ∷ κ
-insertSlot (suc Y) α (b ∷ κ) = b ∷ insertSlot Y α κ
-
-------------------------------------------------------------------------
--- Spelling: one representation, written in two type contexts
-------------------------------------------------------------------------
-
--- `Spell κ A R` says that A (over the ambient regular context) and R (over
--- the telescope's type context) are the same representation, written in the
--- two contexts, according to κ.  Its generalized core makes a type-local `∀` binder on
--- each side correspond exactly as `LiftRel` did for v2 transport.
-
-VarSpell : TyCtx → TyCtx → Set₁
-VarSpell Δ Δᵀ = TyVar Δ → Ty Δᵀ → Set
-
-data ClassifierSpell {Θ Δ} (κ : Classifier Θ Δ) : VarSpell Δ Θ where
-  spell-slot : ∀ {Y α}
-    → lookupClassifier κ Y ≡ slot≔ α
-    → ClassifierSpell κ Y (＇ α)
-
--- There is intentionally no `∀-bound` case above.  Lexical variables are
--- unspellable: this is the preservation guard that keeps them from being
--- spelled into the telescope's type context.
-
-data LiftSpell {Θ Δ} (ρ : VarSpell Δ Θ) :
-    VarSpell (suc Δ) (suc Θ) where
-  spell-zero : LiftSpell ρ zero (＇ zero)
-
-  spell-suc : ∀ {Y A B}
-    → ρ Y A
-    → B ≡ ⇑ᵗ A
-    → LiftSpell ρ (suc Y) B
-
-data SpellBy {Θ Δ} (ρ : VarSpell Δ Θ) : Ty Δ → Ty Θ → Set where
-  spell-by-var : ∀ {Y A}
-    → ρ Y A
-    → SpellBy ρ (＇ Y) A
-
-  spell-base : ∀ {ι}
-    → SpellBy ρ (‵ ι) (‵ ι)
-
-  spell-star : SpellBy ρ ★ ★
-
-  spell-fun : ∀ {A B R S}
-    → SpellBy ρ A R
-    → SpellBy ρ B S
-    → SpellBy ρ (A ⇒ B) (R ⇒ S)
-
-  spell-all : ∀ {A R}
-    → SpellBy (LiftSpell ρ) A R
-    → SpellBy ρ (`∀ A) (`∀ R)
-
-Spell : Classifier Θ Δ → Ty Δ → Ty Θ → Set
-Spell κ = SpellBy (ClassifierSpell κ)
-
-spell-var : ∀ {κ : Classifier Θ Δ} {Y α}
-  → lookupClassifier κ Y ≡ slot≔ α
-  → Spell κ (＇ Y) (＇ α)
-spell-var eq = spell-by-var (spell-slot eq)
 
 ------------------------------------------------------------------------
 -- Typing contexts
 ------------------------------------------------------------------------
 
-record Ctx : Set where
-  constructor ⟨_,_,_,_,_⟩
-  field
-    Θᵉ : AnchorCtx
-    Ξᵉ : Tele Θᵉ
-    Δᵉ : TyCtx
-    κᵉ : Classifier Θᵉ Δᵉ
-    Γᵉ : TermCtx Δᵉ
+infixl 5 _,typ[_]
+infixl 5 _,_
+infixl 5 _,:=_
 
-open Ctx public
+data Ctx : AnchorCtx → TyCtx → Set where
+  _,typ[_] : Ctx Θ Δ → TyVar (suc Δ) → Ctx Θ (suc Δ)
+  _,_ : Ctx Θ Δ → Ty Δ → Ctx Θ Δ        -- term var. bound by a λ
+  _,:=_ : Ctx Θ Δ → Ty Δ → Ctx (suc Θ) Δ  -- anchor var. bound by a ν
 
-infixl 5 _,ᶜ_
+private
+  variable
+    Γ Γ′ : Ctx Θ Δ
+    A B C : Ty Δ
+    x y z : Var
+    a b : TyVar Θ
 
-_,ᶜ_ : (Γ : Ctx) → Ty (Δᵉ Γ) → Ctx
-⟨ Θ , Ξ , Δ , κ , Γ ⟩ ,ᶜ A =
-  ⟨ Θ , Ξ , Δ , κ , A ∷ Γ ⟩
+infix 4 _∋_⦂_
 
-∀-ctx : Ctx → Ctx
-∀-ctx ⟨ Θ , Ξ , Δ , κ , Γ ⟩ =
-  ⟨ Θ , Ξ , suc Δ , insert∀ κ , ⇑ᶜ Γ ⟩
+data _∋_⦂_ : ∀ {Θ Δ} → Ctx Θ Δ → ℕ → Ty Δ → Set where
+  Z :
+      -----------------
+     (Γ , A) ∋ zero ⦂ A
 
-infix 4 _∋ᵗ_⦂_
+  S :
+      Γ ∋ x ⦂ A
+      -------------------
+    → (Γ , B) ∋ suc x ⦂ A
 
-_∋ᵗ_⦂_ : (Γ : Ctx) → Var → Ty (Δᵉ Γ) → Set
-Γ ∋ᵗ x ⦂ A = TermCtx._∋_⦂_ (Γᵉ Γ) x A
+  skip-rep :
+      Γ ∋ x ⦂ A
+      -------------------
+    → (Γ ,:= B) ∋ x ⦂ A
 
-------------------------------------------------------------------------
--- Pointwise anchor weakening for the ν consumer
-------------------------------------------------------------------------
+  skip-typ : ∀ {Θ Δ} {Γ : Ctx Θ Δ} {x} {A : Ty Δ}
+      {Y : TyVar (suc Δ)}
+    → Γ ∋ x ⦂ A
+      -------------------
+    → (Γ ,typ[ Y ]) ∋ x ⦂ wkᵗ Y A
 
-weakenBinding : Binding Θ → Binding (suc Θ)
-weakenBinding ∀-bound = ∀-bound
-weakenBinding (slot≔ α) = slot≔ (suc α)
 
-weakenClassifier : Classifier Θ Δ → Classifier (suc Θ) Δ
-weakenClassifier [] = []
-weakenClassifier (b ∷ κ) = weakenBinding b ∷ weakenClassifier κ
+infix 4 _∋_:=_
+data _∋_:=_ : ∀ {Θ Δ} → Ctx Θ Δ → TyVar Θ → Ty Δ → Set where
+  Z :
+      --------------------
+     (Γ ,:= A) ∋ zero := A
+
+  S :
+      Γ ∋ a := A
+      ----------------------
+    → (Γ ,:= B) ∋ suc a := A
+
+  skip-typ : ∀ {Θ Δ} {Γ : Ctx Θ Δ} {a} {A : Ty Δ}
+      {Y : TyVar (suc Δ)}
+    → Γ ∋ a := A
+      -------------------
+    → (Γ ,typ[ Y ]) ∋ a := wkᵗ Y A
+
+  skip-trm :
+      Γ ∋ a := A
+      -------------------
+    → (Γ , B) ∋ a := A
 
 ------------------------------------------------------------------------
 -- Typing
 ------------------------------------------------------------------------
 
+private
+  variable
+    L M N : Term Θ Δ
+
 infix 4 _⊢_⦂_
 
-data _⊢_⦂_ : (Γ : Ctx)
-    → Term (Θᵉ Γ) (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
-  ⊢` : ∀ {Γ x A}
-    → Γ ∋ᵗ x ⦂ A
+data _⊢_⦂_ : ∀ {Θ Δ}
+  → Ctx Θ Δ → Term Θ Δ → Ty Δ → Set where
+  ⊢` :
+      Γ ∋ x ⦂ A
       ---------------
     → Γ ⊢ (` x) ⦂ A
 
-  ⊢ƛ : ∀ {Γ A B M}
-    → Γ ,ᶜ A ⊢ M ⦂ B
+  ⊢ƛ :
+      Γ , A ⊢ M ⦂ B
       -------------------------
     → Γ ⊢ (ƛ A ˙ M) ⦂ (A ⇒ B)
 
-  ⊢· : ∀ {Γ A B L M}
-    → Γ ⊢ L ⦂ (A ⇒ B)
+  ⊢· :
+      Γ ⊢ L ⦂ (A ⇒ B)
     → Γ ⊢ M ⦂ A
       ------------------------------
     → Γ ⊢ (L · M) ⦂ B
 
-  -- DEFERRED: value restriction
-  ⊢Λ : ∀ {Γ A M}
-    → ∀-ctx Γ ⊢ M ⦂ A
-      --------------------
+--   -- DEFERRED: value restriction
+  ⊢Λ :
+      Γ ,typ[ zero ] ⊢ M ⦂ A
+      ------------------
     → Γ ⊢ (Λ M) ⦂ (`∀ A)
 
-  ⊢⦂∀ : ∀ {Γ C A L}
-    → Γ ⊢ L ⦂ `∀ C
+  ⊢⦂∀ :
+      Γ ⊢ L ⦂ `∀ C
       -----------------------------
     → Γ ⊢ L ⦂∀ C [ A ] ⦂ C [ A ]ᵗ
 
-  ⊢$ : ∀ {Γ} (κ : Const)
+  ⊢$ : ∀ (κ : Const)
       -----------------------
     → Γ ⊢ ($ κ) ⦂ constTy κ
 
-  ⊢⊕ : ∀ {Γ L M}
-    → (op : Prim)
+  ⊢⊕ :
+      (op : Prim)
     → Γ ⊢ L ⦂ primArgTy op
     → Γ ⊢ M ⦂ primArgTy op
       -------------------------------------
     → Γ ⊢ (L ⊕[ op ] M) ⦂ primResultTy op
 
-  ⊢⟨⟩ : ∀ {Γ M A B μ}
+  ⊢⟨⟩ : ∀ {μ}
     → Γ ⊢ M ⦂ A
     → (c : μ ⊢ A ∼ B)
       -----------------
     → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
-  ⊢ν : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
-      {Γ : TermCtx Δ} {R : Ty Θ} {M B}
-    → ⟨ suc Θ , tele-bind Ξ R , Δ , weakenClassifier κ , [] ⟩
-        ⊢ M ⦂ B
-      --------------------------------------
-    → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ ν[ R ] M ⦂ B
+  ⊢ν :
+      Γ ,:= A ⊢ M ⦂ B
+      ----------------
+    → Γ ⊢ ν[ A ] M ⦂ B
 
-  ⊢reveal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
-      {Γ : TermCtx Δ} {M A B Y α R R′ c}
-    → Ξ ∋ν α ⦂ R
-    → Spell (insertSlot Y α κ) R′ R
-    → ⊢↑[ Y ⦂ R′ ] c ⦂ A ↝ wkᵗ Y B
-    → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , [] ⟩ ⊢ M ⦂ A
+  ⊢reveal : ∀ {Θ Δ} {Γ : Ctx Θ Δ} {M : Term Θ (suc Δ)}
+      {A : Ty (suc Δ)} {B C : Ty Δ} {Y : TyVar (suc Δ)}
+      {α : TyVar Θ} {c : Reveal}
+    → Γ ∋ α := C
+    → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
+    → Γ ,typ[ Y ] ⊢ M ⦂ A
       --------------------------------------------
-    → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ M ↑[ Y ≔ α ] c ⦂ B
+    → Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
-  ⊢conceal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
-      {Γ′ : TermCtx (suc Δ)} {M A B Y α R R′ c}
-    → Ξ ∋ν α ⦂ R
-    → Spell (insertSlot Y α κ) R′ R
-    → ⊢↓[ Y ⦂ R′ ] c ⦂ wkᵗ Y A ↝ B
-    → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
-      -------------------------------------------
-    → ⟨ Θ , Ξ , suc Δ , insertSlot Y α κ , Γ′ ⟩
-        ⊢ M ↓[ Y ≔ α ] c ⦂ B
+  ⊢conceal : ∀ {Θ Δ} {Γ : Ctx Θ Δ} {M : Term Θ Δ}
+      {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
+      {α : TyVar Θ} {c : Conceal}
+    → Γ ∋ α := C
+    → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
+    → Γ ⊢ M ⦂ A
+      --------------------------------------------
+    → Γ ,typ[ Y ] ⊢ M ↓[ Y ≔ α ] c ⦂ B
 
-  ⊢blame : ∀ {Γ A}
+  ⊢blame :
       ---------------
-    → Γ ⊢ blame ⦂ A
+      Γ ⊢ blame ⦂ A

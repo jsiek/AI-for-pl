@@ -60,47 +60,55 @@ Constructor coverage (25 CTI constructors):
 
 ## Next milestones
 
-### 1. Complete the universal body inductions
+### 1. Insertion-generalized fundamental recursion
 
-1. Prove the source-side insertion operation identified in
-   `GTSFImp/proof/DGG/notes/t4-d3-source-both-transport-gap.red`.
-2. Combine source and target insertion to obtain the paired insertion needed
-   when an LR test binder and a nested syntactic type binder occur in opposite
-   center orders.
-3. Use those results to provide checked inhabitants of
-   `SourceBindTransport²ᵀ` and `BothBindTransport²ᵀ`, which are currently
-   parameters of the generic term-imprecision transport driver.
-4. Define the recursive symmetric body induction producing
-   `UniversalBodyFundamentalProperty` for the premise of `CTI.Λ⊑Λ²`.
-5. Define the recursive one-sided body induction producing
-   `RightUniversalBodyFundamentalProperty` for both `CTI.Λ⊑²` variants.
-   Cover value targets, target casts, the remaining non-value target
-   constructors, nested universals, and the smart-comma case. Do not treat
-   `SmartCommaLiftᴸ` as semantic world transport: any alias-merged center must
-   receive the LR semantic entry required by the body relation.
+Decision (2026-08-23): replace syntactic transport of body derivations by a
+recursion motive generalized over a *center insertion* from the derivation's
+syntactic world into the semantic world. Design in
+`INSERTION-MOTIVE-DESIGN.md`. The induction hypothesis is then applied to the
+literal premise in every case; the universal cases need only world-level
+lifting of insertions, not derivation-level transport.
 
-This milestone is complete only when the body motives are derived by
-structural induction rather than supplied as assumptions to the outer
-constructor lemmas.
+1. Define `WorldInsert ρᴾ ρᴵ π Wᶜ W′` in `GTSFImp/proof/DGG/WorldInsert.agda`
+   (both-sided generalization of `TargetExtend.TargetInsert`), with
+   transport of `_⊑ᵂ⟨_⟩_`, of `CtxImp`, and of context lookup.
+2. Prove the lifting lemmas: an insertion `Wᶜ ↪ W′` lifts to
+   `liftWorldBoth X⊑X Wᶜ ↪ bothBindWorld X⊑X W′ R R′`,
+   `liftWorldLeft X⊑★ Wᶜ ↪ leftOnlyWorld X⊑★ W′ R`, and the smart-comma
+   premise world; and insertions compose with LR `Future`s.
+3. Define the generalized motive `InsertedFundamental` in
+   `LR-narrow/TermRelation.agda`: for every semantic `W` and insertion
+   `ins : Wᶜ ↪ forgetWorld W`, the open relation holds for the renamed
+   endpoint terms, transported context, and transported type imprecision.
+   The identity insertion recovers `FundamentalProperty`.
+4. Restate the compatibility lemmas without derivation premises (typing
+   premises where typing is needed: `lambda`, casts), so that they apply to
+   renamed terms. `application` and `primitive` already ignore them.
+5. Re-assemble `FundamentalAssembly` on the new motive for the non-binder
+   constructors, then `ƛ⊑ƛ²`.
+6. Prove reveal compatibility at a fresh paired center: values related at
+   `B` in the bound extension give `V ↑ 〖 zero , ⇑R ↑ B 〗` related at
+   `B [ R ]ᵗ ⊑ B′ [ R′ ]ᵗ`. No LR lemma treats `_↑_`/`_↓_` conversions yet;
+   this is needed by every route to the universal body motive and is the
+   core of Milestone 2's `reveal⊑reveal²`.
+7. Close `Λ⊑Λ²` from the lifted insertion, the hypothesis, and 6.
+8. Close `Λ⊑²` and `Λ⊑²-smart-comma` likewise (precise-only lift and
+   `X⊑★` reveal on the source side only; target unchanged); cover nested
+   universals by composition of insertions. Do not treat `SmartCommaLiftᴸ`
+   as semantic world transport: any alias-merged center must receive the LR
+   semantic entry required by the body relation.
 
-Cost note (2026-08-23): the existing target-side analogue,
-`GTSFImp/proof/DGG/TargetExtend.agda`, is 3.7k lines (plus 1.2k in
-`CenterRename.agda`), with one lifting lemma per world former and a 350-line
-derivation recursion. Steps 1–3 above are a comparable investment for the
-source side and again for the paired version. Before starting, decide between
-this route and the alternative below.
+This milestone is complete when `RemainingObligations` no longer has body
+motive fields and `Assembly.fundamental` closes the three universal
+introduction constructors by recursion.
 
-Alternative to evaluate: generalize the recursion motive over a center
-insertion from the derivation's syntactic world into the semantic world
-(instead of transporting the derivation syntactically). The LR compatibility
-lemmas are largely derivation-free (`application-compatible` and
-`primitive-compatible` ignore their derivation premises; the cast and lambda
-lemmas use them only for endpoint typing), so they may survive a renamed
-restatement. The rebase × insertion commutation lemmas are needed on either
-route. Note that structural recursion alone cannot close the universal cases:
-the test binder is allocated at a *future* world, so the future's allocations
-fall behind the syntactic binder; if transported sub-derivations must feed the
-recursion, recurse on derivation height rather than structure.
+Superseded route, kept for reference: inhabit `SourceBindTransport²ᵀ` and
+`BothBindTransport²ᵀ` via a source-side and a paired analogue of
+`TargetExtend.⊢²-target-insert` (see
+`GTSFImp/proof/DGG/notes/t4-d3-source-both-transport-gap.red`). Cost
+estimate: `TargetExtend.agda` is 3.7k lines plus 1.2k in
+`CenterRename.agda`; each analogue is comparable, and transported
+sub-derivations would require height recursion.
 
 ### 2. Prove compatibility for the rebase-sensitive cast forms
 

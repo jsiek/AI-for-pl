@@ -56,8 +56,6 @@ open import proof.LR-narrow.KeepStepExpansion using
 open import proof.LR-narrow.RevealSteps
 open import proof.LR-narrow.RevealLifting using
   (PairedSlot; paired-slot; center; atom; entry-eq; mode-eq)
-open import proof.LR-narrow.RevealStructural using
-  (slotXᴾ; slotXᴵ; slotRᴾ; slotRᴵ; no-precise-bottom-value)
 open import proof.LR-narrow.StarNoOccurrence using (replaceTy-absent)
 open import proof.LR-narrow.CastComposition using
   (computations-related-future-compose)
@@ -70,8 +68,9 @@ open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
 open import proof.LR-narrow.RevealLifting using
   (slot-future; liftPreciseTerm-reveal; liftPreciseTerm-conceal)
-open import proof.LR-narrow.RevealStructural using
-  (transported-reveal-eq; transported-conceal-eq;
+open import proof.LR-narrow.SlotLifting using
+  (slotXᴾ; slotXᴵ; slotRᴾ; slotRᴵ;
+   transported-reveal-eq; transported-conceal-eq;
    lifted-reveal-precise; lifted-conceal-precise;
    liftPreciseTy-arrow; slot-precise-variable-lift)
 

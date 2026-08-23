@@ -80,7 +80,7 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {Nᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
   → Value Nᴾ
   → (∀ i → i ≤ k →
-      CompiledRightUniversalBodyRelation {W = W}
+      CompiledRightUniversalTestRelation {W = W}
         p Bᴾ Bᴵ i Γ Nᴾ Mᴵ)
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -98,6 +98,29 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
         (liftPreciseTerm W≼W′ (Λ Nᴾ)))
 right-universals-related-from-body {W = W} {p = p} =
   Proof.right-universals-related-from-body {W = W} {p = p}
+
+right-universal-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Mᴵ ⦂ Bᴵ
+  → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Mᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+right-universal-compatible-from-body =
+  Proof.right-universal-compatible-from-body
 
 right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
@@ -118,7 +141,7 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
   → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
       ⊢² Vᴾ ⊑ Vᴵ ∶ p
   → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
-  → (∀ i → i ≤ k → CompiledRightUniversalBodyRelation
+  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation
       (right-universal-body-imprecision {W = W} p)
       Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
   → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ

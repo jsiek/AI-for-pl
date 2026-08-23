@@ -14,9 +14,13 @@ The port currently contains:
   embeddings of both endpoints into the center;
 - `LR-narrow/Atoms.agda`: mode-indexed `X⊑X` and `X⊑★` semantic entries
   carrying downward closure and endpoint typing;
-- `LR-narrow/World.agda`: paired and precise-only fresh world extensions,
+- `LR-narrow/World.agda`: paired and either-sided fresh world extensions,
   fresh semantic entries, and lifting through futures;
-- `LR-narrow/Computation.agda`: the three directed DGG observations;
+- `LR-narrow/Computation.agda`: the three directed DGG observations and the
+  target-evaluation phase interface;
+- `LR-narrow/TargetEvaluation.agda`: realization of target store changes as
+  imprecise-only future worlds and conversion of a completed target phase to
+  related computations;
 - `LR-narrow/LogicalRelation.agda`: a step-indexed LR indexed canonically by
   `Imprecision`, plus `ValueNarrowing` obtained by reindexing through the
   derivation isomorphism;
@@ -47,9 +51,9 @@ The port currently contains:
   paired store allocation, retaining an explicit factorization of successful
   result worlds through the allocated world;
 - `LR-narrow/Universal.agda`: body-driven compatibility for
-  `CTI.Λ⊑Λ²`, plus the value-target subcase of `CTI.Λ⊑²`, using the
-  extension selected by each universal observation and closing below a type
-  binder;
+  `CTI.Λ⊑Λ²` and phase-aware compatibility for general `CTI.Λ⊑²`, using
+  the extension selected by each universal observation and closing below a
+  type binder;
 - `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
   positive-index `∀⊑∀` value at the pre-allocation type application.
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
@@ -282,15 +286,22 @@ allocation.
 For one-sided universal introduction, the `liftWorldLeft X⊑★` body
 derivation is now transported to the LR's `instᵐ` body relation, and
 `right-universals-related-from-body` constructs the index-zero head test as
-well as every positive-index observation.  The complete compatibility theorem
-is checked when the imprecise endpoint is already a value.  The remaining
-general `CTI.Λ⊑²` case must evaluate that endpoint before choosing the
-precise-only test extension.  Choosing the test first gives the wrong world
-order (a proof-only precise allocation followed by program target
-allocations), so it cannot be reused as the returned world of the outer term.
-The imprecise-only future constructor is the required first half of that phase
-factorization; a target-evaluation package that places the precise test after
-the returned target world is still required.
+well as every positive-index observation for the value-target subcase.  The
+general clause now separates that bind-first test relation from
+`CompiledRightUniversalBodyRelation`, which observes the target computation
+first.  `TargetComputationPhase` records a target return, relates every
+observed returned value in a world whose path realizes exactly its store
+changes, and excludes target blame.  Its returned `FutureValueRelation`
+therefore chooses every precise-only universal test after the target program's
+allocations.  `right-universal-compatible-from-body` converts this phase to
+the complete open-term compatibility theorem for general `CTI.Λ⊑²`.
+
+The remaining fundamental-property obligation is to construct that
+phase-aware body premise from the recursive CTI premise.  The old
+bind-first relation remains named `CompiledRightUniversalTestRelation` so the
+already checked value-target proof and its test construction stay explicit.
+The subsequent one-sided universal case is `CTI.Λ⊑²-smart-comma`, whose
+smart source-world lift additionally requires the corresponding LR transport.
 
 Structural universal elimination now handles `CTI.•⊑•²`. Evaluation is
 split into the operator and pre-allocation application phases, the universal

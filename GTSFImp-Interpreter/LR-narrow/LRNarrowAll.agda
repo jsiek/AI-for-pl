@@ -7,6 +7,7 @@ module LR-narrow.LRNarrowAll where
 
 open import LR-narrow.World public
 open import LR-narrow.Computation public
+open import LR-narrow.TargetEvaluation public
 open import LR-narrow.LogicalRelation public
 open import LR-narrow.DynamicPayload public
 open import LR-narrow.Closure public

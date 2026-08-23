@@ -35,6 +35,7 @@ open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
 open import LR-narrow.TermRelation
 open import LR-narrow.ImmediateReturn
+open import LR-narrow.TargetEvaluation
 open import LR-narrow.TypeBetaExpansion using
   (paired-step; precise-step; related-type-beta-expand;
    related-precise-type-beta-expand)
@@ -313,7 +314,7 @@ right-universal-test-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
     {Nᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
   → Value Nᴾ
-  → CompiledRightUniversalBodyRelation p Bᴾ Bᴵ j Γ Nᴾ Mᴵ
+  → CompiledRightUniversalTestRelation p Bᴾ Bᴵ j Γ Nᴾ Mᴵ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
@@ -471,7 +472,7 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {Nᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
   → Value Nᴾ
   → (∀ i → i ≤ k →
-      CompiledRightUniversalBodyRelation {W = W}
+      CompiledRightUniversalTestRelation {W = W}
         p Bᴾ Bᴵ i Γ Nᴾ Mᴵ)
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
       {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -520,6 +521,35 @@ right-universals-related-result-transport : ∀
       Bᴾ Bᴵ k Vᴵ Vᴾ
 right-universals-related-result-transport refl p related = related
 
+right-universal-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Mᴵ ⦂ Bᴵ
+  → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Mᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+right-universal-compatible-from-body {W = W} nonvar occurs liftΓ
+    vVᴾ target⊢ body q body-phase W′ W≼W′ γ =
+  target-phase-computations-related precise-closed-value
+    (body-phase W′ W≼W′ γ)
+  where
+  precise-closed-value = close-preserves-value
+    (preciseClosingSubstitution γ)
+    (ClosureProof.precise-value-future W≼W′ (Λ vVᴾ))
+
 right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     {Γ : CTI.CtxImp (forgetWorld W)}
@@ -539,7 +569,7 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
   → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
       ⊢² Vᴾ ⊑ Vᴵ ∶ p
   → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
-  → (∀ i → i ≤ k → CompiledRightUniversalBodyRelation
+  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation
       (right-universal-body-imprecision {W = W} p)
       Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
   → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ

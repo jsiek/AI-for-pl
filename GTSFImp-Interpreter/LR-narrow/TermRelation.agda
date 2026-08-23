@@ -5,7 +5,7 @@ module LR-narrow.TermRelation where
 --   * Quantifies over future worlds and closes both endpoint terms with
 --     related typed substitutions before applying the computation relation.
 --   * Bridges the LR world and context to the cast-term imprecision relation.
---   * Defines paired and precise-only semantic universal body premises.
+--   * Separates bind-first universal tests from target-first phase premises.
 --   * Contains no compatibility proof.
 
 open import Data.List using ([]; _∷_)
@@ -15,7 +15,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong₂)
 
 open import Types
 open import Conversion using (〖_,_↑_〗)
-open import CastTerms using (Term; _↑_)
+open import CastTerms using (Term; Λ_; _↑_)
 import TermCtx as T
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
@@ -169,7 +169,28 @@ CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
           (liftPreciseBodyTerm W≼W′ Nᴾ)
           ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ liftPreciseBody W≼W′ Bᴾ 〗)
 
-CompiledRightUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+CompiledRightUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+  → (q : `∀ Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → ℕ
+  → (Γ : CTI.CtxImp (forgetWorld W))
+  → Term (suc Δᴾ)
+  → Term Δᴵ
+  → Set₁
+CompiledRightUniversalBodyRelation {W = W} q k Γ Nᴾ Mᴵ =
+  ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′ (compiledContext W Γ)))
+  → TargetComputationPhase W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ q)) k
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ Mᴵ))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (Λ Nᴾ)))
+
+CompiledRightUniversalTestRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
   → (p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
   → (Bᴾ : Ty (suc Δᴾ))
@@ -179,7 +200,7 @@ CompiledRightUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → Term (suc Δᴾ)
   → Term Δᴵ
   → Set₁
-CompiledRightUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
+CompiledRightUniversalTestRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
   ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
     (W≼W′ : Future W W′)
     (γ : RelatedClosingSubstitutions W′ k

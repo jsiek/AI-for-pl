@@ -4,7 +4,9 @@ module LR-narrow.Computation where
 --   * Defines bounded observations of evaluations in distinct LR endpoints.
 --   * Permits the precise computation to blame after an imprecise return.
 --   * Joins successful endpoint returns in one three-context future world.
+--   * Packages target-only store changes and completed target phases.
 
+open import Data.Empty using (⊥)
 open import Data.Nat using (ℕ; _∸_; _≤_)
 open import Data.Product using (_×_; Σ-syntax)
 open import Data.Sum using (_⊎_)
@@ -90,3 +92,49 @@ record ComputationsRelated {Δᴾ Δᴵ Δᶜ}
       → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
 
 open ComputationsRelated public
+
+------------------------------------------------------------------------
+-- Target-only store changes as future-world extensions
+------------------------------------------------------------------------
+
+record TargetChangesFuture {Δᴾ Δᴵ Δᶜ Δᴵ′}
+    (W : World Δᴾ Δᴵ Δᶜ)
+    (changes : StoreChanges Δᴵ Δᴵ′) : Set₁ where
+  constructor target-future
+  field
+    centerCtx : TyCtx
+    targetWorld : World Δᴾ Δᴵ′ centerCtx
+    targetFuture : Future W targetWorld
+    targetStoreAction : impreciseStore (core targetWorld) ≡
+      changes ▶ˢ impreciseStore (core W)
+    preciseStoreUnchanged : preciseStore (core targetWorld) ≡
+      preciseStore (core W)
+    targetTermAction : ∀ M → changes ▶ᵀ M ≡
+      liftImpreciseTerm targetFuture M
+    preciseTermUnchanged : ∀ M →
+      liftPreciseTerm targetFuture M ≡ M
+
+open TargetChangesFuture public
+
+record TargetComputationPhase {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) (R : IndexedValueRelation W) (k : ℕ)
+    (Mᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  field
+    targetReturn : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+      interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+
+    targetReturnedRelated : ∀ {gas} {result : E.EvalResult Mᴵ}
+      → interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+      → (j : ℕ)
+      → j ≤ k
+      → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
+          R (targetWorld phase) (targetFuture phase) j
+            (E.term result)
+            (liftPreciseTerm (targetFuture phase) Vᴾ)
+
+    targetBlameImpossible : ∀ {gas}
+      → gas ≤ k
+      → BlamesFrom (impreciseStore (core W)) gas Mᴵ
+      → ⊥
+
+open TargetComputationPhase public

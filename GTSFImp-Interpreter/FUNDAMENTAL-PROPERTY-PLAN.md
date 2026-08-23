@@ -233,6 +233,43 @@ recursion that is well founded by (index, derivation) but passes through
 the composition continuation; converting it into a checked well-founded
 recursion is follow-up work.
 
+Step 6b progress (2026-08-23, checked): the structural reveal and conceal
+at a paired slot are proved for the fragment `RevealSafe` — the atomic
+imprecision forms closed under function imprecision, plus the two bottom
+forms — by strong induction on the step index, with no `TERMINATING`
+pragma (`proof/LR-narrow/RevealStructural.agda`, 1.4k lines). Supporting
+files: `proof/LR-narrow/RevealLifting.agda` (renaming and future-lifting
+laws for `〖_,_↑_〗`, `makeConceal` and `replaceTy`; paired slots and
+their transport along futures), `proof/LR-narrow/ConcealAtomic.agda`
+(atomic conceal cases, including sealing at the slot's own variable),
+`proof/LR-narrow/ArgumentFrame.agda` (the `V · □` frame and closed
+application of related function values to related argument
+computations). The function case decomposes `(V ↑ (c ↦↑ d)) · U` by
+`β-reveal-⇒` into the concealed argument, the application, and the
+revealed result, composed through the argument and reveal frames; the
+conceal case is dual through `β-conceal-⇒`.
+
+Finding C (open, blocks the universal case of 6b): `∀⊑∀` is deliberately
+excluded from `RevealSafe`. The reveal of a universal value reduces by
+`β-reveal-∀`:
+
+    (V ↑ `∀↑ c) ⦂∀ B [ A ] —→[ bind A ]
+      (⇑V ⦂∀ (bind A ▷ᵇ C) [ ＇ 0 ]) ↑ c ↑ 〖 0 , ⇑A ↑ B 〗
+
+so the source value is instantiated at the *freshly allocated name*
+`＇ 0` inside a world that has already allocated `A`, i.e. two
+allocations. The LR's universal clause instead supplies the behaviour of
+`liftV ⦂∀ liftC [ R ]` — one allocation, at the representation type `R`
+chosen by the observer. Bridging the two needs a re-instantiation
+property ("instantiating at a name bound to `R` behaves like
+instantiating at `R`") that the LR does not have. Recommended repair:
+restate `UniversalsRelated` (and `RightUniversalsRelated`) to quantify
+over a *fresh paired slot in a future world* rather than over a
+representation pair `(Rᴾ, Rᴵ, r)`. That is the same data the canonical
+slots already record, it matches the reduction exactly, and it removes
+the mismatch at the cost of re-proving the universal introduction and
+elimination compatibilities against the new clause.
+
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal
 introduction constructors by recursion.
